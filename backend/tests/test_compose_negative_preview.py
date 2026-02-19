@@ -65,6 +65,29 @@ class TestComposeNegativePreviewStyleOnly:
         # Embeddings merged into style_profile source
         assert "easynegative" in sources[0]["tokens"]
 
+    @patch("services.style_context.resolve_style_context")
+    def test_style_dedup_within_source(self, mock_ctx):
+        """default_negative and embeddings sharing same token should not duplicate."""
+        mock_ctx.return_value = _make_style_ctx(
+            default_negative="EasyNegative",
+            negative_embeddings=["EasyNegative", "badhandv4"],
+        )
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = None
+
+        result, sources = _compose_negative_preview(
+            storyboard_id=1,
+            character_id=None,
+            character_b_id=None,
+            scene_negative="",
+            db=db,
+        )
+
+        assert len(sources) == 1
+        easy_count = sources[0]["tokens"].count("EasyNegative")
+        assert easy_count == 1, f"Expected 1 'EasyNegative' in tokens, got {easy_count}"
+        assert "badhandv4" in sources[0]["tokens"]
+
 
 class TestComposeNegativePreviewCharacterOnly:
     """Character negative sources only."""

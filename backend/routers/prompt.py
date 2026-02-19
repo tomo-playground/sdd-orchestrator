@@ -91,10 +91,15 @@ def _compose_negative_preview(
     ctx = resolve_style_context(storyboard_id, db) if storyboard_id else None
     if ctx:
         style_tokens: list[str] = []
-        if ctx.default_negative:
-            style_tokens.extend(split_prompt_tokens(ctx.default_negative))
-        if ctx.negative_embeddings:
-            style_tokens.extend(ctx.negative_embeddings)
+        seen_lower: set[str] = set()
+        for token_source in [
+            split_prompt_tokens(ctx.default_negative) if ctx.default_negative else [],
+            ctx.negative_embeddings or [],
+        ]:
+            for t in token_source:
+                if t.lower() not in seen_lower:
+                    seen_lower.add(t.lower())
+                    style_tokens.append(t)
         if style_tokens:
             sources.append({"source": "style_profile", "tokens": style_tokens})
             parts.append(", ".join(style_tokens))
