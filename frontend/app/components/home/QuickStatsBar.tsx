@@ -11,7 +11,7 @@ type Stats = {
   music: number;
 };
 
-export default function QuickStatsWidget() {
+export default function QuickStatsBar() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,34 +81,32 @@ export default function QuickStatsWidget() {
     },
   ];
 
-  return (
-    <div>
-      <h3 className="mb-3 text-sm font-semibold text-zinc-900">Your Library</h3>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center rounded-xl border border-zinc-200 bg-white p-4">
+        <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+      </div>
+    );
+  }
 
-      {loading ? (
-        <div className="flex items-center justify-center rounded-xl border border-zinc-200 bg-white p-6">
-          <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-2">
-          {statItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => router.push(item.href)}
-                className="group flex flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-white p-3 transition hover:border-zinc-300 hover:shadow-sm"
-              >
-                <div className="flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-zinc-500" />
-                  <span className="text-xl font-bold text-zinc-900">{item.count}</span>
-                </div>
-                <span className="text-xs font-medium text-zinc-600">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+  return (
+    <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      {statItems.map((item) => {
+        const Icon = item.icon;
+        return (
+          <button
+            key={item.id}
+            onClick={() => router.push(item.href)}
+            className="group flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-left transition hover:border-zinc-300 hover:shadow-sm"
+          >
+            <Icon className="h-4 w-4 shrink-0 text-zinc-400 transition group-hover:text-zinc-600" />
+            <div className="min-w-0">
+              <span className="text-base font-bold text-zinc-900">{item.count}</span>
+              <span className="ml-1.5 text-xs text-zinc-500">{item.label}</span>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }

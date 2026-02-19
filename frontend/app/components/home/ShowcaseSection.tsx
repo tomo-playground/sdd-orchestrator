@@ -16,24 +16,21 @@ export default function ShowcaseSection() {
   const [selectedVideo, setSelectedVideo] = useState<RenderHistoryItem | null>(null);
   const [expanded, setExpanded] = useState(false);
 
-  const fetchHistory = useCallback(
-    async (limit: number) => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/video/render-history?offset=0&limit=${limit}`);
-        if (!res.ok) throw new Error("fetch failed");
-        const data = await res.json();
-        setItems(Array.isArray(data.items) ? data.items : []);
-        setTotal(data.total);
-      } catch {
-        setItems([]);
-        setTotal(0);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  const fetchHistory = useCallback(async (limit: number) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/video/render-history?offset=0&limit=${limit}`);
+      if (!res.ok) throw new Error("fetch failed");
+      const data = await res.json();
+      setItems(Array.isArray(data.items) ? data.items : []);
+      setTotal(data.total);
+    } catch {
+      setItems([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchHistory(DISPLAY_COUNT);
@@ -103,9 +100,9 @@ export default function ShowcaseSection() {
             <button
               key={video.id}
               onClick={() => setSelectedVideo(video)}
-              className="group w-[140px] shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-white text-left transition hover:border-zinc-300 hover:shadow-md"
+              className="group w-[180px] shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-white text-left transition hover:border-zinc-300 hover:shadow-md"
             >
-              <div className="relative h-[220px] w-full overflow-hidden bg-zinc-900">
+              <div className="relative h-[280px] w-full overflow-hidden bg-zinc-900">
                 <video src={video.url} className="h-full w-full object-cover" muted playsInline />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition group-hover:opacity-100">
                   <div className="rounded-full bg-white/90 p-2">
@@ -117,7 +114,9 @@ export default function ShowcaseSection() {
                   <p className="truncate text-xs font-medium text-white">
                     {video.storyboard_title || video.project_name || "Video"}
                   </p>
-                  <p className="text-[11px] text-white/70">{formatRelativeTime(video.created_at)}</p>
+                  <p className="text-[11px] text-white/70">
+                    {formatRelativeTime(video.created_at)}
+                  </p>
                 </div>
               </div>
             </button>
@@ -140,7 +139,9 @@ export default function ShowcaseSection() {
                 <h2 className="text-2xl font-bold text-zinc-900">
                   {selectedVideo.storyboard_title || selectedVideo.project_name || "Video"}
                 </h2>
-                <p className="mt-1 text-sm text-zinc-500">{formatRelativeTime(selectedVideo.created_at)}</p>
+                <p className="mt-1 text-sm text-zinc-500">
+                  {formatRelativeTime(selectedVideo.created_at)}
+                </p>
               </div>
               <button
                 onClick={() => setSelectedVideo(null)}
