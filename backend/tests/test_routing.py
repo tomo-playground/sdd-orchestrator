@@ -15,7 +15,6 @@ from services.agent.routing import (
     route_after_writer,
 )
 
-
 # -- 기본 라우팅 테스트 --
 
 
@@ -81,7 +80,7 @@ def test_route_after_director_revise_script():
 
 def test_route_after_director_max_revisions():
     """Director revision 최대 횟수 도달 시 human_gate로 강제 통과."""
-    state = {"director_decision": "revise_cinematographer", "director_revision_count": 1}
+    state = {"director_decision": "revise_cinematographer", "director_revision_count": 3}
     assert route_after_director(state) == "human_gate"
 
 

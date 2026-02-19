@@ -140,7 +140,7 @@ def test_route_checkpoint_revise_max():
     """revise 최대 횟수 도달 → cinematographer 강제 통과."""
     state = {
         "director_checkpoint_decision": "revise",
-        "director_checkpoint_revision_count": 1,  # >= MAX(1)
+        "director_checkpoint_revision_count": 3,  # >= MAX(3)
     }
     assert route_after_director_checkpoint(state) == "cinematographer"
 
