@@ -16,6 +16,7 @@
 
 ### 최근 작업
 
+- **Video Gallery 개선** (02-19): 타입별 8개 표시 + View All 가로 스크롤 레이아웃, scrollbar-hide 유틸리티 추가
 - **홈 화면 개선** (02-19): Continue Working 가로 스크롤 컴팩트 카드, Video Gallery 타입별(Full/Post) 2줄 레이아웃으로 전환. 동적 그룹핑으로 타입 확장 대응
 - **Research 되돌리기 분기** (02-19): 품질 점수(overall < 0.3) 기반 research 재실행 라우팅 구현. `route_after_research()` 조건부 엣지, `RESEARCH_MAX_RETRIES` 가드레일. Tier 2 완료. 6개 테스트 추가
 - **Research 품질 점수 체계** (02-19): 규칙 기반 4-메트릭(tool_success_rate, information_density, source_diversity, topic_coverage) 산출, quality_gate에 통합. 26개 테스트 추가
