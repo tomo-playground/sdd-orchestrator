@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from config import SD_LORAS_URL, logger
 from database import get_db
 from schemas import (
+    NegativePreviewRequest,
+    NegativePreviewResponse,
     PromptComposeRequest,
     PromptComposeResponse,
     PromptRewriteRequest,
@@ -129,6 +131,34 @@ def _compose_negative_preview(
 
     final = normalize_negative_prompt(", ".join(parts)) if parts else ""
     return final, sources
+
+
+@router.post("/negative-preview", response_model=NegativePreviewResponse)
+async def negative_preview(
+    request: NegativePreviewRequest,
+    db: Session = Depends(get_db),
+):
+    """Compose negative prompt preview (lightweight, no character_id required).
+
+    Returns composed negative from StyleProfile + Character + Scene sources.
+    """
+    scene_negative = ""
+    if request.scene_id:
+        from models.scene import Scene
+
+        scene_row = db.query(Scene).filter(Scene.id == request.scene_id).first()
+        if scene_row:
+            scene_negative = scene_row.negative_prompt or ""
+
+    neg_prompt, neg_sources = _compose_negative_preview(
+        storyboard_id=request.storyboard_id,
+        character_id=request.character_id,
+        character_b_id=request.character_b_id,
+        scene_negative=scene_negative,
+        db=db,
+    )
+
+    return {"negative_prompt": neg_prompt, "negative_sources": neg_sources}
 
 
 @router.post("/rewrite")

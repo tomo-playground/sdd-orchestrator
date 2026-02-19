@@ -700,6 +700,22 @@ class NegativeSource(BaseModel):
     tokens: list[str]
 
 
+class NegativePreviewRequest(BaseModel):
+    """Request for negative prompt preview (lightweight, no character_id required)."""
+
+    storyboard_id: int | None = None
+    character_id: int | None = None
+    character_b_id: int | None = None
+    scene_id: int | None = None
+
+
+class NegativePreviewResponse(BaseModel):
+    """Response from negative prompt preview."""
+
+    negative_prompt: str
+    negative_sources: list[NegativeSource]
+
+
 class PromptComposeResponse(BaseModel):
     """Response from prompt composition."""
 

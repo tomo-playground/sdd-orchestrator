@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Scene } from "../../types";
+import { API_BASE } from "../../constants";
 import { useContextStore } from "../../store/useContextStore";
 import useTagValidation from "../../hooks/useTagValidation";
 import CopyButton from "../ui/CopyButton";
@@ -46,6 +47,40 @@ export default function ScenePromptFields({
     setComposedNegative(negative);
     setNegativeSources(sources);
   }, []);
+
+  // Independent negative preview fetch (works even without characterId)
+  // Skip if characterId exists + image_prompt exists — compose API handles negative in that case
+  const composeHandlesNegative = !!selectedCharacterId && !!scene.image_prompt;
+  const negFetchRef = useRef<string>("");
+  useEffect(() => {
+    if (composeHandlesNegative) return;
+    const key = `${storyboardId}|${selectedCharacterId}|${scene.id}`;
+    if (key === negFetchRef.current) return;
+    if (!storyboardId && !selectedCharacterId) return;
+
+    negFetchRef.current = key;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/prompt/negative-preview`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            storyboard_id: storyboardId || undefined,
+            character_id: selectedCharacterId || undefined,
+            scene_id: scene.id || undefined,
+          }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setComposedNegative(data.negative_prompt ?? "");
+        setNegativeSources(data.negative_sources ?? []);
+      } catch {
+        // Silent fail — negative preview is optional
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [storyboardId, selectedCharacterId, scene.id, composeHandlesNegative]);
 
   // Tag validation
   const { validationResult, validateTags, autoReplaceTags, clearValidation } = useTagValidation();
