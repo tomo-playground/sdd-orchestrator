@@ -7,78 +7,121 @@
 시스템은 **V3 관계형 스키마** + **LangGraph Agentic Pipeline**을 채택하여, 여러 AI 에이전트가 자율적으로 협업하며 고품질 영상을 생성합니다.
 
 ```mermaid
-graph TD
+graph TB
     User([User])
 
-    subgraph Frontend ["Frontend (Next.js 16)"]
-        UI["Web UI (React 19)"]
-        Home["Home /"]
-        Studio["Studio /studio"]
-        Scripts["Scripts /scripts"]
-        Library["Library /library"]
-        Settings["Settings /settings"]
+    subgraph Frontend ["Frontend — Next.js 16 · React 19"]
+        direction TB
+        Pages["Pages: Home · Studio · Scripts · Library · Settings"]
+        Store["Zustand 4-Store\nContext · Storyboard · Render · UI"]
+        Hooks["25 Custom Hooks"]
+        Pages --- Store --- Hooks
     end
 
-    subgraph Backend ["Backend (FastAPI)"]
-        API["Main API Router"]
+    subgraph Backend ["Backend — FastAPI · Python 3.13"]
+        API["33 REST API Routers"]
 
-        subgraph Agent ["Agentic Pipeline (LangGraph)"]
-            Director["Director Agent"]
-            Writer["Writer Agent"]
-            Critic["Critic Agent"]
-            Research["Research Agent"]
-            Cinematographer["Cinematographer"]
-            Review["Review Agent"]
-            SoundDesigner["Sound Designer"]
-            TTSDesigner["TTS Designer"]
-            ConceptGate["Concept Gate"]
+        subgraph Pipeline ["Agentic Pipeline — LangGraph"]
+            direction LR
+            Nodes["15 Agent Nodes\nDirector · Writer · Critic\nResearch · Cinematographer\nReview · Sound · TTS ..."]
+            Tools["9 Gemini Tools\nResearch 5 + Cine 4"]
+            Nodes --- Tools
         end
 
-        subgraph Logic ["Core Logic"]
-            PromptEng["12-Layer Prompt Engine"]
-            GenImg["Image Generator"]
-            TTS["TTS Engine (Qwen3)"]
-            Renderer["Video Renderer (FFmpeg)"]
+        subgraph Services ["Core Services"]
+            direction LR
+            Prompt["12-Layer\nPrompt Engine"]
+            ImgGen["Image\nGenerator"]
+            TTS["Qwen3-TTS\nLocal MPS"]
+            Render["FFmpeg\nRenderer"]
         end
 
-        subgraph Data ["Data & Assets"]
-            DB[("PostgreSQL")]
-            Storage[("MinIO/S3")]
-            LangFuse["LangFuse (Observability)"]
-        end
+        API --> Pipeline
+        API --> Services
     end
 
-    subgraph External ["External Services"]
-        SD_API["Stable Diffusion WebUI API"]
-        Gemini_API["Google Gemini API"]
+    subgraph Infra ["Infrastructure"]
+        direction LR
+        DB[("PostgreSQL\n26 Models · Alembic")]
+        S3[("MinIO / S3\nMedia Storage")]
+        LangFuse["LangFuse\nObservability"]
     end
 
-    User -->|Topic/Control| UI
-    UI <-->|JSON/HTTP/SSE| API
+    subgraph External ["External APIs"]
+        direction LR
+        SD["SD WebUI\nSDXL · ControlNet\nIP-Adapter"]
+        Gemini["Google Gemini\nFunction Calling"]
+    end
 
-    API --> Director
-    Director <--> Writer
-    Director <--> Critic
-    Director <--> Gemini_API
-    Research <--> Gemini_API
-    Cinematographer <--> Gemini_API
+    User <-->|"HTTP · SSE"| Frontend
+    Frontend <-->|"REST JSON"| API
 
-    API --> PromptEng
-    PromptEng --> GenImg
-    GenImg <--> SD_API
+    Pipeline <-->|"Function Calling"| Gemini
+    ImgGen <-->|"txt2img · img2img"| SD
+    Render -->|"Upload"| S3
+    Pipeline -.->|"Trace"| LangFuse
+    API <--> DB
+    Services <--> DB
+```
 
-    API --> TTS
-    API --> Renderer
+### Agentic Pipeline Flow
 
-    Renderer --> Storage
-    Agent --> LangFuse
+15개 에이전트 노드가 **Quick** (6노드) / **Full** (15노드) 모드로 자율 협업합니다. Director가 ReAct Loop로 품질을 관리하고, Critic이 실시간 토론으로 컨셉을 정제합니다.
+
+```mermaid
+flowchart TD
+    START(("START"))
+
+    START -->|"Full"| research["Research\n5 Tools · Memory Store"]
+    START -->|"Quick"| writer
+
+    research --> critic["Critic\n3-Architect Debate"]
+    critic --> concept_gate{"Concept\nGate"}
+    concept_gate -->|"Select"| writer["Writer\nPlanning + Script Gen"]
+    concept_gate -.->|"Regenerate"| critic
+
+    writer --> review["Review\nRule + Gemini + NarrativeScore"]
+
+    review -->|"Pass · Full"| cine["Cinematographer\n4 Tools · Danbooru Tags"]
+    review -->|"Pass · Quick"| finalize
+    review -->|"Fail"| revise["Revise\nAuto-fix + Re-gen"]
+    revise --> review
+
+    cine --> fan{"Fan-out"}
+    fan --> tts["TTS Designer"]
+    fan --> sound["Sound Designer"]
+    fan --> copyright["Copyright Reviewer"]
+
+    tts --> director
+    sound --> director
+    copyright --> director["Director\nReAct 3-Step · Message Protocol"]
+
+    director -->|"Approve"| human{"Human\nGate"}
+    director -.->|"Revise Script"| revise
+    director -.->|"Revise Production"| cine
+
+    human -->|"Approve"| finalize["Finalize\nMerge Results"]
+    human -.->|"Revise"| revise
+
+    finalize -->|"Full"| explain["Explain\nCreative Reasoning"]
+    finalize -->|"Quick"| learn
+    explain --> learn["Learn\nMemory Update"]
+    learn --> DONE(("END"))
+
+    style START fill:#4CAF50,color:#fff
+    style DONE fill:#4CAF50,color:#fff
+    style fan fill:#FF9800,color:#fff
+    style concept_gate fill:#2196F3,color:#fff
+    style human fill:#2196F3,color:#fff
+    style director fill:#9C27B0,color:#fff
 ```
 
 ## 주요 기능
 
-1.  **Agentic AI Pipeline**: Director, Writer, Critic, Research, Cinematographer, SoundDesigner 등 15개 에이전트 노드가 LangGraph 기반으로 자율 협업하며 스토리보드를 창작합니다.
-    - ReAct Loop (자율 의사결정), Tool-Calling (Gemini Function Calling), Agent Communication Protocol
+1.  **Agentic AI Pipeline**: Director, Writer, Critic, Research, Cinematographer 등 15개 에이전트 노드가 LangGraph 기반으로 자율 협업하며 스토리보드를 창작합니다.
+    - ReAct Loop (자율 의사결정), Tool-Calling (Gemini Function Calling 9개), Agent Communication Protocol
     - Concept Gate (자동 품질 게이트), Graceful Degradation (에이전트 장애 내성)
+    - 3-Architect Debate (Critic), NarrativeScore (서사 품질 정량 평가)
 2.  **12-Layer Prompt Engine**: 캐릭터의 고유 속성(Trait)과 임시 속성(Outfit)을 분리하여 일관성 있는 이미지를 생성합니다.
 3.  **지능형 검수**:
     - **WD14 Tagger**: 생성 이미지와 프롬프트 키워드 일치 여부를 정량 검증합니다.
@@ -93,13 +136,13 @@ graph TD
 | Backend | FastAPI, Python 3.13 |
 | Frontend | Next.js 16, React 19, Zustand 5, Tailwind CSS 4 |
 | DB | PostgreSQL, SQLAlchemy, Alembic |
-| AI Pipeline | LangGraph, Google Gemini (`google-genai`) |
+| AI Pipeline | LangGraph, Google Gemini (`google-genai`), 25 Jinja2 Templates |
 | Image Gen | Stable Diffusion WebUI (SDXL), ControlNet, IP-Adapter |
 | TTS | Qwen3-TTS (로컬 MPS) |
 | Video | FFmpeg (Ken Burns, 13종 전환 효과) |
 | Storage | MinIO/S3 |
 | Observability | LangFuse (셀프호스팅) |
-| Testing | pytest (Backend), Vitest (Frontend), Playwright (VRT) |
+| Testing | pytest (Backend), Vitest (Frontend), Playwright (VRT/E2E) |
 
 ## Project Structure
 
@@ -109,17 +152,17 @@ backend/
 ├── routers/          # 도메인별 API 엔드포인트 (33개 라우터)
 ├── services/
 │   ├── agent/        # LangGraph Agentic Pipeline
-│   │   ├── nodes/    #   Director, Writer, Critic, Research 등 15개 노드
-│   │   ├── tools/    #   Gemini Function Calling 도구
-│   │   ├── state.py  #   Graph State
-│   │   └── routing.py#   조건부 라우팅
+│   │   ├── nodes/    #   15개 에이전트 노드 + 4개 유틸리티 모듈
+│   │   ├── tools/    #   Gemini Function Calling 9개 도구
+│   │   ├── state.py  #   ScriptState (Graph State)
+│   │   └── routing.py#   8개 조건부 라우팅 함수
 │   ├── video/        # FFmpeg 렌더링 파이프라인
 │   ├── prompt/       # 12-Layer Prompt Builder
 │   ├── keywords/     # 태그 시스템 (캐시, 검증, 분류)
 │   ├── storyboard/   # 스토리보드 CRUD, Scene Builder
 │   └── characters/   # 캐릭터 관리, LoRA 연동
-├── models/           # SQLAlchemy ORM (V3 Relational Schema)
-├── templates/        # Jinja2 (스토리보드 생성 + 리뷰 프롬프트 4개)
+├── models/           # SQLAlchemy ORM 26개 모델 (V3 Relational Schema)
+├── templates/        # Jinja2 25개 템플릿 (스토리보드 + 에이전트)
 ├── schemas.py        # Pydantic Request/Response 모델
 ├── config.py         # 환경변수/상수 SSOT
 └── main.py           # FastAPI 앱 + Lifespan
@@ -137,12 +180,12 @@ frontend/
 │   │   ├── characters/    # Characters (캐릭터 관리)
 │   │   ├── library/       # Library (에셋 통합 관리)
 │   │   ├── settings/      # Settings (프로젝트/시스템 설정)
-│   │   └── ...            # voices, music, backgrounds, lab, pipeline-demo 등
-│   ├── components/        # 공유 UI 컴포넌트
-│   ├── hooks/             # Custom Hooks (38개)
-│   ├── store/             # Zustand 4-Store (UI/Context/Storyboard/Render)
+│   │   └── ...            # voices, music, backgrounds, lab, pipeline-demo
+│   ├── components/        # 공유 UI 컴포넌트 (20개 디렉토리)
+│   ├── hooks/             # Custom Hooks (25개)
+│   ├── store/             # Zustand 4-Store (Context/Storyboard/Render/UI)
 │   └── utils/             # 유틸리티
-├── tests/                 # Vitest 단위 테스트 + Playwright VRT
+├── tests/                 # Vitest 단위 테스트 + Playwright VRT/E2E
 └── package.json
 ```
 
@@ -172,10 +215,10 @@ npm run dev
 
 ## Testing
 
-- **Backend**: `cd backend && uv run pytest` (1,805개 테스트)
-- **Frontend**: `cd frontend && npm test` (339개 테스트)
+- **Backend**: `cd backend && uv run pytest` (1,862개 테스트)
+- **Frontend**: `cd frontend && npm test` (352개 테스트)
 - **VRT**: `cd frontend && npm run test:vrt`
-- **총 2,144개 테스트**
+- **총 2,214개 테스트**
 
 ## Documentation
 
@@ -188,6 +231,7 @@ npm run dev
 - [System Overview](docs/03_engineering/architecture/SYSTEM_OVERVIEW.md)
 - [DB Schema](docs/03_engineering/architecture/DB_SCHEMA.md)
 - [API Reference](docs/03_engineering/api/REST_API.md)
+- [Test Cases](docs/03_engineering/testing/TEST_CASES.md)
 - [Render Pipeline](docs/03_engineering/backend/RENDER_PIPELINE.md)
 
 ### Design & Operations
