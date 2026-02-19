@@ -13,6 +13,7 @@ from config import GEMINI_TEXT_MODEL, gemini_client, logger, template_env
 from config_pipelines import LANGGRAPH_PLANNING_ENABLED
 from database import get_db_session
 from schemas import StoryboardRequest
+from services.agent.llm_models import WriterPlanOutput
 from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState, WriterPlan, extract_selected_concept
 from services.script.gemini_generator import generate_script
@@ -79,16 +80,17 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
             )
             llm.record(response)
 
-        # JSON 파싱
+        # JSON 파싱 + Pydantic 검증
         text = (response.text or "").strip()
         if text.startswith("```"):
             text = text.split("\n", 1)[-1].rsplit("```", 1)[0]
         data = json.loads(text)
 
+        parsed = WriterPlanOutput.model_validate(data)
         plan: WriterPlan = {
-            "hook_strategy": data.get("hook_strategy", ""),
-            "emotional_arc": data.get("emotional_arc", []),
-            "scene_distribution": data.get("scene_distribution", {}),
+            "hook_strategy": parsed.hook_strategy,
+            "emotional_arc": parsed.emotional_arc,
+            "scene_distribution": parsed.scene_distribution,
         }
 
         logger.info(

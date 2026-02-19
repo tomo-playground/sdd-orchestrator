@@ -6,19 +6,17 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from services.agent.nodes.director_checkpoint import (
-    _validate_checkpoint,
-    director_checkpoint_node,
-)
+from services.agent.llm_models import DirectorCheckpointOutput, validate_with_model
+from services.agent.nodes.director_checkpoint import director_checkpoint_node
 from services.agent.routing import route_after_director_checkpoint
 
-# -- Validation 테스트 --
+# -- Validation 테스트 (Pydantic 모델 사용) --
 
 
 def test_validate_checkpoint_proceed():
     """proceed 응답 검증 통과."""
     result = {"decision": "proceed", "score": 0.85, "reasoning": "품질 충분"}
-    assert _validate_checkpoint(result)["ok"] is True
+    assert validate_with_model(DirectorCheckpointOutput, result).ok is True
 
 
 def test_validate_checkpoint_revise():
@@ -29,26 +27,26 @@ def test_validate_checkpoint_revise():
         "reasoning": "Hook이 약함",
         "feedback": "첫 씬 Hook 강화 필요",
     }
-    assert _validate_checkpoint(result)["ok"] is True
+    assert validate_with_model(DirectorCheckpointOutput, result).ok is True
 
 
 def test_validate_checkpoint_revise_missing_feedback():
     """revise인데 feedback 없으면 실패."""
     result = {"decision": "revise", "score": 0.5, "reasoning": "Hook이 약함"}
-    qc = _validate_checkpoint(result)
-    assert qc["ok"] is False
-    assert "feedback" in qc["issues"][0]
+    qc = validate_with_model(DirectorCheckpointOutput, result)
+    assert qc.ok is False
+    assert any("feedback" in issue for issue in qc.issues)
 
 
 def test_validate_checkpoint_invalid_decision():
     """잘못된 decision 값 실패."""
     result = {"decision": "invalid", "score": 0.5, "reasoning": "이유"}
-    assert _validate_checkpoint(result)["ok"] is False
+    assert validate_with_model(DirectorCheckpointOutput, result).ok is False
 
 
 def test_validate_checkpoint_not_dict():
     """dict가 아닌 응답은 실패."""
-    assert _validate_checkpoint("string")["ok"] is False
+    assert validate_with_model(DirectorCheckpointOutput, "string").ok is False
 
 
 # -- 노드 테스트 --
@@ -220,13 +218,13 @@ async def test_checkpoint_proceed_no_revision_feedback(mock_run):
 def test_validate_checkpoint_missing_score():
     """score 없으면 실패."""
     result = {"decision": "proceed", "reasoning": "이유"}
-    assert _validate_checkpoint(result)["ok"] is False
+    assert validate_with_model(DirectorCheckpointOutput, result).ok is False
 
 
 def test_validate_checkpoint_missing_reasoning():
     """reasoning 없으면 실패."""
     result = {"decision": "proceed", "score": 0.8}
-    assert _validate_checkpoint(result)["ok"] is False
+    assert validate_with_model(DirectorCheckpointOutput, result).ok is False
 
 
 # -- Score-Based Decision Override 테스트 --

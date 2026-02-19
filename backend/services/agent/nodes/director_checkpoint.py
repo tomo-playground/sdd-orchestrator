@@ -12,30 +12,10 @@ from config_pipelines import (
     LANGGRAPH_CHECKPOINT_LOW_THRESHOLD,
     LANGGRAPH_CHECKPOINT_THRESHOLD,
 )
+from services.agent.llm_models import DirectorCheckpointOutput, validate_with_model
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState
-
-
-def _validate_checkpoint(result: dict | list | str) -> dict:
-    """Checkpoint 응답 검증: decision, score, reasoning 필수."""
-    if not isinstance(result, dict):
-        return {"ok": False, "issues": ["Response must be a JSON object"], "checks": {}}
-
-    missing = []
-    decision = result.get("decision")
-    if decision not in ("proceed", "revise"):
-        missing.append("decision (proceed|revise)")
-    if result.get("score") is None:
-        missing.append("score")
-    if not result.get("reasoning"):
-        missing.append("reasoning")
-    if decision == "revise" and not result.get("feedback"):
-        missing.append("feedback (revise 시 필수)")
-
-    if missing:
-        return {"ok": False, "issues": [f"Missing: {', '.join(missing)}"], "checks": {}}
-    return {"ok": True, "issues": [], "checks": {}}
 
 
 def _apply_score_override(decision: str, score: float, feedback: str) -> tuple[str, str]:
@@ -81,29 +61,27 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
             result = await run_production_step(
                 template_name="creative/director_checkpoint.j2",
                 template_vars=template_vars,
-                validate_fn=_validate_checkpoint,
+                validate_fn=lambda data: validate_with_model(DirectorCheckpointOutput, data).model_dump(),
                 extract_key="",
                 step_name="director_checkpoint",
             )
 
-        raw_decision = result.get("decision", "proceed")
-        score = float(result.get("score", 0.0))
-        feedback = result.get("feedback", "")
+        cp = DirectorCheckpointOutput.model_validate(result)
         count = state.get("director_checkpoint_revision_count", 0)
 
-        decision, feedback = _apply_score_override(raw_decision, score, feedback)
+        decision, feedback = _apply_score_override(cp.decision, cp.score, cp.feedback)
 
         logger.info(
             "[LangGraph] Director Checkpoint: decision=%s%s, score=%.2f, revision=%d",
             decision,
-            f" (overridden from {raw_decision})" if decision != raw_decision else "",
-            score,
+            f" (overridden from {cp.decision})" if decision != cp.decision else "",
+            cp.score,
             count,
         )
 
         update: dict = {
             "director_checkpoint_decision": decision,
-            "director_checkpoint_score": score,
+            "director_checkpoint_score": cp.score,
             "director_checkpoint_revision_count": count + (1 if decision == "revise" else 0),
         }
         if decision == "revise":

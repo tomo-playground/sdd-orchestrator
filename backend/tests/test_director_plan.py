@@ -6,9 +6,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from services.agent.nodes.director_plan import _validate_director_plan, director_plan_node
+from services.agent.llm_models import DirectorPlanOutput, validate_with_model
+from services.agent.nodes.director_plan import director_plan_node
 
-# -- Validation 테스트 --
+# -- Validation 테스트 (Pydantic 모델 사용) --
 
 
 def test_validate_plan_success():
@@ -20,21 +21,21 @@ def test_validate_plan_success():
         "risk_areas": ["자극적 소재 주의"],
         "style_direction": "밝고 경쾌한 톤",
     }
-    assert _validate_director_plan(result)["ok"] is True
+    assert validate_with_model(DirectorPlanOutput, result).ok is True
 
 
 def test_validate_plan_missing_fields():
     """필수 필드 누락 시 실패."""
     result = {"creative_goal": "목표만 있음"}
-    qc = _validate_director_plan(result)
-    assert qc["ok"] is False
-    assert "target_emotion" in qc["issues"][0]
+    qc = validate_with_model(DirectorPlanOutput, result)
+    assert qc.ok is False
+    assert len(qc.issues) > 0
 
 
 def test_validate_plan_not_dict():
     """dict가 아닌 응답은 실패."""
-    assert _validate_director_plan("not a dict")["ok"] is False
-    assert _validate_director_plan([])["ok"] is False
+    assert validate_with_model(DirectorPlanOutput, "not a dict").ok is False
+    assert validate_with_model(DirectorPlanOutput, []).ok is False
 
 
 def test_validate_plan_empty_criteria():
@@ -44,7 +45,7 @@ def test_validate_plan_empty_criteria():
         "target_emotion": "감정",
         "quality_criteria": [],
     }
-    assert _validate_director_plan(result)["ok"] is False
+    assert validate_with_model(DirectorPlanOutput, result).ok is False
 
 
 # -- 노드 테스트 --
@@ -111,7 +112,7 @@ def test_validate_plan_criteria_not_list():
         "target_emotion": "감정",
         "quality_criteria": "문자열",
     }
-    assert _validate_director_plan(result)["ok"] is False
+    assert validate_with_model(DirectorPlanOutput, result).ok is False
 
 
 def test_validate_plan_missing_creative_goal():
@@ -121,16 +122,14 @@ def test_validate_plan_missing_creative_goal():
         "target_emotion": "감정",
         "quality_criteria": ["기준"],
     }
-    assert _validate_director_plan(result)["ok"] is False
+    assert validate_with_model(DirectorPlanOutput, result).ok is False
 
 
 def test_validate_plan_all_missing():
     """모든 필수 필드 누락 시 모두 감지."""
-    qc = _validate_director_plan({})
-    assert qc["ok"] is False
-    assert "creative_goal" in qc["issues"][0]
-    assert "target_emotion" in qc["issues"][0]
-    assert "quality_criteria" in qc["issues"][0]
+    qc = validate_with_model(DirectorPlanOutput, {})
+    assert qc.ok is False
+    assert len(qc.issues) > 0
 
 
 # -- Director Plan이 후속 노드에 전파되는지 검증 --

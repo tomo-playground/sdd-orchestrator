@@ -17,6 +17,7 @@ from config import (
     template_env,
 )
 from config_pipelines import LANGGRAPH_NARRATIVE_THRESHOLD
+from services.agent.llm_models import NarrativeScoreOutput
 from services.agent.observability import trace_llm_call
 from services.agent.state import NarrativeScore, ReviewResult, ScriptState
 from services.storyboard.helpers import calculate_min_scenes
@@ -172,18 +173,17 @@ def _parse_narrative_score(raw: str) -> NarrativeScore | None:
     except (json.JSONDecodeError, ValueError):
         return None
 
-    scores: dict[str, float] = {}
-    for key in _NARRATIVE_WEIGHTS:
-        val = data.get(key)
-        if isinstance(val, int | float):
-            scores[key] = float(max(0.0, min(1.0, val)))
+    try:
+        parsed = NarrativeScoreOutput.model_validate(data)
+    except (ValueError, TypeError):
+        return None
 
-    feedback = data.get("feedback")
+    scores = {k: getattr(parsed, k) for k in _NARRATIVE_WEIGHTS}
     overall = round(sum(scores.get(k, 0.0) * w for k, w in _NARRATIVE_WEIGHTS.items()), 3)
 
     score = NarrativeScore(**scores, overall=overall)
-    if isinstance(feedback, str):
-        score["feedback"] = feedback
+    if parsed.feedback:
+        score["feedback"] = parsed.feedback
     return score
 
 

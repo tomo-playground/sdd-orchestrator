@@ -7,28 +7,10 @@ quality_criteria 등을 설정한다. 후속 노드(Writer, Checkpoint, Director
 from __future__ import annotations
 
 from config import logger
+from services.agent.llm_models import DirectorPlanOutput, validate_with_model
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState
-
-
-def _validate_director_plan(result: dict | list | str) -> dict:
-    """Director Plan 응답 검증: creative_goal, target_emotion, quality_criteria 필수."""
-    if not isinstance(result, dict):
-        return {"ok": False, "issues": ["Response must be a JSON object"], "checks": {}}
-
-    missing = []
-    if not result.get("creative_goal"):
-        missing.append("creative_goal")
-    if not result.get("target_emotion"):
-        missing.append("target_emotion")
-    criteria = result.get("quality_criteria")
-    if not criteria or not isinstance(criteria, list) or len(criteria) < 1:
-        missing.append("quality_criteria (list, 1개 이상)")
-
-    if missing:
-        return {"ok": False, "issues": [f"Missing: {', '.join(missing)}"], "checks": {}}
-    return {"ok": True, "issues": [], "checks": {}}
 
 
 async def director_plan_node(state: ScriptState, config=None) -> dict:
@@ -48,7 +30,7 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
             result = await run_production_step(
                 template_name="creative/director_plan.j2",
                 template_vars=template_vars,
-                validate_fn=_validate_director_plan,
+                validate_fn=lambda data: validate_with_model(DirectorPlanOutput, data).model_dump(),
                 extract_key="",
                 step_name="director_plan",
             )

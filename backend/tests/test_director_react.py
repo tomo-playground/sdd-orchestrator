@@ -10,7 +10,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from services.agent.nodes.director import _validate_director_react, director_node
+from services.agent.llm_models import DirectorReActOutput, validate_with_model
+from services.agent.nodes.director import director_node
 from services.agent.state import ScriptState
 
 
@@ -32,9 +33,9 @@ def test_validate_director_react_success():
         "think": "시각과 음성 디자인이 잘 맞는다.",
         "act": "approve",
     }
-    validation = _validate_director_react(result)
-    assert validation["ok"] is True
-    assert not validation["issues"]
+    validation = validate_with_model(DirectorReActOutput, result)
+    assert validation.ok is True
+    assert not validation.issues
 
 
 def test_validate_director_react_missing_fields():
@@ -43,9 +44,9 @@ def test_validate_director_react_missing_fields():
         "observe": "관찰 내용",
         # think, act 누락
     }
-    validation = _validate_director_react(result)
-    assert validation["ok"] is False
-    assert "Missing required fields" in validation["issues"][0]
+    validation = validate_with_model(DirectorReActOutput, result)
+    assert validation.ok is False
+    assert len(validation.issues) > 0
 
 
 def test_validate_director_react_invalid_action():
@@ -55,9 +56,9 @@ def test_validate_director_react_invalid_action():
         "think": "사고",
         "act": "invalid_action",
     }
-    validation = _validate_director_react(result)
-    assert validation["ok"] is False
-    assert "Invalid act decision" in validation["issues"][0]
+    validation = validate_with_model(DirectorReActOutput, result)
+    assert validation.ok is False
+    assert len(validation.issues) > 0
 
 
 def test_validate_director_react_revise_without_feedback():
@@ -68,9 +69,9 @@ def test_validate_director_react_revise_without_feedback():
         "act": "revise_cinematographer",
         # feedback 누락
     }
-    validation = _validate_director_react(result)
-    assert validation["ok"] is False
-    assert "feedback required" in validation["issues"][0]
+    validation = validate_with_model(DirectorReActOutput, result)
+    assert validation.ok is False
+    assert any("feedback" in issue for issue in validation.issues)
 
 
 def test_validate_director_react_revise_with_feedback():
@@ -81,8 +82,8 @@ def test_validate_director_react_revise_with_feedback():
         "act": "revise_tts",
         "feedback": "음성을 더 밝게 변경",
     }
-    validation = _validate_director_react(result)
-    assert validation["ok"] is True
+    validation = validate_with_model(DirectorReActOutput, result)
+    assert validation.ok is True
 
 
 @pytest.mark.asyncio

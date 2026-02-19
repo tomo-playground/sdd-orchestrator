@@ -10,6 +10,7 @@ from langchain_core.runnables import RunnableConfig
 
 from config import logger
 from config_pipelines import LANGGRAPH_MAX_REACT_STEPS
+from services.agent.llm_models import DirectorReActOutput, validate_with_model
 from services.agent.messages import AgentMessage
 from services.agent.nodes._agent_messaging import (
     extract_target_agent_from_decision,
@@ -18,44 +19,6 @@ from services.agent.nodes._agent_messaging import (
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.observability import trace_llm_call
 from services.agent.state import DirectorReActStep, ScriptState
-
-_VALID_DECISIONS = frozenset(
-    {
-        "approve",
-        "revise_cinematographer",
-        "revise_tts",
-        "revise_sound",
-        "revise_script",
-    }
-)
-
-
-def _validate_director_react(result: str | dict | list) -> dict:
-    """Director ReAct 응답을 검증한다.
-
-    Phase 10-A: observe, think, act 필드가 모두 존재하는지 확인.
-    """
-    if not isinstance(result, dict):
-        return {"ok": False, "issues": ["Response must be a JSON object"], "checks": {}}
-
-    required_fields = ["observe", "think", "act"]
-    missing = [field for field in required_fields if field not in result]
-    if missing:
-        return {
-            "ok": False,
-            "issues": [f"Missing required fields: {', '.join(missing)}"],
-            "checks": {},
-        }
-
-    act = result.get("act", "")
-    if act not in _VALID_DECISIONS:
-        return {"ok": False, "issues": [f"Invalid act decision: {act}"], "checks": {}}
-
-    # feedback는 revise_* 시에만 필수
-    if act != "approve" and not result.get("feedback"):
-        return {"ok": False, "issues": ["feedback required for revise_* actions"], "checks": {}}
-
-    return {"ok": True, "issues": [], "checks": {}}
 
 
 async def director_node(state: ScriptState, config: RunnableConfig | None = None) -> dict:
@@ -85,6 +48,7 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
 
     final_decision = "approve"
     final_feedback = ""
+    _react_validate_fn = lambda data: validate_with_model(DirectorReActOutput, data).model_dump()
 
     for step_num in range(1, LANGGRAPH_MAX_REACT_STEPS + 1):
         logger.info("[LangGraph] Director ReAct Step %d/%d", step_num, LANGGRAPH_MAX_REACT_STEPS)
@@ -105,49 +69,48 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
                 result = await run_production_step(
                     template_name="creative/director.j2",
                     template_vars=template_vars,
-                    validate_fn=_validate_director_react,
-                    extract_key="",  # 빈 문자열 = 전체 dict 검증
+                    validate_fn=_react_validate_fn,
+                    extract_key="",
                     step_name=f"director_step_{step_num}",
                 )
+
+            react = DirectorReActOutput.model_validate(result)
 
             # ReAct 스텝 기록
             react_step: DirectorReActStep = {
                 "step": step_num,
-                "observe": result.get("observe", ""),
-                "think": result.get("think", ""),
-                "act": result.get("act", "approve"),
+                "observe": react.observe,
+                "think": react.think,
+                "act": react.act,
             }
             reasoning_steps.append(react_step)
-
-            decision = result.get("act", "approve")
-            feedback = result.get("feedback", "")
 
             logger.info(
                 "[LangGraph] Director Step %d: act=%s, observe_len=%d, think_len=%d",
                 step_num,
-                decision,
-                len(react_step["observe"]),
-                len(react_step["think"]),
+                react.act,
+                len(react.observe),
+                len(react.think),
             )
 
             # approve 판정 시 즉시 종료
-            if decision == "approve":
+            if react.act == "approve":
                 final_decision = "approve"
-                final_feedback = feedback or "모든 Production 요소가 조화롭게 작동합니다."
+                final_feedback = react.feedback or "모든 Production 요소가 조화롭게 작동합니다."
                 logger.info("[LangGraph] Director 승인 (Step %d)", step_num)
                 break
 
             # revise_* 판정 시 타겟 에이전트에 메시지 전송 (Phase 10-C-2)
-            final_decision = decision
-            final_feedback = feedback
+            final_decision = react.act
+            final_feedback = react.feedback
 
-            target_agent = extract_target_agent_from_decision(decision)
+            target_agent = extract_target_agent_from_decision(react.act)
             if target_agent:
                 # Director → Agent 메시지 생성
                 feedback_msg: AgentMessage = {
                     "sender": "director",
                     "recipient": target_agent,
-                    "content": feedback,
+                    "content": react.feedback,
                     "message_type": "feedback",
                 }
                 messages.append(feedback_msg)
@@ -155,7 +118,7 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
                 logger.info(
                     "[LangGraph] Director → %s: %s (Step %d)",
                     target_agent,
-                    feedback[:50],
+                    react.feedback[:50],
                     step_num,
                 )
 
@@ -187,11 +150,9 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
                         step_num,
                         e,
                     )
-                    # 실패 시에도 계속 진행 (다음 스텝에서 재시도 가능)
 
         except Exception as e:
             logger.warning("[LangGraph] Director ReAct Step %d 실패: %s", step_num, e)
-            # 에러 시 해당 스텝까지의 reasoning은 보존하고 approve fallback
             final_decision = "approve"
             final_feedback = f"Director Step {step_num} 평가 실패, 자동 승인: {e}"
             break
@@ -214,5 +175,5 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
         "director_feedback": final_feedback,
         "director_revision_count": count + 1,
         "director_reasoning_steps": reasoning_steps,
-        "agent_messages": messages,  # Phase 10-C-2: 에이전트 간 메시지 로그
+        "agent_messages": messages,
     }
