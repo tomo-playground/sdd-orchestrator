@@ -5,8 +5,10 @@ import { CheckCircle, Edit3 } from "lucide-react";
 import Button from "../ui/Button";
 import FeedbackPresetButtons from "./FeedbackPresetButtons";
 import NarrativeScoreChart from "./NarrativeScoreChart";
+import DirectorPlanBanner from "./snapshot/DirectorPlanBanner";
+import ProductionSnapshotSummary from "./snapshot/ProductionSnapshotSummary";
 import type { SceneItem } from "../../hooks/useScriptEditor";
-import type { FeedbackPreset, NarrativeScore } from "../../types";
+import type { FeedbackPreset, NarrativeScore, ProductionSnapshot } from "../../types";
 
 function isNarrativeScore(v: unknown): v is NarrativeScore {
   return typeof v === "object" && v !== null && "overall" in v;
@@ -19,6 +21,7 @@ type Props = {
   feedbackPresets?: FeedbackPreset[];
   onPresetRevise?: (presetId: string, params?: Record<string, string>) => void;
   reviewResult?: Record<string, unknown>;
+  productionSnapshot?: ProductionSnapshot | null;
 };
 
 export default function ReviewApprovalPanel({
@@ -28,6 +31,7 @@ export default function ReviewApprovalPanel({
   feedbackPresets,
   onPresetRevise,
   reviewResult,
+  productionSnapshot,
 }: Props) {
   const [feedback, setFeedback] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
@@ -44,6 +48,16 @@ export default function ReviewApprovalPanel({
         <div className="mb-3">
           <NarrativeScoreChart score={reviewResult.narrative_score} compact />
         </div>
+      )}
+
+      {/* Director Plan 배너 */}
+      {productionSnapshot?.director_plan && (
+        <DirectorPlanBanner plan={productionSnapshot.director_plan} />
+      )}
+
+      {/* Production 결과 요약 */}
+      {productionSnapshot && Object.keys(productionSnapshot).length > 0 && (
+        <ProductionSnapshotSummary snapshot={productionSnapshot} />
       )}
 
       {/* Scene preview */}

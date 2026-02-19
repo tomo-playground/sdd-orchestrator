@@ -754,6 +754,25 @@ export type PipelineStep = {
   nodes?: string[];
 };
 
+export type ProductionSnapshot = {
+  director_plan?: {
+    creative_goal?: string;
+    target_emotion?: string;
+    quality_criteria?: string[];
+    style_direction?: string;
+  };
+  cinematographer?: Record<string, unknown>;
+  tts_designer?: Record<string, unknown>;
+  sound_designer?: Record<string, unknown>;
+  copyright_reviewer?: Record<string, unknown>;
+  director?: {
+    decision?: string;
+    feedback?: string;
+    reasoning_steps?: Array<Record<string, unknown>>;
+  };
+  agent_messages?: Array<Record<string, unknown>>;
+};
+
 export type ScriptStreamEvent = {
   node: string;
   label: string;
@@ -772,6 +791,7 @@ export type ScriptStreamEvent = {
     // human_gate
     review_result?: Record<string, unknown>;
     scene_reasoning?: Record<string, unknown>[];
+    production_snapshot?: ProductionSnapshot;
   };
   error?: string;
   thread_id?: string;

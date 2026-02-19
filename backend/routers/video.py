@@ -78,15 +78,17 @@ def _save_render_history(db: Session, request: VideoRequest, result: dict) -> in
 
 
 @router.post("/create", response_model=VideoCreateResponse)
-async def create_video(request: VideoRequest, db: Session = Depends(get_db)):
+async def create_video(request: VideoRequest):
     logger.info("[Video Req] %s", scrub_payload(request.model_dump()))
-    # Release DB connection before FFmpeg rendering (30-120s)
-    db.close()
     res = await create_video_task(request)
-    # DB auto-reconnects for render history save
-    rh_id = _save_render_history(db, request, res)
-    if rh_id is not None:
-        res["render_history_id"] = rh_id
+    # Use a fresh session for render history (build may take 30-120s)
+    db = SessionLocal()
+    try:
+        rh_id = _save_render_history(db, request, res)
+        if rh_id is not None:
+            res["render_history_id"] = rh_id
+    finally:
+        db.close()
     return res
 
 
@@ -113,16 +115,20 @@ async def _run_video_build(task_id: str, request: VideoRequest) -> None:
         builder.set_progress(task)
         result = await builder.build()
 
-        # Save render history in a new DB session
+        # Save render history BEFORE sending COMPLETED
         db = SessionLocal()
         try:
             rh_id = _save_render_history(db, request, result)
             if rh_id is not None:
                 result["render_history_id"] = rh_id
-                task.result = result
-                task.notify()
         finally:
             db.close()
+
+        # NOW send COMPLETED with full result (including render_history_id)
+        task.stage = RenderStage.COMPLETED
+        task.result = result
+        task.percent = 100
+        task.notify()
     except Exception as exc:
         logger.exception("[Video Async] Build failed for task %s", task_id)
         if task.stage != RenderStage.FAILED:

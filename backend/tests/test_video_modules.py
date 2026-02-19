@@ -93,7 +93,7 @@ class TestUploadResult:
             video_path=Path("/tmp/test_video.mp4"),
             project_id=10, group_id=20, storyboard_id=1, file_name="test_video.mp4",
         )
-        mock_db.commit.assert_called_once()
+        # register_asset() handles commit internally — no extra commit expected
         mock_db.close.assert_called_once()
         assert result == {"video_url": "https://cdn.example.com/test.mp4", "media_asset_id": 42}
 

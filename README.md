@@ -13,7 +13,7 @@ graph TB
     subgraph Frontend ["Frontend — Next.js 16 · React 19"]
         direction TB
         Pages["Pages: Home · Studio · Scripts · Library · Settings"]
-        Store["Zustand 4-Store\nContext · Storyboard · Render · UI"]
+        Store["Zustand 4-Store<br/>Context · Storyboard · Render · UI"]
         Hooks["25 Custom Hooks"]
         Pages --- Store --- Hooks
     end
@@ -23,17 +23,17 @@ graph TB
 
         subgraph Pipeline ["Agentic Pipeline — LangGraph"]
             direction LR
-            Nodes["17 Agent Nodes\nDirector Plan · Checkpoint · Writer\nCritic · Research · Cinematographer\nReview · Sound · TTS ..."]
-            Tools["9 Gemini Tools\nResearch 5 + Cine 4"]
+            Nodes["17 Agent Nodes<br/>Director Plan · Checkpoint · Writer<br/>Critic · Research · Cinematographer<br/>Review · Sound · TTS ..."]
+            Tools["9 Gemini Tools<br/>Research 5 + Cine 4"]
             Nodes --- Tools
         end
 
         subgraph Services ["Core Services"]
             direction LR
-            Prompt["12-Layer\nPrompt Engine"]
-            ImgGen["Image\nGenerator"]
-            TTS["Qwen3-TTS\nLocal MPS"]
-            Render["FFmpeg\nRenderer"]
+            Prompt["12-Layer<br/>Prompt Engine"]
+            ImgGen["Image<br/>Generator"]
+            TTS["Qwen3-TTS<br/>Local MPS"]
+            Render["FFmpeg<br/>Renderer"]
         end
 
         API --> Pipeline
@@ -42,15 +42,15 @@ graph TB
 
     subgraph Infra ["Infrastructure"]
         direction LR
-        DB[("PostgreSQL\n26 Models · Alembic")]
-        S3[("MinIO / S3\nMedia Storage")]
-        LangFuse["LangFuse\nObservability"]
+        DB[("PostgreSQL<br/>26 Models · Alembic")]
+        S3[("MinIO / S3<br/>Media Storage")]
+        LangFuse["LangFuse<br/>Observability"]
     end
 
     subgraph External ["External APIs"]
         direction LR
-        SD["SD WebUI\nSDXL · ControlNet\nIP-Adapter"]
-        Gemini["Google Gemini\nFunction Calling"]
+        SD["SD WebUI<br/>SDXL · ControlNet<br/>IP-Adapter"]
+        Gemini["Google Gemini<br/>Function Calling"]
     end
 
     User <-->|"HTTP · SSE"| Frontend
@@ -72,23 +72,23 @@ graph TB
 flowchart TD
     START(("START"))
 
-    START -->|"Full"| director_plan["Director Plan\n목표 수립"]
+    START -->|"Full"| director_plan["Director Plan<br/>목표 수립"]
     START -->|"Quick"| writer
 
-    director_plan --> research["Research\n5 Tools · Memory Store"]
-    research --> critic["Critic\n3-Architect Debate"]
-    critic --> concept_gate{"Concept\nGate"}
-    concept_gate -->|"Select"| writer["Writer\nPlanning + Script Gen"]
+    director_plan --> research["Research<br/>5 Tools · Memory Store"]
+    research --> critic["Critic<br/>3-Architect Debate"]
+    critic --> concept_gate{"Concept<br/>Gate"}
+    concept_gate -->|"Select"| writer["Writer<br/>Planning + Script Gen"]
     concept_gate -.->|"Regenerate"| critic
 
-    writer --> review["Review\nRule + Gemini + NarrativeScore"]
+    writer --> review["Review<br/>Rule + Gemini + NarrativeScore"]
 
-    review -->|"Pass · Full"| checkpoint["Director Checkpoint\nScore-Based Gate"]
-    review -->|"Pass · Quick"| finalize
-    review -->|"Fail"| revise["Revise\nHistory 누적 + Re-gen"]
+    review -->|"Pass · Full"| checkpoint["Director Checkpoint<br/>Score-Based Gate"]
+    review -->|"Pass · Quick"| finalize["Finalize<br/>Merge Results"]
+    review -->|"Fail"| revise["Revise<br/>History 누적 + Re-gen"]
     revise --> review
 
-    checkpoint -->|"Proceed (≥0.7)"| cine["Cinematographer\n4 Tools · Danbooru Tags"]
+    checkpoint -->|"Proceed (≥0.7)"| cine["Cinematographer<br/>4 Tools · Danbooru Tags"]
     checkpoint -.->|"Revise (<0.7)"| writer
 
     cine --> fan{"Fan-out"}
@@ -98,18 +98,18 @@ flowchart TD
 
     tts --> director
     sound --> director
-    copyright --> director["Director\nReAct 3-Step · Message Protocol"]
+    copyright --> director["Director<br/>ReAct 3-Step · Message Protocol"]
 
-    director -->|"Approve"| human{"Human\nGate"}
+    director -->|"Approve"| human{"Human<br/>Gate"}
     director -.->|"Revise Script"| revise
     director -.->|"Revise Production"| cine
 
-    human -->|"Approve"| finalize["Finalize\nMerge Results"]
+    human -->|"Approve"| finalize
     human -.->|"Revise"| revise
 
-    finalize -->|"Full"| explain["Explain\nCreative Reasoning"]
+    finalize -->|"Full"| explain["Explain<br/>Creative Reasoning"]
     finalize -->|"Quick"| learn
-    explain --> learn["Learn\nMemory Update"]
+    explain --> learn["Learn<br/>Memory Update"]
     learn --> DONE(("END"))
 
     style START fill:#4CAF50,color:#fff

@@ -16,6 +16,9 @@
 
 ### 최근 작업
 
+- **Gemini Safety Preflight Check** (02-19): 파이프라인 시작 전 topic+description으로 Gemini 경량 호출하여 PROHIBITED_CONTENT 사전 감지. 차단 시 즉시 SSE error 반환으로 10-30초 대기 제거. 6개 테스트 추가
+- **렌더링 영상 새로고침 소실 버그 수정** (02-19): COMPLETED SSE 발송 시점을 render_history 저장 이후로 이동, upload.py 이중 커밋 제거, sync path 세션 분리. Storyboard 436 데이터 보정 완료
+- **문서 일괄 동기화** (02-19): 17-노드 파이프라인 기준 6개 문서 업데이트 (README, PRD, SYSTEM_OVERVIEW, AGENTIC_PIPELINE, AGENT_SPEC, ROADMAP)
 - **Pipeline 고도화: Revision History + Score-Based Routing** (02-19): revision_history 누적으로 동일 실패 반복 방지, score 기반 decision override 안전망, 리비전 최대 횟수 1→3 상향. 7개 테스트 추가
 - **Tag Effectiveness 안정화** (02-19): identity 태그(hair_color, eye_color) death spiral 방지 — effectiveness 필터 면제. WD14 미지원 태그(anime_style 등) UNMATCHABLE 등록
 - **Agentic Pipeline 안정화** (02-19): Tool-Calling 텍스트 유실 수정, Writer safety retry, Research HTML 파싱 개선, Checkpoint→Writer 라우팅 수정. 33개 테스트 추가
@@ -54,19 +57,19 @@
 
 ```mermaid
 graph LR
-    P5["Phase 5\nHigh-End\nProduction"] --> P6["Phase 6\nCharacter &\nPrompt v2.0"]
-    P6 --> P70["Phase 7-0\nControlNet\n& Pose"]
-    P70 --> P71["Phase 7-1\nUX & Feature\nExpansion"]
-    P71 --> P72["Phase 7-2\nProject/Group\nSystem"]
-    P72 --> P73["Phase 7-3\nProduction\nWorkspace"]
-    P73 --> P74["Phase 7-4\nStudio +\nScript Vertical"]
-    P74 --> P75["Phase 7-5\nUX/UI\nQuality"]
-    P75 --> P76["Phase 7-6\nScene UX\nEnhancement"]
-    P76 --> P7Y["Phase 7-Y\nLayout\nStandardization"]
-    P7Y --> P7Z["Phase 7-Z\nHome &\nPublish UX"]
-    P7Z --> P9["Phase 9\nAgentic\nPipeline"]
-    P9 --> P10["Phase 10\nTrue Agentic\nArchitecture"]
-    P10 --> P8["Phase 8\nMulti-Style\n(Future)"]
+    P5["Phase 5<br/>High-End<br/>Production"] --> P6["Phase 6<br/>Character &<br/>Prompt v2.0"]
+    P6 --> P70["Phase 7-0<br/>ControlNet<br/>& Pose"]
+    P70 --> P71["Phase 7-1<br/>UX & Feature<br/>Expansion"]
+    P71 --> P72["Phase 7-2<br/>Project/Group<br/>System"]
+    P72 --> P73["Phase 7-3<br/>Production<br/>Workspace"]
+    P73 --> P74["Phase 7-4<br/>Studio +<br/>Script Vertical"]
+    P74 --> P75["Phase 7-5<br/>UX/UI<br/>Quality"]
+    P75 --> P76["Phase 7-6<br/>Scene UX<br/>Enhancement"]
+    P76 --> P7Y["Phase 7-Y<br/>Layout<br/>Standardization"]
+    P7Y --> P7Z["Phase 7-Z<br/>Home &<br/>Publish UX"]
+    P7Z --> P9["Phase 9<br/>Agentic<br/>Pipeline"]
+    P9 --> P10["Phase 10<br/>True Agentic<br/>Architecture"]
+    P10 --> P8["Phase 8<br/>Multi-Style<br/>(Future)"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff

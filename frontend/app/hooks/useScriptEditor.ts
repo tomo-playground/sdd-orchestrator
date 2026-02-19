@@ -10,6 +10,7 @@ import type {
   ConceptCandidate,
   FeedbackPreset,
   PipelineStep,
+  ProductionSnapshot,
   Scene,
   ScriptStreamEvent,
 } from "../types";
@@ -64,6 +65,7 @@ export type ScriptEditorState = {
   pipelineSteps: PipelineStep[];
   nodeResults: Record<string, Record<string, unknown>>;
   traceId: string | null;
+  productionSnapshot: ProductionSnapshot | null;
 };
 
 export type ResumeOptions = {
@@ -234,6 +236,7 @@ async function processSSEStream(
           isGenerating: false,
           isWaitingForInput: true,
           nodeResults: nr,
+          productionSnapshot: event.result?.production_snapshot ?? null,
         };
       }
 
@@ -305,6 +308,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     pipelineSteps: [],
     nodeResults: {},
     traceId: null,
+    productionSnapshot: null,
   });
 
   // Ref to latest state for unmount sync (avoids stale closure)
@@ -735,6 +739,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       pipelineSteps: [],
       nodeResults: {},
       traceId: null,
+      productionSnapshot: null,
     });
   }, []);
 

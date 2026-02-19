@@ -181,13 +181,8 @@ class VideoBuilder:
             await self._encode_async()
             self._report(RenderStage.UPLOAD)
             result = self._upload_result()
-
-            if self._progress:
-                self._progress.stage = RenderStage.COMPLETED
-                self._progress.result = result
-                self._progress.percent = 100
-                self._progress.notify()
-
+            # COMPLETED is sent by the caller (_run_video_build / create_video)
+            # AFTER render_history is saved, so the SSE event includes rh_id.
             return result
         except Exception as exc:
             if self._progress:

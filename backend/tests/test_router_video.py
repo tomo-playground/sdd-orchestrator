@@ -34,8 +34,9 @@ class TestCreateVideo:
         db_session.add_all([sb, asset])
         db_session.commit()
         sb_id = sb.id
+        asset_id = asset.id
 
-        mock_task.return_value = {"video_url": "/videos/result.mp4", "media_asset_id": asset.id, "ok": True}
+        mock_task.return_value = {"video_url": "/videos/result.mp4", "media_asset_id": asset_id, "ok": True}
 
         request_data = {
             "scenes": [
@@ -44,14 +45,18 @@ class TestCreateVideo:
             "storyboard_id": sb_id,
             "layout_style": "post",
         }
-        response = client.post("/video/create", json=request_data)
+        # Wrap db_session so endpoint's db.close() doesn't kill the test session
+        mock_sl = MagicMock(return_value=db_session)
+        db_session.close = lambda: None  # no-op for test
+        with patch("routers.video.SessionLocal", mock_sl):
+            response = client.post("/video/create", json=request_data)
         assert response.status_code == 200
 
         # Verify render_history row was created
         rows = db_session.query(RenderHistory).filter(RenderHistory.storyboard_id == sb_id).all()
         assert len(rows) == 1
         assert rows[0].label == "post"
-        assert rows[0].media_asset_id == asset.id
+        assert rows[0].media_asset_id == asset_id
 
     @patch("routers.video.create_video_task", new_callable=AsyncMock)
     def test_create_video_appends_render_history(self, mock_task, client: TestClient, db_session):
@@ -83,7 +88,10 @@ class TestCreateVideo:
             "storyboard_id": sb_id,
             "layout_style": "full",
         }
-        response = client.post("/video/create", json=request_data)
+        mock_sl = MagicMock(return_value=db_session)
+        db_session.close = lambda: None  # no-op for test
+        with patch("routers.video.SessionLocal", mock_sl):
+            response = client.post("/video/create", json=request_data)
         assert response.status_code == 200
 
         rows = db_session.query(RenderHistory).filter(RenderHistory.storyboard_id == sb_id).all()

@@ -201,6 +201,30 @@ def _build_node_payload(
     return payload
 
 
+def _build_production_snapshot(vals: dict) -> dict:
+    """Graph state에서 Production 스냅샷을 추출한다."""
+    snapshot: dict = {}
+    if plan := vals.get("director_plan"):
+        snapshot["director_plan"] = plan
+    if cinema := vals.get("cinematographer_result"):
+        snapshot["cinematographer"] = cinema
+    if tts := vals.get("tts_designer_result"):
+        snapshot["tts_designer"] = tts
+    if sound := vals.get("sound_designer_result"):
+        snapshot["sound_designer"] = sound
+    if cr := vals.get("copyright_reviewer_result"):
+        snapshot["copyright_reviewer"] = cr
+    if vals.get("director_decision"):
+        snapshot["director"] = {
+            "decision": vals.get("director_decision"),
+            "feedback": vals.get("director_feedback"),
+            "reasoning_steps": vals.get("director_reasoning_steps"),
+        }
+    if msgs := vals.get("agent_messages"):
+        snapshot["agent_messages"] = msgs
+    return snapshot
+
+
 async def _read_interrupt_state(graph, config: dict) -> tuple[str, dict]:  # noqa: ANN001
     """GraphInterrupt 후 checkpoint에서 interrupt 노드와 데이터를 읽는다."""
     try:
@@ -226,11 +250,55 @@ async def _read_interrupt_state(graph, config: dict) -> tuple[str, dict]:  # noq
             ]:
                 if vals.get(key):
                     result[out_key] = vals[key]
+            ps = _build_production_snapshot(vals)
+            if ps:
+                result["production_snapshot"] = ps
 
         return interrupt_node, result
     except Exception:
         logger.warning("[SSE] Failed to read checkpoint for interrupt")
         return "unknown", {}
+
+
+async def _preflight_safety_check(topic: str, description: str) -> str | None:
+    """주제의 안전성을 사전 검증한다. 차단 시 에러 메시지, 통과 시 None."""
+    from google.genai import types  # noqa: PLC0415
+
+    from config import GEMINI_TEXT_MODEL, gemini_client  # noqa: PLC0415
+
+    if not gemini_client:
+        return None
+
+    prompt = f"이 주제를 한 문장으로 요약하세요: {topic}"
+    if description:
+        prompt += f"\n설명: {description[:200]}"
+
+    safety = [
+        types.SafetySetting(category=c, threshold=types.HarmBlockThreshold.BLOCK_NONE)
+        for c in [
+            types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+            types.HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
+        ]
+    ]
+    cfg = types.GenerateContentConfig(safety_settings=safety, max_output_tokens=10)
+    try:
+        res = await gemini_client.aio.models.generate_content(
+            model=GEMINI_TEXT_MODEL,
+            contents=prompt,
+            config=cfg,
+        )
+        if res.prompt_feedback and res.prompt_feedback.block_reason:
+            return str(res.prompt_feedback.block_reason)
+        if not res.text and res.candidates and res.candidates[0].finish_reason:
+            reason = str(res.candidates[0].finish_reason)
+            if "SAFETY" in reason.upper() or "PROHIBITED" in reason.upper():
+                return reason
+    except Exception:
+        pass  # preflight 실패는 무시 — 본 파이프라인에서 재감지
+    return None
 
 
 async def _stream_graph_events(
@@ -244,6 +312,24 @@ async def _stream_graph_events(
 
     graph = await get_compiled_graph()
     char_ids: list[int | None] = [None, None]
+
+    # Safety preflight — 초기 생성 요청(topic 포함 dict)일 때만 실행
+    if isinstance(graph_input, dict) and graph_input.get("topic"):
+        blocked = await _preflight_safety_check(
+            graph_input["topic"],
+            graph_input.get("description", ""),
+        )
+        if blocked:
+            payload = {
+                "node": "preflight",
+                "label": "안전 검사",
+                "percent": 0,
+                "status": "error",
+                "error": "이 주제는 Gemini 안전 정책에 의해 차단되었습니다 — 다른 주제로 시도해주세요",
+                "thread_id": thread_id,
+            }
+            yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+            return
 
     interrupted = False
     try:

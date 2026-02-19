@@ -195,6 +195,7 @@ export default function ManualScriptEditor({ editor }: Props) {
             })
           }
           reviewResult={editor.nodeResults.review}
+          productionSnapshot={editor.productionSnapshot}
         />
       )}
 
