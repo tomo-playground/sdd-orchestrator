@@ -95,8 +95,12 @@ async def _update_user_stats(store: BaseStore) -> None:
         )
 
 
-async def learn_node(state: ScriptState, config: RunnableConfig, *, store: BaseStore) -> dict:
+async def learn_node(state: ScriptState, config: RunnableConfig, *, store: BaseStore | None = None) -> dict:
     """생성 결과를 Memory Store에 저장한다."""
+    if store is None:
+        logger.info("[Learn] Store 미설정 — 학습 스킵")
+        return {"learn_result": {"stored": False, "reason": "no_store"}}
+
     scenes = state.get("final_scenes") or []
     if not scenes:
         logger.info("[Learn] final_scenes 없음 — 학습 스킵")

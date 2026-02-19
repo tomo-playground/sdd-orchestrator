@@ -5,6 +5,13 @@ Follow the Observe → Think → Act process to make informed decisions.
 - 모든 텍스트 필드(observe/think/act/feedback)는 반드시 **한국어**로 작성하세요.
 - This is step {{ step_number }} of maximum {{ max_steps }} steps.
 
+{% if quality_criteria %}
+## Creative Direction Quality Criteria
+{% for c in quality_criteria %}{{ loop.index }}. {{ c }}
+{% endfor %}
+이 기준도 Production 결과 평가에 반영하세요.
+{% endif %}
+
 ## Production Results
 
 ### Visual Design (Cinematographer)

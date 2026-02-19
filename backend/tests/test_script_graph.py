@@ -1,9 +1,9 @@
 """LangGraph Script Graph 단위 테스트.
 
 generate_script를 mock하여 Graph 구조와 State 전파를 검증한다.
-15노드 그래프 (에러 short-circuit + 병렬 fan-out):
-  research → critic → concept_gate → writer → review → [revise] →
-  cinematographer → [tts/sound/copyright 병렬] →
+17노드 그래프 (에러 short-circuit + 병렬 fan-out):
+  director_plan → research → critic → concept_gate → writer → review →
+  [director_checkpoint] → cinematographer → [tts/sound/copyright 병렬] →
   director → [human_gate] → finalize → [explain] → learn
 """
 
@@ -60,17 +60,19 @@ def mock_scenes():
 
 
 def test_graph_structure():
-    """15노드가 모두 Graph에 존재하는지 확인한다."""
+    """17노드가 모두 Graph에 존재하는지 확인한다."""
     graph = build_script_graph()
     compiled = graph.compile()
     node_names = set(compiled.get_graph().nodes.keys())
     expected = (
+        "director_plan",
         "research",
         "critic",
         "concept_gate",
         "writer",
         "review",
         "revise",
+        "director_checkpoint",
         "cinematographer",
         "tts_designer",
         "sound_designer",
@@ -286,11 +288,123 @@ def test_route_after_finalize_quick():
     assert route_after_finalize({}) == "learn"  # 기본값 quick
 
 
-def test_graph_15_nodes():
-    """15노드가 모두 등록되어 있다."""
+def test_graph_17_nodes():
+    """17노드가 모두 등록되어 있다."""
     graph = build_script_graph()
     compiled = graph.compile()
     node_names = set(compiled.get_graph().nodes.keys())
+    assert "director_plan" in node_names
+    assert "director_checkpoint" in node_names
     assert "explain" in node_names
     assert "concept_gate" in node_names
-    assert len(node_names - {"__start__", "__end__"}) == 15
+    assert len(node_names - {"__start__", "__end__"}) == 17
+
+
+# -- Writer Safety Retry 테스트 --
+
+
+def test_is_safety_error():
+    """safety 키워드가 포함된 에러를 정확히 감지한다."""
+    from services.agent.nodes.writer import _is_safety_error
+
+    assert _is_safety_error(ValueError("🛡️ Gemini 안전 필터가 콘텐츠를 차단했습니다"))
+    assert _is_safety_error(ValueError("Blocked by SAFETY filter"))
+    assert _is_safety_error(ValueError("콘텐츠가 차단되었습니다"))
+    assert not _is_safety_error(ValueError("Gemini API 타임아웃"))
+    assert not _is_safety_error(ValueError("네트워크 에러"))
+
+
+def test_append_safety_hint():
+    """safety 가이드가 description에 추가된다."""
+    from services.agent.nodes.writer import _append_safety_hint
+
+    result = _append_safety_hint("원본 설명")
+    assert "원본 설명" in result
+    assert "안전 가이드" in result
+    assert "폭력" in result
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.get_db_session")
+async def test_writer_safety_retry_success(mock_db_ctx, mock_gen_script, mock_scenes):
+    """안전 필터 차단 → 재시도 성공."""
+    mock_gen_script.side_effect = [
+        ValueError("🛡️ Gemini 안전 필터가 콘텐츠를 차단했습니다"),
+        {"scenes": mock_scenes, "character_id": 42},
+    ]
+
+    graph = build_script_graph().compile()
+    result = await graph.ainvoke({"topic": "safety 테스트", "mode": "quick", "duration": 10})
+
+    assert result.get("error") is None
+    assert result["final_scenes"] is not None
+    assert len(result["final_scenes"]) == 5
+    assert mock_gen_script.call_count == 2
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.get_db_session")
+async def test_writer_safety_retry_both_fail(mock_db_ctx, mock_gen_script):
+    """안전 필터 2번 연속 차단 → 에러 short-circuit."""
+    mock_gen_script.side_effect = [
+        ValueError("🛡️ Gemini 안전 필터가 콘텐츠를 차단했습니다"),
+        ValueError("🛡️ 재시도도 안전 필터에 차단"),
+    ]
+
+    graph = build_script_graph().compile()
+    result = await graph.ainvoke({"topic": "이중 safety 실패", "mode": "quick", "duration": 10})
+
+    assert result.get("error") is not None
+    assert "차단" in result["error"]
+    assert mock_gen_script.call_count == 2
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.get_db_session")
+async def test_writer_non_safety_error_no_retry(mock_db_ctx, mock_gen_script):
+    """non-safety 에러는 재시도 없이 즉시 실패."""
+    mock_gen_script.side_effect = Exception("Gemini API 타임아웃")
+
+    graph = build_script_graph().compile()
+    result = await graph.ainvoke({"topic": "타임아웃 테스트", "mode": "quick", "duration": 10})
+
+    assert result.get("error") is not None
+    assert "타임아웃" in result["error"]
+    assert mock_gen_script.call_count == 1  # 재시도 없음
+
+
+# -- Director Checkpoint → Writer 라우팅 테스트 --
+
+
+def test_route_review_pass_full_mode_goes_to_checkpoint():
+    """Full 모드 review 통과 → director_checkpoint."""
+    from services.agent.routing import route_after_review
+
+    state = {
+        "mode": "full",
+        "review_result": {"passed": True, "errors": []},
+    }
+    assert route_after_review(state) == "director_checkpoint"
+
+
+def test_route_checkpoint_revise_goes_to_writer():
+    """Checkpoint revise → writer (revise 노드 아님)."""
+    from services.agent.routing import route_after_director_checkpoint
+
+    state = {
+        "director_checkpoint_decision": "revise",
+        "director_checkpoint_revision_count": 0,
+    }
+    assert route_after_director_checkpoint(state) == "writer"
+
+
+def test_route_start_full_mode_goes_to_director_plan():
+    """Full 모드 START → director_plan."""
+    from services.agent.routing import route_after_start
+
+    assert route_after_start({"mode": "full"}) == "director_plan"
+    assert route_after_start({"mode": "quick"}) == "writer"
+    assert route_after_start({}) == "writer"  # 기본값 quick

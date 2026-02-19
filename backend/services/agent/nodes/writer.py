@@ -17,6 +17,27 @@ from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState, WriterPlan, extract_selected_concept
 from services.script.gemini_generator import generate_script
 
+_SAFETY_KEYWORDS = ("안전 필터", "SAFETY", "safety", "차단", "block")
+
+_SAFETY_HINT = (
+    "\n\n[안전 가이드] 이전 시도가 콘텐츠 정책으로 차단되었습니다. "
+    "다음 규칙을 반드시 준수하세요: "
+    "폭력·선정·혐오 표현 금지, 긍정적이고 건전한 톤 유지, "
+    "민감한 주제(정치, 종교, 건강 정보) 회피. "
+    "안전하고 밝은 내용으로 대본을 작성하세요."
+)
+
+
+def _is_safety_error(exc: Exception) -> bool:
+    """에러 메시지에 safety 관련 키워드가 포함되어 있는지 확인."""
+    msg = str(exc)
+    return any(kw in msg for kw in _SAFETY_KEYWORDS)
+
+
+def _append_safety_hint(description: str) -> str:
+    """description 끝에 safety 가이드를 추가한다."""
+    return f"{description}{_SAFETY_HINT}".strip()
+
 
 def _extract_reasoning(scenes: list[dict]) -> list[dict]:
     """각 씬에서 reasoning 필드를 추출한다. 없으면 빈 리스트."""
@@ -138,20 +159,30 @@ Hook 전략: {plan["hook_strategy"]}
     with get_db_session() as db:
         try:
             result = await generate_script(request, db)
-            scenes = result.get("scenes", [])
-            scene_reasoning = _extract_reasoning(scenes)
-            logger.info(
-                "[LangGraph] Writer 노드 완료: %d scenes, plan=%s",
-                len(scenes),
-                "생성" if plan else "건너뜀",
-            )
-            return {
-                "draft_scenes": scenes,
-                "draft_character_id": result.get("character_id"),
-                "draft_character_b_id": result.get("character_b_id"),
-                "scene_reasoning": scene_reasoning or None,
-                "writer_plan": plan,
-            }
         except Exception as e:
-            logger.error("[LangGraph] Writer 노드 실패: %s", e)
-            return {"error": str(e)}
+            if _is_safety_error(e):
+                logger.warning("[LangGraph] Writer: 안전 필터 차단, 프롬프트 완화 후 재시도")
+                request.description = _append_safety_hint(request.description or "")
+                try:
+                    result = await generate_script(request, db)
+                except Exception as retry_err:
+                    logger.error("[LangGraph] Writer 재시도도 실패: %s", retry_err)
+                    return {"error": str(retry_err)}
+            else:
+                logger.error("[LangGraph] Writer 노드 실패: %s", e)
+                return {"error": str(e)}
+
+        scenes = result.get("scenes", [])
+        scene_reasoning = _extract_reasoning(scenes)
+        logger.info(
+            "[LangGraph] Writer 노드 완료: %d scenes, plan=%s",
+            len(scenes),
+            "생성" if plan else "건너뜀",
+        )
+        return {
+            "draft_scenes": scenes,
+            "draft_character_id": result.get("character_id"),
+            "draft_character_b_id": result.get("character_b_id"),
+            "scene_reasoning": scene_reasoning or None,
+            "writer_plan": plan,
+        }

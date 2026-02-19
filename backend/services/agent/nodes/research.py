@@ -8,6 +8,7 @@ draft/debate 노드에 전달할 research_brief를 구성한다.
 from __future__ import annotations
 
 import hashlib
+import html as html_mod
 import ipaddress
 import json
 import re
@@ -95,14 +96,26 @@ def _is_safe_url(url: str) -> bool:
         return False
 
 
+_STRIP_TAGS_RE = re.compile(
+    r"<\s*(script|style|noscript|svg|iframe)[^>]*>.*?</\s*\1\s*>",
+    re.DOTALL | re.IGNORECASE,
+)
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
+_WHITESPACE_RE = re.compile(r"[ \t]+")
+_BLANK_LINES_RE = re.compile(r"\n{3,}")
 
 
 def _html_to_text(html: str) -> str:
-    """간단한 HTML → 텍스트 변환."""
-    text = _HTML_TAG_RE.sub("", html)
+    """HTML → 텍스트 변환. script/style/comment 제거 후 태그 strip."""
+    text = _STRIP_TAGS_RE.sub("", html)
+    text = _HTML_COMMENT_RE.sub("", text)
+    text = _HTML_TAG_RE.sub("", text)
+    # HTML 엔티티 디코딩
+    text = html_mod.unescape(text)
     # 연속 공백/줄바꿈 정리
-    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = _WHITESPACE_RE.sub(" ", text)
+    text = _BLANK_LINES_RE.sub("\n\n", text)
     return text.strip()
 
 

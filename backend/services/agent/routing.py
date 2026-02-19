@@ -6,7 +6,10 @@ script_graph.py의 파일 크기를 줄이기 위해 분리.
 from __future__ import annotations
 
 from config import LANGGRAPH_MAX_REVISIONS, logger
-from config_pipelines import LANGGRAPH_MAX_DIRECTOR_REVISIONS
+from config_pipelines import (
+    LANGGRAPH_MAX_CHECKPOINT_REVISIONS,
+    LANGGRAPH_MAX_DIRECTOR_REVISIONS,
+)
 from services.agent.state import ScriptState
 
 _DIRECTOR_DECISION_MAP: dict[str, str] = {
@@ -23,10 +26,10 @@ def _has_error(state: ScriptState) -> bool:
 
 
 def route_after_start(state: ScriptState) -> str:
-    """START 이후: mode에 따라 research(full) 또는 writer(quick) 분기."""
+    """START 이후: mode에 따라 director_plan(full) 또는 writer(quick) 분기."""
     mode = state.get("mode", "quick")
     if mode == "full":
-        return "research"
+        return "director_plan"
     return "writer"
 
 
@@ -61,11 +64,11 @@ def route_after_review(state: ScriptState) -> str:
             LANGGRAPH_MAX_REVISIONS,
         )
 
-    # passed 또는 max_revision 도달 → Quick: finalize / Full: cinematographer
+    # passed 또는 max_revision 도달 → Quick: finalize / Full: director_checkpoint
     mode = state.get("mode", "quick")
     if mode != "full":
         return "finalize"
-    return "cinematographer"
+    return "director_checkpoint"
 
 
 def route_after_cinematographer(state: ScriptState) -> list[str] | str:
@@ -94,6 +97,31 @@ def route_after_director(state: ScriptState) -> str:
         return "human_gate"
 
     return _DIRECTOR_DECISION_MAP.get(decision, "human_gate")
+
+
+def route_after_director_checkpoint(state: ScriptState) -> str:
+    """Director Checkpoint 이후: proceed → cinematographer, revise → writer.
+
+    기존 review-revise 루프와 분리하여 checkpoint가 writer를 직접 호출한다.
+    revision_feedback 을 통해 checkpoint 피드백이 writer에 전달된다.
+    """
+    if _has_error(state):
+        return "finalize"
+
+    decision = state.get("director_checkpoint_decision", "proceed")
+    if decision == "proceed":
+        return "cinematographer"
+
+    # revise 횟수 체크
+    count = state.get("director_checkpoint_revision_count", 0)
+    if count >= LANGGRAPH_MAX_CHECKPOINT_REVISIONS:
+        logger.warning(
+            "[LangGraph] Checkpoint revision 최대 횟수(%d) 도달, 강제 통과",
+            LANGGRAPH_MAX_CHECKPOINT_REVISIONS,
+        )
+        return "cinematographer"
+
+    return "writer"
 
 
 def route_after_concept_gate(state: ScriptState) -> str:

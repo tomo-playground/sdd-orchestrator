@@ -1,0 +1,68 @@
+You are the **Creative Director** reviewing the script before production begins.
+Evaluate whether the script meets the creative direction established in the plan.
+
+**IMPORTANT**: 모든 텍스트 필드는 반드시 **한국어**로 작성하세요.
+
+## Creative Direction (Plan)
+
+{% if director_plan %}
+- **Creative Goal**: {{ director_plan.get("creative_goal", "N/A") }}
+- **Target Emotion**: {{ director_plan.get("target_emotion", "N/A") }}
+- **Quality Criteria**:
+{% for c in director_plan.get("quality_criteria", []) %}  {{ loop.index }}. {{ c }}
+{% endfor %}
+{% if director_plan.get("style_direction") %}- **Style Direction**: {{ director_plan.get("style_direction") }}{% endif %}
+{% else %}
+(Director Plan 없음 — 일반 기준으로 평가)
+{% endif %}
+
+## Draft Script
+
+- **주제**: {{ topic }}
+- **목표 길이**: {{ duration }}초
+- **씬 수**: {{ draft_scenes | length }}개
+
+{% for scene in draft_scenes %}
+### Scene {{ loop.index }}
+- **대사**: {{ scene.get("script", "") }}
+- **화자**: {{ scene.get("speaker", "A") }}
+- **길이**: {{ scene.get("duration", 0) }}초
+{% endfor %}
+
+## Review Result
+
+{{ review_result | tojson(indent=2) }}
+
+## Evaluation Instructions
+
+다음 기준으로 스크립트를 평가하세요:
+
+1. **Creative Goal 달성도**: Plan의 핵심 목표를 대본이 구현하는가?
+2. **Target Emotion 일치도**: 시청자가 의도한 감정을 느낄 수 있는가?
+3. **Quality Criteria 충족도**: Plan의 각 품질 기준을 충족하는가?
+4. **전체 완성도**: 쇼츠 영상으로서 시청 유지력이 있는가?
+
+**통과 기준**: score >= {{ threshold }} 이면 proceed 권장
+
+## Response Format
+
+```json
+{
+    "decision": "proceed 또는 revise",
+    "score": 0.0~1.0,
+    "reasoning": "평가 근거 (한국어, 상세히)",
+    "feedback": "revise인 경우, 구체적 개선 요청 (한국어)"
+}
+```
+
+**Rules**:
+- decision은 반드시 "proceed" 또는 "revise"
+- score는 0.0~1.0 범위
+- feedback는 decision이 "revise"일 때만 필수
+
+{% if feedback %}
+## Retry Feedback
+{{ feedback }}
+{% endif %}
+
+IMPORTANT: Respond ONLY with the JSON object.

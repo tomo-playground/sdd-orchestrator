@@ -16,6 +16,7 @@
 
 ### 최근 작업
 
+- **Director-as-Orchestrator** (02-19): Director를 사후 검증자 → 오케스트레이터로 전환. director_plan(목표 수립) + director_checkpoint(스크립트 품질 게이트) 2노드 추가, 15→17노드 그래프. 39개 테스트
 - **HOME 레이아웃 재구성** (02-19): 2-column → single-column 전환, WelcomeBar CTA + QuickStatsBar 병합, 중복 위젯 제거, 카드 크기 확대
 - **QA TC 매트릭스** (02-19): 18개 카테고리 130+ TC ID, P1 라우터 테스트 57개 추가, 커버리지 62%→74%
 - **Studio UX 개선** (02-19): 1-column 레이아웃, 프로덕션 에이전트 SSE 노출, 이미지 클릭 팝업, Scene 번호 1-based 표준화
@@ -41,8 +42,8 @@
 | 7-6 | Scene UX Enhancement | Figma 기반 씬 편집 UX, 완성도 dot, 3탭 분리, DnD, Publish 통합 | [명세](FEATURES/SCENE_UX_ENHANCEMENT.md) |
 | 7-Y | Layout Standardization | Library+Settings 분리, 공유 레이아웃, 네비 4탭, Setup Wizard | [아카이브](../99_archive/archive/ROADMAP_PHASE_7_Y.md) |
 | 7-Z | Home Dashboard & Publish UX | 창작 대시보드 전환, 2-Column Home, 3-Column Publish | [아카이브](../99_archive/archive/ROADMAP_PHASE_7_Z.md) |
-| 9 | Agentic AI Pipeline | LangGraph 15-노드, Memory Store, LangFuse, Concept Gate, NarrativeScore | [아카이브](../99_archive/archive/ROADMAP_PHASE_9.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
-| 10 | True Agentic Architecture | ReAct Loop, Gemini Function Calling 9 tools, Agent Communication, 3-Architect Debate | [아카이브](../99_archive/archive/ROADMAP_PHASE_10.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
+| 9 | Agentic AI Pipeline | LangGraph 17-노드, Memory Store, LangFuse, Concept Gate, NarrativeScore | [아카이브](../99_archive/archive/ROADMAP_PHASE_9.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
+| 10 | True Agentic Architecture | ReAct Loop, Director-as-Orchestrator, Gemini Function Calling 9 tools, Agent Communication, 3-Architect Debate | [아카이브](../99_archive/archive/ROADMAP_PHASE_10.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
 
 ---
 

@@ -167,6 +167,7 @@ class TestCallWithTools:
 
         mock_part = MagicMock()
         mock_part.function_call = mock_tool_call
+        mock_part.text = None  # function_call 전용 파트 (텍스트 없음)
 
         mock_response = MagicMock()
         mock_response.candidates = [
@@ -191,13 +192,15 @@ class TestCallWithTools:
             tools = [define_tool(name="loop_tool", description="Loop", parameters={})]
             tool_executors = {"loop_tool": mock_executor}
 
-            with pytest.raises(RuntimeError, match="exceeded max_calls=2"):
-                await call_with_tools(
-                    prompt="루프 테스트",
-                    tools=tools,
-                    tool_executors=tool_executors,
-                    max_calls=2,
-                )
+            result_text, logs = await call_with_tools(
+                prompt="루프 테스트",
+                tools=tools,
+                tool_executors=tool_executors,
+                max_calls=2,
+            )
+            # max_calls 도달 시에도 정상 반환 (누적 텍스트 + 로그)
+            assert isinstance(result_text, str)
+            assert len(logs) == 2  # 2번 도구 호출
 
     @pytest.mark.asyncio
     async def test_tool_executor_error(self):
@@ -208,6 +211,7 @@ class TestCallWithTools:
 
         mock_part = MagicMock()
         mock_part.function_call = mock_tool_call
+        mock_part.text = None
 
         mock_response_1 = MagicMock()
         mock_response_1.candidates = [
@@ -263,6 +267,7 @@ class TestCallWithTools:
 
         mock_part = MagicMock()
         mock_part.function_call = mock_tool_call
+        mock_part.text = None
 
         mock_response_1 = MagicMock()
         mock_response_1.candidates = [
@@ -314,6 +319,7 @@ class TestCallWithTools:
 
         mock_part = MagicMock()
         mock_part.function_call = mock_tool_call
+        mock_part.text = None
 
         mock_response_1 = MagicMock()
         mock_response_1.candidates = [

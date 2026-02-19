@@ -209,6 +209,50 @@ class TestHtmlToText:
         html = "line1\n\n\n\n\nline2"
         assert _html_to_text(html) == "line1\n\nline2"
 
+    def test_strips_script(self):
+        html = '<p>본문</p><script>var x = "hello";\nvar y = 1;</script><p>끝</p>'
+        result = _html_to_text(html)
+        assert "var x" not in result
+        assert "본문" in result
+        assert "끝" in result
+
+    def test_strips_style(self):
+        html = "<style>.cls { color: red; }</style><div>콘텐츠</div>"
+        result = _html_to_text(html)
+        assert "color" not in result
+        assert "콘텐츠" in result
+
+    def test_strips_noscript(self):
+        html = "<noscript>JS 필요</noscript><p>텍스트</p>"
+        result = _html_to_text(html)
+        assert "JS 필요" not in result
+        assert "텍스트" in result
+
+    def test_strips_html_comments(self):
+        html = "<p>보이는</p><!-- 숨겨진 코멘트 --><p>텍스트</p>"
+        result = _html_to_text(html)
+        assert "숨겨진" not in result
+        assert "보이는" in result
+
+    def test_decodes_html_entities(self):
+        html = "<p>A &amp; B &lt; C &gt; D &quot;E&quot;</p>"
+        result = _html_to_text(html)
+        assert 'A & B < C > D "E"' == result
+
+    def test_naver_blog_js_stripped(self):
+        """네이버 블로그 등에서 포함되는 JS 변수가 제거되는지 확인."""
+        html = (
+            '<div class="post">블로그 본문입니다</div>'
+            "<script>var photoContent='';\nvar postContent='';\n"
+            'var videoId = "";</script>'
+            "<p>더 많은 텍스트</p>"
+        )
+        result = _html_to_text(html)
+        assert "var photoContent" not in result
+        assert "var videoId" not in result
+        assert "블로그 본문입니다" in result
+        assert "더 많은 텍스트" in result
+
 
 # ── _parse_gemini_json ─────────────────────────────────────
 

@@ -98,10 +98,7 @@ async def call_with_tools(
         trace_name: LangFuse 트레이스 이름
 
     Returns:
-        (최종 LLM 응답, 도구 호출 로그)
-
-    Raises:
-        RuntimeError: 최대 호출 횟수 초과
+        (최종 LLM 응답, 도구 호출 로그). max_calls 도달 시에도 누적 텍스트를 반환.
     """
     if not gemini_client:
         raise RuntimeError("Gemini client not initialized")
@@ -115,6 +112,8 @@ async def call_with_tools(
     # 첫 메시지는 문자열로 전달
     contents: list[str | types.Content] = [prompt]
     call_count = 0
+    # 매 스텝의 텍스트 파트를 누적 (function_call 혼재 응답에서도 보존)
+    accumulated_text: list[str] = []
 
     config = types.GenerateContentConfig(
         tools=tools,  # type: ignore[arg-type]
@@ -144,11 +143,15 @@ async def call_with_tools(
         parts = candidate.content.parts
         has_tool_call = any(hasattr(part, "function_call") and part.function_call for part in parts)
 
+        # 텍스트 파트 수집 (function_call과 혼재해도 보존)
+        step_text = "".join(part.text for part in parts if hasattr(part, "text") and part.text)
+        if step_text:
+            accumulated_text.append(step_text)
+
         if not has_tool_call:
             # 최종 텍스트 응답
-            final_text = "".join(part.text for part in parts if hasattr(part, "text") and part.text)
             logger.info("[Tool-Calling] Final response received (no tool calls)")
-            return final_text, tool_logs
+            return "\n".join(accumulated_text), tool_logs
 
         # 도구 실행
         function_responses: list[types.Part] = []
@@ -241,9 +244,13 @@ async def call_with_tools(
 
         call_count += 1
 
-    # 최대 호출 횟수 도달
+    # max_calls 도달 또는 break — 누적 텍스트가 있으면 반환
     if call_count >= max_calls:
-        logger.warning("[Tool-Calling] Max tool calls (%d) reached, stopping", max_calls)
-        raise RuntimeError(f"Tool calling exceeded max_calls={max_calls}")
+        logger.warning(
+            "[Tool-Calling] Max tool calls (%d) reached, returning accumulated text (%d chars)",
+            max_calls,
+            len("".join(accumulated_text)),
+        )
 
-    return "", tool_logs
+    final = "\n".join(accumulated_text).strip()
+    return final, tool_logs

@@ -12,6 +12,16 @@ if TYPE_CHECKING:
     pass
 
 
+class DirectorPlan(TypedDict, total=False):
+    """Director의 초기 목표 수립 결과."""
+
+    creative_goal: str  # 영상 핵심 목표 (1문장)
+    target_emotion: str  # 타겟 감정
+    quality_criteria: list[str]  # 품질 기준 3-5개
+    risk_areas: list[str]  # 예상 위험 요소
+    style_direction: str  # 스타일 방향
+
+
 class SceneReasoning(TypedDict, total=False):
     """각 씬의 창작 근거."""
 
@@ -90,7 +100,6 @@ class ScriptState(TypedDict, total=False):
     writer_plan: WriterPlan | None
 
     # Tool-Calling (Phase 10-B)
-    research_tool_logs: list[dict] | None
     cinematographer_tool_logs: list[dict] | None
 
     # Critic 결과 (Full 모드)
@@ -124,6 +133,13 @@ class ScriptState(TypedDict, total=False):
     tts_designer_result: dict | None
     sound_designer_result: dict | None
     copyright_reviewer_result: dict | None
+
+    # Director Plan (Full 모드 — 초기 목표 수립)
+    director_plan: DirectorPlan | None
+    director_checkpoint_decision: str | None  # "proceed" | "revise"
+    director_checkpoint_feedback: str | None
+    director_checkpoint_score: float | None
+    director_checkpoint_revision_count: int
 
     # Director 결과 (Full 모드)
     director_decision: str | None
