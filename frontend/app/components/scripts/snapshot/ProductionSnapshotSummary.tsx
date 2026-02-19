@@ -8,6 +8,9 @@ import {
   SoundDesignerSection,
   CopyrightReviewerSection,
 } from "../reasoning/ProductionSections";
+import SnapshotSummaryHeader from "./SnapshotSummaryHeader";
+import RevisionHistorySection from "./RevisionHistorySection";
+import AgentMessagesSection from "./AgentMessagesSection";
 import type { ProductionSnapshot } from "../../../types";
 
 type Props = {
@@ -17,8 +20,7 @@ type Props = {
 type AccordionItem = {
   key: string;
   label: string;
-  data: Record<string, unknown>;
-  component: React.ComponentType<{ data: Record<string, unknown> }>;
+  content: React.ReactNode;
 };
 
 const DECISION_COLORS: Record<string, string> = {
@@ -60,6 +62,29 @@ function DirectorDecisionSection({ data }: { data: NonNullable<ProductionSnapsho
   );
 }
 
+/** DebateLog를 범용 렌더링하는 내부 컴포넌트 */
+function DebateLogSection({ data }: { data: NonNullable<ProductionSnapshot["debate_log"]> }) {
+  return (
+    <div className="space-y-1.5">
+      {data.map((entry, i) => (
+        <div key={i} className="rounded bg-zinc-50 px-2 py-1.5">
+          <span className="text-[11px] font-medium text-zinc-600">Round {entry.round}</span>
+          {entry.action && <span className="ml-1.5 text-[11px] text-zinc-500">{entry.action}</span>}
+          {entry.concepts && entry.concepts.length > 0 && (
+            <div className="mt-1 space-y-0.5">
+              {entry.concepts.map((c, j) => (
+                <p key={j} className="text-[11px] text-zinc-400">
+                  {("title" in c && typeof c.title === "string" && c.title) || JSON.stringify(c)}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ProductionSnapshotSummary({ snapshot }: Props) {
   const [openKeys, setOpenKeys] = useState<Set<string>>(new Set());
 
@@ -72,46 +97,71 @@ export default function ProductionSnapshotSummary({ snapshot }: Props) {
     });
   };
 
+  // Build accordion items — production sections (typed) + new sections
   const items: AccordionItem[] = [];
 
   if (snapshot.cinematographer) {
     items.push({
       key: "cinematographer",
       label: "비주얼 디자인",
-      data: snapshot.cinematographer,
-      component: CinematographerSection,
+      content: <CinematographerSection data={snapshot.cinematographer} />,
     });
   }
   if (snapshot.tts_designer) {
     items.push({
       key: "tts_designer",
       label: "음성 디자인",
-      data: snapshot.tts_designer,
-      component: TtsDesignerSection,
+      content: <TtsDesignerSection data={snapshot.tts_designer} />,
     });
   }
   if (snapshot.sound_designer) {
     items.push({
       key: "sound_designer",
       label: "BGM 설계",
-      data: snapshot.sound_designer,
-      component: SoundDesignerSection,
+      content: <SoundDesignerSection data={snapshot.sound_designer} />,
     });
   }
   if (snapshot.copyright_reviewer) {
     items.push({
       key: "copyright_reviewer",
       label: "저작권 검토",
-      data: snapshot.copyright_reviewer,
-      component: CopyrightReviewerSection,
+      content: <CopyrightReviewerSection data={snapshot.copyright_reviewer} />,
+    });
+  }
+  if (snapshot.revision_history && snapshot.revision_history.length > 0) {
+    items.push({
+      key: "revision_history",
+      label: `수정 이력 (${snapshot.revision_history.length})`,
+      content: <RevisionHistorySection history={snapshot.revision_history} />,
+    });
+  }
+  if (snapshot.debate_log && snapshot.debate_log.length > 0) {
+    items.push({
+      key: "debate_log",
+      label: `컨셉 토론 (${snapshot.debate_log.length})`,
+      content: <DebateLogSection data={snapshot.debate_log} />,
+    });
+  }
+  if (snapshot.agent_messages && snapshot.agent_messages.length > 0) {
+    items.push({
+      key: "agent_messages",
+      label: `Agent 메시지 (${snapshot.agent_messages.length})`,
+      content: <AgentMessagesSection messages={snapshot.agent_messages} />,
     });
   }
 
-  if (items.length === 0 && !snapshot.director) return null;
+  const hasContent = items.length > 0 || !!snapshot.director || !!snapshot.quality_gate;
+  if (!hasContent) return null;
 
   return (
     <div className="mb-4 space-y-1">
       <p className="mb-1.5 text-[11px] font-medium text-zinc-500">Production 결과</p>
+
+      {/* Quality Gate Summary Header */}
+      <SnapshotSummaryHeader
+        qualityGate={snapshot.quality_gate}
+        revisionCount={snapshot.revision_history?.length}
+      />
 
       {/* Director decision (always visible if present) */}
       {snapshot.director && (
@@ -124,7 +174,6 @@ export default function ProductionSnapshotSummary({ snapshot }: Props) {
       {/* Collapsible sections */}
       {items.map((item) => {
         const isOpen = openKeys.has(item.key);
-        const Comp = item.component;
         return (
           <div key={item.key} className="rounded-lg border border-zinc-100 bg-white">
             <button
@@ -140,9 +189,7 @@ export default function ProductionSnapshotSummary({ snapshot }: Props) {
               <span className="text-[11px] font-medium text-zinc-600">{item.label}</span>
             </button>
             {isOpen && (
-              <div className="border-t border-zinc-50 px-3 pt-1.5 pb-2">
-                <Comp data={item.data} />
-              </div>
+              <div className="border-t border-zinc-50 px-3 pt-1.5 pb-2">{item.content}</div>
             )}
           </div>
         );

@@ -30,6 +30,17 @@ class SceneReasoning(TypedDict, total=False):
     alternatives: list[str]
 
 
+class ResearchScore(TypedDict, total=False):
+    """Research 노드 품질 점수 (규칙 기반)."""
+
+    tool_success_rate: float  # 성공 도구 호출 / 전체 호출
+    information_density: float  # brief 길이 기반
+    source_diversity: float  # 고유 도구 종류 수 / 유효 도구 수
+    topic_coverage: float  # brief에 topic 관련 신호 포함 여부
+    overall: float  # 가중 평균 (0.0-1.0)
+    feedback: str  # 개선 제안
+
+
 class NarrativeScore(TypedDict, total=False):
     """서사 품질 평가 결과 (Full 모드 전용)."""
 
@@ -99,9 +110,6 @@ class ScriptState(TypedDict, total=False):
     # Writer Planning (Phase 10-A)
     writer_plan: WriterPlan | None
 
-    # Tool-Calling (Phase 10-B)
-    cinematographer_tool_logs: list[dict] | None
-
     # Critic 결과 (Full 모드)
     critic_result: dict | None
     scene_reasoning: list[SceneReasoning] | None
@@ -122,6 +130,8 @@ class ScriptState(TypedDict, total=False):
     # Phase 2 Research & Learn
     research_brief: str | None
     research_tool_logs: list[dict] | None  # Phase 10-B-2: Tool-Calling 로그
+    research_score: ResearchScore | None  # 규칙 기반 품질 점수
+    research_retry_count: int  # Research 재실행 횟수
     learn_result: dict | None
 
     # Review 결과

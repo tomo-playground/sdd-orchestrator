@@ -374,6 +374,23 @@ async def generate_script(request, db: Session | None = None) -> dict:
                     f"  \u2139\ufe0f  Scene {scene_id} already has negative_prompt: {scene['negative_prompt'][:50]}..."
                 )
 
+        # Dialogue structure defense: strip no_humans from speaker scenes
+        # Gemini may incorrectly generate no_humans for early dialogue scenes
+        if has_two_characters:
+            for scene in scenes:
+                speaker = scene.get("speaker", "")
+                if speaker in ("A", "B"):
+                    prompt = scene.get("image_prompt", "")
+                    if "no_humans" in prompt.lower().replace(" ", "_"):
+                        tags = [t.strip() for t in prompt.split(",")]
+                        tags = [t for t in tags if t.lower().replace(" ", "_").strip() != "no_humans"]
+                        scene["image_prompt"] = ", ".join(tags)
+                        logger.warning(
+                            "[Scene %s] Stripped no_humans from Speaker %s (Dialogue requires character)",
+                            scene.get("scene_id", "?"),
+                            speaker,
+                        )
+
         # Auto-pin background based on structure type
         # For Dialogue/Narrated Dialogue: all scenes (except first) share same background
         # For Monologue: use environment tag overlap logic

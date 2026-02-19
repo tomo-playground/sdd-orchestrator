@@ -10,6 +10,8 @@ from config_pipelines import (
     LANGGRAPH_CHECKPOINT_LOW_THRESHOLD,
     LANGGRAPH_MAX_CHECKPOINT_REVISIONS,
     LANGGRAPH_MAX_DIRECTOR_REVISIONS,
+    RESEARCH_MAX_RETRIES,
+    RESEARCH_QUALITY_LOW,
 )
 from services.agent.state import ScriptState
 
@@ -32,6 +34,39 @@ def route_after_start(state: ScriptState) -> str:
     if mode == "full":
         return "director_plan"
     return "writer"
+
+
+def route_after_research(state: ScriptState) -> str:
+    """Research 이후: 점수 기반 재실행 분기.
+
+    - 에러 → finalize
+    - score None 또는 >= RESEARCH_QUALITY_LOW → critic (진행)
+    - score < RESEARCH_QUALITY_LOW + 재시도 여유 → research (재실행)
+    - 재시도 한도 도달 → critic (강제 진행)
+    """
+    if _has_error(state):
+        return "finalize"
+
+    score = state.get("research_score")
+    if score is None:
+        return "critic"
+
+    overall = score.get("overall", 0.0) if isinstance(score, dict) else 0.0
+    if overall >= RESEARCH_QUALITY_LOW:
+        return "critic"
+
+    # retry_count = 실행 횟수 (노드 실행 후 증분). MAX_RETRIES=1이면 재시도 1회 허용 (총 2회)
+    retry_count = state.get("research_retry_count", 0)
+    if retry_count > RESEARCH_MAX_RETRIES:
+        logger.warning(
+            "[LangGraph] Research 재시도 한도(%d) 도달 (score=%.2f), critic으로 강제 진행",
+            RESEARCH_MAX_RETRIES,
+            overall,
+        )
+        return "critic"
+
+    logger.info("[LangGraph] Research 점수 낮음 (%.2f < %.2f), 재실행", overall, RESEARCH_QUALITY_LOW)
+    return "research"
 
 
 def route_after_writer(state: ScriptState) -> str:

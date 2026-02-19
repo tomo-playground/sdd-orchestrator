@@ -1,7 +1,7 @@
 """Script Generation Graph — 17노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
 
 Quick: START → writer → review → [passed→finalize / failed→revise] → learn → END
-Full:  START → director_plan → research → critic → concept_gate → writer → review →
+Full:  START → director_plan → research → [critic / research(재실행)] → concept_gate → writer → review →
        [passed→director_checkpoint / failed→revise] →
        [proceed→cinematographer / revise→writer (재생성)] →
        ┌→ tts_designer ────┐
@@ -39,6 +39,7 @@ from services.agent.routing import (
     route_after_director_checkpoint,
     route_after_finalize,
     route_after_human_gate,
+    route_after_research,
     route_after_review,
     route_after_start,
     route_after_writer,
@@ -72,9 +73,9 @@ def build_script_graph() -> StateGraph:
     # START → mode 분기 (quick→writer, full→director_plan)
     graph.add_conditional_edges(START, route_after_start, ["director_plan", "writer"])
 
-    # director_plan → research → critic → concept_gate → [writer | critic]
+    # director_plan → research → [critic | research(재실행) | finalize]
     graph.add_edge("director_plan", "research")
-    graph.add_edge("research", "critic")
+    graph.add_conditional_edges("research", route_after_research, ["critic", "research", "finalize"])
     graph.add_edge("critic", "concept_gate")
     graph.add_conditional_edges("concept_gate", route_after_concept_gate, ["writer", "critic"])
 

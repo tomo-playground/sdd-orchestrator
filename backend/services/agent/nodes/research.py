@@ -309,9 +309,15 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
         else:
             logger.info("[Research] Tool-Calling 완료, brief 없음")
 
+        from .research_scoring import calculate_research_score  # noqa: PLC0415
+
+        score = calculate_research_score(state, tool_logs, brief)
+
         return {
             "research_brief": brief,
             "research_tool_logs": tool_logs,
+            "research_score": score,
+            "research_retry_count": state.get("research_retry_count", 0) + 1,
         }
 
     except Exception as e:
@@ -320,4 +326,6 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
         return {
             "research_brief": None,
             "research_tool_logs": [],
+            "research_score": None,
+            "research_retry_count": state.get("research_retry_count", 0) + 1,
         }

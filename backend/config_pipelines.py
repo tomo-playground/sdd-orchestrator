@@ -160,6 +160,13 @@ LANGGRAPH_PRESETS: dict[str, dict] = {
     },
 }
 
+# --- Research Node — Quality Scoring ---
+RESEARCH_QUALITY_LOW = float(os.getenv("RESEARCH_QUALITY_LOW", "0.3"))
+RESEARCH_QUALITY_THRESHOLD = float(os.getenv("RESEARCH_QUALITY_THRESHOLD", "0.5"))
+
+# Research Node — Retry (Tier 2-5)
+RESEARCH_MAX_RETRIES = int(os.getenv("RESEARCH_MAX_RETRIES", "1"))
+
 # --- Research Node — Material Analysis ---
 RESEARCH_URL_FETCH_TIMEOUT: int = int(os.getenv("RESEARCH_URL_FETCH_TIMEOUT", "15"))
 RESEARCH_URL_MAX_BYTES: int = int(os.getenv("RESEARCH_URL_MAX_BYTES", "500000"))

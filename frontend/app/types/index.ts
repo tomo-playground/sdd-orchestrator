@@ -754,6 +754,43 @@ export type PipelineStep = {
   nodes?: string[];
 };
 
+export type QualityGate = {
+  review_passed?: boolean;
+  review_summary?: string;
+  narrative_score?: NarrativeScore;
+  checkpoint_score?: number | null; // 0.0-1.0
+  checkpoint_decision?: "proceed" | "revise";
+};
+
+export type RevisionHistoryEntry = {
+  attempt: number;
+  errors?: string[];
+  reflection?: string;
+  score?: number;
+  tier?: "rule_fix" | "expansion" | "regeneration";
+};
+
+export type DebateLogEntry = {
+  round: number;
+  action?: string;
+  concepts?: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+};
+
+export type AgentMessageItem = {
+  sender?: string;
+  recipient?: string;
+  message_type?: string;
+  content?: string;
+  [key: string]: unknown;
+};
+
+export type DirectorDecision = {
+  decision?: string;
+  feedback?: string;
+  reasoning_steps?: Array<Record<string, unknown>>;
+};
+
 export type ProductionSnapshot = {
   director_plan?: {
     creative_goal?: string;
@@ -765,12 +802,11 @@ export type ProductionSnapshot = {
   tts_designer?: Record<string, unknown>;
   sound_designer?: Record<string, unknown>;
   copyright_reviewer?: Record<string, unknown>;
-  director?: {
-    decision?: string;
-    feedback?: string;
-    reasoning_steps?: Array<Record<string, unknown>>;
-  };
-  agent_messages?: Array<Record<string, unknown>>;
+  director?: DirectorDecision;
+  agent_messages?: AgentMessageItem[];
+  quality_gate?: QualityGate;
+  revision_history?: RevisionHistoryEntry[];
+  debate_log?: DebateLogEntry[];
 };
 
 export type ScriptStreamEvent = {

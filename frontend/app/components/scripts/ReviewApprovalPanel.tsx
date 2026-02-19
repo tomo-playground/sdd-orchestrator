@@ -43,12 +43,13 @@ export default function ReviewApprovalPanel({
         AI가 {scenes.length}개 씬을 생성했습니다. 승인하거나 수정을 요청하세요.
       </p>
 
-      {/* Narrative score compact */}
-      {isNarrativeScore(reviewResult?.narrative_score) && (
-        <div className="mb-3">
-          <NarrativeScoreChart score={reviewResult.narrative_score} compact />
-        </div>
-      )}
+      {/* Narrative score compact — quality_gate에 이미 포함된 경우 중복 방지 */}
+      {!productionSnapshot?.quality_gate?.narrative_score &&
+        isNarrativeScore(reviewResult?.narrative_score) && (
+          <div className="mb-3">
+            <NarrativeScoreChart score={reviewResult.narrative_score} compact />
+          </div>
+        )}
 
       {/* Director Plan 배너 */}
       {productionSnapshot?.director_plan && (

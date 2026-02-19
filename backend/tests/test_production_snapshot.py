@@ -1,4 +1,4 @@
-"""_build_production_snapshot() + _preflight_safety_check() 단위 테스트."""
+"""_build_production_snapshot() + _extract_quality_gate() + _preflight_safety_check() 단위 테스트."""
 
 from __future__ import annotations
 
@@ -74,6 +74,101 @@ def test_falsy_values_excluded():
     }
     result = _build_production_snapshot(vals)
     assert result == {}
+
+
+# --- _extract_quality_gate() 단위 테스트 ---
+
+
+from routers.scripts import _extract_quality_gate
+
+
+def test_quality_gate_empty_returns_none():
+    """review_result도 checkpoint도 없으면 None."""
+    assert _extract_quality_gate({}) is None
+
+
+def test_quality_gate_review_only():
+    """review_result만 있을 때 해당 필드만 포함."""
+    vals = {
+        "review_result": {
+            "passed": True,
+            "user_summary": "구조 검증 통과",
+            "narrative_score": {"overall": 0.73, "hook": 0.8},
+        },
+    }
+    gate = _extract_quality_gate(vals)
+    assert gate is not None
+    assert gate["review_passed"] is True
+    assert gate["review_summary"] == "구조 검증 통과"
+    assert gate["narrative_score"]["overall"] == 0.73
+    assert "checkpoint_score" not in gate
+
+
+def test_quality_gate_checkpoint_only():
+    """checkpoint만 있을 때 해당 필드만 포함."""
+    vals = {
+        "director_checkpoint_decision": "proceed",
+        "director_checkpoint_score": 0.82,
+    }
+    gate = _extract_quality_gate(vals)
+    assert gate is not None
+    assert gate["checkpoint_decision"] == "proceed"
+    assert gate["checkpoint_score"] == 0.82
+    assert "review_passed" not in gate
+
+
+def test_quality_gate_both():
+    """review + checkpoint 모두 있을 때 합산."""
+    vals = {
+        "review_result": {"passed": False, "user_summary": "에러 2건"},
+        "director_checkpoint_decision": "revise",
+        "director_checkpoint_score": 0.45,
+    }
+    gate = _extract_quality_gate(vals)
+    assert gate is not None
+    assert gate["review_passed"] is False
+    assert gate["checkpoint_decision"] == "revise"
+
+
+# --- snapshot에 새 필드 포함 테스트 ---
+
+
+def test_snapshot_includes_quality_gate():
+    """quality_gate가 snapshot에 포함된다."""
+    vals = {
+        "review_result": {"passed": True, "user_summary": "OK"},
+        "director_checkpoint_decision": "proceed",
+        "director_checkpoint_score": 0.9,
+    }
+    snap = _build_production_snapshot(vals)
+    assert "quality_gate" in snap
+    assert snap["quality_gate"]["checkpoint_score"] == 0.9
+
+
+def test_snapshot_includes_revision_history():
+    """revision_history가 그대로 전달된다."""
+    history = [
+        {"attempt": 1, "errors": ["err1"], "tier": "rule_fix"},
+        {"attempt": 2, "reflection": "fixed", "score": 0.8, "tier": "expansion"},
+    ]
+    snap = _build_production_snapshot({"revision_history": history})
+    assert snap["revision_history"] == history
+
+
+def test_snapshot_includes_debate_log():
+    """debate_log가 그대로 전달된다."""
+    log = [{"round": 1, "action": "propose", "concepts": []}]
+    snap = _build_production_snapshot({"debate_log": log})
+    assert snap["debate_log"] == log
+
+
+def test_snapshot_backward_compat_no_new_fields():
+    """새 필드가 없는 state에서 기존 동작이 변경되지 않음."""
+    vals = {"director_plan": {"creative_goal": "x"}}
+    snap = _build_production_snapshot(vals)
+    assert "quality_gate" not in snap
+    assert "revision_history" not in snap
+    assert "debate_log" not in snap
 
 
 # --- _preflight_safety_check() 단위 테스트 ---

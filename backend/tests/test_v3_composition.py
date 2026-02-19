@@ -835,8 +835,8 @@ class TestBackgroundSceneFiltering:
 
     @patch("services.prompt.v3_composition.TagRuleCache")
     @patch("services.prompt.v3_composition.TagAliasCache")
-    def test_compose_for_character_background_skips_character(self, mock_alias, mock_rule, builder):
-        """compose_for_character with no_humans skips character DB query."""
+    def test_compose_for_character_strips_no_humans_and_composes(self, mock_alias, mock_rule, builder):
+        """compose_for_character strips no_humans when character_id is set."""
         mock_alias.initialize.return_value = None
         mock_alias.get_replacement.return_value = ...
         mock_rule.initialize.return_value = None
@@ -845,21 +845,21 @@ class TestBackgroundSceneFiltering:
         # Mock tag DB to return proper layers
         builder.get_tag_info = MagicMock(
             return_value={
-                "no_humans": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
                 "scenery": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
                 "library": {"layer": LAYER_ENVIRONMENT, "scope": "ANY", "group_name": None},
             }
         )
+
+        # Mock Character query to return None (fallback to generic compose)
+        builder.db.query.return_value.filter.return_value.first.return_value = None
 
         result = builder.compose_for_character(
             character_id=999,
             scene_tags=["no_humans", "scenery", "library"],
         )
 
-        # Should not query Character table (no_humans early exit)
-        builder.db.query.return_value.filter.return_value.first.assert_not_called()
-
-        assert "no_humans" in result
+        # no_humans stripped — character_id takes priority over tag content
+        assert "no_humans" not in result
         assert "library" in result
 
     @patch("services.prompt.v3_composition.TagRuleCache")

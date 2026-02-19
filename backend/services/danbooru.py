@@ -74,7 +74,7 @@ async def get_tag_info(tag_name: str) -> dict | None:
         logger.debug("⏳ [Danbooru] Connection timeout for '%s'", normalized)
         return None
     except httpx.HTTPError as e:
-        logger.warning("⚠️ [Danbooru] API error for '%s': %s", normalized, e)
+        logger.debug("⚠️ [Danbooru] API error for '%s': %s", normalized, e)
         return None
     except Exception as e:
         logger.error("❌ [Danbooru] Unexpected error for '%s': %s", tag_name, e)

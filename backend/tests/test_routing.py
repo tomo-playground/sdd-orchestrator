@@ -10,10 +10,56 @@ from services.agent.routing import (
     route_after_director,
     route_after_director_checkpoint,
     route_after_finalize,
+    route_after_research,
     route_after_review,
     route_after_start,
     route_after_writer,
 )
+
+# -- Research 되돌리기 분기 테스트 --
+
+
+def test_route_after_research_good_score():
+    """overall >= 0.3 → critic으로 진행."""
+    state = {"research_score": {"overall": 0.5}, "research_retry_count": 0}
+    assert route_after_research(state) == "critic"
+
+
+def test_route_after_research_low_score_retry():
+    """overall < 0.3 + retry_count=0 → research 재실행."""
+    state = {"research_score": {"overall": 0.2}, "research_retry_count": 0}
+    assert route_after_research(state) == "research"
+
+
+def test_route_after_research_max_retries():
+    """overall < 0.3 + retry_count > MAX → critic 강제 진행.
+
+    MAX_RETRIES=1: 실행 2회(retry_count=2)면 한도 초과.
+    """
+    state = {"research_score": {"overall": 0.1}, "research_retry_count": 2}
+    assert route_after_research(state) == "critic"
+    # retry_count=1이면 아직 재시도 여유 있음
+    state_one = {"research_score": {"overall": 0.1}, "research_retry_count": 1}
+    assert route_after_research(state_one) == "research"
+
+
+def test_route_after_research_none_score():
+    """score=None → critic (graceful 진행)."""
+    state = {"research_score": None, "research_retry_count": 0}
+    assert route_after_research(state) == "critic"
+
+
+def test_route_after_research_error():
+    """에러 상태 → finalize."""
+    state = {"error": "Research 실패", "research_score": {"overall": 0.5}}
+    assert route_after_research(state) == "finalize"
+
+
+def test_route_after_research_threshold_boundary():
+    """overall=0.3 정확히 → critic (경계값, >= 이므로 진행)."""
+    state = {"research_score": {"overall": 0.3}, "research_retry_count": 0}
+    assert route_after_research(state) == "critic"
+
 
 # -- 기본 라우팅 테스트 --
 

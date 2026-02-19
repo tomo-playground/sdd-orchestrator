@@ -201,6 +201,26 @@ def _build_node_payload(
     return payload
 
 
+def _extract_quality_gate(vals: dict) -> dict | None:
+    """review_result + director_checkpoint에서 품질 게이트 메트릭을 추출한다."""
+    review = vals.get("review_result")
+    has_checkpoint = vals.get("director_checkpoint_decision") is not None
+    if not review and not has_checkpoint:
+        return None
+    gate: dict = {}
+    if review:
+        gate["review_passed"] = review.get("passed")
+        gate["review_summary"] = review.get("user_summary", "")
+        if ns := review.get("narrative_score"):
+            gate["narrative_score"] = ns
+    if has_checkpoint:
+        gate["checkpoint_score"] = vals.get("director_checkpoint_score")
+        gate["checkpoint_decision"] = vals.get("director_checkpoint_decision")
+    if rs := vals.get("research_score"):
+        gate["research_score"] = rs
+    return gate
+
+
 def _build_production_snapshot(vals: dict) -> dict:
     """Graph state에서 Production 스냅샷을 추출한다."""
     snapshot: dict = {}
@@ -222,6 +242,12 @@ def _build_production_snapshot(vals: dict) -> dict:
         }
     if msgs := vals.get("agent_messages"):
         snapshot["agent_messages"] = msgs
+    if qg := _extract_quality_gate(vals):
+        snapshot["quality_gate"] = qg
+    if rh := vals.get("revision_history"):
+        snapshot["revision_history"] = rh
+    if dl := vals.get("debate_log"):
+        snapshot["debate_log"] = dl
     return snapshot
 
 

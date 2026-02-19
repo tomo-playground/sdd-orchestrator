@@ -7,6 +7,8 @@ minimize risk in the composition hot-path. Do NOT refactor to external calls
 without validating all tag paths.
 """
 
+import functools
+
 from sqlalchemy.orm import Session
 
 from config import STYLE_LORA_WEIGHT_CAP
@@ -100,10 +102,10 @@ class V3PromptBuilder:
         return result
 
     def find_unknown_tags(self, tag_names: list[str]) -> list[str]:
-        """Return tags not found in DB (potential non-Danbooru tags).
+        """Return tags not found in DB or CATEGORY_PATTERNS (potential non-Danbooru tags).
 
         Skips LoRA tags (<lora:...>), weighted tokens ((tag:1.2)),
-        and common quality tags that may not be in DB.
+        and tags registered in CATEGORY_PATTERNS (known valid SD tokens).
         """
         if not tag_names:
             return []
@@ -123,12 +125,23 @@ class V3PromptBuilder:
         if not normalized:
             return []
 
-        # Reuse cached DB tags from prior get_tag_info call (same scene_tags)
+        # Known valid tags: DB cache + CATEGORY_PATTERNS
+        known = self._known_pattern_tags()
         if self._db_tag_names is not None:
-            return [t for t in normalized if t not in self._db_tag_names]
+            known = known | self._db_tag_names
+            return [t for t in normalized if t not in known]
 
         found = {tag.name for tag in self.db.query(Tag.name).filter(Tag.name.in_(normalized)).all()}
-        return [t for t in normalized if t not in found]
+        known = known | found
+        return [t for t in normalized if t not in known]
+
+    @staticmethod
+    @functools.cache
+    def _known_pattern_tags() -> frozenset[str]:
+        """CATEGORY_PATTERNS의 모든 태그를 flat set으로 반환 (캐시)."""
+        from services.keywords.patterns import CATEGORY_PATTERNS
+
+        return frozenset(tag for tags in CATEGORY_PATTERNS.values() for tag in tags)
 
     # Pattern-based fallback constants for _infer_layer_from_pattern
     _EXPRESSION_KEYWORDS = frozenset(
@@ -292,9 +305,16 @@ class V3PromptBuilder:
         scene_character_actions: list[dict] | None = None,
     ) -> str:
         """Composes a prompt specifically for a Character project."""
-        # Background scene: skip character DB lookup entirely
+        # Defense: character_id is explicitly set, so strip no_humans instead of
+        # routing to background scene (Gemini may incorrectly include it)
         if self._is_background_scene(scene_tags):
-            return self._compose_background_scene(scene_tags, style_loras)
+            from config import logger as _logger
+
+            scene_tags = [t for t in scene_tags if t.lower().replace(" ", "_").strip() != "no_humans"]
+            _logger.warning(
+                "⚠️ [V3 Builder] Stripped no_humans from compose_for_character (character_id=%d)",
+                character_id,
+            )
 
         if character is None:
             character = self.db.query(Character).filter(Character.id == character_id).first()

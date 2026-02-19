@@ -287,6 +287,19 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
 
     _inject_narrator_defense(request)
 
+    # Defense: strip no_humans when character_id is set (Gemini generation error)
+    if request.character_id and "no_humans" in request.prompt.lower().replace(" ", "_"):
+        original = request.prompt
+        request.prompt = ", ".join(
+            t.strip() for t in request.prompt.split(",") if t.strip().lower().replace(" ", "_").strip() != "no_humans"
+        )
+        logger.warning(
+            "⚠️ [Prompt Defense] Stripped no_humans from character scene (character_id=%d): '%s' → '%s'",
+            request.character_id,
+            original[:80],
+            request.prompt[:80],
+        )
+
     cleaned_prompt, compose_warnings = _dispatch_prompt_route(
         request,
         db,

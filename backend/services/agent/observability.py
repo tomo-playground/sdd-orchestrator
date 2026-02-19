@@ -155,6 +155,20 @@ def flush_langfuse() -> None:
 # ── Gemini GENERATION 추적 ────────────────────────────────────
 
 
+def _safe_extract_text(response: Any) -> str:
+    """response.text 대신 parts에서 text만 추출한다 (function_call 경고 방지)."""
+    try:
+        candidates = getattr(response, "candidates", None)
+        if not candidates:
+            return ""
+        parts = getattr(candidates[0].content, "parts", None)
+        if not parts:
+            return ""
+        return "".join(getattr(p, "text", "") or "" for p in parts if hasattr(p, "text"))
+    except Exception:
+        return getattr(response, "text", "") or ""
+
+
 @dataclass
 class LLMCallResult:
     """trace_llm_call()이 yield하는 결과 객체."""
@@ -165,7 +179,7 @@ class LLMCallResult:
 
     def record(self, response: Any) -> None:
         """Gemini 응답에서 output 텍스트와 토큰 사용량을 추출한다."""
-        self.output = getattr(response, "text", "") or ""
+        self.output = _safe_extract_text(response)
         meta = getattr(response, "usage_metadata", None)
         if meta:
             self.usage = {
