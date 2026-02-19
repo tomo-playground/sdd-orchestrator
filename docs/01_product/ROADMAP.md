@@ -12,10 +12,17 @@
 | Phase 9 (Agentic Pipeline) | 전체 완료 (ARCHIVED) |
 | Phase 10 (True Agentic) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | 미착수 (Future) |
-| 테스트 | Backend 1,902 + Frontend 352 = **총 2,254개** |
+| 테스트 | Backend 1,951 + Frontend 352 = **총 2,303개** |
 
 ### 최근 작업
 
+- **홈 화면 개선** (02-19): Continue Working 가로 스크롤 컴팩트 카드, Video Gallery 타입별(Full/Post) 2줄 레이아웃으로 전환. 동적 그룹핑으로 타입 확장 대응
+- **Research 되돌리기 분기** (02-19): 품질 점수(overall < 0.3) 기반 research 재실행 라우팅 구현. `route_after_research()` 조건부 엣지, `RESEARCH_MAX_RETRIES` 가드레일. Tier 2 완료. 6개 테스트 추가
+- **Research 품질 점수 체계** (02-19): 규칙 기반 4-메트릭(tool_success_rate, information_density, source_diversity, topic_coverage) 산출, quality_gate에 통합. 26개 테스트 추가
+- **Cinematographer 빈 응답 fallback + retry** (02-19): `call_with_tools()` tool-only 응답 시 도구 없이 1회 fallback 호출 추가, Cinematographer 노드 파싱 실패 시 최대 2회 재시도. 5개 테스트 추가
+- **Pydantic LLM 출력 검증 전환** (02-19): 수동 `_validate_*()` 함수 3개를 Pydantic v2 모델 6개로 통합. `model_validator`로 cross-field 검증(revise→feedback 필수), NarrativeScore clamping 선언적 처리. 25개 테스트 추가
+- **Non-Danbooru 태그 오탐 수정** (02-19): `find_unknown_tags()`가 CATEGORY_PATTERNS 미참조로 `smile`, `looking_at_viewer` 등 유효 태그를 오탐. CATEGORY_PATTERNS 전체 태그를 `frozenset` 캐시로 allowlist 추가. Danbooru API HTTPError 로그 WARNING→DEBUG 강등
+- **Human Gate Snapshot 보강** (02-19): quality_gate(review+checkpoint 메트릭) + revision_history + debate_log 3개 필드 추가, Frontend 5개 타입 구체화 + 3개 신규 UI 컴포넌트, Gemini function_call 경고 수정. 8개 테스트 추가
 - **Gemini Safety Preflight Check** (02-19): 파이프라인 시작 전 topic+description으로 Gemini 경량 호출하여 PROHIBITED_CONTENT 사전 감지. 차단 시 즉시 SSE error 반환으로 10-30초 대기 제거. 6개 테스트 추가
 - **렌더링 영상 새로고침 소실 버그 수정** (02-19): COMPLETED SSE 발송 시점을 render_history 저장 이후로 이동, upload.py 이중 커밋 제거, sync path 세션 분리. Storyboard 436 데이터 보정 완료
 - **문서 일괄 동기화** (02-19): 17-노드 파이프라인 기준 6개 문서 업데이트 (README, PRD, SYSTEM_OVERVIEW, AGENTIC_PIPELINE, AGENT_SPEC, ROADMAP)
@@ -136,15 +143,15 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 **Tier 0~1 — 전체 완료** (2026-02-18). Phase 10 5대 Agentic 요건 충족 + 서사 품질 3건 완료. 상세: [Phase 9 아카이브](../99_archive/archive/ROADMAP_PHASE_9.md), [Phase 10 아카이브](../99_archive/archive/ROADMAP_PHASE_10.md)
 
-**Tier 2 — Pipeline 고도화** (진행 중)
+**Tier 2 — Pipeline 고도화** (전체 완료 02-19)
 
 | 순위 | 작업 | 상태 | 근거 |
 |------|------|------|------|
 | 1 | Revision history 누적 (review→revise 루프 히스토리 보존) | [x] 02-19 | 동일 실패 반복 방지, revision 성공률 향상 |
 | 2 | Checkpoint score → routing 연결 (점수 기반 분기) | [x] 02-19 | score 기반 decision override 안전망 |
-| 3 | Human gate snapshot (중간 결과물 정리) | [ ] | Creator 모드 UX 개선 |
-| 4 | Pydantic 모델 전환 (LLM 출력 검증) | [ ] | 검증 함수 중복 제거, 에러 메시지 품질 |
-| 5 | Research 되돌리기 분기 (저점수 → research 재실행) | [ ] | 데이터 분석 후 판단 |
+| 3 | Human gate snapshot (중간 결과물 정리) | [x] 02-19 | Creator 모드 UX 개선 |
+| 4 | Pydantic 모델 전환 (LLM 출력 검증) | [x] 02-19 | 검증 함수 중복 제거, 에러 메시지 품질 |
+| 5 | Research 되돌리기 분기 (저점수 → research 재실행) | [x] 02-19 | 점수 기반 조건부 엣지, MAX_RETRIES 가드레일 |
 
 **Tier 3 — 장기**
 
