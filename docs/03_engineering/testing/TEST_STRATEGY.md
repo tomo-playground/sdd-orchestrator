@@ -1,5 +1,9 @@
 # Test Strategy
 
+**최종 업데이트**: 2026-02-19
+
+---
+
 ## 1. 테스트 레벨
 
 ```
@@ -112,39 +116,48 @@ npm run test:vrt:ui
 
 ---
 
-## 4. 커버리지 목표
+## 4. 커버리지 현황
 
 | 영역 | 현재 | 목표 |
 |------|------|------|
-| Backend Unit | 1,287 tests (99 files) | 80% line coverage |
-| Backend Router | 311 tests (21 files) | 주요 라우터 100% |
+| Backend Unit | 1,334 tests (103 files) | 80% line coverage |
+| Backend Router | 368 tests (25 files) | 주요 라우터 100% |
 | Backend Integration | 108 tests (9 files) | 핵심 API 100% |
 | Backend VRT | 36 tests (4 files) | 주요 레이아웃 100% |
-| Frontend Unit | 319 tests (29 files) | 70% line coverage |
+| Backend Benchmark | 18 tests | 성능 기준선 |
+| Frontend Unit | 352 tests (31 files) | 70% line coverage |
 | Frontend VRT | 24 screenshots (8 specs) | 전체 페이지 커버 |
 | Frontend E2E | 3 specs | 핵심 플로우 커버 |
 
-**총 테스트**: 2,079개 (Backend 1,760 + Frontend 319)
+**총 테스트**: **2,214개** (Backend 1,862 + Frontend 352)
 
-**Backend 구성** (1,760 tests, 133 files):
-- Unit: 1,287 tests (99 files, `tests/test_*.py` — router 제외)
-- Router: 311 tests (21 files, `tests/test_router_*.py`)
-- Integration: 108 tests (9 files, `tests/api/`)
-- VRT: 36 tests (4 files, `tests/vrt/`)
-- Benchmark: 18 tests (`tests/benchmark/`)
+### Backend 구성 (1,862 tests, 143 files)
 
-**Frontend 구성** (319 tests, 29 files):
-- Hooks: useAutopilot(27), useFocusTrap(5), useCharacters(13)
-- Store Actions: storyboardActions(33), narratorGeneration(11), groupActions(12), batchActions(3), autopilotActions(2)
-- Components: Button(15), Modal(13), Badge(9), AnalyticsDashboard(8), ConfirmDialog(8), Skeleton(7), Toast(3), LoadingSpinner(3), TagAutocomplete(4)
-- Utils: validation(34), speakerResolver(24), sceneSettingsResolver(14), autoPin(11), applyAutoPin(8), pinIntegration(8), format(10), pipelineSteps(10), url(7), pinnedSceneOrder(6), videoRestore(5)
-- Store: resetAllStores(6)
+| 유형 | 테스트 수 | 파일 수 | 위치 |
+|------|----------|---------|------|
+| Unit | 1,334 | 103 | `tests/test_*.py` (router 제외) |
+| Router | 368 | 25 | `tests/test_router_*.py` |
+| Integration | 108 | 9 | `tests/api/` |
+| VRT | 36 | 4 | `tests/vrt/` |
+| Benchmark | 18 | 1 | `tests/benchmark/` |
 
-**Router 커버리지**: 21/34 라우터 (62%)
-- 테스트 있음 (21): storyboard, characters, style_profiles, loras, prompt, keywords, video, video_async, settings, presets, admin, quality, tags, analytics, activity_logs, controlnet, avatar, sd, scene, assets, music_presets
-- 테스트 없음 (13): cleanup, prompt_histories, sd_models, backgrounds, groups, lab, memory, projects, render_presets, scripts, voice_presets, creative_presets, youtube
+### Frontend 구성 (352 tests, 31 files)
 
-**참고**: `tests/api/` 디렉토리의 통합 테스트가 일부 라우터(lab, render_presets, quality, activity_logs 등)를 추가로 커버
+| 카테고리 | 주요 테스트 | 테스트 수 |
+|----------|-----------|----------|
+| Hooks | useAutopilot(27), useCharacters(13), useFocusTrap(5) | 45+ |
+| Store Actions | storyboardActions(33), groupActions(12), narratorGeneration(11) | 63+ |
+| Components | Button(15), Modal(13), Badge(9), ConfirmDialog(8), Skeleton(7) | 73+ |
+| Utils | validation(34), speakerResolver(24), sceneSettingsResolver(14), autoPin(11), format(10) | 161+ |
+| Store | resetAllStores(6) | 6 |
+
+### Router 커버리지: 25/33 라우터 (76%)
+
+**테스트 있음 (25)**: storyboard, characters, style_profiles, loras, prompt, keywords, video, video_async, settings, presets, admin, quality, tags, analytics, activity_logs, controlnet, avatar, sd, scene, assets, music_presets, groups, projects, render_presets, voice_presets
+
+**테스트 없음 (8)**: cleanup, prompt_histories, sd_models, backgrounds, lab, memory, scripts, creative_presets, youtube
+
+> `tests/api/` 통합 테스트가 일부 라우터(lab, render_presets, quality, activity_logs)를 추가 커버
 
 ---
 

@@ -1,7 +1,6 @@
 # Test Cases (TC) - 전체 매트릭스
 
-> 작성일: 2026-02-19 | QA Engineer
-> 기준: Backend 122 unit + 9 integration + 4 VRT, Frontend 31 unit + 11 VRT/E2E
+**최종 업데이트**: 2026-02-19
 
 ---
 
@@ -9,13 +8,14 @@
 
 | 영역 | TC 수 | 테스트 파일 수 | 상태 |
 |------|-------|--------------|------|
-| Backend Unit | 1,287 | 122 | Active |
-| Backend Router | 311 | 21 | Active |
+| Backend Unit | 1,334 | 103 | Active |
+| Backend Router | 368 | 25 | Active |
 | Backend Integration | 108 | 9 | Active |
 | Backend VRT | 36 | 4 | Active |
-| Frontend Unit | 319 | 31 | Active |
+| Backend Benchmark | 18 | 1 | Active |
+| Frontend Unit | 352 | 31 | Active |
 | Frontend VRT/E2E | 24+ | 11 | Active |
-| **합계** | **2,085+** | **198** | - |
+| **합계** | **2,214+** | **184** | - |
 
 ---
 
@@ -302,14 +302,13 @@
 
 ## 9. Project / Group 계층 구조
 
-### TC-9.1 라우터 (커버리지 갭)
+### TC-9.1 라우터
 
-| ID | 테스트 케이스 | 유형 | 상태 |
+| ID | 테스트 케이스 | 유형 | 파일 |
 |----|-------------|------|------|
-| TC-9.1.1 | Projects CRUD API | Router | **미구현** |
-| TC-9.1.2 | Groups CRUD API | Router | **미구현** |
-| TC-9.1.3 | GroupConfig CRUD | Router | **미구현** |
-| TC-9.1.4 | Cascading Config 해석 | Unit | `test_config_resolver.py` |
+| TC-9.1.1 | Projects CRUD API | Router | `test_router_projects.py` |
+| TC-9.1.2 | Groups CRUD API | Router | `test_router_groups.py` |
+| TC-9.1.3 | Cascading Config 해석 | Unit | `test_config_resolver.py` |
 
 ### TC-9.2 설정 상속
 
@@ -352,12 +351,12 @@
 | TC-11.1.3 | Render Presets CRUD | Integration | `api/test_render_presets.py` |
 | TC-11.1.4 | Feedback Presets | Unit | `test_feedback_presets.py` |
 
-### TC-11.2 커버리지 갭 (프리셋 라우터)
+### TC-11.2 프리셋 라우터
 
-| ID | 테스트 케이스 | 유형 | 상태 |
-|----|-------------|------|------|
-| TC-11.2.1 | Voice Presets CRUD Router | Router | **미구현** |
-| TC-11.2.2 | Render Presets Router 단위 | Router | **미구현** |
+| ID | 테스트 케이스 | 유형 | 파일/상태 |
+|----|-------------|------|----------|
+| TC-11.2.1 | Voice Presets CRUD Router | Router | `test_router_voice_presets.py` |
+| TC-11.2.2 | Render Presets Router 단위 | Router | `test_router_render_presets.py` |
 | TC-11.2.3 | Creative Presets CRUD Router | Router | **미구현** |
 
 ---
@@ -550,14 +549,10 @@
 
 ## 커버리지 갭 요약 (미구현 TC)
 
-### 라우터 테스트 미구현 (13개)
+### 라우터 테스트 미구현 (8개)
 
 | 우선순위 | 라우터 | 영향도 |
 |---------|--------|--------|
-| P1 | `projects.py` | 핵심 계층 구조 |
-| P1 | `groups.py` | 핵심 계층 구조 |
-| P1 | `voice_presets.py` | 렌더링 필수 |
-| P1 | `render_presets.py` (단위) | 렌더링 필수 |
 | P2 | `youtube.py` | 업로드 기능 |
 | P2 | `scripts.py` | Script Graph |
 | P2 | `cleanup.py` | 스토리지 정리 |
@@ -566,14 +561,13 @@
 | P3 | `sd_models.py` | SD 모델 관리 |
 | P3 | `creative_presets.py` | Creative Engine |
 | P3 | `memory.py` | 추론 메모리 |
-| P3 | `lab.py` (라우터 단위) | 실험 기능 |
+
+> P1 라우터(Projects, Groups, Voice Presets, Render Presets)는 2026-02-19 완료.
 
 ### 추천 액션
 
-1. **P1 (즉시)**: Projects/Groups 라우터 테스트 — 계층 구조 핵심
-2. **P1 (즉시)**: Voice/Render Presets 라우터 — 렌더링 파이프라인 의존
-3. **P2 (다음 Phase)**: YouTube, Scripts, Cleanup 라우터
-4. **P3 (백로그)**: 나머지 라우터
+1. **P2 (다음 Phase)**: YouTube, Scripts, Cleanup, Backgrounds 라우터
+2. **P3 (백로그)**: 나머지 라우터
 
 ---
 
