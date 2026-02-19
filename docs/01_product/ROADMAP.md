@@ -192,7 +192,8 @@ Phase 6-5 (Stability) → 6-6 (Code Health) → 6-7 (Infra/DX) → 6-8 (Local AI
 - Phase 10 (True Agentic): **전체 완료 (ARCHIVED)** — [아카이브](../99_archive/archive/ROADMAP_PHASE_10.md)
 - 렌더링 품질 개선 (02-14~17): Scene Text 동적 높이/폰트, Safe Zone, 얼굴 감지, TTS 정규화. 52개 테스트
 - Studio UX 개선 (02-19): 1-column 레이아웃(Script/Publish), 프로덕션 에이전트 4종 SSE 노출, Generate 중복 제거, 이미지 클릭 팝업 프리뷰(오버레이 클릭 관통 fix), Scene 번호 1-based 표준화, 파이프라인 노드 메타정보 tooltip
-- **테스트**: Backend 1,805 + Frontend 352 = **총 2,157개**
+- QA 전체 TC 매트릭스 작성 (02-19): 18개 카테고리 130+ TC ID, P1 라우터 테스트 4건 57개 추가 (Projects/Groups/VoicePresets/RenderPresets), 커버리지 62%→74%
+- **테스트**: Backend 1,862 + Frontend 352 = **총 2,214개**
 - **다음**: Phase 8 (Multi-Style) 또는 Feature Backlog 항목
 
 ### 잔여 작업 우선순위
