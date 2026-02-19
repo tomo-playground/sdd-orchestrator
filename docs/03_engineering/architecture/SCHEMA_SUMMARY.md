@@ -2,7 +2,7 @@
 
 Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.21) 참조.
 
-> **Last Synced:** 2026-02-18 (DB_SCHEMA v3.21 기준)
+> **Last Synced:** 2026-02-19 (DB_SCHEMA v3.21 기준)
 
 ---
 

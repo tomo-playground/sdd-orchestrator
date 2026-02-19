@@ -107,36 +107,50 @@ graph TB
 
 ## 2. 핵심 데이터 흐름 (System Data Flow)
 
-서비스의 주요 워크플로우를 관통하는 데이터 흐름도입니다. 외부 API 연동 부위가 Gemini와 WebUI로 명확히 분리됩니다.
+서비스의 주요 워크플로우를 관통하는 데이터 흐름도입니다. Agentic Pipeline(Full 모드)과 이미지/렌더링 파이프라인이 분리됩니다.
 
 ```mermaid
 sequenceDiagram
     participant U as User
     participant F as Frontend
-    participant B as Backend
+    participant B as Backend API
+    participant AG as Agentic Pipeline
     participant Gem as Gemini API
-    participant SD as SD WebUI (A1111)
-    participant DB as Database
+    participant SD as SD WebUI
+    participant DB as PostgreSQL
 
-    U->>F: 주제 입력 (Create Storyboard)
+    rect rgb(240, 248, 255)
+    Note over U,DB: Phase 1 — Storyboard Creation (Agentic)
+    U->>F: 주제 입력
     F->>B: POST /storyboards/create
-    B->>Gem: 기획 요청
-    Gem-->>B: 씬 구성 및 프롬프트 반환
-    B->>DB: 스토리보드 데이터 영속화
-    B-->>F: Storyboard JSON 반환
+    B->>AG: LangGraph 실행 (Quick/Full)
+    AG->>Gem: Research + Critic + Writer
+    Gem-->>AG: 씬 구성 반환
+    AG->>Gem: Review + Cinematographer
+    Gem-->>AG: Danbooru 태그, TTS, Sound
+    AG->>AG: Director ReAct Loop (승인/수정)
+    AG->>DB: 스토리보드 + 씬 영속화
+    B-->>F: SSE 진행률 + 최종 결과
+    end
 
+    rect rgb(255, 248, 240)
+    Note over U,DB: Phase 2 — Image Generation
     F->>B: 이미지 생성 요청 (Batch)
-    B->>B: V3 Prompt Engine: 프롬프트 조합
-    B->>SD: txt2img API 요청
+    B->>B: 12-Layer Prompt Engine
+    B->>SD: txt2img (ControlNet/IP-Adapter)
     SD-->>B: 이미지 바이너리
-    B->>Gem: Vision: 이미지 품질 검수 (옵션)
-    B->>DB: 에셋 등록 및 로그 기록
+    B->>Gem: Vision 품질 검수 (옵션)
+    B->>DB: MediaAsset 등록
     B-->>F: Image URL 반환
+    end
 
-    F->>B: 최종 영상 렌더링 요청
-    B->>B: Render Pipeline: TTS + FFmpeg
-    B->>DB: 최종 비디오 에셋 등록
+    rect rgb(240, 255, 240)
+    Note over U,DB: Phase 3 — Video Rendering
+    F->>B: 렌더링 요청
+    B->>B: Qwen3-TTS + FFmpeg Pipeline
+    B->>DB: 비디오 에셋 등록
     B-->>F: Video URL 반환
+    end
 ```
 
 ## 3. 아키텍처 패턴 (Architecture Patterns)
@@ -285,7 +299,7 @@ frontend/app/
 │   ├── useStoryboardStore.ts # 스토리보드 데이터
 │   ├── useRenderStore.ts     # 렌더링 상태
 │   ├── resetAllStores.ts     # 전체 스토어 리셋
-│   ├── actions/              # 비동기 액션 (14개)
+│   ├── actions/              # 비동기 액션 (17개)
 │   └── selectors/            # 파생 상태
 ├── components/
 │   ├── home/             # Home 대시보드 (VideoFeed, QuickStats, Showcase 등)
@@ -307,7 +321,7 @@ frontend/app/
 │   ├── shared/           # 공유 컴포넌트
 │   ├── common/           # 공통 컴포넌트
 │   └── ui/               # 공통 UI (Toast, Modal 등)
-├── hooks/                # 서버 동기화 훅 (26개)
+├── hooks/                # 서버 동기화 훅 (25개)
 ├── constants/            # 상수 정의
 ├── types/                # TypeScript 타입
 └── utils/                # 유틸리티 함수
@@ -324,7 +338,7 @@ frontend/app/
 | 코드 파일 | 300줄 권장, 400줄 최대 |
 | 중첩 깊이 | 3단계 이하 |
 | 매개변수 | 4개 이하 |
-| 테스트 커버리지 | Backend 80%, Frontend 70% |
+| 테스트 | Backend 1,862 + Frontend 352 = 2,214개 |
 
 **TDD**: 서비스/코어 로직은 테스트 먼저 작성 (Red → Green → Refactor)
 **API 스펙 = 진실**: API/스키마 변경 시 문서 즉시 업데이트 (drift = 버그 취급)

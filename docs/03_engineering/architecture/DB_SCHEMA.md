@@ -3,7 +3,7 @@
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
-## 📝 변경 이력
+## 변경 이력
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
@@ -16,7 +16,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 ---
 
-## 🗺️ ER Diagram
+## ER Diagram
 
 ```mermaid
 erDiagram
@@ -74,7 +74,7 @@ erDiagram
     }
 ```
 
-## 📦 Core: Channel & Storyboard System
+## Core: Channel & Storyboard System
 
 ### `projects`
 YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
@@ -224,11 +224,11 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 
 ---
 
-## 🤖 Creative Engine (Agents)
+## Creative Engine (Agents)
 
 > 분리 문서: [DB_SCHEMA_CREATIVE.md](DB_SCHEMA_CREATIVE.md)
 
-## 🔗 Association Tables (V3 Relational Tags)
+## Association Tables (V3 Relational Tags)
 
 ### `storyboard_characters`
 스토리보드 내 화자(Speaker)와 캐릭터 매핑 (Dialogue).
@@ -279,7 +279,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `tag_id` | Integer (FK → tags) | 액션/표정 태그 |
 | `weight` | Float | 태그 가중치 (default: 1.0) |
 
-## 🏷️ Tag System
+## Tag System
 
 ### `tags`
 프롬프트 키워드의 마스터 테이블 (12-Layer 시맨틱 데이터).
@@ -391,7 +391,7 @@ WD14 피드백 루프 데이터.
 | `match_count` | Integer | WD14 감지 횟수 |
 | `effectiveness` | Float | `match_count / use_count` |
 
-## 🎨 Asset System
+## Asset System
 
 ### `backgrounds`
 배경 프리셋. ControlNet Canny 참조 이미지 + 환경 태그 관리.
@@ -627,7 +627,7 @@ Textual Inversion 임베딩.
 | `is_active` | Boolean | |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
-## 📊 Analytics & History
+## Analytics & History
 
 ### `activity_logs`
 생성 이력 로그 (Analytics & Tracking).
@@ -734,7 +734,7 @@ Textual Inversion 임베딩.
 
 ---
 
-## 📝 JSONB Structures
+## JSONB Structures
 
 ### `Character.loras`
 ```json
@@ -759,7 +759,7 @@ Textual Inversion 임베딩.
 
 ---
 
-## 🔑 Enums
+## Enums
 
 | Enum | Values |
 |------|--------|
@@ -782,13 +782,13 @@ Textual Inversion 임베딩.
 
 ---
 
-## 📐 Column Ordering Convention
+## Column Ordering Convention
 
 ORM 모델 컬럼 선언 순서: PK → Parent FK → Identity(name) → Metadata → Domain → Asset FK → Config FK → Flags → Timestamps
 
 ---
 
-**Last Updated:** 2026-02-18
+**Last Updated:** 2026-02-19
 **Schema Version:** v3.21
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic
