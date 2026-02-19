@@ -23,6 +23,7 @@ build/
 
 # Outputs (generated files)
 outputs/
+projects/
 
 # Logs
 logs/
