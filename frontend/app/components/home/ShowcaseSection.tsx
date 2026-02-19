@@ -1,13 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Clapperboard, Loader2, Play, Sparkles } from "lucide-react";
 import type { RenderHistoryItem } from "../../types";
 import { useUIStore } from "../../store/useUIStore";
 import { formatRelativeTime } from "../../utils/format";
 
-const DISPLAY_COUNT = 6;
+const DISPLAY_COUNT = 12;
 const EXPANDED_LIMIT = 50;
+
+const LABEL_DISPLAY: Record<string, string> = {
+  full: "Full Video",
+  post: "Post Format",
+  single: "Single",
+};
 
 export default function ShowcaseSection() {
   const [items, setItems] = useState<RenderHistoryItem[]>([]);
@@ -43,6 +49,16 @@ export default function ShowcaseSection() {
     setExpanded(!expanded);
   };
 
+  const groupedItems = useMemo(() => {
+    const groups: Record<string, RenderHistoryItem[]> = {};
+    for (const v of items) {
+      const key = v.label || "other";
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(v);
+    }
+    return groups;
+  }, [items]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center rounded-xl border border-zinc-200 bg-white p-8">
@@ -72,8 +88,6 @@ export default function ShowcaseSection() {
     );
   }
 
-  const displayItems = expanded ? items : items.slice(0, DISPLAY_COUNT);
-
   return (
     <>
       <div>
@@ -94,32 +108,48 @@ export default function ShowcaseSection() {
           )}
         </div>
 
-        {/* Horizontal carousel */}
-        <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
-          {displayItems.map((video) => (
-            <button
-              key={video.id}
-              onClick={() => setSelectedVideo(video)}
-              className="group w-[180px] shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-white text-left transition hover:border-zinc-300 hover:shadow-md"
-            >
-              <div className="relative h-[280px] w-full overflow-hidden bg-zinc-900">
-                <video src={video.url} className="h-full w-full object-cover" muted playsInline />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition group-hover:opacity-100">
-                  <div className="rounded-full bg-white/90 p-2">
-                    <Play className="h-4 w-4 text-zinc-900" />
-                  </div>
-                </div>
-                {/* Overlay info */}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                  <p className="truncate text-xs font-medium text-white">
-                    {video.storyboard_title || video.project_name || "Video"}
-                  </p>
-                  <p className="text-[11px] text-white/70">
-                    {formatRelativeTime(video.created_at)}
-                  </p>
-                </div>
+        {/* Rows by type */}
+        <div className="space-y-4">
+          {Object.entries(groupedItems).map(([label, videos]) => (
+            <div key={label}>
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-xs font-medium text-zinc-600">
+                  {LABEL_DISPLAY[label] || label}
+                </span>
+                <span className="text-[11px] text-zinc-400">({videos.length})</span>
               </div>
-            </button>
+              <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
+                {videos.map((video) => (
+                  <button
+                    key={video.id}
+                    onClick={() => setSelectedVideo(video)}
+                    className="group w-[160px] shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-white text-left transition hover:border-zinc-300 hover:shadow-md"
+                  >
+                    <div className="relative h-[240px] w-full overflow-hidden bg-zinc-900">
+                      <video
+                        src={video.url}
+                        className="h-full w-full object-cover"
+                        muted
+                        playsInline
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition group-hover:opacity-100">
+                        <div className="rounded-full bg-white/90 p-2">
+                          <Play className="h-4 w-4 text-zinc-900" />
+                        </div>
+                      </div>
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                        <p className="truncate text-xs font-medium text-white">
+                          {video.storyboard_title || video.project_name || "Video"}
+                        </p>
+                        <p className="text-[11px] text-white/70">
+                          {formatRelativeTime(video.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
