@@ -1,6 +1,7 @@
 "use client";
 
 import type { QCAnalysis, QCIssue } from "../../types/creative";
+import { RATING_LABELS, SEVERITY_LABELS, CATEGORY_LABELS } from "./qcLabels";
 
 const RATING_STYLES: Record<string, { bg: string; text: string }> = {
   good: { bg: "bg-emerald-100", text: "text-emerald-700" },
@@ -20,15 +21,6 @@ const SEVERITY_STYLES: Record<string, string> = {
   suggestion: "text-blue-600 bg-blue-50 border-blue-200",
 };
 
-const SCORE_LABELS: Record<string, string> = {
-  readability: "Readability",
-  hook_strength: "Hook Strength",
-  emotional_arc: "Emotional Arc",
-  tts_naturalness: "TTS Natural",
-  expression_diversity: "Diversity",
-  consistency: "Consistency",
-};
-
 type Props = {
   analysis: QCAnalysis;
   onSceneClick?: (scene: number) => void;
@@ -42,6 +34,7 @@ function sortedIssues(issues: QCIssue[]): QCIssue[] {
 
 export default function QCSummaryCard({ analysis, onSceneClick }: Props) {
   const ratingStyle = RATING_STYLES[analysis.overall_rating] ?? RATING_STYLES.poor;
+  const ratingLabel = RATING_LABELS[analysis.overall_rating] ?? analysis.overall_rating;
 
   return (
     <div className="space-y-3 rounded-xl border border-zinc-200 bg-white p-4">
@@ -49,12 +42,12 @@ export default function QCSummaryCard({ analysis, onSceneClick }: Props) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span
-            className={`rounded-full px-2 py-0.5 text-[12px] font-bold uppercase ${ratingStyle.bg} ${ratingStyle.text}`}
+            className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${ratingStyle.bg} ${ratingStyle.text}`}
           >
-            {analysis.overall_rating.replace("_", " ")}
+            {ratingLabel}
           </span>
-          <span className="text-xs font-semibold text-zinc-700">
-            Score: {(analysis.score * 100).toFixed(0)}%
+          <span className="text-sm font-semibold text-zinc-700">
+            품질 점수 {(analysis.score * 100).toFixed(0)}점
           </span>
         </div>
       </div>
@@ -62,9 +55,9 @@ export default function QCSummaryCard({ analysis, onSceneClick }: Props) {
       {/* Score breakdown */}
       <div className="grid grid-cols-3 gap-2">
         {Object.entries(analysis.score_breakdown).map(([key, value]) => (
-          <div key={key} className="rounded-lg bg-zinc-50 px-2 py-1.5">
-            <p className="text-[12px] text-zinc-400">{SCORE_LABELS[key] ?? key}</p>
-            <div className="mt-0.5 flex items-center gap-1.5">
+          <div key={key} className="rounded-lg bg-zinc-50 px-2.5 py-2">
+            <p className="text-xs text-zinc-500">{CATEGORY_LABELS[key] ?? key}</p>
+            <div className="mt-1 flex items-center gap-1.5">
               <div className="h-1.5 flex-1 rounded-full bg-zinc-200">
                 <div
                   className={`h-1.5 rounded-full ${
@@ -73,27 +66,30 @@ export default function QCSummaryCard({ analysis, onSceneClick }: Props) {
                   style={{ width: `${value * 100}%` }}
                 />
               </div>
-              <span className="text-[12px] font-medium text-zinc-600">
-                {(value * 100).toFixed(0)}
-              </span>
+              <span className="text-xs font-medium text-zinc-600">{(value * 100).toFixed(0)}</span>
             </div>
           </div>
         ))}
       </div>
 
       {/* Summary */}
-      <p className="text-xs text-zinc-600">{analysis.summary}</p>
+      <div className="rounded-lg bg-zinc-50 px-3 py-2.5">
+        <p className="mb-1 text-xs font-semibold text-zinc-400">분석 요약</p>
+        <p className="text-sm leading-relaxed text-zinc-600">{analysis.summary}</p>
+      </div>
 
       {/* Strengths */}
       {analysis.strengths.length > 0 && (
         <div>
-          <p className="mb-1 text-[12px] font-semibold tracking-wider text-emerald-600 uppercase">
-            Strengths
-          </p>
-          <ul className="space-y-0.5">
+          <p className="mb-1.5 text-xs font-semibold tracking-wider text-emerald-600">강점</p>
+          <ul className="space-y-1">
             {analysis.strengths.map((s, i) => (
-              <li key={i} className="text-[13px] text-zinc-600">
-                + {s}
+              <li
+                key={i}
+                className="flex items-start gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-sm text-zinc-700"
+              >
+                <span className="mt-0.5 text-emerald-500">✓</span>
+                <span>{s}</span>
               </li>
             ))}
           </ul>
@@ -103,25 +99,30 @@ export default function QCSummaryCard({ analysis, onSceneClick }: Props) {
       {/* Issues (sorted by severity) */}
       {analysis.issues.length > 0 && (
         <div>
-          <p className="mb-1 text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
-            Issues ({analysis.issues.length})
+          <p className="mb-1.5 text-xs font-semibold tracking-wider text-zinc-400">
+            개선점 ({analysis.issues.length}건)
           </p>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {sortedIssues(analysis.issues).map((issue, i) => (
               <div
                 key={i}
-                className={`flex items-start gap-2 rounded-lg border px-2.5 py-1.5 text-[13px] ${SEVERITY_STYLES[issue.severity] ?? ""}`}
+                className={`rounded-lg border px-3 py-2 ${SEVERITY_STYLES[issue.severity] ?? ""}`}
               >
-                <span className="font-bold uppercase">{issue.severity[0]}</span>
-                <div className="flex-1">
-                  <span className="text-zinc-500">[{issue.category}]</span> {issue.description}
+                <div className="flex items-center gap-2">
+                  <span className="rounded px-1.5 py-0.5 text-[11px] font-bold">
+                    {SEVERITY_LABELS[issue.severity] ?? issue.severity}
+                  </span>
+                  <span className="text-xs text-zinc-500">
+                    {CATEGORY_LABELS[issue.category] ?? issue.category}
+                  </span>
+                  <button
+                    onClick={() => onSceneClick?.(issue.scene)}
+                    className="ml-auto shrink-0 font-mono text-xs underline"
+                  >
+                    #{issue.scene}
+                  </button>
                 </div>
-                <button
-                  onClick={() => onSceneClick?.(issue.scene)}
-                  className="shrink-0 font-mono text-[12px] underline"
-                >
-                  #{issue.scene}
-                </button>
+                <p className="mt-1 text-sm leading-relaxed text-zinc-700">{issue.description}</p>
               </div>
             ))}
           </div>
