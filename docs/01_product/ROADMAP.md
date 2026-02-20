@@ -19,6 +19,7 @@
 
 ### 최근 작업
 
+- **SSE 스트림 에러 수정** (02-20): video/scene progress SSE 제너레이터에 예외 처리 추가. 클라이언트 disconnect 시 `ERR_INCOMPLETE_CHUNKED_ENCODING` 해소 (CancelledError 핸들링)
 - **캐릭터 프리뷰 Gemini 기능 복원** (02-20): Phase 7-Y 리팩토링 시 누락된 Enhance(Gemini 보정)+Edit(자연어 편집) 복원. Regen/Enhance/Edit 3버튼 배치, GeminiEditModal 신규 생성
 - **캐릭터 태그 정비 + 개성화** (02-20): 8캐릭터 identity/clothing 태그 분리(is_permanent 정정), 비표준 태그(a_cute_girl, anime_style) 제거, 캐릭터별 개성 의상 재설계. Ghibli 캐릭터(Hana/Sora) auto 모드 전환
 - **Studio Ghibli LoRA + Style Profile** (02-20): Civitai model 6526 등록, Style Profile "Studio Ghibli" 생성, Hana(여)/Sora(남) 캐릭터 생성

@@ -151,41 +151,49 @@ async def stream_progress(task_id: str):
 
 async def _event_generator(task_id: str) -> AsyncGenerator[str]:
     """Yield SSE events until the task completes or fails."""
-    while True:
-        task = get_task(task_id)
-        if not task:
-            yield _sse_event(RenderProgressEvent(task_id=task_id, stage="failed", error="Task expired"))
-            return
+    try:
+        while True:
+            task = get_task(task_id)
+            if not task:
+                yield _sse_event(RenderProgressEvent(task_id=task_id, stage="failed", error="Task expired"))
+                return
 
-        pct = task.percent
-        elapsed = time.time() - task.created_at
-        eta = estimate_remaining(task)
+            pct = task.percent
+            elapsed = time.time() - task.created_at
+            eta = estimate_remaining(task)
 
-        event = RenderProgressEvent(
-            task_id=task.task_id,
-            stage=task.stage.value,
-            percent=pct,
-            message=task.message,
-            encode_percent=task.encode_percent,
-            current_scene=task.current_scene,
-            total_scenes=task.total_scenes,
-            elapsed_seconds=round(elapsed, 1),
-            estimated_remaining_seconds=round(eta, 1) if eta is not None else None,
-            video_url=task.result.get("video_url") if task.result else None,
-            media_asset_id=task.result.get("media_asset_id") if task.result else None,
-            render_history_id=task.result.get("render_history_id") if task.result else None,
-            error=task.error,
-        )
-        yield _sse_event(event)
+            event = RenderProgressEvent(
+                task_id=task.task_id,
+                stage=task.stage.value,
+                percent=pct,
+                message=task.message,
+                encode_percent=task.encode_percent,
+                current_scene=task.current_scene,
+                total_scenes=task.total_scenes,
+                elapsed_seconds=round(elapsed, 1),
+                estimated_remaining_seconds=round(eta, 1) if eta is not None else None,
+                video_url=task.result.get("video_url") if task.result else None,
+                media_asset_id=task.result.get("media_asset_id") if task.result else None,
+                render_history_id=task.result.get("render_history_id") if task.result else None,
+                error=task.error,
+            )
+            yield _sse_event(event)
 
-        if task.stage in (RenderStage.COMPLETED, RenderStage.FAILED):
-            return
+            if task.stage in (RenderStage.COMPLETED, RenderStage.FAILED):
+                # Let client close EventSource first to avoid
+                # ERR_INCOMPLETE_CHUNKED_ENCODING race condition
+                await asyncio.sleep(2)
+                return
 
-        # Wait for next progress update (with timeout to send keep-alive)
-        version = task._version
-        updated = await task.wait_for_update(version, timeout=15.0)
-        if not updated:
-            yield ": keep-alive\n\n"
+            # Wait for next progress update (with timeout to send keep-alive)
+            version = task._version
+            updated = await task.wait_for_update(version, timeout=15.0)
+            if not updated:
+                yield ": keep-alive\n\n"
+    except asyncio.CancelledError:
+        logger.debug("[SSE] Client disconnected for task %s", task_id)
+    except Exception:
+        logger.exception("[SSE] Error in video progress stream for task %s", task_id)
 
 
 def _sse_event(event: RenderProgressEvent) -> str:

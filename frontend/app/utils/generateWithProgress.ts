@@ -23,6 +23,7 @@ export async function generateWithProgress(
 
   return new Promise((resolve, reject) => {
     let retryCount = 0;
+    let settled = false;
     let timeoutId: NodeJS.Timeout | null = null;
     let es: EventSource | null = null;
 
@@ -34,16 +35,22 @@ export async function generateWithProgress(
     // External abort support
     signal?.addEventListener("abort", () => {
       cleanup();
-      reject(new DOMException("Aborted", "AbortError"));
+      if (!settled) {
+        settled = true;
+        reject(new DOMException("Aborted", "AbortError"));
+      }
     });
 
     timeoutId = setTimeout(() => {
       cleanup();
-      reject(new Error("Image generation timeout"));
+      if (!settled) {
+        settled = true;
+        reject(new Error("Image generation timeout"));
+      }
     }, API_TIMEOUT.IMAGE_GENERATION);
 
     function connectSSE() {
-      if (signal?.aborted) return;
+      if (signal?.aborted || settled) return;
       es = new EventSource(`${API_BASE}/scene/progress/${taskId}`);
 
       es.onmessage = (event) => {
@@ -54,10 +61,12 @@ export async function generateWithProgress(
 
           if (data.stage === "completed") {
             cleanup();
+            settled = true;
             resolve(data);
           }
           if (data.stage === "failed") {
             cleanup();
+            settled = true;
             reject(new Error(data.error || "Image generation failed"));
           }
         } catch {
@@ -67,7 +76,7 @@ export async function generateWithProgress(
 
       es.onerror = () => {
         es?.close();
-        if (signal?.aborted) return;
+        if (settled || signal?.aborted) return;
         if (retryCount < MAX_RETRIES) {
           retryCount++;
           const delay = BACKOFF_BASE_MS * Math.pow(2, retryCount - 1);
@@ -80,6 +89,7 @@ export async function generateWithProgress(
           setTimeout(connectSSE, delay);
         } else {
           cleanup();
+          settled = true;
           reject(new Error("SSE connection lost after retries"));
         }
       };

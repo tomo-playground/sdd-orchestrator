@@ -632,30 +632,36 @@ async def stream_image_progress(task_id: str):
 
 async def _image_event_generator(task_id: str) -> AsyncGenerator[str]:
     """Yield SSE events until the image task completes or fails."""
-    while True:
-        task = get_image_task(task_id)
-        if not task:
-            event = ImageProgressEvent(task_id=task_id, stage="failed", error="Task expired")
+    try:
+        while True:
+            task = get_image_task(task_id)
+            if not task:
+                event = ImageProgressEvent(task_id=task_id, stage="failed", error="Task expired")
+                yield f"data: {json.dumps(event.model_dump())}\n\n"
+                return
+
+            event = ImageProgressEvent(
+                task_id=task.task_id,
+                stage=task.stage.value,
+                percent=task.percent,
+                message=task.message,
+                preview_image=task.preview_image,
+                image=task.result.get("image") if task.result else None,
+                used_prompt=task.result.get("used_prompt") if task.result else None,
+                warnings=task.result.get("warnings", []) if task.result else [],
+                error=task.error,
+            )
             yield f"data: {json.dumps(event.model_dump())}\n\n"
-            return
 
-        event = ImageProgressEvent(
-            task_id=task.task_id,
-            stage=task.stage.value,
-            percent=task.percent,
-            message=task.message,
-            preview_image=task.preview_image,
-            image=task.result.get("image") if task.result else None,
-            used_prompt=task.result.get("used_prompt") if task.result else None,
-            warnings=task.result.get("warnings", []) if task.result else [],
-            error=task.error,
-        )
-        yield f"data: {json.dumps(event.model_dump())}\n\n"
+            if task.stage in (ImageGenStage.COMPLETED, ImageGenStage.FAILED):
+                await asyncio.sleep(2)
+                return
 
-        if task.stage in (ImageGenStage.COMPLETED, ImageGenStage.FAILED):
-            return
-
-        version = task._version
-        updated = await task.wait_for_update(version, timeout=10.0)
-        if not updated:
-            yield ": keep-alive\n\n"
+            version = task._version
+            updated = await task.wait_for_update(version, timeout=10.0)
+            if not updated:
+                yield ": keep-alive\n\n"
+    except asyncio.CancelledError:
+        logger.debug("[SSE] Client disconnected for image task %s", task_id)
+    except Exception:
+        logger.exception("[SSE] Error in image progress stream for task %s", task_id)

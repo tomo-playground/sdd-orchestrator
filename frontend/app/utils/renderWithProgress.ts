@@ -21,13 +21,17 @@ export async function renderWithProgress(
 
   return new Promise((resolve, reject) => {
     let retryCount = 0;
+    let settled = false;
     let timeoutId: NodeJS.Timeout | null = null;
     let es: EventSource | null = null;
 
     // Set overall timeout for the entire render process
     timeoutId = setTimeout(() => {
       es?.close();
-      reject(new Error("Render timeout after 20 minutes"));
+      if (!settled) {
+        settled = true;
+        reject(new Error("Render timeout after 20 minutes"));
+      }
     }, API_TIMEOUT.VIDEO_RENDER);
 
     function connectSSE() {
@@ -43,11 +47,13 @@ export async function renderWithProgress(
           if (data.stage === "completed") {
             if (timeoutId) clearTimeout(timeoutId);
             es?.close();
+            settled = true;
             resolve(data);
           }
           if (data.stage === "failed") {
             if (timeoutId) clearTimeout(timeoutId);
             es?.close();
+            settled = true;
             reject(new Error(data.error || "Render failed"));
           }
         } catch {
@@ -57,6 +63,8 @@ export async function renderWithProgress(
 
       es.onerror = () => {
         es?.close();
+        // Don't retry if already resolved/rejected (terminal event received)
+        if (settled) return;
         if (retryCount < MAX_RETRIES) {
           retryCount++;
           const delay = BACKOFF_BASE_MS * Math.pow(2, retryCount - 1);
@@ -72,6 +80,7 @@ export async function renderWithProgress(
           setTimeout(connectSSE, delay);
         } else {
           if (timeoutId) clearTimeout(timeoutId);
+          settled = true;
           reject(new Error("SSE connection lost after retries"));
         }
       };
