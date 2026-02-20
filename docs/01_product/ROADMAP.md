@@ -19,6 +19,9 @@
 
 ### 최근 작업
 
+- **캐릭터 프리뷰 Gemini 기능 복원** (02-20): Phase 7-Y 리팩토링 시 누락된 Enhance(Gemini 보정)+Edit(자연어 편집) 복원. Regen/Enhance/Edit 3버튼 배치, GeminiEditModal 신규 생성
+- **캐릭터 태그 정비 + 개성화** (02-20): 8캐릭터 identity/clothing 태그 분리(is_permanent 정정), 비표준 태그(a_cute_girl, anime_style) 제거, 캐릭터별 개성 의상 재설계. Ghibli 캐릭터(Hana/Sora) auto 모드 전환
+- **Studio Ghibli LoRA + Style Profile** (02-20): Civitai model 6526 등록, Style Profile "Studio Ghibli" 생성, Hana(여)/Sora(남) 캐릭터 생성
 - **BGM 모드 리팩토링** (02-20): 3-mode(file/ai/auto) → 2-mode(manual/auto) 단순화. Manual=Music Preset 선택(bgm_file 폴백), Auto=Sound Designer 자동. Alembic 마이그레이션, 후방 호환 매핑(file/ai→manual), Frontend localStorage migrate. 19개 테스트, 5개 문서 업데이트
 - **Phase 13-A Performance Quick Wins** (02-20): Review Gemini 3회→1회 통합 호출(~70% 단축), Learn Store 4개 병렬화, Studio loadGroupDefaults 병렬화, Narrative weight 불일치 버그 수정. 6개 테스트 추가
 - **TTS 비음성 씬 선별 (Speakable Flag)** (02-20): Writer→TTS 파이프라인에 `speakable` 플래그 도입. `has_speakable_content()` 게이트 + TTS Designer skip 가이드. 13개 테스트 추가
