@@ -17,7 +17,8 @@
 
 ### 최근 작업
 
-- **Pipeline Resume 오류 + SSE 에러 알림 수정** (02-20): writer.py description 2000자 초과 ValidationError 수정 (research_brief+plan+feedback 누적 시 1900자 절삭), Frontend SSE 에러 시 파이프라인 스텝 error 상태 전환 + resume() 무알림 분기에 warning 토스트 추가
+- **프롬프트 품질 후속 수정** (02-20): _NON_FRONTAL_GAZE 누락 태그 5개 추가(averted_gaze, downcast_eyes, closed_eyes 등 1.1x→1.25x), Cinematographer에 style 변수 전달 + Anime 스타일 realistic/photorealistic 금지 규칙, gaze 태그 34개 default_layer 통일(→LAYER_EXPRESSION), pipeline_context 필드 분리(description 과적 해소)
+- **Pipeline Resume 오류 + SSE 에러 알림 수정** (02-20): writer.py description 2000자 초과 → pipeline_context dict 분리로 해소, Frontend SSE 에러 시 파이프라인 스텝 error 상태 전환 + resume() 무알림 분기에 warning 토스트 추가
 - **Scene Diversity & Frontal Bias Fix P0~P2** (02-20): 정면 편향 해소 8건. cinematographer.j2 gaze/pose 다양성 규칙+시너지 표, create_storyboard.j2 Narrative Function별 gaze 가이드, patterns.py 버그 수정(averted_gaze→averting_eyes, 3개 태그 추가), search_similar_compositions() mood×scene_type 매트릭스, scene_expand.j2 예시 다양화, director_step_qc.j2 Gaze&Pose Diversity 평가 기준 추가, validate_visuals() gaze/pose WARN 체크, 비정면 gaze 1.25x 가중치 부스트. 기존 133개 테스트 PASS
 - **Character UI/UX 4대 개선** (02-20): Tag Show More 패턴(20개 제한+토글), Edit 페이지 섹션 접기/펼치기(collapsible SectionCard), Builder Prompts Step 4 추가(skip 가능), Appearance↔Prompt 중복 태그 경고. shared PromptPair/formatTagName 추출, useCharacterEdit 훅 분리. 9개 테스트 추가
 - **Composed Negative Preview** (02-20): 씬 편집기에서 StyleProfile + Character + Scene 네거티브 프롬프트 합성 결과를 미리보기. `/prompt/compose` API에 `negative_prompt`/`negative_sources` 필드 추가, NegativePromptToggle에 출처별 read-only UI. 8개 테스트 추가
