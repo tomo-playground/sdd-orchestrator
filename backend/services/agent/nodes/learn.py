@@ -1,6 +1,7 @@
 """Learn 노드 — 생성 결과를 Memory Store에 학습 데이터로 저장한다.
 
 topic history, character stats, user global stats를 업데이트한다.
+Phase 12-D: model_info, debate_groupthink_count, revision_accuracy 메트릭 추가.
 """
 
 from __future__ import annotations
@@ -11,7 +12,8 @@ from datetime import UTC, datetime
 from langchain_core.runnables import RunnableConfig
 from langgraph.store.base import BaseStore
 
-from config import logger
+from config import GEMINI_TEXT_MODEL, logger
+from config_pipelines import CREATIVE_LEADER_MODEL, DIRECTOR_MODEL, REVIEW_MODEL
 from services.agent.state import ScriptState
 from services.agent.utils import topic_key
 
@@ -42,6 +44,33 @@ def _extract_hook_strategy(state: ScriptState) -> str | None:
     return plan.get("hook_strategy")
 
 
+def _count_groupthink(debate_log: list[dict]) -> int:
+    """debate_log에서 groupthink_detected가 True인 라운드 수를 센다."""
+    return sum(1 for entry in debate_log if entry.get("groupthink_detected"))
+
+
+def _calc_revision_accuracy(state: ScriptState) -> float | None:
+    """revision history에서 점수 개선율을 계산한다.
+
+    첫 번째 revision 점수 대비 마지막 revision 점수의 개선 비율.
+    revision이 없거나 점수가 없으면 None.
+    """
+    review = state.get("review_result") or {}
+    ns = review.get("narrative_score") or {}
+    final_score = ns.get("overall")
+
+    checkpoint_score = state.get("director_checkpoint_score")
+    revision_count = state.get("revision_count", 0)
+
+    if revision_count == 0 or final_score is None or checkpoint_score is None:
+        return None
+
+    if checkpoint_score == 0:
+        return None
+
+    return round((final_score - checkpoint_score) / checkpoint_score, 3)
+
+
 async def _update_topic(store: BaseStore, state: ScriptState, scenes: list[dict]) -> None:
     """토픽 히스토리에 이번 생성 결과를 추가한다 (최근 10건 유지)."""
     topic = state.get("topic", "")
@@ -49,6 +78,8 @@ async def _update_topic(store: BaseStore, state: ScriptState, scenes: list[dict]
         return
     topic_ns = ("topic", topic_key(topic))
     existing = await store.asearch(topic_ns, limit=10)
+
+    debate_log = state.get("debate_log") or []
 
     entry = {
         "summary": _summarize_scenes(scenes),
@@ -60,6 +91,14 @@ async def _update_topic(store: BaseStore, state: ScriptState, scenes: list[dict]
         "hook_strategy": _extract_hook_strategy(state),
         "revision_count": state.get("revision_count", 0),
         "mode": state.get("mode", "quick"),
+        "model_info": {
+            "default": GEMINI_TEXT_MODEL,
+            "director": DIRECTOR_MODEL,
+            "review": REVIEW_MODEL,
+            "critic": CREATIVE_LEADER_MODEL,
+        },
+        "debate_groupthink_count": _count_groupthink(debate_log),
+        "revision_accuracy": _calc_revision_accuracy(state),
     }
 
     # 10건 초과 시 가장 오래된 항목 삭제

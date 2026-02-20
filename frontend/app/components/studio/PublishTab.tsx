@@ -94,6 +94,9 @@ export default function PublishTab() {
         setBgmMode={(v) => setOutput({ bgmMode: v })}
         musicPresetId={store.musicPresetId}
         setMusicPresetId={(v) => setOutput({ musicPresetId: v })}
+        bgmPrompt={store.bgmPrompt}
+        bgmMood={store.bgmMood}
+        setBgmPrompt={(v) => setOutput({ bgmPrompt: v })}
         defaultOpen={false}
       />
 

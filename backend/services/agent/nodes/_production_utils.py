@@ -16,8 +16,12 @@ async def run_production_step(
     validate_fn: Callable[[list | dict], dict],
     extract_key: str,
     step_name: str,
+    model: str | None = None,
 ) -> dict:
     """Production step: 템플릿 렌더 → Gemini → JSON 파싱 → QC → 재시도.
+
+    Args:
+        model: Gemini 모델 ID. None이면 GEMINI_TEXT_MODEL(Flash) 사용.
 
     Returns: 전체 파싱된 JSON dict (예: {"scenes": [...], ...}).
     Raises: ValueError if max retries exceeded and QC still fails.
@@ -25,15 +29,16 @@ async def run_production_step(
     if not gemini_client:
         raise RuntimeError(f"[{step_name}] Gemini 클라이언트가 설정되지 않음")
 
+    resolved_model = model or GEMINI_TEXT_MODEL
     tmpl = template_env.get_template(template_name)
     retry_vars = dict(template_vars)
 
     for retry in range(CREATIVE_PIPELINE_MAX_RETRIES + 1):
         prompt = tmpl.render(**retry_vars)
         try:
-            async with trace_llm_call(name=step_name, input_text=prompt[:2000]) as llm:
+            async with trace_llm_call(name=step_name, input_text=prompt[:2000], model=resolved_model) as llm:
                 response = await gemini_client.aio.models.generate_content(
-                    model=GEMINI_TEXT_MODEL,
+                    model=resolved_model,
                     contents=prompt,
                 )
                 llm.record(response)

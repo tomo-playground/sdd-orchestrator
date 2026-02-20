@@ -108,6 +108,21 @@ NARRATIVE STRUCTURE GUIDE (apply to scene distribution):
 - **Climax** (Scenes 4-5): Emotional peak, revelation, or turning point.
 - **Resolution** (Final scene): Lingering emotion, reflection, or call-to-action.
 
+MONOLOGUE STRUCTURE OPTIMIZATION:
+- **감정 흐름 (Emotional Flow)**: 씬 순서에 따라 감정을 점진적으로 발전시키세요.
+  * 차분함 → 불안 → 분노/슬픔 → 수용/깨달음 (예: 후회 독백)
+  * 의문 → 탐색 → 놀라움 → 결심 (예: 발견/성장 독백)
+  * 연속 씬에서 동일한 감정 반복 금지 — 반드시 변화 필요
+- **카메라 선호**: close-up, portrait 중심으로 내면 감정 강조
+  * Hook: close-up (시선 집중)
+  * Rising Action: cowboy_shot 또는 upper_body (상황 전달)
+  * Climax: close-up + 강한 표정 (감정 폭발)
+  * Resolution: upper_body 또는 cowboy_shot (여운)
+- **1인칭 몰입**: 화자 혼자 이야기하는 톤 유지
+  * "나", "내가", "저는" 등 1인칭 시점 유지
+  * 독백이므로 대화 상대를 가정하지 않음
+  * 혼잣말, 내면의 목소리, 회상하며 말하는 톤 사용
+
 Instructions:
 1. Break the story into sequential scenes that fit the total duration.
    - STRICT: Create {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
@@ -229,6 +244,7 @@ Instructions:
 4. Return ONLY raw JSON array.
 
 {{ keyword_context }}
+{% include '_partials/allowed_tags_by_category.j2' %}
 
 ⚠️ CRITICAL TAG SELECTION RULES:
 1. **USE ONLY TAGS FROM THE LISTS ABOVE** - Do not invent or guess tags

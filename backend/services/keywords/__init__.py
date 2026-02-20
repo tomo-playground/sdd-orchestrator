@@ -8,7 +8,11 @@ from .db import (
     load_tag_effectiveness_map,
     load_tags_from_db,
 )
-from .formatting import format_keyword_context
+from .formatting import (
+    format_keyword_context,
+    get_allowed_tags_by_category,
+    get_keyword_context_and_tags,
+)
 from .patterns import CATEGORY_PATTERNS, CATEGORY_PRIORITY, suggest_category_for_tag
 from .processing import expand_synonyms, filter_prompt_tokens
 from .suggestions import load_keyword_suggestions, update_keyword_suggestions
@@ -30,6 +34,8 @@ __all__ = [
     "load_synonyms_from_db",
     "load_tag_effectiveness_map",
     "format_keyword_context",
+    "get_allowed_tags_by_category",
+    "get_keyword_context_and_tags",
     "CATEGORY_PATTERNS",
     "CATEGORY_PRIORITY",
     "suggest_category_for_tag",

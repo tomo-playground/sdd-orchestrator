@@ -38,7 +38,8 @@ class TestPresetsRouter:
         assert "monologue" in ids
         assert "dialogue" in ids
         assert "narrated_dialogue" in ids
-        assert len(ids) == 3  # Monologue + Dialogue + Narrated Dialogue
+        assert "confession" in ids
+        assert len(ids) == 4  # Monologue + Dialogue + Narrated Dialogue + Confession
 
     def test_get_preset_detail_monologue(self, client: TestClient, db_session):
         """GET /presets/monologue returns monologue preset details."""

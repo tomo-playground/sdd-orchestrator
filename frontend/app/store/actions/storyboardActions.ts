@@ -222,7 +222,7 @@ export function mapGeminiScenes(
 export async function persistStoryboard(): Promise<boolean> {
   const sbState = useStoryboardStore.getState();
   const ctxState = useContextStore.getState();
-  const { videoCaption } = useRenderStore.getState();
+  const { videoCaption, bgmPrompt, bgmMood } = useRenderStore.getState();
   const {
     scenes,
     topic,
@@ -250,6 +250,8 @@ export async function persistStoryboard(): Promise<boolean> {
       character_id: selectedCharacterId || undefined,
       character_b_id: selectedCharacterBId || undefined,
       version: sbState.storyboardVersion ?? undefined,
+      bgm_prompt: bgmPrompt || undefined,
+      bgm_mood: bgmMood || undefined,
       scenes: scenes.map((s, i) => ({
         scene_id: i,
         client_id: s.client_id,

@@ -45,8 +45,10 @@ export interface RenderStore {
   ttsEngine: "qwen";
   voiceDesignPrompt: string;
   voicePresetId: number | null;
-  bgmMode: "file" | "ai";
+  bgmMode: "file" | "ai" | "auto";
   musicPresetId: number | null;
+  bgmPrompt: string;
+  bgmMood: string;
   videoCaption: string;
   videoLikesCount: string;
   overlaySettings: OverlaySettings;
@@ -84,6 +86,8 @@ const initialState: Omit<RenderStore, "set" | "reset"> = {
   voicePresetId: null,
   bgmMode: "file",
   musicPresetId: null,
+  bgmPrompt: "",
+  bgmMood: "",
   videoCaption: "",
   videoLikesCount: "",
   overlaySettings: DEFAULT_OVERLAY_SETTINGS,

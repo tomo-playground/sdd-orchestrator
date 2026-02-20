@@ -9,32 +9,27 @@ class TestMusicCacheKey:
     """Tests for _music_cache_key determinism."""
 
     def test_same_inputs_same_key(self):
-        k1 = _music_cache_key("lo-fi chill", 30.0, 42, 100)
-        k2 = _music_cache_key("lo-fi chill", 30.0, 42, 100)
+        k1 = _music_cache_key("lo-fi chill", 30.0, 42)
+        k2 = _music_cache_key("lo-fi chill", 30.0, 42)
         assert k1 == k2
 
     def test_different_prompt_different_key(self):
-        k1 = _music_cache_key("lo-fi chill", 30.0, 42, 100)
-        k2 = _music_cache_key("epic orchestra", 30.0, 42, 100)
+        k1 = _music_cache_key("lo-fi chill", 30.0, 42)
+        k2 = _music_cache_key("epic orchestra", 30.0, 42)
         assert k1 != k2
 
     def test_different_duration_different_key(self):
-        k1 = _music_cache_key("lo-fi chill", 30.0, 42, 100)
-        k2 = _music_cache_key("lo-fi chill", 20.0, 42, 100)
+        k1 = _music_cache_key("lo-fi chill", 30.0, 42)
+        k2 = _music_cache_key("lo-fi chill", 20.0, 42)
         assert k1 != k2
 
     def test_different_seed_different_key(self):
-        k1 = _music_cache_key("lo-fi chill", 30.0, 42, 100)
-        k2 = _music_cache_key("lo-fi chill", 30.0, 99, 100)
-        assert k1 != k2
-
-    def test_different_steps_different_key(self):
-        k1 = _music_cache_key("lo-fi chill", 30.0, 42, 100)
-        k2 = _music_cache_key("lo-fi chill", 30.0, 42, 50)
+        k1 = _music_cache_key("lo-fi chill", 30.0, 42)
+        k2 = _music_cache_key("lo-fi chill", 30.0, 99)
         assert k1 != k2
 
     def test_key_length_is_16(self):
-        key = _music_cache_key("test", 10.0, 1, 100)
+        key = _music_cache_key("test", 10.0, 1)
         assert len(key) == 16
 
 
@@ -50,11 +45,11 @@ class TestGenerateMusicCacheHit:
 
         from services.audio.music_generator import generate_music
 
-        with patch("services.audio.music_generator.get_sao_model_sync") as mock_model:
+        with patch("services.audio.music_generator.get_musicgen_model_sync") as mock_model:
             wav_bytes, sr, seed = generate_music("test", duration=10.0, seed=42)
 
         assert wav_bytes == b"RIFF_fake_wav"
-        assert sr == 44100
+        assert sr == 32000
         assert seed == 42
         mock_model.assert_not_called()
 

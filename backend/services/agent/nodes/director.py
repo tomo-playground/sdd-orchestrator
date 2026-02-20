@@ -9,7 +9,7 @@ from __future__ import annotations
 from langchain_core.runnables import RunnableConfig
 
 from config import logger
-from config_pipelines import LANGGRAPH_MAX_REACT_STEPS
+from config_pipelines import DIRECTOR_MODEL, LANGGRAPH_MAX_REACT_STEPS
 from services.agent.llm_models import DirectorReActOutput, validate_with_model
 from services.agent.messages import AgentMessage
 from services.agent.nodes._agent_messaging import (
@@ -73,6 +73,7 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
                     validate_fn=_react_validate_fn,
                     extract_key="",
                     step_name=f"director_step_{step_num}",
+                    model=DIRECTOR_MODEL,
                 )
 
             react = DirectorReActOutput.model_validate(result)
@@ -165,6 +166,7 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
                         validate_fn=_react_validate_fn,
                         extract_key="",
                         step_name=f"director_step_{step_num}_retry",
+                        model=DIRECTOR_MODEL,
                     )
                 react = DirectorReActOutput.model_validate(result)
                 react_step: DirectorReActStep = {

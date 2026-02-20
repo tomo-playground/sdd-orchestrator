@@ -90,6 +90,8 @@ export type Scene = {
   _auto_pin_previous?: boolean;
   // V3 scene-level character actions (expression/pose per character)
   character_actions?: SceneCharacterAction[];
+  // Per-scene clothing override: { "<character_id>": ["tag1", "tag2"] }
+  clothing_tags?: Record<string, string[]> | null;
 };
 
 export type AudioItem = { name: string; url: string };
@@ -712,6 +714,7 @@ export type ImageGenProgress = {
   message: string;
   elapsed_seconds?: number;
   estimated_remaining_seconds?: number;
+  preview_image?: string; // Base64 preview during generation
   // Flat fields from Backend SSE completed event
   image?: string; // Base64 result on completion
   used_prompt?: string;

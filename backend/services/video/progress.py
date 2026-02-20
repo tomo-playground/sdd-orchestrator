@@ -9,10 +9,14 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 
 from config import logger
+
+# Moving average window for stage duration learning
+_STAGE_HISTORY_SIZE = 10
 
 # Lazy import to avoid circular dependency at module level
 _RENDER_TASK_TTL_SECONDS: int | None = None
@@ -54,6 +58,22 @@ _STAGE_RANGES: dict[RenderStage, tuple[int, int]] = {
     RenderStage.FAILED: (0, 0),
 }
 
+# Ordered pipeline stages (for ETA calculation)
+_PIPELINE_STAGES: list[RenderStage] = [
+    RenderStage.SETUP_AVATARS,
+    RenderStage.PROCESS_SCENES,
+    RenderStage.CALCULATE_DURATIONS,
+    RenderStage.PREPARE_BGM,
+    RenderStage.BUILD_FILTERS,
+    RenderStage.ENCODE,
+    RenderStage.UPLOAD,
+]
+
+# In-memory moving average of stage durations (seconds)
+_stage_duration_history: dict[RenderStage, deque[float]] = {
+    stage: deque(maxlen=_STAGE_HISTORY_SIZE) for stage in _PIPELINE_STAGES
+}
+
 
 @dataclass
 class TaskProgress:
@@ -69,6 +89,19 @@ class TaskProgress:
     created_at: float = field(default_factory=time.time)
     _version: int = field(default=0)
     _event: asyncio.Event = field(default_factory=asyncio.Event)
+    _stage_start_time: float = field(default_factory=time.time)
+    _prev_stage: RenderStage | None = field(default=None)
+
+    def transition_stage(self, new_stage: RenderStage) -> None:
+        """Record stage transition and update duration history."""
+        now = time.time()
+        prev = self._prev_stage
+        if prev and prev in _stage_duration_history:
+            elapsed = now - self._stage_start_time
+            _stage_duration_history[prev].append(elapsed)
+        self._prev_stage = new_stage
+        self._stage_start_time = now
+        self.stage = new_stage
 
     def notify(self) -> None:
         """Wake up SSE consumers. Uses version counter to avoid TOCTOU race."""
@@ -125,6 +158,49 @@ def calc_overall_percent(task: TaskProgress) -> int:
         return lo + int(span * task.encode_percent / 100)
 
     return lo
+
+
+def estimate_remaining(task: TaskProgress) -> float | None:
+    """Estimate remaining seconds based on stage durations.
+
+    Uses per-stage moving averages when available, falls back to
+    elapsed-time linear extrapolation.
+    """
+    if task.stage in (RenderStage.COMPLETED, RenderStage.FAILED, RenderStage.QUEUED):
+        return None
+
+    now = time.time()
+    current_stage_elapsed = now - task._stage_start_time
+
+    # Find current stage index
+    try:
+        current_idx = _PIPELINE_STAGES.index(task.stage)
+    except ValueError:
+        return None
+
+    remaining = 0.0
+
+    # Current stage: estimate remaining portion
+    history = _stage_duration_history.get(task.stage)
+    if history:
+        avg = sum(history) / len(history)
+        stage_remaining = max(0.0, avg - current_stage_elapsed)
+        remaining += stage_remaining
+    else:
+        # No history — use linear extrapolation from overall percent
+        pct = task.percent
+        if pct > 5:
+            total_elapsed = now - task.created_at
+            return total_elapsed / pct * (100 - pct)
+        return None
+
+    # Future stages: sum their averages
+    for future_stage in _PIPELINE_STAGES[current_idx + 1 :]:
+        hist = _stage_duration_history.get(future_stage)
+        if hist:
+            remaining += sum(hist) / len(hist)
+
+    return remaining if remaining > 0 else None
 
 
 def _cleanup_expired() -> None:

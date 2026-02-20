@@ -24,6 +24,8 @@ from schemas import (
     ImageProgressEvent,
     ImageStoreRequest,
     ImageStoreResponse,
+    SceneEditImageRequest,
+    SceneEditImageResponse,
     SceneGenerateRequest,
     SceneGenerateResponse,
     SceneValidateRequest,
@@ -360,6 +362,96 @@ async def edit_scene_with_gemini(request: GeminiEditRequest):
         raise_user_error("image_edit", e)
 
 
+@router.post("/scenes/{scene_id}/edit-image", response_model=SceneEditImageResponse)
+async def edit_scene_image(scene_id: int, request: SceneEditImageRequest, db: Session = Depends(get_db)):
+    """자연어 지시로 씬 이미지 편집
+
+    기존 씬 이미지를 Gemini로 편집합니다. 캐릭터 edit-preview 패턴 재사용.
+    """
+    from models.scene import Scene
+
+    scene = db.query(Scene).filter(Scene.id == scene_id, Scene.deleted_at.is_(None)).first()
+    if not scene:
+        raise HTTPException(status_code=404, detail="Scene not found")
+
+    # 이미지 소스 결정: request → scene asset
+    image_b64 = request.image_b64
+    if not image_b64 and request.image_url:
+        import base64
+
+        image_bytes = load_image_bytes(request.image_url)
+        image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+    elif not image_b64 and scene.image_asset_id:
+        asset_service = AssetService(db)
+        from models.media_asset import MediaAsset
+
+        asset = db.get(MediaAsset, scene.image_asset_id)
+        if asset:
+            import base64
+
+            image_bytes = load_image_bytes(asset_service.get_asset_url(asset.storage_key))
+            image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+
+    if not image_b64:
+        raise HTTPException(status_code=400, detail="No image source available")
+
+    original_prompt = request.original_prompt or scene.image_prompt or ""
+
+    # Release DB before Gemini API call
+    db.close()
+
+    try:
+        imagen_service = get_imagen_service()
+        result = await imagen_service.edit_with_analysis(
+            image_b64=image_b64,
+            original_prompt=original_prompt,
+            target_change=request.edit_instruction,
+        )
+
+        edited_b64 = result["edited_image"]
+        edit_type = result.get("edit_result", {}).get("edit_type", "pose")
+        cost_usd = result["cost_usd"]
+
+        # 편집된 이미지를 Asset으로 저장
+        edited_bytes = decode_data_url(f"data:image/png;base64,{edited_b64}")
+        asset_service = AssetService(db)
+
+        from models.group import Group
+        from models.storyboard import Storyboard
+
+        sb = db.query(Storyboard).filter(Storyboard.id == scene.storyboard_id).first()
+        group_id = sb.group_id if sb else 0
+        grp = db.query(Group).filter(Group.id == group_id).first() if group_id else None
+        project_id = grp.project_id if grp else 0
+
+        asset = asset_service.save_scene_image(
+            image_bytes=edited_bytes,
+            project_id=project_id,
+            group_id=group_id,
+            storyboard_id=scene.storyboard_id,
+            scene_id=scene_id,
+            file_name=f"scene_{scene_id}_edited.png",
+        )
+        scene.image_asset_id = asset.id
+        db.add(scene)
+        db.commit()
+
+        url = asset_service.get_asset_url(asset.storage_key)
+
+        return SceneEditImageResponse(
+            ok=True,
+            edited_image=edited_b64,
+            image_url=url,
+            asset_id=asset.id,
+            cost_usd=cost_usd,
+            edit_type=edit_type,
+        )
+    except Exception as e:
+        from services.error_responses import raise_user_error
+
+        raise_user_error("scene_edit_image", e)
+
+
 @router.post("/scene/suggest-edit", response_model=GeminiSuggestResponse)
 async def suggest_edit_for_scene(request: GeminiSuggestRequest):
     """Gemini로 이미지와 프롬프트를 비교해 자동 제안 생성
@@ -470,6 +562,9 @@ async def _run_image_gen(task_id: str, request: SceneGenerateRequest) -> None:
         task.message = "프롬프트 조합 중..."
         task.notify()
 
+        if task.cancelled:
+            return
+
         # Stage: generating (start SD progress polling)
         task.stage = ImageGenStage.GENERATING
         task.percent = calc_percent(task)
@@ -482,11 +577,15 @@ async def _run_image_gen(task_id: str, request: SceneGenerateRequest) -> None:
         try:
             result = await generate_scene_image(request)
         finally:
-            task.stage = ImageGenStage.STORING
-            task.percent = calc_percent(task)
-            task.message = "저장 중..."
-            task.notify()
             poller.cancel()
+
+        if task.cancelled:
+            return
+
+        task.stage = ImageGenStage.STORING
+        task.percent = calc_percent(task)
+        task.message = "저장 중..."
+        task.notify()
 
         # Stage: completed
         task.stage = ImageGenStage.COMPLETED
@@ -500,6 +599,22 @@ async def _run_image_gen(task_id: str, request: SceneGenerateRequest) -> None:
         task.stage = ImageGenStage.FAILED
         task.error = str(exc)
         task.notify()
+
+
+@router.post("/scene/cancel/{task_id}")
+async def cancel_image_gen(task_id: str):
+    """Cancel an in-progress image generation task."""
+    task = get_image_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if task.stage in (ImageGenStage.COMPLETED, ImageGenStage.FAILED):
+        return {"ok": False, "reason": "Task already finished"}
+    task.cancelled = True
+    task.stage = ImageGenStage.FAILED
+    task.error = "Cancelled by user"
+    task.notify()
+    logger.info("[Scene Gen] Task %s cancelled", task_id)
+    return {"ok": True}
 
 
 @router.get("/scene/progress/{task_id}")
@@ -529,6 +644,7 @@ async def _image_event_generator(task_id: str) -> AsyncGenerator[str]:
             stage=task.stage.value,
             percent=task.percent,
             message=task.message,
+            preview_image=task.preview_image,
             image=task.result.get("image") if task.result else None,
             used_prompt=task.result.get("used_prompt") if task.result else None,
             warnings=task.result.get("warnings", []) if task.result else [],

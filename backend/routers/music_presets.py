@@ -107,11 +107,11 @@ def delete_music_preset(preset_id: int, db: Session = Depends(get_db)):
 
 @router.post("/preview")
 async def preview_music(req: MusicPreviewRequest, db: Session = Depends(get_db)):
-    """Generate a preview audio using Stable Audio Open."""
-    from services.audio.music_generator import generate_music, get_sao_model_async
+    """Generate a preview audio using MusicGen."""
+    from services.audio.music_generator import generate_music, get_musicgen_model_async
 
     try:
-        await get_sao_model_async()
+        await get_musicgen_model_async()
 
         loop = asyncio.get_event_loop()
 
@@ -120,7 +120,6 @@ async def preview_music(req: MusicPreviewRequest, db: Session = Depends(get_db))
                 prompt=req.prompt,
                 duration=req.duration,
                 seed=req.seed,
-                num_inference_steps=req.num_inference_steps,
             )
 
         wav_bytes, _sample_rate, actual_seed = await loop.run_in_executor(None, _generate)
@@ -178,9 +177,9 @@ def attach_preview_to_preset(
 
 
 @router.post("/warmup")
-async def warmup_sao_model():
-    """Manually trigger SAO model loading (lazy load)."""
-    from services.audio.music_generator import get_sao_model_async
+async def warmup_musicgen_model():
+    """Manually trigger MusicGen model loading (lazy load)."""
+    from services.audio.music_generator import get_musicgen_model_async
 
-    await get_sao_model_async()
-    return {"status": "ok", "message": "SAO model loaded"}
+    await get_musicgen_model_async()
+    return {"status": "ok", "message": "MusicGen model loaded"}

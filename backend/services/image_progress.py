@@ -45,6 +45,8 @@ class ImageTaskProgress:
     percent: int = 0
     message: str = ""
     sd_progress: float = 0.0  # 0.0 ~ 1.0 from SD WebUI
+    preview_image: str | None = None  # Base64 preview from SD WebUI /progress
+    cancelled: bool = False
     result: dict | None = None
     error: str | None = None
     created_at: float = field(default_factory=time.time)

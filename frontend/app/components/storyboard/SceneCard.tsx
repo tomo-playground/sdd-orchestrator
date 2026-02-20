@@ -20,6 +20,8 @@ import SceneActionBar from "./SceneActionBar";
 import ScenePromptFields from "./ScenePromptFields";
 import SceneSettingsFields from "./SceneSettingsFields";
 import SceneGeminiModals from "./SceneGeminiModals";
+import SceneEditImageModal from "./SceneEditImageModal";
+import SceneClothingModal from "./SceneClothingModal";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import SceneEssentialFields from "./SceneEssentialFields";
 import SceneBackgroundField from "./SceneBackgroundField";
@@ -133,6 +135,8 @@ export default function SceneCard({
   const [geminiTargetChange, setGeminiTargetChange] = useState("");
   const [geminiSuggestionsOpen, setGeminiSuggestionsOpen] = useState(false);
   const [geminiSuggestions, setGeminiSuggestions] = useState<GeminiSuggestion[]>([]);
+  const [editImageOpen, setEditImageOpen] = useState(false);
+  const [clothingOpen, setClothingOpen] = useState(false);
 
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const showAdvancedSettings = useUIStore((s) => s.showAdvancedSettings);
@@ -192,6 +196,8 @@ export default function SceneCard({
             pinnedSceneOrder={pinnedSceneOrder}
             onGenerateImage={onGenerateImage}
             onGeminiEditOpen={() => setGeminiEditOpen(true)}
+            onEditImageOpen={() => setEditImageOpen(true)}
+            onClothingOpen={() => setClothingOpen(true)}
             onAutoSuggest={handleAutoSuggest}
             onPinToggle={onPinToggle}
             onSceneMenuToggle={onSceneMenuToggle}
@@ -200,7 +206,7 @@ export default function SceneCard({
             onRemoveScene={onRemoveScene}
             onSavePrompt={onSavePrompt}
             showToast={showToast}
-            compact={true} // Hint to make it smaller if needed
+            compact={true}
           />
         </div>
 
@@ -305,6 +311,33 @@ export default function SceneCard({
         setGeminiSuggestions={setGeminiSuggestions}
         onApproveSuggestion={handleApproveSuggestion}
       />
+
+      {/* Edit Image Modal */}
+      {editImageOpen && scene.image_url && (
+        <SceneEditImageModal
+          sceneId={scene.id}
+          currentImageUrl={scene.image_url}
+          onClose={() => setEditImageOpen(false)}
+          onAccept={(imageUrl, assetId) => {
+            onUpdateScene({ image_url: imageUrl, image_asset_id: assetId });
+            showToast("편집된 이미지가 적용되었습니다", "success");
+          }}
+          showToast={showToast}
+        />
+      )}
+
+      {/* Clothing Override Modal */}
+      {clothingOpen && (
+        <SceneClothingModal
+          scene={scene}
+          onClose={() => setClothingOpen(false)}
+          onSave={(clothingTags) => {
+            onUpdateScene({ clothing_tags: clothingTags });
+            showToast("의상 태그가 저장되었습니다. 이미지를 재생성하면 반영됩니다.", "success");
+          }}
+          showToast={showToast}
+        />
+      )}
     </div>
   );
 }

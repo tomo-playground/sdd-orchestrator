@@ -65,6 +65,22 @@ LoRA Trigger Words (MUST include in every scene where speaker=B):
 - Most scenes show ONLY the speaking character (single person in frame)
 - Both characters share the SAME environment/location across all scenes
 - Conversation must feel natural and flow logically
+
+DIALOGUE STRUCTURE OPTIMIZATION:
+- **화자 전환 (Speaker Transition)**: 자연스러운 대화 리듬 유지
+  * 질문 → 답변, 주장 → 반박, 고백 → 반응 패턴 활용
+  * 한 화자가 3씬 연속으로 말하지 않도록 교차 배치
+  * 감정 전환점에서 화자를 바꿔 긴장감 유지
+- **리액션 샷 (Reaction Shots)**: 듣는 사람의 반응도 중요
+  * 상대 말에 놀라는 표정: open_mouth, wide-eyed
+  * 공감하는 표정: slight_smile, looking_down
+  * 갈등 장면: frown, looking_away, crossed_arms
+- **카메라 선호**: 대화 몰입을 위한 상반신 중심
+  * A 씬: cowboy_shot 또는 upper_body (대화 중 자연스러운 프레임)
+  * B 반응 씬: close-up (감정 전달 강화)
+  * 핵심 대립 씬: close-up 양쪽 모두 (감정 클라이맥스)
+- **환경 일관성**: 대화가 진행되는 동일한 장소를 모든 씬에서 유지
+  * 장소 이동 없이 같은 환경 태그 세트 반복 사용
 {% if is_multi_character_capable %}
 
 ⚠️ MULTI-CHARACTER SCENE RULES (scene_mode: "multi"):
@@ -147,6 +163,7 @@ Instructions:
 6. Return ONLY raw JSON array.
 
 {{ keyword_context }}
+{% include '_partials/allowed_tags_by_category.j2' %}
 
 ⚠️ CRITICAL TAG SELECTION RULES:
 1. **USE ONLY TAGS FROM THE LISTS ABOVE** - Do not invent or guess tags

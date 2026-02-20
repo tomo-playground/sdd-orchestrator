@@ -149,7 +149,7 @@ class VideoBuilder:
         """Update progress state and notify SSE consumers."""
         if not self._progress:
             return
-        self._progress.stage = stage
+        self._progress.transition_stage(stage)
         self._progress.message = detail
         self._progress.percent = calc_overall_percent(self._progress)
         self._progress.notify()
@@ -186,7 +186,7 @@ class VideoBuilder:
             return result
         except Exception as exc:
             if self._progress:
-                self._progress.stage = RenderStage.FAILED
+                self._progress.transition_stage(RenderStage.FAILED)
                 self._progress.error = str(exc)
                 self._progress.notify()
             logger.exception("Video Create Error")
@@ -233,9 +233,15 @@ class VideoBuilder:
         )
 
     async def _prepare_bgm(self) -> None:
-        """Prepare AI-generated BGM if bgm_mode is 'ai'."""
-        if getattr(self.request, "bgm_mode", "file") != "ai":
-            return
+        """Prepare AI-generated BGM based on bgm_mode."""
+        bgm_mode = getattr(self.request, "bgm_mode", "file")
+        if bgm_mode == "auto":
+            await self._prepare_auto_bgm()
+        elif bgm_mode == "ai":
+            await self._prepare_preset_bgm()
+
+    async def _prepare_preset_bgm(self) -> None:
+        """Prepare BGM from a Music Preset (bgm_mode='ai')."""
         preset_id = getattr(self.request, "music_preset_id", None)
         if not preset_id:
             return
@@ -251,7 +257,6 @@ class VideoBuilder:
                 logger.warning("[Video Build] Music preset %d not found", preset_id)
                 return
 
-            # If preset has a cached audio asset, use it directly
             if preset.audio_asset_id:
                 asset = db.get(MediaAsset, preset.audio_asset_id)
                 if asset:
@@ -262,27 +267,98 @@ class VideoBuilder:
                         logger.info("[Video Build] Using cached AI BGM from asset %d", asset.id)
                         return
 
-            # No cached asset — generate on the fly
             if preset.prompt:
-                import asyncio
-
-                from services.audio.music_generator import generate_music
-
-                loop = asyncio.get_event_loop()
-                wav_bytes, _, _ = await loop.run_in_executor(
-                    None,
-                    lambda: generate_music(
-                        prompt=preset.prompt,
-                        duration=preset.duration or 30.0,
-                        seed=preset.seed or -1,
-                    ),
-                )
-                out_path = self.temp_dir / "ai_bgm.wav"
-                out_path.write_bytes(wav_bytes)
-                self._ai_bgm_path = str(out_path)
-                logger.info("[Video Build] Generated AI BGM on the fly (%d bytes)", len(wav_bytes))
+                await self._generate_and_set_bgm(preset.prompt, preset.duration or 30.0, preset.seed or -1)
         finally:
             db.close()
+
+    async def _prepare_auto_bgm(self) -> None:
+        """Prepare BGM from storyboard bgm_prompt (bgm_mode='auto')."""
+        storyboard_id = getattr(self.request, "storyboard_id", None)
+        bgm_prompt = getattr(self.request, "bgm_prompt", None)
+        if not bgm_prompt and not storyboard_id:
+            logger.warning("[Video Build] auto BGM: no bgm_prompt and no storyboard_id")
+            return
+
+        from models.media_asset import MediaAsset
+        from models.storyboard import Storyboard
+        from services.storage import get_storage
+
+        db = SessionLocal()
+        try:
+            # If prompt passed directly in request, use it
+            prompt = bgm_prompt
+            storyboard = None
+
+            if storyboard_id:
+                storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
+                if storyboard:
+                    # Use request prompt if provided, else fall back to DB
+                    if not prompt:
+                        prompt = storyboard.bgm_prompt
+
+                    # Check cached audio asset
+                    if storyboard.bgm_audio_asset_id:
+                        asset = db.get(MediaAsset, storyboard.bgm_audio_asset_id)
+                        if asset:
+                            storage = get_storage()
+                            local_path = storage.get_local_path(asset.storage_key)
+                            if local_path:
+                                self._ai_bgm_path = str(local_path)
+                                logger.info("[Video Build] Auto BGM cache hit, asset %d", asset.id)
+                                return
+
+            if not prompt:
+                logger.warning("[Video Build] auto BGM: no prompt available")
+                return
+
+            wav_bytes = await self._generate_and_set_bgm(prompt, 30.0, -1)
+
+            # Cache the generated asset back to storyboard
+            if wav_bytes and storyboard:
+                self._cache_bgm_asset(db, storyboard, wav_bytes)
+        finally:
+            db.close()
+
+    async def _generate_and_set_bgm(self, prompt: str, duration: float, seed: int) -> bytes | None:
+        """Generate music from prompt and set _ai_bgm_path."""
+        import asyncio
+
+        from services.audio.music_generator import generate_music
+
+        loop = asyncio.get_event_loop()
+        wav_bytes, _, _ = await loop.run_in_executor(
+            None,
+            lambda: generate_music(prompt=prompt, duration=duration, seed=seed),
+        )
+        out_path = self.temp_dir / "ai_bgm.wav"
+        out_path.write_bytes(wav_bytes)
+        self._ai_bgm_path = str(out_path)
+        logger.info("[Video Build] Generated AI BGM (%d bytes)", len(wav_bytes))
+        return wav_bytes
+
+    @staticmethod
+    def _cache_bgm_asset(db, storyboard, wav_bytes: bytes) -> None:
+        """Save generated BGM as MediaAsset and link to storyboard."""
+        from models.media_asset import MediaAsset
+        from services.storage import get_storage
+
+        storage = get_storage()
+        storage_key = f"storyboard/{storyboard.id}/bgm_auto.wav"
+        storage.save(storage_key, wav_bytes, content_type="audio/wav")
+
+        asset = MediaAsset(
+            owner_type="storyboard",
+            owner_id=storyboard.id,
+            file_type="audio",
+            storage_key=storage_key,
+            file_size=len(wav_bytes),
+        )
+        db.add(asset)
+        db.flush()
+        storyboard.bgm_audio_asset_id = asset.id
+        db.commit()
+        logger.info("[Video Build] Cached auto BGM as asset %d", asset.id)
 
     def _build_filters(self) -> None:
         from services.video.effects import (

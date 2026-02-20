@@ -16,7 +16,7 @@ from config import (
     logger,
     template_env,
 )
-from config_pipelines import LANGGRAPH_NARRATIVE_THRESHOLD
+from config_pipelines import LANGGRAPH_NARRATIVE_THRESHOLD, REVIEW_MODEL
 from services.agent.llm_models import NarrativeScoreOutput
 from services.agent.observability import trace_llm_call
 from services.agent.state import NarrativeScore, ReviewResult, ScriptState
@@ -128,7 +128,7 @@ async def _gemini_evaluate(
     language: str,
 ) -> str | None:
     """Gemini에 씬 품질 평가를 요청한다. 실패 시 None 반환."""
-    from config import GEMINI_TEXT_MODEL, gemini_client
+    from config import gemini_client
 
     if not gemini_client:
         logger.warning("[LangGraph] Review: Gemini 클라이언트 없음, 평가 건너뜀")
@@ -142,9 +142,9 @@ async def _gemini_evaluate(
             language=language,
             threshold=LANGGRAPH_AUTO_REVIEW_THRESHOLD,
         )
-        async with trace_llm_call(name="review_gemini_evaluate", input_text=prompt[:2000]) as llm:
+        async with trace_llm_call(name="review_gemini_evaluate", input_text=prompt[:2000], model=REVIEW_MODEL) as llm:
             response = await gemini_client.aio.models.generate_content(
-                model=GEMINI_TEXT_MODEL,
+                model=REVIEW_MODEL,
                 contents=prompt,
             )
             llm.record(response)
@@ -193,7 +193,7 @@ async def _narrative_evaluate(
     language: str,
 ) -> NarrativeScore | None:
     """서사 품질을 Gemini로 평가한다. 에러 시 None (graceful degradation)."""
-    from config import GEMINI_TEXT_MODEL, gemini_client
+    from config import gemini_client
 
     if not gemini_client:
         logger.warning("[LangGraph] Narrative: Gemini 클라이언트 없음, 건너뜀")
@@ -207,9 +207,11 @@ async def _narrative_evaluate(
             language=language,
             threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
         )
-        async with trace_llm_call(name="review_narrative_evaluate", input_text=prompt[:2000]) as llm:
+        async with trace_llm_call(
+            name="review_narrative_evaluate", input_text=prompt[:2000], model=REVIEW_MODEL
+        ) as llm:
             response = await gemini_client.aio.models.generate_content(
-                model=GEMINI_TEXT_MODEL,
+                model=REVIEW_MODEL,
                 contents=prompt,
             )
             llm.record(response)
@@ -230,7 +232,7 @@ async def _self_reflect(
     근본 원인 분석 + 구체적 수정 전략을 Gemini에 요청한다.
     실패 시 None 반환 (graceful degradation).
     """
-    from config import GEMINI_TEXT_MODEL, gemini_client
+    from config import gemini_client
 
     if not gemini_client:
         logger.warning("[LangGraph] Self-Reflection: Gemini 클라이언트 없음, 건너뜀")
@@ -248,9 +250,9 @@ async def _self_reflect(
             narrative_score=review_result.get("narrative_score"),
             narrative_threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
         )
-        async with trace_llm_call(name="review_self_reflect", input_text=prompt[:2000]) as llm:
+        async with trace_llm_call(name="review_self_reflect", input_text=prompt[:2000], model=REVIEW_MODEL) as llm:
             response = await gemini_client.aio.models.generate_content(
-                model=GEMINI_TEXT_MODEL,
+                model=REVIEW_MODEL,
                 contents=prompt,
             )
             llm.record(response)
@@ -302,25 +304,26 @@ async def review_node(state: ScriptState) -> dict:
 
     result = _validate_scenes(scenes, duration, language, structure)
 
-    # Tier 2: 규칙 실패 + Full → Gemini 피드백
     gemini_feedback = None
-    if not result.get("passed") and is_full:
-        gemini_feedback = await _gemini_evaluate(scenes, topic, language)
-        result["gemini_feedback"] = gemini_feedback
-
-    # Tier 3: 규칙 통과 + Full → 서사 품질 평가
     narrative_score: NarrativeScore | None = None
-    if result.get("passed") and is_full:
-        narrative_score = await _narrative_evaluate(scenes, topic, language)
-        if narrative_score:
-            result["narrative_score"] = narrative_score
-            if narrative_score.get("overall", 1.0) < LANGGRAPH_NARRATIVE_THRESHOLD:
-                result["passed"] = False
-
-    # Phase 10-A: Self-Reflection (실패 시 원인 분석 + 수정 전략)
     reflection: str | None = None
-    if not result.get("passed") and is_full:
-        reflection = await _self_reflect(result, topic, language, structure)
+
+    if is_full:
+        if not result.get("passed"):
+            # 규칙 실패: Gemini 평가 + Self-Reflection (서사 평가는 건너뜀)
+            gemini_feedback = await _gemini_evaluate(scenes, topic, language)
+            if gemini_feedback:
+                result["gemini_feedback"] = gemini_feedback
+            reflection = await _self_reflect(result, topic, language, structure)
+        else:
+            # 규칙 통과: 서사 품질 평가만
+            narrative_score = await _narrative_evaluate(scenes, topic, language)
+            if narrative_score:
+                result["narrative_score"] = narrative_score
+                if narrative_score.get("overall", 1.0) < LANGGRAPH_NARRATIVE_THRESHOLD:
+                    result["passed"] = False
+                    # 서사 품질 미달 → Self-Reflection
+                    reflection = await _self_reflect(result, topic, language, structure)
 
     # user_summary 갱신 (narrative_score 실패 등 후속 판정 반영)
     result["user_summary"] = _generate_user_summary(

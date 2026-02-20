@@ -1,5 +1,7 @@
 "use client";
 
+import { useRenderStore } from "../../../store/useRenderStore";
+
 type SectionProps = { data: Record<string, unknown> };
 
 export function CinematographerSection({ data }: SectionProps) {
@@ -22,11 +24,14 @@ export function CinematographerSection({ data }: SectionProps) {
         {scenes.map((s, i) => {
           const camera = s.camera ? String(s.camera) : null;
           const env = s.environment ? String(s.environment) : null;
+          const promptKo = s.image_prompt_ko ? String(s.image_prompt_ko) : null;
           const prompt = s.image_prompt ? String(s.image_prompt) : null;
           return (
             <div key={i} className="rounded-lg bg-zinc-50 px-3 py-2">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-medium text-zinc-400">#{String(s.order ?? i + 1)}</span>
+                <span className="text-[11px] font-medium text-zinc-400">
+                  #{String(s.order ?? i + 1)}
+                </span>
                 {camera && (
                   <span className="rounded bg-violet-100 px-1.5 py-0.5 text-[11px] text-violet-700">
                     {camera}
@@ -38,8 +43,9 @@ export function CinematographerSection({ data }: SectionProps) {
                   </span>
                 )}
               </div>
+              {promptKo && <p className="mt-1 text-xs leading-relaxed text-zinc-700">{promptKo}</p>}
               {prompt && (
-                <p className="mt-1 text-[11px] leading-relaxed text-zinc-500 line-clamp-2">
+                <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-zinc-400">
                   {prompt}
                 </p>
               )}
@@ -77,9 +83,7 @@ export function TtsDesignerSection({ data }: SectionProps) {
                 </span>
               )}
             </div>
-            {voicePrompt && (
-              <p className="mt-0.5 text-[11px] text-zinc-600">{voicePrompt}</p>
-            )}
+            {voicePrompt && <p className="mt-0.5 text-[11px] text-zinc-600">{voicePrompt}</p>}
           </div>
         );
       })}
@@ -94,10 +98,19 @@ export function SoundDesignerSection({ data }: SectionProps) {
   const mood = rec.mood ? String(rec.mood) : null;
   const duration = rec.duration as number | undefined;
   const reasoning = rec.reasoning ? String(rec.reasoning) : null;
+  const setRender = useRenderStore((s) => s.set);
 
   if (!prompt && !mood) {
     return <p className="text-[11px] text-zinc-400">BGM 추천 데이터 없음</p>;
   }
+
+  const handleApply = () => {
+    setRender({
+      bgmMode: "auto",
+      bgmPrompt: prompt || "",
+      bgmMood: mood || "",
+    });
+  };
 
   return (
     <div className="space-y-1.5">
@@ -107,15 +120,18 @@ export function SoundDesignerSection({ data }: SectionProps) {
             {mood}
           </span>
         )}
-        {duration && (
-          <span className="text-[11px] text-zinc-400">{duration}초</span>
-        )}
+        {duration && <span className="text-[11px] text-zinc-400">{duration}초</span>}
       </div>
+      {prompt && <p className="text-[11px] leading-relaxed text-zinc-600">{prompt}</p>}
+      {reasoning && <p className="text-[11px] leading-relaxed text-zinc-400">{reasoning}</p>}
       {prompt && (
-        <p className="text-[11px] leading-relaxed text-zinc-600">{prompt}</p>
-      )}
-      {reasoning && (
-        <p className="text-[11px] leading-relaxed text-zinc-400">{reasoning}</p>
+        <button
+          type="button"
+          onClick={handleApply}
+          className="mt-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-700 transition hover:bg-amber-100"
+        >
+          BGM 적용
+        </button>
       )}
     </div>
   );
@@ -142,9 +158,7 @@ export function CopyrightReviewerSection({ data }: SectionProps) {
           </span>
         )}
         {confidence != null && (
-          <span className="text-[11px] text-zinc-400">
-            신뢰도 {Math.round(confidence * 100)}%
-          </span>
+          <span className="text-[11px] text-zinc-400">신뢰도 {Math.round(confidence * 100)}%</span>
         )}
       </div>
       {checks.length > 0 && (
@@ -154,19 +168,17 @@ export function CopyrightReviewerSection({ data }: SectionProps) {
             const suggestion = c.suggestion ? String(c.suggestion) : null;
             return (
               <div key={i} className="flex items-start gap-2">
-                <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${statusColor(String(c.status ?? ""))}`}>
+                <span
+                  className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${statusColor(String(c.status ?? ""))}`}
+                >
                   {String(c.status ?? "")}
                 </span>
                 <div>
                   <p className="text-[11px] text-zinc-600">
                     {String(c.type ?? "").replace(/_/g, " ")}
                   </p>
-                  {detail && (
-                    <p className="text-[11px] text-zinc-400">{detail}</p>
-                  )}
-                  {suggestion && (
-                    <p className="text-[11px] text-amber-600">{suggestion}</p>
-                  )}
+                  {detail && <p className="text-[11px] text-zinc-400">{detail}</p>}
+                  {suggestion && <p className="text-[11px] text-amber-600">{suggestion}</p>}
                 </div>
               </div>
             );

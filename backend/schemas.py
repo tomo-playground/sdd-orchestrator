@@ -218,6 +218,8 @@ class StoryboardSave(StoryboardBase):
     character_id: int | None = None
     character_b_id: int | None = None
     version: int | None = None  # Optimistic locking: current version from client
+    bgm_prompt: str | None = None  # Sound Designer recommendation.prompt
+    bgm_mood: str | None = None  # Sound Designer recommendation.mood
     scenes: list[StoryboardScene]
 
 
@@ -316,6 +318,7 @@ class SceneDetailResponse(BaseModel):
     width: int = 512
     height: int = 768
     context_tags: dict | None = None
+    clothing_tags: dict | None = None  # Per-scene clothing override
     tags: list[SceneTagResponse] = []
     character_actions: list[SceneActionResponse] = []
     use_reference_only: bool | None = None
@@ -366,6 +369,8 @@ class StoryboardDetailResponse(BaseModel):
     video_url: str | None = None
     recent_videos: list[RecentVideoResponse] = []
     caption: str | None = None
+    bgm_prompt: str | None = None  # Sound Designer recommendation
+    bgm_mood: str | None = None  # Sound Designer mood tag
     created_at: str | None = None
     updated_at: str | None = None
     characters: list[StoryboardCharacterResponse] = []
@@ -416,6 +421,7 @@ class StoryboardScene(BaseModel):
     # SD Generation Params
     negative_prompt: str | None = Field(default=None, max_length=2000)
     context_tags: dict | None = None
+    clothing_tags: dict | None = None  # Per-scene clothing override
 
     # Candidate images (media_asset_id based)
     candidates: list[SceneCandidate] | None = None
@@ -538,8 +544,9 @@ class VideoRequest(BaseModel):
     audio_ducking: bool = True
     bgm_volume: float = 0.25
     ducking_threshold: float = 0.01
-    bgm_mode: str = "file"  # "file" | "ai"
-    music_preset_id: int | None = None  # AI BGM preset
+    bgm_mode: str = "file"  # "file" | "ai" | "auto"
+    music_preset_id: int | None = None  # AI BGM preset (bgm_mode="ai")
+    bgm_prompt: str | None = None  # Sound Designer prompt (bgm_mode="auto")
 
 
 class VideoDeleteRequest(BaseModel):
@@ -1303,7 +1310,6 @@ class MusicPreviewRequest(BaseModel):
     prompt: str
     duration: float = 30.0
     seed: int = -1
-    num_inference_steps: int = 100
 
 
 # ============================================================
@@ -1424,10 +1430,31 @@ class ImageProgressEvent(BaseModel):
     stage: str
     percent: int = 0
     message: str = ""
+    preview_image: str | None = None  # Base64 preview during generation
     image: str | None = None  # Base64 result on completion
     used_prompt: str | None = None
     warnings: list[str] = []
     error: str | None = None
+
+
+class SceneEditImageRequest(BaseModel):
+    """Request for natural-language scene image editing."""
+
+    edit_instruction: str  # 자연어 편집 지시 (예: "머리를 풀어헤치고 미소짓게")
+    image_url: str | None = None  # 현재 이미지 URL (Backend가 fetch)
+    image_b64: str | None = None  # 또는 Base64 이미지
+    original_prompt: str | None = None  # 원본 프롬프트 (Optional, DB에서 조회)
+
+
+class SceneEditImageResponse(BaseModel):
+    """Response for scene image editing."""
+
+    ok: bool
+    edited_image: str | None = None  # Base64 편집된 이미지
+    image_url: str | None = None  # Response-only: 저장된 이미지 URL
+    asset_id: int | None = None
+    cost_usd: float = 0.0
+    edit_type: str | None = None
 
 
 class TextExtractRequest(BaseModel):

@@ -96,6 +96,25 @@ Narrator Position Roles (all examples 10+ chars):
 - A and B scenes show the speaking character ONLY
 - Narrator scenes show environment, objects, or atmospheric imagery (NO characters)
 - All scenes share the SAME location/environment theme
+
+NARRATED DIALOGUE STRUCTURE OPTIMIZATION:
+- **화자 시점 전환 (Perspective Shifts)**: 내레이터와 캐릭터 간 시점 변화
+  * 내레이터: 관찰자 시점 — 장소/분위기/시간을 묘사
+  * A/B: 당사자 시점 — 직접적인 대사와 감정 전달
+  * 내레이터 → 캐릭터 전환 시 분위기에서 구체적 감정으로 좁혀가기
+- **카메라 선호**: 내레이터 씬과 캐릭터 씬의 대비
+  * 내레이터 씬: scenery, no_humans — 와이드 환경 샷 (wide_shot, landscape)
+  * 캐릭터 씬 (도입): cowboy_shot, upper_body (상황 전달)
+  * 캐릭터 씬 (감정): close-up, portrait (감정 전달)
+  * 패턴: 와이드(내레이터) → 미디엄(캐릭터) → 클로즈업(감정) 순환
+- **내레이션 → 대화 전환**: 부드러운 장면 이동
+  * 내레이터가 분위기를 깔고 → 다음 씬에서 캐릭터가 말하기
+  * 내레이터: "오래된 카페, 오후의 햇살." → A: "너, 많이 안 변했다."
+  * 감정적 전환점에서 내레이터 씬을 중간에 삽입하여 템포 조절
+- **시각적 스토리텔링**: 내레이터 씬에서 상징적 이미지 활용
+  * 시간 경과: window, sunset, clock, empty_chair
+  * 감정 표현: rain, falling_leaves, broken_mirror
+  * 공간 변화: doorway, hallway, staircase
 {% if is_multi_character_capable %}
 
 ⚠️ MULTI-CHARACTER SCENE RULES (scene_mode: "multi"):
@@ -180,6 +199,7 @@ Instructions:
 6. Return ONLY raw JSON array.
 
 {{ keyword_context }}
+{% include '_partials/allowed_tags_by_category.j2' %}
 
 ⚠️ CRITICAL TAG SELECTION RULES:
 1. **USE ONLY TAGS FROM THE LISTS ABOVE** - Do not invent or guess tags

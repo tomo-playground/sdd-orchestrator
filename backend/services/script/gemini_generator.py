@@ -14,7 +14,7 @@ from config import (
 )
 from models.associations import CharacterTag
 from models.character import Character
-from services.keywords import format_keyword_context
+from services.keywords import get_keyword_context_and_tags
 from services.presets import get_preset_by_structure
 from services.script.scene_postprocess import (
     auto_pin_raw_scenes,
@@ -215,6 +215,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
 
         # 파이프라인 컨텍스트 (research_brief, writer_plan 등) 주입
         ctx = pipeline_context or {}
+        keyword_context, allowed_tags = get_keyword_context_and_tags()
         rendered = template.render(
             topic=request.topic,
             description=request.description or "",
@@ -223,7 +224,12 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             structure=request.structure,
             language=request.language,
             actor_a_gender=request.actor_a_gender,
-            keyword_context=format_keyword_context(),
+            keyword_context=keyword_context,
+            allowed_camera_tags=allowed_tags.get("camera", []),
+            allowed_expression_tags=allowed_tags.get("expression", []),
+            allowed_action_tags=allowed_tags.get("action", []),
+            allowed_environment_tags=allowed_tags.get("environment", []),
+            allowed_mood_tags=allowed_tags.get("mood", []),
             character_context=character_context,
             character_b_context=character_b_context,
             is_multi_character_capable=is_multi_character_capable,

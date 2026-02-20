@@ -7,6 +7,7 @@ draft/debate 노드에 전달할 research_brief를 구성한다.
 
 from __future__ import annotations
 
+import asyncio
 import html as html_mod
 import ipaddress
 import json
@@ -140,20 +141,35 @@ async def _analyze_references(refs: list[str], state: ScriptState) -> str | None
     """소재 목록을 Gemini로 분석하여 brief 문자열을 반환한다."""
     refs = refs[:RESEARCH_MAX_REFERENCES]
 
-    # 소재 수집
-    materials: list[dict[str, str]] = []
+    # URL과 텍스트 소재를 분리하여 URL은 병렬 fetch
+    url_refs: list[str] = []
+    text_materials: list[dict[str, str]] = []
     for ref in refs:
         ref = ref.strip()
         if not ref:
             continue
         if _is_url(ref):
-            content = await _fetch_url(ref)
-            if content:
-                materials.append({"url": ref, "content": content[:3000]})
-            else:
-                materials.append({"url": ref, "content": "(fetch 실패)"})
+            url_refs.append(ref)
         else:
-            materials.append({"url": "(직접 입력)", "content": ref[:3000]})
+            text_materials.append({"url": "(직접 입력)", "content": ref[:3000]})
+
+    # URL들을 병렬로 fetch
+    materials: list[dict[str, str]] = []
+    if url_refs:
+        results = await asyncio.gather(
+            *[_fetch_url(url) for url in url_refs],
+            return_exceptions=True,
+        )
+        for url, result in zip(url_refs, results, strict=True):
+            if isinstance(result, Exception):
+                logger.warning("[Research] URL fetch 예외 (%s): %s", url, result)
+                materials.append({"url": url, "content": "(fetch 실패)"})
+            elif result:
+                materials.append({"url": url, "content": result[:3000]})
+            else:
+                materials.append({"url": url, "content": "(fetch 실패)"})
+
+    materials.extend(text_materials)
 
     if not materials:
         return None

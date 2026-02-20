@@ -125,14 +125,14 @@ async def _run_video_build(task_id: str, request: VideoRequest) -> None:
             db.close()
 
         # NOW send COMPLETED with full result (including render_history_id)
-        task.stage = RenderStage.COMPLETED
+        task.transition_stage(RenderStage.COMPLETED)
         task.result = result
         task.percent = 100
         task.notify()
     except Exception as exc:
         logger.exception("[Video Async] Build failed for task %s", task_id)
         if task.stage != RenderStage.FAILED:
-            task.stage = RenderStage.FAILED
+            task.transition_stage(RenderStage.FAILED)
             task.error = str(exc)
             task.notify()
 
@@ -159,7 +159,7 @@ async def _event_generator(task_id: str) -> AsyncGenerator[str]:
 
         pct = task.percent
         elapsed = time.time() - task.created_at
-        eta = (elapsed / pct * (100 - pct)) if pct > 5 else None
+        eta = estimate_remaining(task)
 
         event = RenderProgressEvent(
             task_id=task.task_id,

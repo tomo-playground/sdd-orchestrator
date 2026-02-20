@@ -71,10 +71,13 @@ export type RenderMediaPanelProps = {
   setVoiceDesignPrompt: (value: string) => void;
   voicePresetId?: number | null;
   setVoicePresetId?: (value: number | null) => void;
-  bgmMode: "file" | "ai";
-  setBgmMode: (value: "file" | "ai") => void;
+  bgmMode: "file" | "ai" | "auto";
+  setBgmMode: (value: "file" | "ai" | "auto") => void;
   musicPresetId: number | null;
   setMusicPresetId: (value: number | null) => void;
+  bgmPrompt: string;
+  bgmMood: string;
+  setBgmPrompt: (value: string) => void;
   defaultOpen?: boolean;
 };
 
@@ -110,6 +113,9 @@ export function RenderMediaPanel({
   setBgmMode,
   musicPresetId,
   setMusicPresetId,
+  bgmPrompt,
+  bgmMood,
+  setBgmPrompt,
   defaultOpen = true,
 }: RenderMediaPanelProps) {
   return (
@@ -231,6 +237,9 @@ export function RenderMediaPanel({
             setAudioDucking={setAudioDucking}
             bgmVolume={bgmVolume}
             setBgmVolume={setBgmVolume}
+            bgmPrompt={bgmPrompt}
+            bgmMood={bgmMood}
+            setBgmPrompt={setBgmPrompt}
           />
         </div>
       </details>

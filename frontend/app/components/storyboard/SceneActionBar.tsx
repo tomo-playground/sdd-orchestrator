@@ -14,6 +14,8 @@ type SceneActionBarProps = {
   pinnedSceneOrder?: number;
   onGenerateImage: () => void;
   onGeminiEditOpen: () => void;
+  onEditImageOpen?: () => void;
+  onClothingOpen?: () => void;
   onAutoSuggest: () => void;
   onPinToggle?: () => void;
   onMarkSuccess?: () => void;
@@ -40,6 +42,8 @@ export default function SceneActionBar({
   pinnedSceneOrder,
   onGenerateImage,
   onGeminiEditOpen,
+  onEditImageOpen,
+  onClothingOpen,
   onAutoSuggest,
   onPinToggle,
   onMarkSuccess,
@@ -216,6 +220,32 @@ export default function SceneActionBar({
               className="w-full px-3 py-2 text-left text-xs text-emerald-600 hover:bg-emerald-50"
             >
               Save Prompt
+            </button>
+          )}
+
+          {onEditImageOpen && scene.image_url && !scene.isGenerating && (
+            <button
+              type="button"
+              onClick={() => {
+                onEditImageOpen();
+                onSceneMenuClose();
+              }}
+              className="w-full px-3 py-2 text-left text-xs text-indigo-600 hover:bg-indigo-50"
+            >
+              이미지 편집
+            </button>
+          )}
+
+          {onClothingOpen && !scene.isGenerating && (
+            <button
+              type="button"
+              onClick={() => {
+                onClothingOpen();
+                onSceneMenuClose();
+              }}
+              className="w-full px-3 py-2 text-left text-xs text-amber-600 hover:bg-amber-50"
+            >
+              의상 변경
             </button>
           )}
 

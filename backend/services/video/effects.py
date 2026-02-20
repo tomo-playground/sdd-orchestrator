@@ -131,10 +131,10 @@ def apply_bgm(builder: VideoBuilder) -> None:
 
 
 def _resolve_bgm_path(builder: VideoBuilder) -> str | None:
-    """Resolve BGM file path based on bgm_mode (file or ai)."""
+    """Resolve BGM file path based on bgm_mode (file, ai, or auto)."""
     bgm_mode = getattr(builder.request, "bgm_mode", "file")
 
-    if bgm_mode == "ai":
+    if bgm_mode in ("ai", "auto"):
         return builder._ai_bgm_path  # None → no BGM (no fallthrough to file)
 
     # File mode (existing logic)

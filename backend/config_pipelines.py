@@ -26,7 +26,9 @@ LAB_BATCH_MAX_SIZE = int(os.getenv("LAB_BATCH_MAX_SIZE", "20"))
 
 # --- Creative Engine Configuration ---
 CREATIVE_MAX_ROUNDS = int(os.getenv("CREATIVE_MAX_ROUNDS", "3"))
-CREATIVE_LEADER_MODEL = os.getenv("CREATIVE_LEADER_MODEL", "gemini-2.5-flash")
+CREATIVE_LEADER_MODEL = os.getenv("CREATIVE_LEADER_MODEL", "gemini-2.5-pro")
+DIRECTOR_MODEL = os.getenv("DIRECTOR_MODEL", "gemini-2.5-pro")
+REVIEW_MODEL = os.getenv("REVIEW_MODEL", "gemini-2.5-pro")
 CREATIVE_PIPELINE_MAX_RETRIES = int(os.getenv("CREATIVE_PIPELINE_MAX_RETRIES", "2"))
 
 # Creative Lab: Agent Categories (SSOT for Frontend)

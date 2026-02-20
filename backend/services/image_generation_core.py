@@ -196,6 +196,7 @@ def compose_scene_with_style(
     scene_character_actions: list[dict] | None = None,
     character_b_id: int | None = None,
     background_tags: list[str] | None = None,
+    clothing_override: list[str] | None = None,
 ) -> tuple[str, str, list[str]]:
     """Compose scene prompt: StyleProfile + V3 composition (SSOT).
 
@@ -234,6 +235,14 @@ def compose_scene_with_style(
     if character_id:
         character = db.query(Character).filter(Character.id == character_id).first()
 
+    # Resolve scene-specific clothing override from DB
+    if not clothing_override and scene_id and character_id:
+        from models.scene import Scene as SceneModel
+
+        scene_row = db.query(SceneModel).filter(SceneModel.id == scene_id, SceneModel.deleted_at.is_(None)).first()
+        if scene_row and scene_row.clothing_tags:
+            clothing_override = scene_row.clothing_tags.get(str(character_id))
+
     # Resolve scene-specific character actions from DB (skip if provided directly)
     if not scene_character_actions and scene_id:
         from models.associations import SceneCharacterAction
@@ -262,11 +271,13 @@ def compose_scene_with_style(
             composed = builder.compose_for_character(
                 character.id, scene_tags, style_loras=style_loras,
                 character=character, scene_character_actions=scene_character_actions,
+                clothing_override=clothing_override,
             )
     elif character:
         composed = builder.compose_for_character(
             character.id, scene_tags, style_loras=style_loras,
             character=character, scene_character_actions=scene_character_actions,
+            clothing_override=clothing_override,
         )
     else:
         composed = builder.compose(scene_tags, style_loras=style_loras)

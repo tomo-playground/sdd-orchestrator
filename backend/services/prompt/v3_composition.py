@@ -334,6 +334,7 @@ class V3PromptBuilder:
         style_loras: list[dict] | None = None,
         character: Character | None = None,
         scene_character_actions: list[dict] | None = None,
+        clothing_override: list[str] | None = None,
     ) -> str:
         """Composes a prompt specifically for a Character project."""
         # Defense: character_id is explicitly set, so strip no_humans instead of
@@ -365,7 +366,11 @@ class V3PromptBuilder:
         # 5-6. Distribute character + scene tags into layers
         self._distribute_tags(char_tags_data, scene_tags, scene_tag_info, layers)
 
-        # 6b. Override with scene-specific character actions
+        # 6b. Override clothing layers if scene-specific clothing is provided
+        if clothing_override:
+            self._apply_clothing_override(clothing_override, layers)
+
+        # 6c. Override with scene-specific character actions
         if scene_character_actions:
             self._apply_scene_character_actions(character.id, scene_character_actions, layers)
 
@@ -462,6 +467,18 @@ class V3PromptBuilder:
             layers[info["layer"]].append(tag)
 
         return char_occupied
+
+    def _apply_clothing_override(self, clothing_tags: list[str], layers: list[list[str]]) -> None:
+        """Replace default clothing layers with scene-specific override tags.
+
+        Clears LAYER_MAIN_CLOTH, LAYER_DETAIL_CLOTH, LAYER_ACCESSORY,
+        then fills them with the provided clothing tags.
+        """
+        CLOTHING_LAYERS = (LAYER_MAIN_CLOTH, LAYER_DETAIL_CLOTH, LAYER_ACCESSORY)
+        for idx in CLOTHING_LAYERS:
+            layers[idx].clear()
+        # Place all override tags in LAYER_MAIN_CLOTH (simplest approach)
+        layers[LAYER_MAIN_CLOTH].extend(clothing_tags)
 
     def _apply_scene_character_actions(
         self,

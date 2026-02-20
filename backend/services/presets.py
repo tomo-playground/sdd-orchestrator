@@ -75,6 +75,22 @@ PRESETS: dict[str, StoryboardPreset] = {
         ],
         default_duration=45,
     ),
+    "confession": StoryboardPreset(
+        id="confession",
+        name="Confession/Lesson",
+        name_ko="고백/교훈",
+        description="Personal confession with life lesson and growth",
+        structure="Confession",
+        template="create_storyboard_confession.j2",
+        sample_topics=[
+            "그때 왜 그랬는지 아직도 모르겠어",
+            "아무에게도 말 못 했던 비밀",
+            "실패에서 배운 가장 큰 교훈",
+            "후회하는 그날의 선택",
+            "나를 바꾼 한마디",
+        ],
+        default_duration=30,
+    ),
 }
 
 

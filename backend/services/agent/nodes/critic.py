@@ -9,7 +9,7 @@ from config import CREATIVE_MAX_ROUNDS, logger
 from config_pipelines import DEBATE_TIMEOUT_SEC, MAX_DEBATE_ROUNDS
 from database import get_db_session
 from models.creative import CreativeSession
-from services.agent.nodes._debate_utils import _check_convergence
+from services.agent.nodes._debate_utils import _check_convergence, _concepts_too_similar
 from services.agent.state import ScriptState
 from services.creative_debate_agents import (
     ARCHITECT_PERSPECTIVES,
@@ -20,6 +20,11 @@ from services.creative_debate_agents import (
 from services.creative_utils import parse_json_response
 
 _EMPTY_RESULT: dict = {"critic_result": None, "debate_log": []}
+
+
+def _detect_groupthink(concepts: list[dict]) -> bool:
+    """컨셉 리스트에서 Groupthink 여부를 감지한다."""
+    return _concepts_too_similar(concepts)
 
 
 def _normalize_research_brief(research_brief) -> dict | None:
@@ -234,6 +239,7 @@ async def critic_node(state: ScriptState) -> dict:
                         "round": round_num,
                         "action": "critique_refine",
                         "concepts": [{"role": c.get("agent_role"), "title": c.get("title")} for c in refined_concepts],
+                        "groupthink_detected": _detect_groupthink(refined_concepts),
                     }
                 )
 

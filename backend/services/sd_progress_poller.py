@@ -17,10 +17,10 @@ async def poll_sd_progress(task: ImageTaskProgress) -> None:
     """Poll SD WebUI progress endpoint and update task until generation finishes.
 
     Runs as an asyncio background coroutine while the main generate_scene_image
-    call is in progress. Stops when task.stage leaves GENERATING.
+    call is in progress. Stops when task.stage leaves GENERATING or task is cancelled.
     """
     async with httpx.AsyncClient(timeout=5.0) as client:
-        while task.stage == ImageGenStage.GENERATING:
+        while task.stage == ImageGenStage.GENERATING and not task.cancelled:
             try:
                 resp = await client.get(SD_PROGRESS_URL)
                 if resp.status_code == 200:
@@ -31,6 +31,10 @@ async def poll_sd_progress(task: ImageTaskProgress) -> None:
                     eta_text = data.get("textinfo", "")
                     if eta_text:
                         task.message = eta_text
+                    # Capture preview image (base64 JPEG from SD WebUI)
+                    current_image = data.get("current_image")
+                    if current_image:
+                        task.preview_image = current_image
                     task.notify()
             except Exception:
                 logger.debug("[SD Poll] Progress fetch failed (SD WebUI may be busy)")

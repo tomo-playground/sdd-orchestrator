@@ -68,6 +68,8 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
         structure=request.structure,
         duration=request.duration,
         language=request.language,
+        bgm_prompt=request.bgm_prompt,
+        bgm_mood=request.bgm_mood,
     )
     db.add(db_storyboard)
     db.flush()
@@ -274,6 +276,8 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "video_url": storyboard.video_url,
         "recent_videos": recent_videos,
         "caption": storyboard.caption,
+        "bgm_prompt": storyboard.bgm_prompt,
+        "bgm_mood": storyboard.bgm_mood,
         "created_at": storyboard.created_at.isoformat() if storyboard.created_at else None,
         "updated_at": storyboard.updated_at.isoformat() if storyboard.updated_at else None,
         "version": storyboard.version,
@@ -316,6 +320,17 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
         storyboard.duration = request.duration
     if request.language is not None:
         storyboard.language = request.language
+
+    # Phase 12-C: BGM prompt/mood
+    new_bgm_prompt = request.bgm_prompt
+    new_bgm_mood = request.bgm_mood
+    if new_bgm_prompt is not None:
+        # Invalidate cached BGM asset if prompt changed
+        if storyboard.bgm_prompt != new_bgm_prompt:
+            storyboard.bgm_audio_asset_id = None
+        storyboard.bgm_prompt = new_bgm_prompt
+    if new_bgm_mood is not None:
+        storyboard.bgm_mood = new_bgm_mood
 
     # Collect asset IDs referenced by incoming scenes (to preserve them)
     preserved_asset_ids: set[int] = set()

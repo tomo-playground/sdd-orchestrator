@@ -370,16 +370,16 @@ TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "120"))
 TTS_CACHE_DIR = PROMPT_CACHE_DIR / "tts"
 TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-# --- Stable Audio Open (AI BGM) ---
-SAO_MODEL_NAME = os.getenv("SAO_MODEL_NAME", "stabilityai/stable-audio-open-1.0")
-SAO_DEVICE = os.getenv("SAO_DEVICE", "auto")
-SAO_DEFAULT_DURATION = float(os.getenv("SAO_DEFAULT_DURATION", "30.0"))
-SAO_MAX_DURATION = float(os.getenv("SAO_MAX_DURATION", "47.0"))
-SAO_DEFAULT_STEPS = int(os.getenv("SAO_DEFAULT_STEPS", "100"))
-SAO_SAMPLE_RATE = int(os.getenv("SAO_SAMPLE_RATE", "44100"))
-SAO_CACHE_DIR = PROMPT_CACHE_DIR / "music"
-SAO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-SAO_TIMEOUT_SECONDS = int(os.getenv("SAO_TIMEOUT_SECONDS", "120"))
+# --- MusicGen (AI BGM) ---
+MUSICGEN_MODEL_NAME = os.getenv("MUSICGEN_MODEL_NAME", "facebook/musicgen-small")
+MUSICGEN_DEVICE = os.getenv("MUSICGEN_DEVICE", "auto")
+MUSICGEN_DEFAULT_DURATION = float(os.getenv("MUSICGEN_DEFAULT_DURATION", "30.0"))
+MUSICGEN_MAX_DURATION = float(os.getenv("MUSICGEN_MAX_DURATION", "30.0"))
+MUSICGEN_SAMPLE_RATE = int(os.getenv("MUSICGEN_SAMPLE_RATE", "32000"))
+MUSICGEN_TOKENS_PER_SECOND = 50  # EnCodec: 50 auto-regressive steps per second
+MUSICGEN_CACHE_DIR = PROMPT_CACHE_DIR / "music"
+MUSICGEN_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+MUSICGEN_TIMEOUT_SECONDS = int(os.getenv("MUSICGEN_TIMEOUT_SECONDS", "120"))
 
 # --- Storyboard Options (SSOT) ---
 STORYBOARD_LANGUAGES = [

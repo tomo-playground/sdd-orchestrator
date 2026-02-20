@@ -34,6 +34,8 @@ export function usePublishRender() {
       voicePresetId: s.voicePresetId,
       bgmMode: s.bgmMode,
       musicPresetId: s.musicPresetId,
+      bgmPrompt: s.bgmPrompt,
+      bgmMood: s.bgmMood,
       renderProgress: s.renderProgress,
       videoUrl: s.videoUrl,
     }))
@@ -157,6 +159,7 @@ export function usePublishRender() {
           bgm_file: rs.bgmFile,
           bgm_mode: rs.bgmMode,
           music_preset_id: rs.musicPresetId || null,
+          bgm_prompt: rs.bgmMode === "auto" ? rs.bgmPrompt || null : null,
           audio_ducking: rs.audioDucking,
           bgm_volume: rs.bgmVolume,
           overlay_settings: overlaySettings,

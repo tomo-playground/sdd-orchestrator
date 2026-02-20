@@ -12,6 +12,7 @@ from models.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from models.group import Group
+    from models.media_asset import MediaAsset
     from models.render_history import RenderHistory
     from models.scene import Scene
     from models.storyboard_character import StoryboardCharacter
@@ -32,6 +33,13 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
     language: Mapped[str | None] = mapped_column(String(20))
     version: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
 
+    # Phase 12-C: AI BGM Pipeline
+    bgm_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
+    bgm_mood: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    bgm_audio_asset_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("media_assets.id", ondelete="SET NULL"), nullable=True
+    )
+
     @property
     def video_url(self) -> str | None:
         if self.render_history:
@@ -51,4 +59,7 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
         back_populates="storyboard",
         cascade="all, delete-orphan",
         order_by="desc(RenderHistory.created_at)",
+    )
+    bgm_audio_asset: Mapped[MediaAsset | None] = relationship(
+        "MediaAsset", foreign_keys=[bgm_audio_asset_id], lazy="joined"
     )

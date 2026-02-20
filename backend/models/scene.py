@@ -57,6 +57,10 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     # Context tags (JSONB for flexible tag groups)
     context_tags: Mapped[dict | None] = mapped_column(JSONB)
 
+    # Per-scene clothing override (JSONB: {"<character_id>": ["tag1", "tag2"]})
+    # null = use character default clothing
+    clothing_tags: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
     # Consistency Enhancements
     use_reference_only: Mapped[bool] = mapped_column(Boolean, default=True)
     reference_only_weight: Mapped[float] = mapped_column(Float, default=0.5)

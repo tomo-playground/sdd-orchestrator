@@ -11,27 +11,30 @@ const truncate = (str: string | undefined, maxLen: number) =>
   str && str.length > maxLen ? str.slice(0, maxLen - 1) + "..." : str || "";
 
 export type BgmState = {
-  bgmMode: "file" | "ai";
+  bgmMode: "file" | "ai" | "auto";
   bgmFile: string | null;
   bgmList: AudioItem[];
   isPreviewingBgm: boolean;
   musicPresetId: number | null;
   audioDucking: boolean;
   bgmVolume: number;
+  bgmPrompt: string;
+  bgmMood: string;
 };
 
 export type BgmActions = {
-  setBgmMode: (v: "file" | "ai") => void;
+  setBgmMode: (v: "file" | "ai" | "auto") => void;
   setBgmFile: (v: string | null) => void;
   onPreviewBgm: () => void;
   setMusicPresetId: (v: number | null) => void;
   setAudioDucking: (v: boolean) => void;
   setBgmVolume: (v: number) => void;
+  setBgmPrompt: (v: string) => void;
 };
 
 export type BgmSectionProps = BgmState & BgmActions;
 
-/** BGM sub-section with File/AI mode toggle */
+/** BGM sub-section with File/AI/Auto mode toggle */
 export default function BgmSection(props: BgmSectionProps) {
   const {
     bgmMode,
@@ -47,9 +50,15 @@ export default function BgmSection(props: BgmSectionProps) {
     setAudioDucking,
     bgmVolume,
     setBgmVolume,
+    bgmPrompt,
+    bgmMood,
+    setBgmPrompt,
   } = props;
   const [musicPresets, setMusicPresets] = useState<MusicPreset[]>([]);
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+  const [editPrompt, setEditPrompt] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPreviewingAuto, setIsPreviewingAuto] = useState(false);
 
   useEffect(() => {
     if (bgmMode === "ai") {
@@ -70,35 +79,52 @@ export default function BgmSection(props: BgmSectionProps) {
     audio.play().catch(() => {});
   }, [selectedPreset]);
 
-  const hasBgm = bgmMode === "ai" ? !!musicPresetId : !!bgmFile;
+  const previewAutoPrompt = useCallback(async () => {
+    if (!bgmPrompt.trim()) return;
+    setIsPreviewingAuto(true);
+    try {
+      const res = await axios.post(
+        `${API_BASE}/music-presets/preview`,
+        { prompt: bgmPrompt, duration: 10.0, seed: -1 },
+        { responseType: "blob" }
+      );
+      const url = URL.createObjectURL(res.data);
+      if (audioRef.current) audioRef.current.pause();
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.play().catch(() => {});
+      audio.onended = () => URL.revokeObjectURL(url);
+    } catch {
+      // Preview failed silently
+    } finally {
+      setIsPreviewingAuto(false);
+    }
+  }, [bgmPrompt]);
+
+  const hasBgm =
+    bgmMode === "ai" ? !!musicPresetId : bgmMode === "auto" ? !!bgmPrompt : !!bgmFile;
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
       <div className="flex items-center justify-between">
         <span className="text-[12px] font-bold tracking-wider text-zinc-500 uppercase">BGM</span>
         <div className="flex rounded-full border border-zinc-200 bg-white p-0.5">
-          <button
-            type="button"
-            onClick={() => setBgmMode("file")}
-            className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
-              bgmMode === "file" ? TAB_ACTIVE : TAB_INACTIVE
-            }`}
-          >
-            File
-          </button>
-          <button
-            type="button"
-            onClick={() => setBgmMode("ai")}
-            className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
-              bgmMode === "ai" ? TAB_ACTIVE : TAB_INACTIVE
-            }`}
-          >
-            AI
-          </button>
+          {(["file", "ai", "auto"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setBgmMode(mode)}
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
+                bgmMode === mode ? TAB_ACTIVE : TAB_INACTIVE
+              }`}
+            >
+              {mode === "file" ? "File" : mode === "ai" ? "AI" : "Auto"}
+            </button>
+          ))}
         </div>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        {bgmMode === "file" ? (
+        {bgmMode === "file" && (
           <div className="flex items-center gap-1">
             <select
               value={bgmFile ?? ""}
@@ -124,7 +150,8 @@ export default function BgmSection(props: BgmSectionProps) {
               ▶
             </button>
           </div>
-        ) : (
+        )}
+        {bgmMode === "ai" && (
           <div className="flex items-center gap-1">
             <select
               value={musicPresetId ?? ""}
@@ -147,6 +174,67 @@ export default function BgmSection(props: BgmSectionProps) {
             >
               ▶
             </button>
+          </div>
+        )}
+        {bgmMode === "auto" && (
+          <div className="flex flex-col gap-1.5 md:col-span-2">
+            {bgmMood && (
+              <span className="inline-flex w-fit rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-700">
+                {bgmMood}
+              </span>
+            )}
+            {isEditingPrompt ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={editPrompt}
+                  onChange={(e) => setEditPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setBgmPrompt(editPrompt);
+                      setIsEditingPrompt(false);
+                    } else if (e.key === "Escape") {
+                      setIsEditingPrompt(false);
+                    }
+                  }}
+                  className="flex-1 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-zinc-500"
+                  placeholder="Music prompt..."
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBgmPrompt(editPrompt);
+                    setIsEditingPrompt(false);
+                  }}
+                  className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-[11px] text-zinc-600"
+                >
+                  OK
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <p
+                  className="flex-1 cursor-pointer rounded-lg bg-white px-2 py-1.5 text-xs text-zinc-600"
+                  onClick={() => {
+                    setEditPrompt(bgmPrompt);
+                    setIsEditingPrompt(true);
+                  }}
+                  title="Click to edit"
+                >
+                  {bgmPrompt || "No BGM prompt — generate a script with Full mode to get one"}
+                </p>
+                <button
+                  type="button"
+                  onClick={previewAutoPrompt}
+                  disabled={!bgmPrompt.trim() || isPreviewingAuto}
+                  title="Preview auto BGM"
+                  className="rounded-full border border-zinc-200 bg-white px-2 py-2 text-[12px] text-zinc-600 disabled:text-zinc-400"
+                >
+                  {isPreviewingAuto ? "..." : "▶"}
+                </button>
+              </div>
+            )}
           </div>
         )}
         {hasBgm && (

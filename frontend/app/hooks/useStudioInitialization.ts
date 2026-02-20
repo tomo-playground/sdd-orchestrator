@@ -152,6 +152,8 @@ export function useStudioInitialization() {
           videoUrlPost: latestPost?.url || null,
           recentVideos,
           videoCaption: data.caption || "",
+          ...(data.bgm_prompt ? { bgmPrompt: data.bgm_prompt, bgmMode: "auto" as const } : {}),
+          ...(data.bgm_mood ? { bgmMood: data.bgm_mood } : {}),
         });
         setPlan({
           selectedCharacterId: data.character_id || null,
@@ -164,19 +166,23 @@ export function useStudioInitialization() {
           ...(data.language != null && { language: data.language }),
         });
 
+        // Parallel load: character A, character B, style profile are independent
+        const parallelLoads: Promise<unknown>[] = [];
         if (data.character_id) {
-          loadCharacterData(data.character_id, setPlan);
+          parallelLoads.push(loadCharacterData(data.character_id, setPlan));
         }
         if (data.character_b_id) {
-          loadCharacterBData(data.character_b_id, setPlan);
+          parallelLoads.push(loadCharacterBData(data.character_b_id, setPlan));
         }
-
         if (data.style_profile_id) {
           setLoadedProfileId(data.style_profile_id);
-          loadStyleProfileFromId(data.style_profile_id);
+          parallelLoads.push(loadStyleProfileFromId(data.style_profile_id));
         } else {
           setLoadedProfileId(null);
           setNeedsStyleProfile(true);
+        }
+        if (parallelLoads.length > 0) {
+          await Promise.allSettled(parallelLoads);
         }
 
         if (data.scenes?.length > 0) {
