@@ -5,7 +5,6 @@ topic history, character stats, user global stats를 업데이트한다.
 
 from __future__ import annotations
 
-import hashlib
 import uuid
 from datetime import UTC, datetime
 
@@ -14,11 +13,7 @@ from langgraph.store.base import BaseStore
 
 from config import logger
 from services.agent.state import ScriptState
-
-
-def _topic_key(topic: str) -> str:
-    """토픽 문자열을 12자리 MD5 해시로 변환한다."""
-    return hashlib.md5(topic.encode()).hexdigest()[:12]
+from services.agent.utils import topic_key
 
 
 def _summarize_scenes(scenes: list[dict]) -> str:
@@ -29,12 +24,30 @@ def _summarize_scenes(scenes: list[dict]) -> str:
     return f"{len(scenes)} scenes: " + " / ".join(scripts)
 
 
+def _extract_quality_score(state: ScriptState) -> float | None:
+    """Director checkpoint score를 추출한다."""
+    return state.get("director_checkpoint_score")
+
+
+def _extract_narrative_score(state: ScriptState) -> float | None:
+    """Review result에서 narrative score overall을 추출한다."""
+    review = state.get("review_result") or {}
+    ns = review.get("narrative_score") or {}
+    return ns.get("overall")
+
+
+def _extract_hook_strategy(state: ScriptState) -> str | None:
+    """Writer plan에서 hook_strategy를 추출한다."""
+    plan = state.get("writer_plan") or {}
+    return plan.get("hook_strategy")
+
+
 async def _update_topic(store: BaseStore, state: ScriptState, scenes: list[dict]) -> None:
     """토픽 히스토리에 이번 생성 결과를 추가한다 (최근 10건 유지)."""
     topic = state.get("topic", "")
     if not topic:
         return
-    topic_ns = ("topic", _topic_key(topic))
+    topic_ns = ("topic", topic_key(topic))
     existing = await store.asearch(topic_ns, limit=10)
 
     entry = {
@@ -42,6 +55,11 @@ async def _update_topic(store: BaseStore, state: ScriptState, scenes: list[dict]
         "structure": state.get("structure", ""),
         "scene_count": len(scenes),
         "created_at": datetime.now(UTC).isoformat(),
+        "quality_score": _extract_quality_score(state),
+        "narrative_score": _extract_narrative_score(state),
+        "hook_strategy": _extract_hook_strategy(state),
+        "revision_count": state.get("revision_count", 0),
+        "mode": state.get("mode", "quick"),
     }
 
     # 10건 초과 시 가장 오래된 항목 삭제
@@ -109,6 +127,7 @@ async def learn_node(state: ScriptState, config: RunnableConfig, *, store: BaseS
     try:
         await _update_topic(store, state, scenes)
         await _update_character(store, state.get("character_id"))
+        await _update_character(store, state.get("character_b_id"))
         await _update_user_stats(store)
 
         logger.info("[Learn] 학습 데이터 저장 완료: %d scenes", len(scenes))

@@ -229,6 +229,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             is_multi_character_capable=is_multi_character_capable,
             channel_dna=channel_dna,
             selected_concept=request.selected_concept,
+            director_plan_context=ctx.get("director_plan_context", ""),
             research_brief=ctx.get("research_brief", ""),
             writer_plan=ctx.get("writer_plan", ""),
             revision_feedback=ctx.get("revision_feedback", ""),

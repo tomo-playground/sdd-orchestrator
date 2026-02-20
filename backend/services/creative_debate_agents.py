@@ -59,6 +59,7 @@ class DebateContext:
     director_feedback: str | None = None
     critic_feedback: dict | None = None
     prev_evaluation_str: str | None = None
+    director_plan: dict | None = None
     all_round_concepts: list = field(default_factory=list)
     last_eval: dict = field(default_factory=dict)
 
@@ -155,6 +156,7 @@ async def run_architects(db, session: CreativeSession, round_number: int, ctx: D
             character_name=ctx.character_name,
             reference_guidelines=ctx.reference_guidelines,
             research_brief=ctx.research_brief,
+            director_plan=ctx.director_plan,
             prev_concept=json.dumps(prev_concept, ensure_ascii=False) if prev_concept else None,
             director_feedback=ctx.director_feedback,
             critic_feedback=arch_critic,

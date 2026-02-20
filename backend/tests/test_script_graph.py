@@ -118,8 +118,11 @@ async def test_graph_state_propagation(mock_db_ctx, mock_gen_script, mock_scenes
     graph = build_script_graph().compile()
     result = await graph.ainvoke({"topic": "전파 테스트", "mode": "quick", "duration": 10})
 
-    assert result["draft_scenes"] == result["final_scenes"]
-    assert result["final_scenes"] == mock_scenes
+    # finalize에서 negative_prompt가 주입되므로 핵심 필드만 비교
+    for draft, final in zip(result["draft_scenes"], result["final_scenes"]):
+        assert draft["script"] == final["script"]
+        assert draft["image_prompt"] == final["image_prompt"]
+    assert len(result["final_scenes"]) == len(mock_scenes)
 
 
 @pytest.mark.asyncio
@@ -247,5 +250,3 @@ async def test_writer_non_safety_error_no_retry(mock_db_ctx, mock_gen_script):
     assert result.get("error") is not None
     assert "타임아웃" in result["error"]
     assert mock_gen_script.call_count == 1  # 재시도 없음
-
-

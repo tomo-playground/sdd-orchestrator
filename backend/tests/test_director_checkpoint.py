@@ -106,14 +106,15 @@ async def test_checkpoint_node_revise(mock_run):
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes.director_checkpoint.run_production_step", new_callable=AsyncMock)
-async def test_checkpoint_node_failure_auto_proceed(mock_run):
-    """Gemini 실패 시 자동 통과 (proceed)."""
+async def test_checkpoint_node_failure_returns_error(mock_run):
+    """Gemini 양쪽 실패 시 error 결정 반환 (자동 통과 제거)."""
     mock_run.side_effect = RuntimeError("Gemini 실패")
 
     state = {"topic": "실패", "mode": "full", "duration": 30}
     result = await director_checkpoint_node(state)
 
-    assert result["director_checkpoint_decision"] == "proceed"
+    assert result["director_checkpoint_decision"] == "error"
+    assert "평가 불가" in result["director_checkpoint_feedback"]
 
 
 # -- 라우팅 테스트 --

@@ -5,7 +5,6 @@ LLM이 필요한 정보원을 선택적으로 호출하여 research brief를 구
 
 from __future__ import annotations
 
-import hashlib
 from typing import Any
 
 from google.genai import types
@@ -16,12 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import logger
 
 from .base import define_tool
-
-
-def _topic_key(topic: str) -> str:
-    """토픽 문자열을 12자리 MD5 해시로 변환한다."""
-    return hashlib.md5(topic.encode()).hexdigest()[:12]
-
 
 # ── 도구 정의 ──────────────────────────────────────────────
 
@@ -138,10 +131,12 @@ def create_research_executors(
 
     async def search_topic_history(topic: str, limit: int = 5) -> str:
         """토픽 히스토리 검색."""
-        topic_key = _topic_key(topic)
-        result = await _search_namespace(store, ("topic", topic_key), limit=limit)
+        from services.agent.utils import topic_key
+
+        t_key = topic_key(topic)
+        result = await _search_namespace(store, ("topic", t_key), limit=limit)
         if result:
-            logger.info("[ResearchTool] 토픽 히스토리 검색 완료: %s", topic_key)
+            logger.info("[ResearchTool] 토픽 히스토리 검색 완료: %s", t_key)
             return f"[토픽 히스토리] {result}"
         return f"[토픽 히스토리] '{topic}'에 대한 과거 이력 없음"
 

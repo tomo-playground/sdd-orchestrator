@@ -17,6 +17,14 @@ Create a compelling concept for a {{ duration }}s shorts video.
 Name: {{ character_name }}
 {% endif %}
 
+{% if director_plan %}
+## Creative Direction (from Director)
+- Goal: {{ director_plan.get("creative_goal", "") }}
+- Target Emotion: {{ director_plan.get("target_emotion", "") }}
+- Quality Criteria: {{ director_plan.get("quality_criteria", []) | join(", ") }}
+Your concept MUST align with this creative direction.
+{% endif %}
+
 {% if reference_guidelines %}
 ## Reference Guidelines
 {{ reference_guidelines }}

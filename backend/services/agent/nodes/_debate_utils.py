@@ -8,6 +8,7 @@ from __future__ import annotations
 from config import logger
 from config_pipelines import (
     CONVERGENCE_HOOK_THRESHOLD,
+    CONVERGENCE_MIN_ROUNDS,
     CONVERGENCE_SCORE_THRESHOLD,
     GROUPTHINK_SIMILARITY_THRESHOLD,
     MAX_DEBATE_ROUNDS,
@@ -154,6 +155,15 @@ async def _check_convergence(concepts: list[dict], messages: list[dict], round_n
     Returns:
         True if 수렴 (토론 종료)
     """
+    # 0) 최소 라운드 가드 — 조기 수렴 방지
+    if round_num < CONVERGENCE_MIN_ROUNDS:
+        logger.info(
+            "[Debate] 최소 라운드 미달 (Round %d < %d), 수렴 불가",
+            round_num,
+            CONVERGENCE_MIN_ROUNDS,
+        )
+        return False
+
     # 1) NarrativeScore 기반 품질 임계값
     best_score = 0.0
     for c in concepts:

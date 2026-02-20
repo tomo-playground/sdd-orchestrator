@@ -90,5 +90,31 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
         return update
 
     except Exception as e:
-        logger.warning("[LangGraph] Director Checkpoint 실패, 자동 통과: %s", e)
-        return {"director_checkpoint_decision": "proceed"}
+        logger.warning("[LangGraph] Director Checkpoint 1차 실패: %s", e)
+        try:
+            async with trace_llm_call(name="director_checkpoint_retry", input_text=state.get("topic", "")):
+                result = await run_production_step(
+                    template_name="creative/director_checkpoint.j2",
+                    template_vars=template_vars,
+                    validate_fn=lambda data: validate_with_model(DirectorCheckpointOutput, data).model_dump(),
+                    extract_key="",
+                    step_name="director_checkpoint_retry",
+                )
+            cp = DirectorCheckpointOutput.model_validate(result)
+            count = state.get("director_checkpoint_revision_count", 0)
+            decision, feedback = _apply_score_override(cp.decision, cp.score, cp.feedback)
+            update: dict = {
+                "director_checkpoint_decision": decision,
+                "director_checkpoint_score": cp.score,
+                "director_checkpoint_revision_count": count + (1 if decision == "revise" else 0),
+            }
+            if decision == "revise":
+                update["director_checkpoint_feedback"] = feedback
+                update["revision_feedback"] = feedback
+            return update
+        except Exception as retry_err:
+            logger.error("[LangGraph] Checkpoint 재시도 실패: %s", retry_err)
+            return {
+                "director_checkpoint_decision": "error",
+                "director_checkpoint_feedback": f"Checkpoint 평가 불가: {retry_err}",
+            }

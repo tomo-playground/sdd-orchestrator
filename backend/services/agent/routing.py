@@ -121,6 +121,13 @@ def route_after_director(state: ScriptState) -> str:
 
     decision = state.get("director_decision", "approve")
 
+    if decision == "error":
+        if state.get("auto_approve"):
+            logger.warning("[LangGraph] Director error (auto_approve), graceful → finalize")
+            return "finalize"
+        logger.warning("[LangGraph] Director error → human_gate")
+        return "human_gate"
+
     if decision == "approve":
         if state.get("auto_approve"):
             return "finalize"
@@ -138,6 +145,7 @@ def route_after_director(state: ScriptState) -> str:
 def route_after_director_checkpoint(state: ScriptState) -> str:
     """Director Checkpoint 이후: score 기반 분기.
 
+    - error → cinematographer (graceful proceed)
     - score < LOW_THRESHOLD (0.4): revise → writer (강한 피드백)
     - score 0.4-0.7: revise → writer (기본 피드백)
     - score >= 0.7: proceed → cinematographer
@@ -148,6 +156,10 @@ def route_after_director_checkpoint(state: ScriptState) -> str:
 
     decision = state.get("director_checkpoint_decision", "proceed")
     score = state.get("director_checkpoint_score") or 0.0
+
+    if decision == "error":
+        logger.warning("[LangGraph] Checkpoint error, graceful proceed → cinematographer")
+        return "cinematographer"
 
     if decision == "proceed":
         return "cinematographer"

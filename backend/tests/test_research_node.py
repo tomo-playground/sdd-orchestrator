@@ -81,21 +81,26 @@ async def test_character_history(store, base_state, config, mock_tool_calling):
     )
     result = await research_node(base_state, config, store=store)
 
-    assert result["research_brief"] is not None
-    assert "캐릭터" in result["research_brief"] or "Brief" in result["research_brief"]
+    brief = result["research_brief"]
+    assert brief is not None
+    # 12-B-2: research_brief가 이제 dict 반환 (topic_summary에 원문 포함)
+    brief_text = str(brief) if isinstance(brief, dict) else brief
+    assert "캐릭터" in brief_text or "Brief" in brief_text
 
 
 async def test_topic_history(store, base_state, config, mock_tool_calling):
     """토픽 히스토리가 있으면 brief에 포함된다."""
-    from services.agent.nodes.research import _topic_key
+    from services.agent.utils import topic_key
 
-    topic_key = _topic_key("테스트 주제")
-    await store.aput(("topic", topic_key), "key1", {"summary": "이전 생성 결과", "scene_count": 5})
+    t_key = topic_key("테스트 주제")
+    await store.aput(("topic", t_key), "key1", {"summary": "이전 생성 결과", "scene_count": 5})
 
     mock_tool_calling.return_value = ("[Research Brief] 토픽 히스토리 분석", [])
     result = await research_node(base_state, config, store=store)
-    assert result["research_brief"] is not None
-    assert "토픽" in result["research_brief"] or "Brief" in result["research_brief"]
+    brief = result["research_brief"]
+    assert brief is not None
+    brief_text = str(brief) if isinstance(brief, dict) else brief
+    assert "토픽" in brief_text or "Brief" in brief_text
 
 
 async def test_user_preferences(store, base_state, config, mock_tool_calling):
@@ -108,21 +113,23 @@ async def test_user_preferences(store, base_state, config, mock_tool_calling):
 
     mock_tool_calling.return_value = ("[Research Brief] 사용자 선호 분석", [])
     result = await research_node(base_state, config, store=store)
-    assert result["research_brief"] is not None
-    assert "사용자" in result["research_brief"] or "Brief" in result["research_brief"]
+    brief = result["research_brief"]
+    assert brief is not None
+    brief_text = str(brief) if isinstance(brief, dict) else brief
+    assert "사용자" in brief_text or "Brief" in brief_text
 
 
 async def test_combined_sources(store, base_state, config, mock_tool_calling):
     """여러 소스가 모두 있으면 합쳐서 brief를 구성한다."""
-    from services.agent.nodes.research import _topic_key
+    from services.agent.utils import topic_key
 
     # Character
     await store.aput(("character", "1"), "k1", {"generation_count": 3})
     base_state["character_id"] = 1
 
     # Topic
-    topic_key = _topic_key("테스트 주제")
-    await store.aput(("topic", topic_key), "k2", {"summary": "prev"})
+    t_key = topic_key("테스트 주제")
+    await store.aput(("topic", t_key), "k2", {"summary": "prev"})
 
     # User
     await store.aput(("user", "preferences"), "k3", {"total_generations": 5})
@@ -138,8 +145,9 @@ async def test_combined_sources(store, base_state, config, mock_tool_calling):
     result = await research_node(base_state, config, store=store)
     brief = result["research_brief"]
     assert brief is not None
-    # Tool-Calling이 통합 brief를 반환하므로 모든 키워드가 포함되어 있을 것으로 기대
-    assert any(keyword in brief for keyword in ["캐릭터", "토픽", "사용자", "그룹", "Brief"])
+    # 12-B-2: dict 반환이므로 str()로 변환하여 키워드 검사
+    brief_text = str(brief) if isinstance(brief, dict) else brief
+    assert any(keyword in brief_text for keyword in ["캐릭터", "토픽", "사용자", "그룹", "Brief"])
 
 
 # ── _is_url ────────────────────────────────────────────────
@@ -321,7 +329,9 @@ async def test_text_reference_with_gemini(store, config, mock_tool_calling):
 
     brief = result["research_brief"]
     assert brief is not None
-    assert "Brief" in brief or "감성" in brief
+    # 12-B-2: dict 반환이므로 str()로 변환하여 키워드 검사
+    brief_text = str(brief) if isinstance(brief, dict) else brief
+    assert "Brief" in brief_text or "감성" in brief_text
 
 
 async def test_gemini_failure_fallback(store, config, mock_tool_calling):
@@ -344,7 +354,8 @@ async def test_gemini_failure_fallback(store, config, mock_tool_calling):
 
     brief = result["research_brief"]
     assert brief is not None
-    assert "소재" in brief or "Brief" in brief
+    brief_text = str(brief) if isinstance(brief, dict) else brief
+    assert "소재" in brief_text or "Brief" in brief_text
 
 
 async def test_unsafe_url_blocked(store, config, mock_tool_calling):
@@ -388,4 +399,5 @@ async def test_no_gemini_client_fallback(store, config, mock_tool_calling):
 
     brief = result["research_brief"]
     assert brief is not None
-    assert "소재" in brief or "Brief" in brief
+    brief_text = str(brief) if isinstance(brief, dict) else brief
+    assert "소재" in brief_text or "Brief" in brief_text

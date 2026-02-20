@@ -18,6 +18,29 @@ from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState, WriterPlan, extract_selected_concept
 from services.script.gemini_generator import generate_script
 
+_BRIEF_FIELD_LABELS = {
+    "topic_summary": "주제 요약",
+    "recommended_angle": "추천 각도",
+    "key_elements": "핵심 요소",
+    "emotional_arc_suggestion": "감정 곡선 제안",
+    "audience_hook": "시청자 훅",
+}
+
+
+def _format_brief_text(brief: dict) -> str:
+    """구조화 research_brief dict를 읽기 좋은 텍스트로 변환한다."""
+    parts = []
+    for key, label in _BRIEF_FIELD_LABELS.items():
+        value = brief.get(key)
+        if not value:
+            continue
+        if isinstance(value, list):
+            parts.append(f"{label}: {', '.join(str(v) for v in value)}")
+        else:
+            parts.append(f"{label}: {value}")
+    return "\n".join(parts) if parts else brief.get("topic_summary", "")
+
+
 _SAFETY_KEYWORDS = ("안전 필터", "SAFETY", "safety", "차단", "block")
 
 _SAFETY_HINT = (
@@ -63,6 +86,16 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
         return None
 
     try:
+        # 12-B-1: Director Plan 컨텍스트
+        director_plan = state.get("director_plan")
+        director_plan_context = None
+        if director_plan:
+            director_plan_context = (
+                f"크리에이티브 목표: {director_plan.get('creative_goal', '')}\n"
+                f"타겟 감정: {director_plan.get('target_emotion', '')}\n"
+                f"품질 기준: {', '.join(director_plan.get('quality_criteria', []))}"
+            )
+
         tmpl = template_env.get_template("creative/writer_planning.j2")
         prompt = tmpl.render(
             topic=state.get("topic", ""),
@@ -71,6 +104,7 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
             language=state.get("language", "Korean"),
             structure=state.get("structure", "Monologue"),
             selected_concept=selected_concept,
+            director_plan_context=director_plan_context,
         )
 
         async with trace_llm_call(name="writer_planning", input_text=prompt[:2000]) as llm:
@@ -127,7 +161,20 @@ async def writer_node(state: ScriptState) -> dict:
     pipeline_ctx: dict[str, str] = {}
     research_brief = state.get("research_brief")
     if research_brief:
-        pipeline_ctx["research_brief"] = research_brief
+        # 12-B-2: dict인 경우 텍스트로 포맷팅
+        if isinstance(research_brief, dict):
+            pipeline_ctx["research_brief"] = _format_brief_text(research_brief)
+        else:
+            pipeline_ctx["research_brief"] = research_brief
+
+    # 12-B-1: Director Plan 컨텍스트 주입
+    director_plan = state.get("director_plan")
+    if director_plan:
+        pipeline_ctx["director_plan_context"] = (
+            f"크리에이티브 목표: {director_plan.get('creative_goal', '')}\n"
+            f"타겟 감정: {director_plan.get('target_emotion', '')}\n"
+            f"품질 기준: {', '.join(director_plan.get('quality_criteria', []))}"
+        )
 
     if plan:
         plan_text = (

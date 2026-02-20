@@ -17,7 +17,12 @@ async def sound_designer_node(state: ScriptState) -> dict:
     concept = state.get("critic_result") or {}
     duration = state.get("duration", 30)
 
-    template_vars = {"scenes": scenes, "concept": concept, "duration": duration}
+    template_vars = {
+        "scenes": scenes,
+        "concept": concept,
+        "duration": duration,
+        "language": state.get("language", "Korean"),
+    }
     if director_feedback := state.get("director_feedback"):
         template_vars["feedback"] = director_feedback
     try:

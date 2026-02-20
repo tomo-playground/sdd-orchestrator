@@ -5,6 +5,11 @@ Topic: {{ topic }}
 {% if description %}
 Description: {{ description }}
 {% endif %}
+{% if director_plan_context %}
+
+## Creative Direction (from Director)
+{{ director_plan_context }}
+{% endif %}
 {% if research_brief %}
 
 ## Reference Information

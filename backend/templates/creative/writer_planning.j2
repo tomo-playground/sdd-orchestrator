@@ -7,6 +7,12 @@ You are a Script Planning Specialist. Before generating the actual script, creat
 **Duration**: {{ duration }} seconds
 **Language**: {{ language }}
 **Structure**: {{ structure }}
+{% if director_plan_context %}
+
+## Creative Direction (from Director)
+{{ director_plan_context }}
+Your plan MUST align with this creative direction.
+{% endif %}
 {% if selected_concept %}
 
 === SELECTED CONCEPT (MANDATORY) ===

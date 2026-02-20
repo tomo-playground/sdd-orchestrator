@@ -248,7 +248,7 @@ async def test_director_node_revise(mock_step):
 @pytest.mark.asyncio
 @patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
 async def test_director_node_error_fallback(mock_step):
-    """Director 노드 실패 시 approve fallback."""
+    """Director 노드 양쪽 실패 시 error 결정 반환 (자동 통과 제거)."""
     from services.agent.nodes.director import director_node
 
     mock_step.side_effect = RuntimeError("API error")
@@ -260,7 +260,7 @@ async def test_director_node_error_fallback(mock_step):
         "director_revision_count": 0,
     }
     result = await director_node(state)
-    assert result["director_decision"] == "approve"
+    assert result["director_decision"] == "error"
     assert result["director_revision_count"] == 1
 
 
@@ -299,7 +299,9 @@ async def test_finalize_full_merge():
     final = result["final_scenes"]
     assert len(final) == 1
     assert final[0]["tts_design"]["voice_design_prompt"] == "calm"
-    assert final[0]["_sound_recommendation"]["mood"] == "calm"
+    # 12-B-9: sound/copyright는 top-level로 분리됨
+    assert result["sound_recommendation"]["mood"] == "calm"
+    assert result["copyright_result"]["overall"] == "PASS"
 
 
 # -- Routing --

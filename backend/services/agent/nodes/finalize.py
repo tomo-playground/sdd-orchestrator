@@ -13,8 +13,8 @@ def _inject_negative_prompts(scenes: list[dict]) -> None:
             scene["negative_prompt"] = DEFAULT_SCENE_NEGATIVE_PROMPT
 
 
-def _merge_production_results(state: ScriptState) -> list[dict]:
-    """cinematographer_result.scenes에 tts/sound/copyright 결과를 병합한다."""
+def _merge_production_results(state: ScriptState) -> tuple[list[dict], dict | None, dict | None]:
+    """cinematographer_result.scenes에 tts 결과를 병합하고, sound/copyright를 별도 반환."""
     cinema = state.get("cinematographer_result") or {}
     scenes = [dict(s) for s in cinema.get("scenes", [])]
 
@@ -27,24 +27,24 @@ def _merge_production_results(state: ScriptState) -> list[dict]:
         if i < len(tts_designs):
             scene["tts_design"] = tts_designs[i]
 
-    # Sound/Copyright는 전체 결과로 첫 번째 씬에 메타데이터 추가
-    if scenes:
-        if sound_rec:
-            scenes[0]["_sound_recommendation"] = sound_rec
-        if copyright_result:
-            scenes[0]["_copyright_result"] = copyright_result
-
     logger.info("[LangGraph] Finalize (Full): %d scenes 병합 완료", len(scenes))
-    return scenes
+    return scenes, sound_rec, copyright_result
 
 
 async def finalize_node(state: ScriptState) -> dict:
     """Quick: draft → final 패스스루. Full: Production 결과 병합."""
     mode = state.get("mode", "quick")
+    sound_rec: dict | None = None
+    copyright_result: dict | None = None
+
     if mode == "full" and state.get("cinematographer_result"):
-        scenes = _merge_production_results(state)
+        scenes, sound_rec, copyright_result = _merge_production_results(state)
     else:
         scenes = [dict(s) for s in (state.get("draft_scenes") or [])]
 
     _inject_negative_prompts(scenes)
-    return {"final_scenes": scenes}
+    return {
+        "final_scenes": scenes,
+        "sound_recommendation": sound_rec,
+        "copyright_result": copyright_result,
+    }

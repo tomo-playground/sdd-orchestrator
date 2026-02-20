@@ -236,7 +236,7 @@ async def test_director_react_previous_steps_context(mock_run, mock_production_r
 @pytest.mark.asyncio
 @patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
 async def test_director_react_error_fallback(mock_run, mock_production_results):
-    """에러 발생 시 approve fallback 처리."""
+    """에러 발생 시 재시도 후 error 결정 반환 (자동 통과 제거)."""
     mock_run.side_effect = Exception("Gemini API 에러")
 
     state: ScriptState = {  # type: ignore[typeddict-item]
@@ -248,9 +248,9 @@ async def test_director_react_error_fallback(mock_run, mock_production_results):
 
     result = await director_node(state)
 
-    # 에러 시 approve fallback
-    assert result["director_decision"] == "approve"
-    assert "평가 실패" in result["director_feedback"]
+    # 양쪽 실패 시 error 결정
+    assert result["director_decision"] == "error"
+    assert "평가 불가" in result["director_feedback"]
     # reasoning_steps는 빈 리스트
     assert result["director_reasoning_steps"] == []
 

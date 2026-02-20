@@ -128,7 +128,7 @@ class ScriptState(TypedDict, total=False):
     human_feedback: str | None
 
     # Phase 2 Research & Learn
-    research_brief: str | None
+    research_brief: str | dict | None
     research_tool_logs: list[dict] | None  # Phase 10-B-2: Tool-Calling 로그
     research_score: ResearchScore | None  # 규칙 기반 품질 점수
     research_retry_count: int  # Research 재실행 횟수
@@ -169,6 +169,8 @@ class ScriptState(TypedDict, total=False):
 
     # 최종 출력
     final_scenes: list[dict] | None
+    sound_recommendation: dict | None
+    copyright_result: dict | None
     error: str | None
 
 

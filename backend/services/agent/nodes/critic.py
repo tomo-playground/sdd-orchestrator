@@ -22,9 +22,18 @@ from services.creative_utils import parse_json_response
 _EMPTY_RESULT: dict = {"critic_result": None, "debate_log": []}
 
 
+def _normalize_research_brief(research_brief) -> dict | None:
+    """research_brief를 dict로 정규화한다 (str/dict/None 대응)."""
+    if isinstance(research_brief, dict):
+        return research_brief
+    if isinstance(research_brief, str) and research_brief.strip():
+        return {"topic_summary": research_brief}
+    return None
+
+
 def _build_debate_context(state: ScriptState) -> DebateContext:
     """ScriptState에서 DebateContext를 생성한다."""
-    research_brief = state.get("research_brief")
+    research_brief = _normalize_research_brief(state.get("research_brief"))
     return DebateContext(
         topic=state.get("topic", ""),
         duration=state.get("duration", 10),
@@ -32,7 +41,8 @@ def _build_debate_context(state: ScriptState) -> DebateContext:
         language=state.get("language", "Korean"),
         max_rounds=CREATIVE_MAX_ROUNDS,
         character_name=None,
-        research_brief={"brief": research_brief} if research_brief else None,
+        research_brief=research_brief,
+        director_plan=state.get("director_plan"),
     )
 
 
@@ -66,6 +76,12 @@ def _parse_candidates(raw_results: list[dict]) -> list[dict]:
             "agent_role": r.get("agent_role", "unknown"),
             "title": data.get("title", ""),
             "concept": data.get("hook", ""),
+            "hook_strength": data.get("hook_strength", ""),
+            "arc": data.get("arc", ""),
+            "mood_progression": data.get("mood_progression", ""),
+            "pacing_note": data.get("pacing_note", ""),
+            "estimated_scenes": data.get("estimated_scenes"),
+            "key_moments": data.get("key_moments", []),
             "strengths": [m.get("description", "") for m in (data.get("key_moments") or [])[:2]],
         }
         parsed.append(candidate)

@@ -100,7 +100,7 @@ def test_concepts_too_similar_empty():
 
 @pytest.mark.asyncio
 async def test_check_convergence_high_score():
-    """NarrativeScore 임계값 도달 → 수렴."""
+    """NarrativeScore 임계값 도달 → 수렴 (최소 라운드 충족 후)."""
     concepts = [
         {
             "title": "완성도 높은 컨셉",
@@ -109,7 +109,8 @@ async def test_check_convergence_high_score():
         }
     ]
     messages = []
-    converged = await _check_convergence(concepts, messages, round_num=1)
+    # round_num=2: CONVERGENCE_MIN_ROUNDS(2) 충족
+    converged = await _check_convergence(concepts, messages, round_num=2)
     assert converged, "Expected convergence on high score"
 
 

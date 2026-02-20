@@ -7,7 +7,6 @@ draft/debate 노드에 전달할 research_brief를 구성한다.
 
 from __future__ import annotations
 
-import hashlib
 import html as html_mod
 import ipaddress
 import json
@@ -30,11 +29,6 @@ from config import (
 from database import get_db_session
 from services.agent.observability import trace_llm_call  # noqa: E402
 from services.agent.state import ScriptState
-
-
-def _topic_key(topic: str) -> str:
-    """토픽 문자열을 12자리 MD5 해시로 변환한다."""
-    return hashlib.md5(topic.encode()).hexdigest()[:12]
 
 
 async def _search_namespace(store: BaseStore, namespace: tuple, label: str) -> str | None:
@@ -230,6 +224,27 @@ def _fallback_brief(materials: list[dict[str, str]]) -> str:
     return "[소재 참고]\n" + "\n".join(snippets)
 
 
+# ── 구조화 brief 파싱 ─────────────────────────────────────────
+
+
+_STRUCTURED_BRIEF_INSTRUCTION = """
+
+위 내용을 바탕으로 아래 JSON 형식으로 정리하세요:
+{"topic_summary": "주제 요약", "recommended_angle": "추천 각도", "key_elements": ["핵심 요소1", "핵심 요소2"], "emotional_arc_suggestion": "감정 곡선 제안", "audience_hook": "시청자 훅"}
+JSON만 출력하세요."""
+
+
+def _parse_structured_brief(raw: str) -> dict:
+    """Research 결과를 구조화 dict로 파싱한다. 실패 시 topic_summary 폴백."""
+    if not raw:
+        return {"topic_summary": ""}
+    parsed = _parse_gemini_json(raw)
+    if parsed and isinstance(parsed, dict) and "topic_summary" in parsed:
+        return parsed
+    # JSON이 아닌 경우: raw text를 topic_summary로 감싸기
+    return {"topic_summary": raw}
+
+
 # ── 메인 노드 ───────────────────────────────────────────────
 
 
@@ -278,6 +293,15 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
     if references:
         prompt_parts.append(f"사용자 제공 소재: {', '.join(references[:3])}")
 
+    # 12-B-1: Director Plan 컨텍스트 주입
+    director_plan = state.get("director_plan")
+    if director_plan:
+        prompt_parts.append("")
+        prompt_parts.append("## 크리에이티브 방향 (Director)")
+        prompt_parts.append(f"목표: {director_plan.get('creative_goal', '')}")
+        prompt_parts.append(f"타겟 감정: {director_plan.get('target_emotion', '')}")
+        prompt_parts.append("리서치 시 이 방향에 맞는 정보를 우선 수집하세요.")
+
     prompt_parts.append("")
     prompt_parts.append("목표: 이 주제에 대한 최적의 대본 작성을 위해 필요한 정보를 수집하세요.")
     prompt_parts.append("사용 가능한 도구를 활용하여 필요한 정보만 선택적으로 수집합니다.")
@@ -289,6 +313,7 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
     prompt_parts.append("- 그룹 ID가 있고 채널 톤/세계관이 중요하다면 get_group_dna를 호출하세요.")
     prompt_parts.append("")
     prompt_parts.append("수집한 정보를 바탕으로 대본 작성에 도움이 되는 research brief를 작성하세요.")
+    prompt_parts.append(_STRUCTURED_BRIEF_INSTRUCTION)
 
     prompt = "\n".join(prompt_parts)
 
@@ -303,18 +328,21 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
             trace_name="research_tool_calling",
         )
 
-        brief = response.strip() if response else None
-        if brief:
+        raw_brief = response.strip() if response else None
+        if raw_brief:
             logger.info("[Research] Tool-Calling 완료 (%d 도구 호출)", len(tool_logs))
         else:
             logger.info("[Research] Tool-Calling 완료, brief 없음")
 
+        # 12-B-2: 구조화 brief 파싱 (dict 또는 str → dict)
+        structured_brief = _parse_structured_brief(raw_brief) if raw_brief else None
+
         from .research_scoring import calculate_research_score  # noqa: PLC0415
 
-        score = calculate_research_score(state, tool_logs, brief)
+        score = calculate_research_score(state, tool_logs, raw_brief)
 
         return {
-            "research_brief": brief,
+            "research_brief": structured_brief,
             "research_tool_logs": tool_logs,
             "research_score": score,
             "research_retry_count": state.get("research_retry_count", 0) + 1,

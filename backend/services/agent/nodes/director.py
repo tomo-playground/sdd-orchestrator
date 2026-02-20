@@ -153,10 +153,36 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
                     )
 
         except Exception as e:
-            logger.warning("[LangGraph] Director ReAct Step %d 실패: %s", step_num, e)
-            final_decision = "approve"
-            final_feedback = f"Director Step {step_num} 평가 실패, 자동 승인: {e}"
-            break
+            logger.warning("[LangGraph] Director ReAct Step %d 1차 실패: %s", step_num, e)
+            try:
+                async with trace_llm_call(
+                    name=f"director_react_step_{step_num}_retry",
+                    input_text=f"Retry Step {step_num}/{LANGGRAPH_MAX_REACT_STEPS}",
+                ):
+                    result = await run_production_step(
+                        template_name="creative/director.j2",
+                        template_vars=template_vars,
+                        validate_fn=_react_validate_fn,
+                        extract_key="",
+                        step_name=f"director_step_{step_num}_retry",
+                    )
+                react = DirectorReActOutput.model_validate(result)
+                react_step: DirectorReActStep = {
+                    "step": step_num,
+                    "observe": react.observe,
+                    "think": react.think,
+                    "act": react.act,
+                }
+                reasoning_steps.append(react_step)
+                final_decision = react.act
+                final_feedback = react.feedback or ""
+                if react.act == "approve":
+                    break
+            except Exception as retry_err:
+                logger.error("[LangGraph] Director Step %d 재시도 실패: %s", step_num, retry_err)
+                final_decision = "error"
+                final_feedback = f"Director Step {step_num} 평가 불가: {retry_err}"
+                break
 
     # 최대 스텝 도달 시에도 마지막 판정 유지
     if len(reasoning_steps) == LANGGRAPH_MAX_REACT_STEPS and final_decision != "approve":

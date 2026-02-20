@@ -24,7 +24,15 @@ _DURATION_RE = re.compile(r"씬 (\d+): duration이 0 이하")
 _FIELD_RE = re.compile(r"씬 (\d+): 필수 필드 '(script|image_prompt)' 누락")
 
 
-def _try_rule_fix(scenes: list[dict], errors: list[str]) -> bool:
+def _generate_placeholder_prompt(state: ScriptState) -> str:
+    """state 기반 image_prompt placeholder를 생성한다."""
+    gender = state.get("actor_a_gender", "female")
+    style = (state.get("style") or "anime").lower()
+    tag = "1girl" if gender == "female" else "1boy"
+    return f"{tag}, solo, {style}"
+
+
+def _try_rule_fix(scenes: list[dict], errors: list[str], *, fallback_prompt: str = "1girl, solo") -> bool:
     """규칙 기반 수정을 시도한다. 모든 에러를 처리하면 True."""
     unresolved = 0
     for err in errors:
@@ -35,7 +43,7 @@ def _try_rule_fix(scenes: list[dict], errors: list[str]) -> bool:
         elif m := _FIELD_RE.search(err):
             idx, field = int(m.group(1)) - 1, m.group(2)
             if 0 <= idx < len(scenes) and not scenes[idx].get(field):
-                scenes[idx][field] = "(placeholder)" if field == "script" else "1girl, solo"
+                scenes[idx][field] = "(placeholder)" if field == "script" else fallback_prompt
         else:
             unresolved += 1
     return unresolved == 0
@@ -142,9 +150,10 @@ async def revise_node(state: ScriptState) -> dict:
 
     scenes = [s.copy() for s in (state.get("draft_scenes") or [])]
     errors = (state.get("review_result") or {}).get("errors", [])
+    fallback_prompt = _generate_placeholder_prompt(state)
 
     # Tier 1: 규칙 기반 수정
-    if errors and _try_rule_fix(scenes, errors):
+    if errors and _try_rule_fix(scenes, errors, fallback_prompt=fallback_prompt):
         logger.info("[LangGraph] Revise Tier 1 규칙 수정 완료 (revision=%d)", count + 1)
         history[-1]["tier"] = "rule_fix"
         return {"draft_scenes": scenes, "revision_count": count + 1, "revision_history": history}
@@ -153,7 +162,7 @@ async def revise_node(state: ScriptState) -> dict:
     if REVISE_EXPANSION_ENABLED:
         deficit_info = parse_scene_deficit(errors)
         if deficit_info and can_use_expansion(errors):
-            _try_rule_fix(scenes, errors)  # 규칙 수정 가능한 에러 먼저 처리
+            _try_rule_fix(scenes, errors, fallback_prompt=fallback_prompt)  # 규칙 수정 가능한 에러 먼저 처리
             _current, target_min = deficit_info
             deficit = target_min - len(scenes)
             if 0 < deficit <= REVISE_MAX_EXPANSION_SCENES:

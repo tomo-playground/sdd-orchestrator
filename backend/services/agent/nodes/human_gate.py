@@ -15,6 +15,9 @@ async def human_gate_node(state: ScriptState) -> dict:
             "scenes": state.get("draft_scenes"),
             "review_result": state.get("review_result"),
             "scene_reasoning": state.get("scene_reasoning"),
+            "director_decision": state.get("director_decision"),
+            "director_feedback": state.get("director_feedback"),
+            "director_reasoning_steps": state.get("director_reasoning_steps"),
         }
     )
     action = user_input.get("action", "approve")

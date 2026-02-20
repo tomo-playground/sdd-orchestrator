@@ -138,7 +138,7 @@ def create_cinematographer_executors(
                 .order_by(TagEffectiveness.effectiveness.desc())
                 .limit(5)
             )
-            result = db.execute(stmt)
+            result = await db.execute(stmt) if isinstance(db, AsyncSession) else db.execute(stmt)
             rows = result.scalars().all()
             if rows:
                 tag_items = []

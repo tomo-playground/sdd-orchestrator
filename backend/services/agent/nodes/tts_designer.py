@@ -16,7 +16,11 @@ async def tts_designer_node(state: ScriptState) -> dict:
     scenes = cinema.get("scenes", [])
     concept = state.get("critic_result") or {}
 
-    template_vars = {"scenes": scenes, "concept": concept}
+    template_vars = {
+        "scenes": scenes,
+        "concept": concept,
+        "language": state.get("language", "Korean"),
+    }
     if director_feedback := state.get("director_feedback"):
         template_vars["feedback"] = director_feedback
     try:
