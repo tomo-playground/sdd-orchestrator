@@ -232,6 +232,11 @@ async def writer_node(state: ScriptState) -> dict:
             if scene.get("script", "").strip():
                 scene["duration"] = estimate_reading_duration(scene["script"], language)
 
+        # Annotate speakable flag (SSOT for TTS eligibility)
+        from services.script.scene_postprocess import annotate_speakable
+
+        annotate_speakable(scenes)
+
         scene_reasoning = _extract_reasoning(scenes)
         logger.info(
             "[LangGraph] Writer 노드 완료: %d scenes, plan=%s",

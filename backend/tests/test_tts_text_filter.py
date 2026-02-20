@@ -3,6 +3,7 @@
 _strip_non_speech()와 clean_script_for_tts()의 지문/메타 제거를 검증한다.
 """
 
+from services.script.scene_postprocess import annotate_speakable
 from services.video.utils import _strip_non_speech, clean_script_for_tts, has_speakable_content
 
 
@@ -122,3 +123,49 @@ class TestHasSpeakableContent:
 
     def test_number_speakable(self):
         assert has_speakable_content("3만원") is True
+
+
+class TestAnnotateSpeakable:
+    """annotate_speakable: Writer 후처리에서 씬별 speakable 플래그 부여."""
+
+    def test_normal_scenes_speakable(self):
+        scenes = [
+            {"script": "안녕하세요", "order": 0},
+            {"script": "오늘 날씨 좋다", "order": 1},
+        ]
+        annotate_speakable(scenes)
+        assert scenes[0]["speakable"] is True
+        assert scenes[1]["speakable"] is True
+
+    def test_ellipsis_not_speakable(self):
+        scenes = [{"script": "...", "order": 0}]
+        annotate_speakable(scenes)
+        assert scenes[0]["speakable"] is False
+
+    def test_mixed_scenes(self):
+        scenes = [
+            {"script": "처음 칼을 잡았을 때", "order": 0},
+            {"script": "...", "order": 1},
+            {"script": "너무 무서웠어", "order": 2},
+        ]
+        annotate_speakable(scenes)
+        assert scenes[0]["speakable"] is True
+        assert scenes[1]["speakable"] is False
+        assert scenes[2]["speakable"] is True
+
+    def test_empty_script_not_speakable(self):
+        scenes = [{"script": "", "order": 0}]
+        annotate_speakable(scenes)
+        assert scenes[0]["speakable"] is False
+
+    def test_stage_direction_only_not_speakable(self):
+        scenes = [{"script": "(한숨) [BGM 시작]", "order": 0}]
+        annotate_speakable(scenes)
+        assert scenes[0]["speakable"] is False
+
+    def test_preserves_existing_fields(self):
+        scenes = [{"script": "안녕", "order": 0, "speaker": "A", "duration": 3}]
+        annotate_speakable(scenes)
+        assert scenes[0]["speakable"] is True
+        assert scenes[0]["speaker"] == "A"
+        assert scenes[0]["duration"] == 3

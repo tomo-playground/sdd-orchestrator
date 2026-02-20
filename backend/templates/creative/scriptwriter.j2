@@ -64,14 +64,14 @@ Name: {{ character_name }}
 {
   "scenes": [
 {% if structure == "Narrated Dialogue" %}
-    {"order": 0, "script": "나레이션 텍스트", "speaker": "Narrator", "duration": 2.5},
-    {"order": 1, "script": "A 대사 텍스트", "speaker": "A", "duration": 3.0},
-    {"order": 2, "script": "B 대사 텍스트", "speaker": "B", "duration": 3.0}
+    {"order": 0, "script": "나레이션 텍스트", "speaker": "Narrator", "duration": 2.5, "speakable": true},
+    {"order": 1, "script": "A 대사 텍스트", "speaker": "A", "duration": 3.0, "speakable": true},
+    {"order": 2, "script": "B 대사 텍스트", "speaker": "B", "duration": 3.0, "speakable": true}
 {% elif structure == "Dialogue" %}
-    {"order": 0, "script": "A 대사 텍스트", "speaker": "A", "duration": 3.0},
-    {"order": 1, "script": "B 대사 텍스트", "speaker": "B", "duration": 3.0}
+    {"order": 0, "script": "A 대사 텍스트", "speaker": "A", "duration": 3.0, "speakable": true},
+    {"order": 1, "script": "B 대사 텍스트", "speaker": "B", "duration": 3.0, "speakable": true}
 {% else %}
-    {"order": 0, "script": "대사 텍스트", "speaker": "A", "duration": 2.5}
+    {"order": 0, "script": "대사 텍스트", "speaker": "A", "duration": 2.5, "speakable": true}
 {% endif %}
   ],
   "self_edit_notes": "자가 편집에서 수정한 내용 요약"

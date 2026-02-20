@@ -15,10 +15,11 @@
 | Phase 12 (Agent Enhancement & AI BGM) | 전체 완료 (ARCHIVED) |
 | Phase 13 (Creative Control & Production Speed) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | 미착수 (Future) |
-| 테스트 | Backend 2,156 + Frontend 352 = **총 2,508개** |
+| 테스트 | Backend 2,169 + Frontend 352 = **총 2,521개** |
 
 ### 최근 작업
 
+- **TTS 비음성 씬 선별 (Speakable Flag)** (02-20): Writer→TTS 파이프라인에 `speakable` 플래그 도입. `has_speakable_content()` 게이트 + TTS Designer skip 가이드. 13개 테스트 추가
 - **Phase 13 Creative Control & Production Speed 완료** (02-20): 19건 완료. 성능 최적화, 이미지 UX, Structure 템플릿, Clothing Override. [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md)
 - **Phase 12 Agent Enhancement & AI BGM 완료** (02-20): 26건 완료. Agent Bug Fix 5건, Data Flow 10건, 3-Mode BGM 6건, Gemini Model Upgrade 5건. [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md)
 - **Cinematographer 프롬프트 품질 개선** (02-20): 5개 버그 수정 — negative_prompt Finalize 주입(Full+Quick), characters_tags+LoRA 템플릿 전달, 장면별 오브젝트 가이드, 환경 태그 남용 제약, search_similar_compositions DB 연동. 9개 신규 테스트 (총 63개 PASS)

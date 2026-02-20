@@ -15,6 +15,25 @@ MAX_NARRATOR_SCRIPT_CHARS = 20
 _NARRATOR_PERSON_PATTERN = re.compile(r"(그|그녀|그들|두\s*사람|세\s*사람|그가|그녀가|그는|그녀는|서로를|서로)")
 
 
+def annotate_speakable(scenes: list[dict]) -> None:
+    """Mark each scene with speakable flag based on script content (in-place).
+
+    This is the SSOT for TTS eligibility. Downstream nodes (TTS Designer,
+    Director, Rendering) use this flag to skip non-speech scenes.
+    """
+    from services.video.utils import has_speakable_content
+
+    for scene in scenes:
+        script = scene.get("script", "")
+        scene["speakable"] = has_speakable_content(script)
+        if not scene["speakable"]:
+            logger.warning(
+                "[Scene %s] Non-speakable script: '%s' — TTS will be skipped",
+                scene.get("scene_id", scene.get("order", "?")),
+                script[:30],
+            )
+
+
 def warn_script_issues(scenes: list[dict]) -> None:
     """Warn if scripts exceed 2-line rendering limit or narrator scripts describe characters."""
     for s in scenes:
