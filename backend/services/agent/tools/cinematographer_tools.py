@@ -123,12 +123,35 @@ def create_cinematographer_executors(
     async def search_similar_compositions(mood: str, scene_type: str) -> str:
         """유사한 구도/분위기의 레퍼런스 태그 조합 검색.
 
-        현재는 placeholder — 향후 tag_effectiveness 테이블 기반 추천 시스템 구현 예정.
+        tag_effectiveness 테이블에서 높은 effectiveness를 가진 태그를 우선 검색하고,
+        결과가 없으면 정적 데이터로 fallback한다.
         """
-        # TODO: tag_effectiveness 테이블에서 높은 match_rate를 가진 태그 조합 검색
         logger.info("[CinematographerTool] 유사 구도 검색: mood=%s, scene_type=%s", mood, scene_type)
 
-        # Placeholder: mood × scene_type 매트릭스 (향후 tag_effectiveness 기반 대체)
+        # DB 기반 추천 시도
+        try:
+            from models.tag import TagEffectiveness
+
+            stmt = (
+                select(TagEffectiveness)
+                .where(TagEffectiveness.effectiveness >= 0.7)
+                .order_by(TagEffectiveness.effectiveness.desc())
+                .limit(5)
+            )
+            result = db.execute(stmt)
+            rows = result.scalars().all()
+            if rows:
+                tag_items = []
+                for row in rows:
+                    tag_name = row.tag.name if row.tag else "unknown"
+                    tag_items.append(f"{tag_name}({row.effectiveness:.0%})")
+                db_result = ", ".join(tag_items)
+                logger.info("[CinematographerTool] DB 기반 추천: %d개 태그", len(rows))
+                return f"[DB 기반 고효율 태그] {db_result}"
+        except Exception as e:
+            logger.warning("[CinematographerTool] DB 조회 실패, fallback 사용: %s", e)
+
+        # Fallback: mood × scene_type 정적 매트릭스
         _mood_tags = {
             "cheerful": "smile, happy, bright_colors",
             "melancholic": "sad, looking_down, dark_background",
@@ -158,8 +181,8 @@ def create_cinematographer_executors(
         if scene_tag:
             suggestions.append(scene_tag)
 
-        result = " | ".join(suggestions) if suggestions else "일반적인 태그 조합을 사용하세요"
-        return f"[레퍼런스 태그 조합] {result}"
+        fallback = " | ".join(suggestions) if suggestions else "일반적인 태그 조합을 사용하세요"
+        return f"[레퍼런스 태그 조합] {fallback}"
 
     async def get_character_visual_tags(character_id: int) -> str:
         """캐릭터의 비주얼 태그 조회."""

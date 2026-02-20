@@ -51,11 +51,18 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 4. **Pose variety**: Avoid `standing` + `looking_at_viewer` in consecutive scenes.
    - Available: standing, sitting, walking, leaning_forward, kneeling, crouching, arms_behind_back
 5. **Environment consistency**: Maintain consistent setting within scene groups
+   - Do NOT add weather/atmosphere tags (rain, cloud, moon, night, snow) unless the script explicitly mentions them
+   - Indoor scenes (kitchen, bedroom, classroom): do NOT add outdoor atmosphere tags
 6. **Mood-visual alignment**: Camera and environment must match the script's emotional tone
-7. **image_prompt**: Complete comma-separated tag string ready for Stable Diffusion
-8. **image_prompt_ko**:
+7. **Scene-specific objects**: Based on the script content, add relevant object/prop tags:
+   - Cooking scene: knife, cutting_board, frying_pan, plate, food, apron
+   - Study scene: book, desk, pen, notebook, lamp
+   - Outdoor scene: tree, sky, bench, road
+   - Do NOT add objects unrelated to the script (e.g. holding_book in a cooking scene)
+8. **image_prompt**: Complete comma-separated tag string ready for Stable Diffusion
+9. **image_prompt_ko**:
 {% include '_partials/image_prompt_ko_rules.j2' %}
-9. **JSON Safety**: Do NOT use backslashes `\` in text. If you must, use `\\`. Avoid `"` inside strings unless escaped `\"`.
+10. **JSON Safety**: Do NOT use backslashes `\` in text. If you must, use `\\`. Avoid `"` inside strings unless escaped `\"`.
 
 ## Output Format (JSON)
 ```json

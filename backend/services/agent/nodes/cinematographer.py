@@ -16,6 +16,59 @@ from services.creative_utils import parse_json_response
 _EMPTY_RESULT: dict = {"cinematographer_result": None, "cinematographer_tool_logs": []}
 
 
+def _load_characters_tags(state: ScriptState, db) -> dict[str, list[str]] | None:
+    """캐릭터 ID → Speaker별 태그 목록 로드. LoRA 트리거 워드 포함."""
+    character_id = state.get("character_id")
+    if not character_id:
+        return None
+
+    speakers = {"A": character_id}
+    char_b_id = state.get("character_b_id")
+    if char_b_id:
+        speakers["B"] = char_b_id
+
+    result: dict[str, list[str]] = {}
+    for speaker, cid in speakers.items():
+        tags = _load_single_character_tags(cid, db)
+        if tags:
+            result[speaker] = tags
+
+    return result if result else None
+
+
+def _load_single_character_tags(cid: int, db) -> list[str]:
+    """단일 캐릭터의 태그 + LoRA 트리거 워드를 로드한다."""
+    from sqlalchemy import select  # noqa: PLC0415
+
+    from models.character import Character  # noqa: PLC0415
+
+    try:
+        stmt = select(Character).where(Character.id == cid)
+        char = db.execute(stmt).scalar_one_or_none()
+        if not char:
+            return []
+
+        tags = [ct.tag.name for ct in char.tags if ct.tag]
+
+        # LoRA 트리거 워드 추가
+        if char.loras:
+            from models.lora import LoRA  # noqa: PLC0415
+
+            for lora_entry in char.loras:
+                lora_id = lora_entry.get("lora_id")
+                if not lora_id:
+                    continue
+                lora_stmt = select(LoRA).where(LoRA.id == lora_id)
+                lora_obj = db.execute(lora_stmt).scalar_one_or_none()
+                if lora_obj and lora_obj.trigger_words:
+                    tags.extend(lora_obj.trigger_words)
+
+        return tags
+    except Exception as e:
+        logger.warning("[Cinematographer] 캐릭터 태그 로드 실패 (cid=%d): %s", cid, e)
+        return []
+
+
 async def cinematographer_node(state: ScriptState, config: RunnableConfig) -> dict:
     """Tool-Calling Agent로 draft_scenes에 비주얼 디자인을 추가한다.
 
@@ -45,9 +98,16 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     character_id = state.get("character_id")
     director_feedback = state.get("director_feedback")
 
+    characters_tags = _load_characters_tags(state, db_session)
+
     style = state.get("style", "Anime")
     tmpl = template_env.get_template("creative/cinematographer.j2")
-    base_prompt = tmpl.render(scenes=scenes, character_id=character_id, style=style)
+    base_prompt = tmpl.render(
+        scenes=scenes,
+        character_id=character_id,
+        style=style,
+        characters_tags=characters_tags,
+    )
 
     prompt_parts = [
         "당신은 쇼츠 영상의 Cinematographer Agent입니다.",

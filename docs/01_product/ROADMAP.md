@@ -12,37 +12,17 @@
 | Phase 9 (Agentic Pipeline) | 전체 완료 (ARCHIVED) |
 | Phase 10 (True Agentic) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | 미착수 (Future) |
-| Phase 11 (Scene Diversity) | **전체 완료** |
+| Phase 11 (Scene Diversity) | 전체 완료 (ARCHIVED) |
 | 테스트 | Backend 2,033 + Frontend 352 = **총 2,385개** |
 
 ### 최근 작업
 
-- **Gemini 코드 리뷰 + BLOCKER 수정** (02-20): `gemini_generator.py` preset.system_prompt AttributeError 수정(StoryboardPreset에 없는 필드 참조 → fallback_instruction 사용), scriptwriter.j2/script_qc.j2 한국어 표준어 규칙 추가, Frontend UI 패딩/레이아웃 일관성 개선(AppSidebar, Studio, ManualScriptEditor 모드탭 통합)
-- **Phase 11-P3 완료 + 렌더링/UI 수정** (02-20): 연속 씬 gaze 비중복 검출(`_check_consecutive_gaze`), QC→Director 피드백 자동 주입(`visual_qc_result` state 전파), `averted_gaze` CATEGORY_PATTERNS 누락 수정, TTS 마지막 씬 음성 소실 수정(amix `normalize=0` + `_total_dur` acrossfade 보정), Studio/Library/Characters 브레드크럼 스토리보드 이름 표시 수정(`isAssetPage` 조건 제거). 16개 테스트 추가
-- **프롬프트 품질 후속 수정** (02-20): _NON_FRONTAL_GAZE 누락 태그 5개 추가(averted_gaze, downcast_eyes, closed_eyes 등 1.1x→1.25x), Cinematographer에 style 변수 전달 + Anime 스타일 realistic/photorealistic 금지 규칙, gaze 태그 34개 default_layer 통일(→LAYER_EXPRESSION), pipeline_context 필드 분리(description 과적 해소)
-- **Pipeline Resume 오류 + SSE 에러 알림 수정** (02-20): writer.py description 2000자 초과 → pipeline_context dict 분리로 해소, Frontend SSE 에러 시 파이프라인 스텝 error 상태 전환 + resume() 무알림 분기에 warning 토스트 추가
-- **Scene Diversity & Frontal Bias Fix P0~P2** (02-20): 정면 편향 해소 8건. cinematographer.j2 gaze/pose 다양성 규칙+시너지 표, create_storyboard.j2 Narrative Function별 gaze 가이드, patterns.py 버그 수정(averted_gaze→averting_eyes, 3개 태그 추가), search_similar_compositions() mood×scene_type 매트릭스, scene_expand.j2 예시 다양화, director_step_qc.j2 Gaze&Pose Diversity 평가 기준 추가, validate_visuals() gaze/pose WARN 체크, 비정면 gaze 1.25x 가중치 부스트. 기존 133개 테스트 PASS
-- **Character UI/UX 4대 개선** (02-20): Tag Show More 패턴(20개 제한+토글), Edit 페이지 섹션 접기/펼치기(collapsible SectionCard), Builder Prompts Step 4 추가(skip 가능), Appearance↔Prompt 중복 태그 경고. shared PromptPair/formatTagName 추출, useCharacterEdit 훅 분리. 9개 테스트 추가
-- **Composed Negative Preview** (02-20): 씬 편집기에서 StyleProfile + Character + Scene 네거티브 프롬프트 합성 결과를 미리보기. `/prompt/compose` API에 `negative_prompt`/`negative_sources` 필드 추가, NegativePromptToggle에 출처별 read-only UI. 8개 테스트 추가
-- **실사풍 StyleProfile 호환성 + Negative Prompt 수정** (02-20): quality tag fallback을 StyleProfile SSOT로 전환 (하드코딩 제거), 실사 quality 태그 LAYER_QUALITY 분류, MultiCharacterComposer quality 3-tier fallback. Negative Prompt: recommended_negative 씬 병합, char_b negative 누락 수정, 토큰 순서 개선, Reference negative 정합성. 25개 테스트 추가
-- **Video Gallery 개선** (02-19): 타입별 8개 표시 + View All 가로 스크롤 레이아웃, scrollbar-hide 유틸리티 추가
-- **홈 화면 개선** (02-19): Continue Working 가로 스크롤 컴팩트 카드, Video Gallery 타입별(Full/Post) 2줄 레이아웃으로 전환. 동적 그룹핑으로 타입 확장 대응
-- **Research 되돌리기 분기** (02-19): 품질 점수(overall < 0.3) 기반 research 재실행 라우팅 구현. `route_after_research()` 조건부 엣지, `RESEARCH_MAX_RETRIES` 가드레일. Tier 2 완료. 6개 테스트 추가
-- **Research 품질 점수 체계** (02-19): 규칙 기반 4-메트릭(tool_success_rate, information_density, source_diversity, topic_coverage) 산출, quality_gate에 통합. 26개 테스트 추가
-- **Cinematographer 빈 응답 fallback + retry** (02-19): `call_with_tools()` tool-only 응답 시 도구 없이 1회 fallback 호출 추가, Cinematographer 노드 파싱 실패 시 최대 2회 재시도. 5개 테스트 추가
-- **Pydantic LLM 출력 검증 전환** (02-19): 수동 `_validate_*()` 함수 3개를 Pydantic v2 모델 6개로 통합. `model_validator`로 cross-field 검증(revise→feedback 필수), NarrativeScore clamping 선언적 처리. 25개 테스트 추가
-- **Non-Danbooru 태그 오탐 수정** (02-19): `find_unknown_tags()`가 CATEGORY_PATTERNS 미참조로 `smile`, `looking_at_viewer` 등 유효 태그를 오탐. CATEGORY_PATTERNS 전체 태그를 `frozenset` 캐시로 allowlist 추가. Danbooru API HTTPError 로그 WARNING→DEBUG 강등
-- **Human Gate Snapshot 보강** (02-19): quality_gate(review+checkpoint 메트릭) + revision_history + debate_log 3개 필드 추가, Frontend 5개 타입 구체화 + 3개 신규 UI 컴포넌트, Gemini function_call 경고 수정. 8개 테스트 추가
-- **Gemini Safety Preflight Check** (02-19): 파이프라인 시작 전 topic+description으로 Gemini 경량 호출하여 PROHIBITED_CONTENT 사전 감지. 차단 시 즉시 SSE error 반환으로 10-30초 대기 제거. 6개 테스트 추가
-- **렌더링 영상 새로고침 소실 버그 수정** (02-19): COMPLETED SSE 발송 시점을 render_history 저장 이후로 이동, upload.py 이중 커밋 제거, sync path 세션 분리. Storyboard 436 데이터 보정 완료
-- **문서 일괄 동기화** (02-19): 17-노드 파이프라인 기준 6개 문서 업데이트 (README, PRD, SYSTEM_OVERVIEW, AGENTIC_PIPELINE, AGENT_SPEC, ROADMAP)
-- **Pipeline 고도화: Revision History + Score-Based Routing** (02-19): revision_history 누적으로 동일 실패 반복 방지, score 기반 decision override 안전망, 리비전 최대 횟수 1→3 상향. 7개 테스트 추가
-- **Tag Effectiveness 안정화** (02-19): identity 태그(hair_color, eye_color) death spiral 방지 — effectiveness 필터 면제. WD14 미지원 태그(anime_style 등) UNMATCHABLE 등록
-- **Agentic Pipeline 안정화** (02-19): Tool-Calling 텍스트 유실 수정, Writer safety retry, Research HTML 파싱 개선, Checkpoint→Writer 라우팅 수정. 33개 테스트 추가
-- **Director-as-Orchestrator** (02-19): Director를 사후 검증자 → 오케스트레이터로 전환. director_plan(목표 수립) + director_checkpoint(스크립트 품질 게이트) 2노드 추가, 15→17노드 그래프
-- **HOME 레이아웃 재구성** (02-19): 2-column → single-column 전환, WelcomeBar CTA + QuickStatsBar 병합, 중복 위젯 제거, 카드 크기 확대
-- **QA TC 매트릭스** (02-19): 18개 카테고리 130+ TC ID, P1 라우터 테스트 57개 추가, 커버리지 62%→74%
-- **Studio UX 개선** (02-19): 1-column 레이아웃, 프로덕션 에이전트 SSE 노출, 이미지 클릭 팝업, Scene 번호 1-based 표준화
+- **Cinematographer 프롬프트 품질 개선** (02-20): 5개 버그 수정 — negative_prompt Finalize 주입(Full+Quick), characters_tags+LoRA 템플릿 전달, 장면별 오브젝트 가이드, 환경 태그 남용 제약, search_similar_compositions DB 연동. 9개 신규 테스트 (총 63개 PASS)
+- **Duration Auto-Calculation from Reading Time** (02-20): Duration을 파생 값으로 전환. `config.py` READING_SPEED SSOT → `estimate_reading_duration()` → writer/gemini_generator/revise_expand 후처리. QC FAIL→WARN 완화, Frontend 하드코딩 제거→API 소비. 20개 파일, 10개 신규 테스트
+- **Cinematographer 한글 장면설명 표시** (02-20): `CinematographerSection`에 `image_prompt_ko` 표시 추가. 백엔드에서 이미 생성하던 한글 설명을 UI에 노출
+- **Gemini 코드 리뷰 + BLOCKER 수정** (02-20): `gemini_generator.py` preset.system_prompt AttributeError 수정, Frontend UI 패딩/레이아웃 일관성 개선
+- **Phase 11 전체 완료** (02-20): P0~P3 10건 + P2+ 4건. 정면 편향 해소, gaze 5종, 정면 비율 22%. [아카이브](../99_archive/archive/ROADMAP_PHASE_11.md)
+- **Pipeline 고도화 + UX 개선** (02-19~20): Tier 2 5건 완료, Director-as-Orchestrator, Safety Preflight, Pydantic 전환, Research 점수 체계. 200+ 테스트 추가. [아카이브](../99_archive/archive/ROADMAP_PHASE_11.md)
 - **렌더링 품질 개선** (02-14~17): Scene Text 동적 높이/폰트, Safe Zone, 얼굴 감지, TTS 정규화. 52개 테스트
 
 ---
@@ -67,6 +47,7 @@
 | 7-Z | Home Dashboard & Publish UX | 창작 대시보드 전환, 2-Column Home, 3-Column Publish | [아카이브](../99_archive/archive/ROADMAP_PHASE_7_Z.md) |
 | 9 | Agentic AI Pipeline | LangGraph 17-노드, Memory Store, LangFuse, Concept Gate, NarrativeScore | [아카이브](../99_archive/archive/ROADMAP_PHASE_9.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
 | 10 | True Agentic Architecture | ReAct Loop, Director-as-Orchestrator, Gemini Function Calling 9 tools, Agent Communication, 3-Architect Debate | [아카이브](../99_archive/archive/ROADMAP_PHASE_10.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
+| 11 | Scene Diversity & Frontal Bias Fix | 정면 편향 해소 10건, Gaze 5종 다양화, 정면 비율 22%, P0~P3+P2+ 14항목, Tier 2 Pipeline 고도화 5건 | [아카이브](../99_archive/archive/ROADMAP_PHASE_11.md) |
 
 ---
 
@@ -86,7 +67,8 @@ graph LR
     P7Y --> P7Z["Phase 7-Z<br/>Home &<br/>Publish UX"]
     P7Z --> P9["Phase 9<br/>Agentic<br/>Pipeline"]
     P9 --> P10["Phase 10<br/>True Agentic<br/>Architecture"]
-    P10 --> P8["Phase 8<br/>Multi-Style<br/>(Future)"]
+    P10 --> P11["Phase 11<br/>Scene Diversity<br/>& Frontal Bias"]
+    P11 --> P8["Phase 8<br/>Multi-Style<br/>(Future)"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -101,61 +83,9 @@ graph LR
     style P7Z fill:#4CAF50,color:#fff
     style P9 fill:#4CAF50,color:#fff
     style P10 fill:#4CAF50,color:#fff
+    style P11 fill:#4CAF50,color:#fff
     style P8 fill:#FF9800,color:#fff
 ```
-
----
-
-## Phase 11: Scene Diversity & Frontal Bias Fix
-
-**목표**: 이미지 생성 시 정면(looking_at_viewer) 편향 해소 + 포즈/앵글/시선 다양성 보장.
-
-**배경**: Cinematographer 템플릿/도구에 정면 편향 유발 요소 10개 발견. 장면 다양성 보장 메커니즘 부재. Danbooru 데이터 기반 `looking_at_viewer` 430만 건 vs 2위 33만 건 (13배 차이)으로 SD 모델 자체도 정면 prior 강함.
-
-### P0 — 템플릿/태그 즉시 수정
-
-| 순위 | 작업 | 상태 | 효과 |
-|------|------|------|------|
-| 1 | `cinematographer.j2` gaze/pose 다양성 규칙 + 시너지 표 추가 | [x] 02-20 | 높음 |
-| 2 | `create_storyboard.j2` Narrative Function별 gaze 가이드 추가 | [x] 02-20 | 높음 |
-| 3 | `patterns.py` 버그 수정 (`averted_gaze`→`averting_eyes`, 누락 태그 추가) | [x] 02-20 | 중간 |
-
-### P1 — 도구/평가 기준 개선
-
-| 순위 | 작업 | 상태 | 효과 |
-|------|------|------|------|
-| 4 | `search_similar_compositions()` mood별 gaze 분기 (portrait=정면 하드코딩 제거) | [x] 02-20 | 중간 |
-| 5 | `scene_expand.j2` 예시 다양화 (looking_at_viewer → 다양한 gaze) | [x] 02-20 | 낮음 |
-| 6 | `director_step_qc.j2` 평가 기준에 Pose & Gaze Diversity 추가 | [x] 02-20 | 중간 |
-
-### P2 — QC 검증 강화
-
-| 순위 | 작업 | 상태 | 효과 |
-|------|------|------|------|
-| 7 | `validate_visuals()` QC에 gaze/pose 다양성 WARN 추가 | [x] 02-20 | 중간 |
-| 8 | 비정면 gaze 가중치 부스트 (L7 1.1x → 1.25x, IP-Adapter 보상) | [x] 02-20 | 중간 |
-
-### P2+ — 프롬프트 품질 후속 보강
-
-| 순위 | 작업 | 상태 | 효과 |
-|------|------|------|------|
-| 8-1 | Gaze 태그 34개 `default_layer` 통일 → LAYER_EXPRESSION(7) (Alembic 마이그레이션) | [x] 02-20 | 중간 |
-| 8-2 | Cinematographer에 `style` 변수 전달 + Anime/Chibi/Realistic 스타일별 태그 규칙 | [x] 02-20 | 높음 |
-| 8-3 | `_NON_FRONTAL_GAZE` 누락 태그 5개 추가 (averted_gaze, downcast_eyes, closed_eyes 등) | [x] 02-20 | 중간 |
-| 8-4 | Writer/Revise description 과적 → `pipeline_context` dict 분리 (템플릿 독립 섹션) | [x] 02-20 | 중간 |
-
-**검증 결과** (Storyboard #442 vs #441):
-- `realistic` 태그: 9/9 → **0/9** (완전 해소)
-- Gaze 종류: 2종 → **5종**, 반영률 45% → **100%**
-- Camera 종류: 0종 → **3종** (upper_body/cowboy_shot/close-up)
-- 정면 비율: 2/9 = 22% (≤30% 기준 충족)
-
-### P3 — 파이프라인 구조 (효과 관찰 후)
-
-| 순위 | 작업 | 상태 | 효과 |
-|------|------|------|------|
-| 9 | Cinematographer 연속 씬 gaze 비중복 규칙 | [x] 02-20 | 높음 |
-| 10 | Director → Cinematographer 피드백에 QC 다양성 결과 자동 주입 | [x] 02-20 | 높음 |
 
 ---
 
@@ -204,17 +134,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 ## 잔여 작업 우선순위
 
-**Tier 0~1 — 전체 완료** (2026-02-18). Phase 10 5대 Agentic 요건 충족 + 서사 품질 3건 완료. 상세: [Phase 9 아카이브](../99_archive/archive/ROADMAP_PHASE_9.md), [Phase 10 아카이브](../99_archive/archive/ROADMAP_PHASE_10.md)
-
-**Tier 2 — Pipeline 고도화** (전체 완료 02-19)
-
-| 순위 | 작업 | 상태 | 근거 |
-|------|------|------|------|
-| 1 | Revision history 누적 (review→revise 루프 히스토리 보존) | [x] 02-19 | 동일 실패 반복 방지, revision 성공률 향상 |
-| 2 | Checkpoint score → routing 연결 (점수 기반 분기) | [x] 02-19 | score 기반 decision override 안전망 |
-| 3 | Human gate snapshot (중간 결과물 정리) | [x] 02-19 | Creator 모드 UX 개선 |
-| 4 | Pydantic 모델 전환 (LLM 출력 검증) | [x] 02-19 | 검증 함수 중복 제거, 에러 메시지 품질 |
-| 5 | Research 되돌리기 분기 (저점수 → research 재실행) | [x] 02-19 | 점수 기반 조건부 엣지, MAX_RETRIES 가드레일 |
+**Tier 0~2 — 전체 완료** (2026-02-19). 상세: [Phase 9](../99_archive/archive/ROADMAP_PHASE_9.md), [Phase 10](../99_archive/archive/ROADMAP_PHASE_10.md), [Phase 11](../99_archive/archive/ROADMAP_PHASE_11.md) 아카이브 참조.
 
 **Tier 3 — 장기**
 

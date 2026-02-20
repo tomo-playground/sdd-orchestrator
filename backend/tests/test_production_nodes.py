@@ -269,13 +269,16 @@ async def test_director_node_error_fallback(mock_step):
 
 @pytest.mark.asyncio
 async def test_finalize_quick_passthrough():
-    """Quick 모드: draft → final 패스스루."""
+    """Quick 모드: draft → final 패스스루 + negative_prompt 주입."""
+    from config import DEFAULT_SCENE_NEGATIVE_PROMPT
     from services.agent.nodes.finalize import finalize_node
 
     scenes = [{"scene_id": 1, "script": "test"}]
     state = {"mode": "quick", "draft_scenes": scenes}
     result = await finalize_node(state)
-    assert result["final_scenes"] == scenes
+    assert len(result["final_scenes"]) == 1
+    assert result["final_scenes"][0]["scene_id"] == 1
+    assert result["final_scenes"][0]["negative_prompt"] == DEFAULT_SCENE_NEGATIVE_PROMPT
 
 
 @pytest.mark.asyncio

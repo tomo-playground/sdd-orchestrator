@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
-from config import logger
+from config import DEFAULT_SCENE_NEGATIVE_PROMPT, logger
 from services.agent.state import ScriptState
+
+
+def _inject_negative_prompts(scenes: list[dict]) -> None:
+    """빈 negative_prompt에 기본값을 주입한다."""
+    for scene in scenes:
+        if not scene.get("negative_prompt"):
+            scene["negative_prompt"] = DEFAULT_SCENE_NEGATIVE_PROMPT
 
 
 def _merge_production_results(state: ScriptState) -> list[dict]:
@@ -35,5 +42,9 @@ async def finalize_node(state: ScriptState) -> dict:
     """Quick: draft → final 패스스루. Full: Production 결과 병합."""
     mode = state.get("mode", "quick")
     if mode == "full" and state.get("cinematographer_result"):
-        return {"final_scenes": _merge_production_results(state)}
-    return {"final_scenes": state.get("draft_scenes")}
+        scenes = _merge_production_results(state)
+    else:
+        scenes = [dict(s) for s in (state.get("draft_scenes") or [])]
+
+    _inject_negative_prompts(scenes)
+    return {"final_scenes": scenes}

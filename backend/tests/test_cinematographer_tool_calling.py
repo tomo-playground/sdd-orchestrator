@@ -385,3 +385,63 @@ async def test_cinematographer_node_qc_failure_still_returns():
     assert "error" not in result
     assert result["cinematographer_result"] is not None
     assert result["cinematographer_result"]["scenes"] == [{"order": 1, "text": "테스트"}]
+
+
+# ── search_similar_compositions DB 연동 테스트 ────────────────
+
+
+@pytest.mark.asyncio
+async def test_search_similar_compositions_with_db_data():
+    """tag_effectiveness에 데이터가 있으면 DB 기반 결과를 반환한다."""
+    mock_db = MagicMock()
+
+    # DB에 effectiveness 높은 태그 데이터 존재
+    mock_row = Mock()
+    mock_row.tag = Mock()
+    mock_row.tag.name = "smile"
+    mock_row.effectiveness = 0.85
+    mock_row.use_count = 50
+    mock_row.match_count = 42
+
+    mock_result = Mock()
+    mock_result.scalars.return_value.all.return_value = [mock_row]
+    mock_db.execute.return_value = mock_result
+
+    state = {}
+    executors = create_cinematographer_executors(mock_db, state)
+    result = await executors["search_similar_compositions"](mood="cheerful", scene_type="portrait")
+
+    assert "smile" in result
+    assert "85" in result or "0.85" in result  # effectiveness 수치 포함
+
+
+@pytest.mark.asyncio
+async def test_search_similar_compositions_fallback():
+    """DB에 데이터가 없으면 기존 정적 데이터로 fallback한다."""
+    mock_db = MagicMock()
+
+    # DB 빈 결과
+    mock_result = Mock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_db.execute.return_value = mock_result
+
+    state = {}
+    executors = create_cinematographer_executors(mock_db, state)
+    result = await executors["search_similar_compositions"](mood="cheerful", scene_type="portrait")
+
+    # 기존 정적 데이터 포함
+    assert "smile" in result or "레퍼런스" in result
+
+
+@pytest.mark.asyncio
+async def test_search_similar_compositions_db_error():
+    """DB 에러 시 기존 정적 데이터로 fallback한다."""
+    mock_db = MagicMock()
+    mock_db.execute.side_effect = Exception("DB connection error")
+
+    state = {}
+    executors = create_cinematographer_executors(mock_db, state)
+    result = await executors["search_similar_compositions"](mood="dramatic", scene_type="action")
+
+    # fallback 정적 데이터
+    assert "레퍼런스" in result or "dynamic" in result
