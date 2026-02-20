@@ -3,18 +3,14 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, RefreshCw, Trash2, UserRound } from "lucide-react";
 import { resolveImageUrl } from "../../../utils/url";
 import { CONTAINER_CLASSES } from "../../../components/ui/variants";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Button from "../../../components/ui/Button";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
 import ImagePreviewModal from "../../../components/ui/ImagePreviewModal";
-import {
-  BasicInfoSection,
-  PromptsSection,
-  SectionCard,
-} from "./CharacterDetailSections";
+import { BasicInfoSection, PromptsSection, SectionCard } from "./CharacterDetailSections";
 import AppearanceStep from "../builder/steps/AppearanceStep";
 import LoraStep from "../builder/steps/LoraStep";
 import { useTagData } from "../shared/useTagData";
@@ -51,6 +47,8 @@ export default function CharacterDetailPage() {
     handleUpdateLoraWeight,
     handleSave,
     handleDelete,
+    handleRegenerate,
+    isRegenerating,
   } = useCharacterEdit(rawId);
 
   const isLoading = isCharLoading || isTagDataLoading;
@@ -126,6 +124,17 @@ export default function CharacterDetailPage() {
               </div>
             )}
           </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleRegenerate}
+            loading={isRegenerating}
+            disabled={isRegenerating}
+            className="w-full"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            {isRegenerating ? "Generating..." : "Regenerate Preview"}
+          </Button>
         </div>
 
         {/* Right: Detail sections */}

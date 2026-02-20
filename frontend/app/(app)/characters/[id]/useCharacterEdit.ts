@@ -15,7 +15,9 @@ import type { CharacterFormData } from "./CharacterDetailSections";
 
 // ── Conversion helpers ──────────────────────────────────────
 
-function tagsToWizard(tags: { tag_id: number; name?: string; group_name?: string; is_permanent: boolean }[]): WizardTag[] {
+function tagsToWizard(
+  tags: { tag_id: number; name?: string; group_name?: string; is_permanent: boolean }[]
+): WizardTag[] {
   return tags.map((t) => ({
     tagId: t.tag_id,
     name: t.name ?? `#${t.tag_id}`,
@@ -50,6 +52,7 @@ export function useCharacterEdit(rawId: number) {
   const [form, setForm] = useState<CharacterFormData | null>(null);
   const [isCharLoading, setIsCharLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // Tag/LoRA editing state
   const [selectedTags, setSelectedTags] = useState<WizardTag[]>([]);
@@ -86,7 +89,7 @@ export function useCharacterEdit(rawId: number) {
     <K extends keyof CharacterFormData>(key: K, value: CharacterFormData[K]) => {
       setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
     },
-    [],
+    []
   );
 
   // ── Tag handlers ──────────────────────────────────────────
@@ -115,7 +118,7 @@ export function useCharacterEdit(rawId: number) {
         setSelectedTags((prev) => applyFreeTagToggle(prev, wizTag));
       }
     },
-    [handleToggleTag],
+    [handleToggleTag]
   );
 
   // ── LoRA handlers ─────────────────────────────────────────
@@ -193,6 +196,27 @@ export function useCharacterEdit(rawId: number) {
     }
   }, [character, showToast, router]);
 
+  // ── Regenerate preview ─────────────────────────────────────
+  const handleRegenerate = useCallback(async () => {
+    if (!character) return;
+    setIsRegenerating(true);
+    try {
+      const res = await axios.post<{ ok: boolean; url?: string }>(
+        `${API_BASE}/characters/${character.id}/regenerate-reference`
+      );
+      if (res.data.ok && res.data.url) {
+        setCharacter((prev) =>
+          prev ? { ...prev, preview_image_url: res.data.url ?? null } : prev
+        );
+        showToast("Preview regenerated", "success");
+      }
+    } catch (err) {
+      showToast(getErrorMsg(err, "Failed to regenerate"), "error");
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [character, showToast]);
+
   // ── Dirty check ────────────────────────────────────────────
   const tagsChanged = useMemo(() => {
     if (selectedTags.length !== initialTags.length) return true;
@@ -237,5 +261,7 @@ export function useCharacterEdit(rawId: number) {
     handleUpdateLoraWeight,
     handleSave,
     handleDelete,
+    handleRegenerate,
+    isRegenerating,
   };
 }
