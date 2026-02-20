@@ -174,6 +174,23 @@ def _strip_non_speech(text: str) -> str:
     return text.strip()
 
 
+def has_speakable_content(raw_script: str) -> bool:
+    """Check if a script contains content that can be spoken by TTS.
+
+    Applies _strip_non_speech first, then checks for word characters.
+    Use this to gate TTS generation — scenes without speakable content
+    (e.g. '...', pure stage directions) should skip TTS entirely.
+
+    Returns:
+        True if the script has at least one word character (letter/digit).
+    """
+    if not raw_script or not raw_script.strip():
+        return False
+    text = _strip_non_speech(raw_script)
+    # \w matches Unicode word characters (Korean, Japanese, Chinese, Latin, digits)
+    return bool(re.search(r"\w", text))
+
+
 def clean_script_for_tts(raw_script: str) -> str:
     """Clean script text for TTS generation.
 

@@ -18,6 +18,7 @@ Your goal is to analyze the script and context of each scene and design the emot
 3. Suggest `pacing` adjustments (Head/Tail padding in seconds) for each scene to ensure natural breathing room between lines.
 
 ## Guidelines
+- **Non-speech scenes**: If a scene's script contains only punctuation (e.g., "...", "?!"), stage directions, or no actual words, set `"skip": true` for that scene. Do NOT generate a voice design for non-verbal content.
 - **Narrator**: Should reflect the overall mood and atmosphere of the scene. For storytelling content, the narrator should express emotions (e.g., excitement, sadness, urgency) that match the narrative arc, rather than staying neutral.
 - **Characters**: Should have highly expressive and context-dependent tones.
 - **Pacing**: Use `head_padding` (typically 0.1s - 0.5s) for scene intro and `tail_padding` (typically 0.5s - 1.2s) for resonance after a line. Increase padding for emotional or dramatic moments.
@@ -33,6 +34,10 @@ Your goal is to analyze the script and context of each scene and design the emot
         "head_padding": 0.2,
         "tail_padding": 0.5
       }
+    },
+    {
+      "scene_id": 2,
+      "skip": true
     }
   ]{% if feedback %},
   "response_message": "Director 피드백에 대한 응답을 여기에 작성하세요. 수정한 TTS 디자인, 이유, 대안을 포함하세요."{% endif %}

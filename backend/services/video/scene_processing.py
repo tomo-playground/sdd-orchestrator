@@ -38,7 +38,7 @@ from services.video.tts_helpers import (
     tts_cache_key,
 )
 from services.video.tts_postprocess import trim_tts_audio, validate_tts_duration, validate_tts_quality
-from services.video.utils import clean_script_for_tts
+from services.video.utils import clean_script_for_tts, has_speakable_content
 
 if TYPE_CHECKING:
     from services.video.builder import VideoBuilder
@@ -86,13 +86,17 @@ async def process_scenes(builder: VideoBuilder) -> None:
         else:
             img_path.write_bytes(image_bytes)
 
-        # Generate TTS (use cleaned script for better pronunciation)
-        has_valid_tts, tts_duration = await generate_tts(
-            builder,
-            i,
-            clean_script,
-            tts_path,
-        )
+        # Gate TTS: only generate for scenes with speakable content
+        if has_speakable_content(raw_script):
+            has_valid_tts, tts_duration = await generate_tts(
+                builder,
+                i,
+                clean_script,
+                tts_path,
+            )
+        else:
+            logger.info(f"Scene {i}: no speakable content ('{raw_script[:30]}'), skipping TTS")
+            has_valid_tts, tts_duration = False, 0.0
 
         # Add to input args
         builder.input_args.extend(["-loop", "1", "-i", str(img_path)])

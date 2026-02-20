@@ -10,6 +10,7 @@ from services.video.utils import (
     calculate_speed_params,
     clean_script_for_tts,
     generate_video_filename,
+    has_speakable_content,
     resolve_bgm_file,
     sanitize_filename,
 )
@@ -21,6 +22,7 @@ __all__ = [
     "calculate_speed_params",
     "calculate_scene_durations",
     "clean_script_for_tts",
+    "has_speakable_content",
     "VideoBuilder",
     "create_video_task",
 ]

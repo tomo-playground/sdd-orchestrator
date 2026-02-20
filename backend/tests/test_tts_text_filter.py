@@ -3,7 +3,7 @@
 _strip_non_speech()와 clean_script_for_tts()의 지문/메타 제거를 검증한다.
 """
 
-from services.video.utils import _strip_non_speech, clean_script_for_tts
+from services.video.utils import _strip_non_speech, clean_script_for_tts, has_speakable_content
 
 
 class TestStripNonSpeech:
@@ -76,3 +76,49 @@ class TestCleanScriptForTtsWithFilter:
     def test_all_non_speech_returns_empty(self):
         result = clean_script_for_tts("(한숨) [BGM 시작] #태그")
         assert result == ""
+
+    def test_ellipsis_with_text_preserved(self):
+        """텍스트가 포함된 말줄임은 유지."""
+        result = clean_script_for_tts("그래서...")
+        assert "그래서" in result
+
+
+class TestHasSpeakableContent:
+    """has_speakable_content: TTS 생성 전 선별 함수."""
+
+    def test_ellipsis_not_speakable(self):
+        assert has_speakable_content("...") is False
+
+    def test_dots_not_speakable(self):
+        assert has_speakable_content("....") is False
+
+    def test_single_dot_not_speakable(self):
+        assert has_speakable_content(".") is False
+
+    def test_punctuation_only_not_speakable(self):
+        assert has_speakable_content("?!...") is False
+
+    def test_empty_not_speakable(self):
+        assert has_speakable_content("") is False
+
+    def test_whitespace_not_speakable(self):
+        assert has_speakable_content("   ") is False
+
+    def test_stage_direction_only_not_speakable(self):
+        """지문만 있으면 음성화 불가."""
+        assert has_speakable_content("(한숨) [BGM 시작]") is False
+
+    def test_korean_text_speakable(self):
+        assert has_speakable_content("안녕하세요") is True
+
+    def test_english_text_speakable(self):
+        assert has_speakable_content("Hello world") is True
+
+    def test_text_with_ellipsis_speakable(self):
+        assert has_speakable_content("그래서...") is True
+
+    def test_interjection_speakable(self):
+        assert has_speakable_content("아... 그랬구나") is True
+
+    def test_number_speakable(self):
+        assert has_speakable_content("3만원") is True

@@ -60,6 +60,7 @@ from .video import (
     calculate_speed_params,
     clean_script_for_tts,
     generate_video_filename,
+    has_speakable_content,
     sanitize_filename,
 )
 
