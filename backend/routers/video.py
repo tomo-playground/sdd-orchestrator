@@ -37,7 +37,7 @@ from schemas import (  # noqa: F401
 from services.utils import scrub_payload
 from services.video import create_video_task
 from services.video.builder import VideoBuilder
-from services.video.progress import RenderStage, create_task, get_task
+from services.video.progress import RenderStage, create_task, estimate_remaining, get_task
 
 router = APIRouter(prefix="/video", tags=["video"])
 
@@ -304,21 +304,31 @@ async def list_render_history(
     limit: int = Query(12, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
-    """List render history for the gallery (newest first)."""
+    """List render history for the gallery (newest first, latest per title+label)."""
+    from sqlalchemy import func
+
     from models.group import Group
     from models.project import Project
     from models.storyboard import Storyboard
 
+    # Subquery: 제목+라벨 조합별 최신 id만 선택 (같은 제목의 다른 스토리보드도 중복 제거)
+    latest_sub = (
+        db.query(func.max(RenderHistory.id).label("max_id"))
+        .join(RenderHistory.storyboard)
+        .filter(Storyboard.deleted_at.is_(None))
+    )
+    if project_id is not None:
+        latest_sub = latest_sub.join(Storyboard.group).join(Group.project).filter(Project.id == project_id)
+    latest_sub = latest_sub.group_by(Storyboard.title, RenderHistory.label).subquery()
+
     query = (
         db.query(RenderHistory)
+        .join(latest_sub, RenderHistory.id == latest_sub.c.max_id)
         .join(RenderHistory.storyboard)
         .join(Storyboard.group)
         .join(Group.project)
         .join(RenderHistory.media_asset)
-        .filter(Storyboard.deleted_at.is_(None))
     )
-    if project_id is not None:
-        query = query.filter(Project.id == project_id)
 
     total = query.count()
     rows = query.order_by(RenderHistory.created_at.desc(), RenderHistory.id.desc()).offset(offset).limit(limit).all()

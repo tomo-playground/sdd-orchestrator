@@ -1566,10 +1566,19 @@ class ScriptGenerateSceneItem(BaseModel):
     context_tags: dict | None = None
 
 
+class SoundRecommendation(BaseModel):
+    """Sound Designer 추천 결과."""
+
+    prompt: str | None = None
+    mood: str | None = None
+    duration: float | None = None
+
+
 class ScriptGenerateResponse(BaseModel):
     scenes: list[ScriptGenerateSceneItem]
     character_id: int | None = None
     character_b_id: int | None = None
+    sound_recommendation: SoundRecommendation | None = None
 
 
 class ScriptProgressEvent(BaseModel):

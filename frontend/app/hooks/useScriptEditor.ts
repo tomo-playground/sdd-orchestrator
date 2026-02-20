@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import axios from "axios";
 import { API_BASE } from "../constants";
 import { useContextStore } from "../store/useContextStore";
+import { useRenderStore } from "../store/useRenderStore";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useUIStore } from "../store/useUIStore";
 import type {
@@ -245,6 +246,14 @@ async function processSSEStream(
 
     if (event.status === "completed" && event.result?.scenes) {
       finalScenes = mapEventScenes(event.result.scenes);
+      // Sound Designer → RenderStore auto-populate
+      if (event.result.sound_recommendation) {
+        useRenderStore.getState().set({
+          bgmPrompt: event.result.sound_recommendation.prompt || "",
+          bgmMood: event.result.sound_recommendation.mood || "",
+          bgmMode: "auto",
+        });
+      }
     }
     if (event.status === "waiting_for_input") {
       isWaiting = true;

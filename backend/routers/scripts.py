@@ -106,6 +106,7 @@ def _state_to_response(result: dict) -> dict:
         "scenes": result.get("final_scenes") or [],
         "character_id": result.get("draft_character_id"),
         "character_b_id": result.get("draft_character_b_id"),
+        "sound_recommendation": result.get("sound_recommendation"),
     }
     if result.get("explanation_result"):
         resp["explanation"] = result["explanation_result"]
@@ -187,6 +188,7 @@ def _build_node_payload(
                 "scenes": final_scenes,
                 "character_id": char_ids[0],
                 "character_b_id": char_ids[1],
+                "sound_recommendation": node_output.get("sound_recommendation"),
             }
 
     # AI Transparency: 특정 노드의 reasoning 데이터를 node_result로 전달
