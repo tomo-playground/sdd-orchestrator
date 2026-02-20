@@ -98,10 +98,9 @@ async def test_review_node_full_mode_narrative_pass():
         "topic": "테스트",
         "mode": "full",
     }
-    with patch(
-        "services.agent.nodes.review._narrative_evaluate",
-        new_callable=AsyncMock,
-        return_value=high_score,
+    with (
+        patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None),
+        patch("services.agent.nodes.review._narrative_evaluate", new_callable=AsyncMock, return_value=high_score),
     ):
         result = await review_node(state)
     review = result["review_result"]
@@ -135,10 +134,9 @@ async def test_review_node_full_mode_narrative_fail():
         "topic": "테스트",
         "mode": "full",
     }
-    with patch(
-        "services.agent.nodes.review._narrative_evaluate",
-        new_callable=AsyncMock,
-        return_value=low_score,
+    with (
+        patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None),
+        patch("services.agent.nodes.review._narrative_evaluate", new_callable=AsyncMock, return_value=low_score),
     ):
         result = await review_node(state)
     review = result["review_result"]
@@ -164,10 +162,9 @@ async def test_review_node_rule_fail_skips_narrative():
         "mode": "full",
     }
 
-    with patch(
-        "services.agent.nodes.review._gemini_evaluate",
-        new_callable=AsyncMock,
-        return_value=None,
+    with (
+        patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None),
+        patch("services.agent.nodes.review._gemini_evaluate", new_callable=AsyncMock, return_value=None),
     ):
         result = await review_node(state)
 
@@ -191,10 +188,9 @@ async def test_narrative_evaluate_gemini_error_fallback():
         "topic": "테스트",
         "mode": "full",
     }
-    with patch(
-        "services.agent.nodes.review._narrative_evaluate",
-        new_callable=AsyncMock,
-        return_value=None,
+    with (
+        patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None),
+        patch("services.agent.nodes.review._narrative_evaluate", new_callable=AsyncMock, return_value=None),
     ):
         result = await review_node(state)
     review = result["review_result"]

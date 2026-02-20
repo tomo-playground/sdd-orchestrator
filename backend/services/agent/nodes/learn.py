@@ -6,6 +6,7 @@ Phase 12-D: model_info, debate_groupthink_count, revision_accuracy 메트릭 추
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import UTC, datetime
 
@@ -164,10 +165,12 @@ async def learn_node(state: ScriptState, config: RunnableConfig, *, store: BaseS
         return {"learn_result": {"stored": False, "reason": "no_scenes"}}
 
     try:
-        await _update_topic(store, state, scenes)
-        await _update_character(store, state.get("character_id"))
-        await _update_character(store, state.get("character_b_id"))
-        await _update_user_stats(store)
+        await asyncio.gather(
+            _update_topic(store, state, scenes),
+            _update_character(store, state.get("character_id")),
+            _update_character(store, state.get("character_b_id")),
+            _update_user_stats(store),
+        )
 
         logger.info("[Learn] 학습 데이터 저장 완료: %d scenes", len(scenes))
         return {"learn_result": {"stored": True, "scene_count": len(scenes)}}

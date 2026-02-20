@@ -181,6 +181,15 @@ export function useStudioInitialization() {
           setLoadedProfileId(null);
           setNeedsStyleProfile(true);
         }
+        // Load group render defaults in parallel (independent of character/style)
+        if (groupId) {
+          parallelLoads.push(
+            loadGroupDefaults(groupId, {
+              skipContentDefaults: true,
+              skipStyleProfile: !!data.style_profile_id,
+            })
+          );
+        }
         if (parallelLoads.length > 0) {
           void Promise.allSettled(parallelLoads);
         }
@@ -192,16 +201,6 @@ export function useStudioInitialization() {
 
         // Initialize video metadata (caption/likes) once topic is set
         initializeVideoMetadata(data.title || "");
-
-        // Load group render defaults (bgmFile, speedMultiplier, voicePresetId, etc.)
-        // Skip content defaults (structure/language/duration) since storyboard already has them
-        // Skip style profile if storyboard already has one (prevents duplicate toast)
-        if (groupId) {
-          loadGroupDefaults(groupId, {
-            skipContentDefaults: true,
-            skipStyleProfile: !!data.style_profile_id,
-          });
-        }
       })
       .catch(async (err) => {
         if (err?.response?.status === 404) {

@@ -1,8 +1,8 @@
 """Review 노드 — 규칙 기반 검증 + 서사 품질 평가 + Gemini 혼합 평가.
 
 Draft 씬의 구조적 유효성을 규칙으로 검증하고,
-규칙 실패 시에만 Gemini 평가를 추가 호출한다 (DD-4: 비용 절감).
-Full 모드에서 규칙 통과 시 서사 품질(NarrativeScore)을 추가 평가한다.
+Full 모드에서 통합 Gemini 호출(기술 + 서사 + 리플렉션)을 1회 수행한다.
+통합 호출 실패 시 레거시 개별 호출로 폴백한다.
 """
 
 from __future__ import annotations
@@ -17,7 +17,11 @@ from config import (
     template_env,
 )
 from config_pipelines import LANGGRAPH_NARRATIVE_THRESHOLD, REVIEW_MODEL
-from services.agent.llm_models import NarrativeScoreOutput
+from services.agent.llm_models import (
+    NarrativeScoreOutput,
+    ReflectionOutput,
+    UnifiedReviewOutput,
+)
 from services.agent.observability import trace_llm_call
 from services.agent.state import NarrativeScore, ReviewResult, ScriptState
 from services.storyboard.helpers import calculate_min_scenes
@@ -178,13 +182,7 @@ def _parse_narrative_score(raw: str) -> NarrativeScore | None:
     except (ValueError, TypeError):
         return None
 
-    scores = {k: getattr(parsed, k) for k in _NARRATIVE_WEIGHTS}
-    overall = round(sum(scores.get(k, 0.0) * w for k, w in _NARRATIVE_WEIGHTS.items()), 3)
-
-    score = NarrativeScore(**scores, overall=overall)
-    if parsed.feedback:
-        score["feedback"] = parsed.feedback
-    return score
+    return _build_narrative_score(parsed)
 
 
 async def _narrative_evaluate(
@@ -284,16 +282,114 @@ async def _self_reflect(
         return None
 
 
+def _build_narrative_score(parsed: NarrativeScoreOutput) -> NarrativeScore:
+    """NarrativeScoreOutput → NarrativeScore TypedDict (overall 재계산)."""
+    scores = {k: getattr(parsed, k) for k in _NARRATIVE_WEIGHTS}
+    overall = round(sum(scores.get(k, 0.0) * w for k, w in _NARRATIVE_WEIGHTS.items()), 3)
+    score = NarrativeScore(**scores, overall=overall)
+    if parsed.feedback:
+        score["feedback"] = parsed.feedback
+    return score
+
+
+def _format_reflection(ref: ReflectionOutput) -> str:
+    """ReflectionOutput → 구조화된 텍스트."""
+    return f"""[근본 원인]
+{ref.root_cause}
+
+[영향 평가]
+{ref.impact}
+
+[수정 전략]
+{ref.strategy}
+
+[기대 결과]
+{ref.expected_outcome}"""
+
+
+async def _unified_evaluate(
+    scenes: list[dict],
+    topic: str,
+    language: str,
+    structure: str,
+    rule_errors: list[str],
+    rule_warnings: list[str],
+) -> UnifiedReviewOutput | None:
+    """단일 Gemini 호출로 기술 + 서사 + 리플렉션을 통합 평가한다.
+
+    실패 시 None 반환 (레거시 개별 호출로 폴백).
+    """
+    from config import gemini_client
+
+    if not gemini_client:
+        logger.warning("[LangGraph] Unified Review: Gemini 클라이언트 없음, 건너뜀")
+        return None
+
+    try:
+        tmpl = template_env.get_template("creative/review_unified.j2")
+        prompt = tmpl.render(
+            scenes=json.dumps(scenes, ensure_ascii=False),
+            topic=topic,
+            language=language,
+            structure=structure,
+            threshold=LANGGRAPH_AUTO_REVIEW_THRESHOLD,
+            narrative_threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
+            rule_errors=rule_errors,
+            rule_warnings=rule_warnings,
+        )
+        async with trace_llm_call(name="review_unified_evaluate", input_text=prompt[:2000], model=REVIEW_MODEL) as llm:
+            response = await gemini_client.aio.models.generate_content(
+                model=REVIEW_MODEL,
+                contents=prompt,
+            )
+            llm.record(response)
+
+        text = (response.text or "").strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[-1].rsplit("```", 1)[0]
+
+        data = json.loads(text)
+        unified = UnifiedReviewOutput.model_validate(data)
+        logger.info("[LangGraph] Unified Review 파싱 성공")
+        return unified
+    except Exception as e:
+        logger.warning("[LangGraph] Unified Review 실패, 레거시 폴백: %s", e)
+        return None
+
+
+async def _legacy_evaluate(
+    result: ReviewResult,
+    scenes: list[dict],
+    topic: str,
+    language: str,
+    structure: str,
+) -> tuple[str | None, NarrativeScore | None, str | None]:
+    """레거시 개별 Gemini 호출 (폴백용)."""
+    gemini_feedback = None
+    narrative_score: NarrativeScore | None = None
+    reflection: str | None = None
+
+    if not result.get("passed"):
+        gemini_feedback = await _gemini_evaluate(scenes, topic, language)
+        if gemini_feedback:
+            result["gemini_feedback"] = gemini_feedback
+        reflection = await _self_reflect(result, topic, language, structure)
+    else:
+        narrative_score = await _narrative_evaluate(scenes, topic, language)
+        if narrative_score:
+            result["narrative_score"] = narrative_score
+            if narrative_score.get("overall", 1.0) < LANGGRAPH_NARRATIVE_THRESHOLD:
+                result["passed"] = False
+                reflection = await _self_reflect(result, topic, language, structure)
+
+    return gemini_feedback, narrative_score, reflection
+
+
 async def review_node(state: ScriptState) -> dict:
     """Draft 씬을 검증하고 review_result를 state에 기록한다.
 
-    3-tier 검증 (Full 모드):
-      1. 규칙 기반 검증
-      2. 규칙 실패 → Gemini 피드백
-      3. 규칙 통과 → 서사 품질 평가 (NarrativeScore)
-
-    Phase 10-A:
-      4. 실패 시 → Self-Reflection (근본 원인 분석 + 수정 전략)
+    Phase 13-A: 통합 Gemini 호출 (기술 + 서사 + 리플렉션) 1회.
+    통합 호출 실패 시 레거시 개별 호출로 폴백.
     """
     scenes = state.get("draft_scenes") or []
     duration = state.get("duration", 10)
@@ -309,21 +405,39 @@ async def review_node(state: ScriptState) -> dict:
     reflection: str | None = None
 
     if is_full:
-        if not result.get("passed"):
-            # 규칙 실패: Gemini 평가 + Self-Reflection (서사 평가는 건너뜀)
-            gemini_feedback = await _gemini_evaluate(scenes, topic, language)
-            if gemini_feedback:
-                result["gemini_feedback"] = gemini_feedback
-            reflection = await _self_reflect(result, topic, language, structure)
+        unified = await _unified_evaluate(
+            scenes,
+            topic,
+            language,
+            structure,
+            result.get("errors", []),
+            result.get("warnings", []),
+        )
+
+        if unified:
+            # 통합 응답 처리
+            if not unified.technical.passed:
+                result["passed"] = False
+                gemini_feedback = unified.technical.feedback
+                if gemini_feedback:
+                    result["gemini_feedback"] = gemini_feedback
+
+            narrative_score = _build_narrative_score(unified.narrative)
+            result["narrative_score"] = narrative_score
+            if narrative_score.get("overall", 1.0) < LANGGRAPH_NARRATIVE_THRESHOLD:
+                result["passed"] = False
+
+            if unified.reflection:
+                reflection = _format_reflection(unified.reflection)
         else:
-            # 규칙 통과: 서사 품질 평가만
-            narrative_score = await _narrative_evaluate(scenes, topic, language)
-            if narrative_score:
-                result["narrative_score"] = narrative_score
-                if narrative_score.get("overall", 1.0) < LANGGRAPH_NARRATIVE_THRESHOLD:
-                    result["passed"] = False
-                    # 서사 품질 미달 → Self-Reflection
-                    reflection = await _self_reflect(result, topic, language, structure)
+            # 폴백: 레거시 개별 호출
+            gemini_feedback, narrative_score, reflection = await _legacy_evaluate(
+                result,
+                scenes,
+                topic,
+                language,
+                structure,
+            )
 
     # user_summary 갱신 (narrative_score 실패 등 후속 판정 반영)
     result["user_summary"] = _generate_user_summary(

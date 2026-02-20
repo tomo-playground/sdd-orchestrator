@@ -112,6 +112,35 @@ class NarrativeScoreOutput(BaseModel):
         return out
 
 
+# -- Unified Review (Phase 13-A) --
+
+
+class TechnicalEvaluation(BaseModel):
+    """규칙 기반 검증 결과 + Gemini 기술 평가."""
+
+    overall_score: float = 0.0
+    passed: bool = True
+    feedback: str = ""
+    scene_issues: list[dict] = []
+
+
+class ReflectionOutput(BaseModel):
+    """Self-Reflection 결과 (근본 원인 분석 + 수정 전략)."""
+
+    root_cause: str = ""
+    impact: str = ""
+    strategy: str = ""
+    expected_outcome: str = ""
+
+
+class UnifiedReviewOutput(BaseModel):
+    """통합 Review 응답: 기술 + 서사 + 리플렉션을 단일 호출로."""
+
+    technical: TechnicalEvaluation
+    narrative: NarrativeScoreOutput
+    reflection: ReflectionOutput | None = None
+
+
 # -- Writer Plan --
 
 

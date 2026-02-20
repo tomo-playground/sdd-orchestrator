@@ -15,10 +15,11 @@
 | Phase 12 (Agent Enhancement & AI BGM) | 전체 완료 (ARCHIVED) |
 | Phase 13 (Creative Control & Production Speed) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | 미착수 (Future) |
-| 테스트 | Backend 2,169 + Frontend 352 = **총 2,521개** |
+| 테스트 | Backend 2,178 + Frontend 352 = **총 2,530개** |
 
 ### 최근 작업
 
+- **Phase 13-A Performance Quick Wins** (02-20): Review Gemini 3회→1회 통합 호출(~70% 단축), Learn Store 4개 병렬화, Studio loadGroupDefaults 병렬화, Narrative weight 불일치 버그 수정. 6개 테스트 추가
 - **TTS 비음성 씬 선별 (Speakable Flag)** (02-20): Writer→TTS 파이프라인에 `speakable` 플래그 도입. `has_speakable_content()` 게이트 + TTS Designer skip 가이드. 13개 테스트 추가
 - **Phase 13 Creative Control & Production Speed 완료** (02-20): 19건 완료. 성능 최적화, 이미지 UX, Structure 템플릿, Clothing Override. [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md)
 - **Phase 12 Agent Enhancement & AI BGM 완료** (02-20): 26건 완료. Agent Bug Fix 5건, Data Flow 10건, 3-Mode BGM 6건, Gemini Model Upgrade 5건. [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md)
@@ -54,7 +55,7 @@
 | 10 | True Agentic Architecture | ReAct Loop, Director-as-Orchestrator, Gemini Function Calling 9 tools, Agent Communication, 3-Architect Debate | [아카이브](../99_archive/archive/ROADMAP_PHASE_10.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
 | 11 | Scene Diversity & Frontal Bias Fix | 정면 편향 해소 10건, Gaze 5종 다양화, 정면 비율 22%, P0~P3+P2+ 14항목, Tier 2 Pipeline 고도화 5건 | [아카이브](../99_archive/archive/ROADMAP_PHASE_11.md) |
 | 12 | Agent Enhancement & AI BGM | Agent Bug Fix 5건, Data Flow 10건, 3-Mode BGM, Gemini Model Upgrade | [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md) |
-| 13 | Creative Control & Production Speed | 성능 최적화 5건, 이미지 UX 5건, Structure 템플릿 6건, Clothing Override 3건 | [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md) |
+| 13 | Creative Control & Production Speed | 성능 최적화 5건+13-A 4건, 이미지 UX 5건, Structure 템플릿 6건, Clothing Override 3건 | [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md) |
 
 ---
 
@@ -149,7 +150,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 **Phase 12~13 — 전체 완료**
 
-Phase 12 (Agent Enhancement 26건) + Phase 13 (Creative Control 19건) = 총 45건 완료.
+Phase 12 (Agent Enhancement 26건) + Phase 13 (Creative Control 19건 + 13-A Quick Wins 4건) = 총 49건 완료.
 
 **Tier 3 — 장기**
 

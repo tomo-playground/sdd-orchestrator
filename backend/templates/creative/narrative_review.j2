@@ -7,7 +7,7 @@ Scenes:
 
 Rate each dimension on a 0.0-1.0 scale:
 
-1. **Hook** (Weight: 40%)
+1. **Hook** (Weight: 35%)
    - Does Scene 1 immediately grab attention?
    - Patterns: provocative question, shocking statement, emotional confession, mystery setup
    - 1.0 = Irresistible hook, 0.0 = Boring or generic opening
@@ -17,7 +17,7 @@ Rate each dimension on a 0.0-1.0 scale:
    - Rising tension → Climax → Resolution
    - 1.0 = Strong arc with clear peaks, 0.0 = Flat, monotone emotion
 
-3. **Twist/Payoff** (Weight: 20%)
+3. **Twist/Payoff** (Weight: 15%)
    - Is there an unexpected turn or satisfying payoff?
    - 1.0 = Surprising yet logical twist, 0.0 = Completely predictable
 
@@ -26,7 +26,7 @@ Rate each dimension on a 0.0-1.0 scale:
    - Does tone match the emotional content of each scene?
    - 1.0 = Natural, consistent voice, 0.0 = Robotic or inconsistent
 
-5. **Script-Image Sync** (Weight: 5%)
+5. **Script-Image Sync** (Weight: 15%)
    - Do image_prompt tags align with script content and emotion?
    - 1.0 = Perfect match, 0.0 = Major disconnect
 
@@ -42,7 +42,7 @@ Respond in JSON ONLY:
 }
 
 IMPORTANT:
-- "overall" = hook*0.4 + emotional_arc*0.25 + twist_payoff*0.2 + speaker_tone*0.1 + script_image_sync*0.05
+- "overall" = hook*0.35 + emotional_arc*0.25 + twist_payoff*0.15 + speaker_tone*0.1 + script_image_sync*0.15
 - "feedback" must be in Korean and include actionable suggestions
 - If overall >= {{ threshold }}, feedback should note strengths
 - If overall < {{ threshold }}, feedback MUST specify which scenes to improve and how
