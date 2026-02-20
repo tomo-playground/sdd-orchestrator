@@ -54,31 +54,8 @@ export default function ScriptTab() {
 
   return (
     <div className="mx-auto w-full max-w-5xl">
-      {/* Mode tabs + status badges */}
-      <div className="mb-6 flex items-center justify-center gap-3">
-        <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
-          <button
-            className={`${TAB_BASE} ${isFull ? TAB_INACTIVE : TAB_ACTIVE}`}
-            onClick={() => toggleMode("quick")}
-          >
-            Quick
-          </button>
-          <button
-            className={`${TAB_BASE} ${isFull ? TAB_ACTIVE : TAB_INACTIVE}`}
-            onClick={() => toggleMode("full")}
-          >
-            Full
-          </button>
-        </div>
-        {editor.scenes.length > 0 && (
-          <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-500">
-            {editor.scenes.length} scenes
-          </span>
-        )}
-      </div>
-
       {/* Editor — both modes use ManualScriptEditor */}
-      <ManualScriptEditor editor={editor} />
+      <ManualScriptEditor editor={editor} onToggleMode={toggleMode} />
 
       {editor.scenes.length === 0 && !editor.isGenerating && !editor.isWaitingForInput && (
         <div className="mt-12">

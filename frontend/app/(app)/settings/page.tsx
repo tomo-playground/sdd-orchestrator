@@ -95,14 +95,12 @@ function SettingsContent() {
           <AppMobileTabBar tabs={MOBILE_TABS} activeTab={activeTab} onTabChange={handleTabChange} />
 
           {/* Content */}
-          <div className="px-8 py-6">
-            <div className="min-w-0">
-              {activeTab === "general" && <GeneralSettingsTab />}
-              {activeTab === "presets" && <RenderPresetsTab />}
-              {activeTab === "youtube" && <YouTubeConnectTab projectId={projectId} />}
-              {activeTab === "trash" && <TrashTab />}
-              {activeTab === "memory" && <MemoryTab />}
-            </div>
+          <div className="min-w-0 px-8 py-6">
+            {activeTab === "general" && <GeneralSettingsTab />}
+            {activeTab === "presets" && <RenderPresetsTab />}
+            {activeTab === "youtube" && <YouTubeConnectTab projectId={projectId} />}
+            {activeTab === "trash" && <TrashTab />}
+            {activeTab === "memory" && <MemoryTab />}
           </div>
         </>
       }

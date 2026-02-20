@@ -42,7 +42,7 @@ export default function StudioKanbanView() {
   }
 
   return (
-    <div className="px-6 py-8">
+    <div className="px-8 py-8">
       <div className={PAGE_2COL_LAYOUT}>
         {/* Primary — Kanban */}
         <div className="min-w-0">

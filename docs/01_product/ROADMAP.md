@@ -12,11 +12,13 @@
 | Phase 9 (Agentic Pipeline) | 전체 완료 (ARCHIVED) |
 | Phase 10 (True Agentic) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | 미착수 (Future) |
-| **Phase 11 (Scene Diversity)** | **진행중** |
-| 테스트 | Backend 2,015 + Frontend 352 = **총 2,367개** |
+| Phase 11 (Scene Diversity) | **전체 완료** |
+| 테스트 | Backend 2,033 + Frontend 352 = **총 2,385개** |
 
 ### 최근 작업
 
+- **Gemini 코드 리뷰 + BLOCKER 수정** (02-20): `gemini_generator.py` preset.system_prompt AttributeError 수정(StoryboardPreset에 없는 필드 참조 → fallback_instruction 사용), scriptwriter.j2/script_qc.j2 한국어 표준어 규칙 추가, Frontend UI 패딩/레이아웃 일관성 개선(AppSidebar, Studio, ManualScriptEditor 모드탭 통합)
+- **Phase 11-P3 완료 + 렌더링/UI 수정** (02-20): 연속 씬 gaze 비중복 검출(`_check_consecutive_gaze`), QC→Director 피드백 자동 주입(`visual_qc_result` state 전파), `averted_gaze` CATEGORY_PATTERNS 누락 수정, TTS 마지막 씬 음성 소실 수정(amix `normalize=0` + `_total_dur` acrossfade 보정), Studio/Library/Characters 브레드크럼 스토리보드 이름 표시 수정(`isAssetPage` 조건 제거). 16개 테스트 추가
 - **프롬프트 품질 후속 수정** (02-20): _NON_FRONTAL_GAZE 누락 태그 5개 추가(averted_gaze, downcast_eyes, closed_eyes 등 1.1x→1.25x), Cinematographer에 style 변수 전달 + Anime 스타일 realistic/photorealistic 금지 규칙, gaze 태그 34개 default_layer 통일(→LAYER_EXPRESSION), pipeline_context 필드 분리(description 과적 해소)
 - **Pipeline Resume 오류 + SSE 에러 알림 수정** (02-20): writer.py description 2000자 초과 → pipeline_context dict 분리로 해소, Frontend SSE 에러 시 파이프라인 스텝 error 상태 전환 + resume() 무알림 분기에 warning 토스트 추가
 - **Scene Diversity & Frontal Bias Fix P0~P2** (02-20): 정면 편향 해소 8건. cinematographer.j2 gaze/pose 다양성 규칙+시너지 표, create_storyboard.j2 Narrative Function별 gaze 가이드, patterns.py 버그 수정(averted_gaze→averting_eyes, 3개 태그 추가), search_similar_compositions() mood×scene_type 매트릭스, scene_expand.j2 예시 다양화, director_step_qc.j2 Gaze&Pose Diversity 평가 기준 추가, validate_visuals() gaze/pose WARN 체크, 비정면 gaze 1.25x 가중치 부스트. 기존 133개 테스트 PASS
@@ -152,8 +154,8 @@ graph LR
 
 | 순위 | 작업 | 상태 | 효과 |
 |------|------|------|------|
-| 9 | Cinematographer 연속 씬 gaze 비중복 규칙 | [ ] | 높음 |
-| 10 | Director → Cinematographer 피드백에 QC 다양성 결과 자동 주입 | [ ] | 높음 |
+| 9 | Cinematographer 연속 씬 gaze 비중복 규칙 | [x] 02-20 | 높음 |
+| 10 | Director → Cinematographer 피드백에 QC 다양성 결과 자동 주입 | [x] 02-20 | 높음 |
 
 ---
 

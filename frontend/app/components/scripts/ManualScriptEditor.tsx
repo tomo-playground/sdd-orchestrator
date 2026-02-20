@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Sparkles, Play, PenLine } from "lucide-react";
+import { Loader2, Sparkles, Play, PenLine, ChevronRight, ChevronDown } from "lucide-react";
 import { usePresets } from "../../hooks/usePresets";
 import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
@@ -12,20 +12,24 @@ import PipelineStepper from "./PipelineStepper";
 import AgentReasoningPanel from "./AgentReasoningPanel";
 import ScriptFeedbackWidget from "./ScriptFeedbackWidget";
 import Button from "../ui/Button";
-import { SECTION_CLASSES, FORM_TEXTAREA_CLASSES } from "../ui/variants";
+import { SECTION_CLASSES, FORM_TEXTAREA_CLASSES, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 import { useUIStore } from "../../store/useUIStore";
 import { persistStoryboard } from "../../store/actions/storyboardActions";
 import type { ScriptEditorActions } from "../../hooks/useScriptEditor";
 
 type Props = {
   editor: ScriptEditorActions;
+  onToggleMode?: (mode: "quick" | "full") => void;
 };
 
-export default function ManualScriptEditor({ editor }: Props) {
+const TAB_BASE = "px-4 py-1.5 text-xs font-semibold rounded-lg transition";
+
+export default function ManualScriptEditor({ editor, onToggleMode }: Props) {
   const { presets, languages, durations } = usePresets();
   const { confirm, dialogProps } = useConfirm();
   const [isStarting, setIsStarting] = useState(false);
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
+  const [referencesOpen, setReferencesOpen] = useState(false);
 
   const handleStartProduction = async () => {
     setIsStarting(true);
@@ -45,6 +49,39 @@ export default function ManualScriptEditor({ editor }: Props) {
     <div className="space-y-6">
       {/* Story settings + Characters + Generate — single card */}
       <section className={SECTION_CLASSES}>
+        {/* Mode tabs header */}
+        <div className="mb-8 flex items-center justify-between border-b border-zinc-100 pb-5">
+          <div>
+            <h2 className="text-lg font-bold text-zinc-900">Script Options</h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              Configure your video length, topic, and generation style.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {editor.scenes.length > 0 && (
+              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">
+                {editor.scenes.length} scenes
+              </span>
+            )}
+            {onToggleMode && (
+              <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
+                <button
+                  className={`${TAB_BASE} ${editor.mode === "full" ? TAB_INACTIVE : TAB_ACTIVE}`}
+                  onClick={() => onToggleMode("quick")}
+                >
+                  Quick
+                </button>
+                <button
+                  className={`${TAB_BASE} ${editor.mode === "full" ? TAB_ACTIVE : TAB_INACTIVE}`}
+                  onClick={() => onToggleMode("full")}
+                >
+                  Full
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         <StoryboardGeneratorPanel
           embedded
           presets={presets}
@@ -63,7 +100,7 @@ export default function ManualScriptEditor({ editor }: Props) {
         />
 
         {/* Divider + Characters */}
-        <div className="mt-6 border-t border-zinc-200/60 pt-5">
+        <div className="mt-8 border-t border-zinc-200/60 pt-5">
           <CharacterSelectSection
             embedded
             structure={editor.structure}
@@ -80,50 +117,64 @@ export default function ManualScriptEditor({ editor }: Props) {
           />
         </div>
 
-        {/* Preset selector — Full mode only */}
+        {/* Preset & References — Full mode only */}
         {editor.mode === "full" && (
-          <div className="mt-4 border-t border-zinc-200/60 pt-4">
-            <label className="mb-1 block text-xs font-medium text-zinc-500">Preset</label>
-            <select
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800"
-              value={editor.preset ?? "full_auto"}
-              onChange={(e) => editor.setField("preset", e.target.value)}
-            >
-              <option value="full_auto">풀 오토 -- AI 자동 생성 후 승인</option>
-              <option value="creator">크리에이터 -- AI 초안 + 사용자 결정</option>
-            </select>
+          <div className="mt-8 border-t border-zinc-200/60 pt-5">
+            <h3 className="mb-4 text-sm font-semibold text-zinc-800">Advanced Settings</h3>
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-zinc-700">Preset</label>
+                <select
+                  className="w-full rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-zinc-400"
+                  value={editor.preset ?? "full_auto"}
+                  onChange={(e) => editor.setField("preset", e.target.value)}
+                >
+                  <option value="full_auto">풀 오토 -- AI 자동 생성 후 승인</option>
+                  <option value="creator">크리에이터 -- AI 초안 + 사용자 결정</option>
+                </select>
+              </div>
+
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setReferencesOpen(!referencesOpen)}
+                  className="group flex w-full items-center gap-1.5 text-left text-sm font-medium text-zinc-700 hover:text-zinc-900"
+                >
+                  {referencesOpen ? (
+                    <ChevronDown className="h-4 w-4 text-zinc-400 group-hover:text-zinc-600" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-zinc-400 group-hover:text-zinc-600" />
+                  )}
+                  References{" "}
+                  <span className="font-normal text-zinc-400 normal-case">(optional)</span>
+                </button>
+                {referencesOpen && (
+                  <div className="mt-3 space-y-2">
+                    <textarea
+                      value={editor.references}
+                      onChange={(e) => editor.setField("references", e.target.value)}
+                      rows={3}
+                      maxLength={2000}
+                      className={FORM_TEXTAREA_CLASSES}
+                      placeholder={
+                        "참고 URL 또는 소재 텍스트를 입력하세요\nhttps://example.com/article\n또는 직접 소재 텍스트를 입력..."
+                      }
+                    />
+                    <p className="text-[11px] text-zinc-400">
+                      줄바꿈으로 구분 (URL + 텍스트 혼합 가능, 최대 5개)
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* References — Full mode only */}
-        {editor.mode === "full" && (
-          <details className="mt-4 border-t border-zinc-200/60 pt-4">
-            <summary className="cursor-pointer text-xs font-medium text-zinc-500">
-              References <span className="text-zinc-400">(optional)</span>
-            </summary>
-            <div className="mt-2 space-y-2">
-              <textarea
-                value={editor.references}
-                onChange={(e) => editor.setField("references", e.target.value)}
-                rows={3}
-                maxLength={2000}
-                className={FORM_TEXTAREA_CLASSES}
-                placeholder={
-                  "참고 URL 또는 소재 텍스트를 입력하세요\nhttps://example.com/article\n또는 직접 소재 텍스트를 입력..."
-                }
-              />
-              <p className="text-[11px] text-zinc-400">
-                줄바꿈으로 구분 (URL + 텍스트 혼합 가능, 최대 5개)
-              </p>
-            </div>
-          </details>
-        )}
-
         {/* Generate button — card footer */}
-        <div className="mt-5 flex justify-end border-t border-zinc-200/60 pt-5">
+        <div className="mt-8 flex justify-end border-t border-zinc-200/60 pt-6">
           <Button
             size="md"
-            variant="gradient"
+            variant="primary"
             disabled={!editor.topic.trim() || editor.isGenerating}
             onClick={async () => {
               if (editor.scenes.length > 0) {

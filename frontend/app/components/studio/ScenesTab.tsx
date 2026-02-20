@@ -172,7 +172,7 @@ export default function ScenesTab() {
             />
 
             {currentScene && (
-              <div className="flex-1 overflow-y-auto px-6 py-8">
+              <div className="flex-1 overflow-y-auto px-8 py-8">
                 <div className="mx-auto w-full max-w-5xl">
                   <SceneCard
                     key={currentScene.client_id}
@@ -183,11 +183,11 @@ export default function ScenesTab() {
                     qualityScore={
                       imageValidationResults[currentScene.client_id]
                         ? {
-                            match_rate:
-                              imageValidationResults[currentScene.client_id].match_rate ?? 0,
-                            missing_tags:
-                              imageValidationResults[currentScene.client_id].missing ?? [],
-                          }
+                          match_rate:
+                            imageValidationResults[currentScene.client_id].match_rate ?? 0,
+                          missing_tags:
+                            imageValidationResults[currentScene.client_id].missing ?? [],
+                        }
                         : null
                     }
                     sceneMenuOpen={sceneMenuOpen === currentScene.client_id}

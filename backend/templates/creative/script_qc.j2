@@ -25,6 +25,7 @@ Analyze the script below for quality issues. Be harsh but fair.
 ### Step 1: Readability (weight: 0.30)
 Read every word **character by character**. Can each word be pronounced aloud?
 {% if language == "Korean" %}
+- 폰트 깨짐 방지를 위해 완벽한 **표준어**로 작성되었는지 확인 ("뭠", "쭙" 등 비표준어나 비문법적 축약어 완전 배제)
 - 한 글자씩 읽으며 발음 가능한 단어인지 확인
 - 깨진 문자열 탐지: "낮반한", "가리타리", "먼히" 같은 의미 없는 조합
 - 받침 탈락/오탈자 점검 (맞춤법과는 별도 — 여기서는 "읽을 수 있는가"만 판단)

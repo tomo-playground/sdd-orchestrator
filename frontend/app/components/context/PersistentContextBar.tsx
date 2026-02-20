@@ -23,8 +23,6 @@ export default function PersistentContextBar() {
   const router = useRouter();
   const isStudio = pathname.startsWith("/studio");
   const isHome = pathname === "/";
-  const isAssetPage = pathname.startsWith("/library") || pathname.startsWith("/characters/");
-
   const { projectId, groupId, projects, groups, selectProject, selectGroup } = useProjectGroups();
   const storyboardId = useContextStore((s) => s.storyboardId);
   const storyboardTitle = useContextStore((s) => s.storyboardTitle);
@@ -90,7 +88,7 @@ export default function PersistentContextBar() {
     [selectGroup, isAutoRunning, showToast]
   );
 
-  const hasStoryboard = storyboardId !== null && !isStudio && !isHome && !isAssetPage;
+  const hasStoryboard = storyboardId !== null && !isHome;
 
   // Hide context bar on Home page — but still render wizard if triggered
   if (isHome) {
@@ -104,7 +102,7 @@ export default function PersistentContextBar() {
 
   return (
     <>
-      <div className="flex h-8 shrink-0 items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-6 text-xs text-zinc-500">
+      <div className="flex h-8 shrink-0 items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-8 text-xs text-zinc-500">
         <div className="flex items-center gap-0.5 truncate">
           <ProjectDropdown
             projects={projects}
@@ -134,12 +132,18 @@ export default function PersistentContextBar() {
             <>
               <ChevronRight className="h-3 w-3 shrink-0 text-zinc-300" />
               <Clapperboard className="ml-1 h-3 w-3 shrink-0 text-zinc-400" />
-              <Link
-                href={`/studio?id=${storyboardId}`}
-                className="ml-1 truncate font-medium text-zinc-700 hover:text-zinc-900 hover:underline"
-              >
-                {storyboardTitle || "Untitled"}
-              </Link>
+              {isStudio ? (
+                <span className="ml-1 truncate font-medium text-zinc-700">
+                  {storyboardTitle || "Untitled"}
+                </span>
+              ) : (
+                <Link
+                  href={`/studio?id=${storyboardId}`}
+                  className="ml-1 truncate font-medium text-zinc-700 hover:text-zinc-900 hover:underline"
+                >
+                  {storyboardTitle || "Untitled"}
+                </Link>
+              )}
             </>
           )}
         </div>

@@ -141,6 +141,7 @@ class ScriptState(TypedDict, total=False):
     # Production 결과 (Full 모드)
     cinematographer_result: dict | None
     cinematographer_tool_logs: list[dict] | None  # Phase 10-B-3: Tool-Calling 로그
+    visual_qc_result: dict | None  # Cinematographer QC → Director 전달용
     tts_designer_result: dict | None
     sound_designer_result: dict | None
     copyright_reviewer_result: dict | None

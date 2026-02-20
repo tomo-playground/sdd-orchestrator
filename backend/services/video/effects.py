@@ -47,7 +47,11 @@ def apply_transitions(builder: VideoBuilder) -> None:
             curr_a = f"[a{i}_m]"
         builder._map_v = curr_v
         builder._map_a = curr_a
-        builder._total_dur = acc_offset + builder.scene_durations[-1]
+        # acrossfade reduces total by transition_dur per crossfade
+        num_crossfades = builder.num_scenes - 1
+        builder._total_dur = (
+            acc_offset + builder.scene_durations[-1] - num_crossfades * builder.transition_dur
+        )
     else:
         builder._map_v = "[v0_raw]"
         builder._map_a = "[a0_raw]"
@@ -163,11 +167,11 @@ def _apply_ducked_bgm(builder: VideoBuilder, bgm_idx: int, bgm_vol: float) -> No
         f"threshold={threshold}:ratio=10:attack=50:release=500:"
         f"level_sc=1:makeup=1[bgm_ducked]"
     )
-    # 4. Mix ducked BGM with narration
-    builder.filters.append("[narr_out][bgm_ducked]amix=inputs=2:duration=first:dropout_transition=2[a_f]")
+    # 4. Mix ducked BGM with narration (normalize=0: prevent automatic 1/N volume scaling)
+    builder.filters.append("[narr_out][bgm_ducked]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[a_f]")
 
 
 def _apply_simple_bgm(builder: VideoBuilder, bgm_idx: int, bgm_vol: float) -> None:
     """Apply BGM with simple fixed-volume mixing."""
     builder.filters.append(f"[{bgm_idx}:a]volume={bgm_vol},afade=t=out:st={max(0, builder._total_dur - 2)}:d=2[bgm_f]")
-    builder.filters.append(f"{builder._map_a}[bgm_f]amix=inputs=2:duration=first:dropout_transition=2[a_f]")
+    builder.filters.append(f"{builder._map_a}[bgm_f]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[a_f]")

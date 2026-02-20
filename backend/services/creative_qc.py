@@ -10,6 +10,21 @@ _GAZE_TAGS: frozenset[str] = frozenset(CATEGORY_PATTERNS.get("gaze", []))
 _POSE_TAGS: frozenset[str] = frozenset(CATEGORY_PATTERNS.get("pose", []))
 
 
+def _extract_tags_from_prompt(prompt: str, tag_set: frozenset[str]) -> list[str]:
+    """프롬프트에서 특정 카테고리 태그를 추출한다."""
+    return [t.strip() for t in prompt.split(",") if t.strip() in tag_set]
+
+
+def _check_consecutive_gaze(gaze_per_scene: list[list[str]]) -> list[str]:
+    """인접 씬의 동일 gaze 반복 검출. Returns issue strings."""
+    issues = []
+    for i in range(len(gaze_per_scene) - 1):
+        overlap = set(gaze_per_scene[i]) & set(gaze_per_scene[i + 1])
+        if overlap:
+            issues.append(f"Scene {i}→{i + 1} 동일 gaze 반복: {', '.join(sorted(overlap))}")
+    return issues
+
+
 def validate_scripts(
     scripts: list[dict],
     structure: str,
@@ -133,20 +148,18 @@ def validate_visuals(scenes: list[dict]) -> dict:
         issues.append(f"Only {len(cameras)} camera types used (need 3+)")
 
     # Gaze diversity (Phase 11)
-    def _extract_tags_from_prompt(prompt: str, tag_set: frozenset[str]) -> list[str]:
-        return [t.strip() for t in prompt.split(",") if t.strip() in tag_set]
-
-    gaze_per_scene = []
-    pose_per_scene = []
+    gaze_per_scene: list[list[str]] = []
+    pose_per_scene: list[list[str]] = []
     for s in scenes:
         prompt = s.get("image_prompt", "")
-        gaze_per_scene.extend(_extract_tags_from_prompt(prompt, _GAZE_TAGS))
-        pose_per_scene.extend(_extract_tags_from_prompt(prompt, _POSE_TAGS))
+        gaze_per_scene.append(_extract_tags_from_prompt(prompt, _GAZE_TAGS))
+        pose_per_scene.append(_extract_tags_from_prompt(prompt, _POSE_TAGS))
 
     total = len(scenes)
-    if total > 0 and gaze_per_scene:
-        unique_gazes = set(gaze_per_scene)
-        lat_count = gaze_per_scene.count("looking_at_viewer")
+    all_gazes = [g for scene_gazes in gaze_per_scene for g in scene_gazes]
+    if total > 0 and all_gazes:
+        unique_gazes = set(all_gazes)
+        lat_count = all_gazes.count("looking_at_viewer")
         lat_ratio = lat_count / total
 
         if lat_ratio > 0.5:
@@ -158,8 +171,17 @@ def validate_visuals(scenes: list[dict]) -> dict:
         else:
             checks["gaze_diversity"] = "PASS"
 
-    if total > 0 and pose_per_scene:
-        unique_poses = set(pose_per_scene)
+    # Consecutive gaze repetition (Phase 11-P3)
+    consec_issues = _check_consecutive_gaze(gaze_per_scene)
+    if consec_issues:
+        checks["gaze_consecutive"] = "WARN"
+        issues.extend(consec_issues)
+    elif total > 1:
+        checks["gaze_consecutive"] = "PASS"
+
+    all_poses = [p for scene_poses in pose_per_scene for p in scene_poses]
+    if total > 0 and all_poses:
+        unique_poses = set(all_poses)
         if len(unique_poses) < 2 and total >= 4:
             checks["pose_diversity"] = "WARN"
             issues.append(f"Only {len(unique_poses)} pose type(s) used (need 2+)")

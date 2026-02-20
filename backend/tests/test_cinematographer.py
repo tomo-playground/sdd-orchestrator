@@ -144,3 +144,19 @@ async def test_empty_scenes_key():
         with patch(_QC, return_value={"ok": True, "issues": [], "checks": {}}):
             result = await _run(_make_state(), MagicMock())
     assert result["cinematographer_result"]["scenes"] == []
+
+
+# ── Phase 11-P3: visual_qc_result state 저장 ─────────────────
+
+
+@pytest.mark.asyncio
+async def test_visual_qc_result_stored_in_state():
+    """QC 결과가 visual_qc_result로 state에 저장된다."""
+    valid = json.dumps({"scenes": [{"order": 1, "visual_tags": ["brown_hair"]}]})
+    qc_result = {"ok": False, "issues": ["camera diversity low"], "checks": {"camera_diversity": "WARN"}}
+    with patch(_CWT, new_callable=AsyncMock, return_value=(f"```json\n{valid}\n```", [])):
+        with patch(_QC, return_value=qc_result):
+            result = await _run(_make_state(), MagicMock())
+    assert "visual_qc_result" in result
+    assert result["visual_qc_result"] == qc_result
+    assert result["visual_qc_result"]["ok"] is False

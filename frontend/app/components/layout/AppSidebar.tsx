@@ -92,10 +92,10 @@ export default function AppSidebar({
             )}
         >
             {/* Scrollable nav */}
-            <nav className="flex-1 overflow-y-auto py-3">
+            <nav className="flex-1 overflow-y-auto pl-5 pr-3 py-3">
                 {/* Simple List (if no groups provided) */}
                 {groups.length === 0 && items.length > 0 && (
-                    <ul className="space-y-0.5 px-1.5">
+                    <ul className="space-y-0.5">
                         {items.map((item) => (
                             <NavItemButton
                                 key={item.id}
@@ -119,7 +119,7 @@ export default function AppSidebar({
                                     onClick={() => toggleGroup(group.key)}
                                     className={cx(
                                         LABEL_CLASSES,
-                                        "flex w-full items-center gap-1 px-4 pt-4 pb-1 transition hover:text-zinc-600"
+                                        "flex w-full items-center gap-1 pl-5 pr-3 pt-4 pb-1 transition hover:text-zinc-600"
                                     )}
                                 >
                                     <ChevronDown
@@ -131,7 +131,7 @@ export default function AppSidebar({
                             )}
                             {/* Items */}
                             {(!isGroupCollapsed || collapsed) && (
-                                <ul className="space-y-0.5 px-1.5">
+                                <ul className="space-y-0.5">
                                     {group.items.map((item) => (
                                         <NavItemButton
                                             key={item.id}
@@ -154,7 +154,7 @@ export default function AppSidebar({
 
                 {/* Ungrouped/Utility items */}
                 {ungroupedItems.length > 0 && (
-                    <ul className="space-y-0.5 px-1.5">
+                    <ul className="space-y-0.5">
                         {ungroupedItems.map((item) => (
                             <NavItemButton
                                 key={item.id}
@@ -200,7 +200,7 @@ function NavItemButton({
                 onClick={onClick}
                 title={collapsed ? item.label : undefined}
                 className={cx(
-                    "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition",
+                    "flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-xs transition",
                     active ? SIDEBAR_ACTIVE : SIDEBAR_INACTIVE,
                     collapsed && "justify-center px-0"
                 )}

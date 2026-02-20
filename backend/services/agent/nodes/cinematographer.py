@@ -134,6 +134,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     return {
         "cinematographer_result": {"scenes": scenes_output},
         "cinematographer_tool_logs": tool_logs,
+        "visual_qc_result": qc,
     }
 
 

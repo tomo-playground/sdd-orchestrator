@@ -417,3 +417,51 @@ async def test_director_agent_error_handling(
     # Agent 메시지는 Director의 피드백만 포함 (응답 없음)
     assert len(result["agent_messages"]) == 1
     assert result["agent_messages"][0]["sender"] == "director"
+
+
+# ── Phase 11-P3: visual_qc_result → Director template_vars ──
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
+async def test_director_visual_qc_result_in_template_vars(mock_run, mock_production_results):
+    """visual_qc_result가 template_vars에 포함된다."""
+    captured_vars = []
+
+    async def capture_and_approve(*args, **kwargs):
+        captured_vars.append(dict(kwargs["template_vars"]))
+        return {"observe": "QC 경고 확인", "think": "승인 가능", "act": "approve"}
+
+    mock_run.side_effect = capture_and_approve
+
+    qc = {"ok": False, "issues": ["Scene 0→1 동일 gaze 반복: looking_at_viewer"], "checks": {}}
+    state: ScriptState = {  # type: ignore[typeddict-item]
+        **mock_production_results,
+        "visual_qc_result": qc,
+        "director_revision_count": 0,
+        "revision_count": 0,
+        "concept_regen_count": 0,
+    }
+
+    await director_node(state)
+
+    assert len(captured_vars) == 1
+    assert captured_vars[0]["visual_qc_result"] == qc
+    assert captured_vars[0]["visual_qc_result"]["ok"] is False
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
+async def test_director_visual_qc_result_none(mock_run, mock_production_results):
+    """visual_qc_result=None 시 정상 동작."""
+    mock_run.return_value = {"observe": "정상", "think": "승인", "act": "approve"}
+
+    state: ScriptState = {  # type: ignore[typeddict-item]
+        **mock_production_results,
+        "director_revision_count": 0,
+        "revision_count": 0,
+        "concept_regen_count": 0,
+    }
+
+    result = await director_node(state)
+    assert result["director_decision"] == "approve"

@@ -397,6 +397,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "looking_ahead",
         "sideways_glance",
         "averting_eyes",
+        "averted_gaze",
         "eye_contact",
         "eyes_closed",
         "closed_eyes",

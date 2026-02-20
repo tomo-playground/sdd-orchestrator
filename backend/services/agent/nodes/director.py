@@ -59,6 +59,7 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
             "max_steps": LANGGRAPH_MAX_REACT_STEPS,
             "previous_steps": reasoning_steps,
             "quality_criteria": (state.get("director_plan") or {}).get("quality_criteria", []),
+            "visual_qc_result": state.get("visual_qc_result"),
         }
 
         try:

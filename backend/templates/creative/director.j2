@@ -17,6 +17,14 @@ Follow the Observe → Think → Act process to make informed decisions.
 ### Visual Design (Cinematographer)
 {{ cinematographer | tojson(indent=2) }}
 
+{% if visual_qc_result and not visual_qc_result.ok %}
+### Visual QC Warnings
+{% for issue in visual_qc_result.issues %}
+- {{ issue }}
+{% endfor %}
+위 다양성 문제가 감지되었습니다. revise_cinematographer를 고려하세요.
+{% endif %}
+
 ### Voice Design (TTS Designer)
 {{ tts_designer | tojson(indent=2) }}
 

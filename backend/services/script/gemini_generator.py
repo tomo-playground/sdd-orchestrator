@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from config import (
-    DEFAULT_SCENE_NEGATIVE_PROMPT,
     GEMINI_TEXT_MODEL,
     gemini_client,
     logger,
@@ -18,6 +16,12 @@ from models.associations import CharacterTag
 from models.character import Character
 from services.keywords import format_keyword_context
 from services.presets import get_preset_by_structure
+from services.script.scene_postprocess import (
+    auto_pin_raw_scenes,
+    process_scene_tags,
+    strip_no_humans_from_dialogue,
+    warn_script_issues,
+)
 from services.storyboard.helpers import (
     normalize_scene_tags_key,
     strip_markdown_codeblock,
@@ -198,7 +202,8 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         extra_fields = preset.extra_fields if preset else {}
 
         template = template_env.get_template(template_name)
-        system_instruction = (
+
+        fallback_instruction = (
             "SYSTEM: You are a professional storyboarder and scriptwriter. "
             "Write clear, engaging scripts in the requested language. "
             "STRICT: Each script must be max 30 chars (Korean) / 60 chars (English) to fit 2 lines on screen. "
@@ -206,6 +211,8 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             "No emojis. Use ONLY the allowed keywords list for image_prompt tags. "
             "Do not invent new tags. Return raw JSON only."
         )
+        system_instruction = fallback_instruction
+
         # 파이프라인 컨텍스트 (research_brief, writer_plan 등) 주입
         ctx = pipeline_context or {}
         rendered = template.render(
@@ -307,134 +314,12 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         # Guard: trim excess scenes if Gemini exceeded the duration-based limit
         scenes = trim_scenes_to_duration(scenes, request.duration)
 
-        # Warn if scripts exceed 2-line rendering limit
-        MAX_SCRIPT_CHARS = 35
-        for s in scenes:
-            script = s.get("script", "")
-            if len(script) > MAX_SCRIPT_CHARS:
-                logger.warning(
-                    f"[Scene {s.get('scene_id', '?')}] Script too long for 2 lines: "
-                    f"{len(script)} chars (max {MAX_SCRIPT_CHARS}): '{script[:40]}...'"
-                )
-
-        # Warn if Narrator scene scripts describe character actions (image-script mismatch)
-        _NARRATOR_PERSON_PATTERN = re.compile(r"(그|그녀|그들|두\s*사람|세\s*사람|그가|그녀가|그는|그녀는|서로를|서로)")
-        MAX_NARRATOR_SCRIPT_CHARS = 20
-        for s in scenes:
-            if s.get("speaker") != "Narrator":
-                continue
-            scene_id = s.get("scene_id", "?")
-            script = s.get("script", "")
-            if _NARRATOR_PERSON_PATTERN.search(script):
-                logger.warning(
-                    f"[Scene {scene_id}] Narrator script contains character reference: '{script}' "
-                    f"— should describe environment/mood, not character actions"
-                )
-            if len(script) > MAX_NARRATOR_SCRIPT_CHARS:
-                logger.warning(
-                    f"[Scene {scene_id}] Narrator script too long: "
-                    f"{len(script)} chars (max {MAX_NARRATOR_SCRIPT_CHARS}): '{script[:30]}...'"
-                )
-
-        for scene in scenes:
-            from config import ENABLE_DANBOORU_VALIDATION
-            from services.keywords import filter_prompt_tokens
-            from services.prompt import (
-                normalize_and_fix_tags,
-                normalize_prompt_tokens,
-                validate_tags_with_danbooru,
-            )
-
-            raw_prompt = scene.get("image_prompt", "")
-            if not raw_prompt:
-                continue
-
-            scene_id = scene.get("scene_id", "?")
-            logger.info(f"[Scene {scene_id}] Tag Pipeline Start")
-            logger.info(f"  1\ufe0f\u20e3  Raw Gemini: {raw_prompt}")
-
-            normalized = normalize_and_fix_tags(raw_prompt)
-            logger.info(f"  2\ufe0f\u20e3  Normalized:  {normalized}")
-
-            if ENABLE_DANBOORU_VALIDATION:
-                tags = [t.strip() for t in normalized.split(",") if t.strip()]
-                validated_tags = validate_tags_with_danbooru(tags)
-                normalized = ", ".join(validated_tags)
-                logger.info(f"  3\ufe0f\u20e3  Validated:   {normalized}")
-
-            filtered = filter_prompt_tokens(normalized)
-            if not filtered:
-                logger.warning("No allowed keywords in scene prompt; using normalized original.")
-                filtered = normalize_prompt_tokens(normalized)
-
-            logger.info(f"  4\ufe0f\u20e3  Filtered:    {filtered}")
-            logger.info(f"  \u2705 Final Prompt: {filtered}")
-
-            scene["image_prompt"] = filtered
-
-            if not scene.get("negative_prompt"):
-                logger.info(f"  \U0001f527 Adding default negative prompt to scene {scene_id}")
-                scene["negative_prompt"] = DEFAULT_SCENE_NEGATIVE_PROMPT
-            else:
-                logger.info(
-                    f"  \u2139\ufe0f  Scene {scene_id} already has negative_prompt: {scene['negative_prompt'][:50]}..."
-                )
-
-        # Dialogue structure defense: strip no_humans from speaker scenes
-        # Gemini may incorrectly generate no_humans for early dialogue scenes
+        # Post-process scenes: warnings, tag pipeline, dialogue defense, auto-pin
+        warn_script_issues(scenes)
+        process_scene_tags(scenes)
         if has_two_characters:
-            for scene in scenes:
-                speaker = scene.get("speaker", "")
-                if speaker in ("A", "B"):
-                    prompt = scene.get("image_prompt", "")
-                    if "no_humans" in prompt.lower().replace(" ", "_"):
-                        tags = [t.strip() for t in prompt.split(",")]
-                        tags = [t for t in tags if t.lower().replace(" ", "_").strip() != "no_humans"]
-                        scene["image_prompt"] = ", ".join(tags)
-                        logger.warning(
-                            "[Scene %s] Stripped no_humans from Speaker %s (Dialogue requires character)",
-                            scene.get("scene_id", "?"),
-                            speaker,
-                        )
-
-        # Auto-pin background based on structure type
-        # For Dialogue/Narrated Dialogue: all scenes (except first) share same background
-        # For Monologue: use environment tag overlap logic
-        is_dialogue_structure = structure_lower in ("dialogue", "narrated dialogue")
-
-        if is_dialogue_structure:
-            logger.info(f"[Storyboard] Auto-pin: {request.structure} structure - all scenes share background")
-            for i, scene in enumerate(scenes):
-                if i == 0:
-                    scene["_auto_pin_previous"] = False
-                    logger.info(f"  Scene {i}: First scene (no auto-pin)")
-                else:
-                    scene["_auto_pin_previous"] = True
-                    logger.info(f"  Scene {i}: Auto-pin to previous (shared background)")
-        else:
-            logger.info("[Storyboard] Auto-pin: Analyzing environment tags for background consistency")
-            previous_env_tags = None
-
-            for i, scene in enumerate(scenes):
-                context_tags = scene.get("context_tags", {})
-                current_env_tags = set(context_tags.get("environment", [])) if context_tags else set()
-
-                if i == 0:
-                    previous_env_tags = current_env_tags
-                    scene["_auto_pin_previous"] = False
-                    logger.info(f"  Scene {i}: First scene, env={list(current_env_tags)}")
-                    continue
-
-                if current_env_tags and previous_env_tags and (current_env_tags & previous_env_tags):
-                    scene["_auto_pin_previous"] = True
-                    logger.info(f"  Scene {i}: Same location {list(current_env_tags)} \u2192 mark for auto-pin")
-                else:
-                    scene["_auto_pin_previous"] = False
-                    logger.info(
-                        f"  Scene {i}: Location changed {list(previous_env_tags)} \u2192 {list(current_env_tags)}, no pin"
-                    )
-
-                previous_env_tags = current_env_tags
+            strip_no_humans_from_dialogue(scenes)
+        auto_pin_raw_scenes(scenes, structure_lower)
 
         # Auto-populate character_actions from context_tags (Dialogue/Narrated Dialogue)
         if has_two_characters and (request.character_id or request.character_b_id) and db:
