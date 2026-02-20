@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from config import SCENE_DURATION_RANGE, SCRIPT_LENGTH_KOREAN, SCRIPT_LENGTH_OTHER, logger
+from services.keywords.patterns import CATEGORY_PATTERNS
 from services.storyboard.helpers import calculate_max_scenes, calculate_min_scenes
+
+_GAZE_TAGS: frozenset[str] = frozenset(CATEGORY_PATTERNS.get("gaze", []))
+_POSE_TAGS: frozenset[str] = frozenset(CATEGORY_PATTERNS.get("pose", []))
 
 
 def validate_scripts(
@@ -127,6 +131,40 @@ def validate_visuals(scenes: list[dict]) -> dict:
     else:
         checks["camera_diversity"] = "WARN"
         issues.append(f"Only {len(cameras)} camera types used (need 3+)")
+
+    # Gaze diversity (Phase 11)
+    def _extract_tags_from_prompt(prompt: str, tag_set: frozenset[str]) -> list[str]:
+        return [t.strip() for t in prompt.split(",") if t.strip() in tag_set]
+
+    gaze_per_scene = []
+    pose_per_scene = []
+    for s in scenes:
+        prompt = s.get("image_prompt", "")
+        gaze_per_scene.extend(_extract_tags_from_prompt(prompt, _GAZE_TAGS))
+        pose_per_scene.extend(_extract_tags_from_prompt(prompt, _POSE_TAGS))
+
+    total = len(scenes)
+    if total > 0 and gaze_per_scene:
+        unique_gazes = set(gaze_per_scene)
+        lat_count = gaze_per_scene.count("looking_at_viewer")
+        lat_ratio = lat_count / total
+
+        if lat_ratio > 0.5:
+            checks["gaze_diversity"] = "WARN"
+            issues.append(f"looking_at_viewer used in {lat_count}/{total} scenes ({lat_ratio:.0%}), limit to 50%")
+        elif len(unique_gazes) < 2 and total >= 4:
+            checks["gaze_diversity"] = "WARN"
+            issues.append(f"Only {len(unique_gazes)} gaze type(s) used (need 2+)")
+        else:
+            checks["gaze_diversity"] = "PASS"
+
+    if total > 0 and pose_per_scene:
+        unique_poses = set(pose_per_scene)
+        if len(unique_poses) < 2 and total >= 4:
+            checks["pose_diversity"] = "WARN"
+            issues.append(f"Only {len(unique_poses)} pose type(s) used (need 2+)")
+        else:
+            checks["pose_diversity"] = "PASS"
 
     # Environment presence
     env_ok = all(s.get("environment") for s in scenes)

@@ -12,10 +12,13 @@
 | Phase 9 (Agentic Pipeline) | 전체 완료 (ARCHIVED) |
 | Phase 10 (True Agentic) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | 미착수 (Future) |
+| **Phase 11 (Scene Diversity)** | **진행중** |
 | 테스트 | Backend 2,014 + Frontend 352 = **총 2,366개** |
 
 ### 최근 작업
 
+- **Scene Diversity & Frontal Bias Fix P0~P2** (02-20): 정면 편향 해소 8건. cinematographer.j2 gaze/pose 다양성 규칙+시너지 표, create_storyboard.j2 Narrative Function별 gaze 가이드, patterns.py 버그 수정(averted_gaze→averting_eyes, 3개 태그 추가), search_similar_compositions() mood×scene_type 매트릭스, scene_expand.j2 예시 다양화, director_step_qc.j2 Gaze&Pose Diversity 평가 기준 추가, validate_visuals() gaze/pose WARN 체크, 비정면 gaze 1.25x 가중치 부스트. 기존 133개 테스트 PASS
+- **Character UI/UX 4대 개선** (02-20): Tag Show More 패턴(20개 제한+토글), Edit 페이지 섹션 접기/펼치기(collapsible SectionCard), Builder Prompts Step 4 추가(skip 가능), Appearance↔Prompt 중복 태그 경고. shared PromptPair/formatTagName 추출, useCharacterEdit 훅 분리. 9개 테스트 추가
 - **Composed Negative Preview** (02-20): 씬 편집기에서 StyleProfile + Character + Scene 네거티브 프롬프트 합성 결과를 미리보기. `/prompt/compose` API에 `negative_prompt`/`negative_sources` 필드 추가, NegativePromptToggle에 출처별 read-only UI. 8개 테스트 추가
 - **실사풍 StyleProfile 호환성 + Negative Prompt 수정** (02-20): quality tag fallback을 StyleProfile SSOT로 전환 (하드코딩 제거), 실사 quality 태그 LAYER_QUALITY 분류, MultiCharacterComposer quality 3-tier fallback. Negative Prompt: recommended_negative 씬 병합, char_b negative 누락 수정, 토큰 순서 개선, Reference negative 정합성. 25개 테스트 추가
 - **Video Gallery 개선** (02-19): 타입별 8개 표시 + View All 가로 스크롤 레이아웃, scrollbar-hide 유틸리티 추가
@@ -96,6 +99,44 @@ graph LR
     style P10 fill:#4CAF50,color:#fff
     style P8 fill:#FF9800,color:#fff
 ```
+
+---
+
+## Phase 11: Scene Diversity & Frontal Bias Fix
+
+**목표**: 이미지 생성 시 정면(looking_at_viewer) 편향 해소 + 포즈/앵글/시선 다양성 보장.
+
+**배경**: Cinematographer 템플릿/도구에 정면 편향 유발 요소 10개 발견. 장면 다양성 보장 메커니즘 부재. Danbooru 데이터 기반 `looking_at_viewer` 430만 건 vs 2위 33만 건 (13배 차이)으로 SD 모델 자체도 정면 prior 강함.
+
+### P0 — 템플릿/태그 즉시 수정
+
+| 순위 | 작업 | 상태 | 효과 |
+|------|------|------|------|
+| 1 | `cinematographer.j2` gaze/pose 다양성 규칙 + 시너지 표 추가 | [x] 02-20 | 높음 |
+| 2 | `create_storyboard.j2` Narrative Function별 gaze 가이드 추가 | [x] 02-20 | 높음 |
+| 3 | `patterns.py` 버그 수정 (`averted_gaze`→`averting_eyes`, 누락 태그 추가) | [x] 02-20 | 중간 |
+
+### P1 — 도구/평가 기준 개선
+
+| 순위 | 작업 | 상태 | 효과 |
+|------|------|------|------|
+| 4 | `search_similar_compositions()` mood별 gaze 분기 (portrait=정면 하드코딩 제거) | [x] 02-20 | 중간 |
+| 5 | `scene_expand.j2` 예시 다양화 (looking_at_viewer → 다양한 gaze) | [x] 02-20 | 낮음 |
+| 6 | `director_step_qc.j2` 평가 기준에 Pose & Gaze Diversity 추가 | [x] 02-20 | 중간 |
+
+### P2 — QC 검증 강화
+
+| 순위 | 작업 | 상태 | 효과 |
+|------|------|------|------|
+| 7 | `validate_visuals()` QC에 gaze/pose 다양성 WARN 추가 | [x] 02-20 | 중간 |
+| 8 | 비정면 gaze 가중치 부스트 (L7 1.1x → 1.25x, IP-Adapter 보상) | [x] 02-20 | 중간 |
+
+### P3 — 파이프라인 구조 (효과 관찰 후)
+
+| 순위 | 작업 | 상태 | 효과 |
+|------|------|------|------|
+| 9 | Cinematographer 연속 씬 gaze 비중복 규칙 | [ ] | 높음 |
+| 10 | Director → Cinematographer 피드백에 QC 다양성 결과 자동 주입 | [ ] | 높음 |
 
 ---
 

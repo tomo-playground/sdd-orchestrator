@@ -18,15 +18,30 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 {% endif %}
 
 ## Visual Design Rules
-1. **Tags**: Use only Danbooru-standard tags (underscore format: `brown_hair`, `looking_at_viewer`)
+1. **Tags**: Use only Danbooru-standard tags (underscore format: `brown_hair`, `cowboy_shot`)
 2. **Camera variety**: Use at least 3 different camera angles across all scenes
    - Available: close-up, cowboy_shot, upper_body, full_body, from_above, from_below, dutch_angle
-3. **Environment consistency**: Maintain consistent setting within scene groups
-4. **Mood-visual alignment**: Camera and environment must match the script's emotional tone
-5. **image_prompt**: Complete comma-separated tag string ready for Stable Diffusion
-6. **image_prompt_ko**:
+3. **Gaze variety (CRITICAL)**: Do NOT use `looking_at_viewer` on more than 2 scenes.
+   Use at least 3 different gaze directions across all scenes:
+   - Introspective/conflict: looking_down, looking_to_the_side, closed_eyes
+   - Dramatic/turning point: looking_back, looking_up, looking_afar
+   - Direct address (hook/climax ONLY): looking_at_viewer
+   Best results come from pairing gaze with matching camera:
+   | Gaze | Best Camera | Effect |
+   | looking_back | from_behind | Turning around (334K+293K posts) |
+   | looking_to_the_side | profile, from_side | Side view / contemplation |
+   | looking_up | from_below | Looking upward / hope |
+   | looking_down | from_above | Looking downward / reflection |
+   | closed_eyes | close-up | Emotional intensity |
+   | looking_afar | cowboy_shot | Gazing into distance / resolution |
+4. **Pose variety**: Avoid `standing` + `looking_at_viewer` in consecutive scenes.
+   - Available: standing, sitting, walking, leaning_forward, kneeling, crouching, arms_behind_back
+5. **Environment consistency**: Maintain consistent setting within scene groups
+6. **Mood-visual alignment**: Camera and environment must match the script's emotional tone
+7. **image_prompt**: Complete comma-separated tag string ready for Stable Diffusion
+8. **image_prompt_ko**:
 {% include '_partials/image_prompt_ko_rules.j2' %}
-7. **JSON Safety**: Do NOT use backslashes `\` in text. If you must, use `\\`. Avoid `"` inside strings unless escaped `\"`.
+9. **JSON Safety**: Do NOT use backslashes `\` in text. If you must, use `\\`. Avoid `"` inside strings unless escaped `\"`.
 
 ## Output Format (JSON)
 ```json

@@ -57,15 +57,21 @@ Read every word character by character. Can each word be pronounced aloud?
 - All tags must be valid Danbooru tags
 - No made-up or non-standard tags
 
-### Camera Variety (weight: 0.25)
+### Camera Variety (weight: 0.20)
 - Different camera angles across scenes
 - Appropriate shot types for each scene's mood
+
+### Gaze & Pose Diversity (weight: 0.15)
+- looking_at_viewer must NOT appear in more than 50% of scenes
+- At least 2 different gaze directions across all scenes
+- No two consecutive scenes share the same gaze + pose combination
+- Gaze should match camera angle (looking_back + from_behind, looking_up + from_below, etc.)
 
 ### Mood-Visual Alignment (weight: 0.25)
 - Visual design matches concept mood
 - Color/lighting choices support the narrative
 
-### Technical Consistency (weight: 0.20)
+### Technical Consistency (weight: 0.10)
 - Consistent style/quality across scenes
 - No conflicting visual elements
 

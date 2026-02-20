@@ -128,21 +128,35 @@ def create_cinematographer_executors(
         # TODO: tag_effectiveness 테이블에서 높은 match_rate를 가진 태그 조합 검색
         logger.info("[CinematographerTool] 유사 구도 검색: mood=%s, scene_type=%s", mood, scene_type)
 
-        # Placeholder: 간단한 휴리스틱
+        # Placeholder: mood × scene_type 매트릭스 (향후 tag_effectiveness 기반 대체)
+        _mood_tags = {
+            "cheerful": "smile, happy, bright_colors",
+            "melancholic": "sad, looking_down, dark_background",
+            "dramatic": "dynamic_pose, looking_up, intense_lighting",
+            "tense": "clenched_teeth, looking_to_the_side, dark_background",
+            "peaceful": "closed_eyes, head_tilt, soft_lighting",
+        }
+        _scene_tags = {
+            "portrait": {
+                "cheerful": "close-up, looking_at_viewer, upper_body",
+                "melancholic": "close-up, looking_down, hand_on_own_cheek",
+                "dramatic": "upper_body, looking_back, from_behind",
+                "tense": "cowboy_shot, looking_to_the_side, profile",
+                "peaceful": "close-up, closed_eyes, head_tilt",
+                "_default": "upper_body, cowboy_shot",
+            },
+            "landscape": {"_default": "wide_shot, scenic, outdoors"},
+            "action": {"_default": "dynamic_angle, motion_lines, running"},
+        }
         suggestions = []
-        if mood == "cheerful":
-            suggestions.append("smile, happy, bright_colors")
-        elif mood == "melancholic":
-            suggestions.append("sad, rain, dark_background")
-        elif mood == "dramatic":
-            suggestions.append("dynamic_pose, motion_blur, intense_lighting")
+        mood_tag = _mood_tags.get(mood)
+        if mood_tag:
+            suggestions.append(mood_tag)
 
-        if scene_type == "portrait":
-            suggestions.append("close-up, looking_at_viewer, upper_body")
-        elif scene_type == "landscape":
-            suggestions.append("wide_shot, scenic, outdoors")
-        elif scene_type == "action":
-            suggestions.append("dynamic_angle, motion_lines, running")
+        scene_map = _scene_tags.get(scene_type, {})
+        scene_tag = scene_map.get(mood) or scene_map.get("_default")
+        if scene_tag:
+            suggestions.append(scene_tag)
 
         result = " | ".join(suggestions) if suggestions else "일반적인 태그 조합을 사용하세요"
         return f"[레퍼런스 태그 조합] {result}"

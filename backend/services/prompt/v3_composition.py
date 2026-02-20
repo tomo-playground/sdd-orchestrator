@@ -35,6 +35,13 @@ LAYER_ATMOSPHERE = 11  # Style LoRA & Artistic Style
 # Layers that only apply when a character is present (SUBJECT through ACTION)
 CHARACTER_ONLY_LAYERS = frozenset(range(LAYER_SUBJECT, LAYER_ACTION + 1))
 
+# Non-frontal gaze tags — get extra weight boost (1.25) to overcome SD's frontal prior (Phase 11)
+_NON_FRONTAL_GAZE = frozenset({
+    "looking_away", "looking_back", "looking_down", "looking_up",
+    "looking_to_the_side", "looking_afar", "looking_ahead",
+    "sideways_glance", "averting_eyes",
+})
+
 # Character-specific camera framing tags — filtered from LAYER_CAMERA for background scenes
 _CHARACTER_CAMERA_TAGS = frozenset(
     {
@@ -777,8 +784,17 @@ class V3PromptBuilder:
                             global_seen.add(key)
 
                 # Layer 7, 8 (Expression, Action) weight boost
+                # Non-frontal gaze tags get extra boost (1.25) to overcome
+                # SD's strong looking_at_viewer prior (Phase 11)
                 if i in [LAYER_EXPRESSION, LAYER_ACTION]:
-                    unique_layer_tokens = [f"({t}:1.1)" if ":" not in t else t for t in unique_layer_tokens]
+                    boosted = []
+                    for t in unique_layer_tokens:
+                        if ":" not in t:
+                            w = 1.25 if t in _NON_FRONTAL_GAZE else 1.1
+                            boosted.append(f"({t}:{w})")
+                        else:
+                            boosted.append(t)
+                    unique_layer_tokens = boosted
 
                 final_tokens.extend(unique_layer_tokens)
 
