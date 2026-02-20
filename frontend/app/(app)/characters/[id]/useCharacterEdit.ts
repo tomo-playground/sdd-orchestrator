@@ -53,6 +53,8 @@ export function useCharacterEdit(rawId: number) {
   const [isCharLoading, setIsCharLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isEditingPreview, setIsEditingPreview] = useState(false);
 
   // Tag/LoRA editing state
   const [selectedTags, setSelectedTags] = useState<WizardTag[]>([]);
@@ -217,6 +219,52 @@ export function useCharacterEdit(rawId: number) {
     }
   }, [character, showToast]);
 
+  // ── Enhance preview (Gemini) ──────────────────────────────
+  const handleEnhance = useCallback(async () => {
+    if (!character) return;
+    setIsEnhancing(true);
+    try {
+      const res = await axios.post<{ ok?: boolean; url?: string }>(
+        `${API_BASE}/characters/${character.id}/enhance-preview`
+      );
+      if (res.data.url) {
+        setCharacter((prev) =>
+          prev ? { ...prev, preview_image_url: res.data.url ?? null } : prev
+        );
+        showToast("Preview enhanced", "success");
+      }
+    } catch (err) {
+      showToast(getErrorMsg(err, "Failed to enhance"), "error");
+    } finally {
+      setIsEnhancing(false);
+    }
+  }, [character, showToast]);
+
+  // ── Edit preview (Gemini instruction) ─────────────────────
+  const handleEditPreview = useCallback(
+    async (instruction: string) => {
+      if (!character || !instruction.trim()) return;
+      setIsEditingPreview(true);
+      try {
+        const res = await axios.post<{ ok?: boolean; url?: string }>(
+          `${API_BASE}/characters/${character.id}/edit-preview`,
+          { instruction: instruction.trim() }
+        );
+        if (res.data.url) {
+          setCharacter((prev) =>
+            prev ? { ...prev, preview_image_url: res.data.url ?? null } : prev
+          );
+          showToast("Preview edited", "success");
+        }
+      } catch (err) {
+        showToast(getErrorMsg(err, "Failed to edit preview"), "error");
+      } finally {
+        setIsEditingPreview(false);
+      }
+    },
+    [character, showToast]
+  );
+
   // ── Dirty check ────────────────────────────────────────────
   const tagsChanged = useMemo(() => {
     if (selectedTags.length !== initialTags.length) return true;
@@ -263,5 +311,9 @@ export function useCharacterEdit(rawId: number) {
     handleDelete,
     handleRegenerate,
     isRegenerating,
+    handleEnhance,
+    isEnhancing,
+    handleEditPreview,
+    isEditingPreview,
   };
 }

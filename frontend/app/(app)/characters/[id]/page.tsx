@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, Pencil, RefreshCw, Sparkles, Trash2, UserRound } from "lucide-react";
 import { resolveImageUrl } from "../../../utils/url";
 import { CONTAINER_CLASSES } from "../../../components/ui/variants";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
@@ -11,6 +11,7 @@ import Button from "../../../components/ui/Button";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
 import ImagePreviewModal from "../../../components/ui/ImagePreviewModal";
 import { BasicInfoSection, PromptsSection, SectionCard } from "./CharacterDetailSections";
+import GeminiEditModal from "./GeminiEditModal";
 import AppearanceStep from "../builder/steps/AppearanceStep";
 import LoraStep from "../builder/steps/LoraStep";
 import { useTagData } from "../shared/useTagData";
@@ -22,6 +23,7 @@ export default function CharacterDetailPage() {
   const rawId = Number(params.id);
   const { confirm, dialogProps } = useConfirm();
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [geminiEditOpen, setGeminiEditOpen] = useState(false);
 
   const {
     tagsByGroup,
@@ -49,9 +51,14 @@ export default function CharacterDetailPage() {
     handleDelete,
     handleRegenerate,
     isRegenerating,
+    handleEnhance,
+    isEnhancing,
+    handleEditPreview,
+    isEditingPreview,
   } = useCharacterEdit(rawId);
 
   const isLoading = isCharLoading || isTagDataLoading;
+  const isBusy = isRegenerating || isEnhancing || isEditingPreview;
 
   const onDelete = async () => {
     if (!character) return;
@@ -62,6 +69,15 @@ export default function CharacterDetailPage() {
       variant: "danger",
     });
     if (ok) await handleDelete();
+  };
+
+  const onEnhance = async () => {
+    const ok = await confirm({
+      title: "Enhance Preview",
+      message: "Gemini로 프리뷰 이미지를 보정합니다. (~$0.04)",
+      confirmLabel: "Enhance",
+    });
+    if (ok) await handleEnhance();
   };
 
   if (isLoading || !character || !form) {
@@ -109,7 +125,7 @@ export default function CharacterDetailPage() {
       {/* Two-column layout */}
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         {/* Left: Preview panel */}
-        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+        <div className="space-y-3 lg:sticky lg:top-4 lg:self-start">
           <div
             className="relative flex aspect-[3/4] cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50"
             onClick={() => imgSrc && setPreviewOpen(true)}
@@ -123,18 +139,49 @@ export default function CharacterDetailPage() {
                 <p className="mt-2 text-xs text-zinc-400">No preview</p>
               </div>
             )}
+            {isBusy && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                <LoadingSpinner size="md" />
+              </div>
+            )}
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleRegenerate}
-            loading={isRegenerating}
-            disabled={isRegenerating}
-            className="w-full"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            {isRegenerating ? "Generating..." : "Regenerate Preview"}
-          </Button>
+
+          {/* Preview action buttons */}
+          <div className="grid grid-cols-3 gap-1.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleRegenerate}
+              disabled={isBusy}
+              className="w-full text-[12px]"
+              title="SD로 프리뷰 재생성"
+            >
+              <RefreshCw className={`h-3 w-3 ${isRegenerating ? "animate-spin" : ""}`} />
+              Regen
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onEnhance}
+              disabled={isBusy || !imgSrc}
+              className="w-full text-[12px]"
+              title="Gemini로 품질 보정"
+            >
+              <Sparkles className={`h-3 w-3 ${isEnhancing ? "animate-pulse" : ""}`} />
+              Enhance
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setGeminiEditOpen(true)}
+              disabled={isBusy || !imgSrc}
+              className="w-full text-[12px]"
+              title="Gemini 자연어 편집"
+            >
+              <Pencil className={`h-3 w-3 ${isEditingPreview ? "animate-pulse" : ""}`} />
+              Edit
+            </Button>
+          </div>
         </div>
 
         {/* Right: Detail sections */}
@@ -199,6 +246,17 @@ export default function CharacterDetailPage() {
 
       {/* Modals */}
       {previewOpen && <ImagePreviewModal src={imgSrc} onClose={() => setPreviewOpen(false)} />}
+      {geminiEditOpen && (
+        <GeminiEditModal
+          previewImageUrl={imgSrc ?? undefined}
+          isProcessing={isEditingPreview}
+          onClose={() => setGeminiEditOpen(false)}
+          onSubmit={(instruction) => {
+            void handleEditPreview(instruction);
+            setGeminiEditOpen(false);
+          }}
+        />
+      )}
       <ConfirmDialog {...dialogProps} />
     </div>
   );
