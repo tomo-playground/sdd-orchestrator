@@ -123,35 +123,31 @@ async def writer_node(state: ScriptState) -> dict:
     if is_full and LANGGRAPH_PLANNING_ENABLED:
         plan = await _create_plan(state, selected_concept=selected_concept)
 
-    # research_brief가 있으면 description에 컨텍스트 추가
-    desc = state.get("description", "")
+    # 파이프라인 컨텍스트를 별도 dict로 분리 (description 과적 방지)
+    pipeline_ctx: dict[str, str] = {}
     research_brief = state.get("research_brief")
     if research_brief:
-        desc = f"{desc}\n\n[참고 정보]\n{research_brief}".strip()
+        pipeline_ctx["research_brief"] = research_brief
 
-    # Phase 10-A: Planning 결과를 description에 주입
     if plan:
-        plan_text = f"""[Writer Plan]
-Hook 전략: {plan["hook_strategy"]}
-감정 곡선: {", ".join(plan["emotional_arc"])}
-씬 배분: intro={plan["scene_distribution"].get("intro", 0)}, rising={plan["scene_distribution"].get("rising", 0)}, climax={plan["scene_distribution"].get("climax", 0)}, resolution={plan["scene_distribution"].get("resolution", 0)}
+        plan_text = (
+            f"Hook 전략: {plan['hook_strategy']}\n"
+            f"감정 곡선: {', '.join(plan['emotional_arc'])}\n"
+            f"씬 배분: intro={plan['scene_distribution'].get('intro', 0)}, "
+            f"rising={plan['scene_distribution'].get('rising', 0)}, "
+            f"climax={plan['scene_distribution'].get('climax', 0)}, "
+            f"resolution={plan['scene_distribution'].get('resolution', 0)}\n\n"
+            f"이 계획을 기반으로 대본을 작성하세요."
+        )
+        pipeline_ctx["writer_plan"] = plan_text
 
-이 계획을 기반으로 대본을 작성하세요."""
-        desc = f"{desc}\n\n{plan_text}".strip()
-
-    # revision_feedback가 있으면 description에 주입
     feedback = state.get("revision_feedback")
     if feedback:
-        desc = f"{desc}\n\n[수정 요청] {feedback}".strip()
-
-    # 내부 컨텍스트 주입으로 description이 길어질 수 있음 — 초과 시 절삭
-    if desc and len(desc) > 1900:
-        logger.warning("[Writer] description 절삭: %d → 1900자", len(desc))
-        desc = desc[:1900]
+        pipeline_ctx["revision_feedback"] = feedback
 
     request = StoryboardRequest(
         topic=state["topic"],
-        description=desc,
+        description=state.get("description", ""),
         duration=state.get("duration", 10),
         style=state.get("style", "Anime"),
         language=state.get("language", "Korean"),
@@ -165,13 +161,13 @@ Hook 전략: {plan["hook_strategy"]}
 
     with get_db_session() as db:
         try:
-            result = await generate_script(request, db)
+            result = await generate_script(request, db, pipeline_context=pipeline_ctx)
         except Exception as e:
             if _is_safety_error(e):
                 logger.warning("[LangGraph] Writer: 안전 필터 차단, 프롬프트 완화 후 재시도")
                 request.description = _append_safety_hint(request.description or "")
                 try:
-                    result = await generate_script(request, db)
+                    result = await generate_script(request, db, pipeline_context=pipeline_ctx)
                 except Exception as retry_err:
                     logger.error("[LangGraph] Writer 재시도도 실패: %s", retry_err)
                     return {"error": str(retry_err)}

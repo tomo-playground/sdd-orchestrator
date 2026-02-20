@@ -168,23 +168,20 @@ async def revise_node(state: ScriptState) -> dict:
                         "revision_history": history,
                     }
 
-    # Tier 3: 복잡 오류 — 피드백 + 현재 대본 주입 후 전체 재생성
+    # Tier 3: 복잡 오류 — 피드백 + 현재 대본을 별도 컨텍스트로 전달 후 재생성
     feedback = _build_feedback(state)
-    desc = state.get("description", "")
-
-    # 현재 대본을 컨텍스트로 포함하여 Gemini가 수정할 수 있게 한다
+    pipeline_ctx: dict[str, str] = {}
     current_script = _summarize_scenes(scenes)
-    parts = [p for p in [desc, current_script] if p]
+    if current_script:
+        pipeline_ctx["current_script_summary"] = current_script
     if feedback:
-        parts.append(f"--- 수정 요청 ---\n{feedback}")
-    desc = "\n\n".join(parts)
-    if len(desc) > 1900:
-        desc = desc[:1900]
+        pipeline_ctx["revision_feedback"] = feedback
 
     history[-1]["tier"] = "regeneration"
+    desc = state.get("description", "")
     with get_db_session() as db:
         try:
-            result = await generate_script(_make_request(state, desc), db)
+            result = await generate_script(_make_request(state, desc), db, pipeline_context=pipeline_ctx)
             logger.info("[LangGraph] Revise 재생성 완료 (revision=%d)", count + 1)
             return {
                 "draft_scenes": result.get("scenes"),

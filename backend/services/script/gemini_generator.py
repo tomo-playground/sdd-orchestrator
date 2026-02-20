@@ -143,7 +143,7 @@ def _check_multi_character_capable(
     return count > 0
 
 
-async def generate_script(request, db: Session | None = None) -> dict:
+async def generate_script(request, db: Session | None = None, pipeline_context: dict | None = None) -> dict:
     """Generate a storyboard from a topic using Gemini (async)."""
     if not gemini_client:
         raise HTTPException(status_code=503, detail="Gemini key missing")
@@ -206,6 +206,8 @@ async def generate_script(request, db: Session | None = None) -> dict:
             "No emojis. Use ONLY the allowed keywords list for image_prompt tags. "
             "Do not invent new tags. Return raw JSON only."
         )
+        # 파이프라인 컨텍스트 (research_brief, writer_plan 등) 주입
+        ctx = pipeline_context or {}
         rendered = template.render(
             topic=request.topic,
             description=request.description or "",
@@ -220,6 +222,10 @@ async def generate_script(request, db: Session | None = None) -> dict:
             is_multi_character_capable=is_multi_character_capable,
             channel_dna=channel_dna,
             selected_concept=request.selected_concept,
+            research_brief=ctx.get("research_brief", ""),
+            writer_plan=ctx.get("writer_plan", ""),
+            revision_feedback=ctx.get("revision_feedback", ""),
+            current_script_summary=ctx.get("current_script_summary", ""),
             **extra_fields,
         )
         from google.genai import types

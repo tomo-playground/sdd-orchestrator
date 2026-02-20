@@ -5,6 +5,26 @@ Topic: {{ topic }}
 {% if description %}
 Description: {{ description }}
 {% endif %}
+{% if research_brief %}
+
+## Reference Information
+{{ research_brief }}
+{% endif %}
+{% if writer_plan %}
+
+## Writer Plan
+{{ writer_plan }}
+{% endif %}
+{% if revision_feedback %}
+
+## Revision Request
+{{ revision_feedback }}
+{% endif %}
+{% if current_script_summary %}
+
+## Current Script (revise based on this)
+{{ current_script_summary }}
+{% endif %}
 Total Duration: {{ duration }} seconds
 Visual Style: {{ style }}
 Narrative Structure: {{ structure }}
