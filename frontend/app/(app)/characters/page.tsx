@@ -10,12 +10,7 @@ import CharacterCardSkeleton from "./CharacterCardSkeleton";
 import Button from "../../components/ui/Button";
 import EmptyState from "../../components/ui/EmptyState";
 import { SkeletonGrid } from "../../components/ui/Skeleton";
-import {
-  PAGE_TITLE_CLASSES,
-  SEARCH_INPUT_CLASSES,
-  FILTER_PILL_ACTIVE,
-  FILTER_PILL_INACTIVE,
-} from "../../components/ui/variants";
+import { PAGE_TITLE_CLASSES, SEARCH_INPUT_CLASSES } from "../../components/ui/variants";
 
 type FilterKey = "all" | "has_lora" | "has_preview" | "locked";
 
@@ -100,7 +95,12 @@ export function CharactersContent() {
 
       {/* Content */}
       {isLoading ? (
-        <SkeletonGrid>{(i) => <CharacterCardSkeleton key={i} />}</SkeletonGrid>
+        <SkeletonGrid
+          count={8}
+          className="grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+        >
+          {(i) => <CharacterCardSkeleton key={i} />}
+        </SkeletonGrid>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={UserRound}
@@ -119,7 +119,7 @@ export function CharactersContent() {
           }
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filtered.map((ch) => (
             <CharacterCard key={ch.id} character={ch} />
           ))}

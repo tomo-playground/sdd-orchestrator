@@ -10,12 +10,14 @@ export default function Skeleton({ className }: SkeletonProps) {
 
 type SkeletonGridProps = {
   count?: number;
+  className?: string;
   children: (index: number) => React.ReactNode;
 };
 
-export function SkeletonGrid({ count = 6, children }: SkeletonGridProps) {
+export function SkeletonGrid({ count = 6, className, children }: SkeletonGridProps) {
+  const gridClasses = className ?? "gap-3 sm:grid-cols-2 lg:grid-cols-3";
   return (
-    <div role="status" aria-label="Loading" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div role="status" aria-label="Loading" className={cx("grid", gridClasses)}>
       {Array.from({ length: count }, (_, i) => children(i))}
     </div>
   );
