@@ -45,8 +45,9 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     character_id = state.get("character_id")
     director_feedback = state.get("director_feedback")
 
+    style = state.get("style", "Anime")
     tmpl = template_env.get_template("creative/cinematographer.j2")
-    base_prompt = tmpl.render(scenes=scenes, character_id=character_id)
+    base_prompt = tmpl.render(scenes=scenes, character_id=character_id, style=style)
 
     prompt_parts = [
         "당신은 쇼츠 영상의 Cinematographer Agent입니다.",

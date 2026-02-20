@@ -17,6 +17,20 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 {{ character_tags | tojson(indent=2) }}
 {% endif %}
 
+{% if style %}
+## Visual Style: {{ style }}
+{% if style == "Anime" %}
+- This is an **anime** style project. Do NOT add `realistic`, `photorealistic`, or `photo` tags.
+- Appropriate style tags: none needed (anime is default for SD)
+{% elif style == "Chibi" %}
+- Add `chibi, super_deformed, small_body, big_head` to every scene.
+- Do NOT add `realistic`, `photorealistic` tags.
+{% elif style == "Realistic" %}
+- Add `realistic` or `photorealistic` to every scene.
+- Do NOT add `chibi`, `super_deformed`, `water_color`, `sketch` tags.
+{% endif %}
+{% endif %}
+
 ## Visual Design Rules
 1. **Tags**: Use only Danbooru-standard tags (underscore format: `brown_hair`, `cowboy_shot`)
 2. **Camera variety**: Use at least 3 different camera angles across all scenes
