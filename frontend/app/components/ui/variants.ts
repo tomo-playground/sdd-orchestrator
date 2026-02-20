@@ -100,9 +100,9 @@ export const FORM_INPUT_CLASSES =
 export const FORM_TEXTAREA_CLASSES =
   "w-full rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400";
 
-/** Form field label (uppercase tracking). */
+/** Form field label. */
 export const FORM_LABEL_CLASSES =
-  "text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase";
+  "text-sm font-medium text-zinc-700";
 
 /** Compact form input (no border-radius-2xl, used in config editors). */
 export const FORM_INPUT_COMPACT_CLASSES =

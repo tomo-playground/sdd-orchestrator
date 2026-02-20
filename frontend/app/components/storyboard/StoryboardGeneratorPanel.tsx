@@ -71,115 +71,44 @@ export default function StoryboardGeneratorPanel({
   }, [structure, presets, setDuration]);
 
   const inner = (
-    <>
-      {!embedded && (
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-zinc-900">Story</h2>
-            <p className="text-xs text-zinc-500">Topic, structure, and generation settings.</p>
-          </div>
-        </div>
-      )}
-      <div className={cx(!embedded && "mt-6", "grid gap-4 md:grid-cols-[1.5fr_1fr]")}>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <label htmlFor="sb-topic" className={FORM_LABEL_CLASSES}>
-              Topic
+    <div className={cx(!embedded && "mt-6", "flex flex-col gap-8")}>
+      {/* Video Settings Section */}
+      <div>
+        <h3 className="mb-4 text-sm font-semibold text-zinc-800">Video Settings</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="sb-duration" className={FORM_LABEL_CLASSES}>
+              Duration
             </label>
-            <span
-              className={`text-[12px] font-semibold tracking-[0.1em] ${topic.length >= 200 ? "text-rose-500" : "text-zinc-400"
-                }`}
+            <select
+              id="sb-duration"
+              value={duration}
+              onChange={(e) => setDuration(Number(e.target.value))}
+              className={FORM_INPUT_CLASSES}
             >
-              {topic.length}/200
-            </span>
-          </div>
-          <textarea
-            id="sb-topic"
-            data-testid="topic-input"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value.slice(0, 200))}
-            rows={4}
-            maxLength={200}
-            className={FORM_TEXTAREA_CLASSES}
-            placeholder="예: 혼자 사는 직장인의 하루 루틴, 고양이와 함께하는 일상..."
-          />
-          {sampleTopics.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-2">
-              {sampleTopics.map((sample, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setTopic(sample)}
-                  className="rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1 text-xs text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-800"
-                >
-                  {sample}
-                </button>
+              {durations.map((d) => (
+                <option key={d} value={d}>
+                  {d}s
+                </option>
               ))}
-            </div>
-          )}
-          {setDescription !== undefined && (
-            <>
-              <div className="mt-3 flex items-center justify-between">
-                <label htmlFor="sb-description" className={FORM_LABEL_CLASSES}>
-                  Description{" "}
-                  <span className="tracking-normal text-zinc-400 normal-case">(optional)</span>
-                </label>
-                <span
-                  className={`text-[12px] font-semibold tracking-[0.1em] ${(description ?? "").length >= 500 ? ERROR_ICON : "text-zinc-400"
-                    }`}
-                >
-                  {(description ?? "").length}/500
-                </span>
-              </div>
-              <textarea
-                id="sb-description"
-                data-testid="description-input"
-                value={description ?? ""}
-                onChange={(e) => setDescription(e.target.value.slice(0, 500))}
-                rows={2}
-                maxLength={500}
-                className={FORM_TEXTAREA_CLASSES}
-                placeholder="톤, 대상 독자, 강조 포인트 등을 적어주세요"
-              />
-            </>
-          )}
-        </div>
-        <div className="grid gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="sb-duration" className={FORM_LABEL_CLASSES}>
-                Duration
-              </label>
-              <select
-                id="sb-duration"
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                className={FORM_INPUT_CLASSES}
-              >
-                {durations.map((d) => (
-                  <option key={d} value={d}>
-                    {d}s
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="sb-language" className={FORM_LABEL_CLASSES}>
-                Language
-              </label>
-              <select
-                id="sb-language"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className={FORM_INPUT_CLASSES}
-              >
-                {languages.map((lang) => (
-                  <option key={lang.value} value={lang.value}>
-                    {lang.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            </select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="sb-language" className={FORM_LABEL_CLASSES}>
+              Language
+            </label>
+            <select
+              id="sb-language"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className={FORM_INPUT_CLASSES}
+            >
+              {languages.map((lang) => (
+                <option key={lang.value} value={lang.value}>
+                  {lang.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="sb-structure" className={FORM_LABEL_CLASSES}>
@@ -200,7 +129,80 @@ export default function StoryboardGeneratorPanel({
           </div>
         </div>
       </div>
-    </>
+
+      {/* Content Settings Section */}
+      <div>
+        <h3 className="mb-4 text-sm font-semibold text-zinc-800">Content Settings</h3>
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label htmlFor="sb-topic" className={FORM_LABEL_CLASSES}>
+                Topic
+              </label>
+              <span
+                className={`text-[12px] font-semibold tracking-[0.1em] ${topic.length >= 200 ? "text-rose-500" : "text-zinc-400"
+                  }`}
+              >
+                {topic.length}/200
+              </span>
+            </div>
+            <textarea
+              id="sb-topic"
+              data-testid="topic-input"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value.slice(0, 200))}
+              rows={4}
+              maxLength={200}
+              className={FORM_TEXTAREA_CLASSES}
+              placeholder="예: 혼자 사는 직장인의 하루 루틴, 고양이와 함께하는 일상..."
+            />
+            {sampleTopics.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-2">
+                {sampleTopics.map((sample, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setTopic(sample)}
+                    className="flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1.5 text-xs text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-200 hover:text-zinc-900"
+                  >
+                    <span className="text-[10px] opacity-60">+</span>
+                    {sample}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {setDescription !== undefined && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="sb-description" className={FORM_LABEL_CLASSES}>
+                  Description{" "}
+                  <span className="font-normal tracking-normal text-zinc-400 normal-case">
+                    (optional)
+                  </span>
+                </label>
+                <span
+                  className={`text-[12px] font-semibold tracking-[0.1em] ${(description ?? "").length >= 500 ? ERROR_ICON : "text-zinc-400"
+                    }`}
+                >
+                  {(description ?? "").length}/500
+                </span>
+              </div>
+              <textarea
+                id="sb-description"
+                data-testid="description-input"
+                value={description ?? ""}
+                onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+                rows={2}
+                maxLength={500}
+                className={FORM_TEXTAREA_CLASSES}
+                placeholder="톤, 대상 독자, 강조 포인트 등을 적어주세요"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 
   if (embedded) return inner;

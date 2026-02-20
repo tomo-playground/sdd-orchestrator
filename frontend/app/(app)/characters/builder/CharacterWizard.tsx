@@ -23,6 +23,7 @@ import { useWizardPreview } from "./useWizardPreview";
 import BasicInfoStep from "./steps/BasicInfoStep";
 import AppearanceStep from "./steps/AppearanceStep";
 import LoraStep from "./steps/LoraStep";
+import PromptsStep from "./steps/PromptsStep";
 
 // ── Component ────────────────────────────────────────────────
 
@@ -48,7 +49,12 @@ export default function CharacterWizard() {
     state.name.length > 0 ||
     state.description.length > 0 ||
     state.selectedTags.length > 0 ||
-    state.selectedLoras.length > 0;
+    state.selectedLoras.length > 0 ||
+    state.prompt_mode !== "auto" ||
+    state.custom_base_prompt.length > 0 ||
+    state.custom_negative_prompt.length > 0 ||
+    state.reference_base_prompt.length > 0 ||
+    state.reference_negative_prompt.length > 0;
 
   useEffect(() => {
     if (!isDirty) return;
@@ -186,7 +192,11 @@ export default function CharacterWizard() {
         description: state.description.trim() || null,
         tags: allTags,
         loras: state.selectedLoras.map((l) => ({ lora_id: l.loraId, weight: l.weight })),
-        prompt_mode: "auto",
+        prompt_mode: state.prompt_mode,
+        custom_base_prompt: state.custom_base_prompt.trim() || null,
+        custom_negative_prompt: state.custom_negative_prompt.trim() || null,
+        reference_base_prompt: state.reference_base_prompt.trim() || null,
+        reference_negative_prompt: state.reference_negative_prompt.trim() || null,
       };
 
       const res = await axios.post(`${API_BASE}/characters`, payload);
@@ -208,12 +218,8 @@ export default function CharacterWizard() {
   const canProceed = state.step === 1 ? state.name.trim().length >= 2 : true;
 
   const handleNext = useCallback(async () => {
-    if (state.step === 1) {
-      dispatch({ type: "SET_STEP", step: 2 });
-      return;
-    }
-    if (state.step === 2) {
-      dispatch({ type: "SET_STEP", step: 3 });
+    if (state.step < 4) {
+      dispatch({ type: "SET_STEP", step: (state.step + 1) as WizardStep });
       return;
     }
     await handleSave();
@@ -226,7 +232,7 @@ export default function CharacterWizard() {
   }, [state.step]);
 
   // ── Step headers ─────────────────────────────────────────
-  const stepLabels = ["Basic Info", "Appearance", "LoRA"];
+  const stepLabels = ["Basic Info", "Appearance", "LoRA", "Prompts"];
 
   // ── Loading ──────────────────────────────────────────────
   if (isLoading) {
@@ -325,18 +331,31 @@ export default function CharacterWizard() {
               }
             />
           )}
+          {state.step === 4 && (
+            <PromptsStep
+              promptMode={state.prompt_mode}
+              customBasePrompt={state.custom_base_prompt}
+              customNegativePrompt={state.custom_negative_prompt}
+              referenceBasePrompt={state.reference_base_prompt}
+              referenceNegativePrompt={state.reference_negative_prompt}
+              selectedTagNames={state.selectedTags.map((t) => t.name)}
+              onModeChange={(mode) => dispatch({ type: "SET_PROMPT_MODE", mode })}
+              onFieldChange={(field, value) => dispatch({ type: "SET_PROMPT_FIELD", field, value })}
+            />
+          )}
         </div>
       </div>
 
       {/* Bottom nav */}
       <WizardNavBar
         step={state.step}
-        totalSteps={3}
+        totalSteps={4}
         onBack={handleBack}
         onNext={handleNext}
         isSaving={state.isSaving}
-        isLastStep={state.step === 3}
+        isLastStep={state.step === 4}
         canProceed={canProceed}
+        onSkipToEnd={handleSave}
       />
 
       <ConfirmDialog {...dialogProps} />

@@ -1,11 +1,11 @@
-import type { ActorGender } from "../../../types";
+import type { ActorGender, PromptMode } from "../../../types";
 import type { WizardTag } from "./steps/AppearanceStep";
 import type { WizardCategory } from "./wizardTemplates";
 import { applyTagToggle, applyFreeTagToggle } from "../shared/tagUtils";
 
 // ── Types ────────────────────────────────────────────────────
 
-export type WizardStep = 1 | 2 | 3;
+export type WizardStep = 1 | 2 | 3 | 4;
 
 export type WizardLoRA = { loraId: number; weight: number };
 
@@ -18,6 +18,12 @@ export type WizardState = {
   selectedTags: WizardTag[];
   selectedLoras: WizardLoRA[];
   isSaving: boolean;
+  // Prompts
+  prompt_mode: PromptMode;
+  custom_base_prompt: string;
+  custom_negative_prompt: string;
+  reference_base_prompt: string;
+  reference_negative_prompt: string;
   // Preview
   previewImage: string | null; // base64
   previewSeed: number | null;
@@ -36,9 +42,17 @@ export type WizardAction =
   | { type: "TOGGLE_LORA"; loraId: number; defaultWeight: number }
   | { type: "UPDATE_LORA_WEIGHT"; loraId: number; weight: number }
   | { type: "CLEAR_LORAS" }
+  | { type: "SET_PROMPT_MODE"; mode: PromptMode }
+  | { type: "SET_PROMPT_FIELD"; field: PromptField; value: string }
   | { type: "SET_GENERATING"; isGenerating: boolean }
   | { type: "SET_PREVIEW"; image: string; seed: number }
   | { type: "CLEAR_PREVIEW" };
+
+export type PromptField =
+  | "custom_base_prompt"
+  | "custom_negative_prompt"
+  | "reference_base_prompt"
+  | "reference_negative_prompt";
 
 // ── Reducer ──────────────────────────────────────────────────
 
@@ -60,7 +74,10 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
         gender: action.gender,
       };
     case "TOGGLE_TAG":
-      return { ...state, selectedTags: applyTagToggle(state.selectedTags, action.tag, action.category) };
+      return {
+        ...state,
+        selectedTags: applyTagToggle(state.selectedTags, action.tag, action.category),
+      };
     case "ADD_TAG":
       return { ...state, selectedTags: applyFreeTagToggle(state.selectedTags, action.tag) };
     case "SET_SAVING":
@@ -90,10 +107,19 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
       };
     case "CLEAR_LORAS":
       return { ...state, selectedLoras: [] };
+    case "SET_PROMPT_MODE":
+      return { ...state, prompt_mode: action.mode };
+    case "SET_PROMPT_FIELD":
+      return { ...state, [action.field]: action.value };
     case "SET_GENERATING":
       return { ...state, isGenerating: action.isGenerating };
     case "SET_PREVIEW":
-      return { ...state, previewImage: action.image, previewSeed: action.seed, isGenerating: false };
+      return {
+        ...state,
+        previewImage: action.image,
+        previewSeed: action.seed,
+        isGenerating: false,
+      };
     case "CLEAR_PREVIEW":
       return { ...state, previewImage: null, previewSeed: null };
     default:
@@ -110,6 +136,11 @@ export const INITIAL_WIZARD_STATE: WizardState = {
   selectedTags: [],
   selectedLoras: [],
   isSaving: false,
+  prompt_mode: "auto",
+  custom_base_prompt: "",
+  custom_negative_prompt: "",
+  reference_base_prompt: "",
+  reference_negative_prompt: "",
   previewImage: null,
   previewSeed: null,
   isGenerating: false,

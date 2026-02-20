@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { Tag } from "../../../../types";
 import Badge from "../../../../components/ui/Badge";
 import { cx } from "../../../../components/ui/variants";
 import { TAG_COLOR_DOTS, type WizardCategory } from "../wizardTemplates";
 import type { WizardTag } from "../steps/AppearanceStep";
+import { formatTagName } from "../../shared/formatTag";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -20,6 +21,8 @@ function sortByPopularity(tags: Tag[]): { popular: Tag[]; rest: Tag[] } {
     .sort((a, b) => a.name.localeCompare(b.name));
   return { popular, rest };
 }
+
+const INITIAL_VISIBLE_COUNT = 20;
 
 // ── Component ────────────────────────────────────────────────
 
@@ -39,6 +42,12 @@ export default function CategorySection({
   const selectedInGroup = selectedTags.filter((t) => t.groupName === category.groupName);
   const hasSelection = selectedInGroup.length > 0;
   const [open, setOpen] = useState(category.defaultOpen || hasSelection);
+  const [showAll, setShowAll] = useState(false);
+
+  // Reset showAll when section closes
+  useEffect(() => {
+    if (!open) setShowAll(false);
+  }, [open]);
 
   const { popular, rest } = useMemo(() => sortByPopularity(tags), [tags]);
   const selectedIds = useMemo(() => new Set(selectedTags.map((t) => t.tagId)), [selectedTags]);
@@ -60,7 +69,7 @@ export default function CategorySection({
           {colorDot && (
             <span className={cx("inline-block h-2.5 w-2.5 shrink-0 rounded-full", colorDot)} />
           )}
-          {tag.name.replace(/_/g, " ")}
+          {formatTagName(tag.name)}
         </button>
       );
     },
@@ -101,12 +110,25 @@ export default function CategorySection({
             </>
           )}
           {/* All tags */}
-          <div className="flex flex-wrap gap-1.5">
-            {(popular.length > 0
-              ? rest
-              : [...tags].sort((a, b) => a.name.localeCompare(b.name))
-            ).map(renderChip)}
-          </div>
+          {(() => {
+            const allRest =
+              popular.length > 0 ? rest : [...tags].sort((a, b) => a.name.localeCompare(b.name));
+            const visible = showAll ? allRest : allRest.slice(0, INITIAL_VISIBLE_COUNT);
+            const hiddenCount = allRest.length - INITIAL_VISIBLE_COUNT;
+            return (
+              <>
+                <div className="flex flex-wrap gap-1.5">{visible.map(renderChip)}</div>
+                {hiddenCount > 0 && (
+                  <button
+                    onClick={() => setShowAll((v) => !v)}
+                    className="mt-2 text-xs font-medium text-zinc-500 hover:text-zinc-700"
+                  >
+                    {showAll ? "Show less" : `Show all ${allRest.length} tags`}
+                  </button>
+                )}
+              </>
+            );
+          })()}
           {category.maxSelect && (
             <p className="mt-2 text-[11px] text-zinc-400">Max {category.maxSelect} selections</p>
           )}

@@ -5,6 +5,7 @@ import type { Tag } from "../../../../types";
 import { cx } from "../../../../components/ui/variants";
 import { WIZARD_CATEGORIES, type WizardCategory } from "../wizardTemplates";
 import CategorySection from "../components/CategorySection";
+import { formatTagName } from "../../shared/formatTag";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -80,10 +81,10 @@ export default function AppearanceStep({
                       : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                   )}
                 >
-                  {tag.name.replace(/_/g, " ")}
+                  {formatTagName(tag.name)}
                   {tag.group_name && (
                     <span className="ml-1 text-zinc-400">
-                      ({tag.group_name.replace(/_/g, " ")})
+                      ({formatTagName(tag.group_name)})
                     </span>
                   )}
                 </button>

@@ -1,8 +1,13 @@
 "use client";
 
+import { useState, useMemo } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import type { ActorGender, PromptMode } from "../../../types";
 import Input from "../../../components/ui/Input";
 import Textarea from "../../../components/ui/Textarea";
+import { findDuplicateTokens } from "../shared/promptDuplicateCheck";
+import { formatTagName } from "../shared/formatTag";
+import PromptPair from "../shared/PromptPair";
 
 // ── Shared form type ─────────────────────────────────────────
 export type CharacterFormData = {
@@ -22,13 +27,48 @@ type FormOnChange = <K extends keyof CharacterFormData>(
 ) => void;
 
 // ── Section card wrapper ────────────────────────────────────
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+type SectionCardProps = {
+  title: string;
+  children: React.ReactNode;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+  summary?: React.ReactNode;
+};
+
+export function SectionCard({
+  title,
+  children,
+  collapsible = false,
+  defaultOpen = true,
+  summary,
+}: SectionCardProps) {
+  const [open, setOpen] = useState(defaultOpen);
+
   return (
     <div className="rounded-2xl border border-zinc-200/60 bg-white p-5">
-      <p className="mb-4 text-[12px] font-semibold tracking-wider text-zinc-500 uppercase">
-        {title}
-      </p>
-      {children}
+      {collapsible ? (
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center gap-2 text-left"
+        >
+          {open ? (
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+          )}
+          <p className="text-[12px] font-semibold tracking-wider text-zinc-500 uppercase">
+            {title}
+          </p>
+          {!open && summary && (
+            <span className="ml-auto truncate text-xs text-zinc-400">{summary}</span>
+          )}
+        </button>
+      ) : (
+        <p className="mb-4 text-[12px] font-semibold tracking-wider text-zinc-500 uppercase">
+          {title}
+        </p>
+      )}
+      {(!collapsible || open) && <div className={collapsible ? "mt-4" : ""}>{children}</div>}
     </div>
   );
 }
@@ -81,104 +121,64 @@ export function BasicInfoSection({ form, onChange }: BasicInfoProps) {
 }
 
 // ── Prompts (editable) ───────────────────────────────────────
-type PromptsProps = { form: CharacterFormData; onChange: FormOnChange };
-
-// ── Shared prompt pair ────────────────────────────────────────
-type PromptFormKey =
-  | "custom_base_prompt"
-  | "custom_negative_prompt"
-  | "reference_base_prompt"
-  | "reference_negative_prompt";
-
-function PromptPair({
-  label,
-  positiveKey,
-  negativeKey,
-  positiveValue,
-  negativeValue,
-  onChange,
-  positivePlaceholder,
-  negativePlaceholder,
-}: {
-  label?: string;
-  positiveKey: PromptFormKey;
-  negativeKey: PromptFormKey;
-  positiveValue: string;
-  negativeValue: string;
+type PromptsProps = {
+  form: CharacterFormData;
   onChange: FormOnChange;
-  positivePlaceholder: string;
-  negativePlaceholder: string;
-}) {
-  return (
-    <div className="space-y-3">
-      {label && <p className="text-[11px] font-medium text-zinc-400">{label}</p>}
-      <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-500">Positive Prompt</label>
-        <Textarea
-          value={positiveValue}
-          onChange={(e) => onChange(positiveKey, e.target.value)}
-          placeholder={positivePlaceholder}
-          rows={3}
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-500">Negative Prompt</label>
-        <Textarea
-          value={negativeValue}
-          onChange={(e) => onChange(negativeKey, e.target.value)}
-          placeholder={negativePlaceholder}
-          rows={3}
-        />
-      </div>
-    </div>
-  );
-}
+  selectedTagNames?: string[];
+};
 
-export function PromptsSection({ form, onChange }: PromptsProps) {
+export function PromptsSection({ form, onChange, selectedTagNames = [] }: PromptsProps) {
+  const duplicates = useMemo(
+    () => findDuplicateTokens(form.custom_base_prompt, selectedTagNames),
+    [form.custom_base_prompt, selectedTagNames]
+  );
+
   return (
-    <SectionCard title="Prompts">
-      <div className="space-y-5">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-500">Prompt Mode</label>
-          <div className="flex gap-2">
-            {(["auto", "standard", "lora"] as PromptMode[]).map((m) => (
-              <button
-                key={m}
-                onClick={() => onChange("prompt_mode", m)}
-                className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition ${
-                  form.prompt_mode === m
-                    ? "bg-zinc-900 text-white"
-                    : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
+    <div className="space-y-5">
+      <div>
+        <label className="mb-1 block text-xs font-medium text-zinc-500">Prompt Mode</label>
+        <div className="flex gap-2">
+          {(["auto", "standard", "lora"] as PromptMode[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => onChange("prompt_mode", m)}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition ${
+                form.prompt_mode === m
+                  ? "bg-zinc-900 text-white"
+                  : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+              }`}
+            >
+              {m}
+            </button>
+          ))}
         </div>
-        <hr className="border-zinc-100" />
-        <PromptPair
-          label="Custom (appended to auto-generated tags)"
-          positiveKey="custom_base_prompt"
-          negativeKey="custom_negative_prompt"
-          positiveValue={form.custom_base_prompt}
-          negativeValue={form.custom_negative_prompt}
-          onChange={onChange}
-          positivePlaceholder="e.g. masterpiece, best quality, ..."
-          negativePlaceholder="e.g. lowres, bad anatomy, ..."
-        />
-        <hr className="border-zinc-100" />
-        <PromptPair
-          label="Reference (IP-Adapter 레퍼런스 이미지 생성용)"
-          positiveKey="reference_base_prompt"
-          negativeKey="reference_negative_prompt"
-          positiveValue={form.reference_base_prompt}
-          negativeValue={form.reference_negative_prompt}
-          onChange={onChange}
-          positivePlaceholder="e.g. masterpiece, best quality, anime portrait, looking at viewer, clean background"
-          negativePlaceholder="e.g. lowres, bad anatomy, multiple views, ..."
-        />
       </div>
-    </SectionCard>
+      <hr className="border-zinc-100" />
+      <PromptPair
+        label="Custom (appended to auto-generated tags)"
+        positiveValue={form.custom_base_prompt}
+        negativeValue={form.custom_negative_prompt}
+        onPositiveChange={(v) => onChange("custom_base_prompt", v)}
+        onNegativeChange={(v) => onChange("custom_negative_prompt", v)}
+        positivePlaceholder="e.g. masterpiece, best quality, ..."
+        negativePlaceholder="e.g. lowres, bad anatomy, ..."
+      />
+      {duplicates.length > 0 && (
+        <p className="text-[11px] text-amber-600">
+          {duplicates.length} tag{duplicates.length > 1 ? "s" : ""} already in Appearance:{" "}
+          {duplicates.map((d) => formatTagName(d)).join(", ")}
+        </p>
+      )}
+      <hr className="border-zinc-100" />
+      <PromptPair
+        label="Reference (IP-Adapter 레퍼런스 이미지 생성용)"
+        positiveValue={form.reference_base_prompt}
+        negativeValue={form.reference_negative_prompt}
+        onPositiveChange={(v) => onChange("reference_base_prompt", v)}
+        onNegativeChange={(v) => onChange("reference_negative_prompt", v)}
+        positivePlaceholder="e.g. masterpiece, best quality, anime portrait, looking at viewer, clean background"
+        negativePlaceholder="e.g. lowres, bad anatomy, multiple views, ..."
+      />
+    </div>
   );
 }

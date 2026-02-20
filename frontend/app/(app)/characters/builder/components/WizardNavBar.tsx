@@ -11,6 +11,7 @@ type WizardNavBarProps = {
   isSaving: boolean;
   isLastStep: boolean;
   canProceed: boolean;
+  onSkipToEnd?: () => void;
 };
 
 export default function WizardNavBar({
@@ -21,6 +22,7 @@ export default function WizardNavBar({
   isSaving,
   isLastStep,
   canProceed,
+  onSkipToEnd,
 }: WizardNavBarProps) {
   return (
     <div className="sticky bottom-0 z-10 border-t border-zinc-200 bg-white/95 px-6 py-3 backdrop-blur-sm">
@@ -46,6 +48,17 @@ export default function WizardNavBar({
             <Button variant="ghost" size="sm" onClick={onBack}>
               <ArrowLeft className="h-3.5 w-3.5" />
               Back
+            </Button>
+          )}
+          {onSkipToEnd && !isLastStep && step === totalSteps - 1 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSkipToEnd}
+              loading={isSaving}
+              disabled={!canProceed}
+            >
+              Create Character
             </Button>
           )}
           <Button size="sm" onClick={onNext} loading={isSaving} disabled={!canProceed}>

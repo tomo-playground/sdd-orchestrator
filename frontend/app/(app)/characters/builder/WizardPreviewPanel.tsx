@@ -7,6 +7,7 @@ import type { WizardTag } from "./steps/AppearanceStep";
 import type { WizardLoRA } from "./wizardReducer";
 import { WIZARD_CATEGORIES } from "./wizardTemplates";
 import Button from "../../../components/ui/Button";
+import { formatTagName } from "../shared/formatTag";
 
 type WizardPreviewPanelProps = {
   name: string;
@@ -104,7 +105,7 @@ export default function WizardPreviewPanel({
                       key={t.tagId}
                       className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600"
                     >
-                      {t.name.replace(/_/g, " ")}
+                      {formatTagName(t.name)}
                     </span>
                   ))}
                 </div>
