@@ -280,7 +280,7 @@ Sound Designer 노드
 
 ```
 사용자: BgmSection UI에서 music_preset_id 선택
-  → VideoRequest.bgm_mode="ai", music_preset_id=N
+  → VideoRequest.bgm_mode="manual", music_preset_id=N
   → builder._prepare_bgm(): MusicPreset 조회 → generate_music() 실행
   → ai_bgm.wav 생성 → FFmpeg 합성
 ```
@@ -334,10 +334,9 @@ PublishTab
 
 | 기존 기능 | 처리 방안 |
 |----------|----------|
-| `bgm_mode: "file"` | 그대로 유지 (파일 BGM) |
-| `bgm_mode: "ai"` + `music_preset_id` | 그대로 유지 (수동 Preset 선택) |
+| `bgm_mode: "manual"` + `music_preset_id` | Music Preset 수동 선택, bgm_file 폴백 |
 | Music Preset CRUD | 유지 (수동 관리용) |
-| `bgm_mode: "auto"` (신규) | Sound Designer 프롬프트 자동 적용, Storyboard에 저장된 프롬프트 사용 |
+| `bgm_mode: "auto"` | Sound Designer 프롬프트 자동 적용, Storyboard에 저장된 프롬프트 사용 |
 
 #### GPU 리소스 전략
 

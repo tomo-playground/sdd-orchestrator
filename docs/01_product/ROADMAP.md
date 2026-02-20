@@ -19,6 +19,7 @@
 
 ### 최근 작업
 
+- **BGM 모드 리팩토링** (02-20): 3-mode(file/ai/auto) → 2-mode(manual/auto) 단순화. Manual=Music Preset 선택(bgm_file 폴백), Auto=Sound Designer 자동. Alembic 마이그레이션, 후방 호환 매핑(file/ai→manual), Frontend localStorage migrate. 19개 테스트, 5개 문서 업데이트
 - **Phase 13-A Performance Quick Wins** (02-20): Review Gemini 3회→1회 통합 호출(~70% 단축), Learn Store 4개 병렬화, Studio loadGroupDefaults 병렬화, Narrative weight 불일치 버그 수정. 6개 테스트 추가
 - **TTS 비음성 씬 선별 (Speakable Flag)** (02-20): Writer→TTS 파이프라인에 `speakable` 플래그 도입. `has_speakable_content()` 게이트 + TTS Designer skip 가이드. 13개 테스트 추가
 - **Phase 13 Creative Control & Production Speed 완료** (02-20): 19건 완료. 성능 최적화, 이미지 UX, Structure 템플릿, Clothing Override. [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md)

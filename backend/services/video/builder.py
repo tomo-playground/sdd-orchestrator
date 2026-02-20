@@ -234,14 +234,17 @@ class VideoBuilder:
 
     async def _prepare_bgm(self) -> None:
         """Prepare AI-generated BGM based on bgm_mode."""
-        bgm_mode = getattr(self.request, "bgm_mode", "file")
+        bgm_mode = getattr(self.request, "bgm_mode", "manual")
+        # Backward compat: map legacy values
+        if bgm_mode in ("file", "ai"):
+            bgm_mode = "manual"
         if bgm_mode == "auto":
             await self._prepare_auto_bgm()
-        elif bgm_mode == "ai":
+        elif bgm_mode == "manual":
             await self._prepare_preset_bgm()
 
     async def _prepare_preset_bgm(self) -> None:
-        """Prepare BGM from a Music Preset (bgm_mode='ai')."""
+        """Prepare BGM from a Music Preset (bgm_mode='manual')."""
         preset_id = getattr(self.request, "music_preset_id", None)
         if not preset_id:
             return

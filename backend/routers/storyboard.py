@@ -139,7 +139,7 @@ def check_materials(storyboard_id: int, db: Session = Depends(get_db)):
             voice_ready = config.narrator_voice_preset_id is not None
             if config.render_preset:
                 rp = config.render_preset
-                music_ready = bool(rp.bgm_file) or bool(rp.music_preset_id)
+                music_ready = bool(rp.music_preset_id) or bool(rp.bgm_file)
 
     return MaterialsCheckResponse(
         storyboard_id=storyboard_id,

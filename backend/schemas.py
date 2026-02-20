@@ -544,8 +544,8 @@ class VideoRequest(BaseModel):
     audio_ducking: bool = True
     bgm_volume: float = 0.25
     ducking_threshold: float = 0.01
-    bgm_mode: str = "file"  # "file" | "ai" | "auto"
-    music_preset_id: int | None = None  # AI BGM preset (bgm_mode="ai")
+    bgm_mode: str = "manual"  # "manual" | "auto"
+    music_preset_id: int | None = None  # Music Preset (bgm_mode="manual")
     bgm_prompt: str | None = None  # Sound Designer prompt (bgm_mode="auto")
 
 

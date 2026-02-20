@@ -561,9 +561,9 @@ Model + LoRAs + Embeddings 번들.
 | `description` | Text | 설명 |
 | `is_system` | Boolean | 시스템 프리셋 여부 (default: true) |
 | **Audio** | | |
-| `bgm_mode` | String(20) | BGM 모드 (`"file"` = 파일, `"ai"` = AI 생성, default: `"file"`) |
-| `bgm_file` | String(255) | BGM 파일 경로 (`"random"` = 랜덤, `bgm_mode="file"` 시 사용) |
-| `music_preset_id` | Integer (FK → music_presets, SET NULL) | AI BGM 프리셋 (`bgm_mode="ai"` 시 사용) |
+| `bgm_mode` | String(20) | BGM 모드 (`"manual"` = 수동 선택, `"auto"` = Sound Designer 자동, default: `"manual"`) |
+| `bgm_file` | String(255) | BGM 파일 경로 (`"random"` = 랜덤, `bgm_mode="manual"` 시 폴백) |
+| `music_preset_id` | Integer (FK → music_presets, SET NULL) | Music Preset (`bgm_mode="manual"` 시 우선 사용) |
 | `bgm_volume` | Float | BGM 볼륨 (0.0~1.0) |
 | `audio_ducking` | Boolean | 오디오 더킹 여부 |
 | `speed_multiplier` | Float | 재생 속도 배율 |
@@ -771,7 +771,7 @@ Textual Inversion 임베딩.
 | `TagRule.rule_type` | `conflict`, `requires` |
 | `TagAlias.target_tag` | String or `NULL` (= remove tag) |
 | `TagFilter.filter_type` | `ignore`, `skip` |
-| `RenderPreset.bgm_mode` | `file`, `ai` |
+| `RenderPreset.bgm_mode` | `manual`, `auto` |
 | `ActivityLog.status` | `success`, `fail` |
 | `CreativeSession.status` | `pending`, `running`, `completed`, `failed` |
 | `CreativeSessionRound.round_decision` | `revise`, `approve`, `reject` |

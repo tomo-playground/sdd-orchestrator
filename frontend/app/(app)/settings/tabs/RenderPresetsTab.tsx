@@ -16,7 +16,6 @@ export default function RenderPresetsTab() {
     editing,
     editId,
     saving,
-    bgmFiles,
     fonts,
     overlays,
     handleCreate,
@@ -64,7 +63,7 @@ export default function RenderPresetsTab() {
               <div className="mt-0.5 truncate text-[12px] text-zinc-400">
                 {[
                   p.layout_style,
-                  p.bgm_file ? `BGM: ${p.bgm_file}` : null,
+                  p.bgm_mode ? `BGM: ${p.bgm_mode}` : null,
                   p.bgm_volume != null ? `vol ${p.bgm_volume}` : null,
                   p.transition_type,
                   p.speed_multiplier != null && p.speed_multiplier !== 1.0
@@ -143,19 +142,14 @@ export default function RenderPresetsTab() {
               </select>
             </div>
             <div>
-              <label className={labelCls}>BGM File</label>
+              <label className={labelCls}>BGM Mode</label>
               <select
-                value={editing.bgm_file ?? ""}
-                onChange={(e) => set("bgm_file", e.target.value || null)}
+                value={editing.bgm_mode ?? "manual"}
+                onChange={(e) => set("bgm_mode", e.target.value)}
                 className={inputCls}
               >
-                <option value="">-- None --</option>
-                <option value="random">Random</option>
-                {bgmFiles.map((name) => (
-                  <option key={name} value={name}>
-                    {name.replace(/\.[^.]+$/, "")}
-                  </option>
-                ))}
+                <option value="manual">Manual</option>
+                <option value="auto">Auto</option>
               </select>
             </div>
             <div>

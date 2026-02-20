@@ -317,8 +317,8 @@
 | 항목 | 내용 |
 |------|------|
 | 사전조건 | effects 모듈의 `_resolve_bgm_path()` |
-| 절차 | bgm_mode별(ai, file) 경로 해석 |
-| 기대결과 | AI 모드 → ai_bgm_path 반환, File 모드 → resolve_bgm_file 사용, 모드 간 fallthrough 방지 |
+| 절차 | bgm_mode별(manual, auto) 경로 해석 |
+| 기대결과 | Manual 모드 → preset 우선 + bgm_file 폴백, Auto 모드 → ai_bgm_path 반환, legacy file/ai → manual 매핑 |
 | 테스트 파일 | `tests/test_effects_ai_bgm.py` |
 
 **테스트 케이스** (TestResolveBgmPath, 5개):

@@ -106,7 +106,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 
 ### `render_presets` — 렌더링 설정 프리셋
 - `id` (PK), `name`, `description`, `is_system`
-- **Audio**: `bgm_mode` (`file`/`ai`), `bgm_file`, `music_preset_id` (FK), `bgm_volume`, `audio_ducking`, `speed_multiplier`
+- **Audio**: `bgm_mode` (`manual`/`auto`), `bgm_file`, `music_preset_id` (FK), `bgm_volume`, `audio_ducking`, `speed_multiplier`
 - **Visual**: `layout_style`, `frame_style`, `scene_text_font`, `transition_type`, `ken_burns_preset`, `ken_burns_intensity`
 
 ### `voice_presets` — 음성 프리셋

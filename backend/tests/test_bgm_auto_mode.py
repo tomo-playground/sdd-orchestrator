@@ -1,4 +1,4 @@
-"""Unit tests for Phase 12-C: AI BGM auto mode pipeline."""
+"""Unit tests for BGM auto mode pipeline and manual mode dispatch."""
 
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -54,28 +54,12 @@ class TestPrepareBgmDispatch:
     """Tests for _prepare_bgm mode dispatching."""
 
     @pytest.mark.asyncio
-    async def test_file_mode_skips_all(self):
-        """file mode should do nothing (no preset/auto)."""
+    async def test_manual_mode_calls_preset(self):
+        """manual mode should call _prepare_preset_bgm."""
         from services.video.builder import VideoBuilder
 
         builder = MagicMock(spec=VideoBuilder)
-        builder.request = SimpleNamespace(bgm_mode="file")
-        builder._prepare_preset_bgm = AsyncMock()
-        builder._prepare_auto_bgm = AsyncMock()
-
-        # Call the unbound method with our mock
-        await VideoBuilder._prepare_bgm(builder)
-
-        builder._prepare_preset_bgm.assert_not_called()
-        builder._prepare_auto_bgm.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_ai_mode_calls_preset(self):
-        """ai mode should call _prepare_preset_bgm."""
-        from services.video.builder import VideoBuilder
-
-        builder = MagicMock(spec=VideoBuilder)
-        builder.request = SimpleNamespace(bgm_mode="ai")
+        builder.request = SimpleNamespace(bgm_mode="manual")
         builder._prepare_preset_bgm = AsyncMock()
         builder._prepare_auto_bgm = AsyncMock()
 
@@ -98,6 +82,36 @@ class TestPrepareBgmDispatch:
 
         builder._prepare_auto_bgm.assert_called_once()
         builder._prepare_preset_bgm.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_legacy_file_mode_calls_preset(self):
+        """Legacy 'file' mode should map to manual and call _prepare_preset_bgm."""
+        from services.video.builder import VideoBuilder
+
+        builder = MagicMock(spec=VideoBuilder)
+        builder.request = SimpleNamespace(bgm_mode="file")
+        builder._prepare_preset_bgm = AsyncMock()
+        builder._prepare_auto_bgm = AsyncMock()
+
+        await VideoBuilder._prepare_bgm(builder)
+
+        builder._prepare_preset_bgm.assert_called_once()
+        builder._prepare_auto_bgm.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_legacy_ai_mode_calls_preset(self):
+        """Legacy 'ai' mode should map to manual and call _prepare_preset_bgm."""
+        from services.video.builder import VideoBuilder
+
+        builder = MagicMock(spec=VideoBuilder)
+        builder.request = SimpleNamespace(bgm_mode="ai")
+        builder._prepare_preset_bgm = AsyncMock()
+        builder._prepare_auto_bgm = AsyncMock()
+
+        await VideoBuilder._prepare_bgm(builder)
+
+        builder._prepare_preset_bgm.assert_called_once()
+        builder._prepare_auto_bgm.assert_not_called()
 
 
 # ============================================================
@@ -233,7 +247,6 @@ class TestStoryboardCrudBgm:
                 from services.storyboard.crud import save_storyboard_to_db
 
                 # Mock the storyboard creation
-                original_storyboard_cls = None
                 try:
                     save_storyboard_to_db(mock_db, request)
                 except Exception:

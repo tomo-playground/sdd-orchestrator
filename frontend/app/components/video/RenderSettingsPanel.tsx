@@ -1,6 +1,6 @@
 "use client";
 
-import type { AudioItem, FontItem, KenBurnsPreset, RenderProgress, RenderStage } from "../../types";
+import type { FontItem, KenBurnsPreset, RenderProgress, RenderStage } from "../../types";
 import { SIDE_PANEL_LABEL, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 import VoiceStyleSection from "./VoiceStyleSection";
 import BgmSection from "./BgmSection";
@@ -58,11 +58,6 @@ export type RenderMediaPanelProps = {
   setTransitionType: (value: string) => void;
   speedMultiplier: number;
   setSpeedMultiplier: (value: number) => void;
-  bgmFile: string | null;
-  setBgmFile: (value: string | null) => void;
-  bgmList: AudioItem[];
-  onPreviewBgm: () => void;
-  isPreviewingBgm: boolean;
   audioDucking: boolean;
   setAudioDucking: (value: boolean) => void;
   bgmVolume: number;
@@ -71,8 +66,8 @@ export type RenderMediaPanelProps = {
   setVoiceDesignPrompt: (value: string) => void;
   voicePresetId?: number | null;
   setVoicePresetId?: (value: number | null) => void;
-  bgmMode: "file" | "ai" | "auto";
-  setBgmMode: (value: "file" | "ai" | "auto") => void;
+  bgmMode: "manual" | "auto";
+  setBgmMode: (value: "manual" | "auto") => void;
   musicPresetId: number | null;
   setMusicPresetId: (value: number | null) => void;
   bgmPrompt: string;
@@ -96,11 +91,6 @@ export function RenderMediaPanel({
   setTransitionType,
   speedMultiplier,
   setSpeedMultiplier,
-  bgmFile,
-  setBgmFile,
-  bgmList,
-  onPreviewBgm,
-  isPreviewingBgm,
   audioDucking,
   setAudioDucking,
   bgmVolume,
@@ -226,11 +216,6 @@ export function RenderMediaPanel({
           <BgmSection
             bgmMode={bgmMode}
             setBgmMode={setBgmMode}
-            bgmFile={bgmFile}
-            setBgmFile={setBgmFile}
-            bgmList={bgmList}
-            onPreviewBgm={onPreviewBgm}
-            isPreviewingBgm={isPreviewingBgm}
             musicPresetId={musicPresetId}
             setMusicPresetId={setMusicPresetId}
             audioDucking={audioDucking}

@@ -19,8 +19,6 @@ export default function PublishTab() {
     canRender,
     disabledReason,
     handleRender,
-    isPreviewingBgm,
-    handlePreviewBgm,
     handleSetVoicePresetId,
   } = usePublishRender();
 
@@ -77,11 +75,6 @@ export default function PublishTab() {
         setTransitionType={(v) => setOutput({ transitionType: v })}
         speedMultiplier={store.speedMultiplier}
         setSpeedMultiplier={(v) => setOutput({ speedMultiplier: v })}
-        bgmFile={store.bgmFile}
-        setBgmFile={(v) => setOutput({ bgmFile: v })}
-        bgmList={store.bgmList}
-        onPreviewBgm={handlePreviewBgm}
-        isPreviewingBgm={isPreviewingBgm}
         audioDucking={store.audioDucking}
         setAudioDucking={(v) => setOutput({ audioDucking: v })}
         bgmVolume={store.bgmVolume}

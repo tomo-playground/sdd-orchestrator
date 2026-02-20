@@ -45,7 +45,7 @@ export interface RenderStore {
   ttsEngine: "qwen";
   voiceDesignPrompt: string;
   voicePresetId: number | null;
-  bgmMode: "file" | "ai" | "auto";
+  bgmMode: "manual" | "auto";
   musicPresetId: number | null;
   bgmPrompt: string;
   bgmMood: string;
@@ -84,7 +84,7 @@ const initialState: Omit<RenderStore, "set" | "reset"> = {
   ttsEngine: "qwen",
   voiceDesignPrompt: "",
   voicePresetId: null,
-  bgmMode: "file",
+  bgmMode: "manual",
   musicPresetId: null,
   bgmPrompt: "",
   bgmMood: "",
@@ -142,6 +142,17 @@ export const useRenderStore = create<RenderStore>()(
           persisted[key] = value;
         }
         return persisted as Partial<RenderStore>;
+      },
+      version: 1,
+      migrate: (persisted, version) => {
+        const state = persisted as Record<string, unknown>;
+        if (version < 1) {
+          const mode = state.bgmMode as string | undefined;
+          if (mode === "file" || mode === "ai") {
+            state.bgmMode = "manual";
+          }
+        }
+        return state as Partial<RenderStore>;
       },
     }
   )

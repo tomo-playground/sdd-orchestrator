@@ -12,7 +12,8 @@ export type EditingPreset = Partial<RenderPreset> & { name: string };
 export const EMPTY_PRESET: EditingPreset = {
   name: "",
   description: "",
-  bgm_file: "random",
+  bgm_file: null,
+  bgm_mode: "manual",
   bgm_volume: 0.25,
   audio_ducking: true,
   scene_text_font: "",
@@ -33,7 +34,6 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
   const [saving, setSaving] = useState(false);
 
   // Dynamic options from API
-  const [bgmFiles, setBgmFiles] = useState<string[]>([]);
   const [fonts, setFonts] = useState<string[]>([]);
   const [overlays, setOverlays] = useState<{ id: string; name: string }[]>([]);
 
@@ -49,10 +49,6 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
   useEffect(() => {
     void fetchPresets();
     // Fetch dynamic options
-    void axios
-      .get<{ audios: { name: string }[] }>(`${API_BASE}/audio/list`)
-      .then((r) => setBgmFiles(r.data.audios.map((a) => a.name)))
-      .catch(() => {});
     void axios
       .get<{ fonts: { name: string }[] }>(`${API_BASE}/fonts/list`)
       .then((r) => setFonts(r.data.fonts.map((f) => f.name)))
@@ -74,6 +70,7 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
       name: p.name,
       description: p.description ?? "",
       bgm_file: p.bgm_file ?? "",
+      bgm_mode: p.bgm_mode ?? "manual",
       bgm_volume: p.bgm_volume ?? 0.25,
       audio_ducking: p.audio_ducking ?? true,
       scene_text_font: p.scene_text_font ?? "",
@@ -146,7 +143,6 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
     editing,
     editId,
     saving,
-    bgmFiles,
     fonts,
     overlays,
     handleCreate,

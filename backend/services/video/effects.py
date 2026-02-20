@@ -131,13 +131,19 @@ def apply_bgm(builder: VideoBuilder) -> None:
 
 
 def _resolve_bgm_path(builder: VideoBuilder) -> str | None:
-    """Resolve BGM file path based on bgm_mode (file, ai, or auto)."""
-    bgm_mode = getattr(builder.request, "bgm_mode", "file")
+    """Resolve BGM file path based on bgm_mode (manual or auto)."""
+    bgm_mode = getattr(builder.request, "bgm_mode", "manual")
+    # Backward compat: map legacy values
+    if bgm_mode in ("file", "ai"):
+        bgm_mode = "manual"
 
-    if bgm_mode in ("ai", "auto"):
-        return builder._ai_bgm_path  # None → no BGM (no fallthrough to file)
+    if bgm_mode == "auto":
+        return builder._ai_bgm_path
 
-    # File mode (existing logic)
+    # Manual mode: preset path first, then bgm_file fallback
+    if builder._ai_bgm_path:
+        return builder._ai_bgm_path
+
     storage = get_storage()
     seed = hash(builder.project_id)
     resolved_bgm = resolve_bgm_file(builder.request.bgm_file, seed=seed)

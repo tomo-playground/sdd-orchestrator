@@ -119,16 +119,17 @@ Instagram 카드 스타일. 이미지 + Scene Text 영역 + Caption 영역.
 
 ## 7. BGM Pipeline
 
-### 7-1. File Mode (`bgm_mode="file"`)
+### 7-1. Manual Mode (`bgm_mode="manual"`)
 
-- `bgm_file` 지정 파일 사용, `"random"` 시 디렉토리에서 무작위 선택
-- `assets/audio/` 디렉토리 참조
-
-### 7-2. AI Mode (`bgm_mode="ai"`)
-
-- `music_preset_id` → `MusicPreset` 조회
+- `music_preset_id` → `MusicPreset` 조회 (우선)
 - 캐시 확인: `audio_asset_id` 존재 + 로컬 파일 있으면 즉시 사용
 - 없으면: Stable Audio Open으로 실시간 생성 (~10-20초)
+- 폴백: preset 없으면 `bgm_file` 파일 사용 (`"random"` 시 무작위 선택)
+
+### 7-2. Auto Mode (`bgm_mode="auto"`)
+
+- Sound Designer가 생성한 `bgm_prompt`로 자동 BGM 생성
+- Storyboard에 저장된 프롬프트 사용
 
 ### 7-3. Audio Ducking
 

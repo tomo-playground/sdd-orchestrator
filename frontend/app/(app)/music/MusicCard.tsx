@@ -93,15 +93,13 @@ export default function MusicCard({
           </button>
 
           {/* Delete */}
-          {!preset.is_system && (
-            <button
-              onClick={() => onDelete(preset)}
-              className="rounded-full border border-red-200 p-1.5 text-red-400 transition hover:bg-red-50"
-              title="Delete"
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
-          )}
+          <button
+            onClick={() => onDelete(preset)}
+            className="rounded-full border border-red-200 p-1.5 text-red-400 transition hover:bg-red-50"
+            title="Delete"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
         </div>
       </div>
     </div>
