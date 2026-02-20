@@ -144,6 +144,11 @@ Hook 전략: {plan["hook_strategy"]}
     if feedback:
         desc = f"{desc}\n\n[수정 요청] {feedback}".strip()
 
+    # 내부 컨텍스트 주입으로 description이 길어질 수 있음 — 초과 시 절삭
+    if desc and len(desc) > 1900:
+        logger.warning("[Writer] description 절삭: %d → 1900자", len(desc))
+        desc = desc[:1900]
+
     request = StoryboardRequest(
         topic=state["topic"],
         description=desc,

@@ -540,6 +540,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
             isGenerating: false,
             progress: null,
           }));
+          showToast("대본 생성이 완료되지 않았습니다", "warning");
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Resume failed";

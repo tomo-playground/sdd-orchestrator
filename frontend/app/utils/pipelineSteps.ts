@@ -53,7 +53,13 @@ export function updatePipelineSteps(
   mode: "quick" | "full"
 ): PipelineStep[] {
   const stepId = NODE_TO_STEP[event.node];
-  if (!stepId) return steps;
+  if (!stepId) {
+    // error 노드: 현재 running 중인 스텝을 error로 표시
+    if (event.status === "error") {
+      return steps.map((s) => (s.status === "running" ? { ...s, status: "error" } : s));
+    }
+    return steps;
+  }
 
   const stepIds = (mode === "full" ? FULL_STEPS : QUICK_STEPS).map((s) => s.id);
   const targetIdx = stepIds.indexOf(stepId);
