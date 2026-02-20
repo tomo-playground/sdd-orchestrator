@@ -56,6 +56,7 @@ const BASE_CHARACTER: CharacterFull = {
   prompt_mode: "auto",
   ip_adapter_weight: null,
   ip_adapter_model: null,
+  voice_preset_id: null,
   effective_mode: "standard",
 };
 

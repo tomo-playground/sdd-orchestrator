@@ -10,7 +10,13 @@ import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Button from "../../../components/ui/Button";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
 import ImagePreviewModal from "../../../components/ui/ImagePreviewModal";
-import { BasicInfoSection, PromptsSection, SectionCard } from "./CharacterDetailSections";
+import {
+  BasicInfoSection,
+  PromptsSection,
+  VoicePresetSection,
+  IpAdapterSection,
+  SectionCard,
+} from "./CharacterDetailSections";
 import GeminiEditModal from "./GeminiEditModal";
 import AppearanceStep from "../builder/steps/AppearanceStep";
 import LoraStep from "../builder/steps/LoraStep";
@@ -187,6 +193,24 @@ export default function CharacterDetailPage() {
         {/* Right: Detail sections */}
         <div className="space-y-4">
           <BasicInfoSection form={form} onChange={updateField} />
+
+          <SectionCard
+            title="Voice"
+            collapsible
+            defaultOpen={false}
+            summary={form.voice_preset_id ? `Preset #${form.voice_preset_id}` : undefined}
+          >
+            <VoicePresetSection form={form} onChange={updateField} />
+          </SectionCard>
+
+          <SectionCard
+            title="IP-Adapter"
+            collapsible
+            defaultOpen={false}
+            summary={`${form.ip_adapter_model} (${form.ip_adapter_weight})`}
+          >
+            <IpAdapterSection form={form} onChange={updateField} />
+          </SectionCard>
 
           <SectionCard
             title="Appearance"

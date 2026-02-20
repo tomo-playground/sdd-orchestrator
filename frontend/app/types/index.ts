@@ -403,6 +403,7 @@ export type CharacterFull = {
   prompt_mode: PromptMode;
   ip_adapter_weight: number | null;
   ip_adapter_model: string | null;
+  voice_preset_id: number | null;
   effective_mode: EffectiveMode;
 };
 
@@ -831,6 +832,8 @@ export type ScriptStreamEvent = {
     review_result?: Record<string, unknown>;
     scene_reasoning?: Record<string, unknown>[];
     production_snapshot?: ProductionSnapshot;
+    // sound_designer → finalize
+    sound_recommendation?: { prompt?: string; mood?: string; duration?: number };
   };
   error?: string;
   thread_id?: string;

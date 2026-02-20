@@ -8,6 +8,7 @@ import Textarea from "../../../components/ui/Textarea";
 import { findDuplicateTokens } from "../shared/promptDuplicateCheck";
 import { formatTagName } from "../shared/formatTag";
 import PromptPair from "../shared/PromptPair";
+import VoicePresetSelector from "../../../components/voice/VoicePresetSelector";
 
 // ── Shared form type ─────────────────────────────────────────
 export type CharacterFormData = {
@@ -19,6 +20,9 @@ export type CharacterFormData = {
   custom_negative_prompt: string;
   reference_base_prompt: string;
   reference_negative_prompt: string;
+  voice_preset_id: number | null;
+  ip_adapter_weight: number;
+  ip_adapter_model: string;
 };
 
 type FormOnChange = <K extends keyof CharacterFormData>(
@@ -117,6 +121,67 @@ export function BasicInfoSection({ form, onChange }: BasicInfoProps) {
         </div>
       </div>
     </SectionCard>
+  );
+}
+
+// ── Voice Preset ────────────────────────────────────────────
+type VoicePresetProps = { form: CharacterFormData; onChange: FormOnChange };
+
+export function VoicePresetSection({ form, onChange }: VoicePresetProps) {
+  return (
+    <VoicePresetSelector
+      value={form.voice_preset_id}
+      onChange={(id) => onChange("voice_preset_id", id)}
+      label="Voice Preset"
+    />
+  );
+}
+
+// ── IP-Adapter ──────────────────────────────────────────────
+const IP_ADAPTER_MODELS = ["clip_face", "clip", "faceid"] as const;
+
+type IpAdapterProps = { form: CharacterFormData; onChange: FormOnChange };
+
+export function IpAdapterSection({ form, onChange }: IpAdapterProps) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="mb-1 block text-xs font-medium text-zinc-500">
+          Weight ({form.ip_adapter_weight.toFixed(2)})
+        </label>
+        <input
+          type="range"
+          min={0}
+          max={1.5}
+          step={0.05}
+          value={form.ip_adapter_weight}
+          onChange={(e) => onChange("ip_adapter_weight", parseFloat(e.target.value))}
+          className="w-full accent-zinc-700"
+        />
+        <div className="mt-0.5 flex justify-between text-[11px] text-zinc-400">
+          <span>0</span>
+          <span>1.5</span>
+        </div>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs font-medium text-zinc-500">Model</label>
+        <div className="flex gap-2">
+          {IP_ADAPTER_MODELS.map((m) => (
+            <button
+              key={m}
+              onClick={() => onChange("ip_adapter_model", m)}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
+                form.ip_adapter_model === m
+                  ? "bg-zinc-900 text-white"
+                  : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 

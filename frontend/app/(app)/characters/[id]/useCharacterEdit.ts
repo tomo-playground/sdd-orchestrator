@@ -40,6 +40,9 @@ function formFromCharacter(ch: CharacterFull): CharacterFormData {
     custom_negative_prompt: ch.custom_negative_prompt ?? "",
     reference_base_prompt: ch.reference_base_prompt ?? "",
     reference_negative_prompt: ch.reference_negative_prompt ?? "",
+    voice_preset_id: ch.voice_preset_id ?? null,
+    ip_adapter_weight: ch.ip_adapter_weight ?? 0.35,
+    ip_adapter_model: ch.ip_adapter_model ?? "clip_face",
   };
 }
 
@@ -154,6 +157,9 @@ export function useCharacterEdit(rawId: number) {
         custom_negative_prompt: form.custom_negative_prompt.trim() || null,
         reference_base_prompt: form.reference_base_prompt.trim() || null,
         reference_negative_prompt: form.reference_negative_prompt.trim() || null,
+        voice_preset_id: form.voice_preset_id,
+        ip_adapter_weight: form.ip_adapter_weight,
+        ip_adapter_model: form.ip_adapter_model,
         tags: selectedTags.map((t) => ({
           tag_id: t.tagId,
           weight: 1.0,
@@ -290,6 +296,9 @@ export function useCharacterEdit(rawId: number) {
         form.custom_negative_prompt !== (character.custom_negative_prompt ?? "") ||
         form.reference_base_prompt !== (character.reference_base_prompt ?? "") ||
         form.reference_negative_prompt !== (character.reference_negative_prompt ?? "") ||
+        form.voice_preset_id !== (character.voice_preset_id ?? null) ||
+        form.ip_adapter_weight !== (character.ip_adapter_weight ?? 0.35) ||
+        form.ip_adapter_model !== (character.ip_adapter_model ?? "clip_face") ||
         tagsChanged ||
         lorasChanged
       : false;
