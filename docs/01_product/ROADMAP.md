@@ -120,6 +120,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | Visual Tag Browser (태그별 예시 이미지) | [명세](FEATURES/VISUAL_TAG_BROWSER.md) |
 | ~~Scene Clothing Override (장면별 의상 변경)~~ | ✅ Phase 13-D 완료 |
 | ~~Scene 단위 자연어 이미지 편집~~ | ✅ Phase 13-B 완료 |
+| Style-Character Hierarchy (캐릭터 ↔ 화풍 연결) | [명세](FEATURES/STYLE_CHARACTER_HIERARCHY.md) |
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Storyboard Version History | — |
 | Real-time Prompt Preview (12-Layer) | — |
