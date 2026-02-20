@@ -314,6 +314,13 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         # Guard: trim excess scenes if Gemini exceeded the duration-based limit
         scenes = trim_scenes_to_duration(scenes, request.duration)
 
+        # Duration auto-calculation from reading time
+        from services.storyboard.helpers import estimate_reading_duration
+
+        for scene in scenes:
+            if scene.get("script", "").strip():
+                scene["duration"] = estimate_reading_duration(scene["script"], request.language)
+
         # Post-process scenes: warnings, tag pipeline, dialogue defense, auto-pin
         warn_script_issues(scenes)
         process_scene_tags(scenes)

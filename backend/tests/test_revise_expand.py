@@ -162,11 +162,16 @@ def test_redistribute_no_change_needed():
 
 
 def test_redistribute_clamps_to_range():
-    """재분배 결과가 SCENE_DURATION_RANGE 범위로 클램핑된다."""
+    """재분배 결과가 reading-time 최소값 ~ SCENE_DURATION_MAX 범위로 클램핑된다.
+
+    script 없는 씬은 min_dur=2.0, max_dur=SCENE_DURATION_MAX(10.0)로 클램핑.
+    """
+    from config import SCENE_DURATION_MAX
+
     scenes = [{"duration": 1.0}, {"duration": 9.0}]
     redistribute_durations(scenes, 7)
     for s in scenes:
-        assert 2.0 <= s["duration"] <= 3.5
+        assert 2.0 <= s["duration"] <= SCENE_DURATION_MAX
 
 
 def test_redistribute_empty_scenes():

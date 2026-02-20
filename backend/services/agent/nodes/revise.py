@@ -159,7 +159,11 @@ async def revise_node(state: ScriptState) -> dict:
             if 0 < deficit <= REVISE_MAX_EXPANSION_SCENES:
                 expanded = await try_scene_expand(scenes, state, deficit, target_min)
                 if expanded:
-                    redistribute_durations(expanded, state.get("duration", 10))
+                    redistribute_durations(
+                        expanded,
+                        state.get("duration", 10),
+                        language=state.get("language", "Korean"),
+                    )
                     logger.info("[LangGraph] Revise Tier 2 확장 완료 (revision=%d)", count + 1)
                     history[-1]["tier"] = "expansion"
                     return {

@@ -176,6 +176,15 @@ async def writer_node(state: ScriptState) -> dict:
                 return {"error": str(e)}
 
         scenes = result.get("scenes", [])
+
+        # Duration auto-calculation from reading time
+        from services.storyboard.helpers import estimate_reading_duration
+
+        language = state.get("language", "Korean")
+        for scene in scenes:
+            if scene.get("script", "").strip():
+                scene["duration"] = estimate_reading_duration(scene["script"], language)
+
         scene_reasoning = _extract_reasoning(scenes)
         logger.info(
             "[LangGraph] Writer 노드 완료: %d scenes, plan=%s",

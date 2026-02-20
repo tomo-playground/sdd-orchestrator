@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config import SCENE_DURATION_RANGE, SCRIPT_LENGTH_KOREAN, SCRIPT_LENGTH_OTHER, logger
+from config import SCRIPT_LENGTH_KOREAN, SCRIPT_LENGTH_OTHER, logger
 from services.keywords.patterns import CATEGORY_PATTERNS
 from services.storyboard.helpers import calculate_max_scenes, calculate_min_scenes
 
@@ -64,15 +64,22 @@ def validate_scripts(
             issues.append(f"Scene {i}: script length out of range ({len(script_text)} chars)")
     checks["script_length"] = "PASS" if length_pass == count else "FAIL"
 
-    # Per-scene duration range check (SSOT: config.py SCENE_DURATION_RANGE)
-    dur_min, dur_max = SCENE_DURATION_RANGE
+    # Per-scene duration check: reading-time-aware (±1.0s tolerance)
+    from services.storyboard.helpers import estimate_reading_duration
+
     dur_range_ok = True
     for i, s in enumerate(scripts):
         d = s.get("duration", 0)
-        if not (dur_min <= d <= dur_max):
+        script_text = s.get("script", "").strip()
+        if script_text:
+            expected = estimate_reading_duration(script_text, language)
+            if abs(d - expected) > 1.0:
+                dur_range_ok = False
+                issues.append(f"Scene {i}: duration {d}s vs reading-time {expected}s (gap > 1.0s)")
+        elif d <= 0:
             dur_range_ok = False
-            issues.append(f"Scene {i}: duration {d}s outside [{dur_min}-{dur_max}s]")
-    checks["scene_duration_range"] = "PASS" if dur_range_ok else "FAIL"
+            issues.append(f"Scene {i}: duration {d}s invalid")
+    checks["scene_duration_range"] = "PASS" if dur_range_ok else "WARN"
 
     # Speaker rules
     speaker_ok = True

@@ -12,7 +12,7 @@ Generate exactly {{ deficit }} NEW scenes to fill the gap. Do NOT modify existin
 - Language: {{ language }}
 - Structure: {{ structure }}
 - Style: {{ style }}
-- Duration per scene: {{ scene_dur_min }}s ~ {{ scene_dur_max }}s
+- Duration per scene: set to 3 (backend auto-calculates based on script reading time)
 {% if selected_concept %}
 
 ## Selected Concept
@@ -29,7 +29,7 @@ Generate exactly {{ deficit }} NEW scenes to fill the gap. Do NOT modify existin
 2. Each scene MUST have: `insert_after` (0-based index of existing scene to insert after, or -1 for beginning), `script`, `speaker`, `duration`, `image_prompt`.
 3. `image_prompt` MUST use Danbooru tag format (underscore-separated, e.g. `brown_hair, school_uniform, looking_at_viewer`).
 4. Maintain narrative flow: new scenes should connect naturally with adjacent existing scenes.
-5. Duration per scene: {{ scene_dur_min }}s ~ {{ scene_dur_max }}s.
+5. Duration per scene: set to 3 (backend auto-calculates based on script reading time).
 {% if structure == "Monologue" %}
 6. Speaker: Always "A" (single narrator).
 {% elif structure == "Dialogue" %}
@@ -52,7 +52,7 @@ Consider this feedback when creating new scenes.
     "insert_after": 1,
     "script": "new scene script text",
     "speaker": "A",
-    "duration": {{ scene_dur_min }},
+    "duration": 3,
     "image_prompt": "1girl, brown_hair, school_uniform, looking_to_the_side, profile"
   }
 ]

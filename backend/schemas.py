@@ -1504,10 +1504,19 @@ class PresetDetailResponse(BaseModel):
     extra_fields: dict
 
 
+class ReadingSpeedConfig(BaseModel):
+    """Reading speed config for a single language."""
+
+    cps: float | None = None  # characters per second (Korean, Japanese)
+    wps: float | None = None  # words per second (English)
+    unit: str  # "chars" or "words"
+
+
 class PresetListResponse(BaseModel):
     presets: list[PresetSummary]
     languages: list[LanguageOption]
     durations: list[int]
+    reading_speed: dict[str, ReadingSpeedConfig] = {}
     optional_steps: list[str] = []
 
 

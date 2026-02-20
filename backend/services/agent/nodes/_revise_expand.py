@@ -72,8 +72,15 @@ def merge_expanded_scenes(existing: list[dict], new_scenes: list[dict]) -> list[
     return result
 
 
-def redistribute_durations(scenes: list[dict], target_duration: int) -> None:
-    """총 duration을 target_duration에 맞게 비례 재분배한다."""
+def redistribute_durations(
+    scenes: list[dict], target_duration: int, language: str = "Korean"
+) -> None:
+    """총 duration을 target_duration에 맞게 비례 재분배한다.
+
+    각 씬의 최소 duration은 reading-time 기반으로 결정된다.
+    """
+    from services.storyboard.helpers import estimate_reading_duration
+
     if not scenes:
         return
 
@@ -82,15 +89,18 @@ def redistribute_durations(scenes: list[dict], target_duration: int) -> None:
         return
 
     ratio = target_duration / total
-    min_dur, max_dur = SCENE_DURATION_RANGE
+
+    from config import SCENE_DURATION_MAX
 
     for scene in scenes:
+        script = scene.get("script", "").strip()
+        min_dur = estimate_reading_duration(script, language) if script else 2.0
         raw = scene.get("duration", min_dur) * ratio
-        scene["duration"] = round(max(min_dur, min(max_dur, raw)), 1)
+        scene["duration"] = round(max(min_dur, min(SCENE_DURATION_MAX, raw)), 1)
 
 
-def postprocess_new_scenes(new_scenes: list[dict]) -> None:
-    """새 씬에만 태그 정규화 + negative prompt를 적용한다."""
+def postprocess_new_scenes(new_scenes: list[dict], language: str = "Korean") -> None:
+    """새 씬에만 태그 정규화 + negative prompt + duration 재계산을 적용한다."""
     from config import DEFAULT_SCENE_NEGATIVE_PROMPT, ENABLE_DANBOORU_VALIDATION
     from services.keywords import filter_prompt_tokens
     from services.prompt import (
@@ -98,8 +108,13 @@ def postprocess_new_scenes(new_scenes: list[dict]) -> None:
         normalize_prompt_tokens,
         validate_tags_with_danbooru,
     )
+    from services.storyboard.helpers import estimate_reading_duration
 
     for scene in new_scenes:
+        # Duration auto-calculation from reading time
+        script = scene.get("script", "").strip()
+        if script:
+            scene["duration"] = estimate_reading_duration(script, language)
         raw_prompt = scene.get("image_prompt", "")
         if not raw_prompt:
             continue
@@ -186,7 +201,7 @@ async def try_scene_expand(
             logger.warning("[Revise] Expansion: 빈 결과 반환")
             return None
 
-        postprocess_new_scenes(new_scenes)
+        postprocess_new_scenes(new_scenes, language=state.get("language", "Korean"))
         merged = merge_expanded_scenes([s.copy() for s in scenes], new_scenes)
 
         logger.info(

@@ -146,7 +146,7 @@ CRITICAL STYLE CONSISTENCY RULE:
 Instructions:
 1. Create a narrated dialogue with Narrator, Speaker A, and Speaker B.
    - Target: {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
-   - Each scene: 2-3 seconds (for fast pacing)
+   - Each scene duration: set to 3 (backend auto-calculates based on script reading time)
 2. Follow pattern: Narrator → A → B → Narrator → A → B... (repeat as needed)
 3. Narrator scenes:
    - Image shows environment, objects, or atmospheric elements (NO characters)
@@ -169,7 +169,7 @@ Instructions:
      * Scripts UNDER 10 characters cause TTS audio defects — always write 10+ chars.
      * Must fit in 2 lines when rendered on screen.
    - speaker: "Narrator", "A", or "B"
-   - duration: seconds (2-3 recommended for fast pacing)
+   - duration: set to 3 (backend auto-calculates based on script reading time)
 {% if is_multi_character_capable %}
    - scene_mode: "single" (default, one character) or "multi" (both characters together)
 {% endif %}

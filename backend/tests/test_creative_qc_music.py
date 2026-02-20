@@ -90,13 +90,12 @@ class TestWarnDoesNotFailScripts:
         assert result["checks"]["script_length"] == "FAIL"
         assert result["ok"] is False
 
-    def test_scene_duration_range_fail(self):
-        # Scene with 1.5s duration → scene_duration_range FAIL
+    def test_scene_duration_range_warn(self):
+        # Scene with 1.5s duration vs reading-time ~3.0s → WARN (gap > 1.0s)
         scripts = _make_scripts(6)
-        scripts[0]["duration"] = 1.5  # below 2.0s min
+        scripts[0]["duration"] = 1.5  # gap > 1.0s from reading time
         result = validate_scripts(scripts, "Monologue", 30, "Korean")
-        assert result["checks"]["scene_duration_range"] == "FAIL"
-        assert result["ok"] is False
+        assert result["checks"]["scene_duration_range"] == "WARN"
 
     def test_scene_duration_range_pass(self):
         # All scenes within 2.0-3.5s → PASS

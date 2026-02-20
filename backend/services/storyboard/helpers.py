@@ -68,6 +68,26 @@ def trim_scenes_to_duration(scenes: list[dict], duration: int) -> list[dict]:
     return scenes[:max_scenes]
 
 
+def estimate_reading_duration(text: str, language: str) -> float:
+    """Script 텍스트로부터 읽기 시간을 추정한다. config.py READING_SPEED 사용."""
+    from config import READING_DURATION_PADDING, READING_SPEED, SCENE_DURATION_MAX
+
+    cfg = READING_SPEED.get(language, READING_SPEED["Korean"])
+    stripped = text.strip()
+    if not stripped:
+        return 2.0
+
+    if cfg.get("unit") == "words":
+        count = len(stripped.split())
+        rate = cfg["wps"]
+    else:
+        count = len(stripped.replace(" ", ""))
+        rate = cfg["cps"]
+
+    raw = count / rate + READING_DURATION_PADDING
+    return max(2.0, min(SCENE_DURATION_MAX, round(raw, 1)))
+
+
 def truncate_title(title: str, max_length: int = 190) -> str:
     """Truncate title if it exceeds constraints."""
     if not title:

@@ -20,10 +20,13 @@ async def list_presets():
 
     Returns presets with sample topics, default settings, and option lists.
     """
+    from config import READING_SPEED
+
     return {
         "presets": get_all_presets(),
         "languages": STORYBOARD_LANGUAGES,
         "durations": SHORTS_DURATIONS,
+        "reading_speed": READING_SPEED,
         "optional_steps": [],
         "pipeline_metadata": [],
     }

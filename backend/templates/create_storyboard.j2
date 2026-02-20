@@ -107,7 +107,7 @@ Instructions:
 1. Break the story into sequential scenes that fit the total duration.
    - STRICT: Create {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
    - NEVER exceed {{ ((duration / 2) | round | int) }} scenes. Fewer scenes is acceptable.
-   - Each scene: 2-3 seconds (for fast pacing)
+   - Each scene duration: set to 3 (backend auto-calculates based on script reading time)
 2. Use Actor A only. Make it a single-person monologue (spoken tone).
 3. For EACH scene, follow this process:
    a) Write the script first
@@ -140,7 +140,7 @@ Instructions:
      * GOOD (28자): "오늘은 진짜 일찍 일어나서… 운동도 하고…"
      * BAD (50자): "오늘은 진짜 일찍 일어나서 운동도 하고 커피도 내려 마시고 하루를 시작했어" (too long, 3+ lines)
    - speaker: "A"
-   - duration: seconds (2-3 recommended for fast pacing)
+   - duration: set to 3 (backend auto-calculates based on script reading time)
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
      * REQUIRED categories (pick ONE tag from each category in the Allowed Keywords list below):
        - expression: facial emotion

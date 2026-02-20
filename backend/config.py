@@ -396,6 +396,15 @@ SCENE_DURATION_RANGE = (2.0, 3.5)  # (min_seconds, max_seconds) per scene
 SCENE_DEFAULT_DURATION = 3.0  # fallback duration for invalid scenes (revise node)
 REVIEW_SCRIPT_MAX_CHARS_OTHER = 70  # char-level review threshold for non-Korean (~max_words * avg_chars)
 
+# --- Reading Speed (SSOT for duration estimation + Frontend display) ---
+READING_SPEED: dict[str, dict] = {
+    "Korean": {"cps": 4.0, "unit": "chars"},
+    "Japanese": {"cps": 5.0, "unit": "chars"},
+    "English": {"wps": 2.5, "unit": "words"},
+}
+READING_DURATION_PADDING = 0.5  # seconds (자연스러운 호흡 간격)
+SCENE_DURATION_MAX = 10.0  # absolute safety cap per scene
+
 # --- Pipeline & Integration Constants (extracted to config_pipelines.py) ---
 from config_pipelines import *  # noqa: E402, F401, F403
 
