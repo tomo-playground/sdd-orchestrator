@@ -12,19 +12,15 @@
 | Phase 9 (Agentic Pipeline) | 전체 완료 (ARCHIVED) |
 | Phase 10 (True Agentic) | 전체 완료 (ARCHIVED) |
 | Phase 11 (Scene Diversity) | 전체 완료 (ARCHIVED) |
-| Phase 12 (Agent Enhancement & AI BGM) | 전체 완료 (26/26) |
-| **Phase 13 (Creative Control & Production Speed)** | **전체 완료 (19/19)** |
+| Phase 12 (Agent Enhancement & AI BGM) | 전체 완료 (ARCHIVED) |
+| Phase 13 (Creative Control & Production Speed) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | 미착수 (Future) |
 | 테스트 | Backend 2,156 + Frontend 352 = **총 2,508개** |
 
 ### 최근 작업
 
-- **Phase 13 Creative Control & Production Speed 완료** (02-20): 4개 서브 Phase, 19건 완료. 13-A 성능 최적화(Research/Review/Critic 병렬화, Studio 로드 50% 단축, SSE ETA), 13-B 이미지 UX(Progress SSE+프리뷰, 자연어 편집 API, 개별 취소), 13-C Structure별 J2 템플릿(Monologue/Dialogue/NarratedDialogue/Confession 4종+자동 매핑+Danbooru 태그 주입), 13-D Scene Clothing Override(JSONB+12-Layer Builder+UI). 2,156 backend 테스트 PASS, Frontend 빌드 성공
-- **Phase 12-D Gemini Model Upgrade 완료** (02-20): Director/Review/Critic 3개 핵심 노드 `gemini-2.5-pro` 분리. `run_production_step` model 파라미터 추가(후방 호환), debate_log groupthink 메트릭, Learn 노드 model_info/revision_accuracy 수집. 7개 파일, 13개 신규 테스트 (총 2,156 backend PASS)
-- **Phase 12-C AI BGM Pipeline (하이브리드) 완료** (02-20): 3-Mode BGM (file/ai/auto). Sound Designer → DB 저장 → 렌더링 자동 적용. Storyboard 3컬럼(bgm_prompt, bgm_mood, bgm_audio_asset_id), builder auto 모드, BgmSection 3-Mode UI, "BGM 적용" 버튼, 캐시 무효화. 15개 파일, 12개 신규 테스트 (총 17 BGM 테스트 PASS)
-- **BGM 생성 모델 전환: Stable Audio Open → MusicGen Small** (02-20): `diffusers`+`torchsde` 의존성 제거, `transformers` 통합. 모델 크기 75% 감소(1.2B→300M), 학습 데이터 2.7배(20K시간), 재귀 제한 해킹 제거. 7개 파일, 52개 테스트 PASS
-- **Phase 12-B Agent Data Flow 완료** (02-20): 10건 — Director Plan→전체 파이프라인 주입, Research→Critic 구조화, 예외 자동통과 제거(retry+error), Learn 데이터 확충, Critic 컨셉 보존, 수렴 임계값 재조정(0.85+최소2라운드), Revise placeholder 동적 생성, Review script_image_sync 가중치 0.15, Finalize 메타데이터 분리, Human Gate 판단 근거. 61개 신규 테스트
-- **Phase 12-A Agent Bug Fixes 완료** (02-20): 5건 — language 필드 3개 노드 추가, `_topic_key()` 공통 모듈 추출, Cinematographer await 수정, Copyright overall 서버사이드 재계산, Learn character_b_id 저장. 20개 신규 테스트
+- **Phase 13 Creative Control & Production Speed 완료** (02-20): 19건 완료. 성능 최적화, 이미지 UX, Structure 템플릿, Clothing Override. [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md)
+- **Phase 12 Agent Enhancement & AI BGM 완료** (02-20): 26건 완료. Agent Bug Fix 5건, Data Flow 10건, 3-Mode BGM 6건, Gemini Model Upgrade 5건. [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md)
 - **Cinematographer 프롬프트 품질 개선** (02-20): 5개 버그 수정 — negative_prompt Finalize 주입(Full+Quick), characters_tags+LoRA 템플릿 전달, 장면별 오브젝트 가이드, 환경 태그 남용 제약, search_similar_compositions DB 연동. 9개 신규 테스트 (총 63개 PASS)
 - **Duration Auto-Calculation from Reading Time** (02-20): Duration을 파생 값으로 전환. `config.py` READING_SPEED SSOT → `estimate_reading_duration()` → writer/gemini_generator/revise_expand 후처리. QC FAIL→WARN 완화, Frontend 하드코딩 제거→API 소비. 20개 파일, 10개 신규 테스트
 - **Cinematographer 한글 장면설명 표시** (02-20): `CinematographerSection`에 `image_prompt_ko` 표시 추가. 백엔드에서 이미 생성하던 한글 설명을 UI에 노출
@@ -56,8 +52,8 @@
 | 9 | Agentic AI Pipeline | LangGraph 17-노드, Memory Store, LangFuse, Concept Gate, NarrativeScore | [아카이브](../99_archive/archive/ROADMAP_PHASE_9.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
 | 10 | True Agentic Architecture | ReAct Loop, Director-as-Orchestrator, Gemini Function Calling 9 tools, Agent Communication, 3-Architect Debate | [아카이브](../99_archive/archive/ROADMAP_PHASE_10.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
 | 11 | Scene Diversity & Frontal Bias Fix | 정면 편향 해소 10건, Gaze 5종 다양화, 정면 비율 22%, P0~P3+P2+ 14항목, Tier 2 Pipeline 고도화 5건 | [아카이브](../99_archive/archive/ROADMAP_PHASE_11.md) |
-| 12 | Agent Enhancement & AI BGM | Agent Bug Fix 5건, Data Flow 10건, 3-Mode BGM, Gemini Model Upgrade | — |
-| 13 | Creative Control & Production Speed | 성능 최적화 5건, 이미지 UX 5건, Structure 템플릿 6건, Clothing Override 3건 | — |
+| 12 | Agent Enhancement & AI BGM | Agent Bug Fix 5건, Data Flow 10건, 3-Mode BGM, Gemini Model Upgrade | [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md) |
+| 13 | Creative Control & Production Speed | 성능 최적화 5건, 이미지 UX 5건, Structure 템플릿 6건, Clothing Override 3건 | [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md) |
 
 ---
 
@@ -100,114 +96,6 @@ graph LR
     style P13 fill:#4CAF50,color:#fff
     style P8 fill:#FF9800,color:#fff
 ```
-
----
-
-## Phase 13: Creative Control & Production Speed
-
-**목표**: 이미지 자연어 편집, 실시간 진행률, Structure별 최적 템플릿, 장면별 의상 변경으로 창작 유연성과 속도 대폭 향상.
-
-### 13-A: Performance Quick Wins (5건)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | [x] Research URL fetch `asyncio.gather` 병렬화 | 02-20 |
-| 2 | [x] Studio 캐릭터/스타일 `Promise.allSettled` 병렬 로드 | 02-20 |
-| 3 | [x] Review Gemini `asyncio.gather` 평가 최적화 | 02-20 |
-| 4 | [x] Critic 씬 배치 처리 (전체 씬 한 번에 평가) | 02-20 |
-| 5 | [x] SSE 렌더링 예상 시간 (`estimate_remaining()` + stage 이력 학습) | 02-20 |
-
-### 13-B: Image Generation UX (5건)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | [x] 이미지 생성 Progress SSE + SD WebUI `/progress` 프리뷰 | 02-20 |
-| 2 | [x] Frontend Progress UI (진행률 바 + 프리뷰 이미지) | 02-20 |
-| 3 | [x] Scene 자연어 이미지 편집 API (`POST /scenes/{id}/edit-image`) | 02-20 |
-| 4 | [x] SceneEditImageModal (자연어 입력 + 전/후 비교) | 02-20 |
-| 5 | [x] Batch 생성 개별 취소 (`POST /scene/cancel/{task_id}`) | 02-20 |
-
-### 13-C: Structure별 Gemini 템플릿 (6건)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | [x] Monologue 전용 J2 템플릿 (감정 흐름, 클로즈업 중심) | 02-20 |
-| 2 | [x] Dialogue 전용 J2 템플릿 (화자 전환, 리액션 샷) | 02-20 |
-| 3 | [x] Narrated Dialogue 전용 J2 템플릿 (시점 전환) | 02-20 |
-| 4 | [x] Confession/Lesson 전용 J2 템플릿 (회상, 교훈) | 02-20 |
-| 5 | [x] Structure → 템플릿 자동 매핑 (presets.py 디스패치) | 02-20 |
-| 6 | [x] Danbooru 허용 태그 카테고리별 동적 삽입 | 02-20 |
-
-### 13-D: Scene Clothing Override (3건)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | [x] Scene `clothing_tags` JSONB 필드 + Alembic 마이그레이션 | 02-20 |
-| 2 | [x] 12-Layer Builder `_apply_clothing_override()` 반영 | 02-20 |
-| 3 | [x] SceneClothingModal UI (태그 입력 + 프리셋 + 리셋) | 02-20 |
-
----
-
-## Phase 12: Agent Enhancement & AI BGM
-
-**목표**: 17개 에이전트 품질 강화 + Sound Designer 기반 AI BGM 자동 파이프라인 구축.
-**설계 문서**: `docs/03_engineering/backend/AGENT_ENHANCEMENT.md`
-
-### 12-A: Agent Bug Fixes (즉시 수정)
-
-즉시 수정 가능한 코드 버그 5건.
-
-| # | 항목 | 영향 노드 | 상태 |
-|---|------|----------|------|
-| 1 | [x] `language` 필드 template_vars 추가 (3개 노드 동일 버그) | tts_designer, sound_designer, copyright_reviewer | 02-20 |
-| 2 | [x] `_topic_key()` 중복 제거 → 공통 모듈 추출 | learn, research, research_tools | 02-20 |
-| 3 | [x] Cinematographer `search_similar_compositions` await 누락 | cinematographer | 02-20 |
-| 4 | [x] Copyright Reviewer `overall` 서버사이드 재계산 | copyright_reviewer | 02-20 |
-| 5 | [x] Learn `character_b_id` 저장 추가 | learn | 02-20 |
-
-### 12-B: Agent Data Flow (크로스 에이전트 구조 개선)
-
-에이전트 간 데이터 흐름 단절 해소. 파이프라인 품질에 가장 큰 임팩트.
-
-| # | 항목 | 상세 | 상태 |
-|---|------|------|------|
-| 1 | [x] Director Plan → 전체 파이프라인 주입 | Research/Critic/Writer 프롬프트에 `creative_goal`, `quality_criteria` 주입 | 02-20 |
-| 2 | [x] Research → Critic 데이터 구조화 | `research_brief` JSON 형식 강제 + Critic 템플릿 연결 | 02-20 |
-| 3 | [x] 예외 시 자동 통과 제거 (2개 노드) | director_checkpoint, director → `"error"` 결정 도입 | 02-20 |
-| 4 | [x] Learn 저장 데이터 확충 | `quality_score`, `narrative_score`, `hook_strategy`, `revision_count` 추가 | 02-20 |
-| 5 | [x] Critic 컨셉 정보 손실 방지 | `_parse_candidates`에서 arc/mood/pacing 원본 보존 | 02-20 |
-| 6 | [x] Critic 수렴 임계값 재조정 | Round 1 즉시 수렴 방지 (0.7 → 0.85), 최소 2라운드 강제 | 02-20 |
-| 7 | [x] Revise Tier 1 placeholder 개선 | `"1girl, solo"` → state의 style/gender 참조 동적 생성 | 02-20 |
-| 8 | [x] Review `script_image_sync` 가중치 상향 | 0.05 → 0.15 (쇼츠 비주얼 동기화 핵심) | 02-20 |
-| 9 | [x] Finalize 메타데이터 구조 분리 | sound/copyright → 씬 외부 별도 state 필드 | 02-20 |
-| 10 | [x] Human Gate 인터럽트에 Director 판단 근거 포함 | `director_decision`, `director_feedback`, `reasoning_steps` | 02-20 |
-
-### 12-C: AI BGM Pipeline (3-Mode 하이브리드)
-
-Sound Designer 추천 → DB 저장 → 렌더링 자동 적용. 기존 File BGM + Music Preset을 **유지**하는 하이브리드.
-
-**설계**: `bgm_mode` 3종 — `"file"` (기존 파일), `"ai"` (Music Preset), `"auto"` (Sound Designer 프롬프트). Sound Designer 결과를 Storyboard에 저장하고, "BGM 적용" 버튼으로 auto 모드 전환. `bgm_audio_asset_id` FK로 생성 결과 캐싱.
-
-| # | 항목 | 상세 | 상태 |
-|---|------|------|------|
-| 1 | [x] Storyboard `bgm_prompt` + `bgm_mood` + `bgm_audio_asset_id` | Sound Designer 결과 DB 저장 (Alembic) | 02-20 |
-| 2 | [x] Backend 스키마 확장 | VideoRequest bgm_mode "auto", StoryboardSave/DetailResponse bgm 필드 | 02-20 |
-| 3 | [x] Storyboard CRUD 연동 | save/update에서 bgm 저장, prompt 변경 시 캐시 무효화 | 02-20 |
-| 4 | [x] `_prepare_bgm()` auto 모드 | 3-mode 디스패치, DB 캐시 체크, generate_music(), asset 캐싱 | 02-20 |
-| 5 | [x] BgmSection 3-Mode UI | File/AI/Auto 탭, 인라인 편집, 미리듣기 | 02-20 |
-| 6 | [x] "BGM 적용" 버튼 (ProductionSections) | Sound Designer 추천 → RenderStore auto 모드 전환 | 02-20 |
-
-### 12-D: Gemini Model Upgrade
-
-판단력이 필요한 핵심 노드에 Pro 모델 분리.
-
-| # | 항목 | 상세 | 상태 |
-|---|------|------|------|
-| 1 | [x] config_pipelines.py 모델 변수 분리 | `DIRECTOR_MODEL`, `REVIEW_MODEL` 추가 | 02-20 |
-| 2 | [x] Critic → `gemini-2.5-pro` | 3인 Architect 창의적 다양성 + 컨셉 차별화 | 02-20 |
-| 3 | [x] Director → `gemini-2.5-pro` | 4개 Production 결과 교차 판단 | 02-20 |
-| 4 | [x] Review (Tier 3) → `gemini-2.5-pro` | 5차원 NarrativeScore + Self-Reflection | 02-20 |
-| 5 | [x] 성과 측정 메트릭 수집 | Groupthink 빈도, NarrativeScore 분포, revise 정확도 | 02-20 |
 
 ---
 
