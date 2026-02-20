@@ -13,7 +13,7 @@
 | Phase 10 (True Agentic) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | 미착수 (Future) |
 | **Phase 11 (Scene Diversity)** | **진행중** |
-| 테스트 | Backend 2,014 + Frontend 352 = **총 2,366개** |
+| 테스트 | Backend 2,015 + Frontend 352 = **총 2,367개** |
 
 ### 최근 작업
 
@@ -132,6 +132,21 @@ graph LR
 |------|------|------|------|
 | 7 | `validate_visuals()` QC에 gaze/pose 다양성 WARN 추가 | [x] 02-20 | 중간 |
 | 8 | 비정면 gaze 가중치 부스트 (L7 1.1x → 1.25x, IP-Adapter 보상) | [x] 02-20 | 중간 |
+
+### P2+ — 프롬프트 품질 후속 보강
+
+| 순위 | 작업 | 상태 | 효과 |
+|------|------|------|------|
+| 8-1 | Gaze 태그 34개 `default_layer` 통일 → LAYER_EXPRESSION(7) (Alembic 마이그레이션) | [x] 02-20 | 중간 |
+| 8-2 | Cinematographer에 `style` 변수 전달 + Anime/Chibi/Realistic 스타일별 태그 규칙 | [x] 02-20 | 높음 |
+| 8-3 | `_NON_FRONTAL_GAZE` 누락 태그 5개 추가 (averted_gaze, downcast_eyes, closed_eyes 등) | [x] 02-20 | 중간 |
+| 8-4 | Writer/Revise description 과적 → `pipeline_context` dict 분리 (템플릿 독립 섹션) | [x] 02-20 | 중간 |
+
+**검증 결과** (Storyboard #442 vs #441):
+- `realistic` 태그: 9/9 → **0/9** (완전 해소)
+- Gaze 종류: 2종 → **5종**, 반영률 45% → **100%**
+- Camera 종류: 0종 → **3종** (upper_body/cowboy_shot/close-up)
+- 정면 비율: 2/9 = 22% (≤30% 기준 충족)
 
 ### P3 — 파이프라인 구조 (효과 관찰 후)
 
