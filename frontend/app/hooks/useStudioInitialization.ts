@@ -182,7 +182,7 @@ export function useStudioInitialization() {
           setNeedsStyleProfile(true);
         }
         if (parallelLoads.length > 0) {
-          await Promise.allSettled(parallelLoads);
+          void Promise.allSettled(parallelLoads);
         }
 
         if (data.scenes?.length > 0) {
