@@ -39,7 +39,8 @@ CHARACTER_ONLY_LAYERS = frozenset(range(LAYER_SUBJECT, LAYER_ACTION + 1))
 _NON_FRONTAL_GAZE = frozenset({
     "looking_away", "looking_back", "looking_down", "looking_up",
     "looking_to_the_side", "looking_afar", "looking_ahead",
-    "sideways_glance", "averting_eyes",
+    "sideways_glance", "averting_eyes", "averted_gaze", "downcast_eyes",
+    "closed_eyes", "eyes_closed", "half-closed_eyes",
 })
 
 # Character-specific camera framing tags — filtered from LAYER_CAMERA for background scenes
