@@ -916,6 +916,7 @@ class CharacterPreviewRequest(BaseModel):
     gender: str = "female"
     tag_ids: list[int] = []
     loras: list[CharacterLoRA] | None = None
+    style_profile_id: int | None = None
 
 
 class CharacterPreviewResponse(BaseModel):

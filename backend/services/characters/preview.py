@@ -8,6 +8,10 @@ pool. On the next query the Session transparently acquires a new connection.
 We close before long external calls to avoid holding a DB connection idle.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sqlalchemy.orm import Session, joinedload
 
 from config import (
@@ -20,6 +24,39 @@ from config import (
 )
 from models import Character, CharacterTag, Tag
 from schemas import AssignPreviewRequest, CharacterPreviewRequest, SceneGenerateRequest
+
+if TYPE_CHECKING:
+    from services.style_context import StyleContext
+
+
+def _build_reference_negative(
+    style_ctx: StyleContext | None,
+    character_negative: list[str] | None,
+) -> str:
+    """Build negative prompt for character preview.
+
+    With StyleContext: default_negative + negative embeddings + character negative.
+    Without: DEFAULT_REFERENCE_NEGATIVE_PROMPT + character negative.
+
+    Cf. generation_style._compose_negative() — always requires StyleContext,
+    no fallback to DEFAULT, no dedup (Scene negative comes from different source).
+    """
+    parts: list[str] = []
+    if style_ctx:
+        if style_ctx.default_negative:
+            parts.append(style_ctx.default_negative)
+        if style_ctx.negative_embeddings:
+            parts.append(", ".join(style_ctx.negative_embeddings))
+    else:
+        parts.append(DEFAULT_REFERENCE_NEGATIVE_PROMPT)
+
+    if character_negative:
+        existing = ", ".join(parts)
+        extras = [n for n in character_negative if n not in existing]
+        if extras:
+            parts.append(", ".join(extras))
+
+    return ", ".join(parts)
 
 
 def _resolve_quality_tags_for_character(character: Character, db: Session) -> list[str] | None:
@@ -87,6 +124,7 @@ async def regenerate_reference(db: Session, character_id: int) -> dict:
     from services.generation import generate_scene_image
     from services.image import decode_data_url
     from services.prompt.v3_composition import V3PromptBuilder
+    from services.style_context import resolve_style_context_for_profile
 
     character = _get_character_for_preview(db, character_id, with_tags=True)
 
@@ -95,11 +133,19 @@ async def regenerate_reference(db: Session, character_id: int) -> dict:
 
     builder = V3PromptBuilder(db)
     full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags)
-    neg_prompt = character.reference_negative_prompt or DEFAULT_REFERENCE_NEGATIVE_PROMPT
-    if character.recommended_negative:
-        extras = [n for n in character.recommended_negative if n not in neg_prompt]
-        if extras:
-            neg_prompt += ", " + ", ".join(extras)
+
+    # Resolve StyleContext for negative embeddings
+    style_ctx = resolve_style_context_for_profile(character.style_profile_id, db)
+    if character.reference_negative_prompt:
+        # Custom reference negative overrides StyleProfile defaults entirely.
+        # Only append recommended_negative for safety (e.g. bad_anatomy).
+        neg_prompt = character.reference_negative_prompt
+        if character.recommended_negative:
+            extras = [n for n in character.recommended_negative if n not in neg_prompt]
+            if extras:
+                neg_prompt += ", " + ", ".join(extras)
+    else:
+        neg_prompt = _build_reference_negative(style_ctx, character.recommended_negative)
 
     # Release DB connection before long SD WebUI call (~30-60s)
     db.close()
@@ -210,6 +256,7 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
     """
     from services.generation import generate_scene_image
     from services.prompt.v3_composition import V3PromptBuilder
+    from services.style_context import resolve_style_context_for_profile
 
     # 1. Validate tag_ids exist
     tags_db: list[Tag] = []
@@ -235,7 +282,10 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
     # 3. Compose prompt
     builder = V3PromptBuilder(db)
     full_prompt = builder.compose_for_reference(temp_char)
-    neg_prompt = DEFAULT_REFERENCE_NEGATIVE_PROMPT
+
+    # Resolve StyleContext for negative embeddings
+    style_ctx = resolve_style_context_for_profile(request.style_profile_id, db)
+    neg_prompt = _build_reference_negative(style_ctx, None)
 
     # Release DB connection before long SD call
     db.close()

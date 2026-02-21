@@ -143,6 +143,21 @@ def resolve_style_context_from_group(group_id: int, db: Session) -> StyleContext
     return _build_style_context(profile, db)
 
 
+def resolve_style_context_for_profile(profile_id: int | None, db: Session) -> StyleContext | None:
+    """StyleProfile ID로 직접 StyleContext 조회."""
+    if not profile_id:
+        return None
+
+    from models import StyleProfile
+
+    profile = db.query(StyleProfile).filter(StyleProfile.id == profile_id).first()
+    if not profile:
+        logger.warning("StyleProfile %d not found", profile_id)
+        return None
+
+    return _build_style_context(profile, db)
+
+
 def extract_style_loras(ctx: StyleContext | None) -> list[dict]:
     """StyleContext에서 [{name, weight, trigger_words}] 추출."""
     if not ctx:

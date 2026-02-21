@@ -40,6 +40,7 @@ export function useWizardPreview({ state, dispatch, allTagsFlat }: UseWizardPrev
           state.selectedLoras.length > 0
             ? state.selectedLoras.map((lr) => ({ lora_id: lr.loraId, weight: lr.weight }))
             : null,
+        style_profile_id: state.style_profile_id,
       };
 
       const res = await axios.post(`${API_BASE}/characters/preview`, payload);
@@ -49,7 +50,15 @@ export function useWizardPreview({ state, dispatch, allTagsFlat }: UseWizardPrev
       showToast(getErrorMsg(err, "Failed to generate preview"), "error");
       dispatch({ type: "SET_GENERATING", isGenerating: false });
     }
-  }, [state.selectedTags, state.selectedLoras, state.gender, allTagsFlat, showToast, dispatch]);
+  }, [
+    state.selectedTags,
+    state.selectedLoras,
+    state.gender,
+    state.style_profile_id,
+    allTagsFlat,
+    showToast,
+    dispatch,
+  ]);
 
   const assignPreview = useCallback(
     async (characterId: number) => {
