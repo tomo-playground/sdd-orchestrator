@@ -1,4 +1,4 @@
-# Database Schema (v3.23)
+# Database Schema (v3.24)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.24 | 2026-02-21 | `style_profiles`에 생성 파라미터 4컬럼 추가 (default_steps, default_cfg_scale, default_sampler_name, default_clip_skip) |
 | v3.23 | 2026-02-21 | `characters`에서 `project_id` FK 제거 (미사용, 글로벌 스코프로 운영) |
 | v3.22 | 2026-02-21 | `characters`에 `style_profile_id` FK 추가 (캐릭터별 스타일 프로파일 오버라이드) |
 | v3.21 | 2026-02-18 | **Source-Truth Sync**: `active` → `is_active` 문서 반영(tag_rules, tag_aliases, tag_filters, classification_rules). `scenes`에 TTS 필드 3개 추가(voice_design_prompt, head_padding, tail_padding). `group_config`에 `channel_dna`/SD 파라미터 상세화. `creative_sessions.session_type` default 수정(free→shorts). `loras`에 `gender_locked` 누락 복원 |
@@ -550,6 +551,10 @@ Model + LoRAs + Embeddings 번들.
 | `default_positive` | Text | 기본 포지티브 |
 | `default_negative` | Text | 기본 네거티브 |
 | `default_ip_adapter_model` | String(20) | IP-Adapter 기본 모델 (`clip_face` / `faceid`) |
+| `default_steps` | Integer | 화풍별 기본 스텝 수 |
+| `default_cfg_scale` | Float | 화풍별 기본 CFG Scale |
+| `default_sampler_name` | String(50) | 화풍별 기본 샘플러 |
+| `default_clip_skip` | Integer | 화풍별 기본 CLIP Skip |
 | `is_default` | Boolean | |
 | `is_active` | Boolean | |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |

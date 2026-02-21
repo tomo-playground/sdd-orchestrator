@@ -275,11 +275,17 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     style_profile_loras = _resolve_style_loras(request.storyboard_id, db) if request.storyboard_id else []
     strategy = _resolve_consistency(request, db, character_obj, style_profile_loras)
 
+    # Resolve StyleContext for generation parameter overrides
+    from services.style_context import resolve_style_context
+
+    style_ctx = resolve_style_context(request.storyboard_id, db) if request.storyboard_id else None
+
     # Store in context
     ctx.consistency = strategy
     ctx.style_loras = style_profile_loras
     ctx.character = character_obj
     ctx.character_b_id = effective_b_id
+    ctx.style_context = style_ctx
 
     # Apply strategy to request for backward compat
     _apply_strategy_to_request(strategy, request)

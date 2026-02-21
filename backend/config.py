@@ -120,6 +120,7 @@ SD_DEFAULT_HEIGHT = int(os.getenv("SD_DEFAULT_HEIGHT", "768"))
 SD_DEFAULT_STEPS = int(os.getenv("SD_DEFAULT_STEPS", "28"))
 SD_DEFAULT_CFG_SCALE = float(os.getenv("SD_DEFAULT_CFG_SCALE", "7.0"))
 SD_DEFAULT_SAMPLER = os.getenv("SD_DEFAULT_SAMPLER", "DPM++ 2M Karras")
+SD_DEFAULT_CLIP_SKIP = int(os.getenv("SD_DEFAULT_CLIP_SKIP", "2"))
 
 # --- LoRA Weight Cap ---
 # Maximum weight for style LoRAs (applied to both character and narrator scenes)

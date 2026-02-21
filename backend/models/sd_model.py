@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ARRAY, Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import ARRAY, Boolean, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -84,6 +84,12 @@ class StyleProfile(Base, TimestampMixin):
 
     # IP-Adapter default per style
     default_ip_adapter_model: Mapped[str | None] = mapped_column(String(20))  # clip_face | faceid
+
+    # Generation parameters per style
+    default_steps: Mapped[int | None] = mapped_column(Integer)
+    default_cfg_scale: Mapped[float | None] = mapped_column(Float)
+    default_sampler_name: Mapped[str | None] = mapped_column(String(50))
+    default_clip_skip: Mapped[int | None] = mapped_column(Integer)
 
     # Settings
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -8,9 +8,13 @@ The original request is preserved read-only.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from schemas import SceneGenerateRequest
 from services.character_consistency import ConsistencyStrategy
+
+if TYPE_CHECKING:
+    from services.style_context import StyleContext
 
 
 @dataclass
@@ -23,6 +27,7 @@ class GenerationContext:
     character_b_id: int | None = None
     consistency: ConsistencyStrategy = field(default_factory=ConsistencyStrategy)
     style_loras: list[dict] = field(default_factory=list)
+    style_context: StyleContext | None = None
 
     # ── Stage 1: Composed (prompt preparation) ──────────────────────────
     prompt: str = ""

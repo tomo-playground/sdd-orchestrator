@@ -1032,6 +1032,10 @@ class StyleProfileBase(BaseModel):
     positive_embeddings: list[int] | None = None
     default_positive: str | None = None
     default_negative: str | None = None
+    default_steps: int | None = None
+    default_cfg_scale: float | None = None
+    default_sampler_name: str | None = None
+    default_clip_skip: int | None = None
     is_default: bool = False
     is_active: bool = True
 
@@ -1050,6 +1054,10 @@ class StyleProfileUpdate(BaseModel):
     positive_embeddings: list[int] | None = None
     default_positive: str | None = None
     default_negative: str | None = None
+    default_steps: int | None = None
+    default_cfg_scale: float | None = None
+    default_sampler_name: str | None = None
+    default_clip_skip: int | None = None
     is_default: bool | None = None
     is_active: bool | None = None
 
@@ -1091,6 +1099,10 @@ class StyleProfileFullResponse(BaseModel):
     positive_embeddings: list[EmbeddingBrief] = []
     default_positive: str | None = None
     default_negative: str | None = None
+    default_steps: int | None = None
+    default_cfg_scale: float | None = None
+    default_sampler_name: str | None = None
+    default_clip_skip: int | None = None
     is_default: bool = False
     is_active: bool = True
 

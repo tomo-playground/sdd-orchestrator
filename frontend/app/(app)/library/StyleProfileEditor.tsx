@@ -206,6 +206,72 @@ export default function StyleProfileEditor({
         </select>
       </div>
 
+      {/* Generation Parameters */}
+      <div className="mt-6 space-y-2">
+        <label className={labelCls}>Generation Parameters</label>
+        <p className="text-[11px] text-zinc-400">
+          Override global defaults per style. Leave empty to use system defaults.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-4">
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-zinc-500">Steps</label>
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={profile.default_steps ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                onUpdateStyle(profile.id, { default_steps: v ? Number(v) : null });
+              }}
+              placeholder="28"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-zinc-500">CFG Scale</label>
+            <input
+              type="number"
+              min={0}
+              max={30}
+              step={0.5}
+              value={profile.default_cfg_scale ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                onUpdateStyle(profile.id, { default_cfg_scale: v ? Number(v) : null });
+              }}
+              placeholder="7.0"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-zinc-500">Sampler</label>
+            <DebouncedInput
+              type="text"
+              value={profile.default_sampler_name || ""}
+              onDebouncedChange={(v) => onUpdateStyle(profile.id, { default_sampler_name: v || null })}
+              placeholder="DPM++ 2M Karras"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-medium text-zinc-500">CLIP Skip</label>
+            <input
+              type="number"
+              min={1}
+              max={4}
+              value={profile.default_clip_skip ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                onUpdateStyle(profile.id, { default_clip_skip: v ? Number(v) : null });
+              }}
+              placeholder="2"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* LoRAs */}
       <div className="mt-6 space-y-2">
         <div>

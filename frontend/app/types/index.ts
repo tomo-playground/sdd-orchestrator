@@ -368,6 +368,10 @@ export type StyleProfile = {
   positive_embeddings: number[] | null;
   default_positive: string | null;
   default_negative: string | null;
+  default_steps: number | null;
+  default_cfg_scale: number | null;
+  default_sampler_name: string | null;
+  default_clip_skip: number | null;
   is_default: boolean;
   is_active: boolean;
 };
@@ -427,6 +431,10 @@ export type StyleProfileFull = {
   positive_embeddings: { id: number; name: string; trigger_word: string }[];
   default_positive: string | null;
   default_negative: string | null;
+  default_steps: number | null;
+  default_cfg_scale: number | null;
+  default_sampler_name: string | null;
+  default_clip_skip: number | null;
   is_default: boolean;
   is_active: boolean;
 };

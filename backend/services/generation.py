@@ -63,13 +63,36 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
 def _adjust_parameters(ctx: GenerationContext) -> None:
     """Detect complexity, calibrate LoRA weights, adjust steps/cfg.
 
-    Reads ctx.prompt, ctx.request. Writes ctx.prompt, ctx.steps, ctx.cfg_scale.
+    Reads ctx.prompt, ctx.request, ctx.style_context.
+    Writes ctx.prompt, ctx.steps, ctx.cfg_scale.
+
+    Priority: StyleProfile defaults > request defaults, then complexity boost.
     """
     tokens = split_prompt_tokens(ctx.prompt)
     complexity = detect_scene_complexity(tokens)
 
+    # Start from request defaults
     ctx.steps = ctx.request.steps
     ctx.cfg_scale = ctx.request.cfg_scale
+
+    # Override with StyleProfile generation parameters if available
+    style_ctx = ctx.style_context
+    if style_ctx:
+        if style_ctx.default_steps is not None:
+            ctx.steps = style_ctx.default_steps
+        if style_ctx.default_cfg_scale is not None:
+            ctx.cfg_scale = style_ctx.default_cfg_scale
+        if style_ctx.default_sampler_name:
+            ctx.request.sampler_name = style_ctx.default_sampler_name
+        if style_ctx.default_clip_skip is not None:
+            ctx.request.clip_skip = style_ctx.default_clip_skip
+        logger.info(
+            "🎨 [StyleProfile] Applied params: steps=%d, cfg=%.1f, sampler=%s, clip_skip=%d",
+            ctx.steps,
+            ctx.cfg_scale,
+            ctx.request.sampler_name,
+            ctx.request.clip_skip,
+        )
 
     if complexity == "complex":
         ctx.steps = max(ctx.steps, 28)

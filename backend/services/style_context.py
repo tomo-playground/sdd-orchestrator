@@ -25,6 +25,10 @@ class StyleContext:
     sd_model_name: str = ""  # checkpoint 파일명 (e.g. "realisticVisionV60.safetensors")
     sd_model_base: str = ""  # base model type (e.g. "SD1.5", "SDXL")
     default_ip_adapter_model: str = ""  # clip_face | faceid
+    default_steps: int | None = None
+    default_cfg_scale: float | None = None
+    default_sampler_name: str | None = None
+    default_clip_skip: int | None = None
 
 
 def _resolve_embedding_triggers(embedding_ids: list[int] | None, db: Session) -> list[str]:
@@ -88,6 +92,10 @@ def _build_style_context(profile, db: Session) -> StyleContext:
         sd_model_name=sd_model_name,
         sd_model_base=sd_model_base,
         default_ip_adapter_model=profile.default_ip_adapter_model or "",
+        default_steps=profile.default_steps,
+        default_cfg_scale=profile.default_cfg_scale,
+        default_sampler_name=profile.default_sampler_name,
+        default_clip_skip=profile.default_clip_skip,
     )
 
 

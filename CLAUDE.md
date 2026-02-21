@@ -101,6 +101,11 @@ docs/
 - **로직 기준**: 태그 우선순위 등의 비즈니스 로직은 **Backend**(`backend/services/keywords/` 패키지)가 Single Source of Truth입니다.
 - **태그 규칙**: 충돌(`tag_rules`), 별칭(`tag_aliases`), 필터(`tag_filters`) 모두 **DB 테이블**에서 관리. 코드 하드코딩 금지.
 - **런타임 캐시**: `TagCategoryCache`, `TagAliasCache`, `TagRuleCache`, `LoRATriggerCache` — startup 시 DB에서 로드, 변경 시 `/admin/refresh-caches`.
+- **SD 생성 파라미터 우선순위** (steps, cfg_scale, sampler_name, clip_skip):
+  - `config.py` 전역 기본값 < `StyleProfile.default_*` (화풍별 최적 파라미터)
+  - GroupConfig의 `sd_steps`/`sd_cfg_scale` 등은 **Preflight 표시용** (informational).
+  - 실제 이미지 생성 시에는 `_adjust_parameters()`에서 StyleProfile 값이 최종 적용된다.
+  - 캐릭터 프리뷰 생성도 동일: `preview.py`에서 StyleContext 기반 오버라이드.
 
 ## DB Schema Design Principles
 - **관심사 분리**: 콘텐츠 테이블(storyboards)과 설정 테이블(group_config)을 혼합하지 않는다.

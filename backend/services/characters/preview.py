@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from config import (
     DEFAULT_REFERENCE_NEGATIVE_PROMPT,
+    SD_DEFAULT_CLIP_SKIP,
+    SD_DEFAULT_SAMPLER,
     SD_REFERENCE_CFG_SCALE,
     SD_REFERENCE_DENOISING,
     SD_REFERENCE_HR_UPSCALER,
@@ -153,14 +155,22 @@ async def regenerate_reference(db: Session, character_id: int) -> dict:
 
         await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
+    # StyleProfile generation parameters (override global defaults)
+    steps = style_ctx.default_steps if (style_ctx and style_ctx.default_steps is not None) else SD_REFERENCE_STEPS
+    cfg_scale = style_ctx.default_cfg_scale if (style_ctx and style_ctx.default_cfg_scale is not None) else SD_REFERENCE_CFG_SCALE
+    sampler_name = style_ctx.default_sampler_name if (style_ctx and style_ctx.default_sampler_name) else SD_DEFAULT_SAMPLER
+    clip_skip = style_ctx.default_clip_skip if (style_ctx and style_ctx.default_clip_skip is not None) else SD_DEFAULT_CLIP_SKIP
+
     # Release DB connection before long SD WebUI call (~30-60s)
     db.close()
 
     request = SceneGenerateRequest(
         prompt=full_prompt,
         negative_prompt=neg_prompt,
-        steps=SD_REFERENCE_STEPS,
-        cfg_scale=SD_REFERENCE_CFG_SCALE,
+        steps=steps,
+        cfg_scale=cfg_scale,
+        sampler_name=sampler_name,
+        clip_skip=clip_skip,
         width=512,
         height=768,
         seed=-1,
@@ -299,14 +309,22 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
 
         await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
+    # StyleProfile generation parameters (override global defaults)
+    steps = style_ctx.default_steps if (style_ctx and style_ctx.default_steps is not None) else SD_REFERENCE_STEPS
+    cfg_scale = style_ctx.default_cfg_scale if (style_ctx and style_ctx.default_cfg_scale is not None) else SD_REFERENCE_CFG_SCALE
+    sampler_name = style_ctx.default_sampler_name if (style_ctx and style_ctx.default_sampler_name) else SD_DEFAULT_SAMPLER
+    clip_skip = style_ctx.default_clip_skip if (style_ctx and style_ctx.default_clip_skip is not None) else SD_DEFAULT_CLIP_SKIP
+
     # Release DB connection before long SD call
     db.close()
 
     sd_request = SceneGenerateRequest(
         prompt=full_prompt,
         negative_prompt=neg_prompt,
-        steps=SD_REFERENCE_STEPS,
-        cfg_scale=SD_REFERENCE_CFG_SCALE,
+        steps=steps,
+        cfg_scale=cfg_scale,
+        sampler_name=sampler_name,
+        clip_skip=clip_skip,
         width=512,
         height=768,
         seed=-1,
