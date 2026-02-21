@@ -115,11 +115,24 @@ class TagClassifier:
 
         return None
 
-    def classify_batch(self, tags: list[str]) -> dict[str, ClassificationResult]:
-        """Classify multiple tags at once."""
+    def classify_batch(
+        self, tags: list[str], *, sync_danbooru: bool = False,
+    ) -> tuple[dict[str, ClassificationResult], list[str]]:
+        """Classify multiple tags. Returns (results, pending_tags).
+
+        Step 1-2 (Rules + DB) are always synchronous.
+        Step 3 (Danbooru) is deferred to background by default.
+
+        Args:
+            tags: Tags to classify
+            sync_danbooru: If True, call Danbooru synchronously (legacy behavior)
+
+        Returns:
+            (results_dict, pending_tags_for_background)
+        """
         from services.keywords.core import normalize_prompt_token
 
-        results = {}
+        results: dict[str, ClassificationResult] = {}
         no_rule_match = []
 
         # First pass: check pattern rules (highest priority)
@@ -142,29 +155,25 @@ class TagClassifier:
             else:
                 still_unknown.append(tag)
 
-        # Third pass: try Danbooru for still unknown tags (limit to avoid rate limiting)
-        for tag in still_unknown[:10]:  # Limit to 10 Danbooru calls per batch
-            normalized = normalize_prompt_token(tag)
-            danbooru_result = self._classify_via_danbooru(normalized)
-            if danbooru_result and danbooru_result["group"]:
-                self._save_classification(normalized, danbooru_result)
-                results[tag] = danbooru_result
-            else:
-                results[tag] = {
-                    "group": None,
-                    "confidence": 0.0,
-                    "source": "unknown",
-                }
+        # Sync mode: Danbooru inline (legacy, for admin/testing)
+        if sync_danbooru:
+            for tag in still_unknown[:10]:
+                normalized = normalize_prompt_token(tag)
+                danbooru_result = self._classify_via_danbooru(normalized)
+                if danbooru_result and danbooru_result["group"]:
+                    self._save_classification(normalized, danbooru_result)
+                    results[tag] = danbooru_result
+                else:
+                    results[tag] = {"group": None, "confidence": 0.0, "source": "unknown"}
+            for tag in still_unknown[10:]:
+                results[tag] = {"group": None, "confidence": 0.0, "source": "unknown"}
+            return results, []
 
-        # Mark remaining as unknown (beyond Danbooru limit)
-        for tag in still_unknown[10:]:
-            results[tag] = {
-                "group": None,
-                "confidence": 0.0,
-                "source": "unknown",
-            }
+        # Async mode (default): mark unknown, defer Danbooru to background
+        for tag in still_unknown:
+            results[tag] = {"group": None, "confidence": 0.0, "source": "pending"}
 
-        return results
+        return results, still_unknown
 
     def _lookup_db(self, tag: str) -> ClassificationResult | None:
         """Look up tag in database."""
@@ -294,6 +303,33 @@ class TagClassifier:
 
         # subject, etc. → generic scene
         return "scene"
+
+
+def classify_tags_background(tags: list[str]) -> None:
+    """Background task: Danbooru로 미분류 태그 조회 후 DB 저장.
+
+    BackgroundTasks에서 호출되므로 별도 DB 세션을 생성합니다.
+    """
+    if not tags:
+        return
+
+    from database import get_db
+
+    db = next(get_db())
+    try:
+        classifier = TagClassifier(db)
+        classified = 0
+        for tag in tags[:10]:  # Danbooru rate limit 방어
+            result = classifier._classify_via_danbooru(tag)
+            if result and result["group"]:
+                classifier._save_classification(tag, result)
+                classified += 1
+        if classified:
+            logger.info("🔄 [Background] Danbooru classified %d/%d tags", classified, len(tags))
+    except Exception as e:
+        logger.error("❌ [Background] Danbooru classification failed: %s", e)
+    finally:
+        db.close()
 
 
 # Utility function to migrate CATEGORY_PATTERNS to classification_rules

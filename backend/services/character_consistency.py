@@ -155,18 +155,19 @@ class CharacterConsistencyResolver:
         # Already fully specified
         if use_ip_adapter and ip_adapter_reference:
             weight = ip_adapter_weight or character.ip_adapter_weight or 0.35
-            model = character.ip_adapter_model if hasattr(character, "ip_adapter_model") else None
+            model = self._resolve_ip_adapter_model(character)
             return True, ip_adapter_reference, weight, model
 
         # Auto-enable: check if character has a reference image
         ref_image = load_reference_image(character.name, db=self.db)
         if ref_image:
             weight = ip_adapter_weight or character.ip_adapter_weight or 0.35
-            model = character.ip_adapter_model if hasattr(character, "ip_adapter_model") else None
+            model = self._resolve_ip_adapter_model(character)
             logger.info(
-                "✨ [Resolver] Auto-enabled IP-Adapter for '%s' (weight=%.2f)",
+                "✨ [Resolver] Auto-enabled IP-Adapter for '%s' (weight=%.2f, model=%s)",
                 character.name,
                 weight,
+                model,
             )
             return True, character.name, weight, model
 
@@ -174,6 +175,27 @@ class CharacterConsistencyResolver:
         if use_ip_adapter:
             warnings.append(f"캐릭터 '{character.name}'의 참조 이미지가 없어 IP-Adapter를 사용할 수 없습니다.")
         return False, None, 0.35, None
+
+    @staticmethod
+    def _resolve_ip_adapter_model(character) -> str | None:
+        """Resolve IP-Adapter model: character > style_profile > default.
+
+        Priority:
+        1. 캐릭터 명시값 (character.ip_adapter_model)
+        2. 스타일 프로필 기본값 (style_profile.default_ip_adapter_model)
+        3. 글로벌 기본값 (None → downstream defaults to clip_face)
+        """
+        char_model = getattr(character, "ip_adapter_model", None)
+        if char_model:
+            return char_model
+
+        style_profile = getattr(character, "style_profile", None)
+        if style_profile:
+            default_model = getattr(style_profile, "default_ip_adapter_model", None)
+            if default_model:
+                return default_model
+
+        return None
 
     @staticmethod
     def _resolve_reference_only(

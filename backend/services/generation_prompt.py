@@ -259,9 +259,16 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     Routes to specialized handlers based on request state.
     Writes results to ctx (prompt, negative_prompt, character, consistency, warnings).
     """
+    from sqlalchemy.orm import joinedload
+
     from models import Character
 
-    character_obj = db.query(Character).filter(Character.id == request.character_id).first()
+    character_obj = (
+        db.query(Character)
+        .options(joinedload(Character.style_profile))
+        .filter(Character.id == request.character_id)
+        .first()
+    )
     effective_b_id = _resolve_effective_character_b_id(request, db)
 
     # Resolve character consistency strategy

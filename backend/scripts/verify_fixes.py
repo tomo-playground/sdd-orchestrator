@@ -43,7 +43,7 @@ def verify_classification(db):
     test_tags = ["best_quality", "anime_style", "looking_at_viewer"]
     all_pass = True
 
-    classification = classifier.classify_batch(test_tags)
+    classification, _ = classifier.classify_batch(test_tags, sync_danbooru=True)
 
     for tag, result in classification.items():
         group = result.get("group")

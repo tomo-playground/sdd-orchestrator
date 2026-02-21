@@ -6,9 +6,17 @@ Used by TagClassifier for unknown tag classification.
 
 from __future__ import annotations
 
+import time
+
 import httpx
 
 from config import DANBOORU_API_BASE, DANBOORU_API_TIMEOUT, DANBOORU_USER_AGENT, logger
+
+# Circuit breaker: 연속 실패 시 Danbooru 호출 건너뛰기
+_CIRCUIT_FAILURE_THRESHOLD = 3  # 연속 N회 실패 시 차단
+_CIRCUIT_COOLDOWN_SEC = 60  # 차단 후 N초 후 재시도
+_circuit_failures = 0
+_circuit_open_until = 0.0
 
 # Danbooru category IDs
 DANBOORU_CATEGORIES = {
@@ -49,6 +57,15 @@ async def get_tag_info(tag_name: str) -> dict | None:
     if normalized in CATEGORY_PATTERNS.get("quality", []) or normalized in CATEGORY_PATTERNS.get("style", []):
         return None
 
+    # Circuit breaker check
+    global _circuit_failures, _circuit_open_until
+    now = time.monotonic()
+    if _circuit_failures >= _CIRCUIT_FAILURE_THRESHOLD and now < _circuit_open_until:
+        return None
+    if _circuit_failures >= _CIRCUIT_FAILURE_THRESHOLD and now >= _circuit_open_until:
+        logger.info("🔄 [Danbooru] Circuit breaker: retrying after cooldown")
+        _circuit_failures = 0
+
     try:
         headers = {"User-Agent": DANBOORU_USER_AGENT}
         async with httpx.AsyncClient(headers=headers) as client:
@@ -60,6 +77,7 @@ async def get_tag_info(tag_name: str) -> dict | None:
             response.raise_for_status()
             data = response.json()
 
+            _circuit_failures = 0  # 성공 시 리셋
             if data and len(data) > 0:
                 tag_data = data[0]
                 return {
@@ -69,9 +87,11 @@ async def get_tag_info(tag_name: str) -> dict | None:
                     "post_count": tag_data.get("post_count", 0),
                 }
             return None
-    except httpx.ConnectTimeout:
-        # Log timeout at a lower level to avoid noise, or only once
-        logger.debug("⏳ [Danbooru] Connection timeout for '%s'", normalized)
+    except (httpx.ConnectTimeout, httpx.ConnectError):
+        _circuit_failures += 1
+        if _circuit_failures >= _CIRCUIT_FAILURE_THRESHOLD:
+            _circuit_open_until = time.monotonic() + _CIRCUIT_COOLDOWN_SEC
+            logger.warning("⚡ [Danbooru] Circuit breaker OPEN — %d failures, skip for %ds", _circuit_failures, _CIRCUIT_COOLDOWN_SEC)
         return None
     except httpx.HTTPError as e:
         logger.debug("⚠️ [Danbooru] API error for '%s': %s", normalized, e)
@@ -229,7 +249,7 @@ def get_tag_info_sync(tag_name: str) -> dict | None:
 
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(asyncio.run, get_tag_info(tag_name))
-                return future.result(timeout=15)
+                return future.result(timeout=5)
         else:
             return loop.run_until_complete(get_tag_info(tag_name))
     except Exception as e:

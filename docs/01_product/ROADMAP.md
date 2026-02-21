@@ -19,6 +19,8 @@
 
 ### 최근 작업
 
+- **TagClassifier Danbooru 비동기 전환 + Circuit Breaker** (02-21): `/tags/classify` 실시간 Danbooru 호출이 서버 블로킹 유발하던 문제 해결. Step 1-2(Rules+DB캐시) 즉시 반환, Step 3(Danbooru)는 `BackgroundTasks`로 비동기 처리. Circuit breaker 추가(3회 연속 실패 → 60초 스킵), 타임아웃 15초→3초 축소
+- **Style Profile 기반 IP-Adapter 모델 자동 선택** (02-21): `style_profiles.default_ip_adapter_model` 컬럼 추가(Anime→clip_face, Realistic→faceid). ConsistencyResolver 3단계 우선순위(캐릭터>스타일프로필>기본값). Alembic 마이그레이션+데이터, joinedload N+1 방지
 - **캐릭터 프리뷰 Checkpoint 전환 누락 수정** (02-21): `regenerate_reference()`와 `generate_wizard_preview()`에서 StyleProfile의 SD 모델로 전환하는 `_ensure_correct_checkpoint()` 호출이 누락되어 Realistic 캐릭터가 Anime 모델로 생성되던 버그 수정. Realistic 남녀 캐릭터(Yuna/Jimin) 생성 검증 완료
 - **characters.project_id 제거** (02-21): 미사용 FK 정리. ORM/스키마/라우터/서비스/Frontend 타입·훅에서 project_id 완전 제거. Alembic 마이그레이션 적용, DB_SCHEMA v3.23. 12개 파일 수정, 테스트 3파일 정리
 - **Phase 8-1 #4 base_model UI 표시** (02-21): LoRA/Embedding base_model 의존성 필터링 + lora_type 정리, StyleTab에 base_model 회색 배지 추가(Embedding 리스트+LoRA 카드), StyleProfileEditor에 필터 안내 서브텍스트

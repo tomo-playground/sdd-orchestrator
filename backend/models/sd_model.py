@@ -82,6 +82,9 @@ class StyleProfile(Base, TimestampMixin):
     default_positive: Mapped[str | None] = mapped_column(Text)  # masterpiece, best quality, ...
     default_negative: Mapped[str | None] = mapped_column(Text)
 
+    # IP-Adapter default per style
+    default_ip_adapter_model: Mapped[str | None] = mapped_column(String(20))  # clip_face | faceid
+
     # Settings
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

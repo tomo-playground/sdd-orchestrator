@@ -24,6 +24,7 @@ class StyleContext:
     default_negative: str = ""
     sd_model_name: str = ""  # checkpoint 파일명 (e.g. "realisticVisionV60.safetensors")
     sd_model_base: str = ""  # base model type (e.g. "SD1.5", "SDXL")
+    default_ip_adapter_model: str = ""  # clip_face | faceid
 
 
 def _resolve_embedding_triggers(embedding_ids: list[int] | None, db: Session) -> list[str]:
@@ -86,6 +87,7 @@ def _build_style_context(profile, db: Session) -> StyleContext:
         default_negative=profile.default_negative or "",
         sd_model_name=sd_model_name,
         sd_model_base=sd_model_base,
+        default_ip_adapter_model=profile.default_ip_adapter_model or "",
     )
 
 

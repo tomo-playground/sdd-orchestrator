@@ -16,7 +16,7 @@ def debug_classification():
     db = SessionLocal()
     classifier = TagClassifier(db)
 
-    results = classifier.classify_batch(tags)
+    results, _ = classifier.classify_batch(tags, sync_danbooru=True)
     for t, group in results.items():
         print(f"'{t}': {group}")
 

@@ -148,7 +148,7 @@ REFERENCE_LORA_SCALE = float(os.getenv("REFERENCE_LORA_SCALE", "0.4"))
 # --- External API ---
 DANBOORU_API_BASE = os.getenv("DANBOORU_API_BASE", "https://danbooru.donmai.us")
 DANBOORU_USER_AGENT = os.getenv("DANBOORU_USER_AGENT", "ShortsProducer/1.0")
-DANBOORU_API_TIMEOUT = float(os.getenv("DANBOORU_API_TIMEOUT", "15"))
+DANBOORU_API_TIMEOUT = float(os.getenv("DANBOORU_API_TIMEOUT", "3"))
 CIVITAI_API_BASE = os.getenv("CIVITAI_API_BASE", "https://civitai.com/api/v1")
 CIVITAI_API_TIMEOUT = float(os.getenv("CIVITAI_API_TIMEOUT", "10"))
 

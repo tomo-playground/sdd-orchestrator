@@ -549,6 +549,7 @@ Model + LoRAs + Embeddings 번들.
 | `negative_embeddings` | Integer[] | Embedding IDs |
 | `default_positive` | Text | 기본 포지티브 |
 | `default_negative` | Text | 기본 네거티브 |
+| `default_ip_adapter_model` | String(20) | IP-Adapter 기본 모델 (`clip_face` / `faceid`) |
 | `is_default` | Boolean | |
 | `is_active` | Boolean | |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
