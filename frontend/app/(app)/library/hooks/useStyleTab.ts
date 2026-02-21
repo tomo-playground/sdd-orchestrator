@@ -356,5 +356,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     isSearchingCivitai: civitai.isSearchingCivitai,
     handleCivitaiSearch: civitai.handleCivitaiSearch,
     handleDownloadModel: civitai.handleDownloadModel,
+    // Filtering context
+    selectedBaseModel,
   };
 }

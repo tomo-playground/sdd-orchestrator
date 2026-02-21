@@ -44,6 +44,7 @@ export default function StyleTab() {
     isSearchingCivitai,
     handleCivitaiSearch,
     handleDownloadModel,
+    selectedBaseModel,
   } = useStyleTab({
     showToast,
     confirmDialog: confirm,
@@ -192,6 +193,7 @@ export default function StyleTab() {
           loraEntries={filteredLorasForEditor}
           embeddings={filteredEmbeddingsForEditor}
           linkedCharacters={linkedCharacters}
+          selectedBaseModel={selectedBaseModel}
           onUpdateStyle={handleUpdateStyle}
           onSetModel={handleSetProfileModel}
           onToggleLora={handleToggleProfileLora}
@@ -244,7 +246,14 @@ export default function StyleTab() {
                   className="flex items-center justify-between rounded-lg p-2 transition hover:bg-white"
                 >
                   <span className="text-[13px] font-bold text-zinc-600">{emb.name}</span>
-                  <span className="text-[13px] text-zinc-400">{emb.embedding_type}</span>
+                  <div className="flex items-center gap-2">
+                    {emb.base_model && (
+                      <span className="rounded-full border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 text-[11px] font-semibold text-zinc-500">
+                        {emb.base_model}
+                      </span>
+                    )}
+                    <span className="text-[13px] text-zinc-400">{emb.embedding_type}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -344,6 +353,11 @@ export default function StyleTab() {
                         >
                           {lora.lora_type || "character"}
                         </span>
+                        {lora.base_model && (
+                          <span className="shrink-0 rounded-full border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 text-[11px] font-semibold text-zinc-500">
+                            {lora.base_model}
+                          </span>
+                        )}
                         {lora.is_multi_character_capable && (
                           <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[13px] font-semibold text-emerald-600">
                             Multi

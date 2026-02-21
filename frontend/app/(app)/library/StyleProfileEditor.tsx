@@ -75,6 +75,7 @@ type Props = {
   loraEntries: LoRA[];
   embeddings: Embedding[];
   linkedCharacters: Character[];
+  selectedBaseModel?: string | null;
   onUpdateStyle: (id: number, data: Record<string, unknown>) => void;
   onSetModel: (profileId: number, modelId: number | null) => void;
   onToggleLora: (profileId: number, loraId: number, weight?: number) => void;
@@ -94,6 +95,7 @@ export default function StyleProfileEditor({
   loraEntries,
   embeddings,
   linkedCharacters,
+  selectedBaseModel,
   onUpdateStyle,
   onSetModel,
   onToggleLora,
@@ -206,7 +208,14 @@ export default function StyleProfileEditor({
 
       {/* LoRAs */}
       <div className="mt-6 space-y-2">
-        <label className={labelCls}>LoRAs</label>
+        <div>
+          <label className={labelCls}>LoRAs</label>
+          {selectedBaseModel && (
+            <p className="text-[11px] text-zinc-400">
+              Filtered by {selectedBaseModel} · style only
+            </p>
+          )}
+        </div>
         <div className="custom-scrollbar max-h-48 overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3">
           {loraEntries.length === 0 && (
             <p className="text-[12px] text-zinc-400">No LoRAs registered</p>
@@ -251,7 +260,12 @@ export default function StyleProfileEditor({
       {/* Embeddings */}
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         <div className="space-y-2">
-          <label className={labelCls}>Positive Embeddings</label>
+          <div>
+            <label className={labelCls}>Positive Embeddings</label>
+            {selectedBaseModel && (
+              <p className="text-[11px] text-zinc-400">Filtered by {selectedBaseModel}</p>
+            )}
+          </div>
           <div className="custom-scrollbar max-h-40 overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3">
             {embeddings.length === 0 && (
               <p className="text-[12px] text-zinc-400">No embeddings registered</p>
@@ -273,7 +287,12 @@ export default function StyleProfileEditor({
           </div>
         </div>
         <div className="space-y-2">
-          <label className={labelCls}>Negative Embeddings</label>
+          <div>
+            <label className={labelCls}>Negative Embeddings</label>
+            {selectedBaseModel && (
+              <p className="text-[11px] text-zinc-400">Filtered by {selectedBaseModel}</p>
+            )}
+          </div>
           <div className="custom-scrollbar max-h-40 overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3">
             {embeddings.length === 0 && (
               <p className="text-[12px] text-zinc-400">No embeddings registered</p>
