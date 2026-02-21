@@ -125,14 +125,13 @@ graph LR
 | 5 | 이미지 생성 전 Checkpoint 자동 전환 (`_ensure_correct_checkpoint`) | ✅ |
 | 6 | Character LoRA 호환성 경고 (base_model 불일치 시 warning) | ✅ |
 
-### Phase 8-1: Multi-Style Full Support (진행중)
+### Phase 8-1: Multi-Style Full Support (완료 02-21)
 
 | # | 항목 | 상태 |
 |---|------|------|
 | 1 | Style-Character Hierarchy (캐릭터 ↔ 화풍 연결) | ✅ (02-21) |
 | 2 | Style Profile UI (Frontend 관리 화면) | ✅ (02-21) |
 | 3 | Negative Embedding 스타일별 자동 주입 | ✅ (02-21) |
-| 4 | Profile Export/Import | ⬚ |
 
 ---
 
