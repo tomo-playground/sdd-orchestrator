@@ -131,7 +131,7 @@ graph LR
 |---|------|------|
 | 1 | Style-Character Hierarchy (캐릭터 ↔ 화풍 연결) | ✅ (02-21) |
 | 2 | Style Profile UI (Frontend 관리 화면) | ✅ (02-21) |
-| 3 | Negative Embedding 스타일별 자동 주입 | ⬚ |
+| 3 | Negative Embedding 스타일별 자동 주입 | ✅ (02-21) |
 | 4 | Profile Export/Import | ⬚ |
 
 ---
