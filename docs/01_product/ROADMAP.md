@@ -14,11 +14,13 @@
 | Phase 11 (Scene Diversity) | 전체 완료 (ARCHIVED) |
 | Phase 12 (Agent Enhancement & AI BGM) | 전체 완료 (ARCHIVED) |
 | Phase 13 (Creative Control & Production Speed) | 전체 완료 (ARCHIVED) |
-| Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 진행중 (1/4)** |
+| Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 진행중 (2/4)** |
 | 테스트 | Backend 2,199 + Frontend 352 = **총 2,551개** |
 
 ### 최근 작업
 
+- **Phase 8-1 #2 Style Profile UI 개선** (02-21): StyleTab 카드 보강(SD Model/LoRA/캐릭터 수 배지, is_default, display_name), StyleProfileEditor 메타데이터 필드(display_name, description, is_default) + 연결된 캐릭터 목록, DebouncedInput으로 API 호출 최적화, EditLoraModal 컴포넌트 분리
+- **캐릭터 상세 화풍 배지** (02-21): 캐릭터 상세 페이지 헤더에 style_profile_name 읽기 전용 배지 추가. Hana/Sora 캐릭터 화풍 매핑 (Studio Ghibli)
 - **Phase 8-1 Style-Character Hierarchy** (02-21): `characters.style_profile_id` FK 추가, Alembic 스키마+데이터 마이그레이션(6캐릭터 역매핑), GET /characters?style_profile_id 필터, Wizard Step 0(화풍 선택), LoRA base_model 호환성 필터. Backend 14파일 + Frontend 7파일, DB_SCHEMA v3.22
 - **Phase 8-0 Realistic Style Quick Fix** (02-21): Anime 전용 embedding 범용화, Realistic StyleProfile 개선, LoRA `base_model` 필드, StyleContext SD모델 확장, Checkpoint 자동 전환, LoRA 호환성 경고. 6건 수정 + 7개 신규 테스트
 - **SSE 스트림 에러 수정** (02-20): video/scene progress SSE 제너레이터에 예외 처리 추가. 클라이언트 disconnect 시 `ERR_INCOMPLETE_CHUNKED_ENCODING` 해소 (CancelledError 핸들링)
@@ -128,7 +130,7 @@ graph LR
 | # | 항목 | 상태 |
 |---|------|------|
 | 1 | Style-Character Hierarchy (캐릭터 ↔ 화풍 연결) | ✅ (02-21) |
-| 2 | Style Profile UI (Frontend 관리 화면) | ⬚ |
+| 2 | Style Profile UI (Frontend 관리 화면) | ✅ (02-21) |
 | 3 | Negative Embedding 스타일별 자동 주입 | ⬚ |
 | 4 | Profile Export/Import | ⬚ |
 
@@ -186,4 +188,4 @@ Phase 12 (Agent Enhancement 26건) + Phase 13 (Creative Control 19건 + 13-A Qui
 |------|------|------|
 | 1 | PipelineControl 커스텀, 분산 큐 | 규모 확장 시 |
 | 2 | 배치 렌더링, 브랜딩, 분석 대시보드 | Feature Backlog |
-| 3 | Multi-Style Full Support (Phase 8-1) | 진행중 (1/4): Style-Character Hierarchy 완료, 나머지 3건 대기 |
+| 3 | Multi-Style Full Support (Phase 8-1) | 진행중 (2/4): Style-Character Hierarchy + Style Profile UI 완료, 나머지 2건 대기 |
