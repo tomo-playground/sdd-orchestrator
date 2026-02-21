@@ -94,11 +94,19 @@ def _adjust_parameters(ctx: GenerationContext) -> None:
             ctx.request.clip_skip,
         )
 
-    if complexity == "complex":
-        ctx.steps = max(ctx.steps, 28)
-        logger.info("⚡ [Complexity] Boosted steps for complex scene: steps=%d", ctx.steps)
-    elif complexity == "moderate":
-        ctx.steps = max(ctx.steps, 25)
+    # Complexity boost: only when steps weren't explicitly overridden
+    # (StyleProfile set explicit steps, or caller set non-default steps)
+    from config import SD_DEFAULT_STEPS
+
+    has_explicit_steps = (style_ctx and style_ctx.default_steps is not None) or (
+        ctx.request.steps != SD_DEFAULT_STEPS
+    )
+    if not has_explicit_steps:
+        if complexity == "complex":
+            ctx.steps = max(ctx.steps, 28)
+            logger.info("⚡ [Complexity] Boosted steps for complex scene: steps=%d", ctx.steps)
+        elif complexity == "moderate":
+            ctx.steps = max(ctx.steps, 25)
 
     # Apply optimal LoRA weights from calibration DB
     lora_names = extract_lora_names(ctx.prompt)
