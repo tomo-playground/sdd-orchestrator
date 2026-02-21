@@ -272,7 +272,7 @@ export type LoRA = {
   weight_min: number;
   weight_max: number;
   lora_type: string | null;
-  base_models: string[] | null;
+  base_model: string | null;
   character_defaults: Record<string, string> | null;
   recommended_negative: string[] | null;
   preview_image_url: string | null;
@@ -309,6 +309,8 @@ export type CharacterTagLink = {
 export type Character = {
   id: number;
   project_id: number | null;
+  style_profile_id: number | null;
+  style_profile_name: string | null;
   name: string;
   description: string | null;
   gender: ActorGender | null;
@@ -387,6 +389,8 @@ export type EffectiveMode = "standard" | "lora";
 export type CharacterFull = {
   id: number;
   project_id: number | null;
+  style_profile_id: number | null;
+  style_profile_name: string | null;
   name: string;
   description: string | null;
   gender: ActorGender | null;

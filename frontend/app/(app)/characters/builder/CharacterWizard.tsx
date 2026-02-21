@@ -20,6 +20,7 @@ import { wizardReducer, INITIAL_WIZARD_STATE, type WizardStep } from "./wizardRe
 import WizardNavBar from "./components/WizardNavBar";
 import WizardPreviewPanel from "./WizardPreviewPanel";
 import { useWizardPreview } from "./useWizardPreview";
+import StyleStep from "./steps/StyleStep";
 import BasicInfoStep from "./steps/BasicInfoStep";
 import AppearanceStep from "./steps/AppearanceStep";
 import LoraStep from "./steps/LoraStep";
@@ -46,6 +47,7 @@ export default function CharacterWizard() {
 
   // ── beforeunload guard ───────────────────────────────────
   const isDirty =
+    state.style_profile_id !== null ||
     state.name.length > 0 ||
     state.description.length > 0 ||
     state.selectedTags.length > 0 ||
@@ -190,6 +192,7 @@ export default function CharacterWizard() {
         name: state.name.trim(),
         gender: state.gender,
         description: state.description.trim() || null,
+        style_profile_id: state.style_profile_id,
         tags: allTags,
         loras: state.selectedLoras.map((l) => ({ lora_id: l.loraId, weight: l.weight })),
         prompt_mode: state.prompt_mode,
@@ -215,7 +218,12 @@ export default function CharacterWizard() {
   }, [state, allTagsFlat, showToast, router, assignPreview]);
 
   // ── Navigation ───────────────────────────────────────────
-  const canProceed = state.step === 1 ? state.name.trim().length >= 2 : true;
+  const canProceed =
+    state.step === 0
+      ? state.style_profile_id !== null
+      : state.step === 1
+        ? state.name.trim().length >= 2
+        : true;
 
   const handleNext = useCallback(async () => {
     if (state.step < 4) {
@@ -226,13 +234,13 @@ export default function CharacterWizard() {
   }, [state.step, handleSave]);
 
   const handleBack = useCallback(() => {
-    if (state.step > 1) {
+    if (state.step > 0) {
       dispatch({ type: "SET_STEP", step: (state.step - 1) as WizardStep });
     }
   }, [state.step]);
 
   // ── Step headers ─────────────────────────────────────────
-  const stepLabels = ["Basic Info", "Appearance", "LoRA", "Prompts"];
+  const stepLabels = ["Style", "Basic Info", "Appearance", "LoRA", "Prompts"];
 
   // ── Loading ──────────────────────────────────────────────
   if (isLoading) {
@@ -263,13 +271,13 @@ export default function CharacterWizard() {
           <button
             key={label}
             onClick={() => {
-              const target = i + 1;
+              const target = i as WizardStep;
               if (target < state.step || (target > state.step && canProceed)) {
-                dispatch({ type: "SET_STEP", step: target as WizardStep });
+                dispatch({ type: "SET_STEP", step: target });
               }
             }}
             className={`text-sm font-medium transition ${
-              state.step === i + 1
+              state.step === i
                 ? "border-b-2 border-zinc-900 pb-1 text-zinc-900"
                 : "pb-1 text-zinc-400 hover:text-zinc-600"
             }`}
@@ -295,6 +303,14 @@ export default function CharacterWizard() {
 
         {/* Right: Step content */}
         <div className="rounded-2xl border border-zinc-200/60 bg-white p-5">
+          {state.step === 0 && (
+            <StyleStep
+              selectedId={state.style_profile_id}
+              onSelect={(id, baseModel) =>
+                dispatch({ type: "SET_STYLE_PROFILE", id, baseModel })
+              }
+            />
+          )}
           {state.step === 1 && (
             <BasicInfoStep
               name={state.name}
@@ -323,6 +339,7 @@ export default function CharacterWizard() {
               allLoras={allLoras}
               selectedLoras={state.selectedLoras}
               gender={state.gender}
+              styleBaseModel={state.styleBaseModel}
               onToggleLora={(loraId, defaultWeight) =>
                 dispatch({ type: "TOGGLE_LORA", loraId, defaultWeight })
               }
@@ -349,7 +366,7 @@ export default function CharacterWizard() {
       {/* Bottom nav */}
       <WizardNavBar
         step={state.step}
-        totalSteps={4}
+        totalSteps={5}
         onBack={handleBack}
         onNext={handleNext}
         isSaving={state.isSaving}

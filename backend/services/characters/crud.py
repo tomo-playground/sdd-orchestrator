@@ -32,6 +32,7 @@ def _base_character_query(db: Session):
     """Shared joinedload pattern for character queries."""
     return db.query(Character).options(
         joinedload(Character.tags).joinedload(CharacterTag.tag),
+        joinedload(Character.style_profile),
     )
 
 
@@ -41,6 +42,13 @@ def _populate_tag_metadata(character: Character) -> None:
         char_tag.name = char_tag.tag.name
         char_tag.layer = char_tag.tag.default_layer
         char_tag.group_name = char_tag.tag.group_name
+
+
+def _populate_style_profile_name(character: Character) -> None:
+    """Set style_profile_name from the joined relationship for serialization."""
+    character.style_profile_name = (
+        character.style_profile.name if character.style_profile else None
+    )
 
 
 def _merge_tags(data) -> list:
@@ -83,6 +91,7 @@ def _save_tag_links(db: Session, character_id: int, tags: list) -> None:
 def list_characters(
     db: Session,
     project_id: int | None = None,
+    style_profile_id: int | None = None,
     offset: int = 0,
     limit: int = 50,
 ) -> dict:
@@ -92,11 +101,16 @@ def list_characters(
     base = db.query(Character).filter(Character.deleted_at.is_(None))
     if project_id is not None:
         base = base.filter(Character.project_id == project_id)
+    if style_profile_id is not None:
+        base = base.filter(Character.style_profile_id == style_profile_id)
 
     total = base.with_entities(func.count(Character.id)).scalar() or 0
 
     characters = (
-        base.options(joinedload(Character.tags).joinedload(CharacterTag.tag))
+        base.options(
+            joinedload(Character.tags).joinedload(CharacterTag.tag),
+            joinedload(Character.style_profile),
+        )
         .order_by(Character.name)
         .offset(offset)
         .limit(limit)
@@ -109,6 +123,7 @@ def list_characters(
 
     for char in characters:
         _populate_tag_metadata(char)
+        _populate_style_profile_name(char)
         if char.loras:
             char.loras = enrich_with_lora_map(char.loras, lora_map)
 
@@ -122,6 +137,7 @@ def get_character_or_raise(db: Session, character_id: int) -> Character:
         raise ValueError("Character not found")
 
     _populate_tag_metadata(character)
+    _populate_style_profile_name(character)
     if character.loras:
         character.loras = enrich_character_loras(db, character.loras)
 

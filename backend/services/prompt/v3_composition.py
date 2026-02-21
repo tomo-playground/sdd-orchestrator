@@ -74,8 +74,10 @@ EXCLUSIVE_GROUPS = frozenset(
 class V3PromptBuilder:
     """Prompt builder using the 12-layer semantic staking system."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, sd_model_base: str | None = None):
         self.db = db
+        self.sd_model_base = sd_model_base
+        self.warnings: list[str] = []
         self._lora_info_cache: dict[str, tuple[float, str | None]] = {}
         self._db_tag_names: set[str] | None = None
 
@@ -547,6 +549,19 @@ class V3PromptBuilder:
                 if lora_obj:
                     if lora_obj.lora_type == "style":
                         continue  # StyleProfile handles style LoRAs uniformly
+                    # Check base_model compatibility
+                    if (
+                        self.sd_model_base
+                        and lora_obj.base_model
+                        and lora_obj.base_model != self.sd_model_base
+                    ):
+                        msg = (
+                            f"LoRA '{lora_obj.name}' (base: {lora_obj.base_model}) "
+                            f"may be incompatible with checkpoint (base: {self.sd_model_base})"
+                        )
+                        self.warnings.append(msg)
+                        from config import logger as _logger
+                        _logger.warning("LoRA compatibility: %s", msg)
                     if weight is None:
                         weight = self.get_effective_lora_weight(lora_obj)
                     active_loras[lora_obj.name] = (weight, lora_obj.lora_type)

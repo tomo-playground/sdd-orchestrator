@@ -3,7 +3,7 @@
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ARRAY, Boolean, ForeignKey, Index, Integer, Numeric, String, Text  # noqa: F401
+from sqlalchemy import ARRAY, Boolean, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
@@ -24,6 +24,7 @@ class LoRA(Base, TimestampMixin):
 
     # Attributes
     lora_type: Mapped[str | None] = mapped_column(String(20))  # character, style, pose
+    base_model: Mapped[str | None] = mapped_column(String(50))  # SD1.5, SDXL, etc.
     gender_locked: Mapped[str | None] = mapped_column(String(10))  # female, male
     trigger_words: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
 

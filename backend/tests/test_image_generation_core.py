@@ -8,6 +8,7 @@ import base64
 from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from PIL import Image
 
@@ -442,10 +443,12 @@ class TestComposeSceneWithStyle:
             patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
             patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
             patch("services.prompt.v3_multi_character.MultiCharacterComposer") as MockComposer,
+            patch("services.style_context.resolve_style_context", return_value=None),
         ):
             mock_apply.return_value = ("1boy, 1girl", "lowres")
             mock_instance = MagicMock()
             mock_instance.find_unknown_tags.return_value = []
+            mock_instance.warnings = []
             MockBuilder.return_value = mock_instance
             mock_composer_instance = MagicMock()
             mock_composer_instance.compose.return_value = "1boy, 1girl"
@@ -465,6 +468,105 @@ class TestComposeSceneWithStyle:
             assert "muscular" in negative
             assert "facial_hair" in negative
             assert "lowres" in negative
+
+
+class TestEnsureCorrectCheckpoint:
+    """Test _ensure_correct_checkpoint() — SD WebUI checkpoint auto-switch."""
+
+    @pytest.mark.asyncio
+    async def test_skip_when_checkpoint_already_matches(self):
+        """No POST when current checkpoint already matches."""
+        from services.image_generation_core import _ensure_correct_checkpoint
+
+        mock_get_resp = MagicMock()
+        mock_get_resp.status_code = 200
+        mock_get_resp.json.return_value = {"sd_model_checkpoint": "realisticVisionV60.safetensors"}
+
+        with patch("services.image_generation_core.httpx.AsyncClient") as MockClient:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_get_resp
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            await _ensure_correct_checkpoint("realisticVisionV60")
+
+            mock_client.get.assert_called_once()
+            mock_client.post.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_switch_when_checkpoint_differs(self):
+        """POST to switch checkpoint when current model is different."""
+        from services.image_generation_core import _ensure_correct_checkpoint
+
+        mock_get_resp = MagicMock()
+        mock_get_resp.status_code = 200
+        mock_get_resp.json.return_value = {"sd_model_checkpoint": "animeModel_v3.safetensors"}
+
+        mock_post_resp = MagicMock()
+        mock_post_resp.status_code = 200
+
+        with patch("services.image_generation_core.httpx.AsyncClient") as MockClient:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_get_resp
+            mock_client.post.return_value = mock_post_resp
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            await _ensure_correct_checkpoint("realisticVisionV60")
+
+            mock_client.post.assert_called_once()
+            call_kwargs = mock_client.post.call_args
+            assert call_kwargs[1]["json"]["sd_model_checkpoint"] == "realisticVisionV60"
+
+    @pytest.mark.asyncio
+    async def test_non_blocking_on_failure(self):
+        """Connection error must not raise — just log warning."""
+        from services.image_generation_core import _ensure_correct_checkpoint
+
+        with patch("services.image_generation_core.httpx.AsyncClient") as MockClient:
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = httpx.ConnectError("SD WebUI offline")
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            # Must not raise
+            await _ensure_correct_checkpoint("realisticVisionV60")
+
+
+class TestComposeWarningsMerge:
+    """Test that builder.warnings are merged into compose_scene_with_style return."""
+
+    def test_builder_warnings_propagated(self):
+        """LoRA compatibility warnings from builder must appear in returned warnings."""
+        mock_db = MagicMock()
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+
+        with (
+            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
+            patch("services.style_context.resolve_style_context", return_value=None),
+        ):
+            mock_apply.return_value = ("1girl, smile", "lowres")
+            mock_instance = MagicMock()
+            mock_instance.compose.return_value = "1girl, smile"
+            mock_instance.find_unknown_tags.return_value = []
+            mock_instance.warnings = [
+                "LoRA 'char_lora' (base: SDXL) may be incompatible with checkpoint (base: SD1.5)"
+            ]
+            MockBuilder.return_value = mock_instance
+
+            _, _, warnings = compose_scene_with_style(
+                raw_prompt="1girl, smile",
+                negative_prompt="lowres",
+                character_id=None,
+                storyboard_id=42,
+                style_loras=[],
+                db=mock_db,
+            )
+
+            assert len(warnings) == 1
+            assert "incompatible" in warnings[0]
+            assert "char_lora" in warnings[0]
 
 
 class TestComposeNegativeOrder:

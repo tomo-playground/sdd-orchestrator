@@ -48,12 +48,15 @@ async def list_trashed_characters_endpoint(db: Session = Depends(get_db)):
 @router.get("", response_model=PaginatedCharacterList)
 async def list_characters_endpoint(
     project_id: int | None = None,
+    style_profile_id: int | None = None,
     offset: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db),
 ):
     """List all characters with their tags and tag metadata."""
-    return list_characters(db, project_id, offset=offset, limit=limit)
+    return list_characters(
+        db, project_id, style_profile_id=style_profile_id, offset=offset, limit=limit
+    )
 
 
 @router.get("/{character_id}", response_model=CharacterResponse)

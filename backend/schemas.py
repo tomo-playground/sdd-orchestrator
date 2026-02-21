@@ -790,6 +790,7 @@ class LoRABase(BaseModel):
     name: str
     display_name: str | None = None
     lora_type: str | None = None  # character, style, pose
+    base_model: str | None = None  # SD1.5, SDXL, etc.
     trigger_words: list[str] | None = None
     default_weight: float = 0.7
     optimal_weight: float | None = None
@@ -814,6 +815,7 @@ class LoRAUpdate(BaseModel):
     name: str | None = None
     display_name: str | None = None
     lora_type: str | None = None
+    base_model: str | None = None  # SD1.5, SDXL, etc.
     trigger_words: list[str] | None = None
     default_weight: float | None = None
     optimal_weight: float | None = None
@@ -847,6 +849,7 @@ class CharacterBase(BaseModel):
     name: str
     description: str | None = None
     gender: str | None = None
+    style_profile_id: int | None = None
     loras: list[CharacterLoRA] | None = None
     recommended_negative: list[str] | None = None
     custom_base_prompt: str | None = None
@@ -874,6 +877,7 @@ class CharacterUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     gender: str | None = None
+    style_profile_id: int | None = None
     loras: list[CharacterLoRA] | None = None
     recommended_negative: list[str] | None = None
     custom_base_prompt: str | None = None
@@ -896,6 +900,7 @@ class CharacterResponse(CharacterBase):
     id: int
     project_id: int | None
     tags: list[CharacterTagLink] = []
+    style_profile_name: str | None = None  # Derived from style_profile relationship
     preview_image_asset_id: int | None = None
     preview_image_url: str | None = None  # Read-only from @property
     preview_key: str | None = None  # Read-only from @property (storage key)

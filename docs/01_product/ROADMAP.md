@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-02-20)
+## 현재 상태 (2026-02-21)
 
 | 항목 | 상태 |
 |------|------|
@@ -14,11 +14,13 @@
 | Phase 11 (Scene Diversity) | 전체 완료 (ARCHIVED) |
 | Phase 12 (Agent Enhancement & AI BGM) | 전체 완료 (ARCHIVED) |
 | Phase 13 (Creative Control & Production Speed) | 전체 완료 (ARCHIVED) |
-| Phase 8 (Multi-Style) | 미착수 (Future) |
-| 테스트 | Backend 2,178 + Frontend 352 = **총 2,530개** |
+| Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 진행중 (1/4)** |
+| 테스트 | Backend 2,199 + Frontend 352 = **총 2,551개** |
 
 ### 최근 작업
 
+- **Phase 8-1 Style-Character Hierarchy** (02-21): `characters.style_profile_id` FK 추가, Alembic 스키마+데이터 마이그레이션(6캐릭터 역매핑), GET /characters?style_profile_id 필터, Wizard Step 0(화풍 선택), LoRA base_model 호환성 필터. Backend 14파일 + Frontend 7파일, DB_SCHEMA v3.22
+- **Phase 8-0 Realistic Style Quick Fix** (02-21): Anime 전용 embedding 범용화, Realistic StyleProfile 개선, LoRA `base_model` 필드, StyleContext SD모델 확장, Checkpoint 자동 전환, LoRA 호환성 경고. 6건 수정 + 7개 신규 테스트
 - **SSE 스트림 에러 수정** (02-20): video/scene progress SSE 제너레이터에 예외 처리 추가. 클라이언트 disconnect 시 `ERR_INCOMPLETE_CHUNKED_ENCODING` 해소 (CancelledError 핸들링)
 - **캐릭터 프리뷰 Gemini 기능 복원** (02-20): Phase 7-Y 리팩토링 시 누락된 Enhance(Gemini 보정)+Edit(자연어 편집) 복원. Regen/Enhance/Edit 3버튼 배치, GeminiEditModal 신규 생성
 - **캐릭터 태그 정비 + 개성화** (02-20): 8캐릭터 identity/clothing 태그 분리(is_permanent 정정), 비표준 태그(a_cute_girl, anime_style) 제거, 캐릭터별 개성 의상 재설계. Ghibli 캐릭터(Hana/Sora) auto 모드 전환
@@ -106,9 +108,29 @@ graph LR
 
 ---
 
-## Phase 8: Multi-Style Architecture (Future)
+## Phase 8: Multi-Style Architecture
 
 **목표**: Anime, Realistic, 3D 등 다양한 화풍 지원을 위한 유연한 파이프라인 구축.
+
+### Phase 8-0: Realistic Style Quick Fix (완료 2026-02-21)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | DEFAULT_SCENE/REFERENCE_NEGATIVE_PROMPT에서 Anime 전용 embedding 제거 | ✅ |
+| 2 | Realistic StyleProfile 개선 (negative_embeddings=[], 품질/negative 태그) | ✅ |
+| 3 | LoRA `base_model` 필드 추가 (ORM + 마이그레이션 + 스키마) | ✅ |
+| 4 | StyleContext에 `sd_model_name`, `sd_model_base` 추가 | ✅ |
+| 5 | 이미지 생성 전 Checkpoint 자동 전환 (`_ensure_correct_checkpoint`) | ✅ |
+| 6 | Character LoRA 호환성 경고 (base_model 불일치 시 warning) | ✅ |
+
+### Phase 8-1: Multi-Style Full Support (진행중)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | Style-Character Hierarchy (캐릭터 ↔ 화풍 연결) | ✅ (02-21) |
+| 2 | Style Profile UI (Frontend 관리 화면) | ⬚ |
+| 3 | Negative Embedding 스타일별 자동 주입 | ⬚ |
+| 4 | Profile Export/Import | ⬚ |
 
 ---
 
@@ -124,7 +146,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | Visual Tag Browser (태그별 예시 이미지) | [명세](FEATURES/VISUAL_TAG_BROWSER.md) |
 | ~~Scene Clothing Override (장면별 의상 변경)~~ | ✅ Phase 13-D 완료 |
 | ~~Scene 단위 자연어 이미지 편집~~ | ✅ Phase 13-B 완료 |
-| Style-Character Hierarchy (캐릭터 ↔ 화풍 연결) | [명세](FEATURES/STYLE_CHARACTER_HIERARCHY.md) |
+| ~~Style-Character Hierarchy (캐릭터 ↔ 화풍 연결)~~ | ✅ Phase 8-1 완료 |
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Storyboard Version History | — |
 | Real-time Prompt Preview (12-Layer) | — |
@@ -164,4 +186,4 @@ Phase 12 (Agent Enhancement 26건) + Phase 13 (Creative Control 19건 + 13-A Qui
 |------|------|------|
 | 1 | PipelineControl 커스텀, 분산 큐 | 규모 확장 시 |
 | 2 | 배치 렌더링, 브랜딩, 분석 대시보드 | Feature Backlog |
-| 3 | Multi-Style Architecture | Anime 외 화풍 확장 |
+| 3 | Multi-Style Full Support (Phase 8-1) | 진행중 (1/4): Style-Character Hierarchy 완료, 나머지 3건 대기 |

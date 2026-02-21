@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from config import (
+    SD_BASE_URL,
     SD_DEFAULT_CFG_SCALE,
     SD_DEFAULT_HEIGHT,
     SD_DEFAULT_SAMPLER,
@@ -25,6 +26,38 @@ from config import (
 )
 from services.prompt.prompt import normalize_negative_prompt, split_prompt_tokens
 from services.prompt.v3_composition import V3PromptBuilder
+
+
+async def _ensure_correct_checkpoint(sd_model_name: str) -> None:
+    """Switch SD WebUI checkpoint if it doesn't match the StyleProfile's model.
+
+    Non-blocking: logs warning on failure but does not raise.
+    """
+    if not sd_model_name:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"{SD_BASE_URL}/sdapi/v1/options")
+            if resp.status_code != 200:
+                logger.warning("Failed to read SD options: %d", resp.status_code)
+                return
+            current_model = resp.json().get("sd_model_checkpoint", "")
+            if sd_model_name in current_model:
+                return  # Already using the correct checkpoint
+            logger.info(
+                "Switching SD checkpoint: %s -> %s", current_model, sd_model_name,
+            )
+            resp = await client.post(
+                f"{SD_BASE_URL}/sdapi/v1/options",
+                json={"sd_model_checkpoint": sd_model_name},
+                timeout=120,
+            )
+            if resp.status_code == 200:
+                logger.info("SD checkpoint switched to %s", sd_model_name)
+            else:
+                logger.warning("Failed to switch checkpoint: %d", resp.status_code)
+    except Exception as e:
+        logger.warning("Checkpoint switch failed (non-blocking): %s", e)
 
 
 class ImageGenerationResult(BaseModel):
@@ -102,7 +135,19 @@ async def generate_image_with_v3(
             style_loras = []
             logger.warning(f"{mode_prefix} No group_id or storyboard_id, skipping Style LoRAs")
 
-    # 3-4. StyleProfile + V3 Composition via shared SSOT
+    # 3. Ensure correct SD checkpoint for the StyleProfile
+    if storyboard_id or group_id:
+        from services.style_context import resolve_style_context, resolve_style_context_from_group
+
+        style_ctx = None
+        if group_id:
+            style_ctx = resolve_style_context_from_group(group_id, db)
+        elif storyboard_id:
+            style_ctx = resolve_style_context(storyboard_id, db)
+        if style_ctx and style_ctx.sd_model_name:
+            await _ensure_correct_checkpoint(style_ctx.sd_model_name)
+
+    # 4. StyleProfile + V3 Composition via shared SSOT
     negative_prompt = sd_params.get("negative_prompt", "") if sd_params else ""
     if storyboard_id or group_id:
         try:
@@ -214,6 +259,7 @@ def compose_scene_with_style(
     """
     from models.character import Character
     from services.generation import apply_style_profile_to_prompt
+    from services.style_context import resolve_style_context
 
     warnings: list[str] = []
 
@@ -229,7 +275,13 @@ def compose_scene_with_style(
     if background_tags:
         scene_tags.extend(background_tags)
 
-    builder = V3PromptBuilder(db)
+    # Resolve sd_model_base for LoRA compatibility checking
+    sd_model_base: str | None = None
+    style_ctx = resolve_style_context(storyboard_id, db) if storyboard_id else None
+    if style_ctx:
+        sd_model_base = style_ctx.sd_model_base or None
+
+    builder = V3PromptBuilder(db, sd_model_base=sd_model_base)
 
     character = None
     if character_id:
@@ -291,11 +343,14 @@ def compose_scene_with_style(
         if char.recommended_negative:
             modified_negative = f"{modified_negative}, {', '.join(char.recommended_negative)}"
 
-    # 4. Detect non-Danbooru tags
+    # 4. Merge builder warnings (LoRA compatibility, etc.)
+    warnings.extend(builder.warnings)
+
+    # 5. Detect non-Danbooru tags
     unknown = builder.find_unknown_tags(scene_tags)
     if unknown:
         warnings.append(f"Non-Danbooru tags detected: {', '.join(unknown)}")
-        logger.warning("⚠️ [compose] Non-Danbooru tags: %s", unknown)
+        logger.warning("[compose] Non-Danbooru tags: %s", unknown)
 
     logger.debug(
         "🎨 [compose_scene_with_style] char_id=%s, storyboard_id=%s, loras=%d",

@@ -1421,3 +1421,116 @@ class TestComposeForReferenceQuality:
         assert "raw_photo" in result
         assert "masterpiece" not in result
         assert "best_quality" not in result
+
+
+class TestLoRABaseModelCompatibility:
+    """Test LoRA base_model compatibility warning in _inject_loras."""
+
+    @patch("services.prompt.v3_composition.LoRATriggerCache")
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_mismatch_produces_warning(self, mock_alias, mock_filter, mock_rule, mock_trigger):
+        """LoRA base_model != checkpoint base → warning added."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+        mock_trigger.get_lora_name.return_value = None
+
+        mock_db = MagicMock()
+
+        # LoRA with SDXL base_model
+        mock_lora = MagicMock()
+        mock_lora.name = "anime_char_lora"
+        mock_lora.lora_type = "character"
+        mock_lora.base_model = "SDXL"
+        mock_lora.trigger_words = []
+        mock_lora.optimal_weight = None
+        mock_lora.default_weight = 0.7
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_lora
+
+        char = MagicMock()
+        char.loras = [{"lora_id": 1, "weight": 0.8}]
+        char.prompt_mode = "lora"
+
+        builder = V3PromptBuilder(mock_db, sd_model_base="SD1.5")
+        layers = [[] for _ in range(12)]
+        builder._inject_loras(char, [], layers, [])
+
+        assert len(builder.warnings) == 1
+        assert "incompatible" in builder.warnings[0]
+        assert "SDXL" in builder.warnings[0]
+        assert "SD1.5" in builder.warnings[0]
+
+    @patch("services.prompt.v3_composition.LoRATriggerCache")
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_null_base_model_no_warning(self, mock_alias, mock_filter, mock_rule, mock_trigger):
+        """LoRA without base_model (NULL) → no warning (gradual adoption)."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+        mock_trigger.get_lora_name.return_value = None
+
+        mock_db = MagicMock()
+
+        mock_lora = MagicMock()
+        mock_lora.name = "old_lora"
+        mock_lora.lora_type = "character"
+        mock_lora.base_model = None  # Not set yet
+        mock_lora.trigger_words = []
+        mock_lora.optimal_weight = None
+        mock_lora.default_weight = 0.7
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_lora
+
+        char = MagicMock()
+        char.loras = [{"lora_id": 1, "weight": 0.8}]
+        char.prompt_mode = "lora"
+
+        builder = V3PromptBuilder(mock_db, sd_model_base="SD1.5")
+        layers = [[] for _ in range(12)]
+        builder._inject_loras(char, [], layers, [])
+
+        assert len(builder.warnings) == 0
+
+    @patch("services.prompt.v3_composition.LoRATriggerCache")
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_matching_base_model_no_warning(self, mock_alias, mock_filter, mock_rule, mock_trigger):
+        """LoRA base_model == checkpoint base → no warning."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+        mock_trigger.get_lora_name.return_value = None
+
+        mock_db = MagicMock()
+
+        mock_lora = MagicMock()
+        mock_lora.name = "sd15_char"
+        mock_lora.lora_type = "character"
+        mock_lora.base_model = "SD1.5"
+        mock_lora.trigger_words = ["sd15_trigger"]
+        mock_lora.optimal_weight = None
+        mock_lora.default_weight = 0.7
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_lora
+
+        char = MagicMock()
+        char.loras = [{"lora_id": 1, "weight": 0.8}]
+        char.prompt_mode = "lora"
+
+        builder = V3PromptBuilder(mock_db, sd_model_base="SD1.5")
+        layers = [[] for _ in range(12)]
+        builder._inject_loras(char, [], layers, [])
+
+        assert len(builder.warnings) == 0

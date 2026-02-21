@@ -5,12 +5,16 @@ import { applyTagToggle, applyFreeTagToggle } from "../shared/tagUtils";
 
 // ── Types ────────────────────────────────────────────────────
 
-export type WizardStep = 1 | 2 | 3 | 4;
+export type WizardStep = 0 | 1 | 2 | 3 | 4;
 
 export type WizardLoRA = { loraId: number; weight: number };
 
 export type WizardState = {
   step: WizardStep;
+  // Style selection (Step 0)
+  style_profile_id: number | null;
+  styleBaseModel: string | null; // SD model base_model for LoRA filtering
+  // Basic info (Step 1+)
   name: string;
   gender: ActorGender;
   description: string;
@@ -32,6 +36,7 @@ export type WizardState = {
 
 export type WizardAction =
   | { type: "SET_STEP"; step: WizardStep }
+  | { type: "SET_STYLE_PROFILE"; id: number; baseModel: string | null }
   | { type: "SET_NAME"; name: string }
   | { type: "SET_GENDER"; gender: ActorGender }
   | { type: "SET_DESCRIPTION"; description: string }
@@ -60,6 +65,14 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
   switch (action.type) {
     case "SET_STEP":
       return { ...state, step: action.step };
+    case "SET_STYLE_PROFILE":
+      return {
+        ...state,
+        style_profile_id: action.id,
+        styleBaseModel: action.baseModel,
+        // Clear incompatible LoRAs when style changes
+        selectedLoras: [],
+      };
     case "SET_NAME":
       return { ...state, name: action.name };
     case "SET_GENDER":
@@ -128,7 +141,9 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
 }
 
 export const INITIAL_WIZARD_STATE: WizardState = {
-  step: 1,
+  step: 0,
+  style_profile_id: null,
+  styleBaseModel: null,
   name: "",
   gender: "female",
   description: "",

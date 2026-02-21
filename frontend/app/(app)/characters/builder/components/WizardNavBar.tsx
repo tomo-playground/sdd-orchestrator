@@ -33,18 +33,18 @@ export default function WizardNavBar({
             <div
               key={i}
               className={`h-1.5 w-6 rounded-full transition-colors ${
-                i + 1 <= step ? "bg-zinc-900" : "bg-zinc-200"
+                i <= step ? "bg-zinc-900" : "bg-zinc-200"
               }`}
             />
           ))}
           <span className="ml-2 text-xs text-zinc-400">
-            Step {step} of {totalSteps}
+            Step {step + 1} of {totalSteps}
           </span>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          {step > 1 && (
+          {step > 0 && (
             <Button variant="ghost" size="sm" onClick={onBack}>
               <ArrowLeft className="h-3.5 w-3.5" />
               Back

@@ -22,6 +22,8 @@ class StyleContext:
     negative_embeddings: list[str] = field(default_factory=list)
     default_positive: str = ""
     default_negative: str = ""
+    sd_model_name: str = ""  # checkpoint 파일명 (e.g. "realisticVisionV60.safetensors")
+    sd_model_base: str = ""  # base model type (e.g. "SD1.5", "SDXL")
 
 
 def _resolve_embedding_triggers(embedding_ids: list[int] | None, db: Session) -> list[str]:
@@ -58,12 +60,21 @@ def _build_style_context(profile, db: Session) -> StyleContext:
             lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()
             if not lora_obj:
                 continue
-            loras.append({
-                "lora_id": lora_id,
-                "weight": weight,
-                "name": lora_obj.name,
-                "trigger_words": list(lora_obj.trigger_words) if lora_obj.trigger_words else [],
-            })
+            loras.append(
+                {
+                    "lora_id": lora_id,
+                    "weight": weight,
+                    "name": lora_obj.name,
+                    "trigger_words": list(lora_obj.trigger_words) if lora_obj.trigger_words else [],
+                }
+            )
+
+    # Resolve SD model info via ORM relationship
+    sd_model_name = ""
+    sd_model_base = ""
+    if profile.sd_model:
+        sd_model_name = profile.sd_model.name or ""
+        sd_model_base = profile.sd_model.base_model or ""
 
     return StyleContext(
         profile_id=profile.id,
@@ -73,6 +84,8 @@ def _build_style_context(profile, db: Session) -> StyleContext:
         negative_embeddings=_resolve_embedding_triggers(profile.negative_embeddings, db),
         default_positive=profile.default_positive or "",
         default_negative=profile.default_negative or "",
+        sd_model_name=sd_model_name,
+        sd_model_base=sd_model_base,
     )
 
 
@@ -135,6 +148,5 @@ def extract_style_loras(ctx: StyleContext | None) -> list[dict]:
     if not ctx:
         return []
     return [
-        {"name": lr["name"], "weight": lr["weight"], "trigger_words": lr.get("trigger_words", [])}
-        for lr in ctx.loras
+        {"name": lr["name"], "weight": lr["weight"], "trigger_words": lr.get("trigger_words", [])} for lr in ctx.loras
     ]

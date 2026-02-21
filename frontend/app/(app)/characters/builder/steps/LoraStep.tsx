@@ -15,6 +15,7 @@ type LoraStepProps = {
   allLoras: LoRA[];
   selectedLoras: WizardLoRA[];
   gender: ActorGender;
+  styleBaseModel?: string | null;
   onToggleLora: (loraId: number, defaultWeight: number) => void;
   onUpdateWeight: (loraId: number, weight: number) => void;
 };
@@ -31,6 +32,7 @@ export default function LoraStep({
   allLoras,
   selectedLoras,
   gender,
+  styleBaseModel,
   onToggleLora,
   onUpdateWeight,
 }: LoraStepProps) {
@@ -41,6 +43,9 @@ export default function LoraStep({
     return allLoras.filter((lora) => {
       // Gender filter: show if unlocked or matching
       if (lora.gender_locked && lora.gender_locked !== gender) return false;
+
+      // Base model compatibility: skip LoRAs incompatible with the selected style
+      if (styleBaseModel && lora.base_model && lora.base_model !== styleBaseModel) return false;
 
       // Type filter
       if (typeFilter !== "all" && lora.lora_type !== typeFilter) return false;
@@ -57,7 +62,7 @@ export default function LoraStep({
 
       return true;
     });
-  }, [allLoras, gender, typeFilter, searchQuery]);
+  }, [allLoras, gender, styleBaseModel, typeFilter, searchQuery]);
 
   return (
     <div className="space-y-4">
