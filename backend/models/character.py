@@ -9,7 +9,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 if TYPE_CHECKING:
     from models.associations import CharacterTag
     from models.media_asset import MediaAsset
-    from models.project import Project
     from models.sd_model import StyleProfile
 
 from models.base import Base, SoftDeleteMixin, TimestampMixin
@@ -22,9 +21,6 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
     __table_args__ = (UniqueConstraint("name", name="uq_characters_name"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    project_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
-    )
     style_profile_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("style_profiles.id", ondelete="SET NULL"),
@@ -48,9 +44,9 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
     reference_negative_prompt: Mapped[str | None] = mapped_column(Text)
 
     # Relationships
-    project: Mapped["Project | None"] = relationship("Project", foreign_keys=[project_id])
     style_profile: Mapped["StyleProfile | None"] = relationship(
-        "StyleProfile", foreign_keys=[style_profile_id],
+        "StyleProfile",
+        foreign_keys=[style_profile_id],
     )
 
     # V3: Relational Tags

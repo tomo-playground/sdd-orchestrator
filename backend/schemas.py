@@ -866,7 +866,6 @@ class CharacterBase(BaseModel):
 
 
 class CharacterCreate(CharacterBase):
-    project_id: int | None = None
     tags: list[CharacterTagLink] | None = None
     # Legacy support (will be migrated to tags in router)
     identity_tags: list[int] | None = None
@@ -898,7 +897,6 @@ class CharacterUpdate(BaseModel):
 
 class CharacterResponse(CharacterBase):
     id: int
-    project_id: int | None
     tags: list[CharacterTagLink] = []
     style_profile_name: str | None = None  # Derived from style_profile relationship
     preview_image_asset_id: int | None = None

@@ -1,8 +1,8 @@
 # Database Schema Summary
 
-Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.22) 참조.
+Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.23) 참조.
 
-> **Last Synced:** 2026-02-21 (DB_SCHEMA v3.22 기준)
+> **Last Synced:** 2026-02-21 (DB_SCHEMA v3.23 기준)
 
 ---
 
@@ -72,7 +72,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `is_temp`, `checksum`
 
 ### `characters` — 캐릭터 프리셋
-- `id` (PK), `project_id` (FK → projects, SET NULL), `style_profile_id` (FK → style_profiles, SET NULL), `name` (Unique), `gender`, `description`
+- `id` (PK), `style_profile_id` (FK → style_profiles, SET NULL), `name` (Unique), `gender`, `description`
 - **Prompt**: `loras` (JSONB), `custom_base_prompt`, `custom_negative_prompt`, `recommended_negative` (ARRAY), `reference_base_prompt`, `reference_negative_prompt`, `prompt_mode`
 - **IP-Adapter**: `ip_adapter_weight`, `ip_adapter_model`
 - **Voice**: `voice_preset_id` (FK → voice_presets)

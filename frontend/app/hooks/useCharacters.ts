@@ -18,9 +18,8 @@ type UseCharactersResult = {
 /**
  * Hook to load and manage characters.
  * Provides methods to fetch character details and build prompts.
- * @param projectId - When provided, only fetches characters for this project.
  */
-export function useCharacters(projectId?: number | null): UseCharactersResult {
+export function useCharacters(): UseCharactersResult {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,9 +28,7 @@ export function useCharacters(projectId?: number | null): UseCharactersResult {
     setIsLoading(true);
     setError(null);
     try {
-      const params: Record<string, unknown> = {};
-      if (projectId != null) params.project_id = projectId;
-      const res = await axios.get<{ items: Character[] }>(`${API_BASE}/characters`, { params });
+      const res = await axios.get<{ items: Character[] }>(`${API_BASE}/characters`);
       setCharacters(res.data.items ?? []);
     } catch (err) {
       console.error("[useCharacters] Error:", err);
@@ -40,7 +37,7 @@ export function useCharacters(projectId?: number | null): UseCharactersResult {
     } finally {
       setIsLoading(false);
     }
-  }, [projectId]);
+  }, []);
 
   useEffect(() => {
     void loadCharacters();
@@ -77,7 +74,10 @@ export function useCharacters(projectId?: number | null): UseCharactersResult {
     // 2. Append custom_base_prompt tokens (avoid duplicates)
     if (character.custom_base_prompt) {
       const existing = new Set(parts.map((p) => p.replace(/[():\d.]/g, "").toLowerCase()));
-      const custom = character.custom_base_prompt.split(",").map((t) => t.trim()).filter(Boolean);
+      const custom = character.custom_base_prompt
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
       for (const token of custom) {
         const norm = token.replace(/[():\d.]/g, "").toLowerCase();
         if (!existing.has(norm)) {

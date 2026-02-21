@@ -47,7 +47,7 @@ def _make_project(db_session, *, name: str = "test-project") -> Project:
 
 
 def _make_character(db_session) -> Character:
-    char = Character(name=f"test-char-{id(object())}", project_id=1)
+    char = Character(name=f"test-char-{id(object())}")
     db_session.add(char)
     db_session.commit()
     db_session.refresh(char)
@@ -73,7 +73,7 @@ class TestDetectNullOwner:
 
     def test_skips_fk_referenced_null_owner(self, db_session):
         """Assets with NULL owner_type but referenced by FK should be protected."""
-        char = Character(name="Test Char", project_id=_make_project(db_session).id)
+        char = Character(name="Test Char")
         db_session.add(char)
         db_session.flush()
         asset = _make_asset(db_session, storage_key="protected/preview.png")

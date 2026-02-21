@@ -308,7 +308,6 @@ export type CharacterTagLink = {
 
 export type Character = {
   id: number;
-  project_id: number | null;
   style_profile_id: number | null;
   style_profile_name: string | null;
   name: string;
@@ -389,7 +388,6 @@ export type EffectiveMode = "standard" | "lora";
 
 export type CharacterFull = {
   id: number;
-  project_id: number | null;
   style_profile_id: number | null;
   style_profile_name: string | null;
   name: string;

@@ -31,7 +31,6 @@ class TestCharactersRouter:
         """Create character with minimal required fields."""
         request_data = {
             "name": "test_character",
-            "project_id": 1,
         }
 
         response = client.post("/characters", json=request_data)
@@ -39,7 +38,6 @@ class TestCharactersRouter:
         data = response.json()
 
         assert data["name"] == "test_character"
-        assert data["project_id"] == 1
         assert "id" in data
         assert "tags" in data
         # Verify default prompts were set
@@ -47,16 +45,15 @@ class TestCharactersRouter:
         assert data["reference_negative_prompt"] is not None
 
     def test_create_character_duplicate_name(self, client: TestClient, db_session):
-        """Creating character with duplicate name in same project fails."""
+        """Creating character with duplicate name fails."""
         # Create first character
         request_data = {
             "name": "duplicate_test",
-            "project_id": 1,
         }
         response = client.post("/characters", json=request_data)
         assert response.status_code == 201
 
-        # Try to create duplicate in same project
+        # Try to create duplicate
         response = client.post("/characters", json=request_data)
         assert response.status_code == 409
         assert "already exists" in response.json()["detail"].lower()
@@ -65,7 +62,6 @@ class TestCharactersRouter:
         """Create character with tags (limited assertion due to async router behavior)."""
         request_data = {
             "name": "tagged_character",
-            "project_id": 1,
             "tags": [{"tag_id": sample_tag.id, "weight": 1.0, "is_permanent": True}],
         }
 
@@ -91,7 +87,6 @@ class TestCharactersRouter:
         # Create test character
         character = Character(
             name="get_test",
-            project_id=1,
         )
         db_session.add(character)
         db_session.commit()
@@ -109,7 +104,6 @@ class TestCharactersRouter:
         # Create test character
         character = Character(
             name="update_test",
-            project_id=1,
         )
         db_session.add(character)
         db_session.commit()
@@ -137,7 +131,6 @@ class TestCharactersRouter:
         # Create test character
         character = Character(
             name="delete_test",
-            project_id=1,
         )
         db_session.add(character)
         db_session.commit()
@@ -163,8 +156,8 @@ class TestCharactersRouter:
     def test_list_characters_with_data(self, client: TestClient, db_session):
         """List characters returns all characters."""
         # Create test characters
-        char1 = Character(name="char1", project_id=1)
-        char2 = Character(name="char2", project_id=1)
+        char1 = Character(name="char1")
+        char2 = Character(name="char2")
         db_session.add_all([char1, char2])
         db_session.commit()
 
@@ -181,7 +174,7 @@ class TestCharactersRouter:
 
     def test_create_character_with_loras(self, client: TestClient, db_session):
         """Create character with LoRA configuration."""
-        request_data = {"name": "lora_character", "project_id": 1, "loras": [{"lora_id": 1, "weight": 0.7}]}
+        request_data = {"name": "lora_character", "loras": [{"lora_id": 1, "weight": 0.7}]}
 
         response = client.post("/characters", json=request_data)
         assert response.status_code == 201
@@ -191,20 +184,12 @@ class TestCharactersRouter:
         assert "loras" in data
 
     def test_duplicate_name_global(self, client: TestClient, db_session):
-        """Same character name is rejected globally (not per-project)."""
-        from models.project import Project
-
-        # Create a second project
-        project2 = Project(name="Second Project")
-        db_session.add(project2)
-        db_session.commit()
-
-        # Create character (no project_id)
+        """Same character name is rejected globally."""
         res1 = client.post("/characters", json={"name": "global_char"})
         assert res1.status_code == 201
 
-        # Same name should fail even with different project_id
-        res2 = client.post("/characters", json={"name": "global_char", "project_id": project2.id})
+        # Same name should fail
+        res2 = client.post("/characters", json={"name": "global_char"})
         assert res2.status_code == 409
 
     def test_update_character_tags(self, client: TestClient, db_session, sample_tag):
@@ -212,7 +197,6 @@ class TestCharactersRouter:
         # Create test character
         character = Character(
             name="tag_update_test",
-            project_id=1,
         )
         db_session.add(character)
         db_session.commit()
@@ -241,8 +225,8 @@ class TestSoftDeleteFilters:
         """Create one active and one soft-deleted character."""
         from datetime import UTC, datetime
 
-        active = Character(name="active_char", project_id=1)
-        deleted = Character(name="deleted_char", project_id=1)
+        active = Character(name="active_char")
+        deleted = Character(name="deleted_char")
         deleted.deleted_at = datetime.now(UTC)
         db_session.add_all([active, deleted])
         db_session.commit()

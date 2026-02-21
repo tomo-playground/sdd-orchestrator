@@ -31,7 +31,7 @@
 
 ### 추가 완료된 것 (Phase 1.5 ~ 1.7)
 - Channel Profile → Project 통합 (profileSlice 삭제)
-- 캐릭터 글로벌화 (`project_id` nullable)
+- 캐릭터 글로벌화 (`project_id` 제거 완료, v3.23)
 - `group_config` 분리 테이블 (1:1)
 - Cascading Config 확장: language, structure, duration, narrator_voice_preset_id
 - Manage > Group Defaults 편집 UI
@@ -220,21 +220,10 @@ def resolve_config(group_config):
 | 6 | 빈 상태(Empty State) CTA ("첫 번째 시리즈를 만들어보세요") | UI/UX | [ ] |
 | 7 | 프로젝트/그룹별 색상 코딩 아이콘 | UI/UX | [ ] |
 
-#### 1-3. 캐릭터 프로젝트 스코핑 (Backend + Frontend)
+#### 1-3. ~~캐릭터 프로젝트 스코핑~~ (제거됨)
 
-> 결정: A안 (프로젝트별 소속, `character.project_id` FK)
-
-**배경**: 채널(프로젝트)별로 캐릭터가 다르므로 글로벌 공유 대신 프로젝트별 격리.
-**영향도**: 60+ 파일 (모델, 라우터, 서비스 6개, 테스트 16개, 프론트 컴포넌트 15+)
-
-| # | 작업 | 담당 | 상태 |
-|---|------|------|------|
-| 1 | `characters` 테이블에 `project_id` FK 추가 (RESTRICT) + 복합 유니크 `(project_id, name)` | DBA | [x] |
-| 2 | `GET /characters?project_id=X` 필터 추가 | Backend | [x] |
-| 3 | `useCharacters(projectId)` 훅 파라미터 추가 | Frontend | [x] |
-| 4 | Home 캐릭터 탭: 선택된 프로젝트 기준 필터링 | Frontend | [x] |
-| 5 | Studio PlanTab: 캐릭터 선택기 프로젝트 스코핑 | Frontend | [x] |
-| 6 | 기존 캐릭터 전부 `project_id=1` 데이터 마이그레이션 | DBA | [x] |
+> **v3.23 (2026-02-21)**: `project_id` FK 제거. 캐릭터는 글로벌 스코프로 운영.
+> 프로젝트 스코핑을 시도했으나 실질적으로 사용되지 않아 롤백 후 제거.
 
 #### 1-4. Storyboard FK 강화 (DBA)
 
@@ -265,7 +254,7 @@ def resolve_config(group_config):
 - [x] Home 페이지 프로젝트 드롭다운 + 그룹 필터 pill (1-2)
 - [ ] Cmd+K로 프로젝트/그룹/스토리보드 빠른 전환 (1-2)
 - [x] `storyboards.group_id` NOT NULL, FK 관계 완전 (1-4)
-- [x] 캐릭터가 프로젝트별로 격리 (`character.project_id`) (1-3)
+- [x] ~~캐릭터 프로젝트 격리~~ → 글로벌 스코프로 변경 (1-3, v3.23에서 제거)
 - [x] 렌더 프리셋 테이블 분리 + CRUD API + GroupFormModal 연동 (1-5)
 
 ---

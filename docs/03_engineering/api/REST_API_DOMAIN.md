@@ -218,7 +218,7 @@ Tags, Keywords, ControlNet, LoRA, Avatar, Assets, Backgrounds, Prompt, SD, Chara
 
 | Method | Path | Description | Response Model |
 |--------|------|-------------|----------------|
-| GET | `/characters` | 캐릭터 목록 (project_id, offset, limit) | `PaginatedCharacterList` |
+| GET | `/characters` | 캐릭터 목록 (style_profile_id, offset, limit) | `PaginatedCharacterList` |
 | GET | `/characters/{id}` | 캐릭터 상세 (V3 relational tags + LoRA) | `CharacterResponse` |
 | POST | `/characters` | 캐릭터 생성 (201) | `CharacterResponse` |
 | PUT | `/characters/{id}` | 캐릭터 수정 (부분 업데이트) | `CharacterResponse` |

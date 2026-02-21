@@ -46,9 +46,7 @@ def _populate_tag_metadata(character: Character) -> None:
 
 def _populate_style_profile_name(character: Character) -> None:
     """Set style_profile_name from the joined relationship for serialization."""
-    character.style_profile_name = (
-        character.style_profile.name if character.style_profile else None
-    )
+    character.style_profile_name = character.style_profile.name if character.style_profile else None
 
 
 def _merge_tags(data) -> list:
@@ -90,7 +88,6 @@ def _save_tag_links(db: Session, character_id: int, tags: list) -> None:
 
 def list_characters(
     db: Session,
-    project_id: int | None = None,
     style_profile_id: int | None = None,
     offset: int = 0,
     limit: int = 50,
@@ -99,8 +96,6 @@ def list_characters(
     from sqlalchemy import func
 
     base = db.query(Character).filter(Character.deleted_at.is_(None))
-    if project_id is not None:
-        base = base.filter(Character.project_id == project_id)
     if style_profile_id is not None:
         base = base.filter(Character.style_profile_id == style_profile_id)
 

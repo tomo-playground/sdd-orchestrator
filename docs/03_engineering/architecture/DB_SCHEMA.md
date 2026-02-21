@@ -1,4 +1,4 @@
-# Database Schema (v3.22)
+# Database Schema (v3.23)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.23 | 2026-02-21 | `characters`에서 `project_id` FK 제거 (미사용, 글로벌 스코프로 운영) |
 | v3.22 | 2026-02-21 | `characters`에 `style_profile_id` FK 추가 (캐릭터별 스타일 프로파일 오버라이드) |
 | v3.21 | 2026-02-18 | **Source-Truth Sync**: `active` → `is_active` 문서 반영(tag_rules, tag_aliases, tag_filters, classification_rules). `scenes`에 TTS 필드 3개 추가(voice_design_prompt, head_padding, tail_padding). `group_config`에 `channel_dna`/SD 파라미터 상세화. `creative_sessions.session_type` default 수정(free→shorts). `loras`에 `gender_locked` 누락 복원 |
 | v3.20 | 2026-02-12 | `storyboards`에 `version` (Integer, NOT NULL, default 1) 추가 — Optimistic Locking |
@@ -49,7 +50,6 @@ erDiagram
 
     characters ||--o{ character_tags : "has"
     characters }o--o{ scene_character_actions : "acts_in"
-    characters }o--o| projects : "belongs_to"
     characters }o--o| style_profiles : "style"
     storyboard_characters }o--o| characters : "maps_to"
 
@@ -448,7 +448,6 @@ WD14 피드백 루프 데이터.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `project_id` | Integer (FK → projects, SET NULL) | 소속 프로젝트 |
 | `style_profile_id` | Integer (FK → style_profiles, SET NULL) | 캐릭터별 스타일 프로파일 오버라이드 |
 | `name` | String(100) | Unique |
 | `gender` | String(10) | `female`, `male` |
