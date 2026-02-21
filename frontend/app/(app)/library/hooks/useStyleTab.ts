@@ -14,7 +14,7 @@ import { useLoraManagement } from "./useLoraManagement";
 // Re-export for consumers that import CivitaiResult from useStyleTab
 export type { CivitaiResult } from "./useCivitai";
 
-import type { UiCallbacksWithPrompt } from "../../../types";
+import type { LoRA, UiCallbacksWithPrompt } from "../../../types";
 
 // ── Hook ───────────────────────────────────────────────
 
@@ -284,6 +284,30 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     [handleUpdateStyle, selectedProfile]
   );
 
+  // ── Filtered lists for StyleProfileEditor ────────
+  // Filter LoRAs/Embeddings by the selected profile's SD Model base_model
+
+  const selectedBaseModel = useMemo(() => {
+    if (!selectedProfile?.sd_model) return null;
+    const model = sdModels.find((m) => m.id === selectedProfile.sd_model!.id);
+    return model?.base_model ?? null;
+  }, [selectedProfile, sdModels]);
+
+  const filteredLorasForEditor = useMemo(() => {
+    return lora.loraEntries.filter((l: LoRA) => {
+      if (l.lora_type !== "style") return false;
+      if (selectedBaseModel && l.base_model && l.base_model !== selectedBaseModel) return false;
+      return true;
+    });
+  }, [lora.loraEntries, selectedBaseModel]);
+
+  const filteredEmbeddingsForEditor = useMemo(() => {
+    return embeddings.filter((e) => {
+      if (selectedBaseModel && e.base_model && e.base_model !== selectedBaseModel) return false;
+      return true;
+    });
+  }, [embeddings, selectedBaseModel]);
+
   // ── Effects ────────────────────────────────────────
 
   useEffect(() => {
@@ -310,6 +334,8 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     sdModelMap,
     embeddings,
     loraEntries: lora.loraEntries,
+    filteredLorasForEditor,
+    filteredEmbeddingsForEditor,
     // Character data
     characterCounts,
     linkedCharacters,

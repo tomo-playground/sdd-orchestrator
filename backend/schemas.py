@@ -989,6 +989,7 @@ class EmbeddingBase(BaseModel):
     display_name: str | None = None
     embedding_type: str = "negative"
     trigger_word: str | None = None
+    base_model: str | None = None  # SD1.5, SDXL, etc.
     description: str | None = None
     is_active: bool = True
 
@@ -1002,6 +1003,7 @@ class EmbeddingUpdate(BaseModel):
     display_name: str | None = None
     embedding_type: str | None = None
     trigger_word: str | None = None
+    base_model: str | None = None  # SD1.5, SDXL, etc.
     description: str | None = None
     is_active: bool | None = None
 

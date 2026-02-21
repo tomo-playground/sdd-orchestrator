@@ -98,6 +98,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 ### `embeddings` — 임베딩 모델
 - `id` (PK), `name` (Unique), `display_name`
 - `embedding_type` (`negative`/`positive`/`style`), `trigger_word`
+- `base_model` (SD1.5, SDXL 등)
 - `description`, `is_active`
 
 ---

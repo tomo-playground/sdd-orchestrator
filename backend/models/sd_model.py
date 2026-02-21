@@ -38,6 +38,7 @@ class SDModel(Base, TimestampMixin):
         if self.preview_image_asset:
             return self.preview_image_asset.url
         return None
+
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
@@ -51,6 +52,7 @@ class Embedding(Base, TimestampMixin):
     display_name: Mapped[str | None] = mapped_column(String(200))
     embedding_type: Mapped[str] = mapped_column(String(50), default="negative")  # negative, positive, style
     trigger_word: Mapped[str | None] = mapped_column(String(100))  # Usually same as name
+    base_model: Mapped[str | None] = mapped_column(String(50))  # SD1.5, SDXL, etc.
     description: Mapped[str | None] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 

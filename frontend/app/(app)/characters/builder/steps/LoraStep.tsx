@@ -36,7 +36,7 @@ export default function LoraStep({
   onToggleLora,
   onUpdateWeight,
 }: LoraStepProps) {
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("character");
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredLoras = useMemo(() => {

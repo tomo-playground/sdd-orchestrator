@@ -626,6 +626,7 @@ Textual Inversion 임베딩.
 | `display_name` | String(200) | |
 | `embedding_type` | String(50) | |
 | `trigger_word` | String(100) | |
+| `base_model` | String(50) | SD1.5, SDXL 등 |
 | `description` | Text | |
 | `is_active` | Boolean | |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |

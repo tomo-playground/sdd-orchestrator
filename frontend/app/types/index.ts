@@ -353,6 +353,7 @@ export type Embedding = {
   display_name: string | null;
   embedding_type: string;
   trigger_word: string | null;
+  base_model: string | null;
   description: string | null;
   is_active: boolean;
 };

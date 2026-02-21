@@ -97,6 +97,7 @@ async def delete_sd_model(model_id: int, db: Session = Depends(get_db)):
 @router.get("/embeddings", response_model=list[EmbeddingResponse])
 async def list_embeddings(
     embedding_type: str | None = None,
+    base_model: str | None = None,
     active_only: bool = True,
     db: Session = Depends(get_db),
 ):
@@ -106,6 +107,8 @@ async def list_embeddings(
         query = query.filter(Embedding.is_active)
     if embedding_type:
         query = query.filter(Embedding.embedding_type == embedding_type)
+    if base_model:
+        query = query.filter(Embedding.base_model == base_model)
     embeddings = query.order_by(Embedding.name).all()
     logger.info("📋 [Embeddings] Listed %d embeddings", len(embeddings))
     return embeddings

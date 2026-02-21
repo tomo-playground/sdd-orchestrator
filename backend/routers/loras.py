@@ -13,9 +13,18 @@ router = APIRouter(prefix="/loras", tags=["loras"])
 
 
 @router.get("", response_model=list[LoRAResponse])
-async def list_loras(db: Session = Depends(get_db)):
-    """List all LoRAs."""
-    loras = db.query(LoRA).order_by(LoRA.name).all()
+async def list_loras(
+    lora_type: str | None = Query(None, description="Filter by lora_type (style, character)"),
+    base_model: str | None = Query(None, description="Filter by base_model (SD1.5, SDXL)"),
+    db: Session = Depends(get_db),
+):
+    """List all LoRAs with optional filters."""
+    query = db.query(LoRA)
+    if lora_type:
+        query = query.filter(LoRA.lora_type == lora_type)
+    if base_model:
+        query = query.filter(LoRA.base_model == base_model)
+    loras = query.order_by(LoRA.name).all()
     logger.info("📋 [LoRAs] Listed %d loras", len(loras))
     return loras
 
@@ -105,8 +114,7 @@ async def import_from_civitai(civitai_id: int, db: Session = Depends(get_db)):
             default_weight=DEFAULT_LORA_WEIGHT,
             weight_min=0.5,
             weight_max=1.5,
-            base_models=[version.get("baseModel")] if version.get("baseModel") else None,
-            preview_image_url=version.get("images", [{}])[0].get("url") if version.get("images") else None,
+            base_model=version.get("baseModel"),
         )
 
         db.add(lora)

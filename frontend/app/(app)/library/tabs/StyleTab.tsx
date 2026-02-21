@@ -26,6 +26,8 @@ export default function StyleTab() {
     sdModelMap,
     embeddings,
     loraEntries,
+    filteredLorasForEditor,
+    filteredEmbeddingsForEditor,
     characterCounts,
     linkedCharacters,
     handleSetProfileModel,
@@ -187,8 +189,8 @@ export default function StyleTab() {
         <StyleProfileEditor
           profile={selectedProfile}
           sdModels={sdModels}
-          loraEntries={loraEntries}
-          embeddings={embeddings}
+          loraEntries={filteredLorasForEditor}
+          embeddings={filteredEmbeddingsForEditor}
           linkedCharacters={linkedCharacters}
           onUpdateStyle={handleUpdateStyle}
           onSetModel={handleSetProfileModel}
@@ -325,9 +327,7 @@ export default function StyleTab() {
               const typeBadge =
                 lora.lora_type === "style"
                   ? "border-violet-200 bg-violet-50 text-violet-600"
-                  : lora.lora_type === "pose"
-                    ? "border-amber-200 bg-amber-50 text-amber-600"
-                    : "border-sky-200 bg-sky-50 text-sky-600";
+                  : "border-sky-200 bg-sky-50 text-sky-600";
               return (
                 <div
                   key={lora.id}
