@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Pencil, RefreshCw, Sparkles, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, Palette, Pencil, RefreshCw, Sparkles, Trash2, UserRound } from "lucide-react";
 import { resolveImageUrl } from "../../../utils/url";
 import { CONTAINER_CLASSES } from "../../../components/ui/variants";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
@@ -110,6 +110,12 @@ export default function CharacterDetailPage() {
           </Link>
           <span className="text-zinc-300">/</span>
           <h1 className="text-lg font-bold text-zinc-900">{character.name}</h1>
+          {character.style_profile_name && (
+            <span className="flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
+              <Palette className="h-3 w-3" />
+              {character.style_profile_name}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={onDelete}>
