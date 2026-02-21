@@ -33,6 +33,11 @@ def _merge_production_results(state: ScriptState) -> tuple[list[dict], dict | No
 
 async def finalize_node(state: ScriptState) -> dict:
     """Quick: draft → final 패스스루. Full: Production 결과 병합."""
+    # 에러 상태이면 즉시 반환 (에러 메시지 보존)
+    if state.get("error"):
+        logger.warning("[LangGraph] Finalize: 에러 상태 전파 → %s", state.get("error"))
+        return {"error": state.get("error")}
+
     mode = state.get("mode", "quick")
     sound_rec: dict | None = None
     copyright_result: dict | None = None

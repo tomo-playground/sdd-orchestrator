@@ -19,6 +19,7 @@
 
 ### 최근 작업
 
+- **IP-Adapter 고도화 Phase 1~3 + Seed Anchoring** (02-22): Per-character guidance_start/end 오버라이드(Phase 3-A), 실사 사진 업로드+얼굴 크롭(Phase 1-A), 멀티앵글 레퍼런스 선택(Phase 2-A), FaceID face tag suppression(Phase 3-B), 레퍼런스 품질 검증(얼굴 감지+해상도). Seed Anchoring: storyboard base_seed+scene_order 기반 결정론적 seed, 이미지 캐시(deterministic only), scene last_seed DB 저장. 마이그레이션 2건, 테스트 4파일(888줄). 코드 리뷰 후 schemas.py 이동, 캐시 로직 분리 등 6건 수정
 - **Cinematographer 연출력 강화 + 에이전트 경쟁** (02-22): Writer Plan 브릿지(writer_plan→템플릿 전달), 시네마틱 기법/내러티브-비주얼/감정-비주얼 규칙(Rule 11-13) 추가, 3 Lens 경쟁 시스템(Full 모드: Tension/Intimacy/Contrast 병렬 실행+6차원 스코어링), search_similar_compositions 매트릭스 확장(16개 mood×scene_type, Danbooru 검증 태그), Director revise_script 루프 조기 종료. 13개 신규 테스트 (총 73개 PASS)
 - **StyleProfile별 Hi-Res 기본값 자동 적용** (02-21): `style_profiles`에 `default_enable_hr` Boolean 컬럼 추가(v3.25). `_adjust_parameters()`에서 StyleProfile의 Hi-Res 설정 자동 적용. Realistic(True, 512→768 업스케일 필수) vs Anime(False). Frontend StyleProfileEditor에 Hi-Res 체크박스 UI 추가. DB_SCHEMA v3.25
 - **StyleProfile 화풍별 생성 파라미터 자동 적용** (02-21): `style_profiles`에 `default_steps/cfg_scale/sampler_name/clip_skip` 4컬럼 추가. Realistic(steps=6, CFG 1.5, DPM++ SDE Karras, clip_skip=1) vs Anime(steps=28, CFG 7.0, DPM++ 2M Karras, clip_skip=2) 자동 오버라이드. 씬 생성(`_adjust_parameters`)+캐릭터 프리뷰(`preview.py`) 양쪽 적용. Frontend StyleProfileEditor에 Generation Parameters UI 추가. complexity boost 우회 수정. E2E 검증 완료: Yuna/Jimin 프리뷰 재생성 + storyboard 455 씬 생성. DB_SCHEMA v3.24
@@ -165,7 +166,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Storyboard Version History | — |
 | Real-time Prompt Preview (12-Layer) | — |
-| IP-Adapter 캐릭터 유사도 고도화 | [명세](FEATURES/CHARACTER_CONSISTENCY.md) |
+| IP-Adapter 캐릭터 유사도 고도화 (Phase 1~3 완료, SDXL 미착수) | [명세](FEATURES/CHARACTER_CONSISTENCY.md) |
 
 ### Intelligence & Automation
 

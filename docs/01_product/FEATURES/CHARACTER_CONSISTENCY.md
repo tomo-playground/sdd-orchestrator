@@ -1,7 +1,7 @@
 
 # IP-Adapter 캐릭터 유사도 고도화
 
-**상태**: 미착수
+**상태**: 진행중 (Phase 1~3 완료, SDXL 전환 미착수)
 **우선순위**: 미정
 **관련**: Phase 8 (Multi-Style)
 
@@ -41,6 +41,40 @@
 - 프롬프트에서 얼굴 관련 태그 제거 (IP-Adapter와 충돌 방지)
 - 한국인 특화 체크포인트 (majicmixRealistic 등) 테스트
 
+## 구현 완료 (2026-02-22)
+
+### Phase 1: 레퍼런스 품질 개선
+| # | 항목 | 상태 |
+|---|------|------|
+| 1-A | 실사 사진 업로드 + 얼굴 크롭 + 512x512 리사이즈 | ✅ |
+| 1-B | 레퍼런스 품질 검증 (얼굴 감지, 해상도, 얼굴 비율) | ✅ |
+
+### Phase 2: 멀티앵글 레퍼런스
+| # | 항목 | 상태 |
+|---|------|------|
+| 2-A | Multi-angle reference images (front/side/back) | ✅ |
+| 2-B | Dual IP-Adapter units (primary 70% + secondary 30%) | ✅ |
+
+### Phase 3: 튜닝 고도화
+| # | 항목 | 상태 |
+|---|------|------|
+| 3-A | Per-character guidance_start/end 오버라이드 | ✅ |
+| 3-B | FaceID face tag suppression (hair/eye color 약화) | ✅ |
+
+### Phase 4: Seed Anchoring
+| # | 항목 | 상태 |
+|---|------|------|
+| 4-1 | Storyboard base_seed + scene_order 기반 결정론적 seed | ✅ |
+| 4-2 | Image generation cache (deterministic seed only) | ✅ |
+| 4-3 | Scene last_seed DB 저장 | ✅ |
+
+### 미착수
+| 항목 | 설명 |
+|------|------|
+| SDXL 체크포인트 전환 | SD1.5 → SDXL 기반 모델 (얼굴 표현력 향상) |
+| SDXL IP-Adapter 모델 | `ip-adapter-faceid_sdxl` 적용 |
+| 해상도 변경 | 512x768 → 1024x1536 |
+
 ## 현재 구현 상태
 
 | 항목 | 값 |
@@ -49,5 +83,8 @@
 | Preprocessor | `ip-adapter_face_id_plus` (InsightFace) |
 | Weight | 0.85 (캐릭터 DB 설정) |
 | Control Mode | `ControlNet is more important` (faceid 전용) |
+| Guidance | start=0.0, end=0.85 (faceid) / 1.0 (clip) — per-character 오버라이드 가능 |
+| FaceID Tag Suppression | hair/eye color 태그 weight=0.3 자동 감소 |
 | 우선순위 | 캐릭터 > 스타일프로필 > 글로벌 기본값 |
 | 체크포인트 | Realistic Vision v5.1 (SD1.5) |
+| Seed Anchoring | base_seed + scene_order × 1000 |
