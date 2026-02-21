@@ -11,6 +11,8 @@ from models import Storyboard
 from schemas import (
     MaterialsCheckResponse,
     PaginatedStoryboardList,
+    SeedAnchorRequest,
+    SeedAnchorResponse,
     StatusResponse,
     StoryboardDetailResponse,
     StoryboardMetadataUpdateResponse,
@@ -148,6 +150,30 @@ def check_materials(storyboard_id: int, db: Session = Depends(get_db)):
         voice=VerticalStatus(ready=voice_ready),
         music=VerticalStatus(ready=music_ready),
         background=VerticalStatus(ready=True, detail="Optional"),
+    )
+
+
+@router.post("/{storyboard_id}/seed", response_model=SeedAnchorResponse)
+async def set_storyboard_seed(
+    storyboard_id: int,
+    request: SeedAnchorRequest,
+    db: Session = Depends(get_db),
+):
+    """Set or clear the base seed for consistent scene generation.
+
+    base_seed: null → auto-generate, 0 → clear, positive → set explicitly.
+    """
+    from services.seed_anchoring import set_storyboard_base_seed
+
+    sb = db.query(Storyboard).filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None)).first()
+    if not sb:
+        raise HTTPException(status_code=404, detail="Storyboard not found")
+
+    final_seed = set_storyboard_base_seed(storyboard_id, request.base_seed, db)
+    return SeedAnchorResponse(
+        storyboard_id=storyboard_id,
+        base_seed=final_seed,
+        anchored=final_seed is not None,
     )
 
 

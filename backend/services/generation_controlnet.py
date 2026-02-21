@@ -107,14 +107,20 @@ def _apply_ip_adapter(ctx: GenerationContext, strategy, args: list, db) -> None:
     try:
         args.append(
             build_ip_adapter_args(
-                reference_image=ref_image, weight=strategy.ip_adapter_weight, model=strategy.ip_adapter_model
+                reference_image=ref_image,
+                weight=strategy.ip_adapter_weight,
+                model=strategy.ip_adapter_model,
+                guidance_start=strategy.ip_adapter_guidance_start,
+                guidance_end=strategy.ip_adapter_guidance_end,
             )
         )
         ctx.ip_adapter_used = strategy.ip_adapter_reference
         logger.info(
-            "🧑 [IP-Adapter] Using reference: %s (weight=%.2f)",
+            "🧑 [IP-Adapter] Using reference: %s (weight=%.2f, guidance=%.2f~%.2f)",
             strategy.ip_adapter_reference,
             strategy.ip_adapter_weight,
+            strategy.ip_adapter_guidance_start or 0.0,
+            strategy.ip_adapter_guidance_end or 1.0,
         )
     except Exception as e:
         logger.warning("🧑 [IP-Adapter] Skipped - %s", str(e))

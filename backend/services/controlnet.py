@@ -21,6 +21,9 @@ from config import (
     CONTROLNET_DETECT_TIMEOUT,
     CONTROLNET_GENERATE_TIMEOUT,
     DEFAULT_CHARACTER_PRESET,
+    DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP,
+    DEFAULT_IP_ADAPTER_GUIDANCE_END_FACEID,
+    DEFAULT_IP_ADAPTER_GUIDANCE_START,
     DEFAULT_REFERENCE_NEGATIVE_PROMPT,
     SD_BASE_URL,
     SD_TXT2IMG_URL,
@@ -485,6 +488,8 @@ def build_ip_adapter_args(
     reference_image: str,
     weight: float | None = None,
     model: str | None = None,
+    guidance_start: float | None = None,
+    guidance_end: float | None = None,
 ) -> dict[str, Any]:
     """Build IP-Adapter arguments for txt2img.
 
@@ -492,6 +497,8 @@ def build_ip_adapter_args(
         reference_image: Base64 encoded reference face image
         weight: IP-Adapter influence weight (0.0-1.5). If None, uses default.
         model: IP-Adapter model type ("clip", "clip_face", "faceid"). If None, uses default.
+        guidance_start: Override guidance start. None = use per-model default.
+        guidance_end: Override guidance end. None = use per-model default.
 
     Returns:
         ControlNet args dict for IP-Adapter
@@ -512,11 +519,11 @@ def build_ip_adapter_args(
     if model == "faceid":
         module = "ip-adapter_face_id_plus"  # For real faces (InsightFace)
         control_mode = "ControlNet is more important"  # Prioritize face identity
-        guidance_end = 0.85  # Reduce prompt interference in later steps
+        default_end = DEFAULT_IP_ADAPTER_GUIDANCE_END_FACEID
     else:
         module = "ip-adapter_clip_sd15"  # For anime/illustration (CLIP)
         control_mode = "Balanced"
-        guidance_end = 1.0
+        default_end = DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP
 
     return {
         "enabled": True,
@@ -528,8 +535,8 @@ def build_ip_adapter_args(
         "processor_res": 512,
         "control_mode": control_mode,
         "pixel_perfect": False,
-        "guidance_start": 0.0,
-        "guidance_end": guidance_end,
+        "guidance_start": guidance_start if guidance_start is not None else DEFAULT_IP_ADAPTER_GUIDANCE_START,
+        "guidance_end": guidance_end if guidance_end is not None else default_end,
     }
 
 

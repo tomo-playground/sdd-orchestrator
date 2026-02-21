@@ -6,6 +6,17 @@ from sqlalchemy.orm import Session
 
 from config import DEFAULT_CHARACTER_PRESET, logger
 from database import get_db
+from models.character import Character
+from models.media_asset import MediaAsset
+from schemas import (
+    MultiReferenceRequest,
+    MultiReferenceResponse,
+    MultiReferenceSaved,
+    QualityInfo,
+    ReferenceQualityResponse,
+    UploadPhotoReferenceRequest,
+    UploadPhotoReferenceResponse,
+)
 from services.controlnet import (
     IP_ADAPTER_MODELS,
     POSE_MAPPING,
@@ -18,6 +29,10 @@ from services.controlnet import (
     load_pose_reference,
     load_reference_image,
     save_reference_image,
+)
+from services.ip_adapter import (
+    upload_photo_reference,
+    validate_reference_quality,
 )
 
 router = APIRouter(prefix="/controlnet", tags=["controlnet"])
@@ -50,11 +65,13 @@ async def list_available_poses():
     """List available pose references."""
     poses = []
     for pose_name, filename in POSE_MAPPING.items():
-        poses.append({
-            "name": pose_name,
-            "filename": filename,
-            "available": load_pose_reference(pose_name) is not None,
-        })
+        poses.append(
+            {
+                "name": pose_name,
+                "filename": filename,
+                "available": load_pose_reference(pose_name) is not None,
+            }
+        )
     return {"poses": poses}
 
 
@@ -149,7 +166,6 @@ async def list_references(db: Session = Depends(get_db)):
     refs = list_reference_images(db=db)
 
     # 2. Get all characters from DB for enrichment
-    from models.character import Character
     db_chars = {c.name: c for c in db.query(Character).all()}
 
     # Enrich with preset info
@@ -162,7 +178,7 @@ async def list_references(db: Session = Depends(get_db)):
             ref["preset"] = {
                 "weight": db_char.ip_adapter_weight or 0.75,
                 "model": db_char.ip_adapter_model or "clip_face",
-                "description": db_char.description or f"DB Character: {char_key}"
+                "description": db_char.description or f"DB Character: {char_key}",
             }
         else:
             # Priority 2: Static config presets
@@ -234,3 +250,89 @@ async def remove_reference(character_key: str):
     return {"deleted": character_key}
 
 
+@router.get(
+    "/ip-adapter/reference/{character_key}/quality",
+    response_model=ReferenceQualityResponse,
+)
+async def check_reference_quality(character_key: str, db: Session = Depends(get_db)):
+    """Check quality of a saved reference image (face detection, resolution, etc.)."""
+    image_b64 = load_reference_image(character_key, db=db)
+    if not image_b64:
+        raise HTTPException(status_code=404, detail=f"Reference '{character_key}' not found")
+
+    report = validate_reference_quality(image_b64)
+    return ReferenceQualityResponse(
+        character_key=character_key,
+        valid=report.valid,
+        face_detected=report.face_detected,
+        face_count=report.face_count,
+        face_size_ratio=report.face_size_ratio,
+        resolution_ok=report.resolution_ok,
+        width=report.width,
+        height=report.height,
+        warnings=report.warnings,
+    )
+
+
+@router.post(
+    "/ip-adapter/reference/upload-photo",
+    response_model=UploadPhotoReferenceResponse,
+)
+async def upload_photo_ref(request: UploadPhotoReferenceRequest, db: Session = Depends(get_db)):
+    """Upload a real photo as reference (auto face-crop + resize to 512x512)."""
+    try:
+        filename, quality = upload_photo_reference(
+            request.character_key,
+            request.image_b64,
+            db=db,
+        )
+        return UploadPhotoReferenceResponse(
+            character_key=request.character_key,
+            filename=filename,
+            success=True,
+            quality=QualityInfo(
+                valid=quality.valid,
+                face_detected=quality.face_detected,
+                face_count=quality.face_count,
+                face_size_ratio=quality.face_size_ratio,
+                warnings=quality.warnings,
+            ),
+        )
+    except Exception as e:
+        logger.exception("Failed to upload photo reference")
+        return UploadPhotoReferenceResponse(
+            character_key=request.character_key,
+            success=False,
+            error=str(e),
+        )
+
+
+@router.post("/ip-adapter/reference/multi", response_model=MultiReferenceResponse)
+async def save_multi_references(request: MultiReferenceRequest, db: Session = Depends(get_db)):
+    """Save multi-angle reference images for a character."""
+    char = db.query(Character).filter(Character.name == request.character_key).first()
+    if not char:
+        raise HTTPException(status_code=404, detail=f"Character '{request.character_key}' not found")
+
+    saved_refs: list[MultiReferenceSaved] = []
+    for ref in request.references:
+        # Save each angle as a separate reference file
+        filename = save_reference_image(f"{request.character_key}_{ref.angle}", ref.image_b64, db=db)
+        asset = (
+            db.query(MediaAsset)
+            .filter(MediaAsset.storage_key == f"shared/references/{request.character_key}_{ref.angle}.png")
+            .first()
+        )
+        saved_refs.append(MultiReferenceSaved(
+            angle=ref.angle,
+            asset_id=asset.id if asset else None,
+            filename=filename,
+        ))
+
+    # Update character.reference_images JSONB
+    char.reference_images = [
+        {"angle": r.angle, "asset_id": r.asset_id} for r in saved_refs if r.asset_id
+    ]
+    db.commit()
+
+    return MultiReferenceResponse(character_key=request.character_key, references=saved_refs)

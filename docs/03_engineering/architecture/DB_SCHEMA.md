@@ -7,6 +7,8 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.27 | 2026-02-22 | Seed Anchoring: `scenes.last_seed` (BigInteger), `storyboards.base_seed` (BigInteger) 추가 |
+| v3.26 | 2026-02-22 | `characters`에 IP-Adapter 고도화 4컬럼 추가 (`ip_adapter_guidance_start/end`, `reference_source_type`, `reference_images` JSONB) |
 | v3.25 | 2026-02-21 | `style_profiles`에 `default_enable_hr` (Boolean) 추가 — 화풍별 Hi-Res 기본값 자동 적용 |
 | v3.24 | 2026-02-21 | `style_profiles`에 생성 파라미터 4컬럼 추가 (default_steps, default_cfg_scale, default_sampler_name, default_clip_skip) |
 | v3.23 | 2026-02-21 | `characters`에서 `project_id` FK 제거 (미사용, 글로벌 스코프로 운영) |
@@ -156,6 +158,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `duration` | Integer | 목표 길이 (초), GroupConfig에서 상속 가능 |
 | `language` | String(20) | 언어 설정, GroupConfig에서 상속 가능 |
 | `version` | Integer, NOT NULL, default 1 | Optimistic Locking 버전. PUT/PATCH 시 검증, 성공 시 +1 증분. 불일치 시 409 Conflict |
+| `base_seed` | BigInteger, nullable | Seed Anchoring 기준 시드. 씬별 seed = `base_seed + order * SEED_ANCHOR_OFFSET` |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
@@ -203,6 +206,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | **Generation** | | |
 | `scene_mode` | String(10) | 씬 모드: `"single"` (1인) or `"multi"` (2인 동시 출연, default: `"single"`) |
 | `multi_gen_enabled` | Boolean | 멀티 생성 활성화 여부 |
+| `last_seed` | BigInteger, nullable | SD API가 실제 사용한 시드 (Seed Anchoring Phase 4) |
 | `image_asset_id` | Integer (FK → media_assets, SET NULL) | 생성된 이미지 (폴리모픽 참조) |
 | `candidates` | JSONB | 후보 이미지 목록 (`media_asset_id`, `match_rate`) |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
@@ -465,6 +469,10 @@ WD14 피드백 루프 데이터.
 | **IP-Adapter** | | |
 | `ip_adapter_weight` | Float | 0.0-1.0 |
 | `ip_adapter_model` | String(50) | `clip`, `clip_face`, `faceid` |
+| `ip_adapter_guidance_start` | Float, nullable | IP-Adapter guidance 시작점 (기본: 0.0) |
+| `ip_adapter_guidance_end` | Float, nullable | IP-Adapter guidance 종료점 (faceid: 0.85, clip: 1.0) |
+| `reference_source_type` | String(20), nullable | 레퍼런스 소스 (`generated`, `uploaded`) |
+| `reference_images` | JSONB, nullable | 멀티앵글 레퍼런스 `[{"angle":"front","asset_id":N}]` |
 | **Voice** | | |
 | `voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 캐릭터 고유 음성 프리셋 |
 | **Display** | | |

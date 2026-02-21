@@ -156,7 +156,39 @@ def _build_payload(ctx: GenerationContext) -> dict:
 
 
 async def _call_sd_api(payload: dict, ctx: GenerationContext) -> dict:
-    """Call the SD txt2img API and parse the response."""
+    """Call the SD txt2img API with cache support.
+
+    Delegates to cache layer for deterministic seeds, then to raw API call.
+    """
+    from services.image_cache import get_cached_image, image_cache_key, save_cached_image
+
+    is_deterministic = payload.get("seed", -1) != -1
+    cache_key = image_cache_key(payload) if is_deterministic else None
+
+    # Cache check (only for deterministic seeds)
+    if cache_key:
+        cached = get_cached_image(cache_key)
+        if cached is not None:
+            return {
+                "image": cached,
+                "images": [cached],
+                "seed": payload["seed"],
+                "controlnet_pose": ctx.controlnet_used,
+                "ip_adapter_reference": ctx.ip_adapter_used,
+                "warnings": [*ctx.warnings, "cache_hit"],
+            }
+
+    result = await _call_sd_api_raw(payload, ctx)
+
+    # Save to cache (deterministic only)
+    if cache_key and result.get("image"):
+        save_cached_image(cache_key, result["image"])
+
+    return result
+
+
+async def _call_sd_api_raw(payload: dict, ctx: GenerationContext) -> dict:
+    """Send request to SD txt2img API and parse the response."""
     logger.info("🧾 [Scene Gen Payload] %s", {k: v for k, v in payload.items() if k != "alwayson_scripts"})
 
     try:
@@ -172,12 +204,14 @@ async def _call_sd_api(payload: dict, ctx: GenerationContext) -> dict:
             images = raw_images[:batch_size]
             img = images[0]
 
+            actual_seed: int | None = None
             if _has_info(data):
-                _try_parse_seed(data)
+                actual_seed = _try_parse_seed(data)
 
             return {
                 "image": img,
                 "images": images,
+                "seed": actual_seed,
                 "controlnet_pose": ctx.controlnet_used,
                 "ip_adapter_reference": ctx.ip_adapter_used,
                 "warnings": ctx.warnings,
@@ -192,14 +226,18 @@ def _has_info(data: dict) -> bool:
     return "info" in data
 
 
-def _try_parse_seed(data: dict) -> None:
-    """Attempt to parse seed from SD response info (best-effort)."""
+def _try_parse_seed(data: dict) -> int | None:
+    """Parse actual seed from SD response info. Returns seed or None."""
     try:
         info_val = data["info"]
-        if isinstance(info_val, str):
-            json.loads(info_val)
+        info_dict = json.loads(info_val) if isinstance(info_val, str) else info_val
+        if isinstance(info_dict, dict):
+            seed = info_dict.get("seed")
+            if seed is not None:
+                return int(seed)
     except Exception:
-        logger.warning("Failed to parse info from SD response", exc_info=True)
+        logger.warning("Failed to parse seed from SD response", exc_info=True)
+    return None
 
 
 # ── Main pipeline ───────────────────────────────────────────────────
@@ -209,15 +247,30 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
     """Internal generation logic with an externally managed DB session.
 
     Pipeline stages:
-    1. _prepare_prompt   → ctx.prompt, ctx.negative_prompt, ctx.warnings
-    2. _adjust_parameters → ctx.prompt (calibrated), ctx.steps, ctx.cfg_scale
-    3. _build_payload    → SD API payload dict
-    4. _apply_controlnet → ctx.controlnet_used, ctx.ip_adapter_used
-    5. _call_sd_api      → final result
+    1. Seed anchoring   → resolve deterministic seed
+    2. _prepare_prompt   → ctx.prompt, ctx.negative_prompt, ctx.warnings
+    3. _adjust_parameters → ctx.prompt (calibrated), ctx.steps, ctx.cfg_scale
+    4. _build_payload    → SD API payload dict
+    5. _apply_controlnet → ctx.controlnet_used, ctx.ip_adapter_used
+    6. _call_sd_api      → final result + save last_seed
     """
+    from models.scene import Scene
     from services.generation_context import GenerationContext
+    from services.seed_anchoring import resolve_scene_seed
 
     ctx = GenerationContext(request=request)
+
+    # Resolve seed via anchoring (before prompt/payload)
+    scene_obj = None
+    scene_order = 0
+    if request.scene_id:
+        scene_obj = db.query(Scene).filter(Scene.id == request.scene_id).first()
+        if scene_obj:
+            scene_order = scene_obj.order or 0
+
+    resolved_seed = resolve_scene_seed(request.seed, request.storyboard_id, scene_order, db)
+    if resolved_seed != request.seed:
+        request.seed = resolved_seed
 
     try:
         _prepare_prompt(request, db, ctx)
@@ -234,4 +287,14 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
     result = await _call_sd_api(payload, ctx)
     result["used_prompt"] = ctx.prompt
     result["consistency_quality"] = ctx.consistency.quality_score
+
+    # Save actual seed to scene DB record (reuse scene_obj from above)
+    actual_seed = result.get("seed")
+    if actual_seed is not None and scene_obj is not None:
+        try:
+            scene_obj.last_seed = actual_seed
+            db.commit()
+        except Exception as e:
+            logger.warning("Failed to save last_seed to scene: %s", e)
+
     return result

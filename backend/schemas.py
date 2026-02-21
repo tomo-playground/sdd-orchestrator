@@ -607,6 +607,7 @@ class SceneGenerateResponse(BaseModel):
 
     image: str  # Base64 encoded PNG
     images: list[str] = []
+    seed: int | None = None  # Actual seed used by SD API
     controlnet_pose: str | None = None
     ip_adapter_reference: str | None = None
     warnings: list[str] = []
@@ -861,6 +862,11 @@ class CharacterBase(BaseModel):
     prompt_mode: PromptMode = "auto"
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
+    ip_adapter_guidance_start: float | None = None
+    ip_adapter_guidance_end: float | None = None
+    reference_source_type: str | None = None
+    # Multi-angle references: [{"angle": "front", "asset_id": 123}, ...]
+    reference_images: list[dict] | None = None
     preview_locked: bool = False
     voice_preset_id: int | None = None
 
@@ -887,6 +893,10 @@ class CharacterUpdate(BaseModel):
     prompt_mode: PromptMode | None = None
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
+    ip_adapter_guidance_start: float | None = None
+    ip_adapter_guidance_end: float | None = None
+    reference_source_type: str | None = None
+    reference_images: list[dict] | None = None
     preview_locked: bool | None = None
     voice_preset_id: int | None = None
     tags: list[CharacterTagLink] | None = None
@@ -1772,6 +1782,107 @@ class StoryboardRestoreResponse(BaseModel):
 
     ok: bool
     restored: str | None = None
+
+
+# ============================================================
+# Seed Anchoring Schemas
+# ============================================================
+
+
+class SeedAnchorRequest(BaseModel):
+    """Request for setting storyboard base_seed.
+
+    base_seed: null → auto-generate, 0 → clear, positive → set explicitly.
+    """
+
+    base_seed: int | None = Field(default=None, ge=0)
+
+
+class SeedAnchorResponse(BaseModel):
+    """Response for seed anchoring operation."""
+
+    storyboard_id: int
+    base_seed: int | None = None
+    anchored: bool = False
+
+
+class ImageCacheStatsResponse(BaseModel):
+    """Response for image cache stats."""
+
+    enabled: bool = False
+    file_count: int = 0
+    total_size_mb: float = 0.0
+    max_size_mb: int = 2048
+    cache_dir: str = ""
+
+
+class ImageCacheClearResponse(BaseModel):
+    """Response for image cache clear."""
+
+    cleared: int = 0
+
+
+# ============================================================
+# IP-Adapter Reference Schemas (ControlNet Router)
+# ============================================================
+
+
+class UploadPhotoReferenceRequest(BaseModel):
+    character_key: str
+    image_b64: str  # Real photo (will be face-cropped + resized)
+
+
+class QualityInfo(BaseModel):
+    """Quality info for upload responses."""
+
+    valid: bool = False
+    face_detected: bool = False
+    face_count: int = 0
+    face_size_ratio: float = 0.0
+    warnings: list[str] = []
+
+
+class UploadPhotoReferenceResponse(BaseModel):
+    character_key: str
+    filename: str | None = None
+    success: bool = False
+    error: str | None = None
+    quality: QualityInfo | None = None  # Response-only: derived from ReferenceQualityReport
+
+
+class ReferenceQualityResponse(BaseModel):
+    character_key: str
+    valid: bool = False
+    face_detected: bool = False
+    face_count: int = 0
+    face_size_ratio: float = 0.0
+    resolution_ok: bool = True
+    width: int = 0
+    height: int = 0
+    warnings: list[str] = []
+
+
+class ReferenceAngleInput(BaseModel):
+    """Single angle reference for multi-angle upload."""
+
+    angle: str  # "front" | "side_left" | "side_right" | "back"
+    image_b64: str
+
+
+class MultiReferenceRequest(BaseModel):
+    character_key: str
+    references: list[ReferenceAngleInput]
+
+
+class MultiReferenceSaved(BaseModel):
+    angle: str
+    asset_id: int | None = None
+    filename: str
+
+
+class MultiReferenceResponse(BaseModel):
+    character_key: str
+    references: list[MultiReferenceSaved]
 
 
 class ImageStoreResponse(BaseModel):

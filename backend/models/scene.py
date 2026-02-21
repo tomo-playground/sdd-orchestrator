@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String, Text, text
+from sqlalchemy import BigInteger, Boolean, Float, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -80,6 +80,9 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     ip_adapter_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
     ip_adapter_weight: Mapped[float | None] = mapped_column(Float, nullable=True)
     multi_gen_enabled: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+
+    # Seed Anchoring: actual seed used by SD API
+    last_seed: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
     environment_asset: Mapped["MediaAsset | None"] = relationship(
         primaryjoin="Scene.environment_reference_id == MediaAsset.id",

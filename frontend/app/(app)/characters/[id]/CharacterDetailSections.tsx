@@ -23,6 +23,8 @@ export type CharacterFormData = {
   voice_preset_id: number | null;
   ip_adapter_weight: number;
   ip_adapter_model: string;
+  ip_adapter_guidance_start: number | null;
+  ip_adapter_guidance_end: number | null;
 };
 
 type FormOnChange = <K extends keyof CharacterFormData>(
@@ -140,11 +142,25 @@ export function VoicePresetSection({ form, onChange }: VoicePresetProps) {
 // ── IP-Adapter ──────────────────────────────────────────────
 const IP_ADAPTER_MODELS = ["clip_face", "clip", "faceid"] as const;
 
-type IpAdapterProps = { form: CharacterFormData; onChange: FormOnChange };
+type IpAdapterProps = {
+  form: CharacterFormData;
+  onChange: FormOnChange;
+  characterName?: string;
+  onUploadPhoto?: (file: File) => void;
+};
 
-export function IpAdapterSection({ form, onChange }: IpAdapterProps) {
+export function IpAdapterSection({ form, onChange, onUploadPhoto }: IpAdapterProps) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onUploadPhoto) onUploadPhoto(file);
+    e.target.value = "";
+  };
+
   return (
     <div className="space-y-4">
+      {/* Weight */}
       <div>
         <label className="mb-1 block text-xs font-medium text-zinc-500">
           Weight ({form.ip_adapter_weight.toFixed(2)})
@@ -163,6 +179,8 @@ export function IpAdapterSection({ form, onChange }: IpAdapterProps) {
           <span>1.5</span>
         </div>
       </div>
+
+      {/* Model */}
       <div>
         <label className="mb-1 block text-xs font-medium text-zinc-500">Model</label>
         <div className="flex gap-2">
@@ -181,6 +199,82 @@ export function IpAdapterSection({ form, onChange }: IpAdapterProps) {
           ))}
         </div>
       </div>
+
+      {/* Upload Photo */}
+      {onUploadPhoto && (
+        <div>
+          <label className="mb-1 block text-xs font-medium text-zinc-500">
+            Photo Reference
+          </label>
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600 transition hover:bg-zinc-100">
+            <span>Upload Photo</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoSelect}
+            />
+          </label>
+          <p className="mt-1 text-[11px] text-zinc-400">
+            실사 사진 업로드 시 얼굴 자동 크롭 + 512x512 리사이즈
+          </p>
+        </div>
+      )}
+
+      {/* Advanced: Guidance */}
+      <button
+        onClick={() => setShowAdvanced((v) => !v)}
+        className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-600"
+      >
+        {showAdvanced ? (
+          <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ChevronRight className="h-3 w-3" />
+        )}
+        Advanced
+      </button>
+      {showAdvanced && (
+        <div className="space-y-3 rounded-lg border border-zinc-100 bg-zinc-50/50 p-3">
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-zinc-400">
+              Guidance Start ({(form.ip_adapter_guidance_start ?? 0).toFixed(2)})
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={form.ip_adapter_guidance_start ?? 0}
+              onChange={(e) =>
+                onChange("ip_adapter_guidance_start", parseFloat(e.target.value))
+              }
+              className="w-full accent-zinc-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-zinc-400">
+              Guidance End ({(form.ip_adapter_guidance_end ?? (form.ip_adapter_model === "faceid" ? 0.85 : 1.0)).toFixed(2)})
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={
+                form.ip_adapter_guidance_end ??
+                (form.ip_adapter_model === "faceid" ? 0.85 : 1.0)
+              }
+              onChange={(e) =>
+                onChange("ip_adapter_guidance_end", parseFloat(e.target.value))
+              }
+              className="w-full accent-zinc-500"
+            />
+          </div>
+          <p className="text-[11px] text-zinc-400">
+            FaceID 기본: 0.85 / CLIP 기본: 1.0 — 낮출수록 프롬프트 우선
+          </p>
+        </div>
+      )}
     </div>
   );
 }

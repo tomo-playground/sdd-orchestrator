@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from config import DEFAULT_STRUCTURE
@@ -36,6 +36,10 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
     # Phase 12-C: AI BGM Pipeline
     bgm_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
     bgm_mood: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    # Seed Anchoring: base seed for consistent scene generation
+    base_seed: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+
     bgm_audio_asset_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("media_assets.id", ondelete="SET NULL"), nullable=True
     )

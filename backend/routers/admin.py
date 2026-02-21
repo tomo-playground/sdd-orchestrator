@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Tag, TagRule
+from schemas import ImageCacheClearResponse, ImageCacheStatsResponse
 from services.media_gc import MediaGCService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -317,3 +318,26 @@ async def media_asset_stats(db: Session = Depends(get_db)):
         return {"success": True, **stats.to_dict()}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+# ============================================================
+# Image Generation Cache (Phase 4: Seed Anchoring)
+# ============================================================
+
+
+@router.get("/cache/images/stats", response_model=ImageCacheStatsResponse)
+async def image_cache_stats():
+    """Get image generation cache statistics."""
+    from services.image_cache import get_cache_stats
+
+    stats = get_cache_stats()
+    return ImageCacheStatsResponse(**stats)
+
+
+@router.delete("/cache/images", response_model=ImageCacheClearResponse)
+async def clear_image_cache_endpoint():
+    """Clear all cached generated images."""
+    from services.image_cache import clear_image_cache
+
+    count = clear_image_cache()
+    return ImageCacheClearResponse(cleared=count)

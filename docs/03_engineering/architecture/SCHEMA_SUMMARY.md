@@ -1,8 +1,8 @@
 # Database Schema Summary
 
-Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.23) 참조.
+Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.27) 참조.
 
-> **Last Synced:** 2026-02-21 (DB_SCHEMA v3.23 기준)
+> **Last Synced:** 2026-02-22 (DB_SCHEMA v3.27 기준)
 
 ---
 
@@ -32,6 +32,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `caption`, `structure` (String, default: `"Monologue"`)
 - `duration` (Integer, nullable), `language` (String(20), nullable) — GroupConfig에서 상속 가능
 - `version` (Integer, NOT NULL, default 1) — Optimistic Locking. PUT/PATCH 시 검증, 성공 시 +1
+- `base_seed` (BigInteger, nullable) — Seed Anchoring 기준 시드
 - `deleted_at` (Soft Delete)
 
 ### `scenes` — 스토리보드 내 개별 씬
@@ -43,7 +44,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - **Background**: `background_id` (FK → backgrounds, SET NULL)
 - **IP-Adapter/Ref**: `use_reference_only`, `reference_only_weight`, `environment_reference_id` (FK), `environment_reference_weight`, `use_ip_adapter`, `ip_adapter_reference`, `ip_adapter_weight`
 - **ControlNet**: `use_controlnet`, `controlnet_weight`
-- **Generation**: `scene_mode` (`single`/`multi`), `multi_gen_enabled`, `image_asset_id` (FK), `candidates` (JSONB)
+- **Generation**: `scene_mode` (`single`/`multi`), `multi_gen_enabled`, `last_seed` (BigInteger), `image_asset_id` (FK), `candidates` (JSONB)
 - `deleted_at` (Soft Delete)
 
 ---
@@ -74,7 +75,8 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 ### `characters` — 캐릭터 프리셋
 - `id` (PK), `style_profile_id` (FK → style_profiles, SET NULL), `name` (Unique), `gender`, `description`
 - **Prompt**: `loras` (JSONB), `custom_base_prompt`, `custom_negative_prompt`, `recommended_negative` (ARRAY), `reference_base_prompt`, `reference_negative_prompt`, `prompt_mode`
-- **IP-Adapter**: `ip_adapter_weight`, `ip_adapter_model`
+- **IP-Adapter**: `ip_adapter_weight`, `ip_adapter_model`, `ip_adapter_guidance_start`, `ip_adapter_guidance_end`
+- **Reference**: `reference_source_type`, `reference_images` (JSONB)
 - **Voice**: `voice_preset_id` (FK → voice_presets)
 - `preview_image_asset_id` (FK), `preview_locked`, `deleted_at`
 

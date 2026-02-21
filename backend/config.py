@@ -330,6 +330,63 @@ DEFAULT_CHARACTER_PRESET = {
     "model": "clip_face",
 }
 
+# IP-Adapter guidance defaults (per-model type)
+DEFAULT_IP_ADAPTER_GUIDANCE_START = 0.0
+DEFAULT_IP_ADAPTER_GUIDANCE_END_FACEID = 0.85  # Reduce prompt interference in later steps
+DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP = 1.0  # Full guidance for CLIP-based models
+
+# IP-Adapter Dual Unit (opt-in, VRAM 2x)
+IP_ADAPTER_DUAL_ENABLED = os.getenv("IP_ADAPTER_DUAL_ENABLED", "false").lower() == "true"
+IP_ADAPTER_DUAL_PRIMARY_RATIO = 0.7
+IP_ADAPTER_DUAL_SECONDARY_RATIO = 0.3
+
+# --- Seed Anchoring ---
+SEED_ANCHOR_OFFSET = int(os.getenv("SEED_ANCHOR_OFFSET", "1000"))
+
+# --- Image Generation Cache ---
+SD_IMAGE_CACHE_ENABLED = os.getenv("SD_IMAGE_CACHE_ENABLED", "false").lower() == "true"
+SD_IMAGE_CACHE_DIR = PROMPT_CACHE_DIR / "sd_images"
+SD_IMAGE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+SD_IMAGE_CACHE_MAX_SIZE_MB = int(os.getenv("SD_IMAGE_CACHE_MAX_SIZE_MB", "2048"))
+
+# FaceID face tag suppression
+FACEID_SUPPRESS_TAGS: set[str] = {
+    # Hair color
+    "black_hair",
+    "brown_hair",
+    "blonde_hair",
+    "red_hair",
+    "blue_hair",
+    "green_hair",
+    "pink_hair",
+    "purple_hair",
+    "white_hair",
+    "grey_hair",
+    "silver_hair",
+    "orange_hair",
+    "light_brown_hair",
+    # Eye color
+    "blue_eyes",
+    "brown_eyes",
+    "green_eyes",
+    "red_eyes",
+    "purple_eyes",
+    "yellow_eyes",
+    "black_eyes",
+    "grey_eyes",
+    "heterochromia",
+    # Face features
+    "freckles",
+    "mole",
+    "scar",
+    "facial_mark",
+}
+FACEID_SUPPRESS_WEIGHT = 0.3
+
+# Reference quality validation thresholds
+REFERENCE_MIN_RESOLUTION = 256
+REFERENCE_MIN_FACE_RATIO = 0.10  # Face must be at least 10% of image area
+
 # --- TTS Configuration ---
 TTS_MODEL_NAME = os.getenv("TTS_MODEL_NAME", "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign")
 TTS_PRELOAD_MODEL = os.getenv("TTS_PRELOAD_MODEL", "voice_design")  # "voice_design" (Clone removed)

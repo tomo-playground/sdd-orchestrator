@@ -43,6 +43,8 @@ function formFromCharacter(ch: CharacterFull): CharacterFormData {
     voice_preset_id: ch.voice_preset_id ?? null,
     ip_adapter_weight: ch.ip_adapter_weight ?? 0.35,
     ip_adapter_model: ch.ip_adapter_model ?? "clip_face",
+    ip_adapter_guidance_start: ch.ip_adapter_guidance_start ?? null,
+    ip_adapter_guidance_end: ch.ip_adapter_guidance_end ?? null,
   };
 }
 
@@ -160,6 +162,8 @@ export function useCharacterEdit(rawId: number) {
         voice_preset_id: form.voice_preset_id,
         ip_adapter_weight: form.ip_adapter_weight,
         ip_adapter_model: form.ip_adapter_model,
+        ip_adapter_guidance_start: form.ip_adapter_guidance_start,
+        ip_adapter_guidance_end: form.ip_adapter_guidance_end,
         tags: selectedTags.map((t) => ({
           tag_id: t.tagId,
           weight: 1.0,
@@ -299,6 +303,8 @@ export function useCharacterEdit(rawId: number) {
         form.voice_preset_id !== (character.voice_preset_id ?? null) ||
         form.ip_adapter_weight !== (character.ip_adapter_weight ?? 0.35) ||
         form.ip_adapter_model !== (character.ip_adapter_model ?? "clip_face") ||
+        form.ip_adapter_guidance_start !== (character.ip_adapter_guidance_start ?? null) ||
+        form.ip_adapter_guidance_end !== (character.ip_adapter_guidance_end ?? null) ||
         tagsChanged ||
         lorasChanged
       : false;

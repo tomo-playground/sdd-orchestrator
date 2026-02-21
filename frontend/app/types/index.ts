@@ -411,6 +411,10 @@ export type CharacterFull = {
   prompt_mode: PromptMode;
   ip_adapter_weight: number | null;
   ip_adapter_model: string | null;
+  ip_adapter_guidance_start: number | null;
+  ip_adapter_guidance_end: number | null;
+  reference_source_type: string | null;
+  reference_images: { angle: string; asset_id: number }[] | null;
   voice_preset_id: number | null;
   effective_mode: EffectiveMode;
 };

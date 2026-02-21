@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from config import logger
+from config import FACEID_SUPPRESS_TAGS, FACEID_SUPPRESS_WEIGHT, logger
 from schemas import SceneGenerateRequest
 from services.generation_style import apply_style_profile_to_prompt
 from services.image_generation_core import compose_scene_with_style
@@ -325,6 +325,9 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     ctx.prompt = cleaned_prompt
     _handle_ip_adapter_reverse_lookup(request, db, ctx)
 
+    # Phase 3-B: Suppress face tags when FaceID is active
+    ctx.prompt = suppress_face_tags_for_faceid(ctx.prompt, strategy.ip_adapter_model)
+
     _append_narrator_negative(request)
     ctx.negative_prompt = request.negative_prompt or ""
     ctx.warnings.extend(compose_warnings)
@@ -368,3 +371,51 @@ def _debug_verify_loras(ctx: GenerationContext) -> None:
         logger.debug("✅ [LoRA Check] %d LoRA tags in prompt: %s", len(lora_tags_found), lora_tags_found)
     else:
         logger.warning("⚠️ [LoRA Check] No <lora:> tags found in cleaned prompt!")
+
+
+def suppress_face_tags_for_faceid(prompt: str, ip_adapter_model: str | None) -> str:
+    """Suppress face feature tags when FaceID mode is active.
+
+    FaceID uses InsightFace embeddings for identity, so explicit face tags
+    (hair color, eye color) can conflict. This weakens them to low weight.
+
+    Args:
+        prompt: Current generation prompt
+        ip_adapter_model: IP-Adapter model type (only "faceid" triggers suppression)
+
+    Returns:
+        Modified prompt with face tags suppressed, or original if not faceid
+    """
+    if ip_adapter_model != "faceid":
+        return prompt
+
+    tokens = [t.strip() for t in prompt.split(",")]
+    modified = []
+    suppressed = []
+
+    for token in tokens:
+        if not token:
+            continue
+        # Skip LoRA tags and already weighted tokens
+        if token.startswith("<lora:") or token.startswith("("):
+            modified.append(token)
+            continue
+        # Check if bare tag matches suppress list
+        bare = token.strip().replace(" ", "_").lower()
+        # Handle weight notation: "tag:1.2" → "tag"
+        bare_no_weight = bare.split(":")[0].strip("()")
+        if bare_no_weight in FACEID_SUPPRESS_TAGS:
+            modified.append(f"({bare_no_weight}:{FACEID_SUPPRESS_WEIGHT})")
+            suppressed.append(bare_no_weight)
+        else:
+            modified.append(token)
+
+    if suppressed:
+        logger.info(
+            "🧬 [FaceID] Suppressed %d face tags: %s → weight=%.1f",
+            len(suppressed),
+            suppressed,
+            FACEID_SUPPRESS_WEIGHT,
+        )
+
+    return ", ".join(modified)

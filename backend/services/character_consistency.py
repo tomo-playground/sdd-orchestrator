@@ -38,6 +38,8 @@ class ConsistencyStrategy:
     ip_adapter_reference: str | None = None
     ip_adapter_weight: float = 0.35
     ip_adapter_model: str | None = None
+    ip_adapter_guidance_start: float | None = None
+    ip_adapter_guidance_end: float | None = None
 
     # Reference-only (skipped when IP-Adapter is active)
     reference_only_enabled: bool = False
@@ -73,7 +75,7 @@ class CharacterConsistencyResolver:
         style_loras, style_source = self._resolve_style_loras(character, style_profile_loras)
 
         # 2. Resolve IP-Adapter
-        ip_enabled, ip_ref, ip_weight, ip_model = self._resolve_ip_adapter(
+        ip_enabled, ip_ref, ip_weight, ip_model, ip_g_start, ip_g_end = self._resolve_ip_adapter(
             character,
             use_ip_adapter=req.use_ip_adapter,
             ip_adapter_reference=req.ip_adapter_reference,
@@ -103,6 +105,8 @@ class CharacterConsistencyResolver:
             ip_adapter_reference=ip_ref,
             ip_adapter_weight=ip_weight,
             ip_adapter_model=ip_model,
+            ip_adapter_guidance_start=ip_g_start,
+            ip_adapter_guidance_end=ip_g_end,
             reference_only_enabled=ref_only_enabled,
             reference_only_weight=req.reference_only_weight,
             quality_score=quality,
@@ -150,13 +154,20 @@ class CharacterConsistencyResolver:
         ip_adapter_reference: str | None,
         ip_adapter_weight: float | None,
         warnings: list[str],
-    ) -> tuple[bool, str | None, float, str | None]:
-        """Decide IP-Adapter settings. Auto-enable if reference image exists."""
+    ) -> tuple[bool, str | None, float, str | None, float | None, float | None]:
+        """Decide IP-Adapter settings. Auto-enable if reference image exists.
+
+        Returns:
+            (enabled, reference, weight, model, guidance_start, guidance_end)
+        """
+        guidance_start = getattr(character, "ip_adapter_guidance_start", None)
+        guidance_end = getattr(character, "ip_adapter_guidance_end", None)
+
         # Already fully specified
         if use_ip_adapter and ip_adapter_reference:
             weight = ip_adapter_weight or character.ip_adapter_weight or 0.35
             model = self._resolve_ip_adapter_model(character)
-            return True, ip_adapter_reference, weight, model
+            return True, ip_adapter_reference, weight, model, guidance_start, guidance_end
 
         # Auto-enable: check if character has a reference image
         ref_image = load_reference_image(character.name, db=self.db)
@@ -170,12 +181,12 @@ class CharacterConsistencyResolver:
                 weight,
                 model,
             )
-            return True, character.name, weight, model
+            return True, character.name, weight, model, guidance_start, guidance_end
 
         # No reference image available
         if use_ip_adapter:
             warnings.append(f"캐릭터 '{character.name}'의 참조 이미지가 없어 IP-Adapter를 사용할 수 없습니다.")
-        return False, None, 0.35, None
+        return False, None, 0.35, None, None, None
 
     @staticmethod
     def _resolve_ip_adapter_model(character) -> str | None:
