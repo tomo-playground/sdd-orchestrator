@@ -355,6 +355,7 @@ class VideoBuilder:
             owner_id=storyboard.id,
             file_type="audio",
             storage_key=storage_key,
+            file_name="bgm_auto.wav",
             file_size=len(wav_bytes),
         )
         db.add(asset)
