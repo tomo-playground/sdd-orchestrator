@@ -151,38 +151,40 @@ def create_cinematographer_executors(
         except Exception as e:
             logger.warning("[CinematographerTool] DB 조회 실패, fallback 사용: %s", e)
 
-        # Fallback: mood × scene_type 정적 매트릭스
-        _mood_tags = {
-            "cheerful": "smile, happy, bright_colors",
-            "melancholic": "sad, looking_down, dark_background",
-            "dramatic": "dynamic_pose, looking_up, intense_lighting",
-            "tense": "clenched_teeth, looking_to_the_side, dark_background",
-            "peaceful": "closed_eyes, head_tilt, soft_lighting",
+        # Fallback: mood × scene_type 정적 매트릭스 (모든 태그 Danbooru 검증 완료)
+        _COMPOSITION_MATRIX: dict[tuple[str, str], str] = {
+            ("cheerful", "portrait"): "close-up, looking_at_viewer, smile, sunlight, depth_of_field",
+            ("cheerful", "landscape"): "wide_shot, bright, outdoors, light_rays, scenery",
+            ("melancholic", "portrait"): "looking_down, moonlight, from_above, depth_of_field, shadow",
+            ("melancholic", "landscape"): "wide_shot, rain, dark, scenery, no_humans",
+            ("dramatic", "portrait"): "from_below, backlighting, dutch_angle, shadow, high_contrast",
+            ("dramatic", "action"): "dutch_angle, motion_blur, backlighting, from_side",
+            ("tense", "portrait"): "close-up, clenched_teeth, shadow, dark, sweat",
+            ("tense", "action"): "dutch_angle, from_behind, dark, motion_blur, silhouette",
+            ("peaceful", "portrait"): "sunlight, closed_eyes, bokeh, golden_hour, head_tilt",
+            ("peaceful", "landscape"): "wide_shot, golden_hour, scenery, dappled_sunlight, light_rays",
+            ("hopeful", "portrait"): "from_below, looking_up, backlighting, bright, light_rays",
+            ("lonely", "portrait"): "wide_shot, from_behind, depth_of_field, silhouette, dusk",
+            ("romantic", "portrait"): "close-up, sunlight, bokeh, blush, sidelighting",
+            ("angry", "portrait"): "close-up, from_below, shadow, clenched_teeth, high_contrast",
+            ("nostalgic", "portrait"): "golden_hour, looking_afar, bokeh, dusk, depth_of_field",
+            ("curious", "portrait"): "dutch_angle, looking_to_the_side, from_side, lens_flare",
         }
-        _scene_tags = {
-            "portrait": {
-                "cheerful": "close-up, looking_at_viewer, upper_body",
-                "melancholic": "close-up, looking_down, hand_on_own_cheek",
-                "dramatic": "upper_body, looking_back, from_behind",
-                "tense": "cowboy_shot, looking_to_the_side, profile",
-                "peaceful": "close-up, closed_eyes, head_tilt",
-                "_default": "upper_body, cowboy_shot",
-            },
-            "landscape": {"_default": "wide_shot, scenic, outdoors"},
-            "action": {"_default": "dynamic_angle, motion_lines, running"},
-        }
-        suggestions = []
-        mood_tag = _mood_tags.get(mood)
-        if mood_tag:
-            suggestions.append(mood_tag)
 
-        scene_map = _scene_tags.get(scene_type, {})
-        scene_tag = scene_map.get(mood) or scene_map.get("_default")
-        if scene_tag:
-            suggestions.append(scene_tag)
+        # 정확한 (mood, scene_type) 매칭 → mood만 매칭 → 기본값
+        mood_lower = mood.lower().strip()
+        scene_lower = scene_type.lower().strip()
 
-        fallback = " | ".join(suggestions) if suggestions else "일반적인 태그 조합을 사용하세요"
-        return f"[레퍼런스 태그 조합] {fallback}"
+        exact = _COMPOSITION_MATRIX.get((mood_lower, scene_lower))
+        if exact:
+            return f"[레퍼런스 태그 조합] {exact}"
+
+        # Fuzzy: mood만으로 검색
+        mood_matches = [v for k, v in _COMPOSITION_MATRIX.items() if k[0] == mood_lower]
+        if mood_matches:
+            return f"[레퍼런스 태그 조합 (mood={mood})] {mood_matches[0]}"
+
+        return "[레퍼런스 태그 조합] depth_of_field, backlighting, cowboy_shot"
 
     async def get_character_visual_tags(character_id: int) -> str:
         """캐릭터의 비주얼 태그 조회."""

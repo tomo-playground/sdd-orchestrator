@@ -83,6 +83,38 @@ async def cinematographer_node(state: ScriptState, config: RunnableConfig) -> di
         return await _run(state, db)
 
 
+async def _try_competition(
+    state: ScriptState, db_session: object, base_prompt: str, director_feedback: str | None
+) -> dict | None:
+    """Full 모드 경쟁을 시도한다. 성공 시 결과 dict, 실패 시 None."""
+    from config_pipelines import CINEMATOGRAPHER_COMPETITION_ENABLED  # noqa: PLC0415
+
+    if not CINEMATOGRAPHER_COMPETITION_ENABLED:
+        return None
+
+    from ..cinematographer_competition import run_cinematographer_competition  # noqa: PLC0415
+
+    logger.info("[Cinematographer] Full 모드 경쟁 실행 (3 Lens)")
+    comp = await run_cinematographer_competition(state, db_session, base_prompt, director_feedback)
+
+    if not comp.get("scenes"):
+        logger.warning("[Cinematographer] Competition 실패, 단일 에이전트 fallback")
+        return None
+
+    qc = comp.get("qc") or validate_visuals(comp["scenes"])
+    if not qc["ok"]:
+        logger.warning("[Cinematographer] Competition QC WARN/FAIL: %s", qc.get("issues"))
+
+    logger.info("[Cinematographer] Competition 완료: winner=%s, scores=%s", comp["winner"], comp["scores"])
+    return {
+        "cinematographer_result": {"scenes": comp["scenes"]},
+        "cinematographer_tool_logs": comp["tool_logs"],
+        "visual_qc_result": qc,
+        "cinematographer_competition_scores": comp["scores"],
+        "cinematographer_winner": comp["winner"],
+    }
+
+
 async def _run(state: ScriptState, db_session: object) -> dict:
     """Cinematographer 핵심 로직. DB 세션이 보장된 상태에서 실행."""
     from ..tools.base import call_with_tools  # noqa: PLC0415
@@ -101,13 +133,23 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     characters_tags = _load_characters_tags(state, db_session)
 
     style = state.get("style", "Anime")
+    writer_plan = state.get("writer_plan")
+
     tmpl = template_env.get_template("creative/cinematographer.j2")
     base_prompt = tmpl.render(
         scenes=scenes,
         character_id=character_id,
         style=style,
         characters_tags=characters_tags,
+        writer_plan=writer_plan,
+        feedback=director_feedback,
     )
+
+    # Full 모드 경쟁 시도 (성공 시 즉시 반환)
+    if state.get("mode", "quick") == "full":
+        comp_result = await _try_competition(state, db_session, base_prompt, director_feedback)
+        if comp_result:
+            return comp_result
 
     prompt_parts = [
         "당신은 쇼츠 영상의 Cinematographer Agent입니다.",

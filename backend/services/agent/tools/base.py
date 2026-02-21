@@ -81,6 +81,7 @@ async def call_with_tools(
     tool_executors: dict[str, Callable],
     max_calls: int | None = None,
     trace_name: str = "tool_calling",
+    temperature: float = 0.7,
 ) -> tuple[str, list[ToolCallLog]]:
     """Gemini Function Calling 루프 실행.
 
@@ -96,6 +97,7 @@ async def call_with_tools(
         tool_executors: 도구 이름 → 실행 함수 매핑
         max_calls: 최대 도구 호출 횟수 (비용 가드레일)
         trace_name: LangFuse 트레이스 이름
+        temperature: Gemini 생성 온도 (기본 0.7)
 
     Returns:
         (최종 LLM 응답, 도구 호출 로그). max_calls 도달 시에도 누적 텍스트를 반환.
@@ -118,7 +120,7 @@ async def call_with_tools(
 
     config = types.GenerateContentConfig(
         tools=tools,  # type: ignore[arg-type]
-        temperature=0.7,
+        temperature=temperature,
     )
 
     while call_count < max_calls:

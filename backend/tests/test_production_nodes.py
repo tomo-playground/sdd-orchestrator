@@ -109,7 +109,7 @@ async def test_cinematographer_node(mock_validate, mock_call, mock_scenes):
     )
     mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
 
-    state = {"draft_scenes": mock_scenes, "mode": "full"}
+    state = {"draft_scenes": mock_scenes, "mode": "quick"}
     config = {"configurable": {"db": AsyncMock()}}
 
     result = await cinematographer_node(state, config)

@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-02-21)
+## 현재 상태 (2026-02-22)
 
 | 항목 | 상태 |
 |------|------|
@@ -19,6 +19,7 @@
 
 ### 최근 작업
 
+- **Cinematographer 연출력 강화 + 에이전트 경쟁** (02-22): Writer Plan 브릿지(writer_plan→템플릿 전달), 시네마틱 기법/내러티브-비주얼/감정-비주얼 규칙(Rule 11-13) 추가, 3 Lens 경쟁 시스템(Full 모드: Tension/Intimacy/Contrast 병렬 실행+6차원 스코어링), search_similar_compositions 매트릭스 확장(16개 mood×scene_type, Danbooru 검증 태그), Director revise_script 루프 조기 종료. 13개 신규 테스트 (총 73개 PASS)
 - **StyleProfile별 Hi-Res 기본값 자동 적용** (02-21): `style_profiles`에 `default_enable_hr` Boolean 컬럼 추가(v3.25). `_adjust_parameters()`에서 StyleProfile의 Hi-Res 설정 자동 적용. Realistic(True, 512→768 업스케일 필수) vs Anime(False). Frontend StyleProfileEditor에 Hi-Res 체크박스 UI 추가. DB_SCHEMA v3.25
 - **StyleProfile 화풍별 생성 파라미터 자동 적용** (02-21): `style_profiles`에 `default_steps/cfg_scale/sampler_name/clip_skip` 4컬럼 추가. Realistic(steps=6, CFG 1.5, DPM++ SDE Karras, clip_skip=1) vs Anime(steps=28, CFG 7.0, DPM++ 2M Karras, clip_skip=2) 자동 오버라이드. 씬 생성(`_adjust_parameters`)+캐릭터 프리뷰(`preview.py`) 양쪽 적용. Frontend StyleProfileEditor에 Generation Parameters UI 추가. complexity boost 우회 수정. E2E 검증 완료: Yuna/Jimin 프리뷰 재생성 + storyboard 455 씬 생성. DB_SCHEMA v3.24
 - **FaceID IP-Adapter 얼굴 유사도 개선** (02-21): faceid control_mode "Balanced"→"ControlNet is more important"(얼굴 정체성 보존 우선), auto-enable weight 우선순위 수정(캐릭터>request>default). 정면 포트레이트 레퍼런스 생성 테스트 완료. 고도화 과제로 이관

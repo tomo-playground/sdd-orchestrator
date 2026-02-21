@@ -107,6 +107,14 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
             final_feedback = react.feedback
 
             target_agent = extract_target_agent_from_decision(react.act)
+            if not target_agent and react.act.startswith("revise_"):
+                # revise_script 등 production agent가 아닌 수정 요청 → 루프 종료 (routing이 처리)
+                logger.info(
+                    "[LangGraph] Director %s 판정 → routing으로 위임 (Step %d)",
+                    react.act,
+                    step_num,
+                )
+                break
             if target_agent:
                 # Director → Agent 메시지 생성
                 feedback_msg: AgentMessage = {

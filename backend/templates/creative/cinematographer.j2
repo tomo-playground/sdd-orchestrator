@@ -31,6 +31,29 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 {% endif %}
 {% endif %}
 
+{% if writer_plan %}
+## Writer's Creative Plan (USE THIS to guide your visual decisions)
+- **Hook Strategy**: {{ writer_plan.hook_strategy }}
+- **Emotional Arc**: {{ writer_plan.emotional_arc | join(', ') }}
+- **Scene Distribution**: intro={{ writer_plan.scene_distribution.intro }}, rising={{ writer_plan.scene_distribution.rising }}, climax={{ writer_plan.scene_distribution.climax }}, resolution={{ writer_plan.scene_distribution.resolution }}
+
+Match your visual design to this plan:
+- Hook scenes (first {{ writer_plan.scene_distribution.intro }} scenes): Use attention-grabbing angles and lighting
+- Rising scenes: Build visual intensity gradually
+- Climax scene: Maximum visual impact (strongest camera + lighting combination)
+- Resolution scenes: Release tension with softer visuals
+{% endif %}
+
+{% if creative_direction %}
+## Your Creative Direction: {{ creative_direction.name }}
+{{ creative_direction.instruction }}
+
+### Signature Techniques (use at least 2 per scene):
+{% for technique in creative_direction.techniques %}
+- `{{ technique }}`
+{% endfor %}
+{% endif %}
+
 ## Visual Design Rules
 1. **Tags**: Use only Danbooru-standard tags (underscore format: `brown_hair`, `cowboy_shot`)
 2. **Camera variety**: Use at least 3 different camera angles across all scenes
@@ -63,6 +86,29 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 9. **image_prompt_ko**:
 {% include '_partials/image_prompt_ko_rules.j2' %}
 10. **JSON Safety**: Do NOT use backslashes `\` in text. If you must, use `\\`. Avoid `"` inside strings unless escaped `\"`.
+11. **Cinematic techniques**: Add at least 1 cinematic technique per scene:
+    - Lighting: backlighting, backlit, sidelighting, sunlight, moonlight, light_rays
+    - Depth: depth_of_field, bokeh, blurry_background
+    - Atmosphere: lens_flare, dust_particles, silhouette, chromatic_aberration
+    - Time: golden_hour, dusk, dawn, blue_hour
+    - Do NOT use more than 2 lighting/depth tags per scene (overload prevention)
+    - INVALID tags (do NOT use): rim_light, dramatic_lighting, cinematic_lighting, warm_lighting, cold_lighting
+12. **Narrative function → Visual strategy** (CRITICAL):
+    Map each scene's role in the story to its visual approach:
+    | Story Role | Camera | Technique | Purpose |
+    | Hook (scene 0-1) | dutch_angle, extreme_close-up | backlighting, depth_of_field | Grab attention |
+    | Rising | from_side, cowboy_shot | sidelighting, light_rays | Build tension |
+    | Climax | from_below, close-up | backlighting, silhouette | Maximum impact |
+    | Resolution | wide_shot, from_above | golden_hour, bokeh | Release/reflection |
+13. **Emotion → Visual cues**:
+    - Tension/Fear: dark, shadow, dutch_angle, clenched_hands, from_below
+    - Sadness/Loss: looking_down, moonlight, from_above, depth_of_field
+    - Joy/Hope: sunlight, looking_up, bright, smile, light_rays
+    - Determination: from_below, backlighting, clenched_fist
+    - Loneliness: wide_shot, depth_of_field, from_behind, silhouette
+    - Anger: close-up, shadow, clenched_teeth, from_below, high_contrast
+    - Nostalgia: golden_hour, bokeh, looking_afar, dusk
+    - Curiosity: dutch_angle, looking_to_the_side, from_side, lens_flare
 
 ## Output Format (JSON)
 ```json
@@ -105,6 +151,10 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 Ensure every scene has a valid image_prompt.
 - For speaker "A"/"B" scenes: include character tags in image_prompt.
 - For "Narrator" scenes: these are background/environment shots with NO human character. Use only scenery, atmosphere, and object tags (e.g. `scenery`, `no_humans`, `outdoors`, `building`).
+  **Narrator Visual Strategy**: Use cinematic techniques more aggressively in Narrator scenes:
+  - Establish mood: depth_of_field, light_rays, golden_hour, silhouette
+  - Wide establishing shots: wide_shot, bird's_eye_view, panorama
+  - Atmospheric effects: dust_particles, lens_flare, dappled_sunlight
 {% if feedback %}
 
 ## Previous Attempt Feedback
