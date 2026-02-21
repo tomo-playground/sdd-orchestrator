@@ -19,7 +19,7 @@
 
 ### 최근 작업
 
-- **StyleProfile 화풍별 생성 파라미터 자동 적용** (02-21): `style_profiles`에 `default_steps/cfg_scale/sampler_name/clip_skip` 4컬럼 추가. Realistic(steps=6, CFG 1.5, DPM++ SDE Karras, clip_skip=1) vs Anime(steps=28, CFG 7.0, DPM++ 2M Karras, clip_skip=2) 자동 오버라이드. 씬 생성(`_adjust_parameters`)+캐릭터 프리뷰(`preview.py`) 양쪽 적용. Frontend StyleProfileEditor에 Generation Parameters UI 추가. DB_SCHEMA v3.24
+- **StyleProfile 화풍별 생성 파라미터 자동 적용** (02-21): `style_profiles`에 `default_steps/cfg_scale/sampler_name/clip_skip` 4컬럼 추가. Realistic(steps=6, CFG 1.5, DPM++ SDE Karras, clip_skip=1) vs Anime(steps=28, CFG 7.0, DPM++ 2M Karras, clip_skip=2) 자동 오버라이드. 씬 생성(`_adjust_parameters`)+캐릭터 프리뷰(`preview.py`) 양쪽 적용. Frontend StyleProfileEditor에 Generation Parameters UI 추가. complexity boost 우회 수정. E2E 검증 완료: Yuna/Jimin 프리뷰 재생성 + storyboard 455 씬 생성. DB_SCHEMA v3.24
 - **FaceID IP-Adapter 얼굴 유사도 개선** (02-21): faceid control_mode "Balanced"→"ControlNet is more important"(얼굴 정체성 보존 우선), auto-enable weight 우선순위 수정(캐릭터>request>default). 정면 포트레이트 레퍼런스 생성 테스트 완료. 고도화 과제로 이관
 - **TagClassifier Danbooru 비동기 전환 + Circuit Breaker** (02-21): `/tags/classify` 실시간 Danbooru 호출이 서버 블로킹 유발하던 문제 해결. Step 1-2(Rules+DB캐시) 즉시 반환, Step 3(Danbooru)는 `BackgroundTasks`로 비동기 처리. Circuit breaker 추가(3회 연속 실패 → 60초 스킵), 타임아웃 15초→3초 축소
 - **Style Profile 기반 IP-Adapter 모델 자동 선택** (02-21): `style_profiles.default_ip_adapter_model` 컬럼 추가(Anime→clip_face, Realistic→faceid). ConsistencyResolver 3단계 우선순위(캐릭터>스타일프로필>기본값). Alembic 마이그레이션+데이터, joinedload N+1 방지
