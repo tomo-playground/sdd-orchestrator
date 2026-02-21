@@ -161,7 +161,8 @@ class CharacterConsistencyResolver:
         # Auto-enable: check if character has a reference image
         ref_image = load_reference_image(character.name, db=self.db)
         if ref_image:
-            weight = ip_adapter_weight or character.ip_adapter_weight or 0.35
+            # Auto-enable: character weight takes priority (user didn't explicitly set)
+            weight = character.ip_adapter_weight or ip_adapter_weight or 0.35
             model = self._resolve_ip_adapter_model(character)
             logger.info(
                 "✨ [Resolver] Auto-enabled IP-Adapter for '%s' (weight=%.2f, model=%s)",

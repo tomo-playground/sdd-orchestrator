@@ -508,11 +508,13 @@ def build_ip_adapter_args(
     if not model_name:
         raise ValueError(f"Unknown IP-Adapter model: {model}")
 
-    # Select module based on model type
+    # Select module and control_mode based on model type
     if model == "faceid":
         module = "ip-adapter_face_id_plus"  # For real faces (InsightFace)
+        control_mode = "ControlNet is more important"  # Prioritize face identity
     else:
         module = "ip-adapter_clip_sd15"  # For anime/illustration (CLIP)
+        control_mode = "Balanced"
 
     return {
         "enabled": True,
@@ -522,7 +524,7 @@ def build_ip_adapter_args(
         "weight": weight,
         "resize_mode": "Crop and Resize",
         "processor_res": 512,
-        "control_mode": "Balanced",
+        "control_mode": control_mode,
         "pixel_perfect": False,
     }
 
