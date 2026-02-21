@@ -5,8 +5,8 @@ import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
 import { useUIStore } from "../../../store/useUIStore";
 import StyleProfileEditor from "../StyleProfileEditor";
+import EditLoraModal from "../EditLoraModal";
 import { useStyleTab } from "../hooks/useStyleTab";
-import { ERROR_BG, ERROR_ICON } from "../../../components/ui/variants";
 
 export default function StyleTab() {
   const showToast = useUIStore((s) => s.showToast);
@@ -23,8 +23,11 @@ export default function StyleTab() {
     handleDuplicateStyle,
     handleLoadProfile,
     sdModels,
+    sdModelMap,
     embeddings,
     loraEntries,
+    characterCounts,
+    linkedCharacters,
     handleSetProfileModel,
     handleToggleProfileLora,
     handleToggleProfileEmbedding,
@@ -79,66 +82,102 @@ export default function StyleTab() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {styleProfiles.map((style) => (
-              <div
-                key={style.id}
-                className={`flex flex-col gap-3 rounded-2xl border p-4 transition-all hover:shadow-md ${selectedProfile?.id === style.id
-                  ? "border-indigo-300 bg-indigo-50/10"
-                  : "border-zinc-200 bg-white"
+            {styleProfiles.map((style) => {
+              const sdModel =
+                style.sd_model_id != null ? sdModelMap.get(style.sd_model_id) : undefined;
+              const loraCount = style.loras?.length ?? 0;
+              const charCount = characterCounts.get(style.id) ?? 0;
+              return (
+                <div
+                  key={style.id}
+                  className={`flex flex-col gap-3 rounded-2xl border p-4 transition-all hover:shadow-md ${
+                    selectedProfile?.id === style.id
+                      ? "border-indigo-300 bg-indigo-50/10"
+                      : "border-zinc-200 bg-white"
                   }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-zinc-700">{style.name}</span>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => handleDuplicateStyle(style.id)}
-                      className="rounded p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-                      title="Duplicate"
-                    >
-                      <svg
-                        className="h-3 w-3"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteStyle(style.id)}
-                      className="rounded p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-500"
-                      title="Delete"
-                    >
-                      <svg
-                        className="h-3 w-3"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleLoadProfile(style.id)}
-                  className="w-full rounded-xl border border-zinc-200 bg-white py-2 text-[13px] font-bold text-zinc-500 hover:border-indigo-200 hover:text-indigo-600"
                 >
-                  {selectedProfile?.id === style.id ? "Editing..." : "Edit Profile"}
-                </button>
-              </div>
-            ))}
+                  {/* Header: name + actions */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate font-bold text-zinc-700">
+                        {style.display_name || style.name}
+                      </span>
+                      {style.is_default && (
+                        <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-bold text-indigo-600">
+                          Default
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        onClick={() => handleDuplicateStyle(style.id)}
+                        className="rounded p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                        title="Duplicate"
+                      >
+                        <svg
+                          className="h-3 w-3"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteStyle(style.id)}
+                        className="rounded p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-500"
+                        title="Delete"
+                      >
+                        <svg
+                          className="h-3 w-3"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Badges: SD model, LoRA count, character count */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {sdModel && (
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+                        {sdModel.display_name || sdModel.name}
+                      </span>
+                    )}
+                    {loraCount > 0 && (
+                      <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-600">
+                        {loraCount} LoRA{loraCount > 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {charCount > 0 && (
+                      <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-600">
+                        {charCount} character{charCount > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => handleLoadProfile(style.id)}
+                    className="w-full rounded-xl border border-zinc-200 bg-white py-2 text-[13px] font-bold text-zinc-500 hover:border-indigo-200 hover:text-indigo-600"
+                  >
+                    {selectedProfile?.id === style.id ? "Editing..." : "Edit Profile"}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -150,6 +189,7 @@ export default function StyleTab() {
           sdModels={sdModels}
           loraEntries={loraEntries}
           embeddings={embeddings}
+          linkedCharacters={linkedCharacters}
           onUpdateStyle={handleUpdateStyle}
           onSetModel={handleSetProfileModel}
           onToggleLora={handleToggleProfileLora}
@@ -400,137 +440,13 @@ export default function StyleTab() {
 
       {/* Edit LoRA Modal */}
       {editingLora && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="edit-lora-title"
-          className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-        >
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-            <h3 id="edit-lora-title" className="mb-4 text-center text-sm font-black text-zinc-800">
-              Edit LoRA
-            </h3>
-            <div className="grid gap-4">
-              <div>
-                <label className="mb-1 block text-[13px] font-bold tracking-wider text-zinc-500 uppercase">
-                  Name
-                </label>
-                <input
-                  value={editingLora.name}
-                  onChange={(e) => setEditingLora({ ...editingLora, name: e.target.value })}
-                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[13px] font-bold tracking-wider text-zinc-500 uppercase">
-                  Trigger Word (Optional)
-                </label>
-                <input
-                  value={editingLora.trigger_words?.join(", ") || ""}
-                  onChange={(e) =>
-                    setEditingLora({
-                      ...editingLora,
-                      trigger_words: e.target.value.split(",").map((s) => s.trim()),
-                    })
-                  }
-                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 outline-none focus:border-indigo-500"
-                  placeholder="e.g. style-pixel"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[13px] font-bold tracking-wider text-zinc-500 uppercase">
-                  Default Weight: {editingLora.default_weight.toFixed(1)}
-                </label>
-                <input
-                  type="range"
-                  min="0.1"
-                  max="2.0"
-                  step="0.1"
-                  value={editingLora.default_weight ?? 1.0}
-                  onChange={(e) =>
-                    setEditingLora({ ...editingLora, default_weight: parseFloat(e.target.value) })
-                  }
-                  className="w-full"
-                />
-              </div>
-              {/* Multi-Character Support */}
-              <div className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-3">
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={editingLora.is_multi_character_capable ?? false}
-                    onChange={(e) =>
-                      setEditingLora({
-                        ...editingLora,
-                        is_multi_character_capable: e.target.checked,
-                      })
-                    }
-                    className="h-3.5 w-3.5 rounded accent-emerald-600"
-                  />
-                  <span className="text-[13px] font-bold text-zinc-600">
-                    Multi-Character Capable
-                  </span>
-                </label>
-                {editingLora.is_multi_character_capable && (
-                  <div className="mt-3 grid gap-3">
-                    <div>
-                      <label className="mb-1 block text-[13px] font-bold tracking-wider text-zinc-500 uppercase">
-                        Weight Scale: {(editingLora.multi_char_weight_scale ?? 0.75).toFixed(2)}
-                      </label>
-                      <input
-                        type="range"
-                        min="0.3"
-                        max="1.0"
-                        step="0.05"
-                        value={editingLora.multi_char_weight_scale ?? 0.75}
-                        onChange={(e) =>
-                          setEditingLora({
-                            ...editingLora,
-                            multi_char_weight_scale: parseFloat(e.target.value),
-                          })
-                        }
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[13px] font-bold tracking-wider text-zinc-500 uppercase">
-                        Trigger Prompt
-                      </label>
-                      <input
-                        value={editingLora.multi_char_trigger_prompt ?? ""}
-                        onChange={(e) =>
-                          setEditingLora({
-                            ...editingLora,
-                            multi_char_trigger_prompt: e.target.value || null,
-                          })
-                        }
-                        className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs text-zinc-700 outline-none focus:border-emerald-500"
-                        placeholder="e.g. a boy and a girl"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  aria-label="Close dialog"
-                  onClick={() => setEditingLora(null)}
-                  className="flex-1 rounded-xl border border-zinc-200 py-2.5 text-[13px] font-bold text-zinc-500 hover:bg-zinc-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateLora}
-                  disabled={isUpdatingLora}
-                  className="flex-1 rounded-xl bg-indigo-600 py-2.5 text-[13px] font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {isUpdatingLora ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <EditLoraModal
+          lora={editingLora}
+          onChange={setEditingLora}
+          onSave={handleUpdateLora}
+          onClose={() => setEditingLora(null)}
+          isSaving={isUpdatingLora}
+        />
       )}
 
       <ConfirmDialog {...dialogProps} />

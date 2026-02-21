@@ -1,7 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import { API_BASE } from "../../../constants";
-import type { StyleProfile, StyleProfileFull, SDModelEntry, Embedding } from "../../../types";
+import type {
+  StyleProfile,
+  StyleProfileFull,
+  SDModelEntry,
+  Embedding,
+  Character,
+} from "../../../types";
 import { useCivitai } from "./useCivitai";
 import { useLoraManagement } from "./useLoraManagement";
 
@@ -19,6 +25,26 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
 
   const [sdModels, setSdModels] = useState<SDModelEntry[]>([]);
   const [embeddings, setEmbeddings] = useState<Embedding[]>([]);
+
+  // Character counts per style profile & linked characters for selected profile
+  const [allCharacters, setAllCharacters] = useState<Character[]>([]);
+  const [linkedCharacters, setLinkedCharacters] = useState<Character[]>([]);
+
+  const characterCounts = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const ch of allCharacters) {
+      if (ch.style_profile_id != null) {
+        counts.set(ch.style_profile_id, (counts.get(ch.style_profile_id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [allCharacters]);
+
+  const sdModelMap = useMemo(() => {
+    const m = new Map<number, SDModelEntry>();
+    for (const model of sdModels) m.set(model.id, model);
+    return m;
+  }, [sdModels]);
 
   const civitai = useCivitai(ui);
   const lora = useLoraManagement(ui);
@@ -52,6 +78,29 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
       setEmbeddings(res.data || []);
     } catch {
       console.error("Failed to fetch embeddings");
+    }
+  }, []);
+
+  const fetchAllCharacters = useCallback(async () => {
+    try {
+      const res = await axios.get<{ items: Character[] }>(`${API_BASE}/characters`, {
+        params: { limit: 500 },
+      });
+      setAllCharacters(res.data.items ?? []);
+    } catch {
+      console.error("Failed to fetch characters for counts");
+    }
+  }, []);
+
+  const fetchLinkedCharacters = useCallback(async (profileId: number) => {
+    try {
+      const res = await axios.get<{ items: Character[] }>(`${API_BASE}/characters`, {
+        params: { style_profile_id: profileId, limit: 100 },
+      });
+      setLinkedCharacters(res.data.items ?? []);
+    } catch {
+      console.error("Failed to fetch linked characters");
+      setLinkedCharacters([]);
     }
   }, []);
 
@@ -170,6 +219,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
       try {
         const res = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}/full`);
         setSelectedProfile(res.data);
+        void fetchLinkedCharacters(id);
       } catch (error) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
@@ -177,7 +227,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
         ui.showToast(`Failed to load style details: ${msg}`, "error");
       }
     },
-    [ui]
+    [ui, fetchLinkedCharacters]
   );
 
   // ── Profile Asset Handlers ────────────────────────
@@ -241,6 +291,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     void fetchSdModels();
     void fetchEmbeddings();
     void lora.fetchPublicLoras();
+    void fetchAllCharacters();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
@@ -256,8 +307,12 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     handleLoadProfile,
     // Models & Embeddings
     sdModels,
+    sdModelMap,
     embeddings,
     loraEntries: lora.loraEntries,
+    // Character data
+    characterCounts,
+    linkedCharacters,
     // Profile asset handlers
     handleSetProfileModel,
     handleToggleProfileLora,

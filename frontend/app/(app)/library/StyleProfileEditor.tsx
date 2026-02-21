@@ -1,13 +1,80 @@
 "use client";
 
-import type { StyleProfileFull, SDModelEntry, LoRA, Embedding } from "../../types";
+import {
+  useState,
+  useEffect,
+  useRef,
+  type InputHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from "react";
+import Link from "next/link";
+import type { StyleProfileFull, SDModelEntry, LoRA, Embedding, Character } from "../../types";
 import { FORM_LABEL_COMPACT_CLASSES, ERROR_TEXT } from "../../components/ui/variants";
+
+const DEBOUNCE_MS = 400;
+
+/** Input that keeps local state and debounces onChange calls. */
+function DebouncedInput({
+  value: externalValue,
+  onDebouncedChange,
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> & {
+  value: string;
+  onDebouncedChange: (v: string) => void;
+}) {
+  const [local, setLocal] = useState(externalValue);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => {
+    setLocal(externalValue);
+  }, [externalValue]);
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+  return (
+    <input
+      {...props}
+      value={local}
+      onChange={(e) => {
+        setLocal(e.target.value);
+        clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => onDebouncedChange(e.target.value), DEBOUNCE_MS);
+      }}
+    />
+  );
+}
+
+/** Textarea that keeps local state and debounces onChange calls. */
+function DebouncedTextarea({
+  value: externalValue,
+  onDebouncedChange,
+  ...props
+}: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange"> & {
+  value: string;
+  onDebouncedChange: (v: string) => void;
+}) {
+  const [local, setLocal] = useState(externalValue);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => {
+    setLocal(externalValue);
+  }, [externalValue]);
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+  return (
+    <textarea
+      {...props}
+      value={local}
+      onChange={(e) => {
+        setLocal(e.target.value);
+        clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => onDebouncedChange(e.target.value), DEBOUNCE_MS);
+      }}
+    />
+  );
+}
 
 type Props = {
   profile: StyleProfileFull;
   sdModels: SDModelEntry[];
   loraEntries: LoRA[];
   embeddings: Embedding[];
+  linkedCharacters: Character[];
   onUpdateStyle: (id: number, data: Record<string, unknown>) => void;
   onSetModel: (profileId: number, modelId: number | null) => void;
   onToggleLora: (profileId: number, loraId: number, weight?: number) => void;
@@ -26,6 +93,7 @@ export default function StyleProfileEditor({
   sdModels,
   loraEntries,
   embeddings,
+  linkedCharacters,
   onUpdateStyle,
   onSetModel,
   onToggleLora,
@@ -41,10 +109,10 @@ export default function StyleProfileEditor({
       {/* Header */}
       <div className="mb-6 flex items-center justify-between border-b border-indigo-50 pb-4">
         <div>
-          <input
+          <DebouncedInput
             type="text"
             value={profile.name}
-            onChange={(e) => onUpdateStyle(profile.id, { name: e.target.value })}
+            onDebouncedChange={(v) => onUpdateStyle(profile.id, { name: v })}
             className="bg-transparent text-lg font-black text-indigo-900 focus:outline-none"
           />
           <p className="mt-1 text-[12px] font-bold tracking-widest text-indigo-400 uppercase">
@@ -59,22 +127,57 @@ export default function StyleProfileEditor({
         </button>
       </div>
 
+      {/* Metadata: display_name, description, is_default */}
+      <div className="mb-6 grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+        <div className="space-y-1">
+          <label className={labelCls}>Display Name</label>
+          <DebouncedInput
+            type="text"
+            value={profile.display_name || ""}
+            onDebouncedChange={(v) => onUpdateStyle(profile.id, { display_name: v || null })}
+            placeholder="Optional display name"
+            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className={labelCls}>Description</label>
+          <DebouncedInput
+            type="text"
+            value={profile.description || ""}
+            onDebouncedChange={(v) => onUpdateStyle(profile.id, { description: v || null })}
+            placeholder="Short description"
+            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+          />
+        </div>
+        <div className="flex items-end pb-0.5">
+          <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">
+            <input
+              type="checkbox"
+              checked={profile.is_default}
+              onChange={(e) => onUpdateStyle(profile.id, { is_default: e.target.checked })}
+              className="h-3.5 w-3.5 rounded accent-indigo-600"
+            />
+            <span className="text-xs font-bold text-zinc-600">Default</span>
+          </label>
+        </div>
+      </div>
+
       {/* Prompts */}
       <div className="grid gap-6 md:grid-cols-2">
         <div className="space-y-2">
           <label className={labelCls}>Positive Prompt</label>
-          <textarea
+          <DebouncedTextarea
             value={profile.default_positive || ""}
-            onChange={(e) => onUpdateStyle(profile.id, { default_positive: e.target.value })}
+            onDebouncedChange={(v) => onUpdateStyle(profile.id, { default_positive: v })}
             className="h-40 w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs leading-relaxed text-zinc-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
             placeholder="Describe the style..."
           />
         </div>
         <div className="space-y-2">
           <label className={labelCls}>Negative Prompt</label>
-          <textarea
+          <DebouncedTextarea
             value={profile.default_negative || ""}
-            onChange={(e) => onUpdateStyle(profile.id, { default_negative: e.target.value })}
+            onDebouncedChange={(v) => onUpdateStyle(profile.id, { default_negative: v })}
             className="h-40 w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs leading-relaxed text-zinc-700 outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
             placeholder="What to avoid..."
           />
@@ -191,6 +294,38 @@ export default function StyleProfileEditor({
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Linked Characters */}
+      <div className="mt-6 space-y-2">
+        <label className={labelCls}>Linked Characters</label>
+        {linkedCharacters.length === 0 ? (
+          <p className="text-[12px] text-zinc-400">No characters linked to this style</p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {linkedCharacters.map((ch) => (
+              <Link
+                key={ch.id}
+                href={`/characters/${ch.id}`}
+                className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2.5 transition hover:border-indigo-200 hover:bg-white"
+              >
+                {ch.preview_image_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={ch.preview_image_url}
+                    alt={ch.name}
+                    className="h-8 w-8 shrink-0 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-200 text-[11px] font-bold text-zinc-500">
+                    {ch.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="min-w-0 truncate text-xs font-bold text-zinc-700">{ch.name}</span>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
