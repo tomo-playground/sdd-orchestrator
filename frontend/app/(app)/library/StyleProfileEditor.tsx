@@ -249,7 +249,9 @@ export default function StyleProfileEditor({
             <DebouncedInput
               type="text"
               value={profile.default_sampler_name || ""}
-              onDebouncedChange={(v) => onUpdateStyle(profile.id, { default_sampler_name: v || null })}
+              onDebouncedChange={(v) =>
+                onUpdateStyle(profile.id, { default_sampler_name: v || null })
+              }
               placeholder="DPM++ 2M Karras"
               className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
             />
@@ -269,6 +271,24 @@ export default function StyleProfileEditor({
               className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
             />
           </div>
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5">
+            <input
+              type="checkbox"
+              checked={profile.default_enable_hr ?? false}
+              onChange={(e) =>
+                onUpdateStyle(profile.id, {
+                  default_enable_hr: e.target.checked || null,
+                })
+              }
+              className="h-3.5 w-3.5 rounded accent-indigo-600"
+            />
+            <span className="text-xs font-medium text-zinc-600">Hi-Res (Hires Fix)</span>
+          </label>
+          <span className="text-[11px] text-zinc-400">
+            Auto-enable upscaling for this style (512→768)
+          </span>
         </div>
       </div>
 

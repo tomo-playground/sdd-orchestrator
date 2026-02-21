@@ -26,6 +26,7 @@ type StyleProfileModalProps = {
     positive_embeddings: { name: string; trigger_word: string }[];
     default_positive: string | null;
     default_negative: string | null;
+    default_enable_hr: boolean | null;
   }) => void;
   onSkip?: () => void;
 };
@@ -90,6 +91,7 @@ export default function StyleProfileModal({
         positive_embeddings: fullProfile.positive_embeddings || [],
         default_positive: fullProfile.default_positive,
         default_negative: fullProfile.default_negative,
+        default_enable_hr: fullProfile.default_enable_hr ?? null,
       });
     } catch (error) {
       console.error("Failed to load profile details:", error);
@@ -104,6 +106,7 @@ export default function StyleProfileModal({
         positive_embeddings: [],
         default_positive: null,
         default_negative: null,
+        default_enable_hr: null,
       });
     } finally {
       setIsSaving(false);

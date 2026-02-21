@@ -90,6 +90,7 @@ class StyleProfile(Base, TimestampMixin):
     default_cfg_scale: Mapped[float | None] = mapped_column(Float)
     default_sampler_name: Mapped[str | None] = mapped_column(String(50))
     default_clip_skip: Mapped[int | None] = mapped_column(Integer)
+    default_enable_hr: Mapped[bool | None] = mapped_column(Boolean)
 
     # Settings
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)

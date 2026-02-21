@@ -1,4 +1,4 @@
-# Database Schema (v3.24)
+# Database Schema (v3.25)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.25 | 2026-02-21 | `style_profiles`에 `default_enable_hr` (Boolean) 추가 — 화풍별 Hi-Res 기본값 자동 적용 |
 | v3.24 | 2026-02-21 | `style_profiles`에 생성 파라미터 4컬럼 추가 (default_steps, default_cfg_scale, default_sampler_name, default_clip_skip) |
 | v3.23 | 2026-02-21 | `characters`에서 `project_id` FK 제거 (미사용, 글로벌 스코프로 운영) |
 | v3.22 | 2026-02-21 | `characters`에 `style_profile_id` FK 추가 (캐릭터별 스타일 프로파일 오버라이드) |
@@ -555,6 +556,7 @@ Model + LoRAs + Embeddings 번들.
 | `default_cfg_scale` | Float | 화풍별 기본 CFG Scale |
 | `default_sampler_name` | String(50) | 화풍별 기본 샘플러 |
 | `default_clip_skip` | Integer | 화풍별 기본 CLIP Skip |
+| `default_enable_hr` | Boolean | 화풍별 Hi-Res(Hires Fix) 기본 ON/OFF |
 | `is_default` | Boolean | |
 | `is_active` | Boolean | |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
@@ -798,6 +800,6 @@ ORM 모델 컬럼 선언 순서: PK → Parent FK → Identity(name) → Metadat
 ---
 
 **Last Updated:** 2026-02-21
-**Schema Version:** v3.22
+**Schema Version:** v3.25
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic

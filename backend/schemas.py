@@ -1036,6 +1036,7 @@ class StyleProfileBase(BaseModel):
     default_cfg_scale: float | None = None
     default_sampler_name: str | None = None
     default_clip_skip: int | None = None
+    default_enable_hr: bool | None = None
     is_default: bool = False
     is_active: bool = True
 
@@ -1058,6 +1059,7 @@ class StyleProfileUpdate(BaseModel):
     default_cfg_scale: float | None = None
     default_sampler_name: str | None = None
     default_clip_skip: int | None = None
+    default_enable_hr: bool | None = None
     is_default: bool | None = None
     is_active: bool | None = None
 
@@ -1103,6 +1105,7 @@ class StyleProfileFullResponse(BaseModel):
     default_cfg_scale: float | None = None
     default_sampler_name: str | None = None
     default_clip_skip: int | None = None
+    default_enable_hr: bool | None = None
     is_default: bool = False
     is_active: bool = True
 

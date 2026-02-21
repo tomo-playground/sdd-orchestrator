@@ -512,9 +512,11 @@ def build_ip_adapter_args(
     if model == "faceid":
         module = "ip-adapter_face_id_plus"  # For real faces (InsightFace)
         control_mode = "ControlNet is more important"  # Prioritize face identity
+        guidance_end = 0.85  # Reduce prompt interference in later steps
     else:
         module = "ip-adapter_clip_sd15"  # For anime/illustration (CLIP)
         control_mode = "Balanced"
+        guidance_end = 1.0
 
     return {
         "enabled": True,
@@ -526,6 +528,8 @@ def build_ip_adapter_args(
         "processor_res": 512,
         "control_mode": control_mode,
         "pixel_perfect": False,
+        "guidance_start": 0.0,
+        "guidance_end": guidance_end,
     }
 
 

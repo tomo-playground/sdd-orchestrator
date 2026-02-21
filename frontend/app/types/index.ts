@@ -372,6 +372,7 @@ export type StyleProfile = {
   default_cfg_scale: number | null;
   default_sampler_name: string | null;
   default_clip_skip: number | null;
+  default_enable_hr: boolean | null;
   is_default: boolean;
   is_active: boolean;
 };
@@ -435,6 +436,7 @@ export type StyleProfileFull = {
   default_cfg_scale: number | null;
   default_sampler_name: string | null;
   default_clip_skip: number | null;
+  default_enable_hr: boolean | null;
   is_default: boolean;
   is_active: boolean;
 };

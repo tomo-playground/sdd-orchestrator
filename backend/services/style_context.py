@@ -29,6 +29,7 @@ class StyleContext:
     default_cfg_scale: float | None = None
     default_sampler_name: str | None = None
     default_clip_skip: int | None = None
+    default_enable_hr: bool | None = None
 
 
 def _resolve_embedding_triggers(embedding_ids: list[int] | None, db: Session) -> list[str]:
@@ -96,6 +97,7 @@ def _build_style_context(profile, db: Session) -> StyleContext:
         default_cfg_scale=profile.default_cfg_scale,
         default_sampler_name=profile.default_sampler_name,
         default_clip_skip=profile.default_clip_skip,
+        default_enable_hr=profile.default_enable_hr,
     )
 
 

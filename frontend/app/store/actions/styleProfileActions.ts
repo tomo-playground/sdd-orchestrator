@@ -18,6 +18,7 @@ interface StyleProfileSelection {
   positive_embeddings?: { name: string; trigger_word: string }[];
   default_positive?: string | null;
   default_negative?: string | null;
+  default_enable_hr?: boolean | null;
 }
 
 interface StyleProfileCallbacks {
@@ -54,6 +55,11 @@ export async function handleStyleProfileComplete(
     },
   });
   callbacks.setShowStyleProfileModal(false);
+
+  // Auto-enable Hi-Res from StyleProfile default
+  if (profile.default_enable_hr) {
+    useStoryboardStore.getState().set({ hiResEnabled: true });
+  }
 
   // 2. Persist style_profile_id to GroupConfig (SSOT for generation)
   if (groupId) {
@@ -203,6 +209,11 @@ export async function loadStyleProfileFromId(profileId: number): Promise<void> {
         default_negative: profile.default_negative,
       },
     });
+
+    // Auto-enable Hi-Res from StyleProfile default
+    if (profile.default_enable_hr) {
+      useStoryboardStore.getState().set({ hiResEnabled: true });
+    }
 
     await changeSdModel(
       {

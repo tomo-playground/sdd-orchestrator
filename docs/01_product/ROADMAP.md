@@ -14,11 +14,12 @@
 | Phase 11 (Scene Diversity) | 전체 완료 (ARCHIVED) |
 | Phase 12 (Agent Enhancement & AI BGM) | 전체 완료 (ARCHIVED) |
 | Phase 13 (Creative Control & Production Speed) | 전체 완료 (ARCHIVED) |
-| Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 완료 (7/7)** |
+| Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 완료 (8/8)** |
 | 테스트 | Backend 2,199 + Frontend 352 = **총 2,551개** |
 
 ### 최근 작업
 
+- **StyleProfile별 Hi-Res 기본값 자동 적용** (02-21): `style_profiles`에 `default_enable_hr` Boolean 컬럼 추가(v3.25). `_adjust_parameters()`에서 StyleProfile의 Hi-Res 설정 자동 적용. Realistic(True, 512→768 업스케일 필수) vs Anime(False). Frontend StyleProfileEditor에 Hi-Res 체크박스 UI 추가. DB_SCHEMA v3.25
 - **StyleProfile 화풍별 생성 파라미터 자동 적용** (02-21): `style_profiles`에 `default_steps/cfg_scale/sampler_name/clip_skip` 4컬럼 추가. Realistic(steps=6, CFG 1.5, DPM++ SDE Karras, clip_skip=1) vs Anime(steps=28, CFG 7.0, DPM++ 2M Karras, clip_skip=2) 자동 오버라이드. 씬 생성(`_adjust_parameters`)+캐릭터 프리뷰(`preview.py`) 양쪽 적용. Frontend StyleProfileEditor에 Generation Parameters UI 추가. complexity boost 우회 수정. E2E 검증 완료: Yuna/Jimin 프리뷰 재생성 + storyboard 455 씬 생성. DB_SCHEMA v3.24
 - **FaceID IP-Adapter 얼굴 유사도 개선** (02-21): faceid control_mode "Balanced"→"ControlNet is more important"(얼굴 정체성 보존 우선), auto-enable weight 우선순위 수정(캐릭터>request>default). 정면 포트레이트 레퍼런스 생성 테스트 완료. 고도화 과제로 이관
 - **TagClassifier Danbooru 비동기 전환 + Circuit Breaker** (02-21): `/tags/classify` 실시간 Danbooru 호출이 서버 블로킹 유발하던 문제 해결. Step 1-2(Rules+DB캐시) 즉시 반환, Step 3(Danbooru)는 `BackgroundTasks`로 비동기 처리. Circuit breaker 추가(3회 연속 실패 → 60초 스킵), 타임아웃 15초→3초 축소
@@ -132,7 +133,7 @@ graph LR
 | 5 | 이미지 생성 전 Checkpoint 자동 전환 (`_ensure_correct_checkpoint`) | ✅ |
 | 6 | Character LoRA 호환성 경고 (base_model 불일치 시 warning) | ✅ |
 
-### Phase 8-1: Multi-Style Full Support (완료 02-21)
+### Phase 8-1: Multi-Style Full Support (완료 02-21, 8/8)
 
 | # | 항목 | 상태 |
 |---|------|------|
@@ -143,6 +144,7 @@ graph LR
 | 5 | 화풍별 생성 파라미터 자동 적용 (steps/cfg/sampler/clip_skip) | ✅ (02-21) |
 | 6 | IP-Adapter 모델 자동 선택 (clip_face/faceid) | ✅ (02-21) |
 | 7 | 캐릭터 프리뷰 Checkpoint 자동 전환 | ✅ (02-21) |
+| 8 | Hi-Res 기본값 자동 적용 (default_enable_hr) | ✅ (02-21) |
 
 ---
 
@@ -199,4 +201,4 @@ Phase 12 (Agent Enhancement 26건) + Phase 13 (Creative Control 19건 + 13-A Qui
 |------|------|------|
 | 1 | PipelineControl 커스텀, 분산 큐 | 규모 확장 시 |
 | 2 | 배치 렌더링, 브랜딩, 분석 대시보드 | Feature Backlog |
-| 3 | ~~Multi-Style Full Support (Phase 8-1)~~ | ✅ 완료 (7/7) |
+| 3 | ~~Multi-Style Full Support (Phase 8-1)~~ | ✅ 완료 (8/8) |

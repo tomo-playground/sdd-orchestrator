@@ -94,6 +94,8 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `negative_embeddings` (ARRAY), `positive_embeddings` (ARRAY)
 - `default_positive`, `default_negative`
 - `default_ip_adapter_model` — IP-Adapter 기본 모델 (`clip_face` / `faceid`)
+- `default_steps`, `default_cfg_scale`, `default_sampler_name`, `default_clip_skip` — 화풍별 생성 파라미터
+- `default_enable_hr` — 화풍별 Hi-Res 기본 ON/OFF
 - `is_default`, `is_active`
 
 ### `embeddings` — 임베딩 모델
