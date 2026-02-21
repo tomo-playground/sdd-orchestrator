@@ -19,6 +19,8 @@
 
 ### 최근 작업
 
+- **캐릭터 프리뷰 Checkpoint 전환 누락 수정** (02-21): `regenerate_reference()`와 `generate_wizard_preview()`에서 StyleProfile의 SD 모델로 전환하는 `_ensure_correct_checkpoint()` 호출이 누락되어 Realistic 캐릭터가 Anime 모델로 생성되던 버그 수정. Realistic 남녀 캐릭터(Yuna/Jimin) 생성 검증 완료
+- **characters.project_id 제거** (02-21): 미사용 FK 정리. ORM/스키마/라우터/서비스/Frontend 타입·훅에서 project_id 완전 제거. Alembic 마이그레이션 적용, DB_SCHEMA v3.23. 12개 파일 수정, 테스트 3파일 정리
 - **Phase 8-1 #4 base_model UI 표시** (02-21): LoRA/Embedding base_model 의존성 필터링 + lora_type 정리, StyleTab에 base_model 회색 배지 추가(Embedding 리스트+LoRA 카드), StyleProfileEditor에 필터 안내 서브텍스트
 - **Phase 8-1 #2 Style Profile UI 개선** (02-21): StyleTab 카드 보강(SD Model/LoRA/캐릭터 수 배지, is_default, display_name), StyleProfileEditor 메타데이터 필드(display_name, description, is_default) + 연결된 캐릭터 목록, DebouncedInput으로 API 호출 최적화, EditLoraModal 컴포넌트 분리
 - **캐릭터 상세 화풍 배지** (02-21): 캐릭터 상세 페이지 헤더에 style_profile_name 읽기 전용 배지 추가. Hana/Sora 캐릭터 화풍 매핑 (Studio Ghibli)

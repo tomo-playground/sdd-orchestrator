@@ -147,6 +147,12 @@ async def regenerate_reference(db: Session, character_id: int) -> dict:
     else:
         neg_prompt = _build_reference_negative(style_ctx, character.recommended_negative)
 
+    # Ensure SD WebUI is using the correct checkpoint for this StyleProfile
+    if style_ctx and style_ctx.sd_model_name:
+        from services.image_generation_core import _ensure_correct_checkpoint
+
+        await _ensure_correct_checkpoint(style_ctx.sd_model_name)
+
     # Release DB connection before long SD WebUI call (~30-60s)
     db.close()
 
@@ -286,6 +292,12 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
     # Resolve StyleContext for negative embeddings
     style_ctx = resolve_style_context_for_profile(request.style_profile_id, db)
     neg_prompt = _build_reference_negative(style_ctx, None)
+
+    # Ensure SD WebUI is using the correct checkpoint for this StyleProfile
+    if style_ctx and style_ctx.sd_model_name:
+        from services.image_generation_core import _ensure_correct_checkpoint
+
+        await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
     # Release DB connection before long SD call
     db.close()
