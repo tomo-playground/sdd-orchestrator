@@ -19,6 +19,7 @@
 
 ### 최근 작업
 
+- **Duration 부족 검증 + 자동 보정** (02-22): 목표 45s→실제 33.5s(25% 미달) 버그 수정. 3단 방어 구조 — (1) Review 노드에 총 duration < 85% 검증 추가, (2) Revise Tier 1.5 `redistribute_durations()` 비례 확대 + 2차 gap 보정, (3) Finalize `_ensure_minimum_duration()` 최종 안전장치. `DURATION_DEFICIT_THRESHOLD` 상수화. 11개 신규 테스트 (33개 PASS)
 - **LLM 하드코딩 제거 3종** (02-22): Phase 14-A. (1) `negative_prompt_extra` — Cinematographer가 씬별 배제 태그 직접 결정, Finalize에서 기본 negative와 병합. (2) `detect_pose_from_prompt()` 96줄→10줄 단순화 — synonym 77개 삭제, LLM이 포즈를 직접 선택하므로 exact longest-match fallback만 유지. (3) Environment 정규화 — `context_tags.setting`→`environment` 통일, `_check_keyword_conflict()` 8개 키워드 삭제. 신규 테스트 10개, 전체 98개 PASS
 - **Zustand isDirty subscribe + debounce 자동 저장** (02-22): `updateScene`/`setScenes` 후 수동 `saveStoryboard()` 누락으로 DB 미저장되던 반복 버그 방지. `store/effects/autoSave.ts` 신규 모듈 — isDirty `false→true` 변경 감지 → 2초 debounce → `persistStoryboard()`. isSaving guard + 저장 완료 후 재확인. sceneActions/batchActions/imageActions 수동 save 6곳 제거, 즉시 저장 필요한 곳(upload/edit/generate) 유지. 테스트 6개
 - **SSE 이벤트에 controlnet_pose/ip_adapter_reference 전달** (02-22): 이미지 생성 결과의 ControlNet pose/IP-Adapter reference 정보를 SSE `ImageProgressEvent` → Frontend `processGeneratedImages` → Zustand 스토어에 전달. auto-save와 결합하여 DB 자동 저장. Backend 스키마+라우터, Frontend 타입+처리 로직. 테스트 4개

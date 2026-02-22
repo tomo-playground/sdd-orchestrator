@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from config import DEFAULT_GAZE_TAG, DEFAULT_POSE_TAG, DEFAULT_SCENE_NEGATIVE_PROMPT, logger
+from config import DEFAULT_GAZE_TAG, DEFAULT_POSE_TAG, DEFAULT_SCENE_NEGATIVE_PROMPT, DURATION_DEFICIT_THRESHOLD, logger
 from database import get_db_session
 from services.agent.state import ScriptState
 
@@ -112,6 +112,19 @@ def _validate_ip_adapter_weights(scenes: list[dict]) -> None:
             scene["ip_adapter_weight"] = clamped
 
 
+def _ensure_minimum_duration(scenes: list[dict], target_duration: int, language: str) -> None:
+    """총 duration이 목표의 85% 미만이면 비례 재분배한다."""
+    total = sum(s.get("duration", 0) for s in scenes)
+    if total >= target_duration * DURATION_DEFICIT_THRESHOLD or total <= 0 or not scenes:
+        return
+
+    from services.agent.nodes._revise_expand import redistribute_durations
+
+    redistribute_durations(scenes, target_duration, language)
+    new_total = sum(s.get("duration", 0) for s in scenes)
+    logger.info("[Finalize] Duration 보정: %.1fs → %.1fs (target=%ds)", total, new_total, target_duration)
+
+
 async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     """Quick: draft → final 패스스루. Full: Production 결과 병합 + character_actions 변환."""
     # 에러 상태이면 즉시 반환 (에러 메시지 보존)
@@ -132,6 +145,11 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     _normalize_environment_tags(scenes)
     _validate_controlnet_poses(scenes)
     _validate_ip_adapter_weights(scenes)
+
+    # Duration 최종 보정 (Review/Revise 경유 후에도 부족할 수 있음)
+    target_duration = state.get("duration", 0)
+    if target_duration > 0:
+        _ensure_minimum_duration(scenes, target_duration, state.get("language", "Korean"))
 
     # character_actions 변환: context_tags → ControlNet 포즈/표정 데이터
     character_id = state.get("character_id")

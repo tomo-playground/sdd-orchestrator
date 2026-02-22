@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 
-from config import LANGGRAPH_MAX_REVISIONS, SCENE_DEFAULT_DURATION, logger
+from config import DURATION_DEFICIT_THRESHOLD, LANGGRAPH_MAX_REVISIONS, SCENE_DEFAULT_DURATION, logger
 from config_pipelines import REVISE_EXPANSION_ENABLED, REVISE_MAX_EXPANSION_SCENES
 from database import get_db_session
 from schemas import StoryboardRequest
@@ -22,6 +22,12 @@ from services.script.gemini_generator import generate_script
 
 _DURATION_RE = re.compile(r"씬 (\d+): duration이 0 이하")
 _FIELD_RE = re.compile(r"씬 (\d+): 필수 필드 '(script|image_prompt)' 누락")
+_DURATION_DEFICIT_RE = re.compile(r"총 duration 부족")
+
+
+def _has_duration_deficit(errors: list[str]) -> bool:
+    """에러 목록에 총 duration 부족 에러가 있는지 확인한다."""
+    return any(_DURATION_DEFICIT_RE.search(e) for e in errors)
 
 
 def _generate_placeholder_prompt(state: ScriptState) -> str:
@@ -157,6 +163,15 @@ async def revise_node(state: ScriptState) -> dict:
         logger.info("[LangGraph] Revise Tier 1 규칙 수정 완료 (revision=%d)", count + 1)
         history[-1]["tier"] = "rule_fix"
         return {"draft_scenes": scenes, "revision_count": count + 1, "revision_history": history}
+
+    # Tier 1.5: duration 부족 → redistribute로 해결 시도
+    if _has_duration_deficit(errors):
+        redistribute_durations(scenes, state.get("duration", 10), language=state.get("language", "Korean"))
+        new_total = sum(s.get("duration", 0) for s in scenes)
+        if new_total >= state.get("duration", 10) * DURATION_DEFICIT_THRESHOLD:
+            logger.info("[LangGraph] Revise Tier 1.5 duration 재분배 완료 (revision=%d)", count + 1)
+            history[-1]["tier"] = "duration_redistribute"
+            return {"draft_scenes": scenes, "revision_count": count + 1, "revision_history": history}
 
     # Tier 2: 씬 개수 부족 → 타겟 확장 (기존 씬 보존)
     if REVISE_EXPANSION_ENABLED:

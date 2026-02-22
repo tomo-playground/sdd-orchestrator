@@ -464,6 +464,7 @@ READING_SPEED: dict[str, dict] = {
 }
 READING_DURATION_PADDING = 0.5  # seconds (자연스러운 호흡 간격)
 SCENE_DURATION_MAX = 10.0  # absolute safety cap per scene
+DURATION_DEFICIT_THRESHOLD = 0.85  # 총 duration이 target의 이 비율 미만이면 부족으로 판정
 
 # --- Pipeline & Integration Constants (extracted to config_pipelines.py) ---
 from config_pipelines import *  # noqa: E402, F401, F403

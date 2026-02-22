@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 
 from config import (
+    DURATION_DEFICIT_THRESHOLD,
     LANGGRAPH_AUTO_REVIEW_THRESHOLD,
     REVIEW_SCRIPT_MAX_CHARS_OTHER,
     SCRIPT_LENGTH_KOREAN,
@@ -103,6 +104,12 @@ def _validate_scenes(
     expected_min = calculate_min_scenes(duration)
     if len(scenes) < expected_min:
         errors.append(f"씬 개수 부족: {len(scenes)}개 (최소 {expected_min}개 필요, duration={duration}s)")
+
+    # 총 duration 검증: 목표의 DURATION_DEFICIT_THRESHOLD 미만이면 에러
+    total_dur = sum(s.get("duration", 0) for s in scenes)
+    threshold = duration * DURATION_DEFICIT_THRESHOLD
+    if duration > 0 and total_dur < threshold:
+        errors.append(f"총 duration 부족: {total_dur:.1f}s (목표 {duration}s의 85% = {threshold:.1f}s 미달)")
 
     speakers_found: set[str] = set()
     for i, scene in enumerate(scenes):

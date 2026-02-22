@@ -75,7 +75,9 @@ def merge_expanded_scenes(existing: list[dict], new_scenes: list[dict]) -> list[
 def redistribute_durations(scenes: list[dict], target_duration: int, language: str = "Korean") -> None:
     """총 duration을 target_duration에 맞게 비례 재분배한다.
 
-    각 씬의 최소 duration은 reading-time 기반으로 결정된다.
+    스케일다운: reading-time floor 적용.
+    스케일업: 원래 duration을 floor로 사용하여 확대 여지를 확보한다.
+    2차 보정: 총합이 target에 부족하면 균등 분배한다.
     """
     from services.storyboard.helpers import estimate_reading_duration
 
@@ -83,18 +85,28 @@ def redistribute_durations(scenes: list[dict], target_duration: int, language: s
         return
 
     total = sum(s.get("duration", 0) for s in scenes)
-    if total <= 0 or total == target_duration:
+    if total <= 0 or abs(total - target_duration) < 0.5:
         return
 
-    ratio = target_duration / total
-
     from config import SCENE_DURATION_MAX
+
+    ratio = target_duration / total
 
     for scene in scenes:
         script = scene.get("script", "").strip()
         min_dur = estimate_reading_duration(script, language) if script else 2.0
         raw = scene.get("duration", min_dur) * ratio
-        scene["duration"] = round(max(min_dur, min(SCENE_DURATION_MAX, raw)), 1)
+        # 스케일업 시: reading-time floor 대신 원래 duration을 floor로 사용
+        floor = scene.get("duration", min_dur) if ratio > 1 else min_dur
+        scene["duration"] = round(max(floor, min(SCENE_DURATION_MAX, raw)), 1)
+
+    # 2차 보정: 총합이 target에 부족하면 균등 분배
+    new_total = sum(s["duration"] for s in scenes)
+    gap = target_duration - new_total
+    if gap > 0.5:
+        per_scene = gap / len(scenes)
+        for scene in scenes:
+            scene["duration"] = round(min(SCENE_DURATION_MAX, scene["duration"] + per_scene), 1)
 
 
 def postprocess_new_scenes(new_scenes: list[dict], language: str = "Korean") -> None:

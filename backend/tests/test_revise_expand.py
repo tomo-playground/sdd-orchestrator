@@ -174,6 +174,37 @@ def test_redistribute_clamps_to_range():
         assert 2.0 <= s["duration"] <= SCENE_DURATION_MAX
 
 
+def test_redistribute_scale_up():
+    """총 duration < target → 비례 확대 + 2차 보정."""
+    scenes = [
+        {"duration": 4.0, "script": "짧은 대사"},
+        {"duration": 5.0, "script": "조금 더 긴 대사입니다"},
+        {"duration": 4.5, "script": "중간 길이의 대사"},
+        {"duration": 5.0, "script": "마지막 대사입니다"},
+        {"duration": 5.0, "script": "추가 대사"},
+        {"duration": 5.0, "script": "또 다른 대사"},
+        {"duration": 5.0, "script": "일곱번째 대사"},
+    ]
+    original_total = sum(s["duration"] for s in scenes)
+    assert original_total == 33.5  # 33.5s → 45s
+
+    redistribute_durations(scenes, 45)
+    new_total = sum(s["duration"] for s in scenes)
+    assert new_total >= 45 * 0.85  # 최소 85% 충족
+
+
+def test_redistribute_scale_up_gap_correction():
+    """스케일업 시 2차 보정으로 gap이 채워진다."""
+    scenes = [
+        {"duration": 3.0, "script": "A"},
+        {"duration": 3.0, "script": "B"},
+    ]
+    redistribute_durations(scenes, 10)
+    new_total = sum(s["duration"] for s in scenes)
+    # 2차 보정으로 10에 가까워져야 함
+    assert new_total >= 9.5
+
+
 def test_redistribute_empty_scenes():
     """빈 씬 리스트 → 에러 없이 종료."""
     redistribute_durations([], 10)
