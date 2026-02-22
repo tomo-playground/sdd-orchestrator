@@ -1,4 +1,4 @@
-# Database Schema (v3.28)
+# Database Schema (v3.29)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.29 | 2026-02-22 | `scenes`에 `controlnet_pose` (String(50), nullable) 추가. Finalize `_flatten_tts_designs()` — tts_design dict → flat fields 분해 |
 | v3.28 | 2026-02-22 | `render_presets.bgm_mode` NOT NULL 적용 (server_default="manual"). Dead 컬럼 DROP: `scenes.description`, `creative_traces.diff_summary`. `scenes`에 `clothing_tags` (JSONB) 추가 |
 | v3.27 | 2026-02-22 | Seed Anchoring: `scenes.last_seed` (BigInteger), `storyboards.base_seed` (BigInteger) 추가 |
 | v3.26 | 2026-02-22 | `characters`에 IP-Adapter 고도화 4컬럼 추가 (`ip_adapter_guidance_start/end`, `reference_source_type`, `reference_images` JSONB) |
@@ -196,6 +197,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | **ControlNet** | | |
 | `use_controlnet` | Boolean | ControlNet 사용 여부 |
 | `controlnet_weight` | Float | ControlNet 가중치 |
+| `controlnet_pose` | String(50), nullable | 선택된 ControlNet 포즈 이름 (None = 자동 감지) |
 | **Generation** | | |
 | `scene_mode` | String(10) | 씬 모드: `"single"` (1인) or `"multi"` (2인 동시 출연, default: `"single"`) |
 | `multi_gen_enabled` | Boolean | 멀티 생성 활성화 여부 |
@@ -787,6 +789,6 @@ ORM 모델 컬럼 선언 순서: PK → Parent FK → Identity(name) → Metadat
 ---
 
 **Last Updated:** 2026-02-22
-**Schema Version:** v3.28
+**Schema Version:** v3.29
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic

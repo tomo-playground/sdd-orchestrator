@@ -19,6 +19,7 @@
 
 ### 최근 작업
 
+- **파이프라인 → Frontend 씬 필드 매핑 갭 수정** (02-22): Finalize `_flatten_tts_designs()` — tts_design dict → voice_design_prompt/head_padding/tail_padding flat fields 분해. `scenes.controlnet_pose` 컬럼 추가 (DB_SCHEMA v3.29). Frontend 전 경로(mapGeminiScenes/mapEventScenes/sync/load/persist/autoSave/save/render)에 5필드 매핑 보강. 11파일 수정
 - **DB 정합성 수정: bgm_mode 기본값 + gender_locked 설정 경로** (02-22): `render_presets.bgm_mode` 3행 NULL → 'manual' 기본값 + NOT NULL 제약 적용 (Alembic 마이그레이션). `LoRAUpdate` 스키마에 `gender_locked` 필드 추가 + Frontend EditLoraModal에 Gender Lock 드롭다운 UI 추가. PUT 페이로드 전체 전송으로 개선. DB_SCHEMA v3.28
 - **Dead 컬럼 제거** (02-22): `scenes.description` (929행 빈 값) + `creative_traces.diff_summary` (1,962행 NULL) DROP. Alembic 마이그레이션
 - **Duration 부족 검증 + 자동 보정** (02-22): 목표 45s→실제 33.5s(25% 미달) 버그 수정. 3단 방어 구조 — (1) Review 노드에 총 duration < 85% 검증 추가, (2) Revise Tier 1.5 `redistribute_durations()` 비례 확대 + 2차 gap 보정, (3) Finalize `_ensure_minimum_duration()` 최종 안전장치. `DURATION_DEFICIT_THRESHOLD` 상수화. 11개 신규 테스트 (33개 PASS)
