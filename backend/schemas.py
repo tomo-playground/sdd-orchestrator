@@ -534,7 +534,7 @@ class VideoRequest(BaseModel):
     width: int = 1080
     height: int = 1920
     layout_style: str = "post"
-    ken_burns_preset: str = "none"  # Ken Burns preset (10 options)
+    ken_burns_preset: str = "random"  # Ken Burns preset (14 options, random for variety)
     ken_burns_intensity: float = 1.0  # Effect intensity (0.5~2.0)
     transition_type: str = "random"  # Scene transition effect (random for variety)
     narrator_voice: str = ""

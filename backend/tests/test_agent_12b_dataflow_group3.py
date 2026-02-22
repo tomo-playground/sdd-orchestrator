@@ -29,16 +29,16 @@ class TestNarrativeWeightsRebalanced:
         assert abs(total - 1.0) < 1e-9, f"가중치 합: {total}"
 
     def test_script_image_sync_weight(self):
-        """script_image_sync 가중치가 0.15로 상향되었다."""
+        """script_image_sync 가중치가 0.10으로 조정되었다."""
         from services.agent.nodes.review import _NARRATIVE_WEIGHTS
 
-        assert _NARRATIVE_WEIGHTS["script_image_sync"] == 0.15
+        assert _NARRATIVE_WEIGHTS["script_image_sync"] == 0.10
 
     def test_hook_weight_reduced(self):
-        """hook 가중치가 0.35로 하향되었다."""
+        """hook 가중치가 0.30으로 조정되었다."""
         from services.agent.nodes.review import _NARRATIVE_WEIGHTS
 
-        assert _NARRATIVE_WEIGHTS["hook"] == 0.35
+        assert _NARRATIVE_WEIGHTS["hook"] == 0.30
 
     def test_twist_payoff_weight_reduced(self):
         """twist_payoff 가중치가 0.15로 하향되었다."""
@@ -52,11 +52,11 @@ class TestNarrativeWeightsRebalanced:
 
         assert _NARRATIVE_WEIGHTS["emotional_arc"] == 0.25
 
-    def test_speaker_tone_unchanged(self):
-        """speaker_tone 가중치는 0.10 유지."""
+    def test_speaker_tone_weight(self):
+        """speaker_tone 가중치가 0.20으로 상향되었다."""
         from services.agent.nodes.review import _NARRATIVE_WEIGHTS
 
-        assert _NARRATIVE_WEIGHTS["speaker_tone"] == 0.10
+        assert _NARRATIVE_WEIGHTS["speaker_tone"] == 0.20
 
 
 # ── 12-B-9: Finalize 메타데이터 구조 분리 ───────────────────

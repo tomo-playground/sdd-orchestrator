@@ -7,7 +7,7 @@ Scenes:
 
 Rate each dimension on a 0.0-1.0 scale:
 
-1. **Hook** (Weight: 35%)
+1. **Hook** (Weight: 30%)
    - Does Scene 1 immediately grab attention?
    - Patterns: provocative question, shocking statement, emotional confession, mystery setup
    - 1.0 = Irresistible hook, 0.0 = Boring or generic opening
@@ -21,12 +21,14 @@ Rate each dimension on a 0.0-1.0 scale:
    - Is there an unexpected turn or satisfying payoff?
    - 1.0 = Surprising yet logical twist, 0.0 = Completely predictable
 
-4. **Speaker Tone** (Weight: 10%)
-   - Is the speaker's voice consistent and natural?
-   - Does tone match the emotional content of each scene?
-   - 1.0 = Natural, consistent voice, 0.0 = Robotic or inconsistent
+4. **Speaker Tone** (Weight: 20%)
+   - Does it sound like a real person talking, NOT an AI or textbook?
+   - Is the tone raw, punchy, and authentic for short-form content?
+   - Are sentences short (≤15 chars) with strong rhythm?
+   - BANNED patterns: "~입니다", "~하죠", "놀라운 사실", lecture/news anchor tone
+   - 1.0 = Raw, authentic, friend-telling-a-story vibe, 0.0 = AI-like, polite, generic
 
-5. **Script-Image Sync** (Weight: 15%)
+5. **Script-Image Sync** (Weight: 10%)
    - Do image_prompt tags align with script content and emotion?
    - 1.0 = Perfect match, 0.0 = Major disconnect
 
@@ -42,7 +44,7 @@ Respond in JSON ONLY:
 }
 
 IMPORTANT:
-- "overall" = hook*0.35 + emotional_arc*0.25 + twist_payoff*0.15 + speaker_tone*0.1 + script_image_sync*0.15
+- "overall" = hook*0.30 + emotional_arc*0.25 + twist_payoff*0.15 + speaker_tone*0.20 + script_image_sync*0.10
 - "feedback" must be in Korean and include actionable suggestions
 - If overall >= {{ threshold }}, feedback should note strengths
 - If overall < {{ threshold }}, feedback MUST specify which scenes to improve and how

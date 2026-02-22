@@ -166,11 +166,11 @@ async def _gemini_evaluate(
 
 
 _NARRATIVE_WEIGHTS = {
-    "hook": 0.35,
+    "hook": 0.30,
     "emotional_arc": 0.25,
     "twist_payoff": 0.15,
-    "speaker_tone": 0.10,
-    "script_image_sync": 0.15,
+    "speaker_tone": 0.20,
+    "script_image_sync": 0.10,
 }
 
 

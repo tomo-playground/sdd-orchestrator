@@ -14,6 +14,7 @@ import httpx  # noqa: E402
 
 API_BASE = "http://localhost:8000"
 
+
 def test_video_render():
     """Test video rendering with minimal scene data."""
 
@@ -30,7 +31,7 @@ def test_video_render():
         "scenes": [
             {
                 "image_url": f"/outputs/images/stored/{img}",
-                "script": f"테스트 씬 {i+1}입니다.",
+                "script": f"테스트 씬 {i + 1}입니다.",
                 "speaker": "Narrator",
                 "duration": 3.0,
             }
@@ -50,7 +51,7 @@ def test_video_render():
         "width": 1080,
         "height": 1920,
         "transition_type": "fade",
-        "ken_burns_preset": "none",
+        "ken_burns_preset": "random",
         "ken_burns_intensity": 1.0,
         "include_scene_text": True,
         "speed_multiplier": 1.0,
@@ -85,6 +86,7 @@ def test_video_render():
     except Exception as e:
         print(f"\n❌ Request failed: {e}")
         return False
+
 
 if __name__ == "__main__":
     print("=" * 50)
