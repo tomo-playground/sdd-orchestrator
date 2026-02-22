@@ -316,21 +316,20 @@ def _save_scene_quality_score(
 
     try:
         # Verify scene_id exists (scenes may be recreated during PUT with new IDs)
-        resolved_scene_id = scene_id
-        if resolved_scene_id is not None:
+        if scene_id is not None:
             from models.scene import Scene
 
-            exists = db.query(Scene.id).filter(Scene.id == resolved_scene_id).first()
+            exists = db.query(Scene.id).filter(Scene.id == scene_id).first()
             if not exists:
                 logger.warning(
-                    "[QualityScore] scene_id %d not found (likely recreated), setting NULL",
-                    resolved_scene_id,
+                    "[QualityScore] scene_id %d not found (likely recreated), skipping save",
+                    scene_id,
                 )
-                resolved_scene_id = None
+                return
 
         score = SceneQualityScore(
             storyboard_id=storyboard_id,
-            scene_id=resolved_scene_id,
+            scene_id=scene_id,
             prompt=prompt,
             match_rate=match_rate,
             matched_tags=matched,
