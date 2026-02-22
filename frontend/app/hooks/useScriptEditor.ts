@@ -28,6 +28,8 @@ export type SceneItem = {
   image_prompt: string;
   image_prompt_ko: string;
   image_url: string | null;
+  context_tags?: Record<string, string | string[]>;
+  character_actions?: Scene["character_actions"];
 };
 
 export type ScriptProgress = {
@@ -106,6 +108,8 @@ function mapEventScenes(scenes: Scene[]): SceneItem[] {
     image_prompt: s.image_prompt ?? "",
     image_prompt_ko: s.image_prompt_ko ?? "",
     image_url: s.image_url ?? null,
+    context_tags: s.context_tags ?? undefined,
+    character_actions: s.character_actions ?? undefined,
   }));
 }
 
@@ -136,6 +140,8 @@ function syncToGlobalStore(scenes: SceneItem[], meta: SyncMeta) {
     negative_prompt: "",
     isGenerating: false,
     debug_payload: "",
+    context_tags: s.context_tags,
+    character_actions: s.character_actions,
   }));
   useStoryboardStore.getState().setScenes(mapped);
   const { characterId, characterName, characterBId, characterBName, ...rest } = meta;
