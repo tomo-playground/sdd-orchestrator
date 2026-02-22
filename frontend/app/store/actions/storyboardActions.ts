@@ -422,7 +422,7 @@ export async function generateStoryboard(force = false): Promise<boolean | "need
     useStoryboardStore.getState().set({ currentSceneIndex: 0 });
     setActiveTab("edit");
     showToast(`Generated ${mapped.length} scenes`, "success");
-    saveStoryboard();
+    await saveStoryboard();
     return true;
   } catch (error) {
     showToast(getErrorMsg(error, "스토리보드 생성 실패"), "error");

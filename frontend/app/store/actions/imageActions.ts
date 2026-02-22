@@ -56,7 +56,8 @@ export async function handleGenerateImage(scene: Scene) {
         showToast(`Auto-pin: ${autoPinResult.message}`, "success");
       }
 
-      // image_url is already persisted by POST /image/store (Backend commits scene.image_asset_id immediately)
+      // image_url/image_asset_id are persisted by POST /image/store immediately.
+      // Other fields (use_controlnet, ip_adapter_reference, candidates, etc.) auto-saved via isDirty subscribe.
     } else {
       console.warn("[handleGenerateImage] No result from image generation");
     }

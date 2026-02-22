@@ -34,6 +34,7 @@ import PreflightModal from "../../components/common/PreflightModal";
 import { runPreflight, buildPreflightInput } from "../../utils/preflight";
 import type { AutoRunStepId } from "../../utils/preflight";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { initAutoSave } from "../../store/effects/autoSave";
 
 function StudioContent() {
   const { isLoadingDb, loadedProfileId, storyboardId, needsStyleProfile } =
@@ -45,6 +46,12 @@ function StudioContent() {
     needsStyleProfile,
     loadedProfileId,
   });
+
+  // Auto-save: isDirty subscribe → 2s debounce → persistStoryboard
+  useEffect(() => {
+    const cleanup = initAutoSave();
+    return cleanup;
+  }, []);
 
   // Routing: URL params (?id=X or ?new=true) determine kanban vs editor
   // contextStoryboardId (localStorage) is NOT used — URL is the single source of truth
