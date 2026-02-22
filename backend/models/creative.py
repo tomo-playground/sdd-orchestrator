@@ -124,7 +124,6 @@ class CreativeTrace(Base):
     parent_trace_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("creative_traces.id", ondelete="SET NULL"), nullable=True
     )
-    diff_summary: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, server_default=func.now())
 
     # V2 fields

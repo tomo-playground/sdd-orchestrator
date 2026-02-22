@@ -91,7 +91,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
         duration: s.duration,
         image_prompt: s.image_prompt,
         image_prompt_ko: s.image_prompt_ko,
-        description: s.description,
+
         width: s.width || 512,
         height: s.height || 768,
         negative_prompt: s.negative_prompt,
@@ -201,7 +201,6 @@ export function mapGeminiScenes(
       image_prompt: (s.image_prompt as string) || "",
       image_prompt_ko: (s.image_prompt_ko as string) || "",
       image_url: null,
-      description: (s.description as string) || "",
       width: 512,
       height: 768,
       negative_prompt: combined,
@@ -260,7 +259,7 @@ export async function persistStoryboard(): Promise<boolean> {
         duration: s.duration,
         image_prompt: s.image_prompt,
         image_prompt_ko: s.image_prompt_ko,
-        description: s.description,
+
         width: s.width || 512,
         height: s.height || 768,
         negative_prompt: s.negative_prompt,

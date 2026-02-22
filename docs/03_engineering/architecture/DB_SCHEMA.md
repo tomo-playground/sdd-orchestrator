@@ -175,7 +175,6 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `storyboard_id` | Integer (FK → storyboards) | 소속 스토리보드 |
 | `order` | Integer | 씬 순서 (0-based) |
 | `script` | Text | 나레이션/Scene Text |
-| `description` | Text | LLM 생성 시각적 설명 |
 | `speaker` | String(20) | 화자 (default: `"Narrator"`) |
 | `duration` | Float | 씬 길이 초 (default: 3.0) |
 | **Prompt** | | |

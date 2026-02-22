@@ -121,7 +121,6 @@ function buildScenesPayload(scenes: Scene[]) {
     duration: s.duration,
     image_prompt: s.image_prompt,
     image_prompt_ko: s.image_prompt_ko,
-    description: s.description,
     width: s.width || 512,
     height: s.height || 768,
     negative_prompt: s.negative_prompt,

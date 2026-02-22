@@ -57,7 +57,6 @@ export type Scene = {
   image_prompt_ko: string;
   image_url: string | null;
   image_asset_id?: number | null;
-  description?: string;
   width?: number;
   height?: number;
   candidates?: Array<{

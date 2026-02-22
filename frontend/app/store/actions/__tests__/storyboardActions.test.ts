@@ -111,7 +111,6 @@ describe("mapGeminiScenes", () => {
         duration: 5,
         image_prompt: "1girl, smile",
         image_prompt_ko: "소녀, 미소",
-        description: "A smiling girl",
         negative_prompt: "bad hands",
         _auto_pin_previous: true,
       },
@@ -130,7 +129,6 @@ describe("mapGeminiScenes", () => {
       image_prompt: "1girl, smile",
       image_prompt_ko: "소녀, 미소",
       image_url: null,
-      description: "A smiling girl",
       width: 512,
       height: 768,
       negative_prompt: "lowres, blurry, bad hands",
@@ -178,7 +176,6 @@ describe("mapGeminiScenes", () => {
     expect(result[0].speaker).toBe("Narrator");
     expect(result[0].duration).toBe(3);
     expect(result[0].image_prompt).toBe("");
-    expect(result[0].description).toBe("");
   });
 
   it("assigns sequential ids and orders for multiple scenes", () => {
@@ -260,7 +257,6 @@ describe("persistStoryboard", () => {
           image_prompt: "prompt",
           image_prompt_ko: "",
           image_url: null,
-          description: "",
           width: 512,
           height: 768,
           negative_prompt: "",
@@ -298,7 +294,6 @@ describe("persistStoryboard", () => {
         image_prompt: "",
         image_prompt_ko: "",
         image_url: null,
-        description: "",
         width: 512,
         height: 768,
         negative_prompt: "",

@@ -166,7 +166,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `trace_type`, `agent_role`, `agent_preset_id` (FK)
 - `input_prompt`, `output_content`, `score`, `feedback`
 - `model_id`, `token_usage` (JSONB), `latency_ms`, `temperature`
-- `parent_trace_id` (FK, self-ref), `diff_summary`
+- `parent_trace_id` (FK, self-ref)
 - **V2**: `phase`, `step_name`, `target_agent`, `decision_context` (JSONB), `retry_count`
 
 ### `creative_agent_presets` — 에이전트 페르소나 프리셋

@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 def _create_storyboard_with_scenes(client: TestClient, scene_count: int = 3) -> dict:
     """Create a test storyboard with scenes and return IDs."""
-    scenes = [{"scene_id": i, "script": f"Scene {i}", "description": f"desc {i}"} for i in range(scene_count)]
+    scenes = [{"scene_id": i, "script": f"Scene {i}"} for i in range(scene_count)]
     data = create_test_storyboard(client, scenes=scenes)
     sb_id = data["storyboard_id"]
     # Fetch the storyboard to get scene IDs

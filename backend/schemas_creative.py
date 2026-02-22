@@ -146,7 +146,6 @@ class CreativeTraceResponse(BaseModel):
     latency_ms: int
     temperature: float
     parent_trace_id: int | None = None
-    diff_summary: str | None = None
     phase: str | None = None
     step_name: str | None = None
     target_agent: str | None = None

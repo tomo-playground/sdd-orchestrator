@@ -82,7 +82,6 @@ Multi-Agent 협업을 통한 창작 프로세스 관리 시스템.
 | `latency_ms` | Integer | 응답 시간 (ms) |
 | `temperature` | Float | 생성 온도 |
 | `parent_trace_id` | Integer (FK → creative_traces, SET NULL) | 부모 트레이스 (self-ref) |
-| `diff_summary` | Text | 변경 요약 |
 | `created_at` | DateTime | 생성 시각 (server_default: now()) |
 | **V2** | | |
 | `phase` | String(20) | 단계명 |

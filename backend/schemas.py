@@ -309,7 +309,6 @@ class SceneDetailResponse(BaseModel):
     speaker: str | None = ""
     duration: float | None = 3.0
     scene_mode: Literal["single", "multi"] = "single"
-    description: str | None = None
     image_prompt: str | None = ""
     image_prompt_ko: str | None = ""
     negative_prompt: str | None = None
@@ -414,7 +413,6 @@ class StoryboardScene(BaseModel):
     image_prompt_ko: str = ""
     # Input-only: triggers _link_media_asset, not stored directly
     image_url: str | None = None
-    description: str | None = None
     width: int = 512
     height: int = 768
 

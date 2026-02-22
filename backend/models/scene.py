@@ -31,7 +31,6 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     order: Mapped[int] = mapped_column(Integer, default=0)
 
     script: Mapped[str | None] = mapped_column(Text)
-    description: Mapped[str | None] = mapped_column(Text)  # LLM generated visual description
 
     # Scene metadata
     speaker: Mapped[str | None] = mapped_column(String(20), default=DEFAULT_SPEAKER)

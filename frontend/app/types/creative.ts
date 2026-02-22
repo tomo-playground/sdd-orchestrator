@@ -47,7 +47,6 @@ export type CreativeTrace = {
   latency_ms: number;
   temperature: number;
   parent_trace_id: number | null;
-  diff_summary: string | null;
   // V2 fields
   phase: string | null;
   step_name: string | null;
