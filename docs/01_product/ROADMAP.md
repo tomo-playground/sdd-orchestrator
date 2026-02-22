@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-02-22)
+## 현재 상태 (2026-02-23)
 
 | 항목 | 상태 |
 |------|------|
@@ -19,6 +19,7 @@
 
 ### 최근 작업
 
+- **Compose 중개 제거 리팩토링** (02-23): Frontend `/compose`→`/validate`→`/generate` 3회 왕복 → `/generate` 1회로 통합. Backend `context_tags` 필드 추가, `_handle_character_scene/background_scene`에서 자동 병합. `buildScenePrompt` async→sync(56줄→3줄). `prompt_pre_composed` deprecated. `autoComposePrompt` 토글 제거(Backend negative 합성으로 대체). 테스트 11개 추가(Backend 43개 PASS)
 - **Cinematographer → Ken Burns 씬별 연결** (02-22): 감정/서사 기반 Ken Burns 모션 자동 지정. motion.py EMOTION_MOTION_MAP(27감정→프리셋), suggest_ken_burns_preset(). Finalize _validate_ken_burns_presets() 검증+fallback. Cinematographer 템플릿 Rule 15. VideoScene.ken_burns_preset 필드. resolve_scene_preset() 씬별>전역 우선순위. Frontend 전 경로 연결(mapGeminiScenes/mapEventScenes/sync/render). 테스트 22개 추가
 - **파이프라인 → Frontend 씬 필드 매핑 갭 수정** (02-22): Finalize `_flatten_tts_designs()` — tts_design dict → voice_design_prompt/head_padding/tail_padding flat fields 분해. `scenes.controlnet_pose` 컬럼 추가 (DB_SCHEMA v3.29). Frontend 전 경로(mapGeminiScenes/mapEventScenes/sync/load/persist/autoSave/save/render)에 5필드 매핑 보강. 11파일 수정
 - **DB 정합성 수정: bgm_mode 기본값 + gender_locked 설정 경로** (02-22): `render_presets.bgm_mode` 3행 NULL → 'manual' 기본값 + NOT NULL 제약 적용 (Alembic 마이그레이션). `LoRAUpdate` 스키마에 `gender_locked` 필드 추가 + Frontend EditLoraModal에 Gender Lock 드롭다운 UI 추가. PUT 페이로드 전체 전송으로 개선. DB_SCHEMA v3.28
