@@ -738,6 +738,8 @@ export type ImageGenProgress = {
   used_prompt?: string;
   warnings?: string[];
   error?: string;
+  controlnet_pose?: string;
+  ip_adapter_reference?: string;
 };
 
 // ============================================================

@@ -63,6 +63,8 @@ export type ProcessOpts = {
   autoComposePrompt: boolean;
   selectedCharacterId: number | null;
   silent: boolean;
+  controlnet_pose?: string;
+  ip_adapter_reference?: string;
 };
 
 /** Store, validate, and rank generated images (shared by SSE and sync paths) */
@@ -166,5 +168,7 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
     candidates,
     image_prompt: autoComposePrompt && selectedCharacterId ? prompt : usedPrompt || undefined,
     activity_log_id: activityLogId,
+    use_controlnet: opts.controlnet_pose ? true : undefined,
+    ip_adapter_reference: opts.ip_adapter_reference || undefined,
   } as Partial<Scene>;
 }

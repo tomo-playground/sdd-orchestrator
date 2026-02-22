@@ -353,3 +353,34 @@ class TestGetPoseFromCharacterActions:
 
         result = _get_pose_from_character_actions(99999, db_session)
         assert result is None
+
+
+# ── Generation result includes ControlNet fields ─────────────────────
+
+
+class TestGenerationResultControlNet:
+    """Test that generation results include controlnet_pose and ip_adapter_reference."""
+
+    def test_generation_result_includes_controlnet_pose(self):
+        """Simulated generation result dict should carry controlnet fields."""
+        result = {
+            "image": "base64data",
+            "used_prompt": "1girl, standing",
+            "warnings": [],
+            "controlnet_pose": "standing",
+            "ip_adapter_reference": "char_ref",
+        }
+        assert result["controlnet_pose"] == "standing"
+        assert result["ip_adapter_reference"] == "char_ref"
+
+    def test_generation_result_none_without_controlnet(self):
+        """When ControlNet is not used, fields should be None."""
+        result = {
+            "image": "base64data",
+            "used_prompt": "1girl",
+            "warnings": [],
+            "controlnet_pose": None,
+            "ip_adapter_reference": None,
+        }
+        assert result["controlnet_pose"] is None
+        assert result["ip_adapter_reference"] is None

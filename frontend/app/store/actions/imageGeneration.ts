@@ -120,19 +120,34 @@ export async function generateSceneImageFor(
         autoComposePrompt,
         selectedCharacterId,
         silent,
+        controlnet_pose: sseData.controlnet_pose,
+        ip_adapter_reference: sseData.ip_adapter_reference,
       });
       if (result) {
-        return { ...result, debug_prompt: prompt, debug_payload: JSON.stringify(debugPayload, null, 2) };
+        return {
+          ...result,
+          debug_prompt: prompt,
+          debug_payload: JSON.stringify(debugPayload, null, 2),
+        };
       }
     }
   } catch (error) {
     // Only fallback to sync if SSE endpoint doesn't exist
     const isEndpointMissing =
-      axios.isAxiosError(error) && (error.response?.status === 404 || error.response?.status === 405);
+      axios.isAxiosError(error) &&
+      (error.response?.status === 404 || error.response?.status === 405);
     if (!isEndpointMissing) return null;
   }
 
-  return generateSync({ scene, requestPayload, debugPayload, prompt, autoComposePrompt, selectedCharacterId, silent });
+  return generateSync({
+    scene,
+    requestPayload,
+    debugPayload,
+    prompt,
+    autoComposePrompt,
+    selectedCharacterId,
+    silent,
+  });
 }
 
 /** Clear SSE progress for a scene */
@@ -181,7 +196,15 @@ type GenerateOpts = {
 
 /** Sync fallback: POST /scene/generate */
 async function generateSync(opts: GenerateOpts): Promise<Partial<Scene> | null> {
-  const { scene, requestPayload, debugPayload, prompt, autoComposePrompt, selectedCharacterId, silent } = opts;
+  const {
+    scene,
+    requestPayload,
+    debugPayload,
+    prompt,
+    autoComposePrompt,
+    selectedCharacterId,
+    silent,
+  } = opts;
   const { showToast } = useUIStore.getState();
 
   try {
@@ -200,14 +223,21 @@ async function generateSync(opts: GenerateOpts): Promise<Partial<Scene> | null> 
         autoComposePrompt,
         selectedCharacterId,
         silent,
+        controlnet_pose: res.data.controlnet_pose,
+        ip_adapter_reference: res.data.ip_adapter_reference,
       });
       if (result) {
-        return { ...result, debug_prompt: prompt, debug_payload: JSON.stringify(debugPayload, null, 2) };
+        return {
+          ...result,
+          debug_prompt: prompt,
+          debug_payload: JSON.stringify(debugPayload, null, 2),
+        };
       }
     }
 
     return {
-      image_prompt: autoComposePrompt && selectedCharacterId ? prompt : res.data.used_prompt || undefined,
+      image_prompt:
+        autoComposePrompt && selectedCharacterId ? prompt : res.data.used_prompt || undefined,
       debug_prompt: prompt,
       debug_payload: JSON.stringify(debugPayload, null, 2),
     } as Partial<Scene>;
@@ -274,6 +304,7 @@ export async function generateSceneCandidates(
     image_asset_id: bestAssetId,
     candidates,
     debug_prompt: prompt,
-    image_prompt: resolvedImagePrompt || (autoComposePrompt && selectedCharacterId ? prompt : undefined),
+    image_prompt:
+      resolvedImagePrompt || (autoComposePrompt && selectedCharacterId ? prompt : undefined),
   } as Partial<Scene>;
 }

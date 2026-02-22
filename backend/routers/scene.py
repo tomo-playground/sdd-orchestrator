@@ -650,6 +650,8 @@ async def _image_event_generator(task_id: str) -> AsyncGenerator[str]:
                 used_prompt=task.result.get("used_prompt") if task.result else None,
                 warnings=task.result.get("warnings", []) if task.result else [],
                 error=task.error,
+                controlnet_pose=task.result.get("controlnet_pose") if task.result else None,
+                ip_adapter_reference=task.result.get("ip_adapter_reference") if task.result else None,
             )
             yield f"data: {json.dumps(event.model_dump())}\n\n"
 

@@ -1467,6 +1467,8 @@ class ImageProgressEvent(BaseModel):
     used_prompt: str | None = None
     warnings: list[str] = []
     error: str | None = None
+    controlnet_pose: str | None = None
+    ip_adapter_reference: str | None = None
 
 
 class SceneEditImageRequest(BaseModel):

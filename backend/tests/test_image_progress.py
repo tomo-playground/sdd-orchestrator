@@ -79,6 +79,31 @@ class TestCalcPercent:
         assert calc_percent(task) == 100
 
 
+class TestImageProgressEventControlNet:
+    """Test ControlNet fields in ImageProgressEvent."""
+
+    def test_sse_event_includes_controlnet_fields(self):
+        from schemas import ImageProgressEvent
+
+        event = ImageProgressEvent(
+            task_id="img_test",
+            stage="completed",
+            controlnet_pose="standing",
+            ip_adapter_reference="char_key",
+        )
+        data = event.model_dump()
+        assert data["controlnet_pose"] == "standing"
+        assert data["ip_adapter_reference"] == "char_key"
+
+    def test_sse_event_controlnet_none_when_not_used(self):
+        from schemas import ImageProgressEvent
+
+        event = ImageProgressEvent(task_id="img_test", stage="completed")
+        data = event.model_dump()
+        assert data["controlnet_pose"] is None
+        assert data["ip_adapter_reference"] is None
+
+
 class TestSSEEndpoints:
     """Test the SSE endpoints via TestClient."""
 
