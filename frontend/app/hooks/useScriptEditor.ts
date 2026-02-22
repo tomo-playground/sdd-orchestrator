@@ -33,6 +33,9 @@ export type SceneItem = {
   controlnet_pose?: string | null;
   ip_adapter_weight?: number | null;
   negative_prompt_extra?: string | null;
+  voice_design_prompt?: string | null;
+  head_padding?: number | null;
+  tail_padding?: number | null;
 };
 
 export type ScriptProgress = {
@@ -116,6 +119,9 @@ function mapEventScenes(scenes: Scene[]): SceneItem[] {
     controlnet_pose: s.controlnet_pose ?? undefined,
     ip_adapter_weight: s.ip_adapter_weight ?? undefined,
     negative_prompt_extra: s.negative_prompt_extra ?? undefined,
+    voice_design_prompt: s.voice_design_prompt ?? undefined,
+    head_padding: s.head_padding ?? undefined,
+    tail_padding: s.tail_padding ?? undefined,
   }));
 }
 
@@ -151,6 +157,9 @@ function syncToGlobalStore(scenes: SceneItem[], meta: SyncMeta) {
     controlnet_pose: s.controlnet_pose,
     ip_adapter_weight: s.ip_adapter_weight,
     negative_prompt_extra: s.negative_prompt_extra,
+    voice_design_prompt: s.voice_design_prompt,
+    head_padding: s.head_padding,
+    tail_padding: s.tail_padding,
   }));
   useStoryboardStore.getState().setScenes(mapped);
   const { characterId, characterName, characterBId, characterBName, ...rest } = meta;
@@ -623,6 +632,10 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           duration: s.duration,
           image_prompt: s.image_prompt,
           image_prompt_ko: s.image_prompt_ko,
+          controlnet_pose: s.controlnet_pose ?? null,
+          voice_design_prompt: s.voice_design_prompt ?? null,
+          head_padding: s.head_padding ?? null,
+          tail_padding: s.tail_padding ?? null,
         })),
       };
       const storeMeta: SyncMeta = {
@@ -709,6 +722,9 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           controlnet_pose: s.controlnet_pose ?? undefined,
           ip_adapter_weight: s.ip_adapter_weight ?? undefined,
           negative_prompt_extra: s.negative_prompt_extra ?? undefined,
+          voice_design_prompt: s.voice_design_prompt ?? undefined,
+          head_padding: s.head_padding ?? undefined,
+          tail_padding: s.tail_padding ?? undefined,
         }));
         setState((prev) => ({
           ...prev,

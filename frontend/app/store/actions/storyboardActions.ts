@@ -110,6 +110,10 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
         ip_adapter_reference: s.ip_adapter_reference ?? null,
         ip_adapter_weight: s.ip_adapter_weight ?? null,
         multi_gen_enabled: s.multi_gen_enabled ?? null,
+        controlnet_pose: s.controlnet_pose ?? null,
+        voice_design_prompt: s.voice_design_prompt ?? null,
+        head_padding: s.head_padding ?? null,
+        tail_padding: s.tail_padding ?? null,
       })),
     };
 
@@ -206,6 +210,11 @@ export function mapGeminiScenes(
       negative_prompt: combined,
       context_tags: (s.context_tags as Scene["context_tags"]) || undefined,
       character_actions: (s.character_actions as Scene["character_actions"]) || undefined,
+      controlnet_pose: (s.controlnet_pose as string) ?? undefined,
+      ip_adapter_weight: (s.ip_adapter_weight as number) ?? undefined,
+      voice_design_prompt: (s.voice_design_prompt as string) ?? undefined,
+      head_padding: (s.head_padding as number) ?? undefined,
+      tail_padding: (s.tail_padding as number) ?? undefined,
       isGenerating: false,
       debug_payload: "",
       _auto_pin_previous: (s._auto_pin_previous as boolean) ?? false,
@@ -278,6 +287,10 @@ export async function persistStoryboard(): Promise<boolean> {
         ip_adapter_reference: s.ip_adapter_reference ?? null,
         ip_adapter_weight: s.ip_adapter_weight ?? null,
         multi_gen_enabled: s.multi_gen_enabled ?? null,
+        controlnet_pose: s.controlnet_pose ?? null,
+        voice_design_prompt: s.voice_design_prompt ?? null,
+        head_padding: s.head_padding ?? null,
+        tail_padding: s.tail_padding ?? null,
       })),
     };
 

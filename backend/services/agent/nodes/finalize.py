@@ -112,6 +112,21 @@ def _validate_ip_adapter_weights(scenes: list[dict]) -> None:
             scene["ip_adapter_weight"] = clamped
 
 
+def _flatten_tts_designs(scenes: list[dict]) -> None:
+    """tts_design dict → voice_design_prompt, head_padding, tail_padding 분해."""
+    for scene in scenes:
+        tts = scene.pop("tts_design", None)
+        if not tts or tts.get("skip"):
+            continue
+        if vdp := tts.get("voice_design_prompt"):
+            scene["voice_design_prompt"] = vdp
+        pacing = tts.get("pacing") or {}
+        if (hp := pacing.get("head_padding")) is not None:
+            scene["head_padding"] = hp
+        if (tp := pacing.get("tail_padding")) is not None:
+            scene["tail_padding"] = tp
+
+
 def _ensure_minimum_duration(scenes: list[dict], target_duration: int, language: str) -> None:
     """총 duration이 목표의 85% 미만이면 비례 재분배한다."""
     total = sum(s.get("duration", 0) for s in scenes)
@@ -145,6 +160,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     _normalize_environment_tags(scenes)
     _validate_controlnet_poses(scenes)
     _validate_ip_adapter_weights(scenes)
+    _flatten_tts_designs(scenes)
 
     # Duration 최종 보정 (Review/Revise 경유 후에도 부족할 수 있음)
     target_duration = state.get("duration", 0)

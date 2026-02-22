@@ -93,6 +93,10 @@ export type Scene = {
   character_actions?: SceneCharacterAction[];
   // Per-scene clothing override: { "<character_id>": ["tag1", "tag2"] }
   clothing_tags?: Record<string, string[]> | null;
+  // Per-scene TTS override
+  voice_design_prompt?: string | null;
+  head_padding?: number | null;
+  tail_padding?: number | null;
 };
 
 export type AudioItem = { name: string; url: string };

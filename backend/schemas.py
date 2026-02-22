@@ -334,10 +334,14 @@ class SceneDetailResponse(BaseModel):
     # Per-scene generation settings override (null = inherit global)
     use_controlnet: bool | None = None
     controlnet_weight: float | None = None
+    controlnet_pose: str | None = None
     use_ip_adapter: bool | None = None
     ip_adapter_reference: str | None = None
     ip_adapter_weight: float | None = None
     multi_gen_enabled: bool | None = None
+    voice_design_prompt: str | None = None
+    head_padding: float | None = None
+    tail_padding: float | None = None
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -443,6 +447,7 @@ class StoryboardScene(BaseModel):
     # Per-scene generation settings override (null = inherit global)
     use_controlnet: bool | None = None
     controlnet_weight: float | None = None
+    controlnet_pose: str | None = None
     use_ip_adapter: bool | None = None
     ip_adapter_reference: str | None = None
     ip_adapter_weight: float | None = None

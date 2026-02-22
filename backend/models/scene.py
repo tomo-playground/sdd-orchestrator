@@ -75,6 +75,7 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     # Per-scene generation settings override (nullable = inherit global)
     use_controlnet: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     controlnet_weight: Mapped[float | None] = mapped_column(Float, nullable=True)
+    controlnet_pose: Mapped[str | None] = mapped_column(String(50), nullable=True)
     use_ip_adapter: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     ip_adapter_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
     ip_adapter_weight: Mapped[float | None] = mapped_column(Float, nullable=True)
