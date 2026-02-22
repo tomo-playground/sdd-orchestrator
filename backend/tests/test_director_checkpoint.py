@@ -64,7 +64,7 @@ async def test_checkpoint_node_proceed(mock_run):
 
     state = {
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
         "duration": 30,
         "director_plan": {"creative_goal": "목표"},
         "draft_scenes": [{"script": "씬 1"}],
@@ -91,7 +91,7 @@ async def test_checkpoint_node_revise(mock_run):
 
     state = {
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
         "duration": 30,
         "director_plan": None,
         "draft_scenes": [],
@@ -110,7 +110,7 @@ async def test_checkpoint_node_failure_returns_error(mock_run):
     """Gemini 양쪽 실패 시 error 결정 반환 (자동 통과 제거)."""
     mock_run.side_effect = RuntimeError("Gemini 실패")
 
-    state = {"topic": "실패", "mode": "full", "duration": 30}
+    state = {"topic": "실패", "duration": 30}
     result = await director_checkpoint_node(state)
 
     assert result["director_checkpoint_decision"] == "error"
@@ -183,7 +183,7 @@ async def test_checkpoint_revise_sets_revision_feedback(mock_run):
 
     state = {
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
         "duration": 30,
         "director_plan": {"creative_goal": "감동"},
         "draft_scenes": [{"script": "씬 1"}],
@@ -207,7 +207,7 @@ async def test_checkpoint_proceed_no_revision_feedback(mock_run):
 
     state = {
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
         "duration": 30,
         "director_checkpoint_revision_count": 0,
     }
@@ -243,7 +243,7 @@ async def test_checkpoint_override_proceed_to_revise_low_score(mock_run):
 
     state = {
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
         "duration": 30,
         "director_plan": {"creative_goal": "목표"},
         "draft_scenes": [{"script": "씬 1"}],
@@ -270,7 +270,7 @@ async def test_checkpoint_override_revise_to_proceed_high_score(mock_run):
 
     state = {
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
         "duration": 30,
         "director_plan": {"creative_goal": "목표"},
         "draft_scenes": [{"script": "씬 1"}],
@@ -297,7 +297,7 @@ async def test_checkpoint_no_override_normal_score(mock_run):
 
     state = {
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
         "duration": 30,
         "director_plan": None,
         "draft_scenes": [],
@@ -322,7 +322,7 @@ async def test_checkpoint_override_proceed_low_score_generates_feedback(mock_run
 
     state = {
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
         "duration": 30,
         "director_checkpoint_revision_count": 0,
     }

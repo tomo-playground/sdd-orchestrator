@@ -98,7 +98,7 @@ async def test_graph_quick_mode(mock_db_ctx, mock_gen_script, mock_scenes):
     input_state: ScriptState = {
         "topic": "테스트 주제",
         "character_id": 42,
-        "mode": "quick",
+        "skip_stages": ["research", "concept", "production", "explain"],
         "duration": 10,
     }
     result = await graph.ainvoke(input_state)
@@ -116,7 +116,9 @@ async def test_graph_state_propagation(mock_db_ctx, mock_gen_script, mock_scenes
     mock_gen_script.return_value = {"scenes": mock_scenes}
 
     graph = build_script_graph().compile()
-    result = await graph.ainvoke({"topic": "전파 테스트", "mode": "quick", "duration": 10})
+    result = await graph.ainvoke(
+        {"topic": "전파 테스트", "skip_stages": ["research", "concept", "production", "explain"], "duration": 10}
+    )
 
     # finalize에서 negative_prompt가 주입되므로 핵심 필드만 비교
     for draft, final in zip(result["draft_scenes"], result["final_scenes"]):
@@ -143,7 +145,9 @@ async def test_graph_revise_loop(
     mock_revise_gen.return_value = {"scenes": mock_scenes}
 
     graph = build_script_graph().compile()
-    result = await graph.ainvoke({"topic": "리비전 테스트", "mode": "quick", "duration": 10})
+    result = await graph.ainvoke(
+        {"topic": "리비전 테스트", "skip_stages": ["research", "concept", "production", "explain"], "duration": 10}
+    )
 
     assert result["final_scenes"] is not None
     assert result["revision_count"] >= 1
@@ -157,7 +161,9 @@ async def test_graph_error_short_circuit_writer(mock_db_ctx, mock_gen_script):
     mock_gen_script.side_effect = Exception("Gemini API 실패")
 
     graph = build_script_graph().compile()
-    result = await graph.ainvoke({"topic": "에러 테스트", "mode": "quick", "duration": 10})
+    result = await graph.ainvoke(
+        {"topic": "에러 테스트", "skip_stages": ["research", "concept", "production", "explain"], "duration": 10}
+    )
 
     assert result.get("error") is not None
     assert "Gemini API 실패" in result["error"]
@@ -211,7 +217,9 @@ async def test_writer_safety_retry_success(mock_db_ctx, mock_gen_script, mock_sc
     ]
 
     graph = build_script_graph().compile()
-    result = await graph.ainvoke({"topic": "safety 테스트", "mode": "quick", "duration": 10})
+    result = await graph.ainvoke(
+        {"topic": "safety 테스트", "skip_stages": ["research", "concept", "production", "explain"], "duration": 10}
+    )
 
     assert result.get("error") is None
     assert result["final_scenes"] is not None
@@ -230,7 +238,9 @@ async def test_writer_safety_retry_both_fail(mock_db_ctx, mock_gen_script):
     ]
 
     graph = build_script_graph().compile()
-    result = await graph.ainvoke({"topic": "이중 safety 실패", "mode": "quick", "duration": 10})
+    result = await graph.ainvoke(
+        {"topic": "이중 safety 실패", "skip_stages": ["research", "concept", "production", "explain"], "duration": 10}
+    )
 
     assert result.get("error") is not None
     assert "차단" in result["error"]
@@ -245,7 +255,9 @@ async def test_writer_non_safety_error_no_retry(mock_db_ctx, mock_gen_script):
     mock_gen_script.side_effect = Exception("Gemini API 타임아웃")
 
     graph = build_script_graph().compile()
-    result = await graph.ainvoke({"topic": "타임아웃 테스트", "mode": "quick", "duration": 10})
+    result = await graph.ainvoke(
+        {"topic": "타임아웃 테스트", "skip_stages": ["research", "concept", "production", "explain"], "duration": 10}
+    )
 
     assert result.get("error") is not None
     assert "타임아웃" in result["error"]

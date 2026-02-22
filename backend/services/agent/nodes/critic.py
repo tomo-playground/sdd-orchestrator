@@ -56,7 +56,7 @@ def _create_temp_session(db, state: ScriptState) -> CreativeSession:
     session = CreativeSession(
         objective=state.get("topic", "LangGraph critic"),
         evaluation_criteria={"source": "langgraph_critic"},
-        context={"mode": "full", "skip_stages": state.get("skip_stages", [])},
+        context={"skip_stages": state.get("skip_stages", [])},
         max_rounds=CREATIVE_MAX_ROUNDS,
         status="debating",
         session_type="shorts",

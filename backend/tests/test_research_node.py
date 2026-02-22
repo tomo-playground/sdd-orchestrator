@@ -32,7 +32,7 @@ def base_state():
         "topic": "테스트 주제",
         "character_id": None,
         "group_id": None,
-        "mode": "full",
+        "skip_stages": [],
     }
 
 
@@ -313,7 +313,7 @@ async def test_text_reference_with_gemini(store, config, mock_tool_calling):
     """텍스트 소재 → Gemini 분석 → brief 구성."""
     state = {
         "topic": "test",
-        "mode": "full",
+        "skip_stages": [],
         "references": ["일본 도쿄에서 벚꽃이 만개했습니다"],
         "duration": 30,
         "structure": "Monologue",
@@ -338,7 +338,7 @@ async def test_gemini_failure_fallback(store, config, mock_tool_calling):
     """Gemini 실패 시 원문 fallback."""
     state = {
         "topic": "test",
-        "mode": "full",
+        "skip_stages": [],
         "references": ["소재 텍스트입니다"],
         "duration": 30,
         "structure": "Monologue",
@@ -362,7 +362,7 @@ async def test_unsafe_url_blocked(store, config, mock_tool_calling):
     """안전하지 않은 URL은 차단되고 fetch 실패로 처리."""
     state = {
         "topic": "test",
-        "mode": "full",
+        "skip_stages": [],
         "references": ["http://localhost:9000/secret"],
         "duration": 30,
         "structure": "Monologue",
@@ -384,7 +384,7 @@ async def test_no_gemini_client_fallback(store, config, mock_tool_calling):
     """Gemini 클라이언트 없을 때 원문 fallback."""
     state = {
         "topic": "test",
-        "mode": "full",
+        "skip_stages": [],
         "references": ["참고 소재"],
         "duration": 30,
         "structure": "Monologue",

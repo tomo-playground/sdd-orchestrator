@@ -13,7 +13,7 @@ async def test_finalize_injects_negative_prompt():
     from services.agent.nodes.finalize import finalize_node
 
     state = {
-        "mode": "full",
+        "skip_stages": [],
         "cinematographer_result": {
             "scenes": [
                 {"order": 0, "script": "씬1", "image_prompt": "1girl, smile"},
@@ -36,7 +36,7 @@ async def test_finalize_preserves_existing_negative():
 
     custom_negative = "lowres, bad_hands"
     state = {
-        "mode": "full",
+        "skip_stages": [],
         "cinematographer_result": {
             "scenes": [
                 {"order": 0, "script": "씬1", "negative_prompt": custom_negative},
@@ -56,7 +56,7 @@ async def test_finalize_quick_mode_also_injects():
     from services.agent.nodes.finalize import finalize_node
 
     state = {
-        "mode": "quick",
+        "skip_stages": ["research", "concept", "production", "explain"],
         "draft_scenes": [
             {"order": 0, "script": "퀵 씬1"},
             {"order": 1, "script": "퀵 씬2", "negative_prompt": ""},

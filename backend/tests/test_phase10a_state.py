@@ -47,7 +47,7 @@ def test_script_state_with_phase10a_fields():
         "language": "ko",
         "structure": "hook_rise_climax",
         "actor_a_gender": "female",
-        "mode": "full",
+        "skip_stages": [],
         "revision_count": 0,
         "director_revision_count": 0,
         "concept_regen_count": 0,
@@ -80,7 +80,7 @@ def test_state_optional_fields():
     state: ScriptState = {
         "topic": "테스트",
         "duration": 10,
-        "mode": "quick",
+        "skip_stages": ["research", "concept", "production", "explain"],
         "revision_count": 0,
         "director_revision_count": 0,
         "concept_regen_count": 0,

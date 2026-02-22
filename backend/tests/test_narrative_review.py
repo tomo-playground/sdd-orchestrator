@@ -65,7 +65,7 @@ async def test_review_node_quick_mode_skips_narrative():
         "language": "Korean",
         "structure": "Monologue",
         "topic": "테스트",
-        "mode": "quick",
+        "skip_stages": ["research", "concept", "production", "explain"],
     }
     result = await review_node(state)
     review = result["review_result"]
@@ -96,7 +96,7 @@ async def test_review_node_full_mode_narrative_pass():
         "language": "Korean",
         "structure": "Monologue",
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
     }
     with (
         patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None),
@@ -132,7 +132,7 @@ async def test_review_node_full_mode_narrative_fail():
         "language": "Korean",
         "structure": "Monologue",
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
     }
     with (
         patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None),
@@ -159,7 +159,7 @@ async def test_review_node_rule_fail_skips_narrative():
         "language": "Korean",
         "structure": "Monologue",
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
     }
 
     with (
@@ -186,7 +186,7 @@ async def test_narrative_evaluate_gemini_error_fallback():
         "language": "Korean",
         "structure": "Monologue",
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
     }
     with (
         patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None),
@@ -242,7 +242,7 @@ def test_routing_narrative_fail_triggers_revise():
     from services.agent.routing import route_after_review
 
     state: ScriptState = {
-        "mode": "full",
+        "skip_stages": [],
         "review_result": {"passed": False, "errors": [], "warnings": []},
         "revision_count": 0,
     }

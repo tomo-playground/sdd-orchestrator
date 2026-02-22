@@ -146,7 +146,7 @@ async def test_competition_all_fail():
             "draft_scenes": [{"order": 1, "text": "test"}],
             "character_id": None,
             "director_feedback": None,
-            "mode": "full",
+            "skip_stages": [],
         }
         result = await run_cinematographer_competition(state, MagicMock(), "base prompt", None)
         assert result["scenes"] is None
@@ -198,7 +198,7 @@ async def test_competition_selects_highest_score():
             "draft_scenes": [{"order": 1}],
             "character_id": None,
             "director_feedback": None,
-            "mode": "full",
+            "skip_stages": [],
         }
         result = await run_cinematographer_competition(state, MagicMock(), "base", None)
         assert result["winner"] == "tension"

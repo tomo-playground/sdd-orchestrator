@@ -69,9 +69,7 @@ LANGGRAPH_MAX_REVISIONS = int(os.getenv("LANGGRAPH_MAX_REVISIONS", "3"))
 # --- Revise: Scene Expansion (Tier 2) ---
 REVISE_EXPANSION_ENABLED = os.getenv("REVISE_EXPANSION_ENABLED", "true").lower() == "true"
 REVISE_MAX_EXPANSION_SCENES = int(os.getenv("REVISE_MAX_EXPANSION_SCENES", "5"))
-LANGGRAPH_DEFAULT_MODE = os.getenv("LANGGRAPH_DEFAULT_MODE", "quick")
-
-# --- Stage-Level Skip (Quick/Full 통합) ---
+# --- Stage-Level Skip ---
 VALID_SKIP_STAGES: frozenset[str] = frozenset({"research", "concept", "production", "explain"})
 LANGGRAPH_DEFAULT_SKIP_STAGES: list[str] = list(VALID_SKIP_STAGES)  # 기본=Express (구 Quick 동작 유지)
 LANGGRAPH_AUTO_REVIEW_THRESHOLD = float(os.getenv("LANGGRAPH_AUTO_REVIEW_THRESHOLD", "0.7"))
@@ -146,13 +144,11 @@ FEEDBACK_PRESETS: dict[str, dict] = {
 }
 
 LANGGRAPH_PRESETS: dict[str, dict] = {
-    # --- 신규 Stage-Level Skip 프리셋 ---
     "express": {
         "id": "express",
         "name": "Express",
         "name_ko": "빠른 생성",
         "description": "최소 실행으로 빠르게 대본 생성",
-        "mode": "full",
         "auto_approve": True,
         "skip_stages": ["research", "concept", "production", "explain"],
     },
@@ -161,7 +157,6 @@ LANGGRAPH_PRESETS: dict[str, dict] = {
         "name": "Standard",
         "name_ko": "스탠다드",
         "description": "AI가 컨셉~대본 자동 생성, 검토 후 승인",
-        "mode": "full",
         "auto_approve": True,
         "skip_stages": [],
     },
@@ -170,30 +165,8 @@ LANGGRAPH_PRESETS: dict[str, dict] = {
         "name": "Creator",
         "name_ko": "크리에이터",
         "description": "AI 초안 생성 + 핵심 결정은 사용자",
-        "mode": "full",
         "auto_approve": False,
         "skip_stages": [],
-    },
-    # --- 레거시 프리셋 (후방 호환) ---
-    "quick": {
-        "id": "quick",
-        "name": "Quick",
-        "name_ko": "빠른 생성",
-        "description": "Gemini 1회 호출로 빠르게 대본 생성",
-        "mode": "full",
-        "auto_approve": True,
-        "skip_stages": ["research", "concept", "production", "explain"],
-        "_legacy": True,
-    },
-    "full_auto": {
-        "id": "full_auto",
-        "name": "Full Auto",
-        "name_ko": "풀 오토",
-        "description": "AI가 컨셉~대본 자동 생성, 검토 후 승인",
-        "mode": "full",
-        "auto_approve": True,
-        "skip_stages": [],
-        "_legacy": True,
     },
 }
 

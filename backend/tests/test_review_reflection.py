@@ -98,7 +98,7 @@ async def test_review_node_legacy_fallback_on_failure(mock_gemini_eval, mock_nar
         "language": "Korean",
         "structure": "Monologue",
         "topic": "테스트 주제",
-        "mode": "full",
+        "skip_stages": [],
     }
 
     result = await review_node(state)
@@ -136,7 +136,7 @@ async def test_review_node_legacy_skips_reflection_on_success(mock_narrative, mo
         "language": "Korean",
         "structure": "Monologue",
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
     }
 
     result = await review_node(state)
@@ -157,7 +157,7 @@ async def test_review_node_skips_reflection_in_quick_mode(mock_reflect):
         "language": "Korean",
         "structure": "Monologue",
         "topic": "테스트",
-        "mode": "quick",
+        "skip_stages": ["research", "concept", "production", "explain"],
     }
 
     result = await review_node(state)
@@ -212,7 +212,7 @@ async def test_review_narrative_failure_triggers_reflection_legacy(mock_narrativ
         "language": "Korean",
         "structure": "Monologue",
         "topic": "테스트",
-        "mode": "full",
+        "skip_stages": [],
     }
 
     result = await review_node(state)
@@ -231,8 +231,12 @@ def test_build_narrative_score_calculates_overall():
     from services.agent.nodes.review import _build_narrative_score
 
     parsed = NarrativeScoreOutput(
-        hook=1.0, emotional_arc=1.0, twist_payoff=1.0,
-        speaker_tone=1.0, script_image_sync=1.0, feedback="만점",
+        hook=1.0,
+        emotional_arc=1.0,
+        twist_payoff=1.0,
+        speaker_tone=1.0,
+        script_image_sync=1.0,
+        feedback="만점",
     )
     score = _build_narrative_score(parsed)
     assert score["overall"] == 1.0
@@ -244,7 +248,9 @@ def test_build_narrative_score_empty_feedback():
     from services.agent.llm_models import NarrativeScoreOutput
     from services.agent.nodes.review import _build_narrative_score
 
-    parsed = NarrativeScoreOutput(hook=0.5, emotional_arc=0.5, twist_payoff=0.5, speaker_tone=0.5, script_image_sync=0.5)
+    parsed = NarrativeScoreOutput(
+        hook=0.5, emotional_arc=0.5, twist_payoff=0.5, speaker_tone=0.5, script_image_sync=0.5
+    )
     score = _build_narrative_score(parsed)
     assert score["overall"] == 0.5
     assert "feedback" not in score
@@ -306,7 +312,7 @@ def _full_state(scene_count=5, duration=10):
         "language": "Korean",
         "structure": "Monologue",
         "topic": "테스트 주제",
-        "mode": "full",
+        "skip_stages": [],
     }
 
 

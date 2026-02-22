@@ -63,7 +63,7 @@ async def test_director_plan_node_success(mock_run):
         "style_direction": "따뜻한 톤",
     }
 
-    state = {"topic": "테스트 주제", "mode": "full", "duration": 30}
+    state = {"topic": "테스트 주제", "duration": 30}
     result = await director_plan_node(state)
 
     assert result["director_plan"] is not None
@@ -77,7 +77,7 @@ async def test_director_plan_node_failure_graceful(mock_run):
     """Gemini 실패 시 graceful degradation — director_plan: None."""
     mock_run.side_effect = RuntimeError("Gemini API 실패")
 
-    state = {"topic": "실패 테스트", "mode": "full", "duration": 30}
+    state = {"topic": "실패 테스트", "duration": 30}
     result = await director_plan_node(state)
 
     assert result["director_plan"] is None
@@ -93,7 +93,7 @@ async def test_director_plan_node_partial_response(mock_run):
         "quality_criteria": ["기준 1"],
     }
 
-    state = {"topic": "부분 응답", "mode": "full", "duration": 30}
+    state = {"topic": "부분 응답", "duration": 30}
     result = await director_plan_node(state)
 
     plan = result["director_plan"]
@@ -147,7 +147,7 @@ async def test_director_plan_populates_all_fields(mock_run):
         "style_direction": "따뜻한 파스텔톤",
     }
 
-    state = {"topic": "여행", "mode": "full", "duration": 30}
+    state = {"topic": "여행", "duration": 30}
     result = await director_plan_node(state)
 
     plan = result["director_plan"]
@@ -164,7 +164,7 @@ async def test_director_plan_none_does_not_set_error(mock_run):
     """실패해도 error 필드를 설정하지 않는다 (graceful)."""
     mock_run.side_effect = RuntimeError("타임아웃")
 
-    state = {"topic": "실패", "mode": "full", "duration": 30}
+    state = {"topic": "실패", "duration": 30}
     result = await director_plan_node(state)
 
     assert result["director_plan"] is None

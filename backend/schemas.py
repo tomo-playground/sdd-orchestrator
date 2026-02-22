@@ -388,8 +388,7 @@ class StoryboardRequest(BaseModel):
     character_id: int | None = None
     character_b_id: int | None = None
     group_id: int | None = None
-    mode: str = "quick"  # "quick" | "full" (레거시, skip_stages 우선)
-    preset: str | None = None  # "express" | "standard" | "creator" | "quick" | "full_auto"
+    preset: str | None = None  # "express" | "standard" | "creator"
     skip_stages: list[str] | None = None  # ["research", "concept", "production", "explain"]
     references: list[str] | None = Field(default=None, max_length=5)  # URL 또는 텍스트 (최대 5개)
     selected_concept: dict | None = None  # Critic 선정 컨셉 (title, concept, strengths)
@@ -1654,7 +1653,6 @@ class ScriptPresetItem(BaseModel):
     name: str
     name_ko: str
     description: str
-    mode: str
     auto_approve: bool = False
     skip_stages: list[str] = []
 

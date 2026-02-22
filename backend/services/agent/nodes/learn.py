@@ -91,7 +91,6 @@ async def _update_topic(store: BaseStore, state: ScriptState, scenes: list[dict]
         "narrative_score": _extract_narrative_score(state),
         "hook_strategy": _extract_hook_strategy(state),
         "revision_count": state.get("revision_count", 0),
-        "mode": state.get("mode", "full"),
         "skip_stages": state.get("skip_stages", []),
         "model_info": {
             "default": GEMINI_TEXT_MODEL,

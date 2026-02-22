@@ -216,7 +216,7 @@ class TestDirectorPlanResearchInjection:
         store = InMemoryStore()
         state = {
             "topic": "테스트 주제",
-            "mode": "full",
+            "skip_stages": [],
             "director_plan": {
                 "creative_goal": "감동적인 영상",
                 "target_emotion": "따뜻한 여운",
@@ -248,7 +248,7 @@ class TestDirectorPlanResearchInjection:
         store = InMemoryStore()
         state = {
             "topic": "테스트 주제",
-            "mode": "quick",
+            "skip_stages": ["research", "concept", "production", "explain"],
             "director_plan": None,
         }
 
@@ -274,7 +274,7 @@ class TestDirectorPlanWriterInjection:
         """director_plan이 있으면 pipeline_ctx에 director_plan_context 포함."""
         state = {
             "topic": "테스트",
-            "mode": "full",
+            "skip_stages": [],
             "director_plan": {
                 "creative_goal": "웃긴 영상",
                 "target_emotion": "폭소",
@@ -320,7 +320,7 @@ class TestDirectorPlanCriticInjection:
             "duration": 15,
             "structure": "Monologue",
             "language": "Korean",
-            "mode": "full",
+            "skip_stages": [],
             "director_plan": {
                 "creative_goal": "감동 영상",
                 "target_emotion": "눈물",

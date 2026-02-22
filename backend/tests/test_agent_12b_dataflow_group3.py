@@ -70,7 +70,7 @@ class TestFinalizeMetadataSeparation:
         from services.agent.nodes.finalize import finalize_node
 
         state = {
-            "mode": "full",
+            "skip_stages": [],
             "cinematographer_result": {
                 "scenes": [{"scene_id": 1, "script": "테스트"}],
             },
@@ -90,7 +90,7 @@ class TestFinalizeMetadataSeparation:
         from services.agent.nodes.finalize import finalize_node
 
         state = {
-            "mode": "full",
+            "skip_stages": [],
             "cinematographer_result": {
                 "scenes": [{"scene_id": 1, "script": "테스트"}],
             },
@@ -110,7 +110,7 @@ class TestFinalizeMetadataSeparation:
         from services.agent.nodes.finalize import finalize_node
 
         state = {
-            "mode": "quick",
+            "skip_stages": ["research", "concept", "production", "explain"],
             "draft_scenes": [{"scene_id": 1, "script": "퀵"}],
         }
         result = await finalize_node(state, {})
@@ -123,7 +123,7 @@ class TestFinalizeMetadataSeparation:
         from services.agent.nodes.finalize import finalize_node
 
         state = {
-            "mode": "full",
+            "skip_stages": [],
             "cinematographer_result": {
                 "scenes": [{"scene_id": 1}],
             },
@@ -209,7 +209,7 @@ class TestLearnEnrichedEntry:
                 {"scene_id": 1, "script": "첫 씬", "duration": 3},
             ],
             "structure": "Monologue",
-            "mode": "full",
+            "skip_stages": [],
             "revision_count": 2,
             "director_checkpoint_score": 0.9,
             "review_result": {"narrative_score": {"overall": 0.75}},
@@ -231,7 +231,7 @@ class TestLearnEnrichedEntry:
         assert entry["narrative_score"] == 0.75
         assert entry["hook_strategy"] == "통계로 시작"
         assert entry["revision_count"] == 2
-        assert entry["mode"] == "full"
+        assert entry["skip_stages"] == []
         assert entry["scene_count"] == 1
         assert "created_at" in entry
 
@@ -255,7 +255,7 @@ class TestLearnEnrichedEntry:
         assert entry["narrative_score"] is None
         assert entry["hook_strategy"] is None
         assert entry["revision_count"] == 0
-        assert entry["mode"] == "quick"
+        assert entry["skip_stages"] == []
 
 
 # ── 12-B-10: Human Gate interrupt payload 확장 ──────────────

@@ -66,17 +66,17 @@ def test_route_after_research_threshold_boundary():
 
 def test_routing_fanout_after_cinematographer():
     """cinematographer 이후 → 3개 병렬 fan-out, 에러 시 finalize."""
-    result = route_after_cinematographer({"mode": "full"})
+    result = route_after_cinematographer({})
     assert isinstance(result, list)
     assert set(result) == {"tts_designer", "sound_designer", "copyright_reviewer"}
 
-    assert route_after_cinematographer({"mode": "full", "error": "실패"}) == "finalize"
+    assert route_after_cinematographer({"error": "실패"}) == "finalize"
 
 
 def test_routing_error_short_circuit_writer():
     """writer 에러 → route_after_writer가 finalize 반환."""
-    assert route_after_writer({"mode": "quick"}) == "review"
-    assert route_after_writer({"mode": "quick", "error": "Gemini API 실패"}) == "finalize"
+    assert route_after_writer({}) == "review"
+    assert route_after_writer({"error": "Gemini API 실패"}) == "finalize"
 
 
 def test_routing_error_short_circuit_review():

@@ -109,7 +109,7 @@ async def test_cinematographer_node(mock_validate, mock_call, mock_scenes):
     )
     mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
 
-    state = {"draft_scenes": mock_scenes, "mode": "quick"}
+    state = {"draft_scenes": mock_scenes}
     config = {"configurable": {"db": AsyncMock()}}
 
     result = await cinematographer_node(state, config)
@@ -128,7 +128,7 @@ async def test_tts_designer_node(mock_step, cinema_result):
 
     tts_result = {"tts_designs": [{"scene_id": 1, "voice_design_prompt": "calm"}]}
     mock_step.return_value = tts_result
-    state = {"cinematographer_result": cinema_result, "critic_result": {}, "mode": "full"}
+    state = {"cinematographer_result": cinema_result, "critic_result": {}}
     result = await tts_designer_node(state)
     assert "tts_designer_result" in result
 
@@ -144,7 +144,7 @@ async def test_sound_designer_node(mock_step, cinema_result):
 
     sound_result = {"recommendation": {"prompt": "soft piano", "mood": "calm", "duration": 30}}
     mock_step.return_value = sound_result
-    state = {"cinematographer_result": cinema_result, "critic_result": {}, "duration": 30, "mode": "full"}
+    state = {"cinematographer_result": cinema_result, "critic_result": {}, "duration": 30}
     result = await sound_designer_node(state)
     assert "sound_designer_result" in result
 
@@ -160,7 +160,7 @@ async def test_copyright_reviewer_node(mock_step, cinema_result):
 
     cr_result = {"overall": "PASS", "checks": [{"type": "script_originality", "status": "PASS"}]}
     mock_step.return_value = cr_result
-    state = {"cinematographer_result": cinema_result, "mode": "full"}
+    state = {"cinematographer_result": cinema_result}
     result = await copyright_reviewer_node(state)
     assert result["copyright_reviewer_result"]["overall"] == "PASS"
 
@@ -172,7 +172,7 @@ async def test_copyright_reviewer_fallback(mock_step, cinema_result):
     from services.agent.nodes.copyright_reviewer import copyright_reviewer_node
 
     mock_step.side_effect = RuntimeError("API error")
-    state = {"cinematographer_result": cinema_result, "mode": "full"}
+    state = {"cinematographer_result": cinema_result}
     result = await copyright_reviewer_node(state)
     assert result["copyright_reviewer_result"]["overall"] == "PASS"
     assert result["copyright_reviewer_result"]["confidence"] == 0.0
@@ -274,7 +274,7 @@ async def test_finalize_quick_passthrough():
     from services.agent.nodes.finalize import finalize_node
 
     scenes = [{"scene_id": 1, "script": "test"}]
-    state = {"mode": "quick", "draft_scenes": scenes}
+    state = {"draft_scenes": scenes, "skip_stages": ["research", "concept", "production", "explain"]}
     result = await finalize_node(state, {})
     assert len(result["final_scenes"]) == 1
     assert result["final_scenes"][0]["scene_id"] == 1
@@ -289,7 +289,7 @@ async def test_finalize_full_merge():
     cinema_scenes = [{"scene_id": 1, "script": "test", "camera": "close-up"}]
     tts_designs = [{"scene_id": 1, "voice_design_prompt": "calm"}]
     state = {
-        "mode": "full",
+        "skip_stages": [],
         "cinematographer_result": {"scenes": cinema_scenes},
         "tts_designer_result": {"tts_designs": tts_designs},
         "sound_designer_result": {"recommendation": {"prompt": "piano", "mood": "calm", "duration": 30}},
@@ -311,7 +311,7 @@ def test_route_after_review_quick():
     """Quick 모드: review 통과 → finalize."""
     from services.agent.routing import route_after_review
 
-    state = {"mode": "quick", "review_result": {"passed": True}}
+    state = {"skip_stages": ["research", "concept", "production", "explain"], "review_result": {"passed": True}}
     assert route_after_review(state) == "finalize"
 
 
@@ -319,7 +319,7 @@ def test_route_after_review_full():
     """Full 모드: review 통과 → director_checkpoint."""
     from services.agent.routing import route_after_review
 
-    state = {"mode": "full", "review_result": {"passed": True}}
+    state = {"skip_stages": [], "review_result": {"passed": True}}
     assert route_after_review(state) == "director_checkpoint"
 
 
@@ -327,7 +327,7 @@ def test_route_after_cinematographer_fanout():
     """cinematographer 이후 → 3개 병렬 fan-out."""
     from services.agent.routing import route_after_cinematographer
 
-    state = {"mode": "full"}
+    state = {}
     result = route_after_cinematographer(state)
     assert isinstance(result, list)
     assert set(result) == {"tts_designer", "sound_designer", "copyright_reviewer"}
@@ -466,7 +466,7 @@ async def test_explain_node_success(mock_step):
         },
     }
     mock_step.return_value = explain_result
-    state = {"final_scenes": [{"scene_id": 1}], "mode": "full"}
+    state = {"final_scenes": [{"scene_id": 1}]}
     result = await explain_node(state)
     assert "explanation_result" in result
     assert result["explanation_result"]["explanation"]["visual_strategy"] == "테스트 전략"
@@ -479,7 +479,7 @@ async def test_explain_node_error_returns_none(mock_step):
     from services.agent.nodes.explain import explain_node
 
     mock_step.side_effect = RuntimeError("API error")
-    state = {"final_scenes": [], "mode": "full"}
+    state = {"final_scenes": []}
     result = await explain_node(state)
     assert result["explanation_result"] is None
 

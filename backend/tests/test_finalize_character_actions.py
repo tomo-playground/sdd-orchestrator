@@ -9,7 +9,6 @@ import pytest
 
 from config import DEFAULT_SCENE_NEGATIVE_PROMPT
 
-
 # ── P0-2: _inject_default_context_tags 단위 테스트 ────────────────────
 
 
@@ -24,6 +23,7 @@ class TestInjectDefaultContextTags:
 
         assert scenes[0]["context_tags"]["pose"] == "standing"
         assert scenes[0]["context_tags"]["gaze"] == "looking_at_viewer"
+        assert scenes[0]["context_tags"]["expression"] == "smile"
         assert scenes[0]["context_tags"]["emotion"] == "happy"  # preserved
 
     def test_existing_pose_preserved(self):
@@ -34,6 +34,7 @@ class TestInjectDefaultContextTags:
 
         assert scenes[0]["context_tags"]["pose"] == "sitting"
         assert scenes[0]["context_tags"]["gaze"] == "looking_at_viewer"
+        assert scenes[0]["context_tags"]["expression"] == "smile"
 
     def test_narrator_skipped(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
@@ -50,7 +51,11 @@ class TestInjectDefaultContextTags:
         scenes = [{"speaker": "A"}]
         _inject_default_context_tags(scenes)
 
-        assert scenes[0]["context_tags"] == {"pose": "standing", "gaze": "looking_at_viewer"}
+        assert scenes[0]["context_tags"] == {
+            "pose": "standing",
+            "gaze": "looking_at_viewer",
+            "expression": "smile",
+        }
 
     def test_mixed_speakers(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
@@ -67,6 +72,7 @@ class TestInjectDefaultContextTags:
         assert "context_tags" not in scenes[1] or "pose" not in scenes[1].get("context_tags", {})
         assert scenes[2]["context_tags"]["pose"] == "standing"
         assert scenes[2]["context_tags"]["gaze"] == "looking_at_viewer"
+        assert scenes[2]["context_tags"]["expression"] == "smile"
 
 
 def _mock_get_db_session(db_session):
@@ -91,7 +97,7 @@ async def test_finalize_populates_character_actions(db_session):
     db_session.flush()
 
     state = {
-        "mode": "full",
+        "skip_stages": [],
         "character_id": 100,
         "character_b_id": None,
         "cinematographer_result": {
@@ -130,7 +136,7 @@ async def test_finalize_narrator_no_character_actions(db_session):
     db_session.flush()
 
     state = {
-        "mode": "full",
+        "skip_stages": [],
         "character_id": 100,
         "character_b_id": None,
         "cinematographer_result": {
@@ -158,17 +164,18 @@ async def test_finalize_narrator_no_character_actions(db_session):
 
 @pytest.mark.asyncio
 async def test_finalize_fallback_injects_default_pose_gaze(db_session):
-    """context_tags에 pose/gaze 없으면 기본값 주입 → DB 태그 있으면 character_actions 생성."""
+    """context_tags에 pose/gaze/expression 없으면 기본값 주입 → DB 태그 있으면 character_actions 생성."""
     from models.tag import Tag
     from services.agent.nodes.finalize import finalize_node
 
-    # Seed tags matching defaults: "standing" (pose), "looking_at_viewer" (gaze)
-    db_session.add(Tag(name="standing", category="pose", default_layer=8))
-    db_session.add(Tag(name="looking_at_viewer", category="gaze", default_layer=7))
+    # Seed tags matching defaults
+    db_session.add(Tag(name="standing", category="scene", default_layer=8))
+    db_session.add(Tag(name="looking_at_viewer", category="scene", default_layer=7))
+    db_session.add(Tag(name="smile", category="scene", default_layer=7))
     db_session.flush()
 
     state = {
-        "mode": "full",
+        "skip_stages": [],
         "character_id": 100,
         "character_b_id": None,
         "cinematographer_result": {
@@ -191,9 +198,9 @@ async def test_finalize_fallback_injects_default_pose_gaze(db_session):
         result = await finalize_node(state, {})
 
     scenes = result["final_scenes"]
-    # Fallback injected pose/gaze + DB tags exist → character_actions created
+    # Fallback injected pose/gaze/expression + DB tags exist → character_actions created
     assert "character_actions" in scenes[0]
-    assert len(scenes[0]["character_actions"]) == 2
+    assert len(scenes[0]["character_actions"]) == 3
 
 
 @pytest.mark.asyncio
@@ -202,12 +209,13 @@ async def test_finalize_no_context_tags_creates_defaults(db_session):
     from models.tag import Tag
     from services.agent.nodes.finalize import finalize_node
 
-    db_session.add(Tag(name="standing", category="pose", default_layer=8))
-    db_session.add(Tag(name="looking_at_viewer", category="gaze", default_layer=7))
+    db_session.add(Tag(name="standing", category="scene", default_layer=8))
+    db_session.add(Tag(name="looking_at_viewer", category="scene", default_layer=7))
+    db_session.add(Tag(name="smile", category="scene", default_layer=7))
     db_session.flush()
 
     state = {
-        "mode": "full",
+        "skip_stages": [],
         "character_id": 100,
         "character_b_id": None,
         "cinematographer_result": {
@@ -232,6 +240,7 @@ async def test_finalize_no_context_tags_creates_defaults(db_session):
     scenes = result["final_scenes"]
     assert scenes[0]["context_tags"]["pose"] == "standing"
     assert scenes[0]["context_tags"]["gaze"] == "looking_at_viewer"
+    assert scenes[0]["context_tags"]["expression"] == "smile"
     assert "character_actions" in scenes[0]
 
 
@@ -241,12 +250,12 @@ async def test_finalize_preserves_existing_pose_gaze(db_session):
     from models.tag import Tag
     from services.agent.nodes.finalize import finalize_node
 
-    db_session.add(Tag(name="sitting", category="pose", default_layer=8))
-    db_session.add(Tag(name="looking_down", category="gaze", default_layer=7))
+    db_session.add(Tag(name="sitting", category="scene", default_layer=8))
+    db_session.add(Tag(name="looking_down", category="scene", default_layer=7))
     db_session.flush()
 
     state = {
-        "mode": "full",
+        "skip_stages": [],
         "character_id": 100,
         "character_b_id": None,
         "cinematographer_result": {
@@ -256,7 +265,7 @@ async def test_finalize_preserves_existing_pose_gaze(db_session):
                     "script": "씬1",
                     "speaker": "A",
                     "image_prompt": "1girl",
-                    "context_tags": {"pose": "sitting", "gaze": "looking_down"},
+                    "context_tags": {"pose": "sitting", "gaze": "looking_down", "expression": "crying"},
                 },
             ],
         },
@@ -271,6 +280,7 @@ async def test_finalize_preserves_existing_pose_gaze(db_session):
     scenes = result["final_scenes"]
     assert scenes[0]["context_tags"]["pose"] == "sitting"  # preserved
     assert scenes[0]["context_tags"]["gaze"] == "looking_down"  # preserved
+    assert scenes[0]["context_tags"]["expression"] == "crying"  # preserved
 
 
 @pytest.mark.asyncio
@@ -279,7 +289,7 @@ async def test_finalize_without_character_id_still_works():
     from services.agent.nodes.finalize import finalize_node
 
     state = {
-        "mode": "quick",
+        "skip_stages": ["research", "concept", "production", "explain"],
         "character_id": None,
         "character_b_id": None,
         "draft_scenes": [

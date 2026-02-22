@@ -60,7 +60,7 @@ _NODE_META: dict[str, dict] = {
 
 
 def _resolve_skip_stages(request: StoryboardRequest, preset_data: dict) -> list[str]:
-    """skip_stages 해석 우선순위: (1) 명시적 request.skip_stages > (2) preset > (3) mode 후방호환."""
+    """skip_stages 해석 우선순위: (1) 명시적 request.skip_stages > (2) preset > (3) 기본값."""
     # 1) 명시적 skip_stages
     if request.skip_stages is not None:
         return [s for s in request.skip_stages if s in VALID_SKIP_STAGES]
@@ -69,11 +69,8 @@ def _resolve_skip_stages(request: StoryboardRequest, preset_data: dict) -> list[
     if preset_data and "skip_stages" in preset_data:
         return list(preset_data["skip_stages"])
 
-    # 3) 레거시 mode 후방호환 매핑
-    mode = request.mode or "quick"
-    if mode == "quick":
-        return list(LANGGRAPH_DEFAULT_SKIP_STAGES)
-    return []  # full → 모든 스테이지 실행
+    # 3) 기본값 (Express 동작)
+    return list(LANGGRAPH_DEFAULT_SKIP_STAGES)
 
 
 def _request_to_state(request: StoryboardRequest) -> ScriptState:
@@ -93,7 +90,6 @@ def _request_to_state(request: StoryboardRequest) -> ScriptState:
         character_b_id=request.character_b_id,
         group_id=request.group_id,
         references=request.references,
-        mode="full",  # 항상 full — skip_stages로 제어
         preset=request.preset,
         auto_approve=preset_data.get("auto_approve", True),
         skip_stages=skip_stages,
@@ -512,12 +508,10 @@ async def get_script_presets():
             name=p["name"],
             name_ko=p["name_ko"],
             description=p["description"],
-            mode=p["mode"],
             auto_approve=p.get("auto_approve", False),
             skip_stages=p.get("skip_stages", []),
         )
         for p in LANGGRAPH_PRESETS.values()
-        if not p.get("_legacy")
     ]
     return ScriptPresetsResponse(presets=items)
 

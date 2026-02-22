@@ -83,14 +83,12 @@ async def test_writer_node_calls_planning_in_full_mode(mock_gen, mock_plan):
 
     # Mock 대본 생성 결과
     mock_gen.return_value = {
-        "scenes": [
-            {"scene_id": 1, "script": "테스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}
-        ],
+        "scenes": [{"scene_id": 1, "script": "테스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}],
     }
 
     state: ScriptState = {
         "topic": "테스트 주제",
-        "mode": "full",
+        "skip_stages": [],
         "duration": 10,
         "language": "Korean",
         "structure": "Monologue",
@@ -113,14 +111,12 @@ async def test_writer_node_skips_planning_in_quick_mode(mock_gen, mock_plan):
     from services.agent.nodes.writer import writer_node
 
     mock_gen.return_value = {
-        "scenes": [
-            {"scene_id": 1, "script": "테스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}
-        ],
+        "scenes": [{"scene_id": 1, "script": "테스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}],
     }
 
     state: ScriptState = {
         "topic": "테스트 주제",
-        "mode": "quick",  # Quick 모드
+        "skip_stages": ["research", "concept", "production", "explain"],  # Express 모드
         "duration": 10,
         "language": "Korean",
         "structure": "Monologue",
@@ -147,7 +143,7 @@ async def test_writer_node_planning_disabled(mock_gen, mock_plan):
 
         state: ScriptState = {
             "topic": "테스트",
-            "mode": "full",
+            "skip_stages": [],
             "duration": 10,
             "language": "Korean",
             "structure": "Monologue",

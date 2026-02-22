@@ -14,13 +14,13 @@ _CWT = "services.agent.tools.base.call_with_tools"
 _QC = "services.agent.nodes.cinematographer.validate_visuals"
 
 
-def _make_state(scenes: list | None = None, mode: str = "quick") -> dict:
+def _make_state(scenes: list | None = None, skip_stages: list | None = None) -> dict:
     """테스트용 ScriptState 생성."""
     return {
         "draft_scenes": scenes or [{"order": 1, "text": "test", "duration": 3.0}],
         "character_id": None,
         "director_feedback": None,
-        "mode": mode,
+        "skip_stages": skip_stages if skip_stages is not None else ["research", "concept", "production", "explain"],
     }
 
 
