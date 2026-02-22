@@ -48,11 +48,13 @@ def migrate_patterns_to_rules(db):
 def classify_tags_comprehensively(db):
     """Classify tags using the suggestion engine and assign default categories."""
 
-    CHARACTER_GROUPS = {
-        "identity", "hair_color", "hair_length", "hair_style", "hair_accessory",
-        "eye_color", "skin_color", "body_feature", "appearance", "clothing"
-    }
-    META_GROUPS = {"quality", "style"}
+    # Build group_name → category lookup from existing DB data
+    group_cat_rows = db.execute(
+        select(Tag.group_name, Tag.category)
+        .where(Tag.group_name.isnot(None), Tag.category.isnot(None))
+        .group_by(Tag.group_name, Tag.category)
+    ).all()
+    group_to_cat = {row[0]: row[1] for row in group_cat_rows}
 
     # Get all tags
     tags = db.execute(select(Tag)).scalars().all()
@@ -65,19 +67,13 @@ def classify_tags_comprehensively(db):
         # 1. Use suggest_category_for_tag logic
         group, confidence = suggest_category_for_tag(tag.name)
 
-        # 2. Assign group and category
+        # 2. Assign group and category (DB lookup, fallback "scene")
         if group:
             tag.group_name = group
             tag.classification_confidence = confidence
             tag.classification_source = "rule"
             assigned_groups += 1
-
-            if group in CHARACTER_GROUPS:
-                tag.category = "character"
-            elif group in META_GROUPS:
-                tag.category = "meta"
-            else:
-                tag.category = "scene"
+            tag.category = group_to_cat.get(group, "scene")
         else:
             # Default fallback
             if tag.category is None or tag.group_name is None:

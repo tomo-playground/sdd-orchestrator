@@ -29,7 +29,7 @@ def analyze_db_assets():
     # 2. Extract potential pose tags
     print("\n[Sampling Pose Tags from DB]")
     # Get tags classified as 'pose' or 'action' or 'motion'
-    pose_related_tags = db.query(Tag.name).filter(Tag.category.in_(['pose', 'action', 'motion', 'character_action'])).all()
+    pose_related_tags = db.query(Tag.name).filter(Tag.group_name.in_(['pose', 'action', 'motion', 'character_action'])).all()
     print(f"Total tags in pose segments: {len(pose_related_tags)}")
 
     # Check top tags in prompts

@@ -11,18 +11,18 @@ from services.storyboard import resolve_action_tag_ids
 def _seed_tags(db_session, names_layers) -> dict[str, int]:
     """Insert tags into DB and return {name: id} mapping.
 
-    Each item is (name, layer) or (name, layer, category).
-    Default category is 'expression'.
+    Each item is (name, layer) or (name, layer, group_name).
+    Default group_name is 'expression'.
     """
     result: dict[str, int] = {}
     tags: list[tuple[str, Tag]] = []
     for item in names_layers:
         if len(item) == 3:
-            name, layer, category = item
+            name, layer, group_name = item
         else:
             name, layer = item
-            category = "expression"
-        tag = Tag(name=name, default_layer=layer, category=category)
+            group_name = "expression"
+        tag = Tag(name=name, default_layer=layer, category="scene", group_name=group_name)
         db_session.add(tag)
         tags.append((name, tag))
     db_session.flush()
@@ -74,7 +74,7 @@ class TestBasicPopulation:
 
 
 class TestContextTagCategories:
-    """All _ACTION_CATEGORIES (expression, gaze, pose, action) are extracted."""
+    """All _ACTION_GROUPS (expression, gaze, pose, action) are extracted."""
 
     def test_expression_list(self, db_session):
         _seed_tags(db_session, [("smile", 7), ("blush", 7)])
@@ -396,23 +396,23 @@ class TestSingleCharacterPopulation:
         assert len(result[0]["character_actions"]) == 2
 
 
-# ── Category Filtering Tests (P0-3) ─────────────────────────────────
+# ── Group Name Filtering Tests (P0-3) ────────────────────────────────
 
 
-class TestCategoryFiltering:
-    """P0-3: auto_populate는 (tag_name, category) 복합키로 매칭한다."""
+class TestGroupNameFiltering:
+    """P0-3: auto_populate는 (tag_name, group_name) 복합키로 매칭한다."""
 
-    def test_category_mismatch_rejected(self, db_session):
-        """'standing'이 expression 카테고리에만 있으면 pose 매칭 거부."""
-        _seed_tags(db_session, [("standing", 8)])  # default category="expression"
+    def test_group_name_mismatch_rejected(self, db_session):
+        """'standing'이 expression group에만 있으면 pose 매칭 거부."""
+        _seed_tags(db_session, [("standing", 8)])  # default group_name="expression"
         scenes = [_scene("A", {"pose": ["standing"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
         assert "character_actions" not in result[0]
 
-    def test_category_match_accepted(self, db_session):
-        """'standing'이 pose 카테고리에 있으면 pose 매칭 성공."""
+    def test_group_name_match_accepted(self, db_session):
+        """'standing'이 pose group에 있으면 pose 매칭 성공."""
         _seed_tags(db_session, [("standing", 8, "pose")])
         scenes = [_scene("A", {"pose": ["standing"]})]
 
@@ -420,9 +420,9 @@ class TestCategoryFiltering:
 
         assert len(result[0]["character_actions"]) == 1
 
-    def test_extract_also_filters_category(self, db_session):
-        """extract_actions_from_context_tags도 카테고리 필터링 적용."""
-        _seed_tags(db_session, [("standing", 8)])  # expression (wrong category)
+    def test_extract_also_filters_group_name(self, db_session):
+        """extract_actions_from_context_tags도 group_name 필터링 적용."""
+        _seed_tags(db_session, [("standing", 8)])  # expression (wrong group)
         ctx = {"pose": ["standing"]}
 
         actions = extract_actions_from_context_tags(ctx, character_id=1, db=db_session)

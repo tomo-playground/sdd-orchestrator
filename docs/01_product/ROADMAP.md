@@ -19,6 +19,7 @@
 
 ### 최근 작업
 
+- **레거시 mode 필드 완전 제거** (02-22): Stage-Level Skip 전환 후 잔존하던 `mode: "quick"|"full"` 필드 제거. config_pipelines(DEFAULT_MODE+레거시 프리셋), schemas(2필드), routers/scripts(fallback), state(TypedDict), learn(메타데이터→skip_stages), critic(context). 테스트 14파일 `skip_stages` 전환. 22파일 수정
 - **Stage-Level Skip 통합 아키텍처** (02-22): Quick/Full 모드 이원화 → `skip_stages: list[str]` 4단계(research, concept, production, explain) 통합. `_skip_guard.py` 모듈(노드별 스테이지 매핑+스킵 판단), 라우팅 전체 `mode`→`skip_stages` 전환, 프리셋 재편(express/standard/creator + 레거시 후방 호환), Frontend 동적 스텝 필터링. 29파일, 테스트 업데이트
 - **비활성 태그 필터링 일관성 수정** (02-22): `load_allowed_tags_from_db()`에 `is_active=True` 필터 추가, `filter_prompt_tokens()`에 `replace_deprecated_tags()` 연동하여 비활성 태그 자동 대체+차단
 - **Gemini 안전 필터 차단 수정** (02-22): Writer Planning `_create_plan()`에 safety_settings 5개 카테고리 BLOCK_NONE 추가, Creative Agent GeminiProvider에 `HARM_CATEGORY_CIVIC_INTEGRITY` 누락 보완

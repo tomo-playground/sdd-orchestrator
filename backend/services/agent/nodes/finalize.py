@@ -38,12 +38,14 @@ def _merge_production_results(state: ScriptState) -> tuple[list[dict], dict | No
 
 
 def _inject_default_context_tags(scenes: list[dict]) -> None:
-    """캐릭터 씬의 context_tags에 pose/gaze 기본값을 주입한다.
+    """캐릭터 씬의 context_tags에 pose/gaze/expression 기본값을 주입한다.
 
-    Gemini가 context_tags에 pose나 gaze를 누락하면 ControlNet에 데이터가
-    전달되지 않으므로, 기본값을 채워서 character_actions 변환이 동작하도록 한다.
+    Gemini가 context_tags를 누락하면 character_actions 변환이 실패하므로,
+    기본값을 채워서 최소한의 character_actions가 생성되도록 한다.
     Narrator 씬(배경샷)은 캐릭터가 없으므로 건너뛴다.
     """
+    from config import DEFAULT_EXPRESSION_TAG  # noqa: PLC0415
+
     for scene in scenes:
         speaker = scene.get("speaker", "")
         if speaker == "Narrator":
@@ -51,13 +53,19 @@ def _inject_default_context_tags(scenes: list[dict]) -> None:
 
         ctx = scene.get("context_tags")
         if ctx is None:
-            scene["context_tags"] = {"pose": DEFAULT_POSE_TAG, "gaze": DEFAULT_GAZE_TAG}
+            scene["context_tags"] = {
+                "pose": DEFAULT_POSE_TAG,
+                "gaze": DEFAULT_GAZE_TAG,
+                "expression": DEFAULT_EXPRESSION_TAG,
+            }
             continue
 
         if not ctx.get("pose"):
             ctx["pose"] = DEFAULT_POSE_TAG
         if not ctx.get("gaze"):
             ctx["gaze"] = DEFAULT_GAZE_TAG
+        if not ctx.get("expression"):
+            ctx["expression"] = DEFAULT_EXPRESSION_TAG
 
 
 async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:

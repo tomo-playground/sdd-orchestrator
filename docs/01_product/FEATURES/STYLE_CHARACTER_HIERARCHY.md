@@ -1,8 +1,7 @@
 # StyleProfile-Character Hierarchy (화풍 루트 아키텍처)
 
-**상태**: Phase 0~2 완료 (DB + API + Wizard)
-**우선순위**: P1 (Scene Diversity 이후)
-**최종 갱신**: 2026-02-21
+**상태**: **전체 완료** (Phase 0~2 + Phase 8-0/8-1, 2026-02-21)
+**최종 갱신**: 2026-02-22
 
 ---
 

@@ -116,7 +116,10 @@ class TagClassifier:
         return None
 
     def classify_batch(
-        self, tags: list[str], *, sync_danbooru: bool = False,
+        self,
+        tags: list[str],
+        *,
+        sync_danbooru: bool = False,
     ) -> tuple[dict[str, ClassificationResult], list[str]]:
         """Classify multiple tags. Returns (results, pending_tags).
 
@@ -253,56 +256,21 @@ class TagClassifier:
             logger.error("❌ [TagClassifier] Failed to save %s: %s", tag, e)
             self.db.rollback()
 
-    @staticmethod
-    def _group_to_category(group: str | None) -> str:
-        """Map group_name to category."""
-        if not group:
-            return "scene"
+    def _group_to_category(self, group: str | None) -> str:
+        return group_to_category(group, self.db)
 
-        character_groups = {
-            "identity",
-            "hair_color",
-            "hair_length",
-            "hair_style",
-            "hair_accessory",
-            "eye_color",
-            "skin_color",
-            "body_feature",
-            "appearance",
-            "clothing",
-        }
-        meta_groups = {"quality", "style"}
 
-        if group in character_groups:
-            return "character"
-        if group in meta_groups:
-            return "meta"
+def group_to_category(group: str | None, db: Session) -> str:
+    """Map group_name to category by looking up existing tags in DB.
 
-        # Normalize location sub-groups to parent group
-        if group in ("location_indoor_general", "location_indoor_specific"):
-            return "location_indoor"
-
-        # For granular groups (action, pose, expression, camera, etc.),
-        # return the group itself as the category so it matches composition priorities.
-        granular_groups = {
-            "expression",
-            "gaze",
-            "pose",
-            "action",
-            "camera",
-            "time_weather",
-            "lighting",
-            "mood",
-            "location_indoor",
-            "location_outdoor",
-            "environment",
-            "background_type",
-        }
-        if group in granular_groups:
-            return group
-
-        # subject, etc. → generic scene
+    DB에 같은 group_name을 가진 태그가 있으면 그 category를 따른다.
+    없으면 fallback으로 "scene"을 반환한다.
+    """
+    if not group:
         return "scene"
+
+    existing = db.query(Tag.category).filter(Tag.group_name == group, Tag.category.isnot(None)).limit(1).scalar()
+    return existing or "scene"
 
 
 def classify_tags_background(tags: list[str]) -> None:

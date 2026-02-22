@@ -62,44 +62,23 @@ class TagCategoryCache:
     def _map_db_category(category: str, group_name: str | None = None) -> str | None:
         """Map DB category + group_name to prompt composition category.
 
+        group_name이 있으면 그대로 prompt layer key로 사용한다.
+        없으면 DB category → prompt category 매핑으로 fallback.
+
         Gemini Template Context Tags → V3 12-Layer Mapping:
-        - expression → LAYER_EXPRESSION (7)
-        - gaze → LAYER_EXPRESSION (7)
-        - pose → LAYER_ACTION (8)
-        - action → LAYER_ACTION (8)
+        - expression, gaze → LAYER_EXPRESSION (7)
+        - pose, action → LAYER_ACTION (8)
         - camera → LAYER_CAMERA (9)
-        - environment (location_indoor, location_outdoor) → LAYER_ENVIRONMENT (10)
-        - time_weather, lighting → LAYER_ENVIRONMENT (10)
+        - environment, location_*, time_weather, lighting → LAYER_ENVIRONMENT (10)
         - mood → LAYER_ATMOSPHERE (11)
-
-        See: backend/templates/create_storyboard.j2 for Gemini context_tags structure
         """
-        # 1. Normalize location sub-groups to parent group
-        if group_name in ("location_indoor_general", "location_indoor_specific"):
-            return "location_indoor"
-
-        # 2. Use group_name for granular categories (expression, pose, action, etc.)
-        granular_groups = {
-            "expression",
-            "gaze",
-            "pose",
-            "action",
-            "camera",
-            "time_weather",
-            "lighting",
-            "mood",
-            "location_indoor",
-            "location_outdoor",
-            "environment",
-            "background_type",
-        }
-        if group_name in granular_groups:
+        if group_name:
+            # location sub-groups → parent group 정규화
+            if group_name in ("location_indoor_general", "location_indoor_specific"):
+                return "location_indoor"
             return group_name
 
-        # 3. Fallback to category mapping
-        if category == "scene":
-            return "scene"
-
+        # group_name 없으면 category 기반 fallback
         return DB_TO_PROMPT_CATEGORY.get(category, category)
 
 

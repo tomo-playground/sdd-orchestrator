@@ -298,7 +298,7 @@ class TestGetPoseFromCharacterActions:
         char = Character(name="TestChar", gender="female")
         db_session.add(char)
         db_session.flush()
-        tag = Tag(name="walking", category="pose", default_layer=8)
+        tag = Tag(name="walking", category="scene", group_name="pose", default_layer=8)
         db_session.add(tag)
         db_session.flush()
 
@@ -337,7 +337,7 @@ class TestGetPoseFromCharacterActions:
         db_session.flush()
 
         # Only expression tag, no pose
-        tag = Tag(name="smile", category="expression", default_layer=7)
+        tag = Tag(name="smile", category="scene", group_name="expression", default_layer=7)
         db_session.add(tag)
         db_session.flush()
 

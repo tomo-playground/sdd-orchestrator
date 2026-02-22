@@ -11,7 +11,7 @@ def fix_misclassified_tags():
         sun = db.query(Tag).filter(Tag.name == "sun").first()
         if sun:
             logger.info(f"Updating 'sun': {sun.group_name} -> time_weather")
-            sun.category = "environment" # or scene
+            sun.category = "scene"
             sun.group_name = "time_weather"
 
         # 2. Add 'soft_light' as 'lighting'
@@ -36,7 +36,7 @@ def fix_misclassified_tags():
             logger.info("Creating 'beckoning' tag")
             beckoning = Tag(
                 name="beckoning",
-                category="action",
+                category="scene",
                 group_name="pose", # PromptPreview maps 'pose' and 'action' similarly, but 'pose' is usually static
                 default_layer=5, # Pose layer
                 usage_scope="TRANSIENT"

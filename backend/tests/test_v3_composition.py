@@ -1149,7 +1149,7 @@ class TestApplySceneCharacterActions:
 
         result = {}
         for name, layer in names_layers:
-            tag = Tag(name=name, default_layer=layer, category="expression")
+            tag = Tag(name=name, default_layer=layer, category="scene", group_name="expression")
             db_session.add(tag)
         db_session.flush()
         for name, _ in names_layers:

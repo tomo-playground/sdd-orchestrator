@@ -255,7 +255,7 @@ def _get_pose_from_character_actions(scene_id: int, db) -> str | None:
             .join(SceneCharacterAction, SceneCharacterAction.tag_id == Tag.id)
             .filter(
                 SceneCharacterAction.scene_id == scene_id,
-                Tag.category == "pose",
+                Tag.group_name == "pose",
             )
             .limit(1)
             .all()

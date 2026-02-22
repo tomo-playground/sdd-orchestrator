@@ -24,8 +24,8 @@ class TestMigrateTagRules:
     def test_migrate_tag_rules_with_tags(self, client: TestClient, db_session):
         """Migration with existing tags creates conflict rules."""
         # Create the tags needed for migration
-        crying = Tag(name="crying", category="expression")
-        laughing = Tag(name="laughing", category="expression")
+        crying = Tag(name="crying", category="scene", group_name="expression")
+        laughing = Tag(name="laughing", category="scene", group_name="expression")
         db_session.add_all([crying, laughing])
         db_session.commit()
 
@@ -41,8 +41,8 @@ class TestMigrateTagRules:
     def test_migrate_tag_rules_idempotent(self, client: TestClient, db_session):
         """Running migration twice doesn't duplicate rules."""
         # Create tags
-        crying = Tag(name="crying", category="expression")
-        laughing = Tag(name="laughing", category="expression")
+        crying = Tag(name="crying", category="scene", group_name="expression")
+        laughing = Tag(name="laughing", category="scene", group_name="expression")
         db_session.add_all([crying, laughing])
         db_session.commit()
 
@@ -63,12 +63,12 @@ class TestMigrateTagRules:
         """Migration creates rules for all expression conflicts."""
         # Create all expression tags used in migration
         tags = [
-            Tag(name="crying", category="expression"),
-            Tag(name="laughing", category="expression"),
-            Tag(name="happy", category="expression"),
-            Tag(name="smile", category="expression"),
-            Tag(name="sad", category="expression"),
-            Tag(name="angry", category="expression"),
+            Tag(name="crying", category="scene", group_name="expression"),
+            Tag(name="laughing", category="scene", group_name="expression"),
+            Tag(name="happy", category="scene", group_name="expression"),
+            Tag(name="smile", category="scene", group_name="expression"),
+            Tag(name="sad", category="scene", group_name="expression"),
+            Tag(name="angry", category="scene", group_name="expression"),
         ]
         db_session.add_all(tags)
         db_session.commit()

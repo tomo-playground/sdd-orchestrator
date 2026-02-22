@@ -14,7 +14,7 @@ class TestTagsCRUD:
         """Helper to insert a tag into the test DB."""
         defaults = {
             "name": name,
-            "category": "appearance",
+            "category": "character",
             "group_name": "hair_color",
             "priority": 100,
             "default_layer": 2,
@@ -38,7 +38,7 @@ class TestTagsCRUD:
     def test_list_tags(self, client: TestClient, db_session):
         """Return all tags ordered by priority, name."""
         self._create_tag(db_session, "brown_hair", priority=10)
-        self._create_tag(db_session, "blue_eyes", category="appearance", group_name="eye_color", priority=20)
+        self._create_tag(db_session, "blue_eyes", category="character", group_name="eye_color", priority=20)
         resp = client.get("/tags")
         assert resp.status_code == 200
         data = resp.json()
@@ -47,9 +47,9 @@ class TestTagsCRUD:
 
     def test_list_tags_filter_category(self, client: TestClient, db_session):
         """Filter tags by category."""
-        self._create_tag(db_session, "smile", category="expression", group_name="expression")
-        self._create_tag(db_session, "brown_hair", category="appearance")
-        resp = client.get("/tags", params={"category": "expression"})
+        self._create_tag(db_session, "smile", category="scene", group_name="expression")
+        self._create_tag(db_session, "brown_hair", category="character")
+        resp = client.get("/tags", params={"category": "scene"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
@@ -69,9 +69,9 @@ class TestTagsCRUD:
 
     def test_list_tag_groups(self, client: TestClient, db_session):
         """Return grouped tag counts."""
-        self._create_tag(db_session, "brown_hair", category="appearance", group_name="hair_color")
-        self._create_tag(db_session, "blonde_hair", category="appearance", group_name="hair_color")
-        self._create_tag(db_session, "smile", category="expression", group_name="expression")
+        self._create_tag(db_session, "brown_hair", category="character", group_name="hair_color")
+        self._create_tag(db_session, "blonde_hair", category="character", group_name="hair_color")
+        self._create_tag(db_session, "smile", category="scene", group_name="expression")
         resp = client.get("/tags/groups")
         assert resp.status_code == 200
         data = resp.json()
@@ -95,9 +95,9 @@ class TestTagsCRUD:
 
     def test_search_tags_with_category_filter(self, client: TestClient, db_session):
         """Search tags filtered by category."""
-        self._create_tag(db_session, "smile", category="expression", group_name="expression")
-        self._create_tag(db_session, "smiling_face", category="appearance", group_name="face")
-        resp = client.get("/tags/search", params={"q": "smil", "category": "expression"})
+        self._create_tag(db_session, "smile", category="scene", group_name="expression")
+        self._create_tag(db_session, "smiling_face", category="character", group_name="face")
+        resp = client.get("/tags/search", params={"q": "smil", "category": "scene"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
@@ -187,7 +187,7 @@ class TestTagsClassification:
     """Test tag classification endpoints."""
 
     def _create_tag(self, db_session, name="test_tag", **kwargs):
-        defaults = {"name": name, "category": "general", "priority": 100, "default_layer": 0, "usage_scope": "ANY"}
+        defaults = {"name": name, "category": "scene", "priority": 100, "default_layer": 0, "usage_scope": "ANY"}
         defaults.update(kwargs)
         tag = Tag(**defaults)
         db_session.add(tag)

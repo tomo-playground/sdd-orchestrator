@@ -43,7 +43,7 @@ def main():
             for name in new_tag_names:
                 tag = db.query(Tag).filter(Tag.name == name).first()
                 if not tag:
-                    tag = Tag(name=name, category="general", default_layer=2)
+                    tag = Tag(name=name, category="character", group_name="hair_color", default_layer=2)
                     db.add(tag)
                     db.flush()
 

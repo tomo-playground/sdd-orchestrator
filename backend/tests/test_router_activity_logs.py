@@ -60,7 +60,7 @@ def _create_log(db_session, **kwargs):
 
 def _create_tag(db_session, name, **kwargs):
     """Helper to insert a tag."""
-    defaults = {"name": name, "category": "general", "priority": 100, "default_layer": 0, "usage_scope": "ANY"}
+    defaults = {"name": name, "category": "scene", "priority": 100, "default_layer": 0, "usage_scope": "ANY"}
     defaults.update(kwargs)
     tag = Tag(**defaults)
     db_session.add(tag)
@@ -270,8 +270,8 @@ class TestSuccessCombinations:
     def test_success_combinations_with_data(self, client: TestClient, db_session):
         """Return combinations from successful logs."""
         # Create tags in DB so category map works
-        _create_tag(db_session, "smile", category="expression")
-        _create_tag(db_session, "standing", category="pose")
+        _create_tag(db_session, "smile", category="scene", group_name="expression")
+        _create_tag(db_session, "standing", category="scene", group_name="pose")
 
         for i in range(5):
             _create_log(

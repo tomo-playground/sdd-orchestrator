@@ -1,6 +1,9 @@
 # Structure별 전용 Gemini 템플릿
 
-> 상태: 미착수 | 출처: 7-1 #7 (Tier 1)
+> 상태: **대체 완료** (Phase 13-C, 2026-02-20) | 출처: 7-1 #7 (Tier 1)
+>
+> Phase 13-C에서 Structure별 전용 파일 대신 기존 템플릿 내 Structure별 가이드 통합 방식으로 해결.
+> `writer_planning.j2`, `concept_architect.j2`, `scriptwriter.j2` 등에 Structure별 조건부 렌더링 적용.
 
 ## 배경
 

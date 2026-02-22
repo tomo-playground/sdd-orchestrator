@@ -12,7 +12,7 @@ class TestCharactersRouter:
     @pytest.fixture
     def sample_tag(self, db_session):
         """Create a sample tag for testing."""
-        tag = Tag(name="brown_hair", category="appearance", default_layer="identity")
+        tag = Tag(name="brown_hair", category="character", group_name="hair_color", default_layer="identity")
         db_session.add(tag)
         db_session.commit()
         return tag

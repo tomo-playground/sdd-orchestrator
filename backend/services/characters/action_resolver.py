@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 from config import logger
 from models.tag import Tag
 
-# context_tags categories that map to character actions
-_ACTION_CATEGORIES = frozenset({"expression", "gaze", "pose", "action"})
+# Tag 2단계 계층: category(대분류 4종) + group_name(소분류 24종).
+# context_tags 키 중 character_actions에 해당하는 group_name 집합.
+_ACTION_GROUPS = frozenset({"expression", "gaze", "pose", "action"})
 
 
 def auto_populate_character_actions(
@@ -43,7 +44,7 @@ def auto_populate_character_actions(
     all_tag_names: set[str] = set()
     for scene in scenes:
         context_tags = scene.get("context_tags") or {}
-        for cat in _ACTION_CATEGORIES:
+        for cat in _ACTION_GROUPS:
             value = context_tags.get(cat)
             if not value:
                 continue
@@ -54,14 +55,14 @@ def auto_populate_character_actions(
     if not all_tag_names:
         return scenes
 
-    # Batch query: resolve (tag_name, category) -> (tag_id, default_layer)
+    # Batch query: resolve (tag_name, group_name) -> (tag_id, default_layer)
     tag_rows = (
-        db.query(Tag.id, Tag.name, Tag.category, Tag.default_layer)
-        .filter(Tag.name.in_(all_tag_names), Tag.category.in_(_ACTION_CATEGORIES))
+        db.query(Tag.id, Tag.name, Tag.group_name, Tag.default_layer)
+        .filter(Tag.name.in_(all_tag_names), Tag.group_name.in_(_ACTION_GROUPS))
         .all()
     )
     tag_lookup: dict[tuple[str, str], tuple[int, int]] = {
-        (row.name, row.category): (row.id, row.default_layer) for row in tag_rows
+        (row.name, row.group_name): (row.id, row.default_layer) for row in tag_rows
     }
 
     logger.info(
@@ -92,7 +93,7 @@ def auto_populate_character_actions(
 
         actions: list[dict] = []
         for cid in target_char_ids:
-            for cat in _ACTION_CATEGORIES:
+            for cat in _ACTION_GROUPS:
                 value = context_tags.get(cat)
                 if not value:
                     continue
@@ -139,7 +140,7 @@ def extract_actions_from_context_tags(
         return None
 
     tag_names: set[str] = set()
-    for cat in _ACTION_CATEGORIES:
+    for cat in _ACTION_GROUPS:
         value = context_tags.get(cat)
         if not value:
             continue
@@ -150,14 +151,14 @@ def extract_actions_from_context_tags(
         return None
 
     rows = (
-        db.query(Tag.id, Tag.name, Tag.category)
-        .filter(Tag.name.in_(tag_names), Tag.category.in_(_ACTION_CATEGORIES))
+        db.query(Tag.id, Tag.name, Tag.group_name)
+        .filter(Tag.name.in_(tag_names), Tag.group_name.in_(_ACTION_GROUPS))
         .all()
     )
-    tag_lookup: dict[tuple[str, str], int] = {(r.name, r.category): r.id for r in rows}
+    tag_lookup: dict[tuple[str, str], int] = {(r.name, r.group_name): r.id for r in rows}
 
     actions: list[dict] = []
-    for cat in _ACTION_CATEGORIES:
+    for cat in _ACTION_GROUPS:
         value = context_tags.get(cat)
         if not value:
             continue

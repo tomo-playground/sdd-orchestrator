@@ -121,7 +121,7 @@ class TestCharacterActionResolverMulti:
         from models.tag import Tag
         from services.characters import auto_populate_character_actions
 
-        tag = Tag(name="smile", default_layer=7, category="expression")
+        tag = Tag(name="smile", default_layer=7, category="scene", group_name="expression")
         db_session.add(tag)
         db_session.flush()
 
@@ -145,7 +145,7 @@ class TestCharacterActionResolverMulti:
         from models.tag import Tag
         from services.characters import auto_populate_character_actions
 
-        tag = Tag(name="angry", default_layer=7, category="expression")
+        tag = Tag(name="angry", default_layer=7, category="scene", group_name="expression")
         db_session.add(tag)
         db_session.flush()
 

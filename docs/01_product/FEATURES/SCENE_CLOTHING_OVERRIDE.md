@@ -1,6 +1,6 @@
 # Scene Clothing Override
 
-> 상태: 미착수
+> 상태: **완료** (Phase 13-D, 2026-02-20)
 
 ## 배경
 

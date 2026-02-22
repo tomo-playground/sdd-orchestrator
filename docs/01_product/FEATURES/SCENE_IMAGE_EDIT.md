@@ -1,6 +1,6 @@
 # Scene 단위 자연어 이미지 편집
 
-> 상태: 미착수 | 선행: 6-4.22 Gemini Image Editing (완료)
+> 상태: **완료** (Phase 13-B, 2026-02-20) | 선행: 6-4.22 Gemini Image Editing (완료)
 
 ## 배경
 

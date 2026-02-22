@@ -351,7 +351,7 @@ class TestSyncToEngine:
         db_session.add(group)
         db_session.flush()
 
-        tag = Tag(name="smile", category="expression", default_layer=7)
+        tag = Tag(name="smile", category="scene", group_name="expression", default_layer=7)
         db_session.add(tag)
         db_session.flush()
 

@@ -234,7 +234,9 @@ async def create_tag(data: TagCreate, db: Session = Depends(get_db)):
             tag_data["classification_confidence"] = confidence
             # Set category from group if not already set
             if not tag_data.get("category"):
-                tag_data["category"] = TagClassifier._group_to_category(suggested_group)
+                from services.tag_classifier import group_to_category
+
+                tag_data["category"] = group_to_category(suggested_group, db)
             logger.info("🏷️ [Tags] Auto-classified '%s' → %s (%.0f%%)", data.name, suggested_group, confidence * 100)
 
     tag = Tag(**tag_data)

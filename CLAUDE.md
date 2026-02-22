@@ -187,6 +187,15 @@ docs/
 
 > 관련 커밋: Phase 6-4.21 (2026-01-27) - DB 공백 태그 554개 → 언더바 통일
 
+### Tag 2-Level Hierarchy (category + group_name)
+| 필드 | 용도 | 허용 값 |
+|------|------|---------|
+| `category` | 대분류 (4종) | `scene`, `character`, `quality`, `meta` |
+| `group_name` | 소분류 (24종) | `expression`, `gaze`, `pose`, `action`, `camera`, `mood` 등 |
+
+- DB 쿼리에서 소분류 필터링 시 반드시 `Tag.group_name` 사용. `Tag.category`에 소분류 값 금지.
+- ❌ `Tag.category == "expression"` / ✅ `Tag.group_name == "expression"`
+
 ## Sub Agents
 
 | Agent | 역할 | Commands |
