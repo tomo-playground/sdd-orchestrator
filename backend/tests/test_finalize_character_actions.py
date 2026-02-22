@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from unittest.mock import patch
+
 import pytest
 
 from config import DEFAULT_SCENE_NEGATIVE_PROMPT
@@ -66,6 +69,16 @@ class TestInjectDefaultContextTags:
         assert scenes[2]["context_tags"]["gaze"] == "looking_at_viewer"
 
 
+def _mock_get_db_session(db_session):
+    """테스트용 get_db_session mock — 실제 db_session을 context manager로 래핑."""
+
+    @contextmanager
+    def _ctx():
+        yield db_session
+
+    return _ctx
+
+
 @pytest.mark.asyncio
 async def test_finalize_populates_character_actions(db_session):
     """Full 모드: context_tags 있는 scenes → finalize 후 character_actions 포함."""
@@ -96,9 +109,9 @@ async def test_finalize_populates_character_actions(db_session):
         "sound_designer_result": None,
         "copyright_reviewer_result": None,
     }
-    config = {"configurable": {"db": db_session}}
 
-    result = await finalize_node(state, config)
+    with patch("services.agent.nodes.finalize.get_db_session", _mock_get_db_session(db_session)):
+        result = await finalize_node(state, {})
 
     scenes = result["final_scenes"]
     assert len(scenes) == 1
@@ -135,9 +148,9 @@ async def test_finalize_narrator_no_character_actions(db_session):
         "sound_designer_result": None,
         "copyright_reviewer_result": None,
     }
-    config = {"configurable": {"db": db_session}}
 
-    result = await finalize_node(state, config)
+    with patch("services.agent.nodes.finalize.get_db_session", _mock_get_db_session(db_session)):
+        result = await finalize_node(state, {})
 
     scenes = result["final_scenes"]
     assert "character_actions" not in scenes[0]
@@ -173,9 +186,9 @@ async def test_finalize_fallback_injects_default_pose_gaze(db_session):
         "sound_designer_result": None,
         "copyright_reviewer_result": None,
     }
-    config = {"configurable": {"db": db_session}}
 
-    result = await finalize_node(state, config)
+    with patch("services.agent.nodes.finalize.get_db_session", _mock_get_db_session(db_session)):
+        result = await finalize_node(state, {})
 
     scenes = result["final_scenes"]
     # Fallback injected pose/gaze + DB tags exist → character_actions created
@@ -212,9 +225,9 @@ async def test_finalize_no_context_tags_creates_defaults(db_session):
         "sound_designer_result": None,
         "copyright_reviewer_result": None,
     }
-    config = {"configurable": {"db": db_session}}
 
-    result = await finalize_node(state, config)
+    with patch("services.agent.nodes.finalize.get_db_session", _mock_get_db_session(db_session)):
+        result = await finalize_node(state, {})
 
     scenes = result["final_scenes"]
     assert scenes[0]["context_tags"]["pose"] == "standing"
@@ -251,9 +264,9 @@ async def test_finalize_preserves_existing_pose_gaze(db_session):
         "sound_designer_result": None,
         "copyright_reviewer_result": None,
     }
-    config = {"configurable": {"db": db_session}}
 
-    result = await finalize_node(state, config)
+    with patch("services.agent.nodes.finalize.get_db_session", _mock_get_db_session(db_session)):
+        result = await finalize_node(state, {})
 
     scenes = result["final_scenes"]
     assert scenes[0]["context_tags"]["pose"] == "sitting"  # preserved
@@ -261,21 +274,20 @@ async def test_finalize_preserves_existing_pose_gaze(db_session):
 
 
 @pytest.mark.asyncio
-async def test_finalize_without_db_session_still_works():
-    """DB 세션 없이도 finalize는 정상 동작 (character_actions 미생성)."""
+async def test_finalize_without_character_id_still_works():
+    """캐릭터 ID 없으면 character_actions 변환 건너뜀."""
     from services.agent.nodes.finalize import finalize_node
 
     state = {
         "mode": "quick",
-        "character_id": 100,
+        "character_id": None,
         "character_b_id": None,
         "draft_scenes": [
             {"order": 0, "script": "퀵 씬", "speaker": "A"},
         ],
     }
-    config = {}
 
-    result = await finalize_node(state, config)
+    result = await finalize_node(state, {})
 
     scenes = result["final_scenes"]
     assert len(scenes) == 1
@@ -292,9 +304,8 @@ async def test_finalize_error_state_propagated():
         "character_id": 100,
         "character_b_id": None,
     }
-    config = {}
 
-    result = await finalize_node(state, config)
+    result = await finalize_node(state, {})
 
     assert result["error"] == "Writer 안전 필터 차단"
     assert "final_scenes" not in result

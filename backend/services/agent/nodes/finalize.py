@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from config import DEFAULT_GAZE_TAG, DEFAULT_POSE_TAG, DEFAULT_SCENE_NEGATIVE_PROMPT, logger
+from database import get_db_session
 from services.agent.state import ScriptState
 
 if TYPE_CHECKING:
@@ -82,8 +83,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     character_id = state.get("character_id")
     character_b_id = state.get("character_b_id")
     if character_id or character_b_id:
-        db_session = config.get("configurable", {}).get("db") if config else None
-        if db_session:
+        with get_db_session() as db_session:
             _populate_character_actions(scenes, character_id, character_b_id, db_session)
 
     return {

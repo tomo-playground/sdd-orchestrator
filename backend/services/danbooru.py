@@ -6,6 +6,7 @@ Used by TagClassifier for unknown tag classification.
 
 from __future__ import annotations
 
+import asyncio
 import time
 
 import httpx
@@ -238,20 +239,13 @@ def _classify_general_tag(tag_name: str) -> str | None:
 
 # Synchronous wrapper for use in non-async contexts
 def get_tag_info_sync(tag_name: str) -> dict | None:
-    """Synchronous version of get_tag_info."""
-    import asyncio
+    """Synchronous version of get_tag_info.
 
+    Safe to call from any thread (main, AnyIO worker, ThreadPoolExecutor).
+    Always creates a fresh event loop via asyncio.run().
+    """
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # If already in async context, create new loop
-            import concurrent.futures
-
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(asyncio.run, get_tag_info(tag_name))
-                return future.result(timeout=5)
-        else:
-            return loop.run_until_complete(get_tag_info(tag_name))
+        return asyncio.run(get_tag_info(tag_name))
     except Exception as e:
         logger.error("❌ [Danbooru] Sync wrapper error: %s", e)
         return None

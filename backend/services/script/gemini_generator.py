@@ -335,8 +335,8 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             strip_no_humans_from_dialogue(scenes)
         auto_pin_raw_scenes(scenes, structure_lower)
 
-        # Auto-populate character_actions from context_tags (Dialogue/Narrated Dialogue)
-        if has_two_characters and (request.character_id or request.character_b_id) and db:
+        # Auto-populate character_actions from context_tags
+        if (request.character_id or request.character_b_id) and db:
             from services.characters import auto_populate_character_actions
 
             scenes = auto_populate_character_actions(scenes, request.character_id, request.character_b_id, db)
