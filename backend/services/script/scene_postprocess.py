@@ -116,6 +116,47 @@ def process_scene_tags(scenes: list[dict]) -> None:
             )
 
 
+async def process_scene_tags_async(scenes: list[dict]) -> list[str]:
+    """Async version of process_scene_tags. DB cache only, returns unknown tags.
+
+    Uses validate_tags_with_danbooru_async (DB-only) instead of
+    validate_tags_with_danbooru (Danbooru API). Unknown tags are returned
+    for background classification via schedule_background_classification().
+    """
+    from services.keywords import filter_prompt_tokens
+    from services.prompt import normalize_and_fix_tags, normalize_prompt_tokens
+    from services.prompt.prompt import validate_tags_with_danbooru_async
+
+    all_unknown: list[str] = []
+
+    for scene in scenes:
+        raw_prompt = scene.get("image_prompt", "")
+        if not raw_prompt:
+            continue
+
+        scene_id = scene.get("scene_id", "?")
+        logger.info("[Scene %s] Tag Pipeline Start (async)", scene_id)
+
+        normalized = normalize_and_fix_tags(raw_prompt)
+
+        if ENABLE_DANBOORU_VALIDATION:
+            tags = [t.strip() for t in normalized.split(",") if t.strip()]
+            validated_tags, unknown_tags = await validate_tags_with_danbooru_async(tags)
+            normalized = ", ".join(validated_tags)
+            all_unknown.extend(unknown_tags)
+
+        filtered = filter_prompt_tokens(normalized)
+        if not filtered:
+            filtered = normalize_prompt_tokens(normalized)
+
+        scene["image_prompt"] = filtered
+
+        if not scene.get("negative_prompt"):
+            scene["negative_prompt"] = DEFAULT_SCENE_NEGATIVE_PROMPT
+
+    return all_unknown
+
+
 def strip_no_humans_from_dialogue(scenes: list[dict]) -> None:
     """Strip no_humans tag from speaker scenes in dialogue structures (in-place)."""
     for scene in scenes:

@@ -72,9 +72,7 @@ def merge_expanded_scenes(existing: list[dict], new_scenes: list[dict]) -> list[
     return result
 
 
-def redistribute_durations(
-    scenes: list[dict], target_duration: int, language: str = "Korean"
-) -> None:
+def redistribute_durations(scenes: list[dict], target_duration: int, language: str = "Korean") -> None:
     """총 duration을 target_duration에 맞게 비례 재분배한다.
 
     각 씬의 최소 duration은 reading-time 기반으로 결정된다.
@@ -134,6 +132,44 @@ def postprocess_new_scenes(new_scenes: list[dict], language: str = "Korean") -> 
 
         if not scene.get("negative_prompt"):
             scene["negative_prompt"] = DEFAULT_SCENE_NEGATIVE_PROMPT
+
+
+async def postprocess_new_scenes_async(new_scenes: list[dict], language: str = "Korean") -> list[str]:
+    """Async version: DB cache only, returns unknown tags for background classification."""
+    from config import DEFAULT_SCENE_NEGATIVE_PROMPT, ENABLE_DANBOORU_VALIDATION
+    from services.keywords import filter_prompt_tokens
+    from services.prompt import normalize_and_fix_tags, normalize_prompt_tokens
+    from services.prompt.prompt import validate_tags_with_danbooru_async
+    from services.storyboard.helpers import estimate_reading_duration
+
+    all_unknown: list[str] = []
+
+    for scene in new_scenes:
+        script = scene.get("script", "").strip()
+        if script:
+            scene["duration"] = estimate_reading_duration(script, language)
+        raw_prompt = scene.get("image_prompt", "")
+        if not raw_prompt:
+            continue
+
+        normalized = normalize_and_fix_tags(raw_prompt)
+
+        if ENABLE_DANBOORU_VALIDATION:
+            tags = [t.strip() for t in normalized.split(",") if t.strip()]
+            validated, unknown = await validate_tags_with_danbooru_async(tags)
+            normalized = ", ".join(validated)
+            all_unknown.extend(unknown)
+
+        filtered = filter_prompt_tokens(normalized)
+        if not filtered:
+            filtered = normalize_prompt_tokens(normalized)
+
+        scene["image_prompt"] = filtered
+
+        if not scene.get("negative_prompt"):
+            scene["negative_prompt"] = DEFAULT_SCENE_NEGATIVE_PROMPT
+
+    return all_unknown
 
 
 async def try_scene_expand(
@@ -201,7 +237,10 @@ async def try_scene_expand(
             logger.warning("[Revise] Expansion: 빈 결과 반환")
             return None
 
-        postprocess_new_scenes(new_scenes, language=state.get("language", "Korean"))
+        from services.danbooru import schedule_background_classification
+
+        unknown_tags = await postprocess_new_scenes_async(new_scenes, language=state.get("language", "Korean"))
+        schedule_background_classification(unknown_tags)
         merged = merge_expanded_scenes([s.copy() for s in scenes], new_scenes)
 
         logger.info(

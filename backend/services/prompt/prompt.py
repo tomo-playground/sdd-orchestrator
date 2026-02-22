@@ -58,11 +58,41 @@ def merge_prompt_tokens(primary: list[str], secondary: list[str]) -> str:
 
 # Scene-specific keywords for detecting scene tokens
 SCENE_KEYWORDS = [
-    "sitting", "standing", "walking", "running", "jumping", "kneeling", "crouching", "lying",
-    "from_above", "top-down", "low_angle", "high_angle", "close-up", "wide_shot", "full_body",
-    "library", "cafe", "street", "room", "bedroom", "office", "classroom", "park", "forest",
-    "beach", "city", "night", "sunset", "sunrise", "rain", "snow", "background", "lighting",
-    "indoors", "outdoors"
+    "sitting",
+    "standing",
+    "walking",
+    "running",
+    "jumping",
+    "kneeling",
+    "crouching",
+    "lying",
+    "from_above",
+    "top-down",
+    "low_angle",
+    "high_angle",
+    "close-up",
+    "wide_shot",
+    "full_body",
+    "library",
+    "cafe",
+    "street",
+    "room",
+    "bedroom",
+    "office",
+    "classroom",
+    "park",
+    "forest",
+    "beach",
+    "city",
+    "night",
+    "sunset",
+    "sunrise",
+    "rain",
+    "snow",
+    "background",
+    "lighting",
+    "indoors",
+    "outdoors",
 ]
 
 
@@ -215,10 +245,20 @@ def detect_prompt_conflicts(positive: str, negative: str) -> dict:
 
 # Identity tags that indicate character presence
 IDENTITY_TAGS = [
-    "1girl", "1boy", "2girls", "2boys", "3girls", "3boys",
-    "multiple_girls", "multiple_boys",
-    "solo", "duo", "trio", "group",
-    "male_focus", "female_focus",
+    "1girl",
+    "1boy",
+    "2girls",
+    "2boys",
+    "3girls",
+    "3boys",
+    "multiple_girls",
+    "multiple_boys",
+    "solo",
+    "duo",
+    "trio",
+    "group",
+    "male_focus",
+    "female_focus",
     "no_humans",  # Narrator scenes (scenery only)
 ]
 
@@ -251,9 +291,7 @@ def validate_identity_tags(prompt: str) -> dict:
     return {
         "valid": len(found_tags) > 0,
         "found_tags": found_tags,
-        "suggested": "Add identity tag like '1girl' or '1boy' at the start of your prompt"
-        if not found_tags
-        else "",
+        "suggested": "Add identity tag like '1girl' or '1boy' at the start of your prompt" if not found_tags else "",
     }
 
 
@@ -283,6 +321,7 @@ def apply_optimal_lora_weights(prompt: str, lora_weights: dict[str, float]) -> s
 
     return re.sub(r"<lora:([^:>]+):[^>]+>", replace_weight, prompt, flags=re.IGNORECASE)
 
+
 def rewrite_prompt(request: PromptRewriteRequest) -> dict:
     if not gemini_client:
         raise HTTPException(status_code=503, detail="Gemini key missing")
@@ -311,11 +350,7 @@ def rewrite_prompt(request: PromptRewriteRequest) -> dict:
             "Replace scene/action/pose with SCENE. Preserve any <lora:...> tags. "
             "Return ONLY the final comma-separated prompt, no explanations."
         )
-    user_input = (
-        f"BASE: {request.base_prompt}\n"
-        f"SCENE: {request.scene_prompt}\n"
-        f"STYLE: {request.style}\n"
-    )
+    user_input = f"BASE: {request.base_prompt}\nSCENE: {request.scene_prompt}\nSTYLE: {request.style}\n"
     try:
         res = gemini_client.models.generate_content(
             model=GEMINI_TEXT_MODEL,
@@ -326,10 +361,7 @@ def rewrite_prompt(request: PromptRewriteRequest) -> dict:
             cache_file.write_text(json.dumps({"prompt": text}, ensure_ascii=False))
             return {"prompt": text}
         base_tokens = split_prompt_tokens(request.base_prompt)
-        base_core = [
-            token for token in base_tokens
-            if "<lora:" in token.lower() or not is_scene_token(token)
-        ]
+        base_core = [token for token in base_tokens if "<lora:" in token.lower() or not is_scene_token(token)]
         rewritten_tokens = split_prompt_tokens(text)
         final_prompt = merge_prompt_tokens(base_core, rewritten_tokens)
         cache_file.write_text(json.dumps({"prompt": final_prompt}, ensure_ascii=False))
@@ -337,6 +369,7 @@ def rewrite_prompt(request: PromptRewriteRequest) -> dict:
     except Exception as exc:
         logger.exception("Prompt rewrite failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
 
 def split_prompt_example(request: PromptSplitRequest) -> dict:
     if not gemini_client:
@@ -396,7 +429,6 @@ def normalize_tag_spaces(tags: list[str]) -> list[str]:
             normalized.append(t)
 
     return normalized
-
 
 
 def fix_compound_adjectives(tags: list[str]) -> list[str]:
@@ -564,6 +596,39 @@ def validate_tags_with_danbooru(tags: list[str]) -> list[str]:
         db.close()
 
 
+async def validate_tags_with_danbooru_async(tags: list[str]) -> tuple[list[str], list[str]]:
+    """Validate tags using DB cache only (no Danbooru API calls).
+
+    Fast path for async pipeline contexts where blocking API calls
+    are not allowed. Unknown tags pass through (fail-open) and are
+    returned separately for background classification.
+
+    Returns:
+        (validated_tags, unknown_tags) - unknown_tags need background processing
+    """
+    from database import SessionLocal
+    from models.tag import Tag
+
+    db = SessionLocal()
+    validated: list[str] = []
+    unknown: list[str] = []
+
+    try:
+        existing_tags = {tag.name for tag in db.query(Tag.name).all()}
+
+        for tag in tags:
+            if tag in existing_tags or tag.replace("_", " ") in existing_tags:
+                validated.append(tag)
+            else:
+                validated.append(tag)
+                unknown.append(tag)
+                logger.debug("[Danbooru Async] Unknown tag (fail-open): %s", tag)
+
+        return validated, unknown
+    finally:
+        db.close()
+
+
 def normalize_and_fix_tags(prompt: str) -> str:
     """Full pipeline: normalize spaces + fix compound adjectives.
 
@@ -628,6 +693,7 @@ def get_token_category(token: str) -> str | None:
         Category name (e.g., "expression", "hair_color", "camera") or None if unknown
     """
     from services.keywords.core import normalize_prompt_token
+
     normalized = normalize_prompt_token(token)
 
     if not normalized:
@@ -652,12 +718,24 @@ def get_token_category(token: str) -> str | None:
 
     return None
 
+
 # Scene-related categories that contribute to complexity
-SCENE_CATEGORIES = frozenset([
-    "expression", "gaze", "pose", "action", "camera",
-    "location_indoor", "location_outdoor", "background_type",
-    "time_weather", "lighting", "mood",
-])
+SCENE_CATEGORIES = frozenset(
+    [
+        "expression",
+        "gaze",
+        "pose",
+        "action",
+        "camera",
+        "location_indoor",
+        "location_outdoor",
+        "background_type",
+        "time_weather",
+        "lighting",
+        "mood",
+    ]
+)
+
 
 def detect_scene_complexity(tokens: list[str]) -> str:
     """Detect scene complexity based on token count per category.

@@ -92,7 +92,11 @@ async def get_tag_info(tag_name: str) -> dict | None:
         _circuit_failures += 1
         if _circuit_failures >= _CIRCUIT_FAILURE_THRESHOLD:
             _circuit_open_until = time.monotonic() + _CIRCUIT_COOLDOWN_SEC
-            logger.warning("⚡ [Danbooru] Circuit breaker OPEN — %d failures, skip for %ds", _circuit_failures, _CIRCUIT_COOLDOWN_SEC)
+            logger.warning(
+                "⚡ [Danbooru] Circuit breaker OPEN — %d failures, skip for %ds",
+                _circuit_failures,
+                _CIRCUIT_COOLDOWN_SEC,
+            )
         return None
     except httpx.HTTPError as e:
         logger.debug("⚠️ [Danbooru] API error for '%s': %s", normalized, e)
@@ -249,3 +253,57 @@ def get_tag_info_sync(tag_name: str) -> dict | None:
     except Exception as e:
         logger.error("❌ [Danbooru] Sync wrapper error: %s", e)
         return None
+
+
+def schedule_background_classification(unknown_tags: list[str]) -> None:
+    """Schedule background Danbooru classification for unknown tags.
+
+    Safe to call from both async and sync contexts.
+    - async: uses run_in_executor to avoid blocking the event loop
+    - sync: runs _classify_tags_background directly
+    """
+    if not unknown_tags:
+        return
+
+    unique_tags = list(set(unknown_tags))
+    logger.info("[Danbooru] Scheduling background classification for %d tags", len(unique_tags))
+
+    try:
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(None, _classify_tags_background, unique_tags)
+    except RuntimeError:
+        _classify_tags_background(unique_tags)
+
+
+def _classify_tags_background(tags: list[str]) -> None:
+    """Classify tags via Danbooru API in background (runs in thread)."""
+    for tag in tags:
+        try:
+            tag_info = asyncio.run(get_tag_info(tag))
+            if tag_info and tag_info.get("post_count", 0) > 0:
+                _store_tag_in_db(tag, tag_info)
+                logger.info("[Danbooru BG] Classified: %s (%d posts)", tag, tag_info.get("post_count", 0))
+            else:
+                logger.debug("[Danbooru BG] Not found: %s", tag)
+        except Exception as e:
+            logger.debug("[Danbooru BG] Error for '%s': %s", tag, e)
+
+
+def _store_tag_in_db(tag_name: str, tag_info: dict) -> None:
+    """Store a validated tag in the DB for future fast-path lookups."""
+    try:
+        from database import SessionLocal
+        from models.tag import Tag
+
+        db = SessionLocal()
+        try:
+            existing = db.query(Tag).filter(Tag.name == tag_name).first()
+            if not existing:
+                category = str(tag_info.get("category", "unknown"))
+                new_tag = Tag(name=tag_name, category=category, group_name="danbooru_validated")
+                db.add(new_tag)
+                db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        logger.debug("[Danbooru BG] DB store error for '%s': %s", tag_name, e)

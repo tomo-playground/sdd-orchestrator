@@ -185,8 +185,9 @@ def test_redistribute_empty_scenes():
 @pytest.mark.asyncio
 @patch("config.gemini_client")
 @patch("config.template_env")
-@patch("services.agent.nodes._revise_expand.postprocess_new_scenes")
-async def test_try_scene_expand_success(mock_postprocess, mock_tenv, mock_gemini):
+@patch("services.danbooru.schedule_background_classification")
+@patch("services.agent.nodes._revise_expand.postprocess_new_scenes_async", new_callable=AsyncMock, return_value=[])
+async def test_try_scene_expand_success(mock_postprocess, mock_schedule_bg, mock_tenv, mock_gemini):
     """Gemini가 새 씬을 반환하면 기존 씬에 병합한다."""
     from services.agent.nodes._revise_expand import try_scene_expand
 

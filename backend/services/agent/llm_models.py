@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 
 class QCResult(BaseModel):
@@ -72,6 +72,13 @@ class DirectorCheckpointOutput(BaseModel):
     score: float = Field(ge=0.0, le=1.0)
     reasoning: str = Field(min_length=1)
     feedback: str = ""
+
+    @field_validator("feedback", mode="before")
+    @classmethod
+    def _coerce_feedback(cls, v: object) -> str:
+        if v is None:
+            return ""
+        return str(v)
 
     @model_validator(mode="after")
     def _feedback_required_for_revise(self) -> DirectorCheckpointOutput:

@@ -18,7 +18,6 @@ from services.keywords import get_keyword_context_and_tags
 from services.presets import get_preset_by_structure
 from services.script.scene_postprocess import (
     auto_pin_raw_scenes,
-    process_scene_tags,
     strip_no_humans_from_dialogue,
     warn_script_issues,
 )
@@ -330,7 +329,11 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
 
         # Post-process scenes: warnings, tag pipeline, dialogue defense, auto-pin
         warn_script_issues(scenes)
-        process_scene_tags(scenes)
+        from services.danbooru import schedule_background_classification
+        from services.script.scene_postprocess import process_scene_tags_async
+
+        unknown_tags = await process_scene_tags_async(scenes)
+        schedule_background_classification(unknown_tags)
         if has_two_characters:
             strip_no_humans_from_dialogue(scenes)
         auto_pin_raw_scenes(scenes, structure_lower)
