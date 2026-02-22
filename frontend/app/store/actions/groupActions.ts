@@ -43,7 +43,7 @@ export async function loadGroupDefaults(
       !options?.skipStyleProfile &&
       !useRenderStore.getState().currentStyleProfile
     ) {
-      loadStyleProfileFromId(cfg.style_profile_id).catch((err) => {
+      loadStyleProfileFromId(cfg.style_profile_id, { skipHiResSync: true }).catch((err) => {
         console.error("[loadGroupDefaults] Failed to load style profile:", err);
       });
     }

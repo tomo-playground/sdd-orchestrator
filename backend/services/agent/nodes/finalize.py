@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from config import DEFAULT_GAZE_TAG, DEFAULT_POSE_TAG, DEFAULT_SCENE_NEGATIVE_PROMPT, DURATION_DEFICIT_THRESHOLD, logger
+from config import (
+    DEFAULT_GAZE_TAG,
+    DEFAULT_POSE_TAG,
+    DEFAULT_SCENE_NEGATIVE_PROMPT,
+    DURATION_DEFICIT_THRESHOLD,
+    logger,
+)
 from database import get_db_session
 from services.agent.state import ScriptState
 
@@ -134,6 +140,38 @@ def _validate_ken_burns_presets(scenes: list[dict]) -> None:
                 )
 
 
+def _auto_populate_scene_flags(scenes: list[dict], character_id: int | None) -> None:
+    """씬별 생성 플래그(use_controlnet, use_ip_adapter, multi_gen_enabled) 자동 할당.
+
+    이미 값이 있는 필드는 덮어쓰지 않는다 (Cinematographer 명시값 보존).
+    """
+    from config import (  # noqa: PLC0415
+        DEFAULT_CONTROLNET_WEIGHT,
+        DEFAULT_IP_ADAPTER_WEIGHT,
+        DEFAULT_MULTI_GEN_ENABLED,
+    )
+
+    for scene in scenes:
+        is_narrator = scene.get("speaker") == "Narrator"
+        has_pose = bool(scene.get("controlnet_pose"))
+
+        if scene.get("use_controlnet") is None:
+            scene["use_controlnet"] = has_pose and not is_narrator
+        if scene.get("controlnet_weight") is None and scene["use_controlnet"]:
+            scene["controlnet_weight"] = DEFAULT_CONTROLNET_WEIGHT
+
+        if scene.get("use_ip_adapter") is None:
+            scene["use_ip_adapter"] = bool(character_id) and not is_narrator
+        if scene.get("ip_adapter_weight") is None and scene["use_ip_adapter"]:
+            scene["ip_adapter_weight"] = DEFAULT_IP_ADAPTER_WEIGHT
+
+        if scene.get("multi_gen_enabled") is None:
+            scene["multi_gen_enabled"] = DEFAULT_MULTI_GEN_ENABLED
+
+    populated = sum(1 for s in scenes if s.get("use_controlnet") or s.get("use_ip_adapter"))
+    logger.info("[Finalize] Scene flags populated: %d/%d scenes with generation overrides", populated, len(scenes))
+
+
 def _flatten_tts_designs(scenes: list[dict]) -> None:
     """tts_design dict → voice_design_prompt, head_padding, tail_padding 분해."""
     for scene in scenes:
@@ -183,6 +221,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     _validate_controlnet_poses(scenes)
     _validate_ip_adapter_weights(scenes)
     _validate_ken_burns_presets(scenes)
+    _auto_populate_scene_flags(scenes, state.get("character_id"))
     _flatten_tts_designs(scenes)
 
     # Duration 최종 보정 (Review/Revise 경유 후에도 부족할 수 있음)

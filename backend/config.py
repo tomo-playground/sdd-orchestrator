@@ -324,6 +324,16 @@ RENDER_TASK_TTL_SECONDS = int(os.getenv("RENDER_TASK_TTL_SECONDS", "1800"))
 # --- Text Extraction Defaults ---
 CAPTION_MAX_LENGTH = int(os.getenv("CAPTION_MAX_LENGTH", "60"))
 
+# --- Per-Scene Generation Defaults (SSOT) ---
+# Global defaults for per-scene generation flags.
+# Finalize node uses these when auto-populating scene flags.
+# Frontend receives via /presets API → generation_defaults.
+DEFAULT_USE_CONTROLNET = True
+DEFAULT_CONTROLNET_WEIGHT = 0.8
+DEFAULT_USE_IP_ADAPTER = False
+DEFAULT_IP_ADAPTER_WEIGHT = 0.7
+DEFAULT_MULTI_GEN_ENABLED = False
+
 # --- IP-Adapter Defaults ---
 # Default IP-Adapter settings (per-character overrides stored in DB)
 # weight=0.35: POC 30-scene 실험 검증값 (clip_face + no BREAK 최적)

@@ -4,7 +4,10 @@ from unittest.mock import MagicMock, patch
 
 from schemas import SceneGenerateRequest
 from services.generation_context import GenerationContext
-from services.generation_prompt import _resolve_style_loras, apply_style_profile_to_prompt
+from services.generation_prompt import (
+    _resolve_style_loras,
+    apply_style_profile_to_prompt,
+)
 from services.generation_prompt import prepare_prompt as _prepare_prompt
 
 
@@ -576,3 +579,84 @@ class TestNarratorBackgroundFiltering:
         # no_humans auto-injected → V3 background composition called
         mock_compose.assert_called_once()
         assert "no_humans" in req.prompt
+
+
+# ────────────────────────────────────────────
+# Safe Tags replacement (_apply_safe_tag_replacement)
+# ────────────────────────────────────────────
+
+
+class TestSafeTagReplacement:
+    """Test _apply_safe_tag_replacement post-processing."""
+
+    @patch("services.generation_prompt.TagAliasCache")
+    def test_replaces_risky_tag(self, mock_cache_cls):
+        from services.generation_prompt import _apply_safe_tag_replacement
+
+        mock_cache_cls.get_replacement.side_effect = lambda t: ("cowboy_shot" if t == "medium_shot" else ...)
+        result = _apply_safe_tag_replacement("1girl, medium_shot, standing", MagicMock())
+        assert "cowboy_shot" in result
+        assert "medium_shot" not in result
+
+    @patch("services.generation_prompt.TagAliasCache")
+    def test_preserves_lora_tags(self, mock_cache_cls):
+        from services.generation_prompt import _apply_safe_tag_replacement
+
+        mock_cache_cls.get_replacement.return_value = ...
+        result = _apply_safe_tag_replacement("1girl, <lora:test:0.8>, standing", MagicMock())
+        assert "<lora:test:0.8>" in result
+
+    @patch("services.generation_prompt.TagAliasCache")
+    def test_removes_null_mapped_tag(self, mock_cache_cls):
+        from services.generation_prompt import _apply_safe_tag_replacement
+
+        mock_cache_cls.get_replacement.side_effect = lambda t: (None if t == "bad_tag" else ...)
+        result = _apply_safe_tag_replacement("1girl, bad_tag, standing", MagicMock())
+        assert "bad_tag" not in result
+        assert "1girl" in result
+        assert "standing" in result
+
+    @patch("services.generation_prompt.TagAliasCache")
+    def test_idempotent(self, mock_cache_cls):
+        from services.generation_prompt import _apply_safe_tag_replacement
+
+        mock_cache_cls.get_replacement.return_value = ...
+        prompt = "1girl, cowboy_shot, standing"
+        result = _apply_safe_tag_replacement(prompt, MagicMock())
+        assert result == prompt
+
+
+# ────────────────────────────────────────────
+# Auto Rewrite (_apply_auto_rewrite)
+# ────────────────────────────────────────────
+
+
+class TestAutoRewrite:
+    """Test _apply_auto_rewrite post-processing."""
+
+    @patch("services.generation_prompt.rewrite_prompt")
+    def test_calls_gemini_and_returns_rewritten(self, mock_rewrite):
+        from services.generation_prompt import _apply_auto_rewrite
+
+        mock_rewrite.return_value = {"prompt": "improved, 1girl, standing, park"}
+        result = _apply_auto_rewrite("1girl, standing")
+        assert result == "improved, 1girl, standing, park"
+        mock_rewrite.assert_called_once()
+
+    @patch("services.generation_prompt.rewrite_prompt")
+    def test_fallback_on_error(self, mock_rewrite):
+        from services.generation_prompt import _apply_auto_rewrite
+
+        mock_rewrite.side_effect = Exception("Gemini unavailable")
+        result = _apply_auto_rewrite("1girl, standing")
+        assert result == "1girl, standing"
+
+    @patch("services.generation_prompt.rewrite_prompt")
+    def test_preserves_lora_tokens_after_rewrite(self, mock_rewrite):
+        from services.generation_prompt import _apply_auto_rewrite
+
+        # Gemini returns rewritten prompt WITHOUT LoRA
+        mock_rewrite.return_value = {"prompt": "improved, 1girl, park"}
+        result = _apply_auto_rewrite("1girl, <lora:test:0.8>, standing")
+        assert "<lora:test:0.8>" in result
+        assert "improved" in result

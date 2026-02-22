@@ -8,8 +8,13 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from config import (
+    DEFAULT_CONTROLNET_WEIGHT,
+    DEFAULT_IP_ADAPTER_WEIGHT,
+    DEFAULT_MULTI_GEN_ENABLED,
     DEFAULT_SPEAKER,
     DEFAULT_STRUCTURE,
+    DEFAULT_USE_CONTROLNET,
+    DEFAULT_USE_IP_ADAPTER,
     SD_DEFAULT_CFG_SCALE,
     SD_DEFAULT_HEIGHT,
     SD_DEFAULT_SAMPLER,
@@ -601,6 +606,9 @@ class SceneGenerateRequest(BaseModel):
     scene_id: int | None = None
     # Explicit V3 composition flag (True when frontend /prompt/compose already ran V3)
     prompt_pre_composed: bool = False
+    # Post-processing toggles (wired from frontend OPTIONS panel)
+    auto_rewrite_prompt: bool = False
+    auto_replace_risky_tags: bool = False
     # Warnings field to return messages from backend
     warnings: list[str] | None = None
 
@@ -1581,12 +1589,23 @@ class ReadingSpeedConfig(BaseModel):
     unit: str  # "chars" or "words"
 
 
+class GenerationDefaults(BaseModel):
+    """Per-scene generation flag defaults (SSOT from config.py)."""
+
+    use_controlnet: bool = DEFAULT_USE_CONTROLNET
+    controlnet_weight: float = DEFAULT_CONTROLNET_WEIGHT
+    use_ip_adapter: bool = DEFAULT_USE_IP_ADAPTER
+    ip_adapter_weight: float = DEFAULT_IP_ADAPTER_WEIGHT
+    multi_gen_enabled: bool = DEFAULT_MULTI_GEN_ENABLED
+
+
 class PresetListResponse(BaseModel):
     presets: list[PresetSummary]
     languages: list[LanguageOption]
     durations: list[int]
     reading_speed: dict[str, ReadingSpeedConfig] = {}
     optional_steps: list[str] = []
+    generation_defaults: GenerationDefaults | None = None
 
 
 class PresetTopicsResponse(BaseModel):

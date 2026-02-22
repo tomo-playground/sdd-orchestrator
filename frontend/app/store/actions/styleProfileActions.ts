@@ -186,7 +186,10 @@ async function createNewStoryboard(
  */
 let _loadingProfileId: number | null = null;
 
-export async function loadStyleProfileFromId(profileId: number): Promise<void> {
+export async function loadStyleProfileFromId(
+  profileId: number,
+  options?: { skipHiResSync?: boolean }
+): Promise<void> {
   if (_loadingProfileId === profileId) return;
   _loadingProfileId = profileId;
 
@@ -209,8 +212,10 @@ export async function loadStyleProfileFromId(profileId: number): Promise<void> {
       },
     });
 
-    // Sync Hi-Res toggle from StyleProfile default (both ON and OFF)
-    useStoryboardStore.getState().set({ hiResEnabled: !!profile.default_enable_hr });
+    // Sync Hi-Res toggle from StyleProfile default (skip during DB storyboard reload)
+    if (!options?.skipHiResSync) {
+      useStoryboardStore.getState().set({ hiResEnabled: !!profile.default_enable_hr });
+    }
 
     await changeSdModel(
       {

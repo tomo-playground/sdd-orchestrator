@@ -10,10 +10,12 @@ import re
 from typing import TYPE_CHECKING
 
 from config import FACEID_SUPPRESS_TAGS, FACEID_SUPPRESS_WEIGHT, logger
-from schemas import SceneGenerateRequest
+from schemas import PromptRewriteRequest, SceneGenerateRequest
 from services.generation_style import apply_style_profile_to_prompt
 from services.image_generation_core import compose_scene_with_style
-from services.prompt import normalize_prompt_tokens
+from services.keywords.db_cache import TagAliasCache
+from services.prompt import normalize_prompt_tokens, split_prompt_tokens
+from services.prompt.prompt import rewrite_prompt
 
 if TYPE_CHECKING:
     from services.generation_context import GenerationContext
@@ -250,6 +252,69 @@ def _handle_ip_adapter_reverse_lookup(request: SceneGenerateRequest, db, ctx: Ge
         ctx.prompt = normalize_prompt_tokens(request.prompt)
 
 
+# ── Post-processing: Safe Tags + Auto Rewrite ─────────────────────
+
+
+def _apply_safe_tag_replacement(prompt: str, db) -> str:
+    """Replace risky tags using TagAliasCache. LoRA tags are preserved.
+
+    Idempotent: already-replaced tags pass through unchanged.
+    """
+
+    TagAliasCache.initialize(db)
+    tokens = split_prompt_tokens(prompt)
+    result: list[str] = []
+    for token in tokens:
+        if token.startswith("<lora:") or token.startswith("BREAK"):
+            result.append(token)
+            continue
+        replacement = TagAliasCache.get_replacement(token.strip())
+        if replacement is ...:
+            result.append(token)
+        elif replacement is None:
+            logger.info("[SafeTags] Dropped risky tag: %s", token)
+            continue
+        else:
+            if replacement != token.strip():
+                logger.info("[SafeTags] Replaced: %s → %s", token.strip(), replacement)
+            result.append(replacement)
+    return ", ".join(result)
+
+
+def _apply_auto_rewrite(prompt: str) -> str:
+    """Rewrite prompt via Gemini, preserving LoRA/identity tokens.
+
+    Falls back to original prompt on any error (silent fallback).
+    """
+
+    tokens = split_prompt_tokens(prompt)
+    lora_tokens = [t for t in tokens if t.startswith("<lora:")]
+    scene_tokens = [t for t in tokens if not t.startswith("<lora:")]
+
+    base_prompt = ", ".join(lora_tokens) if lora_tokens else ""
+    scene_prompt = ", ".join(scene_tokens)
+
+    try:
+        rewrite_req = PromptRewriteRequest(
+            base_prompt=base_prompt or scene_prompt,
+            scene_prompt=scene_prompt,
+            mode="compose",
+        )
+        result = rewrite_prompt(rewrite_req)
+        rewritten = result.get("prompt", "")
+        if rewritten:
+            # Defense: re-inject LoRA tokens if Gemini dropped them
+            if lora_tokens:
+                for lt in lora_tokens:
+                    if lt not in rewritten:
+                        rewritten = f"{rewritten}, {lt}"
+            logger.info("[AutoRewrite] Prompt rewritten by Gemini (%d→%d chars)", len(prompt), len(rewritten))
+            return rewritten
+    except Exception as e:
+        logger.warning("[AutoRewrite] Gemini rewrite failed, using original: %s", e)
+    return prompt
+
+
 # ── Main orchestrator ───────────────────────────────────────────────
 
 
@@ -324,6 +389,12 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     # Store composed prompt, then run reverse lookup (may overwrite ctx.prompt/character)
     ctx.prompt = cleaned_prompt
     _handle_ip_adapter_reverse_lookup(request, db, ctx)
+
+    # Post-processing: Safe Tags → Auto Rewrite (before FaceID suppression)
+    if request.auto_replace_risky_tags:
+        ctx.prompt = _apply_safe_tag_replacement(ctx.prompt, db)
+    if request.auto_rewrite_prompt:
+        ctx.prompt = _apply_auto_rewrite(ctx.prompt)
 
     # Phase 3-B: Suppress face tags when FaceID is active
     ctx.prompt = suppress_face_tags_for_faceid(ctx.prompt, strategy.ip_adapter_model)

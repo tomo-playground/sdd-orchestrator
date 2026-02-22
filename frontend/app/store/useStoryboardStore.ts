@@ -8,6 +8,7 @@ import type {
   ImageValidation,
   ImageGenProgress,
 } from "../types";
+import type { GenerationDefaults } from "../hooks/usePresets";
 import { DEFAULT_STRUCTURE } from "../constants";
 import { generateSceneClientId } from "../utils/uuid";
 
@@ -94,12 +95,20 @@ export interface StoryboardStore {
   updateScene: (clientId: string, updates: Partial<Scene>) => void;
   removeScene: (clientId: string) => void;
   reorderScenes: (fromIndex: number, toIndex: number) => void;
+  applyGenerationDefaults: (defaults: GenerationDefaults) => void;
   reset: () => void;
 }
 
 const initialState: Omit<
   StoryboardStore,
-  "set" | "setScenes" | "updateScene" | "removeScene" | "reorderScenes" | "reset" | "isDirty"
+  | "set"
+  | "setScenes"
+  | "updateScene"
+  | "removeScene"
+  | "reorderScenes"
+  | "applyGenerationDefaults"
+  | "reset"
+  | "isDirty"
 > = {
   // Content plan fields
   topic: "",
@@ -227,6 +236,14 @@ export const useStoryboardStore = create<StoryboardStore>()(
             isDirty: true,
           };
         }),
+      applyGenerationDefaults: (defaults: GenerationDefaults) =>
+        set(() => ({
+          useControlnet: defaults.use_controlnet,
+          controlnetWeight: defaults.controlnet_weight,
+          useIpAdapter: defaults.use_ip_adapter,
+          ipAdapterWeight: defaults.ip_adapter_weight,
+          multiGenEnabled: defaults.multi_gen_enabled,
+        })),
       reset: () => set({ ...initialState, isDirty: false }),
     }),
     {

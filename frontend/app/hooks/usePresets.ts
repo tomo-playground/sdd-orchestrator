@@ -16,6 +16,13 @@ export type Preset = {
 export type LangOption = { value: string; label: string };
 export type StepMetadata = { key: string; label: string; desc: string };
 export type ReadingSpeedConfig = { cps?: number; wps?: number; unit: string };
+export type GenerationDefaults = {
+  use_controlnet: boolean;
+  controlnet_weight: number;
+  use_ip_adapter: boolean;
+  ip_adapter_weight: number;
+  multi_gen_enabled: boolean;
+};
 
 export function usePresets(skip = false) {
   const [presets, setPresets] = useState<Preset[]>([]);
@@ -24,6 +31,7 @@ export function usePresets(skip = false) {
   const [readingSpeed, setReadingSpeed] = useState<Record<string, ReadingSpeedConfig>>({});
   const [optionalSteps, setOptionalSteps] = useState<string[]>([]);
   const [pipelineMetadata, setPipelineMetadata] = useState<StepMetadata[]>([]);
+  const [generationDefaults, setGenerationDefaults] = useState<GenerationDefaults | null>(null);
 
   useEffect(() => {
     if (skip) return;
@@ -36,9 +44,18 @@ export function usePresets(skip = false) {
         if (data?.reading_speed) setReadingSpeed(data.reading_speed);
         if (Array.isArray(data?.optional_steps)) setOptionalSteps(data.optional_steps);
         if (Array.isArray(data?.pipeline_metadata)) setPipelineMetadata(data.pipeline_metadata);
+        if (data?.generation_defaults) setGenerationDefaults(data.generation_defaults);
       })
       .catch((err) => console.error("[usePresets] fetch failed:", err));
   }, [skip]);
 
-  return { presets, languages, durations, readingSpeed, optionalSteps, pipelineMetadata };
+  return {
+    presets,
+    languages,
+    durations,
+    readingSpeed,
+    optionalSteps,
+    pipelineMetadata,
+    generationDefaults,
+  };
 }

@@ -30,8 +30,12 @@ export type SceneItem = {
   image_url: string | null;
   context_tags?: Record<string, string | string[]>;
   character_actions?: Scene["character_actions"];
+  use_controlnet?: boolean | null;
+  controlnet_weight?: number | null;
   controlnet_pose?: string | null;
+  use_ip_adapter?: boolean | null;
   ip_adapter_weight?: number | null;
+  multi_gen_enabled?: boolean | null;
   negative_prompt_extra?: string | null;
   voice_design_prompt?: string | null;
   head_padding?: number | null;
@@ -117,8 +121,12 @@ function mapEventScenes(scenes: Scene[]): SceneItem[] {
     image_url: s.image_url ?? null,
     context_tags: s.context_tags ?? undefined,
     character_actions: s.character_actions ?? undefined,
+    use_controlnet: s.use_controlnet ?? undefined,
+    controlnet_weight: s.controlnet_weight ?? undefined,
     controlnet_pose: s.controlnet_pose ?? undefined,
+    use_ip_adapter: s.use_ip_adapter ?? undefined,
     ip_adapter_weight: s.ip_adapter_weight ?? undefined,
+    multi_gen_enabled: s.multi_gen_enabled ?? undefined,
     negative_prompt_extra: s.negative_prompt_extra ?? undefined,
     voice_design_prompt: s.voice_design_prompt ?? undefined,
     head_padding: s.head_padding ?? undefined,
@@ -156,8 +164,12 @@ function syncToGlobalStore(scenes: SceneItem[], meta: SyncMeta) {
     debug_payload: "",
     context_tags: s.context_tags,
     character_actions: s.character_actions,
+    use_controlnet: s.use_controlnet,
+    controlnet_weight: s.controlnet_weight,
     controlnet_pose: s.controlnet_pose,
+    use_ip_adapter: s.use_ip_adapter,
     ip_adapter_weight: s.ip_adapter_weight,
+    multi_gen_enabled: s.multi_gen_enabled,
     negative_prompt_extra: s.negative_prompt_extra,
     voice_design_prompt: s.voice_design_prompt,
     head_padding: s.head_padding,
@@ -635,7 +647,12 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           duration: s.duration,
           image_prompt: s.image_prompt,
           image_prompt_ko: s.image_prompt_ko,
+          use_controlnet: s.use_controlnet ?? null,
+          controlnet_weight: s.controlnet_weight ?? null,
           controlnet_pose: s.controlnet_pose ?? null,
+          use_ip_adapter: s.use_ip_adapter ?? null,
+          ip_adapter_weight: s.ip_adapter_weight ?? null,
+          multi_gen_enabled: s.multi_gen_enabled ?? null,
           voice_design_prompt: s.voice_design_prompt ?? null,
           head_padding: s.head_padding ?? null,
           tail_padding: s.tail_padding ?? null,
@@ -722,8 +739,12 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           image_url: s.image_url ?? null,
           context_tags: s.context_tags ?? undefined,
           character_actions: s.character_actions ?? undefined,
+          use_controlnet: s.use_controlnet ?? undefined,
+          controlnet_weight: s.controlnet_weight ?? undefined,
           controlnet_pose: s.controlnet_pose ?? undefined,
+          use_ip_adapter: s.use_ip_adapter ?? undefined,
           ip_adapter_weight: s.ip_adapter_weight ?? undefined,
+          multi_gen_enabled: s.multi_gen_enabled ?? undefined,
           negative_prompt_extra: s.negative_prompt_extra ?? undefined,
           voice_design_prompt: s.voice_design_prompt ?? undefined,
           head_padding: s.head_padding ?? undefined,

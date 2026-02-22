@@ -107,6 +107,8 @@ export async function generateSceneImageFor(
     background_id: scene.background_id || undefined,
     prompt_pre_composed: autoComposePrompt && !!selectedCharacterId,
     style_loras: sbState.characterLoras || [],
+    auto_rewrite_prompt: sbState.autoRewritePrompt,
+    auto_replace_risky_tags: sbState.autoReplaceRiskyTags,
   };
 
   const debugPayload = { ...requestPayload };

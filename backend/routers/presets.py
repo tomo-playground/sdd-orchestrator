@@ -20,7 +20,14 @@ async def list_presets():
 
     Returns presets with sample topics, default settings, and option lists.
     """
-    from config import READING_SPEED
+    from config import (  # noqa: PLC0415
+        DEFAULT_CONTROLNET_WEIGHT,
+        DEFAULT_IP_ADAPTER_WEIGHT,
+        DEFAULT_MULTI_GEN_ENABLED,
+        DEFAULT_USE_CONTROLNET,
+        DEFAULT_USE_IP_ADAPTER,
+        READING_SPEED,
+    )
 
     return {
         "presets": get_all_presets(),
@@ -29,6 +36,13 @@ async def list_presets():
         "reading_speed": READING_SPEED,
         "optional_steps": [],
         "pipeline_metadata": [],
+        "generation_defaults": {
+            "use_controlnet": DEFAULT_USE_CONTROLNET,
+            "controlnet_weight": DEFAULT_CONTROLNET_WEIGHT,
+            "use_ip_adapter": DEFAULT_USE_IP_ADAPTER,
+            "ip_adapter_weight": DEFAULT_IP_ADAPTER_WEIGHT,
+            "multi_gen_enabled": DEFAULT_MULTI_GEN_ENABLED,
+        },
     }
 
 

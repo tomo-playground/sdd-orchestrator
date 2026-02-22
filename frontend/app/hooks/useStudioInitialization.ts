@@ -69,6 +69,17 @@ export function useStudioInitialization() {
         setPlan({ selectedCharacterId: effectiveCharacterId });
       }
 
+      // Apply backend generation defaults to freshly reset store
+      try {
+        const res = await fetch(`${API_BASE}/presets`);
+        const data = await res.json();
+        if (data?.generation_defaults) {
+          useStoryboardStore.getState().applyGenerationDefaults(data.generation_defaults);
+        }
+      } catch {
+        // silent — initialState fallback values are used
+      }
+
       // Clear URL params (prevents searchParams re-trigger)
       const url = new URL(window.location.href);
       url.searchParams.delete("new");
@@ -176,7 +187,7 @@ export function useStudioInitialization() {
         }
         if (data.style_profile_id) {
           setLoadedProfileId(data.style_profile_id);
-          parallelLoads.push(loadStyleProfileFromId(data.style_profile_id));
+          parallelLoads.push(loadStyleProfileFromId(data.style_profile_id, { skipHiResSync: true }));
         } else {
           setLoadedProfileId(null);
           setNeedsStyleProfile(true);
