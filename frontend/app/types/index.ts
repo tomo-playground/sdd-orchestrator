@@ -82,9 +82,11 @@ export type Scene = {
   // Per-scene generation settings override (null = inherit global)
   use_controlnet?: boolean | null;
   controlnet_weight?: number | null;
+  controlnet_pose?: string | null;
   use_ip_adapter?: boolean | null;
   ip_adapter_reference?: string | null;
   ip_adapter_weight?: number | null;
+  negative_prompt_extra?: string | null;
   multi_gen_enabled?: boolean | null;
   // Auto-pin flag from backend (Gemini context_tags analysis)
   _auto_pin_previous?: boolean;

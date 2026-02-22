@@ -41,7 +41,7 @@ def final_audit():
 
     missing_targets = []
     for tag, count in tag_counts.most_common(100):
-        is_supported = detect_pose_from_prompt([tag]) is not None
+        is_supported = detect_pose_from_prompt(tag) is not None
         # Heuristic for action/pose tags
         if any(kw in tag for kw in ["standing", "sitting", "lying", "kneeling", "crouching", "running", "walking", "jumping", "pose", "action", "looking", "facing", "view"]):
             status = "✅ Supported" if is_supported else "❌ MISSING"

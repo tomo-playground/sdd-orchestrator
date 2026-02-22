@@ -71,6 +71,32 @@ POSE_MAPPING: dict[str, str] = {
     "sitting eating": "sitting_eating.png",
 }
 
+# Poses that require IP-Adapter weight reduction to avoid reference-pose conflict.
+# Omitted poses default to "front" direction (max weight = 1.0).
+POSE_DIRECTION: dict[str, str] = {
+    "from behind": "back",
+    "profile standing": "side",
+    "walking": "side",
+    "leaning wall": "side",
+}
+
+IP_ADAPTER_WEIGHT_CLAMP: dict[str, float] = {
+    "back": 0.2,
+    "side": 0.5,
+    "front": 1.0,
+}
+
+
+def clamp_ip_adapter_weight(weight: float, pose_name: str | None) -> float:
+    """Clamp IP-Adapter weight based on pose direction to avoid reference conflict."""
+    direction = POSE_DIRECTION.get(pose_name or "", "front")
+    max_w = IP_ADAPTER_WEIGHT_CLAMP.get(direction, 1.0)
+    if weight > max_w:
+        logger.info("[IP-Adapter Clamp] %.2f -> %.2f (pose=%s)", weight, max_w, pose_name)
+        return max_w
+    return weight
+
+
 # ControlNet models
 CONTROLNET_MODELS = {
     "openpose": "control_v11p_sd15_openpose [cab727d4]",
@@ -139,103 +165,16 @@ def load_pose_reference(pose_name: str) -> str | None:
         return None
 
 
-def detect_pose_from_prompt(prompt_tags: list[str]) -> str | None:
-    """Detect the primary pose from prompt tags.
-
-    Args:
-        prompt_tags: List of tags from the prompt
-
-    Returns:
-        Detected pose name or None
-    """
-    # Priority order for pose detection (specific actions before generic)
-    pose_priority = [
-        "eating",
-        "cooking",
-        "writing",
-        "holding umbrella",
-        "holding object",
-        "waving",
-        "arms up",
-        "thumbs up",
-        "arms crossed",
-        "hands on hips",
-        "jumping",
-        "running",
-        "walking",
-        "sitting eating",
-        "leaning wall",
-        "standing looking up",
-        "profile standing",
-        "chin rest",
-        "leaning",
-        "covering face",
-        "pointing forward",
-        "lying",
-        "kneeling",
-        "crouching",
-        "looking at viewer",
-        "from behind",
-        "sitting",
-        "standing",
-    ]
-
-    # Synonyms mapping for more robust detection
-    pose_synonyms = {
-        "waving": ["wave", "greeting", "signaling"],
-        "thumbs up": ["thumbs_up", "thumb_up", "good_sign", "approval", "like"],
-        "arms up": ["hands up", "raising hands", "stretching", "cheering"],
-        "arms crossed": ["folding arms", "crossed arms"],
-        "hands on hips": ["akimbo", "power pose"],
-        "looking at viewer": ["looking at camera", "frontal view", "face to face", "looking_at_viewer"],
-        "from behind": ["back view", "looking away", "from back", "backview"],
-        "jumping": ["jump", "leap", "leaping"],
-        "lying": ["laying", "sleeping", "prone", "laying_down", "lying_down"],
-        "kneeling": ["on knees", "on_knees", "kneel"],
-        "crouching": ["squatting", "hiding", "squat", "crouch"],
-        "pointing forward": ["pointing", "pointing_forward", "reaching"],
-        "covering face": ["crying", "shy", "embarrassed", "covering_eyes", "covering_face"],
-        "running": ["run", "sprinting", "jogging", "chasing"],
-        "walking": ["walk", "stroll", "strolling"],
-        "sitting": ["seated", "sits", "chair", "bench", "couch", "sofa"],
-        "standing": ["stands", "wait", "waiting"],
-        "holding object": ["holding", "carrying", "gripping"],
-        "eating": ["eating", "chewing", "chopsticks"],
-        "cooking": ["cooking", "chef", "preparing_food"],
-        "holding umbrella": ["umbrella", "holding_umbrella", "parasol"],
-        "writing": ["writing", "drawing", "sketching", "pencil"],
-        "profile standing": ["profile", "side_view", "side_profile"],
-        "standing looking up": ["looking_up", "low_angle", "gazing_up"],
-        "leaning wall": ["leaning_against_wall", "leaning_on_wall", "wall_lean"],
-        "sitting eating": ["sitting_eating", "dining", "meal"],
-    }
-
-    cleaned_tags = []
-    for tag in prompt_tags:
-        # Robust cleaning: remove (), [], and weight suffix
-        import re
-
-        clean = re.sub(r"[\(\)\[\]]", "", tag).split(":")[0].strip().lower()
-        # Handle underscores
-        clean = clean.replace("_", " ")
-        cleaned_tags.append(clean)
-
-    for pose in pose_priority:
-        # Check exact match
-        if pose in cleaned_tags:
-            return pose
-
-        # Check synonyms
-        if pose in pose_synonyms:
-            for synonym in pose_synonyms[pose]:
-                if synonym in prompt_tags:
-                    return pose
-                # Check for partial match in tags (e.g. "walking away" matches "walking")
-                for tag in prompt_tags:
-                    if synonym in tag or pose in tag:
-                        return pose
-
-    return None
+def detect_pose_from_prompt(prompt: str) -> str | None:
+    """Fallback: 프롬프트에서 POSE_MAPPING 키를 정확히 매칭 (longest-match 우선)."""
+    prompt_lower = prompt.lower()
+    best: str | None = None
+    best_len = 0
+    for pose_name in POSE_MAPPING:
+        if pose_name in prompt_lower and len(pose_name) > best_len:
+            best = pose_name
+            best_len = len(pose_name)
+    return best
 
 
 def build_controlnet_args(

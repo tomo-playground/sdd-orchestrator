@@ -19,6 +19,9 @@
 
 ### 최근 작업
 
+- **LLM 하드코딩 제거 3종** (02-22): Phase 14-A. (1) `negative_prompt_extra` — Cinematographer가 씬별 배제 태그 직접 결정, Finalize에서 기본 negative와 병합. (2) `detect_pose_from_prompt()` 96줄→10줄 단순화 — synonym 77개 삭제, LLM이 포즈를 직접 선택하므로 exact longest-match fallback만 유지. (3) Environment 정규화 — `context_tags.setting`→`environment` 통일, `_check_keyword_conflict()` 8개 키워드 삭제. 신규 테스트 10개, 전체 98개 PASS
+- **Zustand isDirty subscribe + debounce 자동 저장** (02-22): `updateScene`/`setScenes` 후 수동 `saveStoryboard()` 누락으로 DB 미저장되던 반복 버그 방지. `store/effects/autoSave.ts` 신규 모듈 — isDirty `false→true` 변경 감지 → 2초 debounce → `persistStoryboard()`. isSaving guard + 저장 완료 후 재확인. sceneActions/batchActions/imageActions 수동 save 6곳 제거, 즉시 저장 필요한 곳(upload/edit/generate) 유지. 테스트 6개
+- **SSE 이벤트에 controlnet_pose/ip_adapter_reference 전달** (02-22): 이미지 생성 결과의 ControlNet pose/IP-Adapter reference 정보를 SSE `ImageProgressEvent` → Frontend `processGeneratedImages` → Zustand 스토어에 전달. auto-save와 결합하여 DB 자동 저장. Backend 스키마+라우터, Frontend 타입+처리 로직. 테스트 4개
 - **character_actions DB 미저장 수정** (02-22): `mapEventScenes()`/`syncToGlobalStore()`에서 `context_tags`/`character_actions` 매핑 누락 → 파이프라인이 생성한 데이터가 Frontend→Backend 저장 시 유실되던 버그 수정
 - **Safety Filter 에러 Frontend 미표시 수정** (02-22): revise 노드 에러 시 review→finalize→explain→learn 체인이 에러를 삼키는 문제. `route_after_revise()` short-circuit 추가, `route_after_finalize()` 에러 시 explain 스킵, learn 에러 전파, Frontend 에러 스텝 보호. 테스트 5건
 - **레거시 mode 필드 완전 제거** (02-22): Stage-Level Skip 전환 후 잔존하던 `mode: "quick"|"full"` 필드 제거. config_pipelines(DEFAULT_MODE+레거시 프리셋), schemas(2필드), routers/scripts(fallback), state(TypedDict), learn(메타데이터→skip_stages), critic(context). 테스트 14파일 `skip_stages` 전환. 22파일 수정
@@ -168,6 +171,14 @@ graph LR
 | 1 | Cinematographer 템플릿 Available Poses 28개 전체 명시 | ✅ (02-22) |
 | 2 | Finalize context_tags 누락 시 기본 pose/gaze 주입 | ✅ (02-22) |
 | 3 | auto_populate 태그 카테고리 검증 (category mismatch 방지) | ✅ (02-22) |
+
+### Phase 14-A: LLM 하드코딩 제거 (완료 02-22, 3/3)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | 씬별 LLM Negative Prompt (`negative_prompt_extra` 필드, Finalize 병합) | ✅ (02-22) |
+| 2 | `detect_pose_from_prompt()` 단순화 (synonym 삭제, exact longest-match) | ✅ (02-22) |
+| 3 | Environment Consistency 정규화 (`setting`→`environment`, keyword 충돌 삭제) | ✅ (02-22) |
 
 ---
 

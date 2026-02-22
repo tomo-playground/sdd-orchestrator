@@ -13,10 +13,13 @@ if TYPE_CHECKING:
 
 
 def _inject_negative_prompts(scenes: list[dict]) -> None:
-    """빈 negative_prompt에 기본값을 주입한다."""
+    """빈 negative_prompt에 기본값을 주입하고, LLM의 negative_prompt_extra를 병합한다."""
     for scene in scenes:
-        if not scene.get("negative_prompt"):
-            scene["negative_prompt"] = DEFAULT_SCENE_NEGATIVE_PROMPT
+        base = scene.get("negative_prompt") or DEFAULT_SCENE_NEGATIVE_PROMPT
+        extra = scene.get("negative_prompt_extra")
+        if extra:
+            base = f"{base}, {extra}"
+        scene["negative_prompt"] = base
 
 
 def _merge_production_results(state: ScriptState) -> tuple[list[dict], dict | None, dict | None]:
@@ -68,6 +71,47 @@ def _inject_default_context_tags(scenes: list[dict]) -> None:
             ctx["expression"] = DEFAULT_EXPRESSION_TAG
 
 
+def _normalize_environment_tags(scenes: list[dict]) -> None:
+    """context_tags.setting → context_tags.environment 정규화."""
+    for scene in scenes:
+        ctx = scene.get("context_tags")
+        if not ctx:
+            continue
+        if "setting" in ctx and "environment" not in ctx:
+            ctx["environment"] = ctx.pop("setting")
+
+
+def _validate_controlnet_poses(scenes: list[dict]) -> None:
+    """controlnet_pose 값이 POSE_MAPPING 키에 있는지 검증. 무효 시 None 리셋."""
+    from services.controlnet import POSE_MAPPING  # noqa: PLC0415
+
+    valid_poses = set(POSE_MAPPING.keys())
+    for scene in scenes:
+        pose = scene.get("controlnet_pose")
+        if not pose:
+            continue
+        if pose not in valid_poses:
+            # Gemini가 언더바 형식으로 반환할 수 있으므로 공백으로 변환 후 재검증
+            normalized = pose.replace("_", " ")
+            if normalized in valid_poses:
+                scene["controlnet_pose"] = normalized
+            else:
+                logger.warning("[Finalize] Invalid controlnet_pose '%s' → reset to None", pose)
+                scene["controlnet_pose"] = None
+
+
+def _validate_ip_adapter_weights(scenes: list[dict]) -> None:
+    """ip_adapter_weight 범위 [0.0, 1.0] 클램프."""
+    for scene in scenes:
+        w = scene.get("ip_adapter_weight")
+        if w is None:
+            continue
+        clamped = max(0.0, min(1.0, float(w)))
+        if clamped != w:
+            logger.warning("[Finalize] ip_adapter_weight %.2f → clamped to %.2f", w, clamped)
+            scene["ip_adapter_weight"] = clamped
+
+
 async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     """Quick: draft → final 패스스루. Full: Production 결과 병합 + character_actions 변환."""
     # 에러 상태이면 즉시 반환 (에러 메시지 보존)
@@ -85,6 +129,9 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
 
     _inject_negative_prompts(scenes)
     _inject_default_context_tags(scenes)
+    _normalize_environment_tags(scenes)
+    _validate_controlnet_poses(scenes)
+    _validate_ip_adapter_weights(scenes)
 
     # character_actions 변환: context_tags → ControlNet 포즈/표정 데이터
     character_id = state.get("character_id")

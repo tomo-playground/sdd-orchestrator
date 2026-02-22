@@ -113,7 +113,7 @@ async def detect_pose(request: PoseDetectRequest):
 @router.post("/suggest-pose")
 async def suggest_pose_for_tags(tags: list[str]):
     """Suggest a pose reference based on prompt tags."""
-    pose = detect_pose_from_prompt(tags)
+    pose = detect_pose_from_prompt(", ".join(tags))
     if pose:
         pose_b64 = load_pose_reference(pose)
         return {

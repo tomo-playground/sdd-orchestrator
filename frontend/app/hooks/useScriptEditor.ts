@@ -30,6 +30,9 @@ export type SceneItem = {
   image_url: string | null;
   context_tags?: Record<string, string | string[]>;
   character_actions?: Scene["character_actions"];
+  controlnet_pose?: string | null;
+  ip_adapter_weight?: number | null;
+  negative_prompt_extra?: string | null;
 };
 
 export type ScriptProgress = {
@@ -110,6 +113,9 @@ function mapEventScenes(scenes: Scene[]): SceneItem[] {
     image_url: s.image_url ?? null,
     context_tags: s.context_tags ?? undefined,
     character_actions: s.character_actions ?? undefined,
+    controlnet_pose: s.controlnet_pose ?? undefined,
+    ip_adapter_weight: s.ip_adapter_weight ?? undefined,
+    negative_prompt_extra: s.negative_prompt_extra ?? undefined,
   }));
 }
 
@@ -142,6 +148,9 @@ function syncToGlobalStore(scenes: SceneItem[], meta: SyncMeta) {
     debug_payload: "",
     context_tags: s.context_tags,
     character_actions: s.character_actions,
+    controlnet_pose: s.controlnet_pose,
+    ip_adapter_weight: s.ip_adapter_weight,
+    negative_prompt_extra: s.negative_prompt_extra,
   }));
   useStoryboardStore.getState().setScenes(mapped);
   const { characterId, characterName, characterBId, characterBName, ...rest } = meta;
@@ -695,6 +704,11 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           image_prompt: s.image_prompt ?? "",
           image_prompt_ko: s.image_prompt_ko ?? "",
           image_url: s.image_url ?? null,
+          context_tags: s.context_tags ?? undefined,
+          character_actions: s.character_actions ?? undefined,
+          controlnet_pose: s.controlnet_pose ?? undefined,
+          ip_adapter_weight: s.ip_adapter_weight ?? undefined,
+          negative_prompt_extra: s.negative_prompt_extra ?? undefined,
         }));
         setState((prev) => ({
           ...prev,

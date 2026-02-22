@@ -64,7 +64,7 @@ def analyze_pose_coverage():
     for tag, count in all_found_tags.most_common(500):
         # Heuristic to find pose-like tags
         if any(pk in tag for pk in pose_keywords) or "pose" in tag:
-            is_supported = detect_pose_from_prompt([tag]) is not None
+            is_supported = detect_pose_from_prompt(tag) is not None
             potential_poses.append((tag, count, is_supported))
 
     for tag, count, supported in sorted(potential_poses, key=lambda x: x[1], reverse=True)[:50]:

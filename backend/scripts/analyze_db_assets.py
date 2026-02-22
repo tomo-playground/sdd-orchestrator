@@ -47,7 +47,7 @@ def analyze_db_assets():
     print("-" * 50)
     for tag, count in token_counts.most_common(200):
         if any(k in tag for k in pose_keywords):
-            is_supported = detect_pose_from_prompt([tag]) is not None
+            is_supported = detect_pose_from_prompt(tag) is not None
             status = "✅ Supported" if is_supported else "❌ MISSING"
             print(f"{tag:30} | {count:6} | {status}")
 

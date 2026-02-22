@@ -129,9 +129,6 @@ STYLE_LORA_WEIGHT_CAP = float(os.getenv("STYLE_LORA_WEIGHT_CAP", "0.76"))
 # --- SD API Timeouts (lightweight operations) ---
 SD_API_TIMEOUT = float(os.getenv("SD_API_TIMEOUT", "10"))
 
-# --- Environment Pinning ---
-LOCATION_KEYWORDS = ("kitchen", "beach", "forest", "room", "office", "street", "indoors", "outdoors")
-
 # --- ControlNet Timeouts ---
 CONTROLNET_API_TIMEOUT = float(os.getenv("CONTROLNET_API_TIMEOUT", "10"))
 CONTROLNET_GENERATE_TIMEOUT = float(os.getenv("CONTROLNET_GENERATE_TIMEOUT", "180"))

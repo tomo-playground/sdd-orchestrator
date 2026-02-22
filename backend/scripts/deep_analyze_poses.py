@@ -55,7 +55,7 @@ def deep_analyze_poses():
     candidates = []
     for tag, count in tag_counts.most_common(1000):
         if any(kw in tag for kw in body_keywords):
-            is_supported = detect_pose_from_prompt([tag]) is not None
+            is_supported = detect_pose_from_prompt(tag) is not None
             candidates.append((tag, count, is_supported))
 
     # Show top 40 candidates

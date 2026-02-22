@@ -58,8 +58,7 @@ def _apply_pose_control(req: SceneGenerateRequest, ctx: GenerationContext, args:
     if not pose_name and req.scene_id and db:
         pose_name = _get_pose_from_character_actions(req.scene_id, db)
     if not pose_name:
-        prompt_tags = split_prompt_tokens(ctx.prompt)
-        pose_name = detect_pose_from_prompt(prompt_tags)
+        pose_name = detect_pose_from_prompt(ctx.prompt)
     if not pose_name:
         return
     pose_image = load_pose_reference(pose_name)
@@ -107,11 +106,15 @@ def _apply_ip_adapter(ctx: GenerationContext, strategy, args: list, db) -> None:
     ref_image = load_reference_image(strategy.ip_adapter_reference, db=db)
     if not ref_image:
         return
+    # Safety clamp: pose direction → weight limit
+    from services.controlnet import clamp_ip_adapter_weight  # noqa: PLC0415
+
+    effective_weight = clamp_ip_adapter_weight(strategy.ip_adapter_weight, ctx.controlnet_used)
     try:
         args.append(
             build_ip_adapter_args(
                 reference_image=ref_image,
-                weight=strategy.ip_adapter_weight,
+                weight=effective_weight,
                 model=strategy.ip_adapter_model,
                 guidance_start=strategy.ip_adapter_guidance_start,
                 guidance_end=strategy.ip_adapter_guidance_end,
@@ -174,11 +177,7 @@ def _detect_env_conflict(env_asset, request: SceneGenerateRequest, db) -> str | 
     if not ref_scene:
         return None
 
-    tag_conflict = _check_tag_conflict(ref_scene, request, db)
-    if tag_conflict:
-        return tag_conflict
-
-    return _check_keyword_conflict(ref_scene, request)
+    return _check_tag_conflict(ref_scene, request, db)
 
 
 def _check_tag_conflict(ref_scene, request: SceneGenerateRequest, db) -> str | None:
@@ -196,20 +195,6 @@ def _check_tag_conflict(ref_scene, request: SceneGenerateRequest, db) -> str | N
 
     if curr_env and not (ref_env & curr_env):
         return f"Location mismatch: {list(ref_env)} vs {list(curr_env)}"
-    return None
-
-
-def _check_keyword_conflict(ref_scene, request: SceneGenerateRequest) -> str | None:
-    """Check location keyword mismatch between reference and current scene."""
-    from config import LOCATION_KEYWORDS
-
-    loc_kws = LOCATION_KEYWORDS
-    ref_p = (ref_scene.image_prompt or "").lower()
-    curr_p = request.prompt.lower()
-
-    for kw in loc_kws:
-        if kw in ref_p and any(other for other in loc_kws if other != kw and other in curr_p):
-            return f"Keyword mismatch: Detected '{kw}' in reference but location changed in prompt"
     return None
 
 
