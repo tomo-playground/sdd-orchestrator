@@ -12,7 +12,7 @@ def load_tags_from_db() -> dict[str, list[str]]:
     """Load tags from database grouped by default_layer."""
     db = SessionLocal()
     try:
-        tags = db.query(Tag).order_by(Tag.default_layer, Tag.name).all()
+        tags = db.query(Tag).filter(Tag.is_active.is_(True)).order_by(Tag.default_layer, Tag.name).all()
         grouped: dict[str, list[str]] = {}
         for tag in tags:
             layer_key = f"layer_{tag.default_layer}"
@@ -24,10 +24,14 @@ def load_tags_from_db() -> dict[str, list[str]]:
         db.close()
 
 def load_allowed_tags_from_db() -> set[str]:
-    """Load all tag names from database as allowed set."""
+    """Load active tag names from database as allowed set.
+
+    NOTE: Only includes is_active=True tags. Deprecated tags are handled
+    separately by replace_deprecated_tags() in filter_prompt_tokens().
+    """
     db = SessionLocal()
     try:
-        tags = db.query(Tag.name).all()
+        tags = db.query(Tag.name).filter(Tag.is_active.is_(True)).all()
         return {normalize_prompt_token(t.name) for t in tags}
     finally:
         db.close()

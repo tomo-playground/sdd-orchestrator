@@ -102,8 +102,12 @@ def filter_prompt_tokens(prompt: str) -> str:
         return _get_normalize_prompt_tokens()(prompt)
 
     tokens = _get_split_prompt_tokens()(prompt)
+
+    # Replace deprecated tags with active replacements before filtering
+    tokens, dep_replacements = replace_deprecated_tags(tokens)
+
     cleaned, seen = [], set()
-    filtered_count, replaced_count = 0, 0
+    filtered_count, replaced_count = 0, len(dep_replacements)
 
     for token in tokens:
         normalized = normalize_prompt_token(token)
