@@ -113,8 +113,6 @@ async def preview_music(req: MusicPreviewRequest, db: Session = Depends(get_db))
     try:
         await get_musicgen_model_async()
 
-        loop = asyncio.get_event_loop()
-
         def _generate():
             return generate_music(
                 prompt=req.prompt,
@@ -122,7 +120,7 @@ async def preview_music(req: MusicPreviewRequest, db: Session = Depends(get_db))
                 seed=req.seed,
             )
 
-        wav_bytes, _sample_rate, actual_seed = await loop.run_in_executor(None, _generate)
+        wav_bytes, _sample_rate, actual_seed = await asyncio.to_thread(_generate)
 
         digest = hashlib.sha1(wav_bytes).hexdigest()[:16]
         file_name = f"music_preview_{digest}.wav"

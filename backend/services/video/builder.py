@@ -329,9 +329,7 @@ class VideoBuilder:
 
         from services.audio.music_generator import generate_music
 
-        loop = asyncio.get_event_loop()
-        wav_bytes, _, _ = await loop.run_in_executor(
-            None,
+        wav_bytes, _, _ = await asyncio.to_thread(
             lambda: generate_music(prompt=prompt, duration=duration, seed=seed),
         )
         out_path = self.temp_dir / "ai_bgm.wav"

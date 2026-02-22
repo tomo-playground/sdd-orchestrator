@@ -77,8 +77,7 @@ async def get_musicgen_model_async():
     async with _musicgen_lock:
         if _musicgen_model is not None:
             return _musicgen_model, _musicgen_processor
-        loop = asyncio.get_event_loop()
-        _musicgen_model, _musicgen_processor = await loop.run_in_executor(None, _load_musicgen)
+        _musicgen_model, _musicgen_processor = await asyncio.to_thread(_load_musicgen)
         return _musicgen_model, _musicgen_processor
 
 

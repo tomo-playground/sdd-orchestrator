@@ -338,7 +338,6 @@ async def generate_tts(
 
         import soundfile as sf
 
-        loop = asyncio.get_event_loop()
         logger.info(f"Scene {i}: voice design -- '{(voice_design or '')[:40]}'")
 
         # --- Retry loop: generate → trim → validate duration ---
@@ -377,7 +376,7 @@ async def generate_tts(
 
             try:
                 wavs, sr = await asyncio.wait_for(
-                    loop.run_in_executor(None, _voice_design),
+                    asyncio.to_thread(_voice_design),
                     timeout=TTS_TIMEOUT_SECONDS,
                 )
             except TimeoutError:

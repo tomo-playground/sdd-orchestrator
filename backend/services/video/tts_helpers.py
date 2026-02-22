@@ -94,8 +94,7 @@ async def get_qwen_model_async():
     async with _model_lock:
         if _current_model is not None:
             return _current_model
-        loop = asyncio.get_event_loop()
-        _current_model = await loop.run_in_executor(None, _load_model, TTS_MODEL_NAME)
+        _current_model = await asyncio.to_thread(_load_model, TTS_MODEL_NAME)
         _current_model_type = "voice_design"
         return _current_model
 

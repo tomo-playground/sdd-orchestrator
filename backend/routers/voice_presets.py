@@ -127,8 +127,6 @@ async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db))
         # Deterministic seed from prompt
         voice_seed = hash(voice_design) % (2**31)
 
-        loop = asyncio.get_event_loop()
-
         def _generate():
             import soundfile as sf
             import torch
@@ -143,7 +141,7 @@ async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db))
             sf.write(buf, wavs[0], sr, format="WAV")
             return buf.getvalue()
 
-        audio_bytes = await loop.run_in_executor(None, _generate)
+        audio_bytes = await asyncio.to_thread(_generate)
 
         # Register as temp MediaAsset (will be GC'd after 24h)
         digest = hashlib.sha1(audio_bytes).hexdigest()[:16]
