@@ -9,7 +9,7 @@ import { generateWithProgress } from "../../utils/generateWithProgress";
 import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
 import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
 import { resolveSceneControlnet, resolveSceneIpAdapter } from "../../utils/sceneSettingsResolver";
-import { storeSceneImage, validateImageCandidate, processGeneratedImages } from "./imageProcessing";
+import { validateImageCandidate, processGeneratedImages } from "./imageProcessing";
 
 // Re-export for external consumers
 export { storeSceneImage } from "./imageProcessing";
@@ -77,7 +77,11 @@ export async function generateSceneImageFor(
   const isNarrator = scene.speaker === "Narrator";
   const controlnetPayload =
     controlnet.enabled && !isNarrator
-      ? { use_controlnet: true, controlnet_weight: controlnet.weight }
+      ? {
+          use_controlnet: true,
+          controlnet_weight: controlnet.weight,
+          controlnet_pose: scene.controlnet_pose || undefined,
+        }
       : { use_controlnet: false };
   const ipAdapterPayload =
     ipAdapter.enabled && ipAdapter.reference && !isNarrator
