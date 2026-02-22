@@ -269,6 +269,11 @@ async def research_node(state: ScriptState, config: RunnableConfig, *, store: Ba
 
     LLM이 주제를 분석하여 필요한 정보원만 선택적으로 호출한다.
     """
+    from services.agent.nodes._skip_guard import should_skip  # noqa: PLC0415
+
+    if should_skip(state, "research"):
+        return {"research_brief": None, "research_tool_logs": [], "research_score": None, "research_retry_count": 0}
+
     # DB 세션: config 주입 우선, 없으면 자체 생성 (Writer/Revise와 동일 패턴)
     db_session = config.get("configurable", {}).get("db") if config else None
     if not db_session:

@@ -67,11 +67,10 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         logger.warning("[LangGraph] Finalize: 에러 상태 전파 → %s", state.get("error"))
         return {"error": state.get("error")}
 
-    mode = state.get("mode", "quick")
     sound_rec: dict | None = None
     copyright_result: dict | None = None
 
-    if mode == "full" and state.get("cinematographer_result"):
+    if "production" not in (state.get("skip_stages") or []) and state.get("cinematographer_result"):
         scenes, sound_rec, copyright_result = _merge_production_results(state)
     else:
         scenes = [dict(s) for s in (state.get("draft_scenes") or [])]

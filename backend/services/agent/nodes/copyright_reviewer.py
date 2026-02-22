@@ -27,6 +27,24 @@ _FALLBACK_PASS = {
 
 async def copyright_reviewer_node(state: ScriptState) -> dict:
     """씬의 저작권/IP 위험을 검토한다. 최대 재시도 실패 시 fallback PASS."""
+    from services.agent.nodes._skip_guard import should_skip  # noqa: PLC0415
+
+    if should_skip(state, "copyright_reviewer"):
+        return {
+            "copyright_reviewer_result": {
+                "overall": "PASS",
+                "checks": [
+                    {
+                        "type": "stage_skipped",
+                        "status": "PASS",
+                        "detail": "Production stage skipped",
+                        "suggestion": None,
+                    }
+                ],
+                "confidence": 0.0,
+            }
+        }
+
     cinema = state.get("cinematographer_result") or {}
     scenes = cinema.get("scenes", [])
 

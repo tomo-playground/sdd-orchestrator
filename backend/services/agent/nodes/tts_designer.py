@@ -12,6 +12,11 @@ _FALLBACK_TTS = {"tts_designs": []}
 
 async def tts_designer_node(state: ScriptState) -> dict:
     """cinematographer_result의 씬을 기반으로 TTS 디자인을 생성한다."""
+    from services.agent.nodes._skip_guard import should_skip  # noqa: PLC0415
+
+    if should_skip(state, "tts_designer"):
+        return {"tts_designer_result": {"tts_designs": []}}
+
     cinema = state.get("cinematographer_result") or {}
     scenes = cinema.get("scenes", [])
     concept = state.get("critic_result") or {}

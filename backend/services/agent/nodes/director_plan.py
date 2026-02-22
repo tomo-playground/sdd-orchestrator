@@ -9,12 +9,16 @@ from __future__ import annotations
 from config import logger
 from services.agent.llm_models import DirectorPlanOutput, validate_with_model
 from services.agent.nodes._production_utils import run_production_step
+from services.agent.nodes._skip_guard import should_skip
 from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState
 
 
 async def director_plan_node(state: ScriptState, config=None) -> dict:
     """Creative Director의 초기 목표 수립 노드."""
+    if should_skip(state, "director_plan"):
+        return {"director_plan": None}
+
     template_vars = {
         "topic": state.get("topic", ""),
         "description": state.get("description", ""),

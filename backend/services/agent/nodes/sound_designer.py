@@ -12,6 +12,11 @@ _FALLBACK_SOUND = {"recommendation": {"prompt": "", "mood": "neutral", "duration
 
 async def sound_designer_node(state: ScriptState) -> dict:
     """cinematographer_result의 씬을 기반으로 BGM 추천을 생성한다."""
+    from services.agent.nodes._skip_guard import should_skip  # noqa: PLC0415
+
+    if should_skip(state, "sound_designer"):
+        return {"sound_designer_result": _FALLBACK_SOUND}
+
     cinema = state.get("cinematographer_result") or {}
     scenes = cinema.get("scenes", [])
     concept = state.get("critic_result") or {}

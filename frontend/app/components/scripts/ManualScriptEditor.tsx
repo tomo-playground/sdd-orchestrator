@@ -15,16 +15,17 @@ import Button from "../ui/Button";
 import { SECTION_CLASSES, FORM_TEXTAREA_CLASSES, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 import { useUIStore } from "../../store/useUIStore";
 import { persistStoryboard } from "../../store/actions/storyboardActions";
+import { EXPRESS_SKIP_STAGES } from "../../utils/pipelineSteps";
 import type { ScriptEditorActions } from "../../hooks/useScriptEditor";
 
 type Props = {
   editor: ScriptEditorActions;
-  onToggleMode?: (mode: "quick" | "full") => void;
+  onPresetChange?: (preset: string, skipStages: string[]) => void;
 };
 
 const TAB_BASE = "px-4 py-1.5 text-xs font-semibold rounded-lg transition";
 
-export default function ManualScriptEditor({ editor, onToggleMode }: Props) {
+export default function ManualScriptEditor({ editor, onPresetChange }: Props) {
   const { presets, languages, durations } = usePresets();
   const { confirm, dialogProps } = useConfirm();
   const [isStarting, setIsStarting] = useState(false);
@@ -63,20 +64,28 @@ export default function ManualScriptEditor({ editor, onToggleMode }: Props) {
                 {editor.scenes.length} scenes
               </span>
             )}
-            {onToggleMode && (
+            {onPresetChange && (
               <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
-                <button
-                  className={`${TAB_BASE} ${editor.mode === "full" ? TAB_INACTIVE : TAB_ACTIVE}`}
-                  onClick={() => onToggleMode("quick")}
-                >
-                  Quick
-                </button>
-                <button
-                  className={`${TAB_BASE} ${editor.mode === "full" ? TAB_ACTIVE : TAB_INACTIVE}`}
-                  onClick={() => onToggleMode("full")}
-                >
-                  Full
-                </button>
+                {(["express", "standard", "creator"] as const).map((p) => {
+                  const isActive =
+                    p === "express"
+                      ? editor.skipStages.length > 0
+                      : p === "creator"
+                        ? editor.skipStages.length === 0 && editor.preset === "creator"
+                        : editor.skipStages.length === 0 && editor.preset !== "creator";
+                  return (
+                    <button
+                      key={p}
+                      className={`${TAB_BASE} ${isActive ? TAB_ACTIVE : TAB_INACTIVE}`}
+                      onClick={() => {
+                        const stages = p === "express" ? [...EXPRESS_SKIP_STAGES] : [];
+                        onPresetChange(p, stages);
+                      }}
+                    >
+                      {p === "express" ? "Express" : p === "standard" ? "Standard" : "Creator"}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -117,55 +126,40 @@ export default function ManualScriptEditor({ editor, onToggleMode }: Props) {
           />
         </div>
 
-        {/* Preset & References — Full mode only */}
-        {editor.mode === "full" && (
+        {/* References — Standard/Creator only */}
+        {editor.skipStages.length === 0 && (
           <div className="mt-8 border-t border-zinc-200/60 pt-5">
             <h3 className="mb-4 text-sm font-semibold text-zinc-800">Advanced Settings</h3>
-            <div className="flex flex-col gap-5">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-zinc-700">Preset</label>
-                <select
-                  className="w-full rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm text-zinc-800 outline-none focus:border-zinc-400"
-                  value={editor.preset ?? "full_auto"}
-                  onChange={(e) => editor.setField("preset", e.target.value)}
-                >
-                  <option value="full_auto">풀 오토 -- AI 자동 생성 후 승인</option>
-                  <option value="creator">크리에이터 -- AI 초안 + 사용자 결정</option>
-                </select>
-              </div>
-
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setReferencesOpen(!referencesOpen)}
-                  className="group flex w-full items-center gap-1.5 text-left text-sm font-medium text-zinc-700 hover:text-zinc-900"
-                >
-                  {referencesOpen ? (
-                    <ChevronDown className="h-4 w-4 text-zinc-400 group-hover:text-zinc-600" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-zinc-400 group-hover:text-zinc-600" />
-                  )}
-                  References{" "}
-                  <span className="font-normal text-zinc-400 normal-case">(optional)</span>
-                </button>
-                {referencesOpen && (
-                  <div className="mt-3 space-y-2">
-                    <textarea
-                      value={editor.references}
-                      onChange={(e) => editor.setField("references", e.target.value)}
-                      rows={3}
-                      maxLength={2000}
-                      className={FORM_TEXTAREA_CLASSES}
-                      placeholder={
-                        "참고 URL 또는 소재 텍스트를 입력하세요\nhttps://example.com/article\n또는 직접 소재 텍스트를 입력..."
-                      }
-                    />
-                    <p className="text-[11px] text-zinc-400">
-                      줄바꿈으로 구분 (URL + 텍스트 혼합 가능, 최대 5개)
-                    </p>
-                  </div>
+            <div>
+              <button
+                type="button"
+                onClick={() => setReferencesOpen(!referencesOpen)}
+                className="group flex w-full items-center gap-1.5 text-left text-sm font-medium text-zinc-700 hover:text-zinc-900"
+              >
+                {referencesOpen ? (
+                  <ChevronDown className="h-4 w-4 text-zinc-400 group-hover:text-zinc-600" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-zinc-400 group-hover:text-zinc-600" />
                 )}
-              </div>
+                References <span className="font-normal text-zinc-400 normal-case">(optional)</span>
+              </button>
+              {referencesOpen && (
+                <div className="mt-3 space-y-2">
+                  <textarea
+                    value={editor.references}
+                    onChange={(e) => editor.setField("references", e.target.value)}
+                    rows={3}
+                    maxLength={2000}
+                    className={FORM_TEXTAREA_CLASSES}
+                    placeholder={
+                      "참고 URL 또는 소재 텍스트를 입력하세요\nhttps://example.com/article\n또는 직접 소재 텍스트를 입력..."
+                    }
+                  />
+                  <p className="text-[11px] text-zinc-400">
+                    줄바꿈으로 구분 (URL + 텍스트 혼합 가능, 최대 5개)
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -215,7 +209,7 @@ export default function ManualScriptEditor({ editor, onToggleMode }: Props) {
           nodeResults={editor.nodeResults}
           expandedStep={expandedStep}
           onToggle={setExpandedStep}
-          mode={editor.mode}
+          skipStages={editor.skipStages}
         />
       )}
 

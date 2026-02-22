@@ -7,17 +7,14 @@ import { useScriptEditor } from "../../hooks/useScriptEditor";
 import { useUIStore } from "../../store/useUIStore";
 import ManualScriptEditor from "../scripts/ManualScriptEditor";
 import EmptyState from "../ui/EmptyState";
-import { TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
-
-const TAB_BASE = "px-4 py-1.5 text-xs font-semibold rounded-lg transition";
 
 export default function ScriptTab() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const idParam = searchParams.get("id");
-  const mode = searchParams.get("mode");
+  const legacyMode = searchParams.get("mode");
+  const presetParam = searchParams.get("preset");
   const storyboardId = idParam ? Number(idParam) : null;
-  const isFull = mode === "full";
 
   const onSaved = useCallback(
     (id: number) => {
@@ -40,14 +37,35 @@ export default function ScriptTab() {
     }
   }, [storyboardId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggleMode = (target: "quick" | "full") => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (target === "full") {
-      params.set("mode", "full");
-    } else {
+  // Legacy ?mode=full/quick migration + preset initialization
+  useEffect(() => {
+    if (legacyMode) {
+      const params = new URLSearchParams(searchParams.toString());
       params.delete("mode");
+      if (legacyMode === "full") {
+        params.set("preset", "standard");
+        editor.setField("skipStages", []);
+        editor.setField("preset", "standard");
+      }
+      // ?mode=quick → just remove param (Express is default)
+      const qs = params.toString();
+      router.replace(qs ? `/studio?${qs}` : "/studio");
+    } else if (presetParam === "standard" || presetParam === "creator") {
+      editor.setField("skipStages", []);
+      editor.setField("preset", presetParam);
     }
-    editor.setField("mode", target);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handlePresetChange = (preset: string, skipStages: string[]) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (preset !== "express") {
+      params.set("preset", preset);
+    } else {
+      params.delete("preset");
+    }
+    params.delete("mode");
+    editor.setField("skipStages", skipStages);
+    editor.setField("preset", preset);
     const qs = params.toString();
     router.replace(qs ? `/studio?${qs}` : "/studio");
   };
@@ -55,7 +73,7 @@ export default function ScriptTab() {
   return (
     <div className="mx-auto w-full max-w-5xl">
       {/* Editor — both modes use ManualScriptEditor */}
-      <ManualScriptEditor editor={editor} onToggleMode={toggleMode} />
+      <ManualScriptEditor editor={editor} onPresetChange={handlePresetChange} />
 
       {editor.scenes.length === 0 && !editor.isGenerating && !editor.isWaitingForInput && (
         <div className="mt-12">

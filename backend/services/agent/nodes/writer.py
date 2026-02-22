@@ -165,7 +165,7 @@ async def writer_node(state: ScriptState) -> dict:
       1. Planning: Hook 전략 + 감정 곡선 + 씬 배분
       2. Generation: 계획을 description에 주입하여 생성
     """
-    is_full = state.get("mode") == "full"
+    is_full = "concept" not in (state.get("skip_stages") or [])
     plan: WriterPlan | None = None
 
     # critic에서 선정된 컨셉 추출 (별도 변수로 템플릿에 전달)

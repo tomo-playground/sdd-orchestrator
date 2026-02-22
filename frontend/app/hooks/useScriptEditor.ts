@@ -16,7 +16,7 @@ import type {
   ScriptStreamEvent,
 } from "../types";
 import { generateSceneClientId } from "../utils/uuid";
-import { getInitialSteps, updatePipelineSteps } from "../utils/pipelineSteps";
+import { EXPRESS_SKIP_STAGES, getInitialSteps, updatePipelineSteps } from "../utils/pipelineSteps";
 
 export type SceneItem = {
   id: number;
@@ -52,7 +52,7 @@ export type ScriptEditorState = {
   storyboardId: number | null;
   storyboardVersion: number | null;
   isSaving: boolean;
-  mode: "quick" | "full";
+  skipStages: string[];
   preset: string | null;
   threadId: string | null;
   isWaitingForInput: boolean;
@@ -183,7 +183,7 @@ async function processSSEStream(
   await parseSSEStream(response, (event: ScriptStreamEvent) => {
     // Single setState per event to avoid race conditions between renders
     setState((prev) => {
-      const nextSteps = updatePipelineSteps(prev.pipelineSteps, event, prev.mode);
+      const nextSteps = updatePipelineSteps(prev.pipelineSteps, event, prev.skipStages);
       let nextNodeResults = event.node_result
         ? { ...prev.nodeResults, [event.node]: event.node_result as Record<string, unknown> }
         : prev.nodeResults;
@@ -279,6 +279,7 @@ const CONTENT_FIELDS: ReadonlySet<string> = new Set([
   "characterBName",
   "references",
   "preset",
+  "skipStages",
 ]);
 
 export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActions {
@@ -303,7 +304,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     storyboardId: null,
     storyboardVersion: null,
     isSaving: false,
-    mode: "quick",
+    skipStages: [...EXPRESS_SKIP_STAGES],
     preset: null,
     threadId: null,
     isWaitingForInput: false,
@@ -343,7 +344,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         characterBName: s.characterBName,
       });
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Lazy-fetch feedback presets when waiting for input
   useEffect(() => {
@@ -392,7 +393,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       isGenerating: true,
       progress: null,
       justGenerated: false,
-      pipelineSteps: getInitialSteps(prev.mode),
+      pipelineSteps: getInitialSteps(prev.skipStages),
       nodeResults: {},
     }));
 
@@ -403,7 +404,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       language: state.language,
       structure: state.structure,
       group_id: groupId,
-      mode: state.mode,
+      skip_stages: state.skipStages,
     };
     if (state.preset) body.preset = state.preset;
     if (state.characterId) body.character_id = state.characterId;
@@ -474,7 +475,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     state.characterId,
     state.characterBId,
     state.references,
-    state.mode,
+    state.skipStages,
     state.preset,
     groupId,
     showToast,
@@ -735,7 +736,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       storyboardId: null,
       storyboardVersion: null,
       isSaving: false,
-      mode: "quick",
+      skipStages: [...EXPRESS_SKIP_STAGES],
       preset: null,
       threadId: null,
       isWaitingForInput: false,

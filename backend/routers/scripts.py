@@ -10,7 +10,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from config import LANGGRAPH_DEFAULT_MODE, LANGGRAPH_PRESETS, logger
+from config import logger
+from config_pipelines import (
+    LANGGRAPH_DEFAULT_SKIP_STAGES,
+    LANGGRAPH_PRESETS,
+    VALID_SKIP_STAGES,
+)
 from database import get_db
 from schemas import (
     FeedbackPresetOption,
@@ -54,12 +59,27 @@ _NODE_META: dict[str, dict] = {
 }
 
 
+def _resolve_skip_stages(request: StoryboardRequest, preset_data: dict) -> list[str]:
+    """skip_stages 해석 우선순위: (1) 명시적 request.skip_stages > (2) preset > (3) mode 후방호환."""
+    # 1) 명시적 skip_stages
+    if request.skip_stages is not None:
+        return [s for s in request.skip_stages if s in VALID_SKIP_STAGES]
+
+    # 2) preset의 skip_stages
+    if preset_data and "skip_stages" in preset_data:
+        return list(preset_data["skip_stages"])
+
+    # 3) 레거시 mode 후방호환 매핑
+    mode = request.mode or "quick"
+    if mode == "quick":
+        return list(LANGGRAPH_DEFAULT_SKIP_STAGES)
+    return []  # full → 모든 스테이지 실행
+
+
 def _request_to_state(request: StoryboardRequest) -> ScriptState:
     """StoryboardRequest → ScriptState 변환."""
-    mode = request.mode or LANGGRAPH_DEFAULT_MODE
     preset_data = LANGGRAPH_PRESETS.get(request.preset or "") or {}
-    if preset_data:
-        mode = preset_data.get("mode", mode)
+    skip_stages = _resolve_skip_stages(request, preset_data)
 
     return ScriptState(
         topic=request.topic,
@@ -73,9 +93,10 @@ def _request_to_state(request: StoryboardRequest) -> ScriptState:
         character_b_id=request.character_b_id,
         group_id=request.group_id,
         references=request.references,
-        mode=mode,
+        mode="full",  # 항상 full — skip_stages로 제어
         preset=request.preset,
-        auto_approve=preset_data.get("auto_approve", False),
+        auto_approve=preset_data.get("auto_approve", True),
+        skip_stages=skip_stages,
         revision_count=0,
     )
 
@@ -484,7 +505,7 @@ async def resume_script(request: ScriptResumeRequest):
 
 @router.get("/presets", response_model=ScriptPresetsResponse)
 async def get_script_presets():
-    """사용 가능한 Preset 목록을 반환한다."""
+    """사용 가능한 Preset 목록을 반환한다 (레거시 프리셋 제외)."""
     items = [
         ScriptPresetItem(
             id=p["id"],
@@ -493,8 +514,10 @@ async def get_script_presets():
             description=p["description"],
             mode=p["mode"],
             auto_approve=p.get("auto_approve", False),
+            skip_stages=p.get("skip_stages", []),
         )
         for p in LANGGRAPH_PRESETS.values()
+        if not p.get("_legacy")
     ]
     return ScriptPresetsResponse(presets=items)
 

@@ -46,6 +46,11 @@ def _apply_score_override(decision: str, score: float, feedback: str) -> tuple[s
 
 async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
     """Director Plan 기준으로 스크립트 품질을 점검한다."""
+    from services.agent.nodes._skip_guard import should_skip  # noqa: PLC0415
+
+    if should_skip(state, "director_checkpoint"):
+        return {"director_checkpoint_decision": "proceed"}
+
     director_plan = state.get("director_plan") or {}
     template_vars = {
         "director_plan": director_plan,

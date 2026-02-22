@@ -29,11 +29,11 @@ def _has_error(state: ScriptState) -> bool:
 
 
 def route_after_start(state: ScriptState) -> str:
-    """START 이후: mode에 따라 director_plan(full) 또는 writer(quick) 분기."""
-    mode = state.get("mode", "quick")
-    if mode == "full":
-        return "director_plan"
-    return "writer"
+    """START 이후: skip_stages에 따라 director_plan 또는 writer 분기."""
+    skip = state.get("skip_stages") or []
+    if "research" in skip and "concept" in skip:
+        return "writer"
+    return "director_plan"
 
 
 def route_after_research(state: ScriptState) -> str:
@@ -100,9 +100,8 @@ def route_after_review(state: ScriptState) -> str:
             LANGGRAPH_MAX_REVISIONS,
         )
 
-    # passed 또는 max_revision 도달 → Quick: finalize / Full: director_checkpoint
-    mode = state.get("mode", "quick")
-    if mode != "full":
+    # passed 또는 max_revision 도달 → production skip: finalize / else: director_checkpoint
+    if "production" in (state.get("skip_stages") or []):
         return "finalize"
     return "director_checkpoint"
 
@@ -196,7 +195,7 @@ def route_after_human_gate(state: ScriptState) -> str:
 
 
 def route_after_finalize(state: ScriptState) -> str:
-    """finalize 이후: Full → explain, Quick → learn."""
-    if state.get("mode", "quick") == "full":
-        return "explain"
-    return "learn"
+    """finalize 이후: explain skip → learn, else → explain."""
+    if "explain" in (state.get("skip_stages") or []):
+        return "learn"
+    return "explain"

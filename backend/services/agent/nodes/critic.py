@@ -56,7 +56,7 @@ def _create_temp_session(db, state: ScriptState) -> CreativeSession:
     session = CreativeSession(
         objective=state.get("topic", "LangGraph critic"),
         evaluation_criteria={"source": "langgraph_critic"},
-        context={"mode": state.get("mode", "full")},
+        context={"mode": "full", "skip_stages": state.get("skip_stages", [])},
         max_rounds=CREATIVE_MAX_ROUNDS,
         status="debating",
         session_type="shorts",
@@ -176,6 +176,11 @@ async def critic_node(state: ScriptState) -> dict:
     - Groupthink 방지 (다양성 강제)
     - Hard Timeout + Fallback
     """
+    from services.agent.nodes._skip_guard import should_skip  # noqa: PLC0415
+
+    if should_skip(state, "critic"):
+        return {"critic_result": None, "debate_log": []}
+
     start_time = time.time()
     debate_log: list[dict] = []
     concepts: list[dict] = []  # Initialize to avoid unbound variable

@@ -9,6 +9,11 @@ from services.agent.state import ScriptState
 
 async def explain_node(state: ScriptState) -> dict:
     """Production 결과를 분석하여 창작 결정 설명을 생성한다."""
+    from services.agent.nodes._skip_guard import should_skip  # noqa: PLC0415
+
+    if should_skip(state, "explain"):
+        return {"explanation_result": None}
+
     template_vars = {
         "final_scenes": state.get("final_scenes") or [],
         "cinematographer_result": state.get("cinematographer_result") or {},

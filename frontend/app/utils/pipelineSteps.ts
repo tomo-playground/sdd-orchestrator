@@ -1,9 +1,19 @@
 import type { PipelineStep, ScriptStreamEvent } from "../types";
 
-// ── Full 모드 7스텝 ──
-const FULL_STEPS: PipelineStep[] = [
-  { id: "research", label: "리서치", status: "idle", nodes: ["Research"] },
-  { id: "concept", label: "컨셉", status: "idle", nodes: ["Critic", "Concept Gate"] },
+/** Express 프리셋 기본 skip_stages (Backend SSOT: config_pipelines.py VALID_SKIP_STAGES) */
+export const EXPRESS_SKIP_STAGES = ["research", "concept", "production", "explain"] as const;
+
+type StepDef = PipelineStep & { stage?: string };
+
+const ALL_STEPS: StepDef[] = [
+  { id: "research", label: "리서치", status: "idle", nodes: ["Research"], stage: "research" },
+  {
+    id: "concept",
+    label: "컨셉",
+    status: "idle",
+    nodes: ["Critic", "Concept Gate"],
+    stage: "concept",
+  },
   { id: "script", label: "대본", status: "idle", nodes: ["Writer"] },
   { id: "review", label: "검증", status: "idle", nodes: ["Review", "Revise"] },
   {
@@ -11,19 +21,18 @@ const FULL_STEPS: PipelineStep[] = [
     label: "프로덕션",
     status: "idle",
     nodes: ["Cinematographer", "TTS Designer", "Sound Designer", "Copyright Reviewer"],
+    stage: "production",
   },
-  { id: "director", label: "디렉터", status: "idle", nodes: ["Director", "Human Gate"] },
+  {
+    id: "director",
+    label: "디렉터",
+    status: "idle",
+    nodes: ["Director", "Human Gate"],
+    stage: "production",
+  },
   { id: "complete", label: "완료", status: "idle", nodes: ["Finalize", "Explain", "Learn"] },
 ];
 
-// ── Quick 모드 3스텝 ──
-const QUICK_STEPS: PipelineStep[] = [
-  { id: "script", label: "대본", status: "idle", nodes: ["Writer"] },
-  { id: "review", label: "검증", status: "idle", nodes: ["Review", "Revise"] },
-  { id: "complete", label: "완료", status: "idle", nodes: ["Finalize"] },
-];
-
-// ── 15 노드 → 논리 스텝 매핑 ──
 const NODE_TO_STEP: Record<string, string> = {
   research: "research",
   critic: "concept",
@@ -42,27 +51,30 @@ const NODE_TO_STEP: Record<string, string> = {
   learn: "complete",
 };
 
-export function getInitialSteps(mode: "quick" | "full"): PipelineStep[] {
-  const template = mode === "full" ? FULL_STEPS : QUICK_STEPS;
-  return template.map((s) => ({ ...s }));
+export function getInitialSteps(skipStages: string[]): PipelineStep[] {
+  const skipSet = new Set(skipStages);
+  return ALL_STEPS.filter((s) => !s.stage || !skipSet.has(s.stage)).map(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    ({ stage: _stage, ...step }) => ({ ...step })
+  );
 }
 
 export function updatePipelineSteps(
   steps: PipelineStep[],
   event: ScriptStreamEvent,
-  mode: "quick" | "full"
+  skipStages: string[]
 ): PipelineStep[] {
   const stepId = NODE_TO_STEP[event.node];
   if (!stepId) {
-    // error 노드: 현재 running 중인 스텝을 error로 표시
     if (event.status === "error") {
       return steps.map((s) => (s.status === "running" ? { ...s, status: "error" } : s));
     }
     return steps;
   }
 
-  const stepIds = (mode === "full" ? FULL_STEPS : QUICK_STEPS).map((s) => s.id);
-  const targetIdx = stepIds.indexOf(stepId);
+  const skipSet = new Set(skipStages);
+  const filteredIds = ALL_STEPS.filter((s) => !s.stage || !skipSet.has(s.stage)).map((s) => s.id);
+  const targetIdx = filteredIds.indexOf(stepId);
   if (targetIdx < 0) return steps;
 
   return steps.map((s, i) => {

@@ -81,8 +81,11 @@ def test_routing_error_short_circuit_writer():
 
 def test_routing_error_short_circuit_review():
     """review 진입 시 에러 → finalize로 short-circuit."""
-    assert route_after_review({"error": "이전 노드 에러", "mode": "quick"}) == "finalize"
-    assert route_after_review({"error": "이전 노드 에러", "mode": "full"}) == "finalize"
+    assert (
+        route_after_review({"error": "이전 노드 에러", "skip_stages": ["research", "concept", "production", "explain"]})
+        == "finalize"
+    )
+    assert route_after_review({"error": "이전 노드 에러", "skip_stages": []}) == "finalize"
 
 
 # -- Director 라우팅 테스트 --
@@ -140,22 +143,22 @@ def test_route_after_director_error():
 
 
 def test_route_after_finalize_full():
-    """Full 모드: finalize → explain."""
-    assert route_after_finalize({"mode": "full"}) == "explain"
+    """skip_stages에 explain 없음: finalize → explain."""
+    assert route_after_finalize({"skip_stages": []}) == "explain"
 
 
 def test_route_after_finalize_quick():
-    """Quick 모드: finalize → learn (explain 스킵)."""
-    assert route_after_finalize({"mode": "quick"}) == "learn"
-    assert route_after_finalize({}) == "learn"  # 기본값 quick
+    """skip_stages에 explain 포함: finalize → learn."""
+    assert route_after_finalize({"skip_stages": ["research", "concept", "production", "explain"]}) == "learn"
+    assert route_after_finalize({}) == "explain"  # 기본값: skip_stages 없으면 explain 실행
 
 
 # -- Director Checkpoint → Writer 라우팅 테스트 --
 
 
 def test_route_review_pass_full_mode_goes_to_checkpoint():
-    """Full 모드 review 통과 → director_checkpoint."""
-    state = {"mode": "full", "review_result": {"passed": True, "errors": []}}
+    """production 미스킵 + review 통과 → director_checkpoint."""
+    state = {"skip_stages": [], "review_result": {"passed": True, "errors": []}}
     assert route_after_review(state) == "director_checkpoint"
 
 
@@ -166,10 +169,10 @@ def test_route_checkpoint_revise_goes_to_writer():
 
 
 def test_route_start_full_mode_goes_to_director_plan():
-    """Full 모드 START → director_plan."""
-    assert route_after_start({"mode": "full"}) == "director_plan"
-    assert route_after_start({"mode": "quick"}) == "writer"
-    assert route_after_start({}) == "writer"  # 기본값 quick
+    """skip_stages 비어있으면 START → director_plan."""
+    assert route_after_start({"skip_stages": []}) == "director_plan"
+    assert route_after_start({"skip_stages": ["research", "concept", "production", "explain"]}) == "writer"
+    assert route_after_start({}) == "director_plan"  # 기본값: skip_stages 없으면 director_plan
 
 
 # -- Score-Based Checkpoint Routing 테스트 --
@@ -199,3 +202,43 @@ def test_route_checkpoint_high_score_proceed():
     """High score (>= 0.7) proceed 시 cinematographer."""
     state = {"director_checkpoint_decision": "proceed", "director_checkpoint_score": 0.8}
     assert route_after_director_checkpoint(state) == "cinematographer"
+
+
+# -- skip_stages 부분 스킵 테스트 --
+
+
+def test_route_start_partial_skip_research_only():
+    """research만 스킵하면 concept은 남으므로 director_plan."""
+    assert route_after_start({"skip_stages": ["research"]}) == "director_plan"
+
+
+def test_route_start_partial_skip_concept_only():
+    """concept만 스킵하면 research는 남으므로 director_plan."""
+    assert route_after_start({"skip_stages": ["concept"]}) == "director_plan"
+
+
+def test_route_start_both_research_concept_skipped():
+    """research + concept 둘 다 스킵 → writer."""
+    assert route_after_start({"skip_stages": ["research", "concept"]}) == "writer"
+
+
+def test_route_review_production_skipped():
+    """production 스킵 + review 통과 → finalize."""
+    state = {"skip_stages": ["production"], "review_result": {"passed": True, "errors": []}}
+    assert route_after_review(state) == "finalize"
+
+
+def test_route_review_production_not_skipped():
+    """production 미스킵 + review 통과 → director_checkpoint."""
+    state = {"skip_stages": ["research", "concept"], "review_result": {"passed": True, "errors": []}}
+    assert route_after_review(state) == "director_checkpoint"
+
+
+def test_route_finalize_explain_not_skipped():
+    """explain 미스킵 → explain."""
+    assert route_after_finalize({"skip_stages": ["research", "concept", "production"]}) == "explain"
+
+
+def test_route_finalize_explain_skipped():
+    """explain 스킵 → learn."""
+    assert route_after_finalize({"skip_stages": ["explain"]}) == "learn"

@@ -19,6 +19,9 @@
 
 ### 최근 작업
 
+- **Stage-Level Skip 통합 아키텍처** (02-22): Quick/Full 모드 이원화 → `skip_stages: list[str]` 4단계(research, concept, production, explain) 통합. `_skip_guard.py` 모듈(노드별 스테이지 매핑+스킵 판단), 라우팅 전체 `mode`→`skip_stages` 전환, 프리셋 재편(express/standard/creator + 레거시 후방 호환), Frontend 동적 스텝 필터링. 29파일, 테스트 업데이트
+- **비활성 태그 필터링 일관성 수정** (02-22): `load_allowed_tags_from_db()`에 `is_active=True` 필터 추가, `filter_prompt_tokens()`에 `replace_deprecated_tags()` 연동하여 비활성 태그 자동 대체+차단
+- **Gemini 안전 필터 차단 수정** (02-22): Writer Planning `_create_plan()`에 safety_settings 5개 카테고리 BLOCK_NONE 추가, Creative Agent GeminiProvider에 `HARM_CATEGORY_CIVIC_INTEGRITY` 누락 보완
 - **ControlNet Pose Pipeline 완성** (02-22): Cinematographer 템플릿 포즈 28개 전체 명시, Finalize context_tags 기본 pose/gaze fallback 주입, auto_populate 태그 카테고리 검증 강화
 - **씬 플래그 파이프라인 수정 + 테스트 보강** (02-22): character_actions 파이프라인 확장 (Quick 1인 캐릭터 지원, Full 모드 Finalize 노드 통합, Cinematographer pose/gaze 카테고리 명시), StyleProfile `/full` API 응답 필드 누락 수정 (default_enable_hr 등 5개), Frontend Hi-Res 토글 양방향 동기화, ControlNet 포즈 선택 강화 (pose_hint), 테스트 보강 (generation_controlnet, scene_flags, finalize_node 등)
 - **Finalize 노드 에러 전파 수정** (02-22): Writer에서 Gemini 안전 필터 차단 시 finalize_node가 error 필드를 무시하고 빈 씬 목록(`[]`)을 HTTP 200으로 반환하던 버그 수정. finalize 진입 시 error 필드 존재하면 즉시 에러 반환하도록 수정

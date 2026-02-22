@@ -396,7 +396,7 @@ async def review_node(state: ScriptState) -> dict:
     language = state.get("language", "Korean")
     structure = state.get("structure", "Monologue")
     topic = state.get("topic", "")
-    is_full = state.get("mode") == "full"
+    is_full = "production" not in (state.get("skip_stages") or [])
 
     result = _validate_scenes(scenes, duration, language, structure)
 

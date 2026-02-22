@@ -10,11 +10,15 @@ from __future__ import annotations
 from langgraph.types import interrupt
 
 from config_pipelines import LANGGRAPH_MAX_CONCEPT_REGEN
+from services.agent.nodes._skip_guard import should_skip
 from services.agent.state import ScriptState
 
 
 async def concept_gate_node(state: ScriptState) -> dict:
     """컨셉 선택 게이트. auto_approve면 pass-through, 아니면 사용자 선택 대기."""
+    if should_skip(state, "concept_gate"):
+        return {"concept_action": "select"}
+
     if state.get("auto_approve"):
         return {"concept_action": "select"}
 

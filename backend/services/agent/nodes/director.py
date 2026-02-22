@@ -34,6 +34,10 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
     - 에이전트 재실행 및 응답 수집
     - agent_messages에 메시지 로그 기록
     """
+    from services.agent.nodes._skip_guard import should_skip  # noqa: PLC0415
+
+    if should_skip(state, "director"):
+        return {"director_decision": "approve", "director_feedback": None}
 
     count = state.get("director_revision_count", 0)
     reasoning_steps: list[DirectorReActStep] = []

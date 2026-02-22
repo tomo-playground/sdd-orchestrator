@@ -99,8 +99,9 @@ class ScriptState(TypedDict, total=False):
 
     # Graph 설정
     mode: str  # "quick" | "full"
-    preset: str | None  # "quick" | "full_auto" | "creator"
+    preset: str | None  # "quick" | "full_auto" | "creator" | "express" | "standard"
     auto_approve: bool  # Full Auto에서 Human Gate 자동 승인
+    skip_stages: list[str]  # ["research", "concept", "production", "explain"]
 
     # 중간 상태
     draft_scenes: list[dict] | None

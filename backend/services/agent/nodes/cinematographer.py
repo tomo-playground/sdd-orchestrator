@@ -75,6 +75,11 @@ async def cinematographer_node(state: ScriptState, config: RunnableConfig) -> di
     실패 시 error를 설정하지 않고 cinematographer_result=None을 반환하여
     하위 병렬 노드(tts_designer, sound_designer, copyright_reviewer)가 skip되지 않도록 한다.
     """
+    from services.agent.nodes._skip_guard import should_skip  # noqa: PLC0415
+
+    if should_skip(state, "cinematographer"):
+        return {"cinematographer_result": None, "cinematographer_tool_logs": []}
+
     db_session = config.get("configurable", {}).get("db") if config else None
     if db_session:
         return await _run(state, db_session)
@@ -146,7 +151,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     )
 
     # Full 모드 경쟁 시도 (성공 시 즉시 반환)
-    if state.get("mode", "quick") == "full":
+    if "production" not in (state.get("skip_stages") or []):
         comp_result = await _try_competition(state, db_session, base_prompt, director_feedback)
         if comp_result:
             return comp_result
