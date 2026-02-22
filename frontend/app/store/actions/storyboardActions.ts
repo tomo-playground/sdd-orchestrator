@@ -215,6 +215,7 @@ export function mapGeminiScenes(
       voice_design_prompt: (s.voice_design_prompt as string) ?? undefined,
       head_padding: (s.head_padding as number) ?? undefined,
       tail_padding: (s.tail_padding as number) ?? undefined,
+      ken_burns_preset: (s.ken_burns_preset as string) ?? undefined,
       isGenerating: false,
       debug_payload: "",
       _auto_pin_previous: (s._auto_pin_previous as boolean) ?? false,

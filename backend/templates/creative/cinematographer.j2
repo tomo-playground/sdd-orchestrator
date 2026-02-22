@@ -133,6 +133,22 @@ Match your visual design to this plan:
     - Anger: close-up, shadow, clenched_teeth, from_below, high_contrast
     - Nostalgia: golden_hour, bokeh, looking_afar, dusk
     - Curiosity: dutch_angle, looking_to_the_side, from_side, lens_flare
+15. **Ken Burns Motion** (camera movement for each scene):
+    Assign a `ken_burns_preset` to each scene based on emotion and narrative function.
+    Available presets: `slow_zoom`, `zoom_in_center`, `zoom_out_center`, `pan_left`, `pan_right`, `pan_up`, `pan_down`, `zoom_pan_left`, `zoom_pan_right`, `pan_up_vertical`, `pan_down_vertical`, `zoom_in_bottom`, `zoom_in_top`, `pan_zoom_up`, `pan_zoom_down`
+    Mapping guide:
+    | Emotion / Role | Recommended Presets |
+    | Hook (attention) | `zoom_in_center`, `zoom_in_bottom` |
+    | Rising (tension) | `pan_zoom_up`, `zoom_pan_right` |
+    | Climax (peak) | `zoom_in_center`, `zoom_in_top` |
+    | Resolution (release) | `zoom_out_center`, `pan_down_vertical` |
+    | Joy / Hope | `zoom_in_center`, `pan_zoom_up` |
+    | Sadness / Loss | `zoom_out_center`, `pan_down_vertical` |
+    | Tension / Fear | `zoom_in_center`, `pan_up_vertical` |
+    | Calm / Nostalgia | `slow_zoom`, `zoom_out_center` |
+    Rules:
+    - Do NOT use the same preset in consecutive scenes
+    - Omit if unsure (system will auto-assign based on emotion)
 
 ## Output Format (JSON)
 ```json
@@ -156,7 +172,8 @@ Match your visual design to this plan:
       },
       "controlnet_pose": "standing",
       "ip_adapter_weight": 0.7,
-      "negative_prompt_extra": ""
+      "negative_prompt_extra": "",
+      "ken_burns_preset": "zoom_in_center"
     },
     {
       "order": 1,
@@ -173,7 +190,8 @@ Match your visual design to this plan:
       },
       "controlnet_pose": null,
       "ip_adapter_weight": 0.0,
-      "negative_prompt_extra": "1girl, 1boy, person"
+      "negative_prompt_extra": "1girl, 1boy, person",
+      "ken_burns_preset": "pan_down_vertical"
     }
   ]{% if feedback %},
   "response_message": "Director 피드백에 대한 응답을 여기에 작성하세요. 수정한 내용, 이유, 대안이 있다면 포함하세요."{% endif %}

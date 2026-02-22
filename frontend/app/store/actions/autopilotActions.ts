@@ -277,6 +277,7 @@ export async function runAutoRunFromStep(
               voice_design_prompt: s.voice_design_prompt ?? undefined,
               head_padding: s.head_padding ?? undefined,
               tail_padding: s.tail_padding ?? undefined,
+              ken_burns_preset: s.ken_burns_preset ?? undefined,
             })),
           layout_style: layoutStyle,
           ken_burns_preset: store.kenBurnsPreset,

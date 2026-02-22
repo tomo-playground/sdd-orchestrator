@@ -36,6 +36,7 @@ export type SceneItem = {
   voice_design_prompt?: string | null;
   head_padding?: number | null;
   tail_padding?: number | null;
+  ken_burns_preset?: string | null;
 };
 
 export type ScriptProgress = {
@@ -122,6 +123,7 @@ function mapEventScenes(scenes: Scene[]): SceneItem[] {
     voice_design_prompt: s.voice_design_prompt ?? undefined,
     head_padding: s.head_padding ?? undefined,
     tail_padding: s.tail_padding ?? undefined,
+    ken_burns_preset: s.ken_burns_preset ?? undefined,
   }));
 }
 
@@ -160,6 +162,7 @@ function syncToGlobalStore(scenes: SceneItem[], meta: SyncMeta) {
     voice_design_prompt: s.voice_design_prompt,
     head_padding: s.head_padding,
     tail_padding: s.tail_padding,
+    ken_burns_preset: s.ken_burns_preset,
   }));
   useStoryboardStore.getState().setScenes(mapped);
   const { characterId, characterName, characterBId, characterBName, ...rest } = meta;

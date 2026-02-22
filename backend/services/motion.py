@@ -159,6 +159,58 @@ def build_zoompan_filter(
     return f"zoompan=z='{z_expr}':x='{x_expr}':y='{y_expr}':d={frames}:s={width}x{height}:fps={fps}"
 
 
+VALID_PRESET_NAMES: set[str] = set(PRESETS.keys()) - {"random"}
+
+# Emotion/narrative → Ken Burns preset mapping
+EMOTION_MOTION_MAP: dict[str, list[str]] = {
+    # Positive / upward
+    "happy": ["zoom_in_center", "pan_zoom_up"],
+    "joy": ["zoom_in_center", "pan_zoom_up"],
+    "hopeful": ["zoom_in_top", "pan_up"],
+    "excited": ["zoom_pan_left", "zoom_pan_right"],
+    "proud": ["zoom_in_bottom", "pan_zoom_up"],
+    # Negative / downward
+    "sad": ["zoom_out_center", "pan_down_vertical"],
+    "melancholy": ["zoom_out_center", "pan_down"],
+    "lonely": ["zoom_out_center", "pan_down_vertical"],
+    "fearful": ["zoom_in_center", "pan_down"],
+    "anxious": ["zoom_in_center", "pan_left"],
+    # Tension / conflict
+    "angry": ["zoom_in_center", "zoom_in_bottom"],
+    "frustrated": ["zoom_pan_left", "zoom_pan_right"],
+    "tense": ["zoom_in_center", "pan_up_vertical"],
+    "nervous": ["zoom_in_center", "pan_left"],
+    # Calm / reflective
+    "calm": ["slow_zoom", "pan_right"],
+    "nostalgic": ["zoom_out_center", "pan_right"],
+    "peaceful": ["slow_zoom", "pan_down_vertical"],
+    "reflective": ["zoom_out_center", "pan_up"],
+    # Narrative function
+    "hook": ["zoom_in_center", "zoom_in_bottom"],
+    "climax": ["zoom_in_center", "zoom_in_top"],
+    "resolution": ["zoom_out_center", "pan_down_vertical"],
+    "rising": ["pan_zoom_up", "zoom_pan_right"],
+    # Determination / strength
+    "determined": ["zoom_in_bottom", "pan_zoom_up"],
+    "confident": ["zoom_in_center", "pan_up"],
+    "surprised": ["zoom_in_center", "zoom_in_top"],
+}
+
+
+def suggest_ken_burns_preset(emotion: str | None, seed: int = 0) -> str:
+    """Suggest a Ken Burns preset based on emotion/narrative context.
+
+    Returns a preset name from EMOTION_MOTION_MAP, or a random one if unknown.
+    """
+    if not emotion:
+        return get_random_preset(seed)[0]
+    candidates = EMOTION_MOTION_MAP.get(emotion.lower())
+    if not candidates:
+        return get_random_preset(seed)[0]
+    rng = random.Random(seed)
+    return rng.choice(candidates)
+
+
 def resolve_preset_name(ken_burns_preset: str | None) -> str:
     """Resolve the effective preset name.
 

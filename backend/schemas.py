@@ -483,6 +483,8 @@ class VideoScene(BaseModel):
     script: str = ""
     speaker: str = DEFAULT_SPEAKER
     duration: float = 3
+    # Per-scene Ken Burns override (from Cinematographer agent)
+    ken_burns_preset: str | None = None
     # Per-scene voice override
     narrator_voice: str | None = None
     voice_design_prompt: str | None = None

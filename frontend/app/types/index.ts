@@ -97,6 +97,8 @@ export type Scene = {
   voice_design_prompt?: string | null;
   head_padding?: number | null;
   tail_padding?: number | null;
+  // Per-scene Ken Burns preset (from Cinematographer agent)
+  ken_burns_preset?: string | null;
 };
 
 export type AudioItem = { name: string; url: string };

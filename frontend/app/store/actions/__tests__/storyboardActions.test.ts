@@ -216,6 +216,18 @@ describe("mapGeminiScenes", () => {
     expect(result[0]._auto_pin_previous).toBe(false);
   });
 
+  it("maps ken_burns_preset from Cinematographer agent", () => {
+    const raw = [{ ken_burns_preset: "zoom_in_center" }];
+    const result = mapGeminiScenes(raw, "");
+    expect(result[0].ken_burns_preset).toBe("zoom_in_center");
+  });
+
+  it("defaults ken_burns_preset to undefined when missing", () => {
+    const raw = [{}];
+    const result = mapGeminiScenes(raw, "");
+    expect(result[0].ken_burns_preset).toBeUndefined();
+  });
+
   it("handles mixed _auto_pin_previous values across scenes", () => {
     const raw = [
       { _auto_pin_previous: false }, // first scene (location change)

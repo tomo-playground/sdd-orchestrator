@@ -134,6 +134,7 @@ export function usePublishRender() {
               voice_design_prompt: s.voice_design_prompt ?? undefined,
               head_padding: s.head_padding ?? undefined,
               tail_padding: s.tail_padding ?? undefined,
+              ken_burns_preset: s.ken_burns_preset ?? undefined,
             })),
           storyboard_title: topic || "my_shorts",
           layout_style: mode,

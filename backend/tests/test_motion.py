@@ -1,14 +1,16 @@
 """Unit tests for Ken Burns motion effects module."""
 
-
 from services.motion import (
+    EMOTION_MOTION_MAP,
     PRESETS,
     RANDOM_ELIGIBLE,
+    VALID_PRESET_NAMES,
     KenBurnsParams,
     build_zoompan_filter,
     get_preset,
     get_random_preset,
     resolve_preset_name,
+    suggest_ken_burns_preset,
 )
 
 
@@ -27,11 +29,7 @@ class TestKenBurnsParams:
 
     def test_custom_values(self):
         """Custom params should be stored correctly."""
-        params = KenBurnsParams(
-            zoom_start=1.0, zoom_end=1.15,
-            x_start=0.3, x_end=0.7,
-            y_start=0.4, y_end=0.6
-        )
+        params = KenBurnsParams(zoom_start=1.0, zoom_end=1.15, x_start=0.3, x_end=0.7, y_start=0.4, y_end=0.6)
         assert params.zoom_start == 1.0
         assert params.zoom_end == 1.15
         assert params.x_start == 0.3
@@ -44,9 +42,16 @@ class TestPresets:
     def test_all_presets_exist(self):
         """All expected presets should be defined."""
         expected = [
-            "none", "slow_zoom", "zoom_in_center", "zoom_out_center",
-            "pan_left", "pan_right", "pan_up", "pan_down",
-            "zoom_pan_left", "zoom_pan_right"
+            "none",
+            "slow_zoom",
+            "zoom_in_center",
+            "zoom_out_center",
+            "pan_left",
+            "pan_right",
+            "pan_up",
+            "pan_down",
+            "zoom_pan_left",
+            "zoom_pan_right",
         ]
         for name in expected:
             assert name in PRESETS, f"Missing preset: {name}"
@@ -231,3 +236,62 @@ class TestResolvePresetName:
         """'random' should be passed through."""
         result = resolve_preset_name("random")
         assert result == "random"
+
+
+class TestValidPresetNames:
+    """Tests for VALID_PRESET_NAMES set."""
+
+    def test_excludes_random(self):
+        """VALID_PRESET_NAMES should not include 'random'."""
+        assert "random" not in VALID_PRESET_NAMES
+
+    def test_includes_all_concrete_presets(self):
+        """All concrete presets should be in VALID_PRESET_NAMES."""
+        for name in PRESETS:
+            if name != "random":
+                assert name in VALID_PRESET_NAMES
+
+    def test_includes_none(self):
+        """'none' should be a valid preset."""
+        assert "none" in VALID_PRESET_NAMES
+
+
+class TestSuggestKenBurnsPreset:
+    """Tests for suggest_ken_burns_preset function."""
+
+    def test_known_emotion_returns_mapped_preset(self):
+        """Known emotion should return a preset from EMOTION_MOTION_MAP."""
+        result = suggest_ken_burns_preset("happy", seed=42)
+        assert result in EMOTION_MOTION_MAP["happy"]
+
+    def test_unknown_emotion_returns_random(self):
+        """Unknown emotion should fall back to random eligible preset."""
+        result = suggest_ken_burns_preset("mysterious_unknown", seed=42)
+        assert result in RANDOM_ELIGIBLE
+
+    def test_none_emotion_returns_random(self):
+        """None emotion should fall back to random eligible preset."""
+        result = suggest_ken_burns_preset(None, seed=42)
+        assert result in RANDOM_ELIGIBLE
+
+    def test_empty_emotion_returns_random(self):
+        """Empty string emotion should fall back to random."""
+        result = suggest_ken_burns_preset("", seed=42)
+        assert result in RANDOM_ELIGIBLE
+
+    def test_case_insensitive(self):
+        """Emotion lookup should be case-insensitive."""
+        result = suggest_ken_burns_preset("HAPPY", seed=42)
+        assert result in EMOTION_MOTION_MAP["happy"]
+
+    def test_seed_reproducibility(self):
+        """Same emotion + seed should return same preset."""
+        r1 = suggest_ken_burns_preset("sad", seed=99)
+        r2 = suggest_ken_burns_preset("sad", seed=99)
+        assert r1 == r2
+
+    def test_all_mapped_presets_are_valid(self):
+        """All presets in EMOTION_MOTION_MAP should be valid preset names."""
+        for emotion, presets in EMOTION_MOTION_MAP.items():
+            for p in presets:
+                assert p in VALID_PRESET_NAMES, f"Invalid preset '{p}' for emotion '{emotion}'"

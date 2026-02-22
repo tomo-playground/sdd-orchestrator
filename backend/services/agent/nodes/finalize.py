@@ -112,6 +112,28 @@ def _validate_ip_adapter_weights(scenes: list[dict]) -> None:
             scene["ip_adapter_weight"] = clamped
 
 
+def _validate_ken_burns_presets(scenes: list[dict]) -> None:
+    """씬별 ken_burns_preset 검증. 무효 시 제거, 누락 시 감정 기반 자동 배정."""
+    from services.motion import VALID_PRESET_NAMES, suggest_ken_burns_preset  # noqa: PLC0415
+
+    for i, scene in enumerate(scenes):
+        preset = scene.get("ken_burns_preset")
+        if preset and preset not in VALID_PRESET_NAMES:
+            logger.warning("[Finalize] Invalid ken_burns_preset '%s' → removed", preset)
+            scene.pop("ken_burns_preset", None)
+            preset = None
+        if not preset:
+            emotion = (scene.get("context_tags") or {}).get("emotion")
+            if emotion:
+                scene["ken_burns_preset"] = suggest_ken_burns_preset(emotion, seed=i)
+                logger.info(
+                    "[Finalize] ken_burns_preset auto-assigned: scene %d → %s (emotion=%s)",
+                    i,
+                    scene["ken_burns_preset"],
+                    emotion,
+                )
+
+
 def _flatten_tts_designs(scenes: list[dict]) -> None:
     """tts_design dict → voice_design_prompt, head_padding, tail_padding 분해."""
     for scene in scenes:
@@ -160,6 +182,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     _normalize_environment_tags(scenes)
     _validate_controlnet_poses(scenes)
     _validate_ip_adapter_weights(scenes)
+    _validate_ken_burns_presets(scenes)
     _flatten_tts_designs(scenes)
 
     # Duration 최종 보정 (Review/Revise 경유 후에도 부족할 수 있음)

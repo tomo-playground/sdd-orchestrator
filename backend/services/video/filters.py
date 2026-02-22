@@ -21,9 +21,7 @@ if TYPE_CHECKING:
 def build_filters(builder: VideoBuilder) -> None:
     """Build all FFmpeg filters (video, subtitle, audio)."""
     if builder.use_post_layout:
-        builder.post_layout_metrics = builder._calculate_post_layout_metrics(
-            builder.out_w, builder.out_h
-        )
+        builder.post_layout_metrics = builder._calculate_post_layout_metrics(builder.out_w, builder.out_h)
 
     add_scene_text_inputs(builder)
     build_video_filters(builder)
@@ -43,11 +41,7 @@ def add_scene_text_inputs(builder: VideoBuilder) -> None:
 
     for i in range(builder.num_scenes):
         subtitle_path = builder.temp_dir / f"subtitle_{i}.png"
-        font_size = (
-            builder.scene_text_font_sizes[i]
-            if builder.scene_text_font_sizes[i] > 0
-            else None
-        )
+        font_size = builder.scene_text_font_sizes[i] if builder.scene_text_font_sizes[i] > 0 else None
 
         logger.info(f"Scene {i} subtitle:")
         logger.info(f"  - Lines: {builder.subtitle_lines[i]}")
@@ -82,22 +76,16 @@ def add_scene_text_inputs(builder: VideoBuilder) -> None:
         builder.input_args.extend(["-loop", "1", "-i", str(subtitle_path)])
 
 
-def _calc_subtitle_y(
-    builder: VideoBuilder, scene_img_path, scene_idx: int
-) -> float | None:
+def _calc_subtitle_y(builder: VideoBuilder, scene_img_path, scene_idx: int) -> float | None:
     """Calculate dynamic subtitle Y position from scene image."""
     try:
         if scene_img_path.exists():
             scene_img = Image.open(scene_img_path)
-            y_ratio = builder._calculate_optimal_scene_text_y(
-                scene_img, layout_style=builder.request.layout_style
-            )
+            y_ratio = builder._calculate_optimal_scene_text_y(scene_img, layout_style=builder.request.layout_style)
             logger.info(f"  - Dynamic Y position: {y_ratio:.3f}")
             return y_ratio
     except Exception as e:
-        logger.warning(
-            f"Scene {scene_idx}: failed to calculate dynamic subtitle position: {e}"
-        )
+        logger.warning(f"Scene {scene_idx}: failed to calculate dynamic subtitle position: {e}")
     return None
 
 
@@ -118,9 +106,7 @@ def build_video_filters(builder: VideoBuilder) -> None:
     for i in range(builder.num_scenes):
         v_idx = i * 2
         base_dur = builder.scene_durations[i]
-        clip_dur = base_dur + (
-            builder.transition_dur if i < builder.num_scenes - 1 else 0
-        )
+        clip_dur = base_dur + (builder.transition_dur if i < builder.num_scenes - 1 else 0)
         motion_frames = max(1, int(clip_dur * VIDEO_FPS))
 
         # Step 1: Scale/Crop image (base preparation)
@@ -137,22 +123,19 @@ def build_video_filters(builder: VideoBuilder) -> None:
 
         # Step 4: Color grade + vignette (Full layout only)
         if not builder.use_post_layout:
-            builder.filters.append(
-                f"[v{i}_base]eq=saturation=1.15:contrast=1.05,"
-                f"vignette=PI/5[v{i}_graded]"
-            )
+            builder.filters.append(f"[v{i}_base]eq=saturation=1.15:contrast=1.05,vignette=PI/5[v{i}_graded]")
             graded = f"[v{i}_graded]"
         else:
             graded = f"[v{i}_base]"
 
         # Step 5: Trim to duration
-        builder.filters.append(
-            f"{graded}trim=duration={clip_dur},setpts=PTS-STARTPTS[v{i}_raw]"
-        )
+        builder.filters.append(f"{graded}trim=duration={clip_dur},setpts=PTS-STARTPTS[v{i}_raw]")
 
 
 def _apply_ken_burns(
-    builder: VideoBuilder, i: int, motion_frames: int,
+    builder: VideoBuilder,
+    i: int,
+    motion_frames: int,
 ) -> None:
     """Apply Ken Burns (zoompan) effect to a scene."""
     preset_name = resolve_scene_preset(builder, i)
@@ -171,15 +154,11 @@ def _apply_ken_burns(
         builder.filters.append(f"[v{i}_scaled]{zoompan}[v{i}_kb]")
 
 
-def _apply_subtitle_overlay(
-    builder: VideoBuilder, i: int, subtitle_base_idx: int, clip_dur: float
-) -> None:
+def _apply_subtitle_overlay(builder: VideoBuilder, i: int, subtitle_base_idx: int, clip_dur: float) -> None:
     """Apply subtitle overlay after Ken Burns for Full layout."""
     if builder.request.include_scene_text and not builder.use_post_layout:
         sub_idx = subtitle_base_idx + i
-        logger.info(
-            f"Scene {i}: Adding subtitle overlay after Ken Burns (input [{sub_idx}:v])"
-        )
+        logger.info(f"Scene {i}: Adding subtitle overlay after Ken Burns (input [{sub_idx}:v])")
 
         fade_duration = 0.3
         sub_filter = f"[{sub_idx}:v]scale={builder.out_w}:{builder.out_h},format=rgba"
@@ -187,35 +166,24 @@ def _apply_subtitle_overlay(
         if clip_dur > fade_duration * 2:
             fade_out_start = clip_dur - fade_duration
             sub_filter += (
-                f",fade=t=in:st=0:d={fade_duration}:alpha=1"
-                f",fade=t=out:st={fade_out_start}:d={fade_duration}:alpha=1"
+                f",fade=t=in:st=0:d={fade_duration}:alpha=1,fade=t=out:st={fade_out_start}:d={fade_duration}:alpha=1"
             )
 
         builder.filters.append(f"{sub_filter}[sub{i}]")
         builder.filters.append(f"[v{i}_kb]format=rgba[v{i}_kb_rgba]")
-        builder.filters.append(
-            f"[v{i}_kb_rgba][sub{i}]overlay=0:0:format=auto[v{i}_base]"
-        )
+        builder.filters.append(f"[v{i}_kb_rgba][sub{i}]overlay=0:0:format=auto[v{i}_base]")
         logger.info(f"Scene {i}: Subtitle overlay complete -> [v{i}_base]")
     else:
         builder.filters.append(f"[v{i}_kb]null[v{i}_base]")
-        logger.info(
-            f"Scene {i}: No subtitles (include_scene_text={builder.request.include_scene_text})"
-        )
+        logger.info(f"Scene {i}: No subtitles (include_scene_text={builder.request.include_scene_text})")
 
 
-def _build_post_layout_base(
-    builder: VideoBuilder, i: int, v_idx: int
-) -> None:
+def _build_post_layout_base(builder: VideoBuilder, i: int, v_idx: int) -> None:
     """Build base scaling filter for post layout style."""
-    builder.filters.append(
-        f"[{v_idx}:v]scale={builder.out_w}:{builder.out_h}[v{i}_scaled]"
-    )
+    builder.filters.append(f"[{v_idx}:v]scale={builder.out_w}:{builder.out_h}[v{i}_scaled]")
 
 
-def _build_full_layout_base(
-    builder: VideoBuilder, i: int, v_idx: int
-) -> None:
+def _build_full_layout_base(builder: VideoBuilder, i: int, v_idx: int) -> None:
     """Build base scaling/cropping filter for full layout style.
 
     512x768 (2:3) -> 1080x1920 (9:16) conversion:
@@ -234,13 +202,23 @@ def _build_full_layout_base(
 def resolve_scene_preset(builder: VideoBuilder, scene_idx: int) -> str:
     """Resolve Ken Burns preset for a specific scene.
 
-    Handles 'random' preset by selecting a different effect per scene.
+    Priority: scene-level ken_burns_preset > global random > global preset.
     """
+    # 1) Per-scene override from Cinematographer agent
+    scene = builder.request.scenes[scene_idx]
+    per_scene = getattr(scene, "ken_burns_preset", None)
+    if per_scene and per_scene != "none":
+        logger.info(f"Scene {scene_idx}: per-scene Ken Burns preset -> {per_scene}")
+        return per_scene
+
+    # 2) Global random
     if builder.ken_burns_preset == "random":
         seed = hash(f"{builder.project_id}_{scene_idx}")
         name, _ = get_random_preset(seed)
         logger.info(f"Scene {scene_idx}: random Ken Burns preset -> {name}")
         return name
+
+    # 3) Global preset
     return builder.ken_burns_preset
 
 
@@ -248,9 +226,7 @@ def build_audio_filters(builder: VideoBuilder) -> None:
     """Build audio processing filters for each scene."""
     for i, scene in enumerate(builder.request.scenes):
         a_idx = i * 2 + 1
-        clip_dur = builder.scene_durations[i] + (
-            builder.transition_dur if i < builder.num_scenes - 1 else 0
-        )
+        clip_dur = builder.scene_durations[i] + (builder.transition_dur if i < builder.num_scenes - 1 else 0)
 
         # Delay audio start by transition duration + agent-designed head padding
         h_pad = getattr(scene, "head_padding", 0.0) or 0.0
