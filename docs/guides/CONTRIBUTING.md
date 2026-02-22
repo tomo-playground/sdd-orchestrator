@@ -199,7 +199,7 @@ cd frontend && npx eslint .                       # TypeScript
 
 ### LangGraph 노드 추가
 
-현재 15개 노드 운용 중. 상세: [`AGENT_SPEC.md`](../03_engineering/backend/AGENT_SPEC.md)
+현재 17개 노드 운용 중. 상세: [`AGENT_SPEC.md`](../03_engineering/backend/AGENT_SPEC.md)
 
 **추가 절차**:
 1. `docs/01_product/FEATURES/`에 기능 명세 작성

@@ -60,7 +60,7 @@ backend/
 ├── schemas.py            # Pydantic 스키마 (메인)
 ├── schemas_lab.py        # Lab 전용 스키마
 ├── schemas_creative.py   # Creative Pipeline 전용 스키마
-├── routers/              # API 엔드포인트 (34개)
+├── routers/              # API 엔드포인트 (33개)
 │   ├── storyboard.py     # 스토리보드 CRUD + 생성
 │   ├── scene.py          # 씬 이미지 생성/편집
 │   ├── characters.py     # 캐릭터 CRUD
@@ -113,7 +113,7 @@ backend/
 │   ├── agent/            # LangGraph Creative Pipeline
 │   │   ├── script_graph.py      # 메인 그래프
 │   │   ├── state.py, routing.py # 상태/라우팅
-│   │   ├── nodes/               # 19개 에이전트 노드 (director, writer, critic, cinematographer 등)
+│   │   ├── nodes/               # 17개 에이전트 노드 (director, writer, critic, cinematographer 등)
 │   │   ├── tools/               # 에이전트 도구 (research, cinematographer)
 │   │   ├── store.py, checkpointer.py
 │   │   └── observability.py     # Langfuse 연동

@@ -10,7 +10,7 @@
 - 문서 업데이트 시 `docs/` 디렉토리 구조를 따르며, 800줄을 넘지 않도록 관리합니다.
 
 ## Architecture Overview
-- **Backend**: FastAPI + LangGraph Agentic Pipeline (14개 노드)
+- **Backend**: FastAPI + LangGraph Agentic Pipeline (17개 노드)
 - **Frontend**: Next.js 16, React 19, Zustand 5
 - **DB**: PostgreSQL + SQLAlchemy + Alembic
 - **AI**: Google Gemini (`google-genai`), Stable Diffusion WebUI (SDXL)
@@ -19,7 +19,7 @@
 
 ## Gemini 사용 현황
 - **LangGraph Pipeline**: Director, Writer, Critic, Research, Cinematographer 노드에서 Gemini 호출
-- **템플릿**: `backend/templates/` (스토리보드 생성 + Creative 에이전트 17개)
+- **템플릿**: `backend/templates/` (스토리보드 5종 + Creative 21종 + 파셜 4종 = 30개)
 - **Tool-Calling**: Gemini Function Calling (Research 5 tools, Cinematographer 4 tools)
 - **최대 호출**: Draft 1 + Revise 2 (MAX_REVISIONS=2)
 

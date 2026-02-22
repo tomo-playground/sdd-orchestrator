@@ -64,11 +64,12 @@ Gemini 프롬프트와 출력 품질을 개선합니다:
 ```
 backend/templates/
 ├── create_storyboard.j2            # 메인 스토리보드 생성 템플릿
+├── create_storyboard_confession.j2 # 고백형 스토리보드 템플릿
 ├── create_storyboard_dialogue.j2   # 대화형 스토리보드 템플릿
 ├── create_storyboard_narrated.j2   # 나레이션형 스토리보드 템플릿
 ├── review_evaluate.j2              # 리뷰/평가 템플릿
-├── _partials/                      # 공유 파셜 템플릿
-└── creative/                       # Creative Pipeline 전용 템플릿
+├── _partials/                      # 공유 파셜 템플릿 (4개)
+└── creative/                       # Creative Pipeline 전용 템플릿 (21개)
 ```
 
 ### 템플릿 출력 구조

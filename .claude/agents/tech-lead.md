@@ -121,14 +121,14 @@ Warning 이하는 리포트 후 커밋 진행 가능합니다.
 
 | 에이전트 | 도메인 | MCP 도구 | 주요 커맨드 |
 |----------|--------|----------|------------|
-| PM | 제품/로드맵/문서 | memory, context7 | /roadmap, /docs |
+| PM | 제품/로드맵/문서 | memory, context7 | /roadmap, /docs, /vrt, /test, /pm-check |
 | Prompt Engineer | 프롬프트/태그/데이터 분석 | danbooru, huggingface, postgres, memory | /prompt-validate, /sd-status |
 | Storyboard Writer | 템플릿/스크립트/Gemini | context7, memory | /roadmap |
 | QA Validator | 테스트/검증/품질 | playwright, postgres, memory | /test, /review, /vrt |
 | FFmpeg Expert | 렌더링/비디오/오디오 | ffmpeg, memory | /vrt |
 | UI/UX Engineer | UI 설계/접근성 | playwright, memory | /vrt, /test |
 | Frontend Dev | Next.js/React/Zustand | playwright, context7, memory, API spec | /test frontend, /vrt |
-| Backend Dev | FastAPI/서비스/스토리지 | context7, postgres, memory, API spec | /test backend, /db |
+| Backend Dev | FastAPI/서비스/스토리지 | context7, postgres, memory, API spec | /test backend, /sd-status, /db, /pose |
 | DBA | DB 스키마/마이그레이션 | postgres, memory, context7 | /db, /test backend |
 | Security Engineer | 보안/시크릿/취약점 | postgres, memory | /review, /test |
 

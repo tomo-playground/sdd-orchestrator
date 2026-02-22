@@ -142,7 +142,7 @@ flowchart TD
 | Backend | FastAPI, Python 3.13 |
 | Frontend | Next.js 16, React 19, Zustand 5, Tailwind CSS 4 |
 | DB | PostgreSQL, SQLAlchemy, Alembic |
-| AI Pipeline | LangGraph, Google Gemini (`google-genai`), 25 Jinja2 Templates |
+| AI Pipeline | LangGraph, Google Gemini (`google-genai`), 30 Jinja2 Templates |
 | Image Gen | Stable Diffusion WebUI (SDXL), ControlNet, IP-Adapter |
 | TTS | Qwen3-TTS (로컬 MPS) |
 | Video | FFmpeg (Ken Burns, 13종 전환 효과) |
@@ -158,7 +158,7 @@ backend/
 ├── routers/          # 도메인별 API 엔드포인트 (33개 라우터)
 ├── services/
 │   ├── agent/        # LangGraph Agentic Pipeline
-│   │   ├── nodes/    #   17개 에이전트 노드 + 4개 유틸리티 모듈
+│   │   ├── nodes/    #   17개 에이전트 노드 + 5개 유틸리티 모듈
 │   │   ├── tools/    #   Gemini Function Calling 9개 도구
 │   │   ├── state.py  #   ScriptState (Graph State)
 │   │   └── routing.py#   8개 조건부 라우팅 함수
@@ -168,7 +168,7 @@ backend/
 │   ├── storyboard/   # 스토리보드 CRUD, Scene Builder
 │   └── characters/   # 캐릭터 관리, LoRA 연동
 ├── models/           # SQLAlchemy ORM 26개 모델 (V3 Relational Schema)
-├── templates/        # Jinja2 25개 템플릿 (스토리보드 + 에이전트)
+├── templates/        # Jinja2 30개 템플릿 (스토리보드 5종 + Creative 21종 + 파셜 4종)
 ├── schemas.py        # Pydantic Request/Response 모델
 ├── config.py         # 환경변수/상수 SSOT
 └── main.py           # FastAPI 앱 + Lifespan

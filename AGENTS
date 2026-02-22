@@ -3,13 +3,13 @@
 | Agent | 역할 | Commands |
 |-------|------|----------|
 | **Tech Lead** | 개발 총괄, 코드 리뷰, 크로스 에이전트 조율 | `/roadmap`, `/test`, `/review`, `/db`, `/docs` |
-| **PM Agent** | 로드맵/우선순위/문서 구조 관리 | `/roadmap`, `/docs`, `/vrt`, `/test` |
+| **PM Agent** | 로드맵/우선순위/문서 구조 관리 | `/roadmap`, `/docs`, `/vrt`, `/test`, `/pm-check` |
 | **Prompt Engineer** | SD 프롬프트 최적화 + 데이터 기반 고도화 | `/prompt-validate`, `/sd-status` |
 | **Storyboard Writer** | 스토리보드/스크립트 작성 | `/roadmap` |
 | **QA Validator** | 품질 체크/테스트 검증/TROUBLESHOOTING | `/test`, `/review`, `/vrt`, `/sd-status`, `/prompt-validate` |
 | **FFmpeg Expert** | 렌더링/비디오 효과 | `/vrt`, `/roadmap` |
 | **UI/UX Engineer** | UI 설계/와이어프레임/사용성 개선 | `/vrt`, `/test` |
-| **Frontend Dev** | Next.js/React 개발, Zustand 상태 관리 | `/test frontend`, `/review frontend`, `/vrt` |
-| **Backend Dev** | FastAPI 개발, 서비스 로직, 스토리지 | `/test backend`, `/review backend`, `/sd-status`, `/db` |
+| **Frontend Dev** | Next.js/React 개발, Zustand 상태 관리 | `/test frontend`, `/vrt` |
+| **Backend Dev** | FastAPI 개발, 서비스 로직, 스토리지 | `/test backend`, `/sd-status`, `/db`, `/pose` |
 | **DBA** | DB 설계, Alembic 마이그레이션, 쿼리 최적화 | `/db`, `/test backend` |
 | **Security Engineer** | 보안 취약점 분석, 인증/인가, 시크릿 관리 | `/review`, `/test` |
