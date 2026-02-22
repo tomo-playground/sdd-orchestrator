@@ -19,6 +19,7 @@
 
 ### 최근 작업
 
+- **Frontend Validate / Fix All 제거** (02-23): 하드코딩 키워드 리스트 기반 프론트엔드 프롬프트 검증 제거. Fix All이 범용 기본값(standing, plain background) 삽입으로 품질 저하. Autopilot images→validate→render → images→render 2단계로 단순화. validation.ts/FixSuggestionsPanel.tsx 삭제, 14파일 수정, -1,275줄. WD14 이미지 검증은 유지
 - **Compose 중개 제거 리팩토링** (02-23): Frontend `/compose`→`/validate`→`/generate` 3회 왕복 → `/generate` 1회로 통합. Backend `context_tags` 필드 추가, `_handle_character_scene/background_scene`에서 자동 병합. `buildScenePrompt` async→sync(56줄→3줄). `prompt_pre_composed` deprecated. `autoComposePrompt` 토글 제거(Backend negative 합성으로 대체). 테스트 11개 추가(Backend 43개 PASS)
 - **Cinematographer → Ken Burns 씬별 연결** (02-22): 감정/서사 기반 Ken Burns 모션 자동 지정. motion.py EMOTION_MOTION_MAP(27감정→프리셋), suggest_ken_burns_preset(). Finalize _validate_ken_burns_presets() 검증+fallback. Cinematographer 템플릿 Rule 15. VideoScene.ken_burns_preset 필드. resolve_scene_preset() 씬별>전역 우선순위. Frontend 전 경로 연결(mapGeminiScenes/mapEventScenes/sync/render). 테스트 22개 추가
 - **파이프라인 → Frontend 씬 필드 매핑 갭 수정** (02-22): Finalize `_flatten_tts_designs()` — tts_design dict → voice_design_prompt/head_padding/tail_padding flat fields 분해. `scenes.controlnet_pose` 컬럼 추가 (DB_SCHEMA v3.29). Frontend 전 경로(mapGeminiScenes/mapEventScenes/sync/load/persist/autoSave/save/render)에 5필드 매핑 보강. 11파일 수정
