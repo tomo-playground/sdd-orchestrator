@@ -72,7 +72,12 @@ Match your visual design to this plan:
    | closed_eyes | close-up | Emotional intensity |
    | looking_afar | cowboy_shot | Gazing into distance / resolution |
 4. **Pose variety**: Avoid `standing` + `looking_at_viewer` in consecutive scenes.
-   - Available: standing, sitting, walking, leaning_forward, kneeling, crouching, arms_behind_back
+   Use diverse poses from the list below. Pick poses that match the script's action/emotion.
+   - **Standing**: standing, standing_arms_crossed, standing_hands_on_hips, standing_arms_up, standing_waving, standing_thumbs_up, standing_looking_up, standing_from_behind, profile_standing
+   - **Sitting**: sitting, sitting_chin_rest, sitting_leaning, sitting_eating
+   - **Action**: walking, running, jumping, kneeling, crouching, lying, pointing_forward, covering_face
+   - **Daily life**: holding_object, eating, cooking, holding_umbrella, writing, leaning_wall
+   - Use the EXACT tag names above in `context_tags.pose` (these map to ControlNet pose references)
 5. **Environment consistency**: Maintain consistent setting within scene groups
    - Do NOT add weather/atmosphere tags (rain, cloud, moon, night, snow) unless the script explicitly mentions them
    - Indoor scenes (kitchen, bedroom, classroom): do NOT add outdoor atmosphere tags
@@ -126,6 +131,8 @@ Match your visual design to this plan:
       "context_tags": {
         "emotion": "nervous",
         "action": "holding_knife",
+        "pose": "standing",
+        "gaze": "looking_down",
         "setting": "kitchen"
       }
     },

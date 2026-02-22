@@ -78,7 +78,7 @@ class TestFinalizeMetadataSeparation:
             "sound_designer_result": {"recommendation": {"mood": "calm", "bpm": 80}},
             "copyright_reviewer_result": {"overall": "PASS", "checks": []},
         }
-        result = await finalize_node(state)
+        result = await finalize_node(state, {})
 
         assert "sound_recommendation" in result
         assert result["sound_recommendation"] == {"mood": "calm", "bpm": 80}
@@ -98,7 +98,7 @@ class TestFinalizeMetadataSeparation:
             "sound_designer_result": {"recommendation": {"mood": "epic"}},
             "copyright_reviewer_result": {"overall": "WARN"},
         }
-        result = await finalize_node(state)
+        result = await finalize_node(state, {})
 
         scenes = result["final_scenes"]
         assert len(scenes) > 0
@@ -113,7 +113,7 @@ class TestFinalizeMetadataSeparation:
             "mode": "quick",
             "draft_scenes": [{"scene_id": 1, "script": "퀵"}],
         }
-        result = await finalize_node(state)
+        result = await finalize_node(state, {})
 
         assert result["sound_recommendation"] is None
         assert result["copyright_result"] is None
@@ -129,7 +129,7 @@ class TestFinalizeMetadataSeparation:
             },
             "tts_designer_result": {"tts_designs": []},
         }
-        result = await finalize_node(state)
+        result = await finalize_node(state, {})
 
         assert result["sound_recommendation"] is None
         assert result["copyright_result"] is None

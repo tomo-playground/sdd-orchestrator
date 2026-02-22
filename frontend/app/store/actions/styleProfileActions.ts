@@ -210,10 +210,8 @@ export async function loadStyleProfileFromId(profileId: number): Promise<void> {
       },
     });
 
-    // Auto-enable Hi-Res from StyleProfile default
-    if (profile.default_enable_hr) {
-      useStoryboardStore.getState().set({ hiResEnabled: true });
-    }
+    // Sync Hi-Res toggle from StyleProfile default (both ON and OFF)
+    useStoryboardStore.getState().set({ hiResEnabled: !!profile.default_enable_hr });
 
     await changeSdModel(
       {
@@ -240,9 +238,9 @@ async function changeSdModel(
       });
       showToast(
         `Style profile "${profile.display_name || profile.name}" loaded\n` +
-        `Model: ${profile.sd_model_name}\n` +
-        `LoRAs: ${profile.loras?.length || 0}\n` +
-        `Embeddings: ${(profile.negative_embeddings?.length || 0) + (profile.positive_embeddings?.length || 0)}`,
+          `Model: ${profile.sd_model_name}\n` +
+          `LoRAs: ${profile.loras?.length || 0}\n` +
+          `Embeddings: ${(profile.negative_embeddings?.length || 0) + (profile.positive_embeddings?.length || 0)}`,
         "success"
       );
     } catch (err) {

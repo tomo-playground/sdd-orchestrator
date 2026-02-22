@@ -24,7 +24,7 @@ async def test_finalize_injects_negative_prompt():
         "sound_designer_result": None,
         "copyright_reviewer_result": None,
     }
-    result = await finalize_node(state)
+    result = await finalize_node(state, {})
     for scene in result["final_scenes"]:
         assert scene["negative_prompt"] == DEFAULT_SCENE_NEGATIVE_PROMPT
 
@@ -46,7 +46,7 @@ async def test_finalize_preserves_existing_negative():
         "sound_designer_result": None,
         "copyright_reviewer_result": None,
     }
-    result = await finalize_node(state)
+    result = await finalize_node(state, {})
     assert result["final_scenes"][0]["negative_prompt"] == custom_negative
 
 
@@ -62,6 +62,6 @@ async def test_finalize_quick_mode_also_injects():
             {"order": 1, "script": "퀵 씬2", "negative_prompt": ""},
         ],
     }
-    result = await finalize_node(state)
+    result = await finalize_node(state, {})
     for scene in result["final_scenes"]:
         assert scene["negative_prompt"] == DEFAULT_SCENE_NEGATIVE_PROMPT

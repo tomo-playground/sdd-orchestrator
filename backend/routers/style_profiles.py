@@ -103,6 +103,12 @@ def _build_full_profile(db: Session, profile: StyleProfile) -> dict:
         "positive_embeddings": positive_embeddings,
         "default_positive": profile.default_positive,
         "default_negative": profile.default_negative,
+        "default_steps": profile.default_steps,
+        "default_cfg_scale": profile.default_cfg_scale,
+        "default_sampler_name": profile.default_sampler_name,
+        "default_clip_skip": profile.default_clip_skip,
+        "default_enable_hr": profile.default_enable_hr,
+        "default_ip_adapter_model": profile.default_ip_adapter_model,
         "is_default": profile.is_default,
         "is_active": profile.is_active,
     }

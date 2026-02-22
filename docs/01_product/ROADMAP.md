@@ -19,6 +19,9 @@
 
 ### 최근 작업
 
+- **ControlNet Pose Pipeline 완성** (02-22): Cinematographer 템플릿 포즈 28개 전체 명시, Finalize context_tags 기본 pose/gaze fallback 주입, auto_populate 태그 카테고리 검증 강화
+- **씬 플래그 파이프라인 수정 + 테스트 보강** (02-22): character_actions 파이프라인 확장 (Quick 1인 캐릭터 지원, Full 모드 Finalize 노드 통합, Cinematographer pose/gaze 카테고리 명시), StyleProfile `/full` API 응답 필드 누락 수정 (default_enable_hr 등 5개), Frontend Hi-Res 토글 양방향 동기화, ControlNet 포즈 선택 강화 (pose_hint), 테스트 보강 (generation_controlnet, scene_flags, finalize_node 등)
+- **Finalize 노드 에러 전파 수정** (02-22): Writer에서 Gemini 안전 필터 차단 시 finalize_node가 error 필드를 무시하고 빈 씬 목록(`[]`)을 HTTP 200으로 반환하던 버그 수정. finalize 진입 시 error 필드 존재하면 즉시 에러 반환하도록 수정
 - **IP-Adapter 고도화 Phase 1~3 + Seed Anchoring** (02-22): Per-character guidance_start/end 오버라이드(Phase 3-A), 실사 사진 업로드+얼굴 크롭(Phase 1-A), 멀티앵글 레퍼런스 선택(Phase 2-A), FaceID face tag suppression(Phase 3-B), 레퍼런스 품질 검증(얼굴 감지+해상도). Seed Anchoring: storyboard base_seed+scene_order 기반 결정론적 seed, 이미지 캐시(deterministic only), scene last_seed DB 저장. 마이그레이션 2건, 테스트 4파일(888줄). 코드 리뷰 후 schemas.py 이동, 캐시 로직 분리 등 6건 수정
 - **Cinematographer 연출력 강화 + 에이전트 경쟁** (02-22): Writer Plan 브릿지(writer_plan→템플릿 전달), 시네마틱 기법/내러티브-비주얼/감정-비주얼 규칙(Rule 11-13) 추가, 3 Lens 경쟁 시스템(Full 모드: Tension/Intimacy/Contrast 병렬 실행+6차원 스코어링), search_similar_compositions 매트릭스 확장(16개 mood×scene_type, Danbooru 검증 태그), Director revise_script 루프 조기 종료. 13개 신규 테스트 (총 73개 PASS)
 - **StyleProfile별 Hi-Res 기본값 자동 적용** (02-21): `style_profiles`에 `default_enable_hr` Boolean 컬럼 추가(v3.25). `_adjust_parameters()`에서 StyleProfile의 Hi-Res 설정 자동 적용. Realistic(True, 512→768 업스케일 필수) vs Anime(False). Frontend StyleProfileEditor에 Hi-Res 체크박스 UI 추가. DB_SCHEMA v3.25
@@ -147,6 +150,18 @@ graph LR
 | 6 | IP-Adapter 모델 자동 선택 (clip_face/faceid) | ✅ (02-21) |
 | 7 | 캐릭터 프리뷰 Checkpoint 자동 전환 | ✅ (02-21) |
 | 8 | Hi-Res 기본값 자동 적용 (default_enable_hr) | ✅ (02-21) |
+
+---
+
+## Phase 14: ControlNet Pose Pipeline 완성
+
+**목표**: ControlNet 포즈가 실질적으로 작동하도록 파이프라인 갭 해소. Cinematographer → Finalize → auto_populate → ControlNet 전 경로에서 포즈 데이터 누락 방지.
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | Cinematographer 템플릿 Available Poses 28개 전체 명시 | ✅ (02-22) |
+| 2 | Finalize context_tags 누락 시 기본 pose/gaze 주입 | ✅ (02-22) |
+| 3 | auto_populate 태그 카테고리 검증 (category mismatch 방지) | ✅ (02-22) |
 
 ---
 

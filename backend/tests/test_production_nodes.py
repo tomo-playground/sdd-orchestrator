@@ -275,7 +275,7 @@ async def test_finalize_quick_passthrough():
 
     scenes = [{"scene_id": 1, "script": "test"}]
     state = {"mode": "quick", "draft_scenes": scenes}
-    result = await finalize_node(state)
+    result = await finalize_node(state, {})
     assert len(result["final_scenes"]) == 1
     assert result["final_scenes"][0]["scene_id"] == 1
     assert result["final_scenes"][0]["negative_prompt"] == DEFAULT_SCENE_NEGATIVE_PROMPT
@@ -295,7 +295,7 @@ async def test_finalize_full_merge():
         "sound_designer_result": {"recommendation": {"prompt": "piano", "mood": "calm", "duration": 30}},
         "copyright_reviewer_result": {"overall": "PASS", "checks": []},
     }
-    result = await finalize_node(state)
+    result = await finalize_node(state, {})
     final = result["final_scenes"]
     assert len(final) == 1
     assert final[0]["tts_design"]["voice_design_prompt"] == "calm"

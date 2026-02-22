@@ -8,15 +8,25 @@ from services.storyboard import resolve_action_tag_ids
 # ── Helpers ──────────────────────────────────────────────────────────
 
 
-def _seed_tags(db_session, names_layers: list[tuple[str, int]]) -> dict[str, int]:
-    """Insert tags into DB and return {name: id} mapping."""
+def _seed_tags(db_session, names_layers) -> dict[str, int]:
+    """Insert tags into DB and return {name: id} mapping.
+
+    Each item is (name, layer) or (name, layer, category).
+    Default category is 'expression'.
+    """
     result: dict[str, int] = {}
-    for name, layer in names_layers:
-        tag = Tag(name=name, default_layer=layer, category="expression")
+    tags: list[tuple[str, Tag]] = []
+    for item in names_layers:
+        if len(item) == 3:
+            name, layer, category = item
+        else:
+            name, layer = item
+            category = "expression"
+        tag = Tag(name=name, default_layer=layer, category=category)
         db_session.add(tag)
+        tags.append((name, tag))
     db_session.flush()
-    for name, _ in names_layers:
-        tag = db_session.query(Tag).filter(Tag.name == name).one()
+    for name, tag in tags:
         result[name] = tag.id
     return result
 
@@ -77,7 +87,7 @@ class TestContextTagCategories:
 
     def test_gaze_string(self, db_session):
         """gaze is a single string in context_tags, not a list."""
-        _seed_tags(db_session, [("looking_at_viewer", 7)])
+        _seed_tags(db_session, [("looking_at_viewer", 7, "gaze")])
         scenes = [_scene("A", {"gaze": "looking_at_viewer"})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
@@ -85,7 +95,7 @@ class TestContextTagCategories:
         assert len(result[0]["character_actions"]) == 1
 
     def test_pose_list(self, db_session):
-        _seed_tags(db_session, [("standing", 8)])
+        _seed_tags(db_session, [("standing", 8, "pose")])
         scenes = [_scene("A", {"pose": ["standing"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
@@ -93,7 +103,7 @@ class TestContextTagCategories:
         assert result[0]["character_actions"][0]["tag_id"] is not None
 
     def test_action_list(self, db_session):
-        _seed_tags(db_session, [("holding_sword", 8)])
+        _seed_tags(db_session, [("holding_sword", 8, "action")])
         scenes = [_scene("A", {"action": ["holding_sword"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
@@ -111,7 +121,7 @@ class TestContextTagCategories:
 
     def test_multiple_categories_combined(self, db_session):
         """Tags from expression + gaze + pose should all be included."""
-        _seed_tags(db_session, [("smile", 7), ("looking_away", 7), ("sitting", 8)])
+        _seed_tags(db_session, [("smile", 7), ("looking_away", 7, "gaze"), ("sitting", 8, "pose")])
         scenes = [
             _scene("A", {"expression": ["smile"], "gaze": "looking_away", "pose": ["sitting"]}),
         ]
@@ -184,7 +194,7 @@ class TestMultiScene:
     """Multiple scenes with alternating speakers (typical dialogue storyboard)."""
 
     def test_dialogue_alternating_speakers(self, db_session):
-        _seed_tags(db_session, [("smile", 7), ("angry", 7), ("looking_at_viewer", 7)])
+        _seed_tags(db_session, [("smile", 7), ("angry", 7), ("looking_at_viewer", 7, "gaze")])
         scenes = [
             _scene("A", {"expression": ["smile"], "gaze": "looking_at_viewer"}),
             _scene("B", {"expression": ["angry"]}),
@@ -296,7 +306,7 @@ class TestExtractActionsFromContextTags:
     """Tests for single-scene context_tags → character_actions extraction."""
 
     def test_extracts_expression_and_pose(self, db_session):
-        tag_ids = _seed_tags(db_session, [("smile", 7), ("standing", 8)])
+        tag_ids = _seed_tags(db_session, [("smile", 7), ("standing", 8, "pose")])
         ctx = {"expression": ["smile"], "pose": ["standing"]}
 
         actions = extract_actions_from_context_tags(ctx, character_id=10, db=db_session)
@@ -308,7 +318,7 @@ class TestExtractActionsFromContextTags:
         assert ids == {tag_ids["smile"], tag_ids["standing"]}
 
     def test_gaze_string_extracted(self, db_session):
-        _seed_tags(db_session, [("looking_at_viewer", 7)])
+        _seed_tags(db_session, [("looking_at_viewer", 7, "gaze")])
         ctx = {"gaze": "looking_at_viewer"}
 
         actions = extract_actions_from_context_tags(ctx, character_id=1, db=db_session)
@@ -334,6 +344,86 @@ class TestExtractActionsFromContextTags:
 
     def test_unknown_tags_skipped(self, db_session):
         ctx = {"expression": ["nonexistent_tag"]}
+
+        actions = extract_actions_from_context_tags(ctx, character_id=1, db=db_session)
+
+        assert actions is None
+
+
+# ── Single Character (Monologue) Tests ───────────────────────────────
+
+
+class TestSingleCharacterPopulation:
+    """Phase 1-A: 1인 캐릭터(Monologue) character_actions 생성 테스트."""
+
+    def test_monologue_speaker_a_only(self, db_session):
+        """1인 캐릭터(character_b_id=None) + Speaker A → character_actions 생성."""
+        _seed_tags(db_session, [("smile", 7), ("standing", 8, "pose")])
+        scenes = [
+            _scene("A", {"expression": ["smile"], "pose": ["standing"]}),
+        ]
+
+        result = auto_populate_character_actions(scenes, character_id=50, character_b_id=None, db=db_session)
+
+        assert "character_actions" in result[0]
+        assert len(result[0]["character_actions"]) == 2
+        assert all(a["character_id"] == 50 for a in result[0]["character_actions"])
+
+    def test_monologue_with_narrator_mixed(self, db_session):
+        """Monologue: Speaker A + Narrator 혼합 → A만 character_actions."""
+        _seed_tags(db_session, [("crying", 7), ("looking_down", 7, "gaze")])
+        scenes = [
+            _scene("Narrator", {"mood": ["sad"]}),
+            _scene("A", {"expression": ["crying"], "gaze": "looking_down"}),
+            _scene("Narrator", {"environment": ["night"]}),
+        ]
+
+        result = auto_populate_character_actions(scenes, character_id=50, character_b_id=None, db=db_session)
+
+        assert "character_actions" not in result[0]  # Narrator
+        assert len(result[1]["character_actions"]) == 2  # Speaker A
+        assert "character_actions" not in result[2]  # Narrator
+
+    def test_monologue_pose_and_gaze_extracted(self, db_session):
+        """context_tags에 pose/gaze 있을 때 정상 추출."""
+        _seed_tags(db_session, [("sitting", 8, "pose"), ("looking_to_the_side", 7, "gaze")])
+        scenes = [
+            _scene("A", {"pose": ["sitting"], "gaze": "looking_to_the_side"}),
+        ]
+
+        result = auto_populate_character_actions(scenes, character_id=50, character_b_id=None, db=db_session)
+
+        assert len(result[0]["character_actions"]) == 2
+
+
+# ── Category Filtering Tests (P0-3) ─────────────────────────────────
+
+
+class TestCategoryFiltering:
+    """P0-3: auto_populate는 (tag_name, category) 복합키로 매칭한다."""
+
+    def test_category_mismatch_rejected(self, db_session):
+        """'standing'이 expression 카테고리에만 있으면 pose 매칭 거부."""
+        _seed_tags(db_session, [("standing", 8)])  # default category="expression"
+        scenes = [_scene("A", {"pose": ["standing"]})]
+
+        result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
+
+        assert "character_actions" not in result[0]
+
+    def test_category_match_accepted(self, db_session):
+        """'standing'이 pose 카테고리에 있으면 pose 매칭 성공."""
+        _seed_tags(db_session, [("standing", 8, "pose")])
+        scenes = [_scene("A", {"pose": ["standing"]})]
+
+        result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
+
+        assert len(result[0]["character_actions"]) == 1
+
+    def test_extract_also_filters_category(self, db_session):
+        """extract_actions_from_context_tags도 카테고리 필터링 적용."""
+        _seed_tags(db_session, [("standing", 8)])  # expression (wrong category)
+        ctx = {"pose": ["standing"]}
 
         actions = extract_actions_from_context_tags(ctx, character_id=1, db=db_session)
 

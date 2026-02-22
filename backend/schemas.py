@@ -1116,6 +1116,7 @@ class StyleProfileFullResponse(BaseModel):
     default_sampler_name: str | None = None
     default_clip_skip: int | None = None
     default_enable_hr: bool | None = None
+    default_ip_adapter_model: str | None = None
     is_default: bool = False
     is_active: bool = True
 

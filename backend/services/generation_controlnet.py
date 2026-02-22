@@ -33,7 +33,7 @@ def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
     if not check_controlnet_available():
         return
 
-    _apply_pose_control(req, ctx, controlnet_args_list)
+    _apply_pose_control(req, ctx, controlnet_args_list, db)
     _apply_reference_only(req, ctx, strategy, controlnet_args_list, db)
     _apply_environment(req, ctx, controlnet_args_list, db)
     _apply_ip_adapter(ctx, strategy, controlnet_args_list, db)
@@ -49,11 +49,14 @@ def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
             logger.info("🔧 [ControlNet Arg %d] %s", i, debug_arg)
 
 
-def _apply_pose_control(req: SceneGenerateRequest, ctx: GenerationContext, args: list) -> None:
+def _apply_pose_control(req: SceneGenerateRequest, ctx: GenerationContext, args: list, db=None) -> None:
     """Apply OpenPose ControlNet if requested."""
     if not req.use_controlnet:
         return
     pose_name = req.controlnet_pose
+    # Phase 3-A: character_actions pose 힌트 활용 (explicit pose 이전)
+    if not pose_name and req.scene_id and db:
+        pose_name = _get_pose_from_character_actions(req.scene_id, db)
     if not pose_name:
         prompt_tags = split_prompt_tokens(ctx.prompt)
         pose_name = detect_pose_from_prompt(prompt_tags)
@@ -236,3 +239,30 @@ def _apply_canny_from_asset(env_asset, request: SceneGenerateRequest, controlnet
         )
     except Exception as e:
         logger.error("❌ [Environment Pinning] Failed to load asset: %s", e)
+
+
+# ── Character Actions pose hint ───────────────────────────────────
+
+
+def _get_pose_from_character_actions(scene_id: int, db) -> str | None:
+    """Retrieve pose tag name from character_actions for ControlNet hint."""
+    try:
+        from models.associations import SceneCharacterAction
+        from models.tag import Tag
+
+        rows = (
+            db.query(Tag.name)
+            .join(SceneCharacterAction, SceneCharacterAction.tag_id == Tag.id)
+            .filter(
+                SceneCharacterAction.scene_id == scene_id,
+                Tag.category == "pose",
+            )
+            .limit(1)
+            .all()
+        )
+        if rows:
+            logger.info("[ControlNet] pose_hint from character_actions: %s", rows[0][0])
+            return rows[0][0]
+    except Exception:
+        logger.debug("[ControlNet] pose_hint lookup failed", exc_info=True)
+    return None

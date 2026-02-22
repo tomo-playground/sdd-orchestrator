@@ -54,12 +54,19 @@ def auto_populate_character_actions(
     if not all_tag_names:
         return scenes
 
-    # Batch query: resolve tag_name -> (tag_id, default_layer)
-    tag_rows = db.query(Tag.id, Tag.name, Tag.default_layer).filter(Tag.name.in_(all_tag_names)).all()
-    tag_lookup: dict[str, tuple[int, int]] = {row.name: (row.id, row.default_layer) for row in tag_rows}
+    # Batch query: resolve (tag_name, category) -> (tag_id, default_layer)
+    tag_rows = (
+        db.query(Tag.id, Tag.name, Tag.category, Tag.default_layer)
+        .filter(Tag.name.in_(all_tag_names), Tag.category.in_(_ACTION_CATEGORIES))
+        .all()
+    )
+    # Compound key: (name, category) for precise category matching
+    tag_lookup: dict[tuple[str, str], tuple[int, int]] = {
+        (row.name, row.category): (row.id, row.default_layer) for row in tag_rows
+    }
 
     logger.info(
-        "[CharacterActionResolver] Resolved %d/%d tags from DB",
+        "[CharacterActionResolver] Resolved %d/%d tags from DB (category-filtered)",
         len(tag_lookup),
         len(all_tag_names),
     )
@@ -93,9 +100,12 @@ def auto_populate_character_actions(
                 tags = [value] if isinstance(value, str) else value
                 for tag_name in tags:
                     tag_name = tag_name.strip()
-                    if not tag_name or tag_name not in tag_lookup:
+                    if not tag_name:
                         continue
-                    tag_id, _ = tag_lookup[tag_name]
+                    result = tag_lookup.get((tag_name, cat))
+                    if not result:
+                        continue
+                    tag_id, _ = result
                     actions.append(
                         {
                             "character_id": cid,
@@ -140,8 +150,12 @@ def extract_actions_from_context_tags(
     if not tag_names:
         return None
 
-    rows = db.query(Tag.id, Tag.name).filter(Tag.name.in_(tag_names)).all()
-    tag_lookup = {r.name: r.id for r in rows}
+    rows = (
+        db.query(Tag.id, Tag.name, Tag.category)
+        .filter(Tag.name.in_(tag_names), Tag.category.in_(_ACTION_CATEGORIES))
+        .all()
+    )
+    tag_lookup = {(r.name, r.category): r.id for r in rows}
 
     actions: list[dict] = []
     for cat in _ACTION_CATEGORIES:
@@ -151,7 +165,7 @@ def extract_actions_from_context_tags(
         tags = [value] if isinstance(value, str) else value
         for name in tags:
             name = name.strip()
-            tid = tag_lookup.get(name)
+            tid = tag_lookup.get((name, cat))
             if tid:
                 actions.append({"character_id": character_id, "tag_id": tid, "weight": 1.0})
 
