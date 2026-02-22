@@ -60,7 +60,6 @@ export type ProcessOpts = {
   prompt: string;
   usedPrompt?: string;
   warnings?: string[];
-  autoComposePrompt: boolean;
   selectedCharacterId: number | null;
   silent: boolean;
   controlnet_pose?: string;
@@ -69,16 +68,7 @@ export type ProcessOpts = {
 
 /** Store, validate, and rank generated images (shared by SSE and sync paths) */
 export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial<Scene> | null> {
-  const {
-    images,
-    scene,
-    prompt,
-    usedPrompt,
-    warnings = [],
-    autoComposePrompt,
-    selectedCharacterId,
-    silent,
-  } = opts;
+  const { images, scene, prompt, usedPrompt, warnings = [], selectedCharacterId, silent } = opts;
   const { showToast } = useUIStore.getState();
   const { projectId, groupId, storyboardId: currentId } = useContextStore.getState();
 
@@ -166,7 +156,7 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
     image_url: bestCandidate.image_url,
     image_asset_id: bestCandidate.asset_id ?? null,
     candidates,
-    image_prompt: autoComposePrompt && selectedCharacterId ? prompt : usedPrompt || undefined,
+    image_prompt: usedPrompt || undefined,
     activity_log_id: activityLogId,
     use_controlnet: opts.controlnet_pose ? true : undefined,
     ip_adapter_reference: opts.ip_adapter_reference || undefined,

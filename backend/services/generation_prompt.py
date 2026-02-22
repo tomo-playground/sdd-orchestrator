@@ -23,6 +23,30 @@ if TYPE_CHECKING:
 _PERSON_INDICATORS = frozenset({"1girl", "1boy", "2girls", "2boys", "3girls", "3boys", "solo", "couple", "group"})
 
 
+def _collect_context_tags(context_tags: dict) -> list[str]:
+    """Flatten context_tags dict into a tag list."""
+    tags: list[str] = []
+    for key in ("expression", "pose", "action", "environment", "mood"):
+        val = context_tags.get(key)
+        if isinstance(val, list):
+            tags.extend(val)
+    for key in ("gaze", "camera"):
+        val = context_tags.get(key)
+        if isinstance(val, str) and val:
+            tags.append(val)
+    return tags
+
+
+def _merge_context_tags(request: SceneGenerateRequest) -> None:
+    """Merge request.context_tags into request.prompt (prepend)."""
+    if not request.context_tags:
+        return
+    extra = _collect_context_tags(request.context_tags)
+    if extra:
+        request.prompt = f"{', '.join(extra)}, {request.prompt}"
+        logger.info("📎 [ContextTags] Merged %d tags into prompt: %s", len(extra), extra)
+
+
 # ── Style LoRA resolution ───────────────────────────────────────────
 
 
@@ -83,7 +107,12 @@ def _append_narrator_negative(request: SceneGenerateRequest) -> None:
 
 
 def _handle_pre_composed(request: SceneGenerateRequest, db) -> tuple[str, list[str]]:
-    """Handle prompt_pre_composed=True: style profile + safety-net LoRA injection."""
+    """Handle prompt_pre_composed=True: style profile + safety-net LoRA injection.
+
+    DEPRECATED: Frontend should send raw prompt + context_tags instead.
+    Backend handles V3 composition directly via _handle_character_scene().
+    """
+    logger.warning("⚠️ [DEPRECATED] prompt_pre_composed=True received. Use raw prompt + context_tags instead.")
     has_lora_tags = "<lora:" in request.prompt
     request.prompt, request.negative_prompt = apply_style_profile_to_prompt(
         request.prompt,
@@ -142,6 +171,7 @@ def _handle_character_scene(
     request: SceneGenerateRequest, db, effective_b_id: int | None, *, style_loras: list[dict] | None = None
 ) -> tuple[str, list[str]]:
     """Handle raw prompt + character: V3 composition with style LoRAs."""
+    _merge_context_tags(request)
     if style_loras is None:
         style_loras = _resolve_style_loras(request.storyboard_id, db)
     logger.debug("🎨 [V3 Engine] Path B: style_loras=%s (from DB)", [lr.get("name") for lr in style_loras])
@@ -172,6 +202,7 @@ def _handle_background_scene(
     request: SceneGenerateRequest, db, *, style_loras: list[dict] | None = None
 ) -> tuple[str, list[str]]:
     """Handle narrator (no_humans) scene: V3 background composition."""
+    _merge_context_tags(request)
     if style_loras is None:
         style_loras = _resolve_style_loras(request.storyboard_id, db)
     bg_tags, _, _ = _resolve_background(request, db)
@@ -198,7 +229,10 @@ def _handle_fallback(request: SceneGenerateRequest, db) -> tuple[str, list[str]]
 
 
 def _dispatch_prompt_route(request, db, character_obj, effective_b_id, *, style_loras=None) -> tuple[str, list[str]]:
-    """Route to appropriate prompt handler based on request state."""
+    """Route to appropriate prompt handler based on request state.
+
+    Note: prompt_pre_composed path is DEPRECATED.
+    """
     if request.prompt_pre_composed:
         return _handle_pre_composed(request, db)
     elif request.character_id and character_obj:

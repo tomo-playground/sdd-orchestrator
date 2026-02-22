@@ -1,10 +1,12 @@
-"""Tests for prompt_pre_composed flag routing and skip_loras parameter."""
+"""Tests for prompt routing, context_tags merging, and skip_loras parameter."""
 
 from unittest.mock import MagicMock, patch
 
 from schemas import SceneGenerateRequest
 from services.generation_context import GenerationContext
 from services.generation_prompt import (
+    _collect_context_tags,
+    _merge_context_tags,
     _resolve_style_loras,
     apply_style_profile_to_prompt,
 )
@@ -34,7 +36,132 @@ def _call_prepare(req, db):
 
 
 # ────────────────────────────────────────────
-# prompt_pre_composed flag routing
+# context_tags collection and merging
+# ────────────────────────────────────────────
+
+
+class TestCollectContextTags:
+    """Test _collect_context_tags flattening."""
+
+    def test_flattens_list_fields(self):
+        tags = _collect_context_tags(
+            {
+                "expression": ["smile", "open_mouth"],
+                "pose": ["standing"],
+                "action": ["waving"],
+                "environment": ["outdoors"],
+                "mood": ["happy"],
+            }
+        )
+        assert tags == ["smile", "open_mouth", "standing", "waving", "outdoors", "happy"]
+
+    def test_flattens_string_fields(self):
+        tags = _collect_context_tags({"gaze": "looking_at_viewer", "camera": "cowboy_shot"})
+        assert tags == ["looking_at_viewer", "cowboy_shot"]
+
+    def test_empty_dict(self):
+        assert _collect_context_tags({}) == []
+
+    def test_mixed_fields(self):
+        tags = _collect_context_tags(
+            {
+                "expression": ["smile"],
+                "gaze": "looking_at_viewer",
+                "camera": "",
+            }
+        )
+        assert tags == ["smile", "looking_at_viewer"]
+
+    def test_none_values_ignored(self):
+        tags = _collect_context_tags({"expression": None, "gaze": None})
+        assert tags == []
+
+
+class TestMergeContextTags:
+    """Test _merge_context_tags prepending to request.prompt."""
+
+    def test_merges_tags_into_prompt(self):
+        req = _make_request(
+            prompt="1girl, standing",
+            context_tags={"expression": ["smile"], "gaze": "looking_at_viewer"},
+        )
+        _merge_context_tags(req)
+        assert req.prompt.startswith("smile, looking_at_viewer, ")
+        assert "1girl, standing" in req.prompt
+
+    def test_no_context_tags_no_change(self):
+        req = _make_request(prompt="1girl, standing", context_tags=None)
+        _merge_context_tags(req)
+        assert req.prompt == "1girl, standing"
+
+    def test_empty_context_tags_no_change(self):
+        req = _make_request(prompt="1girl, standing", context_tags={})
+        _merge_context_tags(req)
+        assert req.prompt == "1girl, standing"
+
+
+class TestContextTagsInPipeline:
+    """Test context_tags are merged during _handle_character_scene."""
+
+    @patch("services.character_consistency.load_reference_image", return_value=None)
+    @patch("services.generation_prompt._resolve_style_loras", return_value=[])
+    def test_context_tags_merged_into_character_scene(self, mock_resolve, mock_ref):
+        """context_tags are prepended to prompt before V3 composition."""
+        req = _make_request(
+            prompt="1girl, standing",
+            context_tags={"expression": ["smile"], "camera": "cowboy_shot"},
+        )
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = _make_character()
+
+        with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("composed", "bad", [])
+            _call_prepare(req, db)
+
+        call_kwargs = mock_compose.call_args.kwargs
+        # context_tags should be merged into raw_prompt
+        assert "smile" in call_kwargs["raw_prompt"]
+        assert "cowboy_shot" in call_kwargs["raw_prompt"]
+        assert "1girl" in call_kwargs["raw_prompt"]
+
+    @patch("services.character_consistency.load_reference_image", return_value=None)
+    @patch("services.generation_prompt._resolve_style_loras", return_value=[])
+    def test_context_tags_merged_into_background_scene(self, mock_resolve, mock_ref):
+        """context_tags are prepended in narrator background scenes too."""
+        req = _make_request(
+            character_id=None,
+            prompt="no_humans, bedroom",
+            context_tags={"environment": ["night"], "mood": ["dark"]},
+        )
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = None
+
+        with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("composed", "bad", [])
+            _call_prepare(req, db)
+
+        call_kwargs = mock_compose.call_args.kwargs
+        assert "night" in call_kwargs["raw_prompt"]
+        assert "dark" in call_kwargs["raw_prompt"]
+
+    @patch("services.character_consistency.load_reference_image", return_value=None)
+    @patch("services.generation_prompt._resolve_style_loras", return_value=[])
+    def test_no_context_tags_prompt_unchanged(self, mock_resolve, mock_ref):
+        """Without context_tags, prompt passes through unchanged."""
+        req = _make_request(prompt="1girl, standing", context_tags=None)
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = _make_character()
+
+        with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("composed", "bad", [])
+            _call_prepare(req, db)
+
+        call_kwargs = mock_compose.call_args.kwargs
+        assert call_kwargs["raw_prompt"] == "1girl, standing"
+
+
+# ────────────────────────────────────────────
+# prompt_pre_composed flag routing (DEPRECATED)
 # ────────────────────────────────────────────
 
 
@@ -149,7 +276,7 @@ class TestPreparePromptFlag:
         mock_style.return_value = ("quality, scenery, sunset", "bad")
         req = _make_request(character_id=None)
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = None
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             cleaned, warnings, char, _strategy = _call_prepare(req, db)
@@ -553,7 +680,7 @@ class TestNarratorBackgroundFiltering:
         mock_style.return_value = ("1girl, standing, cafe", "bad")
         req = _make_request(character_id=None, prompt="1girl, standing, cafe")
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = None
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             cleaned, _, char, _strategy = _call_prepare(req, db)

@@ -29,7 +29,7 @@ type SceneSettingsFieldsProps = {
   applySuggestion: (scene: Scene, suggestion: FixSuggestion) => void;
   // Debug
   buildNegativePrompt: (scene: Scene) => string;
-  buildScenePrompt: (scene: Scene) => Promise<string | null>;
+  buildScenePrompt: (scene: Scene) => string | null;
   showToast: (message: string, type: "success" | "error") => void;
 };
 
@@ -83,10 +83,11 @@ export default function SceneSettingsFields({
         <div className="rounded-xl border border-zinc-200 bg-white p-3">
           <div className="mb-2 flex items-center justify-between">
             <span
-              className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold uppercase ${validationResult.status === "warn"
-                ? `${WARNING_BG} ${WARNING_TEXT}`
-                : `${ERROR_BG} ${ERROR_TEXT}`
-                }`}
+              className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold uppercase ${
+                validationResult.status === "warn"
+                  ? `${WARNING_BG} ${WARNING_TEXT}`
+                  : `${ERROR_BG} ${ERROR_TEXT}`
+              }`}
             >
               {validationResult.status}
             </span>
@@ -98,9 +99,7 @@ export default function SceneSettingsFields({
               {suggestionExpanded ? "Hide" : "Fix"}
             </button>
           </div>
-          <p className="text-[13px] text-zinc-500">
-            {validationResult.issues[0]?.message ?? ""}
-          </p>
+          <p className="text-[13px] text-zinc-500">{validationResult.issues[0]?.message ?? ""}</p>
           {suggestionExpanded && (
             <div className="mt-2 border-t border-zinc-100 pt-2">
               <FixSuggestionsPanel
@@ -129,7 +128,7 @@ export default function SceneSettingsFields({
         <DebugTabContent
           scene={scene}
           onGenerateDebug={async () => {
-            const prompt = await buildScenePrompt(scene);
+            const prompt = buildScenePrompt(scene);
             if (!prompt) {
               showToast("프롬프트 생성 실패", "error");
               return;

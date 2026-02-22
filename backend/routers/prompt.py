@@ -18,6 +18,7 @@ from schemas import (
     PromptSplitRequest,
     PromptValidateRequest,
 )
+from services.generation_prompt import _collect_context_tags
 from services.prompt import (
     detect_prompt_conflicts,
     detect_scene_complexity,
@@ -30,20 +31,6 @@ from services.prompt import (
 from services.prompt.v3_service import V3PromptService
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
-
-
-def _collect_context_tags(context_tags: dict) -> list[str]:
-    """Flatten context_tags dict into a tag list."""
-    tags: list[str] = []
-    for key in ("expression", "pose", "action", "environment", "mood"):
-        val = context_tags.get(key)
-        if isinstance(val, list):
-            tags.extend(val)
-    for key in ("gaze", "camera"):
-        val = context_tags.get(key)
-        if isinstance(val, str) and val:
-            tags.append(val)
-    return tags
 
 
 def _convert_loras(loras: list | None) -> list[dict] | None:

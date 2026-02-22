@@ -122,7 +122,7 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
   }
   useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: true });
   try {
-    const prompt = await buildScenePrompt(scene);
+    const prompt = buildScenePrompt(scene);
     if (!prompt) {
       showToast("Prompt build failed", "error");
       useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
@@ -186,7 +186,7 @@ export async function handleSuggestEditWithGemini(scene: Scene): Promise<GeminiS
     return [];
   }
   try {
-    const prompt = await buildScenePrompt(scene);
+    const prompt = buildScenePrompt(scene);
     if (!prompt) {
       showToast("Prompt build failed", "error");
       return [];

@@ -16,7 +16,6 @@ export default function ImageSettingsContent() {
   const baseNegativePromptA = useStoryboardStore((s) => s.baseNegativePromptA);
   const basePromptB = useStoryboardStore((s) => s.basePromptB);
   const baseNegativePromptB = useStoryboardStore((s) => s.baseNegativePromptB);
-  const autoComposePrompt = useStoryboardStore((s) => s.autoComposePrompt);
   const autoRewritePrompt = useStoryboardStore((s) => s.autoRewritePrompt);
   const autoReplaceRiskyTags = useStoryboardStore((s) => s.autoReplaceRiskyTags);
   const hiResEnabled = useStoryboardStore((s) => s.hiResEnabled);
@@ -29,7 +28,6 @@ export default function ImageSettingsContent() {
   const { characters } = useCharacters();
 
   const TOGGLES = [
-    { key: "autoComposePrompt" as const, label: "Auto Compose", value: autoComposePrompt },
     { key: "autoRewritePrompt" as const, label: "Auto Rewrite", value: autoRewritePrompt },
     { key: "autoReplaceRiskyTags" as const, label: "Safe Tags", value: autoReplaceRiskyTags },
     { key: "hiResEnabled" as const, label: "Hi-Res", value: hiResEnabled },

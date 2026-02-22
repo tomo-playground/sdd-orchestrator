@@ -48,7 +48,6 @@ export interface StoryboardStore {
   // Prompt settings
   basePromptA: string;
   baseNegativePromptA: string;
-  autoComposePrompt: boolean;
   autoRewritePrompt: boolean;
   autoReplaceRiskyTags: boolean;
   hiResEnabled: boolean;
@@ -131,7 +130,6 @@ const initialState: Omit<
   baseNegativePromptA: "",
   basePromptB: "",
   baseNegativePromptB: "",
-  autoComposePrompt: true,
   autoRewritePrompt: true,
   autoReplaceRiskyTags: false,
   hiResEnabled: false,

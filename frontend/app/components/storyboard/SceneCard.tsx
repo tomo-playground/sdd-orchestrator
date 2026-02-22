@@ -79,7 +79,7 @@ type SceneCardProps = {
   getFixSuggestions: (scene: Scene, validation: SceneValidation) => FixSuggestion[];
   applySuggestion: (scene: Scene, suggestion: FixSuggestion) => void;
   buildNegativePrompt: (scene: Scene) => string;
-  buildScenePrompt: (scene: Scene) => Promise<string | null>;
+  buildScenePrompt: (scene: Scene) => string | null;
   showToast: (message: string, type: "success" | "error") => void;
 };
 
@@ -270,7 +270,7 @@ export default function SceneCard({
           />
           {/* Success/Fail Buttons for Review Mode */}
           {scene.activity_log_id && onMarkSuccess && onMarkFail && (
-            <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-100">
+            <div className="mt-4 flex gap-2 border-t border-zinc-100 pt-4">
               <Button
                 variant="success"
                 size="sm"
@@ -292,7 +292,6 @@ export default function SceneCard({
             </div>
           )}
         </CollapsibleSection>
-
       </div>
 
       {/* Gemini Modals */}

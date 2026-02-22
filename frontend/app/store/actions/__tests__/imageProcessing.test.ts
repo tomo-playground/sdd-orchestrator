@@ -30,7 +30,6 @@ describe("ProcessOpts controlnet fields", () => {
       images: ["base64data"],
       scene: { id: 1, client_id: "s1" } as ProcessOpts["scene"],
       prompt: "1girl, standing",
-      autoComposePrompt: false,
       selectedCharacterId: null,
       silent: true,
       controlnet_pose: "standing",
@@ -45,11 +44,23 @@ describe("ProcessOpts controlnet fields", () => {
       images: ["base64data"],
       scene: { id: 1, client_id: "s1" } as ProcessOpts["scene"],
       prompt: "1girl",
-      autoComposePrompt: false,
       selectedCharacterId: null,
       silent: true,
     };
     expect(opts.controlnet_pose).toBeUndefined();
     expect(opts.ip_adapter_reference).toBeUndefined();
+  });
+
+  it("does not require autoComposePrompt (removed in compose refactor)", () => {
+    const opts: ProcessOpts = {
+      images: ["base64data"],
+      scene: { id: 1, client_id: "s1" } as ProcessOpts["scene"],
+      prompt: "1girl",
+      selectedCharacterId: 1,
+      silent: false,
+    };
+    expect(opts.selectedCharacterId).toBe(1);
+    // autoComposePrompt is no longer part of ProcessOpts
+    expect("autoComposePrompt" in opts).toBe(false);
   });
 });

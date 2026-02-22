@@ -33,7 +33,6 @@ export async function generateSceneImageFor(
   silent = false
 ): Promise<Partial<Scene> | null> {
   const sbState = useStoryboardStore.getState();
-  const { autoComposePrompt } = sbState;
   const { storyboardId } = useContextStore.getState();
   const { showToast } = useUIStore.getState();
   const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, sbState);
@@ -45,32 +44,13 @@ export async function generateSceneImageFor(
     return null;
   }
 
-  const prompt = await buildScenePrompt(scene);
+  const prompt = buildScenePrompt(scene);
   if (!prompt) {
     if (!silent) showToast("Prompt is required", "error");
     return null;
   }
 
   const negativePrompt = buildNegativePrompt(scene);
-
-  // Pre-generation validation
-  try {
-    const validateRes = await axios.post(
-      `${API_BASE}/prompt/validate`,
-      { positive: prompt, negative: negativePrompt },
-      { timeout: API_TIMEOUT.DEFAULT }
-    );
-    const validation = validateRes.data;
-    if (validation.errors?.length > 0) {
-      if (!silent) showToast(validation.errors.join("; "), "error");
-      return null;
-    }
-    if (validation.warnings?.length > 0 && !silent) {
-      showToast(validation.warnings.join("; "), "error");
-    }
-  } catch {
-    // continue
-  }
 
   const hiResPayload = buildHiResPayload();
   // Narrator scenes: disable ControlNet (no character to pose) and IP-Adapter (no reference)
@@ -105,7 +85,7 @@ export async function generateSceneImageFor(
     storyboard_id: storyboardId,
     scene_id: scene.id > 0 ? scene.id : undefined,
     background_id: scene.background_id || undefined,
-    prompt_pre_composed: autoComposePrompt && !!selectedCharacterId,
+    context_tags: scene.context_tags || undefined,
     style_loras: sbState.characterLoras || [],
     auto_rewrite_prompt: sbState.autoRewritePrompt,
     auto_replace_risky_tags: sbState.autoReplaceRiskyTags,
@@ -123,7 +103,6 @@ export async function generateSceneImageFor(
         prompt,
         usedPrompt: sseData.used_prompt,
         warnings: sseData.warnings || [],
-        autoComposePrompt,
         selectedCharacterId,
         silent,
         controlnet_pose: sseData.controlnet_pose,
@@ -150,7 +129,6 @@ export async function generateSceneImageFor(
     requestPayload,
     debugPayload,
     prompt,
-    autoComposePrompt,
     selectedCharacterId,
     silent,
   });
@@ -195,22 +173,13 @@ type GenerateOpts = {
   requestPayload: Record<string, unknown>;
   debugPayload: Record<string, unknown>;
   prompt: string;
-  autoComposePrompt: boolean;
   selectedCharacterId: number | null;
   silent: boolean;
 };
 
 /** Sync fallback: POST /scene/generate */
 async function generateSync(opts: GenerateOpts): Promise<Partial<Scene> | null> {
-  const {
-    scene,
-    requestPayload,
-    debugPayload,
-    prompt,
-    autoComposePrompt,
-    selectedCharacterId,
-    silent,
-  } = opts;
+  const { scene, requestPayload, debugPayload, prompt, selectedCharacterId, silent } = opts;
   const { showToast } = useUIStore.getState();
 
   try {
@@ -226,7 +195,6 @@ async function generateSync(opts: GenerateOpts): Promise<Partial<Scene> | null> 
         prompt,
         usedPrompt: res.data.used_prompt,
         warnings: res.data.warnings,
-        autoComposePrompt,
         selectedCharacterId,
         silent,
         controlnet_pose: res.data.controlnet_pose,
@@ -242,8 +210,7 @@ async function generateSync(opts: GenerateOpts): Promise<Partial<Scene> | null> 
     }
 
     return {
-      image_prompt:
-        autoComposePrompt && selectedCharacterId ? prompt : res.data.used_prompt || undefined,
+      image_prompt: res.data.used_prompt || undefined,
       debug_prompt: prompt,
       debug_payload: JSON.stringify(debugPayload, null, 2),
     } as Partial<Scene>;
@@ -259,9 +226,8 @@ export async function generateSceneCandidates(
   silent = false
 ): Promise<Partial<Scene> | null> {
   const sbState = useStoryboardStore.getState();
-  const { autoComposePrompt } = sbState;
   const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, sbState);
-  const prompt = await buildScenePrompt(scene);
+  const prompt = buildScenePrompt(scene);
   if (!prompt) {
     if (!silent) useUIStore.getState().showToast("Prompt is required", "error");
     return null;
@@ -310,7 +276,6 @@ export async function generateSceneCandidates(
     image_asset_id: bestAssetId,
     candidates,
     debug_prompt: prompt,
-    image_prompt:
-      resolvedImagePrompt || (autoComposePrompt && selectedCharacterId ? prompt : undefined),
+    image_prompt: resolvedImagePrompt || undefined,
   } as Partial<Scene>;
 }

@@ -605,7 +605,11 @@ class SceneGenerateRequest(BaseModel):
     # Scene DB ID for character_actions lookup during V3 composition
     scene_id: int | None = None
     # Explicit V3 composition flag (True when frontend /prompt/compose already ran V3)
+    # DEPRECATED: Frontend should send raw prompt + context_tags instead.
     prompt_pre_composed: bool = False
+    # Scene context tags (expression, pose, gaze, camera, environment, mood)
+    # Backend merges these into V3 composition automatically.
+    context_tags: dict | None = None
     # Post-processing toggles (wired from frontend OPTIONS panel)
     auto_rewrite_prompt: bool = False
     auto_replace_risky_tags: bool = False
