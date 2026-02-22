@@ -1,6 +1,6 @@
 "use client";
 
-import type { LoRA } from "../../types";
+import type { ActorGender, LoRA } from "../../types";
 
 type Props = {
   lora: LoRA;
@@ -62,6 +62,25 @@ export default function EditLoraModal({ lora, onChange, onSave, onClose, isSavin
               onChange={(e) => onChange({ ...lora, default_weight: parseFloat(e.target.value) })}
               className="w-full"
             />
+          </div>
+          <div>
+            <label className="mb-1 block text-[13px] font-bold tracking-wider text-zinc-500 uppercase">
+              Gender Lock
+            </label>
+            <select
+              value={lora.gender_locked ?? ""}
+              onChange={(e) =>
+                onChange({
+                  ...lora,
+                  gender_locked: (e.target.value as ActorGender) || null,
+                })
+              }
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs font-bold text-zinc-700 outline-none focus:border-indigo-500"
+            >
+              <option value="">Any</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
           </div>
           {/* Multi-Character Support */}
           <div className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-3">

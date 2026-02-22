@@ -22,11 +22,8 @@ export function useLoraManagement(ui: UiCallbacks) {
     if (!editingLora) return;
     setIsUpdatingLora(true);
     try {
-      await axios.put(`${API_BASE}/loras/${editingLora.id}`, {
-        name: editingLora.name,
-        trigger_words: editingLora.trigger_words,
-        default_weight: editingLora.default_weight,
-      });
+      const { id, preview_image_url, civitai_id, civitai_url, ...payload } = editingLora;
+      await axios.put(`${API_BASE}/loras/${id}`, payload);
       setEditingLora(null);
       await fetchPublicLoras();
     } catch (error) {

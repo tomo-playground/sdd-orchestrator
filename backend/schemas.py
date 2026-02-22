@@ -76,6 +76,7 @@ class RenderPresetCreate(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
+    bgm_mode: Literal["manual", "auto"] = "manual"
 
 
 class RenderPresetUpdate(BaseModel):
@@ -91,6 +92,7 @@ class RenderPresetUpdate(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
+    bgm_mode: Literal["manual", "auto"] | None = None
 
 
 class RenderPresetResponse(BaseModel):
@@ -108,7 +110,7 @@ class RenderPresetResponse(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
-    bgm_mode: str | None = None
+    bgm_mode: str = "manual"
     music_preset_id: int | None = None
     created_at: datetime | None = None
 
@@ -821,6 +823,7 @@ class LoRAUpdate(BaseModel):
     calibration_score: int | None = None
     weight_min: float | None = None
     weight_max: float | None = None
+    gender_locked: Literal["female", "male"] | None = None
     # Multi-Character Support
     is_multi_character_capable: bool | None = None
     multi_char_weight_scale: float | None = None
