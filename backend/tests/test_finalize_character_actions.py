@@ -168,10 +168,10 @@ async def test_finalize_fallback_injects_default_pose_gaze(db_session):
     from models.tag import Tag
     from services.agent.nodes.finalize import finalize_node
 
-    # Seed tags matching defaults
-    db_session.add(Tag(name="standing", category="scene", default_layer=8))
-    db_session.add(Tag(name="looking_at_viewer", category="scene", default_layer=7))
-    db_session.add(Tag(name="smile", category="scene", default_layer=7))
+    # Seed tags matching defaults (올바른 카테고리 필수 — compound-key 매칭)
+    db_session.add(Tag(name="standing", category="pose", default_layer=8))
+    db_session.add(Tag(name="looking_at_viewer", category="gaze", default_layer=7))
+    db_session.add(Tag(name="smile", category="expression", default_layer=7))
     db_session.flush()
 
     state = {
@@ -209,9 +209,9 @@ async def test_finalize_no_context_tags_creates_defaults(db_session):
     from models.tag import Tag
     from services.agent.nodes.finalize import finalize_node
 
-    db_session.add(Tag(name="standing", category="scene", default_layer=8))
-    db_session.add(Tag(name="looking_at_viewer", category="scene", default_layer=7))
-    db_session.add(Tag(name="smile", category="scene", default_layer=7))
+    db_session.add(Tag(name="standing", category="pose", default_layer=8))
+    db_session.add(Tag(name="looking_at_viewer", category="gaze", default_layer=7))
+    db_session.add(Tag(name="smile", category="expression", default_layer=7))
     db_session.flush()
 
     state = {
@@ -250,8 +250,9 @@ async def test_finalize_preserves_existing_pose_gaze(db_session):
     from models.tag import Tag
     from services.agent.nodes.finalize import finalize_node
 
-    db_session.add(Tag(name="sitting", category="scene", default_layer=8))
-    db_session.add(Tag(name="looking_down", category="scene", default_layer=7))
+    db_session.add(Tag(name="sitting", category="pose", default_layer=8))
+    db_session.add(Tag(name="looking_down", category="gaze", default_layer=7))
+    db_session.add(Tag(name="crying", category="expression", default_layer=7))
     db_session.flush()
 
     state = {

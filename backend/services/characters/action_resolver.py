@@ -60,13 +60,12 @@ def auto_populate_character_actions(
         .filter(Tag.name.in_(all_tag_names), Tag.category.in_(_ACTION_CATEGORIES))
         .all()
     )
-    # Compound key: (name, category) for precise category matching
     tag_lookup: dict[tuple[str, str], tuple[int, int]] = {
         (row.name, row.category): (row.id, row.default_layer) for row in tag_rows
     }
 
     logger.info(
-        "[CharacterActionResolver] Resolved %d/%d tags from DB (category-filtered)",
+        "[CharacterActionResolver] Resolved %d/%d tags from DB",
         len(tag_lookup),
         len(all_tag_names),
     )
@@ -155,7 +154,7 @@ def extract_actions_from_context_tags(
         .filter(Tag.name.in_(tag_names), Tag.category.in_(_ACTION_CATEGORIES))
         .all()
     )
-    tag_lookup = {(r.name, r.category): r.id for r in rows}
+    tag_lookup: dict[tuple[str, str], int] = {(r.name, r.category): r.id for r in rows}
 
     actions: list[dict] = []
     for cat in _ACTION_CATEGORIES:
