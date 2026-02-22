@@ -6,7 +6,6 @@ import {
   ASCII_HEARTS,
 } from "../constants";
 
-export { computeValidationResults, getFixSuggestions } from "./validation";
 export { resolveImageUrl } from "./url";
 
 /**

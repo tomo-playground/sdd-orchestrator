@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import type { Scene, SceneValidation, FixSuggestion, Tag } from "../../types";
+import type { Scene, Tag } from "../../types";
 import DebugTabContent from "./DebugTabContent";
-import FixSuggestionsPanel from "./FixSuggestionsPanel";
 import SceneContextTags from "../prompt/SceneContextTags";
 import SceneCharacterActions from "./SceneCharacterActions";
-import { WARNING_BG, WARNING_TEXT, ERROR_BG, ERROR_TEXT } from "../ui/variants";
 
 type SceneSettingsFieldsProps = {
   scene: Scene;
@@ -21,12 +19,6 @@ type SceneSettingsFieldsProps = {
   characterBName?: string | null;
   selectedCharacterId?: number | null;
   selectedCharacterBId?: number | null;
-  // Validation
-  validationResult?: SceneValidation;
-  suggestions: FixSuggestion[];
-  suggestionExpanded: boolean;
-  onSuggestionToggle: () => void;
-  applySuggestion: (scene: Scene, suggestion: FixSuggestion) => void;
   // Debug
   buildNegativePrompt: (scene: Scene) => string;
   buildScenePrompt: (scene: Scene) => string | null;
@@ -44,11 +36,6 @@ export default function SceneSettingsFields({
   characterBName,
   selectedCharacterId,
   selectedCharacterBId,
-  validationResult,
-  suggestions,
-  suggestionExpanded,
-  onSuggestionToggle,
-  applySuggestion,
   buildNegativePrompt,
   buildScenePrompt,
   showToast,
@@ -76,40 +63,6 @@ export default function SceneSettingsFields({
           characterBId={selectedCharacterBId}
           onUpdate={(actions) => onUpdateScene({ character_actions: actions })}
         />
-      )}
-
-      {/* Script Validation + Fix Suggestions */}
-      {validationResult && validationResult.status !== "ok" && (
-        <div className="rounded-xl border border-zinc-200 bg-white p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold uppercase ${
-                validationResult.status === "warn"
-                  ? `${WARNING_BG} ${WARNING_TEXT}`
-                  : `${ERROR_BG} ${ERROR_TEXT}`
-              }`}
-            >
-              {validationResult.status}
-            </span>
-            <button
-              type="button"
-              onClick={onSuggestionToggle}
-              className="text-[12px] font-semibold text-zinc-500 hover:text-zinc-700"
-            >
-              {suggestionExpanded ? "Hide" : "Fix"}
-            </button>
-          </div>
-          <p className="text-[13px] text-zinc-500">{validationResult.issues[0]?.message ?? ""}</p>
-          {suggestionExpanded && (
-            <div className="mt-2 border-t border-zinc-100 pt-2">
-              <FixSuggestionsPanel
-                scene={scene}
-                suggestions={suggestions}
-                applySuggestion={applySuggestion}
-              />
-            </div>
-          )}
-        </div>
       )}
 
       {/* Details Toggle */}

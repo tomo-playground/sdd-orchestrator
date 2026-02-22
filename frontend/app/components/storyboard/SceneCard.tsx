@@ -3,10 +3,8 @@
 import { useState } from "react";
 import type {
   Scene,
-  SceneValidation,
   ImageValidation,
   ImageGenProgress,
-  FixSuggestion,
   Tag,
   GeminiSuggestion,
   Background,
@@ -31,14 +29,11 @@ export type SceneEditTab = "script" | "visual" | "settings"; // Keep for compati
 type SceneCardProps = {
   scene: Scene;
   sceneIndex: number;
-  validationResult?: SceneValidation;
   imageValidationResult?: ImageValidation;
   qualityScore?: { match_rate: number; missing_tags: string[] } | null;
   sceneMenuOpen: boolean;
   onSceneMenuToggle: () => void;
   onSceneMenuClose: () => void;
-  suggestionExpanded: boolean;
-  onSuggestionToggle: () => void;
   validatingSceneId: string | null;
   loraTriggerWords?: string[];
   characterLoras?: Array<{
@@ -76,8 +71,6 @@ type SceneCardProps = {
   selectedCharacterBId?: number | null;
   backgrounds?: Background[];
   genProgress?: ImageGenProgress | null;
-  getFixSuggestions: (scene: Scene, validation: SceneValidation) => FixSuggestion[];
-  applySuggestion: (scene: Scene, suggestion: FixSuggestion) => void;
   buildNegativePrompt: (scene: Scene) => string;
   buildScenePrompt: (scene: Scene) => string | null;
   showToast: (message: string, type: "success" | "error") => void;
@@ -86,14 +79,11 @@ type SceneCardProps = {
 export default function SceneCard({
   scene,
   sceneIndex,
-  validationResult,
   imageValidationResult,
   qualityScore,
   sceneMenuOpen,
   onSceneMenuToggle,
   onSceneMenuClose,
-  suggestionExpanded,
-  onSuggestionToggle,
   validatingSceneId,
   loraTriggerWords = [],
   characterLoras = [],
@@ -125,8 +115,6 @@ export default function SceneCard({
   selectedCharacterBId,
   backgrounds = [],
   genProgress,
-  getFixSuggestions,
-  applySuggestion,
   buildNegativePrompt,
   buildScenePrompt,
   showToast,
@@ -141,7 +129,6 @@ export default function SceneCard({
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const showAdvancedSettings = useUIStore((s) => s.showAdvancedSettings);
 
-  const suggestions = validationResult ? getFixSuggestions(scene, validationResult) : [];
   const hasMultipleSpeakers = isMultiCharStructure(structure ?? "");
 
   const handleAutoSuggest = async () => {
@@ -259,11 +246,6 @@ export default function SceneCard({
             characterBName={characterBName}
             selectedCharacterId={selectedCharacterId}
             selectedCharacterBId={selectedCharacterBId}
-            validationResult={validationResult}
-            suggestions={suggestions}
-            suggestionExpanded={suggestionExpanded}
-            onSuggestionToggle={onSuggestionToggle}
-            applySuggestion={applySuggestion}
             buildNegativePrompt={buildNegativePrompt}
             buildScenePrompt={buildScenePrompt}
             showToast={showToast}

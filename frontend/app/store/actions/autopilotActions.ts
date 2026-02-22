@@ -1,12 +1,10 @@
-import axios from "axios";
 import type { AutoRunStepId } from "../../types";
 import type { UseAutopilotReturn } from "../../hooks/useAutopilot";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useRenderStore } from "../useRenderStore";
 import { useUIStore } from "../useUIStore";
-import { API_BASE, AUTO_RUN_STEPS } from "../../constants";
-import { computeValidationResults } from "../../utils";
+import { AUTO_RUN_STEPS } from "../../constants";
 import { generateBatchImages } from "./batchActions";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
 import { resolveSceneMultiGen } from "../../utils/sceneSettingsResolver";
@@ -17,7 +15,7 @@ import { renderWithProgress } from "../../utils/renderWithProgress";
 
 /**
  * Run the autopilot pipeline from a given step.
- * This orchestrates images -> validate -> render.
+ * This orchestrates images -> render.
  */
 export async function runAutoRunFromStep(
   startStep: AutoRunStepId,
@@ -188,49 +186,6 @@ export async function runAutoRunFromStep(
             `Image failed for Scene #${failedSceneOrders.map((o) => o + 1).join(", #")} (${workingScenes.length - failedSceneOrders.length} saved)`
           );
         }
-      }
-
-      if (currentStep === "validate") {
-        setAutoRunStep("validate", "Validating images...");
-        // Use fresh scenes from store (IDs may have changed after persistStoryboard)
-        const { storyboardId } = useContextStore.getState();
-        const freshScenes = useStoryboardStore.getState().scenes;
-        workingScenes = freshScenes;
-        for (const scene of workingScenes) {
-          assertNotCancelled();
-          if (!scene.image_url) continue;
-          // Don't send data: (base64) in body -- causes large request -> Network Error. Use URL or skip.
-          if (scene.image_url.startsWith("data:")) continue;
-          try {
-            const payload =
-              scene.image_url.startsWith("http://") || scene.image_url.startsWith("https://")
-                ? {
-                    image_url: scene.image_url,
-                    prompt: scene.debug_prompt || scene.image_prompt,
-                    storyboard_id: storyboardId,
-                    scene_id: scene.id,
-                  }
-                : {
-                    image_b64: scene.image_url,
-                    prompt: scene.debug_prompt || scene.image_prompt,
-                    storyboard_id: storyboardId,
-                    scene_id: scene.id,
-                  };
-            await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, payload);
-          } catch {
-            // non-critical
-          }
-        }
-        const { results, summary } = computeValidationResults(
-          workingScenes,
-          useStoryboardStore.getState().structure
-        );
-        useStoryboardStore.getState().set({
-          validationResults: results,
-          validationSummary: summary,
-        });
-        if (summary.error > 0) throw new Error(`Validation failed (${summary.error} errors)`);
-        pushAutoRunLog("Validation complete");
       }
 
       if (currentStep === "render") {

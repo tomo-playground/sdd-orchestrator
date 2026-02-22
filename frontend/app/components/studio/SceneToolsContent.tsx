@@ -3,8 +3,7 @@
 import { useShallow } from "zustand/react/shallow";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { resolveIpAdapterForSpeaker } from "../../utils/speakerResolver";
-import { runValidation, handleAutoFixAll } from "../../store/actions/sceneActions";
-import { OverrideToggleRow, SliderRow, StatBadge } from "../storyboard/SidePanelControls";
+import { OverrideToggleRow, SliderRow } from "../storyboard/SidePanelControls";
 import { SIDE_PANEL_LABEL } from "../ui/variants";
 
 export default function SceneToolsContent() {
@@ -20,7 +19,6 @@ export default function SceneToolsContent() {
     ipAdapterReferenceB,
     ipAdapterWeightB,
     referenceImages,
-    validationSummary,
   } = useStoryboardStore(
     useShallow((s) => ({
       scenes: s.scenes,
@@ -34,7 +32,6 @@ export default function SceneToolsContent() {
       ipAdapterReferenceB: s.ipAdapterReferenceB,
       ipAdapterWeightB: s.ipAdapterWeightB,
       referenceImages: s.referenceImages,
-      validationSummary: s.validationSummary,
     }))
   );
 
@@ -75,29 +72,8 @@ export default function SceneToolsContent() {
     if (currentScene) updateScene(currentScene.client_id, { [field]: value });
   };
 
-  const totalValidation = validationSummary.ok + validationSummary.warn + validationSummary.error;
-
   return (
     <div className="space-y-4">
-      {/* Validate / Fix All */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={runValidation}
-          className="flex-1 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-semibold text-white shadow transition hover:bg-zinc-800"
-        >
-          Validate
-        </button>
-        <button
-          type="button"
-          onClick={handleAutoFixAll}
-          disabled={scenes.length === 0}
-          className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-600 shadow-sm transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Fix All
-        </button>
-      </div>
-
       {/* Generation Settings */}
       <div className="pb-3">
         <label className={SIDE_PANEL_LABEL}>Settings</label>
@@ -203,18 +179,6 @@ export default function SceneToolsContent() {
           )}
         </div>
       </div>
-
-      {/* Validation Summary */}
-      {totalValidation > 0 && (
-        <div className="border-t border-zinc-100 pt-3">
-          <label className={SIDE_PANEL_LABEL}>Validation</label>
-          <div className="grid grid-cols-3 gap-1.5">
-            <StatBadge label="OK" count={validationSummary.ok} color="emerald" />
-            <StatBadge label="Warn" count={validationSummary.warn} color="amber" />
-            <StatBadge label="Error" count={validationSummary.error} color="rose" />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

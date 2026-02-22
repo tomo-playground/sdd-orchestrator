@@ -15,7 +15,6 @@ interface PreflightModalProps {
 
 const STEP_LABELS: Record<AutoRunStepId, string> = {
   images: "Images",
-  validate: "Validate",
   render: "Render",
 };
 
@@ -181,7 +180,6 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
                 ...preflight,
                 steps: {
                   images: { ...preflight.steps.images, needed: isStepEnabled("images") },
-                  validate: { ...preflight.steps.validate, needed: isStepEnabled("validate") },
                   render: { ...preflight.steps.render, needed: isStepEnabled("render") },
                 },
               })}
@@ -200,10 +198,11 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
           <button
             onClick={handleRun}
             disabled={!preflight.canRun || !hasStepsToRun}
-            className={`flex items-center gap-2 rounded-lg px-6 py-2 font-medium transition-colors ${preflight.canRun && hasStepsToRun
-              ? "bg-blue-600 text-white hover:bg-blue-700"
-              : "cursor-not-allowed bg-zinc-300 text-zinc-500 dark:bg-zinc-600"
-              }`}
+            className={`flex items-center gap-2 rounded-lg px-6 py-2 font-medium transition-colors ${
+              preflight.canRun && hasStepsToRun
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "cursor-not-allowed bg-zinc-300 text-zinc-500 dark:bg-zinc-600"
+            }`}
           >
             <span>▶</span>
             <span>실행 ({stepsToRun.length}단계)</span>
@@ -226,11 +225,7 @@ function SettingRow({
   check: { valid: boolean; value: string | null; required: boolean; message?: string };
 }) {
   const icon = check.valid ? "✓" : check.required ? "❌" : "⚠";
-  const iconColor = check.valid
-    ? SUCCESS_ICON
-    : check.required
-      ? ERROR_ICON
-      : "text-yellow-500";
+  const iconColor = check.valid ? SUCCESS_ICON : check.required ? ERROR_ICON : "text-yellow-500";
 
   return (
     <div className="flex items-center justify-between px-3 py-2 text-sm">
@@ -278,8 +273,9 @@ function StepRow({
           </span>
         )}
         <span
-          className={`text-xs ${check.needed ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500"
-            }`}
+          className={`text-xs ${
+            check.needed ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500"
+          }`}
         >
           {check.needed ? check.reason : `✓ ${check.reason}`}
         </span>

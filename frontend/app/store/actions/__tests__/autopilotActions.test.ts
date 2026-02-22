@@ -66,8 +66,6 @@ function mockStores(scenes: ReturnType<typeof makeScene>[]) {
     updateScene,
     set: vi.fn(),
     structure: "Monologue",
-    validationResults: [],
-    validationSummary: { error: 0, warning: 0, ok: 0 },
   } as never);
 
   vi.spyOn(useContextStore, "getState").mockReturnValue({

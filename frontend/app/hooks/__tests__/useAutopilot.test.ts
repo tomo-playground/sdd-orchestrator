@@ -66,11 +66,10 @@ describe("useAutopilot", () => {
     it("should handle all step types", () => {
       const { result } = renderHook(() => useAutopilot());
       const steps: Array<{
-        id: "images" | "validate" | "render";
+        id: "images" | "render";
         msg: string;
       }> = [
         { id: "images", msg: "Images" },
-        { id: "validate", msg: "Validate" },
         { id: "render", msg: "Render" },
       ];
 
@@ -301,12 +300,12 @@ describe("useAutopilot", () => {
       const { result } = renderHook(() => useAutopilot());
 
       act(() => {
-        result.current.setError("validate", "Validation failed");
+        result.current.setError("render", "Render failed");
       });
 
       const checkpoint = result.current.getCheckpoint();
       expect(checkpoint).toMatchObject({
-        step: "validate",
+        step: "render",
         interrupted: true,
       });
     });
@@ -361,19 +360,13 @@ describe("useAutopilot", () => {
       // Idle = 0%
       expect(result.current.autoRunProgress).toBe(0);
 
-      // Images = 1/3 = 33%
+      // Images = 1/2 = 50%
       act(() => {
         result.current.setStep("images", "Images");
       });
-      expect(result.current.autoRunProgress).toBe(33);
+      expect(result.current.autoRunProgress).toBe(50);
 
-      // Validate = 2/3 = 67%
-      act(() => {
-        result.current.setStep("validate", "Validate");
-      });
-      expect(result.current.autoRunProgress).toBe(67);
-
-      // Render = 3/3 = 100%
+      // Render = 2/2 = 100%
       act(() => {
         result.current.setStep("render", "Render");
       });
@@ -394,13 +387,13 @@ describe("useAutopilot", () => {
       const { result } = renderHook(() => useAutopilot());
 
       act(() => {
-        result.current.setStep("validate", "Validating...");
+        result.current.setStep("render", "Rendering...");
       });
 
       const progressBeforeError = result.current.autoRunProgress;
 
       act(() => {
-        result.current.setError("validate", "Failed");
+        result.current.setError("render", "Failed");
       });
 
       expect(result.current.autoRunProgress).toBe(progressBeforeError);
@@ -423,16 +416,9 @@ describe("useAutopilot", () => {
         result.current.pushLog("Images started");
       });
       expect(result.current.isAutoRunning).toBe(true);
-      expect(result.current.autoRunProgress).toBe(33);
+      expect(result.current.autoRunProgress).toBe(50);
 
-      // Step 2: Validate
-      act(() => {
-        result.current.setStep("validate", "Validating...");
-        result.current.pushLog("Validation started");
-      });
-      expect(result.current.autoRunProgress).toBe(67);
-
-      // Step 3: Render
+      // Step 2: Render
       act(() => {
         result.current.setStep("render", "Rendering...");
         result.current.pushLog("Render started");

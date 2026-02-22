@@ -44,7 +44,6 @@ export const DEFAULT_POST_CARD_SETTINGS: PostCardSettings = {
 
 export const AUTO_RUN_STEPS = [
   { id: "images", label: "Images" },
-  { id: "validate", label: "Validate" },
   { id: "render", label: "Render" },
 ] as const;
 
@@ -54,60 +53,6 @@ export const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 
 export const HEART_EMOJIS = ["❤", "💖", "💗", "💘", "💜", "💙", "💚", "🧡", "🤍"];
 export const ASCII_HEARTS = ["<3", "**", "^^", "<<>>"];
-
-export const CAMERA_KEYWORDS = [
-  "close_up",
-  "wide_shot",
-  "medium_shot",
-  "full_body",
-  "low_angle",
-  "high_angle",
-  "from_above",
-  "top_down",
-];
-
-export const ACTION_KEYWORDS = [
-  "sitting",
-  "standing",
-  "walking",
-  "running",
-  "jumping",
-  "reading",
-  "looking",
-  "holding",
-  "smiling",
-  "crying",
-  "talking",
-];
-
-export const BACKGROUND_KEYWORDS = [
-  "library",
-  "street",
-  "room",
-  "city",
-  "park",
-  "school",
-  "classroom",
-  "bedroom",
-  "office",
-  "cafe",
-  "forest",
-  "beach",
-  "sky",
-];
-
-export const LIGHTING_KEYWORDS = [
-  "lighting",
-  "sunlight",
-  "shadow",
-  "moody",
-  "warm",
-  "soft_light",
-  "neon",
-  "rain",
-  "night",
-  "sunset",
-];
 
 /**
  * Category descriptions in Korean for UI display

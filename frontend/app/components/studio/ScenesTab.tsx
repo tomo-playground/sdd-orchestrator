@@ -30,7 +30,6 @@ import {
   handleSuggestEditWithGemini,
 } from "../../store/actions/imageActions";
 import {
-  applySuggestion,
   applyMissingImageTags,
   handleSpeakerChange,
   handleValidateImage,
@@ -38,7 +37,6 @@ import {
   handleMarkFail,
   handleSavePrompt,
 } from "../../store/actions/sceneActions";
-import { getFixSuggestions } from "../../utils";
 import { useSceneActions } from "../../hooks/useSceneActions";
 
 export default function ScenesTab() {
@@ -46,28 +44,17 @@ export default function ScenesTab() {
     useShallow((s) => ({ scenes: s.scenes, currentSceneIndex: s.currentSceneIndex }))
   );
 
-  const { validationResults, imageValidationResults } = useStoryboardStore(
-    useShallow((s) => ({
-      validationResults: s.validationResults,
-      imageValidationResults: s.imageValidationResults,
-    }))
-  );
+  const imageValidationResults = useStoryboardStore((s) => s.imageValidationResults);
 
-  const {
-    sceneMenuOpen,
-    suggestionExpanded,
-    validatingSceneId,
-    markingStatusSceneId,
-    imageGenProgress,
-  } = useStoryboardStore(
-    useShallow((s) => ({
-      sceneMenuOpen: s.sceneMenuOpen,
-      suggestionExpanded: s.suggestionExpanded,
-      validatingSceneId: s.validatingSceneId,
-      markingStatusSceneId: s.markingStatusSceneId,
-      imageGenProgress: s.imageGenProgress,
-    }))
-  );
+  const { sceneMenuOpen, validatingSceneId, markingStatusSceneId, imageGenProgress } =
+    useStoryboardStore(
+      useShallow((s) => ({
+        sceneMenuOpen: s.sceneMenuOpen,
+        validatingSceneId: s.validatingSceneId,
+        markingStatusSceneId: s.markingStatusSceneId,
+        imageGenProgress: s.imageGenProgress,
+      }))
+    );
 
   const {
     loraTriggerWords,
@@ -178,16 +165,15 @@ export default function ScenesTab() {
                     key={currentScene.client_id}
                     scene={currentScene}
                     sceneIndex={currentSceneIndex}
-                    validationResult={validationResults[currentScene.client_id]}
                     imageValidationResult={imageValidationResults[currentScene.client_id]}
                     qualityScore={
                       imageValidationResults[currentScene.client_id]
                         ? {
-                          match_rate:
-                            imageValidationResults[currentScene.client_id].match_rate ?? 0,
-                          missing_tags:
-                            imageValidationResults[currentScene.client_id].missing ?? [],
-                        }
+                            match_rate:
+                              imageValidationResults[currentScene.client_id].match_rate ?? 0,
+                            missing_tags:
+                              imageValidationResults[currentScene.client_id].missing ?? [],
+                          }
                         : null
                     }
                     sceneMenuOpen={sceneMenuOpen === currentScene.client_id}
@@ -198,15 +184,6 @@ export default function ScenesTab() {
                       })
                     }
                     onSceneMenuClose={() => sbSet({ sceneMenuOpen: null })}
-                    suggestionExpanded={suggestionExpanded[currentScene.client_id] ?? false}
-                    onSuggestionToggle={() =>
-                      sbSet({
-                        suggestionExpanded: {
-                          ...suggestionExpanded,
-                          [currentScene.client_id]: !suggestionExpanded[currentScene.client_id],
-                        },
-                      })
-                    }
                     validatingSceneId={validatingSceneId}
                     loraTriggerWords={loraTriggerWords}
                     promptMode={characterPromptMode}
@@ -243,10 +220,6 @@ export default function ScenesTab() {
                     onMarkSuccess={() => handleMarkSuccess(currentScene)}
                     onMarkFail={() => handleMarkFail(currentScene)}
                     isMarkingStatus={markingStatusSceneId === currentScene.client_id}
-                    getFixSuggestions={(scene, validation) =>
-                      getFixSuggestions(scene, validation, useStoryboardStore.getState().topic)
-                    }
-                    applySuggestion={applySuggestion}
                     selectedCharacterId={resolvedCharacterId}
                     basePromptA={resolvedBasePrompt}
                     characterLoras={resolvedCharacterLoras}

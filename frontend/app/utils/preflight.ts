@@ -7,7 +7,8 @@
  * 3. Whether autorun can proceed
  */
 
-import type { Scene, DraftScene } from "../types";
+import type { Scene, DraftScene, AutoRunStepId } from "../types";
+export type { AutoRunStepId } from "../types";
 import { useContextStore } from "../store/useContextStore";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useRenderStore } from "../store/useRenderStore";
@@ -53,7 +54,6 @@ export interface PreflightResult {
   // Execution steps
   steps: {
     images: StepCheck;
-    validate: StepCheck;
     render: StepCheck;
   };
 
@@ -227,27 +227,6 @@ function checkImagesStep(scenes: (Scene | DraftScene)[]): StepCheck {
   };
 }
 
-function checkValidateStep(scenes: (Scene | DraftScene)[]): StepCheck {
-  // Count scenes that have images but need validation
-  const scenesNeedingValidation = scenes.filter(
-    (s) => s.image_url && !("candidates" in s && s.candidates?.length)
-  );
-
-  if (scenesNeedingValidation.length === 0) {
-    return {
-      needed: false,
-      reason: "검증 완료",
-    };
-  }
-
-  return {
-    needed: true,
-    reason: `${scenesNeedingValidation.length}개 검증 필요`,
-    count: scenesNeedingValidation.length,
-    sceneIds: scenesNeedingValidation.map((s) => s.id),
-  };
-}
-
 function checkRenderStep(scenes: (Scene | DraftScene)[], videoUrl: string | null): StepCheck {
   if (scenes.length === 0) {
     return {
@@ -338,7 +317,6 @@ export function runPreflight(input: PreflightInput): PreflightResult {
   // Check steps
   const steps = {
     images: checkImagesStep(input.scenes),
-    validate: checkValidateStep(input.scenes),
     render: checkRenderStep(input.scenes, input.videoUrl),
   };
 
@@ -359,13 +337,11 @@ export function runPreflight(input: PreflightInput): PreflightResult {
 // Utility: Get steps to execute
 // ============================================================
 
-export type AutoRunStepId = "images" | "validate" | "render";
-
 export function getStepsToExecute(
   preflight: PreflightResult,
   userOverrides?: Partial<Record<AutoRunStepId, boolean>>
 ): AutoRunStepId[] {
-  const stepOrder: AutoRunStepId[] = ["images", "validate", "render"];
+  const stepOrder: AutoRunStepId[] = ["images", "render"];
 
   return stepOrder.filter((stepId) => {
     // User can force enable/disable
@@ -415,10 +391,6 @@ export function estimateTime(preflight: PreflightResult): string {
   if (preflight.steps.images.needed) {
     const count = preflight.steps.images.count || 6;
     seconds += count * 15; // ~15s per image
-  }
-  if (preflight.steps.validate.needed) {
-    const count = preflight.steps.validate.count || 6;
-    seconds += count * 3; // ~3s per validation
   }
   if (preflight.steps.render.needed) seconds += 30;
 

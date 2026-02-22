@@ -4,7 +4,6 @@ import type {
   Scene,
   ActorGender,
   ReferenceImage,
-  SceneValidation,
   ImageValidation,
   ImageGenProgress,
 } from "../types";
@@ -68,15 +67,12 @@ export interface StoryboardStore {
   isGenerating: boolean;
   multiGenEnabled: boolean;
   referenceImages: ReferenceImage[];
-  validationResults: Record<string, SceneValidation>;
-  validationSummary: { ok: number; warn: number; error: number };
   imageValidationResults: Record<string, ImageValidation>;
   validatingSceneId: string | null;
   markingStatusSceneId: string | null;
   sceneTab: Record<string, "validate" | "debug" | null>;
   sceneMenuOpen: string | null;
   advancedExpanded: Record<string, boolean>;
-  suggestionExpanded: Record<string, boolean>;
   validationExpanded: Record<string, boolean>;
 
   // Image generation progress (SSE)
@@ -147,15 +143,12 @@ const initialState: Omit<
   isGenerating: false,
   multiGenEnabled: false,
   referenceImages: [],
-  validationResults: {},
-  validationSummary: { ok: 0, warn: 0, error: 0 },
   imageValidationResults: {},
   validatingSceneId: null,
   markingStatusSceneId: null,
   sceneTab: {},
   sceneMenuOpen: null,
   advancedExpanded: {},
-  suggestionExpanded: {},
   validationExpanded: {},
   imageGenProgress: {},
   storyboardVersion: null,
@@ -180,10 +173,7 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "sceneTab",
   "sceneMenuOpen",
   "advancedExpanded",
-  "suggestionExpanded",
   "validationExpanded",
-  "validationResults",
-  "validationSummary",
   "imageValidationResults",
   "imageGenProgress",
   "loraTriggerWords",

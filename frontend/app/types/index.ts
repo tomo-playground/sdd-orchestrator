@@ -141,29 +141,7 @@ export type KenBurnsPreset =
   | "pan_zoom_down"
   | "random";
 
-export type AutoRunStepId = "images" | "validate" | "render";
-
-export type ValidationIssue = { level: "warn" | "error"; message: string };
-
-export type SceneValidation = {
-  status: "ok" | "warn" | "error";
-  issues: ValidationIssue[];
-};
-
-export type FixSuggestion = {
-  id: string;
-  message: string;
-  action?: {
-    type:
-      | "add_positive"
-      | "remove_negative_scene"
-      | "set_speaker_a"
-      | "fill_script"
-      | "trim_script";
-    tokens?: string[];
-    value?: string;
-  };
-};
+export type AutoRunStepId = "images" | "render";
 
 export type ImageValidation = {
   match_rate: number;
