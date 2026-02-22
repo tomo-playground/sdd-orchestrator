@@ -77,6 +77,14 @@ def route_after_writer(state: ScriptState) -> str:
     return "review"
 
 
+def route_after_revise(state: ScriptState) -> str:
+    """revise 이후: 에러 → finalize (short-circuit), 정상 → review."""
+    if _has_error(state):
+        logger.warning("[LangGraph] revise 에러, finalize로 short-circuit")
+        return "finalize"
+    return "review"
+
+
 def route_after_review(state: ScriptState) -> str:
     """review 이후: passed → cinematographer(full)/finalize(quick), failed → revise.
 
@@ -195,7 +203,9 @@ def route_after_human_gate(state: ScriptState) -> str:
 
 
 def route_after_finalize(state: ScriptState) -> str:
-    """finalize 이후: explain skip → learn, else → explain."""
+    """finalize 이후: 에러 → learn (explain 스킵), explain skip → learn, else → explain."""
+    if _has_error(state):
+        return "learn"
     if "explain" in (state.get("skip_stages") or []):
         return "learn"
     return "explain"

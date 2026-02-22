@@ -125,22 +125,22 @@ describe("updatePipelineSteps", () => {
     }
   });
 
-  it("노드 에러 후 finalize 이벤트가 이전 에러 스텝을 done으로 복구", () => {
+  it("노드 에러 후 finalize 이벤트가 에러 스텝을 보호", () => {
     let steps = getInitialSteps(SKIP_NONE);
     steps = updatePipelineSteps(steps, makeEvent("cinematographer", "error"), SKIP_NONE);
     expect(steps[4].status).toBe("error"); // production
 
     steps = updatePipelineSteps(steps, makeEvent("finalize", "completed"), SKIP_NONE);
-    expect(steps[4].status).toBe("done"); // production 복구
-    expect(steps[5].status).toBe("done"); // director
+    expect(steps[4].status).toBe("error"); // production 에러 유지
+    expect(steps[5].status).toBe("done"); // director (idle → done)
     expect(steps[6].status).toBe("done"); // complete
   });
 
-  it("production 에러 후 learn 이벤트로도 complete 스텝 done", () => {
+  it("production 에러 후 learn 이벤트에서도 에러 스텝 유지", () => {
     let steps = getInitialSteps(SKIP_NONE);
     steps = updatePipelineSteps(steps, makeEvent("cinematographer", "error"), SKIP_NONE);
     steps = updatePipelineSteps(steps, makeEvent("learn"), SKIP_NONE);
-    expect(steps[4].status).toBe("done"); // production 복구
+    expect(steps[4].status).toBe("error"); // production 에러 유지
     expect(steps[6].status).toBe("done"); // complete
   });
 });

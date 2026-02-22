@@ -78,9 +78,13 @@ export function updatePipelineSteps(
   if (targetIdx < 0) return steps;
 
   return steps.map((s, i) => {
-    if (i < targetIdx) return { ...s, status: "done" };
+    if (i < targetIdx) {
+      if (s.status === "error") return s; // 에러 보호
+      return { ...s, status: "done" };
+    }
     if (i === targetIdx) {
       if (event.status === "error") return { ...s, status: "error" };
+      if (s.status === "error") return s; // 에러 보호
       if (event.status === "completed" || event.node === "learn") return { ...s, status: "done" };
       return { ...s, status: "running" };
     }

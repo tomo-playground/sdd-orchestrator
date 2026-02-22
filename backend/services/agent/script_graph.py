@@ -41,6 +41,7 @@ from services.agent.routing import (
     route_after_human_gate,
     route_after_research,
     route_after_review,
+    route_after_revise,
     route_after_start,
     route_after_writer,
 )
@@ -89,8 +90,8 @@ def build_script_graph() -> StateGraph:
         ["finalize", "director_checkpoint", "revise"],
     )
 
-    # revise → review (루프)
-    graph.add_edge("revise", "review")
+    # revise → review | finalize (에러 short-circuit)
+    graph.add_conditional_edges("revise", route_after_revise, ["review", "finalize"])
 
     # director_checkpoint → cinematographer | writer (재생성) | finalize
     graph.add_conditional_edges(

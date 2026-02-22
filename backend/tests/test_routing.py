@@ -12,6 +12,7 @@ from services.agent.routing import (
     route_after_finalize,
     route_after_research,
     route_after_review,
+    route_after_revise,
     route_after_start,
     route_after_writer,
 )
@@ -139,7 +140,25 @@ def test_route_after_director_error():
     assert route_after_director(state) == "finalize"
 
 
+# -- Revise 에러 short-circuit 테스트 --
+
+
+def test_route_after_revise_normal():
+    """revise 정상 → review."""
+    assert route_after_revise({}) == "review"
+
+
+def test_route_after_revise_error():
+    """revise 에러 → finalize (short-circuit)."""
+    assert route_after_revise({"error": "Safety filter blocked"}) == "finalize"
+
+
 # -- Explain / Finalize 라우팅 테스트 --
+
+
+def test_route_after_finalize_error():
+    """finalize 에러 상태 → learn (explain 스킵)."""
+    assert route_after_finalize({"error": "이전 에러", "skip_stages": []}) == "learn"
 
 
 def test_route_after_finalize_full():
