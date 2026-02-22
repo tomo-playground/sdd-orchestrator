@@ -50,24 +50,24 @@
 
 사용자가 **AI 개입 수준을 선택**하는 유연한 파이프라인:
 
-| 모드 | 설명 | 구현 |
-|------|------|------|
-| **Quick** | Gemini 1회, ~30초 | Graph 6노드 (Writer→Review→Finalize→Learn) |
-| **Full (Creator)** | AI 초안 → 사용자 검토 | Graph 17노드 + Human Gate interrupt |
-| **Full (Auto)** | AI 자동 실행 + 자체 검토 | Graph 17노드, Concept Gate 자동 통과 |
+| Preset | `skip_stages` | 설명 |
+|--------|---------------|------|
+| **express** | `["research", "concept", "production", "explain"]` | Gemini 1회 생성 후 즉시 검토 (가장 빠름) |
+| **standard** | `["research", "explain"]` | Concept Gate 생략, Production(이미지/음성) 자동 실행 |
+| **creator** | `[]` (빈 배열) | Research부터 Explain까지 모든 디테일 제어 및 Human Gate 개입 |
 
-Preset 3종: **Balanced** / **Creative** / **Efficient**
+> 이전의 "Quick", "Full" 모드 이원화는 폐기되었으며, 현재는 **Stage-Level Skip (`skip_stages`) 통합 아키텍처**로 단일화되었습니다.
 
 ### 2-3. 17-노드 그래프 구조
 
-**Full 모드:**
+전체 그래프 경로는 `skip_stages` 값에 따라 유동적으로 단축됩니다:
 ```
 START → director_plan → Research → Critic → concept_gate → Writer → Review → [Revise]
   → director_checkpoint(score-based) → Cinematographer | TTS | Sound | Copyright
   → Director(ReAct) → [human_gate] → Finalize → Explain → Learn → END
 ```
 
-**Quick 모드:** `START → Writer → Review → [Revise] → Finalize → Learn → END`
+* `skip_stages`에 포함된 단계(예: `"research"`, `"concept"`, `"production"`, `"explain"`)는 Graph 내의 `_skip_guard` 노드를 통해 자동으로 통과(Pass-through)됩니다.
 
 | 분류 | 에이전트 | Agentic 레벨 |
 |------|---------|-------------|
@@ -143,6 +143,14 @@ Review 노드에서 Full 모드 전용 서사 평가 (LANGGRAPH_NARRATIVE_THRESH
 | **5E. References** | URL/텍스트 소재 분석, SSRF 방어, Gemini 분석→research_brief | [x] |
 | **5F. Director-as-Orchestrator** | director_plan + director_checkpoint 노드, Score-Based Routing, 15→17노드 | [x] |
 | **5G. Pipeline 고도화** | MAX_REVISIONS 2→3, revision_history 누적, Checkpoint 임계값 튜닝 | [x] |
+
+### Phase 10~14: True Agentic & Pipeline Refinement (2026-02-18 ~ 22)
+
+| Phase | 핵심 | 상태 |
+|-------|------|------|
+| **10. ReAct & Tool-Calling** | Director ReAct, Gemini Function Calling (Research/Cinematographer) | [x] |
+| **11~13. Architecture Refinement** | Quick/Full 모드 이원화 폐기 → `skip_stages` Stage-Level Skip 통합 | [x] |
+| **14. ControlNet & IP-Adapter** | Pipeline 내 Pose/IP-Adapter 고도화 및 Seed Anchoring 적용 | [x] |
 
 ### Phase 10: True Agentic Architecture (2026-02-18)
 

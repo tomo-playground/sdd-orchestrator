@@ -43,11 +43,17 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
 ```json
 {
   "topic": "string",
+  "description": "optional description",
   "duration": 10,
   "style": "Anime",
   "language": "Korean",
   "structure": "Monologue",
-  "actor_a_gender": "female"
+  "actor_a_gender": "female",
+  "group_id": null,
+  "preset": "creator",
+  "skip_stages": ["research", "concept", "production", "explain"],
+  "references": ["https://example.com/reference"],
+  "selected_concept": null
 }
 ```
 
