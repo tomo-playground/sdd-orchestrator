@@ -5,6 +5,14 @@
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.25 | 2026-02-21 | `style_profiles`에 `default_enable_hr` (Boolean) 추가 — 화풍별 Hi-Res 기본값 자동 적용 |
+| v3.24 | 2026-02-21 | `style_profiles`에 생성 파라미터 4컬럼 추가 (default_steps, default_cfg_scale, default_sampler_name, default_clip_skip) |
+| v3.23 | 2026-02-21 | `characters`에서 `project_id` FK 제거 (미사용, 글로벌 스코프로 운영) |
+| v3.22 | 2026-02-21 | `characters`에 `style_profile_id` FK 추가 (캐릭터별 스타일 프로파일 오버라이드) |
+| v3.21 | 2026-02-18 | **Source-Truth Sync**: `active` → `is_active` 문서 반영(tag_rules, tag_aliases, tag_filters, classification_rules). `scenes`에 TTS 필드 3개 추가(voice_design_prompt, head_padding, tail_padding). `group_config`에 `channel_dna`/SD 파라미터 상세화. `creative_sessions.session_type` default 수정(free→shorts). `loras`에 `gender_locked` 누락 복원 |
+| v3.20 | 2026-02-12 | `storyboards`에 `version` (Integer, NOT NULL, default 1) 추가 — Optimistic Locking |
+| v3.19 | 2026-02-12 | `scenes`에 `client_id` (UUID) 추가 — Frontend 안정 식별자, UNIQUE + NOT NULL |
+| v3.18 | 2026-02-12 | `scenes`에 `background_id` FK 추가 (Background 에셋 연동, ControlNet Canny + 태그 자동 주입) |
 | v3.17 | 2026-02-11 | `loras`에 멀티캐릭터 필드 3개 추가 (`is_multi_character_capable`, `multi_char_weight_scale`, `multi_char_trigger_prompt`). `scenes`에 `scene_mode` 추가 |
 | v3.16 | 2026-02-10 | `storyboards`에 `duration`/`language` 추가 (Creative Lab 연동). `creative_agent_presets`에 `agent_role`/`category`/`agent_metadata` 추가 (V2 Agent Presets) |
 | v3.15 | 2026-02-10 | **Source-Truth Sync**: 유령 컬럼 18개 제거, 누락 컬럼 45+개 추가, ERD 정합성 수정. `projects`(avatar_key/render_preset_id/style_profile_id 제거), `storyboards`(character_id 등 5개 제거, structure 추가), `scenes`(SD params 5개 제거, ControlNet/IP-Adapter 6개 추가), `characters`(project_id FK 추가), Creative Engine V2 필드 전체, `lab_experiments` 10개 컬럼 추가 |

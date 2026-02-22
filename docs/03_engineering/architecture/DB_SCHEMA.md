@@ -1,4 +1,4 @@
-# Database Schema (v3.25)
+# Database Schema (v3.28)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,18 +7,11 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.28 | 2026-02-22 | `render_presets.bgm_mode` NOT NULL 적용 (server_default="manual"). Dead 컬럼 DROP: `scenes.description`, `creative_traces.diff_summary`. `scenes`에 `clothing_tags` (JSONB) 추가 |
 | v3.27 | 2026-02-22 | Seed Anchoring: `scenes.last_seed` (BigInteger), `storyboards.base_seed` (BigInteger) 추가 |
 | v3.26 | 2026-02-22 | `characters`에 IP-Adapter 고도화 4컬럼 추가 (`ip_adapter_guidance_start/end`, `reference_source_type`, `reference_images` JSONB) |
-| v3.25 | 2026-02-21 | `style_profiles`에 `default_enable_hr` (Boolean) 추가 — 화풍별 Hi-Res 기본값 자동 적용 |
-| v3.24 | 2026-02-21 | `style_profiles`에 생성 파라미터 4컬럼 추가 (default_steps, default_cfg_scale, default_sampler_name, default_clip_skip) |
-| v3.23 | 2026-02-21 | `characters`에서 `project_id` FK 제거 (미사용, 글로벌 스코프로 운영) |
-| v3.22 | 2026-02-21 | `characters`에 `style_profile_id` FK 추가 (캐릭터별 스타일 프로파일 오버라이드) |
-| v3.21 | 2026-02-18 | **Source-Truth Sync**: `active` → `is_active` 문서 반영(tag_rules, tag_aliases, tag_filters, classification_rules). `scenes`에 TTS 필드 3개 추가(voice_design_prompt, head_padding, tail_padding). `group_config`에 `channel_dna`/SD 파라미터 상세화. `creative_sessions.session_type` default 수정(free→shorts). `loras`에 `gender_locked` 누락 복원 |
-| v3.20 | 2026-02-12 | `storyboards`에 `version` (Integer, NOT NULL, default 1) 추가 — Optimistic Locking |
-| v3.19 | 2026-02-12 | `scenes`에 `client_id` (UUID) 추가 — Frontend 안정 식별자, UNIQUE + NOT NULL |
-| v3.18 | 2026-02-12 | `scenes`에 `background_id` FK 추가 (Background 에셋 연동, ControlNet Canny + 태그 자동 주입) |
 
-> v3.17 이전 이력: [DB_SCHEMA_CHANGELOG.md](DB_SCHEMA_CHANGELOG.md)
+> v3.25 이전 이력: [DB_SCHEMA_CHANGELOG.md](DB_SCHEMA_CHANGELOG.md)
 
 ---
 
@@ -182,6 +175,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `image_prompt_ko` | Text | 한국어 프롬프트 |
 | `negative_prompt` | Text | 네거티브 프롬프트 |
 | `context_tags` | JSONB | 씬 컨텍스트 태그 (expression, gaze, pose, action, camera, environment, mood) |
+| `clothing_tags` | JSONB, nullable | 씬별 의상 오버라이드 `{"<character_id>": ["tag1", "tag2"]}`. null = 캐릭터 기본 의상 사용 |
 | **TTS & Pacing** | | |
 | `voice_design_prompt` | Text | Context-Aware TTS Designer 출력 |
 | `head_padding` | Float | 씬 시작 전 무음 간격 (default: 0.0) |
@@ -310,8 +304,6 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `deprecated_reason` | String(200) | 비활성화 이유 |
 | `replacement_tag_id` | Integer (FK → tags, SET NULL) | 대체 태그 ID |
 
-> **Removed**: `subcategory` 컬럼 (deprecated Phase 6-4.25, removed Phase 6-4.26)
-> **Added** (Phase 6-4.15.8): `is_active`, `deprecated_reason`, `replacement_tag_id` - DB 기반 태그 비활성화 시스템
 
 **`default_layer` 매핑** (V3 12-Layer System):
 
@@ -484,17 +476,6 @@ WD14 피드백 루프 데이터.
 - `preview_image_url` (`@property`): `preview_image_asset.url` 반환
 - `preview_key` (`@property`): `preview_image_asset.storage_key` 반환
 
-**V3 Prompt Pipeline에서의 사용** (→ `PROMPT_PIPELINE_SPEC.md` 참조):
-| 필드 | V3 compose 사용 | 용도 |
-|------|:-:|------|
-| `character.tags[]` (via character_tags) | O | `is_permanent` 기반 레이어 배치 |
-| `custom_base_prompt` | O | comma split → LAYER_IDENTITY(2), 배경 태그 필터 |
-| `loras` | O | trigger words + `<lora:>` → LAYER_IDENTITY(2) |
-| `gender` | O | male → gender enhancement → LAYER_SUBJECT(1) |
-| `prompt_mode` | O | `"standard"`이면 LoRA 주입 스킵 |
-| `custom_negative_prompt` | X | Frontend 로컬 처리 |
-| `reference_base_prompt` | X | 레퍼런스 이미지 전용 |
-| `reference_negative_prompt` | X | 레퍼런스 이미지 전용 |
 
 ### `loras`
 Stable Diffusion LoRA 모델.
@@ -578,7 +559,7 @@ Model + LoRAs + Embeddings 번들.
 | `description` | Text | 설명 |
 | `is_system` | Boolean | 시스템 프리셋 여부 (default: true) |
 | **Audio** | | |
-| `bgm_mode` | String(20) | BGM 모드 (`"manual"` = 수동 선택, `"auto"` = Sound Designer 자동, default: `"manual"`) |
+| `bgm_mode` | String(20), NOT NULL | BGM 모드 (`"manual"` = 수동 선택, `"auto"` = Sound Designer 자동, server_default: `"manual"`) |
 | `bgm_file` | String(255) | BGM 파일 경로 (`"random"` = 랜덤, `bgm_mode="manual"` 시 폴백) |
 | `music_preset_id` | Integer (FK → music_presets, SET NULL) | Music Preset (`bgm_mode="manual"` 시 우선 사용) |
 | `bgm_volume` | Float | BGM 볼륨 (0.0~1.0) |
@@ -592,7 +573,6 @@ Model + LoRAs + Embeddings 번들.
 | `ken_burns_preset` | String(50) | Ken Burns 프리셋 |
 | `ken_burns_intensity` | Float | Ken Burns 강도 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
-
 
 ### `voice_presets`
 재사용 가능한 음성 프리셋. TTS 렌더링 시 사용.
@@ -806,7 +786,7 @@ ORM 모델 컬럼 선언 순서: PK → Parent FK → Identity(name) → Metadat
 
 ---
 
-**Last Updated:** 2026-02-21
-**Schema Version:** v3.25
+**Last Updated:** 2026-02-22
+**Schema Version:** v3.28
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic

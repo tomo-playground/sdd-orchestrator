@@ -1,8 +1,8 @@
 # Database Schema Summary
 
-Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.27) 참조.
+Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.28) 참조.
 
-> **Last Synced:** 2026-02-22 (DB_SCHEMA v3.27 기준)
+> **Last Synced:** 2026-02-22 (DB_SCHEMA v3.28 기준)
 
 ---
 
@@ -37,8 +37,8 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 
 ### `scenes` — 스토리보드 내 개별 씬
 - `id` (PK), `client_id` (String(36), UNIQUE, NOT NULL — Frontend UUID 안정 식별자)
-- `storyboard_id` (FK), `order`, `script`, `description`, `speaker`, `duration`
-- **Prompt**: `image_prompt`, `image_prompt_ko`, `negative_prompt`, `context_tags` (JSONB)
+- `storyboard_id` (FK), `order`, `script`, `speaker`, `duration`
+- **Prompt**: `image_prompt`, `image_prompt_ko`, `negative_prompt`, `context_tags` (JSONB), `clothing_tags` (JSONB, nullable — 씬별 의상 오버라이드)
 - **TTS & Pacing**: `voice_design_prompt`, `head_padding`, `tail_padding`
 - **Size**: `width`, `height`
 - **Background**: `background_id` (FK → backgrounds, SET NULL)
