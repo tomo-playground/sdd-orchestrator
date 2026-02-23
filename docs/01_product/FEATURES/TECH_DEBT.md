@@ -26,16 +26,15 @@
 
 ## Inter-Layer Prompt Deduplication
 
-> 상태: 미착수 (Nice-to-Have)
+> 상태: **완료** (이미 구현됨, 2026-02-23 확인)
 
-### 배경
-V3 12-Layer Prompt Builder에서 레이어 간 동일 태그 중복 출력.
-`_flatten_layers`의 `seen` set이 레이어별로 초기화되어 발생.
+### 결론
+`_flatten_layers()`의 `global_seen: set[str]`이 12-Layer **전체**를 관통하며 중복 제거 수행.
+TECH_DEBT 작성 당시의 "레이어별 초기화" 문제는 이미 해결됨.
 
-### 고려사항
-- 레이어 간 중복이 의도적 강조 효과일 수 있음
-- 제거 시 레이어 우선순위 전략 필요 (상위 레이어 보존)
-- `BREAK` 구분자 전후 중복은 SD 특성상 별도 처리 필요
-
-### 수정 대상
-- `backend/services/prompt/v3_composition.py`
+### 구현 현황
+- `global_seen` set: 한 번 초기화, 전 레이어 유지 (v3_composition.py:801)
+- `_dedup_key()`: 가중치/LoRA/공백 정규화 후 비교
+- `TagRuleCache.is_conflicting()`: 의미 충돌 검사 (brown_hair vs blonde_hair)
+- `_distribute_tags()`: exclusive group(hair_color 등) 캐릭터 우선 사전 필터링
+- BREAK 미사용: 단일 attention context로 통합
