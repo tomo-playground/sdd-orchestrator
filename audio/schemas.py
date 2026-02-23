@@ -18,7 +18,7 @@ class TTSSynthesizeRequest(BaseModel):
 
 
 class TTSSynthesizeResponse(BaseModel):
-    audio_base64: str = Field(..., description="MP3 audio encoded as base64")
+    audio_base64: str = Field(..., description="WAV audio encoded as base64")
     sample_rate: int
     duration: float = Field(..., description="Audio duration in seconds")
     quality_passed: bool

@@ -105,9 +105,7 @@ class TestMusicGenerateEndpoint:
         scipy.io.wavfile.write(buf, sr, audio)
         wav_bytes = buf.getvalue()
 
-        mock_engine.generate_music.return_value = (wav_bytes, sr, 42)
-        mock_engine.music_cache_key.return_value = "test_key"
-        mock_engine._cache_path.return_value = MagicMock(exists=MagicMock(return_value=False))
+        mock_engine.generate_music.return_value = (wav_bytes, sr, 42, False)
 
         resp = client.post(
             "/music/generate",

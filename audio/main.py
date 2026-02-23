@@ -51,7 +51,7 @@ app = FastAPI(title="Audio Server", lifespan=lifespan)
 
 @app.post("/tts/synthesize", response_model=TTSSynthesizeResponse)
 async def synthesize_tts(req: TTSSynthesizeRequest):
-    """Generate TTS audio: synthesize -> post-process -> quality check -> MP3 encode."""
+    """Generate TTS audio: synthesize -> post-process -> quality check -> WAV encode."""
     from config import TTS_CACHE_DIR
 
     # Cache lookup
@@ -121,7 +121,7 @@ async def synthesize_tts(req: TTSSynthesizeRequest):
 async def generate_music(req: MusicGenerateRequest):
     """Generate music from text prompt."""
     try:
-        wav_bytes, sample_rate, actual_seed = await asyncio.to_thread(
+        wav_bytes, sample_rate, actual_seed, cache_hit = await asyncio.to_thread(
             music_engine.generate_music,
             prompt=req.prompt,
             duration=req.duration,
@@ -135,15 +135,9 @@ async def generate_music(req: MusicGenerateRequest):
     audio_b64 = base64.b64encode(wav_bytes).decode()
 
     # Calculate actual duration from WAV bytes
-    import scipy.io.wavfile
-
     buf = io.BytesIO(wav_bytes)
-    sr, data = scipy.io.wavfile.read(buf)
-    duration = len(data) / sr
-
-    # Check if this was a cache hit (by checking if cache file existed before)
-    cache_key = music_engine.music_cache_key(req.prompt, req.duration, actual_seed)
-    cache_hit = (music_engine._cache_path(cache_key)).exists()
+    info = sf.info(buf)
+    duration = info.duration
 
     return MusicGenerateResponse(
         audio_base64=audio_b64,

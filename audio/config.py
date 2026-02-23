@@ -34,7 +34,8 @@ MUSICGEN_SAMPLE_RATE = int(os.getenv("MUSICGEN_SAMPLE_RATE", "32000"))
 MUSICGEN_TOKENS_PER_SECOND = 50  # EnCodec: 50 auto-regressive steps per second
 
 # --- Cache ---
-CACHE_DIR = pathlib.Path(os.getenv("CACHE_DIR", "/app/cache"))
+_default_cache = "/app/cache" if pathlib.Path("/app").exists() else str(pathlib.Path.home() / ".cache" / "audio-server")
+CACHE_DIR = pathlib.Path(os.getenv("CACHE_DIR", _default_cache))
 TTS_CACHE_DIR = CACHE_DIR / "tts"
 MUSICGEN_CACHE_DIR = CACHE_DIR / "music"
 

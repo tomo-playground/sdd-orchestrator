@@ -89,10 +89,10 @@ def generate_music(
     prompt: str,
     duration: float = MUSICGEN_DEFAULT_DURATION,
     seed: int = -1,
-) -> tuple[bytes, int, int]:
+) -> tuple[bytes, int, int, bool]:
     """Generate music from text prompt.
 
-    Returns (wav_bytes, sample_rate, actual_seed).
+    Returns (wav_bytes, sample_rate, actual_seed, cache_hit).
     """
     import torch
 
@@ -105,7 +105,7 @@ def generate_music(
     cached = _cache_path(cache_key)
     if cached.exists():
         logger.info("[MusicGen] Cache hit: %s", cache_key)
-        return cached.read_bytes(), MUSICGEN_SAMPLE_RATE, seed
+        return cached.read_bytes(), MUSICGEN_SAMPLE_RATE, seed, True
 
     with _inference_lock:
         model, processor = _musicgen_model, _musicgen_processor
@@ -136,4 +136,4 @@ def generate_music(
     cached.write_bytes(wav_bytes)
     logger.info("[MusicGen] Generated and cached: %s (%d bytes)", cache_key, len(wav_bytes))
 
-    return wav_bytes, MUSICGEN_SAMPLE_RATE, seed
+    return wav_bytes, MUSICGEN_SAMPLE_RATE, seed, False
