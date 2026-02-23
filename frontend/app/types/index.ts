@@ -241,8 +241,12 @@ export type Tag = {
   category: string;
   group_name: string | null;
   priority: number;
-  exclusive: boolean;
+  exclusive?: boolean;
   wd14_count?: number;
+  is_active?: boolean;
+  deprecated_reason?: string | null;
+  replacement_tag_id?: number | null;
+  replacement_tag_name?: string | null;
 };
 
 export type LoRA = {

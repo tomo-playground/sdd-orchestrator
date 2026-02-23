@@ -364,8 +364,10 @@ class TestValidateTags:
         assert response.status_code == 200
         data = response.json()
 
-        assert data["total"] == 1
-        assert len(data["unknown_in_db"]) == 0
+        assert data["total_tags"] == 1
+        assert len(data["unknown"]) == 0
+        assert data["valid_count"] == 1
+        assert "smile" in data["valid"]
 
     def test_validate_tags_unknown_tag(self, client: TestClient, db_session):
         """Unknown tags are reported."""
@@ -374,7 +376,7 @@ class TestValidateTags:
         assert response.status_code == 200
         data = response.json()
 
-        assert "nonexistent_tag_xyz" in data["unknown_in_db"]
+        assert "nonexistent_tag_xyz" in data["unknown"]
 
     def test_validate_tags_risky_alias(self, client: TestClient, db_session):
         """Tags with alias replacements are flagged as risky."""
@@ -384,7 +386,7 @@ class TestValidateTags:
         assert response.status_code == 200
         data = response.json()
 
-        assert "medium_shot" in data["risky_tags"]
+        assert "medium_shot" in data["risky"]
         assert len(data["warnings"]) >= 1
 
     def test_validate_tags_empty_list(self, client: TestClient, db_session):
@@ -393,7 +395,34 @@ class TestValidateTags:
         response = client.post("/prompt/validate-tags", json=request_data)
         assert response.status_code == 200
         data = response.json()
-        assert data["total"] == 0
+        assert data["total_tags"] == 0
+
+    def test_validate_tags_response_schema_complete(self, client: TestClient, db_session):
+        """Response contains all expected fields."""
+        tag = Tag(name="smile", category="scene", default_layer=5)
+        db_session.add(tag)
+        db_session.commit()
+
+        request_data = {"tags": ["smile", "unknown_xyz"], "check_danbooru": False}
+        response = client.post("/prompt/validate-tags", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # All fields present
+        assert "valid" in data
+        assert "risky" in data
+        assert "unknown" in data
+        assert "warnings" in data
+        assert "total_tags" in data
+        assert "valid_count" in data
+        assert "risky_count" in data
+        assert "unknown_count" in data
+
+        # Counts match
+        assert data["total_tags"] == 2
+        assert data["valid_count"] == 1
+        assert data["unknown_count"] == 1
+        assert data["risky_count"] == 0
 
 
 class TestAutoReplace:

@@ -36,6 +36,12 @@ const getTagColor = (category: string) => {
   }
 };
 
+const formatPostCount = (count: number): string => {
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
+  if (count >= 1_000) return `${Math.round(count / 1_000)}K`;
+  return String(count);
+};
+
 export default function TagAutocomplete({
   value,
   onChange,
@@ -55,6 +61,14 @@ export default function TagAutocomplete({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -115,11 +129,20 @@ export default function TagAutocomplete({
 
     const word = newValue.slice(start, cursorPos);
 
-    // Only trigger if word is at least 2 chars and doesn't contain invalid chars
-    if (word.length >= 2 && /^[a-zA-Z0-9_\-()]+$/.test(word)) {
+    // Korean input triggers at 1 char, Latin at 2 chars
+    const hasKorean = /[가-힣\u3130-\u318F]/.test(word);
+    const minLen = hasKorean ? 1 : 2;
+
+    if (word.length >= minLen && /^[a-zA-Z0-9_\-()가-힣\u3130-\u318F]+$/.test(word)) {
       setTriggerInfo({ start, end: cursorPos, word });
-      void fetchSuggestions(word);
+
+      // Debounce API call (300ms)
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        void fetchSuggestions(word);
+      }, 300);
     } else {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
       setTriggerInfo(null);
       setIsOpen(false);
     }
@@ -130,18 +153,26 @@ export default function TagAutocomplete({
 
     const before = value.slice(0, triggerInfo.start);
     const after = value.slice(triggerInfo.end);
-    // Add comma if not present (simple heuristic)
-    const newValue = `${before}${tag.name}${after}`;
+
+    // Use replacement tag if deprecated
+    const insertName =
+      tag.is_active === false && tag.replacement_tag_name ? tag.replacement_tag_name : tag.name;
+
+    // Add ", " separator if next char is not already comma
+    const needsSeparator = after.length === 0 || !after.trimStart().startsWith(",");
+    const separator = needsSeparator ? ", " : "";
+
+    const newValue = `${before}${insertName}${separator}${after}`;
 
     onChange(newValue);
     setIsOpen(false);
     setSuggestions([]);
 
-    // Restore focus and move cursor
+    // Restore focus and move cursor after inserted tag + separator
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
-        const newCursorPos = before.length + tag.name.length;
+        const newCursorPos = before.length + insertName.length + separator.length;
         textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
       }
     }, 0);
@@ -188,11 +219,26 @@ export default function TagAutocomplete({
                 key={tag.id}
                 onClick={() => selectTag(tag)}
                 onMouseEnter={() => setHighlightedIndex(index)}
-                className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-xs transition ${index === highlightedIndex ? "bg-zinc-100" : "hover:bg-zinc-50"
-                  }`}
+                className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-xs transition ${
+                  index === highlightedIndex ? "bg-zinc-100" : "hover:bg-zinc-50"
+                } ${tag.is_active === false ? "opacity-50" : ""}`}
               >
                 <div className="flex items-center gap-2">
-                  <span className={`font-semibold ${getTagColor(tag.category)}`}>{tag.name}</span>
+                  <span
+                    className={`font-semibold ${getTagColor(tag.category)} ${
+                      tag.is_active === false ? "line-through" : ""
+                    }`}
+                  >
+                    {tag.name}
+                  </span>
+                  {tag.is_active === false && tag.replacement_tag_name && (
+                    <span className="text-[11px] text-zinc-500">→ {tag.replacement_tag_name}</span>
+                  )}
+                  {tag.is_active === false && tag.deprecated_reason && (
+                    <span className="text-[11px] text-zinc-400 italic">
+                      {tag.deprecated_reason}
+                    </span>
+                  )}
                   {tag.group_name && (
                     <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[12px] text-zinc-500">
                       {tag.group_name}
@@ -206,6 +252,11 @@ export default function TagAutocomplete({
                   {/* Priority indicator if relevant */}
                   {tag.priority && tag.priority < 5 && (
                     <span className="text-[12px] text-amber-500">★</span>
+                  )}
+                  {tag.wd14_count != null && tag.wd14_count > 0 && (
+                    <span className="text-[11px] text-zinc-400 tabular-nums">
+                      {formatPostCount(tag.wd14_count)}
+                    </span>
                   )}
                 </div>
               </li>

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from config import logger
 from database import get_db
 from models import Tag
-from schemas import TagCreate, TagResponse, TagUpdate
+from schemas import TagCreate, TagResponse, TagSearchResponse, TagUpdate
 from services.tag_classifier import TagClassifier, classify_tags_background, migrate_patterns_to_rules
 
 router = APIRouter(prefix="/tags", tags=["tags"])
@@ -97,7 +97,7 @@ async def list_tag_groups(db: Session = Depends(get_db)):
     return {"groups": groups}
 
 
-@router.get("/search", response_model=list[TagResponse])
+@router.get("/search", response_model=list[TagSearchResponse])
 async def search_tags(
     q: str = Query(..., min_length=1, description="Search query"),
     limit: int = Query(20, le=100, description="Max results"),
@@ -107,22 +107,27 @@ async def search_tags(
     """Search tags for autocomplete.
 
     Sorts by:
-    1. Exact match (starts with query)
-    2. Priority (lower is better)
-    3. Name length (shorter is better)
+    1. Active tags first (deprecated last)
+    2. Exact match (starts with query)
+    3. Priority (lower is better)
+    4. Name length (shorter is better)
     """
-    from sqlalchemy import case, func
+    from sqlalchemy import case, func, or_
 
-    query = db.query(Tag).filter(Tag.name.ilike(f"%{q}%"))
+    query = db.query(Tag).filter(or_(Tag.name.ilike(f"%{q}%"), Tag.ko_name.ilike(f"%{q}%")))
 
     if category:
         query = query.filter(Tag.category == category)
 
     # Calculate sort order
-    # 1. Starts with query = 0, else 1
-    starts_with = case((Tag.name.ilike(f"{q}%"), 0), else_=1)
+    active_first = case((Tag.is_active.is_(True), 0), else_=1)
+    starts_with = case(
+        (or_(Tag.name.ilike(f"{q}%"), Tag.ko_name.ilike(f"{q}%")), 0),
+        else_=1,
+    )
 
     query = query.order_by(
+        active_first,
         starts_with,
         Tag.priority.asc(),
         func.length(Tag.name).asc(),
@@ -130,7 +135,22 @@ async def search_tags(
     )
 
     tags = query.limit(limit).all()
-    return tags
+
+    # Map replacement_tag_name for deprecated tags
+    replacement_ids = {t.replacement_tag_id for t in tags if t.replacement_tag_id}
+    replacement_map: dict[int, str] = {}
+    if replacement_ids:
+        replacements = db.query(Tag.id, Tag.name).filter(Tag.id.in_(replacement_ids)).all()
+        replacement_map = {r.id: r.name for r in replacements}
+
+    results = []
+    for tag in tags:
+        data = TagSearchResponse.model_validate(tag)
+        if tag.replacement_tag_id and tag.replacement_tag_id in replacement_map:
+            data.replacement_tag_name = replacement_map[tag.replacement_tag_id]
+        results.append(data)
+
+    return results
 
 
 # === Pending Classification Endpoints (15.7.5) ===

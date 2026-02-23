@@ -825,6 +825,9 @@ class TagBase(BaseModel):
     wd14_category: int = 0
     classification_source: str | None = None
     classification_confidence: float | None = None
+    is_active: bool = True
+    deprecated_reason: str | None = None
+    replacement_tag_id: int | None = None
 
 
 class TagCreate(TagBase):
@@ -842,6 +845,12 @@ class TagResponse(TagBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TagSearchResponse(TagResponse):
+    """Extended tag response for search with replacement info."""
+
+    replacement_tag_name: str | None = None
 
 
 class LoRABase(BaseModel):

@@ -428,13 +428,34 @@ class ValidateTagsRequest(BaseModel):
     check_danbooru: bool = True
 
 
+class TagWarningItem(BaseModel):
+    """Individual tag warning."""
+
+    tag: str
+    reason: str
+    suggestion: str | None = None
+
+
+class ValidateTagsResponse(BaseModel):
+    """Response for tag validation."""
+
+    valid: list[str]
+    risky: list[str]
+    unknown: list[str]
+    warnings: list[TagWarningItem]
+    total_tags: int
+    valid_count: int
+    risky_count: int
+    unknown_count: int
+
+
 class AutoReplaceRequest(BaseModel):
     """Request body for auto-replacement."""
 
     tags: list[str]
 
 
-@router.post("/validate-tags")
+@router.post("/validate-tags", response_model=ValidateTagsResponse)
 async def validate_tags(
     request: ValidateTagsRequest,
     db: Session = Depends(get_db),
@@ -455,7 +476,7 @@ async def validate_tags(
 
     risky_tags: list[str] = []
     unknown_in_db: list[str] = []
-    warnings: list[dict] = []
+    warnings: list[TagWarningItem] = []
 
     for tag in request.tags:
         # Check if risky (has alias replacement)
@@ -464,7 +485,7 @@ async def validate_tags(
             risky_tags.append(tag)
             suggestion = replacement if replacement else None
             reason = "removed (no alternative)" if not replacement else "risky tag"
-            warnings.append({"tag": tag, "reason": reason, "suggestion": suggestion})
+            warnings.append(TagWarningItem(tag=tag, reason=reason, suggestion=suggestion))
             continue
 
         # Check DB existence
@@ -473,18 +494,25 @@ async def validate_tags(
         if not exists:
             unknown_in_db.append(tag)
 
+    valid_tags = [t for t in request.tags if t not in risky_tags and t not in unknown_in_db]
+
     logger.info(
-        "✅ [Validate Tags] risky=%d, unknown=%d",
+        "✅ [Validate Tags] valid=%d, risky=%d, unknown=%d",
+        len(valid_tags),
         len(risky_tags),
         len(unknown_in_db),
     )
 
-    return {
-        "risky_tags": risky_tags,
-        "unknown_in_db": unknown_in_db,
-        "warnings": warnings,
-        "total": len(request.tags),
-    }
+    return ValidateTagsResponse(
+        valid=valid_tags,
+        risky=risky_tags,
+        unknown=unknown_in_db,
+        warnings=warnings,
+        total_tags=len(request.tags),
+        valid_count=len(valid_tags),
+        risky_count=len(risky_tags),
+        unknown_count=len(unknown_in_db),
+    )
 
 
 @router.post("/auto-replace")

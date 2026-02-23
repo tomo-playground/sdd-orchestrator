@@ -83,7 +83,7 @@ export function useTags(category: string | null = "scene"): UseTagsResult {
     (groupName: string): boolean => {
       const groupTags = tagsByGroup[groupName];
       if (!groupTags || groupTags.length === 0) return false;
-      return groupTags[0].exclusive;
+      return groupTags[0].exclusive ?? false;
     },
     [tagsByGroup]
   );
