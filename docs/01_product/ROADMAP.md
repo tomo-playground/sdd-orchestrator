@@ -19,6 +19,7 @@
 
 ### 최근 작업
 
+- **v3_composition.py 하드코딩 상수 → config.py SSOT 이동** (02-23): 22개 상수(가중치 8+태그셋 12+문자열 2) config_prompt.py 분리, 중복 키워드셋 4개 삭제→CATEGORY_PATTERNS 재사용(_pattern_tags_by_category 캐시), patterns.py quality에 리얼리스틱 태그 7개 추가. v3_composition.py 1113→1014줄(-99). 111개 테스트 PASS
 - **Frontend Validate / Fix All 제거** (02-23): 하드코딩 키워드 리스트 기반 프론트엔드 프롬프트 검증 제거. Fix All이 범용 기본값(standing, plain background) 삽입으로 품질 저하. Autopilot images→validate→render → images→render 2단계로 단순화. validation.ts/FixSuggestionsPanel.tsx 삭제, 14파일 수정, -1,275줄. WD14 이미지 검증은 유지
 - **Compose 중개 제거 리팩토링** (02-23): Frontend `/compose`→`/validate`→`/generate` 3회 왕복 → `/generate` 1회로 통합. Backend `context_tags` 필드 추가, `_handle_character_scene/background_scene`에서 자동 병합. `buildScenePrompt` async→sync(56줄→3줄). `prompt_pre_composed` deprecated. `autoComposePrompt` 토글 제거(Backend negative 합성으로 대체). 테스트 11개 추가(Backend 43개 PASS)
 - **Cinematographer → Ken Burns 씬별 연결** (02-22): 감정/서사 기반 Ken Burns 모션 자동 지정. motion.py EMOTION_MOTION_MAP(27감정→프리셋), suggest_ken_burns_preset(). Finalize _validate_ken_burns_presets() 검증+fallback. Cinematographer 템플릿 Rule 15. VideoScene.ken_burns_preset 필드. resolve_scene_preset() 씬별>전역 우선순위. Frontend 전 경로 연결(mapGeminiScenes/mapEventScenes/sync/render). 테스트 22개 추가
@@ -214,7 +215,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | Tag Intelligence (채널별 태그 정책 + 데이터 기반 추천) | [명세](FEATURES/PROJECT_GROUP.md) §2-2 |
 | Series Intelligence (에피소드 연결 + 성공 패턴 학습) | [명세](FEATURES/PROJECT_GROUP.md) §2-3 |
 | LoRA Calibration Automation | — |
-| v3_composition.py 하드코딩 프롬프트 DB/config 이동 | — |
+| ~~v3_composition.py 하드코딩 프롬프트 DB/config 이동~~ | ✅ config_prompt.py 추출 완료 (02-23) |
 
 ### Infrastructure & Scale
 
