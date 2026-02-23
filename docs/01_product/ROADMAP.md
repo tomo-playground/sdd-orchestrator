@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-02-23)
+## 현재 상태 (2026-02-24)
 
 | 항목 | 상태 |
 |------|------|
@@ -16,11 +16,13 @@
 | Phase 13 (Creative Control & Production Speed) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 완료 (8/8)** |
 | Phase 14 (ControlNet Pose Pipeline) | **전체 완료 (3/3 + 14-A 3/3)** |
-| **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 4/4 완료** |
+| **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 4/4, A-1: 6/6 완료** |
 | 테스트 | Backend 2,207 + Frontend 352 = **총 2,559개** |
 
 ### 최근 작업
 
+- **Phase 15-A-1: TagAutocomplete 품질 개선 6건** (02-24): validate-tags 스키마 동기화(ValidateTagsResponse + response_model), Tag deprecation 필드 API 노출(TagSearchResponse, is_active 정렬, 취소선 UI), API debounce 300ms, 한국어/유니코드 검색(ko_name ilike, 한글 1자 트리거), wd14_count 드롭다운 표시(K/M 포맷), 태그 선택 후 ", " 자동 삽입. Backend 25 + Frontend 9 테스트
+- **Pipeline Prompt Quality 근본 수정** (02-24): SB#469 검수 기반 P0 3건+P1 2건+P2 1건. (1) `_sanitize_quality_tags()` — `high_quality`→`best_quality` 자동 치환, `create_style_profiles.py` 소스 정리. (2) `_inject_default_context_tags()` emotion→expression 파생(44개 매핑). (3) Scene LoRA 트리거 워드 주입 — `LoRAInfo` 클래스 도입, `_get_lora_info()` trigger_words 포함, scene-triggered/auto-triggered 양쪽 주입. (4) `validate_context_tag_categories()` — 잘못된 카테고리 재분류(gaze=crying→expression), 비표준 mood drop. (5) `check_camera_diversity()` >50% 반복 시 소프트 경고. (6) `_coerce_str()` — Gemini 리스트 반환 방어. 37개 테스트 추가 (160 PASS)
 - **Phase 15-A-0-4: 편집 지시문 Before/After diff UI** (02-23): `prompt_editor.py` Gemini 기반 자연어 지시→프롬프트 태그 편집 서비스(SHA256 캐시, 캐릭터 identity 태그 보존). `/prompt/edit-prompt` API. `PromptEditDiff.tsx` 3-phase diff UI(loading/diff/error). `computeTokenDiff` 공통 유틸리티 추출(`promptDiff.ts`). SceneGeminiModals 2-phase(input→diff) 전환, Character GeminiEditModal 동일 적용. 기존 이미지 편집(~$0.04) 버튼 병존. 8개 테스트 추가
 - **Phase 15-A-0-3: KO → EN 변환 diff UI** (02-23): `ko_translator.py` Gemini 기반 한글 장면 묘사→Danbooru 태그 변환 서비스(SHA256 캐시, 캐릭터 identity 태그 제외). `/prompt/translate-ko` API. `PromptTranslateDiff.tsx` 토큰 레벨 diff UI(added/removed/kept 색상 구분, 적용/취소). ScenePromptFields 통합. 8개 테스트 추가
 - **Phase 15-A-0-1,2: `/compose` API 레이어 분해 + ComposedPromptPreview 레이어 뷰** (02-23): `_flatten_layers()`에서 레이어별 토큰 캡처, `LAYER_NAMES` 상수, `get_last_composed_layers()` accessor 추가. `PromptComposeResponse.layers` 필드. Frontend 3-way 뷰모드(Layers/Grouped/Linear), `LayerView`/`GroupedView`/`LinearView` 서브컴포넌트 추출. Multi-char 씬은 layers=None→Layers 탭 비활성+Grouped fallback. 7개 테스트 추가 (전체 118 PASS)
@@ -218,12 +220,12 @@ graph LR
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | API 디바운스 300ms 적용 | [ ] |
-| 2 | 한글(유니코드) 입력 지원 | [ ] |
-| 3 | 인기도(`wd14_count`) 드롭다운 표시 | [ ] |
-| 4 | 태그 선택 후 `, ` 자동 삽입 | [ ] |
-| 5 | 폐기 태그 `deprecated_reason` + 대체 태그 표시 | [ ] |
-| 6 | Frontend-Backend 검증 스키마 동기화 (`validate-tags` 응답 통일) | [ ] |
+| 1 | API 디바운스 300ms 적용 | ✅ (02-24) |
+| 2 | 한글(유니코드) 입력 지원 | ✅ (02-24) |
+| 3 | 인기도(`wd14_count`) 드롭다운 표시 | ✅ (02-24) |
+| 4 | 태그 선택 후 `, ` 자동 삽입 | ✅ (02-24) |
+| 5 | 폐기 태그 `deprecated_reason` + 대체 태그 표시 | ✅ (02-24) |
+| 6 | Frontend-Backend 검증 스키마 동기화 (`validate-tags` 응답 통일) | ✅ (02-24) |
 
 ### Phase A-2: TagAutocomplete 확산 (8곳)
 
@@ -275,10 +277,26 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 | 기능 | 참조 |
 |------|------|
+| ~~Pipeline Prompt Quality — 파이프라인 프롬프트 품질 개선~~ | ✅ P0+P1+P2 완료 (02-24) |
 | Tag Intelligence (채널별 태그 정책 + 데이터 기반 추천) | [명세](FEATURES/PROJECT_GROUP.md) §2-2 |
 | Series Intelligence (에피소드 연결 + 성공 패턴 학습) | [명세](FEATURES/PROJECT_GROUP.md) §2-3 |
 | LoRA Calibration Automation | — |
 | ~~v3_composition.py 하드코딩 프롬프트 DB/config 이동~~ | ✅ config_prompt.py 추출 완료 (02-23) |
+
+#### Pipeline Prompt Quality (SB#469 검수 기반, 완료 02-24)
+
+스토리보드 469 검수에서 발견된 8건 이슈 중 6건 수정, 1건 P2 보류, 1건 기존 설계로 이슈 아님.
+
+| # | 이슈 | 심각도 | 상태 | 수정 내용 |
+|---|------|--------|------|----------|
+| 1 | `high_quality` 비표준 품질 태그 | CRITICAL | ✅ | `_sanitize_quality_tags()` + `create_style_profiles.py` 소스 정리 |
+| 2 | Context→Prompt 미반영 | CRITICAL | 📋 P2 | 설계 의도 — `/compose` API가 이미 병합. UI 표시 개선만 필요 |
+| 3 | Context vs Script 감정 불일치 | CRITICAL | ✅ | emotion→expression 파생 (44개 매핑) |
+| 4 | `gaze=crying` 카테고리 분류 오류 | CRITICAL | ✅ | `validate_context_tag_categories()` 재분류 |
+| 5 | 비표준 mood 태그 | WARNING | ✅ | `validate_context_tag_categories()` mood drop |
+| 6 | Camera 앵글 다양성 부족 | WARNING | ✅ | `check_camera_diversity()` 소프트 경고 |
+| 7 | LoRA 위치 비일관 | WARNING | — | 12-Layer 순서 보장 (기존 설계, 이슈 아님) |
+| 8 | 트리거 워드 누락 | WARNING | ✅ | `LoRAInfo` + scene-triggered/auto-triggered 트리거 주입 |
 
 ### Infrastructure & Scale
 
