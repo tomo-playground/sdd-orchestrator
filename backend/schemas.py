@@ -743,6 +743,14 @@ class NegativePreviewResponse(BaseModel):
     negative_sources: list[NegativeSource]
 
 
+class ComposedLayer(BaseModel):
+    """Single layer breakdown from 12-layer composition."""
+
+    index: int
+    name: str
+    tokens: list[str]
+
+
 class PromptComposeResponse(BaseModel):
     """Response from prompt composition."""
 
@@ -754,6 +762,7 @@ class PromptComposeResponse(BaseModel):
     meta: dict | None = None  # Additional metadata
     negative_prompt: str | None = None  # Composed final negative string
     negative_sources: list[NegativeSource] | None = None  # Per-source token breakdown
+    layers: list[ComposedLayer] | None = None  # 12-layer breakdown (None for multi-char)
 
 
 class SDModelRequest(BaseModel):

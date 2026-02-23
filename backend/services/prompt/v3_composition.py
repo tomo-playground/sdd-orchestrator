@@ -56,6 +56,21 @@ LAYER_CAMERA = 9
 LAYER_ENVIRONMENT = 10
 LAYER_ATMOSPHERE = 11  # Style LoRA & Artistic Style
 
+LAYER_NAMES: list[str] = [
+    "Quality",
+    "Subject",
+    "Identity",
+    "Body",
+    "Main Cloth",
+    "Detail Cloth",
+    "Accessory",
+    "Expression",
+    "Action",
+    "Camera",
+    "Environment",
+    "Atmosphere",
+]
+
 # Layers that only apply when a character is present (SUBJECT through ACTION)
 CHARACTER_ONLY_LAYERS = frozenset(range(LAYER_SUBJECT, LAYER_ACTION + 1))
 
@@ -69,6 +84,7 @@ class V3PromptBuilder:
         self.warnings: list[str] = []
         self._lora_info_cache: dict[str, tuple[float, str | None]] = {}
         self._db_tag_names: set[str] | None = None
+        self._last_composed_layers: list[list[str]] | None = None
 
     def get_tag_info(self, tag_names: list[str]) -> dict[str, dict]:
         """Fetches metadata for a list of tags from the DB with pattern-based fallback."""
@@ -742,6 +758,7 @@ class V3PromptBuilder:
 
         final_tokens = []
         global_seen: set[str] = set()
+        composed: list[list[str]] = [[] for _ in range(12)]
 
         for i, layer_tokens in enumerate(layers):
             if layer_tokens:
@@ -776,9 +793,21 @@ class V3PromptBuilder:
                             boosted.append(t)
                     unique_layer_tokens = boosted
 
+                composed[i] = unique_layer_tokens
                 final_tokens.extend(unique_layer_tokens)
 
+        self._last_composed_layers = composed
         return ", ".join(final_tokens)
+
+    def get_last_composed_layers(self) -> list[dict] | None:
+        """Return layer breakdown from the last compose/flatten call."""
+        if self._last_composed_layers is None:
+            return None
+        return [
+            {"index": i, "name": LAYER_NAMES[i], "tokens": tokens}
+            for i, tokens in enumerate(self._last_composed_layers)
+            if tokens
+        ]
 
     def get_effective_lora_weight(self, lora: LoRA) -> float:
         """Helper to get calibrated weight from LoRA object."""

@@ -292,6 +292,7 @@ async def compose_prompt(
                 effective_b_id = request.character_b_id
 
         # 4. V3 engine composition (character tags, LoRAs, gender loaded from DB)
+        builder_ref = None  # Track builder for layer extraction
         if request.character_id and effective_b_id:
             from models.character import Character
             from services.prompt.v3_composition import V3PromptBuilder
@@ -308,6 +309,7 @@ async def compose_prompt(
                     all_tokens,
                     style_loras=style_loras,
                 )
+                # Multi-char: builder_ref stays None (no single 12-layer decomposition)
             else:
                 v3_service = V3PromptService(db)
                 composed_prompt = v3_service.generate_prompt_for_scene(
@@ -315,6 +317,7 @@ async def compose_prompt(
                     scene_tags=all_tokens,
                     style_loras=style_loras,
                 )
+                builder_ref = v3_service.builder
         else:
             v3_service = V3PromptService(db)
             composed_prompt = v3_service.generate_prompt_for_scene(
@@ -322,6 +325,7 @@ async def compose_prompt(
                 scene_tags=all_tokens,
                 style_loras=style_loras,
             )
+            builder_ref = v3_service.builder
 
         # 5. Build response
         composed_tokens = split_prompt_tokens(composed_prompt)
@@ -372,6 +376,7 @@ async def compose_prompt(
             },
             "negative_prompt": neg_prompt or None,
             "negative_sources": neg_sources or None,
+            "layers": builder_ref.get_last_composed_layers() if builder_ref else None,
         }
 
     except Exception as e:

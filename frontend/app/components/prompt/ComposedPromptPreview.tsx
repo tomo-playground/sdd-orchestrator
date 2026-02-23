@@ -14,6 +14,9 @@ import {
   INFO_BG,
   INFO_TEXT,
 } from "../ui/variants";
+import LayerView from "./LayerView";
+import GroupedView from "./GroupedView";
+import LinearView from "./LinearView";
 
 type LoRAInfo = {
   name: string;
@@ -43,6 +46,8 @@ export type NegativeSourceInfo = {
   tokens: string[];
 };
 
+export type ComposedLayer = { index: number; name: string; tokens: string[] };
+
 type ComposeResult = {
   prompt: string;
   tokens: string[];
@@ -56,7 +61,10 @@ type ComposeResult = {
   };
   negative_prompt?: string;
   negative_sources?: NegativeSourceInfo[];
+  layers?: ComposedLayer[];
 };
+
+type ViewMode = "layers" | "grouped" | "linear";
 
 // Category colors for visual grouping
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -123,15 +131,17 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 function getTokenCategory(token: string): string {
-  // LoRA detection (special client-rule)
   if (token.startsWith("<lora:")) return "lora";
   if (token.startsWith("<model:")) return "lora";
   if (token === "BREAK") return "break";
-
-  // All other categorization logic has been moved to the backend.
-  // If useTagClassifier hook doesn't provide a category, it's unknown.
   return "unknown";
 }
+
+const VIEW_MODES: { key: ViewMode; label: string }[] = [
+  { key: "layers", label: "Layers" },
+  { key: "grouped", label: "Grouped" },
+  { key: "linear", label: "Linear" },
+];
 
 export default function ComposedPromptPreview({
   tokens,
@@ -150,7 +160,7 @@ export default function ComposedPromptPreview({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ComposeResult | null>(null);
-  const [showGrouped, setShowGrouped] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>("layers");
 
   // API-based tag classification (15.7)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -165,7 +175,6 @@ export default function ComposedPromptPreview({
     );
     const tokenKey = tokensToClassify.join(",");
 
-    // Skip if already classified this set
     if (tokenKey === classifiedTokensRef.current || tokensToClassify.length === 0) {
       return;
     }
@@ -176,18 +185,14 @@ export default function ComposedPromptPreview({
     });
   }, [result?.tokens, tokens, classifyTags]);
 
-  // Get category with API fallback
   const getCategory = useCallback(
     (token: string): string => {
-      // Special tokens
       if (token.startsWith("<lora:")) return "lora";
       if (token === "BREAK") return "break";
 
-      // Check API result first
       const apiCategory = apiCategories[token] || getCachedCategory(token);
       if (apiCategory) return apiCategory;
 
-      // Fallback to local pattern matching
       return getTokenCategory(token);
     },
     [apiCategories, getCachedCategory]
@@ -200,7 +205,6 @@ export default function ComposedPromptPreview({
     setError(null);
 
     try {
-      // Style LoRAs resolved by Backend from storyboard → group → style_profile (SSOT)
       const response = await fetch(`${API_BASE}/prompt/compose`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -254,14 +258,12 @@ export default function ComposedPromptPreview({
       "|" +
       (basePrompt ?? "");
 
-    // Skip if same as previous
     if (tokenKey === prevTokensRef.current || tokens.length === 0) {
       return;
     }
 
     prevTokensRef.current = tokenKey;
 
-    // Debounce: wait 300ms before calling API
     const timer = setTimeout(() => {
       composePrompt();
     }, 300);
@@ -270,7 +272,7 @@ export default function ComposedPromptPreview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tokens, composePrompt]);
 
-  // Group tokens by display label for grouped view (merges hair_color, hair_length, etc. into "헤어")
+  // Group tokens by display label for grouped view
   const groupedTokens = (result?.tokens || tokens).reduce(
     (acc, token) => {
       const category = getCategory(token);
@@ -282,10 +284,17 @@ export default function ComposedPromptPreview({
     {} as Record<string, { category: string; tokens: string[] }>
   );
 
-  const getTokenStyle = (token: string) => {
-    const category = getCategory(token);
-    return CATEGORY_COLORS[category] || CATEGORY_COLORS.unknown;
-  };
+  const getTokenStyle = useCallback(
+    (token: string) => {
+      const category = getCategory(token);
+      return CATEGORY_COLORS[category] || CATEGORY_COLORS.unknown;
+    },
+    [getCategory]
+  );
+
+  // Determine effective view mode (fallback if layers unavailable)
+  const hasLayers = !!result?.layers && result.layers.length > 0;
+  const effectiveMode = viewMode === "layers" && !hasLayers ? "grouped" : viewMode;
 
   if (tokens.length === 0) {
     return null;
@@ -343,13 +352,31 @@ export default function ComposedPromptPreview({
         </div>
         <div className="flex items-center gap-2">
           {result?.prompt && <CopyButton text={result.prompt} variant="label" />}
-          <button
-            type="button"
-            onClick={() => setShowGrouped(!showGrouped)}
-            className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-zinc-600 hover:bg-zinc-50"
-          >
-            {showGrouped ? "Linear" : "Grouped"}
-          </button>
+          {/* 3-way segment control */}
+          <div className="flex overflow-hidden rounded-full border border-zinc-200">
+            {VIEW_MODES.map(({ key, label }) => {
+              const isDisabled = key === "layers" && !hasLayers;
+              const isActive = effectiveMode === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => setViewMode(key)}
+                  className={`px-2 py-1 text-[11px] font-semibold transition-colors ${
+                    isActive
+                      ? "bg-zinc-800 text-white"
+                      : isDisabled
+                        ? "cursor-not-allowed bg-white text-zinc-300"
+                        : "bg-white text-zinc-600 hover:bg-zinc-50"
+                  }`}
+                  title={isDisabled ? "Multi-character scenes have no layer data" : undefined}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
           <button
             type="button"
             onClick={composePrompt}
@@ -364,65 +391,21 @@ export default function ComposedPromptPreview({
       {/* Error message */}
       {error && <div className="rounded-lg bg-red-50 p-2 text-[12px] text-red-600">{error}</div>}
 
-      {/* Token display */}
-      {showGrouped ? (
-        // Grouped view by category
-        <div className="space-y-2">
-          {Object.entries(groupedTokens).map(([label, group]) => (
-            <div key={label} className="flex items-start gap-2">
-              <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${CATEGORY_COLORS[group.category]?.bg || "bg-zinc-100"} ${CATEGORY_COLORS[group.category]?.text || "text-zinc-600"}`}
-              >
-                {label}
-              </span>
-              <div className="flex flex-wrap gap-1">
-                {group.tokens.map((token, idx) => {
-                  const style = getTokenStyle(token);
-                  return (
-                    <span
-                      key={`${label}-${idx}`}
-                      className={`rounded-full border px-2 py-0.5 text-[12px] ${style.bg} ${style.text} ${style.border}`}
-                    >
-                      {token.startsWith("<lora:") ? (
-                        <>
-                          <span className="opacity-60">⚡</span>
-                          {token.replace(/<lora:|>/g, "")}
-                        </>
-                      ) : (
-                        token
-                      )}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Token display — 3 view modes */}
+      {effectiveMode === "layers" && result?.layers ? (
+        <LayerView layers={result.layers} />
+      ) : effectiveMode === "grouped" ? (
+        <GroupedView
+          groupedTokens={groupedTokens}
+          categoryColors={CATEGORY_COLORS}
+          getTokenStyle={getTokenStyle}
+        />
       ) : (
-        // Linear view (all tokens in order)
-        <div className="flex flex-wrap gap-1">
-          {(result?.tokens || tokens).map((token, idx) => {
-            const style = getTokenStyle(token);
-            return (
-              <span
-                key={idx}
-                className={`rounded-full border px-2 py-0.5 text-[12px] ${style.bg} ${style.text} ${style.border}`}
-                title={getCategory(token)}
-              >
-                {token === "BREAK" ? (
-                  <span className="font-bold">BREAK</span>
-                ) : token.startsWith("<lora:") ? (
-                  <>
-                    <span className="opacity-60">⚡</span>
-                    {token.replace(/<lora:|>/g, "")}
-                  </>
-                ) : (
-                  token
-                )}
-              </span>
-            );
-          })}
-        </div>
+        <LinearView
+          tokens={result?.tokens || tokens}
+          getTokenStyle={getTokenStyle}
+          getCategory={getCategory}
+        />
       )}
 
       {/* LoRA weights info */}

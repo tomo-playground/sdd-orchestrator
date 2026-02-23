@@ -15,10 +15,14 @@
 | Phase 12 (Agent Enhancement & AI BGM) | 전체 완료 (ARCHIVED) |
 | Phase 13 (Creative Control & Production Speed) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 완료 (8/8)** |
+| Phase 14 (ControlNet Pose Pipeline) | **전체 완료 (3/3 + 14-A 3/3)** |
+| **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 2/4 완료** |
 | 테스트 | Backend 2,199 + Frontend 352 = **총 2,551개** |
 
 ### 최근 작업
 
+- **Phase 15-A-0-1,2: `/compose` API 레이어 분해 + ComposedPromptPreview 레이어 뷰** (02-23): `_flatten_layers()`에서 레이어별 토큰 캡처, `LAYER_NAMES` 상수, `get_last_composed_layers()` accessor 추가. `PromptComposeResponse.layers` 필드. Frontend 3-way 뷰모드(Layers/Grouped/Linear), `LayerView`/`GroupedView`/`LinearView` 서브컴포넌트 추출. Multi-char 씬은 layers=None→Layers 탭 비활성+Grouped fallback. 7개 테스트 추가 (전체 118 PASS)
+- **Prompt Input UX 기능 명세 작성** (02-23): `FEATURES/PROMPT_INPUT_UX.md` 531줄. 19개 입력 포인트 전수 분석, 5 Phase(A-0~B) 설계, 프롬프트 생애주기 맵핑, 에러 처리 정책 수립. 7 에이전트 리뷰 8 BLOCKER 수정 완료
 - **Audio Server 사이드카 분리** (02-23): TTS(Qwen3-TTS 1.7B)+MusicGen-Small을 독립 Docker 컨테이너(`audio/`)로 분리. Backend에서 ML 의존성(torch, qwen-tts, librosa, soundfile) 제거, httpx 기반 audio_client.py(Circuit Breaker) 추가. Backend 즉시 기동, Audio Server 독립 warm-up. docker-compose.audio.yml, 4개 호출사이트 교체, 테스트 8개 추가
 - **v3_composition.py 하드코딩 상수 → config.py SSOT 이동** (02-23): 22개 상수(가중치 8+태그셋 12+문자열 2) config_prompt.py 분리, 중복 키워드셋 4개 삭제→CATEGORY_PATTERNS 재사용(_pattern_tags_by_category 캐시), patterns.py quality에 리얼리스틱 태그 7개 추가. v3_composition.py 1113→1014줄(-99). 111개 테스트 PASS
 - **Frontend Validate / Fix All 제거** (02-23): 하드코딩 키워드 리스트 기반 프론트엔드 프롬프트 검증 제거. Fix All이 범용 기본값(standing, plain background) 삽입으로 품질 저하. Autopilot images→validate→render → images→render 2단계로 단순화. validation.ts/FixSuggestionsPanel.tsx 삭제, 14파일 수정, -1,275줄. WD14 이미지 검증은 유지
@@ -118,7 +122,9 @@ graph LR
     P10 --> P11["Phase 11<br/>Scene Diversity<br/>& Frontal Bias"]
     P11 --> P12["Phase 12<br/>Agent Enhancement<br/>& AI BGM"]
     P12 --> P13["Phase 13<br/>Creative Control<br/>& Speed"]
-    P13 --> P8["Phase 8<br/>Multi-Style<br/>(Future)"]
+    P13 --> P8["Phase 8<br/>Multi-Style"]
+    P8 --> P14["Phase 14<br/>ControlNet<br/>Pose"]
+    P14 --> P15["Phase 15<br/>Prompt Input<br/>UX 고도화"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -136,7 +142,9 @@ graph LR
     style P11 fill:#4CAF50,color:#fff
     style P12 fill:#4CAF50,color:#fff
     style P13 fill:#4CAF50,color:#fff
-    style P8 fill:#FF9800,color:#fff
+    style P8 fill:#4CAF50,color:#fff
+    style P14 fill:#4CAF50,color:#fff
+    style P15 fill:#2196F3,color:#fff
 ```
 
 ---
@@ -191,6 +199,58 @@ graph LR
 
 ---
 
+## Phase 15: Prompt Input UX 고도화
+
+**목표**: 19개 프롬프트 입력 포인트에 "미리보기 → 확인 → 실행" 원칙 적용. TagAutocomplete 품질 개선 및 확산, 태그 검증 시스템 확산. [상세 명세](FEATURES/PROMPT_INPUT_UX.md)
+
+### Phase A-0: 조합 프롬프트 미리보기
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | `/compose` API 확장 — 레이어별 분해 정보(`layers`) 응답 필드 추가 | ✅ (02-23) |
+| 2 | `ComposedPromptPreview.tsx` — 12-Layer 분해 + 조합 결과 + 네거티브 표시 | ✅ (02-23) |
+| 3 | 장면 묘사 → 이미지 프롬프트 변환 diff UI (승인 전 미적용) | [ ] |
+| 4 | 편집 지시문 Before/After diff UI (승인 전 미적용) | [ ] |
+
+### Phase A-1: TagAutocomplete 품질 개선
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | API 디바운스 300ms 적용 | [ ] |
+| 2 | 한글(유니코드) 입력 지원 | [ ] |
+| 3 | 인기도(`wd14_count`) 드롭다운 표시 | [ ] |
+| 4 | 태그 선택 후 `, ` 자동 삽입 | [ ] |
+| 5 | 폐기 태그 `deprecated_reason` + 대체 태그 표시 | [ ] |
+| 6 | Frontend-Backend 검증 스키마 동기화 (`validate-tags` 응답 통일) | [ ] |
+
+### Phase A-2: TagAutocomplete 확산 (8곳)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | Tier 1 — NegativePrompt, CharacterActions, ClothingModal, PromptsStep Base/Negative (5곳) | [ ] |
+| 2 | Tier 2 — PromptsStep Ref Base/Negative, StyleProfileEditor Positive/Negative (4곳) | [ ] |
+
+### Phase A-3: 태그 검증 확산
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | 캐릭터 Base/Negative, Reference Base/Negative 검증 적용 | [ ] |
+| 2 | StyleProfile Positive/Negative 검증 적용 | [ ] |
+| 3 | Scene Negative, ClothingModal 검증 적용 | [ ] |
+
+### Phase B: Visual Tag Browser
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | 태그별 대표 이미지 (Image Provider 추상화) | [ ] |
+| 2 | 카테고리별 그리드 탐색 | [ ] |
+| 3 | TagAutocomplete 드롭다운 미니 썸네일 | [ ] |
+| 4 | 독립 태그 탐색 패널 | [ ] |
+
+> Phase B 상세: [VISUAL_TAG_BROWSER.md](FEATURES/VISUAL_TAG_BROWSER.md)
+
+---
+
 ## Feature Backlog
 
 Phase 9 이후 또는 우선순위 미정 항목.
@@ -200,13 +260,13 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | 기능 | 참조 |
 |------|------|
 | VEO Clip (Video Generation 통합) | [명세](FEATURES/VEO_CLIP.md) |
-| Visual Tag Browser (태그별 예시 이미지) | [명세](FEATURES/VISUAL_TAG_BROWSER.md) |
+| ~~Visual Tag Browser (태그별 예시 이미지)~~ | → Phase 15-B |
 | ~~Scene Clothing Override (장면별 의상 변경)~~ | ✅ Phase 13-D 완료 |
 | ~~Scene 단위 자연어 이미지 편집~~ | ✅ Phase 13-B 완료 |
 | ~~Style-Character Hierarchy (캐릭터 ↔ 화풍 연결)~~ | ✅ Phase 8-1 완료 |
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Storyboard Version History | — |
-| Real-time Prompt Preview (12-Layer) | — |
+| ~~Real-time Prompt Preview (12-Layer)~~ | → Phase 15-A-0 |
 | IP-Adapter 캐릭터 유사도 고도화 (Phase 1~3 완료, SDXL 미착수) | [명세](FEATURES/CHARACTER_CONSISTENCY.md) |
 
 ### Intelligence & Automation
@@ -238,6 +298,16 @@ Phase 9 이후 또는 우선순위 미정 항목.
 **Phase 12~13 — 전체 완료**
 
 Phase 12 (Agent Enhancement 26건) + Phase 13 (Creative Control 19건 + 13-A Quick Wins 4건) = 총 49건 완료.
+
+**Phase 15 — Prompt Input UX 고도화 (다음 작업)**
+
+| 순위 | 작업 | 근거 |
+|------|------|------|
+| 1 | A-0: 조합 프롬프트 미리보기 | 사용자 가치 최대 — "내가 뭘 만드는지 알고 실행" |
+| 2 | A-1: TagAutocomplete 품질 개선 | 기존 2곳 UX 먼저 개선 |
+| 3 | A-2: TagAutocomplete 확산 (8곳) | 전체 입력 포인트 통일 |
+| 4 | A-3: 태그 검증 확산 | 캐릭터/스타일 입력 안전성 |
+| 5 | B: Visual Tag Browser | A 완료 후 진행 |
 
 **Tier 3 — 장기**
 

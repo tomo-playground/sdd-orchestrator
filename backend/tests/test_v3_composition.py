@@ -13,6 +13,7 @@ from services.prompt.v3_composition import (
     LAYER_ENVIRONMENT,
     LAYER_EXPRESSION,
     LAYER_IDENTITY,
+    LAYER_NAMES,  # noqa: F401
     LAYER_QUALITY,
     LAYER_SUBJECT,
     V3PromptBuilder,
@@ -1414,9 +1415,7 @@ class TestComposeForReferenceQuality:
         char.custom_base_prompt = "1girl"
         char.reference_base_prompt = None
 
-        result = builder.compose_for_reference(
-            char, quality_tags=["photorealistic", "raw_photo"]
-        )
+        result = builder.compose_for_reference(char, quality_tags=["photorealistic", "raw_photo"])
 
         assert "photorealistic" in result
         assert "raw_photo" in result
@@ -1535,3 +1534,123 @@ class TestLoRABaseModelCompatibility:
         builder._inject_loras(char, [], layers, [])
 
         assert len(builder.warnings) == 0
+
+
+# ────────────────────────────────────────────
+# Layer capture tests (Phase 15-A-0-1)
+# ────────────────────────────────────────────
+
+
+class TestLayerCapture:
+    """Tests for _last_composed_layers capture and get_last_composed_layers accessor."""
+
+    def test_layer_names_count(self):
+        """LAYER_NAMES should have exactly 12 entries."""
+        assert len(LAYER_NAMES) == 12
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    def test_flatten_stores_composed_layers(self, mock_cache, builder):
+        """_flatten_layers should populate _last_composed_layers."""
+        mock_cache.initialize.return_value = None
+        mock_cache.is_conflicting.return_value = False
+
+        layers = [[] for _ in range(12)]
+        layers[LAYER_QUALITY] = ["masterpiece", "best_quality"]
+        layers[LAYER_IDENTITY] = ["brown_hair"]
+
+        builder._flatten_layers(layers)
+
+        assert builder._last_composed_layers is not None
+        assert len(builder._last_composed_layers) == 12
+        assert builder._last_composed_layers[LAYER_QUALITY] == ["masterpiece", "best_quality"]
+        assert builder._last_composed_layers[LAYER_IDENTITY] == ["brown_hair"]
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    def test_get_last_composed_layers_format(self, mock_cache, builder):
+        """Accessor should return list of {index, name, tokens}, excluding empty layers."""
+        mock_cache.initialize.return_value = None
+        mock_cache.is_conflicting.return_value = False
+
+        layers = [[] for _ in range(12)]
+        layers[LAYER_QUALITY] = ["masterpiece"]
+        layers[LAYER_CAMERA] = ["cowboy_shot"]
+
+        builder._flatten_layers(layers)
+        result = builder.get_last_composed_layers()
+
+        assert result is not None
+        assert len(result) == 2  # Only non-empty layers
+        assert result[0] == {"index": 0, "name": "Quality", "tokens": ["masterpiece"]}
+        assert result[1] == {"index": 9, "name": "Camera", "tokens": ["cowboy_shot"]}
+
+    def test_get_last_composed_layers_none_before_compose(self, builder):
+        """Accessor should return None before any compose call."""
+        assert builder.get_last_composed_layers() is None
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_compose_populates_layers(self, mock_alias, mock_rule, builder):
+        """compose() should populate _last_composed_layers via _flatten_layers."""
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...  # No alias
+
+        builder.get_tag_info = MagicMock(
+            return_value={"brown_hair": {"layer": LAYER_IDENTITY, "scope": "ANY", "group_name": None}}
+        )
+
+        builder.compose(["brown_hair"])
+        result = builder.get_last_composed_layers()
+
+        assert result is not None
+        layer_names = [l["name"] for l in result]
+        assert "Identity" in layer_names
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    def test_compose_for_character_populates_layers(self, mock_filter, mock_alias, mock_rule, builder):
+        """compose_for_character() should also populate layers."""
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+
+        char = MagicMock()
+        char.id = 1
+        char.gender = "female"
+        char.custom_base_prompt = "brown_hair"
+        char.tags = []
+        char.loras = []
+        char.prompt_mode = "standard"
+        builder.db.query.return_value.filter.return_value.first.return_value = char
+
+        builder.get_tag_info = MagicMock(return_value={})
+
+        builder.compose_for_character(character_id=1, scene_tags=["smile"])
+        result = builder.get_last_composed_layers()
+
+        assert result is not None
+        assert len(result) > 0
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    def test_layer_dedup_in_composed_layers(self, mock_cache, builder):
+        """Duplicate tags should only appear in the first layer they're placed in."""
+        mock_cache.initialize.return_value = None
+        mock_cache.is_conflicting.return_value = False
+
+        layers = [[] for _ in range(12)]
+        layers[LAYER_QUALITY] = ["masterpiece"]
+        layers[LAYER_IDENTITY] = ["brown_hair"]
+        layers[LAYER_ENVIRONMENT] = ["masterpiece", "classroom"]  # dup masterpiece
+
+        builder._flatten_layers(layers)
+        result = builder.get_last_composed_layers()
+
+        quality_layer = next(l for l in result if l["name"] == "Quality")
+        env_layer = next(l for l in result if l["name"] == "Environment")
+        assert "masterpiece" in quality_layer["tokens"]
+        assert "masterpiece" not in env_layer["tokens"]
