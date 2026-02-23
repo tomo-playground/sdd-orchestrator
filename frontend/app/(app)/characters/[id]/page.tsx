@@ -280,11 +280,14 @@ export default function CharacterDetailPage() {
         <GeminiEditModal
           previewImageUrl={imgSrc ?? undefined}
           isProcessing={isEditingPreview}
+          currentPrompt={form?.custom_base_prompt || ""}
+          characterId={rawId}
           onClose={() => setGeminiEditOpen(false)}
           onSubmit={(instruction) => {
             void handleEditPreview(instruction);
             setGeminiEditOpen(false);
           }}
+          onApplyPromptEdit={(edited) => updateField("custom_base_prompt", edited)}
         />
       )}
       <ConfirmDialog {...dialogProps} />

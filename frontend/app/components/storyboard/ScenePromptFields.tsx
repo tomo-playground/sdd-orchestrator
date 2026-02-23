@@ -10,6 +10,7 @@ import TagAutocomplete from "../ui/TagAutocomplete";
 import PromptTokenPreview from "../prompt/PromptTokenPreview";
 import ComposedPromptPreview, { type NegativeSourceInfo } from "../prompt/ComposedPromptPreview";
 import TagValidationWarning from "../prompt/TagValidationWarning";
+import PromptTranslateDiff from "../prompt/PromptTranslateDiff";
 import NegativePromptToggle from "./NegativePromptToggle";
 
 type ScenePromptFieldsProps = {
@@ -132,6 +133,16 @@ export default function ScenePromptFields({
           className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
         />
       </div>
+
+      {/* KO → EN 변환 diff */}
+      {scene.image_prompt_ko && (
+        <PromptTranslateDiff
+          koText={scene.image_prompt_ko}
+          currentPrompt={scene.image_prompt || ""}
+          characterId={selectedCharacterId}
+          onApply={(translated) => onUpdateScene({ image_prompt: translated })}
+        />
+      )}
 
       {/* Positive Prompt */}
       <div className="grid gap-2">

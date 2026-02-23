@@ -765,6 +765,35 @@ class PromptComposeResponse(BaseModel):
     layers: list[ComposedLayer] | None = None  # 12-layer breakdown (None for multi-char)
 
 
+class TranslateKoRequest(BaseModel):
+    """Request for KO → EN prompt translation."""
+
+    ko_text: str = Field(max_length=2000)
+    current_prompt: str | None = Field(default=None, max_length=5000)
+    character_id: int | None = None
+
+
+class TranslateKoResponse(BaseModel):
+    """Response from KO → EN prompt translation."""
+
+    translated_prompt: str
+    source_ko: str
+
+
+class EditPromptRequest(BaseModel):
+    """Request for instruction-based prompt editing."""
+
+    current_prompt: str = Field(max_length=5000)
+    instruction: str = Field(max_length=2000)
+    character_id: int | None = None
+
+
+class EditPromptResponse(BaseModel):
+    """Response from instruction-based prompt editing."""
+
+    edited_prompt: str
+
+
 class SDModelRequest(BaseModel):
     sd_model_checkpoint: str
 

@@ -16,11 +16,13 @@
 | Phase 13 (Creative Control & Production Speed) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 완료 (8/8)** |
 | Phase 14 (ControlNet Pose Pipeline) | **전체 완료 (3/3 + 14-A 3/3)** |
-| **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 2/4 완료** |
-| 테스트 | Backend 2,199 + Frontend 352 = **총 2,551개** |
+| **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 4/4 완료** |
+| 테스트 | Backend 2,207 + Frontend 352 = **총 2,559개** |
 
 ### 최근 작업
 
+- **Phase 15-A-0-4: 편집 지시문 Before/After diff UI** (02-23): `prompt_editor.py` Gemini 기반 자연어 지시→프롬프트 태그 편집 서비스(SHA256 캐시, 캐릭터 identity 태그 보존). `/prompt/edit-prompt` API. `PromptEditDiff.tsx` 3-phase diff UI(loading/diff/error). `computeTokenDiff` 공통 유틸리티 추출(`promptDiff.ts`). SceneGeminiModals 2-phase(input→diff) 전환, Character GeminiEditModal 동일 적용. 기존 이미지 편집(~$0.04) 버튼 병존. 8개 테스트 추가
+- **Phase 15-A-0-3: KO → EN 변환 diff UI** (02-23): `ko_translator.py` Gemini 기반 한글 장면 묘사→Danbooru 태그 변환 서비스(SHA256 캐시, 캐릭터 identity 태그 제외). `/prompt/translate-ko` API. `PromptTranslateDiff.tsx` 토큰 레벨 diff UI(added/removed/kept 색상 구분, 적용/취소). ScenePromptFields 통합. 8개 테스트 추가
 - **Phase 15-A-0-1,2: `/compose` API 레이어 분해 + ComposedPromptPreview 레이어 뷰** (02-23): `_flatten_layers()`에서 레이어별 토큰 캡처, `LAYER_NAMES` 상수, `get_last_composed_layers()` accessor 추가. `PromptComposeResponse.layers` 필드. Frontend 3-way 뷰모드(Layers/Grouped/Linear), `LayerView`/`GroupedView`/`LinearView` 서브컴포넌트 추출. Multi-char 씬은 layers=None→Layers 탭 비활성+Grouped fallback. 7개 테스트 추가 (전체 118 PASS)
 - **Prompt Input UX 기능 명세 작성** (02-23): `FEATURES/PROMPT_INPUT_UX.md` 531줄. 19개 입력 포인트 전수 분석, 5 Phase(A-0~B) 설계, 프롬프트 생애주기 맵핑, 에러 처리 정책 수립. 7 에이전트 리뷰 8 BLOCKER 수정 완료
 - **Audio Server 사이드카 분리** (02-23): TTS(Qwen3-TTS 1.7B)+MusicGen-Small을 독립 Docker 컨테이너(`audio/`)로 분리. Backend에서 ML 의존성(torch, qwen-tts, librosa, soundfile) 제거, httpx 기반 audio_client.py(Circuit Breaker) 추가. Backend 즉시 기동, Audio Server 독립 warm-up. docker-compose.audio.yml, 4개 호출사이트 교체, 테스트 8개 추가
@@ -209,8 +211,8 @@ graph LR
 |---|------|------|
 | 1 | `/compose` API 확장 — 레이어별 분해 정보(`layers`) 응답 필드 추가 | ✅ (02-23) |
 | 2 | `ComposedPromptPreview.tsx` — 12-Layer 분해 + 조합 결과 + 네거티브 표시 | ✅ (02-23) |
-| 3 | 장면 묘사 → 이미지 프롬프트 변환 diff UI (승인 전 미적용) | [ ] |
-| 4 | 편집 지시문 Before/After diff UI (승인 전 미적용) | [ ] |
+| 3 | 장면 묘사 → 이미지 프롬프트 변환 diff UI (승인 전 미적용) | ✅ (02-23) |
+| 4 | 편집 지시문 Before/After diff UI (승인 전 미적용) | ✅ (02-23) |
 
 ### Phase A-1: TagAutocomplete 품질 개선
 

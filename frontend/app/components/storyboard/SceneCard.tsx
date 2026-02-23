@@ -10,7 +10,6 @@ import type {
   Background,
 } from "../../types";
 import { isMultiCharStructure } from "../../utils/structure";
-import { useContextStore } from "../../store/useContextStore";
 import { useUIStore } from "../../store/useUIStore";
 import SceneImagePanel from "./SceneImagePanel";
 import Button from "../ui/Button";
@@ -285,7 +284,9 @@ export default function SceneCard({
         geminiTargetChange={geminiTargetChange}
         setGeminiTargetChange={setGeminiTargetChange}
         onEditWithGemini={onEditWithGemini}
+        onApplyPromptEdit={(edited) => onUpdateScene({ image_prompt: edited })}
         showToast={showToast}
+        selectedCharacterId={selectedCharacterId}
         geminiSuggestionsOpen={geminiSuggestionsOpen}
         setGeminiSuggestionsOpen={setGeminiSuggestionsOpen}
         geminiSuggestions={geminiSuggestions}

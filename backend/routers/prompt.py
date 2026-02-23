@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from config import SD_LORAS_URL, logger
 from database import get_db
 from schemas import (
+    EditPromptRequest,
+    EditPromptResponse,
     NegativePreviewRequest,
     NegativePreviewResponse,
     PromptComposeRequest,
@@ -17,6 +19,8 @@ from schemas import (
     PromptRewriteRequest,
     PromptSplitRequest,
     PromptValidateRequest,
+    TranslateKoRequest,
+    TranslateKoResponse,
 )
 from services.generation_prompt import _collect_context_tags
 from services.prompt import (
@@ -28,6 +32,8 @@ from services.prompt import (
     validate_identity_tags,
     validate_loras,
 )
+from services.prompt.ko_translator import translate_ko_to_prompt
+from services.prompt.prompt_editor import edit_prompt_with_instruction
 from services.prompt.v3_service import V3PromptService
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
@@ -146,6 +152,36 @@ async def negative_preview(
     )
 
     return {"negative_prompt": neg_prompt, "negative_sources": neg_sources}
+
+
+@router.post("/translate-ko", response_model=TranslateKoResponse)
+def translate_ko_endpoint(
+    request: TranslateKoRequest,
+    db: Session = Depends(get_db),
+):
+    """Translate Korean scene description to Danbooru-style image prompt."""
+    result = translate_ko_to_prompt(
+        ko_text=request.ko_text,
+        current_prompt=request.current_prompt,
+        character_id=request.character_id,
+        db=db,
+    )
+    return result
+
+
+@router.post("/edit-prompt", response_model=EditPromptResponse)
+def edit_prompt_endpoint(
+    request: EditPromptRequest,
+    db: Session = Depends(get_db),
+):
+    """Edit prompt tags based on a natural language instruction."""
+    result = edit_prompt_with_instruction(
+        current_prompt=request.current_prompt,
+        instruction=request.instruction,
+        character_id=request.character_id,
+        db=db,
+    )
+    return result
 
 
 @router.post("/rewrite")
