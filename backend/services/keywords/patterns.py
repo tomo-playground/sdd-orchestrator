@@ -12,7 +12,9 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "very_aesthetic",
         "absurdres",
         "highres",
+        "incredibly_absurdres",
         "8k",
+        "4k",
         "detailed",
         "ultra_detailed",
         "extremely_detailed",
@@ -20,6 +22,12 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "official_art",
         "anime_coloring",
         "perfect_lighting",
+        # Realistic quality (photorealistic is in "style" category)
+        "raw_photo",
+        "sharp_focus",
+        "film_grain",
+        "dslr",
+        "8k_uhd",
     ],
     "subject": [
         "1girl",

@@ -258,6 +258,9 @@ ENABLE_DANBOORU_VALIDATION = os.getenv("ENABLE_DANBOORU_VALIDATION", "true").low
 # --- Quality Tag Fallback (used when StyleProfile provides no quality tags) ---
 FALLBACK_QUALITY_TAGS: list[str] = ["masterpiece", "best_quality"]
 
+# --- V3 Prompt Composition Constants (extracted to config_prompt.py) ---
+from config_prompt import *  # noqa: E402, F401, F403
+
 # --- Reference Image Generation Defaults ---
 # Default prompts for generating IP-Adapter reference images
 # Used when creating new characters without custom reference prompts

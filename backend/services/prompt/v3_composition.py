@@ -11,7 +11,31 @@ import functools
 
 from sqlalchemy.orm import Session
 
-from config import STYLE_LORA_WEIGHT_CAP
+from config import (
+    BACKGROUND_SCENE_MARKER,
+    BISHOUNEN_WEIGHT,
+    CAMERA_FRAMING_CLOSE,
+    CAMERA_FRAMING_MID,
+    CAMERA_FRAMING_WIDE,
+    CHARACTER_CAMERA_TAGS,
+    EXCLUSIVE_TAG_GROUPS,
+    EXPRESSION_ACTION_WEIGHT_BOOST,
+    FALLBACK_STYLE_LORA_WEIGHT_MAX,
+    FEMALE_INDICATORS,
+    GENERIC_LOCATION_TAGS,
+    INDOOR_LOCATION_TAGS,
+    MALE_FOCUS_WEIGHT,
+    MALE_GENDER_BOOST_WEIGHT,
+    MALE_INDICATORS,
+    NON_FRONTAL_GAZE_TAGS,
+    NON_FRONTAL_GAZE_WEIGHT,
+    OUTDOOR_LOCATION_TAGS,
+    PERMANENT_DETAIL_WEIGHT_BOOST,
+    PERMANENT_IDENTITY_WEIGHT_BOOST,
+    REFERENCE_CAMERA_TAGS,
+    REFERENCE_ENV_TAGS,
+    STYLE_LORA_WEIGHT_CAP,
+)
 from database import SessionLocal
 from models.character import Character
 from models.lora import LoRA
@@ -34,41 +58,6 @@ LAYER_ATMOSPHERE = 11  # Style LoRA & Artistic Style
 
 # Layers that only apply when a character is present (SUBJECT through ACTION)
 CHARACTER_ONLY_LAYERS = frozenset(range(LAYER_SUBJECT, LAYER_ACTION + 1))
-
-# Non-frontal gaze tags — get extra weight boost (1.25) to overcome SD's frontal prior (Phase 11)
-_NON_FRONTAL_GAZE = frozenset({
-    "looking_away", "looking_back", "looking_down", "looking_up",
-    "looking_to_the_side", "looking_afar", "looking_ahead",
-    "sideways_glance", "averting_eyes", "averted_gaze", "downcast_eyes",
-    "closed_eyes", "eyes_closed", "half-closed_eyes",
-})
-
-# Character-specific camera framing tags — filtered from LAYER_CAMERA for background scenes
-_CHARACTER_CAMERA_TAGS = frozenset(
-    {
-        "cowboy_shot",
-        "upper_body",
-        "portrait",
-        "close-up",
-        "close_up",
-        "full_body",
-        "headshot",
-        "face",
-        "from_waist",
-    }
-)
-
-# Exclusive semantic groups: character tags take priority over scene tags.
-# When a character occupies a group (e.g. hair_color=red_hair),
-# scene tags in the same group (e.g. brown_hair) are dropped.
-EXCLUSIVE_GROUPS = frozenset(
-    {
-        "hair_color",
-        "eye_color",
-        "hair_length",
-        "skin_color",
-    }
-)
 
 
 class V3PromptBuilder:
@@ -153,78 +142,36 @@ class V3PromptBuilder:
 
         return frozenset(tag for tags in CATEGORY_PATTERNS.values() for tag in tags)
 
-    # Pattern-based fallback constants for _infer_layer_from_pattern
-    _QUALITY_KEYWORDS = frozenset(
-        {
-            # Anime quality
-            "masterpiece",
-            "best_quality",
-            "highres",
-            "absurdres",
-            "incredibly_absurdres",
-            "high_quality",
-            # Realistic quality
-            "photorealistic",
-            "raw_photo",
-            "sharp_focus",
-            "film_grain",
-            "dslr",
-            "8k_uhd",
-            "4k",
-            "ultra_detailed",
-        }
-    )
-    _EXPRESSION_KEYWORDS = frozenset(
-        {
-            "smiling",
-            "crying",
-            "angry",
-            "sad",
-            "happy",
-            "surprised",
-            "confused",
-            "blushing",
-            "embarrassed",
-            "scared",
-            "worried",
-            "nervous",
-        }
-    )
-    _LOCATION_KEYWORDS = frozenset(
-        {
-            "room",
-            "lab",
-            "laboratory",
-            "street",
-            "city",
-            "forest",
-            "beach",
-            "space",
-            "spaceship",
-            "neon_city",
-        }
-    )
-    _MOOD_KEYWORDS = frozenset({"futuristic", "cyberpunk", "sci-fi", "steampunk", "post-apocalyptic"})
+    @staticmethod
+    @functools.cache
+    def _pattern_tags_by_category() -> dict[str, frozenset[str]]:
+        """CATEGORY_PATTERNS를 category별 frozenset으로 반환 (캐시)."""
+        from services.keywords.patterns import CATEGORY_PATTERNS
+
+        return {k: frozenset(v) for k, v in CATEGORY_PATTERNS.items()}
 
     @staticmethod
     def _infer_layer_from_pattern(tag: str) -> int:
         """Infer layer from tag pattern when not found in DB.
 
         Pattern matching rules:
-        - Known expressions → LAYER_EXPRESSION (checked before *ing)
+        - Known quality tags (from CATEGORY_PATTERNS) → LAYER_QUALITY
+        - Known expressions (from CATEGORY_PATTERNS) → LAYER_EXPRESSION (checked before *ing)
         - *_hair, *_colored_hair → LAYER_IDENTITY (hair color)
         - *_eyes, *_colored_eyes → LAYER_IDENTITY (eye color)
         - *ing (e.g., running, walking) → LAYER_ACTION
         - *_shot, *_view, from_* → LAYER_CAMERA
         - *_background → LAYER_ENVIRONMENT
-        - Location keywords, *_room → LAYER_ENVIRONMENT
-        - Mood/genre keywords → LAYER_ATMOSPHERE
+        - Location keywords (from CATEGORY_PATTERNS), *_room → LAYER_ENVIRONMENT
+        - Mood/genre keywords (from CATEGORY_PATTERNS) → LAYER_ATMOSPHERE
         - Default: LAYER_SUBJECT
         """
-        if tag in V3PromptBuilder._QUALITY_KEYWORDS:
+        cats = V3PromptBuilder._pattern_tags_by_category()
+
+        if tag in cats.get("quality", frozenset()):
             return LAYER_QUALITY
 
-        if tag in V3PromptBuilder._EXPRESSION_KEYWORDS:
+        if tag in cats.get("expression", frozenset()):
             return LAYER_EXPRESSION
 
         # Hair patterns
@@ -248,11 +195,12 @@ class V3PromptBuilder:
             return LAYER_ENVIRONMENT
 
         # Location patterns (indoor/outdoor indicators)
-        if tag in V3PromptBuilder._LOCATION_KEYWORDS or tag.endswith("_room"):
+        location_tags = cats.get("location_outdoor", frozenset()) | cats.get("location_indoor_specific", frozenset())
+        if tag in location_tags or tag.endswith("_room"):
             return LAYER_ENVIRONMENT
 
         # Mood/genre patterns
-        if tag in V3PromptBuilder._MOOD_KEYWORDS:
+        if tag in cats.get("mood", frozenset()):
             return LAYER_ATMOSPHERE
 
         # Default fallback
@@ -263,7 +211,7 @@ class V3PromptBuilder:
     @staticmethod
     def _is_background_scene(tags: list[str]) -> bool:
         """Detect background-only scene by presence of no_humans tag."""
-        return any(t.lower().replace(" ", "_").strip() == "no_humans" for t in tags)
+        return any(t.lower().replace(" ", "_").strip() == BACKGROUND_SCENE_MARKER for t in tags)
 
     @staticmethod
     def _cap_lora_weight(weight: float) -> float:
@@ -293,15 +241,15 @@ class V3PromptBuilder:
             if target_layer in CHARACTER_ONLY_LAYERS:
                 continue
             # Skip character-specific camera framing
-            if target_layer == LAYER_CAMERA and norm_tag in _CHARACTER_CAMERA_TAGS:
+            if target_layer == LAYER_CAMERA and norm_tag in CHARACTER_CAMERA_TAGS:
                 continue
 
             layers[target_layer].append(tag)
 
         # Ensure no_humans is present in ENVIRONMENT
         env_norms = {t.lower().replace(" ", "_").strip() for t in layers[LAYER_ENVIRONMENT]}
-        if "no_humans" not in env_norms:
-            layers[LAYER_ENVIRONMENT].insert(0, "no_humans")
+        if BACKGROUND_SCENE_MARKER not in env_norms:
+            layers[LAYER_ENVIRONMENT].insert(0, BACKGROUND_SCENE_MARKER)
 
         # Style LoRAs — LoRA tag only; trigger words omitted for background
         # scenes to prevent semantic bias toward character generation.
@@ -324,7 +272,7 @@ class V3PromptBuilder:
         for i in CHARACTER_ONLY_LAYERS:
             layers[i].clear()
         layers[LAYER_CAMERA] = [
-            t for t in layers[LAYER_CAMERA] if t.lower().replace(" ", "_").strip() not in _CHARACTER_CAMERA_TAGS
+            t for t in layers[LAYER_CAMERA] if t.lower().replace(" ", "_").strip() not in CHARACTER_CAMERA_TAGS
         ]
 
     # ── compose_for_character ────────────────────────────────────────────
@@ -344,7 +292,7 @@ class V3PromptBuilder:
         if self._is_background_scene(scene_tags):
             from config import logger as _logger
 
-            scene_tags = [t for t in scene_tags if t.lower().replace(" ", "_").strip() != "no_humans"]
+            scene_tags = [t for t in scene_tags if t.lower().replace(" ", "_").strip() != BACKGROUND_SCENE_MARKER]
             _logger.warning(
                 "⚠️ [V3 Builder] Stripped no_humans from compose_for_character (character_id=%d)",
                 character_id,
@@ -426,7 +374,7 @@ class V3PromptBuilder:
             return set()
 
         info_map = self.get_tag_info(names)
-        return {info["group_name"] for info in info_map.values() if info.get("group_name") in EXCLUSIVE_GROUPS}
+        return {info["group_name"] for info in info_map.values() if info.get("group_name") in EXCLUSIVE_TAG_GROUPS}
 
     def _distribute_tags(
         self,
@@ -448,9 +396,9 @@ class V3PromptBuilder:
             # Boost permanent identity/clothing tags (skip custom-weighted tags)
             if ct.get("is_permanent", False) and weight == 1.0:
                 if ct["layer"] in (LAYER_IDENTITY, LAYER_BODY, LAYER_MAIN_CLOTH):
-                    weight = 1.15
+                    weight = PERMANENT_IDENTITY_WEIGHT_BOOST
                 elif ct["layer"] in (LAYER_DETAIL_CLOTH, LAYER_ACCESSORY):
-                    weight = 1.1
+                    weight = PERMANENT_DETAIL_WEIGHT_BOOST
             if weight != 1.0:
                 token = f"({token}:{weight})"
             layers[ct["layer"]].append(token)
@@ -550,17 +498,14 @@ class V3PromptBuilder:
                     if lora_obj.lora_type == "style":
                         continue  # StyleProfile handles style LoRAs uniformly
                     # Check base_model compatibility
-                    if (
-                        self.sd_model_base
-                        and lora_obj.base_model
-                        and lora_obj.base_model != self.sd_model_base
-                    ):
+                    if self.sd_model_base and lora_obj.base_model and lora_obj.base_model != self.sd_model_base:
                         msg = (
                             f"LoRA '{lora_obj.name}' (base: {lora_obj.base_model}) "
                             f"may be incompatible with checkpoint (base: {self.sd_model_base})"
                         )
                         self.warnings.append(msg)
                         from config import logger as _logger
+
                         _logger.warning("LoRA compatibility: %s", msg)
                     if weight is None:
                         weight = self.get_effective_lora_weight(lora_obj)
@@ -595,9 +540,9 @@ class V3PromptBuilder:
                 weight = lora_info.get("weight")
                 if weight is None:
                     weight = self.get_lora_weight_by_name(name)
-                # Fallback style LoRAs: cap at 0.5 to avoid interference with character LoRA
+                # Fallback style LoRAs: cap to avoid interference with character LoRA
                 if is_fallback:
-                    weight = min(weight, 0.5)
+                    weight = min(weight, FALLBACK_STYLE_LORA_WEIGHT_MAX)
                 for trigger in lora_info.get("trigger_words", []):
                     if not self._trigger_exists_in_layers(trigger, layers):
                         layers[LAYER_ATMOSPHERE].append(trigger)
@@ -732,11 +677,6 @@ class V3PromptBuilder:
                 resolved.append(replacement)
         return resolved
 
-    # Male enhancement tags (Danbooru standard) to counter SD female bias
-    _MALE_INDICATORS = frozenset({"1boy", "2boys", "3boys", "male", "man", "boy"})
-    _FEMALE_INDICATORS = frozenset({"1girl", "2girls", "3girls", "female", "woman", "girl"})
-    _MALE_ENHANCEMENT = ["(1boy:1.3)", "(male_focus:1.2)", "(bishounen:1.1)"]
-
     def _apply_gender_enhancement(
         self, character: "Character", char_tags_data: list[dict], layers: list[list[str]]
     ) -> None:
@@ -745,19 +685,22 @@ class V3PromptBuilder:
         if not gender:
             all_names = {ct["name"].lower().strip("()").split(":")[0] for ct in char_tags_data}
             for token in list(all_names) + [t.lower() for t in (layers[LAYER_SUBJECT] + layers[LAYER_IDENTITY])]:
-                if token in self._MALE_INDICATORS:
+                if token in MALE_INDICATORS:
                     gender = "male"
                     break
-                if token in self._FEMALE_INDICATORS:
+                if token in FEMALE_INDICATORS:
                     gender = "female"
                     break
 
         if gender == "male":
-            # Remove conflicting female subject tags before adding male enhancement
-            layers[LAYER_SUBJECT] = [
-                t for t in layers[LAYER_SUBJECT] if self._dedup_key(t) not in self._FEMALE_INDICATORS
+            male_tags = [
+                f"(1boy:{MALE_GENDER_BOOST_WEIGHT})",
+                f"(male_focus:{MALE_FOCUS_WEIGHT})",
+                f"(bishounen:{BISHOUNEN_WEIGHT})",
             ]
-            for tag in self._MALE_ENHANCEMENT:
+            # Remove conflicting female subject tags before adding male enhancement
+            layers[LAYER_SUBJECT] = [t for t in layers[LAYER_SUBJECT] if self._dedup_key(t) not in FEMALE_INDICATORS]
+            for tag in male_tags:
                 if tag not in layers[LAYER_SUBJECT]:
                     layers[LAYER_SUBJECT].append(tag)
 
@@ -817,13 +760,17 @@ class V3PromptBuilder:
                             global_seen.add(key)
 
                 # Layer 7, 8 (Expression, Action) weight boost
-                # Non-frontal gaze tags get extra boost (1.25) to overcome
+                # Non-frontal gaze tags get extra boost to overcome
                 # SD's strong looking_at_viewer prior (Phase 11)
                 if i in [LAYER_EXPRESSION, LAYER_ACTION]:
                     boosted = []
                     for t in unique_layer_tokens:
                         if ":" not in t:
-                            w = 1.25 if t in _NON_FRONTAL_GAZE else 1.1
+                            w = (
+                                NON_FRONTAL_GAZE_WEIGHT
+                                if t in NON_FRONTAL_GAZE_TAGS
+                                else EXPRESSION_ACTION_WEIGHT_BOOST
+                            )
                             boosted.append(f"({t}:{w})")
                         else:
                             boosted.append(t)
@@ -862,47 +809,6 @@ class V3PromptBuilder:
 
     # ── Conflict resolution ──────────────────────────────────────────────
 
-    _OUTDOOR_TAGS = frozenset(
-        {
-            "outdoors",
-            "street",
-            "park",
-            "forest",
-            "beach",
-            "mountain",
-            "garden",
-            "city",
-            "field",
-            "lake",
-            "river",
-            "rooftop",
-        }
-    )
-    _INDOOR_TAGS = frozenset(
-        {
-            "indoors",
-            "room",
-            "bedroom",
-            "kitchen",
-            "bathroom",
-            "classroom",
-            "library",
-            "office",
-            "cafe",
-            "school",
-            "hospital",
-            "church",
-            "restaurant",
-            "shop",
-            "hallway",
-            "living_room",
-        }
-    )
-
-    _CAMERA_WIDE = frozenset({"full_body", "wide_shot"})
-    _CAMERA_MID = frozenset({"cowboy_shot", "upper_body", "from_waist"})
-    _CAMERA_CLOSE = frozenset({"close-up", "close_up", "portrait", "face", "headshot"})
-
     def _resolve_location_conflicts(self, env_tokens: list[str]) -> list[str]:
         """Remove conflicting location tags from the environment layer."""
         if not env_tokens:
@@ -914,9 +820,9 @@ class V3PromptBuilder:
 
         for token in env_tokens:
             norm = token.lower().replace(" ", "_").strip()
-            if norm in self._OUTDOOR_TAGS:
+            if norm in OUTDOOR_LOCATION_TAGS:
                 outdoor_found.append(token)
-            elif norm in self._INDOOR_TAGS:
+            elif norm in INDOOR_LOCATION_TAGS:
                 indoor_found.append(token)
             else:
                 neutral.append(token)
@@ -926,12 +832,11 @@ class V3PromptBuilder:
         else:
             winner = outdoor_found + indoor_found
 
-        generic = {"indoors", "outdoors"}
         specific = []
         generic_tags = []
         for token in winner:
             norm = token.lower().replace(" ", "_").strip()
-            if norm in generic:
+            if norm in GENERIC_LOCATION_TAGS:
                 generic_tags.append(token)
             elif not specific:
                 specific.append(token)
@@ -943,7 +848,7 @@ class V3PromptBuilder:
         if not cam_tokens:
             return cam_tokens
 
-        all_camera = self._CAMERA_WIDE | self._CAMERA_MID | self._CAMERA_CLOSE
+        all_camera = CAMERA_FRAMING_WIDE | CAMERA_FRAMING_MID | CAMERA_FRAMING_CLOSE
         first_framing = None
         result = []
 
@@ -959,9 +864,6 @@ class V3PromptBuilder:
         return result
 
     # ── compose_for_reference ────────────────────────────────────────────
-
-    _REFERENCE_ENV_TAGS = ["white_background", "simple_background"]
-    _REFERENCE_CAMERA_TAGS = ["solo", "looking_at_viewer", "front_view", "straight_on"]
 
     def compose_for_reference(
         self,
@@ -1045,13 +947,13 @@ class V3PromptBuilder:
     def _inject_reference_defaults(self, layers: list[list[str]]) -> None:
         """Inject fixed environment and camera tags for reference images."""
         env_norms = {t.lower().replace(" ", "_").strip() for t in layers[LAYER_ENVIRONMENT]}
-        for tag in self._REFERENCE_ENV_TAGS:
+        for tag in REFERENCE_ENV_TAGS:
             if tag not in env_norms:
                 layers[LAYER_ENVIRONMENT].append(tag)
                 env_norms.add(tag)
 
         cam_norms = {t.lower().replace(" ", "_").strip() for t in layers[LAYER_CAMERA]}
-        for tag in self._REFERENCE_CAMERA_TAGS:
+        for tag in REFERENCE_CAMERA_TAGS:
             if tag not in cam_norms:
                 layers[LAYER_CAMERA].append(tag)
                 cam_norms.add(tag)

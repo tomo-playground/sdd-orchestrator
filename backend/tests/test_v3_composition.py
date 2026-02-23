@@ -4,10 +4,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from config import CHARACTER_CAMERA_TAGS, EXCLUSIVE_TAG_GROUPS
 from services.prompt.v3_composition import (
-    _CHARACTER_CAMERA_TAGS,
     CHARACTER_ONLY_LAYERS,
-    EXCLUSIVE_GROUPS,  # noqa: F811
     LAYER_ACTION,
     LAYER_ATMOSPHERE,
     LAYER_CAMERA,
@@ -703,19 +702,19 @@ class TestDistributeTags:
 
 
 class TestExclusiveGroupsConstant:
-    """Verify EXCLUSIVE_GROUPS contains expected groups."""
+    """Verify EXCLUSIVE_TAG_GROUPS contains expected groups."""
 
     def test_contains_expected_groups(self):
-        assert "hair_color" in EXCLUSIVE_GROUPS
-        assert "eye_color" in EXCLUSIVE_GROUPS
-        assert "hair_length" in EXCLUSIVE_GROUPS
-        assert "skin_color" in EXCLUSIVE_GROUPS
+        assert "hair_color" in EXCLUSIVE_TAG_GROUPS
+        assert "eye_color" in EXCLUSIVE_TAG_GROUPS
+        assert "hair_length" in EXCLUSIVE_TAG_GROUPS
+        assert "skin_color" in EXCLUSIVE_TAG_GROUPS
 
     def test_does_not_contain_hair_style(self):
-        assert "hair_style" not in EXCLUSIVE_GROUPS
+        assert "hair_style" not in EXCLUSIVE_TAG_GROUPS
 
     def test_does_not_contain_clothing(self):
-        assert "clothing" not in EXCLUSIVE_GROUPS
+        assert "clothing" not in EXCLUSIVE_TAG_GROUPS
 
 
 # ────────────────────────────────────────────
@@ -924,9 +923,9 @@ class TestBackgroundSceneFiltering:
         assert CHARACTER_ONLY_LAYERS == frozenset({1, 2, 3, 4, 5, 6, 7, 8})
 
     def test_character_camera_tags_constant(self):
-        """_CHARACTER_CAMERA_TAGS contains expected framing tags."""
+        """CHARACTER_CAMERA_TAGS contains expected framing tags."""
         expected = {"cowboy_shot", "upper_body", "portrait", "close-up", "close_up", "full_body"}
-        assert expected.issubset(_CHARACTER_CAMERA_TAGS)
+        assert expected.issubset(CHARACTER_CAMERA_TAGS)
 
     @patch("services.prompt.v3_composition.LoRATriggerCache")
     @patch("services.prompt.v3_composition.TagRuleCache")
@@ -1330,8 +1329,10 @@ class TestEnsureQualityTagsRealistic:
 class TestInferLayerQualityKeywords:
     """_infer_layer_from_pattern should classify realistic quality tags to LAYER_QUALITY."""
 
-    def test_photorealistic(self):
-        assert V3PromptBuilder._infer_layer_from_pattern("photorealistic") == LAYER_QUALITY
+    def test_photorealistic_is_style_not_quality(self):
+        # photorealistic belongs to CATEGORY_PATTERNS["style"], not "quality"
+        # _infer_layer_from_pattern doesn't check style → falls to LAYER_SUBJECT
+        assert V3PromptBuilder._infer_layer_from_pattern("photorealistic") == LAYER_SUBJECT
 
     def test_raw_photo(self):
         assert V3PromptBuilder._infer_layer_from_pattern("raw_photo") == LAYER_QUALITY
