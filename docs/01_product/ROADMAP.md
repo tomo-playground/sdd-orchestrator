@@ -227,6 +227,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-2 |
 | 분석 대시보드 (Match Rate 추이, 프로젝트 간 비교) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | ~~Studio 초기 로딩 최적화 (useEffect 워터폴 제거, API 병렬화)~~ | ✅ Phase 13-A-2 완료 |
+| ~~Audio Server 사이드카 분리 (TTS+MusicGen → Docker 컨테이너)~~ | ✅ 완료 (02-23) |
 
 ---
 
