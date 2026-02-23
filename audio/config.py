@@ -1,0 +1,42 @@
+"""Audio Server configuration — TTS and MusicGen constants.
+
+All values sourced from environment variables with sensible defaults.
+"""
+
+from __future__ import annotations
+
+import os
+import pathlib
+
+# --- TTS Configuration ---
+TTS_MODEL_NAME = os.getenv("TTS_MODEL_NAME", "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign")
+TTS_DEVICE = os.getenv("TTS_DEVICE", "auto")  # "auto" | "mps" | "cpu"
+TTS_ATTN_IMPLEMENTATION = os.getenv("TTS_ATTN_IMPLEMENTATION", "sdpa")
+
+# Generation parameters
+TTS_TEMPERATURE = float(os.getenv("TTS_TEMPERATURE", "0.7"))
+TTS_TOP_P = float(os.getenv("TTS_TOP_P", "0.8"))
+TTS_REPETITION_PENALTY = float(os.getenv("TTS_REPETITION_PENALTY", "1.0"))
+TTS_MAX_NEW_TOKENS = int(os.getenv("TTS_MAX_NEW_TOKENS", "1024"))
+TTS_DEFAULT_LANGUAGE = os.getenv("TTS_DEFAULT_LANGUAGE", "korean")
+
+# Post-processing
+TTS_AUDIO_TRIM_TOP_DB = int(os.getenv("TTS_AUDIO_TRIM_TOP_DB", "60"))
+TTS_AUDIO_FADE_MS = int(os.getenv("TTS_AUDIO_FADE_MS", "15"))
+TTS_SILENCE_MAX_MS = int(os.getenv("TTS_SILENCE_MAX_MS", "500"))
+
+# --- MusicGen Configuration ---
+MUSICGEN_MODEL_NAME = os.getenv("MUSICGEN_MODEL_NAME", "facebook/musicgen-small")
+MUSICGEN_DEVICE = os.getenv("MUSICGEN_DEVICE", "auto")
+MUSICGEN_DEFAULT_DURATION = float(os.getenv("MUSICGEN_DEFAULT_DURATION", "30.0"))
+MUSICGEN_MAX_DURATION = float(os.getenv("MUSICGEN_MAX_DURATION", "30.0"))
+MUSICGEN_SAMPLE_RATE = int(os.getenv("MUSICGEN_SAMPLE_RATE", "32000"))
+MUSICGEN_TOKENS_PER_SECOND = 50  # EnCodec: 50 auto-regressive steps per second
+
+# --- Cache ---
+CACHE_DIR = pathlib.Path(os.getenv("CACHE_DIR", "/app/cache"))
+TTS_CACHE_DIR = CACHE_DIR / "tts"
+MUSICGEN_CACHE_DIR = CACHE_DIR / "music"
+
+for _d in (CACHE_DIR, TTS_CACHE_DIR, MUSICGEN_CACHE_DIR):
+    _d.mkdir(parents=True, exist_ok=True)

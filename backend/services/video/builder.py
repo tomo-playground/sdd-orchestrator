@@ -324,14 +324,10 @@ class VideoBuilder:
             db.close()
 
     async def _generate_and_set_bgm(self, prompt: str, duration: float, seed: int) -> bytes | None:
-        """Generate music from prompt and set _ai_bgm_path."""
-        import asyncio
+        """Generate music from prompt via Audio Server and set _ai_bgm_path."""
+        from services.audio_client import generate_music
 
-        from services.audio.music_generator import generate_music
-
-        wav_bytes, _, _ = await asyncio.to_thread(
-            lambda: generate_music(prompt=prompt, duration=duration, seed=seed),
-        )
+        wav_bytes, _, _ = await generate_music(prompt=prompt, duration=duration, seed=seed)
         out_path = self.temp_dir / "ai_bgm.wav"
         out_path.write_bytes(wav_bytes)
         self._ai_bgm_path = str(out_path)

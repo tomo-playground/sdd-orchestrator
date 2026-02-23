@@ -1,43 +1,24 @@
-"""TTS helper functions for Qwen3-TTS model management.
+"""TTS helper functions: voice preset resolution, voice prompt translation, caching.
 
-Handles model loading, voice preset resolution, voice prompt translation,
-and caching. Extracted from scene_processing.py for modularity.
+Model loading has been moved to Audio Server sidecar.
+This module retains DB/business logic only.
 """
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import re
-
-import torch as _torch
-from qwen_tts import Qwen3TTSModel as _Qwen3TTSModel
 
 from config import (
     DEFAULT_SPEAKER,
     GEMINI_TEXT_MODEL,
-    TTS_ATTN_IMPLEMENTATION,
-    TTS_DEVICE,
-    TTS_MODEL_NAME,
     gemini_client,
     logger,
 )
 
-_TTS_AVAILABLE = True
-
-# Global model cache for Qwen-TTS (single model swap)
-_current_model = None
-_current_model_type: str | None = None
-_model_lock = asyncio.Lock()
-
 # Simple cache: Korean prompt -> English translation
 _VOICE_PROMPT_CACHE: dict[str, str] = {}
 _HANGUL_RE = re.compile(r"[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]")
-
-
-def _ensure_tts_deps() -> bool:
-    """Check TTS availability. Always returns True with eager loading."""
-    return _TTS_AVAILABLE
 
 
 def tts_cache_key(
@@ -49,54 +30,6 @@ def tts_cache_key(
     """Deterministic hash for TTS caching based on text + voice config."""
     parts = f"{text}|{voice_preset_id}|{voice_design_prompt or ''}|{language}"
     return hashlib.sha256(parts.encode()).hexdigest()[:16]
-
-
-def _resolve_device() -> str:
-    device = TTS_DEVICE
-    if device == "auto":
-        device = "mps" if _torch.backends.mps.is_available() else "cpu"
-    return device
-
-
-def _load_model(model_name: str):
-    """Load a Qwen-TTS model (blocking). Requires _ensure_tts_deps() first."""
-    device = _resolve_device()
-    logger.info(f"Loading Qwen-TTS model ({model_name}) on {device}...")
-    model = _Qwen3TTSModel.from_pretrained(
-        model_name,
-        dtype=_torch.bfloat16 if device == "mps" else _torch.float32,
-        attn_implementation=TTS_ATTN_IMPLEMENTATION,
-    )
-    model.model.to(device)
-    model.device = _torch.device(device)
-    return model
-
-
-def get_qwen_model():
-    """Synchronous model getter (for lifespan preload).
-
-    Always loads VoiceDesign model.
-    """
-    global _current_model, _current_model_type
-    if not _ensure_tts_deps():
-        raise RuntimeError("TTS dependencies unavailable (torch/qwen_tts)")
-    if _current_model is None:
-        _current_model = _load_model(TTS_MODEL_NAME)
-        _current_model_type = "voice_design"
-    return _current_model
-
-
-async def get_qwen_model_async():
-    """Async model getter. Loads VoiceDesign model if not already loaded."""
-    global _current_model, _current_model_type
-    if not _ensure_tts_deps():
-        raise RuntimeError("TTS dependencies unavailable (torch/qwen_tts)")
-    async with _model_lock:
-        if _current_model is not None:
-            return _current_model
-        _current_model = await asyncio.to_thread(_load_model, TTS_MODEL_NAME)
-        _current_model_type = "voice_design"
-        return _current_model
 
 
 def translate_voice_prompt(prompt: str) -> str:
@@ -119,10 +52,10 @@ def translate_voice_prompt(prompt: str) -> str:
         )
         translated = res.text.strip()
         _VOICE_PROMPT_CACHE[prompt] = translated
-        logger.info(f"[TTS] Voice prompt translated: '{prompt}' -> '{translated}'")
+        logger.info("[TTS] Voice prompt translated: '%s' -> '%s'", prompt, translated)
         return translated
     except Exception as e:
-        logger.warning(f"[TTS] Voice prompt translation failed: {e}")
+        logger.warning("[TTS] Voice prompt translation failed: %s", e)
         return prompt
 
 
@@ -141,10 +74,10 @@ def get_preset_voice_info(
         prompt = preset.voice_design_prompt
         seed = preset.voice_seed
         if prompt:
-            logger.info(f"[TTS] Preset {voice_preset_id}: prompt='{prompt[:40]}', seed={seed}")
+            logger.info("[TTS] Preset %d: prompt='%s', seed=%s", voice_preset_id, prompt[:40], seed)
         return prompt, seed
     except Exception as e:
-        logger.error(f"[TTS] Failed to get preset voice info: {e}")
+        logger.error("[TTS] Failed to get preset voice info: %s", e)
         return None, None
     finally:
         db.close()
@@ -174,7 +107,7 @@ def get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | N
             return _resolve_narrator_preset(effective)
         return _resolve_character_preset(storyboard_id, speaker, db)
     except Exception as e:
-        logger.error(f"[TTS] Failed to resolve speaker voice preset: {e}")
+        logger.error("[TTS] Failed to resolve speaker voice preset: %s", e)
         return None
     finally:
         db.close()
@@ -184,7 +117,7 @@ def _resolve_narrator_preset(effective: dict) -> int | None:
     """Extract narrator voice preset from effective config cascade."""
     preset_id = effective["values"].get("narrator_voice_preset_id")
     if preset_id:
-        logger.info(f"[TTS] Narrator voice preset from cascade: {preset_id}")
+        logger.info("[TTS] Narrator voice preset from cascade: %d", preset_id)
     return preset_id
 
 
@@ -223,26 +156,10 @@ def generate_context_aware_voice_prompt(
     context_text: str,
     base_prompt: str | None = None,
 ) -> str:
-    """Generate a context-aware voice design prompt using Gemini.
-
-    Analyzes the script and metadata (image prompt, tags) to determine
-    the appropriate satisfaction/emotion/tone for the TTS.
-
-    If base_prompt is provided (e.g. from a preset), it modifies the base prompt
-    to include the new emotional context while keeping the original voice characteristics.
-
-    Args:
-        script: The spoken text (Korean).
-        context_text: Description of the scene (image prompt, tags, etc.)
-        base_prompt: Optional base voice description (e.g. "A soft female voice")
-
-    Returns:
-        English voice design prompt (e.g., "A young woman speaking in a sad tone").
-    """
+    """Generate a context-aware voice design prompt using Gemini."""
     if not gemini_client:
         return base_prompt or ""
 
-    # Create cache key
     cache_key = f"{script[:50]}|{context_text[:100]}|{base_prompt or ''}"
     if cache_key in _CONTEXT_PROMPT_CACHE:
         return _CONTEXT_PROMPT_CACHE[cache_key]
@@ -275,7 +192,6 @@ def generate_context_aware_voice_prompt(
                 f"Script (Korean): {script}\nScene Context: {context_text}\n\nVoice Design Prompt (English):"
             )
 
-        # Use simpler prompt structure for reliability
         prompt = f"{system_instruction}\n\n{user_prompt_content}"
 
         res = gemini_client.models.generate_content(
@@ -284,15 +200,14 @@ def generate_context_aware_voice_prompt(
         )
 
         voice_prompt = res.text.strip()
-        # Basic cleanup: remove quotes if present
         voice_prompt = voice_prompt.strip('"').strip("'")
 
         if voice_prompt:
             _CONTEXT_PROMPT_CACHE[cache_key] = voice_prompt
-            logger.info(f"[TTS] Generated context prompt: '{voice_prompt}' (for '{script[:20]}...')")
+            logger.info("[TTS] Generated context prompt: '%s' (for '%s...')", voice_prompt, script[:20])
             return voice_prompt
 
     except Exception as e:
-        logger.warning(f"[TTS] Failed to generate context-aware prompt: {e}")
+        logger.warning("[TTS] Failed to generate context-aware prompt: %s", e)
 
     return ""

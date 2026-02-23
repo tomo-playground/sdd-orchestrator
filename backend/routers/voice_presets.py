@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
-import io
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -113,37 +111,22 @@ def delete_voice_preset(preset_id: int, db: Session = Depends(get_db)):
 
 @router.post("/preview")
 async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db)):
-    """Generate a preview audio using VoiceDesign model with seed."""
-    from services.video.scene_processing import (
-        TTS_DEFAULT_LANGUAGE,
-        _translate_voice_prompt,
-        get_qwen_model_async,
-    )
+    """Generate a preview audio via Audio Server."""
+    from config import TTS_DEFAULT_LANGUAGE
+    from services.audio_client import synthesize_tts
+    from services.video.tts_helpers import translate_voice_prompt
 
     try:
-        voice_design = _translate_voice_prompt(req.voice_design_prompt)
-        model = await get_qwen_model_async()
-
-        # Deterministic seed from prompt
+        voice_design = translate_voice_prompt(req.voice_design_prompt)
         voice_seed = hash(voice_design) % (2**31)
 
-        def _generate():
-            import soundfile as sf
-            import torch
+        audio_bytes, _sr, _duration, _quality = await synthesize_tts(
+            text=req.sample_text,
+            instruct=voice_design,
+            language=req.language or TTS_DEFAULT_LANGUAGE,
+            seed=voice_seed,
+        )
 
-            torch.manual_seed(voice_seed)
-            wavs, sr = model.generate_voice_design(
-                text=req.sample_text,
-                instruct=voice_design,
-                language=req.language or TTS_DEFAULT_LANGUAGE,
-            )
-            buf = io.BytesIO()
-            sf.write(buf, wavs[0], sr, format="WAV")
-            return buf.getvalue()
-
-        audio_bytes = await asyncio.to_thread(_generate)
-
-        # Register as temp MediaAsset (will be GC'd after 24h)
         digest = hashlib.sha1(audio_bytes).hexdigest()[:16]
         file_name = f"voice_preview_{digest}.wav"
         storage_key = f"voice-presets/previews/{file_name}"

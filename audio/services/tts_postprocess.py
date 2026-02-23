@@ -2,7 +2,7 @@
 
 Provides a 5-step pipeline for cleaning Qwen-TTS output:
 1. Leading/trailing silence removal (librosa.effects.trim)
-2. Trailing hallucination detection (energy decay→re-rise pattern)
+2. Trailing hallucination detection (energy decay->re-rise pattern)
 3. Internal silence compression (cap gaps at TTS_SILENCE_MAX_MS)
 4. Fade-in/out (smooth click artifacts)
 5. Audio normalization (RMS-based dBFS targeting)
@@ -10,14 +10,13 @@ Provides a 5-step pipeline for cleaning Qwen-TTS output:
 
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 
-from config import (
-    TTS_AUDIO_FADE_MS,
-    TTS_AUDIO_TRIM_TOP_DB,
-    TTS_SILENCE_MAX_MS,
-    logger,
-)
+from config import TTS_AUDIO_FADE_MS, TTS_AUDIO_TRIM_TOP_DB, TTS_SILENCE_MAX_MS
+
+logger = logging.getLogger("audio-server")
 
 
 def _strip_trailing_hallucination(wav: np.ndarray, sr: int) -> np.ndarray:
@@ -29,17 +28,14 @@ def _strip_trailing_hallucination(wav: np.ndarray, sr: int) -> np.ndarray:
     rms = np.array([np.sqrt(np.mean(wav[i * frame_len : (i + 1) * frame_len] ** 2)) for i in range(n_frames)])
     if len(rms) < 4:
         return wav
-    # Scan last 30% for valley->rise pattern
-    # Hallucination often manifests as a re-rising energy after a natural decay
     scan_start = max(int(len(rms) * 0.7), len(rms) - 15)
     min_idx = scan_start + np.argmin(rms[scan_start:])
 
-    if min_idx < len(rms) - 2:  # Must have at least a few frames after valley
+    if min_idx < len(rms) - 2:
         valley_rms = rms[min_idx]
         peak_after = np.max(rms[min_idx + 1 :])
         median_rms = np.median(rms[:scan_start]) if scan_start > 0 else np.median(rms)
 
-        # Criteria: sharp rise (>3x valley) and significant energy (>15% median)
         if valley_rms < median_rms * 0.05 and peak_after > median_rms * 0.15:
             cut_sample = min_idx * frame_len
             logger.info(
@@ -54,12 +50,7 @@ def _strip_trailing_hallucination(wav: np.ndarray, sr: int) -> np.ndarray:
 
 
 def _compress_internal_silence(wav: np.ndarray, sr: int) -> np.ndarray:
-    """Compress internal silence gaps exceeding TTS_SILENCE_MAX_MS.
-
-    Uses librosa.effects.split to identify voiced segments. Gaps between
-    segments that exceed the configured maximum are replaced with silence
-    of exactly max_ms length (sub-threshold audio below -30dB is zeroed).
-    """
+    """Compress internal silence gaps exceeding TTS_SILENCE_MAX_MS."""
     import librosa
 
     max_silence = int(sr * TTS_SILENCE_MAX_MS / 1000)
@@ -82,64 +73,38 @@ def _compress_internal_silence(wav: np.ndarray, sr: int) -> np.ndarray:
 
 
 def normalize_audio(wav: np.ndarray, target_dbfs: float = -20.0) -> np.ndarray:
-    """Normalize audio to target dBFS level.
-
-    Args:
-        wav: Audio waveform (numpy array, float32, [-1, 1])
-        target_dbfs: Target dBFS level (default: -20.0)
-
-    Returns:
-        Normalized audio waveform
-    """
-    # Calculate current RMS
+    """Normalize audio to target dBFS level."""
     rms = np.sqrt(np.mean(wav**2))
 
-    if rms < 1e-6:  # Silence or near-silence
+    if rms < 1e-6:
         logger.warning("[TTS] Audio normalization skipped: RMS too low (%.6f)", rms)
         return wav
 
-    # Convert RMS to dBFS
-    # dBFS = 20 * log10(rms / 1.0)
     current_dbfs = 20 * np.log10(rms)
-
-    # Calculate gain
     gain_db = target_dbfs - current_dbfs
     gain_linear = 10 ** (gain_db / 20)
 
-    # Apply gain
     normalized = wav * gain_linear
-
-    # Clip to prevent clipping
     normalized = np.clip(normalized, -1.0, 1.0)
 
     logger.info(
-        "[TTS] Audio normalized: %.1f dBFS → %.1f dBFS (gain: %.1f dB)",
+        "[TTS] Audio normalized: %.1f dBFS -> %.1f dBFS (gain: %.1f dB)",
         current_dbfs,
         target_dbfs,
         gain_db,
     )
-
     return normalized
 
 
 def trim_tts_audio(wav: np.ndarray, sr: int, normalize: bool = True) -> np.ndarray:
-    """Trim silence/artifacts, compress internal gaps, apply fade, and normalize.
-
-    Args:
-        wav: Audio waveform
-        sr: Sample rate
-        normalize: Whether to normalize audio (default: True)
-
-    Returns:
-        Processed audio waveform
-    """
+    """5-step post-processing pipeline."""
     import librosa
 
     # Step 1: trim leading/trailing silence
     trimmed, _ = librosa.effects.trim(wav, top_db=TTS_AUDIO_TRIM_TOP_DB)
     trimmed = trimmed.copy()
 
-    # Step 2: cut trailing hallucination (energy decay->re-rise)
+    # Step 2: cut trailing hallucination
     trimmed = _strip_trailing_hallucination(trimmed, sr)
 
     # Step 3: compress internal silence gaps
@@ -164,16 +129,10 @@ def validate_tts_duration(wav: np.ndarray, sr: int, min_sec: float) -> bool:
 
 
 def validate_tts_quality(wav: np.ndarray, sr: int) -> bool:
-    """Perform basic quality checks on TTS audio.
-
-    Checks for:
-    1. Excessive silence ratio (>50% of audio)
-    2. Signal-to-noise ratio (SNR) proxy (max energy vs median noise)
-    """
+    """Basic quality checks: silence ratio and SNR proxy."""
     if len(wav) == 0:
         return False
 
-    # Check silence ratio
     max_val = np.max(np.abs(wav))
     if max_val < 1e-4:
         return False
@@ -182,12 +141,10 @@ def validate_tts_quality(wav: np.ndarray, sr: int) -> bool:
     voiced_samples = np.sum(np.abs(wav) > threshold)
     silence_ratio = 1.0 - (voiced_samples / len(wav))
 
-    if silence_ratio > 0.8:  # Over 80% silence is suspicious (relaxed for short Korean scripts)
+    if silence_ratio > 0.8:
         logger.warning("[TTS] Quality check failed: excessive silence (%.1f%%)", silence_ratio * 100)
         return False
 
-    # Check energy spread (proxy for SNR/hallucination noise)
-    # If the median absolute energy is too high relative to peak, it might be noise/hum
     median_abs = np.median(np.abs(wav))
     if median_abs > max_val * 0.3:
         logger.warning("[TTS] Quality check failed: poor SNR (median/peak = %.2f)", median_abs / max_val)

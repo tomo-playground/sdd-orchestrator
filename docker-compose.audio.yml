@@ -1,0 +1,25 @@
+# Audio Server (TTS + MusicGen) sidecar container
+# Usage: docker compose -f docker-compose.audio.yml up -d
+services:
+  audio-server:
+    build: ./audio
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      - audio-cache:/app/cache
+      - huggingface-cache:/root/.cache/huggingface
+    mem_limit: 10g
+    environment:
+      TTS_DEVICE: "cpu"
+      MUSICGEN_DEVICE: "cpu"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+volumes:
+  audio-cache:
+  huggingface-cache:

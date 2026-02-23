@@ -88,12 +88,14 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
-    # TTS Model Eager Loading (required for video rendering)
-    from services.video.scene_processing import get_qwen_model
+    # Audio Server health check (non-blocking, failure won't prevent startup)
+    from services.audio_client import check_health
 
-    logger.info("[TTS] Loading Qwen3-TTS model...")
-    get_qwen_model()
-    logger.info("[TTS] Qwen3-TTS model loaded successfully")
+    health = await check_health()
+    if health.get("status") == "ok":
+        logger.info("[Audio] Audio Server is ready: %s", health)
+    else:
+        logger.warning("[Audio] Audio Server not ready (will retry on first request): %s", health)
 
     # Initialize LangGraph Checkpointer + Store
     from services.agent.checkpointer import close_checkpointer, get_checkpointer

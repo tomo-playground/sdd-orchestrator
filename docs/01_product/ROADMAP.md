@@ -19,6 +19,7 @@
 
 ### 최근 작업
 
+- **Audio Server 사이드카 분리** (02-23): TTS(Qwen3-TTS 1.7B)+MusicGen-Small을 독립 Docker 컨테이너(`audio/`)로 분리. Backend에서 ML 의존성(torch, qwen-tts, librosa, soundfile) 제거, httpx 기반 audio_client.py(Circuit Breaker) 추가. Backend 즉시 기동, Audio Server 독립 warm-up. docker-compose.audio.yml, 4개 호출사이트 교체, 테스트 8개 추가
 - **v3_composition.py 하드코딩 상수 → config.py SSOT 이동** (02-23): 22개 상수(가중치 8+태그셋 12+문자열 2) config_prompt.py 분리, 중복 키워드셋 4개 삭제→CATEGORY_PATTERNS 재사용(_pattern_tags_by_category 캐시), patterns.py quality에 리얼리스틱 태그 7개 추가. v3_composition.py 1113→1014줄(-99). 111개 테스트 PASS
 - **Frontend Validate / Fix All 제거** (02-23): 하드코딩 키워드 리스트 기반 프론트엔드 프롬프트 검증 제거. Fix All이 범용 기본값(standing, plain background) 삽입으로 품질 저하. Autopilot images→validate→render → images→render 2단계로 단순화. validation.ts/FixSuggestionsPanel.tsx 삭제, 14파일 수정, -1,275줄. WD14 이미지 검증은 유지
 - **Compose 중개 제거 리팩토링** (02-23): Frontend `/compose`→`/validate`→`/generate` 3회 왕복 → `/generate` 1회로 통합. Backend `context_tags` 필드 추가, `_handle_character_scene/background_scene`에서 자동 병합. `buildScenePrompt` async→sync(56줄→3줄). `prompt_pre_composed` deprecated. `autoComposePrompt` 토글 제거(Backend negative 합성으로 대체). 테스트 11개 추가(Backend 43개 PASS)

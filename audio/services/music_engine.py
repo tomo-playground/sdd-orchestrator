@@ -1,16 +1,14 @@
 """MusicGen Small music generation service.
 
 Uses facebook/musicgen-small (300M) via HuggingFace transformers.
-- Global model + asyncio.Lock for thread safety
-- Lazy loading (first use) instead of startup preload
-- SHA256 cache keying for deterministic results
+Global model + threading lock for inference safety.
 """
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import io
+import logging
 import threading
 from pathlib import Path
 
@@ -24,18 +22,17 @@ from config import (
     MUSICGEN_MODEL_NAME,
     MUSICGEN_SAMPLE_RATE,
     MUSICGEN_TOKENS_PER_SECOND,
-    logger,
 )
+
+logger = logging.getLogger("audio-server")
 
 # Global model cache (lazy-loaded on first use)
 _musicgen_model = None
 _musicgen_processor = None
-_musicgen_lock = asyncio.Lock()
-_inference_lock = threading.Lock()  # Protect concurrent inference
+_inference_lock = threading.Lock()
 
 
 def _resolve_device() -> str:
-    """Auto-detect the best available device."""
     if MUSICGEN_DEVICE != "auto":
         return MUSICGEN_DEVICE
     try:
@@ -48,8 +45,12 @@ def _resolve_device() -> str:
     return "cpu"
 
 
-def _load_musicgen():
-    """Load the MusicGen model and processor (blocking)."""
+def load_model():
+    """Load the MusicGen model and processor (blocking). Called at startup."""
+    global _musicgen_model, _musicgen_processor
+    if _musicgen_model is not None:
+        return _musicgen_model, _musicgen_processor
+
     from transformers import AutoProcessor, MusicgenForConditionalGeneration
 
     device = _resolve_device()
@@ -59,30 +60,23 @@ def _load_musicgen():
     model = MusicgenForConditionalGeneration.from_pretrained(MUSICGEN_MODEL_NAME)
     model = model.to(device)
 
+    _musicgen_model = model
+    _musicgen_processor = processor
     logger.info("[MusicGen] Model loaded successfully")
-    return model, processor
-
-
-def get_musicgen_model_sync():
-    """Synchronous getter for manual warmup."""
-    global _musicgen_model, _musicgen_processor
-    if _musicgen_model is None:
-        _musicgen_model, _musicgen_processor = _load_musicgen()
     return _musicgen_model, _musicgen_processor
 
 
-async def get_musicgen_model_async():
-    """Async getter with lock - safe for concurrent requests."""
-    global _musicgen_model, _musicgen_processor
-    async with _musicgen_lock:
-        if _musicgen_model is not None:
-            return _musicgen_model, _musicgen_processor
-        _musicgen_model, _musicgen_processor = await asyncio.to_thread(_load_musicgen)
-        return _musicgen_model, _musicgen_processor
+def get_model():
+    """Return (model, processor) tuple or (None, None) if not loaded."""
+    return _musicgen_model, _musicgen_processor
 
 
-def _music_cache_key(prompt: str, duration: float, seed: int) -> str:
-    """SHA256-based cache key for deterministic results."""
+def get_device() -> str:
+    return _resolve_device()
+
+
+def music_cache_key(prompt: str, duration: float, seed: int) -> str:
+    """SHA256-based cache key."""
     raw = f"{prompt}|{duration}|{seed}"
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
@@ -99,29 +93,26 @@ def generate_music(
     """Generate music from text prompt.
 
     Returns (wav_bytes, sample_rate, actual_seed).
-    Uses file cache for deterministic seed results.
     """
     import torch
 
     duration = min(duration, MUSICGEN_MAX_DURATION)
 
-    # Resolve seed
     if seed < 0:
         seed = int(torch.randint(0, 2**31, (1,)).item())
 
-    # Check cache
-    cache_key = _music_cache_key(prompt, duration, seed)
+    cache_key = music_cache_key(prompt, duration, seed)
     cached = _cache_path(cache_key)
     if cached.exists():
         logger.info("[MusicGen] Cache hit: %s", cache_key)
         return cached.read_bytes(), MUSICGEN_SAMPLE_RATE, seed
 
-    # Generate (thread-safe: one inference at a time)
     with _inference_lock:
-        model, processor = get_musicgen_model_sync()
-        device = _resolve_device()
+        model, processor = _musicgen_model, _musicgen_processor
+        if model is None or processor is None:
+            raise RuntimeError("MusicGen model not loaded")
 
-        # Calculate max_new_tokens from duration
+        device = _resolve_device()
         max_new_tokens = int(duration * MUSICGEN_TOKENS_PER_SECOND)
 
         logger.info(
@@ -132,23 +123,12 @@ def generate_music(
             max_new_tokens,
         )
 
-        inputs = processor(
-            text=[prompt],
-            padding=True,
-            return_tensors="pt",
-        ).to(device)
-
+        inputs = processor(text=[prompt], padding=True, return_tensors="pt").to(device)
         torch.manual_seed(seed)
-        audio_values = model.generate(
-            **inputs,
-            max_new_tokens=max_new_tokens,
-            do_sample=True,
-        )
+        audio_values = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=True)
 
-    # audio_values shape: (batch, 1, samples) -> squeeze to (samples,)
     audio = audio_values[0, 0].cpu().float().numpy()
 
-    # Write to cache as WAV
     buf = io.BytesIO()
     scipy.io.wavfile.write(buf, MUSICGEN_SAMPLE_RATE, audio)
     wav_bytes = buf.getvalue()

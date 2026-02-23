@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -107,20 +106,15 @@ def delete_music_preset(preset_id: int, db: Session = Depends(get_db)):
 
 @router.post("/preview")
 async def preview_music(req: MusicPreviewRequest, db: Session = Depends(get_db)):
-    """Generate a preview audio using MusicGen."""
-    from services.audio.music_generator import generate_music, get_musicgen_model_async
+    """Generate a preview audio via Audio Server."""
+    from services.audio_client import generate_music
 
     try:
-        await get_musicgen_model_async()
-
-        def _generate():
-            return generate_music(
-                prompt=req.prompt,
-                duration=req.duration,
-                seed=req.seed,
-            )
-
-        wav_bytes, _sample_rate, actual_seed = await asyncio.to_thread(_generate)
+        wav_bytes, _sample_rate, actual_seed = await generate_music(
+            prompt=req.prompt,
+            duration=req.duration,
+            seed=req.seed,
+        )
 
         digest = hashlib.sha1(wav_bytes).hexdigest()[:16]
         file_name = f"music_preview_{digest}.wav"
@@ -176,8 +170,8 @@ def attach_preview_to_preset(
 
 @router.post("/warmup")
 async def warmup_musicgen_model():
-    """Manually trigger MusicGen model loading (lazy load)."""
-    from services.audio.music_generator import get_musicgen_model_async
+    """Check Audio Server health (replaces direct model warmup)."""
+    from services.audio_client import check_health
 
-    await get_musicgen_model_async()
-    return {"status": "ok", "message": "MusicGen model loaded"}
+    health = await check_health()
+    return {"status": health.get("status", "error"), "message": "Audio Server health check", "details": health}

@@ -7,12 +7,9 @@ instance as its first argument.
 
 from __future__ import annotations
 
-import asyncio
 import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
-
-import torch as _torch
 
 from config import (
     DEFAULT_SPEAKER,
@@ -24,27 +21,23 @@ from config import (
     TTS_MIN_DURATION_SEC,
     TTS_REPETITION_PENALTY,
     TTS_TEMPERATURE,
-    TTS_TIMEOUT_SECONDS,
     TTS_TOP_P,
     logger,
 )
+from services.audio_client import synthesize_tts as _audio_synthesize_tts
 from services.storage import get_storage
 from services.video.tts_helpers import (
     generate_context_aware_voice_prompt,
     get_preset_voice_info,
-    get_qwen_model_async,
     get_speaker_voice_preset,
     translate_voice_prompt,
     tts_cache_key,
 )
-from services.video.tts_postprocess import trim_tts_audio, validate_tts_duration, validate_tts_quality
 from services.video.utils import clean_script_for_tts, has_speakable_content
 
 if TYPE_CHECKING:
+    from schemas import VideoScene
     from services.video.builder import VideoBuilder
-
-# Re-export for backward compatibility (main.py, routers/voice_presets.py, tests)
-from services.video.tts_helpers import get_qwen_model  # noqa: F401
 
 _translate_voice_prompt = translate_voice_prompt  # noqa: F841 — alias for voice_presets.py
 _get_speaker_voice_preset = get_speaker_voice_preset  # noqa: F841 — alias for tests
@@ -302,7 +295,7 @@ async def generate_tts(
         voice_design_for_cache,
         TTS_DEFAULT_LANGUAGE,
     )
-    cached = TTS_CACHE_DIR / f"{cache_key}.mp3"
+    cached = TTS_CACHE_DIR / f"{cache_key}.wav"
     if cached.exists() and cached.stat().st_size > 0:
         shutil.copy2(cached, tts_path)
         tts_duration = builder._get_audio_duration(tts_path)
@@ -326,102 +319,72 @@ async def generate_tts(
         voice_seed = preset_seed or (hash(voice_design or "") % (2**31))
 
         # Pad very short scripts to prevent TTS model hang
-        # Qwen3-TTS tends to hang on very short texts (< 10 chars)
-        # Append trailing dots to reach 10+ chars (never repeat text — causes multiple pronunciations)
         tts_text = clean_script
         if len(tts_text) < 10:
             tts_text = tts_text + "." * (10 - len(tts_text))
-            logger.info(f"[TTS] Scene {i}: padded short script '{clean_script}' → '{tts_text}'")
+            logger.info(f"[TTS] Scene {i}: padded short script '{clean_script}' -> '{tts_text}'")
 
-        logger.info(f"TTS generation (VoiceDesign): script={tts_text[:50]}..., voice_seed={voice_seed}")
-        model = await get_qwen_model_async()
+        logger.info(f"TTS generation: script={tts_text[:50]}..., voice_seed={voice_seed}")
 
-        import soundfile as sf
-
-        logger.info(f"Scene {i}: voice design -- '{(voice_design or '')[:40]}'")
-
-        # --- Retry loop: generate → trim → validate duration ---
-        best_wav = None
-        best_sr = 0
+        # --- Retry loop: call Audio Server → validate duration ---
+        best_bytes: bytes | None = None
         best_dur = 0.0
 
         for attempt in range(1 + TTS_MAX_RETRIES):
             attempt_seed = voice_seed + attempt * 7919
 
-            # --- Simplification Logic ---
-            # If initial attempt fails, try simplifying or stripping the prompt
+            # Simplification logic on retries
             current_voice_design = voice_design
             if attempt == 1 and voice_design:
-                # Strip complex emotion/tone descriptors, keep core characteristics
-                # Usually stripping the last few words or removing specific keywords
-                # "A young woman laughing happily" -> "A young woman"
                 logger.info(f"[TTS] Scene {i}: Attempt 2 - simplifying voice design prompt")
                 current_voice_design = ", ".join((voice_design or "").split(",")[:1]).strip()
             elif attempt == 2:
-                # Last resort: use preset base only or empty if everything else fails
                 logger.info(f"[TTS] Scene {i}: Attempt 3 - using minimal voice design")
                 current_voice_design = preset_voice_design or ""
 
-            def _voice_design(_seed=attempt_seed, _design=current_voice_design):
-                _torch.manual_seed(_seed)
-                return model.generate_voice_design(
+            try:
+                audio_bytes, _sr, duration, quality_passed = await _audio_synthesize_tts(
                     text=tts_text,
-                    instruct=_design or "",
+                    instruct=current_voice_design or "",
                     language=TTS_DEFAULT_LANGUAGE,
+                    seed=attempt_seed,
                     temperature=TTS_TEMPERATURE,
                     top_p=TTS_TOP_P,
                     repetition_penalty=TTS_REPETITION_PENALTY,
                     max_new_tokens=TTS_MAX_NEW_TOKENS,
                 )
-
-            try:
-                wavs, sr = await asyncio.wait_for(
-                    asyncio.to_thread(_voice_design),
-                    timeout=TTS_TIMEOUT_SECONDS,
-                )
-            except TimeoutError:
+            except Exception as gen_err:
                 logger.warning(
                     f"[TTS] Scene {i}: attempt {attempt + 1}/{1 + TTS_MAX_RETRIES} "
-                    f"timed out ({TTS_TIMEOUT_SECONDS}s), seed={attempt_seed}"
+                    f"audio server error: {gen_err}, seed={attempt_seed}"
                 )
                 continue
-            except (RuntimeError, ValueError) as gen_err:
-                logger.warning(
-                    f"[TTS] Scene {i}: attempt {attempt + 1}/{1 + TTS_MAX_RETRIES} "
-                    f"model error: {gen_err}, seed={attempt_seed}"
-                )
-                continue
-
-            wav = trim_tts_audio(wavs[0], sr)
-            dur = len(wav) / sr
 
             # Track best attempt (longest duration)
-            if dur > best_dur:
-                best_wav, best_sr, best_dur = wav, sr, dur
+            if duration > best_dur:
+                best_bytes, best_dur = audio_bytes, duration
 
-            if validate_tts_duration(wav, sr, TTS_MIN_DURATION_SEC) and validate_tts_quality(wav, sr):
-                sf.write(str(tts_path), wav, sr)
+            if quality_passed and duration >= TTS_MIN_DURATION_SEC:
+                tts_path.write_bytes(audio_bytes)
                 shutil.copy2(tts_path, cached)
                 tts_duration = builder._get_audio_duration(tts_path)
                 if attempt > 0:
                     logger.info(f"[TTS] Scene {i}: passed on attempt {attempt + 1}, duration={tts_duration:.2f}s")
                 else:
-                    logger.info(f"TTS success (VoiceDesign): duration={tts_duration}s, seed={attempt_seed}")
+                    logger.info(f"TTS success: duration={tts_duration}s, seed={attempt_seed}")
                 return True, tts_duration
 
             logger.warning(
                 f"[TTS] Scene {i}: attempt {attempt + 1}/{1 + TTS_MAX_RETRIES} "
-                f"failed quality/duration validation ({dur:.2f}s), seed={attempt_seed}"
+                f"failed quality/duration validation ({duration:.2f}s), seed={attempt_seed}"
             )
 
-        if best_wav is not None and best_dur > 0:
-            sf.write(str(tts_path), best_wav, best_sr)
-            # Don't cache failed results — allow re-generation next render
+        if best_bytes is not None and best_dur > 0:
+            tts_path.write_bytes(best_bytes)
             tts_duration = builder._get_audio_duration(tts_path)
             logger.warning(f"[TTS] Scene {i}: all retries exhausted, using best attempt ({best_dur:.2f}s, uncached)")
             return True, tts_duration
 
-        # All retries failed — fall back to silent scene instead of crashing build
         logger.warning(f"[TTS] Scene {i}: all retries exhausted with no usable audio, falling back to silent scene")
         return False, 0.0
     except Exception as e:
@@ -453,7 +416,6 @@ def _get_voice_design_for_scene(
 
     # 2. Context-Aware Auto-Generation
     speaker = getattr(scene_req, "speaker", DEFAULT_SPEAKER)
-    is_narrator = speaker == DEFAULT_SPEAKER
 
     if not voice_design:
         # Prefer Korean prompt > English prompt

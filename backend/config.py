@@ -105,6 +105,10 @@ SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
 if SD_BASE_URL == "http://127.0.0.1:7860":
     logger.info("Using default SD_BASE_URL: %s", SD_BASE_URL)
 
+# --- Audio Server (TTS + MusicGen sidecar) ---
+AUDIO_SERVER_URL = os.getenv("AUDIO_SERVER_URL", "http://127.0.0.1:8001")
+AUDIO_TIMEOUT_SECONDS = float(os.getenv("AUDIO_TIMEOUT_SECONDS", "180"))
+
 SD_TXT2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
 SD_MODELS_URL = f"{SD_BASE_URL}/sdapi/v1/sd-models"
 SD_OPTIONS_URL = f"{SD_BASE_URL}/sdapi/v1/options"
@@ -403,11 +407,7 @@ REFERENCE_MIN_RESOLUTION = 256
 REFERENCE_MIN_FACE_RATIO = 0.10  # Face must be at least 10% of image area
 
 # --- TTS Configuration ---
-TTS_MODEL_NAME = os.getenv("TTS_MODEL_NAME", "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign")
-TTS_PRELOAD_MODEL = os.getenv("TTS_PRELOAD_MODEL", "voice_design")  # "voice_design" (Clone removed)
 TTS_DEFAULT_LANGUAGE = os.getenv("TTS_DEFAULT_LANGUAGE", "korean")
-TTS_DEVICE = os.getenv("TTS_DEVICE", "auto")  # "auto" | "mps" | "cpu"
-TTS_ATTN_IMPLEMENTATION = os.getenv("TTS_ATTN_IMPLEMENTATION", "sdpa")
 
 # --- Voice Preset Configuration ---
 VOICE_PRESET_MAX_FILE_SIZE = int(os.getenv("VOICE_PRESET_MAX_FILE_SIZE", str(10 * 1024 * 1024)))  # 10MB
@@ -427,13 +427,6 @@ TTS_MAX_NEW_TOKENS = int(
     os.getenv("TTS_MAX_NEW_TOKENS", "1024")
 )  # Reduced from 2048: shorts scripts are short, 1024 is sufficient and faster
 
-# --- TTS Audio Post-processing ---
-TTS_AUDIO_TRIM_TOP_DB = int(
-    os.getenv("TTS_AUDIO_TRIM_TOP_DB", "60")
-)  # librosa.effects.trim threshold (removes trailing silence/hallucination)
-TTS_AUDIO_FADE_MS = int(os.getenv("TTS_AUDIO_FADE_MS", "15"))  # Fade-in/out ms (removes click artifacts)
-TTS_SILENCE_MAX_MS = int(os.getenv("TTS_SILENCE_MAX_MS", "500"))  # Internal silence max length (ms)
-
 # --- TTS Quality Validation & Retry ---
 TTS_MIN_DURATION_SEC = float(os.getenv("TTS_MIN_DURATION_SEC", "1.0"))  # Min TTS length (sec)
 TTS_MAX_RETRIES = int(os.getenv("TTS_MAX_RETRIES", "2"))  # Retry count on quality failure
@@ -444,15 +437,11 @@ TTS_CACHE_DIR = PROMPT_CACHE_DIR / "tts"
 TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # --- MusicGen (AI BGM) ---
-MUSICGEN_MODEL_NAME = os.getenv("MUSICGEN_MODEL_NAME", "facebook/musicgen-small")
-MUSICGEN_DEVICE = os.getenv("MUSICGEN_DEVICE", "auto")
 MUSICGEN_DEFAULT_DURATION = float(os.getenv("MUSICGEN_DEFAULT_DURATION", "30.0"))
 MUSICGEN_MAX_DURATION = float(os.getenv("MUSICGEN_MAX_DURATION", "30.0"))
 MUSICGEN_SAMPLE_RATE = int(os.getenv("MUSICGEN_SAMPLE_RATE", "32000"))
-MUSICGEN_TOKENS_PER_SECOND = 50  # EnCodec: 50 auto-regressive steps per second
 MUSICGEN_CACHE_DIR = PROMPT_CACHE_DIR / "music"
 MUSICGEN_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-MUSICGEN_TIMEOUT_SECONDS = int(os.getenv("MUSICGEN_TIMEOUT_SECONDS", "120"))
 
 # --- Storyboard Options (SSOT) ---
 STORYBOARD_LANGUAGES = [
