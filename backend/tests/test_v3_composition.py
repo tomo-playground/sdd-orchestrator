@@ -7,12 +7,15 @@ import pytest
 from config import CHARACTER_CAMERA_TAGS, EXCLUSIVE_TAG_GROUPS
 from services.prompt.v3_composition import (
     CHARACTER_ONLY_LAYERS,
+    LAYER_ACCESSORY,
     LAYER_ACTION,
     LAYER_ATMOSPHERE,
+    LAYER_BODY,
     LAYER_CAMERA,
     LAYER_ENVIRONMENT,
     LAYER_EXPRESSION,
     LAYER_IDENTITY,
+    LAYER_MAIN_CLOTH,
     LAYER_NAMES,  # noqa: F401
     LAYER_QUALITY,
     LAYER_SUBJECT,
@@ -733,7 +736,9 @@ class TestInjectLorasDedup:
         mock_trigger_cache.get_lora_name.side_effect = lambda tag: "flat_color" if tag == "flat_color" else None
 
         # Mock _get_lora_info for scene-triggered lookup
-        builder._get_lora_info = MagicMock(return_value=(0.6, "style"))
+        from services.prompt.v3_composition import LoRAInfo
+
+        builder._get_lora_info = MagicMock(return_value=LoRAInfo(0.6, "style", []))
 
         character = MagicMock()
         character.loras = []
@@ -1043,7 +1048,9 @@ class TestLoRAWeightCap:
     def test_cap_applied_to_scene_triggered_lora(self, mock_trigger_cache, builder):
         """Scene-triggered LoRA weight 0.85 → capped to 0.76."""
         mock_trigger_cache.get_lora_name.side_effect = lambda tag: "scene_lora" if tag == "trigger_tag" else None
-        builder._get_lora_info = MagicMock(return_value=(0.85, "character"))
+        from services.prompt.v3_composition import LoRAInfo
+
+        builder._get_lora_info = MagicMock(return_value=LoRAInfo(0.85, "character", []))
 
         character = MagicMock()
         character.loras = []
@@ -1331,9 +1338,8 @@ class TestInferLayerQualityKeywords:
     """_infer_layer_from_pattern should classify realistic quality tags to LAYER_QUALITY."""
 
     def test_photorealistic_is_style_not_quality(self):
-        # photorealistic belongs to CATEGORY_PATTERNS["style"], not "quality"
-        # _infer_layer_from_pattern doesn't check style → falls to LAYER_SUBJECT
-        assert V3PromptBuilder._infer_layer_from_pattern("photorealistic") == LAYER_SUBJECT
+        # photorealistic belongs to CATEGORY_PATTERNS["style"] → LAYER_ATMOSPHERE
+        assert V3PromptBuilder._infer_layer_from_pattern("photorealistic") == LAYER_ATMOSPHERE
 
     def test_raw_photo(self):
         assert V3PromptBuilder._infer_layer_from_pattern("raw_photo") == LAYER_QUALITY
@@ -1654,3 +1660,152 @@ class TestLayerCapture:
         env_layer = next(l for l in result if l["name"] == "Environment")
         assert "masterpiece" in quality_layer["tokens"]
         assert "masterpiece" not in env_layer["tokens"]
+
+
+# ────────────────────────────────────────────
+# LoRAInfo + trigger word injection tests
+# ────────────────────────────────────────────
+
+
+class TestLoRAInfo:
+    """LoRAInfo 데이터 클래스 테스트."""
+
+    def test_lora_info_attributes(self):
+        from services.prompt.v3_composition import LoRAInfo
+
+        info = LoRAInfo(0.8, "style", ["flat color", "anime_style"])
+        assert info.weight == 0.8
+        assert info.lora_type == "style"
+        assert info.trigger_words == ["flat color", "anime_style"]
+
+    def test_lora_info_no_triggers(self):
+        from services.prompt.v3_composition import LoRAInfo
+
+        info = LoRAInfo(0.7, None, [])
+        assert info.trigger_words == []
+
+    def test_get_lora_info_returns_lora_info(self, builder):
+        """_get_lora_info가 LoRAInfo 객체를 반환하는지 확인."""
+        from services.prompt.v3_composition import LoRAInfo
+
+        info = builder._get_lora_info("nonexistent_lora")
+        assert isinstance(info, LoRAInfo)
+        assert info.weight == 0.7
+        assert info.lora_type is None
+        assert info.trigger_words == []
+
+    def test_get_lora_info_with_db_lora(self):
+        """DB에 LoRA가 있을 때 trigger_words 포함 반환."""
+        from services.prompt.v3_composition import LoRAInfo
+
+        mock_db = MagicMock()
+        mock_lora = MagicMock()
+        mock_lora.optimal_weight = 0.85
+        mock_lora.default_weight = 0.7
+        mock_lora.lora_type = "style"
+        mock_lora.trigger_words = ["flat color"]
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_lora
+
+        builder = V3PromptBuilder(mock_db)
+        info = builder._get_lora_info("test_lora")
+        assert isinstance(info, LoRAInfo)
+        assert info.weight == 0.85
+        assert info.lora_type == "style"
+        assert info.trigger_words == ["flat color"]
+
+    def test_get_lora_weight_by_name(self, builder):
+        """get_lora_weight_by_name이 LoRAInfo.weight를 반환."""
+        weight = builder.get_lora_weight_by_name("nonexistent")
+        assert weight == 0.7
+
+
+# ────────────────────────────────────────────
+# Pattern-based fallback: GROUP_NAME_TO_LAYER SSOT
+# ────────────────────────────────────────────
+
+
+class TestPatternBasedFallbackExtended:
+    """_infer_layer_from_pattern should resolve all 26 CATEGORY_PATTERNS groups."""
+
+    # clothing → LAYER_MAIN_CLOTH (4)
+    def test_hoodie_is_main_cloth(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("hoodie") == LAYER_MAIN_CLOTH
+
+    def test_school_uniform_is_main_cloth(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("school_uniform") == LAYER_MAIN_CLOTH
+
+    def test_striped_shirt_is_main_cloth(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("striped_shirt") == LAYER_MAIN_CLOTH
+
+    def test_overalls_is_main_cloth(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("overalls") == LAYER_MAIN_CLOTH
+
+    # gaze → LAYER_EXPRESSION (7)
+    def test_looking_at_viewer_is_expression(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("looking_at_viewer") == LAYER_EXPRESSION
+
+    def test_looking_away_is_expression(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("looking_away") == LAYER_EXPRESSION
+
+    # pose → LAYER_ACTION (8)
+    def test_standing_is_action(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("standing") == LAYER_ACTION
+
+    def test_sitting_is_action(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("sitting") == LAYER_ACTION
+
+    def test_arms_crossed_is_action(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("arms_crossed") == LAYER_ACTION
+
+    # body_feature → LAYER_BODY (3)
+    def test_pointy_ears_is_body(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("pointy_ears") == LAYER_BODY
+
+    def test_wings_is_body(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("wings") == LAYER_BODY
+
+    # appearance → LAYER_BODY (3)
+    def test_freckles_is_body(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("freckles") == LAYER_BODY
+
+    def test_muscular_is_body(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("muscular") == LAYER_BODY
+
+    # camera → LAYER_CAMERA (9)
+    def test_close_up_is_camera(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("close-up") == LAYER_CAMERA
+
+    def test_upper_body_is_camera(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("upper_body") == LAYER_CAMERA
+
+    def test_dutch_angle_is_camera(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("dutch_angle") == LAYER_CAMERA
+
+    # lighting → LAYER_ATMOSPHERE (11)
+    def test_backlighting_is_atmosphere(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("backlighting") == LAYER_ATMOSPHERE
+
+    def test_dramatic_lighting_is_atmosphere(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("dramatic_lighting") == LAYER_ATMOSPHERE
+
+    # style → LAYER_ATMOSPHERE (11)
+    def test_watercolor_is_atmosphere(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("watercolor") == LAYER_ATMOSPHERE
+
+    # time_weather → LAYER_ENVIRONMENT (10)
+    def test_sunset_is_environment(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("sunset") == LAYER_ENVIRONMENT
+
+    def test_cherry_blossoms_is_environment(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("cherry_blossoms") == LAYER_ENVIRONMENT
+
+    # hair_accessory → LAYER_ACCESSORY (6)
+    def test_hairclip_is_accessory(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("hairclip") == LAYER_ACCESSORY
+
+    def test_tiara_is_accessory(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("tiara") == LAYER_ACCESSORY
+
+    # novel suffix heuristic
+    def test_novel_dress_suffix_is_main_cloth(self):
+        assert V3PromptBuilder._infer_layer_from_pattern("magical_girl_dress") == LAYER_MAIN_CLOTH

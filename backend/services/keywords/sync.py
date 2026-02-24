@@ -12,6 +12,7 @@ from .patterns import CATEGORY_PATTERNS
 
 def sync_lora_triggers_to_tags() -> dict[str, Any]:
     """Sync LoRA trigger words to tags table."""
+    from .patterns import GROUP_NAME_TO_LAYER
 
     def classify_trigger(trigger: str, lora_type: str | None) -> tuple[str, str, int]:
         trigger_lower = trigger.lower()
@@ -72,6 +73,7 @@ def sync_lora_triggers_to_tags() -> dict[str, Any]:
                             category=category,
                             group_name=cat,
                             priority=priority,
+                            default_layer=GROUP_NAME_TO_LAYER.get(cat, 0),
                             classification_source="lora_sync",
                         )
                     )
@@ -90,6 +92,8 @@ def sync_lora_triggers_to_tags() -> dict[str, Any]:
 
 def sync_category_patterns_to_tags(update_existing: bool = False) -> dict[str, Any]:
     """Sync CATEGORY_PATTERNS to tags table."""
+    from .patterns import GROUP_NAME_TO_LAYER
+
     GROUP_TO_DB_CATEGORY: dict[str, tuple[str, int]] = {
         "identity": ("character", 3),
         "hair_color": ("character", 4),
@@ -140,6 +144,7 @@ def sync_category_patterns_to_tags(update_existing: bool = False) -> dict[str, A
                 existing = existing_tags.get(tag_name)
                 if existing:
                     if update_existing:
+                        expected_layer = GROUP_NAME_TO_LAYER.get(group_name, 0)
                         changes = []
                         if existing.category != db_category:
                             changes.append(f"category: {existing.category}→{db_category}")
@@ -150,6 +155,9 @@ def sync_category_patterns_to_tags(update_existing: bool = False) -> dict[str, A
                         if existing.priority != priority:
                             changes.append(f"priority: {existing.priority}→{priority}")
                             existing.priority = priority
+                        if existing.default_layer != expected_layer:
+                            changes.append(f"default_layer: {existing.default_layer}→{expected_layer}")
+                            existing.default_layer = expected_layer
 
                         if changes:
                             updated.append({"tag": tag_name, "changes": changes})
@@ -166,6 +174,7 @@ def sync_category_patterns_to_tags(update_existing: bool = False) -> dict[str, A
                             category=db_category,
                             group_name=group_name,
                             priority=priority,
+                            default_layer=GROUP_NAME_TO_LAYER.get(group_name, 0),
                         )
                     )
                     batch_names.add(tag_name)

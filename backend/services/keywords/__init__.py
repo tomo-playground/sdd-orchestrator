@@ -13,7 +13,7 @@ from .formatting import (
     get_allowed_tags_by_category,
     get_keyword_context_and_tags,
 )
-from .patterns import CATEGORY_PATTERNS, CATEGORY_PRIORITY, suggest_category_for_tag
+from .patterns import CATEGORY_PATTERNS, CATEGORY_PRIORITY, GROUP_NAME_TO_LAYER, suggest_category_for_tag
 from .processing import expand_synonyms, filter_prompt_tokens
 from .suggestions import load_keyword_suggestions, update_keyword_suggestions
 from .sync import sync_category_patterns_to_tags, sync_lora_triggers_to_tags
@@ -38,6 +38,7 @@ __all__ = [
     "get_keyword_context_and_tags",
     "CATEGORY_PATTERNS",
     "CATEGORY_PRIORITY",
+    "GROUP_NAME_TO_LAYER",
     "suggest_category_for_tag",
     "expand_synonyms",
     "filter_prompt_tokens",

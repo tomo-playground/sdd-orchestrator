@@ -460,7 +460,6 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "one_leg_raised",
         "leg_up",
         "profile",
-        "from_behind",
         "back",
         "turned_around",
         "curled_up",
@@ -872,6 +871,37 @@ CATEGORY_PRIORITY: dict[str, int] = {
     "lighting": 14,
     "mood": 15,
     "style": 16,
+}
+
+# ── group_name → 12-Layer 매핑 (SSOT) ────────────────────────────────
+# v3_composition._infer_layer_from_pattern() 와 sync.py 양쪽에서 참조
+GROUP_NAME_TO_LAYER: dict[str, int] = {
+    "quality": 0,  # LAYER_QUALITY
+    "subject": 1,  # LAYER_SUBJECT
+    "identity": 2,  # LAYER_IDENTITY
+    "hair_color": 2,  # LAYER_IDENTITY
+    "hair_length": 2,  # LAYER_IDENTITY
+    "hair_style": 2,  # LAYER_IDENTITY
+    "hair_accessory": 6,  # LAYER_ACCESSORY
+    "eye_color": 2,  # LAYER_IDENTITY
+    "skin_color": 3,  # LAYER_BODY
+    "body_feature": 3,  # LAYER_BODY
+    "appearance": 3,  # LAYER_BODY
+    "clothing": 4,  # LAYER_MAIN_CLOTH
+    "expression": 7,  # LAYER_EXPRESSION
+    "gaze": 7,  # LAYER_EXPRESSION
+    "pose": 8,  # LAYER_ACTION
+    "action": 8,  # LAYER_ACTION
+    "camera": 9,  # LAYER_CAMERA
+    "location_indoor_general": 10,  # LAYER_ENVIRONMENT
+    "location_indoor_specific": 10,  # LAYER_ENVIRONMENT
+    "location_outdoor": 10,  # LAYER_ENVIRONMENT
+    "environment": 10,  # LAYER_ENVIRONMENT
+    "background_type": 10,  # LAYER_ENVIRONMENT
+    "time_weather": 10,  # LAYER_ENVIRONMENT
+    "lighting": 11,  # LAYER_ATMOSPHERE
+    "mood": 11,  # LAYER_ATMOSPHERE
+    "style": 11,  # LAYER_ATMOSPHERE
 }
 
 

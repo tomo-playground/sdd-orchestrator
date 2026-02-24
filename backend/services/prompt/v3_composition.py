@@ -75,6 +75,17 @@ LAYER_NAMES: list[str] = [
 CHARACTER_ONLY_LAYERS = frozenset(range(LAYER_SUBJECT, LAYER_ACTION + 1))
 
 
+class LoRAInfo:
+    """LoRA 메타데이터 (weight, lora_type, trigger_words)."""
+
+    __slots__ = ("weight", "lora_type", "trigger_words")
+
+    def __init__(self, weight: float, lora_type: str | None, trigger_words: list[str]):
+        self.weight = weight
+        self.lora_type = lora_type
+        self.trigger_words = trigger_words
+
+
 class V3PromptBuilder:
     """Prompt builder using the 12-layer semantic staking system."""
 
@@ -82,7 +93,7 @@ class V3PromptBuilder:
         self.db = db
         self.sd_model_base = sd_model_base
         self.warnings: list[str] = []
-        self._lora_info_cache: dict[str, tuple[float, str | None]] = {}
+        self._lora_info_cache: dict[str, LoRAInfo] = {}
         self._db_tag_names: set[str] | None = None
         self._last_composed_layers: list[list[str]] | None = None
 
@@ -167,59 +178,66 @@ class V3PromptBuilder:
         return {k: frozenset(v) for k, v in CATEGORY_PATTERNS.items()}
 
     @staticmethod
+    @functools.cache
+    def _tag_to_layer_map() -> dict[str, int]:
+        """CATEGORY_PATTERNS 전체를 tag→layer flat dict로 변환 (캐시).
+
+        GROUP_NAME_TO_LAYER를 SSOT로 사용하여 26개 카테고리 700+태그를
+        O(1) lookup 가능한 dict로 만든다.
+        """
+        from services.keywords.patterns import CATEGORY_PATTERNS, GROUP_NAME_TO_LAYER
+
+        result: dict[str, int] = {}
+        for group_name, tags in CATEGORY_PATTERNS.items():
+            layer = GROUP_NAME_TO_LAYER.get(group_name)
+            if layer is None:
+                continue
+            for tag in tags:
+                if tag not in result:
+                    result[tag] = layer
+        return result
+
+    @staticmethod
     def _infer_layer_from_pattern(tag: str) -> int:
         """Infer layer from tag pattern when not found in DB.
 
-        Pattern matching rules:
-        - Known quality tags (from CATEGORY_PATTERNS) → LAYER_QUALITY
-        - Known expressions (from CATEGORY_PATTERNS) → LAYER_EXPRESSION (checked before *ing)
-        - *_hair, *_colored_hair → LAYER_IDENTITY (hair color)
-        - *_eyes, *_colored_eyes → LAYER_IDENTITY (eye color)
-        - *ing (e.g., running, walking) → LAYER_ACTION
-        - *_shot, *_view, from_* → LAYER_CAMERA
-        - *_background → LAYER_ENVIRONMENT
-        - Location keywords (from CATEGORY_PATTERNS), *_room → LAYER_ENVIRONMENT
-        - Mood/genre keywords (from CATEGORY_PATTERNS) → LAYER_ATMOSPHERE
-        - Default: LAYER_SUBJECT
+        3-tier resolution:
+        1. Exact lookup in _tag_to_layer_map() (26 categories, 700+ tags, O(1))
+        2. Suffix/prefix heuristics for novel tags
+        3. LAYER_SUBJECT fallback
         """
-        cats = V3PromptBuilder._pattern_tags_by_category()
+        # ── 1순위: CATEGORY_PATTERNS exact match ──
+        tag_map = V3PromptBuilder._tag_to_layer_map()
+        if tag in tag_map:
+            return tag_map[tag]
 
-        if tag in cats.get("quality", frozenset()):
-            return LAYER_QUALITY
-
-        if tag in cats.get("expression", frozenset()):
-            return LAYER_EXPRESSION
-
-        # Hair patterns
+        # ── 2순위: suffix/prefix 휴리스틱 (novel 태그용) ──
+        # Hair
         if tag.endswith("_hair") or "hair" in tag:
             return LAYER_IDENTITY
-
-        # Eye patterns
+        # Eyes
         if tag.endswith("_eyes") or "eyes" in tag:
             return LAYER_IDENTITY
-
-        # Action patterns (verb-ing)
-        if tag.endswith("ing") and not tag.endswith("ring"):  # Exclude "earring", etc.
+        # Clothing suffixes
+        if tag.endswith(("_dress", "_shirt", "_skirt", "_pants", "_uniform", "_outfit", "_suit", "_coat", "_jacket")):
+            return LAYER_MAIN_CLOTH
+        # Accessory suffixes
+        if tag.endswith(("_earrings", "_necklace", "_bracelet", "_ribbon", "_bow", "_hairpin", "_headband")):
+            return LAYER_ACCESSORY
+        # Lighting suffixes
+        if tag.endswith("_lighting") or tag.endswith("_light"):
+            return LAYER_ATMOSPHERE
+        # Action patterns (verb-ing, exclude "earring" etc.)
+        if tag.endswith("ing") and not tag.endswith("ring"):
             return LAYER_ACTION
-
         # Camera patterns
         if tag.endswith("_shot") or tag.endswith("_view") or tag.startswith("from_"):
             return LAYER_CAMERA
-
-        # Background patterns (*_background)
-        if tag.endswith("_background"):
+        # Background patterns
+        if tag.endswith("_background") or tag.endswith("_room"):
             return LAYER_ENVIRONMENT
 
-        # Location patterns (indoor/outdoor indicators)
-        location_tags = cats.get("location_outdoor", frozenset()) | cats.get("location_indoor_specific", frozenset())
-        if tag in location_tags or tag.endswith("_room"):
-            return LAYER_ENVIRONMENT
-
-        # Mood/genre patterns
-        if tag in cats.get("mood", frozenset()):
-            return LAYER_ATMOSPHERE
-
-        # Default fallback
+        # ── 3순위: fallback ──
         return LAYER_SUBJECT
 
     # ── Background scene handling ────────────────────────────────────────
@@ -502,7 +520,7 @@ class V3PromptBuilder:
         style_loras: list[dict] | None,
     ) -> None:
         """Inject character LoRAs, scene-triggered LoRAs, and style LoRAs."""
-        active_loras: dict[str, tuple[float, str | None]] = {}
+        active_loras: dict[str, LoRAInfo] = {}
 
         # Character LoRAs (style-type skipped; StyleProfile is SSOT for style)
         if character.loras and character.prompt_mode != "standard":
@@ -525,21 +543,26 @@ class V3PromptBuilder:
                         _logger.warning("LoRA compatibility: %s", msg)
                     if weight is None:
                         weight = self.get_effective_lora_weight(lora_obj)
-                    active_loras[lora_obj.name] = (weight, lora_obj.lora_type)
+                    active_loras[lora_obj.name] = LoRAInfo(weight, lora_obj.lora_type, lora_obj.trigger_words or [])
                     for trigger in lora_obj.trigger_words or []:
                         if not self._trigger_exists_in_layers(trigger, layers):
                             layers[LAYER_IDENTITY].append(trigger)
 
-        # Scene-triggered LoRAs
+        # Scene-triggered LoRAs (+ 트리거 워드 주입)
         for tag in scene_tags:
             lora_name = LoRATriggerCache.get_lora_name(tag)
             if lora_name and lora_name not in active_loras:
-                active_loras[lora_name] = self._get_lora_info(lora_name)
+                info = self._get_lora_info(lora_name)
+                active_loras[lora_name] = info
+                target = LAYER_ATMOSPHERE if info.lora_type == "style" else LAYER_IDENTITY
+                for trigger in info.trigger_words:
+                    if not self._trigger_exists_in_layers(trigger, layers):
+                        layers[target].append(trigger)
 
         # Inject LoRA tags into layers
-        for name, (weight, lora_type) in active_loras.items():
-            target_layer = LAYER_ATMOSPHERE if lora_type == "style" else LAYER_IDENTITY
-            layers[target_layer].append(f"<lora:{name}:{self._cap_lora_weight(weight)}>")
+        for name, info in active_loras.items():
+            target_layer = LAYER_ATMOSPHERE if info.lora_type == "style" else LAYER_IDENTITY
+            layers[target_layer].append(f"<lora:{name}:{self._cap_lora_weight(info.weight)}>")
 
         # Style LoRAs (explicit overrides or character fallback)
         effective_style_loras = style_loras
@@ -634,15 +657,18 @@ class V3PromptBuilder:
                 layers[LAYER_IDENTITY].append(f"<lora:{lora_name}:{self._cap_lora_weight(weight)}>")
                 injected_lora_names.add(lora_name)
 
-        # Auto-triggered LoRAs from tags
+        # Auto-triggered LoRAs from tags (+ 트리거 워드 주입)
         for tag in tags:
             lora_name = LoRATriggerCache.get_lora_name(tag)
             if lora_name:
                 if lora_name in style_lora_names or lora_name in injected_lora_names:
                     continue
-                weight, lora_type = self._get_lora_info(lora_name)
-                target = LAYER_ATMOSPHERE if lora_type == "style" else LAYER_IDENTITY
-                layers[target].append(f"<lora:{lora_name}:{self._cap_lora_weight(weight)}>")
+                info = self._get_lora_info(lora_name)
+                target = LAYER_ATMOSPHERE if info.lora_type == "style" else LAYER_IDENTITY
+                layers[target].append(f"<lora:{lora_name}:{self._cap_lora_weight(info.weight)}>")
+                for trigger in info.trigger_words:
+                    if not self._trigger_exists_in_layers(trigger, layers):
+                        layers[target].append(trigger)
                 injected_lora_names.add(lora_name)
 
         _style_trigger_words: set[str] = set()
@@ -817,24 +843,27 @@ class V3PromptBuilder:
             return float(lora.default_weight)
         return 0.7
 
-    def _get_lora_info(self, name: str) -> tuple[float, str | None]:
-        """Looks up LoRA weight and type by name with caching."""
+    def _get_lora_info(self, name: str) -> LoRAInfo:
+        """Looks up LoRA weight, type, and trigger_words by name with caching."""
         if name in self._lora_info_cache:
             return self._lora_info_cache[name]
 
         lora = self.db.query(LoRA).filter(LoRA.name == name).first()
         if not lora:
-            info = (0.7, None)
+            info = LoRAInfo(0.7, None, [])
         else:
-            info = (self.get_effective_lora_weight(lora), lora.lora_type)
+            info = LoRAInfo(
+                self.get_effective_lora_weight(lora),
+                lora.lora_type,
+                lora.trigger_words or [],
+            )
 
         self._lora_info_cache[name] = info
         return info
 
     def get_lora_weight_by_name(self, name: str) -> float:
         """Looks up LoRA weight by name with caching."""
-        weight, _ = self._get_lora_info(name)
-        return weight
+        return self._get_lora_info(name).weight
 
     # ── Conflict resolution ──────────────────────────────────────────────
 
