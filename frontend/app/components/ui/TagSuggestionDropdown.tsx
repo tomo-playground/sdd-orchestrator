@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { Tag } from "../../types";
 import { ERROR_TEXT } from "./variants";
 
@@ -18,6 +21,49 @@ export const getTagColor = (category: string) => {
       return "text-zinc-600";
   }
 };
+
+export const getGroupColor = (group: string | null): string => {
+  switch (group) {
+    case "expression":
+      return "bg-amber-200";
+    case "pose":
+      return "bg-blue-200";
+    case "camera":
+      return "bg-purple-200";
+    case "clothing":
+      return "bg-pink-200";
+    case "hair_color":
+      return "bg-orange-200";
+    case "hair_style":
+      return "bg-teal-200";
+    default:
+      return "bg-zinc-200";
+  }
+};
+
+function TagThumbnail({ tag }: { tag: Tag }) {
+  const [error, setError] = useState(false);
+
+  if (tag.thumbnail_url && !error) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- external Danbooru CDN images
+      <img
+        src={tag.thumbnail_url}
+        alt={tag.name}
+        loading="lazy"
+        width={32}
+        height={32}
+        className="rounded shrink-0 object-cover"
+        onError={() => setError(true)}
+      />
+    );
+  }
+  return (
+    <div
+      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded ${getGroupColor(tag.group_name)}`}
+    />
+  );
+}
 
 export const formatPostCount = (count: number): string => {
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
@@ -60,6 +106,7 @@ export default function TagSuggestionDropdown({
             } ${tag.is_active === false ? "opacity-50" : ""}`}
           >
             <div className="flex items-center gap-2">
+              <TagThumbnail tag={tag} />
               <span
                 className={`font-semibold ${getTagColor(tag.category)} ${
                   tag.is_active === false ? "line-through" : ""

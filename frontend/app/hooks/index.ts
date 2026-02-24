@@ -17,3 +17,7 @@ export { useStudioOnboarding } from "./useStudioOnboarding";
 
 export { useBackendHealth } from "./useBackendHealth";
 export type { ConnectionStatus } from "./useBackendHealth";
+
+export { useConsistency } from "./useConsistency";
+
+export { useTagBrowser } from "./useTagBrowser";

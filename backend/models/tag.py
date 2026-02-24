@@ -1,7 +1,7 @@
 """Tag model for Pure V3 Prompt Engine."""
 
 from sqlalchemy import Float, ForeignKey, Index, Integer, String, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
 
@@ -39,6 +39,17 @@ class Tag(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(default=True, index=True)
     deprecated_reason: Mapped[str | None] = mapped_column(String(200))
     replacement_tag_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("tags.id", ondelete="SET NULL"))
+
+    # Visual Tag Browser (Phase 15-B)
+    thumbnail_asset_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("media_assets.id", ondelete="SET NULL"))
+    _thumbnail_asset = relationship(  # type: ignore[misc]
+        "MediaAsset", foreign_keys=[thumbnail_asset_id], lazy="joined"
+    )
+
+    @property
+    def thumbnail_url(self) -> str | None:
+        """Response-only: derived from media_asset relationship."""
+        return self._thumbnail_asset.url if self._thumbnail_asset else None
 
 
 class ClassificationRule(Base, TimestampMixin):

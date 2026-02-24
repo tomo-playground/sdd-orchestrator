@@ -1,12 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Tag, Image, BarChart3, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
+import {
+  Tag,
+  Image,
+  BarChart3,
+  GalleryHorizontalEnd,
+  ChevronLeft,
+  ChevronRight,
+  type LucideIcon,
+} from "lucide-react";
 import { cx, SIDEBAR_ACTIVE, SIDEBAR_INACTIVE } from "../../components/ui/variants";
 
 // ── Types ────────────────────────────────────────────────────
 
-export type LabTab = "tag-lab" | "scene-lab" | "analytics";
+export type LabTab = "tag-lab" | "scene-lab" | "analytics" | "tag-browser";
 
 type NavItem = {
   id: LabTab;
@@ -35,6 +43,12 @@ const NAV_ITEMS: NavItem[] = [
     label: "Analytics",
     icon: BarChart3,
     description: "Quality metrics dashboard",
+  },
+  {
+    id: "tag-browser",
+    label: "Tag Browser",
+    icon: GalleryHorizontalEnd,
+    description: "Visual tag exploration",
   },
 ];
 

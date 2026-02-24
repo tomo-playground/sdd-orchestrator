@@ -241,6 +241,57 @@ def _classify_general_tag(tag_name: str) -> str | None:
     return None
 
 
+async def get_post_image(tag_name: str) -> dict | None:
+    """Fetch a safe preview image URL for a tag from Danbooru posts.
+
+    Queries ``rating:g`` (general) posts sorted by score descending and returns
+    the first result's preview URL.
+
+    Returns:
+        ``{"preview_url": str, "post_id": int}`` or ``None``
+    """
+    global _circuit_failures, _circuit_open_until
+    now = time.monotonic()
+    if _circuit_failures >= _CIRCUIT_FAILURE_THRESHOLD and now < _circuit_open_until:
+        return None
+    if _circuit_failures >= _CIRCUIT_FAILURE_THRESHOLD and now >= _circuit_open_until:
+        _circuit_failures = 0
+
+    normalized = tag_name.lower().replace(" ", "_").strip()
+    try:
+        headers = {"User-Agent": DANBOORU_USER_AGENT}
+        async with httpx.AsyncClient(headers=headers) as client:
+            response = await client.get(
+                f"{DANBOORU_API_BASE}/posts.json",
+                params={
+                    "tags": f"{normalized} rating:g score:>10",
+                    "limit": 1,
+                },
+                timeout=DANBOORU_API_TIMEOUT,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            _circuit_failures = 0
+            if data and len(data) > 0:
+                post = data[0]
+                preview = post.get("preview_file_url") or post.get("large_file_url")
+                if preview:
+                    return {"preview_url": preview, "post_id": post.get("id")}
+            return None
+    except (httpx.ConnectTimeout, httpx.ConnectError):
+        _circuit_failures += 1
+        if _circuit_failures >= _CIRCUIT_FAILURE_THRESHOLD:
+            _circuit_open_until = time.monotonic() + _CIRCUIT_COOLDOWN_SEC
+        return None
+    except httpx.HTTPError as e:
+        logger.debug("[Danbooru] Post image error for '%s': %s", normalized, e)
+        return None
+    except Exception as e:
+        logger.error("[Danbooru] Unexpected post image error for '%s': %s", tag_name, e)
+        return None
+
+
 # Synchronous wrapper for use in non-async contexts
 def get_tag_info_sync(tag_name: str) -> dict | None:
     """Synchronous version of get_tag_info.

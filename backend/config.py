@@ -108,6 +108,7 @@ if SD_BASE_URL == "http://127.0.0.1:7860":
 # --- Audio Server (TTS + MusicGen sidecar) ---
 AUDIO_SERVER_URL = os.getenv("AUDIO_SERVER_URL", "http://127.0.0.1:8001")
 AUDIO_TIMEOUT_SECONDS = float(os.getenv("AUDIO_TIMEOUT_SECONDS", "180"))
+MUSIC_TIMEOUT_SECONDS = float(os.getenv("MUSIC_TIMEOUT_SECONDS", "600"))  # 10min for MusicGen
 
 SD_TXT2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
 SD_MODELS_URL = f"{SD_BASE_URL}/sdapi/v1/sd-models"
@@ -153,6 +154,11 @@ DANBOORU_USER_AGENT = os.getenv("DANBOORU_USER_AGENT", "ShortsProducer/1.0")
 DANBOORU_API_TIMEOUT = float(os.getenv("DANBOORU_API_TIMEOUT", "3"))
 CIVITAI_API_BASE = os.getenv("CIVITAI_API_BASE", "https://civitai.com/api/v1")
 CIVITAI_API_TIMEOUT = float(os.getenv("CIVITAI_API_TIMEOUT", "10"))
+
+# --- Tag Thumbnail (Phase 15-B) ---
+TAG_THUMBNAIL_WIDTH = int(os.getenv("TAG_THUMBNAIL_WIDTH", "150"))
+TAG_THUMBNAIL_QUALITY = int(os.getenv("TAG_THUMBNAIL_QUALITY", "80"))
+TAG_THUMBNAIL_BATCH_DELAY_MS = int(os.getenv("TAG_THUMBNAIL_BATCH_DELAY_MS", "600"))
 
 # --- Font & LoRA Defaults ---
 DEFAULT_SCENE_TEXT_FONT = os.getenv("DEFAULT_SCENE_TEXT_FONT", "온글잎 박다현체.ttf")
@@ -267,6 +273,18 @@ IDENTITY_SCORE_GROUPS: frozenset[str] = frozenset(
         "appearance",
     }
 )
+# Group-level weights for cross-scene consistency drift calculation (Phase 16-D).
+# Higher weight = more visually impactful when drift occurs.
+IDENTITY_GROUP_WEIGHTS: dict[str, float] = {
+    "hair_color": 1.0,
+    "eye_color": 0.8,
+    "hair_length": 0.7,
+    "hair_style": 0.7,
+    "appearance": 0.5,
+    "body_feature": 0.4,
+    "skin_color": 0.3,
+}
+
 _WD14_IDENTITY_TAGS: set[str] | None = None
 
 
@@ -473,6 +491,7 @@ TTS_MAX_NEW_TOKENS = int(
 
 # --- TTS Quality Validation & Retry ---
 TTS_MIN_DURATION_SEC = float(os.getenv("TTS_MIN_DURATION_SEC", "1.0"))  # Min TTS length (sec)
+TTS_MIN_SPEAKABLE_CHARS = int(os.getenv("TTS_MIN_SPEAKABLE_CHARS", "2"))  # Min word chars for TTS
 TTS_MAX_RETRIES = int(os.getenv("TTS_MAX_RETRIES", "2"))  # Retry count on quality failure
 
 # --- TTS Performance ---

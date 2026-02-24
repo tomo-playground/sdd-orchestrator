@@ -848,6 +848,7 @@ class TagUpdate(BaseModel):
 
 class TagResponse(TagBase):
     id: int
+    thumbnail_url: str | None = None  # Response-only: derived from @property
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -2077,3 +2078,31 @@ class MemoryListResponse(BaseModel):
 class MemoryStatsResponse(BaseModel):
     total: int
     by_namespace: dict[str, int]
+
+
+# ============================================================
+# Cross-Scene Consistency (Phase 16-D)
+# ============================================================
+
+
+class GroupDriftResponse(BaseModel):
+    group: str
+    baseline_tags: list[str]
+    detected_tags: list[str]
+    status: str  # match | mismatch | missing | extra | no_data
+    weight: float
+
+
+class SceneDriftResponse(BaseModel):
+    scene_id: int
+    scene_order: int
+    character_id: int
+    identity_score: float
+    drift_score: float
+    groups: list[GroupDriftResponse]
+
+
+class ConsistencyResponse(BaseModel):
+    storyboard_id: int
+    overall_consistency: float
+    scenes: list[SceneDriftResponse]

@@ -9,93 +9,42 @@
 | 항목 | 상태 |
 |------|------|
 | Phase 5~7 계열 | 전체 완료 (ARCHIVED) |
+| Phase 8 (Multi-Style) | 전체 완료 (ARCHIVED) |
 | Phase 9 (Agentic Pipeline) | 전체 완료 (ARCHIVED) |
 | Phase 10 (True Agentic) | 전체 완료 (ARCHIVED) |
 | Phase 11 (Scene Diversity) | 전체 완료 (ARCHIVED) |
 | Phase 12 (Agent Enhancement & AI BGM) | 전체 완료 (ARCHIVED) |
 | Phase 13 (Creative Control & Production Speed) | 전체 완료 (ARCHIVED) |
-| Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 완료 (8/8)** |
-| Phase 14 (ControlNet Pose Pipeline) | **전체 완료 (3/3 + 14-A 3/3)** |
-| **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 4/4, A-1: 6/6, A-2: 2/2, A-3: 3/3 완료** |
-| **Phase 16 (WD14 Smart Validation)** | **Phase 16-0 완료, 16-A 완료, 16-B 완료, 16-C 완료, 16-D 미착수** |
-| 테스트 | Backend 2,642 + Frontend 362 = **총 3,004개** |
+| Phase 14 (ControlNet Pose Pipeline) | 전체 완료 (ARCHIVED) |
+| **Phase 15 (Prompt Input UX 고도화)** | **전체 완료 — A-0~A-3 + B-1~B-3 (18/18)** |
+| Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
+| 테스트 | Backend 2,687 + Frontend 379 = **총 3,066개** |
 
 ### 최근 작업
 
-- **Render Preset Music Preset 선택 UI** (02-24): Settings > Render Presets 편집 폼에서 BGM Mode "Manual" 시 Music Preset 드롭다운 추가. Backend Create/Update 스키마에 `music_preset_id` 필드 추가, bgm_mode=auto 전환 시 자동 null 초기화, 프리셋 카드 요약에 Music Preset 이름 표시. 테스트 2개 추가 (2,956 PASS)
-- **Phase 16-B: Adjusted Match Rate** (02-24): WD14 감지 가능 그룹(14종: subject, hair_color, clothing, expression 등)만으로 match_rate를 재계산하는 `compute_adjusted_match_rate()` 추가. `WD14_DETECTABLE_GROUPS` 상수(config.py SSOT). `validate_scene_image()` 응답에 `adjusted_match_rate` 필드 병렬 반환(하위 호환). `_increment_tag_effectiveness()`에서 비감지 그룹(camera, location, mood 등) 태그 effectiveness 추적 제외. auto-edit 임계값 adjusted 우선 참조. `batch_validate_scenes()` partial_matched 포함으로 validation.py와 계산 일관화. 11개 테스트 추가 (2,592 PASS)
-- **Audio Pipeline 버그 수정 2건** (02-24): SB#475에서 발견된 오디오 이슈 수정. (1) BGM 루핑 — BGM이 비디오보다 짧을 때 `asplit`+`acrossfade` 필터 기반 자동 루핑(`_build_bgm_loop_filters`), ffprobe 동적 duration 측정(`_probe_duration`), 2초 크로스페이드로 이음새 품질 보장, `atrim`으로 정확한 비디오 길이 트림. (2) TTS 서킷 브레이커 씬 단위 전환 — HTTP 시도 단위(1씬 3retry=3카운트→즉시 차단)에서 씬 단위 카운팅으로 변경(`record_scene_failure`/`record_scene_success`), 3개 연속 씬 실패 시에만 차단. 24개 테스트 PASS
-- **Phase 16-A: Critical Failure Detection** (02-24): WD14 subject 태그(1girl 99%, solo 98%)의 높은 감지 정확도를 활용하여 성별 반전(gender_swap), 인물 부재(no_subject), 인물수 불일치(count_mismatch) 자동 감지. `detect_critical_failure()` 핵심 모듈, `validate_scene_image()` 통합, CriticalFailureInfo 스키마. Frontend 빨간 배지(좌상단) + ValidationOverlay 경고 + CompletionDots 우선 red + 토스트 분기. threshold 0.7 (false positive 최소화). 21개 테스트 추가 (2,571 PASS)
-- **Phase 16-0: WD14 Effectiveness 필터링 제거** (02-24): WD14가 9,083개 태그 중 39개(15%)만 신뢰 감지 가능한데, 감지 못하는 태그를 "효과 없음"으로 판정해 프롬프트에서 삭제하던 "death spiral" 문제 수정. `filter_prompt_tokens()` + `_load_processed_tags()`에서 effectiveness 기반 태그 삭제/Gemini 선택지 제한 비활성화. 265개 태그 중 167개(63%)가 부당하게 필터링되던 것 해소. 씬당 평균 6.76개 태그 삭제 → 0개. 26개 테스트 업데이트 PASS
-- **Phase 15-A-3: 태그 검증 확산** (02-24): `useTagValidationDebounced` 래퍼 훅 추출(debounce+검증+auto-replace 패턴 통합). PromptPair(캐릭터 Base/Negative 4곳), StyleProfileEditor(스타일 Positive/Negative), NegativePromptToggle(씬 네거티브), SceneClothingModal(의상 태그), ScenePromptFields(기존 코드 통일) 총 5개 컴포넌트에 TagValidationWarning 적용. 12개 단위 테스트 추가 (362 PASS)
-- **씬 Override 동적 그룹 전환** (02-24): `SCENE_OVERRIDE_GROUPS` 하드코딩 상수 제거 → 씬 태그의 group_name을 런타임 수집하여 `EXCLUSIVE_TAG_GROUPS`(hair_color 등) 제외 모든 그룹 자동 오버라이드. lighting(`soft_lighting`↔`dark`), expression, gaze 등 새 그룹 추가 시 코드 변경 불필요(OCP). pre-composed 프롬프트 캐릭터 base 토큰 중복 제거(`_strip_char_base_from_scene`). 스토리보드 473/474 10씬 전체 검증 완료. 6개 테스트 추가 (2,552 PASS)
-- **Prompt Builder weight 구문 파싱 + 씬 표정 Override 근본 수정** (02-24): `get_tag_info()`가 SD weight 구문 `(crying:1.1)` 미파싱으로 scene_override 미동작하던 버그 수정 — `_strip_weight()` 추출, DB 조회 시 weight 제거 후 bare form으로 조회, weighted/bare 양쪽 키로 결과 반환. `_collect_character_tags()` layer 오배치 수정(LAYER_IDENTITY 하드코딩→DB/pattern 기반). 씬 expression/gaze가 캐릭터 기본 표정 override. Alembic conflict rules 5쌍. 29개 테스트 추가 (2,546 PASS)
-- **중복 PromptTokenPreview 제거** (02-24): ScenePromptFields에서 `PromptTokenPreview`(원시 토큰) + `ComposedPromptPreview`(조합 결과) 2중 표시 → `ComposedPromptPreview`만 유지. 실제 SD에 전달되는 최종 프롬프트만 표시하도록 정리. PromptTokenPreview.tsx 파일 삭제
-- **실패 테스트 31개 수정** (02-24): GROUP_NAME_TO_LAYER SSOT 후 회귀 테스트 6개 파일 수정. test_prompt.py 필드명 동기화(total_tags/risky/unknown), Character project_id 제거(2파일), Cinematographer Competition Mode 비활성화 패치(7테스트), test_script_snapshots Quick 모드 강제+finalize subset 검증. 2,516 passed, 0 failed
-- **Phase 15-A-2: TagAutocomplete 확산 8곳** (02-24): TagSuggestionDropdown 공유 컴포넌트 추출, useTagSuggestion 커스텀 훅(중복 제거), TagSuggestInput 신규(chip UI용 single-line autocomplete). NegativePromptToggle/SceneClothingModal/PromptPair(C2-C5)/SceneCharacterActions/StyleProfileEditor 8개 입력 포인트에 자동완성 적용. GenerationParameters 컴포넌트 분리. WAI-ARIA 접근성(role=combobox/listbox, aria-expanded/controls/selected). 14개 테스트 PASS
-- **Phase 15-A-1: TagAutocomplete 품질 개선 6건** (02-24): validate-tags 스키마 동기화(ValidateTagsResponse + response_model), Tag deprecation 필드 API 노출(TagSearchResponse, is_active 정렬, 취소선 UI), API debounce 300ms, 한국어/유니코드 검색(ko_name ilike, 한글 1자 트리거), wd14_count 드롭다운 표시(K/M 포맷), 태그 선택 후 ", " 자동 삽입. Backend 25 + Frontend 9 테스트
-- **Pipeline Prompt Quality 근본 수정** (02-24): SB#469 검수 기반 P0 3건+P1 2건+P2 1건. (1) `_sanitize_quality_tags()` — `high_quality`→`best_quality` 자동 치환, `create_style_profiles.py` 소스 정리. (2) `_inject_default_context_tags()` emotion→expression 파생(44개 매핑). (3) Scene LoRA 트리거 워드 주입 — `LoRAInfo` 클래스 도입, `_get_lora_info()` trigger_words 포함, scene-triggered/auto-triggered 양쪽 주입. (4) `validate_context_tag_categories()` — 잘못된 카테고리 재분류(gaze=crying→expression), 비표준 mood drop. (5) `check_camera_diversity()` >50% 반복 시 소프트 경고. (6) `_coerce_str()` — Gemini 리스트 반환 방어. 37개 테스트 추가 (160 PASS)
-- **Phase 15-A-0-4: 편집 지시문 Before/After diff UI** (02-23): `prompt_editor.py` Gemini 기반 자연어 지시→프롬프트 태그 편집 서비스(SHA256 캐시, 캐릭터 identity 태그 보존). `/prompt/edit-prompt` API. `PromptEditDiff.tsx` 3-phase diff UI(loading/diff/error). `computeTokenDiff` 공통 유틸리티 추출(`promptDiff.ts`). SceneGeminiModals 2-phase(input→diff) 전환, Character GeminiEditModal 동일 적용. 기존 이미지 편집(~$0.04) 버튼 병존. 8개 테스트 추가
-- **Phase 15-A-0-3: KO → EN 변환 diff UI** (02-23): `ko_translator.py` Gemini 기반 한글 장면 묘사→Danbooru 태그 변환 서비스(SHA256 캐시, 캐릭터 identity 태그 제외). `/prompt/translate-ko` API. `PromptTranslateDiff.tsx` 토큰 레벨 diff UI(added/removed/kept 색상 구분, 적용/취소). ScenePromptFields 통합. 8개 테스트 추가
-- **Phase 15-A-0-1,2: `/compose` API 레이어 분해 + ComposedPromptPreview 레이어 뷰** (02-23): `_flatten_layers()`에서 레이어별 토큰 캡처, `LAYER_NAMES` 상수, `get_last_composed_layers()` accessor 추가. `PromptComposeResponse.layers` 필드. Frontend 3-way 뷰모드(Layers/Grouped/Linear), `LayerView`/`GroupedView`/`LinearView` 서브컴포넌트 추출. Multi-char 씬은 layers=None→Layers 탭 비활성+Grouped fallback. 7개 테스트 추가 (전체 118 PASS)
-- **Prompt Input UX 기능 명세 작성** (02-23): `FEATURES/PROMPT_INPUT_UX.md` 531줄. 19개 입력 포인트 전수 분석, 5 Phase(A-0~B) 설계, 프롬프트 생애주기 맵핑, 에러 처리 정책 수립. 7 에이전트 리뷰 8 BLOCKER 수정 완료
-- **Audio Server 사이드카 분리** (02-23): TTS(Qwen3-TTS 1.7B)+MusicGen-Small을 독립 Docker 컨테이너(`audio/`)로 분리. Backend에서 ML 의존성(torch, qwen-tts, librosa, soundfile) 제거, httpx 기반 audio_client.py(Circuit Breaker) 추가. Backend 즉시 기동, Audio Server 독립 warm-up. docker-compose.audio.yml, 4개 호출사이트 교체, 테스트 8개 추가
-- **v3_composition.py 하드코딩 상수 → config.py SSOT 이동** (02-23): 22개 상수(가중치 8+태그셋 12+문자열 2) config_prompt.py 분리, 중복 키워드셋 4개 삭제→CATEGORY_PATTERNS 재사용(_pattern_tags_by_category 캐시), patterns.py quality에 리얼리스틱 태그 7개 추가. v3_composition.py 1113→1014줄(-99). 111개 테스트 PASS
-- **Frontend Validate / Fix All 제거** (02-23): 하드코딩 키워드 리스트 기반 프론트엔드 프롬프트 검증 제거. Fix All이 범용 기본값(standing, plain background) 삽입으로 품질 저하. Autopilot images→validate→render → images→render 2단계로 단순화. validation.ts/FixSuggestionsPanel.tsx 삭제, 14파일 수정, -1,275줄. WD14 이미지 검증은 유지
-- **Compose 중개 제거 리팩토링** (02-23): Frontend `/compose`→`/validate`→`/generate` 3회 왕복 → `/generate` 1회로 통합. Backend `context_tags` 필드 추가, `_handle_character_scene/background_scene`에서 자동 병합. `buildScenePrompt` async→sync(56줄→3줄). `prompt_pre_composed` deprecated. `autoComposePrompt` 토글 제거(Backend negative 합성으로 대체). 테스트 11개 추가(Backend 43개 PASS)
-- **Cinematographer → Ken Burns 씬별 연결** (02-22): 감정/서사 기반 Ken Burns 모션 자동 지정. motion.py EMOTION_MOTION_MAP(27감정→프리셋), suggest_ken_burns_preset(). Finalize _validate_ken_burns_presets() 검증+fallback. Cinematographer 템플릿 Rule 15. VideoScene.ken_burns_preset 필드. resolve_scene_preset() 씬별>전역 우선순위. Frontend 전 경로 연결(mapGeminiScenes/mapEventScenes/sync/render). 테스트 22개 추가
-- **파이프라인 → Frontend 씬 필드 매핑 갭 수정** (02-22): Finalize `_flatten_tts_designs()` — tts_design dict → voice_design_prompt/head_padding/tail_padding flat fields 분해. `scenes.controlnet_pose` 컬럼 추가 (DB_SCHEMA v3.29). Frontend 전 경로(mapGeminiScenes/mapEventScenes/sync/load/persist/autoSave/save/render)에 5필드 매핑 보강. 11파일 수정
-- **DB 정합성 수정: bgm_mode 기본값 + gender_locked 설정 경로** (02-22): `render_presets.bgm_mode` 3행 NULL → 'manual' 기본값 + NOT NULL 제약 적용 (Alembic 마이그레이션). `LoRAUpdate` 스키마에 `gender_locked` 필드 추가 + Frontend EditLoraModal에 Gender Lock 드롭다운 UI 추가. PUT 페이로드 전체 전송으로 개선. DB_SCHEMA v3.28
-- **Dead 컬럼 제거** (02-22): `scenes.description` (929행 빈 값) + `creative_traces.diff_summary` (1,962행 NULL) DROP. Alembic 마이그레이션
-- **Duration 부족 검증 + 자동 보정** (02-22): 목표 45s→실제 33.5s(25% 미달) 버그 수정. 3단 방어 구조 — (1) Review 노드에 총 duration < 85% 검증 추가, (2) Revise Tier 1.5 `redistribute_durations()` 비례 확대 + 2차 gap 보정, (3) Finalize `_ensure_minimum_duration()` 최종 안전장치. `DURATION_DEFICIT_THRESHOLD` 상수화. 11개 신규 테스트 (33개 PASS)
-- **LLM 하드코딩 제거 3종** (02-22): Phase 14-A. (1) `negative_prompt_extra` — Cinematographer가 씬별 배제 태그 직접 결정, Finalize에서 기본 negative와 병합. (2) `detect_pose_from_prompt()` 96줄→10줄 단순화 — synonym 77개 삭제, LLM이 포즈를 직접 선택하므로 exact longest-match fallback만 유지. (3) Environment 정규화 — `context_tags.setting`→`environment` 통일, `_check_keyword_conflict()` 8개 키워드 삭제. 신규 테스트 10개, 전체 98개 PASS
-- **Zustand isDirty subscribe + debounce 자동 저장** (02-22): `updateScene`/`setScenes` 후 수동 `saveStoryboard()` 누락으로 DB 미저장되던 반복 버그 방지. `store/effects/autoSave.ts` 신규 모듈 — isDirty `false→true` 변경 감지 → 2초 debounce → `persistStoryboard()`. isSaving guard + 저장 완료 후 재확인. sceneActions/batchActions/imageActions 수동 save 6곳 제거, 즉시 저장 필요한 곳(upload/edit/generate) 유지. 테스트 6개
-- **SSE 이벤트에 controlnet_pose/ip_adapter_reference 전달** (02-22): 이미지 생성 결과의 ControlNet pose/IP-Adapter reference 정보를 SSE `ImageProgressEvent` → Frontend `processGeneratedImages` → Zustand 스토어에 전달. auto-save와 결합하여 DB 자동 저장. Backend 스키마+라우터, Frontend 타입+처리 로직. 테스트 4개
-- **character_actions DB 미저장 수정** (02-22): `mapEventScenes()`/`syncToGlobalStore()`에서 `context_tags`/`character_actions` 매핑 누락 → 파이프라인이 생성한 데이터가 Frontend→Backend 저장 시 유실되던 버그 수정
-- **Safety Filter 에러 Frontend 미표시 수정** (02-22): revise 노드 에러 시 review→finalize→explain→learn 체인이 에러를 삼키는 문제. `route_after_revise()` short-circuit 추가, `route_after_finalize()` 에러 시 explain 스킵, learn 에러 전파, Frontend 에러 스텝 보호. 테스트 5건
-- **레거시 mode 필드 완전 제거** (02-22): Stage-Level Skip 전환 후 잔존하던 `mode: "quick"|"full"` 필드 제거. config_pipelines(DEFAULT_MODE+레거시 프리셋), schemas(2필드), routers/scripts(fallback), state(TypedDict), learn(메타데이터→skip_stages), critic(context). 테스트 14파일 `skip_stages` 전환. 22파일 수정
-- **Stage-Level Skip 통합 아키텍처** (02-22): Quick/Full 모드 이원화 → `skip_stages: list[str]` 4단계(research, concept, production, explain) 통합. `_skip_guard.py` 모듈(노드별 스테이지 매핑+스킵 판단), 라우팅 전체 `mode`→`skip_stages` 전환, 프리셋 재편(express/standard/creator + 레거시 후방 호환), Frontend 동적 스텝 필터링. 29파일, 테스트 업데이트
-- **비활성 태그 필터링 일관성 수정** (02-22): `load_allowed_tags_from_db()`에 `is_active=True` 필터 추가, `filter_prompt_tokens()`에 `replace_deprecated_tags()` 연동하여 비활성 태그 자동 대체+차단
-- **Gemini 안전 필터 차단 수정** (02-22): Writer Planning `_create_plan()`에 safety_settings 5개 카테고리 BLOCK_NONE 추가, Creative Agent GeminiProvider에 `HARM_CATEGORY_CIVIC_INTEGRITY` 누락 보완
-- **ControlNet Pose Pipeline 완성** (02-22): Cinematographer 템플릿 포즈 28개 전체 명시, Finalize context_tags 기본 pose/gaze fallback 주입, auto_populate 태그 카테고리 검증 강화
-- **씬 플래그 파이프라인 수정 + 테스트 보강** (02-22): character_actions 파이프라인 확장 (Quick 1인 캐릭터 지원, Full 모드 Finalize 노드 통합, Cinematographer pose/gaze 카테고리 명시), StyleProfile `/full` API 응답 필드 누락 수정 (default_enable_hr 등 5개), Frontend Hi-Res 토글 양방향 동기화, ControlNet 포즈 선택 강화 (pose_hint), 테스트 보강 (generation_controlnet, scene_flags, finalize_node 등)
-- **Finalize 노드 에러 전파 수정** (02-22): Writer에서 Gemini 안전 필터 차단 시 finalize_node가 error 필드를 무시하고 빈 씬 목록(`[]`)을 HTTP 200으로 반환하던 버그 수정. finalize 진입 시 error 필드 존재하면 즉시 에러 반환하도록 수정
-- **IP-Adapter 고도화 Phase 1~3 + Seed Anchoring** (02-22): Per-character guidance_start/end 오버라이드(Phase 3-A), 실사 사진 업로드+얼굴 크롭(Phase 1-A), 멀티앵글 레퍼런스 선택(Phase 2-A), FaceID face tag suppression(Phase 3-B), 레퍼런스 품질 검증(얼굴 감지+해상도). Seed Anchoring: storyboard base_seed+scene_order 기반 결정론적 seed, 이미지 캐시(deterministic only), scene last_seed DB 저장. 마이그레이션 2건, 테스트 4파일(888줄). 코드 리뷰 후 schemas.py 이동, 캐시 로직 분리 등 6건 수정
-- **Cinematographer 연출력 강화 + 에이전트 경쟁** (02-22): Writer Plan 브릿지(writer_plan→템플릿 전달), 시네마틱 기법/내러티브-비주얼/감정-비주얼 규칙(Rule 11-13) 추가, 3 Lens 경쟁 시스템(Full 모드: Tension/Intimacy/Contrast 병렬 실행+6차원 스코어링), search_similar_compositions 매트릭스 확장(16개 mood×scene_type, Danbooru 검증 태그), Director revise_script 루프 조기 종료. 13개 신규 테스트 (총 73개 PASS)
-- **StyleProfile별 Hi-Res 기본값 자동 적용** (02-21): `style_profiles`에 `default_enable_hr` Boolean 컬럼 추가(v3.25). `_adjust_parameters()`에서 StyleProfile의 Hi-Res 설정 자동 적용. Realistic(True, 512→768 업스케일 필수) vs Anime(False). Frontend StyleProfileEditor에 Hi-Res 체크박스 UI 추가. DB_SCHEMA v3.25
-- **StyleProfile 화풍별 생성 파라미터 자동 적용** (02-21): `style_profiles`에 `default_steps/cfg_scale/sampler_name/clip_skip` 4컬럼 추가. Realistic(steps=6, CFG 1.5, DPM++ SDE Karras, clip_skip=1) vs Anime(steps=28, CFG 7.0, DPM++ 2M Karras, clip_skip=2) 자동 오버라이드. 씬 생성(`_adjust_parameters`)+캐릭터 프리뷰(`preview.py`) 양쪽 적용. Frontend StyleProfileEditor에 Generation Parameters UI 추가. complexity boost 우회 수정. E2E 검증 완료: Yuna/Jimin 프리뷰 재생성 + storyboard 455 씬 생성. DB_SCHEMA v3.24
-- **FaceID IP-Adapter 얼굴 유사도 개선** (02-21): faceid control_mode "Balanced"→"ControlNet is more important"(얼굴 정체성 보존 우선), auto-enable weight 우선순위 수정(캐릭터>request>default). 정면 포트레이트 레퍼런스 생성 테스트 완료. 고도화 과제로 이관
-- **TagClassifier Danbooru 비동기 전환 + Circuit Breaker** (02-21): `/tags/classify` 실시간 Danbooru 호출이 서버 블로킹 유발하던 문제 해결. Step 1-2(Rules+DB캐시) 즉시 반환, Step 3(Danbooru)는 `BackgroundTasks`로 비동기 처리. Circuit breaker 추가(3회 연속 실패 → 60초 스킵), 타임아웃 15초→3초 축소
-- **Style Profile 기반 IP-Adapter 모델 자동 선택** (02-21): `style_profiles.default_ip_adapter_model` 컬럼 추가(Anime→clip_face, Realistic→faceid). ConsistencyResolver 3단계 우선순위(캐릭터>스타일프로필>기본값). Alembic 마이그레이션+데이터, joinedload N+1 방지
-- **캐릭터 프리뷰 Checkpoint 전환 누락 수정** (02-21): `regenerate_reference()`와 `generate_wizard_preview()`에서 StyleProfile의 SD 모델로 전환하는 `_ensure_correct_checkpoint()` 호출이 누락되어 Realistic 캐릭터가 Anime 모델로 생성되던 버그 수정. Realistic 남녀 캐릭터(Yuna/Jimin) 생성 검증 완료
-- **characters.project_id 제거** (02-21): 미사용 FK 정리. ORM/스키마/라우터/서비스/Frontend 타입·훅에서 project_id 완전 제거. Alembic 마이그레이션 적용, DB_SCHEMA v3.23. 12개 파일 수정, 테스트 3파일 정리
-- **Phase 8-1 #4 base_model UI 표시** (02-21): LoRA/Embedding base_model 의존성 필터링 + lora_type 정리, StyleTab에 base_model 회색 배지 추가(Embedding 리스트+LoRA 카드), StyleProfileEditor에 필터 안내 서브텍스트
-- **Phase 8-1 #2 Style Profile UI 개선** (02-21): StyleTab 카드 보강(SD Model/LoRA/캐릭터 수 배지, is_default, display_name), StyleProfileEditor 메타데이터 필드(display_name, description, is_default) + 연결된 캐릭터 목록, DebouncedInput으로 API 호출 최적화, EditLoraModal 컴포넌트 분리
-- **캐릭터 상세 화풍 배지** (02-21): 캐릭터 상세 페이지 헤더에 style_profile_name 읽기 전용 배지 추가. Hana/Sora 캐릭터 화풍 매핑 (Studio Ghibli)
-- **Phase 8-1 Style-Character Hierarchy** (02-21): `characters.style_profile_id` FK 추가, Alembic 스키마+데이터 마이그레이션(6캐릭터 역매핑), GET /characters?style_profile_id 필터, Wizard Step 0(화풍 선택), LoRA base_model 호환성 필터. Backend 14파일 + Frontend 7파일, DB_SCHEMA v3.22
-- **Phase 8-0 Realistic Style Quick Fix** (02-21): Anime 전용 embedding 범용화, Realistic StyleProfile 개선, LoRA `base_model` 필드, StyleContext SD모델 확장, Checkpoint 자동 전환, LoRA 호환성 경고. 6건 수정 + 7개 신규 테스트
-- **SSE 스트림 에러 수정** (02-20): video/scene progress SSE 제너레이터에 예외 처리 추가. 클라이언트 disconnect 시 `ERR_INCOMPLETE_CHUNKED_ENCODING` 해소 (CancelledError 핸들링)
-- **캐릭터 프리뷰 Gemini 기능 복원** (02-20): Phase 7-Y 리팩토링 시 누락된 Enhance(Gemini 보정)+Edit(자연어 편집) 복원. Regen/Enhance/Edit 3버튼 배치, GeminiEditModal 신규 생성
-- **캐릭터 태그 정비 + 개성화** (02-20): 8캐릭터 identity/clothing 태그 분리(is_permanent 정정), 비표준 태그(a_cute_girl, anime_style) 제거, 캐릭터별 개성 의상 재설계. Ghibli 캐릭터(Hana/Sora) auto 모드 전환
-- **Studio Ghibli LoRA + Style Profile** (02-20): Civitai model 6526 등록, Style Profile "Studio Ghibli" 생성, Hana(여)/Sora(남) 캐릭터 생성
-- **BGM 모드 리팩토링** (02-20): 3-mode(file/ai/auto) → 2-mode(manual/auto) 단순화. Manual=Music Preset 선택(bgm_file 폴백), Auto=Sound Designer 자동. Alembic 마이그레이션, 후방 호환 매핑(file/ai→manual), Frontend localStorage migrate. 19개 테스트, 5개 문서 업데이트
-- **Phase 13-A Performance Quick Wins** (02-20): Review Gemini 3회→1회 통합 호출(~70% 단축), Learn Store 4개 병렬화, Studio loadGroupDefaults 병렬화, Narrative weight 불일치 버그 수정. 6개 테스트 추가
-- **TTS 비음성 씬 선별 (Speakable Flag)** (02-20): Writer→TTS 파이프라인에 `speakable` 플래그 도입. `has_speakable_content()` 게이트 + TTS Designer skip 가이드. 13개 테스트 추가
-- **Phase 13 Creative Control & Production Speed 완료** (02-20): 19건 완료. 성능 최적화, 이미지 UX, Structure 템플릿, Clothing Override. [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md)
-- **Phase 12 Agent Enhancement & AI BGM 완료** (02-20): 26건 완료. Agent Bug Fix 5건, Data Flow 10건, 3-Mode BGM 6건, Gemini Model Upgrade 5건. [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md)
-- **Cinematographer 프롬프트 품질 개선** (02-20): 5개 버그 수정 — negative_prompt Finalize 주입(Full+Quick), characters_tags+LoRA 템플릿 전달, 장면별 오브젝트 가이드, 환경 태그 남용 제약, search_similar_compositions DB 연동. 9개 신규 테스트 (총 63개 PASS)
-- **Duration Auto-Calculation from Reading Time** (02-20): Duration을 파생 값으로 전환. `config.py` READING_SPEED SSOT → `estimate_reading_duration()` → writer/gemini_generator/revise_expand 후처리. QC FAIL→WARN 완화, Frontend 하드코딩 제거→API 소비. 20개 파일, 10개 신규 테스트
-- **Cinematographer 한글 장면설명 표시** (02-20): `CinematographerSection`에 `image_prompt_ko` 표시 추가. 백엔드에서 이미 생성하던 한글 설명을 UI에 노출
-- **Gemini 코드 리뷰 + BLOCKER 수정** (02-20): `gemini_generator.py` preset.system_prompt AttributeError 수정, Frontend UI 패딩/레이아웃 일관성 개선
-- **Phase 11 전체 완료** (02-20): P0~P3 10건 + P2+ 4건. 정면 편향 해소, gaze 5종, 정면 비율 22%. [아카이브](../99_archive/archive/ROADMAP_PHASE_11.md)
-- **Pipeline 고도화 + UX 개선** (02-19~20): Tier 2 5건 완료, Director-as-Orchestrator, Safety Preflight, Pydantic 전환, Research 점수 체계. 200+ 테스트 추가. [아카이브](../99_archive/archive/ROADMAP_PHASE_11.md)
+- **Phase 15-B: Visual Tag Browser** (02-24): Tag 모델 `thumbnail_asset_id` FK + Danbooru `get_post_image()` + `tag_thumbnail.py` 배치 수집 서비스 + `POST /admin/tag-thumbnails/generate` 엔드포인트. TagSuggestionDropdown 32px 미니 썸네일 + TagBrowserTab Lab 탭 (6그룹 사이드바 + 128×128 카드 그리드). 19개 테스트
+- **TTS 게이팅 강화 + MusicGen 타임아웃 분리** (02-24): 1글자 감탄사(네?, 아...)가 TTS 3회 재시도 실패하던 문제 해결. `TTS_MIN_SPEAKABLE_CHARS=2` 최소 글자 수 체크, `MUSIC_TIMEOUT_SECONDS=600`(10분) 전용 타임아웃 분리. 6개 테스트 추가
+- **Phase 16-D-4: ConsistencyPanel + DriftHeatmap** (02-24): 캐릭터 시각적 일관성 히트맵 시각화. `useConsistency` hook, `DriftHeatmap`(7그룹×N씬 매트릭스), `DriftDetailView`, `ConsistencyPanel`. SceneInsightsContent 통합. 8개 테스트
+- **Phase 16-D: Cross-Scene Consistency Backend** (02-24): `extract_identity_signature()`, `identity_score`/`identity_tags_detected` DB 캐시, `consistency.py`(5상태 drift 매트릭스), `GET /quality/consistency/{storyboard_id}` API. 21개 테스트
+- **Render Preset Music Preset 선택 UI** (02-24): BGM Mode "Manual" 시 Music Preset 드롭다운 추가. `music_preset_id` 필드, auto null 초기화. 2개 테스트
+- **Phase 16-B: Adjusted Match Rate** (02-24): WD14 감지 가능 그룹(14종)만으로 match_rate 재계산. `WD14_DETECTABLE_GROUPS` SSOT, `adjusted_match_rate` 필드, 비감지 그룹 effectiveness 제외. 11개 테스트
+- **Audio Pipeline 버그 수정 2건** (02-24): BGM 자동 루핑(`asplit`+`acrossfade`), TTS 서킷 브레이커 씬 단위 전환. 24개 테스트
+- **Phase 16-A: Critical Failure Detection** (02-24): 성별 반전/인물 부재/인물수 불일치 자동 감지. `detect_critical_failure()`, Frontend 빨간 배지+토스트. 21개 테스트
+- **Phase 16-0: WD14 Effectiveness 필터링 제거** (02-24): "death spiral" 문제 수정. 167개 태그 부당 필터링 해소. 26개 테스트
+- **Phase 15-A-3: 태그 검증 확산** (02-24): `useTagValidationDebounced` 래퍼 훅, 5개 컴포넌트 TagValidationWarning 적용. 12개 테스트
+- **씬 Override 동적 그룹 + Prompt Builder weight 파싱** (02-24): 런타임 그룹 수집(OCP), `_strip_weight()` SD weight 구문 파싱, expression/gaze override 수정. 35개 테스트
+- **Phase 15-A-2: TagAutocomplete 확산 8곳** (02-24): TagSuggestionDropdown/useTagSuggestion/TagSuggestInput 공유 컴포넌트, WAI-ARIA 접근성. 14개 테스트
+- **Phase 15-A-1: TagAutocomplete 품질 개선 6건** (02-24): 스키마 동기화, deprecation 표시, debounce 300ms, 한국어 검색, wd14_count 포맷. 34개 테스트
+- **Pipeline Prompt Quality 근본 수정** (02-24): SB#469 검수 P0 3건+P1 2건. quality 태그 정규화, emotion→expression, LoRA 트리거 주입, 카테고리 재분류, camera 다양성 경고. 37개 테스트
+- **Phase 15-A-0: 조합 프롬프트 미리보기** (02-23): 레이어 분해 API, 3-way 뷰모드(Layers/Grouped/Linear), KO→EN 변환 diff, 편집 지시문 diff. 23개 테스트
+- **Audio Server 사이드카 분리** (02-23): TTS+MusicGen → Docker 컨테이너, httpx audio_client.py(Circuit Breaker). 8개 테스트
+- **Compose 중개 제거 + Validate 제거** (02-23): Frontend 3회 왕복→1회 통합, Fix All 삭제(-1,275줄). 11개 테스트
+- **02-20~02-22 작업 (48건)**: Phase 8/14 구현, IP-Adapter 고도화, Cinematographer 강화, Stage-Level Skip, Ken Burns 연결, Seed Anchoring, Duration 검증 등. [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md)
 - **렌더링 품질 개선** (02-14~17): Scene Text 동적 높이/폰트, Safe Zone, 얼굴 감지, TTS 정규화. 52개 테스트
 
 ---
 
 ## Completed Phases (ARCHIVED)
-
-모든 Phase가 완료되어 아카이브됨. 각 Phase 상세는 아카이브 링크 참조.
 
 | Phase | 이름 | 핵심 성과 | 아카이브 |
 |-------|------|----------|----------|
@@ -107,15 +56,18 @@
 | 7-2 | Project/Group System | 채널/시리즈 계층, 설정 상속 엔진, Channel DNA | [명세](FEATURES/PROJECT_GROUP.md) |
 | 7-3 | Production Workspace | /voices, /music, /backgrounds 독립 페이지 | [아카이브](../99_archive/archive/ROADMAP_PHASE_7_3.md) |
 | 7-4 | Studio + Script Vertical | Zustand 4-Store 분할, /scripts 페이지, 칸반/타임라인 뷰 | [명세](FEATURES/STUDIO_VERTICAL_ARCHITECTURE.md) |
-| 7-5 | UX/UI Quality & Reliability | 8개 에이전트 크로스 분석, 30건 (Toast, SSE 진행률, UUID, 페이지네이션 등) | [아카이브](../99_archive/archive/ROADMAP_PHASE_7_5.md) |
-| 7-6 | Scene UX Enhancement | Figma 기반 씬 편집 UX, 완성도 dot, 3탭 분리, DnD, Publish 통합 | [명세](FEATURES/SCENE_UX_ENHANCEMENT.md) |
+| 7-5 | UX/UI Quality & Reliability | 8개 에이전트 크로스 분석, 30건 (Toast, SSE, UUID, 페이지네이션) | [아카이브](../99_archive/archive/ROADMAP_PHASE_7_5.md) |
+| 7-6 | Scene UX Enhancement | Figma 기반 씬 편집, 완성도 dot, 3탭 분리, DnD, Publish 통합 | [명세](FEATURES/SCENE_UX_ENHANCEMENT.md) |
 | 7-Y | Layout Standardization | Library+Settings 분리, 공유 레이아웃, 네비 4탭, Setup Wizard | [아카이브](../99_archive/archive/ROADMAP_PHASE_7_Y.md) |
 | 7-Z | Home Dashboard & Publish UX | 창작 대시보드 전환, 2-Column Home, 3-Column Publish | [아카이브](../99_archive/archive/ROADMAP_PHASE_7_Z.md) |
+| 8 | Multi-Style Architecture | StyleProfile, LoRA base_model, Checkpoint 자동 전환, IP-Adapter 모델 선택, Hi-Res 기본값 | [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md) |
 | 9 | Agentic AI Pipeline | LangGraph 17-노드, Memory Store, LangFuse, Concept Gate, NarrativeScore | [아카이브](../99_archive/archive/ROADMAP_PHASE_9.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
-| 10 | True Agentic Architecture | ReAct Loop, Director-as-Orchestrator, Gemini Function Calling 9 tools, Agent Communication, 3-Architect Debate | [아카이브](../99_archive/archive/ROADMAP_PHASE_10.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
-| 11 | Scene Diversity & Frontal Bias Fix | 정면 편향 해소 10건, Gaze 5종 다양화, 정면 비율 22%, P0~P3+P2+ 14항목, Tier 2 Pipeline 고도화 5건 | [아카이브](../99_archive/archive/ROADMAP_PHASE_11.md) |
+| 10 | True Agentic Architecture | ReAct Loop, Director-as-Orchestrator, Gemini Function Calling, 3-Architect Debate | [아카이브](../99_archive/archive/ROADMAP_PHASE_10.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
+| 11 | Scene Diversity & Frontal Bias Fix | 정면 편향 해소, Gaze 5종, 정면 비율 22%, Tier 2 Pipeline 고도화 | [아카이브](../99_archive/archive/ROADMAP_PHASE_11.md) |
 | 12 | Agent Enhancement & AI BGM | Agent Bug Fix 5건, Data Flow 10건, 3-Mode BGM, Gemini Model Upgrade | [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md) |
-| 13 | Creative Control & Production Speed | 성능 최적화 5건+13-A 4건, 이미지 UX 5건, Structure 템플릿 6건, Clothing Override 3건 | [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md) |
+| 13 | Creative Control & Production Speed | 성능 최적화 9건, 이미지 UX 5건, Structure 6건, Clothing Override 3건 | [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md) |
+| 14 | ControlNet Pose Pipeline | 포즈 28개 명시, pose/gaze fallback, LLM 하드코딩 제거 3종 | [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md) |
+| 16 | WD14 Smart Validation | Effectiveness 필터링 제거, Critical Failure, Adjusted Match Rate, Identity Ranking, Cross-Scene Consistency | [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md) · [명세](FEATURES/CROSS_SCENE_CONSISTENCY.md) |
 
 ---
 
@@ -162,58 +114,8 @@ graph LR
     style P8 fill:#4CAF50,color:#fff
     style P14 fill:#4CAF50,color:#fff
     style P15 fill:#2196F3,color:#fff
-    style P16 fill:#FF9800,color:#fff
+    style P16 fill:#4CAF50,color:#fff
 ```
-
----
-
-## Phase 8: Multi-Style Architecture
-
-**목표**: Anime, Realistic, 3D 등 다양한 화풍 지원을 위한 유연한 파이프라인 구축.
-
-### Phase 8-0: Realistic Style Quick Fix (완료 2026-02-21)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | DEFAULT_SCENE/REFERENCE_NEGATIVE_PROMPT에서 Anime 전용 embedding 제거 | ✅ |
-| 2 | Realistic StyleProfile 개선 (negative_embeddings=[], 품질/negative 태그) | ✅ |
-| 3 | LoRA `base_model` 필드 추가 (ORM + 마이그레이션 + 스키마) | ✅ |
-| 4 | StyleContext에 `sd_model_name`, `sd_model_base` 추가 | ✅ |
-| 5 | 이미지 생성 전 Checkpoint 자동 전환 (`_ensure_correct_checkpoint`) | ✅ |
-| 6 | Character LoRA 호환성 경고 (base_model 불일치 시 warning) | ✅ |
-
-### Phase 8-1: Multi-Style Full Support (완료 02-21, 8/8)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | Style-Character Hierarchy (캐릭터 ↔ 화풍 연결) | ✅ (02-21) |
-| 2 | Style Profile UI (Frontend 관리 화면) | ✅ (02-21) |
-| 3 | Negative Embedding 스타일별 자동 주입 | ✅ (02-21) |
-| 4 | LoRA/Embedding base_model 필터링 + UI 표시 | ✅ (02-21) |
-| 5 | 화풍별 생성 파라미터 자동 적용 (steps/cfg/sampler/clip_skip) | ✅ (02-21) |
-| 6 | IP-Adapter 모델 자동 선택 (clip_face/faceid) | ✅ (02-21) |
-| 7 | 캐릭터 프리뷰 Checkpoint 자동 전환 | ✅ (02-21) |
-| 8 | Hi-Res 기본값 자동 적용 (default_enable_hr) | ✅ (02-21) |
-
----
-
-## Phase 14: ControlNet Pose Pipeline 완성
-
-**목표**: ControlNet 포즈가 실질적으로 작동하도록 파이프라인 갭 해소. Cinematographer → Finalize → auto_populate → ControlNet 전 경로에서 포즈 데이터 누락 방지.
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | Cinematographer 템플릿 Available Poses 28개 전체 명시 | ✅ (02-22) |
-| 2 | Finalize context_tags 누락 시 기본 pose/gaze 주입 | ✅ (02-22) |
-| 3 | auto_populate 태그 카테고리 검증 (category mismatch 방지) | ✅ (02-22) |
-
-### Phase 14-A: LLM 하드코딩 제거 (완료 02-22, 3/3)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | 씬별 LLM Negative Prompt (`negative_prompt_extra` 필드, Finalize 병합) | ✅ (02-22) |
-| 2 | `detect_pose_from_prompt()` 단순화 (synonym 삭제, exact longest-match) | ✅ (02-22) |
-| 3 | Environment Consistency 정규화 (`setting`→`environment`, keyword 충돌 삭제) | ✅ (02-22) |
 
 ---
 
@@ -221,7 +123,7 @@ graph LR
 
 **목표**: 19개 프롬프트 입력 포인트에 "미리보기 → 확인 → 실행" 원칙 적용. TagAutocomplete 품질 개선 및 확산, 태그 검증 시스템 확산. [상세 명세](FEATURES/PROMPT_INPUT_UX.md)
 
-### Phase A-0: 조합 프롬프트 미리보기
+### Phase A-0: 조합 프롬프트 미리보기 (완료 02-23)
 
 | # | 항목 | 상태 |
 |---|------|------|
@@ -230,7 +132,7 @@ graph LR
 | 3 | 장면 묘사 → 이미지 프롬프트 변환 diff UI (승인 전 미적용) | ✅ (02-23) |
 | 4 | 편집 지시문 Before/After diff UI (승인 전 미적용) | ✅ (02-23) |
 
-### Phase A-1: TagAutocomplete 품질 개선
+### Phase A-1: TagAutocomplete 품질 개선 (완료 02-24)
 
 | # | 항목 | 상태 |
 |---|------|------|
@@ -241,7 +143,7 @@ graph LR
 | 5 | 폐기 태그 `deprecated_reason` + 대체 태그 표시 | ✅ (02-24) |
 | 6 | Frontend-Backend 검증 스키마 동기화 (`validate-tags` 응답 통일) | ✅ (02-24) |
 
-### Phase A-2: TagAutocomplete 확산 (8곳, 완료 02-24)
+### Phase A-2: TagAutocomplete 확산 (완료 02-24)
 
 | # | 항목 | 상태 |
 |---|------|------|
@@ -256,68 +158,15 @@ graph LR
 | 2 | StyleProfile Positive/Negative 검증 적용 | ✅ (02-24) |
 | 3 | Scene Negative, ClothingModal 검증 적용 | ✅ (02-24) |
 
-### Phase B: Visual Tag Browser
+### Phase B: Visual Tag Browser (완료 02-24)
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | 태그별 대표 이미지 (Image Provider 추상화) | [ ] |
-| 2 | 카테고리별 그리드 탐색 | [ ] |
-| 3 | TagAutocomplete 드롭다운 미니 썸네일 | [ ] |
-| 4 | 독립 태그 탐색 패널 | [ ] |
+| 1 | Image Provider + DB 스키마 + Danbooru 수집 (Backend 인프라) | ✅ (02-24) |
+| 2 | 드롭다운 미니 썸네일 (8곳 적용) | ✅ (02-24) |
+| 3 | 태그 탐색 패널 — Lab 탭 (카테고리 그리드 + 독립 패널 통합) | ✅ (02-24) |
 
 > Phase B 상세: [VISUAL_TAG_BROWSER.md](FEATURES/VISUAL_TAG_BROWSER.md)
-
----
-
-## Phase 16: WD14 Smart Validation
-
-**목표**: "WD14로 태그를 지우지 말고, WD14로 이미지를 검증하라". WD14가 신뢰 가능한 39개 태그 영역(의류, 성별, 머리, 표정, 포즈)에 집중하여 생성 품질을 검증하고 캐릭터 일관성을 보장한다.
-
-**배경**: WD14 tag_effectiveness 기반 프롬프트 필터링이 프롬프트 품질을 오히려 저하시키는 "death spiral" 문제 발견 (2026-02-24). WD14는 9,083개 태그 중 ~39개(15%)만 신뢰 가능하게 감지하며, 나머지 85%(구도, 조명, 눈색, 스타일)는 감지 불가. effectiveness=0인 167개 태그(63%) 중 상당수가 `blue_eyes`, `close-up`, `backlighting` 등 유효한 Danbooru 태그.
-
-### Phase 16-0: Effectiveness 필터링 제거 (완료 02-24)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | `filter_prompt_tokens()` effectiveness 기반 태그 삭제 제거 | ✅ (02-24) |
-| 2 | `_load_processed_tags()` effectiveness 기반 Gemini 태그 선택지 제한 제거 | ✅ (02-24) |
-| 3 | 테스트 업데이트 (26개 PASS) | ✅ (02-24) |
-
-### Phase 16-A: Critical Failure Detection (완료 02-24)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | `detect_critical_failure()` — 성별 반전/인물 부재/인물수 불일치 감지 | ✅ (02-24) |
-| 2 | `validate_scene_image()` 응답에 `critical_failure` 필드 추가 | ✅ (02-24) |
-| 3 | Frontend 경고 UI (Critical Failure 시 빨간 배지 + 토스트) | ✅ (02-24) |
-
-### Phase 16-B: Adjusted Match Rate (완료 02-24)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | `WD14_DETECTABLE_GROUPS` 상수 정의 (subject, hair_color, clothing 등 14종) | ✅ (02-24) |
-| 2 | `compute_adjusted_match_rate()` — 감지 가능 태그만으로 match_rate 재계산 | ✅ (02-24) |
-| 3 | API 응답에 `adjusted_match_rate` + `match_rate` 분리 (하위 호환) | ✅ (02-24) |
-| 4 | `_increment_tag_effectiveness()` 비감지 그룹 태그 제외 | ✅ (02-24) |
-
-### Phase 16-C: Auto-Regeneration + Identity Ranking
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | Critical Failure 시 seed 변경 자동 재생성 (최대 2회) | ✅ (02-24) |
-| 2 | `compute_identity_score()` — 캐릭터 identity 태그 일치도 계산 | ✅ (02-24) |
-| 3 | 후보 랭킹: identity_score 1순위 → adjusted_match_rate 2순위 | ✅ (02-24) |
-
-### Phase 16-D: Cross-Scene Consistency (씬 간 캐릭터 일관성)
-
-> 명세: [CROSS_SCENE_CONSISTENCY.md](FEATURES/CROSS_SCENE_CONSISTENCY.md) (02-24 작성)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | `CharacterSignature` — 캐릭터 시각적 시그니처 추출 + DB 확장 (D-1) | [ ] |
-| 2 | Drift 알고리즘 — 그룹별 가중치 기반 일관성 점수 (D-2) | [ ] |
-| 3 | `GET /quality/consistency/{storyboard_id}` API (D-3) | [ ] |
-| 4 | Frontend ConsistencyPanel + DriftHeatmap (D-4) | [ ] |
 
 ---
 
@@ -331,38 +180,17 @@ Phase 9 이후 또는 우선순위 미정 항목.
 |------|------|
 | VEO Clip (Video Generation 통합) | [명세](FEATURES/VEO_CLIP.md) |
 | ~~Visual Tag Browser (태그별 예시 이미지)~~ | → Phase 15-B |
-| ~~Scene Clothing Override (장면별 의상 변경)~~ | ✅ Phase 13-D 완료 |
-| ~~Scene 단위 자연어 이미지 편집~~ | ✅ Phase 13-B 완료 |
-| ~~Style-Character Hierarchy (캐릭터 ↔ 화풍 연결)~~ | ✅ Phase 8-1 완료 |
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Storyboard Version History | — |
-| ~~Real-time Prompt Preview (12-Layer)~~ | → Phase 15-A-0 |
 | IP-Adapter 캐릭터 유사도 고도화 (Phase 1~3 완료, SDXL 미착수) | [명세](FEATURES/CHARACTER_CONSISTENCY.md) |
 
 ### Intelligence & Automation
 
 | 기능 | 참조 |
 |------|------|
-| ~~Pipeline Prompt Quality — 파이프라인 프롬프트 품질 개선~~ | ✅ P0+P1+P2 완료 (02-24) |
 | Tag Intelligence (채널별 태그 정책 + 데이터 기반 추천) | [명세](FEATURES/PROJECT_GROUP.md) §2-2 |
 | Series Intelligence (에피소드 연결 + 성공 패턴 학습) | [명세](FEATURES/PROJECT_GROUP.md) §2-3 |
 | LoRA Calibration Automation | — |
-| ~~v3_composition.py 하드코딩 프롬프트 DB/config 이동~~ | ✅ config_prompt.py 추출 완료 (02-23) |
-
-#### Pipeline Prompt Quality (SB#469 검수 기반, 완료 02-24)
-
-스토리보드 469 검수에서 발견된 8건 이슈 중 6건 수정, 1건 P2 보류, 1건 기존 설계로 이슈 아님.
-
-| # | 이슈 | 심각도 | 상태 | 수정 내용 |
-|---|------|--------|------|----------|
-| 1 | `high_quality` 비표준 품질 태그 | CRITICAL | ✅ | `_sanitize_quality_tags()` + `create_style_profiles.py` 소스 정리 |
-| 2 | Context→Prompt 미반영 | CRITICAL | 📋 P2 | 설계 의도 — `/compose` API가 이미 병합. UI 표시 개선만 필요 |
-| 3 | Context vs Script 감정 불일치 | CRITICAL | ✅ | emotion→expression 파생 (44개 매핑) |
-| 4 | `gaze=crying` 카테고리 분류 오류 | CRITICAL | ✅ | `validate_context_tag_categories()` 재분류 |
-| 5 | 비표준 mood 태그 | WARNING | ✅ | `validate_context_tag_categories()` mood drop |
-| 6 | Camera 앵글 다양성 부족 | WARNING | ✅ | `check_camera_diversity()` 소프트 경고 |
-| 7 | LoRA 위치 비일관 | WARNING | — | 12-Layer 순서 보장 (기존 설계, 이슈 아님) |
-| 8 | 트리거 워드 누락 | WARNING | ✅ | `LoRAInfo` + scene-triggered/auto-triggered 트리거 주입 |
 
 ### Infrastructure & Scale
 
@@ -372,33 +200,14 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | 배치 렌더링 + 큐 (그룹 일괄 렌더, WebSocket 진행률) | [명세](FEATURES/PROJECT_GROUP.md) §3-1 |
 | 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-2 |
 | 분석 대시보드 (Match Rate 추이, 프로젝트 간 비교) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
-| ~~Studio 초기 로딩 최적화 (useEffect 워터폴 제거, API 병렬화)~~ | ✅ Phase 13-A-2 완료 |
-| ~~Audio Server 사이드카 분리 (TTS+MusicGen → Docker 컨테이너)~~ | ✅ 완료 (02-23) |
 
 ---
 
 ## 잔여 작업 우선순위
 
-**Tier 0~2 — 전체 완료** (2026-02-19). 상세: [Phase 9](../99_archive/archive/ROADMAP_PHASE_9.md), [Phase 10](../99_archive/archive/ROADMAP_PHASE_10.md), [Phase 11](../99_archive/archive/ROADMAP_PHASE_11.md) 아카이브 참조.
+**Phase 1~14, 16 — 전체 완료**. 상세: 각 Phase 아카이브 참조.
 
-**Phase 12~13 — 전체 완료**
-
-Phase 12 (Agent Enhancement 26건) + Phase 13 (Creative Control 19건 + 13-A Quick Wins 4건) = 총 49건 완료.
-
-**Phase 16 — WD14 Smart Validation (다음 작업)**
-
-| 순위 | 작업 | 근거 |
-|------|------|------|
-| ~~1~~ | ~~16-A: Critical Failure Detection~~ | ✅ 완료 (02-24) |
-| ~~2~~ | ~~16-B: Adjusted Match Rate~~ | ✅ 완료 (02-24) |
-| ~~3~~ | ~~16-C: Auto-Regen + Identity Ranking~~ | ✅ 완료 (02-24) |
-| 4 | 16-D: Cross-Scene Consistency | 12씬 캐릭터 일관성 검증 대시보드 |
-
-**Phase 15-B — Visual Tag Browser (백로그)**
-
-| 순위 | 작업 | 근거 |
-|------|------|------|
-| 5 | B: Visual Tag Browser | Phase 16 완료 후 진행 |
+**Phase 15 — Prompt Input UX 고도화 (전체 완료, 18/18)**
 
 **Tier 3 — 장기**
 
@@ -406,4 +215,3 @@ Phase 12 (Agent Enhancement 26건) + Phase 13 (Creative Control 19건 + 13-A Qui
 |------|------|------|
 | 1 | PipelineControl 커스텀, 분산 큐 | 규모 확장 시 |
 | 2 | 배치 렌더링, 브랜딩, 분석 대시보드 | Feature Backlog |
-| 3 | ~~Multi-Style Full Support (Phase 8-1)~~ | ✅ 완료 (8/8) |

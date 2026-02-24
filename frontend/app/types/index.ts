@@ -266,6 +266,7 @@ export type Tag = {
   deprecated_reason?: string | null;
   replacement_tag_id?: number | null;
   replacement_tag_name?: string | null;
+  thumbnail_url?: string | null;
 };
 
 export type LoRA = {
@@ -909,4 +910,33 @@ export type EffectiveConfig = {
   channel_dna: ChannelDNA | null;
   render_preset: RenderPreset | null;
   sources: Record<string, string>;
+};
+
+// ============================================================
+// Cross-Scene Consistency Types (Phase 16-D)
+// ============================================================
+
+export type DriftStatus = "match" | "mismatch" | "missing" | "extra" | "no_data";
+
+export type GroupDriftResponse = {
+  group: string;
+  baseline_tags: string[];
+  detected_tags: string[];
+  status: DriftStatus;
+  weight: number;
+};
+
+export type SceneDriftResponse = {
+  scene_id: number;
+  scene_order: number;
+  character_id: number;
+  identity_score: number;
+  drift_score: number;
+  groups: GroupDriftResponse[];
+};
+
+export type ConsistencyResponse = {
+  storyboard_id: number;
+  overall_consistency: number;
+  scenes: SceneDriftResponse[];
 };

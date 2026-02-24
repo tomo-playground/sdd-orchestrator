@@ -7,8 +7,9 @@ import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import TagLabTab from "./tabs/TagLabTab";
 import SceneLabTab from "./tabs/SceneLabTab";
 import AnalyticsTab from "./tabs/AnalyticsTab";
+import TagBrowserTab from "./tabs/TagBrowserTab";
 
-const VALID_TABS: LabTab[] = ["tag-lab", "scene-lab", "analytics"];
+const VALID_TABS: LabTab[] = ["tag-lab", "scene-lab", "analytics", "tag-browser"];
 
 function isValidTab(v: string | null): v is LabTab {
   return v !== null && VALID_TABS.includes(v as LabTab);
@@ -37,6 +38,7 @@ function LabContent() {
           {activeTab === "tag-lab" && <TagLabTab />}
           {activeTab === "scene-lab" && <SceneLabTab />}
           {activeTab === "analytics" && <AnalyticsTab />}
+          {activeTab === "tag-browser" && <TagBrowserTab />}
         </div>
       </main>
     </div>
