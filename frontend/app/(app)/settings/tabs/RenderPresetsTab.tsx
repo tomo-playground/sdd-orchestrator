@@ -24,6 +24,7 @@ export default function RenderPresetsTab() {
     handleSave,
     handleCancel,
     set,
+    musicPresets,
   } = useRenderPresetsTab({ showToast, confirmDialog: confirm });
 
   const inputCls = FORM_INPUT_COMPACT_CLASSES;
@@ -64,6 +65,10 @@ export default function RenderPresetsTab() {
                 {[
                   p.layout_style,
                   p.bgm_mode ? `BGM: ${p.bgm_mode}` : null,
+                  p.music_preset_id
+                    ? (musicPresets.find((m) => m.id === p.music_preset_id)?.name ??
+                      `#${p.music_preset_id}`)
+                    : null,
                   p.bgm_volume != null ? `vol ${p.bgm_volume}` : null,
                   p.transition_type,
                   p.speed_multiplier != null && p.speed_multiplier !== 1.0
@@ -152,6 +157,25 @@ export default function RenderPresetsTab() {
                 <option value="auto">Auto</option>
               </select>
             </div>
+            {editing.bgm_mode === "manual" && (
+              <div>
+                <label className={labelCls}>Music Preset</label>
+                <select
+                  value={editing.music_preset_id ?? ""}
+                  onChange={(e) =>
+                    set("music_preset_id", e.target.value ? Number(e.target.value) : null)
+                  }
+                  className={inputCls}
+                >
+                  <option value="">-- None --</option>
+                  {musicPresets.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className={labelCls}>BGM Volume</label>
               <input

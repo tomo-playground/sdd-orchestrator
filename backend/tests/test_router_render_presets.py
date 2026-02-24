@@ -104,6 +104,7 @@ class TestRenderPresetsRouter:
             "description": "All fields",
             "bgm_file": "bgm.mp3",
             "bgm_volume": 0.3,
+            "bgm_mode": "manual",
             "audio_ducking": True,
             "scene_text_font": "NotoSans",
             "layout_style": "post",
@@ -120,6 +121,7 @@ class TestRenderPresetsRouter:
         data = resp.json()
         assert data["bgm_file"] == "bgm.mp3"
         assert data["bgm_volume"] == 0.3
+        assert data["bgm_mode"] == "manual"
         assert data["audio_ducking"] is True
         assert data["scene_text_font"] == "NotoSans"
         assert data["layout_style"] == "post"
@@ -128,3 +130,29 @@ class TestRenderPresetsRouter:
         assert data["ken_burns_preset"] == "gentle"
         assert data["ken_burns_intensity"] == 0.8
         assert data["speed_multiplier"] == 1.2
+
+    def test_music_preset_id_roundtrip(self, client):
+        """music_preset_id FK 포함 생성/수정/해제 라운드트립."""
+        # 1) MusicPreset 생성
+        mp = client.post("/music-presets", json={"name": "Test BGM", "prompt": "calm piano"})
+        mp_id = mp.json()["id"]
+
+        # 2) music_preset_id 포함 RenderPreset 생성
+        body = {"name": "With Music", "bgm_mode": "manual", "music_preset_id": mp_id}
+        pid = client.post("/render-presets", json=body).json()["id"]
+
+        resp = client.get(f"/render-presets/{pid}")
+        assert resp.status_code == 200
+        assert resp.json()["music_preset_id"] == mp_id
+        assert resp.json()["bgm_mode"] == "manual"
+
+        # 3) music_preset_id 해제 (null로 업데이트)
+        resp = client.put(f"/render-presets/{pid}", json={"music_preset_id": None})
+        assert resp.status_code == 200
+        assert resp.json()["music_preset_id"] is None
+
+    def test_music_preset_id_null_by_default(self, client):
+        """music_preset_id 미지정 시 null."""
+        pid = client.post("/render-presets", json={"name": "No Music"}).json()["id"]
+        resp = client.get(f"/render-presets/{pid}")
+        assert resp.json()["music_preset_id"] is None

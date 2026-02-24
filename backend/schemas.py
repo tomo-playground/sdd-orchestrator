@@ -82,6 +82,7 @@ class RenderPresetCreate(BaseModel):
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
     bgm_mode: Literal["manual", "auto"] = "manual"
+    music_preset_id: int | None = None
 
 
 class RenderPresetUpdate(BaseModel):
@@ -98,6 +99,7 @@ class RenderPresetUpdate(BaseModel):
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
     bgm_mode: Literal["manual", "auto"] | None = None
+    music_preset_id: int | None = None
 
 
 class RenderPresetResponse(BaseModel):

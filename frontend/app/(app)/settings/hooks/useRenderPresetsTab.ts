@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { API_BASE } from "../../../constants";
-import type { RenderPreset } from "../../../types";
+import type { MusicPreset, RenderPreset } from "../../../types";
 
 import type { UiCallbacks } from "../../../types";
 
@@ -23,6 +23,7 @@ export const EMPTY_PRESET: EditingPreset = {
   ken_burns_preset: "random",
   ken_burns_intensity: 1.0,
   speed_multiplier: 1.3,
+  music_preset_id: null,
 };
 
 // ── Hook ───────────────────────────────────────────────
@@ -36,6 +37,7 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
   // Dynamic options from API
   const [fonts, setFonts] = useState<string[]>([]);
   const [overlays, setOverlays] = useState<{ id: string; name: string }[]>([]);
+  const [musicPresets, setMusicPresets] = useState<MusicPreset[]>([]);
 
   const fetchPresets = useCallback(async () => {
     try {
@@ -46,8 +48,16 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
     }
   }, []);
 
+  const fetchMusicPresets = useCallback(() => {
+    void axios
+      .get<MusicPreset[]>(`${API_BASE}/music-presets`)
+      .then((r) => setMusicPresets(r.data))
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     void fetchPresets();
+    fetchMusicPresets();
     // Fetch dynamic options
     void axios
       .get<{ fonts: { name: string }[] }>(`${API_BASE}/fonts/list`)
@@ -57,7 +67,7 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
       .get<{ overlays: { id: string; name: string }[] }>(`${API_BASE}/overlay/list`)
       .then((r) => setOverlays(r.data.overlays))
       .catch(() => {});
-  }, [fetchPresets]);
+  }, [fetchPresets, fetchMusicPresets]);
 
   const handleCreate = useCallback(() => {
     setEditId(null);
@@ -80,6 +90,7 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
       ken_burns_preset: p.ken_burns_preset ?? "random",
       ken_burns_intensity: p.ken_burns_intensity ?? 1.0,
       speed_multiplier: p.speed_multiplier ?? 1.0,
+      music_preset_id: p.music_preset_id ?? null,
     });
   }, []);
 
@@ -134,7 +145,14 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
 
   const set = useCallback(
     (key: keyof EditingPreset, value: unknown) =>
-      setEditing((prev) => (prev ? { ...prev, [key]: value } : prev)),
+      setEditing((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, [key]: value };
+        if (key === "bgm_mode" && value === "auto") {
+          next.music_preset_id = null;
+        }
+        return next;
+      }),
     []
   );
 
@@ -151,5 +169,6 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
     handleSave,
     handleCancel,
     set,
+    musicPresets,
   };
 }
