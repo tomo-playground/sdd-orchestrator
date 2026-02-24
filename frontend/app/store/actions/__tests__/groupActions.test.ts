@@ -39,7 +39,7 @@ describe("loadGroupDefaults", () => {
         render_preset: {
           name: "Test Preset",
           bgm_file: "random",
-          bgm_volume: 0.25,
+          bgm_volume: 0.4,
         },
         sources: { render_preset_id: "group" },
       },
@@ -99,7 +99,7 @@ describe("loadGroupDefaults", () => {
         render_preset: {
           name: "Post 표준",
           bgm_file: "random",
-          bgm_volume: 0.25,
+          bgm_volume: 0.4,
           audio_ducking: true,
           scene_text_font: "온글잎 박다현체.ttf",
           layout_style: "post",

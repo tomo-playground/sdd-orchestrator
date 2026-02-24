@@ -558,7 +558,7 @@ class VideoRequest(BaseModel):
     overlay_settings: OverlaySettings | None = None
     post_card_settings: PostCardSettings | None = None
     audio_ducking: bool = True
-    bgm_volume: float = 0.25
+    bgm_volume: float = 0.4
     ducking_threshold: float = 0.01
     bgm_mode: str = "manual"  # "manual" | "auto"
     music_preset_id: int | None = None  # Music Preset (bgm_mode="manual")

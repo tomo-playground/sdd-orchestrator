@@ -39,7 +39,7 @@ def test_video_render():
         ],
         "narrator_voice": "ko-KR-SunHiNeural",
         "bgm_file": None,
-        "bgm_volume": 0.25,
+        "bgm_volume": 0.4,
         "audio_ducking": True,
         "overlay_settings": {
             "channel_name": "테스트 채널",

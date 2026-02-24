@@ -21,7 +21,7 @@
     "description": "표준 렌더링 설정",
     "is_system": true,
     "bgm_file": "bgm_chill.mp3",
-    "bgm_volume": 0.25,
+    "bgm_volume": 0.4,
     "audio_ducking": true,
     "scene_text_font": "NanumGothic.ttf",
     "layout_style": "post",

@@ -183,7 +183,7 @@ export default function RenderPresetsTab() {
                 min={0}
                 max={1}
                 step={0.05}
-                value={editing.bgm_volume ?? 0.25}
+                value={editing.bgm_volume ?? 0.4}
                 onChange={(e) => set("bgm_volume", +e.target.value)}
                 className={inputCls}
               />

@@ -327,6 +327,15 @@ async def generate_tts(
             tts_text = tts_text + "." * (10 - len(tts_text))
             logger.info(f"[TTS] Scene {i}: padded short script '{clean_script}' -> '{tts_text}'")
 
+        # Dynamic min duration based on script length (short scripts can't reach 1s)
+        speakable_len = len(clean_script.replace(".", "").replace("!", "").replace("?", "").strip())
+        if speakable_len <= 3:
+            min_duration = 0.4
+        elif speakable_len <= 6:
+            min_duration = 0.6
+        else:
+            min_duration = TTS_MIN_DURATION_SEC
+
         logger.info(f"TTS generation: script={tts_text[:50]}..., voice_seed={voice_seed}")
 
         # --- Retry loop: call Audio Server → validate duration ---
@@ -367,7 +376,7 @@ async def generate_tts(
             if duration > best_dur:
                 best_bytes, best_dur = audio_bytes, duration
 
-            if quality_passed and duration >= TTS_MIN_DURATION_SEC:
+            if quality_passed and duration >= min_duration:
                 tts_path.write_bytes(audio_bytes)
                 shutil.copy2(tts_path, cached)
                 tts_duration = builder._get_audio_duration(tts_path)

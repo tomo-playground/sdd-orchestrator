@@ -6,16 +6,20 @@ from fastapi.testclient import TestClient
 def _seed_system_preset(client: TestClient) -> dict:
     """Create a system preset via DB (simulates migration seed)."""
     # Use the API to create, then we test against it
-    res = client.post("/render-presets", json={
-        "name": "Test System",
-        "layout_style": "post",
-        "bgm_volume": 0.25,
-    })
+    res = client.post(
+        "/render-presets",
+        json={
+            "name": "Test System",
+            "layout_style": "post",
+            "bgm_volume": 0.4,
+        },
+    )
     assert res.status_code == 201
     return res.json()
 
 
 # --- List ---
+
 
 def test_list_render_presets_empty(client: TestClient):
     res = client.get("/render-presets")
@@ -32,6 +36,7 @@ def test_list_render_presets_returns_created(client: TestClient):
 
 # --- Get ---
 
+
 def test_get_render_preset(client: TestClient):
     created = _seed_system_preset(client)
     res = client.get(f"/render-presets/{created['id']}")
@@ -47,14 +52,18 @@ def test_get_render_preset_not_found(client: TestClient):
 
 # --- Create ---
 
+
 def test_create_render_preset(client: TestClient):
-    res = client.post("/render-presets", json={
-        "name": "My Custom",
-        "layout_style": "full",
-        "bgm_volume": 0.15,
-        "transition_type": "fade",
-        "speed_multiplier": 1.0,
-    })
+    res = client.post(
+        "/render-presets",
+        json={
+            "name": "My Custom",
+            "layout_style": "full",
+            "bgm_volume": 0.15,
+            "transition_type": "fade",
+            "speed_multiplier": 1.0,
+        },
+    )
     assert res.status_code == 201
     data = res.json()
     assert data["name"] == "My Custom"
@@ -73,12 +82,16 @@ def test_create_render_preset_minimal(client: TestClient):
 
 # --- Update ---
 
+
 def test_update_render_preset(client: TestClient):
     created = client.post("/render-presets", json={"name": "Editable"}).json()
-    res = client.put(f"/render-presets/{created['id']}", json={
-        "name": "Edited",
-        "bgm_volume": 0.5,
-    })
+    res = client.put(
+        f"/render-presets/{created['id']}",
+        json={
+            "name": "Edited",
+            "bgm_volume": 0.5,
+        },
+    )
     assert res.status_code == 200
     assert res.json()["name"] == "Edited"
     assert res.json()["bgm_volume"] == 0.5
@@ -92,6 +105,7 @@ def test_update_render_preset_not_found(client: TestClient):
 def test_update_system_preset_allowed(client: TestClient, db_session):
     """System presets (is_system=True) can be modified via API."""
     from models.render_preset import RenderPreset
+
     preset = RenderPreset(name="System One", is_system=True, layout_style="post")
     db_session.add(preset)
     db_session.commit()
@@ -103,6 +117,7 @@ def test_update_system_preset_allowed(client: TestClient, db_session):
 
 
 # --- Delete ---
+
 
 def test_delete_render_preset(client: TestClient):
     created = client.post("/render-presets", json={"name": "Deletable"}).json()
@@ -123,6 +138,7 @@ def test_delete_render_preset_not_found(client: TestClient):
 def test_delete_system_preset_allowed(client: TestClient, db_session):
     """System presets can be deleted."""
     from models.render_preset import RenderPreset
+
     preset = RenderPreset(name="Deletable System", is_system=True)
     db_session.add(preset)
     db_session.commit()
@@ -135,19 +151,26 @@ def test_delete_system_preset_allowed(client: TestClient, db_session):
 
 # --- Group + Preset Integration ---
 
-def test_create_group_with_preset(client: TestClient):
-    preset = client.post("/render-presets", json={
-        "name": "For Group",
-        "layout_style": "post",
-        "bgm_volume": 0.25,
-    }).json()
 
-    group = client.post("/groups", json={
-        "project_id": 1,
-        "name": "Test Series",
-        "render_preset_id": preset["id"],
-        "style_profile_id": 1,
-    })
+def test_create_group_with_preset(client: TestClient):
+    preset = client.post(
+        "/render-presets",
+        json={
+            "name": "For Group",
+            "layout_style": "post",
+            "bgm_volume": 0.4,
+        },
+    ).json()
+
+    group = client.post(
+        "/groups",
+        json={
+            "project_id": 1,
+            "name": "Test Series",
+            "render_preset_id": preset["id"],
+            "style_profile_id": 1,
+        },
+    )
     assert group.status_code == 201
 
     # Verify render_preset_id is stored in group_config
@@ -157,17 +180,23 @@ def test_create_group_with_preset(client: TestClient):
 
 
 def test_get_group_config_includes_preset(client: TestClient):
-    preset = client.post("/render-presets", json={
-        "name": "Nested Test",
-        "transition_type": "fade",
-    }).json()
+    preset = client.post(
+        "/render-presets",
+        json={
+            "name": "Nested Test",
+            "transition_type": "fade",
+        },
+    ).json()
 
-    created = client.post("/groups", json={
-        "project_id": 1,
-        "name": "Nested Group",
-        "render_preset_id": preset["id"],
-        "style_profile_id": 1,
-    }).json()
+    created = client.post(
+        "/groups",
+        json={
+            "project_id": 1,
+            "name": "Nested Group",
+            "render_preset_id": preset["id"],
+            "style_profile_id": 1,
+        },
+    ).json()
 
     config = client.get(f"/groups/{created['id']}/config")
     assert config.status_code == 200
@@ -175,11 +204,14 @@ def test_get_group_config_includes_preset(client: TestClient):
 
 
 def test_group_without_preset(client: TestClient):
-    group = client.post("/groups", json={
-        "project_id": 1,
-        "name": "No Preset Group",
-        "style_profile_id": 1,
-    })
+    group = client.post(
+        "/groups",
+        json={
+            "project_id": 1,
+            "name": "No Preset Group",
+            "style_profile_id": 1,
+        },
+    )
     assert group.status_code == 201
 
     # Verify config has no preset
