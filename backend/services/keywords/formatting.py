@@ -13,9 +13,6 @@ def _load_processed_tags(
     from config import (
         RECOMMENDATION_EFFECTIVENESS_THRESHOLD,
         RECOMMENDATION_MIN_USE_COUNT,
-        TAG_EFFECTIVENESS_THRESHOLD,
-        TAG_MIN_USE_COUNT_FOR_FILTERING,
-        get_wd14_identity_tags,
     )
     from services.keywords.db import _DB_GROUP_TO_GEMINI_CATEGORY, _SCENE_GROUPS
 
@@ -46,18 +43,21 @@ def _load_processed_tags(
             normalized = normalize_prompt_token(tag)
             eff_data = eff_map.get(normalized) if filter_by_effectiveness else None
 
+            # NOTE: Effectiveness-based tag exclusion disabled (2026-02-24).
+            # WD14 detection covers only ~15% of tags reliably.
+            # All tags are now included; effectiveness data is kept for
+            # informational/recommendation purposes only.
             if eff_data is None:
                 filtered_values.append((tag, 0.5, 0))
             else:
                 eff_score, use_count = eff_data
-                if eff_score is None or use_count < TAG_MIN_USE_COUNT_FOR_FILTERING:
-                    filtered_values.append((tag, 0.5, use_count))
-                elif eff_score < TAG_EFFECTIVENESS_THRESHOLD and normalized not in get_wd14_identity_tags():
-                    continue
-                else:
-                    filtered_values.append((tag, eff_score, use_count))
-                    if eff_score >= RECOMMENDATION_EFFECTIVENESS_THRESHOLD and use_count >= RECOMMENDATION_MIN_USE_COUNT:
-                        category_recommended.append(tag)
+                filtered_values.append((tag, eff_score if eff_score is not None else 0.5, use_count))
+                if (
+                    eff_score is not None
+                    and eff_score >= RECOMMENDATION_EFFECTIVENESS_THRESHOLD
+                    and use_count >= RECOMMENDATION_MIN_USE_COUNT
+                ):
+                    category_recommended.append(tag)
 
         if category_name not in category_tags:
             category_tags[category_name] = []

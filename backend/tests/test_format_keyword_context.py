@@ -78,26 +78,22 @@ class TestEffectivenessFiltering:
 
     @patch("services.keywords.load_tag_effectiveness_map")
     @patch("services.keywords.load_tags_from_db")
-    @patch("config.TAG_EFFECTIVENESS_THRESHOLD", 0.3)
-    @patch("config.TAG_MIN_USE_COUNT_FOR_FILTERING", 3)
-    def test_filters_low_effectiveness_tags(
+    def test_keeps_all_tags_regardless_of_effectiveness(
         self, mock_load_tags, mock_load_eff, mock_db_tags, mock_effectiveness_data
     ):
-        """Should exclude tags with effectiveness < threshold and sufficient data."""
+        """All tags should be included — effectiveness filtering is disabled (2026-02-24)."""
         mock_load_tags.return_value = mock_db_tags
         mock_load_eff.return_value = mock_effectiveness_data
 
         result = format_keyword_context(filter_by_effectiveness=True)
 
-        # Should include high-effectiveness tags
+        # All tags kept regardless of effectiveness score
         assert "smile" in result
         assert "standing" in result
         assert "cowboy_shot" in result
         assert "classroom" in result
-
-        # Should exclude low-effectiveness tags with sufficient data
-        assert "crying" not in result  # 0.25 effectiveness, 8 uses
-        assert "full_body" not in result  # 0.28 effectiveness, 12 uses
+        assert "crying" in result     # 0.25 eff — previously filtered, now kept
+        assert "full_body" in result  # 0.28 eff — previously filtered, now kept
 
     @patch("services.keywords.load_tag_effectiveness_map")
     @patch("services.keywords.load_tags_from_db")
@@ -277,44 +273,24 @@ class TestCategoryMapping:
 
 
 class TestConfigurableThresholds:
-    """Test that config thresholds are respected."""
+    """Test that recommendation thresholds are still respected."""
 
     @patch("services.keywords.load_tag_effectiveness_map")
     @patch("services.keywords.load_tags_from_db")
-    @patch("config.TAG_EFFECTIVENESS_THRESHOLD", 0.5)  # Higher threshold
-    @patch("config.TAG_MIN_USE_COUNT_FOR_FILTERING", 3)
-    def test_respects_custom_effectiveness_threshold(
+    def test_all_tags_included_regardless_of_threshold(
         self, mock_load_tags, mock_load_eff, mock_db_tags, mock_effectiveness_data
     ):
-        """Should use TAG_EFFECTIVENESS_THRESHOLD from config."""
+        """Effectiveness filtering disabled — all tags included (2026-02-24)."""
         mock_load_tags.return_value = mock_db_tags
         mock_load_eff.return_value = mock_effectiveness_data
 
         result = format_keyword_context(filter_by_effectiveness=True)
 
-        # With threshold=0.5, should exclude tags with 0.4 effectiveness
-        assert "classroom" in result  # 0.88
-        assert "standing" in result  # 0.90
-        # crying (0.25) and neutral (0.40) should be excluded
-        # But neutral has use_count=2 < 3, so it's included anyway
-        assert "neutral" in result  # Insufficient data
-
-    @patch("services.keywords.load_tag_effectiveness_map")
-    @patch("services.keywords.load_tags_from_db")
-    @patch("config.TAG_EFFECTIVENESS_THRESHOLD", 0.3)
-    @patch("config.TAG_MIN_USE_COUNT_FOR_FILTERING", 10)  # Higher min count
-    def test_respects_custom_min_use_count(
-        self, mock_load_tags, mock_load_eff, mock_db_tags, mock_effectiveness_data
-    ):
-        """Should use TAG_MIN_USE_COUNT_FOR_FILTERING from config."""
-        mock_load_tags.return_value = mock_db_tags
-        mock_load_eff.return_value = mock_effectiveness_data
-
-        result = format_keyword_context(filter_by_effectiveness=True)
-
-        # With min_use_count=10, tags with < 10 uses should be included regardless
-        assert "crying" in result  # 0.25 effectiveness, but only 8 uses
-        assert "neutral" in result  # 0.60 effectiveness, only 2 uses
+        # All tags kept regardless of effectiveness
+        assert "classroom" in result
+        assert "standing" in result
+        assert "neutral" in result
+        assert "crying" in result
 
 
 class TestRecommendedTagsSection:
@@ -424,30 +400,28 @@ class TestRecommendedTagsSection:
 
     @patch("services.keywords.load_tag_effectiveness_map")
     @patch("services.keywords.load_tags_from_db")
-    @patch("config.TAG_EFFECTIVENESS_THRESHOLD", 0.3)
-    @patch("config.TAG_MIN_USE_COUNT_FOR_FILTERING", 3)
     @patch("config.RECOMMENDATION_EFFECTIVENESS_THRESHOLD", 0.8)
     @patch("config.RECOMMENDATION_MIN_USE_COUNT", 10)
-    def test_identity_tags_not_filtered_by_effectiveness(
+    def test_all_tags_kept_including_zero_effectiveness(
         self, mock_load_tags, mock_load_eff
     ):
-        """Identity tags (hair_color, eye_color) should remain even with 0% effectiveness."""
+        """All tags kept — effectiveness filtering disabled (2026-02-24)."""
         mock_load_tags.return_value = {
             "expression": ["smile", "surprised"],
             "layer_2": ["black_hair", "blonde_hair", "blue_eyes"],
         }
         mock_load_eff.return_value = {
             "smile": (0.85, 50),
-            "surprised": (0.0, 100),     # Non-identity → filtered
-            "black_hair": (0.0, 89),     # Identity → kept
-            "blonde_hair": (0.0, 60),    # Identity → kept
-            "blue_eyes": (0.0, 89),      # Identity → kept
+            "surprised": (0.0, 100),
+            "black_hair": (0.0, 89),
+            "blonde_hair": (0.0, 60),
+            "blue_eyes": (0.0, 89),
         }
 
         result = format_keyword_context(filter_by_effectiveness=True)
 
         assert "smile" in result
-        assert "surprised" not in result  # Non-identity filtered
-        assert "black_hair" in result     # Identity protected
-        assert "blonde_hair" in result    # Identity protected
-        assert "blue_eyes" in result      # Identity protected
+        assert "surprised" in result      # Previously filtered, now kept
+        assert "black_hair" in result
+        assert "blonde_hair" in result
+        assert "blue_eyes" in result

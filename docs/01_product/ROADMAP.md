@@ -17,10 +17,12 @@
 | Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 완료 (8/8)** |
 | Phase 14 (ControlNet Pose Pipeline) | **전체 완료 (3/3 + 14-A 3/3)** |
 | **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 4/4, A-1: 6/6, A-2: 2/2, A-3: 3/3 완료** |
+| **Phase 16 (WD14 Smart Validation)** | **Phase 16-0 완료, 16-A~D 미착수** |
 | 테스트 | Backend 2,552 + Frontend 362 = **총 2,914개** |
 
 ### 최근 작업
 
+- **Phase 16-0: WD14 Effectiveness 필터링 제거** (02-24): WD14가 9,083개 태그 중 39개(15%)만 신뢰 감지 가능한데, 감지 못하는 태그를 "효과 없음"으로 판정해 프롬프트에서 삭제하던 "death spiral" 문제 수정. `filter_prompt_tokens()` + `_load_processed_tags()`에서 effectiveness 기반 태그 삭제/Gemini 선택지 제한 비활성화. 265개 태그 중 167개(63%)가 부당하게 필터링되던 것 해소. 씬당 평균 6.76개 태그 삭제 → 0개. 26개 테스트 업데이트 PASS
 - **Phase 15-A-3: 태그 검증 확산** (02-24): `useTagValidationDebounced` 래퍼 훅 추출(debounce+검증+auto-replace 패턴 통합). PromptPair(캐릭터 Base/Negative 4곳), StyleProfileEditor(스타일 Positive/Negative), NegativePromptToggle(씬 네거티브), SceneClothingModal(의상 태그), ScenePromptFields(기존 코드 통일) 총 5개 컴포넌트에 TagValidationWarning 적용. 12개 단위 테스트 추가 (362 PASS)
 - **씬 Override 동적 그룹 전환** (02-24): `SCENE_OVERRIDE_GROUPS` 하드코딩 상수 제거 → 씬 태그의 group_name을 런타임 수집하여 `EXCLUSIVE_TAG_GROUPS`(hair_color 등) 제외 모든 그룹 자동 오버라이드. lighting(`soft_lighting`↔`dark`), expression, gaze 등 새 그룹 추가 시 코드 변경 불필요(OCP). pre-composed 프롬프트 캐릭터 base 토큰 중복 제거(`_strip_char_base_from_scene`). 스토리보드 473/474 10씬 전체 검증 완료. 6개 테스트 추가 (2,552 PASS)
 - **Prompt Builder weight 구문 파싱 + 씬 표정 Override 근본 수정** (02-24): `get_tag_info()`가 SD weight 구문 `(crying:1.1)` 미파싱으로 scene_override 미동작하던 버그 수정 — `_strip_weight()` 추출, DB 조회 시 weight 제거 후 bare form으로 조회, weighted/bare 양쪽 키로 결과 반환. `_collect_character_tags()` layer 오배치 수정(LAYER_IDENTITY 하드코딩→DB/pattern 기반). 씬 expression/gaze가 캐릭터 기본 표정 override. Alembic conflict rules 5쌍. 29개 테스트 추가 (2,546 PASS)
@@ -135,6 +137,7 @@ graph LR
     P13 --> P8["Phase 8<br/>Multi-Style"]
     P8 --> P14["Phase 14<br/>ControlNet<br/>Pose"]
     P14 --> P15["Phase 15<br/>Prompt Input<br/>UX 고도화"]
+    P15 --> P16["Phase 16<br/>WD14 Smart<br/>Validation"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -155,6 +158,7 @@ graph LR
     style P8 fill:#4CAF50,color:#fff
     style P14 fill:#4CAF50,color:#fff
     style P15 fill:#2196F3,color:#fff
+    style P16 fill:#FF9800,color:#fff
 ```
 
 ---
@@ -261,6 +265,56 @@ graph LR
 
 ---
 
+## Phase 16: WD14 Smart Validation
+
+**목표**: "WD14로 태그를 지우지 말고, WD14로 이미지를 검증하라". WD14가 신뢰 가능한 39개 태그 영역(의류, 성별, 머리, 표정, 포즈)에 집중하여 생성 품질을 검증하고 캐릭터 일관성을 보장한다.
+
+**배경**: WD14 tag_effectiveness 기반 프롬프트 필터링이 프롬프트 품질을 오히려 저하시키는 "death spiral" 문제 발견 (2026-02-24). WD14는 9,083개 태그 중 ~39개(15%)만 신뢰 가능하게 감지하며, 나머지 85%(구도, 조명, 눈색, 스타일)는 감지 불가. effectiveness=0인 167개 태그(63%) 중 상당수가 `blue_eyes`, `close-up`, `backlighting` 등 유효한 Danbooru 태그.
+
+### Phase 16-0: Effectiveness 필터링 제거 (완료 02-24)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | `filter_prompt_tokens()` effectiveness 기반 태그 삭제 제거 | ✅ (02-24) |
+| 2 | `_load_processed_tags()` effectiveness 기반 Gemini 태그 선택지 제한 제거 | ✅ (02-24) |
+| 3 | 테스트 업데이트 (26개 PASS) | ✅ (02-24) |
+
+### Phase 16-A: Critical Failure Detection (생성 실패 자동 감지)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | `detect_critical_failure()` — 성별 반전/인물 부재/인물수 불일치 감지 | [ ] |
+| 2 | `validate_scene_image()` 응답에 `critical_failure` 필드 추가 | [ ] |
+| 3 | Frontend 경고 UI (Critical Failure 시 빨간 배지 + 재생성 버튼) | [ ] |
+
+### Phase 16-B: Adjusted Match Rate (정확한 품질 지표)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | `WD14_DETECTABLE_GROUPS` 상수 정의 (subject, hair_color, clothing 등) | [ ] |
+| 2 | `compute_adjusted_match_rate()` — 감지 가능 태그만으로 match_rate 재계산 | [ ] |
+| 3 | API 응답에 `adjusted_match_rate` + `raw_match_rate` 분리 | [ ] |
+| 4 | `_increment_tag_effectiveness()` 비감지 태그 제외 | [ ] |
+
+### Phase 16-C: Auto-Regeneration + Identity Ranking
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | Critical Failure 시 seed 변경 자동 재생성 (최대 2회) | [ ] |
+| 2 | `compute_identity_score()` — 캐릭터 identity 태그 일치도 계산 | [ ] |
+| 3 | 후보 랭킹: identity_score 1순위 → adjusted_match_rate 2순위 | [ ] |
+
+### Phase 16-D: Cross-Scene Consistency (씬 간 캐릭터 일관성)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | `CharacterSignature` — 캐릭터 시각적 시그니처 추출 (hair/clothing) | [ ] |
+| 2 | 스토리보드 전체 씬 간 drift 감지 (머리색 변경, 의류 변경) | [ ] |
+| 3 | `GET /quality/consistency/{storyboard_id}` API | [ ] |
+| 4 | Frontend 일관성 대시보드 (씬별 drift 히트맵) | [ ] |
+
+---
+
 ## Feature Backlog
 
 Phase 9 이후 또는 우선순위 미정 항목.
@@ -325,15 +379,20 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 Phase 12 (Agent Enhancement 26건) + Phase 13 (Creative Control 19건 + 13-A Quick Wins 4건) = 총 49건 완료.
 
-**Phase 15 — Prompt Input UX 고도화 (다음 작업)**
+**Phase 16 — WD14 Smart Validation (다음 작업)**
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
-| 1 | A-0: 조합 프롬프트 미리보기 | 사용자 가치 최대 — "내가 뭘 만드는지 알고 실행" |
-| 2 | A-1: TagAutocomplete 품질 개선 | 기존 2곳 UX 먼저 개선 |
-| 3 | A-2: TagAutocomplete 확산 (8곳) | 전체 입력 포인트 통일 |
-| 4 | A-3: 태그 검증 확산 | 캐릭터/스타일 입력 안전성 |
-| 5 | B: Visual Tag Browser | A 완료 후 진행 |
+| 1 | 16-A: Critical Failure Detection | 성별 반전 등 생성 실패 즉시 감지 — 가장 빠르게 가치 제공 |
+| 2 | 16-B: Adjusted Match Rate | WD14 감지 가능 태그만으로 정확한 품질 지표 |
+| 3 | 16-C: Auto-Regen + Identity Ranking | 실패 시 자동 재생성 + 캐릭터 identity 우선 후보 선택 |
+| 4 | 16-D: Cross-Scene Consistency | 12씬 캐릭터 일관성 검증 대시보드 |
+
+**Phase 15-B — Visual Tag Browser (백로그)**
+
+| 순위 | 작업 | 근거 |
+|------|------|------|
+| 5 | B: Visual Tag Browser | Phase 16 완료 후 진행 |
 
 **Tier 3 — 장기**
 

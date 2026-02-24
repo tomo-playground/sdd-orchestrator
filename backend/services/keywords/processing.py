@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from config import TAG_EFFECTIVENESS_THRESHOLD, TAG_MIN_USE_COUNT_FOR_FILTERING, get_wd14_identity_tags
-
 from .core import (
     IGNORE_TOKENS,
     _get_logger,
@@ -96,7 +94,6 @@ def filter_prompt_tokens(prompt: str) -> str:
 
     allowed = kw.load_allowed_tags_from_db()
     synonym_lookup = kw.load_synonyms_from_db()
-    eff_map = kw.load_tag_effectiveness_map()
 
     if not allowed:
         return _get_normalize_prompt_tokens()(prompt)
@@ -129,19 +126,12 @@ def filter_prompt_tokens(prompt: str) -> str:
             seen.add(normalized) # Mark original as seen
             continue
 
-        eff_data = eff_map.get(normalized)
-        if eff_data:
-            eff_score, use_count = eff_data
-            if (
-                eff_score is not None
-                and use_count >= TAG_MIN_USE_COUNT_FOR_FILTERING
-                and eff_score < TAG_EFFECTIVENESS_THRESHOLD
-                and normalized not in get_wd14_identity_tags()
-            ):
-                # Low effectiveness tag -> Skip (identity tags exempt)
-                _get_logger().warning(f"⚠️  [Filter] Skipping low-effectiveness tag: '{normalized}' (score: {eff_score:.2f})")
-                filtered_count += 1
-                continue
+        # NOTE: Effectiveness-based filtering disabled (2026-02-24).
+        # WD14 can only detect ~15% of tags reliably (clothing, subject, hair).
+        # Using WD14 match data to remove tags caused a "death spiral" —
+        # valid tags like blue_eyes, close-up, backlighting were deleted
+        # because WD14 couldn't detect them, not because they were ineffective.
+        # See: Phase 16 roadmap for WD14 Smart Validation redesign.
 
         if normalized in allowed:
             if normalized not in seen:

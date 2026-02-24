@@ -14,7 +14,7 @@ import NegativePromptToggle from "./NegativePromptToggle";
 
 type ScenePromptFieldsProps = {
   scene: Scene;
-  loraTriggerWords: string[];
+  loraTriggerWords?: string[];
   characterLoras: Array<{
     name: string;
     weight?: number;
@@ -30,7 +30,6 @@ type ScenePromptFieldsProps = {
 
 export default function ScenePromptFields({
   scene,
-  loraTriggerWords,
   characterLoras,
   promptMode,
   selectedCharacterId,
