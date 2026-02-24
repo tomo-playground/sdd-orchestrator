@@ -35,7 +35,7 @@ def main():
                 loras=[],
                 negative_embeddings=negative_emb_ids,
                 positive_embeddings=[],
-                default_positive="masterpiece, best_quality, high_quality, anime coloring",
+                default_positive="masterpiece, best_quality, anime coloring",
                 default_negative=", ".join([emb.trigger_word for emb in negative_embs if emb.trigger_word]),
                 is_default=True,
                 is_active=True,
@@ -61,7 +61,7 @@ def main():
                     loras=[],
                     negative_embeddings=[],  # No anime-specific embeddings
                     positive_embeddings=[],
-                    default_positive=("photorealistic, raw_photo, sharp_focus, 8k_uhd, dslr, high_quality, film_grain"),
+                    default_positive=("photorealistic, raw_photo, sharp_focus, 8k_uhd, dslr, film_grain"),
                     default_negative=("cartoon, anime, illustration, painting, drawing, sketch, comic, 3d_render, cgi"),
                     is_default=False,
                     is_active=True,
@@ -75,7 +75,7 @@ def main():
                 if realistic_profile.negative_embeddings:
                     realistic_profile.negative_embeddings = []
                     updated = True
-                expected_positive = "photorealistic, raw_photo, sharp_focus, 8k_uhd, dslr, high_quality, film_grain"
+                expected_positive = "photorealistic, raw_photo, sharp_focus, 8k_uhd, dslr, film_grain"
                 if realistic_profile.default_positive != expected_positive:
                     realistic_profile.default_positive = expected_positive
                     updated = True

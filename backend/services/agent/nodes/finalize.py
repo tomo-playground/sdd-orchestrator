@@ -18,6 +18,19 @@ if TYPE_CHECKING:
     from langchain_core.runnables import RunnableConfig
 
 
+_QUALITY_TAG_FIXES = {"high_quality": "best_quality"}
+
+
+def _sanitize_quality_tags(scenes: list[dict]) -> None:
+    """비표준 quality 태그를 Danbooru 표준으로 치환한다 (e.g. high_quality → best_quality)."""
+    for scene in scenes:
+        prompt = scene.get("image_prompt", "")
+        if not prompt:
+            continue
+        tokens = [t.strip() for t in prompt.split(",")]
+        scene["image_prompt"] = ", ".join(_QUALITY_TAG_FIXES[t] if t in _QUALITY_TAG_FIXES else t for t in tokens)
+
+
 def _inject_negative_prompts(scenes: list[dict]) -> None:
     """빈 negative_prompt에 기본값을 주입하고, LLM의 negative_prompt_extra를 병합한다."""
     for scene in scenes:
@@ -51,9 +64,12 @@ def _inject_default_context_tags(scenes: list[dict]) -> None:
 
     Gemini가 context_tags를 누락하면 character_actions 변환이 실패하므로,
     기본값을 채워서 최소한의 character_actions가 생성되도록 한다.
+    expression은 emotion 필드에서 파생을 시도하고, 실패 시 기본값.
     Narrator 씬(배경샷)은 캐릭터가 없으므로 건너뛴다.
     """
     from config import DEFAULT_EXPRESSION_TAG  # noqa: PLC0415
+
+    from ._context_tag_utils import derive_expression_from_emotion
 
     for scene in scenes:
         speaker = scene.get("speaker", "")
@@ -74,7 +90,9 @@ def _inject_default_context_tags(scenes: list[dict]) -> None:
         if not ctx.get("gaze"):
             ctx["gaze"] = DEFAULT_GAZE_TAG
         if not ctx.get("expression"):
-            ctx["expression"] = DEFAULT_EXPRESSION_TAG
+            emotion = ctx.get("emotion")
+            derived = derive_expression_from_emotion(emotion) if emotion else None
+            ctx["expression"] = derived or DEFAULT_EXPRESSION_TAG
 
 
 def _normalize_environment_tags(scenes: list[dict]) -> None:
@@ -215,12 +233,18 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     else:
         scenes = [dict(s) for s in (state.get("draft_scenes") or [])]
 
+    _sanitize_quality_tags(scenes)
     _inject_negative_prompts(scenes)
+
+    from ._context_tag_utils import check_camera_diversity, validate_context_tag_categories
+
+    validate_context_tag_categories(scenes)
     _inject_default_context_tags(scenes)
     _normalize_environment_tags(scenes)
     _validate_controlnet_poses(scenes)
     _validate_ip_adapter_weights(scenes)
     _validate_ken_burns_presets(scenes)
+    check_camera_diversity(scenes)
     _auto_populate_scene_flags(scenes, state.get("character_id"))
     _flatten_tts_designs(scenes)
 
