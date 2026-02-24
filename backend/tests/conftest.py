@@ -384,12 +384,17 @@ def init_tag_caches():
         },
         # expression conflicts (opposing emotions conflict)
         "smile": {"angry", "crying", "sad", "frown"},
-        "angry": {"smile", "happy", "laughing", "crying", "sad"},
-        "crying": {"smile", "happy", "laughing", "angry", "sad", "grin"},
+        "gentle_smile": {"angry", "crying", "sad", "frown"},
+        "angry": {"smile", "gentle_smile", "happy", "laughing", "crying", "sad"},
+        "crying": {"smile", "gentle_smile", "happy", "laughing", "angry", "sad", "grin"},
         "laughing": {"crying", "sad", "angry", "frown"},
-        "sad": {"smile", "happy", "laughing", "angry", "crying"},
-        "frown": {"smile", "laughing", "happy"},
+        "sad": {"smile", "gentle_smile", "happy", "laughing", "angry", "crying"},
+        "frown": {"smile", "gentle_smile", "laughing", "happy"},
         "happy": {"sad", "angry", "crying", "frown"},
+        # lighting vs environment conflicts
+        "soft_lighting": {"dark", "dimly_lit"},
+        "dark": {"soft_lighting"},
+        "dimly_lit": {"soft_lighting"},
         # gaze conflicts (all gaze directions mutually exclusive)
         "looking_at_viewer": {
             "looking_away",

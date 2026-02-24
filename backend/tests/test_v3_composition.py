@@ -1809,3 +1809,610 @@ class TestPatternBasedFallbackExtended:
     # novel suffix heuristic
     def test_novel_dress_suffix_is_main_cloth(self):
         assert V3PromptBuilder._infer_layer_from_pattern("magical_girl_dress") == LAYER_MAIN_CLOTH
+
+
+# ────────────────────────────────────────────
+# _tag_to_group_map tests
+# ────────────────────────────────────────────
+
+
+class TestTagToGroupMap:
+    """Test _tag_to_group_map returns correct group_name for pattern tags."""
+
+    def test_expression_tags(self):
+        group_map = V3PromptBuilder._tag_to_group_map()
+        assert group_map["smile"] == "expression"
+        assert group_map["crying"] == "expression"
+        assert group_map["angry"] == "expression"
+
+    def test_gaze_tags(self):
+        group_map = V3PromptBuilder._tag_to_group_map()
+        assert group_map["looking_at_viewer"] == "gaze"
+        assert group_map["looking_away"] == "gaze"
+
+    def test_lighting_tags(self):
+        group_map = V3PromptBuilder._tag_to_group_map()
+        assert group_map["soft_lighting"] == "lighting"
+        assert group_map["dramatic_lighting"] == "lighting"
+
+    def test_clothing_tags(self):
+        group_map = V3PromptBuilder._tag_to_group_map()
+        assert group_map["hoodie"] == "clothing"
+        assert group_map["school_uniform"] == "clothing"
+
+    def test_quality_tags(self):
+        group_map = V3PromptBuilder._tag_to_group_map()
+        assert group_map["masterpiece"] == "quality"
+
+    def test_unknown_tag_not_in_map(self):
+        group_map = V3PromptBuilder._tag_to_group_map()
+        assert "unknown_fantasy_tag" not in group_map
+
+
+# ────────────────────────────────────────────
+# get_tag_info group_name pattern fallback
+# ────────────────────────────────────────────
+
+
+class TestGetTagInfoGroupNameFallback:
+    """Test get_tag_info returns group_name from pattern fallback for DB-missing tags."""
+
+    def test_pattern_fallback_includes_group_name(self, builder):
+        """DB-missing tag should still get group_name from CATEGORY_PATTERNS."""
+        # Mock DB query to return no tags
+        builder.db.query.return_value.filter.return_value.all.return_value = []
+
+        result = builder.get_tag_info(["gentle_smile"])
+        # gentle_smile is not in CATEGORY_PATTERNS, so group_name=None
+        assert result["gentle_smile"]["group_name"] is None
+
+    def test_known_pattern_tag_gets_group(self, builder):
+        """Tag in CATEGORY_PATTERNS should get correct group_name even without DB."""
+        builder.db.query.return_value.filter.return_value.all.return_value = []
+
+        result = builder.get_tag_info(["crying"])
+        assert result["crying"]["group_name"] == "expression"
+        assert result["crying"]["layer"] == LAYER_EXPRESSION
+
+    def test_lighting_pattern_tag_gets_group(self, builder):
+        builder.db.query.return_value.filter.return_value.all.return_value = []
+
+        result = builder.get_tag_info(["soft_lighting"])
+        assert result["soft_lighting"]["group_name"] == "lighting"
+        assert result["soft_lighting"]["layer"] == LAYER_ATMOSPHERE
+
+    def test_clothing_pattern_tag_gets_group(self, builder):
+        builder.db.query.return_value.filter.return_value.all.return_value = []
+
+        result = builder.get_tag_info(["hoodie"])
+        assert result["hoodie"]["group_name"] == "clothing"
+        assert result["hoodie"]["layer"] == LAYER_MAIN_CLOTH
+
+
+# ────────────────────────────────────────────
+# _collect_character_tags layer placement
+# ────────────────────────────────────────────
+
+
+class TestCollectCharacterTagsLayerPlacement:
+    """Test custom_base_prompt tags get correct layer/group_name from DB or pattern."""
+
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    def test_expression_tag_placed_in_expression_layer(self, mock_filter, builder):
+        """gentle_smile from custom_base_prompt → layer from DB (LAYER_EXPRESSION)."""
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+
+        from models.tag import Tag
+
+        mock_tag = MagicMock(spec=Tag)
+        mock_tag.name = "gentle_smile"
+        mock_tag.default_layer = LAYER_EXPRESSION
+        mock_tag.usage_scope = "ANY"
+        mock_tag.group_name = "expression"
+
+        builder.db.query.return_value.filter.return_value.all.return_value = [mock_tag]
+
+        char = MagicMock()
+        char.tags = []
+        char.custom_base_prompt = "gentle_smile"
+
+        result = builder._collect_character_tags(char)
+        tag_data = next(t for t in result if t["name"] == "gentle_smile")
+        assert tag_data["layer"] == LAYER_EXPRESSION
+        assert tag_data["group_name"] == "expression"
+
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    def test_lighting_tag_placed_in_atmosphere_layer(self, mock_filter, builder):
+        """soft_lighting → LAYER_ATMOSPHERE."""
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+
+        from models.tag import Tag
+
+        mock_tag = MagicMock(spec=Tag)
+        mock_tag.name = "soft_lighting"
+        mock_tag.default_layer = LAYER_ATMOSPHERE
+        mock_tag.usage_scope = "ANY"
+        mock_tag.group_name = "lighting"
+
+        builder.db.query.return_value.filter.return_value.all.return_value = [mock_tag]
+
+        char = MagicMock()
+        char.tags = []
+        char.custom_base_prompt = "soft_lighting"
+
+        result = builder._collect_character_tags(char)
+        tag_data = next(t for t in result if t["name"] == "soft_lighting")
+        assert tag_data["layer"] == LAYER_ATMOSPHERE
+        assert tag_data["group_name"] == "lighting"
+
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    def test_clothing_tag_placed_in_main_cloth_layer(self, mock_filter, builder):
+        """blouse → LAYER_MAIN_CLOTH via pattern fallback."""
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+
+        # No DB match — pattern fallback via CATEGORY_PATTERNS
+        builder.db.query.return_value.filter.return_value.all.return_value = []
+
+        char = MagicMock()
+        char.tags = []
+        char.custom_base_prompt = "blouse"
+
+        result = builder._collect_character_tags(char)
+        tag_data = next(t for t in result if t["name"] == "blouse")
+        assert tag_data["layer"] == LAYER_MAIN_CLOTH
+        assert tag_data["group_name"] == "clothing"
+
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    def test_quality_tag_placed_in_quality_layer(self, mock_filter, builder):
+        """masterpiece → LAYER_QUALITY."""
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+
+        builder.db.query.return_value.filter.return_value.all.return_value = []
+
+        char = MagicMock()
+        char.tags = []
+        char.custom_base_prompt = "masterpiece"
+
+        result = builder._collect_character_tags(char)
+        tag_data = next(t for t in result if t["name"] == "masterpiece")
+        assert tag_data["layer"] == LAYER_QUALITY
+
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    def test_multiple_tags_correct_layers(self, mock_filter, builder):
+        """Multiple custom_base_prompt tags → each gets correct layer."""
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+
+        from models.tag import Tag
+
+        gentle = MagicMock(spec=Tag)
+        gentle.name = "gentle_smile"
+        gentle.default_layer = LAYER_EXPRESSION
+        gentle.usage_scope = "ANY"
+        gentle.group_name = "expression"
+
+        soft = MagicMock(spec=Tag)
+        soft.name = "soft_lighting"
+        soft.default_layer = LAYER_ATMOSPHERE
+        soft.usage_scope = "ANY"
+        soft.group_name = "lighting"
+
+        builder.db.query.return_value.filter.return_value.all.return_value = [gentle, soft]
+
+        char = MagicMock()
+        char.tags = []
+        char.custom_base_prompt = "gentle_smile, soft_lighting, hoodie"
+
+        result = builder._collect_character_tags(char)
+        layers = {t["name"]: t["layer"] for t in result}
+
+        assert layers["gentle_smile"] == LAYER_EXPRESSION
+        assert layers["soft_lighting"] == LAYER_ATMOSPHERE
+        assert layers["hoodie"] == LAYER_MAIN_CLOTH  # pattern fallback
+
+
+# ────────────────────────────────────────────
+# SCENE_OVERRIDE_GROUPS tests
+# ────────────────────────────────────────────
+
+
+class TestSceneOverrideGroups:
+    """Test scene expression/gaze tags override character base defaults."""
+
+    def test_scene_override_groups_constant(self):
+        """SCENE_OVERRIDE_GROUPS contains expression and gaze."""
+        from config import SCENE_OVERRIDE_GROUPS
+
+        assert "expression" in SCENE_OVERRIDE_GROUPS
+        assert "gaze" in SCENE_OVERRIDE_GROUPS
+
+    def test_scene_crying_overrides_char_gentle_smile(self, builder):
+        """Scene crying → char gentle_smile excluded."""
+        char_info = {
+            "gentle_smile": _make_tag_info("gentle_smile", LAYER_EXPRESSION, group="expression"),
+            "brown_hair": _make_tag_info("brown_hair", LAYER_IDENTITY, group="hair_color"),
+        }
+        scene_info = {
+            "crying": _make_tag_info("crying", LAYER_EXPRESSION, group="expression"),
+            "outdoors": _make_tag_info("outdoors", LAYER_ENVIRONMENT, group="location_outdoor"),
+        }
+        all_info = {**char_info, **scene_info}
+        builder.get_tag_info = MagicMock(
+            side_effect=lambda names: {
+                n: all_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in all_info
+            }
+        )
+
+        char_tags = [
+            {"name": "gentle_smile", "layer": LAYER_EXPRESSION, "weight": 1.0, "group_name": "expression"},
+            {"name": "brown_hair", "layer": LAYER_IDENTITY, "weight": 1.0, "group_name": "hair_color"},
+        ]
+        scene_tags = ["crying", "outdoors"]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, scene_tags, scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "crying" in all_tokens
+        assert "gentle_smile" not in all_tokens
+        assert "brown_hair" in all_tokens
+        assert "outdoors" in all_tokens
+
+    def test_scene_gaze_overrides_char_gaze(self, builder):
+        """Scene looking_away → char looking_at_viewer excluded."""
+        char_info = {"looking_at_viewer": _make_tag_info("looking_at_viewer", LAYER_EXPRESSION, group="gaze")}
+        scene_info = {"looking_away": _make_tag_info("looking_away", LAYER_EXPRESSION, group="gaze")}
+        all_info = {**char_info, **scene_info}
+        builder.get_tag_info = MagicMock(
+            side_effect=lambda names: {
+                n: all_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in all_info
+            }
+        )
+
+        char_tags = [
+            {"name": "looking_at_viewer", "layer": LAYER_EXPRESSION, "weight": 1.0, "group_name": "gaze"},
+        ]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["looking_away"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "looking_away" in all_tokens
+        assert "looking_at_viewer" not in all_tokens
+
+    def test_no_scene_expression_keeps_char_default(self, builder):
+        """No scene expression → char gentle_smile preserved."""
+        scene_info = {
+            "outdoors": _make_tag_info("outdoors", LAYER_ENVIRONMENT, group="location_outdoor"),
+        }
+        builder.get_tag_info = MagicMock(
+            side_effect=lambda names: {
+                n: scene_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in scene_info
+            }
+        )
+
+        char_tags = [
+            {"name": "gentle_smile", "layer": LAYER_EXPRESSION, "weight": 1.0, "group_name": "expression"},
+        ]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["outdoors"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "gentle_smile" in all_tokens
+        assert "outdoors" in all_tokens
+
+    def test_non_override_group_not_affected(self, builder):
+        """clothing group is NOT in SCENE_OVERRIDE_GROUPS → always kept."""
+        scene_info = {
+            "crying": _make_tag_info("crying", LAYER_EXPRESSION, group="expression"),
+        }
+        builder.get_tag_info = MagicMock(
+            side_effect=lambda names: {
+                n: scene_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in scene_info
+            }
+        )
+
+        char_tags = [
+            {"name": "hoodie", "layer": LAYER_MAIN_CLOTH, "weight": 1.0, "group_name": "clothing"},
+            {"name": "gentle_smile", "layer": LAYER_EXPRESSION, "weight": 1.0, "group_name": "expression"},
+        ]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["crying"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "hoodie" in all_tokens  # clothing not overridden
+        assert "gentle_smile" not in all_tokens  # expression overridden
+        assert "crying" in all_tokens
+
+    def test_char_tags_without_group_name_not_affected(self, builder):
+        """Char tags with group_name=None not affected by scene override."""
+        scene_info = {
+            "crying": _make_tag_info("crying", LAYER_EXPRESSION, group="expression"),
+        }
+        builder.get_tag_info = MagicMock(
+            side_effect=lambda names: {
+                n: scene_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in scene_info
+            }
+        )
+
+        char_tags = [
+            {"name": "1girl", "layer": LAYER_SUBJECT, "weight": 1.0, "group_name": None},
+        ]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["crying"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "1girl" in all_tokens
+
+
+# ────────────────────────────────────────────
+# End-to-end expression override tests
+# ────────────────────────────────────────────
+
+
+class TestEndToEndExpressionOverride:
+    """Full pipeline test: compose_for_character with expression override."""
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_scene_expression_overrides_in_full_pipeline(self, mock_alias, mock_filter, mock_rule, builder):
+        """compose_for_character: scene crying should suppress char gentle_smile."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+
+        from models.tag import Tag
+
+        # DB returns gentle_smile with correct metadata
+        gentle_tag = MagicMock(spec=Tag)
+        gentle_tag.name = "gentle_smile"
+        gentle_tag.default_layer = LAYER_EXPRESSION
+        gentle_tag.usage_scope = "ANY"
+        gentle_tag.group_name = "expression"
+
+        crying_tag = MagicMock(spec=Tag)
+        crying_tag.name = "crying"
+        crying_tag.default_layer = LAYER_EXPRESSION
+        crying_tag.usage_scope = "ANY"
+        crying_tag.group_name = "expression"
+
+        outdoors_tag = MagicMock(spec=Tag)
+        outdoors_tag.name = "outdoors"
+        outdoors_tag.default_layer = LAYER_ENVIRONMENT
+        outdoors_tag.usage_scope = "ANY"
+        outdoors_tag.group_name = "location_outdoor"
+
+        all_tags = [gentle_tag, crying_tag, outdoors_tag]
+        builder.db.query.return_value.filter.return_value.all.return_value = all_tags
+
+        char = MagicMock()
+        char.id = 1
+        char.gender = "female"
+        char.custom_base_prompt = "gentle_smile"
+        char.tags = []
+        char.loras = []
+        char.prompt_mode = "standard"
+        builder.db.query.return_value.filter.return_value.first.return_value = char
+
+        result = builder.compose_for_character(
+            character_id=1,
+            scene_tags=["crying", "outdoors"],
+        )
+
+        # crying should be present (with :1.1 boost from flatten)
+        assert "(crying:1.1)" in result
+        # gentle_smile should be suppressed
+        assert "gentle_smile" not in result
+        assert "outdoors" in result
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_no_scene_expression_keeps_char_default_full_pipeline(self, mock_alias, mock_filter, mock_rule, builder):
+        """compose_for_character: no scene expression → char gentle_smile kept."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+
+        from models.tag import Tag
+
+        gentle_tag = MagicMock(spec=Tag)
+        gentle_tag.name = "gentle_smile"
+        gentle_tag.default_layer = LAYER_EXPRESSION
+        gentle_tag.usage_scope = "ANY"
+        gentle_tag.group_name = "expression"
+
+        outdoors_tag = MagicMock(spec=Tag)
+        outdoors_tag.name = "outdoors"
+        outdoors_tag.default_layer = LAYER_ENVIRONMENT
+        outdoors_tag.usage_scope = "ANY"
+        outdoors_tag.group_name = "location_outdoor"
+
+        all_tags = [gentle_tag, outdoors_tag]
+        builder.db.query.return_value.filter.return_value.all.return_value = all_tags
+
+        char = MagicMock()
+        char.id = 1
+        char.gender = "female"
+        char.custom_base_prompt = "gentle_smile"
+        char.tags = []
+        char.loras = []
+        char.prompt_mode = "standard"
+        builder.db.query.return_value.filter.return_value.first.return_value = char
+
+        result = builder.compose_for_character(
+            character_id=1,
+            scene_tags=["outdoors"],
+        )
+
+        # gentle_smile should be present (with :1.1 boost from flatten)
+        assert "(gentle_smile:1.1)" in result
+        assert "outdoors" in result
+
+
+# ────────────────────────────────────────────
+# Weight syntax handling in get_tag_info / override
+# ────────────────────────────────────────────
+
+
+class TestWeightSyntaxHandling:
+    """Verify get_tag_info and override logic handle SD weight tokens like (tag:1.1)."""
+
+    def test_strip_weight_basic(self):
+        """_strip_weight removes (tag:1.2) → tag."""
+        assert V3PromptBuilder._strip_weight("(crying:1.1)") == "crying"
+        assert V3PromptBuilder._strip_weight("(gentle_smile:1.15)") == "gentle_smile"
+
+    def test_strip_weight_bare(self):
+        """_strip_weight passes through bare tags."""
+        assert V3PromptBuilder._strip_weight("crying") == "crying"
+        assert V3PromptBuilder._strip_weight("brown_hair") == "brown_hair"
+
+    def test_strip_weight_edge_cases(self):
+        """_strip_weight handles edge cases."""
+        assert V3PromptBuilder._strip_weight("(tag:0.5)") == "tag"
+        assert V3PromptBuilder._strip_weight("not_weighted") == "not_weighted"
+        # Parentheses without colon (not weight syntax)
+        assert V3PromptBuilder._strip_weight("(test)") == "(test)"
+
+    def test_get_tag_info_weighted_token(self, builder):
+        """get_tag_info resolves (crying:1.1) to crying's DB metadata."""
+        from models.tag import Tag
+
+        crying_tag = MagicMock(spec=Tag)
+        crying_tag.name = "crying"
+        crying_tag.default_layer = LAYER_EXPRESSION
+        crying_tag.usage_scope = "ANY"
+        crying_tag.group_name = "expression"
+        builder.db.query.return_value.filter.return_value.all.return_value = [crying_tag]
+
+        result = builder.get_tag_info(["(crying:1.1)"])
+
+        # Keyed by normalized weighted form
+        assert "(crying:1.1)" in result
+        assert result["(crying:1.1)"]["group_name"] == "expression"
+        assert result["(crying:1.1)"]["layer"] == LAYER_EXPRESSION
+        # Also keyed by bare form
+        assert "crying" in result
+
+    def test_get_tag_info_mixed_weighted_bare(self, builder):
+        """get_tag_info handles mix of weighted and bare tokens."""
+        from models.tag import Tag
+
+        crying_tag = MagicMock(spec=Tag)
+        crying_tag.name = "crying"
+        crying_tag.default_layer = LAYER_EXPRESSION
+        crying_tag.usage_scope = "ANY"
+        crying_tag.group_name = "expression"
+
+        outdoors_tag = MagicMock(spec=Tag)
+        outdoors_tag.name = "outdoors"
+        outdoors_tag.default_layer = LAYER_ENVIRONMENT
+        outdoors_tag.usage_scope = "ANY"
+        outdoors_tag.group_name = "location_outdoor"
+
+        builder.db.query.return_value.filter.return_value.all.return_value = [crying_tag, outdoors_tag]
+
+        result = builder.get_tag_info(["(crying:1.1)", "outdoors"])
+
+        assert "(crying:1.1)" in result
+        assert result["(crying:1.1)"]["group_name"] == "expression"
+        assert "outdoors" in result
+        assert result["outdoors"]["group_name"] == "location_outdoor"
+
+    def test_scene_override_with_weighted_scene_tags(self, builder):
+        """_distribute_tags: weighted scene (crying:1.1) overrides char expression."""
+        scene_info = {
+            "(crying:1.1)": _make_tag_info("crying", LAYER_EXPRESSION, group="expression"),
+            "crying": _make_tag_info("crying", LAYER_EXPRESSION, group="expression"),
+            "outdoors": _make_tag_info("outdoors", LAYER_ENVIRONMENT, group="location_outdoor"),
+        }
+        builder.get_tag_info = MagicMock(
+            side_effect=lambda names: {
+                n: scene_info[n]
+                for n in [t.lower().replace(" ", "_").strip() for t in names]
+                if n in scene_info
+            }
+        )
+
+        char_tags = [
+            {"name": "gentle_smile", "layer": LAYER_EXPRESSION, "weight": 1.0, "group_name": "expression"},
+            {"name": "brown_hair", "layer": LAYER_IDENTITY, "weight": 1.0, "group_name": "hair_color"},
+        ]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["(crying:1.1)", "outdoors"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "(crying:1.1)" in all_tokens
+        assert "gentle_smile" not in all_tokens
+        assert "brown_hair" in all_tokens
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_e2e_weighted_scene_expression_override(self, mock_alias, mock_filter, mock_rule, builder):
+        """Full pipeline: weighted (crying:1.1) in scene → gentle_smile suppressed."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+
+        from models.tag import Tag
+
+        gentle_tag = MagicMock(spec=Tag)
+        gentle_tag.name = "gentle_smile"
+        gentle_tag.default_layer = LAYER_EXPRESSION
+        gentle_tag.usage_scope = "ANY"
+        gentle_tag.group_name = "expression"
+
+        crying_tag = MagicMock(spec=Tag)
+        crying_tag.name = "crying"
+        crying_tag.default_layer = LAYER_EXPRESSION
+        crying_tag.usage_scope = "ANY"
+        crying_tag.group_name = "expression"
+
+        outdoors_tag = MagicMock(spec=Tag)
+        outdoors_tag.name = "outdoors"
+        outdoors_tag.default_layer = LAYER_ENVIRONMENT
+        outdoors_tag.usage_scope = "ANY"
+        outdoors_tag.group_name = "location_outdoor"
+
+        all_tags = [gentle_tag, crying_tag, outdoors_tag]
+        builder.db.query.return_value.filter.return_value.all.return_value = all_tags
+
+        char = MagicMock()
+        char.id = 1
+        char.gender = "female"
+        char.custom_base_prompt = "gentle_smile"
+        char.tags = []
+        char.loras = []
+        char.prompt_mode = "standard"
+        builder.db.query.return_value.filter.return_value.first.return_value = char
+
+        result = builder.compose_for_character(
+            character_id=1,
+            scene_tags=["(crying:1.1)", "outdoors"],
+        )
+
+        # crying should be present (scene tag preserved as-is with weight)
+        assert "(crying:1.1)" in result
+        # gentle_smile should be suppressed
+        assert "gentle_smile" not in result
+        assert "outdoors" in result

@@ -58,6 +58,11 @@ EXCLUSIVE_TAG_GROUPS: frozenset[str] = frozenset(
         "skin_color",
     }
 )
+
+# Groups where scene tags override character base defaults.
+# When a scene provides expression/gaze tags, the character's base
+# expression/gaze (from custom_base_prompt) should be suppressed.
+SCENE_OVERRIDE_GROUPS: frozenset[str] = frozenset({"expression", "gaze"})
 OUTDOOR_LOCATION_TAGS: frozenset[str] = frozenset(
     {
         "outdoors",

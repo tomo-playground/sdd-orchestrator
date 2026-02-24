@@ -34,6 +34,7 @@ from config import (
     PERMANENT_IDENTITY_WEIGHT_BOOST,
     REFERENCE_CAMERA_TAGS,
     REFERENCE_ENV_TAGS,
+    SCENE_OVERRIDE_GROUPS,
     STYLE_LORA_WEIGHT_CAP,
 )
 from database import SessionLocal
@@ -97,20 +98,33 @@ class V3PromptBuilder:
         self._db_tag_names: set[str] | None = None
         self._last_composed_layers: list[list[str]] | None = None
 
+    @staticmethod
+    def _strip_weight(token: str) -> str:
+        """Strip SD weight syntax: (tag:1.2) → tag, bare tag → tag."""
+        if token.startswith("(") and ":" in token and token.endswith(")"):
+            return token[1:].split(":")[0]
+        return token
+
     def get_tag_info(self, tag_names: list[str]) -> dict[str, dict]:
-        """Fetches metadata for a list of tags from the DB with pattern-based fallback."""
+        """Fetches metadata for a list of tags from the DB with pattern-based fallback.
+
+        Handles SD weight syntax transparently: (crying:1.1) is looked up as 'crying'
+        but keyed by the original normalized form so callers can match either way.
+        """
         if not tag_names:
             return {}
 
-        # Normalize tags for DB lookup
+        # Normalize and strip weight syntax for DB lookup
         normalized_names = [t.lower().replace(" ", "_").strip() for t in tag_names]
+        bare_names = [self._strip_weight(n) for n in normalized_names]
 
-        tags = self.db.query(Tag).filter(Tag.name.in_(normalized_names)).all()
+        unique_bare = list(set(bare_names))
+        tags = self.db.query(Tag).filter(Tag.name.in_(unique_bare)).all()
 
-        # Cache DB-found tag names for find_unknown_tags reuse
+        # Cache DB-found tag names (bare form) for find_unknown_tags reuse
         self._db_tag_names = {tag.name for tag in tags}
 
-        result = {
+        bare_result: dict[str, dict] = {
             tag.name: {
                 "layer": tag.default_layer,
                 "scope": tag.usage_scope,
@@ -119,11 +133,20 @@ class V3PromptBuilder:
             for tag in tags
         }
 
-        # Pattern-based fallback for DB-missing tags
-        for normalized in normalized_names:
-            if normalized not in result:
-                layer = self._infer_layer_from_pattern(normalized)
-                result[normalized] = {"layer": layer, "scope": "ANY", "group_name": None}
+        # Pattern-based fallback for DB-missing tags (bare form)
+        group_map = self._tag_to_group_map()
+        for bare in unique_bare:
+            if bare not in bare_result:
+                layer = self._infer_layer_from_pattern(bare)
+                bare_result[bare] = {"layer": layer, "scope": "ANY", "group_name": group_map.get(bare)}
+
+        # Map results back: key by normalized (may include weight) AND bare form
+        result: dict[str, dict] = {}
+        for norm, bare in zip(normalized_names, bare_names):
+            if bare in bare_result:
+                result[norm] = bare_result[bare]
+                if norm != bare:
+                    result[bare] = bare_result[bare]
 
         return result
 
@@ -141,9 +164,7 @@ class V3PromptBuilder:
             stripped = t.strip()
             if stripped.startswith("<lora:"):
                 continue
-            # Strip weight parens: (tag:1.2) → tag
-            if stripped.startswith("(") and ":" in stripped and stripped.endswith(")"):
-                stripped = stripped[1:].split(":")[0]
+            stripped = self._strip_weight(stripped)
             stripped = stripped.lower().replace(" ", "_").strip()
             if stripped:
                 normalized.append(stripped)
@@ -195,6 +216,22 @@ class V3PromptBuilder:
             for tag in tags:
                 if tag not in result:
                     result[tag] = layer
+        return result
+
+    @staticmethod
+    @functools.cache
+    def _tag_to_group_map() -> dict[str, str]:
+        """CATEGORY_PATTERNS 전체를 tag→group_name flat dict로 변환 (캐시).
+
+        _tag_to_layer_map()과 동일 패턴으로 group_name을 O(1) lookup.
+        """
+        from services.keywords.patterns import CATEGORY_PATTERNS
+
+        result: dict[str, str] = {}
+        for group_name, tags in CATEGORY_PATTERNS.items():
+            for tag in tags:
+                if tag not in result:
+                    result[tag] = group_name
         return result
 
     @staticmethod
@@ -374,7 +411,12 @@ class V3PromptBuilder:
         return self._flatten_layers(layers)
 
     def _collect_character_tags(self, character: Character) -> list[dict]:
-        """Collect character tags from DB associations + custom_base_prompt."""
+        """Collect character tags from DB associations + custom_base_prompt.
+
+        DB tags: layer/group_name from Tag model.
+        custom_base_prompt tags: layer/group_name resolved via get_tag_info()
+        (DB lookup → pattern fallback) instead of hardcoding LAYER_IDENTITY.
+        """
         char_tags_data = []
         for char_tag in character.tags:
             tag = char_tag.tag
@@ -384,18 +426,27 @@ class V3PromptBuilder:
                     "layer": tag.default_layer,
                     "weight": char_tag.weight,
                     "is_permanent": char_tag.is_permanent,
+                    "group_name": tag.group_name,
                 }
             )
 
         TagFilterCache.initialize(self.db)
         if character.custom_base_prompt:
-            for bt in (t.strip() for t in character.custom_base_prompt.split(",")):
-                if bt and not TagFilterCache.is_restricted(bt):
+            custom_tags = [t.strip() for t in character.custom_base_prompt.split(",")]
+            custom_tags = [bt for bt in custom_tags if bt and not TagFilterCache.is_restricted(bt)]
+
+            if custom_tags:
+                normalized = [bt.lower().replace(" ", "_").strip() for bt in custom_tags]
+                tag_info_map = self.get_tag_info(normalized)
+
+                for bt, norm in zip(custom_tags, normalized):
+                    info = tag_info_map.get(norm, {})
                     char_tags_data.append(
                         {
                             "name": bt,
-                            "layer": LAYER_IDENTITY,
+                            "layer": info.get("layer", LAYER_IDENTITY),
                             "weight": 1.0,
+                            "group_name": info.get("group_name"),
                         }
                     )
 
@@ -421,10 +472,22 @@ class V3PromptBuilder:
 
         Character tags are placed first. Scene tags in exclusive groups
         already occupied by the character are dropped.
+        Scene tags in SCENE_OVERRIDE_GROUPS suppress matching character base tags.
         Returns the set of occupied exclusive groups.
         """
-        # 5. Distribute character tags (with identity/clothing weight boost)
+        # 5a. Identify scene override groups (expression, gaze)
+        scene_override_groups: set[str] = set()
+        for tag in scene_tags:
+            norm = tag.lower().replace(" ", "_").strip()
+            info = scene_tag_info.get(norm, {})
+            if info.get("group_name") in SCENE_OVERRIDE_GROUPS:
+                scene_override_groups.add(info["group_name"])
+
+        # 5b. Distribute character tags (with identity/clothing weight boost)
         for ct in char_tags_data:
+            # Skip character base tags whose group is overridden by scene
+            if ct.get("group_name") in scene_override_groups:
+                continue
             token = ct["name"]
             weight = ct["weight"]
             # Boost permanent identity/clothing tags (skip custom-weighted tags)
@@ -437,7 +500,7 @@ class V3PromptBuilder:
                 token = f"({token}:{weight})"
             layers[ct["layer"]].append(token)
 
-        # 5b. Build character-occupied exclusive groups
+        # 5c. Build character-occupied exclusive groups
         char_occupied = self._build_char_occupied_groups(char_tags_data)
 
         # 6. Distribute scene tags (skip occupied exclusive groups + LoRA tags)

@@ -17,10 +17,13 @@
 | Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 완료 (8/8)** |
 | Phase 14 (ControlNet Pose Pipeline) | **전체 완료 (3/3 + 14-A 3/3)** |
 | **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 4/4, A-1: 6/6, A-2: 2/2 완료** |
-| 테스트 | Backend 2,207 + Frontend 352 = **총 2,559개** |
+| 테스트 | Backend 2,539 + Frontend 352 = **총 2,891개** |
 
 ### 최근 작업
 
+- **Prompt Builder 근본 수정: custom_base_prompt 레이어 오배치 + 씬 표정 Override** (02-24): `_collect_character_tags()`에서 custom_base_prompt 태그가 `LAYER_IDENTITY(2)` 하드코딩되던 문제 해결 — `get_tag_info()` (DB→pattern fallback)로 올바른 layer/group_name 결정. `_tag_to_group_map()` 캐시 추가. `SCENE_OVERRIDE_GROUPS` 도입 — 씬에 expression/gaze 태그가 있으면 캐릭터 기본 표정/시선 자동 제외 (gentle_smile+crying 모순 방지). Alembic data migration (gentle_smile/soft_lighting conflict rules 6쌍). 22개 테스트 추가 (2,539 PASS)
+- **중복 PromptTokenPreview 제거** (02-24): ScenePromptFields에서 `PromptTokenPreview`(원시 토큰) + `ComposedPromptPreview`(조합 결과) 2중 표시 → `ComposedPromptPreview`만 유지. 실제 SD에 전달되는 최종 프롬프트만 표시하도록 정리. PromptTokenPreview.tsx 파일 삭제
+- **실패 테스트 31개 수정** (02-24): GROUP_NAME_TO_LAYER SSOT 후 회귀 테스트 6개 파일 수정. test_prompt.py 필드명 동기화(total_tags/risky/unknown), Character project_id 제거(2파일), Cinematographer Competition Mode 비활성화 패치(7테스트), test_script_snapshots Quick 모드 강제+finalize subset 검증. 2,516 passed, 0 failed
 - **Phase 15-A-2: TagAutocomplete 확산 8곳** (02-24): TagSuggestionDropdown 공유 컴포넌트 추출, useTagSuggestion 커스텀 훅(중복 제거), TagSuggestInput 신규(chip UI용 single-line autocomplete). NegativePromptToggle/SceneClothingModal/PromptPair(C2-C5)/SceneCharacterActions/StyleProfileEditor 8개 입력 포인트에 자동완성 적용. GenerationParameters 컴포넌트 분리. WAI-ARIA 접근성(role=combobox/listbox, aria-expanded/controls/selected). 14개 테스트 PASS
 - **Phase 15-A-1: TagAutocomplete 품질 개선 6건** (02-24): validate-tags 스키마 동기화(ValidateTagsResponse + response_model), Tag deprecation 필드 API 노출(TagSearchResponse, is_active 정렬, 취소선 UI), API debounce 300ms, 한국어/유니코드 검색(ko_name ilike, 한글 1자 트리거), wd14_count 드롭다운 표시(K/M 포맷), 태그 선택 후 ", " 자동 삽입. Backend 25 + Frontend 9 테스트
 - **Pipeline Prompt Quality 근본 수정** (02-24): SB#469 검수 기반 P0 3건+P1 2건+P2 1건. (1) `_sanitize_quality_tags()` — `high_quality`→`best_quality` 자동 치환, `create_style_profiles.py` 소스 정리. (2) `_inject_default_context_tags()` emotion→expression 파생(44개 매핑). (3) Scene LoRA 트리거 워드 주입 — `LoRAInfo` 클래스 도입, `_get_lora_info()` trigger_words 포함, scene-triggered/auto-triggered 양쪽 주입. (4) `validate_context_tag_categories()` — 잘못된 카테고리 재분류(gaze=crying→expression), 비표준 mood drop. (5) `check_camera_diversity()` >50% 반복 시 소프트 경고. (6) `_coerce_str()` — Gemini 리스트 반환 방어. 37개 테스트 추가 (160 PASS)
