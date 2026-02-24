@@ -2,7 +2,19 @@
 
 import { useState } from "react";
 import { Skeleton } from "../ui";
-import type { Scene, ImageValidation, ImageGenProgress } from "../../types";
+import type { Scene, ImageValidation, ImageGenProgress, CriticalFailureItem } from "../../types";
+
+const CRITICAL_FAILURE_LABELS: Record<string, string> = {
+  gender_swap: "GENDER SWAP",
+  no_subject: "NO CHARACTER",
+  count_mismatch: "COUNT MISMATCH",
+};
+
+function formatCriticalFailure(f: CriticalFailureItem): string {
+  if (f.failure_type === "gender_swap") return `성별 반전: ${f.expected} → ${f.detected}`;
+  if (f.failure_type === "no_subject") return `인물 미감지 (expected: ${f.expected})`;
+  return `인물수 불일치: ${f.expected}명 → ${f.detected}명`;
+}
 
 type SceneImagePanelProps = {
   scene: Scene;
@@ -51,12 +63,24 @@ function ValidationOverlay({
   const rate = Math.round((result.match_rate ?? 0) * 100);
   const missingCount = result.missing?.length ?? 0;
   const extraCount = result.extra?.length ?? 0;
+  const criticalFailures = result.critical_failure?.failures ?? [];
   const rateColor =
     rate >= 80 ? "text-emerald-400" : rate >= 50 ? "text-amber-400" : "text-red-400";
   const barColor = rate >= 80 ? "bg-emerald-400" : rate >= 50 ? "bg-amber-400" : "bg-red-400";
 
   return (
     <div className="flex w-full flex-col gap-2 px-4">
+      {/* Critical Failure Warning */}
+      {criticalFailures.length > 0 && (
+        <div className="rounded-lg bg-red-500/80 px-3 py-2 backdrop-blur">
+          {criticalFailures.map((f: CriticalFailureItem, i: number) => (
+            <p key={i} className="text-[12px] font-bold text-white">
+              {formatCriticalFailure(f)}
+            </p>
+          ))}
+        </div>
+      )}
+
       {/* Match Rate */}
       <div className="flex items-center gap-2">
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/20">
@@ -69,7 +93,7 @@ function ValidationOverlay({
       <div className="flex gap-3 text-[12px] font-semibold tracking-wider">
         {missingCount > 0 && <span className="text-red-300">MISSING {missingCount}</span>}
         {extraCount > 0 && <span className="text-amber-300">EXTRA {extraCount}</span>}
-        {missingCount === 0 && extraCount === 0 && (
+        {missingCount === 0 && extraCount === 0 && criticalFailures.length === 0 && (
           <span className="text-emerald-300">PERFECT MATCH</span>
         )}
       </div>
@@ -160,20 +184,25 @@ export default function SceneImagePanel({
               <div className="h-2 w-40 overflow-hidden rounded-full bg-zinc-200">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ease-out ${
-                    genProgress ? "bg-indigo-500" : "animate-pulse bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
+                    genProgress
+                      ? "bg-indigo-500"
+                      : "animate-pulse bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
                   }`}
                   style={{ width: genProgress ? `${genProgress.percent}%` : "100%" }}
                 />
               </div>
               <div className="flex items-center gap-3">
                 {genProgress && (
-                  <span className="text-[12px] font-bold text-indigo-600">{genProgress.percent}%</span>
-                )}
-                {genProgress?.estimated_remaining_seconds != null && genProgress.estimated_remaining_seconds > 0 && (
-                  <span className="text-[12px] text-zinc-400">
-                    ~{Math.ceil(genProgress.estimated_remaining_seconds)}s 남음
+                  <span className="text-[12px] font-bold text-indigo-600">
+                    {genProgress.percent}%
                   </span>
                 )}
+                {genProgress?.estimated_remaining_seconds != null &&
+                  genProgress.estimated_remaining_seconds > 0 && (
+                    <span className="text-[12px] text-zinc-400">
+                      ~{Math.ceil(genProgress.estimated_remaining_seconds)}s 남음
+                    </span>
+                  )}
               </div>
             </div>
           </div>
@@ -212,7 +241,18 @@ export default function SceneImagePanel({
           </div>
         )}
 
-        {/* Small badge when not hovered (if validated) */}
+        {/* Critical failure badge (always visible, top-left) */}
+        {!showOverlay && validationResult?.critical_failure?.has_failure && scene.image_url && (
+          <div className="absolute top-2 left-2">
+            <span className="rounded-full bg-red-600 px-2 py-0.5 text-[11px] font-bold tracking-wider text-white shadow-sm">
+              {CRITICAL_FAILURE_LABELS[
+                validationResult.critical_failure.failures[0]?.failure_type
+              ] ?? "CRITICAL"}
+            </span>
+          </div>
+        )}
+
+        {/* Small match rate badge when not hovered (if validated) */}
         {!showOverlay &&
           validationResult &&
           typeof validationResult.match_rate === "number" &&

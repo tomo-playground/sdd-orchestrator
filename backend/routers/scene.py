@@ -185,7 +185,7 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
     # Step 1: WD14 검증
     logger.info("📥 [Validate + Auto-Edit] %s", scrub_payload(request.model_dump()))
     validation_result = validate_scene_image(request, db=db)
-    match_rate = validation_result.get("match_rate", 1.0)
+    match_rate = validation_result.get("adjusted_match_rate", validation_result.get("match_rate", 1.0))
     missing_tags = validation_result.get("missing_tags", [])
 
     result = {
@@ -549,49 +549,94 @@ async def generate_scene_async(request: SceneGenerateRequest):
     return ImageGenAccepted(task_id=task.task_id)
 
 
+async def _generate_and_validate(task, request: SceneGenerateRequest) -> dict | None:
+    """Single generation attempt: compose → generate → store → validate.
+
+    Returns result dict (with optional _critical_failure key), or None if cancelled.
+    """
+    # Stage: composing
+    task.stage = ImageGenStage.COMPOSING
+    task.percent = calc_percent(task)
+    task.message = "프롬프트 조합 중..."
+    task.notify()
+
+    if task.cancelled:
+        return None
+
+    # Stage: generating
+    task.stage = ImageGenStage.GENERATING
+    task.percent = calc_percent(task)
+    task.message = "이미지 생성 중..."
+    task.notify()
+
+    from services.sd_progress_poller import poll_sd_progress
+
+    poller = asyncio.create_task(poll_sd_progress(task))
+    try:
+        result = await generate_scene_image(request)
+    finally:
+        poller.cancel()
+
+    if task.cancelled:
+        return None
+
+    # Stage: storing
+    task.stage = ImageGenStage.STORING
+    task.percent = calc_percent(task)
+    task.message = "저장 중..."
+    task.notify()
+
+    # Stage: validating
+    task.stage = ImageGenStage.VALIDATING
+    task.percent = calc_percent(task)
+    task.message = "품질 검증 중..."
+    task.notify()
+
+    from services.auto_regen import validate_for_critical_failure
+
+    prompt = result.get("used_prompt") or request.prompt
+    critical = validate_for_critical_failure(result, prompt)
+    if critical:
+        result["_critical_failure"] = critical
+
+    return result
+
+
 async def _run_image_gen(task_id: str, request: SceneGenerateRequest) -> None:
-    """Background coroutine: generate image with progress updates."""
+    """Background coroutine: generate image with auto-retry on critical failure."""
+    from config import AUTO_REGEN_ENABLED, AUTO_REGEN_MAX_RETRIES
+    from services.auto_regen import describe_failure, has_critical_failure, shift_seed_for_retry
+
     task = get_image_task(task_id)
     if not task:
         return
 
     try:
-        # Stage: composing
-        task.stage = ImageGenStage.COMPOSING
-        task.percent = calc_percent(task)
-        task.message = "프롬프트 조합 중..."
-        task.notify()
-
-        if task.cancelled:
+        result = await _generate_and_validate(task, request)
+        if result is None:
             return
 
-        # Stage: generating (start SD progress polling)
-        task.stage = ImageGenStage.GENERATING
-        task.percent = calc_percent(task)
-        task.message = "이미지 생성 중..."
-        task.notify()
+        retries = 0
+        while AUTO_REGEN_ENABLED and retries < AUTO_REGEN_MAX_RETRIES and has_critical_failure(result):
+            retries += 1
+            reason = describe_failure(result)
+            logger.warning("[Auto-Regen] %s detected, retry %d/%d", reason, retries, AUTO_REGEN_MAX_RETRIES)
 
-        from services.sd_progress_poller import poll_sd_progress
+            task.stage = ImageGenStage.RETRYING
+            task.percent = calc_percent(task)
+            task.message = f"재생성 중 ({retries}/{AUTO_REGEN_MAX_RETRIES}): {reason}"
+            task.notify()
 
-        poller = asyncio.create_task(poll_sd_progress(task))
-        try:
-            result = await generate_scene_image(request)
-        finally:
-            poller.cancel()
-
-        if task.cancelled:
-            return
-
-        task.stage = ImageGenStage.STORING
-        task.percent = calc_percent(task)
-        task.message = "저장 중..."
-        task.notify()
+            shift_seed_for_retry(request, retries)
+            result = await _generate_and_validate(task, request)
+            if result is None:
+                return
 
         # Stage: completed
         task.stage = ImageGenStage.COMPLETED
         task.percent = 100
         task.result = result
-        task.message = "완료"
+        task.message = "완료" if retries == 0 else f"완료 (재시도 {retries}회)"
         task.notify()
 
     except Exception as exc:

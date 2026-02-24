@@ -17,11 +17,14 @@
 | Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 완료 (8/8)** |
 | Phase 14 (ControlNet Pose Pipeline) | **전체 완료 (3/3 + 14-A 3/3)** |
 | **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 4/4, A-1: 6/6, A-2: 2/2, A-3: 3/3 완료** |
-| **Phase 16 (WD14 Smart Validation)** | **Phase 16-0 완료, 16-A~D 미착수** |
-| 테스트 | Backend 2,552 + Frontend 362 = **총 2,914개** |
+| **Phase 16 (WD14 Smart Validation)** | **Phase 16-0 완료, 16-A 완료, 16-B 완료, 16-C 완료, 16-D 미착수** |
+| 테스트 | Backend 2,592 + Frontend 362 = **총 2,954개** |
 
 ### 최근 작업
 
+- **Phase 16-B: Adjusted Match Rate** (02-24): WD14 감지 가능 그룹(14종: subject, hair_color, clothing, expression 등)만으로 match_rate를 재계산하는 `compute_adjusted_match_rate()` 추가. `WD14_DETECTABLE_GROUPS` 상수(config.py SSOT). `validate_scene_image()` 응답에 `adjusted_match_rate` 필드 병렬 반환(하위 호환). `_increment_tag_effectiveness()`에서 비감지 그룹(camera, location, mood 등) 태그 effectiveness 추적 제외. auto-edit 임계값 adjusted 우선 참조. `batch_validate_scenes()` partial_matched 포함으로 validation.py와 계산 일관화. 11개 테스트 추가 (2,592 PASS)
+- **Audio Pipeline 버그 수정 2건** (02-24): SB#475에서 발견된 오디오 이슈 수정. (1) BGM 루핑 — BGM이 비디오보다 짧을 때 `asplit`+`acrossfade` 필터 기반 자동 루핑(`_build_bgm_loop_filters`), ffprobe 동적 duration 측정(`_probe_duration`), 2초 크로스페이드로 이음새 품질 보장, `atrim`으로 정확한 비디오 길이 트림. (2) TTS 서킷 브레이커 씬 단위 전환 — HTTP 시도 단위(1씬 3retry=3카운트→즉시 차단)에서 씬 단위 카운팅으로 변경(`record_scene_failure`/`record_scene_success`), 3개 연속 씬 실패 시에만 차단. 24개 테스트 PASS
+- **Phase 16-A: Critical Failure Detection** (02-24): WD14 subject 태그(1girl 99%, solo 98%)의 높은 감지 정확도를 활용하여 성별 반전(gender_swap), 인물 부재(no_subject), 인물수 불일치(count_mismatch) 자동 감지. `detect_critical_failure()` 핵심 모듈, `validate_scene_image()` 통합, CriticalFailureInfo 스키마. Frontend 빨간 배지(좌상단) + ValidationOverlay 경고 + CompletionDots 우선 red + 토스트 분기. threshold 0.7 (false positive 최소화). 21개 테스트 추가 (2,571 PASS)
 - **Phase 16-0: WD14 Effectiveness 필터링 제거** (02-24): WD14가 9,083개 태그 중 39개(15%)만 신뢰 감지 가능한데, 감지 못하는 태그를 "효과 없음"으로 판정해 프롬프트에서 삭제하던 "death spiral" 문제 수정. `filter_prompt_tokens()` + `_load_processed_tags()`에서 effectiveness 기반 태그 삭제/Gemini 선택지 제한 비활성화. 265개 태그 중 167개(63%)가 부당하게 필터링되던 것 해소. 씬당 평균 6.76개 태그 삭제 → 0개. 26개 테스트 업데이트 PASS
 - **Phase 15-A-3: 태그 검증 확산** (02-24): `useTagValidationDebounced` 래퍼 훅 추출(debounce+검증+auto-replace 패턴 통합). PromptPair(캐릭터 Base/Negative 4곳), StyleProfileEditor(스타일 Positive/Negative), NegativePromptToggle(씬 네거티브), SceneClothingModal(의상 태그), ScenePromptFields(기존 코드 통일) 총 5개 컴포넌트에 TagValidationWarning 적용. 12개 단위 테스트 추가 (362 PASS)
 - **씬 Override 동적 그룹 전환** (02-24): `SCENE_OVERRIDE_GROUPS` 하드코딩 상수 제거 → 씬 태그의 group_name을 런타임 수집하여 `EXCLUSIVE_TAG_GROUPS`(hair_color 등) 제외 모든 그룹 자동 오버라이드. lighting(`soft_lighting`↔`dark`), expression, gaze 등 새 그룹 추가 시 코드 변경 불필요(OCP). pre-composed 프롬프트 캐릭터 base 토큰 중복 제거(`_strip_char_base_from_scene`). 스토리보드 473/474 10씬 전체 검증 완료. 6개 테스트 추가 (2,552 PASS)
@@ -279,30 +282,30 @@ graph LR
 | 2 | `_load_processed_tags()` effectiveness 기반 Gemini 태그 선택지 제한 제거 | ✅ (02-24) |
 | 3 | 테스트 업데이트 (26개 PASS) | ✅ (02-24) |
 
-### Phase 16-A: Critical Failure Detection (생성 실패 자동 감지)
+### Phase 16-A: Critical Failure Detection (완료 02-24)
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | `detect_critical_failure()` — 성별 반전/인물 부재/인물수 불일치 감지 | [ ] |
-| 2 | `validate_scene_image()` 응답에 `critical_failure` 필드 추가 | [ ] |
-| 3 | Frontend 경고 UI (Critical Failure 시 빨간 배지 + 재생성 버튼) | [ ] |
+| 1 | `detect_critical_failure()` — 성별 반전/인물 부재/인물수 불일치 감지 | ✅ (02-24) |
+| 2 | `validate_scene_image()` 응답에 `critical_failure` 필드 추가 | ✅ (02-24) |
+| 3 | Frontend 경고 UI (Critical Failure 시 빨간 배지 + 토스트) | ✅ (02-24) |
 
-### Phase 16-B: Adjusted Match Rate (정확한 품질 지표)
+### Phase 16-B: Adjusted Match Rate (완료 02-24)
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | `WD14_DETECTABLE_GROUPS` 상수 정의 (subject, hair_color, clothing 등) | [ ] |
-| 2 | `compute_adjusted_match_rate()` — 감지 가능 태그만으로 match_rate 재계산 | [ ] |
-| 3 | API 응답에 `adjusted_match_rate` + `raw_match_rate` 분리 | [ ] |
-| 4 | `_increment_tag_effectiveness()` 비감지 태그 제외 | [ ] |
+| 1 | `WD14_DETECTABLE_GROUPS` 상수 정의 (subject, hair_color, clothing 등 14종) | ✅ (02-24) |
+| 2 | `compute_adjusted_match_rate()` — 감지 가능 태그만으로 match_rate 재계산 | ✅ (02-24) |
+| 3 | API 응답에 `adjusted_match_rate` + `match_rate` 분리 (하위 호환) | ✅ (02-24) |
+| 4 | `_increment_tag_effectiveness()` 비감지 그룹 태그 제외 | ✅ (02-24) |
 
 ### Phase 16-C: Auto-Regeneration + Identity Ranking
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | Critical Failure 시 seed 변경 자동 재생성 (최대 2회) | [ ] |
-| 2 | `compute_identity_score()` — 캐릭터 identity 태그 일치도 계산 | [ ] |
-| 3 | 후보 랭킹: identity_score 1순위 → adjusted_match_rate 2순위 | [ ] |
+| 1 | Critical Failure 시 seed 변경 자동 재생성 (최대 2회) | ✅ (02-24) |
+| 2 | `compute_identity_score()` — 캐릭터 identity 태그 일치도 계산 | ✅ (02-24) |
+| 3 | 후보 랭킹: identity_score 1순위 → adjusted_match_rate 2순위 | ✅ (02-24) |
 
 ### Phase 16-D: Cross-Scene Consistency (씬 간 캐릭터 일관성)
 
@@ -383,9 +386,9 @@ Phase 12 (Agent Enhancement 26건) + Phase 13 (Creative Control 19건 + 13-A Qui
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
-| 1 | 16-A: Critical Failure Detection | 성별 반전 등 생성 실패 즉시 감지 — 가장 빠르게 가치 제공 |
-| 2 | 16-B: Adjusted Match Rate | WD14 감지 가능 태그만으로 정확한 품질 지표 |
-| 3 | 16-C: Auto-Regen + Identity Ranking | 실패 시 자동 재생성 + 캐릭터 identity 우선 후보 선택 |
+| ~~1~~ | ~~16-A: Critical Failure Detection~~ | ✅ 완료 (02-24) |
+| ~~2~~ | ~~16-B: Adjusted Match Rate~~ | ✅ 완료 (02-24) |
+| ~~3~~ | ~~16-C: Auto-Regen + Identity Ranking~~ | ✅ 완료 (02-24) |
 | 4 | 16-D: Cross-Scene Consistency | 12씬 캐릭터 일관성 검증 대시보드 |
 
 **Phase 15-B — Visual Tag Browser (백로그)**

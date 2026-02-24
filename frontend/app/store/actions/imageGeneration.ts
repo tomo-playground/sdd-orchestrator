@@ -236,6 +236,8 @@ export async function generateSceneCandidates(
   const candidates: Array<{
     media_asset_id: number;
     match_rate?: number;
+    adjusted_match_rate?: number;
+    identity_score?: number;
     image_url?: string;
   }> = [];
   let resolvedImagePrompt: string | undefined;
@@ -245,16 +247,33 @@ export async function generateSceneCandidates(
     if (!resolvedImagePrompt && result.image_prompt) {
       resolvedImagePrompt = result.image_prompt;
     }
-    const validation = await validateImageCandidate(result.image_url, prompt, scene.id);
+    const validation = await validateImageCandidate(
+      result.image_url,
+      prompt,
+      scene.id,
+      selectedCharacterId
+    );
+    const vResult = validation?.validation_result ?? validation;
     candidates.push({
       media_asset_id: result.image_asset_id,
-      match_rate: typeof validation?.match_rate === "number" ? validation.match_rate : 0,
+      match_rate: typeof vResult?.match_rate === "number" ? vResult.match_rate : 0,
+      adjusted_match_rate:
+        typeof vResult?.adjusted_match_rate === "number" ? vResult.adjusted_match_rate : undefined,
+      identity_score:
+        typeof vResult?.identity_score === "number" ? vResult.identity_score : undefined,
       image_url: result.image_url,
     });
   }
   if (!candidates.length) return null;
 
-  const best = [...candidates].sort((a, b) => (b.match_rate ?? 0) - (a.match_rate ?? 0))[0];
+  const best = [...candidates].sort((a, b) => {
+    const idA = a.identity_score ?? -1;
+    const idB = b.identity_score ?? -1;
+    if (idA !== idB) return idB - idA;
+    return (
+      (b.adjusted_match_rate ?? b.match_rate ?? 0) - (a.adjusted_match_rate ?? a.match_rate ?? 0)
+    );
+  })[0];
 
   if (best?.image_url) {
     const validation = await validateImageCandidate(best.image_url, prompt, scene.id);

@@ -409,6 +409,8 @@ class SceneCandidate(BaseModel):
 
     media_asset_id: int
     match_rate: float | None = None
+    adjusted_match_rate: float | None = None
+    identity_score: float | None = None
     # Response-only: enriched on GET, excluded from JSONB storage
     image_url: str | None = None
 
@@ -658,6 +660,7 @@ class SceneValidateRequest(BaseModel):
     scene_id: int | None = None  # Scene DB ID
     topic: str | None = None  # Optional: Content topic for reference
     scene_index: int | None = None  # Optional: Scene number (순서)
+    character_id: int | None = None  # For identity_score calculation
 
     @model_validator(mode="after")
     def require_image_source(self):
@@ -1536,6 +1539,8 @@ class ImageProgressEvent(BaseModel):
     error: str | None = None
     controlnet_pose: str | None = None
     ip_adapter_reference: str | None = None
+    retry_count: int = 0
+    retry_reason: str | None = None
 
 
 class SceneEditImageRequest(BaseModel):
@@ -1973,17 +1978,36 @@ class ImageStoreResponse(BaseModel):
     asset_id: int
 
 
+class CriticalFailureItem(BaseModel):
+    """Single critical failure detection result."""
+
+    failure_type: str
+    expected: str
+    detected: str
+    confidence: float
+
+
+class CriticalFailureInfo(BaseModel):
+    """Critical failure detection summary."""
+
+    has_failure: bool
+    failures: list[CriticalFailureItem] = []
+
+
 class SceneValidationResponse(BaseModel):
     """Response for POST /scene/validate_image."""
 
     mode: str = "wd14"
     match_rate: float = 0.0
+    adjusted_match_rate: float = 0.0
     matched: list[str] = []
     missing: list[str] = []
     extra: list[str] = []
     skipped: list[str] = []
     partial_matched: list[str] = []
     tags: list[str] = []
+    critical_failure: CriticalFailureInfo | None = None
+    identity_score: float | None = None
 
 
 class VideoCreateResponse(BaseModel):

@@ -86,7 +86,17 @@ export async function handleValidateImage(scene: Scene) {
         )
         .catch(() => {});
     }
-    if (matchRate >= 80) {
+    const criticalFailure = validation.critical_failure;
+    if (criticalFailure?.has_failure && criticalFailure.failures?.length > 0) {
+      const first = criticalFailure.failures[0];
+      const labels: Record<string, string> = {
+        gender_swap: "성별 반전",
+        no_subject: "인물 미감지",
+        count_mismatch: "인물수 불일치",
+      };
+      const label = labels[first.failure_type] ?? first.failure_type;
+      showToast(`Critical: ${label} — 재생성을 권장합니다 (${matchRate}%)`, "error");
+    } else if (matchRate >= 80) {
       showToast(`Validated! Match ${matchRate}%`, "success");
     } else {
       showToast(`Match ${matchRate}% - check missing tags`, "error");

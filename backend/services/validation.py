@@ -13,7 +13,7 @@ from fastapi import HTTPException
 from PIL import Image
 from sqlalchemy.orm import Session
 
-from config import WD14_MODEL_DIR, WD14_THRESHOLD, WD14_UNMATCHABLE_TAGS, logger
+from config import WD14_DETECTABLE_GROUPS, WD14_MODEL_DIR, WD14_THRESHOLD, WD14_UNMATCHABLE_TAGS, logger
 from schemas import SceneValidateRequest
 from services.image import load_image_bytes
 from services.keywords import normalize_prompt_token
@@ -233,6 +233,43 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
     }
 
 
+def compute_adjusted_match_rate(
+    matched: list[str],
+    partial_matched: list[str],
+    missing: list[str],
+) -> float:
+    """Compute match rate using only WD14-detectable group tags.
+
+    Tags whose group_name is NOT in WD14_DETECTABLE_GROUPS are excluded
+    from both numerator and denominator, giving a more realistic quality signal.
+
+    Returns 0.0 if no detectable tokens exist.
+    """
+    from services.keywords.db_cache import TagCategoryCache
+
+    detectable_matched = 0
+    detectable_total = 0
+
+    for token in matched:
+        group = TagCategoryCache.get_category(token)
+        if group and group in WD14_DETECTABLE_GROUPS:
+            detectable_matched += 1
+            detectable_total += 1
+
+    for token in partial_matched:
+        group = TagCategoryCache.get_category(token)
+        if group and group in WD14_DETECTABLE_GROUPS:
+            detectable_matched += 1
+            detectable_total += 1
+
+    for token in missing:
+        group = TagCategoryCache.get_category(token)
+        if group and group in WD14_DETECTABLE_GROUPS:
+            detectable_total += 1
+
+    return (detectable_matched / detectable_total) if detectable_total else 0.0
+
+
 def validate_scene_image(request: SceneValidateRequest, db: Session | None = None) -> dict:
     """Validate scene image using WD14 tagger.
 
@@ -284,15 +321,37 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
                 missing_tags=comparison["missing"],
             )
 
+        adjusted = compute_adjusted_match_rate(
+            comparison["matched"],
+            comparison["partial_matched"],
+            comparison["missing"],
+        )
+
+        from services.critical_failure import detect_critical_failure
+
+        critical = detect_critical_failure(request.prompt or "", tags)
+
+        # Identity score: how well WD14 tags match character identity traits
+        identity_score = None
+        if request.character_id and db is not None:
+            from services.identity_score import compute_identity_score, load_character_identity_tags
+
+            identity_tags = load_character_identity_tags(request.character_id, db)
+            if identity_tags:
+                identity_score = compute_identity_score(identity_tags, tags)
+
         return {
             "mode": "wd14",
             "match_rate": match_rate,
+            "adjusted_match_rate": adjusted,
             "matched": comparison["matched"],
             "missing": comparison["missing"],
             "extra": comparison["extra"],
             "skipped": comparison["skipped"],
             "partial_matched": comparison["partial_matched"],
             "tags": tags[:20],
+            "critical_failure": critical.to_dict() if critical.has_failure else None,
+            "identity_score": identity_score,
         }
     except Exception as exc:
         logger.exception("Validation failed")
@@ -383,6 +442,7 @@ def _increment_tag_effectiveness(
     - Tags in WD14_UNMATCHABLE_TAGS or not in DB are skipped.
     """
     from models.tag import Tag, TagEffectiveness
+    from services.keywords.db_cache import TagCategoryCache
 
     all_tags = set(matched_tags) | set(missing_tags)
     if not all_tags:
@@ -391,6 +451,13 @@ def _increment_tag_effectiveness(
     try:
         for tag_name in all_tags:
             if tag_name in WD14_UNMATCHABLE_TAGS:
+                continue
+
+            # Skip tags not in detectable groups (camera, location, etc.)
+            # group=None (DB unregistered) also skipped — consistent with
+            # compute_adjusted_match_rate() which excludes unknown groups.
+            group = TagCategoryCache.get_category(tag_name)
+            if not group or group not in WD14_DETECTABLE_GROUPS:
                 continue
 
             tag = db.query(Tag).filter(Tag.name == tag_name).first()

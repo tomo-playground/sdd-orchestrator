@@ -12,10 +12,11 @@ import httpx
 
 from config import logger
 
-# Circuit breaker state
-_CIRCUIT_FAILURE_THRESHOLD = 3
+# Circuit breaker state — tracks consecutive *scene-level* failures so that
+# retries within a single scene don't trip the breaker on their own.
+_CIRCUIT_SCENE_FAILURE_THRESHOLD = 3
 _CIRCUIT_COOLDOWN_SEC = 60
-_circuit_failures = 0
+_consecutive_scene_failures = 0
 _circuit_open_until = 0.0
 
 
@@ -28,27 +29,32 @@ def _get_audio_server_config() -> tuple[str, float]:
 
 def _check_circuit() -> bool:
     """Return True if circuit is closed (requests allowed)."""
-    global _circuit_failures, _circuit_open_until
+    global _consecutive_scene_failures, _circuit_open_until
     now = time.monotonic()
-    if _circuit_failures >= _CIRCUIT_FAILURE_THRESHOLD:
+    if _consecutive_scene_failures >= _CIRCUIT_SCENE_FAILURE_THRESHOLD:
         if now < _circuit_open_until:
             return False
         logger.info("[AudioClient] Circuit breaker: retrying after cooldown")
-        _circuit_failures = 0
+        _consecutive_scene_failures = 0
     return True
 
 
-def _record_success():
-    global _circuit_failures
-    _circuit_failures = 0
+def record_scene_success() -> None:
+    """Call after a scene's TTS/music generation succeeds (possibly after retries)."""
+    global _consecutive_scene_failures
+    _consecutive_scene_failures = 0
 
 
-def _record_failure():
-    global _circuit_failures, _circuit_open_until
-    _circuit_failures += 1
-    if _circuit_failures >= _CIRCUIT_FAILURE_THRESHOLD:
+def record_scene_failure() -> None:
+    """Call after a scene exhausts all retries with no usable audio."""
+    global _consecutive_scene_failures, _circuit_open_until
+    _consecutive_scene_failures += 1
+    if _consecutive_scene_failures >= _CIRCUIT_SCENE_FAILURE_THRESHOLD:
         _circuit_open_until = time.monotonic() + _CIRCUIT_COOLDOWN_SEC
-        logger.warning("[AudioClient] Circuit breaker OPEN (failures=%d)", _circuit_failures)
+        logger.warning(
+            "[AudioClient] Circuit breaker OPEN (%d consecutive scenes failed)",
+            _consecutive_scene_failures,
+        )
 
 
 async def synthesize_tts(
@@ -93,7 +99,6 @@ async def synthesize_tts(
 
         data = resp.json()
         audio_bytes = base64.b64decode(data["audio_base64"])
-        _record_success()
 
         return (
             audio_bytes,
@@ -102,7 +107,6 @@ async def synthesize_tts(
             data["quality_passed"],
         )
     except Exception as e:
-        _record_failure()
         logger.error("[AudioClient] TTS synthesis failed: %s", e)
         raise
 
@@ -138,11 +142,9 @@ async def generate_music(
 
         data = resp.json()
         wav_bytes = base64.b64decode(data["audio_base64"])
-        _record_success()
 
         return wav_bytes, data["sample_rate"], data["actual_seed"]
     except Exception as e:
-        _record_failure()
         logger.error("[AudioClient] Music generation failed: %s", e)
         raise
 

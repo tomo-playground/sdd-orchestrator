@@ -3,7 +3,11 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from services.video.effects import _resolve_bgm_path
+from services.video.effects import (
+    _build_bgm_loop_filters,
+    _probe_duration,
+    _resolve_bgm_path,
+)
 
 
 class TestResolveBgmPath:
@@ -75,3 +79,84 @@ class TestResolveBgmPath:
 
         result = _resolve_bgm_path(builder)
         assert result == "/tmp/preset.wav"
+
+
+class TestProbeDuration:
+    """Tests for _probe_duration."""
+
+    @patch("subprocess.run")
+    def test_returns_duration(self, mock_run):
+        mock_run.return_value = MagicMock(stdout="30.5\n")
+        assert _probe_duration("/tmp/bgm.wav") == 30.5
+
+    @patch("subprocess.run")
+    def test_returns_zero_on_failure(self, mock_run):
+        mock_run.side_effect = Exception("ffprobe not found")
+        assert _probe_duration("/tmp/bgm.wav") == 0.0
+
+
+class TestBuildBgmLoopFilters:
+    """Tests for _build_bgm_loop_filters (asplit + acrossfade)."""
+
+    @patch("services.video.effects._probe_duration")
+    def test_no_loop_when_bgm_longer(self, mock_probe):
+        """BGM longer than video → no loop filters, return raw input label."""
+        mock_probe.return_value = 60.0
+        builder = MagicMock()
+        builder._total_dur = 45.0
+        builder.filters = []
+
+        label = _build_bgm_loop_filters(builder, 5, "/tmp/bgm.wav")
+        assert label == "[5:a]"
+        assert len(builder.filters) == 0
+
+    @patch("services.video.effects._probe_duration")
+    def test_no_loop_when_bgm_equal(self, mock_probe):
+        mock_probe.return_value = 45.0
+        builder = MagicMock()
+        builder._total_dur = 45.0
+        builder.filters = []
+
+        label = _build_bgm_loop_filters(builder, 5, "/tmp/bgm.wav")
+        assert label == "[5:a]"
+
+    @patch("services.video.effects._probe_duration")
+    def test_loop_with_crossfade(self, mock_probe):
+        """30s BGM for 45s video → asplit=2 + 1 acrossfade."""
+        mock_probe.return_value = 30.0
+        builder = MagicMock()
+        builder._total_dur = 45.0
+        builder.filters = []
+
+        label = _build_bgm_loop_filters(builder, 5, "/tmp/bgm.wav")
+        assert label == "[bgm_looped]"
+        # asplit + 1 acrossfade
+        assert len(builder.filters) == 2
+        assert "asplit=2" in builder.filters[0]
+        assert "acrossfade" in builder.filters[1]
+        assert "[bgm_looped]" in builder.filters[1]
+
+    @patch("services.video.effects._probe_duration")
+    def test_multiple_loops(self, mock_probe):
+        """10s BGM for 45s video → multiple copies with chained crossfades."""
+        mock_probe.return_value = 10.0
+        builder = MagicMock()
+        builder._total_dur = 45.0
+        builder.filters = []
+
+        label = _build_bgm_loop_filters(builder, 5, "/tmp/bgm.wav")
+        assert label == "[bgm_looped]"
+        # 1 asplit + N-1 acrossfades
+        copies = int(builder.filters[0].split("asplit=")[1].split("[")[0])
+        assert copies >= 4
+        assert len(builder.filters) == 1 + (copies - 1)
+
+    @patch("services.video.effects._probe_duration")
+    def test_probe_failure_returns_raw(self, mock_probe):
+        mock_probe.return_value = 0.0
+        builder = MagicMock()
+        builder._total_dur = 45.0
+        builder.filters = []
+
+        label = _build_bgm_loop_filters(builder, 5, "/tmp/bgm.wav")
+        assert label == "[5:a]"

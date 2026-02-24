@@ -49,9 +49,7 @@ def apply_transitions(builder: VideoBuilder) -> None:
         builder._map_a = curr_a
         # acrossfade reduces total by transition_dur per crossfade
         num_crossfades = builder.num_scenes - 1
-        builder._total_dur = (
-            acc_offset + builder.scene_durations[-1] - num_crossfades * builder.transition_dur
-        )
+        builder._total_dur = acc_offset + builder.scene_durations[-1] - num_crossfades * builder.transition_dur
     else:
         builder._map_v = "[v0_raw]"
         builder._map_a = "[a0_raw]"
@@ -122,10 +120,13 @@ def apply_bgm(builder: VideoBuilder) -> None:
     bgm_idx = builder._next_input_idx
     bgm_vol = builder.request.bgm_volume
 
+    # Build looped BGM stream (crossfade at loop seams)
+    bgm_label = _build_bgm_loop_filters(builder, bgm_idx, bgm_path)
+
     if builder.request.audio_ducking:
-        _apply_ducked_bgm(builder, bgm_idx, bgm_vol)
+        _apply_ducked_bgm(builder, bgm_label, bgm_vol)
     else:
-        _apply_simple_bgm(builder, bgm_idx, bgm_vol)
+        _apply_simple_bgm(builder, bgm_label, bgm_vol)
 
     builder._map_a = "[a_f]"
 
@@ -158,13 +159,83 @@ def _resolve_bgm_path(builder: VideoBuilder) -> str | None:
     return str(storage.get_local_path(storage_key))
 
 
-def _apply_ducked_bgm(builder: VideoBuilder, bgm_idx: int, bgm_vol: float) -> None:
+_BGM_CROSSFADE_SEC = 2.0
+
+
+def _probe_duration(path: str) -> float:
+    """Return audio duration in seconds via ffprobe. Returns 0 on failure."""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                path,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        return float(result.stdout.strip())
+    except Exception as e:
+        logger.warning("[BGM] Failed to probe duration for %s: %s", path, e)
+        return 0.0
+
+
+def _build_bgm_loop_filters(
+    builder: VideoBuilder, bgm_idx: int, bgm_path: str
+) -> str:
+    """Build filter chain that loops BGM with crossfade at seams.
+
+    Returns the FFmpeg stream label to use downstream (e.g. ``"[bgm_looped]"``
+    or ``f"[{bgm_idx}:a]"`` when no looping is needed).
+    """
+    import math
+
+    bgm_dur = _probe_duration(bgm_path)
+    if bgm_dur <= 0 or bgm_dur >= builder._total_dur:
+        return f"[{bgm_idx}:a]"
+
+    xfade = min(_BGM_CROSSFADE_SEC, bgm_dur * 0.4)
+    effective_dur = bgm_dur - xfade
+    copies = max(2, math.ceil(builder._total_dur / effective_dur))
+    logger.info(
+        "[BGM] bgm=%.1fs, video=%.1fs, xfade=%.1fs → %d copies",
+        bgm_dur, builder._total_dur, xfade, copies,
+    )
+
+    # asplit into N copies
+    labels = [f"[bgm_{i}]" for i in range(copies)]
+    builder.filters.append(
+        f"[{bgm_idx}:a]asplit={copies}{''.join(labels)}"
+    )
+
+    # Chain acrossfade between consecutive copies
+    curr = labels[0]
+    for i in range(1, copies):
+        out = f"[bgm_cf{i}]" if i < copies - 1 else "[bgm_looped]"
+        builder.filters.append(
+            f"{curr}{labels[i]}acrossfade=d={xfade}:c1=tri:c2=tri{out}"
+        )
+        curr = out
+
+    return "[bgm_looped]"
+
+
+def _apply_ducked_bgm(builder: VideoBuilder, bgm_label: str, bgm_vol: float) -> None:
     """Apply BGM with sidechain compression (audio ducking)."""
     # 1. Split narration as sidechain key signal
     builder.filters.append(f"{builder._map_a}asplit=2[narr_out][narr_key]")
-    # 2. Prepare BGM with volume and fade
+    # 2. Prepare BGM with volume, trim, and fade
     builder.filters.append(
-        f"[{bgm_idx}:a]volume={bgm_vol},afade=t=out:st={max(0, builder._total_dur - 2)}:d=2[bgm_vol]"
+        f"{bgm_label}atrim=duration={builder._total_dur},asetpts=PTS-STARTPTS,"
+        f"volume={bgm_vol},afade=t=out:st={max(0, builder._total_dur - 2)}:d=2[bgm_vol]"
     )
     # 3. Apply sidechain compression
     threshold = builder.request.ducking_threshold
@@ -177,7 +248,10 @@ def _apply_ducked_bgm(builder: VideoBuilder, bgm_idx: int, bgm_vol: float) -> No
     builder.filters.append("[narr_out][bgm_ducked]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[a_f]")
 
 
-def _apply_simple_bgm(builder: VideoBuilder, bgm_idx: int, bgm_vol: float) -> None:
+def _apply_simple_bgm(builder: VideoBuilder, bgm_label: str, bgm_vol: float) -> None:
     """Apply BGM with simple fixed-volume mixing."""
-    builder.filters.append(f"[{bgm_idx}:a]volume={bgm_vol},afade=t=out:st={max(0, builder._total_dur - 2)}:d=2[bgm_f]")
+    builder.filters.append(
+        f"{bgm_label}atrim=duration={builder._total_dur},asetpts=PTS-STARTPTS,"
+        f"volume={bgm_vol},afade=t=out:st={max(0, builder._total_dur - 2)}:d=2[bgm_f]"
+    )
     builder.filters.append(f"{builder._map_a}[bgm_f]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[a_f]")

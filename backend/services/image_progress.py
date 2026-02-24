@@ -23,6 +23,8 @@ class ImageGenStage(str, Enum):
     COMPOSING = "composing"  # Prompt composition
     GENERATING = "generating"  # SD WebUI txt2img
     STORING = "storing"  # Saving to storage
+    VALIDATING = "validating"  # WD14 critical failure check
+    RETRYING = "retrying"  # Seed shift + re-generation
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -30,9 +32,11 @@ class ImageGenStage(str, Enum):
 # Stage → (percent_lo, percent_hi)
 _STAGE_RANGES: dict[ImageGenStage, tuple[int, int]] = {
     ImageGenStage.QUEUED: (0, 0),
-    ImageGenStage.COMPOSING: (0, 10),
-    ImageGenStage.GENERATING: (10, 85),
-    ImageGenStage.STORING: (85, 100),
+    ImageGenStage.COMPOSING: (0, 5),
+    ImageGenStage.GENERATING: (5, 70),
+    ImageGenStage.STORING: (70, 75),
+    ImageGenStage.VALIDATING: (75, 85),
+    ImageGenStage.RETRYING: (85, 95),
     ImageGenStage.COMPLETED: (100, 100),
     ImageGenStage.FAILED: (0, 0),
 }

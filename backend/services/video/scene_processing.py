@@ -24,6 +24,8 @@ from config import (
     TTS_TOP_P,
     logger,
 )
+from services.audio_client import record_scene_failure as _audio_scene_failure
+from services.audio_client import record_scene_success as _audio_scene_success
 from services.audio_client import synthesize_tts as _audio_synthesize_tts
 from services.storage import get_storage
 from services.video.tts_helpers import (
@@ -300,6 +302,7 @@ async def generate_tts(
         shutil.copy2(cached, tts_path)
         tts_duration = builder._get_audio_duration(tts_path)
         logger.info(f"Scene {i}: TTS cache hit ({cache_key}), duration={tts_duration}s")
+        _audio_scene_success()
         return True, tts_duration
 
     try:
@@ -372,6 +375,7 @@ async def generate_tts(
                     logger.info(f"[TTS] Scene {i}: passed on attempt {attempt + 1}, duration={tts_duration:.2f}s")
                 else:
                     logger.info(f"TTS success: duration={tts_duration}s, seed={attempt_seed}")
+                _audio_scene_success()
                 return True, tts_duration
 
             logger.warning(
@@ -383,12 +387,15 @@ async def generate_tts(
             tts_path.write_bytes(best_bytes)
             tts_duration = builder._get_audio_duration(tts_path)
             logger.warning(f"[TTS] Scene {i}: all retries exhausted, using best attempt ({best_dur:.2f}s, uncached)")
+            _audio_scene_success()
             return True, tts_duration
 
         logger.warning(f"[TTS] Scene {i}: all retries exhausted with no usable audio, falling back to silent scene")
+        _audio_scene_failure()
         return False, 0.0
     except Exception as e:
         logger.warning(f"[TTS] Scene {i}: unexpected error ({e}), falling back to silent scene")
+        _audio_scene_failure()
         return False, 0.0
 
 

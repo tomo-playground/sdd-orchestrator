@@ -65,12 +65,22 @@ class TestCalcPercent:
         task.stage = ImageGenStage.GENERATING
         task.sd_progress = 0.5
         pct = calc_percent(task)
-        # GENERATING range is (10, 85), 50% of 75 span = 37.5 + 10 = 47
-        assert pct == 47
+        # GENERATING range is (5, 70), 50% of 65 span = 32.5 + 5 = 37
+        assert pct == 37
 
-    def test_storing_is_85(self):
+    def test_storing_is_70(self):
         task = ImageTaskProgress(task_id="test4")
         task.stage = ImageGenStage.STORING
+        assert calc_percent(task) == 70
+
+    def test_validating_is_75(self):
+        task = ImageTaskProgress(task_id="test_v")
+        task.stage = ImageGenStage.VALIDATING
+        assert calc_percent(task) == 75
+
+    def test_retrying_is_85(self):
+        task = ImageTaskProgress(task_id="test_r")
+        task.stage = ImageGenStage.RETRYING
         assert calc_percent(task) == 85
 
     def test_completed_is_100(self):

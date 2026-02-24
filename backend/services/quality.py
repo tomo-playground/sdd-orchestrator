@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 from PIL import Image
 
 from config import OUTPUT_DIR, logger
-from services.validation import compare_prompt_to_tags, wd14_predict_tags
+from services.validation import compare_prompt_to_tags, compute_adjusted_match_rate, wd14_predict_tags
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -65,9 +65,16 @@ def batch_validate_scenes(
             tags = wd14_predict_tags(image)
             comparison = compare_prompt_to_tags(prompt, tags)
 
-            # Calculate match rate
-            total = len(comparison["matched"]) + len(comparison["missing"])
-            match_rate = (len(comparison["matched"]) / total) if total else 0.0
+            # Calculate match rate (include partial_matched like validation.py)
+            n_matched = len(comparison["matched"]) + len(comparison["partial_matched"])
+            total = n_matched + len(comparison["missing"])
+            match_rate = (n_matched / total) if total else 0.0
+
+            adjusted = compute_adjusted_match_rate(
+                comparison["matched"],
+                comparison["partial_matched"],
+                comparison["missing"],
+            )
 
             # Save to database
             score = SceneQualityScore(
@@ -87,6 +94,7 @@ def batch_validate_scenes(
                 {
                     "scene_id": scene_id,
                     "match_rate": round(match_rate, 3),
+                    "adjusted_match_rate": round(adjusted, 3),
                     "matched_count": len(comparison["matched"]),
                     "missing_count": len(comparison["missing"]),
                 }

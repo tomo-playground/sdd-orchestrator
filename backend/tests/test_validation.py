@@ -1,6 +1,8 @@
 """Tests for image validation service (WD14 and Gemini comparison)."""
 
-from services.validation import compare_prompt_to_tags
+import pytest
+
+from services.validation import compare_prompt_to_tags, compute_adjusted_match_rate
 
 
 class TestComparePromptToTags:
@@ -214,7 +216,7 @@ class TestComparePromptToTags:
         prompt = "1girl"
         tags = [
             {"tag": "1girl", "score": 0.95, "category": "0"},
-            *[{"tag": f"tag_{i}", "score": 0.90 - i * 0.01, "category": "0"} for i in range(30)]
+            *[{"tag": f"tag_{i}", "score": 0.90 - i * 0.01, "category": "0"} for i in range(30)],
         ]
 
         result = compare_prompt_to_tags(prompt, tags)
@@ -224,7 +226,9 @@ class TestComparePromptToTags:
 
     def test_complex_scenario(self):
         """Should handle complex real-world scenario."""
-        prompt = "masterpiece, best quality, 1girl, blue hair, red eyes, school uniform, standing, library, soft lighting"
+        prompt = (
+            "masterpiece, best quality, 1girl, blue hair, red eyes, school uniform, standing, library, soft lighting"
+        )
         tags = [
             {"tag": "1girl", "score": 0.95, "category": "0"},
             {"tag": "blue hair", "score": 0.90, "category": "0"},
@@ -306,3 +310,138 @@ class TestValidationIntegration:
         # Very few matches expected
         assert len(result["matched"]) < 2
         assert len(result["missing"]) >= 3
+
+
+class TestComputeAdjustedMatchRate:
+    """Test adjusted match rate calculation using WD14-detectable groups."""
+
+    @pytest.fixture(autouse=True)
+    def _mock_tag_cache(self, monkeypatch):
+        """Mock TagCategoryCache.get_category to return known groups."""
+        group_map = {
+            "1girl": "subject",
+            "blue_hair": "hair_color",
+            "red_eyes": "eye_color",
+            "school_uniform": "clothing",
+            "smile": "expression",
+            "standing": "pose",
+            "cowboy_shot": "camera",
+            "soft_lighting": "lighting",
+            "classroom": "location_indoor_specific",
+            "peaceful": "mood",
+            "looking_at_viewer": "gaze",
+        }
+        monkeypatch.setattr(
+            "services.keywords.db_cache.TagCategoryCache",
+            type("FakeCache", (), {"get_category": staticmethod(lambda t: group_map.get(t))}),
+        )
+
+    def test_all_detectable(self):
+        """All tokens are detectable → adjusted == raw."""
+        matched = ["1girl", "blue_hair", "smile"]
+        partial = []
+        missing = ["red_eyes"]
+        # 3 matched / 4 total = 0.75
+        result = compute_adjusted_match_rate(matched, partial, missing)
+        assert abs(result - 0.75) < 0.001
+
+    def test_non_detectable_missing_excluded(self):
+        """Non-detectable missing tags excluded → adjusted > raw."""
+        matched = ["1girl", "blue_hair"]
+        partial = []
+        missing = ["cowboy_shot", "soft_lighting", "red_eyes"]
+        # Raw: 2/5 = 0.4
+        # Adjusted: detectable matched=2 (1girl, blue_hair), detectable missing=1 (red_eyes)
+        # camera/lighting excluded → 2/3 = 0.667
+        result = compute_adjusted_match_rate(matched, partial, missing)
+        assert abs(result - 2 / 3) < 0.001
+
+    def test_non_detectable_matched_excluded(self):
+        """Non-detectable matched tags also excluded from adjusted."""
+        matched = ["1girl", "cowboy_shot"]
+        partial = []
+        missing = ["red_eyes"]
+        # Adjusted: detectable matched=1 (1girl), detectable missing=1 (red_eyes)
+        # cowboy_shot (camera) excluded → 1/2 = 0.5
+        result = compute_adjusted_match_rate(matched, partial, missing)
+        assert abs(result - 0.5) < 0.001
+
+    def test_all_non_detectable(self):
+        """All tokens non-detectable → 0.0."""
+        matched = ["cowboy_shot"]
+        partial = []
+        missing = ["soft_lighting", "peaceful"]
+        result = compute_adjusted_match_rate(matched, partial, missing)
+        assert result == 0.0
+
+    def test_empty_inputs(self):
+        """Empty inputs → 0.0."""
+        result = compute_adjusted_match_rate([], [], [])
+        assert result == 0.0
+
+    def test_partial_matched_detectable(self):
+        """Partial matched detectable tokens count as matched."""
+        matched = ["1girl"]
+        partial = ["school_uniform"]  # clothing → detectable
+        missing = ["red_eyes"]
+        # detectable matched=2 (1girl + school_uniform), detectable missing=1 → 2/3
+        result = compute_adjusted_match_rate(matched, partial, missing)
+        assert abs(result - 2 / 3) < 0.001
+
+    def test_unknown_group_treated_conservatively(self):
+        """Tokens with None group (DB unregistered) are excluded."""
+        matched = ["unknown_tag_xyz"]
+        partial = []
+        missing = ["1girl"]
+        # unknown_tag_xyz → group=None → excluded
+        # detectable: matched=0, missing=1 (1girl=subject) → 0/1 = 0.0
+        result = compute_adjusted_match_rate(matched, partial, missing)
+        assert result == 0.0
+
+    def test_adjusted_gte_raw(self):
+        """Adjusted rate >= raw rate when non-detectable missing exist."""
+        matched = ["1girl", "smile"]
+        partial = ["looking_at_viewer"]
+        missing = ["cowboy_shot", "classroom", "red_eyes"]
+        # Raw: 3/6 = 0.5
+        # Adjusted: matched=3 (1girl, smile, looking_at_viewer), missing=1 (red_eyes) → 3/4 = 0.75
+        raw = 3 / 6
+        adjusted = compute_adjusted_match_rate(matched, partial, missing)
+        assert adjusted >= raw
+        assert abs(adjusted - 0.75) < 0.001
+
+
+class TestIdentityScoreInValidation:
+    """Test identity_score integration in validate_scene_image."""
+
+    def test_identity_score_returned_when_character_id(self, monkeypatch):
+        """identity_score should appear in result when character_id is provided."""
+        from services.identity_score import compute_identity_score
+
+        monkeypatch.setattr(
+            "services.identity_score.load_character_identity_tags",
+            lambda cid, db: ["black_hair", "blue_eyes"],
+        )
+        # compute_identity_score with matching tags
+        tags = [{"tag": "black_hair", "score": 0.90}, {"tag": "blue_eyes", "score": 0.85}]
+        score = compute_identity_score(["black_hair", "blue_eyes"], tags)
+        assert score == 1.0
+
+    def test_identity_score_none_without_character_id(self):
+        """identity_score should be None when character_id is not provided."""
+        from services.identity_score import compute_identity_score
+
+        # No character_id → identity_score not computed
+        assert compute_identity_score([], []) == 1.0
+
+    def test_identity_score_partial(self):
+        """identity_score reflects partial match."""
+        from services.identity_score import compute_identity_score
+
+        identity_tags = ["black_hair", "blue_eyes", "long_hair"]
+        wd14_tags = [
+            {"tag": "black_hair", "score": 0.90},
+            {"tag": "red_eyes", "score": 0.85},
+        ]
+        score = compute_identity_score(identity_tags, wd14_tags)
+        assert abs(score - 1 / 3) < 0.001

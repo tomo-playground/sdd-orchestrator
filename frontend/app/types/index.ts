@@ -62,6 +62,8 @@ export type Scene = {
   candidates?: Array<{
     media_asset_id: number;
     match_rate?: number;
+    adjusted_match_rate?: number;
+    identity_score?: number;
     image_url?: string; // Backend가 조회 시 채워줌
   }>;
   negative_prompt: string;
@@ -143,11 +145,26 @@ export type KenBurnsPreset =
 
 export type AutoRunStepId = "images" | "render";
 
+export type CriticalFailureItem = {
+  failure_type: "gender_swap" | "no_subject" | "count_mismatch";
+  expected: string;
+  detected: string;
+  confidence: number;
+};
+
+export type CriticalFailureInfo = {
+  has_failure: boolean;
+  failures: CriticalFailureItem[];
+};
+
 export type ImageValidation = {
   match_rate: number;
+  adjusted_match_rate?: number;
+  identity_score?: number;
   matched: string[];
   missing: string[];
   extra: string[];
+  critical_failure?: CriticalFailureInfo | null;
 };
 
 export type AutoRunState = {
@@ -210,6 +227,8 @@ export type DraftScene = {
   candidates?: Array<{
     media_asset_id: number;
     match_rate?: number;
+    adjusted_match_rate?: number;
+    identity_score?: number;
     image_url?: string; // Backend가 조회 시 채워줌
   }>;
   negative_prompt: string;
@@ -711,6 +730,8 @@ export type ImageGenStage =
   | "composing"
   | "generating"
   | "storing"
+  | "validating"
+  | "retrying"
   | "completed"
   | "failed";
 
@@ -729,6 +750,8 @@ export type ImageGenProgress = {
   error?: string;
   controlnet_pose?: string;
   ip_adapter_reference?: string;
+  retry_count?: number;
+  retry_reason?: string;
 };
 
 // ============================================================

@@ -39,14 +39,26 @@ export async function storeSceneImage(
   }
 }
 
-export async function validateImageCandidate(imageUrl: string, prompt: string, sceneId?: number) {
+export async function validateImageCandidate(
+  imageUrl: string,
+  prompt: string,
+  sceneId?: number,
+  characterId?: number | null
+) {
   if (!imageUrl || imageUrl.startsWith("data:")) return null;
   try {
     const { storyboardId } = useContextStore.getState();
-    const payload =
+    const base =
       imageUrl.startsWith("http://") || imageUrl.startsWith("https://")
-        ? { image_url: imageUrl, prompt, storyboard_id: storyboardId, scene_id: sceneId }
-        : { image_b64: imageUrl, prompt, storyboard_id: storyboardId, scene_id: sceneId };
+        ? { image_url: imageUrl }
+        : { image_b64: imageUrl };
+    const payload = {
+      ...base,
+      prompt,
+      storyboard_id: storyboardId,
+      scene_id: sceneId,
+      ...(characterId ? { character_id: characterId } : {}),
+    };
     const res = await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, payload);
     return res.data;
   } catch {
@@ -97,23 +109,45 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
 
   const validationResults = await Promise.all(
     storedResults.map(async (stored) => {
-      const validation = await validateImageCandidate(stored.url, prompt, scene.id);
+      const validation = await validateImageCandidate(
+        stored.url,
+        prompt,
+        scene.id,
+        selectedCharacterId
+      );
+      const vResult = validation?.validation_result ?? validation;
       return {
         image_url: stored.url,
         asset_id: stored.asset_id,
-        match_rate: typeof validation?.match_rate === "number" ? validation.match_rate : 0,
-        validation,
+        match_rate: typeof vResult?.match_rate === "number" ? vResult.match_rate : 0,
+        adjusted_match_rate:
+          typeof vResult?.adjusted_match_rate === "number"
+            ? vResult.adjusted_match_rate
+            : undefined,
+        identity_score:
+          typeof vResult?.identity_score === "number" ? vResult.identity_score : undefined,
+        validation: vResult,
       };
     })
   );
 
-  const sortedCandidates = validationResults.sort((a, b) => b.match_rate - a.match_rate);
+  // Sort: identity_score first, then adjusted_match_rate fallback to match_rate
+  const sortedCandidates = validationResults.sort((a, b) => {
+    const idA = a.identity_score ?? -1;
+    const idB = b.identity_score ?? -1;
+    if (idA !== idB) return idB - idA;
+    return (
+      (b.adjusted_match_rate ?? b.match_rate ?? 0) - (a.adjusted_match_rate ?? a.match_rate ?? 0)
+    );
+  });
   const bestCandidate = sortedCandidates[0];
   const candidates = sortedCandidates
     .filter((c): c is typeof c & { asset_id: number } => c.asset_id != null)
     .map((c) => ({
       media_asset_id: c.asset_id,
       match_rate: c.match_rate ?? undefined,
+      adjusted_match_rate: c.adjusted_match_rate,
+      identity_score: c.identity_score,
       image_url: c.image_url,
     }));
 

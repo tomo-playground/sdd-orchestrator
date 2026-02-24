@@ -14,6 +14,22 @@ from models.tag import Tag, TagEffectiveness
 from services.validation import _increment_tag_effectiveness
 
 
+@pytest.fixture(autouse=True)
+def _default_tag_cache(monkeypatch):
+    """Provide default TagCategoryCache mock mapping sample tags to detectable groups."""
+    group_map = {
+        "smile": "expression",
+        "brown_hair": "hair_color",
+        "school_uniform": "clothing",
+        "cowboy_shot": "camera",
+        "looking_at_viewer": "gaze",
+    }
+    monkeypatch.setattr(
+        "services.keywords.db_cache.TagCategoryCache",
+        type("FakeCache", (), {"get_category": staticmethod(lambda t: group_map.get(t))}),
+    )
+
+
 @pytest.fixture
 def sample_tags(db_session):
     """Create sample tags for testing."""
@@ -130,3 +146,73 @@ def test_increment_empty_tags(db_session, sample_tags):
     _increment_tag_effectiveness(db=db_session, matched_tags=[], missing_tags=[])
     count = db_session.query(TagEffectiveness).count()
     assert count == 0
+
+
+# --- Phase 16-B: Non-detectable group exclusion tests ---
+
+
+def test_increment_skips_non_detectable_group(db_session, sample_tags, monkeypatch):
+    """Tags in non-detectable groups (e.g., camera) are not tracked."""
+    # cowboy_shot is in sample_tags with category="test"
+    # Mock TagCategoryCache to return "camera" for cowboy_shot
+    monkeypatch.setattr(
+        "services.keywords.db_cache.TagCategoryCache",
+        type(
+            "FakeCache",
+            (),
+            {"get_category": staticmethod(lambda t: {"cowboy_shot": "camera", "smile": "expression"}.get(t))},
+        ),
+    )
+
+    _increment_tag_effectiveness(
+        db=db_session,
+        matched_tags=["cowboy_shot"],
+        missing_tags=[],
+    )
+
+    eff = db_session.query(TagEffectiveness).filter(TagEffectiveness.tag_id == sample_tags["cowboy_shot"].id).first()
+    assert eff is None  # camera group → skipped
+
+
+def test_increment_tracks_detectable_group(db_session, sample_tags, monkeypatch):
+    """Tags in detectable groups (e.g., clothing) are tracked normally."""
+    monkeypatch.setattr(
+        "services.keywords.db_cache.TagCategoryCache",
+        type(
+            "FakeCache",
+            (),
+            {"get_category": staticmethod(lambda t: {"school_uniform": "clothing", "smile": "expression"}.get(t))},
+        ),
+    )
+
+    _increment_tag_effectiveness(
+        db=db_session,
+        matched_tags=["school_uniform"],
+        missing_tags=[],
+    )
+
+    eff = db_session.query(TagEffectiveness).filter(TagEffectiveness.tag_id == sample_tags["school_uniform"].id).first()
+    assert eff is not None
+    assert eff.use_count == 1
+    assert eff.match_count == 1
+
+
+def test_increment_missing_non_detectable_not_tracked(db_session, sample_tags, monkeypatch):
+    """Missing tags in non-detectable groups are not tracked."""
+    monkeypatch.setattr(
+        "services.keywords.db_cache.TagCategoryCache",
+        type(
+            "FakeCache",
+            (),
+            {"get_category": staticmethod(lambda t: {"cowboy_shot": "camera"}.get(t))},
+        ),
+    )
+
+    _increment_tag_effectiveness(
+        db=db_session,
+        matched_tags=[],
+        missing_tags=["cowboy_shot"],
+    )
+
+    eff = db_session.query(TagEffectiveness).filter(TagEffectiveness.tag_id == sample_tags["cowboy_shot"].id).first()
+    assert eff is None  # camera group → skipped

@@ -171,6 +171,9 @@ if API_PUBLIC_URL == "http://localhost:8000":
 # --- Model Configuration ---
 WD14_MODEL_DIR = pathlib.Path(os.getenv("WD14_MODEL_DIR", "models/wd14"))
 WD14_THRESHOLD = float(os.getenv("WD14_THRESHOLD", "0.35"))
+# Threshold for critical failure detection (gender swap, no subject, count mismatch)
+# Higher than WD14_THRESHOLD to minimize false positives on subject tags
+CRITICAL_FAILURE_SUBJECT_THRESHOLD = float(os.getenv("CRITICAL_FAILURE_SUBJECT_THRESHOLD", "0.7"))
 
 # Tags that WD14 cannot detect (style, quality, lighting, mood, abstract composition)
 # These are excluded from match_rate calculation and reported as "skipped"
@@ -222,7 +225,48 @@ WD14_UNMATCHABLE_TAGS: set[str] = {
 # WD14 may under-detect these in stylised anime art, but removing them
 # from prompts breaks character consistency (→ "death spiral").
 # Tags are resolved lazily from CATEGORY_PATTERNS on first access.
+# Tag groups where WD14 can reliably detect presence/absence.
+# Used by compute_adjusted_match_rate() to exclude non-detectable groups
+# (camera, lighting, mood, location, etc.) from the match rate denominator.
+WD14_DETECTABLE_GROUPS: frozenset[str] = frozenset(
+    {
+        "subject",  # 1girl, solo — 0.9+ confidence
+        "hair_color",  # black_hair, blonde_hair
+        "hair_length",  # long_hair, short_hair — 최고 감지율 0.683
+        "hair_style",  # ponytail, twintails — 구조적 특징
+        "hair_accessory",  # hairclip, hairband — 시각적 개체
+        "eye_color",  # blue_eyes, red_eyes
+        "clothing",  # school_uniform, dress — 0.529
+        "expression",  # smile, open_mouth — 0.217
+        "gaze",  # looking_at_viewer, closed_eyes
+        "pose",  # standing, sitting — 0.300
+        "action",  # holding, walking
+        "gesture",  # hand gestures — 0.343
+        "body_feature",  # cat_ears, wings — 시각적 특징
+        "appearance",  # glasses, freckles
+    }
+)
+
 WD14_IDENTITY_CATEGORIES: frozenset[str] = frozenset({"hair_color", "eye_color"})
+
+# --- Auto-Regeneration (Phase 16-C) ---
+AUTO_REGEN_MAX_RETRIES = int(os.getenv("AUTO_REGEN_MAX_RETRIES", "2"))
+AUTO_REGEN_ENABLED = os.getenv("AUTO_REGEN_ENABLED", "true").lower() == "true"
+
+# Character-identity groups for identity_score calculation.
+# Subset of WD14_DETECTABLE_GROUPS focused on visual identity (clothing excluded —
+# Scene Clothing Override changes it per scene, so it's not a fixed identity trait).
+IDENTITY_SCORE_GROUPS: frozenset[str] = frozenset(
+    {
+        "hair_color",
+        "eye_color",
+        "hair_length",
+        "hair_style",
+        "skin_color",
+        "body_feature",
+        "appearance",
+    }
+)
 _WD14_IDENTITY_TAGS: set[str] | None = None
 
 

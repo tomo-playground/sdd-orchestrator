@@ -27,13 +27,18 @@ async function syncVersionAfterConflict(): Promise<void> {
  * Sanitize candidates for DB storage.
  * Removes image_url (stored via media_asset_id, backend resolves URL on GET)
  */
-export function sanitizeCandidatesForDb(
-  candidates: Scene["candidates"]
-): Array<{ media_asset_id: number; match_rate?: number }> | null {
+export function sanitizeCandidatesForDb(candidates: Scene["candidates"]): Array<{
+  media_asset_id: number;
+  match_rate?: number;
+  adjusted_match_rate?: number;
+  identity_score?: number;
+}> | null {
   if (!candidates || candidates.length === 0) return null;
   return candidates.map((c) => ({
     media_asset_id: c.media_asset_id,
     ...(c.match_rate !== undefined && { match_rate: c.match_rate }),
+    ...(c.adjusted_match_rate !== undefined && { adjusted_match_rate: c.adjusted_match_rate }),
+    ...(c.identity_score !== undefined && { identity_score: c.identity_score }),
   }));
 }
 

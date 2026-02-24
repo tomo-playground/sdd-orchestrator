@@ -9,11 +9,11 @@ import httpx
 import pytest
 
 from services.audio_client import (
-    _CIRCUIT_FAILURE_THRESHOLD,
-    _record_failure,
-    _record_success,
+    _CIRCUIT_SCENE_FAILURE_THRESHOLD,
     check_health,
     generate_music,
+    record_scene_failure,
+    record_scene_success,
     synthesize_tts,
 )
 
@@ -23,7 +23,7 @@ def _reset_circuit():
     """Reset circuit breaker state before each test."""
     import services.audio_client as mod
 
-    mod._circuit_failures = 0
+    mod._consecutive_scene_failures = 0
     mod._circuit_open_until = 0.0
     yield
 
@@ -73,18 +73,18 @@ class TestSynthesizeTTS:
         assert quality is True
 
     @pytest.mark.asyncio
-    async def test_server_error_records_failure(self):
+    async def test_server_error_raises(self):
+        """HTTP errors propagate without affecting scene-level circuit breaker."""
         client_instance = _make_mock_client("post", side_effect=httpx.ConnectError("connection refused"))
 
         with patch("services.audio_client.httpx.AsyncClient", return_value=client_instance):
             import services.audio_client as mod
 
-            mod._circuit_failures = 0
-
             with pytest.raises(httpx.ConnectError):
                 await synthesize_tts(text="hello")
 
-            assert mod._circuit_failures == 1
+            # Scene-level counter NOT incremented (caller is responsible)
+            assert mod._consecutive_scene_failures == 0
 
 
 class TestGenerateMusic:
@@ -111,33 +111,69 @@ class TestGenerateMusic:
 
 
 class TestCircuitBreaker:
-    """Tests for circuit breaker behavior."""
+    """Tests for scene-level circuit breaker."""
 
-    def test_failures_open_circuit(self):
+    def test_scene_failures_open_circuit(self):
         import services.audio_client as mod
 
-        for _ in range(_CIRCUIT_FAILURE_THRESHOLD):
-            _record_failure()
+        for _ in range(_CIRCUIT_SCENE_FAILURE_THRESHOLD):
+            record_scene_failure()
 
-        assert mod._circuit_failures >= _CIRCUIT_FAILURE_THRESHOLD
+        assert mod._consecutive_scene_failures >= _CIRCUIT_SCENE_FAILURE_THRESHOLD
         assert mod._circuit_open_until > 0
 
-    def test_success_resets_circuit(self):
+    def test_scene_success_resets_counter(self):
         import services.audio_client as mod
 
-        _record_failure()
-        _record_failure()
-        _record_success()
+        record_scene_failure()
+        record_scene_failure()
+        record_scene_success()
 
-        assert mod._circuit_failures == 0
+        assert mod._consecutive_scene_failures == 0
 
     @pytest.mark.asyncio
     async def test_open_circuit_rejects_requests(self):
-        for _ in range(_CIRCUIT_FAILURE_THRESHOLD):
-            _record_failure()
+        for _ in range(_CIRCUIT_SCENE_FAILURE_THRESHOLD):
+            record_scene_failure()
 
         with pytest.raises(RuntimeError, match="circuit breaker"):
             await synthesize_tts(text="hello")
+
+    def test_single_scene_retries_dont_trip_breaker(self):
+        """Simulates one scene failing 3 retries — should NOT open circuit.
+
+        Only record_scene_failure() after all retries exhausted counts.
+        """
+        import services.audio_client as mod
+
+        # One scene failed all retries → 1 scene failure
+        record_scene_failure()
+        assert mod._consecutive_scene_failures == 1
+        # Circuit still closed (threshold is 3)
+        assert mod._consecutive_scene_failures < _CIRCUIT_SCENE_FAILURE_THRESHOLD
+
+    def test_multiple_scene_failures_trip_breaker(self):
+        """3 consecutive scenes failing → circuit opens."""
+        import services.audio_client as mod
+
+        record_scene_failure()  # scene 1 failed
+        record_scene_failure()  # scene 2 failed
+        assert mod._consecutive_scene_failures == 2
+
+        record_scene_failure()  # scene 3 failed → OPEN
+        assert mod._consecutive_scene_failures == 3
+        assert mod._circuit_open_until > 0
+
+    def test_success_between_failures_resets(self):
+        """Success between failures prevents breaker from tripping."""
+        import services.audio_client as mod
+
+        record_scene_failure()  # scene 1 failed
+        record_scene_failure()  # scene 2 failed
+        record_scene_success()  # scene 3 succeeded → reset
+        record_scene_failure()  # scene 4 failed
+
+        assert mod._consecutive_scene_failures == 1
 
 
 class TestCheckHealth:

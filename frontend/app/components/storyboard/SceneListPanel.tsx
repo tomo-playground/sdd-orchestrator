@@ -3,12 +3,7 @@
 import { forwardRef, useEffect, useRef, useState } from "react";
 import type { Scene, ImageValidation } from "../../types";
 import { hasSceneImage } from "../../utils/sceneCompletion";
-import {
-  cx,
-  SUCCESS_BG,
-  WARNING_BG,
-  ERROR_BG,
-} from "../ui/variants";
+import { cx, SUCCESS_BG, WARNING_BG, ERROR_BG } from "../ui/variants";
 import Button from "../ui/Button";
 
 type SceneListPanelProps = {
@@ -202,8 +197,16 @@ function CompletionDots({
 
   const scriptColor = hasScript ? "green" : "red";
   const imageColor = hasImage ? "green" : "red";
-  const validationColor =
-    rate == null ? "gray" : rate >= 70 ? "green" : rate >= 50 ? "amber" : "red";
+  const hasCriticalFailure = matchResult?.critical_failure?.has_failure === true;
+  const validationColor = hasCriticalFailure
+    ? "red"
+    : rate == null
+      ? "gray"
+      : rate >= 70
+        ? "green"
+        : rate >= 50
+          ? "amber"
+          : "red";
   const actionColor = hasActions ? "green" : "gray";
 
   const dots: Array<{ color: keyof typeof DOT_COLORS; label: string }> = [
