@@ -85,7 +85,6 @@ class TestGenerateImageWithV3:
 
         character = Character(
             name="Test Char",
-            project_id=project.id,
             loras=[{"lora_id": char_lora.id, "weight": 1.0}],
         )
         db_session.add(character)
@@ -550,9 +549,7 @@ class TestComposeWarningsMerge:
             mock_instance = MagicMock()
             mock_instance.compose.return_value = "1girl, smile"
             mock_instance.find_unknown_tags.return_value = []
-            mock_instance.warnings = [
-                "LoRA 'char_lora' (base: SDXL) may be incompatible with checkpoint (base: SD1.5)"
-            ]
+            mock_instance.warnings = ["LoRA 'char_lora' (base: SDXL) may be incompatible with checkpoint (base: SD1.5)"]
             MockBuilder.return_value = mock_instance
 
             _, _, warnings = compose_scene_with_style(

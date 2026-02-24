@@ -42,9 +42,9 @@ def test_validate_tags_empty(client: TestClient):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["total"] == 0
-    assert len(data["risky_tags"]) == 0
-    assert len(data["unknown_in_db"]) == 0
+    assert data["total_tags"] == 0
+    assert len(data["risky"]) == 0
+    assert len(data["unknown"]) == 0
     assert data["warnings"] == []
 
 
@@ -58,9 +58,9 @@ def test_validate_tags_with_db_tags(client: TestClient):
     assert response.status_code == 200
     data = response.json()
 
-    assert data["total"] == 2
+    assert data["total_tags"] == 2
     # At least one should be categorized
-    assert len(data["risky_tags"]) + len(data["unknown_in_db"]) <= 2
+    assert len(data["risky"]) + len(data["unknown"]) <= 2
 
 
 def test_validate_tags_risky_known(client: TestClient):
@@ -74,7 +74,7 @@ def test_validate_tags_risky_known(client: TestClient):
     data = response.json()
 
     # At least one should be detected as risky (in RISKY_TAG_REPLACEMENTS)
-    assert len(data["risky_tags"]) >= 1
+    assert len(data["risky"]) >= 1
 
     # Check that warnings have proper structure
     assert len(data["warnings"]) >= 1
@@ -83,7 +83,7 @@ def test_validate_tags_risky_known(client: TestClient):
         assert "reason" in warning
         assert "suggestion" in warning
         # If it's a risky tag, it should have a suggestion
-        if warning["tag"] in data["risky_tags"]:
+        if warning["tag"] in data["risky"]:
             assert warning["suggestion"] is not None
 
 
@@ -222,6 +222,6 @@ def test_validate_tags_various_inputs(client: TestClient, tags: list[str], expec
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["total"] == expected_total
+    assert data["total_tags"] == expected_total
     # Just verify all tags are categorized
-    assert len(data["risky_tags"]) + len(data["unknown_in_db"]) <= expected_total
+    assert len(data["risky"]) + len(data["unknown"]) <= expected_total

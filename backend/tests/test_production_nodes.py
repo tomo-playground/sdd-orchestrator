@@ -94,6 +94,7 @@ async def test_run_production_step_retry_on_qc_fail(mock_tenv, mock_gemini):
 
 
 @pytest.mark.asyncio
+@patch("config_pipelines.CINEMATOGRAPHER_COMPETITION_ENABLED", False)
 @patch("services.agent.tools.base.call_with_tools", new_callable=AsyncMock)
 @patch("services.agent.nodes.cinematographer.validate_visuals")
 async def test_cinematographer_node(mock_validate, mock_call, mock_scenes):
@@ -346,6 +347,7 @@ def test_route_after_cinematographer_error():
 
 
 @pytest.mark.asyncio
+@patch("config_pipelines.CINEMATOGRAPHER_COMPETITION_ENABLED", False)
 @patch("services.agent.tools.base.call_with_tools", new_callable=AsyncMock)
 @patch("services.agent.nodes.cinematographer.validate_visuals")
 async def test_cinematographer_passes_director_feedback(mock_validate, mock_call, mock_scenes):

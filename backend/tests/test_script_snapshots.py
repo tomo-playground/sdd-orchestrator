@@ -29,7 +29,11 @@ def _load_snapshots() -> list[tuple[str, dict]]:
 
 
 def _build_state_from_request(req: dict) -> ScriptState:
-    """스냅샷의 request를 ScriptState로 변환한다."""
+    """스냅샷의 request를 ScriptState로 변환한다.
+
+    Quick 모드 (skip_stages 전체)로 강제하여 writer/revise만 mock하면 되도록 한다.
+    Full 모드 노드(director_plan, research, critic 등)는 별도 테스트에서 검증.
+    """
     return ScriptState(
         topic=req["topic"],
         description=req.get("description", ""),
@@ -41,6 +45,7 @@ def _build_state_from_request(req: dict) -> ScriptState:
         character_id=req.get("character_id"),
         character_b_id=req.get("character_b_id"),
         group_id=req.get("group_id"),
+        skip_stages=["research", "concept", "production", "explain"],
     )
 
 
@@ -116,7 +121,11 @@ async def test_graph_output_matches_snapshot_structure(
 async def test_graph_passthrough_preserves_scenes(
     mock_writer_db_ctx, mock_writer_gen, mock_revise_db_ctx, mock_revise_gen, snapshot
 ):
-    """writer → review → (revise 루프 포함) → finalize: 최종 씬 데이터 보존."""
+    """writer → review → (revise 루프 포함) → finalize: 핵심 씬 데이터 보존.
+
+    Finalize 노드가 negative_prompt, character_actions 등을 추가하므로
+    draft와 final의 핵심 필드(script, speaker, image_prompt)가 보존되는지 검증.
+    """
     mock_writer_gen.return_value = snapshot["response"]
     mock_revise_gen.return_value = snapshot["response"]
 
@@ -124,7 +133,16 @@ async def test_graph_passthrough_preserves_scenes(
     input_state = _build_state_from_request(snapshot["request"])
     result = await graph.ainvoke(input_state)
 
-    assert result["draft_scenes"] == result["final_scenes"], "Passthrough violated: draft != final"
+    # Finalize가 추가 필드(negative_prompt, character_actions 등)를 병합하므로
+    # 핵심 필드가 보존되는지 검증 (정확한 동치 대신 subset 검증)
+    draft = result["draft_scenes"]
+    final = result["final_scenes"]
+    assert len(draft) == len(final), f"Scene count mismatch: {len(draft)} vs {len(final)}"
+    preserved_keys = {"script", "speaker", "image_prompt"}
+    for i, (d, f) in enumerate(zip(draft, final, strict=True)):
+        for key in preserved_keys:
+            if key in d:
+                assert d[key] == f[key], f"Scene {i} key '{key}' changed: {d[key]} → {f[key]}"
 
 
 def test_all_snapshots_loaded():

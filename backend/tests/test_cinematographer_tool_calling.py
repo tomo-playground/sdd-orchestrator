@@ -224,6 +224,7 @@ async def test_check_tag_compatibility_conflict():
 
 
 @pytest.mark.asyncio
+@patch("config_pipelines.CINEMATOGRAPHER_COMPETITION_ENABLED", False)
 async def test_cinematographer_node_tool_calling():
     """cinematographer_node가 Tool-Calling을 수행한다."""
     mock_db = AsyncMock()
@@ -268,6 +269,7 @@ async def test_cinematographer_node_tool_calling():
 
 
 @pytest.mark.asyncio
+@patch("config_pipelines.CINEMATOGRAPHER_COMPETITION_ENABLED", False)
 async def test_cinematographer_node_no_db_in_config():
     """config에 DB 세션이 없어도 get_db_session() fallback으로 정상 동작."""
     state: ScriptState = {
@@ -298,6 +300,7 @@ async def test_cinematographer_node_no_db_in_config():
 
 
 @pytest.mark.asyncio
+@patch("config_pipelines.CINEMATOGRAPHER_COMPETITION_ENABLED", False)
 async def test_cinematographer_node_json_parsing_graceful():
     """JSON 파싱 2회 실패 → error 미설정, cinematographer_result=None (graceful)."""
     mock_db = AsyncMock()
@@ -324,8 +327,9 @@ async def test_cinematographer_node_json_parsing_graceful():
 
 
 @pytest.mark.asyncio
+@patch("config_pipelines.CINEMATOGRAPHER_COMPETITION_ENABLED", False)
 async def test_cinematographer_node_retry_succeeds_on_second_attempt():
-    """첫 번째 파싱 실패 → 두 번째 성공 (retry)."""
+    """첫 번째 파싱 실패 → 두 번째 성공 (retry). Competition 비활성화 상태로 테스트."""
     mock_db = AsyncMock()
 
     state: ScriptState = {
@@ -352,6 +356,7 @@ async def test_cinematographer_node_retry_succeeds_on_second_attempt():
 
 
 @pytest.mark.asyncio
+@patch("config_pipelines.CINEMATOGRAPHER_COMPETITION_ENABLED", False)
 async def test_cinematographer_node_qc_failure_still_returns():
     """QC 검증 실패 → error 미설정, 결과는 그대로 반환 (graceful)."""
     mock_db = AsyncMock()
