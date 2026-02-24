@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import type { Scene } from "../../types";
 import TagAutocomplete from "../ui/TagAutocomplete";
+import useTagValidationDebounced from "../../hooks/useTagValidationDebounced";
+import TagValidationWarning from "../prompt/TagValidationWarning";
 
 type SceneClothingModalProps = {
   scene: Scene;
@@ -34,6 +36,12 @@ export default function SceneClothingModal({
   const defaultCharKey = Object.keys(existing)[0] ?? "default";
   const defaultTags = existing[defaultCharKey] ?? [];
   const [tagInput, setTagInput] = useState(defaultTags.join(", "));
+
+  // Tag validation
+  const { validationResult, handleAutoReplace, clearValidation } = useTagValidationDebounced(
+    tagInput,
+    setTagInput
+  );
 
   const handleSave = () => {
     const trimmed = tagInput.trim();
@@ -132,6 +140,11 @@ export default function SceneClothingModal({
               placeholder="예: school_uniform, white_shirt, pleated_skirt"
               className="w-full rounded-xl border border-zinc-200 bg-white/80 px-4 py-3 text-sm outline-none focus:border-amber-400"
               rows={2}
+            />
+            <TagValidationWarning
+              result={validationResult}
+              onAutoReplace={handleAutoReplace}
+              onDismiss={clearValidation}
             />
             <p className="mt-1 text-[12px] text-zinc-400">공백은 자동으로 언더바(_)로 변환됩니다</p>
           </div>

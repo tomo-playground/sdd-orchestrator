@@ -4,10 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Scene } from "../../types";
 import { API_BASE } from "../../constants";
 import { useContextStore } from "../../store/useContextStore";
-import useTagValidation from "../../hooks/useTagValidation";
+import useTagValidationDebounced from "../../hooks/useTagValidationDebounced";
 import CopyButton from "../ui/CopyButton";
 import TagAutocomplete from "../ui/TagAutocomplete";
-import PromptTokenPreview from "../prompt/PromptTokenPreview";
 import ComposedPromptPreview, { type NegativeSourceInfo } from "../prompt/ComposedPromptPreview";
 import TagValidationWarning from "../prompt/TagValidationWarning";
 import PromptTranslateDiff from "../prompt/PromptTranslateDiff";
@@ -84,40 +83,10 @@ export default function ScenePromptFields({
   }, [storyboardId, selectedCharacterId, scene.id, composeHandlesNegative]);
 
   // Tag validation
-  const { validationResult, validateTags, autoReplaceTags, clearValidation } = useTagValidation();
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    const prompt = scene.image_prompt;
-    if (!prompt || !prompt.trim()) {
-      clearValidation();
-      return;
-    }
-    debounceRef.current = setTimeout(() => {
-      const tags = prompt
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
-      if (tags.length > 0) validateTags(tags);
-    }, 800);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [scene.image_prompt, validateTags, clearValidation]);
-
-  const handleAutoReplace = async () => {
-    const prompt = scene.image_prompt;
-    if (!prompt) return;
-    const tags = prompt
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
-    const replaced = await autoReplaceTags(tags);
-    if (replaced) {
-      onUpdateScene({ image_prompt: replaced.join(", ") });
-    }
-  };
+  const { validationResult, handleAutoReplace, clearValidation } = useTagValidationDebounced(
+    scene.image_prompt,
+    (v) => onUpdateScene({ image_prompt: v })
+  );
 
   return (
     <>
@@ -165,7 +134,6 @@ export default function ScenePromptFields({
         />
         {scene.image_prompt && (
           <>
-            <PromptTokenPreview prompt={scene.image_prompt} triggerWords={loraTriggerWords} />
             <ComposedPromptPreview
               tokens={scene.image_prompt
                 .split(",")

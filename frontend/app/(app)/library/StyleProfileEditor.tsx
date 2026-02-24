@@ -6,6 +6,8 @@ import type { StyleProfileFull, SDModelEntry, LoRA, Embedding, Character } from 
 import { FORM_LABEL_COMPACT_CLASSES, ERROR_TEXT } from "../../components/ui/variants";
 import TagAutocomplete from "../../components/ui/TagAutocomplete";
 import GenerationParameters, { DebouncedInput } from "./GenerationParameters";
+import useTagValidationDebounced from "../../hooks/useTagValidationDebounced";
+import TagValidationWarning from "../../components/prompt/TagValidationWarning";
 
 const DEBOUNCE_MS = 400;
 
@@ -81,6 +83,27 @@ export default function StyleProfileEditor({
   const posEmbIds = new Set(profile.positive_embeddings?.map((e) => e.id) ?? []);
   const negEmbIds = new Set(profile.negative_embeddings?.map((e) => e.id) ?? []);
 
+  // Prompt validation (300ms debounce — DebouncedTagAutocomplete already adds 400ms)
+  const {
+    validationResult: posResult,
+    handleAutoReplace: handlePosAutoReplace,
+    clearValidation: posClear,
+  } = useTagValidationDebounced(
+    profile.default_positive,
+    (v) => onUpdateStyle(profile.id, { default_positive: v }),
+    { debounceMs: 300 }
+  );
+
+  const {
+    validationResult: negResult,
+    handleAutoReplace: handleNegAutoReplace,
+    clearValidation: negClear,
+  } = useTagValidationDebounced(
+    profile.default_negative,
+    (v) => onUpdateStyle(profile.id, { default_negative: v }),
+    { debounceMs: 300 }
+  );
+
   return (
     <div className="rounded-2xl border border-indigo-200 bg-white p-6 shadow-sm ring-4 ring-indigo-50/50">
       {/* Header */}
@@ -150,6 +173,11 @@ export default function StyleProfileEditor({
             placeholder="Describe the style..."
             rows={6}
           />
+          <TagValidationWarning
+            result={posResult}
+            onAutoReplace={handlePosAutoReplace}
+            onDismiss={posClear}
+          />
         </div>
         <div className="space-y-2">
           <label className={labelCls}>Negative Prompt</label>
@@ -159,6 +187,11 @@ export default function StyleProfileEditor({
             className="h-40 w-full rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs leading-relaxed text-zinc-700 outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
             placeholder="What to avoid..."
             rows={6}
+          />
+          <TagValidationWarning
+            result={negResult}
+            onAutoReplace={handleNegAutoReplace}
+            onDismiss={negClear}
           />
         </div>
       </div>

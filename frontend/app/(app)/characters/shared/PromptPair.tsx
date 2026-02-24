@@ -1,4 +1,8 @@
+"use client";
+
 import TagAutocomplete from "../../../components/ui/TagAutocomplete";
+import TagValidationWarning from "../../../components/prompt/TagValidationWarning";
+import useTagValidationDebounced from "../../../hooks/useTagValidationDebounced";
 
 type PromptPairProps = {
   label?: string;
@@ -22,6 +26,18 @@ export default function PromptPair({
   positivePlaceholder,
   negativePlaceholder,
 }: PromptPairProps) {
+  const {
+    validationResult: posResult,
+    handleAutoReplace: posAutoReplace,
+    clearValidation: posClear,
+  } = useTagValidationDebounced(positiveValue, onPositiveChange);
+
+  const {
+    validationResult: negResult,
+    handleAutoReplace: negAutoReplace,
+    clearValidation: negClear,
+  } = useTagValidationDebounced(negativeValue, onNegativeChange);
+
   return (
     <div className="space-y-3">
       {label && <p className="text-[11px] font-medium text-zinc-400">{label}</p>}
@@ -34,6 +50,11 @@ export default function PromptPair({
           rows={3}
           className={PROMPT_CLASSES}
         />
+        <TagValidationWarning
+          result={posResult}
+          onAutoReplace={posAutoReplace}
+          onDismiss={posClear}
+        />
       </div>
       <div>
         <label className="mb-1 block text-xs font-medium text-zinc-500">Negative Prompt</label>
@@ -43,6 +64,11 @@ export default function PromptPair({
           placeholder={negativePlaceholder}
           rows={3}
           className={PROMPT_CLASSES}
+        />
+        <TagValidationWarning
+          result={negResult}
+          onAutoReplace={negAutoReplace}
+          onDismiss={negClear}
         />
       </div>
     </div>

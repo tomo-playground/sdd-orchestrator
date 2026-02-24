@@ -5,6 +5,8 @@ import { ChevronDown } from "lucide-react";
 import type { NegativeSourceInfo } from "../prompt/ComposedPromptPreview";
 import CopyButton from "../ui/CopyButton";
 import TagAutocomplete from "../ui/TagAutocomplete";
+import useTagValidationDebounced from "../../hooks/useTagValidationDebounced";
+import TagValidationWarning from "../prompt/TagValidationWarning";
 
 const SOURCE_COLORS: Record<string, { bg: string; text: string }> = {
   style_profile: { bg: "bg-fuchsia-50", text: "text-fuchsia-700" },
@@ -39,6 +41,13 @@ export default function NegativePromptToggle({
 }: NegativePromptToggleProps) {
   const [expanded, setExpanded] = useState(false);
   const hasComposed = !!composedNegative;
+
+  // Tag validation (only when expanded)
+  const { validationResult, handleAutoReplace, clearValidation } = useTagValidationDebounced(
+    negativePrompt,
+    onChange,
+    { enabled: expanded }
+  );
 
   return (
     <>
@@ -115,6 +124,11 @@ export default function NegativePromptToggle({
               rows={2}
               placeholder="씬별 추가 네거티브 태그 (선택)"
               className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+            />
+            <TagValidationWarning
+              result={validationResult}
+              onAutoReplace={handleAutoReplace}
+              onDismiss={clearValidation}
             />
           </div>
         </div>
