@@ -310,12 +310,14 @@ graph LR
 
 ### Phase 16-D: Cross-Scene Consistency (씬 간 캐릭터 일관성)
 
+> 명세: [CROSS_SCENE_CONSISTENCY.md](FEATURES/CROSS_SCENE_CONSISTENCY.md) (02-24 작성)
+
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | `CharacterSignature` — 캐릭터 시각적 시그니처 추출 (hair/clothing) | [ ] |
-| 2 | 스토리보드 전체 씬 간 drift 감지 (머리색 변경, 의류 변경) | [ ] |
-| 3 | `GET /quality/consistency/{storyboard_id}` API | [ ] |
-| 4 | Frontend 일관성 대시보드 (씬별 drift 히트맵) | [ ] |
+| 1 | `CharacterSignature` — 캐릭터 시각적 시그니처 추출 + DB 확장 (D-1) | [ ] |
+| 2 | Drift 알고리즘 — 그룹별 가중치 기반 일관성 점수 (D-2) | [ ] |
+| 3 | `GET /quality/consistency/{storyboard_id}` API (D-3) | [ ] |
+| 4 | Frontend ConsistencyPanel + DriftHeatmap (D-4) | [ ] |
 
 ---
 
