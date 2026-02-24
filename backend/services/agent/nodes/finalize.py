@@ -105,6 +105,95 @@ def _normalize_environment_tags(scenes: list[dict]) -> None:
             ctx["environment"] = ctx.pop("setting")
 
 
+def _build_scene_to_tags_map(writer_plan: dict) -> dict[int, list[str]]:
+    """writer_plan.locations에서 scene_idx → tags 매핑을 구축한다."""
+    idx_to_tags: dict[int, list[str]] = {}
+    for loc in writer_plan.get("locations", []):
+        for idx in loc.get("scenes", []):
+            idx_to_tags[idx] = loc.get("tags", [])
+    return idx_to_tags
+
+
+def _inject_location_map_tags(scenes: list[dict], writer_plan: dict | None) -> None:
+    """writer_plan.locations 기반으로 각 씬의 context_tags.environment에 구체 태그를 주입한다.
+
+    LLM이 generic 태그(indoors/outdoors)만 생성해도, Location Map의 구체 태그로 보강하여
+    SD가 일관된 배경을 생성하도록 한다.
+    """
+    from config_prompt import GENERIC_LOCATION_TAGS  # noqa: PLC0415
+
+    if not writer_plan or not writer_plan.get("locations"):
+        return
+
+    idx_to_tags = _build_scene_to_tags_map(writer_plan)
+
+    for i, scene in enumerate(scenes):
+        loc_tags = idx_to_tags.get(i)
+        if not loc_tags:
+            continue
+
+        ctx = scene.get("context_tags")
+        if ctx is None:
+            scene["context_tags"] = {"environment": list(loc_tags)}
+            continue
+
+        env = ctx.get("environment")
+        if env is None:
+            env = []
+        elif isinstance(env, str):
+            env = [env]
+        else:
+            env = list(env)
+
+        def _norm(tag: str) -> str:
+            return tag.lower().replace(" ", "_").strip()
+
+        existing_norms = {_norm(t) for t in env}
+
+        # 구체 태그를 앞에, generic 태그를 뒤에 배치
+        specific_new = [t for t in loc_tags if _norm(t) not in existing_norms and _norm(t) not in GENERIC_LOCATION_TAGS]
+        generic_new = [t for t in loc_tags if _norm(t) not in existing_norms and _norm(t) in GENERIC_LOCATION_TAGS]
+
+        specific_existing = [t for t in env if _norm(t) not in GENERIC_LOCATION_TAGS]
+        generic_existing = [t for t in env if _norm(t) in GENERIC_LOCATION_TAGS]
+
+        ctx["environment"] = specific_existing + specific_new + generic_existing + generic_new
+
+
+def _inject_location_negative_tags(scenes: list[dict], writer_plan: dict | None) -> None:
+    """Location Map 기반으로 indoor/outdoor 씬의 negative_prompt_extra에 반대 태그를 추가한다.
+
+    indoor 장소 씬 → negative에 'outdoors', outdoor 장소 씬 → negative에 'indoors'.
+    """
+    from config_prompt import INDOOR_LOCATION_TAGS, OUTDOOR_LOCATION_TAGS  # noqa: PLC0415
+
+    if not writer_plan or not writer_plan.get("locations"):
+        return
+
+    idx_to_tags = _build_scene_to_tags_map(writer_plan)
+
+    for i, scene in enumerate(scenes):
+        loc_tags = idx_to_tags.get(i)
+        if not loc_tags:
+            continue
+
+        tag_norms = {t.lower().replace(" ", "_").strip() for t in loc_tags}
+        is_indoor = bool(tag_norms & INDOOR_LOCATION_TAGS)
+        is_outdoor = bool(tag_norms & OUTDOOR_LOCATION_TAGS)
+
+        if is_indoor and not is_outdoor:
+            neg_tag = "outdoors"
+        elif is_outdoor and not is_indoor:
+            neg_tag = "indoors"
+        else:
+            continue
+
+        existing = scene.get("negative_prompt_extra") or ""
+        existing_norms = {t.strip().lower() for t in existing.split(",") if t.strip()}
+        if neg_tag not in existing_norms:
+            scene["negative_prompt_extra"] = f"{existing}, {neg_tag}".strip(", ") if existing else neg_tag
+
+
 def _validate_controlnet_poses(scenes: list[dict]) -> None:
     """controlnet_pose 값이 POSE_MAPPING 키에 있는지 검증. 무효 시 None 리셋."""
     from services.controlnet import POSE_MAPPING  # noqa: PLC0415
@@ -241,6 +330,8 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     validate_context_tag_categories(scenes)
     _inject_default_context_tags(scenes)
     _normalize_environment_tags(scenes)
+    _inject_location_map_tags(scenes, state.get("writer_plan"))
+    _inject_location_negative_tags(scenes, state.get("writer_plan"))
     _validate_controlnet_poses(scenes)
     _validate_ip_adapter_weights(scenes)
     _validate_ken_burns_presets(scenes)

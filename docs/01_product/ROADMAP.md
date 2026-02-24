@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-02-24)
+## 현재 상태 (2026-02-25)
 
 | 항목 | 상태 |
 |------|------|
@@ -22,6 +22,7 @@
 
 ### 최근 작업
 
+- **환경 태그 랜덤성 근본 해결** (02-25): Finalize에서 Writer Location Map 태그 강제 주입(`_inject_location_map_tags` + `_inject_location_negative_tags`), Environment(L10) 가중치 부스트(1.15), Danbooru 0건 태그 교체(`music_room`→`stage`, `dark_hallway`→`hallway,dark`, `school_hallway`→`classroom`). 7개 테스트 추가
 - **TTS 짧은 대사 개선 + BGM 볼륨 조정** (02-24): 짧은 스크립트(≤3자) `min_duration` 동적 조정(1.0→0.4s)으로 "그럼!" 등 불필요한 3회 재시도 해소. BGM 기본 볼륨 0.25→0.4(-8dB) 상향. 2,665 passed
 - **Phase 15-B: Visual Tag Browser** (02-24): Tag 모델 `thumbnail_asset_id` FK + Danbooru `get_post_image()` + `tag_thumbnail.py` 배치 수집 서비스 + `POST /admin/tag-thumbnails/generate` 엔드포인트. TagSuggestionDropdown 32px 미니 썸네일 + TagBrowserTab Lab 탭 (6그룹 사이드바 + 128×128 카드 그리드). 19개 테스트
 - **TTS 게이팅 강화 + MusicGen 타임아웃 분리** (02-24): 1글자 감탄사(네?, 아...)가 TTS 3회 재시도 실패하던 문제 해결. `TTS_MIN_SPEAKABLE_CHARS=2` 최소 글자 수 체크, `MUSIC_TIMEOUT_SECONDS=600`(10분) 전용 타임아웃 분리. 6개 테스트 추가

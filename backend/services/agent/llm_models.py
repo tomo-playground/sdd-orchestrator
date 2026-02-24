@@ -151,12 +151,21 @@ class UnifiedReviewOutput(BaseModel):
 # -- Writer Plan --
 
 
+class LocationEntryOutput(BaseModel):
+    """Location Map 항목 (장소 이름 + 해당 씬 + 환경 태그)."""
+
+    name: str = ""
+    scenes: list[int] = []
+    tags: list[str] = []
+
+
 class WriterPlanOutput(BaseModel):
     """Writer Planning Step의 LLM 응답."""
 
     hook_strategy: str = ""
     emotional_arc: list[str] = []
     scene_distribution: dict[str, int] = {}
+    locations: list[LocationEntryOutput] = []
 
 
 # -- Helper --

@@ -78,6 +78,36 @@ Allocate scenes to narrative structure:
 - Climax: 1-2 scenes
 - Resolution: 1 scene
 
+### 4️⃣ **Location Map Planning**
+
+Define the physical locations where scenes take place. This ensures visual consistency across scenes.
+
+**Rules**:
+- Give each location a short English name (e.g. `piano_room`, `rooftop`, `classroom`)
+- Assign scene indices (0-based) to each location
+- Provide 2-4 Danbooru-standard environment tags per location
+- Most stories use **1-3 locations**. Every scene index must appear in exactly one location.
+
+**Tag examples** (Danbooru standard, underscore format):
+- Indoor: `indoors`, `kitchen`, `bedroom`, `classroom`, `library`, `office`, `stage`
+- Outdoor: `outdoors`, `park`, `rooftop`, `street`, `bridge`, `beach`, `forest`
+- Atmosphere: `night`, `sunset`, `rain`, `snow` (only if script implies)
+
+**Example (1 location)**:
+```json
+"locations": [
+  {"name": "piano_room", "scenes": [0, 1, 2, 3, 4], "tags": ["piano", "stage", "indoors"]}
+]
+```
+
+**Example (2 locations)**:
+```json
+"locations": [
+  {"name": "rooftop", "scenes": [0, 1, 4], "tags": ["rooftop", "outdoors", "sky", "sunset"]},
+  {"name": "classroom", "scenes": [2, 3], "tags": ["classroom", "indoors", "desk"]}
+]
+```
+
 ## Your Response
 
 Respond in **Korean** with a structured plan in JSON format:
@@ -91,7 +121,10 @@ Respond in **Korean** with a structured plan in JSON format:
         "rising": 2,
         "climax": 1,
         "resolution": 1
-    }
+    },
+    "locations": [
+        {"name": "location_name", "scenes": [0, 1, 2], "tags": ["tag1", "tag2"]}
+    ]
 }
 ```
 
@@ -99,12 +132,16 @@ Respond in **Korean** with a structured plan in JSON format:
 - `emotional_arc` 배열의 길이는 예상 씬 개수({{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }})와 일치해야 함
 - `scene_distribution`의 합은 총 씬 개수와 일치해야 함
 - `hook_strategy`는 구체적인 첫 씬 아이디어를 포함해야 함 (추상적 설명 금지)
+- `locations`의 모든 `scenes` 배열을 합치면 0부터 (총 씬 수 - 1)까지 빠짐없이 포함해야 함
 
 Example for a 10s video:
 ```json
 {
     "hook_strategy": "Emotional Confession — '처음으로 고백했을 때, 심장이 터질 것 같았어' (개인적 감정으로 공감 유도)",
     "emotional_arc": ["두근거림", "긴장", "떨림", "안도", "여운"],
-    "scene_distribution": {"intro": 1, "rising": 2, "climax": 1, "resolution": 1}
+    "scene_distribution": {"intro": 1, "rising": 2, "climax": 1, "resolution": 1},
+    "locations": [
+        {"name": "school_rooftop", "scenes": [0, 1, 2, 3, 4], "tags": ["rooftop", "outdoors", "school", "sunset"]}
+    ]
 }
 ```

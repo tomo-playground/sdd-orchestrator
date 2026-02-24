@@ -18,6 +18,7 @@ from config import (
     CAMERA_FRAMING_MID,
     CAMERA_FRAMING_WIDE,
     CHARACTER_CAMERA_TAGS,
+    ENVIRONMENT_WEIGHT_BOOST,
     EXCLUSIVE_TAG_GROUPS,
     EXPRESSION_ACTION_WEIGHT_BOOST,
     FALLBACK_STYLE_LORA_WEIGHT_MAX,
@@ -889,28 +890,31 @@ class V3PromptBuilder:
                             unique_layer_tokens.append(t)
                             global_seen.add(key)
 
-                # Layer 7, 8 (Expression, Action) weight boost
-                # Non-frontal gaze tags get extra boost to overcome
-                # SD's strong looking_at_viewer prior (Phase 11)
-                if i in [LAYER_EXPRESSION, LAYER_ACTION]:
-                    boosted = []
-                    for t in unique_layer_tokens:
-                        if ":" not in t:
-                            w = (
-                                NON_FRONTAL_GAZE_WEIGHT
-                                if t in NON_FRONTAL_GAZE_TAGS
-                                else EXPRESSION_ACTION_WEIGHT_BOOST
-                            )
-                            boosted.append(f"({t}:{w})")
-                        else:
-                            boosted.append(t)
-                    unique_layer_tokens = boosted
-
+                unique_layer_tokens = self._apply_layer_boosts(i, unique_layer_tokens)
                 composed[i] = unique_layer_tokens
                 final_tokens.extend(unique_layer_tokens)
 
         self._last_composed_layers = composed
         return ", ".join(final_tokens)
+
+    @staticmethod
+    def _apply_layer_boosts(layer_idx: int, tokens: list[str]) -> list[str]:
+        """레이어별 가중치 부스트 적용. 이미 가중치가 있는 태그는 건너뛴다."""
+        if layer_idx in (LAYER_EXPRESSION, LAYER_ACTION):
+            return [
+                f"({t}:{NON_FRONTAL_GAZE_WEIGHT if t in NON_FRONTAL_GAZE_TAGS else EXPRESSION_ACTION_WEIGHT_BOOST})"
+                if ":" not in t
+                else t
+                for t in tokens
+            ]
+        if layer_idx == LAYER_ENVIRONMENT:
+            return [
+                f"({t}:{ENVIRONMENT_WEIGHT_BOOST})"
+                if ":" not in t and t.lower().replace(" ", "_").strip() not in GENERIC_LOCATION_TAGS
+                else t
+                for t in tokens
+            ]
+        return tokens
 
     def get_last_composed_layers(self) -> list[dict] | None:
         """Return layer breakdown from the last compose/flatten call."""

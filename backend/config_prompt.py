@@ -11,6 +11,7 @@ PERMANENT_DETAIL_WEIGHT_BOOST = 1.1
 FALLBACK_STYLE_LORA_WEIGHT_MAX = 0.5
 NON_FRONTAL_GAZE_WEIGHT = 1.25
 EXPRESSION_ACTION_WEIGHT_BOOST = 1.1
+ENVIRONMENT_WEIGHT_BOOST = 1.15
 MALE_GENDER_BOOST_WEIGHT = 1.3
 MALE_FOCUS_WEIGHT = 1.2
 BISHOUNEN_WEIGHT = 1.1
@@ -93,6 +94,7 @@ INDOOR_LOCATION_TAGS: frozenset[str] = frozenset(
         "shop",
         "hallway",
         "living_room",
+        "stage",
     }
 )
 CAMERA_FRAMING_WIDE: frozenset[str] = frozenset({"full_body", "wide_shot"})

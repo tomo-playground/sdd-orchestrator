@@ -143,6 +143,8 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
             "emotional_arc": parsed.emotional_arc,
             "scene_distribution": parsed.scene_distribution,
         }
+        if parsed.locations:
+            plan["locations"] = [loc.model_dump() for loc in parsed.locations]
 
         logger.info(
             "[LangGraph] Writer Planning 완료: hook=%s, arc_len=%d, dist=%s",
@@ -200,9 +202,16 @@ async def writer_node(state: ScriptState) -> dict:
             f"씬 배분: intro={plan['scene_distribution'].get('intro', 0)}, "
             f"rising={plan['scene_distribution'].get('rising', 0)}, "
             f"climax={plan['scene_distribution'].get('climax', 0)}, "
-            f"resolution={plan['scene_distribution'].get('resolution', 0)}\n\n"
-            f"이 계획을 기반으로 대본을 작성하세요."
+            f"resolution={plan['scene_distribution'].get('resolution', 0)}"
         )
+        locations = plan.get("locations", [])
+        if locations:
+            plan_text += "\n\n## Location Map (MUST use these environment tags)\n"
+            for loc in locations:
+                scenes_str = ", ".join(str(s) for s in loc["scenes"])
+                tags_str = ", ".join(loc["tags"])
+                plan_text += f"- **{loc['name']}** (scenes {scenes_str}): {tags_str}\n"
+        plan_text += "\n이 계획을 기반으로 대본을 작성하세요."
         pipeline_ctx["writer_plan"] = plan_text
 
     feedback = state.get("revision_feedback")

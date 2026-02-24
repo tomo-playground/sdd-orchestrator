@@ -119,7 +119,7 @@ class TestFlattenLayers:
         layers[LAYER_ENVIRONMENT] = ["park", "outdoors"]
 
         result = builder._flatten_layers(layers)
-        assert result == "masterpiece, best_quality, 1girl, park, outdoors"
+        assert result == "masterpiece, best_quality, 1girl, (park:1.15), outdoors"
 
     def test_cross_layer_dedup(self, builder):
         """Same tag in multiple layers → keep only first occurrence."""

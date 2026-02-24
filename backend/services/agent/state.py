@@ -73,12 +73,18 @@ class DirectorReActStep(TypedDict):
     act: str  # 행동 결정
 
 
-class WriterPlan(TypedDict):
-    """Writer의 계획 수립 결과 (Phase 10-A)."""
+class _WriterPlanRequired(TypedDict):
+    """Writer Plan 필수 필드."""
 
     hook_strategy: str  # Hook 전략
     emotional_arc: list[str]  # 감정 곡선 (씬별)
     scene_distribution: dict[str, int]  # 구조별 씬 배분
+
+
+class WriterPlan(_WriterPlanRequired, total=False):
+    """Writer의 계획 수립 결과 (Phase 10-A)."""
+
+    locations: list[dict]  # 장소 맵: [{name, scenes, tags}]
 
 
 class ScriptState(TypedDict, total=False):

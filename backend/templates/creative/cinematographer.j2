@@ -42,6 +42,14 @@ Match your visual design to this plan:
 - Rising scenes: Build visual intensity gradually
 - Climax scene: Maximum visual impact (strongest camera + lighting combination)
 - Resolution scenes: Release tension with softer visuals
+{% if writer_plan.locations is defined and writer_plan.locations %}
+
+### Location Map (CRITICAL — environment consistency)
+{% for loc in writer_plan.locations %}
+- **{{ loc.name }}** (scenes {{ loc.scenes | join(', ') }}): {{ loc.tags | join(', ') }}
+{% endfor %}
+**Rules**: Scenes sharing the same location MUST use the same `context_tags.environment` tags listed above. Do NOT invent new environment tags for scenes already mapped to a location.
+{% endif %}
 {% endif %}
 
 {% if creative_direction %}
@@ -92,7 +100,7 @@ Match your visual design to this plan:
    | Side-facing | 0.3 ~ 0.5 | profile standing, walking, leaning wall |
    | Back-facing | 0.0 ~ 0.2 | from behind |
    | Narrator (no character) | 0.0 | No character in scene |
-5. **Environment consistency**: Maintain consistent setting within scene groups. Use `context_tags.environment` to specify the scene's location as an English tag (e.g. kitchen, outdoor_garden, school_hallway).
+5. **Environment consistency**: Maintain consistent setting within scene groups. Use `context_tags.environment` to specify the scene's location as an English tag (e.g. kitchen, outdoor_garden, classroom).
    - Do NOT add weather/atmosphere tags (rain, cloud, moon, night, snow) unless the script explicitly mentions them
    - Indoor scenes (kitchen, bedroom, classroom): do NOT add outdoor atmosphere tags
 6. **Mood-visual alignment**: Camera and environment must match the script's emotional tone
@@ -182,7 +190,7 @@ Match your visual design to this plan:
       "duration": 2.5,
       "camera": "from_above",
       "environment": "hallway",
-      "image_prompt": "no_humans, scenery, dark_hallway, light, door, indoors, night",
+      "image_prompt": "no_humans, scenery, hallway, dark, light, door, indoors, night",
       "image_prompt_ko": "어둠 속 복도에 한 줄기 빛이 새어 나오는 풍경",
       "context_tags": {
         "environment": ["hallway", "indoors", "night"],

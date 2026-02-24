@@ -155,3 +155,153 @@ async def test_writer_node_planning_disabled(mock_gen, mock_plan):
         # Planning 호출 안 함
         assert not mock_plan.called
         assert result.get("writer_plan") is None
+
+
+# -- Location Map 테스트 (Phase 16+) --
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.writer.gemini_client")
+@patch("services.agent.nodes.writer.template_env")
+async def test_create_plan_with_locations(mock_tenv, mock_gemini):
+    """Gemini가 locations 포함 응답 시 파싱 성공."""
+    from services.agent.nodes.writer import _create_plan
+
+    mock_tenv.get_template.return_value.render.return_value = "prompt"
+
+    mock_response = MagicMock()
+    mock_response.text = """{
+        "hook_strategy": "Emotional Confession",
+        "emotional_arc": ["긴장", "공감", "여운"],
+        "scene_distribution": {"intro": 1, "rising": 1, "resolution": 1},
+        "locations": [
+            {"name": "piano_room", "scenes": [0, 1], "tags": ["piano", "stage", "indoors"]},
+            {"name": "rooftop", "scenes": [2], "tags": ["rooftop", "outdoors", "sunset"]}
+        ]
+    }"""
+    mock_gemini.aio.models.generate_content = AsyncMock(return_value=mock_response)
+
+    state: ScriptState = {
+        "topic": "오래된 친구와의 재회",
+        "duration": 10,
+        "language": "Korean",
+        "structure": "Monologue",
+    }
+
+    plan = await _create_plan(state)
+
+    assert plan is not None
+    assert "locations" in plan
+    assert len(plan["locations"]) == 2
+    assert plan["locations"][0]["name"] == "piano_room"
+    assert 0 in plan["locations"][0]["scenes"]
+    assert "stage" in plan["locations"][0]["tags"]
+    assert plan["locations"][1]["name"] == "rooftop"
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.writer.gemini_client")
+@patch("services.agent.nodes.writer.template_env")
+async def test_create_plan_without_locations_backward_compat(mock_tenv, mock_gemini):
+    """locations 없어도 기존 동작 유지 (후방 호환)."""
+    from services.agent.nodes.writer import _create_plan
+
+    mock_tenv.get_template.return_value.render.return_value = "prompt"
+
+    mock_response = MagicMock()
+    mock_response.text = """{
+        "hook_strategy": "질문형 Hook",
+        "emotional_arc": ["호기심", "긴장", "여운"],
+        "scene_distribution": {"intro": 1, "rising": 1, "resolution": 1}
+    }"""
+    mock_gemini.aio.models.generate_content = AsyncMock(return_value=mock_response)
+
+    state: ScriptState = {
+        "topic": "테스트",
+        "duration": 10,
+        "language": "Korean",
+        "structure": "Monologue",
+    }
+
+    plan = await _create_plan(state)
+
+    assert plan is not None
+    assert "hook_strategy" in plan
+    # locations가 없으므로 plan에 포함되지 않음
+    assert "locations" not in plan
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.writer._create_plan", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+async def test_plan_text_includes_location_map(mock_gen, mock_plan):
+    """plan_text에 Location Map 포함 확인."""
+    from services.agent.nodes.writer import writer_node
+
+    mock_plan.return_value = {
+        "hook_strategy": "질문형 Hook",
+        "emotional_arc": ["호기심", "긴장", "여운"],
+        "scene_distribution": {"intro": 1, "rising": 1, "resolution": 1},
+        "locations": [
+            {"name": "piano_room", "scenes": [0, 1], "tags": ["piano", "stage", "indoors"]},
+            {"name": "rooftop", "scenes": [2], "tags": ["rooftop", "outdoors"]},
+        ],
+    }
+    mock_gen.return_value = {
+        "scenes": [{"script": "테스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}],
+    }
+
+    state: ScriptState = {
+        "topic": "테스트",
+        "skip_stages": [],
+        "duration": 10,
+        "language": "Korean",
+        "structure": "Monologue",
+        "actor_a_gender": "female",
+    }
+
+    await writer_node(state)
+
+    # generate_script에 전달된 pipeline_context 확인
+    call_kwargs = mock_gen.call_args
+    pipeline_ctx = call_kwargs.kwargs.get("pipeline_context") or call_kwargs[1].get("pipeline_context")
+    writer_plan_text = pipeline_ctx["writer_plan"]
+
+    assert "Location Map" in writer_plan_text
+    assert "piano_room" in writer_plan_text
+    assert "piano, stage, indoors" in writer_plan_text
+    assert "rooftop" in writer_plan_text
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.writer._create_plan", new_callable=AsyncMock)
+@patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+async def test_plan_text_without_locations(mock_gen, mock_plan):
+    """locations 없으면 Location Map 미포함."""
+    from services.agent.nodes.writer import writer_node
+
+    mock_plan.return_value = {
+        "hook_strategy": "질문형 Hook",
+        "emotional_arc": ["호기심", "긴장", "여운"],
+        "scene_distribution": {"intro": 1, "rising": 1, "resolution": 1},
+    }
+    mock_gen.return_value = {
+        "scenes": [{"script": "테스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}],
+    }
+
+    state: ScriptState = {
+        "topic": "테스트",
+        "skip_stages": [],
+        "duration": 10,
+        "language": "Korean",
+        "structure": "Monologue",
+        "actor_a_gender": "female",
+    }
+
+    await writer_node(state)
+
+    call_kwargs = mock_gen.call_args
+    pipeline_ctx = call_kwargs.kwargs.get("pipeline_context") or call_kwargs[1].get("pipeline_context")
+    writer_plan_text = pipeline_ctx["writer_plan"]
+
+    assert "Location Map" not in writer_plan_text
