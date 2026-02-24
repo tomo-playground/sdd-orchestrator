@@ -17,11 +17,11 @@
 | Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 완료 (8/8)** |
 | Phase 14 (ControlNet Pose Pipeline) | **전체 완료 (3/3 + 14-A 3/3)** |
 | **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 4/4, A-1: 6/6, A-2: 2/2 완료** |
-| 테스트 | Backend 2,539 + Frontend 352 = **총 2,891개** |
+| 테스트 | Backend 2,546 + Frontend 352 = **총 2,898개** |
 
 ### 최근 작업
 
-- **Prompt Builder 근본 수정: custom_base_prompt 레이어 오배치 + 씬 표정 Override** (02-24): `_collect_character_tags()`에서 custom_base_prompt 태그가 `LAYER_IDENTITY(2)` 하드코딩되던 문제 해결 — `get_tag_info()` (DB→pattern fallback)로 올바른 layer/group_name 결정. `_tag_to_group_map()` 캐시 추가. `SCENE_OVERRIDE_GROUPS` 도입 — 씬에 expression/gaze 태그가 있으면 캐릭터 기본 표정/시선 자동 제외 (gentle_smile+crying 모순 방지). Alembic data migration (gentle_smile/soft_lighting conflict rules 6쌍). 22개 테스트 추가 (2,539 PASS)
+- **Prompt Builder weight 구문 파싱 + 씬 표정 Override 근본 수정** (02-24): `get_tag_info()`가 SD weight 구문 `(crying:1.1)` 미파싱으로 scene_override 미동작하던 버그 수정 — `_strip_weight()` 추출, DB 조회 시 weight 제거 후 bare form으로 조회, weighted/bare 양쪽 키로 결과 반환. `_collect_character_tags()` layer 오배치 수정(LAYER_IDENTITY 하드코딩→DB/pattern 기반). `SCENE_OVERRIDE_GROUPS` 도입 — 씬 expression/gaze가 캐릭터 기본 표정 override. Alembic conflict rules 6쌍. 29개 테스트 추가 (2,546 PASS)
 - **중복 PromptTokenPreview 제거** (02-24): ScenePromptFields에서 `PromptTokenPreview`(원시 토큰) + `ComposedPromptPreview`(조합 결과) 2중 표시 → `ComposedPromptPreview`만 유지. 실제 SD에 전달되는 최종 프롬프트만 표시하도록 정리. PromptTokenPreview.tsx 파일 삭제
 - **실패 테스트 31개 수정** (02-24): GROUP_NAME_TO_LAYER SSOT 후 회귀 테스트 6개 파일 수정. test_prompt.py 필드명 동기화(total_tags/risky/unknown), Character project_id 제거(2파일), Cinematographer Competition Mode 비활성화 패치(7테스트), test_script_snapshots Quick 모드 강제+finalize subset 검증. 2,516 passed, 0 failed
 - **Phase 15-A-2: TagAutocomplete 확산 8곳** (02-24): TagSuggestionDropdown 공유 컴포넌트 추출, useTagSuggestion 커스텀 훅(중복 제거), TagSuggestInput 신규(chip UI용 single-line autocomplete). NegativePromptToggle/SceneClothingModal/PromptPair(C2-C5)/SceneCharacterActions/StyleProfileEditor 8개 입력 포인트에 자동완성 적용. GenerationParameters 컴포넌트 분리. WAI-ARIA 접근성(role=combobox/listbox, aria-expanded/controls/selected). 14개 테스트 PASS
