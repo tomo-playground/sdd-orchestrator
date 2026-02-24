@@ -18,10 +18,11 @@
 | Phase 14 (ControlNet Pose Pipeline) | **전체 완료 (3/3 + 14-A 3/3)** |
 | **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 4/4, A-1: 6/6, A-2: 2/2, A-3: 3/3 완료** |
 | **Phase 16 (WD14 Smart Validation)** | **Phase 16-0 완료, 16-A 완료, 16-B 완료, 16-C 완료, 16-D 미착수** |
-| 테스트 | Backend 2,592 + Frontend 362 = **총 2,954개** |
+| 테스트 | Backend 2,642 + Frontend 362 = **총 3,004개** |
 
 ### 최근 작업
 
+- **Render Preset Music Preset 선택 UI** (02-24): Settings > Render Presets 편집 폼에서 BGM Mode "Manual" 시 Music Preset 드롭다운 추가. Backend Create/Update 스키마에 `music_preset_id` 필드 추가, bgm_mode=auto 전환 시 자동 null 초기화, 프리셋 카드 요약에 Music Preset 이름 표시. 테스트 2개 추가 (2,956 PASS)
 - **Phase 16-B: Adjusted Match Rate** (02-24): WD14 감지 가능 그룹(14종: subject, hair_color, clothing, expression 등)만으로 match_rate를 재계산하는 `compute_adjusted_match_rate()` 추가. `WD14_DETECTABLE_GROUPS` 상수(config.py SSOT). `validate_scene_image()` 응답에 `adjusted_match_rate` 필드 병렬 반환(하위 호환). `_increment_tag_effectiveness()`에서 비감지 그룹(camera, location, mood 등) 태그 effectiveness 추적 제외. auto-edit 임계값 adjusted 우선 참조. `batch_validate_scenes()` partial_matched 포함으로 validation.py와 계산 일관화. 11개 테스트 추가 (2,592 PASS)
 - **Audio Pipeline 버그 수정 2건** (02-24): SB#475에서 발견된 오디오 이슈 수정. (1) BGM 루핑 — BGM이 비디오보다 짧을 때 `asplit`+`acrossfade` 필터 기반 자동 루핑(`_build_bgm_loop_filters`), ffprobe 동적 duration 측정(`_probe_duration`), 2초 크로스페이드로 이음새 품질 보장, `atrim`으로 정확한 비디오 길이 트림. (2) TTS 서킷 브레이커 씬 단위 전환 — HTTP 시도 단위(1씬 3retry=3카운트→즉시 차단)에서 씬 단위 카운팅으로 변경(`record_scene_failure`/`record_scene_success`), 3개 연속 씬 실패 시에만 차단. 24개 테스트 PASS
 - **Phase 16-A: Critical Failure Detection** (02-24): WD14 subject 태그(1girl 99%, solo 98%)의 높은 감지 정확도를 활용하여 성별 반전(gender_swap), 인물 부재(no_subject), 인물수 불일치(count_mismatch) 자동 감지. `detect_critical_failure()` 핵심 모듈, `validate_scene_image()` 통합, CriticalFailureInfo 스키마. Frontend 빨간 배지(좌상단) + ValidationOverlay 경고 + CompletionDots 우선 red + 토스트 분기. threshold 0.7 (false positive 최소화). 21개 테스트 추가 (2,571 PASS)
