@@ -2016,19 +2016,15 @@ class TestCollectCharacterTagsLayerPlacement:
 
 
 # ────────────────────────────────────────────
-# SCENE_OVERRIDE_GROUPS tests
+# Dynamic scene override tests (group-based, no hardcoded list)
 # ────────────────────────────────────────────
 
 
 class TestSceneOverrideGroups:
-    """Test scene expression/gaze tags override character base defaults."""
+    """Test scene tags dynamically override character base defaults.
 
-    def test_scene_override_groups_constant(self):
-        """SCENE_OVERRIDE_GROUPS contains expression and gaze."""
-        from config import SCENE_OVERRIDE_GROUPS
-
-        assert "expression" in SCENE_OVERRIDE_GROUPS
-        assert "gaze" in SCENE_OVERRIDE_GROUPS
+    Rule: scene groups NOT in EXCLUSIVE_TAG_GROUPS suppress matching char base tags.
+    """
 
     def test_scene_crying_overrides_char_gentle_smile(self, builder):
         """Scene crying → char gentle_smile excluded."""
@@ -2106,8 +2102,64 @@ class TestSceneOverrideGroups:
         assert "gentle_smile" in all_tokens
         assert "outdoors" in all_tokens
 
+    def test_scene_dark_overrides_char_soft_lighting(self, builder):
+        """Scene dark → char soft_lighting excluded (lighting override)."""
+        char_info = {
+            "soft_lighting": _make_tag_info("soft_lighting", LAYER_ATMOSPHERE, group="lighting"),
+            "brown_hair": _make_tag_info("brown_hair", LAYER_IDENTITY, group="hair_color"),
+        }
+        scene_info = {
+            "dark": _make_tag_info("dark", LAYER_ATMOSPHERE, group="lighting"),
+            "indoors": _make_tag_info("indoors", LAYER_ENVIRONMENT, group="location_indoor"),
+        }
+        all_info = {**char_info, **scene_info}
+        builder.get_tag_info = MagicMock(
+            side_effect=lambda names: {
+                n: all_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in all_info
+            }
+        )
+
+        char_tags = [
+            {"name": "soft_lighting", "layer": LAYER_ATMOSPHERE, "weight": 1.0, "group_name": "lighting"},
+            {"name": "brown_hair", "layer": LAYER_IDENTITY, "weight": 1.0, "group_name": "hair_color"},
+        ]
+        scene_tags = ["dark", "indoors"]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, scene_tags, scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "dark" in all_tokens
+        assert "soft_lighting" not in all_tokens
+        assert "brown_hair" in all_tokens  # identity preserved
+
+    def test_identity_group_never_overridden(self, builder):
+        """EXCLUSIVE_TAG_GROUPS (hair_color etc.) never overridden by scene."""
+        char_info = {
+            "brown_hair": _make_tag_info("brown_hair", LAYER_IDENTITY, group="hair_color"),
+        }
+        scene_info = {
+            "blonde_hair": _make_tag_info("blonde_hair", LAYER_IDENTITY, group="hair_color"),
+        }
+        all_info = {**char_info, **scene_info}
+        builder.get_tag_info = MagicMock(
+            side_effect=lambda names: {
+                n: all_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in all_info
+            }
+        )
+
+        char_tags = [
+            {"name": "brown_hair", "layer": LAYER_IDENTITY, "weight": 1.0, "group_name": "hair_color"},
+        ]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["blonde_hair"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "brown_hair" in all_tokens  # identity group protected
+
     def test_non_override_group_not_affected(self, builder):
-        """clothing group is NOT in SCENE_OVERRIDE_GROUPS → always kept."""
+        """Clothing group not overridden when scene has different groups."""
         scene_info = {
             "crying": _make_tag_info("crying", LAYER_EXPRESSION, group="expression"),
         }

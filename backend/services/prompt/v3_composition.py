@@ -34,7 +34,6 @@ from config import (
     PERMANENT_IDENTITY_WEIGHT_BOOST,
     REFERENCE_CAMERA_TAGS,
     REFERENCE_ENV_TAGS,
-    SCENE_OVERRIDE_GROUPS,
     STYLE_LORA_WEIGHT_CAP,
 )
 from database import SessionLocal
@@ -352,7 +351,7 @@ class V3PromptBuilder:
 
         When frontend sends a pre-composed prompt, it already contains character
         base tokens (from custom_base_prompt). Stripping them ensures compose
-        doesn't double-include them and allows SCENE_OVERRIDE_GROUPS to work.
+        doesn't double-include them and allows scene override to work.
         """
         if not character.custom_base_prompt:
             return scene_tags
@@ -495,16 +494,18 @@ class V3PromptBuilder:
 
         Character tags are placed first. Scene tags in exclusive groups
         already occupied by the character are dropped.
-        Scene tags in SCENE_OVERRIDE_GROUPS suppress matching character base tags.
+        Scene override: when a scene provides tags in a group NOT in
+        EXCLUSIVE_TAG_GROUPS, matching character base tags are suppressed.
         Returns the set of occupied exclusive groups.
         """
-        # 5a. Identify scene override groups (expression, gaze)
+        # 5a. Collect scene groups dynamically (exclude identity groups)
         scene_override_groups: set[str] = set()
         for tag in scene_tags:
             norm = tag.lower().replace(" ", "_").strip()
             info = scene_tag_info.get(norm, {})
-            if info.get("group_name") in SCENE_OVERRIDE_GROUPS:
-                scene_override_groups.add(info["group_name"])
+            gn = info.get("group_name")
+            if gn and gn not in EXCLUSIVE_TAG_GROUPS:
+                scene_override_groups.add(gn)
 
         # 5b. Distribute character tags (with identity/clothing weight boost)
         for ct in char_tags_data:
