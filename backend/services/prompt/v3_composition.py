@@ -346,6 +346,25 @@ class V3PromptBuilder:
             t for t in layers[LAYER_CAMERA] if t.lower().replace(" ", "_").strip() not in CHARACTER_CAMERA_TAGS
         ]
 
+    @classmethod
+    def _strip_char_base_from_scene(cls, character: "Character", scene_tags: list[str]) -> list[str]:
+        """Remove character base prompt tokens from scene_tags to prevent duplication.
+
+        When frontend sends a pre-composed prompt, it already contains character
+        base tokens (from custom_base_prompt). Stripping them ensures compose
+        doesn't double-include them and allows SCENE_OVERRIDE_GROUPS to work.
+        """
+        if not character.custom_base_prompt:
+            return scene_tags
+        base_tokens = {
+            cls._strip_weight(bt.strip().lower().replace(" ", "_"))
+            for bt in character.custom_base_prompt.split(",")
+            if bt.strip()
+        }
+        if not base_tokens:
+            return scene_tags
+        return [t for t in scene_tags if cls._strip_weight(t.strip().lower().replace(" ", "_")) not in base_tokens]
+
     # ── compose_for_character ────────────────────────────────────────────
 
     def compose_for_character(
@@ -376,6 +395,10 @@ class V3PromptBuilder:
 
         # 1-2. Collect character tags (DB + custom_base_prompt)
         char_tags_data = self._collect_character_tags(character)
+
+        # 2b. Strip character base tokens from scene_tags to prevent duplication
+        # (Frontend may send pre-composed prompt that already includes char base tokens)
+        scene_tags = self._strip_char_base_from_scene(character, scene_tags)
 
         # 3. Resolve aliases and get scene tag info
         scene_tags = self._resolve_aliases(scene_tags)

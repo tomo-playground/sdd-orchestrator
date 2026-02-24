@@ -2416,3 +2416,116 @@ class TestWeightSyntaxHandling:
         # gentle_smile should be suppressed
         assert "gentle_smile" not in result
         assert "outdoors" in result
+
+
+# ────────────────────────────────────────────
+# Strip character base tokens from scene dedup
+# ────────────────────────────────────────────
+
+
+class TestStripCharBaseFromScene:
+    """Verify character base tokens are stripped from scene_tags to prevent duplication."""
+
+    def test_strips_base_tokens(self):
+        """custom_base_prompt tokens are removed from scene_tags."""
+        char = MagicMock()
+        char.custom_base_prompt = "gentle_smile, soft_lighting, masterpiece"
+
+        scene_tags = ["crying", "gentle_smile", "soft_lighting", "outdoors", "masterpiece"]
+        result = V3PromptBuilder._strip_char_base_from_scene(char, scene_tags)
+
+        assert "crying" in result
+        assert "outdoors" in result
+        assert "gentle_smile" not in result
+        assert "soft_lighting" not in result
+        assert "masterpiece" not in result
+
+    def test_strips_weighted_base_tokens(self):
+        """Weighted scene tokens matching base tokens are stripped."""
+        char = MagicMock()
+        char.custom_base_prompt = "gentle_smile, brown_hair"
+
+        scene_tags = ["(gentle_smile:1.15)", "(brown_hair:1.15)", "crying"]
+        result = V3PromptBuilder._strip_char_base_from_scene(char, scene_tags)
+
+        assert "crying" in result
+        assert len([t for t in result if "gentle_smile" in t]) == 0
+        assert len([t for t in result if "brown_hair" in t]) == 0
+
+    def test_no_base_prompt_passthrough(self):
+        """No custom_base_prompt → scene_tags returned as-is."""
+        char = MagicMock()
+        char.custom_base_prompt = None
+
+        scene_tags = ["crying", "outdoors"]
+        result = V3PromptBuilder._strip_char_base_from_scene(char, scene_tags)
+
+        assert result == scene_tags
+
+    def test_space_underscore_normalization(self):
+        """Space-separated base tokens match underscore scene tokens."""
+        char = MagicMock()
+        char.custom_base_prompt = "gentle smile, soft lighting"
+
+        scene_tags = ["gentle_smile", "soft_lighting", "crying"]
+        result = V3PromptBuilder._strip_char_base_from_scene(char, scene_tags)
+
+        assert "crying" in result
+        assert "gentle_smile" not in result
+        assert "soft_lighting" not in result
+
+    @patch("services.prompt.v3_composition.TagRuleCache")
+    @patch("services.prompt.v3_composition.TagFilterCache")
+    @patch("services.prompt.v3_composition.TagAliasCache")
+    def test_e2e_precomposed_prompt_dedup(self, mock_alias, mock_filter, mock_rule, builder):
+        """Full pipeline: pre-composed prompt with char base tokens gets deduped."""
+        mock_alias.initialize.return_value = None
+        mock_alias.get_replacement.return_value = ...
+        mock_filter.initialize.return_value = None
+        mock_filter.is_restricted.return_value = False
+        mock_rule.initialize.return_value = None
+        mock_rule.is_conflicting.return_value = False
+
+        from models.tag import Tag
+
+        gentle_tag = MagicMock(spec=Tag)
+        gentle_tag.name = "gentle_smile"
+        gentle_tag.default_layer = LAYER_EXPRESSION
+        gentle_tag.usage_scope = "ANY"
+        gentle_tag.group_name = "expression"
+
+        crying_tag = MagicMock(spec=Tag)
+        crying_tag.name = "crying"
+        crying_tag.default_layer = LAYER_EXPRESSION
+        crying_tag.usage_scope = "ANY"
+        crying_tag.group_name = "expression"
+
+        outdoors_tag = MagicMock(spec=Tag)
+        outdoors_tag.name = "outdoors"
+        outdoors_tag.default_layer = LAYER_ENVIRONMENT
+        outdoors_tag.usage_scope = "ANY"
+        outdoors_tag.group_name = "location_outdoor"
+
+        all_tags = [gentle_tag, crying_tag, outdoors_tag]
+        builder.db.query.return_value.filter.return_value.all.return_value = all_tags
+
+        char = MagicMock()
+        char.id = 1
+        char.gender = "female"
+        char.custom_base_prompt = "gentle_smile"
+        char.tags = []
+        char.loras = []
+        char.prompt_mode = "standard"
+        builder.db.query.return_value.filter.return_value.first.return_value = char
+
+        # Simulate frontend sending pre-composed prompt (includes gentle_smile from char base)
+        precomposed_tokens = ["gentle_smile", "(crying:1.1)", "outdoors"]
+        result = builder.compose_for_character(
+            character_id=1,
+            scene_tags=precomposed_tokens,
+        )
+
+        assert "(crying:1.1)" in result
+        # gentle_smile should NOT appear — stripped from scene + overridden from char
+        assert "gentle_smile" not in result
+        assert "outdoors" in result
