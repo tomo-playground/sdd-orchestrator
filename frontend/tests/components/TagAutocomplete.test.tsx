@@ -21,7 +21,7 @@ describe("TagAutocomplete", () => {
 
   it("calls onChange when typing", () => {
     render(<TagAutocomplete value="" onChange={mockOnChange} />);
-    const textarea = screen.getByRole("textbox");
+    const textarea = screen.getByRole("combobox");
     fireEvent.change(textarea, { target: { value: "a" } });
     expect(mockOnChange).toHaveBeenCalledWith("a");
   });
@@ -36,7 +36,7 @@ describe("TagAutocomplete", () => {
     });
 
     render(<TagAutocomplete value="" onChange={mockOnChange} />);
-    const textarea = screen.getByRole("textbox");
+    const textarea = screen.getByRole("combobox");
 
     // Type "gi"
     fireEvent.change(textarea, { target: { value: "gi", selectionStart: 2 } });
@@ -64,7 +64,7 @@ describe("TagAutocomplete", () => {
     // Simple render for unit test without wrapper logic complexity
     // Start with "look at that " and type "smi" to ensure change event fires
     render(<TagAutocomplete value="look at that " onChange={mockOnChange} />);
-    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    const textarea = screen.getByRole("combobox") as HTMLTextAreaElement;
 
     // Trigger search by typing "smi"
     vi.useFakeTimers();
@@ -89,7 +89,7 @@ describe("TagAutocomplete", () => {
     });
 
     render(<TagAutocomplete value="" onChange={mockOnChange} />);
-    const textarea = screen.getByRole("textbox");
+    const textarea = screen.getByRole("combobox");
 
     fireEvent.change(textarea, { target: { value: "bro", selectionStart: 3 } });
 
@@ -120,7 +120,7 @@ describe("TagAutocomplete", () => {
     });
 
     render(<TagAutocomplete value="" onChange={mockOnChange} />);
-    const textarea = screen.getByRole("textbox");
+    const textarea = screen.getByRole("combobox");
 
     fireEvent.change(textarea, { target: { value: "갈", selectionStart: 1 } });
 
@@ -138,7 +138,7 @@ describe("TagAutocomplete", () => {
     });
 
     render(<TagAutocomplete value="" onChange={mockOnChange} />);
-    const textarea = screen.getByRole("textbox");
+    const textarea = screen.getByRole("combobox");
 
     // Use fake timers for debounce
     vi.useFakeTimers();
@@ -158,7 +158,7 @@ describe("TagAutocomplete", () => {
     });
 
     render(<TagAutocomplete value="" onChange={mockOnChange} />);
-    const textarea = screen.getByRole("textbox");
+    const textarea = screen.getByRole("combobox");
 
     vi.useFakeTimers();
     fireEvent.change(textarea, { target: { value: "bro", selectionStart: 3 } });
@@ -184,7 +184,7 @@ describe("TagAutocomplete", () => {
     });
 
     render(<TagAutocomplete value="" onChange={mockOnChange} />);
-    const textarea = screen.getByRole("textbox");
+    const textarea = screen.getByRole("combobox");
 
     vi.useFakeTimers();
     fireEvent.change(textarea, { target: { value: "medium", selectionStart: 6 } });

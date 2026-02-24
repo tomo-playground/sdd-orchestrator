@@ -16,11 +16,12 @@
 | Phase 13 (Creative Control & Production Speed) | 전체 완료 (ARCHIVED) |
 | Phase 8 (Multi-Style) | **Phase 8-0 완료, Phase 8-1 완료 (8/8)** |
 | Phase 14 (ControlNet Pose Pipeline) | **전체 완료 (3/3 + 14-A 3/3)** |
-| **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 4/4, A-1: 6/6 완료** |
+| **Phase 15 (Prompt Input UX 고도화)** | **진행 중 — A-0: 4/4, A-1: 6/6, A-2: 2/2 완료** |
 | 테스트 | Backend 2,207 + Frontend 352 = **총 2,559개** |
 
 ### 최근 작업
 
+- **Phase 15-A-2: TagAutocomplete 확산 8곳** (02-24): TagSuggestionDropdown 공유 컴포넌트 추출, useTagSuggestion 커스텀 훅(중복 제거), TagSuggestInput 신규(chip UI용 single-line autocomplete). NegativePromptToggle/SceneClothingModal/PromptPair(C2-C5)/SceneCharacterActions/StyleProfileEditor 8개 입력 포인트에 자동완성 적용. GenerationParameters 컴포넌트 분리. WAI-ARIA 접근성(role=combobox/listbox, aria-expanded/controls/selected). 14개 테스트 PASS
 - **Phase 15-A-1: TagAutocomplete 품질 개선 6건** (02-24): validate-tags 스키마 동기화(ValidateTagsResponse + response_model), Tag deprecation 필드 API 노출(TagSearchResponse, is_active 정렬, 취소선 UI), API debounce 300ms, 한국어/유니코드 검색(ko_name ilike, 한글 1자 트리거), wd14_count 드롭다운 표시(K/M 포맷), 태그 선택 후 ", " 자동 삽입. Backend 25 + Frontend 9 테스트
 - **Pipeline Prompt Quality 근본 수정** (02-24): SB#469 검수 기반 P0 3건+P1 2건+P2 1건. (1) `_sanitize_quality_tags()` — `high_quality`→`best_quality` 자동 치환, `create_style_profiles.py` 소스 정리. (2) `_inject_default_context_tags()` emotion→expression 파생(44개 매핑). (3) Scene LoRA 트리거 워드 주입 — `LoRAInfo` 클래스 도입, `_get_lora_info()` trigger_words 포함, scene-triggered/auto-triggered 양쪽 주입. (4) `validate_context_tag_categories()` — 잘못된 카테고리 재분류(gaze=crying→expression), 비표준 mood drop. (5) `check_camera_diversity()` >50% 반복 시 소프트 경고. (6) `_coerce_str()` — Gemini 리스트 반환 방어. 37개 테스트 추가 (160 PASS)
 - **Phase 15-A-0-4: 편집 지시문 Before/After diff UI** (02-23): `prompt_editor.py` Gemini 기반 자연어 지시→프롬프트 태그 편집 서비스(SHA256 캐시, 캐릭터 identity 태그 보존). `/prompt/edit-prompt` API. `PromptEditDiff.tsx` 3-phase diff UI(loading/diff/error). `computeTokenDiff` 공통 유틸리티 추출(`promptDiff.ts`). SceneGeminiModals 2-phase(input→diff) 전환, Character GeminiEditModal 동일 적용. 기존 이미지 편집(~$0.04) 버튼 병존. 8개 테스트 추가
@@ -227,12 +228,12 @@ graph LR
 | 5 | 폐기 태그 `deprecated_reason` + 대체 태그 표시 | ✅ (02-24) |
 | 6 | Frontend-Backend 검증 스키마 동기화 (`validate-tags` 응답 통일) | ✅ (02-24) |
 
-### Phase A-2: TagAutocomplete 확산 (8곳)
+### Phase A-2: TagAutocomplete 확산 (8곳, 완료 02-24)
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | Tier 1 — NegativePrompt, CharacterActions, ClothingModal, PromptsStep Base/Negative (5곳) | [ ] |
-| 2 | Tier 2 — PromptsStep Ref Base/Negative, StyleProfileEditor Positive/Negative (4곳) | [ ] |
+| 1 | Tier 1 — NegativePrompt, CharacterActions, ClothingModal, PromptsStep Base/Negative (5곳) | ✅ (02-24) |
+| 2 | Tier 2 — PromptsStep Ref Base/Negative, StyleProfileEditor Positive/Negative (4곳) | ✅ (02-24) |
 
 ### Phase A-3: 태그 검증 확산
 

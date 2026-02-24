@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { NegativeSourceInfo } from "../prompt/ComposedPromptPreview";
 import CopyButton from "../ui/CopyButton";
+import TagAutocomplete from "../ui/TagAutocomplete";
 
 const SOURCE_COLORS: Record<string, { bg: string; text: string }> = {
   style_profile: { bg: "bg-fuchsia-50", text: "text-fuchsia-700" },
@@ -108,12 +109,12 @@ export default function NegativePromptToggle({
             <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               Scene Negative (Override)
             </label>
-            <textarea
+            <TagAutocomplete
               value={negativePrompt}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={onChange}
               rows={2}
               placeholder="씬별 추가 네거티브 태그 (선택)"
-              className="rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+              className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
             />
           </div>
         </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import type { Scene } from "../../types";
+import TagAutocomplete from "../ui/TagAutocomplete";
 
 type SceneClothingModalProps = {
   scene: Scene;
@@ -118,20 +119,21 @@ export default function SceneClothingModal({
 
           {/* Tag input */}
           <div>
-            <label htmlFor="clothing-tags" className="mb-1 block text-sm font-semibold text-zinc-700">
+            <label
+              htmlFor="clothing-tags"
+              className="mb-1 block text-sm font-semibold text-zinc-700"
+            >
               의상 태그
             </label>
-            <textarea
+            <TagAutocomplete
               id="clothing-tags"
               value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
+              onChange={setTagInput}
               placeholder="예: school_uniform, white_shirt, pleated_skirt"
               className="w-full rounded-xl border border-zinc-200 bg-white/80 px-4 py-3 text-sm outline-none focus:border-amber-400"
               rows={2}
             />
-            <p className="mt-1 text-[12px] text-zinc-400">
-              공백은 자동으로 언더바(_)로 변환됩니다
-            </p>
+            <p className="mt-1 text-[12px] text-zinc-400">공백은 자동으로 언더바(_)로 변환됩니다</p>
           </div>
 
           {/* Current tags preview */}
@@ -170,9 +172,7 @@ export default function SceneClothingModal({
             </button>
           </div>
 
-          <p className="text-[12px] text-zinc-400">
-            의상 변경 후 이미지를 재생성하면 반영됩니다.
-          </p>
+          <p className="text-[12px] text-zinc-400">의상 변경 후 이미지를 재생성하면 반영됩니다.</p>
         </div>
       </div>
     </div>

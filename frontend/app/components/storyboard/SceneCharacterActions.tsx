@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import type { SceneCharacterAction } from "../../types";
+import TagSuggestInput from "../ui/TagSuggestInput";
 
 type SceneCharacterActionsProps = {
   characterActions: SceneCharacterAction[];
@@ -61,40 +62,6 @@ function TagPill({ action, onRemove }: { action: SceneCharacterAction; onRemove:
         <X className="h-2.5 w-2.5" />
       </button>
     </span>
-  );
-}
-
-function AddTagInput({
-  characterId,
-  onAdd,
-}: {
-  characterId: number;
-  onAdd: (action: SceneCharacterAction) => void;
-}) {
-  const [value, setValue] = useState("");
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && value.trim()) {
-      e.preventDefault();
-      onAdd({
-        character_id: characterId,
-        tag_id: 0, // Backend will resolve by tag_name
-        tag_name: value.trim(),
-        weight: 1.0,
-      });
-      setValue("");
-    }
-  };
-
-  return (
-    <input
-      type="text"
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onKeyDown={handleKeyDown}
-      placeholder="Add tag..."
-      className="w-24 rounded-full border border-dashed border-zinc-300 bg-white/80 px-2 py-0.5 text-[12px] outline-none placeholder:text-zinc-300 focus:border-zinc-400"
-    />
   );
 }
 
@@ -180,7 +147,17 @@ function CharacterGroup({
         {group.actions.map((action, idx) => (
           <TagPill key={`${action.tag_id}-${idx}`} action={action} onRemove={() => onRemove(idx)} />
         ))}
-        <AddTagInput characterId={group.characterId} onAdd={onAdd} />
+        <TagSuggestInput
+          onTagSelect={(tagName) =>
+            onAdd({
+              character_id: group.characterId,
+              tag_id: 0, // Backend will resolve by tag_name
+              tag_name: tagName,
+              weight: 1.0,
+            })
+          }
+          className="w-24 rounded-full border border-dashed border-zinc-300 bg-white/80 px-2 py-0.5 text-[12px] outline-none placeholder:text-zinc-300 focus:border-zinc-400"
+        />
       </div>
     </div>
   );
