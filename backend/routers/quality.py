@@ -5,6 +5,8 @@ from pydantic import BaseModel
 
 from config import logger
 from database import SessionLocal
+from schemas import ConsistencyResponse
+from services.consistency import compute_storyboard_consistency
 from services.quality import batch_validate_scenes, get_quality_alerts, get_quality_summary
 
 router = APIRouter(prefix="/quality", tags=["quality"])
@@ -97,6 +99,30 @@ def quality_summary(storyboard_id: int):
         return get_quality_summary(db, storyboard_id=storyboard_id)
     except Exception as exc:
         logger.exception(f"Failed to get quality summary for storyboard {storyboard_id}")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    finally:
+        db.close()
+
+
+@router.get("/consistency/{storyboard_id}", response_model=ConsistencyResponse)
+def consistency(storyboard_id: int):
+    """Cross-scene character consistency analysis for a storyboard."""
+    db = SessionLocal()
+    try:
+        from models.storyboard import Storyboard
+
+        exists = (
+            db.query(Storyboard.id)
+            .filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None))
+            .first()
+        )
+        if not exists:
+            raise HTTPException(status_code=404, detail="Storyboard not found")
+        return compute_storyboard_consistency(storyboard_id, db)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Consistency analysis failed for storyboard %d", storyboard_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:
         db.close()

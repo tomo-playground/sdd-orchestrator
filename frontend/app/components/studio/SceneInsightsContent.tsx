@@ -1,11 +1,18 @@
 "use client";
 
 import StoryboardInsights, { type InsightScene } from "../storyboard/StoryboardInsights";
+import ConsistencyPanel from "./ConsistencyPanel";
 import {
   SIDE_PANEL_LABEL,
-  SUCCESS_BG, SUCCESS_TEXT, SUCCESS_BORDER,
-  WARNING_BG, WARNING_TEXT, WARNING_BORDER,
-  ERROR_BG, ERROR_TEXT, ERROR_BORDER
+  SUCCESS_BG,
+  SUCCESS_TEXT,
+  SUCCESS_BORDER,
+  WARNING_BG,
+  WARNING_TEXT,
+  WARNING_BORDER,
+  ERROR_BG,
+  ERROR_TEXT,
+  ERROR_BORDER,
 } from "../ui/variants";
 
 type SceneMatchRate = {
@@ -76,6 +83,9 @@ export default function SceneInsightsContent({
           </div>
         </div>
       )}
+
+      {/* Cross-Scene Consistency */}
+      <ConsistencyPanel />
     </div>
   );
 }

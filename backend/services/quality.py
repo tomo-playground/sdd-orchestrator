@@ -39,6 +39,7 @@ def batch_validate_scenes(
         }
     """
     from models.scene_quality import SceneQualityScore
+    from services.identity_score import compute_identity_score, extract_identity_signature, load_character_identity_tags
 
     results = []
     validated_count = 0
@@ -47,6 +48,7 @@ def batch_validate_scenes(
         scene_id = scene.get("scene_id")
         image_url = scene.get("image_url")
         prompt = scene.get("prompt", "")
+        character_id = scene.get("character_id")
 
         if not image_url:
             logger.warning(f"Scene {scene_id} has no image_url, skipping")
@@ -76,6 +78,15 @@ def batch_validate_scenes(
                 comparison["missing"],
             )
 
+            # Identity score + signature (Phase 16-D)
+            id_score = None
+            id_signature = None
+            if character_id:
+                identity_tags = load_character_identity_tags(character_id, db)
+                if identity_tags:
+                    id_score = compute_identity_score(identity_tags, tags)
+                id_signature = extract_identity_signature(tags, db)
+
             # Save to database
             score = SceneQualityScore(
                 storyboard_id=storyboard_id,
@@ -85,6 +96,8 @@ def batch_validate_scenes(
                 matched_tags=comparison["matched"],
                 missing_tags=comparison["missing"],
                 extra_tags=comparison["extra"],
+                identity_score=id_score,
+                identity_tags_detected=id_signature,
                 validated_at=datetime.now(),
             )
             db.add(score)
@@ -97,6 +110,7 @@ def batch_validate_scenes(
                     "adjusted_match_rate": round(adjusted, 3),
                     "matched_count": len(comparison["matched"]),
                     "missing_count": len(comparison["missing"]),
+                    "identity_score": round(id_score, 3) if id_score is not None else None,
                 }
             )
 

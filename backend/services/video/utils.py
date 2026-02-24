@@ -175,20 +175,27 @@ def _strip_non_speech(text: str) -> str:
 
 
 def has_speakable_content(raw_script: str) -> bool:
-    """Check if a script contains content that can be spoken by TTS.
+    """Check if a script contains enough content to be spoken by TTS.
 
-    Applies _strip_non_speech first, then checks for word characters.
-    Use this to gate TTS generation — scenes without speakable content
-    (e.g. '...', pure stage directions) should skip TTS entirely.
+    Applies _strip_non_speech first, then checks:
+    1. At least one word character exists
+    2. Word character count >= TTS_MIN_SPEAKABLE_CHARS (default 2)
+
+    Short exclamations like "네?" (1 char) produce TTS < 0.5s which always
+    fails the TTS_MIN_DURATION_SEC (1.0s) check, wasting 3 retry attempts.
+    These are better served by silence + subtitle overlay.
 
     Returns:
-        True if the script has at least one word character (letter/digit).
+        True if the script has enough word characters for meaningful TTS.
     """
+    from config import TTS_MIN_SPEAKABLE_CHARS
+
     if not raw_script or not raw_script.strip():
         return False
     text = _strip_non_speech(raw_script)
-    # \w matches Unicode word characters (Korean, Japanese, Chinese, Latin, digits)
-    return bool(re.search(r"\w", text))
+    # Count Unicode word characters (Korean, Japanese, Chinese, Latin, digits)
+    word_chars = re.findall(r"\w", text)
+    return len(word_chars) >= TTS_MIN_SPEAKABLE_CHARS
 
 
 def clean_script_for_tts(raw_script: str) -> str:

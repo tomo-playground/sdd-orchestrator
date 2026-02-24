@@ -6,7 +6,7 @@ Computes how well a generated image matches the character's identity traits
 
 from __future__ import annotations
 
-from config import IDENTITY_SCORE_GROUPS, logger
+from config import IDENTITY_SCORE_GROUPS, WD14_THRESHOLD, logger
 from services.keywords import normalize_prompt_token
 
 
@@ -33,7 +33,7 @@ def extract_character_identity_tags(character_tags: list[dict]) -> list[str]:
 def compute_identity_score(
     identity_tags: list[str],
     wd14_tags: list[dict],
-    threshold: float = 0.35,
+    threshold: float = WD14_THRESHOLD,
 ) -> float:
     """Compute identity consistency score.
 
@@ -53,6 +53,44 @@ def compute_identity_score(
 
     matched = sum(1 for tag in identity_tags if tag in detected_set)
     return matched / len(identity_tags)
+
+
+def extract_identity_signature(
+    wd14_tags: list[dict],
+    db,
+    threshold: float = WD14_THRESHOLD,
+) -> dict[str, list[str]]:
+    """Extract identity group-level signature from WD14 results.
+
+    Queries Tag DB to resolve group_name for each detected tag,
+    then groups by IDENTITY_SCORE_GROUPS.
+
+    Returns:
+        {"hair_color": ["black_hair"], "eye_color": ["blue_eyes"], ...}
+        Groups with no detected tags have empty lists.
+    """
+    from models.tag import Tag
+
+    detected_names = [
+        normalize_prompt_token(item["tag"])
+        for item in wd14_tags
+        if item["score"] >= threshold
+    ]
+    detected_names = [n for n in detected_names if n]
+
+    if not detected_names:
+        return {group: [] for group in IDENTITY_SCORE_GROUPS}
+
+    rows = (
+        db.query(Tag.name, Tag.group_name)
+        .filter(Tag.name.in_(detected_names), Tag.group_name.in_(IDENTITY_SCORE_GROUPS))
+        .all()
+    )
+
+    signature: dict[str, list[str]] = {group: [] for group in IDENTITY_SCORE_GROUPS}
+    for row in rows:
+        signature[row.group_name].append(row.name)
+    return signature
 
 
 def load_character_identity_tags(character_id: int, db) -> list[str]:

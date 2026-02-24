@@ -293,6 +293,21 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
         match_rate = (n_matched / total) if total else 0.0
 
         # Create/Update validation score in DB (if db session provided)
+        # Identity score: how well WD14 tags match character identity traits
+        identity_score = None
+        identity_signature = None
+        if request.character_id and db is not None:
+            from services.identity_score import (
+                compute_identity_score,
+                extract_identity_signature,
+                load_character_identity_tags,
+            )
+
+            identity_tags = load_character_identity_tags(request.character_id, db)
+            if identity_tags:
+                identity_score = compute_identity_score(identity_tags, tags)
+            identity_signature = extract_identity_signature(tags, db)
+
         if db is not None:
             # Use scene_id (DB PK) if provided, fallback to scene_index
             actual_scene_id = request.scene_id or request.scene_index or 0
@@ -306,6 +321,8 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
                 matched=comparison["matched"],
                 missing=comparison["missing"],
                 extra=comparison["extra"],
+                identity_score=identity_score,
+                identity_tags_detected=identity_signature,
             )
 
             _update_activity_log_match_rate(
@@ -330,15 +347,6 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
         from services.critical_failure import detect_critical_failure
 
         critical = detect_critical_failure(request.prompt or "", tags)
-
-        # Identity score: how well WD14 tags match character identity traits
-        identity_score = None
-        if request.character_id and db is not None:
-            from services.identity_score import compute_identity_score, load_character_identity_tags
-
-            identity_tags = load_character_identity_tags(request.character_id, db)
-            if identity_tags:
-                identity_score = compute_identity_score(identity_tags, tags)
 
         return {
             "mode": "wd14",
@@ -367,6 +375,8 @@ def _save_scene_quality_score(
     matched: list,
     missing: list,
     extra: list,
+    identity_score: float | None = None,
+    identity_tags_detected: dict | None = None,
 ):
     """Save scene quality score to database."""
     from datetime import datetime
@@ -394,6 +404,8 @@ def _save_scene_quality_score(
             matched_tags=matched,
             missing_tags=missing,
             extra_tags=extra,
+            identity_score=identity_score,
+            identity_tags_detected=identity_tags_detected,
             validated_at=datetime.utcnow(),
         )
         db.add(score)

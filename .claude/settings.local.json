@@ -50,7 +50,8 @@
       "mcp__playwright__browser_fill_form",
       "WebFetch(domain:help.descript.com)",
       "WebFetch(domain:docs.synthesia.io)",
-      "mcp__serena__list_dir"
+      "mcp__serena__list_dir",
+      "Bash(tail:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

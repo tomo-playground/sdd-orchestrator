@@ -124,6 +124,26 @@ class TestHasSpeakableContent:
     def test_number_speakable(self):
         assert has_speakable_content("3만원") is True
 
+    def test_single_char_exclamation_not_speakable(self):
+        """1글자 감탄사(네?)는 TTS 최소 duration 미달 → 스킵."""
+        assert has_speakable_content("네?...........") is False
+
+    def test_single_korean_char_not_speakable(self):
+        """'아...' 같은 1글자 감탄사도 스킵."""
+        assert has_speakable_content("아...") is False
+
+    def test_two_char_korean_speakable(self):
+        """2글자 이상이면 TTS 진행."""
+        assert has_speakable_content("네네") is True
+
+    def test_huh_with_dots_not_speakable(self):
+        """'헉...' 1글자 감탄사 스킵."""
+        assert has_speakable_content("헉...") is False
+
+    def test_short_word_speakable(self):
+        """'왜요' 2글자는 TTS 진행."""
+        assert has_speakable_content("왜요?") is True
+
 
 class TestAnnotateSpeakable:
     """annotate_speakable: Writer 후처리에서 씬별 speakable 플래그 부여."""

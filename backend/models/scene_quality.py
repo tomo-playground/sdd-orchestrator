@@ -23,6 +23,10 @@ class SceneQualityScore(Base, TimestampMixin):
     missing_tags: Mapped[list[str] | None] = mapped_column(JSONB)
     extra_tags: Mapped[list[str] | None] = mapped_column(JSONB)
 
+    # Identity Consistency (Phase 16-D)
+    identity_score: Mapped[float | None] = mapped_column(Float)
+    identity_tags_detected: Mapped[dict | None] = mapped_column(JSONB)
+
     validated_at: Mapped[DateTime] = mapped_column(DateTime)
 
     # Relationships

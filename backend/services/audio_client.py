@@ -123,7 +123,9 @@ async def generate_music(
     if not _check_circuit():
         raise RuntimeError("Audio Server circuit breaker is open")
 
-    url, timeout = _get_audio_server_config()
+    from config import MUSIC_TIMEOUT_SECONDS
+
+    url, _ = _get_audio_server_config()
 
     payload = {
         "prompt": prompt,
@@ -136,7 +138,7 @@ async def generate_music(
             resp = await client.post(
                 f"{url}/music/generate",
                 json=payload,
-                timeout=timeout,
+                timeout=MUSIC_TIMEOUT_SECONDS,
             )
             resp.raise_for_status()
 
