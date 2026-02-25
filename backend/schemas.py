@@ -591,6 +591,7 @@ class SceneGenerateRequest(BaseModel):
     use_controlnet: bool = False
     controlnet_pose: str | None = None  # Specific pose name or None for auto-detect
     controlnet_weight: float = 1.0
+    controlnet_control_mode: str = "Balanced"  # "Balanced" | "My prompt is more important" | "ControlNet is more important"
     # IP-Adapter options
     use_ip_adapter: bool = False
     ip_adapter_reference: str | None = None  # character_key for saved reference

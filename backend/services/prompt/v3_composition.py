@@ -1095,28 +1095,30 @@ class V3PromptBuilder:
 
     def _inject_reference_defaults(self, layers: list[list[str]]) -> None:
         """Inject fixed environment and camera tags for reference images."""
-        env_norms = {t.lower().replace(" ", "_").strip() for t in layers[LAYER_ENVIRONMENT]}
+        env_norms = {self._strip_weight(t).lower().replace(" ", "_") for t in layers[LAYER_ENVIRONMENT]}
         for tag in REFERENCE_ENV_TAGS:
-            if tag not in env_norms:
+            key = self._strip_weight(tag).lower().replace(" ", "_")
+            if key not in env_norms:
                 layers[LAYER_ENVIRONMENT].append(tag)
-                env_norms.add(tag)
+                env_norms.add(key)
 
-        cam_norms = {t.lower().replace(" ", "_").strip() for t in layers[LAYER_CAMERA]}
+        cam_norms = {self._strip_weight(t).lower().replace(" ", "_") for t in layers[LAYER_CAMERA]}
         for tag in REFERENCE_CAMERA_TAGS:
-            if tag not in cam_norms:
+            key = self._strip_weight(tag).lower().replace(" ", "_")
+            if key not in cam_norms:
                 layers[LAYER_CAMERA].append(tag)
-                cam_norms.add(tag)
+                cam_norms.add(key)
 
     def _inject_loras_for_reference(
         self,
         character: Character,
         layers: list[list[str]],
     ) -> None:
-        """Inject LoRAs for reference: character LoRA × REFERENCE_LORA_SCALE, style LoRA full weight.
+        """Inject LoRAs for reference: character LoRA × REFERENCE_LORA_SCALE, style LoRA × REFERENCE_STYLE_LORA_SCALE.
 
         Uses batch query to avoid N+1.
         """
-        from config import REFERENCE_LORA_SCALE
+        from config import REFERENCE_LORA_SCALE, REFERENCE_STYLE_LORA_SCALE
 
         if not character.loras:
             return
@@ -1141,8 +1143,9 @@ class V3PromptBuilder:
                 base_weight = self.get_effective_lora_weight(lora_obj)
 
             if lora_obj.lora_type == "style":
-                # Style LoRA: full weight for reference
-                weight = self._cap_lora_weight(base_weight)
+                # Style LoRA: scaled down to prevent character sheet composition
+                weight = round(base_weight * REFERENCE_STYLE_LORA_SCALE, 2)
+                weight = self._cap_lora_weight(weight)
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{lora_obj.name}:{weight}>")
             else:
                 # Character LoRA: scaled down for identity hint

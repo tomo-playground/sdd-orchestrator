@@ -117,7 +117,7 @@ REFERENCE_ENV_TAGS: list[str] = [
     "solid_background",
 ]
 REFERENCE_CAMERA_TAGS: list[str] = [
-    "solo",
+    "(solo:1.5)",
     "full_body",
     "(standing:1.2)",
     "looking_at_viewer",

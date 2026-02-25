@@ -177,8 +177,8 @@ class TestReferenceStyleLoRA:
         char = _make_character(loras=[{"lora_id": 2, "weight": 0.7}])
         result = builder.compose_for_reference(char)
 
-        # Style LoRA: full weight (capped at 0.76 max)
-        assert "<lora:flat_color:0.7>" in result
+        # Style LoRA: 0.7 × REFERENCE_STYLE_LORA_SCALE(0.3) = 0.21
+        assert "<lora:flat_color:0.21>" in result
 
     @patch("services.prompt.v3_composition.TagRuleCache")
     @patch("services.prompt.v3_composition.TagFilterCache")
@@ -204,7 +204,8 @@ class TestReferenceStyleLoRA:
         char = _make_character(loras=[{"lora_id": 2, "weight": 0.9}])
         result = builder.compose_for_reference(char)
 
-        assert "<lora:flat_color:0.76>" in result
+        # Style LoRA: 0.9 × REFERENCE_STYLE_LORA_SCALE(0.3) = 0.27 (below cap)
+        assert "<lora:flat_color:0.27>" in result
         assert "<lora:flat_color:0.9>" not in result
 
 
@@ -337,7 +338,7 @@ class TestInjectReferenceDefaults:
         assert "(simple_background:1.3)" in env
         assert "plain_background" in env
         assert "solid_background" in env
-        assert "solo" in layers[LAYER_CAMERA]
+        assert "(solo:1.5)" in layers[LAYER_CAMERA]
         assert "looking_at_viewer" in layers[LAYER_CAMERA]
         assert "front_view" in layers[LAYER_CAMERA]
         assert "straight_on" in layers[LAYER_CAMERA]
@@ -345,9 +346,9 @@ class TestInjectReferenceDefaults:
     def test_no_duplicate_if_already_present(self, builder):
         layers = [[] for _ in range(12)]
         layers[LAYER_ENVIRONMENT] = ["(white_background:1.3)"]
-        layers[LAYER_CAMERA] = ["solo"]
+        layers[LAYER_CAMERA] = ["(solo:1.5)"]
 
         builder._inject_reference_defaults(layers)
 
         assert layers[LAYER_ENVIRONMENT].count("(white_background:1.3)") == 1
-        assert layers[LAYER_CAMERA].count("solo") == 1
+        assert layers[LAYER_CAMERA].count("(solo:1.5)") == 1

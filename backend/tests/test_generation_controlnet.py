@@ -13,6 +13,7 @@ class FakeRequest:
     use_controlnet: bool = False
     controlnet_pose: str | None = None
     controlnet_weight: float = 1.0
+    controlnet_control_mode: str = "Balanced"
     character_id: int | None = None
     scene_id: int | None = None
     prompt: str = ""

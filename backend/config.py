@@ -147,11 +147,15 @@ SD_REFERENCE_DENOISING = float(os.getenv("SD_REFERENCE_DENOISING", "0.35"))
 # ControlNet pose for character reference images (standing = single full-body)
 SD_REFERENCE_CONTROLNET_POSE = os.getenv("SD_REFERENCE_CONTROLNET_POSE", "standing")
 SD_REFERENCE_CONTROLNET_WEIGHT = float(os.getenv("SD_REFERENCE_CONTROLNET_WEIGHT", "0.8"))
+SD_REFERENCE_CONTROLNET_MODE = os.getenv("SD_REFERENCE_CONTROLNET_MODE", "ControlNet is more important")
 # Number of candidate images to generate for character preview selection
 SD_REFERENCE_NUM_CANDIDATES = int(os.getenv("SD_REFERENCE_NUM_CANDIDATES", "3"))
 # Character LoRA weight multiplier for reference images (identity hint only)
 # 0.4: balanced between character identity and pose freedom (reviewed 2026-02)
 REFERENCE_LORA_SCALE = float(os.getenv("REFERENCE_LORA_SCALE", "0.4"))
+# Style LoRA weight multiplier for reference images
+# 0.5: prevent style LoRA from producing character sheets/multiple views
+REFERENCE_STYLE_LORA_SCALE = float(os.getenv("REFERENCE_STYLE_LORA_SCALE", "0.3"))
 
 # --- External API ---
 DANBOORU_API_BASE = os.getenv("DANBOORU_API_BASE", "https://danbooru.donmai.us")
@@ -335,26 +339,69 @@ from config_prompt import *  # noqa: E402, F401, F403
 # --- Reference Image Generation Defaults ---
 # Default prompts for generating IP-Adapter reference images
 # Used when creating new characters without custom reference prompts
-DEFAULT_REFERENCE_BASE_PROMPT = ", ".join([
-    "masterpiece", "best_quality", "ultra-detailed",
-    "solo", "full_body", "(standing:1.2)", "portrait",
-    "facing_viewer", "front_view", "looking_at_viewer", "straight_on",
-    "(white_background:1.3)", "(simple_background:1.3)", "plain_background", "solid_background",
-])
-DEFAULT_REFERENCE_NEGATIVE_PROMPT = ", ".join([
-    "lowres", "(bad_anatomy:1.2)", "(bad_hands:1.2)", "text", "error",
-    "missing_fingers", "extra_digit", "fewer_digits", "cropped",
-    "worst_quality", "low_quality", "normal_quality", "jpeg_artifacts",
-    "signature", "watermark", "username", "blurry",
-    # --- 배경 억제 ---
-    "(detailed_background:1.3)", "scenery", "outdoors", "indoors",
-    "ornate", "pattern", "decorative_background", "gradient_background",
-    "abstract_background", "colorful_background", "border", "frame",
-    # --- 멀티뷰 억제 ---
-    "(multiple_views:1.4)", "(character_sheet:1.4)", "reference_sheet",
-    "turnaround", "multiple_persona",
-    "2boys", "2girls", "multiple_boys", "multiple_girls",
-])
+DEFAULT_REFERENCE_BASE_PROMPT = ", ".join(
+    [
+        "masterpiece",
+        "best_quality",
+        "ultra-detailed",
+        "(solo:1.5)",
+        "full_body",
+        "(standing:1.2)",
+        "portrait",
+        "facing_viewer",
+        "front_view",
+        "looking_at_viewer",
+        "straight_on",
+        "(white_background:1.3)",
+        "(simple_background:1.3)",
+        "plain_background",
+        "solid_background",
+    ]
+)
+DEFAULT_REFERENCE_NEGATIVE_PROMPT = ", ".join(
+    [
+        "lowres",
+        "(bad_anatomy:1.2)",
+        "(bad_hands:1.2)",
+        "text",
+        "error",
+        "missing_fingers",
+        "extra_digit",
+        "fewer_digits",
+        "cropped",
+        "worst_quality",
+        "low_quality",
+        "normal_quality",
+        "jpeg_artifacts",
+        "signature",
+        "watermark",
+        "username",
+        "blurry",
+        # --- 배경 억제 ---
+        "(detailed_background:1.3)",
+        "scenery",
+        "outdoors",
+        "indoors",
+        "ornate",
+        "pattern",
+        "decorative_background",
+        "gradient_background",
+        "abstract_background",
+        "colorful_background",
+        "border",
+        "frame",
+        # --- 멀티뷰 억제 ---
+        "(multiple_views:1.8)",
+        "(character_sheet:1.8)",
+        "(reference_sheet:1.5)",
+        "(turnaround:1.5)",
+        "(multiple_persona:1.5)",
+        "(2boys:1.3)",
+        "(2girls:1.3)",
+        "(multiple_boys:1.3)",
+        "(multiple_girls:1.3)",
+    ]
+)
 
 # Default negative prompt for scene generation (applied to Gemini-generated scenes)
 DEFAULT_SCENE_NEGATIVE_PROMPT = "lowres, bad_anatomy, bad_hands, text, error, missing_fingers, extra_digit, fewer_digits, cropped, worst_quality, low_quality, jpeg_artifacts, signature, watermark, username, blurry"

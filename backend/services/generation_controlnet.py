@@ -31,6 +31,8 @@ def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
     controlnet_args_list: list[dict] = []
 
     if not check_controlnet_available():
+        logger.warning("⚠️ [ControlNet] Extension not available — skipping all ControlNet/IP-Adapter")
+        ctx.warnings.append("ControlNet extension not available")
         return
 
     _apply_pose_control(req, ctx, controlnet_args_list, db)
@@ -66,7 +68,10 @@ def _apply_pose_control(req: SceneGenerateRequest, ctx: GenerationContext, args:
         return
     args.append(
         build_controlnet_args(
-            input_image=pose_image, model="openpose", weight=req.controlnet_weight, control_mode="Balanced"
+            input_image=pose_image,
+            model="openpose",
+            weight=req.controlnet_weight,
+            control_mode=req.controlnet_control_mode,
         )
     )
     ctx.controlnet_used = pose_name

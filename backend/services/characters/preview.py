@@ -19,6 +19,7 @@ from config import (
     SD_DEFAULT_CLIP_SKIP,
     SD_DEFAULT_SAMPLER,
     SD_REFERENCE_CFG_SCALE,
+    SD_REFERENCE_CONTROLNET_MODE,
     SD_REFERENCE_CONTROLNET_POSE,
     SD_REFERENCE_CONTROLNET_WEIGHT,
     SD_REFERENCE_DENOISING,
@@ -50,14 +51,13 @@ def _build_reference_negative(
     Cf. generation_style._compose_negative() — always requires StyleContext,
     no fallback to DEFAULT, no dedup (Scene negative comes from different source).
     """
-    parts: list[str] = []
+    # Always include DEFAULT_REFERENCE_NEGATIVE_PROMPT (multi-view/background suppressors)
+    parts: list[str] = [DEFAULT_REFERENCE_NEGATIVE_PROMPT]
     if style_ctx:
         if style_ctx.default_negative:
             parts.append(style_ctx.default_negative)
         if style_ctx.negative_embeddings:
             parts.append(", ".join(style_ctx.negative_embeddings))
-    else:
-        parts.append(DEFAULT_REFERENCE_NEGATIVE_PROMPT)
 
     if character_negative:
         existing = ", ".join(parts)
@@ -159,6 +159,11 @@ async def regenerate_reference(
                 neg_prompt += ", " + ", ".join(extras)
     else:
         neg_prompt = _build_reference_negative(style_ctx, character.recommended_negative)
+    # Always merge DEFAULT (covers custom negative_prompt branch where _build_reference_negative was NOT called)
+    existing_tags = {t.strip() for t in neg_prompt.split(",")}
+    for tag in DEFAULT_REFERENCE_NEGATIVE_PROMPT.split(", "):
+        if tag and tag not in existing_tags:
+            neg_prompt += ", " + tag
 
     # Ensure SD WebUI is using the correct checkpoint for this StyleProfile
     if style_ctx and style_ctx.sd_model_name:
@@ -204,11 +209,14 @@ async def regenerate_reference(
             use_controlnet=True,
             controlnet_pose=pose,
             controlnet_weight=SD_REFERENCE_CONTROLNET_WEIGHT,
+            controlnet_control_mode=SD_REFERENCE_CONTROLNET_MODE,
         )
         res = await generate_scene_image(request)
         if "image" not in res:
             logger.warning("[Preview] Candidate %d failed, skipping", i + 1)
             continue
+        if request.use_controlnet and not res.get("controlnet_pose"):
+            logger.warning("[Preview] ControlNet requested but not applied — check SD WebUI ControlNet extension")
         candidates.append(CandidateImage(image=res["image"], seed=res.get("seed", -1)))
 
     if not candidates:
@@ -379,11 +387,14 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
             use_controlnet=True,
             controlnet_pose=pose,
             controlnet_weight=SD_REFERENCE_CONTROLNET_WEIGHT,
+            controlnet_control_mode=SD_REFERENCE_CONTROLNET_MODE,
         )
         res = await generate_scene_image(sd_request)
         if "image" not in res:
             logger.warning("[WizardPreview] Candidate %d failed, skipping", i + 1)
             continue
+        if sd_request.use_controlnet and not res.get("controlnet_pose"):
+            logger.warning("[WizardPreview] ControlNet requested but not applied — check SD WebUI ControlNet extension")
         candidates.append(CandidateImage(image=res["image"], seed=res.get("seed", -1)))
 
     if not candidates:
