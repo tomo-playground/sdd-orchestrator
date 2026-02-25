@@ -259,6 +259,7 @@ WD14_DETECTABLE_GROUPS: frozenset[str] = frozenset(
         "gesture",  # hand gestures — 0.343
         "body_feature",  # cat_ears, wings — 시각적 특징
         "appearance",  # glasses, freckles
+        "body_type",  # slim, muscular — 체형
     }
 )
 
@@ -280,6 +281,7 @@ IDENTITY_SCORE_GROUPS: frozenset[str] = frozenset(
         "skin_color",
         "body_feature",
         "appearance",
+        "body_type",
     }
 )
 # Group-level weights for cross-scene consistency drift calculation (Phase 16-D).
@@ -290,6 +292,7 @@ IDENTITY_GROUP_WEIGHTS: dict[str, float] = {
     "hair_length": 0.7,
     "hair_style": 0.7,
     "appearance": 0.5,
+    "body_type": 0.6,
     "body_feature": 0.4,
     "skin_color": 0.3,
 }

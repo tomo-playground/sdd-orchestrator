@@ -90,11 +90,18 @@ export default function CategorySection({
           )}
           <span className="text-sm font-semibold text-zinc-700">{category.label}</span>
         </div>
-        {selectedInGroup.length > 0 && (
-          <Badge variant="default" size="sm">
-            {selectedInGroup.length}/{tags.length}
-          </Badge>
-        )}
+        <div className="flex items-center gap-1.5">
+          {category.isRequired && selectedInGroup.length === 0 && (
+            <Badge variant="warning" size="sm">
+              Required
+            </Badge>
+          )}
+          {selectedInGroup.length > 0 && (
+            <Badge variant="default" size="sm">
+              {selectedInGroup.length}/{tags.length}
+            </Badge>
+          )}
+        </div>
       </button>
 
       {open && (

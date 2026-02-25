@@ -218,12 +218,19 @@ export default function CharacterWizard() {
   }, [state, allTagsFlat, showToast, router, assignPreview]);
 
   // ── Navigation ───────────────────────────────────────────
+  const requiredCategories = WIZARD_CATEGORIES.filter((c) => c.isRequired);
+  const allRequiredSelected = requiredCategories.every((cat) =>
+    state.selectedTags.some((t) => t.groupName === cat.groupName)
+  );
+
   const canProceed =
     state.step === 0
       ? state.style_profile_id !== null
       : state.step === 1
         ? state.name.trim().length >= 2
-        : true;
+        : state.step === 2
+          ? allRequiredSelected
+          : true;
 
   const handleNext = useCallback(async () => {
     if (state.step < 4) {

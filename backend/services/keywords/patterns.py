@@ -207,6 +207,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "lipstick",
         "eyeshadow",
         "mascara",
+    ],
+    "body_type": [
         "slim",
         "petite",
         "tall",
@@ -856,6 +858,7 @@ CATEGORY_PRIORITY: dict[str, int] = {
     "skin_color": 4,
     "body_feature": 4,
     "appearance": 4,
+    "body_type": 4,
     "clothing": 5,
     "expression": 6,
     "gaze": 7,
@@ -887,6 +890,7 @@ GROUP_NAME_TO_LAYER: dict[str, int] = {
     "skin_color": 3,  # LAYER_BODY
     "body_feature": 3,  # LAYER_BODY
     "appearance": 3,  # LAYER_BODY
+    "body_type": 3,  # LAYER_BODY
     "clothing": 4,  # LAYER_MAIN_CLOTH
     "expression": 7,  # LAYER_EXPRESSION
     "gaze": 7,  # LAYER_EXPRESSION

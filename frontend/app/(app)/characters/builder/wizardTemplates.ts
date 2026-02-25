@@ -23,6 +23,7 @@ export type WizardCategory = {
   isPermanent: boolean;
   hasColorDot: boolean;
   defaultOpen: boolean;
+  isRequired?: boolean;
 };
 
 // ── Categories ───────────────────────────────────────────────
@@ -59,6 +60,15 @@ export const WIZARD_CATEGORIES: WizardCategory[] = [
     isPermanent: true,
     hasColorDot: true,
     defaultOpen: false,
+  },
+  {
+    groupName: "body_type",
+    label: "Body Type",
+    selectMode: "single",
+    isPermanent: true,
+    hasColorDot: false,
+    defaultOpen: true,
+    isRequired: true,
   },
   {
     groupName: "body_feature",
@@ -131,6 +141,7 @@ export const WIZARD_TEMPLATES: WizardTemplate[] = [
       { name: "brown_hair", groupName: "hair_color", isPermanent: true },
       { name: "long_hair", groupName: "hair_length", isPermanent: true },
       { name: "brown_eyes", groupName: "eye_color", isPermanent: true },
+      { name: "slim", groupName: "body_type", isPermanent: true },
       { name: "school_uniform", groupName: "clothing", isPermanent: false },
     ],
   },
@@ -145,6 +156,7 @@ export const WIZARD_TEMPLATES: WizardTemplate[] = [
       { name: "twintails", groupName: "hair_style", isPermanent: true },
       { name: "medium_hair", groupName: "hair_length", isPermanent: true },
       { name: "blue_eyes", groupName: "eye_color", isPermanent: true },
+      { name: "petite", groupName: "body_type", isPermanent: true },
     ],
   },
   {
@@ -157,6 +169,7 @@ export const WIZARD_TEMPLATES: WizardTemplate[] = [
       { name: "black_hair", groupName: "hair_color", isPermanent: true },
       { name: "short_hair", groupName: "hair_length", isPermanent: true },
       { name: "blue_eyes", groupName: "eye_color", isPermanent: true },
+      { name: "slim", groupName: "body_type", isPermanent: true },
     ],
   },
   {
@@ -170,6 +183,7 @@ export const WIZARD_TEMPLATES: WizardTemplate[] = [
       { name: "long_hair", groupName: "hair_length", isPermanent: true },
       { name: "purple_eyes", groupName: "eye_color", isPermanent: true },
       { name: "pointy_ears", groupName: "body_feature", isPermanent: true },
+      { name: "slim", groupName: "body_type", isPermanent: true },
     ],
   },
   {

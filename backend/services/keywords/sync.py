@@ -104,6 +104,7 @@ def sync_category_patterns_to_tags(update_existing: bool = False) -> dict[str, A
         "skin_color": ("character", 4),
         "body_feature": ("character", 4),
         "appearance": ("character", 4),
+        "body_type": ("character", 4),
         "clothing": ("character", 5),
         "quality": ("quality", 1),
         "subject": ("scene", 2),
