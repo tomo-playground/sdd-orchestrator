@@ -18,10 +18,12 @@
 | Phase 14 (ControlNet Pose Pipeline) | 전체 완료 (ARCHIVED) |
 | **Phase 15 (Prompt Input UX 고도화)** | **전체 완료 — A-0~A-3 + B-1~B-3 (18/18)** |
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
-| 테스트 | Backend 2,687 + Frontend 379 = **총 3,066개** |
+| **Phase 17 (Service/Admin 분리)** | **설계 확정, 미구현** |
+| 테스트 | Backend 2,690 + Frontend 379 = **총 3,069개** |
 
 ### 최근 작업
 
+- **Agent Pipeline 품질 저하 버그 4건 수정** (02-25): Director 인라인 수정 결과 State 소실(Critical), DirectorReActStep feedback 추적 누락, Sound Designer writer_plan 미전달, TTS/Cinematographer director_plan 미전달. `_AGENT_STATE_KEY_MAP` + `revised_agents` 추적, feedback 필드 추가, 템플릿 emotional_arc/target_emotion 섹션. 9개 테스트 추가
 - **환경 태그 랜덤성 근본 해결** (02-25): Finalize에서 Writer Location Map 태그 강제 주입(`_inject_location_map_tags` + `_inject_location_negative_tags`), Environment(L10) 가중치 부스트(1.15), Danbooru 0건 태그 교체(`music_room`→`stage`, `dark_hallway`→`hallway,dark`, `school_hallway`→`classroom`). 7개 테스트 추가
 - **TTS 짧은 대사 개선 + BGM 볼륨 조정** (02-24): 짧은 스크립트(≤3자) `min_duration` 동적 조정(1.0→0.4s)으로 "그럼!" 등 불필요한 3회 재시도 해소. BGM 기본 볼륨 0.25→0.4(-8dB) 상향. 2,665 passed
 - **Phase 15-B: Visual Tag Browser** (02-24): Tag 모델 `thumbnail_asset_id` FK + Danbooru `get_post_image()` + `tag_thumbnail.py` 배치 수집 서비스 + `POST /admin/tag-thumbnails/generate` 엔드포인트. TagSuggestionDropdown 32px 미니 썸네일 + TagBrowserTab Lab 탭 (6그룹 사이드바 + 128×128 카드 그리드). 19개 테스트
@@ -96,6 +98,7 @@ graph LR
     P8 --> P14["Phase 14<br/>ControlNet<br/>Pose"]
     P14 --> P15["Phase 15<br/>Prompt Input<br/>UX 고도화"]
     P15 --> P16["Phase 16<br/>WD14 Smart<br/>Validation"]
+    P16 --> P17["Phase 17<br/>Service/Admin<br/>분리"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -115,8 +118,9 @@ graph LR
     style P13 fill:#4CAF50,color:#fff
     style P8 fill:#4CAF50,color:#fff
     style P14 fill:#4CAF50,color:#fff
-    style P15 fill:#2196F3,color:#fff
+    style P15 fill:#4CAF50,color:#fff
     style P16 fill:#4CAF50,color:#fff
+    style P17 fill:#FF9800,color:#fff
 ```
 
 ---
@@ -172,6 +176,53 @@ graph LR
 
 ---
 
+## Phase 17: Service/Admin 분리
+
+**목표**: 유저(콘텐츠 생산)와 백오피스 관리자(시스템 세팅)의 API/UI를 분리하여 역할별 최적화된 경험 제공. [상세 명세](FEATURES/SERVICE_ADMIN_SEPARATION.md)
+
+### Phase 17-0: API 정리 (선행)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | `keywords.py` 라우터 삭제 (Frontend 미사용, tags.py와 중복) | 미착수 |
+| 2 | `avatar.py` 라우터 삭제 (Frontend 미사용) | 미착수 |
+| 3 | `analytics.py` → `settings.py` 통합 (2개 EP, 동일 관심사) | 미착수 |
+| 4 | `cleanup.py` → `admin.py` 통합 (3개 EP, 동일 관심사) | 미착수 |
+| 5 | `sd.py` → `sd_models.py` 통합 (SD 인프라 단일화) | 미착수 |
+| 6 | One-time 마이그레이션 EP 삭제 3건 (migrate-tag-rules, migrate-patterns) | 미착수 |
+| 7 | Frontend 미사용 prompt EP 삭제 2건 (rewrite, check-conflicts) | 미착수 |
+
+**결과**: 34개 → 29개 라우터
+
+### Phase 17-1: Backend 논리적 분리
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | Service 라우터 `/api/v1/` prefix 그룹핑 (12개 라우터) | 미착수 |
+| 2 | Admin 라우터 `/api/admin/` prefix 그룹핑 (17개 라우터) | 미착수 |
+| 3 | 분할 대상 라우터 9개 엔드포인트 분리 (GET→Service, CUD→Admin) | 미착수 |
+| 4 | OpenAPI docs 분리 (`/docs` Service, `/admin/docs` Admin) | 미착수 |
+
+### Phase 17-2: Frontend Route Group 분리
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | `(service)/` route group — Home, Studio, Storyboards | 미착수 |
+| 2 | `(admin)/` route group — Characters, Styles, Tags, Lab, System | 미착수 |
+| 3 | Library 페이지 해체 → Admin 하위 재배치 | 미착수 |
+| 4 | Settings 해체 → Admin > System + Service > 유저 설정 | 미착수 |
+| 5 | `/` vs `/admin` 경로 기반 역할 식별 + 네비게이션 분리 | 미착수 |
+
+### Phase 17-3: 유저 UI 간소화
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | Edit Tab: Advanced 토글로 관리자 기능 격리 (ControlNet, IP-Adapter, Prompt 편집) | 미착수 |
+| 2 | Publish Tab: Quick Render (기본값 렌더) 추가 | 미착수 |
+| 3 | 전문 용어 Tooltip 시스템 추가 (10개 용어) | 미착수 |
+
+---
+
 ## Feature Backlog
 
 Phase 9 이후 또는 우선순위 미정 항목.
@@ -210,6 +261,15 @@ Phase 9 이후 또는 우선순위 미정 항목.
 **Phase 1~14, 16 — 전체 완료**. 상세: 각 Phase 아카이브 참조.
 
 **Phase 15 — Prompt Input UX 고도화 (전체 완료, 18/18)**
+
+**Phase 17 — Service/Admin 분리 (다음)**
+
+| 순위 | 작업 | 근거 |
+|------|------|------|
+| 1 | 17-0: API 정리 (불필요 라우터/EP 삭제, 34→29개) | 분리 선행 조건 |
+| 2 | 17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`) | 유저/관리자 API 분리 |
+| 3 | 17-2: Frontend Route Group 분리 (`/` + `/admin`) | 유저/관리자 UI 분리 |
+| 4 | 17-3: 유저 UI 간소화 (Advanced 토글, Quick Render, Tooltip) | 유저 경험 최적화 |
 
 **Tier 3 — 장기**
 

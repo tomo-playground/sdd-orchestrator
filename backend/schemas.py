@@ -499,6 +499,10 @@ class VideoScene(BaseModel):
     voice_design_prompt: str | None = None
     head_padding: float = 0.0
     tail_padding: float = 0.0
+    # Emotion context for TTS voice design (from context_tags.emotion)
+    scene_emotion: str | None = None
+    # Korean scene description (for context-aware voice generation)
+    image_prompt_ko: str | None = None
 
     model_config = ConfigDict(extra="allow")
 

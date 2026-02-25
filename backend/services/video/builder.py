@@ -174,7 +174,10 @@ class VideoBuilder:
             self._report(RenderStage.CALCULATE_DURATIONS)
             self._calculate_durations()
             self._report(RenderStage.PREPARE_BGM)
-            await self._prepare_bgm()
+            try:
+                await self._prepare_bgm()
+            except Exception as bgm_err:
+                logger.warning("[Video Build] BGM preparation failed, continuing without BGM: %s", bgm_err)
             self._report(RenderStage.BUILD_FILTERS)
             self._build_filters()
             self._report(RenderStage.ENCODE)

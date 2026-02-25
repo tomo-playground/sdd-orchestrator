@@ -152,9 +152,13 @@ async def call_with_tools(
             accumulated_text.append(step_text)
 
         if not has_tool_call:
-            # 최종 텍스트 응답
-            logger.info("[Tool-Calling] Final response received (no tool calls)")
-            return "\n".join(accumulated_text), tool_logs
+            final_text = "\n".join(accumulated_text).strip()
+            if final_text:
+                logger.info("[Tool-Calling] Final response received (no tool calls)")
+                return final_text, tool_logs
+            # 텍스트가 비어있으면 fallback으로 진행
+            logger.warning("[Tool-Calling] Final response has empty text, falling through to fallback")
+            break
 
         # 도구 실행
         function_responses: list[types.Part] = []
@@ -257,17 +261,24 @@ async def call_with_tools(
 
     final = "\n".join(accumulated_text).strip()
 
-    # Fallback: tool call만 반복하여 텍스트가 비면, 도구 없이 재호출하여 텍스트 응답 강제
-    if not final and tool_logs:
+    # Fallback: 텍스트가 비면, 도구 없이 재호출하여 텍스트 응답 강제
+    if not final:
         logger.info(
-            "[Tool-Calling] No text after %d tool calls, fallback call without tools",
+            "[Tool-Calling] No text response (tool_calls=%d), fallback call without tools",
             len(tool_logs),
         )
         try:
+            # JSON 출력 강제 지시문 추가
+            fallback_contents = list(contents)
+            fallback_contents.append(
+                "Your previous response was empty. "
+                "Please provide your final answer now as valid JSON only. "
+                "Do not include any explanation or markdown — output raw JSON."
+            )
             async with trace_llm_call(name=f"{trace_name}_fallback", input_text="fallback") as llm:
                 fallback_resp = await gemini_client.aio.models.generate_content(
                     model=GEMINI_TEXT_MODEL,
-                    contents=contents,  # type: ignore[arg-type]
+                    contents=fallback_contents,  # type: ignore[arg-type]
                 )
                 llm.record(fallback_resp)
 

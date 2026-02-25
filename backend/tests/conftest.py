@@ -7,6 +7,7 @@ DB Isolation:
 - Production PostgreSQL database is never touched
 """
 
+import logging
 import os
 import random
 import sys
@@ -14,6 +15,16 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _suppress_stream_logging():
+    """Remove StreamHandler from root logger so test logs don't leak into service stdout."""
+    root = logging.getLogger()
+    original = root.handlers[:]
+    root.handlers = [h for h in root.handlers if not isinstance(h, logging.StreamHandler) or isinstance(h, logging.FileHandler)]
+    yield
+    root.handlers = original
 
 
 def pytest_addoption(parser):

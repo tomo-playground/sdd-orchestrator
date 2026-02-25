@@ -465,3 +465,157 @@ async def test_director_visual_qc_result_none(mock_run, mock_production_results)
 
     result = await director_node(state)
     assert result["director_decision"] == "approve"
+
+
+# ── BUG 1: 인라인 수정 결과 전파 테스트 ────────────────
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director.run_agent_with_message", new_callable=AsyncMock)
+@patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
+async def test_director_inline_revision_result_propagated(
+    mock_run_production,
+    mock_run_agent,
+    mock_production_results,
+):
+    """인라인 수정 결과가 State에 반영된다 (BUG 1 수정 검증)."""
+    mock_run_production.side_effect = [
+        {
+            "observe": "시각 디자인 부족",
+            "think": "카메라 변경 필요",
+            "act": "revise_cinematographer",
+            "feedback": "카메라를 close-up으로 변경",
+        },
+        {
+            "observe": "수정 완료 확인",
+            "think": "승인 가능",
+            "act": "approve",
+        },
+    ]
+
+    updated_cinema = {"scenes": [{"order": 1, "camera": "close-up", "visual_tags": ["smile"]}]}
+    mock_run_agent.return_value = (
+        updated_cinema,
+        {
+            "sender": "cinematographer",
+            "recipient": "director",
+            "content": "수정 완료",
+            "message_type": "approval",
+        },
+    )
+
+    state: ScriptState = {  # type: ignore[typeddict-item]
+        **mock_production_results,
+        "director_revision_count": 0,
+        "revision_count": 0,
+        "concept_regen_count": 0,
+    }
+
+    result = await director_node(state)
+
+    # 핵심 검증: 수정된 cinematographer_result가 반환 dict에 포함
+    assert "cinematographer_result" in result
+    assert result["cinematographer_result"] == updated_cinema
+    # 수정되지 않은 에이전트 결과는 포함되지 않음
+    assert "tts_designer_result" not in result
+    assert "sound_designer_result" not in result
+
+
+# ── BUG 2: feedback 기록 테스트 ────────────────
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director.run_agent_with_message", new_callable=AsyncMock)
+@patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
+async def test_director_feedback_in_reasoning_steps(
+    mock_run_production,
+    mock_run_agent,
+    mock_production_results,
+):
+    """feedback이 reasoning_steps에 기록된다 (BUG 2 수정 검증)."""
+    mock_run_production.side_effect = [
+        {
+            "observe": "음성 톤 불일치",
+            "think": "TTS 수정 필요",
+            "act": "revise_tts",
+            "feedback": "씬 2의 톤을 더 밝게 변경하세요",
+        },
+        {
+            "observe": "수정 확인",
+            "think": "승인",
+            "act": "approve",
+        },
+    ]
+
+    mock_run_agent.return_value = (
+        {"tts_designs": []},
+        {
+            "sender": "tts_designer",
+            "recipient": "director",
+            "content": "수정 완료",
+            "message_type": "approval",
+        },
+    )
+
+    state: ScriptState = {  # type: ignore[typeddict-item]
+        **mock_production_results,
+        "director_revision_count": 0,
+        "revision_count": 0,
+        "concept_regen_count": 0,
+    }
+
+    result = await director_node(state)
+
+    steps = result["director_reasoning_steps"]
+    assert len(steps) == 2
+    # Step 1: revise → feedback 기록됨
+    assert steps[0]["feedback"] == "씬 2의 톤을 더 밝게 변경하세요"
+    # Step 2: approve → feedback 빈 문자열
+    assert steps[1]["feedback"] == ""
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director.run_agent_with_message", new_callable=AsyncMock)
+@patch("services.agent.nodes.director.run_production_step", new_callable=AsyncMock)
+async def test_director_previous_feedback_in_template_vars(
+    mock_run,
+    mock_run_agent,
+    mock_production_results,
+):
+    """이전 step의 feedback이 다음 step의 template_vars에 전달된다."""
+    captured_vars = []
+
+    async def capture_and_return(*args, **kwargs):
+        captured_vars.append(list(kwargs["template_vars"].get("previous_steps", [])))
+        if len(captured_vars) == 1:
+            return {
+                "observe": "Step 1 관찰",
+                "think": "수정 필요",
+                "act": "revise_cinematographer",
+                "feedback": "시각 구성 개선 필요",
+            }
+        return {
+            "observe": "Step 2 관찰",
+            "think": "승인",
+            "act": "approve",
+        }
+
+    mock_run.side_effect = capture_and_return
+    mock_run_agent.return_value = (
+        {"scenes": []},
+        {"sender": "cinematographer", "recipient": "director", "content": "완료", "message_type": "approval"},
+    )
+
+    state: ScriptState = {  # type: ignore[typeddict-item]
+        **mock_production_results,
+        "director_revision_count": 0,
+        "revision_count": 0,
+        "concept_regen_count": 0,
+    }
+
+    await director_node(state)
+
+    # 두 번째 호출 시 previous_steps에 feedback 포함
+    assert len(captured_vars) == 2
+    assert len(captured_vars[1]) == 1
+    assert captured_vars[1][0]["feedback"] == "시각 구성 개선 필요"

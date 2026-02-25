@@ -71,6 +71,7 @@ class DirectorReActStep(TypedDict):
     observe: str  # 관찰 내용
     think: str  # 사고 과정
     act: str  # 행동 결정
+    feedback: str  # revise 시 피드백 내용 (approve 시 빈 문자열)
 
 
 class _WriterPlanRequired(TypedDict):

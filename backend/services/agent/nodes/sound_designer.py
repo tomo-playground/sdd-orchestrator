@@ -27,6 +27,7 @@ async def sound_designer_node(state: ScriptState) -> dict:
         "concept": concept,
         "duration": duration,
         "language": state.get("language", "Korean"),
+        "writer_plan": state.get("writer_plan"),
     }
     if director_feedback := state.get("director_feedback"):
         template_vars["feedback"] = director_feedback

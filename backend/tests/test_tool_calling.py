@@ -462,6 +462,92 @@ class TestCallWithTools:
         assert len(logs) == 1
 
     @pytest.mark.asyncio
+    async def test_empty_final_response_triggers_fallback(self):
+        """도구 호출 없이 빈 텍스트 응답 → fallback 호출로 복구."""
+        # Gemini가 빈 텍스트(또는 공백만) 반환하는 경우
+        mock_empty_response = MagicMock()
+        mock_empty_response.candidates = [
+            MagicMock(
+                content=MagicMock(
+                    parts=[MagicMock(text="", function_call=None)],
+                ),
+            ),
+        ]
+
+        # fallback 응답 (도구 없이 호출 → 텍스트 반환)
+        mock_fallback_response = MagicMock()
+        mock_fallback_response.candidates = [
+            MagicMock(
+                content=MagicMock(
+                    parts=[MagicMock(text='{"scenes": [{"order": 1}]}', function_call=None)],
+                ),
+            ),
+        ]
+
+        mock_client = MagicMock()
+        mock_client.aio.models.generate_content = AsyncMock(
+            side_effect=[mock_empty_response, mock_fallback_response],
+        )
+
+        with (
+            patch("services.agent.tools.base.gemini_client", mock_client),
+            patch("services.agent.tools.base.trace_llm_call") as mock_trace,
+        ):
+            mock_trace.return_value.__aenter__ = AsyncMock(return_value=MagicMock(record=MagicMock()))
+            mock_trace.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            tools = [define_tool(name="dummy", description="Dummy", parameters={})]
+
+            response, logs = await call_with_tools(
+                prompt="빈 응답 fallback 테스트",
+                tools=tools,
+                tool_executors={},
+                max_calls=3,
+            )
+
+        assert response == '{"scenes": [{"order": 1}]}'
+        assert len(logs) == 0
+        # 1회 빈 응답 + 1회 fallback = 2회 호출
+        assert mock_client.aio.models.generate_content.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_empty_final_response_fallback_also_fails(self):
+        """빈 텍스트 응답 + fallback도 실패 → 빈 문자열 반환."""
+        mock_empty_response = MagicMock()
+        mock_empty_response.candidates = [
+            MagicMock(
+                content=MagicMock(
+                    parts=[MagicMock(text=None, function_call=None)],
+                ),
+            ),
+        ]
+
+        mock_client = MagicMock()
+        mock_client.aio.models.generate_content = AsyncMock(
+            side_effect=[mock_empty_response, RuntimeError("API rate limit")],
+        )
+
+        with (
+            patch("services.agent.tools.base.gemini_client", mock_client),
+            patch("services.agent.tools.base.trace_llm_call") as mock_trace,
+        ):
+            mock_trace.return_value.__aenter__ = AsyncMock(return_value=MagicMock(record=MagicMock()))
+            mock_trace.return_value.__aexit__ = AsyncMock(return_value=None)
+
+            tools = [define_tool(name="dummy", description="Dummy", parameters={})]
+
+            response, logs = await call_with_tools(
+                prompt="이중 실패 테스트",
+                tools=tools,
+                tool_executors={},
+                max_calls=3,
+            )
+
+        assert response == ""
+        assert len(logs) == 0
+        assert mock_client.aio.models.generate_content.call_count == 2
+
+    @pytest.mark.asyncio
     async def test_async_tool_executor(self):
         """비동기 도구 실행 테스트."""
         mock_tool_call = MagicMock()

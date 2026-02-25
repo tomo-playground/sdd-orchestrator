@@ -20,6 +20,18 @@ from services.agent.nodes._production_utils import run_production_step
 from services.agent.observability import trace_llm_call
 from services.agent.state import DirectorReActStep, ScriptState
 
+# Agent 이름 → State 키 매핑 (인라인 수정 결과 반영용)
+_AGENT_STATE_KEY_MAP = {
+    "cinematographer": "cinematographer_result",
+    "tts_designer": "tts_designer_result",
+    "sound_designer": "sound_designer_result",
+    "copyright_reviewer": "copyright_reviewer_result",
+}
+
+
+def _react_validate_fn(data: dict) -> dict:
+    return validate_with_model(DirectorReActOutput, data).model_dump()
+
 
 async def director_node(state: ScriptState, config: RunnableConfig | None = None) -> dict:
     """Production 결과를 ReAct Loop로 통합 검증한다.
@@ -50,9 +62,11 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
         "copyright_reviewer": state.get("copyright_reviewer_result") or {},
     }
 
+    # 인라인 수정된 에이전트 추적 (BUG 1: 수정 결과를 State에 반영하기 위함)
+    revised_agents: set[str] = set()
+
     final_decision = "approve"
     final_feedback = ""
-    _react_validate_fn = lambda data: validate_with_model(DirectorReActOutput, data).model_dump()
 
     for step_num in range(1, LANGGRAPH_MAX_REACT_STEPS + 1):
         logger.info("[LangGraph] Director ReAct Step %d/%d", step_num, LANGGRAPH_MAX_REACT_STEPS)
@@ -88,6 +102,7 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
                 "observe": react.observe,
                 "think": react.think,
                 "act": react.act,
+                "feedback": react.feedback or "",
             }
             reasoning_steps.append(react_step)
 
@@ -150,6 +165,7 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
 
                     # Production 결과 업데이트 (다음 스텝에서 사용)
                     production_results[target_agent] = updated_result
+                    revised_agents.add(target_agent)
 
                     logger.info(
                         "[LangGraph] %s → Director: 응답 완료 (Step %d)",
@@ -186,6 +202,7 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
                     "observe": react.observe,
                     "think": react.think,
                     "act": react.act,
+                    "feedback": react.feedback or "",
                 }
                 reasoning_steps.append(react_step)
                 final_decision = react.act
@@ -211,10 +228,16 @@ async def director_node(state: ScriptState, config: RunnableConfig | None = None
         final_decision,
     )
 
-    return {
+    # 인라인 수정된 결과를 State에 반영 (BUG 1 수정)
+    result_dict: dict = {
         "director_decision": final_decision,
         "director_feedback": final_feedback,
         "director_revision_count": count + 1,
         "director_reasoning_steps": reasoning_steps,
         "agent_messages": messages,
     }
+    for agent_name in revised_agents:
+        state_key = _AGENT_STATE_KEY_MAP[agent_name]
+        result_dict[state_key] = production_results[agent_name]
+
+    return result_dict

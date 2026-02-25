@@ -318,13 +318,15 @@ async def generate_tts(
         voice_design = _get_voice_design_for_scene(builder, scene_req, preset_voice_design, clean_script, i)
         voice_design = translate_voice_prompt(voice_design or "")
 
-        # Seed: preset seed > hash-based fallback
-        voice_seed = preset_seed or (hash(voice_design or "") % (2**31))
+        # Seed: preset seed > preset base prompt hash > per-scene hash
+        # Use base prompt hash (not per-scene context prompt) to keep voice consistent
+        voice_seed = preset_seed or (hash(preset_voice_design or voice_design or "") % (2**31))
 
         # Pad very short scripts to prevent TTS model hang
+        # Use spaces (not dots) — dots cause TTS server failures on dot-heavy text
         tts_text = clean_script
         if len(tts_text) < 10:
-            tts_text = tts_text + "." * (10 - len(tts_text))
+            tts_text = tts_text.ljust(10)
             logger.info(f"[TTS] Scene {i}: padded short script '{clean_script}' -> '{tts_text}'")
 
         # Dynamic min duration based on script length (short scripts can't reach 1s)
@@ -434,11 +436,18 @@ def _get_voice_design_for_scene(
     speaker = getattr(scene_req, "speaker", DEFAULT_SPEAKER)
 
     if not voice_design:
-        # Prefer Korean prompt > English prompt
-        context_text = getattr(scene_req, "image_prompt_ko", "") or getattr(scene_req, "image_prompt", "") or ""
+        context_parts: list[str] = []
+        scene_emotion = getattr(scene_req, "scene_emotion", None)
+        if scene_emotion:
+            context_parts.append(f"Emotion: {scene_emotion}")
+        ko_prompt = getattr(scene_req, "image_prompt_ko", None)
+        if ko_prompt:
+            context_parts.append(ko_prompt)
+        elif img_prompt := getattr(scene_req, "image_prompt", None):
+            context_parts.append(img_prompt)
+
+        context_text = ". ".join(context_parts)
         if context_text:
-            # For Narrators, we also want context-aware delivery if the scene has strong emotional signals
-            # logic: if context_text exists, we try to generate a specific tone
             voice_design = generate_context_aware_voice_prompt(
                 clean_script, context_text, base_prompt=preset_voice_design
             )

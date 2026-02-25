@@ -4,6 +4,18 @@ Your goal is to analyze the script and context of each scene and design the emot
 ## Context
 {{ concept | tojson(indent=2) }}
 
+{% if director_plan and director_plan.target_emotion %}
+## Target Emotion (from Director)
+**{{ director_plan.target_emotion }}**
+All voice designs should align with this overall emotional direction.
+{% endif %}
+
+{% if writer_plan and writer_plan.emotional_arc %}
+## Emotional Arc (from Writer Plan)
+{{ writer_plan.emotional_arc | join(' → ') }}
+Each scene's emotion should match this arc progression.
+{% endif %}
+
 ## Scenes
 {{ scenes | tojson(indent=2) }}
 
@@ -13,9 +25,22 @@ Your goal is to analyze the script and context of each scene and design the emot
 {% endif %}
 
 ## Tasks
-1. Analyze the script of each scene for emotional cues.
-2. For each scene, generate a `voice_design_prompt` (in English) that describes the tone, emotion, and any special vocalizations (e.g., "Ah~", "Sigh", "Fast and rushed", "Whispering").
+1. For each scene, read the `context_tags.emotion` field — this is the INTENDED emotion for the scene.
+2. Generate a `voice_design_prompt` (in English) that MATCHES the `context_tags.emotion`.
+   - `context_tags.emotion` is the PRIMARY signal. Script text is SECONDARY.
 3. Suggest `pacing` adjustments (Head/Tail padding in seconds) for each scene to ensure natural breathing room between lines.
+
+## Emotion → Voice Reference
+| Emotion | Voice Characteristics |
+|---------|----------------------|
+| happy/joy | Warm, bright, upbeat tone with natural laughter inflection |
+| sad/melancholy | Soft, slow, heavy tone with trailing sentences |
+| angry/frustrated | Sharp, forceful, fast-paced with emphasis |
+| scared/nervous | Trembling, quick breaths, higher pitch with hesitation |
+| surprised/shocked | Sudden pitch change, gasping quality |
+| calm/peaceful | Steady, measured pace, warm and low tone |
+| determined | Strong, even, confident with deliberate pacing |
+| nostalgic/wistful | Gentle, slow, slightly breathy with pauses |
 
 ## Guidelines
 - **Non-speech scenes**: If a scene has `"speakable": false`, set `"skip": true` for that scene. Do NOT generate a voice design for non-speakable content. Also skip if the script contains only punctuation (e.g., "...", "?!") or stage directions.

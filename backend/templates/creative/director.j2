@@ -41,6 +41,7 @@ Follow the Observe → Think → Act process to make informed decisions.
 - **Observe**: {{ prev.observe }}
 - **Think**: {{ prev.think }}
 - **Act**: {{ prev.act }}
+{% if prev.feedback %}- **Feedback sent**: {{ prev.feedback }}{% endif %}
 {% endfor %}
 {% endif %}
 

@@ -190,6 +190,13 @@ def _build_lens_prompt(lens: dict, base_prompt: str, director_feedback: str | No
     return "\n".join(parts)
 
 
+_JSON_RETRY_SUFFIX = (
+    "\n\n[IMPORTANT] 이전 응답에서 유효한 JSON을 받지 못했습니다. "
+    '반드시 {"scenes": [...]} JSON 형식으로만 응답하세요. '
+    "markdown 코드블록이나 설명 텍스트를 포함하지 마세요."
+)
+
+
 async def _run_single_lens(
     lens: dict,
     state: ScriptState,
@@ -197,7 +204,7 @@ async def _run_single_lens(
     base_prompt: str,
     director_feedback: str | None,
 ) -> dict:
-    """단일 Lens로 Cinematographer 실행."""
+    """단일 Lens로 Cinematographer 실행. 파싱 실패 시 1회 재시도."""
     from services.agent.nodes.cinematographer import _parse_scenes  # noqa: PLC0415
 
     tools = get_cinematographer_tools()
@@ -205,30 +212,52 @@ async def _run_single_lens(
     prompt = _build_lens_prompt(lens, base_prompt, director_feedback)
     role = lens["role"]
 
-    try:
-        response, tool_logs = await call_with_tools(
-            prompt=prompt,
-            tools=tools,
-            tool_executors=executors,
-            max_calls=10,
-            trace_name=f"cinematographer_{role}",
-            temperature=lens["temperature"],
-        )
+    max_attempts = 2
+    tool_logs: list = []
 
-        scenes = _parse_scenes(response)
-        if scenes is None:
-            logger.warning("[CinemaCompetition] %s: JSON 파싱 실패", role)
-            return {"role": role, "scenes": None, "tool_logs": tool_logs, "error": "parse_error"}
+    for attempt in range(1, max_attempts + 1):
+        current_prompt = prompt if attempt == 1 else prompt + _JSON_RETRY_SUFFIX
+        try:
+            response, attempt_logs = await call_with_tools(
+                prompt=current_prompt,
+                tools=tools,
+                tool_executors=executors,
+                max_calls=10,
+                trace_name=f"cinematographer_{role}",
+                temperature=lens["temperature"],
+            )
+            tool_logs = attempt_logs
 
-        qc = validate_visuals(scenes)
-        score = score_cinematography(scenes)
-        logger.info("[CinemaCompetition] %s: %d scenes, score=%.3f, qc_ok=%s", role, len(scenes), score, qc["ok"])
+            scenes = _parse_scenes(response)
+            if scenes is not None:
+                qc = validate_visuals(scenes)
+                score = score_cinematography(scenes)
+                logger.info(
+                    "[CinemaCompetition] %s: %d scenes, score=%.3f, qc_ok=%s",
+                    role,
+                    len(scenes),
+                    score,
+                    qc["ok"],
+                )
+                return {
+                    "role": role,
+                    "scenes": scenes,
+                    "tool_logs": tool_logs,
+                    "qc": qc,
+                    "score": score,
+                    "error": None,
+                }
 
-        return {"role": role, "scenes": scenes, "tool_logs": tool_logs, "qc": qc, "score": score, "error": None}
+            if attempt < max_attempts:
+                logger.warning("[CinemaCompetition] %s: JSON 파싱 실패 (attempt %d), 재시도", role, attempt)
+            else:
+                logger.warning("[CinemaCompetition] %s: JSON 파싱 실패 (%d회)", role, max_attempts)
 
-    except Exception as e:
-        logger.warning("[CinemaCompetition] %s 실패: %s", role, e)
-        return {"role": role, "scenes": None, "tool_logs": [], "error": str(e)}
+        except Exception as e:
+            logger.warning("[CinemaCompetition] %s 실패: %s", role, e)
+            return {"role": role, "scenes": None, "tool_logs": tool_logs, "error": str(e)}
+
+    return {"role": role, "scenes": None, "tool_logs": tool_logs, "error": "parse_error"}
 
 
 _EMPTY_COMPETITION = {"scenes": None, "tool_logs": [], "qc": None, "scores": {}, "winner": None}

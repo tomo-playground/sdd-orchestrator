@@ -95,6 +95,23 @@ def _inject_default_context_tags(scenes: list[dict]) -> None:
             ctx["expression"] = derived or DEFAULT_EXPRESSION_TAG
 
 
+def _inject_writer_plan_emotions(scenes: list[dict], writer_plan: dict | None) -> None:
+    """writer_plan.emotional_arc에서 빈 context_tags.emotion을 채운다."""
+    if not writer_plan:
+        return
+    arc = writer_plan.get("emotional_arc", [])
+    if not arc:
+        return
+    for i, scene in enumerate(scenes):
+        if i >= len(arc):
+            break
+        ctx = scene.get("context_tags")
+        if ctx is None:
+            scene["context_tags"] = {"emotion": arc[i]}
+        elif not ctx.get("emotion"):
+            ctx["emotion"] = arc[i]
+
+
 def _normalize_environment_tags(scenes: list[dict]) -> None:
     """context_tags.setting → context_tags.environment 정규화."""
     for scene in scenes:
@@ -328,6 +345,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     from ._context_tag_utils import check_camera_diversity, validate_context_tag_categories
 
     validate_context_tag_categories(scenes)
+    _inject_writer_plan_emotions(scenes, state.get("writer_plan"))
     _inject_default_context_tags(scenes)
     _normalize_environment_tags(scenes)
     _inject_location_map_tags(scenes, state.get("writer_plan"))

@@ -139,6 +139,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
 
     style = state.get("style", "Anime")
     writer_plan = state.get("writer_plan")
+    director_plan = state.get("director_plan")
 
     tmpl = template_env.get_template("creative/cinematographer.j2")
     base_prompt = tmpl.render(
@@ -147,6 +148,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         style=style,
         characters_tags=characters_tags,
         writer_plan=writer_plan,
+        director_plan=director_plan,
         feedback=director_feedback,
     )
 
@@ -202,11 +204,18 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     tool_logs: list = []
     scenes_output: list[dict] | None = None
 
+    _JSON_RETRY_SUFFIX = (
+        "\n\n[IMPORTANT] 이전 응답에서 유효한 JSON을 받지 못했습니다. "
+        '반드시 {"scenes": [...]} JSON 형식으로만 응답하세요. '
+        "markdown 코드블록이나 설명 텍스트를 포함하지 마세요."
+    )
+
     for attempt in range(1, max_attempts + 1):
+        current_prompt = prompt if attempt == 1 else prompt + _JSON_RETRY_SUFFIX
         try:
             logger.info("[Cinematographer] Tool-Calling Agent 시작 (attempt %d/%d)", attempt, max_attempts)
             response, attempt_logs = await call_with_tools(
-                prompt=prompt,
+                prompt=current_prompt,
                 tools=tools,
                 tool_executors=executors,
                 max_calls=10,

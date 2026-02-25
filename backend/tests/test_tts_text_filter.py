@@ -83,6 +83,16 @@ class TestCleanScriptForTtsWithFilter:
         result = clean_script_for_tts("그래서...")
         assert "그래서" in result
 
+    def test_excessive_dots_collapsed(self):
+        """과도한 연속 점은 단일 점으로 축소."""
+        result = clean_script_for_tts("너도...........")
+        assert result == "너도."
+
+    def test_excessive_dots_no_dot_flood(self):
+        """축소 후 점이 2개 이상 남지 않아야 함."""
+        result = clean_script_for_tts("진짜.............. 그랬어?")
+        assert ".." not in result
+
 
 class TestHasSpeakableContent:
     """has_speakable_content: TTS 생성 전 선별 함수."""

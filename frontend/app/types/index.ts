@@ -34,6 +34,7 @@ export type SceneContextTags = {
   camera?: string; // exclusive (single select)
   environment?: string[];
   mood?: string[];
+  emotion?: string;
 };
 
 export type SceneCharacterAction = {
