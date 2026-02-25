@@ -11,8 +11,8 @@ services:
       - huggingface-cache:/root/.cache/huggingface
     mem_limit: 10g
     environment:
-      TTS_DEVICE: "mps"
-      MUSICGEN_DEVICE: "mps"
+      TTS_DEVICE: "auto"
+      MUSICGEN_DEVICE: "auto"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
       interval: 30s

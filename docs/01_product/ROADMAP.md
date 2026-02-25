@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-02-25)
+## 현재 상태 (2026-02-26)
 
 | 항목 | 상태 |
 |------|------|
@@ -23,6 +23,10 @@
 
 ### 최근 작업
 
+- **Audio Server 로컬 MPS 전환** (02-26): Docker CPU → 로컬 실행(MPS)으로 TTS(Qwen3-TTS)/BGM(MusicGen) Apple Silicon GPU 가속. `docker-compose.audio.yml` device=auto 전환, `audio/.venv` Python 3.13 로컬 환경 구축
+- **Gemini 모델 Pro/Flash 분리 완성** (02-26): Director Plan + Director Checkpoint → `DIRECTOR_MODEL`(Pro) 전환. `.env`에 `DIRECTOR_MODEL`, `CREATIVE_LEADER_MODEL`, `REVIEW_MODEL` 명시 + `GEMINI_TEXT_MODEL`을 Flash로 복원. Pro 5개 노드(Critic, Director, Director Plan, Director Checkpoint, Review) / Flash 14개 노드 분리 완료
+- **캐릭터 체형 태그 필수 선택 + body_type 그룹 분리** (02-25): appearance 그룹에서 체형 태그 11개를 body_type 그룹으로 분리 (Backend SSOT). Wizard Appearance 단계 Body Type 필수 카테고리 추가, 미선택 시 Next 비활성화 + Required 뱃지. 태그 분류기 Flash 모델 전용화 + 30초 타임아웃. 2,635 passed
+- **Cinematographer 위험 태그 가드레일 강화** (02-25): Gemini가 생성하는 비표준 Danbooru 태그(cinematic_shadows, computer_monitor 등) 방지. 금지 패턴 + 정확한 대체 태그 예시 템플릿에 명시
 - **Gemini Flash 미분류 태그 LLM 분류** (02-25): Finalize 노드에서 미분류 태그(computer_monitor, cinematic_shadows 등)를 Gemini Flash로 배치 분류 → DB 저장 → 정확한 레이어 배정. `tag_classifier_llm.py`(LLM 분류), `_tag_classification.py`(Finalize 연동), `_save_classification` default_layer 버그 수정, validator 3개 분리(`_finalize_validators.py`). Feature flag `FEATURE_TAG_LLM_CLASSIFICATION`. 108개 테스트 PASS
 - **Phase 17-0.5: 캐릭터 프리뷰 품질 개선** (02-25): ControlNet standing 포즈 + `(solo:1.5)` 가중치로 캐릭터시트/멀티뷰 완전 해소. Style LoRA 레퍼런스 스케일 0.3, 네거티브 프롬프트 배경/멀티뷰 억제 강화, ControlNet control_mode 설정화, 다중 후보 3장 생성/선택 UI. 5개 상수 + 1개 스키마 필드 추가, 2,635 passed
 - **Phase 17-0: API 정리** (02-25): 라우터 34→29개 축소. keywords/avatar/analytics/cleanup/sd 5개 삭제 및 통합, migrate EP 3건 + 미사용 prompt EP 2건 삭제, 미사용 스키마 5개 제거. URL 경로 변경 0건. 2,635 passed
