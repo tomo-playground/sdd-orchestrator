@@ -17,6 +17,8 @@ from schemas import (
     CharacterResponse,
     CharacterUpdate,
     PaginatedCharacterList,
+    RegenerateReferenceRequest,
+    RegenerateReferenceResponse,
 )
 from services.characters import (
     ConflictError,
@@ -133,11 +135,20 @@ async def permanently_delete_endpoint(character_id: int, db: Session = Depends(g
         raise HTTPException(status_code=404, detail=str(e)) from None
 
 
-@router.post("/{character_id}/regenerate-reference")
-async def regenerate_reference_endpoint(character_id: int, db: Session = Depends(get_db)):
+@router.post("/{character_id}/regenerate-reference", response_model=RegenerateReferenceResponse)
+async def regenerate_reference_endpoint(
+    character_id: int,
+    data: RegenerateReferenceRequest | None = None,
+    db: Session = Depends(get_db),
+):
     """Regenerate the character's reference image using its tags and reference prompts."""
     try:
-        return await regenerate_reference(db, character_id)
+        return await regenerate_reference(
+            db,
+            character_id,
+            controlnet_pose=data.controlnet_pose if data else None,
+            num_candidates=data.num_candidates if data else 1,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
     except RuntimeError as e:

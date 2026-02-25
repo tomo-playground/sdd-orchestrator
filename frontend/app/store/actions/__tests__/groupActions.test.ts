@@ -50,7 +50,7 @@ describe("loadGroupDefaults", () => {
     expect(mockSetOutput).toHaveBeenCalledWith(
       expect.objectContaining({
         bgmFile: "random",
-        bgmVolume: 0.25,
+        bgmVolume: 0.4,
       })
     );
   });
@@ -118,7 +118,7 @@ describe("loadGroupDefaults", () => {
 
     expect(mockSetOutput).toHaveBeenCalledWith({
       bgmFile: "random",
-      bgmVolume: 0.25,
+      bgmVolume: 0.4,
       audioDucking: true,
       sceneTextFont: "온글잎 박다현체.ttf",
       layoutStyle: "post",

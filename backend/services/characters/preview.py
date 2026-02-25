@@ -19,13 +19,20 @@ from config import (
     SD_DEFAULT_CLIP_SKIP,
     SD_DEFAULT_SAMPLER,
     SD_REFERENCE_CFG_SCALE,
+    SD_REFERENCE_CONTROLNET_POSE,
+    SD_REFERENCE_CONTROLNET_WEIGHT,
     SD_REFERENCE_DENOISING,
     SD_REFERENCE_HR_UPSCALER,
     SD_REFERENCE_STEPS,
     logger,
 )
 from models import Character, CharacterTag, Tag
-from schemas import AssignPreviewRequest, CharacterPreviewRequest, SceneGenerateRequest
+from schemas import (
+    AssignPreviewRequest,
+    CandidateImage,
+    CharacterPreviewRequest,
+    SceneGenerateRequest,
+)
 
 if TYPE_CHECKING:
     from services.style_context import StyleContext
@@ -121,7 +128,13 @@ def _save_preview_asset(db: Session, character_id: int, image_bytes: bytes) -> t
     return asset.url, asset.id
 
 
-async def regenerate_reference(db: Session, character_id: int) -> dict:
+async def regenerate_reference(
+    db: Session,
+    character_id: int,
+    *,
+    controlnet_pose: str | None = None,
+    num_candidates: int = 1,
+) -> dict:
     """Regenerate the character's reference image using V3 12-Layer prompt system."""
     from services.generation import generate_scene_image
     from services.image import decode_data_url
@@ -139,8 +152,6 @@ async def regenerate_reference(db: Session, character_id: int) -> dict:
     # Resolve StyleContext for negative embeddings
     style_ctx = resolve_style_context_for_profile(character.style_profile_id, db)
     if character.reference_negative_prompt:
-        # Custom reference negative overrides StyleProfile defaults entirely.
-        # Only append recommended_negative for safety (e.g. bad_anatomy).
         neg_prompt = character.reference_negative_prompt
         if character.recommended_negative:
             extras = [n for n in character.recommended_negative if n not in neg_prompt]
@@ -157,37 +168,60 @@ async def regenerate_reference(db: Session, character_id: int) -> dict:
 
     # StyleProfile generation parameters (override global defaults)
     steps = style_ctx.default_steps if (style_ctx and style_ctx.default_steps is not None) else SD_REFERENCE_STEPS
-    cfg_scale = style_ctx.default_cfg_scale if (style_ctx and style_ctx.default_cfg_scale is not None) else SD_REFERENCE_CFG_SCALE
-    sampler_name = style_ctx.default_sampler_name if (style_ctx and style_ctx.default_sampler_name) else SD_DEFAULT_SAMPLER
-    clip_skip = style_ctx.default_clip_skip if (style_ctx and style_ctx.default_clip_skip is not None) else SD_DEFAULT_CLIP_SKIP
+    cfg_scale = (
+        style_ctx.default_cfg_scale
+        if (style_ctx and style_ctx.default_cfg_scale is not None)
+        else SD_REFERENCE_CFG_SCALE
+    )
+    sampler_name = (
+        style_ctx.default_sampler_name if (style_ctx and style_ctx.default_sampler_name) else SD_DEFAULT_SAMPLER
+    )
+    clip_skip = (
+        style_ctx.default_clip_skip if (style_ctx and style_ctx.default_clip_skip is not None) else SD_DEFAULT_CLIP_SKIP
+    )
+
+    pose = controlnet_pose or SD_REFERENCE_CONTROLNET_POSE
 
     # Release DB connection before long SD WebUI call (~30-60s)
     db.close()
 
-    request = SceneGenerateRequest(
-        prompt=full_prompt,
-        negative_prompt=neg_prompt,
-        steps=steps,
-        cfg_scale=cfg_scale,
-        sampler_name=sampler_name,
-        clip_skip=clip_skip,
-        width=512,
-        height=768,
-        seed=-1,
-        enable_hr=True,
-        hr_scale=1.5,
-        hr_upscaler=SD_REFERENCE_HR_UPSCALER,
-        denoising_strength=SD_REFERENCE_DENOISING,
-    )
+    candidates: list[CandidateImage] = []
+    for i in range(num_candidates):
+        request = SceneGenerateRequest(
+            prompt=full_prompt,
+            negative_prompt=neg_prompt,
+            steps=steps,
+            cfg_scale=cfg_scale,
+            sampler_name=sampler_name,
+            clip_skip=clip_skip,
+            width=512,
+            height=768,
+            seed=-1,
+            enable_hr=True,
+            hr_scale=1.5,
+            hr_upscaler=SD_REFERENCE_HR_UPSCALER,
+            denoising_strength=SD_REFERENCE_DENOISING,
+            use_controlnet=True,
+            controlnet_pose=pose,
+            controlnet_weight=SD_REFERENCE_CONTROLNET_WEIGHT,
+        )
+        res = await generate_scene_image(request)
+        if "image" not in res:
+            logger.warning("[Preview] Candidate %d failed, skipping", i + 1)
+            continue
+        candidates.append(CandidateImage(image=res["image"], seed=res.get("seed", -1)))
 
-    res = await generate_scene_image(request)
-    if "image" not in res:
-        raise RuntimeError("Generation failed")
+    if not candidates:
+        raise RuntimeError("Generation failed: no candidates produced")
 
-    # Session auto-reconnects on next use
-    image_bytes = decode_data_url(f"data:image/png;base64,{res['image']}")
+    # Save first candidate as the preview (backward compat)
+    image_bytes = decode_data_url(f"data:image/png;base64,{candidates[0].image}")
     url, _ = _save_preview_asset(db, character_id, image_bytes)
-    return {"ok": True, "url": url}
+    return {
+        "ok": True,
+        "url": url,
+        "candidates": [c.model_dump() for c in candidates],
+    }
 
 
 async def enhance_preview(db: Session, character_id: int) -> dict:
@@ -265,10 +299,10 @@ async def batch_regenerate_references(db: Session) -> dict:
 
 
 async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest) -> dict:
-    """Generate a temporary preview image for the wizard (no DB save).
+    """Generate temporary preview image(s) for the wizard (no DB save).
 
     Builds an in-memory Character from tag_ids + loras, composes a
-    V3 12-Layer reference prompt, and calls SD WebUI.
+    V3 12-Layer reference prompt, and calls SD WebUI with ControlNet pose.
     """
     from services.generation import generate_scene_image
     from services.prompt.v3_composition import V3PromptBuilder
@@ -289,10 +323,9 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
         gender=request.gender,
         loras=[{"lora_id": lr.lora_id, "weight": lr.weight} for lr in (request.loras or [])],
     )
-    # Attach tag associations in-memory
     for tag in tags_db:
         ct = CharacterTag(tag_id=tag.id, weight=1.0, is_permanent=True)
-        ct.tag = tag  # Populate relationship for V3PromptBuilder
+        ct.tag = tag
         temp_char.tags.append(ct)
 
     # 3. Compose prompt
@@ -303,46 +336,65 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
     style_ctx = resolve_style_context_for_profile(request.style_profile_id, db)
     neg_prompt = _build_reference_negative(style_ctx, None)
 
-    # Ensure SD WebUI is using the correct checkpoint for this StyleProfile
     if style_ctx and style_ctx.sd_model_name:
         from services.image_generation_core import _ensure_correct_checkpoint
 
         await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
-    # StyleProfile generation parameters (override global defaults)
     steps = style_ctx.default_steps if (style_ctx and style_ctx.default_steps is not None) else SD_REFERENCE_STEPS
-    cfg_scale = style_ctx.default_cfg_scale if (style_ctx and style_ctx.default_cfg_scale is not None) else SD_REFERENCE_CFG_SCALE
-    sampler_name = style_ctx.default_sampler_name if (style_ctx and style_ctx.default_sampler_name) else SD_DEFAULT_SAMPLER
-    clip_skip = style_ctx.default_clip_skip if (style_ctx and style_ctx.default_clip_skip is not None) else SD_DEFAULT_CLIP_SKIP
+    cfg_scale = (
+        style_ctx.default_cfg_scale
+        if (style_ctx and style_ctx.default_cfg_scale is not None)
+        else SD_REFERENCE_CFG_SCALE
+    )
+    sampler_name = (
+        style_ctx.default_sampler_name if (style_ctx and style_ctx.default_sampler_name) else SD_DEFAULT_SAMPLER
+    )
+    clip_skip = (
+        style_ctx.default_clip_skip if (style_ctx and style_ctx.default_clip_skip is not None) else SD_DEFAULT_CLIP_SKIP
+    )
+
+    pose = request.controlnet_pose or SD_REFERENCE_CONTROLNET_POSE
+    num_candidates = request.num_candidates
 
     # Release DB connection before long SD call
     db.close()
 
-    sd_request = SceneGenerateRequest(
-        prompt=full_prompt,
-        negative_prompt=neg_prompt,
-        steps=steps,
-        cfg_scale=cfg_scale,
-        sampler_name=sampler_name,
-        clip_skip=clip_skip,
-        width=512,
-        height=768,
-        seed=-1,
-        enable_hr=True,
-        hr_scale=1.5,
-        hr_upscaler=SD_REFERENCE_HR_UPSCALER,
-        denoising_strength=SD_REFERENCE_DENOISING,
-    )
+    candidates: list[CandidateImage] = []
+    for i in range(num_candidates):
+        sd_request = SceneGenerateRequest(
+            prompt=full_prompt,
+            negative_prompt=neg_prompt,
+            steps=steps,
+            cfg_scale=cfg_scale,
+            sampler_name=sampler_name,
+            clip_skip=clip_skip,
+            width=512,
+            height=768,
+            seed=-1,
+            enable_hr=True,
+            hr_scale=1.5,
+            hr_upscaler=SD_REFERENCE_HR_UPSCALER,
+            denoising_strength=SD_REFERENCE_DENOISING,
+            use_controlnet=True,
+            controlnet_pose=pose,
+            controlnet_weight=SD_REFERENCE_CONTROLNET_WEIGHT,
+        )
+        res = await generate_scene_image(sd_request)
+        if "image" not in res:
+            logger.warning("[WizardPreview] Candidate %d failed, skipping", i + 1)
+            continue
+        candidates.append(CandidateImage(image=res["image"], seed=res.get("seed", -1)))
 
-    res = await generate_scene_image(sd_request)
-    if "image" not in res:
-        raise RuntimeError("Generation failed: no image in response")
+    if not candidates:
+        raise RuntimeError("Generation failed: no candidates produced")
 
     return {
-        "image": res["image"],
+        "image": candidates[0].image,
         "used_prompt": full_prompt,
-        "seed": res.get("info", {}).get("seed", -1) if isinstance(res.get("info"), dict) else -1,
-        "warnings": res.get("warnings", []),
+        "seed": candidates[0].seed,
+        "candidates": [c.model_dump() for c in candidates],
+        "warnings": [],
     }
 
 

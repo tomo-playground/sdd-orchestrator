@@ -23,6 +23,7 @@
 
 ### 최근 작업
 
+- **Phase 17-0.5: 캐릭터 프리뷰 품질 개선** (02-25): ControlNet standing 포즈 적용(multiple_views 방지) + 다중 후보 3장 생성/선택 UI. Backend 3개 상수 + 3개 스키마, preview.py ControlNet 루프, Frontend 후보 썸네일 선택 UI
 - **Phase 17-0: API 정리** (02-25): 라우터 34→29개 축소. keywords/avatar/analytics/cleanup/sd 5개 삭제 및 통합, migrate EP 3건 + 미사용 prompt EP 2건 삭제, 미사용 스키마 5개 제거. URL 경로 변경 0건. 2,635 passed
 - **Agent Pipeline 품질 저하 버그 4건 수정** (02-25): Director 인라인 수정 결과 State 소실(Critical), DirectorReActStep feedback 추적 누락, Sound Designer writer_plan 미전달, TTS/Cinematographer director_plan 미전달. `_AGENT_STATE_KEY_MAP` + `revised_agents` 추적, feedback 필드 추가, 템플릿 emotional_arc/target_emotion 섹션. 9개 테스트 추가
 - **환경 태그 랜덤성 근본 해결** (02-25): Finalize에서 Writer Location Map 태그 강제 주입(`_inject_location_map_tags` + `_inject_location_negative_tags`), Environment(L10) 가중치 부스트(1.15), Danbooru 0건 태그 교체(`music_room`→`stage`, `dark_hallway`→`hallway,dark`, `school_hallway`→`classroom`). 7개 테스트 추가
@@ -194,6 +195,13 @@ graph LR
 | 7 | Frontend 미사용 prompt EP 삭제 2건 (rewrite, check-conflicts) | ✅ (02-25) |
 
 **결과**: 34개 → 29개 라우터
+
+### Phase 17-0.5: 캐릭터 프리뷰 품질 개선 (완료 02-25)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | ControlNet Pose 적용 (standing 기본) — multiple_views 방지 | ✅ (02-25) |
+| 2 | 다중 후보 생성 (3장) + 선택 UI | ✅ (02-25) |
 
 ### Phase 17-1: Backend 논리적 분리
 

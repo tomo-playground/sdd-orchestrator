@@ -298,7 +298,10 @@ export default function CharacterWizard() {
           allLoras={allLoras}
           previewImage={state.previewImage}
           isGenerating={state.isGenerating}
+          candidates={state.previewCandidates}
+          selectedCandidateIndex={state.selectedCandidateIndex}
           onGeneratePreview={handleGeneratePreview}
+          onSelectCandidate={(index) => dispatch({ type: "SELECT_CANDIDATE", index })}
         />
 
         {/* Right: Step content */}
@@ -306,9 +309,7 @@ export default function CharacterWizard() {
           {state.step === 0 && (
             <StyleStep
               selectedId={state.style_profile_id}
-              onSelect={(id, baseModel) =>
-                dispatch({ type: "SET_STYLE_PROFILE", id, baseModel })
-              }
+              onSelect={(id, baseModel) => dispatch({ type: "SET_STYLE_PROFILE", id, baseModel })}
             />
           )}
           {state.step === 1 && (

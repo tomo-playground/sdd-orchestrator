@@ -6,6 +6,7 @@ import { getErrorMsg } from "../../../utils/error";
 import type { Tag } from "../../../types";
 import type { WizardState, WizardAction } from "./wizardReducer";
 import { GENDER_IDENTITY_TAGS } from "./wizardTemplates";
+import { SD_REFERENCE_NUM_CANDIDATES } from "./previewConstants";
 
 type UseWizardPreviewParams = {
   state: WizardState;
@@ -41,11 +42,14 @@ export function useWizardPreview({ state, dispatch, allTagsFlat }: UseWizardPrev
             ? state.selectedLoras.map((lr) => ({ lora_id: lr.loraId, weight: lr.weight }))
             : null,
         style_profile_id: state.style_profile_id,
+        num_candidates: SD_REFERENCE_NUM_CANDIDATES,
       };
 
       const res = await axios.post(`${API_BASE}/characters/preview`, payload);
-      dispatch({ type: "SET_PREVIEW", image: res.data.image, seed: res.data.seed });
-      showToast("Preview generated!", "success");
+      const candidates = res.data.candidates ?? [{ image: res.data.image, seed: res.data.seed }];
+      dispatch({ type: "SET_PREVIEW", image: res.data.image, seed: res.data.seed, candidates });
+      const count = candidates.length;
+      showToast(`${count} preview${count > 1 ? "s" : ""} generated!`, "success");
     } catch (err) {
       showToast(getErrorMsg(err, "Failed to generate preview"), "error");
       dispatch({ type: "SET_GENERATING", isGenerating: false });

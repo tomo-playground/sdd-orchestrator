@@ -977,15 +977,40 @@ class CharacterPreviewRequest(BaseModel):
     tag_ids: list[int] = []
     loras: list[CharacterLoRA] | None = None
     style_profile_id: int | None = None
+    controlnet_pose: str | None = None  # Pose name (default: config SD_REFERENCE_CONTROLNET_POSE)
+    num_candidates: int = Field(default=1, ge=1, le=5)  # Number of candidates to generate
+
+
+class CandidateImage(BaseModel):
+    """Single candidate image from multi-candidate generation."""
+
+    image: str  # Base64 PNG
+    seed: int
 
 
 class CharacterPreviewResponse(BaseModel):
     """Response-only: temp preview image data."""
 
-    image: str  # Base64 PNG
+    image: str  # Base64 PNG (first candidate, backward compat)
     used_prompt: str
-    seed: int
+    seed: int  # First candidate seed (backward compat)
+    candidates: list[CandidateImage] = []  # All candidates
     warnings: list[str] = []
+
+
+class RegenerateReferenceRequest(BaseModel):
+    """Optional body for regenerate-reference endpoint."""
+
+    controlnet_pose: str | None = None
+    num_candidates: int = Field(default=1, ge=1, le=5)
+
+
+class RegenerateReferenceResponse(BaseModel):
+    """Response for POST /characters/{id}/regenerate-reference."""
+
+    ok: bool
+    url: str | None = None
+    candidates: list[CandidateImage] = []
 
 
 class AssignPreviewRequest(BaseModel):

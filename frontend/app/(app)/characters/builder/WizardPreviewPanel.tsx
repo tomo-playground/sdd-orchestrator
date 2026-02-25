@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Sparkles, UserRound } from "lucide-react";
 import type { ActorGender, LoRA } from "../../../types";
 import type { WizardTag } from "./steps/AppearanceStep";
-import type { WizardLoRA } from "./wizardReducer";
+import type { CandidateImage, WizardLoRA } from "./wizardReducer";
 import { WIZARD_CATEGORIES } from "./wizardTemplates";
 import Button from "../../../components/ui/Button";
 import { formatTagName } from "../shared/formatTag";
@@ -17,7 +17,10 @@ type WizardPreviewPanelProps = {
   allLoras: LoRA[];
   previewImage: string | null;
   isGenerating: boolean;
+  candidates: CandidateImage[];
+  selectedCandidateIndex: number;
   onGeneratePreview: () => void;
+  onSelectCandidate: (index: number) => void;
 };
 
 export default function WizardPreviewPanel({
@@ -28,7 +31,10 @@ export default function WizardPreviewPanel({
   allLoras,
   previewImage,
   isGenerating,
+  candidates,
+  selectedCandidateIndex,
   onGeneratePreview,
+  onSelectCandidate,
 }: WizardPreviewPanelProps) {
   // Group selected tags by category for summary
   const tagsByCategory = WIZARD_CATEGORIES.map((cat) => ({
@@ -67,6 +73,34 @@ export default function WizardPreviewPanel({
           </div>
         )}
       </div>
+
+      {/* Candidate thumbnails */}
+      {candidates.length > 1 && (
+        <div className="flex justify-center gap-2">
+          {candidates.map((c, i) => (
+            <button
+              key={i}
+              onClick={() => onSelectCandidate(i)}
+              className={`relative h-16 w-12 overflow-hidden rounded-lg border-2 transition-all ${
+                i === selectedCandidateIndex
+                  ? "border-blue-500 ring-2 ring-blue-200"
+                  : "border-zinc-200 hover:border-zinc-400"
+              }`}
+            >
+              <Image
+                src={`data:image/png;base64,${c.image}`}
+                alt={`Candidate ${i + 1}`}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+              <span className="absolute right-0 bottom-0 left-0 bg-black/50 text-center text-[11px] font-medium text-white">
+                {i + 1}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Generate Preview button */}
       {hasSelections && (

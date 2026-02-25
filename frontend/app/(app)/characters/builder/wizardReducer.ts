@@ -9,6 +9,8 @@ export type WizardStep = 0 | 1 | 2 | 3 | 4;
 
 export type WizardLoRA = { loraId: number; weight: number };
 
+export type CandidateImage = { image: string; seed: number };
+
 export type WizardState = {
   step: WizardStep;
   // Style selection (Step 0)
@@ -31,6 +33,8 @@ export type WizardState = {
   // Preview
   previewImage: string | null; // base64
   previewSeed: number | null;
+  previewCandidates: CandidateImage[];
+  selectedCandidateIndex: number;
   isGenerating: boolean;
 };
 
@@ -50,7 +54,8 @@ export type WizardAction =
   | { type: "SET_PROMPT_MODE"; mode: PromptMode }
   | { type: "SET_PROMPT_FIELD"; field: PromptField; value: string }
   | { type: "SET_GENERATING"; isGenerating: boolean }
-  | { type: "SET_PREVIEW"; image: string; seed: number }
+  | { type: "SET_PREVIEW"; image: string; seed: number; candidates: CandidateImage[] }
+  | { type: "SELECT_CANDIDATE"; index: number }
   | { type: "CLEAR_PREVIEW" };
 
 export type PromptField =
@@ -131,10 +136,28 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
         ...state,
         previewImage: action.image,
         previewSeed: action.seed,
+        previewCandidates: action.candidates,
+        selectedCandidateIndex: 0,
         isGenerating: false,
       };
+    case "SELECT_CANDIDATE": {
+      const c = state.previewCandidates[action.index];
+      if (!c) return state;
+      return {
+        ...state,
+        previewImage: c.image,
+        previewSeed: c.seed,
+        selectedCandidateIndex: action.index,
+      };
+    }
     case "CLEAR_PREVIEW":
-      return { ...state, previewImage: null, previewSeed: null };
+      return {
+        ...state,
+        previewImage: null,
+        previewSeed: null,
+        previewCandidates: [],
+        selectedCandidateIndex: 0,
+      };
     default:
       return state;
   }
@@ -158,5 +181,7 @@ export const INITIAL_WIZARD_STATE: WizardState = {
   reference_negative_prompt: "",
   previewImage: null,
   previewSeed: null,
+  previewCandidates: [],
+  selectedCandidateIndex: 0,
   isGenerating: false,
 };
