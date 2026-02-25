@@ -1,9 +1,10 @@
-"""SD Model and Embedding CRUD endpoints."""
+"""SD Model, Embedding CRUD and SD WebUI proxy endpoints."""
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from config import logger
+from config import SD_API_TIMEOUT, SD_LORAS_URL, SD_MODELS_URL, SD_OPTIONS_URL, logger
 from database import get_db
 from models import Embedding, SDModel
 from schemas import (
@@ -11,6 +12,7 @@ from schemas import (
     EmbeddingResponse,
     EmbeddingUpdate,
     SDModelCreate,
+    SDModelRequest,
     SDModelResponse,
     SDModelUpdate,
 )
@@ -167,3 +169,74 @@ async def delete_embedding(embedding_id: int, db: Session = Depends(get_db)):
     db.commit()
     logger.info("🗑️ [Embeddings] Deleted: %s", name)
     return {"ok": True, "deleted": name}
+
+
+# ============================================================
+# SD WebUI Proxy (absorbed from sd.py)
+# ============================================================
+
+
+@router.get("/sd/models")
+async def list_sd_webui_models():
+    """List models from SD WebUI."""
+    logger.info("📥 [SD Models]")
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get(SD_MODELS_URL, timeout=SD_API_TIMEOUT)
+            res.raise_for_status()
+            data = res.json()
+            return {"models": data if isinstance(data, list) else []}
+    except httpx.HTTPError as exc:
+        logger.exception("SD models fetch failed")
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.get("/sd/options")
+async def get_sd_options():
+    """Get SD WebUI options."""
+    logger.info("📥 [SD Options]")
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get(SD_OPTIONS_URL, timeout=SD_API_TIMEOUT)
+            res.raise_for_status()
+            data = res.json()
+            if isinstance(data, dict):
+                return {"options": data, "model": data.get("sd_model_checkpoint", "Unknown")}
+            return {"options": {}, "model": "Unknown"}
+    except httpx.HTTPError as exc:
+        logger.exception("SD options fetch failed")
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.post("/sd/options")
+async def update_sd_options(request: SDModelRequest):
+    """Update SD WebUI options (change active model)."""
+    logger.info("📥 [SD Options Update] %s", request.model_dump())
+    payload = {"sd_model_checkpoint": request.sd_model_checkpoint}
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.post(SD_OPTIONS_URL, json=payload, timeout=SD_API_TIMEOUT)
+            res.raise_for_status()
+            data = res.json()
+            model_name = request.sd_model_checkpoint
+            if isinstance(data, dict):
+                model_name = data.get("sd_model_checkpoint", request.sd_model_checkpoint)
+            return {"ok": True, "model": model_name}
+    except httpx.HTTPError as exc:
+        logger.exception("SD options update failed")
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.get("/sd/loras")
+async def list_sd_loras():
+    """List LoRAs from SD WebUI."""
+    logger.info("📥 [SD LoRAs]")
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get(SD_LORAS_URL, timeout=SD_API_TIMEOUT)
+            res.raise_for_status()
+            data = res.json()
+            return {"loras": data if isinstance(data, list) else []}
+    except httpx.HTTPError as exc:
+        logger.exception("SD LoRAs fetch failed")
+        raise HTTPException(status_code=502, detail=str(exc)) from exc

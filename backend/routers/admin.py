@@ -5,11 +5,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Tag, TagRule
+from models import Tag
 from schemas import ImageCacheClearResponse, ImageCacheStatsResponse
 from services.media_gc import MediaGCService
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(tags=["admin"])
 
 
 # ============================================================
@@ -24,108 +24,7 @@ class DeprecateTagRequest(BaseModel):
     replacement_tag_id: int | None = None
 
 
-@router.post("/migrate-tag-rules")
-async def migrate_tag_conflict_rules(db: Session = Depends(get_db)):
-    """Migrate hardcoded tag conflict rules to database.
-
-    This is a one-time migration endpoint to populate tag_rules table
-    with conflict pairs that were previously hardcoded in prompt_composition.py.
-    """
-
-    # List of conflicting pairs to migrate
-    conflicts = [
-        # Expression conflicts
-        ("crying", "laughing"),
-        ("crying", "happy"),
-        ("crying", "smile"),
-        ("sad", "happy"),
-        ("sad", "smile"),
-        ("sad", "laughing"),
-        ("angry", "happy"),
-        ("angry", "smile"),
-        # Gaze conflicts
-        ("looking_down", "looking_up"),
-        ("looking_away", "looking_at_viewer"),
-        ("closed_eyes", "looking_at_viewer"),
-        # Pose conflicts
-        ("sitting", "standing"),
-        ("lying", "standing"),
-        ("lying", "sitting"),
-    ]
-
-    added = []
-    skipped = []
-    errors = []
-
-    for s_name, t_name in conflicts:
-        try:
-            # Find tags
-            s_tag = db.query(Tag).filter(Tag.name == s_name).first()
-            t_tag = db.query(Tag).filter(Tag.name == t_name).first()
-
-            if not s_tag or not t_tag:
-                errors.append(f"Tag not found: {s_name} or {t_name}")
-                continue
-
-            # Check if rule already exists
-            exists = (
-                db.query(TagRule)
-                .filter(
-                    TagRule.source_tag_id == s_tag.id,
-                    TagRule.target_tag_id == t_tag.id,
-                    TagRule.rule_type == "conflict",
-                )
-                .first()
-            )
-
-            if not exists:
-                # Also check reverse direction
-                reverse_exists = (
-                    db.query(TagRule)
-                    .filter(
-                        TagRule.source_tag_id == t_tag.id,
-                        TagRule.target_tag_id == s_tag.id,
-                        TagRule.rule_type == "conflict",
-                    )
-                    .first()
-                )
-
-                if not reverse_exists:
-                    rule = TagRule(
-                        source_tag_id=s_tag.id,
-                        target_tag_id=t_tag.id,
-                        rule_type="conflict",
-                        message="Conflicting tags",
-                        is_active=True,
-                    )
-                    db.add(rule)
-                    added.append(f"{s_name} <-> {t_name}")
-                else:
-                    skipped.append(f"{s_name} <-> {t_name} (reverse exists)")
-            else:
-                skipped.append(f"{s_name} <-> {t_name} (already exists)")
-
-        except Exception as e:
-            errors.append(f"Error processing {s_name} <-> {t_name}: {str(e)}")
-
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        return {"success": False, "error": str(e), "added": added, "skipped": skipped, "errors": errors}
-
-    return {
-        "success": True,
-        "added": added,
-        "skipped": skipped,
-        "errors": errors,
-        "total_added": len(added),
-        "total_skipped": len(skipped),
-        "total_errors": len(errors),
-    }
-
-
-@router.post("/refresh-caches")
+@router.post("/admin/refresh-caches")
 async def refresh_all_caches(db: Session = Depends(get_db)):
     """Refresh all in-memory caches from database.
 
@@ -156,7 +55,7 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
 # ============================================================
 
 
-@router.get("/tags/deprecated")
+@router.get("/admin/tags/deprecated")
 async def get_deprecated_tags(db: Session = Depends(get_db)):
     """Get all deprecated tags with their replacement information."""
     deprecated_tags = db.query(Tag).filter(Tag.is_active.is_(False)).all()
@@ -188,7 +87,7 @@ async def get_deprecated_tags(db: Session = Depends(get_db)):
     return {"total": len(result), "tags": result}
 
 
-@router.put("/tags/{tag_id}/deprecate")
+@router.put("/admin/tags/{tag_id}/deprecate")
 async def deprecate_tag(tag_id: int, request: DeprecateTagRequest, db: Session = Depends(get_db)):
     """Deprecate a tag and optionally set a replacement.
 
@@ -238,7 +137,7 @@ async def deprecate_tag(tag_id: int, request: DeprecateTagRequest, db: Session =
     }
 
 
-@router.put("/tags/{tag_id}/activate")
+@router.put("/admin/tags/{tag_id}/activate")
 async def activate_tag(tag_id: int, db: Session = Depends(get_db)):
     """Reactivate a deprecated tag.
 
@@ -273,7 +172,7 @@ async def activate_tag(tag_id: int, db: Session = Depends(get_db)):
 # ============================================================
 
 
-@router.get("/media-assets/orphans")
+@router.get("/admin/media-assets/orphans")
 async def detect_orphan_assets(db: Session = Depends(get_db)):
     """Scan for orphaned media assets (dry-run detection only)."""
     try:
@@ -284,7 +183,7 @@ async def detect_orphan_assets(db: Session = Depends(get_db)):
         return {"success": False, "error": str(e)}
 
 
-@router.post("/media-assets/cleanup")
+@router.post("/admin/media-assets/cleanup")
 async def cleanup_orphan_assets(
     dry_run: bool = True,
     db: Session = Depends(get_db),
@@ -309,7 +208,7 @@ async def cleanup_orphan_assets(
         return {"success": False, "error": str(e)}
 
 
-@router.get("/media-assets/stats")
+@router.get("/admin/media-assets/stats")
 async def media_asset_stats(db: Session = Depends(get_db)):
     """Get media asset statistics including orphan counts."""
     try:
@@ -325,7 +224,7 @@ async def media_asset_stats(db: Session = Depends(get_db)):
 # ============================================================
 
 
-@router.get("/cache/images/stats", response_model=ImageCacheStatsResponse)
+@router.get("/admin/cache/images/stats", response_model=ImageCacheStatsResponse)
 async def image_cache_stats():
     """Get image generation cache statistics."""
     from services.image_cache import get_cache_stats
@@ -334,7 +233,7 @@ async def image_cache_stats():
     return ImageCacheStatsResponse(**stats)
 
 
-@router.delete("/cache/images", response_model=ImageCacheClearResponse)
+@router.delete("/admin/cache/images", response_model=ImageCacheClearResponse)
 async def clear_image_cache_endpoint():
     """Clear all cached generated images."""
     from services.image_cache import clear_image_cache
@@ -365,7 +264,7 @@ def _run_thumbnail_generation(group_name: str | None, force: bool) -> None:
         db.close()
 
 
-@router.post("/tag-thumbnails/generate", response_model=TagThumbnailGenerateResponse)
+@router.post("/admin/tag-thumbnails/generate", response_model=TagThumbnailGenerateResponse)
 async def generate_tag_thumbnails(
     background_tasks: BackgroundTasks,
     group_name: str | None = Query(None, description="Filter by group_name (e.g. expression, pose)"),
@@ -380,3 +279,56 @@ async def generate_tag_thumbnails(
     return TagThumbnailGenerateResponse(
         ok=True, message=f"Thumbnail generation started (group={group_name or 'all'}, force={force})"
     )
+
+
+# ============================================================
+# Storage Cleanup (absorbed from cleanup.py)
+# ============================================================
+
+
+class CleanupRequest(BaseModel):
+    """Request body for cleanup operation."""
+
+    cleanup_videos: bool = True
+    video_max_age_days: int = 7
+    cleanup_cache: bool = True
+    cache_max_age_seconds: int | None = None
+    cleanup_build: bool = True
+    build_max_age_hours: int = 24
+    cleanup_test_folders: bool = True
+    dry_run: bool = False
+
+
+@router.get("/storage/stats")
+async def storage_stats():
+    """Get storage statistics for all output directories."""
+    from services.cleanup import get_storage_stats
+
+    return get_storage_stats()
+
+
+@router.post("/storage/cleanup")
+async def cleanup_storage(request: CleanupRequest):
+    """Execute storage cleanup based on provided options."""
+    from services.cleanup import CleanupOptions, cleanup_all
+
+    options = CleanupOptions(
+        cleanup_videos=request.cleanup_videos,
+        video_max_age_days=request.video_max_age_days,
+        cleanup_cache=request.cleanup_cache,
+        cache_max_age_seconds=request.cache_max_age_seconds,
+        cleanup_build=request.cleanup_build,
+        build_max_age_hours=request.build_max_age_hours,
+        cleanup_test_folders=request.cleanup_test_folders,
+        dry_run=request.dry_run,
+    )
+    return cleanup_all(options)
+
+
+@router.post("/storage/cleanup/preview")
+async def cleanup_preview():
+    """Preview what would be deleted without actually deleting."""
+    from services.cleanup import CleanupOptions, cleanup_all
+
+    options = CleanupOptions(dry_run=True)
+    return cleanup_all(options)

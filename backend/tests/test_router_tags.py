@@ -387,15 +387,3 @@ class TestTagsClassification:
         resp = client.post("/tags/bulk-approve-classifications", json=approvals)
         assert resp.status_code == 400
 
-    # --- POST /tags/migrate-patterns ---
-
-    @patch("routers.tags.migrate_patterns_to_rules")
-    @patch("routers.tags.CATEGORY_PATTERNS", {"hair_color": ["_hair"]}, create=True)
-    def test_migrate_patterns(self, mock_migrate, client: TestClient, db_session):
-        """Migrate category patterns to classification_rules."""
-        mock_migrate.return_value = 5
-        resp = client.post("/tags/migrate-patterns")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["ok"] is True
-        assert data["rules_created"] == 5

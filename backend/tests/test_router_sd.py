@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 from fastapi.testclient import TestClient
 
-PATCH_PREFIX = "routers.sd"
+PATCH_PREFIX = "routers.sd_models"
 
 
 class TestListSDModels:

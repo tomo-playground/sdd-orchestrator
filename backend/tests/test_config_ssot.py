@@ -110,14 +110,14 @@ class TestNoHardcodedValues:
         assert not any("civitai.com/api" in s for s in strings), "loras.py should use CIVITAI_API_BASE from config"
 
     def test_sd_no_hardcoded_timeout(self):
-        """sd.py should not have literal timeout= numeric values."""
-        filepath = BACKEND_DIR / "routers" / "sd.py"
+        """sd_models.py should not have literal timeout= numeric values."""
+        filepath = BACKEND_DIR / "routers" / "sd_models.py"
         source = filepath.read_text(encoding="utf-8")
         tree = ast.parse(source)
         for node in ast.walk(tree):
             if isinstance(node, ast.keyword) and node.arg == "timeout":
                 assert not isinstance(node.value, ast.Constant), (
-                    f"sd.py has hardcoded timeout={getattr(node.value, 'value', '?')} — use SD_API_TIMEOUT"
+                    f"sd_models.py has hardcoded timeout={getattr(node.value, 'value', '?')} — use SD_API_TIMEOUT"
                 )
 
     def test_image_gen_core_no_hardcoded_steps(self):

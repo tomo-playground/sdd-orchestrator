@@ -1,10 +1,10 @@
-"""Settings management endpoints."""
+"""Settings management and analytics endpoints."""
 
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
 from config import (
@@ -22,6 +22,7 @@ router = APIRouter(tags=["settings"])
 
 class AutoEditSettingsUpdate(BaseModel):
     """Auto Edit 설정 업데이트 요청"""
+
     enabled: bool
     threshold: float
     max_cost: float
@@ -94,7 +95,7 @@ async def update_auto_edit_settings(settings: AutoEditSettingsUpdate):
             "threshold": settings.threshold,
             "max_cost": settings.max_cost,
             "max_retries": settings.max_retries,
-        }
+        },
     }
 
 
@@ -118,37 +119,67 @@ async def get_auto_edit_cost_summary(db: Session = Depends(get_db)):
     month_start = today_start.replace(day=1)
 
     # Today
-    today_cost = db.query(func.sum(ActivityLog.gemini_cost_usd)).filter(
-        ActivityLog.gemini_edited == True,  # noqa: E712
-        ActivityLog.created_at >= today_start
-    ).scalar() or 0.0
+    today_cost = (
+        db.query(func.sum(ActivityLog.gemini_cost_usd))
+        .filter(
+            ActivityLog.gemini_edited == True,  # noqa: E712
+            ActivityLog.created_at >= today_start,
+        )
+        .scalar()
+        or 0.0
+    )
 
-    today_count = db.query(func.count(ActivityLog.id)).filter(
-        ActivityLog.gemini_edited == True,  # noqa: E712
-        ActivityLog.created_at >= today_start
-    ).scalar() or 0
+    today_count = (
+        db.query(func.count(ActivityLog.id))
+        .filter(
+            ActivityLog.gemini_edited == True,  # noqa: E712
+            ActivityLog.created_at >= today_start,
+        )
+        .scalar()
+        or 0
+    )
 
     # This week
-    week_cost = db.query(func.sum(ActivityLog.gemini_cost_usd)).filter(
-        ActivityLog.gemini_edited == True,  # noqa: E712
-        ActivityLog.created_at >= week_start
-    ).scalar() or 0.0
+    week_cost = (
+        db.query(func.sum(ActivityLog.gemini_cost_usd))
+        .filter(
+            ActivityLog.gemini_edited == True,  # noqa: E712
+            ActivityLog.created_at >= week_start,
+        )
+        .scalar()
+        or 0.0
+    )
 
     # This month
-    month_cost = db.query(func.sum(ActivityLog.gemini_cost_usd)).filter(
-        ActivityLog.gemini_edited == True,  # noqa: E712
-        ActivityLog.created_at >= month_start
-    ).scalar() or 0.0
+    month_cost = (
+        db.query(func.sum(ActivityLog.gemini_cost_usd))
+        .filter(
+            ActivityLog.gemini_edited == True,  # noqa: E712
+            ActivityLog.created_at >= month_start,
+        )
+        .scalar()
+        or 0.0
+    )
 
-    month_count = db.query(func.count(ActivityLog.id)).filter(
-        ActivityLog.gemini_edited == True,  # noqa: E712
-        ActivityLog.created_at >= month_start
-    ).scalar() or 0
+    month_count = (
+        db.query(func.count(ActivityLog.id))
+        .filter(
+            ActivityLog.gemini_edited == True,  # noqa: E712
+            ActivityLog.created_at >= month_start,
+        )
+        .scalar()
+        or 0
+    )
 
     # Total
-    total_cost = db.query(func.sum(ActivityLog.gemini_cost_usd)).filter(
-        ActivityLog.gemini_edited == True  # noqa: E712
-    ).scalar() or 0.0
+    total_cost = (
+        db.query(func.sum(ActivityLog.gemini_cost_usd))
+        .filter(
+            ActivityLog.gemini_edited == True  # noqa: E712
+        )
+        .scalar()
+        or 0.0
+    )
 
     return {
         "today": round(today_cost, 4),
@@ -157,4 +188,124 @@ async def get_auto_edit_cost_summary(db: Session = Depends(get_db)):
         "total": round(total_cost, 4),
         "edit_count_today": today_count,
         "edit_count_month": month_count,
+    }
+
+
+# ============================================================
+# Gemini Edit Analytics (absorbed from analytics.py)
+# ============================================================
+
+
+@router.get("/analytics/gemini-edits")
+async def get_gemini_edit_analytics(
+    storyboard_id: int | None = Query(None, description="필터: 특정 스토리보드만"),
+    db: Session = Depends(get_db),
+):
+    """Gemini Auto Edit 분석 데이터"""
+    query = db.query(ActivityLog).filter(ActivityLog.gemini_edited == True)  # noqa: E712
+
+    if storyboard_id:
+        query = query.filter(ActivityLog.storyboard_id == storyboard_id)
+
+    edits = query.all()
+
+    total_edits = len(edits)
+    total_cost = sum(e.gemini_cost_usd or 0 for e in edits)
+    avg_cost = total_cost / total_edits if total_edits > 0 else 0
+
+    improvements = [
+        (e.final_match_rate or 0) - (e.original_match_rate or 0)
+        for e in edits
+        if e.final_match_rate is not None and e.original_match_rate is not None
+    ]
+    avg_improvement = sum(improvements) / len(improvements) if improvements else 0
+
+    by_range = {"0-10%": 0, "10-20%": 0, "20-30%": 0, "30%+": 0}
+    for imp in improvements:
+        imp_pct = imp * 100
+        if imp_pct < 10:
+            by_range["0-10%"] += 1
+        elif imp_pct < 20:
+            by_range["10-20%"] += 1
+        elif imp_pct < 30:
+            by_range["20-30%"] += 1
+        else:
+            by_range["30%+"] += 1
+
+    edit_list = [
+        {
+            "id": e.id,
+            "storyboard_id": e.storyboard_id,
+            "scene_id": e.scene_id,
+            "original_match_rate": e.original_match_rate,
+            "final_match_rate": e.final_match_rate,
+            "improvement": (e.final_match_rate or 0) - (e.original_match_rate or 0),
+            "cost_usd": e.gemini_cost_usd,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+        }
+        for e in edits
+    ]
+
+    return {
+        "total_edits": total_edits,
+        "avg_cost_usd": round(avg_cost, 4),
+        "total_cost_usd": round(total_cost, 4),
+        "avg_improvement": round(avg_improvement, 4),
+        "edits": edit_list,
+        "by_improvement_range": by_range,
+    }
+
+
+@router.get("/analytics/gemini-edits/summary")
+async def get_gemini_edit_summary(db: Session = Depends(get_db)):
+    """Gemini Auto Edit 요약 통계"""
+    total_edits = (
+        db.query(func.count(ActivityLog.id))
+        .filter(ActivityLog.gemini_edited == True)  # noqa: E712
+        .scalar()
+        or 0
+    )
+
+    total_cost = (
+        db.query(func.sum(ActivityLog.gemini_cost_usd))
+        .filter(ActivityLog.gemini_edited == True)  # noqa: E712
+        .scalar()
+        or 0.0
+    )
+
+    successful_edits = (
+        db.query(func.count(ActivityLog.id))
+        .filter(
+            and_(
+                ActivityLog.gemini_edited == True,  # noqa: E712
+                ActivityLog.final_match_rate.isnot(None),
+                ActivityLog.original_match_rate.isnot(None),
+                ActivityLog.final_match_rate > ActivityLog.original_match_rate,
+            )
+        )
+        .scalar()
+        or 0
+    )
+
+    success_rate = successful_edits / total_edits if total_edits > 0 else 0
+
+    improvements = (
+        db.query((ActivityLog.final_match_rate - ActivityLog.original_match_rate).label("improvement"))
+        .filter(
+            and_(
+                ActivityLog.gemini_edited == True,  # noqa: E712
+                ActivityLog.final_match_rate.isnot(None),
+                ActivityLog.original_match_rate.isnot(None),
+            )
+        )
+        .all()
+    )
+
+    avg_improvement = sum(imp.improvement for imp in improvements) / len(improvements) if improvements else 0
+
+    return {
+        "total_edits": total_edits,
+        "total_cost": round(total_cost, 4),
+        "success_rate": round(success_rate, 4),
+        "avg_improvement": round(avg_improvement, 4),
     }

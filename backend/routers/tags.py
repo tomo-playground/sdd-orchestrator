@@ -8,7 +8,7 @@ from config import logger
 from database import get_db
 from models import Tag
 from schemas import TagCreate, TagResponse, TagSearchResponse, TagUpdate
-from services.tag_classifier import TagClassifier, classify_tags_background, migrate_patterns_to_rules
+from services.tag_classifier import TagClassifier, classify_tags_background
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -347,23 +347,6 @@ async def classify_tags(
     )
 
     return ClassifyResponse(results=results, classified=classified, unknown=unknown)
-
-
-@router.post("/migrate-patterns")
-async def migrate_category_patterns(db: Session = Depends(get_db)):
-    """Migrate CATEGORY_PATTERNS from keywords.py to classification_rules table.
-
-    This is a one-time migration to move hardcoded patterns to the database.
-    """
-    from services.keywords import CATEGORY_PATTERNS
-
-    count = migrate_patterns_to_rules(db, CATEGORY_PATTERNS)
-
-    return {
-        "ok": True,
-        "message": f"Migrated {count} patterns to classification_rules",
-        "rules_created": count,
-    }
 
 
 @router.post("/approve-classification")

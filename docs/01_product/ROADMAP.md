@@ -18,11 +18,12 @@
 | Phase 14 (ControlNet Pose Pipeline) | 전체 완료 (ARCHIVED) |
 | **Phase 15 (Prompt Input UX 고도화)** | **전체 완료 — A-0~A-3 + B-1~B-3 (18/18)** |
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
-| **Phase 17 (Service/Admin 분리)** | **설계 확정, 미구현** |
-| 테스트 | Backend 2,690 + Frontend 379 = **총 3,069개** |
+| **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
+| 테스트 | Backend 2,635 + Frontend 379 = **총 3,014개** |
 
 ### 최근 작업
 
+- **Phase 17-0: API 정리** (02-25): 라우터 34→29개 축소. keywords/avatar/analytics/cleanup/sd 5개 삭제 및 통합, migrate EP 3건 + 미사용 prompt EP 2건 삭제, 미사용 스키마 5개 제거. URL 경로 변경 0건. 2,635 passed
 - **Agent Pipeline 품질 저하 버그 4건 수정** (02-25): Director 인라인 수정 결과 State 소실(Critical), DirectorReActStep feedback 추적 누락, Sound Designer writer_plan 미전달, TTS/Cinematographer director_plan 미전달. `_AGENT_STATE_KEY_MAP` + `revised_agents` 추적, feedback 필드 추가, 템플릿 emotional_arc/target_emotion 섹션. 9개 테스트 추가
 - **환경 태그 랜덤성 근본 해결** (02-25): Finalize에서 Writer Location Map 태그 강제 주입(`_inject_location_map_tags` + `_inject_location_negative_tags`), Environment(L10) 가중치 부스트(1.15), Danbooru 0건 태그 교체(`music_room`→`stage`, `dark_hallway`→`hallway,dark`, `school_hallway`→`classroom`). 7개 테스트 추가
 - **TTS 짧은 대사 개선 + BGM 볼륨 조정** (02-24): 짧은 스크립트(≤3자) `min_duration` 동적 조정(1.0→0.4s)으로 "그럼!" 등 불필요한 3회 재시도 해소. BGM 기본 볼륨 0.25→0.4(-8dB) 상향. 2,665 passed
@@ -184,13 +185,13 @@ graph LR
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | `keywords.py` 라우터 삭제 (Frontend 미사용, tags.py와 중복) | 미착수 |
-| 2 | `avatar.py` 라우터 삭제 (Frontend 미사용) | 미착수 |
-| 3 | `analytics.py` → `settings.py` 통합 (2개 EP, 동일 관심사) | 미착수 |
-| 4 | `cleanup.py` → `admin.py` 통합 (3개 EP, 동일 관심사) | 미착수 |
-| 5 | `sd.py` → `sd_models.py` 통합 (SD 인프라 단일화) | 미착수 |
-| 6 | One-time 마이그레이션 EP 삭제 3건 (migrate-tag-rules, migrate-patterns) | 미착수 |
-| 7 | Frontend 미사용 prompt EP 삭제 2건 (rewrite, check-conflicts) | 미착수 |
+| 1 | `keywords.py` 라우터 삭제 (Frontend 미사용, tags.py와 중복) | ✅ (02-25) |
+| 2 | `avatar.py` 라우터 삭제 (Frontend 미사용) | ✅ (02-25) |
+| 3 | `analytics.py` → `settings.py` 통합 (2개 EP, 동일 관심사) | ✅ (02-25) |
+| 4 | `cleanup.py` → `admin.py` 통합 (3개 EP, 동일 관심사) | ✅ (02-25) |
+| 5 | `sd.py` → `sd_models.py` 통합 (SD 인프라 단일화) | ✅ (02-25) |
+| 6 | One-time 마이그레이션 EP 삭제 3건 (migrate-tag-rules, migrate-patterns) | ✅ (02-25) |
+| 7 | Frontend 미사용 prompt EP 삭제 2건 (rewrite, check-conflicts) | ✅ (02-25) |
 
 **결과**: 34개 → 29개 라우터
 
@@ -266,8 +267,8 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
-| 1 | 17-0: API 정리 (불필요 라우터/EP 삭제, 34→29개) | 분리 선행 조건 |
-| 2 | 17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`) | 유저/관리자 API 분리 |
+| ~~1~~ | ~~17-0: API 정리 (34→29개)~~ | ✅ 완료 (02-25) |
+| 1 | 17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`) | 유저/관리자 API 분리 |
 | 3 | 17-2: Frontend Route Group 분리 (`/` + `/admin`) | 유저/관리자 UI 분리 |
 | 4 | 17-3: 유저 UI 간소화 (Advanced 토글, Quick Render, Tooltip) | 유저 경험 최적화 |
 

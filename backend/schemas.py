@@ -523,14 +523,6 @@ class PostCardSettings(BaseModel):
     caption: str = ""
 
 
-class AvatarRegenerateRequest(BaseModel):
-    avatar_key: str
-
-
-class AvatarResolveRequest(BaseModel):
-    avatar_key: str
-
-
 class VideoRequest(BaseModel):
     @model_validator(mode="before")
     @classmethod
@@ -696,13 +688,6 @@ class PromptSplitRequest(BaseModel):
     style: str = "Anime"
 
 
-class PromptValidateRequest(BaseModel):
-    """Request for validating prompt before image generation."""
-
-    positive: str
-    negative: str = ""
-
-
 class PromptComposeLoRA(BaseModel):
     """LoRA info for prompt composition."""
 
@@ -805,16 +790,6 @@ class EditPromptResponse(BaseModel):
 
 class SDModelRequest(BaseModel):
     sd_model_checkpoint: str
-
-
-class KeywordApproveRequest(BaseModel):
-    tag: str
-    category: str
-
-
-class BatchApproveRequest(BaseModel):
-    tags: list[str] | None = None
-    min_confidence: float = 0.7
 
 
 # ============================================================

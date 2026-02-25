@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import httpx
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from config import SD_LORAS_URL, logger
+from config import logger
 from database import get_db
 from schemas import (
     EditPromptRequest,
@@ -16,21 +15,15 @@ from schemas import (
     NegativePreviewResponse,
     PromptComposeRequest,
     PromptComposeResponse,
-    PromptRewriteRequest,
     PromptSplitRequest,
-    PromptValidateRequest,
     TranslateKoRequest,
     TranslateKoResponse,
 )
 from services.generation_prompt import _collect_context_tags
 from services.prompt import (
-    detect_prompt_conflicts,
     detect_scene_complexity,
-    rewrite_prompt,
     split_prompt_example,
     split_prompt_tokens,
-    validate_identity_tags,
-    validate_loras,
 )
 from services.prompt.ko_translator import translate_ko_to_prompt
 from services.prompt.prompt_editor import edit_prompt_with_instruction
@@ -51,11 +44,6 @@ def _convert_loras(loras: list | None) -> list[dict] | None:
         }
         for lora in loras
     ]
-
-
-def check_tag_conflicts(tags: list[str], db) -> dict:
-    """Stub: Check for tag conflicts."""
-    return {"conflicts": [], "has_conflicts": False, "total_tags": len(tags)}
 
 
 def _compose_negative_preview(
@@ -184,97 +172,10 @@ def edit_prompt_endpoint(
     return result
 
 
-@router.post("/rewrite")
-async def rewrite_prompt_endpoint(request: PromptRewriteRequest):
-    logger.info("📥 [Prompt Rewrite Req] %s", request.model_dump())
-    return rewrite_prompt(request)
-
-
 @router.post("/split")
 async def split_prompt_endpoint(request: PromptSplitRequest):
     logger.info("📥 [Prompt Split Req] %s", request.model_dump())
     return split_prompt_example(request)
-
-
-@router.post("/validate")
-async def validate_prompt(request: PromptValidateRequest):
-    """Validate prompt before image generation.
-
-    Checks:
-    1. LoRA existence in SD WebUI
-    2. Positive-Negative prompt conflicts
-
-    Returns validation result with warnings/errors.
-    """
-    logger.info(
-        "📥 [Prompt Validate] positive=%d chars, negative=%d chars", len(request.positive), len(request.negative)
-    )
-
-    # Fetch available LoRAs from SD WebUI
-    available_loras: list[str] | None = None
-    try:
-        async with httpx.AsyncClient() as client:
-            res = await client.get(SD_LORAS_URL, timeout=10.0)
-            res.raise_for_status()
-            data = res.json()
-            if isinstance(data, list):
-                available_loras = [item.get("name", "") for item in data if item.get("name")]
-    except Exception as exc:
-        logger.warning("⚠️ [Prompt Validate] Failed to fetch LoRAs: %s", exc)
-
-    # Validate LoRAs (skip if SD WebUI unreachable)
-    if available_loras is not None:
-        lora_result = validate_loras(request.positive, available_loras)
-    else:
-        from services.prompt.prompt import extract_lora_names
-
-        lora_result = {
-            "valid": True,
-            "prompt_loras": extract_lora_names(request.positive),
-            "missing": [],
-            "available": [],
-            "skipped": True,
-        }
-
-    # Detect conflicts
-    conflict_result = detect_prompt_conflicts(request.positive, request.negative)
-
-    # Validate identity tags
-    identity_result = validate_identity_tags(request.positive)
-
-    # Determine overall validity
-    is_valid = lora_result["valid"] and not conflict_result["has_conflicts"] and identity_result["valid"]
-    warnings = []
-    errors = []
-
-    if lora_result.get("skipped"):
-        warnings.append("SD WebUI 연결 실패 — LoRA 검증 건너뜀")
-    elif not lora_result["valid"]:
-        missing_names = ", ".join(lora_result["missing"])
-        errors.append(f"SD WebUI에 LoRA가 없습니다: {missing_names} (models/Lora 폴더 확인)")
-
-    if conflict_result["has_conflicts"]:
-        warnings.append(f"Conflicting tags in positive/negative: {', '.join(conflict_result['conflicts'])}")
-
-    if not identity_result["valid"]:
-        warnings.append(f"Missing identity tag: {identity_result['suggested']}")
-
-    logger.info(
-        "✅ [Prompt Validate] valid=%s, loras=%s, conflicts=%s, identity=%s",
-        is_valid,
-        lora_result["prompt_loras"],
-        conflict_result["conflicts"],
-        identity_result["found_tags"],
-    )
-
-    return {
-        "valid": is_valid,
-        "warnings": warnings,
-        "errors": errors,
-        "lora_validation": lora_result,
-        "conflict_detection": conflict_result,
-        "identity_validation": identity_result,
-    }
 
 
 @router.post("/compose", response_model=PromptComposeResponse)
@@ -554,38 +455,3 @@ async def replace_tags(request: AutoReplaceRequest):
         "removed_count": len(removed),
         "removed": removed,
     }
-
-
-class CheckConflictsRequest(BaseModel):
-    """Request for checking tag conflicts."""
-
-    tags: list[str]
-
-
-@router.post("/check-conflicts")
-async def check_conflicts(
-    request: CheckConflictsRequest,
-    db: Session = Depends(get_db),
-):
-    """Check for tag conflicts using DB rules.
-
-    Returns:
-        {
-            "has_conflicts": bool,
-            "conflicts": [
-                {
-                    "tag1": str,
-                    "tag2": str,
-                    "reason": str (optional)
-                }
-            ],
-            "filtered_tags": list[str]  # Tags with conflicts removed
-        }
-    """
-    result = check_tag_conflicts(request.tags, db)
-    logger.info(
-        "✅ [Check Conflicts] %d conflicts found in %d tags",
-        len(result["conflicts"]),
-        len(request.tags),
-    )
-    return result

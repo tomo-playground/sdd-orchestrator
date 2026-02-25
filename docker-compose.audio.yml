@@ -11,10 +11,10 @@ services:
       - huggingface-cache:/root/.cache/huggingface
     mem_limit: 10g
     environment:
-      TTS_DEVICE: "cpu"
-      MUSICGEN_DEVICE: "cpu"
+      TTS_DEVICE: "mps"
+      MUSICGEN_DEVICE: "mps"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
       interval: 30s
       timeout: 10s
       retries: 3

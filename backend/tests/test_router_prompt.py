@@ -1,6 +1,6 @@
 """Tests for prompt router endpoints."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,43 +9,6 @@ from models import Tag
 
 # Real API tests: skipped by default, run with `pytest --run-integration`
 integration = pytest.mark.integration
-
-
-class TestPromptRewrite:
-    """Test POST /prompt/rewrite endpoint."""
-
-    @integration
-    def test_rewrite_prompt_compose_mode(self, client: TestClient):
-        """Rewrite prompt in compose mode returns merged result."""
-        request_data = {
-            "base_prompt": "masterpiece, best_quality",
-            "scene_prompt": "1girl, smile, upper_body",
-            "style": "Anime",
-            "mode": "compose",
-        }
-        response = client.post("/prompt/rewrite", json=request_data)
-        assert response.status_code == 200
-        data = response.json()
-        assert "prompt" in data
-
-    @integration
-    def test_rewrite_prompt_default_mode(self, client: TestClient):
-        """Rewrite prompt with default mode."""
-        request_data = {
-            "base_prompt": "masterpiece",
-            "scene_prompt": "1girl, standing",
-        }
-        response = client.post("/prompt/rewrite", json=request_data)
-        assert response.status_code == 200
-
-    def test_rewrite_prompt_empty_scene(self, client: TestClient):
-        """Rewrite with empty scene prompt returns 400 (validation)."""
-        request_data = {
-            "base_prompt": "masterpiece",
-            "scene_prompt": "",
-        }
-        response = client.post("/prompt/rewrite", json=request_data)
-        assert response.status_code == 400
 
 
 class TestPromptSplit:
@@ -70,145 +33,6 @@ class TestPromptSplit:
         }
         response = client.post("/prompt/split", json=request_data)
         assert response.status_code == 400
-
-
-class TestPromptValidate:
-    """Test POST /prompt/validate endpoint."""
-
-    def test_validate_clean_prompt(self, client: TestClient):
-        """Validate prompt with no issues."""
-        with patch("routers.prompt.httpx.AsyncClient") as mock_client_cls:
-            mock_resp = MagicMock()
-            mock_resp.json.return_value = [{"name": "my_lora"}]
-            mock_resp.raise_for_status = MagicMock()
-
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_resp)
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client_cls.return_value = mock_client
-
-            request_data = {
-                "positive": "1girl, smile, upper_body",
-                "negative": "bad_quality, worst_quality",
-            }
-            response = client.post("/prompt/validate", json=request_data)
-            assert response.status_code == 200
-            data = response.json()
-
-            assert "valid" in data
-            assert "warnings" in data
-            assert "errors" in data
-            assert "lora_validation" in data
-            assert "conflict_detection" in data
-            assert "identity_validation" in data
-
-    def test_validate_prompt_with_conflicts(self, client: TestClient):
-        """Validate prompt where positive/negative overlap."""
-        with patch("routers.prompt.httpx.AsyncClient") as mock_client_cls:
-            mock_resp = MagicMock()
-            mock_resp.json.return_value = []
-            mock_resp.raise_for_status = MagicMock()
-
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_resp)
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client_cls.return_value = mock_client
-
-            request_data = {
-                "positive": "1girl, smile",
-                "negative": "smile, bad_quality",
-            }
-            response = client.post("/prompt/validate", json=request_data)
-            assert response.status_code == 200
-            data = response.json()
-
-            assert "conflict_detection" in data
-            conflict = data["conflict_detection"]
-            assert conflict["has_conflicts"] is True
-            assert "smile" in conflict["conflicts"]
-
-    def test_validate_prompt_sd_webui_unavailable(self, client: TestClient):
-        """Validate works even when SD WebUI is down."""
-        import httpx
-
-        with patch("routers.prompt.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client_cls.return_value = mock_client
-
-            request_data = {
-                "positive": "1girl, smile",
-                "negative": "bad_quality",
-            }
-            response = client.post("/prompt/validate", json=request_data)
-            assert response.status_code == 200
-            data = response.json()
-            assert "valid" in data
-
-    def test_validate_prompt_missing_lora(self, client: TestClient):
-        """Validate detects missing LoRA from SD WebUI."""
-        with patch("routers.prompt.httpx.AsyncClient") as mock_client_cls:
-            mock_resp = MagicMock()
-            mock_resp.json.return_value = [{"name": "existing_lora"}]
-            mock_resp.raise_for_status = MagicMock()
-
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_resp)
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client_cls.return_value = mock_client
-
-            request_data = {
-                "positive": "<lora:missing_lora:0.8>, 1girl",
-                "negative": "",
-            }
-            response = client.post("/prompt/validate", json=request_data)
-            assert response.status_code == 200
-            data = response.json()
-            assert data["lora_validation"]["valid"] is False
-            assert "missing_lora" in data["lora_validation"]["missing"]
-
-    def test_validate_prompt_lora_skip_on_sd_failure(self, client: TestClient):
-        """LoRA validation is skipped when SD WebUI is unreachable."""
-        with patch("routers.prompt.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(side_effect=Exception("Connection refused"))
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client_cls.return_value = mock_client
-
-            request_data = {
-                "positive": "<lora:some_lora:0.8>, 1girl",
-                "negative": "",
-            }
-            response = client.post("/prompt/validate", json=request_data)
-            assert response.status_code == 200
-            data = response.json()
-            # Should NOT block — LoRA validation skipped
-            assert data["lora_validation"]["valid"] is True
-            assert data["lora_validation"].get("skipped") is True
-            assert "some_lora" in data["lora_validation"]["prompt_loras"]
-
-    def test_validate_prompt_minimal_body(self, client: TestClient):
-        """Validate with only positive prompt (negative defaults to empty)."""
-        with patch("routers.prompt.httpx.AsyncClient") as mock_client_cls:
-            mock_resp = MagicMock()
-            mock_resp.json.return_value = []
-            mock_resp.raise_for_status = MagicMock()
-
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_resp)
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client_cls.return_value = mock_client
-
-            request_data = {"positive": "1girl, smile"}
-            response = client.post("/prompt/validate", json=request_data)
-            assert response.status_code == 200
 
 
 class TestPromptCompose:
@@ -468,24 +292,3 @@ class TestAutoReplace:
         assert data["original"] == ["medium_shot", "smile"]
 
 
-class TestCheckConflicts:
-    """Test POST /prompt/check-conflicts endpoint."""
-
-    def test_check_conflicts_no_conflicts(self, client: TestClient, db_session):
-        """Tags without conflicts return clean result."""
-        request_data = {"tags": ["smile", "standing"]}
-        response = client.post("/prompt/check-conflicts", json=request_data)
-        assert response.status_code == 200
-        data = response.json()
-
-        assert data["has_conflicts"] is False
-        assert data["total_tags"] == 2
-
-    def test_check_conflicts_empty_list(self, client: TestClient, db_session):
-        """Empty tag list returns no conflicts."""
-        request_data = {"tags": []}
-        response = client.post("/prompt/check-conflicts", json=request_data)
-        assert response.status_code == 200
-        data = response.json()
-        assert data["has_conflicts"] is False
-        assert data["total_tags"] == 0

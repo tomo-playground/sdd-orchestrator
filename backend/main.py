@@ -10,16 +10,12 @@ from fastapi.staticfiles import StaticFiles
 from routers import (
     activity_logs_router,
     admin_router,
-    analytics_router,
     assets_router,
-    avatar_router,
     backgrounds_router,
     characters_router,
-    cleanup_router,
     controlnet_router,
     creative_presets_router,
     groups_router,
-    keywords_router,
     lab_router,
     loras_router,
     memory_router,
@@ -33,7 +29,6 @@ from routers import (
     scene_router,
     scripts_router,
     sd_models_router,
-    sd_router,
     settings_router,
     storyboard_router,
     style_profiles_router,
@@ -141,17 +136,13 @@ async def health_check():
 
 # --- Routers ---
 app.include_router(admin_router)
-app.include_router(analytics_router)
 app.include_router(assets_router)
-app.include_router(avatar_router)
 app.include_router(backgrounds_router)
 app.include_router(characters_router)
-app.include_router(cleanup_router)
 app.include_router(controlnet_router)
 app.include_router(groups_router)
 app.include_router(projects_router)
 app.include_router(activity_logs_router)
-app.include_router(keywords_router)
 app.include_router(lab_router)
 app.include_router(creative_presets_router)
 app.include_router(loras_router)
@@ -164,7 +155,6 @@ app.include_router(render_presets_router)
 app.include_router(scene_router)
 app.include_router(scripts_router)
 app.include_router(sd_models_router)
-app.include_router(sd_router)
 app.include_router(settings_router)
 app.include_router(storyboard_router)
 app.include_router(style_profiles_router)
