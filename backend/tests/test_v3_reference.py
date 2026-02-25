@@ -332,8 +332,11 @@ class TestInjectReferenceDefaults:
         layers = [[] for _ in range(12)]
         builder._inject_reference_defaults(layers)
 
-        assert "white_background" in layers[LAYER_ENVIRONMENT]
-        assert "simple_background" in layers[LAYER_ENVIRONMENT]
+        env = layers[LAYER_ENVIRONMENT]
+        assert "(white_background:1.3)" in env
+        assert "(simple_background:1.3)" in env
+        assert "plain_background" in env
+        assert "solid_background" in env
         assert "solo" in layers[LAYER_CAMERA]
         assert "looking_at_viewer" in layers[LAYER_CAMERA]
         assert "front_view" in layers[LAYER_CAMERA]
@@ -341,10 +344,10 @@ class TestInjectReferenceDefaults:
 
     def test_no_duplicate_if_already_present(self, builder):
         layers = [[] for _ in range(12)]
-        layers[LAYER_ENVIRONMENT] = ["white_background"]
+        layers[LAYER_ENVIRONMENT] = ["(white_background:1.3)"]
         layers[LAYER_CAMERA] = ["solo"]
 
         builder._inject_reference_defaults(layers)
 
-        assert layers[LAYER_ENVIRONMENT].count("white_background") == 1
+        assert layers[LAYER_ENVIRONMENT].count("(white_background:1.3)") == 1
         assert layers[LAYER_CAMERA].count("solo") == 1

@@ -335,8 +335,26 @@ from config_prompt import *  # noqa: E402, F401, F403
 # --- Reference Image Generation Defaults ---
 # Default prompts for generating IP-Adapter reference images
 # Used when creating new characters without custom reference prompts
-DEFAULT_REFERENCE_BASE_PROMPT = "masterpiece, best_quality, ultra-detailed, solo, full_body, (standing:1.2), portrait, facing_viewer, front_view, looking_at_viewer, straight_on, white_background, simple_background, plain_background, solid_background"
-DEFAULT_REFERENCE_NEGATIVE_PROMPT = "lowres, (bad_anatomy:1.2), (bad_hands:1.2), text, error, missing_fingers, extra_digit, fewer_digits, cropped, worst_quality, low_quality, normal_quality, jpeg_artifacts, signature, watermark, username, blurry, detailed_background, scenery, outdoors, indoors"
+DEFAULT_REFERENCE_BASE_PROMPT = ", ".join([
+    "masterpiece", "best_quality", "ultra-detailed",
+    "solo", "full_body", "(standing:1.2)", "portrait",
+    "facing_viewer", "front_view", "looking_at_viewer", "straight_on",
+    "(white_background:1.3)", "(simple_background:1.3)", "plain_background", "solid_background",
+])
+DEFAULT_REFERENCE_NEGATIVE_PROMPT = ", ".join([
+    "lowres", "(bad_anatomy:1.2)", "(bad_hands:1.2)", "text", "error",
+    "missing_fingers", "extra_digit", "fewer_digits", "cropped",
+    "worst_quality", "low_quality", "normal_quality", "jpeg_artifacts",
+    "signature", "watermark", "username", "blurry",
+    # --- 배경 억제 ---
+    "(detailed_background:1.3)", "scenery", "outdoors", "indoors",
+    "ornate", "pattern", "decorative_background", "gradient_background",
+    "abstract_background", "colorful_background", "border", "frame",
+    # --- 멀티뷰 억제 ---
+    "(multiple_views:1.4)", "(character_sheet:1.4)", "reference_sheet",
+    "turnaround", "multiple_persona",
+    "2boys", "2girls", "multiple_boys", "multiple_girls",
+])
 
 # Default negative prompt for scene generation (applied to Gemini-generated scenes)
 DEFAULT_SCENE_NEGATIVE_PROMPT = "lowres, bad_anatomy, bad_hands, text, error, missing_fingers, extra_digit, fewer_digits, cropped, worst_quality, low_quality, jpeg_artifacts, signature, watermark, username, blurry"
