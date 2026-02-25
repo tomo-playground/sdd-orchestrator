@@ -98,6 +98,9 @@ GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
 # Gemini Text/Vision Model (Standard = gemini-2.5-flash)
 # Used for storyboard generation, prompt rewriting, and vision analysis
 GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.5-flash")
+# Gemini Classifier Model — 태그 분류 전용 (lightweight, 항상 Flash 사용)
+GEMINI_CLASSIFIER_MODEL = os.getenv("GEMINI_CLASSIFIER_MODEL", "gemini-2.5-flash")
+GEMINI_CLASSIFIER_TIMEOUT_MS = int(os.getenv("GEMINI_CLASSIFIER_TIMEOUT_MS", "30000"))
 
 template_env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
 

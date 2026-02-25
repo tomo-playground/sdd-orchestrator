@@ -9,7 +9,9 @@ from __future__ import annotations
 import json
 from typing import TypedDict
 
-from config import GEMINI_TEXT_MODEL, gemini_client, logger
+from google.genai.types import GenerateContentConfig, HttpOptions
+
+from config import GEMINI_CLASSIFIER_MODEL, GEMINI_CLASSIFIER_TIMEOUT_MS, gemini_client, logger
 from services.keywords.patterns import GROUP_NAME_TO_LAYER
 
 _VALID_GROUPS = frozenset(GROUP_NAME_TO_LAYER.keys())
@@ -119,8 +121,11 @@ async def classify_tags_via_llm(tags: list[str]) -> list[LLMClassificationResult
     prompt = _build_prompt(tags)
     try:
         response = await gemini_client.aio.models.generate_content(
-            model=GEMINI_TEXT_MODEL,
+            model=GEMINI_CLASSIFIER_MODEL,
             contents=prompt,
+            config=GenerateContentConfig(
+                http_options=HttpOptions(timeout=GEMINI_CLASSIFIER_TIMEOUT_MS),
+            ),
         )
         text = response.text or ""
         results = _parse_llm_json(text)
