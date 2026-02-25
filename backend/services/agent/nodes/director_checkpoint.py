@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from config import logger
 from config_pipelines import (
+    DIRECTOR_MODEL,
     LANGGRAPH_CHECKPOINT_HIGH_THRESHOLD,
     LANGGRAPH_CHECKPOINT_LOW_THRESHOLD,
     LANGGRAPH_CHECKPOINT_THRESHOLD,
@@ -69,6 +70,7 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
                 validate_fn=lambda data: validate_with_model(DirectorCheckpointOutput, data).model_dump(),
                 extract_key="",
                 step_name="director_checkpoint",
+                model=DIRECTOR_MODEL,
             )
 
         cp = DirectorCheckpointOutput.model_validate(result)
@@ -104,6 +106,7 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
                     validate_fn=lambda data: validate_with_model(DirectorCheckpointOutput, data).model_dump(),
                     extract_key="",
                     step_name="director_checkpoint_retry",
+                    model=DIRECTOR_MODEL,
                 )
             cp = DirectorCheckpointOutput.model_validate(result)
             count = state.get("director_checkpoint_revision_count", 0)

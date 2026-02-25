@@ -7,6 +7,7 @@ quality_criteria 등을 설정한다. 후속 노드(Writer, Checkpoint, Director
 from __future__ import annotations
 
 from config import logger
+from config_pipelines import DIRECTOR_MODEL
 from services.agent.llm_models import DirectorPlanOutput, validate_with_model
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.nodes._skip_guard import should_skip
@@ -37,6 +38,7 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
                 validate_fn=lambda data: validate_with_model(DirectorPlanOutput, data).model_dump(),
                 extract_key="",
                 step_name="director_plan",
+                model=DIRECTOR_MODEL,
             )
 
         plan = {
