@@ -228,29 +228,74 @@ class TagClassifier:
 
         return None
 
-    def _save_classification(self, tag: str, result: ClassificationResult) -> None:
-        """Save classification result to DB."""
+    async def classify_batch_with_llm(
+        self,
+        tags: list[str],
+    ) -> dict[str, ClassificationResult]:
+        """Rules + DB + Danbooru + LLM 배치 분류 (async).
+
+        기존 classify_batch(sync_danbooru=True) 실행 후,
+        여전히 미분류인 태그를 Gemini Flash로 배치 분류한다.
+        """
+        results, _pending = self.classify_batch(tags, sync_danbooru=True)
+
+        truly_unknown = [t for t, r in results.items() if not r.get("group")]
+        if truly_unknown:
+            from services.tag_classifier_llm import classify_tags_via_llm
+
+            llm_results = await classify_tags_via_llm(truly_unknown)
+            for lr in llm_results:
+                result: ClassificationResult = {
+                    "group": lr["group_name"],
+                    "confidence": lr["confidence"],
+                    "source": "llm",
+                }
+                self._save_classification(lr["tag"], result, defer_commit=True)
+                results[lr["tag"]] = result
+            # 배치 완료 후 한 번에 commit
+            try:
+                self.db.commit()
+            except Exception as e:
+                logger.error("❌ [TagClassifier] Batch LLM commit failed: %s", e)
+                self.db.rollback()
+
+        return results
+
+    def _save_classification(
+        self, tag: str, result: ClassificationResult, *, defer_commit: bool = False,
+    ) -> None:
+        """Save classification result to DB.
+
+        Args:
+            defer_commit: True이면 commit을 건너뛴다 (배치 호출 시 호출자가 commit).
+        """
+        from services.keywords.patterns import GROUP_NAME_TO_LAYER
+
         try:
             stmt = select(Tag).where(Tag.name == tag)
             existing = self.db.execute(stmt).scalar_one_or_none()
 
+            default_layer = GROUP_NAME_TO_LAYER.get(result["group"] or "", 1)
+
             if existing:
                 existing.group_name = result["group"]
+                existing.default_layer = default_layer
                 existing.classification_source = result["source"]
                 existing.classification_confidence = result["confidence"]
             else:
-                # Determine category based on group
                 category = self._group_to_category(result["group"])
                 new_tag = Tag(
                     name=tag,
                     category=category,
                     group_name=result["group"],
+                    default_layer=default_layer,
                     classification_source=result["source"],
                     classification_confidence=result["confidence"],
                 )
                 self.db.add(new_tag)
 
-            self.db.commit()
+            if not defer_commit:
+                self.db.commit()
             logger.info("✅ [TagClassifier] Saved: %s → %s", tag, result["group"])
         except Exception as e:
             logger.error("❌ [TagClassifier] Failed to save %s: %s", tag, e)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from services.agent.nodes.finalize import _validate_ken_burns_presets
+from services.agent.nodes._finalize_validators import validate_ken_burns_presets as _validate_ken_burns_presets
 
 
 class TestValidateKenBurnsPresets:

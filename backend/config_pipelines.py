@@ -182,6 +182,9 @@ RESEARCH_URL_FETCH_TIMEOUT: int = int(os.getenv("RESEARCH_URL_FETCH_TIMEOUT", "1
 RESEARCH_URL_MAX_BYTES: int = int(os.getenv("RESEARCH_URL_MAX_BYTES", "500000"))
 RESEARCH_MAX_REFERENCES: int = int(os.getenv("RESEARCH_MAX_REFERENCES", "5"))
 
+# --- Tag Classification LLM ---
+FEATURE_TAG_LLM_CLASSIFICATION = os.getenv("FEATURE_TAG_LLM_CLASSIFICATION", "true").lower() == "true"
+
 # --- Ollama (Local LLM) Configuration ---
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "120"))

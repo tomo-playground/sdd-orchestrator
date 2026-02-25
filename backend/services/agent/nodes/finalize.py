@@ -211,59 +211,6 @@ def _inject_location_negative_tags(scenes: list[dict], writer_plan: dict | None)
             scene["negative_prompt_extra"] = f"{existing}, {neg_tag}".strip(", ") if existing else neg_tag
 
 
-def _validate_controlnet_poses(scenes: list[dict]) -> None:
-    """controlnet_pose 값이 POSE_MAPPING 키에 있는지 검증. 무효 시 None 리셋."""
-    from services.controlnet import POSE_MAPPING  # noqa: PLC0415
-
-    valid_poses = set(POSE_MAPPING.keys())
-    for scene in scenes:
-        pose = scene.get("controlnet_pose")
-        if not pose:
-            continue
-        if pose not in valid_poses:
-            # Gemini가 언더바 형식으로 반환할 수 있으므로 공백으로 변환 후 재검증
-            normalized = pose.replace("_", " ")
-            if normalized in valid_poses:
-                scene["controlnet_pose"] = normalized
-            else:
-                logger.warning("[Finalize] Invalid controlnet_pose '%s' → reset to None", pose)
-                scene["controlnet_pose"] = None
-
-
-def _validate_ip_adapter_weights(scenes: list[dict]) -> None:
-    """ip_adapter_weight 범위 [0.0, 1.0] 클램프."""
-    for scene in scenes:
-        w = scene.get("ip_adapter_weight")
-        if w is None:
-            continue
-        clamped = max(0.0, min(1.0, float(w)))
-        if clamped != w:
-            logger.warning("[Finalize] ip_adapter_weight %.2f → clamped to %.2f", w, clamped)
-            scene["ip_adapter_weight"] = clamped
-
-
-def _validate_ken_burns_presets(scenes: list[dict]) -> None:
-    """씬별 ken_burns_preset 검증. 무효 시 제거, 누락 시 감정 기반 자동 배정."""
-    from services.motion import VALID_PRESET_NAMES, suggest_ken_burns_preset  # noqa: PLC0415
-
-    for i, scene in enumerate(scenes):
-        preset = scene.get("ken_burns_preset")
-        if preset and preset not in VALID_PRESET_NAMES:
-            logger.warning("[Finalize] Invalid ken_burns_preset '%s' → removed", preset)
-            scene.pop("ken_burns_preset", None)
-            preset = None
-        if not preset:
-            emotion = (scene.get("context_tags") or {}).get("emotion")
-            if emotion:
-                scene["ken_burns_preset"] = suggest_ken_burns_preset(emotion, seed=i)
-                logger.info(
-                    "[Finalize] ken_burns_preset auto-assigned: scene %d → %s (emotion=%s)",
-                    i,
-                    scene["ken_burns_preset"],
-                    emotion,
-                )
-
-
 def _auto_populate_scene_flags(scenes: list[dict], character_id: int | None) -> None:
     """씬별 생성 플래그(use_controlnet, use_ip_adapter, multi_gen_enabled) 자동 할당.
 
@@ -350,9 +297,28 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     _normalize_environment_tags(scenes)
     _inject_location_map_tags(scenes, state.get("writer_plan"))
     _inject_location_negative_tags(scenes, state.get("writer_plan"))
-    _validate_controlnet_poses(scenes)
-    _validate_ip_adapter_weights(scenes)
-    _validate_ken_burns_presets(scenes)
+
+    # 미분류 태그 LLM 사전 분류 (이미지 생성 전)
+    from config_pipelines import FEATURE_TAG_LLM_CLASSIFICATION
+
+    if FEATURE_TAG_LLM_CLASSIFICATION:
+        from ._tag_classification import classify_unknown_scene_tags
+
+        try:
+            with get_db_session() as db_session:
+                await classify_unknown_scene_tags(scenes, db_session)
+        except Exception:
+            logger.warning("[Finalize] LLM tag classification failed (non-fatal)", exc_info=True)
+
+    from ._finalize_validators import (
+        validate_controlnet_poses,
+        validate_ip_adapter_weights,
+        validate_ken_burns_presets,
+    )
+
+    validate_controlnet_poses(scenes)
+    validate_ip_adapter_weights(scenes)
+    validate_ken_burns_presets(scenes)
     check_camera_diversity(scenes)
     _auto_populate_scene_flags(scenes, state.get("character_id"))
     _flatten_tts_designs(scenes)
