@@ -230,9 +230,14 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         asset_url_map = {a.id: a.url for a in candidate_assets}
 
     recent_videos = [
-        {"url": rh.media_asset.url, "label": rh.label, "createdAt": int(rh.created_at.timestamp() * 1000)}
+        {
+            "url": rh.media_asset.url,
+            "label": rh.label,
+            "createdAt": int(rh.created_at.timestamp() * 1000),
+            "renderHistoryId": rh.id,
+        }
         for rh in storyboard.render_history[:10]
-        if rh.created_at
+        if rh.created_at and rh.media_asset
     ]
 
     # Resolve character_id and character_b_id from storyboard_characters
@@ -359,10 +364,12 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
         synchronize_session=False
     )
 
-    # Delete storyboard-owned media assets (videos etc.)
+    # Delete storyboard-owned media assets EXCEPT render outputs (video/audio)
+    # Video assets are linked to render_history via FK CASCADE — must be preserved
     db.query(MediaAsset).filter(
         MediaAsset.owner_type == "storyboard",
         MediaAsset.owner_id == storyboard_id,
+        MediaAsset.file_type.notin_(["video", "audio"]),
     ).delete(synchronize_session=False)
 
     # Delete scene media assets that are NOT referenced by incoming scenes
@@ -514,7 +521,7 @@ def permanent_delete_storyboard(db: Session, storyboard_id: int) -> dict:
         )
 
         # render_history rows are CASCADE-deleted by DB FK
-        # Clean up owned media assets
+        # Clean up ALL owned media assets (including video/audio — permanent delete)
         db.query(MediaAsset).filter(
             MediaAsset.owner_type == "storyboard",
             MediaAsset.owner_id == storyboard_id,

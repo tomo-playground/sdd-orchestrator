@@ -154,7 +154,14 @@ export function useStudioInitialization() {
           ...(projectId ? { projectId } : {}),
         });
         // Restore video data from DB, mapping label to correct slot
-        const recentVideos = data.recent_videos || [];
+        const recentVideos = (data.recent_videos || []).map(
+          (v: { url: string; label?: string; createdAt: number; renderHistoryId?: number }) => ({
+            url: v.url,
+            label: v.label,
+            createdAt: v.createdAt,
+            renderHistoryId: v.renderHistoryId,
+          }),
+        );
         const latestFull = recentVideos.find((v: { label?: string }) => v.label === "full");
         const latestPost = recentVideos.find((v: { label?: string }) => v.label === "post");
         useRenderStore.getState().set({

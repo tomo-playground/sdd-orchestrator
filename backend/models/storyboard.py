@@ -46,7 +46,7 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
 
     @property
     def video_url(self) -> str | None:
-        if self.render_history:
+        if self.render_history and self.render_history[0].media_asset:
             return self.render_history[0].media_asset.url
         return None
 

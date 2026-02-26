@@ -23,6 +23,10 @@
 
 ### 최근 작업
 
+- **Express 모드 ControlNet 자동 활성화** (02-26): Cinematographer 스킵 시 `controlnet_pose` 미할당→ControlNet OFF 문제 수정. `_auto_populate_scene_flags()`에서 `context_tags.pose` → `controlnet_pose` 자동 파생 + POSE_MAPPING 검증 + DEFAULT_POSE_TAG fallback. 15개 테스트 (기존 9→15)
+- **voice_seed Backend SSOT 보장** (02-26): 10/12 프리셋 voice_seed NULL→씬별 다른 목소리 문제 근본 수정. `_compute_voice_seed()` 헬퍼 추가, create/update/attach-preview 3개 엔드포인트에서 자동 계산. 기존 전체 프리셋 seed 일괄 고정
+- **레퍼런스 이미지 배경 억제 강화** (02-26): `white_background:1.8` LAYER_QUALITY(위치 0) 배치, 네거티브 프롬프트 18개 태그 가중치 상향, 9/10 캐릭터 흰 배경 재생성 성공
+- **캐릭터 보이스 매핑 정비** (02-26): 5캐릭터 한글 이름 부여(건우/수빈/지호/시온/유카리), 유카리·예민이 전용 보이스 프리셋 생성, LoRA 2개 등록(Usagi_Drop + add_detail)
 - **프롬프트 파이프라인 품질 근본 수정** (02-26): SB#481 분석→4대 버그 수정(한국어 emotion 매핑 132개, Location Map SSOT, `""` vs `None` DEFAULT 마스킹, GROUP_NAME_TO_LAYER coarse alias). DB 태그 오분류 420개 group_name 재분류 + 406개 default_layer 동기화 + 한글 태그 12개 삭제. ORM `@validates` 게이트(비ASCII 거부 + group_name→default_layer 자동 동기화). context_tags emotion 필드 태그 분류 유입 차단. Quick 모드 deepcopy. bgm_mood varchar(50→100). 2,635 passed
 - **Tag Group 세분화** (02-26): clothing(119)→7그룹(top/bottom/outfit/detail/legwear/footwear/accessory), action(56)→3그룹(body/hand/daily), time_weather(39)→3그룹(time_of_day/weather/particle). 13개 세분화 그룹, 26파일 변경, Layer 4/5/6/8/10 매핑, Gemini context_tags 후방 호환 보존. [명세](FEATURES/TAG_GROUP_REFINEMENT.md). 2,635 passed
 - **Audio Server 로컬 MPS 전환** (02-26): Docker CPU → 로컬 실행(MPS)으로 TTS(Qwen3-TTS)/BGM(MusicGen) Apple Silicon GPU 가속. `docker-compose.audio.yml` device=auto 전환, `audio/.venv` Python 3.13 로컬 환경 구축
