@@ -1066,17 +1066,17 @@ class V3PromptBuilder:
             layer_idx = info if isinstance(info, int) else info.get("layer", LAYER_SUBJECT)
             layers[layer_idx].append(tag)
 
-        # 7. Inject reference defaults (white_background, camera)
+        # 7. Quality tags (before reference defaults — env tags fill LAYER_QUALITY too)
+        self._ensure_quality_tags(layers)
+
+        # 8. Inject reference defaults (white_background, camera)
         self._inject_reference_defaults(layers)
 
-        # 8. Inject LoRAs (character × scale, style full weight)
+        # 9. Inject LoRAs (character × scale, style full weight)
         self._inject_loras_for_reference(character, layers)
 
-        # 9. Gender enhancement
+        # 10. Gender enhancement
         self._apply_gender_enhancement(character, char_tags_data, layers)
-
-        # 10. Quality tags
-        self._ensure_quality_tags(layers)
 
         # 11. Flatten with dedup + conflict resolution
         return self._flatten_layers(layers)
