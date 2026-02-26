@@ -248,7 +248,17 @@ async def regenerate_background(
         .first()
     )
     if not bg:
-        raise ValueError(f"Background not found: storyboard={storyboard_id}, location={location_key}")
+        # Auto-create Background record when individual generate is called first
+        loc_tags = tags or location_key.split("_")
+        bg = Background(
+            name=loc_tags[0].replace("_", " ").title(),
+            storyboard_id=storyboard_id,
+            location_key=location_key,
+            tags=loc_tags,
+            is_system=False,
+        )
+        db.add(bg)
+        db.flush()
 
     # Update tags if provided
     if tags is not None:

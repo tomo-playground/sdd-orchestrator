@@ -25,6 +25,7 @@
 
 ### 최근 작업
 
+- **Phase 18 DoD 갭 수정** (02-26): Tag Editing UI 추가(StageLocationCard 인라인 편집 → Save & Regenerate), StageRegenerateRequest 스키마(optional tags). SD Checkpoint 일관성 보장(`_ensure_correct_checkpoint()` generate/regenerate 양쪽 적용). stageStatus localStorage 영속화(TRANSIENT_KEYS에서 제거)
 - **Phase 18-3: Stage-Direct 연결** (02-26): "Continue to Direct" 클릭 시 `assign-backgrounds` API 자동 호출 + Direct 탭 전환. MaterialsPopover BG 클릭 → Stage 탭 이동. Script 완료 시 Express→Direct 직행, Standard/Creator→Stage 자동 전환. PipelineStatusDots "failed" 빨간 도트 + 툴팁. Materials API/fallback에 stage_status 반영
 - **Phase 18-2: Stage UI** (02-26): Script→Stage→Direct→Publish 4탭 전환. StudioTab "edit"→"direct" 리네이밍(7개 파일). StageTab 컴포넌트(Location 카드 그리드, Readiness 바, Generate/Assign/Regenerate API). PipelineStatusDots "stage" 스텝 추가. stageStatus 필드(TRANSIENT). StageLocationStatus/StageStatusResponse 타입. API timeout+getErrorMsg 적용
 - **Phase 18-1: Background Generation Pipeline** (02-26): `compose_for_background()` 5-Layer Template(Quality→Subject/no_humans→Camera/wide_shot→Environment→Atmosphere/LoRA). `background_generator.py` — scenes의 environment tags에서 location 역추론, SD WebUI로 배경 생성, AssetService 저장. Stage API 4EP(`generate-backgrounds`, `status`, `assign-backgrounds`, `regenerate-background`). `calculate_auto_pin_flags()` background_id 존재 시 auto_pin 비활성화. 7개 Stage 스키마 + REST API 문서 업데이트
