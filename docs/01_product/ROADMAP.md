@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-02-26)
+## 현재 상태 (2026-02-27)
 
 | 항목 | 상태 |
 |------|------|
@@ -25,6 +25,7 @@
 
 ### 최근 작업
 
+- **Phase 18 마무리** (02-27): background_id 데이터 흐름 완성(useScriptEditor SceneItem/syncToGlobalStore/save 3곳 추가), Stage BG 인디케이터 ID 표시(BG#N), Library backgrounds 탭 제거(수동 배경 관리→Stage 전환 완료), VRT/fixture 잔여 코드 정리
 - **Phase 18 DoD 갭 수정** (02-26): Tag Editing UI 추가(StageLocationCard 인라인 편집 → Save & Regenerate), StageRegenerateRequest 스키마(optional tags). SD Checkpoint 일관성 보장(`_ensure_correct_checkpoint()` generate/regenerate 양쪽 적용). stageStatus localStorage 영속화(TRANSIENT_KEYS에서 제거)
 - **Phase 18-3: Stage-Direct 연결** (02-26): "Continue to Direct" 클릭 시 `assign-backgrounds` API 자동 호출 + Direct 탭 전환. MaterialsPopover BG 클릭 → Stage 탭 이동. Script 완료 시 Express→Direct 직행, Standard/Creator→Stage 자동 전환. PipelineStatusDots "failed" 빨간 도트 + 툴팁. Materials API/fallback에 stage_status 반영
 - **Phase 18-2: Stage UI** (02-26): Script→Stage→Direct→Publish 4탭 전환. StudioTab "edit"→"direct" 리네이밍(7개 파일). StageTab 컴포넌트(Location 카드 그리드, Readiness 바, Generate/Assign/Regenerate API). PipelineStatusDots "stage" 스텝 추가. stageStatus 필드(TRANSIENT). StageLocationStatus/StageStatusResponse 타입. API timeout+getErrorMsg 적용
@@ -148,7 +149,7 @@ graph LR
     style P15 fill:#4CAF50,color:#fff
     style P16 fill:#4CAF50,color:#fff
     style P17 fill:#FF9800,color:#fff
-    style P18 fill:#E0E0E0,color:#333
+    style P18 fill:#4CAF50,color:#fff
 ```
 
 ---
