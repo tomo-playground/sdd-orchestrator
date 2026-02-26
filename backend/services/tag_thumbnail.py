@@ -81,7 +81,20 @@ def generate_batch_thumbnails(
 
     Returns a summary dict with counts.
     """
-    visual_groups = ["expression", "pose", "camera", "clothing", "hair_color", "hair_style"]
+    visual_groups = [
+        "expression",
+        "pose",
+        "camera",
+        "hair_color",
+        "hair_style",
+        "clothing_top",
+        "clothing_bottom",
+        "clothing_outfit",
+        "clothing_detail",
+        "legwear",
+        "footwear",
+        "accessory",
+    ]
     query = db.query(Tag).filter(Tag.is_active.is_(True))
 
     if group_name:

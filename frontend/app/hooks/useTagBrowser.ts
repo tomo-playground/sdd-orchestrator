@@ -7,7 +7,8 @@ const TAG_BROWSER_GROUPS = [
   "expression",
   "pose",
   "camera",
-  "clothing",
+  "clothing_top",
+  "clothing_outfit",
   "hair_color",
   "hair_style",
 ] as const;

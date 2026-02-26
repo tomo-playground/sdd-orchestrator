@@ -12,8 +12,24 @@ const getCardGroupColor = (group: string | null): string => {
       return "bg-blue-100";
     case "camera":
       return "bg-purple-100";
-    case "clothing":
+    case "clothing_top":
+    case "clothing_bottom":
+    case "clothing_outfit":
+    case "clothing_detail":
       return "bg-pink-100";
+    case "legwear":
+    case "footwear":
+      return "bg-rose-100";
+    case "accessory":
+      return "bg-fuchsia-100";
+    case "action_body":
+    case "action_hand":
+    case "action_daily":
+      return "bg-orange-100";
+    case "time_of_day":
+    case "weather":
+    case "particle":
+      return "bg-sky-100";
     case "hair_color":
       return "bg-orange-100";
     case "hair_style":

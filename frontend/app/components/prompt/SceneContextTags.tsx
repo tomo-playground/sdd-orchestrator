@@ -15,20 +15,30 @@ const GROUP_LABELS: Record<string, string> = {
   expression: "Expression",
   gaze: "Gaze",
   pose: "Pose",
-  action: "Action",
+  action_body: "Body Action",
+  action_hand: "Hand Action",
+  action_daily: "Daily Action",
   camera: "Camera",
   environment: "Environment",
   mood: "Mood",
+  time_of_day: "Time",
+  weather: "Weather",
+  particle: "Particle",
 };
 
 const GROUP_ICONS: Record<string, string> = {
   expression: "😊",
   gaze: "👁️",
   pose: "🧍",
-  action: "🏃",
+  action_body: "🏃",
+  action_hand: "✋",
+  action_daily: "☕",
   camera: "📷",
   environment: "🏠",
   mood: "🎭",
+  time_of_day: "🕐",
+  weather: "🌤️",
+  particle: "✨",
 };
 
 export default function SceneContextTags({

@@ -322,7 +322,7 @@ class TestComputeAdjustedMatchRate:
             "1girl": "subject",
             "blue_hair": "hair_color",
             "red_eyes": "eye_color",
-            "school_uniform": "clothing",
+            "school_uniform": "clothing_outfit",
             "smile": "expression",
             "standing": "pose",
             "cowboy_shot": "camera",

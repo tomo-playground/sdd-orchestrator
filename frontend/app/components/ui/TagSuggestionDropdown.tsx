@@ -30,8 +30,24 @@ export const getGroupColor = (group: string | null): string => {
       return "bg-blue-200";
     case "camera":
       return "bg-purple-200";
-    case "clothing":
+    case "clothing_top":
+    case "clothing_bottom":
+    case "clothing_outfit":
+    case "clothing_detail":
       return "bg-pink-200";
+    case "legwear":
+    case "footwear":
+      return "bg-rose-200";
+    case "accessory":
+      return "bg-fuchsia-200";
+    case "action_body":
+    case "action_hand":
+    case "action_daily":
+      return "bg-orange-200";
+    case "time_of_day":
+    case "weather":
+    case "particle":
+      return "bg-sky-200";
     case "hair_color":
       return "bg-orange-200";
     case "hair_style":

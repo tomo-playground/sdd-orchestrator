@@ -26,9 +26,10 @@ class TestGeminiCategoryMapping:
         assert result == "pose"
 
     def test_action_group_maps_correctly(self):
-        """Gemini 'action' group → returns 'action' category."""
-        result = TagCategoryCache._map_db_category(category="scene", group_name="action")
-        assert result == "action"
+        """Gemini action sub-groups → return their group names."""
+        assert TagCategoryCache._map_db_category("scene", "action_body") == "action_body"
+        assert TagCategoryCache._map_db_category("scene", "action_hand") == "action_hand"
+        assert TagCategoryCache._map_db_category("scene", "action_daily") == "action_daily"
 
     def test_camera_group_maps_correctly(self):
         """Gemini 'camera' group → returns 'camera' category."""
@@ -39,7 +40,9 @@ class TestGeminiCategoryMapping:
         """Gemini environment groups → return their group names."""
         assert TagCategoryCache._map_db_category("scene", "location_indoor") == "location_indoor"
         assert TagCategoryCache._map_db_category("scene", "location_outdoor") == "location_outdoor"
-        assert TagCategoryCache._map_db_category("scene", "time_weather") == "time_weather"
+        assert TagCategoryCache._map_db_category("scene", "time_of_day") == "time_of_day"
+        assert TagCategoryCache._map_db_category("scene", "weather") == "weather"
+        assert TagCategoryCache._map_db_category("scene", "particle") == "particle"
         assert TagCategoryCache._map_db_category("scene", "lighting") == "lighting"
 
     def test_mood_group_maps_correctly(self):
@@ -64,11 +67,15 @@ class TestGeminiCategoryMapping:
             "expression",
             "gaze",
             "pose",
-            "action",
+            "action_body",
+            "action_hand",
+            "action_daily",
             "camera",
             "location_indoor",
             "location_outdoor",
-            "time_weather",
+            "time_of_day",
+            "weather",
+            "particle",
             "lighting",
             "mood",
         ]

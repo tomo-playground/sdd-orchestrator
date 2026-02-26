@@ -5,9 +5,20 @@ from sqlalchemy.orm import Session
 from config import logger
 from models.tag import Tag
 
-# Tag 2단계 계층: category(대분류 4종) + group_name(소분류 24종).
-# context_tags 키 중 character_actions에 해당하는 group_name 집합.
-_ACTION_GROUPS = frozenset({"expression", "gaze", "pose", "action"})
+# Tag 2단계 계층: category(대분류 4종) + group_name(소분류 37종).
+# Gemini context_tags의 키 (인터페이스 계약 — 변경하지 않는다).
+_CONTEXT_TAG_KEYS = frozenset({"expression", "gaze", "pose", "action"})
+# DB group_name 필터용 (세분화된 그룹).
+_ACTION_DB_GROUPS = frozenset(
+    {
+        "expression",
+        "gaze",
+        "pose",
+        "action_body",
+        "action_hand",
+        "action_daily",
+    }
+)
 
 
 def auto_populate_character_actions(
@@ -44,7 +55,7 @@ def auto_populate_character_actions(
     all_tag_names: set[str] = set()
     for scene in scenes:
         context_tags = scene.get("context_tags") or {}
-        for cat in _ACTION_GROUPS:
+        for cat in _CONTEXT_TAG_KEYS:
             value = context_tags.get(cat)
             if not value:
                 continue
@@ -58,7 +69,7 @@ def auto_populate_character_actions(
     # Batch query: resolve (tag_name, group_name) -> (tag_id, default_layer)
     tag_rows = (
         db.query(Tag.id, Tag.name, Tag.group_name, Tag.default_layer)
-        .filter(Tag.name.in_(all_tag_names), Tag.group_name.in_(_ACTION_GROUPS))
+        .filter(Tag.name.in_(all_tag_names), Tag.group_name.in_(_ACTION_DB_GROUPS))
         .all()
     )
     tag_lookup: dict[tuple[str, str], tuple[int, int]] = {
@@ -93,7 +104,7 @@ def auto_populate_character_actions(
 
         actions: list[dict] = []
         for cid in target_char_ids:
-            for cat in _ACTION_GROUPS:
+            for cat in _CONTEXT_TAG_KEYS:
                 value = context_tags.get(cat)
                 if not value:
                     continue
@@ -102,7 +113,14 @@ def auto_populate_character_actions(
                     tag_name = tag_name.strip()
                     if not tag_name:
                         continue
+                    # Try exact (tag, context_key) first
                     result = tag_lookup.get((tag_name, cat))
+                    if not result and cat == "action":
+                        # context_tags key "action" → DB groups action_body/hand/daily
+                        for db_group in ("action_body", "action_hand", "action_daily"):
+                            result = tag_lookup.get((tag_name, db_group))
+                            if result:
+                                break
                     if not result:
                         continue
                     tag_id, _ = result
@@ -140,7 +158,7 @@ def extract_actions_from_context_tags(
         return None
 
     tag_names: set[str] = set()
-    for cat in _ACTION_GROUPS:
+    for cat in _CONTEXT_TAG_KEYS:
         value = context_tags.get(cat)
         if not value:
             continue
@@ -152,20 +170,27 @@ def extract_actions_from_context_tags(
 
     rows = (
         db.query(Tag.id, Tag.name, Tag.group_name)
-        .filter(Tag.name.in_(tag_names), Tag.group_name.in_(_ACTION_GROUPS))
+        .filter(Tag.name.in_(tag_names), Tag.group_name.in_(_ACTION_DB_GROUPS))
         .all()
     )
     tag_lookup: dict[tuple[str, str], int] = {(r.name, r.group_name): r.id for r in rows}
 
     actions: list[dict] = []
-    for cat in _ACTION_GROUPS:
+    for cat in _CONTEXT_TAG_KEYS:
         value = context_tags.get(cat)
         if not value:
             continue
         tags = [value] if isinstance(value, str) else value
         for name in tags:
             name = name.strip()
+            # Try exact (tag, context_key) first
             tid = tag_lookup.get((name, cat))
+            if not tid and cat == "action":
+                # context_tags key "action" → DB groups action_body/hand/daily
+                for db_group in ("action_body", "action_hand", "action_daily"):
+                    tid = tag_lookup.get((name, db_group))
+                    if tid:
+                        break
             if tid:
                 actions.append({"character_id": character_id, "tag_id": tid, "weight": 1.0})
 

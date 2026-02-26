@@ -271,7 +271,20 @@ async def generate_tag_thumbnails(
     force: bool = Query(False, description="Re-generate even if thumbnail already exists"),
 ):
     """Batch-generate tag thumbnails from Danbooru in background."""
-    valid_groups = {"expression", "pose", "camera", "clothing", "hair_color", "hair_style"}
+    valid_groups = {
+        "expression",
+        "pose",
+        "camera",
+        "hair_color",
+        "hair_style",
+        "clothing_top",
+        "clothing_bottom",
+        "clothing_outfit",
+        "clothing_detail",
+        "legwear",
+        "footwear",
+        "accessory",
+    }
     if group_name and group_name not in valid_groups:
         raise HTTPException(status_code=400, detail=f"Invalid group_name. Must be one of: {sorted(valid_groups)}")
 

@@ -44,12 +44,17 @@ def load_keyword_suggestions(min_count: int = 1, limit: int = 50) -> list[dict[s
             continue
         if int(count) >= min_count and normalized_tag not in known:
             category, confidence = suggest_category_for_tag(normalized_tag)
-            items.append({
-                "tag": normalized_tag, "count": int(count),
-                "suggested_category": category, "confidence": confidence,
-            })
+            items.append(
+                {
+                    "tag": normalized_tag,
+                    "count": int(count),
+                    "suggested_category": category,
+                    "confidence": confidence,
+                }
+            )
     items.sort(key=lambda item: (-item["count"], item["tag"]))
-    return items[:max(1, limit)]
+    return items[: max(1, limit)]
+
 
 def apply_high_confidence_suggestions(min_confidence: float = 1.0) -> int:
     """Automatically apply high-confidence suggestions to the DB (Self-Correction)."""
@@ -74,7 +79,12 @@ def apply_high_confidence_suggestions(min_confidence: float = 1.0) -> int:
                     tag = known_tags[tag_name]
                     if not tag.group_name or tag.group_name == "other":
                         tag.group_name = category
-                        tag.category = "scene" if category in ["time_weather", "lighting", "location_indoor", "location_outdoor"] else "quality" # Simplified mapping
+                        tag.category = (
+                            "scene"
+                            if category
+                            in ["time_of_day", "weather", "particle", "lighting", "location_indoor", "location_outdoor"]
+                            else "quality"
+                        )  # Simplified mapping
                         tag.classification_source = "auto_correction"
                         tag.classification_confidence = confidence
                         applied_count += 1

@@ -37,10 +37,15 @@ export default function TagsTab() {
     "expression",
     "gaze",
     "pose",
-    "action",
+    "action_body",
+    "action_hand",
+    "action_daily",
     "camera",
     "environment",
     "mood",
+    "time_of_day",
+    "weather",
+    "particle",
   ];
 
   const availableGroups = useMemo(() => {
@@ -87,9 +92,9 @@ export default function TagsTab() {
       {/* Group Statistics Overview */}
       <div className="grid gap-4">
         <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
-          Scene Tag Groups (7 Categories)
+          Scene Tag Groups ({SCENE_TAG_GROUPS.length} Groups)
         </span>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
           {SCENE_TAG_GROUPS.map((group: string) => {
             const count = allTags.filter(
               (t: Tag) => t.category === "scene" && t.group_name === group

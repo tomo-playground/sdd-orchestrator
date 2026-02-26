@@ -22,7 +22,20 @@ type UseTagsResult = {
   isExclusiveGroup: (groupName: string) => boolean;
 };
 
-const SCENE_TAG_GROUPS = ["expression", "gaze", "pose", "action", "camera", "environment", "mood"];
+const SCENE_TAG_GROUPS = [
+  "expression",
+  "gaze",
+  "pose",
+  "action_body",
+  "action_hand",
+  "action_daily",
+  "camera",
+  "environment",
+  "mood",
+  "time_of_day",
+  "weather",
+  "particle",
+];
 
 /**
  * Hook to load and manage tags for scene context.

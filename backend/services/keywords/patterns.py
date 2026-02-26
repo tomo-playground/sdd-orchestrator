@@ -221,7 +221,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "bishoujo",
         "ikemen",
     ],
-    "clothing": [
+    "clothing_top": [
         "shirt",
         "t-shirt",
         "blouse",
@@ -238,6 +238,11 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "camisole",
         "black_tank_top",
         "white_tank_top",
+        "green_hoodie",
+        "black_hoodie",
+        "white_hoodie",
+    ],
+    "clothing_bottom": [
         "skirt",
         "miniskirt",
         "long_skirt",
@@ -249,6 +254,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "white_shorts",
         "black_shorts",
         "denim_shorts",
+    ],
+    "clothing_outfit": [
         "dress",
         "sundress",
         "wedding_dress",
@@ -266,10 +273,15 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "one-piece_swimsuit",
         "bikini",
         "school_swimsuit",
+        "apron",
+        "overalls",
+    ],
+    "clothing_detail": [
         "sleeveless",
         "short_sleeves",
         "long_sleeves",
         "wide_sleeves",
+        "puffy_sleeves",
         "off_shoulder",
         "off-shoulder",
         "bare_shoulders",
@@ -285,7 +297,16 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "ribbon",
         "lace",
         "frills",
-        "puffy_sleeves",
+        "open_clothes",
+        "open_jacket",
+        "open_shirt",
+        "hood",
+        "hood_up",
+        "hood_down",
+        "plaid",
+        "striped",
+    ],
+    "legwear": [
         "socks",
         "thighhighs",
         "kneehighs",
@@ -298,6 +319,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "thigh_strap",
         "garter",
         "garter_belt",
+    ],
+    "footwear": [
         "barefoot",
         "shoes",
         "boots",
@@ -311,6 +334,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "brown_footwear",
         "black_footwear",
         "white_footwear",
+    ],
+    "accessory": [
         "glasses",
         "sunglasses",
         "hat",
@@ -327,19 +352,6 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "ring",
         "choker",
         "jewelry",
-        "green_hoodie",
-        "black_hoodie",
-        "white_hoodie",
-        "open_clothes",
-        "open_jacket",
-        "open_shirt",
-        "hood",
-        "hood_up",
-        "hood_down",
-        "apron",
-        "overalls",
-        "plaid",
-        "striped",
     ],
     "expression": [
         "smile",
@@ -467,15 +479,22 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "curled_up",
         "fetal_position",
     ],
-    "action": [
+    "action_body": [
         "walking",
         "running",
         "jumping",
         "flying",
+        "swimming",
+        "diving",
         "dancing",
         "stretching",
         "bending",
         "turning",
+        "fighting",
+        "kicking",
+        "punching",
+    ],
+    "action_hand": [
         "holding",
         "holding_bag",
         "holding_book",
@@ -496,6 +515,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "hugging",
         "embracing",
         "carrying",
+    ],
+    "action_daily": [
         "reading",
         "writing",
         "drawing",
@@ -518,11 +539,6 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "showering",
         "dressing",
         "undressing",
-        "fighting",
-        "kicking",
-        "punching",
-        "swimming",
-        "diving",
     ],
     "camera": [
         "close-up",
@@ -711,7 +727,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "machine_background",
         "mechanical_background",
     ],
-    "time_weather": [
+    "time_of_day": [
         "day",
         "daytime",
         "morning",
@@ -727,6 +743,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "twilight",
         "golden_hour",
         "blue_hour",
+    ],
+    "weather": [
         "sunny",
         "cloudy",
         "overcast",
@@ -741,6 +759,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "thunder",
         "lightning",
         "windy",
+    ],
+    "particle": [
         "falling_leaves",
         "falling_petals",
         "cherry_blossoms",
@@ -859,18 +879,28 @@ CATEGORY_PRIORITY: dict[str, int] = {
     "body_feature": 4,
     "appearance": 4,
     "body_type": 4,
-    "clothing": 5,
+    "clothing_top": 5,
+    "clothing_bottom": 5,
+    "clothing_outfit": 5,
+    "clothing_detail": 5,
+    "legwear": 5,
+    "footwear": 5,
+    "accessory": 5,
     "expression": 6,
     "gaze": 7,
     "pose": 8,
-    "action": 9,
+    "action_body": 9,
+    "action_hand": 9,
+    "action_daily": 9,
     "camera": 10,
     "location_indoor_specific": 11,
     "location_outdoor": 11,
     "environment": 11,
     "location_indoor_general": 12,
     "background_type": 12,
-    "time_weather": 13,
+    "time_of_day": 13,
+    "weather": 13,
+    "particle": 13,
     "lighting": 14,
     "mood": 15,
     "style": 16,
@@ -891,18 +921,28 @@ GROUP_NAME_TO_LAYER: dict[str, int] = {
     "body_feature": 3,  # LAYER_BODY
     "appearance": 3,  # LAYER_BODY
     "body_type": 3,  # LAYER_BODY
-    "clothing": 4,  # LAYER_MAIN_CLOTH
+    "clothing_top": 4,  # LAYER_MAIN_CLOTH
+    "clothing_bottom": 4,  # LAYER_MAIN_CLOTH
+    "clothing_outfit": 4,  # LAYER_MAIN_CLOTH
+    "clothing_detail": 5,  # LAYER_DETAIL_CLOTH
+    "legwear": 5,  # LAYER_DETAIL_CLOTH
+    "footwear": 5,  # LAYER_DETAIL_CLOTH
+    "accessory": 6,  # LAYER_ACCESSORY
     "expression": 7,  # LAYER_EXPRESSION
     "gaze": 7,  # LAYER_EXPRESSION
     "pose": 8,  # LAYER_ACTION
-    "action": 8,  # LAYER_ACTION
+    "action_body": 8,  # LAYER_ACTION
+    "action_hand": 8,  # LAYER_ACTION
+    "action_daily": 8,  # LAYER_ACTION
     "camera": 9,  # LAYER_CAMERA
     "location_indoor_general": 10,  # LAYER_ENVIRONMENT
     "location_indoor_specific": 10,  # LAYER_ENVIRONMENT
     "location_outdoor": 10,  # LAYER_ENVIRONMENT
     "environment": 10,  # LAYER_ENVIRONMENT
     "background_type": 10,  # LAYER_ENVIRONMENT
-    "time_weather": 10,  # LAYER_ENVIRONMENT
+    "time_of_day": 10,  # LAYER_ENVIRONMENT
+    "weather": 10,  # LAYER_ENVIRONMENT
+    "particle": 10,  # LAYER_ENVIRONMENT
     "lighting": 11,  # LAYER_ATMOSPHERE
     "mood": 11,  # LAYER_ATMOSPHERE
     "style": 11,  # LAYER_ATMOSPHERE

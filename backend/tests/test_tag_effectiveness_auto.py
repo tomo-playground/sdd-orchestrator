@@ -181,7 +181,7 @@ def test_increment_tracks_detectable_group(db_session, sample_tags, monkeypatch)
         type(
             "FakeCache",
             (),
-            {"get_category": staticmethod(lambda t: {"school_uniform": "clothing", "smile": "expression"}.get(t))},
+            {"get_category": staticmethod(lambda t: {"school_uniform": "clothing_outfit", "smile": "expression"}.get(t))},
         ),
     )
 

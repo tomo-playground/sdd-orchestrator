@@ -213,19 +213,40 @@ def _classify_general_tag(tag_name: str) -> str | None:
     if any(p in name for p in ["standing", "sitting", "lying", "kneeling", "crouching"]):
         return "pose"
 
-    # Action patterns
-    if any(a in name for a in ["holding", "running", "walking", "jumping", "eating", "drinking", "reading"]):
-        return "action"
+    # Action patterns — try CATEGORY_PATTERNS exact match first
+    from services.keywords.patterns import CATEGORY_PATTERNS
+
+    for group_name, patterns in CATEGORY_PATTERNS.items():
+        if name in patterns:
+            return group_name
+
+    # Fallback: suffix/keyword heuristics for novel tags
+    if any(a in name for a in ["holding", "grabbing", "reaching", "pointing", "waving", "carrying"]):
+        return "action_hand"
+    if any(a in name for a in ["running", "walking", "jumping", "swimming", "fighting", "kicking"]):
+        return "action_body"
+    if any(a in name for a in ["eating", "drinking", "reading", "cooking", "sleeping", "bathing"]):
+        return "action_daily"
 
     # Camera patterns
     if any(c in name for c in ["close-up", "portrait", "full body", "cowboy shot", "from above", "from below"]):
         return "camera"
 
     # Clothing patterns
-    if any(
-        c in name for c in ["dress", "shirt", "skirt", "uniform", "jacket", "coat", "hat", "glasses", "shoes", "boots"]
-    ):
-        return "clothing"
+    if any(c in name for c in ["dress", "uniform", "kimono", "outfit", "swimsuit"]):
+        return "clothing_outfit"
+    if any(c in name for c in ["shirt", "jacket", "coat", "sweater", "hoodie", "blazer", "vest"]):
+        return "clothing_top"
+    if any(c in name for c in ["skirt", "pants", "jeans", "shorts", "leggings"]):
+        return "clothing_bottom"
+    if any(c in name for c in ["thighhighs", "stockings", "pantyhose", "socks", "garter"]):
+        return "legwear"
+    if any(c in name for c in ["shoes", "boots", "sneakers", "sandals", "heels", "footwear", "barefoot"]):
+        return "footwear"
+    if any(c in name for c in ["hat", "glasses", "earrings", "necklace", "bag", "gloves", "choker"]):
+        return "accessory"
+    if any(c in name for c in ["sleeves", "collar", "ribbon", "frills", "lace", "belt", "hood"]):
+        return "clothing_detail"
 
     # Location patterns
     if any(
@@ -233,9 +254,13 @@ def _classify_general_tag(tag_name: str) -> str | None:
     ):
         return "location_indoor" if "indoor" in name or "room" in name else "location_outdoor"
 
-    # Time/Weather patterns
-    if any(t in name for t in ["day", "night", "sunset", "rain", "snow", "sky", "cloud"]):
-        return "time_weather"
+    # Time/Weather/Particle patterns
+    if any(t in name for t in ["falling", "petals", "fireflies", "bubbles", "sparkles", "confetti", "particles"]):
+        return "particle"
+    if any(t in name for t in ["rain", "snow", "fog", "storm", "cloud", "wind"]):
+        return "weather"
+    if any(t in name for t in ["day", "night", "sunset", "sunrise", "morning", "evening", "dawn", "dusk"]):
+        return "time_of_day"
 
     # Cannot classify
     return None

@@ -1837,8 +1837,8 @@ class TestTagToGroupMap:
 
     def test_clothing_tags(self):
         group_map = V3PromptBuilder._tag_to_group_map()
-        assert group_map["hoodie"] == "clothing"
-        assert group_map["school_uniform"] == "clothing"
+        assert group_map["hoodie"] == "clothing_top"
+        assert group_map["school_uniform"] == "clothing_outfit"
 
     def test_quality_tags(self):
         group_map = V3PromptBuilder._tag_to_group_map()
@@ -1885,7 +1885,7 @@ class TestGetTagInfoGroupNameFallback:
         builder.db.query.return_value.filter.return_value.all.return_value = []
 
         result = builder.get_tag_info(["hoodie"])
-        assert result["hoodie"]["group_name"] == "clothing"
+        assert result["hoodie"]["group_name"] == "clothing_top"
         assert result["hoodie"]["layer"] == LAYER_MAIN_CLOTH
 
 
@@ -1963,7 +1963,7 @@ class TestCollectCharacterTagsLayerPlacement:
         result = builder._collect_character_tags(char)
         tag_data = next(t for t in result if t["name"] == "blouse")
         assert tag_data["layer"] == LAYER_MAIN_CLOTH
-        assert tag_data["group_name"] == "clothing"
+        assert tag_data["group_name"] == "clothing_top"
 
     @patch("services.prompt.v3_composition.TagFilterCache")
     def test_quality_tag_placed_in_quality_layer(self, mock_filter, builder):

@@ -42,32 +42,36 @@ class TestClothingCategory:
     @pytest.mark.parametrize(
         "tag,expected_category",
         [
-            # Basic clothing
-            ("shirt", "clothing"),
-            ("t-shirt", "clothing"),
-            ("hoodie", "clothing"),
-            ("dress", "clothing"),
-            ("skirt", "clothing"),
-            ("pants", "clothing"),
-            ("shorts", "clothing"),
-            # Specific clothing items (regression tests)
-            ("white shorts", "clothing"),
-            ("black thighhighs", "clothing"),
-            ("thigh strap", "clothing"),
-            ("off shoulder", "clothing"),
-            ("one-piece swimsuit", "clothing"),
-            ("swimsuit", "clothing"),
-            ("bikini", "clothing"),
-            ("green hoodie", "clothing"),
-            ("black tank top", "clothing"),
-            ("brown footwear", "clothing"),
-            ("puffy sleeves", "clothing"),
-            ("jewelry", "clothing"),
-            ("garter", "clothing"),
-            # Legwear
-            ("thighhighs", "clothing"),
-            ("stockings", "clothing"),
-            ("pantyhose", "clothing"),
+            # clothing_top
+            ("shirt", "clothing_top"),
+            ("t-shirt", "clothing_top"),
+            ("hoodie", "clothing_top"),
+            # clothing_bottom
+            ("skirt", "clothing_bottom"),
+            ("pants", "clothing_bottom"),
+            ("shorts", "clothing_bottom"),
+            ("white shorts", "clothing_bottom"),
+            # clothing_outfit
+            ("dress", "clothing_outfit"),
+            ("one-piece swimsuit", "clothing_outfit"),
+            ("swimsuit", "clothing_outfit"),
+            ("bikini", "clothing_outfit"),
+            ("green hoodie", "clothing_top"),
+            ("black tank top", "clothing_top"),
+            # clothing_detail
+            ("off shoulder", "clothing_detail"),
+            ("puffy sleeves", "clothing_detail"),
+            # legwear
+            ("black thighhighs", "legwear"),
+            ("thigh strap", "legwear"),
+            ("garter", "legwear"),
+            ("thighhighs", "legwear"),
+            ("stockings", "legwear"),
+            ("pantyhose", "legwear"),
+            # footwear
+            ("brown footwear", "footwear"),
+            # accessory
+            ("jewelry", "accessory"),
         ],
     )
     def test_clothing_tags(self, tag: str, expected_category: str):

@@ -254,14 +254,23 @@ WD14_DETECTABLE_GROUPS: frozenset[str] = frozenset(
         "hair_style",  # ponytail, twintails — 구조적 특징
         "hair_accessory",  # hairclip, hairband — 시각적 개체
         "eye_color",  # blue_eyes, red_eyes
-        "clothing",  # school_uniform, dress — 0.529
+        # clothing 계열 (기존 "clothing" 세분화)
+        "clothing_top",  # shirt, jacket
+        "clothing_bottom",  # skirt, pants
+        "clothing_outfit",  # dress, uniform — 0.529
+        "clothing_detail",  # long_sleeves, frills
+        "legwear",  # thighhighs, stockings
+        "footwear",  # boots, sneakers
+        "accessory",  # glasses, hat, earrings
         "expression",  # smile, open_mouth — 0.217
         "gaze",  # looking_at_viewer, closed_eyes
         "pose",  # standing, sitting — 0.300
-        "action",  # holding, walking
-        "gesture",  # hand gestures — 0.343
+        # action 계열 (기존 "action" 세분화)
+        "action_body",  # walking, running
+        "action_hand",  # holding, grabbing — 0.343
+        "action_daily",  # reading, eating
         "body_feature",  # cat_ears, wings — 시각적 특징
-        "appearance",  # glasses, freckles
+        "appearance",  # freckles, makeup
         "body_type",  # slim, muscular — 체형
     }
 )

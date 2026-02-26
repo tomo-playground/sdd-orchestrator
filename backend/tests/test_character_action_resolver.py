@@ -103,7 +103,7 @@ class TestContextTagCategories:
         assert result[0]["character_actions"][0]["tag_id"] is not None
 
     def test_action_list(self, db_session):
-        _seed_tags(db_session, [("holding_sword", 8, "action")])
+        _seed_tags(db_session, [("holding_sword", 8, "action_hand")])
         scenes = [_scene("A", {"action": ["holding_sword"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
