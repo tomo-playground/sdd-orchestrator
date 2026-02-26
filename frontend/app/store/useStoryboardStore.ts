@@ -6,6 +6,7 @@ import type {
   ReferenceImage,
   ImageValidation,
   ImageGenProgress,
+  StageStatus,
 } from "../types";
 import type { GenerationDefaults } from "../hooks/usePresets";
 import { DEFAULT_STRUCTURE } from "../constants";
@@ -77,6 +78,9 @@ export interface StoryboardStore {
 
   // Image generation progress (SSE)
   imageGenProgress: Record<string, ImageGenProgress>;
+
+  // Stage workflow
+  stageStatus: StageStatus;
 
   // Optimistic locking
   storyboardVersion: number | null;
@@ -151,6 +155,7 @@ const initialState: Omit<
   advancedExpanded: {},
   validationExpanded: {},
   imageGenProgress: {},
+  stageStatus: "pending" as StageStatus,
   storyboardVersion: null,
 };
 
@@ -176,6 +181,7 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "validationExpanded",
   "imageValidationResults",
   "imageGenProgress",
+  "stageStatus",
   "loraTriggerWords",
   "characterLoras",
   "characterPromptMode",

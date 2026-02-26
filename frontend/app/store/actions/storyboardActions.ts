@@ -365,7 +365,7 @@ export async function generateStoryboard(force = false): Promise<boolean | "need
 
     setScenes(mapped);
     useStoryboardStore.getState().set({ currentSceneIndex: 0 });
-    setActiveTab("edit");
+    setActiveTab("direct");
     showToast(`Generated ${mapped.length} scenes`, "success");
     await saveStoryboard();
     return true;

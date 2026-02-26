@@ -69,7 +69,7 @@ export async function runAutoRunFromStep(
 
       if (currentStep === "images") {
         setAutoRunStep("images", "Generating scene images...");
-        setActiveTab("edit");
+        setActiveTab("direct");
         assertNotCancelled();
 
         // Track failed scenes to save progress before throwing

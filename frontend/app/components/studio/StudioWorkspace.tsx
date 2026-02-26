@@ -2,6 +2,7 @@
 
 import { useUIStore } from "../../store/useUIStore";
 import ScriptTab from "./ScriptTab";
+import StageTab from "./StageTab";
 import ScenesTab from "./ScenesTab";
 import PublishTab from "./PublishTab";
 
@@ -17,7 +18,9 @@ export default function StudioWorkspace() {
         <ScriptTab />
       </div>
 
-      {activeTab === "edit" && <ScenesTab />}
+      {activeTab === "stage" && <StageTab />}
+
+      {activeTab === "direct" && <ScenesTab />}
 
       {activeTab === "publish" && (
         <div className="h-full w-full overflow-y-auto px-8 py-8">

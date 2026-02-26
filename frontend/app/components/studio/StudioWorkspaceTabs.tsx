@@ -17,14 +17,16 @@ function useTabBadges(): Record<StudioTab, string | null> {
 
   return {
     script: null,
-    edit: scenesCount > 0 ? `${scenesCount}` : null,
+    stage: null,
+    direct: scenesCount > 0 ? `${scenesCount}` : null,
     publish: publishBadge,
   };
 }
 
 const TABS: { key: StudioTab; label: string }[] = [
   { key: "script", label: "Script" },
-  { key: "edit", label: "Edit" },
+  { key: "stage", label: "Stage" },
+  { key: "direct", label: "Direct" },
   { key: "publish", label: "Publish" },
 ];
 

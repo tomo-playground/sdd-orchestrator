@@ -19,7 +19,7 @@ export default function ScriptTab() {
   const onSaved = useCallback(
     (id: number) => {
       router.replace(`/studio?id=${id}`);
-      useUIStore.getState().setActiveTab("edit");
+      useUIStore.getState().setActiveTab("stage");
     },
     [router]
   );

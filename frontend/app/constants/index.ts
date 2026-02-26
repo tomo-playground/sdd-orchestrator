@@ -8,6 +8,7 @@ export const API_TIMEOUT = {
   STORYBOARD_SAVE: 120_000, // 2 minutes (large scene data)
   VIDEO_RENDER: 1200_000, // 20 minutes (video processing)
   IMAGE_GENERATION: 180_000, // 3 minutes (SD image generation)
+  STAGE_GENERATE: 300_000, // 5 minutes (multiple SD background generations)
 } as const;
 
 export const Z_INDEX = {

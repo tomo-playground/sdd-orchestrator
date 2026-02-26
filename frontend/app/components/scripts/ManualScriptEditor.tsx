@@ -259,7 +259,7 @@ export default function ManualScriptEditor({ editor, onPresetChange }: Props) {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => useUIStore.getState().setActiveTab("edit")}
+              onClick={() => useUIStore.getState().setActiveTab("direct")}
             >
               <PenLine className="h-3.5 w-3.5" />씬 편집하기
             </Button>

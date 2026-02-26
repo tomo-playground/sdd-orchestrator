@@ -6,6 +6,7 @@ import { useRenderStore } from "../../store/useRenderStore";
 
 const STEPS = [
   { id: "script", label: "Script" },
+  { id: "stage", label: "Stage" },
   { id: "images", label: "Images" },
   { id: "render", label: "Render" },
   { id: "video", label: "Video" },
@@ -13,6 +14,7 @@ const STEPS = [
 
 export default function PipelineStatusDots() {
   const scenes = useStoryboardStore((s) => s.scenes);
+  const stageStatus = useStoryboardStore((s) => s.stageStatus);
   const recentVideos = useRenderStore((s) => s.recentVideos);
   const isRendering = useRenderStore((s) => s.isRendering);
   const renderProgress = useRenderStore((s) => s.renderProgress);
@@ -30,6 +32,7 @@ export default function PipelineStatusDots() {
 
   const status: Record<string, "done" | "progress" | "idle"> = {
     script: hasScenes ? "done" : "idle",
+    stage: stageStatus === "staged" ? "done" : stageStatus === "staging" ? "progress" : "idle",
     images: hasAllImages ? "done" : hasScenes && imagesCount > 0 ? "progress" : "idle",
     render: hasVideos ? "done" : isRendering ? "progress" : "idle",
     video: hasVideos ? "done" : "idle",
@@ -43,6 +46,12 @@ export default function PipelineStatusDots() {
 
   const tooltipText: Record<string, string> = {
     script: hasScenes ? `Script: ${scenes.length} scenes` : "Script: not started",
+    stage:
+      stageStatus === "staged"
+        ? "Stage: backgrounds ready"
+        : stageStatus === "staging"
+          ? "Stage: generating..."
+          : "Stage: not started",
     images: hasAllImages
       ? `Images: all ${scenes.length} done`
       : imagesCount > 0
@@ -70,12 +79,13 @@ export default function PipelineStatusDots() {
             key={step.id}
             onMouseEnter={() => showTooltip(step.id)}
             onMouseLeave={hideTooltip}
-            className={`h-2 w-2 rounded-full transition-colors ${s === "done"
+            className={`h-2 w-2 rounded-full transition-colors ${
+              s === "done"
                 ? "bg-emerald-500"
                 : s === "progress"
                   ? "animate-pulse bg-amber-400"
                   : "bg-zinc-300"
-              }`}
+            }`}
             title={tooltipText[step.id]}
           />
         );

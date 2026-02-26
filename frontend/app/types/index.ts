@@ -672,6 +672,27 @@ export type Background = {
   created_at: string;
 };
 
+// ============================================================
+// Stage API Types
+// ============================================================
+
+export type StageLocationStatus = {
+  location_key: string;
+  background_id: number | null;
+  image_url: string | null;
+  tags: string[];
+  scene_ids: number[];
+  has_image: boolean;
+};
+
+export type StageStatusResponse = {
+  storyboard_id: number;
+  stage_status: string | null;
+  locations: StageLocationStatus[];
+  total: number;
+  ready: number;
+};
+
 export type GroupItem = {
   id: number;
   project_id: number;
