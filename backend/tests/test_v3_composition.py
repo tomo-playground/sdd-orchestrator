@@ -180,19 +180,19 @@ class TestFlattenLayers:
         assert "BREAK" not in result
         # All tokens in single context
         assert "masterpiece" in result
-        assert "(smile:1.1)" in result
+        assert "(smile:1.2)" in result
         assert "park" in result
 
     def test_expression_action_weight_boost(self, builder):
-        """L7 (Expression) and L8 (Action) get :1.1 boost."""
+        """L7 (Expression) and L8 (Action) get :1.2 boost."""
         layers = [[] for _ in range(12)]
         layers[LAYER_EXPRESSION] = ["smile", "blush"]
         layers[LAYER_ACTION] = ["standing"]
 
         result = builder._flatten_layers(layers)
-        assert "(smile:1.1)" in result
-        assert "(blush:1.1)" in result
-        assert "(standing:1.1)" in result
+        assert "(smile:1.2)" in result
+        assert "(blush:1.2)" in result
+        assert "(standing:1.2)" in result
 
     def test_already_weighted_no_double_boost(self, builder):
         """Tags with existing weight should NOT get double-boosted."""
@@ -202,7 +202,7 @@ class TestFlattenLayers:
         result = builder._flatten_layers(layers)
         # Already has ":" so should be preserved as-is
         assert "(smile:0.8)" in result
-        assert "((smile:0.8):1.1)" not in result
+        assert "((smile:0.8):1.2)" not in result
 
     def test_empty_layers_skipped(self, builder):
         """Empty layers produce no tokens."""
@@ -1280,9 +1280,9 @@ class TestApplySceneCharacterActions:
             character=char,
         )
 
-        # Scene actions should appear in output (with :1.1 boost from _flatten_layers)
-        assert "(crying:1.1)" in result
-        assert "(kneeling:1.1)" in result
+        # Scene actions should appear in output (with :1.2 boost from _flatten_layers)
+        assert "(crying:1.2)" in result
+        assert "(kneeling:1.2)" in result
 
 
 # ────────────────────────────────────────────
@@ -2266,8 +2266,8 @@ class TestEndToEndExpressionOverride:
             scene_tags=["crying", "outdoors"],
         )
 
-        # crying should be present (with :1.1 boost from flatten)
-        assert "(crying:1.1)" in result
+        # crying should be present (with :1.2 boost from flatten)
+        assert "(crying:1.2)" in result
         # gentle_smile should be suppressed
         assert "gentle_smile" not in result
         assert "outdoors" in result
@@ -2315,8 +2315,8 @@ class TestEndToEndExpressionOverride:
             scene_tags=["outdoors"],
         )
 
-        # gentle_smile should be present (with :1.1 boost from flatten)
-        assert "(gentle_smile:1.1)" in result
+        # gentle_smile should be present (with :1.2 boost from flatten)
+        assert "(gentle_smile:1.2)" in result
         assert "outdoors" in result
 
 

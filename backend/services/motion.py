@@ -162,110 +162,51 @@ def build_zoompan_filter(
 VALID_PRESET_NAMES: set[str] = set(PRESETS.keys()) - {"random"}
 
 # Emotion/narrative → Ken Burns preset mapping
+# EMOTION_MOTION_MAP — EMOTION_VOCAB 기준 영어 emotion만 등록.
+# 한국어 emotion은 _normalize_emotion()이 영어로 변환 후 여기서 조회.
 EMOTION_MOTION_MAP: dict[str, list[str]] = {
     # Positive / upward
     "happy": ["zoom_in_center", "pan_zoom_up"],
-    "joy": ["zoom_in_center", "pan_zoom_up"],
     "hopeful": ["zoom_in_top", "pan_up"],
     "excited": ["zoom_pan_left", "zoom_pan_right"],
     "proud": ["zoom_in_bottom", "pan_zoom_up"],
+    "confident": ["zoom_in_center", "pan_up"],
     # Negative / downward
     "sad": ["zoom_out_center", "pan_down_vertical"],
-    "melancholy": ["zoom_out_center", "pan_down"],
     "lonely": ["zoom_out_center", "pan_down_vertical"],
-    "fearful": ["zoom_in_center", "pan_down"],
-    "anxious": ["zoom_in_center", "pan_left"],
+    "grieving": ["zoom_out_center", "pan_down"],
+    "guilty": ["zoom_out_center", "pan_down"],
+    "resigned": ["zoom_out_center", "pan_down_vertical"],
+    "bittersweet": ["zoom_out_center", "pan_right"],
     # Tension / conflict
     "angry": ["zoom_in_center", "zoom_in_bottom"],
     "frustrated": ["zoom_pan_left", "zoom_pan_right"],
     "tense": ["zoom_in_center", "pan_up_vertical"],
     "nervous": ["zoom_in_center", "pan_left"],
+    "anxious": ["zoom_in_center", "pan_left"],
+    "scared": ["zoom_in_center", "pan_down"],
+    "contempt": ["zoom_in_center", "pan_left"],
     # Calm / reflective
     "calm": ["slow_zoom", "pan_right"],
     "nostalgic": ["zoom_out_center", "pan_right"],
     "peaceful": ["slow_zoom", "pan_down_vertical"],
     "reflective": ["zoom_out_center", "pan_up"],
-    # Narrative function
+    "thoughtful": ["zoom_out_center", "pan_up"],
+    # Surprise / shock
+    "surprised": ["zoom_in_center", "zoom_in_top"],
+    "shocked": ["zoom_in_center", "zoom_in_top"],
+    "confused": ["zoom_in_center", "pan_left"],
+    # Determination / strength
+    "determined": ["zoom_in_bottom", "pan_zoom_up"],
+    # Soft / subdued
+    "embarrassed": ["slow_zoom", "pan_down_vertical"],
+    "shy": ["slow_zoom", "pan_down_vertical"],
+    "tired": ["slow_zoom", "pan_down_vertical"],
+    # Narrative function (not emotions, but useful for scene role)
     "hook": ["zoom_in_center", "zoom_in_bottom"],
     "climax": ["zoom_in_center", "zoom_in_top"],
     "resolution": ["zoom_out_center", "pan_down_vertical"],
     "rising": ["pan_zoom_up", "zoom_pan_right"],
-    # Determination / strength
-    "determined": ["zoom_in_bottom", "pan_zoom_up"],
-    "confident": ["zoom_in_center", "pan_up"],
-    "surprised": ["zoom_in_center", "zoom_in_top"],
-    # Korean — positive / upward
-    "기쁨": ["zoom_in_center", "pan_zoom_up"],
-    "행복": ["zoom_in_center", "pan_zoom_up"],
-    "즐거움": ["zoom_in_center", "pan_zoom_up"],
-    "기대감": ["zoom_in_top", "pan_up"],
-    "기대": ["zoom_in_top", "pan_up"],
-    "흥분": ["zoom_pan_left", "zoom_pan_right"],
-    "희망": ["zoom_in_top", "pan_up"],
-    "감사": ["zoom_in_center", "pan_zoom_up"],
-    "자신감": ["zoom_in_center", "pan_up"],
-    "자부심": ["zoom_in_bottom", "pan_zoom_up"],
-    # Korean — negative / downward
-    "슬픔": ["zoom_out_center", "pan_down_vertical"],
-    "우울": ["zoom_out_center", "pan_down"],
-    "우울함": ["zoom_out_center", "pan_down"],
-    "외로움": ["zoom_out_center", "pan_down_vertical"],
-    "고독": ["zoom_out_center", "pan_down_vertical"],
-    "고독감": ["zoom_out_center", "pan_down_vertical"],
-    "소외감": ["zoom_out_center", "pan_down_vertical"],
-    "비참함": ["zoom_out_center", "pan_down"],
-    "비통": ["zoom_out_center", "pan_down"],
-    "자책": ["zoom_out_center", "pan_down"],
-    "후회": ["zoom_out_center", "pan_down"],
-    "씁쓸함": ["zoom_out_center", "pan_right"],
-    "씁쓸": ["zoom_out_center", "pan_right"],
-    "허탈": ["zoom_out_center", "pan_down_vertical"],
-    "공허함": ["zoom_out_center", "pan_down_vertical"],
-    "공허": ["zoom_out_center", "pan_down_vertical"],
-    "허무": ["zoom_out_center", "pan_down_vertical"],
-    "그리움": ["zoom_out_center", "pan_right"],
-    "향수": ["zoom_out_center", "pan_right"],
-    # Korean — tension / conflict
-    "분노": ["zoom_in_center", "zoom_in_bottom"],
-    "화남": ["zoom_in_center", "zoom_in_bottom"],
-    "짜증": ["zoom_pan_left", "zoom_pan_right"],
-    "답답함": ["zoom_pan_left", "zoom_pan_right"],
-    "답답": ["zoom_pan_left", "zoom_pan_right"],
-    "불안": ["zoom_in_center", "pan_left"],
-    "불안감": ["zoom_in_center", "pan_left"],
-    "초조함": ["zoom_in_center", "pan_left"],
-    "초조": ["zoom_in_center", "pan_left"],
-    "긴장": ["zoom_in_center", "pan_left"],
-    "긴장감": ["zoom_in_center", "pan_left"],
-    "걱정": ["zoom_in_center", "pan_left"],
-    "두려움": ["zoom_in_center", "pan_down"],
-    "공포": ["zoom_in_center", "pan_down"],
-    "무서움": ["zoom_in_center", "pan_down"],
-    # Korean — calm / reflective
-    "평온": ["slow_zoom", "pan_right"],
-    "차분": ["slow_zoom", "pan_right"],
-    "회상": ["zoom_out_center", "pan_up"],
-    "생각": ["zoom_out_center", "pan_up"],
-    "고민": ["zoom_out_center", "pan_up"],
-    # Korean — determination
-    "결심": ["zoom_in_bottom", "pan_zoom_up"],
-    "결의": ["zoom_in_bottom", "pan_zoom_up"],
-    # Korean — surprise / shock
-    "놀라움": ["zoom_in_center", "zoom_in_top"],
-    "충격": ["zoom_in_center", "zoom_in_top"],
-    "경악": ["zoom_in_center", "zoom_in_top"],
-    "당황": ["zoom_in_center", "zoom_in_top"],
-    # Korean — misc
-    "감동": ["zoom_in_center", "pan_zoom_up"],
-    "호기심": ["zoom_in_center", "pan_up"],
-    "궁금": ["zoom_in_center", "pan_up"],
-    "의아함": ["zoom_in_center", "pan_left"],
-    "의아": ["zoom_in_center", "pan_left"],
-    "혼란": ["zoom_in_center", "pan_left"],
-    "부끄러움": ["slow_zoom", "pan_down_vertical"],
-    "수줍음": ["slow_zoom", "pan_down_vertical"],
-    "졸림": ["slow_zoom", "pan_down_vertical"],
-    "피곤": ["slow_zoom", "pan_down_vertical"],
 }
 
 
@@ -273,10 +214,18 @@ def suggest_ken_burns_preset(emotion: str | None, seed: int = 0) -> str:
     """Suggest a Ken Burns preset based on emotion/narrative context.
 
     Returns a preset name from EMOTION_MOTION_MAP, or a random one if unknown.
+    Uses _normalize_emotion() to handle Korean/non-standard emotion strings.
     """
     if not emotion:
         return get_random_preset(seed)[0]
-    candidates = EMOTION_MOTION_MAP.get(emotion.lower())
+
+    from services.agent.nodes._context_tag_utils import _normalize_emotion
+
+    normalized = _normalize_emotion(emotion)
+    candidates = EMOTION_MOTION_MAP.get(normalized)
+    if not candidates:
+        # fallback: try raw lowered (for narrative role keys like "hook", "climax")
+        candidates = EMOTION_MOTION_MAP.get(emotion.lower())
     if not candidates:
         return get_random_preset(seed)[0]
     rng = random.Random(seed)

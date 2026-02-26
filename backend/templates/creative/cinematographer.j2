@@ -113,6 +113,15 @@ Match your visual design to this plan:
 6. **Mood-visual alignment**: Camera and environment must match the script's emotional tone
    - **context_tags.expression**: Do NOT set this field. System auto-derives expression from emotion.
    - **context_tags.mood**: Do NOT set this field. System auto-derives mood from emotion.
+   - **context_tags.emotion** (CRITICAL — use ONLY from this list):
+     `happy`, `excited`, `proud`, `confident`, `sad`, `lonely`, `grieving`,
+     `anxious`, `nervous`, `scared`, `angry`, `frustrated`, `surprised`, `shocked`,
+     `calm`, `peaceful`, `nostalgic`, `reflective`, `thoughtful`, `tense`, `determined`,
+     `embarrassed`, `shy`, `hopeful`, `bittersweet`, `tired`, `confused`, `guilty`,
+     `resigned`, `contempt`
+     ❌ FORBIDDEN: emotions NOT in this list (e.g. `worried`, `perplexed`, `deadpan`, `stoic`, `solemn`)
+     ❌ FORBIDDEN: compound emotions (`lonely_expression`, `slightly_nervous`)
+     ✅ Pick the CLOSEST match from the list above.
    - Only set: `emotion`, `action`, `pose`, `gaze`, `environment` in context_tags.
 7. **Scene-specific objects** (CRITICAL for narrative fidelity):
    Based on the script content, add relevant object/prop/action tags to **both** `image_prompt` and `context_tags.action`:

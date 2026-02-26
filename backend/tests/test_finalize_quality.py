@@ -117,5 +117,5 @@ class TestInjectDefaultContextTagsEmotion:
         ]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["expression"] == "smile"
-        assert scenes[1]["context_tags"]["expression"] == "furrowed_brow"
+        assert scenes[1]["context_tags"]["expression"] == "serious"  # 내적 갈등 → tense → serious
         assert scenes[2]["context_tags"]["expression"] == "expressionless"

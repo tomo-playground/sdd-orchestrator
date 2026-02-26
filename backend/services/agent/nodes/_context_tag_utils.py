@@ -12,71 +12,72 @@ def _coerce_str(val: object) -> str:
     return str(val) if val is not None else ""
 
 
-# ── Phase A: emotion → expression 매핑 ────────────────────────────────
-EMOTION_TO_EXPRESSION: dict[str, str] = {
-    # English
-    "happy": "smile",
-    "joy": "smile",
-    "cheerful": "smile",
-    "excited": "excited",
-    "proud": "grin",
-    "confident": "smirk",
-    "sad": "sad",
-    "melancholy": "sad",
-    "lonely": "sad",
-    "grieving": "crying",
-    "depressed": "sad",
-    "fearful": "scared",
-    "anxious": "nervous",
-    "nervous": "nervous",
-    "scared": "frightened",
-    "terrified": "scared",
-    "angry": "angry",
-    "frustrated": "frustrated",
-    "furious": "angry",
-    "surprised": "surprised",
-    "shocked": "shocked",
-    "calm": "expressionless",
-    "peaceful": "smile",
-    "nostalgic": "sad",
-    "reflective": "expressionless",
-    "thoughtful": "serious",
-    "tense": "serious",
-    "determined": "serious",
-    "embarrassed": "embarrassed",
-    "shy": "shy",
-    "sleepy": "sleepy",
-    "tired": "tired",
-    "bittersweet": "sad",
-    "wistful": "sad",
-    "hopeful": "smile",
-    # Korean (한국어 스토리보드에서 Gemini가 한국어 emotion을 생성하는 경우)
-    "기쁨": "smile",
-    "행복": "smile",
-    "즐거움": "smile",
+# ── Phase A: Emotion Vocabulary (SSOT) ────────────────────────────────
+# 유효한 emotion → (expression, mood) 매핑. Gemini 템플릿에서 이 목록만 허용.
+# 새 emotion 추가 시 이 테이블 하나만 수정하면 expression/mood 모두 자동 파생.
+EMOTION_VOCAB: dict[str, tuple[str, str]] = {
+    # (emotion)         (expression,        mood)
+    "happy": ("smile", "cheerful"),
+    "excited": ("excited", "bright"),
+    "proud": ("grin", "warm"),
+    "confident": ("smirk", "dramatic"),
+    "sad": ("sad", "melancholic"),
+    "lonely": ("sad", "lonely"),
+    "grieving": ("crying", "melancholic"),
+    "anxious": ("nervous", "tense"),
+    "nervous": ("nervous", "tense"),
+    "scared": ("scared", "dark"),
+    "angry": ("angry", "intense"),
+    "frustrated": ("frustrated", "intense"),
+    "surprised": ("surprised", "dramatic"),
+    "shocked": ("shocked", "dramatic"),
+    "calm": ("expressionless", "serene"),
+    "peaceful": ("smile", "peaceful"),
+    "nostalgic": ("sad", "nostalgic"),
+    "reflective": ("expressionless", "serene"),
+    "thoughtful": ("serious", "mysterious"),
+    "tense": ("serious", "tense"),
+    "determined": ("serious", "dramatic"),
+    "embarrassed": ("embarrassed", "warm"),
+    "shy": ("shy", "warm"),
+    "hopeful": ("smile", "warm"),
+    "bittersweet": ("sad", "bittersweet"),
+    "tired": ("tired", "gloomy"),
+    "confused": ("confused", "mysterious"),
+    "guilty": ("sad", "melancholic"),
+    "resigned": ("expressionless", "somber"),
+    "contempt": ("smirk", "dark"),
+}
+
+# 파생 딕셔너리 (EMOTION_VOCAB에서 자동 생성)
+EMOTION_TO_EXPRESSION: dict[str, str] = {k: v[0] for k, v in EMOTION_VOCAB.items()}
+EMOTION_TO_MOOD: dict[str, str] = {k: v[1] for k, v in EMOTION_VOCAB.items()}
+
+# 한국어 emotion → 영어 emotion 별칭 (Writer가 한국어 emotion을 생성하는 경우)
+_KOREAN_EMOTION_ALIASES: dict[str, str] = {
+    "기쁨": "happy",
+    "행복": "happy",
+    "즐거움": "happy",
     "기대감": "excited",
     "기대": "excited",
     "흥분": "excited",
-    "자신감": "smirk",
-    "자부심": "grin",
+    "자신감": "confident",
+    "자부심": "proud",
     "슬픔": "sad",
     "우울": "sad",
     "우울함": "sad",
-    "외로움": "sad",
-    "고독": "sad",
-    "고독감": "sad",
-    "소외감": "sad",
-    "비참함": "crying",
-    "비통": "crying",
-    "불안": "nervous",
-    "불안감": "nervous",
-    "초조함": "nervous",
-    "초조": "nervous",
-    "긴장": "nervous",
-    "긴장감": "nervous",
+    "외로움": "lonely",
+    "고독": "lonely",
+    "소외감": "lonely",
+    "비참함": "grieving",
+    "비통": "grieving",
+    "불안": "anxious",
+    "불안감": "anxious",
+    "초조": "anxious",
+    "긴장": "anxious",
+    "걱정": "anxious",
     "두려움": "scared",
     "공포": "scared",
-    "무서움": "frightened",
     "분노": "angry",
     "화남": "angry",
     "짜증": "frustrated",
@@ -85,169 +86,79 @@ EMOTION_TO_EXPRESSION: dict[str, str] = {
     "놀라움": "surprised",
     "충격": "shocked",
     "경악": "shocked",
-    "평온": "expressionless",
-    "차분": "expressionless",
-    "그리움": "sad",
-    "향수": "sad",
-    "회상": "expressionless",
-    "생각": "serious",
-    "고민": "serious",
-    "걱정": "nervous",
-    "결심": "serious",
-    "결의": "serious",
+    "평온": "calm",
+    "차분": "calm",
+    "그리움": "nostalgic",
+    "향수": "nostalgic",
+    "생각": "thoughtful",
+    "고민": "thoughtful",
+    "결심": "determined",
+    "결의": "determined",
     "당황": "embarrassed",
     "부끄러움": "embarrassed",
     "수줍음": "shy",
-    "졸림": "sleepy",
     "피곤": "tired",
-    "씁쓸함": "sad",
-    "씁쓸": "sad",
-    "허탈": "expressionless",
-    "공허함": "expressionless",
-    "공허": "expressionless",
-    "허무": "expressionless",
-    "자책": "sad",
-    "후회": "sad",
-    "의아함": "confused",
-    "의아": "confused",
-    "혼란": "confused",
-    "호기심": "curious",
-    "궁금": "curious",
-    "감동": "crying",
-    "감사": "smile",
-    "희망": "smile",
-    # 복합 감정 (Gemini가 생성하는 구문형 emotion)
-    "공감 유도": "smile",
-    "공감": "smile",
-    "무반응": "expressionless",
-    "자기 검열": "nervous",
-    "자기검열": "nervous",
-    "미묘한 관찰": "serious",
-    "내적 갈등": "furrowed_brow",
-    "내적갈등": "furrowed_brow",
-    "체념": "expressionless",
-    "냉소": "smirk",
-    "무관심": "expressionless",
-    "경계": "serious",
-    "관찰": "serious",
-    "동경": "smile",
-    "감탄": "surprised",
-    # Gemini English creative emotions (비표준이지만 빈번하게 생성)
-    "worried": "nervous",
-    "perplexed": "confused",
-    "deadpan": "expressionless",
-    "resigned": "expressionless",
-    "conflicted": "furrowed_brow",
-    "lonely_expression": "sad",
-    "bitter": "sad",
-    "relieved": "smile",
-    "uneasy": "nervous",
-    "panicked": "scared",
-    "indifferent": "expressionless",
-    "skeptical": "serious",
-    "guilty": "sad",
-    "regretful": "sad",
-    "bewildered": "confused",
-    "overwhelmed": "nervous",
-    "vulnerable": "sad",
-    "defiant": "serious",
-    "resentful": "angry",
-    "numb": "expressionless",
-    "insecure": "nervous",
-    "self_conscious": "nervous",
-    "contemplative": "serious",
-}
-
-
-# ── emotion → mood 매핑 (빈 mood 자동 생성) ──────────────────────────
-EMOTION_TO_MOOD: dict[str, str] = {
-    # English
-    "happy": "cheerful",
-    "joy": "cheerful",
-    "excited": "bright",
-    "sad": "melancholic",
-    "melancholy": "melancholic",
-    "lonely": "lonely",
-    "anxious": "tense",
-    "nervous": "tense",
-    "scared": "dark",
-    "angry": "intense",
-    "nostalgic": "nostalgic",
-    "peaceful": "peaceful",
-    "calm": "serene",
-    "hopeful": "warm",
-    "bittersweet": "bittersweet",
-    "tense": "tense",
-    "determined": "dramatic",
-    # Korean
-    "기쁨": "cheerful",
-    "행복": "warm",
-    "기대감": "bright",
-    "기대": "bright",
-    "슬픔": "melancholic",
-    "우울": "gloomy",
-    "외로움": "lonely",
-    "소외감": "lonely",
-    "불안": "tense",
-    "불안감": "tense",
-    "긴장": "tense",
-    "공포": "dark",
-    "분노": "intense",
-    "짜증": "intense",
-    "놀라움": "dramatic",
-    "충격": "dramatic",
-    "평온": "serene",
-    "그리움": "nostalgic",
-    "향수": "nostalgic",
+    "졸림": "tired",
     "씁쓸함": "bittersweet",
     "씁쓸": "bittersweet",
-    "허탈": "melancholic",
-    "공허": "gloomy",
-    "의아함": "mysterious",
-    "호기심": "mysterious",
-    "공감 유도": "warm",
-    "무반응": "gloomy",
-    "자기 검열": "tense",
-    "미묘한 관찰": "mysterious",
+    "허탈": "resigned",
+    "공허": "resigned",
+    "체념": "resigned",
+    "자책": "guilty",
+    "후회": "guilty",
+    "의아함": "confused",
+    "혼란": "confused",
+    "호기심": "confused",
+    "희망": "hopeful",
+    "감동": "grieving",
+    "감사": "happy",
     "내적 갈등": "tense",
-    "체념": "somber",
-    # Gemini English creative emotions
-    "worried": "tense",
-    "perplexed": "mysterious",
-    "deadpan": "somber",
-    "resigned": "somber",
-    "conflicted": "tense",
-    "lonely_expression": "lonely",
-    "bitter": "bittersweet",
-    "relieved": "warm",
-    "uneasy": "tense",
-    "panicked": "tense",
-    "indifferent": "gloomy",
-    "skeptical": "mysterious",
-    "guilty": "melancholic",
-    "regretful": "melancholic",
-    "bewildered": "mysterious",
-    "overwhelmed": "tense",
-    "vulnerable": "melancholic",
-    "defiant": "dramatic",
-    "resentful": "intense",
-    "numb": "gloomy",
-    "insecure": "tense",
-    "self_conscious": "tense",
-    "contemplative": "serene",
+    "갈등": "tense",
 }
+
+# 별칭을 EMOTION_TO_EXPRESSION / EMOTION_TO_MOOD에 병합
+for _ko, _en in _KOREAN_EMOTION_ALIASES.items():
+    if _en in EMOTION_VOCAB:
+        EMOTION_TO_EXPRESSION[_ko] = EMOTION_VOCAB[_en][0]
+        EMOTION_TO_MOOD[_ko] = EMOTION_VOCAB[_en][1]
+
+# 유효 emotion 셋 (템플릿 검증용)
+VALID_EMOTIONS: frozenset[str] = frozenset(EMOTION_VOCAB.keys())
+
+
+def _normalize_emotion(raw: str) -> str:
+    """비표준 emotion을 EMOTION_VOCAB의 유효 값으로 정규화한다."""
+    key = raw.lower().strip()
+    # 1) 정확히 존재
+    if key in EMOTION_VOCAB:
+        return key
+    # 2) 한국어 별칭
+    alias = _KOREAN_EMOTION_ALIASES.get(key)
+    if alias:
+        return alias
+    # 3) 부분 매칭 (예: "lonely_expression" → "lonely")
+    for valid in EMOTION_VOCAB:
+        if valid in key:
+            return valid
+    return key  # 매핑 불가 — 원본 반환 (fallback to default)
 
 
 def derive_expression_from_emotion(emotion: str | list | None) -> str | None:
     """emotion 문자열로부터 적절한 expression 태그를 파생한다."""
     s = _coerce_str(emotion)
-    return EMOTION_TO_EXPRESSION.get(s.lower().strip()) if s else None
+    if not s:
+        return None
+    normalized = _normalize_emotion(s)
+    return EMOTION_TO_EXPRESSION.get(normalized)
 
 
 def derive_mood_from_emotion(emotion: str | list | None) -> str | None:
     """emotion 문자열로부터 적절한 mood 태그를 파생한다."""
     s = _coerce_str(emotion)
-    return EMOTION_TO_MOOD.get(s.lower().strip()) if s else None
+    if not s:
+        return None
+    normalized = _normalize_emotion(s)
+    return EMOTION_TO_MOOD.get(normalized)
 
 
 # ── Phase B: 카테고리 검증 ────────────────────────────────────────────

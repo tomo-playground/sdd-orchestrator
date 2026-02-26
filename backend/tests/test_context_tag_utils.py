@@ -27,7 +27,7 @@ class TestDeriveExpression:
             ("calm", "expressionless"),
             ("determined", "serious"),
             ("embarrassed", "embarrassed"),
-            ("sleepy", "sleepy"),
+            ("tired", "tired"),
             ("hopeful", "smile"),
             ("grieving", "crying"),
         ],
