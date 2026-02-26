@@ -19,10 +19,12 @@
 | **Phase 15 (Prompt Input UX 고도화)** | **전체 완료 — A-0~A-3 + B-1~B-3 (18/18)** |
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
 | **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
+| **Cross Audit P2** | **완료 — 보안 7건+품질 27건+접근성 5건 = 39건** |
 | 테스트 | Backend 2,667 + Frontend 379 = **총 3,046개** |
 
 ### 최근 작업
 
+- **7-Agent Cross Audit P2** (02-26): 39건 수정. Security(SSRF/Path Traversal/CORS/CSRF/SQL Injection/base64 제한/debug 노출 7건), Backend(RuntimeSettings/datetime UTC/중복 코드/admin 207 9건), Prompt(POSE_MAPPING 50개/12-Layer clothing/StyleProfile 5건), FFmpeg(anullsrc 무한스트림/Image.close 4건), DBA(CHECK 제약/FK 인덱스/soft-delete 3건), Frontend(ARIA/Skeleton/lang ko/스토어 리셋 11건). 55파일 +818/-279줄. 2,667 passed
 - **7-Agent Cross Audit P0+P1** (02-26): 7개 에이전트 통합 점검 123건 발견 → P0 14건+P1 32건 일괄 수정. xfade 오프셋 3+씬 누적 오류, cost_usd null crash, falsy 값 손실, soft delete 누락, N+1 쿼리, POSE_MAPPING 언더스코어 통일, TagFilterCache 통합, ARIA 접근성, buildScenesPayload 중복 제거 등. 48파일 +1,104/-591줄. 2,667 passed
 - **Express 모드 ControlNet 자동 활성화** (02-26): Cinematographer 스킵 시 `controlnet_pose` 미할당→ControlNet OFF 문제 수정. `_auto_populate_scene_flags()`에서 `context_tags.pose` → `controlnet_pose` 자동 파생 + POSE_MAPPING 검증 + DEFAULT_POSE_TAG fallback. 15개 테스트 (기존 9→15)
 - **voice_seed Backend SSOT 보장** (02-26): 10/12 프리셋 voice_seed NULL→씬별 다른 목소리 문제 근본 수정. `_compute_voice_seed()` 헬퍼 추가, create/update/attach-preview 3개 엔드포인트에서 자동 계산. 기존 전체 프리셋 seed 일괄 고정
