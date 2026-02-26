@@ -109,16 +109,60 @@ class TestAutoPopulateSceneFlags:
             {"speaker": "Narrator"},
             {"speaker": "B", "controlnet_pose": "standing"},
         ]
-        _auto_populate_scene_flags(scenes, character_id=1)
-        # Scene 0: character with pose
+        _auto_populate_scene_flags(scenes, character_id=1, character_b_id=2)
+        # Scene 0: character A with pose
         assert scenes[0]["use_controlnet"] is True
         assert scenes[0]["use_ip_adapter"] is True
         # Scene 1: narrator
         assert scenes[1]["use_controlnet"] is False
         assert scenes[1]["use_ip_adapter"] is False
-        # Scene 2: character with pose
+        # Scene 2: character B with pose
         assert scenes[2]["use_controlnet"] is True
         assert scenes[2]["use_ip_adapter"] is True
+
+
+class TestDialogueCharacterBFlags:
+    """Dialogue 구조: character_b_id 기반 speaker B ControlNet/IP-Adapter 테스트."""
+
+    def test_speaker_b_gets_controlnet_with_character_b_id(self):
+        """speaker B + character_b_id → ControlNet ON."""
+        scenes = [{"speaker": "B", "context_tags": {"pose": "sitting"}}]
+        _auto_populate_scene_flags(scenes, character_id=1, character_b_id=2)
+        assert scenes[0]["controlnet_pose"] == "sitting"
+        assert scenes[0]["use_controlnet"] is True
+        assert scenes[0]["use_ip_adapter"] is True
+
+    def test_speaker_b_no_character_b_id_disables(self):
+        """speaker B + character_b_id=None → ControlNet OFF."""
+        scenes = [{"speaker": "B"}]
+        _auto_populate_scene_flags(scenes, character_id=1, character_b_id=None)
+        assert scenes[0]["use_controlnet"] is False
+        assert scenes[0]["use_ip_adapter"] is False
+
+    def test_dialogue_mixed_speakers(self):
+        """Dialogue: A/B/Narrator 혼합 — 각 speaker에 맞는 character_id 적용."""
+        scenes = [
+            {"speaker": "A", "context_tags": {"pose": "standing"}},
+            {"speaker": "B", "context_tags": {"pose": "sitting"}},
+            {"speaker": "Narrator"},
+        ]
+        _auto_populate_scene_flags(scenes, character_id=1, character_b_id=2)
+        # A: uses character_id=1
+        assert scenes[0]["use_controlnet"] is True
+        assert scenes[0]["use_ip_adapter"] is True
+        # B: uses character_b_id=2
+        assert scenes[1]["use_controlnet"] is True
+        assert scenes[1]["use_ip_adapter"] is True
+        # Narrator: always OFF
+        assert scenes[2]["use_controlnet"] is False
+        assert scenes[2]["use_ip_adapter"] is False
+
+    def test_speaker_a_unaffected_by_character_b_id(self):
+        """speaker A는 character_id만 사용, character_b_id 무관."""
+        scenes = [{"speaker": "A"}]
+        _auto_populate_scene_flags(scenes, character_id=None, character_b_id=2)
+        assert scenes[0]["use_controlnet"] is False
+        assert scenes[0]["use_ip_adapter"] is False
 
 
 @pytest.mark.asyncio
@@ -164,6 +208,7 @@ async def test_finalize_express_mode_auto_assigns_controlnet():
         ],
         "skip_stages": ["research", "concept", "production", "explain"],
         "character_id": 1,
+        "character_b_id": 2,
         "duration": 30,
         "language": "Korean",
     }

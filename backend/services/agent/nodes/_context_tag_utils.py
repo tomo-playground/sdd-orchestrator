@@ -233,6 +233,95 @@ def validate_context_tag_categories(scenes: list[dict]) -> None:
             del ctx["mood"]
 
 
+# ── Phase B-2: Expression 단조로움 보정 ──────────────────────────────
+# 한국어 스크립트 키워드 → emotion 추론 (Writer가 emotion 미생성 시 fallback)
+_SCRIPT_EMOTION_HINTS: list[tuple[list[str], str]] = [
+    (["어려워", "힘들", "고민", "걱정", "불안"], "anxious"),
+    (["슬퍼", "슬프", "울", "눈물"], "sad"),
+    (["화나", "짜증", "싫어", "미워"], "angry"),
+    (["놀라", "충격", "헐"], "surprised"),
+    (["감사", "고마워", "고맙"], "happy"),
+    (["편하", "낫", "안심", "다행"], "calm"),
+    (["긴장", "떨려", "초조"], "nervous"),
+    (["부끄러", "창피", "민망"], "embarrassed"),
+    (["피곤", "졸려", "지쳐"], "tired"),
+    (["결심", "해보", "각오", "파이팅"], "determined"),
+    (["그리워", "보고싶", "옛날"], "nostalgic"),
+    (["무서워", "겁나", "두려"], "scared"),
+]
+
+
+def _infer_emotion_from_script(script: str) -> str | None:
+    """한국어 스크립트에서 emotion을 추론한다 (keyword matching)."""
+    if not script:
+        return None
+    for keywords, emotion in _SCRIPT_EMOTION_HINTS:
+        if any(kw in script for kw in keywords):
+            return emotion
+    return None
+
+
+def diversify_expressions(scenes: list[dict]) -> None:
+    """캐릭터 씬의 expression 단조로움을 감지하고 스크립트 기반으로 보정한다.
+
+    >60% 씬이 동일 expression이면:
+    1. emotion이 없는 씬에 스크립트 키워드 기반 emotion 추론
+    2. 추론된 emotion → expression 파생으로 교체
+    """
+    from collections import Counter
+
+    char_scenes = [(i, s) for i, s in enumerate(scenes) if s.get("speaker") != "Narrator"]
+    if len(char_scenes) < 3:
+        return
+
+    # 현재 expression 분포 확인
+    expressions = []
+    for _, s in char_scenes:
+        ctx = s.get("context_tags") or {}
+        expr = _coerce_str(ctx.get("expression"))
+        expressions.append(expr)
+
+    counts = Counter(expressions)
+    dominant_expr, dominant_count = counts.most_common(1)[0]
+    if dominant_count <= len(char_scenes) * 0.6:
+        return  # 충분히 다양함
+
+    logger.info(
+        "[Finalize] Expression 단조로움 감지: '%s'가 %d/%d 씬 — 스크립트 기반 보정 시작",
+        dominant_expr, dominant_count, len(char_scenes),
+    )
+
+    corrected = 0
+    for _, scene in char_scenes:
+        ctx = scene.get("context_tags")
+        if not ctx:
+            continue
+        # emotion이 이미 있으면 건너뜀 (이미 _inject_default_context_tags에서 처리됨)
+        if ctx.get("emotion"):
+            continue
+        current_expr = _coerce_str(ctx.get("expression"))
+        if current_expr != dominant_expr:
+            continue  # 이미 다른 expression이면 유지
+
+        # 스크립트에서 emotion 추론
+        script = scene.get("script", "")
+        inferred = _infer_emotion_from_script(script)
+        if not inferred:
+            continue
+        derived_expr = EMOTION_TO_EXPRESSION.get(inferred)
+        if derived_expr and derived_expr != dominant_expr:
+            ctx["emotion"] = inferred
+            ctx["expression"] = derived_expr
+            corrected += 1
+            logger.info(
+                "[Finalize] Scene '%s' → emotion=%s, expression=%s (was %s)",
+                script[:20], inferred, derived_expr, dominant_expr,
+            )
+
+    if corrected:
+        logger.info("[Finalize] Expression 보정 완료: %d씬 교체", corrected)
+
+
 # ── Phase C: 카메라 다양성 소프트 경고 ────────────────────────────────
 def check_camera_diversity(scenes: list[dict]) -> None:
     """전체 씬의 >50%가 동일 카메라 앵글이면 logger.warning 출력."""

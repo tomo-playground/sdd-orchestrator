@@ -271,12 +271,17 @@ def _inject_location_negative_tags(scenes: list[dict], writer_plan: dict | None)
             scene["negative_prompt_extra"] = f"{existing}, {neg_tag}".strip(", ") if existing else neg_tag
 
 
-def _auto_populate_scene_flags(scenes: list[dict], character_id: int | None) -> None:
+def _auto_populate_scene_flags(
+    scenes: list[dict],
+    character_id: int | None,
+    character_b_id: int | None = None,
+) -> None:
     """씬별 생성 플래그(use_controlnet, use_ip_adapter, multi_gen_enabled) 자동 할당.
 
     이미 값이 있는 필드는 덮어쓰지 않는다 (Cinematographer 명시값 보존).
     Express 모드처럼 Cinematographer가 스킵된 경우, context_tags.pose에서
     controlnet_pose를 자동 할당하여 ControlNet을 활성화한다.
+    Dialogue 구조에서는 speaker B도 character_b_id 기반으로 ControlNet/IP-Adapter 활성화.
     """
     from config import (  # noqa: PLC0415
         DEFAULT_CONTROLNET_WEIGHT,
@@ -290,9 +295,11 @@ def _auto_populate_scene_flags(scenes: list[dict], character_id: int | None) -> 
 
     for scene in scenes:
         is_narrator = scene.get("speaker") == "Narrator"
+        # Dialogue: speaker B uses character_b_id, others use character_id
+        scene_char_id = character_b_id if scene.get("speaker") == "B" else character_id
 
         # controlnet_pose 자동 할당: Cinematographer 미실행 시 context_tags.pose에서 파생
-        if not scene.get("controlnet_pose") and not is_narrator and character_id:
+        if not scene.get("controlnet_pose") and not is_narrator and scene_char_id:
             ctx_pose = (scene.get("context_tags") or {}).get("pose", DEFAULT_POSE_TAG)
             if ctx_pose in valid_poses:
                 scene["controlnet_pose"] = ctx_pose
@@ -309,7 +316,7 @@ def _auto_populate_scene_flags(scenes: list[dict], character_id: int | None) -> 
             scene["controlnet_weight"] = DEFAULT_CONTROLNET_WEIGHT
 
         if scene.get("use_ip_adapter") is None:
-            scene["use_ip_adapter"] = bool(character_id) and not is_narrator
+            scene["use_ip_adapter"] = bool(scene_char_id) and not is_narrator
         if scene.get("ip_adapter_weight") is None and scene["use_ip_adapter"]:
             scene["ip_adapter_weight"] = DEFAULT_IP_ADAPTER_WEIGHT
 
@@ -369,11 +376,12 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     _inject_negative_prompts(scenes)
     _copy_scene_level_to_context_tags(scenes)
 
-    from ._context_tag_utils import check_camera_diversity, validate_context_tag_categories
+    from ._context_tag_utils import check_camera_diversity, diversify_expressions, validate_context_tag_categories
 
     validate_context_tag_categories(scenes)
     _inject_writer_plan_emotions(scenes, state.get("writer_plan"))
     _inject_default_context_tags(scenes)
+    diversify_expressions(scenes)
     _normalize_environment_tags(scenes)
     _inject_location_map_tags(scenes, state.get("writer_plan"))
     _inject_location_negative_tags(scenes, state.get("writer_plan"))
@@ -400,7 +408,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     validate_ip_adapter_weights(scenes)
     validate_ken_burns_presets(scenes)
     check_camera_diversity(scenes)
-    _auto_populate_scene_flags(scenes, state.get("character_id"))
+    _auto_populate_scene_flags(scenes, state.get("character_id"), state.get("character_b_id"))
     _flatten_tts_designs(scenes)
 
     # Duration 최종 보정 (Review/Revise 경유 후에도 부족할 수 있음)
