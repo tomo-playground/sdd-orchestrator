@@ -134,6 +134,19 @@ def _normalize_environment_tags(scenes: list[dict]) -> None:
             ctx["environment"] = ctx.pop("setting")
 
 
+def _copy_scene_level_to_context_tags(scenes: list[dict]) -> None:
+    """Cinematographer가 scene-level에 출력한 camera/environment를 context_tags로 복사한다."""
+    for scene in scenes:
+        ctx = scene.get("context_tags")
+        if ctx is None:
+            scene["context_tags"] = {}
+            ctx = scene["context_tags"]
+
+        # camera: scene["camera"] → context_tags["camera"]
+        if ctx.get("camera") is None and scene.get("camera"):
+            ctx["camera"] = scene["camera"]
+
+
 def _build_scene_to_tags_map(writer_plan: dict) -> dict[int, list[str]]:
     """writer_plan.locations에서 scene_idx → tags 매핑을 구축한다."""
     idx_to_tags: dict[int, list[str]] = {}
@@ -337,6 +350,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
 
     _sanitize_quality_tags(scenes)
     _inject_negative_prompts(scenes)
+    _copy_scene_level_to_context_tags(scenes)
 
     from ._context_tag_utils import check_camera_diversity, validate_context_tag_categories
 
