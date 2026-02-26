@@ -37,6 +37,7 @@ export function buildScenesPayload(scenes: Scene[]) {
     height: s.height || 768,
     negative_prompt: s.negative_prompt,
     context_tags: s.context_tags,
+    background_id: s.background_id ?? null,
     character_actions: s.character_actions || undefined,
     image_asset_id: s.image_asset_id ?? null,
     environment_reference_id: s.environment_reference_id ?? null,
