@@ -23,6 +23,20 @@ from services.storage import get_storage
 router = APIRouter(prefix="/voice-presets", tags=["voice-presets"])
 
 
+def _compute_voice_seed(voice_design_prompt: str | None) -> int | None:
+    """Compute a deterministic voice_seed from voice_design_prompt.
+
+    Backend is SSOT for seed — Frontend may send it, but Backend always
+    ensures a seed exists when voice_design_prompt is present.
+    """
+    if not voice_design_prompt:
+        return None
+    from services.video.tts_helpers import translate_voice_prompt
+
+    translated = translate_voice_prompt(voice_design_prompt)
+    return hash(translated) % (2**31)
+
+
 def _preset_to_response(preset: VoicePreset, db: Session) -> dict:
     """Build response dict with computed audio_url."""
     audio_url = None
@@ -61,8 +75,12 @@ def get_voice_preset(preset_id: int, db: Session = Depends(get_db)):
 
 @router.post("", response_model=VoicePresetResponse, status_code=201)
 def create_voice_preset(body: VoicePresetCreate, db: Session = Depends(get_db)):
+    data = body.model_dump(exclude_unset=True, exclude={"source_type"})
+    # Auto-compute voice_seed if not provided
+    if not data.get("voice_seed") and data.get("voice_design_prompt"):
+        data["voice_seed"] = _compute_voice_seed(data["voice_design_prompt"])
     preset = VoicePreset(
-        **body.model_dump(exclude_unset=True, exclude={"source_type"}),
+        **data,
         source_type="generated",
         tts_engine="qwen",
         is_system=False,
@@ -82,7 +100,11 @@ def update_voice_preset(
     preset = db.query(VoicePreset).filter(VoicePreset.id == preset_id).first()
     if not preset:
         raise HTTPException(status_code=404, detail="Voice preset not found")
-    for key, value in body.model_dump(exclude_unset=True).items():
+    data = body.model_dump(exclude_unset=True)
+    # Re-compute voice_seed when voice_design_prompt changes
+    if "voice_design_prompt" in data and "voice_seed" not in data:
+        data["voice_seed"] = _compute_voice_seed(data["voice_design_prompt"])
+    for key, value in data.items():
         setattr(preset, key, value)
     db.commit()
     db.refresh(preset)
@@ -159,6 +181,7 @@ async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db))
 def attach_preview_to_preset(
     preset_id: int,
     temp_asset_id: int,
+    voice_seed: int | None = None,
     db: Session = Depends(get_db),
 ):
     """Attach a previously generated preview audio to a preset."""
@@ -175,6 +198,11 @@ def attach_preview_to_preset(
     temp_asset.owner_type = "voice_preset"
     temp_asset.owner_id = preset.id
     preset.audio_asset_id = temp_asset.id
+    # Update voice_seed if provided, or auto-compute if still None
+    if voice_seed is not None:
+        preset.voice_seed = voice_seed
+    elif not preset.voice_seed and preset.voice_design_prompt:
+        preset.voice_seed = _compute_voice_seed(preset.voice_design_prompt)
     db.commit()
     db.refresh(preset)
     return _preset_to_response(preset, db)
