@@ -346,16 +346,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 **Phase 15 — Prompt Input UX 고도화 (전체 완료, 18/18)**
 
-**Phase 17 — Service/Admin 분리 (진행 중)**
-
-| 순위 | 작업 | 근거 |
-|------|------|------|
-| ~~1~~ | ~~17-0: API 정리 (34→29개)~~ | ✅ 완료 (02-25) |
-| 1 | 17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`) | 유저/관리자 API 분리 |
-| 2 | 17-2: Frontend Route Group 분리 (`/` + `/admin`) | 유저/관리자 UI 분리 |
-| 3 | 17-3: 유저 UI 간소화 (Advanced 토글, Quick Render, Tooltip) | 유저 경험 최적화 |
-
-**Phase 18 — Stage Workflow (다음)**
+**Phase 18 — Stage Workflow (최우선)**
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
@@ -363,6 +354,15 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | 2 | 18-1: Background Generation Pipeline | 핵심 가치 — 복장 불일치 근본 해결 |
 | 3 | 18-2: Stage UI | 4단계 워크플로우 + 에셋 관리 |
 | 4 | 18-3: Stage-Direct 연결 | 자동 매핑 + Opt-in |
+
+**Phase 17 — Service/Admin 분리 (후순위)**
+
+| 순위 | 작업 | 근거 |
+|------|------|------|
+| ~~1~~ | ~~17-0: API 정리 (34→29개)~~ | ✅ 완료 (02-25) |
+| 1 | 17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`) | 유저/관리자 API 분리 |
+| 2 | 17-2: Frontend Route Group 분리 (`/` + `/admin`) | 유저/관리자 UI 분리 |
+| 3 | 17-3: 유저 UI 간소화 (Advanced 토글, Quick Render, Tooltip) | 유저 경험 최적화 |
 
 **Tier 3 — 장기**
 
