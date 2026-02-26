@@ -92,7 +92,7 @@ export default function SceneActionBar({
             }
             title={
               scene.environment_reference_id
-                ? `S${sceneIndex + 1}→S${pinnedSceneOrder ?? "?"} 배경 참조 중 (클릭하여 해제)`
+                ? `S${sceneIndex + 1}→S${pinnedSceneOrder != null ? pinnedSceneOrder + 1 : "?"} 배경 참조 중 (클릭하여 해제)`
                 : "이전 장면의 배경을 참조합니다"
             }
           >
@@ -100,7 +100,7 @@ export default function SceneActionBar({
             {scene.environment_reference_id ? (
               <span className="ml-0.5 text-[12px]">
                 S{sceneIndex + 1}
-                {pinnedSceneOrder != null ? `→S${pinnedSceneOrder}` : ""}
+                {pinnedSceneOrder != null ? `→S${pinnedSceneOrder + 1}` : ""}
               </span>
             ) : null}
           </Button>

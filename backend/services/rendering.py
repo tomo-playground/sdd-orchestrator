@@ -795,8 +795,8 @@ def _draw_overlay_footer(
 ) -> None:
     """Draw only the footer portion of overlay."""
     safe_margin = int(width * 0.06)
-    footer_top = int(height * 0.80)
-    footer_height = int(height * 0.10)
+    footer_top = int(height * 0.88)
+    footer_height = int(height * 0.08)
 
     # Draw background based on style
     if frame_style == "overlay_minimal.png":
