@@ -20,11 +20,12 @@
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
 | **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
-| **Phase 18 (Stage Workflow)** | **기능 명세 작성 완료, 미착수** |
+| **Phase 18 (Stage Workflow)** | **18-0 완료, 18-1 미착수** |
 | 테스트 | Backend 2,667 + Frontend 379 = **총 3,046개** |
 
 ### 최근 작업
 
+- **Phase 18-0: Location Model + DB** (02-26): backgrounds에 `storyboard_id` FK(CASCADE) + `location_key` + partial unique index 추가. storyboards에 `stage_status` 추가. `get_loc_field()` 이중 접근 헬퍼로 LangGraph 체크포인트 역직렬화 방어. serialize_scene background_id 누락 버그 수정. Soft delete/restore/permanent delete Background cascade 구현. list_backgrounds storyboard_id 필터 추가. 2,667 passed
 - **Stage Workflow 기능 명세** (02-26): Script→Stage→Direct→Publish 4단계 워크플로우 설계. location별 no_humans 배경 이미지를 Stage에서 미리 생성하여 Canny ControlNet 참조 시 캐릭터 윤곽선 간섭 근본 해결. 6개 에이전트 크로스 리뷰(PM/Frontend/Backend/UIUX/Prompt/FFmpeg). [명세](FEATURES/STAGE_WORKFLOW.md)
 - **TTS 싱크 + 음성 일관성 수정** (02-26): 3건 FFmpeg 필터 버그(xfade offset 미감산, total_dur 이중 감산, audio clip_dur 불필요 패딩) → 10씬 영상에서 ~3초 누적 디싱크 해소. Gemini 음성 재생성 → preset_base+emotion suffix 방식으로 씬 간 동일 캐릭터 음성 일관성 보장
 - **overlay footer 간격 + 핀 참조 표시 수정** (02-26): footer_top 0.80→0.88으로 scene text 겹침 방지. SceneActionBar pinnedSceneOrder 0-based→1-based 표시 수정
@@ -260,13 +261,13 @@ graph LR
 
 **목표**: Script → **Stage** → Direct → Publish 4단계 워크플로우. Stage에서 location별 순수 배경(no_humans) 이미지를 미리 생성하여 Canny ControlNet 참조 시 캐릭터 윤곽선 간섭을 근본적으로 해결. [상세 명세](FEATURES/STAGE_WORKFLOW.md)
 
-### Phase 18-0: Location Model + DB (미착수)
+### Phase 18-0: Location Model + DB (완료 02-26)
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | `backgrounds` 테이블에 `storyboard_id` FK + `location_key` 추가 | 미착수 |
-| 2 | `storyboards` 테이블에 `stage_status` 추가 | 미착수 |
-| 3 | WriterPlan.locations 타입 강화 (`list[dict]` → `list[LocationPlan]`) | 미착수 |
+| 1 | `backgrounds` 테이블에 `storyboard_id` FK + `location_key` 추가 | ✅ (02-26) |
+| 2 | `storyboards` 테이블에 `stage_status` 추가 | ✅ (02-26) |
+| 3 | WriterPlan.locations 타입 강화 (`list[dict]` → `list[LocationPlan]`) | ✅ (02-26) |
 
 ### Phase 18-1: Background Generation Pipeline (미착수)
 

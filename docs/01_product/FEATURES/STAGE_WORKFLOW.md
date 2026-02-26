@@ -292,10 +292,54 @@ localStorage 마이그레이션: `"edit"` → `"direct"` 자동 매핑.
 
 ---
 
-## 7. 의존성
+## 7. 사이드 이펙트 분석 (Phase 18-0)
+
+> 2026-02-26 크로스 에이전트 점검 완료 (Backend×3)
+
+### 7-1. Background `storyboard_id` FK 추가
+
+| # | 영향 | 위험도 | 대응 |
+|---|------|--------|------|
+| 1 | Soft delete cascade 누락 — SB 삭제 시 소유 Background 미삭제 | **HIGH** | `delete_storyboard_from_db()`에 소유 BG soft delete cascade 추가 |
+| 2 | `list_backgrounds()` 필터 누락 시 타 SB 전용 배경 노출 | **HIGH** | `storyboard_id` query param 추가 (공용+전용 OR 공용만) |
+| 3 | `restore_storyboard_from_db()`에 소유 BG restore cascade 미구현 | **HIGH** | restore 시 소유 BG도 `deleted_at=None` 복원 |
+| 4 | `serialize_scene()`에 `background_id` 응답 누락 (기존 버그) | MEDIUM | 이번에 함께 수정 |
+| 5 | `BackgroundCreate/Update/Response` 스키마에 새 필드 미반영 | LOW | 스키마 필드 추가 |
+| 6 | Frontend `Background` 타입 + `SceneBackgroundField` 필터링 | LOW | 타입 추가 + API 필터 적용 |
+
+**Unique 제약**: `(storyboard_id, location_key)` Partial Unique Index 추가 (`deleted_at IS NULL AND storyboard_id IS NOT NULL AND location_key IS NOT NULL`).
+
+**CASCADE 정책**: `Scene.background_id` FK는 `ondelete=SET NULL` (기존). Background 삭제 시 씬 참조가 NULL로 해제되므로 데이터 정합성 유지.
+
+### 7-2. Storyboard `stage_status` 추가
+
+| # | 영향 | 위험도 | 대응 |
+|---|------|--------|------|
+| 1 | `StoryboardDetailResponse/ListItem`이 수동 dict 빌드 — 자동 노출 안 됨 | MEDIUM | `crud.py`의 `get_storyboard_by_id()` + `list_storyboards_from_db()` dict에 키 추가 |
+| 2 | Frontend `StoryboardListItem` 3곳 중복 정의 | LOW | 3곳 모두 `stage_status` 필드 추가 |
+| 3 | `kanban_status`와 혼동 가능 | LOW | 독립 상태 — kanban은 파생값, stage_status는 DB 컬럼 |
+
+**NULL 해석**: `NULL` = "staging 미사용" (기존 SB 호환). 신규 Stage 시작 시 `pending` 설정.
+
+**전용 EP 추천**: `stage_status` 전이는 메타데이터 PATCH에 끼우지 않고 Stage API에서 관리.
+
+### 7-3. WriterPlan.locations 타입 변경
+
+| # | 영향 | 위험도 | 대응 |
+|---|------|--------|------|
+| 1 | LangGraph 체크포인트 역직렬화 → plain dict 복원 → `loc.name` AttributeError | **HIGH** | 이중 접근 헬퍼 `_get_loc_field()` 사용 |
+| 2 | `finalize.py` + `writer.py` 5곳 dict 접근 패턴 변경 필요 | MEDIUM | 헬퍼 함수로 dict/Pydantic 양쪽 지원 |
+| 3 | 테스트 7곳 dict 리터럴 → LocationPlan 인스턴스 변경 | LOW | 테스트 업데이트 |
+| 4 | Jinja2 템플릿 (`cinematographer.j2`) — `loc.name` 접근 | 없음 | Jinja2 getattr이 Pydantic attribute 지원 |
+
+**구현 전략**: `LocationEntryOutput`(llm_models.py)을 `LocationPlan`으로 rename하여 재사용. TypedDict에는 `list[LocationPlan]` 힌트, 실제 저장은 `model_dump()` dict 유지 (보수적 접근). 읽는 쪽에서 `_get_loc_field()` 헬퍼로 양방향 접근.
+
+---
+
+## 8. 의존성
 
 | 의존성 | 상태 | 설명 |
-|--------|------|------|
+|---------|------|------|
 | `Background` 모델 (`tags`, `weight`, `image_asset_id`) | 완료 | `models/background.py` |
 | `_resolve_background()` → `environment_reference_id` 전환 | 완료 | `generation_prompt.py` |
 | `compose_for_reference()` 프롬프트 메서드 | 완료 | `v3_composition.py` |
@@ -306,7 +350,7 @@ localStorage 마이그레이션: `"edit"` → `"direct"` 자동 매핑.
 
 ---
 
-## 8. 테스트 전략
+## 9. 테스트 전략
 
 | Phase | 테스트 범위 | 예상 수량 |
 |-------|-----------|----------|
@@ -321,7 +365,7 @@ localStorage 마이그레이션: `"edit"` → `"direct"` 자동 매핑.
 
 ---
 
-## 9. 스코프 외
+## 10. 스코프 외
 
 | 항목 | 이유 |
 |------|------|
@@ -332,7 +376,7 @@ localStorage 마이그레이션: `"edit"` → `"direct"` 자동 매핑.
 
 ---
 
-## 10. 관련 파일
+## 11. 관련 파일
 
 ### Backend
 

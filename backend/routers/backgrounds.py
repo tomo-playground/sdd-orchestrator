@@ -32,6 +32,8 @@ def _bg_to_response(bg: Background) -> dict:
         "category": bg.category,
         "weight": bg.weight,
         "is_system": bg.is_system,
+        "storyboard_id": bg.storyboard_id,
+        "location_key": bg.location_key,
         "created_at": bg.created_at,
     }
 
@@ -53,10 +55,21 @@ def list_categories(db: Session = Depends(get_db)):
 def list_backgrounds(
     search: str | None = Query(None),
     category: str | None = Query(None),
+    storyboard_id: int | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    """List backgrounds with optional search and category filter."""
+    """List backgrounds with optional search, category, and storyboard filter.
+
+    When storyboard_id is provided, returns shared (storyboard_id=NULL) + that storyboard's own.
+    Without storyboard_id, returns only shared backgrounds.
+    """
+    from sqlalchemy import or_
+
     q = _base_bg_query(db).filter(Background.deleted_at.is_(None))
+    if storyboard_id:
+        q = q.filter(or_(Background.storyboard_id.is_(None), Background.storyboard_id == storyboard_id))
+    else:
+        q = q.filter(Background.storyboard_id.is_(None))
     if category:
         q = q.filter(Background.category == category)
     if search:

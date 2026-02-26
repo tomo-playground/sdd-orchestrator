@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.30 | 2026-02-26 | Phase 18 Stage Workflow: `backgrounds`에 `storyboard_id` FK(CASCADE) + `location_key` + partial unique index 추가. `storyboards`에 `stage_status` 추가 |
 | v3.29 | 2026-02-22 | `scenes`에 `controlnet_pose` (String(50), nullable) 추가. Finalize `_flatten_tts_designs()` — tts_design dict → flat fields 분해 |
 | v3.28 | 2026-02-22 | `render_presets.bgm_mode` NOT NULL 적용 (server_default="manual"). Dead 컬럼 DROP: `scenes.description`, `creative_traces.diff_summary`. `scenes`에 `clothing_tags` (JSONB) 추가 |
 | v3.27 | 2026-02-22 | Seed Anchoring: `scenes.last_seed` (BigInteger), `storyboards.base_seed` (BigInteger) 추가 |
@@ -37,6 +38,7 @@ erDiagram
     storyboards ||--o{ activity_logs : "logged"
     storyboards ||--o{ render_history : "renders"
     
+    storyboards ||--o{ backgrounds : "owns"
     scenes }o--o| backgrounds : "uses"
     scenes ||--o{ scene_tags : "has"
     scenes ||--o{ scene_character_actions : "has"
@@ -153,6 +155,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `language` | String(20) | 언어 설정, GroupConfig에서 상속 가능 |
 | `version` | Integer, NOT NULL, default 1 | Optimistic Locking 버전. PUT/PATCH 시 검증, 성공 시 +1 증분. 불일치 시 409 Conflict |
 | `base_seed` | BigInteger, nullable | Seed Anchoring 기준 시드. 씬별 seed = `base_seed + order * SEED_ANCHOR_OFFSET` |
+| `stage_status` | String(20), nullable | Stage 파이프라인 상태: `pending`, `staging`, `staged`, `failed`. NULL = 미사용 |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
@@ -395,7 +398,7 @@ WD14 피드백 루프 데이터.
 ## Asset System
 
 ### `backgrounds`
-배경 프리셋. ControlNet Canny 참조 이미지 + 환경 태그 관리.
+배경 프리셋. ControlNet Canny 참조 이미지 + 환경 태그 관리. Phase 18에서 스토리보드별 location 배경 지원 추가.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -407,10 +410,13 @@ WD14 피드백 루프 데이터.
 | `category` | String(50) | 분류 (indoor, outdoor, school...) |
 | `weight` | Float (default: 0.3) | ControlNet Canny 기본 가중치 |
 | `is_system` | Boolean (default: false) | 시스템 프리셋 여부 |
+| `storyboard_id` | Integer (FK → storyboards, CASCADE), nullable | 소유 스토리보드. NULL = 공용 |
+| `location_key` | String(100), nullable | Writer Plan의 location 식별자 |
 | `created_at`, `updated_at` | DateTime | TimestampMixin |
 | `deleted_at` | DateTime | SoftDeleteMixin |
 
-**Indexes**: `ix_backgrounds_category`, `ix_backgrounds_deleted_at`
+**Indexes**: `ix_backgrounds_category`, `ix_backgrounds_deleted_at`, `ix_backgrounds_storyboard_id`
+**Unique**: `ix_backgrounds_storyboard_location_key` (partial, `deleted_at IS NULL AND storyboard_id IS NOT NULL AND location_key IS NOT NULL`)
 
 ### `media_assets` (V3.1)
 통합 미디어 저장소. S3/Local 스토리지 폴리모픽 참조 시스템.

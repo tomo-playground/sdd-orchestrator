@@ -151,12 +151,20 @@ class UnifiedReviewOutput(BaseModel):
 # -- Writer Plan --
 
 
-class LocationEntryOutput(BaseModel):
-    """Location Map 항목 (장소 이름 + 해당 씬 + 환경 태그)."""
+class LocationPlan(BaseModel):
+    """Location Map 항목 (장소 이름 + 해당 씬 + 환경 태그).
+
+    Phase 18 Stage Workflow에서도 공유하는 모델.
+    WriterPlan.locations 타입 힌트 + Gemini 출력 검증 양쪽에서 사용.
+    """
 
     name: str = ""
     scenes: list[int] = []
     tags: list[str] = []
+
+
+# Backward compat alias
+LocationEntryOutput = LocationPlan
 
 
 class WriterPlanOutput(BaseModel):

@@ -149,10 +149,12 @@ def _copy_scene_level_to_context_tags(scenes: list[dict]) -> None:
 
 def _build_scene_to_tags_map(writer_plan: dict) -> dict[int, list[str]]:
     """writer_plan.locations에서 scene_idx → tags 매핑을 구축한다."""
+    from services.agent.state import get_loc_field
+
     idx_to_tags: dict[int, list[str]] = {}
     for loc in writer_plan.get("locations", []):
-        for idx in loc.get("scenes", []):
-            idx_to_tags[idx] = loc.get("tags", [])
+        for idx in get_loc_field(loc, "scenes", []):  # type: ignore[union-attr]
+            idx_to_tags[idx] = get_loc_field(loc, "tags", [])  # type: ignore[assignment]
     return idx_to_tags
 
 
@@ -173,9 +175,11 @@ def _inject_location_map_tags(scenes: list[dict], writer_plan: dict | None) -> N
     idx_to_tags = _build_scene_to_tags_map(writer_plan)
 
     # Location Map의 모든 유효 환경 태그 수집 (할루시네이션 필터용)
+    from services.agent.state import get_loc_field
+
     all_valid_env: set[str] = set()
     for loc in writer_plan.get("locations", []):
-        for t in loc.get("tags", []):
+        for t in get_loc_field(loc, "tags", []):  # type: ignore[union-attr]
             all_valid_env.add(_norm(t))
     all_valid_env |= GENERIC_LOCATION_TAGS  # indoors/outdoors 등 generic은 항상 허용
 

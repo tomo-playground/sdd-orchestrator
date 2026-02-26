@@ -87,6 +87,7 @@ def serialize_scene(
         "width": scene.width,
         "height": scene.height,
         "context_tags": scene.context_tags,
+        "background_id": scene.background_id,
         "tags": [{"tag_id": t.tag_id, "weight": t.weight} for t in scene.tags],
         "character_actions": [
             {

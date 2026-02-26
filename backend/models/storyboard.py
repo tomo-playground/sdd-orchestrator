@@ -44,6 +44,9 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
         Integer, ForeignKey("media_assets.id", ondelete="SET NULL"), nullable=True
     )
 
+    # Phase 18: Stage Workflow
+    stage_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
     @property
     def video_url(self) -> str | None:
         if self.render_history and self.render_history[0].media_asset:

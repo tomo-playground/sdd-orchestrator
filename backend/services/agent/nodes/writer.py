@@ -207,10 +207,15 @@ async def writer_node(state: ScriptState) -> dict:
         locations = plan.get("locations", [])
         if locations:
             plan_text += "\n\n## Location Map (MUST use these environment tags)\n"
+            from services.agent.state import get_loc_field
+
             for loc in locations:
-                scenes_str = ", ".join(str(s) for s in loc["scenes"])
-                tags_str = ", ".join(loc["tags"])
-                plan_text += f"- **{loc['name']}** (scenes {scenes_str}): {tags_str}\n"
+                loc_scenes: list = get_loc_field(loc, "scenes", [])  # type: ignore[assignment]
+                loc_tags: list = get_loc_field(loc, "tags", [])  # type: ignore[assignment]
+                loc_name: str = get_loc_field(loc, "name", "")  # type: ignore[assignment]
+                scenes_str = ", ".join(str(s) for s in loc_scenes)
+                tags_str = ", ".join(loc_tags)
+                plan_text += f"- **{loc_name}** (scenes {scenes_str}): {tags_str}\n"
         plan_text += "\n이 계획을 기반으로 대본을 작성하세요."
         pipeline_ctx["writer_plan"] = plan_text
 

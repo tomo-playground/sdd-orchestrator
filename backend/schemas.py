@@ -272,6 +272,7 @@ class StoryboardListItem(BaseModel):
     image_count: int = 0
     cast: list[StoryboardCastMember] = []
     kanban_status: str = "draft"  # draft | in_prod | rendered | published
+    stage_status: str | None = None  # pending | staging | staged | failed
     created_at: str | None = None
     updated_at: str | None = None
 
@@ -384,6 +385,7 @@ class StoryboardDetailResponse(BaseModel):
     caption: str | None = None
     bgm_prompt: str | None = None  # Sound Designer recommendation
     bgm_mood: str | None = None  # Sound Designer mood tag
+    stage_status: str | None = None  # pending | staging | staged | failed
     created_at: str | None = None
     updated_at: str | None = None
     characters: list[StoryboardCharacterResponse] = []
@@ -1437,6 +1439,8 @@ class BackgroundCreate(BaseModel):
     tags: list[str] | None = None
     category: str | None = None
     weight: float = 0.3
+    storyboard_id: int | None = None
+    location_key: str | None = None
 
 
 class BackgroundUpdate(BaseModel):
@@ -1445,6 +1449,7 @@ class BackgroundUpdate(BaseModel):
     tags: list[str] | None = None
     category: str | None = None
     weight: float | None = None
+    location_key: str | None = None
 
 
 class BackgroundResponse(BaseModel):
@@ -1457,6 +1462,8 @@ class BackgroundResponse(BaseModel):
     category: str | None = None
     weight: float
     is_system: bool
+    storyboard_id: int | None = None
+    location_key: str | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)

@@ -583,6 +583,8 @@ export type StoryboardCastMember = {
   preview_url: string | null;
 };
 
+export type StageStatus = "pending" | "staging" | "staged" | "failed" | null;
+
 export type StoryboardListItem = {
   id: number;
   title: string;
@@ -590,6 +592,7 @@ export type StoryboardListItem = {
   scene_count: number;
   image_count: number;
   cast: StoryboardCastMember[];
+  stage_status: StageStatus;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -664,6 +667,8 @@ export type Background = {
   category: string | null;
   weight: number;
   is_system: boolean;
+  storyboard_id: number | null;
+  location_key: string | null;
   created_at: string;
 };
 

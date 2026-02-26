@@ -173,6 +173,7 @@ def list_storyboards_from_db(
                 "image_count": image_count,
                 "cast": cast,
                 "kanban_status": _derive_kanban_status(s, image_count),
+                "stage_status": s.stage_status,
                 "created_at": s.created_at.isoformat() if s.created_at else None,
                 "updated_at": s.updated_at.isoformat() if s.updated_at else None,
             }
@@ -284,6 +285,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "caption": storyboard.caption,
         "bgm_prompt": storyboard.bgm_prompt,
         "bgm_mood": storyboard.bgm_mood,
+        "stage_status": storyboard.stage_status,
         "created_at": storyboard.created_at.isoformat() if storyboard.created_at else None,
         "updated_at": storyboard.updated_at.isoformat() if storyboard.updated_at else None,
         "version": storyboard.version,
@@ -467,6 +469,13 @@ def delete_storyboard_from_db(db: Session, storyboard_id: int) -> dict:
         Scene.storyboard_id == storyboard_id,
         Scene.deleted_at.is_(None),
     ).update({Scene.deleted_at: now}, synchronize_session=False)
+    # Cascade soft-delete to owned backgrounds (Phase 18 Stage)
+    from models.background import Background
+
+    db.query(Background).filter(
+        Background.storyboard_id == storyboard_id,
+        Background.deleted_at.is_(None),
+    ).update({Background.deleted_at: now}, synchronize_session=False)
     db.commit()
     return {"status": "success"}
 
@@ -490,6 +499,14 @@ def restore_storyboard_from_db(db: Session, storyboard_id: int) -> dict:
         Scene.storyboard_id == storyboard_id,
         Scene.deleted_at == batch_ts,
     ).update({Scene.deleted_at: None}, synchronize_session=False)
+
+    # Restore owned backgrounds deleted in the same batch (Phase 18 Stage)
+    from models.background import Background
+
+    db.query(Background).filter(
+        Background.storyboard_id == storyboard_id,
+        Background.deleted_at == batch_ts,
+    ).update({Background.deleted_at: None}, synchronize_session=False)
 
     db.commit()
     logger.info("[Storyboard Restore] id=%d title=%s", storyboard_id, storyboard.title)
@@ -530,6 +547,22 @@ def permanent_delete_storyboard(db: Session, storyboard_id: int) -> dict:
                 MediaAsset.owner_type == "scene",
                 MediaAsset.owner_id.in_(scene_ids),
             ).delete(synchronize_session=False)
+
+        # Clean up owned background image assets (Phase 18 Stage)
+        # Background rows are CASCADE-deleted by DB FK, but their MediaAssets would be orphaned.
+        from models.background import Background
+
+        bg_asset_ids = [
+            row[0]
+            for row in db.query(Background.image_asset_id)
+            .filter(
+                Background.storyboard_id == storyboard_id,
+                Background.image_asset_id.isnot(None),
+            )
+            .all()
+        ]
+        if bg_asset_ids:
+            db.query(MediaAsset).filter(MediaAsset.id.in_(bg_asset_ids)).delete(synchronize_session=False)
 
         db.delete(storyboard)
         db.commit()

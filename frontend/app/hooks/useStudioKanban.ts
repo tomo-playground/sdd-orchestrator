@@ -16,6 +16,7 @@ export type StoryboardListItem = {
     preview_url: string | null;
   }>;
   kanban_status: "draft" | "in_prod" | "rendered" | "published";
+  stage_status: "pending" | "staging" | "staged" | "failed" | null;
   created_at: string | null;
   updated_at: string | null;
 };

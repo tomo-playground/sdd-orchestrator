@@ -85,7 +85,19 @@ class _WriterPlanRequired(TypedDict):
 class WriterPlan(_WriterPlanRequired, total=False):
     """Writer의 계획 수립 결과 (Phase 10-A)."""
 
-    locations: list[dict]  # 장소 맵: [{name, scenes, tags}]
+    locations: list[dict]  # 장소 맵: [{name, scenes, tags}] — LocationPlan | dict 양방향 호환
+
+
+def get_loc_field(loc: object, field: str, default: object = None) -> object:
+    """Read a field from a location entry (dict or Pydantic model).
+
+    LangGraph checkpoint deserialization returns plain dict even if the
+    original value was a Pydantic model. This helper safely accesses
+    fields from both dict and attribute-based objects.
+    """
+    if isinstance(loc, dict):
+        return loc.get(field, default)
+    return getattr(loc, field, default)
 
 
 class ScriptState(TypedDict, total=False):

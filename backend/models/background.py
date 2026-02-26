@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Float, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -10,12 +10,22 @@ from models.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from models.media_asset import MediaAsset
+    from models.storyboard import Storyboard
 
 
 class Background(Base, TimestampMixin, SoftDeleteMixin):
     """Reusable background reference image for ControlNet Canny."""
 
     __tablename__ = "backgrounds"
+    __table_args__ = (
+        Index(
+            "ix_backgrounds_storyboard_location_key",
+            "storyboard_id",
+            "location_key",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL AND storyboard_id IS NOT NULL AND location_key IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -28,8 +38,15 @@ class Background(Base, TimestampMixin, SoftDeleteMixin):
     weight: Mapped[float] = mapped_column(Float, default=0.3)
     is_system: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Phase 18: Stage Workflow — per-storyboard backgrounds
+    storyboard_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("storyboards.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    location_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
     # Relationships
     image_asset: Mapped[MediaAsset | None] = relationship("MediaAsset", foreign_keys=[image_asset_id])
+    storyboard: Mapped[Storyboard | None] = relationship("Storyboard", foreign_keys=[storyboard_id])
 
     @property
     def image_url(self) -> str | None:
