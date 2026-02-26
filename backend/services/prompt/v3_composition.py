@@ -1094,13 +1094,18 @@ class V3PromptBuilder:
         return tags
 
     def _inject_reference_defaults(self, layers: list[list[str]]) -> None:
-        """Inject fixed environment and camera tags for reference images."""
-        env_norms = {self._strip_weight(t).lower().replace(" ", "_") for t in layers[LAYER_ENVIRONMENT]}
+        """Inject fixed environment and camera tags for reference images.
+
+        Background tags are placed in LAYER_QUALITY (front of prompt) for maximum
+        influence — SD pays more attention to earlier tokens.
+        """
+        # Background suppression → LAYER_QUALITY (position 0) for maximum priority
+        quality_norms = {self._strip_weight(t).lower().replace(" ", "_") for t in layers[LAYER_QUALITY]}
         for tag in REFERENCE_ENV_TAGS:
             key = self._strip_weight(tag).lower().replace(" ", "_")
-            if key not in env_norms:
-                layers[LAYER_ENVIRONMENT].append(tag)
-                env_norms.add(key)
+            if key not in quality_norms:
+                layers[LAYER_QUALITY].append(tag)
+                quality_norms.add(key)
 
         cam_norms = {self._strip_weight(t).lower().replace(" ", "_") for t in layers[LAYER_CAMERA]}
         for tag in REFERENCE_CAMERA_TAGS:

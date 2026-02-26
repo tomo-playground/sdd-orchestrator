@@ -120,10 +120,11 @@ CAMERA_FRAMING_CLOSE: frozenset[str] = frozenset(
 MALE_INDICATORS: frozenset[str] = frozenset({"1boy", "2boys", "3boys", "male", "man", "boy"})
 FEMALE_INDICATORS: frozenset[str] = frozenset({"1girl", "2girls", "3girls", "female", "woman", "girl"})
 REFERENCE_ENV_TAGS: list[str] = [
-    "(white_background:1.3)",
-    "(simple_background:1.3)",
+    "(white_background:1.8)",
+    "(simple_background:1.5)",
     "plain_background",
     "solid_background",
+    "no_shadow",
 ]
 REFERENCE_CAMERA_TAGS: list[str] = [
     "(solo:1.5)",
