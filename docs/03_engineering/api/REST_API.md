@@ -6,6 +6,7 @@
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v4.1 | 2026-02-26 | Phase 18 Stage Workflow: Stage API 4개 엔드포인트 추가 (generate-backgrounds, status, assign-backgrounds, regenerate-background) |
 | v4.0 | 2026-02-18 | 문서 전체 소스 기반 최신화: Storyboard GET/DELETE 추가, Video render-history/youtube-statuses 추가, Groups Config CRUD 추가, Storage build cleanup 추가, 신규 API 섹션 참조 추가 |
 | v3.8 | 2026-02-13 | Storyboard Optimistic Locking (`version`), Partial Metadata Update (`PATCH`), Material Check (`/materials`), Scene Async Generation (`/scene/generate-async`) |
 | v3.7 | 2026-02-11 | Multi-Character LoRA 지원 |
@@ -22,7 +23,8 @@
 4. [Presets](#presets-프리셋-템플릿) - 스토리보드 프리셋
 5. [Storage](#storage-저장소-관리) - 저장소 관리
 6. [Projects & Groups](#projects--groups) - 프로젝트/그룹 관리
-7. [공통 사항](#공통-사항) - 에러 처리 및 상태 코드
+7. [Stage](#stage-프리프로덕션) - Stage Workflow (배경 생성/매핑)
+8. [공통 사항](#공통-사항) - 에러 처리 및 상태 코드
 
 ### 분할 문서
 - **Presets API** (Render / Voice / Music) -> [REST_API_PRESETS.md](./REST_API_PRESETS.md)
@@ -379,6 +381,70 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve). `response_
 ---
 
 ## Render Presets / Voice Presets / Music Presets -> [REST_API_PRESETS.md](./REST_API_PRESETS.md)
+
+---
+
+## Stage (프리프로덕션)
+
+> Phase 18 Stage Workflow — 배경 이미지 자동 생성 및 씬-배경 매핑. 라우터 prefix: `/storyboards`
+
+### `POST /storyboards/{storyboard_id}/stage/generate-backgrounds`
+Location별 `no_humans` 배경 이미지 일괄 생성.
+
+**Response:** `StageGenerateResponse`
+```json
+{
+  "storyboard_id": 1,
+  "results": [
+    {"location_key": "cafe_indoors", "background_id": 10, "status": "generated"},
+    {"location_key": "park_outdoors", "background_id": 11, "status": "generated"}
+  ]
+}
+```
+
+### `GET /storyboards/{storyboard_id}/stage/status`
+Stage 진행 상태 및 location별 배경 준비 현황.
+
+**Response:** `StageStatusResponse`
+```json
+{
+  "storyboard_id": 1,
+  "stage_status": "staged",
+  "locations": [
+    {
+      "location_key": "cafe_indoors",
+      "background_id": 10,
+      "image_url": "http://...",
+      "tags": ["cafe", "indoors"],
+      "scene_ids": [1, 3, 5],
+      "has_image": true
+    }
+  ],
+  "total": 2,
+  "ready": 2
+}
+```
+
+### `POST /storyboards/{storyboard_id}/stage/assign-backgrounds`
+생성된 배경을 매칭 씬에 `background_id`로 자동 할당.
+
+**Response:** `StageAssignResponse`
+```json
+{
+  "assignments": [
+    {"scene_id": 1, "background_id": 10, "location_key": "cafe_indoors"},
+    {"scene_id": 3, "background_id": 10, "location_key": "cafe_indoors"}
+  ]
+}
+```
+
+### `POST /storyboards/{storyboard_id}/stage/regenerate-background/{location_key}`
+특정 location의 배경 이미지 개별 재생성.
+
+**Response:** `StageRegenerateResponse`
+```json
+{"background_id": 10, "status": "regenerated"}
+```
 
 ---
 

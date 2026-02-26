@@ -120,14 +120,24 @@ def calculate_auto_pin_flags(scenes: list, structure: str | None = None) -> dict
 
     if is_dialogue:
         for i, scene in enumerate(scenes):
-            # First scene has no previous to pin to; all others auto-pin
-            result[scene.id] = i > 0
+            # Stage background overrides auto-pin
+            if getattr(scene, "background_id", None):
+                result[scene.id] = False
+            else:
+                result[scene.id] = i > 0
         return result
 
     # For Monologue: use environment tag overlap logic
     previous_env_tags: set[str] | None = None
 
     for i, scene in enumerate(scenes):
+        # Stage background overrides auto-pin (dedicated environment reference)
+        if getattr(scene, "background_id", None):
+            result[scene.id] = False
+            context_tags = scene.context_tags or {}
+            previous_env_tags = set(context_tags.get("environment", []))
+            continue
+
         context_tags = scene.context_tags or {}
         current_env_tags = set(context_tags.get("environment", []))
 

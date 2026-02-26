@@ -337,6 +337,63 @@ class V3PromptBuilder:
 
         return self._flatten_layers(layers)
 
+    # ── compose_for_background (Phase 18 Stage) ─────────────────────────
+
+    def compose_for_background(
+        self,
+        location_tags: list[str],
+        quality_tags: list[str] | None = None,
+        style_loras: list[dict] | None = None,
+    ) -> str:
+        """Build a 5-Layer background prompt for Stage Workflow.
+
+        Layers used: Quality(0), Subject(1), Camera(9), Environment(10), Atmosphere(11).
+        Character layers (2-8) are fully skipped.
+
+        Args:
+            location_tags: Environment tags from WriterPlan location (e.g. ["classroom", "indoors", "desk"]).
+            quality_tags: StyleProfile quality tags. Falls back to FALLBACK_QUALITY_TAGS.
+            style_loras: Style LoRAs from StyleContext (trigger words omitted for background).
+        """
+        location_tags = self._resolve_aliases(location_tags)
+        layers: list[list[str]] = [[] for _ in range(12)]
+
+        # L0 Quality
+        if quality_tags:
+            layers[LAYER_QUALITY].extend(quality_tags)
+
+        # L1 Subject — always no_humans + scenery
+        layers[LAYER_SUBJECT].extend([BACKGROUND_SCENE_MARKER, "scenery"])
+
+        # L9 Camera — wide_shot default for background
+        layers[LAYER_CAMERA].append("wide_shot")
+
+        # L10 Environment — location tags
+        tag_info = self.get_tag_info(location_tags)
+        for tag in location_tags:
+            norm = tag.lower().replace(" ", "_").strip()
+            info = tag_info.get(norm, {"layer": LAYER_ENVIRONMENT})
+            target = info["layer"]
+            if target in CHARACTER_ONLY_LAYERS:
+                continue
+            if target == LAYER_CAMERA and norm in CHARACTER_CAMERA_TAGS:
+                continue
+            layers[target].append(tag)
+
+        # L11 Atmosphere — Style LoRA (trigger words omitted)
+        if style_loras:
+            for lora in style_loras:
+                weight = lora.get("weight")
+                if weight is None:
+                    weight = self.get_lora_weight_by_name(lora["name"])
+                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora['name']}:{self._cap_lora_weight(weight)}>")
+
+        layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
+        layers[LAYER_CAMERA] = self._resolve_camera_conflicts(layers[LAYER_CAMERA])
+        self._ensure_quality_tags(layers)
+
+        return self._flatten_layers(layers)
+
     @staticmethod
     def _strip_character_layers(layers: list[list[str]]) -> None:
         """Clear character-only layers and character camera tags (defense for generic compose)."""

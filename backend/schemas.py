@@ -2168,3 +2168,65 @@ class SceneCancelResponse(BaseModel):
 
     ok: bool
     reason: str | None = None
+
+
+# ============================================================
+# Phase 18: Stage Workflow Schemas
+# ============================================================
+
+
+class StageLocationResult(BaseModel):
+    """Result for a single location background generation."""
+
+    location_key: str
+    background_id: int
+    status: str  # "generated" | "exists" | "failed"
+
+
+class StageGenerateResponse(BaseModel):
+    """Response for POST /{storyboard_id}/stage/generate-backgrounds."""
+
+    storyboard_id: int
+    results: list[StageLocationResult]
+
+
+class StageLocationStatus(BaseModel):
+    """Status of a single location background."""
+
+    location_key: str
+    background_id: int | None = None
+    image_url: str | None = None  # Response-only: derived from image_asset
+    tags: list[str] = []
+    scene_ids: list[int] = []
+    has_image: bool = False
+
+
+class StageStatusResponse(BaseModel):
+    """Response for GET /{storyboard_id}/stage/status."""
+
+    storyboard_id: int
+    stage_status: str | None
+    locations: list[StageLocationStatus]
+    total: int
+    ready: int
+
+
+class StageAssignment(BaseModel):
+    """A single scene-to-background assignment."""
+
+    scene_id: int
+    background_id: int
+    location_key: str
+
+
+class StageAssignResponse(BaseModel):
+    """Response for POST /{storyboard_id}/stage/assign-backgrounds."""
+
+    assignments: list[StageAssignment]
+
+
+class StageRegenerateResponse(BaseModel):
+    """Response for POST /{storyboard_id}/stage/regenerate-background/{location_key}."""
+
+    background_id: int
+    status: str  # "regenerated" | "failed"

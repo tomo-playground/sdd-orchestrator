@@ -30,6 +30,7 @@ from routers import (
     scripts_router,
     sd_models_router,
     settings_router,
+    stage_router,
     storyboard_router,
     style_profiles_router,
     tags_router,
@@ -168,6 +169,7 @@ app.include_router(scene_router)
 app.include_router(scripts_router)
 app.include_router(sd_models_router)
 app.include_router(settings_router)
+app.include_router(stage_router)
 app.include_router(storyboard_router)
 app.include_router(style_profiles_router)
 app.include_router(tags_router)

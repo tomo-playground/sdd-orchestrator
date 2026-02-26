@@ -22,6 +22,7 @@ from .scene import router as scene_router
 from .scripts import router as scripts_router
 from .sd_models import router as sd_models_router
 from .settings import router as settings_router
+from .stage import router as stage_router
 from .storyboard import router as storyboard_router
 from .style_profiles import router as style_profiles_router
 from .tags import router as tags_router
@@ -58,4 +59,5 @@ __all__ = [
     "voice_presets_router",
     "music_presets_router",
     "youtube_router",
+    "stage_router",
 ]

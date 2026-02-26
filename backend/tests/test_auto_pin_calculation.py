@@ -8,11 +8,12 @@ This function calculates _auto_pin_previous flags for scenes based on:
 from unittest.mock import MagicMock
 
 
-def create_mock_scene(scene_id: int, env_tags: list[str] | None = None):
+def create_mock_scene(scene_id: int, env_tags: list[str] | None = None, background_id: int | None = None):
     """Create a mock Scene object with context_tags."""
     scene = MagicMock()
     scene.id = scene_id
     scene.context_tags = {"environment": env_tags} if env_tags else None
+    scene.background_id = background_id
     return scene
 
 

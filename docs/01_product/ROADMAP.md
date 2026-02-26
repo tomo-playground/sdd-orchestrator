@@ -20,11 +20,12 @@
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
 | **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
-| **Phase 18 (Stage Workflow)** | **18-0 완료, 18-1 미착수** |
+| **Phase 18 (Stage Workflow)** | **18-0~18-1 완료, 18-2 미착수** |
 | 테스트 | Backend 2,667 + Frontend 379 = **총 3,046개** |
 
 ### 최근 작업
 
+- **Phase 18-1: Background Generation Pipeline** (02-26): `compose_for_background()` 5-Layer Template(Quality→Subject/no_humans→Camera/wide_shot→Environment→Atmosphere/LoRA). `background_generator.py` — scenes의 environment tags에서 location 역추론, SD WebUI로 배경 생성, AssetService 저장. Stage API 4EP(`generate-backgrounds`, `status`, `assign-backgrounds`, `regenerate-background`). `calculate_auto_pin_flags()` background_id 존재 시 auto_pin 비활성화. 7개 Stage 스키마 + REST API 문서 업데이트
 - **Phase 18-0: Location Model + DB** (02-26): backgrounds에 `storyboard_id` FK(CASCADE) + `location_key` + partial unique index 추가. storyboards에 `stage_status` 추가. `get_loc_field()` 이중 접근 헬퍼로 LangGraph 체크포인트 역직렬화 방어. serialize_scene background_id 누락 버그 수정. Soft delete/restore/permanent delete Background cascade 구현. list_backgrounds storyboard_id 필터 추가. 2,667 passed
 - **Stage Workflow 기능 명세** (02-26): Script→Stage→Direct→Publish 4단계 워크플로우 설계. location별 no_humans 배경 이미지를 Stage에서 미리 생성하여 Canny ControlNet 참조 시 캐릭터 윤곽선 간섭 근본 해결. 6개 에이전트 크로스 리뷰(PM/Frontend/Backend/UIUX/Prompt/FFmpeg). [명세](FEATURES/STAGE_WORKFLOW.md)
 - **TTS 싱크 + 음성 일관성 수정** (02-26): 3건 FFmpeg 필터 버그(xfade offset 미감산, total_dur 이중 감산, audio clip_dur 불필요 패딩) → 10씬 영상에서 ~3초 누적 디싱크 해소. Gemini 음성 재생성 → preset_base+emotion suffix 방식으로 씬 간 동일 캐릭터 음성 일관성 보장
@@ -269,15 +270,15 @@ graph LR
 | 2 | `storyboards` 테이블에 `stage_status` 추가 | ✅ (02-26) |
 | 3 | WriterPlan.locations 타입 강화 (`list[dict]` → `list[LocationPlan]`) | ✅ (02-26) |
 
-### Phase 18-1: Background Generation Pipeline (미착수)
+### Phase 18-1: Background Generation Pipeline (완료 02-26)
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | `compose_for_background()` — 5-Layer Background Template | 미착수 |
-| 2 | `services/stage/background_generator.py` — 배경 이미지 배치 생성 | 미착수 |
-| 3 | `routers/stage.py` — Stage API (generate/status/assign/regenerate) | 미착수 |
-| 4 | `_apply_environment()` no_humans 스킵 로직 조건 수정 | 미착수 |
-| 5 | `calculate_auto_pin_flags()` — background_id 존재 시 auto_pin 비활성화 | 미착수 |
+| 1 | `compose_for_background()` — 5-Layer Background Template | ✅ (02-26) |
+| 2 | `services/stage/background_generator.py` — 배경 이미지 배치 생성 | ✅ (02-26) |
+| 3 | `routers/stage.py` — Stage API (generate/status/assign/regenerate) | ✅ (02-26) |
+| 4 | `_apply_environment()` no_humans 스킵 조건 — 기존 로직으로 충분 (변경 불필요) | ✅ (02-26) |
+| 5 | `calculate_auto_pin_flags()` — background_id 존재 시 auto_pin 비활성화 | ✅ (02-26) |
 
 ### Phase 18-2: Stage UI (미착수)
 

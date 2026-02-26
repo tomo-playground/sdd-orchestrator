@@ -437,6 +437,12 @@ DEFAULT_SCENE_NEGATIVE_PROMPT = "lowres, bad_anatomy, bad_hands, text, error, mi
 # Extra negative tags appended for Narrator scenes (no_humans) to suppress character generation
 NARRATOR_NEGATIVE_PROMPT_EXTRA = "1girl, 1boy, 2girls, 2boys, multiple_girls, multiple_boys, person, human, male, female, solo, couple, face, portrait, upper_body, cowboy_shot"
 
+# Stage Workflow status values (Phase 18)
+STAGE_STATUS_PENDING = "pending"
+STAGE_STATUS_STAGING = "staging"
+STAGE_STATUS_STAGED = "staged"
+STAGE_STATUS_FAILED = "failed"
+
 # Default pose/gaze/expression for ControlNet when Gemini omits context_tags
 DEFAULT_POSE_TAG = "standing"
 DEFAULT_GAZE_TAG = "looking_at_viewer"
