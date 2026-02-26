@@ -43,8 +43,10 @@ def _inject_negative_prompts(scenes: list[dict]) -> None:
 
 def _merge_production_results(state: ScriptState) -> tuple[list[dict], dict | None, dict | None]:
     """cinematographer_result.scenes에 tts 결과를 병합하고, sound/copyright를 별도 반환."""
+    import copy  # noqa: PLC0415
+
     cinema = state.get("cinematographer_result") or {}
-    scenes = [dict(s) for s in cinema.get("scenes", [])]
+    scenes = [copy.deepcopy(s) for s in cinema.get("scenes", [])]
 
     tts_designs = (state.get("tts_designer_result") or {}).get("tts_designs", [])
     sound_rec = (state.get("sound_designer_result") or {}).get("recommendation")
@@ -60,16 +62,16 @@ def _merge_production_results(state: ScriptState) -> tuple[list[dict], dict | No
 
 
 def _inject_default_context_tags(scenes: list[dict]) -> None:
-    """캐릭터 씬의 context_tags에 pose/gaze/expression 기본값을 주입한다.
+    """캐릭터 씬의 context_tags에 pose/gaze/expression/mood 기본값을 주입한다.
 
-    Gemini가 context_tags를 누락하면 character_actions 변환이 실패하므로,
-    기본값을 채워서 최소한의 character_actions가 생성되도록 한다.
-    expression은 emotion 필드에서 파생을 시도하고, 실패 시 기본값.
+    expression은 항상 emotion에서 파생을 시도한다 (Cinematographer가 단일 expression으로
+    모든 씬을 채우는 monotony 문제 방지). 파생 실패 시에만 기존값 또는 기본값 사용.
+    mood는 빈 경우 emotion에서 자동 생성한다.
     Narrator 씬(배경샷)은 캐릭터가 없으므로 건너뛴다.
     """
     from config import DEFAULT_EXPRESSION_TAG  # noqa: PLC0415
 
-    from ._context_tag_utils import derive_expression_from_emotion
+    from ._context_tag_utils import derive_expression_from_emotion, derive_mood_from_emotion
 
     for scene in scenes:
         speaker = scene.get("speaker", "")
@@ -85,14 +87,24 @@ def _inject_default_context_tags(scenes: list[dict]) -> None:
             }
             continue
 
-        if not ctx.get("pose"):
+        if ctx.get("pose") is None:
             ctx["pose"] = DEFAULT_POSE_TAG
-        if not ctx.get("gaze"):
+        if ctx.get("gaze") is None:
             ctx["gaze"] = DEFAULT_GAZE_TAG
-        if not ctx.get("expression"):
-            emotion = ctx.get("emotion")
-            derived = derive_expression_from_emotion(emotion) if emotion else None
-            ctx["expression"] = derived or DEFAULT_EXPRESSION_TAG
+
+        # expression: emotion에서 항상 파생 시도 (monotony 방지)
+        emotion = ctx.get("emotion")
+        derived_expr = derive_expression_from_emotion(emotion) if emotion else None
+        if derived_expr:
+            ctx["expression"] = derived_expr
+        elif ctx.get("expression") is None:
+            ctx["expression"] = DEFAULT_EXPRESSION_TAG
+
+        # mood: emotion에서 자동 생성 (빈 mood 해결)
+        if ctx.get("mood") is None:
+            derived_mood = derive_mood_from_emotion(emotion) if emotion else None
+            if derived_mood:
+                ctx["mood"] = derived_mood
 
 
 def _inject_writer_plan_emotions(scenes: list[dict], writer_plan: dict | None) -> None:
@@ -132,17 +144,27 @@ def _build_scene_to_tags_map(writer_plan: dict) -> dict[int, list[str]]:
 
 
 def _inject_location_map_tags(scenes: list[dict], writer_plan: dict | None) -> None:
-    """writer_plan.locations 기반으로 각 씬의 context_tags.environment에 구체 태그를 주입한다.
+    """writer_plan.locations 기반으로 각 씬의 context_tags.environment를 교정한다.
 
-    LLM이 generic 태그(indoors/outdoors)만 생성해도, Location Map의 구체 태그로 보강하여
-    SD가 일관된 배경을 생성하도록 한다.
+    Location Map이 환경 태그의 SSOT. LLM이 생성한 environment 태그 중
+    Location Map에 속하지 않는 태그는 할루시네이션으로 간주하여 제거한다.
     """
     from config_prompt import GENERIC_LOCATION_TAGS  # noqa: PLC0415
 
     if not writer_plan or not writer_plan.get("locations"):
         return
 
+    def _norm(tag: str) -> str:
+        return tag.lower().replace(" ", "_").strip()
+
     idx_to_tags = _build_scene_to_tags_map(writer_plan)
+
+    # Location Map의 모든 유효 환경 태그 수집 (할루시네이션 필터용)
+    all_valid_env: set[str] = set()
+    for loc in writer_plan.get("locations", []):
+        for t in loc.get("tags", []):
+            all_valid_env.add(_norm(t))
+    all_valid_env |= GENERIC_LOCATION_TAGS  # indoors/outdoors 등 generic은 항상 허용
 
     for i, scene in enumerate(scenes):
         loc_tags = idx_to_tags.get(i)
@@ -162,19 +184,44 @@ def _inject_location_map_tags(scenes: list[dict], writer_plan: dict | None) -> N
         else:
             env = list(env)
 
-        def _norm(tag: str) -> str:
-            return tag.lower().replace(" ", "_").strip()
+        loc_norms = {_norm(t) for t in loc_tags}
 
-        existing_norms = {_norm(t) for t in env}
+        # LLM이 생성한 environment 중 Location Map에 없는 태그 제거 (할루시네이션 방지)
+        dropped = [t for t in env if _norm(t) not in all_valid_env]
+        if dropped:
+            logger.info(
+                "[Finalize] Scene %d: 환경 태그 교정 — dropped %s (Location Map에 없음)",
+                i,
+                dropped,
+            )
 
-        # 구체 태그를 앞에, generic 태그를 뒤에 배치
-        specific_new = [t for t in loc_tags if _norm(t) not in existing_norms and _norm(t) not in GENERIC_LOCATION_TAGS]
-        generic_new = [t for t in loc_tags if _norm(t) not in existing_norms and _norm(t) in GENERIC_LOCATION_TAGS]
+        kept = [t for t in env if _norm(t) in loc_norms]
 
-        specific_existing = [t for t in env if _norm(t) not in GENERIC_LOCATION_TAGS]
-        generic_existing = [t for t in env if _norm(t) in GENERIC_LOCATION_TAGS]
+        # kept도 specific/generic 분리 (구체 태그 우선 원칙 일관 적용)
+        kept_norms = {_norm(k) for k in kept}
+        kept_specific = [t for t in kept if _norm(t) not in GENERIC_LOCATION_TAGS]
+        kept_generic = [t for t in kept if _norm(t) in GENERIC_LOCATION_TAGS]
 
-        ctx["environment"] = specific_existing + specific_new + generic_existing + generic_new
+        # Location Map 태그 중 아직 없는 것 추가 (구체 → generic 순)
+        new_specific = [t for t in loc_tags if _norm(t) not in kept_norms and _norm(t) not in GENERIC_LOCATION_TAGS]
+        new_generic = [t for t in loc_tags if _norm(t) not in kept_norms and _norm(t) in GENERIC_LOCATION_TAGS]
+
+        ctx["environment"] = kept_specific + new_specific + kept_generic + new_generic
+
+        # image_prompt에서도 할루시네이션 환경 태그 제거
+        if dropped:
+            dropped_norms = {_norm(t) for t in dropped}
+            prompt = scene.get("image_prompt", "")
+            if prompt:
+                tokens = [t.strip() for t in prompt.split(",")]
+                cleaned = [t for t in tokens if _norm(t) not in dropped_norms]
+                if len(cleaned) < len(tokens):
+                    scene["image_prompt"] = ", ".join(cleaned)
+                    logger.info(
+                        "[Finalize] Scene %d: image_prompt에서 환경 태그 %d개 제거",
+                        i,
+                        len(tokens) - len(cleaned),
+                    )
 
 
 def _inject_location_negative_tags(scenes: list[dict], writer_plan: dict | None) -> None:
@@ -278,13 +325,15 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         logger.warning("[LangGraph] Finalize: 에러 상태 전파 → %s", state.get("error"))
         return {"error": state.get("error")}
 
+    import copy  # noqa: PLC0415
+
     sound_rec: dict | None = None
     copyright_result: dict | None = None
 
     if "production" not in (state.get("skip_stages") or []) and state.get("cinematographer_result"):
         scenes, sound_rec, copyright_result = _merge_production_results(state)
     else:
-        scenes = [dict(s) for s in (state.get("draft_scenes") or [])]
+        scenes = [copy.deepcopy(s) for s in (state.get("draft_scenes") or [])]
 
     _sanitize_quality_tags(scenes)
     _inject_negative_prompts(scenes)

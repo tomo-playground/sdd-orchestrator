@@ -60,9 +60,15 @@ class TestInjectDefaultContextTagsEmotion:
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["expression"] == "angry"
 
-    def test_existing_expression_not_overridden(self):
-        """expression이 이미 있으면 emotion 무시."""
+    def test_emotion_overrides_existing_expression(self):
+        """emotion이 매핑되면 기존 expression을 오버라이드 (monotony 방지)."""
         scenes = [{"speaker": "A", "context_tags": {"emotion": "angry", "expression": "smile"}}]
+        _inject_default_context_tags(scenes)
+        assert scenes[0]["context_tags"]["expression"] == "angry"
+
+    def test_unmapped_emotion_keeps_existing_expression(self):
+        """emotion이 매핑 안 되면 기존 expression 유지."""
+        scenes = [{"speaker": "A", "context_tags": {"emotion": "mysterious_vibe", "expression": "smile"}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["expression"] == "smile"
 
@@ -89,3 +95,27 @@ class TestInjectDefaultContextTagsEmotion:
         scenes = [{"speaker": "A", "context_tags": {"emotion": ["sad"]}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["expression"] == "sad"
+
+    def test_mood_derived_from_emotion(self):
+        """emotion에서 mood 자동 파생."""
+        scenes = [{"speaker": "A", "context_tags": {"emotion": "소외감"}}]
+        _inject_default_context_tags(scenes)
+        assert scenes[0]["context_tags"]["mood"] == "lonely"
+
+    def test_mood_not_overridden_if_exists(self):
+        """기존 mood 유지."""
+        scenes = [{"speaker": "A", "context_tags": {"emotion": "sad", "mood": "tense"}}]
+        _inject_default_context_tags(scenes)
+        assert scenes[0]["context_tags"]["mood"] == "tense"
+
+    def test_korean_compound_emotion_derives_expression(self):
+        """복합 한국어 emotion → expression 파생."""
+        scenes = [
+            {"speaker": "A", "context_tags": {"emotion": "공감 유도"}},
+            {"speaker": "A", "context_tags": {"emotion": "내적 갈등"}},
+            {"speaker": "A", "context_tags": {"emotion": "체념"}},
+        ]
+        _inject_default_context_tags(scenes)
+        assert scenes[0]["context_tags"]["expression"] == "smile"
+        assert scenes[1]["context_tags"]["expression"] == "furrowed_brow"
+        assert scenes[2]["context_tags"]["expression"] == "expressionless"

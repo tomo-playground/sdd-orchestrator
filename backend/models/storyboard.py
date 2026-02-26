@@ -35,7 +35,7 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
 
     # Phase 12-C: AI BGM Pipeline
     bgm_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
-    bgm_mood: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    bgm_mood: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     # Seed Anchoring: base seed for consistent scene generation
     base_seed: Mapped[int | None] = mapped_column(BigInteger, nullable=True)

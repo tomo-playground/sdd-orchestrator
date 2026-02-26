@@ -10,7 +10,7 @@ PERMANENT_IDENTITY_WEIGHT_BOOST = 1.15
 PERMANENT_DETAIL_WEIGHT_BOOST = 1.1
 FALLBACK_STYLE_LORA_WEIGHT_MAX = 0.5
 NON_FRONTAL_GAZE_WEIGHT = 1.25
-EXPRESSION_ACTION_WEIGHT_BOOST = 1.1
+EXPRESSION_ACTION_WEIGHT_BOOST = 1.2
 ENVIRONMENT_WEIGHT_BOOST = 1.15
 MALE_GENDER_BOOST_WEIGHT = 1.3
 MALE_FOCUS_WEIGHT = 1.2
@@ -95,6 +95,15 @@ INDOOR_LOCATION_TAGS: frozenset[str] = frozenset(
         "hallway",
         "living_room",
         "stage",
+        # 가구/소품 (환경 구체화)
+        "office_chair",
+        "desk",
+        "office_desk",
+        "bed",
+        "sofa",
+        "couch",
+        "table",
+        "chair",
     }
 )
 CAMERA_FRAMING_WIDE: frozenset[str] = frozenset({"full_body", "wide_shot"})

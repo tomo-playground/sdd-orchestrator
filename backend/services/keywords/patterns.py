@@ -407,6 +407,8 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "drool",
         "drooling",
         "teardrop",
+        "confused",
+        "curious",
     ],
     "gaze": [
         "looking_at_viewer",
@@ -917,6 +919,7 @@ GROUP_NAME_TO_LAYER: dict[str, int] = {
     "hair_style": 2,  # LAYER_IDENTITY
     "hair_accessory": 6,  # LAYER_ACCESSORY
     "eye_color": 2,  # LAYER_IDENTITY
+    "eye_detail": 2,  # LAYER_IDENTITY
     "skin_color": 3,  # LAYER_BODY
     "body_feature": 3,  # LAYER_BODY
     "appearance": 3,  # LAYER_BODY
@@ -924,6 +927,7 @@ GROUP_NAME_TO_LAYER: dict[str, int] = {
     "clothing_top": 4,  # LAYER_MAIN_CLOTH
     "clothing_bottom": 4,  # LAYER_MAIN_CLOTH
     "clothing_outfit": 4,  # LAYER_MAIN_CLOTH
+    "clothing": 4,  # LAYER_MAIN_CLOTH (coarse alias)
     "clothing_detail": 5,  # LAYER_DETAIL_CLOTH
     "legwear": 5,  # LAYER_DETAIL_CLOTH
     "footwear": 5,  # LAYER_DETAIL_CLOTH
@@ -934,13 +938,17 @@ GROUP_NAME_TO_LAYER: dict[str, int] = {
     "action_body": 8,  # LAYER_ACTION
     "action_hand": 8,  # LAYER_ACTION
     "action_daily": 8,  # LAYER_ACTION
+    "action": 8,  # LAYER_ACTION (coarse alias)
+    "gesture": 8,  # LAYER_ACTION (coarse alias)
     "camera": 9,  # LAYER_CAMERA
     "location_indoor_general": 10,  # LAYER_ENVIRONMENT
     "location_indoor_specific": 10,  # LAYER_ENVIRONMENT
+    "location_indoor": 10,  # LAYER_ENVIRONMENT (coarse alias)
     "location_outdoor": 10,  # LAYER_ENVIRONMENT
     "environment": 10,  # LAYER_ENVIRONMENT
     "background_type": 10,  # LAYER_ENVIRONMENT
     "time_of_day": 10,  # LAYER_ENVIRONMENT
+    "time_weather": 10,  # LAYER_ENVIRONMENT (coarse alias)
     "weather": 10,  # LAYER_ENVIRONMENT
     "particle": 10,  # LAYER_ENVIRONMENT
     "lighting": 11,  # LAYER_ATMOSPHERE

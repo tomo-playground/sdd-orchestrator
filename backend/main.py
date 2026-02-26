@@ -72,11 +72,15 @@ async def lifespan(app: FastAPI):
         LoRATriggerCache.initialize(db)
 
         # Self-Correction: Apply high-confidence tag suggestions
-        from services.keywords.suggestions import apply_high_confidence_suggestions
+        from services.keywords.suggestions import apply_high_confidence_suggestions, sync_default_layers
 
         applied = apply_high_confidence_suggestions()
         if applied > 0:
             logger.info(f"✅ [Self-Correction] Auto-classified {applied} tags on startup")
+
+        synced = sync_default_layers()
+        if synced > 0:
+            logger.info(f"✅ [Sync] Fixed {synced} stale default_layer values on startup")
 
     except Exception as e:
         logger.error(f"Failed to initialize tag caches or self-correct: {e}")

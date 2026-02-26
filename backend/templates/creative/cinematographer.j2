@@ -107,13 +107,21 @@ Match your visual design to this plan:
    | Back-facing | 0.0 ~ 0.2 | from behind |
    | Narrator (no character) | 0.0 | No character in scene |
 5. **Environment consistency**: Maintain consistent setting within scene groups. Use `context_tags.environment` to specify the scene's location as an English tag (e.g. kitchen, outdoor_garden, classroom).
+   - Include furniture/props that anchor the scene: `office_chair`, `desk`, `bed`, `sofa`, `chair`
    - Do NOT add weather/atmosphere tags (rain, cloud, moon, night, snow) unless the script explicitly mentions them
    - Indoor scenes (kitchen, bedroom, classroom): do NOT add outdoor atmosphere tags
 6. **Mood-visual alignment**: Camera and environment must match the script's emotional tone
-7. **Scene-specific objects**: Based on the script content, add relevant object/prop tags:
-   - Cooking scene: knife, cutting_board, frying_pan, plate, food, apron
-   - Study scene: book, desk, pen, notebook, lamp
-   - Outdoor scene: tree, sky, bench, road
+   - **context_tags.expression**: Do NOT set this field. System auto-derives expression from emotion.
+   - **context_tags.mood**: Do NOT set this field. System auto-derives mood from emotion.
+   - Only set: `emotion`, `action`, `pose`, `gaze`, `environment` in context_tags.
+7. **Scene-specific objects** (CRITICAL for narrative fidelity):
+   Based on the script content, add relevant object/prop/action tags to **both** `image_prompt` and `context_tags.action`:
+   - Phone/message scene: `holding_phone`, `looking_at_phone`, `cellphone`, `smartphone`
+   - Cooking scene: `knife`, `cutting_board`, `frying_pan`, `plate`, `food`, `apron`
+   - Study scene: `book`, `desk`, `pen`, `notebook`, `lamp`
+   - Office scene: `office_chair`, `computer`, `monitor`, `keyboard`
+   - Outdoor scene: `tree`, `sky`, `bench`, `road`
+   - **Rule**: If the script mentions a key action (checking phone, cooking, reading), the related prop MUST appear in image_prompt. Do NOT omit props that define the scene's core action.
    - Do NOT add objects unrelated to the script (e.g. holding_book in a cooking scene)
 8. **image_prompt**: Complete comma-separated tag string ready for Stable Diffusion
 9. **negative_prompt_extra**: Scene-specific tags to exclude from generation. Combined with the default negative prompt.

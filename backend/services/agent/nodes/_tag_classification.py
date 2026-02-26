@@ -29,18 +29,25 @@ def _extract_all_scene_tags(scenes: list[dict]) -> list[str]:
                     seen.add(tag)
                     all_tags.append(tag)
 
-        # context_tags에서 추출
+        # context_tags에서 Danbooru 태그 필드만 추출 (emotion 등 비태그 필드 제외)
         ctx = scene.get("context_tags") or {}
-        for value in ctx.values():
+        _TAG_FIELDS = ("expression", "gaze", "pose", "camera", "mood")
+        for key in _TAG_FIELDS:
+            value = ctx.get(key)
             if isinstance(value, str) and value:
                 if value not in seen:
                     seen.add(value)
                     all_tags.append(value)
-            elif isinstance(value, list):
-                for item in value:
-                    if isinstance(item, str) and item and item not in seen:
-                        seen.add(item)
-                        all_tags.append(item)
+        # environment는 리스트일 수 있음
+        env = ctx.get("environment")
+        if isinstance(env, list):
+            for item in env:
+                if isinstance(item, str) and item and item not in seen:
+                    seen.add(item)
+                    all_tags.append(item)
+        elif isinstance(env, str) and env and env not in seen:
+            seen.add(env)
+            all_tags.append(env)
 
     return all_tags
 

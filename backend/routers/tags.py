@@ -277,6 +277,7 @@ async def update_tag(tag_id: int, data: TagUpdate, db: Session = Depends(get_db)
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(tag, key, value)
+    # group_name → default_layer 동기화는 Tag.@validates("group_name")에서 자동 처리
 
     db.commit()
     db.refresh(tag)

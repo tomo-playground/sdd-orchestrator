@@ -23,6 +23,7 @@
 
 ### 최근 작업
 
+- **프롬프트 파이프라인 품질 근본 수정** (02-26): SB#481 분석→4대 버그 수정(한국어 emotion 매핑 132개, Location Map SSOT, `""` vs `None` DEFAULT 마스킹, GROUP_NAME_TO_LAYER coarse alias). DB 태그 오분류 420개 group_name 재분류 + 406개 default_layer 동기화 + 한글 태그 12개 삭제. ORM `@validates` 게이트(비ASCII 거부 + group_name→default_layer 자동 동기화). context_tags emotion 필드 태그 분류 유입 차단. Quick 모드 deepcopy. bgm_mood varchar(50→100). 2,635 passed
 - **Tag Group 세분화** (02-26): clothing(119)→7그룹(top/bottom/outfit/detail/legwear/footwear/accessory), action(56)→3그룹(body/hand/daily), time_weather(39)→3그룹(time_of_day/weather/particle). 13개 세분화 그룹, 26파일 변경, Layer 4/5/6/8/10 매핑, Gemini context_tags 후방 호환 보존. [명세](FEATURES/TAG_GROUP_REFINEMENT.md). 2,635 passed
 - **Audio Server 로컬 MPS 전환** (02-26): Docker CPU → 로컬 실행(MPS)으로 TTS(Qwen3-TTS)/BGM(MusicGen) Apple Silicon GPU 가속. `docker-compose.audio.yml` device=auto 전환, `audio/.venv` Python 3.13 로컬 환경 구축
 - **Gemini 모델 Pro/Flash 분리 완성** (02-26): Director Plan + Director Checkpoint → `DIRECTOR_MODEL`(Pro) 전환. `.env`에 `DIRECTOR_MODEL`, `CREATIVE_LEADER_MODEL`, `REVIEW_MODEL` 명시 + `GEMINI_TEXT_MODEL`을 Flash로 복원. Pro 5개 노드(Critic, Director, Director Plan, Director Checkpoint, Review) / Flash 14개 노드 분리 완료
@@ -260,6 +261,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | 기능 | 설명 | 우선순위 |
 |------|------|---------|
 | ~~Tag Group 세분화~~ | ~~clothing→7그룹, action→3그룹, time_weather→3그룹. 26파일, 2635 passed~~ | ✅ (02-26) |
+| ~~프롬프트 파이프라인 품질 근본 수정~~ | ~~한국어 emotion 매핑, Location Map SSOT, ORM 검증 게이트, DB 오분류 838개 수정~~ | ✅ (02-26) |
 
 ### Intelligence & Automation
 

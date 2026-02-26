@@ -1,9 +1,14 @@
 """Tag model for Pure V3 Prompt Engine."""
 
+import re
+
 from sqlalchemy import Float, ForeignKey, Index, Integer, String, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from models.base import Base, TimestampMixin
+
+# ASCII + 언더바/하이픈/괄호만 허용 (Danbooru 표준)
+_VALID_TAG_NAME = re.compile(r"^[a-z0-9][a-z0-9_\-().+/&!': ]*$")
 
 
 class Tag(Base, TimestampMixin):
@@ -26,6 +31,24 @@ class Tag(Base, TimestampMixin):
     default_layer: Mapped[int] = mapped_column(Integer, default=0)  # 0-11
     usage_scope: Mapped[str] = mapped_column(String(20), default="ANY")  # PERMANENT, TRANSIENT, ANY
     priority: Mapped[int] = mapped_column(Integer, default=100)
+
+    @validates("name")
+    def _validate_name(self, _key: str, value: str) -> str:
+        """비ASCII 태그 거부 (Danbooru 표준 강제)."""
+        if value and not _VALID_TAG_NAME.match(value.lower()):
+            raise ValueError(f"Invalid tag name (non-ASCII): '{value}'")
+        return value
+
+    @validates("group_name")
+    def _validate_group_name(self, _key: str, value: str | None) -> str | None:
+        """group_name 변경 시 default_layer 자동 동기화."""
+        if value is not None:
+            from services.keywords.patterns import GROUP_NAME_TO_LAYER
+
+            layer = GROUP_NAME_TO_LAYER.get(value)
+            if layer is not None:
+                self.default_layer = layer
+        return value
 
     # Classification data (15.7)
     classification_source: Mapped[str | None] = mapped_column(String(20))

@@ -1150,13 +1150,17 @@ class TestLoRAWeightCap:
 class TestApplySceneCharacterActions:
     """Test scene-level character action overrides on LAYER_EXPRESSION/LAYER_ACTION."""
 
+    # layer → group_name 매핑 (테스트용)
+    _LAYER_TO_GROUP = {7: "expression", 8: "pose", 10: "environment", 11: "mood"}
+
     def _seed_tags(self, db_session, names_layers: list[tuple[str, int]]):
         """Insert tags into DB and return {name: id}."""
         from models.tag import Tag
 
         result = {}
         for name, layer in names_layers:
-            tag = Tag(name=name, default_layer=layer, category="scene", group_name="expression")
+            group = self._LAYER_TO_GROUP.get(layer, "subject")
+            tag = Tag(name=name, category="scene", group_name=group)
             db_session.add(tag)
         db_session.flush()
         for name, _ in names_layers:

@@ -76,14 +76,14 @@ class TestValidateContextTagCategories:
         validate_context_tag_categories(scenes)
         ctx = scenes[0]["context_tags"]
         assert ctx["expression"] == "crying"
-        assert ctx["gaze"] == ""
+        assert "gaze" not in ctx  # 잘못 분류된 필드는 키 삭제
 
     def test_invalid_mood_dropped(self, caplog):
         """비표준 mood('clay_look')은 drop."""
         scenes = [{"context_tags": {"mood": "clay_look"}}]
         with caplog.at_level(logging.WARNING):
             validate_context_tag_categories(scenes)
-        assert scenes[0]["context_tags"]["mood"] == ""
+        assert "mood" not in scenes[0]["context_tags"]  # 키 삭제
         assert "비표준 mood" in caplog.text
 
     def test_valid_mood_preserved(self):
@@ -107,7 +107,7 @@ class TestValidateContextTagCategories:
         scenes = [{"context_tags": {"mood": ["clay_look"]}}]
         with caplog.at_level(logging.WARNING):
             validate_context_tag_categories(scenes)
-        assert scenes[0]["context_tags"]["mood"] == ""
+        assert "mood" not in scenes[0]["context_tags"]  # 키 삭제
 
 
 # ── check_camera_diversity ────────────────────────────────────────────

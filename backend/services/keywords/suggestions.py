@@ -102,3 +102,36 @@ def apply_high_confidence_suggestions(min_confidence: float = 1.0) -> int:
         db.close()
 
     return applied_count
+
+
+def sync_default_layers() -> int:
+    """Sync default_layer from GROUP_NAME_TO_LAYER for all tags with group_name.
+
+    Fixes tags where group_name is correct but default_layer is stale.
+    Safe to run repeatedly (idempotent).
+    """
+    from database import SessionLocal
+    from models import Tag
+
+    from .patterns import GROUP_NAME_TO_LAYER
+
+    db = SessionLocal()
+    fixed = 0
+    try:
+        tags = db.query(Tag).filter(Tag.group_name.isnot(None)).all()
+        for tag in tags:
+            expected = GROUP_NAME_TO_LAYER.get(tag.group_name)  # type: ignore[arg-type]  # filtered by isnot(None)
+            if expected is not None and tag.default_layer != expected:
+                tag.default_layer = expected
+                fixed += 1
+
+        if fixed > 0:
+            db.commit()
+            _get_logger().info("✅ [Sync] Fixed %d tags with stale default_layer", fixed)
+    except Exception:
+        _get_logger().exception("Failed to sync default_layers")
+        db.rollback()
+    finally:
+        db.close()
+
+    return fixed

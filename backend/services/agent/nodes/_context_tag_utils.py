@@ -14,6 +14,7 @@ def _coerce_str(val: object) -> str:
 
 # ── Phase A: emotion → expression 매핑 ────────────────────────────────
 EMOTION_TO_EXPRESSION: dict[str, str] = {
+    # English
     "happy": "smile",
     "joy": "smile",
     "cheerful": "smile",
@@ -49,6 +50,143 @@ EMOTION_TO_EXPRESSION: dict[str, str] = {
     "bittersweet": "sad",
     "wistful": "sad",
     "hopeful": "smile",
+    # Korean (한국어 스토리보드에서 Gemini가 한국어 emotion을 생성하는 경우)
+    "기쁨": "smile",
+    "행복": "smile",
+    "즐거움": "smile",
+    "기대감": "excited",
+    "기대": "excited",
+    "흥분": "excited",
+    "자신감": "smirk",
+    "자부심": "grin",
+    "슬픔": "sad",
+    "우울": "sad",
+    "우울함": "sad",
+    "외로움": "sad",
+    "고독": "sad",
+    "고독감": "sad",
+    "소외감": "sad",
+    "비참함": "crying",
+    "비통": "crying",
+    "불안": "nervous",
+    "불안감": "nervous",
+    "초조함": "nervous",
+    "초조": "nervous",
+    "긴장": "nervous",
+    "긴장감": "nervous",
+    "두려움": "scared",
+    "공포": "scared",
+    "무서움": "frightened",
+    "분노": "angry",
+    "화남": "angry",
+    "짜증": "frustrated",
+    "답답함": "frustrated",
+    "답답": "frustrated",
+    "놀라움": "surprised",
+    "충격": "shocked",
+    "경악": "shocked",
+    "평온": "expressionless",
+    "차분": "expressionless",
+    "그리움": "sad",
+    "향수": "sad",
+    "회상": "expressionless",
+    "생각": "serious",
+    "고민": "serious",
+    "걱정": "nervous",
+    "결심": "serious",
+    "결의": "serious",
+    "당황": "embarrassed",
+    "부끄러움": "embarrassed",
+    "수줍음": "shy",
+    "졸림": "sleepy",
+    "피곤": "tired",
+    "씁쓸함": "sad",
+    "씁쓸": "sad",
+    "허탈": "expressionless",
+    "공허함": "expressionless",
+    "공허": "expressionless",
+    "허무": "expressionless",
+    "자책": "sad",
+    "후회": "sad",
+    "의아함": "confused",
+    "의아": "confused",
+    "혼란": "confused",
+    "호기심": "curious",
+    "궁금": "curious",
+    "감동": "crying",
+    "감사": "smile",
+    "희망": "smile",
+    # 복합 감정 (Gemini가 생성하는 구문형 emotion)
+    "공감 유도": "smile",
+    "공감": "smile",
+    "무반응": "expressionless",
+    "자기 검열": "nervous",
+    "자기검열": "nervous",
+    "미묘한 관찰": "serious",
+    "내적 갈등": "furrowed_brow",
+    "내적갈등": "furrowed_brow",
+    "체념": "expressionless",
+    "냉소": "smirk",
+    "무관심": "expressionless",
+    "경계": "serious",
+    "관찰": "serious",
+    "동경": "smile",
+    "감탄": "surprised",
+}
+
+
+# ── emotion → mood 매핑 (빈 mood 자동 생성) ──────────────────────────
+EMOTION_TO_MOOD: dict[str, str] = {
+    # English
+    "happy": "cheerful",
+    "joy": "cheerful",
+    "excited": "bright",
+    "sad": "melancholic",
+    "melancholy": "melancholic",
+    "lonely": "lonely",
+    "anxious": "tense",
+    "nervous": "tense",
+    "scared": "dark",
+    "angry": "intense",
+    "nostalgic": "nostalgic",
+    "peaceful": "peaceful",
+    "calm": "serene",
+    "hopeful": "warm",
+    "bittersweet": "bittersweet",
+    "tense": "tense",
+    "determined": "dramatic",
+    # Korean
+    "기쁨": "cheerful",
+    "행복": "warm",
+    "기대감": "bright",
+    "기대": "bright",
+    "슬픔": "melancholic",
+    "우울": "gloomy",
+    "외로움": "lonely",
+    "소외감": "lonely",
+    "불안": "tense",
+    "불안감": "tense",
+    "긴장": "tense",
+    "공포": "dark",
+    "분노": "intense",
+    "짜증": "intense",
+    "놀라움": "dramatic",
+    "충격": "dramatic",
+    "평온": "serene",
+    "그리움": "nostalgic",
+    "향수": "nostalgic",
+    "씁쓸함": "bittersweet",
+    "씁쓸": "bittersweet",
+    "허탈": "melancholic",
+    "공허": "gloomy",
+    "의아함": "mysterious",
+    "호기심": "mysterious",
+    "공감 유도": "warm",
+    "무반응": "gloomy",
+    "자기 검열": "tense",
+    "미묘한 관찰": "mysterious",
+    "내적 갈등": "tense",
+    "체념": "somber",
 }
 
 
@@ -56,6 +194,12 @@ def derive_expression_from_emotion(emotion: str | list | None) -> str | None:
     """emotion 문자열로부터 적절한 expression 태그를 파생한다."""
     s = _coerce_str(emotion)
     return EMOTION_TO_EXPRESSION.get(s.lower().strip()) if s else None
+
+
+def derive_mood_from_emotion(emotion: str | list | None) -> str | None:
+    """emotion 문자열로부터 적절한 mood 태그를 파생한다."""
+    s = _coerce_str(emotion)
+    return EMOTION_TO_MOOD.get(s.lower().strip()) if s else None
 
 
 # ── Phase B: 카테고리 검증 ────────────────────────────────────────────
@@ -95,7 +239,7 @@ def validate_context_tag_categories(scenes: list[dict]) -> None:
             norm = val.lower().strip()
             if norm not in valid_by_field[field]:
                 misplaced.append((field, norm))
-                ctx[field] = ""
+                del ctx[field]  # None이 아닌 키 삭제 → _inject_default에서 is None 체크 통과
 
         for source_field, val in misplaced:
             for target_field in _CATEGORY_FIELDS:
@@ -127,7 +271,7 @@ def validate_context_tag_categories(scenes: list[dict]) -> None:
                 i,
                 mood,
             )
-            ctx["mood"] = ""
+            del ctx["mood"]
 
 
 # ── Phase C: 카메라 다양성 소프트 경고 ────────────────────────────────
