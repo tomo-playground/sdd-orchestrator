@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
+from datetime import UTC, datetime
 from typing import Any
 
 import numpy as np
@@ -379,7 +380,6 @@ def _save_scene_quality_score(
     identity_tags_detected: dict | None = None,
 ):
     """Save scene quality score to database."""
-    from datetime import datetime
 
     from models.scene_quality import SceneQualityScore
 
@@ -406,7 +406,7 @@ def _save_scene_quality_score(
             extra_tags=extra,
             identity_score=identity_score,
             identity_tags_detected=identity_tags_detected,
-            validated_at=datetime.utcnow(),
+            validated_at=datetime.now(UTC),
         )
         db.add(score)
         db.commit()

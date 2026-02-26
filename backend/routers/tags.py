@@ -114,7 +114,12 @@ async def search_tags(
     """
     from sqlalchemy import case, func, or_
 
-    query = db.query(Tag).filter(or_(Tag.name.ilike(f"%{q}%"), Tag.ko_name.ilike(f"%{q}%")))
+    from services.utils import escape_like
+
+    escaped = escape_like(q)
+    query = db.query(Tag).filter(
+        or_(Tag.name.ilike(f"%{escaped}%", escape="\\"), Tag.ko_name.ilike(f"%{escaped}%", escape="\\"))
+    )
 
     if category:
         query = query.filter(Tag.category == category)
@@ -122,7 +127,7 @@ async def search_tags(
     # Calculate sort order
     active_first = case((Tag.is_active.is_(True), 0), else_=1)
     starts_with = case(
-        (or_(Tag.name.ilike(f"{q}%"), Tag.ko_name.ilike(f"{q}%")), 0),
+        (or_(Tag.name.ilike(f"{escaped}%", escape="\\"), Tag.ko_name.ilike(f"{escaped}%", escape="\\")), 0),
         else_=1,
     )
 

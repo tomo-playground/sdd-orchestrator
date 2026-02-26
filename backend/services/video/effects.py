@@ -187,7 +187,15 @@ def _probe_duration(path: str) -> float:
             text=True,
             timeout=5,
         )
-        return float(result.stdout.strip())
+        if result.returncode != 0:
+            stderr = result.stderr.strip()
+            logger.warning("[BGM] ffprobe non-zero exit (%d) for %s: %s", result.returncode, path, stderr)
+            return 0.0
+        raw = result.stdout.strip()
+        if not raw:
+            logger.warning("[BGM] ffprobe returned empty output for %s", path)
+            return 0.0
+        return float(raw)
     except Exception as e:
         logger.warning("[BGM] Failed to probe duration for %s: %s", path, e)
         return 0.0

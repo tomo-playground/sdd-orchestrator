@@ -138,8 +138,9 @@ async def preview_music(req: MusicPreviewRequest, db: Session = Depends(get_db))
             "seed": actual_seed,
         }
     except Exception as e:
-        logger.error(f"[MusicPreset] Preview generation failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Preview generation failed: {e}") from e
+        from services.error_responses import raise_user_error
+
+        raise_user_error("preview_generate", e)
 
 
 @router.post("/{preset_id}/attach-preview")

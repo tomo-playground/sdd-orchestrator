@@ -58,9 +58,13 @@ async def list_prompt_histories(
         query = query.filter(PromptHistory.character_id == character_id)
 
     if search:
-        search_pattern = f"%{search}%"
+        from services.utils import escape_like
+
+        escaped = escape_like(search)
+        search_pattern = f"%{escaped}%"
         query = query.filter(
-            (PromptHistory.name.ilike(search_pattern)) | (PromptHistory.positive_prompt.ilike(search_pattern))
+            (PromptHistory.name.ilike(search_pattern, escape="\\"))
+            | (PromptHistory.positive_prompt.ilike(search_pattern, escape="\\"))
         )
 
     if sort == "use_count":

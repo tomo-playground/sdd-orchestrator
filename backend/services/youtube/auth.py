@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import logging
+import secrets
 
 from cryptography.fernet import Fernet, InvalidToken
 from google.oauth2.credentials import Credentials
@@ -64,13 +67,61 @@ def decrypt_token(encrypted: str) -> dict:
         raise YouTubeAuthError("Failed to decrypt token — key may have changed") from e
 
 
+def _sign_state(project_id: int, nonce: str) -> str:
+    """Create HMAC-signed OAuth state: project_id.nonce.signature.
+
+    Uses YOUTUBE_TOKEN_ENCRYPTION_KEY as HMAC key for CSRF prevention.
+    """
+    if not YOUTUBE_TOKEN_ENCRYPTION_KEY:
+        raise YouTubeAuthError("YOUTUBE_TOKEN_ENCRYPTION_KEY is not configured")
+    payload = f"{project_id}.{nonce}"
+    sig = hmac.new(
+        YOUTUBE_TOKEN_ENCRYPTION_KEY.encode(),
+        payload.encode(),
+        hashlib.sha256,
+    ).hexdigest()[:32]
+    return f"{payload}.{sig}"
+
+
+def verify_oauth_state(state: str) -> int:
+    """Verify HMAC-signed OAuth state and return project_id.
+
+    Raises:
+        YouTubeAuthError: If signature is invalid or state is malformed.
+    """
+    if not YOUTUBE_TOKEN_ENCRYPTION_KEY:
+        raise YouTubeAuthError("YOUTUBE_TOKEN_ENCRYPTION_KEY is not configured")
+
+    parts = state.split(".")
+    if len(parts) != 3:
+        raise YouTubeAuthError("Invalid OAuth state format")
+
+    raw_project_id, nonce, received_sig = parts
+    payload = f"{raw_project_id}.{nonce}"
+    expected_sig = hmac.new(
+        YOUTUBE_TOKEN_ENCRYPTION_KEY.encode(),
+        payload.encode(),
+        hashlib.sha256,
+    ).hexdigest()[:32]
+
+    if not hmac.compare_digest(received_sig, expected_sig):
+        raise YouTubeAuthError("Invalid OAuth state signature (possible CSRF)")
+
+    try:
+        return int(raw_project_id)
+    except ValueError as e:
+        raise YouTubeAuthError("Invalid project_id in OAuth state") from e
+
+
 def generate_auth_url(project_id: int) -> str:
-    """Generate Google OAuth URL with project_id as state."""
+    """Generate Google OAuth URL with HMAC-signed state for CSRF prevention."""
     flow = _build_flow()
+    nonce = secrets.token_hex(16)
+    signed_state = _sign_state(project_id, nonce)
     auth_url, _ = flow.authorization_url(
         access_type="offline",
         prompt="consent",
-        state=str(project_id),
+        state=signed_state,
     )
     return auth_url
 

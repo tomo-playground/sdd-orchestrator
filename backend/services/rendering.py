@@ -1062,6 +1062,8 @@ def compose_post_frame(
 
     image = Image.open(io.BytesIO(image_bytes))
     image_rgb = image.convert("RGB")
+    image.close()  # Original no longer needed after RGB conversion
+
     background = ImageOps.fit(image_rgb, (width, height), Image.LANCZOS)
     # Improved blur: Box Blur + Gaussian Blur for smoother effect
     background = background.filter(ImageFilter.BoxBlur(radius=15))
@@ -1075,7 +1077,8 @@ def compose_post_frame(
     mask_draw.rounded_rectangle((0, 0, card_width, card_height), radius=radius, fill=255)
     card.putalpha(mask)
     background.alpha_composite(card, (card_x, card_y))
-
+    card.close()
+    mask.close()
 
     # Smart crop with face detection
     from services.image import calculate_face_centered_crop, detect_face
@@ -1091,6 +1094,7 @@ def compose_post_frame(
         x, y, w, h = crop_box
         cropped = image_rgb.crop((x, y, x + w, y + h))
         inner = cropped.resize((image_area, image_area), Image.LANCZOS).convert("RGBA")
+        cropped.close()
     else:
         # No face detected: use original dynamic cropping strategy
         # If image is significantly taller than square (aspect ratio < 0.9), use TOP alignment to preserve head.
@@ -1099,7 +1103,9 @@ def compose_post_frame(
         centering = (0.5, 0.0) if aspect_ratio < 0.85 else (0.5, 0.5)
         inner = ImageOps.fit(image_rgb, (image_area, image_area), Image.LANCZOS, centering=centering).convert("RGBA")
 
+    image_rgb.close()  # No longer needed after crop/fit
     background.alpha_composite(inner, (image_x, image_y))
+    inner.close()
 
     draw = ImageDraw.Draw(background)
 
@@ -1151,6 +1157,7 @@ def compose_post_frame(
     if avatar_image:
         avatar_size = profile_radius * 2
         avatar_resized = avatar_image.resize((avatar_size, avatar_size), Image.LANCZOS).convert("RGBA")
+        avatar_image.close()
         avatar_mask = Image.new("L", (avatar_size, avatar_size), 0)
         avatar_mask_draw = ImageDraw.Draw(avatar_mask)
         avatar_mask_draw.ellipse((0, 0, avatar_size, avatar_size), fill=255)
@@ -1158,6 +1165,8 @@ def compose_post_frame(
         background.alpha_composite(
             avatar_resized, (profile_center[0] - profile_radius, profile_center[1] - profile_radius)
         )
+        avatar_resized.close()
+        avatar_mask.close()
     else:
         draw.ellipse(
             (

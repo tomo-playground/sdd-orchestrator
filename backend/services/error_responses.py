@@ -30,6 +30,12 @@ _USER_MESSAGES: dict[str, str] = {
     "youtube_auth": "YouTube 인증에 실패했습니다.",
     "youtube_upload": "YouTube 업로드에 실패했습니다.",
     "character_update": "캐릭터 업데이트에 실패했습니다.",
+    "scene_edit_image": "씬 이미지 편집에 실패했습니다.",
+    "batch_validate": "일괄 검증에 실패했습니다.",
+    "quality_summary": "품질 요약 조회에 실패했습니다.",
+    "consistency_analysis": "일관성 분석에 실패했습니다.",
+    "quality_alerts": "품질 알림 조회에 실패했습니다.",
+    "preview_generate": "미리보기 생성에 실패했습니다.",
 }
 
 
@@ -53,5 +59,5 @@ def raise_user_error(
     logger.exception("[%s] %s", operation, exc)
     raise HTTPException(
         status_code=status_code,
-        detail={"message": message, "code": operation, "debug": str(exc)},
+        detail={"message": message, "code": operation},
     ) from exc

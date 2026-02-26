@@ -141,6 +141,8 @@ SD_API_TIMEOUT = float(os.getenv("SD_API_TIMEOUT", "10"))
 CONTROLNET_API_TIMEOUT = float(os.getenv("CONTROLNET_API_TIMEOUT", "10"))
 CONTROLNET_GENERATE_TIMEOUT = float(os.getenv("CONTROLNET_GENERATE_TIMEOUT", "180"))
 CONTROLNET_DETECT_TIMEOUT = float(os.getenv("CONTROLNET_DETECT_TIMEOUT", "60"))
+# Default sampler for ControlNet-only generation (not using StyleProfile)
+CONTROLNET_DEFAULT_SAMPLER = os.getenv("CONTROLNET_DEFAULT_SAMPLER", "Euler a")
 
 # --- Character Reference Generation ---
 SD_REFERENCE_STEPS = int(os.getenv("SD_REFERENCE_STEPS", "25"))
@@ -181,6 +183,11 @@ DEFAULT_STRUCTURE = "Monologue"  # Options: "Monologue", "Dialogue"
 DEFAULT_SPEAKER = "Narrator"  # Default speaker for scenes
 SPEAKER_A = "A"  # Dialogue speaker A
 SPEAKER_B = "B"  # Dialogue speaker B
+
+# --- CORS Configuration ---
+CORS_ORIGINS: list[str] = [
+    origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if origin.strip()
+]
 
 API_PUBLIC_URL = os.getenv("API_PUBLIC_URL", "http://localhost:8000").rstrip("/")
 if API_PUBLIC_URL == "http://localhost:8000":
@@ -451,6 +458,27 @@ GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD = float(os.getenv("GEMINI_AUTO_EDIT_MAX
 # Prevents infinite edit loops on problematic scenes
 GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE = int(os.getenv("GEMINI_AUTO_EDIT_MAX_RETRIES", "1"))
 
+
+class _RuntimeSettings:
+    """Mutable runtime settings for single-process use.
+
+    Use this instead of mutating module-level constants directly.
+    Reset to env-based defaults on server restart.
+    """
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        """Reload all values from environment variables."""
+        self.auto_edit_enabled = os.getenv("GEMINI_AUTO_EDIT_ENABLED", "false").lower() == "true"
+        self.auto_edit_threshold = float(os.getenv("GEMINI_AUTO_EDIT_THRESHOLD", "0.7"))
+        self.auto_edit_max_cost = float(os.getenv("GEMINI_AUTO_EDIT_MAX_COST", "1.0"))
+        self.auto_edit_max_retries = int(os.getenv("GEMINI_AUTO_EDIT_MAX_RETRIES", "1"))
+
+
+runtime_settings = _RuntimeSettings()
+
 # Log startup status
 logger.info(
     "Gemini Auto Edit: %s (threshold=%.2f, max_cost=$%.2f, max_retries=%d)",
@@ -624,6 +652,18 @@ from config_pipelines import *  # noqa: E402, F401, F403
 
 # --- Upload Limits ---
 MAX_IMAGE_UPLOAD_BYTES = int(os.getenv("MAX_IMAGE_UPLOAD_BYTES", str(10 * 1024 * 1024)))  # 10MB
+# Max size for base64-decoded images (separate from file upload limit)
+MAX_BASE64_IMAGE_SIZE_MB = int(os.getenv("MAX_BASE64_IMAGE_SIZE_MB", "20"))
+MAX_BASE64_IMAGE_SIZE_BYTES = MAX_BASE64_IMAGE_SIZE_MB * 1024 * 1024
+
+# --- SSRF Prevention ---
+# Allowed hosts for image loading via HTTP (load_image_bytes).
+# localhost / 127.0.0.1 are needed for SD WebUI and MinIO in dev.
+# Add production hostnames via env: ALLOWED_IMAGE_HOSTS=host1,host2
+_default_image_hosts = "localhost,127.0.0.1"
+ALLOWED_IMAGE_HOSTS: set[str] = {
+    h.strip() for h in os.getenv("ALLOWED_IMAGE_HOSTS", _default_image_hosts).split(",") if h.strip()
+}
 
 # --- Storage Credential Minimum Length ---
 MINIO_SECRET_KEY_MIN_LENGTH = 12

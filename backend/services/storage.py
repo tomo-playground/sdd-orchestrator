@@ -1,10 +1,34 @@
 from __future__ import annotations
 
+import posixpath
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import BinaryIO
 
 from config import logger
+
+
+def _validate_storage_key(key: str) -> str:
+    """Validate storage key against path traversal attacks.
+
+    Rejects keys containing '..' components, absolute paths, or null bytes.
+    Returns the cleaned key on success.
+
+    Raises:
+        ValueError: If the key contains path traversal sequences.
+    """
+    if not key:
+        raise ValueError("Storage key must not be empty")
+    if "\x00" in key:
+        raise ValueError("Storage key contains null bytes")
+    # Normalize and check for traversal
+    normalized = posixpath.normpath(key)
+    if normalized.startswith("/") or normalized.startswith("\\"):
+        raise ValueError(f"Storage key must be relative: {key}")
+    parts = normalized.split("/")
+    if ".." in parts:
+        raise ValueError(f"Path traversal blocked in storage key: {key}")
+    return key
 
 
 class BaseStorage(ABC):
@@ -81,6 +105,8 @@ class S3Storage(BaseStorage):
     def save(self, key: str, body: bytes | BinaryIO, content_type: str | None = None) -> str:
         from botocore.exceptions import ClientError
 
+        _validate_storage_key(key)
+
         extra_args = {}
         if content_type:
             extra_args["ContentType"] = content_type
@@ -93,6 +119,7 @@ class S3Storage(BaseStorage):
             raise
 
     def get_url(self, key: str) -> str:
+        _validate_storage_key(key)
         # Assuming bucket is public-read as per our setup
         # Ensure no double slashes between components
         base = self.public_url.rstrip("/")
@@ -104,7 +131,11 @@ class S3Storage(BaseStorage):
         """Ensure the file is in local cache for FFmpeg processing."""
         from botocore.exceptions import ClientError
 
-        local_path = self.cache_dir / key
+        from services.path_security import safe_storage_path
+
+        _validate_storage_key(key)
+
+        local_path = safe_storage_path(self.cache_dir, key)
         if local_path.exists():
             return local_path
 
@@ -119,6 +150,8 @@ class S3Storage(BaseStorage):
     def exists(self, key: str) -> bool:
         from botocore.exceptions import ClientError
 
+        _validate_storage_key(key)
+
         try:
             self.s3.head_object(Bucket=self.bucket_name, Key=key)
             return True
@@ -127,6 +160,8 @@ class S3Storage(BaseStorage):
 
     def delete(self, key: str) -> bool:
         from botocore.exceptions import ClientError
+
+        _validate_storage_key(key)
 
         try:
             self.s3.delete_object(Bucket=self.bucket_name, Key=key)

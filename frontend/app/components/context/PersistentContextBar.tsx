@@ -44,7 +44,12 @@ export default function PersistentContextBar() {
     async (project: { id: number; name: string }) => {
       const ok = await confirm({
         title: "Delete Project",
-        message: `Delete "${project.name}"? This cannot be undone.`,
+        message: (
+          <>
+            <span className="font-semibold text-zinc-900">{project.name}</span>을(를)
+            삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+          </>
+        ),
         confirmLabel: "Delete",
         variant: "danger",
       });
@@ -63,7 +68,12 @@ export default function PersistentContextBar() {
       const group = groups.find((g) => g.id === id);
       const ok = await confirm({
         title: "Delete Group",
-        message: `Delete "${group?.name ?? "this group"}"? This cannot be undone.`,
+        message: (
+          <>
+            <span className="font-semibold text-zinc-900">{group?.name ?? "this group"}</span>
+            을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+          </>
+        ),
         confirmLabel: "Delete",
         variant: "danger",
       });

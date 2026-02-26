@@ -146,7 +146,8 @@ def list_storyboards_from_db(
 
     result = []
     for s in storyboards:
-        scenes = s.scenes or []
+        # Filter out soft-deleted scenes (relationship loads all, including deleted)
+        scenes = [sc for sc in (s.scenes or []) if sc.deleted_at is None]
         image_count = sum(1 for sc in scenes if sc.image_url)
         # Extract cast (characters) with preview thumbnails — deduplicate by character id
         cast = []
@@ -477,11 +478,7 @@ def restore_storyboard_from_db(db: Session, storyboard_id: int) -> dict:
     storyboard's deleted_at are restored. Scenes deleted individually
     before the storyboard deletion are left untouched.
     """
-    storyboard = (
-        db.query(Storyboard)
-        .filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.isnot(None))
-        .first()
-    )
+    storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.isnot(None)).first()
     if not storyboard:
         raise HTTPException(status_code=404, detail="Trashed storyboard not found")
 

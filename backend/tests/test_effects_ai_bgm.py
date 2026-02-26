@@ -86,7 +86,7 @@ class TestProbeDuration:
 
     @patch("subprocess.run")
     def test_returns_duration(self, mock_run):
-        mock_run.return_value = MagicMock(stdout="30.5\n")
+        mock_run.return_value = MagicMock(stdout="30.5\n", returncode=0)
         assert _probe_duration("/tmp/bgm.wav") == 30.5
 
     @patch("subprocess.run")

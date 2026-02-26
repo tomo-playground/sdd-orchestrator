@@ -186,10 +186,11 @@ class TestDeleteVideo:
         data = response.json()
         assert data["ok"] is False
 
-    def test_delete_video_missing_filename(self, client: TestClient):
-        """Missing filename returns 422."""
+    def test_delete_video_missing_identifier(self, client: TestClient):
+        """Missing both filename and asset_id returns 400."""
         response = client.post("/video/delete", json={})
-        assert response.status_code == 422
+        assert response.status_code == 400
+        assert "either" in response.json()["detail"].lower()
 
 
 class TestVideoExists:

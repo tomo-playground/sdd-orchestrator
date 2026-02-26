@@ -14,7 +14,7 @@ class TestRaiseUserError:
         assert isinstance(detail, dict)
         assert detail["message"] == "이미지 생성에 실패했습니다."
         assert detail["code"] == "image_generate"
-        assert "SD WebUI timeout" in detail["debug"]
+        assert "debug" not in detail  # debug field removed for security
         assert exc_info.value.status_code == 500
 
     def test_unknown_operation_returns_fallback_message(self):

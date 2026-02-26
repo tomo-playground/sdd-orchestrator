@@ -545,13 +545,24 @@ class V3PromptBuilder:
         """Replace default clothing layers with scene-specific override tags.
 
         Clears LAYER_MAIN_CLOTH, LAYER_DETAIL_CLOTH, LAYER_ACCESSORY,
-        then fills them with the provided clothing tags.
+        then distributes each override tag to its correct layer via tag_info
+        lookup (DB → pattern fallback). Tags that resolve outside the three
+        clothing layers default to LAYER_MAIN_CLOTH.
         """
         CLOTHING_LAYERS = (LAYER_MAIN_CLOTH, LAYER_DETAIL_CLOTH, LAYER_ACCESSORY)
         for idx in CLOTHING_LAYERS:
             layers[idx].clear()
-        # Place all override tags in LAYER_MAIN_CLOTH (simplest approach)
-        layers[LAYER_MAIN_CLOTH].extend(clothing_tags)
+
+        # Resolve each tag to its proper clothing layer
+        tag_info = self.get_tag_info(clothing_tags)
+        for tag in clothing_tags:
+            norm = tag.lower().replace(" ", "_").strip()
+            info = tag_info.get(norm, {})
+            target_layer = info.get("layer", LAYER_MAIN_CLOTH)
+            # Constrain to clothing layers only; out-of-range defaults to MAIN_CLOTH
+            if target_layer not in CLOTHING_LAYERS:
+                target_layer = LAYER_MAIN_CLOTH
+            layers[target_layer].append(tag)
 
     def _apply_scene_character_actions(
         self,

@@ -115,7 +115,12 @@ export default function DeprecatedTagsPanel() {
     if (!selectedTag || !reason.trim()) return;
     const ok = await confirm({
       title: "Deprecate Tag",
-      message: `Deprecate tag "${selectedTag.name}"?`,
+      message: (
+        <>
+          태그 <span className="font-semibold text-zinc-900">{selectedTag.name}</span>을(를)
+          비활성화하시겠습니까?
+        </>
+      ),
       confirmLabel: "Deprecate",
       variant: "danger",
     });

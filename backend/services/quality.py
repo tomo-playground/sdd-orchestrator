@@ -5,7 +5,7 @@ Provides batch validation and quality score tracking using WD14.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -98,7 +98,7 @@ def batch_validate_scenes(
                 extra_tags=comparison["extra"],
                 identity_score=id_score,
                 identity_tags_detected=id_signature,
-                validated_at=datetime.now(),
+                validated_at=datetime.now(UTC),
             )
             db.add(score)
             validated_count += 1

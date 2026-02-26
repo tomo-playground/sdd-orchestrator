@@ -1,6 +1,6 @@
 """Tests for settings router endpoints."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
@@ -48,21 +48,15 @@ class TestAutoEditSettings:
         assert data["current"]["max_cost"] == 2.5
         assert data["current"]["max_retries"] == 3
 
-    def test_update_modifies_config_module(self, client: TestClient, db_session):
-        """PUT updates the config module attributes at runtime.
-
-        Note: The GET handler uses `from config import X` which creates
-        local name bindings at import time. The PUT handler writes to
-        `config.X` via `import config`. The config module attributes
-        are updated, which we verify directly.
-        """
-        import config
+    def test_update_modifies_runtime_settings(self, client: TestClient, db_session):
+        """PUT updates runtime_settings (not module-level constants)."""
+        from config import runtime_settings
 
         # Save original values to restore after test
-        orig_enabled = config.GEMINI_AUTO_EDIT_ENABLED
-        orig_threshold = config.GEMINI_AUTO_EDIT_THRESHOLD
-        orig_cost = config.GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD
-        orig_retries = config.GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE
+        orig_enabled = runtime_settings.auto_edit_enabled
+        orig_threshold = runtime_settings.auto_edit_threshold
+        orig_cost = runtime_settings.auto_edit_max_cost
+        orig_retries = runtime_settings.auto_edit_max_retries
 
         try:
             update_data = {
@@ -74,17 +68,17 @@ class TestAutoEditSettings:
             put_resp = client.put("/settings/auto-edit", json=update_data)
             assert put_resp.status_code == 200
 
-            # Verify config module was updated
-            assert config.GEMINI_AUTO_EDIT_ENABLED is True
-            assert config.GEMINI_AUTO_EDIT_THRESHOLD == 0.9
-            assert config.GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD == 5.0
-            assert config.GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE == 5
+            # Verify runtime_settings was updated
+            assert runtime_settings.auto_edit_enabled is True
+            assert runtime_settings.auto_edit_threshold == 0.9
+            assert runtime_settings.auto_edit_max_cost == 5.0
+            assert runtime_settings.auto_edit_max_retries == 5
         finally:
-            # Restore original config to avoid polluting other tests
-            config.GEMINI_AUTO_EDIT_ENABLED = orig_enabled
-            config.GEMINI_AUTO_EDIT_THRESHOLD = orig_threshold
-            config.GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD = orig_cost
-            config.GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE = orig_retries
+            # Restore original values to avoid polluting other tests
+            runtime_settings.auto_edit_enabled = orig_enabled
+            runtime_settings.auto_edit_threshold = orig_threshold
+            runtime_settings.auto_edit_max_cost = orig_cost
+            runtime_settings.auto_edit_max_retries = orig_retries
 
     def test_update_auto_edit_missing_fields(self, client: TestClient, db_session):
         """PUT with missing required fields returns 422."""
@@ -127,7 +121,7 @@ class TestCostSummary:
 
     def test_cost_summary_with_data(self, client: TestClient, db_session):
         """Cost summary with activity logs returns correct aggregations."""
-        now = datetime.now()
+        now = datetime.now(UTC)
 
         # Create activity logs with gemini edits
         log1 = ActivityLog(
@@ -164,7 +158,7 @@ class TestCostSummary:
         self, client: TestClient, db_session
     ):
         """Old activity logs excluded from today count but included in total."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         yesterday = now - timedelta(days=2)
 
         log_today = ActivityLog(

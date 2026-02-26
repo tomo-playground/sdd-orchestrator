@@ -1,6 +1,6 @@
 """Settings management and analytics endpoints."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
@@ -8,11 +8,8 @@ from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
 from config import (
-    GEMINI_AUTO_EDIT_ENABLED,
-    GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD,
-    GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE,
-    GEMINI_AUTO_EDIT_THRESHOLD,
     logger,
+    runtime_settings,
 )
 from database import get_db
 from models import ActivityLog
@@ -42,10 +39,10 @@ async def get_auto_edit_settings():
         }
     """
     return {
-        "enabled": GEMINI_AUTO_EDIT_ENABLED,
-        "threshold": GEMINI_AUTO_EDIT_THRESHOLD,
-        "max_cost_per_storyboard": GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD,
-        "max_retries_per_scene": GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE,
+        "enabled": runtime_settings.auto_edit_enabled,
+        "threshold": runtime_settings.auto_edit_threshold,
+        "max_cost_per_storyboard": runtime_settings.auto_edit_max_cost,
+        "max_retries_per_scene": runtime_settings.auto_edit_max_retries,
     }
 
 
@@ -74,13 +71,11 @@ async def update_auto_edit_settings(settings: AutoEditSettingsUpdate):
             "message": "Runtime settings updated. Restart required for persistence."
         }
     """
-    import config
-
-    # Update runtime config
-    config.GEMINI_AUTO_EDIT_ENABLED = settings.enabled
-    config.GEMINI_AUTO_EDIT_THRESHOLD = settings.threshold
-    config.GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD = settings.max_cost
-    config.GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE = settings.max_retries
+    # Update runtime settings (not module-level constants)
+    runtime_settings.auto_edit_enabled = settings.enabled
+    runtime_settings.auto_edit_threshold = settings.threshold
+    runtime_settings.auto_edit_max_cost = settings.max_cost
+    runtime_settings.auto_edit_max_retries = settings.max_retries
 
     logger.info(
         f"⚙️ [Settings] Auto Edit updated: enabled={settings.enabled}, "
@@ -113,7 +108,7 @@ async def get_auto_edit_cost_summary(db: Session = Depends(get_db)):
             "edit_count_month": 31
         }
     """
-    now = datetime.now()
+    now = datetime.now(UTC)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     week_start = today_start - timedelta(days=now.weekday())
     month_start = today_start.replace(day=1)

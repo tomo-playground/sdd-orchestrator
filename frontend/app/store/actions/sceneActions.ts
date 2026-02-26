@@ -43,10 +43,18 @@ export function applyMissingImageTags(scene: Scene, missingOverride?: string[], 
 
 export function handleSpeakerChange(scene: Scene, speaker: Scene["speaker"]) {
   const { baseNegativePromptA, baseNegativePromptB, updateScene } = useStoryboardStore.getState();
-  updateScene(scene.client_id, {
-    speaker,
-    negative_prompt: speaker === "B" ? baseNegativePromptB : baseNegativePromptA,
-  });
+
+  // Preserve custom negative prompt: only reset to base if the scene's current
+  // negative_prompt matches the old speaker's base (i.e. it was never customized)
+  const oldBase = scene.speaker === "B" ? baseNegativePromptB : baseNegativePromptA;
+  const isCustomized = scene.negative_prompt && scene.negative_prompt !== oldBase;
+
+  const updates: Partial<Scene> = { speaker };
+  if (!isCustomized) {
+    updates.negative_prompt = speaker === "B" ? baseNegativePromptB : baseNegativePromptA;
+  }
+
+  updateScene(scene.client_id, updates);
 }
 
 // --------------- Image Validation ---------------

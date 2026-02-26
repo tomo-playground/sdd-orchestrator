@@ -17,6 +17,7 @@ export type ModalProps = {
   children: ReactNode;
   className?: string;
   ariaLabelledBy?: string;
+  ariaDescribedBy?: string;
 };
 
 type ModalSubProps = {
@@ -68,6 +69,7 @@ function ModalRoot({
   children,
   className,
   ariaLabelledBy,
+  ariaDescribedBy,
 }: ModalProps) {
   const trapRef = useFocusTrap(open);
   // ESC key handler
@@ -102,6 +104,7 @@ function ModalRoot({
       role="dialog"
       aria-modal="true"
       aria-labelledby={ariaLabelledBy}
+      aria-describedby={ariaDescribedBy}
     >
       <div
         ref={trapRef}

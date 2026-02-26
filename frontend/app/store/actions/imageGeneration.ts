@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Scene, ImageGenProgress } from "../../types";
+import type { Scene, ImageGenProgress, ImageValidation } from "../../types";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
@@ -233,13 +233,15 @@ export async function generateSceneCandidates(
     return null;
   }
 
-  const candidates: Array<{
+  type CandidateEntry = {
     media_asset_id: number;
     match_rate?: number;
     adjusted_match_rate?: number;
     identity_score?: number;
     image_url?: string;
-  }> = [];
+    _validation?: ImageValidation;
+  };
+  const candidates: CandidateEntry[] = [];
   let resolvedImagePrompt: string | undefined;
   for (let i = 0; i < 3; i += 1) {
     const result = await generateSceneImageFor(scene, true);
@@ -262,6 +264,7 @@ export async function generateSceneCandidates(
       identity_score:
         typeof vResult?.identity_score === "number" ? vResult.identity_score : undefined,
       image_url: result.image_url,
+      _validation: vResult ?? undefined,
     });
   }
   if (!candidates.length) return null;
@@ -275,17 +278,16 @@ export async function generateSceneCandidates(
     );
   })[0];
 
-  if (best?.image_url) {
-    const validation = await validateImageCandidate(best.image_url, prompt, scene.id);
-    if (validation) {
-      const { imageValidationResults } = useStoryboardStore.getState();
-      useStoryboardStore.getState().set({
-        imageValidationResults: {
-          ...imageValidationResults,
-          [scene.client_id]: validation,
-        },
-      });
-    }
+  // Re-use the validation result already obtained during candidate generation.
+  // No redundant API call needed: best._validation was already fetched in the loop.
+  if (best?._validation) {
+    const { imageValidationResults } = useStoryboardStore.getState();
+    useStoryboardStore.getState().set({
+      imageValidationResults: {
+        ...imageValidationResults,
+        [scene.client_id]: best._validation,
+      },
+    });
   }
 
   const bestAssetId = best.media_asset_id;

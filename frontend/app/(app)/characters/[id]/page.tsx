@@ -70,7 +70,12 @@ export default function CharacterDetailPage() {
     if (!character) return;
     const ok = await confirm({
       title: "Delete Character",
-      message: `"${character.name}" will be moved to trash.`,
+      message: (
+        <>
+          <span className="font-semibold text-zinc-900">{character.name}</span>을(를)
+          휴지통으로 이동합니다.
+        </>
+      ),
       confirmLabel: "Delete",
       variant: "danger",
     });

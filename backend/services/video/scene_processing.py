@@ -98,12 +98,19 @@ async def process_scenes(builder: VideoBuilder) -> None:
         if has_valid_tts:
             builder.input_args.extend(["-i", str(tts_path)])
         else:
+            # Limit anullsrc duration to prevent infinite stream / memory leak.
+            # Use scene duration hint + generous padding; exact trim happens later
+            # in build_audio_filters via atrim.
+            scene_dur_hint = (getattr(scene, "duration", 3) or 3) / builder.speed_multiplier
+            silent_limit = scene_dur_hint + builder.transition_dur + 2.0
             builder.input_args.extend(
                 [
                     "-f",
                     "lavfi",
+                    "-t",
+                    str(silent_limit),
                     "-i",
-                    "anullsrc=channel_layout=stereo:sample_rate=44100",
+                    f"anullsrc=channel_layout=stereo:sample_rate=44100:duration={silent_limit}",
                 ]
             )
 

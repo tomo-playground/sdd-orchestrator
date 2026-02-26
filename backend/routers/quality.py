@@ -52,8 +52,9 @@ def batch_validate(request: BatchValidateRequest, db: Session = Depends(get_db))
         )
         return result
     except Exception as exc:
-        logger.exception("Batch validation failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        from services.error_responses import raise_user_error
+
+        raise_user_error("batch_validate", exc)
 
 
 @router.get("/summary/storyboard/{storyboard_id}")
@@ -62,8 +63,9 @@ def quality_summary_by_id(storyboard_id: int, db: Session = Depends(get_db)):
     try:
         return get_quality_summary(db, storyboard_id=storyboard_id)
     except Exception as exc:
-        logger.exception(f"Failed to get quality summary for storyboard {storyboard_id}")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        from services.error_responses import raise_user_error
+
+        raise_user_error("quality_summary", exc)
 
 
 @router.get("/summary/{storyboard_id}")
@@ -85,8 +87,9 @@ def quality_summary(storyboard_id: int, db: Session = Depends(get_db)):
     try:
         return get_quality_summary(db, storyboard_id=storyboard_id)
     except Exception as exc:
-        logger.exception(f"Failed to get quality summary for storyboard {storyboard_id}")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        from services.error_responses import raise_user_error
+
+        raise_user_error("quality_summary", exc)
 
 
 @router.get("/consistency/{storyboard_id}", response_model=ConsistencyResponse)
@@ -102,8 +105,9 @@ def consistency(storyboard_id: int, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as exc:
-        logger.exception("Consistency analysis failed for storyboard %d", storyboard_id)
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        from services.error_responses import raise_user_error
+
+        raise_user_error("consistency_analysis", exc)
 
 
 @router.get("/alerts/{storyboard_id}")
@@ -115,5 +119,6 @@ def quality_alerts(storyboard_id: int, threshold: float = 0.7, db: Session = Dep
             logger.warning(f"{len(alerts)} scenes below {threshold:.0%} threshold in storyboard {storyboard_id}")
         return {"alerts": alerts, "count": len(alerts)}
     except Exception as exc:
-        logger.exception(f"Failed to get quality alerts for storyboard {storyboard_id}")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        from services.error_responses import raise_user_error
+
+        raise_user_error("quality_alerts", exc)

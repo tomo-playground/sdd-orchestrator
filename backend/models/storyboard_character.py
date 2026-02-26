@@ -31,6 +31,7 @@ class StoryboardCharacter(Base):
         Integer,
         ForeignKey("characters.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
 
     # Relationships

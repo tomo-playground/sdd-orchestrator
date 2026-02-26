@@ -57,25 +57,29 @@ def add_scene_text_inputs(builder: VideoBuilder) -> None:
             except Exception as e:
                 logger.warning(f"Scene {i}: failed to load scene image: {e}")
 
-        subtitle_y_ratio = _calc_subtitle_y(builder, scene_img_path, i, scene_img)
+        try:
+            subtitle_y_ratio = _calc_subtitle_y(builder, scene_img_path, i, scene_img)
 
-        # Adaptive text color only applies to Full layout
-        bg_img_for_color = scene_img if not builder.use_post_layout else None
+            # Adaptive text color only applies to Full layout
+            bg_img_for_color = scene_img if not builder.use_post_layout else None
 
-        subtitle_img = builder._render_scene_text_image(
-            builder.subtitle_lines[i],
-            builder.out_w,
-            builder.out_h,
-            builder.font_path,
-            builder.use_post_layout,
-            builder.post_layout_metrics,
-            font_size,
-            subtitle_y_ratio,
-            bg_img_for_color,  # Pass background image for adaptive text color
-        )
-        subtitle_img.save(subtitle_path, "PNG")
-        logger.info(f"  - Subtitle image saved: {subtitle_path}")
-        builder.input_args.extend(["-loop", "1", "-i", str(subtitle_path)])
+            subtitle_img = builder._render_scene_text_image(
+                builder.subtitle_lines[i],
+                builder.out_w,
+                builder.out_h,
+                builder.font_path,
+                builder.use_post_layout,
+                builder.post_layout_metrics,
+                font_size,
+                subtitle_y_ratio,
+                bg_img_for_color,  # Pass background image for adaptive text color
+            )
+            subtitle_img.save(subtitle_path, "PNG")
+            logger.info(f"  - Subtitle image saved: {subtitle_path}")
+            builder.input_args.extend(["-loop", "1", "-i", str(subtitle_path)])
+        finally:
+            if scene_img is not None:
+                scene_img.close()
 
 
 def _calc_subtitle_y(
@@ -85,14 +89,21 @@ def _calc_subtitle_y(
     scene_img: Image.Image | None = None,
 ) -> float | None:
     """Calculate dynamic subtitle Y position from scene image."""
+    opened_here = False
+    img = scene_img
     try:
-        img = scene_img if scene_img is not None else (Image.open(scene_img_path) if scene_img_path.exists() else None)
+        if img is None and scene_img_path.exists():
+            img = Image.open(scene_img_path)
+            opened_here = True
         if img is not None:
             y_ratio = builder._calculate_optimal_scene_text_y(img, layout_style=builder.request.layout_style)
             logger.info(f"  - Dynamic Y position: {y_ratio:.3f}")
             return y_ratio
     except Exception as e:
         logger.warning(f"Scene {scene_idx}: failed to calculate dynamic subtitle position: {e}")
+    finally:
+        if opened_here and img is not None:
+            img.close()
     return None
 
 

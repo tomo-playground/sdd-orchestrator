@@ -28,19 +28,59 @@ if TYPE_CHECKING:
     from services.video.builder import VideoBuilder
 
 
+def _classify_filter(f: str) -> str:
+    """Classify a filter string for debug logging."""
+    if "zoompan" in f:
+        return "KenBurns"
+    if "xfade" in f:
+        return "Transition"
+    if "acrossfade" in f:
+        return "AudioXfade"
+    if "overlay" in f:
+        return "Overlay"
+    if "sidechaincompress" in f:
+        return "Ducking"
+    if "amix" in f:
+        return "AudioMix"
+    if "scale" in f or "crop" in f:
+        return "Scale/Crop"
+    if "aresample" in f or "adelay" in f:
+        return "AudioProc"
+    if "atrim" in f or "trim" in f:
+        return "Trim"
+    if "fade" in f:
+        return "Fade"
+    if "volume" in f:
+        return "Volume"
+    if "eq=" in f or "vignette" in f:
+        return "ColorGrade"
+    if "asplit" in f:
+        return "AudioSplit"
+    if "null" in f:
+        return "Passthrough"
+    return "Other"
+
+
 def build_ffmpeg_cmd(builder: VideoBuilder) -> list[str]:
     """Build the FFmpeg command arguments."""
     filter_complex_str = ";".join(builder.filters)
 
-    logger.info("FFmpeg Filter Chain Debug:")
+    logger.info("FFmpeg Filter Chain (%d filters):", len(builder.filters))
     logger.info("-" * 80)
     for idx, f in enumerate(builder.filters):
-        logger.info(f"Filter {idx:2d}: {f}")
+        label = _classify_filter(f)
+        logger.info(f"  [{idx:02d}/{len(builder.filters) - 1:02d}] ({label:12s}) {f}")
     logger.info("-" * 80)
     logger.info(f"Video map: {builder._map_v}")
     logger.info(f"Audio map: {builder._map_a}")
+    logger.info(f"Total duration: {builder._total_dur:.2f}s")
     logger.info(f"Include subtitles: {builder.request.include_scene_text}")
     logger.info("=" * 80)
+
+    # Store for error diagnostics
+    builder._filter_debug_dump = "\n".join(
+        f"  [{idx:02d}] ({_classify_filter(f):12s}) {f}" for idx, f in enumerate(builder.filters)
+    )
 
     return [
         "ffmpeg",
@@ -126,5 +166,7 @@ async def encode_async(builder: VideoBuilder) -> None:
 
     if proc.returncode != 0:
         stderr_tail = "\n".join(stderr_lines[-10:])
-        logger.error("FFmpeg failed (rc=%d)", proc.returncode)
+        filter_dump = getattr(builder, "_filter_debug_dump", "")
+        logger.error("FFmpeg failed (rc=%d). Filter chain:\n%s", proc.returncode, filter_dump)
+        logger.error("FFmpeg stderr (last 10 lines):\n%s", stderr_tail)
         raise RuntimeError(f"FFmpeg failed with exit code {proc.returncode}: {stderr_tail[:500]}")

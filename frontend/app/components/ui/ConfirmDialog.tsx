@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, type ReactNode } from "react";
 import Modal from "./Modal";
 import Button from "./Button";
 
@@ -18,7 +18,7 @@ export type ConfirmDialogProps = {
   onConfirm: () => void;
   onCancel: () => void;
   title?: string;
-  message?: string;
+  message?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: ConfirmVariant;
@@ -42,12 +42,23 @@ export default function ConfirmDialog({
   onInputChange,
 }: ConfirmDialogProps) {
   return (
-    <Modal open={open} onClose={onCancel} size="sm" persistent>
+    <Modal
+      open={open}
+      onClose={onCancel}
+      size="sm"
+      persistent
+      ariaLabelledBy="confirm-dialog-title"
+      ariaDescribedBy="confirm-dialog-desc"
+    >
       <Modal.Header>
-        <h3 className="text-base font-semibold text-zinc-900">{title}</h3>
+        <h3 id="confirm-dialog-title" className="text-base font-semibold text-zinc-900">
+          {title}
+        </h3>
       </Modal.Header>
 
-      <div className="px-5 py-4 text-sm text-zinc-600">{message}</div>
+      <div id="confirm-dialog-desc" className="px-5 py-4 text-sm text-zinc-600">
+        {message}
+      </div>
 
       {inputField && (
         <div className="px-5 pb-2">
@@ -80,7 +91,7 @@ export default function ConfirmDialog({
 // ── useConfirm hook ──────────────────────────────────────────
 type ConfirmOptions = {
   title?: string;
-  message?: string;
+  message?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: ConfirmVariant;

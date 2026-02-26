@@ -36,16 +36,16 @@ class TestRefreshCaches:
             mock_rule.refresh.assert_called_once()
 
     def test_refresh_caches_error(self, client: TestClient, db_session):
-        """Cache refresh handles errors gracefully."""
+        """Cache refresh handles partial failures with 207 Multi-Status."""
         with patch("services.keywords.db_cache.TagCategoryCache") as mock_cat:
             mock_cat.refresh.side_effect = RuntimeError("DB connection failed")
 
             response = client.post("/admin/refresh-caches")
-            assert response.status_code == 200
+            assert response.status_code == 207
             data = response.json()
 
             assert data["success"] is False
-            assert "error" in data
+            assert "failures" in data
 
 
 class TestDeprecatedTags:

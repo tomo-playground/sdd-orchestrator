@@ -563,7 +563,8 @@ class VideoRequest(BaseModel):
 
 
 class VideoDeleteRequest(BaseModel):
-    filename: str
+    filename: str | None = None
+    asset_id: int | None = None  # Preferred: delete by asset ID
 
 
 class SceneGenerateRequest(BaseModel):

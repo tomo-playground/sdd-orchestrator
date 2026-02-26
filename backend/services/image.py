@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+import ipaddress
+import socket
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -20,11 +22,68 @@ PLATFORM_SAFE_ZONES = {
 
 
 def decode_data_url(data_url: str) -> bytes:
-    """Decode a base64 data URL to bytes."""
+    """Decode a base64 data URL to bytes.
+
+    Raises:
+        ValueError: If data is empty or exceeds MAX_BASE64_IMAGE_SIZE_BYTES.
+    """
     if not data_url:
         raise ValueError("Empty image data")
     b64 = data_url.split(",", 1)[1] if "," in data_url else data_url
-    return base64.b64decode(b64)
+    decoded = base64.b64decode(b64)
+
+    from config import MAX_BASE64_IMAGE_SIZE_BYTES, MAX_BASE64_IMAGE_SIZE_MB
+
+    if len(decoded) > MAX_BASE64_IMAGE_SIZE_BYTES:
+        raise ValueError(
+            f"Image size ({len(decoded) / (1024 * 1024):.1f}MB) exceeds limit ({MAX_BASE64_IMAGE_SIZE_MB}MB)"
+        )
+    return decoded
+
+
+# Private IP ranges for SSRF prevention
+_PRIVATE_NETWORKS = [
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fd00::/8"),
+    ipaddress.ip_network("fe80::/10"),
+]
+
+
+def _validate_url_host(hostname: str) -> None:
+    """Validate that a URL hostname is allowed for image fetching (SSRF prevention).
+
+    Allowed hosts are defined in config.ALLOWED_IMAGE_HOSTS.
+    All other hostnames are checked against private/internal IP ranges.
+
+    Raises:
+        ValueError: If the host resolves to a blocked internal IP or is not allowed.
+    """
+    from config import ALLOWED_IMAGE_HOSTS
+
+    if not hostname:
+        raise ValueError("URL has no hostname")
+
+    # Allow explicitly permitted hosts (e.g., localhost for dev SD WebUI/MinIO)
+    if hostname in ALLOWED_IMAGE_HOSTS:
+        return
+
+    # Resolve hostname to IP and check against private ranges
+    try:
+        addr_infos = socket.getaddrinfo(hostname, None)
+    except socket.gaierror:
+        raise ValueError(f"Cannot resolve hostname: {hostname}")
+
+    for family, _type, _proto, _canonname, sockaddr in addr_infos:
+        ip = ipaddress.ip_address(sockaddr[0])
+        if ip.is_loopback or ip.is_link_local or ip.is_private:
+            for network in _PRIVATE_NETWORKS:
+                if ip in network:
+                    raise ValueError(f"Access to internal network is blocked: {hostname}")
+            raise ValueError(f"Access to internal network is blocked: {hostname}")
 
 
 def load_image_bytes(source: str) -> bytes:
@@ -45,6 +104,7 @@ def load_image_bytes(source: str) -> bytes:
         return decode_data_url(source)
     if source.startswith(("http://", "https://")):
         parsed = urlparse(source)
+        _validate_url_host(parsed.hostname or "")
         path = parsed.path
 
         # Handle MinIO/S3 URLs: /{bucket_name}/{storage_key}

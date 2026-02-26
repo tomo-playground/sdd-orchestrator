@@ -209,18 +209,27 @@ def _sse_event(event: RenderProgressEvent) -> str:
 async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db)):
     """Delete video from storage, database, and render_history references.
 
-    Handles both legacy local files and S3-based media assets.
+    Supports deletion by asset_id (preferred) or filename (legacy fallback).
     """
     from services.storage import get_storage
 
-    filename = os.path.basename(request.filename or "")
-    if not filename.endswith(".mp4"):
+    if not request.asset_id and not request.filename:
+        raise HTTPException(status_code=400, detail="Either asset_id or filename is required")
+
+    # Validate filename before entering try block
+    if request.filename and not os.path.basename(request.filename).endswith(".mp4"):
         raise HTTPException(status_code=400, detail="Invalid filename")
 
     storage = get_storage()
 
     try:
-        asset = db.query(MediaAsset).filter(MediaAsset.file_name == filename, MediaAsset.file_type == "video").first()
+        # Prefer asset_id lookup over filename
+        asset = None
+        if request.asset_id:
+            asset = db.query(MediaAsset).filter(MediaAsset.id == request.asset_id, MediaAsset.file_type == "video").first()
+        if not asset and request.filename:
+            filename = os.path.basename(request.filename)
+            asset = db.query(MediaAsset).filter(MediaAsset.file_name == filename, MediaAsset.file_type == "video").first()
 
         if asset:
             logger.info(f"Deleting video asset: {asset.storage_key} (ID: {asset.id})")
@@ -246,14 +255,16 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
             return {"ok": True, "deleted": True, "asset_id": asset.id}
 
         # Fallback: Try legacy local file deletion
-        target = VIDEO_DIR / filename
-        if target.exists():
-            logger.info(f"Deleting legacy local file: {target}")
-            target.unlink()
-            logger.info(f"Deleted local file: {filename}")
-            return {"ok": True, "deleted": True, "legacy": True}
+        if request.filename:
+            legacy_name = os.path.basename(request.filename)
+            target = VIDEO_DIR / legacy_name
+            if target.exists():
+                logger.info("Deleting legacy local file: %s", target)
+                target.unlink()
+                return {"ok": True, "deleted": True, "legacy": True}
 
-        logger.warning(f"Video not found: {filename}")
+        identifier = request.asset_id or request.filename
+        logger.warning("Video not found: %s", identifier)
         return {"ok": False, "deleted": False, "reason": "not_found"}
 
     except Exception as exc:

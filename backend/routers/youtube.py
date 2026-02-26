@@ -17,7 +17,7 @@ from schemas import (
     YouTubeUploadRequest,
     YouTubeUploadStatusResponse,
 )
-from services.youtube.auth import exchange_code, generate_auth_url, revoke_credential
+from services.youtube.auth import exchange_code, generate_auth_url, revoke_credential, verify_oauth_state
 from services.youtube.exceptions import YouTubeAuthError
 from services.youtube.upload import UploadParams, upload_video_to_youtube
 
@@ -44,16 +44,19 @@ def callback(
     state: str = Query(...),
     db: Session = Depends(get_db),
 ):
-    """Exchange OAuth authorization code for tokens."""
+    """Exchange OAuth authorization code for tokens with CSRF-signed state verification."""
     try:
-        project_id = int(state)
-    except (ValueError, TypeError) as e:
+        project_id = verify_oauth_state(state)
+    except YouTubeAuthError as e:
+        logger.warning("OAuth state verification failed: %s", e)
         raise HTTPException(status_code=400, detail="Invalid state parameter") from e
     try:
         cred = exchange_code(code, project_id, db)
         return cred
     except YouTubeAuthError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        from services.error_responses import raise_user_error
+
+        raise_user_error("youtube_auth", e, status_code=400)
 
 
 @router.get("/credentials/{project_id}", response_model=YouTubeCredentialResponse)

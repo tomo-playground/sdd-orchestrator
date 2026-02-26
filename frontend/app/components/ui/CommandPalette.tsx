@@ -210,6 +210,8 @@ export default function CommandPalette() {
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
       <div
         className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl"
+        role="dialog"
+        aria-label="Quick Switcher"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input */}
@@ -220,6 +222,7 @@ export default function CommandPalette() {
             viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={2}
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -234,6 +237,11 @@ export default function CommandPalette() {
             onKeyDown={handleKeyDown}
             placeholder="Search projects, groups, storyboards..."
             className="flex-1 bg-transparent text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
+            role="combobox"
+            aria-expanded={results.length > 0}
+            aria-controls="command-palette-listbox"
+            aria-activedescendant={results[selectedIdx]?.id ?? undefined}
+            aria-autocomplete="list"
           />
           <kbd className="hidden shrink-0 rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[12px] font-medium text-zinc-400 sm:inline">
             ESC
@@ -241,7 +249,12 @@ export default function CommandPalette() {
         </div>
 
         {/* Results */}
-        <div className="max-h-80 overflow-y-auto py-2">
+        <div
+          id="command-palette-listbox"
+          role="listbox"
+          aria-label="Search results"
+          className="max-h-80 overflow-y-auto py-2"
+        >
           {results.length === 0 ? (
             <p className="px-4 py-8 text-center text-xs text-zinc-400">
               {query ? "No results found" : "Type to search..."}
@@ -250,6 +263,9 @@ export default function CommandPalette() {
             results.map((item, idx) => (
               <button
                 key={item.id}
+                id={item.id}
+                role="option"
+                aria-selected={idx === selectedIdx}
                 onClick={() => {
                   item.action();
                   setOpen(false);

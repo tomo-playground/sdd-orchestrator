@@ -136,6 +136,7 @@ class VideoBuilder:
         self._map_a: str = ""
         self._total_dur: float = 0.0
         self._next_input_idx: int = 0
+        self._filter_debug_dump: str = ""  # Populated by encoding.build_ffmpeg_cmd
 
     # ------------------------------------------------------------------
     # Progress reporting

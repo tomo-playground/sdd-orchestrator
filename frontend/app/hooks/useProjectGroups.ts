@@ -1,6 +1,8 @@
 import { useEffect, useCallback } from "react";
 import { useContextStore } from "../store/useContextStore";
 import { useStoryboardStore } from "../store/useStoryboardStore";
+import { useRenderStore } from "../store/useRenderStore";
+import { useUIStore } from "../store/useUIStore";
 import { fetchProjects } from "../store/actions/projectActions";
 import { fetchGroups, loadGroupDefaults } from "../store/actions/groupActions";
 import { ALL_GROUPS_ID } from "../constants";
@@ -73,6 +75,9 @@ export function useProjectGroups() {
     (id: number) => {
       setContext({ projectId: id, groupId: null, storyboardId: null, storyboardTitle: "" });
       clearScenes();
+      useStoryboardStore.getState().reset();
+      useRenderStore.getState().reset();
+      useUIStore.getState().resetUI();
     },
     [setContext, clearScenes]
   );
@@ -81,6 +86,9 @@ export function useProjectGroups() {
     (id: number) => {
       setContext({ groupId: id, storyboardId: null, storyboardTitle: "" });
       clearScenes();
+      useStoryboardStore.getState().reset();
+      useRenderStore.getState().reset();
+      useUIStore.getState().resetUI();
     },
     [setContext, clearScenes]
   );

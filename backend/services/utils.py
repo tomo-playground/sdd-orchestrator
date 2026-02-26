@@ -12,13 +12,21 @@ if TYPE_CHECKING:
     from PIL.ImageFont import FreeTypeFont
 
 
+def escape_like(value: str) -> str:
+    """Escape SQL LIKE/ILIKE wildcard characters in user input.
+
+    Prevents '%' and '_' in user input from acting as SQL wildcards.
+    """
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def parse_json_payload(text: str) -> dict[str, Any]:
     """Parse JSON from text, handling markdown code blocks."""
     cleaned = text.strip().replace("```json", "").replace("```", "")
     start = cleaned.find("{")
     end = cleaned.rfind("}")
     if start != -1 and end != -1:
-        cleaned = cleaned[start:end + 1]
+        cleaned = cleaned[start : end + 1]
     return json.loads(cleaned)
 
 
@@ -29,9 +37,7 @@ def scrub_payload(payload: dict[str, Any]) -> dict[str, Any]:
         if key in {"image_url", "image", "image_b64"} and isinstance(value, str):
             redacted[key] = "<redacted>"
         elif isinstance(value, list):
-            redacted[key] = [
-                scrub_payload(item) if isinstance(item, dict) else item for item in value
-            ]
+            redacted[key] = [scrub_payload(item) if isinstance(item, dict) else item for item in value]
         elif isinstance(value, dict):
             redacted[key] = scrub_payload(value)
         else:
@@ -243,7 +249,16 @@ def wrap_text_by_font(
 
 def get_audio_duration(path: pathlib.Path) -> float:
     """Get the duration of an audio file in seconds using ffprobe."""
-    cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(path)]
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        str(path),
+    ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         return 0.0
@@ -251,5 +266,3 @@ def get_audio_duration(path: pathlib.Path) -> float:
         return float(result.stdout.strip())
     except ValueError:
         return 0.0
-
-

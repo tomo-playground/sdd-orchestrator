@@ -33,9 +33,11 @@ from schemas import (
     SceneValidationResponse,
     ValidateAndAutoEditResponse,  # noqa: F401
 )
+from models.scene import Scene
 from services.asset_service import AssetService
+from services.error_responses import raise_user_error
 from services.generation import generate_scene_image
-from services.image import decode_data_url, load_image_bytes
+from services.image import decode_data_url, load_as_data_url
 from services.image_progress import (
     ImageGenStage,
     calc_percent,
@@ -117,8 +119,6 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
 
         # Update Scene record (scene may have been recreated with a new ID)
         if request.scene_id:
-            from models.scene import Scene
-
             db_scene = db.query(Scene).filter(Scene.id == request.scene_id, Scene.deleted_at.is_(None)).first()
             if db_scene:
                 db_scene.image_asset_id = asset.id
@@ -134,8 +134,6 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
         logger.info("💾 [Image Store] Saved: %s", asset.storage_key)
         return {"url": url, "asset_id": asset.id}
     except Exception as e:
-        from services.error_responses import raise_user_error
-
         raise_user_error("image_store", e)
 
 
@@ -176,13 +174,10 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
     """
     from sqlalchemy import func
 
-    from config import (
-        GEMINI_AUTO_EDIT_ENABLED,
-        GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD,
-        GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE,
-        GEMINI_AUTO_EDIT_THRESHOLD,
-    )
+    from config import runtime_settings
     from models import ActivityLog
+
+    rs = runtime_settings
 
     # Step 1: WD14 검증
     logger.info("📥 [Validate + Auto-Edit] %s", scrub_payload(request.model_dump()))
@@ -198,13 +193,13 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
     # Step 2: 자동 편집 체크 (Multi-Level Safety)
 
     # Check 1: 글로벌 스위치
-    if not GEMINI_AUTO_EDIT_ENABLED:
+    if not rs.auto_edit_enabled:
         logger.debug("[Auto Edit] Skipped (globally disabled)")
         return result
 
     # Check 2: 임계값 체크
-    if match_rate >= GEMINI_AUTO_EDIT_THRESHOLD:
-        logger.debug(f"[Auto Edit] Skipped (match_rate={match_rate:.2f} >= {GEMINI_AUTO_EDIT_THRESHOLD})")
+    if match_rate >= rs.auto_edit_threshold:
+        logger.debug("[Auto Edit] Skipped (match_rate=%.2f >= %.2f)", match_rate, rs.auto_edit_threshold)
         return result
 
     # Check 3: 스토리보드 비용 한도 체크
@@ -216,10 +211,11 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
             or 0.0
         )
 
-        if current_cost >= GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD:
+        if current_cost >= rs.auto_edit_max_cost:
             logger.warning(
-                f"⚠️ [Auto Edit] Skipped (cost limit reached: ${current_cost:.2f} >= "
-                f"${GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD})"
+                "[Auto Edit] Skipped (cost limit reached: $%.2f >= $%.2f)",
+                current_cost,
+                rs.auto_edit_max_cost,
             )
             result["skip_reason"] = "cost_limit_reached"
             result["current_cost"] = current_cost
@@ -237,27 +233,24 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
                 .scalar()
             )
 
-            if retry_count >= GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE:
-                logger.warning(f"⚠️ [Auto Edit] Skipped (max retries reached: {retry_count})")
+            if retry_count >= rs.auto_edit_max_retries:
+                logger.warning("[Auto Edit] Skipped (max retries reached: %d)", retry_count)
                 result["skip_reason"] = "max_retries_reached"
                 result["retry_count"] = retry_count
                 return result
 
     # === 모든 체크 통과 → 자동 편집 실행 ===
-    logger.info(f"🔍 [Auto Edit] Triggered (match_rate={match_rate:.2f} < {GEMINI_AUTO_EDIT_THRESHOLD})")
+    logger.info("[Auto Edit] Triggered (match_rate=%.2f < %.2f)", match_rate, rs.auto_edit_threshold)
 
     # Release DB connection before Gemini API call (10-30s)
     db.close()
 
     try:
-        import base64
-
         from services.imagen_edit import auto_edit_with_gemini
 
         # Load image as base64 (from image_url or image_b64)
         source = request.image_b64 or request.image_url
-        image_bytes = load_image_bytes(source)
-        image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+        image_b64 = load_as_data_url(source)
 
         # Execute auto-edit
         edit_result = await auto_edit_with_gemini(
@@ -276,8 +269,8 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
         # (Frontend can call /scene/validate_image separately)
 
     except Exception as e:
-        logger.error(f"❌ [Auto Edit] Failed: {e}")
-        result["auto_edit_error"] = str(e)
+        logger.exception("[Auto Edit] Failed: %s", e)
+        result["auto_edit_error"] = "자동 편집에 실패했습니다."
 
     return result
 
@@ -320,11 +313,7 @@ async def edit_scene_with_gemini(request: GeminiEditRequest):
         if request.image_b64:
             image_b64 = request.image_b64
         elif request.image_url:
-            # Load image from URL and convert to base64
-            image_bytes = load_image_bytes(request.image_url)
-            import base64
-
-            image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+            image_b64 = load_as_data_url(request.image_url)
         else:
             raise HTTPException(status_code=400, detail="Either image_url or image_b64 must be provided")
 
@@ -359,8 +348,6 @@ async def edit_scene_with_gemini(request: GeminiEditRequest):
         )
 
     except Exception as e:
-        from services.error_responses import raise_user_error
-
         raise_user_error("image_edit", e)
 
 
@@ -370,8 +357,6 @@ async def edit_scene_image(scene_id: int, request: SceneEditImageRequest, db: Se
 
     기존 씬 이미지를 Gemini로 편집합니다. 캐릭터 edit-preview 패턴 재사용.
     """
-    from models.scene import Scene
-
     scene = db.query(Scene).filter(Scene.id == scene_id, Scene.deleted_at.is_(None)).first()
     if not scene:
         raise HTTPException(status_code=404, detail="Scene not found")
@@ -379,20 +364,14 @@ async def edit_scene_image(scene_id: int, request: SceneEditImageRequest, db: Se
     # 이미지 소스 결정: request → scene asset
     image_b64 = request.image_b64
     if not image_b64 and request.image_url:
-        import base64
-
-        image_bytes = load_image_bytes(request.image_url)
-        image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+        image_b64 = load_as_data_url(request.image_url)
     elif not image_b64 and scene.image_asset_id:
         asset_service = AssetService(db)
         from models.media_asset import MediaAsset
 
         asset = db.get(MediaAsset, scene.image_asset_id)
         if asset:
-            import base64
-
-            image_bytes = load_image_bytes(asset_service.get_asset_url(asset.storage_key))
-            image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+            image_b64 = load_as_data_url(asset_service.get_asset_url(asset.storage_key))
 
     if not image_b64:
         raise HTTPException(status_code=400, detail="No image source available")
@@ -430,9 +409,7 @@ async def edit_scene_image(scene_id: int, request: SceneEditImageRequest, db: Se
         project_id = grp.project_id if grp else 0
 
         # Re-fetch scene after db reconnect
-        from models.scene import Scene as SceneModel
-
-        scene = db.query(SceneModel).filter(SceneModel.id == scene_id).first()
+        scene = db.query(Scene).filter(Scene.id == scene_id).first()
         if not scene:
             raise HTTPException(status_code=404, detail="Scene not found after edit")
 
@@ -459,8 +436,6 @@ async def edit_scene_image(scene_id: int, request: SceneEditImageRequest, db: Se
             edit_type=edit_type,
         )
     except Exception as e:
-        from services.error_responses import raise_user_error
-
         raise_user_error("scene_edit_image", e)
 
 
@@ -512,11 +487,7 @@ async def suggest_edit_for_scene(request: GeminiSuggestRequest):
         if request.image_b64:
             image_b64 = request.image_b64
         elif request.image_url:
-            # Load image from URL and convert to base64
-            image_bytes = load_image_bytes(request.image_url)
-            import base64
-
-            image_b64 = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+            image_b64 = load_as_data_url(request.image_url)
         else:
             raise HTTPException(status_code=400, detail="Either image_url or image_b64 must be provided")
 
@@ -542,8 +513,6 @@ async def suggest_edit_for_scene(request: GeminiSuggestRequest):
         )
 
     except Exception as e:
-        from services.error_responses import raise_user_error
-
         raise_user_error("image_suggest", e)
 
 

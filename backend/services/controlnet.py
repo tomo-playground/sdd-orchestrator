@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from config import (
     CONTROLNET_API_TIMEOUT,
+    CONTROLNET_DEFAULT_SAMPLER,
     CONTROLNET_DETECT_TIMEOUT,
     CONTROLNET_GENERATE_TIMEOUT,
     DEFAULT_CHARACTER_PRESET,
@@ -36,38 +37,63 @@ from services.prompt import normalize_negative_prompt
 # Dynamic import to avoid initialization order issues
 
 # Pose tag to reference image mapping (Danbooru underscore format)
+# Primary entries map exact pose tags to asset files.
+# Alias entries (marked with # alias) map common Danbooru pose variants
+# to the closest existing asset, expanding coverage without new assets.
 POSE_MAPPING: dict[str, str] = {
     # Standing poses
     "standing": "standing_neutral.png",
     "waving": "standing_waving.png",
     "arms_up": "standing_arms_up.png",
     "arms_crossed": "standing_arms_crossed.png",
+    "crossed_arms": "standing_arms_crossed.png",  # alias
     "thumbs_up": "standing_thumbs_up.png",
     "hands_on_hips": "standing_hands_on_hips.png",
     "looking_at_viewer": "looking_at_viewer_neutral.png",
     "from_behind": "standing_from_behind.png",
+    "looking_back": "standing_from_behind.png",  # alias
+    "hand_on_hip": "standing_hands_on_hips.png",  # alias (singular)
+    "standing_on_one_leg": "standing_neutral.png",  # alias
     # Sitting poses
     "sitting": "sitting_neutral.png",
+    "sitting_on_chair": "sitting_neutral.png",  # alias
+    "seiza": "sitting_neutral.png",  # alias
+    "wariza": "sitting_neutral.png",  # alias
+    "indian_style": "sitting_neutral.png",  # alias
     "chin_rest": "sitting_chin_rest.png",
+    "head_rest": "sitting_chin_rest.png",  # alias
     "leaning": "sitting_leaning.png",
+    "leaning_forward": "sitting_leaning.png",  # alias
     # Action/Storytelling poses
     "walking": "walking.png",
     "running": "running.png",
     "jumping": "jumping.png",
     "lying": "lying_neutral.png",
+    "lying_down": "lying_neutral.png",  # alias
+    "on_back": "lying_neutral.png",  # alias
+    "on_stomach": "lying_neutral.png",  # alias
     "kneeling": "kneeling_neutral.png",
+    "on_knees": "kneeling_neutral.png",  # alias
     "crouching": "crouching_neutral.png",
+    "squatting": "crouching_neutral.png",  # alias
     "pointing_forward": "pointing_forward.png",
+    "pointing": "pointing_forward.png",  # alias
     "covering_face": "covering_face.png",
+    "hands_on_face": "covering_face.png",  # alias
     # Daily life / interaction poses
     "holding_object": "holding_object.png",
+    "holding": "holding_object.png",  # alias
     "eating": "eating.png",
     "cooking": "cooking.png",
     "holding_umbrella": "holding_umbrella.png",
     "writing": "writing.png",
+    "reading": "writing.png",  # alias (similar posture)
     "profile_standing": "profile_standing.png",
+    "from_side": "profile_standing.png",  # alias
     "standing_looking_up": "standing_looking_up.png",
+    "looking_up": "standing_looking_up.png",  # alias
     "leaning_wall": "leaning_wall.png",
+    "leaning_against_wall": "leaning_wall.png",  # alias
     "sitting_eating": "sitting_eating.png",
 }
 
@@ -255,7 +281,7 @@ def generate_with_controlnet(
         "width": width,
         "height": height,
         "cfg_scale": cfg_scale,
-        "sampler_name": "Euler a",
+        "sampler_name": CONTROLNET_DEFAULT_SAMPLER,
         "alwayson_scripts": {
             "controlnet": {
                 "args": [
@@ -386,7 +412,7 @@ def load_reference_image(character_key: str, db: Session | None = None) -> str |
         return None
 
 
-def list_reference_images(db: Session | None = None) -> list[dict[str, str]]:
+def list_reference_images(db: Session | None = None) -> list[dict[str, str | int]]:
     """List all characters with preview images from DB.
 
     Returns:
@@ -456,7 +482,7 @@ def build_ip_adapter_args(
     if model is None:
         model = preset.get("model", DEFAULT_IP_ADAPTER_MODEL)
 
-    model_name = IP_ADAPTER_MODELS.get(model)
+    model_name = IP_ADAPTER_MODELS.get(model or "")
     if not model_name:
         raise ValueError(f"Unknown IP-Adapter model: {model}")
 
@@ -634,8 +660,10 @@ async def generate_reference_for_character(
         Saved filename
     """
     # Build prompt using V3 12-Layer system (alias/conflict resolution, batch LoRA query)
+    from config import SD_DEFAULT_SAMPLER, SD_REFERENCE_CFG_SCALE, SD_REFERENCE_STEPS
     from services.characters.preview import _resolve_quality_tags_for_character
     from services.prompt.v3_composition import V3PromptBuilder
+    from services.style_context import resolve_style_context_for_profile
 
     quality_tags = _resolve_quality_tags_for_character(character, db)
     builder = V3PromptBuilder(db)
@@ -648,6 +676,18 @@ async def generate_reference_for_character(
         if extras:
             base_negative += ", " + ", ".join(extras)
 
+    # Resolve StyleProfile generation parameters (override global defaults)
+    style_ctx = resolve_style_context_for_profile(character.style_profile_id, db)
+    steps = style_ctx.default_steps if (style_ctx and style_ctx.default_steps is not None) else SD_REFERENCE_STEPS
+    cfg_scale = (
+        style_ctx.default_cfg_scale
+        if (style_ctx and style_ctx.default_cfg_scale is not None)
+        else SD_REFERENCE_CFG_SCALE
+    )
+    sampler_name = (
+        style_ctx.default_sampler_name if (style_ctx and style_ctx.default_sampler_name) else SD_DEFAULT_SAMPLER
+    )
+
     # Required tags for IP-Adapter reference (must detect these)
     required_tags = ["looking_at_viewer"]
 
@@ -658,11 +698,11 @@ async def generate_reference_for_character(
         payload = {
             "prompt": full_prompt,
             "negative_prompt": normalize_negative_prompt(base_negative),
-            "steps": 25,
+            "steps": steps,
             "width": 512,
             "height": 512,
-            "cfg_scale": 7.0,
-            "sampler_name": "Euler a",
+            "cfg_scale": cfg_scale,
+            "sampler_name": sampler_name,
             "seed": random.randint(0, 2**32 - 1) if attempt > 0 else -1,
         }
 
@@ -700,4 +740,5 @@ async def generate_reference_for_character(
 
     # If all attempts failed, save the best one
     logger.warning(f"⚠️ Validation failed after {max_attempts} attempts. Using best image (score={best_score:.1%})")
-    return save_reference_image(character.name, best_image or image_b64)
+    fallback = best_image or ""
+    return save_reference_image(character.name, fallback)

@@ -29,7 +29,10 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
     """Refresh all in-memory caches from database.
 
     Call this after migrating data to ensure caches are up-to-date.
+    Returns 207 if some caches fail, 200 if all succeed.
     """
+    from fastapi.responses import JSONResponse
+
     from services.keywords.db_cache import (
         LoRATriggerCache,
         TagAliasCache,
@@ -38,16 +41,34 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
         TagRuleCache,
     )
 
-    try:
-        TagCategoryCache.refresh(db)
-        TagFilterCache.refresh(db)
-        TagAliasCache.refresh(db)
-        TagRuleCache.refresh(db)
-        LoRATriggerCache.refresh(db)
+    caches = [
+        ("TagCategoryCache", TagCategoryCache),
+        ("TagFilterCache", TagFilterCache),
+        ("TagAliasCache", TagAliasCache),
+        ("TagRuleCache", TagRuleCache),
+        ("LoRATriggerCache", LoRATriggerCache),
+    ]
 
-        return {"success": True, "message": "All caches refreshed successfully"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+    refreshed = []
+    failures = []
+    for name, cache_cls in caches:
+        try:
+            cache_cls.refresh(db)
+            refreshed.append(name)
+        except Exception as e:
+            failures.append({"cache": name, "error": str(e)})
+
+    if failures:
+        return JSONResponse(
+            status_code=207,
+            content={
+                "success": False,
+                "message": f"{len(refreshed)} refreshed, {len(failures)} failed",
+                "refreshed": refreshed,
+                "failures": failures,
+            },
+        )
+    return {"success": True, "message": "All caches refreshed successfully"}
 
 
 # ============================================================

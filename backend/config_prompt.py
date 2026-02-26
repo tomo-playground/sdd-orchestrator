@@ -79,7 +79,6 @@ OUTDOOR_LOCATION_TAGS: frozenset[str] = frozenset(
 INDOOR_LOCATION_TAGS: frozenset[str] = frozenset(
     {
         "indoors",
-        "room",
         "bedroom",
         "kitchen",
         "bathroom",

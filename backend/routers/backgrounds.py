@@ -60,8 +60,11 @@ def list_backgrounds(
     if category:
         q = q.filter(Background.category == category)
     if search:
-        pattern = f"%{search}%"
-        q = q.filter(Background.name.ilike(pattern))
+        from services.utils import escape_like
+
+        escaped = escape_like(search)
+        pattern = f"%{escaped}%"
+        q = q.filter(Background.name.ilike(pattern, escape="\\"))
     backgrounds = q.order_by(Background.id.desc()).all()
     return [_bg_to_response(bg) for bg in backgrounds]
 
