@@ -5,7 +5,6 @@ export { MOCK_PROJECTS, MOCK_GROUPS, MOCK_GROUP_CONFIG } from "./common";
 export { MOCK_CHARACTERS_LIST, MOCK_CHARACTER_DETAIL } from "./characters";
 export { MOCK_VOICE_PRESETS, MOCK_LANGUAGES } from "./voices";
 export { MOCK_MUSIC_PRESETS } from "./music";
-export { MOCK_BACKGROUNDS, MOCK_BG_CATEGORIES } from "./backgrounds";
 export {
   MOCK_STYLE_PROFILES,
   MOCK_STORAGE_STATS,

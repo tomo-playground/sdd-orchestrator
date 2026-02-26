@@ -41,6 +41,7 @@ export type SceneItem = {
   head_padding?: number | null;
   tail_padding?: number | null;
   ken_burns_preset?: string | null;
+  background_id?: number | null;
 };
 
 export type ScriptProgress = {
@@ -175,6 +176,7 @@ function syncToGlobalStore(scenes: SceneItem[], meta: SyncMeta) {
     head_padding: s.head_padding,
     tail_padding: s.tail_padding,
     ken_burns_preset: s.ken_burns_preset,
+    background_id: s.background_id ?? null,
   }));
   useStoryboardStore.getState().setScenes(mapped);
   const { characterId, characterName, characterBId, characterBName, ...rest } = meta;
@@ -656,6 +658,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           voice_design_prompt: s.voice_design_prompt ?? null,
           head_padding: s.head_padding ?? null,
           tail_padding: s.tail_padding ?? null,
+          background_id: s.background_id ?? null,
         })),
       };
       const storeMeta: SyncMeta = {

@@ -84,7 +84,7 @@ export default function SceneActionBar({
             className="flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[12px] text-emerald-600"
             title="Stage 배경이 ControlNet 참조로 사용됩니다"
           >
-            🎬 Stage BG
+            🎬 BG#{scene.background_id}
           </div>
         )}
 

@@ -1,8 +1,1 @@
-export type LibraryTab =
-    | "characters"
-    | "voices"
-    | "music"
-    | "backgrounds"
-    | "tags"
-    | "style"
-    | "prompts";
+export type LibraryTab = "characters" | "voices" | "music" | "tags" | "style" | "prompts";

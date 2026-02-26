@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Users, Mic, Music, Image, Tag, Palette, FileText, type LucideIcon } from "lucide-react";
+import { Users, Mic, Music, Tag, Palette, FileText, type LucideIcon } from "lucide-react";
 import axios from "axios";
 import { SIDE_PANEL_CLASSES, SIDE_PANEL_LABEL } from "../../components/ui/variants";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
@@ -45,16 +45,6 @@ const GUIDES: Record<LibraryTab, TabGuide> = {
       "장르 + 분위기 키워드를 프롬프트에 활용하세요",
       "클립당 최대 47초까지 생성 가능합니다",
       "씬에 추가하기 전 미리듣기로 확인하세요",
-    ],
-  },
-  backgrounds: {
-    icon: Image,
-    title: "Backgrounds",
-    description: "씬 생성에 사용할 레퍼런스 배경을 업로드합니다.",
-    tips: [
-      "태그를 추가하면 자동 매칭 정확도가 높아집니다",
-      "카테고리로 장소별 정리가 가능합니다",
-      "가중치가 높을수록 시각적 영향이 강해집니다",
     ],
   },
   tags: {

@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Users, Mic, Music, Image, Tag, Palette, FileText } from "lucide-react";
+import { Users, Mic, Music, Tag, Palette, FileText } from "lucide-react";
 
 import AppSidebar, { type NavGroup } from "../../components/layout/AppSidebar";
 import AppMobileTabBar from "../../components/layout/AppMobileTabBar";
@@ -12,21 +12,12 @@ import LibrarySecondaryPanel from "./LibrarySecondaryPanel";
 import { CharactersContent } from "../characters/page";
 import { VoicesContent } from "../voices/page";
 import { MusicContent } from "../music/page";
-import { BackgroundsContent } from "../backgrounds/page";
 import TagsTab from "./tabs/TagsTab";
 import StyleTab from "./tabs/StyleTab";
 import PromptsTab from "./tabs/PromptsTab";
 import { type LibraryTab } from "./types";
 
-const VALID_TABS: LibraryTab[] = [
-  "characters",
-  "voices",
-  "music",
-  "backgrounds",
-  "tags",
-  "style",
-  "prompts",
-];
+const VALID_TABS: LibraryTab[] = ["characters", "voices", "music", "tags", "style", "prompts"];
 
 function isValidTab(v: string | null): v is LibraryTab {
   return v !== null && VALID_TABS.includes(v as LibraryTab);
@@ -38,7 +29,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Visuals",
     items: [
       { id: "characters", label: "Characters", icon: Users },
-      { id: "backgrounds", label: "Backgrounds", icon: Image },
       { id: "style", label: "Styles", icon: Palette },
     ],
   },
@@ -64,7 +54,6 @@ const MOBILE_TABS = [
   { id: "characters", label: "Characters" },
   { id: "voices", label: "Voices" },
   { id: "music", label: "Music" },
-  { id: "backgrounds", label: "Backgrounds" },
   { id: "style", label: "Styles" },
   { id: "prompts", label: "Prompts" },
   { id: "tags", label: "Tags" },
@@ -103,7 +92,6 @@ function LibraryContent() {
             {activeTab === "characters" && <CharactersContent />}
             {activeTab === "voices" && <VoicesContent />}
             {activeTab === "music" && <MusicContent />}
-            {activeTab === "backgrounds" && <BackgroundsContent />}
             {activeTab === "tags" && <TagsTab />}
             {activeTab === "style" && <StyleTab />}
             {activeTab === "prompts" && <PromptsTab />}

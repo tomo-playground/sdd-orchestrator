@@ -7,8 +7,6 @@ import {
   MOCK_CHARACTER_DETAIL,
   MOCK_VOICE_PRESETS,
   MOCK_MUSIC_PRESETS,
-  MOCK_BACKGROUNDS,
-  MOCK_BG_CATEGORIES,
   MOCK_TAG_GROUPS,
   MOCK_STYLE_PROFILES,
   MOCK_STORAGE_STATS,
@@ -190,32 +188,6 @@ export async function mockMusicApis(page: Page) {
 
 export async function mockMusicEmptyApis(page: Page) {
   await page.route("**/music-presets**", (route) => {
-    if (route.request().method() === "GET") {
-      return route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 50 } });
-    }
-    return route.continue();
-  });
-}
-// ── Backgrounds page ─────────────────────────────────────────
-
-export async function mockBackgroundsApis(page: Page) {
-  await page.route("**/backgrounds/categories**", (route) =>
-    route.fulfill({ json: MOCK_BG_CATEGORIES })
-  );
-  await page.route("**/backgrounds**", (route) => {
-    if (route.request().method() === "GET") {
-      return route.fulfill({
-        json: { items: MOCK_BACKGROUNDS, total: MOCK_BACKGROUNDS.length, offset: 0, limit: 50 },
-      });
-    }
-    return route.continue();
-  });
-}
-
-/** Backgrounds page mock returning empty list */
-export async function mockBackgroundsEmptyApis(page: Page) {
-  await page.route("**/backgrounds/categories**", (route) => route.fulfill({ json: [] }));
-  await page.route("**/backgrounds**", (route) => {
     if (route.request().method() === "GET") {
       return route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 50 } });
     }
