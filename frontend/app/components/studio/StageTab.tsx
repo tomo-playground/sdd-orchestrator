@@ -105,9 +105,25 @@ export default function StageTab() {
         null,
         { timeout: API_TIMEOUT.DEFAULT }
       );
-      const count = res.data.assignments?.length ?? 0;
-      if (count > 0) {
-        showToast(`${count} scenes assigned to backgrounds`, "success");
+      const assignments = res.data.assignments ?? [];
+      if (assignments.length > 0) {
+        // Sync scene store: set background_id + clear old scene-to-scene pin
+        const { scenes, setScenes } = useStoryboardStore.getState();
+        const assignMap = new Map<number, number>(
+          assignments.map((a: { scene_id: number; background_id: number }) => [
+            a.scene_id,
+            a.background_id,
+          ] as [number, number])
+        );
+        const updated = scenes.map((s) => {
+          const bgId = assignMap.get(s.id);
+          if (bgId != null) {
+            return { ...s, background_id: bgId, environment_reference_id: null };
+          }
+          return s;
+        });
+        setScenes(updated);
+        showToast(`${assignments.length} scenes assigned to backgrounds`, "success");
       }
       await fetchStatus();
       if (opts?.navigateToDirect) {

@@ -13,6 +13,7 @@ from schemas import (
     StageAssignResponse,
     StageGenerateResponse,
     StageLocationStatus,
+    StageRegenerateRequest,
     StageRegenerateResponse,
     StageStatusResponse,
 )
