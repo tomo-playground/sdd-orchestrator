@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type {
-  Scene,
-  ImageValidation,
-  ImageGenProgress,
-  Tag,
-  GeminiSuggestion,
-  Background,
-} from "../../types";
+import type { Scene, ImageValidation, ImageGenProgress, Tag, GeminiSuggestion } from "../../types";
 import { isMultiCharStructure } from "../../utils/structure";
 import { useUIStore } from "../../store/useUIStore";
 import SceneImagePanel from "./SceneImagePanel";
@@ -21,7 +14,6 @@ import SceneEditImageModal from "./SceneEditImageModal";
 import SceneClothingModal from "./SceneClothingModal";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import SceneEssentialFields from "./SceneEssentialFields";
-import SceneBackgroundField from "./SceneBackgroundField";
 
 export type SceneEditTab = "script" | "visual" | "settings"; // Keep for compatibility if needed, but unused in logic
 
@@ -68,7 +60,6 @@ type SceneCardProps = {
   characterAName?: string | null;
   characterBName?: string | null;
   selectedCharacterBId?: number | null;
-  backgrounds?: Background[];
   genProgress?: ImageGenProgress | null;
   buildNegativePrompt: (scene: Scene) => string;
   buildScenePrompt: (scene: Scene) => string | null;
@@ -112,7 +103,7 @@ export default function SceneCard({
   characterAName,
   characterBName,
   selectedCharacterBId,
-  backgrounds = [],
+
   genProgress,
   buildNegativePrompt,
   buildScenePrompt,
@@ -220,11 +211,6 @@ export default function SceneCard({
               promptMode={promptMode}
               selectedCharacterId={selectedCharacterId}
               basePromptA={basePromptA}
-              onUpdateScene={onUpdateScene}
-            />
-            <SceneBackgroundField
-              scene={scene}
-              backgrounds={backgrounds}
               onUpdateScene={onUpdateScene}
             />
           </div>

@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import axios from "axios";
 import { useConfirm } from "../components/ui/ConfirmDialog";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useUIStore } from "../store/useUIStore";
 import { API_BASE } from "../constants";
-import type { Background, Scene } from "../types";
+import type { Scene } from "../types";
 import { generateSceneClientId } from "../utils/uuid";
 
 /**
@@ -16,8 +16,6 @@ export function useSceneActions() {
   const sbSet = useStoryboardStore((s) => s.set);
   const setScenes = useStoryboardStore((s) => s.setScenes);
   const showToast = useUIStore((s) => s.showToast);
-  const [backgrounds, setBackgrounds] = useState<Background[]>([]);
-
   // Fetch IP-Adapter reference images on mount
   useEffect(() => {
     axios
@@ -27,14 +25,6 @@ export function useSceneActions() {
           referenceImages: res.data.references || [],
         });
       })
-      .catch(() => {});
-  }, []);
-
-  // Fetch background assets on mount
-  useEffect(() => {
-    axios
-      .get(`${API_BASE}/backgrounds`)
-      .then((res) => setBackgrounds(res.data || []))
       .catch(() => {});
   }, []);
 
@@ -117,7 +107,6 @@ export function useSceneActions() {
   }, [setScenes, sbSet]);
 
   return {
-    backgrounds,
     setCurrentSceneIndex,
     handleUpdateScene,
     handlePinToggle,

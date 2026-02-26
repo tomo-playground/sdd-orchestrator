@@ -78,8 +78,18 @@ export default function SceneActionBar({
           )}
         </Button>
 
-        {/* Pin toggle */}
-        {sceneIndex > 0 && !scene.isGenerating && onPinToggle && (
+        {/* Stage background indicator */}
+        {scene.background_id && !scene.isGenerating && (
+          <div
+            className="flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[12px] text-emerald-600"
+            title="Stage 배경이 ControlNet 참조로 사용됩니다"
+          >
+            🎬 Stage BG
+          </div>
+        )}
+
+        {/* Pin toggle — only when no Stage background */}
+        {!scene.background_id && sceneIndex > 0 && !scene.isGenerating && onPinToggle && (
           <Button
             variant={scene.environment_reference_id ? "secondary" : "outline"}
             size="sm"
@@ -106,13 +116,16 @@ export default function SceneActionBar({
           </Button>
         )}
 
-        {/* Auto pin indicator */}
-        {scene._auto_pin_previous && !scene.environment_reference_id && !scene.image_url && (
-          <div className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[12px] text-blue-600">
-            <span>💡</span>
-            <span className="font-medium">자동 핀 활성</span>
-          </div>
-        )}
+        {/* Auto pin indicator — only when no Stage background */}
+        {!scene.background_id &&
+          scene._auto_pin_previous &&
+          !scene.environment_reference_id &&
+          !scene.image_url && (
+            <div className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[12px] text-blue-600">
+              <span>💡</span>
+              <span className="font-medium">자동 핀 활성</span>
+            </div>
+          )}
 
         {/* Gemini Edit button */}
         {scene.image_url && !scene.isGenerating && (

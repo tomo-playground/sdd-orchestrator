@@ -88,7 +88,6 @@ export default function ScenesTab() {
   const { tagsByGroup, sceneTagGroups, isExclusiveGroup } = useTags(null);
 
   const {
-    backgrounds,
     setCurrentSceneIndex,
     handleUpdateScene,
     handlePinToggle,
@@ -227,7 +226,6 @@ export default function ScenesTab() {
                     characterAName={selectedCharacterName}
                     characterBName={selectedCharacterBName}
                     selectedCharacterBId={selectedCharacterBId}
-                    backgrounds={backgrounds}
                     genProgress={imageGenProgress[currentScene.client_id] ?? null}
                     buildNegativePrompt={buildNegativePrompt}
                     buildScenePrompt={buildScenePrompt}

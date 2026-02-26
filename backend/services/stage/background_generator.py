@@ -201,11 +201,11 @@ def assign_backgrounds_to_scenes(storyboard_id: int, db: Session) -> list[dict]:
         .all()
     )
 
-    # Build location_key → background_id map
-    loc_to_bg: dict[str, int] = {}
+    # Build location_key → {background_id, image_asset_id} map
+    loc_to_bg: dict[str, dict] = {}
     for bg in backgrounds:
         if bg.location_key:
-            loc_to_bg[bg.location_key] = bg.id
+            loc_to_bg[bg.location_key] = {"id": bg.id, "image_asset_id": bg.image_asset_id}
 
     assignments: list[dict] = []
     for scene in scenes:
@@ -213,9 +213,19 @@ def assign_backgrounds_to_scenes(storyboard_id: int, db: Session) -> list[dict]:
         if not env_tags:
             continue
         key = "_".join(sorted(env_tags))
-        bg_id = loc_to_bg.get(key)
-        if bg_id and scene.background_id != bg_id:
+        bg_info = loc_to_bg.get(key)
+        if not bg_info:
+            continue
+        bg_id = bg_info["id"]
+        changed = False
+        if scene.background_id != bg_id:
             scene.background_id = bg_id
+            changed = True
+        # Clear old scene-to-scene pin; Stage background takes over
+        if scene.environment_reference_id:
+            scene.environment_reference_id = None
+            changed = True
+        if changed:
             assignments.append({"scene_id": scene.id, "background_id": bg_id, "location_key": key})
 
     if assignments:
