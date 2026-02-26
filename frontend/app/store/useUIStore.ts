@@ -11,9 +11,12 @@ const MAX_TOASTS = 3;
 const _timerIds =
   typeof window !== "undefined" ? new Map<string, ReturnType<typeof setTimeout>>() : null;
 
-/** Safe accessor — returns no-op stubs during SSR */
+// Stable empty Map for SSR — avoids creating a new instance on every call
+const _ssrFallback = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Safe accessor — returns stable no-op Map during SSR */
 function timerMap() {
-  return _timerIds ?? new Map<string, ReturnType<typeof setTimeout>>();
+  return _timerIds ?? _ssrFallback;
 }
 
 export interface UIState {

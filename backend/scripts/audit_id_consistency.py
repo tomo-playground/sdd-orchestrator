@@ -19,6 +19,7 @@ import os  # noqa: E402
 
 import psycopg2  # noqa: E402
 from dotenv import load_dotenv  # noqa: E402
+from psycopg2 import sql  # noqa: E402
 
 load_dotenv(backend_dir / ".env")
 
@@ -90,20 +91,28 @@ def check_entity_ids():
                     print(f"  ❌ FK '{fk}' not found")
 
             # Check record count
-            cur.execute(f"SELECT COUNT(*) FROM {table}")
+            cur.execute(sql.SQL("SELECT COUNT(*) FROM {}").format(sql.Identifier(table)))
             count = cur.fetchone()[0]
             print(f"  📊 Records: {count}")
 
             # Check for NULL IDs (if PK exists)
             if info["pk"]:
-                cur.execute(f"SELECT COUNT(*) FROM {table} WHERE {info['pk']} IS NULL")
+                cur.execute(
+                    sql.SQL("SELECT COUNT(*) FROM {} WHERE {} IS NULL").format(
+                        sql.Identifier(table), sql.Identifier(info["pk"])
+                    )
+                )
                 null_count = cur.fetchone()[0]
                 if null_count > 0:
                     print(f"  ⚠️  NULL {info['pk']}: {null_count} records")
 
             # Check for NULL FKs
             for fk in info["refs"]:
-                cur.execute(f"SELECT COUNT(*) FROM {table} WHERE {fk} IS NULL")
+                cur.execute(
+                    sql.SQL("SELECT COUNT(*) FROM {} WHERE {} IS NULL").format(
+                        sql.Identifier(table), sql.Identifier(fk)
+                    )
+                )
                 null_count = cur.fetchone()[0]
                 if null_count > 0:
                     print(f"  📝 NULL {fk}: {null_count} records (may be intentional)")

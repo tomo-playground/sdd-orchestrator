@@ -47,7 +47,7 @@ export type RenderMediaPanelProps = {
   includeSceneText: boolean;
   setIncludeSceneText: (value: boolean) => void;
   sceneTextFont: string;
-  setSubtitleFont: (value: string) => void;
+  setSceneTextFont: (value: string) => void;
   fontList: FontItem[];
   loadedFonts: Set<string>;
   kenBurnsPreset: KenBurnsPreset;
@@ -80,7 +80,7 @@ export function RenderMediaPanel({
   includeSceneText,
   setIncludeSceneText,
   sceneTextFont,
-  setSubtitleFont,
+  setSceneTextFont,
   fontList,
   loadedFonts,
   kenBurnsPreset,
@@ -137,7 +137,7 @@ export function RenderMediaPanel({
             </label>
             <select
               value={sceneTextFont ?? ""}
-              onChange={(e) => setSubtitleFont(e.target.value)}
+              onChange={(e) => setSceneTextFont(e.target.value)}
               title="Scene Text Font"
               className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
             >

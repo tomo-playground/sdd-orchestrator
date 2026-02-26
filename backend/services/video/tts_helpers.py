@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections import OrderedDict
+from collections.abc import MutableMapping
 
 from config import (
     DEFAULT_SPEAKER,
@@ -16,8 +18,45 @@ from config import (
     logger,
 )
 
-# Simple cache: Korean prompt -> English translation
-_VOICE_PROMPT_CACHE: dict[str, str] = {}
+_CACHE_MAXSIZE = 256
+
+
+class _LRUCache(MutableMapping[str, str]):
+    """Simple LRU cache with maxsize limit, dict-compatible interface."""
+
+    def __init__(self, maxsize: int = 256) -> None:
+        self._maxsize = maxsize
+        self._data: OrderedDict[str, str] = OrderedDict()
+
+    def __getitem__(self, key: str) -> str:
+        self._data.move_to_end(key)
+        return self._data[key]
+
+    def __setitem__(self, key: str, value: str) -> None:
+        if key in self._data:
+            self._data.move_to_end(key)
+        self._data[key] = value
+        if len(self._data) > self._maxsize:
+            self._data.popitem(last=False)
+
+    def __delitem__(self, key: str) -> None:
+        del self._data[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._data
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def pop(self, key: str, *args):
+        return self._data.pop(key, *args)
+
+
+# LRU caches: Korean prompt -> English translation (bounded)
+_VOICE_PROMPT_CACHE: _LRUCache = _LRUCache(maxsize=_CACHE_MAXSIZE)
 _HANGUL_RE = re.compile(r"[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]")
 
 
@@ -148,7 +187,7 @@ def _resolve_character_preset(storyboard_id: int, speaker: str, db) -> int | Non
 
 
 # Cache: Context (script+prompt) -> Voice Design Prompt (English)
-_CONTEXT_PROMPT_CACHE: dict[str, str] = {}
+_CONTEXT_PROMPT_CACHE: _LRUCache = _LRUCache(maxsize=_CACHE_MAXSIZE)
 
 
 def generate_context_aware_voice_prompt(

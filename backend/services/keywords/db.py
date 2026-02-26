@@ -5,7 +5,7 @@ from typing import Any
 from database import SessionLocal
 from models.tag import Tag
 
-from .core import IGNORE_TOKENS, normalize_prompt_token
+from .core import get_ignore_tokens, normalize_prompt_token
 
 
 def load_tags_from_db() -> dict[str, list[str]]:
@@ -41,7 +41,7 @@ def load_known_keywords() -> set[str]:
     allowed = load_allowed_tags_from_db()
     # Synonyms and effectiveness tracking are currently disabled in Pure V3 slimdown
     known = allowed.copy()
-    known.update(IGNORE_TOKENS)
+    known.update(get_ignore_tokens())
     return known
 
 def load_synonyms_from_db() -> dict[str, str]:

@@ -398,21 +398,26 @@ def _extract_loras_from_prompt(prompt: str) -> list[dict]:
         List of LoRA metadata dicts with keys:
         - name (str): LoRA name
         - weight (float): LoRA weight
-        - source (str): "character" or "style" (inferred from name)
+        - source (str): LoRA type from DB ("character", "style", "pose", etc.)
+          Falls back to "unknown" if not found in cache.
 
     Regex Pattern:
         <lora:NAME:WEIGHT> where NAME is alphanumeric/underscore, WEIGHT is float
     """
+    from services.keywords.db_cache import LoRATriggerCache
+
     loras = []
     pattern = r"<lora:([^:]+):([0-9.]+)>"
     for match in re.finditer(pattern, prompt):
         name = match.group(1)
         weight = float(match.group(2))
+        # Resolve source from DB via LoRATriggerCache (name -> lora_type)
+        lora_type = LoRATriggerCache.get_lora_type(name)
         loras.append(
             {
                 "name": name,
                 "weight": weight,
-                "source": "character" if "character" in name.lower() else "style",
+                "source": lora_type or "unknown",
             }
         )
     return loras

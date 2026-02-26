@@ -4,6 +4,7 @@ import { persistStoryboard } from "../actions/storyboardActions";
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let isSaving = false;
 let initialized = false;
+let cleanupFn: (() => void) | null = null;
 
 function scheduleSave() {
   if (debounceTimer) clearTimeout(debounceTimer);
@@ -24,7 +25,12 @@ function scheduleSave() {
 }
 
 export function initAutoSave(): () => void {
-  if (initialized) return () => {};
+  if (typeof window === "undefined") return () => {};
+
+  // HMR guard: clean up previous subscription before re-initializing
+  if (initialized && cleanupFn) {
+    cleanupFn();
+  }
   initialized = true;
 
   const unsubscribe = useStoryboardStore.subscribe((state, prevState) => {
@@ -32,9 +38,15 @@ export function initAutoSave(): () => void {
     scheduleSave();
   });
 
-  return () => {
+  cleanupFn = () => {
     unsubscribe();
-    if (debounceTimer) clearTimeout(debounceTimer);
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
     initialized = false;
+    cleanupFn = null;
   };
+
+  return cleanupFn;
 }

@@ -437,7 +437,12 @@ async def _stream_graph_events(
         yield f"data: {json.dumps(payload_interrupt, ensure_ascii=False)}\n\n"
 
 
-@router.post("/generate-stream")
+@router.post(
+    "/generate-stream",
+    responses={
+        200: {"content": {"text/event-stream": {"schema": {"type": "string"}}}, "description": "SSE stream of ScriptProgressEvent JSON objects"},
+    },
+)
 async def generate_script_stream(
     request: StoryboardRequest,
     db: Session = Depends(get_db),  # noqa: ARG001
@@ -472,9 +477,14 @@ def _resolve_feedback_preset(preset_id: str, params: dict[str, str] | None) -> s
     return feedback
 
 
-@router.post("/resume")
+@router.post(
+    "/resume",
+    responses={
+        200: {"content": {"text/event-stream": {"schema": {"type": "string"}}}, "description": "SSE stream of ScriptProgressEvent JSON objects"},
+    },
+)
 async def resume_script(request: ScriptResumeRequest):
-    """Human Gate / Concept Gate 재개 — thread_id로 interrupt된 그래프를 재개한다."""
+    """Human Gate / Concept Gate 재개 — thread_id로 interrupt된 그래프를 SSE로 재개한다."""
     logger.info("📝 [Script Resume] thread=%s, action=%s", request.thread_id, request.action)
     config = _build_config(request.thread_id, trace_id=request.trace_id)
 

@@ -58,6 +58,7 @@ export default function Tooltip({
   }, [isVisible, position]);
 
   const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       setIsVisible(true);
     }, delay);
@@ -66,8 +67,12 @@ export default function Tooltip({
   const handleMouseLeave = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
-    setIsVisible(false);
+    // Small hide delay to prevent flicker when moving between trigger and tooltip edges
+    timeoutRef.current = setTimeout(() => {
+      setIsVisible(false);
+    }, 100);
   };
 
   const handleFocus = () => {

@@ -123,7 +123,7 @@ const SceneListItem = forwardRef<HTMLDivElement, SceneListItemProps>(function Sc
       }}
       onDragEnd={() => setIsDragOver(false)}
       className={cx(
-        "group flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 transition-colors",
+        "group flex min-h-[44px] cursor-pointer items-center gap-2 rounded-lg px-2 py-2 transition-colors",
         isActive ? "border-l-2 border-purple-500 bg-white shadow-sm" : "hover:bg-white/60",
         isDragOver && "ring-2 ring-blue-400"
       )}

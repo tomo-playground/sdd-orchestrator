@@ -15,6 +15,14 @@ from pathlib import Path
 from config import logger
 from services.storage import get_storage
 
+# Pre-compiled regex for _expand_korean_numbers (avoid recompile per call)
+_KOREAN_COUNTERS = (
+    "천만원|백만원|만원|천원|백원|"
+    "원|개|명|번|살|층|년|월|일|시|분|초|권|장|편|곡|병|잔|통|벌|"
+    "만|억|조|kg|km|cm|mm|ml|g|%"
+)
+_KOREAN_NUMBER_RE = re.compile(rf"(\d+)({_KOREAN_COUNTERS})")
+
 
 def sanitize_filename(name: str, max_length: int = 40) -> str:
     """Sanitize name for use in filenames.
@@ -263,12 +271,6 @@ def _expand_korean_numbers(text: str) -> str:
     sino_units = ["", "십", "백", "천"]
     large_units = ["", "만", "억", "조"]
 
-    korean_counters = (
-        "천만원|백만원|만원|천원|백원|"
-        "원|개|명|번|살|층|년|월|일|시|분|초|권|장|편|곡|병|잔|통|벌|"
-        "만|억|조|kg|km|cm|mm|ml|g|%"
-    )
-
     def _num_to_sino(n: int) -> str:
         if n == 0:
             return "영"
@@ -296,4 +298,4 @@ def _expand_korean_numbers(text: str) -> str:
         except (ValueError, OverflowError):
             return m.group(0)
 
-    return re.sub(rf"(\d+)({korean_counters})", _replace, text)
+    return _KOREAN_NUMBER_RE.sub(_replace, text)

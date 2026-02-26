@@ -39,10 +39,15 @@ def _get_normalize_prompt_tokens():
 # --- DB-driven tag filters (re-exported from db_cache for backward compat) ---
 from services.keywords.db_cache import TagFilterCache  # noqa: E402
 
-# Backward compatibility: expose as module-level constants
-# These will be empty until initialize() is called
-IGNORE_TOKENS = TagFilterCache.get_ignore_tokens()
-SKIP_TAGS = TagFilterCache.get_skip_tags()
+
+def get_ignore_tokens() -> frozenset[str]:
+    """Return current ignore tokens from TagFilterCache (live, not stale snapshot)."""
+    return TagFilterCache.get_ignore_tokens()
+
+
+def get_skip_tags() -> frozenset[str]:
+    """Return current skip tags from TagFilterCache (live, not stale snapshot)."""
+    return TagFilterCache.get_skip_tags()
 
 
 def normalize_prompt_token(token: str) -> str:

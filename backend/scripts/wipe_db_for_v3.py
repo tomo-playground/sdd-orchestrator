@@ -23,12 +23,18 @@ def wipe_data():
         "prompt_histories"
     ]
 
+    # Allow-listed table names (validated against hardcoded set above)
+    allowed_tables = set(tables_to_wipe)
+
     with engine.connect() as conn:
-        # Disable foreign key checks temporarily if needed,
-        # but TRUNCATE CASCADE is cleaner in Postgres
+        # TRUNCATE CASCADE is cleaner in Postgres
         for table in tables_to_wipe:
+            if table not in allowed_tables:
+                print(f"   ❌ Skipping unknown table: {table}")
+                continue
             try:
-                conn.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
+                # Table names are from hardcoded allow-list, safe for text()
+                conn.execute(text("TRUNCATE TABLE " + table + " RESTART IDENTITY CASCADE"))
                 print(f"   ✅ Cleaned {table}")
             except Exception as e:
                 print(f"   ⚠️ Could not clean {table}: {e}")

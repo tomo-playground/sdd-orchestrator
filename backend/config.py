@@ -189,6 +189,9 @@ CORS_ORIGINS: list[str] = [
     origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if origin.strip()
 ]
 
+SERVER_HOST = os.getenv("SERVER_HOST", "127.0.0.1")
+SERVER_PORT = int(os.getenv("SERVER_PORT", "8000"))
+
 API_PUBLIC_URL = os.getenv("API_PUBLIC_URL", "http://localhost:8000").rstrip("/")
 if API_PUBLIC_URL == "http://localhost:8000":
     logger.info("Using default API_PUBLIC_URL: %s", API_PUBLIC_URL)

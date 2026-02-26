@@ -139,8 +139,8 @@ export default function CharacterDetailPage() {
         </div>
       </div>
 
-      {/* Two-column layout */}
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+      {/* Two-column layout — responsive: stack on small, side-by-side on lg+ */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
         {/* Left: Preview panel */}
         <div className="space-y-3 lg:sticky lg:top-4 lg:self-start">
           <div

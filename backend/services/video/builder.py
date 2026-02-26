@@ -194,7 +194,7 @@ class VideoBuilder:
                 self._progress.error = str(exc)
                 self._progress.notify()
             logger.exception("Video Create Error")
-            raise exc
+            raise
         finally:
             self._cleanup()
 

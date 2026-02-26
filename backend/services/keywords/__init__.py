@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .core import IGNORE_TOKENS, SKIP_TAGS, normalize_prompt_token
+from .core import get_ignore_tokens, get_skip_tags, normalize_prompt_token
 from .db import (
     load_allowed_tags_from_db,
     load_known_keywords,
@@ -25,8 +25,8 @@ from .validation import (
 )
 
 __all__ = [
-    "IGNORE_TOKENS",
-    "SKIP_TAGS",
+    "get_ignore_tokens",
+    "get_skip_tags",
     "normalize_prompt_token",
     "load_tags_from_db",
     "load_allowed_tags_from_db",

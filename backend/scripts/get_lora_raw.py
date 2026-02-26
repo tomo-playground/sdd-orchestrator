@@ -25,11 +25,12 @@ def get_civitai_info():
             'mha_midoriya-10'
         ]
 
-        # Construct placeholders based on length
-        placeholders = ', '.join([f"'{name}'" for name in target_loras])
+        # Use parameterized query to avoid SQL injection
+        placeholders = ', '.join([f":p{i}" for i in range(len(target_loras))])
+        params = {f"p{i}": name for i, name in enumerate(target_loras)}
         query = text(f"SELECT name, civitai_id, civitai_url, trigger_words FROM loras WHERE name IN ({placeholders})")
 
-        result = conn.execute(query)
+        result = conn.execute(query, params)
 
         print("--- LoRA Civitai Info ---")
         for row in result:

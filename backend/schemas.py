@@ -42,16 +42,16 @@ class CharacterLoRA(BaseModel):
 
 
 class ProjectCreate(BaseModel):
-    name: str
-    description: str | None = None
-    handle: str | None = None
+    name: str = Field(max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
+    handle: str | None = Field(default=None, max_length=100)
     avatar_media_asset_id: int | None = None
 
 
 class ProjectUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    handle: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
+    handle: str | None = Field(default=None, max_length=100)
     avatar_media_asset_id: int | None = None
 
 
@@ -69,8 +69,8 @@ class ProjectResponse(BaseModel):
 
 
 class RenderPresetCreate(BaseModel):
-    name: str
-    description: str | None = None
+    name: str = Field(max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
     bgm_file: str | None = None
     bgm_volume: float | None = None
     audio_ducking: bool | None = None
@@ -86,8 +86,8 @@ class RenderPresetCreate(BaseModel):
 
 
 class RenderPresetUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
     bgm_file: str | None = None
     bgm_volume: float | None = None
     audio_ducking: bool | None = None
@@ -126,8 +126,8 @@ class RenderPresetResponse(BaseModel):
 
 class GroupCreate(BaseModel):
     project_id: int
-    name: str
-    description: str | None = None
+    name: str = Field(max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
     # Config fields applied to auto-created GroupConfig
     render_preset_id: int | None = None
     style_profile_id: int | None = None
@@ -135,8 +135,8 @@ class GroupCreate(BaseModel):
 
 
 class GroupUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
 
 
 class GroupResponse(BaseModel):
@@ -152,10 +152,10 @@ class GroupResponse(BaseModel):
 class ChannelDNA(BaseModel):
     """Channel identity: tone, audience, worldview, guidelines."""
 
-    tone: str | None = None
-    target_audience: str | None = None
-    worldview: str | None = None
-    guidelines: str | None = None
+    tone: str | None = Field(default=None, max_length=500)
+    target_audience: str | None = Field(default=None, max_length=500)
+    worldview: str | None = Field(default=None, max_length=2000)
+    guidelines: str | None = Field(default=None, max_length=2000)
 
 
 class GroupConfigUpdate(BaseModel):
@@ -243,9 +243,9 @@ class StoryboardSaveResponse(BaseModel):
 
 
 class StoryboardUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    caption: str | None = None
+    title: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    caption: str | None = Field(default=None, max_length=2000)
     version: int | None = None  # Optimistic locking: current version from client
 
 
@@ -537,7 +537,7 @@ class VideoRequest(BaseModel):
     project_id: int | None = None
     group_id: int | None = None
     storyboard_id: int | None = None
-    storyboard_title: str = "my_shorts"
+    storyboard_title: str = Field(default="my_shorts", max_length=200)
     bgm_file: str | None = None
     width: int = 1080
     height: int = 1920
@@ -803,10 +803,10 @@ class SDModelRequest(BaseModel):
 
 
 class TagBase(BaseModel):
-    name: str
-    ko_name: str | None = None
-    category: str | None = None
-    group_name: str | None = None
+    name: str = Field(max_length=100)
+    ko_name: str | None = Field(default=None, max_length=100)
+    category: str | None = Field(default=None, max_length=50)
+    group_name: str | None = Field(default=None, max_length=50)
     priority: int = 100
     default_layer: int = 0
     usage_scope: str = "ANY"
@@ -824,8 +824,8 @@ class TagCreate(TagBase):
 
 
 class TagUpdate(BaseModel):
-    name: str | None = None
-    ko_name: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    ko_name: str | None = Field(default=None, max_length=100)
     default_layer: int | None = None
     usage_scope: str | None = None
 
@@ -844,8 +844,8 @@ class TagSearchResponse(TagResponse):
 
 
 class LoRABase(BaseModel):
-    name: str
-    display_name: str | None = None
+    name: str = Field(max_length=200)
+    display_name: str | None = Field(default=None, max_length=200)
     lora_type: str | None = None  # character, style, pose
     base_model: str | None = None  # SD1.5, SDXL, etc.
     trigger_words: list[str] | None = None
@@ -869,8 +869,8 @@ class LoRACreate(LoRABase):
 
 
 class LoRAUpdate(BaseModel):
-    name: str | None = None
-    display_name: str | None = None
+    name: str | None = Field(default=None, max_length=200)
+    display_name: str | None = Field(default=None, max_length=200)
     lora_type: str | None = None
     base_model: str | None = None  # SD1.5, SDXL, etc.
     trigger_words: list[str] | None = None
@@ -904,16 +904,16 @@ class CharacterTagLink(BaseModel):
 
 
 class CharacterBase(BaseModel):
-    name: str
-    description: str | None = None
+    name: str = Field(max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
     gender: str | None = None
     style_profile_id: int | None = None
     loras: list[CharacterLoRA] | None = None
     recommended_negative: list[str] | None = None
-    custom_base_prompt: str | None = None
-    custom_negative_prompt: str | None = None
-    reference_base_prompt: str | None = None
-    reference_negative_prompt: str | None = None
+    custom_base_prompt: str | None = Field(default=None, max_length=10000)
+    custom_negative_prompt: str | None = Field(default=None, max_length=10000)
+    reference_base_prompt: str | None = Field(default=None, max_length=10000)
+    reference_negative_prompt: str | None = Field(default=None, max_length=10000)
     # preview_image_url removed - now read-only @property via preview_image_asset
     # CharacterResponse gets it automatically via from_attributes=True from ORM model
     prompt_mode: PromptMode = "auto"
@@ -936,16 +936,16 @@ class CharacterCreate(CharacterBase):
 
 
 class CharacterUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
     gender: str | None = None
     style_profile_id: int | None = None
     loras: list[CharacterLoRA] | None = None
     recommended_negative: list[str] | None = None
-    custom_base_prompt: str | None = None
-    custom_negative_prompt: str | None = None
-    reference_base_prompt: str | None = None
-    reference_negative_prompt: str | None = None
+    custom_base_prompt: str | None = Field(default=None, max_length=10000)
+    custom_negative_prompt: str | None = Field(default=None, max_length=10000)
+    reference_base_prompt: str | None = Field(default=None, max_length=10000)
+    reference_negative_prompt: str | None = Field(default=None, max_length=10000)
     # preview_image_url removed - now read-only @property via preview_image_asset
     prompt_mode: PromptMode | None = None
     ip_adapter_weight: float | None = None
@@ -1115,9 +1115,9 @@ class LoRAWeight(BaseModel):
 
 
 class StyleProfileBase(BaseModel):
-    name: str
-    display_name: str | None = None
-    description: str | None = None
+    name: str = Field(max_length=100)
+    display_name: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
     sd_model_id: int | None = None
     loras: list[LoRAWeight] | None = None
     negative_embeddings: list[int] | None = None
@@ -1138,9 +1138,9 @@ class StyleProfileCreate(StyleProfileBase):
 
 
 class StyleProfileUpdate(BaseModel):
-    name: str | None = None
-    display_name: str | None = None
-    description: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    display_name: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
     sd_model_id: int | None = None
     loras: list[LoRAWeight] | None = None
     negative_embeddings: list[int] | None = None
@@ -1348,19 +1348,19 @@ class PromptHistoryApplyResponse(BaseModel):
 
 
 class VoicePresetCreate(BaseModel):
-    name: str
-    description: str | None = None
+    name: str = Field(max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
     source_type: str = "generated"
-    voice_design_prompt: str | None = None
+    voice_design_prompt: str | None = Field(default=None, max_length=5000)
     voice_seed: int | None = None
     language: str = "korean"
     sample_text: str | None = None
 
 
 class VoicePresetUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    voice_design_prompt: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
+    voice_design_prompt: str | None = Field(default=None, max_length=5000)
 
 
 class VoicePreviewRequest(BaseModel):
@@ -1391,17 +1391,17 @@ class VoicePresetResponse(BaseModel):
 
 
 class MusicPresetCreate(BaseModel):
-    name: str
-    description: str | None = None
-    prompt: str | None = None
+    name: str = Field(max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
+    prompt: str | None = Field(default=None, max_length=5000)
     duration: float = 30.0
     seed: int | None = None
 
 
 class MusicPresetUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    prompt: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
+    prompt: str | None = Field(default=None, max_length=5000)
     duration: float | None = None
     seed: int | None = None
 
@@ -1578,7 +1578,7 @@ class SceneEditImageResponse(BaseModel):
 class TextExtractRequest(BaseModel):
     """Request body for caption/hashtag extraction endpoints."""
 
-    text: str
+    text: str = Field(max_length=5000)
 
 
 class CaptionExtractResponse(BaseModel):

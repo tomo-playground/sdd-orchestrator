@@ -64,7 +64,7 @@ export default function PublishTab() {
         includeSceneText={store.includeSceneText}
         setIncludeSceneText={(v) => setOutput({ includeSceneText: v })}
         sceneTextFont={store.sceneTextFont}
-        setSubtitleFont={(v) => setOutput({ sceneTextFont: v })}
+        setSceneTextFont={(v) => setOutput({ sceneTextFont: v })}
         fontList={store.fontList}
         loadedFonts={store.loadedFonts}
         kenBurnsPreset={store.kenBurnsPreset}

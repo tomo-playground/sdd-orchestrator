@@ -195,9 +195,10 @@ class TagRuleCache:
 
 
 class LoRATriggerCache:
-    """In-memory cache for mapping trigger words to LoRA names."""
+    """In-memory cache for mapping trigger words to LoRA names and types."""
 
     _cache: dict[str, str] = {}
+    _name_to_type: dict[str, str] = {}
     _initialized = False
 
     @classmethod
@@ -213,6 +214,9 @@ class LoRATriggerCache:
 
             count = 0
             for lora in loras:
+                # Build name -> lora_type mapping
+                if lora.lora_type:
+                    cls._name_to_type[lora.name] = lora.lora_type
                 if not lora.trigger_words:
                     continue
                 for trigger in lora.trigger_words:
@@ -233,9 +237,15 @@ class LoRATriggerCache:
         return cls._cache.get(normalized)
 
     @classmethod
+    def get_lora_type(cls, lora_name: str) -> str | None:
+        """Get LoRA type (character, style, pose, etc.) by LoRA name."""
+        return cls._name_to_type.get(lora_name)
+
+    @classmethod
     def refresh(cls, db: Session):
         cls._initialized = False
         cls._cache.clear()
+        cls._name_to_type.clear()
         cls.initialize(db)
 
 

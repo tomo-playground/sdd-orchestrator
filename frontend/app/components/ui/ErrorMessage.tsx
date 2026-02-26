@@ -7,6 +7,8 @@ type ErrorMessageProps = {
   message: string;
   className?: string;
   onRetry?: () => void;
+  /** When false, hides the retry/reload button. Defaults to true for backward compat. */
+  isRetryable?: boolean;
 };
 
 export default function ErrorMessage({
@@ -14,8 +16,11 @@ export default function ErrorMessage({
   message,
   onRetry,
   className = "",
+  isRetryable = true,
 }: ErrorMessageProps) {
   if (!message) return null;
+
+  const showRetry = isRetryable && (message.includes("Network") || onRetry);
 
   return (
     <div
@@ -25,7 +30,7 @@ export default function ErrorMessage({
       <div className="flex-1">
         <h4 className={`font-semibold ${ERROR_TEXT}`}>{title}</h4>
         <p className={`mt-1 ${ERROR_TEXT} opacity-90`}>{message}</p>
-        {(message.includes("Network") || onRetry) && (
+        {showRetry && (
           <div className="mt-2">
             <button
               onClick={onRetry || (() => window.location.reload())}

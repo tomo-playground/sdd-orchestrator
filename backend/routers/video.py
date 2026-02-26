@@ -137,8 +137,19 @@ async def _run_video_build(task_id: str, request: VideoRequest) -> None:
             task.notify()
 
 
-@router.get("/progress/{task_id}")
+@router.get(
+    "/progress/{task_id}",
+    responses={
+        200: {"content": {"text/event-stream": {"schema": {"type": "string"}}}, "description": "SSE stream of RenderProgressEvent JSON objects"},
+        404: {"description": "Task not found"},
+    },
+)
 async def stream_progress(task_id: str):
+    """Stream video render progress via Server-Sent Events (SSE).
+
+    Returns a stream of `data: {RenderProgressEvent}` messages until
+    the task reaches COMPLETED or FAILED stage.
+    """
     task = get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")

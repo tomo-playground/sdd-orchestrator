@@ -470,7 +470,9 @@ export type DraftData = {
   bgmFile?: string | null;
   audioDucking?: boolean;
   bgmVolume?: number;
+  /** @deprecated Use sceneTextFont instead (CLAUDE.md naming migration) */
   subtitleFont?: string;
+  sceneTextFont?: string;
   speedMultiplier?: number;
   ttsEngine?: "qwen";
   voiceDesignPrompt?: string;

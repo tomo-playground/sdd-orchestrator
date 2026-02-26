@@ -137,7 +137,7 @@ app.add_middleware(
 
 # --- Static Files ---
 os.makedirs("outputs", exist_ok=True)
-app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
+app.mount("/outputs", StaticFiles(directory="outputs", html=False), name="outputs")
 
 
 # --- Health Check ---
@@ -180,4 +180,6 @@ app.include_router(youtube_router)
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    from config import SERVER_HOST, SERVER_PORT
+
+    uvicorn.run(app, host=SERVER_HOST, port=SERVER_PORT)

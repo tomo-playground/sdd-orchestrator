@@ -1,6 +1,6 @@
 """Prompt History model for V3 Schema."""
 
-from sqlalchemy import Boolean, Float, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, Float, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,7 +24,7 @@ class PromptHistory(Base, TimestampMixin, SoftDeleteMixin):
     steps: Mapped[int] = mapped_column(Integer, default=20)
     cfg_scale: Mapped[float] = mapped_column(Float, default=7.0)
     sampler_name: Mapped[str | None] = mapped_column(String(50))
-    seed: Mapped[int | None] = mapped_column(Integer)
+    seed: Mapped[int | None] = mapped_column(BigInteger)
     clip_skip: Mapped[int] = mapped_column(Integer, default=2)
 
     # Bundles

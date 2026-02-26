@@ -643,9 +643,19 @@ async def cancel_image_gen(task_id: str):
     return SceneCancelResponse(ok=True)
 
 
-@router.get("/scene/progress/{task_id}")
+@router.get(
+    "/scene/progress/{task_id}",
+    responses={
+        200: {"content": {"text/event-stream": {"schema": {"type": "string"}}}, "description": "SSE stream of ImageProgressEvent JSON objects"},
+        404: {"description": "Task not found"},
+    },
+)
 async def stream_image_progress(task_id: str):
-    """SSE stream for image generation progress."""
+    """Stream image generation progress via Server-Sent Events (SSE).
+
+    Returns a stream of `data: {ImageProgressEvent}` messages until
+    the task reaches COMPLETED or FAILED stage.
+    """
     task = get_image_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")

@@ -191,14 +191,14 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
         <div className="flex justify-end gap-3 border-t border-zinc-200 px-6 py-4 dark:border-zinc-700">
           <button
             onClick={onClose}
-            className="rounded-lg px-4 py-2 text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            className="rounded-full px-4 py-2 text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700"
           >
             취소
           </button>
           <button
             onClick={handleRun}
             disabled={!preflight.canRun || !hasStepsToRun}
-            className={`flex items-center gap-2 rounded-lg px-6 py-2 font-medium transition-colors ${
+            className={`flex items-center gap-2 rounded-full px-6 py-2 font-medium transition-colors ${
               preflight.canRun && hasStepsToRun
                 ? "bg-blue-600 text-white hover:bg-blue-700"
                 : "cursor-not-allowed bg-zinc-300 text-zinc-500 dark:bg-zinc-600"

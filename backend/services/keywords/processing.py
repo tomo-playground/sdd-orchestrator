@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from .core import (
-    IGNORE_TOKENS,
     _get_logger,
     _get_normalize_prompt_tokens,
     _get_split_prompt_tokens,
+    get_ignore_tokens,
     normalize_prompt_token,
 )
 
@@ -108,7 +108,7 @@ def filter_prompt_tokens(prompt: str) -> str:
 
     for token in tokens:
         normalized = normalize_prompt_token(token)
-        if not normalized or normalized in IGNORE_TOKENS or normalized in seen:
+        if not normalized or normalized in get_ignore_tokens() or normalized in seen:
             continue
 
         # 1. Check for Aliases first (Always apply replacements if defined)

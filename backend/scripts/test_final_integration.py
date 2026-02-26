@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -7,8 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from services.prompt.prompt_validation import auto_replace_risky_tags
 
 from database import SessionLocal
-from services.keywords.core import TagFilterCache
-from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagRuleCache
+from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagFilterCache, TagRuleCache
 
 
 def test_final_integration():
@@ -31,11 +29,11 @@ def test_final_integration():
         print(f"Removed: {result['removed']}")
 
         # Verify specific expectations (from DB population)
-        assert "cowboy_shot" in result['replaced']  # medium shot replacement
+        assert "cowboy_shot" in result["replaced"]  # medium shot replacement
         # Handle composite replacement "short_hair, green_hair"
-        assert any("short_hair" in r for r in result['replaced'])
-        assert any("green_hair" in r for r in result['replaced'])
-        assert "unreal engine" not in result['replaced'] # removed
+        assert any("short_hair" in r for r in result["replaced"])
+        assert any("green_hair" in r for r in result["replaced"])
+        assert "unreal engine" not in result["replaced"]  # removed
         print("✅ Tag Alias test passed!")
 
         # 3. Test Tag-Pair Conflicts (Cache Verification)
@@ -68,10 +66,12 @@ def test_final_integration():
     except Exception as e:
         print(f"\n❌ Integration tests failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     test_final_integration()
