@@ -19,11 +19,16 @@
 | **Phase 15 (Prompt Input UX 고도화)** | **전체 완료 — A-0~A-3 + B-1~B-3 (18/18)** |
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
 | **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
-| **Cross Audit P2** | **완료 — 보안 7건+품질 27건+접근성 5건 = 39건** |
+| **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
+| **Phase 18 (Stage Workflow)** | **기능 명세 작성 완료, 미착수** |
 | 테스트 | Backend 2,667 + Frontend 379 = **총 3,046개** |
 
 ### 최근 작업
 
+- **Stage Workflow 기능 명세** (02-26): Script→Stage→Direct→Publish 4단계 워크플로우 설계. location별 no_humans 배경 이미지를 Stage에서 미리 생성하여 Canny ControlNet 참조 시 캐릭터 윤곽선 간섭 근본 해결. 6개 에이전트 크로스 리뷰(PM/Frontend/Backend/UIUX/Prompt/FFmpeg). [명세](FEATURES/STAGE_WORKFLOW.md)
+- **TTS 싱크 + 음성 일관성 수정** (02-26): 3건 FFmpeg 필터 버그(xfade offset 미감산, total_dur 이중 감산, audio clip_dur 불필요 패딩) → 10씬 영상에서 ~3초 누적 디싱크 해소. Gemini 음성 재생성 → preset_base+emotion suffix 방식으로 씬 간 동일 캐릭터 음성 일관성 보장
+- **overlay footer 간격 + 핀 참조 표시 수정** (02-26): footer_top 0.80→0.88으로 scene text 겹침 방지. SceneActionBar pinnedSceneOrder 0-based→1-based 표시 수정
+- **7-Agent Cross Audit P3** (02-26): 21건 수정. prompt_histories.seed BigInteger 마이그레이션, voice TTS 방어 로직, pyproject.toml 의존성 등. 32파일 +312/-132줄
 - **7-Agent Cross Audit P2** (02-26): 39건 수정. Security(SSRF/Path Traversal/CORS/CSRF/SQL Injection/base64 제한/debug 노출 7건), Backend(RuntimeSettings/datetime UTC/중복 코드/admin 207 9건), Prompt(POSE_MAPPING 50개/12-Layer clothing/StyleProfile 5건), FFmpeg(anullsrc 무한스트림/Image.close 4건), DBA(CHECK 제약/FK 인덱스/soft-delete 3건), Frontend(ARIA/Skeleton/lang ko/스토어 리셋 11건). 55파일 +818/-279줄. 2,667 passed
 - **7-Agent Cross Audit P0+P1** (02-26): 7개 에이전트 통합 점검 123건 발견 → P0 14건+P1 32건 일괄 수정. xfade 오프셋 3+씬 누적 오류, cost_usd null crash, falsy 값 손실, soft delete 누락, N+1 쿼리, POSE_MAPPING 언더스코어 통일, TagFilterCache 통합, ARIA 접근성, buildScenesPayload 중복 제거 등. 48파일 +1,104/-591줄. 2,667 passed
 - **Express 모드 ControlNet 자동 활성화** (02-26): Cinematographer 스킵 시 `controlnet_pose` 미할당→ControlNet OFF 문제 수정. `_auto_populate_scene_flags()`에서 `context_tags.pose` → `controlnet_pose` 자동 파생 + POSE_MAPPING 검증 + DEFAULT_POSE_TAG fallback. 15개 테스트 (기존 9→15)
@@ -115,6 +120,7 @@ graph LR
     P14 --> P15["Phase 15<br/>Prompt Input<br/>UX 고도화"]
     P15 --> P16["Phase 16<br/>WD14 Smart<br/>Validation"]
     P16 --> P17["Phase 17<br/>Service/Admin<br/>분리"]
+    P17 --> P18["Phase 18<br/>Stage<br/>Workflow"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -137,6 +143,7 @@ graph LR
     style P15 fill:#4CAF50,color:#fff
     style P16 fill:#4CAF50,color:#fff
     style P17 fill:#FF9800,color:#fff
+    style P18 fill:#E0E0E0,color:#333
 ```
 
 ---
@@ -249,6 +256,48 @@ graph LR
 
 ---
 
+## Phase 18: Stage Workflow (프리프로덕션)
+
+**목표**: Script → **Stage** → Direct → Publish 4단계 워크플로우. Stage에서 location별 순수 배경(no_humans) 이미지를 미리 생성하여 Canny ControlNet 참조 시 캐릭터 윤곽선 간섭을 근본적으로 해결. [상세 명세](FEATURES/STAGE_WORKFLOW.md)
+
+### Phase 18-0: Location Model + DB (미착수)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | `backgrounds` 테이블에 `storyboard_id` FK + `location_key` 추가 | 미착수 |
+| 2 | `storyboards` 테이블에 `stage_status` 추가 | 미착수 |
+| 3 | WriterPlan.locations 타입 강화 (`list[dict]` → `list[LocationPlan]`) | 미착수 |
+
+### Phase 18-1: Background Generation Pipeline (미착수)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | `compose_for_background()` — 5-Layer Background Template | 미착수 |
+| 2 | `services/stage/background_generator.py` — 배경 이미지 배치 생성 | 미착수 |
+| 3 | `routers/stage.py` — Stage API (generate/status/assign/regenerate) | 미착수 |
+| 4 | `_apply_environment()` no_humans 스킵 로직 조건 수정 | 미착수 |
+| 5 | `calculate_auto_pin_flags()` — background_id 존재 시 auto_pin 비활성화 | 미착수 |
+
+### Phase 18-2: Stage UI (미착수)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | 4탭 전환 (Script → Stage → Direct → Publish) + edit→direct 리네이밍 | 미착수 |
+| 2 | StageTab 3-Column 레이아웃 (씬 트리 / 에셋 카드 / 상세 편집) | 미착수 |
+| 3 | Location 카드 (배경 이미지 + 태그 편집 + 재생성 + 씬 매핑) | 미착수 |
+| 4 | Readiness Gate 대시보드 + [Auto-Setup Missing] | 미착수 |
+| 5 | PipelineStatusDots Stage 단계 추가 | 미착수 |
+
+### Phase 18-3: Stage-Direct 연결 (미착수)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | Stage 승인 → Scene.background_id 자동 매핑 | 미착수 |
+| 2 | MaterialsPopover → Stage 탭 연결 전환 | 미착수 |
+| 3 | Script 완료 → Stage 자동 전환 + Opt-in (Express 건너뜀) | 미착수 |
+
+---
+
 ## Feature Backlog
 
 Phase 9 이후 또는 우선순위 미정 항목.
@@ -257,6 +306,8 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 | 기능 | 참조 |
 |------|------|
+| Stage Phase 2: TTS 미리듣기 + 에셋 의존성 표시 + 배경 캐싱 | [명세](FEATURES/STAGE_WORKFLOW.md) §Phase 2 |
+| Stage Phase 3: 트랜지션 자동 선택 + Ken Burns 교대 + Canny/Depth 자동 선택 | [명세](FEATURES/STAGE_WORKFLOW.md) §Phase 3 |
 | VEO Clip (Video Generation 통합) | [명세](FEATURES/VEO_CLIP.md) |
 | ~~Visual Tag Browser (태그별 예시 이미지)~~ | → Phase 15-B |
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
@@ -295,14 +346,23 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 **Phase 15 — Prompt Input UX 고도화 (전체 완료, 18/18)**
 
-**Phase 17 — Service/Admin 분리 (다음)**
+**Phase 17 — Service/Admin 분리 (진행 중)**
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
 | ~~1~~ | ~~17-0: API 정리 (34→29개)~~ | ✅ 완료 (02-25) |
 | 1 | 17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`) | 유저/관리자 API 분리 |
-| 3 | 17-2: Frontend Route Group 분리 (`/` + `/admin`) | 유저/관리자 UI 분리 |
-| 4 | 17-3: 유저 UI 간소화 (Advanced 토글, Quick Render, Tooltip) | 유저 경험 최적화 |
+| 2 | 17-2: Frontend Route Group 분리 (`/` + `/admin`) | 유저/관리자 UI 분리 |
+| 3 | 17-3: 유저 UI 간소화 (Advanced 토글, Quick Render, Tooltip) | 유저 경험 최적화 |
+
+**Phase 18 — Stage Workflow (다음)**
+
+| 순위 | 작업 | 근거 |
+|------|------|------|
+| 1 | 18-0: Location Model + DB | Stage의 DB 기반 |
+| 2 | 18-1: Background Generation Pipeline | 핵심 가치 — 복장 불일치 근본 해결 |
+| 3 | 18-2: Stage UI | 4단계 워크플로우 + 에셋 관리 |
+| 4 | 18-3: Stage-Direct 연결 | 자동 매핑 + Opt-in |
 
 **Tier 3 — 장기**
 
