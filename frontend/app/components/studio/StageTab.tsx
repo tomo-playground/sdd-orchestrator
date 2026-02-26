@@ -58,11 +58,9 @@ export default function StageTab() {
     setIsGenerating(true);
     useStoryboardStore.getState().set({ stageStatus: "staging" });
     try {
-      await axios.post(
-        `${API_BASE}/storyboards/${storyboardId}/stage/generate-backgrounds`,
-        null,
-        { timeout: API_TIMEOUT.STAGE_GENERATE }
-      );
+      await axios.post(`${API_BASE}/storyboards/${storyboardId}/stage/generate-backgrounds`, null, {
+        timeout: API_TIMEOUT.STAGE_GENERATE,
+      });
       showToast("Background generation complete", "success");
       await fetchStatus();
     } catch (error) {
@@ -95,7 +93,8 @@ export default function StageTab() {
     }
   };
 
-  const handleAssign = async () => {
+  /** Assign backgrounds to scenes. If navigateToDirect, proceed to Direct tab after. */
+  const doAssign = async (opts?: { navigateToDirect?: boolean }) => {
     if (!storyboardId) return;
     setIsAssigning(true);
     try {
@@ -105,10 +104,16 @@ export default function StageTab() {
         { timeout: API_TIMEOUT.DEFAULT }
       );
       const count = res.data.assignments?.length ?? 0;
-      showToast(`${count} scenes assigned to backgrounds`, "success");
+      if (count > 0) {
+        showToast(`${count} scenes assigned to backgrounds`, "success");
+      }
       await fetchStatus();
+      if (opts?.navigateToDirect) {
+        setActiveTab("direct");
+      }
     } catch (error) {
-      showToast(getErrorMsg(error, "Assignment failed"), "error");
+      const suffix = opts?.navigateToDirect ? " — please retry" : "";
+      showToast(getErrorMsg(error, `Assignment failed${suffix}`), "error");
     } finally {
       setIsAssigning(false);
     }
@@ -153,7 +158,7 @@ export default function StageTab() {
             <Button
               size="sm"
               variant="outline"
-              onClick={handleAssign}
+              onClick={() => doAssign()}
               loading={isAssigning}
               disabled={isAssigning}
             >
@@ -191,7 +196,12 @@ export default function StageTab() {
           </div>
           {allReady && (
             <div className="mt-3 flex justify-end">
-              <Button size="sm" onClick={() => setActiveTab("direct")}>
+              <Button
+                size="sm"
+                onClick={() => doAssign({ navigateToDirect: true })}
+                loading={isAssigning}
+                disabled={isAssigning}
+              >
                 Continue to Direct
                 <ArrowRight className="ml-1 h-3.5 w-3.5" />
               </Button>

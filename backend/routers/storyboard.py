@@ -144,13 +144,22 @@ def check_materials(storyboard_id: int, db: Session = Depends(get_db)):
                 rp = config.render_preset
                 music_ready = bool(rp.music_preset_id) or bool(rp.bgm_file)
 
+    # Background: if staging started, only ready when "staged"
+    stage = sb.stage_status
+    if stage and stage not in ("pending",):
+        bg_ready = stage == "staged"
+        bg_detail = "Staged" if bg_ready else f"Stage: {stage}"
+    else:
+        bg_ready = True
+        bg_detail = "Optional"
+
     return MaterialsCheckResponse(
         storyboard_id=storyboard_id,
         script=VerticalStatus(ready=scene_count > 0, count=scene_count),
         characters=VerticalStatus(ready=char_count > 0, count=char_count),
         voice=VerticalStatus(ready=voice_ready),
         music=VerticalStatus(ready=music_ready),
-        background=VerticalStatus(ready=True, detail="Optional"),
+        background=VerticalStatus(ready=bg_ready, detail=bg_detail),
     )
 
 

@@ -20,11 +20,13 @@
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
 | **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
-| **Phase 18 (Stage Workflow)** | **18-0~18-1 완료, 18-2 미착수** |
+| **Phase 18 (Stage Workflow)** | **전체 완료 — 18-0~18-3 (15/15)** |
 | 테스트 | Backend 2,667 + Frontend 379 = **총 3,046개** |
 
 ### 최근 작업
 
+- **Phase 18-3: Stage-Direct 연결** (02-26): "Continue to Direct" 클릭 시 `assign-backgrounds` API 자동 호출 + Direct 탭 전환. MaterialsPopover BG 클릭 → Stage 탭 이동. Script 완료 시 Express→Direct 직행, Standard/Creator→Stage 자동 전환. PipelineStatusDots "failed" 빨간 도트 + 툴팁. Materials API/fallback에 stage_status 반영
+- **Phase 18-2: Stage UI** (02-26): Script→Stage→Direct→Publish 4탭 전환. StudioTab "edit"→"direct" 리네이밍(7개 파일). StageTab 컴포넌트(Location 카드 그리드, Readiness 바, Generate/Assign/Regenerate API). PipelineStatusDots "stage" 스텝 추가. stageStatus 필드(TRANSIENT). StageLocationStatus/StageStatusResponse 타입. API timeout+getErrorMsg 적용
 - **Phase 18-1: Background Generation Pipeline** (02-26): `compose_for_background()` 5-Layer Template(Quality→Subject/no_humans→Camera/wide_shot→Environment→Atmosphere/LoRA). `background_generator.py` — scenes의 environment tags에서 location 역추론, SD WebUI로 배경 생성, AssetService 저장. Stage API 4EP(`generate-backgrounds`, `status`, `assign-backgrounds`, `regenerate-background`). `calculate_auto_pin_flags()` background_id 존재 시 auto_pin 비활성화. 7개 Stage 스키마 + REST API 문서 업데이트
 - **Phase 18-0: Location Model + DB** (02-26): backgrounds에 `storyboard_id` FK(CASCADE) + `location_key` + partial unique index 추가. storyboards에 `stage_status` 추가. `get_loc_field()` 이중 접근 헬퍼로 LangGraph 체크포인트 역직렬화 방어. serialize_scene background_id 누락 버그 수정. Soft delete/restore/permanent delete Background cascade 구현. list_backgrounds storyboard_id 필터 추가. 2,667 passed
 - **Stage Workflow 기능 명세** (02-26): Script→Stage→Direct→Publish 4단계 워크플로우 설계. location별 no_humans 배경 이미지를 Stage에서 미리 생성하여 Canny ControlNet 참조 시 캐릭터 윤곽선 간섭 근본 해결. 6개 에이전트 크로스 리뷰(PM/Frontend/Backend/UIUX/Prompt/FFmpeg). [명세](FEATURES/STAGE_WORKFLOW.md)
@@ -280,23 +282,23 @@ graph LR
 | 4 | `_apply_environment()` no_humans 스킵 조건 — 기존 로직으로 충분 (변경 불필요) | ✅ (02-26) |
 | 5 | `calculate_auto_pin_flags()` — background_id 존재 시 auto_pin 비활성화 | ✅ (02-26) |
 
-### Phase 18-2: Stage UI (미착수)
+### Phase 18-2: Stage UI (완료 02-26)
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | 4탭 전환 (Script → Stage → Direct → Publish) + edit→direct 리네이밍 | 미착수 |
-| 2 | StageTab 3-Column 레이아웃 (씬 트리 / 에셋 카드 / 상세 편집) | 미착수 |
-| 3 | Location 카드 (배경 이미지 + 태그 편집 + 재생성 + 씬 매핑) | 미착수 |
-| 4 | Readiness Gate 대시보드 + [Auto-Setup Missing] | 미착수 |
-| 5 | PipelineStatusDots Stage 단계 추가 | 미착수 |
+| 1 | 4탭 전환 (Script → Stage → Direct → Publish) + edit→direct 리네이밍 | ✅ (02-26) |
+| 2 | StageTab 레이아웃 (Location 카드 그리드 + Readiness 바) | ✅ (02-26) |
+| 3 | Location 카드 (배경 이미지 + 태그 표시 + 재생성 + 씬 매핑) | ✅ (02-26) |
+| 4 | Readiness Gate 대시보드 (ready/total 진행률 + Continue to Direct) | ✅ (02-26) |
+| 5 | PipelineStatusDots Stage 단계 추가 | ✅ (02-26) |
 
-### Phase 18-3: Stage-Direct 연결 (미착수)
+### Phase 18-3: Stage-Direct 연결 (완료 02-26)
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | Stage 승인 → Scene.background_id 자동 매핑 | 미착수 |
-| 2 | MaterialsPopover → Stage 탭 연결 전환 | 미착수 |
-| 3 | Script 완료 → Stage 자동 전환 + Opt-in (Express 건너뜀) | 미착수 |
+| 1 | Stage 승인 → Scene.background_id 자동 매핑 | ✅ (02-26) |
+| 2 | MaterialsPopover → Stage 탭 연결 전환 | ✅ (02-26) |
+| 3 | Script 완료 → Stage 자동 전환 + Opt-in (Express 건너뜀) | ✅ (02-26) |
 
 ---
 
@@ -348,16 +350,16 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 **Phase 15 — Prompt Input UX 고도화 (전체 완료, 18/18)**
 
-**Phase 18 — Stage Workflow (최우선)**
+**Phase 18 — Stage Workflow (전체 완료)**
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
-| 1 | 18-0: Location Model + DB | Stage의 DB 기반 |
-| 2 | 18-1: Background Generation Pipeline | 핵심 가치 — 복장 불일치 근본 해결 |
-| 3 | 18-2: Stage UI | 4단계 워크플로우 + 에셋 관리 |
-| 4 | 18-3: Stage-Direct 연결 | 자동 매핑 + Opt-in |
+| ~~1~~ | ~~18-0: Location Model + DB~~ | ✅ 완료 (02-26) |
+| ~~2~~ | ~~18-1: Background Generation Pipeline~~ | ✅ 완료 (02-26) |
+| ~~3~~ | ~~18-2: Stage UI~~ | ✅ 완료 (02-26) |
+| ~~4~~ | ~~18-3: Stage-Direct 연결~~ | ✅ 완료 (02-26) |
 
-**Phase 17 — Service/Admin 분리 (후순위)**
+**Phase 17 — Service/Admin 분리 (다음)**
 
 | 순위 | 작업 | 근거 |
 |------|------|------|

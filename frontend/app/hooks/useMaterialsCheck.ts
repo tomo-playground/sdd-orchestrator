@@ -26,6 +26,7 @@ export function useMaterialsCheck(storyboardId: number | null) {
   // Local store subscriptions for client-side fallback
   const scenes = useStoryboardStore((s) => s.scenes);
   const characterId = useStoryboardStore((s) => s.selectedCharacterId);
+  const stageStatus = useStoryboardStore((s) => s.stageStatus);
   const voicePresetId = useRenderStore((s) => s.voicePresetId);
   const bgmFile = useRenderStore((s) => s.bgmFile);
   const musicPresetId = useRenderStore((s) => s.musicPresetId);
@@ -49,15 +50,18 @@ export function useMaterialsCheck(storyboardId: number | null) {
   // Merge: API 우선, 없으면 로컬 fallback
   const data: MaterialsData | null = useMemo(() => {
     if (apiData) return apiData;
+    // Background ready: if Stage not started (null/pending) → optional (true),
+    // if staging started → only ready when "staged"
+    const bgReady = !stageStatus || stageStatus === "pending" || stageStatus === "staged";
     return {
       storyboard_id: 0,
       script: { ready: scenes.length > 0, count: scenes.length },
       characters: { ready: characterId !== null },
       voice: { ready: voicePresetId !== null },
       music: { ready: bgmFile !== null || musicPresetId !== null },
-      background: { ready: true, detail: "Optional" },
+      background: { ready: bgReady, detail: stageStatus === "staged" ? "Staged" : "Optional" },
     };
-  }, [apiData, scenes.length, characterId, voicePresetId, bgmFile, musicPresetId]);
+  }, [apiData, scenes.length, characterId, stageStatus, voicePresetId, bgmFile, musicPresetId]);
 
   return { data, isLoading };
 }

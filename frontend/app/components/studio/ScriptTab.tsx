@@ -16,10 +16,17 @@ export default function ScriptTab() {
   const presetParam = searchParams.get("preset");
   const storyboardId = idParam ? Number(idParam) : null;
 
+  // Track preset for onSaved callback (Express skips Stage)
+  const presetRef = useRef(presetParam);
+  useEffect(() => {
+    presetRef.current = presetParam;
+  }, [presetParam]);
+
   const onSaved = useCallback(
     (id: number) => {
       router.replace(`/studio?id=${id}`);
-      useUIStore.getState().setActiveTab("stage");
+      const isExpress = !presetRef.current || presetRef.current === "express";
+      useUIStore.getState().setActiveTab(isExpress ? "direct" : "stage");
     },
     [router]
   );

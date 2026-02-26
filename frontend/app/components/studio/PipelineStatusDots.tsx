@@ -30,9 +30,16 @@ export default function PipelineStatusDots() {
   const hasAllImages = hasScenes && imagesCount === scenes.length;
   const hasVideos = recentVideos.length > 0 || !!videoUrl || !!videoUrlFull || !!videoUrlPost;
 
-  const status: Record<string, "done" | "progress" | "idle"> = {
+  const status: Record<string, "done" | "progress" | "error" | "idle"> = {
     script: hasScenes ? "done" : "idle",
-    stage: stageStatus === "staged" ? "done" : stageStatus === "staging" ? "progress" : "idle",
+    stage:
+      stageStatus === "staged"
+        ? "done"
+        : stageStatus === "staging"
+          ? "progress"
+          : stageStatus === "failed"
+            ? "error"
+            : "idle",
     images: hasAllImages ? "done" : hasScenes && imagesCount > 0 ? "progress" : "idle",
     render: hasVideos ? "done" : isRendering ? "progress" : "idle",
     video: hasVideos ? "done" : "idle",
@@ -51,7 +58,9 @@ export default function PipelineStatusDots() {
         ? "Stage: backgrounds ready"
         : stageStatus === "staging"
           ? "Stage: generating..."
-          : "Stage: not started",
+          : stageStatus === "failed"
+            ? "Stage: generation failed"
+            : "Stage: not started",
     images: hasAllImages
       ? `Images: all ${scenes.length} done`
       : imagesCount > 0
@@ -84,7 +93,9 @@ export default function PipelineStatusDots() {
                 ? "bg-emerald-500"
                 : s === "progress"
                   ? "animate-pulse bg-amber-400"
-                  : "bg-zinc-300"
+                  : s === "error"
+                    ? "bg-red-500"
+                    : "bg-zinc-300"
             }`}
             title={tooltipText[step.id]}
           />

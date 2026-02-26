@@ -8,12 +8,14 @@ import { useMaterialsCheck } from "../../hooks/useMaterialsCheck";
 
 type MaterialKey = "script" | "characters" | "voice" | "music" | "background";
 
+type MaterialAction = "script-tab" | "stage-tab";
+
 type MaterialItem = {
   key: MaterialKey;
   label: string;
   icon: string;
   link?: string;
-  action?: "script-tab";
+  action?: MaterialAction;
 };
 
 const MATERIALS: MaterialItem[] = [
@@ -21,7 +23,7 @@ const MATERIALS: MaterialItem[] = [
   { key: "characters", label: "Characters", icon: "C", link: "/library?tab=characters" },
   { key: "voice", label: "Voice", icon: "V", link: "/library?tab=voices" },
   { key: "music", label: "Music", icon: "M", link: "/library?tab=music" },
-  { key: "background", label: "BG", icon: "B", link: "/library?tab=backgrounds" },
+  { key: "background", label: "BG", icon: "B", action: "stage-tab" },
 ];
 
 export default function MaterialsPopover() {
@@ -70,6 +72,8 @@ export default function MaterialsPopover() {
                   onClick={() => {
                     if (mat.action === "script-tab") {
                       setActiveTab("script");
+                    } else if (mat.action === "stage-tab") {
+                      setActiveTab("stage");
                     } else if (mat.link) {
                       router.push(mat.link);
                     }
