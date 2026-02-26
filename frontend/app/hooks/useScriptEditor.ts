@@ -738,6 +738,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           image_prompt_ko: s.image_prompt_ko ?? "",
           image_url: s.image_url ?? null,
           context_tags: s.context_tags ?? undefined,
+          background_id: s.background_id ?? null,
           character_actions: s.character_actions ?? undefined,
           use_controlnet: s.use_controlnet ?? undefined,
           controlnet_weight: s.controlnet_weight ?? undefined,

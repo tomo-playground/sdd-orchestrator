@@ -327,6 +327,7 @@ function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
     isGenerating: false,
     debug_payload: "",
     context_tags: (s.context_tags as Record<string, string[]>) || undefined,
+    background_id: (s.background_id as number) ?? null,
     environment_reference_id: (s.environment_reference_id as number) ?? null,
     environment_reference_weight: (s.environment_reference_weight as number) || undefined,
     use_reference_only: (s.use_reference_only as boolean) ?? undefined,
