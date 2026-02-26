@@ -184,6 +184,7 @@ async def regenerate_reference(
     clip_skip = (
         style_ctx.default_clip_skip if (style_ctx and style_ctx.default_clip_skip is not None) else SD_DEFAULT_CLIP_SKIP
     )
+    enable_hr = style_ctx.default_enable_hr if (style_ctx and style_ctx.default_enable_hr is not None) else False
 
     pose = controlnet_pose or SD_REFERENCE_CONTROLNET_POSE
 
@@ -202,10 +203,10 @@ async def regenerate_reference(
             width=512,
             height=768,
             seed=-1,
-            enable_hr=True,
-            hr_scale=1.5,
+            enable_hr=enable_hr,
+            hr_scale=1.5 if enable_hr else 1.0,
             hr_upscaler=SD_REFERENCE_HR_UPSCALER,
-            denoising_strength=SD_REFERENCE_DENOISING,
+            denoising_strength=SD_REFERENCE_DENOISING if enable_hr else 0.0,
             use_controlnet=True,
             controlnet_pose=pose,
             controlnet_weight=SD_REFERENCE_CONTROLNET_WEIGHT,
@@ -361,6 +362,7 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
     clip_skip = (
         style_ctx.default_clip_skip if (style_ctx and style_ctx.default_clip_skip is not None) else SD_DEFAULT_CLIP_SKIP
     )
+    enable_hr = style_ctx.default_enable_hr if (style_ctx and style_ctx.default_enable_hr is not None) else False
 
     pose = request.controlnet_pose or SD_REFERENCE_CONTROLNET_POSE
     num_candidates = request.num_candidates
@@ -380,10 +382,10 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
             width=512,
             height=768,
             seed=-1,
-            enable_hr=True,
-            hr_scale=1.5,
+            enable_hr=enable_hr,
+            hr_scale=1.5 if enable_hr else 1.0,
             hr_upscaler=SD_REFERENCE_HR_UPSCALER,
-            denoising_strength=SD_REFERENCE_DENOISING,
+            denoising_strength=SD_REFERENCE_DENOISING if enable_hr else 0.0,
             use_controlnet=True,
             controlnet_pose=pose,
             controlnet_weight=SD_REFERENCE_CONTROLNET_WEIGHT,
