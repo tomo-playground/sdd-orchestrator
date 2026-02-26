@@ -439,10 +439,20 @@ def _get_voice_design_for_scene(
         builder.request, "voice_design_prompt", None
     )
 
-    # 2. Context-Aware Auto-Generation
+    # 2. Context-Aware: preset base + emotion suffix (no Gemini call)
     speaker = getattr(scene_req, "speaker", DEFAULT_SPEAKER)
 
-    if not voice_design:
+    if not voice_design and preset_voice_design:
+        scene_emotion = getattr(scene_req, "scene_emotion", None)
+        if scene_emotion:
+            voice_design = f"{preset_voice_design}, {scene_emotion}"
+            logger.info(f"Scene {scene_idx}: Voice design (Speaker={speaker}): base + emotion='{scene_emotion}'")
+        else:
+            voice_design = preset_voice_design
+            logger.info(f"Scene {scene_idx}: Voice design (Speaker={speaker}): base preset only")
+
+    if not voice_design and not preset_voice_design:
+        # No preset — generate from scratch via Gemini (rare: narrator without preset)
         context_parts: list[str] = []
         scene_emotion = getattr(scene_req, "scene_emotion", None)
         if scene_emotion:
@@ -455,9 +465,7 @@ def _get_voice_design_for_scene(
 
         context_text = ". ".join(context_parts)
         if context_text:
-            voice_design = generate_context_aware_voice_prompt(
-                clean_script, context_text, base_prompt=preset_voice_design
-            )
+            voice_design = generate_context_aware_voice_prompt(clean_script, context_text)
             if voice_design:
                 logger.info(f"Scene {scene_idx}: Auto-generated voice design (Speaker={speaker}): '{voice_design}'")
 

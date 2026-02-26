@@ -37,12 +37,8 @@ def apply_transitions(builder: VideoBuilder) -> None:
                 transition = get_transition_name(builder.transition_type)
 
             prev_dur = builder.scene_durations[i - 1]
-            # xfade consumes transition_dur from the previous stream,
-            # so subtract it from offset (except for the first transition)
-            if i == 1:
-                acc_offset += prev_dur
-            else:
-                acc_offset += prev_dur - builder.transition_dur
+            # xfade consumes transition_dur from the previous stream
+            acc_offset += prev_dur - builder.transition_dur
             builder.filters.append(
                 f"{curr_v}[v{i}_raw]xfade=transition={transition}:"
                 f"duration={builder.transition_dur}:offset={acc_offset}[v{i}_m]"
@@ -52,9 +48,7 @@ def apply_transitions(builder: VideoBuilder) -> None:
             curr_a = f"[a{i}_m]"
         builder._map_v = curr_v
         builder._map_a = curr_a
-        # acrossfade reduces total by transition_dur per crossfade
-        num_crossfades = builder.num_scenes - 1
-        builder._total_dur = acc_offset + builder.scene_durations[-1] - num_crossfades * builder.transition_dur
+        builder._total_dur = acc_offset + builder.scene_durations[-1]
     else:
         builder._map_v = "[v0_raw]"
         builder._map_a = "[a0_raw]"

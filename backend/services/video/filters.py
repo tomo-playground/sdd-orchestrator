@@ -244,7 +244,7 @@ def build_audio_filters(builder: VideoBuilder) -> None:
     """Build audio processing filters for each scene."""
     for i, scene in enumerate(builder.request.scenes):
         a_idx = i * 2 + 1
-        clip_dur = builder.scene_durations[i] + (builder.transition_dur if i < builder.num_scenes - 1 else 0)
+        clip_dur = builder.scene_durations[i]
 
         # Delay audio start by transition duration + agent-designed head padding
         h_pad = getattr(scene, "head_padding", 0.0) or 0.0
