@@ -23,13 +23,9 @@ from services.storage import get_storage
 router = APIRouter(prefix="/music-presets", tags=["music-presets"])
 
 
-def _preset_to_response(preset: MusicPreset, db: Session) -> dict:
-    """Build response dict with computed audio_url."""
-    audio_url = None
-    if preset.audio_asset_id:
-        asset = db.get(MediaAsset, preset.audio_asset_id)
-        if asset:
-            audio_url = asset.url
+def _preset_to_response(preset: MusicPreset) -> dict:
+    """Build response dict with audio_url from eager-loaded relationship."""
+    audio_url = preset.audio_asset.url if preset.audio_asset else None
     return {
         "id": preset.id,
         "name": preset.name,
@@ -45,8 +41,10 @@ def _preset_to_response(preset: MusicPreset, db: Session) -> dict:
 
 @router.get("", response_model=list[MusicPresetResponse])
 def list_music_presets(db: Session = Depends(get_db)):
-    presets = db.query(MusicPreset).order_by(MusicPreset.id).all()
-    return [_preset_to_response(p, db) for p in presets]
+    from sqlalchemy.orm import joinedload
+
+    presets = db.query(MusicPreset).options(joinedload(MusicPreset.audio_asset)).order_by(MusicPreset.id).all()
+    return [_preset_to_response(p) for p in presets]
 
 
 @router.get("/{preset_id}", response_model=MusicPresetResponse)
@@ -54,7 +52,7 @@ def get_music_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(MusicPreset).filter(MusicPreset.id == preset_id).first()
     if not preset:
         raise HTTPException(status_code=404, detail="Music preset not found")
-    return _preset_to_response(preset, db)
+    return _preset_to_response(preset)
 
 
 @router.post("", response_model=MusicPresetResponse, status_code=201)
@@ -66,7 +64,7 @@ def create_music_preset(body: MusicPresetCreate, db: Session = Depends(get_db)):
     db.add(preset)
     db.commit()
     db.refresh(preset)
-    return _preset_to_response(preset, db)
+    return _preset_to_response(preset)
 
 
 @router.put("/{preset_id}", response_model=MusicPresetResponse)
@@ -82,7 +80,7 @@ def update_music_preset(
         setattr(preset, key, value)
     db.commit()
     db.refresh(preset)
-    return _preset_to_response(preset, db)
+    return _preset_to_response(preset)
 
 
 @router.delete("/{preset_id}")
@@ -165,7 +163,7 @@ def attach_preview_to_preset(
     preset.audio_asset_id = temp_asset.id
     db.commit()
     db.refresh(preset)
-    return _preset_to_response(preset, db)
+    return _preset_to_response(preset)
 
 
 @router.post("/warmup")

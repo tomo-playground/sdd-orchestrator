@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { CARD_CLASSES, cx } from "./variants";
 
@@ -10,6 +10,7 @@ type PopoverProps = {
   onClose: () => void;
   align?: "left" | "right";
   className?: string;
+  "aria-label"?: string;
   children: ReactNode;
 };
 
@@ -19,9 +20,11 @@ export default function Popover({
   onClose,
   align = "left",
   className,
+  "aria-label": ariaLabel,
   children,
 }: PopoverProps) {
   const popRef = useRef<HTMLDivElement>(null);
+  const popoverId = useId();
 
   // Click-outside
   useEffect(() => {
@@ -51,6 +54,18 @@ export default function Popover({
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
+  // Sync aria-expanded on the anchor element
+  useEffect(() => {
+    if (anchorRef.current) {
+      anchorRef.current.setAttribute("aria-expanded", String(open));
+      if (open) {
+        anchorRef.current.setAttribute("aria-controls", popoverId);
+      } else {
+        anchorRef.current.removeAttribute("aria-controls");
+      }
+    }
+  }, [open, anchorRef, popoverId]);
+
   /* eslint-disable react-hooks/refs -- Popover intentionally reads anchorRef position during render */
   if (!open || !anchorRef.current) return null;
 
@@ -66,6 +81,9 @@ export default function Popover({
   return createPortal(
     <div
       ref={popRef}
+      id={popoverId}
+      role="dialog"
+      aria-label={ariaLabel}
       style={style}
       className={cx(CARD_CLASSES, "min-w-[200px] py-1 shadow-lg", className)}
     >

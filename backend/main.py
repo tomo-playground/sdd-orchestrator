@@ -46,8 +46,13 @@ async def lifespan(app: FastAPI):
     from config import logger, validate_storage_config
     from database import engine, get_db
     from models.base import Base
-    from services.keywords.core import TagFilterCache
-    from services.keywords.db_cache import LoRATriggerCache, TagAliasCache, TagCategoryCache, TagRuleCache
+    from services.keywords.db_cache import (
+        LoRATriggerCache,
+        TagAliasCache,
+        TagCategoryCache,
+        TagFilterCache,
+        TagRuleCache,
+    )
     from services.storage import initialize_storage
 
     validate_storage_config()

@@ -51,7 +51,7 @@ class TestBuildFfmpegCmd:
         fc_idx = cmd.index("-filter_complex")
         assert ";" in cmd[fc_idx + 1]
         for flag, val in [
-            ("-s", "1080x1920"), ("-r", "30"), ("-c:v", "libx264"),
+            ("-r", "30"), ("-c:v", "libx264"),
             ("-pix_fmt", "yuv420p"), ("-preset", "medium"), ("-crf", "20"),
             ("-movflags", "+faststart"), ("-c:a", "aac"), ("-b:a", "192k"),
         ]:
@@ -167,11 +167,11 @@ class TestGetSpeakerVoicePreset:
         _mock_db.assert_not_called()
 
     @patch("services.config_resolver.resolve_effective_config")
-    @patch("database.get_db")
-    def test_narrator_branch(self, mock_get_db, mock_resolve):
+    @patch("database.SessionLocal")
+    def test_narrator_branch(self, mock_session_cls, mock_resolve):
         from services.video.tts_helpers import get_speaker_voice_preset
         mock_db = MagicMock()
-        mock_get_db.return_value = iter([mock_db])
+        mock_session_cls.return_value = mock_db
         mock_db.get.side_effect = lambda cls, id_: {
             1: MagicMock(group_id=5), 5: MagicMock(),
         }.get(id_)
@@ -180,11 +180,11 @@ class TestGetSpeakerVoicePreset:
 
     @patch("services.characters.resolve_speaker_to_character")
     @patch("services.config_resolver.resolve_effective_config")
-    @patch("database.get_db")
-    def test_character_branch(self, mock_get_db, mock_resolve, mock_spkr):
+    @patch("database.SessionLocal")
+    def test_character_branch(self, mock_session_cls, mock_resolve, mock_spkr):
         from services.video.tts_helpers import get_speaker_voice_preset
         mock_db = MagicMock()
-        mock_get_db.return_value = iter([mock_db])
+        mock_session_cls.return_value = mock_db
         mock_char = MagicMock(name="Alice", voice_preset_id=55)
 
         def _db_get(cls, id_):

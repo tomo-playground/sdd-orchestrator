@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .core import TagFilterCache
+from .db_cache import TagFilterCache
 
 # --- Category suggestion patterns ---
 CATEGORY_PATTERNS: dict[str, list[str]] = {
@@ -548,13 +548,11 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "extreme_close-up",
         "face_focus",
         "portrait",
-        "bust_shot",
         "upper_body",
         "cowboy_shot",
         "thigh_focus",
         "hip_focus",
         "full_body",
-        "medium_shot",
         "long_shot",
         "wide_shot",
         "very_wide_shot",
@@ -827,12 +825,7 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "lonely",
         "isolated",
         "solitary",
-        "cheerful",
-        "bright",
-        "happy",
-        "joyful",
         "gloomy",
-        "dark",
         "somber",
         "moody",
         "futuristic",

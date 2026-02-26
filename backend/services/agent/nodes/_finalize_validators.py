@@ -6,7 +6,11 @@ from config import logger
 
 
 def validate_controlnet_poses(scenes: list[dict]) -> None:
-    """controlnet_pose 값이 POSE_MAPPING 키에 있는지 검증. 무효 시 None 리셋."""
+    """controlnet_pose 값이 POSE_MAPPING 키에 있는지 검증. 무효 시 None 리셋.
+
+    POSE_MAPPING 키는 Danbooru 언더바 형식 (e.g. "from_behind").
+    Gemini가 공백 형식("from behind")으로 반환할 수 있으므로 양쪽 모두 허용.
+    """
     from services.controlnet import POSE_MAPPING  # noqa: PLC0415
 
     valid_poses = set(POSE_MAPPING.keys())
@@ -14,14 +18,15 @@ def validate_controlnet_poses(scenes: list[dict]) -> None:
         pose = scene.get("controlnet_pose")
         if not pose:
             continue
-        if pose not in valid_poses:
-            # Gemini가 언더바 형식으로 반환할 수 있으므로 공백으로 변환 후 재검증
-            normalized = pose.replace("_", " ")
-            if normalized in valid_poses:
-                scene["controlnet_pose"] = normalized
-            else:
-                logger.warning("[Finalize] Invalid controlnet_pose '%s' → reset to None", pose)
-                scene["controlnet_pose"] = None
+        if pose in valid_poses:
+            continue
+        # Gemini가 공백 형식으로 반환할 수 있으므로 언더바로 변환 후 재검증
+        normalized = pose.replace(" ", "_")
+        if normalized in valid_poses:
+            scene["controlnet_pose"] = normalized
+        else:
+            logger.warning("[Finalize] Invalid controlnet_pose '%s' → reset to None", pose)
+            scene["controlnet_pose"] = None
 
 
 def validate_ip_adapter_weights(scenes: list[dict]) -> None:

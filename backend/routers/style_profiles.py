@@ -64,11 +64,16 @@ def _build_full_profile(db: Session, profile: StyleProfile) -> dict:
         if model:
             sd_model = {"id": model.id, "name": model.name, "display_name": model.display_name}
 
-    # Resolve LoRAs
+    # Resolve LoRAs (batch IN query instead of N+1)
     loras = []
     if profile.loras:
+        lora_ids = [lc.get("lora_id") for lc in profile.loras if lc.get("lora_id")]
+        lora_map: dict[int, LoRA] = {}
+        if lora_ids:
+            lora_records = db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
+            lora_map = {lr.id: lr for lr in lora_records}
         for lora_config in profile.loras:
-            lora = db.query(LoRA).filter(LoRA.id == lora_config.get("lora_id")).first()
+            lora = lora_map.get(lora_config.get("lora_id"))
             if lora:
                 loras.append(
                     {

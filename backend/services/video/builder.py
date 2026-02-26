@@ -275,6 +275,9 @@ class VideoBuilder:
 
             if preset.prompt:
                 await self._generate_and_set_bgm(preset.prompt, preset.duration or 30.0, preset.seed or -1)
+        except Exception:
+            db.rollback()
+            raise
         finally:
             db.close()
 
@@ -323,6 +326,9 @@ class VideoBuilder:
             # Cache the generated asset back to storyboard
             if wav_bytes and storyboard:
                 self._cache_bgm_asset(db, storyboard, wav_bytes)
+        except Exception:
+            db.rollback()
+            raise
         finally:
             db.close()
 

@@ -10,19 +10,21 @@ type CopyButtonProps = {
   variant?: "icon" | "label";
 };
 
-export default function CopyButton({
-  text,
-  className = "",
-  variant = "icon",
-}: CopyButtonProps) {
+export default function CopyButton({ text, className = "", variant = "icon" }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      navigator.clipboard
+        .writeText(text)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        })
+        .catch(() => {
+          // Silently fail — UI stays in un-copied state
+        });
     },
     [text]
   );

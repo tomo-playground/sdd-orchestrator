@@ -10,17 +10,15 @@ from models import Tag
 class TestRefreshCaches:
     """Test POST /admin/refresh-caches endpoint.
 
-    The refresh_all_caches function imports caches locally:
-      from services.keywords.core import TagFilterCache
-      from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagRuleCache
-    So we patch at the source module level.
+    The refresh_all_caches function imports all caches from
+    services.keywords.db_cache. We patch at the source module level.
     """
 
     def test_refresh_caches_success(self, client: TestClient, db_session):
         """Cache refresh succeeds with mocked cache classes."""
         with (
             patch("services.keywords.db_cache.TagCategoryCache") as mock_cat,
-            patch("services.keywords.core.TagFilterCache") as mock_filter,
+            patch("services.keywords.db_cache.TagFilterCache") as mock_filter,
             patch("services.keywords.db_cache.TagAliasCache") as mock_alias,
             patch("services.keywords.db_cache.TagRuleCache") as mock_rule,
         ):

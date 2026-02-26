@@ -14,7 +14,7 @@ export { storeSceneImage, generateSceneImageFor, generateSceneCandidates };
 
 /** Generate image for a scene (single or multi-gen) and update store */
 export async function handleGenerateImage(scene: Scene) {
-  const { updateScene, scenes } = useStoryboardStore.getState();
+  const { updateScene } = useStoryboardStore.getState();
   const { showToast } = useUIStore.getState();
   const multiGenEnabled = resolveSceneMultiGen(scene, useStoryboardStore.getState());
 
@@ -27,7 +27,9 @@ export async function handleGenerateImage(scene: Scene) {
   }
 
   // Get updated scene with DB-assigned ID (client_id is stable across saves)
-  const updatedScene = scenes.find((s) => s.client_id === scene.client_id);
+  const updatedScene = useStoryboardStore
+    .getState()
+    .scenes.find((s) => s.client_id === scene.client_id);
   if (!updatedScene) {
     showToast("Scene not found after save", "error");
     return;
@@ -74,12 +76,12 @@ export function handleImageUpload(clientId: string, file?: File) {
     const dataUrl = reader.result as string;
     const { projectId, groupId, storyboardId } = useContextStore.getState();
     const { showToast } = useUIStore.getState();
-    const { scenes, updateScene } = useStoryboardStore.getState();
+    const { updateScene } = useStoryboardStore.getState();
     if (!projectId || !groupId || !storyboardId) {
       showToast("Project/Group context required", "error");
       return;
     }
-    const scene = scenes.find((s) => s.client_id === clientId);
+    const scene = useStoryboardStore.getState().scenes.find((s) => s.client_id === clientId);
     const dbSceneId = scene?.id ?? 0;
     const stored = await storeSceneImage(
       dataUrl,
@@ -97,7 +99,11 @@ export function handleImageUpload(clientId: string, file?: File) {
 
     // Auto-pin: Apply environment reference if scene has _auto_pin_previous flag
     const { applyAutoPinAfterGeneration } = await import("../../utils/applyAutoPin");
-    const autoPinResult = applyAutoPinAfterGeneration(scenes, clientId, updateScene);
+    const autoPinResult = applyAutoPinAfterGeneration(
+      useStoryboardStore.getState().scenes,
+      clientId,
+      updateScene
+    );
     if (autoPinResult?.success) {
       console.log("[AutoPin]", autoPinResult.message);
       showToast(`Auto-pin: ${autoPinResult.message}`, "success");
@@ -160,7 +166,7 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
         isGenerating: false,
       });
       showToast(
-        `Gemini edit done (${res.data.edit_type}) - $${res.data.cost_usd.toFixed(4)}`,
+        `Gemini edit done (${res.data.edit_type}) - $${(res.data.cost_usd ?? 0).toFixed(4)}`,
         "success"
       );
 
@@ -198,7 +204,7 @@ export async function handleSuggestEditWithGemini(scene: Scene): Promise<GeminiS
     const res = await axios.post(`${API_BASE}/scene/suggest-edit`, payload);
     if (res.data.has_mismatch && res.data.suggestions?.length > 0) {
       showToast(
-        `${res.data.suggestions.length} suggestions - $${res.data.cost_usd.toFixed(4)}`,
+        `${res.data.suggestions.length} suggestions - $${(res.data.cost_usd ?? 0).toFixed(4)}`,
         "success"
       );
       return res.data.suggestions;

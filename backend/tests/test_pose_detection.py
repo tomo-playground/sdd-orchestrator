@@ -30,17 +30,17 @@ class TestPoseMapping:
         assert len(filenames) == len(set(filenames)), "Duplicate filenames found"
 
     def test_original_18_poses_present(self):
-        """All original 18 poses still exist."""
+        """All original 18 poses still exist (underscore format)."""
         original = [
             "standing",
             "waving",
-            "arms up",
-            "arms crossed",
-            "hands on hips",
-            "looking at viewer",
-            "from behind",
+            "arms_up",
+            "arms_crossed",
+            "hands_on_hips",
+            "looking_at_viewer",
+            "from_behind",
             "sitting",
-            "chin rest",
+            "chin_rest",
             "leaning",
             "walking",
             "running",
@@ -48,32 +48,32 @@ class TestPoseMapping:
             "lying",
             "kneeling",
             "crouching",
-            "pointing forward",
-            "covering face",
+            "pointing_forward",
+            "covering_face",
         ]
         for pose in original:
             assert pose in POSE_MAPPING, f"Original pose missing: {pose}"
 
     def test_new_9_poses_present(self):
-        """All 9 daily-life poses exist."""
+        """All 9 daily-life poses exist (underscore format)."""
         new_poses = [
-            "holding object",
+            "holding_object",
             "eating",
             "cooking",
-            "holding umbrella",
+            "holding_umbrella",
             "writing",
-            "profile standing",
-            "standing looking up",
-            "leaning wall",
-            "sitting eating",
+            "profile_standing",
+            "standing_looking_up",
+            "leaning_wall",
+            "sitting_eating",
         ]
         for pose in new_poses:
             assert pose in POSE_MAPPING, f"New pose missing: {pose}"
 
     def test_thumbs_up_pose_present(self):
         """thumbs_up pose exists."""
-        assert "thumbs up" in POSE_MAPPING
-        assert POSE_MAPPING["thumbs up"] == "standing_thumbs_up.png"
+        assert "thumbs_up" in POSE_MAPPING
+        assert POSE_MAPPING["thumbs_up"] == "standing_thumbs_up.png"
 
 
 class TestPoseDetection:
@@ -86,42 +86,56 @@ class TestPoseDetection:
             "eating",
             "cooking",
             "writing",
-            "holding umbrella",
-            "holding object",
-            "leaning wall",
-            "standing looking up",
-            "profile standing",
+            "holding_umbrella",
+            "holding_object",
+            "leaning_wall",
+            "standing_looking_up",
+            "profile_standing",
             "standing",
             "sitting",
             "waving",
-            "from behind",
+            "from_behind",
         ],
     )
     def test_exact_match_in_prompt(self, pose_name: str):
-        """Pose name found in prompt string returns that pose."""
+        """Pose name (underscore format) found in prompt returns that pose."""
         prompt = f"1girl, {pose_name}, indoors"
         assert detect_pose_from_prompt(prompt) == pose_name
 
+    # --- Space-format backward compatibility ---
+    @pytest.mark.parametrize(
+        ("space_pose", "expected"),
+        [
+            ("holding umbrella", "holding_umbrella"),
+            ("from behind", "from_behind"),
+            ("profile standing", "profile_standing"),
+        ],
+    )
+    def test_space_format_backward_compat(self, space_pose: str, expected: str):
+        """Legacy space-format poses in prompt also match underscore keys."""
+        prompt = f"1girl, {space_pose}, indoors"
+        assert detect_pose_from_prompt(prompt) == expected
+
     # --- Longest-match priority tests ---
     def test_longest_match_profile_standing_over_standing(self):
-        """'profile standing' (longer) wins over 'standing'."""
-        prompt = "1girl, profile standing, indoors"
-        assert detect_pose_from_prompt(prompt) == "profile standing"
+        """'profile_standing' (longer) wins over 'standing'."""
+        prompt = "1girl, profile_standing, indoors"
+        assert detect_pose_from_prompt(prompt) == "profile_standing"
 
     def test_longest_match_standing_looking_up_over_standing(self):
-        """'standing looking up' (longer) wins over 'standing'."""
-        prompt = "1girl, standing looking up, outdoors"
-        assert detect_pose_from_prompt(prompt) == "standing looking up"
+        """'standing_looking_up' (longer) wins over 'standing'."""
+        prompt = "1girl, standing_looking_up, outdoors"
+        assert detect_pose_from_prompt(prompt) == "standing_looking_up"
 
     def test_longest_match_sitting_eating_over_eating(self):
-        """'sitting eating' (longer) wins over 'sitting' and 'eating'."""
-        prompt = "1girl, sitting eating, table"
-        assert detect_pose_from_prompt(prompt) == "sitting eating"
+        """'sitting_eating' (longer) wins over 'sitting' and 'eating'."""
+        prompt = "1girl, sitting_eating, table"
+        assert detect_pose_from_prompt(prompt) == "sitting_eating"
 
     def test_longest_match_holding_umbrella_over_holding_object(self):
-        """'holding umbrella' (longer) wins over 'holding object' if both present."""
-        prompt = "1girl, holding umbrella, rain"
-        assert detect_pose_from_prompt(prompt) == "holding umbrella"
+        """'holding_umbrella' (longer) wins over 'holding_object' if both present."""
+        prompt = "1girl, holding_umbrella, rain"
+        assert detect_pose_from_prompt(prompt) == "holding_umbrella"
 
     # --- Case insensitive ---
     def test_case_insensitive(self):
@@ -130,9 +144,9 @@ class TestPoseDetection:
         assert detect_pose_from_prompt(prompt) == "standing"
 
     def test_case_insensitive_mixed(self):
-        """Mixed case still matches."""
+        """Mixed case still matches (space format in prompt -> underscore key)."""
         prompt = "1girl, From Behind, dark"
-        assert detect_pose_from_prompt(prompt) == "from behind"
+        assert detect_pose_from_prompt(prompt) == "from_behind"
 
     # --- Edge cases ---
     def test_empty_prompt_returns_none(self):

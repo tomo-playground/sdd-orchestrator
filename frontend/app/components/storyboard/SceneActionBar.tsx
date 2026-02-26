@@ -179,13 +179,7 @@ export default function SceneActionBar({
 
       {/* Menu Button & Popover */}
       <div className="relative">
-        <Button
-          ref={menuButtonRef}
-          variant="outline"
-          size="sm"
-          icon
-          onClick={onSceneMenuToggle}
-        >
+        <Button ref={menuButtonRef} variant="outline" size="sm" icon onClick={onSceneMenuToggle}>
           <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
           </svg>
@@ -201,8 +195,10 @@ export default function SceneActionBar({
           <button
             type="button"
             onClick={() => {
-              navigator.clipboard.writeText(scene.debug_prompt || scene.image_prompt);
-              showToast("프롬프트 복사됨", "success");
+              navigator.clipboard
+                .writeText(scene.debug_prompt || scene.image_prompt)
+                .then(() => showToast("프롬프트 복사됨", "success"))
+                .catch(() => showToast("클립보드 복사 실패", "error"));
               onSceneMenuClose();
             }}
             className="w-full px-3 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-50"

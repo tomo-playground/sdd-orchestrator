@@ -22,7 +22,9 @@ def _suppress_stream_logging():
     """Remove StreamHandler from root logger so test logs don't leak into service stdout."""
     root = logging.getLogger()
     original = root.handlers[:]
-    root.handlers = [h for h in root.handlers if not isinstance(h, logging.StreamHandler) or isinstance(h, logging.FileHandler)]
+    root.handlers = [
+        h for h in root.handlers if not isinstance(h, logging.StreamHandler) or isinstance(h, logging.FileHandler)
+    ]
     yield
     root.handlers = original
 
@@ -260,8 +262,7 @@ def init_tag_caches():
     Production caches are loaded from DB at startup; tests need mock data
     so that cache-dependent logic (skip tags, conflicts, aliases) works.
     """
-    from services.keywords.core import TagFilterCache
-    from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagRuleCache
+    from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagFilterCache, TagRuleCache
     from services.prompt.prompt import get_token_category
 
     # --- TagFilterCache: skip tags ---
@@ -451,6 +452,9 @@ def init_tag_caches():
     # Teardown
     TagFilterCache._initialized = False
     TagFilterCache._skip_tags = frozenset()
+    TagFilterCache._ignore_tokens = frozenset()
+    TagFilterCache._restricted = set()
+    TagFilterCache._ignored = set()
     TagRuleCache._initialized = False
     TagRuleCache._conflicts = {}
     TagRuleCache._category_conflicts = {}

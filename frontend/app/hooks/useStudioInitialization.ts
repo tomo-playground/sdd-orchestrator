@@ -160,7 +160,7 @@ export function useStudioInitialization() {
             label: v.label,
             createdAt: v.createdAt,
             renderHistoryId: v.renderHistoryId,
-          }),
+          })
         );
         const latestFull = recentVideos.find((v: { label?: string }) => v.label === "full");
         const latestPost = recentVideos.find((v: { label?: string }) => v.label === "post");
@@ -194,7 +194,9 @@ export function useStudioInitialization() {
         }
         if (data.style_profile_id) {
           setLoadedProfileId(data.style_profile_id);
-          parallelLoads.push(loadStyleProfileFromId(data.style_profile_id, { skipHiResSync: true }));
+          parallelLoads.push(
+            loadStyleProfileFromId(data.style_profile_id, { skipHiResSync: true })
+          );
         } else {
           setLoadedProfileId(null);
           setNeedsStyleProfile(true);
@@ -315,7 +317,7 @@ function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
     image_prompt: (s.image_prompt as string) || "",
     image_prompt_ko: (s.image_prompt_ko as string) || "",
     image_url: (s.image_url as string) || null,
-    image_asset_id: (s.image_asset_id as number) || null,
+    image_asset_id: (s.image_asset_id as number) ?? null,
     description: (s.description as string) || "",
     width: (s.width as number) || 512,
     height: (s.height as number) || 768,
@@ -324,9 +326,9 @@ function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
     isGenerating: false,
     debug_payload: "",
     context_tags: (s.context_tags as Record<string, string[]>) || undefined,
-    environment_reference_id: (s.environment_reference_id as number) || null,
+    environment_reference_id: (s.environment_reference_id as number) ?? null,
     environment_reference_weight: (s.environment_reference_weight as number) || undefined,
-    use_reference_only: (s.use_reference_only as boolean) || undefined,
+    use_reference_only: (s.use_reference_only as boolean) ?? undefined,
     reference_only_weight: (s.reference_only_weight as number) || undefined,
     // Per-scene generation settings override (null = inherit global)
     use_controlnet: (s.use_controlnet as boolean | null) ?? null,

@@ -165,8 +165,8 @@ async def list_references(db: Session = Depends(get_db)):
     # 1. Get physical files
     refs = list_reference_images(db=db)
 
-    # 2. Get all characters from DB for enrichment
-    db_chars = {c.name: c for c in db.query(Character).all()}
+    # 2. Get all characters from DB for enrichment (exclude soft-deleted)
+    db_chars = {c.name: c for c in db.query(Character).filter(Character.deleted_at.is_(None)).all()}
 
     # Enrich with preset info
     for ref in refs:
@@ -323,16 +323,16 @@ async def save_multi_references(request: MultiReferenceRequest, db: Session = De
             .filter(MediaAsset.storage_key == f"shared/references/{request.character_key}_{ref.angle}.png")
             .first()
         )
-        saved_refs.append(MultiReferenceSaved(
-            angle=ref.angle,
-            asset_id=asset.id if asset else None,
-            filename=filename,
-        ))
+        saved_refs.append(
+            MultiReferenceSaved(
+                angle=ref.angle,
+                asset_id=asset.id if asset else None,
+                filename=filename,
+            )
+        )
 
     # Update character.reference_images JSONB
-    char.reference_images = [
-        {"angle": r.angle, "asset_id": r.asset_id} for r in saved_refs if r.asset_id
-    ]
+    char.reference_images = [{"angle": r.angle, "asset_id": r.asset_id} for r in saved_refs if r.asset_id]
     db.commit()
 
     return MultiReferenceResponse(character_key=request.character_key, references=saved_refs)

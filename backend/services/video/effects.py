@@ -37,7 +37,12 @@ def apply_transitions(builder: VideoBuilder) -> None:
                 transition = get_transition_name(builder.transition_type)
 
             prev_dur = builder.scene_durations[i - 1]
-            acc_offset += prev_dur
+            # xfade consumes transition_dur from the previous stream,
+            # so subtract it from offset (except for the first transition)
+            if i == 1:
+                acc_offset += prev_dur
+            else:
+                acc_offset += prev_dur - builder.transition_dur
             builder.filters.append(
                 f"{curr_v}[v{i}_raw]xfade=transition={transition}:"
                 f"duration={builder.transition_dur}:offset={acc_offset}[v{i}_m]"
@@ -188,9 +193,7 @@ def _probe_duration(path: str) -> float:
         return 0.0
 
 
-def _build_bgm_loop_filters(
-    builder: VideoBuilder, bgm_idx: int, bgm_path: str
-) -> str:
+def _build_bgm_loop_filters(builder: VideoBuilder, bgm_idx: int, bgm_path: str) -> str:
     """Build filter chain that loops BGM with crossfade at seams.
 
     Returns the FFmpeg stream label to use downstream (e.g. ``"[bgm_looped]"``
@@ -207,22 +210,21 @@ def _build_bgm_loop_filters(
     copies = max(2, math.ceil(builder._total_dur / effective_dur))
     logger.info(
         "[BGM] bgm=%.1fs, video=%.1fs, xfade=%.1fs → %d copies",
-        bgm_dur, builder._total_dur, xfade, copies,
+        bgm_dur,
+        builder._total_dur,
+        xfade,
+        copies,
     )
 
     # asplit into N copies
     labels = [f"[bgm_{i}]" for i in range(copies)]
-    builder.filters.append(
-        f"[{bgm_idx}:a]asplit={copies}{''.join(labels)}"
-    )
+    builder.filters.append(f"[{bgm_idx}:a]asplit={copies}{''.join(labels)}")
 
     # Chain acrossfade between consecutive copies
     curr = labels[0]
     for i in range(1, copies):
         out = f"[bgm_cf{i}]" if i < copies - 1 else "[bgm_looped]"
-        builder.filters.append(
-            f"{curr}{labels[i]}acrossfade=d={xfade}:c1=tri:c2=tri{out}"
-        )
+        builder.filters.append(f"{curr}{labels[i]}acrossfade=d={xfade}:c1=tri:c2=tri{out}")
         curr = out
 
     return "[bgm_looped]"

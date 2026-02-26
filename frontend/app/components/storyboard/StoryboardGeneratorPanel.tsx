@@ -8,7 +8,7 @@ import {
   FORM_LABEL_CLASSES,
   FORM_TEXTAREA_CLASSES,
   FORM_INPUT_CLASSES,
-  ERROR_ICON
+  ERROR_ICON,
 } from "../ui/variants";
 
 type StoryboardGeneratorPanelProps = {
@@ -140,8 +140,9 @@ export default function StoryboardGeneratorPanel({
                 Topic
               </label>
               <span
-                className={`text-[12px] font-semibold tracking-[0.1em] ${topic.length >= 200 ? "text-rose-500" : "text-zinc-400"
-                  }`}
+                className={`text-[12px] font-semibold tracking-[0.1em] ${
+                  topic.length >= 200 ? "text-rose-500" : "text-zinc-400"
+                }`}
               >
                 {topic.length}/200
               </span>
@@ -165,7 +166,7 @@ export default function StoryboardGeneratorPanel({
                     onClick={() => setTopic(sample)}
                     className="flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1.5 text-xs text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-200 hover:text-zinc-900"
                   >
-                    <span className="text-[10px] opacity-60">+</span>
+                    <span className="text-[11px] opacity-60">+</span>
                     {sample}
                   </button>
                 ))}
@@ -182,8 +183,9 @@ export default function StoryboardGeneratorPanel({
                   </span>
                 </label>
                 <span
-                  className={`text-[12px] font-semibold tracking-[0.1em] ${(description ?? "").length >= 500 ? ERROR_ICON : "text-zinc-400"
-                    }`}
+                  className={`text-[12px] font-semibold tracking-[0.1em] ${
+                    (description ?? "").length >= 500 ? ERROR_ICON : "text-zinc-400"
+                  }`}
                 >
                   {(description ?? "").length}/500
                 </span>

@@ -592,7 +592,9 @@ class SceneGenerateRequest(BaseModel):
     use_controlnet: bool = False
     controlnet_pose: str | None = None  # Specific pose name or None for auto-detect
     controlnet_weight: float = 1.0
-    controlnet_control_mode: str = "Balanced"  # "Balanced" | "My prompt is more important" | "ControlNet is more important"
+    controlnet_control_mode: str = (
+        "Balanced"  # "Balanced" | "My prompt is more important" | "ControlNet is more important"
+    )
     # IP-Adapter options
     use_ip_adapter: bool = False
     ip_adapter_reference: str | None = None  # character_key for saved reference
@@ -2112,3 +2114,49 @@ class ConsistencyResponse(BaseModel):
     storyboard_id: int
     overall_consistency: float
     scenes: list[SceneDriftResponse]
+
+
+# ============================================================
+# Storyboard Create Response
+# ============================================================
+
+
+class StoryboardCreateResponse(BaseModel):
+    """Response for POST /storyboards/create (Gemini script generation)."""
+
+    scenes: list[dict]
+    character_id: int | None = None
+    character_b_id: int | None = None
+
+
+# ============================================================
+# Validate + Auto-Edit Response
+# ============================================================
+
+
+class ValidateAndAutoEditResponse(BaseModel):
+    """Response for POST /scene/validate-and-auto-edit."""
+
+    validation_result: dict
+    auto_edit_triggered: bool = False
+    edited_image: str | None = None
+    edit_cost: float | None = None
+    original_match_rate: float | None = None
+    final_match_rate: float | None = None
+    edit_type: str | None = None
+    skip_reason: str | None = None
+    current_cost: float | None = None
+    retry_count: int | None = None
+    auto_edit_error: str | None = None
+
+
+# ============================================================
+# Scene Cancel Response
+# ============================================================
+
+
+class SceneCancelResponse(BaseModel):
+    """Response for POST /scene/cancel/{task_id}."""
+
+    ok: bool
+    reason: str | None = None

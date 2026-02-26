@@ -52,8 +52,6 @@ def build_ffmpeg_cmd(builder: VideoBuilder) -> list[str]:
         builder._map_v,
         "-map",
         builder._map_a,
-        "-s",
-        f"{builder.out_w}x{builder.out_h}",
         "-r",
         str(VIDEO_FPS),
         "-c:v",

@@ -319,7 +319,8 @@ class TestTTSWarningOnMissingMapping:
         with (
             patch("services.video.tts_helpers.logger", mock_logger),
             patch("services.characters.resolve_speaker_to_character", return_value=None),
-            patch("database.get_db", return_value=iter([mock_db])),
+            patch("services.config_resolver.resolve_effective_config", return_value={"values": {}}),
+            patch("database.SessionLocal", return_value=mock_db),
         ):
             from services.video.tts_helpers import get_speaker_voice_preset
 

@@ -50,7 +50,7 @@ def translate_voice_prompt(prompt: str) -> str:
                 f"{prompt}"
             ),
         )
-        translated = res.text.strip()
+        translated = (res.text or "").strip()
         _VOICE_PROMPT_CACHE[prompt] = translated
         logger.info("[TTS] Voice prompt translated: '%s' -> '%s'", prompt, translated)
         return translated
@@ -63,10 +63,10 @@ def get_preset_voice_info(
     voice_preset_id: int,
 ) -> tuple[str | None, int | None]:
     """Fetch voice_design_prompt and voice_seed from a voice preset."""
-    from database import get_db
+    from database import SessionLocal
     from models.voice_preset import VoicePreset
 
-    db = next(get_db())
+    db = SessionLocal()
     try:
         preset = db.get(VoicePreset, voice_preset_id)
         if not preset:
@@ -89,12 +89,12 @@ def get_speaker_voice_preset(storyboard_id: int | None, speaker: str) -> int | N
         logger.debug("[TTS] get_speaker_voice_preset: no storyboard_id, returning None")
         return None
 
-    from database import get_db
+    from database import SessionLocal
     from models.group import Group
     from models.storyboard import Storyboard
     from services.config_resolver import resolve_effective_config
 
-    db = next(get_db())
+    db = SessionLocal()
     try:
         storyboard = db.get(Storyboard, storyboard_id)
         if not storyboard:
@@ -199,7 +199,7 @@ def generate_context_aware_voice_prompt(
             contents=prompt,
         )
 
-        voice_prompt = res.text.strip()
+        voice_prompt = (res.text or "").strip()
         voice_prompt = voice_prompt.strip('"').strip("'")
 
         if voice_prompt:

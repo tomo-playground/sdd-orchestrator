@@ -22,9 +22,14 @@ router = APIRouter(prefix="/prompt-histories", tags=["prompt-histories"])
 @router.get("/trash")
 async def list_trashed_prompt_histories(db: Session = Depends(get_db)):
     """List soft-deleted prompt histories."""
-    items = db.query(PromptHistory).filter(
-        PromptHistory.deleted_at.isnot(None),
-    ).order_by(PromptHistory.deleted_at.desc()).all()
+    items = (
+        db.query(PromptHistory)
+        .filter(
+            PromptHistory.deleted_at.isnot(None),
+        )
+        .order_by(PromptHistory.deleted_at.desc())
+        .all()
+    )
     return [
         {
             "id": ph.id,
@@ -55,8 +60,7 @@ async def list_prompt_histories(
     if search:
         search_pattern = f"%{search}%"
         query = query.filter(
-            (PromptHistory.name.ilike(search_pattern))
-            | (PromptHistory.positive_prompt.ilike(search_pattern))
+            (PromptHistory.name.ilike(search_pattern)) | (PromptHistory.positive_prompt.ilike(search_pattern))
         )
 
     if sort == "use_count":
@@ -74,10 +78,14 @@ async def list_prompt_histories(
 @router.get("/{history_id}", response_model=PromptHistoryResponse)
 async def get_prompt_history(history_id: int, db: Session = Depends(get_db)):
     """Get a single prompt history by ID."""
-    history = db.query(PromptHistory).filter(
-        PromptHistory.id == history_id,
-        PromptHistory.deleted_at.is_(None),
-    ).first()
+    history = (
+        db.query(PromptHistory)
+        .filter(
+            PromptHistory.id == history_id,
+            PromptHistory.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not history:
         raise HTTPException(status_code=404, detail="Prompt history not found")
     return history
@@ -107,11 +115,16 @@ async def create_prompt_history(data: PromptHistoryCreate, db: Session = Depends
 
 
 @router.put("/{history_id}", response_model=PromptHistoryResponse)
-async def update_prompt_history(
-    history_id: int, data: PromptHistoryUpdate, db: Session = Depends(get_db)
-):
+async def update_prompt_history(history_id: int, data: PromptHistoryUpdate, db: Session = Depends(get_db)):
     """Update an existing prompt history."""
-    history = db.query(PromptHistory).filter(PromptHistory.id == history_id).first()
+    history = (
+        db.query(PromptHistory)
+        .filter(
+            PromptHistory.id == history_id,
+            PromptHistory.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not history:
         raise HTTPException(status_code=404, detail="Prompt history not found")
 
@@ -128,10 +141,14 @@ async def update_prompt_history(
 @router.delete("/{history_id}")
 async def delete_prompt_history(history_id: int, db: Session = Depends(get_db)):
     """Soft-delete a prompt history."""
-    history = db.query(PromptHistory).filter(
-        PromptHistory.id == history_id,
-        PromptHistory.deleted_at.is_(None),
-    ).first()
+    history = (
+        db.query(PromptHistory)
+        .filter(
+            PromptHistory.id == history_id,
+            PromptHistory.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not history:
         raise HTTPException(status_code=404, detail="Prompt history not found")
 
@@ -144,10 +161,14 @@ async def delete_prompt_history(history_id: int, db: Session = Depends(get_db)):
 @router.post("/{history_id}/restore")
 async def restore_prompt_history(history_id: int, db: Session = Depends(get_db)):
     """Restore a soft-deleted prompt history."""
-    history = db.query(PromptHistory).filter(
-        PromptHistory.id == history_id,
-        PromptHistory.deleted_at.isnot(None),
-    ).first()
+    history = (
+        db.query(PromptHistory)
+        .filter(
+            PromptHistory.id == history_id,
+            PromptHistory.deleted_at.isnot(None),
+        )
+        .first()
+    )
     if not history:
         raise HTTPException(status_code=404, detail="Trashed prompt history not found")
     history.deleted_at = None
@@ -173,23 +194,35 @@ async def permanently_delete_prompt_history(history_id: int, db: Session = Depen
 @router.post("/{history_id}/toggle-favorite", response_model=PromptHistoryResponse)
 async def toggle_favorite(history_id: int, db: Session = Depends(get_db)):
     """Toggle favorite status."""
-    history = db.query(PromptHistory).filter(PromptHistory.id == history_id).first()
+    history = (
+        db.query(PromptHistory)
+        .filter(
+            PromptHistory.id == history_id,
+            PromptHistory.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not history:
         raise HTTPException(status_code=404, detail="Prompt history not found")
 
     history.is_favorite = not history.is_favorite
     db.commit()
     db.refresh(history)
-    logger.info(
-        "[PromptHistory] Toggled favorite: %s -> %s", history.name, history.is_favorite
-    )
+    logger.info("[PromptHistory] Toggled favorite: %s -> %s", history.name, history.is_favorite)
     return history
 
 
 @router.post("/{history_id}/apply", response_model=PromptHistoryApplyResponse)
 async def apply_prompt_history(history_id: int, db: Session = Depends(get_db)):
     """Apply a prompt history (increments use_count)."""
-    history = db.query(PromptHistory).filter(PromptHistory.id == history_id).first()
+    history = (
+        db.query(PromptHistory)
+        .filter(
+            PromptHistory.id == history_id,
+            PromptHistory.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not history:
         raise HTTPException(status_code=404, detail="Prompt history not found")
 
@@ -220,7 +253,14 @@ async def update_score(
     db: Session = Depends(get_db),
 ):
     """Update WD14 validation score."""
-    history = db.query(PromptHistory).filter(PromptHistory.id == history_id).first()
+    history = (
+        db.query(PromptHistory)
+        .filter(
+            PromptHistory.id == history_id,
+            PromptHistory.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not history:
         raise HTTPException(status_code=404, detail="Prompt history not found")
 

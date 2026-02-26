@@ -22,19 +22,19 @@ class TestClampIpAdapterWeight:
 
     def test_back_pose_clamp(self):
         """Back-facing pose: weight clamped to 0.2."""
-        assert clamp_ip_adapter_weight(0.7, "from behind") == 0.2
+        assert clamp_ip_adapter_weight(0.7, "from_behind") == 0.2
 
     def test_back_pose_already_low(self):
         """Back-facing pose: weight below max passes through."""
-        assert clamp_ip_adapter_weight(0.1, "from behind") == 0.1
+        assert clamp_ip_adapter_weight(0.1, "from_behind") == 0.1
 
     def test_side_pose_clamp(self):
         """Side-facing pose: weight clamped to 0.5."""
-        assert clamp_ip_adapter_weight(0.8, "profile standing") == 0.5
+        assert clamp_ip_adapter_weight(0.8, "profile_standing") == 0.5
 
     def test_side_pose_no_clamp(self):
         """Side-facing pose: weight at max passes through."""
-        assert clamp_ip_adapter_weight(0.5, "profile standing") == 0.5
+        assert clamp_ip_adapter_weight(0.5, "profile_standing") == 0.5
 
     def test_none_pose_defaults_front(self):
         """None pose defaults to front direction (no clamp)."""
@@ -58,10 +58,10 @@ class TestValidateControlnetPoses:
     def test_valid_pose_preserved(self):
         from services.agent.nodes._finalize_validators import validate_controlnet_poses as _validate_controlnet_poses
 
-        scenes = [{"controlnet_pose": "standing"}, {"controlnet_pose": "from behind"}]
+        scenes = [{"controlnet_pose": "standing"}, {"controlnet_pose": "from_behind"}]
         _validate_controlnet_poses(scenes)
         assert scenes[0]["controlnet_pose"] == "standing"
-        assert scenes[1]["controlnet_pose"] == "from behind"
+        assert scenes[1]["controlnet_pose"] == "from_behind"
 
     def test_invalid_pose_reset_to_none(self):
         from services.agent.nodes._finalize_validators import validate_controlnet_poses as _validate_controlnet_poses
@@ -84,14 +84,14 @@ class TestValidateControlnetPoses:
         _validate_controlnet_poses(scenes)
         assert "controlnet_pose" not in scenes[0]
 
-    def test_underscore_format_normalized(self):
-        """Gemini가 언더바 형식으로 반환 시 공백으로 변환."""
+    def test_space_format_normalized_to_underscore(self):
+        """Gemini가 공백 형식으로 반환 시 언더바로 변환."""
         from services.agent.nodes._finalize_validators import validate_controlnet_poses as _validate_controlnet_poses
 
-        scenes = [{"controlnet_pose": "from_behind"}, {"controlnet_pose": "profile_standing"}]
+        scenes = [{"controlnet_pose": "from behind"}, {"controlnet_pose": "profile standing"}]
         _validate_controlnet_poses(scenes)
-        assert scenes[0]["controlnet_pose"] == "from behind"
-        assert scenes[1]["controlnet_pose"] == "profile standing"
+        assert scenes[0]["controlnet_pose"] == "from_behind"
+        assert scenes[1]["controlnet_pose"] == "profile_standing"
 
 
 # ── _validate_ip_adapter_weights ─────────────────────────────────
@@ -101,35 +101,45 @@ class TestValidateIpAdapterWeights:
     """finalize._validate_ip_adapter_weights() range clamping."""
 
     def test_valid_weight_unchanged(self):
-        from services.agent.nodes._finalize_validators import validate_ip_adapter_weights as _validate_ip_adapter_weights
+        from services.agent.nodes._finalize_validators import (
+            validate_ip_adapter_weights as _validate_ip_adapter_weights,
+        )
 
         scenes = [{"ip_adapter_weight": 0.5}]
         _validate_ip_adapter_weights(scenes)
         assert scenes[0]["ip_adapter_weight"] == 0.5
 
     def test_weight_above_1_clamped(self):
-        from services.agent.nodes._finalize_validators import validate_ip_adapter_weights as _validate_ip_adapter_weights
+        from services.agent.nodes._finalize_validators import (
+            validate_ip_adapter_weights as _validate_ip_adapter_weights,
+        )
 
         scenes = [{"ip_adapter_weight": 1.5}]
         _validate_ip_adapter_weights(scenes)
         assert scenes[0]["ip_adapter_weight"] == 1.0
 
     def test_negative_weight_clamped(self):
-        from services.agent.nodes._finalize_validators import validate_ip_adapter_weights as _validate_ip_adapter_weights
+        from services.agent.nodes._finalize_validators import (
+            validate_ip_adapter_weights as _validate_ip_adapter_weights,
+        )
 
         scenes = [{"ip_adapter_weight": -0.3}]
         _validate_ip_adapter_weights(scenes)
         assert scenes[0]["ip_adapter_weight"] == 0.0
 
     def test_none_weight_unchanged(self):
-        from services.agent.nodes._finalize_validators import validate_ip_adapter_weights as _validate_ip_adapter_weights
+        from services.agent.nodes._finalize_validators import (
+            validate_ip_adapter_weights as _validate_ip_adapter_weights,
+        )
 
         scenes = [{"ip_adapter_weight": None}]
         _validate_ip_adapter_weights(scenes)
         assert scenes[0]["ip_adapter_weight"] is None
 
     def test_missing_weight_key_no_error(self):
-        from services.agent.nodes._finalize_validators import validate_ip_adapter_weights as _validate_ip_adapter_weights
+        from services.agent.nodes._finalize_validators import (
+            validate_ip_adapter_weights as _validate_ip_adapter_weights,
+        )
 
         scenes = [{"script": "test"}]
         _validate_ip_adapter_weights(scenes)

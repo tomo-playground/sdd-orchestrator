@@ -35,20 +35,20 @@ from services.prompt import normalize_negative_prompt
 
 # Dynamic import to avoid initialization order issues
 
-# Pose tag to reference image mapping
+# Pose tag to reference image mapping (Danbooru underscore format)
 POSE_MAPPING: dict[str, str] = {
     # Standing poses
     "standing": "standing_neutral.png",
     "waving": "standing_waving.png",
-    "arms up": "standing_arms_up.png",
-    "arms crossed": "standing_arms_crossed.png",
-    "thumbs up": "standing_thumbs_up.png",
-    "hands on hips": "standing_hands_on_hips.png",
-    "looking at viewer": "looking_at_viewer_neutral.png",
-    "from behind": "standing_from_behind.png",
+    "arms_up": "standing_arms_up.png",
+    "arms_crossed": "standing_arms_crossed.png",
+    "thumbs_up": "standing_thumbs_up.png",
+    "hands_on_hips": "standing_hands_on_hips.png",
+    "looking_at_viewer": "looking_at_viewer_neutral.png",
+    "from_behind": "standing_from_behind.png",
     # Sitting poses
     "sitting": "sitting_neutral.png",
-    "chin rest": "sitting_chin_rest.png",
+    "chin_rest": "sitting_chin_rest.png",
     "leaning": "sitting_leaning.png",
     # Action/Storytelling poses
     "walking": "walking.png",
@@ -57,27 +57,27 @@ POSE_MAPPING: dict[str, str] = {
     "lying": "lying_neutral.png",
     "kneeling": "kneeling_neutral.png",
     "crouching": "crouching_neutral.png",
-    "pointing forward": "pointing_forward.png",
-    "covering face": "covering_face.png",
+    "pointing_forward": "pointing_forward.png",
+    "covering_face": "covering_face.png",
     # Daily life / interaction poses
-    "holding object": "holding_object.png",
+    "holding_object": "holding_object.png",
     "eating": "eating.png",
     "cooking": "cooking.png",
-    "holding umbrella": "holding_umbrella.png",
+    "holding_umbrella": "holding_umbrella.png",
     "writing": "writing.png",
-    "profile standing": "profile_standing.png",
-    "standing looking up": "standing_looking_up.png",
-    "leaning wall": "leaning_wall.png",
-    "sitting eating": "sitting_eating.png",
+    "profile_standing": "profile_standing.png",
+    "standing_looking_up": "standing_looking_up.png",
+    "leaning_wall": "leaning_wall.png",
+    "sitting_eating": "sitting_eating.png",
 }
 
 # Poses that require IP-Adapter weight reduction to avoid reference-pose conflict.
 # Omitted poses default to "front" direction (max weight = 1.0).
 POSE_DIRECTION: dict[str, str] = {
-    "from behind": "back",
-    "profile standing": "side",
+    "from_behind": "back",
+    "profile_standing": "side",
     "walking": "side",
-    "leaning wall": "side",
+    "leaning_wall": "side",
 }
 
 IP_ADAPTER_WEIGHT_CLAMP: dict[str, float] = {
@@ -166,12 +166,18 @@ def load_pose_reference(pose_name: str) -> str | None:
 
 
 def detect_pose_from_prompt(prompt: str) -> str | None:
-    """Fallback: 프롬프트에서 POSE_MAPPING 키를 정확히 매칭 (longest-match 우선)."""
+    """Fallback: 프롬프트에서 POSE_MAPPING 키를 정확히 매칭 (longest-match 우선).
+
+    POSE_MAPPING 키는 언더바 형식이지만, 프롬프트에는 공백 형식이 올 수 있으므로
+    양쪽 형식 모두 매칭합니다.
+    """
     prompt_lower = prompt.lower()
     best: str | None = None
     best_len = 0
     for pose_name in POSE_MAPPING:
-        if pose_name in prompt_lower and len(pose_name) > best_len:
+        # 언더바 형식(DB 표준)과 공백 형식(레거시) 모두 매칭
+        pose_space = pose_name.replace("_", " ")
+        if (pose_name in prompt_lower or pose_space in prompt_lower) and len(pose_name) > best_len:
             best = pose_name
             best_len = len(pose_name)
     return best

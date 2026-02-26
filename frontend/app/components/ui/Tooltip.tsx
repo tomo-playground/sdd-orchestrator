@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useId, useRef, useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "./variants";
 
@@ -23,13 +23,14 @@ export default function Tooltip({
   const triggerRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tooltipId = useId();
 
   useEffect(() => {
     if (isVisible && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       const scrollY = window.scrollY;
       const scrollX = window.scrollX;
-      
+
       let top = 0;
       let left = 0;
 
@@ -69,6 +70,19 @@ export default function Tooltip({
     setIsVisible(false);
   };
 
+  const handleFocus = () => {
+    timeoutRef.current = setTimeout(() => {
+      setIsVisible(true);
+    }, delay);
+  };
+
+  const handleBlur = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setIsVisible(false);
+  };
+
   // Clean up timeout on unmount
   useEffect(() => {
     return () => {
@@ -84,6 +98,9 @@ export default function Tooltip({
         ref={triggerRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        aria-describedby={isVisible ? tooltipId : undefined}
         className="inline-flex" // Use inline-flex to minimize layout impact
       >
         {children}
@@ -91,13 +108,15 @@ export default function Tooltip({
       {isVisible &&
         createPortal(
           <div
+            id={tooltipId}
+            role="tooltip"
             className={cx(
-              "fixed z-[var(--z-tooltip)] px-2.5 py-1.5 text-xs font-medium text-white bg-zinc-800 rounded-md shadow-lg pointer-events-none transform tracking-wide",
+              "pointer-events-none fixed z-[var(--z-tooltip)] transform rounded-md bg-zinc-800 px-2.5 py-1.5 text-xs font-medium tracking-wide text-white shadow-lg",
               // Animation classes could be added here
-              "transition-opacity duration-150 animate-in fade-in zoom-in-95",
+              "animate-in fade-in zoom-in-95 transition-opacity duration-150",
               position === "top" && "-translate-x-1/2 -translate-y-full",
               position === "bottom" && "-translate-x-1/2",
-              position === "left" && "-translate-y-1/2 -translate-x-full",
+              position === "left" && "-translate-x-full -translate-y-1/2",
               position === "right" && "-translate-y-1/2",
               className
             )}

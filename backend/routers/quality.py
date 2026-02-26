@@ -1,10 +1,11 @@
 """Quality measurement routes."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from config import logger
-from database import SessionLocal
+from database import get_db
 from schemas import ConsistencyResponse
 from services.consistency import compute_storyboard_consistency
 from services.quality import batch_validate_scenes, get_quality_alerts, get_quality_summary
@@ -19,9 +20,8 @@ class BatchValidateRequest(BaseModel):
     scenes: list[dict]
 
 
-
 @router.post("/batch-validate")
-def batch_validate(request: BatchValidateRequest):
+def batch_validate(request: BatchValidateRequest, db: Session = Depends(get_db)):
     """Validate all scenes in a project and save quality scores.
 
     Example request:
@@ -45,41 +45,29 @@ def batch_validate(request: BatchValidateRequest):
     }
     ```
     """
-    db = SessionLocal()
     try:
-        # Pass storyboard_id
-        result = batch_validate_scenes(
-            request.scenes,
-            db,
-            storyboard_id=request.storyboard_id
-        )
+        result = batch_validate_scenes(request.scenes, db, storyboard_id=request.storyboard_id)
         logger.info(
-            f"Batch validated {result['validated']}/{result['total']} scenes "
-            f"(avg: {result['average_match_rate']:.1%})"
+            f"Batch validated {result['validated']}/{result['total']} scenes (avg: {result['average_match_rate']:.1%})"
         )
         return result
     except Exception as exc:
         logger.exception("Batch validation failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()
 
 
 @router.get("/summary/storyboard/{storyboard_id}")
-def quality_summary_by_id(storyboard_id: int):
+def quality_summary_by_id(storyboard_id: int, db: Session = Depends(get_db)):
     """Get quality summary for a storyboard by ID."""
-    db = SessionLocal()
     try:
-        return get_quality_summary(None, db, storyboard_id=storyboard_id)
+        return get_quality_summary(db, storyboard_id=storyboard_id)
     except Exception as exc:
         logger.exception(f"Failed to get quality summary for storyboard {storyboard_id}")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()
 
 
 @router.get("/summary/{storyboard_id}")
-def quality_summary(storyboard_id: int):
+def quality_summary(storyboard_id: int, db: Session = Depends(get_db)):
     """Get quality summary for a storyboard.
 
     Returns:
@@ -94,28 +82,20 @@ def quality_summary(storyboard_id: int):
     }
     ```
     """
-    db = SessionLocal()
     try:
         return get_quality_summary(db, storyboard_id=storyboard_id)
     except Exception as exc:
         logger.exception(f"Failed to get quality summary for storyboard {storyboard_id}")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()
 
 
 @router.get("/consistency/{storyboard_id}", response_model=ConsistencyResponse)
-def consistency(storyboard_id: int):
+def consistency(storyboard_id: int, db: Session = Depends(get_db)):
     """Cross-scene character consistency analysis for a storyboard."""
-    db = SessionLocal()
-    try:
-        from models.storyboard import Storyboard
+    from models.storyboard import Storyboard
 
-        exists = (
-            db.query(Storyboard.id)
-            .filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None))
-            .first()
-        )
+    try:
+        exists = db.query(Storyboard.id).filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None)).first()
         if not exists:
             raise HTTPException(status_code=404, detail="Storyboard not found")
         return compute_storyboard_consistency(storyboard_id, db)
@@ -124,24 +104,16 @@ def consistency(storyboard_id: int):
     except Exception as exc:
         logger.exception("Consistency analysis failed for storyboard %d", storyboard_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()
 
 
 @router.get("/alerts/{storyboard_id}")
-def quality_alerts(storyboard_id: int, threshold: float = 0.7):
+def quality_alerts(storyboard_id: int, threshold: float = 0.7, db: Session = Depends(get_db)):
     """Get scenes with quality below threshold for a storyboard."""
-    db = SessionLocal()
     try:
         alerts = get_quality_alerts(threshold, db, storyboard_id=storyboard_id)
         if alerts:
-            logger.warning(
-                f"{len(alerts)} scenes below {threshold:.0%} threshold "
-                f"in storyboard {storyboard_id}"
-            )
+            logger.warning(f"{len(alerts)} scenes below {threshold:.0%} threshold in storyboard {storyboard_id}")
         return {"alerts": alerts, "count": len(alerts)}
     except Exception as exc:
         logger.exception(f"Failed to get quality alerts for storyboard {storyboard_id}")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    finally:
-        db.close()

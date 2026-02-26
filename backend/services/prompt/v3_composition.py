@@ -469,6 +469,7 @@ class V3PromptBuilder:
                             "name": bt,
                             "layer": info.get("layer", LAYER_IDENTITY),
                             "weight": 1.0,
+                            "is_permanent": True,
                             "group_name": info.get("group_name"),
                         }
                     )
@@ -1037,9 +1038,16 @@ class V3PromptBuilder:
         if reference_extra_tags:
             ref_tags.extend(reference_extra_tags)
 
-        # 3. Resolve aliases on all tag names
+        # 3. Resolve aliases on all tag names & build lookup set
         all_tag_names = [ct["name"] for ct in char_tags_data] + ref_tags
-        all_tag_names = self._resolve_aliases(all_tag_names)
+        resolved_names = self._resolve_aliases(all_tag_names)
+        resolved_set = {n.lower().replace(" ", "_").strip() for n in resolved_names}
+
+        # 3-1. Build original→resolved mapping for char_tags_data
+        orig_char_names = [ct["name"] for ct in char_tags_data]
+        resolved_char_names = resolved_names[: len(orig_char_names)]
+        for ct, resolved in zip(char_tags_data, resolved_char_names, strict=True):
+            ct["name"] = resolved  # alias 해소 결과 반영
 
         # 4. Get tag info for reference tags
         ref_tag_info = self.get_tag_info(ref_tags) if ref_tags else {}
@@ -1052,7 +1060,7 @@ class V3PromptBuilder:
         for ct in char_tags_data:
             name = ct["name"]
             # Skip if already resolved away by alias
-            if name not in all_tag_names and name not in [n.lower().replace(" ", "_").strip() for n in all_tag_names]:
+            if name.lower().replace(" ", "_").strip() not in resolved_set:
                 continue
             token = name
             if ct["weight"] != 1.0:

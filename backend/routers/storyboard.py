@@ -14,6 +14,7 @@ from schemas import (
     SeedAnchorRequest,
     SeedAnchorResponse,
     StatusResponse,
+    StoryboardCreateResponse,  # noqa: F401
     StoryboardDetailResponse,
     StoryboardMetadataUpdateResponse,
     StoryboardRequest,
@@ -38,7 +39,7 @@ from services.storyboard import (
 router = APIRouter(prefix="/storyboards", tags=["storyboard"])
 
 
-@router.post("/create")
+@router.post("/create", response_model=StoryboardCreateResponse)
 async def create_storyboard_endpoint(request: StoryboardRequest, db: Session = Depends(get_db)):
     logger.info("\U0001f4e5 [Storyboard Req] %s", request.model_dump())
     return await create_storyboard(request, db)

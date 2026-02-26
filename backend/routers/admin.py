@@ -30,11 +30,11 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
 
     Call this after migrating data to ensure caches are up-to-date.
     """
-    from services.keywords.core import TagFilterCache
     from services.keywords.db_cache import (
         LoRATriggerCache,
         TagAliasCache,
         TagCategoryCache,
+        TagFilterCache,
         TagRuleCache,
     )
 
@@ -60,11 +60,18 @@ async def get_deprecated_tags(db: Session = Depends(get_db)):
     """Get all deprecated tags with their replacement information."""
     deprecated_tags = db.query(Tag).filter(Tag.is_active.is_(False)).all()
 
+    # Batch-load all replacement tags in a single IN query
+    replacement_ids = [t.replacement_tag_id for t in deprecated_tags if t.replacement_tag_id]
+    replacement_map: dict[int, Tag] = {}
+    if replacement_ids:
+        replacements = db.query(Tag).filter(Tag.id.in_(replacement_ids)).all()
+        replacement_map = {t.id: t for t in replacements}
+
     result = []
     for tag in deprecated_tags:
         replacement = None
         if tag.replacement_tag_id:
-            replacement_tag = db.query(Tag).filter(Tag.id == tag.replacement_tag_id).first()
+            replacement_tag = replacement_map.get(tag.replacement_tag_id)
             if replacement_tag:
                 replacement = {
                     "id": replacement_tag.id,

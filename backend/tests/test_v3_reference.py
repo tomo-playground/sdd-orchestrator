@@ -7,6 +7,7 @@ import pytest
 from services.prompt.v3_composition import (
     LAYER_CAMERA,
     LAYER_ENVIRONMENT,
+    LAYER_QUALITY,
     V3PromptBuilder,
 )
 
@@ -333,11 +334,12 @@ class TestInjectReferenceDefaults:
         layers = [[] for _ in range(12)]
         builder._inject_reference_defaults(layers)
 
-        env = layers[LAYER_ENVIRONMENT]
-        assert "(white_background:1.3)" in env
-        assert "(simple_background:1.3)" in env
-        assert "plain_background" in env
-        assert "solid_background" in env
+        # Env tags are injected into LAYER_QUALITY for maximum SD priority
+        quality = layers[LAYER_QUALITY]
+        assert "(white_background:1.8)" in quality
+        assert "(simple_background:1.5)" in quality
+        assert "plain_background" in quality
+        assert "solid_background" in quality
         assert "(solo:1.5)" in layers[LAYER_CAMERA]
         assert "looking_at_viewer" in layers[LAYER_CAMERA]
         assert "front_view" in layers[LAYER_CAMERA]
@@ -345,10 +347,10 @@ class TestInjectReferenceDefaults:
 
     def test_no_duplicate_if_already_present(self, builder):
         layers = [[] for _ in range(12)]
-        layers[LAYER_ENVIRONMENT] = ["(white_background:1.3)"]
+        layers[LAYER_QUALITY] = ["(white_background:1.8)"]
         layers[LAYER_CAMERA] = ["(solo:1.5)"]
 
         builder._inject_reference_defaults(layers)
 
-        assert layers[LAYER_ENVIRONMENT].count("(white_background:1.3)") == 1
+        assert layers[LAYER_QUALITY].count("(white_background:1.8)") == 1
         assert layers[LAYER_CAMERA].count("(solo:1.5)") == 1

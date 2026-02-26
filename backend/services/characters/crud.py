@@ -169,7 +169,7 @@ def create_character(db: Session, data: CharacterCreate) -> Character:
 
 def update_character(db: Session, character_id: int, data: CharacterUpdate) -> Character:
     """Update an existing character and sync tags."""
-    character = db.query(Character).filter(Character.id == character_id).first()
+    character = db.query(Character).filter(Character.id == character_id, Character.deleted_at.is_(None)).first()
     if not character:
         raise ValueError("Character not found")
 

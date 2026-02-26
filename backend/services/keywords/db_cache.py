@@ -240,10 +240,18 @@ class LoRATriggerCache:
 
 
 class TagFilterCache:
-    """In-memory cache for restricted/ignored tags from DB."""
+    """Unified in-memory cache for tag filters from DB.
+
+    Handles three filter_type values:
+    - "restricted": tags excluded from Identity DNA
+    - "ignore": tokens ignored during prompt processing
+    - "skip": tags skipped during category suggestion
+    """
 
     _restricted: set[str] = set()
     _ignored: set[str] = set()
+    _ignore_tokens: frozenset[str] = frozenset()
+    _skip_tags: frozenset[str] = frozenset()
     _initialized = False
 
     @classmethod
@@ -259,6 +267,9 @@ class TagFilterCache:
 
             restricted_count = 0
             ignored_count = 0
+            skip_count = 0
+            ignore_tokens: set[str] = set()
+            skip_tags: set[str] = set()
 
             for filter_rule in filters:
                 normalized = filter_rule.tag_name.lower().strip()
@@ -267,12 +278,23 @@ class TagFilterCache:
                     restricted_count += 1
                 elif filter_rule.filter_type == "ignore":
                     cls._ignored.add(normalized)
+                    ignore_tokens.add(normalized)
                     ignored_count += 1
+                elif filter_rule.filter_type == "skip":
+                    skip_tags.add(normalized)
+                    skip_count += 1
 
+            cls._ignore_tokens = frozenset(ignore_tokens)
+            cls._skip_tags = frozenset(skip_tags)
             cls._initialized = True
-            logger.info(f"✅ [TagFilterCache] Loaded {restricted_count} restricted tags, {ignored_count} ignored tags")
+            logger.info(
+                f"✅ [TagFilterCache] Loaded {restricted_count} restricted, "
+                f"{ignored_count} ignored, {skip_count} skip tags"
+            )
         except Exception as e:
             logger.error(f"❌ [TagFilterCache] Failed to initialize: {e}")
+            cls._ignore_tokens = frozenset()
+            cls._skip_tags = frozenset()
 
     @classmethod
     def is_restricted(cls, tag: str) -> bool:
@@ -287,8 +309,20 @@ class TagFilterCache:
         return normalized in cls._ignored
 
     @classmethod
+    def get_ignore_tokens(cls) -> frozenset[str]:
+        """Get the set of tokens to ignore during prompt processing."""
+        return cls._ignore_tokens
+
+    @classmethod
+    def get_skip_tags(cls) -> frozenset[str]:
+        """Get the set of tags to skip during category suggestion."""
+        return cls._skip_tags
+
+    @classmethod
     def refresh(cls, db: Session):
         cls._initialized = False
         cls._restricted.clear()
         cls._ignored.clear()
+        cls._ignore_tokens = frozenset()
+        cls._skip_tags = frozenset()
         cls.initialize(db)

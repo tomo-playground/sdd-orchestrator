@@ -7,6 +7,7 @@ import { API_BASE, API_TIMEOUT, DEFAULT_STRUCTURE } from "../../constants";
 import { getErrorMsg } from "../../utils/error";
 import type { Scene } from "../../types";
 import { generateSceneClientId } from "../../utils/uuid";
+import { buildScenesPayload } from "../../utils/buildScenesPayload";
 
 /**
  * Sync storyboard version from server after 409 Conflict.
@@ -23,24 +24,8 @@ async function syncVersionAfterConflict(): Promise<void> {
   }
 }
 
-/**
- * Sanitize candidates for DB storage.
- * Removes image_url (stored via media_asset_id, backend resolves URL on GET)
- */
-export function sanitizeCandidatesForDb(candidates: Scene["candidates"]): Array<{
-  media_asset_id: number;
-  match_rate?: number;
-  adjusted_match_rate?: number;
-  identity_score?: number;
-}> | null {
-  if (!candidates || candidates.length === 0) return null;
-  return candidates.map((c) => ({
-    media_asset_id: c.media_asset_id,
-    ...(c.match_rate !== undefined && { match_rate: c.match_rate }),
-    ...(c.adjusted_match_rate !== undefined && { adjusted_match_rate: c.adjusted_match_rate }),
-    ...(c.identity_score !== undefined && { identity_score: c.identity_score }),
-  }));
-}
+// Re-export sanitizeCandidatesForDb for backward compatibility (canonical source: utils/buildScenesPayload)
+export { sanitizeCandidatesForDb } from "../../utils/buildScenesPayload";
 
 /**
  * Auto-save storyboard before image generation
@@ -88,38 +73,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       language: language || undefined,
       character_id: selectedCharacterId || undefined,
       character_b_id: selectedCharacterBId || undefined,
-      scenes: scenes.map((s, i) => ({
-        scene_id: i,
-        client_id: s.client_id,
-        script: s.script,
-        speaker: s.speaker,
-        duration: s.duration,
-        image_prompt: s.image_prompt,
-        image_prompt_ko: s.image_prompt_ko,
-
-        width: s.width || 512,
-        height: s.height || 768,
-        negative_prompt: s.negative_prompt,
-        context_tags: s.context_tags,
-        character_actions: s.character_actions || undefined,
-        image_asset_id: s.image_asset_id ?? null,
-        environment_reference_id: s.environment_reference_id ?? null,
-        environment_reference_weight: s.environment_reference_weight ?? 0.3,
-        use_reference_only: s.use_reference_only ?? true,
-        reference_only_weight: s.reference_only_weight ?? 0.5,
-        candidates: sanitizeCandidatesForDb(s.candidates),
-        // Per-scene generation settings override
-        use_controlnet: s.use_controlnet ?? null,
-        controlnet_weight: s.controlnet_weight ?? null,
-        use_ip_adapter: s.use_ip_adapter ?? null,
-        ip_adapter_reference: s.ip_adapter_reference ?? null,
-        ip_adapter_weight: s.ip_adapter_weight ?? null,
-        multi_gen_enabled: s.multi_gen_enabled ?? null,
-        controlnet_pose: s.controlnet_pose ?? null,
-        voice_design_prompt: s.voice_design_prompt ?? null,
-        head_padding: s.head_padding ?? null,
-        tail_padding: s.tail_padding ?? null,
-      })),
+      scenes: buildScenesPayload(scenes),
     };
 
     const res = await axios.post(`${API_BASE}/storyboards`, payload, {
@@ -139,7 +93,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
     // Update scene IDs with DB-assigned IDs
     if (sceneIds.length > 0) {
       const { scenes: currentScenes, setScenes } = useStoryboardStore.getState();
-      setScenes(currentScenes.map((scene, idx) => ({ ...scene, id: sceneIds[idx] || scene.id })));
+      setScenes(currentScenes.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
     }
 
     // Sync URL with newly created storyboard ID & clear new mode
@@ -270,38 +224,7 @@ export async function persistStoryboard(): Promise<boolean> {
       version: sbState.storyboardVersion ?? undefined,
       bgm_prompt: bgmPrompt || undefined,
       bgm_mood: bgmMood || undefined,
-      scenes: scenes.map((s, i) => ({
-        scene_id: i,
-        client_id: s.client_id,
-        script: s.script,
-        speaker: s.speaker,
-        duration: s.duration,
-        image_prompt: s.image_prompt,
-        image_prompt_ko: s.image_prompt_ko,
-
-        width: s.width || 512,
-        height: s.height || 768,
-        negative_prompt: s.negative_prompt,
-        context_tags: s.context_tags,
-        character_actions: s.character_actions || undefined,
-        image_asset_id: s.image_asset_id ?? null,
-        environment_reference_id: s.environment_reference_id ?? null,
-        environment_reference_weight: s.environment_reference_weight ?? 0.3,
-        use_reference_only: s.use_reference_only ?? true,
-        reference_only_weight: s.reference_only_weight ?? 0.5,
-        candidates: sanitizeCandidatesForDb(s.candidates),
-        // Per-scene generation settings override
-        use_controlnet: s.use_controlnet ?? null,
-        controlnet_weight: s.controlnet_weight ?? null,
-        use_ip_adapter: s.use_ip_adapter ?? null,
-        ip_adapter_reference: s.ip_adapter_reference ?? null,
-        ip_adapter_weight: s.ip_adapter_weight ?? null,
-        multi_gen_enabled: s.multi_gen_enabled ?? null,
-        controlnet_pose: s.controlnet_pose ?? null,
-        voice_design_prompt: s.voice_design_prompt ?? null,
-        head_padding: s.head_padding ?? null,
-        tail_padding: s.tail_padding ?? null,
-      })),
+      scenes: buildScenesPayload(scenes),
     };
 
     if (storyboardId) {

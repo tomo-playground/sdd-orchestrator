@@ -24,12 +24,14 @@ from schemas import (
     ImageProgressEvent,
     ImageStoreRequest,
     ImageStoreResponse,
+    SceneCancelResponse,  # noqa: F401
     SceneEditImageRequest,
     SceneEditImageResponse,
     SceneGenerateRequest,
     SceneGenerateResponse,
     SceneValidateRequest,
     SceneValidationResponse,
+    ValidateAndAutoEditResponse,  # noqa: F401
 )
 from services.asset_service import AssetService
 from services.generation import generate_scene_image
@@ -143,7 +145,7 @@ async def validate_scene_image_endpoint(request: SceneValidateRequest, db: Sessi
     return validate_scene_image(request, db=db)
 
 
-@router.post("/scene/validate-and-auto-edit")
+@router.post("/scene/validate-and-auto-edit", response_model=ValidateAndAutoEditResponse)
 async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Session = Depends(get_db)):
     """WD14 검증 + Gemini 자동 편집 (조건부)
 
@@ -397,6 +399,9 @@ async def edit_scene_image(scene_id: int, request: SceneEditImageRequest, db: Se
 
     original_prompt = request.original_prompt or scene.image_prompt or ""
 
+    # Extract values before closing DB to avoid DetachedInstanceError
+    scene_storyboard_id = scene.storyboard_id
+
     # Release DB before Gemini API call
     db.close()
 
@@ -419,16 +424,23 @@ async def edit_scene_image(scene_id: int, request: SceneEditImageRequest, db: Se
         from models.group import Group
         from models.storyboard import Storyboard
 
-        sb = db.query(Storyboard).filter(Storyboard.id == scene.storyboard_id).first()
+        sb = db.query(Storyboard).filter(Storyboard.id == scene_storyboard_id).first()
         group_id = sb.group_id if sb else 0
         grp = db.query(Group).filter(Group.id == group_id).first() if group_id else None
         project_id = grp.project_id if grp else 0
+
+        # Re-fetch scene after db reconnect
+        from models.scene import Scene as SceneModel
+
+        scene = db.query(SceneModel).filter(SceneModel.id == scene_id).first()
+        if not scene:
+            raise HTTPException(status_code=404, detail="Scene not found after edit")
 
         asset = asset_service.save_scene_image(
             image_bytes=edited_bytes,
             project_id=project_id,
             group_id=group_id,
-            storyboard_id=scene.storyboard_id,
+            storyboard_id=scene_storyboard_id,
             scene_id=scene_id,
             file_name=f"scene_{scene_id}_edited.png",
         )
@@ -646,20 +658,20 @@ async def _run_image_gen(task_id: str, request: SceneGenerateRequest) -> None:
         task.notify()
 
 
-@router.post("/scene/cancel/{task_id}")
+@router.post("/scene/cancel/{task_id}", response_model=SceneCancelResponse)
 async def cancel_image_gen(task_id: str):
     """Cancel an in-progress image generation task."""
     task = get_image_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     if task.stage in (ImageGenStage.COMPLETED, ImageGenStage.FAILED):
-        return {"ok": False, "reason": "Task already finished"}
+        return SceneCancelResponse(ok=False, reason="Task already finished")
     task.cancelled = True
     task.stage = ImageGenStage.FAILED
     task.error = "Cancelled by user"
     task.notify()
     logger.info("[Scene Gen] Task %s cancelled", task_id)
-    return {"ok": True}
+    return SceneCancelResponse(ok=True)
 
 
 @router.get("/scene/progress/{task_id}")

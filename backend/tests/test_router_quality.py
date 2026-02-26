@@ -1,10 +1,10 @@
 """Tests for quality router endpoints.
 
-Note: The quality router uses SessionLocal() directly instead of Depends(get_db),
-so tests must patch SessionLocal and the service functions.
+Note: The quality router uses Depends(get_db) for session injection.
+Tests mock the service functions only; DB session is provided by TestClient fixture.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -24,11 +24,7 @@ class TestBatchValidate:
             ],
         }
 
-        with patch("routers.quality.SessionLocal") as mock_session_local, \
-             patch("routers.quality.batch_validate_scenes", return_value=mock_result):
-            mock_db = MagicMock()
-            mock_session_local.return_value = mock_db
-
+        with patch("routers.quality.batch_validate_scenes", return_value=mock_result):
             request_data = {
                 "storyboard_id": 1,
                 "scenes": [
@@ -55,11 +51,7 @@ class TestBatchValidate:
             "scores": [],
         }
 
-        with patch("routers.quality.SessionLocal") as mock_session_local, \
-             patch("routers.quality.batch_validate_scenes", return_value=mock_result):
-            mock_db = MagicMock()
-            mock_session_local.return_value = mock_db
-
+        with patch("routers.quality.batch_validate_scenes", return_value=mock_result):
             request_data = {
                 "storyboard_id": 1,
                 "scenes": [],
@@ -74,14 +66,10 @@ class TestBatchValidate:
 
     def test_batch_validate_service_error(self, client: TestClient, db_session):
         """Batch validate returns 500 when service raises."""
-        with patch("routers.quality.SessionLocal") as mock_session_local, \
-             patch(
-                 "routers.quality.batch_validate_scenes",
-                 side_effect=RuntimeError("WD14 model not loaded"),
-             ):
-            mock_db = MagicMock()
-            mock_session_local.return_value = mock_db
-
+        with patch(
+            "routers.quality.batch_validate_scenes",
+            side_effect=RuntimeError("WD14 model not loaded"),
+        ):
             request_data = {
                 "storyboard_id": 1,
                 "scenes": [
@@ -117,11 +105,7 @@ class TestQualitySummary:
             "scores": [],
         }
 
-        with patch("routers.quality.SessionLocal") as mock_session_local, \
-             patch("routers.quality.get_quality_summary", return_value=mock_summary):
-            mock_db = MagicMock()
-            mock_session_local.return_value = mock_db
-
+        with patch("routers.quality.get_quality_summary", return_value=mock_summary):
             response = client.get("/quality/summary/1")
             assert response.status_code == 200
             data = response.json()
@@ -143,11 +127,7 @@ class TestQualitySummary:
             "scores": [],
         }
 
-        with patch("routers.quality.SessionLocal") as mock_session_local, \
-             patch("routers.quality.get_quality_summary", return_value=mock_summary):
-            mock_db = MagicMock()
-            mock_session_local.return_value = mock_db
-
+        with patch("routers.quality.get_quality_summary", return_value=mock_summary):
             response = client.get("/quality/summary/999")
             assert response.status_code == 200
             data = response.json()
@@ -156,14 +136,10 @@ class TestQualitySummary:
 
     def test_quality_summary_service_error(self, client: TestClient, db_session):
         """Quality summary returns 500 on service error."""
-        with patch("routers.quality.SessionLocal") as mock_session_local, \
-             patch(
-                 "routers.quality.get_quality_summary",
-                 side_effect=RuntimeError("DB error"),
-             ):
-            mock_db = MagicMock()
-            mock_session_local.return_value = mock_db
-
+        with patch(
+            "routers.quality.get_quality_summary",
+            side_effect=RuntimeError("DB error"),
+        ):
             response = client.get("/quality/summary/1")
             assert response.status_code == 500
 
@@ -182,11 +158,7 @@ class TestQualitySummaryById:
             "scores": [],
         }
 
-        with patch("routers.quality.SessionLocal") as mock_session_local, \
-             patch("routers.quality.get_quality_summary", return_value=mock_summary):
-            mock_db = MagicMock()
-            mock_session_local.return_value = mock_db
-
+        with patch("routers.quality.get_quality_summary", return_value=mock_summary):
             response = client.get("/quality/summary/storyboard/1")
             assert response.status_code == 200
             data = response.json()
@@ -209,11 +181,7 @@ class TestQualityAlerts:
             },
         ]
 
-        with patch("routers.quality.SessionLocal") as mock_session_local, \
-             patch("routers.quality.get_quality_alerts", return_value=mock_alerts):
-            mock_db = MagicMock()
-            mock_session_local.return_value = mock_db
-
+        with patch("routers.quality.get_quality_alerts", return_value=mock_alerts):
             response = client.get("/quality/alerts/1")
             assert response.status_code == 200
             data = response.json()
@@ -225,11 +193,7 @@ class TestQualityAlerts:
 
     def test_quality_alerts_empty(self, client: TestClient, db_session):
         """No alerts when all scenes are above threshold."""
-        with patch("routers.quality.SessionLocal") as mock_session_local, \
-             patch("routers.quality.get_quality_alerts", return_value=[]):
-            mock_db = MagicMock()
-            mock_session_local.return_value = mock_db
-
+        with patch("routers.quality.get_quality_alerts", return_value=[]):
             response = client.get("/quality/alerts/1")
             assert response.status_code == 200
             data = response.json()
@@ -239,26 +203,21 @@ class TestQualityAlerts:
 
     def test_quality_alerts_custom_threshold(self, client: TestClient, db_session):
         """Quality alerts respects custom threshold parameter."""
-        with patch("routers.quality.SessionLocal") as mock_session_local, \
-             patch("routers.quality.get_quality_alerts", return_value=[]) as mock_fn:
-            mock_db = MagicMock()
-            mock_session_local.return_value = mock_db
-
+        with patch("routers.quality.get_quality_alerts", return_value=[]) as mock_fn:
             response = client.get("/quality/alerts/1?threshold=0.9")
             assert response.status_code == 200
 
-            # Verify the threshold was passed to the service
-            mock_fn.assert_called_once_with(0.9, mock_db, storyboard_id=1)
+            # Verify the threshold was passed to the service (db is injected by Depends)
+            mock_fn.assert_called_once()
+            call_args = mock_fn.call_args
+            assert call_args[0][0] == 0.9  # threshold
+            assert call_args[1]["storyboard_id"] == 1
 
     def test_quality_alerts_service_error(self, client: TestClient, db_session):
         """Quality alerts returns 500 on service error."""
-        with patch("routers.quality.SessionLocal") as mock_session_local, \
-             patch(
-                 "routers.quality.get_quality_alerts",
-                 side_effect=RuntimeError("DB error"),
-             ):
-            mock_db = MagicMock()
-            mock_session_local.return_value = mock_db
-
+        with patch(
+            "routers.quality.get_quality_alerts",
+            side_effect=RuntimeError("DB error"),
+        ):
             response = client.get("/quality/alerts/1")
             assert response.status_code == 500

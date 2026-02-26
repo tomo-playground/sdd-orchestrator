@@ -26,11 +26,14 @@ export async function suggestPromptSplit() {
 }
 
 export function copyPromptHelperText(text: string) {
-  const { set } = useUIStore.getState();
+  const { set, showToast } = useUIStore.getState();
   if (!text) return;
 
-  navigator.clipboard.writeText(text).then(() => {
-    set({ copyStatus: "Copied to clipboard!" });
-    setTimeout(() => set({ copyStatus: "" }), 2000);
-  });
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      set({ copyStatus: "Copied to clipboard!" });
+      setTimeout(() => set({ copyStatus: "" }), 2000);
+    })
+    .catch(() => showToast("클립보드 복사 실패", "error"));
 }

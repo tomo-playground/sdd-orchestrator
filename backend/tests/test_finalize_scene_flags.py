@@ -82,10 +82,10 @@ class TestAutoPopulateSceneFlags:
         assert scenes[0]["use_controlnet"] is True
 
     def test_context_tags_pose_underscore_normalized(self):
-        """context_tags.pose 언더바 형식 → 공백 정규화 후 매칭."""
+        """context_tags.pose 언더바 형식 → POSE_MAPPING 키 매칭."""
         scenes = [{"speaker": "A", "context_tags": {"pose": "arms_crossed"}}]
         _auto_populate_scene_flags(scenes, character_id=1)
-        assert scenes[0]["controlnet_pose"] == "arms crossed"
+        assert scenes[0]["controlnet_pose"] == "arms_crossed"
         assert scenes[0]["use_controlnet"] is True
 
     def test_invalid_context_pose_falls_back_to_default(self):

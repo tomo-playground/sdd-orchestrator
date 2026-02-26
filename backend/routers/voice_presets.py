@@ -37,13 +37,10 @@ def _compute_voice_seed(voice_design_prompt: str | None) -> int | None:
     return hash(translated) % (2**31)
 
 
-def _preset_to_response(preset: VoicePreset, db: Session) -> dict:
-    """Build response dict with computed audio_url."""
-    audio_url = None
-    if preset.audio_asset_id:
-        asset = db.get(MediaAsset, preset.audio_asset_id)
-        if asset:
-            audio_url = asset.url
+def _preset_to_response(preset: VoicePreset) -> dict:
+    """Build response dict with audio_url from eager-loaded relationship."""
+
+    audio_url = preset.audio_asset.url if preset.audio_asset else None
     return {
         "id": preset.id,
         "name": preset.name,
@@ -61,8 +58,10 @@ def _preset_to_response(preset: VoicePreset, db: Session) -> dict:
 
 @router.get("", response_model=list[VoicePresetResponse])
 def list_voice_presets(db: Session = Depends(get_db)):
-    presets = db.query(VoicePreset).order_by(VoicePreset.id).all()
-    return [_preset_to_response(p, db) for p in presets]
+    from sqlalchemy.orm import joinedload
+
+    presets = db.query(VoicePreset).options(joinedload(VoicePreset.audio_asset)).order_by(VoicePreset.id).all()
+    return [_preset_to_response(p) for p in presets]
 
 
 @router.get("/{preset_id}", response_model=VoicePresetResponse)
@@ -70,7 +69,7 @@ def get_voice_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(VoicePreset).filter(VoicePreset.id == preset_id).first()
     if not preset:
         raise HTTPException(status_code=404, detail="Voice preset not found")
-    return _preset_to_response(preset, db)
+    return _preset_to_response(preset)
 
 
 @router.post("", response_model=VoicePresetResponse, status_code=201)
@@ -88,7 +87,7 @@ def create_voice_preset(body: VoicePresetCreate, db: Session = Depends(get_db)):
     db.add(preset)
     db.commit()
     db.refresh(preset)
-    return _preset_to_response(preset, db)
+    return _preset_to_response(preset)
 
 
 @router.put("/{preset_id}", response_model=VoicePresetResponse)
@@ -108,7 +107,7 @@ def update_voice_preset(
         setattr(preset, key, value)
     db.commit()
     db.refresh(preset)
-    return _preset_to_response(preset, db)
+    return _preset_to_response(preset)
 
 
 @router.delete("/{preset_id}")
@@ -205,4 +204,4 @@ def attach_preview_to_preset(
         preset.voice_seed = _compute_voice_seed(preset.voice_design_prompt)
     db.commit()
     db.refresh(preset)
-    return _preset_to_response(preset, db)
+    return _preset_to_response(preset)

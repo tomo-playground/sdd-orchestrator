@@ -162,7 +162,6 @@ class TestCameraCategory:
             # Shot types
             ("close-up", "camera"),
             ("full body", "camera"),
-            ("medium shot", "camera"),
             ("wide shot", "camera"),
             ("upper body", "camera"),
             ("cowboy shot", "camera"),
