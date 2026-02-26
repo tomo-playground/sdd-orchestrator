@@ -116,10 +116,15 @@ async def generate_location_backgrounds(storyboard_id: int, db: Session) -> list
         logger.info("[Stage] No locations found for storyboard %d", storyboard_id)
         return []
 
-    # Resolve style context
+    # Resolve style context + ensure correct SD checkpoint
     style_ctx = resolve_style_context(storyboard_id, db)
     style_loras = extract_style_loras(style_ctx)
     quality_tags = style_ctx.default_positive.split(", ") if style_ctx and style_ctx.default_positive else None
+
+    if style_ctx and style_ctx.sd_model_name:
+        from services.image_generation_core import _ensure_correct_checkpoint
+
+        await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
     storyboard.stage_status = STAGE_STATUS_STAGING
     db.commit()
@@ -220,9 +225,16 @@ def assign_backgrounds_to_scenes(storyboard_id: int, db: Session) -> list[dict]:
     return assignments
 
 
-async def regenerate_background(storyboard_id: int, location_key: str, db: Session) -> dict:
+async def regenerate_background(
+    storyboard_id: int,
+    location_key: str,
+    db: Session,
+    *,
+    tags: list[str] | None = None,
+) -> dict:
     """Regenerate a specific location's background image.
 
+    If *tags* is provided, update the background tags before regenerating.
     Returns {background_id, status}.
     """
     bg = (
@@ -238,9 +250,19 @@ async def regenerate_background(storyboard_id: int, location_key: str, db: Sessi
     if not bg:
         raise ValueError(f"Background not found: storyboard={storyboard_id}, location={location_key}")
 
+    # Update tags if provided
+    if tags is not None:
+        bg.tags = tags
+        db.flush()
+
     style_ctx = resolve_style_context(storyboard_id, db)
     style_loras = extract_style_loras(style_ctx)
     quality_tags = style_ctx.default_positive.split(", ") if style_ctx and style_ctx.default_positive else None
+
+    if style_ctx and style_ctx.sd_model_name:
+        from services.image_generation_core import _ensure_correct_checkpoint
+
+        await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
     img_bytes = await _generate_background_image(bg.tags or [], style_loras, quality_tags, db)
     if not img_bytes:

@@ -10,6 +10,7 @@ import Button from "../ui/Button";
 import EmptyState from "../ui/EmptyState";
 import { API_BASE, API_TIMEOUT } from "../../constants";
 import { getErrorMsg } from "../../utils/error";
+import StageLocationCard from "./StageLocationCard";
 import type { StageLocationStatus, StageStatusResponse, StageStatus } from "../../types";
 
 export default function StageTab() {
@@ -71,13 +72,14 @@ export default function StageTab() {
     }
   };
 
-  const handleRegenerate = async (locationKey: string) => {
+  const handleRegenerate = async (locationKey: string, tags?: string[]) => {
     if (!storyboardId) return;
     setRegeneratingKey(locationKey);
     try {
+      const body = tags ? { tags } : null;
       const res = await axios.post(
         `${API_BASE}/storyboards/${storyboardId}/stage/regenerate-background/${locationKey}`,
-        null,
+        body,
         { timeout: API_TIMEOUT.STAGE_GENERATE }
       );
       if (res.data.status === "regenerated") {
@@ -243,95 +245,15 @@ export default function StageTab() {
       {locations.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {locations.map((loc) => (
-            <LocationCard
+            <StageLocationCard
               key={loc.location_key}
               location={loc}
               isRegenerating={regeneratingKey === loc.location_key}
-              onRegenerate={() => handleRegenerate(loc.location_key)}
+              onRegenerate={(tags) => handleRegenerate(loc.location_key, tags)}
             />
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-// ── Location Card ─────────────────────────────────────────────
-
-function LocationCard({
-  location,
-  isRegenerating,
-  onRegenerate,
-}: {
-  location: StageLocationStatus;
-  isRegenerating: boolean;
-  onRegenerate: () => void;
-}) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-      {/* Image area */}
-      <div className="relative aspect-video bg-zinc-100">
-        {location.has_image && location.image_url ? (
-          <img
-            src={location.image_url}
-            alt={location.location_key}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Image className="h-8 w-8 text-zinc-300" />
-          </div>
-        )}
-        {isRegenerating && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-            <Loader2 className="h-6 w-6 animate-spin text-white" />
-          </div>
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="p-3">
-        <div className="mb-1.5 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-zinc-900">
-            {location.location_key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-          </h3>
-          {location.has_image ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          ) : (
-            <AlertCircle className="h-4 w-4 text-zinc-300" />
-          )}
-        </div>
-
-        {/* Tags */}
-        <div className="mb-2 flex flex-wrap gap-1">
-          {location.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-600"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        {/* Scene count */}
-        <p className="mb-2 text-[11px] text-zinc-400">
-          {location.scene_ids.length} scene{location.scene_ids.length !== 1 ? "s" : ""}
-        </p>
-
-        {/* Actions */}
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full"
-          onClick={onRegenerate}
-          loading={isRegenerating}
-          disabled={isRegenerating}
-        >
-          <RefreshCw className="h-3 w-3" />
-          {location.has_image ? "Regenerate" : "Generate"}
-        </Button>
-      </div>
     </div>
   );
 }

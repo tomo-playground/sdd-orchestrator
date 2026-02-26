@@ -125,15 +125,17 @@ def assign_backgrounds(storyboard_id: int, db: Session = Depends(get_db)):
 async def regenerate_background_endpoint(
     storyboard_id: int,
     location_key: str,
+    body: StageRegenerateRequest | None = None,
     db: Session = Depends(get_db),
 ):
-    """Regenerate a specific location's background image."""
+    """Regenerate a specific location's background image. Optionally update tags first."""
     _get_storyboard_or_404(storyboard_id, db)
 
     from services.stage.background_generator import regenerate_background
 
+    new_tags = body.tags if body else None
     try:
-        result = await regenerate_background(storyboard_id, location_key, db)
+        result = await regenerate_background(storyboard_id, location_key, db, tags=new_tags)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 

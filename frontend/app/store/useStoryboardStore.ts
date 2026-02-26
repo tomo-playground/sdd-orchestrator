@@ -181,7 +181,6 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "validationExpanded",
   "imageValidationResults",
   "imageGenProgress",
-  "stageStatus",
   "loraTriggerWords",
   "characterLoras",
   "characterPromptMode",

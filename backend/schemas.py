@@ -2225,6 +2225,12 @@ class StageAssignResponse(BaseModel):
     assignments: list[StageAssignment]
 
 
+class StageRegenerateRequest(BaseModel):
+    """Request body for POST /{storyboard_id}/stage/regenerate-background/{location_key}."""
+
+    tags: list[str] | None = None  # If provided, update tags before regenerating
+
+
 class StageRegenerateResponse(BaseModel):
     """Response for POST /{storyboard_id}/stage/regenerate-background/{location_key}."""
 
