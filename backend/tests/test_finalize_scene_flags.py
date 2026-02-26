@@ -17,10 +17,17 @@ class TestAutoPopulateSceneFlags:
         assert scenes[0]["use_controlnet"] is True
         assert scenes[0]["controlnet_weight"] == 0.8
 
-    def test_character_scene_without_pose_disables_controlnet(self):
-        """캐릭터 씬 + pose 없음 → use_controlnet=False."""
+    def test_character_scene_without_pose_auto_assigns_default(self):
+        """캐릭터 씬 + pose 없음 + character_id → 기본 포즈 자동 할당, ControlNet ON."""
         scenes = [{"speaker": "A"}]
         _auto_populate_scene_flags(scenes, character_id=1)
+        assert scenes[0]["controlnet_pose"] == "standing"
+        assert scenes[0]["use_controlnet"] is True
+
+    def test_character_scene_without_pose_no_character_disables_controlnet(self):
+        """캐릭터 씬 + pose 없음 + character_id=None → use_controlnet=False."""
+        scenes = [{"speaker": "A"}]
+        _auto_populate_scene_flags(scenes, character_id=None)
         assert scenes[0]["use_controlnet"] is False
 
     def test_narrator_scene_disables_both(self):
@@ -67,6 +74,34 @@ class TestAutoPopulateSceneFlags:
         _auto_populate_scene_flags(scenes, character_id=None)
         assert scenes[0]["multi_gen_enabled"] is False
 
+    def test_context_tags_pose_used_for_controlnet(self):
+        """context_tags.pose가 있으면 controlnet_pose로 자동 할당."""
+        scenes = [{"speaker": "A", "context_tags": {"pose": "sitting"}}]
+        _auto_populate_scene_flags(scenes, character_id=1)
+        assert scenes[0]["controlnet_pose"] == "sitting"
+        assert scenes[0]["use_controlnet"] is True
+
+    def test_context_tags_pose_underscore_normalized(self):
+        """context_tags.pose 언더바 형식 → 공백 정규화 후 매칭."""
+        scenes = [{"speaker": "A", "context_tags": {"pose": "arms_crossed"}}]
+        _auto_populate_scene_flags(scenes, character_id=1)
+        assert scenes[0]["controlnet_pose"] == "arms crossed"
+        assert scenes[0]["use_controlnet"] is True
+
+    def test_invalid_context_pose_falls_back_to_default(self):
+        """유효하지 않은 context_tags.pose → DEFAULT_POSE_TAG fallback."""
+        scenes = [{"speaker": "A", "context_tags": {"pose": "flying_kick"}}]
+        _auto_populate_scene_flags(scenes, character_id=1)
+        assert scenes[0]["controlnet_pose"] == "standing"
+        assert scenes[0]["use_controlnet"] is True
+
+    def test_context_tags_none_falls_back_to_default(self):
+        """context_tags가 None인 경우 DEFAULT_POSE_TAG 할당."""
+        scenes = [{"speaker": "A", "context_tags": None}]
+        _auto_populate_scene_flags(scenes, character_id=1)
+        assert scenes[0]["controlnet_pose"] == "standing"
+        assert scenes[0]["use_controlnet"] is True
+
     def test_multiple_scenes_mixed(self):
         """여러 씬 혼합 — 캐릭터/Narrator 분리 처리."""
         scenes = [
@@ -112,3 +147,36 @@ async def test_finalize_node_populates_scene_flags():
     assert final[0]["use_ip_adapter"] is True
     assert final[1]["use_controlnet"] is False
     assert final[1]["use_ip_adapter"] is False
+
+
+@pytest.mark.asyncio
+async def test_finalize_express_mode_auto_assigns_controlnet():
+    """Express 모드 통합 — controlnet_pose 없이도 자동 할당되어 ControlNet ON."""
+    from unittest.mock import patch
+
+    from services.agent.nodes.finalize import finalize_node
+
+    state = {
+        "draft_scenes": [
+            {"script": "씬1", "speaker": "A", "duration": 3},
+            {"script": "배경", "speaker": "Narrator", "duration": 3},
+            {"script": "씬2", "speaker": "B", "duration": 3},
+        ],
+        "skip_stages": ["research", "concept", "production", "explain"],
+        "character_id": 1,
+        "duration": 30,
+        "language": "Korean",
+    }
+
+    with patch("services.agent.nodes.finalize.get_db_session"):
+        result = await finalize_node(state, config={})
+
+    final = result["final_scenes"]
+    # 캐릭터 씬: 기본 포즈 자동 할당 → ControlNet ON
+    assert final[0]["controlnet_pose"] == "standing"
+    assert final[0]["use_controlnet"] is True
+    # Narrator 씬: ControlNet OFF 유지
+    assert final[1]["use_controlnet"] is False
+    # 캐릭터 씬 B: 기본 포즈 자동 할당
+    assert final[2]["controlnet_pose"] == "standing"
+    assert final[2]["use_controlnet"] is True

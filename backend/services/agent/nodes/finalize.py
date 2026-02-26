@@ -275,15 +275,32 @@ def _auto_populate_scene_flags(scenes: list[dict], character_id: int | None) -> 
     """씬별 생성 플래그(use_controlnet, use_ip_adapter, multi_gen_enabled) 자동 할당.
 
     이미 값이 있는 필드는 덮어쓰지 않는다 (Cinematographer 명시값 보존).
+    Express 모드처럼 Cinematographer가 스킵된 경우, context_tags.pose에서
+    controlnet_pose를 자동 할당하여 ControlNet을 활성화한다.
     """
     from config import (  # noqa: PLC0415
         DEFAULT_CONTROLNET_WEIGHT,
         DEFAULT_IP_ADAPTER_WEIGHT,
         DEFAULT_MULTI_GEN_ENABLED,
+        DEFAULT_POSE_TAG,
     )
+    from services.controlnet import POSE_MAPPING  # noqa: PLC0415
+
+    valid_poses = set(POSE_MAPPING.keys())
 
     for scene in scenes:
         is_narrator = scene.get("speaker") == "Narrator"
+
+        # controlnet_pose 자동 할당: Cinematographer 미실행 시 context_tags.pose에서 파생
+        if not scene.get("controlnet_pose") and not is_narrator and character_id:
+            ctx_pose = (scene.get("context_tags") or {}).get("pose", DEFAULT_POSE_TAG)
+            if ctx_pose in valid_poses:
+                scene["controlnet_pose"] = ctx_pose
+            elif ctx_pose and ctx_pose.replace("_", " ") in valid_poses:
+                scene["controlnet_pose"] = ctx_pose.replace("_", " ")
+            else:
+                scene["controlnet_pose"] = DEFAULT_POSE_TAG
+
         has_pose = bool(scene.get("controlnet_pose"))
 
         if scene.get("use_controlnet") is None:
