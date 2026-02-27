@@ -257,13 +257,11 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `is_permanent` | Boolean | 항상 포함 여부 (아래 참조) |
 
 **`is_permanent`와 레이어 배치 규칙** (V3 Prompt Pipeline):
-- `is_permanent=true` → **LAYER_IDENTITY(2)에 강제 배치**, `tag.default_layer` 무시
-- `is_permanent=false` → `tag.default_layer` 사용
+- `is_permanent=true` → **weight boost** 적용 (기본 가중치 1.2), `tag.default_layer`는 그대로 사용
+- `is_permanent=false` → 일반 가중치 (1.0)
 
-> **Known Issue**: `is_permanent`가 "항상 포함"과 "캐릭터 identity"를 혼용하고 있음.
-> `anime_style`(스타일=L11), `solo`(subject=L1) 같은 비-identity 태그도 permanent로 등록되면
-> LAYER_IDENTITY(2)에 강제 배치되어 의미론적 오분류 발생.
-> → `PROMPT_PIPELINE_SPEC.md` Known Issue #2 참조
+> **Resolved** (Phase 15): `is_permanent`는 "항상 포함 + weight boost" 용도로만 사용.
+> 레이어 강제 배치(LAYER_IDENTITY 고정)는 제거되었으며, 각 태그는 자신의 `default_layer`에 정상 배치됨.
 
 ### `scene_tags`
 씬 ↔ 태그 연결 (환경/분위기 태그).
@@ -464,7 +462,6 @@ WD14 피드백 루프 데이터.
 | `custom_negative_prompt` | Text | Frontend `buildNegativePrompt()` 입력 |
 | `reference_base_prompt` | Text | 레퍼런스 이미지 전용 (V3 compose 미사용) |
 | `reference_negative_prompt` | Text | 레퍼런스 이미지 전용 |
-| `prompt_mode` | String(20) | `auto`, `standard`, `lora` |
 | **IP-Adapter** | | |
 | `ip_adapter_weight` | Float | 0.0-1.0 |
 | `ip_adapter_model` | String(50) | `clip`, `clip_face`, `faceid` |
@@ -618,10 +615,8 @@ Model + LoRAs + Embeddings 번들.
 | `is_system` | Boolean | 시스템 프리셋 여부 (default: false) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
-### `embeddings` (미구현)
-Textual Inversion 임베딩. **현재 미구현 상태입니다.**
-
-> **Note**: 이 테이블은 ERD에 명시되어 있으나 실제 ORM 모델 및 마이그레이션에는 구현되지 않았습니다. 현재 시스템에서 Textual Inversion 기능을 사용하지 않으므로 실질적 영향은 없습니다.
+### `embeddings`
+Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleContext 활성).
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -757,8 +752,9 @@ Textual Inversion 임베딩. **현재 미구현 상태입니다.**
 ]
 ```
 
-**V3 Pipeline 처리**: `lora_type`에 관계없이 현재 모두 LAYER_IDENTITY(2)에 배치.
-→ Known Issue: `lora_type=style`은 LAYER_ATMOSPHERE(11)에 배치해야 함.
+**V3 Pipeline 처리**: `lora_type`에 따라 레이어 분리 배치.
+- `lora_type=character` → LAYER_IDENTITY(2)
+- `lora_type=style` → LAYER_ATMOSPHERE(11) (**Resolved**: Phase 15에서 수정 완료)
 
 ### `ActivityLog.sd_params`
 ```json
@@ -774,7 +770,6 @@ Textual Inversion 임베딩. **현재 미구현 상태입니다.**
 | `Tag.usage_scope` | `PERMANENT`, `TRANSIENT`, `ANY` |
 | `Tag.classification_source` | `pattern`, `danbooru`, `llm`, `manual` |
 | `LoRA.lora_type` | `character`, `style`, `concept`, `pose` |
-| `Character.prompt_mode` | `auto`, `standard`, `lora` |
 | `Scene.scene_mode` | `single`, `multi` |
 | `TagRule.rule_type` | `conflict`, `requires` |
 | `TagAlias.target_tag` | String or `NULL` (= remove tag) |
