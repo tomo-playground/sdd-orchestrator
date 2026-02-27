@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   Scene,
   ActorGender,
+  CastingRecommendation,
   ReferenceImage,
   ImageValidation,
   ImageGenProgress,
@@ -84,6 +85,9 @@ export interface StoryboardStore {
   // Optimistic locking
   storyboardVersion: number | null;
 
+  // Casting recommendation (Phase 20-B)
+  castingRecommendation: CastingRecommendation | null;
+
   // Dirty flag
   isDirty: boolean;
 
@@ -155,6 +159,7 @@ const initialState: Omit<
   imageGenProgress: {},
   stageStatus: "pending" as StageStatus,
   storyboardVersion: null,
+  castingRecommendation: null,
 };
 
 export const STORYBOARD_STORE_KEY = "shorts-producer:storyboard:v1";
@@ -193,6 +198,7 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "imageGenProgress",
   "loraTriggerWords",
   "characterLoras",
+  "castingRecommendation",
 ];
 
 export const useStoryboardStore = create<StoryboardStore>()(

@@ -6,7 +6,13 @@ export const EXPRESS_SKIP_STAGES = ["research", "concept", "production", "explai
 type StepDef = PipelineStep & { stage?: string };
 
 const ALL_STEPS: StepDef[] = [
-  { id: "research", label: "리서치", status: "idle", nodes: ["Research"], stage: "research" },
+  {
+    id: "research",
+    label: "리서치/캐스팅",
+    status: "idle",
+    nodes: ["Research"],
+    stage: "research",
+  },
   {
     id: "concept",
     label: "컨셉",

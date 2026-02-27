@@ -7,6 +7,7 @@ import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useCharacters } from "../../hooks/useCharacters";
 import { isMultiCharStructure } from "../../utils/structure";
 import CharacterSelector from "../setup/CharacterSelector";
+import StageCastingCompareCard from "./StageCastingCompareCard";
 import StageCharacterCard from "./StageCharacterCard";
 import type { CharacterFull, VoicePreset } from "../../types";
 import type { AudioPlayer } from "../../hooks/useAudioPlayer";
@@ -46,10 +47,16 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
   const selectedCharacterId = useStoryboardStore((s) => s.selectedCharacterId);
   const selectedCharacterBId = useStoryboardStore((s) => s.selectedCharacterBId);
   const structure = useStoryboardStore((s) => s.structure);
+  const basePromptA = useStoryboardStore((s) => s.basePromptA);
+  const basePromptB = useStoryboardStore((s) => s.basePromptB);
   const setPlan = useStoryboardStore((s) => s.set);
+  const casting = useStoryboardStore((s) => s.castingRecommendation);
   const { characters, getCharacterFull } = useCharacters();
 
   const isDialogue = isMultiCharStructure(structure);
+  const recommendedIds = [casting?.character_id, casting?.character_b_id].filter(
+    (id): id is number => id != null
+  );
 
   const charA = characters.find((c) => c.id === selectedCharacterId) ?? null;
   const charB = characters.find((c) => c.id === selectedCharacterBId) ?? null;
@@ -66,9 +73,41 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
   const getVoicePreset = (id: number | null) =>
     id ? (voicePresets.find((p) => p.id === id) ?? null) : null;
 
+  const handleAcceptCasting = () => {
+    if (!casting) return;
+    if (casting.character_id != null) {
+      const char = characters.find((c) => c.id === casting.character_id);
+      setPlan({
+        selectedCharacterId: casting.character_id,
+        selectedCharacterName: char?.name ?? casting.character_name,
+      });
+      if (char?.gender) setPlan({ actorAGender: char.gender });
+    }
+    if (casting.character_b_id != null) {
+      const name =
+        characters.find((c) => c.id === casting.character_b_id)?.name ?? casting.character_b_name;
+      setPlan({ selectedCharacterBId: casting.character_b_id, selectedCharacterBName: name });
+    }
+    setPlan({ castingRecommendation: null });
+  };
+
+  const handleDismissCasting = () => {
+    setPlan({ castingRecommendation: null });
+  };
+
   return (
     <section>
       <h3 className="mb-3 text-sm font-semibold text-zinc-800">Characters</h3>
+
+      {/* Casting comparison card */}
+      {casting && (
+        <StageCastingCompareCard
+          casting={casting}
+          currentChar={charA}
+          onAccept={handleAcceptCasting}
+          onDismiss={handleDismissCasting}
+        />
+      )}
 
       {/* Character Selectors */}
       <div className="mb-4 flex flex-wrap gap-3">
@@ -81,6 +120,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
             setPlan({ selectedCharacterId: charId, selectedCharacterName: char?.name ?? null });
             if (char?.gender) setPlan({ actorAGender: char.gender });
           }}
+          recommendedCharacterIds={recommendedIds}
         />
         {isDialogue && (
           <CharacterSelector
@@ -91,6 +131,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
               const name = characters.find((c) => c.id === charId)?.name ?? null;
               setPlan({ selectedCharacterBId: charId, selectedCharacterBName: name });
             }}
+            recommendedCharacterIds={recommendedIds}
           />
         )}
       </div>
@@ -112,13 +153,14 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {charA && (
             <StageCharacterCard
               key={charA.id}
               character={charA}
               characterFull={charAFull}
               role="A"
+              basePrompt={basePromptA}
               voicePreset={getVoicePreset(charA.voice_preset_id)}
               audioPlayer={audioPlayer}
               onViewInLibrary={() => router.push(`/characters/${charA.id}`)}
@@ -130,6 +172,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
               character={charB}
               characterFull={charBFull}
               role="B"
+              basePrompt={basePromptB}
               voicePreset={getVoicePreset(charB.voice_preset_id)}
               audioPlayer={audioPlayer}
               onViewInLibrary={() => router.push(`/characters/${charB.id}`)}

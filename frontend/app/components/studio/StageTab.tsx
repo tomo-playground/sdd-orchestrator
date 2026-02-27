@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Image } from "lucide-react";
 import axios from "axios";
 import { useShallow } from "zustand/react/shallow";
@@ -15,7 +14,6 @@ import StyleProfileSelector from "../setup/StyleProfileSelector";
 import EmptyState from "../ui/EmptyState";
 import { API_BASE, API_TIMEOUT } from "../../constants";
 import { getErrorMsg } from "../../utils/error";
-import { isMultiCharStructure } from "../../utils/structure";
 import type { VoicePreset } from "../../types";
 import StageReadinessBar from "./StageReadinessBar";
 import StageLocationsSection from "./StageLocationsSection";
@@ -30,33 +28,12 @@ export default function StageTab() {
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const currentStyleProfile = useRenderStore((s) => s.currentStyleProfile);
 
-  const router = useRouter();
-
-  const {
-    basePromptA,
-    basePromptB,
-    autoRewritePrompt,
-    autoReplaceRiskyTags,
-    hiResEnabled,
-    veoEnabled,
-    structure,
-    selectedCharacterId,
-    selectedCharacterBId,
-    selectedCharacterName,
-    selectedCharacterBName,
-  } = useStoryboardStore(
+  const { autoRewritePrompt, autoReplaceRiskyTags, hiResEnabled, veoEnabled } = useStoryboardStore(
     useShallow((s) => ({
-      basePromptA: s.basePromptA,
-      basePromptB: s.basePromptB,
       autoRewritePrompt: s.autoRewritePrompt,
       autoReplaceRiskyTags: s.autoReplaceRiskyTags,
       hiResEnabled: s.hiResEnabled,
       veoEnabled: s.veoEnabled,
-      structure: s.structure,
-      selectedCharacterId: s.selectedCharacterId,
-      selectedCharacterBId: s.selectedCharacterBId,
-      selectedCharacterName: s.selectedCharacterName,
-      selectedCharacterBName: s.selectedCharacterBName,
     }))
   );
   const setPlan = useStoryboardStore((s) => s.set);
@@ -67,9 +44,6 @@ export default function StageTab() {
   const [locTotal, setLocTotal] = useState(0);
   const [isAssigning, setIsAssigning] = useState(false);
   const [voicePresets, setVoicePresets] = useState<VoicePreset[]>([]);
-
-  const isDialogue = isMultiCharStructure(structure);
-  const hasPrompt = !!(basePromptA || basePromptB);
 
   const TOGGLES = [
     { key: "autoRewritePrompt" as const, label: "Auto Rewrite", value: autoRewritePrompt },
@@ -203,35 +177,6 @@ export default function StageTab() {
         <div className="border-t border-zinc-100" />
         <StageCharactersSection audioPlayer={audioPlayer} voicePresets={voicePresets} />
 
-        {/* Base Prompts (read-only summary) */}
-        <section>
-          <h3 className="mb-2 text-[12px] font-semibold tracking-[0.2em] text-zinc-400 uppercase">
-            Base Prompts
-          </h3>
-          {hasPrompt ? (
-            <div className="space-y-2">
-              <PromptSummary
-                label={isDialogue ? "A" : undefined}
-                name={selectedCharacterName}
-                value={basePromptA}
-                charId={selectedCharacterId}
-                onEdit={(id) => router.push(`/characters/${id}`)}
-              />
-              {isDialogue && (
-                <PromptSummary
-                  label="B"
-                  name={selectedCharacterBName}
-                  value={basePromptB}
-                  charId={selectedCharacterBId}
-                  onEdit={(id) => router.push(`/characters/${id}`)}
-                />
-              )}
-            </div>
-          ) : (
-            <p className="text-xs text-zinc-400">캐릭터를 선택하면 자동 생성됩니다</p>
-          )}
-        </section>
-
         <div className="border-t border-zinc-100" />
 
         {/* Generation Settings */}
@@ -265,43 +210,6 @@ export default function StageTab() {
         <div className="border-t border-zinc-100" />
         <StageBgmSection audioPlayer={audioPlayer} />
       </div>
-    </div>
-  );
-}
-
-/* ── Read-only prompt summary with edit link ────────────── */
-function PromptSummary({
-  label,
-  name,
-  value,
-  charId,
-  onEdit,
-}: {
-  label?: string;
-  name?: string | null;
-  value: string;
-  charId?: number | null;
-  onEdit: (id: number) => void;
-}) {
-  const truncated = value.length > 80 ? value.slice(0, 80) + "..." : value;
-  return (
-    <div className="flex items-start gap-3 rounded-xl border border-zinc-100 bg-zinc-50/50 px-3 py-2">
-      <div className="min-w-0 flex-1">
-        {label && <span className="text-[11px] font-semibold text-zinc-400">{label}: </span>}
-        {name && <span className="text-[11px] font-medium text-zinc-600">{name}</span>}
-        <p className="mt-0.5 truncate text-xs text-zinc-500" title={value}>
-          {truncated || "—"}
-        </p>
-      </div>
-      {charId && (
-        <button
-          type="button"
-          onClick={() => onEdit(charId)}
-          className="shrink-0 text-[11px] font-medium text-zinc-400 transition hover:text-zinc-600"
-        >
-          Edit →
-        </button>
-      )}
     </div>
   );
 }

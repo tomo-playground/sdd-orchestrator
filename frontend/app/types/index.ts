@@ -566,6 +566,20 @@ export type EvaluationSummary = {
 };
 
 // ============================================================
+// Casting Recommendation Types (Phase 20-B)
+// ============================================================
+
+export type CastingRecommendation = {
+  character_id: number | null;
+  character_name: string;
+  character_b_id: number | null;
+  character_b_name: string;
+  structure: string | null;
+  style_profile_id: number | null;
+  reasoning: string;
+};
+
+// ============================================================
 // Storyboard List Types
 // ============================================================
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCharacters } from "../../hooks/useCharacters";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { isMultiCharStructure } from "../../utils/structure";
 import {
   cx,
@@ -31,9 +32,14 @@ export default function CharacterSelectSection({
   embedded = false,
 }: Props) {
   const { characters } = useCharacters();
+  const casting = useStoryboardStore((s) => s.castingRecommendation);
   const isMultiChar = isMultiCharStructure(structure);
 
   if (characters.length === 0) return null;
+
+  const recIds = new Set(
+    [casting?.character_id, casting?.character_b_id].filter((id): id is number => id != null)
+  );
 
   const renderSelect = (
     label: string,
@@ -46,7 +52,7 @@ export default function CharacterSelectSection({
         value={value ?? ""}
         onChange={(e) => {
           const id = e.target.value ? Number(e.target.value) : null;
-          const name = id ? characters.find((c) => c.id === id)?.name ?? null : null;
+          const name = id ? (characters.find((c) => c.id === id)?.name ?? null) : null;
           onChange(id, name);
         }}
         className={FORM_INPUT_CLASSES}
@@ -55,6 +61,7 @@ export default function CharacterSelectSection({
         {characters.map((c) => (
           <option key={c.id} value={c.id}>
             {c.name}
+            {recIds.has(c.id) ? " (AI 추천)" : ""}
           </option>
         ))}
       </select>

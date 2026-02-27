@@ -8,6 +8,7 @@ type Props = {
   character: Character;
   characterFull: CharacterFull | null;
   role: "A" | "B";
+  basePrompt: string;
   voicePreset: VoicePreset | null;
   audioPlayer: AudioPlayer;
   onViewInLibrary: () => void;
@@ -17,6 +18,7 @@ export default function StageCharacterCard({
   character,
   characterFull,
   role,
+  basePrompt,
   voicePreset,
   audioPlayer,
   onViewInLibrary,
@@ -106,6 +108,19 @@ export default function StageCharacterCard({
                 <span className="shrink-0 text-indigo-400">w:{Number(lora.weight.toFixed(2))}</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Base Prompt */}
+        {basePrompt && (
+          <div className="mb-2 rounded-lg bg-zinc-50 px-2.5 py-2">
+            <p className="mb-0.5 text-[11px] font-semibold text-zinc-400">Base Prompt</p>
+            <p
+              className="line-clamp-2 text-[11px] leading-relaxed text-zinc-500"
+              title={basePrompt}
+            >
+              {basePrompt}
+            </p>
           </div>
         )}
 

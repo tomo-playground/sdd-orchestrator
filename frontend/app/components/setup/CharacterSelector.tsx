@@ -9,6 +9,7 @@ type CharacterSelectorProps = {
   characters: Character[];
   selectedCharacterId: number | null;
   onSelect: (charId: number | null) => void;
+  recommendedCharacterIds?: number[];
 };
 
 function CharacterThumbnail({
@@ -46,6 +47,7 @@ export default function CharacterSelector({
   characters,
   selectedCharacterId,
   onSelect,
+  recommendedCharacterIds,
 }: CharacterSelectorProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -73,13 +75,16 @@ export default function CharacterSelector({
   }, [open]);
 
   const selectedChar = characters.find((c) => c.id === selectedCharacterId);
+  const recSet = new Set(recommendedCharacterIds ?? []);
+  const recommended = recSet.size > 0 ? characters.filter((c) => recSet.has(c.id)) : [];
   const female = characters.filter((c) => c.gender === "female");
   const male = characters.filter((c) => c.gender === "male");
   const other = characters.filter((c) => c.gender !== "female" && c.gender !== "male");
   const groups = [
-    { label: "Female", items: female },
-    { label: "Male", items: male },
-    { label: "Other", items: other },
+    { label: "AI 추천", items: recommended, highlight: true },
+    { label: "Female", items: female, highlight: false },
+    { label: "Male", items: male, highlight: false },
+    { label: "Other", items: other, highlight: false },
   ].filter((g) => g.items.length > 0);
 
   return (
@@ -127,14 +132,22 @@ export default function CharacterSelector({
         <div className="absolute top-full right-0 left-0 z-[var(--z-popover)] mt-1 max-h-64 overflow-y-auto rounded-2xl border border-zinc-200 bg-white shadow-xl shadow-zinc-200/50">
           {groups.map((group) => (
             <div key={group.label}>
-              <div className="sticky top-0 border-b border-zinc-100 bg-zinc-50 px-3 py-1.5 text-[12px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
+              <div
+                className={`sticky top-0 border-b px-3 py-1.5 text-[12px] font-semibold tracking-[0.15em] uppercase ${
+                  group.highlight
+                    ? "border-amber-200 bg-amber-50 text-amber-600"
+                    : "border-zinc-100 bg-zinc-50 text-zinc-400"
+                }`}
+              >
+                {group.highlight && "✦ "}
                 {group.label}
               </div>
               {group.items.map((char) => {
                 const isSelected = char.id === selectedCharacterId;
+                const isRec = recSet.has(char.id);
                 return (
                   <button
-                    key={char.id}
+                    key={`${group.label}-${char.id}`}
                     type="button"
                     onClick={() => {
                       onSelect(char.id);
@@ -142,7 +155,7 @@ export default function CharacterSelector({
                     }}
                     className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition hover:bg-zinc-50 ${
                       isSelected ? "bg-zinc-50 font-medium" : ""
-                    }`}
+                    } ${isRec && group.highlight ? "bg-amber-50/50" : ""}`}
                   >
                     <CharacterThumbnail
                       src={resolveImageUrl(char.preview_image_url)}
