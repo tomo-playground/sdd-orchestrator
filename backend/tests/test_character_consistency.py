@@ -12,14 +12,12 @@ from services.character_consistency import (
 def _make_character(
     name="test_char",
     loras=None,
-    prompt_mode="v3",
     ip_adapter_weight=None,
     ip_adapter_model=None,
 ):
     char = MagicMock()
     char.name = name
     char.loras = loras
-    char.prompt_mode = prompt_mode
     char.ip_adapter_weight = ip_adapter_weight
     char.ip_adapter_model = ip_adapter_model
     return char

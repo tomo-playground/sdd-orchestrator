@@ -21,7 +21,10 @@ function buildCharacterPrompt(character: CharacterFull): string {
 
   if (character.custom_base_prompt) {
     const existing = new Set(parts.map((p) => p.replace(/[():\d.]/g, "").toLowerCase()));
-    const custom = character.custom_base_prompt.split(",").map((t) => t.trim()).filter(Boolean);
+    const custom = character.custom_base_prompt
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
     for (const token of custom) {
       const norm = token.replace(/[():\d.]/g, "").toLowerCase();
       if (!existing.has(norm)) {
@@ -54,14 +57,13 @@ const BASE_CHARACTER: CharacterFull = {
   reference_base_prompt: null,
   reference_negative_prompt: null,
   preview_image_url: null,
-  prompt_mode: "auto",
   ip_adapter_weight: null,
   ip_adapter_model: null,
   ip_adapter_guidance_start: null,
   ip_adapter_guidance_end: null,
   reference_source_type: null,
+  reference_images: null,
   voice_preset_id: null,
-  effective_mode: "standard",
 };
 
 describe("buildCharacterPrompt", () => {
@@ -125,9 +127,7 @@ describe("buildCharacterPrompt", () => {
   it("appends custom_base_prompt tokens", () => {
     const char: CharacterFull = {
       ...BASE_CHARACTER,
-      tags: [
-        { tag_id: 1, name: "solo", weight: 1.0, is_permanent: true },
-      ],
+      tags: [{ tag_id: 1, name: "solo", weight: 1.0, is_permanent: true }],
       custom_base_prompt: "anime_style, flat color",
     };
     const result = buildCharacterPrompt(char);

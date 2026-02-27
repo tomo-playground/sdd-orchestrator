@@ -179,14 +179,17 @@ class TagClassifier:
         return results, still_unknown
 
     def _lookup_db(self, tag: str) -> ClassificationResult | None:
-        """Look up tag in database."""
+        """Look up tag in database.
+
+        If group_name exists in DB, always trust it regardless of confidence.
+        """
         stmt = select(Tag).where(Tag.name == tag)
         result = self.db.execute(stmt).scalar_one_or_none()
 
         if result and result.group_name:
             return {
                 "group": result.group_name,
-                "confidence": result.classification_confidence or 1.0,
+                "confidence": max(result.classification_confidence or 1.0, 0.9),
                 "source": "db",
             }
         return None

@@ -1,6 +1,6 @@
 """Tag CRUD endpoints."""
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -8,7 +8,7 @@ from config import logger
 from database import get_db
 from models import Tag
 from schemas import TagCreate, TagResponse, TagSearchResponse, TagUpdate
-from services.tag_classifier import TagClassifier, classify_tags_background
+from services.tag_classifier import TagClassifier
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -310,13 +310,11 @@ async def delete_tag(tag_id: int, db: Session = Depends(get_db)):
 @router.post("/classify", response_model=ClassifyResponse)
 async def classify_tags(
     request: ClassifyRequest,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    """Classify tags using hybrid approach: DB → Rules (instant) + Danbooru (background).
+    """Classify tags: Rules → DB → Danbooru → LLM (unified pipeline).
 
-    Steps 1-2 (Rules + DB cache) return immediately.
-    Step 3 (Danbooru) runs in background — results available on next call.
+    Single classification path used by both frontend and Finalize node.
     """
     if not request.tags:
         return ClassifyResponse(results={}, classified=0, unknown=0)
@@ -325,13 +323,8 @@ async def classify_tags(
         raise HTTPException(status_code=400, detail="Maximum 50 tags per request")
 
     classifier = TagClassifier(db)
-    raw_results, pending_tags = classifier.classify_batch(request.tags)
+    raw_results = await classifier.classify_batch_with_llm(request.tags)
 
-    # Schedule Danbooru classification in background
-    if pending_tags:
-        background_tasks.add_task(classify_tags_background, pending_tags)
-
-    # Convert to response format
     results = {
         tag: ClassificationResultItem(
             group=result["group"],
@@ -345,11 +338,10 @@ async def classify_tags(
     unknown = len(results) - classified
 
     logger.info(
-        "🏷️ [Tags] Classified %d/%d tags (%d unknown, %d pending background)",
+        "🏷️ [Tags] Classified %d/%d tags (%d unknown)",
         classified,
         len(request.tags),
         unknown,
-        len(pending_tags),
     )
 
     return ClassifyResponse(results=results, classified=classified, unknown=unknown)

@@ -55,11 +55,6 @@ export default function StageCharacterCard({
               {character.gender}
             </span>
           )}
-          {character.prompt_mode && (
-            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-600">
-              {character.prompt_mode}
-            </span>
-          )}
           {tagCount > 0 && (
             <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] text-zinc-500">
               {tagCount} tags
@@ -100,7 +95,10 @@ export default function StageCharacterCard({
               </p>
             )}
             {characterFull?.loras?.map((lora, i) => (
-              <div key={`${lora.id}-${i}`} className="flex items-center gap-1.5 text-[11px] text-indigo-600">
+              <div
+                key={`${lora.id}-${i}`}
+                className="flex items-center gap-1.5 text-[11px] text-indigo-600"
+              >
                 <span className="text-indigo-400">LoRA</span>
                 <span className="min-w-0 flex-1 truncate font-medium">
                   {lora.display_name || lora.name}

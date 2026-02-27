@@ -336,7 +336,6 @@ export type Character = {
   preview_image_url: string | null;
   preview_key: string | null;
   preview_locked: boolean;
-  prompt_mode: PromptMode;
   ip_adapter_weight: number | null;
   ip_adapter_model: string | null;
   voice_preset_id: number | null;
@@ -398,9 +397,6 @@ export type CharacterFullLoRA = {
   lora_type?: string; // character, style, concept
 };
 
-export type PromptMode = "auto" | "standard" | "lora";
-export type EffectiveMode = "standard" | "lora";
-
 export type CharacterFull = {
   id: number;
   style_profile_id: number | null;
@@ -418,7 +414,6 @@ export type CharacterFull = {
   reference_base_prompt: string | null;
   reference_negative_prompt: string | null;
   preview_image_url: string | null;
-  prompt_mode: PromptMode;
   ip_adapter_weight: number | null;
   ip_adapter_model: string | null;
   ip_adapter_guidance_start: number | null;
@@ -426,7 +421,6 @@ export type CharacterFull = {
   reference_source_type: string | null;
   reference_images: { angle: string; asset_id: number }[] | null;
   voice_preset_id: number | null;
-  effective_mode: EffectiveMode;
 };
 
 export type StyleProfileFull = {

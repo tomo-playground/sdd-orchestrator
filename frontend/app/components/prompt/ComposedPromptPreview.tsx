@@ -11,8 +11,6 @@ import {
   WARNING_TEXT,
   ERROR_BG,
   ERROR_TEXT,
-  INFO_BG,
-  INFO_TEXT,
 } from "../ui/variants";
 import LayerView from "./LayerView";
 import GroupedView from "./GroupedView";
@@ -35,7 +33,6 @@ type ComposedPromptPreviewProps = {
   contextTags?: Record<string, unknown>;
   backgroundId?: number;
   loras?: LoRAInfo[];
-  mode?: "auto" | "standard" | "lora";
   useBreak?: boolean;
   onComposed?: (result: ComposeResult) => void;
   onNegativeComposed?: (negative: string, sources: NegativeSourceInfo[]) => void;
@@ -79,6 +76,8 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
   eye_color: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200" },
   skin_color: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
   body_feature: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  body_type: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  eye_detail: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200" },
   appearance: { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200" },
   expression: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
   gaze: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
@@ -86,8 +85,20 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
   action_body: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
   action_hand: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
   action_daily: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+  action: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+  gesture: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
   camera: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" },
   location_indoor: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  location_indoor_general: {
+    bg: "bg-emerald-50",
+    text: "text-emerald-700",
+    border: "border-emerald-200",
+  },
+  location_indoor_specific: {
+    bg: "bg-emerald-50",
+    text: "text-emerald-700",
+    border: "border-emerald-200",
+  },
   location_outdoor: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
   environment: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
   background_type: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
@@ -99,6 +110,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
   clothing_top: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
   clothing_bottom: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
   clothing_outfit: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
+  clothing: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
   clothing_detail: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
   legwear: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
   footwear: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
@@ -119,25 +131,33 @@ const CATEGORY_LABELS: Record<string, string> = {
   hair_style: "헤어",
   hair_accessory: "헤어",
   eye_color: "눈",
+  eye_detail: "눈 디테일",
   skin_color: "피부",
   body_feature: "신체",
+  body_type: "체형",
   appearance: "외모",
   expression: "표정",
   gaze: "시선",
   pose: "포즈",
+  action: "동작",
   action_body: "몸 동작",
   action_hand: "손 동작",
   action_daily: "일상 동작",
+  gesture: "제스처",
   camera: "카메라",
   location_indoor: "실내",
+  location_indoor_general: "실내 일반",
+  location_indoor_specific: "실내 상세",
   location_outdoor: "야외",
   environment: "환경",
   background_type: "배경",
   time_of_day: "시간대",
+  time_weather: "시간/날씨",
   weather: "날씨",
   particle: "파티클",
   lighting: "조명",
   mood: "분위기",
+  clothing: "의류",
   clothing_top: "상의",
   clothing_bottom: "하의",
   clothing_outfit: "전신복",
@@ -150,6 +170,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   break: "구분선",
   unknown: "기타",
 };
+
+/** Fallback: format raw group_name as display label. */
+function getCategoryLabel(group: string): string {
+  return CATEGORY_LABELS[group] ?? group.replace(/_/g, " ");
+}
 
 function getTokenCategory(token: string): string {
   if (token.startsWith("<lora:")) return "lora";
@@ -173,7 +198,6 @@ export default function ComposedPromptPreview({
   contextTags,
   backgroundId,
   loras = [],
-  mode = "auto",
   useBreak = true,
   onComposed,
   onNegativeComposed,
@@ -276,8 +300,6 @@ export default function ComposedPromptPreview({
       "|" +
       loras.map((l) => l.name).join(",") +
       "|" +
-      mode +
-      "|" +
       (characterId ?? "") +
       "|" +
       (basePrompt ?? "");
@@ -300,7 +322,7 @@ export default function ComposedPromptPreview({
   const groupedTokens = (result?.tokens || tokens).reduce(
     (acc, token) => {
       const category = getCategory(token);
-      const label = CATEGORY_LABELS[category] || category;
+      const label = getCategoryLabel(category);
       if (!acc[label]) acc[label] = { category, tokens: [] };
       acc[label].tokens.push(token);
       return acc;
@@ -320,7 +342,8 @@ export default function ComposedPromptPreview({
   const hasLayers = !!result?.layers && result.layers.length > 0;
   const effectiveMode = viewMode === "layers" && !hasLayers ? "grouped" : viewMode;
 
-  if (tokens.length === 0) {
+  // Hide entirely when no tokens or no compose result yet
+  if (tokens.length === 0 || (!result && !isLoading)) {
     return null;
   }
 
@@ -333,31 +356,8 @@ export default function ComposedPromptPreview({
             Composed Preview
           </span>
           {isLoading && (
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+            <span className="animate-pulse rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
               Composing...
-            </span>
-          )}
-          {!isLoading && result && (
-            <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${SUCCESS_BG} ${SUCCESS_TEXT}`}
-            >
-              Filtered
-            </span>
-          )}
-          {!isLoading && !result && (
-            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-500">
-              Raw
-            </span>
-          )}
-          {result && (
-            <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                result.effective_mode === "lora"
-                  ? `${INFO_BG} ${INFO_TEXT}`
-                  : "bg-zinc-100 text-zinc-600"
-              }`}
-            >
-              {result.effective_mode.toUpperCase()}
             </span>
           )}
           {result?.scene_complexity && (
@@ -415,22 +415,23 @@ export default function ComposedPromptPreview({
       {/* Error message */}
       {error && <div className="rounded-lg bg-red-50 p-2 text-[12px] text-red-600">{error}</div>}
 
-      {/* Token display — 3 view modes */}
-      {effectiveMode === "layers" && result?.layers ? (
-        <LayerView layers={result.layers} />
-      ) : effectiveMode === "grouped" ? (
-        <GroupedView
-          groupedTokens={groupedTokens}
-          categoryColors={CATEGORY_COLORS}
-          getTokenStyle={getTokenStyle}
-        />
-      ) : (
-        <LinearView
-          tokens={result?.tokens || tokens}
-          getTokenStyle={getTokenStyle}
-          getCategory={getCategory}
-        />
-      )}
+      {/* Token display — compose result only */}
+      {result &&
+        (effectiveMode === "layers" && result.layers ? (
+          <LayerView layers={result.layers} />
+        ) : effectiveMode === "grouped" ? (
+          <GroupedView
+            groupedTokens={groupedTokens}
+            categoryColors={CATEGORY_COLORS}
+            getTokenStyle={getTokenStyle}
+          />
+        ) : (
+          <LinearView
+            tokens={result.tokens}
+            getTokenStyle={getTokenStyle}
+            getCategory={getCategory}
+          />
+        ))}
 
       {/* LoRA weights info */}
       {result?.lora_weights && Object.keys(result.lora_weights).length > 0 && (

@@ -1,4 +1,4 @@
-import type { ActorGender, PromptMode } from "../../../types";
+import type { ActorGender } from "../../../types";
 import type { WizardTag } from "./steps/AppearanceStep";
 import type { WizardCategory } from "./wizardTemplates";
 import { applyTagToggle, applyFreeTagToggle } from "../shared/tagUtils";
@@ -25,7 +25,6 @@ export type WizardState = {
   selectedLoras: WizardLoRA[];
   isSaving: boolean;
   // Prompts
-  prompt_mode: PromptMode;
   custom_base_prompt: string;
   custom_negative_prompt: string;
   reference_base_prompt: string;
@@ -51,7 +50,6 @@ export type WizardAction =
   | { type: "TOGGLE_LORA"; loraId: number; defaultWeight: number }
   | { type: "UPDATE_LORA_WEIGHT"; loraId: number; weight: number }
   | { type: "CLEAR_LORAS" }
-  | { type: "SET_PROMPT_MODE"; mode: PromptMode }
   | { type: "SET_PROMPT_FIELD"; field: PromptField; value: string }
   | { type: "SET_GENERATING"; isGenerating: boolean }
   | { type: "SET_PREVIEW"; image: string; seed: number; candidates: CandidateImage[] }
@@ -125,8 +123,6 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
       };
     case "CLEAR_LORAS":
       return { ...state, selectedLoras: [] };
-    case "SET_PROMPT_MODE":
-      return { ...state, prompt_mode: action.mode };
     case "SET_PROMPT_FIELD":
       return { ...state, [action.field]: action.value };
     case "SET_GENERATING":
@@ -174,7 +170,6 @@ export const INITIAL_WIZARD_STATE: WizardState = {
   selectedTags: [],
   selectedLoras: [],
   isSaving: false,
-  prompt_mode: "auto",
   custom_base_prompt: "",
   custom_negative_prompt: "",
   reference_base_prompt: "",

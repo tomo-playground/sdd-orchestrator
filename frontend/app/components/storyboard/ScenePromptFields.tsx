@@ -22,7 +22,6 @@ type ScenePromptFieldsProps = {
     lora_type?: string;
     optimal_weight?: number;
   }>;
-  promptMode: "auto" | "standard" | "lora";
   selectedCharacterId?: number | null;
   basePromptA: string;
   onUpdateScene: (updates: Partial<Scene>) => void;
@@ -31,7 +30,6 @@ type ScenePromptFieldsProps = {
 export default function ScenePromptFields({
   scene,
   characterLoras,
-  promptMode,
   selectedCharacterId,
   basePromptA,
   onUpdateScene,
@@ -145,7 +143,6 @@ export default function ScenePromptFields({
               contextTags={scene.context_tags || undefined}
               backgroundId={scene.background_id || undefined}
               loras={characterLoras}
-              mode={promptMode}
               useBreak={true}
               onNegativeComposed={handleNegativeComposed}
               className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3"

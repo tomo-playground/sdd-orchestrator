@@ -36,7 +36,6 @@ export function useCharacterAutoLoad() {
       sbSet({
         loraTriggerWords: [],
         characterLoras: [],
-        characterPromptMode: "auto",
         selectedCharacterName: null,
         basePromptA: "",
         baseNegativePromptA: "",
@@ -62,9 +61,6 @@ export function useCharacterAutoLoad() {
           }))
         : [];
 
-      const mode =
-        charFull.prompt_mode || (charFull.effective_mode === "lora" ? "lora" : "standard");
-
       const match =
         referenceImages.length > 0
           ? referenceImages.find((r) => r.character_id === charFull.id)
@@ -75,7 +71,6 @@ export function useCharacterAutoLoad() {
         baseNegativePromptA: baseNegative,
         loraTriggerWords: triggers,
         characterLoras,
-        characterPromptMode: mode || "auto",
         useIpAdapter: !!match,
         ipAdapterReference: match?.character_key || "",
         ipAdapterWeight: match?.preset?.weight ?? charFull.ip_adapter_weight ?? 0.75,

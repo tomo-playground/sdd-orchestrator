@@ -24,9 +24,6 @@ from config import (
 
 logger = logging.getLogger(__name__)
 
-# Type alias for prompt mode
-PromptMode = Literal["auto", "standard", "lora"]
-
 
 class CharacterLoRA(BaseModel):
     lora_id: int
@@ -713,7 +710,7 @@ class PromptComposeRequest(BaseModel):
     """Request for composing a prompt via V3 engine."""
 
     tokens: list[str]  # Raw prompt tokens
-    mode: PromptMode = "auto"  # auto, standard, lora
+    mode: Literal["auto", "standard", "lora"] = "auto"
     loras: list[PromptComposeLoRA] | None = None
     use_break: bool = True  # Insert BREAK token
     # V3 extension fields
@@ -761,7 +758,6 @@ class PromptComposeResponse(BaseModel):
 
     prompt: str  # Final composed prompt string
     tokens: list[str]  # Ordered token list
-    effective_mode: str  # standard or lora
     scene_complexity: str  # simple, moderate, complex
     lora_weights: dict[str, float] | None = None  # Calculated weights per LoRA
     meta: dict | None = None  # Additional metadata
@@ -922,7 +918,6 @@ class CharacterBase(BaseModel):
     reference_negative_prompt: str | None = Field(default=None, max_length=10000)
     # preview_image_url removed - now read-only @property via preview_image_asset
     # CharacterResponse gets it automatically via from_attributes=True from ORM model
-    prompt_mode: PromptMode = "auto"
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
     ip_adapter_guidance_start: float | None = None
@@ -953,7 +948,6 @@ class CharacterUpdate(BaseModel):
     reference_base_prompt: str | None = Field(default=None, max_length=10000)
     reference_negative_prompt: str | None = Field(default=None, max_length=10000)
     # preview_image_url removed - now read-only @property via preview_image_asset
-    prompt_mode: PromptMode | None = None
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
     ip_adapter_guidance_start: float | None = None

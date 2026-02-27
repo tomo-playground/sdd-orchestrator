@@ -34,7 +34,6 @@ export interface StoryboardStore {
   // Character A
   selectedCharacterId: number | null;
   selectedCharacterName: string | null;
-  characterPromptMode: "auto" | "standard" | "lora";
   loraTriggerWords: string[];
   characterLoras: LoraEntry[];
 
@@ -122,7 +121,6 @@ const initialState: Omit<
   selectedCharacterName: null,
   selectedCharacterBId: null,
   selectedCharacterBName: null,
-  characterPromptMode: "auto",
   loraTriggerWords: [],
   characterLoras: [],
   characterBLoras: [],
@@ -183,7 +181,6 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "imageGenProgress",
   "loraTriggerWords",
   "characterLoras",
-  "characterPromptMode",
 ];
 
 export const useStoryboardStore = create<StoryboardStore>()(

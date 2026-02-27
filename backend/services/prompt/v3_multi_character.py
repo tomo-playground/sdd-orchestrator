@@ -182,7 +182,7 @@ class MultiCharacterComposer:
 
     def _inject_character_loras(self, character: Character, injected: dict[str, str]) -> None:
         """Inject a character's LoRAs with multi_char_weight_scale applied."""
-        if not character.loras or character.prompt_mode == "standard":
+        if not character.loras:
             return
         for lora_info in character.loras:
             lora_obj = self.builder.db.query(LoRA).filter(LoRA.id == lora_info.get("lora_id")).first()
