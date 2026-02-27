@@ -181,12 +181,20 @@ class TagClassifier:
     def _lookup_db(self, tag: str) -> ClassificationResult | None:
         """Look up tag in database.
 
-        If group_name exists in DB, always trust it regardless of confidence.
+        Legacy tags (group_name="subject", source=NULL) are unclassified dumps.
+        Return low confidence so Danbooru/LLM can reclassify them.
         """
         stmt = select(Tag).where(Tag.name == tag)
         result = self.db.execute(stmt).scalar_one_or_none()
 
         if result and result.group_name:
+            # Legacy unclassified: subject + default/null source → low confidence (falls through to LLM)
+            if result.group_name == "subject" and result.classification_source in (None, "default"):
+                return {
+                    "group": result.group_name,
+                    "confidence": 0.3,
+                    "source": "db",
+                }
             return {
                 "group": result.group_name,
                 "confidence": max(result.classification_confidence or 1.0, 0.9),
