@@ -330,9 +330,7 @@ class TestComposeForCharacterSkipsStyleLoRA:
     it should NOT inject style-type LoRAs (to prevent double application with StyleProfile).
     """
 
-    def test_style_lora_in_character_loras_skipped(
-        self, db_session: Session, style_lora: LoRA, character_lora_a: LoRA
-    ):
+    def test_style_lora_in_character_loras_skipped(self, db_session: Session, style_lora: LoRA, character_lora_a: LoRA):
         """
         Given: Character has both character-type AND style-type LoRAs in DB
         When: compose_for_character() is called
@@ -350,7 +348,6 @@ class TestComposeForCharacterSkipsStyleLoRA:
         character = Character(
             name="test_char_style_skip",
             gender="female",
-            prompt_mode="auto",
             loras=[
                 {"lora_id": character_lora_a.id, "weight": 0.8},
                 {"lora_id": style_lora.id, "weight": 0.7},  # style-type should be SKIPPED
@@ -380,9 +377,7 @@ class TestComposeForCharacterSkipsStyleLoRA:
         assert f"<lora:{style_lora.name}:" in result, (
             "Style LoRA from character.loras should be applied as FALLBACK when no StyleProfile"
         )
-        assert f"<lora:{style_lora.name}:0.5>" in result, (
-            "Fallback style LoRA weight should be capped at 0.5"
-        )
+        assert f"<lora:{style_lora.name}:0.5>" in result, "Fallback style LoRA weight should be capped at 0.5"
 
     def test_style_lora_still_applied_via_style_loras_param(
         self, db_session: Session, style_lora: LoRA, character_lora_a: LoRA
@@ -402,7 +397,6 @@ class TestComposeForCharacterSkipsStyleLoRA:
         character = Character(
             name="test_char_style_param",
             gender="female",
-            prompt_mode="auto",
             loras=[
                 {"lora_id": character_lora_a.id, "weight": 0.8},
                 {"lora_id": style_lora.id, "weight": 0.5},  # will be skipped from character.loras

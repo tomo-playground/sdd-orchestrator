@@ -1,7 +1,6 @@
-"""Normalize prompt_mode to 'auto' for all characters
+"""Drop prompt_mode column from characters
 
-prompt_mode 3-way 선택 제거에 따라 기존 'standard'/'lora' 값을 'auto'로 통일.
-Auto가 이미 LoRA 유무로 런타임 결정하므로 동작 변화 없음.
+prompt_mode 개념 제거. Auto가 이미 LoRA 유무로 런타임 결정하므로 컬럼 불필요.
 
 Revision ID: u3v4w5x6y7z8
 Revises: t2u3v4w5x6y7
@@ -19,9 +18,11 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute(sa.text("UPDATE characters SET prompt_mode = 'auto' WHERE prompt_mode != 'auto'"))
+    op.drop_column("characters", "prompt_mode")
 
 
 def downgrade() -> None:
-    # 원래 값 복원 불가 (data-only migration)
-    pass
+    op.add_column(
+        "characters",
+        sa.Column("prompt_mode", sa.String(20), nullable=False, server_default="auto"),
+    )

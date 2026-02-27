@@ -49,7 +49,6 @@ export type ComposedLayer = { index: number; name: string; tokens: string[] };
 type ComposeResult = {
   prompt: string;
   tokens: string[];
-  effective_mode: string;
   scene_complexity: string;
   lora_weights?: Record<string, number>;
   meta?: {

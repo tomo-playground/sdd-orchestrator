@@ -393,7 +393,6 @@ class TestRestrictedTags:
         char.custom_base_prompt = "brown_hair, kitchen, long_hair, outdoors"
         char.tags = []
         char.loras = []
-        char.prompt_mode = "standard"
 
         # Mock DB queries
         builder.db.query.return_value.filter.return_value.first.return_value = char
@@ -742,7 +741,6 @@ class TestInjectLorasDedup:
 
         character = MagicMock()
         character.loras = []
-        character.prompt_mode = "standard"
 
         layers = [[] for _ in range(12)]
         scene_tags = ["flat_color", "outdoors"]
@@ -764,7 +762,6 @@ class TestInjectLorasDedup:
 
         character = MagicMock()
         character.loras = []
-        character.prompt_mode = "standard"
 
         layers = [[] for _ in range(12)]
         scene_tags = ["outdoors", "standing"]
@@ -1009,7 +1006,6 @@ class TestLoRAWeightCap:
         mock_trigger_cache.get_lora_name.return_value = None
 
         character = MagicMock()
-        character.prompt_mode = "lora"
         lora_obj = MagicMock()
         lora_obj.name = "char_lora"
         lora_obj.lora_type = "character"
@@ -1033,7 +1029,6 @@ class TestLoRAWeightCap:
 
         character = MagicMock()
         character.loras = []
-        character.prompt_mode = "standard"
 
         layers = [[] for _ in range(12)]
         style_loras = [{"name": "style_lora", "weight": 0.9, "trigger_words": []}]
@@ -1054,7 +1049,6 @@ class TestLoRAWeightCap:
 
         character = MagicMock()
         character.loras = []
-        character.prompt_mode = "standard"
 
         layers = [[] for _ in range(12)]
         builder._inject_loras(character, ["trigger_tag"], layers, None)
@@ -1070,7 +1064,6 @@ class TestLoRAWeightCap:
 
         character = MagicMock()
         character.loras = []
-        character.prompt_mode = "standard"
 
         layers = [[] for _ in range(12)]
         style_loras = [{"name": "mild_lora", "weight": 0.65, "trigger_words": []}]
@@ -1464,7 +1457,6 @@ class TestLoRABaseModelCompatibility:
 
         char = MagicMock()
         char.loras = [{"lora_id": 1, "weight": 0.8}]
-        char.prompt_mode = "lora"
 
         builder = V3PromptBuilder(mock_db, sd_model_base="SD1.5")
         layers = [[] for _ in range(12)]
@@ -1502,7 +1494,6 @@ class TestLoRABaseModelCompatibility:
 
         char = MagicMock()
         char.loras = [{"lora_id": 1, "weight": 0.8}]
-        char.prompt_mode = "lora"
 
         builder = V3PromptBuilder(mock_db, sd_model_base="SD1.5")
         layers = [[] for _ in range(12)]
@@ -1537,7 +1528,6 @@ class TestLoRABaseModelCompatibility:
 
         char = MagicMock()
         char.loras = [{"lora_id": 1, "weight": 0.8}]
-        char.prompt_mode = "lora"
 
         builder = V3PromptBuilder(mock_db, sd_model_base="SD1.5")
         layers = [[] for _ in range(12)]
@@ -1635,7 +1625,7 @@ class TestLayerCapture:
         char.custom_base_prompt = "brown_hair"
         char.tags = []
         char.loras = []
-        char.prompt_mode = "standard"
+
         builder.db.query.return_value.filter.return_value.first.return_value = char
 
         builder.get_tag_info = MagicMock(return_value={})
@@ -2258,7 +2248,7 @@ class TestEndToEndExpressionOverride:
         char.custom_base_prompt = "gentle_smile"
         char.tags = []
         char.loras = []
-        char.prompt_mode = "standard"
+
         builder.db.query.return_value.filter.return_value.first.return_value = char
 
         result = builder.compose_for_character(
@@ -2307,7 +2297,7 @@ class TestEndToEndExpressionOverride:
         char.custom_base_prompt = "gentle_smile"
         char.tags = []
         char.loras = []
-        char.prompt_mode = "standard"
+
         builder.db.query.return_value.filter.return_value.first.return_value = char
 
         result = builder.compose_for_character(
@@ -2399,9 +2389,7 @@ class TestWeightSyntaxHandling:
         }
         builder.get_tag_info = MagicMock(
             side_effect=lambda names: {
-                n: scene_info[n]
-                for n in [t.lower().replace(" ", "_").strip() for t in names]
-                if n in scene_info
+                n: scene_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in scene_info
             }
         )
 
@@ -2459,7 +2447,7 @@ class TestWeightSyntaxHandling:
         char.custom_base_prompt = "gentle_smile"
         char.tags = []
         char.loras = []
-        char.prompt_mode = "standard"
+
         builder.db.query.return_value.filter.return_value.first.return_value = char
 
         result = builder.compose_for_character(
@@ -2571,7 +2559,7 @@ class TestStripCharBaseFromScene:
         char.custom_base_prompt = "gentle_smile"
         char.tags = []
         char.loras = []
-        char.prompt_mode = "standard"
+
         builder.db.query.return_value.filter.return_value.first.return_value = char
 
         # Simulate frontend sending pre-composed prompt (includes gentle_smile from char base)
