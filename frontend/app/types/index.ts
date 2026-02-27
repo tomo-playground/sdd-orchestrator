@@ -144,7 +144,7 @@ export type KenBurnsPreset =
   | "pan_zoom_down"
   | "random";
 
-export type AutoRunStepId = "images" | "render";
+export type AutoRunStepId = "stage" | "images" | "render";
 
 export type CriticalFailureItem = {
   failure_type: "gender_swap" | "no_subject" | "count_mismatch";

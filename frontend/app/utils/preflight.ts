@@ -53,6 +53,7 @@ export interface PreflightResult {
 
   // Execution steps
   steps: {
+    stage: StepCheck;
     images: StepCheck;
     render: StepCheck;
   };
@@ -203,6 +204,21 @@ function checkIpAdapter(enabled: boolean, reference: string | null): SettingsChe
 // Step Checks
 // ============================================================
 
+function checkStageStep(scenes: (Scene | DraftScene)[]): StepCheck {
+  if (scenes.length === 0) {
+    return { needed: false, reason: "씬 없음" };
+  }
+  const withoutBg = scenes.filter((s) => !s.background_id);
+  if (withoutBg.length === 0) {
+    return { needed: false, reason: "모든 씬에 배경 있음" };
+  }
+  return {
+    needed: true,
+    reason: `${withoutBg.length}/${scenes.length} 배경 필요`,
+    count: withoutBg.length,
+  };
+}
+
 function checkImagesStep(scenes: (Scene | DraftScene)[]): StepCheck {
   if (scenes.length === 0) {
     return {
@@ -316,6 +332,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
 
   // Check steps
   const steps = {
+    stage: checkStageStep(input.scenes),
     images: checkImagesStep(input.scenes),
     render: checkRenderStep(input.scenes, input.videoUrl),
   };
@@ -341,7 +358,7 @@ export function getStepsToExecute(
   preflight: PreflightResult,
   userOverrides?: Partial<Record<AutoRunStepId, boolean>>
 ): AutoRunStepId[] {
-  const stepOrder: AutoRunStepId[] = ["images", "render"];
+  const stepOrder: AutoRunStepId[] = ["stage", "images", "render"];
 
   return stepOrder.filter((stepId) => {
     // User can force enable/disable
@@ -388,6 +405,10 @@ export function buildPreflightInput(): PreflightInput {
 export function estimateTime(preflight: PreflightResult): string {
   let seconds = 0;
 
+  if (preflight.steps.stage.needed) {
+    const count = preflight.steps.stage.count || 3;
+    seconds += count * 20; // ~20s per location
+  }
   if (preflight.steps.images.needed) {
     const count = preflight.steps.images.count || 6;
     seconds += count * 15; // ~15s per image

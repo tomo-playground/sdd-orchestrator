@@ -122,7 +122,11 @@ function StudioContent() {
     if (preflight.errors.length > 0) {
       setUI({ showPreflightModal: true });
     } else {
-      runAutoRunFromStep("images", autopilot);
+      // background_id 없는 씬이 있으면 stage부터 시작
+      const currentScenes = useStoryboardStore.getState().scenes;
+      const needsStage = currentScenes.some((s) => !s.background_id);
+      const startStep = needsStage ? "stage" : "images";
+      runAutoRunFromStep(startStep, autopilot);
     }
   }, [pendingAutoRun, autopilot, setUI]);
 
@@ -253,7 +257,11 @@ function StudioContent() {
             autoRunLog={autopilot.autoRunLog}
             storyboardTitle={storyboardTitle || undefined}
             onResume={(step) => runAutoRunFromStep(step, autopilot)}
-            onRestart={() => runAutoRunFromStep("images", autopilot)}
+            onRestart={() => {
+              const s = useStoryboardStore.getState().scenes;
+              const start = s.some((sc) => !sc.background_id) ? "stage" : "images";
+              runAutoRunFromStep(start, autopilot);
+            }}
           />
         </div>
       )}

@@ -1,10 +1,11 @@
 import type { AutoRunStepId } from "../../types";
 import type { UseAutopilotReturn } from "../../hooks/useAutopilot";
+import axios from "axios";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useRenderStore } from "../useRenderStore";
 import { useUIStore } from "../useUIStore";
-import { AUTO_RUN_STEPS } from "../../constants";
+import { AUTO_RUN_STEPS, API_BASE, API_TIMEOUT } from "../../constants";
 import { generateBatchImages } from "./batchActions";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
 import { resolveSceneMultiGen } from "../../utils/sceneSettingsResolver";
@@ -65,6 +66,58 @@ export async function runAutoRunFromStep(
       if (!allowedSteps.includes(currentStep)) {
         pushAutoRunLog(`Skipped: ${currentStep}`);
         continue;
+      }
+
+      if (currentStep === "stage") {
+        const storyboardId = useContextStore.getState().storyboardId;
+        if (!storyboardId) throw new Error("Storyboard ID required for Stage");
+
+        setAutoRunStep("stage", "Generating backgrounds...");
+        setActiveTab("stage");
+        useStoryboardStore.getState().set({ stageStatus: "staging" });
+        assertNotCancelled();
+
+        // 1) Generate backgrounds
+        await axios.post(
+          `${API_BASE}/storyboards/${storyboardId}/stage/generate-backgrounds`,
+          null,
+          { timeout: API_TIMEOUT.STAGE_GENERATE }
+        );
+        pushAutoRunLog("Backgrounds generated");
+        assertNotCancelled();
+
+        // 2) Assign to scenes
+        setAutoRunStep("stage", "Assigning backgrounds to scenes...");
+        const assignRes = await axios.post(
+          `${API_BASE}/storyboards/${storyboardId}/stage/assign-backgrounds`,
+          null,
+          { timeout: API_TIMEOUT.DEFAULT }
+        );
+        const assignments = assignRes.data.assignments ?? [];
+        if (assignments.length > 0) {
+          const { scenes, setScenes } = useStoryboardStore.getState();
+          const assignMap = new Map<number, number>(
+            assignments.map(
+              (a: { scene_id: number; background_id: number }) =>
+                [a.scene_id, a.background_id] as [number, number]
+            )
+          );
+          const updated = scenes.map((s) => {
+            const bgId = assignMap.get(s.id);
+            if (bgId != null) {
+              return { ...s, background_id: bgId, environment_reference_id: null };
+            }
+            return s;
+          });
+          setScenes(updated);
+          pushAutoRunLog(`${assignments.length} scenes assigned to backgrounds`);
+        }
+
+        // 3) Save & sync
+        useStoryboardStore.getState().set({ stageStatus: "staged" });
+        await persistStoryboard();
+        workingScenes = useStoryboardStore.getState().scenes;
+        pushAutoRunLog("Stage complete");
       }
 
       if (currentStep === "images") {

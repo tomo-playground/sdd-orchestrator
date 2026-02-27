@@ -14,6 +14,7 @@ interface PreflightModalProps {
 }
 
 const STEP_LABELS: Record<AutoRunStepId, string> = {
+  stage: "Stage",
   images: "Images",
   render: "Render",
 };
@@ -179,6 +180,7 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
               {estimateTime({
                 ...preflight,
                 steps: {
+                  stage: { ...preflight.steps.stage, needed: isStepEnabled("stage") },
                   images: { ...preflight.steps.images, needed: isStepEnabled("images") },
                   render: { ...preflight.steps.render, needed: isStepEnabled("render") },
                 },

@@ -66,9 +66,10 @@ describe("useAutopilot", () => {
     it("should handle all step types", () => {
       const { result } = renderHook(() => useAutopilot());
       const steps: Array<{
-        id: "images" | "render";
+        id: "stage" | "images" | "render";
         msg: string;
       }> = [
+        { id: "stage", msg: "Stage" },
         { id: "images", msg: "Images" },
         { id: "render", msg: "Render" },
       ];
@@ -360,13 +361,19 @@ describe("useAutopilot", () => {
       // Idle = 0%
       expect(result.current.autoRunProgress).toBe(0);
 
-      // Images = 1/2 = 50%
+      // Stage = 1/3 = 33%
+      act(() => {
+        result.current.setStep("stage", "Stage");
+      });
+      expect(result.current.autoRunProgress).toBe(33);
+
+      // Images = 2/3 = 67%
       act(() => {
         result.current.setStep("images", "Images");
       });
-      expect(result.current.autoRunProgress).toBe(50);
+      expect(result.current.autoRunProgress).toBe(67);
 
-      // Render = 2/2 = 100%
+      // Render = 3/3 = 100%
       act(() => {
         result.current.setStep("render", "Render");
       });
@@ -410,15 +417,22 @@ describe("useAutopilot", () => {
       });
       expect(result.current.autoRunLog).toEqual([]);
 
-      // Step 1: Images
+      // Step 1: Stage
+      act(() => {
+        result.current.setStep("stage", "Generating backgrounds...");
+        result.current.pushLog("Stage started");
+      });
+      expect(result.current.isAutoRunning).toBe(true);
+      expect(result.current.autoRunProgress).toBe(33);
+
+      // Step 2: Images
       act(() => {
         result.current.setStep("images", "Generating images...");
         result.current.pushLog("Images started");
       });
-      expect(result.current.isAutoRunning).toBe(true);
-      expect(result.current.autoRunProgress).toBe(50);
+      expect(result.current.autoRunProgress).toBe(67);
 
-      // Step 2: Render
+      // Step 3: Render
       act(() => {
         result.current.setStep("render", "Rendering...");
         result.current.pushLog("Render started");
