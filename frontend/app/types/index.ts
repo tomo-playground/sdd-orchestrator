@@ -683,6 +683,7 @@ export type StageLocationStatus = {
   tags: string[];
   scene_ids: number[];
   has_image: boolean;
+  style_profile_id: number | null;
 };
 
 export type StageStatusResponse = {

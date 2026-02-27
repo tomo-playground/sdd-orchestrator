@@ -2201,6 +2201,7 @@ class StageLocationStatus(BaseModel):
     tags: list[str] = []
     scene_ids: list[int] = []
     has_image: bool = False
+    style_profile_id: int | None = None  # Response-only: style used for generation
 
 
 class StageStatusResponse(BaseModel):

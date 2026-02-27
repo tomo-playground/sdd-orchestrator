@@ -93,6 +93,7 @@ def get_stage_status(storyboard_id: int, db: Session = Depends(get_db)):
                 tags=info["tags"],
                 scene_ids=info["scene_ids"],
                 has_image=has_image,
+                style_profile_id=bg.style_profile_id if bg else None,
             )
         )
 

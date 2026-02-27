@@ -201,13 +201,21 @@ async def generate_location_backgrounds(storyboard_id: int, db: Session) -> list
 
     locations = extract_locations_from_scenes(scenes, db)
     if not locations:
-        logger.info("[Stage] No locations found for storyboard %d", storyboard_id)
+        has_any_env = any((s.context_tags or {}).get("environment") for s in scenes)
+        if not has_any_env:
+            logger.warning(
+                "[Stage] No environment tags in scenes for storyboard %d (Express mode?)",
+                storyboard_id,
+            )
+        else:
+            logger.info("[Stage] No locations found for storyboard %d", storyboard_id)
         return []
 
     # Resolve style context + ensure correct SD checkpoint
     style_ctx = resolve_style_context(storyboard_id, db)
     style_loras = extract_style_loras(style_ctx)
     quality_tags = style_ctx.default_positive.split(", ") if style_ctx and style_ctx.default_positive else None
+    style_profile_id = style_ctx.profile_id if style_ctx else None
 
     if style_ctx and style_ctx.sd_model_name:
         from services.image_generation_core import _ensure_correct_checkpoint
@@ -221,16 +229,18 @@ async def generate_location_backgrounds(storyboard_id: int, db: Session) -> list
     asset_svc = AssetService(db)
 
     for loc_key, loc_info in locations.items():
-        # Check if background already exists
-        existing = (
-            db.query(Background)
-            .filter(
-                Background.storyboard_id == storyboard_id,
-                Background.location_key == loc_key,
-                Background.deleted_at.is_(None),
-            )
-            .first()
+        # Check if background already exists (with matching style_profile_id)
+        existing_q = db.query(Background).filter(
+            Background.storyboard_id == storyboard_id,
+            Background.location_key == loc_key,
+            Background.deleted_at.is_(None),
         )
+        if style_profile_id is not None:
+            existing_q = existing_q.filter(Background.style_profile_id == style_profile_id)
+        else:
+            existing_q = existing_q.filter(Background.style_profile_id.is_(None))
+        existing = existing_q.first()
+
         if existing and existing.image_asset_id:
             results.append({"location_key": loc_key, "background_id": existing.id, "status": "exists"})
             continue
@@ -242,6 +252,7 @@ async def generate_location_backgrounds(storyboard_id: int, db: Session) -> list
             location_key=loc_key,
             tags=loc_info["tags"],
             is_system=False,
+            style_profile_id=style_profile_id,
         )
         if not existing:
             db.add(bg)
@@ -279,6 +290,11 @@ def assign_backgrounds_to_scenes(storyboard_id: int, db: Session) -> list[dict]:
         .order_by(Scene.order)
         .all()
     )
+
+    # Prefer backgrounds matching the current style_profile
+    style_ctx = resolve_style_context(storyboard_id, db)
+    current_style_id = style_ctx.profile_id if style_ctx else None
+
     backgrounds = (
         db.query(Background)
         .filter(
@@ -290,10 +306,15 @@ def assign_backgrounds_to_scenes(storyboard_id: int, db: Session) -> list[dict]:
     )
 
     # Build location_key → {background_id, image_asset_id} map
+    # Prefer current style; fallback to any style
     loc_to_bg: dict[str, dict] = {}
     for bg in backgrounds:
-        if bg.location_key:
-            loc_to_bg[bg.location_key] = {"id": bg.id, "image_asset_id": bg.image_asset_id}
+        if not bg.location_key:
+            continue
+        entry = {"id": bg.id, "image_asset_id": bg.image_asset_id}
+        existing = loc_to_bg.get(bg.location_key)
+        if not existing or bg.style_profile_id == current_style_id:
+            loc_to_bg[bg.location_key] = entry
 
     TagAliasCache.initialize(db)
     assignments: list[dict] = []
@@ -385,6 +406,8 @@ async def regenerate_background(
     if not img_bytes:
         return {"background_id": bg.id, "status": "failed"}
 
+    # Update style_profile_id + save asset together on success
+    bg.style_profile_id = style_ctx.profile_id if style_ctx else None
     asset_svc = AssetService(db)
     asset = asset_svc.save_background_image(bg.id, img_bytes)
     bg.image_asset_id = asset.id

@@ -1,11 +1,12 @@
 "use client";
 
 import { ExternalLink, Mic, User } from "lucide-react";
-import type { Character, VoicePreset } from "../../types";
+import type { Character, CharacterFull, VoicePreset } from "../../types";
 import type { AudioPlayer } from "../../hooks/useAudioPlayer";
 
 type Props = {
   character: Character;
+  characterFull: CharacterFull | null;
   role: "A" | "B";
   voicePreset: VoicePreset | null;
   audioPlayer: AudioPlayer;
@@ -14,6 +15,7 @@ type Props = {
 
 export default function StageCharacterCard({
   character,
+  characterFull,
   role,
   voicePreset,
   audioPlayer,
@@ -87,6 +89,26 @@ export default function StageCharacterCard({
             <Mic className="h-3 w-3" />
             No voice assigned
           </p>
+        )}
+
+        {/* Style & LoRA Dependencies */}
+        {(characterFull?.style_profile_name || (characterFull?.loras?.length ?? 0) > 0) && (
+          <div className="mb-2 space-y-1 rounded-lg bg-indigo-50/50 px-2.5 py-2">
+            {characterFull?.style_profile_name && (
+              <p className="text-[11px] font-semibold text-indigo-700">
+                Style: {characterFull.style_profile_name}
+              </p>
+            )}
+            {characterFull?.loras?.map((lora) => (
+              <div key={lora.id} className="flex items-center gap-1.5 text-[11px] text-indigo-600">
+                <span className="text-indigo-400">LoRA</span>
+                <span className="min-w-0 flex-1 truncate font-medium">
+                  {lora.display_name || lora.name}
+                </span>
+                <span className="shrink-0 text-indigo-400">w:{Number(lora.weight.toFixed(2))}</span>
+              </div>
+            ))}
+          </div>
         )}
 
         <button

@@ -1,12 +1,39 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Users } from "lucide-react";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useCharacters } from "../../hooks/useCharacters";
 import StageCharacterCard from "./StageCharacterCard";
-import type { VoicePreset } from "../../types";
+import type { CharacterFull, VoicePreset } from "../../types";
 import type { AudioPlayer } from "../../hooks/useAudioPlayer";
+
+type FetchedChar = { id: number; data: CharacterFull | null };
+
+function useCharacterFull(
+  charId: number | null | undefined,
+  getCharacterFull: (id: number) => Promise<CharacterFull | null>
+): CharacterFull | null {
+  const [fetched, setFetched] = useState<FetchedChar | null>(null);
+
+  useEffect(() => {
+    if (!charId) return;
+    let stale = false;
+    getCharacterFull(charId)
+      .then((d) => {
+        if (!stale) setFetched({ id: charId, data: d });
+      })
+      .catch(() => {});
+    return () => {
+      stale = true;
+    };
+  }, [charId, getCharacterFull]);
+
+  // Return null if id changed or no fetch yet
+  if (!charId || fetched?.id !== charId) return null;
+  return fetched.data;
+}
 
 type Props = {
   audioPlayer: AudioPlayer;
@@ -17,14 +44,17 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
   const router = useRouter();
   const selectedCharacterId = useStoryboardStore((s) => s.selectedCharacterId);
   const selectedCharacterBId = useStoryboardStore((s) => s.selectedCharacterBId);
-  const { characters } = useCharacters();
+  const { characters, getCharacterFull } = useCharacters();
 
   const charA = characters.find((c) => c.id === selectedCharacterId) ?? null;
   const charB = characters.find((c) => c.id === selectedCharacterBId) ?? null;
   const hasAny = charA || charB;
 
+  const charAFull = useCharacterFull(charA?.id, getCharacterFull);
+  const charBFull = useCharacterFull(charB?.id, getCharacterFull);
+
   const getVoicePreset = (id: number | null) =>
-    id ? voicePresets.find((p) => p.id === id) ?? null : null;
+    id ? (voicePresets.find((p) => p.id === id) ?? null) : null;
 
   return (
     <section>
@@ -43,6 +73,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
           {charA && (
             <StageCharacterCard
               character={charA}
+              characterFull={charAFull}
               role="A"
               voicePreset={getVoicePreset(charA.voice_preset_id)}
               audioPlayer={audioPlayer}
@@ -52,6 +83,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
           {charB && (
             <StageCharacterCard
               character={charB}
+              characterFull={charBFull}
               role="B"
               voicePreset={getVoicePreset(charB.voice_preset_id)}
               audioPlayer={audioPlayer}

@@ -5,6 +5,8 @@ Covers:
 - Background-to-scene assignment
 - compose_for_background prompt building
 - calculate_auto_pin_flags with background_id
+- Express mode compatibility (P3-1)
+- style_profile_id caching (P3-3)
 """
 
 from unittest.mock import MagicMock, patch
@@ -138,7 +140,7 @@ class TestAssignBackgrounds:
         # Mock chained query calls
         call_count = {"n": 0}
 
-        def mock_query(model):
+        def mock_query(_model):
             q = MagicMock()
             if call_count["n"] == 0:
                 q.filter.return_value.order_by.return_value.all.return_value = scenes
@@ -310,3 +312,200 @@ class TestAutoPinWithBackgroundId:
         assert result[1] is False  # First scene
         assert result[2] is False  # Has background_id
         assert result[3] is True  # Same env as scene 2, no background_id
+
+
+# ── Express mode compatibility (P3-1) ────────────────────────────────
+
+
+class TestExpressModeCompatibility:
+    """Express mode skips planning → writer_plan=None → no location map.
+    Scenes still have context_tags.environment from direct LLM generation.
+    """
+
+    def test_extract_locations_from_express_mode_scenes(self):
+        """Environment tags alone (no writer_plan) should extract locations."""
+        from services.stage.background_generator import extract_locations_from_scenes
+
+        scenes = [
+            _mock_scene(1, ["street", "night"]),
+            _mock_scene(2, ["classroom", "indoors"]),
+            _mock_scene(3, ["street", "night"]),
+        ]
+        p1, p2, p3 = _patch_location_db()
+        with p1, p2, p3:
+            result = extract_locations_from_scenes(scenes, MagicMock())
+
+        assert len(result) == 2
+        street_key = "_".join(sorted(["street", "night"]))
+        assert street_key in result
+        assert result[street_key]["scene_ids"] == [1, 3]
+
+    def test_stage_status_with_no_environment_tags(self):
+        """Scenes with empty context_tags → empty locations, no error."""
+        from services.stage.background_generator import extract_locations_from_scenes
+
+        scenes = [
+            _mock_scene(1),  # No env tags
+            _mock_scene(2),
+        ]
+        p1, p2, p3 = _patch_location_db()
+        with p1, p2, p3:
+            result = extract_locations_from_scenes(scenes, MagicMock())
+
+        assert result == {}
+
+    def test_generate_backgrounds_express_no_env_warns(self, caplog):
+        """No environment tags → warning log + empty result."""
+        import asyncio
+        import logging
+
+        from services.stage.background_generator import generate_location_backgrounds
+
+        db = MagicMock()
+        sb = MagicMock()
+        sb.id = 1
+        sb.deleted_at = None
+        sb.stage_status = None
+
+        scene = _mock_scene(1)  # No env tags
+
+        db.query.return_value.filter.return_value.first.return_value = sb
+        db.query.return_value.filter.return_value.order_by.return_value.all.return_value = [scene]
+
+        p1, p2, p3 = _patch_location_db()
+        with p1, p2, p3, caplog.at_level(logging.WARNING):
+            result = asyncio.new_event_loop().run_until_complete(generate_location_backgrounds(1, db))
+
+        assert result == []
+        assert any("Express mode" in r.message for r in caplog.records)
+
+
+# ── style_profile_id caching (P3-3) ──────────────────────────────────
+
+
+class TestStyleProfileCaching:
+    """Background cache should key on (storyboard_id, location_key, style_profile_id)."""
+
+    def _run_generate_with_style(self, style_profile_id, existing_bg):
+        """Helper: run generate_location_backgrounds with mocked style & DB."""
+        import asyncio
+
+        from services.stage.background_generator import generate_location_backgrounds
+
+        db = MagicMock()
+        sb = MagicMock()
+        sb.id = 1
+        sb.deleted_at = None
+        sb.stage_status = None
+
+        scene = _mock_scene(1, ["cafe", "indoors"])
+        style_ctx = MagicMock()
+        style_ctx.profile_id = style_profile_id
+        style_ctx.default_positive = "masterpiece"
+        style_ctx.sd_model_name = None
+
+        # DB query routing: 1st call=Storyboard, 2nd call=Scene, 3rd+=Background
+        call_count = {"n": 0}
+
+        def mock_query(_model):
+            q = MagicMock()
+            if call_count["n"] == 0:
+                q.filter.return_value.first.return_value = sb
+            elif call_count["n"] == 1:
+                q.filter.return_value.order_by.return_value.all.return_value = [scene]
+            else:
+                inner_q = MagicMock()
+                inner_q.filter.return_value = inner_q
+                inner_q.first.return_value = existing_bg
+                q.filter.return_value = inner_q
+            call_count["n"] += 1
+            return q
+
+        db.query.side_effect = mock_query
+
+        p1, p2, p3 = _patch_location_db()
+
+        asset_mock = MagicMock()
+        asset_mock.id = 200
+        asset_svc = MagicMock()
+        asset_svc.save_background_image.return_value = asset_mock
+
+        # Mock Background constructor so new objects get an id
+        new_bg = MagicMock()
+        new_bg.id = 99
+        new_bg.image_asset_id = None
+        new_bg.style_profile_id = style_profile_id
+
+        with (
+            p1,
+            p2,
+            p3,
+            patch("services.stage.background_generator.resolve_style_context", return_value=style_ctx),
+            patch("services.stage.background_generator.extract_style_loras", return_value=[]),
+            patch("services.stage.background_generator._generate_background_image", return_value=b"img"),
+            patch("services.stage.background_generator.AssetService", return_value=asset_svc),
+            patch("services.stage.background_generator.Background", return_value=new_bg),
+        ):
+            results = asyncio.new_event_loop().run_until_complete(generate_location_backgrounds(1, db))
+
+        return results
+
+    def test_same_style_profile_cache_hit(self):
+        """Same style_profile_id + existing image → status 'exists'."""
+        bg = MagicMock()
+        bg.id = 10
+        bg.image_asset_id = 100
+        bg.style_profile_id = 5
+
+        results = self._run_generate_with_style(style_profile_id=5, existing_bg=bg)
+        assert any(r["status"] == "exists" for r in results)
+
+    def test_different_style_profile_cache_miss(self):
+        """Different style_profile_id → cache miss → new generation."""
+        results = self._run_generate_with_style(style_profile_id=7, existing_bg=None)
+        assert any(r["status"] == "generated" for r in results)
+
+    def test_regenerate_updates_style_profile_id(self):
+        """regenerate_background() should update bg.style_profile_id."""
+        import asyncio
+
+        from services.stage.background_generator import regenerate_background
+
+        bg = MagicMock()
+        bg.id = 10
+        bg.tags = ["cafe"]
+        bg.style_profile_id = None
+
+        db = MagicMock()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = bg
+
+        style_ctx = MagicMock()
+        style_ctx.profile_id = 7
+        style_ctx.default_positive = "masterpiece"
+        style_ctx.sd_model_name = None
+
+        with (
+            patch("services.stage.background_generator.resolve_style_context", return_value=style_ctx),
+            patch("services.stage.background_generator.extract_style_loras", return_value=[]),
+            patch("services.stage.background_generator._generate_background_image", return_value=b"fake_img"),
+        ):
+            asset_mock = MagicMock()
+            asset_mock.id = 200
+            asset_svc = MagicMock()
+            asset_svc.save_background_image.return_value = asset_mock
+
+            with patch("services.stage.background_generator.AssetService", return_value=asset_svc):
+                result = asyncio.new_event_loop().run_until_complete(regenerate_background(1, "cafe", db))
+
+        assert bg.style_profile_id == 7
+        assert result["status"] == "regenerated"
+
+    def test_null_style_profile_cache_hit(self):
+        """NULL style_profile_id → existing bg with NULL style → cache hit."""
+        bg = MagicMock()
+        bg.id = 10
+        bg.image_asset_id = 100
+        bg.style_profile_id = None
+
+        results = self._run_generate_with_style(style_profile_id=None, existing_bg=bg)
+        assert any(r["status"] == "exists" for r in results)
