@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useStoryboardStore } from "../../useStoryboardStore";
+import { useUIStore } from "../../useUIStore";
 
 vi.mock("../../actions/storyboardActions", () => ({
   persistStoryboard: vi.fn().mockResolvedValue(true),
@@ -25,6 +26,9 @@ describe("autoSave", () => {
     vi.spyOn(useStoryboardStore, "getState").mockReturnValue({
       isDirty: true,
       scenes: [{ id: 1, client_id: "c1", script: "test" }],
+    } as never);
+    vi.spyOn(useUIStore, "getState").mockReturnValue({
+      isAutoRunning: false,
     } as never);
   });
 
@@ -134,13 +138,33 @@ describe("autoSave", () => {
     expect(persistStoryboard).not.toHaveBeenCalled();
   });
 
-  it("이중 초기화 방지", () => {
+  it("이중 초기화 시 HMR 가드: cleanup 후 재구독", () => {
+    const unsubscribeFn = vi.fn();
+    vi.mocked(useStoryboardStore.subscribe).mockReturnValue(unsubscribeFn);
+
     cleanup = initAutoSave();
     const secondCleanup = initAutoSave();
 
-    // Second call returns no-op
-    expect(useStoryboardStore.subscribe).toHaveBeenCalledTimes(1);
+    // HMR guard: first subscription cleaned up, then re-subscribed
+    expect(unsubscribeFn).toHaveBeenCalledTimes(1);
+    expect(useStoryboardStore.subscribe).toHaveBeenCalledTimes(2);
 
-    secondCleanup(); // no-op, should not break
+    secondCleanup();
+    cleanup = null; // secondCleanup already cleaned up
+  });
+
+  it("isAutoRunning 중 autoSave 건너뜀", async () => {
+    vi.spyOn(useUIStore, "getState").mockReturnValue({
+      isAutoRunning: true,
+    } as never);
+
+    cleanup = initAutoSave();
+
+    triggerSubscription({ isDirty: true }, { isDirty: false });
+
+    await vi.advanceTimersByTimeAsync(2000);
+
+    // Should NOT call persistStoryboard because isAutoRunning is true
+    expect(persistStoryboard).not.toHaveBeenCalled();
   });
 });

@@ -256,10 +256,8 @@ describe("persistStoryboard", () => {
   });
 
   it("calls PUT when storyboardId exists and updates scene IDs", async () => {
-    const setScenes = vi.fn();
-    mockAllStores({
+    const { sbState } = mockAllStores({
       storyboardId: 42,
-      setScenes,
       scenes: [
         {
           id: 100, // Old scene ID
@@ -290,13 +288,17 @@ describe("persistStoryboard", () => {
       expect.anything()
     );
     expect(axios.post).not.toHaveBeenCalled();
-    // Verify scene IDs are updated
-    expect(setScenes).toHaveBeenCalledWith([expect.objectContaining({ id: 200 })]);
+    // Verify atomic set() with updated scene IDs + isDirty: false
+    expect(sbState.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scenes: [expect.objectContaining({ id: 200 })],
+        isDirty: false,
+      })
+    );
   });
 
   it("calls POST when no storyboardId and reassigns scene IDs", async () => {
     const setContext = vi.fn();
-    const setScenes = vi.fn();
     const scenes = [
       {
         id: 0,
@@ -311,7 +313,7 @@ describe("persistStoryboard", () => {
         negative_prompt: "",
       },
     ];
-    mockAllStores({ storyboardId: null, scenes, setContext, setScenes, groupId: 1 });
+    const { sbState } = mockAllStores({ storyboardId: null, scenes, setContext, groupId: 1 });
     (axios.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { storyboard_id: 99, scene_ids: [501] },
     });
@@ -325,7 +327,13 @@ describe("persistStoryboard", () => {
       expect.anything()
     );
     expect(setContext).toHaveBeenCalledWith({ storyboardId: 99, storyboardTitle: "Test Topic" });
-    expect(setScenes).toHaveBeenCalledWith([expect.objectContaining({ id: 501 })]);
+    // Verify atomic set() with updated scene IDs + isDirty: false
+    expect(sbState.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scenes: [expect.objectContaining({ id: 501 })],
+        isDirty: false,
+      })
+    );
   });
 
   it("returns false on API error", async () => {
@@ -421,11 +429,9 @@ describe("persistStoryboard scene index preservation", () => {
     vi.clearAllMocks();
   });
 
-  it("preserves currentSceneIndex after PUT scene ID update (setScenes handles it natively)", async () => {
-    const setScenes = vi.fn();
-    mockAllStores({
+  it("preserves currentSceneIndex after PUT scene ID update (atomic set preserves it)", async () => {
+    const { sbState } = mockAllStores({
       storyboardId: 42,
-      setScenes,
       currentSceneIndex: 2, // User is viewing scene 3 (0-indexed)
       scenes: [
         { id: 100, order: 0, script: "s1" },
@@ -439,21 +445,23 @@ describe("persistStoryboard scene index preservation", () => {
 
     await persistStoryboard();
 
-    // Scene IDs should be updated
-    expect(setScenes).toHaveBeenCalledWith([
-      expect.objectContaining({ id: 200 }),
-      expect.objectContaining({ id: 201 }),
-      expect.objectContaining({ id: 202 }),
-    ]);
-    // setScenes now preserves currentSceneIndex natively -- no explicit restore needed
+    // Atomic set() updates scenes + isDirty without touching currentSceneIndex
+    expect(sbState.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scenes: [
+          expect.objectContaining({ id: 200 }),
+          expect.objectContaining({ id: 201 }),
+          expect.objectContaining({ id: 202 }),
+        ],
+        isDirty: false,
+      })
+    );
   });
 
-  it("preserves currentSceneIndex after POST scene ID assignment (setScenes handles it natively)", async () => {
-    const setScenes = vi.fn();
+  it("preserves currentSceneIndex after POST scene ID assignment (atomic set preserves it)", async () => {
     const setContext = vi.fn();
-    mockAllStores({
+    const { sbState } = mockAllStores({
       storyboardId: null,
-      setScenes,
       setContext,
       currentSceneIndex: 1, // User is viewing scene 2
       scenes: [
@@ -467,11 +475,15 @@ describe("persistStoryboard scene index preservation", () => {
 
     await persistStoryboard();
 
-    expect(setScenes).toHaveBeenCalledWith([
-      expect.objectContaining({ id: 500 }),
-      expect.objectContaining({ id: 501 }),
-    ]);
-    // setScenes now preserves currentSceneIndex natively -- no explicit restore needed
+    expect(sbState.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scenes: [
+          expect.objectContaining({ id: 500 }),
+          expect.objectContaining({ id: 501 }),
+        ],
+        isDirty: false,
+      })
+    );
   });
 });
 
@@ -556,15 +568,13 @@ describe("persistStoryboard scene ID -> image_asset_id mapping", () => {
   });
 
   it("preserves image_asset_id for each scene through PUT ID reassignment", async () => {
-    const setScenes = vi.fn();
     const scenes = [
       { id: 3581, order: 0, script: "S1", image_asset_id: 100, image_url: "http://img1" },
       { id: 3582, order: 1, script: "S2", image_asset_id: 200, image_url: "http://img2" },
       { id: 3583, order: 2, script: "S3", image_asset_id: null, image_url: null },
     ];
-    mockAllStores({
+    const { sbState } = mockAllStores({
       storyboardId: 42,
-      setScenes,
       scenes,
     });
     (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -573,8 +583,12 @@ describe("persistStoryboard scene ID -> image_asset_id mapping", () => {
 
     await persistStoryboard();
 
-    // Verify setScenes was called with correct ID mapping
-    const calledScenes = setScenes.mock.calls[0][0];
+    // Verify atomic set() was called with correct ID mapping
+    const setCall = sbState.set.mock.calls.find(
+      (call: unknown[]) => (call[0] as Record<string, unknown>).scenes !== undefined
+    );
+    expect(setCall).toBeDefined();
+    const calledScenes = (setCall![0] as Record<string, unknown>).scenes as Record<string, unknown>[];
     expect(calledScenes).toHaveLength(3);
     // Scene IDs updated
     expect(calledScenes[0].id).toBe(3590);

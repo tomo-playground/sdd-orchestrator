@@ -353,6 +353,24 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
                 if mid:
                     preserved_asset_ids.add(mid)
 
+    # Defensive: also preserve existing DB scene asset_ids
+    # (guards against Frontend payload missing image_asset_id during race conditions)
+    existing_scenes = (
+        db.query(Scene.image_asset_id, Scene.environment_reference_id, Scene.candidates)
+        .filter(Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None))
+        .all()
+    )
+    for es in existing_scenes:
+        if es.image_asset_id:
+            preserved_asset_ids.add(es.image_asset_id)
+        if es.environment_reference_id:
+            preserved_asset_ids.add(es.environment_reference_id)
+        if es.candidates:
+            for c in es.candidates:
+                mid = c.get("media_asset_id") if isinstance(c, dict) else None
+                if mid:
+                    preserved_asset_ids.add(mid)
+
     # Nullify asset FK references on scenes first
     db.query(Scene).filter(Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None)).update(
         {Scene.image_asset_id: None, Scene.environment_reference_id: None},

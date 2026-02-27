@@ -87,14 +87,16 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       storyboardTitle: topic || "Draft Storyboard",
     });
 
-    // Save version from response
-    useStoryboardStore.getState().set({ storyboardVersion: res.data.version ?? 1 });
-
-    // Update scene IDs with DB-assigned IDs
-    if (sceneIds.length > 0) {
-      const { scenes: currentScenes, setScenes } = useStoryboardStore.getState();
-      setScenes(currentScenes.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
-    }
+    // Atomic update: scenes + version + isDirty in one set() to avoid isDirty re-trigger
+    const currentScenes = useStoryboardStore.getState().scenes;
+    useStoryboardStore.getState().set({
+      scenes:
+        sceneIds.length > 0
+          ? currentScenes.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id }))
+          : currentScenes,
+      storyboardVersion: res.data.version ?? 1,
+      isDirty: false,
+    });
 
     // Sync URL with newly created storyboard ID & clear new mode
     if (typeof window !== "undefined") {
@@ -204,7 +206,6 @@ export async function persistStoryboard(): Promise<boolean> {
     duration,
     language,
     description,
-    setScenes,
   } = sbState;
   const { storyboardId, groupId } = ctxState;
 
@@ -233,12 +234,16 @@ export async function persistStoryboard(): Promise<boolean> {
         timeout: API_TIMEOUT.STORYBOARD_SAVE,
       });
       const sceneIds: number[] = res.data.scene_ids || [];
-      if (sceneIds.length > 0) {
-        const current = useStoryboardStore.getState().scenes;
-        setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
-      }
-      // Update version from response
-      useStoryboardStore.getState().set({ storyboardVersion: res.data.version });
+      // Atomic update: scenes + version + isDirty in one set() to avoid isDirty re-trigger
+      const current = useStoryboardStore.getState().scenes;
+      useStoryboardStore.getState().set({
+        scenes:
+          sceneIds.length > 0
+            ? current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id }))
+            : current,
+        storyboardVersion: res.data.version,
+        isDirty: false,
+      });
     } else {
       const res = await axios.post(`${API_BASE}/storyboards`, payload, {
         timeout: API_TIMEOUT.STORYBOARD_SAVE,
@@ -246,12 +251,16 @@ export async function persistStoryboard(): Promise<boolean> {
       const newId = res.data.storyboard_id;
       const sceneIds: number[] = res.data.scene_ids || [];
       useContextStore.getState().setContext({ storyboardId: newId, storyboardTitle: topic });
-      if (sceneIds.length > 0) {
-        const current = useStoryboardStore.getState().scenes;
-        setScenes(current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id })));
-      }
-      // Save version from response
-      useStoryboardStore.getState().set({ storyboardVersion: res.data.version ?? 1 });
+      // Atomic update: scenes + version + isDirty in one set() to avoid isDirty re-trigger
+      const current = useStoryboardStore.getState().scenes;
+      useStoryboardStore.getState().set({
+        scenes:
+          sceneIds.length > 0
+            ? current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id }))
+            : current,
+        storyboardVersion: res.data.version ?? 1,
+        isDirty: false,
+      });
       // Sync URL with newly created storyboard ID & clear new mode
       if (typeof window !== "undefined") {
         const url = new URL(window.location.href);
@@ -261,8 +270,6 @@ export async function persistStoryboard(): Promise<boolean> {
       }
       useUIStore.getState().set({ isNewStoryboardMode: false });
     }
-    // Clear dirty flag after successful save
-    useStoryboardStore.getState().set({ isDirty: false });
     return true;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 409) {

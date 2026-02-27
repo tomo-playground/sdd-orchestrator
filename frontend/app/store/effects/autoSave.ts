@@ -1,4 +1,5 @@
 import { useStoryboardStore } from "../useStoryboardStore";
+import { useUIStore } from "../useUIStore";
 import { persistStoryboard } from "../actions/storyboardActions";
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -10,7 +11,9 @@ function scheduleSave() {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(async () => {
     const { isDirty, scenes } = useStoryboardStore.getState();
-    if (!isDirty || scenes.length === 0 || isSaving) return;
+    const { isAutoRunning } = useUIStore.getState();
+    // Skip save during autoRun — it manages its own persist calls
+    if (!isDirty || scenes.length === 0 || isSaving || isAutoRunning) return;
 
     isSaving = true;
     try {
