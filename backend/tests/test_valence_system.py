@@ -10,7 +10,6 @@ import pytest
 
 from services.keywords.db_cache import TagValenceCache
 
-
 # ────────────────────────────────────────────
 # TagValenceCache Unit Tests
 # ────────────────────────────────────────────
@@ -238,27 +237,6 @@ class TestFlattenLayersValence:
 # ────────────────────────────────────────────
 
 
-class _FakeValenceCacheForResolver:
-    _initialized = True
-
-    @classmethod
-    def initialize(cls, db):
-        pass
-
-    @classmethod
-    def get_valence(cls, tag):
-        data = {"smile": "positive", "melancholic": "negative", "romantic": "positive", "serious": "neutral"}
-        return data.get(tag.lower().replace(" ", "_").strip())
-
-    @classmethod
-    def is_valence_conflicting(cls, tag1, tag2):
-        v1 = cls.get_valence(tag1)
-        v2 = cls.get_valence(tag2)
-        if not v1 or not v2 or v1 == "neutral" or v2 == "neutral":
-            return False
-        return v1 != v2
-
-
 class _FakeCategoryCache:
     _initialized = True
 
@@ -285,7 +263,7 @@ class TestResolveValenceConflicts:
     def _scenes(self, prompts):
         return [{"image_prompt": p} for p in prompts]
 
-    @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCacheForResolver)
+    @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCache)
     @patch("services.keywords.db_cache.TagCategoryCache", _FakeCategoryCache)
     def test_smile_melancholic_removes_melancholic(self):
         from services.agent.nodes._prompt_conflict_resolver import _resolve_valence_conflicts
@@ -298,7 +276,7 @@ class TestResolveValenceConflicts:
         assert "1girl" in tokens
         assert "blue_hair" in tokens
 
-    @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCacheForResolver)
+    @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCache)
     @patch("services.keywords.db_cache.TagCategoryCache", _FakeCategoryCache)
     def test_smile_romantic_both_kept(self):
         from services.agent.nodes._prompt_conflict_resolver import _resolve_valence_conflicts
@@ -309,7 +287,7 @@ class TestResolveValenceConflicts:
         assert "smile" in tokens
         assert "romantic" in tokens
 
-    @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCacheForResolver)
+    @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCache)
     @patch("services.keywords.db_cache.TagCategoryCache", _FakeCategoryCache)
     def test_neutral_expression_allows_any(self):
         from services.agent.nodes._prompt_conflict_resolver import _resolve_valence_conflicts
@@ -320,7 +298,7 @@ class TestResolveValenceConflicts:
         assert "serious" in tokens
         assert "melancholic" in tokens
 
-    @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCacheForResolver)
+    @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCache)
     @patch("services.keywords.db_cache.TagCategoryCache", _FakeCategoryCache)
     def test_empty_prompt_skipped(self):
         from services.agent.nodes._prompt_conflict_resolver import _resolve_valence_conflicts

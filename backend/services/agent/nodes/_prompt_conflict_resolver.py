@@ -84,16 +84,11 @@ def _resolve_valence_conflicts(scenes: list[dict]) -> None:
     """Expression/Gaze ↔ Mood valence 충돌을 감지하고 후자를 제거한다."""
     from services.keywords.db_cache import TagCategoryCache, TagValenceCache
 
-    if not TagValenceCache._initialized:
+    if not TagValenceCache._initialized or not TagCategoryCache._initialized:
         from database import get_db_session
 
         with get_db_session() as db:
             TagValenceCache.initialize(db)
-
-    if not TagCategoryCache._initialized:
-        from database import get_db_session
-
-        with get_db_session() as db:
             TagCategoryCache.initialize(db)
 
     for i, scene in enumerate(scenes):

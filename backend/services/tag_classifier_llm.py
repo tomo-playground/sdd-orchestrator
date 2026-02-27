@@ -12,6 +12,7 @@ from typing import TypedDict
 from google.genai.types import GenerateContentConfig, HttpOptions
 
 from config import GEMINI_CLASSIFIER_MODEL, GEMINI_CLASSIFIER_TIMEOUT_MS, gemini_client, logger
+from config_prompt import VALID_VALENCES as _VALID_VALENCES
 from services.keywords.patterns import GROUP_NAME_TO_LAYER
 
 _VALID_GROUPS = frozenset(GROUP_NAME_TO_LAYER.keys())
@@ -156,9 +157,6 @@ async def classify_tags_via_llm(tags: list[str]) -> list[LLMClassificationResult
     except Exception:
         logger.warning("[TagClassifier LLM] Gemini API call failed", exc_info=True)
         return []
-
-
-from config_prompt import VALID_VALENCES as _VALID_VALENCES
 
 
 def _build_valence_prompt(tags: list[str]) -> str:

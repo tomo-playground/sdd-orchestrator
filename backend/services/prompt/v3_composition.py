@@ -12,7 +12,6 @@ import functools
 from sqlalchemy.orm import Session
 
 from config import (
-    logger,
     BACKGROUND_SCENE_MARKER,
     BISHOUNEN_WEIGHT,
     CAMERA_FRAMING_CLOSE,
@@ -37,6 +36,7 @@ from config import (
     REFERENCE_CAMERA_TAGS,
     REFERENCE_ENV_TAGS,
     STYLE_LORA_WEIGHT_CAP,
+    logger,
 )
 from database import SessionLocal
 from models.character import Character
@@ -75,6 +75,11 @@ LAYER_NAMES: list[str] = [
 
 # Layers that only apply when a character is present (SUBJECT through ACTION)
 CHARACTER_ONLY_LAYERS = frozenset(range(LAYER_SUBJECT, LAYER_ACTION + 1))
+
+# Layers that participate in valence cross-check.
+# Note: gaze tags share LAYER_EXPRESSION(7) with expression tags,
+# so gaze↔mood valence conflicts are also caught via this layer check.
+VALENCE_LAYERS = frozenset({LAYER_EXPRESSION, LAYER_ATMOSPHERE})
 
 
 class LoRAInfo:
@@ -955,11 +960,6 @@ class V3PromptBuilder:
                     return True
         return False
 
-    # Layers that participate in valence cross-check.
-    # Note: gaze tags share LAYER_EXPRESSION(7) with expression tags,
-    # so gaze↔mood valence conflicts are also caught via this layer check.
-    _VALENCE_LAYERS = frozenset({LAYER_EXPRESSION, LAYER_ATMOSPHERE})
-
     def _flatten_layers(self, layers: list[list[str]]) -> str:
         """Flattens 12 layers into a final string with global deduplication and conflict resolution."""
         from services.keywords.db_cache import TagValenceCache
@@ -1009,7 +1009,7 @@ class V3PromptBuilder:
         """
         from services.keywords.db_cache import TagValenceCache
 
-        if current_layer not in V3PromptBuilder._VALENCE_LAYERS:
+        if current_layer not in VALENCE_LAYERS:
             return False
 
         opposite_layer = LAYER_ATMOSPHERE if current_layer == LAYER_EXPRESSION else LAYER_EXPRESSION
@@ -1019,7 +1019,10 @@ class V3PromptBuilder:
                 if TagValenceCache.is_valence_conflicting(key, existing_key):
                     logger.info(
                         "[Valence] Dropped '%s'(L%d) — conflicts with '%s'(L%d)",
-                        key, current_layer, existing_key, existing_layer,
+                        key,
+                        current_layer,
+                        existing_key,
+                        existing_layer,
                     )
                     return True
         return False
