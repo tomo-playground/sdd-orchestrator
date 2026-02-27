@@ -341,8 +341,7 @@ export default function ComposedPromptPreview({
   const hasLayers = !!result?.layers && result.layers.length > 0;
   const effectiveMode = viewMode === "layers" && !hasLayers ? "grouped" : viewMode;
 
-  // Hide entirely when no tokens or no compose result yet
-  if (tokens.length === 0 || (!result && !isLoading)) {
+  if (tokens.length === 0) {
     return null;
   }
 
