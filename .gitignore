@@ -8,18 +8,21 @@ __pycache__/
 .next/
 dist/
 build/
+*.egg-info/
 
 # Environment
 .env
 .env.local
 .env*.local
 
-# IDE
+# IDE / Tools
 .idea/
 .vscode/
 *.swp
 *.swo
 .DS_Store
+.serena/memories/
+.serena/project.yml
 
 # Outputs (generated files)
 outputs/
