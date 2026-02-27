@@ -234,7 +234,7 @@ export function RenderMediaPanel({
 
 /* ======== Render Side Panel (right column) ======== */
 
-const STAGE_LABELS: Record<RenderStage, string> = {
+export const STAGE_LABELS: Record<RenderStage, string> = {
   queued: "\uB300\uAE30\uC911",
   setup_avatars: "\uC544\uBC14\uD0C0 \uC124\uC815",
   process_scenes: "\uC74C\uC131 \uC0DD\uC131",

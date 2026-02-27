@@ -100,6 +100,8 @@ export default function PublishTab() {
             videoUrl={store.videoUrl}
             onClickFullscreen={(url) => setUI({ videoPreviewSrc: url })}
             compact
+            isRendering={store.isRendering}
+            renderProgress={store.renderProgress}
           />
 
           <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
