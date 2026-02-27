@@ -72,6 +72,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {charA && (
             <StageCharacterCard
+              key={charA.id}
               character={charA}
               characterFull={charAFull}
               role="A"
@@ -82,6 +83,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
           )}
           {charB && (
             <StageCharacterCard
+              key={charB.id}
               character={charB}
               characterFull={charBFull}
               role="B"
