@@ -22,11 +22,12 @@
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
 | Phase 18 (Stage Workflow) | 전체 완료 (ARCHIVED) |
 | **Phase 19 (Studio 탭 페르소나 재배치)** | **전체 완료 — 19-1(9) + 19-2(2) + 19-3(4) = 15/15** |
-| **DB Schema Cleanup** | **Sprint A 진행중 (6/7) — 1-1~1-5, 4-1 완료, Sprint B 미착수 (0/4)** |
+| **DB Schema Cleanup** | **Sprint A 완료 (7/7), Sprint B 미착수 (0/4)** |
 | 테스트 | Backend 2,667 + Frontend 399 = **총 3,066개** (valence +27 = 3,093) |
 
 ### 최근 작업
 
+- **DB Schema Cleanup Sprint A-7** (02-28): `ANALYZE` 실행 — pg_stat 통계 갱신 완료 (42테이블). projects 0→2건 등 부정확 row count 해소.
 - **DB Schema Cleanup Sprint A-6** (02-28): DB_SCHEMA.md 문서 불일치 4건 수정 — (1) `is_permanent` Known Issue → Resolved (weight boost 용도 확정), (2) `lora_type=style` Known Issue → Resolved (LAYER_ATMOSPHERE 배치 완료), (3) `characters.prompt_mode` 컬럼/Enum 삭제 (이미 DROP됨), (4) `embeddings` 테이블 "미구현" → 구현 완료 표기.
 - **DB Schema Cleanup Sprint A-5** (02-28): `media_assets.checksum` 쓰기 로직 보완 — 8개 MediaAsset INSERT 경로에 SHA-256 checksum 추가. `AssetService.compute_checksum()` 정적 메서드 추가. AssetService 4개 헬퍼(save_character_preview, save_background_image, save_scene_image, save_rendered_video) + 3개 라우터(controlnet, music_presets, voice_presets) + video/builder `_cache_bgm_asset` 수정.
 - **DB Schema Cleanup Sprint A-4** (02-28): `storyboards.base_seed` 자동 할당 — `save_storyboard_to_db()`에서 생성 시 `generate_base_seed()` 호출 추가. 기존 125개 스토리보드 백필 완료(0/125 → 125/125). Seed Anchoring(`base_seed + order * offset`) 정상 동작 가능.
@@ -351,7 +352,7 @@ Script → **Stage** → Direct → Publish 4단계 워크플로우. [상세 명
 | 1-4 | `storyboards.base_seed` 자동 할당 추가 | Backend Dev | ✅ (02-28) |
 | 1-5 | `media_assets.checksum` 쓰기 로직 보완 | Backend Dev | ✅ (02-28) |
 | 4-1 | DB_SCHEMA.md 문서 불일치 4건 수정 | DBA | ✅ (02-28) |
-| 5-2 | `ANALYZE` 실행 (pg_stat 통계 갱신) | DBA | 미착수 |
+| 5-2 | `ANALYZE` 실행 (pg_stat 통계 갱신) | DBA | ✅ (02-28) |
 
 ### Sprint B: DROP + INFRA
 
