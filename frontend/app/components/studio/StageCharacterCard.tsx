@@ -99,8 +99,8 @@ export default function StageCharacterCard({
                 Style: {characterFull.style_profile_name}
               </p>
             )}
-            {characterFull?.loras?.map((lora) => (
-              <div key={lora.id} className="flex items-center gap-1.5 text-[11px] text-indigo-600">
+            {characterFull?.loras?.map((lora, i) => (
+              <div key={`${lora.id}-${i}`} className="flex items-center gap-1.5 text-[11px] text-indigo-600">
                 <span className="text-indigo-400">LoRA</span>
                 <span className="min-w-0 flex-1 truncate font-medium">
                   {lora.display_name || lora.name}
