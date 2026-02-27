@@ -461,10 +461,15 @@ async def cleanup_preview():
 # ------------------------------------------------------------------
 
 
-@router.post("/admin/checkpoint-gc")
-async def run_checkpoint_gc(retention_days: int | None = None):
+class CheckpointGCResponse(BaseModel):
+    deleted_threads: int
+    retention_days: int
+    deleted_rows: dict[str, int] | None = None
+
+
+@router.post("/admin/checkpoint-gc", response_model=CheckpointGCResponse)
+async def run_checkpoint_gc(retention_days: int | None = Query(None, ge=1)):
     """Delete LangGraph checkpoint data older than retention period."""
     from services.agent.checkpointer import gc_checkpoints
 
-    result = await gc_checkpoints(retention_days)
-    return result
+    return await gc_checkpoints(retention_days)
