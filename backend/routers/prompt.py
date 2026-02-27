@@ -207,6 +207,17 @@ async def compose_prompt(
             all_tokens.extend(_collect_context_tags(request.context_tags))
         all_tokens.extend(request.tokens)
 
+        # 1b. Inject Background location tags (Stage BG → deduped)
+        if request.background_id:
+            from models.background import Background
+
+            bg = db.query(Background).filter(Background.id == request.background_id).first()
+            if bg and bg.tags:
+                existing = {t.lower().replace(" ", "_").strip() for t in all_tokens}
+                for bt in bg.tags:
+                    if bt.lower().replace(" ", "_").strip() not in existing:
+                        all_tokens.append(bt)
+
         # 2. Resolve style LoRAs: request > DB (storyboard → group → style_profile)
         style_loras = _convert_loras(request.loras)
         if not style_loras and request.storyboard_id:

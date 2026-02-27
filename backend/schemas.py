@@ -719,6 +719,7 @@ class PromptComposeRequest(BaseModel):
     storyboard_id: int | None = None  # for resolving style LoRAs from DB (SSOT)
     scene_id: int | None = None  # for scene_mode validation (multi-char guard)
     context_tags: dict | None = None  # scene.context_tags
+    background_id: int | None = None  # Stage BG → inject location tags into composition
 
 
 class NegativeSource(BaseModel):

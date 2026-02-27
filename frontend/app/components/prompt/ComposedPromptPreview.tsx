@@ -33,6 +33,7 @@ type ComposedPromptPreviewProps = {
   sceneId?: number | null;
   basePrompt?: string;
   contextTags?: Record<string, unknown>;
+  backgroundId?: number;
   loras?: LoRAInfo[];
   mode?: "auto" | "standard" | "lora";
   useBreak?: boolean;
@@ -170,6 +171,7 @@ export default function ComposedPromptPreview({
   sceneId,
   basePrompt,
   contextTags,
+  backgroundId,
   loras = [],
   mode = "auto",
   useBreak = true,
@@ -234,6 +236,7 @@ export default function ComposedPromptPreview({
           storyboard_id: storyboardId || undefined,
           scene_id: sceneId || undefined,
           context_tags: contextTags || undefined,
+          background_id: backgroundId || undefined,
           use_break: useBreak,
         }),
       });
@@ -259,6 +262,7 @@ export default function ComposedPromptPreview({
     storyboardId,
     sceneId,
     contextTags,
+    backgroundId,
     useBreak,
     onComposed,
     onNegativeComposed,

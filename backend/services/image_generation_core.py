@@ -271,9 +271,12 @@ def compose_scene_with_style(
     # 2. V3 composition
     scene_tags = split_prompt_tokens(styled_prompt)
 
-    # Merge background tags into scene tags (V3 _distribute_tags handles categorization)
+    # Merge background tags into scene tags (dedup to avoid duplicate environment tokens)
     if background_tags:
-        scene_tags.extend(background_tags)
+        existing = {t.lower().replace(" ", "_").strip() for t in scene_tags}
+        for bt in background_tags:
+            if bt.lower().replace(" ", "_").strip() not in existing:
+                scene_tags.append(bt)
 
     # Resolve sd_model_base for LoRA compatibility checking
     sd_model_base: str | None = None

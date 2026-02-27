@@ -143,6 +143,7 @@ export default function ScenePromptFields({
               sceneId={scene.id}
               basePrompt={basePromptA}
               contextTags={scene.context_tags || undefined}
+              backgroundId={scene.background_id || undefined}
               loras={characterLoras}
               mode={promptMode}
               useBreak={true}
