@@ -22,12 +22,13 @@
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
 | Phase 18 (Stage Workflow) | 전체 완료 (ARCHIVED) |
 | **Phase 19 (Studio 탭 페르소나 재배치)** | **전체 완료 — 19-1(9) + 19-2(2) + 19-3(4) = 15/15** |
-| **DB Schema Cleanup** | **Sprint A 완료 (7/7), Sprint B 진행중 (2/4) — 2-1, 2-3 완료** |
+| **DB Schema Cleanup** | **전체 완료 — Sprint A (7/7), Sprint B (3/4, 1건 취소)** |
 | **Phase 20 (Agent-Aware Inventory)** | **미착수 — 명세 완료, 6-Agent Review 반영** |
 | 테스트 | Backend 2,667 + Frontend 399 = **총 3,066개** (valence +27 = 3,093) |
 
 ### 최근 작업
 
+- **DB Schema Cleanup Sprint B 5-1** (02-28): LangGraph Checkpoint GC 배치 구현 — `gc_checkpoints()` 함수 + `POST /admin/checkpoint-gc` 엔드포인트. UUID v6 시간 기반 cutoff로 오래된 thread 삭제. 초회 실행: 157 threads 삭제, rows 60% 감소(checkpoints 3044→1131, writes 12978→5230). 기본 보존기간: 7일 (`CHECKPOINT_GC_RETENTION_DAYS`).
 - **DB Schema Cleanup Sprint B** (02-28): `characters.reference_source_type` DROP + `scenes.last_seed` DROP — 코드 참조 제거(ORM/스키마/서비스/FE 타입) + Alembic 마이그레이션 적용. `multi_gen_enabled`는 FE에서 활발 사용 확인, DROP 취소. DB_SCHEMA.md v3.31 갱신.
 - **DB Schema Cleanup Sprint A-7** (02-28): `ANALYZE` 실행 — pg_stat 통계 갱신 완료 (42테이블). projects 0→2건 등 부정확 row count 해소.
 - **DB Schema Cleanup Sprint A-6** (02-28): DB_SCHEMA.md 문서 불일치 4건 수정 — (1) `is_permanent` Known Issue → Resolved (weight boost 용도 확정), (2) `lora_type=style` Known Issue → Resolved (LAYER_ATMOSPHERE 배치 완료), (3) `characters.prompt_mode` 컬럼/Enum 삭제 (이미 DROP됨), (4) `embeddings` 테이블 "미구현" → 구현 완료 표기.
@@ -407,7 +408,7 @@ Script → **Stage** → Direct → Publish 4단계 워크플로우. [상세 명
 | 2-1 | `characters.reference_source_type` DROP | DBA | ✅ (02-28) |
 | 2-2 | `scenes.multi_gen_enabled` DROP | DBA | ❌ 취소 (FE 활발 사용) |
 | 2-3 | `scenes.last_seed` DROP | DBA | ✅ (02-28) |
-| 5-1 | LangGraph Checkpoint GC 배치 구현 | Backend Dev / DBA | 미착수 |
+| 5-1 | LangGraph Checkpoint GC 배치 구현 | Backend Dev / DBA | ✅ (02-28) |
 
 ---
 
@@ -464,14 +465,15 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 **Phase 19 — Studio 탭 페르소나 재배치 (전체 완료, 15/15)**
 
-**DB Schema Cleanup — Sprint A 완료 (7/7), Sprint B 미착수 (0/4)**
+**DB Schema Cleanup — Sprint A 완료 (7/7), Sprint B 진행중 (2/3, 1건 취소)**
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
 | ~~1~~ | ~~Sprint A 1-1: activity_logs INSERT 수정~~ | ✅ 완료 (02-28) |
 | ~~2~~ | ~~Sprint A 1-2~1-5: FIX FIRST 잔여 4건~~ | ✅ 완료 (02-28) |
 | ~~3~~ | ~~Sprint A 4-1/5-2: DOC FIX + ANALYZE~~ | ✅ 완료 (02-28) |
-| 4 | Sprint B: DROP 3건 + Checkpoint GC | 스키마 정리 + 인프라 |
+| ~~4~~ | ~~Sprint B 2-1, 2-3: DROP 2건~~ | ✅ 완료 (02-28), 2-2 취소 (FE 활발 사용) |
+| 5 | Sprint B 5-1: LangGraph Checkpoint GC 배치 | 인프라 |
 
 **Phase 17 — Service/Admin 분리**
 
