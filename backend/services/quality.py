@@ -118,7 +118,11 @@ def batch_validate_scenes(
             logger.exception(f"Failed to validate scene {scene_id}: {exc}")
             continue
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception as exc:
+        logger.error("Failed to commit batch quality scores: %s", exc)
+        db.rollback()
 
     # Calculate average
     avg_match_rate = sum(r["match_rate"] for r in results) / len(results) if results else 0.0

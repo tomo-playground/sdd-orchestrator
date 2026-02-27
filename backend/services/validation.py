@@ -311,20 +311,23 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
 
         if db is not None:
             # Use scene_id (DB PK) if provided, fallback to scene_index
-            actual_scene_id = request.scene_id or request.scene_index or 0
+            actual_scene_id = request.scene_id or request.scene_index or None
 
-            _save_scene_quality_score(
-                db=db,
-                storyboard_id=request.storyboard_id,
-                scene_id=actual_scene_id,
-                prompt=request.prompt,
-                match_rate=match_rate,
-                matched=comparison["matched"],
-                missing=comparison["missing"],
-                extra=comparison["extra"],
-                identity_score=identity_score,
-                identity_tags_detected=identity_signature,
-            )
+            if actual_scene_id:
+                _save_scene_quality_score(
+                    db=db,
+                    storyboard_id=request.storyboard_id,
+                    scene_id=actual_scene_id,
+                    prompt=request.prompt,
+                    match_rate=match_rate,
+                    matched=comparison["matched"],
+                    missing=comparison["missing"],
+                    extra=comparison["extra"],
+                    identity_score=identity_score,
+                    identity_tags_detected=identity_signature,
+                )
+            else:
+                logger.debug("[QualityScore] No scene_id provided, skipping save")
 
             _update_activity_log_match_rate(
                 db=db,
@@ -384,14 +387,14 @@ def _save_scene_quality_score(
     from models.scene_quality import SceneQualityScore
 
     try:
-        # Verify scene_id exists (scenes may be recreated during PUT with new IDs)
+        # Verify scene_id FK target exists (allow soft-deleted scenes for FK validity)
         if scene_id is not None:
-            from services.storyboard.helpers import resolve_scene_id_by_client_id
+            from models.scene import Scene
 
-            resolved = resolve_scene_id_by_client_id(db, scene_id, None, storyboard_id)
-            if resolved is None:
+            exists = db.query(Scene.id).filter(Scene.id == scene_id).first()
+            if not exists:
+                logger.warning("[QualityScore] scene_id %d not found, skipping save", scene_id)
                 return
-            scene_id = resolved
 
         score = SceneQualityScore(
             storyboard_id=storyboard_id,

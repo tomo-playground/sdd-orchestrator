@@ -22,11 +22,12 @@
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
 | Phase 18 (Stage Workflow) | 전체 완료 (ARCHIVED) |
 | **Phase 19 (Studio 탭 페르소나 재배치)** | **전체 완료 — 19-1(9) + 19-2(2) + 19-3(4) = 15/15** |
-| **DB Schema Cleanup** | **Sprint A 진행중 (1/7) — 1-1 완료, Sprint B 미착수 (0/4)** |
+| **DB Schema Cleanup** | **Sprint A 진행중 (3/7) — 1-1,1-2,1-3 완료, Sprint B 미착수 (0/4)** |
 | 테스트 | Backend 2,667 + Frontend 399 = **총 3,066개** (valence +27 = 3,093) |
 
 ### 최근 작업
 
+- **DB Schema Cleanup Sprint A-3** (02-28): `scene_quality_scores` 저장 경로 수정 — Phase 16-D 이후 quality score 0건 저장 회귀 버그 발견 및 수정. 원인: (1) `actual_scene_id = ... or 0`에서 scene_id=None일 때 0이 되어 FK 조회 실패, (2) `resolve_scene_id_by_client_id(db, scene_id, None, ...)`에 client_id=None 전달로 폴백 무효화 + soft-deleted scene 차단. 수정: `or None`으로 변경 + 단순 FK 존재 체크로 대체. `batch_validate_scenes` commit 예외처리 추가.
 - **DB Schema Cleanup Sprint A-1** (02-28): `activity_logs` Gemini 편집 추적 INSERT 누락 버그 수정. `validate_and_auto_edit_scene()`에서 편집 성공 시 ActivityLog 즉시 INSERT(`gemini_edited`, `gemini_cost_usd`, `original_match_rate`). `CreateActivityLogRequest`에 gemini 필드 4개 추가. 비용 한도/재시도 횟수 체크 정상화. [명세](FEATURES/DB_SCHEMA_CLEANUP.md)
 - **Phase 19: Studio 탭 페르소나 재배치 구현 완료** (02-28): Stage SSOT + Direct 경량화. StageTab에 Visual Style/CharacterSelector/Base Prompts(읽기전용)/Generation Settings 추가. ScenesTab Context Strip(Style/Character 배지 + Stage 딥링크). Publish Voice/BGM readOnly + "Change in Stage" 링크. Dead code 6파일 삭제(ImageSettingsContent, StudioThreeColumnLayout, RightPanelTabs, PromptHelperSidebar, PromptSetupPanel, promptHelperActions). isMultiCharStructure 유틸 통일. 18파일 +550/-761줄
 - **Studio 탭 페르소나 재배치 명세 v2** (02-27): 6-Agent 리뷰(PM/Frontend/UX/TechLead/Backend/QA) 반영. BLOCKER 4건 해소: (1) Express 모드 Stage 경유 확정, (2) useCharacterAutoLoad 경합 조건 문서화, (3) Phase 순서 의존성 명시, (4) Direct Context Strip 추가. Phase 1(9스텝) + Phase 2(2스텝) + Phase 3(4스텝). [명세](FEATURES/STUDIO_TAB_PERSONA_REORGANIZATION.md)
@@ -342,8 +343,8 @@ Script → **Stage** → Direct → Publish 4단계 워크플로우. [상세 명
 | # | 항목 | 담당 | 상태 |
 |---|------|------|------|
 | 1-1 | `activity_logs` Gemini 편집 추적 INSERT 누락 수정 | Backend Dev | ✅ (02-28) |
-| 1-2 | `tags.valence` 일괄 시딩 실행 | Backend Dev / Prompt Eng | 미착수 |
-| 1-3 | `scene_quality_scores.identity_score` 저장 경로 점검 | Backend Dev | 미착수 |
+| 1-2 | `tags.valence` 일괄 시딩 실행 | Backend Dev / Prompt Eng | ✅ (02-28) |
+| 1-3 | `scene_quality_scores.identity_score` 저장 경로 수정 | Backend Dev | ✅ (02-28) |
 | 1-4 | `storyboards.base_seed` 할당 로직 점검 | Backend Dev | 미착수 |
 | 1-5 | `media_assets.checksum` 쓰기 로직 보완 | Backend Dev | 미착수 |
 | 4-1 | DB_SCHEMA.md 문서 불일치 4건 수정 | DBA | 미착수 |
@@ -411,6 +412,15 @@ Phase 9 이후 또는 우선순위 미정 항목.
 **Phase 18 — Stage Workflow (전체 완료, ARCHIVED)**
 
 **Phase 19 — Studio 탭 페르소나 재배치 (전체 완료, 15/15)**
+
+**DB Schema Cleanup — 진행중 (1/11)**
+
+| 순위 | 작업 | 근거 |
+|------|------|------|
+| ~~1~~ | ~~Sprint A 1-1: activity_logs INSERT 수정~~ | ✅ 완료 (02-28) |
+| 2 | Sprint A 1-2~1-5: FIX FIRST 잔여 4건 | 데이터 정합성 (valence, identity_score, base_seed, checksum) |
+| 3 | Sprint A 4-1/5-2: DOC FIX + ANALYZE | DB_SCHEMA.md 불일치 해소 |
+| 4 | Sprint B: DROP 3건 + Checkpoint GC | 스키마 정리 + 인프라 |
 
 **Phase 17 — Service/Admin 분리**
 
