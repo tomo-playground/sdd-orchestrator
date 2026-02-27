@@ -94,15 +94,6 @@ INDOOR_LOCATION_TAGS: frozenset[str] = frozenset(
         "hallway",
         "living_room",
         "stage",
-        # 가구/소품 (환경 구체화)
-        "office_chair",
-        "desk",
-        "office_desk",
-        "bed",
-        "sofa",
-        "couch",
-        "table",
-        "chair",
     }
 )
 CAMERA_FRAMING_WIDE: frozenset[str] = frozenset({"full_body", "wide_shot"})

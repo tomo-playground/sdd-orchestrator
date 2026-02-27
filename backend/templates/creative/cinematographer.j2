@@ -90,10 +90,11 @@ Match your visual design to this plan:
    - **Standing**: standing, standing_arms_crossed, standing_hands_on_hips, standing_arms_up, standing_waving, standing_thumbs_up, standing_looking_up, standing_from_behind, profile_standing
    - **Sitting**: sitting, sitting_chin_rest, sitting_leaning, sitting_eating
    - **Action**: walking, running, jumping, kneeling, crouching, lying, pointing_forward, covering_face
-   - **Daily life**: holding_object, eating, cooking, holding_umbrella, writing, leaning_wall
+   - **Daily life**: eating, cooking, holding_umbrella, writing, leaning_wall
+   - ❌ NEVER use generic `holding_object`. Instead use specific tags: `holding_phone`, `holding_cup`, `holding_book`, `holding_bag`, etc.
    - Use the EXACT tag names above in `context_tags.pose` (these map to ControlNet pose references)
    **ControlNet Pose Selection** (`controlnet_pose`): Choose ONE pose from the list below that best matches the scene's action, pose, and gaze combination.
-   Valid poses: `standing`, `waving`, `arms up`, `arms crossed`, `thumbs up`, `hands on hips`, `looking at viewer`, `from behind`, `sitting`, `chin rest`, `leaning`, `walking`, `running`, `jumping`, `lying`, `kneeling`, `crouching`, `pointing forward`, `covering face`, `holding object`, `eating`, `cooking`, `holding umbrella`, `writing`, `profile standing`, `standing looking up`, `leaning wall`, `sitting eating`
+   Valid poses: `standing`, `waving`, `arms up`, `arms crossed`, `thumbs up`, `hands on hips`, `looking at viewer`, `from behind`, `sitting`, `chin rest`, `leaning`, `walking`, `running`, `jumping`, `lying`, `kneeling`, `crouching`, `pointing forward`, `covering face`, `eating`, `cooking`, `holding umbrella`, `writing`, `profile standing`, `standing looking up`, `leaning wall`, `sitting eating`
    Gaze-to-pose mapping (when gaze implies body direction):
    | Gaze | Recommended `controlnet_pose` |
    | looking_back | `from behind` |
@@ -132,6 +133,7 @@ Match your visual design to this plan:
    - Outdoor scene: `tree`, `sky`, `bench`, `road`
    - **Rule**: If the script mentions a key action (checking phone, cooking, reading), the related prop MUST appear in image_prompt. Do NOT omit props that define the scene's core action.
    - Do NOT add objects unrelated to the script (e.g. holding_book in a cooking scene)
+   - ❌ NEVER use vague/generic action tags: `holding_object`, `doing_something`, `using_device`. Always specify the exact object: `holding_phone`, `holding_cup`, `reading_book`, etc.
 8. **image_prompt**: Complete comma-separated tag string ready for Stable Diffusion
 9. **negative_prompt_extra**: Scene-specific tags to exclude from generation. Combined with the default negative prompt.
    - Only add tags that are specifically problematic for THIS scene. Do NOT repeat default negative tags.
