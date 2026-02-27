@@ -94,12 +94,12 @@ def _apply_reference_only(req, ctx: GenerationContext, strategy, args: list, db)
 
 
 def _apply_environment(req: SceneGenerateRequest, ctx: GenerationContext, args: list, db) -> None:
-    """Apply environment pinning via Canny ControlNet with conflict detection."""
+    """Apply environment atmosphere via Reference AdaIN with conflict detection."""
     if not req.environment_reference_id:
         return
     is_no_humans = "no_humans" in ctx.prompt
     if is_no_humans:
-        logger.info("🏠 [Environment Pinning] Skipped for no_humans scene (Narrator)")
+        logger.info("🏠 [Environment Reference] Skipped for no_humans scene (Narrator)")
         return
     _apply_environment_pinning(req, args, ctx.warnings, db)
 
@@ -155,7 +155,7 @@ def _apply_environment_pinning(
         warnings.append(msg)
         return
 
-    _apply_canny_from_asset(env_asset, request, controlnet_args_list)
+    _apply_reference_adain_from_asset(env_asset, request, controlnet_args_list)
 
 
 def _load_env_asset(env_ref_id: int, db):
@@ -203,10 +203,17 @@ def _check_tag_conflict(ref_scene, request: SceneGenerateRequest, db) -> str | N
     return None
 
 
-def _apply_canny_from_asset(env_asset, request: SceneGenerateRequest, controlnet_args_list: list) -> None:
-    """Apply Canny ControlNet from environment asset image."""
+def _apply_reference_adain_from_asset(env_asset, request: SceneGenerateRequest, controlnet_args_list: list) -> None:
+    """Apply Reference AdaIN from environment asset for atmosphere/color transfer.
+
+    Unlike Canny (edge structure), Reference AdaIN transfers color statistics
+    (mean/variance) only — maintains location atmosphere without imposing
+    spatial perspective on character scenes.
+    """
     import base64
     import os
+
+    from config import REFERENCE_ADAIN_GUIDANCE_END, REFERENCE_ADAIN_WEIGHT
 
     if not os.path.exists(env_asset.local_path):
         return
@@ -214,21 +221,26 @@ def _apply_canny_from_asset(env_asset, request: SceneGenerateRequest, controlnet
     try:
         with open(env_asset.local_path, "rb") as f:
             env_base64 = base64.b64encode(f.read()).decode("utf-8")
-        controlnet_args_list.append(
-            build_controlnet_args(
-                input_image=env_base64,
-                model="canny",
-                weight=request.environment_reference_weight,
-                control_mode="My prompt is more important",
-            )
-        )
+        controlnet_args_list.append({
+            "enabled": True,
+            "image": env_base64,
+            "module": "reference_adain",
+            "model": "None",
+            "weight": REFERENCE_ADAIN_WEIGHT,
+            "control_mode": "My prompt is more important",
+            "pixel_perfect": True,
+            "low_vram": False,
+            "guidance_start": 0.0,
+            "guidance_end": REFERENCE_ADAIN_GUIDANCE_END,
+        })
         logger.info(
-            "🏠 [Environment Pinning] Enabled using asset %d (weight=%.2f)",
+            "🏠 [Environment Reference AdaIN] Enabled using asset %d (weight=%.2f, guidance_end=%.2f)",
             request.environment_reference_id,
-            request.environment_reference_weight,
+            REFERENCE_ADAIN_WEIGHT,
+            REFERENCE_ADAIN_GUIDANCE_END,
         )
     except Exception as e:
-        logger.error("❌ [Environment Pinning] Failed to load asset: %s", e)
+        logger.error("❌ [Environment Reference AdaIN] Failed to load asset: %s", e)
 
 
 # ── Character Actions pose hint ───────────────────────────────────

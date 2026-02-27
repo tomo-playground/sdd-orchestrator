@@ -190,9 +190,9 @@ def _handle_character_scene(
     # Auto-set environment reference from background image
     if bg_image_asset_id and not request.environment_reference_id:
         request.environment_reference_id = bg_image_asset_id
-        request.environment_reference_weight = bg_weight or 0.3
+        request.environment_reference_weight = bg_weight or 0.15
         logger.info(
-            "🏠 [Background] Auto-set environment_reference_id=%d (weight=%.2f)", bg_image_asset_id, bg_weight or 0.3
+            "🏠 [Background] Auto-set environment_reference_id=%d (weight=%.2f)", bg_image_asset_id, bg_weight or 0.15
         )
     logger.debug("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
     return cleaned_prompt, compose_warnings

@@ -443,6 +443,11 @@ STAGE_STATUS_STAGING = "staging"
 STAGE_STATUS_STAGED = "staged"
 STAGE_STATUS_FAILED = "failed"
 
+# Reference AdaIN — environment atmosphere transfer (replaces Canny for BG pinning)
+# Transfers color statistics (mean/variance) only, no spatial structure
+REFERENCE_ADAIN_WEIGHT = float(os.getenv("REFERENCE_ADAIN_WEIGHT", "0.35"))
+REFERENCE_ADAIN_GUIDANCE_END = float(os.getenv("REFERENCE_ADAIN_GUIDANCE_END", "0.5"))
+
 # Default pose/gaze/expression for ControlNet when Gemini omits context_tags
 DEFAULT_POSE_TAG = "standing"
 DEFAULT_GAZE_TAG = "looking_at_viewer"

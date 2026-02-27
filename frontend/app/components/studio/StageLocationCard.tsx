@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Image, Loader2, RefreshCw, CheckCircle2, AlertCircle, Pencil, X } from "lucide-react";
 import Button from "../ui/Button";
+import ImagePreviewModal from "../ui/ImagePreviewModal";
 import type { StageLocationStatus } from "../../types";
 
 export default function StageLocationCard({
@@ -16,6 +17,7 @@ export default function StageLocationCard({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTags, setEditTags] = useState("");
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
 
   const startEdit = () => {
     setEditTags(location.tags.join(", "));
@@ -41,7 +43,8 @@ export default function StageLocationCard({
           <img
             src={location.image_url}
             alt={location.location_key}
-            className="h-full w-full object-cover"
+            className="h-full w-full cursor-pointer object-cover transition hover:brightness-90"
+            onClick={() => setPreviewSrc(location.image_url!)}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -141,6 +144,9 @@ export default function StageLocationCard({
           </Button>
         )}
       </div>
+      {previewSrc && (
+        <ImagePreviewModal src={previewSrc} onClose={() => setPreviewSrc(null)} />
+      )}
     </div>
   );
 }

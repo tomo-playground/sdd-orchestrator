@@ -356,6 +356,50 @@ class TestGetPoseFromCharacterActions:
         assert result is None
 
 
+# ── _apply_reference_adain_from_asset Tests ──────────────────────────
+
+
+class TestApplyReferenceAdain:
+    """Tests for Reference AdaIN environment atmosphere transfer."""
+
+    def test_builds_reference_adain_args(self, tmp_path):
+        """Should build ControlNet args with reference_adain module."""
+        from services.generation_controlnet import _apply_reference_adain_from_asset
+
+        # Create a fake image file
+        img_file = tmp_path / "bg.png"
+        img_file.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
+
+        env_asset = MagicMock()
+        env_asset.local_path = str(img_file)
+        req = FakeRequest(environment_reference_id=42)
+        args: list = []
+
+        _apply_reference_adain_from_asset(env_asset, req, args)
+
+        assert len(args) == 1
+        arg = args[0]
+        assert arg["module"] == "reference_adain"
+        assert arg["model"] == "None"
+        assert arg["control_mode"] == "My prompt is more important"
+        assert arg["weight"] == 0.35
+        assert arg["guidance_end"] == 0.5
+        assert arg["enabled"] is True
+        assert "image" in arg
+
+    def test_skips_when_file_missing(self):
+        """Should skip when asset file doesn't exist."""
+        from services.generation_controlnet import _apply_reference_adain_from_asset
+
+        env_asset = MagicMock()
+        env_asset.local_path = "/nonexistent/path.png"
+        req = FakeRequest(environment_reference_id=42)
+        args: list = []
+
+        _apply_reference_adain_from_asset(env_asset, req, args)
+        assert args == []
+
+
 # ── Generation result includes ControlNet fields ─────────────────────
 
 

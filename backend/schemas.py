@@ -607,7 +607,7 @@ class SceneGenerateRequest(BaseModel):
     reference_only_weight: float = 0.5
     environment_reference_id: int | None = None  # For Environment Pinning
     environment_reference_weight: float = 0.3
-    # Background asset reference (auto-inject tags + ControlNet Canny)
+    # Background asset reference (auto-inject tags + Reference AdaIN atmosphere)
     background_id: int | None = None
     # Scene DB ID for character_actions lookup during V3 composition
     scene_id: int | None = None

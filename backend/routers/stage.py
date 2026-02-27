@@ -75,7 +75,7 @@ def get_stage_status(storyboard_id: int, db: Session = Depends(get_db)):
     # Derive locations from scenes
     from services.stage.background_generator import extract_locations_from_scenes
 
-    loc_data = extract_locations_from_scenes(scenes)
+    loc_data = extract_locations_from_scenes(scenes, db)
 
     locations: list[StageLocationStatus] = []
     ready_count = 0
