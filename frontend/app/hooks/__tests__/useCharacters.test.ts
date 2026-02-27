@@ -61,7 +61,6 @@ const BASE_CHARACTER: CharacterFull = {
   ip_adapter_model: null,
   ip_adapter_guidance_start: null,
   ip_adapter_guidance_end: null,
-  reference_source_type: null,
   reference_images: null,
   voice_preset_id: null,
 };

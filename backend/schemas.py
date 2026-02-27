@@ -922,7 +922,6 @@ class CharacterBase(BaseModel):
     ip_adapter_model: str | None = None
     ip_adapter_guidance_start: float | None = None
     ip_adapter_guidance_end: float | None = None
-    reference_source_type: str | None = None
     # Multi-angle references: [{"angle": "front", "asset_id": 123}, ...]
     reference_images: list[dict] | None = None
     preview_locked: bool = False
@@ -952,7 +951,6 @@ class CharacterUpdate(BaseModel):
     ip_adapter_model: str | None = None
     ip_adapter_guidance_start: float | None = None
     ip_adapter_guidance_end: float | None = None
-    reference_source_type: str | None = None
     reference_images: list[dict] | None = None
     preview_locked: bool | None = None
     voice_preset_id: int | None = None

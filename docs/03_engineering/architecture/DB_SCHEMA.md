@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.31 | 2026-02-28 | DB Schema Cleanup: `characters.reference_source_type` DROP, `scenes.last_seed` DROP. `is_permanent` / `lora_type=style` Known Issue 해소 표기. `embeddings` 구현 완료 표기. `characters.prompt_mode` 문서 삭제 |
 | v3.30 | 2026-02-26 | Phase 18 Stage Workflow: `backgrounds`에 `storyboard_id` FK(CASCADE) + `location_key` + partial unique index 추가. `storyboards`에 `stage_status` 추가 |
 | v3.29 | 2026-02-22 | `scenes`에 `controlnet_pose` (String(50), nullable) 추가. Finalize `_flatten_tts_designs()` — tts_design dict → flat fields 분해 |
 | v3.28 | 2026-02-22 | `render_presets.bgm_mode` NOT NULL 적용 (server_default="manual"). Dead 컬럼 DROP: `scenes.description`, `creative_traces.diff_summary`. `scenes`에 `clothing_tags` (JSONB) 추가 |
@@ -204,7 +205,6 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | **Generation** | | |
 | `scene_mode` | String(10) | 씬 모드: `"single"` (1인) or `"multi"` (2인 동시 출연, default: `"single"`) |
 | `multi_gen_enabled` | Boolean | 멀티 생성 활성화 여부 |
-| `last_seed` | BigInteger, nullable | SD API가 실제 사용한 시드 (Seed Anchoring Phase 4) |
 | `image_asset_id` | Integer (FK → media_assets, SET NULL) | 생성된 이미지 (폴리모픽 참조) |
 | `candidates` | JSONB | 후보 이미지 목록 (`media_asset_id`, `match_rate`) |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
@@ -467,7 +467,6 @@ WD14 피드백 루프 데이터.
 | `ip_adapter_model` | String(50) | `clip`, `clip_face`, `faceid` |
 | `ip_adapter_guidance_start` | Float, nullable | IP-Adapter guidance 시작점 (기본: 0.0) |
 | `ip_adapter_guidance_end` | Float, nullable | IP-Adapter guidance 종료점 (faceid: 0.85, clip: 1.0) |
-| `reference_source_type` | String(20), nullable | 레퍼런스 소스 (`generated`, `uploaded`) |
 | `reference_images` | JSONB, nullable | 멀티앵글 레퍼런스 `[{"angle":"front","asset_id":N}]` |
 | **Voice** | | |
 | `voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 캐릭터 고유 음성 프리셋 |

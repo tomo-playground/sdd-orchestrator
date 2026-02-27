@@ -252,7 +252,7 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
     3. _adjust_parameters → ctx.prompt (calibrated), ctx.steps, ctx.cfg_scale
     4. _build_payload    → SD API payload dict
     5. _apply_controlnet → ctx.controlnet_used, ctx.ip_adapter_used
-    6. _call_sd_api      → final result + save last_seed
+    6. _call_sd_api      → final result
     """
     from models.scene import Scene
     from services.generation_context import GenerationContext
@@ -287,21 +287,5 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
     result = await _call_sd_api(payload, ctx)
     result["used_prompt"] = ctx.prompt
     result["consistency_quality"] = ctx.consistency.quality_score
-
-    # Save actual seed to scene DB record.
-    # Re-fetch scene because storyboard save (PUT) hard-deletes and recreates scenes
-    # during the SD API call window, making the original scene_obj stale.
-    actual_seed = result.get("seed")
-    if actual_seed is not None and request.scene_id:
-        try:
-            fresh_scene = db.query(Scene).filter(Scene.id == request.scene_id).first()
-            if fresh_scene:
-                fresh_scene.last_seed = actual_seed
-                db.commit()
-            else:
-                logger.info("Scene %d no longer exists, skipping last_seed save", request.scene_id)
-        except Exception as e:
-            db.rollback()
-            logger.warning("Failed to save last_seed to scene: %s", e)
 
     return result

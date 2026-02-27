@@ -22,11 +22,13 @@
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
 | Phase 18 (Stage Workflow) | 전체 완료 (ARCHIVED) |
 | **Phase 19 (Studio 탭 페르소나 재배치)** | **전체 완료 — 19-1(9) + 19-2(2) + 19-3(4) = 15/15** |
-| **DB Schema Cleanup** | **Sprint A 완료 (7/7), Sprint B 미착수 (0/4)** |
+| **DB Schema Cleanup** | **Sprint A 완료 (7/7), Sprint B 진행중 (2/4) — 2-1, 2-3 완료** |
+| **Phase 20 (Agent-Aware Inventory)** | **미착수 — 명세 완료, 6-Agent Review 반영** |
 | 테스트 | Backend 2,667 + Frontend 399 = **총 3,066개** (valence +27 = 3,093) |
 
 ### 최근 작업
 
+- **DB Schema Cleanup Sprint B** (02-28): `characters.reference_source_type` DROP + `scenes.last_seed` DROP — 코드 참조 제거(ORM/스키마/서비스/FE 타입) + Alembic 마이그레이션 적용. `multi_gen_enabled`는 FE에서 활발 사용 확인, DROP 취소. DB_SCHEMA.md v3.31 갱신.
 - **DB Schema Cleanup Sprint A-7** (02-28): `ANALYZE` 실행 — pg_stat 통계 갱신 완료 (42테이블). projects 0→2건 등 부정확 row count 해소.
 - **DB Schema Cleanup Sprint A-6** (02-28): DB_SCHEMA.md 문서 불일치 4건 수정 — (1) `is_permanent` Known Issue → Resolved (weight boost 용도 확정), (2) `lora_type=style` Known Issue → Resolved (LAYER_ATMOSPHERE 배치 완료), (3) `characters.prompt_mode` 컬럼/Enum 삭제 (이미 DROP됨), (4) `embeddings` 테이블 "미구현" → 구현 완료 표기.
 - **DB Schema Cleanup Sprint A-5** (02-28): `media_assets.checksum` 쓰기 로직 보완 — 8개 MediaAsset INSERT 경로에 SHA-256 checksum 추가. `AssetService.compute_checksum()` 정적 메서드 추가. AssetService 4개 헬퍼(save_character_preview, save_background_image, save_scene_image, save_rendered_video) + 3개 라우터(controlnet, music_presets, voice_presets) + video/builder `_cache_bgm_asset` 수정.
@@ -148,6 +150,7 @@ graph LR
     P16 --> P17["Phase 17<br/>Service/Admin<br/>분리"]
     P17 --> P18["Phase 18<br/>Stage<br/>Workflow"]
     P18 --> P19["Phase 19<br/>탭 페르소나<br/>재배치"]
+    P19 --> P20["Phase 20<br/>Agent-Aware<br/>Inventory"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -171,7 +174,8 @@ graph LR
     style P16 fill:#4CAF50,color:#fff
     style P17 fill:#FF9800,color:#fff
     style P18 fill:#4CAF50,color:#fff
-    style P19 fill:#2196F3,color:#fff
+    style P19 fill:#4CAF50,color:#fff
+    style P20 fill:#FF9800,color:#fff
 ```
 
 ---
@@ -338,6 +342,48 @@ Script → **Stage** → Direct → Publish 4단계 워크플로우. [상세 명
 
 ---
 
+## Phase 20: Agent-Aware Inventory Pipeline (Director 캐스팅)
+
+**목표**: Director Agent가 캐릭터/구조/스타일 인벤토리를 인지하고 토픽에 최적인 조합을 자율 추천. [상세 명세](FEATURES/AGENT_AWARE_INVENTORY_PIPELINE.md)
+
+### Phase 20-A: Director Inventory Awareness (MVP, Backend + 최소 Frontend)
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | `inventory.py` 인벤토리 로딩 서비스 (캐릭터 프루닝 20명, 간접 JOIN 기반) | 미착수 |
+| 2 | `director_plan.j2` 템플릿 인벤토리 섹션 + CoT 캐스팅 가이드 | 미착수 |
+| 3 | `CastingRecommendation` Pydantic + `DirectorPlanOutput.casting` 확장 | 미착수 |
+| 4 | `ScriptState`에 `casting_recommendation` + `valid_character_ids` 추가 | 미착수 |
+| 5 | `inventory_resolve` 노드 (user override 병합 + 5항목 유효성 검증) | 미착수 |
+| 6 | Graph 엣지: `director_plan → inventory_resolve → research` | 미착수 |
+| 7 | SSE `node_result` 기반 캐스팅 전달 + `_NODE_META` 등록 | 미착수 |
+| 8 | 후방 호환성 검증 (기존 character_id 선택, Express/Quick 불변) | 미착수 |
+| 9 | 최소 Frontend 토스트 (캐스팅 추천 표시) | 미착수 |
+
+### Phase 20-B: Casting UX (Frontend)
+
+**선행**: `useScriptEditor.ts` SSE 파싱 분리 리팩터링
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | CharacterSelector "AI Recommended" 그룹 + Sparkles 배지 | 미착수 |
+| 2 | Script 탭 캐스팅 배너 (추천 수신 → 수락/무시 CTA) | 미착수 |
+| 3 | `StageCastingCompareCard.tsx` 비교 카드 (라이프사이클 5단계) | 미착수 |
+| 4 | character_id Optional → Director 자율 캐스팅 | 미착수 |
+| 5 | `pipelineSteps.ts` "디렉터/캐스팅" 스텝 통합 | 미착수 |
+
+### Phase 20-C: Autonomous Express
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | `director_plan_lite` 경량 노드 (Flash, 캐릭터 10명 제한) | 미착수 |
+| 2 | Express 라우팅 3분기 (`routing.py` + `script_graph.py` 확장) | 미착수 |
+| 3 | One-Click Express UI (2단계 확인 + AI 결정 요약 카드) | 미착수 |
+| 4 | 자율 결정 로그 SSE 스트림 | 미착수 |
+| 5 | Fallback 전략 (최근 사용 캐릭터 + monologue) | 미착수 |
+
+---
+
 ## DB Schema Cleanup — 미사용 컬럼/테이블 감사 및 정리
 
 **목표**: DB Schema v3.30 기준, 전체 테이블/컬럼의 실제 사용 현황을 DB 데이터 + 코드 참조 양면에서 감사하고 정리. [상세 명세](FEATURES/DB_SCHEMA_CLEANUP.md)
@@ -358,9 +404,9 @@ Script → **Stage** → Direct → Publish 4단계 워크플로우. [상세 명
 
 | # | 항목 | 담당 | 상태 |
 |---|------|------|------|
-| 2-1 | `characters.reference_source_type` DROP | DBA | 미착수 |
-| 2-2 | `scenes.multi_gen_enabled` DROP | DBA | 미착수 |
-| 2-3 | `scenes.last_seed` DROP (조건부) | DBA | 미착수 |
+| 2-1 | `characters.reference_source_type` DROP | DBA | ✅ (02-28) |
+| 2-2 | `scenes.multi_gen_enabled` DROP | DBA | ❌ 취소 (FE 활발 사용) |
+| 2-3 | `scenes.last_seed` DROP | DBA | ✅ (02-28) |
 | 5-1 | LangGraph Checkpoint GC 배치 구현 | Backend Dev / DBA | 미착수 |
 
 ---
@@ -392,6 +438,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 | 기능 | 참조 |
 |------|------|
+| ~~Agent-Aware Inventory Pipeline (Director 캐스팅)~~ | → Phase 20 [명세](FEATURES/AGENT_AWARE_INVENTORY_PIPELINE.md) |
 | Tag Intelligence (채널별 태그 정책 + 데이터 기반 추천) | [명세](FEATURES/PROJECT_GROUP.md) §2-2 |
 | Series Intelligence (에피소드 연결 + 성공 패턴 학습) | [명세](FEATURES/PROJECT_GROUP.md) §2-3 |
 | LoRA Calibration Automation | — |
@@ -417,13 +464,13 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 **Phase 19 — Studio 탭 페르소나 재배치 (전체 완료, 15/15)**
 
-**DB Schema Cleanup — 진행중 (1/11)**
+**DB Schema Cleanup — Sprint A 완료 (7/7), Sprint B 미착수 (0/4)**
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
 | ~~1~~ | ~~Sprint A 1-1: activity_logs INSERT 수정~~ | ✅ 완료 (02-28) |
-| 2 | Sprint A 1-2~1-5: FIX FIRST 잔여 4건 | 데이터 정합성 (valence, identity_score, base_seed, checksum) |
-| 3 | Sprint A 4-1/5-2: DOC FIX + ANALYZE | DB_SCHEMA.md 불일치 해소 |
+| ~~2~~ | ~~Sprint A 1-2~1-5: FIX FIRST 잔여 4건~~ | ✅ 완료 (02-28) |
+| ~~3~~ | ~~Sprint A 4-1/5-2: DOC FIX + ANALYZE~~ | ✅ 완료 (02-28) |
 | 4 | Sprint B: DROP 3건 + Checkpoint GC | 스키마 정리 + 인프라 |
 
 **Phase 17 — Service/Admin 분리**
@@ -434,6 +481,14 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | 2 | 17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`) | 유저/관리자 API 분리 |
 | 3 | 17-2: Frontend Route Group 분리 (`/` + `/admin`) | 유저/관리자 UI 분리 |
 | 4 | 17-3: 유저 UI 간소화 (Advanced 토글, Quick Render, Tooltip) | 유저 경험 최적화 |
+
+**Phase 20 — Agent-Aware Inventory Pipeline**
+
+| 순위 | 작업 | 근거 |
+|------|------|------|
+| 1 | 20-A: Director Inventory Awareness (Backend MVP, 9항목) | Director 자율 캐스팅 핵심 |
+| 2 | 20-B: Casting UX (Frontend, 5항목) — 선행: useScriptEditor 분리 | 유저 가치 전달 |
+| 3 | 20-C: Autonomous Express (5항목) | 토픽만으로 전체 생성 |
 
 **Tier 3 — 장기**
 

@@ -155,13 +155,6 @@ def upload_photo_reference(
     # Save
     filename = save_reference_image(character_key, processed_b64, db=db)
 
-    # Update reference_source_type in DB
-    if db:
-        char = db.query(Character).filter(Character.name == character_key).first()
-        if char:
-            char.reference_source_type = "uploaded"
-            db.commit()
-
     return filename, quality
 
 
