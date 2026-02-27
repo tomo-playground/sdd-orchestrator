@@ -16,6 +16,15 @@ All voice designs should align with this overall emotional direction.
 Each scene's emotion should match this arc progression.
 {% endif %}
 
+{% if characters %}
+## Character Profiles
+{% for char in characters %}
+- **Speaker {{ char.speaker }}** ({{ char.name }}): Gender={{ char.gender }}{% if char.reference_voice %}, Reference voice: "{{ char.reference_voice }}"{% endif %}
+
+{% endfor %}
+IMPORTANT: Match each character's voice to their gender. Male characters must have masculine voices; female characters must have feminine voices. If a reference voice is provided, use it as the baseline and adjust for emotion.
+{% endif %}
+
 ## Scenes
 {{ scenes | tojson(indent=2) }}
 

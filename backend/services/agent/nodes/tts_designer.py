@@ -10,6 +10,41 @@ from services.creative_qc import validate_tts_design
 _FALLBACK_TTS = {"tts_designs": []}
 
 
+def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
+    """캐릭터 ID로 성별/이름/음성 프리셋을 로드하여 TTS Designer에 전달."""
+    from database import get_db_session
+    from models.character import Character
+    from models.voice_preset import VoicePreset
+
+    character_id = state.get("character_id")
+    character_b_id = state.get("character_b_id")
+    if not character_id:
+        return None
+
+    speakers: dict[str, int] = {"A": character_id}
+    if character_b_id:
+        speakers["B"] = character_b_id
+
+    results: list[dict] = []
+    with get_db_session() as db:
+        for speaker, cid in speakers.items():
+            char = db.query(Character).filter(Character.id == cid).first()
+            if not char:
+                continue
+            info: dict = {
+                "speaker": speaker,
+                "name": char.name,
+                "gender": char.gender or "female",
+            }
+            if char.voice_preset_id:
+                preset = db.query(VoicePreset).filter(VoicePreset.id == char.voice_preset_id).first()
+                if preset and preset.voice_design_prompt:
+                    info["reference_voice"] = preset.voice_design_prompt
+            results.append(info)
+
+    return results if results else None
+
+
 async def tts_designer_node(state: ScriptState) -> dict:
     """cinematographer_result의 씬을 기반으로 TTS 디자인을 생성한다."""
     from services.agent.nodes._skip_guard import should_skip  # noqa: PLC0415
@@ -28,6 +63,12 @@ async def tts_designer_node(state: ScriptState) -> dict:
         "writer_plan": state.get("writer_plan"),
         "director_plan": state.get("director_plan"),
     }
+
+    # 캐릭터 프로필 주입 (성별, 이름, 참조 음성)
+    characters_voice = _load_character_voice_context(state)
+    if characters_voice:
+        template_vars["characters"] = characters_voice
+
     if director_feedback := state.get("director_feedback"):
         template_vars["feedback"] = director_feedback
     try:

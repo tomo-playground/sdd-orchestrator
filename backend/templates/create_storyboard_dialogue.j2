@@ -12,39 +12,11 @@ Language: {{ language }}
 {% include '_partials/channel_dna.j2' %}
 {% if character_context %}
 
-SPEAKER A - FIXED CHARACTER IDENTITY (MANDATORY):
-Character Name: {{ character_context.name }}
-Gender: {{ character_context.gender }}
-{% if character_context.identity_tags | length > 0 %}
-Identity Tags (hair, eyes, body - NEVER change these):
-{{ character_context.identity_tags | join(', ') }}
-{% endif %}
-{% if character_context.costume_tags | length > 0 %}
-Costume Tags (clothing, accessories - NEVER change these):
-{{ character_context.costume_tags | join(', ') }}
-{% endif %}
-{% if character_context.lora_triggers | length > 0 %}
-LoRA Trigger Words (MUST include in every scene where speaker=A):
-{{ character_context.lora_triggers | join(', ') }}
-{% endif %}
+{% with ctx=character_context, speaker="A" %}{% include '_partials/character_profile.j2' %}{% endwith %}
 {% endif %}
 {% if character_b_context %}
 
-SPEAKER B - FIXED CHARACTER IDENTITY (MANDATORY):
-Character Name: {{ character_b_context.name }}
-Gender: {{ character_b_context.gender }}
-{% if character_b_context.identity_tags | length > 0 %}
-Identity Tags (hair, eyes, body - NEVER change these):
-{{ character_b_context.identity_tags | join(', ') }}
-{% endif %}
-{% if character_b_context.costume_tags | length > 0 %}
-Costume Tags (clothing, accessories - NEVER change these):
-{{ character_b_context.costume_tags | join(', ') }}
-{% endif %}
-{% if character_b_context.lora_triggers | length > 0 %}
-LoRA Trigger Words (MUST include in every scene where speaker=B):
-{{ character_b_context.lora_triggers | join(', ') }}
-{% endif %}
+{% with ctx=character_b_context, speaker="B" %}{% include '_partials/character_profile.j2' %}{% endwith %}
 {% endif %}
 
 ⚠️ CHARACTER CONSISTENCY RULES:

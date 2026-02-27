@@ -1,0 +1,27 @@
+{# Character profile block for Writer templates.
+   Provides character identity (visual) AND personality context for dialogue writing.
+   Expects: ctx (character_context or character_b_context), speaker ("A", "B", or None for monologue) #}
+{% if speaker %}SPEAKER {{ speaker }} - {% endif %}FIXED CHARACTER IDENTITY (MANDATORY):
+Character Name: {{ ctx.name }}
+Gender: {{ ctx.gender }}
+{% if ctx.description %}
+Personality/Background: {{ ctx.description }}
+{% endif %}
+{% if ctx.identity_tags | length > 0 %}
+Identity Tags (hair, eyes, body - NEVER change these):
+{{ ctx.identity_tags | join(', ') }}
+{% endif %}
+{% if ctx.costume_tags | length > 0 %}
+Costume Tags (clothing, accessories - NEVER change these):
+{{ ctx.costume_tags | join(', ') }}
+{% endif %}
+{% if ctx.lora_triggers | length > 0 %}
+LoRA Trigger Words (MUST include in every scene{% if speaker %} where speaker={{ speaker }}{% endif %}):
+{{ ctx.lora_triggers | join(', ') }}
+{% endif %}
+
+⚠️ SCRIPT RULES for {{ ctx.name }}:
+- Write dialogue/narration that matches {{ ctx.gender }} character's natural speech patterns
+{% if ctx.description %}- Reflect this character's personality: {{ ctx.description }}{% endif %}
+
+- The character's gender and personality MUST be consistent across ALL scenes

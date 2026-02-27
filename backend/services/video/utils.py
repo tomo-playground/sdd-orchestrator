@@ -125,6 +125,7 @@ def calculate_scene_durations(
     tts_durations: list[float],
     speed_multiplier: float,
     tts_padding: float,
+    transition_dur: float = 0.0,
 ) -> list[float]:
     """Calculate final duration for each scene.
 
@@ -134,22 +135,28 @@ def calculate_scene_durations(
         tts_durations: TTS audio duration for each scene
         speed_multiplier: Speed factor
         tts_padding: Extra padding after TTS
+        transition_dur: Crossfade duration between scenes. Non-last scenes
+            need extra time because adelay shifts audio start and acrossfade
+            consumes the tail.
 
     Returns:
         List of scene durations in seconds
     """
+    num_scenes = len(scenes)
     durations: list[float] = []
     for i, scene in enumerate(scenes):
         base_duration = (getattr(scene, "duration", 3) or 3) / speed_multiplier
 
-        # New: Use agent-designed padding if available
+        # Use agent-designed padding if available
         h_pad = getattr(scene, "head_padding", 0.0) or 0.0
         t_pad = getattr(scene, "tail_padding", 0.0) or 0.0
 
         if tts_valid[i] and tts_durations[i] > 0:
-            # Duration = Head Padding + TTS Duration + Tail Padding
-            # We also ensure it meets the minimum base_duration
-            total_tts_dur = h_pad + tts_durations[i] + t_pad + tts_padding
+            # adelay shifts audio start by (transition_dur + h_pad).
+            # acrossfade consumes the last transition_dur of non-last scenes.
+            # Add transition_dur to compensate so TTS finishes before fade-out.
+            xfade_compensation = transition_dur if i < num_scenes - 1 else 0.0
+            total_tts_dur = h_pad + tts_durations[i] + t_pad + tts_padding + xfade_compensation
             base_duration = max(base_duration, total_tts_dur)
 
         durations.append(base_duration)

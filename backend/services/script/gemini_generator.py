@@ -100,6 +100,7 @@ def _load_character_context(character_id: int, db: Session) -> dict | None:
     ctx = {
         "name": char.name,
         "gender": char.gender or "female",
+        "description": char.description or "",
         "identity_tags": identity_tags,
         "costume_tags": costume_tags,
         "lora_triggers": lora_triggers,

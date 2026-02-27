@@ -38,21 +38,7 @@ Actor A Gender: {{ actor_a_gender }}
 {% include '_partials/channel_dna.j2' %}
 {% if character_context %}
 
-FIXED CHARACTER IDENTITY (MANDATORY):
-Character Name: {{ character_context.name }}
-Gender: {{ character_context.gender }}
-{% if character_context.identity_tags | length > 0 %}
-Identity Tags (hair, eyes, body - NEVER change these):
-{{ character_context.identity_tags | join(', ') }}
-{% endif %}
-{% if character_context.costume_tags | length > 0 %}
-Costume Tags (clothing, accessories - NEVER change these):
-{{ character_context.costume_tags | join(', ') }}
-{% endif %}
-{% if character_context.lora_triggers | length > 0 %}
-LoRA Trigger Words (MUST include in every scene's image_prompt):
-{{ character_context.lora_triggers | join(', ') }}
-{% endif %}
+{% with ctx=character_context, speaker=None %}{% include '_partials/character_profile.j2' %}{% endwith %}
 
 ⚠️ CHARACTER CONSISTENCY RULES:
 - You MUST include ALL Identity Tags and Costume Tags in EVERY scene's image_prompt

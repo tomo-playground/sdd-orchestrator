@@ -234,6 +234,7 @@ class VideoBuilder:
             self.tts_durations,
             self.speed_multiplier,
             self.tts_padding,
+            self.transition_dur,
         )
 
     async def _prepare_bgm(self) -> None:
