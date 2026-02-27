@@ -23,7 +23,11 @@ TransitionType = Literal[
     "dissolve",
     "pixelize",
     "random",
+    "auto",
 ]
+
+# Dramatic transitions for location changes (auto mode)
+LOCATION_CHANGE_TRANSITIONS = ["slideleft", "slideright", "wipeleft", "wiperight"]
 
 
 @dataclass(frozen=True)
@@ -123,8 +127,8 @@ def get_transition_name(transition_type: str | None) -> str:
 
 
 def get_transition_list() -> list[dict[str, str]]:
-    """Get list of all transitions for UI."""
-    return [
+    """Get list of all transitions for UI including auto mode."""
+    items = [
         {
             "value": key,
             "label": preset.name,
@@ -133,3 +137,12 @@ def get_transition_list() -> list[dict[str, str]]:
         }
         for key, preset in TRANSITIONS.items()
     ]
+    items.append(
+        {
+            "value": "auto",
+            "label": "Auto",
+            "description": "장소 변경 감지 기반 자동 선택",
+            "visual": "🔄",
+        }
+    )
+    return items

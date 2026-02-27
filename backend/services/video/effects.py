@@ -18,23 +18,40 @@ if TYPE_CHECKING:
     from services.video.builder import VideoBuilder
 
 
+def resolve_scene_transition(builder: VideoBuilder, scene_idx: int) -> str:
+    """Resolve transition for a specific scene pair.
+
+    Auto mode: same background -> fade, different background -> slide/wipe.
+    """
+    import random
+
+    from constants.transition import LOCATION_CHANGE_TRANSITIONS, RANDOM_ELIGIBLE, get_transition_name
+
+    if builder.transition_type == "random":
+        seed = hash(f"{builder.project_id}_{scene_idx}")
+        return random.Random(seed).choice(RANDOM_ELIGIBLE)
+
+    if builder.transition_type != "auto":
+        return get_transition_name(builder.transition_type)
+
+    # Auto mode: detect location change via background_id
+    prev_bg = getattr(builder.request.scenes[scene_idx - 1], "background_id", None)
+    curr_bg = getattr(builder.request.scenes[scene_idx], "background_id", None)
+
+    if prev_bg and curr_bg and prev_bg != curr_bg:
+        seed = hash(f"{builder.project_id}_{scene_idx}")
+        return random.Random(seed).choice(LOCATION_CHANGE_TRANSITIONS)
+
+    return "fade"
+
+
 def apply_transitions(builder: VideoBuilder) -> None:
     """Apply transitions between scenes."""
     if builder.num_scenes > 1:
-        import random
-
-        from constants.transition import RANDOM_ELIGIBLE, get_transition_name
-
         curr_v, curr_a, acc_offset = "[v0_raw]", "[a0_raw]", 0
         for i in range(1, builder.num_scenes):
-            # Resolve transition type for this scene
-            if builder.transition_type == "random":
-                seed = hash(f"{builder.project_id}_{i}")
-                rng = random.Random(seed)
-                transition = rng.choice(RANDOM_ELIGIBLE)
-                logger.info(f"Scene {i}: random transition -> {transition}")
-            else:
-                transition = get_transition_name(builder.transition_type)
+            transition = resolve_scene_transition(builder, i)
+            logger.info(f"Scene {i}: transition -> {transition}")
 
             prev_dur = builder.scene_durations[i - 1]
             # xfade consumes transition_dur from the previous stream

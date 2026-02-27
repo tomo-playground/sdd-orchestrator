@@ -20,11 +20,13 @@
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
 | **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
-| **Phase 18 (Stage Workflow)** | **Phase 1 완료 (18-0~18-3), Phase 2 축소 완료 (18-P2 7/7), Phase 3~4 미착수 (7건)** |
+| **Phase 18 (Stage Workflow)** | **전체 완료 — Phase 1 (18-0~18-3) + P2 7/7 + P3 3/3 + P4 3/3** |
 | 테스트 | Backend 2,667 + Frontend 379 = **총 3,046개** |
 
 ### 최근 작업
 
+- **Phase 18-P4: 렌더링 연동** (02-27): 트랜지션 auto 모드(같은 배경→fade, 다른 배경→slide/wipe), Ken Burns 교대 프리셋(같은 배경 연속 시 반복 방지), Reference AdaIN 실내/실외 가중치 자동 조정(indoor=0.40, outdoor=0.25). 11개 테스트. PR #34
+- **Phase 18-P3: Stage 에셋 고도화** (02-27): Express 모드 호환(환경 태그 없는 씬 warning 로그), `style_profile_id` 기반 배경 캐싱(3-col unique index + cache hit/miss + assign 스타일 우선), LoRA↔StyleProfile 의존성 시각화(StageCharacterCard). Alembic 마이그레이션 + 7개 테스트. PR #32
 - **Phase 18-P2: Stage 에셋 확장** (02-27): Stage Tab을 4섹션 프리프로덕션 대시보드로 확장(Locations+Characters+Voice+BGM). 9개 신규 컴포넌트(StageCharacterCard/Section, StageVoiceCard/Section, StageBgmCard/Section, StageReadinessBar, StageLocationsSection, useAudioPlayer). BGM preview `responseType:"blob"` 버그 수정(JSON→audio_url 직접 사용). Preflight Stage 체크 4카테고리 확장 + background_id 스토어 동기화. bgmPreviewUrl persist(localStorage)
 - **scene_id 불일치 해결** (02-27): 이미지 생성 중 PUT 저장으로 scene_id 변경 시 `client_id` 폴백으로 이미지/ActivityLog/QualityScore 링크 보장. Frontend `processGeneratedImages` re-resolve + Backend `resolve_scene_id_by_client_id()` 공통 헬퍼
 - **이미지 유실 버그 근본 수정** (02-27): 3중 경합 조건 해소 — (1) `persistStoryboard()` atomic `set()` isDirty 재트리거 방지, (2) `autoSave` isAutoRunning 가드 autoRun 중 autoSave 차단, (3) Backend `preserved_asset_ids` 방어 기존 DB 씬 에셋 보존
@@ -321,26 +323,26 @@ graph LR
 
 > 명세 Phase 2 원본 5건 중 2건(TTS 미리듣기, 캐릭터 프리뷰) 완료. 잔여 3건은 18-P3으로 이관.
 
-### Phase 18-P3: Stage 에셋 고도화 (미착수)
+### Phase 18-P3: Stage 에셋 고도화 (완료 02-27)
 
 명세 Phase 2 잔여 항목. [상세 명세](FEATURES/STAGE_WORKFLOW.md) §Phase 2
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | Express 모드 호환 — `writer_plan.locations` 없을 때 `context_tags`에서 location 역추론 | 미착수 |
-| 2 | 에셋 간 의존성 표시 (LoRA ↔ StyleProfile 관계 시각화) | 미착수 |
-| 3 | 배경 이미지 캐싱 — `location + style_profile_id` 조합으로 중복 생성 방지 | 미착수 |
+| 1 | Express 모드 호환 — `writer_plan.locations` 없을 때 `context_tags`에서 location 역추론 | ✅ (02-27) |
+| 2 | 에셋 간 의존성 표시 (LoRA ↔ StyleProfile 관계 시각화) | ✅ (02-27) |
+| 3 | 배경 이미지 캐싱 — `location + style_profile_id` 조합으로 중복 생성 방지 | ✅ (02-27) |
 
-### Phase 18-P4: 렌더링 연동 (미착수)
+### Phase 18-P4: 렌더링 연동 (완료 02-27)
 
 [상세 명세](FEATURES/STAGE_WORKFLOW.md) §Phase 3
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | 트랜지션 자동 선택 — 장소 변경: slide, 같은 장소: fade | 미착수 |
-| 2 | Ken Burns 교대 프리셋 — 같은 배경 연속 시 단조로움 방지 | 미착수 |
-| 3 | Post 레이아웃 블러 프리컴퓨팅 — Stage에서 블러 배경 사전 생성 | 미착수 |
-| 4 | ControlNet 자동 선택 — 실내: Canny(0.3-0.4), 실외: Depth(0.2-0.3) | 미착수 |
+| 1 | 트랜지션 자동 선택 — 장소 변경: slide/wipe, 같은 장소: fade | ✅ (02-27) |
+| 2 | Ken Burns 교대 프리셋 — 같은 배경 연속 시 단조로움 방지 | ✅ (02-27) |
+| ~~3~~ | ~~Post 레이아웃 블러 프리컴퓨팅~~ | 삭제 (성능 이득 미미, 시각 품질 저하) |
+| 4 | Reference AdaIN 가중치 실내/실외 자동 조정 (Canny/Depth → AdaIN 방향 변경) | ✅ (02-27) |
 
 ---
 
@@ -392,7 +394,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 **Phase 15 — Prompt Input UX 고도화 (전체 완료, 18/18)**
 
-**Phase 18 — Stage Workflow (Phase 1 + P2 완료, P3~P4 미착수)**
+**Phase 18 — Stage Workflow (전체 완료)**
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
@@ -401,8 +403,8 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | ~~3~~ | ~~18-2: Stage UI~~ | ✅ 완료 (02-26) |
 | ~~4~~ | ~~18-3: Stage-Direct 연결~~ | ✅ 완료 (02-26) |
 | ~~5~~ | ~~18-P2: Stage 에셋 대시보드 (축소 스코프)~~ | ✅ 완료 (02-27) |
-| 6 | 18-P3: Stage 에셋 고도화 (Express 호환, 의존성 표시, BG 캐싱) | 미착수 (3건) |
-| 7 | 18-P4: 렌더링 연동 (트랜지션/Ken Burns/ControlNet 자동 선택) | 미착수 (4건) |
+| ~~6~~ | ~~18-P3: Stage 에셋 고도화 (Express 호환, 의존성 표시, BG 캐싱)~~ | ✅ 완료 (02-27) |
+| ~~7~~ | ~~18-P4: 렌더링 연동 (트랜지션/Ken Burns/AdaIN 자동 선택)~~ | ✅ 완료 (02-27) |
 
 **Phase 17 — Service/Admin 분리**
 

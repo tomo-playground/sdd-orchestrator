@@ -157,6 +157,10 @@ def _apply_ken_burns(
 ) -> None:
     """Apply Ken Burns (zoompan) effect to a scene."""
     preset_name = resolve_scene_preset(builder, i)
+    # Cache resolved preset for same-background alternation
+    if not hasattr(builder, "_resolved_presets"):
+        builder._resolved_presets = {}
+    builder._resolved_presets[i] = preset_name
     if preset_name == "none":
         builder.filters.append(f"[v{i}_scaled]null[v{i}_kb]")
     else:
@@ -220,8 +224,12 @@ def _build_full_layout_base(builder: VideoBuilder, i: int, v_idx: int) -> None:
 def resolve_scene_preset(builder: VideoBuilder, scene_idx: int) -> str:
     """Resolve Ken Burns preset for a specific scene.
 
-    Priority: scene-level ken_burns_preset > global random > global preset.
+    Priority: scene-level override > same-bg alternation > global random > global preset.
     """
+    import random
+
+    from services.motion import RANDOM_ELIGIBLE
+
     # 1) Per-scene override from Cinematographer agent
     scene = builder.request.scenes[scene_idx]
     per_scene = getattr(scene, "ken_burns_preset", None)
@@ -229,14 +237,27 @@ def resolve_scene_preset(builder: VideoBuilder, scene_idx: int) -> str:
         logger.info(f"Scene {scene_idx}: per-scene Ken Burns preset -> {per_scene}")
         return per_scene
 
-    # 2) Global random
+    # 2) Same-background alternation: avoid repeating preset for consecutive same-bg scenes
+    if scene_idx > 0:
+        prev_bg = getattr(builder.request.scenes[scene_idx - 1], "background_id", None)
+        curr_bg = getattr(scene, "background_id", None)
+        if prev_bg and curr_bg and prev_bg == curr_bg:
+            prev_preset = getattr(builder, "_resolved_presets", {}).get(scene_idx - 1)
+            if prev_preset:
+                seed = hash(f"{builder.project_id}_{scene_idx}")
+                candidates = [p for p in RANDOM_ELIGIBLE if p != prev_preset]
+                name = random.Random(seed).choice(candidates)
+                logger.info(f"Scene {scene_idx}: alternated Ken Burns preset -> {name} (prev={prev_preset})")
+                return name
+
+    # 3) Global random
     if builder.ken_burns_preset == "random":
         seed = hash(f"{builder.project_id}_{scene_idx}")
         name, _ = get_random_preset(seed)
         logger.info(f"Scene {scene_idx}: random Ken Burns preset -> {name}")
         return name
 
-    # 3) Global preset
+    # 4) Global preset
     return builder.ken_burns_preset
 
 

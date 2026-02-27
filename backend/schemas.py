@@ -502,6 +502,8 @@ class VideoScene(BaseModel):
     voice_design_prompt: str | None = None
     head_padding: float = 0.0
     tail_padding: float = 0.0
+    # Stage background ID (for transition auto-select & Ken Burns alternation)
+    background_id: int | None = None
     # Emotion context for TTS voice design (from context_tags.emotion)
     scene_emotion: str | None = None
     # Korean scene description (for context-aware voice generation)

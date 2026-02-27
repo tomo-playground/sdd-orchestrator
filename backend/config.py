@@ -446,6 +446,8 @@ STAGE_STATUS_FAILED = "failed"
 # Reference AdaIN — environment atmosphere transfer (replaces Canny for BG pinning)
 # Transfers color statistics (mean/variance) only, no spatial structure
 REFERENCE_ADAIN_WEIGHT = float(os.getenv("REFERENCE_ADAIN_WEIGHT", "0.35"))
+REFERENCE_ADAIN_WEIGHT_INDOOR = float(os.getenv("REFERENCE_ADAIN_WEIGHT_INDOOR", "0.40"))
+REFERENCE_ADAIN_WEIGHT_OUTDOOR = float(os.getenv("REFERENCE_ADAIN_WEIGHT_OUTDOOR", "0.25"))
 REFERENCE_ADAIN_GUIDANCE_END = float(os.getenv("REFERENCE_ADAIN_GUIDANCE_END", "0.5"))
 
 # Default pose/gaze/expression for ControlNet when Gemini omits context_tags

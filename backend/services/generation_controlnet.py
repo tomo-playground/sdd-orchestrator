@@ -101,7 +101,11 @@ def _apply_environment(req: SceneGenerateRequest, ctx: GenerationContext, args: 
     if is_no_humans:
         logger.info("🏠 [Environment Reference] Skipped for no_humans scene (Narrator)")
         return
-    _apply_environment_pinning(req, args, ctx.warnings, db)
+
+    # Classify indoor/outdoor from environment tags for weight adjustment
+    env_tags = _extract_env_tags(req, db)
+    location_type = classify_indoor_outdoor(env_tags)
+    _apply_environment_pinning(req, args, ctx.warnings, db, location_type=location_type)
 
 
 def _apply_ip_adapter(ctx: GenerationContext, strategy, args: list, db) -> None:
@@ -141,7 +145,11 @@ def _apply_ip_adapter(ctx: GenerationContext, strategy, args: list, db) -> None:
 
 
 def _apply_environment_pinning(
-    request: SceneGenerateRequest, controlnet_args_list: list, warnings: list[str], db
+    request: SceneGenerateRequest,
+    controlnet_args_list: list,
+    warnings: list[str],
+    db,
+    location_type: str | None = None,
 ) -> None:
     """Handle environment reference pinning with conflict detection."""
     env_asset = _load_env_asset(request.environment_reference_id, db)
@@ -155,7 +163,7 @@ def _apply_environment_pinning(
         warnings.append(msg)
         return
 
-    _apply_reference_adain_from_asset(env_asset, request, controlnet_args_list)
+    _apply_reference_adain_from_asset(env_asset, request, controlnet_args_list, location_type)
 
 
 def _load_env_asset(env_ref_id: int, db):
@@ -203,40 +211,83 @@ def _check_tag_conflict(ref_scene, request: SceneGenerateRequest, db) -> str | N
     return None
 
 
-def _apply_reference_adain_from_asset(env_asset, request: SceneGenerateRequest, controlnet_args_list: list) -> None:
+def classify_indoor_outdoor(env_tags: list[str]) -> str | None:
+    """Classify indoor/outdoor from environment tags. Returns None for mixed/unknown."""
+    from config_prompt import INDOOR_LOCATION_TAGS, OUTDOOR_LOCATION_TAGS
+
+    has_indoor = any(t in INDOOR_LOCATION_TAGS for t in env_tags)
+    has_outdoor = any(t in OUTDOOR_LOCATION_TAGS for t in env_tags)
+    if has_indoor and not has_outdoor:
+        return "indoor"
+    if has_outdoor and not has_indoor:
+        return "outdoor"
+    return None
+
+
+def _extract_env_tags(req: SceneGenerateRequest, db) -> list[str]:
+    """Extract environment tags from scene's context_tags."""
+    if not req.scene_id:
+        return []
+    try:
+        from models.scene import Scene
+
+        scene = db.query(Scene).filter(Scene.id == req.scene_id).first()
+        if scene and scene.context_tags:
+            env = scene.context_tags.get("environment", [])
+            return env if isinstance(env, list) else []
+    except Exception:
+        logger.warning("[AdaIN] Failed to extract env tags for scene %s", req.scene_id, exc_info=True)
+    return []
+
+
+def _apply_reference_adain_from_asset(
+    env_asset, request: SceneGenerateRequest, controlnet_args_list: list, location_type: str | None = None
+) -> None:
     """Apply Reference AdaIN from environment asset for atmosphere/color transfer.
 
-    Unlike Canny (edge structure), Reference AdaIN transfers color statistics
-    (mean/variance) only — maintains location atmosphere without imposing
-    spatial perspective on character scenes.
+    Weight varies by location type: indoor=0.40, outdoor=0.25, default=0.35.
     """
     import base64
     import os
 
-    from config import REFERENCE_ADAIN_GUIDANCE_END, REFERENCE_ADAIN_WEIGHT
+    from config import (
+        REFERENCE_ADAIN_GUIDANCE_END,
+        REFERENCE_ADAIN_WEIGHT,
+        REFERENCE_ADAIN_WEIGHT_INDOOR,
+        REFERENCE_ADAIN_WEIGHT_OUTDOOR,
+    )
 
     if not os.path.exists(env_asset.local_path):
         return
 
+    weight = REFERENCE_ADAIN_WEIGHT
+    if location_type == "indoor":
+        weight = REFERENCE_ADAIN_WEIGHT_INDOOR
+    elif location_type == "outdoor":
+        weight = REFERENCE_ADAIN_WEIGHT_OUTDOOR
+
     try:
         with open(env_asset.local_path, "rb") as f:
             env_base64 = base64.b64encode(f.read()).decode("utf-8")
-        controlnet_args_list.append({
-            "enabled": True,
-            "image": env_base64,
-            "module": "reference_adain",
-            "model": "None",
-            "weight": REFERENCE_ADAIN_WEIGHT,
-            "control_mode": "My prompt is more important",
-            "pixel_perfect": True,
-            "low_vram": False,
-            "guidance_start": 0.0,
-            "guidance_end": REFERENCE_ADAIN_GUIDANCE_END,
-        })
+        controlnet_args_list.append(
+            {
+                "enabled": True,
+                "image": env_base64,
+                "module": "reference_adain",
+                "model": "None",
+                "weight": weight,
+                "control_mode": "My prompt is more important",
+                "pixel_perfect": True,
+                "low_vram": False,
+                "guidance_start": 0.0,
+                "guidance_end": REFERENCE_ADAIN_GUIDANCE_END,
+            }
+        )
         logger.info(
-            "🏠 [Environment Reference AdaIN] Enabled using asset %d (weight=%.2f, guidance_end=%.2f)",
+            "🏠 [Environment Reference AdaIN] Enabled using asset %d (weight=%.2f, location=%s, guidance_end=%.2f)",
             request.environment_reference_id,
-            REFERENCE_ADAIN_WEIGHT,
+            weight,
+            location_type or "default",
             REFERENCE_ADAIN_GUIDANCE_END,
         )
     except Exception as e:
