@@ -35,10 +35,8 @@ export { sanitizeCandidatesForDb } from "../../utils/buildScenesPayload";
  */
 export async function autoSaveStoryboard(): Promise<number | undefined> {
   const ctxState = useContextStore.getState();
-  const sbState = useStoryboardStore.getState();
   const { showToast } = useUIStore.getState();
   const { storyboardId, groupId } = ctxState;
-  const { scenes, topic } = sbState;
 
   // Already saved
   if (storyboardId) {
@@ -46,7 +44,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
   }
 
   // No scenes to save
-  if (scenes.length === 0) {
+  if (useStoryboardStore.getState().scenes.length === 0) {
     return undefined;
   }
 
@@ -56,6 +54,8 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
   }
 
   try {
+    const sbState = useStoryboardStore.getState();
+    const { topic, scenes } = sbState;
     const {
       selectedCharacterId,
       selectedCharacterBId,
@@ -63,7 +63,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       duration,
       language,
       description,
-    } = useStoryboardStore.getState();
+    } = sbState;
     const payload = {
       title: topic || "Draft Storyboard",
       description: description || null,
@@ -189,29 +189,53 @@ export function mapGeminiScenes(
 }
 
 /**
+ * Detect whether scene data changed between two snapshots.
+ * Used to keep isDirty = true when image generation completes during a save.
+ */
+function didScenesChangeDuringSave(before: Scene[], after: Scene[]): boolean {
+  if (before.length !== after.length) return true;
+  return after.some((scene, idx) => {
+    const prev = before[idx];
+    if (!prev || scene.client_id !== prev.client_id) return true;
+    return (
+      scene.image_asset_id !== prev.image_asset_id ||
+      scene.image_url !== prev.image_url ||
+      scene.image_prompt !== prev.image_prompt ||
+      scene.script !== prev.script ||
+      scene.negative_prompt !== prev.negative_prompt ||
+      scene.candidates !== prev.candidates
+    );
+  });
+}
+
+/**
  * Silently persist storyboard to DB (no toast).
  * Used by autopilot and internal flows.
  * PUT if storyboardId exists, POST otherwise (with scene ID reassignment).
  */
 export async function persistStoryboard(): Promise<boolean> {
-  const sbState = useStoryboardStore.getState();
   const ctxState = useContextStore.getState();
-  const { videoCaption, bgmPrompt, bgmMood } = useRenderStore.getState();
-  const {
-    scenes,
-    topic,
-    selectedCharacterId,
-    selectedCharacterBId,
-    structure,
-    duration,
-    language,
-    description,
-  } = sbState;
   const { storyboardId, groupId } = ctxState;
 
-  if (scenes.length === 0 || !groupId) return false;
+  if (useStoryboardStore.getState().scenes.length === 0 || !groupId) return false;
 
   try {
+    const sbState = useStoryboardStore.getState();
+    const { videoCaption, bgmPrompt, bgmMood } = useRenderStore.getState();
+    const {
+      scenes,
+      topic,
+      selectedCharacterId,
+      selectedCharacterBId,
+      structure,
+      duration,
+      language,
+      description,
+    } = sbState;
+
+    // Snapshot before save — compare after PUT to detect changes during flight
+    const scenesBeforeSave = scenes;
+
     const payload = {
       title: topic || "Untitled",
       description: description || null,
@@ -234,15 +258,15 @@ export async function persistStoryboard(): Promise<boolean> {
         timeout: API_TIMEOUT.STORYBOARD_SAVE,
       });
       const sceneIds: number[] = res.data.scene_ids || [];
-      // Atomic update: scenes + version + isDirty in one set() to avoid isDirty re-trigger
-      const current = useStoryboardStore.getState().scenes;
+      const scenesAfterSave = useStoryboardStore.getState().scenes;
+      const changedDuringSave = didScenesChangeDuringSave(scenesBeforeSave, scenesAfterSave);
       useStoryboardStore.getState().set({
         scenes:
           sceneIds.length > 0
-            ? current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id }))
-            : current,
+            ? scenesAfterSave.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id }))
+            : scenesAfterSave,
         storyboardVersion: res.data.version,
-        isDirty: false,
+        isDirty: changedDuringSave,
       });
     } else {
       const res = await axios.post(`${API_BASE}/storyboards`, payload, {
@@ -251,15 +275,15 @@ export async function persistStoryboard(): Promise<boolean> {
       const newId = res.data.storyboard_id;
       const sceneIds: number[] = res.data.scene_ids || [];
       useContextStore.getState().setContext({ storyboardId: newId, storyboardTitle: topic });
-      // Atomic update: scenes + version + isDirty in one set() to avoid isDirty re-trigger
-      const current = useStoryboardStore.getState().scenes;
+      const scenesAfterSave = useStoryboardStore.getState().scenes;
+      const changedDuringSave = didScenesChangeDuringSave(scenesBeforeSave, scenesAfterSave);
       useStoryboardStore.getState().set({
         scenes:
           sceneIds.length > 0
-            ? current.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id }))
-            : current,
+            ? scenesAfterSave.map((scene, idx) => ({ ...scene, id: sceneIds[idx] ?? scene.id }))
+            : scenesAfterSave,
         storyboardVersion: res.data.version ?? 1,
-        isDirty: false,
+        isDirty: changedDuringSave,
       });
       // Sync URL with newly created storyboard ID & clear new mode
       if (typeof window !== "undefined") {
