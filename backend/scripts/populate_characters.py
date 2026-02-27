@@ -25,7 +25,6 @@ def main():
                 "custom_base_prompt": "1girl, eureka, purple hair, green eyes",
                 "reference_base_prompt": "masterpiece, best quality, anime portrait, eureka, purple hair, green eyes, clean background, looking at viewer",
                 "reference_negative_prompt": "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry",
-                "prompt_mode": "lora",
                 "ip_adapter_weight": 0.80,
                 "ip_adapter_model": "clip_face",
             },
@@ -38,7 +37,6 @@ def main():
                 "custom_base_prompt": "1boy, midoriya izuku, green hair, green eyes",
                 "reference_base_prompt": "masterpiece, best quality, anime portrait, midoriya izuku, green hair, green eyes, clean background, looking at viewer",
                 "reference_negative_prompt": "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry",
-                "prompt_mode": "lora",
                 "ip_adapter_weight": 0.80,
                 "ip_adapter_model": "clip_face",
             },
@@ -51,7 +49,6 @@ def main():
                 "custom_base_prompt": "1girl, anime style",
                 "reference_base_prompt": "masterpiece, best quality, anime portrait, 1girl, clean background, looking at viewer",
                 "reference_negative_prompt": "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry",
-                "prompt_mode": "standard",
                 "ip_adapter_weight": 0.75,
                 "ip_adapter_model": "clip_face",
             },
@@ -64,7 +61,6 @@ def main():
                 "custom_base_prompt": "1boy, anime style",
                 "reference_base_prompt": "masterpiece, best quality, anime portrait, 1boy, clean background, looking at viewer",
                 "reference_negative_prompt": "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry",
-                "prompt_mode": "standard",
                 "ip_adapter_weight": 0.75,
                 "ip_adapter_model": "clip_face",
             },
@@ -92,6 +88,7 @@ def main():
         raise
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

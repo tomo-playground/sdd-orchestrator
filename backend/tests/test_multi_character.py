@@ -168,7 +168,7 @@ class TestCharacterActionResolverMulti:
 # ── Phase 3: MultiCharacterComposer ─────────────────────────────────
 
 
-def _make_char_with_tags(db, name, gender, tag_defs, loras=None, prompt_mode="auto"):
+def _make_char_with_tags(db, name, gender, tag_defs, loras=None):
     """Helper: create Character with CharacterTag rows.
 
     tag_defs: list of (tag_name, layer, weight)
@@ -177,7 +177,7 @@ def _make_char_with_tags(db, name, gender, tag_defs, loras=None, prompt_mode="au
     from models.character import Character
     from models.tag import Tag
 
-    char = Character(name=name, gender=gender, loras=loras, prompt_mode=prompt_mode)
+    char = Character(name=name, gender=gender, loras=loras)
     db.add(char)
     db.flush()
 

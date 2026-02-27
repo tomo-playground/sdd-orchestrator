@@ -52,7 +52,6 @@ export default function CharacterWizard() {
     state.description.length > 0 ||
     state.selectedTags.length > 0 ||
     state.selectedLoras.length > 0 ||
-    state.prompt_mode !== "auto" ||
     state.custom_base_prompt.length > 0 ||
     state.custom_negative_prompt.length > 0 ||
     state.reference_base_prompt.length > 0 ||
@@ -195,7 +194,6 @@ export default function CharacterWizard() {
         style_profile_id: state.style_profile_id,
         tags: allTags,
         loras: state.selectedLoras.map((l) => ({ lora_id: l.loraId, weight: l.weight })),
-        prompt_mode: state.prompt_mode,
         custom_base_prompt: state.custom_base_prompt.trim() || null,
         custom_negative_prompt: state.custom_negative_prompt.trim() || null,
         reference_base_prompt: state.reference_base_prompt.trim() || null,
@@ -358,13 +356,11 @@ export default function CharacterWizard() {
           )}
           {state.step === 4 && (
             <PromptsStep
-              promptMode={state.prompt_mode}
               customBasePrompt={state.custom_base_prompt}
               customNegativePrompt={state.custom_negative_prompt}
               referenceBasePrompt={state.reference_base_prompt}
               referenceNegativePrompt={state.reference_negative_prompt}
               selectedTagNames={state.selectedTags.map((t) => t.name)}
-              onModeChange={(mode) => dispatch({ type: "SET_PROMPT_MODE", mode })}
               onFieldChange={(field, value) => dispatch({ type: "SET_PROMPT_FIELD", field, value })}
             />
           )}

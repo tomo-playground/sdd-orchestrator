@@ -167,4 +167,61 @@ describe("autoSave", () => {
     // Should NOT call persistStoryboard because isAutoRunning is true
     expect(persistStoryboard).not.toHaveBeenCalled();
   });
+
+  it("이미지 생성 중(isGenerating) autoSave 건너뜀", async () => {
+    vi.spyOn(useStoryboardStore, "getState").mockReturnValue({
+      isDirty: true,
+      scenes: [{ id: 1, client_id: "c1", script: "test", isGenerating: true }],
+    } as never);
+
+    cleanup = initAutoSave();
+
+    triggerSubscription({ isDirty: true }, { isDirty: false });
+
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(persistStoryboard).not.toHaveBeenCalled();
+  });
+
+  it("이미지 생성 완료 후 재스케줄로 저장 실행", async () => {
+    // Phase 1: isGenerating: true → 저장 스킵
+    const getStateSpy = vi.spyOn(useStoryboardStore, "getState");
+    getStateSpy.mockReturnValue({
+      isDirty: true,
+      scenes: [{ id: 1, client_id: "c1", isGenerating: true }],
+    } as never);
+
+    cleanup = initAutoSave();
+    triggerSubscription({ isDirty: true }, { isDirty: false });
+
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(persistStoryboard).not.toHaveBeenCalled();
+
+    // Phase 2: isGenerating: false → 재스케줄 후 저장
+    getStateSpy.mockReturnValue({
+      isDirty: true,
+      scenes: [{ id: 1, client_id: "c1", isGenerating: false }],
+    } as never);
+
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(persistStoryboard).toHaveBeenCalledTimes(1);
+  });
+
+  it("일부 씬만 생성 중이어도 저장 건너뜀", async () => {
+    vi.spyOn(useStoryboardStore, "getState").mockReturnValue({
+      isDirty: true,
+      scenes: [
+        { id: 1, client_id: "c1", isGenerating: false },
+        { id: 2, client_id: "c2", isGenerating: true },
+        { id: 3, client_id: "c3", isGenerating: false },
+      ],
+    } as never);
+
+    cleanup = initAutoSave();
+    triggerSubscription({ isDirty: true }, { isDirty: false });
+
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(persistStoryboard).not.toHaveBeenCalled();
+  });
 });

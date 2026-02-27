@@ -248,14 +248,12 @@ export function useStudioInitialization() {
 // --- Helper: Load character data (A or B) ---
 type CharacterFieldMap = {
   loras: string;
-  promptMode?: string;
   basePrompt: string;
   baseNegative: string;
 };
 
 const CHAR_A_FIELDS: CharacterFieldMap = {
   loras: "characterLoras",
-  promptMode: "characterPromptMode",
   basePrompt: "basePromptA",
   baseNegative: "baseNegativePromptA",
 };
@@ -283,9 +281,6 @@ async function loadCharacterForRole(
       [fields.baseNegative]: char.custom_negative_prompt || "",
       [nameField]: char.name || null,
     };
-    if (fields.promptMode) {
-      updates[fields.promptMode] = char.prompt_mode || "auto";
-    }
     setPlan(updates);
   } catch (err) {
     console.error(`Failed to load character (${fields.basePrompt}):`, err);

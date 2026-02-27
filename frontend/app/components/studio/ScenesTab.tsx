@@ -60,7 +60,6 @@ export default function ScenesTab() {
     loraTriggerWords,
     characterLoras,
     characterBLoras,
-    characterPromptMode,
     selectedCharacterId,
     selectedCharacterBId,
     selectedCharacterName,
@@ -72,7 +71,6 @@ export default function ScenesTab() {
       loraTriggerWords: s.loraTriggerWords,
       characterLoras: s.characterLoras,
       characterBLoras: s.characterBLoras,
-      characterPromptMode: s.characterPromptMode,
       selectedCharacterId: s.selectedCharacterId,
       selectedCharacterBId: s.selectedCharacterBId,
       selectedCharacterName: s.selectedCharacterName,
@@ -185,7 +183,6 @@ export default function ScenesTab() {
                     onSceneMenuClose={() => sbSet({ sceneMenuOpen: null })}
                     validatingSceneId={validatingSceneId}
                     loraTriggerWords={loraTriggerWords}
-                    promptMode={characterPromptMode}
                     tagsByGroup={tagsByGroup}
                     sceneTagGroups={sceneTagGroups}
                     isExclusiveGroup={isExclusiveGroup}

@@ -123,7 +123,7 @@ class CharacterConsistencyResolver:
             return list(style_profile_loras), "style_profile"
 
         # Fallback: extract style LoRAs from character
-        if character.loras and character.prompt_mode != "standard":
+        if character.loras:
             from models.lora import LoRA
 
             fallback = []
@@ -224,7 +224,7 @@ class CharacterConsistencyResolver:
     @staticmethod
     def _has_character_lora(character) -> bool:
         """Check if character has any character-type LoRA."""
-        if not character.loras or character.prompt_mode == "standard":
+        if not character.loras:
             return False
         return any(lora_info.get("lora_type") != "style" for lora_info in character.loras)
 

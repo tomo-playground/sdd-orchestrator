@@ -76,7 +76,6 @@ export const MOCK_CHARACTERS = [
     gender: "female",
     description: "Cheerful high school girl",
     preview_image_url: null,
-    prompt_mode: "auto",
     tags: [],
     loras: [],
   },

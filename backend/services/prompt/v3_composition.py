@@ -365,10 +365,16 @@ class V3PromptBuilder:
         # L1 Subject — no_humans + scenery + style-aware enforcement
         layers[LAYER_SUBJECT].extend([BACKGROUND_SCENE_MARKER, "scenery"])
         if self._is_anime_style(quality_tags):
-            layers[LAYER_SUBJECT].extend([
-                "(anime_coloring:1.5)", "(flat_color:1.0)", "(illustration:1.3)",
-                "(2d:1.2)", "(colorful:1.2)", "anime_style",
-            ])
+            layers[LAYER_SUBJECT].extend(
+                [
+                    "(anime_coloring:1.5)",
+                    "(flat_color:1.0)",
+                    "(illustration:1.3)",
+                    "(2d:1.2)",
+                    "(colorful:1.2)",
+                    "anime_style",
+                ]
+            )
 
         # L9 Camera — wide_shot default for background
         layers[LAYER_CAMERA].append("wide_shot")
@@ -693,7 +699,7 @@ class V3PromptBuilder:
         active_loras: dict[str, LoRAInfo] = {}
 
         # Character LoRAs (style-type skipped; StyleProfile is SSOT for style)
-        if character.loras and character.prompt_mode != "standard":
+        if character.loras:
             for lora_info in character.loras:
                 lora_id = lora_info.get("lora_id")
                 weight = lora_info.get("weight")
@@ -736,7 +742,7 @@ class V3PromptBuilder:
 
         # Style LoRAs (explicit overrides or character fallback)
         effective_style_loras = style_loras
-        if not effective_style_loras and character.loras and character.prompt_mode != "standard":
+        if not effective_style_loras and character.loras:
             # Fallback: use character's style LoRAs when no StyleProfile
             effective_style_loras = self._extract_character_style_loras(character)
 

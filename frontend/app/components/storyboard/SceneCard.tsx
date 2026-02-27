@@ -34,7 +34,6 @@ type SceneCardProps = {
     lora_type?: string;
     optimal_weight?: number;
   }>;
-  promptMode?: "auto" | "standard" | "lora";
   tagsByGroup: Record<string, Tag[]>;
   sceneTagGroups: string[];
   isExclusiveGroup: (groupName: string) => boolean;
@@ -77,7 +76,6 @@ export default function SceneCard({
   validatingSceneId,
   loraTriggerWords = [],
   characterLoras = [],
-  promptMode = "auto",
   tagsByGroup,
   sceneTagGroups,
   isExclusiveGroup,
@@ -208,7 +206,6 @@ export default function SceneCard({
               scene={scene}
               loraTriggerWords={loraTriggerWords}
               characterLoras={characterLoras}
-              promptMode={promptMode}
               selectedCharacterId={selectedCharacterId}
               basePromptA={basePromptA}
               onUpdateScene={onUpdateScene}

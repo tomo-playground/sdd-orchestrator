@@ -13,7 +13,12 @@ function scheduleSave() {
     const { isDirty, scenes } = useStoryboardStore.getState();
     const { isAutoRunning } = useUIStore.getState();
     // Skip save during autoRun — it manages its own persist calls
-    if (!isDirty || scenes.length === 0 || isSaving || isAutoRunning) return;
+    const hasGeneratingScene = scenes.some((s) => s.isGenerating);
+    if (!isDirty || scenes.length === 0 || isSaving || isAutoRunning || hasGeneratingScene) {
+      // Re-schedule: generation will finish → updateScene sets isDirty → retry
+      if (hasGeneratingScene && isDirty) scheduleSave();
+      return;
+    }
 
     isSaving = true;
     try {

@@ -34,7 +34,6 @@ export interface StoryboardStore {
   // Character A
   selectedCharacterId: number | null;
   selectedCharacterName: string | null;
-  characterPromptMode: "auto" | "standard" | "lora";
   loraTriggerWords: string[];
   characterLoras: LoraEntry[];
 
@@ -122,7 +121,6 @@ const initialState: Omit<
   selectedCharacterName: null,
   selectedCharacterBId: null,
   selectedCharacterBName: null,
-  characterPromptMode: "auto",
   loraTriggerWords: [],
   characterLoras: [],
   characterBLoras: [],
@@ -169,6 +167,18 @@ if (typeof window !== "undefined") {
   }
 }
 
+/**
+ * Scene fields that are transient (UI-only) and should NOT trigger isDirty / autoSave.
+ * e.g. isGenerating is purely visual state — persisting it would cause race conditions
+ * where autoSave sends stale image_asset_id: null while generation is in progress.
+ */
+const SCENE_TRANSIENT_FIELDS: ReadonlySet<string> = new Set([
+  "isGenerating",
+  "debug_payload",
+  "debug_prompt",
+  "_auto_pin_previous",
+]);
+
 /** Fields excluded from persistence (transient / runtime-derived). */
 const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "isDirty",
@@ -183,7 +193,6 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "imageGenProgress",
   "loraTriggerWords",
   "characterLoras",
-  "characterPromptMode",
 ];
 
 export const useStoryboardStore = create<StoryboardStore>()(
@@ -199,10 +208,15 @@ export const useStoryboardStore = create<StoryboardStore>()(
           currentSceneIndex: Math.min(state.currentSceneIndex, Math.max(0, scenes.length - 1)),
         })),
       updateScene: (clientId, updates) =>
-        set((state) => ({
-          scenes: state.scenes.map((s) => (s.client_id === clientId ? { ...s, ...updates } : s)),
-          isDirty: true,
-        })),
+        set((state) => {
+          const hasPersistableChange = Object.keys(updates).some(
+            (key) => !SCENE_TRANSIENT_FIELDS.has(key)
+          );
+          return {
+            scenes: state.scenes.map((s) => (s.client_id === clientId ? { ...s, ...updates } : s)),
+            ...(hasPersistableChange && { isDirty: true }),
+          };
+        }),
       removeScene: (clientId) =>
         set((state) => {
           const newScenes = state.scenes.filter((s) => s.client_id !== clientId);

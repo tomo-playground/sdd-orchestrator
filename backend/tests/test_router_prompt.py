@@ -58,7 +58,6 @@ class TestPromptCompose:
         assert "prompt" in data
         assert "tokens" in data
         assert isinstance(data["tokens"], list)
-        assert data["effective_mode"] == "v3"
         assert "scene_complexity" in data
         assert "meta" in data
         assert "token_count" in data["meta"]
@@ -290,5 +289,3 @@ class TestAutoReplace:
         assert response.status_code == 200
         data = response.json()
         assert data["original"] == ["medium_shot", "smile"]
-
-

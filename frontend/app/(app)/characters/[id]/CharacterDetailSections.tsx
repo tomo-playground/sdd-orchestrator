@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { ActorGender, PromptMode } from "../../../types";
+import type { ActorGender } from "../../../types";
 import Input from "../../../components/ui/Input";
 import Textarea from "../../../components/ui/Textarea";
 import { findDuplicateTokens } from "../shared/promptDuplicateCheck";
@@ -15,7 +15,6 @@ export type CharacterFormData = {
   name: string;
   description: string;
   gender: ActorGender | null;
-  prompt_mode: PromptMode;
   custom_base_prompt: string;
   custom_negative_prompt: string;
   reference_base_prompt: string;
@@ -203,17 +202,10 @@ export function IpAdapterSection({ form, onChange, onUploadPhoto }: IpAdapterPro
       {/* Upload Photo */}
       {onUploadPhoto && (
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-500">
-            Photo Reference
-          </label>
+          <label className="mb-1 block text-xs font-medium text-zinc-500">Photo Reference</label>
           <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600 transition hover:bg-zinc-100">
             <span>Upload Photo</span>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoSelect}
-            />
+            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
           </label>
           <p className="mt-1 text-[11px] text-zinc-400">
             실사 사진 업로드 시 얼굴 자동 크롭 + 512x512 리사이즈
@@ -226,11 +218,7 @@ export function IpAdapterSection({ form, onChange, onUploadPhoto }: IpAdapterPro
         onClick={() => setShowAdvanced((v) => !v)}
         className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-600"
       >
-        {showAdvanced ? (
-          <ChevronDown className="h-3 w-3" />
-        ) : (
-          <ChevronRight className="h-3 w-3" />
-        )}
+        {showAdvanced ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         Advanced
       </button>
       {showAdvanced && (
@@ -245,15 +233,17 @@ export function IpAdapterSection({ form, onChange, onUploadPhoto }: IpAdapterPro
               max={1}
               step={0.05}
               value={form.ip_adapter_guidance_start ?? 0}
-              onChange={(e) =>
-                onChange("ip_adapter_guidance_start", parseFloat(e.target.value))
-              }
+              onChange={(e) => onChange("ip_adapter_guidance_start", parseFloat(e.target.value))}
               className="w-full accent-zinc-500"
             />
           </div>
           <div>
             <label className="mb-1 block text-[11px] font-medium text-zinc-400">
-              Guidance End ({(form.ip_adapter_guidance_end ?? (form.ip_adapter_model === "faceid" ? 0.85 : 1.0)).toFixed(2)})
+              Guidance End (
+              {(
+                form.ip_adapter_guidance_end ?? (form.ip_adapter_model === "faceid" ? 0.85 : 1.0)
+              ).toFixed(2)}
+              )
             </label>
             <input
               type="range"
@@ -261,12 +251,9 @@ export function IpAdapterSection({ form, onChange, onUploadPhoto }: IpAdapterPro
               max={1}
               step={0.05}
               value={
-                form.ip_adapter_guidance_end ??
-                (form.ip_adapter_model === "faceid" ? 0.85 : 1.0)
+                form.ip_adapter_guidance_end ?? (form.ip_adapter_model === "faceid" ? 0.85 : 1.0)
               }
-              onChange={(e) =>
-                onChange("ip_adapter_guidance_end", parseFloat(e.target.value))
-              }
+              onChange={(e) => onChange("ip_adapter_guidance_end", parseFloat(e.target.value))}
               className="w-full accent-zinc-500"
             />
           </div>
@@ -294,25 +281,6 @@ export function PromptsSection({ form, onChange, selectedTagNames = [] }: Prompt
 
   return (
     <div className="space-y-5">
-      <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-500">Prompt Mode</label>
-        <div className="flex gap-2">
-          {(["auto", "standard", "lora"] as PromptMode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => onChange("prompt_mode", m)}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition ${
-                form.prompt_mode === m
-                  ? "bg-zinc-900 text-white"
-                  : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
-              }`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-      </div>
-      <hr className="border-zinc-100" />
       <PromptPair
         label="Custom (appended to auto-generated tags)"
         positiveValue={form.custom_base_prompt}

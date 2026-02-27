@@ -277,7 +277,6 @@ async def compose_prompt(
         # 5. Build response
         composed_tokens = split_prompt_tokens(composed_prompt)
         scene_complexity = detect_scene_complexity(request.tokens)
-        effective_mode = "v3" if request.character_id else "standard"
 
         lora_weights = None
         if request.loras:
@@ -303,8 +302,7 @@ async def compose_prompt(
         )
 
         logger.info(
-            "✅ [Prompt Compose] mode=%s, %d tokens → %d composed, neg_sources=%d",
-            effective_mode,
+            "✅ [Prompt Compose] %d tokens → %d composed, neg_sources=%d",
             len(all_tokens),
             len(composed_tokens),
             len(neg_sources),
@@ -313,7 +311,6 @@ async def compose_prompt(
         return {
             "prompt": composed_prompt,
             "tokens": composed_tokens,
-            "effective_mode": effective_mode,
             "scene_complexity": scene_complexity,
             "lora_weights": lora_weights,
             "meta": {

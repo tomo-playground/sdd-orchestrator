@@ -72,8 +72,8 @@ export default function CharacterDetailPage() {
       title: "Delete Character",
       message: (
         <>
-          <span className="font-semibold text-zinc-900">{character.name}</span>을(를)
-          휴지통으로 이동합니다.
+          <span className="font-semibold text-zinc-900">{character.name}</span>을(를) 휴지통으로
+          이동합니다.
         </>
       ),
       confirmLabel: "Delete",
@@ -264,12 +264,7 @@ export default function CharacterDetailPage() {
             />
           </SectionCard>
 
-          <SectionCard
-            title="Prompts"
-            collapsible
-            defaultOpen={false}
-            summary={`Mode: ${form.prompt_mode}`}
-          >
+          <SectionCard title="Prompts" collapsible defaultOpen={false}>
             <PromptsSection
               form={form}
               onChange={updateField}

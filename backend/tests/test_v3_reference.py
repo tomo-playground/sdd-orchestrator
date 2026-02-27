@@ -6,7 +6,6 @@ import pytest
 
 from services.prompt.v3_composition import (
     LAYER_CAMERA,
-    LAYER_ENVIRONMENT,
     LAYER_QUALITY,
     V3PromptBuilder,
 )
@@ -26,7 +25,6 @@ def _make_character(
     loras=None,
     reference_base_prompt=None,
     custom_base_prompt=None,
-    prompt_mode="auto",
 ):
     """Helper to build a mock Character."""
     char = MagicMock()
@@ -34,7 +32,6 @@ def _make_character(
     char.loras = loras or []
     char.reference_base_prompt = reference_base_prompt
     char.custom_base_prompt = custom_base_prompt
-    char.prompt_mode = prompt_mode
     char.tags = []
     return char
 

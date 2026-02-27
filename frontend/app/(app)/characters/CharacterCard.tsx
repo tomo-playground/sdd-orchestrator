@@ -92,11 +92,6 @@ export default function CharacterCard({ character: ch }: Props) {
                 >
                   {gender.charAt(0).toUpperCase() + gender.slice(1)}
                 </span>
-                {ch.prompt_mode !== "auto" && (
-                  <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium text-zinc-200 backdrop-blur-sm">
-                    {ch.prompt_mode}
-                  </span>
-                )}
               </div>
             </div>
             {tagCount > 0 && (

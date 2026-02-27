@@ -82,7 +82,6 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
     )
 
     # System Settings
-    prompt_mode: Mapped[str] = mapped_column(String(20), default="auto")  # auto, standard, lora
     ip_adapter_weight: Mapped[float | None] = mapped_column(Float)
     ip_adapter_model: Mapped[str | None] = mapped_column(String(50))  # clip, clip_face, faceid
 

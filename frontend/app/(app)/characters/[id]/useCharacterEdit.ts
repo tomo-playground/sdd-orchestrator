@@ -35,7 +35,6 @@ function formFromCharacter(ch: CharacterFull): CharacterFormData {
     name: ch.name,
     description: ch.description ?? "",
     gender: ch.gender,
-    prompt_mode: ch.prompt_mode,
     custom_base_prompt: ch.custom_base_prompt ?? "",
     custom_negative_prompt: ch.custom_negative_prompt ?? "",
     reference_base_prompt: ch.reference_base_prompt ?? "",
@@ -154,7 +153,6 @@ export function useCharacterEdit(rawId: number) {
         name: form.name.trim(),
         description: form.description.trim() || null,
         gender: form.gender,
-        prompt_mode: form.prompt_mode,
         custom_base_prompt: form.custom_base_prompt.trim() || null,
         custom_negative_prompt: form.custom_negative_prompt.trim() || null,
         reference_base_prompt: form.reference_base_prompt.trim() || null,
@@ -295,7 +293,6 @@ export function useCharacterEdit(rawId: number) {
       ? form.name !== character.name ||
         form.description !== (character.description ?? "") ||
         form.gender !== character.gender ||
-        form.prompt_mode !== character.prompt_mode ||
         form.custom_base_prompt !== (character.custom_base_prompt ?? "") ||
         form.custom_negative_prompt !== (character.custom_negative_prompt ?? "") ||
         form.reference_base_prompt !== (character.reference_base_prompt ?? "") ||

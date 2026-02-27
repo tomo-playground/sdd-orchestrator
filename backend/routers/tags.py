@@ -8,7 +8,7 @@ from config import logger
 from database import get_db
 from models import Tag
 from schemas import TagCreate, TagResponse, TagSearchResponse, TagUpdate
-from services.tag_classifier import TagClassifier, classify_tags_background
+from services.tag_classifier import TagClassifier, classify_tags_background_llm
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -313,10 +313,10 @@ async def classify_tags(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    """Classify tags using hybrid approach: DB → Rules (instant) + Danbooru (background).
+    """Classify tags: Rules → DB (instant) + Danbooru → LLM (background).
 
     Steps 1-2 (Rules + DB cache) return immediately.
-    Step 3 (Danbooru) runs in background — results available on next call.
+    Steps 3-4 (Danbooru + LLM) run in background — results available on next call.
     """
     if not request.tags:
         return ClassifyResponse(results={}, classified=0, unknown=0)
@@ -327,11 +327,10 @@ async def classify_tags(
     classifier = TagClassifier(db)
     raw_results, pending_tags = classifier.classify_batch(request.tags)
 
-    # Schedule Danbooru classification in background
+    # Schedule Danbooru + LLM classification in background
     if pending_tags:
-        background_tasks.add_task(classify_tags_background, pending_tags)
+        background_tasks.add_task(classify_tags_background_llm, pending_tags)
 
-    # Convert to response format
     results = {
         tag: ClassificationResultItem(
             group=result["group"],
