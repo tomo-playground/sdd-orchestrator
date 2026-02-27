@@ -45,7 +45,9 @@ async def _ensure_correct_checkpoint(sd_model_name: str) -> None:
             if sd_model_name in current_model:
                 return  # Already using the correct checkpoint
             logger.info(
-                "Switching SD checkpoint: %s -> %s", current_model, sd_model_name,
+                "Switching SD checkpoint: %s -> %s",
+                current_model,
+                sd_model_name,
             )
             resp = await client.post(
                 f"{SD_BASE_URL}/sdapi/v1/options",
@@ -273,10 +275,9 @@ def compose_scene_with_style(
 
     # Merge background tags into scene tags (dedup to avoid duplicate environment tokens)
     if background_tags:
-        existing = {t.lower().replace(" ", "_").strip() for t in scene_tags}
-        for bt in background_tags:
-            if bt.lower().replace(" ", "_").strip() not in existing:
-                scene_tags.append(bt)
+        from services.prompt.prompt import merge_tags_dedup
+
+        scene_tags = merge_tags_dedup(scene_tags, background_tags)
 
     # Resolve sd_model_base for LoRA compatibility checking
     sd_model_base: str | None = None
@@ -318,20 +319,28 @@ def compose_scene_with_style(
         if char_b:
             composer = MultiCharacterComposer(builder)
             composed = composer.compose(
-                character, char_b, scene_tags,
+                character,
+                char_b,
+                scene_tags,
                 style_loras=style_loras,
                 scene_character_actions=scene_character_actions,
             )
         else:
             composed = builder.compose_for_character(
-                character.id, scene_tags, style_loras=style_loras,
-                character=character, scene_character_actions=scene_character_actions,
+                character.id,
+                scene_tags,
+                style_loras=style_loras,
+                character=character,
+                scene_character_actions=scene_character_actions,
                 clothing_override=clothing_override,
             )
     elif character:
         composed = builder.compose_for_character(
-            character.id, scene_tags, style_loras=style_loras,
-            character=character, scene_character_actions=scene_character_actions,
+            character.id,
+            scene_tags,
+            style_loras=style_loras,
+            character=character,
+            scene_character_actions=scene_character_actions,
             clothing_override=clothing_override,
         )
     else:

@@ -399,6 +399,21 @@ def split_prompt_example(request: PromptSplitRequest) -> dict:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+def merge_tags_dedup(base: list[str], extra: list[str]) -> list[str]:
+    """extra 태그를 base에 중복 없이 병합한다 (원본 base 리스트를 변경하지 않음).
+
+    정규화 키: lowercase + 공백→언더스코어 + strip.
+    """
+    result = list(base)
+    existing = {t.lower().replace(" ", "_").strip() for t in result}
+    for tag in extra:
+        key = tag.lower().replace(" ", "_").strip()
+        if key and key not in existing:
+            existing.add(key)
+            result.append(tag)
+    return result
+
+
 def normalize_tag_spaces(tags: list[str]) -> list[str]:
     """Normalize tag format: spaces to underscores.
 

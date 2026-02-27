@@ -1,6 +1,6 @@
 """Tests for prompt utility SSOT: split_prompt_tokens is the single source."""
 
-from services.prompt.prompt import split_prompt_tokens
+from services.prompt.prompt import merge_tags_dedup, split_prompt_tokens
 
 
 class TestSplitPromptTokensIsSSoT:
@@ -19,6 +19,36 @@ class TestSplitPromptTokensIsSSoT:
 
     def test_single_token(self):
         assert split_prompt_tokens("solo") == ["solo"]
+
+
+class TestMergeTagsDedup:
+    """merge_tags_dedup: BG 태그 등 중복 없이 병합."""
+
+    def test_basic_merge(self):
+        result = merge_tags_dedup(["cafe", "indoors"], ["table", "chair"])
+        assert result == ["cafe", "indoors", "table", "chair"]
+
+    def test_dedup_exact(self):
+        result = merge_tags_dedup(["cafe", "indoors"], ["cafe", "table"])
+        assert result == ["cafe", "indoors", "table"]
+
+    def test_dedup_case_insensitive(self):
+        result = merge_tags_dedup(["Cafe"], ["cafe"])
+        assert result == ["Cafe"]
+
+    def test_dedup_space_underscore(self):
+        result = merge_tags_dedup(["brown_hair"], ["brown hair"])
+        assert result == ["brown_hair"]
+
+    def test_empty_extra(self):
+        base = ["a", "b"]
+        result = merge_tags_dedup(base, [])
+        assert result == ["a", "b"]
+
+    def test_does_not_mutate_base(self):
+        base = ["a"]
+        merge_tags_dedup(base, ["b"])
+        assert base == ["a"]
 
 
 class TestImageGenerationCoreUsesSharedSplit:

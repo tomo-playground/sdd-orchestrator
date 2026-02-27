@@ -213,10 +213,9 @@ async def compose_prompt(
 
             bg = db.query(Background).filter(Background.id == request.background_id).first()
             if bg and bg.tags:
-                existing = {t.lower().replace(" ", "_").strip() for t in all_tokens}
-                for bt in bg.tags:
-                    if bt.lower().replace(" ", "_").strip() not in existing:
-                        all_tokens.append(bt)
+                from services.prompt.prompt import merge_tags_dedup
+
+                all_tokens = merge_tags_dedup(all_tokens, bg.tags)
 
         # 2. Resolve style LoRAs: request > DB (storyboard → group → style_profile)
         style_loras = _convert_loras(request.loras)

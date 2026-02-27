@@ -35,8 +35,10 @@ def _apply_tag_aliases(scenes: list[dict]) -> None:
     """DB tag_aliases 기반 자동 교정 — 비표준/모호 태그를 Danbooru 표준으로 치환/제거."""
     from services.keywords.db_cache import TagAliasCache
 
-    with get_db_session() as db:
-        TagAliasCache.initialize(db)
+    # TagAliasCache는 startup 시 초기화됨. 미초기화 시에만 DB 세션 열기.
+    if not TagAliasCache._initialized:
+        with get_db_session() as db:
+            TagAliasCache.initialize(db)
 
     replaced_count = 0
     removed_count = 0
