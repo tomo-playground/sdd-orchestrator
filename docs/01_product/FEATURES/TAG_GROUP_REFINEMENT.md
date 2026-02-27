@@ -1,6 +1,6 @@
 # Tag Group 세분화 명세
 
-**Phase**: Feature Backlog P1
+**Phase**: 완료 (02-26)
 **목표**: 거대 그룹 3개(clothing 118, action 55, time_weather 38)를 의미 단위 소그룹으로 분리하여 프롬프트 레이어 정확도, WD14 검증 정밀도, UI 탐색성 향상.
 
 ---

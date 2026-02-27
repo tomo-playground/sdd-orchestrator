@@ -1,6 +1,6 @@
 # Cross-Scene Consistency (씬 간 캐릭터 시각적 일관성)
 
-> 상태: **Backend 완료 (D-1~D-3)**, Frontend 미착수 (D-4) — Phase 16-D
+> 상태: **완료 (D-1~D-4, 02-24)** — Phase 16-D
 > 선행: Phase 16-A (Critical Failure Detection ✅), 16-B (Adjusted Match Rate ✅), 16-C (Auto-Regen + Identity Ranking ✅)
 > 관련: [CHARACTER_CONSISTENCY.md](CHARACTER_CONSISTENCY.md)
 

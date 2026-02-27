@@ -1,8 +1,8 @@
 # Prompt Input UX 고도화
 
-> 상태: 미착수
+> 상태: 완료 (Phase A-0~A-3 + B, 02-23~02-24)
 > 우선순위: P1
-> 선행 관계: 이 작업 완료 후 [Visual Tag Browser](VISUAL_TAG_BROWSER.md) 진행
+> 선행 관계: ✅ [Visual Tag Browser](VISUAL_TAG_BROWSER.md) 완료
 
 ---
 
