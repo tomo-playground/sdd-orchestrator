@@ -18,16 +18,18 @@
 | Phase 14 (ControlNet Pose Pipeline) | 전체 완료 (ARCHIVED) |
 | **Phase 15 (Prompt Input UX 고도화)** | **전체 완료 — A-0~A-3 + B-1~B-3 (18/18)** |
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
-| **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
+| **Phase 17 (Service/Admin 분리)** | **17-0/0.5/1 완료, 17-2~3 미착수** |
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
 | Phase 18 (Stage Workflow) | 전체 완료 (ARCHIVED) |
 | **Phase 19 (Studio 탭 페르소나 재배치)** | **전체 완료 — 19-1(9) + 19-2(2) + 19-3(4) = 15/15** |
 | **DB Schema Cleanup** | **전체 완료 — Sprint A (7/7), Sprint B (3/4, 1건 취소)** |
-| **Phase 20 (Agent-Aware Inventory)** | **미착수 — 명세 완료, 6-Agent Review 반영** |
-| 테스트 | Backend 2,667 + Frontend 399 = **총 3,066개** (valence +27 = 3,093) |
+| **Phase 20 (Agent-Aware Inventory)** | **20-A 완료 (9/9), 20-B/C 미착수** |
+| 테스트 | Backend 2,667 + Frontend 399 = **총 3,066개** (valence +27 = 3,093, Phase 20-A +42) |
 
 ### 최근 작업
 
+- **Phase 17-1: Backend 논리적 분리** (02-28): Service(`/api/v1/`) + Admin(`/api/admin/`) 2-tier 라우터 분리. 10개 분할 라우터(characters, tags, backgrounds 등) `service_router` + `admin_router` 이중화, `admin.py` `/admin/` prefix 제거, `routers/__init__.py` 조립 재작성(29개→2줄 include), OpenAPI 문서 분리(`/docs` Service, `/admin/docs` Admin). Frontend `API_ROOT`+`API_BASE`+`ADMIN_API_BASE` 3-tier 상수 + ~50개 파일 URL 마이그레이션. 65개 백엔드 테스트 URL prefix 갱신. 117파일 +1,219/-1,158줄.
+- **Phase 20-A: Director Inventory Awareness** (02-28): 인벤토리 인지 + 캐스팅 추천 구현. `inventory.py` 서비스(캐릭터 프루닝 20명, usage_count 정렬), `CastingRecommendation` Pydantic + `DirectorPlanOutput.casting`, `ScriptState` 3키 확장, `director_plan.j2` 인벤토리 섹션 + CoT 가이드, `director_plan_node` 인벤토리 로드 + 캐스팅 추출, `inventory_resolve` 노드(5항목 유효성 검증 + user override 병합), 18노드 그래프(`director_plan → inventory_resolve → research`), SSE `_NODE_META` + Frontend 캐스팅 토스트. 42개 테스트 추가. 17파일 +934/-22줄.
 - **DB Schema Cleanup Sprint B 5-1** (02-28): LangGraph Checkpoint GC 배치 구현 — `gc_checkpoints()` 함수 + `POST /admin/checkpoint-gc` 엔드포인트. UUID v6 시간 기반 cutoff로 오래된 thread 삭제. 초회 실행: 157 threads 삭제, rows 60% 감소(checkpoints 3044→1131, writes 12978→5230). 기본 보존기간: 7일 (`CHECKPOINT_GC_RETENTION_DAYS`).
 - **DB Schema Cleanup Sprint B** (02-28): `characters.reference_source_type` DROP + `scenes.last_seed` DROP — 코드 참조 제거(ORM/스키마/서비스/FE 타입) + Alembic 마이그레이션 적용. `multi_gen_enabled`는 FE에서 활발 사용 확인, DROP 취소. DB_SCHEMA.md v3.31 갱신.
 - **DB Schema Cleanup Sprint A-7** (02-28): `ANALYZE` 실행 — pg_stat 통계 갱신 완료 (42테이블). projects 0→2건 등 부정확 row count 해소.
@@ -173,7 +175,7 @@ graph LR
     style P14 fill:#4CAF50,color:#fff
     style P15 fill:#4CAF50,color:#fff
     style P16 fill:#4CAF50,color:#fff
-    style P17 fill:#FF9800,color:#fff
+    style P17 fill:#4CAF50,color:#fff
     style P18 fill:#4CAF50,color:#fff
     style P19 fill:#4CAF50,color:#fff
     style P20 fill:#FF9800,color:#fff
@@ -264,10 +266,12 @@ graph LR
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | Service 라우터 `/api/v1/` prefix 그룹핑 (12개 라우터) | 미착수 |
-| 2 | Admin 라우터 `/api/admin/` prefix 그룹핑 (17개 라우터) | 미착수 |
-| 3 | 분할 대상 라우터 9개 엔드포인트 분리 (GET→Service, CUD→Admin) | 미착수 |
-| 4 | OpenAPI docs 분리 (`/docs` Service, `/admin/docs` Admin) | 미착수 |
+| 1 | Service 라우터 `/api/v1/` prefix 그룹핑 (12개 라우터) | ✅ (02-28) |
+| 2 | Admin 라우터 `/api/admin/` prefix 그룹핑 (17개 라우터) | ✅ (02-28) |
+| 3 | 분할 대상 라우터 10개 엔드포인트 분리 (GET→Service, CUD→Admin) | ✅ (02-28) |
+| 4 | OpenAPI docs 분리 (`/docs` Service, `/admin/docs` Admin) | ✅ (02-28) |
+| 5 | Frontend URL 마이그레이션 (~50개 파일, `ADMIN_API_BASE` 전환) | ✅ (02-28) |
+| 6 | Backend 테스트 URL prefix 갱신 (65개 테스트 파일) | ✅ (02-28) |
 
 ### Phase 17-2: Frontend Route Group 분리
 
@@ -351,15 +355,15 @@ Script → **Stage** → Direct → Publish 4단계 워크플로우. [상세 명
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | `inventory.py` 인벤토리 로딩 서비스 (캐릭터 프루닝 20명, 간접 JOIN 기반) | 미착수 |
-| 2 | `director_plan.j2` 템플릿 인벤토리 섹션 + CoT 캐스팅 가이드 | 미착수 |
-| 3 | `CastingRecommendation` Pydantic + `DirectorPlanOutput.casting` 확장 | 미착수 |
-| 4 | `ScriptState`에 `casting_recommendation` + `valid_character_ids` 추가 | 미착수 |
-| 5 | `inventory_resolve` 노드 (user override 병합 + 5항목 유효성 검증) | 미착수 |
-| 6 | Graph 엣지: `director_plan → inventory_resolve → research` | 미착수 |
-| 7 | SSE `node_result` 기반 캐스팅 전달 + `_NODE_META` 등록 | 미착수 |
-| 8 | 후방 호환성 검증 (기존 character_id 선택, Express/Quick 불변) | 미착수 |
-| 9 | 최소 Frontend 토스트 (캐스팅 추천 표시) | 미착수 |
+| 1 | `inventory.py` 인벤토리 로딩 서비스 (캐릭터 프루닝 20명, 간접 JOIN 기반) | ✅ (02-28) |
+| 2 | `director_plan.j2` 템플릿 인벤토리 섹션 + CoT 캐스팅 가이드 | ✅ (02-28) |
+| 3 | `CastingRecommendation` Pydantic + `DirectorPlanOutput.casting` 확장 | ✅ (02-28) |
+| 4 | `ScriptState`에 `casting_recommendation` + `valid_character_ids` 추가 | ✅ (02-28) |
+| 5 | `inventory_resolve` 노드 (user override 병합 + 5항목 유효성 검증) | ✅ (02-28) |
+| 6 | Graph 엣지: `director_plan → inventory_resolve → research` | ✅ (02-28) |
+| 7 | SSE `node_result` 기반 캐스팅 전달 + `_NODE_META` 등록 | ✅ (02-28) |
+| 8 | 후방 호환성 검증 (기존 character_id 선택, Express/Quick 불변) | ✅ (02-28) |
+| 9 | 최소 Frontend 토스트 (캐스팅 추천 표시) | ✅ (02-28) |
 
 ### Phase 20-B: Casting UX (Frontend)
 
@@ -473,14 +477,14 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | ~~2~~ | ~~Sprint A 1-2~1-5: FIX FIRST 잔여 4건~~ | ✅ 완료 (02-28) |
 | ~~3~~ | ~~Sprint A 4-1/5-2: DOC FIX + ANALYZE~~ | ✅ 완료 (02-28) |
 | ~~4~~ | ~~Sprint B 2-1, 2-3: DROP 2건~~ | ✅ 완료 (02-28), 2-2 취소 (FE 활발 사용) |
-| 5 | Sprint B 5-1: LangGraph Checkpoint GC 배치 | 인프라 |
+| ~~5~~ | ~~Sprint B 5-1: LangGraph Checkpoint GC 배치~~ | ✅ 완료 (02-28) |
 
 **Phase 17 — Service/Admin 분리**
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
 | ~~1~~ | ~~17-0: API 정리 (34→29개)~~ | ✅ 완료 (02-25) |
-| 2 | 17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`) | 유저/관리자 API 분리 |
+| ~~2~~ | ~~17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`)~~ | ✅ 완료 (02-28) |
 | 3 | 17-2: Frontend Route Group 분리 (`/` + `/admin`) | 유저/관리자 UI 분리 |
 | 4 | 17-3: 유저 UI 간소화 (Advanced 토글, Quick Render, Tooltip) | 유저 경험 최적화 |
 
@@ -488,7 +492,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
-| 1 | 20-A: Director Inventory Awareness (Backend MVP, 9항목) | Director 자율 캐스팅 핵심 |
+| ~~1~~ | ~~20-A: Director Inventory Awareness (Backend MVP, 9항목)~~ | ✅ 완료 (02-28) |
 | 2 | 20-B: Casting UX (Frontend, 5항목) — 선행: useScriptEditor 분리 | 유저 가치 전달 |
 | 3 | 20-C: Autonomous Express (5항목) | 토픽만으로 전체 생성 |
 
