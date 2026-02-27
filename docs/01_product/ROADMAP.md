@@ -20,7 +20,7 @@
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
 | **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
-| **Phase 18 (Stage Workflow)** | **전체 완료 — Phase 1 (18-0~18-3) + P2 7/7 + P3 3/3 + P4 3/3** |
+| Phase 18 (Stage Workflow) | 전체 완료 (ARCHIVED) |
 | 테스트 | Backend 2,667 + Frontend 379 = **총 3,046개** |
 
 ### 최근 작업
@@ -267,82 +267,14 @@ graph LR
 
 ---
 
-## Phase 18: Stage Workflow (프리프로덕션)
+## Phase 18: Stage Workflow — 전체 완료 (ARCHIVED, 02-26~02-27)
 
-**목표**: Script → **Stage** → Direct → Publish 4단계 워크플로우. Stage에서 프리프로덕션 에셋(배경, 캐릭터, 음성, BGM)을 준비/확인하는 무대 세팅 단계. [상세 명세](FEATURES/STAGE_WORKFLOW.md)
+Script → **Stage** → Direct → Publish 4단계 워크플로우. [상세 명세](FEATURES/STAGE_WORKFLOW.md)
 
-### Phase 18-0: Location Model + DB (완료 02-26)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | `backgrounds` 테이블에 `storyboard_id` FK + `location_key` 추가 | ✅ (02-26) |
-| 2 | `storyboards` 테이블에 `stage_status` 추가 | ✅ (02-26) |
-| 3 | WriterPlan.locations 타입 강화 (`list[dict]` → `list[LocationPlan]`) | ✅ (02-26) |
-
-### Phase 18-1: Background Generation Pipeline (완료 02-26)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | `compose_for_background()` — 5-Layer Background Template | ✅ (02-26) |
-| 2 | `services/stage/background_generator.py` — 배경 이미지 배치 생성 | ✅ (02-26) |
-| 3 | `routers/stage.py` — Stage API (generate/status/assign/regenerate) | ✅ (02-26) |
-| 4 | `_apply_environment()` no_humans 스킵 조건 — 기존 로직으로 충분 (변경 불필요) | ✅ (02-26) |
-| 5 | `calculate_auto_pin_flags()` — background_id 존재 시 auto_pin 비활성화 | ✅ (02-26) |
-
-### Phase 18-2: Stage UI (완료 02-26)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | 4탭 전환 (Script → Stage → Direct → Publish) + edit→direct 리네이밍 | ✅ (02-26) |
-| 2 | StageTab 레이아웃 (Location 카드 그리드 + Readiness 바) | ✅ (02-26) |
-| 3 | Location 카드 (배경 이미지 + 태그 표시 + 재생성 + 씬 매핑) | ✅ (02-26) |
-| 4 | Readiness Gate 대시보드 (ready/total 진행률 + Continue to Direct) | ✅ (02-26) |
-| 5 | PipelineStatusDots Stage 단계 추가 | ✅ (02-26) |
-
-### Phase 18-3: Stage-Direct 연결 (완료 02-26)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | Stage 승인 → Scene.background_id 자동 매핑 | ✅ (02-26) |
-| 2 | MaterialsPopover → Stage 탭 연결 전환 | ✅ (02-26) |
-| 3 | Script 완료 → Stage 자동 전환 + Opt-in (Express 건너뜀) | ✅ (02-26) |
-
-### Phase 18-P2: Stage 에셋 대시보드 (완료 02-27, 축소 스코프)
-
-**목표**: Stage Tab을 배경 전용에서 **전체 프리프로덕션 에셋 대시보드**로 확장. 캐릭터 프리뷰, TTS 음성, BGM을 Stage에서 준비/확인.
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | StageCharacterCard — 캐릭터 프리뷰 확인 + 음성 프리셋 미리듣기 | ✅ (02-27) |
-| 2 | StageVoiceCard — TTS 음성 미리듣기 + 프리셋 확인 | ✅ (02-27) |
-| 3 | StageBgmCard — BGM 프리뷰 재생 + 프리셋/Auto 확인 | ✅ (02-27) |
-| 4 | Readiness Gate 4카테고리 확장 (Locations + Characters + Voice + BGM) | ✅ (02-27) |
-| 5 | useAudioPlayer 공유 훅 — 동시 재생 방지 (단일 인스턴스) | ✅ (02-27) |
-| 6 | Preflight Stage 4카테고리 체크 + background_id 스토어 동기화 | ✅ (02-27) |
-| 7 | BGM preview responseType 버그 수정 (blob→JSON audio_url) | ✅ (02-27) |
-
-> 명세 Phase 2 원본 5건 중 2건(TTS 미리듣기, 캐릭터 프리뷰) 완료. 잔여 3건은 18-P3으로 이관.
-
-### Phase 18-P3: Stage 에셋 고도화 (완료 02-27)
-
-명세 Phase 2 잔여 항목. [상세 명세](FEATURES/STAGE_WORKFLOW.md) §Phase 2
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | Express 모드 호환 — `writer_plan.locations` 없을 때 `context_tags`에서 location 역추론 | ✅ (02-27) |
-| 2 | 에셋 간 의존성 표시 (LoRA ↔ StyleProfile 관계 시각화) | ✅ (02-27) |
-| 3 | 배경 이미지 캐싱 — `location + style_profile_id` 조합으로 중복 생성 방지 | ✅ (02-27) |
-
-### Phase 18-P4: 렌더링 연동 (완료 02-27)
-
-[상세 명세](FEATURES/STAGE_WORKFLOW.md) §Phase 3
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | 트랜지션 자동 선택 — 장소 변경: slide/wipe, 같은 장소: fade | ✅ (02-27) |
-| 2 | Ken Burns 교대 프리셋 — 같은 배경 연속 시 단조로움 방지 | ✅ (02-27) |
-| ~~3~~ | ~~Post 레이아웃 블러 프리컴퓨팅~~ | 삭제 (성능 이득 미미, 시각 품질 저하) |
-| 4 | Reference AdaIN 가중치 실내/실외 자동 조정 (Canny/Depth → AdaIN 방향 변경) | ✅ (02-27) |
+- **18-0~18-3** (02-26): Location Model + DB, Background Generation Pipeline, Stage UI, Stage-Direct 연결 (16건)
+- **18-P2** (02-27): Stage 에셋 대시보드 — Characters/Voice/BGM 섹션, Readiness Gate 4카테고리, useAudioPlayer (7건)
+- **18-P3** (02-27): Stage 에셋 고도화 — Express 모드 호환, LoRA↔StyleProfile 의존성 시각화, BG 캐싱 (3건)
+- **18-P4** (02-27): 렌더링 연동 — 트랜지션 auto 모드, Ken Burns 교대 프리셋, Reference AdaIN 실내/실외 가중치 (3건, P4-3 블러 프리컴퓨팅 삭제)
 
 ---
 
@@ -354,8 +286,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 | 기능 | 참조 |
 |------|------|
-| ~~Stage Phase 2: TTS 미리듣기 + 에셋 의존성 표시 + 배경 캐싱~~ | TTS/캐릭터 → 18-P2 완료, 잔여 → 18-P3 |
-| ~~Stage Phase 3: 트랜지션 자동 선택 + Ken Burns 교대 + Canny/Depth 자동 선택~~ | → Phase 18-P4 |
+| ~~Stage Phase 2~3~~ | ✅ 18-P2/P3/P4 완료 (ARCHIVED) |
 | VEO Clip (Video Generation 통합) | [명세](FEATURES/VEO_CLIP.md) |
 | ~~Visual Tag Browser (태그별 예시 이미지)~~ | → Phase 15-B |
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
@@ -394,17 +325,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 **Phase 15 — Prompt Input UX 고도화 (전체 완료, 18/18)**
 
-**Phase 18 — Stage Workflow (전체 완료)**
-
-| 순위 | 작업 | 근거 |
-|------|------|------|
-| ~~1~~ | ~~18-0: Location Model + DB~~ | ✅ 완료 (02-26) |
-| ~~2~~ | ~~18-1: Background Generation Pipeline~~ | ✅ 완료 (02-26) |
-| ~~3~~ | ~~18-2: Stage UI~~ | ✅ 완료 (02-26) |
-| ~~4~~ | ~~18-3: Stage-Direct 연결~~ | ✅ 완료 (02-26) |
-| ~~5~~ | ~~18-P2: Stage 에셋 대시보드 (축소 스코프)~~ | ✅ 완료 (02-27) |
-| ~~6~~ | ~~18-P3: Stage 에셋 고도화 (Express 호환, 의존성 표시, BG 캐싱)~~ | ✅ 완료 (02-27) |
-| ~~7~~ | ~~18-P4: 렌더링 연동 (트랜지션/Ken Burns/AdaIN 자동 선택)~~ | ✅ 완료 (02-27) |
+**Phase 18 — Stage Workflow (전체 완료, ARCHIVED)**
 
 **Phase 17 — Service/Admin 분리**
 
