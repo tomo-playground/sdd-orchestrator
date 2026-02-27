@@ -12,6 +12,7 @@ import functools
 from sqlalchemy.orm import Session
 
 from config import (
+    logger,
     BACKGROUND_SCENE_MARKER,
     BISHOUNEN_WEIGHT,
     CAMERA_FRAMING_CLOSE,
@@ -954,12 +955,22 @@ class V3PromptBuilder:
                     return True
         return False
 
+    # Layers that participate in valence cross-check.
+    # Note: gaze tags share LAYER_EXPRESSION(7) with expression tags,
+    # so gaze↔mood valence conflicts are also caught via this layer check.
+    _VALENCE_LAYERS = frozenset({LAYER_EXPRESSION, LAYER_ATMOSPHERE})
+
     def _flatten_layers(self, layers: list[list[str]]) -> str:
         """Flattens 12 layers into a final string with global deduplication and conflict resolution."""
+        from services.keywords.db_cache import TagValenceCache
+
         TagRuleCache.initialize(self.db)
+        TagValenceCache.initialize(self.db)
 
         final_tokens = []
         global_seen: set[str] = set()
+        # Track which layer each key came from (for valence cross-check)
+        seen_by_layer: dict[str, int] = {}
         composed: list[list[str]] = [[] for _ in range(12)]
 
         for i, layer_tokens in enumerate(layers):
@@ -975,8 +986,12 @@ class V3PromptBuilder:
                                 break
 
                         if not has_conflict:
+                            has_conflict = self._check_valence_conflict(key, i, seen_by_layer)
+
+                        if not has_conflict:
                             unique_layer_tokens.append(t)
                             global_seen.add(key)
+                            seen_by_layer[key] = i
 
                 unique_layer_tokens = self._apply_layer_boosts(i, unique_layer_tokens)
                 composed[i] = unique_layer_tokens
@@ -984,6 +999,30 @@ class V3PromptBuilder:
 
         self._last_composed_layers = composed
         return ", ".join(final_tokens)
+
+    @staticmethod
+    def _check_valence_conflict(key: str, current_layer: int, seen_by_layer: dict[str, int]) -> bool:
+        """Check if key conflicts with existing tokens via valence polarity.
+
+        Only checks Expression(L7) ↔ Atmosphere(L11) cross-layer pairs.
+        Returns True if conflict found (key should be dropped).
+        """
+        from services.keywords.db_cache import TagValenceCache
+
+        if current_layer not in V3PromptBuilder._VALENCE_LAYERS:
+            return False
+
+        opposite_layer = LAYER_ATMOSPHERE if current_layer == LAYER_EXPRESSION else LAYER_EXPRESSION
+
+        for existing_key, existing_layer in seen_by_layer.items():
+            if existing_layer == opposite_layer:
+                if TagValenceCache.is_valence_conflicting(key, existing_key):
+                    logger.info(
+                        "[Valence] Dropped '%s'(L%d) — conflicts with '%s'(L%d)",
+                        key, current_layer, existing_key, existing_layer,
+                    )
+                    return True
+        return False
 
     @staticmethod
     def _apply_layer_boosts(layer_idx: int, tokens: list[str]) -> list[str]:

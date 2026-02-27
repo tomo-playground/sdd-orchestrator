@@ -4,6 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from config import logger
 from database import get_db
 from models import Tag
 from schemas import ImageCacheClearResponse, ImageCacheStatsResponse
@@ -39,6 +40,7 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
         TagCategoryCache,
         TagFilterCache,
         TagRuleCache,
+        TagValenceCache,
     )
 
     caches = [
@@ -46,6 +48,7 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
         ("TagFilterCache", TagFilterCache),
         ("TagAliasCache", TagAliasCache),
         ("TagRuleCache", TagRuleCache),
+        ("TagValenceCache", TagValenceCache),
         ("LoRATriggerCache", LoRATriggerCache),
     ]
 
@@ -69,6 +72,84 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
             },
         )
     return {"success": True, "message": "All caches refreshed successfully"}
+
+
+# ============================================================
+# Tag Valence Classification (Expression-Mood Conflict Detection)
+# ============================================================
+
+
+class ClassifyValenceResponse(BaseModel):
+    ok: bool
+    message: str
+
+
+def _run_valence_classification(group_names: list[str], force: bool) -> None:
+    """Background task: LLM으로 태그 valence 일괄 분류."""
+    import asyncio
+
+    from database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        # Query tags in target groups that need valence classification
+        query = db.query(Tag).filter(Tag.group_name.in_(group_names), Tag.is_active.is_(True))
+        if not force:
+            query = query.filter(Tag.valence.is_(None))
+        tags_to_classify = query.all()
+
+        if not tags_to_classify:
+            logger.info("[Valence] No tags to classify")
+            return
+
+        tag_names = [t.name for t in tags_to_classify]
+        logger.info("[Valence] Classifying %d tags: %s", len(tag_names), group_names)
+
+        from services.tag_classifier import TagClassifier
+        from services.tag_classifier_llm import classify_valence_via_llm
+
+        results = asyncio.run(classify_valence_via_llm(tag_names))
+        classifier = TagClassifier(db)
+        saved = 0
+        for r in results:
+            classifier.save_valence(r["tag"], r["valence"], defer_commit=True)
+            saved += 1
+
+        if saved:
+            try:
+                db.commit()
+            except Exception as e:
+                logger.error("❌ [Valence] Batch commit failed: %s", e)
+                db.rollback()
+                return
+
+        # Refresh cache after classification
+        from services.keywords.db_cache import TagValenceCache
+
+        TagValenceCache.refresh(db)
+        logger.info("[Valence] Classified %d/%d tags", saved, len(tag_names))
+    except Exception as e:
+        logger.error("❌ [Valence] Classification failed: %s", e)
+    finally:
+        db.close()
+
+
+@router.post("/admin/tags/classify-valence", response_model=ClassifyValenceResponse)
+async def classify_tag_valence(
+    background_tasks: BackgroundTasks,
+    group_names: str = Query("expression,gaze,mood", description="Comma-separated group names"),
+    force: bool = Query(False, description="Re-classify even if valence already set"),
+):
+    """Batch-classify tag valence (emotion polarity) via LLM in background."""
+    groups = [g.strip() for g in group_names.split(",") if g.strip()]
+    if not groups:
+        raise HTTPException(status_code=400, detail="At least one group_name required")
+
+    background_tasks.add_task(_run_valence_classification, groups, force)
+    return ClassifyValenceResponse(
+        ok=True,
+        message=f"Valence classification started (groups={groups}, force={force})",
+    )
 
 
 # ============================================================

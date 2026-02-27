@@ -64,6 +64,12 @@ class LLMClassificationResult(TypedDict):
     confidence: float
 
 
+class LLMValenceResult(TypedDict):
+    tag: str
+    valence: str  # positive, negative, neutral
+    confidence: float
+
+
 def _build_prompt(tags: list[str]) -> str:
     """GROUP_NAME_TO_LAYER 기반 분류 프롬프트 생성."""
     group_lines = "\n".join(f"  - {group}: {_GROUP_EXAMPLES.get(group, '')}" for group in sorted(_VALID_GROUPS))
@@ -149,4 +155,76 @@ async def classify_tags_via_llm(tags: list[str]) -> list[LLMClassificationResult
         return validated
     except Exception:
         logger.warning("[TagClassifier LLM] Gemini API call failed", exc_info=True)
+        return []
+
+
+from config_prompt import VALID_VALENCES as _VALID_VALENCES
+
+
+def _build_valence_prompt(tags: list[str]) -> str:
+    """Valence 분류 프롬프트 생성."""
+    tag_list = json.dumps(tags, ensure_ascii=False)
+
+    return f"""You are an emotion/mood classifier for Stable Diffusion tags.
+
+Classify each tag's emotional valence (polarity):
+- "positive": happy, cheerful, warm emotions (e.g. smile, romantic, cozy, happy)
+- "negative": sad, angry, dark emotions (e.g. crying, melancholic, angry, horror)
+- "neutral": no clear emotional direction (e.g. serious, looking_at_viewer, dramatic)
+
+Tags to classify:
+{tag_list}
+
+Respond ONLY with a JSON array. No explanation.
+Format: [{{"tag": "...", "valence": "positive|negative|neutral", "confidence": 0.0-1.0}}]"""
+
+
+def _validate_valence_results(raw: list[dict]) -> list[LLMValenceResult]:
+    """Valence 결과 검증."""
+    validated: list[LLMValenceResult] = []
+    for item in raw:
+        tag = item.get("tag")
+        valence = item.get("valence")
+        conf = item.get("confidence", 0.7)
+        if not tag or not valence or valence not in _VALID_VALENCES:
+            continue
+        validated.append(
+            {
+                "tag": str(tag),
+                "valence": str(valence),
+                "confidence": max(0.0, min(1.0, float(conf))),
+            }
+        )
+    return validated
+
+
+async def classify_valence_via_llm(tags: list[str]) -> list[LLMValenceResult]:
+    """태그 배치의 감정 극성(valence)을 Gemini Flash로 분류한다."""
+    if not tags:
+        return []
+    if not gemini_client:
+        logger.warning("[TagClassifier LLM] gemini_client is None, skipping valence")
+        return []
+
+    prompt = _build_valence_prompt(tags)
+    try:
+        response = await gemini_client.aio.models.generate_content(
+            model=GEMINI_CLASSIFIER_MODEL,
+            contents=prompt,
+            config=GenerateContentConfig(
+                http_options=HttpOptions(timeout=GEMINI_CLASSIFIER_TIMEOUT_MS),
+            ),
+        )
+        text = response.text or ""
+        results = _parse_llm_json(text)
+
+        validated = _validate_valence_results(results)
+        logger.info(
+            "[TagClassifier LLM] %d/%d tags valence-classified via Gemini Flash",
+            len(validated),
+            len(tags),
+        )
+        return validated
+    except Exception:
+        logger.warning("[TagClassifier LLM] Gemini valence API call failed", exc_info=True)
         return []

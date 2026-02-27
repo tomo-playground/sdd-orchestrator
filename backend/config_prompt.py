@@ -16,6 +16,9 @@ MALE_GENDER_BOOST_WEIGHT = 1.3
 MALE_FOCUS_WEIGHT = 1.2
 BISHOUNEN_WEIGHT = 1.1
 
+# --- Valence (emotion polarity) ---
+VALID_VALENCES: frozenset[str] = frozenset({"positive", "negative", "neutral"})
+
 # --- V3 Prompt Composition Tags ---
 BACKGROUND_SCENE_MARKER = "no_humans"
 GENERIC_LOCATION_TAGS: frozenset[str] = frozenset({"indoors", "outdoors"})

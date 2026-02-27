@@ -32,6 +32,20 @@ class Tag(Base, TimestampMixin):
     usage_scope: Mapped[str] = mapped_column(String(20), default="ANY")  # PERMANENT, TRANSIENT, ANY
     priority: Mapped[int] = mapped_column(Integer, default=100)
 
+    # Emotion valence for cross-group conflict detection (expression ↔ mood)
+    valence: Mapped[str | None] = mapped_column(String(10), index=True)
+    # 'positive', 'negative', 'neutral', None(미분류)
+
+    @validates("valence")
+    def _validate_valence(self, _key: str, value: str | None) -> str | None:
+        """valence 값 검증 — positive/negative/neutral/None만 허용."""
+        if value is not None:
+            from config_prompt import VALID_VALENCES
+
+            if value not in VALID_VALENCES:
+                raise ValueError(f"Invalid valence '{value}'. Must be one of: {sorted(VALID_VALENCES)}")
+        return value
+
     @validates("name")
     def _validate_name(self, _key: str, value: str) -> str:
         """비ASCII 태그 거부 (Danbooru 표준 강제)."""

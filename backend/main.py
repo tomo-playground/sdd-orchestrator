@@ -53,6 +53,7 @@ async def lifespan(app: FastAPI):
         TagCategoryCache,
         TagFilterCache,
         TagRuleCache,
+        TagValenceCache,
     )
     from services.storage import initialize_storage
 
@@ -74,7 +75,7 @@ async def lifespan(app: FastAPI):
         TagFilterCache.initialize(db)
         TagAliasCache.initialize(db)
         TagRuleCache.initialize(db)
-        TagRuleCache.initialize(db)
+        TagValenceCache.initialize(db)
         LoRATriggerCache.initialize(db)
 
         # Self-Correction: Apply high-confidence tag suggestions

@@ -274,12 +274,18 @@ class TagClassifier:
         return results
 
     def _save_classification(
-        self, tag: str, result: ClassificationResult, *, defer_commit: bool = False,
+        self,
+        tag: str,
+        result: ClassificationResult,
+        *,
+        defer_commit: bool = False,
+        valence: str | None = None,
     ) -> None:
         """Save classification result to DB.
 
         Args:
             defer_commit: True이면 commit을 건너뛴다 (배치 호출 시 호출자가 commit).
+            valence: 감정 극성 (positive/negative/neutral). None이면 변경 안 함.
         """
         from services.keywords.patterns import GROUP_NAME_TO_LAYER
 
@@ -294,6 +300,8 @@ class TagClassifier:
                 existing.default_layer = default_layer
                 existing.classification_source = result["source"]
                 existing.classification_confidence = result["confidence"]
+                if valence is not None:
+                    existing.valence = valence
             else:
                 category = self._group_to_category(result["group"])
                 new_tag = Tag(
@@ -303,6 +311,7 @@ class TagClassifier:
                     default_layer=default_layer,
                     classification_source=result["source"],
                     classification_confidence=result["confidence"],
+                    valence=valence,
                 )
                 self.db.add(new_tag)
 
@@ -311,6 +320,22 @@ class TagClassifier:
             logger.info("✅ [TagClassifier] Saved: %s → %s", tag, result["group"])
         except Exception as e:
             logger.error("❌ [TagClassifier] Failed to save %s: %s", tag, e)
+            self.db.rollback()
+
+    def save_valence(self, tag: str, valence: str, *, defer_commit: bool = False) -> None:
+        """Save valence classification to DB (update existing tag only)."""
+        try:
+            stmt = select(Tag).where(Tag.name == tag)
+            existing = self.db.execute(stmt).scalar_one_or_none()
+            if existing:
+                existing.valence = valence
+                if not defer_commit:
+                    self.db.commit()
+                logger.info("✅ [TagClassifier] Valence saved: %s → %s", tag, valence)
+            else:
+                logger.warning("⚠️ [TagClassifier] Tag '%s' not found in DB, skipping valence save", tag)
+        except Exception as e:
+            logger.error("❌ [TagClassifier] Failed to save valence %s: %s", tag, e)
             self.db.rollback()
 
     def _group_to_category(self, group: str | None) -> str:

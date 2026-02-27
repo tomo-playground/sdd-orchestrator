@@ -249,6 +249,60 @@ class LoRATriggerCache:
         cls.initialize(db)
 
 
+class TagValenceCache:
+    """In-memory cache for tag valence (emotion polarity) from DB.
+
+    Used for cross-group conflict detection (expression ↔ mood).
+    """
+
+    _cache: dict[str, str] = {}  # tag_name → valence
+    _initialized = False
+
+    @classmethod
+    def initialize(cls, db: Session):
+        """Load all tags with valence from DB."""
+        if cls._initialized:
+            return
+
+        try:
+            tags = db.query(Tag.name, Tag.valence).filter(Tag.valence.isnot(None)).all()
+
+            count = 0
+            for name, valence in tags:
+                normalized = name.lower().replace(" ", "_").strip()
+                cls._cache[normalized] = valence
+                count += 1
+
+            cls._initialized = True
+            logger.info(f"✅ [TagValenceCache] Loaded {count} tag valences into cache")
+        except Exception as e:
+            logger.error(f"❌ [TagValenceCache] Failed to initialize: {e}")
+
+    @classmethod
+    def get_valence(cls, tag: str) -> str | None:
+        """Get valence for a tag. Returns None if not classified."""
+        normalized = tag.lower().replace(" ", "_").strip()
+        return cls._cache.get(normalized)
+
+    @classmethod
+    def is_valence_conflicting(cls, tag1: str, tag2: str) -> bool:
+        """Check if two tags have opposing valence (positive ↔ negative).
+
+        Returns False if either tag has no valence or is neutral.
+        """
+        v1 = cls.get_valence(tag1)
+        v2 = cls.get_valence(tag2)
+        if not v1 or not v2 or v1 == "neutral" or v2 == "neutral":
+            return False
+        return v1 != v2
+
+    @classmethod
+    def refresh(cls, db: Session):
+        cls._initialized = False
+        cls._cache.clear()
+        cls.initialize(db)
+
+
 class TagFilterCache:
     """Unified in-memory cache for tag filters from DB.
 
