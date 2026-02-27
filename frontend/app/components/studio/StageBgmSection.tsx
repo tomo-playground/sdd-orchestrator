@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Music } from "lucide-react";
 import axios from "axios";
@@ -28,6 +28,7 @@ export default function StageBgmSection({ audioPlayer }: Props) {
 
   const [presets, setPresets] = useState<MusicPreset[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const prevPromptRef = useRef(bgmPrompt);
 
   useEffect(() => {
     if (bgmMode !== "manual") return;
@@ -37,9 +38,12 @@ export default function StageBgmSection({ audioPlayer }: Props) {
       .catch(() => {});
   }, [bgmMode]);
 
-  // Reset preview when prompt changes
+  // Reset preview only when prompt actually changes (skip initial mount)
   useEffect(() => {
-    useRenderStore.getState().set({ bgmPreviewUrl: null });
+    if (prevPromptRef.current !== bgmPrompt) {
+      prevPromptRef.current = bgmPrompt;
+      useRenderStore.getState().set({ bgmPreviewUrl: null });
+    }
   }, [bgmPrompt]);
 
   const handleGeneratePreview = useCallback(async () => {
@@ -48,7 +52,7 @@ export default function StageBgmSection({ audioPlayer }: Props) {
     try {
       const res = await axios.post<{ audio_url: string; temp_asset_id: number; seed: number }>(
         `${API_BASE}/music-presets/preview`,
-        { prompt: bgmPrompt, duration: 10.0, seed: -1 },
+        { prompt: bgmPrompt, duration: 10.0, seed: -1 }
       );
       useRenderStore.getState().set({ bgmPreviewUrl: res.data.audio_url });
     } catch (error) {
