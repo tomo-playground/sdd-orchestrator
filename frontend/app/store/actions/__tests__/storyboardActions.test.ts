@@ -477,10 +477,7 @@ describe("persistStoryboard scene index preservation", () => {
 
     expect(sbState.set).toHaveBeenCalledWith(
       expect.objectContaining({
-        scenes: [
-          expect.objectContaining({ id: 500 }),
-          expect.objectContaining({ id: 501 }),
-        ],
+        scenes: [expect.objectContaining({ id: 500 }), expect.objectContaining({ id: 501 })],
         isDirty: false,
       })
     );
@@ -588,7 +585,10 @@ describe("persistStoryboard scene ID -> image_asset_id mapping", () => {
       (call: unknown[]) => (call[0] as Record<string, unknown>).scenes !== undefined
     );
     expect(setCall).toBeDefined();
-    const calledScenes = (setCall![0] as Record<string, unknown>).scenes as Record<string, unknown>[];
+    const calledScenes = (setCall![0] as Record<string, unknown>).scenes as Record<
+      string,
+      unknown
+    >[];
     expect(calledScenes).toHaveLength(3);
     // Scene IDs updated
     expect(calledScenes[0].id).toBe(3590);
@@ -622,5 +622,167 @@ describe("persistStoryboard scene ID -> image_asset_id mapping", () => {
     expect(payload.scenes[0].image_asset_id).toBe(501);
     expect(payload.scenes[1].image_asset_id).toBeNull();
     expect(payload.scenes[2].image_asset_id).toBe(502);
+  });
+});
+
+describe("persistStoryboard — save 중 변경 감지 (isDirty 유지)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("save 중 씬 변경 없으면 isDirty: false", async () => {
+    const scenes = [
+      { id: 1, client_id: "c1", script: "S1", image_asset_id: 100, image_url: "http://img1" },
+    ];
+    const { sbState } = mockAllStores({ storyboardId: 42, scenes });
+    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { scene_ids: [10], version: 2 },
+    });
+
+    await persistStoryboard();
+
+    expect(sbState.set).toHaveBeenCalledWith(expect.objectContaining({ isDirty: false }));
+  });
+
+  it("save 중 image_asset_id 변경 시 isDirty: true 유지 (race condition 방어)", async () => {
+    const scenesBeforeSave = [
+      { id: 1, client_id: "c1", script: "S1", image_asset_id: null, image_url: null },
+    ];
+    const scenesAfterSave = [
+      { id: 1, client_id: "c1", script: "S1", image_asset_id: 100, image_url: "http://new-img" },
+    ];
+
+    // getState() 호출 순서:
+    // 1) scenes.length check  2) sbState destructure
+    // 3) scenesAfterSave read 4) .set() 호출
+    const getStateSpy = vi.spyOn(useStoryboardStore, "getState");
+    const sbBase = makeStoryboardState({ scenes: scenesBeforeSave });
+    const sbAfter = makeStoryboardState({ scenes: scenesAfterSave });
+
+    getStateSpy
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbAfter as never)
+      .mockReturnValueOnce(sbAfter as never);
+
+    vi.spyOn(useContextStore, "getState").mockReturnValue(
+      makeContextState({ storyboardId: 42, groupId: 1 }) as never
+    );
+    vi.spyOn(useUIStore, "getState").mockReturnValue(makeUIState() as never);
+    vi.spyOn(useRenderStore, "getState").mockReturnValue(makeRenderState() as never);
+
+    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { scene_ids: [10], version: 2 },
+    });
+
+    await persistStoryboard();
+
+    expect(sbAfter.set).toHaveBeenCalledWith(expect.objectContaining({ isDirty: true }));
+  });
+
+  it("save 중 script 변경 시 isDirty: true 유지", async () => {
+    const scenesBeforeSave = [
+      { id: 1, client_id: "c1", script: "Original", image_asset_id: null, image_url: null },
+    ];
+    const scenesAfterSave = [
+      {
+        id: 1,
+        client_id: "c1",
+        script: "Edited during save",
+        image_asset_id: null,
+        image_url: null,
+      },
+    ];
+
+    const getStateSpy = vi.spyOn(useStoryboardStore, "getState");
+    const sbBase = makeStoryboardState({ scenes: scenesBeforeSave });
+    const sbAfter = makeStoryboardState({ scenes: scenesAfterSave });
+
+    getStateSpy
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbAfter as never)
+      .mockReturnValueOnce(sbAfter as never);
+
+    vi.spyOn(useContextStore, "getState").mockReturnValue(
+      makeContextState({ storyboardId: 42, groupId: 1 }) as never
+    );
+    vi.spyOn(useUIStore, "getState").mockReturnValue(makeUIState() as never);
+    vi.spyOn(useRenderStore, "getState").mockReturnValue(makeRenderState() as never);
+
+    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { scene_ids: [10], version: 2 },
+    });
+
+    await persistStoryboard();
+
+    expect(sbAfter.set).toHaveBeenCalledWith(expect.objectContaining({ isDirty: true }));
+  });
+
+  it("save 중 씬 개수 변경 시 isDirty: true 유지", async () => {
+    const scenesBeforeSave = [
+      { id: 1, client_id: "c1", script: "S1", image_asset_id: null, image_url: null },
+    ];
+    const scenesAfterSave = [
+      { id: 1, client_id: "c1", script: "S1", image_asset_id: null, image_url: null },
+      { id: 0, client_id: "c2", script: "S2", image_asset_id: null, image_url: null },
+    ];
+
+    const getStateSpy = vi.spyOn(useStoryboardStore, "getState");
+    const sbBase = makeStoryboardState({ scenes: scenesBeforeSave });
+    const sbAfter = makeStoryboardState({ scenes: scenesAfterSave });
+
+    getStateSpy
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbAfter as never)
+      .mockReturnValueOnce(sbAfter as never);
+
+    vi.spyOn(useContextStore, "getState").mockReturnValue(
+      makeContextState({ storyboardId: 42, groupId: 1 }) as never
+    );
+    vi.spyOn(useUIStore, "getState").mockReturnValue(makeUIState() as never);
+    vi.spyOn(useRenderStore, "getState").mockReturnValue(makeRenderState() as never);
+
+    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { scene_ids: [10], version: 2 },
+    });
+
+    await persistStoryboard();
+
+    expect(sbAfter.set).toHaveBeenCalledWith(expect.objectContaining({ isDirty: true }));
+  });
+
+  it("POST (신규 저장) 시에도 save 중 변경 감지 동작", async () => {
+    const scenesBeforeSave = [
+      { id: 0, client_id: "c1", script: "S1", image_asset_id: null, image_url: null },
+    ];
+    const scenesAfterSave = [
+      { id: 0, client_id: "c1", script: "S1", image_asset_id: 200, image_url: "http://new" },
+    ];
+
+    const getStateSpy = vi.spyOn(useStoryboardStore, "getState");
+    const sbBase = makeStoryboardState({ scenes: scenesBeforeSave });
+    const sbAfter = makeStoryboardState({ scenes: scenesAfterSave });
+
+    getStateSpy
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbAfter as never)
+      .mockReturnValueOnce(sbAfter as never);
+
+    vi.spyOn(useContextStore, "getState").mockReturnValue(
+      makeContextState({ storyboardId: null, groupId: 1 }) as never
+    );
+    vi.spyOn(useUIStore, "getState").mockReturnValue(makeUIState() as never);
+    vi.spyOn(useRenderStore, "getState").mockReturnValue(makeRenderState() as never);
+
+    (axios.post as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { storyboard_id: 99, scene_ids: [500], version: 1 },
+    });
+
+    await persistStoryboard();
+
+    expect(sbAfter.set).toHaveBeenCalledWith(expect.objectContaining({ isDirty: true }));
   });
 });
