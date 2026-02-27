@@ -20,7 +20,7 @@
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
 | **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
-| **Phase 18 (Stage Workflow)** | **Phase 1 완료 (18-0~18-3), Phase 2 완료 (18-P2)** |
+| **Phase 18 (Stage Workflow)** | **Phase 1 완료 (18-0~18-3), Phase 2 축소 완료 (18-P2 7/7), Phase 3~4 미착수 (7건)** |
 | 테스트 | Backend 2,667 + Frontend 379 = **총 3,046개** |
 
 ### 최근 작업
@@ -152,7 +152,7 @@ graph LR
     style P15 fill:#4CAF50,color:#fff
     style P16 fill:#4CAF50,color:#fff
     style P17 fill:#FF9800,color:#fff
-    style P18 fill:#4CAF50,color:#fff
+    style P18 fill:#FF9800,color:#fff
 ```
 
 ---
@@ -305,7 +305,7 @@ graph LR
 | 2 | MaterialsPopover → Stage 탭 연결 전환 | ✅ (02-26) |
 | 3 | Script 완료 → Stage 자동 전환 + Opt-in (Express 건너뜀) | ✅ (02-26) |
 
-### Phase 18-P2: Stage 에셋 확장 (완료 02-27)
+### Phase 18-P2: Stage 에셋 대시보드 (완료 02-27, 축소 스코프)
 
 **목표**: Stage Tab을 배경 전용에서 **전체 프리프로덕션 에셋 대시보드**로 확장. 캐릭터 프리뷰, TTS 음성, BGM을 Stage에서 준비/확인.
 
@@ -319,12 +319,28 @@ graph LR
 | 6 | Preflight Stage 4카테고리 체크 + background_id 스토어 동기화 | ✅ (02-27) |
 | 7 | BGM preview responseType 버그 수정 (blob→JSON audio_url) | ✅ (02-27) |
 
-**미착수 → Phase 18-P3 이관:**
-- 에셋 간 의존성 표시 (LoRA ↔ StyleProfile 관계)
-- Express 모드 호환 — location 역추론
-- 배경 이미지 캐싱 — 중복 생성 방지
+> 명세 Phase 2 원본 5건 중 2건(TTS 미리듣기, 캐릭터 프리뷰) 완료. 잔여 3건은 18-P3으로 이관.
 
-> 상세 명세: [STAGE_WORKFLOW.md](FEATURES/STAGE_WORKFLOW.md) §Phase 2
+### Phase 18-P3: Stage 에셋 고도화 (미착수)
+
+명세 Phase 2 잔여 항목. [상세 명세](FEATURES/STAGE_WORKFLOW.md) §Phase 2
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | Express 모드 호환 — `writer_plan.locations` 없을 때 `context_tags`에서 location 역추론 | 미착수 |
+| 2 | 에셋 간 의존성 표시 (LoRA ↔ StyleProfile 관계 시각화) | 미착수 |
+| 3 | 배경 이미지 캐싱 — `location + style_profile_id` 조합으로 중복 생성 방지 | 미착수 |
+
+### Phase 18-P4: 렌더링 연동 (미착수)
+
+[상세 명세](FEATURES/STAGE_WORKFLOW.md) §Phase 3
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | 트랜지션 자동 선택 — 장소 변경: slide, 같은 장소: fade | 미착수 |
+| 2 | Ken Burns 교대 프리셋 — 같은 배경 연속 시 단조로움 방지 | 미착수 |
+| 3 | Post 레이아웃 블러 프리컴퓨팅 — Stage에서 블러 배경 사전 생성 | 미착수 |
+| 4 | ControlNet 자동 선택 — 실내: Canny(0.3-0.4), 실외: Depth(0.2-0.3) | 미착수 |
 
 ---
 
@@ -336,8 +352,8 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 | 기능 | 참조 |
 |------|------|
-| ~~Stage Phase 2: TTS 미리듣기 + 에셋 의존성 표시 + 배경 캐싱~~ | → Phase 18-P2 승격 |
-| Stage Phase 3: 트랜지션 자동 선택 + Ken Burns 교대 + Canny/Depth 자동 선택 | [명세](FEATURES/STAGE_WORKFLOW.md) §Phase 3 |
+| ~~Stage Phase 2: TTS 미리듣기 + 에셋 의존성 표시 + 배경 캐싱~~ | TTS/캐릭터 → 18-P2 완료, 잔여 → 18-P3 |
+| ~~Stage Phase 3: 트랜지션 자동 선택 + Ken Burns 교대 + Canny/Depth 자동 선택~~ | → Phase 18-P4 |
 | VEO Clip (Video Generation 통합) | [명세](FEATURES/VEO_CLIP.md) |
 | ~~Visual Tag Browser (태그별 예시 이미지)~~ | → Phase 15-B |
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
@@ -376,7 +392,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 **Phase 15 — Prompt Input UX 고도화 (전체 완료, 18/18)**
 
-**Phase 18 — Stage Workflow (Phase 1+2 완료)**
+**Phase 18 — Stage Workflow (Phase 1 + P2 완료, P3~P4 미착수)**
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
@@ -384,7 +400,9 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | ~~2~~ | ~~18-1: Background Generation Pipeline~~ | ✅ 완료 (02-26) |
 | ~~3~~ | ~~18-2: Stage UI~~ | ✅ 완료 (02-26) |
 | ~~4~~ | ~~18-3: Stage-Direct 연결~~ | ✅ 완료 (02-26) |
-| ~~5~~ | ~~18-P2: Stage 에셋 확장 (캐릭터/음성/BGM)~~ | ✅ 완료 (02-27) |
+| ~~5~~ | ~~18-P2: Stage 에셋 대시보드 (축소 스코프)~~ | ✅ 완료 (02-27) |
+| 6 | 18-P3: Stage 에셋 고도화 (Express 호환, 의존성 표시, BG 캐싱) | 미착수 (3건) |
+| 7 | 18-P4: 렌더링 연동 (트랜지션/Ken Burns/ControlNet 자동 선택) | 미착수 (4건) |
 
 **Phase 17 — Service/Admin 분리**
 

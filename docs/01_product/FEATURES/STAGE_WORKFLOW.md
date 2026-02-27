@@ -1,7 +1,7 @@
 # Stage Workflow (프리프로덕션 에셋 준비)
 
-> **상태**: Phase 1 완료 (02-27), Phase 2 착수 예정
-> **우선순위**: Phase 18-P2 최우선 (Phase 17보다 선행)
+> **상태**: Phase 1 완료 (02-26), Phase 2 축소 완료 (02-27, 18-P2), Phase 2 잔여→18-P3 미착수, Phase 3→18-P4 미착수
+> **우선순위**: 18-P3/P4는 Phase 17과 우선순위 비교 후 결정
 > **선행**: Phase 7-4 (Studio Vertical Architecture), Phase 14 (ControlNet & IP-Adapter)
 > **관련**: [STUDIO_VERTICAL_ARCHITECTURE.md](STUDIO_VERTICAL_ARCHITECTURE.md), [CROSS_SCENE_CONSISTENCY.md](CROSS_SCENE_CONSISTENCY.md)
 
