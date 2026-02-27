@@ -44,7 +44,7 @@ def test_put_scene_ids_match_creation_order(client):
         {"scene_id": 2, "script": "New C", "speaker": "B", "duration": 2, "image_prompt": "z"},
         {"scene_id": 3, "script": "New D", "speaker": "Narrator", "duration": 3, "image_prompt": "w"},
     ]
-    resp = client.put(f"/storyboards/{sb_id}", json={
+    resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
         "title": "Updated",
         "group_id": 1,
         "scenes": new_scenes,
@@ -69,7 +69,7 @@ def test_put_scene_ids_sequential_matches_order_column(client, db_session):
     sb_id = data["storyboard_id"]
 
     # Now PUT to recreate scenes
-    resp = client.put(f"/storyboards/{sb_id}", json={
+    resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
         "title": "Re-created",
         "group_id": 1,
         "scenes": [
@@ -114,7 +114,7 @@ def test_put_preserves_image_asset_id_mapping(client, db_session):
     db_session.flush()
 
     # PUT with image_asset_id: scene 0 and 2 have assets, scene 1 does not
-    resp = client.put(f"/storyboards/{sb_id}", json={
+    resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
         "title": "With Images",
         "group_id": 1,
         "scenes": [
@@ -160,7 +160,7 @@ def test_multiple_puts_maintain_order_consistency(client):
             {"scene_id": i, "script": f"S{i}", "speaker": "Narrator", "duration": 3, "image_prompt": f"p{i}"}
             for i in range(n)
         ]
-        resp = client.put(f"/storyboards/{sb_id}", json={
+        resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
             "title": f"Round {n}",
             "group_id": 1,
             "scenes": scenes,

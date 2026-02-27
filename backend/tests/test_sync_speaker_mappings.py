@@ -41,7 +41,7 @@ class TestSyncSpeakerMappingsMonologue:
                 }
             ],
         }
-        resp = client.post("/storyboards", json=payload)
+        resp = client.post("/api/v1/storyboards", json=payload)
         assert resp.status_code == 200
         sb_id = resp.json()["storyboard_id"]
 
@@ -80,7 +80,7 @@ class TestSyncSpeakerMappingsMonologue:
                 }
             ],
         }
-        resp = client.post("/storyboards", json=payload)
+        resp = client.post("/api/v1/storyboards", json=payload)
         assert resp.status_code == 200
         sb_id = resp.json()["storyboard_id"]
 
@@ -131,7 +131,7 @@ class TestSyncSpeakerMappingsDialogue:
                 },
             ],
         }
-        resp = client.post("/storyboards", json=payload)
+        resp = client.post("/api/v1/storyboards", json=payload)
         assert resp.status_code == 200
         sb_id = resp.json()["storyboard_id"]
 
@@ -177,7 +177,7 @@ class TestSyncSpeakerMappingsUpdate:
                 }
             ],
         }
-        resp = client.post("/storyboards", json=payload)
+        resp = client.post("/api/v1/storyboards", json=payload)
         sb_id = resp.json()["storyboard_id"]
 
         # Update to Monologue (remove character_b_id)
@@ -198,7 +198,7 @@ class TestSyncSpeakerMappingsUpdate:
                 }
             ],
         }
-        resp = client.put(f"/storyboards/{sb_id}", json=update_payload)
+        resp = client.put(f"/api/v1/storyboards/{sb_id}", json=update_payload)
         assert resp.status_code == 200
 
         # Speaker A should still be mapped
@@ -271,12 +271,12 @@ class TestVoicePresetResolution:
                 }
             ],
         }
-        resp = client.post("/storyboards", json=payload)
+        resp = client.post("/api/v1/storyboards", json=payload)
         assert resp.status_code == 200
         sb_id = resp.json()["storyboard_id"]
 
         # Verify via API response
-        get_resp = client.get(f"/storyboards/{sb_id}")
+        get_resp = client.get(f"/api/v1/storyboards/{sb_id}")
         data = get_resp.json()
 
         # character_id should be resolved from storyboard_characters

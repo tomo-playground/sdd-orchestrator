@@ -175,7 +175,7 @@ class TestEditEndpoint:
 
         client = TestClient(app)
         resp = client.post(
-            "/prompt/edit-prompt",
+            "/api/admin/prompt/edit-prompt",
             json={
                 "current_prompt": "standing, smile, outdoor",
                 "instruction": "앉아있는 포즈로, 실내로",

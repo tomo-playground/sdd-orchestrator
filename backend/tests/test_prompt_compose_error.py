@@ -12,7 +12,7 @@ def test_prompt_compose_repro():
     payload = {"mode": "standard", "tokens": ["1girl", "smile", "sitting", "indoors"], "character_id": 1, "loras": []}
 
     print("\n[Test] Sending request to /prompt/compose...")
-    response = client.post("/prompt/compose", json=payload)
+    response = client.post("/api/v1/prompt/compose", json=payload)
 
     if response.status_code != 200:
         print(f"\n[Test] Error Response ({response.status_code}):")

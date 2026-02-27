@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { API_BASE } from "../../../constants";
+import { ADMIN_API_BASE } from "../../../constants";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ export function useMemoryTab() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/memory/stats`);
+      const res = await fetch(`${ADMIN_API_BASE}/memory/stats`);
       if (res.ok) setStats(await res.json());
     } catch {
       /* silent */
@@ -35,7 +35,7 @@ export function useMemoryTab() {
   const fetchItems = useCallback(async (ns: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/memory/${ns}`);
+      const res = await fetch(`${ADMIN_API_BASE}/memory/${ns}`);
       if (res.ok) {
         const data = await res.json();
         setItems(data.items ?? []);
@@ -49,7 +49,7 @@ export function useMemoryTab() {
   const deleteItem = useCallback(
     async (nsType: string, nsId: string, key: string) => {
       try {
-        await fetch(`${API_BASE}/memory/${nsType}/${nsId}/${key}`, { method: "DELETE" });
+        await fetch(`${ADMIN_API_BASE}/memory/${nsType}/${nsId}/${key}`, { method: "DELETE" });
         setItems((prev) => prev.filter((i) => i.key !== key));
         await fetchStats();
       } catch {
@@ -62,7 +62,7 @@ export function useMemoryTab() {
   const deleteNamespace = useCallback(
     async (nsType: string, nsId: string) => {
       try {
-        await fetch(`${API_BASE}/memory/${nsType}/${nsId}`, { method: "DELETE" });
+        await fetch(`${ADMIN_API_BASE}/memory/${nsType}/${nsId}`, { method: "DELETE" });
         setItems([]);
         await fetchStats();
       } catch {
@@ -73,10 +73,14 @@ export function useMemoryTab() {
   );
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch (same pattern as useTrashTab)
-  useEffect(() => { void fetchStats(); }, [fetchStats]);
+  useEffect(() => {
+    void fetchStats();
+  }, [fetchStats]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on namespace change
-  useEffect(() => { void fetchItems(activeNs); }, [activeNs, fetchItems]);
+  useEffect(() => {
+    void fetchItems(activeNs);
+  }, [activeNs, fetchItems]);
 
   return {
     stats,

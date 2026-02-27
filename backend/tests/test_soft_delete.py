@@ -22,11 +22,11 @@ class TestStoryboardSoftDelete:
         sb_id = data["storyboard_id"]
 
         # Delete (soft)
-        resp = client.delete(f"/storyboards/{sb_id}")
+        resp = client.delete(f"/api/v1/storyboards/{sb_id}")
         assert resp.status_code == 200
 
         # Should not appear in list
-        resp = client.get("/storyboards?group_id=1")
+        resp = client.get("/api/v1/storyboards?group_id=1")
         assert resp.status_code == 200
         ids = [s["id"] for s in resp.json()["items"]]
         assert sb_id not in ids
@@ -36,9 +36,9 @@ class TestStoryboardSoftDelete:
         data = create_test_storyboard(client, title="Hidden")
         sb_id = data["storyboard_id"]
 
-        client.delete(f"/storyboards/{sb_id}")
+        client.delete(f"/api/v1/storyboards/{sb_id}")
 
-        resp = client.get(f"/storyboards/{sb_id}")
+        resp = client.get(f"/api/v1/storyboards/{sb_id}")
         assert resp.status_code == 404
 
     def test_trash_returns_deleted(self, client):
@@ -46,9 +46,9 @@ class TestStoryboardSoftDelete:
         data = create_test_storyboard(client, title="Trashed SB")
         sb_id = data["storyboard_id"]
 
-        client.delete(f"/storyboards/{sb_id}")
+        client.delete(f"/api/v1/storyboards/{sb_id}")
 
-        resp = client.get("/storyboards/trash")
+        resp = client.get("/api/v1/storyboards/trash")
         assert resp.status_code == 200
         ids = [s["id"] for s in resp.json()]
         assert sb_id in ids
@@ -58,19 +58,19 @@ class TestStoryboardSoftDelete:
         data = create_test_storyboard(client, title="Restore Me")
         sb_id = data["storyboard_id"]
 
-        client.delete(f"/storyboards/{sb_id}")
+        client.delete(f"/api/v1/storyboards/{sb_id}")
 
         # Restore
-        resp = client.post(f"/storyboards/{sb_id}/restore")
+        resp = client.post(f"/api/v1/storyboards/{sb_id}/restore")
         assert resp.status_code == 200
 
         # Should appear in list again
-        resp = client.get("/storyboards?group_id=1")
+        resp = client.get("/api/v1/storyboards?group_id=1")
         ids = [s["id"] for s in resp.json()["items"]]
         assert sb_id in ids
 
         # Should not be in trash
-        resp = client.get("/storyboards/trash")
+        resp = client.get("/api/v1/storyboards/trash")
         ids = [s["id"] for s in resp.json()]
         assert sb_id not in ids
 
@@ -80,19 +80,19 @@ class TestStoryboardSoftDelete:
         sb_id = data["storyboard_id"]
 
         # Soft delete first
-        client.delete(f"/storyboards/{sb_id}")
+        client.delete(f"/api/v1/storyboards/{sb_id}")
 
         # Permanent delete
-        resp = client.delete(f"/storyboards/{sb_id}/permanent")
+        resp = client.delete(f"/api/v1/storyboards/{sb_id}/permanent")
         assert resp.status_code == 200
 
         # Gone from trash
-        resp = client.get("/storyboards/trash")
+        resp = client.get("/api/v1/storyboards/trash")
         ids = [s["id"] for s in resp.json()]
         assert sb_id not in ids
 
         # Gone from direct get (404)
-        resp = client.get(f"/storyboards/{sb_id}")
+        resp = client.get(f"/api/v1/storyboards/{sb_id}")
         assert resp.status_code == 404
 
     def test_soft_delete_preserves_scenes(self, client, db_session):
@@ -116,7 +116,7 @@ class TestStoryboardSoftDelete:
         sb_id = data["storyboard_id"]
 
         # Soft delete
-        client.delete(f"/storyboards/{sb_id}")
+        client.delete(f"/api/v1/storyboards/{sb_id}")
 
         # Scenes still in DB
         count = db_session.query(Scene).filter(Scene.storyboard_id == sb_id).count()
@@ -127,8 +127,8 @@ class TestStoryboardSoftDelete:
         data = create_test_storyboard(client, title="Double Delete")
         sb_id = data["storyboard_id"]
 
-        client.delete(f"/storyboards/{sb_id}")
-        resp = client.delete(f"/storyboards/{sb_id}")
+        client.delete(f"/api/v1/storyboards/{sb_id}")
+        resp = client.delete(f"/api/v1/storyboards/{sb_id}")
         assert resp.status_code == 404
 
     def test_restore_only_batch_deleted_scenes(self, client, db_session):
@@ -176,7 +176,7 @@ class TestStoryboardSoftDelete:
         time.sleep(0.01)
 
         # Now soft-delete the storyboard (cascade deletes Scene B)
-        resp = client.delete(f"/storyboards/{sb_id}")
+        resp = client.delete(f"/api/v1/storyboards/{sb_id}")
         assert resp.status_code == 200
 
         # Verify: both scenes have deleted_at set but with different timestamps
@@ -188,7 +188,7 @@ class TestStoryboardSoftDelete:
         assert scene_a.deleted_at != scene_b.deleted_at  # Different timestamps
 
         # Restore storyboard
-        resp = client.post(f"/storyboards/{sb_id}/restore")
+        resp = client.post(f"/api/v1/storyboards/{sb_id}/restore")
         assert resp.status_code == 200
 
         # Scene B (batch-deleted) should be restored
@@ -222,7 +222,7 @@ class TestStoryboardSoftDelete:
         sb_id = data["storyboard_id"]
         scene_id = data["scene_ids"][0]
 
-        client.delete(f"/storyboards/{sb_id}")
+        client.delete(f"/api/v1/storyboards/{sb_id}")
 
         db_session.expire_all()
         sb = db_session.query(Storyboard).filter(Storyboard.id == sb_id).first()
@@ -240,54 +240,54 @@ class TestStoryboardSoftDelete:
 
 class TestCharacterSoftDelete:
     def _create_character(self, client, name: str) -> int:
-        resp = client.post("/characters", json={"name": name})
+        resp = client.post("/api/admin/characters", json={"name": name})
         assert resp.status_code == 201
         return resp.json()["id"]
 
     def test_soft_delete_excludes_from_list(self, client):
         cid = self._create_character(client, "DelChar")
-        client.delete(f"/characters/{cid}")
+        client.delete(f"/api/admin/characters/{cid}")
 
-        resp = client.get("/characters")
+        resp = client.get("/api/v1/characters")
         assert resp.status_code == 200
         ids = [c["id"] for c in resp.json()["items"]]
         assert cid not in ids
 
     def test_soft_delete_excludes_from_get(self, client):
         cid = self._create_character(client, "HiddenChar")
-        client.delete(f"/characters/{cid}")
+        client.delete(f"/api/admin/characters/{cid}")
 
-        resp = client.get(f"/characters/{cid}")
+        resp = client.get(f"/api/v1/characters/{cid}")
         assert resp.status_code == 404
 
     def test_trash_returns_deleted(self, client):
         cid = self._create_character(client, "TrashChar")
-        client.delete(f"/characters/{cid}")
+        client.delete(f"/api/admin/characters/{cid}")
 
-        resp = client.get("/characters/trash")
+        resp = client.get("/api/v1/characters/trash")
         assert resp.status_code == 200
         ids = [c["id"] for c in resp.json()]
         assert cid in ids
 
     def test_restore_recovers(self, client):
         cid = self._create_character(client, "RestoreChar")
-        client.delete(f"/characters/{cid}")
+        client.delete(f"/api/admin/characters/{cid}")
 
-        resp = client.post(f"/characters/{cid}/restore")
+        resp = client.post(f"/api/admin/characters/{cid}/restore")
         assert resp.status_code == 200
 
-        resp = client.get("/characters")
+        resp = client.get("/api/v1/characters")
         ids = [c["id"] for c in resp.json()["items"]]
         assert cid in ids
 
     def test_permanent_delete_removes(self, client):
         cid = self._create_character(client, "PermChar")
-        client.delete(f"/characters/{cid}")
+        client.delete(f"/api/admin/characters/{cid}")
 
-        resp = client.delete(f"/characters/{cid}/permanent")
+        resp = client.delete(f"/api/admin/characters/{cid}/permanent")
         assert resp.status_code == 200
 
-        resp = client.get("/characters/trash")
+        resp = client.get("/api/v1/characters/trash")
         ids = [c["id"] for c in resp.json()]
         assert cid not in ids
 
@@ -299,7 +299,7 @@ class TestCharacterSoftDelete:
 
 class TestPromptHistorySoftDelete:
     def _create_history(self, client, name: str) -> int:
-        resp = client.post("/prompt-histories", json={
+        resp = client.post("/api/v1/prompt-histories", json={
             "name": name,
             "positive_prompt": "test prompt",
         })
@@ -308,40 +308,40 @@ class TestPromptHistorySoftDelete:
 
     def test_soft_delete_excludes_from_list(self, client):
         pid = self._create_history(client, "DelPrompt")
-        client.delete(f"/prompt-histories/{pid}")
+        client.delete(f"/api/v1/prompt-histories/{pid}")
 
-        resp = client.get("/prompt-histories")
+        resp = client.get("/api/v1/prompt-histories")
         assert resp.status_code == 200
         ids = [p["id"] for p in resp.json()]
         assert pid not in ids
 
     def test_trash_returns_deleted(self, client):
         pid = self._create_history(client, "TrashPrompt")
-        client.delete(f"/prompt-histories/{pid}")
+        client.delete(f"/api/v1/prompt-histories/{pid}")
 
-        resp = client.get("/prompt-histories/trash")
+        resp = client.get("/api/v1/prompt-histories/trash")
         assert resp.status_code == 200
         ids = [p["id"] for p in resp.json()]
         assert pid in ids
 
     def test_restore_recovers(self, client):
         pid = self._create_history(client, "RestorePrompt")
-        client.delete(f"/prompt-histories/{pid}")
+        client.delete(f"/api/v1/prompt-histories/{pid}")
 
-        resp = client.post(f"/prompt-histories/{pid}/restore")
+        resp = client.post(f"/api/v1/prompt-histories/{pid}/restore")
         assert resp.status_code == 200
 
-        resp = client.get("/prompt-histories")
+        resp = client.get("/api/v1/prompt-histories")
         ids = [p["id"] for p in resp.json()]
         assert pid in ids
 
     def test_permanent_delete_removes(self, client):
         pid = self._create_history(client, "PermPrompt")
-        client.delete(f"/prompt-histories/{pid}")
+        client.delete(f"/api/v1/prompt-histories/{pid}")
 
-        resp = client.delete(f"/prompt-histories/{pid}/permanent")
+        resp = client.delete(f"/api/v1/prompt-histories/{pid}/permanent")
         assert resp.status_code == 200
 
-        resp = client.get("/prompt-histories/trash")
+        resp = client.get("/api/v1/prompt-histories/trash")
         ids = [p["id"] for p in resp.json()]
         assert pid not in ids

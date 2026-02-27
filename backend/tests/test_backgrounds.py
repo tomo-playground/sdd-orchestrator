@@ -27,7 +27,7 @@ def _create_bg(client: TestClient, **overrides) -> dict:
     """Helper to create a background via POST."""
     payload = {"name": "Test BG", "tags": ["indoor"], "category": "interior"}
     payload.update(overrides)
-    resp = client.post("/backgrounds", json=payload)
+    resp = client.post("/api/admin/backgrounds", json=payload)
     assert resp.status_code == 201
     return resp.json()
 
@@ -43,7 +43,7 @@ class TestBackgroundsRouter:
             "category": "nature",
             "weight": 0.5,
         }
-        resp = client.post("/backgrounds", json=payload)
+        resp = client.post("/api/admin/backgrounds", json=payload)
         assert resp.status_code == 201
         data = resp.json()
 
@@ -60,7 +60,7 @@ class TestBackgroundsRouter:
         _create_bg(client, name="BG Alpha")
         _create_bg(client, name="BG Beta")
 
-        resp = client.get("/backgrounds")
+        resp = client.get("/api/v1/backgrounds")
         assert resp.status_code == 200
         data = resp.json()
         names = {bg["name"] for bg in data}
@@ -72,7 +72,7 @@ class TestBackgroundsRouter:
         created = _create_bg(client, name="Library Room")
         bg_id = created["id"]
 
-        resp = client.get(f"/backgrounds/{bg_id}")
+        resp = client.get(f"/api/v1/backgrounds/{bg_id}")
         assert resp.status_code == 200
         data = resp.json()
         assert data["id"] == bg_id
@@ -84,7 +84,7 @@ class TestBackgroundsRouter:
         bg_id = created["id"]
 
         resp = client.put(
-            f"/backgrounds/{bg_id}",
+            f"/api/admin/backgrounds/{bg_id}",
             json={"name": "New Name", "weight": 0.7},
         )
         assert resp.status_code == 200
@@ -98,24 +98,24 @@ class TestBackgroundsRouter:
         bg_id = created["id"]
 
         # Soft delete
-        del_resp = client.delete(f"/backgrounds/{bg_id}")
+        del_resp = client.delete(f"/api/admin/backgrounds/{bg_id}")
         assert del_resp.status_code == 200
         assert del_resp.json() == {"ok": True, "deleted": "Deletable BG"}
 
         # GET should 404
-        assert client.get(f"/backgrounds/{bg_id}").status_code == 404
+        assert client.get(f"/api/v1/backgrounds/{bg_id}").status_code == 404
 
         # List should exclude deleted
-        listed = client.get("/backgrounds").json()
+        listed = client.get("/api/v1/backgrounds").json()
         assert all(bg["id"] != bg_id for bg in listed)
 
         # Restore
-        restore_resp = client.post(f"/backgrounds/{bg_id}/restore")
+        restore_resp = client.post(f"/api/admin/backgrounds/{bg_id}/restore")
         assert restore_resp.status_code == 200
         assert restore_resp.json()["name"] == "Deletable BG"
 
         # Should appear in list again
-        listed_after = client.get("/backgrounds").json()
+        listed_after = client.get("/api/v1/backgrounds").json()
         assert any(bg["id"] == bg_id for bg in listed_after)
 
     def test_filter_by_category(self, client: TestClient):
@@ -123,7 +123,7 @@ class TestBackgroundsRouter:
         _create_bg(client, name="City Alley", category="urban")
         _create_bg(client, name="Forest Path", category="nature")
 
-        resp = client.get("/backgrounds", params={"category": "urban"})
+        resp = client.get("/api/v1/backgrounds", params={"category": "urban"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
@@ -134,7 +134,7 @@ class TestBackgroundsRouter:
         _create_bg(client, name="Classroom A")
         _create_bg(client, name="Rooftop")
 
-        resp = client.get("/backgrounds", params={"search": "class"})
+        resp = client.get("/api/v1/backgrounds", params={"search": "class"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
@@ -146,7 +146,7 @@ class TestBackgroundsRouter:
         _create_bg(client, name="BG 2", category="outdoor")
         _create_bg(client, name="BG 3", category="indoor")
 
-        resp = client.get("/backgrounds/categories")
+        resp = client.get("/api/v1/backgrounds/categories")
         assert resp.status_code == 200
         cats = resp.json()
         assert set(cats) == {"indoor", "outdoor"}
@@ -185,7 +185,7 @@ class TestBackgroundsRouter:
 
             png_bytes = make_tiny_png()
             resp = client.post(
-                f"/backgrounds/{bg_id}/upload-image",
+                f"/api/admin/backgrounds/{bg_id}/upload-image",
                 files={"file": ("bg.png", png_bytes, "image/png")},
             )
 

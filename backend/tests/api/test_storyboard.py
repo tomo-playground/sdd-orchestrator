@@ -29,7 +29,7 @@ def testcreate_test_storyboard(client: TestClient):
 
 def test_list_storyboards(client: TestClient):
     """Test listing storyboards (paginated response)."""
-    response = client.get("/storyboards")
+    response = client.get("/api/v1/storyboards")
     assert response.status_code == 200
     body = response.json()
     assert "items" in body
@@ -42,7 +42,7 @@ def test_list_with_scene_count(client: TestClient):
     scenes = [_make_scene(0), _make_scene(1, image_url="/img/test.png")]
     create_test_storyboard(client, scenes=scenes)
 
-    resp = client.get("/storyboards")
+    resp = client.get("/api/v1/storyboards")
     items = resp.json()["items"]
     assert len(items) >= 1
     item = items[-1]
@@ -59,7 +59,7 @@ def test_get_storyboard_with_scenes(client: TestClient):
     data = create_test_storyboard(client, title="Full Test", scenes=scenes)
     sb_id = data["storyboard_id"]
 
-    resp = client.get(f"/storyboards/{sb_id}")
+    resp = client.get(f"/api/v1/storyboards/{sb_id}")
     assert resp.status_code == 200
 
     body = resp.json()
@@ -72,7 +72,7 @@ def test_get_storyboard_with_scenes(client: TestClient):
 
 def test_get_storyboard_not_found(client: TestClient):
     """Test GET /storyboards/{id} returns 404 for missing storyboard."""
-    resp = client.get("/storyboards/99999")
+    resp = client.get("/api/v1/storyboards/99999")
     assert resp.status_code == 404
 
 
@@ -86,7 +86,7 @@ def test_save_with_extended_fields(client: TestClient):
     data = create_test_storyboard(client, title="Extended", scenes=scenes)
     sb_id = data["storyboard_id"]
 
-    resp = client.get(f"/storyboards/{sb_id}")
+    resp = client.get(f"/api/v1/storyboards/{sb_id}")
     body = resp.json()
     sc = body["scenes"][0]
 
@@ -100,7 +100,7 @@ def test_update_storyboard(client: TestClient):
     sb_id = data["storyboard_id"]
 
     # Update with new scenes
-    update_resp = client.put(f"/storyboards/{sb_id}", json={
+    update_resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
         "title": "Updated Title",
         "description": "updated desc",
         "scenes": [_make_scene(0, script="New script"), _make_scene(1, script="Second scene")],
@@ -109,7 +109,7 @@ def test_update_storyboard(client: TestClient):
     assert update_resp.json()["status"] == "success"
 
     # Verify update
-    resp = client.get(f"/storyboards/{sb_id}")
+    resp = client.get(f"/api/v1/storyboards/{sb_id}")
     body = resp.json()
     assert body["title"] == "Updated Title"
     assert len(body["scenes"]) == 2
@@ -128,13 +128,13 @@ def test_update_with_environment_reference_id_no_crash(client: TestClient):
     sb_id = data["storyboard_id"]
 
     # 2. Get storyboard to find the image_asset_id
-    get_resp = client.get(f"/storyboards/{sb_id}")
+    get_resp = client.get(f"/api/v1/storyboards/{sb_id}")
     body = get_resp.json()
     asset_id = body["scenes"][0].get("image_asset_id")
 
     # 3. Update with environment_reference_id pointing to the old asset
     #    The asset is preserved because it's referenced by environment_reference_id
-    update_resp = client.put(f"/storyboards/{sb_id}", json={
+    update_resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
         "title": "EnvRef Updated",
         "description": "test",
         "scenes": [
@@ -145,7 +145,7 @@ def test_update_with_environment_reference_id_no_crash(client: TestClient):
     assert update_resp.status_code == 200
 
     # Verify env ref is preserved (asset was kept because it's referenced)
-    verify = client.get(f"/storyboards/{sb_id}")
+    verify = client.get(f"/api/v1/storyboards/{sb_id}")
     for sc in verify.json()["scenes"]:
         assert sc["environment_reference_id"] == asset_id
 
@@ -155,7 +155,7 @@ def test_update_with_nonexistent_environment_reference_id(client: TestClient):
     data = create_test_storyboard(client, title="Bad Ref", scenes=[_make_scene(0)])
     sb_id = data["storyboard_id"]
 
-    update_resp = client.put(f"/storyboards/{sb_id}", json={
+    update_resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
         "title": "Bad Ref Updated",
         "description": "test",
         "scenes": [_make_scene(0, environment_reference_id=99999)],
@@ -169,10 +169,10 @@ def test_delete_storyboard(client: TestClient):
     data = create_test_storyboard(client, title="ToDelete", scenes=[_make_scene(0)])
     sb_id = data["storyboard_id"]
 
-    del_resp = client.delete(f"/storyboards/{sb_id}")
+    del_resp = client.delete(f"/api/v1/storyboards/{sb_id}")
     assert del_resp.status_code == 200
     assert del_resp.json()["status"] == "success"
 
     # Verify deleted
-    get_resp = client.get(f"/storyboards/{sb_id}")
+    get_resp = client.get(f"/api/v1/storyboards/{sb_id}")
     assert get_resp.status_code == 404

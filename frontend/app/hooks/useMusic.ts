@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
-import { API_BASE } from "../constants";
+import { API_BASE, ADMIN_API_BASE } from "../constants";
 import type { MusicPreset } from "../types";
 import type { UiCallbacks } from "../types";
 
@@ -84,7 +84,7 @@ export function useMusic(ui: UiCallbacks) {
       });
       if (!ok) return;
       try {
-        await axios.delete(`${API_BASE}/music-presets/${p.id}`);
+        await axios.delete(`${ADMIN_API_BASE}/music-presets/${p.id}`);
         await fetchPresets();
       } catch (error) {
         const msg = axios.isAxiosError(error)
@@ -100,7 +100,7 @@ export function useMusic(ui: UiCallbacks) {
     if (!editing?.prompt?.trim()) return;
     setPreviewing(true);
     try {
-      const res = await axios.post(`${API_BASE}/music-presets/preview`, {
+      const res = await axios.post(`${ADMIN_API_BASE}/music-presets/preview`, {
         prompt: editing.prompt,
         duration: editing.duration,
         seed: editing.seed ?? -1,
@@ -123,7 +123,7 @@ export function useMusic(ui: UiCallbacks) {
     setSaving(true);
     try {
       if (editId) {
-        await axios.put(`${API_BASE}/music-presets/${editId}`, {
+        await axios.put(`${ADMIN_API_BASE}/music-presets/${editId}`, {
           name: editing.name,
           description: editing.description,
           prompt: editing.prompt,
@@ -131,7 +131,7 @@ export function useMusic(ui: UiCallbacks) {
           seed: editing.seed,
         });
       } else {
-        const res = await axios.post(`${API_BASE}/music-presets`, {
+        const res = await axios.post(`${ADMIN_API_BASE}/music-presets`, {
           name: editing.name,
           description: editing.description,
           prompt: editing.prompt,
@@ -139,7 +139,7 @@ export function useMusic(ui: UiCallbacks) {
           seed: previewSeed,
         });
         if (previewAssetId && res.data.id) {
-          await axios.post(`${API_BASE}/music-presets/${res.data.id}/attach-preview`, null, {
+          await axios.post(`${ADMIN_API_BASE}/music-presets/${res.data.id}/attach-preview`, null, {
             params: { temp_asset_id: previewAssetId },
           });
         }
@@ -201,7 +201,7 @@ export function useMusic(ui: UiCallbacks) {
       if (!p.prompt?.trim()) return;
       setPreviewingId(p.id);
       try {
-        const res = await axios.post(`${API_BASE}/music-presets/preview`, {
+        const res = await axios.post(`${ADMIN_API_BASE}/music-presets/preview`, {
           prompt: p.prompt,
           duration: p.duration ?? 30.0,
           seed: p.seed ?? -1,
@@ -210,11 +210,11 @@ export function useMusic(ui: UiCallbacks) {
         const tempId = res.data.temp_asset_id as number;
         const seed = res.data.seed as number | undefined;
         playAudio(url, p.id);
-        await axios.post(`${API_BASE}/music-presets/${p.id}/attach-preview`, null, {
+        await axios.post(`${ADMIN_API_BASE}/music-presets/${p.id}/attach-preview`, null, {
           params: { temp_asset_id: tempId },
         });
         if (seed != null) {
-          await axios.put(`${API_BASE}/music-presets/${p.id}`, { seed });
+          await axios.put(`${ADMIN_API_BASE}/music-presets/${p.id}`, { seed });
         }
         await fetchPresets();
       } catch (error) {

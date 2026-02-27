@@ -31,7 +31,7 @@ class TestTagsCRUD:
 
     def test_list_tags_empty(self, client: TestClient, db_session):
         """Return empty list when no tags exist."""
-        resp = client.get("/tags")
+        resp = client.get("/api/v1/tags")
         assert resp.status_code == 200
         assert resp.json() == []
 
@@ -39,7 +39,7 @@ class TestTagsCRUD:
         """Return all tags ordered by priority, name."""
         self._create_tag(db_session, "brown_hair", priority=10)
         self._create_tag(db_session, "blue_eyes", category="character", group_name="eye_color", priority=20)
-        resp = client.get("/tags")
+        resp = client.get("/api/v1/tags")
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 2
@@ -49,7 +49,7 @@ class TestTagsCRUD:
         """Filter tags by category."""
         self._create_tag(db_session, "smile", category="scene", group_name="expression")
         self._create_tag(db_session, "brown_hair", category="character")
-        resp = client.get("/tags", params={"category": "scene"})
+        resp = client.get("/api/v1/tags", params={"category": "scene"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
@@ -59,7 +59,7 @@ class TestTagsCRUD:
         """Filter tags by group_name."""
         self._create_tag(db_session, "brown_hair", group_name="hair_color")
         self._create_tag(db_session, "blue_eyes", group_name="eye_color")
-        resp = client.get("/tags", params={"group_name": "hair_color"})
+        resp = client.get("/api/v1/tags", params={"group_name": "hair_color"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
@@ -72,7 +72,7 @@ class TestTagsCRUD:
         self._create_tag(db_session, "brown_hair", category="character", group_name="hair_color")
         self._create_tag(db_session, "blonde_hair", category="character", group_name="hair_color")
         self._create_tag(db_session, "smile", category="scene", group_name="expression")
-        resp = client.get("/tags/groups")
+        resp = client.get("/api/v1/tags/groups")
         assert resp.status_code == 200
         data = resp.json()
         assert "groups" in data
@@ -88,7 +88,7 @@ class TestTagsCRUD:
         self._create_tag(db_session, "brown_hair")
         self._create_tag(db_session, "brown_eyes", group_name="eye_color")
         self._create_tag(db_session, "blue_eyes", group_name="eye_color")
-        resp = client.get("/tags/search", params={"q": "brown"})
+        resp = client.get("/api/v1/tags/search", params={"q": "brown"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 2
@@ -97,7 +97,7 @@ class TestTagsCRUD:
         """Search tags filtered by category."""
         self._create_tag(db_session, "smile", category="scene", group_name="expression")
         self._create_tag(db_session, "smiling_face", category="character", group_name="face")
-        resp = client.get("/tags/search", params={"q": "smil", "category": "scene"})
+        resp = client.get("/api/v1/tags/search", params={"q": "smil", "category": "scene"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
@@ -105,14 +105,14 @@ class TestTagsCRUD:
 
     def test_search_tags_requires_query(self, client: TestClient, db_session):
         """Search endpoint requires non-empty query."""
-        resp = client.get("/tags/search")
+        resp = client.get("/api/v1/tags/search")
         assert resp.status_code == 422
 
     def test_search_tags_ko_name(self, client: TestClient, db_session):
         """Search tags by Korean name."""
         self._create_tag(db_session, "brown_hair", ko_name="갈색_머리")
         self._create_tag(db_session, "blue_eyes", group_name="eye_color", ko_name="파란_눈")
-        resp = client.get("/tags/search", params={"q": "갈색"})
+        resp = client.get("/api/v1/tags/search", params={"q": "갈색"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
@@ -122,7 +122,7 @@ class TestTagsCRUD:
         """Deprecated tags appear in search results."""
         self._create_tag(db_session, "medium_shot", is_active=False, deprecated_reason="Use cowboy_shot")
         self._create_tag(db_session, "medium_close_up", is_active=True)
-        resp = client.get("/tags/search", params={"q": "medium"})
+        resp = client.get("/api/v1/tags/search", params={"q": "medium"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 2
@@ -142,7 +142,7 @@ class TestTagsCRUD:
             deprecated_reason="Use cowboy_shot",
             replacement_tag_id=replacement.id,
         )
-        resp = client.get("/tags/search", params={"q": "medium_shot"})
+        resp = client.get("/api/v1/tags/search", params={"q": "medium_shot"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
@@ -152,7 +152,7 @@ class TestTagsCRUD:
         """Active tags are sorted before deprecated ones."""
         self._create_tag(db_session, "abc_active", priority=100, is_active=True)
         self._create_tag(db_session, "abc_deprecated", priority=1, is_active=False)
-        resp = client.get("/tags/search", params={"q": "abc"})
+        resp = client.get("/api/v1/tags/search", params={"q": "abc"})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 2
@@ -164,7 +164,7 @@ class TestTagsCRUD:
     def test_get_tag_by_id(self, client: TestClient, db_session):
         """Get a single tag by ID."""
         tag = self._create_tag(db_session, "brown_hair")
-        resp = client.get(f"/tags/{tag.id}")
+        resp = client.get(f"/api/v1/tags/{tag.id}")
         assert resp.status_code == 200
         data = resp.json()
         assert data["name"] == "brown_hair"
@@ -172,7 +172,7 @@ class TestTagsCRUD:
 
     def test_get_tag_not_found(self, client: TestClient, db_session):
         """Return 404 for non-existent tag."""
-        resp = client.get("/tags/9999")
+        resp = client.get("/api/v1/tags/9999")
         assert resp.status_code == 404
 
     # --- POST /tags ---
@@ -180,7 +180,7 @@ class TestTagsCRUD:
     def test_create_tag(self, client: TestClient, db_session):
         """Create a new tag."""
         resp = client.post(
-            "/tags",
+            "/api/admin/tags",
             json={
                 "name": "brown_hair",
                 "category": "appearance",
@@ -199,7 +199,7 @@ class TestTagsCRUD:
     def test_create_tag_duplicate(self, client: TestClient, db_session):
         """Reject duplicate tag name."""
         self._create_tag(db_session, "brown_hair")
-        resp = client.post("/tags", json={"name": "brown_hair"})
+        resp = client.post("/api/admin/tags", json={"name": "brown_hair"})
         assert resp.status_code == 400
         assert "already exists" in resp.json()["detail"]
 
@@ -208,14 +208,14 @@ class TestTagsCRUD:
     def test_update_tag(self, client: TestClient, db_session):
         """Update an existing tag."""
         tag = self._create_tag(db_session, "brown_hair")
-        resp = client.put(f"/tags/{tag.id}", json={"name": "dark_brown_hair"})
+        resp = client.put(f"/api/admin/tags/{tag.id}", json={"name": "dark_brown_hair"})
         assert resp.status_code == 200
         data = resp.json()
         assert data["name"] == "dark_brown_hair"
 
     def test_update_tag_not_found(self, client: TestClient, db_session):
         """Return 404 when updating non-existent tag."""
-        resp = client.put("/tags/9999", json={"name": "x"})
+        resp = client.put("/api/admin/tags/9999", json={"name": "x"})
         assert resp.status_code == 404
 
     # --- DELETE /tags/{tag_id} ---
@@ -223,7 +223,7 @@ class TestTagsCRUD:
     def test_delete_tag(self, client: TestClient, db_session):
         """Delete a tag."""
         tag = self._create_tag(db_session, "brown_hair")
-        resp = client.delete(f"/tags/{tag.id}")
+        resp = client.delete(f"/api/admin/tags/{tag.id}")
         assert resp.status_code == 200
         data = resp.json()
         assert data["ok"] is True
@@ -233,7 +233,7 @@ class TestTagsCRUD:
 
     def test_delete_tag_not_found(self, client: TestClient, db_session):
         """Return 404 when deleting non-existent tag."""
-        resp = client.delete("/tags/9999")
+        resp = client.delete("/api/admin/tags/9999")
         assert resp.status_code == 404
 
 
@@ -264,7 +264,7 @@ class TestTagsClassification:
         )
         mock_cls.return_value = mock_instance
 
-        resp = client.post("/tags/classify", json={"tags": ["smile", "brown_hair"]})
+        resp = client.post("/api/admin/tags/classify", json={"tags": ["smile", "brown_hair"]})
         assert resp.status_code == 200
         data = resp.json()
         assert data["classified"] == 2
@@ -274,14 +274,14 @@ class TestTagsClassification:
 
     def test_classify_empty_tags(self, client: TestClient, db_session):
         """Empty tags list returns empty result."""
-        resp = client.post("/tags/classify", json={"tags": []})
+        resp = client.post("/api/admin/tags/classify", json={"tags": []})
         assert resp.status_code == 200
         data = resp.json()
         assert data["classified"] == 0
 
     def test_classify_too_many_tags(self, client: TestClient, db_session):
         """Reject more than 50 tags."""
-        resp = client.post("/tags/classify", json={"tags": [f"tag_{i}" for i in range(51)]})
+        resp = client.post("/api/admin/tags/classify", json={"tags": [f"tag_{i}" for i in range(51)]})
         assert resp.status_code == 400
 
     # --- GET /tags/pending ---
@@ -292,7 +292,7 @@ class TestTagsClassification:
         self._create_tag(db_session, "low_conf_tag", classification_source="danbooru", classification_confidence=0.5)
         self._create_tag(db_session, "manual_tag", classification_source="manual", classification_confidence=1.0)
 
-        resp = client.get("/tags/pending")
+        resp = client.get("/api/admin/tags/pending")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 2
@@ -306,7 +306,7 @@ class TestTagsClassification:
         self._create_tag(db_session, "unknown_tag", classification_source="unknown")
         self._create_tag(db_session, "llm_tag", classification_source="llm", classification_confidence=0.6)
 
-        resp = client.get("/tags/pending", params={"source": "unknown"})
+        resp = client.get("/api/admin/tags/pending", params={"source": "unknown"})
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 1
@@ -318,7 +318,7 @@ class TestTagsClassification:
         """Approve a tag classification."""
         tag = self._create_tag(db_session, "test_tag", classification_source="danbooru", classification_confidence=0.5)
         resp = client.post(
-            "/tags/approve-classification",
+            "/api/admin/tags/approve-classification",
             json={
                 "tag_id": tag.id,
                 "group_name": "expression",
@@ -338,7 +338,7 @@ class TestTagsClassification:
     def test_approve_classification_not_found(self, client: TestClient, db_session):
         """Return 404 for non-existent tag."""
         resp = client.post(
-            "/tags/approve-classification",
+            "/api/admin/tags/approve-classification",
             json={
                 "tag_id": 9999,
                 "group_name": "expression",
@@ -354,7 +354,7 @@ class TestTagsClassification:
         tag2 = self._create_tag(db_session, "tag_b", classification_source="llm", classification_confidence=0.3)
 
         resp = client.post(
-            "/tags/bulk-approve-classifications",
+            "/api/admin/tags/bulk-approve-classifications",
             json=[
                 {"tag_id": tag1.id, "group_name": "expression"},
                 {"tag_id": tag2.id, "group_name": "hair_color"},
@@ -370,7 +370,7 @@ class TestTagsClassification:
         """Bulk approve with some tags not found."""
         tag = self._create_tag(db_session, "real_tag")
         resp = client.post(
-            "/tags/bulk-approve-classifications",
+            "/api/admin/tags/bulk-approve-classifications",
             json=[
                 {"tag_id": tag.id, "group_name": "expression"},
                 {"tag_id": 9999, "group_name": "pose"},
@@ -384,6 +384,6 @@ class TestTagsClassification:
     def test_bulk_approve_too_many(self, client: TestClient, db_session):
         """Reject more than 100 approvals."""
         approvals = [{"tag_id": i, "group_name": "x"} for i in range(101)]
-        resp = client.post("/tags/bulk-approve-classifications", json=approvals)
+        resp = client.post("/api/admin/tags/bulk-approve-classifications", json=approvals)
         assert resp.status_code == 400
 

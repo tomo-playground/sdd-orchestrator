@@ -17,7 +17,7 @@ def test_create_storyboard_long_title_rejected(client: TestClient):
         "scenes": [],
     }
 
-    response = client.post("/storyboards", json=payload)
+    response = client.post("/api/v1/storyboards", json=payload)
     assert response.status_code == 422  # Pydantic max_length validation
 
 
@@ -36,7 +36,7 @@ def test_create_storyboard_title_at_limit_truncated(client: TestClient):
         "scenes": [],
     }
 
-    response = client.post("/storyboards", json=payload)
+    response = client.post("/api/v1/storyboards", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert "storyboard_id" in data
@@ -48,7 +48,7 @@ def test_create_storyboard_update_long_title_rejected(client: TestClient):
     """
     # 1. Create
     payload = {"title": "Initial Title", "description": "Initial Desc", "group_id": 1, "scenes": []}
-    create_res = client.post("/storyboards", json=payload)
+    create_res = client.post("/api/v1/storyboards", json=payload)
     assert create_res.status_code == 200
     sb_id = create_res.json()["storyboard_id"]
 
@@ -62,7 +62,7 @@ def test_create_storyboard_update_long_title_rejected(client: TestClient):
         "scenes": [],
     }
 
-    update_res = client.put(f"/storyboards/{sb_id}", json=update_payload)
+    update_res = client.put(f"/api/v1/storyboards/{sb_id}", json=update_payload)
     assert update_res.status_code == 422  # Pydantic max_length validation
 
 
@@ -71,7 +71,7 @@ class TestOptimisticLocking:
 
     def _create_storyboard(self, client: TestClient) -> dict:
         payload = {"title": "OL Test", "description": "Test", "group_id": 1, "scenes": []}
-        res = client.post("/storyboards", json=payload)
+        res = client.post("/api/v1/storyboards", json=payload)
         assert res.status_code == 200
         return res.json()
 
@@ -86,7 +86,7 @@ class TestOptimisticLocking:
         sb_id = data["storyboard_id"]
 
         update_payload = {"title": "Updated", "description": "Test", "scenes": [], "version": 1}
-        res = client.put(f"/storyboards/{sb_id}", json=update_payload)
+        res = client.put(f"/api/v1/storyboards/{sb_id}", json=update_payload)
         assert res.status_code == 200
         assert res.json()["version"] == 2
 
@@ -97,13 +97,13 @@ class TestOptimisticLocking:
 
         # First update succeeds (v1 → v2)
         update1 = {"title": "Tab A", "description": "Test", "scenes": [], "version": 1}
-        res1 = client.put(f"/storyboards/{sb_id}", json=update1)
+        res1 = client.put(f"/api/v1/storyboards/{sb_id}", json=update1)
         assert res1.status_code == 200
         assert res1.json()["version"] == 2
 
         # Second update with stale version (v1) fails
         update2 = {"title": "Tab B", "description": "Test", "scenes": [], "version": 1}
-        res2 = client.put(f"/storyboards/{sb_id}", json=update2)
+        res2 = client.put(f"/api/v1/storyboards/{sb_id}", json=update2)
         assert res2.status_code == 409
         assert "Conflict" in res2.json()["detail"]
 
@@ -113,7 +113,7 @@ class TestOptimisticLocking:
         sb_id = data["storyboard_id"]
 
         update_payload = {"title": "No Version", "description": "Test", "scenes": []}
-        res = client.put(f"/storyboards/{sb_id}", json=update_payload)
+        res = client.put(f"/api/v1/storyboards/{sb_id}", json=update_payload)
         assert res.status_code == 200
 
     def test_metadata_patch_conflict_returns_409(self, client: TestClient):
@@ -122,12 +122,12 @@ class TestOptimisticLocking:
         sb_id = data["storyboard_id"]
 
         # Patch v1 → v2 (success)
-        res1 = client.patch(f"/storyboards/{sb_id}/metadata", json={"title": "Tab A", "version": 1})
+        res1 = client.patch(f"/api/v1/storyboards/{sb_id}/metadata", json={"title": "Tab A", "version": 1})
         assert res1.status_code == 200
         assert res1.json()["version"] == 2
 
         # Patch with stale v1 → 409
-        res2 = client.patch(f"/storyboards/{sb_id}/metadata", json={"title": "Tab B", "version": 1})
+        res2 = client.patch(f"/api/v1/storyboards/{sb_id}/metadata", json={"title": "Tab B", "version": 1})
         assert res2.status_code == 409
 
     def test_metadata_patch_returns_response_model(self, client: TestClient):
@@ -135,7 +135,7 @@ class TestOptimisticLocking:
         data = self._create_storyboard(client)
         sb_id = data["storyboard_id"]
 
-        res = client.patch(f"/storyboards/{sb_id}/metadata", json={"title": "New Title"})
+        res = client.patch(f"/api/v1/storyboards/{sb_id}/metadata", json={"title": "New Title"})
         assert res.status_code == 200
         body = res.json()
         assert body["status"] == "success"
@@ -147,7 +147,7 @@ class TestOptimisticLocking:
         data = self._create_storyboard(client)
         sb_id = data["storyboard_id"]
 
-        res = client.get(f"/storyboards/{sb_id}")
+        res = client.get(f"/api/v1/storyboards/{sb_id}")
         assert res.status_code == 200
         assert res.json()["version"] == 1
 
@@ -167,7 +167,7 @@ def test_scene_boolean_type_casting_no_error(client: TestClient):
         ],
     }
 
-    response = client.post("/storyboards", json=payload)
+    response = client.post("/api/v1/storyboards", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert "storyboard_id" in data

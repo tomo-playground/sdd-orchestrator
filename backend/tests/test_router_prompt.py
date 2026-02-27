@@ -21,7 +21,7 @@ class TestPromptSplit:
             "example_prompt": "1girl, smile, upper_body, school_uniform",
             "style": "Anime",
         }
-        response = client.post("/prompt/split", json=request_data)
+        response = client.post("/api/admin/prompt/split", json=request_data)
         assert response.status_code == 200
         data = response.json()
         assert "base_prompt" in data or "scene_prompt" in data
@@ -31,7 +31,7 @@ class TestPromptSplit:
         request_data = {
             "example_prompt": "",
         }
-        response = client.post("/prompt/split", json=request_data)
+        response = client.post("/api/admin/prompt/split", json=request_data)
         assert response.status_code == 400
 
 
@@ -51,7 +51,7 @@ class TestPromptCompose:
             "tokens": ["smile", "upper_body"],
             "character_id": char_id,
         }
-        response = client.post("/prompt/compose", json=request_data)
+        response = client.post("/api/v1/prompt/compose", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -80,7 +80,7 @@ class TestPromptCompose:
                 "pose": ["standing"],
             },
         }
-        response = client.post("/prompt/compose", json=request_data)
+        response = client.post("/api/v1/prompt/compose", json=request_data)
         assert response.status_code == 200
         data = response.json()
         assert "prompt" in data
@@ -100,7 +100,7 @@ class TestPromptCompose:
                 {"name": "test_lora", "weight": 0.8, "trigger_words": ["trigger1"]},
             ],
         }
-        response = client.post("/prompt/compose", json=request_data)
+        response = client.post("/api/v1/prompt/compose", json=request_data)
         assert response.status_code == 200
         data = response.json()
         assert data["lora_weights"] == {"test_lora": 0.8}
@@ -123,7 +123,7 @@ class TestPromptCompose:
                 "character_id": char.id,
                 "storyboard_id": 404,
             }
-            response = client.post("/prompt/compose", json=request_data)
+            response = client.post("/api/v1/prompt/compose", json=request_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -149,7 +149,7 @@ class TestPromptCompose:
                 "storyboard_id": 404,
                 "loras": [{"name": "custom_lora", "weight": 0.7, "trigger_words": ["trigger1"]}],
             }
-            response = client.post("/prompt/compose", json=request_data)
+            response = client.post("/api/v1/prompt/compose", json=request_data)
 
         assert response.status_code == 200
         mock_resolve.assert_not_called()
@@ -162,14 +162,14 @@ class TestPromptCompose:
             "tokens": ["smile"],
             "character_id": 99999,
         }
-        response = client.post("/prompt/compose", json=request_data)
+        response = client.post("/api/v1/prompt/compose", json=request_data)
         # V3PromptService may raise or handle gracefully
         assert response.status_code in (200, 500)
 
     def test_compose_prompt_missing_required_field(self, client: TestClient):
         """Compose without character_id returns 422."""
         request_data = {"tokens": ["smile"]}
-        response = client.post("/prompt/compose", json=request_data)
+        response = client.post("/api/v1/prompt/compose", json=request_data)
         assert response.status_code == 422
 
 
@@ -183,7 +183,7 @@ class TestValidateTags:
         db_session.commit()
 
         request_data = {"tags": ["smile"], "check_danbooru": False}
-        response = client.post("/prompt/validate-tags", json=request_data)
+        response = client.post("/api/admin/prompt/validate-tags", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -195,7 +195,7 @@ class TestValidateTags:
     def test_validate_tags_unknown_tag(self, client: TestClient, db_session):
         """Unknown tags are reported."""
         request_data = {"tags": ["nonexistent_tag_xyz"], "check_danbooru": False}
-        response = client.post("/prompt/validate-tags", json=request_data)
+        response = client.post("/api/admin/prompt/validate-tags", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -205,7 +205,7 @@ class TestValidateTags:
         """Tags with alias replacements are flagged as risky."""
         # "medium_shot" is aliased to "cowboy_shot" in conftest
         request_data = {"tags": ["medium_shot"], "check_danbooru": False}
-        response = client.post("/prompt/validate-tags", json=request_data)
+        response = client.post("/api/admin/prompt/validate-tags", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -215,7 +215,7 @@ class TestValidateTags:
     def test_validate_tags_empty_list(self, client: TestClient, db_session):
         """Validate empty tag list."""
         request_data = {"tags": []}
-        response = client.post("/prompt/validate-tags", json=request_data)
+        response = client.post("/api/admin/prompt/validate-tags", json=request_data)
         assert response.status_code == 200
         data = response.json()
         assert data["total_tags"] == 0
@@ -227,7 +227,7 @@ class TestValidateTags:
         db_session.commit()
 
         request_data = {"tags": ["smile", "unknown_xyz"], "check_danbooru": False}
-        response = client.post("/prompt/validate-tags", json=request_data)
+        response = client.post("/api/admin/prompt/validate-tags", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -255,7 +255,7 @@ class TestAutoReplace:
         """Risky tags are replaced with alternatives."""
         # "medium_shot" -> "cowboy_shot" via TagAliasCache (set in conftest)
         request_data = {"tags": ["medium_shot", "smile"]}
-        response = client.post("/prompt/auto-replace", json=request_data)
+        response = client.post("/api/admin/prompt/auto-replace", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -266,7 +266,7 @@ class TestAutoReplace:
     def test_auto_replace_no_changes(self, client: TestClient):
         """Safe tags pass through unchanged."""
         request_data = {"tags": ["smile", "standing"]}
-        response = client.post("/prompt/auto-replace", json=request_data)
+        response = client.post("/api/admin/prompt/auto-replace", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -277,7 +277,7 @@ class TestAutoReplace:
     def test_auto_replace_empty_list(self, client: TestClient):
         """Auto-replace empty tag list."""
         request_data = {"tags": []}
-        response = client.post("/prompt/auto-replace", json=request_data)
+        response = client.post("/api/admin/prompt/auto-replace", json=request_data)
         assert response.status_code == 200
         data = response.json()
         assert data["replaced"] == []
@@ -285,7 +285,7 @@ class TestAutoReplace:
     def test_auto_replace_preserves_original(self, client: TestClient):
         """Response includes original tag list."""
         request_data = {"tags": ["medium_shot", "smile"]}
-        response = client.post("/prompt/auto-replace", json=request_data)
+        response = client.post("/api/admin/prompt/auto-replace", json=request_data)
         assert response.status_code == 200
         data = response.json()
         assert data["original"] == ["medium_shot", "smile"]

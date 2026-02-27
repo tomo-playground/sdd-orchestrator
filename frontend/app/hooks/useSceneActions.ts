@@ -3,7 +3,7 @@ import axios from "axios";
 import { useConfirm } from "../components/ui/ConfirmDialog";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useUIStore } from "../store/useUIStore";
-import { API_BASE } from "../constants";
+import { API_BASE, ADMIN_API_BASE } from "../constants";
 import type { Scene } from "../types";
 import { generateSceneClientId } from "../utils/uuid";
 
@@ -19,7 +19,7 @@ export function useSceneActions() {
   // Fetch IP-Adapter reference images on mount
   useEffect(() => {
     axios
-      .get(`${API_BASE}/controlnet/ip-adapter/references`)
+      .get(`${ADMIN_API_BASE}/controlnet/ip-adapter/references`)
       .then((res) => {
         useStoryboardStore.getState().set({
           referenceImages: res.data.references || [],

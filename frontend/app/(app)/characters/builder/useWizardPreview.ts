@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import axios from "axios";
-import { API_BASE } from "../../../constants";
+import { ADMIN_API_BASE } from "../../../constants";
 import { useUIStore } from "../../../store/useUIStore";
 import { getErrorMsg } from "../../../utils/error";
 import type { Tag } from "../../../types";
@@ -45,7 +45,7 @@ export function useWizardPreview({ state, dispatch, allTagsFlat }: UseWizardPrev
         num_candidates: SD_REFERENCE_NUM_CANDIDATES,
       };
 
-      const res = await axios.post(`${API_BASE}/characters/preview`, payload);
+      const res = await axios.post(`${ADMIN_API_BASE}/characters/preview`, payload);
       const candidates = res.data.candidates ?? [{ image: res.data.image, seed: res.data.seed }];
       dispatch({ type: "SET_PREVIEW", image: res.data.image, seed: res.data.seed, candidates });
       const count = candidates.length;
@@ -68,7 +68,7 @@ export function useWizardPreview({ state, dispatch, allTagsFlat }: UseWizardPrev
     async (characterId: number) => {
       if (!state.previewImage) return;
       try {
-        await axios.post(`${API_BASE}/characters/${characterId}/assign-preview`, {
+        await axios.post(`${ADMIN_API_BASE}/characters/${characterId}/assign-preview`, {
           image_base64: state.previewImage,
         });
       } catch {

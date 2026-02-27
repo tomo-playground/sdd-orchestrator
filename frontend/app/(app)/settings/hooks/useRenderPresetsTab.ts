@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { API_BASE } from "../../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../../constants";
 import type { MusicPreset, RenderPreset } from "../../../types";
 
 import type { UiCallbacks } from "../../../types";
@@ -104,7 +104,7 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
       });
       if (!ok) return;
       try {
-        await axios.delete(`${API_BASE}/render-presets/${p.id}`);
+        await axios.delete(`${ADMIN_API_BASE}/render-presets/${p.id}`);
         await fetchPresets();
       } catch (error) {
         const msg = axios.isAxiosError(error)
@@ -121,9 +121,9 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
     setSaving(true);
     try {
       if (editId) {
-        await axios.put(`${API_BASE}/render-presets/${editId}`, editing);
+        await axios.put(`${ADMIN_API_BASE}/render-presets/${editId}`, editing);
       } else {
-        await axios.post(`${API_BASE}/render-presets`, editing);
+        await axios.post(`${ADMIN_API_BASE}/render-presets`, editing);
       }
       setEditing(null);
       setEditId(null);

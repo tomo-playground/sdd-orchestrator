@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import axios from "axios";
 import { Play, Loader2, CheckCircle, XCircle, AlertTriangle, ArrowRight } from "lucide-react";
-import { API_BASE } from "../../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../../constants";
 import Button from "../../../components/ui/Button";
 
 // -- Types -------------------------------------------------------------------
@@ -138,7 +138,7 @@ export default function SceneLabTab() {
   // Fetch history on mount
   const loadHistory = useCallback(async () => {
     try {
-      const res = await axios.get<{ items: HistoryItem[] }>(`${API_BASE}/lab/experiments`, {
+      const res = await axios.get<{ items: HistoryItem[] }>(`${ADMIN_API_BASE}/lab/experiments`, {
         params: { experiment_type: "scene_translate" },
       });
       setHistory(res.data.items);
@@ -161,7 +161,7 @@ export default function SceneLabTab() {
 
     try {
       const res = await axios.post<ExperimentResult>(
-        `${API_BASE}/lab/experiments/compose-and-run`,
+        `${ADMIN_API_BASE}/lab/experiments/compose-and-run`,
         {
           experiment_type: "scene_translate",
           scene_description: sceneDescription,

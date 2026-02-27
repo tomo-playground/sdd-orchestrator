@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
 import { Settings2 } from "lucide-react";
-import { API_BASE } from "../../../constants";
+import { ADMIN_API_BASE } from "../../../constants";
 import { useUIStore } from "../../../store/useUIStore";
 import { getErrorMsg } from "../../../utils/error";
 import { CONTAINER_CLASSES } from "../../../components/ui/variants";
@@ -200,7 +200,7 @@ export default function CharacterWizard() {
         reference_negative_prompt: state.reference_negative_prompt.trim() || null,
       };
 
-      const res = await axios.post(`${API_BASE}/characters`, payload);
+      const res = await axios.post(`${ADMIN_API_BASE}/characters`, payload);
       await assignPreview(res.data.id);
       showToast("Character created!", "success");
       router.push(`/characters/${res.data.id}`);

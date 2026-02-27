@@ -3,7 +3,7 @@ import { useContextStore } from "../useContextStore";
 import { useRenderStore } from "../useRenderStore";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useUIStore } from "../useUIStore";
-import { API_BASE } from "../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../constants";
 import type { EffectiveConfig, GroupItem } from "../../types";
 import { loadStyleProfileFromId } from "./styleProfileActions";
 
@@ -120,7 +120,7 @@ export async function createGroup(data: {
   const { showToast } = useUIStore.getState();
   const { projectId } = useContextStore.getState();
   try {
-    const res = await axios.post<GroupItem>(`${API_BASE}/groups`, data);
+    const res = await axios.post<GroupItem>(`${ADMIN_API_BASE}/groups`, data);
     if (projectId) await fetchGroups(projectId);
     showToast("Group created", "success");
     return res.data;
@@ -138,7 +138,7 @@ export async function updateGroup(
   const { showToast } = useUIStore.getState();
   const { projectId } = useContextStore.getState();
   try {
-    const res = await axios.put<GroupItem>(`${API_BASE}/groups/${groupId}`, data);
+    const res = await axios.put<GroupItem>(`${ADMIN_API_BASE}/groups/${groupId}`, data);
     if (projectId) await fetchGroups(projectId);
     showToast("Group updated", "success");
     return res.data;
@@ -153,7 +153,7 @@ export async function deleteGroup(groupId: number): Promise<boolean> {
   const { showToast } = useUIStore.getState();
   const { projectId } = useContextStore.getState();
   try {
-    await axios.delete(`${API_BASE}/groups/${groupId}`);
+    await axios.delete(`${ADMIN_API_BASE}/groups/${groupId}`);
     if (projectId) await fetchGroups(projectId);
     showToast("Group deleted", "success");
     return true;

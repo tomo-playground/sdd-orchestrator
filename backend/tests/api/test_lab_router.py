@@ -53,7 +53,7 @@ class TestRunExperiment:
             return_value=exp,
         ):
             resp = client.post(
-                "/lab/experiments/run",
+                "/api/admin/lab/experiments/run",
                 json={
                     "target_tags": ["1girl", "smile"],
                     "group_id": group.id,
@@ -90,7 +90,7 @@ class TestRunExperiment:
             return_value=exp,
         ):
             resp = client.post(
-                "/lab/experiments/run",
+                "/api/admin/lab/experiments/run",
                 json={"target_tags": ["1girl"], "group_id": group.id},
             )
 
@@ -99,7 +99,7 @@ class TestRunExperiment:
 
     def test_run_experiment_missing_tags(self, client: TestClient):
         """Missing target_tags field should fail validation."""
-        resp = client.post("/lab/experiments/run", json={})
+        resp = client.post("/api/admin/lab/experiments/run", json={})
         assert resp.status_code == 422
 
 
@@ -135,7 +135,7 @@ class TestRunBatch:
             return_value=batch_result,
         ):
             resp = client.post(
-                "/lab/experiments/run-batch",
+                "/api/admin/lab/experiments/run-batch",
                 json={"target_tags": ["1girl"], "group_id": group.id, "count": 1},
             )
 
@@ -165,7 +165,7 @@ class TestGetExperiments:
         db_session.add(exp)
         db_session.commit()
 
-        resp = client.get("/lab/experiments")
+        resp = client.get("/api/admin/lab/experiments")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] >= 1
@@ -196,7 +196,7 @@ class TestGetExperiments:
         db_session.add_all([exp1, exp2])
         db_session.commit()
 
-        resp = client.get("/lab/experiments?experiment_type=tag_render")
+        resp = client.get("/api/admin/lab/experiments?experiment_type=tag_render")
         assert resp.status_code == 200
         data = resp.json()
         assert all(
@@ -206,7 +206,7 @@ class TestGetExperiments:
 
     def test_list_experiments_empty(self, client: TestClient):
         """Empty DB returns zero items."""
-        resp = client.get("/lab/experiments")
+        resp = client.get("/api/admin/lab/experiments")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 0
@@ -229,7 +229,7 @@ class TestGetExperiments:
             ))
         db_session.commit()
 
-        resp = client.get("/lab/experiments?limit=2&offset=0")
+        resp = client.get("/api/admin/lab/experiments?limit=2&offset=0")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 3
@@ -255,13 +255,13 @@ class TestGetExperiment:
         db_session.add(exp)
         db_session.commit()
 
-        resp = client.get(f"/lab/experiments/{exp.id}")
+        resp = client.get(f"/api/admin/lab/experiments/{exp.id}")
         assert resp.status_code == 200
         assert resp.json()["id"] == exp.id
 
     def test_get_experiment_not_found(self, client: TestClient):
         """Non-existent ID returns 404."""
-        resp = client.get("/lab/experiments/99999")
+        resp = client.get("/api/admin/lab/experiments/99999")
         assert resp.status_code == 404
 
 
@@ -284,7 +284,7 @@ class TestDeleteExperiment:
         db_session.commit()
         exp_id = exp.id
 
-        resp = client.delete(f"/lab/experiments/{exp_id}")
+        resp = client.delete(f"/api/admin/lab/experiments/{exp_id}")
         assert resp.status_code == 200
         assert resp.json()["ok"] is True
 
@@ -297,7 +297,7 @@ class TestDeleteExperiment:
 
     def test_delete_experiment_not_found(self, client: TestClient):
         """Delete non-existent experiment returns 404."""
-        resp = client.delete("/lab/experiments/99999")
+        resp = client.delete("/api/admin/lab/experiments/99999")
         assert resp.status_code == 404
 
 
@@ -308,7 +308,7 @@ class TestAnalytics:
 
     def test_get_effectiveness_empty(self, client: TestClient):
         """Empty DB returns zero experiments."""
-        resp = client.get("/lab/analytics/tag-effectiveness")
+        resp = client.get("/api/admin/lab/analytics/tag-effectiveness")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total_experiments"] == 0
@@ -337,7 +337,7 @@ class TestAnalytics:
         db_session.add(exp)
         db_session.commit()
 
-        resp = client.get("/lab/analytics/tag-effectiveness")
+        resp = client.get("/api/admin/lab/analytics/tag-effectiveness")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total_experiments"] == 1
@@ -346,6 +346,6 @@ class TestAnalytics:
     def test_sync_effectiveness(self, client: TestClient):
         """Sync endpoint returns synced count."""
         with patch("routers.lab.sync_to_engine", return_value=5):
-            resp = client.post("/lab/analytics/sync-effectiveness")
+            resp = client.post("/api/admin/lab/analytics/sync-effectiveness")
         assert resp.status_code == 200
         assert resp.json()["synced"] == 5

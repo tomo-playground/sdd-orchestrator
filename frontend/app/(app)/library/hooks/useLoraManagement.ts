@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
-import { API_BASE } from "../../../constants";
+import { ADMIN_API_BASE } from "../../../constants";
 import type { LoRA } from "../../../types";
 import type { UiCallbacks } from "../../../types";
 
@@ -11,7 +11,7 @@ export function useLoraManagement(ui: UiCallbacks) {
 
   const fetchPublicLoras = useCallback(async () => {
     try {
-      const res = await axios.get<LoRA[]>(`${API_BASE}/loras/`);
+      const res = await axios.get<LoRA[]>(`${ADMIN_API_BASE}/loras/`);
       setLoraEntries(res.data || []);
     } catch {
       console.error("Failed to fetch public LoRAs");
@@ -23,7 +23,7 @@ export function useLoraManagement(ui: UiCallbacks) {
     setIsUpdatingLora(true);
     try {
       const { id, preview_image_url, civitai_id, civitai_url, ...payload } = editingLora;
-      await axios.put(`${API_BASE}/loras/${id}`, payload);
+      await axios.put(`${ADMIN_API_BASE}/loras/${id}`, payload);
       setEditingLora(null);
       await fetchPublicLoras();
     } catch (error) {
@@ -46,7 +46,7 @@ export function useLoraManagement(ui: UiCallbacks) {
       });
       if (!ok) return;
       try {
-        await axios.delete(`${API_BASE}/loras/${id}`);
+        await axios.delete(`${ADMIN_API_BASE}/loras/${id}`);
         await fetchPublicLoras();
       } catch (error) {
         const msg = axios.isAxiosError(error)

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { API_BASE } from "../../constants";
+import { ADMIN_API_BASE } from "../../constants";
 import type { CreativeSession, CreativeTimeline, PipelineProgress } from "../../types/creative";
 
 /** Session-level state and side effects for ShortsActiveView. */
@@ -30,7 +30,7 @@ export function useShortsSession(
       setError(null);
       try {
         const res = await axios.post<CreativeSession>(
-          `${API_BASE}/lab/creative/sessions/${session.id}/select-concept`,
+          `${ADMIN_API_BASE}/lab/creative/sessions/${session.id}/select-concept`,
           { concept_index: index }
         );
         onRefresh(res.data);
@@ -44,9 +44,9 @@ export function useShortsSession(
   const handleStartPipeline = useCallback(async () => {
     setError(null);
     try {
-      await axios.post(`${API_BASE}/lab/creative/sessions/${session.id}/run-pipeline`);
+      await axios.post(`${ADMIN_API_BASE}/lab/creative/sessions/${session.id}/run-pipeline`);
       const res = await axios.get<CreativeSession>(
-        `${API_BASE}/lab/creative/sessions/${session.id}`
+        `${ADMIN_API_BASE}/lab/creative/sessions/${session.id}`
       );
       onRefresh(res.data);
     } catch (err) {
@@ -57,7 +57,7 @@ export function useShortsSession(
   const handleSendToStudio = useCallback(
     async (groupId: number, title?: string, deepParse?: boolean) => {
       const res = await axios.post(
-        `${API_BASE}/lab/creative/sessions/${session.id}/send-to-studio`,
+        `${ADMIN_API_BASE}/lab/creative/sessions/${session.id}/send-to-studio`,
         {
           group_id: groupId,
           title,
@@ -72,11 +72,11 @@ export function useShortsSession(
   const handleRetry = useCallback(async () => {
     setError(null);
     try {
-      await axios.post(`${API_BASE}/lab/creative/sessions/${session.id}/retry`, {
+      await axios.post(`${ADMIN_API_BASE}/lab/creative/sessions/${session.id}/retry`, {
         mode: "resume",
       });
       const sessionRes = await axios.get<CreativeSession>(
-        `${API_BASE}/lab/creative/sessions/${session.id}`
+        `${ADMIN_API_BASE}/lab/creative/sessions/${session.id}`
       );
       onRefresh(sessionRes.data);
     } catch (err) {
@@ -123,7 +123,7 @@ function usePolling(
     const poll = async () => {
       try {
         const res = await axios.get<CreativeSession>(
-          `${API_BASE}/lab/creative/sessions/${sessionId}`
+          `${ADMIN_API_BASE}/lab/creative/sessions/${sessionId}`
         );
         onRefresh(res.data);
       } catch {
@@ -149,7 +149,7 @@ function useTimelineFetch(
     const fetchTimeline = async () => {
       try {
         const res = await axios.get<CreativeTimeline>(
-          `${API_BASE}/lab/creative/sessions/${sessionId}/timeline`
+          `${ADMIN_API_BASE}/lab/creative/sessions/${sessionId}/timeline`
         );
         setTimeline(res.data);
       } catch {

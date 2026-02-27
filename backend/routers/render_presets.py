@@ -9,15 +9,16 @@ from database import get_db
 from models.render_preset import RenderPreset
 from schemas import RenderPresetCreate, RenderPresetResponse, RenderPresetUpdate
 
-router = APIRouter(prefix="/render-presets", tags=["render-presets"])
+service_router = APIRouter(prefix="/render-presets", tags=["render-presets"])
+admin_router = APIRouter(prefix="/render-presets", tags=["render-presets-admin"])
 
 
-@router.get("", response_model=list[RenderPresetResponse])
+@service_router.get("", response_model=list[RenderPresetResponse])
 def list_render_presets(db: Session = Depends(get_db)):
     return db.query(RenderPreset).order_by(RenderPreset.id).all()
 
 
-@router.get("/{preset_id}", response_model=RenderPresetResponse)
+@service_router.get("/{preset_id}", response_model=RenderPresetResponse)
 def get_render_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(RenderPreset).filter(RenderPreset.id == preset_id).first()
     if not preset:
@@ -25,7 +26,7 @@ def get_render_preset(preset_id: int, db: Session = Depends(get_db)):
     return preset
 
 
-@router.post("", response_model=RenderPresetResponse, status_code=201)
+@admin_router.post("", response_model=RenderPresetResponse, status_code=201)
 def create_render_preset(body: RenderPresetCreate, db: Session = Depends(get_db)):
     preset = RenderPreset(**body.model_dump(exclude_unset=True), is_system=False)
     db.add(preset)
@@ -34,7 +35,7 @@ def create_render_preset(body: RenderPresetCreate, db: Session = Depends(get_db)
     return preset
 
 
-@router.put("/{preset_id}", response_model=RenderPresetResponse)
+@admin_router.put("/{preset_id}", response_model=RenderPresetResponse)
 def update_render_preset(
     preset_id: int,
     body: RenderPresetUpdate,
@@ -50,7 +51,7 @@ def update_render_preset(
     return preset
 
 
-@router.delete("/{preset_id}")
+@admin_router.delete("/{preset_id}")
 def delete_render_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(RenderPreset).filter(RenderPreset.id == preset_id).first()
     if not preset:

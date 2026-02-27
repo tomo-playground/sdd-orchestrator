@@ -20,7 +20,8 @@ from schemas import (
 from services.asset_service import AssetService
 from services.storage import get_storage
 
-router = APIRouter(prefix="/music-presets", tags=["music-presets"])
+service_router = APIRouter(prefix="/music-presets", tags=["music-presets"])
+admin_router = APIRouter(prefix="/music-presets", tags=["music-presets-admin"])
 
 
 def _preset_to_response(preset: MusicPreset) -> dict:
@@ -39,7 +40,7 @@ def _preset_to_response(preset: MusicPreset) -> dict:
     }
 
 
-@router.get("", response_model=list[MusicPresetResponse])
+@service_router.get("", response_model=list[MusicPresetResponse])
 def list_music_presets(db: Session = Depends(get_db)):
     from sqlalchemy.orm import joinedload
 
@@ -47,7 +48,7 @@ def list_music_presets(db: Session = Depends(get_db)):
     return [_preset_to_response(p) for p in presets]
 
 
-@router.get("/{preset_id}", response_model=MusicPresetResponse)
+@service_router.get("/{preset_id}", response_model=MusicPresetResponse)
 def get_music_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(MusicPreset).filter(MusicPreset.id == preset_id).first()
     if not preset:
@@ -55,7 +56,7 @@ def get_music_preset(preset_id: int, db: Session = Depends(get_db)):
     return _preset_to_response(preset)
 
 
-@router.post("", response_model=MusicPresetResponse, status_code=201)
+@admin_router.post("", response_model=MusicPresetResponse, status_code=201)
 def create_music_preset(body: MusicPresetCreate, db: Session = Depends(get_db)):
     preset = MusicPreset(
         **body.model_dump(exclude_unset=True),
@@ -67,7 +68,7 @@ def create_music_preset(body: MusicPresetCreate, db: Session = Depends(get_db)):
     return _preset_to_response(preset)
 
 
-@router.put("/{preset_id}", response_model=MusicPresetResponse)
+@admin_router.put("/{preset_id}", response_model=MusicPresetResponse)
 def update_music_preset(
     preset_id: int,
     body: MusicPresetUpdate,
@@ -83,7 +84,7 @@ def update_music_preset(
     return _preset_to_response(preset)
 
 
-@router.delete("/{preset_id}")
+@admin_router.delete("/{preset_id}")
 def delete_music_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(MusicPreset).filter(MusicPreset.id == preset_id).first()
     if not preset:
@@ -102,7 +103,7 @@ def delete_music_preset(preset_id: int, db: Session = Depends(get_db)):
     return {"status": "deleted", "id": preset_id}
 
 
-@router.post("/preview")
+@admin_router.post("/preview")
 async def preview_music(req: MusicPreviewRequest, db: Session = Depends(get_db)):
     """Generate a preview audio via Audio Server."""
     from services.audio_client import generate_music
@@ -144,7 +145,7 @@ async def preview_music(req: MusicPreviewRequest, db: Session = Depends(get_db))
         raise_user_error("preview_generate", e)
 
 
-@router.post("/{preset_id}/attach-preview")
+@admin_router.post("/{preset_id}/attach-preview")
 def attach_preview_to_preset(
     preset_id: int,
     temp_asset_id: int,
@@ -168,7 +169,7 @@ def attach_preview_to_preset(
     return _preset_to_response(preset)
 
 
-@router.post("/warmup")
+@admin_router.post("/warmup")
 async def warmup_musicgen_model():
     """Check Audio Server health (replaces direct model warmup)."""
     from services.audio_client import check_health

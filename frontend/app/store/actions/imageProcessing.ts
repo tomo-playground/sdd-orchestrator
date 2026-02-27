@@ -3,7 +3,7 @@ import type { Scene } from "../../types";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
-import { API_BASE } from "../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../constants";
 
 /** Store a base64 image on the backend and return URL + asset_id */
 export async function storeSceneImage(
@@ -179,7 +179,7 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
         .getState()
         .scenes.find((s) => s.client_id === scene.client_id);
       const logSceneId = latestScene?.id ?? sceneDbId;
-      const logRes = await axios.post(`${API_BASE}/activity-logs`, {
+      const logRes = await axios.post(`${ADMIN_API_BASE}/activity-logs`, {
         storyboard_id: currentStoryboardId,
         scene_id: logSceneId,
         client_id: scene.client_id,

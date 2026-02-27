@@ -73,7 +73,7 @@ def test_api_endpoint_uses_test_db(client, db_session):
     db_session.commit()
 
     response = client.post(
-        "/activity-logs",
+        "/api/admin/activity-logs",
         json={
             "storyboard_id": storyboard.id,
             "scene_id": scene.id,

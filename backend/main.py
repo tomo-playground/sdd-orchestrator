@@ -3,45 +3,18 @@ from __future__ import annotations
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from routers import (
-    activity_logs_router,
-    admin_router,
-    assets_router,
-    backgrounds_router,
-    characters_router,
-    controlnet_router,
-    creative_presets_router,
-    groups_router,
-    lab_router,
-    loras_router,
-    memory_router,
-    music_presets_router,
-    presets_router,
-    projects_router,
-    prompt_histories_router,
-    prompt_router,
-    quality_router,
-    render_presets_router,
-    scene_router,
-    scripts_router,
-    sd_models_router,
-    settings_router,
-    stage_router,
-    storyboard_router,
-    style_profiles_router,
-    tags_router,
-    video_router,
-    voice_presets_router,
-    youtube_router,
-)
+from routers import admin_app_router, service_app_router
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     """Initialize resources on startup and clean up on shutdown."""
     # Validate storage credentials before initialization
     from config import logger, validate_storage_config
@@ -124,7 +97,7 @@ async def lifespan(app: FastAPI):
 
 
 # --- App Setup ---
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
 from config import CORS_ORIGINS
 
@@ -148,36 +121,58 @@ async def health_check():
     return {"status": "ok"}
 
 
-# --- Routers ---
-app.include_router(admin_router)
-app.include_router(assets_router)
-app.include_router(backgrounds_router)
-app.include_router(characters_router)
-app.include_router(controlnet_router)
-app.include_router(groups_router)
-app.include_router(projects_router)
-app.include_router(activity_logs_router)
-app.include_router(lab_router)
-app.include_router(creative_presets_router)
-app.include_router(loras_router)
-app.include_router(memory_router)
-app.include_router(presets_router)
-app.include_router(prompt_router)
-app.include_router(prompt_histories_router)
-app.include_router(quality_router)
-app.include_router(render_presets_router)
-app.include_router(scene_router)
-app.include_router(scripts_router)
-app.include_router(sd_models_router)
-app.include_router(settings_router)
-app.include_router(stage_router)
-app.include_router(storyboard_router)
-app.include_router(style_profiles_router)
-app.include_router(tags_router)
-app.include_router(video_router)
-app.include_router(voice_presets_router)
-app.include_router(music_presets_router)
-app.include_router(youtube_router)
+# --- Routers (2 parent routers replace 29 individual include_router calls) ---
+app.include_router(service_app_router)
+app.include_router(admin_app_router)
+
+
+# --- OpenAPI: split docs for Service vs Admin ---
+_service_openapi_cache: dict | None = None
+_admin_openapi_cache: dict | None = None
+
+
+def _service_openapi() -> dict:
+    global _service_openapi_cache
+    if _service_openapi_cache is None:
+        _service_openapi_cache = get_openapi(
+            title="Shorts Producer — Service API",
+            version="1.0.0",
+            description="User-facing content production API",
+            routes=[r for r in app.routes if getattr(r, "path", "").startswith("/api/v1")],
+        )
+    return _service_openapi_cache
+
+
+def _admin_openapi() -> dict:
+    global _admin_openapi_cache
+    if _admin_openapi_cache is None:
+        _admin_openapi_cache = get_openapi(
+            title="Shorts Producer — Admin API",
+            version="1.0.0",
+            description="Back-office system management API",
+            routes=[r for r in app.routes if getattr(r, "path", "").startswith("/api/admin")],
+        )
+    return _admin_openapi_cache
+
+
+@app.get("/openapi.json", include_in_schema=False)
+async def service_openapi_json():
+    return JSONResponse(_service_openapi())
+
+
+@app.get("/admin/openapi.json", include_in_schema=False)
+async def admin_openapi_json():
+    return JSONResponse(_admin_openapi())
+
+
+@app.get("/docs", include_in_schema=False)
+async def service_docs(_req: Request):
+    return get_swagger_ui_html(openapi_url="/openapi.json", title="Service API Docs")
+
+
+@app.get("/admin/docs", include_in_schema=False)
+async def admin_docs(_req: Request):
+    return get_swagger_ui_html(openapi_url="/admin/openapi.json", title="Admin API Docs")
 
 
 if __name__ == "__main__":

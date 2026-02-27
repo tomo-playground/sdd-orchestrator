@@ -52,7 +52,7 @@ class TestGeminiEditAnalytics:
 
     def test_empty_analytics(self, client: TestClient, db_session):
         """Return zero stats when no edits exist."""
-        resp = client.get("/analytics/gemini-edits")
+        resp = client.get("/api/admin/analytics/gemini-edits")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total_edits"] == 0
@@ -80,7 +80,7 @@ class TestGeminiEditAnalytics:
         # Non-gemini log should be excluded
         _create_activity_log(db_session, gemini_edited=False)
 
-        resp = client.get("/analytics/gemini-edits")
+        resp = client.get("/api/admin/analytics/gemini-edits")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total_edits"] == 2
@@ -115,7 +115,7 @@ class TestGeminiEditAnalytics:
             gemini_cost_usd=0.03,
         )
 
-        resp = client.get("/analytics/gemini-edits")
+        resp = client.get("/api/admin/analytics/gemini-edits")
         data = resp.json()
         ranges = data["by_improvement_range"]
         assert ranges["0-10%"] == 1
@@ -127,7 +127,7 @@ class TestGeminiEditAnalytics:
         _create_activity_log(db_session, storyboard_id=1, gemini_edited=True, gemini_cost_usd=0.01)
         _create_activity_log(db_session, storyboard_id=2, gemini_edited=True, gemini_cost_usd=0.02)
 
-        resp = client.get("/analytics/gemini-edits", params={"storyboard_id": 1})
+        resp = client.get("/api/admin/analytics/gemini-edits", params={"storyboard_id": 1})
         data = resp.json()
         assert data["total_edits"] == 1
 
@@ -137,7 +137,7 @@ class TestGeminiEditSummary:
 
     def test_empty_summary(self, client: TestClient, db_session):
         """Return zero stats when no edits exist."""
-        resp = client.get("/analytics/gemini-edits/summary")
+        resp = client.get("/api/admin/analytics/gemini-edits/summary")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total_edits"] == 0
@@ -164,7 +164,7 @@ class TestGeminiEditSummary:
             final_match_rate=0.65,
         )
 
-        resp = client.get("/analytics/gemini-edits/summary")
+        resp = client.get("/api/admin/analytics/gemini-edits/summary")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total_edits"] == 2

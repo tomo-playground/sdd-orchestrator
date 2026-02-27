@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { ArrowLeft, RotateCcw, Wrench } from "lucide-react";
-import { API_BASE } from "../../constants";
+import { ADMIN_API_BASE } from "../../constants";
 import type {
   CreativeSceneSummary,
   CreativeSession,
@@ -63,7 +63,7 @@ export default function ShortsActiveView({
   const onReviewAction = async (action: "approve" | "revise", feedback?: string) => {
     await handleReviewAction(action, feedback);
     try {
-      const res = await axios.get(`${API_BASE}/lab/creative/sessions/${session.id}`);
+      const res = await axios.get(`${ADMIN_API_BASE}/lab/creative/sessions/${session.id}`);
       onRefresh(res.data);
     } catch {
       /* polling will catch up */

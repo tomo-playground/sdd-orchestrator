@@ -23,10 +23,11 @@ from services.youtube.upload import UploadParams, upload_video_to_youtube
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/youtube", tags=["youtube"])
+service_router = APIRouter(prefix="/youtube", tags=["youtube"])
+admin_router = APIRouter(prefix="/youtube", tags=["youtube-admin"])
 
 
-@router.get("/authorize/{project_id}", response_model=YouTubeAuthURLResponse)
+@admin_router.get("/authorize/{project_id}", response_model=YouTubeAuthURLResponse)
 def authorize(project_id: int):
     """Generate Google OAuth URL for YouTube authorization."""
     try:
@@ -38,7 +39,7 @@ def authorize(project_id: int):
         raise_user_error("youtube_auth", e)
 
 
-@router.post("/callback", response_model=YouTubeCredentialResponse)
+@admin_router.post("/callback", response_model=YouTubeCredentialResponse)
 def callback(
     code: str = Query(...),
     state: str = Query(...),
@@ -59,7 +60,7 @@ def callback(
         raise_user_error("youtube_auth", e, status_code=400)
 
 
-@router.get("/credentials/{project_id}", response_model=YouTubeCredentialResponse)
+@admin_router.get("/credentials/{project_id}", response_model=YouTubeCredentialResponse)
 def get_credential(project_id: int, db: Session = Depends(get_db)):
     """Get YouTube credential for a project."""
     cred = (
@@ -75,14 +76,14 @@ def get_credential(project_id: int, db: Session = Depends(get_db)):
     return cred
 
 
-@router.delete("/credentials/{project_id}", response_model=YouTubeRevokeResponse)
+@admin_router.delete("/credentials/{project_id}", response_model=YouTubeRevokeResponse)
 def delete_credential(project_id: int, db: Session = Depends(get_db)):
     """Revoke YouTube credential for a project."""
     revoke_credential(db, project_id)
     return YouTubeRevokeResponse(status="revoked")
 
 
-@router.post("/upload", response_model=YouTubeUploadStatusResponse)
+@service_router.post("/upload", response_model=YouTubeUploadStatusResponse)
 def start_upload(
     body: YouTubeUploadRequest,
     background_tasks: BackgroundTasks,
@@ -136,7 +137,7 @@ def start_upload(
     )
 
 
-@router.get("/upload-status/{render_history_id}", response_model=YouTubeUploadStatusResponse)
+@service_router.get("/upload-status/{render_history_id}", response_model=YouTubeUploadStatusResponse)
 def get_upload_status(render_history_id: int, db: Session = Depends(get_db)):
     """Poll upload status for a render history entry."""
     rh = db.query(RenderHistory).filter(RenderHistory.id == render_history_id).first()

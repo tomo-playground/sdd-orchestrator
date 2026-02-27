@@ -53,6 +53,10 @@ from sqlalchemy import JSON, create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+# API prefix constants
+SVC = "/api/v1"
+ADM = "/api/admin"
+
 # Paths
 TESTS_DIR = Path(__file__).parent
 GOLDEN_MASTERS_DIR = TESTS_DIR / "golden_masters"
@@ -484,6 +488,6 @@ def create_test_storyboard(
         "group_id": 1,
         "scenes": scenes or [],
     }
-    resp = client.post("/storyboards", json=payload)
+    resp = client.post(f"{SVC}/storyboards", json=payload)
     assert resp.status_code == 200, f"Storyboard creation failed: {resp.text}"
     return resp.json()

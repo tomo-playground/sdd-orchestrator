@@ -124,7 +124,7 @@ class TestSSEEndpoints:
         with patch("routers.scene.generate_scene_image", new_callable=AsyncMock) as mock_gen:
             mock_gen.return_value = {"image": "base64data", "images": []}
             resp = client.post(
-                "/scene/generate-async",
+                "/api/v1/scene/generate-async",
                 json={"prompt": "1girl, standing"},
             )
         assert resp.status_code == 202
@@ -134,7 +134,7 @@ class TestSSEEndpoints:
 
     def test_progress_unknown_task_returns_404(self, client):
         """GET /scene/progress/nonexistent should return 404."""
-        resp = client.get("/scene/progress/nonexistent")
+        resp = client.get("/api/v1/scene/progress/nonexistent")
         assert resp.status_code == 404
 
     def test_progress_known_task(self, client):
@@ -144,7 +144,7 @@ class TestSSEEndpoints:
         task.percent = 100
         task.result = {"image": "base64", "used_prompt": "test", "warnings": []}
 
-        resp = client.get(f"/scene/progress/{task.task_id}")
+        resp = client.get(f"/api/v1/scene/progress/{task.task_id}")
         assert resp.status_code == 200
         assert "text/event-stream" in resp.headers["content-type"]
         # Should contain at least one SSE data line

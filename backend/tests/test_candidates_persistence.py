@@ -52,7 +52,7 @@ def test_candidates_persistence(client: TestClient, db_session):
     assert storyboard_id is not None
 
     # 4. Retrieve Storyboard
-    get_response = client.get(f"/storyboards/{storyboard_id}")
+    get_response = client.get(f"/api/v1/storyboards/{storyboard_id}")
     assert get_response.status_code == 200
     get_data = get_response.json()
 

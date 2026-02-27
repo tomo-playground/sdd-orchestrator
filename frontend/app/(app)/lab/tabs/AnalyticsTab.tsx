@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import axios from "axios";
 import { RefreshCw, Loader2, ArrowUpRight } from "lucide-react";
-import { API_BASE } from "../../../constants";
+import { ADMIN_API_BASE } from "../../../constants";
 import QualityDashboard from "../../../components/quality/QualityDashboard";
 import Button from "../../../components/ui/Button";
 import { SUCCESS_TEXT, WARNING_TEXT, ERROR_TEXT, ERROR_BG } from "../../../components/ui/variants";
@@ -37,7 +37,7 @@ export default function AnalyticsTab() {
     setError("");
     try {
       const res = await axios.get<TagEffectivenessReport>(
-        `${API_BASE}/lab/analytics/tag-effectiveness`
+        `${ADMIN_API_BASE}/lab/analytics/tag-effectiveness`
       );
       setReport(res.data);
     } catch (err: unknown) {
@@ -55,7 +55,7 @@ export default function AnalyticsTab() {
   const handleSync = useCallback(async () => {
     setSyncing(true);
     try {
-      await axios.post(`${API_BASE}/lab/analytics/sync-effectiveness`);
+      await axios.post(`${ADMIN_API_BASE}/lab/analytics/sync-effectiveness`);
       await loadReport();
     } catch {
       /* sync errors are non-critical */

@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import axios from "axios";
 import { Play, Loader2, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
-import { API_BASE } from "../../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../../constants";
 import Button from "../../../components/ui/Button";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ export default function TagLabTab() {
   // ── Fetch history on mount ─────────────────────────────────
   const loadHistory = useCallback(async () => {
     try {
-      const res = await axios.get<{ items: HistoryItem[] }>(`${API_BASE}/lab/experiments`, {
+      const res = await axios.get<{ items: HistoryItem[] }>(`${ADMIN_API_BASE}/lab/experiments`, {
         params: { experiment_type: "tag_render" },
       });
       setHistory(res.data.items);
@@ -168,7 +168,7 @@ export default function TagLabTab() {
     setResult(null);
 
     try {
-      const res = await axios.post<ExperimentResult>(`${API_BASE}/lab/experiments/run`, {
+      const res = await axios.post<ExperimentResult>(`${ADMIN_API_BASE}/lab/experiments/run`, {
         experiment_type: "tag_render",
         group_id: groupId,
         character_id: characterId,

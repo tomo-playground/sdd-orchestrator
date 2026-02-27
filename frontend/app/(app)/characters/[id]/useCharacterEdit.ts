@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { API_BASE } from "../../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../../constants";
 import { useCharacters } from "../../../hooks/useCharacters";
 import { useUIStore } from "../../../store/useUIStore";
 import { getErrorMsg } from "../../../utils/error";
@@ -172,7 +172,7 @@ export function useCharacterEdit(rawId: number) {
           weight: l.weight,
         })),
       };
-      const res = await axios.put(`${API_BASE}/characters/${character.id}`, payload);
+      const res = await axios.put(`${ADMIN_API_BASE}/characters/${character.id}`, payload);
       setCharacter(res.data);
       setForm(formFromCharacter(res.data));
 
@@ -196,7 +196,7 @@ export function useCharacterEdit(rawId: number) {
   const handleDelete = useCallback(async () => {
     if (!character) return false;
     try {
-      await axios.delete(`${API_BASE}/characters/${character.id}`);
+      await axios.delete(`${ADMIN_API_BASE}/characters/${character.id}`);
       showToast("Character deleted", "success");
       router.push("/library?tab=characters");
       return true;
@@ -212,7 +212,7 @@ export function useCharacterEdit(rawId: number) {
     setIsRegenerating(true);
     try {
       const res = await axios.post<{ ok: boolean; url?: string }>(
-        `${API_BASE}/characters/${character.id}/regenerate-reference`
+        `${ADMIN_API_BASE}/characters/${character.id}/regenerate-reference`
       );
       if (res.data.ok && res.data.url) {
         setCharacter((prev) =>
@@ -233,7 +233,7 @@ export function useCharacterEdit(rawId: number) {
     setIsEnhancing(true);
     try {
       const res = await axios.post<{ ok?: boolean; url?: string }>(
-        `${API_BASE}/characters/${character.id}/enhance-preview`
+        `${ADMIN_API_BASE}/characters/${character.id}/enhance-preview`
       );
       if (res.data.url) {
         setCharacter((prev) =>
@@ -255,7 +255,7 @@ export function useCharacterEdit(rawId: number) {
       setIsEditingPreview(true);
       try {
         const res = await axios.post<{ ok?: boolean; url?: string }>(
-          `${API_BASE}/characters/${character.id}/edit-preview`,
+          `${ADMIN_API_BASE}/characters/${character.id}/edit-preview`,
           { instruction: instruction.trim() }
         );
         if (res.data.url) {

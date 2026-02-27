@@ -94,7 +94,7 @@ class TestReferenceImages:
 
     def test_list_reference_images(self, client: TestClient):
         """Test listing available reference images."""
-        response = client.get("/controlnet/ip-adapter/references")
+        response = client.get("/api/admin/controlnet/ip-adapter/references")
         assert response.status_code == 200
         data = response.json()
         assert "references" in data
@@ -210,7 +210,7 @@ class TestSceneGenerationWithIpAdapter:
         except Exception:
             pytest.skip("SD WebUI not available")
 
-        response = client.post("/scene/generate", json={
+        response = client.post("/api/v1/scene/generate", json={
             "prompt": "1girl, anime, standing",
             "negative_prompt": "bad quality",
             "steps": 1,  # Minimal steps for speed

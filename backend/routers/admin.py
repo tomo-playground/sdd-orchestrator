@@ -25,7 +25,7 @@ class DeprecateTagRequest(BaseModel):
     replacement_tag_id: int | None = None
 
 
-@router.post("/admin/refresh-caches")
+@router.post("/refresh-caches")
 async def refresh_all_caches(db: Session = Depends(get_db)):
     """Refresh all in-memory caches from database.
 
@@ -134,7 +134,7 @@ def _run_valence_classification(group_names: list[str], force: bool) -> None:
         db.close()
 
 
-@router.post("/admin/tags/classify-valence", response_model=ClassifyValenceResponse)
+@router.post("/tags/classify-valence", response_model=ClassifyValenceResponse)
 async def classify_tag_valence(
     background_tasks: BackgroundTasks,
     group_names: str = Query("expression,gaze,mood", description="Comma-separated group names"),
@@ -157,7 +157,7 @@ async def classify_tag_valence(
 # ============================================================
 
 
-@router.get("/admin/tags/deprecated")
+@router.get("/tags/deprecated")
 async def get_deprecated_tags(db: Session = Depends(get_db)):
     """Get all deprecated tags with their replacement information."""
     deprecated_tags = db.query(Tag).filter(Tag.is_active.is_(False)).all()
@@ -196,7 +196,7 @@ async def get_deprecated_tags(db: Session = Depends(get_db)):
     return {"total": len(result), "tags": result}
 
 
-@router.put("/admin/tags/{tag_id}/deprecate")
+@router.put("/tags/{tag_id}/deprecate")
 async def deprecate_tag(tag_id: int, request: DeprecateTagRequest, db: Session = Depends(get_db)):
     """Deprecate a tag and optionally set a replacement.
 
@@ -246,7 +246,7 @@ async def deprecate_tag(tag_id: int, request: DeprecateTagRequest, db: Session =
     }
 
 
-@router.put("/admin/tags/{tag_id}/activate")
+@router.put("/tags/{tag_id}/activate")
 async def activate_tag(tag_id: int, db: Session = Depends(get_db)):
     """Reactivate a deprecated tag.
 
@@ -281,7 +281,7 @@ async def activate_tag(tag_id: int, db: Session = Depends(get_db)):
 # ============================================================
 
 
-@router.get("/admin/media-assets/orphans")
+@router.get("/media-assets/orphans")
 async def detect_orphan_assets(db: Session = Depends(get_db)):
     """Scan for orphaned media assets (dry-run detection only)."""
     try:
@@ -292,7 +292,7 @@ async def detect_orphan_assets(db: Session = Depends(get_db)):
         return {"success": False, "error": str(e)}
 
 
-@router.post("/admin/media-assets/cleanup")
+@router.post("/media-assets/cleanup")
 async def cleanup_orphan_assets(
     dry_run: bool = True,
     db: Session = Depends(get_db),
@@ -317,7 +317,7 @@ async def cleanup_orphan_assets(
         return {"success": False, "error": str(e)}
 
 
-@router.get("/admin/media-assets/stats")
+@router.get("/media-assets/stats")
 async def media_asset_stats(db: Session = Depends(get_db)):
     """Get media asset statistics including orphan counts."""
     try:
@@ -333,7 +333,7 @@ async def media_asset_stats(db: Session = Depends(get_db)):
 # ============================================================
 
 
-@router.get("/admin/cache/images/stats", response_model=ImageCacheStatsResponse)
+@router.get("/cache/images/stats", response_model=ImageCacheStatsResponse)
 async def image_cache_stats():
     """Get image generation cache statistics."""
     from services.image_cache import get_cache_stats
@@ -342,7 +342,7 @@ async def image_cache_stats():
     return ImageCacheStatsResponse(**stats)
 
 
-@router.delete("/admin/cache/images", response_model=ImageCacheClearResponse)
+@router.delete("/cache/images", response_model=ImageCacheClearResponse)
 async def clear_image_cache_endpoint():
     """Clear all cached generated images."""
     from services.image_cache import clear_image_cache
@@ -373,7 +373,7 @@ def _run_thumbnail_generation(group_name: str | None, force: bool) -> None:
         db.close()
 
 
-@router.post("/admin/tag-thumbnails/generate", response_model=TagThumbnailGenerateResponse)
+@router.post("/tag-thumbnails/generate", response_model=TagThumbnailGenerateResponse)
 async def generate_tag_thumbnails(
     background_tasks: BackgroundTasks,
     group_name: str | None = Query(None, description="Filter by group_name (e.g. expression, pose)"),
@@ -467,7 +467,7 @@ class CheckpointGCResponse(BaseModel):
     deleted_rows: dict[str, int] | None = None
 
 
-@router.post("/admin/checkpoint-gc", response_model=CheckpointGCResponse)
+@router.post("/checkpoint-gc", response_model=CheckpointGCResponse)
 async def run_checkpoint_gc(retention_days: int | None = Query(None, ge=1)):
     """Delete LangGraph checkpoint data older than retention period."""
     from services.agent.checkpointer import gc_checkpoints

@@ -10,7 +10,7 @@ class TestStoryboardRouter:
 
     def test_list_storyboards_empty(self, client: TestClient, db_session):
         """List storyboards when database is empty."""
-        response = client.get("/storyboards")
+        response = client.get("/api/v1/storyboards")
         assert response.status_code == 200
         data = response.json()
         assert "items" in data
@@ -22,7 +22,7 @@ class TestStoryboardRouter:
         """Create storyboard with minimal required fields."""
         request_data = {"title": "Test Storyboard", "description": "Test description", "group_id": 1, "scenes": []}
 
-        response = client.post("/storyboards", json=request_data)
+        response = client.post("/api/v1/storyboards", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -70,7 +70,7 @@ class TestStoryboardRouter:
             ],
         }
 
-        response = client.post("/storyboards", json=request_data)
+        response = client.post("/api/v1/storyboards", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -79,7 +79,7 @@ class TestStoryboardRouter:
 
     def test_get_storyboard_not_found(self, client: TestClient):
         """Get non-existent storyboard returns 404."""
-        response = client.get("/storyboards/99999")
+        response = client.get("/api/v1/storyboards/99999")
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
@@ -94,7 +94,7 @@ class TestStoryboardRouter:
         db_session.add(storyboard)
         db_session.commit()
 
-        response = client.get(f"/storyboards/{storyboard.id}")
+        response = client.get(f"/api/v1/storyboards/{storyboard.id}")
         assert response.status_code == 200
         data = response.json()
 
@@ -119,7 +119,7 @@ class TestStoryboardRouter:
         # Update
         update_data = {"title": "Updated Title", "description": "Updated description", "scenes": []}
 
-        response = client.put(f"/storyboards/{storyboard_id}", json=update_data)
+        response = client.put(f"/api/v1/storyboards/{storyboard_id}", json=update_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -135,7 +135,7 @@ class TestStoryboardRouter:
         """Update non-existent storyboard returns 404."""
         update_data = {"title": "Updated", "description": "Test", "scenes": []}
 
-        response = client.put("/storyboards/99999", json=update_data)
+        response = client.put("/api/v1/storyboards/99999", json=update_data)
         assert response.status_code == 404
 
     def test_delete_storyboard_success(self, client: TestClient, db_session):
@@ -150,7 +150,7 @@ class TestStoryboardRouter:
         db_session.commit()
         storyboard_id = storyboard.id
 
-        response = client.delete(f"/storyboards/{storyboard_id}")
+        response = client.delete(f"/api/v1/storyboards/{storyboard_id}")
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "success"
@@ -163,7 +163,7 @@ class TestStoryboardRouter:
 
     def test_delete_storyboard_not_found(self, client: TestClient):
         """Delete non-existent storyboard returns 404."""
-        response = client.delete("/storyboards/99999")
+        response = client.delete("/api/v1/storyboards/99999")
         assert response.status_code == 404
 
     def test_list_storyboards_with_data(self, client: TestClient, db_session):
@@ -174,7 +174,7 @@ class TestStoryboardRouter:
         db_session.add_all([sb1, sb2])
         db_session.commit()
 
-        response = client.get("/storyboards")
+        response = client.get("/api/v1/storyboards")
         assert response.status_code == 200
         data = response.json()
 
@@ -200,7 +200,7 @@ class TestStoryboardRouter:
         long_title = "A" * 200  # Exceeds 190 char truncation limit (within 200 max_length)
         request_data = {"title": long_title, "description": "Test", "group_id": 1, "scenes": []}
 
-        response = client.post("/storyboards", json=request_data)
+        response = client.post("/api/v1/storyboards", json=request_data)
         assert response.status_code == 200
         data = response.json()
 

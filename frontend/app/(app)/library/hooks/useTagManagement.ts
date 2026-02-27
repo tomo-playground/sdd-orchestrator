@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { API_BASE } from "../../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../../constants";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -68,7 +68,7 @@ export function useTagManagement(fetchTagsData: () => Promise<void>, ui: UiCallb
       }
       setPendingApproving((prev) => ({ ...prev, [tagId]: true }));
       try {
-        await axios.post(`${API_BASE}/tags/approve-classification`, {
+        await axios.post(`${ADMIN_API_BASE}/tags/approve-classification`, {
           tag_id: tagId,
           group_name: groupName,
         });

@@ -12,7 +12,7 @@ class TestLoRAsRouter:
 
     def test_list_loras_empty(self, client: TestClient, db_session):
         """List LoRAs when database is empty."""
-        response = client.get("/loras")
+        response = client.get("/api/admin/loras")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -25,7 +25,7 @@ class TestLoRAsRouter:
             "display_name": "Test LoRA"
         }
 
-        response = client.post("/loras", json=request_data)
+        response = client.post("/api/admin/loras", json=request_data)
         assert response.status_code == 201
         data = response.json()
 
@@ -41,11 +41,11 @@ class TestLoRAsRouter:
         }
 
         # Create first
-        response = client.post("/loras", json=request_data)
+        response = client.post("/api/admin/loras", json=request_data)
         assert response.status_code == 201
 
         # Try duplicate
-        response = client.post("/loras", json=request_data)
+        response = client.post("/api/admin/loras", json=request_data)
         assert response.status_code == 400
         assert "already exists" in response.json()["detail"].lower()
 
@@ -58,7 +58,7 @@ class TestLoRAsRouter:
             "default_weight": 0.8
         }
 
-        response = client.post("/loras", json=request_data)
+        response = client.post("/api/admin/loras", json=request_data)
         assert response.status_code == 201
         data = response.json()
 
@@ -67,7 +67,7 @@ class TestLoRAsRouter:
 
     def test_get_lora_not_found(self, client: TestClient):
         """Get non-existent LoRA returns 404."""
-        response = client.get("/loras/99999")
+        response = client.get("/api/admin/loras/99999")
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
@@ -80,7 +80,7 @@ class TestLoRAsRouter:
         db_session.add(lora)
         db_session.commit()
 
-        response = client.get(f"/loras/{lora.id}")
+        response = client.get(f"/api/admin/loras/{lora.id}")
         assert response.status_code == 200
         data = response.json()
 
@@ -103,7 +103,7 @@ class TestLoRAsRouter:
             "default_weight": 0.9
         }
 
-        response = client.put(f"/loras/{lora_id}", json=update_data)
+        response = client.put(f"/api/admin/loras/{lora_id}", json=update_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -116,7 +116,7 @@ class TestLoRAsRouter:
             "display_name": "Updated"
         }
 
-        response = client.put("/loras/99999", json=update_data)
+        response = client.put("/api/admin/loras/99999", json=update_data)
         assert response.status_code == 404
 
     def test_delete_lora_success(self, client: TestClient, db_session):
@@ -129,7 +129,7 @@ class TestLoRAsRouter:
         db_session.commit()
         lora_id = lora.id
 
-        response = client.delete(f"/loras/{lora_id}")
+        response = client.delete(f"/api/admin/loras/{lora_id}")
         assert response.status_code == 200
         data = response.json()
         assert data["ok"] is True
@@ -143,7 +143,7 @@ class TestLoRAsRouter:
 
     def test_delete_lora_not_found(self, client: TestClient):
         """Delete non-existent LoRA returns 404."""
-        response = client.delete("/loras/99999")
+        response = client.delete("/api/admin/loras/99999")
         assert response.status_code == 404
 
     def test_list_loras_with_data(self, client: TestClient, db_session):
@@ -153,7 +153,7 @@ class TestLoRAsRouter:
         db_session.add_all([lora1, lora2])
         db_session.commit()
 
-        response = client.get("/loras")
+        response = client.get("/api/admin/loras")
         assert response.status_code == 200
         data = response.json()
 
@@ -164,7 +164,7 @@ class TestLoRAsRouter:
 
     def test_search_civitai_requires_query(self, client: TestClient):
         """Search Civitai requires query parameter."""
-        response = client.get("/loras/search-civitai")
+        response = client.get("/api/admin/loras/search-civitai")
         assert response.status_code == 422  # Validation error
 
 
@@ -181,7 +181,7 @@ class TestLoRAsRouter:
 
         # Try to import same civitai_id
         with patch("httpx.AsyncClient.get"):
-            response = client.post("/loras/import-civitai/12345")
+            response = client.post("/api/admin/loras/import-civitai/12345")
             assert response.status_code == 400
             assert "already imported" in response.json()["detail"].lower()
 
@@ -200,7 +200,7 @@ class TestLoRAsRouter:
             "trigger_words": ["new_word1", "new_word2"]
         }
 
-        response = client.put(f"/loras/{lora_id}", json=update_data)
+        response = client.put(f"/api/admin/loras/{lora_id}", json=update_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -216,7 +216,7 @@ class TestLoRAsRouter:
             "weight_max": 1.5
         }
 
-        response = client.post("/loras", json=request_data)
+        response = client.post("/api/admin/loras", json=request_data)
         assert response.status_code == 201
         data = response.json()
 
@@ -232,7 +232,7 @@ class TestLoRAsRouter:
             "lora_type": "character"
         }
 
-        response = client.post("/loras", json=request_data)
+        response = client.post("/api/admin/loras", json=request_data)
         assert response.status_code == 201
         data = response.json()
 

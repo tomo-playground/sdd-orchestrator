@@ -12,7 +12,8 @@ from models.background import Background
 from schemas import BackgroundCreate, BackgroundResponse, BackgroundUpdate
 from services.asset_service import AssetService
 
-router = APIRouter(prefix="/backgrounds", tags=["backgrounds"])
+service_router = APIRouter(prefix="/backgrounds", tags=["backgrounds"])
+admin_router = APIRouter(prefix="/backgrounds", tags=["backgrounds-admin"])
 
 
 def _base_bg_query(db: Session):
@@ -38,7 +39,7 @@ def _bg_to_response(bg: Background) -> dict:
     }
 
 
-@router.get("/categories", response_model=list[str])
+@service_router.get("/categories", response_model=list[str])
 def list_categories(db: Session = Depends(get_db)):
     """List distinct categories in use."""
     rows = (
@@ -51,7 +52,7 @@ def list_categories(db: Session = Depends(get_db)):
     return [r[0] for r in rows]
 
 
-@router.get("", response_model=list[BackgroundResponse])
+@service_router.get("", response_model=list[BackgroundResponse])
 def list_backgrounds(
     search: str | None = Query(None),
     category: str | None = Query(None),
@@ -82,7 +83,7 @@ def list_backgrounds(
     return [_bg_to_response(bg) for bg in backgrounds]
 
 
-@router.get("/{background_id}", response_model=BackgroundResponse)
+@service_router.get("/{background_id}", response_model=BackgroundResponse)
 def get_background(background_id: int, db: Session = Depends(get_db)):
     bg = _base_bg_query(db).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
     if not bg:
@@ -90,7 +91,7 @@ def get_background(background_id: int, db: Session = Depends(get_db)):
     return _bg_to_response(bg)
 
 
-@router.post("", response_model=BackgroundResponse, status_code=201)
+@admin_router.post("", response_model=BackgroundResponse, status_code=201)
 def create_background(body: BackgroundCreate, db: Session = Depends(get_db)):
     bg = Background(**body.model_dump(exclude_unset=True), is_system=False)
     db.add(bg)
@@ -99,7 +100,7 @@ def create_background(body: BackgroundCreate, db: Session = Depends(get_db)):
     return _bg_to_response(bg)
 
 
-@router.put("/{background_id}", response_model=BackgroundResponse)
+@admin_router.put("/{background_id}", response_model=BackgroundResponse)
 def update_background(
     background_id: int,
     body: BackgroundUpdate,
@@ -115,7 +116,7 @@ def update_background(
     return _bg_to_response(bg)
 
 
-@router.delete("/{background_id}")
+@admin_router.delete("/{background_id}")
 def delete_background(background_id: int, db: Session = Depends(get_db)):
     """Soft delete a background."""
     bg = db.query(Background).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
@@ -126,7 +127,7 @@ def delete_background(background_id: int, db: Session = Depends(get_db)):
     return {"ok": True, "deleted": bg.name}
 
 
-@router.post("/{background_id}/restore", response_model=BackgroundResponse)
+@admin_router.post("/{background_id}/restore", response_model=BackgroundResponse)
 def restore_background(background_id: int, db: Session = Depends(get_db)):
     """Restore a soft-deleted background."""
     bg = _base_bg_query(db).filter(Background.id == background_id, Background.deleted_at.isnot(None)).first()
@@ -138,7 +139,7 @@ def restore_background(background_id: int, db: Session = Depends(get_db)):
     return _bg_to_response(bg)
 
 
-@router.post("/{background_id}/upload-image", response_model=BackgroundResponse)
+@admin_router.post("/{background_id}/upload-image", response_model=BackgroundResponse)
 async def upload_background_image(
     background_id: int,
     file: UploadFile,

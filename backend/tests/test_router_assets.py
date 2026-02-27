@@ -43,7 +43,7 @@ class TestFontsList:
             "shared/fonts/not_a_font.txt",  # Should be filtered out
         ]
 
-        response = client.get("/fonts/list")
+        response = client.get("/api/v1/fonts/list")
 
         assert response.status_code == 200
         data = response.json()
@@ -71,7 +71,7 @@ class TestFontsList:
         """Test font listing with no fonts in S3."""
         mock_storage_s3.list_prefix.return_value = []
 
-        response = client.get("/fonts/list")
+        response = client.get("/api/v1/fonts/list")
 
         assert response.status_code == 200
         data = response.json()
@@ -95,7 +95,7 @@ class TestFontsList:
 
             mock_fonts_dir.glob.return_value = iter([font1, font2])
 
-            response = client.get("/fonts/list")
+            response = client.get("/api/v1/fonts/list")
 
             assert response.status_code == 200
             data = response.json()
@@ -116,7 +116,7 @@ class TestFontsList:
             "shared/fonts/font2.otf",
         ]
 
-        response = client.get("/fonts/list")
+        response = client.get("/api/v1/fonts/list")
 
         assert response.status_code == 200
         data = response.json()
@@ -139,7 +139,7 @@ class TestAudioList:
         ]
         mock_storage_s3.get_url.side_effect = lambda key: f"http://minio/{key}"
 
-        response = client.get("/audio/list")
+        response = client.get("/api/v1/audio/list")
 
         assert response.status_code == 200
         data = response.json()
@@ -156,7 +156,7 @@ class TestAudioList:
         """Test audio listing with no audio files."""
         mock_storage_s3.list_prefix.return_value = []
 
-        response = client.get("/audio/list")
+        response = client.get("/api/v1/audio/list")
 
         assert response.status_code == 200
         data = response.json()
@@ -174,7 +174,7 @@ class TestOverlayList:
         ]
         mock_storage_s3.get_url.side_effect = lambda key: f"http://minio/{key}"
 
-        response = client.get("/overlay/list")
+        response = client.get("/api/v1/overlay/list")
 
         assert response.status_code == 200
         data = response.json()
@@ -192,7 +192,7 @@ class TestOverlayList:
         """Test overlay listing with no overlays."""
         mock_storage_s3.list_prefix.return_value = []
 
-        response = client.get("/overlay/list")
+        response = client.get("/api/v1/overlay/list")
 
         assert response.status_code == 200
         data = response.json()
@@ -214,7 +214,7 @@ class TestFontFile:
             mock_storage.exists.return_value = True
             mock_storage.get_local_path.return_value = font_file
 
-            response = client.get("/fonts/file/test.ttf")
+            response = client.get("/api/v1/fonts/file/test.ttf")
 
             # Implementation proxies via local cache (FileResponse) to avoid CORS
             assert response.status_code == 200
@@ -228,7 +228,7 @@ class TestFontFile:
             mock_get_storage.return_value = mock_storage
             mock_storage.exists.return_value = False
 
-            response = client.get("/fonts/file/nonexistent.ttf")
+            response = client.get("/api/v1/fonts/file/nonexistent.ttf")
 
             assert response.status_code == 404
             assert "Font not found" in response.json()["detail"]
@@ -236,7 +236,7 @@ class TestFontFile:
     def test_get_font_file_path_traversal_blocked(self):
         """Path traversal via slashes is blocked by Starlette route matching (404)."""
         with patch("config.STORAGE_MODE", "local"):
-            response = client.get("/fonts/file/..%2F..%2F..%2Fetc%2Fpasswd")
+            response = client.get("/api/v1/fonts/file/..%2F..%2F..%2Fetc%2Fpasswd")
             # Starlette {filename} param doesn't match '/', so route returns 404 (safe)
             assert response.status_code in (400, 404)
 
@@ -244,10 +244,10 @@ class TestFontFile:
         """Traversal patterns never serve files outside the fonts directory."""
         with patch("config.STORAGE_MODE", "local"):
             # Starlette normalizes '..' in URL path, so route never matches
-            response = client.get("/fonts/file/..")
+            response = client.get("/api/v1/fonts/file/..")
             assert response.status_code in (400, 404)
             # Encoded slashes also blocked by route matching
-            response = client.get("/fonts/file/..%2Fetc%2Fpasswd")
+            response = client.get("/api/v1/fonts/file/..%2Fetc%2Fpasswd")
             assert response.status_code in (400, 404)
 
     def test_get_font_file_path_traversal_s3_uses_basename(self, tmp_path):
@@ -258,7 +258,7 @@ class TestFontFile:
             mock_storage.exists.return_value = False
 
             # No slash in filename — route matches, but Path("passwd").name == "passwd"
-            response = client.get("/fonts/file/passwd")
+            response = client.get("/api/v1/fonts/file/passwd")
 
             assert response.status_code == 404
             mock_storage.exists.assert_called_once_with("shared/fonts/passwd")
@@ -270,15 +270,15 @@ class TestOverlayFileTraversal:
     def test_get_overlay_file_path_traversal_blocked(self):
         """Path traversal via slashes is blocked by Starlette route matching (404)."""
         with patch("config.STORAGE_MODE", "local"):
-            response = client.get("/assets/overlay/..%2F..%2F..%2Fetc%2Fpasswd")
+            response = client.get("/api/v1/assets/overlay/..%2F..%2F..%2Fetc%2Fpasswd")
             assert response.status_code in (400, 404)
 
     def test_get_overlay_file_traversal_dot_dot_local(self):
         """Traversal patterns never serve files outside the overlay directory."""
         with patch("config.STORAGE_MODE", "local"):
-            response = client.get("/assets/overlay/..")
+            response = client.get("/api/v1/assets/overlay/..")
             assert response.status_code in (400, 404)
-            response = client.get("/assets/overlay/..%2Fetc%2Fpasswd")
+            response = client.get("/api/v1/assets/overlay/..%2Fetc%2Fpasswd")
             assert response.status_code in (400, 404)
 
     def test_get_overlay_file_path_traversal_s3_uses_basename(self):
@@ -288,7 +288,7 @@ class TestOverlayFileTraversal:
             mock_get_storage.return_value = mock_storage
             mock_storage.exists.return_value = False
 
-            response = client.get("/assets/overlay/passwd")
+            response = client.get("/api/v1/assets/overlay/passwd")
 
             assert response.status_code == 404
             mock_storage.exists.assert_called_once_with("shared/overlay/passwd")

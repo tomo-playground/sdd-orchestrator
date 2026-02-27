@@ -22,7 +22,7 @@ class TestRefreshCaches:
             patch("services.keywords.db_cache.TagAliasCache") as mock_alias,
             patch("services.keywords.db_cache.TagRuleCache") as mock_rule,
         ):
-            response = client.post("/admin/refresh-caches")
+            response = client.post("/api/admin/refresh-caches")
             assert response.status_code == 200
             data = response.json()
 
@@ -40,7 +40,7 @@ class TestRefreshCaches:
         with patch("services.keywords.db_cache.TagCategoryCache") as mock_cat:
             mock_cat.refresh.side_effect = RuntimeError("DB connection failed")
 
-            response = client.post("/admin/refresh-caches")
+            response = client.post("/api/admin/refresh-caches")
             assert response.status_code == 207
             data = response.json()
 
@@ -53,7 +53,7 @@ class TestDeprecatedTags:
 
     def test_get_deprecated_tags_empty(self, client: TestClient, db_session):
         """No deprecated tags returns empty list."""
-        response = client.get("/admin/tags/deprecated")
+        response = client.get("/api/admin/tags/deprecated")
         assert response.status_code == 200
         data = response.json()
 
@@ -72,7 +72,7 @@ class TestDeprecatedTags:
         db_session.add_all([active_tag, deprecated_tag])
         db_session.commit()
 
-        response = client.get("/admin/tags/deprecated")
+        response = client.get("/api/admin/tags/deprecated")
         assert response.status_code == 200
         data = response.json()
 
@@ -97,7 +97,7 @@ class TestDeprecatedTags:
         db_session.add(deprecated)
         db_session.commit()
 
-        response = client.get("/admin/tags/deprecated")
+        response = client.get("/api/admin/tags/deprecated")
         data = response.json()
 
         assert data["total"] == 1
@@ -121,7 +121,7 @@ class TestDeprecateTag:
             "deprecated_reason": "No longer relevant",
         }
 
-        response = client.put(f"/admin/tags/{tag_id}/deprecate", json=request_data)
+        response = client.put(f"/api/admin/tags/{tag_id}/deprecate", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -141,7 +141,7 @@ class TestDeprecateTag:
             "replacement_tag_id": replacement.id,
         }
 
-        response = client.put(f"/admin/tags/{target.id}/deprecate", json=request_data)
+        response = client.put(f"/api/admin/tags/{target.id}/deprecate", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -153,7 +153,7 @@ class TestDeprecateTag:
             "deprecated_reason": "Test",
         }
 
-        response = client.put("/admin/tags/99999/deprecate", json=request_data)
+        response = client.put("/api/admin/tags/99999/deprecate", json=request_data)
         assert response.status_code == 404
 
     def test_deprecate_tag_invalid_replacement(self, client: TestClient, db_session):
@@ -167,7 +167,7 @@ class TestDeprecateTag:
             "replacement_tag_id": 99999,
         }
 
-        response = client.put(f"/admin/tags/{tag.id}/deprecate", json=request_data)
+        response = client.put(f"/api/admin/tags/{tag.id}/deprecate", json=request_data)
         assert response.status_code == 400
         assert "not found" in response.json()["detail"].lower()
 
@@ -182,7 +182,7 @@ class TestDeprecateTag:
             "replacement_tag_id": tag.id,
         }
 
-        response = client.put(f"/admin/tags/{tag.id}/deprecate", json=request_data)
+        response = client.put(f"/api/admin/tags/{tag.id}/deprecate", json=request_data)
         assert response.status_code == 400
         assert "itself" in response.json()["detail"].lower()
 
@@ -192,7 +192,7 @@ class TestDeprecateTag:
         db_session.add(tag)
         db_session.commit()
 
-        response = client.put(f"/admin/tags/{tag.id}/deprecate", json={})
+        response = client.put(f"/api/admin/tags/{tag.id}/deprecate", json={})
         assert response.status_code == 422
 
 
@@ -212,7 +212,7 @@ class TestActivateTag:
         db_session.commit()
         tag_id = tag.id
 
-        response = client.put(f"/admin/tags/{tag_id}/activate")
+        response = client.put(f"/api/admin/tags/{tag_id}/activate")
         assert response.status_code == 200
         data = response.json()
 
@@ -226,7 +226,7 @@ class TestActivateTag:
 
     def test_activate_tag_not_found(self, client: TestClient, db_session):
         """Activating non-existent tag returns 404."""
-        response = client.put("/admin/tags/99999/activate")
+        response = client.put("/api/admin/tags/99999/activate")
         assert response.status_code == 404
 
     def test_activate_already_active_tag(self, client: TestClient, db_session):
@@ -235,6 +235,6 @@ class TestActivateTag:
         db_session.add(tag)
         db_session.commit()
 
-        response = client.put(f"/admin/tags/{tag.id}/activate")
+        response = client.put(f"/api/admin/tags/{tag.id}/activate")
         assert response.status_code == 200
         assert response.json()["tag"]["is_active"] is True

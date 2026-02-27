@@ -14,45 +14,8 @@ from schemas import (
     StyleProfileUpdate,
 )
 
-router = APIRouter(prefix="/style-profiles", tags=["style-profiles"])
-
-
-@router.get("", response_model=list[StyleProfileResponse])
-async def list_style_profiles(active_only: bool = True, db: Session = Depends(get_db)):
-    """List all style profiles."""
-    query = db.query(StyleProfile)
-    if active_only:
-        query = query.filter(StyleProfile.is_active)
-    profiles = query.order_by(StyleProfile.name).all()
-    logger.info("📋 [StyleProfiles] Listed %d profiles", len(profiles))
-    return profiles
-
-
-@router.get("/default", response_model=StyleProfileFullResponse)
-async def get_default_profile(db: Session = Depends(get_db)):
-    """Get the default style profile with full details."""
-    profile = db.query(StyleProfile).filter(StyleProfile.is_default).first()
-    if not profile:
-        raise HTTPException(status_code=404, detail="No default profile set")
-    return _build_full_profile(db, profile)
-
-
-@router.get("/{profile_id}", response_model=StyleProfileResponse)
-async def get_style_profile(profile_id: int, db: Session = Depends(get_db)):
-    """Get a single style profile."""
-    profile = db.query(StyleProfile).filter(StyleProfile.id == profile_id).first()
-    if not profile:
-        raise HTTPException(status_code=404, detail="Style profile not found")
-    return profile
-
-
-@router.get("/{profile_id}/full", response_model=StyleProfileFullResponse)
-async def get_style_profile_full(profile_id: int, db: Session = Depends(get_db)):
-    """Get style profile with all resolved references."""
-    profile = db.query(StyleProfile).filter(StyleProfile.id == profile_id).first()
-    if not profile:
-        raise HTTPException(status_code=404, detail="Style profile not found")
-    return _build_full_profile(db, profile)
+service_router = APIRouter(prefix="/style-profiles", tags=["style-profiles"])
+admin_router = APIRouter(prefix="/style-profiles", tags=["style-profiles-admin"])
 
 
 def _build_full_profile(db: Session, profile: StyleProfile) -> dict:
@@ -119,7 +82,45 @@ def _build_full_profile(db: Session, profile: StyleProfile) -> dict:
     }
 
 
-@router.post("", response_model=StyleProfileResponse, status_code=201)
+@service_router.get("", response_model=list[StyleProfileResponse])
+async def list_style_profiles(active_only: bool = True, db: Session = Depends(get_db)):
+    """List all style profiles."""
+    query = db.query(StyleProfile)
+    if active_only:
+        query = query.filter(StyleProfile.is_active)
+    profiles = query.order_by(StyleProfile.name).all()
+    logger.info("📋 [StyleProfiles] Listed %d profiles", len(profiles))
+    return profiles
+
+
+@service_router.get("/default", response_model=StyleProfileFullResponse)
+async def get_default_profile(db: Session = Depends(get_db)):
+    """Get the default style profile with full details."""
+    profile = db.query(StyleProfile).filter(StyleProfile.is_default).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="No default profile set")
+    return _build_full_profile(db, profile)
+
+
+@service_router.get("/{profile_id}", response_model=StyleProfileResponse)
+async def get_style_profile(profile_id: int, db: Session = Depends(get_db)):
+    """Get a single style profile."""
+    profile = db.query(StyleProfile).filter(StyleProfile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Style profile not found")
+    return profile
+
+
+@service_router.get("/{profile_id}/full", response_model=StyleProfileFullResponse)
+async def get_style_profile_full(profile_id: int, db: Session = Depends(get_db)):
+    """Get style profile with all resolved references."""
+    profile = db.query(StyleProfile).filter(StyleProfile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Style profile not found")
+    return _build_full_profile(db, profile)
+
+
+@admin_router.post("", response_model=StyleProfileResponse, status_code=201)
 async def create_style_profile(data: StyleProfileCreate, db: Session = Depends(get_db)):
     """Create a new style profile."""
     existing = db.query(StyleProfile).filter(StyleProfile.name == data.name).first()
@@ -143,7 +144,7 @@ async def create_style_profile(data: StyleProfileCreate, db: Session = Depends(g
     return profile
 
 
-@router.put("/{profile_id}", response_model=StyleProfileResponse)
+@admin_router.put("/{profile_id}", response_model=StyleProfileResponse)
 async def update_style_profile(profile_id: int, data: StyleProfileUpdate, db: Session = Depends(get_db)):
     """Update a style profile."""
     profile = db.query(StyleProfile).filter(StyleProfile.id == profile_id).first()
@@ -171,7 +172,7 @@ async def update_style_profile(profile_id: int, data: StyleProfileUpdate, db: Se
     return profile
 
 
-@router.delete("/{profile_id}", response_model=StyleProfileDeleteResponse)
+@admin_router.delete("/{profile_id}", response_model=StyleProfileDeleteResponse)
 async def delete_style_profile(profile_id: int, db: Session = Depends(get_db)):
     """Delete a style profile."""
     profile = db.query(StyleProfile).filter(StyleProfile.id == profile_id).first()

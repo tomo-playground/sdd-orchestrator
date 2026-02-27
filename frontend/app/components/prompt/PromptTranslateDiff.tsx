@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { API_BASE } from "../../constants";
+import { ADMIN_API_BASE } from "../../constants";
 import { computeTokenDiff } from "../../utils/promptDiff";
 
 type PromptTranslateDiffProps = {
@@ -27,7 +27,7 @@ export default function PromptTranslateDiff({
     setTranslatedPrompt(null);
 
     try {
-      const res = await fetch(`${API_BASE}/prompt/translate-ko`, {
+      const res = await fetch(`${ADMIN_API_BASE}/prompt/translate-ko`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

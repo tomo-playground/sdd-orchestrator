@@ -32,7 +32,7 @@ def test_store_scene_image_endpoint(mock_asset_service):
     )
     mock_service_instance.get_asset_url.return_value = "http://minio/scene_1.png"
 
-    response = client.post("/image/store", json=request_data)
+    response = client.post("/api/v1/image/store", json=request_data)
 
     resp_json = response.json()
     assert response.status_code == 200

@@ -3,7 +3,7 @@ import type { Scene } from "../../types";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
-import { API_BASE } from "../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../constants";
 import { getErrorMsg } from "../../utils/error";
 import { buildNegativePrompt } from "./promptActions";
 import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
@@ -90,7 +90,7 @@ export async function handleValidateImage(scene: Scene) {
     if (scene.prompt_history_id && validation.match_rate != null) {
       axios
         .post(
-          `${API_BASE}/prompt-histories/${scene.prompt_history_id}/update-score?match_rate=${matchRate}`
+          `${ADMIN_API_BASE}/prompt-histories/${scene.prompt_history_id}/update-score?match_rate=${matchRate}`
         )
         .catch(() => {});
     }
@@ -128,7 +128,7 @@ export async function handleMarkSuccess(scene: Scene) {
     markingStatusSceneId: scene.client_id,
   });
   try {
-    await axios.patch(`${API_BASE}/activity-logs/${scene.activity_log_id}/status`, {
+    await axios.patch(`${ADMIN_API_BASE}/activity-logs/${scene.activity_log_id}/status`, {
       status: "success",
     });
     showToast("Marked as success", "success");
@@ -149,7 +149,7 @@ export async function handleMarkFail(scene: Scene) {
     markingStatusSceneId: scene.client_id,
   });
   try {
-    await axios.patch(`${API_BASE}/activity-logs/${scene.activity_log_id}/status`, {
+    await axios.patch(`${ADMIN_API_BASE}/activity-logs/${scene.activity_log_id}/status`, {
       status: "fail",
     });
     showToast("Marked as fail", "error");
@@ -185,7 +185,7 @@ export async function handleSavePrompt(scene: Scene, name: string) {
         trigger_words: lora.trigger_words ?? [],
       }));
     }
-    await axios.post(`${API_BASE}/prompt-histories`, payload);
+    await axios.post(`${ADMIN_API_BASE}/prompt-histories`, payload);
     showToast("Prompt saved!", "success");
   } catch {
     showToast("Failed to save prompt", "error");

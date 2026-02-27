@@ -114,7 +114,7 @@ class TestStoryboardCharacterLoading:
         db_session.commit()
 
         # Fetch storyboard via API
-        resp = client.get(f"/storyboards/{storyboard.id}")
+        resp = client.get(f"/api/v1/storyboards/{storyboard.id}")
         assert resp.status_code == 200
         data = resp.json()
 

@@ -134,7 +134,7 @@ async def test_feedback_presets_endpoint():
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/scripts/feedback-presets")
+        resp = await client.get("/api/v1/scripts/feedback-presets")
 
     assert resp.status_code == 200
     data = resp.json()

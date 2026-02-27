@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
-import { API_BASE } from "../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../constants";
 import type { ProjectItem } from "../../types";
 
 export async function fetchProjects(): Promise<void> {
@@ -25,7 +25,7 @@ export async function createProject(data: {
 }): Promise<ProjectItem | undefined> {
   const { showToast } = useUIStore.getState();
   try {
-    const res = await axios.post<ProjectItem>(`${API_BASE}/projects`, data);
+    const res = await axios.post<ProjectItem>(`${ADMIN_API_BASE}/projects`, data);
     await fetchProjects();
     showToast("Project created", "success");
     return res.data;
@@ -47,7 +47,7 @@ export async function updateProject(
 ): Promise<ProjectItem | undefined> {
   const { showToast } = useUIStore.getState();
   try {
-    const res = await axios.put<ProjectItem>(`${API_BASE}/projects/${projectId}`, data);
+    const res = await axios.put<ProjectItem>(`${ADMIN_API_BASE}/projects/${projectId}`, data);
     await fetchProjects();
     showToast("Project updated", "success");
     return res.data;
@@ -61,7 +61,7 @@ export async function updateProject(
 export async function deleteProject(projectId: number): Promise<boolean> {
   const { showToast } = useUIStore.getState();
   try {
-    await axios.delete(`${API_BASE}/projects/${projectId}`);
+    await axios.delete(`${ADMIN_API_BASE}/projects/${projectId}`);
     await fetchProjects();
     showToast("Project deleted", "success");
     return true;

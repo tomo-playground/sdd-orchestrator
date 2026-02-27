@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { API_BASE } from "../../constants";
+import { ADMIN_API_BASE } from "../../constants";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import {
   SIDE_PANEL_LAYOUT,
@@ -41,7 +41,7 @@ export default function QualityDashboard({ storyboardId }: { storyboardId?: numb
     setError("");
 
     try {
-      const url = `${API_BASE}/quality/summary/${storyboardId}`;
+      const url = `${ADMIN_API_BASE}/quality/summary/${storyboardId}`;
 
       const res = await axios.get<QualitySummary>(url);
       setSummary(res.data);

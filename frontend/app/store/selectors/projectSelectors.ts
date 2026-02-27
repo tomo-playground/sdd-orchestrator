@@ -1,5 +1,5 @@
 import { useContextStore } from "../useContextStore";
-import { API_BASE } from "../../constants";
+import { API_ROOT, ADMIN_API_BASE } from "../../constants";
 import type { ProjectItem } from "../../types";
 
 export function getCurrentProject(): ProjectItem | null {
@@ -20,7 +20,7 @@ export function getChannelAvatarUrl(): string | null {
 
 /** Resolve avatar_key to full URL. Handles both character preview paths and legacy IP-Adapter keys. */
 export function resolveAvatarUrl(avatarKey: string): string {
-  if (avatarKey.startsWith("/")) return `${API_BASE}${avatarKey}`;
+  if (avatarKey.startsWith("/")) return `${API_ROOT}${avatarKey}`;
   if (avatarKey.startsWith("http")) return avatarKey;
-  return `${API_BASE}/controlnet/ip-adapter/reference/${avatarKey}/image`;
+  return `${ADMIN_API_BASE}/controlnet/ip-adapter/reference/${avatarKey}/image`;
 }

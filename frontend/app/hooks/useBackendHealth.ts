@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { API_BASE } from "../constants";
+import { API_ROOT } from "../constants";
 
 const POLL_INTERVAL = 10_000;
 const FAILURE_THRESHOLD = 3;
@@ -18,7 +18,7 @@ export function useBackendHealth(): ConnectionStatus {
 
     const check = async () => {
       try {
-        await axios.get(`${API_BASE}/health`, { timeout: 5_000 });
+        await axios.get(`${API_ROOT}/health`, { timeout: 5_000 });
         failCount.current = 0;
         setStatus("connected");
       } catch {

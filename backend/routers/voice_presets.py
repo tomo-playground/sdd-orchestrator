@@ -20,7 +20,8 @@ from schemas import (
 from services.asset_service import AssetService
 from services.storage import get_storage
 
-router = APIRouter(prefix="/voice-presets", tags=["voice-presets"])
+service_router = APIRouter(prefix="/voice-presets", tags=["voice-presets"])
+admin_router = APIRouter(prefix="/voice-presets", tags=["voice-presets-admin"])
 
 
 def _compute_voice_seed(voice_design_prompt: str | None) -> int | None:
@@ -56,7 +57,7 @@ def _preset_to_response(preset: VoicePreset) -> dict:
     }
 
 
-@router.get("", response_model=list[VoicePresetResponse])
+@service_router.get("", response_model=list[VoicePresetResponse])
 def list_voice_presets(db: Session = Depends(get_db)):
     from sqlalchemy.orm import joinedload
 
@@ -64,7 +65,7 @@ def list_voice_presets(db: Session = Depends(get_db)):
     return [_preset_to_response(p) for p in presets]
 
 
-@router.get("/{preset_id}", response_model=VoicePresetResponse)
+@service_router.get("/{preset_id}", response_model=VoicePresetResponse)
 def get_voice_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(VoicePreset).filter(VoicePreset.id == preset_id).first()
     if not preset:
@@ -72,7 +73,7 @@ def get_voice_preset(preset_id: int, db: Session = Depends(get_db)):
     return _preset_to_response(preset)
 
 
-@router.post("", response_model=VoicePresetResponse, status_code=201)
+@admin_router.post("", response_model=VoicePresetResponse, status_code=201)
 def create_voice_preset(body: VoicePresetCreate, db: Session = Depends(get_db)):
     data = body.model_dump(exclude_unset=True, exclude={"source_type"})
     # Auto-compute voice_seed if not provided
@@ -90,7 +91,7 @@ def create_voice_preset(body: VoicePresetCreate, db: Session = Depends(get_db)):
     return _preset_to_response(preset)
 
 
-@router.put("/{preset_id}", response_model=VoicePresetResponse)
+@admin_router.put("/{preset_id}", response_model=VoicePresetResponse)
 def update_voice_preset(
     preset_id: int,
     body: VoicePresetUpdate,
@@ -110,7 +111,7 @@ def update_voice_preset(
     return _preset_to_response(preset)
 
 
-@router.delete("/{preset_id}")
+@admin_router.delete("/{preset_id}")
 def delete_voice_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(VoicePreset).filter(VoicePreset.id == preset_id).first()
     if not preset:
@@ -130,7 +131,7 @@ def delete_voice_preset(preset_id: int, db: Session = Depends(get_db)):
     return {"status": "deleted", "id": preset_id}
 
 
-@router.post("/preview")
+@admin_router.post("/preview")
 async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db)):
     """Generate a preview audio via Audio Server."""
     from config import TTS_DEFAULT_LANGUAGE
@@ -178,7 +179,7 @@ async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db))
         raise_user_error("preview_generate", e)
 
 
-@router.post("/{preset_id}/attach-preview")
+@admin_router.post("/{preset_id}/attach-preview")
 def attach_preview_to_preset(
     preset_id: int,
     temp_asset_id: int,

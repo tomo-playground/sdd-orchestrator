@@ -143,7 +143,7 @@ def test_scene_generation_applies_style_profile(setup_test_data, client: TestCli
     }
 
     # Call the scene generation endpoint
-    response = client.post("/scene/generate", json=request_data)
+    response = client.post("/api/v1/scene/generate", json=request_data)
     assert response.status_code == 200
 
     # Verify Style Profile was applied

@@ -7,7 +7,7 @@ def _seed_system_preset(client: TestClient) -> dict:
     """Create a system preset via DB (simulates migration seed)."""
     # Use the API to create, then we test against it
     res = client.post(
-        "/render-presets",
+        "/api/admin/render-presets",
         json={
             "name": "Test System",
             "layout_style": "post",
@@ -22,14 +22,14 @@ def _seed_system_preset(client: TestClient) -> dict:
 
 
 def test_list_render_presets_empty(client: TestClient):
-    res = client.get("/render-presets")
+    res = client.get("/api/v1/render-presets")
     assert res.status_code == 200
     assert res.json() == []
 
 
 def test_list_render_presets_returns_created(client: TestClient):
     _seed_system_preset(client)
-    res = client.get("/render-presets")
+    res = client.get("/api/v1/render-presets")
     assert res.status_code == 200
     assert len(res.json()) == 1
 
@@ -39,14 +39,14 @@ def test_list_render_presets_returns_created(client: TestClient):
 
 def test_get_render_preset(client: TestClient):
     created = _seed_system_preset(client)
-    res = client.get(f"/render-presets/{created['id']}")
+    res = client.get(f"/api/v1/render-presets/{created['id']}")
     assert res.status_code == 200
     assert res.json()["name"] == "Test System"
     assert res.json()["layout_style"] == "post"
 
 
 def test_get_render_preset_not_found(client: TestClient):
-    res = client.get("/render-presets/9999")
+    res = client.get("/api/v1/render-presets/9999")
     assert res.status_code == 404
 
 
@@ -55,7 +55,7 @@ def test_get_render_preset_not_found(client: TestClient):
 
 def test_create_render_preset(client: TestClient):
     res = client.post(
-        "/render-presets",
+        "/api/admin/render-presets",
         json={
             "name": "My Custom",
             "layout_style": "full",
@@ -74,7 +74,7 @@ def test_create_render_preset(client: TestClient):
 
 
 def test_create_render_preset_minimal(client: TestClient):
-    res = client.post("/render-presets", json={"name": "Bare Minimum"})
+    res = client.post("/api/admin/render-presets", json={"name": "Bare Minimum"})
     assert res.status_code == 201
     assert res.json()["name"] == "Bare Minimum"
     assert res.json()["is_system"] is False
@@ -84,9 +84,9 @@ def test_create_render_preset_minimal(client: TestClient):
 
 
 def test_update_render_preset(client: TestClient):
-    created = client.post("/render-presets", json={"name": "Editable"}).json()
+    created = client.post("/api/admin/render-presets", json={"name": "Editable"}).json()
     res = client.put(
-        f"/render-presets/{created['id']}",
+        f"/api/admin/render-presets/{created['id']}",
         json={
             "name": "Edited",
             "bgm_volume": 0.5,
@@ -98,7 +98,7 @@ def test_update_render_preset(client: TestClient):
 
 
 def test_update_render_preset_not_found(client: TestClient):
-    res = client.put("/render-presets/9999", json={"name": "X"})
+    res = client.put("/api/admin/render-presets/9999", json={"name": "X"})
     assert res.status_code == 404
 
 
@@ -111,7 +111,7 @@ def test_update_system_preset_allowed(client: TestClient, db_session):
     db_session.commit()
     db_session.refresh(preset)
 
-    res = client.put(f"/render-presets/{preset.id}", json={"name": "Updated System"})
+    res = client.put(f"/api/admin/render-presets/{preset.id}", json={"name": "Updated System"})
     assert res.status_code == 200
     assert res.json()["name"] == "Updated System"
 
@@ -120,18 +120,18 @@ def test_update_system_preset_allowed(client: TestClient, db_session):
 
 
 def test_delete_render_preset(client: TestClient):
-    created = client.post("/render-presets", json={"name": "Deletable"}).json()
-    res = client.delete(f"/render-presets/{created['id']}")
+    created = client.post("/api/admin/render-presets", json={"name": "Deletable"}).json()
+    res = client.delete(f"/api/admin/render-presets/{created['id']}")
     assert res.status_code == 200
     assert res.json()["status"] == "deleted"
 
     # Confirm gone
-    res = client.get(f"/render-presets/{created['id']}")
+    res = client.get(f"/api/v1/render-presets/{created['id']}")
     assert res.status_code == 404
 
 
 def test_delete_render_preset_not_found(client: TestClient):
-    res = client.delete("/render-presets/9999")
+    res = client.delete("/api/admin/render-presets/9999")
     assert res.status_code == 404
 
 
@@ -144,7 +144,7 @@ def test_delete_system_preset_allowed(client: TestClient, db_session):
     db_session.commit()
     db_session.refresh(preset)
 
-    res = client.delete(f"/render-presets/{preset.id}")
+    res = client.delete(f"/api/admin/render-presets/{preset.id}")
     assert res.status_code == 200
     assert res.json()["status"] == "deleted"
 
@@ -154,7 +154,7 @@ def test_delete_system_preset_allowed(client: TestClient, db_session):
 
 def test_create_group_with_preset(client: TestClient):
     preset = client.post(
-        "/render-presets",
+        "/api/admin/render-presets",
         json={
             "name": "For Group",
             "layout_style": "post",
@@ -163,7 +163,7 @@ def test_create_group_with_preset(client: TestClient):
     ).json()
 
     group = client.post(
-        "/groups",
+        "/api/v1/groups",
         json={
             "project_id": 1,
             "name": "Test Series",
@@ -175,13 +175,13 @@ def test_create_group_with_preset(client: TestClient):
 
     # Verify render_preset_id is stored in group_config
     gid = group.json()["id"]
-    config = client.get(f"/groups/{gid}/config").json()
+    config = client.get(f"/api/v1/groups/{gid}/config").json()
     assert config["render_preset_id"] == preset["id"]
 
 
 def test_get_group_config_includes_preset(client: TestClient):
     preset = client.post(
-        "/render-presets",
+        "/api/admin/render-presets",
         json={
             "name": "Nested Test",
             "transition_type": "fade",
@@ -189,7 +189,7 @@ def test_get_group_config_includes_preset(client: TestClient):
     ).json()
 
     created = client.post(
-        "/groups",
+        "/api/v1/groups",
         json={
             "project_id": 1,
             "name": "Nested Group",
@@ -198,14 +198,14 @@ def test_get_group_config_includes_preset(client: TestClient):
         },
     ).json()
 
-    config = client.get(f"/groups/{created['id']}/config")
+    config = client.get(f"/api/v1/groups/{created['id']}/config")
     assert config.status_code == 200
     assert config.json()["render_preset_id"] == preset["id"]
 
 
 def test_group_without_preset(client: TestClient):
     group = client.post(
-        "/groups",
+        "/api/v1/groups",
         json={
             "project_id": 1,
             "name": "No Preset Group",
@@ -216,5 +216,5 @@ def test_group_without_preset(client: TestClient):
 
     # Verify config has no preset
     gid = group.json()["id"]
-    config = client.get(f"/groups/{gid}/config").json()
+    config = client.get(f"/api/v1/groups/{gid}/config").json()
     assert config["render_preset_id"] is None

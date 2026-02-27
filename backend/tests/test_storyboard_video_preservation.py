@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 def _create_storyboard(client: TestClient) -> int:
     payload = {"title": "Video Preserve Test", "description": "test", "group_id": 1, "scenes": []}
-    res = client.post("/storyboards", json=payload)
+    res = client.post("/api/v1/storyboards", json=payload)
     assert res.status_code == 200
     return res.json()["storyboard_id"]
 
@@ -41,7 +41,7 @@ class TestVideoPreservationOnUpdate:
         video_id = _seed_media_asset(db_session, sb_id, "video")
 
         # Update storyboard
-        res = client.put(f"/storyboards/{sb_id}", json={
+        res = client.put(f"/api/v1/storyboards/{sb_id}", json={
             "title": "Updated", "description": "test", "scenes": [],
         })
         assert res.status_code == 200
@@ -57,7 +57,7 @@ class TestVideoPreservationOnUpdate:
         sb_id = _create_storyboard(client)
         audio_id = _seed_media_asset(db_session, sb_id, "audio")
 
-        res = client.put(f"/storyboards/{sb_id}", json={
+        res = client.put(f"/api/v1/storyboards/{sb_id}", json={
             "title": "Updated", "description": "test", "scenes": [],
         })
         assert res.status_code == 200
@@ -72,7 +72,7 @@ class TestVideoPreservationOnUpdate:
         sb_id = _create_storyboard(client)
         cache_id = _seed_media_asset(db_session, sb_id, "cache")
 
-        res = client.put(f"/storyboards/{sb_id}", json={
+        res = client.put(f"/api/v1/storyboards/{sb_id}", json={
             "title": "Updated", "description": "test", "scenes": [],
         })
         assert res.status_code == 200
@@ -90,7 +90,7 @@ class TestVideoPreservationOnUpdate:
         cache_id = _seed_media_asset(db_session, sb_id, "cache")
         image_id = _seed_media_asset(db_session, sb_id, "image", "_thumb")
 
-        res = client.put(f"/storyboards/{sb_id}", json={
+        res = client.put(f"/api/v1/storyboards/{sb_id}", json={
             "title": "Updated", "description": "test", "scenes": [],
         })
         assert res.status_code == 200

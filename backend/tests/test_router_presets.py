@@ -8,7 +8,7 @@ class TestPresetsRouter:
 
     def test_list_presets(self, client: TestClient, db_session):
         """GET /presets returns all available presets."""
-        response = client.get("/presets")
+        response = client.get("/api/v1/presets")
         assert response.status_code == 200
         data = response.json()
 
@@ -31,7 +31,7 @@ class TestPresetsRouter:
 
     def test_list_presets_contains_known_ids(self, client: TestClient, db_session):
         """Preset list includes known preset IDs."""
-        response = client.get("/presets")
+        response = client.get("/api/v1/presets")
         data = response.json()
         ids = [p["id"] for p in data["presets"]]
 
@@ -43,7 +43,7 @@ class TestPresetsRouter:
 
     def test_get_preset_detail_monologue(self, client: TestClient, db_session):
         """GET /presets/monologue returns monologue preset details."""
-        response = client.get("/presets/monologue")
+        response = client.get("/api/v1/presets/monologue")
         assert response.status_code == 200
         data = response.json()
 
@@ -59,7 +59,7 @@ class TestPresetsRouter:
 
     def test_get_preset_detail_dialogue(self, client: TestClient, db_session):
         """GET /presets/dialogue returns dialogue preset."""
-        response = client.get("/presets/dialogue")
+        response = client.get("/api/v1/presets/dialogue")
         assert response.status_code == 200
         data = response.json()
 
@@ -70,13 +70,13 @@ class TestPresetsRouter:
 
     def test_get_preset_not_found(self, client: TestClient, db_session):
         """GET /presets/{invalid_id} returns 404."""
-        response = client.get("/presets/nonexistent_preset")
+        response = client.get("/api/v1/presets/nonexistent_preset")
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
     def test_get_preset_topics_monologue(self, client: TestClient, db_session):
         """GET /presets/monologue/topics returns sample topics."""
-        response = client.get("/presets/monologue/topics")
+        response = client.get("/api/v1/presets/monologue/topics")
         assert response.status_code == 200
         data = response.json()
 
@@ -87,13 +87,13 @@ class TestPresetsRouter:
 
     def test_get_preset_topics_not_found(self, client: TestClient, db_session):
         """GET /presets/{invalid}/topics returns 404."""
-        response = client.get("/presets/nonexistent_preset/topics")
+        response = client.get("/api/v1/presets/nonexistent_preset/topics")
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
     def test_all_presets_have_sample_topics(self, client: TestClient, db_session):
         """Every preset has at least one sample topic."""
-        response = client.get("/presets")
+        response = client.get("/api/v1/presets")
         presets = response.json()["presets"]
 
         for preset in presets:
@@ -103,14 +103,14 @@ class TestPresetsRouter:
 
     def test_preset_detail_has_extra_fields(self, client: TestClient, db_session):
         """Preset detail includes extra_fields key."""
-        response = client.get("/presets/monologue")
+        response = client.get("/api/v1/presets/monologue")
         data = response.json()
 
         assert "extra_fields" in data
 
     def test_all_presets_have_default_style(self, client: TestClient, db_session):
         """Every preset has a default_style set."""
-        response = client.get("/presets")
+        response = client.get("/api/v1/presets")
         presets = response.json()["presets"]
 
         for preset in presets:

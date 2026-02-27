@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
-import { API_BASE } from "../../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../../constants";
 import type {
   StyleProfile,
   StyleProfileFull,
@@ -65,7 +65,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
 
   const fetchSdModels = useCallback(async () => {
     try {
-      const res = await axios.get<SDModelEntry[]>(`${API_BASE}/sd-models`);
+      const res = await axios.get<SDModelEntry[]>(`${ADMIN_API_BASE}/sd-models`);
       setSdModels(res.data || []);
     } catch {
       console.error("Failed to fetch SD models");
@@ -74,7 +74,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
 
   const fetchEmbeddings = useCallback(async () => {
     try {
-      const res = await axios.get<Embedding[]>(`${API_BASE}/embeddings`);
+      const res = await axios.get<Embedding[]>(`${ADMIN_API_BASE}/embeddings`);
       setEmbeddings(res.data || []);
     } catch {
       console.error("Failed to fetch embeddings");
@@ -116,7 +116,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     const name = result as string;
     if (!name.trim()) return;
     try {
-      await axios.post(`${API_BASE}/style-profiles/`, { name });
+      await axios.post(`${ADMIN_API_BASE}/style-profiles/`, { name });
       await fetchStyles();
     } catch (error) {
       const msg = axios.isAxiosError(error)
@@ -136,7 +136,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
       });
       if (!ok) return;
       try {
-        await axios.delete(`${API_BASE}/style-profiles/${id}`);
+        await axios.delete(`${ADMIN_API_BASE}/style-profiles/${id}`);
         setSelectedProfile((prev) => (prev?.id === id ? null : prev));
         await fetchStyles();
       } catch (error) {
@@ -152,7 +152,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
   const handleUpdateStyle = useCallback(
     async (id: number, data: Partial<StyleProfile>) => {
       try {
-        await axios.put(`${API_BASE}/style-profiles/${id}`, data);
+        await axios.put(`${ADMIN_API_BASE}/style-profiles/${id}`, data);
         await fetchStyles();
         setSelectedProfile((prev) => {
           if (prev && prev.id === id) {
@@ -186,7 +186,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
 
       try {
         const createRes = await axios.post<{ id: number; name: string }>(
-          `${API_BASE}/style-profiles/`,
+          `${ADMIN_API_BASE}/style-profiles/`,
           { name: newName }
         );
         const newId = createRes.data.id;
@@ -195,7 +195,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
         );
         const fullOriginal = detailRes.data;
 
-        await axios.put(`${API_BASE}/style-profiles/${newId}`, {
+        await axios.put(`${ADMIN_API_BASE}/style-profiles/${newId}`, {
           default_positive: fullOriginal.default_positive,
           default_negative: fullOriginal.default_negative,
           sd_model_id: fullOriginal.sd_model?.id ?? null,

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { Loader2, Plus, Trash2, Shield, X, Pencil } from "lucide-react";
-import { API_BASE } from "../../constants";
+import { ADMIN_API_BASE } from "../../constants";
 import { FILTER_PILL_ACTIVE, FILTER_PILL_INACTIVE } from "../ui/variants";
 import PresetFormFields from "./PresetFormFields";
 
@@ -75,7 +75,7 @@ export default function AgentConfigPanel() {
   const fetchPresets = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get<PresetsApiResponse>(`${API_BASE}/lab/creative/agent-presets`);
+      const res = await axios.get<PresetsApiResponse>(`${ADMIN_API_BASE}/lab/creative/agent-presets`);
       setPresets(res.data.presets);
       setCategories(res.data.categories);
     } catch {
@@ -104,7 +104,7 @@ export default function AgentConfigPanel() {
     setSubmitting(true);
     setError(null);
     try {
-      await axios.post(`${API_BASE}/lab/creative/agent-presets`, sanitizeForm(form));
+      await axios.post(`${ADMIN_API_BASE}/lab/creative/agent-presets`, sanitizeForm(form));
       setForm({ ...EMPTY_FORM });
       setShowForm(false);
       await fetchPresets();
@@ -121,7 +121,7 @@ export default function AgentConfigPanel() {
   const handleDelete = useCallback(
     async (id: number) => {
       try {
-        await axios.delete(`${API_BASE}/lab/creative/agent-presets/${id}`);
+        await axios.delete(`${ADMIN_API_BASE}/lab/creative/agent-presets/${id}`);
         await fetchPresets();
       } catch (err) {
         const msg = axios.isAxiosError(err)
@@ -153,7 +153,7 @@ export default function AgentConfigPanel() {
     setSubmitting(true);
     setError(null);
     try {
-      await axios.put(`${API_BASE}/lab/creative/agent-presets/${editingId}`, sanitizeForm(form));
+      await axios.put(`${ADMIN_API_BASE}/lab/creative/agent-presets/${editingId}`, sanitizeForm(form));
       setForm({ ...EMPTY_FORM });
       setEditingId(null);
       await fetchPresets();

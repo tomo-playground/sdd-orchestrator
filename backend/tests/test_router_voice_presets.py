@@ -5,7 +5,7 @@ class TestVoicePresetsRouter:
     """CRUD tests for voice presets API."""
 
     def test_list_empty(self, client):
-        resp = client.get("/voice-presets")
+        resp = client.get("/api/v1/voice-presets")
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
@@ -15,7 +15,7 @@ class TestVoicePresetsRouter:
             "voice_design_prompt": "calm male narrator",
             "language": "korean",
         }
-        resp = client.post("/voice-presets", json=body)
+        resp = client.post("/api/admin/voice-presets", json=body)
         assert resp.status_code == 201
         data = resp.json()
         assert data["name"] == "Narrator Voice"
@@ -26,28 +26,28 @@ class TestVoicePresetsRouter:
 
     def test_create_preset_minimal(self, client):
         body = {"name": "Minimal Voice"}
-        resp = client.post("/voice-presets", json=body)
+        resp = client.post("/api/admin/voice-presets", json=body)
         assert resp.status_code == 201
         data = resp.json()
         assert data["name"] == "Minimal Voice"
         assert data["language"] == "korean"  # default
 
     def test_get_preset(self, client):
-        pid = client.post("/voice-presets", json={"name": "GetMe"}).json()["id"]
+        pid = client.post("/api/admin/voice-presets", json={"name": "GetMe"}).json()["id"]
 
-        resp = client.get(f"/voice-presets/{pid}")
+        resp = client.get(f"/api/v1/voice-presets/{pid}")
         assert resp.status_code == 200
         assert resp.json()["name"] == "GetMe"
 
     def test_get_preset_not_found(self, client):
-        resp = client.get("/voice-presets/9999")
+        resp = client.get("/api/v1/voice-presets/9999")
         assert resp.status_code == 404
 
     def test_update_preset(self, client):
-        pid = client.post("/voice-presets", json={"name": "Before"}).json()["id"]
+        pid = client.post("/api/admin/voice-presets", json={"name": "Before"}).json()["id"]
 
         resp = client.put(
-            f"/voice-presets/{pid}",
+            f"/api/admin/voice-presets/{pid}",
             json={"name": "After", "voice_design_prompt": "new prompt"},
         )
         assert resp.status_code == 200
@@ -57,47 +57,47 @@ class TestVoicePresetsRouter:
 
     def test_update_preset_partial(self, client):
         pid = client.post(
-            "/voice-presets",
+            "/api/admin/voice-presets",
             json={"name": "Keep", "description": "original"},
         ).json()["id"]
 
-        resp = client.put(f"/voice-presets/{pid}", json={"name": "Changed"})
+        resp = client.put(f"/api/admin/voice-presets/{pid}", json={"name": "Changed"})
         assert resp.status_code == 200
         data = resp.json()
         assert data["name"] == "Changed"
         assert data["description"] == "original"
 
     def test_update_preset_not_found(self, client):
-        resp = client.put("/voice-presets/9999", json={"name": "X"})
+        resp = client.put("/api/admin/voice-presets/9999", json={"name": "X"})
         assert resp.status_code == 404
 
     def test_delete_preset(self, client):
-        pid = client.post("/voice-presets", json={"name": "ToDelete"}).json()["id"]
+        pid = client.post("/api/admin/voice-presets", json={"name": "ToDelete"}).json()["id"]
 
-        resp = client.delete(f"/voice-presets/{pid}")
+        resp = client.delete(f"/api/admin/voice-presets/{pid}")
         assert resp.status_code == 200
         assert resp.json()["status"] == "deleted"
 
-        resp = client.get(f"/voice-presets/{pid}")
+        resp = client.get(f"/api/v1/voice-presets/{pid}")
         assert resp.status_code == 404
 
     def test_delete_preset_not_found(self, client):
-        resp = client.delete("/voice-presets/9999")
+        resp = client.delete("/api/admin/voice-presets/9999")
         assert resp.status_code == 404
 
     def test_list_after_create(self, client):
-        client.post("/voice-presets", json={"name": "V1"})
-        client.post("/voice-presets", json={"name": "V2"})
+        client.post("/api/admin/voice-presets", json={"name": "V1"})
+        client.post("/api/admin/voice-presets", json={"name": "V2"})
 
-        resp = client.get("/voice-presets")
+        resp = client.get("/api/v1/voice-presets")
         assert resp.status_code == 200
         names = [p["name"] for p in resp.json()]
         assert "V1" in names
         assert "V2" in names
 
     def test_response_includes_audio_url_field(self, client):
-        pid = client.post("/voice-presets", json={"name": "AudioTest"}).json()["id"]
-        resp = client.get(f"/voice-presets/{pid}")
+        pid = client.post("/api/admin/voice-presets", json={"name": "AudioTest"}).json()["id"]
+        resp = client.get(f"/api/v1/voice-presets/{pid}")
         data = resp.json()
         assert "audio_url" in data
         assert data["audio_url"] is None  # no audio attached

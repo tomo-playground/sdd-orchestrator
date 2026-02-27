@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { API_BASE } from "../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../constants";
 import { useUIStore } from "../../store/useUIStore";
 import type { MusicPreset } from "../../types";
 import { TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
@@ -83,7 +83,7 @@ export default function BgmSection(props: BgmSectionProps) {
         audio_url: string;
         temp_asset_id: number;
         seed: number;
-      }>(`${API_BASE}/music-presets/preview`, {
+      }>(`${ADMIN_API_BASE}/music-presets/preview`, {
         prompt: bgmPrompt,
         duration: 10.0,
         seed: -1,

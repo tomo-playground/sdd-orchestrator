@@ -10,7 +10,8 @@ from models import Tag
 from schemas import TagCreate, TagResponse, TagSearchResponse, TagUpdate
 from services.tag_classifier import TagClassifier, classify_tags_background_llm
 
-router = APIRouter(prefix="/tags", tags=["tags"])
+service_router = APIRouter(prefix="/tags", tags=["tags"])
+admin_router = APIRouter(prefix="/tags", tags=["tags-admin"])
 
 
 # === Classification Schemas ===
@@ -65,7 +66,7 @@ class ApproveClassificationRequest(BaseModel):
     category: str | None = None  # Optional: update category too
 
 
-@router.get("", response_model=list[TagResponse])
+@service_router.get("", response_model=list[TagResponse])
 async def list_tags(
     category: str | None = Query(None, description="Filter by category"),
     group_name: str | None = Query(None, description="Filter by group"),
@@ -82,7 +83,7 @@ async def list_tags(
     return tags
 
 
-@router.get("/groups")
+@service_router.get("/groups")
 async def list_tag_groups(db: Session = Depends(get_db)):
     """List all unique group names with counts."""
     from sqlalchemy import func
@@ -97,7 +98,7 @@ async def list_tag_groups(db: Session = Depends(get_db)):
     return {"groups": groups}
 
 
-@router.get("/search", response_model=list[TagSearchResponse])
+@service_router.get("/search", response_model=list[TagSearchResponse])
 async def search_tags(
     q: str = Query(..., min_length=1, description="Search query"),
     limit: int = Query(20, le=100, description="Max results"),
@@ -161,7 +162,7 @@ async def search_tags(
 # === Pending Classification Endpoints (15.7.5) ===
 
 
-@router.get("/pending", response_model=PendingTagsResponse)
+@admin_router.get("/pending", response_model=PendingTagsResponse)
 async def get_pending_classifications(
     source: str | None = Query(None, description="Filter by source (danbooru, llm, unknown)"),
     max_confidence: float = Query(0.9, description="Maximum confidence threshold"),
@@ -230,7 +231,7 @@ async def get_pending_classifications(
     return PendingTagsResponse(tags=items, total=len(items))
 
 
-@router.get("/{tag_id}", response_model=TagResponse)
+@service_router.get("/{tag_id}", response_model=TagResponse)
 async def get_tag(tag_id: int, db: Session = Depends(get_db)):
     """Get a single tag by ID."""
     tag = db.query(Tag).filter(Tag.id == tag_id).first()
@@ -239,7 +240,7 @@ async def get_tag(tag_id: int, db: Session = Depends(get_db)):
     return tag
 
 
-@router.post("", response_model=TagResponse, status_code=201)
+@admin_router.post("", response_model=TagResponse, status_code=201)
 async def create_tag(data: TagCreate, db: Session = Depends(get_db)):
     """Create a new tag. Auto-classifies if group_name is not provided."""
     existing = db.query(Tag).filter(Tag.name == data.name).first()
@@ -272,7 +273,7 @@ async def create_tag(data: TagCreate, db: Session = Depends(get_db)):
     return tag
 
 
-@router.put("/{tag_id}", response_model=TagResponse)
+@admin_router.put("/{tag_id}", response_model=TagResponse)
 async def update_tag(tag_id: int, data: TagUpdate, db: Session = Depends(get_db)):
     """Update an existing tag."""
     tag = db.query(Tag).filter(Tag.id == tag_id).first()
@@ -290,7 +291,7 @@ async def update_tag(tag_id: int, data: TagUpdate, db: Session = Depends(get_db)
     return tag
 
 
-@router.delete("/{tag_id}")
+@admin_router.delete("/{tag_id}")
 async def delete_tag(tag_id: int, db: Session = Depends(get_db)):
     """Delete a tag."""
     tag = db.query(Tag).filter(Tag.id == tag_id).first()
@@ -307,7 +308,7 @@ async def delete_tag(tag_id: int, db: Session = Depends(get_db)):
 # === Classification Endpoints (15.7) ===
 
 
-@router.post("/classify", response_model=ClassifyResponse)
+@admin_router.post("/classify", response_model=ClassifyResponse)
 async def classify_tags(
     request: ClassifyRequest,
     background_tasks: BackgroundTasks,
@@ -354,7 +355,7 @@ async def classify_tags(
     return ClassifyResponse(results=results, classified=classified, unknown=unknown)
 
 
-@router.post("/approve-classification")
+@admin_router.post("/approve-classification")
 async def approve_classification(request: ApproveClassificationRequest, db: Session = Depends(get_db)):
     """Approve or correct a tag's classification.
 
@@ -395,7 +396,7 @@ async def approve_classification(request: ApproveClassificationRequest, db: Sess
     }
 
 
-@router.post("/bulk-approve-classifications")
+@admin_router.post("/bulk-approve-classifications")
 async def bulk_approve_classifications(approvals: list[ApproveClassificationRequest], db: Session = Depends(get_db)):
     """Bulk approve multiple tag classifications."""
     if len(approvals) > 100:

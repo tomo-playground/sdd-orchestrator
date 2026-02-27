@@ -21,7 +21,7 @@ class TestCreateVideo:
                 {"image_url": "/images/scene1.png", "script": "Hello", "duration": 3},
             ],
         }
-        response = client.post("/video/create", json=request_data)
+        response = client.post("/api/v1/video/create", json=request_data)
         assert response.status_code == 200
         data = response.json()
         assert data["video_url"] == "/videos/test.mp4"
@@ -49,7 +49,7 @@ class TestCreateVideo:
         mock_sl = MagicMock(return_value=db_session)
         db_session.close = lambda: None  # no-op for test
         with patch("routers.video.SessionLocal", mock_sl):
-            response = client.post("/video/create", json=request_data)
+            response = client.post("/api/v1/video/create", json=request_data)
         assert response.status_code == 200
 
         # Verify render_history row was created
@@ -91,7 +91,7 @@ class TestCreateVideo:
         mock_sl = MagicMock(return_value=db_session)
         db_session.close = lambda: None  # no-op for test
         with patch("routers.video.SessionLocal", mock_sl):
-            response = client.post("/video/create", json=request_data)
+            response = client.post("/api/v1/video/create", json=request_data)
         assert response.status_code == 200
 
         rows = db_session.query(RenderHistory).filter(RenderHistory.storyboard_id == sb_id).all()
@@ -120,7 +120,7 @@ class TestCreateVideo:
             "speed_multiplier": 1.0,
             "bgm_volume": 0.3,
         }
-        response = client.post("/video/create", json=request_data)
+        response = client.post("/api/v1/video/create", json=request_data)
         assert response.status_code == 200
 
     @patch("routers.video.create_video_task", new_callable=AsyncMock)
@@ -135,20 +135,20 @@ class TestCreateVideo:
                 {"image_url": "/images/s1.png", "script": "Hello", "duration": 3},
             ],
         }
-        response = client.post("/video/create", json=request_data)
+        response = client.post("/api/v1/video/create", json=request_data)
         assert response.status_code == 500
 
     def test_create_video_empty_scenes(self, client: TestClient, db_session):
         """Empty scenes list triggers validation error."""
         request_data = {"scenes": []}
-        response = client.post("/video/create", json=request_data)
+        response = client.post("/api/v1/video/create", json=request_data)
         # FastAPI may accept empty list (no min_length on scenes)
         # but video builder would fail
         assert response.status_code in (200, 422, 500)
 
     def test_create_video_missing_scenes(self, client: TestClient):
         """Missing scenes field returns 422."""
-        response = client.post("/video/create", json={})
+        response = client.post("/api/v1/video/create", json={})
         assert response.status_code == 422
 
 
@@ -158,7 +158,7 @@ class TestDeleteVideo:
     def test_delete_video_invalid_extension(self, client: TestClient, db_session):
         """Non-mp4 filename returns 400."""
         request_data = {"filename": "test.avi"}
-        response = client.post("/video/delete", json=request_data)
+        response = client.post("/api/v1/video/delete", json=request_data)
         assert response.status_code == 400
         assert "invalid filename" in response.json()["detail"].lower()
 
@@ -171,7 +171,7 @@ class TestDeleteVideo:
 
         with patch("routers.video.VIDEO_DIR", Path("/tmp/test_videos_nonexistent")):
             request_data = {"filename": "nonexistent.mp4"}
-            response = client.post("/video/delete", json=request_data)
+            response = client.post("/api/v1/video/delete", json=request_data)
             assert response.status_code == 200
             data = response.json()
             assert data["ok"] is False
@@ -180,7 +180,7 @@ class TestDeleteVideo:
     def test_delete_video_path_traversal(self, client: TestClient, db_session):
         """Path traversal in filename is neutralized (basename extraction)."""
         request_data = {"filename": "../../etc/passwd.mp4"}
-        response = client.post("/video/delete", json=request_data)
+        response = client.post("/api/v1/video/delete", json=request_data)
         # basename extracts just "passwd.mp4", which won't exist
         assert response.status_code == 200
         data = response.json()
@@ -188,7 +188,7 @@ class TestDeleteVideo:
 
     def test_delete_video_missing_identifier(self, client: TestClient):
         """Missing both filename and asset_id returns 400."""
-        response = client.post("/video/delete", json={})
+        response = client.post("/api/v1/video/delete", json={})
         assert response.status_code == 400
         assert "either" in response.json()["detail"].lower()
 
@@ -198,26 +198,26 @@ class TestVideoExists:
 
     def test_exists_nonexistent(self, client: TestClient):
         """Non-existent file returns false."""
-        response = client.get("/video/exists?filename=nonexistent.mp4")
+        response = client.get("/api/v1/video/exists?filename=nonexistent.mp4")
         assert response.status_code == 200
         data = response.json()
         assert data["exists"] is False
 
     def test_exists_non_mp4(self, client: TestClient):
         """Non-mp4 file returns false."""
-        response = client.get("/video/exists?filename=test.avi")
+        response = client.get("/api/v1/video/exists?filename=test.avi")
         assert response.status_code == 200
         data = response.json()
         assert data["exists"] is False
 
     def test_exists_missing_param(self, client: TestClient):
         """Missing filename parameter returns 422."""
-        response = client.get("/video/exists")
+        response = client.get("/api/v1/video/exists")
         assert response.status_code == 422
 
     def test_exists_path_traversal(self, client: TestClient):
         """Path traversal in filename is neutralized."""
-        response = client.get("/video/exists?filename=../../etc/passwd.mp4")
+        response = client.get("/api/v1/video/exists?filename=../../etc/passwd.mp4")
         assert response.status_code == 200
         data = response.json()
         assert data["exists"] is False
@@ -228,7 +228,7 @@ class TestGetTransitions:
 
     def test_get_transitions(self, client: TestClient):
         """Returns list of transition effects."""
-        response = client.get("/video/transitions")
+        response = client.get("/api/v1/video/transitions")
         assert response.status_code == 200
         data = response.json()
 
@@ -248,7 +248,7 @@ class TestExtractCaption:
 
     def test_extract_caption_empty_text(self, client: TestClient):
         """Empty text returns 400."""
-        response = client.post("/video/extract-caption", json={"text": ""})
+        response = client.post("/api/v1/video/extract-caption", json={"text": ""})
         assert response.status_code == 400
         assert "no text" in response.json()["detail"].lower()
 
@@ -256,7 +256,7 @@ class TestExtractCaption:
         """Short text (<=60 chars) returned as-is."""
         with patch("config.gemini_client", MagicMock()):
             short_text = "Short caption text"
-            response = client.post("/video/extract-caption", json={"text": short_text})
+            response = client.post("/api/v1/video/extract-caption", json={"text": short_text})
             assert response.status_code == 200
             data = response.json()
             assert data["caption"] == short_text
@@ -265,7 +265,7 @@ class TestExtractCaption:
         """Returns 503 when Gemini is not configured and text is long."""
         with patch("config.gemini_client", None):
             long_text = "A" * 100
-            response = client.post("/video/extract-caption", json={"text": long_text})
+            response = client.post("/api/v1/video/extract-caption", json={"text": long_text})
             assert response.status_code == 503
             assert "gemini" in response.json()["detail"].lower()
 
@@ -279,7 +279,7 @@ class TestExtractCaption:
 
         with patch("config.gemini_client", mock_client):
             long_text = "A" * 100
-            response = client.post("/video/extract-caption", json={"text": long_text})
+            response = client.post("/api/v1/video/extract-caption", json={"text": long_text})
             assert response.status_code == 200
             data = response.json()
             assert data["caption"] == "Extracted caption"
@@ -295,7 +295,7 @@ class TestExtractCaption:
 
         with patch("config.gemini_client", mock_client):
             long_text = "B" * 100
-            response = client.post("/video/extract-caption", json={"text": long_text})
+            response = client.post("/api/v1/video/extract-caption", json={"text": long_text})
             assert response.status_code == 200
             data = response.json()
             assert data["caption"] == "Quoted caption"
@@ -307,7 +307,7 @@ class TestExtractCaption:
 
         with patch("config.gemini_client", mock_client):
             long_text = "C" * 100
-            response = client.post("/video/extract-caption", json={"text": long_text})
+            response = client.post("/api/v1/video/extract-caption", json={"text": long_text})
             assert response.status_code == 200
             data = response.json()
             assert len(data["caption"]) <= 60
@@ -315,7 +315,7 @@ class TestExtractCaption:
 
     def test_extract_caption_missing_text_field(self, client: TestClient):
         """Missing text field returns 422 (Pydantic validation)."""
-        response = client.post("/video/extract-caption", json={})
+        response = client.post("/api/v1/video/extract-caption", json={})
         assert response.status_code == 422
 
 
@@ -359,7 +359,7 @@ class TestRenderHistory:
         mock_store.get_url.return_value = "http://test/video.mp4"
         mock_storage.return_value = mock_store
 
-        response = client.get("/video/render-history")
+        response = client.get("/api/v1/video/render-history")
         assert response.status_code == 200
         data = response.json()
         assert data["items"] == []
@@ -377,7 +377,7 @@ class TestRenderHistory:
         self._create_render_history(db_session, count=5)
 
         # First page
-        response = client.get("/video/render-history?limit=2&offset=0")
+        response = client.get("/api/v1/video/render-history?limit=2&offset=0")
         assert response.status_code == 200
         data = response.json()
         assert len(data["items"]) == 2
@@ -386,7 +386,7 @@ class TestRenderHistory:
         assert data["items"][0]["id"] >= data["items"][1]["id"]
 
         # Second page
-        response = client.get("/video/render-history?limit=2&offset=2")
+        response = client.get("/api/v1/video/render-history?limit=2&offset=2")
         data2 = response.json()
         assert len(data2["items"]) == 2
         assert data2["total"] == 5
@@ -401,7 +401,7 @@ class TestRenderHistory:
         proj_a, _, _ = self._create_render_history(db_session, count=3, project_name="Project A")
         self._create_render_history(db_session, count=2, project_name="Project B")
 
-        response = client.get(f"/video/render-history?project_id={proj_a.id}")
+        response = client.get(f"/api/v1/video/render-history?project_id={proj_a.id}")
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 3
@@ -424,7 +424,7 @@ class TestRenderHistory:
         sb.deleted_at = datetime.now()
         db_session.commit()
 
-        response = client.get("/video/render-history")
+        response = client.get("/api/v1/video/render-history")
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 1

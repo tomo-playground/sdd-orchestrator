@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
-import { API_BASE } from "../constants";
+import { API_BASE, ADMIN_API_BASE } from "../constants";
 import type { VoicePreset } from "../types";
 import type { UiCallbacks } from "../types";
 
@@ -83,7 +83,7 @@ export function useVoicePresets(ui: UiCallbacks) {
       });
       if (!ok) return;
       try {
-        await axios.delete(`${API_BASE}/voice-presets/${p.id}`);
+        await axios.delete(`${ADMIN_API_BASE}/voice-presets/${p.id}`);
         await fetchPresets();
       } catch (error) {
         const msg = axios.isAxiosError(error)
@@ -99,7 +99,7 @@ export function useVoicePresets(ui: UiCallbacks) {
     if (!editing?.voice_design_prompt?.trim()) return;
     setPreviewing(true);
     try {
-      const res = await axios.post(`${API_BASE}/voice-presets/preview`, {
+      const res = await axios.post(`${ADMIN_API_BASE}/voice-presets/preview`, {
         voice_design_prompt: editing.voice_design_prompt,
         sample_text: editing.sample_text || "Hello, this is a test.",
         language: editing.language,
@@ -122,12 +122,12 @@ export function useVoicePresets(ui: UiCallbacks) {
     setSaving(true);
     try {
       if (editId) {
-        await axios.put(`${API_BASE}/voice-presets/${editId}`, {
+        await axios.put(`${ADMIN_API_BASE}/voice-presets/${editId}`, {
           name: editing.name,
           description: editing.description,
         });
       } else {
-        const res = await axios.post(`${API_BASE}/voice-presets`, {
+        const res = await axios.post(`${ADMIN_API_BASE}/voice-presets`, {
           name: editing.name,
           description: editing.description,
           source_type: "generated",
@@ -137,7 +137,7 @@ export function useVoicePresets(ui: UiCallbacks) {
           sample_text: editing.sample_text,
         });
         if (previewAssetId && res.data.id) {
-          await axios.post(`${API_BASE}/voice-presets/${res.data.id}/attach-preview`, null, {
+          await axios.post(`${ADMIN_API_BASE}/voice-presets/${res.data.id}/attach-preview`, null, {
             params: { temp_asset_id: previewAssetId },
           });
         }

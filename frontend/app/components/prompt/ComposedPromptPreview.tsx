@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { API_BASE } from "../../constants";
+import { ADMIN_API_BASE } from "../../constants";
 import { useTagClassifier } from "../../hooks";
 import CopyButton from "../ui/CopyButton";
 import {
@@ -250,7 +250,7 @@ export default function ComposedPromptPreview({
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/prompt/compose`, {
+      const response = await fetch(`${ADMIN_API_BASE}/prompt/compose`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

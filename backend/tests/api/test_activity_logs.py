@@ -10,7 +10,7 @@ def _create_storyboard_with_scenes(client: TestClient, scene_count: int = 3) -> 
     data = create_test_storyboard(client, scenes=scenes)
     sb_id = data["storyboard_id"]
     # Fetch the storyboard to get scene IDs
-    resp = client.get(f"/storyboards/{sb_id}")
+    resp = client.get(f"/api/v1/storyboards/{sb_id}")
     scene_ids = [s["id"] for s in resp.json()["scenes"]]
     return {"storyboard_id": sb_id, "scene_ids": scene_ids}
 
@@ -19,7 +19,7 @@ def test_create_activity_log_minimal(client: TestClient):
     """Test creating a activity log with minimal data."""
     ctx = _create_storyboard_with_scenes(client, 1)
     response = client.post(
-        "/activity-logs",
+        "/api/admin/activity-logs",
         json={
             "storyboard_id": ctx["storyboard_id"],
             "scene_id": ctx["scene_ids"][0],
@@ -37,7 +37,7 @@ def test_create_activity_log_full(client: TestClient):
     """Test creating a activity log with full data."""
     ctx = _create_storyboard_with_scenes(client, 2)
     response = client.post(
-        "/activity-logs",
+        "/api/admin/activity-logs",
         json={
             "storyboard_id": ctx["storyboard_id"],
             "scene_id": ctx["scene_ids"][1],
@@ -62,7 +62,7 @@ def test_create_activity_log_full(client: TestClient):
 def test_get_storyboard_logs_empty(client: TestClient):
     """Test getting logs for a storyboard with no logs."""
     ctx = _create_storyboard_with_scenes(client, 1)
-    response = client.get(f"/activity-logs/storyboard/{ctx['storyboard_id']}")
+    response = client.get(f"/api/admin/activity-logs/storyboard/{ctx['storyboard_id']}")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 0
@@ -74,7 +74,7 @@ def test_get_storyboard_logs_with_data(client: TestClient):
     ctx = _create_storyboard_with_scenes(client, 3)
     for scene_id in ctx["scene_ids"]:
         client.post(
-            "/activity-logs",
+            "/api/admin/activity-logs",
             json={
                 "storyboard_id": ctx["storyboard_id"],
                 "scene_id": scene_id,
@@ -82,7 +82,7 @@ def test_get_storyboard_logs_with_data(client: TestClient):
             },
         )
 
-    response = client.get(f"/activity-logs/storyboard/{ctx['storyboard_id']}")
+    response = client.get(f"/api/admin/activity-logs/storyboard/{ctx['storyboard_id']}")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 3
@@ -94,7 +94,7 @@ def test_get_storyboard_logs_filter_by_status(client: TestClient):
     ctx = _create_storyboard_with_scenes(client, 4)
     for i, scene_id in enumerate(ctx["scene_ids"]):
         client.post(
-            "/activity-logs",
+            "/api/admin/activity-logs",
             json={
                 "storyboard_id": ctx["storyboard_id"],
                 "scene_id": scene_id,
@@ -103,14 +103,14 @@ def test_get_storyboard_logs_filter_by_status(client: TestClient):
         )
 
     # Filter success only
-    response = client.get(f"/activity-logs/storyboard/{ctx['storyboard_id']}?status=success")
+    response = client.get(f"/api/admin/activity-logs/storyboard/{ctx['storyboard_id']}?status=success")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 2
     assert all(log["status"] == "success" for log in data["logs"])
 
     # Filter fail only
-    response = client.get(f"/activity-logs/storyboard/{ctx['storyboard_id']}?status=fail")
+    response = client.get(f"/api/admin/activity-logs/storyboard/{ctx['storyboard_id']}?status=fail")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 2
@@ -122,7 +122,7 @@ def test_get_storyboard_logs_with_limit(client: TestClient):
     ctx = _create_storyboard_with_scenes(client, 10)
     for scene_id in ctx["scene_ids"]:
         client.post(
-            "/activity-logs",
+            "/api/admin/activity-logs",
             json={
                 "storyboard_id": ctx["storyboard_id"],
                 "scene_id": scene_id,
@@ -130,7 +130,7 @@ def test_get_storyboard_logs_with_limit(client: TestClient):
         )
 
     # Get with limit=5
-    response = client.get(f"/activity-logs/storyboard/{ctx['storyboard_id']}?limit=5")
+    response = client.get(f"/api/admin/activity-logs/storyboard/{ctx['storyboard_id']}?limit=5")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 5
@@ -141,7 +141,7 @@ def test_update_log_status(client: TestClient):
     """Test updating a log's status."""
     ctx = _create_storyboard_with_scenes(client, 1)
     create_response = client.post(
-        "/activity-logs",
+        "/api/admin/activity-logs",
         json={
             "storyboard_id": ctx["storyboard_id"],
             "scene_id": ctx["scene_ids"][0],
@@ -152,7 +152,7 @@ def test_update_log_status(client: TestClient):
 
     # Update status to success
     response = client.patch(
-        f"/activity-logs/{log_id}/status",
+        f"/api/admin/activity-logs/{log_id}/status",
         json={"status": "success"},
     )
     assert response.status_code == 200
@@ -162,7 +162,7 @@ def test_update_log_status(client: TestClient):
 
     # Update status to fail
     response = client.patch(
-        f"/activity-logs/{log_id}/status",
+        f"/api/admin/activity-logs/{log_id}/status",
         json={"status": "fail"},
     )
     assert response.status_code == 200
@@ -173,7 +173,7 @@ def test_update_log_status(client: TestClient):
 def test_update_nonexistent_log_status(client: TestClient):
     """Test updating status of non-existent log."""
     response = client.patch(
-        "/activity-logs/99999/status",
+        "/api/admin/activity-logs/99999/status",
         json={"status": "success"},
     )
     assert response.status_code == 404
@@ -184,7 +184,7 @@ def test_delete_log(client: TestClient):
     """Test deleting a log."""
     ctx = _create_storyboard_with_scenes(client, 1)
     create_response = client.post(
-        "/activity-logs",
+        "/api/admin/activity-logs",
         json={
             "storyboard_id": ctx["storyboard_id"],
             "scene_id": ctx["scene_ids"][0],
@@ -193,18 +193,18 @@ def test_delete_log(client: TestClient):
     log_id = create_response.json()["id"]
 
     # Delete log
-    response = client.delete(f"/activity-logs/{log_id}")
+    response = client.delete(f"/api/admin/activity-logs/{log_id}")
     assert response.status_code == 200
     assert "deleted successfully" in response.json()["message"]
 
     # Verify deletion
-    get_response = client.get(f"/activity-logs/storyboard/{ctx['storyboard_id']}")
+    get_response = client.get(f"/api/admin/activity-logs/storyboard/{ctx['storyboard_id']}")
     assert get_response.json()["total"] == 0
 
 
 def test_delete_nonexistent_log(client: TestClient):
     """Test deleting non-existent log."""
-    response = client.delete("/activity-logs/99999")
+    response = client.delete("/api/admin/activity-logs/99999")
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
 
@@ -230,11 +230,11 @@ def test_log_data_integrity(client: TestClient):
         "image_url": "projects/1/scenes/test_scene_5.png",
     }
 
-    create_response = client.post("/activity-logs", json=test_data)
+    create_response = client.post("/api/admin/activity-logs", json=test_data)
     assert create_response.status_code == 200
 
     # Retrieve and verify
-    get_response = client.get(f"/activity-logs/storyboard/{ctx['storyboard_id']}")
+    get_response = client.get(f"/api/admin/activity-logs/storyboard/{ctx['storyboard_id']}")
     assert get_response.status_code == 200
     logs = get_response.json()["logs"]
     assert len(logs) == 1
@@ -261,23 +261,23 @@ def test_isolation(client: TestClient):
     # Create logs for storyboard A
     for scene_id in ctx_a["scene_ids"]:
         client.post(
-            "/activity-logs",
+            "/api/admin/activity-logs",
             json={"storyboard_id": ctx_a["storyboard_id"], "scene_id": scene_id},
         )
 
     # Create logs for storyboard B
     for scene_id in ctx_b["scene_ids"]:
         client.post(
-            "/activity-logs",
+            "/api/admin/activity-logs",
             json={"storyboard_id": ctx_b["storyboard_id"], "scene_id": scene_id},
         )
 
     # Verify storyboard A
-    response_a = client.get(f"/activity-logs/storyboard/{ctx_a['storyboard_id']}")
+    response_a = client.get(f"/api/admin/activity-logs/storyboard/{ctx_a['storyboard_id']}")
     assert response_a.json()["total"] == 3
 
     # Verify storyboard B
-    response_b = client.get(f"/activity-logs/storyboard/{ctx_b['storyboard_id']}")
+    response_b = client.get(f"/api/admin/activity-logs/storyboard/{ctx_b['storyboard_id']}")
     assert response_b.json()["total"] == 2
 
 
@@ -285,7 +285,7 @@ def test_success_combinations_empty(client: TestClient):
     """Test success combinations with no data."""
     ctx = _create_storyboard_with_scenes(client, 1)
     response = client.get(
-        f"/activity-logs/success-combinations?storyboard_id={ctx['storyboard_id']}"
+        f"/api/admin/activity-logs/success-combinations?storyboard_id={ctx['storyboard_id']}"
     )
     assert response.status_code == 200
     data = response.json()
@@ -323,10 +323,10 @@ def test_success_combinations_with_success_logs(client: TestClient):
     ]
 
     for log_data in success_logs:
-        client.post("/activity-logs", json=log_data)
+        client.post("/api/admin/activity-logs", json=log_data)
 
     response = client.get(
-        f"/activity-logs/success-combinations?storyboard_id={ctx['storyboard_id']}&min_occurrences=2"
+        f"/api/admin/activity-logs/success-combinations?storyboard_id={ctx['storyboard_id']}&min_occurrences=2"
     )
 
     assert response.status_code == 200
@@ -378,11 +378,11 @@ def test_success_combinations_filtering(client: TestClient):
     ]
 
     for log_data in logs:
-        client.post("/activity-logs", json=log_data)
+        client.post("/api/admin/activity-logs", json=log_data)
 
     # Test with default threshold (0.7)
     response = client.get(
-        f"/activity-logs/success-combinations?storyboard_id={ctx['storyboard_id']}&min_occurrences=1"
+        f"/api/admin/activity-logs/success-combinations?storyboard_id={ctx['storyboard_id']}&min_occurrences=1"
     )
 
     assert response.status_code == 200
@@ -391,7 +391,7 @@ def test_success_combinations_filtering(client: TestClient):
 
     # Test with higher threshold (0.8)
     response = client.get(
-        f"/activity-logs/success-combinations?storyboard_id={ctx['storyboard_id']}&match_rate_threshold=0.8&min_occurrences=1"
+        f"/api/admin/activity-logs/success-combinations?storyboard_id={ctx['storyboard_id']}&match_rate_threshold=0.8&min_occurrences=1"
     )
 
     assert response.status_code == 200
@@ -409,10 +409,10 @@ def test_analyze_patterns_basic(client: TestClient):
     ]
 
     for log_data in logs:
-        client.post("/activity-logs", json=log_data)
+        client.post("/api/admin/activity-logs", json=log_data)
 
     response = client.get(
-        f"/activity-logs/analyze/patterns?storyboard_id={ctx['storyboard_id']}&min_occurrences=1"
+        f"/api/admin/activity-logs/analyze/patterns?storyboard_id={ctx['storyboard_id']}&min_occurrences=1"
     )
 
     assert response.status_code == 200
@@ -431,7 +431,7 @@ def test_suggest_conflict_rules_no_data(client: TestClient):
     """Test conflict rules suggestion with no data."""
     ctx = _create_storyboard_with_scenes(client, 1)
     response = client.get(
-        f"/activity-logs/suggest-conflict-rules?storyboard_id={ctx['storyboard_id']}"
+        f"/api/admin/activity-logs/suggest-conflict-rules?storyboard_id={ctx['storyboard_id']}"
     )
 
     assert response.status_code == 200

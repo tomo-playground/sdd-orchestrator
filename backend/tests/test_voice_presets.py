@@ -34,7 +34,7 @@ class TestVoicePresetUpdate:
         preset_id = self._create_preset(db_session)
 
         resp = client.put(
-            f"/voice-presets/{preset_id}",
+            f"/api/admin/voice-presets/{preset_id}",
             json={"voice_design_prompt": "A warm female voice in her 30s"},
         )
         assert resp.status_code == 200
@@ -50,7 +50,7 @@ class TestVoicePresetUpdate:
         )
 
         resp = client.put(
-            f"/voice-presets/{preset_id}",
+            f"/api/admin/voice-presets/{preset_id}",
             json={"name": "Renamed Voice"},
         )
         assert resp.status_code == 200
@@ -63,7 +63,7 @@ class TestVoicePresetUpdate:
         preset_id = self._create_preset(db_session)
 
         resp = client.put(
-            f"/voice-presets/{preset_id}",
+            f"/api/admin/voice-presets/{preset_id}",
             json={
                 "name": "Updated Name",
                 "description": "Updated desc",
@@ -79,7 +79,7 @@ class TestVoicePresetUpdate:
     def test_update_nonexistent_returns_404(self, client):
         """PUT on nonexistent preset should return 404."""
         resp = client.put(
-            "/voice-presets/99999",
+            "/api/admin/voice-presets/99999",
             json={"name": "Ghost"},
         )
         assert resp.status_code == 404
@@ -91,7 +91,7 @@ class TestVoicePresetUpdate:
         preset_id = self._create_preset(db_session)
 
         client.put(
-            f"/voice-presets/{preset_id}",
+            f"/api/admin/voice-presets/{preset_id}",
             json={"voice_design_prompt": "Persisted prompt"},
         )
 
@@ -105,10 +105,10 @@ class TestVoicePresetUpdate:
         preset_id = self._create_preset(db_session)
 
         client.put(
-            f"/voice-presets/{preset_id}",
+            f"/api/admin/voice-presets/{preset_id}",
             json={"voice_design_prompt": "New prompt for GET"},
         )
 
-        resp = client.get(f"/voice-presets/{preset_id}")
+        resp = client.get(f"/api/v1/voice-presets/{preset_id}")
         assert resp.status_code == 200
         assert resp.json()["voice_design_prompt"] == "New prompt for GET"

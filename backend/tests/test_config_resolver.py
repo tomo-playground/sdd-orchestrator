@@ -68,7 +68,7 @@ class TestEffectiveConfigAPI:
         from models.project import Project
 
         project = db_session.query(Project).first()
-        resp = client.get(f"/projects/{project.id}/effective-config")
+        resp = client.get(f"/api/v1/projects/{project.id}/effective-config")
         assert resp.status_code == 200
         data = resp.json()
         assert "sources" in data
@@ -77,7 +77,7 @@ class TestEffectiveConfigAPI:
         from models.group import Group
 
         group = db_session.query(Group).first()
-        resp = client.get(f"/groups/{group.id}/effective-config")
+        resp = client.get(f"/api/v1/groups/{group.id}/effective-config")
         assert resp.status_code == 200
         data = resp.json()
         assert "sources" in data
@@ -101,7 +101,7 @@ class TestEffectiveConfigAPI:
             config.render_preset_id = preset.id
         db_session.commit()
 
-        resp = client.get(f"/groups/{group.id}/effective-config")
+        resp = client.get(f"/api/v1/groups/{group.id}/effective-config")
         data = resp.json()
         assert data["render_preset_id"] == preset.id
         assert data["sources"]["render_preset_id"] == "group"
@@ -138,7 +138,7 @@ class TestEffectiveConfigAPI:
             config.render_preset_id = preset.id
         db_session.commit()
 
-        resp = client.get(f"/groups/{group.id}/effective-config")
+        resp = client.get(f"/api/v1/groups/{group.id}/effective-config")
         data = resp.json()
 
         assert data["render_preset_id"] == preset.id
@@ -167,14 +167,14 @@ class TestEffectiveConfigAPI:
             config.render_preset_id = None
             db_session.commit()
 
-        resp = client.get(f"/groups/{group.id}/effective-config")
+        resp = client.get(f"/api/v1/groups/{group.id}/effective-config")
         data = resp.json()
         assert data["render_preset"] is None
 
     def test_404_on_missing_project(self, client):
-        resp = client.get("/projects/9999/effective-config")
+        resp = client.get("/api/v1/projects/9999/effective-config")
         assert resp.status_code == 404
 
     def test_404_on_missing_group(self, client):
-        resp = client.get("/groups/9999/effective-config")
+        resp = client.get("/api/v1/groups/9999/effective-config")
         assert resp.status_code == 404

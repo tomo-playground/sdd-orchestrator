@@ -29,7 +29,8 @@ from services.prompt.ko_translator import translate_ko_to_prompt
 from services.prompt.prompt_editor import edit_prompt_with_instruction
 from services.prompt.v3_service import V3PromptService
 
-router = APIRouter(prefix="/prompt", tags=["prompt"])
+service_router = APIRouter(prefix="/prompt", tags=["prompt"])
+admin_router = APIRouter(prefix="/prompt", tags=["prompt-admin"])
 
 
 def _convert_loras(loras: list | None) -> list[dict] | None:
@@ -114,7 +115,7 @@ def _compose_negative_preview(
     return final, sources
 
 
-@router.post("/negative-preview", response_model=NegativePreviewResponse)
+@service_router.post("/negative-preview", response_model=NegativePreviewResponse)
 async def negative_preview(
     request: NegativePreviewRequest,
     db: Session = Depends(get_db),
@@ -142,7 +143,7 @@ async def negative_preview(
     return {"negative_prompt": neg_prompt, "negative_sources": neg_sources}
 
 
-@router.post("/translate-ko", response_model=TranslateKoResponse)
+@admin_router.post("/translate-ko", response_model=TranslateKoResponse)
 def translate_ko_endpoint(
     request: TranslateKoRequest,
     db: Session = Depends(get_db),
@@ -157,7 +158,7 @@ def translate_ko_endpoint(
     return result
 
 
-@router.post("/edit-prompt", response_model=EditPromptResponse)
+@admin_router.post("/edit-prompt", response_model=EditPromptResponse)
 def edit_prompt_endpoint(
     request: EditPromptRequest,
     db: Session = Depends(get_db),
@@ -172,13 +173,13 @@ def edit_prompt_endpoint(
     return result
 
 
-@router.post("/split")
+@admin_router.post("/split")
 async def split_prompt_endpoint(request: PromptSplitRequest):
     logger.info("📥 [Prompt Split Req] %s", request.model_dump())
     return split_prompt_example(request)
 
 
-@router.post("/compose", response_model=PromptComposeResponse)
+@service_router.post("/compose", response_model=PromptComposeResponse)
 async def compose_prompt(
     request: PromptComposeRequest,
     db: Session = Depends(get_db),
@@ -363,7 +364,7 @@ class AutoReplaceRequest(BaseModel):
     tags: list[str]
 
 
-@router.post("/validate-tags", response_model=ValidateTagsResponse)
+@admin_router.post("/validate-tags", response_model=ValidateTagsResponse)
 async def validate_tags(
     request: ValidateTagsRequest,
     db: Session = Depends(get_db),
@@ -423,7 +424,7 @@ async def validate_tags(
     )
 
 
-@router.post("/auto-replace")
+@admin_router.post("/auto-replace")
 async def replace_tags(request: AutoReplaceRequest):
     """Automatically replace known risky tags with safe alternatives.
 

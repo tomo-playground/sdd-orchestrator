@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import { API_BASE } from "../constants";
+import { ADMIN_API_BASE } from "../constants";
 import type { StepReview, ReviewMessage } from "../types/creative";
 
 /** Hook for managing interactive step review state. */
@@ -14,7 +14,7 @@ export function useStepReview(sessionId: number, status: string) {
     setLoading(true);
     try {
       const res = await axios.get<StepReview>(
-        `${API_BASE}/lab/creative/sessions/${sessionId}/review`
+        `${ADMIN_API_BASE}/lab/creative/sessions/${sessionId}/review`
       );
       setReview(res.data);
       setError(null);
@@ -46,7 +46,7 @@ export function useStepReview(sessionId: number, status: string) {
       setError(null);
       try {
         const res = await axios.post<StepReview>(
-          `${API_BASE}/lab/creative/sessions/${sessionId}/review/message`,
+          `${ADMIN_API_BASE}/lab/creative/sessions/${sessionId}/review/message`,
           { message }
         );
         setReview(res.data);
@@ -64,7 +64,7 @@ export function useStepReview(sessionId: number, status: string) {
       setSending(true);
       setError(null);
       try {
-        await axios.post(`${API_BASE}/lab/creative/sessions/${sessionId}/review/action`, {
+        await axios.post(`${ADMIN_API_BASE}/lab/creative/sessions/${sessionId}/review/action`, {
           action,
           feedback,
         });

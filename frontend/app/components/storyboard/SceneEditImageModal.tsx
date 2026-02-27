@@ -3,7 +3,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
-import { API_BASE } from "../../constants";
+import { ADMIN_API_BASE } from "../../constants";
 
 type SceneEditImageModalProps = {
   sceneId: number;
@@ -43,7 +43,7 @@ export default function SceneEditImageModal({
     setIsLoading(true);
     setEditedImageUrl(null);
     try {
-      const res = await axios.post(`${API_BASE}/scenes/${sceneId}/edit-image`, {
+      const res = await axios.post(`${ADMIN_API_BASE}/scenes/${sceneId}/edit-image`, {
         edit_instruction: instruction.trim(),
         image_url: currentImageUrl,
       });

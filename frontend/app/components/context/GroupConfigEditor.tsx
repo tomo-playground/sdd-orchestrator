@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { API_BASE } from "../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../constants";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import LoadingSpinner from "../ui/LoadingSpinner";
@@ -167,7 +167,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
         dna && (dna.tone || dna.target_audience || dna.worldview || dna.guidelines) ? dna : null;
 
       await Promise.all([
-        axios.put(`${API_BASE}/groups/${groupId}/config`, {
+        axios.put(`${ADMIN_API_BASE}/groups/${groupId}/config`, {
           render_preset_id: config.render_preset_id,
           style_profile_id: config.style_profile_id,
           narrator_voice_preset_id: config.narrator_voice_preset_id,
@@ -180,7 +180,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
           sd_clip_skip: config.sd_clip_skip,
           channel_dna: channelDna,
         }),
-        axios.put(`${API_BASE}/groups/${groupId}`, { name: groupName.trim() }),
+        axios.put(`${ADMIN_API_BASE}/groups/${groupId}`, { name: groupName.trim() }),
       ]);
       const projectId = useContextStore.getState().projectId;
       if (projectId) fetchGroups(projectId);

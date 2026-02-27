@@ -55,7 +55,7 @@ class TestGroupConfigUpdate:
         voice_preset_id = self._create_voice_preset(db_session)
 
         resp = client.put(
-            f"/groups/{group_id}/config",
+            f"/api/v1/groups/{group_id}/config",
             json={"narrator_voice_preset_id": voice_preset_id},
         )
         assert resp.status_code == 200
@@ -69,13 +69,13 @@ class TestGroupConfigUpdate:
 
         # Set initial value
         client.put(
-            f"/groups/{group_id}/config",
+            f"/api/v1/groups/{group_id}/config",
             json={"narrator_voice_preset_id": voice_preset_id},
         )
 
         # Clear it
         resp = client.put(
-            f"/groups/{group_id}/config",
+            f"/api/v1/groups/{group_id}/config",
             json={"narrator_voice_preset_id": None},
         )
         assert resp.status_code == 200
@@ -88,7 +88,7 @@ class TestGroupConfigUpdate:
 
         # Set initial config
         client.put(
-            f"/groups/{group_id}/config",
+            f"/api/v1/groups/{group_id}/config",
             json={
                 "language": "korean",
                 "structure": "story",
@@ -99,7 +99,7 @@ class TestGroupConfigUpdate:
         # Update only voice preset
         voice_preset_id = self._create_voice_preset(db_session)
         resp = client.put(
-            f"/groups/{group_id}/config",
+            f"/api/v1/groups/{group_id}/config",
             json={"narrator_voice_preset_id": voice_preset_id},
         )
         assert resp.status_code == 200
@@ -120,14 +120,14 @@ class TestGroupConfigUpdate:
 
         with pytest.raises(IntegrityError):
             client.put(
-                f"/groups/{group_id}/config",
+                f"/api/v1/groups/{group_id}/config",
                 json={"narrator_voice_preset_id": 99999},
             )
 
     def test_update_nonexistent_group_returns_404(self, client):
         """PUT on nonexistent group should return 404."""
         resp = client.put(
-            "/groups/99999/config",
+            "/api/v1/groups/99999/config",
             json={"narrator_voice_preset_id": 1},
         )
         assert resp.status_code == 404
@@ -139,12 +139,12 @@ class TestGroupConfigUpdate:
 
         # Set config
         client.put(
-            f"/groups/{group_id}/config",
+            f"/api/v1/groups/{group_id}/config",
             json={"narrator_voice_preset_id": voice_preset_id},
         )
 
         # Get effective config
-        resp = client.get(f"/groups/{group_id}/effective-config")
+        resp = client.get(f"/api/v1/groups/{group_id}/effective-config")
         assert resp.status_code == 200
         data = resp.json()
         assert data["narrator_voice_preset_id"] == voice_preset_id

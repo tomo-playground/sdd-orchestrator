@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { API_BASE } from "../../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../../constants";
 import { useUIStore } from "../../../store/useUIStore";
 
 // ── Types ──────────────────────────────────────────────
@@ -86,8 +86,9 @@ export function useTrashTab(
           : item.type === "character"
             ? `/characters/${item.id}/restore`
             : `/prompt-histories/${item.id}/restore`;
+      const base = item.type === "character" ? ADMIN_API_BASE : API_BASE;
       try {
-        await axios.post(`${API_BASE}${endpoint}`);
+        await axios.post(`${base}${endpoint}`);
         showToast("Restored", "success");
         void fetchTrash();
       } catch {
@@ -113,8 +114,9 @@ export function useTrashTab(
           : item.type === "character"
             ? `/characters/${item.id}/permanent`
             : `/prompt-histories/${item.id}/permanent`;
+      const base = item.type === "character" ? ADMIN_API_BASE : API_BASE;
       try {
-        await axios.delete(`${API_BASE}${endpoint}`);
+        await axios.delete(`${base}${endpoint}`);
         showToast("Permanently deleted", "success");
         void fetchTrash();
       } catch {

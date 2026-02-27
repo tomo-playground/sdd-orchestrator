@@ -38,16 +38,17 @@ from services.characters import (
     update_character,
 )
 
-router = APIRouter(prefix="/characters", tags=["characters"])
+service_router = APIRouter(prefix="/characters", tags=["characters"])
+admin_router = APIRouter(prefix="/characters", tags=["characters-admin"])
 
 
-@router.get("/trash")
+@service_router.get("/trash")
 async def list_trashed_characters_endpoint(db: Session = Depends(get_db)):
     """List soft-deleted characters."""
     return list_trashed_characters(db)
 
 
-@router.get("", response_model=PaginatedCharacterList)
+@service_router.get("", response_model=PaginatedCharacterList)
 async def list_characters_endpoint(
     style_profile_id: int | None = None,
     offset: int = 0,
@@ -58,7 +59,7 @@ async def list_characters_endpoint(
     return list_characters(db, style_profile_id=style_profile_id, offset=offset, limit=limit)
 
 
-@router.get("/{character_id}", response_model=CharacterResponse)
+@service_router.get("/{character_id}", response_model=CharacterResponse)
 async def get_character_endpoint(character_id: int, db: Session = Depends(get_db)):
     """Get a single character by ID with tag metadata."""
     try:
@@ -67,7 +68,7 @@ async def get_character_endpoint(character_id: int, db: Session = Depends(get_db
         raise HTTPException(status_code=404, detail=str(e)) from None
 
 
-@router.post("/preview", response_model=CharacterPreviewResponse)
+@admin_router.post("/preview", response_model=CharacterPreviewResponse)
 async def preview_character_endpoint(
     data: CharacterPreviewRequest,
     db: Session = Depends(get_db),
@@ -83,7 +84,7 @@ async def preview_character_endpoint(
         raise_user_error("character_preview", e)
 
 
-@router.post("", response_model=CharacterResponse, status_code=201)
+@admin_router.post("", response_model=CharacterResponse, status_code=201)
 async def create_character_endpoint(data: CharacterCreate, db: Session = Depends(get_db)):
     """Create a new character and link tags."""
     try:
@@ -92,7 +93,7 @@ async def create_character_endpoint(data: CharacterCreate, db: Session = Depends
         raise HTTPException(status_code=409, detail=str(e)) from None
 
 
-@router.put("/{character_id}", response_model=CharacterResponse)
+@admin_router.put("/{character_id}", response_model=CharacterResponse)
 async def update_character_endpoint(
     character_id: int,
     data: CharacterUpdate,
@@ -105,7 +106,7 @@ async def update_character_endpoint(
         raise HTTPException(status_code=404, detail=str(e)) from None
 
 
-@router.delete("/{character_id}")
+@admin_router.delete("/{character_id}")
 async def delete_character_endpoint(character_id: int, db: Session = Depends(get_db)):
     """Soft-delete a character."""
     try:
@@ -115,7 +116,7 @@ async def delete_character_endpoint(character_id: int, db: Session = Depends(get
         raise HTTPException(status_code=404, detail=str(e)) from None
 
 
-@router.post("/{character_id}/restore")
+@admin_router.post("/{character_id}/restore")
 async def restore_character_endpoint(character_id: int, db: Session = Depends(get_db)):
     """Restore a soft-deleted character."""
     try:
@@ -125,7 +126,7 @@ async def restore_character_endpoint(character_id: int, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail=str(e)) from None
 
 
-@router.delete("/{character_id}/permanent")
+@admin_router.delete("/{character_id}/permanent")
 async def permanently_delete_endpoint(character_id: int, db: Session = Depends(get_db)):
     """Permanently delete a character and cleanup IP-Adapter references."""
     try:
@@ -135,7 +136,7 @@ async def permanently_delete_endpoint(character_id: int, db: Session = Depends(g
         raise HTTPException(status_code=404, detail=str(e)) from None
 
 
-@router.post("/{character_id}/regenerate-reference", response_model=RegenerateReferenceResponse)
+@admin_router.post("/{character_id}/regenerate-reference", response_model=RegenerateReferenceResponse)
 async def regenerate_reference_endpoint(
     character_id: int,
     data: RegenerateReferenceRequest | None = None,
@@ -157,7 +158,7 @@ async def regenerate_reference_endpoint(
         raise_user_error("character_update", e)
 
 
-@router.post("/{character_id}/enhance-preview")
+@admin_router.post("/{character_id}/enhance-preview")
 async def enhance_preview_endpoint(character_id: int, db: Session = Depends(get_db)):
     """Enhance the character's preview image using Gemini image generation."""
     try:
@@ -166,7 +167,7 @@ async def enhance_preview_endpoint(character_id: int, db: Session = Depends(get_
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@router.post("/{character_id}/edit-preview")
+@admin_router.post("/{character_id}/edit-preview")
 async def edit_preview_endpoint(
     character_id: int,
     instruction: str = Body(..., embed=True),
@@ -179,7 +180,7 @@ async def edit_preview_endpoint(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@router.post("/{character_id}/assign-preview", response_model=AssignPreviewResponse)
+@admin_router.post("/{character_id}/assign-preview", response_model=AssignPreviewResponse)
 async def assign_preview_endpoint(
     character_id: int,
     data: AssignPreviewRequest,
@@ -192,7 +193,7 @@ async def assign_preview_endpoint(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
 
-@router.post("/batch-regenerate-references")
+@admin_router.post("/batch-regenerate-references")
 async def batch_regenerate_references_endpoint(db: Session = Depends(get_db)):
     """Regenerate reference images for ALL characters."""
     return await batch_regenerate_references(db)

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { API_BASE } from "../../../constants";
+import { ADMIN_API_BASE } from "../../../constants";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -137,7 +137,7 @@ export function useSettingsTab(ui: UiCallbacks) {
   const fetchStorageStats = useCallback(async () => {
     setIsLoadingStorage(true);
     try {
-      const res = await axios.get(`${API_BASE}/storage/stats`);
+      const res = await axios.get(`${ADMIN_API_BASE}/storage/stats`);
       setStorageStats(res.data);
     } catch {
       setStorageStats(null);
@@ -151,13 +151,13 @@ export function useSettingsTab(ui: UiCallbacks) {
       setIsCleaningUp(true);
       setCleanupResult(null);
       try {
-        const res = await axios.post(`${API_BASE}/storage/cleanup`, {
+        const res = await axios.post(`${ADMIN_API_BASE}/storage/cleanup`, {
           ...cleanupOptions,
           dry_run: dryRun,
         });
         setCleanupResult(res.data);
         if (!dryRun) {
-          const statsRes = await axios.get(`${API_BASE}/storage/stats`);
+          const statsRes = await axios.get(`${ADMIN_API_BASE}/storage/stats`);
           setStorageStats(statsRes.data);
         }
       } catch (error) {
@@ -176,8 +176,8 @@ export function useSettingsTab(ui: UiCallbacks) {
     setIsLoadingAutoEdit(true);
     try {
       const [settingsRes, costRes] = await Promise.all([
-        axios.get(`${API_BASE}/settings/auto-edit`),
-        axios.get(`${API_BASE}/settings/auto-edit/cost-summary`),
+        axios.get(`${ADMIN_API_BASE}/settings/auto-edit`),
+        axios.get(`${ADMIN_API_BASE}/settings/auto-edit/cost-summary`),
       ]);
       setAutoEditSettings(settingsRes.data);
       setCostSummary(costRes.data);
@@ -193,7 +193,7 @@ export function useSettingsTab(ui: UiCallbacks) {
     setIsLoadingAnalytics(true);
     try {
       const params = storyboardId ? { storyboard_id: storyboardId } : {};
-      const res = await axios.get(`${API_BASE}/analytics/gemini-edits`, { params });
+      const res = await axios.get(`${ADMIN_API_BASE}/analytics/gemini-edits`, { params });
       setAnalytics(res.data);
     } catch {
       setAnalytics(null);
@@ -207,7 +207,7 @@ export function useSettingsTab(ui: UiCallbacks) {
   const fetchMediaStats = useCallback(async () => {
     setIsLoadingMediaStats(true);
     try {
-      const res = await axios.get(`${API_BASE}/admin/media-assets/stats`);
+      const res = await axios.get(`${ADMIN_API_BASE}/media-assets/stats`);
       setMediaStats(res.data);
     } catch {
       setMediaStats(null);
@@ -220,7 +220,7 @@ export function useSettingsTab(ui: UiCallbacks) {
     setIsScanning(true);
     setOrphanReport(null);
     try {
-      const res = await axios.get(`${API_BASE}/admin/media-assets/orphans`);
+      const res = await axios.get(`${ADMIN_API_BASE}/media-assets/orphans`);
       setOrphanReport(res.data);
     } catch {
       setOrphanReport(null);
@@ -234,7 +234,7 @@ export function useSettingsTab(ui: UiCallbacks) {
       setIsMediaCleaning(true);
       setMediaCleanupResult(null);
       try {
-        const res = await axios.post(`${API_BASE}/admin/media-assets/cleanup`, null, {
+        const res = await axios.post(`${ADMIN_API_BASE}/media-assets/cleanup`, null, {
           params: { dry_run: dryRun },
         });
         setMediaCleanupResult(res.data);
@@ -257,7 +257,7 @@ export function useSettingsTab(ui: UiCallbacks) {
     setIsRefreshingCaches(true);
     setCacheRefreshResult(null);
     try {
-      const res = await axios.post(`${API_BASE}/admin/refresh-caches`);
+      const res = await axios.post(`${ADMIN_API_BASE}/refresh-caches`);
       setCacheRefreshResult(res.data);
     } catch {
       setCacheRefreshResult({ success: false, error: "Request failed" });

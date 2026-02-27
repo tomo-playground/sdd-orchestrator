@@ -77,7 +77,7 @@ class TestCreateActivityLog:
         """Create a basic activity log."""
         scene_ids = _ensure_hierarchy(db_session, storyboard_id=1, scene_count=1)
         resp = client.post(
-            "/activity-logs",
+            "/api/admin/activity-logs",
             json={
                 "storyboard_id": 1,
                 "scene_id": scene_ids[0],
@@ -98,7 +98,7 @@ class TestCreateActivityLog:
         """Create a log with minimal fields."""
         scene_ids = _ensure_hierarchy(db_session, storyboard_id=1, scene_count=1)
         resp = client.post(
-            "/activity-logs",
+            "/api/admin/activity-logs",
             json={
                 "scene_id": scene_ids[0],
             },
@@ -111,7 +111,7 @@ class TestCreateActivityLog:
         """Scene ID that doesn't exist (e.g. after PUT recreated scenes) is set to NULL, not FK error."""
         _ensure_hierarchy(db_session, storyboard_id=1, scene_count=1)
         resp = client.post(
-            "/activity-logs",
+            "/api/admin/activity-logs",
             json={
                 "storyboard_id": 1,
                 "scene_id": 99999,  # Non-existent scene (simulates stale ID after PUT)
@@ -130,7 +130,7 @@ class TestGetStoryboardLogs:
 
     def test_get_logs_empty(self, client: TestClient, db_session):
         """Return empty list for storyboard without logs."""
-        resp = client.get("/activity-logs/storyboard/999")
+        resp = client.get("/api/admin/activity-logs/storyboard/999")
         assert resp.status_code == 200
         data = resp.json()
         assert data["logs"] == []
@@ -142,7 +142,7 @@ class TestGetStoryboardLogs:
         _create_log(db_session, storyboard_id=1, scene_id=1)
         _create_log(db_session, storyboard_id=2, scene_id=0)
 
-        resp = client.get("/activity-logs/storyboard/1")
+        resp = client.get("/api/admin/activity-logs/storyboard/1")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 2
@@ -152,7 +152,7 @@ class TestGetStoryboardLogs:
         _create_log(db_session, storyboard_id=1, status="success")
         _create_log(db_session, storyboard_id=1, status="fail")
 
-        resp = client.get("/activity-logs/storyboard/1", params={"status": "fail"})
+        resp = client.get("/api/admin/activity-logs/storyboard/1", params={"status": "fail"})
         data = resp.json()
         assert data["total"] == 1
         assert data["logs"][0]["status"] == "fail"
@@ -164,14 +164,14 @@ class TestUpdateLogStatus:
     def test_update_status(self, client: TestClient, db_session):
         """Update a log's status."""
         log = _create_log(db_session, status="pending")
-        resp = client.patch(f"/activity-logs/{log.id}/status", json={"status": "success"})
+        resp = client.patch(f"/api/admin/activity-logs/{log.id}/status", json={"status": "success"})
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "success"
 
     def test_update_status_not_found(self, client: TestClient, db_session):
         """Return 404 for non-existent log."""
-        resp = client.patch("/activity-logs/9999/status", json={"status": "success"})
+        resp = client.patch("/api/admin/activity-logs/9999/status", json={"status": "success"})
         assert resp.status_code == 404
 
 
@@ -181,13 +181,13 @@ class TestDeleteLog:
     def test_delete_log(self, client: TestClient, db_session):
         """Delete an activity log."""
         log = _create_log(db_session)
-        resp = client.delete(f"/activity-logs/{log.id}")
+        resp = client.delete(f"/api/admin/activity-logs/{log.id}")
         assert resp.status_code == 200
         assert db_session.query(ActivityLog).filter(ActivityLog.id == log.id).first() is None
 
     def test_delete_log_not_found(self, client: TestClient, db_session):
         """Return 404 for non-existent log."""
-        resp = client.delete("/activity-logs/9999")
+        resp = client.delete("/api/admin/activity-logs/9999")
         assert resp.status_code == 404
 
 
@@ -196,7 +196,7 @@ class TestAnalyzePatterns:
 
     def test_analyze_empty(self, client: TestClient, db_session):
         """Return empty results for storyboard without logs."""
-        resp = client.get("/activity-logs/analyze/patterns", params={"storyboard_id": 999})
+        resp = client.get("/api/admin/activity-logs/analyze/patterns", params={"storyboard_id": 999})
         assert resp.status_code == 200
         data = resp.json()
         assert data["summary"]["total_logs"] == 0
@@ -223,7 +223,7 @@ class TestAnalyzePatterns:
             )
 
         resp = client.get(
-            "/activity-logs/analyze/patterns",
+            "/api/admin/activity-logs/analyze/patterns",
             params={
                 "storyboard_id": 1,
                 "min_occurrences": 2,
@@ -241,7 +241,7 @@ class TestSuggestConflictRules:
     def test_suggest_empty(self, client: TestClient, db_session):
         """Return empty suggestions when no logs exist."""
         resp = client.get(
-            "/activity-logs/suggest-conflict-rules",
+            "/api/admin/activity-logs/suggest-conflict-rules",
             params={
                 "storyboard_id": 999,
             },
@@ -258,7 +258,7 @@ class TestSuccessCombinations:
     def test_success_combinations_empty(self, client: TestClient, db_session):
         """Return empty when no success logs."""
         resp = client.get(
-            "/activity-logs/success-combinations",
+            "/api/admin/activity-logs/success-combinations",
             params={
                 "storyboard_id": 999,
             },
@@ -284,7 +284,7 @@ class TestSuccessCombinations:
             )
 
         resp = client.get(
-            "/activity-logs/success-combinations",
+            "/api/admin/activity-logs/success-combinations",
             params={
                 "storyboard_id": 1,
                 "min_occurrences": 3,
@@ -305,7 +305,7 @@ class TestApplyConflictRules:
         _create_tag(db_session, "full_body")
 
         resp = client.post(
-            "/activity-logs/apply-conflict-rules",
+            "/api/admin/activity-logs/apply-conflict-rules",
             json={
                 "rules": [{"tag1": "upper_body", "tag2": "full_body"}],
             },
@@ -317,7 +317,7 @@ class TestApplyConflictRules:
     def test_apply_conflict_rules_tags_not_found(self, client: TestClient, db_session):
         """Skip rules when tags not found in DB."""
         resp = client.post(
-            "/activity-logs/apply-conflict-rules",
+            "/api/admin/activity-logs/apply-conflict-rules",
             json={
                 "rules": [{"tag1": "nonexistent_a", "tag2": "nonexistent_b"}],
             },
@@ -337,7 +337,7 @@ class TestApplyConflictRules:
         db_session.commit()
 
         resp = client.post(
-            "/activity-logs/apply-conflict-rules",
+            "/api/admin/activity-logs/apply-conflict-rules",
             json={
                 "rules": [{"tag1": "upper_body", "tag2": "full_body"}],
             },

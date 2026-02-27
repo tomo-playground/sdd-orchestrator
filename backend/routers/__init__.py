@@ -1,63 +1,114 @@
-"""API Routers for Shorts Producer Backend."""
+"""API Routers for Shorts Producer Backend.
 
-from .activity_logs import router as activity_logs_router
-from .admin import router as admin_router
+Assembles all routers into two parent routers:
+  - service_app_router (/api/v1)  — user-facing Service API
+  - admin_app_router   (/api/admin) — back-office Admin API
+"""
+
+from fastapi import APIRouter
+
+# ── Parent routers ──────────────────────────────────────────
+service_app_router = APIRouter(prefix="/api/v1")
+admin_app_router = APIRouter(prefix="/api/admin")
+
+# ── Service-only routers (10) ───────────────────────────────
 from .assets import router as assets_router
-from .backgrounds import router as backgrounds_router
-from .characters import router as characters_router
+from .groups import router as groups_router
+from .presets import router as presets_router
+from .projects import router as projects_router
+from .prompt_histories import router as prompt_histories_router
+from .scene import router as scene_router
+from .scripts import router as scripts_router
+from .stage import router as stage_router
+from .storyboard import router as storyboard_router
+from .video import router as video_router
+
+for _r in [
+    projects_router,
+    groups_router,
+    storyboard_router,
+    scripts_router,
+    scene_router,
+    video_router,
+    presets_router,
+    prompt_histories_router,
+    assets_router,
+    stage_router,
+]:
+    service_app_router.include_router(_r)
+
+# ── Admin-only routers (9) ──────────────────────────────────
+from .activity_logs import router as activity_logs_router
+from .admin import router as admin_core_router
 from .controlnet import router as controlnet_router
 from .creative_presets import router as creative_presets_router
-from .groups import router as groups_router
 from .lab import router as lab_router
 from .loras import router as loras_router
 from .memory import router as memory_router
-from .music_presets import router as music_presets_router
-from .presets import router as presets_router
-from .projects import router as projects_router
-from .prompt import router as prompt_router
-from .prompt_histories import router as prompt_histories_router
-from .quality import router as quality_router
-from .render_presets import router as render_presets_router
-from .scene import router as scene_router
-from .scripts import router as scripts_router
 from .sd_models import router as sd_models_router
 from .settings import router as settings_router
-from .stage import router as stage_router
-from .storyboard import router as storyboard_router
-from .style_profiles import router as style_profiles_router
-from .tags import router as tags_router
-from .video import router as video_router
-from .voice_presets import router as voice_presets_router
-from .youtube import router as youtube_router
 
-__all__ = [
-    "admin_router",
-    "assets_router",
-    "backgrounds_router",
-    "characters_router",
-    "controlnet_router",
-    "creative_presets_router",
-    "lab_router",
-    "loras_router",
-    "memory_router",
-    "presets_router",
-    "prompt_router",
-    "prompt_histories_router",
-    "quality_router",
-    "scene_router",
-    "scripts_router",
-    "sd_models_router",
-    "settings_router",
-    "storyboard_router",
-    "style_profiles_router",
-    "tags_router",
-    "video_router",
-    "activity_logs_router",
-    "groups_router",
-    "projects_router",
-    "render_presets_router",
-    "voice_presets_router",
-    "music_presets_router",
-    "youtube_router",
-    "stage_router",
-]
+for _r in [
+    admin_core_router,
+    settings_router,
+    sd_models_router,
+    controlnet_router,
+    loras_router,
+    creative_presets_router,
+    lab_router,
+    activity_logs_router,
+    memory_router,
+]:
+    admin_app_router.include_router(_r)
+
+# ── Split routers (10): service + admin ─────────────────────
+from .backgrounds import admin_router as bg_adm
+from .backgrounds import service_router as bg_svc
+from .characters import admin_router as char_adm
+from .characters import service_router as char_svc
+from .music_presets import admin_router as music_adm
+from .music_presets import service_router as music_svc
+from .prompt import admin_router as prompt_adm
+from .prompt import service_router as prompt_svc
+from .quality import admin_router as quality_adm
+from .quality import service_router as quality_svc
+from .render_presets import admin_router as rp_adm
+from .render_presets import service_router as rp_svc
+from .style_profiles import admin_router as style_adm
+from .style_profiles import service_router as style_svc
+from .tags import admin_router as tags_adm
+from .tags import service_router as tags_svc
+from .voice_presets import admin_router as voice_adm
+from .voice_presets import service_router as voice_svc
+from .youtube import admin_router as yt_adm
+from .youtube import service_router as yt_svc
+
+for _svc in [
+    char_svc,
+    style_svc,
+    voice_svc,
+    music_svc,
+    bg_svc,
+    tags_svc,
+    quality_svc,
+    yt_svc,
+    prompt_svc,
+    rp_svc,
+]:
+    service_app_router.include_router(_svc)
+
+for _adm in [
+    char_adm,
+    style_adm,
+    voice_adm,
+    music_adm,
+    bg_adm,
+    tags_adm,
+    quality_adm,
+    yt_adm,
+    prompt_adm,
+    rp_adm,
+]:
+    admin_app_router.include_router(_adm)
+
+__all__ = ["service_app_router", "admin_app_router"]

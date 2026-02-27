@@ -190,7 +190,7 @@ class TestCandidatesWithMediaAssetIntegration:
         storyboard_id = data["storyboard_id"]
 
         # 3. Retrieve storyboard
-        get_response = client.get(f"/storyboards/{storyboard_id}")
+        get_response = client.get(f"/api/v1/storyboards/{storyboard_id}")
         assert get_response.status_code == 200
         get_data = get_response.json()
 
@@ -223,7 +223,7 @@ class TestCandidatesWithMediaAssetIntegration:
         data = create_test_storyboard(client, title="Empty Candidates Test", scenes=scenes)
         storyboard_id = data["storyboard_id"]
 
-        get_response = client.get(f"/storyboards/{storyboard_id}")
+        get_response = client.get(f"/api/v1/storyboards/{storyboard_id}")
         assert get_response.status_code == 200
         get_data = get_response.json()
 

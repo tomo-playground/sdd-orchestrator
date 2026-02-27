@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Palette, Check } from "lucide-react";
 import axios from "axios";
-import { API_BASE } from "../../../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../../../constants";
 import type { StyleProfile, SDModelEntry } from "../../../../types";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 
@@ -22,7 +22,7 @@ export default function StyleStep({ selectedId, onSelect }: StyleStepProps) {
       try {
         const [profilesRes, modelsRes] = await Promise.all([
           axios.get<StyleProfile[]>(`${API_BASE}/style-profiles`),
-          axios.get<SDModelEntry[]>(`${API_BASE}/sd-models`),
+          axios.get<SDModelEntry[]>(`${ADMIN_API_BASE}/sd-models`),
         ]);
         setProfiles(profilesRes.data);
         const modelMap = new Map<number, SDModelEntry>();

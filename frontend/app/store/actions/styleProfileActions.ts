@@ -3,7 +3,7 @@ import { useRenderStore } from "../useRenderStore";
 import { useContextStore } from "../useContextStore";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useUIStore } from "../useUIStore";
-import { API_BASE, DEFAULT_STRUCTURE } from "../../constants";
+import { API_BASE, ADMIN_API_BASE, DEFAULT_STRUCTURE } from "../../constants";
 import { buildScenesPayload } from "../../utils/buildScenesPayload";
 
 /** The subset of style profile fields used in the output slice. */
@@ -63,7 +63,7 @@ export async function handleStyleProfileComplete(
   // 2. Persist style_profile_id to GroupConfig (SSOT for generation)
   if (groupId) {
     try {
-      await axios.put(`${API_BASE}/groups/${groupId}/config`, {
+      await axios.put(`${ADMIN_API_BASE}/groups/${groupId}/config`, {
         style_profile_id: profile.id,
       });
       setEffectiveDefaults(profile.id, null, true);
@@ -208,7 +208,7 @@ async function changeSdModel(
 ) {
   if (profile.sd_model_name) {
     try {
-      await axios.post(`${API_BASE}/sd/options`, {
+      await axios.post(`${ADMIN_API_BASE}/sd/options`, {
         sd_model_checkpoint: profile.sd_model_name,
       });
       showToast(

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { API_BASE } from "../../constants";
+import { ADMIN_API_BASE } from "../../constants";
 import { SIDE_PANEL_LAYOUT, SIDE_PANEL_CLASSES } from "../ui/variants";
 
 type TagStat = {
@@ -57,7 +57,7 @@ export default function AnalyticsDashboard({ storyboardId }: { storyboardId?: nu
       }
 
       const response = await axios.get<SuccessCombinationsResponse>(
-        `${API_BASE}/activity-logs/success-combinations`,
+        `${ADMIN_API_BASE}/activity-logs/success-combinations`,
         { params }
       );
       setData(response.data);

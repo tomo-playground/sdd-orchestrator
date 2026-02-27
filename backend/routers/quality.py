@@ -10,7 +10,8 @@ from schemas import ConsistencyResponse
 from services.consistency import compute_storyboard_consistency
 from services.quality import batch_validate_scenes, get_quality_alerts, get_quality_summary
 
-router = APIRouter(prefix="/quality", tags=["quality"])
+service_router = APIRouter(prefix="/quality", tags=["quality"])
+admin_router = APIRouter(prefix="/quality", tags=["quality-admin"])
 
 
 class BatchValidateRequest(BaseModel):
@@ -20,7 +21,7 @@ class BatchValidateRequest(BaseModel):
     scenes: list[dict]
 
 
-@router.post("/batch-validate")
+@admin_router.post("/batch-validate")
 def batch_validate(request: BatchValidateRequest, db: Session = Depends(get_db)):
     """Validate all scenes in a project and save quality scores.
 
@@ -57,7 +58,7 @@ def batch_validate(request: BatchValidateRequest, db: Session = Depends(get_db))
         raise_user_error("batch_validate", exc)
 
 
-@router.get("/summary/storyboard/{storyboard_id}")
+@service_router.get("/summary/storyboard/{storyboard_id}")
 def quality_summary_by_id(storyboard_id: int, db: Session = Depends(get_db)):
     """Get quality summary for a storyboard by ID."""
     try:
@@ -68,7 +69,7 @@ def quality_summary_by_id(storyboard_id: int, db: Session = Depends(get_db)):
         raise_user_error("quality_summary", exc)
 
 
-@router.get("/summary/{storyboard_id}")
+@service_router.get("/summary/{storyboard_id}")
 def quality_summary(storyboard_id: int, db: Session = Depends(get_db)):
     """Get quality summary for a storyboard.
 
@@ -92,7 +93,7 @@ def quality_summary(storyboard_id: int, db: Session = Depends(get_db)):
         raise_user_error("quality_summary", exc)
 
 
-@router.get("/consistency/{storyboard_id}", response_model=ConsistencyResponse)
+@service_router.get("/consistency/{storyboard_id}", response_model=ConsistencyResponse)
 def consistency(storyboard_id: int, db: Session = Depends(get_db)):
     """Cross-scene character consistency analysis for a storyboard."""
     from models.storyboard import Storyboard
@@ -110,7 +111,7 @@ def consistency(storyboard_id: int, db: Session = Depends(get_db)):
         raise_user_error("consistency_analysis", exc)
 
 
-@router.get("/alerts/{storyboard_id}")
+@service_router.get("/alerts/{storyboard_id}")
 def quality_alerts(storyboard_id: int, threshold: float = 0.7, db: Session = Depends(get_db)):
     """Get scenes with quality below threshold for a storyboard."""
     try:

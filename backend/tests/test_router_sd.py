@@ -28,7 +28,7 @@ class TestListSDModels:
         mock_instance.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_instance
 
-        resp = client.get("/sd/models")
+        resp = client.get("/api/admin/sd/models")
         assert resp.status_code == 200
         data = resp.json()
         assert "models" in data
@@ -43,7 +43,7 @@ class TestListSDModels:
         mock_instance.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_instance
 
-        resp = client.get("/sd/models")
+        resp = client.get("/api/admin/sd/models")
         assert resp.status_code == 502
 
 
@@ -67,7 +67,7 @@ class TestGetSDOptions:
         mock_instance.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_instance
 
-        resp = client.get("/sd/options")
+        resp = client.get("/api/admin/sd/options")
         assert resp.status_code == 200
         data = resp.json()
         assert data["model"] == "animagine-xl.safetensors"
@@ -87,7 +87,7 @@ class TestGetSDOptions:
         mock_instance.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_instance
 
-        resp = client.get("/sd/options")
+        resp = client.get("/api/admin/sd/options")
         assert resp.status_code == 200
         data = resp.json()
         assert data["model"] == "Unknown"
@@ -101,7 +101,7 @@ class TestGetSDOptions:
         mock_instance.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_instance
 
-        resp = client.get("/sd/options")
+        resp = client.get("/api/admin/sd/options")
         assert resp.status_code == 502
 
 
@@ -122,7 +122,7 @@ class TestUpdateSDOptions:
         mock_instance.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_instance
 
-        resp = client.post("/sd/options", json={"sd_model_checkpoint": "new_model.safetensors"})
+        resp = client.post("/api/admin/sd/options", json={"sd_model_checkpoint": "new_model.safetensors"})
         assert resp.status_code == 200
         data = resp.json()
         assert data["ok"] is True
@@ -137,7 +137,7 @@ class TestUpdateSDOptions:
         mock_instance.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_instance
 
-        resp = client.post("/sd/options", json={"sd_model_checkpoint": "model"})
+        resp = client.post("/api/admin/sd/options", json={"sd_model_checkpoint": "model"})
         assert resp.status_code == 502
 
 
@@ -161,7 +161,7 @@ class TestListSDLoRAs:
         mock_instance.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_instance
 
-        resp = client.get("/sd/loras")
+        resp = client.get("/api/admin/sd/loras")
         assert resp.status_code == 200
         data = resp.json()
         assert "loras" in data
@@ -181,7 +181,7 @@ class TestListSDLoRAs:
         mock_instance.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_instance
 
-        resp = client.get("/sd/loras")
+        resp = client.get("/api/admin/sd/loras")
         assert resp.status_code == 200
         data = resp.json()
         assert data["loras"] == []
@@ -195,5 +195,5 @@ class TestListSDLoRAs:
         mock_instance.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_instance
 
-        resp = client.get("/sd/loras")
+        resp = client.get("/api/admin/sd/loras")
         assert resp.status_code == 502

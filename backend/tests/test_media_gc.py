@@ -284,7 +284,7 @@ class TestAdminEndpoints:
     def test_get_orphans(self, client, db_session):
         _make_asset(db_session, storage_key="api/orphan.png")
 
-        response = client.get("/admin/media-assets/orphans")
+        response = client.get("/api/admin/media-assets/orphans")
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
@@ -293,7 +293,7 @@ class TestAdminEndpoints:
     def test_cleanup_dry_run(self, client, db_session):
         _make_asset(db_session, storage_key="api/cleanup.png")
 
-        response = client.post("/admin/media-assets/cleanup?dry_run=true")
+        response = client.post("/api/admin/media-assets/cleanup?dry_run=true")
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
@@ -308,7 +308,7 @@ class TestAdminEndpoints:
 
         _make_asset(db_session, storage_key="api/delete.png")
 
-        response = client.post("/admin/media-assets/cleanup?dry_run=false")
+        response = client.post("/api/admin/media-assets/cleanup?dry_run=false")
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
@@ -316,7 +316,7 @@ class TestAdminEndpoints:
     def test_get_stats(self, client, db_session):
         _make_asset(db_session, storage_key="api/stats.png")
 
-        response = client.get("/admin/media-assets/stats")
+        response = client.get("/api/admin/media-assets/stats")
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True

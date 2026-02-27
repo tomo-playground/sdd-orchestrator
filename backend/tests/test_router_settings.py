@@ -12,7 +12,7 @@ class TestAutoEditSettings:
 
     def test_get_auto_edit_settings(self, client: TestClient, db_session):
         """GET /settings/auto-edit returns current config values."""
-        response = client.get("/settings/auto-edit")
+        response = client.get("/api/admin/settings/auto-edit")
         assert response.status_code == 200
         data = response.json()
 
@@ -37,7 +37,7 @@ class TestAutoEditSettings:
             "max_retries": 3,
         }
 
-        response = client.put("/settings/auto-edit", json=update_data)
+        response = client.put("/api/admin/settings/auto-edit", json=update_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -65,7 +65,7 @@ class TestAutoEditSettings:
                 "max_cost": 5.0,
                 "max_retries": 5,
             }
-            put_resp = client.put("/settings/auto-edit", json=update_data)
+            put_resp = client.put("/api/admin/settings/auto-edit", json=update_data)
             assert put_resp.status_code == 200
 
             # Verify runtime_settings was updated
@@ -88,7 +88,7 @@ class TestAutoEditSettings:
             "threshold": 0.8,
             "max_cost": 1.0,
         }
-        response = client.put("/settings/auto-edit", json=incomplete)
+        response = client.put("/api/admin/settings/auto-edit", json=incomplete)
         assert response.status_code == 422
 
     def test_update_auto_edit_invalid_types(self, client: TestClient, db_session):
@@ -99,7 +99,7 @@ class TestAutoEditSettings:
             "max_cost": "not_a_float",
             "max_retries": "not_an_int",
         }
-        response = client.put("/settings/auto-edit", json=invalid)
+        response = client.put("/api/admin/settings/auto-edit", json=invalid)
         assert response.status_code == 422
 
 
@@ -108,7 +108,7 @@ class TestCostSummary:
 
     def test_cost_summary_empty(self, client: TestClient, db_session):
         """Cost summary with no activity logs returns zeros."""
-        response = client.get("/settings/auto-edit/cost-summary")
+        response = client.get("/api/admin/settings/auto-edit/cost-summary")
         assert response.status_code == 200
         data = response.json()
 
@@ -146,7 +146,7 @@ class TestCostSummary:
         db_session.add_all([log1, log2, log3])
         db_session.commit()
 
-        response = client.get("/settings/auto-edit/cost-summary")
+        response = client.get("/api/admin/settings/auto-edit/cost-summary")
         assert response.status_code == 200
         data = response.json()
 
@@ -176,7 +176,7 @@ class TestCostSummary:
         db_session.add_all([log_today, log_old])
         db_session.commit()
 
-        response = client.get("/settings/auto-edit/cost-summary")
+        response = client.get("/api/admin/settings/auto-edit/cost-summary")
         assert response.status_code == 200
         data = response.json()
 

@@ -6,7 +6,7 @@ import { Music } from "lucide-react";
 import axios from "axios";
 import { useRenderStore } from "../../store/useRenderStore";
 import { useUIStore } from "../../store/useUIStore";
-import { API_BASE } from "../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../constants";
 import { getErrorMsg } from "../../utils/error";
 import StageBgmCard from "./StageBgmCard";
 import type { MusicPreset } from "../../types";
@@ -51,7 +51,7 @@ export default function StageBgmSection({ audioPlayer }: Props) {
     setIsGenerating(true);
     try {
       const res = await axios.post<{ audio_url: string; temp_asset_id: number; seed: number }>(
-        `${API_BASE}/music-presets/preview`,
+        `${ADMIN_API_BASE}/music-presets/preview`,
         { prompt: bgmPrompt, duration: 10.0, seed: -1 }
       );
       useRenderStore.getState().set({ bgmPreviewUrl: res.data.audio_url });

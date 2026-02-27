@@ -10,7 +10,7 @@ class TestStyleProfilesRouter:
 
     def test_list_style_profiles_empty(self, client: TestClient, db_session):
         """List style profiles when database is empty."""
-        response = client.get("/style-profiles")
+        response = client.get("/api/v1/style-profiles")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -20,7 +20,7 @@ class TestStyleProfilesRouter:
         """Create style profile with minimal required fields."""
         request_data = {"name": "test_profile", "display_name": "Test Profile"}
 
-        response = client.post("/style-profiles", json=request_data)
+        response = client.post("/api/admin/style-profiles", json=request_data)
         assert response.status_code == 201
         data = response.json()
 
@@ -33,11 +33,11 @@ class TestStyleProfilesRouter:
         request_data = {"name": "duplicate_profile", "display_name": "Duplicate Profile"}
 
         # Create first
-        response = client.post("/style-profiles", json=request_data)
+        response = client.post("/api/admin/style-profiles", json=request_data)
         assert response.status_code == 201
 
         # Try duplicate
-        response = client.post("/style-profiles", json=request_data)
+        response = client.post("/api/admin/style-profiles", json=request_data)
         assert response.status_code == 400
         assert "already exists" in response.json()["detail"].lower()
 
@@ -51,7 +51,7 @@ class TestStyleProfilesRouter:
         # Create new default via API
         request_data = {"name": "profile2", "display_name": "Profile 2", "is_default": True}
 
-        response = client.post("/style-profiles", json=request_data)
+        response = client.post("/api/admin/style-profiles", json=request_data)
         assert response.status_code == 201
 
         # Verify first is no longer default
@@ -60,7 +60,7 @@ class TestStyleProfilesRouter:
 
     def test_get_style_profile_not_found(self, client: TestClient):
         """Get non-existent style profile returns 404."""
-        response = client.get("/style-profiles/99999")
+        response = client.get("/api/v1/style-profiles/99999")
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
@@ -70,7 +70,7 @@ class TestStyleProfilesRouter:
         db_session.add(profile)
         db_session.commit()
 
-        response = client.get(f"/style-profiles/{profile.id}")
+        response = client.get(f"/api/v1/style-profiles/{profile.id}")
         assert response.status_code == 200
         data = response.json()
 
@@ -84,7 +84,7 @@ class TestStyleProfilesRouter:
         db_session.add(profile)
         db_session.commit()
 
-        response = client.get("/style-profiles/default")
+        response = client.get("/api/v1/style-profiles/default")
         assert response.status_code == 200
         data = response.json()
 
@@ -93,7 +93,7 @@ class TestStyleProfilesRouter:
 
     def test_get_default_profile_not_found(self, client: TestClient, db_session):
         """Get default profile when none exists returns 404."""
-        response = client.get("/style-profiles/default")
+        response = client.get("/api/v1/style-profiles/default")
         assert response.status_code == 404
         assert "no default" in response.json()["detail"].lower()
 
@@ -108,7 +108,7 @@ class TestStyleProfilesRouter:
         db_session.add(profile)
         db_session.commit()
 
-        response = client.get(f"/style-profiles/{profile.id}/full")
+        response = client.get(f"/api/v1/style-profiles/{profile.id}/full")
         assert response.status_code == 200
         data = response.json()
 
@@ -129,7 +129,7 @@ class TestStyleProfilesRouter:
 
         update_data = {"display_name": "Updated Name", "description": "Updated description"}
 
-        response = client.put(f"/style-profiles/{profile_id}", json=update_data)
+        response = client.put(f"/api/admin/style-profiles/{profile_id}", json=update_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -140,7 +140,7 @@ class TestStyleProfilesRouter:
         """Update non-existent style profile returns 404."""
         update_data = {"display_name": "Updated"}
 
-        response = client.put("/style-profiles/99999", json=update_data)
+        response = client.put("/api/admin/style-profiles/99999", json=update_data)
         assert response.status_code == 404
 
     def test_update_style_profile_set_default(self, client: TestClient, db_session):
@@ -154,7 +154,7 @@ class TestStyleProfilesRouter:
         # Set profile2 as default
         update_data = {"is_default": True}
 
-        response = client.put(f"/style-profiles/{profile2.id}", json=update_data)
+        response = client.put(f"/api/admin/style-profiles/{profile2.id}", json=update_data)
         assert response.status_code == 200
 
         # Verify profile1 is no longer default
@@ -168,7 +168,7 @@ class TestStyleProfilesRouter:
         db_session.commit()
         profile_id = profile.id
 
-        response = client.delete(f"/style-profiles/{profile_id}")
+        response = client.delete(f"/api/admin/style-profiles/{profile_id}")
         assert response.status_code == 200
         data = response.json()
         assert data["ok"] is True
@@ -180,7 +180,7 @@ class TestStyleProfilesRouter:
 
     def test_delete_style_profile_not_found(self, client: TestClient):
         """Delete non-existent style profile returns 404."""
-        response = client.delete("/style-profiles/99999")
+        response = client.delete("/api/admin/style-profiles/99999")
         assert response.status_code == 404
 
     def test_list_style_profiles_with_data(self, client: TestClient, db_session):
@@ -191,7 +191,7 @@ class TestStyleProfilesRouter:
         db_session.commit()
 
         # Default: active_only=True
-        response = client.get("/style-profiles")
+        response = client.get("/api/v1/style-profiles")
         assert response.status_code == 200
         data = response.json()
 
@@ -205,7 +205,7 @@ class TestStyleProfilesRouter:
         db_session.add_all([profile1, profile2])
         db_session.commit()
 
-        response = client.get("/style-profiles?active_only=false")
+        response = client.get("/api/v1/style-profiles?active_only=false")
         assert response.status_code == 200
         data = response.json()
 
@@ -221,7 +221,7 @@ class TestStyleProfilesRouter:
             "loras": [{"lora_id": 1, "weight": 0.8}],
         }
 
-        response = client.post("/style-profiles", json=request_data)
+        response = client.post("/api/admin/style-profiles", json=request_data)
         assert response.status_code == 201
         data = response.json()
 
@@ -247,7 +247,7 @@ class TestStyleProfileFullResponse:
         db_session.add(profile)
         db_session.commit()
 
-        response = client.get(f"/style-profiles/{profile.id}/full")
+        response = client.get(f"/api/v1/style-profiles/{profile.id}/full")
         assert response.status_code == 200
         data = response.json()
 
@@ -271,7 +271,7 @@ class TestStyleProfileFullResponse:
         db_session.add(profile)
         db_session.commit()
 
-        response = client.get(f"/style-profiles/{profile.id}/full")
+        response = client.get(f"/api/v1/style-profiles/{profile.id}/full")
         assert response.status_code == 200
         data = response.json()
 
@@ -287,7 +287,7 @@ class TestStyleProfileFullResponse:
         db_session.add(profile)
         db_session.commit()
 
-        response = client.get(f"/style-profiles/{profile.id}/full")
+        response = client.get(f"/api/v1/style-profiles/{profile.id}/full")
         assert response.status_code == 200
         data = response.json()
 
@@ -307,7 +307,7 @@ class TestStyleProfileFullResponse:
         db_session.add(profile)
         db_session.commit()
 
-        response = client.get(f"/style-profiles/{profile.id}/full")
+        response = client.get(f"/api/v1/style-profiles/{profile.id}/full")
         assert response.status_code == 200
         data = response.json()
 

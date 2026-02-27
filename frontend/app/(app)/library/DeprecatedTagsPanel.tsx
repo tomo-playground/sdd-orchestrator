@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { API_BASE } from "../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../constants";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import ConfirmDialog, { useConfirm } from "../../components/ui/ConfirmDialog";
 import { useUIStore } from "../../store/useUIStore";
@@ -11,7 +11,7 @@ import {
   SUCCESS_TEXT,
   SUCCESS_BORDER,
   SUCCESS_ICON,
-  ERROR_ICON
+  ERROR_ICON,
 } from "../../components/ui/variants";
 
 interface DeprecatedTag {
@@ -58,7 +58,7 @@ export default function DeprecatedTagsPanel() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get<DeprecatedTagsResponse>(`${API_BASE}/admin/tags/deprecated`);
+      const response = await axios.get<DeprecatedTagsResponse>(`${ADMIN_API_BASE}/tags/deprecated`);
       setDeprecatedTags(response.data.tags);
     } catch (err) {
       console.error("Failed to fetch deprecated tags:", err);
@@ -76,7 +76,7 @@ export default function DeprecatedTagsPanel() {
     });
     if (!ok) return;
     try {
-      await axios.put(`${API_BASE}/admin/tags/${tagId}/activate`);
+      await axios.put(`${ADMIN_API_BASE}/tags/${tagId}/activate`);
       await fetchDeprecatedTags();
     } catch (err) {
       const msg = axios.isAxiosError(err)
@@ -128,7 +128,7 @@ export default function DeprecatedTagsPanel() {
 
     setIsDeprecating(true);
     try {
-      await axios.put(`${API_BASE}/admin/tags/${selectedTag.id}/deprecate`, {
+      await axios.put(`${ADMIN_API_BASE}/tags/${selectedTag.id}/deprecate`, {
         deprecated_reason: reason.trim(),
         replacement_tag_id: selectedReplacement?.id ?? null,
       });
@@ -379,7 +379,9 @@ export default function DeprecatedTagsPanel() {
                         <span className="text-[12px] font-semibold text-zinc-400 uppercase">
                           Replacement:
                         </span>
-                        <span className={`rounded-md ${SUCCESS_BG} px-2 py-0.5 font-mono text-[12px] font-semibold ${SUCCESS_TEXT}`}>
+                        <span
+                          className={`rounded-md ${SUCCESS_BG} px-2 py-0.5 font-mono text-[12px] font-semibold ${SUCCESS_TEXT}`}
+                        >
                           {tag.replacement.name}
                         </span>
                       </div>

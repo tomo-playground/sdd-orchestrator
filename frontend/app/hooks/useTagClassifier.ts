@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { API_BASE } from "../constants";
+import { ADMIN_API_BASE } from "../constants";
 
 type ClassificationResult = {
   group: string | null;
@@ -37,67 +37,70 @@ export function useTagClassifier() {
   /**
    * Classify multiple tags via API (batch operation)
    */
-  const classifyTags = useCallback(async (tags: string[]): Promise<Record<string, string | null>> => {
-    if (tags.length === 0) return {};
+  const classifyTags = useCallback(
+    async (tags: string[]): Promise<Record<string, string | null>> => {
+      if (tags.length === 0) return {};
 
-    // Filter out already cached tags
-    const uncached = tags.filter((t) => {
-      const normalized = t.toLowerCase().trim();
-      return !classificationCache.has(normalized) && !pendingRef.current.has(normalized);
-    });
-
-    // If all cached, return from cache
-    if (uncached.length === 0) {
-      return tags.reduce(
-        (acc, tag) => {
-          acc[tag] = classificationCache.get(tag.toLowerCase().trim()) ?? null;
-          return acc;
-        },
-        {} as Record<string, string | null>
-      );
-    }
-
-    // Mark as pending
-    uncached.forEach((t) => pendingRef.current.add(t.toLowerCase().trim()));
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`${API_BASE}/tags/classify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tags: uncached }),
+      // Filter out already cached tags
+      const uncached = tags.filter((t) => {
+        const normalized = t.toLowerCase().trim();
+        return !classificationCache.has(normalized) && !pendingRef.current.has(normalized);
       });
 
-      if (!response.ok) {
-        throw new Error(`Classification failed: ${response.status}`);
+      // If all cached, return from cache
+      if (uncached.length === 0) {
+        return tags.reduce(
+          (acc, tag) => {
+            acc[tag] = classificationCache.get(tag.toLowerCase().trim()) ?? null;
+            return acc;
+          },
+          {} as Record<string, string | null>
+        );
       }
 
-      const data: ClassifyResponse = await response.json();
+      // Mark as pending
+      uncached.forEach((t) => pendingRef.current.add(t.toLowerCase().trim()));
+      setIsLoading(true);
 
-      // Update cache with results
-      Object.entries(data.results).forEach(([tag, result]) => {
-        const normalized = tag.toLowerCase().trim();
-        classificationCache.set(normalized, result.group);
-        pendingRef.current.delete(normalized);
-      });
+      try {
+        const response = await fetch(`${ADMIN_API_BASE}/tags/classify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tags: uncached }),
+        });
 
-      // Return all results (cached + new)
-      return tags.reduce(
-        (acc, tag) => {
-          acc[tag] = classificationCache.get(tag.toLowerCase().trim()) ?? null;
-          return acc;
-        },
-        {} as Record<string, string | null>
-      );
-    } catch (error) {
-      console.error("[TagClassifier] Error:", error);
-      // Clear pending on error
-      uncached.forEach((t) => pendingRef.current.delete(t.toLowerCase().trim()));
-      return {};
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+        if (!response.ok) {
+          throw new Error(`Classification failed: ${response.status}`);
+        }
+
+        const data: ClassifyResponse = await response.json();
+
+        // Update cache with results
+        Object.entries(data.results).forEach(([tag, result]) => {
+          const normalized = tag.toLowerCase().trim();
+          classificationCache.set(normalized, result.group);
+          pendingRef.current.delete(normalized);
+        });
+
+        // Return all results (cached + new)
+        return tags.reduce(
+          (acc, tag) => {
+            acc[tag] = classificationCache.get(tag.toLowerCase().trim()) ?? null;
+            return acc;
+          },
+          {} as Record<string, string | null>
+        );
+      } catch (error) {
+        console.error("[TagClassifier] Error:", error);
+        // Clear pending on error
+        uncached.forEach((t) => pendingRef.current.delete(t.toLowerCase().trim()));
+        return {};
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
   /**
    * Pre-warm cache with common tags

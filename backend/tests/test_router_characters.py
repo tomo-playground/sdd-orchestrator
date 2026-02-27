@@ -19,7 +19,7 @@ class TestCharactersRouter:
 
     def test_list_characters_empty(self, client: TestClient, db_session):
         """List characters when database is empty."""
-        response = client.get("/characters")
+        response = client.get("/api/v1/characters")
         assert response.status_code == 200
         data = response.json()
         assert "items" in data
@@ -33,7 +33,7 @@ class TestCharactersRouter:
             "name": "test_character",
         }
 
-        response = client.post("/characters", json=request_data)
+        response = client.post("/api/admin/characters", json=request_data)
         assert response.status_code == 201
         data = response.json()
 
@@ -50,11 +50,11 @@ class TestCharactersRouter:
         request_data = {
             "name": "duplicate_test",
         }
-        response = client.post("/characters", json=request_data)
+        response = client.post("/api/admin/characters", json=request_data)
         assert response.status_code == 201
 
         # Try to create duplicate
-        response = client.post("/characters", json=request_data)
+        response = client.post("/api/admin/characters", json=request_data)
         assert response.status_code == 409
         assert "already exists" in response.json()["detail"].lower()
 
@@ -68,7 +68,7 @@ class TestCharactersRouter:
         # Note: Router uses `await get_character()` which may cause issues in sync tests
         # For now, just verify basic creation works
         try:
-            response = client.post("/characters", json=request_data)
+            response = client.post("/api/admin/characters", json=request_data)
             # Accept either success or async-related issues
             assert response.status_code in [201, 500], f"Unexpected status: {response.status_code}"
         except Exception:
@@ -78,7 +78,7 @@ class TestCharactersRouter:
 
     def test_get_character_not_found(self, client: TestClient):
         """Get non-existent character returns 404."""
-        response = client.get("/characters/99999")
+        response = client.get("/api/v1/characters/99999")
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
@@ -91,7 +91,7 @@ class TestCharactersRouter:
         db_session.add(character)
         db_session.commit()
 
-        response = client.get(f"/characters/{character.id}")
+        response = client.get(f"/api/v1/characters/{character.id}")
         assert response.status_code == 200
         data = response.json()
 
@@ -112,7 +112,7 @@ class TestCharactersRouter:
         # Update
         update_data = {"description": "Updated description", "gender": "female"}
 
-        response = client.put(f"/characters/{character_id}", json=update_data)
+        response = client.put(f"/api/admin/characters/{character_id}", json=update_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -123,7 +123,7 @@ class TestCharactersRouter:
         """Update non-existent character returns 404."""
         update_data = {"description": "Updated"}
 
-        response = client.put("/characters/99999", json=update_data)
+        response = client.put("/api/admin/characters/99999", json=update_data)
         assert response.status_code == 404
 
     def test_delete_character_success(self, client: TestClient, db_session):
@@ -136,7 +136,7 @@ class TestCharactersRouter:
         db_session.commit()
         character_id = character.id
 
-        response = client.delete(f"/characters/{character_id}")
+        response = client.delete(f"/api/admin/characters/{character_id}")
         assert response.status_code == 200
         data = response.json()
         assert data["ok"] is True
@@ -150,7 +150,7 @@ class TestCharactersRouter:
 
     def test_delete_character_not_found(self, client: TestClient):
         """Delete non-existent character returns 404."""
-        response = client.delete("/characters/99999")
+        response = client.delete("/api/admin/characters/99999")
         assert response.status_code == 404
 
     def test_list_characters_with_data(self, client: TestClient, db_session):
@@ -161,7 +161,7 @@ class TestCharactersRouter:
         db_session.add_all([char1, char2])
         db_session.commit()
 
-        response = client.get("/characters")
+        response = client.get("/api/v1/characters")
         assert response.status_code == 200
         data = response.json()
 
@@ -176,7 +176,7 @@ class TestCharactersRouter:
         """Create character with LoRA configuration."""
         request_data = {"name": "lora_character", "loras": [{"lora_id": 1, "weight": 0.7}]}
 
-        response = client.post("/characters", json=request_data)
+        response = client.post("/api/admin/characters", json=request_data)
         assert response.status_code == 201
         data = response.json()
 
@@ -185,11 +185,11 @@ class TestCharactersRouter:
 
     def test_duplicate_name_global(self, client: TestClient, db_session):
         """Same character name is rejected globally."""
-        res1 = client.post("/characters", json={"name": "global_char"})
+        res1 = client.post("/api/admin/characters", json={"name": "global_char"})
         assert res1.status_code == 201
 
         # Same name should fail
-        res2 = client.post("/characters", json={"name": "global_char"})
+        res2 = client.post("/api/admin/characters", json={"name": "global_char"})
         assert res2.status_code == 409
 
     def test_update_character_tags(self, client: TestClient, db_session, sample_tag):
@@ -207,7 +207,7 @@ class TestCharactersRouter:
 
         # Note: Router uses `await get_character()` which may cause issues in sync tests
         try:
-            response = client.put(f"/characters/{character_id}", json=update_data)
+            response = client.put(f"/api/admin/characters/{character_id}", json=update_data)
             assert response.status_code in [200, 500], f"Unexpected status: {response.status_code}"
         except Exception:
             pytest.skip("Async endpoint issue in TestClient")

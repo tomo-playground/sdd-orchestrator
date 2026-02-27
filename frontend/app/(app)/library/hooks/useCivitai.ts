@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
-import { API_BASE } from "../../../constants";
+import { ADMIN_API_BASE } from "../../../constants";
 
 export type CivitaiResult = {
   civitai_id: number;
@@ -25,7 +25,7 @@ export function useCivitai(ui: UiCallbacks) {
     setCivitaiResults([]);
     try {
       const res = await axios.get<{ results: CivitaiResult[] }>(
-        `${API_BASE}/loras/search-civitai`,
+        `${ADMIN_API_BASE}/loras/search-civitai`,
         { params: { query: civitaiSearch, limit: 10 } }
       );
       setCivitaiResults(res.data.results || []);
@@ -53,7 +53,7 @@ export function useCivitai(ui: UiCallbacks) {
       if (!ok) return;
 
       try {
-        await axios.post(`${API_BASE}/loras/import-civitai/${modelId}`);
+        await axios.post(`${ADMIN_API_BASE}/loras/import-civitai/${modelId}`);
         ui.showToast("Download started. Check database later.", "success");
       } catch (error) {
         const msg = axios.isAxiosError(error)

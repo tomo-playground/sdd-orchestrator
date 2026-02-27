@@ -33,7 +33,7 @@ class TestBatchValidate:
                 ],
             }
 
-            response = client.post("/quality/batch-validate", json=request_data)
+            response = client.post("/api/admin/quality/batch-validate", json=request_data)
             assert response.status_code == 200
             data = response.json()
 
@@ -57,7 +57,7 @@ class TestBatchValidate:
                 "scenes": [],
             }
 
-            response = client.post("/quality/batch-validate", json=request_data)
+            response = client.post("/api/admin/quality/batch-validate", json=request_data)
             assert response.status_code == 200
             data = response.json()
 
@@ -77,7 +77,7 @@ class TestBatchValidate:
                 ],
             }
 
-            response = client.post("/quality/batch-validate", json=request_data)
+            response = client.post("/api/admin/quality/batch-validate", json=request_data)
             assert response.status_code == 500
 
     def test_batch_validate_missing_storyboard_id(
@@ -87,7 +87,7 @@ class TestBatchValidate:
         request_data = {
             "scenes": [{"scene_id": 1, "image_url": "/test.png", "prompt": "test"}],
         }
-        response = client.post("/quality/batch-validate", json=request_data)
+        response = client.post("/api/admin/quality/batch-validate", json=request_data)
         assert response.status_code == 422
 
 
@@ -106,7 +106,7 @@ class TestQualitySummary:
         }
 
         with patch("routers.quality.get_quality_summary", return_value=mock_summary):
-            response = client.get("/quality/summary/1")
+            response = client.get("/api/v1/quality/summary/1")
             assert response.status_code == 200
             data = response.json()
 
@@ -128,7 +128,7 @@ class TestQualitySummary:
         }
 
         with patch("routers.quality.get_quality_summary", return_value=mock_summary):
-            response = client.get("/quality/summary/999")
+            response = client.get("/api/v1/quality/summary/999")
             assert response.status_code == 200
             data = response.json()
 
@@ -140,7 +140,7 @@ class TestQualitySummary:
             "routers.quality.get_quality_summary",
             side_effect=RuntimeError("DB error"),
         ):
-            response = client.get("/quality/summary/1")
+            response = client.get("/api/v1/quality/summary/1")
             assert response.status_code == 500
 
 
@@ -159,7 +159,7 @@ class TestQualitySummaryById:
         }
 
         with patch("routers.quality.get_quality_summary", return_value=mock_summary):
-            response = client.get("/quality/summary/storyboard/1")
+            response = client.get("/api/v1/quality/summary/storyboard/1")
             assert response.status_code == 200
             data = response.json()
 
@@ -182,7 +182,7 @@ class TestQualityAlerts:
         ]
 
         with patch("routers.quality.get_quality_alerts", return_value=mock_alerts):
-            response = client.get("/quality/alerts/1")
+            response = client.get("/api/v1/quality/alerts/1")
             assert response.status_code == 200
             data = response.json()
 
@@ -194,7 +194,7 @@ class TestQualityAlerts:
     def test_quality_alerts_empty(self, client: TestClient, db_session):
         """No alerts when all scenes are above threshold."""
         with patch("routers.quality.get_quality_alerts", return_value=[]):
-            response = client.get("/quality/alerts/1")
+            response = client.get("/api/v1/quality/alerts/1")
             assert response.status_code == 200
             data = response.json()
 
@@ -204,7 +204,7 @@ class TestQualityAlerts:
     def test_quality_alerts_custom_threshold(self, client: TestClient, db_session):
         """Quality alerts respects custom threshold parameter."""
         with patch("routers.quality.get_quality_alerts", return_value=[]) as mock_fn:
-            response = client.get("/quality/alerts/1?threshold=0.9")
+            response = client.get("/api/v1/quality/alerts/1?threshold=0.9")
             assert response.status_code == 200
 
             # Verify the threshold was passed to the service (db is injected by Depends)
@@ -219,5 +219,5 @@ class TestQualityAlerts:
             "routers.quality.get_quality_alerts",
             side_effect=RuntimeError("DB error"),
         ):
-            response = client.get("/quality/alerts/1")
+            response = client.get("/api/v1/quality/alerts/1")
             assert response.status_code == 500
