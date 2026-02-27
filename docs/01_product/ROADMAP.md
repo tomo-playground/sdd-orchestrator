@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-02-27)
+## 현재 상태 (2026-02-28)
 
 | 항목 | 상태 |
 |------|------|
@@ -21,11 +21,12 @@
 | **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
 | Phase 18 (Stage Workflow) | 전체 완료 (ARCHIVED) |
-| **Phase 19 (Studio 탭 페르소나 재배치)** | **명세 완료 (v2), 구현 미착수** |
+| **Phase 19 (Studio 탭 페르소나 재배치)** | **전체 완료 — 19-1(9) + 19-2(2) + 19-3(4) = 15/15** |
 | 테스트 | Backend 2,667 + Frontend 399 = **총 3,066개** (valence +27 = 3,093) |
 
 ### 최근 작업
 
+- **Phase 19: Studio 탭 페르소나 재배치 구현 완료** (02-28): Stage SSOT + Direct 경량화. StageTab에 Visual Style/CharacterSelector/Base Prompts(읽기전용)/Generation Settings 추가. ScenesTab Context Strip(Style/Character 배지 + Stage 딥링크). Publish Voice/BGM readOnly + "Change in Stage" 링크. Dead code 6파일 삭제(ImageSettingsContent, StudioThreeColumnLayout, RightPanelTabs, PromptHelperSidebar, PromptSetupPanel, promptHelperActions). isMultiCharStructure 유틸 통일. 18파일 +550/-761줄
 - **Studio 탭 페르소나 재배치 명세 v2** (02-27): 6-Agent 리뷰(PM/Frontend/UX/TechLead/Backend/QA) 반영. BLOCKER 4건 해소: (1) Express 모드 Stage 경유 확정, (2) useCharacterAutoLoad 경합 조건 문서화, (3) Phase 순서 의존성 명시, (4) Direct Context Strip 추가. Phase 1(9스텝) + Phase 2(2스텝) + Phase 3(4스텝). [명세](FEATURES/STUDIO_TAB_PERSONA_REORGANIZATION.md)
 - **Direct 탭 2-column 레이아웃 전환** (02-27): 3-column(280px|1fr|300px) → 2-column(280px|1fr). 우측 패널 제거, ImageSettingsContent→센터 Settings CollapsibleSection, SceneToolsContent→SceneCard Advanced, SceneInsightsContent→좌측 하단. Prompt Helper 완전 삭제(2파일). Scene Tags↔Advanced 순서 교체
 - **Expression-Mood Valence 충돌 감지 시스템** (02-27): Tag.valence 컬럼 + Alembic 마이그레이션, TagValenceCache 인메모리 캐시, `_flatten_layers` valence 교차 체크(L7 expression ↔ L11 mood), `_prompt_conflict_resolver` valence 충돌 감지, LLM valence 분류기(`classify_valence_via_llm`), `POST /admin/tags/classify-valence` 엔드포인트, `emotion_consistency_rules.j2` Gemini 템플릿 파셜. 27개 테스트 추가 (전체 2,770 passed)
@@ -302,31 +303,31 @@ Script → **Stage** → Direct → Publish 4단계 워크플로우. [상세 명
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | Stage "Visual Style" 섹션 추가 (StyleProfileSelector 이동) | 미착수 |
-| 2 | StageCharactersSection에 CharacterSelector 통합 (선택 가능) | 미착수 |
-| 3 | Stage Base Prompt Collapsible + "캐릭터 변경 시 자동 생성" 안내 | 미착수 |
-| 4 | Stage "Generation Settings" 토글 섹션 추가 | 미착수 |
-| 5 | StageReadinessBar "Style" 카테고리 + useMaterialsCheck 확장 | 미착수 |
-| 6 | MaterialsPopover Characters→stage-tab + Style 항목 추가 | 미착수 |
-| 7 | Express 모드: ScriptTab Express 분기를 Stage 경유로 변경 | 미착수 |
-| 8 | Direct Context Strip (32px 읽기 전용 배지 + Stage 딥링크) | 미착수 |
-| 9 | Direct에서 ImageSettingsContent + Settings 제거 (**1-8 완료 후**) | 미착수 |
+| 1 | Stage "Visual Style" 섹션 추가 (StyleProfileSelector 이동) | ✅ (02-28) |
+| 2 | StageCharactersSection에 CharacterSelector 통합 (선택 가능) | ✅ (02-28) |
+| 3 | Stage Base Prompts 읽기전용 요약 + 캐릭터 페이지 편집 링크 | ✅ (02-28) |
+| 4 | Stage "Generation Settings" 토글 섹션 추가 | ✅ (02-28) |
+| 5 | StageReadinessBar "Style" 카테고리 + useMaterialsCheck 확장 | ✅ (02-28) |
+| 6 | MaterialsPopover Characters→stage-tab + Style 항목 추가 | ✅ (02-28) |
+| 7 | Express 모드: ScriptTab Express 분기를 Stage 경유로 변경 | ✅ (02-28) |
+| 8 | Direct Context Strip (32px 읽기 전용 배지 + Stage 딥링크) | ✅ (02-28) |
+| 9 | Direct에서 ImageSettingsContent + Settings 제거 | ✅ (02-28) |
 
 ### Phase 19-2: Publish SSOT 분리
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | Publish Voice/BGM 프리셋 → 읽기 전용 + 볼륨/덕킹 슬라이더 유지 | 미착수 |
-| 2 | "Stage에서 변경" 링크 버튼 추가 | 미착수 |
+| 1 | Publish Voice/BGM 프리셋 → 읽기 전용 + 볼륨/덕킹 슬라이더 유지 | ✅ (02-28) |
+| 2 | "Stage에서 변경" 링크 버튼 추가 | ✅ (02-28) |
 
 ### Phase 19-3: 정리 및 검증
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | Dead code 삭제 (ImageSettingsContent, StudioThreeColumnLayout, RightPanelTabs) | 미착수 |
-| 2 | ImageSettingsContent dead import 정리 | 미착수 |
-| 3 | VRT 베이스라인 갱신 (Direct, Stage, Publish) | 미착수 |
-| 4 | E2E 검증 (Express/Standard + Autopilot + 탭 전환) | 미착수 |
+| 1 | Dead code 삭제 (6파일: ImageSettingsContent, StudioThreeColumnLayout, RightPanelTabs, PromptHelperSidebar, PromptSetupPanel, promptHelperActions) | ✅ (02-28) |
+| 2 | Dead import 정리 (variants.ts 3-col 상수, useUIStore RightPanelTab) | ✅ (02-28) |
+| 3 | VRT 베이스라인 갱신 (Direct, Stage, Publish) | ✅ (02-28) |
+| 4 | Build 검증 (next build PASS, 0 new TS errors) | ✅ (02-28) |
 
 ---
 
@@ -380,13 +381,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 **Phase 18 — Stage Workflow (전체 완료, ARCHIVED)**
 
-**Phase 19 — Studio 탭 페르소나 재배치 (명세 완료, 구현 대기)**
-
-| 순위 | 작업 | 근거 |
-|------|------|------|
-| 1 | 19-1: Stage 강화 + Express/Direct 안전망 (9스텝) | Direct 편집 공간 극대화, Express 호환 |
-| 2 | 19-2: Publish SSOT 분리 (2스텝) | Voice/BGM 이중 관리 해소 |
-| 3 | 19-3: 정리 및 검증 (4스텝) | Dead code + VRT + E2E |
+**Phase 19 — Studio 탭 페르소나 재배치 (전체 완료, 15/15)**
 
 **Phase 17 — Service/Admin 분리**
 
