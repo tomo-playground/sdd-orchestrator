@@ -16,6 +16,7 @@ class CreateActivityLogRequest(BaseModel):
 
     storyboard_id: int | None = None
     scene_id: int
+    client_id: str | None = None  # Stable fallback when scene_id is stale after PUT
     character_id: int | None = None
     prompt: str | None = None
     negative_prompt: str | None = None
@@ -81,15 +82,11 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
         # Verify scene_id exists (scenes may be recreated during PUT with new IDs)
         resolved_scene_id = request.scene_id
         if resolved_scene_id is not None:
-            from models.scene import Scene
+            from services.storyboard.helpers import resolve_scene_id_by_client_id
 
-            exists = db.query(Scene.id).filter(Scene.id == resolved_scene_id).first()
-            if not exists:
-                logger.warning(
-                    "[ActivityLog] scene_id %d not found (likely recreated), setting NULL",
-                    resolved_scene_id,
-                )
-                resolved_scene_id = None
+            resolved_scene_id = resolve_scene_id_by_client_id(
+                db, resolved_scene_id, request.client_id, request.storyboard_id
+            )
 
         tags_used = request.tags
         if not tags_used and request.prompt:

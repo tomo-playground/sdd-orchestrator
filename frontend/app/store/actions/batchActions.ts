@@ -105,7 +105,8 @@ export async function generateBatchImages(sceneClientIds: string[]): Promise<Bat
             groupId,
             storyboardId,
             scene.id,
-            `scene_${scene.id}_${Date.now()}.png`
+            `scene_${scene.id}_${Date.now()}.png`,
+            scene.client_id
           );
           // Retry store once if asset_id is missing (transient storage failure)
           if (!stored.asset_id) {
@@ -115,7 +116,8 @@ export async function generateBatchImages(sceneClientIds: string[]): Promise<Bat
               groupId,
               storyboardId,
               scene.id,
-              `scene_${scene.id}_${Date.now()}_retry.png`
+              `scene_${scene.id}_${Date.now()}_retry.png`,
+              scene.client_id
             );
           }
           const candidates = stored.asset_id

@@ -156,6 +156,42 @@ def calculate_auto_pin_flags(scenes: list, structure: str | None = None) -> dict
     return result
 
 
+def resolve_scene_id_by_client_id(
+    db, scene_id: int, client_id: str | None, storyboard_id: int | None
+) -> int | None:
+    """Resolve current scene DB ID, falling back to client_id when scene_id is stale.
+
+    Returns the resolved scene_id, or None if both lookups fail.
+    """
+    from models.scene import Scene
+
+    exists = db.query(Scene.id).filter(Scene.id == scene_id, Scene.deleted_at.is_(None)).first()
+    if exists:
+        return scene_id
+
+    if client_id and storyboard_id:
+        fallback = (
+            db.query(Scene.id)
+            .filter(
+                Scene.client_id == client_id,
+                Scene.storyboard_id == storyboard_id,
+                Scene.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if fallback:
+            logger.info(
+                "[SceneResolver] scene_id %d stale, resolved via client_id %s → %d",
+                scene_id,
+                client_id,
+                fallback[0],
+            )
+            return fallback[0]
+
+    logger.warning("[SceneResolver] scene_id %d not found, client_id=%s", scene_id, client_id)
+    return None
+
+
 def _sanitize_candidates_for_db(candidates: list) -> list[dict]:
     """Strip image_url from candidates before JSONB storage."""
     result = []

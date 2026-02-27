@@ -89,7 +89,8 @@ export function handleImageUpload(clientId: string, file?: File) {
       groupId,
       storyboardId,
       dbSceneId,
-      `upload_${dbSceneId}_${Date.now()}.png`
+      `upload_${dbSceneId}_${Date.now()}.png`,
+      clientId
     );
     updateScene(clientId, {
       image_url: stored.url,
@@ -158,7 +159,8 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
         groupId,
         storyboardId,
         dbId,
-        `gemini_edit_${dbId}_${Date.now()}.png`
+        `gemini_edit_${dbId}_${Date.now()}.png`,
+        scene.client_id
       );
       useStoryboardStore.getState().updateScene(scene.client_id, {
         image_url: stored.url,

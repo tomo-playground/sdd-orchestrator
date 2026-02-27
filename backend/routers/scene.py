@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from config import logger
 from database import get_db
+from models.scene import Scene
 from schemas import (
     BatchSceneRequest,
     BatchSceneResponse,
@@ -33,7 +34,6 @@ from schemas import (
     SceneValidationResponse,
     ValidateAndAutoEditResponse,  # noqa: F401
 )
-from models.scene import Scene
 from services.asset_service import AssetService
 from services.error_responses import raise_user_error
 from services.generation import generate_scene_image
@@ -119,16 +119,17 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
 
         # Update Scene record (scene may have been recreated with a new ID)
         if request.scene_id:
-            db_scene = db.query(Scene).filter(Scene.id == request.scene_id, Scene.deleted_at.is_(None)).first()
-            if db_scene:
-                db_scene.image_asset_id = asset.id
-                db.add(db_scene)
-                db.commit()
-            else:
-                logger.warning(
-                    "[Image Store] scene_id %d not found (likely recreated), skipping link",
-                    request.scene_id,
-                )
+            from services.storyboard.helpers import resolve_scene_id_by_client_id
+
+            resolved_id = resolve_scene_id_by_client_id(
+                db, request.scene_id, request.client_id, request.storyboard_id
+            )
+            if resolved_id:
+                db_scene = db.query(Scene).filter(Scene.id == resolved_id).first()
+                if db_scene:
+                    db_scene.image_asset_id = asset.id
+                    db.add(db_scene)
+                    db.commit()
 
         url = asset_service.get_asset_url(asset.storage_key)
         logger.info("💾 [Image Store] Saved: %s", asset.storage_key)
@@ -646,7 +647,10 @@ async def cancel_image_gen(task_id: str):
 @router.get(
     "/scene/progress/{task_id}",
     responses={
-        200: {"content": {"text/event-stream": {"schema": {"type": "string"}}}, "description": "SSE stream of ImageProgressEvent JSON objects"},
+        200: {
+            "content": {"text/event-stream": {"schema": {"type": "string"}}},
+            "description": "SSE stream of ImageProgressEvent JSON objects",
+        },
         404: {"description": "Task not found"},
     },
 )

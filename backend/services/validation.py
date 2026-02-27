@@ -386,15 +386,12 @@ def _save_scene_quality_score(
     try:
         # Verify scene_id exists (scenes may be recreated during PUT with new IDs)
         if scene_id is not None:
-            from models.scene import Scene
+            from services.storyboard.helpers import resolve_scene_id_by_client_id
 
-            exists = db.query(Scene.id).filter(Scene.id == scene_id).first()
-            if not exists:
-                logger.warning(
-                    "[QualityScore] scene_id %d not found (likely recreated), skipping save",
-                    scene_id,
-                )
+            resolved = resolve_scene_id_by_client_id(db, scene_id, None, storyboard_id)
+            if resolved is None:
                 return
+            scene_id = resolved
 
         score = SceneQualityScore(
             storyboard_id=storyboard_id,

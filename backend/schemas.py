@@ -680,6 +680,7 @@ class ImageStoreRequest(BaseModel):
     group_id: int
     storyboard_id: int
     scene_id: int
+    client_id: str | None = None  # Stable fallback when scene_id is stale after PUT
     file_name: str | None = None
 
 

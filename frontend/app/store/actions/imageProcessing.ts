@@ -12,7 +12,8 @@ export async function storeSceneImage(
   groupId: number,
   storyboardId: number,
   sceneId: number,
-  fileName?: string
+  fileName?: string,
+  clientId?: string
 ): Promise<{ url: string; asset_id?: number }> {
   if (!dataUrl || !dataUrl.startsWith("data:")) return { url: dataUrl };
   try {
@@ -25,6 +26,7 @@ export async function storeSceneImage(
         group_id: groupId,
         storyboard_id: storyboardId,
         scene_id: sceneId,
+        client_id: clientId || undefined,
         file_name: fileName,
       }),
     });
@@ -93,6 +95,12 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
     return null;
   }
 
+  // Re-resolve current DB scene_id from stable client_id (DB id may change during save)
+  const currentScene = useStoryboardStore
+    .getState()
+    .scenes.find((s) => s.client_id === scene.client_id);
+  const sceneDbId = currentScene?.id ?? scene.id;
+
   const storedResults = await Promise.all(
     images.map((b64: string, idx: number) => {
       const dataUrl = `data:image/png;base64,${b64}`;
@@ -101,8 +109,9 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
         projectId,
         groupId,
         currentId,
-        scene.id,
-        `scene_${scene.id}_${Date.now()}_${idx}.png`
+        sceneDbId,
+        `scene_${sceneDbId}_${Date.now()}_${idx}.png`,
+        scene.client_id
       );
     })
   );
@@ -112,7 +121,7 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
       const validation = await validateImageCandidate(
         stored.url,
         prompt,
-        scene.id,
+        sceneDbId,
         selectedCharacterId
       );
       const vResult = validation?.validation_result ?? validation;
@@ -165,9 +174,15 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
   try {
     const currentStoryboardId = useContextStore.getState().storyboardId;
     if (currentStoryboardId) {
+      // Re-resolve again in case another save happened during store/validate
+      const latestScene = useStoryboardStore
+        .getState()
+        .scenes.find((s) => s.client_id === scene.client_id);
+      const logSceneId = latestScene?.id ?? sceneDbId;
       const logRes = await axios.post(`${API_BASE}/activity-logs`, {
         storyboard_id: currentStoryboardId,
-        scene_id: scene.id,
+        scene_id: logSceneId,
+        client_id: scene.client_id,
         character_id: selectedCharacterId || undefined,
         prompt,
         negative_prompt: undefined,
