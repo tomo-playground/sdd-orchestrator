@@ -307,9 +307,8 @@ export default function ComposedPromptPreview({
       return;
     }
 
-    prevTokensRef.current = tokenKey;
-
     const timer = setTimeout(() => {
+      prevTokensRef.current = tokenKey;
       composePrompt();
     }, 300);
 
