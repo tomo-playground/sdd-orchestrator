@@ -108,6 +108,11 @@ export function RenderMediaPanel({
   setBgmPrompt,
   defaultOpen = true,
 }: RenderMediaPanelProps) {
+  const accordionSummary =
+    "flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase";
+  const accordionChevron = "text-zinc-400 transition group-open:rotate-180";
+  const accordionWrapper = "group rounded-2xl border border-zinc-200 bg-white";
+
   return (
     <div className="space-y-4">
       <div>
@@ -115,16 +120,13 @@ export function RenderMediaPanel({
         <p className="text-xs text-zinc-500">Layout, audio, and output settings.</p>
       </div>
 
-      <details
-        open={defaultOpen || undefined}
-        className="group rounded-2xl border border-zinc-200 bg-white"
-      >
-        <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase">
+      {/* ── Media ── */}
+      <details open={defaultOpen || undefined} className={accordionWrapper}>
+        <summary className={accordionSummary}>
           Media
-          <span className="text-zinc-400 transition group-open:rotate-180">{"\u25BC"}</span>
+          <span className={accordionChevron}>{"\u25BC"}</span>
         </summary>
         <div className="grid gap-4 border-t border-zinc-100 p-4">
-          {/* Video Row */}
           <div className="grid gap-3 md:grid-cols-3">
             <label className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-600">
               Scene Text
@@ -159,7 +161,6 @@ export function RenderMediaPanel({
               {loadedFonts.has(sceneTextFont) ? "\uAC00\uB098\uB2E4 ABC" : "Loading..."}
             </div>
           </div>
-          {/* Motion Effects Row */}
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-3">
               <select
@@ -203,7 +204,16 @@ export function RenderMediaPanel({
               ))}
             </select>
           </div>
-          {/* Voice */}
+        </div>
+      </details>
+
+      {/* ── Voice ── */}
+      <details open={defaultOpen || undefined} className={accordionWrapper}>
+        <summary className={accordionSummary}>
+          Voice
+          <span className={accordionChevron}>{"\u25BC"}</span>
+        </summary>
+        <div className="border-t border-zinc-100 p-4">
           <VoiceStyleSection
             voicePresetId={voicePresetId}
             setVoicePresetId={setVoicePresetId}
@@ -212,7 +222,16 @@ export function RenderMediaPanel({
             speedMultiplier={speedMultiplier}
             setSpeedMultiplier={setSpeedMultiplier}
           />
-          {/* BGM */}
+        </div>
+      </details>
+
+      {/* ── BGM ── */}
+      <details open={defaultOpen || undefined} className={accordionWrapper}>
+        <summary className={accordionSummary}>
+          BGM
+          <span className={accordionChevron}>{"\u25BC"}</span>
+        </summary>
+        <div className="border-t border-zinc-100 p-4">
           <BgmSection
             bgmMode={bgmMode}
             setBgmMode={setBgmMode}
