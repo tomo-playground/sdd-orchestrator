@@ -164,6 +164,7 @@ async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db))
             is_temp=True,
             file_size=len(audio_bytes),
             mime_type="audio/wav",
+            checksum=AssetService.compute_checksum(audio_bytes),
         )
 
         return {

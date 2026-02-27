@@ -130,6 +130,7 @@ async def preview_music(req: MusicPreviewRequest, db: Session = Depends(get_db))
             is_temp=True,
             file_size=len(wav_bytes),
             mime_type="audio/wav",
+            checksum=AssetService.compute_checksum(wav_bytes),
         )
 
         return {

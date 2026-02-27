@@ -355,6 +355,8 @@ class VideoBuilder:
         storage_key = f"storyboard/{storyboard.id}/bgm_auto.wav"
         storage.save(storage_key, wav_bytes, content_type="audio/wav")
 
+        from services.asset_service import AssetService
+
         asset = MediaAsset(
             owner_type="storyboard",
             owner_id=storyboard.id,
@@ -362,6 +364,8 @@ class VideoBuilder:
             storage_key=storage_key,
             file_name="bgm_auto.wav",
             file_size=len(wav_bytes),
+            mime_type="audio/wav",
+            checksum=AssetService.compute_checksum(wav_bytes),
         )
         db.add(asset)
         db.flush()

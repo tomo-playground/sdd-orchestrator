@@ -23,6 +23,13 @@ class AssetService:
         """Get the public URL for a given storage key."""
         return self._get_storage().get_url(storage_key)
 
+    @staticmethod
+    def compute_checksum(data: bytes) -> str:
+        """Compute SHA-256 hex digest for file content."""
+        import hashlib
+
+        return hashlib.sha256(data).hexdigest()
+
     def register_asset(
         self,
         file_name: str,
@@ -71,6 +78,7 @@ class AssetService:
             owner_id=character_id,
             file_size=len(image_bytes),
             mime_type="image/png",
+            checksum=self.compute_checksum(image_bytes),
         )
 
     def save_background_image(self, background_id: int, image_bytes: bytes, mime_type: str = "image/png") -> MediaAsset:
@@ -90,6 +98,7 @@ class AssetService:
             owner_id=background_id,
             file_size=len(image_bytes),
             mime_type=mime_type,
+            checksum=self.compute_checksum(image_bytes),
         )
 
     def save_scene_image(
@@ -111,6 +120,7 @@ class AssetService:
             owner_id=scene_id,
             file_size=len(image_bytes),
             mime_type="image/png",
+            checksum=self.compute_checksum(image_bytes),
         )
 
     def save_rendered_video(
@@ -119,9 +129,8 @@ class AssetService:
         """Save a rendered video to storage and register it in the DB."""
         storage_key = f"projects/{project_id}/groups/{group_id}/storyboards/{storyboard_id}/videos/{file_name}"
 
-        file_size = video_path.stat().st_size
-        with open(video_path, "rb") as f:
-            self._get_storage().save(storage_key, f, content_type="video/mp4")
+        video_bytes = video_path.read_bytes()
+        self._get_storage().save(storage_key, video_bytes, content_type="video/mp4")
 
         return self.register_asset(
             file_name=file_name,
@@ -129,8 +138,9 @@ class AssetService:
             storage_key=storage_key,
             owner_type="storyboard",
             owner_id=storyboard_id,
-            file_size=file_size,
+            file_size=len(video_bytes),
             mime_type="video/mp4",
+            checksum=self.compute_checksum(video_bytes),
         )
 
     @staticmethod

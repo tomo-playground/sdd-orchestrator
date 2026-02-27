@@ -64,6 +64,7 @@ def fetch_and_save_thumbnail(tag: Tag, db: Session) -> bool:
         owner_id=tag.id,
         file_size=len(webp_bytes),
         mime_type="image/webp",
+        checksum=AssetService.compute_checksum(webp_bytes),
     )
 
     tag.thumbnail_asset_id = asset.id

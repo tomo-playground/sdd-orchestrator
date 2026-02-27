@@ -376,6 +376,7 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
             owner_id=char.id if char else None,
             mime_type="image/png",
             file_size=len(image_bytes),
+            checksum=AssetService.compute_checksum(image_bytes),
         )
 
         if char:
