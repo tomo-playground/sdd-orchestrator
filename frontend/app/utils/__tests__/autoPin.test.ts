@@ -46,6 +46,15 @@ describe("autoPin utilities", () => {
       expect(shouldAutoPin(scene)).toBe(true);
     });
 
+    it("should return false if scene has background_id (Stage BG)", () => {
+      const scene = createScene({
+        _auto_pin_previous: true,
+        environment_reference_id: null,
+        background_id: 10,
+      });
+      expect(shouldAutoPin(scene)).toBe(false);
+    });
+
     it("should return false if _auto_pin_previous is undefined", () => {
       const scene = createScene({ _auto_pin_previous: undefined });
       expect(shouldAutoPin(scene)).toBe(false);

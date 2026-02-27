@@ -8,6 +8,7 @@ import type { Scene } from "../types";
 export function shouldAutoPin(scene: Scene): boolean {
   if (!scene._auto_pin_previous) return false;
   if (scene.environment_reference_id) return false;
+  if (scene.background_id) return false;
   return true;
 }
 
