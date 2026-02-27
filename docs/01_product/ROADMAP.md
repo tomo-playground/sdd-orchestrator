@@ -21,10 +21,11 @@
 | **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
 | Phase 18 (Stage Workflow) | 전체 완료 (ARCHIVED) |
-| 테스트 | Backend 2,667 + Frontend 379 = **총 3,046개** |
+| 테스트 | Backend 2,667 + Frontend 399 = **총 3,066개** |
 
 ### 최근 작업
 
+- **autoSave race condition 3-Layer 방어** (02-27): 이미지 생성 중 autoSave가 `image_asset_id: null` 덮어쓰기 방지. Layer 1: `SCENE_TRANSIENT_FIELDS`로 `isGenerating` 등 transient 필드 isDirty 분리. Layer 2: autoSave에서 `isGenerating` 씬 감지 시 스킵+재스케줄. Layer 3: `didScenesChangeDuringSave()` 스냅샷 비교로 save 중 변경 감지. 20개 테스트(Layer1 11+Layer2 4+Layer3 5)
 - **Phase 18-P4: 렌더링 연동** (02-27): 트랜지션 auto 모드(같은 배경→fade, 다른 배경→slide/wipe), Ken Burns 교대 프리셋(같은 배경 연속 시 반복 방지), Reference AdaIN 실내/실외 가중치 자동 조정(indoor=0.40, outdoor=0.25). 11개 테스트. PR #34
 - **Phase 18-P3: Stage 에셋 고도화** (02-27): Express 모드 호환(환경 태그 없는 씬 warning 로그), `style_profile_id` 기반 배경 캐싱(3-col unique index + cache hit/miss + assign 스타일 우선), LoRA↔StyleProfile 의존성 시각화(StageCharacterCard). Alembic 마이그레이션 + 7개 테스트. PR #32
 - **Phase 18-P2: Stage 에셋 확장** (02-27): Stage Tab을 4섹션 프리프로덕션 대시보드로 확장(Locations+Characters+Voice+BGM). 9개 신규 컴포넌트(StageCharacterCard/Section, StageVoiceCard/Section, StageBgmCard/Section, StageReadinessBar, StageLocationsSection, useAudioPlayer). BGM preview `responseType:"blob"` 버그 수정(JSON→audio_url 직접 사용). Preflight Stage 체크 4카테고리 확장 + background_id 스토어 동기화. bgmPreviewUrl persist(localStorage)
