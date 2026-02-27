@@ -21,10 +21,14 @@
 | **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
 | Phase 18 (Stage Workflow) | 전체 완료 (ARCHIVED) |
-| 테스트 | Backend 2,667 + Frontend 399 = **총 3,066개** |
+| **Phase 19 (Studio 탭 페르소나 재배치)** | **명세 완료 (v2), 구현 미착수** |
+| 테스트 | Backend 2,667 + Frontend 399 = **총 3,066개** (valence +27 = 3,093) |
 
 ### 최근 작업
 
+- **Studio 탭 페르소나 재배치 명세 v2** (02-27): 6-Agent 리뷰(PM/Frontend/UX/TechLead/Backend/QA) 반영. BLOCKER 4건 해소: (1) Express 모드 Stage 경유 확정, (2) useCharacterAutoLoad 경합 조건 문서화, (3) Phase 순서 의존성 명시, (4) Direct Context Strip 추가. Phase 1(9스텝) + Phase 2(2스텝) + Phase 3(4스텝). [명세](FEATURES/STUDIO_TAB_PERSONA_REORGANIZATION.md)
+- **Direct 탭 2-column 레이아웃 전환** (02-27): 3-column(280px|1fr|300px) → 2-column(280px|1fr). 우측 패널 제거, ImageSettingsContent→센터 Settings CollapsibleSection, SceneToolsContent→SceneCard Advanced, SceneInsightsContent→좌측 하단. Prompt Helper 완전 삭제(2파일). Scene Tags↔Advanced 순서 교체
+- **Expression-Mood Valence 충돌 감지 시스템** (02-27): Tag.valence 컬럼 + Alembic 마이그레이션, TagValenceCache 인메모리 캐시, `_flatten_layers` valence 교차 체크(L7 expression ↔ L11 mood), `_prompt_conflict_resolver` valence 충돌 감지, LLM valence 분류기(`classify_valence_via_llm`), `POST /admin/tags/classify-valence` 엔드포인트, `emotion_consistency_rules.j2` Gemini 템플릿 파셜. 27개 테스트 추가 (전체 2,770 passed)
 - **Publish 탭 UX 개선** (02-27): (1) 2-column 레이아웃 — 좌=설정, 우=프리뷰+메타(sticky 380px), `PUBLISH_2COL_LAYOUT` 상수, 반응형 <768px fallback. (2) Render Progress 오버레이 — 우측 프리뷰에 스피너+진행률 바(빈 상태/비디오 위 2케이스). (3) RenderMediaPanel 3-아코디언 분리(Media/Voice/BGM 독립 접기). SceneImagePanel 9:16 aspect-ratio 수정. 6파일 변경
 - **prompt_mode 제거 + 태그 분류 개선** (02-27): prompt_mode 3-way 선택(auto/standard/lora) 제거 — 프로덕션 100% auto 사용으로 무의미. Backend 5곳 분기 `character.loras` 통일, effective_mode 배지 제거, DB 컬럼 DROP. 태그 분류: legacy subject 태그(6400+, source=default) LLM 재분류 활성화, classify 엔드포인트 background LLM 파이프라인. ComposedPromptPreview StrictMode debounce 버그 수정. 40파일 +241/-323줄, 2743 passed. PR #35
 - **autoSave race condition 3-Layer 방어** (02-27): 이미지 생성 중 autoSave가 `image_asset_id: null` 덮어쓰기 방지. Layer 1: `SCENE_TRANSIENT_FIELDS`로 `isGenerating` 등 transient 필드 isDirty 분리. Layer 2: autoSave에서 `isGenerating` 씬 감지 시 스킵+재스케줄. Layer 3: `didScenesChangeDuringSave()` 스냅샷 비교로 save 중 변경 감지. 20개 테스트(Layer1 11+Layer2 4+Layer3 5)
@@ -135,6 +139,7 @@ graph LR
     P15 --> P16["Phase 16<br/>WD14 Smart<br/>Validation"]
     P16 --> P17["Phase 17<br/>Service/Admin<br/>분리"]
     P17 --> P18["Phase 18<br/>Stage<br/>Workflow"]
+    P18 --> P19["Phase 19<br/>탭 페르소나<br/>재배치"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -157,7 +162,8 @@ graph LR
     style P15 fill:#4CAF50,color:#fff
     style P16 fill:#4CAF50,color:#fff
     style P17 fill:#FF9800,color:#fff
-    style P18 fill:#FF9800,color:#fff
+    style P18 fill:#4CAF50,color:#fff
+    style P19 fill:#2196F3,color:#fff
 ```
 
 ---
@@ -281,6 +287,49 @@ Script → **Stage** → Direct → Publish 4단계 워크플로우. [상세 명
 
 ---
 
+## Phase 19: Studio 탭 페르소나 재배치
+
+**목표**: Film Production 메타포에 따라 탭별 소유권을 명확히 하고, Direct의 편집 공간을 극대화한다. [상세 명세](FEATURES/STUDIO_TAB_PERSONA_REORGANIZATION.md)
+
+| 탭 | 페르소나 | 소유 영역 |
+|---|---|---|
+| Script | 작가 | 스토리, 대본 |
+| **Stage** | **프로듀서** | **모든 전역 설정 + 에셋** |
+| **Direct** | **감독** | **씬별 이미지 디렉팅만** |
+| Publish | 편집자 | 렌더링 + 출력 |
+
+### Phase 19-1: Stage 강화 + Express/Direct 안전망
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | Stage "Visual Style" 섹션 추가 (StyleProfileSelector 이동) | 미착수 |
+| 2 | StageCharactersSection에 CharacterSelector 통합 (선택 가능) | 미착수 |
+| 3 | Stage Base Prompt Collapsible + "캐릭터 변경 시 자동 생성" 안내 | 미착수 |
+| 4 | Stage "Generation Settings" 토글 섹션 추가 | 미착수 |
+| 5 | StageReadinessBar "Style" 카테고리 + useMaterialsCheck 확장 | 미착수 |
+| 6 | MaterialsPopover Characters→stage-tab + Style 항목 추가 | 미착수 |
+| 7 | Express 모드: ScriptTab Express 분기를 Stage 경유로 변경 | 미착수 |
+| 8 | Direct Context Strip (32px 읽기 전용 배지 + Stage 딥링크) | 미착수 |
+| 9 | Direct에서 ImageSettingsContent + Settings 제거 (**1-8 완료 후**) | 미착수 |
+
+### Phase 19-2: Publish SSOT 분리
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | Publish Voice/BGM 프리셋 → 읽기 전용 + 볼륨/덕킹 슬라이더 유지 | 미착수 |
+| 2 | "Stage에서 변경" 링크 버튼 추가 | 미착수 |
+
+### Phase 19-3: 정리 및 검증
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | Dead code 삭제 (ImageSettingsContent, StudioThreeColumnLayout, RightPanelTabs) | 미착수 |
+| 2 | ImageSettingsContent dead import 정리 | 미착수 |
+| 3 | VRT 베이스라인 갱신 (Direct, Stage, Publish) | 미착수 |
+| 4 | E2E 검증 (Express/Standard + Autopilot + 탭 전환) | 미착수 |
+
+---
+
 ## Feature Backlog
 
 Phase 9 이후 또는 우선순위 미정 항목.
@@ -302,6 +351,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 |------|------|---------|
 | ~~Tag Group 세분화~~ | ~~clothing→7그룹, action→3그룹, time_weather→3그룹. 26파일, 2635 passed~~ | ✅ (02-26) |
 | ~~프롬프트 파이프라인 품질 근본 수정~~ | ~~한국어 emotion 매핑, Location Map SSOT, ORM 검증 게이트, DB 오분류 838개 수정~~ | ✅ (02-26) |
+| ~~Expression-Mood Valence 충돌 감지~~ | ~~Tag.valence + TagValenceCache + L7↔L11 교차 체크 + LLM 분류기 + Gemini 파셜. 27개 테스트~~ | ✅ (02-27) |
 
 ### Intelligence & Automation
 
@@ -329,6 +379,14 @@ Phase 9 이후 또는 우선순위 미정 항목.
 **Phase 15 — Prompt Input UX 고도화 (전체 완료, 18/18)**
 
 **Phase 18 — Stage Workflow (전체 완료, ARCHIVED)**
+
+**Phase 19 — Studio 탭 페르소나 재배치 (명세 완료, 구현 대기)**
+
+| 순위 | 작업 | 근거 |
+|------|------|------|
+| 1 | 19-1: Stage 강화 + Express/Direct 안전망 (9스텝) | Direct 편집 공간 극대화, Express 호환 |
+| 2 | 19-2: Publish SSOT 분리 (2스텝) | Voice/BGM 이중 관리 해소 |
+| 3 | 19-3: 정리 및 검증 (4스텝) | Dead code + VRT + E2E |
 
 **Phase 17 — Service/Admin 분리**
 

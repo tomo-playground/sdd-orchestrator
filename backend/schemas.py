@@ -2154,6 +2154,7 @@ class ValidateAndAutoEditResponse(BaseModel):
     current_cost: float | None = None
     retry_count: int | None = None
     auto_edit_error: str | None = None
+    edit_log_id: int | None = None
 
 
 # ============================================================

@@ -61,7 +61,11 @@ export const PAGE_2COL_LAYOUT = "grid gap-6 xl:grid-cols-[1fr_var(--secondary-pa
 /** Secondary panel container: hidden until xl, sticky top. */
 export const SECONDARY_PANEL_CLASSES = "hidden xl:block sticky top-4 self-start space-y-4";
 
-// ── Studio 3-column layout ─────────────────────────────────
+// ── Studio layout ───────────────────────────────────────────
+
+/** 2-column grid: left scene list + center editor (Direct tab). */
+export const STUDIO_2COL_LAYOUT =
+  "grid grid-cols-[280px_1fr] gap-0 h-full min-h-[600px] overflow-hidden";
 
 /** 3-column grid: left scene list + center editor + right tools. */
 export const STUDIO_3COL_LAYOUT =

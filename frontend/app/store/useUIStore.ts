@@ -34,14 +34,6 @@ export interface UIState {
   showResumeModal: boolean;
   resumableCheckpoint: AutopilotCheckpoint | null;
   showPreflightModal: boolean;
-  isHelperOpen: boolean;
-
-  // Prompt helper
-  examplePrompt: string;
-  suggestedBase: string;
-  suggestedScene: string;
-  isSuggesting: boolean;
-  copyStatus: string;
 
   // Setup wizard
   showSetupWizard: boolean;
@@ -93,12 +85,6 @@ const initialState: Omit<
   showResumeModal: false,
   resumableCheckpoint: null,
   showPreflightModal: false,
-  isHelperOpen: false,
-  examplePrompt: "",
-  suggestedBase: "",
-  suggestedScene: "",
-  isSuggesting: false,
-  copyStatus: "",
   showSetupWizard: false,
   setupWizardInitialStep: 1 as 1 | 2,
   isNewStoryboardMode: false,

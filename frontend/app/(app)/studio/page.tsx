@@ -19,7 +19,6 @@ import VideoPreviewModal from "../../components/ui/VideoPreviewModal";
 import AutoRunStatus from "../../components/storyboard/AutoRunStatus";
 import StoryboardActionsBar from "../../components/storyboard/StoryboardActionsBar";
 import StyleProfileModal from "../../components/setup/StyleProfileModal";
-import PromptHelperSidebar from "../../components/prompt/PromptHelperSidebar";
 import { ContextBar, GroupFormModal } from "../../components/context";
 import { useAutopilot } from "../../hooks/useAutopilot";
 import { useStudioInitialization } from "../../hooks/useStudioInitialization";
@@ -30,7 +29,6 @@ import { SUB_NAV_CLASSES } from "../../components/ui/variants";
 import { runAutoRunFromStep } from "../../store/actions/autopilotActions";
 import { saveStoryboard } from "../../store/actions/storyboardActions";
 import { handleStyleProfileComplete } from "../../store/actions/styleProfileActions";
-import { suggestPromptSplit, copyPromptHelperText } from "../../store/actions/promptHelperActions";
 import PreflightModal from "../../components/common/PreflightModal";
 import { runPreflight, buildPreflightInput } from "../../utils/preflight";
 import type { AutoRunStepId } from "../../utils/preflight";
@@ -91,14 +89,6 @@ function StudioContent() {
       setIsSaving(false);
     }
   }, []);
-
-  // Prompt Helper state
-  const isHelperOpen = useUIStore((s) => s.isHelperOpen);
-  const examplePrompt = useUIStore((s) => s.examplePrompt);
-  const suggestedBase = useUIStore((s) => s.suggestedBase);
-  const suggestedScene = useUIStore((s) => s.suggestedScene);
-  const isSuggesting = useUIStore((s) => s.isSuggesting);
-  const copyStatus = useUIStore((s) => s.copyStatus);
 
   // Autopilot
   const autopilot = useAutopilot();
@@ -269,20 +259,7 @@ function StudioContent() {
       {/* Workspace: fills remaining height */}
       <StudioWorkspace />
 
-      {/* Sidebars & Modals */}
-      <PromptHelperSidebar
-        isOpen={isHelperOpen}
-        onClose={() => setUI({ isHelperOpen: false })}
-        examplePrompt={examplePrompt}
-        setExamplePrompt={(v) => setUI({ examplePrompt: v })}
-        onSuggestSplit={suggestPromptSplit}
-        isSuggesting={isSuggesting}
-        suggestedBase={suggestedBase}
-        suggestedScene={suggestedScene}
-        copyStatus={copyStatus}
-        onCopyText={copyPromptHelperText}
-      />
-
+      {/* Modals */}
       <ImagePreviewModal
         src={imagePreviewSrc}
         candidates={imagePreviewCandidates || undefined}

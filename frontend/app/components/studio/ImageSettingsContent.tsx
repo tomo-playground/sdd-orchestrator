@@ -1,7 +1,6 @@
 "use client";
 
 import { useStoryboardStore } from "../../store/useStoryboardStore";
-import { useUIStore } from "../../store/useUIStore";
 import { useRenderStore } from "../../store/useRenderStore";
 import { useCharacters } from "../../hooks/useCharacters";
 import { useCharacterAutoLoad } from "../../hooks/useCharacterAutoLoad";
@@ -23,7 +22,6 @@ export default function ImageSettingsContent() {
   const structure = useStoryboardStore((s) => s.structure);
   const setPlan = useStoryboardStore((s) => s.set);
 
-  const setUI = useUIStore((s) => s.set);
   const currentStyleProfile = useRenderStore((s) => s.currentStyleProfile);
   const { characters } = useCharacters();
 
@@ -47,7 +45,6 @@ export default function ImageSettingsContent() {
         setBasePromptA={(v: string) => setPlan({ basePromptA: v })}
         baseNegativePromptA={baseNegativePromptA}
         setBaseNegativePromptA={(v: string) => setPlan({ baseNegativePromptA: v })}
-        onOpenPromptHelper={() => setUI({ isHelperOpen: true })}
         characters={characters}
         selectedCharacterId={selectedCharacterId}
         onSelectCharacter={(id) => {

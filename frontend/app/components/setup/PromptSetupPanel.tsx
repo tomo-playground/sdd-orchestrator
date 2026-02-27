@@ -12,7 +12,6 @@ type PromptSetupPanelProps = {
   setBasePromptA: (value: string) => void;
   baseNegativePromptA: string;
   setBaseNegativePromptA: (value: string) => void;
-  onOpenPromptHelper: () => void;
   characters: Character[];
   selectedCharacterId: number | null;
   onSelectCharacter: (charId: number | null) => void;
@@ -32,7 +31,6 @@ export default function PromptSetupPanel({
   setBasePromptA,
   baseNegativePromptA,
   setBaseNegativePromptA,
-  onOpenPromptHelper,
   characters,
   selectedCharacterId,
   onSelectCharacter,
@@ -164,13 +162,6 @@ export default function PromptSetupPanel({
               </div>
             </>
           )}
-          <button
-            type="button"
-            onClick={onOpenPromptHelper}
-            className="w-fit rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[12px] font-semibold tracking-[0.2em] text-zinc-600 uppercase"
-          >
-            Prompt Helper
-          </button>
         </div>
       )}
     </section>

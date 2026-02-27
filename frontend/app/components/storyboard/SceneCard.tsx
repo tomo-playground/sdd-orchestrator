@@ -14,6 +14,7 @@ import SceneEditImageModal from "./SceneEditImageModal";
 import SceneClothingModal from "./SceneClothingModal";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import SceneEssentialFields from "./SceneEssentialFields";
+import SceneToolsContent from "../studio/SceneToolsContent";
 
 export type SceneEditTab = "script" | "visual" | "settings"; // Keep for compatibility if needed, but unused in logic
 
@@ -214,9 +215,9 @@ export default function SceneCard({
         </CollapsibleSection>
       </div>
 
-      {/* ── Tier 3: Advanced (Collapsible, Default Closed) ── */}
+      {/* ── Tier 3: Scene Tags (Collapsible, Default Closed) ── */}
       <div className="relative z-0">
-        <CollapsibleSection title="Advanced" defaultOpen={showAdvancedSettings}>
+        <CollapsibleSection title="Scene Tags" defaultOpen={showAdvancedSettings}>
           <SceneSettingsFields
             scene={scene}
             hasMultipleSpeakers={hasMultipleSpeakers}
@@ -232,6 +233,13 @@ export default function SceneCard({
             buildScenePrompt={buildScenePrompt}
             showToast={showToast}
           />
+        </CollapsibleSection>
+      </div>
+
+      {/* ── Tier 4: Advanced (Collapsible, Default Closed) ── */}
+      <div className="relative z-0">
+        <CollapsibleSection title="Advanced" defaultOpen={false}>
+          <SceneToolsContent />
           {/* Success/Fail Buttons for Review Mode */}
           {scene.activity_log_id && onMarkSuccess && onMarkFail && (
             <div className="mt-4 flex gap-2 border-t border-zinc-100 pt-4">

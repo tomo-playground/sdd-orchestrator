@@ -12,7 +12,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from config import logger
-from database import get_db
+from database import get_db, get_db_session
 from models.scene import Scene
 from schemas import (
     BatchSceneRequest,
@@ -121,9 +121,7 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
         if request.scene_id:
             from services.storyboard.helpers import resolve_scene_id_by_client_id
 
-            resolved_id = resolve_scene_id_by_client_id(
-                db, request.scene_id, request.client_id, request.storyboard_id
-            )
+            resolved_id = resolve_scene_id_by_client_id(db, request.scene_id, request.client_id, request.storyboard_id)
             if resolved_id:
                 db_scene = db.query(Scene).filter(Scene.id == resolved_id).first()
                 if db_scene:
@@ -266,12 +264,31 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
 
         logger.info(f"✅ [Auto Edit] Success (type={result['edit_type']}, cost=${result['edit_cost']:.4f})")
 
-        # Optional: Re-validate edited image
-        # (Frontend can call /scene/validate_image separately)
-
     except Exception as e:
         logger.exception("[Auto Edit] Failed: %s", e)
         result["auto_edit_error"] = "자동 편집에 실패했습니다."
+
+    # Record Gemini edit in ActivityLog for cost/retry tracking
+    if result.get("auto_edit_triggered"):
+        try:
+            with get_db_session() as edit_db:
+                edit_log = ActivityLog(
+                    storyboard_id=request.storyboard_id,
+                    scene_id=request.scene_id,
+                    prompt=request.prompt or "",
+                    gemini_edited=True,
+                    gemini_cost_usd=result.get("edit_cost"),
+                    original_match_rate=match_rate,
+                    status="success",
+                )
+                edit_db.add(edit_log)
+                edit_db.commit()
+                result["edit_log_id"] = edit_log.id
+                logger.info(
+                    f"📝 [Auto Edit] ActivityLog #{edit_log.id} recorded (cost=${result.get('edit_cost', 0):.4f})"
+                )
+        except Exception as log_err:
+            logger.warning("[Auto Edit] ActivityLog insert failed (edit succeeded): %s", log_err)
 
     return result
 
