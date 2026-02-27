@@ -1041,7 +1041,12 @@ class V3PromptBuilder:
     # ── Conflict resolution ──────────────────────────────────────────────
 
     def _resolve_location_conflicts(self, env_tokens: list[str]) -> list[str]:
-        """Remove conflicting location tags from the environment layer."""
+        """Remove conflicting location tags (indoor vs outdoor) from the environment layer.
+
+        When both indoor and outdoor tags coexist, keep only the majority side.
+        Within the winning side, keep ALL specific tags (cafe, classroom, etc.)
+        plus generic tags (indoors/outdoors). Non-location tags (props) pass through.
+        """
         if not env_tokens:
             return env_tokens
 
@@ -1050,7 +1055,7 @@ class V3PromptBuilder:
         neutral = []
 
         for token in env_tokens:
-            norm = token.lower().replace(" ", "_").strip()
+            norm = self._dedup_key(token)
             if norm in OUTDOOR_LOCATION_TAGS:
                 outdoor_found.append(token)
             elif norm in INDOOR_LOCATION_TAGS:
@@ -1066,10 +1071,10 @@ class V3PromptBuilder:
         specific = []
         generic_tags = []
         for token in winner:
-            norm = token.lower().replace(" ", "_").strip()
+            norm = self._dedup_key(token)
             if norm in GENERIC_LOCATION_TAGS:
                 generic_tags.append(token)
-            elif not specific:
+            else:
                 specific.append(token)
 
         return specific + generic_tags + neutral
