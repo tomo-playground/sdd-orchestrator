@@ -169,3 +169,90 @@ async def test_director_plan_none_does_not_set_error(mock_run):
 
     assert result["director_plan"] is None
     assert "error" not in result
+
+
+# -- Phase 20-A: Inventory Awareness 테스트 --
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director_plan.run_production_step", new_callable=AsyncMock)
+@patch("services.agent.nodes.director_plan._load_inventory")
+async def test_director_plan_with_casting(mock_inventory, mock_run):
+    """인벤토리 로드 + 캐스팅 추천 반환."""
+    from services.agent.inventory import CharacterSummary, StyleSummary, load_structures
+
+    mock_inventory.return_value = {
+        "characters": [
+            CharacterSummary(id=1, name="미도리야", gender="male", appearance_summary="green_hair", has_lora=True, has_reference=False, usage_count=5),
+        ],
+        "styles": [StyleSummary(id=10, name="Anime", description="애니메이션")],
+        "structures": load_structures(),
+    }
+    mock_run.return_value = {
+        "creative_goal": "감동적인 영상",
+        "target_emotion": "감동",
+        "quality_criteria": ["Hook"],
+        "casting": {
+            "character_id": 1,
+            "character_name": "미도리야",
+            "structure": "monologue",
+            "reasoning": "적합한 캐릭터",
+        },
+    }
+
+    state = {"topic": "히어로", "duration": 30}
+    result = await director_plan_node(state)
+
+    assert result["director_plan"] is not None
+    assert result["casting_recommendation"] is not None
+    assert result["casting_recommendation"]["character_id"] == 1
+    assert result["valid_character_ids"] == [1]
+    assert result["valid_style_profile_ids"] == [10]
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director_plan.run_production_step", new_callable=AsyncMock)
+@patch("services.agent.nodes.director_plan._load_inventory")
+async def test_director_plan_inventory_failure_graceful(mock_inventory, mock_run):
+    """인벤토리 로드 실패 시 캐스팅 없이 진행."""
+    mock_inventory.return_value = {}
+    mock_run.return_value = {
+        "creative_goal": "목표",
+        "target_emotion": "감정",
+        "quality_criteria": ["기준"],
+    }
+
+    state = {"topic": "테스트", "duration": 30}
+    result = await director_plan_node(state)
+
+    assert result["director_plan"] is not None
+    assert result["casting_recommendation"] is None
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director_plan.INVENTORY_CASTING_ENABLED", False)
+@patch("services.agent.nodes.director_plan.run_production_step", new_callable=AsyncMock)
+async def test_director_plan_casting_disabled(mock_run):
+    """INVENTORY_CASTING_ENABLED=false → 캐스팅 비활성화."""
+    mock_run.return_value = {
+        "creative_goal": "목표",
+        "target_emotion": "감정",
+        "quality_criteria": ["기준"],
+    }
+
+    state = {"topic": "테스트", "duration": 30}
+    result = await director_plan_node(state)
+
+    assert result["director_plan"] is not None
+    assert result["casting_recommendation"] is None
+    assert result.get("valid_character_ids") is None
+
+
+@pytest.mark.asyncio
+async def test_director_plan_skip_returns_casting_none():
+    """skip 시 casting_recommendation도 None."""
+    state = {"topic": "테스트", "duration": 30, "skip_stages": ["research"]}
+    result = await director_plan_node(state)
+
+    assert result["director_plan"] is None
+    assert result["casting_recommendation"] is None

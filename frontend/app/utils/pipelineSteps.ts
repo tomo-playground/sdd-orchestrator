@@ -34,6 +34,8 @@ const ALL_STEPS: StepDef[] = [
 ];
 
 const NODE_TO_STEP: Record<string, string> = {
+  director_plan: "research",
+  inventory_resolve: "research",
   research: "research",
   critic: "concept",
   concept_gate: "concept",

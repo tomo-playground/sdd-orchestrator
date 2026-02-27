@@ -22,6 +22,34 @@ class QCResult(BaseModel):
     checks: dict[str, str] = {}
 
 
+# -- Phase 20-A: Casting Recommendation --
+
+_TWO_CHAR_STRUCTURES = frozenset({"dialogue", "narrated_dialogue"})
+
+
+class CastingRecommendation(BaseModel):
+    """Director의 캐스팅 추천."""
+
+    character_id: int | None = None
+    character_name: str = ""
+    character_b_id: int | None = None
+    character_b_name: str = ""
+    structure: str | None = None
+    style_profile_id: int | None = None
+    reasoning: str = ""
+
+    @model_validator(mode="after")
+    def _validate_casting(self) -> CastingRecommendation:
+        """2인 구조 시 character_b_id 필수, 중복 ID 방지."""
+        if self.structure in _TWO_CHAR_STRUCTURES and self.character_id and not self.character_b_id:
+            msg = f"2인 구조({self.structure})에 character_b_id 필수"
+            raise ValueError(msg)
+        if self.character_id and self.character_id == self.character_b_id:
+            msg = "character_id와 character_b_id는 달라야 합니다"
+            raise ValueError(msg)
+        return self
+
+
 # -- Director Plan --
 
 
@@ -33,6 +61,7 @@ class DirectorPlanOutput(BaseModel):
     quality_criteria: list[str] = Field(min_length=1)
     risk_areas: list[str] = []
     style_direction: str = ""
+    casting: CastingRecommendation | None = None
 
 
 # -- Director ReAct --

@@ -41,6 +41,8 @@ router = APIRouter(prefix="/scripts", tags=["scripts"])
 
 # -- 노드별 SSE 메타데이터 --
 _NODE_META: dict[str, dict] = {
+    "director_plan": {"label": "디렉터 계획", "percent": 3},
+    "inventory_resolve": {"label": "캐스팅", "percent": 4},
     "research": {"label": "리서치", "percent": 5},
     "critic": {"label": "컨셉 토론", "percent": 15},
     "concept_gate": {"label": "컨셉 선택", "percent": 20},
@@ -153,6 +155,7 @@ def _is_graph_interrupt(exc: Exception) -> bool:
 
 # AI Transparency: 노드별 reasoning 데이터 추출 매핑
 _NODE_RESULT_KEYS: dict[str, str | list[str]] = {
+    "inventory_resolve": "casting_recommendation",
     "critic": ["critic_result", "debate_log"],  # Phase 10-C-3: 토론 로그 추가
     "concept_gate": ["critic_result"],  # 사용자 선택 반영된 critic_result
     "review": "review_result",
@@ -440,7 +443,10 @@ async def _stream_graph_events(
 @router.post(
     "/generate-stream",
     responses={
-        200: {"content": {"text/event-stream": {"schema": {"type": "string"}}}, "description": "SSE stream of ScriptProgressEvent JSON objects"},
+        200: {
+            "content": {"text/event-stream": {"schema": {"type": "string"}}},
+            "description": "SSE stream of ScriptProgressEvent JSON objects",
+        },
     },
 )
 async def generate_script_stream(
@@ -480,7 +486,10 @@ def _resolve_feedback_preset(preset_id: str, params: dict[str, str] | None) -> s
 @router.post(
     "/resume",
     responses={
-        200: {"content": {"text/event-stream": {"schema": {"type": "string"}}}, "description": "SSE stream of ScriptProgressEvent JSON objects"},
+        200: {
+            "content": {"text/event-stream": {"schema": {"type": "string"}}},
+            "description": "SSE stream of ScriptProgressEvent JSON objects",
+        },
     },
 )
 async def resume_script(request: ScriptResumeRequest):

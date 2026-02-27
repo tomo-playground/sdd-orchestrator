@@ -285,6 +285,21 @@ async function processSSEStream(
       return base;
     });
 
+    // Phase 20-A: 캐스팅 추천 토스트 (setState 밖에서 실행)
+    if (event.node === "inventory_resolve" && event.node_result) {
+      const casting = event.node_result as Record<string, unknown>;
+      if (casting.character_name) {
+        setTimeout(() => {
+          useUIStore
+            .getState()
+            .showToast(
+              `캐스팅 추천: ${casting.character_name}${casting.structure ? ` (${casting.structure})` : ""}`,
+              "success"
+            );
+        }, 0);
+      }
+    }
+
     if (event.status === "completed" && event.result?.scenes) {
       finalScenes = mapEventScenes(event.result.scenes);
       // Sound Designer → RenderStore auto-populate

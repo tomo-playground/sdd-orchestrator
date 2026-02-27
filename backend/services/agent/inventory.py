@@ -1,0 +1,136 @@
+"""Phase 20-A: Director Inventory Loading.
+
+Director Plan 노드에 인벤토리 인지 능력을 부여하기 위해
+캐릭터·구조·스타일 목록을 DB에서 로드하는 서비스.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, selectinload
+
+from config_pipelines import INVENTORY_MAX_CHARACTERS
+from models.associations import CharacterTag
+from models.character import Character
+from models.sd_model import StyleProfile
+from models.storyboard_character import StoryboardCharacter
+
+
+@dataclass
+class CharacterSummary:
+    """Director에게 제공할 캐릭터 요약."""
+
+    id: int
+    name: str
+    gender: str
+    appearance_summary: str
+    has_lora: bool
+    has_reference: bool
+    usage_count: int = 0
+
+
+@dataclass
+class StructureMeta:
+    """구조 메타데이터 (인메모리 상수)."""
+
+    id: str
+    name: str
+    requires_two_characters: bool
+    tone: str
+
+
+@dataclass
+class StyleSummary:
+    """Director에게 제공할 스타일 요약."""
+
+    id: int
+    name: str
+    description: str
+
+
+STRUCTURE_METADATA: list[StructureMeta] = [
+    StructureMeta(id="monologue", name="Monologue", requires_two_characters=False, tone="intimate"),
+    StructureMeta(id="dialogue", name="Dialogue", requires_two_characters=True, tone="dynamic"),
+    StructureMeta(id="narrated_dialogue", name="Narrated Dialogue", requires_two_characters=True, tone="narrative"),
+    StructureMeta(id="confession", name="Confession", requires_two_characters=False, tone="emotional"),
+]
+
+
+def _build_appearance_summary(character: Character) -> str:
+    """캐릭터의 permanent 태그를 요약 문자열로 변환."""
+    if not character.tags:
+        return ""
+    permanent_tags = [ct.tag.name for ct in character.tags if ct.is_permanent and ct.tag]
+    return ", ".join(permanent_tags[:10])
+
+
+def load_characters(
+    db: Session, group_id: int | None = None, max_count: int | None = None  # noqa: ARG001
+) -> list[CharacterSummary]:
+    """활성 캐릭터 목록을 usage_count 기준 정렬로 로드.
+
+    Args:
+        group_id: 향후 그룹별 필터링을 위해 예약됨 (Phase B에서 구현 예정).
+    """
+    if max_count is None:
+        max_count = INVENTORY_MAX_CHARACTERS
+
+    # usage_count 서브쿼리: storyboard_characters에서 해당 캐릭터 사용 횟수
+    usage_subq = (
+        select(
+            StoryboardCharacter.character_id,
+            func.count().label("usage_count"),
+        )
+        .group_by(StoryboardCharacter.character_id)
+        .subquery()
+    )
+
+    query = (
+        select(Character, func.coalesce(usage_subq.c.usage_count, 0).label("usage_count"))
+        .outerjoin(usage_subq, Character.id == usage_subq.c.character_id)
+        .where(Character.deleted_at.is_(None))
+        .options(selectinload(Character.tags).selectinload(CharacterTag.tag))
+        .order_by(
+            func.coalesce(usage_subq.c.usage_count, 0).desc(),
+            Character.created_at.desc(),
+        )
+        .limit(max_count)
+    )
+
+    rows = db.execute(query).all()
+    results: list[CharacterSummary] = []
+    for row in rows:
+        char: Character = row[0]
+        count: int = row[1]
+        results.append(
+            CharacterSummary(
+                id=char.id,
+                name=char.name,
+                gender=char.gender or "unknown",
+                appearance_summary=_build_appearance_summary(char),
+                has_lora=bool(char.loras),
+                has_reference=bool(char.reference_images),
+                usage_count=count,
+            )
+        )
+    return results
+
+
+def load_styles(db: Session) -> list[StyleSummary]:
+    """활성 스타일 프로필 목록을 로드."""
+    profiles = db.execute(select(StyleProfile).where(StyleProfile.is_active.is_(True))).scalars().all()
+    return [
+        StyleSummary(
+            id=p.id,
+            name=p.display_name or p.name,
+            description=p.description or "",
+        )
+        for p in profiles
+    ]
+
+
+def load_structures() -> list[StructureMeta]:
+    """인메모리 구조 메타데이터 반환."""
+    return list(STRUCTURE_METADATA)

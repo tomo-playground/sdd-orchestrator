@@ -1,8 +1,8 @@
 """LangGraph Script Graph 단위 테스트.
 
 generate_script를 mock하여 Graph 구조와 State 전파를 검증한다.
-17노드 그래프 (에러 short-circuit + 병렬 fan-out):
-  director_plan → research → critic → concept_gate → writer → review →
+18노드 그래프 (에러 short-circuit + 병렬 fan-out):
+  director_plan → inventory_resolve → research → critic → concept_gate → writer → review →
   [director_checkpoint] → cinematographer → [tts/sound/copyright 병렬] →
   director → [human_gate] → finalize → [explain] → learn
 """
@@ -60,12 +60,13 @@ def mock_scenes():
 
 
 def test_graph_structure():
-    """17노드가 모두 Graph에 존재하는지 확인한다."""
+    """18노드가 모두 Graph에 존재하는지 확인한다."""
     graph = build_script_graph()
     compiled = graph.compile()
     node_names = set(compiled.get_graph().nodes.keys())
     expected = (
         "director_plan",
+        "inventory_resolve",
         "research",
         "critic",
         "concept_gate",
@@ -170,16 +171,17 @@ async def test_graph_error_short_circuit_writer(mock_db_ctx, mock_gen_script):
     assert result.get("review_result") is None
 
 
-def test_graph_17_nodes():
-    """17노드가 모두 등록되어 있다."""
+def test_graph_18_nodes():
+    """18노드가 모두 등록되어 있다."""
     graph = build_script_graph()
     compiled = graph.compile()
     node_names = set(compiled.get_graph().nodes.keys())
     assert "director_plan" in node_names
+    assert "inventory_resolve" in node_names
     assert "director_checkpoint" in node_names
     assert "explain" in node_names
     assert "concept_gate" in node_names
-    assert len(node_names - {"__start__", "__end__"}) == 17
+    assert len(node_names - {"__start__", "__end__"}) == 18
 
 
 # -- Writer Safety Retry 테스트 --

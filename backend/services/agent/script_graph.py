@@ -1,4 +1,4 @@
-"""Script Generation Graph — 17노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
+"""Script Generation Graph — 18노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
 
 Quick: START → writer → review → [passed→finalize / failed→revise] → learn → END
 Full:  START → director_plan → research → [critic / research(재실행)] → concept_gate → writer → review →
@@ -49,11 +49,14 @@ from services.agent.state import ScriptState
 
 
 def build_script_graph() -> StateGraph:
-    """17노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
+    """18노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
+    from services.agent.nodes.inventory_resolve import inventory_resolve_node  # noqa: PLC0415
+
     graph = StateGraph(ScriptState)
 
-    # 노드 등록 (17개)
+    # 노드 등록 (18개)
     graph.add_node("director_plan", director_plan_node)
+    graph.add_node("inventory_resolve", inventory_resolve_node)
     graph.add_node("research", research_node)
     graph.add_node("critic", critic_node)
     graph.add_node("concept_gate", concept_gate_node)
@@ -74,8 +77,9 @@ def build_script_graph() -> StateGraph:
     # START → mode 분기 (quick→writer, full→director_plan)
     graph.add_conditional_edges(START, route_after_start, ["director_plan", "writer"])
 
-    # director_plan → research → [critic | research(재실행) | finalize]
-    graph.add_edge("director_plan", "research")
+    # director_plan → inventory_resolve → research → [critic | research(재실행) | finalize]
+    graph.add_edge("director_plan", "inventory_resolve")
+    graph.add_edge("inventory_resolve", "research")
     graph.add_conditional_edges("research", route_after_research, ["critic", "research", "finalize"])
     graph.add_edge("critic", "concept_gate")
     graph.add_conditional_edges("concept_gate", route_after_concept_gate, ["writer", "critic"])
