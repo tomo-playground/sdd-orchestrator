@@ -72,6 +72,9 @@ export const RIGHT_PANEL_CLASSES =
   "flex flex-col border-l border-zinc-200 bg-zinc-50/50 overflow-y-auto p-4 space-y-4";
 export const CENTER_PANEL_CLASSES = "flex flex-col overflow-y-auto";
 
+/** Publish tab: settings (left) + preview/output (right). */
+export const PUBLISH_2COL_LAYOUT = "grid grid-cols-1 gap-6 md:grid-cols-[1fr_380px] md:items-start";
+
 /** Sticky floating card for the right-side panel. */
 export const SIDE_PANEL_CLASSES =
   "sticky top-4 self-start space-y-4 rounded-2xl border border-zinc-200 bg-white p-4";
@@ -101,8 +104,7 @@ export const FORM_TEXTAREA_CLASSES =
   "w-full rounded-2xl border border-zinc-200 bg-white/80 p-4 text-sm shadow-inner outline-none focus:border-zinc-400";
 
 /** Form field label. */
-export const FORM_LABEL_CLASSES =
-  "text-sm font-medium text-zinc-700";
+export const FORM_LABEL_CLASSES = "text-sm font-medium text-zinc-700";
 
 /** Compact form input (no border-radius-2xl, used in config editors). */
 export const FORM_INPUT_COMPACT_CLASSES =
@@ -160,4 +162,3 @@ export const INFO_TEXT = "text-indigo-700";
 export const INFO_BORDER = "border-indigo-200";
 export const INFO_BUTTON = "bg-indigo-600 hover:bg-indigo-700";
 export const INFO_ICON = "text-indigo-500";
-

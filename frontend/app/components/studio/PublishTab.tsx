@@ -6,6 +6,7 @@ import { RenderMediaPanel, RenderSidePanel } from "../video/RenderSettingsPanel"
 import VideoPreviewHero from "../video/VideoPreviewHero";
 import { PublishVideosSection, PublishCaptionLikes } from "./PublishMetaPanel";
 import { usePublishRender } from "../../hooks/usePublishRender";
+import { PUBLISH_2COL_LAYOUT } from "../ui/variants";
 
 export default function PublishTab() {
   const setUI = useUIStore((s) => s.set);
@@ -23,7 +24,8 @@ export default function PublishTab() {
   } = usePublishRender();
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6">
+    <div className="w-full space-y-6">
+      {/* Warning banner: full-width above grid */}
       {disabledReason && (
         <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
           <span className="text-xl">⚠</span>
@@ -36,69 +38,77 @@ export default function PublishTab() {
         </div>
       )}
 
-      {/* Render controls inline */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <RenderSidePanel
-          layoutStyle={store.layoutStyle}
-          setLayoutStyle={(v) => setOutput({ layoutStyle: v })}
-          frameStyle={store.frameStyle}
-          setFrameStyle={(v) => setOutput({ frameStyle: v })}
-          canRender={canRender}
-          isRendering={store.isRendering}
-          scenesWithImages={scenes.filter((s) => !!s.image_url).length}
-          totalScenes={scenes.length}
-          onRender={() => handleRender(store.layoutStyle)}
-          disabledReason={disabledReason}
-          renderPresetName={effectivePresetName}
-          renderPresetSource={effectivePresetSource}
-          renderProgress={store.renderProgress}
-        />
+      {/* 2-column grid: left=settings, right=preview+meta */}
+      <div className={PUBLISH_2COL_LAYOUT}>
+        {/* ── Left column: render settings ── */}
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+            <RenderSidePanel
+              layoutStyle={store.layoutStyle}
+              setLayoutStyle={(v) => setOutput({ layoutStyle: v })}
+              frameStyle={store.frameStyle}
+              setFrameStyle={(v) => setOutput({ frameStyle: v })}
+              canRender={canRender}
+              isRendering={store.isRendering}
+              scenesWithImages={scenes.filter((s) => !!s.image_url).length}
+              totalScenes={scenes.length}
+              onRender={() => handleRender(store.layoutStyle)}
+              disabledReason={disabledReason}
+              renderPresetName={effectivePresetName}
+              renderPresetSource={effectivePresetSource}
+              renderProgress={store.renderProgress}
+            />
+          </div>
+
+          <RenderMediaPanel
+            includeSceneText={store.includeSceneText}
+            setIncludeSceneText={(v) => setOutput({ includeSceneText: v })}
+            sceneTextFont={store.sceneTextFont}
+            setSceneTextFont={(v) => setOutput({ sceneTextFont: v })}
+            fontList={store.fontList}
+            loadedFonts={store.loadedFonts}
+            kenBurnsPreset={store.kenBurnsPreset}
+            setKenBurnsPreset={(v) => setOutput({ kenBurnsPreset: v })}
+            kenBurnsIntensity={store.kenBurnsIntensity}
+            setKenBurnsIntensity={(v) => setOutput({ kenBurnsIntensity: v })}
+            transitionType={store.transitionType}
+            setTransitionType={(v) => setOutput({ transitionType: v })}
+            speedMultiplier={store.speedMultiplier}
+            setSpeedMultiplier={(v) => setOutput({ speedMultiplier: v })}
+            audioDucking={store.audioDucking}
+            setAudioDucking={(v) => setOutput({ audioDucking: v })}
+            bgmVolume={store.bgmVolume}
+            setBgmVolume={(v) => setOutput({ bgmVolume: v })}
+            voiceDesignPrompt={store.voiceDesignPrompt}
+            setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
+            voicePresetId={store.voicePresetId}
+            setVoicePresetId={handleSetVoicePresetId}
+            bgmMode={store.bgmMode}
+            setBgmMode={(v) => setOutput({ bgmMode: v })}
+            musicPresetId={store.musicPresetId}
+            setMusicPresetId={(v) => setOutput({ musicPresetId: v })}
+            bgmPrompt={store.bgmPrompt}
+            bgmMood={store.bgmMood}
+            setBgmPrompt={(v) => setOutput({ bgmPrompt: v })}
+            defaultOpen={true}
+          />
+        </div>
+
+        {/* ── Right column: preview + meta (sticky) ── */}
+        <div className="space-y-6 self-start md:sticky md:top-0">
+          <VideoPreviewHero
+            videoUrl={store.videoUrl}
+            onClickFullscreen={(url) => setUI({ videoPreviewSrc: url })}
+            compact
+          />
+
+          <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
+            <PublishCaptionLikes />
+          </div>
+
+          <PublishVideosSection variant="list" />
+        </div>
       </div>
-
-      <VideoPreviewHero
-        videoUrl={store.videoUrl}
-        onClickFullscreen={(url) => setUI({ videoPreviewSrc: url })}
-      />
-
-      <RenderMediaPanel
-        includeSceneText={store.includeSceneText}
-        setIncludeSceneText={(v) => setOutput({ includeSceneText: v })}
-        sceneTextFont={store.sceneTextFont}
-        setSceneTextFont={(v) => setOutput({ sceneTextFont: v })}
-        fontList={store.fontList}
-        loadedFonts={store.loadedFonts}
-        kenBurnsPreset={store.kenBurnsPreset}
-        setKenBurnsPreset={(v) => setOutput({ kenBurnsPreset: v })}
-        kenBurnsIntensity={store.kenBurnsIntensity}
-        setKenBurnsIntensity={(v) => setOutput({ kenBurnsIntensity: v })}
-        transitionType={store.transitionType}
-        setTransitionType={(v) => setOutput({ transitionType: v })}
-        speedMultiplier={store.speedMultiplier}
-        setSpeedMultiplier={(v) => setOutput({ speedMultiplier: v })}
-        audioDucking={store.audioDucking}
-        setAudioDucking={(v) => setOutput({ audioDucking: v })}
-        bgmVolume={store.bgmVolume}
-        setBgmVolume={(v) => setOutput({ bgmVolume: v })}
-        voiceDesignPrompt={store.voiceDesignPrompt}
-        setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
-        voicePresetId={store.voicePresetId}
-        setVoicePresetId={handleSetVoicePresetId}
-        bgmMode={store.bgmMode}
-        setBgmMode={(v) => setOutput({ bgmMode: v })}
-        musicPresetId={store.musicPresetId}
-        setMusicPresetId={(v) => setOutput({ musicPresetId: v })}
-        bgmPrompt={store.bgmPrompt}
-        bgmMood={store.bgmMood}
-        setBgmPrompt={(v) => setOutput({ bgmPrompt: v })}
-        defaultOpen={false}
-      />
-
-      {/* Caption & Likes + Rendered Videos */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-4">
-        <PublishCaptionLikes />
-      </div>
-
-      <PublishVideosSection variant="list" />
     </div>
   );
 }
