@@ -165,7 +165,7 @@ Router (API 엔드포인트)
     → Repository/ORM (데이터 접근)
 ```
 
-**선택 근거**: 현재 서비스 규모(라우터 33개, 서비스 40개+)에서 DDD나 Hexagonal은 오버엔지니어링. Layered는 학습 비용이 낮고, FastAPI 공식 가이드와 일치하며, 단일 팀 운영에 최적.
+**선택 근거**: 현재 서비스 규모(라우터 30개, 서비스 40개+)에서 DDD나 Hexagonal은 오버엔지니어링. Layered는 학습 비용이 낮고, FastAPI 공식 가이드와 일치하며, 단일 팀 운영에 최적.
 
 **계층별 역할**:
 
@@ -185,7 +185,7 @@ Router (API 엔드포인트)
 
 ```
 backend/
-├── routers/              # API 엔드포인트 (33개)
+├── routers/              # API 엔드포인트 (30개)
 ├── services/
 │   ├── agent/            # LangGraph Agentic Pipeline (Phase 9~10)
 │   │   ├── nodes/        # 그래프 노드 17개 (director_plan, writer, review, revise,
@@ -339,7 +339,7 @@ frontend/app/
 | 코드 파일 | 300줄 권장, 400줄 최대 |
 | 중첩 깊이 | 3단계 이하 |
 | 매개변수 | 4개 이하 |
-| 테스트 | Backend 1,902 + Frontend 352 = 2,254개 |
+| 테스트 | Backend 2,667 + Frontend 379 = 3,046개 |
 
 **TDD**: 서비스/코어 로직은 테스트 먼저 작성 (Red → Green → Refactor)
 **API 스펙 = 진실**: API/스키마 변경 시 문서 즉시 업데이트 (drift = 버그 취급)

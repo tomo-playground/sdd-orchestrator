@@ -19,7 +19,7 @@ graph TB
     end
 
     subgraph Backend ["Backend — FastAPI · Python 3.13"]
-        API["33 REST API Routers"]
+        API["29 REST API Routers"]
 
         subgraph Pipeline ["Agentic Pipeline — LangGraph"]
             direction LR
@@ -155,7 +155,7 @@ flowchart TD
 ### Backend (`/backend`)
 ```
 backend/
-├── routers/          # 도메인별 API 엔드포인트 (33개 라우터)
+├── routers/          # 도메인별 API 엔드포인트 (29개 라우터)
 ├── services/
 │   ├── agent/        # LangGraph Agentic Pipeline
 │   │   ├── nodes/    #   17개 에이전트 노드 + 5개 유틸리티 모듈

@@ -1,4 +1,4 @@
-# Database Schema (v3.29)
+# Database Schema (v3.30)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -794,7 +794,7 @@ ORM 모델 컬럼 선언 순서: PK → Parent FK → Identity(name) → Metadat
 
 ---
 
-**Last Updated:** 2026-02-22
-**Schema Version:** v3.29
+**Last Updated:** 2026-02-27
+**Schema Version:** v3.30
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic

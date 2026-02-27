@@ -1,6 +1,6 @@
 # Test Strategy
 
-**최종 업데이트**: 2026-02-19
+**최종 업데이트**: 2026-02-27
 
 ---
 
@@ -120,28 +120,28 @@ npm run test:vrt:ui
 
 | 영역 | 현재 | 목표 |
 |------|------|------|
-| Backend Unit | 1,334 tests (103 files) | 80% line coverage |
-| Backend Router | 368 tests (25 files) | 주요 라우터 100% |
-| Backend Integration | 108 tests (9 files) | 핵심 API 100% |
-| Backend VRT | 36 tests (4 files) | 주요 레이아웃 100% |
+| Backend Unit | ~1,900 tests (140+ files) | 80% line coverage |
+| Backend Router | ~450 tests (30 files) | 주요 라우터 100% |
+| Backend Integration | ~150 tests (12 files) | 핵심 API 100% |
+| Backend VRT | 44 tests (4 files) | 주요 레이아웃 100% |
 | Backend Benchmark | 18 tests | 성능 기준선 |
-| Frontend Unit | 352 tests (31 files) | 70% line coverage |
+| Frontend Unit | 379 tests (38 files) | 70% line coverage |
 | Frontend VRT | 24 screenshots (8 specs) | 전체 페이지 커버 |
 | Frontend E2E | 3 specs | 핵심 플로우 커버 |
 
-**총 테스트**: **2,214개** (Backend 1,862 + Frontend 352)
+**총 테스트**: **3,046개** (Backend 2,667 + Frontend 379)
 
-### Backend 구성 (1,862 tests, 143 files)
+### Backend 구성 (2,667 tests, 187 files)
 
 | 유형 | 테스트 수 | 파일 수 | 위치 |
 |------|----------|---------|------|
-| Unit | 1,334 | 103 | `tests/test_*.py` (router 제외) |
-| Router | 368 | 25 | `tests/test_router_*.py` |
-| Integration | 108 | 9 | `tests/api/` |
-| VRT | 36 | 4 | `tests/vrt/` |
+| Unit | ~1,900 | 140+ | `tests/test_*.py` (router 제외) |
+| Router | ~450 | 30 | `tests/test_router_*.py` |
+| Integration | ~150 | 12 | `tests/api/` |
+| VRT | 44 | 4 | `tests/vrt/` |
 | Benchmark | 18 | 1 | `tests/benchmark/` |
 
-### Frontend 구성 (352 tests, 31 files)
+### Frontend 구성 (379 tests, 38 files)
 
 | 카테고리 | 주요 테스트 | 테스트 수 |
 |----------|-----------|----------|
@@ -151,11 +151,11 @@ npm run test:vrt:ui
 | Utils | validation(34), speakerResolver(24), sceneSettingsResolver(14), autoPin(11), format(10) | 161+ |
 | Store | resetAllStores(6) | 6 |
 
-### Router 커버리지: 25/33 라우터 (76%)
+### Router 커버리지: 27/30 라우터 (90%)
 
-**테스트 있음 (25)**: storyboard, characters, style_profiles, loras, prompt, keywords, video, video_async, settings, presets, admin, quality, tags, analytics, activity_logs, controlnet, avatar, sd, scene, assets, music_presets, groups, projects, render_presets, voice_presets
+**테스트 있음 (27)**: storyboard, characters, style_profiles, loras, prompt, video, settings, presets, admin, quality, tags, activity_logs, controlnet, scene, assets, music_presets, groups, projects, render_presets, voice_presets, backgrounds, lab, memory, scripts, stage, creative_presets, youtube
 
-**테스트 없음 (8)**: cleanup, prompt_histories, sd_models, backgrounds, lab, memory, scripts, creative_presets, youtube
+**테스트 없음 (3)**: prompt_histories, sd_models, (소규모 유틸리티 라우터)
 
 > `tests/api/` 통합 테스트가 일부 라우터(lab, render_presets, quality, activity_logs)를 추가 커버
 

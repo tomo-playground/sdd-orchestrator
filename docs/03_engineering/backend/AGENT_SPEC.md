@@ -1,7 +1,7 @@
 # Agent Spec — LangGraph 에이전트 아키텍처
 
 **상태**: Active (v2.0)
-**최종 업데이트**: 2026-02-19
+**최종 업데이트**: 2026-02-27
 **관련 문서**: `docs/01_product/FEATURES/AGENTIC_PIPELINE.md`
 
 ---

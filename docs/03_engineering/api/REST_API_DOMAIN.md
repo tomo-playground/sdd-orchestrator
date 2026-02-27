@@ -322,5 +322,5 @@ SD 모델, LoRA, Embedding 조합으로 구성된 스타일 프로파일 관리.
 
 ---
 
-**Last Updated:** 2026-02-18
+**Last Updated:** 2026-02-27
 **API Version:** v4.0

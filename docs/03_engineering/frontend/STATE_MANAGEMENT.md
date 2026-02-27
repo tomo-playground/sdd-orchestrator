@@ -1,6 +1,6 @@
 # Frontend State Management
 
-**최종 업데이트**: 2026-02-19
+**최종 업데이트**: 2026-02-27
 
 > Shorts Producer 프론트엔드(Next.js 16, React 19)의 상태 관리 전략. Zustand 5 기반 4-Store 구조와 커스텀 훅을 통한 서버 데이터 연동.
 
