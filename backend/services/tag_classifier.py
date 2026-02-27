@@ -195,6 +195,7 @@ class TagClassifier:
                     "confidence": 0.3,
                     "source": "db",
                 }
+            # DB에 명시적으로 분류된 태그는 최소 0.9 confidence 보장
             return {
                 "group": result.group_name,
                 "confidence": max(result.classification_confidence or 1.0, 0.9),
@@ -354,6 +355,76 @@ def classify_tags_background(tags: list[str]) -> None:
         logger.error("❌ [Background] Danbooru classification failed: %s", e)
     finally:
         db.close()
+
+
+def classify_tags_background_llm(tags: list[str]) -> None:
+    """Background task: Danbooru + LLM으로 미분류 태그 조회 후 DB 저장.
+
+    Danbooru 먼저 시도 후 여전히 미분류인 태그를 LLM으로 분류한다.
+    BackgroundTasks에서 호출되므로 별도 DB 세션 + asyncio.run 사용.
+    """
+    if not tags:
+        return
+
+    import asyncio
+
+    from database import get_db
+
+    db = next(get_db())
+    try:
+        classifier = TagClassifier(db)
+
+        # Step 1: Danbooru 동기 호출 (최대 10개)
+        danbooru_classified = 0
+        still_unknown = []
+        for tag in tags[:10]:
+            result = classifier._classify_via_danbooru(tag)
+            if result and result["group"]:
+                classifier._save_classification(tag, result)
+                danbooru_classified += 1
+            else:
+                still_unknown.append(tag)
+        # Danbooru 제한 초과분도 LLM 대상에 추가
+        still_unknown.extend(tags[10:])
+
+        # Step 2: LLM 분류 (최대 30개)
+        llm_classified = 0
+        if still_unknown:
+            llm_results = asyncio.run(
+                _classify_via_llm_batch(still_unknown[:30])
+            )
+            for lr in llm_results:
+                cr: ClassificationResult = {
+                    "group": lr["group_name"],
+                    "confidence": lr["confidence"],
+                    "source": "llm",
+                }
+                classifier._save_classification(lr["tag"], cr, defer_commit=True)
+                llm_classified += 1
+            if llm_classified:
+                try:
+                    db.commit()
+                except Exception as e:
+                    logger.error("❌ [Background LLM] Batch commit failed: %s", e)
+                    db.rollback()
+
+        total = danbooru_classified + llm_classified
+        if total:
+            logger.info(
+                "🔄 [Background] Classified %d/%d tags (danbooru=%d, llm=%d)",
+                total, len(tags), danbooru_classified, llm_classified,
+            )
+    except Exception as e:
+        logger.error("❌ [Background LLM] Classification failed: %s", e)
+    finally:
+        db.close()
+
+
+async def _classify_via_llm_batch(tags: list[str]) -> list:
+    """LLM 배치 분류 헬퍼 (background에서 asyncio.run으로 호출)."""
+    from services.tag_classifier_llm import classify_tags_via_llm
+
+    return await classify_tags_via_llm(tags)
 
 
 # Utility function to migrate CATEGORY_PATTERNS to classification_rules

@@ -1,6 +1,6 @@
 """Tag CRUD endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -8,7 +8,7 @@ from config import logger
 from database import get_db
 from models import Tag
 from schemas import TagCreate, TagResponse, TagSearchResponse, TagUpdate
-from services.tag_classifier import TagClassifier
+from services.tag_classifier import TagClassifier, classify_tags_background_llm
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 
@@ -310,11 +310,13 @@ async def delete_tag(tag_id: int, db: Session = Depends(get_db)):
 @router.post("/classify", response_model=ClassifyResponse)
 async def classify_tags(
     request: ClassifyRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    """Classify tags: Rules → DB → Danbooru → LLM (unified pipeline).
+    """Classify tags: Rules → DB (instant) + Danbooru → LLM (background).
 
-    Single classification path used by both frontend and Finalize node.
+    Steps 1-2 (Rules + DB cache) return immediately.
+    Steps 3-4 (Danbooru + LLM) run in background — results available on next call.
     """
     if not request.tags:
         return ClassifyResponse(results={}, classified=0, unknown=0)
@@ -323,7 +325,11 @@ async def classify_tags(
         raise HTTPException(status_code=400, detail="Maximum 50 tags per request")
 
     classifier = TagClassifier(db)
-    raw_results = await classifier.classify_batch_with_llm(request.tags)
+    raw_results, pending_tags = classifier.classify_batch(request.tags)
+
+    # Schedule Danbooru + LLM classification in background
+    if pending_tags:
+        background_tasks.add_task(classify_tags_background_llm, pending_tags)
 
     results = {
         tag: ClassificationResultItem(
@@ -338,10 +344,11 @@ async def classify_tags(
     unknown = len(results) - classified
 
     logger.info(
-        "🏷️ [Tags] Classified %d/%d tags (%d unknown)",
+        "🏷️ [Tags] Classified %d/%d tags (%d unknown, %d pending background)",
         classified,
         len(request.tags),
         unknown,
+        len(pending_tags),
     )
 
     return ClassifyResponse(results=results, classified=classified, unknown=unknown)

@@ -1,6 +1,6 @@
 """Tests for tags router endpoints."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -255,10 +255,13 @@ class TestTagsClassification:
     def test_classify_tags(self, mock_cls, client: TestClient, db_session):
         """Classify a batch of tags."""
         mock_instance = MagicMock()
-        mock_instance.classify_batch_with_llm = AsyncMock(return_value={
-            "smile": {"group": "expression", "confidence": 0.95, "source": "rule"},
-            "brown_hair": {"group": "hair_color", "confidence": 0.90, "source": "db"},
-        })
+        mock_instance.classify_batch.return_value = (
+            {
+                "smile": {"group": "expression", "confidence": 0.95, "source": "rule"},
+                "brown_hair": {"group": "hair_color", "confidence": 0.90, "source": "db"},
+            },
+            [],  # no pending tags
+        )
         mock_cls.return_value = mock_instance
 
         resp = client.post("/tags/classify", json={"tags": ["smile", "brown_hair"]})
