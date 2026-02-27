@@ -2,7 +2,6 @@ import { create } from "zustand";
 import type { ToastItem, AutopilotCheckpoint } from "../types";
 
 export type StudioTab = "script" | "stage" | "direct" | "publish";
-export type RightPanelTab = "image" | "tools" | "insight";
 
 const MAX_TOASTS = 3;
 
@@ -25,7 +24,6 @@ export interface UIState {
 
   // Navigation
   activeTab: StudioTab;
-  rightPanelTab: RightPanelTab;
 
   // Modals / Previews
   imagePreviewSrc: string | null;
@@ -76,7 +74,6 @@ const initialState: Omit<
 > = {
   toasts: [],
   activeTab: "direct",
-  rightPanelTab: "tools" as RightPanelTab,
   showAdvancedSettings: false, // Default closed
   showLabMenu: false,
   imagePreviewSrc: null,

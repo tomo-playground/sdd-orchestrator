@@ -67,13 +67,8 @@ export const SECONDARY_PANEL_CLASSES = "hidden xl:block sticky top-4 self-start 
 export const STUDIO_2COL_LAYOUT =
   "grid grid-cols-[280px_1fr] gap-0 h-full min-h-[600px] overflow-hidden";
 
-/** 3-column grid: left scene list + center editor + right tools. */
-export const STUDIO_3COL_LAYOUT =
-  "grid grid-cols-[280px_1fr_300px] gap-0 h-full min-h-[600px] overflow-hidden";
 export const LEFT_PANEL_CLASSES =
   "flex flex-col border-r border-zinc-200 bg-zinc-50/50 overflow-y-auto";
-export const RIGHT_PANEL_CLASSES =
-  "flex flex-col border-l border-zinc-200 bg-zinc-50/50 overflow-y-auto p-4 space-y-4";
 export const CENTER_PANEL_CLASSES = "flex flex-col overflow-y-auto";
 
 /** Publish tab: settings (left) + preview/output (right). */

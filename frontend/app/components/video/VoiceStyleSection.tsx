@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { API_BASE } from "../../constants";
+import { useUIStore } from "../../store/useUIStore";
 import type { VoicePreset } from "../../types";
 
 export type VoiceStyleSectionProps = {
@@ -12,6 +13,8 @@ export type VoiceStyleSectionProps = {
   setVoiceDesignPrompt: (v: string) => void;
   speedMultiplier: number;
   setSpeedMultiplier: (v: number) => void;
+  /** When true, preset selection is read-only (SSOT = Stage tab) */
+  readOnly?: boolean;
 };
 
 /** Voice Style sub-section with preset selector */
@@ -22,6 +25,7 @@ export default function VoiceStyleSection({
   setVoiceDesignPrompt,
   speedMultiplier,
   setSpeedMultiplier,
+  readOnly = false,
 }: VoiceStyleSectionProps) {
   const [voicePresets, setVoicePresets] = useState<VoicePreset[]>([]);
 
@@ -32,44 +36,61 @@ export default function VoiceStyleSection({
       .catch(() => {});
   }, []);
 
+  const selectedPresetName = voicePresets.find((p) => p.id === voicePresetId)?.name ?? null;
+
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
       <span className="text-[12px] font-bold tracking-wider text-zinc-500 uppercase">Voice</span>
       <div className="grid gap-2">
-        {setVoicePresetId && (
-          <select
-            value={voicePresetId ?? ""}
-            onChange={(e) => setVoicePresetId(e.target.value ? Number(e.target.value) : null)}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
-          >
-            <option value="">-- Voice Preset (auto) --</option>
-            {voicePresets.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {!voicePresetId && (
-          <div className="space-y-2">
-            <input
-              type="text"
-              value={voiceDesignPrompt}
-              onChange={(e) => setVoiceDesignPrompt(e.target.value)}
-              placeholder="Voice style (e.g. calm 40s female)"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
-            />
-            <p className="text-[11px] text-zinc-400">
-              프리셋 미선택 시, 스타일 텍스트로 음성을 생성합니다.
+        {readOnly ? (
+          /* ── Read-only: show current preset/design text + link to Stage ── */
+          <div className="space-y-1.5">
+            <p className="text-xs text-zinc-700">
+              {selectedPresetName ? selectedPresetName : voiceDesignPrompt || "Auto (no preset)"}
             </p>
+            {voicePresetId && (
+              <p className="text-[11px] text-indigo-500">Voice preset selected — cloned voice.</p>
+            )}
+            <ChangeInStageLink />
           </div>
-        )}
+        ) : (
+          <>
+            {setVoicePresetId && (
+              <select
+                value={voicePresetId ?? ""}
+                onChange={(e) => setVoicePresetId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
+              >
+                <option value="">-- Voice Preset (auto) --</option>
+                {voicePresets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            )}
 
-        {voicePresetId && (
-          <p className="text-[11px] text-indigo-500">
-            Voice preset selected — all scenes will use the same cloned voice.
-          </p>
+            {!voicePresetId && (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={voiceDesignPrompt}
+                  onChange={(e) => setVoiceDesignPrompt(e.target.value)}
+                  placeholder="Voice style (e.g. calm 40s female)"
+                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
+                />
+                <p className="text-[11px] text-zinc-400">
+                  프리셋 미선택 시, 스타일 텍스트로 음성을 생성합니다.
+                </p>
+              </div>
+            )}
+
+            {voicePresetId && (
+              <p className="text-[11px] text-indigo-500">
+                Voice preset selected — all scenes will use the same cloned voice.
+              </p>
+            )}
+          </>
         )}
 
         <div className="flex items-center gap-2">
@@ -88,5 +109,18 @@ export default function VoiceStyleSection({
         </div>
       </div>
     </div>
+  );
+}
+
+/** Shared link button to navigate back to Stage tab */
+function ChangeInStageLink() {
+  return (
+    <button
+      type="button"
+      onClick={() => useUIStore.getState().setActiveTab("stage")}
+      className="text-[11px] font-medium text-zinc-400 transition hover:text-zinc-600"
+    >
+      Change in Stage →
+    </button>
   );
 }

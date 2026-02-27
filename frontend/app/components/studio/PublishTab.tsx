@@ -91,6 +91,7 @@ export default function PublishTab() {
             bgmMood={store.bgmMood}
             setBgmPrompt={(v) => setOutput({ bgmPrompt: v })}
             defaultOpen={true}
+            readOnly
           />
         </div>
 

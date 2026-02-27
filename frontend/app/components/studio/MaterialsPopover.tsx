@@ -6,7 +6,7 @@ import { useContextStore } from "../../store/useContextStore";
 import { useUIStore } from "../../store/useUIStore";
 import { useMaterialsCheck } from "../../hooks/useMaterialsCheck";
 
-type MaterialKey = "script" | "characters" | "voice" | "music" | "background";
+type MaterialKey = "script" | "style" | "characters" | "voice" | "music" | "background";
 
 type MaterialAction = "script-tab" | "stage-tab";
 
@@ -20,7 +20,8 @@ type MaterialItem = {
 
 const MATERIALS: MaterialItem[] = [
   { key: "script", label: "Script", icon: "S", action: "script-tab" },
-  { key: "characters", label: "Characters", icon: "C", link: "/library?tab=characters" },
+  { key: "style", label: "Style", icon: "\u2726", action: "stage-tab" },
+  { key: "characters", label: "Characters", icon: "C", action: "stage-tab" },
   { key: "voice", label: "Voice", icon: "V", link: "/library?tab=voices" },
   { key: "music", label: "Music", icon: "M", link: "/library?tab=music" },
   { key: "background", label: "BG", icon: "B", action: "stage-tab" },

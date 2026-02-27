@@ -74,6 +74,8 @@ export type RenderMediaPanelProps = {
   bgmMood: string;
   setBgmPrompt: (value: string) => void;
   defaultOpen?: boolean;
+  /** When true, Voice/BGM preset selection is read-only (SSOT = Stage) */
+  readOnly?: boolean;
 };
 
 export function RenderMediaPanel({
@@ -107,6 +109,7 @@ export function RenderMediaPanel({
   bgmMood,
   setBgmPrompt,
   defaultOpen = true,
+  readOnly = false,
 }: RenderMediaPanelProps) {
   const accordionSummary =
     "flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-semibold tracking-[0.2em] text-zinc-600 uppercase";
@@ -221,6 +224,7 @@ export function RenderMediaPanel({
             setVoiceDesignPrompt={setVoiceDesignPrompt}
             speedMultiplier={speedMultiplier}
             setSpeedMultiplier={setSpeedMultiplier}
+            readOnly={readOnly}
           />
         </div>
       </details>
@@ -244,6 +248,7 @@ export function RenderMediaPanel({
             bgmPrompt={bgmPrompt}
             bgmMood={bgmMood}
             setBgmPrompt={setBgmPrompt}
+            readOnly={readOnly}
           />
         </div>
       </details>

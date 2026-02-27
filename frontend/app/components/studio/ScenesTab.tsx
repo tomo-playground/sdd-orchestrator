@@ -7,16 +7,14 @@ import { Film } from "lucide-react";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import EmptyState from "../ui/EmptyState";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { useRenderStore } from "../../store/useRenderStore";
 import { useUIStore } from "../../store/useUIStore";
 import { useTags } from "../../hooks";
 import SceneListPanel from "../storyboard/SceneListPanel";
-import RightPanelTabs from "./RightPanelTabs";
-import ImageSettingsContent from "./ImageSettingsContent";
-import SceneToolsContent from "./SceneToolsContent";
 import SceneInsightsContent from "./SceneInsightsContent";
 import SceneCard from "../storyboard/SceneCard";
-import StudioThreeColumnLayout from "./StudioThreeColumnLayout";
 import SceneNavHeader from "./SceneNavHeader";
+import { STUDIO_2COL_LAYOUT, LEFT_PANEL_CLASSES, CENTER_PANEL_CLASSES } from "../ui/variants";
 import { buildNegativePrompt, buildScenePrompt } from "../../store/actions/promptActions";
 import {
   resolveCharacterIdForSpeaker,
@@ -112,6 +110,7 @@ export default function ScenesTab() {
     : undefined;
 
   const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const currentStyleProfile = useRenderStore((s) => s.currentStyleProfile);
 
   if (scenes.length === 0) {
     return (
@@ -130,8 +129,9 @@ export default function ScenesTab() {
 
   return (
     <>
-      <StudioThreeColumnLayout
-        leftPanel={
+      <div className={STUDIO_2COL_LAYOUT}>
+        {/* ── Left Panel: Scene List + Insights ── */}
+        <aside className={LEFT_PANEL_CLASSES}>
           <SceneListPanel
             scenes={scenes}
             currentSceneIndex={currentSceneIndex}
@@ -141,113 +141,130 @@ export default function ScenesTab() {
             onReorderScene={reorderScenes}
             imageValidationResults={imageValidationResults}
           />
-        }
-        centerPanel={
-          <>
-            <SceneNavHeader
-              currentIndex={currentSceneIndex}
-              total={scenes.length}
-              duration={currentScene?.duration}
-              onPrev={() => setCurrentSceneIndex(Math.max(0, currentSceneIndex - 1))}
-              onNext={() =>
-                setCurrentSceneIndex(Math.min(scenes.length - 1, currentSceneIndex + 1))
-              }
-              onRemove={() => handleRemoveScene(currentScene.client_id)}
+          <div className="space-y-4 border-t border-zinc-200 p-4">
+            <SceneInsightsContent
+              imageValidationResults={imageValidationResults}
+              scenes={scenes.map((s, i) => ({ id: s.id, client_id: s.client_id, order: i }))}
+              onSceneSelect={setCurrentSceneIndex}
+              fullScenes={scenes}
             />
+          </div>
+        </aside>
 
-            {currentScene && (
-              <div className="flex-1 overflow-y-auto px-8 py-8">
-                <div className="mx-auto w-full max-w-5xl">
-                  <SceneCard
-                    key={currentScene.client_id}
-                    scene={currentScene}
-                    sceneIndex={currentSceneIndex}
-                    imageValidationResult={imageValidationResults[currentScene.client_id]}
-                    qualityScore={
-                      imageValidationResults[currentScene.client_id]
-                        ? {
-                            match_rate:
-                              imageValidationResults[currentScene.client_id].match_rate ?? 0,
-                            missing_tags:
-                              imageValidationResults[currentScene.client_id].missing ?? [],
-                          }
-                        : null
-                    }
-                    sceneMenuOpen={sceneMenuOpen === currentScene.client_id}
-                    onSceneMenuToggle={() =>
-                      sbSet({
-                        sceneMenuOpen:
-                          sceneMenuOpen === currentScene.client_id ? null : currentScene.client_id,
-                      })
-                    }
-                    onSceneMenuClose={() => sbSet({ sceneMenuOpen: null })}
-                    validatingSceneId={validatingSceneId}
-                    loraTriggerWords={loraTriggerWords}
-                    tagsByGroup={tagsByGroup}
-                    sceneTagGroups={sceneTagGroups}
-                    isExclusiveGroup={isExclusiveGroup}
-                    onUpdateScene={handleUpdateScene}
-                    onPinToggle={handlePinToggle}
-                    pinnedSceneOrder={pinnedSceneOrder}
-                    onRemoveScene={() => handleRemoveScene(currentScene.client_id)}
-                    onSpeakerChange={(speaker) => handleSpeakerChange(currentScene, speaker)}
-                    onImageUpload={(file) => handleImageUpload(currentScene.client_id, file)}
-                    onGenerateImage={() => handleGenerateImage(currentScene)}
-                    onEditWithGemini={(target) => handleEditWithGemini(currentScene, target)}
-                    onSuggestEditWithGemini={() => handleSuggestEditWithGemini(currentScene)}
-                    onValidateImage={() => handleValidateImage(currentScene)}
-                    onApplyMissingTags={(tags) => applyMissingImageTags(currentScene, tags)}
-                    onImagePreview={(src, candidates) =>
-                      useUIStore.getState().set({
-                        imagePreviewSrc: src,
-                        imagePreviewCandidates: candidates || null,
-                      })
-                    }
-                    onSavePrompt={async () => {
-                      const result = await confirm({
-                        title: "Save Prompt",
-                        message: "Enter a name for this prompt:",
-                        confirmLabel: "Save",
-                        inputField: { label: "Name", placeholder: "Enter prompt name..." },
-                      });
-                      if (result === false) return;
-                      handleSavePrompt(currentScene, result as string);
-                    }}
-                    onMarkSuccess={() => handleMarkSuccess(currentScene)}
-                    onMarkFail={() => handleMarkFail(currentScene)}
-                    isMarkingStatus={markingStatusSceneId === currentScene.client_id}
-                    selectedCharacterId={resolvedCharacterId}
-                    basePromptA={resolvedBasePrompt}
-                    characterLoras={resolvedCharacterLoras}
-                    structure={useStoryboardStore.getState().structure}
-                    characterAName={selectedCharacterName}
-                    characterBName={selectedCharacterBName}
-                    selectedCharacterBId={selectedCharacterBId}
-                    genProgress={imageGenProgress[currentScene.client_id] ?? null}
-                    buildNegativePrompt={buildNegativePrompt}
-                    buildScenePrompt={buildScenePrompt}
-                    showToast={showToast}
-                  />
-                </div>
-              </div>
+        {/* ── Center Panel: Context Strip + Scene Editor ── */}
+        <main className={CENTER_PANEL_CLASSES}>
+          {/* Context Strip — read-only badges + Stage deep link */}
+          <div className="flex items-center gap-2 border-b border-zinc-100 px-8 py-1.5">
+            {currentStyleProfile && (
+              <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+                {currentStyleProfile.display_name ?? currentStyleProfile.name}
+              </span>
             )}
-          </>
-        }
-        rightPanel={
-          <RightPanelTabs
-            imageContent={<ImageSettingsContent />}
-            toolsContent={<SceneToolsContent />}
-            insightContent={
-              <SceneInsightsContent
-                imageValidationResults={imageValidationResults}
-                scenes={scenes.map((s, i) => ({ id: s.id, client_id: s.client_id, order: i }))}
-                onSceneSelect={setCurrentSceneIndex}
-                fullScenes={scenes}
-              />
-            }
+            {selectedCharacterName && (
+              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
+                A: {selectedCharacterName}
+              </span>
+            )}
+            {selectedCharacterBName && (
+              <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700">
+                B: {selectedCharacterBName}
+              </span>
+            )}
+            <button
+              onClick={() => setActiveTab("stage")}
+              className="ml-auto text-[11px] font-medium text-zinc-400 transition hover:text-zinc-600"
+            >
+              Edit in Stage →
+            </button>
+          </div>
+
+          <SceneNavHeader
+            currentIndex={currentSceneIndex}
+            total={scenes.length}
+            duration={currentScene?.duration}
+            onPrev={() => setCurrentSceneIndex(Math.max(0, currentSceneIndex - 1))}
+            onNext={() => setCurrentSceneIndex(Math.min(scenes.length - 1, currentSceneIndex + 1))}
+            onRemove={() => handleRemoveScene(currentScene.client_id)}
           />
-        }
-      />
+
+          {currentScene && (
+            <div className="flex-1 overflow-y-auto px-8 py-8">
+              <div className="mx-auto w-full max-w-5xl">
+                <SceneCard
+                  key={currentScene.client_id}
+                  scene={currentScene}
+                  sceneIndex={currentSceneIndex}
+                  imageValidationResult={imageValidationResults[currentScene.client_id]}
+                  qualityScore={
+                    imageValidationResults[currentScene.client_id]
+                      ? {
+                          match_rate:
+                            imageValidationResults[currentScene.client_id].match_rate ?? 0,
+                          missing_tags:
+                            imageValidationResults[currentScene.client_id].missing ?? [],
+                        }
+                      : null
+                  }
+                  sceneMenuOpen={sceneMenuOpen === currentScene.client_id}
+                  onSceneMenuToggle={() =>
+                    sbSet({
+                      sceneMenuOpen:
+                        sceneMenuOpen === currentScene.client_id ? null : currentScene.client_id,
+                    })
+                  }
+                  onSceneMenuClose={() => sbSet({ sceneMenuOpen: null })}
+                  validatingSceneId={validatingSceneId}
+                  loraTriggerWords={loraTriggerWords}
+                  tagsByGroup={tagsByGroup}
+                  sceneTagGroups={sceneTagGroups}
+                  isExclusiveGroup={isExclusiveGroup}
+                  onUpdateScene={handleUpdateScene}
+                  onPinToggle={handlePinToggle}
+                  pinnedSceneOrder={pinnedSceneOrder}
+                  onRemoveScene={() => handleRemoveScene(currentScene.client_id)}
+                  onSpeakerChange={(speaker) => handleSpeakerChange(currentScene, speaker)}
+                  onImageUpload={(file) => handleImageUpload(currentScene.client_id, file)}
+                  onGenerateImage={() => handleGenerateImage(currentScene)}
+                  onEditWithGemini={(target) => handleEditWithGemini(currentScene, target)}
+                  onSuggestEditWithGemini={() => handleSuggestEditWithGemini(currentScene)}
+                  onValidateImage={() => handleValidateImage(currentScene)}
+                  onApplyMissingTags={(tags) => applyMissingImageTags(currentScene, tags)}
+                  onImagePreview={(src, candidates) =>
+                    useUIStore.getState().set({
+                      imagePreviewSrc: src,
+                      imagePreviewCandidates: candidates || null,
+                    })
+                  }
+                  onSavePrompt={async () => {
+                    const result = await confirm({
+                      title: "Save Prompt",
+                      message: "Enter a name for this prompt:",
+                      confirmLabel: "Save",
+                      inputField: { label: "Name", placeholder: "Enter prompt name..." },
+                    });
+                    if (result === false) return;
+                    handleSavePrompt(currentScene, result as string);
+                  }}
+                  onMarkSuccess={() => handleMarkSuccess(currentScene)}
+                  onMarkFail={() => handleMarkFail(currentScene)}
+                  isMarkingStatus={markingStatusSceneId === currentScene.client_id}
+                  selectedCharacterId={resolvedCharacterId}
+                  basePromptA={resolvedBasePrompt}
+                  characterLoras={resolvedCharacterLoras}
+                  structure={useStoryboardStore.getState().structure}
+                  characterAName={selectedCharacterName}
+                  characterBName={selectedCharacterBName}
+                  selectedCharacterBId={selectedCharacterBId}
+                  genProgress={imageGenProgress[currentScene.client_id] ?? null}
+                  buildNegativePrompt={buildNegativePrompt}
+                  buildScenePrompt={buildScenePrompt}
+                  showToast={showToast}
+                />
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
       <ConfirmDialog {...dialogProps} />
     </>
   );

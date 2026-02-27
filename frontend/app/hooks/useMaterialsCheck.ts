@@ -17,6 +17,7 @@ export type MaterialsData = {
   voice: MaterialStatus;
   music: MaterialStatus;
   background: MaterialStatus;
+  style?: MaterialStatus; // Frontend-only: derived from style profile
 };
 
 export function useMaterialsCheck(storyboardId: number | null) {
@@ -30,6 +31,7 @@ export function useMaterialsCheck(storyboardId: number | null) {
   const voicePresetId = useRenderStore((s) => s.voicePresetId);
   const bgmFile = useRenderStore((s) => s.bgmFile);
   const musicPresetId = useRenderStore((s) => s.musicPresetId);
+  const currentStyleProfile = useRenderStore((s) => s.currentStyleProfile);
 
   useEffect(() => {
     if (!storyboardId) {
@@ -48,8 +50,10 @@ export function useMaterialsCheck(storyboardId: number | null) {
   }, [storyboardId]);
 
   // Merge: API 우선, 없으면 로컬 fallback
+  // style은 Frontend-only (Backend API에 없음) → 항상 클라이언트에서 파생
   const data: MaterialsData | null = useMemo(() => {
-    if (apiData) return apiData;
+    const styleReady: MaterialStatus = { ready: currentStyleProfile?.id != null };
+    if (apiData) return { ...apiData, style: styleReady };
     // Background ready: if Stage not started (null/pending) → optional (true),
     // if staging started → only ready when "staged"
     const bgReady = !stageStatus || stageStatus === "pending" || stageStatus === "staged";
@@ -60,8 +64,9 @@ export function useMaterialsCheck(storyboardId: number | null) {
       voice: { ready: voicePresetId !== null },
       music: { ready: bgmFile !== null || musicPresetId !== null },
       background: { ready: bgReady, detail: stageStatus === "staged" ? "Staged" : "Optional" },
+      style: styleReady,
     };
-  }, [apiData, scenes.length, characterId, stageStatus, voicePresetId, bgmFile, musicPresetId]);
+  }, [apiData, scenes.length, characterId, stageStatus, voicePresetId, bgmFile, musicPresetId, currentStyleProfile]);
 
   return { data, isLoading };
 }
