@@ -25,6 +25,8 @@
 
 ### 최근 작업
 
+- **Publish 탭 2-column 레이아웃** (02-27): 좌=설정(RenderSidePanel+RenderMediaPanel), 우=프리뷰+메타(sticky 380px). `PUBLISH_2COL_LAYOUT` 상수, VideoPreviewHero `compact` prop 추가. 반응형: <768px 단일 컬럼 fallback. 3파일 변경
+- **prompt_mode 제거 + 태그 분류 개선** (02-27): prompt_mode 3-way 선택(auto/standard/lora) 제거 — 프로덕션 100% auto 사용으로 무의미. Backend 5곳 분기 `character.loras` 통일, effective_mode 배지 제거, DB 컬럼 DROP. 태그 분류: legacy subject 태그(6400+, source=default) LLM 재분류 활성화, classify 엔드포인트 background LLM 파이프라인. ComposedPromptPreview StrictMode debounce 버그 수정. 40파일 +241/-323줄, 2743 passed. PR #35
 - **autoSave race condition 3-Layer 방어** (02-27): 이미지 생성 중 autoSave가 `image_asset_id: null` 덮어쓰기 방지. Layer 1: `SCENE_TRANSIENT_FIELDS`로 `isGenerating` 등 transient 필드 isDirty 분리. Layer 2: autoSave에서 `isGenerating` 씬 감지 시 스킵+재스케줄. Layer 3: `didScenesChangeDuringSave()` 스냅샷 비교로 save 중 변경 감지. 20개 테스트(Layer1 11+Layer2 4+Layer3 5)
 - **Phase 18-P4: 렌더링 연동** (02-27): 트랜지션 auto 모드(같은 배경→fade, 다른 배경→slide/wipe), Ken Burns 교대 프리셋(같은 배경 연속 시 반복 방지), Reference AdaIN 실내/실외 가중치 자동 조정(indoor=0.40, outdoor=0.25). 11개 테스트. PR #34
 - **Phase 18-P3: Stage 에셋 고도화** (02-27): Express 모드 호환(환경 태그 없는 씬 warning 로그), `style_profile_id` 기반 배경 캐싱(3-col unique index + cache hit/miss + assign 스타일 우선), LoRA↔StyleProfile 의존성 시각화(StageCharacterCard). Alembic 마이그레이션 + 7개 테스트. PR #32

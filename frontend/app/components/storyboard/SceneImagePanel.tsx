@@ -154,7 +154,7 @@ export default function SceneImagePanel({
   return (
     <div className="flex flex-col gap-3">
       <div
-        className="group relative aspect-square w-full max-w-[320px] cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-white/70"
+        className="group relative aspect-[9/16] w-full max-w-[320px] cursor-pointer overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onClick={() => scene.image_url && onImageClick(scene.image_url)}
@@ -217,7 +217,7 @@ export default function SceneImagePanel({
               src={scene.image_url}
               alt={`Scene ${scene.id}`}
               onLoad={() => setIsImageLoading(false)}
-              className={`h-full w-full object-cover object-top ${
+              className={`h-full w-full object-contain ${
                 isImageLoading ? "opacity-0" : "opacity-100"
               }`}
             />
@@ -284,7 +284,7 @@ export default function SceneImagePanel({
               return (
                 <div
                   key={`${scene.client_id}-candidate-${idx}`}
-                  className={`group/thumb relative cursor-pointer overflow-hidden rounded-xl border ${
+                  className={`group/thumb relative aspect-[9/16] cursor-pointer overflow-hidden rounded-xl border ${
                     isSelected ? "border-zinc-900" : "border-zinc-200"
                   }`}
                   onClick={() => onImageClick(candidate.image_url!)}
@@ -294,7 +294,7 @@ export default function SceneImagePanel({
                     src={candidate.image_url}
                     alt={`Candidate ${idx + 1}`}
                     loading="lazy"
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-contain"
                   />
                   {candidate.match_rate != null && (
                     <span className="absolute top-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[11px] font-bold text-white">
