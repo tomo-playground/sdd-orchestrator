@@ -319,7 +319,6 @@ frontend/app/
 │   ├── shell/            # 앱 레이아웃 (AppShell, ConnectionGuard)
 │   ├── layout/           # 레이아웃 컴포넌트
 │   ├── context/          # 프로젝트/그룹 관리
-│   ├── shared/           # 공유 컴포넌트
 │   ├── common/           # 공통 컴포넌트
 │   └── ui/               # 공통 UI (Toast, Modal 등)
 ├── hooks/                # 서버 동기화 훅 (25개)

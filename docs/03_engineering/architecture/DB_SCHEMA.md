@@ -618,8 +618,10 @@ Model + LoRAs + Embeddings 번들.
 | `is_system` | Boolean | 시스템 프리셋 여부 (default: false) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
-### `embeddings`
-Textual Inversion 임베딩.
+### `embeddings` (미구현)
+Textual Inversion 임베딩. **현재 미구현 상태입니다.**
+
+> **Note**: 이 테이블은 ERD에 명시되어 있으나 실제 ORM 모델 및 마이그레이션에는 구현되지 않았습니다. 현재 시스템에서 Textual Inversion 기능을 사용하지 않으므로 실질적 영향은 없습니다.
 
 | Column | Type | Description |
 |--------|------|-------------|
