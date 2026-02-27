@@ -350,7 +350,7 @@ export default function ComposedPromptPreview({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-            Composed Preview
+            Composed Positive
           </span>
           {isLoading && (
             <span className="animate-pulse rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
