@@ -60,6 +60,8 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
     if not request.group_id:
         raise HTTPException(status_code=400, detail="group_id is required")
 
+    from services.seed_anchoring import generate_base_seed
+
     db_storyboard = Storyboard(
         title=safe_title,
         description=request.description,
@@ -70,6 +72,7 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
         language=request.language,
         bgm_prompt=request.bgm_prompt,
         bgm_mood=request.bgm_mood,
+        base_seed=generate_base_seed(),
     )
     db.add(db_storyboard)
     db.flush()
