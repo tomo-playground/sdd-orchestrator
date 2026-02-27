@@ -22,10 +22,12 @@
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
 | Phase 18 (Stage Workflow) | 전체 완료 (ARCHIVED) |
 | **Phase 19 (Studio 탭 페르소나 재배치)** | **전체 완료 — 19-1(9) + 19-2(2) + 19-3(4) = 15/15** |
+| **DB Schema Cleanup** | **Sprint A 진행중 (1/7) — 1-1 완료, Sprint B 미착수 (0/4)** |
 | 테스트 | Backend 2,667 + Frontend 399 = **총 3,066개** (valence +27 = 3,093) |
 
 ### 최근 작업
 
+- **DB Schema Cleanup Sprint A-1** (02-28): `activity_logs` Gemini 편집 추적 INSERT 누락 버그 수정. `validate_and_auto_edit_scene()`에서 편집 성공 시 ActivityLog 즉시 INSERT(`gemini_edited`, `gemini_cost_usd`, `original_match_rate`). `CreateActivityLogRequest`에 gemini 필드 4개 추가. 비용 한도/재시도 횟수 체크 정상화. [명세](FEATURES/DB_SCHEMA_CLEANUP.md)
 - **Phase 19: Studio 탭 페르소나 재배치 구현 완료** (02-28): Stage SSOT + Direct 경량화. StageTab에 Visual Style/CharacterSelector/Base Prompts(읽기전용)/Generation Settings 추가. ScenesTab Context Strip(Style/Character 배지 + Stage 딥링크). Publish Voice/BGM readOnly + "Change in Stage" 링크. Dead code 6파일 삭제(ImageSettingsContent, StudioThreeColumnLayout, RightPanelTabs, PromptHelperSidebar, PromptSetupPanel, promptHelperActions). isMultiCharStructure 유틸 통일. 18파일 +550/-761줄
 - **Studio 탭 페르소나 재배치 명세 v2** (02-27): 6-Agent 리뷰(PM/Frontend/UX/TechLead/Backend/QA) 반영. BLOCKER 4건 해소: (1) Express 모드 Stage 경유 확정, (2) useCharacterAutoLoad 경합 조건 문서화, (3) Phase 순서 의존성 명시, (4) Direct Context Strip 추가. Phase 1(9스텝) + Phase 2(2스텝) + Phase 3(4스텝). [명세](FEATURES/STUDIO_TAB_PERSONA_REORGANIZATION.md)
 - **Direct 탭 2-column 레이아웃 전환** (02-27): 3-column(280px|1fr|300px) → 2-column(280px|1fr). 우측 패널 제거, ImageSettingsContent→센터 Settings CollapsibleSection, SceneToolsContent→SceneCard Advanced, SceneInsightsContent→좌측 하단. Prompt Helper 완전 삭제(2파일). Scene Tags↔Advanced 순서 교체
@@ -328,6 +330,33 @@ Script → **Stage** → Direct → Publish 4단계 워크플로우. [상세 명
 | 2 | Dead import 정리 (variants.ts 3-col 상수, useUIStore RightPanelTab) | ✅ (02-28) |
 | 3 | VRT 베이스라인 갱신 (Direct, Stage, Publish) | ✅ (02-28) |
 | 4 | Build 검증 (next build PASS, 0 new TS errors) | ✅ (02-28) |
+
+---
+
+## DB Schema Cleanup — 미사용 컬럼/테이블 감사 및 정리
+
+**목표**: DB Schema v3.30 기준, 전체 테이블/컬럼의 실제 사용 현황을 DB 데이터 + 코드 참조 양면에서 감사하고 정리. [상세 명세](FEATURES/DB_SCHEMA_CLEANUP.md)
+
+### Sprint A: FIX FIRST + DOC FIX
+
+| # | 항목 | 담당 | 상태 |
+|---|------|------|------|
+| 1-1 | `activity_logs` Gemini 편집 추적 INSERT 누락 수정 | Backend Dev | ✅ (02-28) |
+| 1-2 | `tags.valence` 일괄 시딩 실행 | Backend Dev / Prompt Eng | 미착수 |
+| 1-3 | `scene_quality_scores.identity_score` 저장 경로 점검 | Backend Dev | 미착수 |
+| 1-4 | `storyboards.base_seed` 할당 로직 점검 | Backend Dev | 미착수 |
+| 1-5 | `media_assets.checksum` 쓰기 로직 보완 | Backend Dev | 미착수 |
+| 4-1 | DB_SCHEMA.md 문서 불일치 4건 수정 | DBA | 미착수 |
+| 5-2 | `ANALYZE` 실행 (pg_stat 통계 갱신) | DBA | 미착수 |
+
+### Sprint B: DROP + INFRA
+
+| # | 항목 | 담당 | 상태 |
+|---|------|------|------|
+| 2-1 | `characters.reference_source_type` DROP | DBA | 미착수 |
+| 2-2 | `scenes.multi_gen_enabled` DROP | DBA | 미착수 |
+| 2-3 | `scenes.last_seed` DROP (조건부) | DBA | 미착수 |
+| 5-1 | LangGraph Checkpoint GC 배치 구현 | Backend Dev / DBA | 미착수 |
 
 ---
 
