@@ -18,11 +18,6 @@ from config import (
     STAGE_STATUS_STAGING,
     logger,
 )
-
-# Anti-realistic tags to force anime style for backgrounds
-_ANTI_REALISTIC_NEGATIVE = "realistic, photorealistic, photo, 3d, render, cgi, photograph"
-# Anti-sepia: prevent washed-out monochrome backgrounds
-_ANTI_SEPIA_NEGATIVE = "monochrome, sepia, desaturated, washed_out, greyscale, faded"
 from models.background import Background
 from models.scene import Scene
 from models.storyboard import Storyboard
@@ -31,14 +26,17 @@ from services.asset_service import AssetService
 from services.keywords.db_cache import TagAliasCache
 from services.style_context import extract_style_loras, resolve_style_context
 
+# Anti-realistic tags to force anime style for backgrounds
+_ANTI_REALISTIC_NEGATIVE = "realistic, photorealistic, photo, 3d, render, cgi, photograph"
+# Anti-sepia: prevent washed-out monochrome backgrounds
+_ANTI_SEPIA_NEGATIVE = "monochrome, sepia, desaturated, washed_out, greyscale, faded"
+
 # ── Location extraction ──────────────────────────────────────────────
 
 _LOCATION_GROUP_PREFIX = "location_"
 
 
-def _find_best_matching_bg(
-    scene_key: str, loc_to_bg: dict[str, dict]
-) -> tuple[dict | None, str]:
+def _find_best_matching_bg(scene_key: str, loc_to_bg: dict[str, dict]) -> tuple[dict | None, str]:
     """Find the best matching BG when exact key doesn't match (subset/overlap)."""
     scene_set = set(scene_key.split("_"))
     best_info, best_key, best_score = None, scene_key, 0.0

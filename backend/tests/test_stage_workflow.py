@@ -7,7 +7,8 @@ Covers:
 - calculate_auto_pin_flags with background_id
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+
 
 def _mock_scene(scene_id: int, env_tags: list[str] | None = None, background_id: int | None = None):
     """Create a mock Scene with context_tags and background_id."""
@@ -15,11 +16,32 @@ def _mock_scene(scene_id: int, env_tags: list[str] | None = None, background_id:
     scene.id = scene_id
     scene.context_tags = {"environment": env_tags} if env_tags else {}
     scene.background_id = background_id
+    scene.environment_reference_id = None
     scene.order = scene_id
     return scene
 
 
 # ── extract_locations_from_scenes ────────────────────────────────────
+
+
+def _patch_location_db():
+    """Return context managers that bypass DB-dependent helpers in extract_locations_from_scenes.
+
+    _filter_location_tags is patched to return all input tags (no DB filtering),
+    and TagAliasCache.initialize is a no-op so no real DB session is needed.
+    """
+    p1 = patch(
+        "services.stage.background_generator._filter_location_tags",
+        side_effect=lambda tags, db: tags,
+    )
+    p2 = patch(
+        "services.stage.background_generator.TagAliasCache.initialize",
+    )
+    p3 = patch(
+        "services.stage.background_generator._resolve_location_aliases",
+        side_effect=lambda tags: tags,
+    )
+    return p1, p2, p3
 
 
 class TestExtractLocations:
@@ -31,7 +53,9 @@ class TestExtractLocations:
             _mock_scene(2, ["park", "outdoors"]),
             _mock_scene(3, ["cafe", "indoors"]),
         ]
-        result = extract_locations_from_scenes(scenes)
+        p1, p2, p3 = _patch_location_db()
+        with p1, p2, p3:
+            result = extract_locations_from_scenes(scenes, MagicMock())
 
         assert len(result) == 2
         # Key is sorted tags joined
@@ -52,21 +76,27 @@ class TestExtractLocations:
         ]
         # scene 2 has empty tags, scene 3 has no context_tags
         scenes[2].context_tags = {}
-        result = extract_locations_from_scenes(scenes)
+        p1, p2, p3 = _patch_location_db()
+        with p1, p2, p3:
+            result = extract_locations_from_scenes(scenes, MagicMock())
 
         assert len(result) == 1
 
     def test_no_scenes_returns_empty(self):
         from services.stage.background_generator import extract_locations_from_scenes
 
-        result = extract_locations_from_scenes([])
+        p1, p2, p3 = _patch_location_db()
+        with p1, p2, p3:
+            result = extract_locations_from_scenes([], MagicMock())
         assert result == {}
 
     def test_location_name_derived_from_first_tag(self):
         from services.stage.background_generator import extract_locations_from_scenes
 
         scenes = [_mock_scene(1, ["dark_alley", "outdoors"])]
-        result = extract_locations_from_scenes(scenes)
+        p1, p2, p3 = _patch_location_db()
+        with p1, p2, p3:
+            result = extract_locations_from_scenes(scenes, MagicMock())
 
         key = "_".join(sorted(["dark_alley", "outdoors"]))
         assert result[key]["name"] == "Dark Alley"
@@ -75,7 +105,9 @@ class TestExtractLocations:
         from services.stage.background_generator import extract_locations_from_scenes
 
         scenes = [_mock_scene(1, ["classroom", "indoors", "desk"])]
-        result = extract_locations_from_scenes(scenes)
+        p1, p2, p3 = _patch_location_db()
+        with p1, p2, p3:
+            result = extract_locations_from_scenes(scenes, MagicMock())
 
         key = "_".join(sorted(["classroom", "indoors", "desk"]))
         assert result[key]["tags"] == ["classroom", "indoors", "desk"]
@@ -132,7 +164,9 @@ class TestAssignBackgrounds:
                 (10, cafe_key, True),
             ],
         )
-        result = assign_backgrounds_to_scenes(1, db)
+        p1, p2, p3 = _patch_location_db()
+        with p1, p2, p3:
+            result = assign_backgrounds_to_scenes(1, db)
 
         assert len(result) == 1
         assert result[0]["scene_id"] == 1
@@ -150,7 +184,9 @@ class TestAssignBackgrounds:
                 (10, cafe_key, True),
             ],
         )
-        result = assign_backgrounds_to_scenes(1, db)
+        p1, p2, p3 = _patch_location_db()
+        with p1, p2, p3:
+            result = assign_backgrounds_to_scenes(1, db)
 
         assert len(result) == 0  # No new assignments
 
