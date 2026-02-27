@@ -31,6 +31,38 @@ def _sanitize_quality_tags(scenes: list[dict]) -> None:
         scene["image_prompt"] = ", ".join(_QUALITY_TAG_FIXES[t] if t in _QUALITY_TAG_FIXES else t for t in tokens)
 
 
+def _apply_tag_aliases(scenes: list[dict]) -> None:
+    """DB tag_aliases 기반 자동 교정 — 비표준/모호 태그를 Danbooru 표준으로 치환/제거."""
+    from services.keywords.db_cache import TagAliasCache
+
+    with get_db_session() as db:
+        TagAliasCache.initialize(db)
+
+    replaced_count = 0
+    removed_count = 0
+    for scene in scenes:
+        prompt = scene.get("image_prompt", "")
+        if not prompt:
+            continue
+        tokens = [t.strip() for t in prompt.split(",")]
+        result = []
+        for t in tokens:
+            if not t:
+                continue
+            replacement = TagAliasCache.get_replacement(t)
+            if replacement is ...:
+                result.append(t)
+            elif replacement is None:
+                removed_count += 1
+            else:
+                result.append(replacement)
+                replaced_count += 1
+        scene["image_prompt"] = ", ".join(result)
+
+    if replaced_count or removed_count:
+        logger.info("[Finalize] TagAlias: %d replaced, %d removed", replaced_count, removed_count)
+
+
 def _inject_negative_prompts(scenes: list[dict]) -> None:
     """빈 negative_prompt에 기본값을 주입하고, LLM의 negative_prompt_extra를 병합한다."""
     for scene in scenes:
@@ -377,6 +409,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         scenes = [copy.deepcopy(s) for s in (state.get("draft_scenes") or [])]
 
     _sanitize_quality_tags(scenes)
+    _apply_tag_aliases(scenes)
     _inject_negative_prompts(scenes)
     _copy_scene_level_to_context_tags(scenes)
 
