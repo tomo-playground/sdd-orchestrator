@@ -413,6 +413,10 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     _sanitize_quality_tags(scenes)
     _apply_tag_aliases(scenes)
     _inject_negative_prompts(scenes)
+
+    from ._prompt_conflict_resolver import resolve_prompt_conflicts
+
+    resolve_prompt_conflicts(scenes)
     _copy_scene_level_to_context_tags(scenes)
 
     from ._context_tag_utils import check_camera_diversity, diversify_expressions, validate_context_tag_categories
