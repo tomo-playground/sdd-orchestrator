@@ -326,15 +326,15 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
                     identity_score=identity_score,
                     identity_tags_detected=identity_signature,
                 )
+
+                _update_activity_log_match_rate(
+                    db=db,
+                    storyboard_id=request.storyboard_id,
+                    scene_id=actual_scene_id,
+                    match_rate=match_rate,
+                )
             else:
                 logger.debug("[QualityScore] No scene_id provided, skipping save")
-
-            _update_activity_log_match_rate(
-                db=db,
-                storyboard_id=request.storyboard_id,
-                scene_id=actual_scene_id,
-                match_rate=match_rate,
-            )
 
             _increment_tag_effectiveness(
                 db=db,
