@@ -15,6 +15,7 @@ from services.storyboard import _load_character_context
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 def _make_tag(name: str, default_layer: int, tag_id: int = 1):
     """Build a mock Tag object."""
     tag = MagicMock()
@@ -54,6 +55,7 @@ def _make_character(
 # StoryboardRequest schema
 # ---------------------------------------------------------------------------
 
+
 class TestStoryboardRequestCharacterId:
     """character_id field on StoryboardRequest."""
 
@@ -74,6 +76,7 @@ class TestStoryboardRequestCharacterId:
 # ---------------------------------------------------------------------------
 # _load_character_context
 # ---------------------------------------------------------------------------
+
 
 class TestLoadCharacterContext:
     """Tests for _load_character_context function."""
@@ -245,10 +248,33 @@ class TestLoadCharacterContext:
         result = _load_character_context(char.id, db_session)
         assert result["gender"] == "female"
 
+    def test_description_included(self, db_session):
+        """description 필드가 컨텍스트에 포함된다."""
+        from models.character import Character
+
+        char = Character(name="WithDesc", gender="male", description="활발한 남학생")
+        db_session.add(char)
+        db_session.commit()
+
+        result = _load_character_context(char.id, db_session)
+        assert result["description"] == "활발한 남학생"
+
+    def test_description_none_defaults_empty(self, db_session):
+        """description이 None이면 빈 문자열."""
+        from models.character import Character
+
+        char = Character(name="NoDesc", gender="female")
+        db_session.add(char)
+        db_session.commit()
+
+        result = _load_character_context(char.id, db_session)
+        assert result["description"] == ""
+
 
 # ---------------------------------------------------------------------------
 # Jinja2 template rendering
 # ---------------------------------------------------------------------------
+
 
 class TestTemplateCharacterContext:
     """Test that create_storyboard.j2 renders character_context block."""
@@ -310,6 +336,7 @@ class TestTemplateCharacterContext:
         ctx = {
             "name": "Plain",
             "gender": "male",
+            "description": "",
             "identity_tags": [],
             "costume_tags": [],
             "lora_triggers": [],
@@ -332,3 +359,73 @@ class TestTemplateCharacterContext:
         assert "Identity Tags (hair, eyes, body" not in rendered
         assert "Costume Tags (clothing, accessories" not in rendered
         assert "LoRA Trigger Words (MUST include" not in rendered
+        assert "Personality/Background" not in rendered
+
+    def test_template_renders_description_and_script_rules(self):
+        """Template renders description and SCRIPT RULES when provided."""
+        from config import template_env
+
+        template = template_env.get_template("create_storyboard.j2")
+        ctx = {
+            "name": "미도리",
+            "gender": "male",
+            "description": "활발한 남학생, 장난끼가 있다",
+            "identity_tags": ["green_hair"],
+            "costume_tags": [],
+            "lora_triggers": [],
+            "custom_base_prompt": "",
+        }
+        rendered = template.render(
+            topic="test",
+            description="",
+            duration=10,
+            style="Anime",
+            structure="Monologue",
+            language="Korean",
+            actor_a_gender="male",
+            keyword_context="",
+            character_context=ctx,
+        )
+        assert "Personality/Background: 활발한 남학생, 장난끼가 있다" in rendered
+        assert "SCRIPT RULES for 미도리" in rendered
+        assert "matches male character" in rendered
+        assert "활발한 남학생, 장난끼가 있다" in rendered
+
+    def test_dialogue_template_renders_both_characters(self):
+        """Dialogue template renders both Speaker A and B with profiles."""
+        from config import template_env
+
+        template = template_env.get_template("create_storyboard_dialogue.j2")
+        ctx_a = {
+            "name": "미도리",
+            "gender": "male",
+            "description": "활발한 남학생",
+            "identity_tags": ["green_hair"],
+            "costume_tags": [],
+            "lora_triggers": [],
+        }
+        ctx_b = {
+            "name": "유카리",
+            "gender": "female",
+            "description": "차분한 여학생",
+            "identity_tags": ["purple_hair"],
+            "costume_tags": [],
+            "lora_triggers": [],
+        }
+        rendered = template.render(
+            topic="test",
+            description="",
+            duration=30,
+            style="Anime",
+            language="Korean",
+            character_context=ctx_a,
+            character_b_context=ctx_b,
+        )
+        assert "SPEAKER A - FIXED CHARACTER IDENTITY" in rendered
+        assert "SPEAKER B - FIXED CHARACTER IDENTITY" in rendered
+        assert "미도리" in rendered
+        assert "유카리" in rendered
+        assert "활발한 남학생" in rendered
+        assert "차분한 여학생" in rendered
+        assert "matches male character" in rendered
+        assert "matches female character" in rendered
