@@ -73,17 +73,14 @@ export default function BgmSection(props: BgmSectionProps) {
     if (!bgmPrompt.trim()) return;
     setIsPreviewingAuto(true);
     try {
-      const res = await axios.post(
+      const res = await axios.post<{ audio_url: string; temp_asset_id: number; seed: number }>(
         `${API_BASE}/music-presets/preview`,
         { prompt: bgmPrompt, duration: 10.0, seed: -1 },
-        { responseType: "blob" }
       );
-      const url = URL.createObjectURL(res.data);
       if (audioRef.current) audioRef.current.pause();
-      const audio = new Audio(url);
+      const audio = new Audio(res.data.audio_url);
       audioRef.current = audio;
       audio.play().catch(() => {});
-      audio.onended = () => URL.revokeObjectURL(url);
     } catch {
       // Preview failed silently
     } finally {

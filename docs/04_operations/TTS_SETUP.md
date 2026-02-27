@@ -29,11 +29,23 @@ VideoBuilder.build()
 | 메모리 | 16GB | 24GB 이상 |
 | 저장 공간 | 5GB (모델 가중치) | 10GB |
 
-### 의존성 설치
+### 시스템 실행 (Audio Server)
+
+TTS 및 BGM 생성 엔진은 독립된 **Audio Server (사이드카)** 로 분리되어 실행됩니다. 
+스크립트는 가상 환경을 자동 구성하므로 설치 및 실행을 한 번에 처리해 줍니다. (\`./audio/.venv\`)
 
 ```bash
-brew install sox
-cd backend && uv pip install qwen-tts torch torchaudio transformers accelerate soundfile
+# 오디오 서버 기동 (포트 8001)
+./run_audio.sh start
+
+# 기동 상태 확인
+./run_audio.sh status
+
+# 서버 로그 확인
+./run_audio.sh logs
+
+# 오디오 서버 중지
+./run_audio.sh stop
 ```
 
 ---

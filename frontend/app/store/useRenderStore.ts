@@ -49,6 +49,7 @@ export interface RenderStore {
   musicPresetId: number | null;
   bgmPrompt: string;
   bgmMood: string;
+  bgmPreviewUrl: string | null;
   videoCaption: string;
   videoLikesCount: string;
   overlaySettings: OverlaySettings;
@@ -88,6 +89,7 @@ const initialState: Omit<RenderStore, "set" | "reset"> = {
   musicPresetId: null,
   bgmPrompt: "",
   bgmMood: "",
+  bgmPreviewUrl: null,
   videoCaption: "",
   videoLikesCount: "",
   overlaySettings: DEFAULT_OVERLAY_SETTINGS,

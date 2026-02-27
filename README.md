@@ -205,6 +205,11 @@ frontend/
 
 ### Installation
 
+**Audio Server (TTS & MusicGen):**
+```bash
+./run_audio.sh start
+```
+
 **Backend:**
 ```bash
 cd backend

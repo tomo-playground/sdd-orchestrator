@@ -12,6 +12,8 @@ export type { AutoRunStepId } from "../types";
 import { useContextStore } from "../store/useContextStore";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useRenderStore } from "../store/useRenderStore";
+import { checkStageStep, checkImagesStep, checkRenderStep } from "./preflight-steps";
+export type { StageCheckInput } from "./preflight-steps";
 
 // ============================================================
 // Types
@@ -29,6 +31,8 @@ export interface StepCheck {
   reason: string;
   count?: number;
   sceneIds?: number[];
+  /** Stage step sub-category readiness (locations/characters/voice/bgm) */
+  categories?: { label: string; ready: boolean; detail: string }[];
 }
 
 export interface PreflightResult {
@@ -69,8 +73,13 @@ export interface PreflightInput {
   topic: string;
   characterName: string | null;
   characterId: number | null;
+  characterBName: string | null;
+  characterBId: number | null;
   voiceName: string;
+  bgmMode: "manual" | "auto";
   bgmFile: string | null;
+  bgmPrompt: string;
+  musicPresetId: number | null;
   controlnetEnabled: boolean;
   controlnetWeight: number;
   ipAdapterEnabled: boolean;
@@ -201,79 +210,6 @@ function checkIpAdapter(enabled: boolean, reference: string | null): SettingsChe
 }
 
 // ============================================================
-// Step Checks
-// ============================================================
-
-function checkStageStep(scenes: (Scene | DraftScene)[]): StepCheck {
-  if (scenes.length === 0) {
-    return { needed: false, reason: "씬 없음" };
-  }
-  const withoutBg = scenes.filter((s) => !s.background_id);
-  if (withoutBg.length === 0) {
-    return { needed: false, reason: "모든 씬에 배경 있음" };
-  }
-  return {
-    needed: true,
-    reason: `${withoutBg.length}/${scenes.length} 배경 필요`,
-    count: withoutBg.length,
-  };
-}
-
-function checkImagesStep(scenes: (Scene | DraftScene)[]): StepCheck {
-  if (scenes.length === 0) {
-    return {
-      needed: true,
-      reason: "전체 생성 필요",
-    };
-  }
-
-  const scenesWithoutImage = scenes.filter((s) => !s.image_url);
-  if (scenesWithoutImage.length === 0) {
-    return {
-      needed: false,
-      reason: "모든 씬 이미지 있음",
-    };
-  }
-
-  return {
-    needed: true,
-    reason: `${scenesWithoutImage.length}/${scenes.length} 필요`,
-    count: scenesWithoutImage.length,
-    sceneIds: scenesWithoutImage.map((s) => s.id),
-  };
-}
-
-function checkRenderStep(scenes: (Scene | DraftScene)[], videoUrl: string | null): StepCheck {
-  if (scenes.length === 0) {
-    return {
-      needed: true,
-      reason: "스토리보드 후 실행",
-    };
-  }
-
-  const hasAllImages = scenes.every((s) => s.image_url);
-  if (!hasAllImages) {
-    return {
-      needed: true,
-      reason: "이미지 생성 후 실행",
-    };
-  }
-
-  if (!videoUrl) {
-    return {
-      needed: true,
-      reason: "영상 없음",
-    };
-  }
-
-  // Render check
-  return {
-    needed: false,
-    reason: "영상 존재",
-  };
-}
-
-// ============================================================
 // Main Function
 // ============================================================
 
@@ -332,7 +268,15 @@ export function runPreflight(input: PreflightInput): PreflightResult {
 
   // Check steps
   const steps = {
-    stage: checkStageStep(input.scenes),
+    stage: checkStageStep({
+      scenes: input.scenes,
+      characterName: input.characterName,
+      characterBName: input.characterBName,
+      voiceName: input.voiceName,
+      bgmMode: input.bgmMode,
+      musicPresetId: input.musicPresetId,
+      bgmPrompt: input.bgmPrompt,
+    }),
     images: checkImagesStep(input.scenes),
     render: checkRenderStep(input.scenes, input.videoUrl),
   };
@@ -383,8 +327,13 @@ export function buildPreflightInput(): PreflightInput {
     topic: sb.topic,
     characterName: sb.selectedCharacterName,
     characterId: sb.selectedCharacterId,
+    characterBName: sb.selectedCharacterBName ?? null,
+    characterBId: sb.selectedCharacterBId ?? null,
     voiceName,
+    bgmMode: render.bgmMode,
     bgmFile: render.bgmFile,
+    bgmPrompt: render.bgmPrompt,
+    musicPresetId: render.musicPresetId,
     controlnetEnabled: sb.useControlnet,
     controlnetWeight: sb.controlnetWeight,
     ipAdapterEnabled: sb.useIpAdapter,

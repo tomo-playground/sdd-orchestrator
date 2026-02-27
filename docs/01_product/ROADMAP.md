@@ -20,11 +20,14 @@
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
 | **Phase 17 (Service/Admin 분리)** | **17-0 완료, 17-1 미착수** |
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
-| **Phase 18 (Stage Workflow)** | **전체 완료 — 18-0~18-3 (15/15)** |
+| **Phase 18 (Stage Workflow)** | **Phase 1 완료 (18-0~18-3), Phase 2 완료 (18-P2)** |
 | 테스트 | Backend 2,667 + Frontend 379 = **총 3,046개** |
 
 ### 최근 작업
 
+- **Phase 18-P2: Stage 에셋 확장** (02-27): Stage Tab을 4섹션 프리프로덕션 대시보드로 확장(Locations+Characters+Voice+BGM). 9개 신규 컴포넌트(StageCharacterCard/Section, StageVoiceCard/Section, StageBgmCard/Section, StageReadinessBar, StageLocationsSection, useAudioPlayer). BGM preview `responseType:"blob"` 버그 수정(JSON→audio_url 직접 사용). Preflight Stage 체크 4카테고리 확장 + background_id 스토어 동기화. bgmPreviewUrl persist(localStorage)
+- **scene_id 불일치 해결** (02-27): 이미지 생성 중 PUT 저장으로 scene_id 변경 시 `client_id` 폴백으로 이미지/ActivityLog/QualityScore 링크 보장. Frontend `processGeneratedImages` re-resolve + Backend `resolve_scene_id_by_client_id()` 공통 헬퍼
+- **이미지 유실 버그 근본 수정** (02-27): 3중 경합 조건 해소 — (1) `persistStoryboard()` atomic `set()` isDirty 재트리거 방지, (2) `autoSave` isAutoRunning 가드 autoRun 중 autoSave 차단, (3) Backend `preserved_asset_ids` 방어 기존 DB 씬 에셋 보존
 - **Phase 18 마무리** (02-27): background_id 데이터 흐름 완성(useScriptEditor SceneItem/syncToGlobalStore/save 3곳 추가), Stage BG 인디케이터 ID 표시(BG#N), Library backgrounds 탭 제거(수동 배경 관리→Stage 전환 완료), VRT/fixture 잔여 코드 정리
 - **Phase 18 DoD 갭 수정** (02-26): Tag Editing UI 추가(StageLocationCard 인라인 편집 → Save & Regenerate), StageRegenerateRequest 스키마(optional tags). SD Checkpoint 일관성 보장(`_ensure_correct_checkpoint()` generate/regenerate 양쪽 적용). stageStatus localStorage 영속화(TRANSIENT_KEYS에서 제거)
 - **Phase 18-3: Stage-Direct 연결** (02-26): "Continue to Direct" 클릭 시 `assign-backgrounds` API 자동 호출 + Direct 탭 전환. MaterialsPopover BG 클릭 → Stage 탭 이동. Script 완료 시 Express→Direct 직행, Standard/Creator→Stage 자동 전환. PipelineStatusDots "failed" 빨간 도트 + 툴팁. Materials API/fallback에 stage_status 반영
@@ -264,7 +267,7 @@ graph LR
 
 ## Phase 18: Stage Workflow (프리프로덕션)
 
-**목표**: Script → **Stage** → Direct → Publish 4단계 워크플로우. Stage에서 location별 순수 배경(no_humans) 이미지를 미리 생성하여 Canny ControlNet 참조 시 캐릭터 윤곽선 간섭을 근본적으로 해결. [상세 명세](FEATURES/STAGE_WORKFLOW.md)
+**목표**: Script → **Stage** → Direct → Publish 4단계 워크플로우. Stage에서 프리프로덕션 에셋(배경, 캐릭터, 음성, BGM)을 준비/확인하는 무대 세팅 단계. [상세 명세](FEATURES/STAGE_WORKFLOW.md)
 
 ### Phase 18-0: Location Model + DB (완료 02-26)
 
@@ -302,6 +305,27 @@ graph LR
 | 2 | MaterialsPopover → Stage 탭 연결 전환 | ✅ (02-26) |
 | 3 | Script 완료 → Stage 자동 전환 + Opt-in (Express 건너뜀) | ✅ (02-26) |
 
+### Phase 18-P2: Stage 에셋 확장 (완료 02-27)
+
+**목표**: Stage Tab을 배경 전용에서 **전체 프리프로덕션 에셋 대시보드**로 확장. 캐릭터 프리뷰, TTS 음성, BGM을 Stage에서 준비/확인.
+
+| # | 항목 | 상태 |
+|---|------|------|
+| 1 | StageCharacterCard — 캐릭터 프리뷰 확인 + 음성 프리셋 미리듣기 | ✅ (02-27) |
+| 2 | StageVoiceCard — TTS 음성 미리듣기 + 프리셋 확인 | ✅ (02-27) |
+| 3 | StageBgmCard — BGM 프리뷰 재생 + 프리셋/Auto 확인 | ✅ (02-27) |
+| 4 | Readiness Gate 4카테고리 확장 (Locations + Characters + Voice + BGM) | ✅ (02-27) |
+| 5 | useAudioPlayer 공유 훅 — 동시 재생 방지 (단일 인스턴스) | ✅ (02-27) |
+| 6 | Preflight Stage 4카테고리 체크 + background_id 스토어 동기화 | ✅ (02-27) |
+| 7 | BGM preview responseType 버그 수정 (blob→JSON audio_url) | ✅ (02-27) |
+
+**미착수 → Phase 18-P3 이관:**
+- 에셋 간 의존성 표시 (LoRA ↔ StyleProfile 관계)
+- Express 모드 호환 — location 역추론
+- 배경 이미지 캐싱 — 중복 생성 방지
+
+> 상세 명세: [STAGE_WORKFLOW.md](FEATURES/STAGE_WORKFLOW.md) §Phase 2
+
 ---
 
 ## Feature Backlog
@@ -312,7 +336,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 | 기능 | 참조 |
 |------|------|
-| Stage Phase 2: TTS 미리듣기 + 에셋 의존성 표시 + 배경 캐싱 | [명세](FEATURES/STAGE_WORKFLOW.md) §Phase 2 |
+| ~~Stage Phase 2: TTS 미리듣기 + 에셋 의존성 표시 + 배경 캐싱~~ | → Phase 18-P2 승격 |
 | Stage Phase 3: 트랜지션 자동 선택 + Ken Burns 교대 + Canny/Depth 자동 선택 | [명세](FEATURES/STAGE_WORKFLOW.md) §Phase 3 |
 | VEO Clip (Video Generation 통합) | [명세](FEATURES/VEO_CLIP.md) |
 | ~~Visual Tag Browser (태그별 예시 이미지)~~ | → Phase 15-B |
@@ -352,7 +376,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 
 **Phase 15 — Prompt Input UX 고도화 (전체 완료, 18/18)**
 
-**Phase 18 — Stage Workflow (전체 완료)**
+**Phase 18 — Stage Workflow (Phase 1+2 완료)**
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
@@ -360,15 +384,16 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | ~~2~~ | ~~18-1: Background Generation Pipeline~~ | ✅ 완료 (02-26) |
 | ~~3~~ | ~~18-2: Stage UI~~ | ✅ 완료 (02-26) |
 | ~~4~~ | ~~18-3: Stage-Direct 연결~~ | ✅ 완료 (02-26) |
+| ~~5~~ | ~~18-P2: Stage 에셋 확장 (캐릭터/음성/BGM)~~ | ✅ 완료 (02-27) |
 
-**Phase 17 — Service/Admin 분리 (다음)**
+**Phase 17 — Service/Admin 분리**
 
 | 순위 | 작업 | 근거 |
 |------|------|------|
 | ~~1~~ | ~~17-0: API 정리 (34→29개)~~ | ✅ 완료 (02-25) |
-| 1 | 17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`) | 유저/관리자 API 분리 |
-| 2 | 17-2: Frontend Route Group 분리 (`/` + `/admin`) | 유저/관리자 UI 분리 |
-| 3 | 17-3: 유저 UI 간소화 (Advanced 토글, Quick Render, Tooltip) | 유저 경험 최적화 |
+| 2 | 17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`) | 유저/관리자 API 분리 |
+| 3 | 17-2: Frontend Route Group 분리 (`/` + `/admin`) | 유저/관리자 UI 분리 |
+| 4 | 17-3: 유저 UI 간소화 (Advanced 토글, Quick Render, Tooltip) | 유저 경험 최적화 |
 
 **Tier 3 — 장기**
 

@@ -251,29 +251,24 @@ function StepRow({
 }: {
   stepId: AutoRunStepId;
   label: string;
-  check: { needed: boolean; reason: string; count?: number };
+  check: { needed: boolean; reason: string; count?: number; categories?: { label: string; ready: boolean; detail: string }[] };
   enabled: boolean;
   onToggle: () => void;
   disabled: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between px-3 py-2 text-sm">
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={onToggle}
-          disabled={disabled}
-          className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-        />
-        <span className="text-zinc-700 dark:text-zinc-300">{label}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        {check.count !== undefined && (
-          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-            {check.count}개
-          </span>
-        )}
+    <div className="px-3 py-2 text-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={onToggle}
+            disabled={disabled}
+            className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+          />
+          <span className="text-zinc-700 dark:text-zinc-300">{label}</span>
+        </div>
         <span
           className={`text-xs ${
             check.needed ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500"
@@ -282,6 +277,23 @@ function StepRow({
           {check.needed ? check.reason : `✓ ${check.reason}`}
         </span>
       </div>
+      {check.categories && (
+        <div className="mt-1.5 ml-6 flex flex-wrap gap-1.5">
+          {check.categories.map((cat) => (
+            <span
+              key={cat.label}
+              className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                cat.ready
+                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+                  : "bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400"
+              }`}
+              title={cat.detail}
+            >
+              {cat.ready ? "✓" : "✗"} {cat.label}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

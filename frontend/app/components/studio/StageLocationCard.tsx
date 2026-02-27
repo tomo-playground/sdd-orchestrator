@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Image, Loader2, RefreshCw, CheckCircle2, AlertCircle, Pencil, X } from "lucide-react";
+import { Image as ImageIcon, Loader2, RefreshCw, CheckCircle2, AlertCircle, Pencil, X } from "lucide-react";
 import Button from "../ui/Button";
 import ImagePreviewModal from "../ui/ImagePreviewModal";
 import type { StageLocationStatus } from "../../types";
@@ -40,6 +40,7 @@ export default function StageLocationCard({
       {/* Image area */}
       <div className="relative aspect-video bg-zinc-100">
         {location.has_image && location.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={location.image_url}
             alt={location.location_key}
@@ -48,7 +49,7 @@ export default function StageLocationCard({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <Image className="h-8 w-8 text-zinc-300" />
+            <ImageIcon className="h-8 w-8 text-zinc-300" />
           </div>
         )}
         {isRegenerating && (
