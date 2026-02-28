@@ -1,8 +1,8 @@
 # Database Schema Summary
 
-Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.28) 참조.
+Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.32) 참조.
 
-> **Last Synced:** 2026-02-22 (DB_SCHEMA v3.28 기준)
+> **Last Synced:** 2026-02-28 (DB_SCHEMA v3.32 기준)
 
 ---
 
@@ -19,17 +19,13 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 
 ### `groups` — 프로젝트 내 시리즈/카테고리
 - `id` (PK), `project_id` (FK → projects), `name`, `description`
-
-### `group_config` — Group별 설정 (1:1 분리 테이블)
-- `id` (PK), `group_id` (FK, UNIQUE)
-- `render_preset_id` (FK), `style_profile_id` (FK), `narrator_voice_preset_id` (FK)
-- `language`, `duration`
+- `render_preset_id` (FK → render_presets, SET NULL), `style_profile_id` (FK → style_profiles, SET NULL), `narrator_voice_preset_id` (FK → voice_presets, SET NULL)
 - `channel_dna` (JSONB) — 채널 DNA (tone, audience, worldview, guidelines)
 
 ### `storyboards` — 개별 에피소드
 - `id` (PK), `group_id` (FK → groups), `title`, `description`
 - `caption`, `structure` (String, default: `"Monologue"`)
-- `duration` (Integer, nullable), `language` (String(20), nullable) — GroupConfig에서 상속 가능
+- `duration` (Integer, nullable), `language` (String(20), nullable) — 콘텐츠 엔티티 고유 필드
 - `version` (Integer, NOT NULL, default 1) — Optimistic Locking. PUT/PATCH 시 검증, 성공 시 +1
 - `base_seed` (BigInteger, nullable) — Seed Anchoring 기준 시드
 - `stage_status` (String(20), nullable) — Stage 파이프라인 상태

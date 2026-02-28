@@ -24,10 +24,13 @@
 | Phase 19 (Studio 탭 페르소나 재배치) | 전체 완료 (ARCHIVED) |
 | Phase 20 (Agent-Aware Inventory) | 전체 완료 (ARCHIVED) |
 | DB Schema Cleanup | 전체 완료 (ARCHIVED) |
+| Phase 21 (Persona-based Menu Reorganization) | 전체 완료 (ARCHIVED) |
 | 테스트 | Backend 2,667 + Frontend 435 = **총 3,102개** |
 
 ### 최근 작업
 
+- **Phase 21: Persona-based Menu Reorganization** (02-28): Admin을 Library/Settings/Dev 3-tier로 재편. Shell 3종 + 14개 라우트 신설, admin/ dead code 제거. 120파일 변경.
+- **GroupConfig를 Groups에 병합** (02-28): group_config 테이블 삭제, FK 3개+channel_dna를 groups 테이블에 통합. language/duration 제거. Alembic 마이그레이션+코드리뷰 완료. 25파일.
 - **GroupConfig SD 생성 파라미터 4개 제거** (02-28): sd_steps, sd_cfg_scale, sd_sampler_name, sd_clip_skip 컬럼 삭제. StyleProfile이 SSOT이므로 GroupConfig의 informational 중복 제거.
 - **GroupConfig structure 컬럼 제거** (02-28): 무의미한 structure 설정 제거 (Express→AI 자동, Standard→Script 탭). 13파일, Alembic 마이그레이션 포함.
 - **FIX FIRST 1-1 보완: final_match_rate 기록** (02-28): Auto Edit 후 WD14 재검증으로 final_match_rate 측정·ActivityLog 저장.
@@ -77,6 +80,7 @@
 | 19 | Studio 탭 페르소나 재배치 | Stage SSOT, Direct 경량화, Publish 읽기 전용, Dead code 삭제. 15/15 | [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md) · [명세](FEATURES/STUDIO_TAB_PERSONA_REORGANIZATION.md) |
 | 20 | Agent-Aware Inventory | Director 캐스팅, Autonomous Express, Casting UX, inventory_resolve 노드. 22/22 | [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md) · [명세](FEATURES/AGENT_AWARE_INVENTORY_PIPELINE.md) |
 | DB Cleanup | Schema Cleanup | Sprint A 7건 FIX + Sprint B 3건 DROP + Checkpoint GC. 10/11 (1건 취소) | [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md) · [명세](FEATURES/DB_SCHEMA_CLEANUP.md) |
+| 21 | Persona-based Menu Reorganization | Library/Settings/Dev 3-tier, Shell 3종, admin dead code 제거. 6/6 | [명세](FEATURES/PERSONA_MENU_REORGANIZATION.md) |
 
 ---
 
@@ -107,6 +111,7 @@ graph LR
     P17 --> P18["Phase 18<br/>Stage<br/>Workflow"]
     P18 --> P19["Phase 19<br/>탭 페르소나<br/>재배치"]
     P19 --> P20["Phase 20<br/>Agent-Aware<br/>Inventory"]
+    P20 --> P21["Phase 21<br/>Persona Menu<br/>Reorganization"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -132,6 +137,7 @@ graph LR
     style P18 fill:#4CAF50,color:#fff
     style P19 fill:#4CAF50,color:#fff
     style P20 fill:#4CAF50,color:#fff
+    style P21 fill:#4CAF50,color:#fff
 ```
 
 ---

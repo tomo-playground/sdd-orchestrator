@@ -120,7 +120,7 @@ backend/
 │   ├── generation.py            # SD WebUI 이미지 생성 (오케스트레이터)
 │   ├── image_generation_core.py # Studio+Lab 공유 생성 코어
 │   ├── style_context.py         # StyleContext VO (DB cascade SSOT)
-│   ├── config_resolver.py       # Config cascade (System Default→GroupConfig)
+│   ├── config_resolver.py       # Config cascade (System Default→Group)
 │   ├── image.py                 # 이미지 처리/오버레이
 │   ├── controlnet.py            # ControlNet + IP-Adapter
 │   ├── lora_calibration.py      # LoRA 가중치 캘리브레이션

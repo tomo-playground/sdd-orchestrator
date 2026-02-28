@@ -133,7 +133,7 @@ EXPLICIT_MAPPING = {
 | Multi-char 씬 필터링 | Character A, B 모두 동일 StyleProfile 제약 |
 | 비호환 캐릭터 표시 | 숨기기 or 비활성 + 경고 라벨 |
 | 캐릭터 없는 화풍 안내 | "이 화풍에 캐릭터가 없습니다. 새로 만드세요." |
-| 화풍 미설정 그룹 처리 | GroupConfig.style_profile_id=NULL → 필터 미적용 + 화풍 설정 권장 안내 |
+| 화풍 미설정 그룹 처리 | Group.style_profile_id=NULL → 필터 미적용 + 화풍 설정 권장 안내 |
 
 ### Phase 4: LoRA 충돌 방지
 
@@ -266,7 +266,7 @@ NOT NULL 전환은 역매핑과 **별도 마이그레이션 파일**로 분리.
 | 캐릭터 생성 | style_profile_id 포함/미포함 | 3 |
 | 이미지 생성 | LoRA 이중 적용 방지 | 3 |
 | Multi-char | A/B 모두 동일 화풍 제약 | 2 |
-| 화풍 미설정 | GroupConfig null 시 필터 미적용 | 2 |
+| 화풍 미설정 | Group.style_profile_id null 시 필터 미적용 | 2 |
 | StyleProfile 삭제 | SET NULL 후 캐릭터 상태 확인 | 2 |
 | **총** | | **~24** |
 

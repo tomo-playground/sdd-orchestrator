@@ -80,7 +80,7 @@ interface ContextState {
   effectiveStyleProfileId: number | null;
   effectiveCharacterId: number | null;
   effectiveConfigLoaded: boolean;
-  // SD parameter overrides (GroupConfig cascade)
+  // SD parameter overrides (StyleProfile cascade)
   effectiveSdSteps: number | null;
   effectiveSdCfgScale: number | null;
   effectiveSdSamplerName: string | null;

@@ -1,6 +1,6 @@
 # Service / Admin 분리 설계
 
-> 작성: 2026-02-25 | 상태: 설계 확정, 미구현
+> 작성: 2026-02-25 | 상태: **완료** (Phase 17, 02-28)
 
 ---
 
@@ -322,35 +322,35 @@ frontend/app/
 
 ## 7. 구현 단계
 
-### Phase 1 — 정리 (선행)
+### Phase 1 — 정리 (선행) ✅ 02-25
 
-- [ ] `keywords.py` 라우터 삭제 + 테스트 정리
-- [ ] `avatar.py` 라우터 삭제 + 테스트 정리
-- [ ] `analytics.py` → `settings.py` 통합
-- [ ] `cleanup.py` → `admin.py` 통합
-- [ ] `sd.py` → `sd_models.py` 통합
-- [ ] One-time 마이그레이션 엔드포인트 3개 삭제
-- [ ] Frontend 미사용 prompt 엔드포인트 2개 삭제
+- [x] `keywords.py` 라우터 삭제 + 테스트 정리
+- [x] `avatar.py` 라우터 삭제 + 테스트 정리
+- [x] `analytics.py` → `settings.py` 통합
+- [x] `cleanup.py` → `admin.py` 통합
+- [x] `sd.py` → `sd_models.py` 통합
+- [x] One-time 마이그레이션 엔드포인트 3개 삭제
+- [x] Frontend 미사용 prompt 엔드포인트 2개 삭제
 
-### Phase 2 — Backend 논리적 분리
+### Phase 2 — Backend 논리적 분리 ✅ 02-28
 
-- [ ] Service 라우터를 `/api/v1/` prefix로 그룹핑
-- [ ] Admin 라우터를 `/api/admin/` prefix로 그룹핑
-- [ ] 분할 대상 라우터 9개의 엔드포인트 분리
-- [ ] OpenAPI docs 분리 (`/docs` → Service, `/admin/docs` → Admin)
+- [x] Service 라우터를 `/api/v1/` prefix로 그룹핑
+- [x] Admin 라우터를 `/api/admin/` prefix로 그룹핑
+- [x] 분할 대상 라우터 10개의 엔드포인트 분리 (GET→Service, CUD→Admin)
+- [x] OpenAPI docs 분리 (`/docs` → Service, `/admin/docs` → Admin)
 
-### Phase 3 — Frontend Route Group 분리
+### Phase 3 — Frontend Route Group 분리 ✅ 02-28
 
-- [ ] `(service)/` route group 생성 — Home, Studio, Storyboards
-- [ ] `(admin)/` route group 생성 — Characters, Styles, Tags, Lab, System
-- [ ] 현재 Library 페이지 해체 → Admin 하위로 재배치
-- [ ] 현재 Settings 페이지 해체 → Admin > System + Service > 유저 설정
+- [x] `(service)/` route group 생성 — Home, Studio, Storyboards
+- [x] `admin/` route group 생성 — Characters, Styles, Tags, Lab, System
+- [x] 현재 Library 페이지 해체 → Admin 하위로 재배치
+- [x] 현재 Settings 페이지 해체 → Admin > System + Service > 유저 설정
 
-### Phase 4 — 유저 UI 간소화
+### Phase 4 — 유저 UI 간소화 ✅ 02-28
 
-- [ ] Edit Tab: Advanced 토글로 관리자 기능 격리
-- [ ] Publish Tab: Quick Render (기본값 렌더) 추가
-- [ ] 전문 용어 Tooltip 시스템 추가
+- [x] Edit Tab: Advanced 토글로 관리자 기능 격리
+- [x] Publish Tab: Quick Render (기본값 렌더) 추가
+- [x] 전문 용어 Tooltip 시스템 추가 (10개 용어)
 
 ---
 

@@ -11,8 +11,8 @@
 
 | 항목 | 비고 |
 |------|------|
-| ORM 모델 | `Project`, `Group`, `GroupConfig`(1:1), `RenderPreset` |
-| DB 마이그레이션 | projects, groups, group_config, render_presets 테이블 + seed 데이터 |
+| ORM 모델 | `Project`, `Group`, `RenderPreset` |
+| DB 마이그레이션 | projects, groups, render_presets 테이블 + seed 데이터 |
 | CRUD API | `routers/projects.py`, `routers/groups.py` (목록/상세/생성/수정/삭제) |
 | Storyboard FK | `group_id` NOT NULL, CASCADE 정책, 복합 인덱스 |
 | Seed 데이터 | Default Project(id=1) + Default Group(id=1) |
@@ -22,8 +22,8 @@
 
 | 항목 | 비고 |
 |------|------|
-| Cascading Config | `config_resolver.py` — System Default → GroupConfig 2단계 병합 |
-| GroupConfig 필드 | render_preset_id, style_profile_id, narrator_voice_preset_id, language, structure, duration, SD params (4종) |
+| Cascading Config | `config_resolver.py` — System Default → Group 2단계 병합 |
+| Group Config 필드 | render_preset_id, style_profile_id, narrator_voice_preset_id, channel_dna (JSONB) |
 | Channel DNA | `channel_dna` JSONB — tone, target_audience, worldview, guidelines |
 | Gemini 연동 | research_tools + gemini_generator에서 channel_dna 주입 |
 | Effective Config API | `GET /groups/{id}/effective-config` |
@@ -112,7 +112,7 @@
 |---------|------|
 | Project ORM | `backend/models/project.py` |
 | Group ORM | `backend/models/group.py` |
-| GroupConfig ORM | `backend/models/group_config.py` |
+| Group ORM (config 통합) | `backend/models/group.py` |
 | RenderPreset ORM | `backend/models/render_preset.py` |
 | Config Resolver | `backend/services/config_resolver.py` |
 | Project Router | `backend/routers/projects.py` |

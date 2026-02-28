@@ -1,4 +1,4 @@
-# Database Schema (v3.30)
+# Database Schema (v3.32)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.32 | 2026-02-28 | `group_config` 테이블 제거 → `groups` 통합 (render_preset_id, style_profile_id, narrator_voice_preset_id, channel_dna) |
 | v3.31 | 2026-02-28 | DB Schema Cleanup: `characters.reference_source_type` DROP, `scenes.last_seed` DROP. `is_permanent` / `lora_type=style` Known Issue 해소 표기. `embeddings` 구현 완료 표기. `characters.prompt_mode` 문서 삭제 |
 | v3.30 | 2026-02-26 | Phase 18 Stage Workflow: `backgrounds`에 `storyboard_id` FK(CASCADE) + `location_key` + partial unique index 추가. `storyboards`에 `stage_status` 추가 |
 | v3.29 | 2026-02-22 | `scenes`에 `controlnet_pose` (String(50), nullable) 추가. Finalize `_flatten_tts_designs()` — tts_design dict → flat fields 분해 |
@@ -26,13 +27,11 @@ erDiagram
     projects ||--o| youtube_credentials : "has"
     projects }o--o| media_assets : "avatar"
 
-    groups ||--o| group_config : "has_config"
     groups ||--o{ storyboards : "contains"
     groups ||--o{ lab_experiments : "has"
-    
-    group_config }o--o| render_presets : "preset"
-    group_config }o--o| style_profiles : "style"
-    group_config }o--o| voice_presets : "narrator"
+    groups }o--o| render_presets : "preset"
+    groups }o--o| style_profiles : "style"
+    groups }o--o| voice_presets : "narrator"
 
     storyboards ||--o{ scenes : "has"
     storyboards ||--o{ storyboard_characters : "maps_speakers"
@@ -95,7 +94,7 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 - `avatar_key` (`@property`): `avatar_media_asset.storage_key` 반환
 - `avatar_url` (`@property`): `avatar_media_asset.url` 반환
 
-**Cascading Config 상속 순서**: System Default → GroupConfig (GroupConfig 값이 우선). Identity(채널명/아바타)는 Project → Group → Storyboard ORM 관계로 전달.
+**Cascading Config 상속 순서**: System Default → Group (Group 값이 우선). Identity(채널명/아바타)는 Project → Group → Storyboard ORM 관계로 전달.
 
 ### `youtube_credentials`
 프로젝트별 YouTube OAuth 인증 정보 (1:1).
@@ -111,7 +110,7 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `groups`
-프로젝트 내의 개별 시리즈 또는 카테고리.
+프로젝트 내의 개별 시리즈 또는 카테고리. 채널 설정(렌더/스타일/음성/DNA)을 직접 소유.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -119,20 +118,9 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 | `project_id` | Integer (FK → projects, RESTRICT) | 소속 프로젝트 |
 | `name` | String(200) | 시리즈 이름 |
 | `description` | Text | 설명 |
-| `created_at`, `updated_at` | DateTime | 타임스탬프 |
-
-### `group_config`
-Group별 설정 (1:1, 분리된 설정 테이블). 프로젝트 설정을 상속/오버라이드.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | Integer (PK) | |
-| `group_id` | Integer (FK → groups, UNIQUE) | 소속 그룹 |
-| `render_preset_id` | Integer (FK → render_presets) | 렌더 프리셋 |
-| `style_profile_id` | Integer (FK → style_profiles) | 기본 스타일 프로파일 |
-| `narrator_voice_preset_id` | Integer (FK → voice_presets) | 나레이터 음성 |
-| `language` | String(20) | 언어 설정 |
-| `duration` | Integer | 목표 길이 |
+| `render_preset_id` | Integer (FK → render_presets, SET NULL) | 렌더 프리셋 |
+| `style_profile_id` | Integer (FK → style_profiles, SET NULL) | 기본 스타일 프로파일 |
+| `narrator_voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 나레이터 음성 |
 | `channel_dna` | JSONB | 채널 DNA (tone, audience, worldview, guidelines) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
@@ -146,9 +134,9 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `title` | String(200) | 스토리보드 제목 |
 | `description` | Text | 설명 |
 | `caption` | Text | 캡션 텍스트 (Post Layout용) |
-| `structure` | String(50) | 구조 설정 (default: `"Monologue"`, config에서 상속) |
-| `duration` | Integer | 목표 길이 (초), GroupConfig에서 상속 가능 |
-| `language` | String(20) | 언어 설정, GroupConfig에서 상속 가능 |
+| `structure` | String(50) | 구조 설정 (default: `"Monologue"`) |
+| `duration` | Integer | 목표 길이 (초), 콘텐츠 엔티티 고유 필드 |
+| `language` | String(20) | 언어 설정, 콘텐츠 엔티티 고유 필드 |
 | `version` | Integer, NOT NULL, default 1 | Optimistic Locking 버전. PUT/PATCH 시 검증, 성공 시 +1 증분. 불일치 시 409 Conflict |
 | `base_seed` | BigInteger, nullable | Seed Anchoring 기준 시드. 씬별 seed = `base_seed + order * SEED_ANCHOR_OFFSET` |
 | `stage_status` | String(20), nullable | Stage 파이프라인 상태: `pending`, `staging`, `staged`, `failed`. NULL = 미사용 |
@@ -786,7 +774,7 @@ ORM 모델 컬럼 선언 순서: PK → Parent FK → Identity(name) → Metadat
 
 ---
 
-**Last Updated:** 2026-02-27
-**Schema Version:** v3.30
+**Last Updated:** 2026-02-28
+**Schema Version:** v3.32
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic

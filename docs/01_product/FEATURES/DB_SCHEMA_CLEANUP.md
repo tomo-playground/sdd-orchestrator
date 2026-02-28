@@ -1,6 +1,6 @@
 # DB Schema Cleanup — 미사용 컬럼/테이블 감사 및 정리
 
-> **상태: 대기 (분석 완료, 실행 대기)**
+> **상태: 완료** (02-28) — Sprint A 7건 FIX + Sprint B 3건 DROP + Checkpoint GC. 10/11 (1건 취소)
 > 2026-02-27 | DBA + Backend Dev + Tech Lead + PM 4인 크로스 리뷰
 > 분석 기준: DB 실데이터 조회 + ORM/서비스/라우터 코드 교차 검증
 

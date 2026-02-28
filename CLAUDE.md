@@ -103,16 +103,16 @@ docs/
 - **런타임 캐시**: `TagCategoryCache`, `TagAliasCache`, `TagRuleCache`, `LoRATriggerCache` — startup 시 DB에서 로드, 변경 시 `/admin/refresh-caches`.
 - **SD 생성 파라미터 우선순위** (steps, cfg_scale, sampler_name, clip_skip):
   - `config.py` 전역 기본값 < `StyleProfile.default_*` (화풍별 최적 파라미터)
-  - GroupConfig의 `sd_steps`/`sd_cfg_scale` 등은 **Preflight 표시용** (informational).
+  - SD 생성 파라미터는 Group 레벨에서는 관리하지 않음 (제거됨).
   - 실제 이미지 생성 시에는 `_adjust_parameters()`에서 StyleProfile 값이 최종 적용된다.
   - 캐릭터 프리뷰 생성도 동일: `preview.py`에서 StyleContext 기반 오버라이드.
 
 ## DB Schema Design Principles
-- **관심사 분리**: 콘텐츠 테이블(storyboards)과 설정 테이블(group_config)을 혼합하지 않는다.
+- **관심사 분리**: 콘텐츠 테이블(storyboards)과 설정 필드(groups의 FK/DNA)를 구분한다.
 - **`default_` prefix 금지**: 실제 값에 `default_` 붙이지 않는다. cascade/fallback 문맥에서만 사용.
 - **Boolean은 Boolean**: `Integer`로 boolean 저장 금지. `Boolean` 타입 + `is_`/`_enabled` 네이밍.
 - **JSON은 JSONB**: `Text`에 JSON 문자열 저장 금지. 구조화 데이터는 반드시 `JSONB`.
-- **설정 소유권**: `System Default < Group Config` (2단계). 콘텐츠 엔티티는 설정을 소유하지 않는다. Identity(채널명/아바타)는 Project → Group → Storyboard ORM 관계로 전달.
+- **설정 소유권**: `System Default < Group` (2단계). 콘텐츠 엔티티는 설정을 소유하지 않는다. Identity(채널명/아바타)는 Project → Group → Storyboard ORM 관계로 전달.
 - **미디어 참조는 media_asset_id 필수**: 이미지/비디오/오디오 URL을 직접 저장하지 않는다.
   - ❌ `image_url: "http://localhost:9000/..."` — 환경 종속, 이동 불가
   - ✅ `media_asset_id: 123` — `media_assets` 테이블 FK 참조

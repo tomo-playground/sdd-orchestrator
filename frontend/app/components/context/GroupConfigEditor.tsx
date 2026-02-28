@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { API_BASE, ADMIN_API_BASE } from "../../constants";
+import { API_BASE } from "../../constants";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import LoadingSpinner from "../ui/LoadingSpinner";
@@ -99,7 +99,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
       const channelDna =
         dna && (dna.tone || dna.target_audience || dna.worldview || dna.guidelines) ? dna : null;
 
-      await axios.put(`${ADMIN_API_BASE}/groups/${groupId}`, {
+      await axios.put(`${API_BASE}/groups/${groupId}`, {
         name: groupName.trim(),
         render_preset_id: group.render_preset_id,
         style_profile_id: group.style_profile_id,

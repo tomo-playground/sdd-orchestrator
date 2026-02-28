@@ -310,7 +310,6 @@ class TestStyleProfileSkipLoras:
         storyboard.group_id = 1
 
         group = MagicMock()
-        group.config = MagicMock()
         group.project = MagicMock()
 
         profile = MagicMock()
