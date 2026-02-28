@@ -264,6 +264,21 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
 
         logger.info(f"✅ [Auto Edit] Success (type={result['edit_type']}, cost=${result['edit_cost']:.4f})")
 
+        # 편집된 이미지 WD14 재검증 (final_match_rate 기록용)
+        try:
+            revalidation = validate_scene_image(
+                SceneValidateRequest(
+                    image_b64=edit_result["edited_image"],
+                    prompt=request.prompt,
+                    storyboard_id=request.storyboard_id,
+                    scene_id=request.scene_id,
+                    character_id=request.character_id,
+                ),
+            )
+            result["final_match_rate"] = revalidation.get("adjusted_match_rate", revalidation.get("match_rate"))
+        except Exception:
+            logger.warning("[Auto Edit] Revalidation failed, final_match_rate unavailable")
+
     except Exception as e:
         logger.exception("[Auto Edit] Failed: %s", e)
         result["auto_edit_error"] = "자동 편집에 실패했습니다."
@@ -279,6 +294,7 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
                     gemini_edited=True,
                     gemini_cost_usd=result.get("edit_cost"),
                     original_match_rate=match_rate,
+                    final_match_rate=result.get("final_match_rate"),
                     status="success",
                 )
                 edit_db.add(edit_log)
