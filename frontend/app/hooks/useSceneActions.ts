@@ -16,8 +16,9 @@ export function useSceneActions() {
   const sbSet = useStoryboardStore((s) => s.set);
   const setScenes = useStoryboardStore((s) => s.setScenes);
   const showToast = useUIStore((s) => s.showToast);
-  // Fetch IP-Adapter reference images on mount
+  // Fetch IP-Adapter reference images on mount (skip if already loaded by useCharacterAutoLoad)
   useEffect(() => {
+    if (useStoryboardStore.getState().referenceImages.length > 0) return;
     axios
       .get(`${ADMIN_API_BASE}/controlnet/ip-adapter/references`)
       .then((res) => {
@@ -25,7 +26,7 @@ export function useSceneActions() {
           referenceImages: res.data.references || [],
         });
       })
-      .catch(() => {});
+      .catch((err) => console.warn("[useSceneActions] IP-Adapter references fetch failed:", err));
   }, []);
 
   const setCurrentSceneIndex = useCallback(

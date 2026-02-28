@@ -92,7 +92,7 @@ export async function handleValidateImage(scene: Scene) {
         .post(
           `${API_BASE}/prompt-histories/${scene.prompt_history_id}/update-score?match_rate=${matchRate}`
         )
-        .catch(() => {});
+        .catch((err) => console.warn("[handleValidateImage] Prompt score update failed:", err));
     }
     const criticalFailure = validation.critical_failure;
     if (criticalFailure?.has_failure && criticalFailure.failures?.length > 0) {

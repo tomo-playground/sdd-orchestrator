@@ -26,7 +26,7 @@ export default function VoicePresetSelector({
     axios
       .get<VoicePreset[]>(`${API_BASE}/voice-presets`)
       .then((r) => setPresets(r.data))
-      .catch(() => {});
+      .catch((err) => console.warn("[VoicePresetSelector] Voice presets fetch failed:", err));
   }, []);
 
   // Cleanup audio on unmount

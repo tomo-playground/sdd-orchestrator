@@ -12,10 +12,12 @@ const BACKOFF_BASE_MS = 1000;
  */
 export async function renderWithProgress(
   payload: Record<string, unknown>,
-  onProgress?: (p: RenderProgress) => void
+  onProgress?: (p: RenderProgress) => void,
+  signal?: AbortSignal
 ): Promise<RenderProgress> {
   const res = await axios.post(`${API_BASE}/video/create-async`, payload, {
     timeout: API_TIMEOUT.DEFAULT,
+    signal,
   });
   const taskId: string = res.data.task_id;
 
@@ -25,16 +27,37 @@ export async function renderWithProgress(
     let timeoutId: NodeJS.Timeout | null = null;
     let es: EventSource | null = null;
 
-    // Set overall timeout for the entire render process
-    timeoutId = setTimeout(() => {
+    function cleanup() {
       es?.close();
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+
+    // External abort support
+    const onAbort = () => {
+      cleanup();
       if (!settled) {
         settled = true;
-        reject(new Error("Render timeout after 20 minutes"));
+        reject(new DOMException("Aborted", "AbortError"));
+      }
+    };
+    signal?.addEventListener("abort", onAbort);
+
+    function settle(action: () => void) {
+      cleanup();
+      signal?.removeEventListener("abort", onAbort);
+      settled = true;
+      action();
+    }
+
+    // Set overall timeout for the entire render process
+    timeoutId = setTimeout(() => {
+      if (!settled) {
+        settle(() => reject(new Error("Render timeout after 20 minutes")));
       }
     }, API_TIMEOUT.VIDEO_RENDER);
 
     function connectSSE() {
+      if (signal?.aborted || settled) return;
       es = new EventSource(`${API_BASE}/video/progress/${taskId}`);
 
       es.onmessage = (event) => {
@@ -45,16 +68,10 @@ export async function renderWithProgress(
           onProgress?.(data);
 
           if (data.stage === "completed") {
-            if (timeoutId) clearTimeout(timeoutId);
-            es?.close();
-            settled = true;
-            resolve(data);
+            settle(() => resolve(data));
           }
           if (data.stage === "failed") {
-            if (timeoutId) clearTimeout(timeoutId);
-            es?.close();
-            settled = true;
-            reject(new Error(data.error || "Render failed"));
+            settle(() => reject(new Error(data.error || "Render failed")));
           }
         } catch {
           // Ignore parse errors for keep-alive comments
@@ -64,7 +81,7 @@ export async function renderWithProgress(
       es.onerror = () => {
         es?.close();
         // Don't retry if already resolved/rejected (terminal event received)
-        if (settled) return;
+        if (settled || signal?.aborted) return;
         if (retryCount < MAX_RETRIES) {
           retryCount++;
           const delay = BACKOFF_BASE_MS * Math.pow(2, retryCount - 1);
@@ -79,9 +96,7 @@ export async function renderWithProgress(
           });
           setTimeout(connectSSE, delay);
         } else {
-          if (timeoutId) clearTimeout(timeoutId);
-          settled = true;
-          reject(new Error("SSE connection lost after retries"));
+          settle(() => reject(new Error("SSE connection lost after retries")));
         }
       };
     }

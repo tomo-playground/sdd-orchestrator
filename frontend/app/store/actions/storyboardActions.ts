@@ -304,6 +304,7 @@ export async function persistStoryboard(): Promise<boolean> {
       return false;
     }
     console.error("[persistStoryboard] Failed:", error);
+    useUIStore.getState().showToast("저장에 실패했습니다. 다시 시도해 주세요.", "error");
     return false;
   }
 }

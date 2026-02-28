@@ -72,6 +72,10 @@ export async function handleGenerateImage(scene: Scene) {
 export function handleImageUpload(clientId: string, file?: File) {
   if (!file) return;
   const reader = new FileReader();
+  reader.onerror = () => {
+    console.error("FileReader error:", reader.error);
+    useUIStore.getState().showToast("이미지 파일을 읽을 수 없습니다", "error");
+  };
   reader.onloadend = async () => {
     const dataUrl = reader.result as string;
     const { projectId, groupId, storyboardId } = useContextStore.getState();

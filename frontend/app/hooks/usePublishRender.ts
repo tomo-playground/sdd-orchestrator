@@ -49,7 +49,7 @@ export function usePublishRender() {
     axios
       .get(`${API_BASE}/fonts/list`)
       .then((r) => setOutput({ fontList: r.data.fonts || [] }))
-      .catch(() => {});
+      .catch((err) => console.warn("[usePublishRender] Font list fetch failed:", err));
   }, [setOutput]);
 
   // --- Load selected font dynamically ---

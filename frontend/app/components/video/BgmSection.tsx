@@ -61,7 +61,7 @@ export default function BgmSection(props: BgmSectionProps) {
       axios
         .get<MusicPreset[]>(`${API_BASE}/music-presets`)
         .then((r) => setMusicPresets(r.data))
-        .catch(() => {});
+        .catch((err) => console.warn("[BgmSection] Music presets fetch failed:", err));
     }
   }, [bgmMode]);
 
