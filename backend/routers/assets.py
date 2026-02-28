@@ -6,11 +6,12 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from config import API_PUBLIC_URL, ASSETS_DIR, AUDIO_DIR, logger
+from schemas import AudioListResponse, FontListResponse, OverlayListResponse
 
 router = APIRouter(tags=["assets"])
 
 
-@router.get("/audio/list")
+@router.get("/audio/list", response_model=AudioListResponse)
 async def get_audio_list():
     logger.info("📥 [Audio List]")
     from config import STORAGE_MODE
@@ -36,7 +37,7 @@ async def get_audio_list():
     return {"audios": sorted(files, key=lambda x: x["name"])}
 
 
-@router.get("/fonts/list")
+@router.get("/fonts/list", response_model=FontListResponse)
 async def list_fonts():
     from config import STORAGE_MODE
     from services.storage import get_storage
@@ -104,7 +105,7 @@ async def get_font_file(filename: str):
     return FileResponse(font_path, media_type=content_type)
 
 
-@router.get("/overlay/list")
+@router.get("/overlay/list", response_model=OverlayListResponse)
 async def list_overlays():
     """List available overlay frame styles."""
     from config import STORAGE_MODE

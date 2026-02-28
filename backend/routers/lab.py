@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models.lab import LabExperiment
+from schemas import OkResponse, SyncedCountResponse
 from schemas_lab import (
     LabBatchRunRequest,
     LabBatchRunResponse,
@@ -132,12 +133,7 @@ def api_list_experiments(
         query = query.filter(LabExperiment.batch_id == batch_id)
 
     total = query.count()
-    items = (
-        query.order_by(LabExperiment.id.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
+    items = query.order_by(LabExperiment.id.desc()).offset(offset).limit(limit).all()
 
     return LabExperimentListResponse(items=items, total=total)
 
@@ -151,23 +147,19 @@ def api_get_experiment(
     db: Session = Depends(get_db),
 ):
     """Get a single experiment by ID."""
-    experiment = (
-        db.query(LabExperiment).filter_by(id=experiment_id).first()
-    )
+    experiment = db.query(LabExperiment).filter_by(id=experiment_id).first()
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
     return experiment
 
 
-@router.delete("/experiments/{experiment_id}")
+@router.delete("/experiments/{experiment_id}", response_model=OkResponse)
 def api_delete_experiment(
     experiment_id: int,
     db: Session = Depends(get_db),
 ):
     """Delete an experiment."""
-    experiment = (
-        db.query(LabExperiment).filter_by(id=experiment_id).first()
-    )
+    experiment = db.query(LabExperiment).filter_by(id=experiment_id).first()
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
     db.delete(experiment)
@@ -187,7 +179,7 @@ def api_get_tag_effectiveness(
     return report
 
 
-@router.post("/analytics/sync-effectiveness")
+@router.post("/analytics/sync-effectiveness", response_model=SyncedCountResponse)
 def api_sync_effectiveness(
     db: Session = Depends(get_db),
 ):

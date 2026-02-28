@@ -7,6 +7,16 @@ from sqlalchemy.orm import Session, joinedload
 from config import logger
 from database import get_db
 from models.activity_log import ActivityLog
+from schemas import (
+    ActivityLogCreatedResponse,
+    AnalyzePatternsResponse,
+    ApplyConflictRulesResponse,
+    DeleteLogResponse,
+    StoryboardLogsResponse,
+    SuccessCombinationsResponse,
+    SuggestConflictRulesResponse,
+    UpdateStatusLogResponse,
+)
 
 router = APIRouter(prefix="/activity-logs", tags=["activity-logs"])
 
@@ -39,7 +49,7 @@ class UpdateStatusRequest(BaseModel):
     status: str  # success, fail, pending
 
 
-@router.post("")
+@router.post("", response_model=ActivityLogCreatedResponse)
 def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends(get_db)):
     """Create a new activity log entry.
 
@@ -144,7 +154,7 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
-@router.get("/storyboard/{storyboard_id}")
+@router.get("/storyboard/{storyboard_id}", response_model=StoryboardLogsResponse)
 def get_storyboard_logs(storyboard_id: int, status: str | None = None, limit: int = 100, db: Session = Depends(get_db)):
     """Get activity logs for a storyboard.
 
@@ -185,7 +195,7 @@ def get_storyboard_logs(storyboard_id: int, status: str | None = None, limit: in
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
-@router.patch("/{log_id}/status")
+@router.patch("/{log_id}/status", response_model=UpdateStatusLogResponse)
 def update_log_status(log_id: int, request: UpdateStatusRequest, db: Session = Depends(get_db)):
     """Update the status of an activity log.
 
@@ -223,7 +233,7 @@ def update_log_status(log_id: int, request: UpdateStatusRequest, db: Session = D
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
-@router.delete("/{log_id}")
+@router.delete("/{log_id}", response_model=DeleteLogResponse)
 def delete_log(log_id: int, db: Session = Depends(get_db)):
     """Delete an activity log."""
     try:
@@ -246,7 +256,7 @@ def delete_log(log_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
-@router.get("/analyze/patterns")
+@router.get("/analyze/patterns", response_model=AnalyzePatternsResponse)
 def analyze_patterns(
     storyboard_id: int,
     min_occurrences: int = 3,
@@ -405,7 +415,7 @@ def analyze_patterns(
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
-@router.get("/suggest-conflict-rules")
+@router.get("/suggest-conflict-rules", response_model=SuggestConflictRulesResponse)
 def suggest_conflict_rules(
     storyboard_id: int,
     min_occurrences: int = 5,
@@ -551,7 +561,7 @@ def suggest_conflict_rules(
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
-@router.get("/success-combinations")
+@router.get("/success-combinations", response_model=SuccessCombinationsResponse)
 def get_success_combinations(
     storyboard_id: int,
     match_rate_threshold: float = 0.7,
@@ -779,7 +789,7 @@ class ApplyConflictRulesRequest(BaseModel):
     rules: list[dict]  # [{"tag1": str, "tag2": str}, ...]
 
 
-@router.post("/apply-conflict-rules")
+@router.post("/apply-conflict-rules", response_model=ApplyConflictRulesResponse)
 def apply_conflict_rules(request: ApplyConflictRulesRequest, db: Session = Depends(get_db)):
     """Apply suggested conflict rules to the database.
 

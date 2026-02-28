@@ -7,7 +7,16 @@ from sqlalchemy.orm import Session
 from config import logger
 from database import get_db
 from models import Tag
-from schemas import TagCreate, TagResponse, TagSearchResponse, TagUpdate
+from schemas import (
+    ApproveClassificationResponse,
+    BulkApproveResponse,
+    OkDeletedResponse,
+    TagCreate,
+    TagGroupsResponse,
+    TagResponse,
+    TagSearchResponse,
+    TagUpdate,
+)
 from services.tag_classifier import TagClassifier, classify_tags_background_llm
 
 service_router = APIRouter(prefix="/tags", tags=["tags"])
@@ -83,7 +92,7 @@ async def list_tags(
     return tags
 
 
-@service_router.get("/groups")
+@service_router.get("/groups", response_model=TagGroupsResponse)
 async def list_tag_groups(db: Session = Depends(get_db)):
     """List all unique group names with counts."""
     from sqlalchemy import func
@@ -291,7 +300,7 @@ async def update_tag(tag_id: int, data: TagUpdate, db: Session = Depends(get_db)
     return tag
 
 
-@admin_router.delete("/{tag_id}")
+@admin_router.delete("/{tag_id}", response_model=OkDeletedResponse)
 async def delete_tag(tag_id: int, db: Session = Depends(get_db)):
     """Delete a tag."""
     tag = db.query(Tag).filter(Tag.id == tag_id).first()
@@ -355,7 +364,7 @@ async def classify_tags(
     return ClassifyResponse(results=results, classified=classified, unknown=unknown)
 
 
-@admin_router.post("/approve-classification")
+@admin_router.post("/approve-classification", response_model=ApproveClassificationResponse)
 async def approve_classification(request: ApproveClassificationRequest, db: Session = Depends(get_db)):
     """Approve or correct a tag's classification.
 
@@ -396,7 +405,7 @@ async def approve_classification(request: ApproveClassificationRequest, db: Sess
     }
 
 
-@admin_router.post("/bulk-approve-classifications")
+@admin_router.post("/bulk-approve-classifications", response_model=BulkApproveResponse)
 async def bulk_approve_classifications(approvals: list[ApproveClassificationRequest], db: Session = Depends(get_db)):
     """Bulk approve multiple tag classifications."""
     if len(approvals) > 100:

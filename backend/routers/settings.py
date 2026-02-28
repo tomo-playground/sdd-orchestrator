@@ -13,6 +13,13 @@ from config import (
 )
 from database import get_db
 from models import ActivityLog
+from schemas import (
+    AutoEditCostSummaryResponse,
+    AutoEditSettingsResponse,
+    AutoEditUpdateResponse,
+    GeminiEditAnalyticsResponse,
+    GeminiEditSummaryResponse,
+)
 
 router = APIRouter(tags=["settings"])
 
@@ -26,7 +33,7 @@ class AutoEditSettingsUpdate(BaseModel):
     max_retries: int
 
 
-@router.get("/settings/auto-edit")
+@router.get("/settings/auto-edit", response_model=AutoEditSettingsResponse)
 async def get_auto_edit_settings():
     """현재 Gemini Auto Edit 설정 조회
 
@@ -46,7 +53,7 @@ async def get_auto_edit_settings():
     }
 
 
-@router.put("/settings/auto-edit")
+@router.put("/settings/auto-edit", response_model=AutoEditUpdateResponse)
 async def update_auto_edit_settings(settings: AutoEditSettingsUpdate):
     """Gemini Auto Edit 설정 업데이트 (런타임)
 
@@ -94,7 +101,7 @@ async def update_auto_edit_settings(settings: AutoEditSettingsUpdate):
     }
 
 
-@router.get("/settings/auto-edit/cost-summary")
+@router.get("/settings/auto-edit/cost-summary", response_model=AutoEditCostSummaryResponse)
 async def get_auto_edit_cost_summary(db: Session = Depends(get_db)):
     """Gemini Auto Edit 비용 요약
 
@@ -191,7 +198,7 @@ async def get_auto_edit_cost_summary(db: Session = Depends(get_db)):
 # ============================================================
 
 
-@router.get("/analytics/gemini-edits")
+@router.get("/analytics/gemini-edits", response_model=GeminiEditAnalyticsResponse)
 async def get_gemini_edit_analytics(
     storyboard_id: int | None = Query(None, description="필터: 특정 스토리보드만"),
     db: Session = Depends(get_db),
@@ -251,7 +258,7 @@ async def get_gemini_edit_analytics(
     }
 
 
-@router.get("/analytics/gemini-edits/summary")
+@router.get("/analytics/gemini-edits/summary", response_model=GeminiEditSummaryResponse)
 async def get_gemini_edit_summary(db: Session = Depends(get_db)):
     """Gemini Auto Edit 요약 통계"""
     total_edits = (

@@ -6,7 +6,15 @@ from sqlalchemy.orm import Session
 from config import CIVITAI_API_BASE, CIVITAI_API_TIMEOUT, DEFAULT_LORA_WEIGHT, logger
 from database import get_db
 from models import LoRA
-from schemas import LoRACreate, LoRAResponse, LoRAUpdate
+from schemas import (
+    CalibrateAllResponse,
+    CivitaiSearchResponse,
+    LoRACalibrateResponse,
+    LoRACreate,
+    LoRAResponse,
+    LoRAUpdate,
+    OkDeletedResponse,
+)
 from services.lora_calibration import calibrate_lora
 
 router = APIRouter(prefix="/loras", tags=["loras"])
@@ -29,7 +37,7 @@ async def list_loras(
     return loras
 
 
-@router.get("/search-civitai")
+@router.get("/search-civitai", response_model=CivitaiSearchResponse)
 async def search_civitai(
     query: str = Query(..., description="Search query"),
     limit: int = Query(10, ge=1, le=50),
@@ -171,7 +179,7 @@ async def update_lora(lora_id: int, data: LoRAUpdate, db: Session = Depends(get_
     return lora
 
 
-@router.delete("/{lora_id}")
+@router.delete("/{lora_id}", response_model=OkDeletedResponse)
 async def delete_lora(lora_id: int, db: Session = Depends(get_db)):
     """Delete a LoRA."""
     lora = db.query(LoRA).filter(LoRA.id == lora_id).first()
@@ -185,7 +193,7 @@ async def delete_lora(lora_id: int, db: Session = Depends(get_db)):
     return {"ok": True, "deleted": name}
 
 
-@router.post("/{lora_id}/calibrate")
+@router.post("/{lora_id}/calibrate", response_model=LoRACalibrateResponse)
 async def calibrate_lora_weight(lora_id: int, db: Session = Depends(get_db)):
     """Calibrate LoRA to find optimal weight for scene expression.
 
@@ -238,7 +246,7 @@ async def calibrate_lora_weight(lora_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/calibrate-all")
+@router.post("/calibrate-all", response_model=CalibrateAllResponse)
 async def calibrate_all_loras(db: Session = Depends(get_db)):
     """Calibrate all LoRAs that haven't been calibrated yet."""
     loras = db.query(LoRA).filter(LoRA.optimal_weight.is_(None)).all()

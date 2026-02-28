@@ -11,10 +11,15 @@ from schemas import (
     EmbeddingCreate,
     EmbeddingResponse,
     EmbeddingUpdate,
+    OkDeletedResponse,
     SDModelCreate,
     SDModelRequest,
     SDModelResponse,
     SDModelUpdate,
+    SDWebUILorasResponse,
+    SDWebUIModelsResponse,
+    SDWebUIOptionsResponse,
+    SDWebUIOptionsUpdateResponse,
 )
 
 router = APIRouter(tags=["sd-models"])
@@ -77,7 +82,7 @@ async def update_sd_model(model_id: int, data: SDModelUpdate, db: Session = Depe
     return model
 
 
-@router.delete("/sd-models/{model_id}")
+@router.delete("/sd-models/{model_id}", response_model=OkDeletedResponse)
 async def delete_sd_model(model_id: int, db: Session = Depends(get_db)):
     """Delete an SD model."""
     model = db.query(SDModel).filter(SDModel.id == model_id).first()
@@ -157,7 +162,7 @@ async def update_embedding(embedding_id: int, data: EmbeddingUpdate, db: Session
     return embedding
 
 
-@router.delete("/embeddings/{embedding_id}")
+@router.delete("/embeddings/{embedding_id}", response_model=OkDeletedResponse)
 async def delete_embedding(embedding_id: int, db: Session = Depends(get_db)):
     """Delete an embedding."""
     embedding = db.query(Embedding).filter(Embedding.id == embedding_id).first()
@@ -176,7 +181,7 @@ async def delete_embedding(embedding_id: int, db: Session = Depends(get_db)):
 # ============================================================
 
 
-@router.get("/sd/models")
+@router.get("/sd/models", response_model=SDWebUIModelsResponse)
 async def list_sd_webui_models():
     """List models from SD WebUI."""
     logger.info("📥 [SD Models]")
@@ -191,7 +196,7 @@ async def list_sd_webui_models():
         raise HTTPException(status_code=502, detail="SD WebUI API error") from exc
 
 
-@router.get("/sd/options")
+@router.get("/sd/options", response_model=SDWebUIOptionsResponse)
 async def get_sd_options():
     """Get SD WebUI options."""
     logger.info("📥 [SD Options]")
@@ -208,7 +213,7 @@ async def get_sd_options():
         raise HTTPException(status_code=502, detail="SD WebUI API error") from exc
 
 
-@router.post("/sd/options")
+@router.post("/sd/options", response_model=SDWebUIOptionsUpdateResponse)
 async def update_sd_options(request: SDModelRequest):
     """Update SD WebUI options (change active model)."""
     logger.info("📥 [SD Options Update] %s", request.model_dump())
@@ -227,7 +232,7 @@ async def update_sd_options(request: SDModelRequest):
         raise HTTPException(status_code=502, detail="SD WebUI API error") from exc
 
 
-@router.get("/sd/loras")
+@router.get("/sd/loras", response_model=SDWebUILorasResponse)
 async def list_sd_loras():
     """List LoRAs from SD WebUI."""
     logger.info("📥 [SD LoRAs]")
