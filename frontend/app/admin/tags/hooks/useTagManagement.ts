@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { API_BASE, ADMIN_API_BASE } from "../../../constants";
+import { ADMIN_API_BASE } from "../../../constants";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ export function useTagManagement(fetchTagsData: () => Promise<void>, ui: UiCallb
   const fetchPendingTags = useCallback(async () => {
     setIsPendingLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/tags/pending?limit=50`);
+      const res = await axios.get(`${ADMIN_API_BASE}/tags/pending?limit=50`);
       setPendingTags(res.data.tags || []);
       const selections: Record<number, string> = {};
       (res.data.tags || []).forEach((tag: PendingTag) => {
