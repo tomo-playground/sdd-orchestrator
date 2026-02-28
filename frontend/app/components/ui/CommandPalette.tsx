@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import axios from "axios";
 import { API_BASE } from "../../constants";
@@ -24,6 +24,7 @@ const TYPE_LABELS: Record<ResultItem["type"], string> = {
 /** Self-contained Cmd+K quick switcher. Reads projects/groups from store, fetches storyboards on open. */
 export default function CommandPalette() {
   const router = useRouter();
+  const pathname = usePathname();
   const setContext = useContextStore((s) => s.setContext);
   const projects = useContextStore((s) => s.projects);
   const groups = useContextStore((s) => s.groups);
@@ -78,8 +79,13 @@ export default function CommandPalette() {
             sublabel: p.handle ?? undefined,
             type: "project",
             action: () => {
-              setContext({ projectId: p.id, groupId: null });
-              router.push("/");
+              setContext({
+                projectId: p.id,
+                groupId: null,
+                storyboardId: null,
+                storyboardTitle: "",
+              });
+              if (pathname.startsWith("/studio")) router.replace("/studio");
             },
           });
         }
@@ -100,7 +106,7 @@ export default function CommandPalette() {
                 storyboardId: null,
                 storyboardTitle: "",
               });
-              router.push("/");
+              if (pathname.startsWith("/studio")) router.replace("/studio");
             },
           });
         }
@@ -132,7 +138,7 @@ export default function CommandPalette() {
 
       return items.slice(0, 12);
     },
-    [projects, groups, storyboards, setContext, router]
+    [projects, groups, storyboards, setContext, router, pathname]
   );
 
   useEffect(() => {

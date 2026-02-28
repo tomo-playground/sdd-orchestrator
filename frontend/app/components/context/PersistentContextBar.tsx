@@ -119,7 +119,7 @@ export default function PersistentContextBar() {
             currentId={projectId}
             onSelect={(id) => {
               selectProject(id);
-              if (isStudio) router.push("/");
+              if (isStudio) router.replace("/studio");
             }}
             onNew={() => setUI({ showSetupWizard: true, setupWizardInitialStep: 1 })}
             onEdit={() => setProjectModalMode("edit")}
