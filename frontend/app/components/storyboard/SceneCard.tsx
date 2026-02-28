@@ -210,61 +210,66 @@ export default function SceneCard({
               selectedCharacterId={selectedCharacterId}
               basePromptA={basePromptA}
               onUpdateScene={onUpdateScene}
+              showAdvancedSettings={showAdvancedSettings}
             />
           </div>
         </CollapsibleSection>
       </div>
 
-      {/* ── Tier 3: Scene Tags (Collapsible, Default Closed) ── */}
-      <div className="relative z-0">
-        <CollapsibleSection title="Scene Tags" defaultOpen={showAdvancedSettings}>
-          <SceneSettingsFields
-            scene={scene}
-            hasMultipleSpeakers={hasMultipleSpeakers}
-            tagsByGroup={tagsByGroup}
-            sceneTagGroups={sceneTagGroups}
-            isExclusiveGroup={isExclusiveGroup}
-            onUpdateScene={onUpdateScene}
-            characterAName={characterAName}
-            characterBName={characterBName}
-            selectedCharacterId={selectedCharacterId}
-            selectedCharacterBId={selectedCharacterBId}
-            buildNegativePrompt={buildNegativePrompt}
-            buildScenePrompt={buildScenePrompt}
-            showToast={showToast}
-          />
-        </CollapsibleSection>
-      </div>
+      {/* ── Tier 3: Scene Tags (Advanced only) ── */}
+      {showAdvancedSettings && (
+        <div className="relative z-0">
+          <CollapsibleSection title="Scene Tags" defaultOpen={showAdvancedSettings}>
+            <SceneSettingsFields
+              scene={scene}
+              hasMultipleSpeakers={hasMultipleSpeakers}
+              tagsByGroup={tagsByGroup}
+              sceneTagGroups={sceneTagGroups}
+              isExclusiveGroup={isExclusiveGroup}
+              onUpdateScene={onUpdateScene}
+              characterAName={characterAName}
+              characterBName={characterBName}
+              selectedCharacterId={selectedCharacterId}
+              selectedCharacterBId={selectedCharacterBId}
+              buildNegativePrompt={buildNegativePrompt}
+              buildScenePrompt={buildScenePrompt}
+              showToast={showToast}
+            />
+          </CollapsibleSection>
+        </div>
+      )}
 
-      {/* ── Tier 4: Advanced (Collapsible, Default Closed) ── */}
-      <div className="relative z-0">
-        <CollapsibleSection title="Advanced" defaultOpen={false}>
-          <SceneToolsContent />
-          {/* Success/Fail Buttons for Review Mode */}
-          {scene.activity_log_id && onMarkSuccess && onMarkFail && (
-            <div className="mt-4 flex gap-2 border-t border-zinc-100 pt-4">
-              <Button
-                variant="success"
-                size="sm"
-                onClick={onMarkSuccess}
-                disabled={isMarkingStatus}
-                className="flex-1"
-              >
-                👍 Success
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={onMarkFail}
-                disabled={isMarkingStatus}
-                className="flex-1"
-              >
-                👎 Fail
-              </Button>
-            </div>
-          )}
-        </CollapsibleSection>
-      </div>
+      {/* ── Tier 4: Advanced (Advanced only) ── */}
+      {showAdvancedSettings && (
+        <div className="relative z-0">
+          <CollapsibleSection title="Advanced" defaultOpen={false}>
+            <SceneToolsContent />
+            {/* Success/Fail Buttons for Review Mode */}
+            {scene.activity_log_id && onMarkSuccess && onMarkFail && (
+              <div className="mt-4 flex gap-2 border-t border-zinc-100 pt-4">
+                <Button
+                  variant="success"
+                  size="sm"
+                  onClick={onMarkSuccess}
+                  disabled={isMarkingStatus}
+                  className="flex-1"
+                >
+                  👍 Success
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={onMarkFail}
+                  disabled={isMarkingStatus}
+                  className="flex-1"
+                >
+                  👎 Fail
+                </Button>
+              </div>
+            )}
+          </CollapsibleSection>
+        </div>
+      )}
 
       {/* Gemini Modals */}
       <SceneGeminiModals

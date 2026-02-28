@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Image } from "lucide-react";
 import axios from "axios";
 import { useShallow } from "zustand/react/shallow";
@@ -20,6 +20,7 @@ import StageLocationsSection from "./StageLocationsSection";
 import StageCharactersSection from "./StageCharactersSection";
 import StageVoiceSection from "./StageVoiceSection";
 import StageBgmSection from "./StageBgmSection";
+import InfoTooltip from "../ui/InfoTooltip";
 
 export default function StageTab() {
   const storyboardId = useContextStore((s) => s.storyboardId);
@@ -45,11 +46,21 @@ export default function StageTab() {
   const [isAssigning, setIsAssigning] = useState(false);
   const [voicePresets, setVoicePresets] = useState<VoicePreset[]>([]);
 
-  const TOGGLES = [
-    { key: "autoRewritePrompt" as const, label: "Auto Rewrite", value: autoRewritePrompt },
-    { key: "autoReplaceRiskyTags" as const, label: "Safe Tags", value: autoReplaceRiskyTags },
-    { key: "hiResEnabled" as const, label: "Hi-Res", value: hiResEnabled },
-    { key: "veoEnabled" as const, label: "Veo", value: veoEnabled },
+  const TOGGLES: {
+    key: "autoRewritePrompt" | "autoReplaceRiskyTags" | "hiResEnabled" | "veoEnabled";
+    label: string;
+    value: boolean;
+    tooltip?: React.ReactNode;
+  }[] = [
+    { key: "autoRewritePrompt", label: "Auto Rewrite", value: autoRewritePrompt },
+    { key: "autoReplaceRiskyTags", label: "Safe Tags", value: autoReplaceRiskyTags },
+    {
+      key: "hiResEnabled",
+      label: "Hi-Res",
+      value: hiResEnabled,
+      tooltip: <InfoTooltip term="hi-res" position="bottom" />,
+    },
+    { key: "veoEnabled", label: "Veo", value: veoEnabled },
   ];
 
   useEffect(() => {
@@ -199,6 +210,7 @@ export default function StageTab() {
                   className="sr-only"
                 />
                 {t.label}
+                {t.tooltip && <span className="ml-0.5">{t.tooltip}</span>}
               </label>
             ))}
           </div>

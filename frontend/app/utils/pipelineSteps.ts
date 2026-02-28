@@ -98,7 +98,11 @@ export function updatePipelineSteps(
     if (s.expressOnly && !isExpress) return false;
     return true;
   }).map((s) => s.id);
-  const targetIdx = filteredIds.indexOf(stepId);
+  let targetIdx = filteredIds.indexOf(stepId);
+  // Standard 모드에서 casting 스텝이 필터링되므로 research로 fallback
+  if (targetIdx < 0 && stepId === "casting") {
+    targetIdx = filteredIds.indexOf("research");
+  }
   if (targetIdx < 0) return steps;
 
   return steps.map((s, i) => {

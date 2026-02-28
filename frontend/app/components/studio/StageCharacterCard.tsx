@@ -3,6 +3,7 @@
 import { ExternalLink, Mic, User } from "lucide-react";
 import type { Character, CharacterFull, VoicePreset } from "../../types";
 import type { AudioPlayer } from "../../hooks/useAudioPlayer";
+import InfoTooltip from "../ui/InfoTooltip";
 
 type Props = {
   character: Character;
@@ -101,7 +102,9 @@ export default function StageCharacterCard({
                 key={`${lora.id}-${i}`}
                 className="flex items-center gap-1.5 text-[11px] text-indigo-600"
               >
-                <span className="text-indigo-400">LoRA</span>
+                <span className="inline-flex items-center gap-0.5 text-indigo-400">
+                  LoRA <InfoTooltip term="lora" position="right" />
+                </span>
                 <span className="min-w-0 flex-1 truncate font-medium">
                   {lora.display_name || lora.name}
                 </span>

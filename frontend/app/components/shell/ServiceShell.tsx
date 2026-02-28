@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { usePathname } from "next/navigation";
-import { Home, Clapperboard, Shield } from "lucide-react";
+import { Home, Clapperboard, FolderOpen, Settings, Wrench } from "lucide-react";
 
 import { useUIStore } from "../../store/useUIStore";
 import { cx, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
@@ -24,16 +24,20 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home", icon: Home, exact: true },
   { href: "/studio", label: "Studio", icon: Clapperboard },
+  { href: "/library", label: "Library", icon: FolderOpen },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-const ADMIN_ITEM: NavItem = {
-  href: "/admin",
-  label: "Admin",
-  icon: Shield,
+const DEV_ITEM: NavItem = {
+  href: "/dev",
+  label: "Dev",
+  icon: Wrench,
 };
 
 function isNavActive(item: NavItem, pathname: string) {
   if (item.href === "/studio") return pathname.startsWith("/studio");
+  if (item.href === "/library") return pathname.startsWith("/library");
+  if (item.href === "/settings") return pathname.startsWith("/settings");
   if (item.exact) return pathname === item.href;
   return pathname.startsWith(item.href);
 }
@@ -52,7 +56,7 @@ function NavBar() {
             href={item.href}
             className={cx(
               "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
-              active ? TAB_ACTIVE : TAB_INACTIVE,
+              active ? TAB_ACTIVE : TAB_INACTIVE
             )}
           >
             <Icon className="h-3.5 w-3.5" />
@@ -64,16 +68,16 @@ function NavBar() {
       {/* Separator */}
       <div className="mx-1 h-4 w-px bg-zinc-200" />
 
-      {/* Admin link */}
+      {/* Dev link */}
       <Link
-        href={ADMIN_ITEM.href}
+        href={DEV_ITEM.href}
         className={cx(
           "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
-          pathname.startsWith("/admin") ? TAB_ACTIVE : TAB_INACTIVE,
+          pathname.startsWith("/dev") ? TAB_ACTIVE : TAB_INACTIVE
         )}
       >
-        <ADMIN_ITEM.icon className="h-3.5 w-3.5" />
-        {ADMIN_ITEM.label}
+        <DEV_ITEM.icon className="h-3.5 w-3.5" />
+        {DEV_ITEM.label}
       </Link>
     </nav>
   );

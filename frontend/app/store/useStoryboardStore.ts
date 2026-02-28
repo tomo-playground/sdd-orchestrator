@@ -198,7 +198,7 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "imageGenProgress",
   "loraTriggerWords",
   "characterLoras",
-  "castingRecommendation",
+  "characterBLoras",
 ];
 
 export const useStoryboardStore = create<StoryboardStore>()(

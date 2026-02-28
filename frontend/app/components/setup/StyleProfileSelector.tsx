@@ -6,8 +6,8 @@ type Props = {
 
 /**
  * Read-only display of the current style profile.
- * Style profiles are managed at the Group level (GroupConfig).
- * Change via Manage > Group Config or onboarding modal.
+ * Style profiles are managed at the Group level.
+ * Change via Manage > Group settings or onboarding modal.
  */
 export default function StyleProfileSelector({ currentProfileName }: Props) {
   return (

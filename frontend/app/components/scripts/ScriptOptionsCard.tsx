@@ -8,6 +8,7 @@ import PipelineStepper from "./PipelineStepper";
 import Button from "../ui/Button";
 import { SECTION_CLASSES, FORM_TEXTAREA_CLASSES, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 import { EXPRESS_SKIP_STAGES } from "../../utils/pipelineSteps";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
 import type { ScriptEditorActions } from "../../hooks/useScriptEditor";
 import type { Preset, LangOption } from "../../hooks/usePresets";
 
@@ -74,6 +75,7 @@ export default function ScriptOptionsCard({
   expandedStep,
   onStepClick,
 }: Props) {
+  const casting = useStoryboardStore((s) => s.castingRecommendation);
   return (
     <section className={SECTION_CLASSES}>
       {/* Mode tabs header */}
@@ -122,6 +124,7 @@ export default function ScriptOptionsCard({
         presets={presets}
         languages={languages}
         durations={durations}
+        recommendedStructure={casting?.structure ?? undefined}
         topic={editor.topic}
         setTopic={(v) => editor.setField("topic", v)}
         description={editor.description}

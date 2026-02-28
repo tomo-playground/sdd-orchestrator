@@ -42,6 +42,7 @@ type ScenePromptFieldsProps = {
   selectedCharacterId?: number | null;
   basePromptA: string;
   onUpdateScene: (updates: Partial<Scene>) => void;
+  showAdvancedSettings?: boolean;
 };
 
 export default function ScenePromptFields({
@@ -50,6 +51,7 @@ export default function ScenePromptFields({
   selectedCharacterId,
   basePromptA,
   onUpdateScene,
+  showAdvancedSettings = true,
 }: ScenePromptFieldsProps) {
   const storyboardId = useContextStore((s) => s.storyboardId);
 
@@ -114,77 +116,79 @@ export default function ScenePromptFields({
   const hasComposedNeg = !!composedNegative && negativeSources.length > 0;
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      {/* ── Left Column: Inputs ── */}
-      <div className="grid content-start gap-4">
-        {/* Prompt (KO) */}
-        <div className="grid gap-2">
-          <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-            Prompt (KO)
-          </label>
-          <TagAutocomplete
-            value={scene.image_prompt_ko}
-            onChange={(value) => onUpdateScene({ image_prompt_ko: value })}
-            rows={2}
-            className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-          />
-        </div>
-
-        {/* KO → EN diff */}
-        {scene.image_prompt_ko && (
-          <PromptTranslateDiff
-            koText={scene.image_prompt_ko}
-            currentPrompt={scene.image_prompt || ""}
-            characterId={selectedCharacterId}
-            onApply={(translated) => onUpdateScene({ image_prompt: translated })}
-          />
-        )}
-
-        {/* Positive Prompt */}
-        <div className="grid gap-2">
-          <div className="flex items-center justify-between">
+    <div className={showAdvancedSettings ? "grid gap-6 md:grid-cols-2" : "grid gap-4"}>
+      {/* ── Left Column: Inputs (advanced only) ── */}
+      {showAdvancedSettings && (
+        <div className="grid content-start gap-4">
+          {/* Prompt (KO) */}
+          <div className="grid gap-2">
             <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-              Positive Prompt
+              Prompt (KO)
             </label>
-            {scene.image_prompt && <CopyButton text={scene.image_prompt} />}
+            <TagAutocomplete
+              value={scene.image_prompt_ko}
+              onChange={(value) => onUpdateScene({ image_prompt_ko: value })}
+              rows={2}
+              className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+            />
           </div>
-          <TagAutocomplete
-            value={scene.image_prompt}
-            onChange={(value) => onUpdateScene({ image_prompt: value })}
-            rows={2}
-            className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-          />
-          <TagValidationWarning
-            result={validationResult}
-            onAutoReplace={handleAutoReplace}
-            onDismiss={clearValidation}
-          />
-        </div>
 
-        {/* Negative Prompt */}
-        <div className="grid gap-2">
-          <div className="flex items-center justify-between">
-            <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-              Negative Prompt
-            </label>
-            {scene.negative_prompt && <CopyButton text={scene.negative_prompt} />}
+          {/* KO → EN diff */}
+          {scene.image_prompt_ko && (
+            <PromptTranslateDiff
+              koText={scene.image_prompt_ko}
+              currentPrompt={scene.image_prompt || ""}
+              characterId={selectedCharacterId}
+              onApply={(translated) => onUpdateScene({ image_prompt: translated })}
+            />
+          )}
+
+          {/* Positive Prompt */}
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                Positive Prompt
+              </label>
+              {scene.image_prompt && <CopyButton text={scene.image_prompt} />}
+            </div>
+            <TagAutocomplete
+              value={scene.image_prompt}
+              onChange={(value) => onUpdateScene({ image_prompt: value })}
+              rows={2}
+              className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+            />
+            <TagValidationWarning
+              result={validationResult}
+              onAutoReplace={handleAutoReplace}
+              onDismiss={clearValidation}
+            />
           </div>
-          <TagAutocomplete
-            value={scene.negative_prompt}
-            onChange={(value) => onUpdateScene({ negative_prompt: value })}
-            rows={2}
-            placeholder="씬별 추가 네거티브 태그 (선택)"
-            className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
-          />
-          <TagValidationWarning
-            result={negValidation}
-            onAutoReplace={negAutoReplace}
-            onDismiss={negClearValidation}
-          />
-        </div>
-      </div>
 
-      {/* ── Right Column: Outputs ── */}
+          {/* Negative Prompt */}
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
+                Negative Prompt
+              </label>
+              {scene.negative_prompt && <CopyButton text={scene.negative_prompt} />}
+            </div>
+            <TagAutocomplete
+              value={scene.negative_prompt}
+              onChange={(value) => onUpdateScene({ negative_prompt: value })}
+              rows={2}
+              placeholder="씬별 추가 네거티브 태그 (선택)"
+              className="w-full rounded-2xl border border-zinc-200 bg-white/80 p-3 text-sm outline-none focus:border-zinc-400"
+            />
+            <TagValidationWarning
+              result={negValidation}
+              onAutoReplace={negAutoReplace}
+              onDismiss={negClearValidation}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Composed Preview (always visible) ── */}
       <div className="grid content-start gap-4">
         {/* Composed Positive */}
         {scene.image_prompt && (

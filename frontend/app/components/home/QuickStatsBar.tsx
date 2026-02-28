@@ -57,28 +57,28 @@ export default function QuickStatsBar() {
       label: "Characters",
       icon: Users,
       count: stats?.characters ?? 0,
-      href: "/admin/characters",
+      href: "/library/characters",
     },
     {
       id: "styles",
       label: "Styles",
       icon: Palette,
       count: stats?.styles ?? 0,
-      href: "/admin/styles",
+      href: "/library/styles",
     },
     {
       id: "voices",
       label: "Voices",
       icon: Mic,
       count: stats?.voices ?? 0,
-      href: "/admin/voices",
+      href: "/library/voices",
     },
     {
       id: "music",
       label: "Music",
       icon: Music,
       count: stats?.music ?? 0,
-      href: "/admin/music",
+      href: "/library/music",
     },
   ];
 

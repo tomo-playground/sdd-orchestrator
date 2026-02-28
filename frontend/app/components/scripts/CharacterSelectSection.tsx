@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useCharacters } from "../../hooks/useCharacters";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { isMultiCharStructure } from "../../utils/structure";
@@ -35,11 +36,17 @@ export default function CharacterSelectSection({
   const casting = useStoryboardStore((s) => s.castingRecommendation);
   const isMultiChar = isMultiCharStructure(structure);
 
-  if (characters.length === 0) return null;
+  const recA = casting?.character_id ?? null;
+  const recB = casting?.character_b_id ?? null;
 
-  const recIds = new Set(
-    [casting?.character_id, casting?.character_b_id].filter((id): id is number => id != null)
-  );
+  const { recommended, others, hasRec } = useMemo(() => {
+    const ids = new Set([recA, recB].filter((id): id is number => id != null));
+    const rec = characters.filter((c) => ids.has(c.id));
+    const rest = characters.filter((c) => !ids.has(c.id));
+    return { recommended: rec, others: rest, hasRec: rec.length > 0 };
+  }, [characters, recA, recB]);
+
+  if (characters.length === 0) return null;
 
   const renderSelect = (
     label: string,
@@ -58,12 +65,30 @@ export default function CharacterSelectSection({
         className={FORM_INPUT_CLASSES}
       >
         <option value="">None</option>
-        {characters.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-            {recIds.has(c.id) ? " (AI 추천)" : ""}
-          </option>
-        ))}
+        {hasRec ? (
+          <>
+            <optgroup label="✦ AI 추천">
+              {recommended.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="캐릭터">
+              {others.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </optgroup>
+          </>
+        ) : (
+          characters.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))
+        )}
       </select>
     </div>
   );

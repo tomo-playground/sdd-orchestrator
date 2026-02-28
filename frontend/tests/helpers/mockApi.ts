@@ -2,7 +2,6 @@ import type { Page } from "@playwright/test";
 import {
   MOCK_PROJECTS,
   MOCK_GROUPS,
-  MOCK_GROUP_CONFIG,
   MOCK_CHARACTERS_LIST,
   MOCK_CHARACTER_DETAIL,
   MOCK_VOICE_PRESETS,
@@ -38,8 +37,6 @@ export async function mockGlobalApis(page: Page) {
     }
     return route.continue();
   });
-
-  await page.route("**/groups/*/config", (route) => route.fulfill({ json: MOCK_GROUP_CONFIG }));
 
   await page.route("**/groups**", (route) => {
     if (route.request().method() === "GET") {

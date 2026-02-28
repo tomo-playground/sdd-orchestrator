@@ -51,7 +51,7 @@ export function useYouTubeTab({ projectId, oauthCode, oauthState }: UseYouTubeTa
       } else {
         showToast("YouTube connection failed", "error");
       }
-      router.replace("/admin/system?tab=youtube", { scroll: false });
+      router.replace("/settings/youtube", { scroll: false });
     });
   }, [oauthCode, oauthState, showToast, router]);
 

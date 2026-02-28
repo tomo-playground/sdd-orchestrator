@@ -1,7 +1,7 @@
 // ── Fixture barrel export ────────────────────────────────────
 // All mock data for VRT and E2E tests
 
-export { MOCK_PROJECTS, MOCK_GROUPS, MOCK_GROUP_CONFIG } from "./common";
+export { MOCK_PROJECTS, MOCK_GROUPS } from "./common";
 export { MOCK_CHARACTERS_LIST, MOCK_CHARACTER_DETAIL } from "./characters";
 export { MOCK_VOICE_PRESETS, MOCK_LANGUAGES } from "./voices";
 export { MOCK_MUSIC_PRESETS } from "./music";

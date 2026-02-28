@@ -1,11 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import StyleTab from "./StyleTab";
-
-export default function AdminStylesPage() {
-  return (
-    <div className="px-8 py-6">
-      <StyleTab />
-    </div>
-  );
+export default function AdminStylesRedirect() {
+  redirect("/library/styles");
 }

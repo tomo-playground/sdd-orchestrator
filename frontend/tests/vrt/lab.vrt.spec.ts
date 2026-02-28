@@ -10,21 +10,21 @@ test.describe("Lab — VRT", () => {
   });
 
   test("lab-tag-lab", async ({ page }) => {
-    await page.goto("/admin/lab?tab=tag-lab");
+    await page.goto("/dev/lab?tab=tag-lab");
     await waitForPageReady(page);
     await hideAnimations(page);
     await expect(page).toHaveScreenshot("lab-tag-lab.png");
   });
 
   test("lab-scene-lab", async ({ page }) => {
-    await page.goto("/admin/lab?tab=scene-lab");
+    await page.goto("/dev/lab?tab=scene-lab");
     await waitForPageReady(page);
     await hideAnimations(page);
     await expect(page).toHaveScreenshot("lab-scene-lab.png");
   });
 
   test("lab-analytics", async ({ page }) => {
-    await page.goto("/admin/lab?tab=analytics");
+    await page.goto("/dev/lab?tab=analytics");
     await waitForPageReady(page);
     await hideAnimations(page);
     await expect(page).toHaveScreenshot("lab-analytics.png");

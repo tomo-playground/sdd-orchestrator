@@ -3,7 +3,6 @@ import axios from "axios";
 import { loadGroupDefaults } from "../groupActions";
 import { useContextStore } from "../../useContextStore";
 import { useRenderStore } from "../../useRenderStore";
-import { useStoryboardStore } from "../../useStoryboardStore";
 
 vi.mock("axios");
 vi.mock("../styleProfileActions", () => ({
@@ -12,7 +11,6 @@ vi.mock("../styleProfileActions", () => ({
 
 describe("loadGroupDefaults", () => {
   const mockSetOutput = vi.fn();
-  const mockSetPlan = vi.fn();
   const mockSetEffectiveDefaults = vi.fn();
   const mockSetEffectivePreset = vi.fn();
 
@@ -25,9 +23,6 @@ describe("loadGroupDefaults", () => {
     vi.spyOn(useRenderStore, "getState").mockReturnValue({
       set: mockSetOutput,
       currentStyleProfile: null,
-    } as never);
-    vi.spyOn(useStoryboardStore, "getState").mockReturnValue({
-      set: mockSetPlan,
     } as never);
   });
 
@@ -95,11 +90,11 @@ describe("loadGroupDefaults", () => {
     (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: {
         render_preset: {
-          name: "Post 표준",
+          name: "Post \uD45C\uC900",
           bgm_file: "random",
           bgm_volume: 0.4,
           audio_ducking: true,
-          scene_text_font: "온글잎 박다현체.ttf",
+          scene_text_font: "\uC628\uAE00\uC78E \uBC15\uB2E4\uD604\uCCB4.ttf",
           layout_style: "post",
           frame_style: "overlay_minimal.png",
           transition_type: "random",
@@ -118,7 +113,7 @@ describe("loadGroupDefaults", () => {
       bgmFile: "random",
       bgmVolume: 0.4,
       audioDucking: true,
-      sceneTextFont: "온글잎 박다현체.ttf",
+      sceneTextFont: "\uC628\uAE00\uC78E \uBC15\uB2E4\uD604\uCCB4.ttf",
       layoutStyle: "post",
       frameStyle: "overlay_minimal.png",
       transitionType: "random",
@@ -129,35 +124,17 @@ describe("loadGroupDefaults", () => {
     });
   });
 
-  it("loads language/duration to plan slice", async () => {
-    (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: {
-        render_preset: { name: "Test" },
-        language: "Korean",
-        duration: 30,
-        sources: {},
-      },
-    });
-
-    await loadGroupDefaults(3);
-
-    expect(mockSetPlan).toHaveBeenCalledWith({
-      language: "Korean",
-      duration: 30,
-    });
-  });
-
   it("sets effective preset name and source", async () => {
     (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: {
-        render_preset: { name: "Post 표준" },
+        render_preset: { name: "Post \uD45C\uC900" },
         sources: { render_preset_id: "group" },
       },
     });
 
     await loadGroupDefaults(3);
 
-    expect(mockSetEffectivePreset).toHaveBeenCalledWith("Post 표준", "group");
+    expect(mockSetEffectivePreset).toHaveBeenCalledWith("Post \uD45C\uC900", "group");
   });
 
   it("handles missing render_preset gracefully", async () => {
@@ -182,81 +159,5 @@ describe("loadGroupDefaults", () => {
     await loadGroupDefaults(3);
 
     expect(mockSetEffectiveDefaults).toHaveBeenCalledWith(null, null, true);
-  });
-
-  describe("skipContentDefaults option", () => {
-    it("skips content defaults when skipContentDefaults is true", async () => {
-      (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: {
-          render_preset: { name: "Test", bgm_file: "random" },
-          language: "Korean",
-          duration: 30,
-          sources: { render_preset_id: "group" },
-        },
-      });
-
-      await loadGroupDefaults(3, { skipContentDefaults: true });
-
-      // Render preset should still be applied
-      expect(mockSetOutput).toHaveBeenCalledWith(expect.objectContaining({ bgmFile: "random" }));
-      // Content defaults (language/duration) should NOT be applied
-      expect(mockSetPlan).not.toHaveBeenCalled();
-    });
-
-    it("applies content defaults when skipContentDefaults is false", async () => {
-      (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: {
-          render_preset: { name: "Test" },
-          language: "Korean",
-          duration: 45,
-          sources: {},
-        },
-      });
-
-      await loadGroupDefaults(3, { skipContentDefaults: false });
-
-      expect(mockSetPlan).toHaveBeenCalledWith({
-        language: "Korean",
-        duration: 45,
-      });
-    });
-
-    it("applies content defaults when options is undefined (default behavior)", async () => {
-      (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: {
-          render_preset: { name: "Test" },
-          language: "English",
-          duration: 60,
-          sources: {},
-        },
-      });
-
-      await loadGroupDefaults(3);
-
-      expect(mockSetPlan).toHaveBeenCalledWith({
-        language: "English",
-        duration: 60,
-      });
-    });
-
-    it("preserves storyboard values when loading existing storyboard", async () => {
-      // Scenario: User loads existing storyboard — group defaults should not overwrite
-      (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: {
-          render_preset: { name: "Test", speed_multiplier: 1.2 },
-          language: "Korean",
-          duration: 30,
-          sources: {},
-        },
-      });
-
-      // When skipContentDefaults is true (existing storyboard scenario)
-      await loadGroupDefaults(3, { skipContentDefaults: true });
-
-      // Render settings should be applied
-      expect(mockSetOutput).toHaveBeenCalledWith(expect.objectContaining({ speedMultiplier: 1.2 }));
-      // But language/duration should NOT overwrite storyboard values
-      expect(mockSetPlan).not.toHaveBeenCalled();
-    });
   });
 });

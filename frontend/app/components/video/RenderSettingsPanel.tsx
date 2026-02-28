@@ -1,9 +1,9 @@
 "use client";
 
-import type { FontItem, KenBurnsPreset, RenderProgress, RenderStage } from "../../types";
-import { SIDE_PANEL_LABEL, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
+import type { FontItem, KenBurnsPreset } from "../../types";
 import VoiceStyleSection from "./VoiceStyleSection";
 import BgmSection from "./BgmSection";
+import InfoTooltip from "../ui/InfoTooltip";
 
 // Ken Burns preset options for dropdown
 const KEN_BURNS_OPTIONS: { value: KenBurnsPreset; label: string }[] = [
@@ -166,18 +166,23 @@ export function RenderMediaPanel({
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-3">
-              <select
-                value={kenBurnsPreset}
-                onChange={(e) => setKenBurnsPreset(e.target.value as KenBurnsPreset)}
-                title="Ken Burns Effect (Image Motion)"
-                className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
-              >
-                {KEN_BURNS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <div>
+                <label className="mb-1 flex items-center gap-1 text-[12px] font-medium text-zinc-500">
+                  Ken Burns <InfoTooltip term="ken-burns" />
+                </label>
+                <select
+                  value={kenBurnsPreset}
+                  onChange={(e) => setKenBurnsPreset(e.target.value as KenBurnsPreset)}
+                  title="Ken Burns Effect (Image Motion)"
+                  className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs outline-none focus:border-zinc-400"
+                >
+                  {KEN_BURNS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {kenBurnsPreset !== "none" && (
                 <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2">
                   <span className="text-xs whitespace-nowrap text-zinc-500">Intensity</span>
@@ -256,148 +261,8 @@ export function RenderMediaPanel({
   );
 }
 
-/* ======== Render Side Panel (right column) ======== */
-
-export const STAGE_LABELS: Record<RenderStage, string> = {
-  queued: "\uB300\uAE30\uC911",
-  setup_avatars: "\uC544\uBC14\uD0C0 \uC124\uC815",
-  process_scenes: "\uC74C\uC131 \uC0DD\uC131",
-  calculate_durations: "\uC2DC\uAC04 \uACC4\uC0B0",
-  prepare_bgm: "BGM \uC900\uBE44",
-  build_filters: "\uD544\uD130 \uAD6C\uC131",
-  encode: "\uC778\uCF54\uB529",
-  upload: "\uC5C5\uB85C\uB4DC",
-  completed: "\uC644\uB8CC",
-  failed: "\uC2E4\uD328",
-};
-
-export type RenderSidePanelProps = {
-  layoutStyle: "full" | "post";
-  setLayoutStyle: (value: "full" | "post") => void;
-  frameStyle: string;
-  setFrameStyle: (value: string) => void;
-  canRender: boolean;
-  isRendering: boolean;
-  scenesWithImages: number;
-  totalScenes: number;
-  onRender: () => void;
-  disabledReason?: string | null;
-  renderPresetName?: string | null;
-  renderPresetSource?: string | null;
-  renderProgress?: RenderProgress | null;
-};
-
-export function RenderSidePanel({
-  layoutStyle,
-  setLayoutStyle,
-  frameStyle,
-  setFrameStyle,
-  canRender,
-  isRendering,
-  scenesWithImages,
-  totalScenes,
-  onRender,
-  disabledReason,
-  renderPresetName,
-  renderPresetSource,
-  renderProgress,
-}: RenderSidePanelProps) {
-  return (
-    <>
-      {/* Layout */}
-      <div>
-        <label className={SIDE_PANEL_LABEL}>Layout</label>
-        <div className="flex rounded-full border border-zinc-200 bg-zinc-50 p-0.5">
-          <button
-            type="button"
-            onClick={() => setLayoutStyle("full")}
-            className={`flex-1 rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${
-              layoutStyle === "full" ? TAB_ACTIVE : TAB_INACTIVE
-            }`}
-          >
-            Full 9:16
-          </button>
-          <button
-            type="button"
-            onClick={() => setLayoutStyle("post")}
-            className={`flex-1 rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${
-              layoutStyle === "post" ? TAB_ACTIVE : TAB_INACTIVE
-            }`}
-          >
-            Post 1:1
-          </button>
-        </div>
-        {layoutStyle === "full" && (
-          <select
-            value={frameStyle}
-            onChange={(e) => setFrameStyle(e.target.value)}
-            className="mt-2 w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-zinc-400"
-          >
-            <option value="overlay_minimal.png">Minimal</option>
-            <option value="overlay_modern.png">Modern</option>
-            <option value="overlay_classic.png">Classic</option>
-          </select>
-        )}
-      </div>
-
-      {/* Render Action */}
-      <div className="flex flex-col items-center gap-2">
-        <button
-          onClick={onRender}
-          disabled={!canRender || isRendering}
-          title={disabledReason || undefined}
-          className="w-full rounded-full bg-zinc-900 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {isRendering ? "Rendering..." : "Render"}
-        </button>
-
-        {/* Progress Bar */}
-        {isRendering && renderProgress && (
-          <div className="w-full space-y-1.5">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200">
-              <div
-                className="h-full rounded-full bg-zinc-900 transition-all duration-300 ease-out"
-                style={{ width: `${renderProgress.percent}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-[12px] text-zinc-500">
-              <span>
-                {STAGE_LABELS[renderProgress.stage] || renderProgress.stage}
-                {renderProgress.message ? ` (${renderProgress.message})` : ""}
-              </span>
-              <span className="font-medium">{renderProgress.percent}%</span>
-            </div>
-            {renderProgress.estimated_remaining_seconds != null &&
-              renderProgress.estimated_remaining_seconds > 0 && (
-                <p className="text-[11px] text-zinc-400">
-                  남은 시간: ~{Math.ceil(renderProgress.estimated_remaining_seconds)}초
-                </p>
-              )}
-          </div>
-        )}
-
-        <span className="text-[12px] text-zinc-400">
-          Images: {scenesWithImages}/{totalScenes}
-        </span>
-        {disabledReason && (
-          <p className="rounded-full bg-amber-50 px-2.5 py-1 text-center text-[12px] font-medium text-amber-600">
-            {disabledReason}
-          </p>
-        )}
-      </div>
-
-      {/* Preset */}
-      {renderPresetName && (
-        <div>
-          <label className={SIDE_PANEL_LABEL}>Preset</label>
-          <p className="text-xs font-medium text-indigo-600">{renderPresetName}</p>
-          {renderPresetSource && (
-            <p className="text-[11px] text-indigo-400">from {renderPresetSource}</p>
-          )}
-        </div>
-      )}
-    </>
-  );
-}
+// Re-export RenderSidePanel for backward compatibility
+export { RenderSidePanel, STAGE_LABELS } from "./RenderSidePanel";
+export type { RenderSidePanelProps } from "./RenderSidePanel";
 
 export default RenderMediaPanel;

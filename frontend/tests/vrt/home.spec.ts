@@ -41,6 +41,6 @@ test.describe("Home Page", () => {
 
   test("Admin button navigates to /admin", async ({ page }) => {
     await page.getByRole("link", { name: "Admin" }).click();
-    await expect(page).toHaveURL(/\/admin/);
+    await expect(page).toHaveURL(/\/library/);
   });
 });

@@ -7,7 +7,7 @@ test.describe("Music — VRT", () => {
     await clearLocalStorage(page);
     await mockGlobalApis(page);
     await mockMusicApis(page);
-    await page.goto("/admin/music");
+    await page.goto("/library/music");
     await waitForPageReady(page);
     await hideAnimations(page);
     await expect(page).toHaveScreenshot("music-list.png");
@@ -17,7 +17,7 @@ test.describe("Music — VRT", () => {
     await clearLocalStorage(page);
     await mockGlobalApis(page);
     await mockMusicEmptyApis(page);
-    await page.goto("/admin/music");
+    await page.goto("/library/music");
     await waitForPageReady(page);
     await hideAnimations(page);
     await expect(page).toHaveScreenshot("music-empty.png");

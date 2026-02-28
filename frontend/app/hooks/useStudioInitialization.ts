@@ -182,6 +182,7 @@ export function useStudioInitialization() {
           storyboardVersion: data.version ?? null,
           ...(data.duration != null && { duration: data.duration }),
           ...(data.language != null && { language: data.language }),
+          castingRecommendation: data.casting_recommendation ?? null,
         });
 
         // Parallel load: character A, character B, style profile are independent
@@ -205,7 +206,6 @@ export function useStudioInitialization() {
         if (groupId) {
           parallelLoads.push(
             loadGroupDefaults(groupId, {
-              skipContentDefaults: true,
               skipStyleProfile: !!data.style_profile_id,
             })
           );

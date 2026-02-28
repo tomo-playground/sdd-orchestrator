@@ -705,6 +705,10 @@ export type GroupItem = {
   project_id: number;
   name: string;
   description: string | null;
+  render_preset_id: number | null;
+  style_profile_id: number | null;
+  narrator_voice_preset_id: number | null;
+  channel_dna: ChannelDNA | null;
 };
 
 // ============================================================
@@ -936,8 +940,6 @@ export type EffectiveConfig = {
   render_preset_id: number | null;
   style_profile_id: number | null;
   narrator_voice_preset_id: number | null;
-  language: string | null;
-  duration: number | null;
   channel_dna: ChannelDNA | null;
   render_preset: RenderPreset | null;
   sources: Record<string, string>;

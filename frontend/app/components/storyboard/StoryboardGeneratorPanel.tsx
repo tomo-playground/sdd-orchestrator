@@ -26,6 +26,8 @@ type StoryboardGeneratorPanelProps = {
   presets?: Preset[];
   languages?: LangOption[];
   durations?: number[];
+  /** AI-recommended structure key — matching option gets a ✦ suffix. */
+  recommendedStructure?: string;
   /** When true, render content only without the SECTION_CLASSES card wrapper. */
   embedded?: boolean;
 };
@@ -44,6 +46,7 @@ export default function StoryboardGeneratorPanel({
   presets: externalPresets,
   languages: externalLanguages,
   durations: externalDurations,
+  recommendedStructure,
   embedded = false,
 }: StoryboardGeneratorPanelProps) {
   const hasExternal = !!(externalPresets && externalLanguages && externalDurations);
@@ -123,6 +126,10 @@ export default function StoryboardGeneratorPanel({
               {presets.map((p) => (
                 <option key={p.structure} value={p.structure}>
                   {p.structure}
+                  {recommendedStructure &&
+                  p.structure.toLowerCase() === recommendedStructure.toLowerCase()
+                    ? " ✦"
+                    : ""}
                 </option>
               ))}
             </select>

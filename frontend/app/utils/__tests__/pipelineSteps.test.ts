@@ -14,11 +14,11 @@ describe("getInitialSteps", () => {
     expect(steps.every((s) => s.status === "idle")).toBe(true);
   });
 
-  it("skipStages 4개: 3스텝 반환 (Express)", () => {
+  it("skipStages 4개: 4스텝 반환 (Express)", () => {
     const steps = getInitialSteps(SKIP_ALL);
-    expect(steps).toHaveLength(3);
-    expect(steps[0].id).toBe("script");
-    expect(steps[2].id).toBe("complete");
+    expect(steps).toHaveLength(4);
+    expect(steps[0].id).toBe("casting");
+    expect(steps[3].id).toBe("complete");
   });
 
   it("skipStages 없음: 모든 스텝에 nodes 메타 정보 포함", () => {
@@ -52,8 +52,8 @@ describe("getInitialSteps", () => {
 
   it("부분 스킵: research만 스킵", () => {
     const steps = getInitialSteps(["research"]);
-    expect(steps).toHaveLength(6);
-    expect(steps[0].id).toBe("concept");
+    expect(steps).toHaveLength(7);
+    expect(steps[0].id).toBe("casting");
   });
 
   it("부분 스킵: production만 스킵", () => {
@@ -102,8 +102,23 @@ describe("updatePipelineSteps", () => {
   it("Express: writer → script 스텝", () => {
     const steps = getInitialSteps(SKIP_ALL);
     const updated = updatePipelineSteps(steps, makeEvent("writer"), SKIP_ALL);
-    expect(updated[0].status).toBe("running"); // script
-    expect(updated[1].status).toBe("idle"); // review
+    expect(updated[0].status).toBe("done"); // casting
+    expect(updated[1].status).toBe("running"); // script
+    expect(updated[2].status).toBe("idle"); // review
+  });
+
+  it("Standard: inventory_resolve → research 스텝으로 fallback", () => {
+    const steps = getInitialSteps(SKIP_NONE);
+    const updated = updatePipelineSteps(steps, makeEvent("inventory_resolve"), SKIP_NONE);
+    expect(updated[0].status).toBe("running"); // research
+    expect(updated[1].status).toBe("idle"); // concept
+  });
+
+  it("Express: inventory_resolve → casting 스텝에 매핑", () => {
+    const steps = getInitialSteps(SKIP_ALL);
+    const updated = updatePipelineSteps(steps, makeEvent("inventory_resolve"), SKIP_ALL);
+    expect(updated[0].status).toBe("running"); // casting
+    expect(updated[1].status).toBe("idle"); // script
   });
 
   it("알 수 없는 노드: 변경 없음", () => {

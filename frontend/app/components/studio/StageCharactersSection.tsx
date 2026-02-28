@@ -163,7 +163,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
               basePrompt={basePromptA}
               voicePreset={getVoicePreset(charA.voice_preset_id)}
               audioPlayer={audioPlayer}
-              onViewInLibrary={() => router.push(`/admin/characters/${charA.id}`)}
+              onViewInLibrary={() => router.push(`/library/characters/${charA.id}`)}
             />
           )}
           {charB && (
@@ -175,7 +175,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
               basePrompt={basePromptB}
               voicePreset={getVoicePreset(charB.voice_preset_id)}
               audioPlayer={audioPlayer}
-              onViewInLibrary={() => router.push(`/admin/characters/${charB.id}`)}
+              onViewInLibrary={() => router.push(`/library/characters/${charB.id}`)}
             />
           )}
         </div>

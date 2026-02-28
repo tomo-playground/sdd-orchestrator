@@ -70,7 +70,7 @@ export default function StageBgmSection({ audioPlayer }: Props) {
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-zinc-800">BGM</h3>
         <button
-          onClick={() => router.push("/admin/music")}
+          onClick={() => router.push("/library/music")}
           className="text-[11px] font-medium text-blue-600 hover:text-blue-700"
         >
           Change

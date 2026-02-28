@@ -5,6 +5,7 @@ import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { resolveIpAdapterForSpeaker } from "../../utils/speakerResolver";
 import { OverrideToggleRow, SliderRow } from "../storyboard/SidePanelControls";
 import { SIDE_PANEL_LABEL } from "../ui/variants";
+import InfoTooltip from "../ui/InfoTooltip";
 
 export default function SceneToolsContent() {
   const {
@@ -94,6 +95,7 @@ export default function SceneToolsContent() {
             accent="violet"
             disabled={isNarrator}
             disabledReason="Narrator 씬에서는 사용 불가"
+            tooltip={<InfoTooltip term="controlnet" />}
           />
           {effectiveControlnet && !isNarrator && (
             <SliderRow
@@ -120,6 +122,7 @@ export default function SceneToolsContent() {
             accent={currentSpeaker === "B" ? "sky" : "amber"}
             disabled={isNarrator}
             disabledReason="Narrator 씬에서는 사용 불가"
+            tooltip={<InfoTooltip term="ip-adapter" />}
           />
           {effectiveIpAdapter && !isNarrator && (
             <>

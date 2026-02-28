@@ -196,11 +196,11 @@ export function usePublishRender() {
       setOutput({ voicePresetId: v });
       if (groupId) {
         try {
-          await axios.put(`${API_BASE}/groups/${groupId}/config`, {
+          await axios.put(`${API_BASE}/groups/${groupId}`, {
             narrator_voice_preset_id: v,
           });
         } catch (err) {
-          console.error("[setVoicePresetId] Failed to update group config:", err);
+          console.error("[setVoicePresetId] Failed to update group:", err);
         }
       }
     },

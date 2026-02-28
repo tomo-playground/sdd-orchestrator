@@ -1,7 +1,6 @@
 import axios from "axios";
 import { useContextStore } from "../useContextStore";
 import { useRenderStore } from "../useRenderStore";
-import { useStoryboardStore } from "../useStoryboardStore";
 import { useUIStore } from "../useUIStore";
 import { API_BASE } from "../../constants";
 import type { EffectiveConfig, GroupItem } from "../../types";
@@ -10,13 +9,10 @@ import { loadStyleProfileFromId } from "./styleProfileActions";
 /**
  * Load effective config (cascading: Project < Group) and apply to output slice.
  * Called on initial load or when the active group changes.
- *
- * @param skipContentDefaults - If true, skips applying language/duration.
- *                              Use when loading an existing storyboard that already has these values.
  */
 export async function loadGroupDefaults(
   groupId: number,
-  options?: { skipContentDefaults?: boolean; skipStyleProfile?: boolean }
+  options?: { skipStyleProfile?: boolean }
 ): Promise<void> {
   const { setEffectiveDefaults, setEffectivePreset } = useContextStore.getState();
   setEffectiveDefaults(null, null, false);
@@ -63,21 +59,11 @@ export async function loadGroupDefaults(
     }
     if (p.music_preset_id != null) updates.musicPresetId = p.music_preset_id;
 
-    // narrator_voice_preset_id from GroupConfig
+    // narrator_voice_preset_id from Group
     if (cfg.narrator_voice_preset_id != null) updates.voicePresetId = cfg.narrator_voice_preset_id;
 
     if (Object.keys(updates).length > 0) {
       useRenderStore.getState().set(updates);
-    }
-
-    // Apply content defaults to plan slice (skip if loading existing storyboard)
-    if (!options?.skipContentDefaults) {
-      const planUpdates: Record<string, unknown> = {};
-      if (cfg.language) planUpdates.language = cfg.language;
-      if (cfg.duration) planUpdates.duration = cfg.duration;
-      if (Object.keys(planUpdates).length > 0) {
-        useStoryboardStore.getState().set(planUpdates);
-      }
     }
   } catch {
     setEffectiveDefaults(null, null, true);

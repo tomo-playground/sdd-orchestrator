@@ -22,8 +22,8 @@ const MATERIALS: MaterialItem[] = [
   { key: "script", label: "Script", icon: "S", action: "script-tab" },
   { key: "style", label: "Style", icon: "\u2726", action: "stage-tab" },
   { key: "characters", label: "Characters", icon: "C", action: "stage-tab" },
-  { key: "voice", label: "Voice", icon: "V", link: "/admin/voices" },
-  { key: "music", label: "Music", icon: "M", link: "/admin/music" },
+  { key: "voice", label: "Voice", icon: "V", link: "/library/voices" },
+  { key: "music", label: "Music", icon: "M", link: "/library/music" },
   { key: "background", label: "BG", icon: "B", action: "stage-tab" },
 ];
 

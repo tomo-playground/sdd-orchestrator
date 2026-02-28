@@ -23,7 +23,7 @@ export default function StageVoiceSection({ audioPlayer, voicePresets }: Props) 
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-zinc-800">Voice</h3>
         <button
-          onClick={() => router.push("/admin/voices")}
+          onClick={() => router.push("/library/voices")}
           className="text-[11px] font-medium text-blue-600 hover:text-blue-700"
         >
           Change Preset

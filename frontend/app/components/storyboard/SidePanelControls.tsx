@@ -1,8 +1,15 @@
 "use client";
+import type { ReactNode } from "react";
 import {
-  SUCCESS_BG, SUCCESS_TEXT, SUCCESS_BORDER,
-  WARNING_BG, WARNING_TEXT, WARNING_BORDER,
-  ERROR_BG, ERROR_TEXT, ERROR_BORDER
+  SUCCESS_BG,
+  SUCCESS_TEXT,
+  SUCCESS_BORDER,
+  WARNING_BG,
+  WARNING_TEXT,
+  WARNING_BORDER,
+  ERROR_BG,
+  ERROR_TEXT,
+  ERROR_BORDER,
 } from "../ui/variants";
 /** Reusable sub-components for SceneToolsContent right panel. */
 
@@ -16,6 +23,7 @@ export function OverrideToggleRow({
   onReset,
   disabled = false,
   disabledReason,
+  tooltip,
 }: {
   label: string;
   checked: boolean;
@@ -25,6 +33,7 @@ export function OverrideToggleRow({
   accent?: string;
   disabled?: boolean;
   disabledReason?: string;
+  tooltip?: ReactNode;
 }) {
   const isOn = disabled ? false : checked;
   return (
@@ -34,6 +43,7 @@ export function OverrideToggleRow({
         title={disabled ? disabledReason : undefined}
       >
         {label}
+        {tooltip && <span className="ml-1 inline-flex align-middle">{tooltip}</span>}
         {hasOverride && (
           <button
             type="button"
@@ -54,12 +64,14 @@ export function OverrideToggleRow({
         aria-checked={isOn}
         onClick={() => !disabled && onChange(!isOn)}
         disabled={disabled}
-        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${disabled ? "cursor-not-allowed opacity-30" : "cursor-pointer"
-          } ${isOn ? "bg-zinc-900" : "bg-zinc-200"}`}
+        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
+          disabled ? "cursor-not-allowed opacity-30" : "cursor-pointer"
+        } ${isOn ? "bg-zinc-900" : "bg-zinc-200"}`}
       >
         <span
-          className={`inline-block h-3 w-3 rounded-full bg-white shadow transition-transform ${isOn ? "translate-x-3.5" : "translate-x-0.5"
-            }`}
+          className={`inline-block h-3 w-3 rounded-full bg-white shadow transition-transform ${
+            isOn ? "translate-x-3.5" : "translate-x-0.5"
+          }`}
         />
       </button>
     </div>

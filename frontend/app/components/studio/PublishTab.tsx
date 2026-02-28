@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
 import { RenderMediaPanel, RenderSidePanel } from "../video/RenderSettingsPanel";
@@ -7,6 +8,14 @@ import VideoPreviewHero from "../video/VideoPreviewHero";
 import { PublishVideosSection, PublishCaptionLikes } from "./PublishMetaPanel";
 import { usePublishRender } from "../../hooks/usePublishRender";
 import { PUBLISH_2COL_LAYOUT } from "../ui/variants";
+
+/** Safe defaults for Quick Render — skip Ken Burns / transition customization */
+const QUICK_RENDER_DEFAULTS = {
+  kenBurnsPreset: "none" as const,
+  transitionType: "fade",
+  includeSceneText: true,
+  speedMultiplier: 1.0,
+};
 
 export default function PublishTab() {
   const setUI = useUIStore((s) => s.set);
@@ -22,6 +31,11 @@ export default function PublishTab() {
     handleRender,
     handleSetVoicePresetId,
   } = usePublishRender();
+
+  const handleQuickRender = useCallback(() => {
+    setOutput(QUICK_RENDER_DEFAULTS);
+    handleRender(store.layoutStyle);
+  }, [handleRender, store.layoutStyle, setOutput]);
 
   return (
     <div className="w-full space-y-6">
@@ -53,6 +67,7 @@ export default function PublishTab() {
               scenesWithImages={scenes.filter((s) => !!s.image_url).length}
               totalScenes={scenes.length}
               onRender={() => handleRender(store.layoutStyle)}
+              onQuickRender={handleQuickRender}
               disabledReason={disabledReason}
               renderPresetName={effectivePresetName}
               renderPresetSource={effectivePresetSource}
@@ -90,7 +105,7 @@ export default function PublishTab() {
             bgmPrompt={store.bgmPrompt}
             bgmMood={store.bgmMood}
             setBgmPrompt={(v) => setOutput({ bgmPrompt: v })}
-            defaultOpen={true}
+            defaultOpen={false}
             readOnly
           />
         </div>

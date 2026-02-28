@@ -17,7 +17,7 @@ test.describe("Admin Page", () => {
     await page.route("**/storage/stats", (route) =>
       route.fulfill({ json: { total_size_mb: 0, total_count: 0, directories: {} } }),
     );
-    await page.goto("/admin/characters");
+    await page.goto("/library/characters");
   });
 
   test("admin renders characters page", async ({ page }) => {

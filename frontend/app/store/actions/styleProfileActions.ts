@@ -68,16 +68,16 @@ export async function handleStyleProfileComplete(
     useStoryboardStore.getState().set({ hiResEnabled: true });
   }
 
-  // 2. Persist style_profile_id to GroupConfig (SSOT for generation)
+  // 2. Persist style_profile_id to Group (SSOT for generation)
   if (groupId) {
     try {
-      await axios.put(`${API_BASE}/groups/${groupId}/config`, {
+      await axios.put(`${API_BASE}/groups/${groupId}`, {
         style_profile_id: profile.id,
       });
       setEffectiveDefaults(profile.id, null, true);
     } catch (err) {
-      console.error("[StyleProfile] Failed to update GroupConfig:", err);
-      showToast("Style saved locally but GroupConfig update failed", "error");
+      console.error("[StyleProfile] Failed to update Group:", err);
+      showToast("Style saved locally but Group update failed", "error");
     }
   }
 

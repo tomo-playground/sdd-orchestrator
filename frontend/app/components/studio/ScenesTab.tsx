@@ -110,6 +110,8 @@ export default function ScenesTab() {
     : undefined;
 
   const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const showAdvancedSettings = useUIStore((s) => s.showAdvancedSettings);
+  const toggleAdvancedSettings = useUIStore((s) => s.toggleAdvancedSettings);
   const currentStyleProfile = useRenderStore((s) => s.currentStyleProfile);
 
   if (scenes.length === 0) {
@@ -153,7 +155,7 @@ export default function ScenesTab() {
 
         {/* ── Center Panel: Context Strip + Scene Editor ── */}
         <main className={CENTER_PANEL_CLASSES}>
-          {/* Context Strip — read-only badges + Stage deep link */}
+          {/* Context Strip — read-only badges + Advanced toggle + Stage deep link */}
           <div className="flex items-center gap-2 border-b border-zinc-100 px-8 py-1.5">
             {currentStyleProfile && (
               <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
@@ -170,12 +172,24 @@ export default function ScenesTab() {
                 B: {selectedCharacterBName}
               </span>
             )}
-            <button
-              onClick={() => setActiveTab("stage")}
-              className="ml-auto text-[11px] font-medium text-zinc-400 transition hover:text-zinc-600"
-            >
-              Edit in Stage →
-            </button>
+            <div className="ml-auto flex items-center gap-3">
+              <button
+                onClick={toggleAdvancedSettings}
+                className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${
+                  showAdvancedSettings
+                    ? "bg-zinc-900 text-white"
+                    : "border border-zinc-200 text-zinc-400 hover:border-zinc-300 hover:text-zinc-500"
+                }`}
+              >
+                Advanced
+              </button>
+              <button
+                onClick={() => setActiveTab("stage")}
+                className="text-[11px] font-medium text-zinc-400 transition hover:text-zinc-600"
+              >
+                Edit in Stage →
+              </button>
+            </div>
           </div>
 
           <SceneNavHeader

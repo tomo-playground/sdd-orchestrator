@@ -8,12 +8,11 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: allowedOrigins,
   async redirects() {
     return [
-      { source: "/characters/:path*", destination: "/admin/characters/:path*", permanent: true },
-      { source: "/voices", destination: "/admin/voices", permanent: true },
-      { source: "/music", destination: "/admin/music", permanent: true },
-      { source: "/settings", destination: "/admin/system", permanent: true },
-      { source: "/lab", destination: "/admin/lab", permanent: true },
-      { source: "/manage", destination: "/admin", permanent: true },
+      { source: "/characters/:path*", destination: "/library/characters/:path*", permanent: true },
+      { source: "/voices", destination: "/library/voices", permanent: true },
+      { source: "/music", destination: "/library/music", permanent: true },
+      { source: "/lab", destination: "/dev/lab", permanent: true },
+      { source: "/manage", destination: "/library/characters", permanent: true },
     ];
   },
   async rewrites() {
