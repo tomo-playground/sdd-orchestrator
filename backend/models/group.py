@@ -29,14 +29,17 @@ class Group(Base, TimestampMixin):
     render_preset_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("render_presets.id", ondelete="SET NULL"),
+        index=True,
     )
     style_profile_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("style_profiles.id", ondelete="SET NULL"),
+        index=True,
     )
     narrator_voice_preset_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("voice_presets.id", ondelete="SET NULL"),
+        index=True,
     )
 
     # Relationships

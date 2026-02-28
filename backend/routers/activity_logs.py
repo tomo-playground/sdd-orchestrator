@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from config import logger
 from database import get_db
@@ -441,7 +441,7 @@ def suggest_conflict_rules(
     ```
     """
     try:
-        from models.tag import Tag, TagRule
+        from models.tag import TagRule
 
         # Get conflict candidates from pattern analysis
         query = db.query(ActivityLog).filter(
@@ -507,16 +507,19 @@ def suggest_conflict_rules(
                     }
                 )
 
-        # Get existing conflict rules to filter out duplicates
-        existing_rules = db.query(TagRule).filter(TagRule.rule_type == "conflict").all()
+        # Get existing conflict rules to filter out duplicates (joinedload to avoid N+1)
+        existing_rules = (
+            db.query(TagRule)
+            .options(joinedload(TagRule.source_tag), joinedload(TagRule.target_tag))
+            .filter(TagRule.rule_type == "conflict")
+            .all()
+        )
 
         # Build set of existing tag name pairs
         existing_pairs = set()
         for rule in existing_rules:
-            source_tag = db.query(Tag).filter(Tag.id == rule.source_tag_id).first()
-            target_tag = db.query(Tag).filter(Tag.id == rule.target_tag_id).first()
-            if source_tag and target_tag:
-                pair = tuple(sorted([source_tag.name, target_tag.name]))
+            if rule.source_tag and rule.target_tag:
+                pair = tuple(sorted([rule.source_tag.name, rule.target_tag.name]))
                 existing_pairs.add(pair)
 
         # Filter out existing rules
@@ -681,15 +684,18 @@ def get_success_combinations(
             combinations_by_category[category].sort(key=lambda x: (-x["success_rate"], -x["avg_match_rate"]))
             combinations_by_category[category] = combinations_by_category[category][:top_n_per_category]
 
-        # Get conflict rules
-        conflict_rules = db.query(TagRule).filter(TagRule.rule_type == "conflict").all()
+        # Get conflict rules (joinedload to avoid N+1)
+        conflict_rules = (
+            db.query(TagRule)
+            .options(joinedload(TagRule.source_tag), joinedload(TagRule.target_tag))
+            .filter(TagRule.rule_type == "conflict")
+            .all()
+        )
         conflict_pairs = set()
 
         for rule in conflict_rules:
-            source_tag = db.query(Tag).filter(Tag.id == rule.source_tag_id).first()
-            target_tag = db.query(Tag).filter(Tag.id == rule.target_tag_id).first()
-            if source_tag and target_tag:
-                conflict_pairs.add(tuple(sorted([source_tag.name, target_tag.name])))
+            if rule.source_tag and rule.target_tag:
+                conflict_pairs.add(tuple(sorted([rule.source_tag.name, rule.target_tag.name])))
 
         # Generate suggested combinations
         # Strategy: Pick top 1 from each key category (expression, pose, camera, environment)

@@ -231,7 +231,7 @@ def _extract_env_tags(req: SceneGenerateRequest, db) -> list[str]:
     try:
         from models.scene import Scene
 
-        scene = db.query(Scene).filter(Scene.id == req.scene_id).first()
+        scene = db.query(Scene).filter(Scene.id == req.scene_id, Scene.deleted_at.is_(None)).first()
         if scene and scene.context_tags:
             env = scene.context_tags.get("environment", [])
             return env if isinstance(env, list) else []

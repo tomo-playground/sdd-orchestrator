@@ -32,6 +32,7 @@ class RenderHistory(Base, TimestampMixin):
         Integer,
         ForeignKey("media_assets.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     label: Mapped[str] = mapped_column(String(20), nullable=False)
 

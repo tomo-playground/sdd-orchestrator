@@ -471,7 +471,9 @@ class V3PromptBuilder:
             )
 
         if character is None:
-            character = self.db.query(Character).filter(Character.id == character_id).first()
+            character = (
+                self.db.query(Character).filter(Character.id == character_id, Character.deleted_at.is_(None)).first()
+            )
         if not character:
             return self.compose(scene_tags, style_loras=style_loras)
 

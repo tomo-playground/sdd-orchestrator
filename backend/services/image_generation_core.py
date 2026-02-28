@@ -310,7 +310,7 @@ def compose_scene_with_style(
 
     character = None
     if character_id:
-        character = db.query(Character).filter(Character.id == character_id).first()
+        character = db.query(Character).filter(Character.id == character_id, Character.deleted_at.is_(None)).first()
 
     # Resolve scene-specific clothing override from DB
     if not clothing_override and scene_id and character_id:
@@ -336,7 +336,7 @@ def compose_scene_with_style(
     if character and character_b_id:
         from services.prompt.v3_multi_character import MultiCharacterComposer
 
-        char_b = db.query(Character).filter(Character.id == character_b_id).first()
+        char_b = db.query(Character).filter(Character.id == character_b_id, Character.deleted_at.is_(None)).first()
         if char_b:
             composer = MultiCharacterComposer(builder)
             composed = composer.compose(

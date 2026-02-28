@@ -140,11 +140,13 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `base_seed` | BigInteger, nullable | Seed Anchoring 기준 시드. 씬별 seed = `base_seed + order * SEED_ANCHOR_OFFSET` |
 | `stage_status` | String(20), nullable | Stage 파이프라인 상태: `pending`, `staging`, `staged`, `failed`. NULL = 미사용 |
 | `casting_recommendation` | JSONB, nullable | AI 캐스팅 추천 (character_id, structure, reasoning 등). Phase 20-C |
+| `bgm_audio_asset_id` | Integer (FK → media_assets, SET NULL), nullable | BGM 오디오 에셋 참조 |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
 - `video_url` (`@property`): `render_history[0].media_asset.url` 반환
+- `bgm_audio_url` (`@property`): `bgm_audio_asset.url` 반환
 
 ### `scenes`
 스토리보드의 개별 씬/샷.
@@ -286,9 +288,11 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `classification_confidence` | Float | 분류 신뢰도 (0.0-1.0) |
 | `wd14_count` | Integer | WD14 출현 횟수 |
 | `wd14_category` | Integer | WD14 카테고리 코드 |
+| `valence` | String(10), nullable, indexed | 감성 분류 (`positive`, `negative`, `neutral`, NULL). expression ↔ mood 간 cross-group conflict 감지용 |
 | `is_active` | Boolean | 태그 활성화 상태 (default: TRUE) |
 | `deprecated_reason` | String(200) | 비활성화 이유 |
 | `replacement_tag_id` | Integer (FK → tags, SET NULL) | 대체 태그 ID |
+| `thumbnail_asset_id` | Integer (FK → media_assets, SET NULL) | 태그 썸네일 이미지 (Visual Tag Browser) |
 
 
 **`default_layer` 매핑** (V3 12-Layer System):
@@ -391,6 +395,7 @@ WD14 피드백 루프 데이터.
 | `category` | String(50) | 분류 (indoor, outdoor, school...) |
 | `weight` | Float (default: 0.3) | ControlNet Canny 기본 가중치 |
 | `is_system` | Boolean (default: false) | 시스템 프리셋 여부 |
+| `style_profile_id` | Integer (FK → style_profiles, SET NULL), nullable | 연결된 스타일 프로파일 |
 | `storyboard_id` | Integer (FK → storyboards, CASCADE), nullable | 소유 스토리보드. NULL = 공용 |
 | `location_key` | String(100), nullable | Writer Plan의 location 식별자 |
 | `created_at`, `updated_at` | DateTime | TimestampMixin |

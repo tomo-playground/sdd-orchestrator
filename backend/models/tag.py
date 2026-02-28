@@ -136,6 +136,10 @@ class TagRule(Base, TimestampMixin):
     priority: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(default=True)
 
+    # Relationships for eager loading (N+1 prevention)
+    source_tag: Mapped["Tag | None"] = relationship("Tag", foreign_keys=[source_tag_id], lazy="select")
+    target_tag: Mapped["Tag | None"] = relationship("Tag", foreign_keys=[target_tag_id], lazy="select")
+
 
 class TagEffectiveness(Base, TimestampMixin):
     """Per-tag prompt effectiveness tracking (use_count, match_count, ratio)."""
