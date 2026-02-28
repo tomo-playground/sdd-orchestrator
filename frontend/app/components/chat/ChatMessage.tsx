@@ -8,30 +8,58 @@ import ConceptCard from "./messages/ConceptCard";
 import ReviewCard from "./messages/ReviewCard";
 import CompletionCard from "./messages/CompletionCard";
 import ErrorCard from "./messages/ErrorCard";
-import type { ChatMessage as ChatMessageType } from "../../types/chat";
-import type { ChatScriptEditorActions } from "../../hooks/useChatScriptEditor";
+import type { ChatMessage as ChatMessageType, SettingsRecommendation } from "../../types/chat";
+import type { SceneItem, ResumeOptions } from "../../hooks/scriptEditor/types";
+import type { FeedbackPreset } from "../../types";
+
+export type ChatMessageCallbacks = {
+  onApplyRecommendation: (rec: SettingsRecommendation) => void;
+  onResume: (
+    action: "approve" | "revise" | "select" | "regenerate" | "custom_concept",
+    feedback?: string,
+    conceptId?: number,
+    options?: ResumeOptions
+  ) => void;
+  onRetry: () => void;
+  onNavigate: (tab: string) => void;
+  scenes: SceneItem[];
+  feedbackPresets: FeedbackPreset[] | null;
+};
 
 type Props = {
   message: ChatMessageType;
-  editor: ChatScriptEditorActions;
+  callbacks: ChatMessageCallbacks;
 };
 
-const ChatMessage = memo(function ChatMessage({ message, editor }: Props) {
+const ChatMessage = memo(function ChatMessage({ message, callbacks }: Props) {
   switch (message.contentType) {
     case "user":
       return <UserBubble text={message.text ?? ""} />;
     case "assistant":
       return <AssistantBubble text={message.text ?? ""} />;
     case "settings_recommend":
-      return <SettingsRecommendCard message={message} onApply={editor.applyRecommendation} />;
+      return <SettingsRecommendCard message={message} onApply={callbacks.onApplyRecommendation} />;
     case "concept_gate":
-      return <ConceptCard message={message} editor={editor} />;
+      return <ConceptCard message={message} onResume={callbacks.onResume} />;
     case "review_gate":
-      return <ReviewCard message={message} editor={editor} />;
+      return (
+        <ReviewCard
+          message={message}
+          scenes={callbacks.scenes}
+          feedbackPresets={callbacks.feedbackPresets}
+          onResume={callbacks.onResume}
+        />
+      );
     case "completion":
-      return <CompletionCard text={message.text ?? ""} sceneCount={editor.scenes.length} />;
+      return (
+        <CompletionCard
+          text={message.text ?? ""}
+          sceneCount={callbacks.scenes.length}
+          onNavigate={callbacks.onNavigate}
+        />
+      );
     case "error":
-      return <ErrorCard message={message.errorMessage} onRetry={editor.confirmAndGenerate} />;
+      return <ErrorCard message={message.errorMessage} onRetry={callbacks.onRetry} />;
     default:
       return null;
   }

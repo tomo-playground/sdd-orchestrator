@@ -9,9 +9,8 @@ import type { ScriptEditorActions } from "./scriptEditor";
 import type { ScriptStreamEvent } from "../types";
 import type { ChatMessage, ActiveProgress, SettingsRecommendation } from "../types/chat";
 
-let _msgId = 0;
 function nextId() {
-  return `msg-${Date.now()}-${++_msgId}`;
+  return crypto.randomUUID();
 }
 
 function assistantMsg(text: string): ChatMessage {
@@ -43,6 +42,7 @@ export function useChatScriptEditor(options?: {
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [activeProgress, setActiveProgress] = useState<ActiveProgress>(null);
+  const isAnalyzingRef = useRef(false);
 
   const addMessage = useCallback((msg: ChatMessage) => {
     setChatMessages((prev) => [...prev, msg]);
@@ -125,18 +125,21 @@ export function useChatScriptEditor(options?: {
   editorRef.current = editor;
 
   // ── Topic analysis via API ──
+  // editorRef를 통해 최신 editor 상태에 접근 (stale closure 방지)
   const sendMessage = useCallback(
     async (text: string) => {
+      if (isAnalyzingRef.current) return;
       addMessage({ id: nextId(), role: "user", contentType: "user", text, timestamp: Date.now() });
-      editor.setField("topic", text);
+      editorRef.current.setField("topic", text);
 
+      isAnalyzingRef.current = true;
       try {
         const res = await fetch(`${API_BASE}/scripts/analyze-topic`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             topic: text,
-            description: editor.description || undefined,
+            description: editorRef.current.description || undefined,
             group_id: groupId,
           }),
         });
@@ -153,29 +156,29 @@ export function useChatScriptEditor(options?: {
         });
       } catch {
         addMessage(assistantMsg("사이드바에서 설정을 확인한 뒤 생성해주세요."));
+      } finally {
+        isAnalyzingRef.current = false;
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [groupId, editor.description, addMessage]
+    [groupId, addMessage]
   );
 
   // ── Apply AI recommendation to sidebar ──
   const applyRecommendation = useCallback(
     (rec: SettingsRecommendation) => {
-      editor.setField("duration", rec.duration);
-      editor.setField("language", rec.language);
-      editor.setField("structure", rec.structure);
+      editorRef.current.setField("duration", rec.duration);
+      editorRef.current.setField("language", rec.language);
+      editorRef.current.setField("structure", rec.structure);
       if (rec.character_id != null) {
-        editor.setField("characterId", rec.character_id);
-        editor.setField("characterName", rec.character_name);
+        editorRef.current.setField("characterId", rec.character_id);
+        editorRef.current.setField("characterName", rec.character_name);
       }
       if (rec.character_b_id != null) {
-        editor.setField("characterBId", rec.character_b_id);
-        editor.setField("characterBName", rec.character_b_name);
+        editorRef.current.setField("characterBId", rec.character_b_id);
+        editorRef.current.setField("characterBName", rec.character_b_name);
       }
       addMessage(assistantMsg("추천 설정을 사이드바에 반영했습니다."));
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [addMessage]
   );
 

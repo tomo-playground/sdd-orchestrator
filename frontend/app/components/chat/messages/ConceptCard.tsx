@@ -3,14 +3,19 @@
 import { Bot } from "lucide-react";
 import ConceptSelectionPanel from "../../scripts/ConceptSelectionPanel";
 import type { ChatMessage } from "../../../types/chat";
-import type { ChatScriptEditorActions } from "../../../hooks/useChatScriptEditor";
+import type { ResumeOptions } from "../../../hooks/scriptEditor/types";
 
 type Props = {
   message: ChatMessage;
-  editor: ChatScriptEditorActions;
+  onResume: (
+    action: "approve" | "revise" | "select" | "regenerate" | "custom_concept",
+    feedback?: string,
+    conceptId?: number,
+    options?: ResumeOptions
+  ) => void;
 };
 
-export default function ConceptCard({ message, editor }: Props) {
+export default function ConceptCard({ message, onResume }: Props) {
   if (!message.concepts || message.concepts.length === 0) return null;
 
   return (
@@ -22,10 +27,10 @@ export default function ConceptCard({ message, editor }: Props) {
         <ConceptSelectionPanel
           candidates={message.concepts}
           recommendedId={message.recommendedConceptId ?? null}
-          onSelect={(conceptId) => editor.resume("select", undefined, conceptId)}
-          onRegenerate={() => editor.resume("regenerate")}
+          onSelect={(conceptId) => onResume("select", undefined, conceptId)}
+          onRegenerate={() => onResume("regenerate")}
           onCustomConcept={(concept) =>
-            editor.resume("custom_concept", undefined, undefined, { customConcept: concept })
+            onResume("custom_concept", undefined, undefined, { customConcept: concept })
           }
         />
       </div>

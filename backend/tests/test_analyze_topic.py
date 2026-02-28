@@ -22,7 +22,7 @@ CHARS = [FakeCharacter(id=1, name="유나"), FakeCharacter(id=2, name="하루")]
 
 @pytest.fixture
 def validate():
-    from routers.scripts import _validate_topic_analysis  # noqa: PLC0415
+    from services.scripts.topic_analysis import _validate_topic_analysis  # noqa: PLC0415
 
     def _run(parsed: dict, characters=None):
         return _validate_topic_analysis(parsed, CHARS if characters is None else characters)
@@ -55,15 +55,21 @@ def test_missing_duration_default(validate):
 
 
 def test_valid_structure(validate):
-    """유효한 structure는 그대로 반환."""
+    """유효한 structure는 capitalized name으로 반환."""
     result = validate({"structure": "dialogue"})
-    assert result["structure"] == "dialogue"
+    assert result["structure"] == "Dialogue"
+
+
+def test_valid_structure_case_insensitive(validate):
+    """대소문자 구분 없이 매칭."""
+    result = validate({"structure": "Narrated_Dialogue"})
+    assert result["structure"] == "Narrated Dialogue"
 
 
 def test_invalid_structure_fallback(validate):
-    """유효하지 않은 structure는 monologue로 대체."""
+    """유효하지 않은 structure는 Monologue로 대체."""
     result = validate({"structure": "unknown_structure"})
-    assert result["structure"] == "monologue"
+    assert result["structure"] == "Monologue"
 
 
 # ── Language 검증 ──
@@ -121,8 +127,15 @@ def test_no_characters_available(validate):
 # ── 전체 결과 필드 확인 ──
 
 
+def test_character_name_cleared_when_id_none(validate):
+    """character_id가 None이면 character_name도 반드시 None."""
+    result = validate({"character_id": None, "character_name": "유령이름"})
+    assert result["character_id"] is None
+    assert result["character_name"] is None
+
+
 def test_full_result_has_all_fields(validate):
-    """결과에 필수 7개 필드가 포함된다."""
+    """결과에 필수 8개 필드가 포함된다."""
     result = validate({"duration": 30, "language": "Korean", "structure": "monologue"})
     expected_keys = {
         "duration",
@@ -135,3 +148,4 @@ def test_full_result_has_all_fields(validate):
         "reasoning",
     }
     assert expected_keys.issubset(set(result.keys()))
+    assert result["structure"] == "Monologue"

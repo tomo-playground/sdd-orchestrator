@@ -2,18 +2,14 @@
 
 import { Bot, CheckCircle, Pencil, Play } from "lucide-react";
 import Button from "../../ui/Button";
-import { useUIStore } from "../../../store/useUIStore";
 
 type Props = {
   text: string;
   sceneCount: number;
+  onNavigate: (tab: string) => void;
 };
 
-export default function CompletionCard({ text, sceneCount }: Props) {
-  const handleEditScenes = () => {
-    useUIStore.getState().setActiveTab("direct");
-  };
-
+export default function CompletionCard({ text, sceneCount, onNavigate }: Props) {
   return (
     <div className="flex gap-2">
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100">
@@ -26,14 +22,10 @@ export default function CompletionCard({ text, sceneCount }: Props) {
         </div>
         <p className="mt-1 text-xs text-emerald-700">{sceneCount}개 씬이 준비되었습니다.</p>
         <div className="mt-3 flex gap-2">
-          <Button size="sm" variant="outline" onClick={handleEditScenes}>
+          <Button size="sm" variant="outline" onClick={() => onNavigate("direct")}>
             <Pencil className="h-3.5 w-3.5" />씬 편집하기
           </Button>
-          <Button
-            size="sm"
-            variant="success"
-            onClick={() => useUIStore.getState().setActiveTab("publish")}
-          >
+          <Button size="sm" variant="success" onClick={() => onNavigate("publish")}>
             <Play className="h-3.5 w-3.5" />
             영상 제작 시작
           </Button>
