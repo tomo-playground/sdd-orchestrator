@@ -106,7 +106,19 @@ export const useUIStore = create<UIState>((set) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   openGroupConfig: () => {
     const gid = useContextStore.getState().groupId;
-    if (gid !== null && gid !== ALL_GROUPS_ID) set({ configGroupId: gid });
+    if (gid === null || gid === ALL_GROUPS_ID) {
+      set((s) => {
+        const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+        return {
+          toasts: [
+            ...s.toasts,
+            { id, message: "시리즈를 먼저 선택하세요", type: "error" as const },
+          ],
+        };
+      });
+      return;
+    }
+    set({ configGroupId: gid });
   },
 
   showToast: (message, type) => {
