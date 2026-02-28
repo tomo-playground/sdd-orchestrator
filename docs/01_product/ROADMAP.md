@@ -27,17 +27,14 @@
 | Phase 21 (Persona-based Menu Reorganization) | 전체 완료 (ARCHIVED) |
 | Phase 22 (Backend Complete Image Generation) | 전체 완료 (ARCHIVED) |
 | Phase 23 (Project/Group UX 개선) | 전체 완료 (ARCHIVED) |
+| Phase 24 (Script 탭 → 하이브리드 채팅 AI) | 전체 완료 |
 | 테스트 | Backend 2,667 + Frontend 435 = **총 3,102개** |
-
-### 진행 중
-
-- **Phase 24: Script 탭 → 하이브리드 채팅 AI 인터페이스** (02-28~): 폼 기반 Script 탭을 하이브리드 레이아웃(좌측 설정 사이드바 + 우측 채팅)으로 전환. 토픽 분석 API, SSE 콜백, 채팅 UI 컴포넌트 구현 완료. stale closure 수정, SSOT 언어 검증 적용.
 
 ### 최근 작업
 
+- **Phase 24 코드 리뷰 수정** (02-28): SSE 에러 BLOCKER 수정(preflight 포함), topic min_length, structure 케이스 정규화(id→name), sendMessage 동시 요청 방지, character_name null 처리, ChatMessage memo 효과 복원(callbacks 분리), topic_analysis 서비스 추출. 15테스트.
 - **characters.preview_locked 필드 제거** (02-28): 미사용 기능 전체 삭제. ORM 모델, 스키마 3곳, preview.py 가드, Frontend 타입/배지/필터, 테스트 fixtures, 문서 3종 정리. Alembic 마이그레이션 포함. 12파일.
-- **Chat UI 안정화** (02-28): useScriptEditor.generate() stale closure 수정(stateRef), useChatScriptEditor editorRef 안정적 참조, analyze-topic 언어 검증 SSOT, ChatMessage non-null assertion 제거. 6파일.
-- **Phase 24 기반 구현** (02-28): POST /scripts/analyze-topic 엔드포인트, load_full_inventory() 공통 함수, Chat UI 컴포넌트 7종(ChatArea, ChatMessage, SettingsSidebar 등), useChatScriptEditor/useAutoScroll 훅, SSE onNodeEvent 콜백. 41파일.
+- **Phase 24 구현+안정화** (02-28): 하이브리드 채팅 AI 인터페이스. POST /scripts/analyze-topic, load_full_inventory(), Chat UI 7종, useChatScriptEditor/useAutoScroll, SSE onNodeEvent 콜백. stale closure 수정, SSOT 언어 검증. 41파일.
 - **P0~P1 안정화** (02-28): P0-1 ActivityLog(기존 해결), P0-2 checksum 보완(`_link_media_asset`), P0-3 base_seed(기존 해결), P1-1 identity_score(정상 확인), P1-2 valence 시딩(startup 자동화). 테스트 오류 2건 수정(research tools 5→4, graph 18→19노드). 5파일.
 - **Phase 23: Project/Group UX 개선** (02-28): Zero-Config 자동 프로비저닝, 용어 통일(채널/시리즈/영상), 설정 가시성(ConfigBadges), 내비게이션 개선(리다이렉트 제거). 4/4 완료.
 - **Phase 22: Backend Complete Image Generation** (02-28): SD 이미지 생성→저장까지 Backend 자율 완결, Frontend SPOF 제거. MinIO 저장+DB 갱신을 Backend에서 처리, Graceful Degradation fallback. 8파일 변경.
@@ -95,6 +92,7 @@
 | 21 | Persona-based Menu Reorganization | Library/Settings/Dev 3-tier, Shell 3종, admin dead code 제거. 6/6 | [명세](FEATURES/PERSONA_MENU_REORGANIZATION.md) |
 | 22 | Backend Complete Image Generation | SD 생성→저장 Backend 자율 완결, Frontend SPOF 제거, Graceful Degradation | [명세](FEATURES/IMAGE_GENERATION_PROGRESS.md) |
 | 23 | Project/Group UX 개선 | Zero-Config, 용어 통일(채널/시리즈/영상), ConfigBadges, 내비게이션 개선. 4/4 | [명세](FEATURES/PROJECT_GROUP.md) |
+| 24 | Script 탭 → 하이브리드 채팅 AI | 좌측 설정 사이드바+우측 채팅, analyze-topic API, SSE 콜백, Chat UI 7종, 코드 리뷰 7건 수정 | — |
 
 ---
 
@@ -128,6 +126,7 @@ graph LR
     P20 --> P21["Phase 21<br/>Persona Menu<br/>Reorganization"]
     P21 --> P22["Phase 22<br/>Backend Complete<br/>Image Generation"]
     P22 --> P23["Phase 23<br/>Project/Group<br/>UX 개선"]
+    P23 --> P24["Phase 24<br/>하이브리드<br/>채팅 AI"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -156,6 +155,7 @@ graph LR
     style P21 fill:#4CAF50,color:#fff
     style P22 fill:#4CAF50,color:#fff
     style P23 fill:#4CAF50,color:#fff
+    style P24 fill:#4CAF50,color:#fff
 ```
 
 ---
