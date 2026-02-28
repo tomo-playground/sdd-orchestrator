@@ -28,7 +28,7 @@ class TestResolveEffectiveConfig:
     def test_group_provides_values(self):
         """Group directly provides config values."""
         project = _Obj()
-        group = _Obj(render_preset_id=20, style_profile_id=3, narrator_voice_preset_id=None, channel_dna=None)
+        group = _Obj(render_preset_id=20, style_profile_id=3, narrator_voice_preset_id=None)
         result = resolve_effective_config(project, group)
         assert result["values"]["render_preset_id"] == 20
         assert result["sources"]["render_preset_id"] == "group"
@@ -51,18 +51,10 @@ class TestResolveEffectiveConfig:
     def test_group_with_all_none_fields(self):
         """Group with all None fields resolves nothing."""
         project = _Obj()
-        group = _Obj(render_preset_id=None, style_profile_id=None, narrator_voice_preset_id=None, channel_dna=None)
+        group = _Obj(render_preset_id=None, style_profile_id=None, narrator_voice_preset_id=None)
         result = resolve_effective_config(project, group)
         assert result["values"] == {}
         assert result["sources"] == {}
-
-    def test_channel_dna_extracted(self):
-        """channel_dna is extracted from group."""
-        project = _Obj()
-        dna = {"tone": "serious", "worldview": "fantasy"}
-        group = _Obj(render_preset_id=None, style_profile_id=None, narrator_voice_preset_id=None, channel_dna=dna)
-        result = resolve_effective_config(project, group)
-        assert result["channel_dna"] == dna
 
 
 # ===========================================================================

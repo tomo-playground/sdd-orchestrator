@@ -20,7 +20,6 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 ### `groups` — 프로젝트 내 시리즈/카테고리
 - `id` (PK), `project_id` (FK → projects), `name`, `description`
 - `render_preset_id` (FK → render_presets, SET NULL), `style_profile_id` (FK → style_profiles, SET NULL), `narrator_voice_preset_id` (FK → voice_presets, SET NULL)
-- `channel_dna` (JSONB) — 채널 DNA (tone, audience, worldview, guidelines)
 
 ### `storyboards` — 개별 에피소드
 - `id` (PK), `group_id` (FK → groups), `title`, `description`

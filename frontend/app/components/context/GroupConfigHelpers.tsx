@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import type { ChannelDNA } from "../../types";
 import { FORM_INPUT_COMPACT_CLASSES, FORM_LABEL_COMPACT_CLASSES } from "../ui/variants";
 
 const labelCls = FORM_LABEL_COMPACT_CLASSES;
@@ -49,58 +48,6 @@ export function SelectField({
           </option>
         ))}
       </select>
-    </div>
-  );
-}
-
-/* ── DnaField ── */
-
-export type DnaFieldDef = {
-  field: keyof ChannelDNA;
-  label: string;
-  placeholder: string;
-  rows: number;
-};
-
-export const DNA_FIELDS: DnaFieldDef[] = [
-  { field: "tone", label: "Tone", placeholder: "e.g. warm and nostalgic, dark humor", rows: 2 },
-  {
-    field: "target_audience",
-    label: "Target Audience",
-    placeholder: "e.g. teens 13-18, anime fans",
-    rows: 2,
-  },
-  {
-    field: "worldview",
-    label: "Worldview",
-    placeholder: "e.g. A fantasy world where magic and technology coexist",
-    rows: 3,
-  },
-  {
-    field: "guidelines",
-    label: "Guidelines",
-    placeholder: "e.g. No violence, keep stories under 60s",
-    rows: 3,
-  },
-];
-
-export function DnaField({
-  label,
-  value,
-  placeholder,
-  rows,
-  onChange,
-}: Omit<DnaFieldDef, "field"> & { value: string; onChange: (v: string) => void }) {
-  return (
-    <div>
-      <label className={labelCls}>{label}</label>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={rows}
-        className={inputCls}
-      />
     </div>
   );
 }

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
@@ -39,7 +38,6 @@ class Group(Base, TimestampMixin):
         Integer,
         ForeignKey("voice_presets.id", ondelete="SET NULL"),
     )
-    channel_dna: Mapped[dict | None] = mapped_column(JSONB)
 
     # Relationships
     project: Mapped[Project] = relationship("Project", back_populates="groups")

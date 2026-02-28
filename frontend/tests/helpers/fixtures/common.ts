@@ -13,7 +13,6 @@ export const MOCK_GROUPS = [
     render_preset_id: null,
     style_profile_id: null,
     narrator_voice_preset_id: null,
-    channel_dna: null,
   },
   {
     id: 2,
@@ -23,6 +22,5 @@ export const MOCK_GROUPS = [
     render_preset_id: null,
     style_profile_id: null,
     narrator_voice_preset_id: null,
-    channel_dna: null,
   },
 ];

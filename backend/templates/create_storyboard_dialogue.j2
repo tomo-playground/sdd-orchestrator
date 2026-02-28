@@ -9,7 +9,6 @@ Total Duration: {{ duration }} seconds
 Visual Style: {{ style }}
 Narrative Structure: Dialogue (Two-character conversation)
 Language: {{ language }}
-{% include '_partials/channel_dna.j2' %}
 {% if character_context %}
 
 {% with ctx=character_context, speaker="A" %}{% include '_partials/character_profile.j2' %}{% endwith %}

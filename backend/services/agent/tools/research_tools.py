@@ -9,7 +9,6 @@ from typing import Any
 
 from google.genai import types
 from langgraph.store.base import BaseStore
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import logger
@@ -77,17 +76,6 @@ def get_research_tools() -> list[types.Tool]:
                 },
             },
             required=["topic", "language"],
-        ),
-        define_tool(
-            name="get_group_dna",
-            description="채널/시리즈의 톤, 세계관, 가이드라인을 조회합니다. 그룹별 일관성 유지에 활용합니다.",
-            parameters={
-                "group_id": {
-                    "type": "integer",
-                    "description": "그룹 ID",
-                },
-            },
-            required=["group_id"],
         ),
     ]
 
@@ -166,48 +154,9 @@ def create_research_executors(
         # Placeholder: 현재는 간단한 휴리스틱 반환
         return f"[트렌딩 분석] '{topic}'는 {language} 콘텐츠에서 꾸준한 관심 주제입니다. Hook에 질문형 구조를 사용하면 효과적입니다."
 
-    async def get_group_dna(group_id: int) -> str:
-        """그룹 DNA 조회."""
-        # group 네임스페이스에서 채널 DNA 조회
-        result = await _search_namespace(store, ("group", str(group_id)), limit=3)
-        if result:
-            logger.info("[ResearchTool] 그룹 DNA 조회 완료: group_id=%d", group_id)
-            return f"[그룹 DNA] {result}"
-
-        # 없으면 DB에서 groups.channel_dna 조회
-        try:
-            from models import Group
-
-            stmt = select(Group.channel_dna).where(Group.id == group_id)
-            if isinstance(db, AsyncSession):
-                result_proxy = await db.execute(stmt)
-            else:
-                result_proxy = db.execute(stmt)
-            row = result_proxy.scalar_one_or_none()
-            if row:
-                dna = row
-                tone = dna.get("tone", "")
-                worldview = dna.get("worldview", "")
-                guidelines = dna.get("guidelines", "")
-                parts = []
-                if tone:
-                    parts.append(f"톤: {tone}")
-                if worldview:
-                    parts.append(f"세계관: {worldview}")
-                if guidelines:
-                    parts.append(f"가이드라인: {guidelines}")
-                if parts:
-                    logger.info("[ResearchTool] DB에서 그룹 DNA 조회 완료: group_id=%d", group_id)
-                    return f"[그룹 DNA] {' | '.join(parts)}"
-        except Exception as e:
-            logger.warning("[ResearchTool] 그룹 DNA 조회 실패: %s", e)
-
-        return f"[그룹 DNA] group_id={group_id}의 채널 DNA 없음"
-
     return {
         "search_topic_history": search_topic_history,
         "search_character_history": search_character_history,
         "fetch_url_content": fetch_url_content,
         "analyze_trending": analyze_trending,
-        "get_group_dna": get_group_dna,
     }

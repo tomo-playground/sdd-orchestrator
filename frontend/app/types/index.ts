@@ -712,7 +712,6 @@ export type GroupItem = {
   render_preset_name: string | null;
   style_profile_name: string | null;
   voice_preset_name: string | null;
-  channel_dna: ChannelDNA | null;
 };
 
 // ============================================================
@@ -927,13 +926,6 @@ export type ScriptPreset = {
   auto_approve: boolean;
 };
 
-export type ChannelDNA = {
-  tone: string | null;
-  target_audience: string | null;
-  worldview: string | null;
-  guidelines: string | null;
-};
-
 export type FeedbackPreset = {
   id: string;
   label: string;
@@ -946,7 +938,6 @@ export type EffectiveConfig = {
   render_preset_id: number | null;
   style_profile_id: number | null;
   narrator_voice_preset_id: number | null;
-  channel_dna: ChannelDNA | null;
   render_preset: RenderPreset | null;
   sources: Record<string, string>;
 };

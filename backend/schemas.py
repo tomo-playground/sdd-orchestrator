@@ -121,15 +121,6 @@ class RenderPresetResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ChannelDNA(BaseModel):
-    """Channel identity: tone, audience, worldview, guidelines."""
-
-    tone: str | None = Field(default=None, max_length=500)
-    target_audience: str | None = Field(default=None, max_length=500)
-    worldview: str | None = Field(default=None, max_length=2000)
-    guidelines: str | None = Field(default=None, max_length=2000)
-
-
 class GroupCreate(BaseModel):
     project_id: int
     name: str = Field(max_length=100)
@@ -137,7 +128,6 @@ class GroupCreate(BaseModel):
     render_preset_id: int | None = None
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
-    channel_dna: ChannelDNA | None = None
 
 
 class GroupUpdate(BaseModel):
@@ -146,7 +136,6 @@ class GroupUpdate(BaseModel):
     render_preset_id: int | None = None
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
-    channel_dna: ChannelDNA | None = None
 
 
 class GroupResponse(BaseModel):
@@ -161,7 +150,6 @@ class GroupResponse(BaseModel):
     render_preset_name: str | None = None
     style_profile_name: str | None = None
     voice_preset_name: str | None = None
-    channel_dna: ChannelDNA | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -174,7 +162,6 @@ class EffectiveConfigResponse(BaseModel):
     render_preset: RenderPresetResponse | None = None  # Full preset for frontend
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
-    channel_dna: ChannelDNA | None = None
     sources: dict[str, str] = {}  # field -> "group" | "system_default"
 
 

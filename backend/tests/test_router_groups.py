@@ -51,7 +51,6 @@ class TestGroupsRouter:
         assert "render_preset_id" in data
         assert "style_profile_id" in data
         assert "narrator_voice_preset_id" in data
-        assert "channel_dna" in data
 
     def test_get_group(self, client):
         pid = self._create_project(client)

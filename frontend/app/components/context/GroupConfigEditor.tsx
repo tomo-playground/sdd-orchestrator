@@ -11,17 +11,7 @@ import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
 import { fetchGroups } from "../../store/actions/groupActions";
 
-import { SelectField, DnaField, DNA_FIELDS, labelCls, inputCls } from "./GroupConfigHelpers";
-
-// ── Types ────────────────────────────────────────────────────
-import type { ChannelDNA } from "../../types";
-
-const EMPTY_CHANNEL_DNA: ChannelDNA = {
-  tone: null,
-  target_audience: null,
-  worldview: null,
-  guidelines: null,
-};
+import { SelectField, labelCls, inputCls } from "./GroupConfigHelpers";
 
 type GroupData = {
   id: number;
@@ -30,7 +20,6 @@ type GroupData = {
   render_preset_id: number | null;
   style_profile_id: number | null;
   narrator_voice_preset_id: number | null;
-  channel_dna: ChannelDNA | null;
 };
 
 type OptionItem = { id: number; name: string };
@@ -66,7 +55,6 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
           render_preset_id: g.render_preset_id ?? null,
           style_profile_id: g.style_profile_id ?? null,
           narrator_voice_preset_id: g.narrator_voice_preset_id ?? null,
-          channel_dna: g.channel_dna ?? null,
         });
         setGroupName(g.name || "");
         setPresets(
@@ -94,17 +82,11 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
     if (!group) return;
     setSaving(true);
     try {
-      // Normalize: if all DNA fields are null, send null instead of empty object
-      const dna = group.channel_dna;
-      const channelDna =
-        dna && (dna.tone || dna.target_audience || dna.worldview || dna.guidelines) ? dna : null;
-
       await axios.put(`${API_BASE}/groups/${groupId}`, {
         name: groupName.trim(),
         render_preset_id: group.render_preset_id,
         style_profile_id: group.style_profile_id,
         narrator_voice_preset_id: group.narrator_voice_preset_id,
-        channel_dna: channelDna,
       });
       const projectId = useContextStore.getState().projectId;
       if (projectId) fetchGroups(projectId);
@@ -173,34 +155,6 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
               onChange={(v) => updateField("narrator_voice_preset_id", v)}
               label="Narrator Voice"
             />
-          </div>
-
-          {/* Channel DNA */}
-          <div className="space-y-3 border-t border-zinc-100 pt-3">
-            <p className="text-[12px] font-semibold tracking-wider text-zinc-300 uppercase">
-              Channel DNA
-            </p>
-            {DNA_FIELDS.map((f) => (
-              <DnaField
-                key={f.field}
-                {...f}
-                value={group.channel_dna?.[f.field] ?? ""}
-                onChange={(v) =>
-                  setGroup((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          channel_dna: {
-                            ...EMPTY_CHANNEL_DNA,
-                            ...prev.channel_dna,
-                            [f.field]: v || null,
-                          },
-                        }
-                      : prev
-                  )
-                }
-              />
-            ))}
           </div>
         </div>
       )}

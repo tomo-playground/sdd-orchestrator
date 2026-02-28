@@ -63,9 +63,6 @@ def create_group(body: GroupCreate, db: Session = Depends(get_db)):
         if val is not None:
             fields[field] = val
 
-    if body.channel_dna is not None:
-        fields["channel_dna"] = body.channel_dna.model_dump()
-
     # System default: style_profile with is_default=true
     if "style_profile_id" not in fields:
         from models import StyleProfile
@@ -86,10 +83,7 @@ def update_group(group_id: int, body: GroupUpdate, db: Session = Depends(get_db)
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
     for key, value in body.model_dump(exclude_unset=True).items():
-        if key == "channel_dna" and value is not None:
-            setattr(group, key, value if isinstance(value, dict) else value.model_dump())
-        else:
-            setattr(group, key, value)
+        setattr(group, key, value)
     db.commit()
     return db.query(Group).options(*_GROUP_RESPONSE_OPTIONS).filter(Group.id == group_id).first()
 
@@ -120,7 +114,6 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
         render_preset=render_preset,
         style_profile_id=result["values"].get("style_profile_id"),
         narrator_voice_preset_id=result["values"].get("narrator_voice_preset_id"),
-        channel_dna=result.get("channel_dna"),
         sources=result["sources"],
     )
 

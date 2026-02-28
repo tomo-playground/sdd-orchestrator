@@ -183,15 +183,6 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             if is_multi_character_capable:
                 logger.info("[Storyboard] Multi-character capable LoRA detected")
 
-        # Load channel DNA from Group if group_id provided
-        channel_dna = None
-        if request.group_id and db:
-            from models.group import Group
-
-            group_obj = db.query(Group).filter(Group.id == request.group_id).first()
-            if group_obj and group_obj.channel_dna:
-                channel_dna = group_obj.channel_dna
-
         # Release DB connection before Gemini API call (10-30s)
         # DB auto-reconnects when needed later (auto_populate_character_actions)
         if db:
@@ -233,7 +224,6 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             character_context=character_context,
             character_b_context=character_b_context,
             is_multi_character_capable=is_multi_character_capable,
-            channel_dna=channel_dna,
             selected_concept=request.selected_concept,
             director_plan_context=ctx.get("director_plan_context", ""),
             research_brief=ctx.get("research_brief", ""),

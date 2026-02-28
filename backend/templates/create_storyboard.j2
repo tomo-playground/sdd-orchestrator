@@ -35,7 +35,6 @@ Visual Style: {{ style }}
 Narrative Structure: {{ structure }}
 Language: {{ language }}
 Actor A Gender: {{ actor_a_gender }}
-{% include '_partials/channel_dna.j2' %}
 {% if character_context %}
 
 {% with ctx=character_context, speaker=None %}{% include '_partials/character_profile.j2' %}{% endwith %}

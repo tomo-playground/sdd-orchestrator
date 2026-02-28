@@ -25,9 +25,7 @@
 | 항목 | 비고 |
 |------|------|
 | Cascading Config | `config_resolver.py` — Group → System Default 2단계 |
-| Group 설정 필드 | `render_preset_id`, `style_profile_id`, `narrator_voice_preset_id`, `channel_dna` (JSONB) |
-| Channel DNA | `channel_dna` JSONB — tone, target_audience, worldview, guidelines |
-| Gemini 연동 | research_tools + gemini_generator에서 channel_dna 주입 |
+| Group 설정 필드 | `render_preset_id`, `style_profile_id`, `narrator_voice_preset_id` |
 | Effective Config API | `GET /groups/{id}/effective-config` (sources 출처 표기 포함) |
 | Render Preset | 시스템 프리셋 3종 + 커스텀 프리셋, CRUD API 완료 |
 | Render Preset 관리 UI | Admin `RenderPresetsTab` + Settings `presets/page` |
@@ -109,7 +107,7 @@ Group 선택 시 어떤 설정이 적용되는지 한눈에 파악 가능하게.
 
 ### 3-2. Series Intelligence
 
-에피소드 연결 + 성공 패턴 학습. **Channel DNA 인프라 위에 확장.**
+에피소드 연결 + 성공 패턴 학습.
 
 | # | 항목 | 설명 |
 |---|------|------|
@@ -141,7 +139,7 @@ Group 선택 시 어떤 설정이 적용되는지 한눈에 파악 가능하게.
 신규: Phase 2-1 Zero-Config (P0) → 2-2 용어 (P0) → 2-3 설정 가시성 (P1) → 2-4 내비게이션 (P2)
            ↓
 백로그: 3-1 Tag Intelligence ← tag_effectiveness 데이터 축적 필요
-        3-2 Series Intelligence ← Channel DNA 활용 확장
+        3-2 Series Intelligence ← 에피소드 데이터 축적 필요
         3-3 Production Scale ← 사용자 규모 확대 시
 ```
 
@@ -155,7 +153,7 @@ Group 선택 시 어떤 설정이 적용되는지 한눈에 파악 가능하게.
 |------|------|
 | **Group 이중 역할 유지** (폴더 + 설정 번들) | 분리 시 가치 훼손. PM/UX/Creator 만장일치 |
 | **Production Profile 미채택** | YAGNI. 6개 Group, 스토리보드 레벨 오버라이드 0건 (DBA/Backend 근거) |
-| **channel_dna는 Group에 유지** | 크리에이티브 방향 ≠ 프로덕션 설정, 성격이 다름 |
+| **channel_dna 제거** | 사용 빈도 0, YAGNI 원칙 적용 |
 | **멀티유저 확장 방식** | `projects.user_id` FK 추가만으로 대응. `storyboards.group_id` NOT NULL 유지 |
 | **코드 변수명 미변경** | Project/Group/Storyboard 영문 코드명 유지, UI 라벨만 한국어 변경 |
 

@@ -7,7 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
-| v3.32 | 2026-02-28 | `group_config` 테이블 제거 → `groups` 통합 (render_preset_id, style_profile_id, narrator_voice_preset_id, channel_dna) |
+| v3.32 | 2026-02-28 | `group_config` 테이블 제거 → `groups` 통합 (render_preset_id, style_profile_id, narrator_voice_preset_id). `channel_dna` 컬럼 제거 |
 | v3.31 | 2026-02-28 | DB Schema Cleanup: `characters.reference_source_type` DROP, `scenes.last_seed` DROP. `is_permanent` / `lora_type=style` Known Issue 해소 표기. `embeddings` 구현 완료 표기. `characters.prompt_mode` 문서 삭제 |
 | v3.30 | 2026-02-26 | Phase 18 Stage Workflow: `backgrounds`에 `storyboard_id` FK(CASCADE) + `location_key` + partial unique index 추가. `storyboards`에 `stage_status` 추가 |
 | v3.29 | 2026-02-22 | `scenes`에 `controlnet_pose` (String(50), nullable) 추가. Finalize `_flatten_tts_designs()` — tts_design dict → flat fields 분해 |
@@ -110,7 +110,7 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `groups`
-프로젝트 내의 개별 시리즈 또는 카테고리. 채널 설정(렌더/스타일/음성/DNA)을 직접 소유.
+프로젝트 내의 개별 시리즈 또는 카테고리. 채널 설정(렌더/스타일/음성)을 직접 소유.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -121,7 +121,6 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 | `render_preset_id` | Integer (FK → render_presets, SET NULL) | 렌더 프리셋 |
 | `style_profile_id` | Integer (FK → style_profiles, SET NULL) | 기본 스타일 프로파일 |
 | `narrator_voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 나레이터 음성 |
-| `channel_dna` | JSONB | 채널 DNA (tone, audience, worldview, guidelines) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `storyboards`

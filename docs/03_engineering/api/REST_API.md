@@ -338,12 +338,12 @@ video URL로 render_history_id를 조회합니다. `response_model=RenderHistory
 | Method | Path | Description | Response Model |
 |--------|------|-------------|----------------|
 | GET | `/groups` | 그룹 목록 (project_id 필터) | `list[GroupResponse]` |
-| POST | `/groups` | 그룹 생성 (201, FK/DNA 설정 포함) | `GroupResponse` |
-| GET | `/groups/{id}` | 그룹 상세 (FK/DNA 포함) | `GroupResponse` |
+| POST | `/groups` | 그룹 생성 (201, FK 설정 포함) | `GroupResponse` |
+| GET | `/groups/{id}` | 그룹 상세 (FK 포함) | `GroupResponse` |
 | PUT | `/groups/{id}` | 그룹 수정 (부분 업데이트, config 필드 포함) | `GroupResponse` |
 | DELETE | `/groups/{id}` | 그룹 삭제 (활성 스토리보드 존재 시 409) | `StatusResponse` |
 
-> **Note**: Group 설정 필드 (`render_preset_id`, `style_profile_id`, `narrator_voice_preset_id`, `channel_dna`)는 Group 테이블에 직접 포함됩니다. `PUT /groups/{id}`로 통합 관리합니다.
+> **Note**: Group 설정 필드 (`render_preset_id`, `style_profile_id`, `narrator_voice_preset_id`)는 Group 테이블에 직접 포함됩니다. `PUT /groups/{id}`로 통합 관리합니다.
 
 ### `GET /groups/{group_id}/effective-config`
 Cascading Config를 조회합니다 (System Default < Group 레벨 resolve). `response_model=EffectiveConfigResponse`
@@ -354,7 +354,6 @@ Cascading Config를 조회합니다 (System Default < Group 레벨 resolve). `re
   "render_preset_id": 2,
   "style_profile_id": 1,
   "narrator_voice_preset_id": 1,
-  "channel_dna": null,
   "render_preset": { "id": 2, "name": "그룹 프리셋", "..." : "..." },
   "sources": {
     "render_preset_id": "group",
