@@ -313,8 +313,10 @@ async def batch_regenerate_references(db: Session) -> dict:
             await regenerate_reference(db, char.id)
             results.append({"id": char.id, "name": char.name, "status": "success"})
         except Exception as e:
-            logger.error("[Batch] Failed for %s: %s", char.name, e)
-            results.append({"id": char.id, "name": char.name, "status": "failed", "error": str(e)})
+            logger.exception("[Batch] Failed for %s: %s", char.name, e)
+            results.append(
+                {"id": char.id, "name": char.name, "status": "failed", "error": "Reference generation failed"}
+            )
 
     return {"ok": True, "results": results}
 

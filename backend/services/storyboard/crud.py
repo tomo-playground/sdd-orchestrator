@@ -210,12 +210,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
     from models.group import Group
     from services.config_resolver import resolve_effective_config
 
-    group = (
-        db.query(Group)
-        .options(joinedload(Group.project))
-        .filter(Group.id == storyboard.group_id)
-        .first()
-    )
+    group = db.query(Group).options(joinedload(Group.project)).filter(Group.id == storyboard.group_id).first()
     effective = resolve_effective_config(group.project, group) if group else {"values": {}}
 
     scenes = sorted(storyboard.scenes, key=lambda s: s.order)
@@ -595,10 +590,6 @@ def permanent_delete_storyboard(db: Session, storyboard_id: int) -> dict:
         db.commit()
         return {"status": "success"}
     except Exception as e:
-        import sys
-        import traceback
-
-        traceback.print_exc(file=sys.stderr)
         logger.exception("Failed to permanently delete storyboard %d", storyboard_id)
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to delete: {str(e)}") from e
+        raise HTTPException(status_code=500, detail="Failed to delete storyboard") from e

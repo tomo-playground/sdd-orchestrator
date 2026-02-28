@@ -404,13 +404,13 @@ async def _stream_graph_events(
         if _is_graph_interrupt(e):
             interrupted = True
         else:
-            logger.error("[SSE] %s error: %s", label, e)
+            logger.exception("[SSE] %s error: %s", label, e)
             error_payload = {
                 "node": "error",
                 "label": "오류",
                 "percent": 0,
                 "status": "error",
-                "error": str(e),
+                "error": "스토리보드 생성 중 오류가 발생했습니다",
             }
             yield f"data: {json.dumps(error_payload, ensure_ascii=False)}\n\n"
 

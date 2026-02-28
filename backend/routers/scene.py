@@ -88,8 +88,8 @@ async def generate_batch_images(request: BatchSceneRequest):
                 result = await generate_scene_image(scene_req)
                 return {"index": index, "status": "success", "data": SceneGenerateResponse(**result)}
             except Exception as e:
-                logger.error("[Batch Gen] Scene %d failed: %s", index, e)
-                return {"index": index, "status": "failed", "error": str(e)}
+                logger.exception("[Batch Gen] Scene %d failed: %s", index, e)
+                return {"index": index, "status": "failed", "error": "Image generation failed"}
 
     tasks = [_generate_one(req, i) for i, req in enumerate(request.scenes)]
     results = await asyncio.gather(*tasks)

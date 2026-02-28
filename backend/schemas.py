@@ -2345,8 +2345,6 @@ class ReferenceItem(BaseModel):
     image_b64: str | None = None
     preset: ReferencePreset | None = None
 
-    model_config = ConfigDict(extra="allow")
-
 
 class ReferenceListResponse(BaseModel):
     """Response for GET /controlnet/ip-adapter/references."""
@@ -2510,13 +2508,25 @@ class ActivateTagResponse(BaseModel):
     tag: ActivatedTagInfo
 
 
+class OrphanInfo(BaseModel):
+    """Single orphan asset info."""
+
+    id: int
+    storage_key: str
+    owner_type: str | None = None
+    owner_id: int | None = None
+    reason: str
+
+
 class MediaOrphanResponse(BaseModel):
     """Response for GET /media-assets/orphans."""
 
     success: bool
+    total: int | None = None
+    null_owner: list[OrphanInfo] | None = None
+    broken_fk: list[OrphanInfo] | None = None
+    expired_temp: list[OrphanInfo] | None = None
     error: str | None = None
-
-    model_config = ConfigDict(extra="allow")
 
 
 class MediaCleanupResponse(BaseModel):
@@ -2533,21 +2543,44 @@ class MediaStatsResponse(BaseModel):
     """Response for GET /media-assets/stats."""
 
     success: bool
+    total_assets: int | None = None
+    temp_assets: int | None = None
+    null_owner_assets: int | None = None
+    orphan_count: int | None = None
+    by_owner_type: dict[str, int] | None = None
     error: str | None = None
 
-    model_config = ConfigDict(extra="allow")
+
+class DirectoryStatsItem(BaseModel):
+    """Storage stats for a single directory."""
+
+    count: int
+    size_mb: float
 
 
 class StorageStatsResponse(BaseModel):
     """Response for GET /storage/stats."""
 
-    model_config = ConfigDict(extra="allow")
+    total_size_mb: float
+    total_count: int
+    directories: dict[str, DirectoryStatsItem]
+
+
+class CleanupCategoryDetail(BaseModel):
+    """Cleanup result for a single category."""
+
+    deleted: int
+    freed_mb: float
+    files: list[str] = []
 
 
 class StorageCleanupResponse(BaseModel):
     """Response for POST /storage/cleanup and /storage/cleanup/preview."""
 
-    model_config = ConfigDict(extra="allow")
+    deleted_count: int
+    freed_mb: float
+    dry_run: bool
+    details: dict[str, CleanupCategoryDetail]
 
 
 # ============================================================
