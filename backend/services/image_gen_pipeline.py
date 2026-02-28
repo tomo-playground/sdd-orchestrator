@@ -47,7 +47,7 @@ def _sync_store_image(
         actual_scene_id = resolved_id or scene_id
 
         image_bytes = decode_data_url(f"data:image/png;base64,{image_b64}")
-        digest = hashlib.sha1(image_bytes).hexdigest()[:16]
+        digest = hashlib.sha256(image_bytes).hexdigest()[:16]
         file_name = f"scene_{actual_scene_id}_{digest}.png"
 
         asset_service = AssetService(db)

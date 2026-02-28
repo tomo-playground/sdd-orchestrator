@@ -447,7 +447,9 @@ async def extract_caption(request: TextExtractRequest):
             f"텍스트:\n{text}\n\n캡션만 출력하세요 (설명이나 따옴표 없이):"
         )
 
-        response = gemini_client.models.generate_content(model=GEMINI_TEXT_MODEL, contents=prompt)
+        response = await asyncio.to_thread(
+            gemini_client.models.generate_content, model=GEMINI_TEXT_MODEL, contents=prompt
+        )
         caption = _strip_quotes(response.text.strip() if response.text else text[:max_len])
 
         if len(caption) > max_len:
@@ -482,7 +484,9 @@ async def extract_hashtags(request: TextExtractRequest):
             f"- 해시태그만 출력 (설명이나 따옴표 없이)\n\n주제:\n{text}\n\n해시태그:"
         )
 
-        response = gemini_client.models.generate_content(model=GEMINI_TEXT_MODEL, contents=prompt)
+        response = await asyncio.to_thread(
+            gemini_client.models.generate_content, model=GEMINI_TEXT_MODEL, contents=prompt
+        )
         hashtags = _strip_quotes(response.text.strip() if response.text else text[:max_len])
 
         if len(hashtags) > max_len:

@@ -21,7 +21,7 @@ def avatar_filename(avatar_key: str) -> str:
         A unique filename like 'avatar_abc123def456.png'
     """
     safe_name = avatar_key.strip() or "avatar"
-    hash_value = hashlib.sha1(safe_name.encode("utf-8")).hexdigest()[:12]
+    hash_value = hashlib.sha256(safe_name.encode("utf-8")).hexdigest()[:12]
     return f"avatar_{hash_value}.png"
 
 
@@ -96,10 +96,7 @@ async def ensure_avatar_file(
         return storage_key
 
     logger.info(f"Avatar not found, generating: {avatar_key} -> {storage_key}")
-    prompt = (
-        "anime avatar portrait, clean background, head and shoulders, "
-        "soft lighting, centered, high quality"
-    )
+    prompt = "anime avatar portrait, clean background, head and shoulders, soft lighting, centered, high quality"
     payload = {
         "prompt": prompt,
         "negative_prompt": "verybadimagenegative_v1.3",

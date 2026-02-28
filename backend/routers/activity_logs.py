@@ -630,10 +630,15 @@ def get_success_combinations(
                 "suggested_combinations": [],
             }
 
-        # Get all tags from DB with categories
-        all_tags = db.query(Tag).all()
-        tag_category_map = {tag.name: tag.category for tag in all_tags}
-        tag_group_map = {tag.name: tag.group_name for tag in all_tags}
+        # Collect needed tag names from success logs, then query only those
+        needed_tag_names: set[str] = set()
+        for log in success_logs:
+            if log.tags_used:
+                needed_tag_names.update(log.tags_used)
+
+        relevant_tags = db.query(Tag).filter(Tag.name.in_(needed_tag_names)).all() if needed_tag_names else []
+        tag_category_map = {tag.name: tag.category for tag in relevant_tags}
+        tag_group_map = {tag.name: tag.group_name for tag in relevant_tags}
 
         # Calculate tag statistics from success logs
         tag_stats = {}  # {tag: {"occurrences": int, "match_rates": [float], "category": str}}

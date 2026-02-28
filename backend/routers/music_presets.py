@@ -115,7 +115,7 @@ async def preview_music(req: MusicPreviewRequest, db: Session = Depends(get_db))
             seed=req.seed,
         )
 
-        digest = hashlib.sha1(wav_bytes).hexdigest()[:16]
+        digest = hashlib.sha256(wav_bytes).hexdigest()[:16]
         file_name = f"music_preview_{digest}.wav"
         storage_key = f"music-presets/previews/{file_name}"
 
