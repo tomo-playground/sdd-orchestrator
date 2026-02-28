@@ -5,7 +5,7 @@ import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useRenderStore } from "../store/useRenderStore";
 import { useContextStore } from "../store/useContextStore";
 import { useUIStore } from "../store/useUIStore";
-import { API_BASE, ADMIN_API_BASE } from "../constants";
+import { API_BASE } from "../constants";
 import { getCurrentProject, hasValidProfile } from "../store/selectors/projectSelectors";
 import { renderWithProgress } from "../utils/renderWithProgress";
 import { getErrorMsg } from "../utils/error";
@@ -196,7 +196,7 @@ export function usePublishRender() {
       setOutput({ voicePresetId: v });
       if (groupId) {
         try {
-          await axios.put(`${ADMIN_API_BASE}/groups/${groupId}/config`, {
+          await axios.put(`${API_BASE}/groups/${groupId}/config`, {
             narrator_voice_preset_id: v,
           });
         } catch (err) {

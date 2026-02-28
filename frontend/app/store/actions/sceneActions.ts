@@ -90,7 +90,7 @@ export async function handleValidateImage(scene: Scene) {
     if (scene.prompt_history_id && validation.match_rate != null) {
       axios
         .post(
-          `${ADMIN_API_BASE}/prompt-histories/${scene.prompt_history_id}/update-score?match_rate=${matchRate}`
+          `${API_BASE}/prompt-histories/${scene.prompt_history_id}/update-score?match_rate=${matchRate}`
         )
         .catch(() => {});
     }
@@ -185,7 +185,7 @@ export async function handleSavePrompt(scene: Scene, name: string) {
         trigger_words: lora.trigger_words ?? [],
       }));
     }
-    await axios.post(`${ADMIN_API_BASE}/prompt-histories`, payload);
+    await axios.post(`${API_BASE}/prompt-histories`, payload);
     showToast("Prompt saved!", "success");
   } catch {
     showToast("Failed to save prompt", "error");

@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useRenderStore } from "../useRenderStore";
-import { ADMIN_API_BASE } from "../../constants";
+import { API_BASE } from "../../constants";
 import { updateStoryboardMetadata } from "./storyboardActions";
 
 /**
@@ -15,7 +15,7 @@ export async function initializeVideoMetadata(topic: string): Promise<void> {
   // Caption: extract hashtags from topic, fallback to topic itself
   if (!render.videoCaption && topic) {
     try {
-      const res = await axios.post(`${ADMIN_API_BASE}/video/extract-hashtags`, {
+      const res = await axios.post(`${API_BASE}/video/extract-hashtags`, {
         text: topic,
       });
       if (res.data.caption) {

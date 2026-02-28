@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Scene } from "../../types";
-import { ADMIN_API_BASE } from "../../constants";
+import { API_BASE } from "../../constants";
 import { useContextStore } from "../../store/useContextStore";
 import useTagValidationDebounced from "../../hooks/useTagValidationDebounced";
 import CopyButton from "../ui/CopyButton";
@@ -75,7 +75,7 @@ export default function ScenePromptFields({
     negFetchRef.current = key;
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`${ADMIN_API_BASE}/prompt/negative-preview`, {
+        const res = await fetch(`${API_BASE}/prompt/negative-preview`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

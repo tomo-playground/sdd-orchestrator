@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import { ADMIN_API_BASE } from "../constants";
+import { API_BASE } from "../constants";
 import type { ConsistencyResponse } from "../types";
 
 export function useConsistency(storyboardId: number | null) {
@@ -16,7 +16,7 @@ export function useConsistency(storyboardId: number | null) {
     setError("");
     try {
       const res = await axios.get<ConsistencyResponse>(
-        `${ADMIN_API_BASE}/quality/consistency/${storyboardId}`
+        `${API_BASE}/quality/consistency/${storyboardId}`
       );
       setData(res.data);
     } catch (err: unknown) {

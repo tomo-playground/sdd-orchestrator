@@ -63,7 +63,7 @@ export async function handleStyleProfileComplete(
   // 2. Persist style_profile_id to GroupConfig (SSOT for generation)
   if (groupId) {
     try {
-      await axios.put(`${ADMIN_API_BASE}/groups/${groupId}/config`, {
+      await axios.put(`${API_BASE}/groups/${groupId}/config`, {
         style_profile_id: profile.id,
       });
       setEffectiveDefaults(profile.id, null, true);
