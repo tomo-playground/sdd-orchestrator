@@ -4,6 +4,7 @@ import { memo } from "react";
 import UserBubble from "./messages/UserBubble";
 import AssistantBubble from "./messages/AssistantBubble";
 import SettingsRecommendCard from "./messages/SettingsRecommendCard";
+import ClarificationCard from "./messages/ClarificationCard";
 import ConceptCard from "./messages/ConceptCard";
 import ReviewCard from "./messages/ReviewCard";
 import CompletionCard from "./messages/CompletionCard";
@@ -11,8 +12,6 @@ import ErrorCard from "./messages/ErrorCard";
 import type { ChatMessage as ChatMessageType, SettingsRecommendation } from "../../types/chat";
 import type { SceneItem, ResumeOptions } from "../../hooks/scriptEditor/types";
 import type { FeedbackPreset } from "../../types";
-import type { Preset, LangOption } from "../../hooks/usePresets";
-import type { ScriptMode } from "./ModeChips";
 
 export type ChatMessageCallbacks = {
   onApplyAndGenerate: (rec: SettingsRecommendation) => void;
@@ -24,16 +23,11 @@ export type ChatMessageCallbacks = {
   ) => void;
   onRetry: () => void;
   onNavigate: (tab: string) => void;
-  onPresetChange: (preset: string, skipStages: string[]) => void;
 };
 
 export type ChatMessageData = {
   scenes: SceneItem[];
   feedbackPresets: FeedbackPreset[] | null;
-  presets: Preset[];
-  languages: LangOption[];
-  durations: number[];
-  currentMode: ScriptMode;
 };
 
 type Props = {
@@ -48,16 +42,13 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
       return <UserBubble text={message.text ?? ""} />;
     case "assistant":
       return <AssistantBubble text={message.text ?? ""} />;
+    case "clarification":
+      return <ClarificationCard message={message} />;
     case "settings_recommend":
       return (
         <SettingsRecommendCard
           message={message}
           onApplyAndGenerate={callbacks.onApplyAndGenerate}
-          presets={data.presets}
-          languages={data.languages}
-          durations={data.durations}
-          currentMode={data.currentMode}
-          onPresetChange={callbacks.onPresetChange}
         />
       );
     case "concept_gate":

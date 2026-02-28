@@ -2232,17 +2232,29 @@ class StageRegenerateResponse(BaseModel):
 # ============================================================
 
 
+class ChatMessageItem(BaseModel):
+    """대화 이력 메시지."""
+
+    role: Literal["user", "assistant"]
+    text: str = Field(max_length=2000)
+
+
 class TopicAnalyzeRequest(BaseModel):
     """POST /scripts/analyze-topic 요청."""
 
     topic: str = Field(min_length=1, max_length=500)
     description: str | None = Field(default=None, max_length=2000)
     group_id: int | None = None
+    messages: list[ChatMessageItem] | None = Field(default=None, max_length=20)
 
 
 class TopicAnalyzeResponse(BaseModel):
     """POST /scripts/analyze-topic 응답."""
 
+    status: Literal["recommend", "clarify"] = "recommend"
+    questions: list[str] | None = None
+    reasoning: str = ""
+    # status=recommend 일 때 사용
     duration: int = 30
     language: str = "Korean"
     structure: str = "Monologue"
@@ -2250,7 +2262,6 @@ class TopicAnalyzeResponse(BaseModel):
     character_name: str | None = None
     character_b_id: int | None = None
     character_b_name: str | None = None
-    reasoning: str = ""
 
 
 # ============================================================
@@ -2548,6 +2559,33 @@ class MediaStatsResponse(BaseModel):
     null_owner_assets: int | None = None
     orphan_count: int | None = None
     by_owner_type: dict[str, int] | None = None
+    error: str | None = None
+
+
+class CleanupResultDetail(BaseModel):
+    """Cleanup operation result detail."""
+
+    deleted: int = 0
+    storage_errors: list[str] = []
+    dry_run: bool = True
+
+
+class DanglingCandidateDetail(BaseModel):
+    """Dangling candidates cleanup result."""
+
+    scenes_affected: int = 0
+    candidates_removed: int = 0
+    dry_run: bool = True
+
+
+class OrphanAssetCleanupResponse(BaseModel):
+    """Response for POST /admin/cleanup-orphan-assets."""
+
+    success: bool
+    orphans: CleanupResultDetail | None = None
+    expired_temp: CleanupResultDetail | None = None
+    dangling_candidates: DanglingCandidateDetail | None = None
+    total_deleted: int | None = None
     error: str | None = None
 
 

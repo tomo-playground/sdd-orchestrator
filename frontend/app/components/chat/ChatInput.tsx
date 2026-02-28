@@ -55,11 +55,7 @@ export default function ChatInput({ onSend, disabled, hasMessages, hasTopic, bor
 
   return (
     <div
-      className={
-        borderless
-          ? "bg-white pt-3 pb-4"
-          : "border-t border-zinc-100 bg-white pt-3 pb-4"
-      }
+      className={borderless ? "bg-white pt-3 pb-4" : "border-t border-zinc-100 bg-white pt-3 pb-4"}
     >
       <div className="mx-auto max-w-3xl px-4">
         {/* Suggestion chips */}
@@ -83,6 +79,7 @@ export default function ChatInput({ onSend, disabled, hasMessages, hasTopic, bor
         <div className="flex items-end gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2">
           <textarea
             ref={textareaRef}
+            data-chat-input
             rows={1}
             value={text}
             onChange={handleChange}

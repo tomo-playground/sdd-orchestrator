@@ -8,26 +8,15 @@ import ModeChips from "./ModeChips";
 import { useUIStore, type StudioTab } from "../../store/useUIStore";
 import type { ChatScriptEditorActions } from "../../hooks/useChatScriptEditor";
 import type { ChatMessageCallbacks, ChatMessageData } from "./ChatMessage";
-import type { Preset, LangOption } from "../../hooks/usePresets";
 import type { ScriptMode } from "./ModeChips";
 
 type Props = {
   editor: ChatScriptEditorActions;
-  presets: Preset[];
-  languages: LangOption[];
-  durations: number[];
   currentMode: ScriptMode;
   onPresetChange: (preset: string, skipStages: string[]) => void;
 };
 
-export default function ChatArea({
-  editor,
-  presets,
-  languages,
-  durations,
-  currentMode,
-  onPresetChange,
-}: Props) {
+export default function ChatArea({ editor, currentMode, onPresetChange }: Props) {
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const setPendingAutoRun = useUIStore((s) => s.setPendingAutoRun);
   const handleNavigate = useCallback(
@@ -38,7 +27,7 @@ export default function ChatArea({
         setActiveTab(tab as StudioTab);
       }
     },
-    [setActiveTab, setPendingAutoRun],
+    [setActiveTab, setPendingAutoRun]
   );
 
   const callbacks: ChatMessageCallbacks = useMemo(
@@ -47,21 +36,16 @@ export default function ChatArea({
       onResume: editor.resume,
       onRetry: editor.confirmAndGenerate,
       onNavigate: handleNavigate,
-      onPresetChange,
     }),
-    [editor.applyAndGenerate, editor.resume, editor.confirmAndGenerate, handleNavigate, onPresetChange],
+    [editor.applyAndGenerate, editor.resume, editor.confirmAndGenerate, handleNavigate]
   );
 
   const data: ChatMessageData = useMemo(
     () => ({
       scenes: editor.scenes,
       feedbackPresets: editor.feedbackPresets,
-      presets,
-      languages,
-      durations,
-      currentMode,
     }),
-    [editor.scenes, editor.feedbackPresets, presets, languages, durations, currentMode],
+    [editor.scenes, editor.feedbackPresets]
   );
 
   const isInitialState = editor.chatMessages.length <= 1;

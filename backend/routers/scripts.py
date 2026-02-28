@@ -140,7 +140,8 @@ async def analyze_topic_endpoint(request: TopicAnalyzeRequest):
     """토픽을 분석하여 최적의 영상 설정(duration, language, structure, character)을 추천한다."""
     from services.scripts.topic_analysis import analyze_topic  # noqa: PLC0415
 
-    return await analyze_topic(request.topic, request.description, request.group_id)
+    messages = [m.model_dump() for m in request.messages] if request.messages else None
+    return await analyze_topic(request.topic, request.description, request.group_id, messages)
 
 
 @router.post("/generate", response_model=ScriptGenerateResponse)

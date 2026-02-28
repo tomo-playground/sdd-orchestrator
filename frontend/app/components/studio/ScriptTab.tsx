@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useChatScriptEditor } from "../../hooks/useChatScriptEditor";
-import { usePresets } from "../../hooks/usePresets";
 import { useUIStore } from "../../store/useUIStore";
 import ChatArea from "../chat/ChatArea";
 
@@ -14,8 +13,6 @@ export default function ScriptTab() {
   const legacyMode = searchParams.get("mode");
   const presetParam = searchParams.get("preset");
   const storyboardId = idParam ? Number(idParam) : null;
-  const { presets, languages, durations } = usePresets();
-
   const onSaved = useCallback(
     (id: number) => {
       router.replace(`/studio?id=${id}`);
@@ -74,13 +71,6 @@ export default function ScriptTab() {
     editor.skipStages.length > 0 ? "express" : editor.preset === "creator" ? "creator" : "standard";
 
   return (
-    <ChatArea
-      editor={editor}
-      presets={presets}
-      languages={languages}
-      durations={durations}
-      currentMode={currentMode}
-      onPresetChange={handlePresetChange}
-    />
+    <ChatArea editor={editor} currentMode={currentMode} onPresetChange={handlePresetChange} />
   );
 }

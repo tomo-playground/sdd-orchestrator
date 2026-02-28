@@ -43,8 +43,11 @@ export function useChatScriptEditor(options?: {
   const showToast = useUIStore((s) => s.showToast);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([createWelcomeMessage()]);
+  const chatMessagesRef = useRef(chatMessages);
+  chatMessagesRef.current = chatMessages;
   const [activeProgress, setActiveProgress] = useState<ActiveProgress>(null);
   const isAnalyzingRef = useRef(false);
+  const topicRef = useRef<string>("");
 
   const addMessage = useCallback((msg: ChatMessage) => {
     setChatMessages((prev) => [...prev, msg]);
@@ -102,6 +105,8 @@ export function useChatScriptEditor(options?: {
           text: `스크립트 생성 완료! ${event.result.scenes.length}개 씬이 생성되었습니다.`,
           timestamp: Date.now(),
         });
+        // Auto-save triggers onSaved → setActiveTab("stage")
+        setTimeout(() => editorRef.current.save(), 300);
         return;
       }
 
@@ -126,13 +131,32 @@ export function useChatScriptEditor(options?: {
   const editorRef = useRef(editor);
   editorRef.current = editor;
 
-  // ── Topic analysis via API ──
-  // editorRef를 통해 최신 editor 상태에 접근 (stale closure 방지)
+  // ── Topic analysis via API (대화형 핑퐁 지원) ──
   const sendMessage = useCallback(
     async (text: string) => {
       if (isAnalyzingRef.current) return;
       addMessage({ id: nextId(), role: "user", contentType: "user", text, timestamp: Date.now() });
-      editorRef.current.setField("topic", text);
+
+      // 첫 user 메시지에서만 topic 설정 (ref 기반 — setState 배칭과 무관)
+      if (!topicRef.current) {
+        topicRef.current = text;
+        editorRef.current.setField("topic", text);
+      }
+
+      // 대화 이력 구성 (user + assistant text)
+      const history = chatMessagesRef.current
+        .filter(
+          (m) =>
+            (m.role === "user" && m.contentType === "user") ||
+            (m.role === "assistant" &&
+              (m.contentType === "clarification" || m.contentType === "settings_recommend"))
+        )
+        .map((m) => {
+          let msgText = m.text || "";
+          if (m.questions?.length) msgText += "\n" + m.questions.map((q) => `• ${q}`).join("\n");
+          return { role: m.role, text: msgText };
+        });
+      history.push({ role: "user", text });
 
       isAnalyzingRef.current = true;
       try {
@@ -140,22 +164,34 @@ export function useChatScriptEditor(options?: {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            topic: text,
+            topic: topicRef.current || text,
             description: editorRef.current.description || undefined,
             group_id: groupId,
+            messages: history,
           }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: SettingsRecommendation = await res.json();
 
-        addMessage({
-          id: nextId(),
-          role: "assistant",
-          contentType: "settings_recommend",
-          text: data.reasoning,
-          recommendation: data,
-          timestamp: Date.now(),
-        });
+        if (data.status === "clarify") {
+          addMessage({
+            id: nextId(),
+            role: "assistant",
+            contentType: "clarification",
+            text: data.reasoning,
+            questions: data.questions,
+            timestamp: Date.now(),
+          });
+        } else {
+          addMessage({
+            id: nextId(),
+            role: "assistant",
+            contentType: "settings_recommend",
+            text: data.reasoning,
+            recommendation: data,
+            timestamp: Date.now(),
+          });
+        }
       } catch {
         addMessage({
           id: nextId(),
@@ -210,6 +246,7 @@ export function useChatScriptEditor(options?: {
   const clearChat = useCallback(() => {
     setChatMessages([createWelcomeMessage()]);
     setActiveProgress(null);
+    topicRef.current = "";
     editorRef.current.reset();
   }, []);
 

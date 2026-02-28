@@ -7,12 +7,16 @@ export type ChatContentType =
   | "user"
   | "assistant"
   | "settings_recommend"
+  | "clarification"
   | "concept_gate"
   | "review_gate"
   | "completion"
   | "error";
 
 export type SettingsRecommendation = {
+  status: "recommend" | "clarify";
+  questions?: string[];
+  reasoning: string;
   duration: number;
   language: string;
   structure: string;
@@ -20,7 +24,6 @@ export type SettingsRecommendation = {
   character_name: string | null;
   character_b_id: number | null;
   character_b_name: string | null;
-  reasoning: string;
 };
 
 export type ChatMessage = {
@@ -37,6 +40,7 @@ export type ChatMessage = {
   reviewResult?: Record<string, unknown>;
   productionSnapshot?: ProductionSnapshot | null;
   errorMessage?: string;
+  questions?: string[];
 };
 
 export type ActiveProgress = ScriptProgress | null;
