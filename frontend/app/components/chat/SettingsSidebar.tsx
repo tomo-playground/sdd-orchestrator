@@ -66,21 +66,30 @@ export default function SettingsSidebar({
         <div>
           <h3 className={H3}>Video</h3>
           <div className="space-y-3">
-            <Select
-              value={editor.duration}
-              onChange={(v) => editor.setField("duration", Number(v))}
-              items={durations.map((d) => ({ key: String(d), label: `${d}s` }))}
-            />
-            <Select
-              value={editor.language}
-              onChange={(v) => editor.setField("language", v)}
-              items={languages.map((l) => ({ key: l.value, label: l.label }))}
-            />
-            <Select
-              value={editor.structure}
-              onChange={(v) => editor.setField("structure", v)}
-              items={presets.map((p) => ({ key: p.structure, label: p.name_ko }))}
-            />
+            <div>
+              <label className="mb-1 block text-[12px] font-medium text-zinc-500">영상 길이</label>
+              <Select
+                value={editor.duration}
+                onChange={(v) => editor.setField("duration", Number(v))}
+                items={durations.map((d) => ({ key: String(d), label: `${d}s` }))}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[12px] font-medium text-zinc-500">언어</label>
+              <Select
+                value={editor.language}
+                onChange={(v) => editor.setField("language", v)}
+                items={languages.map((l) => ({ key: l.value, label: l.label }))}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[12px] font-medium text-zinc-500">스토리 구조</label>
+              <Select
+                value={editor.structure}
+                onChange={(v) => editor.setField("structure", v)}
+                items={presets.map((p) => ({ key: p.structure, label: p.name_ko }))}
+              />
+            </div>
           </div>
         </div>
         <div>
@@ -113,6 +122,13 @@ export default function SettingsSidebar({
               </button>
             ))}
           </div>
+          <p className="mt-1.5 text-[11px] text-zinc-400">
+            {isActiveMode("express", editor)
+              ? "빠른 생성"
+              : isActiveMode("creator", editor)
+                ? "컨셉 직접 선택"
+                : "리서치 + 검증 포함"}
+          </p>
         </div>
       </div>
       <div className="border-t border-zinc-200 p-4">
