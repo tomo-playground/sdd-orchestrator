@@ -51,13 +51,9 @@ export async function generateBatchImages(sceneClientIds: string[]): Promise<Bat
       return {
         prompt: scene.image_prompt || "",
         negative_prompt: buildNegativePrompt(scene),
-        steps: 27,
-        cfg_scale: 7,
-        sampler_name: "DPM++ 2M Karras",
         seed: -1,
         width: scene.width || 512,
         height: scene.height || 768,
-        clip_skip: 2,
         character_id: resolveCharacterIdForSpeaker(scene.speaker, sbState) || 0,
         storyboard_id: useContextStore.getState().storyboardId || undefined,
         use_controlnet: controlnet.enabled && !isNarrator,

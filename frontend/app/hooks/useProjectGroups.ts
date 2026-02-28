@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useContextStore } from "../store/useContextStore";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useRenderStore } from "../store/useRenderStore";
@@ -50,17 +50,27 @@ export function useProjectGroups() {
     }
   }, [projects, projectId, setContext]);
 
+  // Track whether initial group fetch has been triggered to prevent double-fetch
+  const groupFetchedForProjectRef = useRef<number | null>(null);
+
   // Fetch groups when projectId changes
   useEffect(() => {
     if (projectId !== null) {
+      groupFetchedForProjectRef.current = projectId;
       fetchGroups(projectId);
     }
   }, [projectId]);
 
   // Recovery: re-fetch groups if lost after transient state reset
+  // Only triggers when initial fetch already completed (ref matches) and groups are empty
   const isLoadingGroups = useContextStore((s) => s.isLoadingGroups);
   useEffect(() => {
-    if (projectId !== null && groups.length === 0 && !isLoadingGroups) {
+    if (
+      projectId !== null &&
+      groups.length === 0 &&
+      !isLoadingGroups &&
+      groupFetchedForProjectRef.current === projectId
+    ) {
       fetchGroups(projectId);
     }
   }, [projectId, groups.length, isLoadingGroups]);

@@ -32,20 +32,24 @@ export async function generateWithProgress(
       if (timeoutId) clearTimeout(timeoutId);
     }
 
-    // External abort support
-    signal?.addEventListener("abort", () => {
+    function settle(action: () => void) {
       cleanup();
+      signal?.removeEventListener("abort", onAbort);
+      settled = true;
+      action();
+    }
+
+    // External abort support
+    const onAbort = () => {
       if (!settled) {
-        settled = true;
-        reject(new DOMException("Aborted", "AbortError"));
+        settle(() => reject(new DOMException("Aborted", "AbortError")));
       }
-    });
+    };
+    signal?.addEventListener("abort", onAbort);
 
     timeoutId = setTimeout(() => {
-      cleanup();
       if (!settled) {
-        settled = true;
-        reject(new Error("Image generation timeout"));
+        settle(() => reject(new Error("Image generation timeout")));
       }
     }, API_TIMEOUT.IMAGE_GENERATION);
 
@@ -60,14 +64,10 @@ export async function generateWithProgress(
           onProgress?.(data);
 
           if (data.stage === "completed") {
-            cleanup();
-            settled = true;
-            resolve(data);
+            settle(() => resolve(data));
           }
           if (data.stage === "failed") {
-            cleanup();
-            settled = true;
-            reject(new Error(data.error || "Image generation failed"));
+            settle(() => reject(new Error(data.error || "Image generation failed")));
           }
         } catch {
           // Ignore parse errors for keep-alive comments
@@ -88,9 +88,7 @@ export async function generateWithProgress(
           });
           setTimeout(connectSSE, delay);
         } else {
-          cleanup();
-          settled = true;
-          reject(new Error("SSE connection lost after retries"));
+          settle(() => reject(new Error("SSE connection lost after retries")));
         }
       };
     }

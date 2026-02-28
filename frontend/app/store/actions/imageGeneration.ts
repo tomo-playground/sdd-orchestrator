@@ -272,7 +272,12 @@ export async function generateSceneCandidates(
       _validation: vResult ?? undefined,
     });
   }
-  if (!candidates.length) return null;
+  if (!candidates.length) {
+    if (!silent) {
+      useUIStore.getState().showToast("3회 시도 모두 실패했습니다. 프롬프트를 확인해 주세요.", "error");
+    }
+    return null;
+  }
 
   const best = [...candidates].sort((a, b) => {
     const idA = a.identity_score ?? -1;

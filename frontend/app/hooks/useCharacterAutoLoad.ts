@@ -27,7 +27,7 @@ export function useCharacterAutoLoad() {
           referenceImages: res.data.references || [],
         });
       })
-      .catch(() => {});
+      .catch((err) => console.warn("[useCharacterAutoLoad] IP-Adapter references fetch failed:", err));
   }, []);
 
   // Auto-load character A LoRA/prompt settings when character changes
