@@ -122,16 +122,17 @@ function StudioContent() {
 
   // Dirty state guard
   const isDirty = useStoryboardStore((s) => s.isDirty);
+  const isGenerating = useStoryboardStore((s) => Object.keys(s.imageGenProgress).length > 0);
 
-  // Warn before refresh/close during render, autopilot, or unsaved changes
+  // Warn before refresh/close during render, autopilot, unsaved changes, or image generation
   useEffect(() => {
-    if (!isRendering && !autopilot.isAutoRunning && !isDirty) return;
+    if (!isRendering && !autopilot.isAutoRunning && !isDirty && !isGenerating) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [isRendering, autopilot.isAutoRunning, isDirty]);
+  }, [isRendering, autopilot.isAutoRunning, isDirty, isGenerating]);
 
   // Keyboard Shortcuts
   useKeyboardShortcuts([

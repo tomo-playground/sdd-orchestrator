@@ -36,6 +36,34 @@
 | 3 | 네트워크 끊김 시 자동 재연결 |
 | 4 | 기존 동기 생성 API 호환성 유지 |
 
+---
+
+## Backend Complete Store (Phase 22)
+
+**상태**: 구현 완료 (2026-02-28)
+
+### 개요
+
+이미지 생성 후 Backend가 자율적으로 MinIO 저장 + scene.image_asset_id 갱신. 기존 Frontend 중계(SPOF) 제거.
+
+### 흐름 변경
+
+**Before**: SD WebUI → Backend (base64) → SSE → Frontend → POST /image/store → DB
+**After**: SD WebUI → Backend → MinIO 저장 + DB 갱신 → SSE (url/asset_id 포함)
+
+### Graceful Degradation
+
+- Backend 저장 성공 → storeSceneImage HTTP 호출 스킵
+- Backend 저장 실패 → 기존 Frontend relay fallback
+- storyboard_id 없는 요청 (프리뷰) → Backend 저장 스킵
+
+### 변경 파일
+
+- Backend: schemas.py, helpers.py, scene.py (4파일)
+- Frontend: types/index.ts, imageGeneration.ts, imageProcessing.ts, studio/page.tsx (4파일)
+
+---
+
 ## 참고
 
 - 렌더링 SSE 구현: `backend/routers/video_routes.py` (`/video/progress/`)

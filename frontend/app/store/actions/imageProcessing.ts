@@ -78,6 +78,7 @@ export type ProcessOpts = {
   silent: boolean;
   controlnet_pose?: string;
   ip_adapter_reference?: string;
+  preStored?: { url: string; asset_id: number };
 };
 
 /** Store, validate, and rank generated images (shared by SSE and sync paths) */
@@ -101,20 +102,22 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
     .scenes.find((s) => s.client_id === scene.client_id);
   const sceneDbId = currentScene?.id ?? scene.id;
 
-  const storedResults = await Promise.all(
-    images.map((b64: string, idx: number) => {
-      const dataUrl = `data:image/png;base64,${b64}`;
-      return storeSceneImage(
-        dataUrl,
-        projectId,
-        groupId,
-        currentId,
-        sceneDbId,
-        `scene_${sceneDbId}_${Date.now()}_${idx}.png`,
-        scene.client_id
+  const storedResults = opts.preStored
+    ? [{ url: opts.preStored.url, asset_id: opts.preStored.asset_id }]
+    : await Promise.all(
+        images.map((b64: string, idx: number) => {
+          const dataUrl = `data:image/png;base64,${b64}`;
+          return storeSceneImage(
+            dataUrl,
+            projectId,
+            groupId,
+            currentId,
+            sceneDbId,
+            `scene_${sceneDbId}_${Date.now()}_${idx}.png`,
+            scene.client_id
+          );
+        })
       );
-    })
-  );
 
   const validationResults = await Promise.all(
     storedResults.map(async (stored) => {

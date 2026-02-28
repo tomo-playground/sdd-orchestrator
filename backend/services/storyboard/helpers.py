@@ -156,9 +156,7 @@ def calculate_auto_pin_flags(scenes: list, structure: str | None = None) -> dict
     return result
 
 
-def resolve_scene_id_by_client_id(
-    db, scene_id: int, client_id: str | None, storyboard_id: int | None
-) -> int | None:
+def resolve_scene_id_by_client_id(db, scene_id: int, client_id: str | None, storyboard_id: int | None) -> int | None:
     """Resolve current scene DB ID, falling back to client_id when scene_id is stale.
 
     Returns the resolved scene_id, or None if both lookups fail.
@@ -189,6 +187,25 @@ def resolve_scene_id_by_client_id(
             return fallback[0]
 
     logger.warning("[SceneResolver] scene_id %d not found, client_id=%s", scene_id, client_id)
+    return None
+
+
+def resolve_project_group_ids(db, storyboard_id: int) -> tuple[int, int] | None:
+    """Resolve (project_id, group_id) from storyboard_id.
+
+    Storyboard has group_id; project_id is derived via Group.
+    """
+    from models.group import Group
+    from models.storyboard import Storyboard
+
+    row = (
+        db.query(Group.project_id, Storyboard.group_id)
+        .join(Group, Group.id == Storyboard.group_id)
+        .filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None))
+        .first()
+    )
+    if row:
+        return (row.project_id, row.group_id)
     return None
 
 

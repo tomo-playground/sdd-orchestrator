@@ -793,6 +793,8 @@ export type ImageGenProgress = {
   ip_adapter_reference?: string;
   retry_count?: number;
   retry_reason?: string;
+  image_url?: string; // Backend 자율 저장 URL
+  image_asset_id?: number; // 저장된 MediaAsset ID
 };
 
 // ============================================================

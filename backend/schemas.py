@@ -604,6 +604,8 @@ class SceneGenerateRequest(BaseModel):
     auto_replace_risky_tags: bool = False
     # Warnings field to return messages from backend
     warnings: list[str] | None = None
+    # Stable fallback for stale scene_id resolution
+    client_id: str | None = None
 
 
 class BatchSceneRequest(BaseModel):
@@ -1539,6 +1541,8 @@ class ImageProgressEvent(BaseModel):
     ip_adapter_reference: str | None = None
     retry_count: int = 0
     retry_reason: str | None = None
+    image_url: str | None = None  # Backend autonomous storage URL
+    image_asset_id: int | None = None  # Saved MediaAsset ID
 
 
 class SceneEditImageRequest(BaseModel):

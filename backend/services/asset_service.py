@@ -41,8 +41,13 @@ class AssetService:
         file_size: int | None = None,
         mime_type: str | None = None,
         checksum: str | None = None,
+        auto_commit: bool = True,
     ) -> MediaAsset:
-        """Create a MediaAsset record in the database."""
+        """Create a MediaAsset record in the database.
+
+        Args:
+            auto_commit: If False, flush instead of commit (caller manages transaction).
+        """
         asset = MediaAsset(
             owner_type=owner_type,
             owner_id=owner_id,
@@ -55,7 +60,10 @@ class AssetService:
             checksum=checksum,
         )
         self.db.add(asset)
-        self.db.commit()
+        if auto_commit:
+            self.db.commit()
+        else:
+            self.db.flush()
         self.db.refresh(asset)
 
         owner_info = f" ({owner_type}:{owner_id})" if owner_type else " (Orphan)"
@@ -102,16 +110,18 @@ class AssetService:
         )
 
     def save_scene_image(
-        self, image_bytes: bytes, project_id: int, group_id: int, storyboard_id: int, scene_id: int, file_name: str
+        self,
+        image_bytes: bytes,
+        project_id: int,
+        group_id: int,
+        storyboard_id: int,
+        scene_id: int,
+        file_name: str,
+        auto_commit: bool = True,
     ) -> MediaAsset:
         """Save a scene image to storage and register it in the DB."""
-        # Define hierarchical key
         storage_key = f"projects/{project_id}/groups/{group_id}/storyboards/{storyboard_id}/images/{file_name}"
-
-        # Save to storage (MinIO/S3 or Local)
         self._get_storage().save(storage_key, image_bytes, content_type="image/png")
-
-        # Register in DB with generic relationship
         return self.register_asset(
             file_name=file_name,
             file_type="image",
@@ -121,6 +131,7 @@ class AssetService:
             file_size=len(image_bytes),
             mime_type="image/png",
             checksum=self.compute_checksum(image_bytes),
+            auto_commit=auto_commit,
         )
 
     def save_rendered_video(

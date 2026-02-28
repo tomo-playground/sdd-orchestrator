@@ -38,9 +38,9 @@ from services.asset_service import AssetService
 from services.error_responses import raise_user_error
 from services.generation import generate_scene_image
 from services.image import decode_data_url, load_as_data_url
+from services.image_gen_pipeline import run_image_gen
 from services.image_progress import (
     ImageGenStage,
-    calc_percent,
     create_image_task,
     get_image_task,
 )
@@ -560,105 +560,8 @@ async def generate_scene_async(request: SceneGenerateRequest):
     """Start async image generation and return task_id for SSE polling."""
     logger.info("[Scene Gen Async] %s", scrub_payload(request.model_dump()))
     task = create_image_task()
-    asyncio.create_task(_run_image_gen(task.task_id, request))
+    asyncio.create_task(run_image_gen(task.task_id, request))
     return ImageGenAccepted(task_id=task.task_id)
-
-
-async def _generate_and_validate(task, request: SceneGenerateRequest) -> dict | None:
-    """Single generation attempt: compose → generate → store → validate.
-
-    Returns result dict (with optional _critical_failure key), or None if cancelled.
-    """
-    # Stage: composing
-    task.stage = ImageGenStage.COMPOSING
-    task.percent = calc_percent(task)
-    task.message = "프롬프트 조합 중..."
-    task.notify()
-
-    if task.cancelled:
-        return None
-
-    # Stage: generating
-    task.stage = ImageGenStage.GENERATING
-    task.percent = calc_percent(task)
-    task.message = "이미지 생성 중..."
-    task.notify()
-
-    from services.sd_progress_poller import poll_sd_progress
-
-    poller = asyncio.create_task(poll_sd_progress(task))
-    try:
-        result = await generate_scene_image(request)
-    finally:
-        poller.cancel()
-
-    if task.cancelled:
-        return None
-
-    # Stage: storing
-    task.stage = ImageGenStage.STORING
-    task.percent = calc_percent(task)
-    task.message = "저장 중..."
-    task.notify()
-
-    # Stage: validating
-    task.stage = ImageGenStage.VALIDATING
-    task.percent = calc_percent(task)
-    task.message = "품질 검증 중..."
-    task.notify()
-
-    from services.auto_regen import validate_for_critical_failure
-
-    prompt = result.get("used_prompt") or request.prompt
-    critical = validate_for_critical_failure(result, prompt)
-    if critical:
-        result["_critical_failure"] = critical
-
-    return result
-
-
-async def _run_image_gen(task_id: str, request: SceneGenerateRequest) -> None:
-    """Background coroutine: generate image with auto-retry on critical failure."""
-    from config import AUTO_REGEN_ENABLED, AUTO_REGEN_MAX_RETRIES
-    from services.auto_regen import describe_failure, has_critical_failure, shift_seed_for_retry
-
-    task = get_image_task(task_id)
-    if not task:
-        return
-
-    try:
-        result = await _generate_and_validate(task, request)
-        if result is None:
-            return
-
-        retries = 0
-        while AUTO_REGEN_ENABLED and retries < AUTO_REGEN_MAX_RETRIES and has_critical_failure(result):
-            retries += 1
-            reason = describe_failure(result)
-            logger.warning("[Auto-Regen] %s detected, retry %d/%d", reason, retries, AUTO_REGEN_MAX_RETRIES)
-
-            task.stage = ImageGenStage.RETRYING
-            task.percent = calc_percent(task)
-            task.message = f"재생성 중 ({retries}/{AUTO_REGEN_MAX_RETRIES}): {reason}"
-            task.notify()
-
-            shift_seed_for_retry(request, retries)
-            result = await _generate_and_validate(task, request)
-            if result is None:
-                return
-
-        # Stage: completed
-        task.stage = ImageGenStage.COMPLETED
-        task.percent = 100
-        task.result = result
-        task.message = "완료" if retries == 0 else f"완료 (재시도 {retries}회)"
-        task.notify()
-
-    except Exception as exc:
-        logger.exception("[Scene Gen Async] Failed for task %s", task_id)
-        task.stage = ImageGenStage.FAILED
-        task.error = str(exc)
-        task.notify()
 
 
 @router.post("/scene/cancel/{task_id}", response_model=SceneCancelResponse)
@@ -725,6 +628,8 @@ async def _image_event_generator(task_id: str) -> AsyncGenerator[str]:
                 error=task.error,
                 controlnet_pose=task.result.get("controlnet_pose") if task.result else None,
                 ip_adapter_reference=task.result.get("ip_adapter_reference") if task.result else None,
+                image_url=task.result.get("image_url") if task.result else None,
+                image_asset_id=task.result.get("image_asset_id") if task.result else None,
             )
             yield f"data: {json.dumps(event.model_dump())}\n\n"
 

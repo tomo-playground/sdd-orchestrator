@@ -25,10 +25,12 @@
 | Phase 20 (Agent-Aware Inventory) | 전체 완료 (ARCHIVED) |
 | DB Schema Cleanup | 전체 완료 (ARCHIVED) |
 | Phase 21 (Persona-based Menu Reorganization) | 전체 완료 (ARCHIVED) |
+| Phase 22 (Backend Complete Image Generation) | 전체 완료 (ARCHIVED) |
 | 테스트 | Backend 2,667 + Frontend 435 = **총 3,102개** |
 
 ### 최근 작업
 
+- **Phase 22: Backend Complete Image Generation** (02-28): SD 이미지 생성→저장까지 Backend 자율 완결, Frontend SPOF 제거. MinIO 저장+DB 갱신을 Backend에서 처리, Graceful Degradation fallback. 8파일 변경.
 - **Phase 21: Persona-based Menu Reorganization** (02-28): Admin을 Library/Settings/Dev 3-tier로 재편. Shell 3종 + 14개 라우트 신설, admin/ dead code 제거. 120파일 변경.
 - **GroupConfig를 Groups에 병합** (02-28): group_config 테이블 삭제, FK 3개+channel_dna를 groups 테이블에 통합. language/duration 제거. Alembic 마이그레이션+코드리뷰 완료. 25파일.
 - **GroupConfig SD 생성 파라미터 4개 제거** (02-28): sd_steps, sd_cfg_scale, sd_sampler_name, sd_clip_skip 컬럼 삭제. StyleProfile이 SSOT이므로 GroupConfig의 informational 중복 제거.
@@ -81,6 +83,7 @@
 | 20 | Agent-Aware Inventory | Director 캐스팅, Autonomous Express, Casting UX, inventory_resolve 노드. 22/22 | [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md) · [명세](FEATURES/AGENT_AWARE_INVENTORY_PIPELINE.md) |
 | DB Cleanup | Schema Cleanup | Sprint A 7건 FIX + Sprint B 3건 DROP + Checkpoint GC. 10/11 (1건 취소) | [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md) · [명세](FEATURES/DB_SCHEMA_CLEANUP.md) |
 | 21 | Persona-based Menu Reorganization | Library/Settings/Dev 3-tier, Shell 3종, admin dead code 제거. 6/6 | [명세](FEATURES/PERSONA_MENU_REORGANIZATION.md) |
+| 22 | Backend Complete Image Generation | SD 생성→저장 Backend 자율 완결, Frontend SPOF 제거, Graceful Degradation | [명세](FEATURES/IMAGE_GENERATION_PROGRESS.md) |
 
 ---
 
@@ -112,6 +115,7 @@ graph LR
     P18 --> P19["Phase 19<br/>탭 페르소나<br/>재배치"]
     P19 --> P20["Phase 20<br/>Agent-Aware<br/>Inventory"]
     P20 --> P21["Phase 21<br/>Persona Menu<br/>Reorganization"]
+    P21 --> P22["Phase 22<br/>Backend Complete<br/>Image Generation"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -138,6 +142,7 @@ graph LR
     style P19 fill:#4CAF50,color:#fff
     style P20 fill:#4CAF50,color:#fff
     style P21 fill:#4CAF50,color:#fff
+    style P22 fill:#4CAF50,color:#fff
 ```
 
 ---

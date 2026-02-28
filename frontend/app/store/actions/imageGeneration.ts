@@ -89,6 +89,7 @@ export async function generateSceneImageFor(
     style_loras: sbState.characterLoras || [],
     auto_rewrite_prompt: sbState.autoRewritePrompt,
     auto_replace_risky_tags: sbState.autoReplaceRiskyTags,
+    client_id: scene.client_id,
   };
 
   const debugPayload = { ...requestPayload };
@@ -107,6 +108,10 @@ export async function generateSceneImageFor(
         silent,
         controlnet_pose: sseData.controlnet_pose,
         ip_adapter_reference: sseData.ip_adapter_reference,
+        preStored:
+          sseData.image_url && sseData.image_asset_id
+            ? { url: sseData.image_url, asset_id: sseData.image_asset_id }
+            : undefined,
       });
       if (result) {
         return {
