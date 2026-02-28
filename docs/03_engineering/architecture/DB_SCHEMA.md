@@ -132,7 +132,6 @@ Group별 설정 (1:1, 분리된 설정 테이블). 프로젝트 설정을 상속
 | `style_profile_id` | Integer (FK → style_profiles) | 기본 스타일 프로파일 |
 | `narrator_voice_preset_id` | Integer (FK → voice_presets) | 나레이터 음성 |
 | `language` | String(20) | 언어 설정 |
-| `structure` | String(30) | 구조 설정 |
 | `duration` | Integer | 목표 길이 |
 | `sd_steps` | Integer | SD Steps 오버라이드 |
 | `sd_cfg_scale` | Float | SD CFG Scale 오버라이드 |
@@ -157,6 +156,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `version` | Integer, NOT NULL, default 1 | Optimistic Locking 버전. PUT/PATCH 시 검증, 성공 시 +1 증분. 불일치 시 409 Conflict |
 | `base_seed` | BigInteger, nullable | Seed Anchoring 기준 시드. 씬별 seed = `base_seed + order * SEED_ANCHOR_OFFSET` |
 | `stage_status` | String(20), nullable | Stage 파이프라인 상태: `pending`, `staging`, `staged`, `failed`. NULL = 미사용 |
+| `casting_recommendation` | JSONB, nullable | AI 캐스팅 추천 (character_id, structure, reasoning 등). Phase 20-C |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 

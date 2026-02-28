@@ -14,7 +14,6 @@ CASCADING_FIELDS = [
     "style_profile_id",
     "narrator_voice_preset_id",
     "language",
-    "structure",
     "duration",
     "sd_steps",
     "sd_cfg_scale",

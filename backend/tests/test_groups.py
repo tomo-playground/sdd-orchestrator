@@ -91,7 +91,6 @@ class TestGroupConfigUpdate:
             f"/api/v1/groups/{group_id}/config",
             json={
                 "language": "korean",
-                "structure": "story",
                 "duration": 60,
             },
         )
@@ -106,7 +105,6 @@ class TestGroupConfigUpdate:
         data = resp.json()
         assert data["narrator_voice_preset_id"] == voice_preset_id
         assert data["language"] == "korean"  # preserved
-        assert data["structure"] == "story"  # preserved
         assert data["duration"] == 60  # preserved
 
     def test_update_nonexistent_voice_preset_id_fails(self, client, db_session):

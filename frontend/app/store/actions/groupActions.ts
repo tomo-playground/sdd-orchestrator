@@ -11,7 +11,7 @@ import { loadStyleProfileFromId } from "./styleProfileActions";
  * Load effective config (cascading: Project < Group) and apply to output slice.
  * Called on initial load or when the active group changes.
  *
- * @param skipContentDefaults - If true, skips applying structure/language/duration.
+ * @param skipContentDefaults - If true, skips applying language/duration.
  *                              Use when loading an existing storyboard that already has these values.
  */
 export async function loadGroupDefaults(
@@ -83,7 +83,6 @@ export async function loadGroupDefaults(
     if (!options?.skipContentDefaults) {
       const planUpdates: Record<string, unknown> = {};
       if (cfg.language) planUpdates.language = cfg.language;
-      if (cfg.structure) planUpdates.structure = cfg.structure;
       if (cfg.duration) planUpdates.duration = cfg.duration;
       if (Object.keys(planUpdates).length > 0) {
         useStoryboardStore.getState().set(planUpdates);

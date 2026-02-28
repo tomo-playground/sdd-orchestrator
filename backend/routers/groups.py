@@ -176,7 +176,6 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
         style_profile_id=result["values"].get("style_profile_id"),
         narrator_voice_preset_id=result["values"].get("narrator_voice_preset_id"),
         language=result["values"].get("language"),
-        structure=result["values"].get("structure"),
         duration=result["values"].get("duration"),
         sd_steps=result["values"].get("sd_steps"),
         sd_cfg_scale=result["values"].get("sd_cfg_scale"),

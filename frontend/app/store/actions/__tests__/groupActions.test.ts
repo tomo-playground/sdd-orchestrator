@@ -131,12 +131,11 @@ describe("loadGroupDefaults", () => {
     });
   });
 
-  it("loads language/structure/duration to plan slice", async () => {
+  it("loads language/duration to plan slice", async () => {
     (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: {
         render_preset: { name: "Test" },
         language: "Korean",
-        structure: "Monologue",
         duration: 30,
         sources: {},
       },
@@ -146,7 +145,6 @@ describe("loadGroupDefaults", () => {
 
     expect(mockSetPlan).toHaveBeenCalledWith({
       language: "Korean",
-      structure: "Monologue",
       duration: 30,
     });
   });
@@ -194,7 +192,6 @@ describe("loadGroupDefaults", () => {
         data: {
           render_preset: { name: "Test", bgm_file: "random" },
           language: "Korean",
-          structure: "Monologue",
           duration: 30,
           sources: { render_preset_id: "group" },
         },
@@ -204,7 +201,7 @@ describe("loadGroupDefaults", () => {
 
       // Render preset should still be applied
       expect(mockSetOutput).toHaveBeenCalledWith(expect.objectContaining({ bgmFile: "random" }));
-      // Content defaults (language/structure/duration) should NOT be applied
+      // Content defaults (language/duration) should NOT be applied
       expect(mockSetPlan).not.toHaveBeenCalled();
     });
 
@@ -213,7 +210,6 @@ describe("loadGroupDefaults", () => {
         data: {
           render_preset: { name: "Test" },
           language: "Korean",
-          structure: "Dialogue",
           duration: 45,
           sources: {},
         },
@@ -223,7 +219,6 @@ describe("loadGroupDefaults", () => {
 
       expect(mockSetPlan).toHaveBeenCalledWith({
         language: "Korean",
-        structure: "Dialogue",
         duration: 45,
       });
     });
@@ -233,7 +228,6 @@ describe("loadGroupDefaults", () => {
         data: {
           render_preset: { name: "Test" },
           language: "English",
-          structure: "Narrated Dialogue",
           duration: 60,
           sources: {},
         },
@@ -243,19 +237,16 @@ describe("loadGroupDefaults", () => {
 
       expect(mockSetPlan).toHaveBeenCalledWith({
         language: "English",
-        structure: "Narrated Dialogue",
         duration: 60,
       });
     });
 
-    it("preserves storyboard structure when loading existing storyboard", async () => {
-      // Scenario: User loads storyboard with structure="Dialogue" from a group with default structure="Monologue"
-      // The storyboard's structure should be preserved, not overwritten by group default
+    it("preserves storyboard values when loading existing storyboard", async () => {
+      // Scenario: User loads existing storyboard — group defaults should not overwrite
       (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: {
           render_preset: { name: "Test", speed_multiplier: 1.2 },
           language: "Korean",
-          structure: "Monologue", // Group default
           duration: 30,
           sources: {},
         },
@@ -266,7 +257,7 @@ describe("loadGroupDefaults", () => {
 
       // Render settings should be applied
       expect(mockSetOutput).toHaveBeenCalledWith(expect.objectContaining({ speedMultiplier: 1.2 }));
-      // But structure/language/duration should NOT overwrite storyboard values
+      // But language/duration should NOT overwrite storyboard values
       expect(mockSetPlan).not.toHaveBeenCalled();
     });
   });

@@ -48,7 +48,6 @@ class GroupConfig(Base, TimestampMixin):
         ForeignKey("voice_presets.id", ondelete="SET NULL"),
     )
     language: Mapped[str | None] = mapped_column(String(20))
-    structure: Mapped[str | None] = mapped_column(String(30))
     duration: Mapped[int | None] = mapped_column(Integer)
 
     # SD generation settings (migrated from scenes)

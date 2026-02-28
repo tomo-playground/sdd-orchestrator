@@ -160,7 +160,6 @@ class GroupConfigUpdate(BaseModel):
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
     language: str | None = None
-    structure: str | None = None
     duration: int | None = None
     sd_steps: int | None = None
     sd_cfg_scale: float | None = None
@@ -176,7 +175,6 @@ class GroupConfigResponse(BaseModel):
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
     language: str | None = None
-    structure: str | None = None
     duration: int | None = None
     sd_steps: int | None = None
     sd_cfg_scale: float | None = None
@@ -195,7 +193,6 @@ class EffectiveConfigResponse(BaseModel):
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
     language: str | None = None
-    structure: str | None = None
     duration: int | None = None
     sd_steps: int | None = None
     sd_cfg_scale: float | None = None
@@ -220,12 +217,25 @@ class StoryboardBase(BaseModel):
     language: str | None = None
 
 
+class CastingRecommendationSchema(BaseModel):
+    """Phase 20-C: AI casting recommendation persisted with storyboard."""
+
+    character_id: int | None = None
+    character_name: str = ""
+    character_b_id: int | None = None
+    character_b_name: str = ""
+    structure: str | None = None
+    style_profile_id: int | None = None
+    reasoning: str = Field(default="", max_length=2000)
+
+
 class StoryboardSave(StoryboardBase):
     character_id: int | None = None
     character_b_id: int | None = None
     version: int | None = None  # Optimistic locking: current version from client
     bgm_prompt: str | None = None  # Sound Designer recommendation.prompt
     bgm_mood: str | None = None  # Sound Designer recommendation.mood
+    casting_recommendation: CastingRecommendationSchema | None = None
     scenes: list[StoryboardScene]
 
 
@@ -383,6 +393,7 @@ class StoryboardDetailResponse(BaseModel):
     bgm_prompt: str | None = None  # Sound Designer recommendation
     bgm_mood: str | None = None  # Sound Designer mood tag
     stage_status: str | None = None  # pending | staging | staged | failed
+    casting_recommendation: CastingRecommendationSchema | None = None
     created_at: str | None = None
     updated_at: str | None = None
     characters: list[StoryboardCharacterResponse] = []

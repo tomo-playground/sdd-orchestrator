@@ -454,7 +454,6 @@ export type DraftData = {
   duration?: number;
   style?: string;
   language?: string;
-  structure?: string;
   actorAGender?: ActorGender;
   selectedCharacterId?: number | null;
   basePromptA?: string;
@@ -938,7 +937,6 @@ export type EffectiveConfig = {
   style_profile_id: number | null;
   narrator_voice_preset_id: number | null;
   language: string | null;
-  structure: string | null;
   duration: number | null;
   sd_steps: number | null;
   sd_cfg_scale: number | null;

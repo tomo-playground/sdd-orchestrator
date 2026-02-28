@@ -362,7 +362,6 @@ Cascading Config를 조회합니다 (Project < Group 레벨 resolve). `response_
   "style_profile_id": 1,
   "narrator_voice_preset_id": 1,
   "language": "Korean",
-  "structure": "Monologue",
   "duration": 30,
   "sd_steps": 24,
   "sd_cfg_scale": 7.0,

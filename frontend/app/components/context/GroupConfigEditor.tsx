@@ -10,7 +10,8 @@ import VoicePresetSelector from "../voice/VoicePresetSelector";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
 import { fetchGroups } from "../../store/actions/groupActions";
-import { FORM_INPUT_COMPACT_CLASSES, FORM_LABEL_COMPACT_CLASSES } from "../ui/variants";
+import InfoTooltip from "../ui/InfoTooltip";
+import { SelectField, DnaField, DNA_FIELDS, labelCls, inputCls } from "./GroupConfigHelpers";
 
 // ── Types ────────────────────────────────────────────────────
 import type { ChannelDNA } from "../../types";
@@ -29,7 +30,6 @@ type GroupConfig = {
   style_profile_id: number | null;
   narrator_voice_preset_id: number | null;
   language: string | null;
-  structure: string | null;
   duration: number | null;
   sd_steps: number | null;
   sd_cfg_scale: number | null;
@@ -48,65 +48,6 @@ type Props = {
 // ── Constants ────────────────────────────────────────────────
 const SAMPLERS = ["DPM++ 2M Karras", "DPM++ SDE Karras", "Euler a", "Euler", "DDIM", "UniPC"];
 
-const labelCls = FORM_LABEL_COMPACT_CLASSES;
-const inputCls = FORM_INPUT_COMPACT_CLASSES;
-const disabledCls =
-  "w-full rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-400 cursor-not-allowed";
-
-// ── Helpers ──────────────────────────────────────────────────
-function SelectField({
-  label,
-  value,
-  options,
-  onChange,
-  placeholder,
-  disabled,
-}: {
-  label: string;
-  value: string | number | null;
-  options: { value: string | number; label: string }[];
-  onChange: (v: string) => void;
-  placeholder?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <div>
-      <label className={labelCls}>{label}</label>
-      <select
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        className={disabled ? disabledCls : inputCls}
-        disabled={disabled}
-      >
-        {placeholder && <option value="">{placeholder}</option>}
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-// ── Channel DNA helpers ──────────────────────────────────────
-type DnaFieldDef = { field: keyof ChannelDNA; label: string; placeholder: string; rows: number };
-const DNA_FIELDS: DnaFieldDef[] = [
-  { field: "tone", label: "Tone", placeholder: "e.g. warm and nostalgic, dark humor", rows: 2 },
-  { field: "target_audience", label: "Target Audience", placeholder: "e.g. teens 13-18, anime fans", rows: 2 },
-  { field: "worldview", label: "Worldview", placeholder: "e.g. A fantasy world where magic and technology coexist", rows: 3 },
-  { field: "guidelines", label: "Guidelines", placeholder: "e.g. No violence, keep stories under 60s", rows: 3 },
-];
-
-function DnaField({ label, value, placeholder, rows, onChange }: Omit<DnaFieldDef, "field"> & { value: string; onChange: (v: string) => void }) {
-  return (
-    <div>
-      <label className={labelCls}>{label}</label>
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows} className={inputCls} />
-    </div>
-  );
-}
-
 // ── Component ────────────────────────────────────────────────
 export default function GroupConfigEditor({ groupId, onClose }: Props) {
   const showToast = useUIStore((s) => s.showToast);
@@ -118,7 +59,6 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
   const [presets, setPresets] = useState<OptionItem[]>([]);
   const [profiles, setProfiles] = useState<OptionItem[]>([]);
   const [languages, setLanguages] = useState<{ value: string; label: string }[]>([]);
-  const [structures, setStructures] = useState<string[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -145,9 +85,6 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
         );
         const sbData = sbPresetsRes.data;
         if (Array.isArray(sbData?.languages)) setLanguages(sbData.languages);
-        if (Array.isArray(sbData?.presets)) {
-          setStructures(sbData.presets.map((p: Record<string, unknown>) => p.structure as string));
-        }
       })
       .catch(() => showToast("Failed to load config", "error"))
       .finally(() => setLoading(false));
@@ -172,7 +109,6 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
           style_profile_id: config.style_profile_id,
           narrator_voice_preset_id: config.narrator_voice_preset_id,
           language: config.language,
-          structure: config.structure,
           duration: config.duration,
           sd_steps: config.sd_steps,
           sd_cfg_scale: config.sd_cfg_scale,
@@ -232,13 +168,6 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
               value={config.language}
               options={languages.map((l) => ({ value: l.value, label: l.label }))}
               onChange={(v) => updateField("language", v || null)}
-              placeholder="-- None --"
-            />
-            <SelectField
-              label="Structure"
-              value={config.structure}
-              options={structures.map((s) => ({ value: s, label: s }))}
-              onChange={(v) => updateField("structure", v || null)}
               placeholder="-- None --"
             />
             <div>
@@ -317,7 +246,9 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
               SD Generation
             </p>
             <div>
-              <label className={labelCls}>Steps</label>
+              <label className={labelCls}>
+                Steps <InfoTooltip term="steps" />
+              </label>
               <input
                 type="number"
                 min={1}
@@ -331,7 +262,9 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
               />
             </div>
             <div>
-              <label className={labelCls}>CFG Scale</label>
+              <label className={labelCls}>
+                CFG Scale <InfoTooltip term="cfg-scale" />
+              </label>
               <input
                 type="number"
                 min={1}
@@ -351,9 +284,12 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
               options={SAMPLERS.map((s) => ({ value: s, label: s }))}
               onChange={(v) => updateField("sd_sampler_name", v || null)}
               placeholder="-- Default (DPM++ 2M Karras) --"
+              suffix={<InfoTooltip term="sampler" />}
             />
             <div>
-              <label className={labelCls}>Clip Skip</label>
+              <label className={labelCls}>
+                Clip Skip <InfoTooltip term="clip-skip" />
+              </label>
               <input
                 type="number"
                 min={1}
