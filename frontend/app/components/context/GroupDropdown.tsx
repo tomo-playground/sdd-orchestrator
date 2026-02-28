@@ -166,8 +166,8 @@ function ConfigBadges({ group }: { group: GroupItem }) {
   if (badges.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-1 pl-5">
-      {badges.map((label) => (
-        <span key={label} className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-500">
+      {badges.map((label, i) => (
+        <span key={`${i}-${label}`} className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-500">
           {label}
         </span>
       ))}

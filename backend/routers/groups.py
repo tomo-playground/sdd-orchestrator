@@ -23,13 +23,15 @@ from services.config_resolver import (
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 
+_GROUP_RESPONSE_OPTIONS = (
+    joinedload(Group.style_profile),
+    joinedload(Group.narrator_voice_preset),
+)
+
 
 @router.get("", response_model=list[GroupResponse])
 def list_groups(project_id: int | None = None, db: Session = Depends(get_db)):
-    query = db.query(Group).options(
-        joinedload(Group.style_profile),
-        joinedload(Group.narrator_voice_preset),
-    )
+    query = db.query(Group).options(*_GROUP_RESPONSE_OPTIONS)
     if project_id is not None:
         query = query.filter(Group.project_id == project_id)
     return query.all()
@@ -37,7 +39,7 @@ def list_groups(project_id: int | None = None, db: Session = Depends(get_db)):
 
 @router.get("/{group_id}", response_model=GroupResponse)
 def get_group(group_id: int, db: Session = Depends(get_db)):
-    group = db.query(Group).filter(Group.id == group_id).first()
+    group = db.query(Group).options(*_GROUP_RESPONSE_OPTIONS).filter(Group.id == group_id).first()
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
     return group
@@ -75,8 +77,7 @@ def create_group(body: GroupCreate, db: Session = Depends(get_db)):
     group = Group(**fields)
     db.add(group)
     db.commit()
-    db.refresh(group)
-    return group
+    return db.query(Group).options(*_GROUP_RESPONSE_OPTIONS).filter(Group.id == group.id).first()
 
 
 @router.put("/{group_id}", response_model=GroupResponse)
@@ -90,8 +91,7 @@ def update_group(group_id: int, body: GroupUpdate, db: Session = Depends(get_db)
         else:
             setattr(group, key, value)
     db.commit()
-    db.refresh(group)
-    return group
+    return db.query(Group).options(*_GROUP_RESPONSE_OPTIONS).filter(Group.id == group_id).first()
 
 
 # ---- Effective Config ----
