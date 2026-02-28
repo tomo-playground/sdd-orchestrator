@@ -11,13 +11,12 @@ import EmptyState from "../../../components/ui/EmptyState";
 import { SkeletonGrid } from "../../../components/ui/Skeleton";
 import { PAGE_TITLE_CLASSES, SEARCH_INPUT_CLASSES } from "../../../components/ui/variants";
 
-type FilterKey = "all" | "has_lora" | "has_preview" | "locked";
+type FilterKey = "all" | "has_lora" | "has_preview";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "All" },
   { key: "has_lora", label: "Has LoRA" },
   { key: "has_preview", label: "Has Preview" },
-  { key: "locked", label: "Locked" },
 ];
 
 export default function AdminCharactersPage() {
@@ -34,13 +33,12 @@ export default function AdminCharactersPage() {
         (ch) =>
           ch.name.toLowerCase().includes(q) ||
           ch.description?.toLowerCase().includes(q) ||
-          ch.custom_base_prompt?.toLowerCase().includes(q),
+          ch.custom_base_prompt?.toLowerCase().includes(q)
       );
     }
 
     if (filter === "has_lora") result = result.filter((ch) => (ch.loras?.length ?? 0) > 0);
     if (filter === "has_preview") result = result.filter((ch) => !!ch.preview_image_url);
-    if (filter === "locked") result = result.filter((ch) => ch.preview_locked);
 
     return result;
   }, [characters, search, filter]);

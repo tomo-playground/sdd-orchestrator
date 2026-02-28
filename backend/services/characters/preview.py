@@ -112,8 +112,6 @@ def _get_character_for_preview(db: Session, character_id: int, *, with_tags: boo
     character = query.filter(Character.id == character_id, Character.deleted_at.is_(None)).first()
     if not character:
         raise ValueError("Character not found")
-    if character.preview_locked:
-        raise ValueError("Preview image is locked")
     return character
 
 

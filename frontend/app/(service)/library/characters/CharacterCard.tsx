@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, Sparkles, Tag } from "lucide-react";
+import { Sparkles, Tag } from "lucide-react";
 import type { Character } from "../../../types";
 import { resolveImageUrl } from "../../../utils/url";
 
@@ -64,12 +64,6 @@ export default function CharacterCard({ character: ch }: Props) {
 
         {/* Floating badges (top-right) */}
         <div className="absolute top-2 right-2 flex flex-col gap-1">
-          {ch.preview_locked && (
-            <span className="flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[11px] font-medium text-amber-400 backdrop-blur-sm">
-              <Lock size={10} />
-              Locked
-            </span>
-          )}
           {loraCount > 0 && (
             <span className="flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[11px] font-medium text-indigo-300 backdrop-blur-sm">
               <Sparkles size={10} />

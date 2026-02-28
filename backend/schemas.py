@@ -900,7 +900,6 @@ class CharacterBase(BaseModel):
     ip_adapter_guidance_end: float | None = None
     # Multi-angle references: [{"angle": "front", "asset_id": 123}, ...]
     reference_images: list[dict] | None = None
-    preview_locked: bool = False
     voice_preset_id: int | None = None
 
 
@@ -928,7 +927,6 @@ class CharacterUpdate(BaseModel):
     ip_adapter_guidance_start: float | None = None
     ip_adapter_guidance_end: float | None = None
     reference_images: list[dict] | None = None
-    preview_locked: bool | None = None
     voice_preset_id: int | None = None
     tags: list[CharacterTagLink] | None = None
     # Legacy support (will be migrated to tags in router)
@@ -943,7 +941,6 @@ class CharacterResponse(CharacterBase):
     preview_image_asset_id: int | None = None
     preview_image_url: str | None = None  # Read-only from @property
     preview_key: str | None = None  # Read-only from @property (storage key)
-    preview_locked: bool = False
     deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)

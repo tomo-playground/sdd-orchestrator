@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ARRAY, Boolean, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import ARRAY, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -57,7 +57,6 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
     preview_image_asset_id: Mapped[int | None] = mapped_column(
         ForeignKey("media_assets.id", ondelete="SET NULL"),
     )
-    preview_locked: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     preview_image_asset: Mapped["MediaAsset"] = relationship(
         foreign_keys=[preview_image_asset_id],
     )

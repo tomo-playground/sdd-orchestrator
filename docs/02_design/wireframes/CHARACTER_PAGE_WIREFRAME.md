@@ -161,7 +161,6 @@ showSidebar = !pathname.startsWith("/manage")
 | 조건 | 배지 | 색상 |
 |------|------|------|
 | `loras.length > 0` | `LoRA x{count}` | `bg-indigo-100 text-indigo-700` |
-| `preview_locked === true` | `Locked` | `bg-amber-100 text-amber-700` |
 | `prompt_mode === "lora"` | `lora` | `bg-violet-100 text-violet-700` |
 | `prompt_mode === "standard"` | `standard` | `bg-zinc-100 text-zinc-600` |
 | `prompt_mode === "auto"` | `auto` | `bg-emerald-100 text-emerald-700` |
@@ -176,7 +175,6 @@ showSidebar = !pathname.startsWith("/manage")
   - All (기본)
   - Has LoRA (`loras.length > 0`)
   - Has Preview (`preview_image_url !== null`)
-  - Locked (`preview_locked === true`)
 
 ```
 [Search characters...]  [All v]

@@ -33,7 +33,6 @@ const CURRENT_CHAR: Character = {
   preview_image_asset_id: null,
   preview_image_url: null,
   preview_key: null,
-  preview_locked: false,
   ip_adapter_weight: null,
   ip_adapter_model: null,
   voice_preset_id: null,

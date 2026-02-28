@@ -74,7 +74,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - **IP-Adapter**: `ip_adapter_weight`, `ip_adapter_model`, `ip_adapter_guidance_start`, `ip_adapter_guidance_end`
 - **Reference**: `reference_source_type`, `reference_images` (JSONB)
 - **Voice**: `voice_preset_id` (FK → voice_presets)
-- `preview_image_asset_id` (FK), `preview_locked`, `deleted_at`
+- `preview_image_asset_id` (FK), `deleted_at`
 
 ### `loras` — LoRA 모델
 - `id` (PK), `name` (Unique), `display_name`, `lora_type`, `gender_locked`, `trigger_words`

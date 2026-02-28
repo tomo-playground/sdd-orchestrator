@@ -335,7 +335,6 @@ export type Character = {
   preview_image_asset_id: number | null;
   preview_image_url: string | null;
   preview_key: string | null;
-  preview_locked: boolean;
   ip_adapter_weight: number | null;
   ip_adapter_model: string | null;
   voice_preset_id: number | null;

@@ -7,7 +7,6 @@ export const MOCK_CHARACTERS_LIST = [
     gender: "female",
     description: "Cheerful high school girl",
     preview_image_url: null,
-    preview_locked: false,
     custom_base_prompt: null,
     tags: [
       { id: 1, name: "brown_hair" },
@@ -21,7 +20,6 @@ export const MOCK_CHARACTERS_LIST = [
     gender: "male",
     description: "Calm university student",
     preview_image_url: null,
-    preview_locked: false,
     custom_base_prompt: null,
     tags: [{ id: 3, name: "black_hair" }],
     loras: [],
@@ -34,7 +32,6 @@ export const MOCK_CHARACTER_DETAIL = {
   gender: "female",
   description: "Cheerful high school girl with brown hair",
   preview_image_url: null,
-  preview_locked: false,
   custom_base_prompt: null,
   tags: [
     { id: 1, name: "brown_hair" },

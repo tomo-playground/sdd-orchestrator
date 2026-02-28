@@ -455,7 +455,6 @@ WD14 피드백 루프 데이터.
 | `voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 캐릭터 고유 음성 프리셋 |
 | **Display** | | |
 | `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
-| `preview_locked` | Boolean | 미리보기 자동 갱신 잠금 (default: false) |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
