@@ -265,6 +265,7 @@ LangGraph 기반 AI 대본 생성 파이프라인. SSE 스트리밍으로 노드
 | POST | `/scripts/generate` | 동기 대본 생성 |
 | POST | `/scripts/generate-stream` | SSE 스트리밍 대본 생성 |
 | POST | `/scripts/resume` | Human Gate/Concept Gate 재개 |
+| POST | `/scripts/analyze-topic` | 토픽 분석 → 최적 설정 추천 |
 | GET | `/scripts/presets` | LangGraph 프리셋 목록 |
 | GET | `/scripts/feedback-presets` | 피드백 프리셋 목록 |
 | POST | `/scripts/feedback` | 스크립트 생성 피드백 제출 |
@@ -285,6 +286,31 @@ LangGraph 기반 AI 대본 생성 파이프라인. SSE 스트리밍으로 노드
 ```
 
 **노드 순서:** research → critic → concept_gate → writer → review → cinematographer → tts_designer → sound_designer → copyright_reviewer → director → human_gate → finalize → explain → learn
+
+### `POST /scripts/analyze-topic` — 토픽 분석
+
+**Request:** `TopicAnalyzeRequest`
+```json
+{ "topic": "카페 알바생이 본 이별 장면", "description": "", "group_id": 1 }
+```
+
+**Response:** `TopicAnalyzeResponse`
+```json
+{
+  "duration": 30,
+  "language": "Korean",
+  "structure": "narrated_dialogue",
+  "character_id": 1,
+  "character_name": "유나",
+  "character_b_id": 2,
+  "character_b_name": "하루",
+  "reasoning": "카페 알바 시점의 이별 장면은 내레이션+대화가 효과적..."
+}
+```
+
+- Gemini LLM이 토픽을 분석하여 최적 설정 추천
+- Post-validation: duration/structure/language/character_id 유효값 검증
+- Gemini 실패 시 fallback 기본값 반환 (duration=30, Korean, monologue)
 
 ### `POST /scripts/resume`
 

@@ -27,6 +27,8 @@ from schemas import (
     ScriptPresetsResponse,
     ScriptResumeRequest,
     StoryboardRequest,
+    TopicAnalyzeRequest,  # noqa: F401
+    TopicAnalyzeResponse,  # noqa: F401
 )
 from services.agent.script_graph import get_compiled_graph
 from services.agent.state import ScriptState
@@ -131,6 +133,115 @@ def _state_to_response(result: dict) -> dict:
     if result.get("explanation_result"):
         resp["explanation"] = result["explanation_result"]
     return resp
+
+
+@router.post("/analyze-topic", response_model=TopicAnalyzeResponse)
+async def analyze_topic(request: TopicAnalyzeRequest):
+    """토픽을 분석하여 최적의 영상 설정(duration, language, structure, character)을 추천한다."""
+    from config import (  # noqa: PLC0415
+        GEMINI_TEXT_MODEL,
+        SHORTS_DURATIONS,
+        STORYBOARD_LANGUAGES,
+        gemini_client,
+        template_env,
+    )
+    from services.agent.inventory import (  # noqa: PLC0415
+        STRUCTURE_METADATA,
+        load_full_inventory,
+    )
+    from services.creative_utils import parse_json_response  # noqa: PLC0415
+
+    # 기본 응답 (Gemini 실패 시 fallback)
+    fallback = TopicAnalyzeResponse(duration=30, language="Korean", structure="monologue")
+
+    if not gemini_client:
+        logger.warning("[AnalyzeTopic] Gemini 클라이언트 미설정, 기본값 반환")
+        return fallback
+
+    # 인벤토리 로드 (DB 세션은 LLM 호출 전에 해제됨)
+    inventory = load_full_inventory(request.group_id)
+    characters = inventory.get("characters", [])
+
+    template_vars = {
+        "topic": request.topic,
+        "description": request.description or "",
+        "durations": SHORTS_DURATIONS,
+        "languages": STORYBOARD_LANGUAGES,
+        "structures": STRUCTURE_METADATA,
+        "characters": characters,
+    }
+
+    try:
+        tmpl = template_env.get_template("creative/analyze_topic.j2")
+        prompt = tmpl.render(**template_vars)
+        response = await gemini_client.aio.models.generate_content(
+            model=GEMINI_TEXT_MODEL,
+            contents=prompt,
+        )
+        raw_text = response.text or ""
+        parsed = parse_json_response(raw_text)
+    except Exception as e:
+        logger.warning("[AnalyzeTopic] Gemini 호출/파싱 실패, 기본값 반환: %s", e)
+        return fallback
+
+    # Post-validation
+    result = _validate_topic_analysis(parsed, characters)
+    return TopicAnalyzeResponse(**result)
+
+
+def _validate_topic_analysis(parsed: dict, characters: list) -> dict:
+    """LLM 반환값을 검증하고, 유효하지 않은 값은 기본값으로 대체한다."""
+    from config import SHORTS_DURATIONS  # noqa: PLC0415
+    from services.agent.inventory import STRUCTURE_METADATA  # noqa: PLC0415
+
+    valid_structure_ids = {s.id for s in STRUCTURE_METADATA}
+    valid_char_ids = {c.id for c in characters}
+    valid_char_map = {c.id: c.name for c in characters}
+
+    # duration 검증
+    duration = parsed.get("duration", 30)
+    if duration not in SHORTS_DURATIONS:
+        duration = 30
+
+    # structure 검증
+    structure = parsed.get("structure", "monologue")
+    if structure not in valid_structure_ids:
+        structure = "monologue"
+
+    # language 검증
+    language = parsed.get("language", "Korean")
+    valid_languages = {"Korean", "English", "Japanese"}
+    if language not in valid_languages:
+        language = "Korean"
+
+    # character_id 검증
+    character_id = parsed.get("character_id")
+    character_name = parsed.get("character_name")
+    if character_id and character_id not in valid_char_ids:
+        character_id = None
+        character_name = None
+    elif character_id and character_id in valid_char_map:
+        character_name = valid_char_map[character_id]
+
+    # character_b_id 검증
+    character_b_id = parsed.get("character_b_id")
+    character_b_name = parsed.get("character_b_name")
+    if character_b_id and character_b_id not in valid_char_ids:
+        character_b_id = None
+        character_b_name = None
+    elif character_b_id and character_b_id in valid_char_map:
+        character_b_name = valid_char_map[character_b_id]
+
+    return {
+        "duration": duration,
+        "language": language,
+        "structure": structure,
+        "character_id": character_id,
+        "character_name": character_name,
+        "character_b_id": character_b_id,
+        "character_b_name": character_b_name,
+        "reasoning": parsed.get("reasoning", ""),
+    }
 
 
 @router.post("/generate", response_model=ScriptGenerateResponse)

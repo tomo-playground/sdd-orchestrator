@@ -5,15 +5,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from database import SessionLocal
-from models import LoRA
+from models import Character, VoicePreset
 
 def main():
     db = SessionLocal()
     try:
-        print("\n--- Available LoRAs ---")
-        loras = db.query(LoRA).all()
-        for l in loras:
-            print(f"ID:{l.id} | Name:{l.name} | Type:{l.lora_type}")
+        print("\n--- Voices ---")
+        for v in db.query(VoicePreset).all():
+            print(f"ID:{v.id} | Name:{v.name} | Language:{v.language} | Engine:{v.tts_engine}")
     finally:
         db.close()
 

@@ -2212,3 +2212,29 @@ class StageRegenerateResponse(BaseModel):
 
     background_id: int
     status: str  # "regenerated" | "failed"
+
+
+# ============================================================
+# Topic Analyze Schemas
+# ============================================================
+
+
+class TopicAnalyzeRequest(BaseModel):
+    """POST /scripts/analyze-topic 요청."""
+
+    topic: str = Field(max_length=500)
+    description: str | None = Field(default=None, max_length=2000)
+    group_id: int | None = None
+
+
+class TopicAnalyzeResponse(BaseModel):
+    """POST /scripts/analyze-topic 응답."""
+
+    duration: int = 30
+    language: str = "Korean"
+    structure: str = "monologue"
+    character_id: int | None = None
+    character_name: str | None = None
+    character_b_id: int | None = None
+    character_b_name: str | None = None
+    reasoning: str = ""

@@ -16,29 +16,69 @@ import {
   handleStreamOutcome,
   mapLoadedScenes,
 } from "./scriptEditor";
-import type { SceneItem, ScriptEditorState, ScriptEditorActions, ScriptEditorOptions } from "./scriptEditor";
+import type {
+  SceneItem,
+  ScriptEditorState,
+  ScriptEditorActions,
+  ScriptEditorOptions,
+} from "./scriptEditor";
 
 // Re-export types for backward compat
-export type { SceneItem, ScriptProgress, ScriptEditorState, ResumeOptions, ScriptEditorActions } from "./scriptEditor";
+export type {
+  SceneItem,
+  ScriptProgress,
+  ScriptEditorState,
+  ResumeOptions,
+  ScriptEditorActions,
+} from "./scriptEditor";
 
 /** Fields that represent user content — changes should mark global store dirty. */
 const CONTENT_FIELDS: ReadonlySet<string> = new Set([
-  "topic", "description", "duration", "language", "structure",
-  "characterId", "characterName", "characterBId", "characterBName",
-  "references", "preset", "skipStages",
+  "topic",
+  "description",
+  "duration",
+  "language",
+  "structure",
+  "characterId",
+  "characterName",
+  "characterBId",
+  "characterBName",
+  "references",
+  "preset",
+  "skipStages",
 ]);
 
 const INITIAL_STATE: ScriptEditorState = {
-  topic: "", description: "", duration: 30, language: "Korean", structure: "Monologue",
-  characterId: null, characterName: null, characterBId: null, characterBName: null,
-  scenes: [], isGenerating: false, progress: null,
-  storyboardId: null, storyboardVersion: null, isSaving: false,
-  skipStages: [...EXPRESS_SKIP_STAGES], preset: null, threadId: null,
-  isWaitingForInput: false, isWaitingForConcept: false,
-  concepts: null, recommendedConceptId: null,
-  references: "", feedbackSubmitted: false, justGenerated: false,
-  feedbackPresets: null, pipelineSteps: [], nodeResults: {},
-  traceId: null, productionSnapshot: null,
+  topic: "",
+  description: "",
+  duration: 30,
+  language: "Korean",
+  structure: "Monologue",
+  characterId: null,
+  characterName: null,
+  characterBId: null,
+  characterBName: null,
+  scenes: [],
+  isGenerating: false,
+  progress: null,
+  storyboardId: null,
+  storyboardVersion: null,
+  isSaving: false,
+  skipStages: [...EXPRESS_SKIP_STAGES],
+  preset: null,
+  threadId: null,
+  isWaitingForInput: false,
+  isWaitingForConcept: false,
+  concepts: null,
+  recommendedConceptId: null,
+  references: "",
+  feedbackSubmitted: false,
+  justGenerated: false,
+  feedbackPresets: null,
+  pipelineSteps: [],
+  nodeResults: {},
+  traceId: null,
+  productionSnapshot: null,
 };
 
 export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActions {
@@ -46,6 +86,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
   const showToast = useUIStore((s) => s.showToast);
   const onSavedRef = useRef(options?.onSaved);
   onSavedRef.current = options?.onSaved;
+  const onNodeEventRef = useRef(options?.onNodeEvent);
+  onNodeEventRef.current = options?.onNodeEvent;
 
   const [state, setState] = useState<ScriptEditorState>({ ...INITIAL_STATE });
 
@@ -71,9 +113,13 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       try {
         const res = await axios.get(`${API_BASE}/scripts/feedback-presets`);
         if (!cancelled) setState((prev) => ({ ...prev, feedbackPresets: res.data.presets }));
-      } catch { /* silent */ }
+      } catch {
+        /* silent */
+      }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [state.isWaitingForInput, state.feedbackPresets]);
 
   const setField = useCallback(
@@ -83,7 +129,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         dirtyRef.current = true;
         useStoryboardStore.getState().set({ isDirty: true });
       }
-    }, []
+    },
+    []
   );
 
   const updateScene = useCallback((index: number, patch: Partial<SceneItem>) => {
@@ -100,8 +147,12 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     if (!state.topic.trim()) return;
     useStoryboardStore.getState().set({ castingRecommendation: null });
     setState((prev) => ({
-      ...prev, isGenerating: true, progress: null, justGenerated: false,
-      pipelineSteps: getInitialSteps(prev.skipStages), nodeResults: {},
+      ...prev,
+      isGenerating: true,
+      progress: null,
+      justGenerated: false,
+      pipelineSteps: getInitialSteps(prev.skipStages),
+      nodeResults: {},
     }));
     try {
       const response = await fetch(`${API_BASE}/scripts/generate-stream`, {
@@ -113,70 +164,115 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         const errorData = await response.json().catch(() => null);
         throw new Error(errorData?.detail ?? `HTTP ${response.status}`);
       }
-      const result = await processSSEStream(response, setState, { trackThreadId: true });
-      handleStreamOutcome({ ...result, meta: buildSyncMeta(stateRef.current), setState, dirtyRef, showToast });
+      const result = await processSSEStream(response, setState, {
+        trackThreadId: true,
+        onNodeEvent: onNodeEventRef.current,
+      });
+      handleStreamOutcome({
+        ...result,
+        meta: buildSyncMeta(stateRef.current),
+        setState,
+        dirtyRef,
+        showToast,
+      });
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Generation failed", "error");
       setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
     }
   }, [
-    state.topic, state.description, state.duration, state.language, state.structure,
-    state.characterId, state.characterBId, state.references, state.skipStages, state.preset,
-    groupId, showToast,
+    state.topic,
+    state.description,
+    state.duration,
+    state.language,
+    state.structure,
+    state.characterId,
+    state.characterBId,
+    state.references,
+    state.skipStages,
+    state.preset,
+    groupId,
+    showToast,
   ]);
 
   const resume = useCallback(
     async (
       action: "approve" | "revise" | "select" | "regenerate" | "custom_concept",
-      feedback?: string, conceptId?: number,
-      options?: { feedbackPreset?: string; feedbackPresetParams?: Record<string, string>; customConcept?: { title: string; concept: string } }
+      feedback?: string,
+      conceptId?: number,
+      options?: {
+        feedbackPreset?: string;
+        feedbackPresetParams?: Record<string, string>;
+        customConcept?: { title: string; concept: string };
+      }
     ) => {
       if (!state.threadId) return;
       setState((prev) => ({
-        ...prev, isGenerating: true, isWaitingForInput: false,
-        isWaitingForConcept: false, concepts: null, recommendedConceptId: null, progress: null,
+        ...prev,
+        isGenerating: true,
+        isWaitingForInput: false,
+        isWaitingForConcept: false,
+        concepts: null,
+        recommendedConceptId: null,
+        progress: null,
       }));
       try {
         const body: Record<string, unknown> = {
-          thread_id: state.threadId, action, feedback, trace_id: state.traceId || undefined,
+          thread_id: state.threadId,
+          action,
+          feedback,
+          trace_id: state.traceId || undefined,
         };
         if (conceptId !== undefined) body.concept_id = conceptId;
         if (options?.feedbackPreset) body.feedback_preset = options.feedbackPreset;
-        if (options?.feedbackPresetParams) body.feedback_preset_params = options.feedbackPresetParams;
+        if (options?.feedbackPresetParams)
+          body.feedback_preset_params = options.feedbackPresetParams;
         if (options?.customConcept) body.custom_concept = options.customConcept;
 
         const response = await fetch(`${API_BASE}/scripts/resume`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        const result = await processSSEStream(response, setState);
+        const result = await processSSEStream(response, setState, {
+          onNodeEvent: onNodeEventRef.current,
+        });
         const meta = buildSyncMeta(stateRef.current);
-        if (!handleStreamOutcome({ ...result, meta, setState, dirtyRef, showToast }) && !result.isWaiting) {
+        if (
+          !handleStreamOutcome({ ...result, meta, setState, dirtyRef, showToast }) &&
+          !result.isWaiting
+        ) {
           showToast("대본 생성이 완료되지 않았습니다", "warning");
         }
       } catch (err) {
         showToast(err instanceof Error ? err.message : "Resume failed", "error");
         setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
       }
-    }, [state.threadId, state.traceId, showToast]
+    },
+    [state.threadId, state.traceId, showToast]
   );
 
   const submitFeedback = useCallback(
     async (rating: "positive" | "negative", feedbackText?: string) => {
       try {
         await fetch(`${API_BASE}/scripts/feedback`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            thread_id: state.threadId, storyboard_id: state.storyboardId,
-            rating, feedback_text: feedbackText || undefined,
+            thread_id: state.threadId,
+            storyboard_id: state.storyboardId,
+            rating,
+            feedback_text: feedbackText || undefined,
           }),
         });
         setState((prev) => ({ ...prev, feedbackSubmitted: true }));
         showToast("피드백이 저장되었습니다", "success");
-      } catch { showToast("피드백 저장 실패", "error"); }
-    }, [state.threadId, state.storyboardId, showToast]
+      } catch {
+        showToast("피드백 저장 실패", "error");
+      }
+    },
+    [state.threadId, state.storyboardId, showToast]
   );
 
   const save = useCallback(async () => {
@@ -187,12 +283,20 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       if (state.storyboardId) {
         const res = await axios.put(`${API_BASE}/storyboards/${state.storyboardId}`, body);
         setState((prev) => ({ ...prev, storyboardVersion: res.data.version }));
-        useContextStore.getState().setContext({ storyboardId: state.storyboardId, storyboardTitle: state.topic.trim() });
+        useContextStore
+          .getState()
+          .setContext({ storyboardId: state.storyboardId, storyboardTitle: state.topic.trim() });
       } else {
         const res = await axios.post(`${API_BASE}/storyboards`, body);
         const newId = res.data.storyboard_id;
-        setState((prev) => ({ ...prev, storyboardId: newId, storyboardVersion: res.data.version ?? 1 }));
-        useContextStore.getState().setContext({ storyboardId: newId, storyboardTitle: state.topic.trim() });
+        setState((prev) => ({
+          ...prev,
+          storyboardId: newId,
+          storyboardVersion: res.data.version ?? 1,
+        }));
+        useContextStore
+          .getState()
+          .setContext({ storyboardId: newId, storyboardTitle: state.topic.trim() });
         onSavedRef.current?.(newId);
       }
       syncToGlobalStore(state.scenes, storeMeta);
@@ -206,10 +310,14 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           try {
             const fresh = await axios.get(`${API_BASE}/storyboards/${state.storyboardId}`);
             setState((prev) => ({ ...prev, storyboardVersion: fresh.data.version ?? null }));
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
         }
       } else {
-        const msg = axios.isAxiosError(err) ? (err.response?.data?.detail ?? err.message) : "Save failed";
+        const msg = axios.isAxiosError(err)
+          ? (err.response?.data?.detail ?? err.message)
+          : "Save failed";
         showToast(String(msg), "error");
       }
     } finally {
@@ -217,27 +325,37 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     }
   }, [state, groupId, showToast]);
 
-  const loadStoryboard = useCallback(async (id: number) => {
-    try {
-      const res = await axios.get(`${API_BASE}/storyboards/${id}`);
-      const data = res.data;
-      setState((prev) => ({
-        ...prev,
-        topic: data.title ?? "", description: data.description ?? "",
-        duration: data.duration ?? 30, language: data.language ?? "Korean",
-        structure: data.structure ?? "Monologue",
-        characterId: data.character_id ?? null, characterName: data.character_name ?? null,
-        characterBId: data.character_b_id ?? null, characterBName: data.character_b_name ?? null,
-        scenes: mapLoadedScenes(data.scenes ?? []),
-        storyboardId: id, storyboardVersion: data.version ?? null,
-      }));
-      dirtyRef.current = false;
-      useContextStore.getState().setContext({ storyboardId: id, storyboardTitle: data.title ?? "" });
-    } catch (err) {
-      showToast("Failed to load storyboard", "error");
-      console.error("[useScriptEditor] loadStoryboard error:", err);
-    }
-  }, [showToast]);
+  const loadStoryboard = useCallback(
+    async (id: number) => {
+      try {
+        const res = await axios.get(`${API_BASE}/storyboards/${id}`);
+        const data = res.data;
+        setState((prev) => ({
+          ...prev,
+          topic: data.title ?? "",
+          description: data.description ?? "",
+          duration: data.duration ?? 30,
+          language: data.language ?? "Korean",
+          structure: data.structure ?? "Monologue",
+          characterId: data.character_id ?? null,
+          characterName: data.character_name ?? null,
+          characterBId: data.character_b_id ?? null,
+          characterBName: data.character_b_name ?? null,
+          scenes: mapLoadedScenes(data.scenes ?? []),
+          storyboardId: id,
+          storyboardVersion: data.version ?? null,
+        }));
+        dirtyRef.current = false;
+        useContextStore
+          .getState()
+          .setContext({ storyboardId: id, storyboardTitle: data.title ?? "" });
+      } catch (err) {
+        showToast("Failed to load storyboard", "error");
+        console.error("[useScriptEditor] loadStoryboard error:", err);
+      }
+    },
+    [showToast]
+  );
 
   const reset = useCallback(() => {
     dirtyRef.current = false;
@@ -245,7 +363,14 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
   }, []);
 
   return {
-    ...state, setField, updateScene, generate, resume,
-    submitFeedback, save, loadStoryboard, reset,
+    ...state,
+    setField,
+    updateScene,
+    generate,
+    resume,
+    submitFeedback,
+    save,
+    loadStoryboard,
+    reset,
   };
 }

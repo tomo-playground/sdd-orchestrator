@@ -138,6 +138,30 @@ def load_structures() -> list[StructureMeta]:
     return list(STRUCTURE_METADATA)
 
 
+def load_full_inventory(group_id: int | None, max_count: int | None = None) -> dict:
+    """DB에서 캐릭터·구조·스타일 인벤토리를 로드하고 세션을 닫는다.
+
+    실패 시 빈 dict 반환. LLM 호출 전에 DB 세션을 해제하기 위해 독립 세션 사용.
+    """
+    from database import get_db_session  # noqa: PLC0415
+
+    try:
+        with get_db_session() as db:
+            characters = load_characters(db, group_id=group_id, max_count=max_count)
+            styles = load_styles(db)
+            structures = load_structures()
+        return {
+            "characters": characters,
+            "styles": styles,
+            "structures": structures,
+        }
+    except Exception as e:
+        from config import logger  # noqa: PLC0415
+
+        logger.warning("[Inventory] 인벤토리 로드 실패: %s", e)
+        return {}
+
+
 def load_fallback_character(db: Session) -> dict | None:
     """최근 사용 캐릭터 반환. storyboard_characters → storyboards.created_at DESC."""
     from models.storyboard import Storyboard  # noqa: PLC0415

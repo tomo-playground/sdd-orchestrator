@@ -17,22 +17,9 @@ from services.agent.state import ScriptState
 
 def _load_inventory(group_id: int | None, max_count: int | None = None) -> dict:
     """DB에서 인벤토리를 로드하고 세션을 닫는다. 실패 시 빈 dict 반환."""
-    from database import get_db_session  # noqa: PLC0415
-    from services.agent.inventory import load_characters, load_structures, load_styles  # noqa: PLC0415
+    from services.agent.inventory import load_full_inventory  # noqa: PLC0415
 
-    try:
-        with get_db_session() as db:
-            characters = load_characters(db, group_id=group_id, max_count=max_count)
-            styles = load_styles(db)
-            structures = load_structures()
-        return {
-            "characters": characters,
-            "styles": styles,
-            "structures": structures,
-        }
-    except Exception as e:
-        logger.warning("[LangGraph] 인벤토리 로드 실패, 캐스팅 없이 진행: %s", e)
-        return {}
+    return load_full_inventory(group_id, max_count=max_count)
 
 
 def _extract_casting(result: dict) -> dict | None:

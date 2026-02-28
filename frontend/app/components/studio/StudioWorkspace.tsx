@@ -11,10 +11,8 @@ export default function StudioWorkspace() {
 
   return (
     <div className="min-h-0 flex-1 overflow-hidden">
-      {/* ScriptTab uses local useState — keep mounted to preserve state across tab switches */}
-      <div
-        className={`h-full w-full overflow-y-auto px-8 py-8 ${activeTab !== "script" ? "hidden" : ""}`}
-      >
+      {/* ScriptTab: hybrid layout manages its own scroll & padding */}
+      <div className={`h-full w-full ${activeTab !== "script" ? "hidden" : ""}`}>
         <ScriptTab />
       </div>
 

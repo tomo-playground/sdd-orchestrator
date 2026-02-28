@@ -95,4 +95,6 @@ export type ScriptEditorActions = ScriptEditorState & {
 
 export type ScriptEditorOptions = {
   onSaved?: (id: number) => void;
+  /** SSE event callback — injected into processSSEStream for chat UI. */
+  onNodeEvent?: (event: import("../../types").ScriptStreamEvent) => void;
 };

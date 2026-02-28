@@ -37,16 +37,24 @@ export async function parseSSEStream(
 
 export type StreamResult = { finalScenes: SceneItem[] | null; isWaiting: boolean };
 
+export type SSEStreamOptions = {
+  trackThreadId?: boolean;
+  /** Called for every SSE event — used by chat UI to convert events to messages. */
+  onNodeEvent?: (event: ScriptStreamEvent) => void;
+};
+
 /** Common SSE stream processing for generate & resume. */
 export async function processSSEStream(
   response: Response,
   setState: React.Dispatch<React.SetStateAction<ScriptEditorState>>,
-  options?: { trackThreadId?: boolean }
+  options?: SSEStreamOptions
 ): Promise<StreamResult> {
   let finalScenes: SceneItem[] | null = null;
   let isWaiting = false;
 
   await parseSSEStream(response, (event: ScriptStreamEvent) => {
+    options?.onNodeEvent?.(event);
+
     // Single setState per event to avoid race conditions between renders
     setState((prev) => {
       const nextSteps = updatePipelineSteps(prev.pipelineSteps, event, prev.skipStages);
