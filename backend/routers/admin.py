@@ -71,7 +71,8 @@ async def refresh_all_caches(db: Session = Depends(get_db)):
             cache_cls.refresh(db)
             refreshed.append(name)
         except Exception as e:
-            failures.append({"cache": name, "error": str(e)})
+            logger.error("Cache refresh failed for %s: %s", name, e)
+            failures.append({"cache": name, "error": f"{name} refresh failed"})
 
     if failures:
         return JSONResponse(
@@ -300,8 +301,9 @@ async def detect_orphan_assets(db: Session = Depends(get_db)):
         gc = MediaGCService(db)
         report = gc.detect_orphans()
         return {"success": True, **report.to_dict()}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+    except Exception:
+        logger.exception("Orphan detection failed")
+        return {"success": False, "error": "Orphan detection failed"}
 
 
 @router.post("/media-assets/cleanup", response_model=MediaCleanupResponse)
@@ -324,9 +326,10 @@ async def cleanup_orphan_assets(
             "expired_temp": temp_result.to_dict(),
             "total_deleted": orphan_result.deleted + temp_result.deleted,
         }
-    except Exception as e:
+    except Exception:
         db.rollback()
-        return {"success": False, "error": str(e)}
+        logger.exception("Media cleanup failed")
+        return {"success": False, "error": "Media cleanup failed"}
 
 
 @router.get("/media-assets/stats", response_model=MediaStatsResponse)
@@ -336,8 +339,9 @@ async def media_asset_stats(db: Session = Depends(get_db)):
         gc = MediaGCService(db)
         stats = gc.get_stats()
         return {"success": True, **stats.to_dict()}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+    except Exception:
+        logger.exception("Media stats failed")
+        return {"success": False, "error": "Media stats retrieval failed"}
 
 
 # ============================================================

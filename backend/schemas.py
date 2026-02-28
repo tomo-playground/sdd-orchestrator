@@ -2334,7 +2334,7 @@ class ReferencePreset(BaseModel):
 
     weight: float
     model: str
-    description: str
+    description: str | None = None
 
 
 class ReferenceItem(BaseModel):

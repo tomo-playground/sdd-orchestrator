@@ -37,7 +37,8 @@ def _auto_seed_valence(db) -> None:
     from routers.admin import _run_valence_classification
 
     logger.info("[Valence] %d unclassified tags found, seeding in background...", count)
-    asyncio.create_task(_run_valence_classification(target_groups, False))
+    task = asyncio.create_task(_run_valence_classification(target_groups, False))
+    task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
 
 
 @asynccontextmanager
