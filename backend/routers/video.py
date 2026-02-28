@@ -41,6 +41,15 @@ from services.video.progress import RenderStage, create_task, estimate_remaining
 
 router = APIRouter(prefix="/video", tags=["video"])
 
+# Background task tracking to prevent GC of fire-and-forget tasks
+_background_tasks: set[asyncio.Task] = set()
+
+
+def _track_task(task: asyncio.Task) -> None:
+    """Register a background task and auto-remove on completion."""
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
 
 # ------------------------------------------------------------------
 # Helper: Save render history (shared by sync and async endpoints)
@@ -101,7 +110,7 @@ async def create_video(request: VideoRequest):
 async def create_video_async(request: VideoRequest):
     logger.info("[Video Async Req] %s", scrub_payload(request.model_dump()))
     task = create_task(total_scenes=len(request.scenes))
-    asyncio.create_task(_run_video_build(task.task_id, request))
+    _track_task(asyncio.create_task(_run_video_build(task.task_id, request)))
     return VideoCreateAccepted(task_id=task.task_id)
 
 
@@ -140,7 +149,10 @@ async def _run_video_build(task_id: str, request: VideoRequest) -> None:
 @router.get(
     "/progress/{task_id}",
     responses={
-        200: {"content": {"text/event-stream": {"schema": {"type": "string"}}}, "description": "SSE stream of RenderProgressEvent JSON objects"},
+        200: {
+            "content": {"text/event-stream": {"schema": {"type": "string"}}},
+            "description": "SSE stream of RenderProgressEvent JSON objects",
+        },
         404: {"description": "Task not found"},
     },
 )
@@ -205,6 +217,8 @@ async def _event_generator(task_id: str) -> AsyncGenerator[str]:
         logger.debug("[SSE] Client disconnected for task %s", task_id)
     except Exception:
         logger.exception("[SSE] Error in video progress stream for task %s", task_id)
+        error_event = RenderProgressEvent(task_id=task_id, stage="failed", error="Internal error")
+        yield _sse_event(error_event)
 
 
 def _sse_event(event: RenderProgressEvent) -> str:
@@ -237,10 +251,14 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
         # Prefer asset_id lookup over filename
         asset = None
         if request.asset_id:
-            asset = db.query(MediaAsset).filter(MediaAsset.id == request.asset_id, MediaAsset.file_type == "video").first()
+            asset = (
+                db.query(MediaAsset).filter(MediaAsset.id == request.asset_id, MediaAsset.file_type == "video").first()
+            )
         if not asset and request.filename:
             filename = os.path.basename(request.filename)
-            asset = db.query(MediaAsset).filter(MediaAsset.file_name == filename, MediaAsset.file_type == "video").first()
+            asset = (
+                db.query(MediaAsset).filter(MediaAsset.file_name == filename, MediaAsset.file_type == "video").first()
+            )
 
         if asset:
             logger.info(f"Deleting video asset: {asset.storage_key} (ID: {asset.id})")
