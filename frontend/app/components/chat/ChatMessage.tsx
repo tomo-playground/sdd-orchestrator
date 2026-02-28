@@ -11,9 +11,10 @@ import ErrorCard from "./messages/ErrorCard";
 import type { ChatMessage as ChatMessageType, SettingsRecommendation } from "../../types/chat";
 import type { SceneItem, ResumeOptions } from "../../hooks/scriptEditor/types";
 import type { FeedbackPreset } from "../../types";
+import type { Preset, LangOption } from "../../hooks/usePresets";
+import type { ScriptMode } from "./ModeChips";
 
 export type ChatMessageCallbacks = {
-  onApplyRecommendation: (rec: SettingsRecommendation) => void;
   onApplyAndGenerate: (rec: SettingsRecommendation) => void;
   onResume: (
     action: "approve" | "revise" | "select" | "regenerate" | "custom_concept",
@@ -25,6 +26,11 @@ export type ChatMessageCallbacks = {
   onNavigate: (tab: string) => void;
   scenes: SceneItem[];
   feedbackPresets: FeedbackPreset[] | null;
+  presets: Preset[];
+  languages: LangOption[];
+  durations: number[];
+  currentMode: ScriptMode;
+  onPresetChange: (preset: string, skipStages: string[]) => void;
 };
 
 type Props = {
@@ -42,8 +48,12 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks }: Props) {
       return (
         <SettingsRecommendCard
           message={message}
-          onApply={callbacks.onApplyRecommendation}
           onApplyAndGenerate={callbacks.onApplyAndGenerate}
+          presets={callbacks.presets}
+          languages={callbacks.languages}
+          durations={callbacks.durations}
+          currentMode={callbacks.currentMode}
+          onPresetChange={callbacks.onPresetChange}
         />
       );
     case "concept_gate":

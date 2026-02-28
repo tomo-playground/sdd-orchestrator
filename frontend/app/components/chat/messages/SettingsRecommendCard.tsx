@@ -1,41 +1,73 @@
 "use client";
 
 import { useState } from "react";
-import { Bot, Clock, Globe, LayoutList, User, Check } from "lucide-react";
+import { Bot, Check, Sparkles } from "lucide-react";
+import { useCharacters } from "../../../hooks/useCharacters";
+import { isMultiCharStructure } from "../../../utils/structure";
+import ModeChips from "../ModeChips";
 import Button from "../../ui/Button";
 import type { ChatMessage, SettingsRecommendation } from "../../../types/chat";
+import type { Preset, LangOption } from "../../../hooks/usePresets";
+import type { ScriptMode } from "../ModeChips";
 
 type Props = {
   message: ChatMessage;
-  onApply: (rec: SettingsRecommendation) => void;
   onApplyAndGenerate: (rec: SettingsRecommendation) => void;
+  presets: Preset[];
+  languages: LangOption[];
+  durations: number[];
+  currentMode: ScriptMode;
+  onPresetChange: (preset: string, skipStages: string[]) => void;
 };
 
-function InfoRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Clock;
-  label: string;
-  value: string;
-}) {
+const SELECT_CLS =
+  "w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-zinc-400";
+
+function EditRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 text-xs text-zinc-600">
-      <Icon className="h-3.5 w-3.5 text-zinc-400" />
-      <span className="font-medium text-zinc-500">{label}</span>
-      <span className="text-zinc-800">{value}</span>
+    <div className="flex items-center gap-3">
+      <span className="w-16 shrink-0 text-xs font-medium text-zinc-500">{label}</span>
+      <div className="flex-1">{children}</div>
     </div>
   );
 }
 
-export default function SettingsRecommendCard({ message, onApply, onApplyAndGenerate }: Props) {
-  const [applied, setApplied] = useState(false);
+export default function SettingsRecommendCard({
+  message,
+  onApplyAndGenerate,
+  presets,
+  languages,
+  durations,
+  currentMode,
+  onPresetChange,
+}: Props) {
   const rec = message.recommendation;
+  const { characters } = useCharacters();
+
+  const [applied, setApplied] = useState(false);
+  const [localDuration, setLocalDuration] = useState(rec?.duration ?? 30);
+  const [localLanguage, setLocalLanguage] = useState(rec?.language ?? "ko");
+  const [localStructure, setLocalStructure] = useState(rec?.structure ?? "Monologue");
+  const [localCharId, setLocalCharId] = useState<number | null>(rec?.character_id ?? null);
+  const [localCharBId, setLocalCharBId] = useState<number | null>(rec?.character_b_id ?? null);
+
   if (!rec) return null;
 
-  const handleApply = () => {
-    onApply(rec);
+  const charName = (id: number | null) => characters.find((c) => c.id === id)?.name ?? null;
+  const isMultiChar = isMultiCharStructure(localStructure);
+
+  const handleGenerate = () => {
+    const merged: SettingsRecommendation = {
+      ...rec,
+      duration: localDuration,
+      language: localLanguage,
+      structure: localStructure,
+      character_id: localCharId,
+      character_name: charName(localCharId),
+      character_b_id: isMultiChar ? localCharBId : null,
+      character_b_name: isMultiChar ? charName(localCharBId) : null,
+    };
+    onApplyAndGenerate(merged);
     setApplied(true);
   };
 
@@ -45,50 +77,115 @@ export default function SettingsRecommendCard({ message, onApply, onApplyAndGene
         <Bot className="h-4 w-4 text-violet-600" />
       </div>
       <div className="max-w-[85%] space-y-3 rounded-2xl border border-violet-200 bg-violet-50 p-4">
-        {/* Reasoning */}
         <p className="text-sm text-zinc-700">{rec.reasoning}</p>
 
-        {/* Settings grid */}
-        <div className="space-y-1.5 rounded-xl bg-white p-3">
-          <InfoRow icon={Clock} label="길이" value={`${rec.duration}초`} />
-          <InfoRow icon={Globe} label="언어" value={rec.language} />
-          <InfoRow icon={LayoutList} label="구성" value={rec.structure} />
-          {rec.character_name && <InfoRow icon={User} label="캐릭터" value={rec.character_name} />}
-          {rec.character_b_name && (
-            <InfoRow icon={User} label="캐릭터 B" value={rec.character_b_name} />
+        <div className="space-y-2.5 rounded-xl bg-white p-3">
+          <EditRow label="길이">
+            <select
+              value={localDuration}
+              onChange={(e) => setLocalDuration(Number(e.target.value))}
+              disabled={applied}
+              className={SELECT_CLS}
+            >
+              {durations.map((d) => (
+                <option key={d} value={d}>
+                  {d}초
+                </option>
+              ))}
+            </select>
+          </EditRow>
+
+          <EditRow label="언어">
+            <select
+              value={localLanguage}
+              onChange={(e) => setLocalLanguage(e.target.value)}
+              disabled={applied}
+              className={SELECT_CLS}
+            >
+              {languages.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </EditRow>
+
+          <EditRow label="구성">
+            <select
+              value={localStructure}
+              onChange={(e) => {
+                setLocalStructure(e.target.value);
+                if (!isMultiCharStructure(e.target.value)) setLocalCharBId(null);
+              }}
+              disabled={applied}
+              className={SELECT_CLS}
+            >
+              {presets.map((p) => (
+                <option key={p.structure} value={p.structure}>
+                  {p.name_ko}
+                </option>
+              ))}
+            </select>
+          </EditRow>
+
+          <EditRow label="캐릭터">
+            <select
+              value={localCharId ?? ""}
+              onChange={(e) => setLocalCharId(e.target.value ? Number(e.target.value) : null)}
+              disabled={applied}
+              className={SELECT_CLS}
+            >
+              <option value="">None</option>
+              {characters.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </EditRow>
+
+          {isMultiChar && (
+            <EditRow label="캐릭터 B">
+              <select
+                value={localCharBId ?? ""}
+                onChange={(e) => setLocalCharBId(e.target.value ? Number(e.target.value) : null)}
+                disabled={applied}
+                className={SELECT_CLS}
+              >
+                <option value="">None</option>
+                {characters.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </EditRow>
           )}
+
+          <EditRow label="모드">
+            <ModeChips currentMode={currentMode} onPresetChange={onPresetChange} compact />
+          </EditRow>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant={applied ? "secondary" : "primary"}
-            disabled={applied}
-            onClick={handleApply}
-          >
-            {applied ? (
-              <>
-                <Check className="h-3.5 w-3.5" />
-                반영 완료
-              </>
-            ) : (
-              "사이드바에 반영"
-            )}
-          </Button>
-          {!applied && (
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => {
-                onApplyAndGenerate(rec);
-                setApplied(true);
-              }}
-            >
-              반영하고 바로 생성
-            </Button>
+        <Button
+          size="sm"
+          variant={applied ? "secondary" : "primary"}
+          className="w-full"
+          disabled={applied}
+          onClick={handleGenerate}
+        >
+          {applied ? (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              생성 시작됨
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-3.5 w-3.5" />
+              스크립트 생성
+            </>
           )}
-        </div>
+        </Button>
       </div>
     </div>
   );

@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useChatScriptEditor } from "../../hooks/useChatScriptEditor";
 import { usePresets } from "../../hooks/usePresets";
 import { useUIStore } from "../../store/useUIStore";
-import SettingsSidebar from "../chat/SettingsSidebar";
 import ChatArea from "../chat/ChatArea";
 
 export default function ScriptTab() {
@@ -70,21 +69,18 @@ export default function ScriptTab() {
     router.replace(qs ? `/studio?${qs}` : "/studio");
   };
 
-  const handleGenerate = () => {
-    editor.confirmAndGenerate();
-  };
+  // Derive currentMode from editor state
+  const currentMode =
+    editor.skipStages.length > 0 ? "express" : editor.preset === "creator" ? "creator" : "standard";
 
   return (
-    <div className="flex h-full">
-      <SettingsSidebar
-        editor={editor}
-        presets={presets}
-        languages={languages}
-        durations={durations}
-        onPresetChange={handlePresetChange}
-        onGenerate={handleGenerate}
-      />
-      <ChatArea editor={editor} />
-    </div>
+    <ChatArea
+      editor={editor}
+      presets={presets}
+      languages={languages}
+      durations={durations}
+      currentMode={currentMode}
+      onPresetChange={handlePresetChange}
+    />
   );
 }

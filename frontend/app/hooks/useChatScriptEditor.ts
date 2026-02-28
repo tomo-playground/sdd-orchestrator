@@ -21,7 +21,6 @@ export type ChatScriptEditorActions = ScriptEditorActions & {
   chatMessages: ChatMessage[];
   activeProgress: ActiveProgress;
   sendMessage: (text: string) => Promise<void>;
-  applyRecommendation: (rec: SettingsRecommendation) => void;
   applyAndGenerate: (rec: SettingsRecommendation) => void;
   confirmAndGenerate: () => void;
   clearChat: () => void;
@@ -32,7 +31,7 @@ function createWelcomeMessage(): ChatMessage {
     id: "welcome",
     role: "assistant",
     contentType: "assistant",
-    text: "어떤 쇼츠 영상을 만들어볼까요? 토픽을 입력하거나, 왼쪽 사이드바에서 설정을 조정한 뒤 생성할 수 있습니다.",
+    text: "주제를 입력하면 AI가 최적의 설정을 추천해 드립니다.",
     timestamp: Date.now(),
   };
 }
@@ -163,7 +162,7 @@ export function useChatScriptEditor(options?: {
           role: "assistant",
           contentType: "error",
           text: "토픽 분석 중 오류가 발생했습니다.",
-          errorMessage: "사이드바에서 설정을 직접 확인한 뒤 생성해주세요.",
+          errorMessage: "다시 시도하거나, 직접 설정을 조정해 주세요.",
           timestamp: Date.now(),
         });
       } finally {
@@ -173,24 +172,20 @@ export function useChatScriptEditor(options?: {
     [groupId, addMessage]
   );
 
-  // ── Apply AI recommendation to sidebar ──
-  const applyRecommendation = useCallback(
-    (rec: SettingsRecommendation) => {
-      editorRef.current.setField("duration", rec.duration);
-      editorRef.current.setField("language", rec.language);
-      editorRef.current.setField("structure", rec.structure);
-      if (rec.character_id != null) {
-        editorRef.current.setField("characterId", rec.character_id);
-        editorRef.current.setField("characterName", rec.character_name);
-      }
-      if (rec.character_b_id != null) {
-        editorRef.current.setField("characterBId", rec.character_b_id);
-        editorRef.current.setField("characterBName", rec.character_b_name);
-      }
-      addMessage(assistantMsg("추천 설정을 사이드바에 반영했습니다."));
-    },
-    [addMessage]
-  );
+  // ── Apply recommendation fields to editor state (shared helper, refs-only → stable) ──
+  const applyFields = useCallback((rec: SettingsRecommendation) => {
+    editorRef.current.setField("duration", rec.duration);
+    editorRef.current.setField("language", rec.language);
+    editorRef.current.setField("structure", rec.structure);
+    if (rec.character_id != null) {
+      editorRef.current.setField("characterId", rec.character_id);
+      editorRef.current.setField("characterName", rec.character_name);
+    }
+    if (rec.character_b_id != null) {
+      editorRef.current.setField("characterBId", rec.character_b_id);
+      editorRef.current.setField("characterBName", rec.character_b_name);
+    }
+  }, []);
 
   // ── Generate — just delegates to editor.generate(), SSE flows via onNodeEvent ──
   // editor.generate()는 매 렌더마다 새 참조가 생성되므로 ref를 통해 안정적으로 접근
@@ -205,23 +200,11 @@ export function useChatScriptEditor(options?: {
 
   const applyAndGenerate = useCallback(
     (rec: SettingsRecommendation) => {
-      // 1. Apply recommendation
-      editorRef.current.setField("duration", rec.duration);
-      editorRef.current.setField("language", rec.language);
-      editorRef.current.setField("structure", rec.structure);
-      if (rec.character_id != null) {
-        editorRef.current.setField("characterId", rec.character_id);
-        editorRef.current.setField("characterName", rec.character_name);
-      }
-      if (rec.character_b_id != null) {
-        editorRef.current.setField("characterBId", rec.character_b_id);
-        editorRef.current.setField("characterBName", rec.character_b_name);
-      }
-      // 2. Generate
-      addMessage(assistantMsg("추천 설정을 반영하고 스크립트를 생성합니다..."));
+      applyFields(rec);
+      addMessage(assistantMsg("설정을 반영하고 스크립트를 생성합니다..."));
       editorRef.current.generate();
     },
-    [addMessage]
+    [applyFields, addMessage]
   );
 
   const clearChat = useCallback(() => {
@@ -235,7 +218,6 @@ export function useChatScriptEditor(options?: {
     chatMessages,
     activeProgress,
     sendMessage,
-    applyRecommendation,
     applyAndGenerate,
     confirmAndGenerate,
     clearChat,
