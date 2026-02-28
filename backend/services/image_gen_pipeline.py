@@ -47,7 +47,7 @@ def _sync_store_image(
         actual_scene_id = resolved_id or scene_id
 
         image_bytes = decode_data_url(f"data:image/png;base64,{image_b64}")
-        digest = hashlib.sha1(image_bytes).hexdigest()[:16]
+        digest = hashlib.sha256(image_bytes).hexdigest()[:16]
         file_name = f"scene_{actual_scene_id}_{digest}.png"
 
         asset_service = AssetService(db)
@@ -77,9 +77,7 @@ def _sync_store_image(
         return (url, asset.id)
 
 
-async def store_image_to_db(
-    image_b64: str, request: SceneGenerateRequest
-) -> tuple[str | None, int | None]:
+async def store_image_to_db(image_b64: str, request: SceneGenerateRequest) -> tuple[str | None, int | None]:
     """Backend-autonomous image storage (non-blocking).
 
     Returns (url, asset_id) on success, (None, None) on failure.

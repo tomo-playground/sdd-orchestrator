@@ -49,7 +49,7 @@ def fetch_and_save_thumbnail(tag: Tag, db: Session) -> bool:
         return False
 
     asset_svc = AssetService(db)
-    digest = hashlib.sha1(webp_bytes).hexdigest()[:12]
+    digest = hashlib.sha256(webp_bytes).hexdigest()[:12]
     file_name = f"tag_{tag.id}_{digest}.webp"
     storage_key = f"tags/{tag.id}/thumbnail/{file_name}"
 

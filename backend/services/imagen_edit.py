@@ -9,6 +9,7 @@ Google AI Studio의 gemini-2.5-flash-image 모델을 사용하여
 - 시선 편집 (front → looking_back 등)
 - 캐릭터 얼굴/화풍 완벽 보존
 """
+
 import base64
 import io
 import logging
@@ -18,7 +19,12 @@ from google import genai
 from google.genai import types
 from PIL import Image
 
-from config import GEMINI_TEXT_MODEL, gemini_client
+from config import (
+    GEMINI_IMAGE_EDIT_COST_USD,
+    GEMINI_IMAGE_VISION_COST_USD,
+    GEMINI_TEXT_MODEL,
+    gemini_client,
+)
 from services.image import decode_data_url
 from services.utils import parse_json_payload
 
@@ -44,9 +50,7 @@ class ImagenEditService:
             logger.error(f"❌ Gemini API initialization failed: {e}")
             raise
 
-    async def analyze_edit_needed(
-        self, image_b64: str, original_prompt: str, target_change: str
-    ) -> dict:
+    async def analyze_edit_needed(self, image_b64: str, original_prompt: str, target_change: str) -> dict:
         """Gemini Vision으로 편집 계획 분석
 
         Args:
@@ -115,9 +119,15 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             if original_type not in valid_types:
                 # Fallback: guess from target_change
                 target_lower = target_change.lower()
-                if any(word in target_lower for word in ["sit", "stand", "jump", "kneel", "앉", "서", "점프", "일어", "서있"]):
+                if any(
+                    word in target_lower
+                    for word in ["sit", "stand", "jump", "kneel", "앉", "서", "점프", "일어", "서있"]
+                ):
                     result["edit_type"] = "pose"
-                elif any(word in target_lower for word in ["smile", "frown", "surprised", "angry", "웃", "찡그", "놀란", "화난", "표정"]):
+                elif any(
+                    word in target_lower
+                    for word in ["smile", "frown", "surprised", "angry", "웃", "찡그", "놀란", "화난", "표정"]
+                ):
                     result["edit_type"] = "expression"
                 elif any(word in target_lower for word in ["look", "gaze", "보", "시선", "쳐다", "바라"]):
                     result["edit_type"] = "gaze"
@@ -166,9 +176,7 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             base_image = Image.open(io.BytesIO(image_bytes))
 
             # 편집 타입별 프롬프트 생성
-            edit_prompt = self._generate_edit_prompt(
-                target_change, preserve_elements, edit_type
-            )
+            edit_prompt = self._generate_edit_prompt(target_change, preserve_elements, edit_type)
 
             logger.info(f"🎨 Editing image with Gemini Nano Banana ({edit_type})...")
 
@@ -185,11 +193,11 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             edited_image_data = response.candidates[0].content.parts[0].inline_data.data
             edited_b64 = base64.b64encode(edited_image_data).decode("utf-8")
 
-            logger.info("✅ Image editing complete (cost: $0.0401)")
+            logger.info("✅ Image editing complete (cost: $%.4f)", GEMINI_IMAGE_EDIT_COST_USD)
 
             return {
                 "edited_image": edited_b64,
-                "cost_usd": 0.0401,  # $0.0011 (input) + $0.039 (output)
+                "cost_usd": GEMINI_IMAGE_EDIT_COST_USD,
                 "method": "gemini_nano_banana",
                 "edit_type": edit_type,
             }
@@ -232,16 +240,14 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             enhanced_data = response.candidates[0].content.parts[0].inline_data.data
             enhanced_b64 = base64.b64encode(enhanced_data).decode("utf-8")
 
-            logger.info("✅ Image enhance complete (cost: $0.0401)")
-            return {"enhanced_image": enhanced_b64, "cost_usd": 0.0401}
+            logger.info("✅ Image enhance complete (cost: $%.4f)", GEMINI_IMAGE_EDIT_COST_USD)
+            return {"enhanced_image": enhanced_b64, "cost_usd": GEMINI_IMAGE_EDIT_COST_USD}
 
         except Exception as e:
             logger.error(f"❌ Image enhance failed: {e}")
             raise
 
-    def _generate_edit_prompt(
-        self, target_change: str, preserve_elements: list[str], edit_type: EditType
-    ) -> str:
+    def _generate_edit_prompt(self, target_change: str, preserve_elements: list[str], edit_type: EditType) -> str:
         """편집 타입별 프롬프트 생성"""
         preserve_str = ", ".join(preserve_elements)
 
@@ -291,9 +297,7 @@ PRESERVE (DO NOT CHANGE):
 
         return f"{base_preservation}\n{change_instruction}\n\nEdit this image carefully while preserving the character's identity."
 
-    async def suggest_edit_from_prompt(
-        self, image_b64: str, original_prompt_ko: str
-    ) -> dict:
+    async def suggest_edit_from_prompt(self, image_b64: str, original_prompt_ko: str) -> dict:
         """한국어 프롬프트와 이미지를 비교해 자동 제안 생성
 
         Args:
@@ -383,7 +387,7 @@ CRITICAL: Return ONLY valid JSON. Each edit_type must be one of: pose, expressio
                         logger.warning(f"⚠️ Invalid edit_type '{suggestion.get('edit_type')}', defaulting to 'pose'")
                         suggestion["edit_type"] = "pose"
 
-            result["cost_usd"] = 0.0003  # Vision API cost
+            result["cost_usd"] = GEMINI_IMAGE_VISION_COST_USD
 
             logger.info(f"✅ Edit suggestions generated: {len(result.get('suggestions', []))} suggestions")
             return result
@@ -392,9 +396,7 @@ CRITICAL: Return ONLY valid JSON. Each edit_type must be one of: pose, expressio
             logger.error(f"❌ Suggest edit failed: {e}")
             raise
 
-    async def edit_with_analysis(
-        self, image_b64: str, original_prompt: str, target_change: str
-    ) -> dict:
+    async def edit_with_analysis(self, image_b64: str, original_prompt: str, target_change: str) -> dict:
         """자동 분석 후 편집 (all-in-one)
 
         Args:
@@ -411,9 +413,7 @@ CRITICAL: Return ONLY valid JSON. Each edit_type must be one of: pose, expressio
             }
         """
         # Step 1: Vision 분석
-        analysis = await self.analyze_edit_needed(
-            image_b64, original_prompt, target_change
-        )
+        analysis = await self.analyze_edit_needed(image_b64, original_prompt, target_change)
 
         # Step 2: 편집 실행
         edit_result = await self.edit_image(
@@ -424,7 +424,7 @@ CRITICAL: Return ONLY valid JSON. Each edit_type must be one of: pose, expressio
         )
 
         # 총 비용 계산
-        total_cost = 0.0003 + edit_result["cost_usd"]  # Vision + Edit
+        total_cost = GEMINI_IMAGE_VISION_COST_USD + edit_result["cost_usd"]
 
         return {
             "edited_image": edit_result["edited_image"],
@@ -458,38 +458,65 @@ def _infer_edit_type_from_missing_tags(missing_tags: list[str]) -> EditType:
     tag_lower = " ".join(missing_tags).lower()
 
     # Pose keywords (body position)
-    if any(kw in tag_lower for kw in [
-        "sit", "stand", "jump", "kneel", "lying", "crouch", "lean",
-        "앉", "서", "점프", "무릎", "누워", "서있"
-    ]):
+    if any(
+        kw in tag_lower
+        for kw in [
+            "sit",
+            "stand",
+            "jump",
+            "kneel",
+            "lying",
+            "crouch",
+            "lean",
+            "앉",
+            "서",
+            "점프",
+            "무릎",
+            "누워",
+            "서있",
+        ]
+    ):
         return "pose"
 
     # Expression keywords (facial emotion)
-    if any(kw in tag_lower for kw in [
-        "smile", "smiling", "frown", "surprised", "angry", "sad", "happy",
-        "웃", "찡그", "놀란", "화난", "슬픈", "표정"
-    ]):
+    if any(
+        kw in tag_lower
+        for kw in [
+            "smile",
+            "smiling",
+            "frown",
+            "surprised",
+            "angry",
+            "sad",
+            "happy",
+            "웃",
+            "찡그",
+            "놀란",
+            "화난",
+            "슬픈",
+            "표정",
+        ]
+    ):
         return "expression"
 
     # Gaze keywords (viewing direction)
-    if any(kw in tag_lower for kw in [
-        "look", "looking", "gaze", "viewer", "back", "away",
-        "보", "시선", "쳐다", "바라"
-    ]):
+    if any(
+        kw in tag_lower for kw in ["look", "looking", "gaze", "viewer", "back", "away", "보", "시선", "쳐다", "바라"]
+    ):
         return "gaze"
 
     # Hands keywords (hand gestures)
-    if any(kw in tag_lower for kw in [
-        "hand", "hands", "finger", "wave", "waving", "peace", "pointing",
-        "손", "손가락", "흔들", "가리"
-    ]):
+    if any(
+        kw in tag_lower
+        for kw in ["hand", "hands", "finger", "wave", "waving", "peace", "pointing", "손", "손가락", "흔들", "가리"]
+    ):
         return "hands"
 
     # Framing keywords (camera angle)
-    if any(kw in tag_lower for kw in [
-        "close", "full", "shot", "cowboy", "upper_body", "portrait",
-        "클로즈", "전신", "반신"
-    ]):
+    if any(
+        kw in tag_lower
+        for kw in ["close", "full", "shot", "cowboy", "upper_body", "portrait", "클로즈", "전신", "반신"]
+    ):
         return "framing"
 
     # Default to pose if no specific keywords found
@@ -535,10 +562,7 @@ def _generate_target_change(missing_tags: list[str], edit_type: EditType) -> str
 
 
 async def auto_edit_with_gemini(
-    image_b64: str,
-    original_prompt: str,
-    match_rate: float,
-    missing_tags: list[str]
+    image_b64: str, original_prompt: str, match_rate: float, missing_tags: list[str]
 ) -> dict:
     """Match Rate가 낮을 때 자동으로 Gemini 편집 실행
 
@@ -562,9 +586,7 @@ async def auto_edit_with_gemini(
         Exception: Gemini API 실패 시
     """
     try:
-        logger.info(
-            f"🤖 [Auto Edit] Starting (match_rate={match_rate:.2f}, missing_tags={len(missing_tags)})"
-        )
+        logger.info(f"🤖 [Auto Edit] Starting (match_rate={match_rate:.2f}, missing_tags={len(missing_tags)})")
 
         # Step 1: 실패 태그 분석 → 편집 타입 추론
         edit_type = _infer_edit_type_from_missing_tags(missing_tags)
@@ -577,9 +599,7 @@ async def auto_edit_with_gemini(
         # Step 3: Gemini 편집 실행 (ImagenEditService 재사용)
         service = get_imagen_service()
         result = await service.edit_with_analysis(
-            image_b64=image_b64,
-            original_prompt=original_prompt,
-            target_change=target_change
+            image_b64=image_b64, original_prompt=original_prompt, target_change=target_change
         )
 
         # Step 4: 자동 생성 플래그 추가
@@ -588,9 +608,7 @@ async def auto_edit_with_gemini(
         result["inferred_edit_type"] = edit_type
         result["generated_target_change"] = target_change
 
-        logger.info(
-            f"✅ [Auto Edit] Success (type={edit_type}, cost=${result['cost_usd']:.4f})"
-        )
+        logger.info(f"✅ [Auto Edit] Success (type={edit_type}, cost=${result['cost_usd']:.4f})")
 
         return result
 

@@ -16,6 +16,7 @@ from typing import Any
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 from config import ASSETS_DIR, DEFAULT_SCENE_TEXT_FONT, OVERLAY_DIR, logger
+from constants.layout import CommonLayout, FullLayout, PostLayout  # noqa: E402
 from services.storage import get_storage
 
 
@@ -275,7 +276,6 @@ def _draw_text_with_fallback(
         cursor_x += bbox[2] - bbox[0]
 
 
-
 # --- Subtitle rendering ---
 def calculate_optimal_font_size(
     text: str,
@@ -341,10 +341,10 @@ def render_scene_text_image(
         return canvas
 
     if use_post_layout and post_layout_metrics:
-        subtitle_size = font_size_override if font_size_override else int(height * 0.04)
+        subtitle_size = font_size_override if font_size_override else int(height * PostLayout.SUBTITLE_FONT_RATIO)
         font = _get_font_from_path(font_path, subtitle_size)
         emoji_font = _emoji_font(subtitle_size)
-        line_height = int(subtitle_size * 1.4)
+        line_height = int(subtitle_size * PostLayout.SUBTITLE_LINE_HEIGHT_RATIO)
 
         card_x = post_layout_metrics["card_x"]
         card_width = post_layout_metrics["card_width"]
@@ -353,9 +353,9 @@ def render_scene_text_image(
         scene_text_area_height = post_layout_metrics["scene_text_area_height"]
 
         text_area_width = card_width - (card_padding * 2)
-        text_start_y = scene_text_y + int(scene_text_area_height * 0.1)
+        text_start_y = scene_text_y + int(scene_text_area_height * PostLayout.SUBTITLE_TEXT_START_Y_RATIO)
 
-        for idx, line in enumerate(lines[:2]):
+        for idx, line in enumerate(lines[: PostLayout.SUBTITLE_MAX_LINES]):
             line_w, _ = _measure_text_with_fallback(draw, line, font, emoji_font)
             text_x = card_x + card_padding + (text_area_width - line_w) // 2
             text_y = text_start_y + idx * line_height
@@ -372,7 +372,7 @@ def render_scene_text_image(
         return canvas
 
     # Full layout - 하단 배치 (피사체 보호 및 Safe Zone 확보)
-    base_subtitle_size = font_size_override if font_size_override else int(height * 0.042)
+    base_subtitle_size = font_size_override if font_size_override else int(height * FullLayout.SCENE_TEXT_FONT_RATIO)
 
     # Apply dynamic font sizing based on text length (if not overridden)
     if font_size_override is None and lines:
@@ -384,7 +384,7 @@ def render_scene_text_image(
 
     font = _get_font_from_path(font_path, subtitle_size)
     emoji_font = _emoji_font(subtitle_size)
-    line_height = int(subtitle_size * 1.45)
+    line_height = int(subtitle_size * FullLayout.SCENE_TEXT_LINE_HEIGHT_RATIO)
     line_count = len(lines)
 
     # Use dynamic subtitle position if provided
@@ -392,7 +392,10 @@ def render_scene_text_image(
         text_y_pos = int(height * scene_text_y_ratio)
     else:
         # Default to bottom region if no dynamic ratio provided
-        text_y_pos = int(height * 0.70) if line_count > 1 else int(height * 0.72)
+        if line_count > 1:
+            text_y_pos = int(height * FullLayout.SCENE_TEXT_Y_MULTI_LINE_RATIO)
+        else:
+            text_y_pos = int(height * FullLayout.SCENE_TEXT_Y_SINGLE_LINE_RATIO)
 
     # Drop shadow offset (3px down-right)
     shadow_offset = max(2, subtitle_size // 20)
@@ -438,7 +441,7 @@ def render_scene_text_image(
             font,
             emoji_font,
             text_color,
-            stroke_width=5,
+            stroke_width=FullLayout.SCENE_TEXT_STROKE_WIDTH,
             stroke_fill=stroke_color,
         )
     return canvas
@@ -464,9 +467,9 @@ def _draw_common_content(
     show_meta: bool = False,
 ) -> None:
     """Draw common overlay content (avatar, channel name, caption)."""
-    avatar_radius = int(header_height * 0.42)
+    avatar_radius = int(header_height * CommonLayout.AVATAR_RADIUS_RATIO)
     avatar_center = (
-        offset_x + safe_margin + avatar_radius + 18,
+        offset_x + safe_margin + avatar_radius + CommonLayout.AVATAR_X_OFFSET,
         offset_y + header_top + header_height // 2,
     )
 
@@ -495,20 +498,20 @@ def _draw_common_content(
             width=2 if (use_stroke or text_color == (0, 0, 0, 255)) else 0,
         )
 
-    name_font = _get_font(int(header_height * 0.34))
-    small_font = _get_font(int(header_height * 0.24))
-    caption_font = _get_font(int(footer_height * 0.22))
-    avatar_font = _get_font(int(header_height * 0.32))
+    name_font = _get_font(int(header_height * CommonLayout.NAME_FONT_RATIO))
+    small_font = _get_font(int(header_height * CommonLayout.SMALL_FONT_RATIO))
+    caption_font = _get_font(int(footer_height * CommonLayout.CAPTION_FONT_RATIO))
+    avatar_font = _get_font(int(header_height * CommonLayout.AVATAR_FONT_RATIO))
 
-    name_x = avatar_center[0] + avatar_radius + 16
-    name_y = offset_y + header_top + int(header_height * 0.18)
+    name_x = avatar_center[0] + avatar_radius + CommonLayout.NAME_X_OFFSET
+    name_y = offset_y + header_top + int(header_height * CommonLayout.NAME_Y_RATIO)
 
-    stroke_width = 3 if use_stroke else 0
-    stroke_fill = (0, 0, 0, 255)
+    stroke_width = CommonLayout.STROKE_WIDTH if use_stroke else 0
+    stroke_fill = CommonLayout.STROKE_COLOR
     meta_line = f"{settings.likes_count} 조회 · 2분 전"
     meta_w = draw.textbbox((0, 0), meta_line, font=small_font)[2]
     meta_x = offset_x + width - safe_margin - meta_w
-    meta_y = name_y + int(header_height * 0.5)
+    meta_y = name_y + int(header_height * CommonLayout.META_Y_OFFSET_RATIO)
 
     if settings.posted_time:
         meta_line = f"{settings.likes_count} 조회 · {settings.posted_time}"
@@ -534,7 +537,7 @@ def _draw_common_content(
         )
 
     caption_text = settings.caption or ""
-    caption_y = offset_y + footer_top + int(footer_height * 0.2)
+    caption_y = offset_y + footer_top + int(footer_height * CommonLayout.CAPTION_Y_START_RATIO)
     caption_lines: list[str] = []
     if caption_text:
         tokens = caption_text.split()
@@ -545,13 +548,24 @@ def _draw_common_content(
         if hashtags:
             caption_lines.append(" ".join(hashtags[:3]))
     for idx, line in enumerate(caption_lines[:2]):
-        y_pos = caption_y + idx * int(footer_height * 0.38)
+        y_pos = caption_y + idx * int(footer_height * CommonLayout.CAPTION_LINE_HEIGHT_RATIO)
         if use_stroke:
             _draw_text_with_stroke(
-                draw, (offset_x + safe_margin + 20, y_pos), line, caption_font, text_color, stroke_width, stroke_fill
+                draw,
+                (offset_x + safe_margin + CommonLayout.CAPTION_X_OFFSET, y_pos),
+                line,
+                caption_font,
+                text_color,
+                stroke_width,
+                stroke_fill,
             )
         else:
-            draw.text((offset_x + safe_margin + 20, y_pos), line, fill=text_color, font=caption_font)
+            draw.text(
+                (offset_x + safe_margin + CommonLayout.CAPTION_X_OFFSET, y_pos),
+                line,
+                fill=text_color,
+                font=caption_font,
+            )
 
 
 def _draw_clean_overlay(
@@ -564,11 +578,11 @@ def _draw_clean_overlay(
     offset_y: int = 0,
 ) -> None:
     """Draw clean style overlay with rounded rectangles."""
-    safe_margin = int(width * 0.06)
-    header_top = int(height * 0.04)
-    header_height = int(height * 0.05)
-    footer_top = int(height * 0.80)
-    footer_height = int(height * 0.10)
+    safe_margin = int(width * FullLayout.SAFE_MARGIN_RATIO)
+    header_top = int(height * FullLayout.HEADER_TOP_RATIO)
+    header_height = int(height * FullLayout.HEADER_HEIGHT_RATIO)
+    footer_top = int(height * FullLayout.FOOTER_TOP_RATIO)
+    footer_height = int(height * FullLayout.FOOTER_HEIGHT_RATIO)
 
     header_box = (
         offset_x + safe_margin,
@@ -583,8 +597,8 @@ def _draw_clean_overlay(
         offset_y + footer_top + footer_height,
     )
 
-    draw.rounded_rectangle(header_box, radius=28, fill=(10, 10, 10, 170))
-    draw.rounded_rectangle(footer_box, radius=28, fill=(10, 10, 10, 170))
+    draw.rounded_rectangle(header_box, radius=FullLayout.BOX_RADIUS, fill=FullLayout.BOX_BACKGROUND_COLOR)
+    draw.rounded_rectangle(footer_box, radius=FullLayout.BOX_RADIUS, fill=FullLayout.BOX_BACKGROUND_COLOR)
 
     _draw_common_content(
         draw,
@@ -613,11 +627,11 @@ def _draw_minimal_overlay(
     offset_y: int = 0,
 ) -> None:
     """Draw minimal style overlay with stroke text."""
-    safe_margin = int(width * 0.06)
-    header_top = int(height * 0.04)
-    header_height = int(height * 0.05)
-    footer_top = int(height * 0.80)
-    footer_height = int(height * 0.10)
+    safe_margin = int(width * FullLayout.SAFE_MARGIN_RATIO)
+    header_top = int(height * FullLayout.HEADER_TOP_RATIO)
+    header_height = int(height * FullLayout.HEADER_HEIGHT_RATIO)
+    footer_top = int(height * FullLayout.FOOTER_TOP_RATIO)
+    footer_height = int(height * FullLayout.FOOTER_HEIGHT_RATIO)
 
     _draw_common_content(
         draw,
@@ -647,11 +661,11 @@ def _draw_bold_overlay(
     offset_y: int = 0,
 ) -> None:
     """Draw bold style overlay with colored backgrounds."""
-    safe_margin = int(width * 0.06)
-    header_top = int(height * 0.04)
-    header_height = int(height * 0.05)
-    footer_top = int(height * 0.80)
-    footer_height = int(height * 0.10)
+    safe_margin = int(width * FullLayout.SAFE_MARGIN_RATIO)
+    header_top = int(height * FullLayout.HEADER_TOP_RATIO)
+    header_height = int(height * FullLayout.HEADER_HEIGHT_RATIO)
+    footer_top = int(height * FullLayout.FOOTER_TOP_RATIO)
+    footer_height = int(height * FullLayout.FOOTER_HEIGHT_RATIO)
 
     header_box = (
         offset_x + safe_margin,
@@ -666,8 +680,20 @@ def _draw_bold_overlay(
         offset_y + footer_top + footer_height,
     )
 
-    draw.rounded_rectangle(header_box, radius=16, fill=(255, 235, 59, 240), outline=(0, 0, 0, 255), width=4)
-    draw.rounded_rectangle(footer_box, radius=16, fill=(255, 255, 255, 240), outline=(0, 0, 0, 255), width=4)
+    draw.rounded_rectangle(
+        header_box,
+        radius=FullLayout.BOLD_BOX_RADIUS,
+        fill=FullLayout.BOLD_HEADER_BG_COLOR,
+        outline=FullLayout.BOLD_BOX_OUTLINE_COLOR,
+        width=FullLayout.BOLD_BOX_OUTLINE_WIDTH,
+    )
+    draw.rounded_rectangle(
+        footer_box,
+        radius=FullLayout.BOLD_BOX_RADIUS,
+        fill=FullLayout.BOLD_FOOTER_BG_COLOR,
+        outline=FullLayout.BOLD_BOX_OUTLINE_COLOR,
+        width=FullLayout.BOLD_BOX_OUTLINE_WIDTH,
+    )
 
     _draw_common_content(
         draw,
@@ -680,8 +706,8 @@ def _draw_bold_overlay(
         header_height,
         footer_top,
         footer_height,
-        text_color=(0, 0, 0, 255),
-        sub_color=(60, 60, 60, 255),
+        text_color=FullLayout.BOLD_TEXT_COLOR,
+        sub_color=FullLayout.BOLD_SUB_TEXT_COLOR,
         offset_x=offset_x,
         offset_y=offset_y,
         show_meta=False,
@@ -699,9 +725,9 @@ def _draw_overlay_header(
     offset_y: int = 0,
 ) -> None:
     """Draw only the header portion of overlay."""
-    safe_margin = int(width * 0.06)
-    header_top = int(height * 0.04)
-    header_height = int(height * 0.05)
+    safe_margin = int(width * FullLayout.SAFE_MARGIN_RATIO)
+    header_top = int(height * FullLayout.HEADER_TOP_RATIO)
+    header_height = int(height * FullLayout.HEADER_HEIGHT_RATIO)
 
     # Draw background based on style
     if frame_style == "overlay_minimal.png":
@@ -715,7 +741,13 @@ def _draw_overlay_header(
             offset_x + width - safe_margin,
             offset_y + header_top + header_height,
         )
-        draw.rounded_rectangle(header_box, radius=16, fill=(255, 235, 59, 240), outline=(0, 0, 0, 255), width=4)
+        draw.rounded_rectangle(
+            header_box,
+            radius=FullLayout.BOLD_BOX_RADIUS,
+            fill=FullLayout.BOLD_HEADER_BG_COLOR,
+            outline=FullLayout.BOLD_BOX_OUTLINE_COLOR,
+            width=FullLayout.BOLD_BOX_OUTLINE_WIDTH,
+        )
     else:
         # Clean: dark semi-transparent background
         header_box = (
@@ -724,14 +756,17 @@ def _draw_overlay_header(
             offset_x + width - safe_margin,
             offset_y + header_top + header_height,
         )
-        draw.rounded_rectangle(header_box, radius=28, fill=(10, 10, 10, 170))
+        draw.rounded_rectangle(header_box, radius=FullLayout.BOX_RADIUS, fill=FullLayout.BOX_BACKGROUND_COLOR)
 
     # Draw header content (avatar + channel name)
     use_stroke = frame_style == "overlay_minimal.png"
-    text_color = (0, 0, 0, 255) if frame_style == "overlay_bold.png" else (255, 255, 255, 255)
+    text_color = FullLayout.BOLD_TEXT_COLOR if frame_style == "overlay_bold.png" else CommonLayout.TEXT_COLOR
 
-    avatar_radius = int(header_height * 0.45)
-    avatar_center = (offset_x + safe_margin + avatar_radius + 12, offset_y + header_top + header_height // 2)
+    avatar_radius = int(header_height * CommonLayout.AVATAR_RADIUS_RATIO)
+    avatar_center = (
+        offset_x + safe_margin + avatar_radius + CommonLayout.AVATAR_X_OFFSET,
+        offset_y + header_top + header_height // 2,
+    )
 
     avatar_image = None
     if settings.avatar_file:
@@ -759,26 +794,36 @@ def _draw_overlay_header(
                 avatar_center[1] + avatar_radius,
             ),
             fill=(255, 255, 255, 255),
-            outline=(0, 0, 0, 255) if use_stroke or text_color == (0, 0, 0, 255) else None,
-            width=2 if (use_stroke or text_color == (0, 0, 0, 255)) else 0,
+            outline=FullLayout.BOLD_BOX_OUTLINE_COLOR
+            if use_stroke or text_color == FullLayout.BOLD_TEXT_COLOR
+            else None,
+            width=CommonLayout.AVATAR_OUTLINE_WIDTH if (use_stroke or text_color == FullLayout.BOLD_TEXT_COLOR) else 0,
         )
 
-        avatar_font = _get_font(int(header_height * 0.32))
+        avatar_font = _get_font(int(header_height * CommonLayout.AVATAR_FONT_RATIO))
         initial = (settings.channel_name.strip()[:1] or "A").upper()
         init_w, init_h = draw.textbbox((0, 0), initial, font=avatar_font)[2:]
         draw.text(
             (avatar_center[0] - init_w / 2, avatar_center[1] - init_h / 2),
             initial,
-            fill=(30, 30, 30, 255),
+            fill=CommonLayout.AVATAR_INITIAL_COLOR,
             font=avatar_font,
         )
 
-    name_font = _get_font(int(header_height * 0.34))
-    name_x = avatar_center[0] + avatar_radius + 16
-    name_y = offset_y + header_top + int(header_height * 0.18)
+    name_font = _get_font(int(header_height * CommonLayout.NAME_FONT_RATIO))
+    name_x = avatar_center[0] + avatar_radius + CommonLayout.NAME_X_OFFSET
+    name_y = offset_y + header_top + int(header_height * CommonLayout.NAME_Y_RATIO)
 
     if use_stroke:
-        _draw_text_with_stroke(draw, (name_x, name_y), settings.channel_name, name_font, text_color, 3, (0, 0, 0, 255))
+        _draw_text_with_stroke(
+            draw,
+            (name_x, name_y),
+            settings.channel_name,
+            name_font,
+            text_color,
+            CommonLayout.STROKE_WIDTH,
+            CommonLayout.STROKE_COLOR,
+        )
     else:
         draw.text((name_x, name_y), settings.channel_name, fill=text_color, font=name_font)
 
@@ -794,7 +839,7 @@ def _draw_overlay_footer(
     offset_y: int = 0,
 ) -> None:
     """Draw only the footer portion of overlay."""
-    safe_margin = int(width * 0.06)
+    safe_margin = int(width * FullLayout.SAFE_MARGIN_RATIO)
     footer_top = int(height * 0.88)
     footer_height = int(height * 0.08)
 
@@ -810,7 +855,13 @@ def _draw_overlay_footer(
             offset_x + width - safe_margin,
             offset_y + footer_top + footer_height,
         )
-        draw.rounded_rectangle(footer_box, radius=16, fill=(255, 255, 255, 240), outline=(0, 0, 0, 255), width=4)
+        draw.rounded_rectangle(
+            footer_box,
+            radius=FullLayout.BOLD_BOX_RADIUS,
+            fill=FullLayout.BOLD_FOOTER_BG_COLOR,
+            outline=FullLayout.BOLD_BOX_OUTLINE_COLOR,
+            width=FullLayout.BOLD_BOX_OUTLINE_WIDTH,
+        )
     else:
         # Clean: dark semi-transparent background
         footer_box = (
@@ -819,15 +870,15 @@ def _draw_overlay_footer(
             offset_x + width - safe_margin,
             offset_y + footer_top + footer_height,
         )
-        draw.rounded_rectangle(footer_box, radius=28, fill=(10, 10, 10, 170))
+        draw.rounded_rectangle(footer_box, radius=FullLayout.BOX_RADIUS, fill=FullLayout.BOX_BACKGROUND_COLOR)
 
     # Draw footer content (caption)
     use_stroke = frame_style == "overlay_minimal.png"
-    text_color = (0, 0, 0, 255) if frame_style == "overlay_bold.png" else (255, 255, 255, 255)
+    text_color = FullLayout.BOLD_TEXT_COLOR if frame_style == "overlay_bold.png" else CommonLayout.TEXT_COLOR
 
-    caption_font = _get_font(int(footer_height * 0.22))
+    caption_font = _get_font(int(footer_height * CommonLayout.CAPTION_FONT_RATIO))
     caption_text = settings.caption or ""
-    caption_y = offset_y + footer_top + int(footer_height * 0.2)
+    caption_y = offset_y + footer_top + int(footer_height * CommonLayout.CAPTION_Y_START_RATIO)
     caption_lines: list[str] = []
 
     if caption_text:
@@ -840,13 +891,24 @@ def _draw_overlay_footer(
             caption_lines.append(" ".join(hashtags[:3]))
 
     for idx, line in enumerate(caption_lines[:2]):
-        y_pos = caption_y + idx * int(footer_height * 0.38)
+        y_pos = caption_y + idx * int(footer_height * CommonLayout.CAPTION_LINE_HEIGHT_RATIO)
         if use_stroke:
             _draw_text_with_stroke(
-                draw, (offset_x + safe_margin + 20, y_pos), line, caption_font, text_color, 3, (0, 0, 0, 255)
+                draw,
+                (offset_x + safe_margin + CommonLayout.CAPTION_X_OFFSET, y_pos),
+                line,
+                caption_font,
+                text_color,
+                CommonLayout.STROKE_WIDTH,
+                CommonLayout.STROKE_COLOR,
             )
         else:
-            draw.text((offset_x + safe_margin + 20, y_pos), line, fill=text_color, font=caption_font)
+            draw.text(
+                (offset_x + safe_margin + CommonLayout.CAPTION_X_OFFSET, y_pos),
+                line,
+                fill=text_color,
+                font=caption_font,
+            )
 
 
 def create_overlay_header(
@@ -865,9 +927,9 @@ def create_overlay_header(
     frame_w = width
     frame_h = height
     if layout_style == "post":
-        frame_w = int(width * 0.8)
-        frame_h = int(height * 0.7)
-        offset_x = int(width * 0.05)
+        frame_w = int(width * CommonLayout.OVERLAY_POST_FRAME_WIDTH_RATIO)
+        frame_h = int(height * CommonLayout.OVERLAY_POST_FRAME_HEIGHT_RATIO)
+        offset_x = int(width * CommonLayout.OVERLAY_POST_X_OFFSET_RATIO)
         offset_y = (height - frame_h) // 2
 
     _draw_overlay_header(draw, canvas, frame_w, frame_h, settings, settings.frame_style, offset_x, offset_y)
@@ -890,9 +952,9 @@ def create_overlay_footer(
     frame_w = width
     frame_h = height
     if layout_style == "post":
-        frame_w = int(width * 0.8)
-        frame_h = int(height * 0.7)
-        offset_x = int(width * 0.05)
+        frame_w = int(width * CommonLayout.OVERLAY_POST_FRAME_WIDTH_RATIO)
+        frame_h = int(height * CommonLayout.OVERLAY_POST_FRAME_HEIGHT_RATIO)
+        offset_x = int(width * CommonLayout.OVERLAY_POST_X_OFFSET_RATIO)
         offset_y = (height - frame_h) // 2
 
     _draw_overlay_footer(draw, canvas, frame_w, frame_h, settings, settings.frame_style, offset_x, offset_y)
@@ -915,9 +977,9 @@ def create_overlay_image(
     frame_w = width
     frame_h = height
     if layout_style == "post":
-        frame_w = int(width * 0.8)
-        frame_h = int(height * 0.7)
-        offset_x = int(width * 0.05)
+        frame_w = int(width * CommonLayout.OVERLAY_POST_FRAME_WIDTH_RATIO)
+        frame_h = int(height * CommonLayout.OVERLAY_POST_FRAME_HEIGHT_RATIO)
+        offset_x = int(width * CommonLayout.OVERLAY_POST_X_OFFSET_RATIO)
         offset_y = (height - frame_h) // 2
 
     if settings.frame_style == "overlay_minimal.png":
@@ -993,14 +1055,14 @@ def calculate_post_layout_metrics(width: int, height: int, subtitle_text: str = 
         height: Frame height in pixels
         subtitle_text: Scene text content for dynamic height calculation
     """
-    card_offset_y = int(height * 0.04)
-    card_width = int(width * 0.88)
-    card_height = int(height * 0.86)
-    card_padding = int(card_width * 0.04)
-    header_height = int(card_height * 0.055)
+    card_offset_y = int(height * PostLayout.CARD_OFFSET_Y_RATIO)
+    card_width = int(width * PostLayout.CARD_WIDTH_RATIO)
+    card_height = int(height * PostLayout.CARD_HEIGHT_RATIO)
+    card_padding = int(card_width * PostLayout.CARD_PADDING_RATIO)
+    header_height = int(card_height * PostLayout.HEADER_HEIGHT_RATIO)
     scene_text_area_height = calculate_scene_text_area_height(subtitle_text, card_height)
-    action_bar_height = int(card_height * 0.045)
-    caption_height = int(card_height * 0.13)
+    action_bar_height = int(card_height * PostLayout.ACTION_BAR_HEIGHT_RATIO)
+    caption_height = int(card_height * PostLayout.CAPTION_HEIGHT_RATIO)
 
     card_x = (width - card_width) // 2
     card_y = max(0, (height - card_height) // 2 + card_offset_y - int(height * 0.05))
@@ -1010,8 +1072,8 @@ def calculate_post_layout_metrics(width: int, height: int, subtitle_text: str = 
         card_padding * 2 + header_height + scene_text_area_height + action_bar_height + caption_height
     )
     image_area = min(inner_width, inner_height)
-    image_area = max(image_area, int(card_width * 0.45))
-    image_area = int(image_area * 0.98)
+    image_area = max(image_area, int(card_width * PostLayout.MIN_IMAGE_AREA_RATIO))
+    image_area = int(image_area * PostLayout.IMAGE_AREA_SCALE)
 
     image_x = card_x + card_padding
     scene_text_y = card_y + card_padding + header_height
@@ -1068,10 +1130,10 @@ def compose_post_frame(
     # Improved blur: Box Blur + Gaussian Blur for smoother effect
     background = background.filter(ImageFilter.BoxBlur(radius=15))
     background = background.filter(ImageFilter.GaussianBlur(radius=20)).convert("RGBA")
-    background.alpha_composite(Image.new("RGBA", (width, height), (0, 0, 0, 20)))
+    background.alpha_composite(Image.new("RGBA", (width, height), PostLayout.BG_OVERLAY_COLOR))
 
-    radius = int(card_width * 0.06)
-    card = Image.new("RGBA", (card_width, card_height), (255, 255, 255, 245))
+    radius = int(card_width * PostLayout.CARD_RADIUS_RATIO)
+    card = Image.new("RGBA", (card_width, card_height), PostLayout.CARD_BG_COLOR)
     mask = Image.new("L", (card_width, card_height), 0)
     mask_draw = ImageDraw.Draw(mask)
     mask_draw.rounded_rectangle((0, 0, card_width, card_height), radius=radius, fill=255)
@@ -1089,7 +1151,10 @@ def compose_post_frame(
     if face_rect:
         # Face detected: use smart crop centered on face
         crop_box = calculate_face_centered_crop(
-            img_w, img_h, face_rect, target_aspect_ratio=1.0  # Square aspect ratio
+            img_w,
+            img_h,
+            face_rect,
+            target_aspect_ratio=1.0,  # Square aspect ratio
         )
         x, y, w, h = crop_box
         cropped = image_rgb.crop((x, y, x + w, y + h))
@@ -1113,13 +1178,13 @@ def compose_post_frame(
     if subtitle_text:
         scene_text_y = metrics["scene_text_y"]
         scene_text_area_height = metrics["scene_text_area_height"]
-        subtitle_font_size = int(height * 0.04)
+        subtitle_font_size = int(height * PostLayout.SUBTITLE_FONT_RATIO)
         subtitle_font = _get_font_from_path(font_path, subtitle_font_size)
         emoji_font = _emoji_font(subtitle_font_size)
-        line_height = int(subtitle_font_size * 1.4)
+        line_height = int(subtitle_font_size * PostLayout.SUBTITLE_LINE_HEIGHT_RATIO)
         text_area_width = card_width - (card_padding * 2)
-        text_start_y = scene_text_y + int(scene_text_area_height * 0.1)
-        lines = subtitle_text.split("\n")[:2]
+        text_start_y = scene_text_y + int(scene_text_area_height * PostLayout.SUBTITLE_TEXT_START_Y_RATIO)
+        lines = subtitle_text.split("\n")[: PostLayout.SUBTITLE_MAX_LINES]
         for idx, line in enumerate(lines):
             line_w, _ = _measure_text_with_fallback(draw, line, subtitle_font, emoji_font)
             text_x = card_x + card_padding + (text_area_width - line_w) // 2
@@ -1134,10 +1199,10 @@ def compose_post_frame(
                 stroke_width=0,
                 stroke_fill=(255, 255, 255, 255),
             )
-    base_post_font = int(height * 0.022)
+    base_post_font = int(height * PostLayout.BASE_FONT_RATIO)
     name_font_size = base_post_font
-    meta_font_size = max(10, int(base_post_font * 0.85))
-    caption_font_size = max(10, int(base_post_font * 0.9))
+    meta_font_size = max(10, int(base_post_font * PostLayout.META_FONT_RATIO))
+    caption_font_size = max(10, int(base_post_font * PostLayout.CAPTION_FONT_RATIO))
     name_font = _get_font_from_path(font_path, name_font_size)
     meta_font = _get_font_from_path(font_path, meta_font_size)
     caption_font = _get_font_from_path(font_path, caption_font_size)
@@ -1151,7 +1216,7 @@ def compose_post_frame(
     avatar_color = meta_source["avatar_color"]
 
     # Header: avatar + channel name
-    profile_radius = int(card_height * 0.022)
+    profile_radius = int(card_height * PostLayout.PROFILE_RADIUS_RATIO)
     profile_center = (card_x + card_padding + profile_radius, card_y + card_padding + int(header_height * 0.5))
     avatar_image = load_avatar_image(avatar_file)
     if avatar_image:
@@ -1180,38 +1245,41 @@ def compose_post_frame(
             width=2,
         )
         initial = (str(display_name).strip()[:1] or "A").upper()
-        init_font = _get_font_from_path(font_path, int(profile_radius * 1.2))
+        init_font = _get_font_from_path(font_path, int(profile_radius * PostLayout.AVATAR_INITIAL_FONT_RATIO))
         text_w, text_h = draw.textbbox((0, 0), initial, font=init_font)[2:]
         draw.text(
-            (profile_center[0] - text_w / 2, profile_center[1] - text_h / 2), initial, fill=(80, 60, 40), font=init_font
+            (profile_center[0] - text_w / 2, profile_center[1] - text_h / 2),
+            initial,
+            fill=PostLayout.AVATAR_INITIAL_COLOR,
+            font=init_font,
         )
 
-    name_x = profile_center[0] + profile_radius + int(card_width * 0.02)
-    name_y = profile_center[1] - int(name_font_size * 0.5)
-    draw.text((name_x, name_y), display_name, fill=(30, 30, 30), font=name_font)
+    name_x = profile_center[0] + profile_radius + int(card_width * PostLayout.NAME_X_OFFSET_RATIO)
+    name_y = profile_center[1] - int(name_font_size * PostLayout.NAME_Y_CENTER_OFFSET)
+    draw.text((name_x, name_y), display_name, fill=PostLayout.CHANNEL_NAME_COLOR, font=name_font)
 
     # Action bar
-    action_y = image_y + image_area + int(card_padding * 0.5)
-    icon_spacing = int(card_width * 0.08)
+    action_y = image_y + image_area + int(card_padding * PostLayout.ACTION_Y_PADDING_RATIO)
+    icon_spacing = int(card_width * PostLayout.ICON_SPACING_RATIO)
     icons_left = ["♡", "💬", "➤"]
     icons_right = ["🔖"]
 
     icon_x = card_x + card_padding
     for icon in icons_left:
-        draw.text((icon_x, action_y), icon, fill=(50, 50, 50), font=meta_font)
+        draw.text((icon_x, action_y), icon, fill=PostLayout.ICON_COLOR, font=meta_font)
         icon_x += icon_spacing
 
     bookmark_x = card_x + card_width - card_padding - int(icon_spacing * 0.5)
     for icon in icons_right:
-        draw.text((bookmark_x, action_y), icon, fill=(50, 50, 50), font=meta_font)
+        draw.text((bookmark_x, action_y), icon, fill=PostLayout.ICON_COLOR, font=meta_font)
 
     # Caption area (increased spacing from action bar)
     cap_x = card_x + card_padding
-    cap_y = action_y + int(action_bar_height * 2.5)  # Increased from 1.2 to 2.5 for better spacing
+    cap_y = action_y + int(action_bar_height * PostLayout.CAPTION_Y_OFFSET_RATIO)
 
     likes_text = f"좋아요 {views}개"
     likes_font = _get_font_from_path(font_path, int(meta_font_size * 1.0))
-    draw.text((cap_x, cap_y), likes_text, fill=(30, 30, 30), font=likes_font)
+    draw.text((cap_x, cap_y), likes_text, fill=PostLayout.CHANNEL_NAME_COLOR, font=likes_font)
     cap_y += int(meta_font_size * 1.8)
 
     caption_text = caption.strip()
@@ -1230,15 +1298,15 @@ def compose_post_frame(
         max_chars = max(20, int(card_width * 0.08))
         wrapped = textwrap.wrap(caption_line, width=max_chars)[:2]
         for line in wrapped:
-            draw.text((cap_x, cap_y), line, fill=(40, 40, 40), font=caption_font)
+            draw.text((cap_x, cap_y), line, fill=PostLayout.CAPTION_TEXT_COLOR, font=caption_font)
             cap_y += int(caption_font_size * 1.4)
 
     if hashtags_line:
-        draw.text((cap_x, cap_y), hashtags_line, fill=(0, 149, 246), font=meta_font)  # Instagram Blue #0095F6
+        draw.text((cap_x, cap_y), hashtags_line, fill=PostLayout.HASHTAG_COLOR, font=meta_font)
         cap_y += int(meta_font_size * 1.6)
 
     time_y = card_y + card_height - card_padding - int(meta_font_size * 1.2)
-    draw.text((cap_x, time_y), timestamp, fill=(130, 130, 130), font=meta_font)
+    draw.text((cap_x, time_y), timestamp, fill=PostLayout.TIMESTAMP_COLOR, font=meta_font)
 
     return background.convert("RGB")
 
@@ -1250,11 +1318,11 @@ def apply_post_overlay_mask(overlay_path: pathlib.Path, width: int, height: int)
     except Exception:
         return
 
-    card_width = int(width * 0.88)
-    card_height = int(height * 0.86)
-    radius = int(card_width * 0.06)
+    card_width = int(width * PostLayout.CARD_WIDTH_RATIO)
+    card_height = int(height * PostLayout.CARD_HEIGHT_RATIO)
+    radius = int(card_width * PostLayout.CARD_RADIUS_RATIO)
     card_x = (width - card_width) // 2
-    card_y = max(0, (height - card_height) // 2 + int(height * 0.04) - int(height * 0.05))
+    card_y = max(0, (height - card_height) // 2 + int(height * PostLayout.CARD_OFFSET_Y_RATIO) - int(height * 0.05))
 
     mask = Image.new("L", (width, height), 0)
     draw = ImageDraw.Draw(mask)

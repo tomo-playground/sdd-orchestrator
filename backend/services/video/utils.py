@@ -97,7 +97,7 @@ def generate_video_filename(
         timestamp = int(time.time())
     layout_tag = "post" if layout_style == "post" else "full"
     hash_seed = f"{safe_title}|{layout_tag}|{timestamp}"
-    hash_value = hashlib.sha1(hash_seed.encode("utf-8")).hexdigest()[:12]
+    hash_value = hashlib.sha256(hash_seed.encode("utf-8")).hexdigest()[:12]
     return f"{safe_title}_{layout_tag}_{hash_value}.mp4"
 
 

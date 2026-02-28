@@ -74,7 +74,7 @@ class AssetService:
         """Save a character preview image to storage and register it in the DB."""
         import hashlib
 
-        digest = hashlib.sha1(image_bytes).hexdigest()[:16]
+        digest = hashlib.sha256(image_bytes).hexdigest()[:16]
         file_name = f"character_{character_id}_preview_{digest}.png"
         storage_key = f"characters/{character_id}/preview/{file_name}"
         self._get_storage().save(storage_key, image_bytes, content_type="image/png")
@@ -94,7 +94,7 @@ class AssetService:
         import hashlib
 
         ext = "png" if "png" in mime_type else "jpg" if "jpeg" in mime_type or "jpg" in mime_type else "webp"
-        digest = hashlib.sha1(image_bytes).hexdigest()[:16]
+        digest = hashlib.sha256(image_bytes).hexdigest()[:16]
         file_name = f"background_{background_id}_{digest}.{ext}"
         storage_key = f"backgrounds/{background_id}/{file_name}"
         self._get_storage().save(storage_key, image_bytes, content_type=mime_type)

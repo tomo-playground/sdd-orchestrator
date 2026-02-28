@@ -149,7 +149,7 @@ async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db))
             seed=voice_seed,
         )
 
-        digest = hashlib.sha1(audio_bytes).hexdigest()[:16]
+        digest = hashlib.sha256(audio_bytes).hexdigest()[:16]
         file_name = f"voice_preview_{digest}.wav"
         storage_key = f"voice-presets/previews/{file_name}"
 

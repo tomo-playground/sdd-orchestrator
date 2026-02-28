@@ -132,7 +132,7 @@ class PostLayout:
     CHANNEL_NAME_COLOR: RGB = (30, 30, 30)
     ICON_COLOR: RGB = (50, 50, 50)
     CAPTION_TEXT_COLOR: RGB = (40, 40, 40)
-    HASHTAG_COLOR: RGB = (0, 55, 107)  # Instagram blue
+    HASHTAG_COLOR: RGB = (0, 149, 246)  # Instagram blue (#0095F6)
     TIMESTAMP_COLOR: RGB = (130, 130, 130)  # Gray
 
     # === Image Area ===
@@ -214,10 +214,10 @@ class OverlayColors:
 
     # === Avatar Palette ===
     AVATAR_PALETTE: tuple = (
-        (255, 183, 77),   # Orange
+        (255, 183, 77),  # Orange
         (129, 199, 132),  # Green
         (100, 181, 246),  # Blue
-        (240, 98, 146),   # Pink
+        (240, 98, 146),  # Pink
         (186, 104, 200),  # Purple
         (255, 138, 128),  # Coral
     )
@@ -235,6 +235,7 @@ class OverlayColors:
 
 
 # === Convenience Functions ===
+
 
 def get_full_subtitle_position(height: int, line_count: int) -> int:
     """Calculate Y position for subtitle in Full layout."""

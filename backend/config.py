@@ -459,6 +459,11 @@ DEFAULT_POSE_TAG = "standing"
 DEFAULT_GAZE_TAG = "looking_at_viewer"
 DEFAULT_EXPRESSION_TAG = "smile"
 
+# --- Gemini Imagen Cost (USD per request) ---
+GEMINI_IMAGE_EDIT_COST_USD = float(os.getenv("GEMINI_IMAGE_EDIT_COST_USD", "0.0401"))
+GEMINI_IMAGE_VISION_COST_USD = float(os.getenv("GEMINI_IMAGE_VISION_COST_USD", "0.0003"))
+GEMINI_IMAGE_EDIT_TOTAL_COST_USD = float(os.getenv("GEMINI_IMAGE_EDIT_TOTAL_COST_USD", "0.0404"))
+
 # --- Gemini Auto Edit Configuration (Phase 6-4.22) ---
 # Master switch: Enable automatic image editing with Gemini when match_rate is low
 # WARNING: This feature incurs API costs (~$0.04 per edit)

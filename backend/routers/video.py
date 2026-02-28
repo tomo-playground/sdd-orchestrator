@@ -140,7 +140,10 @@ async def _run_video_build(task_id: str, request: VideoRequest) -> None:
 @router.get(
     "/progress/{task_id}",
     responses={
-        200: {"content": {"text/event-stream": {"schema": {"type": "string"}}}, "description": "SSE stream of RenderProgressEvent JSON objects"},
+        200: {
+            "content": {"text/event-stream": {"schema": {"type": "string"}}},
+            "description": "SSE stream of RenderProgressEvent JSON objects",
+        },
         404: {"description": "Task not found"},
     },
 )
@@ -237,10 +240,14 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
         # Prefer asset_id lookup over filename
         asset = None
         if request.asset_id:
-            asset = db.query(MediaAsset).filter(MediaAsset.id == request.asset_id, MediaAsset.file_type == "video").first()
+            asset = (
+                db.query(MediaAsset).filter(MediaAsset.id == request.asset_id, MediaAsset.file_type == "video").first()
+            )
         if not asset and request.filename:
             filename = os.path.basename(request.filename)
-            asset = db.query(MediaAsset).filter(MediaAsset.file_name == filename, MediaAsset.file_type == "video").first()
+            asset = (
+                db.query(MediaAsset).filter(MediaAsset.file_name == filename, MediaAsset.file_type == "video").first()
+            )
 
         if asset:
             logger.info(f"Deleting video asset: {asset.storage_key} (ID: {asset.id})")
@@ -429,7 +436,9 @@ async def extract_caption(request: TextExtractRequest):
             f"텍스트:\n{text}\n\n캡션만 출력하세요 (설명이나 따옴표 없이):"
         )
 
-        response = gemini_client.models.generate_content(model=GEMINI_TEXT_MODEL, contents=prompt)
+        response = await asyncio.to_thread(
+            gemini_client.models.generate_content, model=GEMINI_TEXT_MODEL, contents=prompt
+        )
         caption = _strip_quotes(response.text.strip() if response.text else text[:max_len])
 
         if len(caption) > max_len:
@@ -464,7 +473,9 @@ async def extract_hashtags(request: TextExtractRequest):
             f"- 해시태그만 출력 (설명이나 따옴표 없이)\n\n주제:\n{text}\n\n해시태그:"
         )
 
-        response = gemini_client.models.generate_content(model=GEMINI_TEXT_MODEL, contents=prompt)
+        response = await asyncio.to_thread(
+            gemini_client.models.generate_content, model=GEMINI_TEXT_MODEL, contents=prompt
+        )
         hashtags = _strip_quotes(response.text.strip() if response.text else text[:max_len])
 
         if len(hashtags) > max_len:

@@ -103,7 +103,7 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
     except Exception as exc:
         raise HTTPException(status_code=400, detail="Invalid image data") from exc
 
-    digest = hashlib.sha1(image_bytes).hexdigest()[:16]
+    digest = hashlib.sha256(image_bytes).hexdigest()[:16]
     file_name = request.file_name or f"scene_{digest}.png"
 
     asset_service = AssetService(db)
