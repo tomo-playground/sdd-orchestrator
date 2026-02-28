@@ -99,9 +99,9 @@ def test_route_after_director_approve_auto():
 
 
 def test_route_after_director_approve_manual():
-    """Director approve + auto_approve=False → human_gate."""
+    """Phase 25: Director approve → finalize (human_gate 제거)."""
     state = {"director_decision": "approve", "auto_approve": False}
-    assert route_after_director(state) == "human_gate"
+    assert route_after_director(state) == "finalize"
 
 
 def test_route_after_director_revise_cinematographer():
@@ -129,9 +129,9 @@ def test_route_after_director_revise_script():
 
 
 def test_route_after_director_max_revisions():
-    """Director revision 최대 횟수 도달 시 human_gate로 강제 통과."""
+    """Director revision 최대 횟수 도달 시 finalize로 강제 통과 (Phase 25: human_gate 제거)."""
     state = {"director_decision": "revise_cinematographer", "director_revision_count": 3}
-    assert route_after_director(state) == "human_gate"
+    assert route_after_director(state) == "finalize"
 
 
 def test_route_after_director_error():
@@ -227,13 +227,13 @@ def test_route_checkpoint_high_score_proceed():
 
 
 def test_route_start_partial_skip_research_only():
-    """research만 스킵하면 concept은 남으므로 director_plan."""
-    assert route_after_start({"skip_stages": ["research"]}) == "director_plan"
+    """Phase 25: skip_stages 있으면 writer 직행 (API override)."""
+    assert route_after_start({"skip_stages": ["research"]}) == "writer"
 
 
 def test_route_start_partial_skip_concept_only():
-    """concept만 스킵하면 research는 남으므로 director_plan."""
-    assert route_after_start({"skip_stages": ["concept"]}) == "director_plan"
+    """Phase 25: skip_stages 있으면 writer 직행 (API override)."""
+    assert route_after_start({"skip_stages": ["concept"]}) == "writer"
 
 
 def test_route_start_both_research_concept_skipped():

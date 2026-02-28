@@ -4,9 +4,9 @@ from services.agent.nodes._skip_guard import should_skip
 
 
 def test_should_skip_research_stage():
-    """research 스테이지 스킵 시 director_plan, research 노드 스킵."""
+    """research 스테이지 스킵 시 research 노드 스킵 (Phase 25: director_plan은 매핑 제거)."""
     state = {"skip_stages": ["research"]}
-    assert should_skip(state, "director_plan") is True
+    assert should_skip(state, "director_plan") is False  # Phase 25: 항상 실행
     assert should_skip(state, "research") is True
     assert should_skip(state, "critic") is False
 
@@ -66,9 +66,9 @@ def test_should_skip_unknown_node():
 
 
 def test_should_skip_all_stages():
-    """Express 프리셋: 4개 스테이지 모두 스킵."""
+    """4개 스테이지 모두 스킵 (Phase 25: director_plan은 항상 실행)."""
     state = {"skip_stages": ["research", "concept", "production", "explain"]}
-    assert should_skip(state, "director_plan") is True
+    assert should_skip(state, "director_plan") is False  # Phase 25: 항상 실행
     assert should_skip(state, "critic") is True
     assert should_skip(state, "cinematographer") is True
     assert should_skip(state, "explain") is True
