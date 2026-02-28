@@ -332,16 +332,14 @@ def _extract_balanced_braces(text: str, start: int) -> str | None:
 
 
 def _try_parse_json_dict(text: str) -> list[dict] | None:
-    """텍스트에서 scenes 배열을 가진 dict를 파싱. 실패 시 None.
-
-    dict에 scenes 키가 없으면 빈 리스트를 반환한다 (후방 호환).
-    """
+    """텍스트에서 scenes 배열을 가진 dict를 파싱. 실패 시 None."""
     if not text or not text.strip():
         return None
     try:
         result_data = parse_json_response(text)
         if not isinstance(result_data, dict):
             return None
-        return result_data.get("scenes", [])
+        scenes = result_data.get("scenes")
+        return scenes if isinstance(scenes, list) else None
     except (json.JSONDecodeError, ValueError, TypeError):
         return None

@@ -54,8 +54,8 @@ def test_parse_scenes_invalid_json():
 
 
 def test_parse_scenes_no_scenes_key():
-    """scenes 키 없는 dict → 빈 리스트."""
-    assert _parse_scenes('{"data": "x"}') == []
+    """scenes 키 없는 dict → None (다음 전략으로 fallthrough)."""
+    assert _parse_scenes('{"data": "x"}') is None
 
 
 def test_parse_scenes_markdown_codeblock():
@@ -183,11 +183,11 @@ async def test_tool_logs_preserved_on_parse_failure():
 
 @pytest.mark.asyncio
 async def test_empty_scenes_key():
-    """scenes 키 없는 dict → 빈 scenes으로 정상 반환."""
+    """scenes 키 없는 dict → 파싱 실패로 cinematographer_result=None."""
     with patch(_CWT, new_callable=AsyncMock, return_value=('{"data": "x"}', [])):
         with patch(_QC, return_value={"ok": True, "issues": [], "checks": {}}):
             result = await _run(_make_state(), MagicMock())
-    assert result["cinematographer_result"]["scenes"] == []
+    assert result["cinematographer_result"] is None
 
 
 # ── Phase 11-P3: visual_qc_result state 저장 ─────────────────

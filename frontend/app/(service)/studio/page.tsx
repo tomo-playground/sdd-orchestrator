@@ -99,8 +99,8 @@ function StudioContent() {
   const showAutoRun = autopilot.autoRunState.status !== "idle";
   // Error 시 관련 탭에서만 상세 패널 표시 (다른 탭은 SubNav 뱃지만)
   const isAutoRunError = autopilot.autoRunState.status === "error";
-  const showAutoRunPanel =
-    showAutoRun && (!isAutoRunError || STEP_TO_TAB[autopilot.autoRunState.step] === activeTab);
+  const errorTab = STEP_TO_TAB[autopilot.autoRunState.step];
+  const showAutoRunPanel = showAutoRun && (!isAutoRunError || !errorTab || errorTab === activeTab);
 
   const isAutoRunningRef = useRef(false);
   isAutoRunningRef.current = autopilot.isAutoRunning;
