@@ -56,5 +56,6 @@ export function buildScenesPayload(scenes: Scene[]) {
     voice_design_prompt: s.voice_design_prompt ?? null,
     head_padding: s.head_padding ?? null,
     tail_padding: s.tail_padding ?? null,
+    ken_burns_preset: s.ken_burns_preset ?? null,
   }));
 }

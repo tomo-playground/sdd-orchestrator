@@ -122,8 +122,22 @@ function checkTopic(topic: string): SettingsCheck {
   };
 }
 
-function checkCharacter(name: string | null, id: number | null): SettingsCheck {
+function checkCharacter(
+  name: string | null,
+  id: number | null,
+  scenes: (Scene | DraftScene)[]
+): SettingsCheck {
+  // Narrator-only storyboards don't require a character
+  const allNarrator = scenes.length > 0 && scenes.every((s) => s.speaker === "Narrator");
   if (!id || !name) {
+    if (allNarrator) {
+      return {
+        valid: true,
+        value: "Narrator",
+        required: false,
+        message: "나레이터 구조 (캐릭터 불필요)",
+      };
+    }
     return {
       valid: false,
       value: null,
@@ -134,7 +148,7 @@ function checkCharacter(name: string | null, id: number | null): SettingsCheck {
   return {
     valid: true,
     value: name,
-    required: true,
+    required: !allNarrator,
   };
 }
 
@@ -223,7 +237,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
   // Check settings
   const settings = {
     topic: checkTopic(input.topic),
-    character: checkCharacter(input.characterName, input.characterId),
+    character: checkCharacter(input.characterName, input.characterId, input.scenes),
     voice: checkVoice(input.voiceName),
     bgm: checkBgm(input.bgmFile),
     controlnet: checkControlnet(input.controlnetEnabled, input.controlnetWeight),

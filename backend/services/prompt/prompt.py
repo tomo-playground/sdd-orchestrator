@@ -367,8 +367,10 @@ def rewrite_prompt(request: PromptRewriteRequest) -> dict:
         cache_file.write_text(json.dumps({"prompt": final_prompt}, ensure_ascii=False))
         return {"prompt": final_prompt}
     except Exception as exc:
-        logger.exception("Prompt rewrite failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        from services.error_responses import raise_user_error
+
+        raise_user_error("prompt_rewrite", exc)
+        raise  # unreachable; satisfies type checker
 
 
 def split_prompt_example(request: PromptSplitRequest) -> dict:
@@ -395,8 +397,10 @@ def split_prompt_example(request: PromptSplitRequest) -> dict:
             "scene_prompt": data.get("scene_prompt", ""),
         }
     except Exception as exc:
-        logger.exception("Prompt split failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        from services.error_responses import raise_user_error
+
+        raise_user_error("prompt_split", exc)
+        raise  # unreachable; satisfies type checker
 
 
 def merge_tags_dedup(base: list[str], extra: list[str]) -> list[str]:

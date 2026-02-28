@@ -41,7 +41,10 @@ async def generate_backgrounds(storyboard_id: int, db: Session = Depends(get_db)
     try:
         results = await generate_location_backgrounds(storyboard_id, db)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        from services.error_responses import raise_user_error
+
+        raise_user_error("stage_generate", e, status_code=404)
+        raise  # unreachable; satisfies type checker
 
     return StageGenerateResponse(storyboard_id=storyboard_id, results=results)
 
@@ -139,6 +142,9 @@ async def regenerate_background_endpoint(
     try:
         result = await regenerate_background(storyboard_id, location_key, db, tags=new_tags)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        from services.error_responses import raise_user_error
+
+        raise_user_error("stage_regenerate", e, status_code=404)
+        raise  # unreachable; satisfies type checker
 
     return StageRegenerateResponse(**result)

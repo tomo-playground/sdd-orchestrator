@@ -13,8 +13,6 @@ import shutil
 import time
 from typing import TYPE_CHECKING, Any
 
-from fastapi import HTTPException
-
 from config import BUILD_DIR, VIDEO_DIR, logger
 from database import SessionLocal
 from services.motion import resolve_preset_name
@@ -404,9 +402,11 @@ class VideoBuilder:
 
 async def create_video_task(request: VideoRequest) -> dict:
     """Create a video from scenes using VideoBuilder."""
+    from services.error_responses import raise_user_error
+
     try:
         builder = VideoBuilder(request)
         return await builder.build()
     except Exception as exc:
-        logger.exception("Video Create Error")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise_user_error("video_create", exc)
+        raise  # unreachable; satisfies type checker

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import axios from "axios";
 import { useStoryboardStore } from "../store/useStoryboardStore";
+import { useUIStore } from "../store/useUIStore";
 import { useCharacters } from "./useCharacters";
 import { ADMIN_API_BASE } from "../constants";
 
@@ -13,8 +14,10 @@ import { ADMIN_API_BASE } from "../constants";
 export function useCharacterAutoLoad() {
   const selectedCharacterId = useStoryboardStore((s) => s.selectedCharacterId);
   const selectedCharacterBId = useStoryboardStore((s) => s.selectedCharacterBId);
-  const referenceImages = useStoryboardStore((s) => s.referenceImages);
   const sbSet = useStoryboardStore((s) => s.set);
+  const referenceImagesRef = useRef(useStoryboardStore.getState().referenceImages);
+  const prevCharIdRef = useRef<number | null>(null);
+  const prevCharBIdRef = useRef<number | null>(null);
 
   const { getCharacterFull, buildCharacterPrompt, buildCharacterNegative } = useCharacters();
 
@@ -23,11 +26,13 @@ export function useCharacterAutoLoad() {
     axios
       .get(`${ADMIN_API_BASE}/controlnet/ip-adapter/references`)
       .then((res) => {
-        useStoryboardStore.getState().set({
-          referenceImages: res.data.references || [],
-        });
+        const refs = res.data.references || [];
+        referenceImagesRef.current = refs;
+        useStoryboardStore.getState().set({ referenceImages: refs });
       })
-      .catch((err) => console.warn("[useCharacterAutoLoad] IP-Adapter references fetch failed:", err));
+      .catch((err) =>
+        console.warn("[useCharacterAutoLoad] IP-Adapter references fetch failed:", err)
+      );
   }, []);
 
   // Auto-load character A LoRA/prompt settings when character changes
@@ -61,10 +66,8 @@ export function useCharacterAutoLoad() {
           }))
         : [];
 
-      const match =
-        referenceImages.length > 0
-          ? referenceImages.find((r) => r.character_id === charFull.id)
-          : null;
+      const refs = referenceImagesRef.current;
+      const match = refs.length > 0 ? refs.find((r) => r.character_id === charFull.id) : null;
       sbSet({
         selectedCharacterName: charFull.name,
         basePromptA: basePrompt,
@@ -75,15 +78,19 @@ export function useCharacterAutoLoad() {
         ipAdapterReference: match?.character_key || "",
         ipAdapterWeight: match?.preset?.weight ?? charFull.ip_adapter_weight ?? 0.75,
       });
+
+      // 초기 로드가 아닌 캐릭터 전환 시에만 stale 경고
+      const wasChange =
+        prevCharIdRef.current !== null && prevCharIdRef.current !== selectedCharacterId;
+      prevCharIdRef.current = selectedCharacterId;
+      if (wasChange) {
+        const sceneCount = useStoryboardStore.getState().scenes.length;
+        if (sceneCount > 0) {
+          useUIStore.getState().showToast("캐릭터 변경됨 — 프롬프트 갱신이 필요합니다", "warning");
+        }
+      }
     });
-  }, [
-    selectedCharacterId,
-    referenceImages,
-    getCharacterFull,
-    buildCharacterPrompt,
-    buildCharacterNegative,
-    sbSet,
-  ]);
+  }, [selectedCharacterId, getCharacterFull, buildCharacterPrompt, buildCharacterNegative, sbSet]);
 
   // Auto-load character B data when selectedCharacterBId changes
   useEffect(() => {
@@ -111,10 +118,8 @@ export function useCharacterAutoLoad() {
           }))
         : [];
 
-      const matchB =
-        referenceImages.length > 0
-          ? referenceImages.find((r) => r.character_id === charFull.id)
-          : null;
+      const refs = referenceImagesRef.current;
+      const matchB = refs.length > 0 ? refs.find((r) => r.character_id === charFull.id) : null;
 
       sbSet({
         selectedCharacterBName: charFull.name,
@@ -124,13 +129,19 @@ export function useCharacterAutoLoad() {
         ipAdapterReferenceB: matchB?.character_key || "",
         ipAdapterWeightB: matchB?.preset?.weight ?? charFull.ip_adapter_weight ?? 0.75,
       });
+
+      // 초기 로드가 아닌 캐릭터 전환 시에만 stale 경고
+      const wasChange =
+        prevCharBIdRef.current !== null && prevCharBIdRef.current !== selectedCharacterBId;
+      prevCharBIdRef.current = selectedCharacterBId;
+      if (wasChange) {
+        const sceneCount = useStoryboardStore.getState().scenes.length;
+        if (sceneCount > 0) {
+          useUIStore
+            .getState()
+            .showToast("캐릭터 B 변경됨 — 프롬프트 갱신이 필요합니다", "warning");
+        }
+      }
     });
-  }, [
-    selectedCharacterBId,
-    referenceImages,
-    getCharacterFull,
-    buildCharacterPrompt,
-    buildCharacterNegative,
-    sbSet,
-  ]);
+  }, [selectedCharacterBId, getCharacterFull, buildCharacterPrompt, buildCharacterNegative, sbSet]);
 }

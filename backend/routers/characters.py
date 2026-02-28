@@ -70,8 +70,8 @@ async def get_character_endpoint(character_id: int, db: Session = Depends(get_db
     """Get a single character by ID with tag metadata."""
     try:
         return get_character_or_raise(db, character_id)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from None
+    except ValueError:
+        raise HTTPException(status_code=404, detail="캐릭터를 찾을 수 없습니다") from None
 
 
 @admin_router.post("/preview", response_model=CharacterPreviewResponse)
@@ -82,8 +82,8 @@ async def preview_character_endpoint(
     """Generate a temporary preview image for the wizard (no DB save)."""
     try:
         return await generate_wizard_preview(db, data)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="프리뷰 생성 파라미터가 올바르지 않습니다") from None
     except RuntimeError as e:
         from services.error_responses import raise_user_error
 
@@ -95,8 +95,8 @@ async def create_character_endpoint(data: CharacterCreate, db: Session = Depends
     """Create a new character and link tags."""
     try:
         return create_character(db, data)
-    except ConflictError as e:
-        raise HTTPException(status_code=409, detail=str(e)) from None
+    except ConflictError:
+        raise HTTPException(status_code=409, detail="같은 이름의 캐릭터가 이미 존재합니다") from None
 
 
 @admin_router.put("/{character_id}", response_model=CharacterResponse)
@@ -108,8 +108,8 @@ async def update_character_endpoint(
     """Update an existing character and sync tags."""
     try:
         return update_character(db, character_id, data)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from None
+    except ValueError:
+        raise HTTPException(status_code=404, detail="캐릭터를 찾을 수 없습니다") from None
 
 
 @admin_router.delete("/{character_id}", response_model=OkDeletedResponse)
@@ -118,8 +118,8 @@ async def delete_character_endpoint(character_id: int, db: Session = Depends(get
     try:
         name = soft_delete_character(db, character_id)
         return {"ok": True, "deleted": name}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from None
+    except ValueError:
+        raise HTTPException(status_code=404, detail="캐릭터를 찾을 수 없습니다") from None
 
 
 @admin_router.post("/{character_id}/restore", response_model=OkRestoredResponse)
@@ -128,8 +128,8 @@ async def restore_character_endpoint(character_id: int, db: Session = Depends(ge
     try:
         name = restore_character(db, character_id)
         return {"ok": True, "restored": name}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from None
+    except ValueError:
+        raise HTTPException(status_code=404, detail="캐릭터를 찾을 수 없습니다") from None
 
 
 @admin_router.delete("/{character_id}/permanent", response_model=OkDeletedResponse)
@@ -138,8 +138,8 @@ async def permanently_delete_endpoint(character_id: int, db: Session = Depends(g
     try:
         name = permanently_delete_character(db, character_id)
         return {"ok": True, "deleted": name}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from None
+    except ValueError:
+        raise HTTPException(status_code=404, detail="캐릭터를 찾을 수 없습니다") from None
 
 
 @admin_router.post("/{character_id}/regenerate-reference", response_model=RegenerateReferenceResponse)
@@ -156,8 +156,8 @@ async def regenerate_reference_endpoint(
             controlnet_pose=data.controlnet_pose if data else None,
             num_candidates=data.num_candidates if data else 1,
         )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="레퍼런스 재생성 파라미터가 올바르지 않습니다") from None
     except RuntimeError as e:
         from services.error_responses import raise_user_error
 
@@ -169,8 +169,8 @@ async def enhance_preview_endpoint(character_id: int, db: Session = Depends(get_
     """Enhance the character's preview image using Gemini image generation."""
     try:
         return await enhance_preview(db, character_id)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="프리뷰 향상에 실패했습니다") from None
 
 
 @admin_router.post("/{character_id}/edit-preview", response_model=CharacterEditPreviewResponse)
@@ -182,8 +182,8 @@ async def edit_preview_endpoint(
     """Edit the character's preview image with a natural language instruction via Gemini."""
     try:
         return await edit_preview(db, character_id, instruction)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="프리뷰 편집에 실패했습니다") from None
 
 
 @admin_router.post("/{character_id}/assign-preview", response_model=AssignPreviewResponse)
@@ -195,8 +195,8 @@ async def assign_preview_endpoint(
     """Assign a wizard-generated preview image to an existing character."""
     try:
         return await assign_wizard_preview(db, character_id, data)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="프리뷰 지정에 실패했습니다") from None
 
 
 @admin_router.post("/batch-regenerate-references", response_model=BatchRegenerateResponse)

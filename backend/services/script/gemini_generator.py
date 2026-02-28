@@ -354,5 +354,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
                 detail="Gemini API quota exhausted. Please try again later or check your API limits at https://aistudio.google.com/app/apikey",
             ) from exc
 
-        logger.exception("Storyboard generation failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        from services.error_responses import raise_user_error
+
+        raise_user_error("script_generate", exc)
+        raise  # unreachable; satisfies type checker

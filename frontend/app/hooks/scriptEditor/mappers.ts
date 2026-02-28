@@ -7,7 +7,9 @@ import type { SceneItem } from "./types";
 function mapScenesToItems(scenes: Scene[], opts?: { preserveClientId?: boolean }): SceneItem[] {
   return scenes.map((s, i) => ({
     id: s.id ?? i + 1,
-    client_id: opts?.preserveClientId ? (s.client_id ?? generateSceneClientId()) : generateSceneClientId(),
+    client_id: opts?.preserveClientId
+      ? (s.client_id ?? generateSceneClientId())
+      : generateSceneClientId(),
     order: s.order ?? i + 1,
     script: s.script ?? "",
     speaker: s.speaker ?? "Narrator",
@@ -66,7 +68,7 @@ export function syncToGlobalStore(scenes: SceneItem[], meta: SyncMeta) {
     image_prompt: s.image_prompt,
     image_prompt_ko: s.image_prompt_ko,
     image_url: s.image_url,
-    negative_prompt: "",
+    negative_prompt: s.negative_prompt_extra || "",
     isGenerating: false,
     debug_payload: "",
     context_tags: s.context_tags,

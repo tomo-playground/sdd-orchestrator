@@ -8,8 +8,11 @@ import type {
   PostCardSettings,
   RecentVideo,
   RenderProgress,
+  VoicePreset,
 } from "../types";
+import axios from "axios";
 import {
+  API_BASE,
   DEFAULT_OVERLAY_SETTINGS,
   DEFAULT_POST_CARD_SETTINGS,
   DEFAULT_SCENE_TEXT_FONT,
@@ -49,6 +52,10 @@ export interface RenderStore {
   ttsEngine: "qwen";
   voiceDesignPrompt: string;
   voicePresetId: number | null;
+  /** Cached voice presets — shared across Studio tabs */
+  voicePresets: VoicePreset[];
+  /** Whether voicePresets have been fetched this session */
+  voicePresetsLoaded: boolean;
   bgmMode: "manual" | "auto";
   musicPresetId: number | null;
   bgmPrompt: string;
@@ -67,9 +74,11 @@ export interface RenderStore {
   renderProgress: RenderProgress | null;
   set: (updates: Partial<RenderStore>) => void;
   reset: () => void;
+  /** Fetch voice presets once — skips if already loaded */
+  fetchVoicePresets: () => Promise<void>;
 }
 
-const initialState: Omit<RenderStore, "set" | "reset"> = {
+const initialState: Omit<RenderStore, "set" | "reset" | "fetchVoicePresets"> = {
   currentStyleProfile: null,
   layoutStyle: "post",
   frameStyle: "",
@@ -89,6 +98,8 @@ const initialState: Omit<RenderStore, "set" | "reset"> = {
   ttsEngine: "qwen",
   voiceDesignPrompt: "",
   voicePresetId: null,
+  voicePresets: [] as VoicePreset[],
+  voicePresetsLoaded: false,
   bgmMode: "manual",
   musicPresetId: null,
   bgmPrompt: "",
@@ -124,17 +135,27 @@ const TRANSIENT_KEYS: (keyof RenderStore)[] = [
   "bgmList",
   "fontList",
   "loadedFonts",
-  "sceneTextFont",
   "overlayAvatarUrl",
   "postAvatarUrl",
+  "voicePresets",
+  "voicePresetsLoaded",
 ];
 
 export const useRenderStore = create<RenderStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...initialState,
       set: (updates) => set((state) => ({ ...state, ...updates })),
       reset: () => set(initialState),
+      fetchVoicePresets: async () => {
+        if (get().voicePresetsLoaded) return;
+        try {
+          const res = await axios.get<VoicePreset[]>(`${API_BASE}/voice-presets`);
+          set({ voicePresets: res.data, voicePresetsLoaded: true });
+        } catch {
+          console.warn("[RenderStore] Voice presets fetch failed");
+        }
+      },
     }),
     {
       name: RENDER_STORE_KEY,

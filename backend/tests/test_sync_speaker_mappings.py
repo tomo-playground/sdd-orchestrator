@@ -108,6 +108,7 @@ class TestSyncSpeakerMappingsDialogue:
             "title": "Dialogue Test",
             "description": "Test",
             "group_id": 1,
+            "structure": "Dialogue",
             "character_id": char_a.id,
             "character_b_id": char_b.id,
             "scenes": [
@@ -163,6 +164,7 @@ class TestSyncSpeakerMappingsUpdate:
             "title": "Dialogue→Monologue",
             "description": "Test",
             "group_id": 1,
+            "structure": "Dialogue",
             "character_id": char_a.id,
             "character_b_id": char_b.id,
             "scenes": [

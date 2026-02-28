@@ -157,6 +157,8 @@ export function useChatScriptEditor(options?: {
           return { role: m.role, text: msgText };
         });
       history.push({ role: "user", text });
+      // Backend max_length=20 — 최근 메시지만 전송
+      const trimmedHistory = history.slice(-20);
 
       isAnalyzingRef.current = true;
       try {
@@ -167,7 +169,7 @@ export function useChatScriptEditor(options?: {
             topic: topicRef.current || text,
             description: editorRef.current.description || undefined,
             group_id: groupId,
-            messages: history,
+            messages: trimmedHistory,
           }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

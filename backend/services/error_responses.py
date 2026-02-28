@@ -29,6 +29,7 @@ _USER_MESSAGES: dict[str, str] = {
     "storyboard_generate": "스토리보드 생성에 실패했습니다.",
     "youtube_auth": "YouTube 인증에 실패했습니다.",
     "youtube_upload": "YouTube 업로드에 실패했습니다.",
+    "character_preview": "캐릭터 프리뷰 생성에 실패했습니다.",
     "character_update": "캐릭터 업데이트에 실패했습니다.",
     "scene_edit_image": "씬 이미지 편집에 실패했습니다.",
     "batch_validate": "일괄 검증에 실패했습니다.",
@@ -36,6 +37,12 @@ _USER_MESSAGES: dict[str, str] = {
     "consistency_analysis": "일관성 분석에 실패했습니다.",
     "quality_alerts": "품질 알림 조회에 실패했습니다.",
     "preview_generate": "미리보기 생성에 실패했습니다.",
+    "video_create": "영상 생성에 실패했습니다.",
+    "prompt_rewrite": "프롬프트 리라이트에 실패했습니다.",
+    "prompt_split": "프롬프트 분할에 실패했습니다.",
+    "script_generate": "스크립트 생성에 실패했습니다.",
+    "stage_generate": "배경 생성에 실패했습니다.",
+    "stage_regenerate": "배경 재생성에 실패했습니다.",
 }
 
 

@@ -276,9 +276,10 @@ def _inject_location_map_tags(scenes: list[dict], writer_plan: dict | None) -> N
 
 
 def _inject_location_negative_tags(scenes: list[dict], writer_plan: dict | None) -> None:
-    """Location Map 기반으로 indoor/outdoor 씬의 negative_prompt_extra에 반대 태그를 추가한다.
+    """Location Map 기반으로 indoor/outdoor 씬의 negative_prompt에 반대 태그를 추가한다.
 
     indoor 장소 씬 → negative에 'outdoors', outdoor 장소 씬 → negative에 'indoors'.
+    _inject_negative_prompts() 이후 실행되므로 negative_prompt에 직접 append한다.
     """
     from config_prompt import INDOOR_LOCATION_TAGS, OUTDOOR_LOCATION_TAGS  # noqa: PLC0415
 
@@ -303,10 +304,10 @@ def _inject_location_negative_tags(scenes: list[dict], writer_plan: dict | None)
         else:
             continue
 
-        existing = scene.get("negative_prompt_extra") or ""
-        existing_norms = {t.strip().lower() for t in existing.split(",") if t.strip()}
+        existing_neg = scene.get("negative_prompt") or ""
+        existing_norms = {t.strip().lower() for t in existing_neg.split(",") if t.strip()}
         if neg_tag not in existing_norms:
-            scene["negative_prompt_extra"] = f"{existing}, {neg_tag}".strip(", ") if existing else neg_tag
+            scene["negative_prompt"] = f"{existing_neg}, {neg_tag}" if existing_neg else neg_tag
 
 
 def _auto_populate_scene_flags(
@@ -428,6 +429,11 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     _normalize_environment_tags(scenes)
     _inject_location_map_tags(scenes, state.get("writer_plan"))
     _inject_location_negative_tags(scenes, state.get("writer_plan"))
+
+    # Post-location conflict re-check: positive↔negative 교차 충돌만 재검사
+    from ._prompt_conflict_resolver import _resolve_positive_negative_conflicts
+
+    _resolve_positive_negative_conflicts(scenes)
 
     # 미분류 태그 LLM 사전 분류 (이미지 생성 전)
     from config_pipelines import FEATURE_TAG_LLM_CLASSIFICATION

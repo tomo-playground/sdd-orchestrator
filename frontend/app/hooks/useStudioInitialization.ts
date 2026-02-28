@@ -14,6 +14,7 @@ import { loadGroupDefaults } from "../store/actions/groupActions";
 import type { Scene } from "../types";
 import { API_BASE, DEFAULT_STRUCTURE, PROMPT_APPLY_KEY } from "../constants";
 import { generateSceneClientId } from "../utils/uuid";
+import { isMultiCharStructure } from "../utils/structure";
 
 /**
  * Handles all studio initialization logic:
@@ -173,10 +174,20 @@ export function useStudioInitialization() {
           ...(data.bgm_prompt ? { bgmPrompt: data.bgm_prompt, bgmMode: "auto" as const } : {}),
           ...(data.bgm_mood ? { bgmMood: data.bgm_mood } : {}),
         });
+        const structure = data.structure || DEFAULT_STRUCTURE;
+        const isMulti = isMultiCharStructure(structure);
+        const charBId = isMulti ? (data.character_b_id || null) : null;
         setPlan({
           selectedCharacterId: data.character_id || null,
-          selectedCharacterBId: data.character_b_id || null,
-          structure: data.structure || DEFAULT_STRUCTURE,
+          selectedCharacterBId: charBId,
+          // Non-Dialogue: 명시적으로 Character B 관련 필드 초기화 (stale 데이터 방지)
+          ...(!isMulti && {
+            selectedCharacterBName: null,
+            basePromptB: "",
+            baseNegativePromptB: "",
+            characterBLoras: [],
+          }),
+          structure,
           topic: data.title || "",
           description: data.description || "",
           storyboardVersion: data.version ?? null,
@@ -190,8 +201,8 @@ export function useStudioInitialization() {
         if (data.character_id) {
           parallelLoads.push(loadCharacterData(data.character_id, setPlan));
         }
-        if (data.character_b_id) {
-          parallelLoads.push(loadCharacterBData(data.character_b_id, setPlan));
+        if (charBId) {
+          parallelLoads.push(loadCharacterBData(charBId, setPlan));
         }
         if (data.style_profile_id) {
           setLoadedProfileId(data.style_profile_id);

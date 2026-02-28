@@ -18,18 +18,22 @@ from schemas import StoryboardSave, StoryboardUpdate
 from services.storyboard.helpers import calculate_auto_pin_flags, truncate_title
 from services.storyboard.scene_builder import create_scenes, serialize_scene
 
+_MULTI_CHAR_STRUCTURES = {"dialogue", "narrated dialogue"}
+
 
 def _sync_speaker_mappings(
     db: Session,
     storyboard_id: int,
     character_id: int | None,
     character_b_id: int | None,
+    structure: str = "",
 ) -> None:
     """Sync speaker→character mappings for a storyboard.
 
     Mapping rules:
     - Monologue (character_id only): A → character_id
     - Dialogue (both): A → character_id, B → character_b_id
+    - Non-Dialogue structure: ignore character_b_id (SPEAKER_B not needed)
     - Both None: do not change existing mappings (avoids wiping when save omits character IDs)
     """
     if character_id is None and character_b_id is None:
@@ -38,6 +42,8 @@ def _sync_speaker_mappings(
 
     from services.characters import assign_speakers
 
+    is_multi = structure.lower() in _MULTI_CHAR_STRUCTURES if structure else True
+
     speaker_map: dict[str, int] = {}
 
     # Map Speaker A to character_id (Monologue or Dialogue)
@@ -45,7 +51,7 @@ def _sync_speaker_mappings(
         speaker_map[SPEAKER_A] = character_id
 
     # Map Speaker B to character_b_id (Dialogue only)
-    if character_b_id:
+    if is_multi and character_b_id:
         speaker_map[SPEAKER_B] = character_b_id
 
     # assign_speakers handles deletion of old mappings before inserting new ones
@@ -80,8 +86,10 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
 
     create_scenes(db, db_storyboard.id, request.scenes)
 
-    # Save speaker→character mappings if character_b_id is provided (Dialogue)
-    _sync_speaker_mappings(db, db_storyboard.id, request.character_id, request.character_b_id)
+    # Save speaker→character mappings (Non-Dialogue → SPEAKER_B ignored)
+    _sync_speaker_mappings(
+        db, db_storyboard.id, request.character_id, request.character_b_id, structure=request.structure or ""
+    )
 
     db.commit()
     db.refresh(db_storyboard)
@@ -416,8 +424,10 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
 
     create_scenes(db, storyboard_id, request.scenes)
 
-    # Update speaker→character mappings (Dialogue)
-    _sync_speaker_mappings(db, storyboard_id, request.character_id, request.character_b_id)
+    # Update speaker→character mappings (Non-Dialogue → SPEAKER_B ignored)
+    _sync_speaker_mappings(
+        db, storyboard_id, request.character_id, request.character_b_id, structure=request.structure or ""
+    )
 
     # Increment version (optimistic locking)
     storyboard.version += 1

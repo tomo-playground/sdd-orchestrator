@@ -12,6 +12,7 @@ import type {
 import type { GenerationDefaults } from "../hooks/usePresets";
 import { DEFAULT_STRUCTURE } from "../constants";
 import { generateSceneClientId } from "../utils/uuid";
+import { isMultiCharStructure } from "../utils/structure";
 
 type LoraEntry = {
   id: number;
@@ -206,7 +207,25 @@ export const useStoryboardStore = create<StoryboardStore>()(
     (set) => ({
       ...initialState,
       isDirty: false,
-      set: (updates) => set((state) => ({ ...state, ...updates })),
+      set: (updates) =>
+        set((state) => {
+          const merged = { ...state, ...updates };
+          // Structure → Non-Dialogue 변경 시 Character B 자동 정리
+          if (
+            updates.structure &&
+            updates.structure !== state.structure &&
+            !isMultiCharStructure(updates.structure)
+          ) {
+            merged.selectedCharacterBId = null;
+            merged.selectedCharacterBName = null;
+            merged.basePromptB = "";
+            merged.baseNegativePromptB = "";
+            merged.characterBLoras = [];
+            merged.ipAdapterReferenceB = "";
+            merged.ipAdapterWeightB = 0.7;
+          }
+          return merged;
+        }),
       setScenes: (scenes) =>
         set((state) => ({
           scenes,

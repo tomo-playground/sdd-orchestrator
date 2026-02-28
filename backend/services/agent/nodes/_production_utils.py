@@ -43,6 +43,16 @@ async def run_production_step(
                 )
                 llm.record(response)
             raw_text = response.text or ""
+            if not raw_text:
+                # 안전 필터 등으로 빈 응답 — prompt_feedback 확인
+                feedback_info = getattr(response, "prompt_feedback", None)
+                block_reason = getattr(feedback_info, "block_reason", None) if feedback_info else None
+                if feedback_info:
+                    logger.warning("[%s] Empty response, prompt_feedback: %s", step_name, feedback_info)
+                if block_reason:
+                    # 안전 필터 차단 — 동일 프롬프트 재시도 무의미, 즉시 실패
+                    raise ValueError(f"Safety filter blocked: {block_reason}")
+                raise ValueError("Empty LLM response received")
             parsed = parse_json_response(raw_text)
         except Exception as e:
             logger.warning("[%s] 호출/파싱 실패 (retry %d): %s", step_name, retry, e)

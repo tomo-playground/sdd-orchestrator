@@ -59,42 +59,65 @@ class TestInjectLocationNegativeTags:
 
     def test_indoor_scene_gets_outdoors_negative(self):
         """indoor 장소 씬 → negative에 'outdoors' 추가."""
-        scenes = [{"negative_prompt_extra": ""}]
+        scenes = [{"negative_prompt": ""}]
         writer_plan = {
             "locations": [
                 {"name": "kitchen", "scenes": [0], "tags": ["kitchen", "indoors"]},
             ],
         }
         _inject_location_negative_tags(scenes, writer_plan)
-        assert "outdoors" in scenes[0]["negative_prompt_extra"]
+        assert "outdoors" in scenes[0]["negative_prompt"]
 
     def test_outdoor_scene_gets_indoors_negative(self):
         """outdoor 장소 씬 → negative에 'indoors' 추가."""
-        scenes = [{"negative_prompt_extra": ""}]
+        scenes = [{"negative_prompt": ""}]
         writer_plan = {
             "locations": [
                 {"name": "park", "scenes": [0], "tags": ["park", "outdoors"]},
             ],
         }
         _inject_location_negative_tags(scenes, writer_plan)
-        assert "indoors" in scenes[0]["negative_prompt_extra"]
+        assert "indoors" in scenes[0]["negative_prompt"]
 
     def test_no_plan_no_change(self):
         """writer_plan 없으면 변경 없음."""
-        scenes = [{"negative_prompt_extra": ""}]
+        scenes = [{"negative_prompt": ""}]
         _inject_location_negative_tags(scenes, None)
-        assert scenes[0]["negative_prompt_extra"] == ""
+        assert scenes[0]["negative_prompt"] == ""
 
     def test_existing_negative_preserved(self):
-        """기존 negative_prompt_extra가 보존되며 새 태그 추가."""
-        scenes = [{"negative_prompt_extra": "rain, cloud"}]
+        """기존 negative_prompt가 보존되며 새 태그 추가."""
+        scenes = [{"negative_prompt": "rain, cloud"}]
         writer_plan = {
             "locations": [
                 {"name": "classroom", "scenes": [0], "tags": ["classroom", "indoors"]},
             ],
         }
         _inject_location_negative_tags(scenes, writer_plan)
-        neg = scenes[0]["negative_prompt_extra"]
+        neg = scenes[0]["negative_prompt"]
         assert "rain" in neg
         assert "cloud" in neg
         assert "outdoors" in neg
+
+    def test_post_location_conflict_removes_positive(self):
+        """Location negative 주입 후 재검사로 positive↔negative 충돌이 제거된다."""
+        from services.agent.nodes._prompt_conflict_resolver import _resolve_positive_negative_conflicts
+
+        scenes = [
+            {
+                "image_prompt": "1girl, outdoors, park",
+                "negative_prompt": "lowres",
+            }
+        ]
+        writer_plan = {
+            "locations": [
+                {"name": "kitchen", "scenes": [0], "tags": ["kitchen", "indoors"]},
+            ],
+        }
+        _inject_location_negative_tags(scenes, writer_plan)
+        assert "outdoors" in scenes[0]["negative_prompt"]
+
+        _resolve_positive_negative_conflicts(scenes)
+        assert "outdoors" not in scenes[0]["image_prompt"]
+        assert "1girl" in scenes[0]["image_prompt"]
+        assert "park" in scenes[0]["image_prompt"]

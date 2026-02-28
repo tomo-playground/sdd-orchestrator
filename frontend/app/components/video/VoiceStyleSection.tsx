@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "axios";
-import { API_BASE } from "../../constants";
+import { useEffect } from "react";
 import { useUIStore } from "../../store/useUIStore";
-import type { VoicePreset } from "../../types";
+import { useRenderStore } from "../../store/useRenderStore";
 
 export type VoiceStyleSectionProps = {
   voicePresetId?: number | null;
@@ -27,14 +25,12 @@ export default function VoiceStyleSection({
   setSpeedMultiplier,
   readOnly = false,
 }: VoiceStyleSectionProps) {
-  const [voicePresets, setVoicePresets] = useState<VoicePreset[]>([]);
+  const voicePresets = useRenderStore((s) => s.voicePresets);
+  const fetchVoicePresets = useRenderStore((s) => s.fetchVoicePresets);
 
   useEffect(() => {
-    axios
-      .get<VoicePreset[]>(`${API_BASE}/voice-presets`)
-      .then((r) => setVoicePresets(r.data))
-      .catch(() => {});
-  }, []);
+    void fetchVoicePresets();
+  }, [fetchVoicePresets]);
 
   const selectedPresetName = voicePresets.find((p) => p.id === voicePresetId)?.name ?? null;
 

@@ -172,6 +172,31 @@ async def stream_progress(task_id: str):
     )
 
 
+@router.get("/progress-poll/{task_id}", response_model=RenderProgressEvent)
+async def poll_progress(task_id: str):
+    """One-shot polling fallback for SSE reconnection failure."""
+    task = get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    elapsed = time.time() - task.created_at
+    eta = estimate_remaining(task)
+    return RenderProgressEvent(
+        task_id=task.task_id,
+        stage=task.stage.value,
+        percent=task.percent,
+        message=task.message,
+        encode_percent=task.encode_percent,
+        current_scene=task.current_scene,
+        total_scenes=task.total_scenes,
+        elapsed_seconds=round(elapsed, 1),
+        estimated_remaining_seconds=round(eta, 1) if eta is not None else None,
+        video_url=task.result.get("video_url") if task.result else None,
+        media_asset_id=task.result.get("media_asset_id") if task.result else None,
+        render_history_id=task.result.get("render_history_id") if task.result else None,
+        error=task.error,
+    )
+
+
 async def _event_generator(task_id: str) -> AsyncGenerator[str]:
     """Yield SSE events until the task completes or fails."""
     try:

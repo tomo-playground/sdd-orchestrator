@@ -4,6 +4,7 @@ import type { RenderProgress } from "../types";
 
 const MAX_RETRIES = 3;
 const BACKOFF_BASE_MS = 1000;
+const POLL_INTERVAL_MS = 3000;
 
 /**
  * Trigger async video render and stream SSE progress events.
@@ -96,9 +97,35 @@ export async function renderWithProgress(
           });
           setTimeout(connectSSE, delay);
         } else {
-          settle(() => reject(new Error("SSE connection lost after retries")));
+          // SSE 재연결 실패 → polling 폴백
+          console.warn("[Render] SSE failed after retries, switching to polling");
+          startPolling();
         }
       };
+    }
+
+    async function startPolling() {
+      while (!settled && !signal?.aborted) {
+        try {
+          const pollRes = await axios.get<RenderProgress>(
+            `${API_BASE}/video/progress-poll/${taskId}`,
+            { timeout: 10_000 }
+          );
+          const data = pollRes.data;
+          onProgress?.(data);
+          if (data.stage === "completed") {
+            settle(() => resolve(data));
+            return;
+          }
+          if (data.stage === "failed") {
+            settle(() => reject(new Error(data.error || "Render failed")));
+            return;
+          }
+        } catch {
+          // polling 실패 시 다음 주기 재시도
+        }
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      }
     }
 
     connectSSE();

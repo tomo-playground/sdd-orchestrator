@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import { API_BASE } from "../../constants";
-import type { VoicePreset } from "../../types";
+import { useRenderStore } from "../../store/useRenderStore";
 
 type Props = {
   value: number | null;
@@ -18,16 +16,14 @@ export default function VoicePresetSelector({
   label = "Voice Preset",
   disabled,
 }: Props) {
-  const [presets, setPresets] = useState<VoicePreset[]>([]);
+  const presets = useRenderStore((s) => s.voicePresets);
+  const fetchVoicePresets = useRenderStore((s) => s.fetchVoicePresets);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    axios
-      .get<VoicePreset[]>(`${API_BASE}/voice-presets`)
-      .then((r) => setPresets(r.data))
-      .catch((err) => console.warn("[VoicePresetSelector] Voice presets fetch failed:", err));
-  }, []);
+    void fetchVoicePresets();
+  }, [fetchVoicePresets]);
 
   // Cleanup audio on unmount
   useEffect(() => {

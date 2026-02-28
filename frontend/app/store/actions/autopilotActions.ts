@@ -275,6 +275,7 @@ export async function runAutoRunFromStep(
           project_id: renderProjectId,
           group_id: renderGroupId,
           storyboard_id: ctxStore.storyboardId,
+          storyboard_title: useStoryboardStore.getState().topic || "my_shorts",
           scenes: workingScenes
             .filter((s) => s.image_url)
             .map((s) => ({
@@ -285,6 +286,7 @@ export async function runAutoRunFromStep(
               voice_design_prompt: s.voice_design_prompt ?? undefined,
               head_padding: s.head_padding ?? undefined,
               tail_padding: s.tail_padding ?? undefined,
+              background_id: s.background_id ?? undefined,
               ken_burns_preset: s.ken_burns_preset ?? undefined,
               scene_emotion: s.context_tags?.emotion ?? s.context_tags?.mood?.[0] ?? undefined,
               image_prompt_ko: s.image_prompt_ko ?? undefined,

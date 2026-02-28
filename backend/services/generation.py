@@ -217,8 +217,10 @@ async def _call_sd_api_raw(payload: dict, ctx: GenerationContext) -> dict:
                 "warnings": ctx.warnings,
             }
     except httpx.HTTPError as exc:
-        logger.exception("Scene generation failed")
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        from services.error_responses import raise_user_error
+
+        raise_user_error("image_generate", exc, status_code=502)
+        raise  # unreachable; satisfies type checker
 
 
 def _has_info(data: dict) -> bool:

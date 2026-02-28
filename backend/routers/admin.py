@@ -10,6 +10,8 @@ from models import Tag
 from schemas import (
     ActivateTagResponse,
     CacheRefreshResponse,
+    CleanupResultDetail,
+    DanglingCandidateDetail,
     DeprecatedTagsResponse,
     DeprecateTagResponse,
     ImageCacheClearResponse,
@@ -17,6 +19,7 @@ from schemas import (
     MediaCleanupResponse,
     MediaOrphanResponse,
     MediaStatsResponse,
+    OrphanAssetCleanupResponse,
     StorageCleanupResponse,
     StorageStatsResponse,
 )
@@ -470,6 +473,56 @@ async def cleanup_preview():
 
     options = CleanupOptions(dry_run=True)
     return cleanup_all(options)
+
+
+# ------------------------------------------------------------------
+# Orphan Asset Full GC (orphans + dangling candidates)
+# ------------------------------------------------------------------
+
+
+@router.post("/cleanup-orphan-assets", response_model=OrphanAssetCleanupResponse)
+async def cleanup_orphan_assets_full(
+    dry_run: bool = Query(True, description="True=미리보기만, False=실제 삭제"),
+    include_candidates: bool = Query(True, description="candidates JSONB dangling도 정리"),
+    db: Session = Depends(get_db),
+):
+    """Orphan MediaAsset + dangling candidates JSONB 일괄 정리.
+
+    - orphan: owner_type이 설정되었지만 해당 레코드가 없는 asset
+    - dangling candidates: Scene.candidates JSONB 내 삭제된 asset_id 참조
+    """
+    try:
+        gc = MediaGCService(db)
+        orphan_result = gc.cleanup_orphans(dry_run=dry_run)
+        temp_result = gc.cleanup_expired_temp(dry_run=dry_run)
+
+        orphans = CleanupResultDetail(
+            deleted=orphan_result.deleted, storage_errors=orphan_result.storage_errors, dry_run=orphan_result.dry_run
+        )
+        expired_temp = CleanupResultDetail(
+            deleted=temp_result.deleted, storage_errors=temp_result.storage_errors, dry_run=temp_result.dry_run
+        )
+
+        dangling: DanglingCandidateDetail | None = None
+        if include_candidates:
+            cand_result = gc.cleanup_dangling_candidates(dry_run=dry_run)
+            dangling = DanglingCandidateDetail(
+                scenes_affected=cand_result.scenes_affected,
+                candidates_removed=cand_result.candidates_removed,
+                dry_run=cand_result.dry_run,
+            )
+
+        return OrphanAssetCleanupResponse(
+            success=True,
+            orphans=orphans,
+            expired_temp=expired_temp,
+            dangling_candidates=dangling,
+            total_deleted=orphan_result.deleted + temp_result.deleted,
+        )
+    except Exception:
+        db.rollback()
+        logger.exception("Orphan asset cleanup failed")
+        raise HTTPException(status_code=500, detail="Orphan asset cleanup failed") from None
 
 
 # ------------------------------------------------------------------

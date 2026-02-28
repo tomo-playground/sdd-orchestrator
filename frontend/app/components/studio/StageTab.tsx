@@ -14,7 +14,6 @@ import StyleProfileSelector from "../setup/StyleProfileSelector";
 import EmptyState from "../ui/EmptyState";
 import { API_BASE, API_TIMEOUT } from "../../constants";
 import { getErrorMsg } from "../../utils/error";
-import type { VoicePreset } from "../../types";
 import StageReadinessBar from "./StageReadinessBar";
 import StageLocationsSection from "./StageLocationsSection";
 import StageCharactersSection from "./StageCharactersSection";
@@ -39,12 +38,14 @@ export default function StageTab() {
   );
   const setPlan = useStoryboardStore((s) => s.set);
 
+  const voicePresets = useRenderStore((s) => s.voicePresets);
+  const fetchVoicePresets = useRenderStore((s) => s.fetchVoicePresets);
+
   const { data: materials } = useMaterialsCheck(storyboardId);
   const audioPlayer = useAudioPlayer();
   const [locReady, setLocReady] = useState(0);
   const [locTotal, setLocTotal] = useState(0);
   const [isAssigning, setIsAssigning] = useState(false);
-  const [voicePresets, setVoicePresets] = useState<VoicePreset[]>([]);
 
   const TOGGLES: {
     key: "autoRewritePrompt" | "autoReplaceRiskyTags" | "hiResEnabled" | "veoEnabled";
@@ -64,11 +65,8 @@ export default function StageTab() {
   ];
 
   useEffect(() => {
-    axios
-      .get<VoicePreset[]>(`${API_BASE}/voice-presets`)
-      .then((r) => setVoicePresets(r.data))
-      .catch(() => {});
-  }, []);
+    void fetchVoicePresets();
+  }, [fetchVoicePresets]);
 
   const handleLocStatusChange = useCallback((ready: number, total: number) => {
     setLocReady(ready);
