@@ -24,7 +24,6 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `id` (PK), `group_id` (FK, UNIQUE)
 - `render_preset_id` (FK), `style_profile_id` (FK), `narrator_voice_preset_id` (FK)
 - `language`, `duration`
-- `sd_steps`, `sd_cfg_scale`, `sd_sampler_name`, `sd_clip_skip` — SD 파라미터 오버라이드
 - `channel_dna` (JSONB) — 채널 DNA (tone, audience, worldview, guidelines)
 
 ### `storyboards` — 개별 에피소드

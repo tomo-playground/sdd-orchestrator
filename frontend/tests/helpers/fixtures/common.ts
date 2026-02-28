@@ -12,13 +12,10 @@ export const MOCK_GROUPS = [
 export const MOCK_GROUP_CONFIG = {
   id: 1,
   group_id: 1,
-  default_structure: "Monologue",
-  default_language: "Korean",
-  default_duration: 30,
+  language: "Korean",
+  duration: 30,
   style_profile_id: null,
-  character_id: null,
-  sd_steps: 27,
-  sd_cfg_scale: 7,
-  sd_sampler_name: "DPM++ 2M Karras",
-  sd_clip_skip: 2,
+  render_preset_id: null,
+  narrator_voice_preset_id: null,
+  channel_dna: null,
 };

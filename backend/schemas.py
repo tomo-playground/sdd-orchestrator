@@ -161,10 +161,6 @@ class GroupConfigUpdate(BaseModel):
     narrator_voice_preset_id: int | None = None
     language: str | None = None
     duration: int | None = None
-    sd_steps: int | None = None
-    sd_cfg_scale: float | None = None
-    sd_sampler_name: str | None = None
-    sd_clip_skip: int | None = None
     channel_dna: ChannelDNA | None = None
 
 
@@ -176,10 +172,6 @@ class GroupConfigResponse(BaseModel):
     narrator_voice_preset_id: int | None = None
     language: str | None = None
     duration: int | None = None
-    sd_steps: int | None = None
-    sd_cfg_scale: float | None = None
-    sd_sampler_name: str | None = None
-    sd_clip_skip: int | None = None
     channel_dna: ChannelDNA | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -194,10 +186,6 @@ class EffectiveConfigResponse(BaseModel):
     narrator_voice_preset_id: int | None = None
     language: str | None = None
     duration: int | None = None
-    sd_steps: int | None = None
-    sd_cfg_scale: float | None = None
-    sd_sampler_name: str | None = None
-    sd_clip_skip: int | None = None
     channel_dna: ChannelDNA | None = None
     sources: dict[str, str] = {}  # field -> "group" | "system_default"
 

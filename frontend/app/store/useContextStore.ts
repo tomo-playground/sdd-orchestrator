@@ -21,10 +21,6 @@ export interface ContextState {
   effectiveStyleProfileId: number | null;
   effectiveCharacterId: number | null;
   effectiveConfigLoaded: boolean;
-  effectiveSdSteps: number | null;
-  effectiveSdCfgScale: number | null;
-  effectiveSdSamplerName: string | null;
-  effectiveSdClipSkip: number | null;
 
   // Actions
   setContext: (
@@ -39,12 +35,6 @@ export interface ContextState {
   ) => void;
   setEffectivePreset: (name: string | null, source: string | null) => void;
   setEffectiveDefaults: (styleId: number | null, charId: number | null, loaded: boolean) => void;
-  setEffectiveSdParams: (params: {
-    steps: number | null;
-    cfgScale: number | null;
-    samplerName: string | null;
-    clipSkip: number | null;
-  }) => void;
   resetContext: () => void;
 }
 
@@ -60,10 +50,6 @@ const TRANSIENT_CONTEXT_KEYS: (keyof ContextState)[] = [
   "effectiveStyleProfileId",
   "effectiveCharacterId",
   "effectiveConfigLoaded",
-  "effectiveSdSteps",
-  "effectiveSdCfgScale",
-  "effectiveSdSamplerName",
-  "effectiveSdClipSkip",
 ];
 
 export const useContextStore = create<ContextState>()(
@@ -82,10 +68,6 @@ export const useContextStore = create<ContextState>()(
       effectiveStyleProfileId: null,
       effectiveCharacterId: null,
       effectiveConfigLoaded: false,
-      effectiveSdSteps: null,
-      effectiveSdCfgScale: null,
-      effectiveSdSamplerName: null,
-      effectiveSdClipSkip: null,
 
       setContext: (updates) => set((s) => ({ ...s, ...updates })),
       setProjects: (projects) => set({ projects }),
@@ -99,13 +81,6 @@ export const useContextStore = create<ContextState>()(
           effectiveCharacterId: charId,
           effectiveConfigLoaded: loaded,
         }),
-      setEffectiveSdParams: (params) =>
-        set({
-          effectiveSdSteps: params.steps,
-          effectiveSdCfgScale: params.cfgScale,
-          effectiveSdSamplerName: params.samplerName,
-          effectiveSdClipSkip: params.clipSkip,
-        }),
       resetContext: () =>
         set({
           storyboardId: null,
@@ -115,10 +90,6 @@ export const useContextStore = create<ContextState>()(
           effectiveStyleProfileId: null,
           effectiveCharacterId: null,
           effectiveConfigLoaded: false,
-          effectiveSdSteps: null,
-          effectiveSdCfgScale: null,
-          effectiveSdSamplerName: null,
-          effectiveSdClipSkip: null,
         }),
     }),
     {

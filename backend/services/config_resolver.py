@@ -15,10 +15,6 @@ CASCADING_FIELDS = [
     "narrator_voice_preset_id",
     "language",
     "duration",
-    "sd_steps",
-    "sd_cfg_scale",
-    "sd_sampler_name",
-    "sd_clip_skip",
 ]
 
 
@@ -59,14 +55,6 @@ def _get_group_config(group: Any | None) -> Any | None:
     return getattr(group, "config", None)
 
 
-SD_SYSTEM_DEFAULTS = {
-    "sd_steps": 27,
-    "sd_cfg_scale": 7.0,
-    "sd_sampler_name": "DPM++ 2M Karras",
-    "sd_clip_skip": 2,
-}
-
-
 def apply_system_defaults(result: dict, db: Any) -> dict:
     """Apply system-level defaults for fields not resolved by cascading.
 
@@ -82,10 +70,5 @@ def apply_system_defaults(result: dict, db: Any) -> dict:
         if default_profile:
             values["style_profile_id"] = default_profile.id
             sources["style_profile_id"] = "system_default"
-
-    for field, default_val in SD_SYSTEM_DEFAULTS.items():
-        if field not in values:
-            values[field] = default_val
-            sources[field] = "system_default"
 
     return result

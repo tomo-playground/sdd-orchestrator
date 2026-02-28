@@ -15,14 +15,12 @@ describe("loadGroupDefaults", () => {
   const mockSetPlan = vi.fn();
   const mockSetEffectiveDefaults = vi.fn();
   const mockSetEffectivePreset = vi.fn();
-  const mockSetEffectiveSdParams = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(useContextStore, "getState").mockReturnValue({
       setEffectiveDefaults: mockSetEffectiveDefaults,
       setEffectivePreset: mockSetEffectivePreset,
-      setEffectiveSdParams: mockSetEffectiveSdParams,
     } as never);
     vi.spyOn(useRenderStore, "getState").mockReturnValue({
       set: mockSetOutput,

@@ -9,7 +9,8 @@ const GROUP_LABELS: Record<string, string> = {
   expression: "Expression",
   pose: "Pose",
   camera: "Camera",
-  clothing: "Clothing",
+  clothing_top: "Clothing Top",
+  clothing_outfit: "Clothing Outfit",
   hair_color: "Hair Color",
   hair_style: "Hair Style",
 };

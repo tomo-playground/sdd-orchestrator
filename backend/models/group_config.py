@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Float, ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -49,12 +49,6 @@ class GroupConfig(Base, TimestampMixin):
     )
     language: Mapped[str | None] = mapped_column(String(20))
     duration: Mapped[int | None] = mapped_column(Integer)
-
-    # SD generation settings (migrated from scenes)
-    sd_steps: Mapped[int | None] = mapped_column(Integer)
-    sd_cfg_scale: Mapped[float | None] = mapped_column(Float)
-    sd_sampler_name: Mapped[str | None] = mapped_column(String(50))
-    sd_clip_skip: Mapped[int | None] = mapped_column(Integer)
 
     # Channel DNA (tone, audience, worldview, guidelines)
     channel_dna: Mapped[dict | None] = mapped_column(JSONB)

@@ -20,7 +20,6 @@ from schemas import (
     RenderPresetResponse,
 )
 from services.config_resolver import (
-    SD_SYSTEM_DEFAULTS,
     apply_system_defaults,
     resolve_effective_config,
 )
@@ -73,15 +72,9 @@ def create_group(body: GroupCreate, db: Session = Depends(get_db)):
     if "style_profile_id" not in config_fields:
         from models import StyleProfile
 
-        default_profile = db.query(StyleProfile.id).filter(
-            StyleProfile.is_default.is_(True)
-        ).first()
+        default_profile = db.query(StyleProfile.id).filter(StyleProfile.is_default.is_(True)).first()
         if default_profile:
             config_fields["style_profile_id"] = default_profile.id
-
-    # System defaults: SD generation settings
-    for field, default_val in SD_SYSTEM_DEFAULTS.items():
-        config_fields.setdefault(field, default_val)
 
     config = GroupConfig(group_id=group.id, **config_fields)
     db.add(config)
@@ -177,10 +170,6 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
         narrator_voice_preset_id=result["values"].get("narrator_voice_preset_id"),
         language=result["values"].get("language"),
         duration=result["values"].get("duration"),
-        sd_steps=result["values"].get("sd_steps"),
-        sd_cfg_scale=result["values"].get("sd_cfg_scale"),
-        sd_sampler_name=result["values"].get("sd_sampler_name"),
-        sd_clip_skip=result["values"].get("sd_clip_skip"),
         channel_dna=result.get("channel_dna"),
         sources=result["sources"],
     )
@@ -193,20 +182,12 @@ def delete_group(group_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Group not found")
 
     # Block if active (non-soft-deleted) storyboards exist
-    active_count = (
-        db.query(Storyboard)
-        .filter(Storyboard.group_id == group_id, Storyboard.deleted_at.is_(None))
-        .count()
-    )
+    active_count = db.query(Storyboard).filter(Storyboard.group_id == group_id, Storyboard.deleted_at.is_(None)).count()
     if active_count > 0:
         raise HTTPException(status_code=409, detail="Cannot delete group with existing storyboards")
 
     # Hard-delete any soft-deleted storyboards (use ORM delete for cascade)
-    soft_deleted = (
-        db.query(Storyboard)
-        .filter(Storyboard.group_id == group_id, Storyboard.deleted_at.isnot(None))
-        .all()
-    )
+    soft_deleted = db.query(Storyboard).filter(Storyboard.group_id == group_id, Storyboard.deleted_at.isnot(None)).all()
     for sb in soft_deleted:
         db.delete(sb)
 

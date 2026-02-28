@@ -52,7 +52,7 @@ beforeEach(() => {
 });
 
 describe("TagBrowserTab", () => {
-  it("renders 6 group buttons in sidebar", async () => {
+  it("renders 7 group buttons in sidebar", async () => {
     render(<TagBrowserTab />);
     await waitFor(() => expect(mockFetch).toHaveBeenCalled());
 
@@ -60,7 +60,8 @@ describe("TagBrowserTab", () => {
       "Expression",
       "Pose",
       "Camera",
-      "Clothing",
+      "Clothing Top",
+      "Clothing Outfit",
       "Hair Color",
       "Hair Style",
     ];

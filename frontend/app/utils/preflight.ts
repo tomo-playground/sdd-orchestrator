@@ -9,7 +9,6 @@
 
 import type { Scene, DraftScene, AutoRunStepId } from "../types";
 export type { AutoRunStepId } from "../types";
-import { useContextStore } from "../store/useContextStore";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useRenderStore } from "../store/useRenderStore";
 import { checkStageStep, checkImagesStep, checkRenderStep } from "./preflight-steps";
@@ -319,9 +318,9 @@ export function getStepsToExecute(
 // ============================================================
 
 export function buildPreflightInput(): PreflightInput {
-  const ctx = useContextStore.getState();
   const sb = useStoryboardStore.getState();
   const render = useRenderStore.getState();
+  const sp = render.currentStyleProfile;
   const voiceName = render.voicePresetId ? `Preset #${render.voicePresetId}` : "";
   return {
     topic: sb.topic,
@@ -338,10 +337,10 @@ export function buildPreflightInput(): PreflightInput {
     controlnetWeight: sb.controlnetWeight,
     ipAdapterEnabled: sb.useIpAdapter,
     ipAdapterReference: sb.ipAdapterReference || null,
-    steps: ctx.effectiveSdSteps ?? 0,
-    cfgScale: ctx.effectiveSdCfgScale ?? 0,
-    sampler: ctx.effectiveSdSamplerName ?? "",
-    clipSkip: ctx.effectiveSdClipSkip ?? 0,
+    steps: sp?.default_steps ?? 27,
+    cfgScale: sp?.default_cfg_scale ?? 7.0,
+    sampler: sp?.default_sampler_name ?? "DPM++ 2M Karras",
+    clipSkip: sp?.default_clip_skip ?? 2,
     scenes: sb.scenes,
     videoUrl: render.videoUrl,
   };

@@ -10,7 +10,7 @@ import VoicePresetSelector from "../voice/VoicePresetSelector";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
 import { fetchGroups } from "../../store/actions/groupActions";
-import InfoTooltip from "../ui/InfoTooltip";
+
 import { SelectField, DnaField, DNA_FIELDS, labelCls, inputCls } from "./GroupConfigHelpers";
 
 // ── Types ────────────────────────────────────────────────────
@@ -31,10 +31,6 @@ type GroupConfig = {
   narrator_voice_preset_id: number | null;
   language: string | null;
   duration: number | null;
-  sd_steps: number | null;
-  sd_cfg_scale: number | null;
-  sd_sampler_name: string | null;
-  sd_clip_skip: number | null;
   channel_dna: ChannelDNA | null;
 };
 
@@ -46,8 +42,6 @@ type Props = {
 };
 
 // ── Constants ────────────────────────────────────────────────
-const SAMPLERS = ["DPM++ 2M Karras", "DPM++ SDE Karras", "Euler a", "Euler", "DDIM", "UniPC"];
-
 // ── Component ────────────────────────────────────────────────
 export default function GroupConfigEditor({ groupId, onClose }: Props) {
   const showToast = useUIStore((s) => s.showToast);
@@ -110,10 +104,6 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
           narrator_voice_preset_id: config.narrator_voice_preset_id,
           language: config.language,
           duration: config.duration,
-          sd_steps: config.sd_steps,
-          sd_cfg_scale: config.sd_cfg_scale,
-          sd_sampler_name: config.sd_sampler_name,
-          sd_clip_skip: config.sd_clip_skip,
           channel_dna: channelDna,
         }),
         axios.put(`${ADMIN_API_BASE}/groups/${groupId}`, { name: groupName.trim() }),
@@ -238,70 +228,6 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
                 }
               />
             ))}
-          </div>
-
-          {/* SD Generation Settings */}
-          <div className="space-y-3 border-t border-zinc-100 pt-3">
-            <p className="text-[12px] font-semibold tracking-wider text-zinc-300 uppercase">
-              SD Generation
-            </p>
-            <div>
-              <label className={labelCls}>
-                Steps <InfoTooltip term="steps" />
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={80}
-                value={config.sd_steps ?? ""}
-                onChange={(e) =>
-                  updateField("sd_steps", e.target.value ? Number(e.target.value) : null)
-                }
-                placeholder="27"
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className={labelCls}>
-                CFG Scale <InfoTooltip term="cfg-scale" />
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                step={0.5}
-                value={config.sd_cfg_scale ?? ""}
-                onChange={(e) =>
-                  updateField("sd_cfg_scale", e.target.value ? Number(e.target.value) : null)
-                }
-                placeholder="7.0"
-                className={inputCls}
-              />
-            </div>
-            <SelectField
-              label="Sampler"
-              value={config.sd_sampler_name}
-              options={SAMPLERS.map((s) => ({ value: s, label: s }))}
-              onChange={(v) => updateField("sd_sampler_name", v || null)}
-              placeholder="-- Default (DPM++ 2M Karras) --"
-              suffix={<InfoTooltip term="sampler" />}
-            />
-            <div>
-              <label className={labelCls}>
-                Clip Skip <InfoTooltip term="clip-skip" />
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={12}
-                value={config.sd_clip_skip ?? ""}
-                onChange={(e) =>
-                  updateField("sd_clip_skip", e.target.value ? Number(e.target.value) : null)
-                }
-                placeholder="2"
-                className={inputCls}
-              />
-            </div>
           </div>
         </div>
       )}

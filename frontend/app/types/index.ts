@@ -938,10 +938,6 @@ export type EffectiveConfig = {
   narrator_voice_preset_id: number | null;
   language: string | null;
   duration: number | null;
-  sd_steps: number | null;
-  sd_cfg_scale: number | null;
-  sd_sampler_name: string | null;
-  sd_clip_skip: number | null;
   channel_dna: ChannelDNA | null;
   render_preset: RenderPreset | null;
   sources: Record<string, string>;

@@ -26,6 +26,10 @@ export interface RenderStore {
     positive_embeddings: { name: string; trigger_word: string }[];
     default_positive: string | null;
     default_negative: string | null;
+    default_steps: number | null;
+    default_cfg_scale: number | null;
+    default_sampler_name: string | null;
+    default_clip_skip: number | null;
   } | null;
   layoutStyle: "full" | "post";
   frameStyle: string;

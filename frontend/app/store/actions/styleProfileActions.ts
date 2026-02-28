@@ -18,6 +18,10 @@ interface StyleProfileSelection {
   default_positive?: string | null;
   default_negative?: string | null;
   default_enable_hr?: boolean | null;
+  default_steps?: number | null;
+  default_cfg_scale?: number | null;
+  default_sampler_name?: string | null;
+  default_clip_skip?: number | null;
 }
 
 interface StyleProfileCallbacks {
@@ -51,6 +55,10 @@ export async function handleStyleProfileComplete(
       positive_embeddings: profile.positive_embeddings || [],
       default_positive: profile.default_positive || null,
       default_negative: profile.default_negative || null,
+      default_steps: profile.default_steps ?? null,
+      default_cfg_scale: profile.default_cfg_scale ?? null,
+      default_sampler_name: profile.default_sampler_name ?? null,
+      default_clip_skip: profile.default_clip_skip ?? null,
     },
   });
   callbacks.setShowStyleProfileModal(false);
@@ -180,6 +188,10 @@ export async function loadStyleProfileFromId(
         positive_embeddings: profile.positive_embeddings || [],
         default_positive: profile.default_positive,
         default_negative: profile.default_negative,
+        default_steps: profile.default_steps ?? null,
+        default_cfg_scale: profile.default_cfg_scale ?? null,
+        default_sampler_name: profile.default_sampler_name ?? null,
+        default_clip_skip: profile.default_clip_skip ?? null,
       },
     });
 

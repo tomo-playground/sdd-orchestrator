@@ -48,8 +48,6 @@ class TestGroupsRouter:
         assert resp.status_code == 200
         data = resp.json()
         assert data["group_id"] == gid
-        # SD system defaults should be populated
-        assert data["sd_steps"] is not None
 
     def test_get_group(self, client):
         pid = self._create_project(client)
@@ -122,20 +120,20 @@ class TestGroupConfig:
 
     def test_update_config(self, client):
         gid = self._create_group(client)
-        resp = client.put(f"/api/v1/groups/{gid}/config", json={"language": "english", "sd_steps": 30})
+        resp = client.put(f"/api/v1/groups/{gid}/config", json={"language": "english", "duration": 30})
         assert resp.status_code == 200
         data = resp.json()
         assert data["language"] == "english"
-        assert data["sd_steps"] == 30
+        assert data["duration"] == 30
 
     def test_update_config_partial(self, client):
         gid = self._create_group(client)
-        client.put(f"/api/v1/groups/{gid}/config", json={"language": "korean", "sd_steps": 20})
+        client.put(f"/api/v1/groups/{gid}/config", json={"language": "korean", "duration": 20})
 
-        resp = client.put(f"/api/v1/groups/{gid}/config", json={"sd_steps": 40})
+        resp = client.put(f"/api/v1/groups/{gid}/config", json={"duration": 40})
         assert resp.status_code == 200
         data = resp.json()
-        assert data["sd_steps"] == 40
+        assert data["duration"] == 40
         assert data["language"] == "korean"
 
     def test_update_config_group_not_found(self, client):
@@ -156,7 +154,6 @@ class TestGroupEffectiveConfig:
         assert resp.status_code == 200
         data = resp.json()
         assert "sources" in data
-        assert "sd_steps" in data
 
     def test_effective_config_not_found(self, client):
         resp = client.get("/api/v1/groups/9999/effective-config")
@@ -164,10 +161,10 @@ class TestGroupEffectiveConfig:
 
     def test_effective_config_reflects_group_override(self, client):
         gid = self._create_group(client)
-        client.put(f"/api/v1/groups/{gid}/config", json={"sd_steps": 50})
+        client.put(f"/api/v1/groups/{gid}/config", json={"language": "english"})
 
         resp = client.get(f"/api/v1/groups/{gid}/effective-config")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["sd_steps"] == 50
-        assert data["sources"]["sd_steps"] == "group"
+        assert data["language"] == "english"
+        assert data["sources"]["language"] == "group"

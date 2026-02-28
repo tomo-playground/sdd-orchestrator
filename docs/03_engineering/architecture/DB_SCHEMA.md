@@ -133,10 +133,6 @@ Group별 설정 (1:1, 분리된 설정 테이블). 프로젝트 설정을 상속
 | `narrator_voice_preset_id` | Integer (FK → voice_presets) | 나레이터 음성 |
 | `language` | String(20) | 언어 설정 |
 | `duration` | Integer | 목표 길이 |
-| `sd_steps` | Integer | SD Steps 오버라이드 |
-| `sd_cfg_scale` | Float | SD CFG Scale 오버라이드 |
-| `sd_sampler_name` | String(50) | SD Sampler 오버라이드 |
-| `sd_clip_skip` | Integer | SD Clip Skip 오버라이드 |
 | `channel_dna` | JSONB | 채널 DNA (tone, audience, worldview, guidelines) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
