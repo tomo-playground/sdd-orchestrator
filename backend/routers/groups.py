@@ -26,7 +26,10 @@ router = APIRouter(prefix="/groups", tags=["groups"])
 
 @router.get("", response_model=list[GroupResponse])
 def list_groups(project_id: int | None = None, db: Session = Depends(get_db)):
-    query = db.query(Group)
+    query = db.query(Group).options(
+        joinedload(Group.style_profile),
+        joinedload(Group.narrator_voice_preset),
+    )
     if project_id is not None:
         query = query.filter(Group.project_id == project_id)
     return query.all()
@@ -98,12 +101,7 @@ def update_group(group_id: int, body: GroupUpdate, db: Session = Depends(get_db)
 def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
     from models.render_preset import RenderPreset
 
-    group = (
-        db.query(Group)
-        .options(joinedload(Group.project))
-        .filter(Group.id == group_id)
-        .first()
-    )
+    group = db.query(Group).options(joinedload(Group.project)).filter(Group.id == group_id).first()
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
     result = resolve_effective_config(group.project, group)

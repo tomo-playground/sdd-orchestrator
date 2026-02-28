@@ -113,43 +113,63 @@ function DropdownContent({
       {groups.map((g) => (
         <div
           key={g.id}
-          className={`group/item flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition hover:bg-zinc-50 ${
+          className={`group/item flex w-full flex-col gap-0.5 px-3 py-2 text-left text-xs transition hover:bg-zinc-50 ${
             g.id === currentId ? "bg-zinc-50 font-semibold text-zinc-900" : "text-zinc-600"
           }`}
         >
-          <button
-            onClick={() => onSelect(g.id)}
-            className="flex min-w-0 flex-1 items-center gap-2 text-left"
-          >
-            <FolderOpen className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-            <span className="truncate">{g.name}</span>
-            {g.id === currentId && <Check className="ml-auto h-3 w-3 shrink-0 text-zinc-400" />}
-          </button>
-          {onEdit && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(g);
-              }}
-              className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-400 group-hover/item:flex hover:bg-zinc-100 hover:text-zinc-700"
-              title="시리즈 편집"
+              onClick={() => onSelect(g.id)}
+              className="flex min-w-0 flex-1 items-center gap-2 text-left"
             >
-              <Pencil className="h-3 w-3" />
+              <FolderOpen className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+              <span className="truncate">{g.name}</span>
+              {g.id === currentId && <Check className="ml-auto h-3 w-3 shrink-0 text-zinc-400" />}
             </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(g);
-              }}
-              className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-400 group-hover/item:flex hover:bg-zinc-100 hover:text-red-500"
-              title="시리즈 삭제"
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
-          )}
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(g);
+                }}
+                className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-400 group-hover/item:flex hover:bg-zinc-100 hover:text-zinc-700"
+                title="시리즈 편집"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(g);
+                }}
+                className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-400 group-hover/item:flex hover:bg-zinc-100 hover:text-red-500"
+                title="시리즈 삭제"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+          <ConfigBadges group={g} />
         </div>
+      ))}
+    </div>
+  );
+}
+
+function ConfigBadges({ group }: { group: GroupItem }) {
+  const badges: string[] = [];
+  if (group.style_profile_name) badges.push(group.style_profile_name);
+  if (group.voice_preset_name) badges.push(group.voice_preset_name);
+  if (group.render_preset_name) badges.push(group.render_preset_name);
+  if (badges.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1 pl-5">
+      {badges.map((label) => (
+        <span key={label} className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-500">
+          {label}
+        </span>
       ))}
     </div>
   );

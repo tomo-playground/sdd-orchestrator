@@ -157,6 +157,10 @@ class GroupResponse(BaseModel):
     render_preset_id: int | None = None
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
+    # Response-only: derived from @property
+    render_preset_name: str | None = None
+    style_profile_name: str | None = None
+    voice_preset_name: str | None = None
     channel_dna: ChannelDNA | None = None
     created_at: datetime | None = None
 

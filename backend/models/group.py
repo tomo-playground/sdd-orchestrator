@@ -56,3 +56,16 @@ class Group(Base, TimestampMixin):
         "VoicePreset",
         foreign_keys=[narrator_voice_preset_id],
     )
+
+    # Response-only: derived from relationships
+    @property
+    def render_preset_name(self) -> str | None:
+        return self.render_preset.name if self.render_preset else None
+
+    @property
+    def style_profile_name(self) -> str | None:
+        return self.style_profile.name if self.style_profile else None
+
+    @property
+    def voice_preset_name(self) -> str | None:
+        return self.narrator_voice_preset.name if self.narrator_voice_preset else None

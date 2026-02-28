@@ -15,6 +15,12 @@ type ResultItem = {
   action: () => void;
 };
 
+const TYPE_LABELS: Record<ResultItem["type"], string> = {
+  project: "채널",
+  group: "시리즈",
+  storyboard: "영상",
+};
+
 /** Self-contained Cmd+K quick switcher. Reads projects/groups from store, fetches storyboards on open. */
 export default function CommandPalette() {
   const router = useRouter();
@@ -283,7 +289,7 @@ export default function CommandPalette() {
                   )}
                 </div>
                 <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-medium text-zinc-400">
-                  {{ project: "채널", group: "시리즈", storyboard: "영상" }[item.type]}
+                  {TYPE_LABELS[item.type]}
                 </span>
               </button>
             ))
