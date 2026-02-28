@@ -174,7 +174,7 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | VEO Clip (Video Generation 통합) | [명세](FEATURES/VEO_CLIP.md) |
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Storyboard Version History | — |
-| IP-Adapter 캐릭터 유사도 고도화 (SDXL 미착수) | [명세](FEATURES/CHARACTER_CONSISTENCY.md) |
+| IP-Adapter 캐릭터 유사도 고도화 (SD1.5 완료, SDXL 보류 — GPU 한계) | [명세](FEATURES/CHARACTER_CONSISTENCY.md) |
 | 캐릭터 레퍼런스 9세트 프롬프트 생성 + 품질 체크 | 캐릭터 생성 시 포즈/표정/앵글 조합으로 9세트 레퍼런스 프롬프트를 생성하고, WD14 등으로 캐릭터 특징 반영 여부를 자동 검증. 현재는 단일 프롬프트+검증 없음 |
 
 ### Intelligence & Automation
@@ -189,6 +189,7 @@ Phase 20 이후 또는 우선순위 미정 항목.
 
 | 기능 | 참조 |
 |------|------|
+| YouTube Upload Phase 2~3 (Quota 대시보드, 업로드 큐, 예약 업로드) | [명세](FEATURES/YOUTUBE_UPLOAD.md) §Phase 2~3 |
 | Express 모드 재검토 (살릴지/개선할지/제거할지) | 현재 `research`, `concept`, `production`, `explain` 4단계 스킵 → Stage 파이프라인 미실행 문제. 기본값은 Standard로 변경 완료. 옵션: (A) Stage만 남기고 나머지 스킵, (B) 스킵 단계 커스텀 선택 UI, (C) Express 제거 |
 
 ### Infrastructure & Scale
