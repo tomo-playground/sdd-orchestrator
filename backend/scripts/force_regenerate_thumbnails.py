@@ -65,30 +65,34 @@ async def generate_character_preview(client, character, db):
             # Save image
             image_data = base64.b64decode(result["images"][0])
             filename = f"character_preview_{character.name.lower().replace(' ', '_')}_{character.id}.png"
-            filepath = Path("outputs/images/stored") / filename
+            storage_key = f"outputs/images/stored/{filename}"
+            filepath = Path(storage_key)
             filepath.parent.mkdir(parents=True, exist_ok=True)
 
             with open(filepath, "wb") as f:
                 f.write(image_data)
 
-            preview_url = f"/outputs/images/stored/{filename}"
-            
+            # Define attributes for MediaAsset explicitly
+            asset_kwargs = {
+                "file_type": "image",
+                "storage_key": storage_key,
+                "file_name": filename,
+                "mime_type": "image/png",
+                "owner_type": "character",
+                "owner_id": character.id
+            }
+
             # Create or update MediaAsset
             if character.preview_image_asset:
-                character.preview_image_asset.url = preview_url
-                character.preview_image_asset.storage_key = preview_url
+                for key, value in asset_kwargs.items():
+                    setattr(character.preview_image_asset, key, value)
             else:
-                asset = MediaAsset(
-                    url=preview_url,
-                    storage_key=preview_url,
-                    asset_type="image",
-                    mime_type="image/png"
-                )
+                asset = MediaAsset(**asset_kwargs)
                 db.add(asset)
                 db.flush()
                 character.preview_image_asset_id = asset.id
 
-            logger.info(f"   ✅ Saved: {preview_url}")
+            logger.info(f"   ✅ Saved: /{storage_key}")
             return True
         else:
             logger.error("   ❌ No image generated")

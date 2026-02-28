@@ -191,7 +191,7 @@ async def analyze_topic(request: TopicAnalyzeRequest):
 
 def _validate_topic_analysis(parsed: dict, characters: list) -> dict:
     """LLM 반환값을 검증하고, 유효하지 않은 값은 기본값으로 대체한다."""
-    from config import SHORTS_DURATIONS  # noqa: PLC0415
+    from config import SHORTS_DURATIONS, STORYBOARD_LANGUAGES  # noqa: PLC0415
     from services.agent.inventory import STRUCTURE_METADATA  # noqa: PLC0415
 
     valid_structure_ids = {s.id for s in STRUCTURE_METADATA}
@@ -208,9 +208,9 @@ def _validate_topic_analysis(parsed: dict, characters: list) -> dict:
     if structure not in valid_structure_ids:
         structure = "monologue"
 
-    # language 검증
+    # language 검증 (SSOT: config.py STORYBOARD_LANGUAGES)
     language = parsed.get("language", "Korean")
-    valid_languages = {"Korean", "English", "Japanese"}
+    valid_languages = {lang["value"] for lang in STORYBOARD_LANGUAGES}
     if language not in valid_languages:
         language = "Korean"
 

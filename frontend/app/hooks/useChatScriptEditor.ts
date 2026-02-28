@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { API_BASE } from "../constants";
 import { useContextStore } from "../store/useContextStore";
 import { useUIStore } from "../store/useUIStore";
@@ -121,6 +121,8 @@ export function useChatScriptEditor(options?: {
 
   // useScriptEditor with onNodeEvent injected
   const editor = useScriptEditor({ onSaved: options?.onSaved, onNodeEvent });
+  const editorRef = useRef(editor);
+  editorRef.current = editor;
 
   // ── Topic analysis via API ──
   const sendMessage = useCallback(
@@ -178,14 +180,15 @@ export function useChatScriptEditor(options?: {
   );
 
   // ── Generate — just delegates to editor.generate(), SSE flows via onNodeEvent ──
+  // editor.generate()는 매 렌더마다 새 참조가 생성되므로 ref를 통해 안정적으로 접근
   const confirmAndGenerate = useCallback(() => {
-    if (!editor.topic.trim()) {
+    if (!editorRef.current.topic.trim()) {
       showToast("토픽을 입력해주세요", "warning");
       return;
     }
     addMessage(assistantMsg("스크립트를 생성하고 있습니다..."));
-    editor.generate();
-  }, [editor.topic, addMessage, showToast, editor.generate]);
+    editorRef.current.generate();
+  }, [addMessage, showToast]);
 
   const clearChat = useCallback(() => {
     setChatMessages([WELCOME_MESSAGE]);

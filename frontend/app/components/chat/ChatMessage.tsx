@@ -19,9 +19,9 @@ type Props = {
 const ChatMessage = memo(function ChatMessage({ message, editor }: Props) {
   switch (message.contentType) {
     case "user":
-      return <UserBubble text={message.text!} />;
+      return <UserBubble text={message.text ?? ""} />;
     case "assistant":
-      return <AssistantBubble text={message.text!} />;
+      return <AssistantBubble text={message.text ?? ""} />;
     case "settings_recommend":
       return <SettingsRecommendCard message={message} onApply={editor.applyRecommendation} />;
     case "concept_gate":
@@ -29,7 +29,7 @@ const ChatMessage = memo(function ChatMessage({ message, editor }: Props) {
     case "review_gate":
       return <ReviewCard message={message} editor={editor} />;
     case "completion":
-      return <CompletionCard text={message.text!} sceneCount={editor.scenes.length} />;
+      return <CompletionCard text={message.text ?? ""} sceneCount={editor.scenes.length} />;
     case "error":
       return <ErrorCard message={message.errorMessage} onRetry={editor.confirmAndGenerate} />;
     default:

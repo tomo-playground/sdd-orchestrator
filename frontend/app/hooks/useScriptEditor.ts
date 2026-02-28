@@ -144,7 +144,9 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
   }, []);
 
   const generate = useCallback(async () => {
-    if (!state.topic.trim()) return;
+    // stateRef.current를 통해 항상 최신 state를 읽어 stale closure 방지
+    const currentState = stateRef.current;
+    if (!currentState.topic.trim()) return;
     useStoryboardStore.getState().set({ castingRecommendation: null });
     setState((prev) => ({
       ...prev,
@@ -158,7 +160,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       const response = await fetch(`${API_BASE}/scripts/generate-stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildGenerateBody(state, groupId)),
+        body: JSON.stringify(buildGenerateBody(currentState, groupId)),
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
@@ -179,20 +181,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       showToast(err instanceof Error ? err.message : "Generation failed", "error");
       setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
     }
-  }, [
-    state.topic,
-    state.description,
-    state.duration,
-    state.language,
-    state.structure,
-    state.characterId,
-    state.characterBId,
-    state.references,
-    state.skipStages,
-    state.preset,
-    groupId,
-    showToast,
-  ]);
+  }, [groupId, showToast]);
 
   const resume = useCallback(
     async (

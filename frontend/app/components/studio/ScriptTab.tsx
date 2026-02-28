@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useChatScriptEditor } from "../../hooks/useChatScriptEditor";
 import { usePresets } from "../../hooks/usePresets";
 import { useUIStore } from "../../store/useUIStore";
-import { EXPRESS_SKIP_STAGES } from "../../utils/pipelineSteps";
 import SettingsSidebar from "../chat/SettingsSidebar";
 import ChatArea from "../chat/ChatArea";
 
