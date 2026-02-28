@@ -102,7 +102,7 @@ async def get_tag_info(tag_name: str) -> dict | None:
         logger.debug("⚠️ [Danbooru] API error for '%s': %s", normalized, e)
         return None
     except Exception as e:
-        logger.error("❌ [Danbooru] Unexpected error for '%s': %s", tag_name, e)
+        logger.warning("[Danbooru] Unexpected error for '%s': %s", tag_name, e)
         return None
 
 
@@ -137,7 +137,7 @@ async def get_wiki_info(tag_name: str) -> dict | None:
         logger.warning("⚠️ [Danbooru] Wiki API error for '%s': %s", tag_name, e)
         return None
     except Exception as e:
-        logger.error("❌ [Danbooru] Unexpected wiki error for '%s': %s", tag_name, e)
+        logger.warning("[Danbooru] Unexpected wiki error for '%s': %s", tag_name, e)
         return None
 
 

@@ -64,8 +64,8 @@ def _track_task(task: asyncio.Task) -> None:
 async def generate_scene_image_endpoint(request: SceneGenerateRequest):
     # Validate resolution strategy
     if request.width != 512 or request.height != 768:
-        logger.warning(
-            "⚠️ Non-standard resolution detected: %dx%d. Recommended: 512x768 for optimal Post/Full compatibility.",
+        logger.debug(
+            "Non-standard resolution: %dx%d (recommended: 512x768)",
             request.width,
             request.height,
         )
@@ -220,7 +220,7 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
         )
 
         if current_cost >= rs.auto_edit_max_cost:
-            logger.warning(
+            logger.info(
                 "[Auto Edit] Skipped (cost limit reached: $%.2f >= $%.2f)",
                 current_cost,
                 rs.auto_edit_max_cost,
@@ -242,7 +242,7 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
             )
 
             if retry_count >= rs.auto_edit_max_retries:
-                logger.warning("[Auto Edit] Skipped (max retries reached: %d)", retry_count)
+                logger.info("[Auto Edit] Skipped (max retries reached: %d)", retry_count)
                 result["skip_reason"] = "max_retries_reached"
                 result["retry_count"] = retry_count
                 return result
@@ -286,7 +286,7 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
             )
             result["final_match_rate"] = revalidation.get("adjusted_match_rate", revalidation.get("match_rate"))
         except Exception:
-            logger.warning("[Auto Edit] Revalidation failed, final_match_rate unavailable")
+            logger.debug("[Auto Edit] Revalidation failed, final_match_rate unavailable")
 
     except Exception as e:
         logger.exception("[Auto Edit] Failed: %s", e)
@@ -374,7 +374,7 @@ async def edit_scene_with_gemini(request: GeminiEditRequest):
         valid_types = ["pose", "expression", "gaze", "framing", "hands"]
         edit_type = result["edit_result"]["edit_type"]
         if edit_type not in valid_types:
-            logger.warning(f"⚠️ Invalid edit_type '{edit_type}', defaulting to 'pose'")
+            logger.debug("Invalid edit_type '%s', defaulting to 'pose'", edit_type)
             edit_type = "pose"
 
         logger.info(

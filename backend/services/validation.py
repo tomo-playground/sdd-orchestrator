@@ -54,10 +54,10 @@ def _extract_storage_key(image_url: str | None) -> str | None:
 
     # Irrecoverable formats (absolute filesystem paths)
     if image_url.startswith("/outputs/"):
-        logger.warning("⚠️ Cannot convert absolute path to storage key: %s", image_url)
+        logger.debug("Cannot convert absolute path to storage key: %s", image_url)
         return None
 
-    logger.warning("⚠️ Unknown image_url format: %s", image_url)
+    logger.debug("Unknown image_url format: %s", image_url)
     return None
 
 

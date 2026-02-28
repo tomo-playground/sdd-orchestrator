@@ -28,10 +28,12 @@
 | Phase 22 (Backend Complete Image Generation) | 전체 완료 (ARCHIVED) |
 | Phase 23 (Project/Group UX 개선) | 전체 완료 (ARCHIVED) |
 | Phase 24 (Script 탭 → 하이브리드 채팅 AI) | 전체 완료 (ARCHIVED) |
+| Phase 25 (Director 자율 실행 계획) | 전체 완료 (ARCHIVED) |
 | 테스트 | Backend 2,940 + Frontend 435 = **총 3,375개** |
 
 ### 최근 작업
 
+- **Phase 25: Director 자율 실행 계획** (03-01): Express/Standard/Creator 프리셋 제거. Director가 토픽 분석 → `execution_plan`으로 skip_stages 자율 결정. director_plan_lite/human_gate 제거, VALID_SKIP_STAGES에서 production 제거(항상 실행). recursion_limit 100, context_tags 저장 누락 수정, FFmpeg null→zoompan 수정. 5커밋.
 - **Studio 워크플로우 감사 수정 — 보안/안정성/UX 전면 개선** (03-01): str(e) API 노출 전면 제거, SSE polling 폴백, VoicePreset 중앙화, Orphan GC 확장, finalize negative_prompt 직접 주입, 대화형 토픽 분석. 코드 리뷰 2회, 38파일.
 - **감사 후속 안정화 + 런타임 버그 수정** (03-01): FFmpeg xfade offset 음수 방지, SD 가중치 태그 정규화, Cinematographer JSON 파싱 3단계, 캐스팅 dismiss 3-layer 버그 수정. 6커밋, 코드 리뷰 2회.
 - **02-28 작업**: Phase 21~24 구현, StyleProfile 5개 체제 정립, DB Schema 정리(GroupConfig 병합 등), P0~P1 안정화. [아카이브](../99_archive/archive/ROADMAP_PHASE_21_24.md)
@@ -75,6 +77,7 @@
 | 22 | Backend Complete Image Generation | SD 생성→저장 Backend 자율 완결, Frontend SPOF 제거, Graceful Degradation | [아카이브](../99_archive/archive/ROADMAP_PHASE_21_24.md) · [명세](FEATURES/IMAGE_GENERATION_PROGRESS.md) |
 | 23 | Project/Group UX 개선 | Zero-Config, 용어 통일(채널/시리즈/영상), ConfigBadges, 내비게이션 개선. 4/4 | [아카이브](../99_archive/archive/ROADMAP_PHASE_21_24.md) · [명세](FEATURES/PROJECT_GROUP.md) |
 | 24 | Script 탭 → 하이브리드 채팅 AI | 좌측 설정 사이드바+우측 채팅, analyze-topic API, SSE 콜백, Chat UI 7종, 코드 리뷰 7건 수정 | [아카이브](../99_archive/archive/ROADMAP_PHASE_21_24.md) |
+| 25 | Director 자율 실행 계획 | 프리셋 제거, Director execution_plan 자율 결정, director_plan_lite/human_gate 삭제, production 항상 실행 | — |
 
 ---
 
@@ -109,6 +112,7 @@ graph LR
     P21 --> P22["Phase 22<br/>Backend Complete<br/>Image Generation"]
     P22 --> P23["Phase 23<br/>Project/Group<br/>UX 개선"]
     P23 --> P24["Phase 24<br/>하이브리드<br/>채팅 AI"]
+    P24 --> P25["Phase 25<br/>Director 자율<br/>실행 계획"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -138,6 +142,7 @@ graph LR
     style P22 fill:#4CAF50,color:#fff
     style P23 fill:#4CAF50,color:#fff
     style P24 fill:#4CAF50,color:#fff
+    style P25 fill:#4CAF50,color:#fff
 ```
 
 ---
@@ -169,7 +174,7 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | 기능 | 참조 |
 |------|------|
 | YouTube Upload Phase 2~3 (Quota 대시보드, 업로드 큐, 예약 업로드) | [명세](FEATURES/YOUTUBE_UPLOAD.md) §Phase 2~3 |
-| Express 모드 재검토 (살릴지/개선할지/제거할지) | 현재 `research`, `concept`, `production`, `explain` 4단계 스킵 → Stage 파이프라인 미실행 문제. 기본값은 Standard로 변경 완료. 옵션: (A) Stage만 남기고 나머지 스킵, (B) 스킵 단계 커스텀 선택 UI, (C) Express 제거 |
+| ~~Express 모드 재검토~~ | **Phase 25에서 해결** — Director 자율 실행으로 대체. 프리셋 제거 완료 |
 
 ### Infrastructure & Scale
 

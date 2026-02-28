@@ -117,7 +117,7 @@ def quality_alerts(storyboard_id: int, threshold: float = 0.7, db: Session = Dep
     try:
         alerts = get_quality_alerts(threshold, db, storyboard_id=storyboard_id)
         if alerts:
-            logger.warning(f"{len(alerts)} scenes below {threshold:.0%} threshold in storyboard {storyboard_id}")
+            logger.info("%d scenes below %s threshold in storyboard %d", len(alerts), f"{threshold:.0%}", storyboard_id)
         return {"alerts": alerts, "count": len(alerts)}
     except Exception as exc:
         from services.error_responses import raise_user_error

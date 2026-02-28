@@ -303,7 +303,7 @@ async def _read_interrupt_state(graph, config: dict) -> tuple[str, dict]:  # noq
 
         return interrupt_node, result
     except Exception:
-        logger.warning("[SSE] Failed to read checkpoint for interrupt")
+        logger.debug("[SSE] Failed to read checkpoint for interrupt")
         return "unknown", {}
 
 

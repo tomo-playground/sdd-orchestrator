@@ -77,7 +77,7 @@ def _save_render_history(db: Session, request: VideoRequest, result: dict) -> in
             missing.append("storyboard_id")
         if not media_asset_id:
             missing.append("media_asset_id")
-        logger.warning("Video created but RenderHistory skipped (missing: %s)", ", ".join(missing))
+        logger.info("Video created but RenderHistory skipped (missing: %s)", ", ".join(missing))
     return None
 
 
@@ -318,7 +318,7 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
                 return {"ok": True, "deleted": True, "legacy": True}
 
         identifier = request.asset_id or request.filename
-        logger.warning("Video not found: %s", identifier)
+        logger.debug("Video not found: %s", identifier)
         return {"ok": False, "deleted": False, "reason": "not_found"}
 
     except Exception as exc:

@@ -46,8 +46,8 @@ class ImagenEditService:
             client = gemini_client
             logger.info("✅ Gemini Nano Banana API initialized")
             return client
-        except Exception as e:
-            logger.error(f"❌ Gemini API initialization failed: {e}")
+        except Exception:
+            logger.error("Gemini API initialization failed", exc_info=True)
             raise
 
     async def analyze_edit_needed(self, image_b64: str, original_prompt: str, target_change: str) -> dict:
@@ -143,8 +143,8 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             logger.info(f"✅ Vision analysis complete: {result['edit_type']}")
             return result
 
-        except Exception as e:
-            logger.error(f"❌ Vision analysis failed: {e}")
+        except Exception:
+            logger.error("Vision analysis failed", exc_info=True)
             raise
 
     async def edit_image(
@@ -203,7 +203,7 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             }
 
         except Exception as e:
-            logger.error(f"❌ Image editing failed: {e}")
+            logger.error("Image editing failed", exc_info=True)
             raise
 
     async def enhance_image(self, image_b64: str) -> dict:
@@ -244,7 +244,7 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             return {"enhanced_image": enhanced_b64, "cost_usd": GEMINI_IMAGE_EDIT_COST_USD}
 
         except Exception as e:
-            logger.error(f"❌ Image enhance failed: {e}")
+            logger.error("Image enhance failed", exc_info=True)
             raise
 
     def _generate_edit_prompt(self, target_change: str, preserve_elements: list[str], edit_type: EditType) -> str:
@@ -393,7 +393,7 @@ CRITICAL: Return ONLY valid JSON. Each edit_type must be one of: pose, expressio
             return result
 
         except Exception as e:
-            logger.error(f"❌ Suggest edit failed: {e}")
+            logger.error("Suggest edit failed", exc_info=True)
             raise
 
     async def edit_with_analysis(self, image_b64: str, original_prompt: str, target_change: str) -> dict:
@@ -613,7 +613,7 @@ async def auto_edit_with_gemini(
         return result
 
     except Exception as e:
-        logger.error(f"❌ [Auto Edit] Failed: {e}")
+        logger.error("[Auto Edit] Failed", exc_info=True)
         raise
 
 

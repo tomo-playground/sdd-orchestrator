@@ -176,7 +176,7 @@ class VideoBuilder:
             try:
                 await self._prepare_bgm()
             except Exception as bgm_err:
-                logger.warning("[Video Build] BGM preparation failed, continuing without BGM: %s", bgm_err)
+                logger.debug("[Video Build] BGM preparation failed, continuing without BGM: %s", bgm_err)
             self._report(RenderStage.BUILD_FILTERS)
             self._build_filters()
             self._report(RenderStage.ENCODE)
@@ -260,7 +260,7 @@ class VideoBuilder:
         try:
             preset = db.query(MusicPreset).filter(MusicPreset.id == preset_id).first()
             if not preset:
-                logger.warning("[Video Build] Music preset %d not found", preset_id)
+                logger.debug("[Video Build] Music preset %d not found", preset_id)
                 return
 
             if preset.audio_asset_id:
@@ -286,7 +286,7 @@ class VideoBuilder:
         storyboard_id = getattr(self.request, "storyboard_id", None)
         bgm_prompt = getattr(self.request, "bgm_prompt", None)
         if not bgm_prompt and not storyboard_id:
-            logger.warning("[Video Build] auto BGM: no bgm_prompt and no storyboard_id")
+            logger.debug("[Video Build] auto BGM: no bgm_prompt and no storyboard_id")
             return
 
         from models.media_asset import MediaAsset
@@ -318,7 +318,7 @@ class VideoBuilder:
                                 return
 
             if not prompt:
-                logger.warning("[Video Build] auto BGM: no prompt available")
+                logger.debug("[Video Build] auto BGM: no prompt available")
                 return
 
             wav_bytes = await self._generate_and_set_bgm(prompt, 30.0, -1)

@@ -186,8 +186,8 @@ def load_pose_reference(pose_name: str) -> str | None:
 
     try:
         return base64.b64encode(storage.get_local_path(storage_key).read_bytes()).decode("utf-8")
-    except Exception as e:
-        logger.error(f"Failed to load pose from storage {storage_key}: {e}")
+    except Exception:
+        logger.error("Failed to load pose from storage %s", storage_key, exc_info=True)
         return None
 
 
@@ -358,8 +358,8 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
         storage = get_storage()
         storage.save(storage_key, image_bytes, content_type="image/png")
         logger.info(f"Saved reference image to storage: {storage_key}")
-    except Exception as e:
-        logger.error(f"Failed to save reference image to storage: {e}")
+    except Exception:
+        logger.error("Failed to save reference image to storage", exc_info=True)
         # Continue with DB registration if possible or handles as needed
 
     # Register asset via AssetService if DB is available (preferred)

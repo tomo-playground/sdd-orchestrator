@@ -114,8 +114,8 @@ class S3Storage(BaseStorage):
         try:
             self.s3.put_object(Bucket=self.bucket_name, Key=key, Body=body, **extra_args)
             return self.get_url(key)
-        except ClientError as e:
-            logger.error(f"S3 저장 실패: {e}")
+        except ClientError:
+            logger.error("S3 저장 실패", exc_info=True)
             raise
 
     def get_url(self, key: str) -> str:
@@ -143,8 +143,8 @@ class S3Storage(BaseStorage):
         try:
             self.s3.download_file(self.bucket_name, key, str(local_path))
             return local_path
-        except ClientError as e:
-            logger.error(f"S3 다운로드 실패: {e}")
+        except ClientError:
+            logger.error("S3 다운로드 실패", exc_info=True)
             raise
 
     def exists(self, key: str) -> bool:
@@ -166,8 +166,8 @@ class S3Storage(BaseStorage):
         try:
             self.s3.delete_object(Bucket=self.bucket_name, Key=key)
             return True
-        except ClientError as e:
-            logger.error(f"S3 삭제 실패: {e}")
+        except ClientError:
+            logger.error("S3 삭제 실패", exc_info=True)
             return False
 
     def list_prefix(self, prefix: str) -> list[str]:
@@ -182,8 +182,8 @@ class S3Storage(BaseStorage):
                     for obj in page["Contents"]:
                         keys.append(obj["Key"])
             return keys
-        except ClientError as e:
-            logger.error(f"S3 목록 조회 실패: {e}")
+        except ClientError:
+            logger.error("S3 목록 조회 실패", exc_info=True)
             return []
 
 
