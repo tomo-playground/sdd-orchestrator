@@ -7,7 +7,7 @@ import ProgressBar from "./ProgressBar";
 import ModeChips from "./ModeChips";
 import { useUIStore, type StudioTab } from "../../store/useUIStore";
 import type { ChatScriptEditorActions } from "../../hooks/useChatScriptEditor";
-import type { ChatMessageCallbacks } from "./ChatMessage";
+import type { ChatMessageCallbacks, ChatMessageData } from "./ChatMessage";
 import type { Preset, LangOption } from "../../hooks/usePresets";
 import type { ScriptMode } from "./ModeChips";
 
@@ -47,27 +47,21 @@ export default function ChatArea({
       onResume: editor.resume,
       onRetry: editor.confirmAndGenerate,
       onNavigate: handleNavigate,
+      onPresetChange,
+    }),
+    [editor.applyAndGenerate, editor.resume, editor.confirmAndGenerate, handleNavigate, onPresetChange],
+  );
+
+  const data: ChatMessageData = useMemo(
+    () => ({
       scenes: editor.scenes,
       feedbackPresets: editor.feedbackPresets,
       presets,
       languages,
       durations,
       currentMode,
-      onPresetChange,
     }),
-    [
-      editor.applyAndGenerate,
-      editor.resume,
-      editor.confirmAndGenerate,
-      handleNavigate,
-      editor.scenes,
-      editor.feedbackPresets,
-      presets,
-      languages,
-      durations,
-      currentMode,
-      onPresetChange,
-    ],
+    [editor.scenes, editor.feedbackPresets, presets, languages, durations, currentMode],
   );
 
   const isInitialState = editor.chatMessages.length <= 1;
@@ -97,7 +91,7 @@ export default function ChatArea({
         </div>
       ) : (
         <>
-          <ChatMessageList messages={editor.chatMessages} callbacks={callbacks} />
+          <ChatMessageList messages={editor.chatMessages} callbacks={callbacks} data={data} />
 
           {editor.activeProgress ? (
             <ProgressBar progress={editor.activeProgress} />

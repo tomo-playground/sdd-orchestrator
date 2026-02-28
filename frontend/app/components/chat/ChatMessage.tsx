@@ -24,21 +24,25 @@ export type ChatMessageCallbacks = {
   ) => void;
   onRetry: () => void;
   onNavigate: (tab: string) => void;
+  onPresetChange: (preset: string, skipStages: string[]) => void;
+};
+
+export type ChatMessageData = {
   scenes: SceneItem[];
   feedbackPresets: FeedbackPreset[] | null;
   presets: Preset[];
   languages: LangOption[];
   durations: number[];
   currentMode: ScriptMode;
-  onPresetChange: (preset: string, skipStages: string[]) => void;
 };
 
 type Props = {
   message: ChatMessageType;
   callbacks: ChatMessageCallbacks;
+  data: ChatMessageData;
 };
 
-const ChatMessage = memo(function ChatMessage({ message, callbacks }: Props) {
+const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Props) {
   switch (message.contentType) {
     case "user":
       return <UserBubble text={message.text ?? ""} />;
@@ -49,10 +53,10 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks }: Props) {
         <SettingsRecommendCard
           message={message}
           onApplyAndGenerate={callbacks.onApplyAndGenerate}
-          presets={callbacks.presets}
-          languages={callbacks.languages}
-          durations={callbacks.durations}
-          currentMode={callbacks.currentMode}
+          presets={data.presets}
+          languages={data.languages}
+          durations={data.durations}
+          currentMode={data.currentMode}
           onPresetChange={callbacks.onPresetChange}
         />
       );
@@ -62,8 +66,8 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks }: Props) {
       return (
         <ReviewCard
           message={message}
-          scenes={callbacks.scenes}
-          feedbackPresets={callbacks.feedbackPresets}
+          scenes={data.scenes}
+          feedbackPresets={data.feedbackPresets}
           onResume={callbacks.onResume}
         />
       );
@@ -71,7 +75,7 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks }: Props) {
       return (
         <CompletionCard
           text={message.text ?? ""}
-          sceneCount={callbacks.scenes.length}
+          sceneCount={data.scenes.length}
           onNavigate={callbacks.onNavigate}
         />
       );

@@ -3,14 +3,15 @@
 import { useAutoScroll } from "../../hooks/useAutoScroll";
 import ChatMessage from "./ChatMessage";
 import type { ChatMessage as ChatMessageType } from "../../types/chat";
-import type { ChatMessageCallbacks } from "./ChatMessage";
+import type { ChatMessageCallbacks, ChatMessageData } from "./ChatMessage";
 
 type Props = {
   messages: ChatMessageType[];
   callbacks: ChatMessageCallbacks;
+  data: ChatMessageData;
 };
 
-export default function ChatMessageList({ messages, callbacks }: Props) {
+export default function ChatMessageList({ messages, callbacks, data }: Props) {
   const { containerRef, handleScroll } = useAutoScroll(messages);
 
   return (
@@ -21,7 +22,7 @@ export default function ChatMessageList({ messages, callbacks }: Props) {
     >
       <div className="mx-auto max-w-3xl space-y-5 px-6">
         {messages.map((msg) => (
-          <ChatMessage key={msg.id} message={msg} callbacks={callbacks} />
+          <ChatMessage key={msg.id} message={msg} callbacks={callbacks} data={data} />
         ))}
         <div className="h-24 shrink-0" />
       </div>
