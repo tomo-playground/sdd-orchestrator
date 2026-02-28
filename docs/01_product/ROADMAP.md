@@ -32,6 +32,7 @@
 
 ### 최근 작업
 
+- **StyleProfile LoRA 레퍼런스 주입 + base_model 정규화** (02-28): _inject_loras_for_reference()에 StyleProfile LoRA 주입, quality_tags fallback 추가, REFERENCE_STYLE_LORA_SCALE 0.45 조정, _BaseModelNormMixin으로 6개 스키마 DRY 적용, 전 StyleProfile 네거티브 프롬프트/임베딩 업데이트, LoRA 선택 가이드 문서 신규 작성. 18테스트 PASS.
 - **StyleProfile reference_env_tags / reference_camera_tags 추가** (02-28): StyleProfile에 JSONB 필드 2개 추가. ORM, StyleContext, V3PromptBuilder, preview.py, controlnet.py, schemas.py 수정. Alembic 마이그레이션 + 기존 5개 프로필 시딩. 테스트 4개 추가 (총 155개 통과). DB_SCHEMA.md 동기화.
 - **Lab StyleProfile DB 파라미터 적용 수정** (02-28): `generate_image_with_v3()`에서 StyleProfile의 steps/cfg_scale/sampler_name/clip_skip이 무시되던 버그 수정. `override_settings`로 clip_skip 전달. preview.py 패턴 일관성 확보.
 - **Phase 24 코드 리뷰 수정** (02-28): SSE 에러 BLOCKER 수정(preflight 포함), topic min_length, structure 케이스 정규화(id→name), sendMessage 동시 요청 방지, character_name null 처리, ChatMessage memo 효과 복원(callbacks 분리), topic_analysis 서비스 추출. 15테스트.
