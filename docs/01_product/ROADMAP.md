@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-02-28)
+## 현재 상태 (2026-03-01)
 
 | 항목 | 상태 |
 |------|------|
@@ -28,10 +28,11 @@
 | Phase 22 (Backend Complete Image Generation) | 전체 완료 (ARCHIVED) |
 | Phase 23 (Project/Group UX 개선) | 전체 완료 (ARCHIVED) |
 | Phase 24 (Script 탭 → 하이브리드 채팅 AI) | 전체 완료 (ARCHIVED) |
-| 테스트 | Backend 2,667 + Frontend 435 = **총 3,102개** |
+| 테스트 | Backend 2,940 + Frontend 435 = **총 3,375개** |
 
 ### 최근 작업
 
+- **감사 후속 안정화 + 런타임 버그 수정** (03-01): FFmpeg xfade offset 음수 방지(2중 방어), SD 가중치 태그 `(tag:1.15)` 정규화 2중 방어, DB fullscan→TagCategoryCache 인메모리 조회, str(e) API 노출 제거(4곳), extra="allow" Response 스키마 강화(5곳), Cinematographer JSON 파싱 3단계 전략(코드블록→전체→패턴매칭), Gemini fallback tools=[] 비활성화, LoRA Check 로그 레벨 최적화(background→DEBUG), 캐스팅 dismiss 3-layer 버그(isDirty+null payload+backend 무조건 반영), VRT baseline 갱신, flaky test circuit breaker 격리, AutoRun 에러 패널 탭 스코핑, useProjectGroups 무한 루프 방지. 6커밋, 코드 리뷰 2회.
 - **StyleProfile 5개 체제 정립 + 시리즈 정리** (02-28): Default Anime 제거→Flat Color 흡수, 5개 프로필 display_name(한국어) 부여, LoRA 소유권 SSOT 확립(style/detail→StyleProfile, character→Character), 전 캐릭터 style LoRA 제거(9건), add_detail 전 프로필 보조 적용, add_detail lora_type→detail, 시리즈 7→6개 정리(일상 공감 통합, 감성 한 스푼 신규), 시리즈명 콘텐츠 기반 리네이밍. LoRA 선택 가이드 문서 업데이트.
 - **StyleProfile LoRA 레퍼런스 주입 + base_model 정규화** (02-28): _inject_loras_for_reference()에 StyleProfile LoRA 주입, quality_tags fallback 추가, REFERENCE_STYLE_LORA_SCALE 0.45 조정, _BaseModelNormMixin으로 6개 스키마 DRY 적용, 전 StyleProfile 네거티브 프롬프트/임베딩 업데이트, LoRA 선택 가이드 문서 신규 작성. 18테스트 PASS.
 - **StyleProfile reference_env_tags / reference_camera_tags 추가** (02-28): StyleProfile에 JSONB 필드 2개 추가. ORM, StyleContext, V3PromptBuilder, preview.py, controlnet.py, schemas.py 수정. Alembic 마이그레이션 + 기존 5개 프로필 시딩. 테스트 4개 추가 (총 155개 통과). DB_SCHEMA.md 동기화.
