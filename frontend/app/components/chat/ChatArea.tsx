@@ -29,6 +29,7 @@ export default function ChatArea({ editor }: Props) {
   const callbacks: ChatMessageCallbacks = useMemo(
     () => ({
       onApplyRecommendation: editor.applyRecommendation,
+      onApplyAndGenerate: editor.applyAndGenerate,
       onResume: editor.resume,
       onRetry: editor.confirmAndGenerate,
       onNavigate: handleNavigate,
@@ -37,6 +38,7 @@ export default function ChatArea({ editor }: Props) {
     }),
     [
       editor.applyRecommendation,
+      editor.applyAndGenerate,
       editor.resume,
       editor.confirmAndGenerate,
       handleNavigate,

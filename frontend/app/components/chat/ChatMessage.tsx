@@ -14,6 +14,7 @@ import type { FeedbackPreset } from "../../types";
 
 export type ChatMessageCallbacks = {
   onApplyRecommendation: (rec: SettingsRecommendation) => void;
+  onApplyAndGenerate: (rec: SettingsRecommendation) => void;
   onResume: (
     action: "approve" | "revise" | "select" | "regenerate" | "custom_concept",
     feedback?: string,
@@ -38,7 +39,13 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks }: Props) {
     case "assistant":
       return <AssistantBubble text={message.text ?? ""} />;
     case "settings_recommend":
-      return <SettingsRecommendCard message={message} onApply={callbacks.onApplyRecommendation} />;
+      return (
+        <SettingsRecommendCard
+          message={message}
+          onApply={callbacks.onApplyRecommendation}
+          onApplyAndGenerate={callbacks.onApplyAndGenerate}
+        />
+      );
     case "concept_gate":
       return <ConceptCard message={message} onResume={callbacks.onResume} />;
     case "review_gate":

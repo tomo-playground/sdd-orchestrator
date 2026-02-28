@@ -8,6 +8,7 @@ import type { ChatMessage, SettingsRecommendation } from "../../../types/chat";
 type Props = {
   message: ChatMessage;
   onApply: (rec: SettingsRecommendation) => void;
+  onApplyAndGenerate: (rec: SettingsRecommendation) => void;
 };
 
 function InfoRow({
@@ -28,7 +29,7 @@ function InfoRow({
   );
 }
 
-export default function SettingsRecommendCard({ message, onApply }: Props) {
+export default function SettingsRecommendCard({ message, onApply, onApplyAndGenerate }: Props) {
   const [applied, setApplied] = useState(false);
   const rec = message.recommendation;
   if (!rec) return null;
@@ -58,22 +59,36 @@ export default function SettingsRecommendCard({ message, onApply }: Props) {
           )}
         </div>
 
-        {/* Apply button */}
-        <Button
-          size="sm"
-          variant={applied ? "secondary" : "primary"}
-          disabled={applied}
-          onClick={handleApply}
-        >
-          {applied ? (
-            <>
-              <Check className="h-3.5 w-3.5" />
-              반영 완료
-            </>
-          ) : (
-            "사이드바에 반영"
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant={applied ? "secondary" : "primary"}
+            disabled={applied}
+            onClick={handleApply}
+          >
+            {applied ? (
+              <>
+                <Check className="h-3.5 w-3.5" />
+                반영 완료
+              </>
+            ) : (
+              "사이드바에 반영"
+            )}
+          </Button>
+          {!applied && (
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => {
+                onApplyAndGenerate(rec);
+                setApplied(true);
+              }}
+            >
+              반영하고 바로 생성
+            </Button>
           )}
-        </Button>
+        </div>
       </div>
     </div>
   );
