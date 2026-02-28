@@ -11,6 +11,7 @@ import type { Scene, DraftScene, AutoRunStepId } from "../types";
 export type { AutoRunStepId } from "../types";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useRenderStore } from "../store/useRenderStore";
+import { useContextStore } from "../store/useContextStore";
 import { checkStageStep, checkImagesStep, checkRenderStep } from "./preflight-steps";
 export type { StageCheckInput } from "./preflight-steps";
 
@@ -90,6 +91,9 @@ export interface PreflightInput {
   sampler: string;
   seed?: number;
   clipSkip: number;
+
+  // Context
+  storyboardId: number | null;
 
   // State
   scenes: (Scene | DraftScene)[];
@@ -265,6 +269,11 @@ export function runPreflight(input: PreflightInput): PreflightResult {
     errors.push("씬이 없습니다. 먼저 스크립트를 생성하세요.");
   }
 
+  // Storyboard must be saved before autorun
+  if (!input.storyboardId) {
+    errors.push("스토리보드가 저장되지 않았습니다. 먼저 저장해주세요.");
+  }
+
   // Check steps
   const steps = {
     stage: checkStageStep({
@@ -320,6 +329,7 @@ export function getStepsToExecute(
 export function buildPreflightInput(): PreflightInput {
   const sb = useStoryboardStore.getState();
   const render = useRenderStore.getState();
+  const ctx = useContextStore.getState();
   const sp = render.currentStyleProfile;
   const voiceName = render.voicePresetId ? `Preset #${render.voicePresetId}` : "";
   return {
@@ -341,6 +351,7 @@ export function buildPreflightInput(): PreflightInput {
     cfgScale: sp?.default_cfg_scale ?? 7.0,
     sampler: sp?.default_sampler_name ?? "DPM++ 2M Karras",
     clipSkip: sp?.default_clip_skip ?? 2,
+    storyboardId: ctx.storyboardId,
     scenes: sb.scenes,
     videoUrl: render.videoUrl,
   };

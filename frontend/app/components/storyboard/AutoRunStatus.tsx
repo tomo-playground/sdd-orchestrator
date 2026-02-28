@@ -19,7 +19,7 @@ export default function AutoRunStatus({
   onResume,
   onRestart,
 }: AutoRunStatusProps) {
-  const [isLogCollapsed, setIsLogCollapsed] = useState(false);
+  const [isLogCollapsed, setIsLogCollapsed] = useState(true);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

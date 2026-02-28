@@ -27,7 +27,7 @@ import { useStudioOnboarding } from "../../hooks/useStudioOnboarding";
 import { createGroup } from "../../store/actions/groupActions";
 import { SUB_NAV_CLASSES } from "../../components/ui/variants";
 import { runAutoRunFromStep } from "../../store/actions/autopilotActions";
-import { saveStoryboard } from "../../store/actions/storyboardActions";
+import { saveStoryboard, persistStoryboard } from "../../store/actions/storyboardActions";
 import { handleStyleProfileComplete } from "../../store/actions/styleProfileActions";
 import PreflightModal from "../../components/common/PreflightModal";
 import { runPreflight, buildPreflightInput } from "../../utils/preflight";
@@ -220,6 +220,7 @@ function StudioContent() {
             isAutoRunning={autopilot.isAutoRunning}
             isSaving={isSaving}
             autoRunStep={autopilot.autoRunState.step}
+            autoRunStatus={autopilot.autoRunState.status}
             showSave={scenes.length > 0}
           />
         </div>
@@ -298,8 +299,16 @@ function StudioContent() {
           isOpen
           preflight={runPreflight(buildPreflightInput())}
           onClose={() => setUI({ showPreflightModal: false })}
-          onRun={(stepsToRun: AutoRunStepId[]) => {
+          onRun={async (stepsToRun: AutoRunStepId[]) => {
             setUI({ showPreflightModal: false });
+            // storyboardId가 없으면 먼저 저장
+            if (!useContextStore.getState().storyboardId) {
+              const saved = await persistStoryboard();
+              if (!saved) {
+                showToast("스토리보드 저장에 실패했습니다.", "error");
+                return;
+              }
+            }
             runAutoRunFromStep(stepsToRun[0] || "images", autopilot, stepsToRun);
           }}
         />
