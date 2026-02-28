@@ -32,6 +32,7 @@
 
 ### 최근 작업
 
+- **StyleProfile 5개 체제 정립 + 시리즈 정리** (02-28): Default Anime 제거→Flat Color 흡수, 5개 프로필 display_name(한국어) 부여, LoRA 소유권 SSOT 확립(style/detail→StyleProfile, character→Character), 전 캐릭터 style LoRA 제거(9건), add_detail 전 프로필 보조 적용, add_detail lora_type→detail, 시리즈 7→6개 정리(일상 공감 통합, 감성 한 스푼 신규), 시리즈명 콘텐츠 기반 리네이밍. LoRA 선택 가이드 문서 업데이트.
 - **StyleProfile LoRA 레퍼런스 주입 + base_model 정규화** (02-28): _inject_loras_for_reference()에 StyleProfile LoRA 주입, quality_tags fallback 추가, REFERENCE_STYLE_LORA_SCALE 0.45 조정, _BaseModelNormMixin으로 6개 스키마 DRY 적용, 전 StyleProfile 네거티브 프롬프트/임베딩 업데이트, LoRA 선택 가이드 문서 신규 작성. 18테스트 PASS.
 - **StyleProfile reference_env_tags / reference_camera_tags 추가** (02-28): StyleProfile에 JSONB 필드 2개 추가. ORM, StyleContext, V3PromptBuilder, preview.py, controlnet.py, schemas.py 수정. Alembic 마이그레이션 + 기존 5개 프로필 시딩. 테스트 4개 추가 (총 155개 통과). DB_SCHEMA.md 동기화.
 - **Lab StyleProfile DB 파라미터 적용 수정** (02-28): `generate_image_with_v3()`에서 StyleProfile의 steps/cfg_scale/sampler_name/clip_skip이 무시되던 버그 수정. `override_settings`로 clip_skip 전달. preview.py 패턴 일관성 확보.
