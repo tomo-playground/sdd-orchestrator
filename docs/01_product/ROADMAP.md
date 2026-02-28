@@ -16,89 +16,30 @@
 | Phase 12 (Agent Enhancement & AI BGM) | 전체 완료 (ARCHIVED) |
 | Phase 13 (Creative Control & Production Speed) | 전체 완료 (ARCHIVED) |
 | Phase 14 (ControlNet Pose Pipeline) | 전체 완료 (ARCHIVED) |
-| **Phase 15 (Prompt Input UX 고도화)** | **전체 완료 — A-0~A-3 + B-1~B-3 (18/18)** |
+| Phase 15 (Prompt Input UX 고도화) | 전체 완료 (ARCHIVED) |
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
-| **Phase 17 (Service/Admin 분리)** | **17-0/0.5/1/2 완료, 17-3 미착수** |
-| **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
+| Phase 17 (Service/Admin 분리) | 전체 완료 (ARCHIVED) |
+| Cross Audit P0~P3 | 전체 완료 — 106건 |
 | Phase 18 (Stage Workflow) | 전체 완료 (ARCHIVED) |
-| **Phase 19 (Studio 탭 페르소나 재배치)** | **전체 완료 — 19-1(9) + 19-2(2) + 19-3(4) = 15/15** |
-| **DB Schema Cleanup** | **전체 완료 — Sprint A (7/7), Sprint B (3/4, 1건 취소)** |
-| **Phase 20 (Agent-Aware Inventory)** | **전체 완료 — 20-A (9/9), 20-B (5/5), 20-C (5/5)** |
-| 테스트 | Backend 2,667 + Frontend 435 = **총 3,102개** (Phase 20-A +42, Phase 20-B +36) |
+| Phase 19 (Studio 탭 페르소나 재배치) | 전체 완료 (ARCHIVED) |
+| Phase 20 (Agent-Aware Inventory) | 전체 완료 (ARCHIVED) |
+| DB Schema Cleanup | 전체 완료 (ARCHIVED) |
+| 테스트 | Backend 2,667 + Frontend 435 = **총 3,102개** |
 
 ### 최근 작업
 
-- **Phase 17-2: Frontend Route Group 분리** (02-28): `(app)/` route group → `(service)/` + `admin/` 분리. ServiceShell(Home/Studio/Admin 3탭) + AdminShell(좌측 사이드바+breadcrumb). Characters/Styles/Tags/Voices/Music/Prompts/Lab/System → `admin/` 이동. Library 해체(TabsTab/StyleTab/PromptsTab → admin 하위 독립 페이지). Settings→admin/system, Lab→admin/lab. 후방 호환 redirects 6개(next.config.ts) + `/library?tab=X` 클라이언트 리다이렉트. VRT 7개 spec 갱신. `(app)/` 폴더 전체 삭제. ~70파일 이동, ~10파일 경로 참조 수정.
-- **Phase 20-C: Autonomous Express** (02-28): Express 경량 캐스팅 구현. `director_plan_lite` 노드(Flash 모델, 캐릭터 10명 제한) + `director_plan_lite.j2` 캐스팅 전용 템플릿. `route_after_start` 3분기(Full→director_plan, Express→director_plan_lite, Quick→writer) + `route_after_inventory_resolve` 조건부 엣지. `load_fallback_character()` 최근 사용 캐릭터 fallback. `_skip_guard` inventory_resolve 제거(Express skip 충돌 방지). Frontend: `pipelineSteps` expressOnly 플래그 + casting 스텝, ScriptOptionsCard AI 캐스팅 안내, ManualScriptEditor 2단계 확인 + ExpressCastingSummary AI 결정 요약 카드. 11파일 변경(3신규+8수정).
-- **Phase 20-B: Casting UX (Frontend)** (02-28): `useScriptEditor.ts` 847→251줄 리팩터링(types/mappers/sseProcessor/actions 4파일 분리). `CastingRecommendation` 타입 + Zustand TRANSIENT 상태. SSE `inventory_resolve` → 스토어 저장. CharacterSelector "AI 추천" 그룹(Sparkles 배지+amber 하이라이트). CastingBanner 수락/무시 CTA. StageCastingCompareCard 비교 카드. pipelineSteps "리서치/캐스팅" 라벨. `mapScenesToItems` DRY 통합, stale closure 수정, parseSSEStream null guard. 36개 테스트 추가(mappers 9+sseProcessor 12+pipeline 3+CastingBanner 6+CompareCard 6). 23파일 +1,729/-966줄.
-- **Phase 17-1: Backend 논리적 분리** (02-28): Service(`/api/v1/`) + Admin(`/api/admin/`) 2-tier 라우터 분리. 10개 분할 라우터(characters, tags, backgrounds 등) `service_router` + `admin_router` 이중화, `admin.py` `/admin/` prefix 제거, `routers/__init__.py` 조립 재작성(29개→2줄 include), OpenAPI 문서 분리(`/docs` Service, `/admin/docs` Admin). Frontend `API_ROOT`+`API_BASE`+`ADMIN_API_BASE` 3-tier 상수 + ~50개 파일 URL 마이그레이션. 65개 백엔드 테스트 URL prefix 갱신. 117파일 +1,219/-1,158줄.
-- **Phase 20-A: Director Inventory Awareness** (02-28): 인벤토리 인지 + 캐스팅 추천 구현. `inventory.py` 서비스(캐릭터 프루닝 20명, usage_count 정렬), `CastingRecommendation` Pydantic + `DirectorPlanOutput.casting`, `ScriptState` 3키 확장, `director_plan.j2` 인벤토리 섹션 + CoT 가이드, `director_plan_node` 인벤토리 로드 + 캐스팅 추출, `inventory_resolve` 노드(5항목 유효성 검증 + user override 병합), 18노드 그래프(`director_plan → inventory_resolve → research`), SSE `_NODE_META` + Frontend 캐스팅 토스트. 42개 테스트 추가. 17파일 +934/-22줄.
-- **DB Schema Cleanup Sprint B 5-1** (02-28): LangGraph Checkpoint GC 배치 구현 — `gc_checkpoints()` 함수 + `POST /admin/checkpoint-gc` 엔드포인트. UUID v6 시간 기반 cutoff로 오래된 thread 삭제. 초회 실행: 157 threads 삭제, rows 60% 감소(checkpoints 3044→1131, writes 12978→5230). 기본 보존기간: 7일 (`CHECKPOINT_GC_RETENTION_DAYS`).
-- **DB Schema Cleanup Sprint B** (02-28): `characters.reference_source_type` DROP + `scenes.last_seed` DROP — 코드 참조 제거(ORM/스키마/서비스/FE 타입) + Alembic 마이그레이션 적용. `multi_gen_enabled`는 FE에서 활발 사용 확인, DROP 취소. DB_SCHEMA.md v3.31 갱신.
-- **DB Schema Cleanup Sprint A-7** (02-28): `ANALYZE` 실행 — pg_stat 통계 갱신 완료 (42테이블). projects 0→2건 등 부정확 row count 해소.
-- **DB Schema Cleanup Sprint A-6** (02-28): DB_SCHEMA.md 문서 불일치 4건 수정 — (1) `is_permanent` Known Issue → Resolved (weight boost 용도 확정), (2) `lora_type=style` Known Issue → Resolved (LAYER_ATMOSPHERE 배치 완료), (3) `characters.prompt_mode` 컬럼/Enum 삭제 (이미 DROP됨), (4) `embeddings` 테이블 "미구현" → 구현 완료 표기.
-- **DB Schema Cleanup Sprint A-5** (02-28): `media_assets.checksum` 쓰기 로직 보완 — 8개 MediaAsset INSERT 경로에 SHA-256 checksum 추가. `AssetService.compute_checksum()` 정적 메서드 추가. AssetService 4개 헬퍼(save_character_preview, save_background_image, save_scene_image, save_rendered_video) + 3개 라우터(controlnet, music_presets, voice_presets) + video/builder `_cache_bgm_asset` 수정.
-- **DB Schema Cleanup Sprint A-4** (02-28): `storyboards.base_seed` 자동 할당 — `save_storyboard_to_db()`에서 생성 시 `generate_base_seed()` 호출 추가. 기존 125개 스토리보드 백필 완료(0/125 → 125/125). Seed Anchoring(`base_seed + order * offset`) 정상 동작 가능.
-- **DB Schema Cleanup Sprint A-3** (02-28): `scene_quality_scores` 저장 경로 수정 — Phase 16-D 이후 quality score 0건 저장 회귀 버그 발견 및 수정. 원인: (1) `actual_scene_id = ... or 0`에서 scene_id=None일 때 0이 되어 FK 조회 실패, (2) `resolve_scene_id_by_client_id(db, scene_id, None, ...)`에 client_id=None 전달로 폴백 무효화 + soft-deleted scene 차단. 수정: `or None`으로 변경 + 단순 FK 존재 체크로 대체. `batch_validate_scenes` commit 예외처리 추가.
-- **DB Schema Cleanup Sprint A-1** (02-28): `activity_logs` Gemini 편집 추적 INSERT 누락 버그 수정. `validate_and_auto_edit_scene()`에서 편집 성공 시 ActivityLog 즉시 INSERT(`gemini_edited`, `gemini_cost_usd`, `original_match_rate`). `CreateActivityLogRequest`에 gemini 필드 4개 추가. 비용 한도/재시도 횟수 체크 정상화. [명세](FEATURES/DB_SCHEMA_CLEANUP.md)
-- **Phase 19: Studio 탭 페르소나 재배치 구현 완료** (02-28): Stage SSOT + Direct 경량화. StageTab에 Visual Style/CharacterSelector/Base Prompts(읽기전용)/Generation Settings 추가. ScenesTab Context Strip(Style/Character 배지 + Stage 딥링크). Publish Voice/BGM readOnly + "Change in Stage" 링크. Dead code 6파일 삭제(ImageSettingsContent, StudioThreeColumnLayout, RightPanelTabs, PromptHelperSidebar, PromptSetupPanel, promptHelperActions). isMultiCharStructure 유틸 통일. 18파일 +550/-761줄
-- **Studio 탭 페르소나 재배치 명세 v2** (02-27): 6-Agent 리뷰(PM/Frontend/UX/TechLead/Backend/QA) 반영. BLOCKER 4건 해소: (1) Express 모드 Stage 경유 확정, (2) useCharacterAutoLoad 경합 조건 문서화, (3) Phase 순서 의존성 명시, (4) Direct Context Strip 추가. Phase 1(9스텝) + Phase 2(2스텝) + Phase 3(4스텝). [명세](FEATURES/STUDIO_TAB_PERSONA_REORGANIZATION.md)
-- **Direct 탭 2-column 레이아웃 전환** (02-27): 3-column(280px|1fr|300px) → 2-column(280px|1fr). 우측 패널 제거, ImageSettingsContent→센터 Settings CollapsibleSection, SceneToolsContent→SceneCard Advanced, SceneInsightsContent→좌측 하단. Prompt Helper 완전 삭제(2파일). Scene Tags↔Advanced 순서 교체
-- **Expression-Mood Valence 충돌 감지 시스템** (02-27): Tag.valence 컬럼 + Alembic 마이그레이션, TagValenceCache 인메모리 캐시, `_flatten_layers` valence 교차 체크(L7 expression ↔ L11 mood), `_prompt_conflict_resolver` valence 충돌 감지, LLM valence 분류기(`classify_valence_via_llm`), `POST /admin/tags/classify-valence` 엔드포인트, `emotion_consistency_rules.j2` Gemini 템플릿 파셜. 27개 테스트 추가 (전체 2,770 passed)
-- **Publish 탭 UX 개선** (02-27): (1) 2-column 레이아웃 — 좌=설정, 우=프리뷰+메타(sticky 380px), `PUBLISH_2COL_LAYOUT` 상수, 반응형 <768px fallback. (2) Render Progress 오버레이 — 우측 프리뷰에 스피너+진행률 바(빈 상태/비디오 위 2케이스). (3) RenderMediaPanel 3-아코디언 분리(Media/Voice/BGM 독립 접기). SceneImagePanel 9:16 aspect-ratio 수정. 6파일 변경
-- **prompt_mode 제거 + 태그 분류 개선** (02-27): prompt_mode 3-way 선택(auto/standard/lora) 제거 — 프로덕션 100% auto 사용으로 무의미. Backend 5곳 분기 `character.loras` 통일, effective_mode 배지 제거, DB 컬럼 DROP. 태그 분류: legacy subject 태그(6400+, source=default) LLM 재분류 활성화, classify 엔드포인트 background LLM 파이프라인. ComposedPromptPreview StrictMode debounce 버그 수정. 40파일 +241/-323줄, 2743 passed. PR #35
-- **autoSave race condition 3-Layer 방어** (02-27): 이미지 생성 중 autoSave가 `image_asset_id: null` 덮어쓰기 방지. Layer 1: `SCENE_TRANSIENT_FIELDS`로 `isGenerating` 등 transient 필드 isDirty 분리. Layer 2: autoSave에서 `isGenerating` 씬 감지 시 스킵+재스케줄. Layer 3: `didScenesChangeDuringSave()` 스냅샷 비교로 save 중 변경 감지. 20개 테스트(Layer1 11+Layer2 4+Layer3 5)
-- **Phase 18-P4: 렌더링 연동** (02-27): 트랜지션 auto 모드(같은 배경→fade, 다른 배경→slide/wipe), Ken Burns 교대 프리셋(같은 배경 연속 시 반복 방지), Reference AdaIN 실내/실외 가중치 자동 조정(indoor=0.40, outdoor=0.25). 11개 테스트. PR #34
-- **Phase 18-P3: Stage 에셋 고도화** (02-27): Express 모드 호환(환경 태그 없는 씬 warning 로그), `style_profile_id` 기반 배경 캐싱(3-col unique index + cache hit/miss + assign 스타일 우선), LoRA↔StyleProfile 의존성 시각화(StageCharacterCard). Alembic 마이그레이션 + 7개 테스트. PR #32
-- **Phase 18-P2: Stage 에셋 확장** (02-27): Stage Tab을 4섹션 프리프로덕션 대시보드로 확장(Locations+Characters+Voice+BGM). 9개 신규 컴포넌트(StageCharacterCard/Section, StageVoiceCard/Section, StageBgmCard/Section, StageReadinessBar, StageLocationsSection, useAudioPlayer). BGM preview `responseType:"blob"` 버그 수정(JSON→audio_url 직접 사용). Preflight Stage 체크 4카테고리 확장 + background_id 스토어 동기화. bgmPreviewUrl persist(localStorage)
-- **scene_id 불일치 해결** (02-27): 이미지 생성 중 PUT 저장으로 scene_id 변경 시 `client_id` 폴백으로 이미지/ActivityLog/QualityScore 링크 보장. Frontend `processGeneratedImages` re-resolve + Backend `resolve_scene_id_by_client_id()` 공통 헬퍼
-- **이미지 유실 버그 근본 수정** (02-27): 3중 경합 조건 해소 — (1) `persistStoryboard()` atomic `set()` isDirty 재트리거 방지, (2) `autoSave` isAutoRunning 가드 autoRun 중 autoSave 차단, (3) Backend `preserved_asset_ids` 방어 기존 DB 씬 에셋 보존
-- **Phase 18 마무리** (02-27): background_id 데이터 흐름 완성(useScriptEditor SceneItem/syncToGlobalStore/save 3곳 추가), Stage BG 인디케이터 ID 표시(BG#N), Library backgrounds 탭 제거(수동 배경 관리→Stage 전환 완료), VRT/fixture 잔여 코드 정리
-- **Phase 18 DoD 갭 수정** (02-26): Tag Editing UI 추가(StageLocationCard 인라인 편집 → Save & Regenerate), StageRegenerateRequest 스키마(optional tags). SD Checkpoint 일관성 보장(`_ensure_correct_checkpoint()` generate/regenerate 양쪽 적용). stageStatus localStorage 영속화(TRANSIENT_KEYS에서 제거)
-- **Phase 18-3: Stage-Direct 연결** (02-26): "Continue to Direct" 클릭 시 `assign-backgrounds` API 자동 호출 + Direct 탭 전환. MaterialsPopover BG 클릭 → Stage 탭 이동. Script 완료 시 Express→Direct 직행, Standard/Creator→Stage 자동 전환. PipelineStatusDots "failed" 빨간 도트 + 툴팁. Materials API/fallback에 stage_status 반영
-- **Phase 18-2: Stage UI** (02-26): Script→Stage→Direct→Publish 4탭 전환. StudioTab "edit"→"direct" 리네이밍(7개 파일). StageTab 컴포넌트(Location 카드 그리드, Readiness 바, Generate/Assign/Regenerate API). PipelineStatusDots "stage" 스텝 추가. stageStatus 필드(TRANSIENT). StageLocationStatus/StageStatusResponse 타입. API timeout+getErrorMsg 적용
-- **Phase 18-1: Background Generation Pipeline** (02-26): `compose_for_background()` 5-Layer Template(Quality→Subject/no_humans→Camera/wide_shot→Environment→Atmosphere/LoRA). `background_generator.py` — scenes의 environment tags에서 location 역추론, SD WebUI로 배경 생성, AssetService 저장. Stage API 4EP(`generate-backgrounds`, `status`, `assign-backgrounds`, `regenerate-background`). `calculate_auto_pin_flags()` background_id 존재 시 auto_pin 비활성화. 7개 Stage 스키마 + REST API 문서 업데이트
-- **Phase 18-0: Location Model + DB** (02-26): backgrounds에 `storyboard_id` FK(CASCADE) + `location_key` + partial unique index 추가. storyboards에 `stage_status` 추가. `get_loc_field()` 이중 접근 헬퍼로 LangGraph 체크포인트 역직렬화 방어. serialize_scene background_id 누락 버그 수정. Soft delete/restore/permanent delete Background cascade 구현. list_backgrounds storyboard_id 필터 추가. 2,667 passed
-- **Stage Workflow 기능 명세** (02-26): Script→Stage→Direct→Publish 4단계 워크플로우 설계. location별 no_humans 배경 이미지를 Stage에서 미리 생성하여 Canny ControlNet 참조 시 캐릭터 윤곽선 간섭 근본 해결. 6개 에이전트 크로스 리뷰(PM/Frontend/Backend/UIUX/Prompt/FFmpeg). [명세](FEATURES/STAGE_WORKFLOW.md)
-- **TTS 싱크 + 음성 일관성 수정** (02-26): 3건 FFmpeg 필터 버그(xfade offset 미감산, total_dur 이중 감산, audio clip_dur 불필요 패딩) → 10씬 영상에서 ~3초 누적 디싱크 해소. Gemini 음성 재생성 → preset_base+emotion suffix 방식으로 씬 간 동일 캐릭터 음성 일관성 보장
-- **overlay footer 간격 + 핀 참조 표시 수정** (02-26): footer_top 0.80→0.88으로 scene text 겹침 방지. SceneActionBar pinnedSceneOrder 0-based→1-based 표시 수정
-- **7-Agent Cross Audit P3** (02-26): 21건 수정. prompt_histories.seed BigInteger 마이그레이션, voice TTS 방어 로직, pyproject.toml 의존성 등. 32파일 +312/-132줄
-- **7-Agent Cross Audit P2** (02-26): 39건 수정. Security(SSRF/Path Traversal/CORS/CSRF/SQL Injection/base64 제한/debug 노출 7건), Backend(RuntimeSettings/datetime UTC/중복 코드/admin 207 9건), Prompt(POSE_MAPPING 50개/12-Layer clothing/StyleProfile 5건), FFmpeg(anullsrc 무한스트림/Image.close 4건), DBA(CHECK 제약/FK 인덱스/soft-delete 3건), Frontend(ARIA/Skeleton/lang ko/스토어 리셋 11건). 55파일 +818/-279줄. 2,667 passed
-- **7-Agent Cross Audit P0+P1** (02-26): 7개 에이전트 통합 점검 123건 발견 → P0 14건+P1 32건 일괄 수정. xfade 오프셋 3+씬 누적 오류, cost_usd null crash, falsy 값 손실, soft delete 누락, N+1 쿼리, POSE_MAPPING 언더스코어 통일, TagFilterCache 통합, ARIA 접근성, buildScenesPayload 중복 제거 등. 48파일 +1,104/-591줄. 2,667 passed
-- **Express 모드 ControlNet 자동 활성화** (02-26): Cinematographer 스킵 시 `controlnet_pose` 미할당→ControlNet OFF 문제 수정. `_auto_populate_scene_flags()`에서 `context_tags.pose` → `controlnet_pose` 자동 파생 + POSE_MAPPING 검증 + DEFAULT_POSE_TAG fallback. 15개 테스트 (기존 9→15)
-- **voice_seed Backend SSOT 보장** (02-26): 10/12 프리셋 voice_seed NULL→씬별 다른 목소리 문제 근본 수정. `_compute_voice_seed()` 헬퍼 추가, create/update/attach-preview 3개 엔드포인트에서 자동 계산. 기존 전체 프리셋 seed 일괄 고정
-- **레퍼런스 이미지 배경 억제 강화** (02-26): `white_background:1.8` LAYER_QUALITY(위치 0) 배치, 네거티브 프롬프트 18개 태그 가중치 상향, 9/10 캐릭터 흰 배경 재생성 성공
-- **캐릭터 보이스 매핑 정비** (02-26): 5캐릭터 한글 이름 부여(건우/수빈/지호/시온/유카리), 유카리·예민이 전용 보이스 프리셋 생성, LoRA 2개 등록(Usagi_Drop + add_detail)
-- **프롬프트 파이프라인 품질 근본 수정** (02-26): SB#481 분석→4대 버그 수정(한국어 emotion 매핑 132개, Location Map SSOT, `""` vs `None` DEFAULT 마스킹, GROUP_NAME_TO_LAYER coarse alias). DB 태그 오분류 420개 group_name 재분류 + 406개 default_layer 동기화 + 한글 태그 12개 삭제. ORM `@validates` 게이트(비ASCII 거부 + group_name→default_layer 자동 동기화). context_tags emotion 필드 태그 분류 유입 차단. Quick 모드 deepcopy. bgm_mood varchar(50→100). 2,635 passed
-- **Tag Group 세분화** (02-26): clothing(119)→7그룹(top/bottom/outfit/detail/legwear/footwear/accessory), action(56)→3그룹(body/hand/daily), time_weather(39)→3그룹(time_of_day/weather/particle). 13개 세분화 그룹, 26파일 변경, Layer 4/5/6/8/10 매핑, Gemini context_tags 후방 호환 보존. [명세](FEATURES/TAG_GROUP_REFINEMENT.md). 2,635 passed
-- **Audio Server 로컬 MPS 전환** (02-26): Docker CPU → 로컬 실행(MPS)으로 TTS(Qwen3-TTS)/BGM(MusicGen) Apple Silicon GPU 가속. `docker-compose.audio.yml` device=auto 전환, `audio/.venv` Python 3.13 로컬 환경 구축
-- **Gemini 모델 Pro/Flash 분리 완성** (02-26): Director Plan + Director Checkpoint → `DIRECTOR_MODEL`(Pro) 전환. `.env`에 `DIRECTOR_MODEL`, `CREATIVE_LEADER_MODEL`, `REVIEW_MODEL` 명시 + `GEMINI_TEXT_MODEL`을 Flash로 복원. Pro 5개 노드(Critic, Director, Director Plan, Director Checkpoint, Review) / Flash 14개 노드 분리 완료
-- **캐릭터 체형 태그 필수 선택 + body_type 그룹 분리** (02-25): appearance 그룹에서 체형 태그 11개를 body_type 그룹으로 분리 (Backend SSOT). Wizard Appearance 단계 Body Type 필수 카테고리 추가, 미선택 시 Next 비활성화 + Required 뱃지. 태그 분류기 Flash 모델 전용화 + 30초 타임아웃. 2,635 passed
-- **Cinematographer 위험 태그 가드레일 강화** (02-25): Gemini가 생성하는 비표준 Danbooru 태그(cinematic_shadows, computer_monitor 등) 방지. 금지 패턴 + 정확한 대체 태그 예시 템플릿에 명시
-- **Gemini Flash 미분류 태그 LLM 분류** (02-25): Finalize 노드에서 미분류 태그(computer_monitor, cinematic_shadows 등)를 Gemini Flash로 배치 분류 → DB 저장 → 정확한 레이어 배정. `tag_classifier_llm.py`(LLM 분류), `_tag_classification.py`(Finalize 연동), `_save_classification` default_layer 버그 수정, validator 3개 분리(`_finalize_validators.py`). Feature flag `FEATURE_TAG_LLM_CLASSIFICATION`. 108개 테스트 PASS
-- **Phase 17-0.5: 캐릭터 프리뷰 품질 개선** (02-25): ControlNet standing 포즈 + `(solo:1.5)` 가중치로 캐릭터시트/멀티뷰 완전 해소. Style LoRA 레퍼런스 스케일 0.3, 네거티브 프롬프트 배경/멀티뷰 억제 강화, ControlNet control_mode 설정화, 다중 후보 3장 생성/선택 UI. 5개 상수 + 1개 스키마 필드 추가, 2,635 passed
-- **Phase 17-0: API 정리** (02-25): 라우터 34→29개 축소. keywords/avatar/analytics/cleanup/sd 5개 삭제 및 통합, migrate EP 3건 + 미사용 prompt EP 2건 삭제, 미사용 스키마 5개 제거. URL 경로 변경 0건. 2,635 passed
-- **Agent Pipeline 품질 저하 버그 4건 수정** (02-25): Director 인라인 수정 결과 State 소실(Critical), DirectorReActStep feedback 추적 누락, Sound Designer writer_plan 미전달, TTS/Cinematographer director_plan 미전달. `_AGENT_STATE_KEY_MAP` + `revised_agents` 추적, feedback 필드 추가, 템플릿 emotional_arc/target_emotion 섹션. 9개 테스트 추가
-- **환경 태그 랜덤성 근본 해결** (02-25): Finalize에서 Writer Location Map 태그 강제 주입(`_inject_location_map_tags` + `_inject_location_negative_tags`), Environment(L10) 가중치 부스트(1.15), Danbooru 0건 태그 교체(`music_room`→`stage`, `dark_hallway`→`hallway,dark`, `school_hallway`→`classroom`). 7개 테스트 추가
-- **TTS 짧은 대사 개선 + BGM 볼륨 조정** (02-24): 짧은 스크립트(≤3자) `min_duration` 동적 조정(1.0→0.4s)으로 "그럼!" 등 불필요한 3회 재시도 해소. BGM 기본 볼륨 0.25→0.4(-8dB) 상향. 2,665 passed
-- **Phase 15-B: Visual Tag Browser** (02-24): Tag 모델 `thumbnail_asset_id` FK + Danbooru `get_post_image()` + `tag_thumbnail.py` 배치 수집 서비스 + `POST /admin/tag-thumbnails/generate` 엔드포인트. TagSuggestionDropdown 32px 미니 썸네일 + TagBrowserTab Lab 탭 (6그룹 사이드바 + 128×128 카드 그리드). 19개 테스트
-- **TTS 게이팅 강화 + MusicGen 타임아웃 분리** (02-24): 1글자 감탄사(네?, 아...)가 TTS 3회 재시도 실패하던 문제 해결. `TTS_MIN_SPEAKABLE_CHARS=2` 최소 글자 수 체크, `MUSIC_TIMEOUT_SECONDS=600`(10분) 전용 타임아웃 분리. 6개 테스트 추가
-- **Phase 16-D-4: ConsistencyPanel + DriftHeatmap** (02-24): 캐릭터 시각적 일관성 히트맵 시각화. `useConsistency` hook, `DriftHeatmap`(7그룹×N씬 매트릭스), `DriftDetailView`, `ConsistencyPanel`. SceneInsightsContent 통합. 8개 테스트
-- **Phase 16-D: Cross-Scene Consistency Backend** (02-24): `extract_identity_signature()`, `identity_score`/`identity_tags_detected` DB 캐시, `consistency.py`(5상태 drift 매트릭스), `GET /quality/consistency/{storyboard_id}` API. 21개 테스트
-- **Render Preset Music Preset 선택 UI** (02-24): BGM Mode "Manual" 시 Music Preset 드롭다운 추가. `music_preset_id` 필드, auto null 초기화. 2개 테스트
-- **Phase 16-B: Adjusted Match Rate** (02-24): WD14 감지 가능 그룹(14종)만으로 match_rate 재계산. `WD14_DETECTABLE_GROUPS` SSOT, `adjusted_match_rate` 필드, 비감지 그룹 effectiveness 제외. 11개 테스트
-- **Audio Pipeline 버그 수정 2건** (02-24): BGM 자동 루핑(`asplit`+`acrossfade`), TTS 서킷 브레이커 씬 단위 전환. 24개 테스트
-- **Phase 16-A: Critical Failure Detection** (02-24): 성별 반전/인물 부재/인물수 불일치 자동 감지. `detect_critical_failure()`, Frontend 빨간 배지+토스트. 21개 테스트
-- **Phase 16-0: WD14 Effectiveness 필터링 제거** (02-24): "death spiral" 문제 수정. 167개 태그 부당 필터링 해소. 26개 테스트
-- **Phase 15-A-3: 태그 검증 확산** (02-24): `useTagValidationDebounced` 래퍼 훅, 5개 컴포넌트 TagValidationWarning 적용. 12개 테스트
-- **씬 Override 동적 그룹 + Prompt Builder weight 파싱** (02-24): 런타임 그룹 수집(OCP), `_strip_weight()` SD weight 구문 파싱, expression/gaze override 수정. 35개 테스트
-- **Phase 15-A-2: TagAutocomplete 확산 8곳** (02-24): TagSuggestionDropdown/useTagSuggestion/TagSuggestInput 공유 컴포넌트, WAI-ARIA 접근성. 14개 테스트
-- **Phase 15-A-1: TagAutocomplete 품질 개선 6건** (02-24): 스키마 동기화, deprecation 표시, debounce 300ms, 한국어 검색, wd14_count 포맷. 34개 테스트
-- **Pipeline Prompt Quality 근본 수정** (02-24): SB#469 검수 P0 3건+P1 2건. quality 태그 정규화, emotion→expression, LoRA 트리거 주입, 카테고리 재분류, camera 다양성 경고. 37개 테스트
-- **Phase 15-A-0: 조합 프롬프트 미리보기** (02-23): 레이어 분해 API, 3-way 뷰모드(Layers/Grouped/Linear), KO→EN 변환 diff, 편집 지시문 diff. 23개 테스트
-- **Audio Server 사이드카 분리** (02-23): TTS+MusicGen → Docker 컨테이너, httpx audio_client.py(Circuit Breaker). 8개 테스트
-- **Compose 중개 제거 + Validate 제거** (02-23): Frontend 3회 왕복→1회 통합, Fix All 삭제(-1,275줄). 11개 테스트
-- **02-20~02-22 작업 (48건)**: Phase 8/14 구현, IP-Adapter 고도화, Cinematographer 강화, Stage-Level Skip, Ken Burns 연결, Seed Anchoring, Duration 검증 등. [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md)
+- **Phase 17-3: 유저 UI 간소화** (02-28): Tooltip 시스템(10개 용어), Direct Advanced 토글, Publish Quick Render. 14파일 변경.
+- **Phase 20-D: Script 탭 캐스팅 UX 잔여** (02-28): optgroup AI 추천 분리, Structure 추천 배지, inventory_resolve 매핑.
+- **Phase 17-1 API prefix 오분류 수정** (02-28): service 엔드포인트 13개 ADMIN→API_BASE 전환. 9파일 수정.
+- **Phase 17-2: Frontend Route Group 분리** (02-28): `(service)/` + `admin/` 2-tier 구조. ~70파일 이동.
+- **Phase 20-C: Autonomous Express** (02-28): 경량 캐스팅 + Express 3분기 라우팅. 11파일 변경.
+- **Phase 20-B: Casting UX** (02-28): useScriptEditor 리팩터링 + 캐스팅 추천 UI. 36개 테스트. 23파일.
+- **Phase 17-1: Backend 논리적 분리** (02-28): Service/Admin 2-tier 라우터. 117파일.
+- **Phase 20-A: Director Inventory Awareness** (02-28): 인벤토리 인지 + 캐스팅 추천. 42개 테스트. 17파일.
+- **Phase 19: Studio 탭 페르소나 재배치** (02-28): Stage SSOT + Direct 경량화. 18파일.
+- **DB Schema Cleanup** (02-28): Sprint A 7건 + Sprint B 3건 완료. Checkpoint GC 포함.
+- **02-26~02-27 작업**: Phase 18 Stage Workflow, Cross Audit 106건, 프롬프트 품질 수정, Tag Group 세분화, autoSave 3-Layer 방어 등. [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md)
+- **02-20~02-25 작업**: Phase 8/14/15/16/17-0 구현, Agent Pipeline 수정, 환경 태그 수정 등. [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md)
 - **렌더링 품질 개선** (02-14~17): Scene Text 동적 높이/폰트, Safe Zone, 얼굴 감지, TTS 정규화. 52개 테스트
 
 ---
@@ -119,14 +60,20 @@
 | 7-6 | Scene UX Enhancement | Figma 기반 씬 편집, 완성도 dot, 3탭 분리, DnD, Publish 통합 | [명세](FEATURES/SCENE_UX_ENHANCEMENT.md) |
 | 7-Y | Layout Standardization | Library+Settings 분리, 공유 레이아웃, 네비 4탭, Setup Wizard | [아카이브](../99_archive/archive/ROADMAP_PHASE_7_Y.md) |
 | 7-Z | Home Dashboard & Publish UX | 창작 대시보드 전환, 2-Column Home, 3-Column Publish | [아카이브](../99_archive/archive/ROADMAP_PHASE_7_Z.md) |
-| 8 | Multi-Style Architecture | StyleProfile, LoRA base_model, Checkpoint 자동 전환, IP-Adapter 모델 선택, Hi-Res 기본값 | [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md) |
+| 8 | Multi-Style Architecture | StyleProfile, LoRA base_model, Checkpoint 자동 전환, Hi-Res 기본값 | [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md) |
 | 9 | Agentic AI Pipeline | LangGraph 17-노드, Memory Store, LangFuse, Concept Gate, NarrativeScore | [아카이브](../99_archive/archive/ROADMAP_PHASE_9.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
 | 10 | True Agentic Architecture | ReAct Loop, Director-as-Orchestrator, Gemini Function Calling, 3-Architect Debate | [아카이브](../99_archive/archive/ROADMAP_PHASE_10.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
 | 11 | Scene Diversity & Frontal Bias Fix | 정면 편향 해소, Gaze 5종, 정면 비율 22%, Tier 2 Pipeline 고도화 | [아카이브](../99_archive/archive/ROADMAP_PHASE_11.md) |
 | 12 | Agent Enhancement & AI BGM | Agent Bug Fix 5건, Data Flow 10건, 3-Mode BGM, Gemini Model Upgrade | [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md) |
 | 13 | Creative Control & Production Speed | 성능 최적화 9건, 이미지 UX 5건, Structure 6건, Clothing Override 3건 | [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md) |
 | 14 | ControlNet Pose Pipeline | 포즈 28개 명시, pose/gaze fallback, LLM 하드코딩 제거 3종 | [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md) |
-| 16 | WD14 Smart Validation | Effectiveness 필터링 제거, Critical Failure, Adjusted Match Rate, Identity Ranking, Cross-Scene Consistency | [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md) · [명세](FEATURES/CROSS_SCENE_CONSISTENCY.md) |
+| 15 | Prompt Input UX 고도화 | 12-Layer 미리보기, TagAutocomplete 8곳, 태그 검증 5곳, Visual Tag Browser. 18/18 | [아카이브](../99_archive/archive/ROADMAP_PHASE_15.md) · [명세](FEATURES/PROMPT_INPUT_UX.md) |
+| 16 | WD14 Smart Validation | Effectiveness 필터링 제거, Critical Failure, Adjusted Match Rate, Cross-Scene Consistency | [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md) · [명세](FEATURES/CROSS_SCENE_CONSISTENCY.md) |
+| 17 | Service/Admin 분리 | API 29개 라우터, `/api/v1/` + `/api/admin/` 2-tier, Route Group, UI 간소화. 26항목 | [아카이브](../99_archive/archive/ROADMAP_PHASE_17.md) · [명세](FEATURES/SERVICE_ADMIN_SEPARATION.md) |
+| 18 | Stage Workflow | Script→Stage→Direct→Publish 4단계, Background Generation Pipeline, 29건 | [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md) · [명세](FEATURES/STAGE_WORKFLOW.md) |
+| 19 | Studio 탭 페르소나 재배치 | Stage SSOT, Direct 경량화, Publish 읽기 전용, Dead code 삭제. 15/15 | [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md) · [명세](FEATURES/STUDIO_TAB_PERSONA_REORGANIZATION.md) |
+| 20 | Agent-Aware Inventory | Director 캐스팅, Autonomous Express, Casting UX, inventory_resolve 노드. 22/22 | [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md) · [명세](FEATURES/AGENT_AWARE_INVENTORY_PIPELINE.md) |
+| DB Cleanup | Schema Cleanup | Sprint A 7건 FIX + Sprint B 3건 DROP + Checkpoint GC. 10/11 (1건 취소) | [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md) · [명세](FEATURES/DB_SCHEMA_CLEANUP.md) |
 
 ---
 
@@ -181,272 +128,28 @@ graph LR
     style P17 fill:#4CAF50,color:#fff
     style P18 fill:#4CAF50,color:#fff
     style P19 fill:#4CAF50,color:#fff
-    style P20 fill:#FF9800,color:#fff
+    style P20 fill:#4CAF50,color:#fff
 ```
-
----
-
-## Phase 15: Prompt Input UX 고도화
-
-**목표**: 19개 프롬프트 입력 포인트에 "미리보기 → 확인 → 실행" 원칙 적용. TagAutocomplete 품질 개선 및 확산, 태그 검증 시스템 확산. [상세 명세](FEATURES/PROMPT_INPUT_UX.md)
-
-### Phase A-0: 조합 프롬프트 미리보기 (완료 02-23)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | `/compose` API 확장 — 레이어별 분해 정보(`layers`) 응답 필드 추가 | ✅ (02-23) |
-| 2 | `ComposedPromptPreview.tsx` — 12-Layer 분해 + 조합 결과 + 네거티브 표시 | ✅ (02-23) |
-| 3 | 장면 묘사 → 이미지 프롬프트 변환 diff UI (승인 전 미적용) | ✅ (02-23) |
-| 4 | 편집 지시문 Before/After diff UI (승인 전 미적용) | ✅ (02-23) |
-
-### Phase A-1: TagAutocomplete 품질 개선 (완료 02-24)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | API 디바운스 300ms 적용 | ✅ (02-24) |
-| 2 | 한글(유니코드) 입력 지원 | ✅ (02-24) |
-| 3 | 인기도(`wd14_count`) 드롭다운 표시 | ✅ (02-24) |
-| 4 | 태그 선택 후 `, ` 자동 삽입 | ✅ (02-24) |
-| 5 | 폐기 태그 `deprecated_reason` + 대체 태그 표시 | ✅ (02-24) |
-| 6 | Frontend-Backend 검증 스키마 동기화 (`validate-tags` 응답 통일) | ✅ (02-24) |
-
-### Phase A-2: TagAutocomplete 확산 (완료 02-24)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | Tier 1 — NegativePrompt, CharacterActions, ClothingModal, PromptsStep Base/Negative (5곳) | ✅ (02-24) |
-| 2 | Tier 2 — PromptsStep Ref Base/Negative, StyleProfileEditor Positive/Negative (4곳) | ✅ (02-24) |
-
-### Phase A-3: 태그 검증 확산 (완료 02-24)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | 캐릭터 Base/Negative, Reference Base/Negative 검증 적용 | ✅ (02-24) |
-| 2 | StyleProfile Positive/Negative 검증 적용 | ✅ (02-24) |
-| 3 | Scene Negative, ClothingModal 검증 적용 | ✅ (02-24) |
-
-### Phase B: Visual Tag Browser (완료 02-24)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | Image Provider + DB 스키마 + Danbooru 수집 (Backend 인프라) | ✅ (02-24) |
-| 2 | 드롭다운 미니 썸네일 (8곳 적용) | ✅ (02-24) |
-| 3 | 태그 탐색 패널 — Lab 탭 (카테고리 그리드 + 독립 패널 통합) | ✅ (02-24) |
-
-> Phase B 상세: [VISUAL_TAG_BROWSER.md](FEATURES/VISUAL_TAG_BROWSER.md)
-
----
-
-## Phase 17: Service/Admin 분리
-
-**목표**: 유저(콘텐츠 생산)와 백오피스 관리자(시스템 세팅)의 API/UI를 분리하여 역할별 최적화된 경험 제공. [상세 명세](FEATURES/SERVICE_ADMIN_SEPARATION.md)
-
-### Phase 17-0: API 정리 (선행)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | `keywords.py` 라우터 삭제 (Frontend 미사용, tags.py와 중복) | ✅ (02-25) |
-| 2 | `avatar.py` 라우터 삭제 (Frontend 미사용) | ✅ (02-25) |
-| 3 | `analytics.py` → `settings.py` 통합 (2개 EP, 동일 관심사) | ✅ (02-25) |
-| 4 | `cleanup.py` → `admin.py` 통합 (3개 EP, 동일 관심사) | ✅ (02-25) |
-| 5 | `sd.py` → `sd_models.py` 통합 (SD 인프라 단일화) | ✅ (02-25) |
-| 6 | One-time 마이그레이션 EP 삭제 3건 (migrate-tag-rules, migrate-patterns) | ✅ (02-25) |
-| 7 | Frontend 미사용 prompt EP 삭제 2건 (rewrite, check-conflicts) | ✅ (02-25) |
-
-**결과**: 34개 → 29개 라우터
-
-### Phase 17-0.5: 캐릭터 프리뷰 품질 개선 (완료 02-25)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | ControlNet Pose 적용 (standing 기본) — multiple_views 방지 | ✅ (02-25) |
-| 2 | 다중 후보 생성 (3장) + 선택 UI | ✅ (02-25) |
-| 3 | 네거티브 프롬프트 강화 (배경/멀티뷰/캐릭터시트 가중치 억제) | ✅ (02-25) |
-| 4 | Style LoRA 레퍼런스 스케일링 (REFERENCE_STYLE_LORA_SCALE=0.3) | ✅ (02-25) |
-| 5 | ControlNet control_mode 설정화 (SD_REFERENCE_CONTROLNET_MODE) | ✅ (02-25) |
-
-### Phase 17-1: Backend 논리적 분리
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | Service 라우터 `/api/v1/` prefix 그룹핑 (12개 라우터) | ✅ (02-28) |
-| 2 | Admin 라우터 `/api/admin/` prefix 그룹핑 (17개 라우터) | ✅ (02-28) |
-| 3 | 분할 대상 라우터 10개 엔드포인트 분리 (GET→Service, CUD→Admin) | ✅ (02-28) |
-| 4 | OpenAPI docs 분리 (`/docs` Service, `/admin/docs` Admin) | ✅ (02-28) |
-| 5 | Frontend URL 마이그레이션 (~50개 파일, `ADMIN_API_BASE` 전환) | ✅ (02-28) |
-| 6 | Backend 테스트 URL prefix 갱신 (65개 테스트 파일) | ✅ (02-28) |
-
-### Phase 17-2: Frontend Route Group 분리
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | `(service)/` route group — Home, Studio, Storyboards | ✅ (02-28) |
-| 2 | `admin/` route group — Characters, Styles, Tags, Lab, System | ✅ (02-28) |
-| 3 | Library 페이지 해체 → Admin 하위 재배치 | ✅ (02-28) |
-| 4 | Settings 해체 → Admin > System + Service > 유저 설정 | ✅ (02-28) |
-| 5 | `/` vs `/admin` 경로 기반 역할 식별 + 네비게이션 분리 | ✅ (02-28) |
-
-### Phase 17-3: 유저 UI 간소화
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | Edit Tab: Advanced 토글로 관리자 기능 격리 (ControlNet, IP-Adapter, Prompt 편집) | 미착수 |
-| 2 | Publish Tab: Quick Render (기본값 렌더) 추가 | 미착수 |
-| 3 | 전문 용어 Tooltip 시스템 추가 (10개 용어) | 미착수 |
-
----
-
-## Phase 18: Stage Workflow — 전체 완료 (ARCHIVED, 02-26~02-27)
-
-Script → **Stage** → Direct → Publish 4단계 워크플로우. [상세 명세](FEATURES/STAGE_WORKFLOW.md)
-
-- **18-0~18-3** (02-26): Location Model + DB, Background Generation Pipeline, Stage UI, Stage-Direct 연결 (16건)
-- **18-P2** (02-27): Stage 에셋 대시보드 — Characters/Voice/BGM 섹션, Readiness Gate 4카테고리, useAudioPlayer (7건)
-- **18-P3** (02-27): Stage 에셋 고도화 — Express 모드 호환, LoRA↔StyleProfile 의존성 시각화, BG 캐싱 (3건)
-- **18-P4** (02-27): 렌더링 연동 — 트랜지션 auto 모드, Ken Burns 교대 프리셋, Reference AdaIN 실내/실외 가중치 (3건, P4-3 블러 프리컴퓨팅 삭제)
-
----
-
-## Phase 19: Studio 탭 페르소나 재배치
-
-**목표**: Film Production 메타포에 따라 탭별 소유권을 명확히 하고, Direct의 편집 공간을 극대화한다. [상세 명세](FEATURES/STUDIO_TAB_PERSONA_REORGANIZATION.md)
-
-| 탭 | 페르소나 | 소유 영역 |
-|---|---|---|
-| Script | 작가 | 스토리, 대본 |
-| **Stage** | **프로듀서** | **모든 전역 설정 + 에셋** |
-| **Direct** | **감독** | **씬별 이미지 디렉팅만** |
-| Publish | 편집자 | 렌더링 + 출력 |
-
-### Phase 19-1: Stage 강화 + Express/Direct 안전망
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | Stage "Visual Style" 섹션 추가 (StyleProfileSelector 이동) | ✅ (02-28) |
-| 2 | StageCharactersSection에 CharacterSelector 통합 (선택 가능) | ✅ (02-28) |
-| 3 | Stage Base Prompts 읽기전용 요약 + 캐릭터 페이지 편집 링크 | ✅ (02-28) |
-| 4 | Stage "Generation Settings" 토글 섹션 추가 | ✅ (02-28) |
-| 5 | StageReadinessBar "Style" 카테고리 + useMaterialsCheck 확장 | ✅ (02-28) |
-| 6 | MaterialsPopover Characters→stage-tab + Style 항목 추가 | ✅ (02-28) |
-| 7 | Express 모드: ScriptTab Express 분기를 Stage 경유로 변경 | ✅ (02-28) |
-| 8 | Direct Context Strip (32px 읽기 전용 배지 + Stage 딥링크) | ✅ (02-28) |
-| 9 | Direct에서 ImageSettingsContent + Settings 제거 | ✅ (02-28) |
-
-### Phase 19-2: Publish SSOT 분리
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | Publish Voice/BGM 프리셋 → 읽기 전용 + 볼륨/덕킹 슬라이더 유지 | ✅ (02-28) |
-| 2 | "Stage에서 변경" 링크 버튼 추가 | ✅ (02-28) |
-
-### Phase 19-3: 정리 및 검증
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | Dead code 삭제 (6파일: ImageSettingsContent, StudioThreeColumnLayout, RightPanelTabs, PromptHelperSidebar, PromptSetupPanel, promptHelperActions) | ✅ (02-28) |
-| 2 | Dead import 정리 (variants.ts 3-col 상수, useUIStore RightPanelTab) | ✅ (02-28) |
-| 3 | VRT 베이스라인 갱신 (Direct, Stage, Publish) | ✅ (02-28) |
-| 4 | Build 검증 (next build PASS, 0 new TS errors) | ✅ (02-28) |
-
----
-
-## Phase 20: Agent-Aware Inventory Pipeline (Director 캐스팅)
-
-**목표**: Director Agent가 캐릭터/구조/스타일 인벤토리를 인지하고 토픽에 최적인 조합을 자율 추천. [상세 명세](FEATURES/AGENT_AWARE_INVENTORY_PIPELINE.md)
-
-### Phase 20-A: Director Inventory Awareness (MVP, Backend + 최소 Frontend)
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | `inventory.py` 인벤토리 로딩 서비스 (캐릭터 프루닝 20명, 간접 JOIN 기반) | ✅ (02-28) |
-| 2 | `director_plan.j2` 템플릿 인벤토리 섹션 + CoT 캐스팅 가이드 | ✅ (02-28) |
-| 3 | `CastingRecommendation` Pydantic + `DirectorPlanOutput.casting` 확장 | ✅ (02-28) |
-| 4 | `ScriptState`에 `casting_recommendation` + `valid_character_ids` 추가 | ✅ (02-28) |
-| 5 | `inventory_resolve` 노드 (user override 병합 + 5항목 유효성 검증) | ✅ (02-28) |
-| 6 | Graph 엣지: `director_plan → inventory_resolve → research` | ✅ (02-28) |
-| 7 | SSE `node_result` 기반 캐스팅 전달 + `_NODE_META` 등록 | ✅ (02-28) |
-| 8 | 후방 호환성 검증 (기존 character_id 선택, Express/Quick 불변) | ✅ (02-28) |
-| 9 | 최소 Frontend 토스트 (캐스팅 추천 표시) | ✅ (02-28) |
-
-### Phase 20-B: Casting UX (Frontend)
-
-**선행**: `useScriptEditor.ts` SSE 파싱 분리 리팩터링
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | CharacterSelector "AI Recommended" 그룹 + Sparkles 배지 | ✅ (02-28) |
-| 2 | Script 탭 캐스팅 배너 (추천 수신 → 수락/무시 CTA) | ✅ (02-28) |
-| 3 | `StageCastingCompareCard.tsx` 비교 카드 (라이프사이클 5단계) | ✅ (02-28) |
-| 4 | character_id Optional → Director 자율 캐스팅 | ✅ (02-28) |
-| 5 | `pipelineSteps.ts` "리서치/캐스팅" 스텝 라벨 변경 | ✅ (02-28) |
-
-### Phase 20-C: Autonomous Express
-
-| # | 항목 | 상태 |
-|---|------|------|
-| 1 | `director_plan_lite` 경량 노드 (Flash, 캐릭터 10명 제한) | ✅ (02-28) |
-| 2 | Express 라우팅 3분기 (`routing.py` + `script_graph.py` 확장) | ✅ (02-28) |
-| 3 | One-Click Express UI (2단계 확인 + AI 결정 요약 카드) | ✅ (02-28) |
-| 4 | 자율 결정 로그 SSE 스트림 | ✅ (02-28) |
-| 5 | Fallback 전략 (최근 사용 캐릭터 + monologue) | ✅ (02-28) |
-
----
-
-## DB Schema Cleanup — 미사용 컬럼/테이블 감사 및 정리
-
-**목표**: DB Schema v3.30 기준, 전체 테이블/컬럼의 실제 사용 현황을 DB 데이터 + 코드 참조 양면에서 감사하고 정리. [상세 명세](FEATURES/DB_SCHEMA_CLEANUP.md)
-
-### Sprint A: FIX FIRST + DOC FIX
-
-| # | 항목 | 담당 | 상태 |
-|---|------|------|------|
-| 1-1 | `activity_logs` Gemini 편집 추적 INSERT 누락 수정 | Backend Dev | ✅ (02-28) |
-| 1-2 | `tags.valence` 일괄 시딩 실행 | Backend Dev / Prompt Eng | ✅ (02-28) |
-| 1-3 | `scene_quality_scores.identity_score` 저장 경로 수정 | Backend Dev | ✅ (02-28) |
-| 1-4 | `storyboards.base_seed` 자동 할당 추가 | Backend Dev | ✅ (02-28) |
-| 1-5 | `media_assets.checksum` 쓰기 로직 보완 | Backend Dev | ✅ (02-28) |
-| 4-1 | DB_SCHEMA.md 문서 불일치 4건 수정 | DBA | ✅ (02-28) |
-| 5-2 | `ANALYZE` 실행 (pg_stat 통계 갱신) | DBA | ✅ (02-28) |
-
-### Sprint B: DROP + INFRA
-
-| # | 항목 | 담당 | 상태 |
-|---|------|------|------|
-| 2-1 | `characters.reference_source_type` DROP | DBA | ✅ (02-28) |
-| 2-2 | `scenes.multi_gen_enabled` DROP | DBA | ❌ 취소 (FE 활발 사용) |
-| 2-3 | `scenes.last_seed` DROP | DBA | ✅ (02-28) |
-| 5-1 | LangGraph Checkpoint GC 배치 구현 | Backend Dev / DBA | ✅ (02-28) |
 
 ---
 
 ## Feature Backlog
 
-Phase 9 이후 또는 우선순위 미정 항목.
+Phase 20 이후 또는 우선순위 미정 항목.
 
 ### Content & Creative
 
 | 기능 | 참조 |
 |------|------|
-| ~~Stage Phase 2~3~~ | ✅ 18-P2/P3/P4 완료 (ARCHIVED) |
 | VEO Clip (Video Generation 통합) | [명세](FEATURES/VEO_CLIP.md) |
-| ~~Visual Tag Browser (태그별 예시 이미지)~~ | → Phase 15-B |
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Storyboard Version History | — |
-| IP-Adapter 캐릭터 유사도 고도화 (Phase 1~3 완료, SDXL 미착수) | [명세](FEATURES/CHARACTER_CONSISTENCY.md) |
-
-### Tag & Prompt System
-
-| 기능 | 설명 | 우선순위 |
-|------|------|---------|
-| ~~Tag Group 세분화~~ | ~~clothing→7그룹, action→3그룹, time_weather→3그룹. 26파일, 2635 passed~~ | ✅ (02-26) |
-| ~~프롬프트 파이프라인 품질 근본 수정~~ | ~~한국어 emotion 매핑, Location Map SSOT, ORM 검증 게이트, DB 오분류 838개 수정~~ | ✅ (02-26) |
-| ~~Expression-Mood Valence 충돌 감지~~ | ~~Tag.valence + TagValenceCache + L7↔L11 교차 체크 + LLM 분류기 + Gemini 파셜. 27개 테스트~~ | ✅ (02-27) |
+| IP-Adapter 캐릭터 유사도 고도화 (SDXL 미착수) | [명세](FEATURES/CHARACTER_CONSISTENCY.md) |
 
 ### Intelligence & Automation
 
 | 기능 | 참조 |
 |------|------|
-| ~~Agent-Aware Inventory Pipeline (Director 캐스팅)~~ | → Phase 20 [명세](FEATURES/AGENT_AWARE_INVENTORY_PIPELINE.md) |
 | Tag Intelligence (채널별 태그 정책 + 데이터 기반 추천) | [명세](FEATURES/PROJECT_GROUP.md) §2-2 |
 | Series Intelligence (에피소드 연결 + 성공 패턴 학습) | [명세](FEATURES/PROJECT_GROUP.md) §2-3 |
 | LoRA Calibration Automation | — |
@@ -459,49 +162,3 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | 배치 렌더링 + 큐 (그룹 일괄 렌더, WebSocket 진행률) | [명세](FEATURES/PROJECT_GROUP.md) §3-1 |
 | 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-2 |
 | 분석 대시보드 (Match Rate 추이, 프로젝트 간 비교) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
-
----
-
-## 잔여 작업 우선순위
-
-**Phase 1~14, 16 — 전체 완료**. 상세: 각 Phase 아카이브 참조.
-
-**Phase 15 — Prompt Input UX 고도화 (전체 완료, 18/18)**
-
-**Phase 18 — Stage Workflow (전체 완료, ARCHIVED)**
-
-**Phase 19 — Studio 탭 페르소나 재배치 (전체 완료, 15/15)**
-
-**DB Schema Cleanup — Sprint A 완료 (7/7), Sprint B 진행중 (2/3, 1건 취소)**
-
-| 순위 | 작업 | 근거 |
-|------|------|------|
-| ~~1~~ | ~~Sprint A 1-1: activity_logs INSERT 수정~~ | ✅ 완료 (02-28) |
-| ~~2~~ | ~~Sprint A 1-2~1-5: FIX FIRST 잔여 4건~~ | ✅ 완료 (02-28) |
-| ~~3~~ | ~~Sprint A 4-1/5-2: DOC FIX + ANALYZE~~ | ✅ 완료 (02-28) |
-| ~~4~~ | ~~Sprint B 2-1, 2-3: DROP 2건~~ | ✅ 완료 (02-28), 2-2 취소 (FE 활발 사용) |
-| ~~5~~ | ~~Sprint B 5-1: LangGraph Checkpoint GC 배치~~ | ✅ 완료 (02-28) |
-
-**Phase 17 — Service/Admin 분리**
-
-| 순위 | 작업 | 근거 |
-|------|------|------|
-| ~~1~~ | ~~17-0: API 정리 (34→29개)~~ | ✅ 완료 (02-25) |
-| ~~2~~ | ~~17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`)~~ | ✅ 완료 (02-28) |
-| ~~3~~ | ~~17-2: Frontend Route Group 분리 (`/` + `/admin`)~~ | ✅ 완료 (02-28) |
-| 4 | 17-3: 유저 UI 간소화 (Advanced 토글, Quick Render, Tooltip) | 유저 경험 최적화 |
-
-**Phase 20 — Agent-Aware Inventory Pipeline**
-
-| 순위 | 작업 | 근거 |
-|------|------|------|
-| ~~1~~ | ~~20-A: Director Inventory Awareness (Backend MVP, 9항목)~~ | ✅ 완료 (02-28) |
-| ~~2~~ | ~~20-B: Casting UX (Frontend, 5항목) — useScriptEditor 리팩터링 포함~~ | ✅ 완료 (02-28) |
-| ~~3~~ | ~~20-C: Autonomous Express (5항목)~~ | ✅ 완료 (02-28) |
-
-**Tier 3 — 장기**
-
-| 순위 | 작업 | 근거 |
-|------|------|------|
-| 1 | PipelineControl 커스텀, 분산 큐 | 규모 확장 시 |
-| 2 | 배치 렌더링, 브랜딩, 분석 대시보드 | Feature Backlog |
