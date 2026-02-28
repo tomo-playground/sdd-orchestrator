@@ -9,11 +9,18 @@ from database import get_db
 from models.character import Character
 from models.media_asset import MediaAsset
 from schemas import (
+    ControlNetStatusResponse,
+    DeletedKeyResponse,
+    IPAdapterStatusResponse,
     MultiReferenceRequest,
     MultiReferenceResponse,
     MultiReferenceSaved,
+    PoseListResponse,
+    PoseReferenceResponse,
     QualityInfo,
+    ReferenceListResponse,
     ReferenceQualityResponse,
+    SuggestPoseResponse,
     UploadPhotoReferenceRequest,
     UploadPhotoReferenceResponse,
 )
@@ -48,7 +55,7 @@ class PoseDetectResponse(BaseModel):
     error: str | None = None
 
 
-@router.get("/status")
+@router.get("/status", response_model=ControlNetStatusResponse)
 async def get_controlnet_status():
     """Check ControlNet availability and list models."""
     available = check_controlnet_available()
@@ -60,7 +67,7 @@ async def get_controlnet_status():
     }
 
 
-@router.get("/poses")
+@router.get("/poses", response_model=PoseListResponse)
 async def list_available_poses():
     """List available pose references."""
     poses = []
@@ -75,7 +82,7 @@ async def list_available_poses():
     return {"poses": poses}
 
 
-@router.get("/pose/{pose_name}")
+@router.get("/pose/{pose_name}", response_model=PoseReferenceResponse)
 async def get_pose_reference(pose_name: str):
     """Get a specific pose reference image."""
     pose_b64 = load_pose_reference(pose_name)
@@ -110,7 +117,7 @@ async def detect_pose(request: PoseDetectRequest):
         )
 
 
-@router.post("/suggest-pose")
+@router.post("/suggest-pose", response_model=SuggestPoseResponse)
 async def suggest_pose_for_tags(tags: list[str]):
     """Suggest a pose reference based on prompt tags."""
     pose = detect_pose_from_prompt(", ".join(tags))
@@ -146,7 +153,7 @@ class ReferenceImageResponse(BaseModel):
     error: str | None = None
 
 
-@router.get("/ip-adapter/status")
+@router.get("/ip-adapter/status", response_model=IPAdapterStatusResponse)
 async def get_ip_adapter_status():
     """Check IP-Adapter availability."""
     available = check_controlnet_available()
@@ -159,7 +166,7 @@ async def get_ip_adapter_status():
     }
 
 
-@router.get("/ip-adapter/references")
+@router.get("/ip-adapter/references", response_model=ReferenceListResponse)
 async def list_references(db: Session = Depends(get_db)):
     """List all saved reference images for IP-Adapter with presets from DB/Config."""
     # 1. Get physical files
@@ -241,7 +248,7 @@ async def get_reference_image(character_key: str, db: Session = Depends(get_db))
     return Response(content=image_bytes, media_type="image/png")
 
 
-@router.delete("/ip-adapter/reference/{character_key}")
+@router.delete("/ip-adapter/reference/{character_key}", response_model=DeletedKeyResponse)
 async def remove_reference(character_key: str):
     """Delete a reference image."""
     deleted = delete_reference_image(character_key)

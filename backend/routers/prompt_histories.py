@@ -10,16 +10,19 @@ from config import logger
 from database import get_db
 from models import PromptHistory
 from schemas import (
+    OkDeletedResponse,
+    OkRestoredResponse,
     PromptHistoryApplyResponse,
     PromptHistoryCreate,
     PromptHistoryResponse,
     PromptHistoryUpdate,
+    TrashedItem,
 )
 
 router = APIRouter(prefix="/prompt-histories", tags=["prompt-histories"])
 
 
-@router.get("/trash")
+@router.get("/trash", response_model=list[TrashedItem])
 async def list_trashed_prompt_histories(db: Session = Depends(get_db)):
     """List soft-deleted prompt histories."""
     items = (
@@ -142,7 +145,7 @@ async def update_prompt_history(history_id: int, data: PromptHistoryUpdate, db: 
     return history
 
 
-@router.delete("/{history_id}")
+@router.delete("/{history_id}", response_model=OkDeletedResponse)
 async def delete_prompt_history(history_id: int, db: Session = Depends(get_db)):
     """Soft-delete a prompt history."""
     history = (
@@ -162,7 +165,7 @@ async def delete_prompt_history(history_id: int, db: Session = Depends(get_db)):
     return {"ok": True, "deleted": history.name}
 
 
-@router.post("/{history_id}/restore")
+@router.post("/{history_id}/restore", response_model=OkRestoredResponse)
 async def restore_prompt_history(history_id: int, db: Session = Depends(get_db)):
     """Restore a soft-deleted prompt history."""
     history = (
@@ -181,7 +184,7 @@ async def restore_prompt_history(history_id: int, db: Session = Depends(get_db))
     return {"ok": True, "restored": history.name}
 
 
-@router.delete("/{history_id}/permanent")
+@router.delete("/{history_id}/permanent", response_model=OkDeletedResponse)
 async def permanently_delete_prompt_history(history_id: int, db: Session = Depends(get_db)):
     """Permanently delete a prompt history."""
     history = db.query(PromptHistory).filter(PromptHistory.id == history_id).first()

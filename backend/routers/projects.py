@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
 from models.project import Project
-from schemas import EffectiveConfigResponse, ProjectCreate, ProjectResponse, ProjectUpdate
+from schemas import DeleteStatusResponse, EffectiveConfigResponse, ProjectCreate, ProjectResponse, ProjectUpdate
 from services.config_resolver import apply_system_defaults, resolve_effective_config
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -21,12 +21,7 @@ def list_projects(db: Session = Depends(get_db)):
 
 @router.get("/{project_id}", response_model=ProjectResponse)
 def get_project(project_id: int, db: Session = Depends(get_db)):
-    project = (
-        db.query(Project)
-        .options(joinedload(Project.groups))
-        .filter(Project.id == project_id)
-        .first()
-    )
+    project = db.query(Project).options(joinedload(Project.groups)).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
@@ -67,7 +62,7 @@ def get_project_effective_config(project_id: int, db: Session = Depends(get_db))
     )
 
 
-@router.delete("/{project_id}")
+@router.delete("/{project_id}", response_model=DeleteStatusResponse)
 def delete_project(project_id: int, db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:

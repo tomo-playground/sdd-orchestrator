@@ -10,6 +10,7 @@ from models.group import Group
 from models.project import Project
 from models.storyboard import Storyboard
 from schemas import (
+    DeleteStatusResponse,
     EffectiveConfigResponse,
     GroupCreate,
     GroupResponse,
@@ -118,7 +119,7 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.delete("/{group_id}")
+@router.delete("/{group_id}", response_model=DeleteStatusResponse)
 def delete_group(group_id: int, db: Session = Depends(get_db)):
     group = db.query(Group).filter(Group.id == group_id).first()
     if not group:

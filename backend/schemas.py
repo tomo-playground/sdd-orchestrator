@@ -2235,3 +2235,696 @@ class TopicAnalyzeResponse(BaseModel):
     character_b_id: int | None = None
     character_b_name: str | None = None
     reasoning: str = ""
+
+
+# ============================================================
+# Common Response Schemas (response_model enforcement)
+# ============================================================
+
+
+class OkDeletedResponse(BaseModel):
+    """Common response for soft/hard delete operations."""
+
+    ok: bool
+    deleted: str
+
+
+class OkRestoredResponse(BaseModel):
+    """Common response for restore operations."""
+
+    ok: bool
+    restored: str
+
+
+class SuccessMessageResponse(BaseModel):
+    """Common response for operations that return success + message."""
+
+    success: bool
+    message: str
+
+
+# ============================================================
+# ControlNet Response Schemas
+# ============================================================
+
+
+class ControlNetStatusResponse(BaseModel):
+    """Response for GET /controlnet/status."""
+
+    available: bool
+    models: list[str]
+    pose_references: list[str]
+
+
+class PoseInfoItem(BaseModel):
+    """Single pose info."""
+
+    name: str
+    filename: str
+    available: bool
+
+
+class PoseListResponse(BaseModel):
+    """Response for GET /controlnet/poses."""
+
+    poses: list[PoseInfoItem]
+
+
+class PoseReferenceResponse(BaseModel):
+    """Response for GET /controlnet/pose/{name}."""
+
+    pose_name: str
+    image_b64: str
+
+
+class SuggestPoseResponse(BaseModel):
+    """Response for POST /controlnet/suggest-pose."""
+
+    suggested_pose: str | None
+    available: bool
+    image_b64: str | None
+
+
+class IPAdapterStatusResponse(BaseModel):
+    """Response for GET /controlnet/ip-adapter/status."""
+
+    available: bool
+    models: list[str]
+    supported_models: list[str]
+
+
+class ReferencePreset(BaseModel):
+    """IP-Adapter reference preset info."""
+
+    weight: float
+    model: str
+    description: str
+
+
+class ReferenceItem(BaseModel):
+    """Single IP-Adapter reference."""
+
+    character_key: str
+    filename: str | None = None
+    image_b64: str | None = None
+    preset: ReferencePreset | None = None
+
+    model_config = ConfigDict(extra="allow")
+
+
+class ReferenceListResponse(BaseModel):
+    """Response for GET /controlnet/ip-adapter/references."""
+
+    references: list[ReferenceItem]
+
+
+class DeletedKeyResponse(BaseModel):
+    """Response for DELETE /controlnet/ip-adapter/reference/{key}."""
+
+    deleted: str
+
+
+# ============================================================
+# SD WebUI Proxy Response Schemas
+# ============================================================
+
+
+class SDWebUIModelsResponse(BaseModel):
+    """Response for GET /sd/models."""
+
+    models: list
+
+
+class SDWebUIOptionsResponse(BaseModel):
+    """Response for GET /sd/options."""
+
+    options: dict
+    model: str
+
+
+class SDWebUIOptionsUpdateResponse(BaseModel):
+    """Response for POST /sd/options."""
+
+    ok: bool
+    model: str
+
+
+class SDWebUILorasResponse(BaseModel):
+    """Response for GET /sd/loras."""
+
+    loras: list
+
+
+# ============================================================
+# Characters Extra Response Schemas
+# ============================================================
+
+
+class TrashedItem(BaseModel):
+    """Item in trashed list (characters, prompt_histories, etc.)."""
+
+    id: int
+    name: str
+    deleted_at: str | None = None
+
+
+class CharacterEnhancePreviewResponse(BaseModel):
+    """Response for POST /characters/{id}/enhance-preview."""
+
+    ok: bool
+    url: str | None = None
+    cost_usd: float | None = None
+
+
+class CharacterEditPreviewResponse(BaseModel):
+    """Response for POST /characters/{id}/edit-preview."""
+
+    ok: bool
+    url: str | None = None
+    cost_usd: float | None = None
+    edit_type: str | None = None
+
+
+class BatchRegenerateResultItem(BaseModel):
+    """Single item in batch-regenerate results."""
+
+    id: int
+    name: str
+    status: str
+    error: str | None = None
+
+
+class BatchRegenerateResponse(BaseModel):
+    """Response for POST /characters/batch-regenerate-references."""
+
+    ok: bool
+    results: list[BatchRegenerateResultItem]
+
+
+# ============================================================
+# Admin Response Schemas
+# ============================================================
+
+
+class CacheRefreshResponse(BaseModel):
+    """Response for POST /refresh-caches (200 or 207)."""
+
+    success: bool
+    message: str
+    refreshed: list[str] = []
+    failures: list[dict] = []
+
+
+class ReplacementTagInfo(BaseModel):
+    """Replacement tag summary."""
+
+    id: int
+    name: str
+    category: str | None = None
+
+
+class DeprecatedTagItem(BaseModel):
+    """Single deprecated tag."""
+
+    id: int
+    name: str
+    category: str | None = None
+    deprecated_reason: str | None = None
+    replacement: ReplacementTagInfo | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class DeprecatedTagsResponse(BaseModel):
+    """Response for GET /tags/deprecated."""
+
+    total: int
+    tags: list[DeprecatedTagItem]
+
+
+class DeprecatedTagInfo(BaseModel):
+    """Tag info after deprecation."""
+
+    id: int
+    name: str
+    is_active: bool
+    deprecated_reason: str | None = None
+    replacement_tag_id: int | None = None
+
+
+class DeprecateTagResponse(BaseModel):
+    """Response for PUT /tags/{id}/deprecate."""
+
+    success: bool
+    tag: DeprecatedTagInfo
+
+
+class ActivatedTagInfo(BaseModel):
+    """Tag info after activation."""
+
+    id: int
+    name: str
+    is_active: bool
+
+
+class ActivateTagResponse(BaseModel):
+    """Response for PUT /tags/{id}/activate."""
+
+    success: bool
+    tag: ActivatedTagInfo
+
+
+class MediaOrphanResponse(BaseModel):
+    """Response for GET /media-assets/orphans."""
+
+    success: bool
+    error: str | None = None
+
+    model_config = ConfigDict(extra="allow")
+
+
+class MediaCleanupResponse(BaseModel):
+    """Response for POST /media-assets/cleanup."""
+
+    success: bool
+    orphans: dict | None = None
+    expired_temp: dict | None = None
+    total_deleted: int | None = None
+    error: str | None = None
+
+
+class MediaStatsResponse(BaseModel):
+    """Response for GET /media-assets/stats."""
+
+    success: bool
+    error: str | None = None
+
+    model_config = ConfigDict(extra="allow")
+
+
+class StorageStatsResponse(BaseModel):
+    """Response for GET /storage/stats."""
+
+    model_config = ConfigDict(extra="allow")
+
+
+class StorageCleanupResponse(BaseModel):
+    """Response for POST /storage/cleanup and /storage/cleanup/preview."""
+
+    model_config = ConfigDict(extra="allow")
+
+
+# ============================================================
+# Settings / Analytics Response Schemas
+# ============================================================
+
+
+class AutoEditSettingsResponse(BaseModel):
+    """Response for GET /settings/auto-edit."""
+
+    enabled: bool
+    threshold: float
+    max_cost_per_storyboard: float
+    max_retries_per_scene: int
+
+
+class AutoEditUpdateResponse(BaseModel):
+    """Response for PUT /settings/auto-edit."""
+
+    success: bool
+    message: str
+    current: dict
+
+
+class AutoEditCostSummaryResponse(BaseModel):
+    """Response for GET /settings/auto-edit/cost-summary."""
+
+    today: float
+    this_week: float
+    this_month: float
+    total: float
+    edit_count_today: int
+    edit_count_month: int
+
+
+class GeminiEditItem(BaseModel):
+    """Single Gemini edit analytics entry."""
+
+    id: int
+    storyboard_id: int | None = None
+    scene_id: int | None = None
+    original_match_rate: float | None = None
+    final_match_rate: float | None = None
+    improvement: float
+    cost_usd: float | None = None
+    created_at: str | None = None
+
+
+class GeminiEditAnalyticsResponse(BaseModel):
+    """Response for GET /analytics/gemini-edits."""
+
+    total_edits: int
+    avg_cost_usd: float
+    total_cost_usd: float
+    avg_improvement: float
+    edits: list[GeminiEditItem]
+    by_improvement_range: dict[str, int]
+
+
+class GeminiEditSummaryResponse(BaseModel):
+    """Response for GET /analytics/gemini-edits/summary."""
+
+    total_edits: int
+    total_cost: float
+    success_rate: float
+    avg_improvement: float
+
+
+# ============================================================
+# LoRA Extra Response Schemas
+# ============================================================
+
+
+class CivitaiSearchResultItem(BaseModel):
+    """Single Civitai search result."""
+
+    civitai_id: int | None = None
+    name: str | None = None
+    creator: str | None = None
+    downloads: int = 0
+    rating: float = 0.0
+    tags: list[str] = []
+    trigger_words: list[str] = []
+    base_model: str | None = None
+    preview_image: str | None = None
+    civitai_url: str | None = None
+
+
+class CivitaiSearchResponse(BaseModel):
+    """Response for GET /loras/search-civitai."""
+
+    query: str
+    results: list[CivitaiSearchResultItem]
+
+
+class LoRACalibrateResponse(BaseModel):
+    """Response for POST /loras/{id}/calibrate."""
+
+    lora_id: int
+    lora_name: str
+    optimal_weight: float
+    calibration_score: float
+    lora_type: str
+    all_results: list[dict]
+
+
+class CalibrateAllResultItem(BaseModel):
+    """Single item in calibrate-all results."""
+
+    id: int | None = None
+    name: str
+    optimal_weight: float | None = None
+    calibration_score: float | None = None
+    lora_type: str | None = None
+    error: str | None = None
+
+
+class CalibrateAllResponse(BaseModel):
+    """Response for POST /loras/calibrate-all."""
+
+    calibrated: int
+    results: list[CalibrateAllResultItem]
+    message: str | None = None
+
+
+# ============================================================
+# Tags Extra Response Schemas
+# ============================================================
+
+
+class TagGroupItem(BaseModel):
+    """Single tag group with count."""
+
+    category: str | None = None
+    group_name: str | None = None
+    count: int
+
+
+class TagGroupsResponse(BaseModel):
+    """Response for GET /tags/groups."""
+
+    groups: list[TagGroupItem]
+
+
+class ApproveClassificationResponse(BaseModel):
+    """Response for POST /tags/approve-classification."""
+
+    ok: bool
+    tag: str
+    group_name: str
+    category: str | None = None
+
+
+class BulkApproveResponse(BaseModel):
+    """Response for POST /tags/bulk-approve-classifications."""
+
+    ok: bool
+    approved_count: int
+    approved: list[str]
+    failed: list[dict]
+
+
+# ============================================================
+# Assets Response Schemas
+# ============================================================
+
+
+class AudioItem(BaseModel):
+    """Single audio file."""
+
+    name: str
+    url: str
+
+
+class AudioListResponse(BaseModel):
+    """Response for GET /audio/list."""
+
+    audios: list[AudioItem]
+
+
+class FontItem(BaseModel):
+    """Single font file."""
+
+    name: str
+
+
+class FontListResponse(BaseModel):
+    """Response for GET /fonts/list."""
+
+    fonts: list[FontItem]
+
+
+class OverlayItem(BaseModel):
+    """Single overlay frame."""
+
+    id: str
+    name: str
+    url: str
+
+
+class OverlayListResponse(BaseModel):
+    """Response for GET /overlay/list."""
+
+    overlays: list[OverlayItem]
+
+
+# ============================================================
+# Prompt History Extra Response Schemas
+# ============================================================
+
+
+# ============================================================
+# Delete Status Response (groups, projects)
+# ============================================================
+
+
+class DeleteStatusResponse(BaseModel):
+    """Response for DELETE operations returning status + id."""
+
+    status: str
+    id: int
+
+
+# ============================================================
+# Activity Logs Response Schemas
+# ============================================================
+
+
+class ActivityLogCreatedResponse(BaseModel):
+    """Response for POST /activity-logs."""
+
+    id: int
+    storyboard_id: int | None = None
+    scene_id: int | None = None
+    character_id: int | None = None
+    status: str | None = None
+    match_rate: float | None = None
+    gemini_edited: bool = False
+    gemini_cost_usd: float | None = None
+    original_match_rate: float | None = None
+    final_match_rate: float | None = None
+
+
+class ActivityLogItem(BaseModel):
+    """Single activity log entry."""
+
+    id: int
+    storyboard_id: int | None = None
+    scene_id: int | None = None
+    character_id: int | None = None
+    prompt: str | None = None
+    tags: list[str] | None = None
+    sd_params: dict | None = None
+    match_rate: float | None = None
+    seed: int | None = None
+    status: str | None = None
+    image_url: str | None = None
+    created_at: str | None = None
+
+
+class StoryboardLogsResponse(BaseModel):
+    """Response for GET /activity-logs/storyboard/{id}."""
+
+    logs: list[ActivityLogItem]
+    total: int
+
+
+class UpdateStatusLogResponse(BaseModel):
+    """Response for PATCH /activity-logs/{id}/status."""
+
+    id: int
+    status: str
+    match_rate: float | None = None
+
+
+class DeleteLogResponse(BaseModel):
+    """Response for DELETE /activity-logs/{id}."""
+
+    message: str
+
+
+class PatternSummary(BaseModel):
+    """Summary section in analyze/patterns."""
+
+    total_logs: int
+    success_count: int
+    fail_count: int
+    avg_match_rate: float
+
+
+class TagStatItem(BaseModel):
+    """Single tag stat in analyze/patterns."""
+
+    tag: str
+    total: int
+    success: int
+    fail: int
+    success_rate: float
+    avg_match_rate: float
+
+
+class ConflictCandidateItem(BaseModel):
+    """Single conflict candidate."""
+
+    tag1: str
+    tag2: str
+    co_occurrence: int
+    fail_count: int
+    fail_rate: float
+    avg_match_rate: float
+    reason: str | None = None
+
+
+class AnalyzePatternsResponse(BaseModel):
+    """Response for GET /activity-logs/analyze/patterns."""
+
+    summary: PatternSummary
+    tag_stats: list[TagStatItem]
+    conflict_candidates: list[ConflictCandidateItem]
+
+
+class SuggestConflictRulesResponse(BaseModel):
+    """Response for GET /activity-logs/suggest-conflict-rules."""
+
+    suggested_rules: list[ConflictCandidateItem]
+    existing_rules_count: int
+    new_rules_count: int
+
+
+class TagSuccessItem(BaseModel):
+    """Single tag success item."""
+
+    tag: str
+    success_rate: float
+    occurrences: int
+    avg_match_rate: float
+    group: str | None = None
+
+
+class SuggestedCombination(BaseModel):
+    """Single suggested tag combination."""
+
+    tags: list[str]
+    categories: list[str]
+    avg_success_rate: float
+    conflict_free: bool
+
+
+class SuccessCombinationSummary(BaseModel):
+    """Summary for success-combinations."""
+
+    total_success: int
+    analyzed_tags: int
+    categories_found: int
+
+
+class SuccessCombinationsResponse(BaseModel):
+    """Response for GET /activity-logs/success-combinations."""
+
+    summary: SuccessCombinationSummary
+    combinations_by_category: dict[str, list[TagSuccessItem]]
+    suggested_combinations: list[SuggestedCombination]
+
+
+class ApplyRuleDetail(BaseModel):
+    """Single rule apply result."""
+
+    tag1: str
+    tag2: str
+    status: str
+    reason: str | None = None
+
+
+class ApplyConflictRulesResponse(BaseModel):
+    """Response for POST /activity-logs/apply-conflict-rules."""
+
+    applied_count: int
+    skipped_count: int
+    details: list[ApplyRuleDetail]
+
+
+# ============================================================
+# Lab Extra Response Schemas
+# ============================================================
+
+
+class OkResponse(BaseModel):
+    """Generic ok response."""
+
+    ok: bool
+
+
+class SyncedCountResponse(BaseModel):
+    """Response for sync operations."""
+
+    synced: int

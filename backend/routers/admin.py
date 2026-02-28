@@ -7,7 +7,19 @@ from sqlalchemy.orm import Session
 from config import logger
 from database import get_db
 from models import Tag
-from schemas import ImageCacheClearResponse, ImageCacheStatsResponse
+from schemas import (
+    ActivateTagResponse,
+    CacheRefreshResponse,
+    DeprecatedTagsResponse,
+    DeprecateTagResponse,
+    ImageCacheClearResponse,
+    ImageCacheStatsResponse,
+    MediaCleanupResponse,
+    MediaOrphanResponse,
+    MediaStatsResponse,
+    StorageCleanupResponse,
+    StorageStatsResponse,
+)
 from services.media_gc import MediaGCService
 
 router = APIRouter(tags=["admin"])
@@ -25,7 +37,7 @@ class DeprecateTagRequest(BaseModel):
     replacement_tag_id: int | None = None
 
 
-@router.post("/refresh-caches")
+@router.post("/refresh-caches", response_model=CacheRefreshResponse)
 async def refresh_all_caches(db: Session = Depends(get_db)):
     """Refresh all in-memory caches from database.
 
@@ -157,7 +169,7 @@ async def classify_tag_valence(
 # ============================================================
 
 
-@router.get("/tags/deprecated")
+@router.get("/tags/deprecated", response_model=DeprecatedTagsResponse)
 async def get_deprecated_tags(db: Session = Depends(get_db)):
     """Get all deprecated tags with their replacement information."""
     deprecated_tags = db.query(Tag).filter(Tag.is_active.is_(False)).all()
@@ -196,7 +208,7 @@ async def get_deprecated_tags(db: Session = Depends(get_db)):
     return {"total": len(result), "tags": result}
 
 
-@router.put("/tags/{tag_id}/deprecate")
+@router.put("/tags/{tag_id}/deprecate", response_model=DeprecateTagResponse)
 async def deprecate_tag(tag_id: int, request: DeprecateTagRequest, db: Session = Depends(get_db)):
     """Deprecate a tag and optionally set a replacement.
 
@@ -246,7 +258,7 @@ async def deprecate_tag(tag_id: int, request: DeprecateTagRequest, db: Session =
     }
 
 
-@router.put("/tags/{tag_id}/activate")
+@router.put("/tags/{tag_id}/activate", response_model=ActivateTagResponse)
 async def activate_tag(tag_id: int, db: Session = Depends(get_db)):
     """Reactivate a deprecated tag.
 
@@ -281,7 +293,7 @@ async def activate_tag(tag_id: int, db: Session = Depends(get_db)):
 # ============================================================
 
 
-@router.get("/media-assets/orphans")
+@router.get("/media-assets/orphans", response_model=MediaOrphanResponse)
 async def detect_orphan_assets(db: Session = Depends(get_db)):
     """Scan for orphaned media assets (dry-run detection only)."""
     try:
@@ -292,7 +304,7 @@ async def detect_orphan_assets(db: Session = Depends(get_db)):
         return {"success": False, "error": str(e)}
 
 
-@router.post("/media-assets/cleanup")
+@router.post("/media-assets/cleanup", response_model=MediaCleanupResponse)
 async def cleanup_orphan_assets(
     dry_run: bool = True,
     db: Session = Depends(get_db),
@@ -317,7 +329,7 @@ async def cleanup_orphan_assets(
         return {"success": False, "error": str(e)}
 
 
-@router.get("/media-assets/stats")
+@router.get("/media-assets/stats", response_model=MediaStatsResponse)
 async def media_asset_stats(db: Session = Depends(get_db)):
     """Get media asset statistics including orphan counts."""
     try:
@@ -421,7 +433,7 @@ class CleanupRequest(BaseModel):
     dry_run: bool = False
 
 
-@router.get("/storage/stats")
+@router.get("/storage/stats", response_model=StorageStatsResponse)
 async def storage_stats():
     """Get storage statistics for all output directories."""
     from services.cleanup import get_storage_stats
@@ -429,7 +441,7 @@ async def storage_stats():
     return get_storage_stats()
 
 
-@router.post("/storage/cleanup")
+@router.post("/storage/cleanup", response_model=StorageCleanupResponse)
 async def cleanup_storage(request: CleanupRequest):
     """Execute storage cleanup based on provided options."""
     from services.cleanup import CleanupOptions, cleanup_all
@@ -447,7 +459,7 @@ async def cleanup_storage(request: CleanupRequest):
     return cleanup_all(options)
 
 
-@router.post("/storage/cleanup/preview")
+@router.post("/storage/cleanup/preview", response_model=StorageCleanupResponse)
 async def cleanup_preview():
     """Preview what would be deleted without actually deleting."""
     from services.cleanup import CleanupOptions, cleanup_all
