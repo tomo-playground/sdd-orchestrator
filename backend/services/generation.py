@@ -238,7 +238,7 @@ def _try_parse_seed(data: dict) -> int | None:
             if seed is not None:
                 return int(seed)
     except Exception:
-        logger.warning("Failed to parse seed from SD response", exc_info=True)
+        logger.debug("Failed to parse seed from SD response", exc_info=True)
     return None
 
 

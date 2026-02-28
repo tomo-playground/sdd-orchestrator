@@ -224,5 +224,5 @@ async def classify_valence_via_llm(tags: list[str]) -> list[LLMValenceResult]:
         )
         return validated
     except Exception:
-        logger.warning("[TagClassifier LLM] Gemini valence API call failed", exc_info=True)
+        logger.info("[TagClassifier LLM] Gemini valence API call failed (태그 분류 건너뜀)", exc_info=True)
         return []

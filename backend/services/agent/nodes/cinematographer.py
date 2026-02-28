@@ -122,7 +122,7 @@ async def _try_competition(
 
 async def _run(state: ScriptState, db_session: object) -> dict:
     """Cinematographer 핵심 로직. DB 세션이 보장된 상태에서 실행."""
-    from ..tools.base import call_with_tools  # noqa: PLC0415
+    from ..tools.base import call_direct, call_with_tools  # noqa: PLC0415
     from ..tools.cinematographer_tools import (  # noqa: PLC0415
         create_cinematographer_executors,
         get_cinematographer_tools,
@@ -181,7 +181,12 @@ async def _run(state: ScriptState, db_session: object) -> dict:
 
     prompt_parts.append(
         """
-최종 출력은 반드시 다음 JSON 형식으로 작성하세요:
+[중요] 최종 출력 규칙:
+- 반드시 아래 JSON 형식으로만 응답하세요
+- 자연어 설명, 인사말, 확인 메시지를 절대 포함하지 마세요
+- "네, 알겠습니다" 같은 대화체 응답 금지
+- 순수 JSON만 출력하세요
+
 {
   "scenes": [
     {
@@ -199,13 +204,14 @@ async def _run(state: ScriptState, db_session: object) -> dict:
 
     prompt = "\n".join(prompt_parts)
 
-    # Tool-Calling 실행 (빈 응답 시 1회 재시도)
+    # Tool-Calling 실행 (빈 응답 시 도구 없이 직접 재시도)
     max_attempts = 2
     tool_logs: list = []
     scenes_output: list[dict] | None = None
 
     _JSON_RETRY_SUFFIX = (
-        "\n\n[IMPORTANT] 이전 응답에서 유효한 JSON을 받지 못했습니다. "
+        "\n\n[CRITICAL] 이전 응답에서 유효한 JSON을 받지 못했습니다. "
+        "자연어 텍스트나 대화체 응답은 절대 금지입니다. "
         '반드시 {"scenes": [...]} JSON 형식으로만 응답하세요. '
         "markdown 코드블록이나 설명 텍스트를 포함하지 마세요."
     )
@@ -213,17 +219,26 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     for attempt in range(1, max_attempts + 1):
         current_prompt = prompt if attempt == 1 else prompt + _JSON_RETRY_SUFFIX
         try:
-            logger.info("[Cinematographer] Tool-Calling Agent 시작 (attempt %d/%d)", attempt, max_attempts)
-            response, attempt_logs = await call_with_tools(
-                prompt=current_prompt,
-                tools=tools,
-                tool_executors=executors,
-                max_calls=10,
-                trace_name="cinematographer_tool_calling",
-            )
-            tool_logs = attempt_logs
+            logger.info("[Cinematographer] Agent 시작 (attempt %d/%d)", attempt, max_attempts)
+            if attempt == 1:
+                response, attempt_logs = await call_with_tools(
+                    prompt=current_prompt,
+                    tools=tools,
+                    tool_executors=executors,
+                    max_calls=10,
+                    trace_name="cinematographer_tool_calling",
+                )
+                tool_logs = attempt_logs
+            else:
+                # 재시도: 도구 없이 직접 JSON 생성 (자연어 응답 방지)
+                logger.info("[Cinematographer] 재시도: 도구 없이 직접 JSON 생성")
+                response = await call_direct(
+                    prompt=current_prompt,
+                    trace_name="cinematographer_direct_retry",
+                    temperature=0.0,
+                )
         except Exception as e:
-            logger.warning("[Cinematographer] Tool-Calling 실패 (graceful): %s", e)
+            logger.warning("[Cinematographer] Agent 실패 (graceful): %s", e)
             return _EMPTY_RESULT
 
         scenes_output = _parse_scenes(response)

@@ -25,6 +25,20 @@ class ToolCallLog(TypedDict):
     error: str | None
 
 
+def _is_likely_structured_output(text: str) -> bool:
+    """텍스트가 JSON 등 구조화된 출력일 가능성이 있는지 판별한다."""
+    stripped = text.strip()
+    if not stripped:
+        return False
+    if stripped[0] in ("{", "["):
+        return True
+    if "```" in stripped:
+        return True
+    if "{" in stripped and "}" in stripped:
+        return True
+    return False
+
+
 def define_tool(
     name: str,
     description: str,
@@ -261,6 +275,15 @@ async def call_with_tools(
 
     final = "\n".join(accumulated_text).strip()
 
+    # 누적 텍스트가 자연어(비구조화)이면 fallback 대상으로 전환
+    if final and not _is_likely_structured_output(final):
+        logger.warning(
+            "[Tool-Calling] 누적 텍스트가 비구조화 자연어로 보임 (%d chars, 앞 80자=%r), fallback 시도",
+            len(final),
+            final[:80],
+        )
+        final = ""
+
     # Fallback: 텍스트가 비면, 도구 없이 재호출하여 텍스트 응답 강제
     if not final:
         logger.info(
@@ -270,10 +293,9 @@ async def call_with_tools(
         try:
             # 도구 없이 새 요청: 원본 프롬프트 + JSON 강제 지시
             fallback_instruction = (
-                "You used tools but did not provide a final JSON response. "
-                "Based on the tool results in the conversation, "
-                "provide your final answer now as valid JSON only. "
-                "Do not include any explanation, markdown fences, or preamble — output raw JSON."
+                "도구를 사용했지만 최종 JSON 응답을 제공하지 않았습니다. "
+                "대화 중 도구 결과를 바탕으로 지금 최종 답변을 유효한 JSON으로만 작성하세요. "
+                "설명, markdown 코드블록, 서문 없이 순수 JSON만 출력하세요."
             )
             # contents에 이미 도구 결과가 포함되어 있으므로 그대로 활용
             fallback_contents = list(contents)
@@ -296,3 +318,27 @@ async def call_with_tools(
             logger.warning("[Tool-Calling] Fallback call failed: %s", e)
 
     return final, tool_logs
+
+
+async def call_direct(
+    prompt: str,
+    trace_name: str = "direct_call",
+    temperature: float = 0.0,
+) -> str:
+    """도구 없이 Gemini를 직접 호출한다. JSON 강제 재시도 등에 사용."""
+    if not gemini_client:
+        raise RuntimeError("Gemini client not initialized")
+
+    no_tools_config = types.GenerateContentConfig(temperature=temperature, tools=[])
+    async with trace_llm_call(name=trace_name, input_text=prompt[:1000]) as llm:
+        response = await gemini_client.aio.models.generate_content(
+            model=GEMINI_TEXT_MODEL,
+            contents=[prompt],  # type: ignore[arg-type]
+            config=no_tools_config,
+        )
+        llm.record(response)
+
+    if response.candidates and response.candidates[0].content:
+        parts = response.candidates[0].content.parts or []
+        return "\n".join(p.text for p in parts if hasattr(p, "text") and p.text).strip()
+    return ""
