@@ -32,6 +32,7 @@
 
 ### 최근 작업
 
+- **Lab StyleProfile DB 파라미터 적용 수정** (02-28): `generate_image_with_v3()`에서 StyleProfile의 steps/cfg_scale/sampler_name/clip_skip이 무시되던 버그 수정. `override_settings`로 clip_skip 전달. preview.py 패턴 일관성 확보.
 - **Phase 24 코드 리뷰 수정** (02-28): SSE 에러 BLOCKER 수정(preflight 포함), topic min_length, structure 케이스 정규화(id→name), sendMessage 동시 요청 방지, character_name null 처리, ChatMessage memo 효과 복원(callbacks 분리), topic_analysis 서비스 추출. 15테스트.
 - **characters.preview_locked 필드 제거** (02-28): 미사용 기능 전체 삭제. ORM 모델, 스키마 3곳, preview.py 가드, Frontend 타입/배지/필터, 테스트 fixtures, 문서 3종 정리. Alembic 마이그레이션 포함. 12파일.
 - **Phase 24 구현+안정화** (02-28): 하이브리드 채팅 AI 인터페이스. POST /scripts/analyze-topic, load_full_inventory(), Chat UI 7종, useChatScriptEditor/useAutoScroll, SSE onNodeEvent 콜백. stale closure 수정, SSOT 언어 검증. 41파일.
@@ -180,6 +181,12 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | Tag Intelligence (채널별 태그 정책 + 데이터 기반 추천) | [명세](FEATURES/PROJECT_GROUP.md) §3-1 |
 | Series Intelligence (에피소드 연결 + 성공 패턴 학습) | [명세](FEATURES/PROJECT_GROUP.md) §3-2 |
 | LoRA Calibration Automation | — |
+
+### UX & Workflow
+
+| 기능 | 참조 |
+|------|------|
+| Express 모드 재검토 (살릴지/개선할지/제거할지) | 현재 `research`, `concept`, `production`, `explain` 4단계 스킵 → Stage 파이프라인 미실행 문제. 기본값은 Standard로 변경 완료. 옵션: (A) Stage만 남기고 나머지 스킵, (B) 스킵 단계 커스텀 선택 UI, (C) Express 제거 |
 
 ### Infrastructure & Scale
 

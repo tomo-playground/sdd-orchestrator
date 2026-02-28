@@ -19,7 +19,7 @@ export default function ConceptCard({ message, onResume }: Props) {
   if (!message.concepts || message.concepts.length === 0) return null;
 
   return (
-    <div className="flex gap-2">
+    <div className="flex max-w-2xl gap-2">
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-100">
         <Bot className="h-4 w-4 text-violet-600" />
       </div>

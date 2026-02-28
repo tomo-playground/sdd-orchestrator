@@ -6,7 +6,7 @@ import { API_BASE } from "../constants";
 import { useContextStore } from "../store/useContextStore";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useUIStore } from "../store/useUIStore";
-import { EXPRESS_SKIP_STAGES, getInitialSteps } from "../utils/pipelineSteps";
+import { getInitialSteps } from "../utils/pipelineSteps";
 import {
   syncToGlobalStore,
   processSSEStream,
@@ -64,7 +64,7 @@ const INITIAL_STATE: ScriptEditorState = {
   storyboardId: null,
   storyboardVersion: null,
   isSaving: false,
-  skipStages: [...EXPRESS_SKIP_STAGES],
+  skipStages: [],
   preset: null,
   threadId: null,
   isWaitingForInput: false,

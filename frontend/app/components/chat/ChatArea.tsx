@@ -45,19 +45,42 @@ export default function ChatArea({ editor }: Props) {
     ]
   );
 
+  const isInitialState = editor.chatMessages.length <= 1;
+
   return (
     <div className="flex flex-1 flex-col">
-      <ChatMessageList messages={editor.chatMessages} callbacks={callbacks} />
+      {isInitialState ? (
+        <div className="flex flex-1 flex-col items-center justify-center px-6">
+          <div className="mb-6 text-center">
+            <h2 className="text-lg font-semibold text-zinc-800">어떤 쇼츠를 만들까요?</h2>
+            <p className="mt-1.5 text-sm text-zinc-500">
+              주제를 입력하면 AI가 스크립트를 작성해 드려요
+            </p>
+          </div>
+          <div className="w-full max-w-3xl">
+            <ChatInput
+              onSend={editor.sendMessage}
+              disabled={editor.isGenerating}
+              hasMessages={false}
+              hasTopic={false}
+              borderless
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          <ChatMessageList messages={editor.chatMessages} callbacks={callbacks} />
 
-      {editor.activeProgress && <ProgressBar progress={editor.activeProgress} />}
+          {editor.activeProgress && <ProgressBar progress={editor.activeProgress} />}
 
-      <ChatInput
-        onSend={editor.sendMessage}
-        onGenerate={editor.confirmAndGenerate}
-        disabled={editor.isGenerating}
-        hasMessages={editor.chatMessages.length > 1}
-        hasTopic={!!editor.topic.trim()}
-      />
+          <ChatInput
+            onSend={editor.sendMessage}
+            disabled={editor.isGenerating}
+            hasMessages={editor.chatMessages.length > 1}
+            hasTopic={!!editor.topic.trim()}
+          />
+        </>
+      )}
     </div>
   );
 }
