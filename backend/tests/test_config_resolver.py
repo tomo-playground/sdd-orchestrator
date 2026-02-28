@@ -25,11 +25,10 @@ class TestResolveEffectiveConfig:
         assert result["values"] == {}
         assert result["sources"] == {}
 
-    def test_group_config_provides_values(self):
-        """GroupConfig is the only layer that provides config values."""
+    def test_group_provides_values(self):
+        """Group directly provides config values."""
         project = _Obj()
-        group_config = _Obj(render_preset_id=20, style_profile_id=3)
-        group = _Obj(config=group_config)
+        group = _Obj(render_preset_id=20, style_profile_id=3, narrator_voice_preset_id=None, channel_dna=None)
         result = resolve_effective_config(project, group)
         assert result["values"]["render_preset_id"] == 20
         assert result["sources"]["render_preset_id"] == "group"
@@ -49,13 +48,21 @@ class TestResolveEffectiveConfig:
         assert result["values"] == {}
         assert result["sources"] == {}
 
-    def test_group_without_config(self):
-        """Group without a config object resolves nothing."""
+    def test_group_with_all_none_fields(self):
+        """Group with all None fields resolves nothing."""
         project = _Obj()
-        group = _Obj(config=None)
+        group = _Obj(render_preset_id=None, style_profile_id=None, narrator_voice_preset_id=None, channel_dna=None)
         result = resolve_effective_config(project, group)
         assert result["values"] == {}
         assert result["sources"] == {}
+
+    def test_channel_dna_extracted(self):
+        """channel_dna is extracted from group."""
+        project = _Obj()
+        dna = {"tone": "serious", "worldview": "fantasy"}
+        group = _Obj(render_preset_id=None, style_profile_id=None, narrator_voice_preset_id=None, channel_dna=dna)
+        result = resolve_effective_config(project, group)
+        assert result["channel_dna"] == dna
 
 
 # ===========================================================================
@@ -82,10 +89,9 @@ class TestEffectiveConfigAPI:
         data = resp.json()
         assert "sources" in data
 
-    def test_group_config_sets_preset(self, client, db_session):
-        """GroupConfig is the SSOT for cascading config."""
+    def test_group_sets_preset(self, client, db_session):
+        """Group is the SSOT for cascading config."""
         from models.group import Group
-        from models.group_config import GroupConfig
         from models.render_preset import RenderPreset
 
         preset = RenderPreset(name="Test Preset", is_system=False, layout_style="post")
@@ -93,12 +99,7 @@ class TestEffectiveConfigAPI:
         db_session.flush()
 
         group = db_session.query(Group).first()
-        config = db_session.query(GroupConfig).filter(GroupConfig.group_id == group.id).first()
-        if not config:
-            config = GroupConfig(group_id=group.id, render_preset_id=preset.id)
-            db_session.add(config)
-        else:
-            config.render_preset_id = preset.id
+        group.render_preset_id = preset.id
         db_session.commit()
 
         resp = client.get(f"/api/v1/groups/{group.id}/effective-config")
@@ -109,7 +110,6 @@ class TestEffectiveConfigAPI:
     def test_render_preset_object_included(self, client, db_session):
         """EffectiveConfig includes full render_preset object for frontend."""
         from models.group import Group
-        from models.group_config import GroupConfig
         from models.render_preset import RenderPreset
 
         preset = RenderPreset(
@@ -130,12 +130,7 @@ class TestEffectiveConfigAPI:
         db_session.flush()
 
         group = db_session.query(Group).first()
-        config = db_session.query(GroupConfig).filter(GroupConfig.group_id == group.id).first()
-        if not config:
-            config = GroupConfig(group_id=group.id, render_preset_id=preset.id)
-            db_session.add(config)
-        else:
-            config.render_preset_id = preset.id
+        group.render_preset_id = preset.id
         db_session.commit()
 
         resp = client.get(f"/api/v1/groups/{group.id}/effective-config")
@@ -159,13 +154,10 @@ class TestEffectiveConfigAPI:
     def test_render_preset_null_when_no_preset(self, client, db_session):
         """render_preset is null when no preset configured."""
         from models.group import Group
-        from models.group_config import GroupConfig
 
         group = db_session.query(Group).first()
-        config = db_session.query(GroupConfig).filter(GroupConfig.group_id == group.id).first()
-        if config:
-            config.render_preset_id = None
-            db_session.commit()
+        group.render_preset_id = None
+        db_session.commit()
 
         resp = client.get(f"/api/v1/groups/{group.id}/effective-config")
         data = resp.json()

@@ -116,7 +116,7 @@ def check_materials(storyboard_id: int, db: Session = Depends(get_db)):
     """Check material readiness for a storyboard."""
     from sqlalchemy import func
 
-    from models.group_config import GroupConfig
+    from models.group import Group
     from models.scene import Scene
     from models.storyboard_character import StoryboardCharacter
 
@@ -137,11 +137,11 @@ def check_materials(storyboard_id: int, db: Session = Depends(get_db)):
     voice_ready = False
     music_ready = False
     if sb.group_id:
-        config = db.query(GroupConfig).filter(GroupConfig.group_id == sb.group_id).first()
-        if config:
-            voice_ready = config.narrator_voice_preset_id is not None
-            if config.render_preset:
-                rp = config.render_preset
+        group = db.query(Group).filter(Group.id == sb.group_id).first()
+        if group:
+            voice_ready = group.narrator_voice_preset_id is not None
+            if group.render_preset:
+                rp = group.render_preset
                 music_ready = bool(rp.music_preset_id) or bool(rp.bgm_file)
 
     # Background: if staging started, only ready when "staged"

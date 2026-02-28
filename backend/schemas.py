@@ -121,31 +121,6 @@ class RenderPresetResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class GroupCreate(BaseModel):
-    project_id: int
-    name: str = Field(max_length=100)
-    description: str | None = Field(default=None, max_length=2000)
-    # Config fields applied to auto-created GroupConfig
-    render_preset_id: int | None = None
-    style_profile_id: int | None = None
-    narrator_voice_preset_id: int | None = None
-
-
-class GroupUpdate(BaseModel):
-    name: str | None = Field(default=None, max_length=100)
-    description: str | None = Field(default=None, max_length=2000)
-
-
-class GroupResponse(BaseModel):
-    id: int
-    project_id: int
-    name: str
-    description: str | None = None
-    created_at: datetime | None = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
 class ChannelDNA(BaseModel):
     """Channel identity: tone, audience, worldview, guidelines."""
 
@@ -155,37 +130,46 @@ class ChannelDNA(BaseModel):
     guidelines: str | None = Field(default=None, max_length=2000)
 
 
-class GroupConfigUpdate(BaseModel):
+class GroupCreate(BaseModel):
+    project_id: int
+    name: str = Field(max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
     render_preset_id: int | None = None
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
-    language: str | None = None
-    duration: int | None = None
     channel_dna: ChannelDNA | None = None
 
 
-class GroupConfigResponse(BaseModel):
+class GroupUpdate(BaseModel):
+    name: str | None = Field(default=None, max_length=100)
+    description: str | None = Field(default=None, max_length=2000)
+    render_preset_id: int | None = None
+    style_profile_id: int | None = None
+    narrator_voice_preset_id: int | None = None
+    channel_dna: ChannelDNA | None = None
+
+
+class GroupResponse(BaseModel):
     id: int
-    group_id: int
+    project_id: int
+    name: str
+    description: str | None = None
     render_preset_id: int | None = None
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
-    language: str | None = None
-    duration: int | None = None
     channel_dna: ChannelDNA | None = None
+    created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class EffectiveConfigResponse(BaseModel):
-    """Resolved cascading config: System Default < GroupConfig (2-level)."""
+    """Resolved cascading config: System Default < Group (2-level)."""
 
     render_preset_id: int | None = None
     render_preset: RenderPresetResponse | None = None  # Full preset for frontend
     style_profile_id: int | None = None
     narrator_voice_preset_id: int | None = None
-    language: str | None = None
-    duration: int | None = None
     channel_dna: ChannelDNA | None = None
     sources: dict[str, str] = {}  # field -> "group" | "system_default"
 

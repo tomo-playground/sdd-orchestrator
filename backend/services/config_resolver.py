@@ -1,8 +1,7 @@
-"""Cascading config resolver: GroupConfig only.
+"""Cascading config resolver: Group fields only.
 
 For each CASCADING_FIELDS entry, the most specific non-None value wins.
-Currently only the GroupConfig layer provides config values.
-The Project model does not carry config fields directly.
+The Group model directly carries config fields (render_preset_id, etc.).
 """
 
 from __future__ import annotations
@@ -13,8 +12,6 @@ CASCADING_FIELDS = [
     "render_preset_id",
     "style_profile_id",
     "narrator_voice_preset_id",
-    "language",
-    "duration",
 ]
 
 
@@ -25,34 +22,24 @@ def resolve_effective_config(
     """Return resolved config dict with ``values`` and ``sources``.
 
     Each source entry records which level the value came from.
-    The group layer reads from group.config (GroupConfig) if available.
-    Note: Project model has no config fields; only GroupConfig is resolved.
+    Config fields are read directly from the Group model.
     """
     values: dict[str, Any] = {}
     sources: dict[str, str] = {}
 
-    group_config = _get_group_config(group)
-
-    for field in CASCADING_FIELDS:
-        if group_config is not None:
-            val = getattr(group_config, field, None)
+    if group is not None:
+        for field in CASCADING_FIELDS:
+            val = getattr(group, field, None)
             if val is not None:
                 values[field] = val
                 sources[field] = "group"
 
     # JSONB fields: extracted directly (not in CASCADING_FIELDS)
     channel_dna = None
-    if group_config is not None:
-        channel_dna = getattr(group_config, "channel_dna", None)
+    if group is not None:
+        channel_dna = getattr(group, "channel_dna", None)
 
     return {"values": values, "sources": sources, "channel_dna": channel_dna}
-
-
-def _get_group_config(group: Any | None) -> Any | None:
-    """Extract GroupConfig from a Group object."""
-    if group is None:
-        return None
-    return getattr(group, "config", None)
 
 
 def apply_system_defaults(result: dict, db: Any) -> dict:

@@ -3,14 +3,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
-    from models.group_config import GroupConfig
     from models.project import Project
+    from models.render_preset import RenderPreset
+    from models.sd_model import StyleProfile
     from models.storyboard import Storyboard
+    from models.voice_preset import VoicePreset
 
 
 class Group(Base, TimestampMixin):
@@ -23,13 +26,33 @@ class Group(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
 
+    # Config fields (previously in group_config table)
+    render_preset_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("render_presets.id", ondelete="SET NULL"),
+    )
+    style_profile_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("style_profiles.id", ondelete="SET NULL"),
+    )
+    narrator_voice_preset_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("voice_presets.id", ondelete="SET NULL"),
+    )
+    channel_dna: Mapped[dict | None] = mapped_column(JSONB)
+
     # Relationships
     project: Mapped[Project] = relationship("Project", back_populates="groups")
-    config: Mapped[GroupConfig | None] = relationship(
-        "GroupConfig",
-        uselist=False,
-        back_populates="group",
-        lazy="joined",
-        cascade="all, delete-orphan",
-    )
     storyboards: Mapped[list[Storyboard]] = relationship("Storyboard", back_populates="group")
+    render_preset: Mapped[RenderPreset | None] = relationship(
+        "RenderPreset",
+        lazy="joined",
+    )
+    style_profile: Mapped[StyleProfile | None] = relationship(
+        "StyleProfile",
+        foreign_keys=[style_profile_id],
+    )
+    narrator_voice_preset: Mapped[VoicePreset | None] = relationship(
+        "VoicePreset",
+        foreign_keys=[narrator_voice_preset_id],
+    )

@@ -236,6 +236,7 @@ class TestStoryboardCrudBgm:
             language="Korean",
             bgm_prompt="soft piano ambient",
             bgm_mood="calm",
+            casting_recommendation=None,
             scenes=[],
             character_id=None,
             character_b_id=None,
@@ -281,6 +282,7 @@ class TestStoryboardCrudBgm:
             language="Korean",
             bgm_prompt="new prompt",  # Changed!
             bgm_mood="energetic",
+            casting_recommendation=None,
             scenes=[],
             character_id=None,
             character_b_id=None,
@@ -327,6 +329,7 @@ class TestStoryboardCrudBgm:
             language="Korean",
             bgm_prompt="same prompt",  # Unchanged
             bgm_mood="calm",
+            casting_recommendation=None,
             scenes=[],
             character_id=None,
             character_b_id=None,

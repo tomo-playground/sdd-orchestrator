@@ -37,7 +37,6 @@ class TestGenerateImageWithV3:
         """Generate image with character LoRA + Style Profile from Group."""
         from models import Character, LoRA, Project, StyleProfile
         from models.group import Group
-        from models.group_config import GroupConfig
 
         # Setup: Project → Group with Style Profile
         project = Project(name="Test Project")
@@ -64,15 +63,9 @@ class TestGenerateImageWithV3:
         group = Group(
             name="Test Group",
             project_id=project.id,
-        )
-        db_session.add(group)
-        db_session.flush()
-
-        group_config = GroupConfig(
-            group_id=group.id,
             style_profile_id=profile.id,
         )
-        db_session.add(group_config)
+        db_session.add(group)
         db_session.flush()
 
         char_lora = LoRA(
@@ -610,11 +603,10 @@ class TestComposeNegativeOrder:
 class TestResolveStyleLorasFromGroup:
     """Test resolve_style_loras_from_group() -- Group Config → Style LoRAs."""
 
-    def test_resolve_loras_from_group_config(self, db_session):
+    def test_resolve_loras_from_group(self, db_session):
         """Group with Style Profile → LoRAs resolved."""
         from models import LoRA, Project, StyleProfile
         from models.group import Group
-        from models.group_config import GroupConfig
 
         project = Project(name="Test Project")
         db_session.add(project)
@@ -638,15 +630,9 @@ class TestResolveStyleLorasFromGroup:
         group = Group(
             name="Test Group",
             project_id=project.id,
-        )
-        db_session.add(group)
-        db_session.flush()
-
-        group_config = GroupConfig(
-            group_id=group.id,
             style_profile_id=profile.id,
         )
-        db_session.add(group_config)
+        db_session.add(group)
         db_session.commit()
 
         loras = resolve_style_loras_from_group(group.id, db_session)
@@ -681,7 +667,6 @@ class TestResolveStyleLorasFromStoryboard:
         """Storyboard → Group → Style Profile → LoRAs."""
         from models import LoRA, Project, Storyboard, StyleProfile
         from models.group import Group
-        from models.group_config import GroupConfig
 
         project = Project(name="Test Project")
         db_session.add(project)
@@ -705,15 +690,9 @@ class TestResolveStyleLorasFromStoryboard:
         group = Group(
             name="Comic Group",
             project_id=project.id,
-        )
-        db_session.add(group)
-        db_session.flush()
-
-        group_config = GroupConfig(
-            group_id=group.id,
             style_profile_id=profile.id,
         )
-        db_session.add(group_config)
+        db_session.add(group)
         db_session.flush()
 
         storyboard = Storyboard(

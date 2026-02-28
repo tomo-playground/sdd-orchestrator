@@ -1,4 +1,4 @@
-"""Tests for Group Config API (PUT /groups/{id}/config).
+"""Tests for Group API (PUT /groups/{id}) with config fields.
 
 Covers narrator_voice_preset_id update and verifies partial update behavior.
 """
@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 
 class TestGroupConfigUpdate:
-    """Test PUT /groups/{id}/config with narrator_voice_preset_id field."""
+    """Test PUT /groups/{id} with config fields (previously in group_config)."""
 
     def _create_group(self, db_session: Session, **overrides) -> int:
         from models import Group, Project
@@ -50,12 +50,12 @@ class TestGroupConfigUpdate:
         return preset.id
 
     def test_update_narrator_voice_preset_id(self, client, db_session):
-        """PUT with narrator_voice_preset_id should update the config."""
+        """PUT with narrator_voice_preset_id should update the group."""
         group_id = self._create_group(db_session)
         voice_preset_id = self._create_voice_preset(db_session)
 
         resp = client.put(
-            f"/api/v1/groups/{group_id}/config",
+            f"/api/v1/groups/{group_id}",
             json={"narrator_voice_preset_id": voice_preset_id},
         )
         assert resp.status_code == 200
@@ -69,13 +69,13 @@ class TestGroupConfigUpdate:
 
         # Set initial value
         client.put(
-            f"/api/v1/groups/{group_id}/config",
+            f"/api/v1/groups/{group_id}",
             json={"narrator_voice_preset_id": voice_preset_id},
         )
 
         # Clear it
         resp = client.put(
-            f"/api/v1/groups/{group_id}/config",
+            f"/api/v1/groups/{group_id}",
             json={"narrator_voice_preset_id": None},
         )
         assert resp.status_code == 200
@@ -86,26 +86,16 @@ class TestGroupConfigUpdate:
         """PUT with only narrator_voice_preset_id should preserve other fields."""
         group_id = self._create_group(db_session)
 
-        # Set initial config
-        client.put(
-            f"/api/v1/groups/{group_id}/config",
-            json={
-                "language": "korean",
-                "duration": 60,
-            },
-        )
-
         # Update only voice preset
         voice_preset_id = self._create_voice_preset(db_session)
         resp = client.put(
-            f"/api/v1/groups/{group_id}/config",
+            f"/api/v1/groups/{group_id}",
             json={"narrator_voice_preset_id": voice_preset_id},
         )
         assert resp.status_code == 200
         data = resp.json()
         assert data["narrator_voice_preset_id"] == voice_preset_id
-        assert data["language"] == "korean"  # preserved
-        assert data["duration"] == 60  # preserved
+        assert data["name"] == "Test Group"  # preserved
 
     def test_update_nonexistent_voice_preset_id_fails(self, client, db_session):
         """PUT with nonexistent narrator_voice_preset_id should fail (FK constraint).
@@ -118,14 +108,14 @@ class TestGroupConfigUpdate:
 
         with pytest.raises(IntegrityError):
             client.put(
-                f"/api/v1/groups/{group_id}/config",
+                f"/api/v1/groups/{group_id}",
                 json={"narrator_voice_preset_id": 99999},
             )
 
     def test_update_nonexistent_group_returns_404(self, client):
         """PUT on nonexistent group should return 404."""
         resp = client.put(
-            "/api/v1/groups/99999/config",
+            "/api/v1/groups/99999",
             json={"narrator_voice_preset_id": 1},
         )
         assert resp.status_code == 404
@@ -135,9 +125,9 @@ class TestGroupConfigUpdate:
         group_id = self._create_group(db_session)
         voice_preset_id = self._create_voice_preset(db_session)
 
-        # Set config
+        # Set on group directly
         client.put(
-            f"/api/v1/groups/{group_id}/config",
+            f"/api/v1/groups/{group_id}",
             json={"narrator_voice_preset_id": voice_preset_id},
         )
 

@@ -22,25 +22,25 @@ def analyze_tts(storyboard_id):
         print(f"Group ID: {storyboard.group_id}")
         print(f"Language: {storyboard.language}")
 
-        # 2. Group Config (Narrator Voice)
-        group_config = conn.execute(
+        # 2. Group (Narrator Voice)
+        group_row = conn.execute(
             text("""
-                SELECT gc.narrator_voice_preset_id, vp.name as voice_name, vp.tts_engine, vp.voice_design_prompt
-                FROM group_config gc
-                LEFT JOIN voice_presets vp ON gc.narrator_voice_preset_id = vp.id
-                WHERE gc.group_id = :group_id
+                SELECT g.narrator_voice_preset_id, vp.name as voice_name, vp.tts_engine, vp.voice_design_prompt
+                FROM groups g
+                LEFT JOIN voice_presets vp ON g.narrator_voice_preset_id = vp.id
+                WHERE g.id = :group_id
             """),
             {"group_id": storyboard.group_id}
         ).fetchone()
 
         print("\n--- Narrator Voice config ---")
-        if group_config:
-            print(f"Narrator Voice Preset ID: {group_config.narrator_voice_preset_id}")
-            print(f"Voice Name: {group_config.voice_name}")
-            print(f"TTS Engine: {group_config.tts_engine}")
-            print(f"Voice Design Prompt: {group_config.voice_design_prompt}")
+        if group_row:
+            print(f"Narrator Voice Preset ID: {group_row.narrator_voice_preset_id}")
+            print(f"Voice Name: {group_row.voice_name}")
+            print(f"TTS Engine: {group_row.tts_engine}")
+            print(f"Voice Design Prompt: {group_row.voice_design_prompt}")
         else:
-            print("No group config found for this group.")
+            print("No group found.")
 
         # 3. Characters in Storyboard
         characters = conn.execute(

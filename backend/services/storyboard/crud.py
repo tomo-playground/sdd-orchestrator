@@ -72,6 +72,7 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
         language=request.language,
         bgm_prompt=request.bgm_prompt,
         bgm_mood=request.bgm_mood,
+        casting_recommendation=request.casting_recommendation.model_dump() if request.casting_recommendation else None,
         base_seed=generate_base_seed(),
     )
     db.add(db_storyboard)
@@ -205,13 +206,13 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
     if not storyboard:
         raise HTTPException(status_code=404, detail="Storyboard not found")
 
-    # Resolve settings from cascade (group_config → project)
+    # Resolve settings from cascade (group → project)
     from models.group import Group
     from services.config_resolver import resolve_effective_config
 
     group = (
         db.query(Group)
-        .options(joinedload(Group.config), joinedload(Group.project))
+        .options(joinedload(Group.project))
         .filter(Group.id == storyboard.group_id)
         .first()
     )
@@ -289,6 +290,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "bgm_prompt": storyboard.bgm_prompt,
         "bgm_mood": storyboard.bgm_mood,
         "stage_status": storyboard.stage_status,
+        "casting_recommendation": storyboard.casting_recommendation,
         "created_at": storyboard.created_at.isoformat() if storyboard.created_at else None,
         "updated_at": storyboard.updated_at.isoformat() if storyboard.updated_at else None,
         "version": storyboard.version,
@@ -331,6 +333,10 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
         storyboard.duration = request.duration
     if request.language is not None:
         storyboard.language = request.language
+
+    # Phase 20-C: Casting recommendation
+    if request.casting_recommendation is not None:
+        storyboard.casting_recommendation = request.casting_recommendation.model_dump()
 
     # Phase 12-C: BGM prompt/mood
     new_bgm_prompt = request.bgm_prompt

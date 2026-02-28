@@ -12,7 +12,6 @@ from models.creative import (
     CreativeTrace,
 )
 from models.group import Group
-from models.group_config import GroupConfig
 from models.lab import LabExperiment
 from models.lora import LoRA
 from models.media_asset import MediaAsset
@@ -49,7 +48,6 @@ __all__ = [
     "StyleProfile",
     "Project",
     "Group",
-    "GroupConfig",
     "RenderPreset",
     "Storyboard",
     "Scene",

@@ -173,13 +173,13 @@ def test_create_group_with_preset(client: TestClient):
     )
     assert group.status_code == 201
 
-    # Verify render_preset_id is stored in group_config
+    # Verify render_preset_id is stored on group
     gid = group.json()["id"]
-    config = client.get(f"/api/v1/groups/{gid}/config").json()
-    assert config["render_preset_id"] == preset["id"]
+    group_data = client.get(f"/api/v1/groups/{gid}").json()
+    assert group_data["render_preset_id"] == preset["id"]
 
 
-def test_get_group_config_includes_preset(client: TestClient):
+def test_get_group_includes_preset(client: TestClient):
     preset = client.post(
         "/api/admin/render-presets",
         json={
@@ -198,9 +198,9 @@ def test_get_group_config_includes_preset(client: TestClient):
         },
     ).json()
 
-    config = client.get(f"/api/v1/groups/{created['id']}/config")
-    assert config.status_code == 200
-    assert config.json()["render_preset_id"] == preset["id"]
+    resp = client.get(f"/api/v1/groups/{created['id']}")
+    assert resp.status_code == 200
+    assert resp.json()["render_preset_id"] == preset["id"]
 
 
 def test_group_without_preset(client: TestClient):
@@ -214,7 +214,7 @@ def test_group_without_preset(client: TestClient):
     )
     assert group.status_code == 201
 
-    # Verify config has no preset
+    # Verify group has no preset
     gid = group.json()["id"]
-    config = client.get(f"/api/v1/groups/{gid}/config").json()
-    assert config["render_preset_id"] is None
+    group_data = client.get(f"/api/v1/groups/{gid}").json()
+    assert group_data["render_preset_id"] is None

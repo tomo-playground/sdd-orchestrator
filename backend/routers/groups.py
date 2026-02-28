@@ -7,13 +7,10 @@ from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
 from models.group import Group
-from models.group_config import GroupConfig
 from models.project import Project
 from models.storyboard import Storyboard
 from schemas import (
     EffectiveConfigResponse,
-    GroupConfigResponse,
-    GroupConfigUpdate,
     GroupCreate,
     GroupResponse,
     GroupUpdate,
@@ -49,35 +46,31 @@ def create_group(body: GroupCreate, db: Session = Depends(get_db)):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    group = Group(
-        project_id=body.project_id,
-        name=body.name,
-        description=body.description,
-    )
-    db.add(group)
-    db.flush()
+    fields: dict = {
+        "project_id": body.project_id,
+        "name": body.name,
+        "description": body.description,
+    }
 
-    # Pre-fill GroupConfig with project defaults + system defaults
-    config_fields: dict = {}
-    for field in ("render_preset_id", "style_profile_id"):
+    # Config fields
+    for field in ("render_preset_id", "style_profile_id", "narrator_voice_preset_id"):
         val = getattr(body, field, None) or getattr(project, field, None)
         if val is not None:
-            config_fields[field] = val
+            fields[field] = val
 
-    # GroupConfig-only fields (no project fallback)
-    if body.narrator_voice_preset_id is not None:
-        config_fields["narrator_voice_preset_id"] = body.narrator_voice_preset_id
+    if body.channel_dna is not None:
+        fields["channel_dna"] = body.channel_dna.model_dump()
 
     # System default: style_profile with is_default=true
-    if "style_profile_id" not in config_fields:
+    if "style_profile_id" not in fields:
         from models import StyleProfile
 
         default_profile = db.query(StyleProfile.id).filter(StyleProfile.is_default.is_(True)).first()
         if default_profile:
-            config_fields["style_profile_id"] = default_profile.id
+            fields["style_profile_id"] = default_profile.id
 
-    config = GroupConfig(group_id=group.id, **config_fields)
-    db.add(config)
+    group = Group(**fields)
+    db.add(group)
     db.commit()
     db.refresh(group)
     return group
@@ -89,52 +82,13 @@ def update_group(group_id: int, body: GroupUpdate, db: Session = Depends(get_db)
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
     for key, value in body.model_dump(exclude_unset=True).items():
-        setattr(group, key, value)
+        if key == "channel_dna" and value is not None:
+            setattr(group, key, value if isinstance(value, dict) else value.model_dump())
+        else:
+            setattr(group, key, value)
     db.commit()
     db.refresh(group)
     return group
-
-
-# ---- Group Config (1:1) ----
-
-
-@router.get("/{group_id}/config", response_model=GroupConfigResponse)
-def get_group_config(group_id: int, db: Session = Depends(get_db)):
-    """Return group config, creating one if it does not exist yet."""
-    group = db.query(Group).filter(Group.id == group_id).first()
-    if not group:
-        raise HTTPException(status_code=404, detail="Group not found")
-    config = _get_or_create_config(group, db)
-    return config
-
-
-@router.put("/{group_id}/config", response_model=GroupConfigResponse)
-def update_group_config(
-    group_id: int,
-    data: GroupConfigUpdate,
-    db: Session = Depends(get_db),
-):
-    """Update group config fields (partial update via exclude_unset)."""
-    group = db.query(Group).filter(Group.id == group_id).first()
-    if not group:
-        raise HTTPException(status_code=404, detail="Group not found")
-    config = _get_or_create_config(group, db)
-    for key, value in data.model_dump(exclude_unset=True).items():
-        setattr(config, key, value)
-    db.commit()
-    db.refresh(config)
-    return config
-
-
-def _get_or_create_config(group: Group, db: Session) -> GroupConfig:
-    """Return existing GroupConfig or create a new empty one."""
-    config = db.query(GroupConfig).filter(GroupConfig.group_id == group.id).first()
-    if config is None:
-        config = GroupConfig(group_id=group.id)
-        db.add(config)
-        db.commit()
-        db.refresh(config)
-    return config
 
 
 # ---- Effective Config ----
@@ -146,7 +100,7 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
 
     group = (
         db.query(Group)
-        .options(joinedload(Group.config), joinedload(Group.project))
+        .options(joinedload(Group.project))
         .filter(Group.id == group_id)
         .first()
     )
@@ -168,8 +122,6 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
         render_preset=render_preset,
         style_profile_id=result["values"].get("style_profile_id"),
         narrator_voice_preset_id=result["values"].get("narrator_voice_preset_id"),
-        language=result["values"].get("language"),
-        duration=result["values"].get("duration"),
         channel_dna=result.get("channel_dna"),
         sources=result["sources"],
     )

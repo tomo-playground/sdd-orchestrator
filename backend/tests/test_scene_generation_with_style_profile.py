@@ -52,19 +52,15 @@ def setup_test_data(db_session: Session):
     db_session.add(character)
     db_session.flush()
 
-    # Set character_id and style_profile_id via GroupConfig (cascade)
-    from models.group_config import GroupConfig
+    # Set style_profile_id on Group directly (cascade)
+    from models.group import Group
 
-    config = db_session.query(GroupConfig).filter(GroupConfig.group_id == 1).first()
-    if not config:
-        config = GroupConfig(group_id=1, character_id=character.id, style_profile_id=profile.id)
-        db_session.add(config)
-    else:
-        config.character_id = character.id
-        config.style_profile_id = profile.id
+    group = db_session.query(Group).filter(Group.id == 1).first()
+    if group:
+        group.style_profile_id = profile.id
     db_session.flush()
 
-    # Create Storyboard (settings come from GroupConfig cascade)
+    # Create Storyboard (settings come from Group cascade)
     storyboard = Storyboard(
         title="Test Storyboard",
         description="Test",
@@ -185,8 +181,8 @@ def test_scene_generation_without_storyboard(client: TestClient):
 
 def test_storyboard_without_style_profile(db_session: Session):
     """
-    Test that storyboard without style_profile_id in group_config doesn't break generation.
-    Style profile is now resolved via cascade (group_config), not storyboard column.
+    Test that storyboard without style_profile_id on group doesn't break generation.
+    Style profile is now resolved via cascade (group), not storyboard column.
     """
     storyboard = Storyboard(
         title="No Profile Storyboard",

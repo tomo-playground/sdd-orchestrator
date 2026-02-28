@@ -174,11 +174,11 @@ def create_research_executors(
             logger.info("[ResearchTool] 그룹 DNA 조회 완료: group_id=%d", group_id)
             return f"[그룹 DNA] {result}"
 
-        # 없으면 DB에서 group_config.channel_dna 조회
+        # 없으면 DB에서 groups.channel_dna 조회
         try:
-            from models import GroupConfig
+            from models import Group
 
-            stmt = select(GroupConfig.channel_dna).where(GroupConfig.id == group_id)
+            stmt = select(Group.channel_dna).where(Group.id == group_id)
             if isinstance(db, AsyncSession):
                 result_proxy = await db.execute(stmt)
             else:

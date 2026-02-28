@@ -1,4 +1,4 @@
-"""Router tests for /groups endpoints (CRUD + config + effective-config)."""
+"""Router tests for /groups endpoints (CRUD + effective-config)."""
 
 from models.storyboard import Storyboard
 
@@ -40,14 +40,18 @@ class TestGroupsRouter:
         resp = client.post("/api/v1/groups", json=body)
         assert resp.status_code == 404
 
-    def test_create_group_auto_creates_config(self, client):
+    def test_create_group_includes_config_fields(self, client):
         pid = self._create_project(client)
         gid = client.post("/api/v1/groups", json={"project_id": pid, "name": "WithConfig"}).json()["id"]
 
-        resp = client.get(f"/api/v1/groups/{gid}/config")
+        resp = client.get(f"/api/v1/groups/{gid}")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["group_id"] == gid
+        # Config fields are part of group response
+        assert "render_preset_id" in data
+        assert "style_profile_id" in data
+        assert "narrator_voice_preset_id" in data
+        assert "channel_dna" in data
 
     def test_get_group(self, client):
         pid = self._create_project(client)
@@ -68,6 +72,26 @@ class TestGroupsRouter:
         resp = client.put(f"/api/v1/groups/{gid}", json={"name": "After"})
         assert resp.status_code == 200
         assert resp.json()["name"] == "After"
+
+    def test_update_group_config_fields(self, client):
+        """PUT /groups/{id} can update config fields (render_preset_id, etc.)."""
+        pid = self._create_project(client)
+        gid = client.post("/api/v1/groups", json={"project_id": pid, "name": "G"}).json()["id"]
+
+        resp = client.put(f"/api/v1/groups/{gid}", json={"narrator_voice_preset_id": None})
+        assert resp.status_code == 200
+        assert resp.json()["narrator_voice_preset_id"] is None
+
+    def test_update_group_partial(self, client):
+        """Partial update preserves other fields."""
+        pid = self._create_project(client)
+        gid = client.post("/api/v1/groups", json={"project_id": pid, "name": "Original"}).json()["id"]
+
+        resp = client.put(f"/api/v1/groups/{gid}", json={"description": "new desc"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["description"] == "new desc"
+        assert data["name"] == "Original"
 
     def test_update_group_not_found(self, client):
         resp = client.put("/api/v1/groups/9999", json={"name": "X"})
@@ -101,46 +125,6 @@ class TestGroupsRouter:
         assert "existing storyboards" in resp.json()["detail"].lower()
 
 
-class TestGroupConfig:
-    """Group config CRUD tests."""
-
-    def _create_group(self, client) -> int:
-        pid = client.post("/api/v1/projects", json={"name": "P"}).json()["id"]
-        return client.post("/api/v1/groups", json={"project_id": pid, "name": "G"}).json()["id"]
-
-    def test_get_config(self, client):
-        gid = self._create_group(client)
-        resp = client.get(f"/api/v1/groups/{gid}/config")
-        assert resp.status_code == 200
-        assert resp.json()["group_id"] == gid
-
-    def test_get_config_group_not_found(self, client):
-        resp = client.get("/api/v1/groups/9999/config")
-        assert resp.status_code == 404
-
-    def test_update_config(self, client):
-        gid = self._create_group(client)
-        resp = client.put(f"/api/v1/groups/{gid}/config", json={"language": "english", "duration": 30})
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["language"] == "english"
-        assert data["duration"] == 30
-
-    def test_update_config_partial(self, client):
-        gid = self._create_group(client)
-        client.put(f"/api/v1/groups/{gid}/config", json={"language": "korean", "duration": 20})
-
-        resp = client.put(f"/api/v1/groups/{gid}/config", json={"duration": 40})
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["duration"] == 40
-        assert data["language"] == "korean"
-
-    def test_update_config_group_not_found(self, client):
-        resp = client.put("/api/v1/groups/9999/config", json={"language": "en"})
-        assert resp.status_code == 404
-
-
 class TestGroupEffectiveConfig:
     """Effective config (cascading) tests."""
 
@@ -159,12 +143,12 @@ class TestGroupEffectiveConfig:
         resp = client.get("/api/v1/groups/9999/effective-config")
         assert resp.status_code == 404
 
-    def test_effective_config_reflects_group_override(self, client):
+    def test_effective_config_reflects_group_fields(self, client):
+        """Group fields are reflected in effective config."""
         gid = self._create_group(client)
-        client.put(f"/api/v1/groups/{gid}/config", json={"language": "english"})
 
         resp = client.get(f"/api/v1/groups/{gid}/effective-config")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["language"] == "english"
-        assert data["sources"]["language"] == "group"
+        # style_profile_id from system default
+        assert "style_profile_id" in data

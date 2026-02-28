@@ -28,6 +28,7 @@
 
 ### 최근 작업
 
+- **GroupConfig SD 생성 파라미터 4개 제거** (02-28): sd_steps, sd_cfg_scale, sd_sampler_name, sd_clip_skip 컬럼 삭제. StyleProfile이 SSOT이므로 GroupConfig의 informational 중복 제거.
 - **GroupConfig structure 컬럼 제거** (02-28): 무의미한 structure 설정 제거 (Express→AI 자동, Standard→Script 탭). 13파일, Alembic 마이그레이션 포함.
 - **FIX FIRST 1-1 보완: final_match_rate 기록** (02-28): Auto Edit 후 WD14 재검증으로 final_match_rate 측정·ActivityLog 저장.
 - **Phase 17-3: 유저 UI 간소화** (02-28): Tooltip 시스템(10개 용어), Direct Advanced 토글, Publish Quick Render. 14파일 변경.

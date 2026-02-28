@@ -77,7 +77,7 @@ def test_get_storyboard_not_found(client: TestClient):
 
 
 def test_save_with_extended_fields(client: TestClient):
-    """Test saving and retrieving extended scene fields (SD settings moved to group_config)."""
+    """Test saving and retrieving extended scene fields."""
     scenes = [_make_scene(
         0,
         negative_prompt="bad_hands, blurry",

@@ -1,6 +1,6 @@
 """StyleContext Value Object — DB 조회와 프롬프트 조립 관심사 분리.
 
-Storyboard/Group → Config cascade → StyleProfile + LoRA/Embedding resolve를
+Storyboard/Group → cascade → StyleProfile + LoRA/Embedding resolve를
 한곳에서 처리하여 generation.py, image_generation_core.py의 중복 제거.
 """
 
@@ -102,7 +102,7 @@ def _build_style_context(profile, db: Session) -> StyleContext:
 
 
 def resolve_style_context(storyboard_id: int | None, db: Session) -> StyleContext | None:
-    """Storyboard -> Group -> Config cascade -> StyleProfile + LoRA/Embedding resolve."""
+    """Storyboard -> Group -> StyleProfile + LoRA/Embedding resolve."""
     if not storyboard_id:
         return None
 
@@ -116,7 +116,7 @@ def resolve_style_context(storyboard_id: int | None, db: Session) -> StyleContex
 
     group = (
         db.query(Group)
-        .options(joinedload(Group.config), joinedload(Group.project))
+        .options(joinedload(Group.project))
         .filter(Group.id == storyboard.group_id)
         .first()
     )
@@ -132,13 +132,13 @@ def resolve_style_context(storyboard_id: int | None, db: Session) -> StyleContex
 
 
 def resolve_style_context_from_group(group_id: int, db: Session) -> StyleContext | None:
-    """Group -> Config -> StyleProfile 직접 조회."""
+    """Group -> StyleProfile 직접 조회."""
     from models.group import Group
     from services.config_resolver import resolve_effective_config
 
     group = (
         db.query(Group)
-        .options(joinedload(Group.config), joinedload(Group.project))
+        .options(joinedload(Group.project))
         .filter(Group.id == group_id)
         .first()
     )
