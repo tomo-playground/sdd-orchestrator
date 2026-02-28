@@ -12,6 +12,7 @@ type StoryboardActionsBarProps = {
   isAutoRunning: boolean;
   isSaving?: boolean;
   autoRunStep: AutoRunStepId | "idle";
+  autoRunStatus: "idle" | "running" | "done" | "error";
   showSave?: boolean;
 };
 
@@ -25,6 +26,7 @@ export default function StoryboardActionsBar({
   isAutoRunning,
   isSaving,
   autoRunStep,
+  autoRunStatus,
   showSave,
 }: StoryboardActionsBarProps) {
   const currentStepLabel = AUTO_RUN_STEPS.find((s) => s.id === autoRunStep)?.label || "Running";
@@ -47,6 +49,16 @@ export default function StoryboardActionsBar({
           )}
         </button>
       </Tooltip>
+      {autoRunStatus === "error" && (
+        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-600">
+          Error
+        </span>
+      )}
+      {autoRunStatus === "done" && (
+        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+          Done
+        </span>
+      )}
       {showSave && onSave && (
         <Tooltip content="Save storyboard (Cmd+S)" position="bottom">
           <button
