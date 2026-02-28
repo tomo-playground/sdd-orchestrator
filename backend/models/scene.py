@@ -69,7 +69,9 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     )
     background: Mapped["Background | None"] = relationship("Background", foreign_keys=[background_id], viewonly=True)
 
-    environment_reference_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id", ondelete="SET NULL"))
+    environment_reference_id: Mapped[int | None] = mapped_column(
+        ForeignKey("media_assets.id", ondelete="SET NULL"), index=True
+    )
     environment_reference_weight: Mapped[float] = mapped_column(Float, default=0.3)
 
     # Per-scene generation settings override (nullable = inherit global)
@@ -92,6 +94,7 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     # image_url column removed, use property below
     image_asset_id: Mapped[int | None] = mapped_column(
         ForeignKey("media_assets.id", ondelete="SET NULL"),
+        index=True,
     )
     image_asset: Mapped["MediaAsset | None"] = relationship(
         foreign_keys=[image_asset_id],

@@ -62,7 +62,7 @@ def _sync_store_image(
         )
 
         if resolved_id:
-            db_scene = db.query(Scene).filter(Scene.id == resolved_id).first()
+            db_scene = db.query(Scene).filter(Scene.id == resolved_id, Scene.deleted_at.is_(None)).first()
             if db_scene:
                 db_scene.image_asset_id = asset.id
                 db.add(db_scene)
@@ -77,9 +77,7 @@ def _sync_store_image(
         return (url, asset.id)
 
 
-async def store_image_to_db(
-    image_b64: str, request: SceneGenerateRequest
-) -> tuple[str | None, int | None]:
+async def store_image_to_db(image_b64: str, request: SceneGenerateRequest) -> tuple[str | None, int | None]:
     """Backend-autonomous image storage (non-blocking).
 
     Returns (url, asset_id) on success, (None, None) on failure.

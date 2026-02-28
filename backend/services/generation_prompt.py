@@ -72,7 +72,7 @@ def _resolve_effective_character_b_id(request: SceneGenerateRequest, db) -> int 
         return None
     from models.scene import Scene
 
-    scene = db.query(Scene).filter(Scene.id == request.scene_id).first()
+    scene = db.query(Scene).filter(Scene.id == request.scene_id, Scene.deleted_at.is_(None)).first()
     if scene and scene.scene_mode == "multi":
         logger.debug("👥 [Multi-Char] scene_mode=multi, using character_b_id=%d", request.character_b_id)
         return request.character_b_id
@@ -258,7 +258,11 @@ def _handle_ip_adapter_reverse_lookup(request: SceneGenerateRequest, db, ctx: Ge
     from models import Character
 
     if request.use_ip_adapter and request.ip_adapter_reference:
-        char = db.query(Character).filter(Character.name == request.ip_adapter_reference).first()
+        char = (
+            db.query(Character)
+            .filter(Character.name == request.ip_adapter_reference, Character.deleted_at.is_(None))
+            .first()
+        )
         if char:
             request.character_id = char.id
             logger.info(

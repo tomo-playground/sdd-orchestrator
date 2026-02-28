@@ -45,7 +45,7 @@ class CreativeSession(Base, TimestampMixin, SoftDeleteMixin):
     objective: Mapped[str] = mapped_column(Text, nullable=False)
     evaluation_criteria: Mapped[dict] = mapped_column(JSONB, nullable=False)
     character_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("characters.id", ondelete="SET NULL"), nullable=True
+        Integer, ForeignKey("characters.id", ondelete="SET NULL"), nullable=True, index=True
     )
     context: Mapped[dict | None] = mapped_column(JSONB)
     agent_config: Mapped[list[dict] | None] = mapped_column(JSONB)

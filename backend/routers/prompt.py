@@ -128,7 +128,7 @@ async def negative_preview(
     if request.scene_id:
         from models.scene import Scene
 
-        scene_row = db.query(Scene).filter(Scene.id == request.scene_id).first()
+        scene_row = db.query(Scene).filter(Scene.id == request.scene_id, Scene.deleted_at.is_(None)).first()
         if scene_row:
             scene_negative = scene_row.negative_prompt or ""
 
@@ -235,7 +235,7 @@ async def compose_prompt(
         if request.character_b_id and request.scene_id:
             from models.scene import Scene
 
-            scene = db.query(Scene).filter(Scene.id == request.scene_id).first()
+            scene = db.query(Scene).filter(Scene.id == request.scene_id, Scene.deleted_at.is_(None)).first()
             if scene and scene.scene_mode == "multi":
                 effective_b_id = request.character_b_id
 
@@ -290,7 +290,7 @@ async def compose_prompt(
         if request.scene_id:
             from models.scene import Scene
 
-            scene_row = db.query(Scene).filter(Scene.id == request.scene_id).first()
+            scene_row = db.query(Scene).filter(Scene.id == request.scene_id, Scene.deleted_at.is_(None)).first()
             if scene_row:
                 scene_negative = scene_row.negative_prompt or ""
 

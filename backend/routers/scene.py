@@ -132,7 +132,7 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
 
             resolved_id = resolve_scene_id_by_client_id(db, request.scene_id, request.client_id, request.storyboard_id)
             if resolved_id:
-                db_scene = db.query(Scene).filter(Scene.id == resolved_id).first()
+                db_scene = db.query(Scene).filter(Scene.id == resolved_id, Scene.deleted_at.is_(None)).first()
                 if db_scene:
                     db_scene.image_asset_id = asset.id
                     db.add(db_scene)
@@ -452,7 +452,7 @@ async def edit_scene_image(scene_id: int, request: SceneEditImageRequest, db: Se
         project_id = grp.project_id if grp else 0
 
         # Re-fetch scene after db reconnect
-        scene = db.query(Scene).filter(Scene.id == scene_id).first()
+        scene = db.query(Scene).filter(Scene.id == scene_id, Scene.deleted_at.is_(None)).first()
         if not scene:
             raise HTTPException(status_code=404, detail="Scene not found after edit")
 

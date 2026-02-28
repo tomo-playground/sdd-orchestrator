@@ -367,7 +367,7 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
         from services.asset_service import AssetService
 
         asset_service = AssetService(db)
-        char = db.query(Character).filter(Character.name == character_key).first()
+        char = db.query(Character).filter(Character.name == character_key, Character.deleted_at.is_(None)).first()
         asset = asset_service.register_asset(
             file_name=filename,
             file_type="image",
@@ -401,7 +401,7 @@ def load_reference_image(character_key: str, db: Session | None = None) -> str |
         return None
 
     # Load from DB preview_image_url
-    char = db.query(Character).filter(Character.name == character_key).first()
+    char = db.query(Character).filter(Character.name == character_key, Character.deleted_at.is_(None)).first()
     if not char or not char.preview_image_url:
         return None
 

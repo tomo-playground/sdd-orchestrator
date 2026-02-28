@@ -195,7 +195,7 @@ def load_reference_images(character_key: str, db: Session) -> list[dict[str, Any
     Returns:
         List of dicts: [{"angle": "front", "asset_id": 123, "image_b64": "..."}, ...]
     """
-    char = db.query(Character).filter(Character.name == character_key).first()
+    char = db.query(Character).filter(Character.name == character_key, Character.deleted_at.is_(None)).first()
     if not char or not char.reference_images:
         return []
 

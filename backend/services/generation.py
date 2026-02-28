@@ -264,7 +264,7 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
     scene_obj = None
     scene_order = 0
     if request.scene_id:
-        scene_obj = db.query(Scene).filter(Scene.id == request.scene_id).first()
+        scene_obj = db.query(Scene).filter(Scene.id == request.scene_id, Scene.deleted_at.is_(None)).first()
         if scene_obj:
             scene_order = scene_obj.order or 0
 
