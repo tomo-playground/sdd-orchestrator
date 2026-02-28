@@ -22,17 +22,20 @@ export type ChatScriptEditorActions = ScriptEditorActions & {
   activeProgress: ActiveProgress;
   sendMessage: (text: string) => Promise<void>;
   applyRecommendation: (rec: SettingsRecommendation) => void;
+  applyAndGenerate: (rec: SettingsRecommendation) => void;
   confirmAndGenerate: () => void;
   clearChat: () => void;
 };
 
-const WELCOME_MESSAGE: ChatMessage = {
-  id: "welcome",
-  role: "assistant",
-  contentType: "assistant",
-  text: "어떤 쇼츠 영상을 만들어볼까요? 토픽을 입력하거나, 왼쪽 사이드바에서 설정을 조정한 뒤 생성할 수 있습니다.",
-  timestamp: Date.now(),
-};
+function createWelcomeMessage(): ChatMessage {
+  return {
+    id: "welcome",
+    role: "assistant",
+    contentType: "assistant",
+    text: "어떤 쇼츠 영상을 만들어볼까요? 토픽을 입력하거나, 왼쪽 사이드바에서 설정을 조정한 뒤 생성할 수 있습니다.",
+    timestamp: Date.now(),
+  };
+}
 
 export function useChatScriptEditor(options?: {
   onSaved?: (id: number) => void;
@@ -40,7 +43,7 @@ export function useChatScriptEditor(options?: {
   const groupId = useContextStore((s) => s.groupId);
   const showToast = useUIStore((s) => s.showToast);
 
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([createWelcomeMessage()]);
   const [activeProgress, setActiveProgress] = useState<ActiveProgress>(null);
   const isAnalyzingRef = useRef(false);
 
@@ -155,7 +158,14 @@ export function useChatScriptEditor(options?: {
           timestamp: Date.now(),
         });
       } catch {
-        addMessage(assistantMsg("사이드바에서 설정을 확인한 뒤 생성해주세요."));
+        addMessage({
+          id: nextId(),
+          role: "assistant",
+          contentType: "error",
+          text: "토픽 분석 중 오류가 발생했습니다.",
+          errorMessage: "사이드바에서 설정을 직접 확인한 뒤 생성해주세요.",
+          timestamp: Date.now(),
+        });
       } finally {
         isAnalyzingRef.current = false;
       }
@@ -193,9 +203,31 @@ export function useChatScriptEditor(options?: {
     editorRef.current.generate();
   }, [addMessage, showToast]);
 
+  const applyAndGenerate = useCallback(
+    (rec: SettingsRecommendation) => {
+      // 1. Apply recommendation
+      editorRef.current.setField("duration", rec.duration);
+      editorRef.current.setField("language", rec.language);
+      editorRef.current.setField("structure", rec.structure);
+      if (rec.character_id != null) {
+        editorRef.current.setField("characterId", rec.character_id);
+        editorRef.current.setField("characterName", rec.character_name);
+      }
+      if (rec.character_b_id != null) {
+        editorRef.current.setField("characterBId", rec.character_b_id);
+        editorRef.current.setField("characterBName", rec.character_b_name);
+      }
+      // 2. Generate
+      addMessage(assistantMsg("추천 설정을 반영하고 스크립트를 생성합니다..."));
+      editorRef.current.generate();
+    },
+    [addMessage]
+  );
+
   const clearChat = useCallback(() => {
-    setChatMessages([WELCOME_MESSAGE]);
+    setChatMessages([createWelcomeMessage()]);
     setActiveProgress(null);
+    editorRef.current.reset();
   }, []);
 
   return {
@@ -204,6 +236,7 @@ export function useChatScriptEditor(options?: {
     activeProgress,
     sendMessage,
     applyRecommendation,
+    applyAndGenerate,
     confirmAndGenerate,
     clearChat,
   };
