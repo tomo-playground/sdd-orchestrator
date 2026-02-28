@@ -612,7 +612,7 @@ def validate_tags_with_danbooru(tags: list[str]) -> list[str]:
 
 
 async def validate_tags_with_danbooru_async(tags: list[str]) -> tuple[list[str], list[str]]:
-    """Validate tags using DB cache only (no Danbooru API calls).
+    """Validate tags using in-memory cache only (no DB/Danbooru API calls).
 
     Fast path for async pipeline contexts where blocking API calls
     are not allowed. Unknown tags pass through (fail-open) and are
@@ -621,33 +621,27 @@ async def validate_tags_with_danbooru_async(tags: list[str]) -> tuple[list[str],
     Returns:
         (validated_tags, unknown_tags) - unknown_tags need background processing
     """
-    from database import SessionLocal
-    from models.tag import Tag
+    from services.keywords.core import normalize_prompt_token
+    from services.keywords.db_cache import TagCategoryCache
 
-    db = SessionLocal()
     validated: list[str] = []
     unknown: list[str] = []
 
-    try:
-        from services.keywords.core import normalize_prompt_token
+    # Use in-memory cache (populated at startup) instead of DB query
+    known_tags = TagCategoryCache._cache
 
-        existing_tags = {tag.name for tag in db.query(Tag.name).all()}
+    for tag in tags:
+        # Strip SD weights/parens for lookup (e.g. "(tag:1.2)" → "tag")
+        lookup_key = normalize_prompt_token(tag)
+        if lookup_key in known_tags:
+            validated.append(tag)
+        else:
+            validated.append(tag)
+            if lookup_key:
+                unknown.append(lookup_key)
+            logger.debug("[Danbooru Async] Unknown tag (fail-open): %s", tag)
 
-        for tag in tags:
-            # Strip SD weights/parens for DB lookup (e.g. "(tag:1.2)" → "tag")
-            lookup_key = normalize_prompt_token(tag)
-            if lookup_key in existing_tags or lookup_key.replace("_", " ") in existing_tags:
-                validated.append(tag)
-            else:
-                validated.append(tag)
-                # Return normalized version for background classification
-                if lookup_key:
-                    unknown.append(lookup_key)
-                logger.debug("[Danbooru Async] Unknown tag (fail-open): %s", tag)
-
-        return validated, unknown
-    finally:
-        db.close()
+    return validated, unknown
 
 
 def normalize_and_fix_tags(prompt: str) -> str:

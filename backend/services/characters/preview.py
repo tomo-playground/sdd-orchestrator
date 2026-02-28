@@ -125,10 +125,17 @@ def _save_preview_asset(db: Session, character_id: int, image_bytes: bytes) -> t
 
     asset_service = AssetService(db)
     asset = asset_service.save_character_preview(character_id, image_bytes)
-    db.query(Character).filter(
-        Character.id == character_id,
-        Character.deleted_at.is_(None),
-    ).update({"preview_image_asset_id": asset.id})
+    rows = (
+        db.query(Character)
+        .filter(
+            Character.id == character_id,
+            Character.deleted_at.is_(None),
+        )
+        .update({"preview_image_asset_id": asset.id})
+    )
+    if rows == 0:
+        db.rollback()
+        raise ValueError(f"Character {character_id} not found or deleted")
     db.commit()
     return asset.url, asset.id
 

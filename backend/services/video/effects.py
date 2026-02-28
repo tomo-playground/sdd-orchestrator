@@ -14,6 +14,9 @@ from config import logger
 from services.storage import get_storage
 from services.video.utils import resolve_bgm_file
 
+# Minimum xfade offset (seconds) to prevent FFmpeg "Invalid argument" (-22)
+MIN_XFADE_OFFSET = 0.05
+
 if TYPE_CHECKING:
     from services.video.builder import VideoBuilder
 
@@ -65,7 +68,7 @@ def apply_transitions(builder: VideoBuilder) -> None:
                     prev_dur,
                     builder.transition_dur,
                 )
-                delta = 0.05
+                delta = MIN_XFADE_OFFSET
             acc_offset += delta
             builder.filters.append(
                 f"{curr_v}[v{i}_raw]xfade=transition={transition}:"

@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 
 from config import logger
 from models.tag import ClassificationRule, Tag
+from services.keywords.core import normalize_prompt_token
+from services.keywords.patterns import GROUP_NAME_TO_LAYER
 
 if TYPE_CHECKING:
     pass
@@ -52,7 +54,6 @@ class TagClassifier:
         3. Danbooru API (if available)
         4. LLM fallback (Gemini)
         """
-        from services.keywords.core import normalize_prompt_token
 
         # Disable lower() in normalize_prompt_token if we want case-sensitive (but tokens are usually lower)
         # normalize_prompt_token returns lowercased, stripped, weight-removed string
@@ -88,7 +89,6 @@ class TagClassifier:
     def _classify_via_danbooru(self, tag: str) -> ClassificationResult | None:
         """Classify tag using Danbooru API."""
         from services.danbooru import classify_from_danbooru, get_tag_info_sync
-        from services.keywords.core import normalize_prompt_token
 
         try:
             # Danbooru uses underscores, weight removal handled by normalize_prompt_token
@@ -133,7 +133,6 @@ class TagClassifier:
         Returns:
             (results_dict, pending_tags_for_background)
         """
-        from services.keywords.core import normalize_prompt_token
 
         results: dict[str, ClassificationResult] = {}
         no_rule_match = []
@@ -287,8 +286,6 @@ class TagClassifier:
             defer_commit: True이면 commit을 건너뛴다 (배치 호출 시 호출자가 commit).
             valence: 감정 극성 (positive/negative/neutral). None이면 변경 안 함.
         """
-        from services.keywords.core import normalize_prompt_token
-        from services.keywords.patterns import GROUP_NAME_TO_LAYER
 
         # Strip SD weights/parens before DB save (e.g. "(tag:1.2)" → "tag")
         tag = normalize_prompt_token(tag)

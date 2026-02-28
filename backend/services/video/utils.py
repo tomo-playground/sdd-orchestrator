@@ -15,6 +15,10 @@ from pathlib import Path
 from config import logger
 from services.storage import get_storage
 
+# Minimum margin above transition_dur for scene duration (seconds).
+# Prevents xfade offset ≤ 0 which causes FFmpeg "Invalid argument" (-22).
+MIN_DURATION_MARGIN = 0.1
+
 # Pre-compiled regex for _expand_korean_numbers (avoid recompile per call)
 _KOREAN_COUNTERS = (
     "천만원|백만원|만원|천원|백원|"
@@ -162,7 +166,7 @@ def calculate_scene_durations(
         # Ensure scene duration > transition_dur to prevent xfade offset <= 0
         # xfade needs: prev_dur - transition_dur > 0, so prev_dur > transition_dur
         if transition_dur > 0:
-            min_scene_dur = transition_dur + 0.1
+            min_scene_dur = transition_dur + MIN_DURATION_MARGIN
             if base_duration < min_scene_dur:
                 logger.warning(
                     "Scene %d: duration %.2fs < min %.2fs (transition_dur=%.2f), clamping up",

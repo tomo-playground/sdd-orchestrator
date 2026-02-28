@@ -8,7 +8,7 @@ Covers:
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -16,16 +16,14 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_validate_async_db_hit():
-    """DB에 있는 태그는 validated, unknown 비어있음."""
-    mock_db = MagicMock()
-    mock_tag = MagicMock()
-    mock_tag.name = "blue_hair"
-    mock_db.query.return_value.all.return_value = [mock_tag]
+async def test_validate_async_cache_hit():
+    """캐시에 있는 태그는 validated, unknown 비어있음."""
+    from services.prompt.prompt import validate_tags_with_danbooru_async
 
-    with patch("database.SessionLocal", return_value=mock_db):
-        from services.prompt.prompt import validate_tags_with_danbooru_async
-
+    with patch(
+        "services.prompt.prompt.TagCategoryCache._cache",
+        {"blue_hair": "character"},
+    ):
         validated, unknown = await validate_tags_with_danbooru_async(["blue_hair"])
 
     assert validated == ["blue_hair"]
@@ -33,14 +31,11 @@ async def test_validate_async_db_hit():
 
 
 @pytest.mark.asyncio
-async def test_validate_async_db_miss_failopen():
-    """DB에 없는 태그는 fail-open으로 validated + unknown 양쪽에 추가."""
-    mock_db = MagicMock()
-    mock_db.query.return_value.all.return_value = []
+async def test_validate_async_cache_miss_failopen():
+    """캐시에 없는 태그는 fail-open으로 validated + unknown 양쪽에 추가."""
+    from services.prompt.prompt import validate_tags_with_danbooru_async
 
-    with patch("database.SessionLocal", return_value=mock_db):
-        from services.prompt.prompt import validate_tags_with_danbooru_async
-
+    with patch("services.prompt.prompt.TagCategoryCache._cache", {}):
         validated, unknown = await validate_tags_with_danbooru_async(["new_tag"])
 
     assert "new_tag" in validated
@@ -49,15 +44,13 @@ async def test_validate_async_db_miss_failopen():
 
 @pytest.mark.asyncio
 async def test_validate_async_mixed():
-    """DB hit + miss 혼합 시나리오."""
-    mock_db = MagicMock()
-    known = MagicMock()
-    known.name = "smile"
-    mock_db.query.return_value.all.return_value = [known]
+    """캐시 hit + miss 혼합 시나리오."""
+    from services.prompt.prompt import validate_tags_with_danbooru_async
 
-    with patch("database.SessionLocal", return_value=mock_db):
-        from services.prompt.prompt import validate_tags_with_danbooru_async
-
+    with patch(
+        "services.prompt.prompt.TagCategoryCache._cache",
+        {"smile": "character"},
+    ):
         validated, unknown = await validate_tags_with_danbooru_async(["smile", "invented_tag"])
 
     assert "smile" in validated
@@ -66,20 +59,24 @@ async def test_validate_async_mixed():
 
 
 @pytest.mark.asyncio
-async def test_validate_async_space_format_fallback():
-    """언더바 태그가 DB에 공백 형식으로 저장된 경우에도 매칭."""
-    mock_db = MagicMock()
-    space_tag = MagicMock()
-    space_tag.name = "blue hair"
-    mock_db.query.return_value.all.return_value = [space_tag]
+async def test_validate_async_sd_weight_normalization():
+    """SD 가중치 태그 (tag:1.15)는 정규화 후 캐시에서 매칭."""
+    from services.prompt.prompt import validate_tags_with_danbooru_async
 
-    with patch("database.SessionLocal", return_value=mock_db):
-        from services.prompt.prompt import validate_tags_with_danbooru_async
+    with patch(
+        "services.prompt.prompt.TagCategoryCache._cache",
+        {"long_wavy_black_hair": "character"},
+    ):
+        validated, unknown = await validate_tags_with_danbooru_async(
+            ["(long_wavy_black_hair:1.15)", "unknown_xyz"]
+        )
 
-        validated, unknown = await validate_tags_with_danbooru_async(["blue_hair"])
-
-    assert "blue_hair" in validated
-    assert unknown == []
+    # Original weighted tag stays in validated (for SD prompt)
+    assert "(long_wavy_black_hair:1.15)" in validated
+    # Normalized version matched cache, so NOT in unknown
+    assert "long_wavy_black_hair" not in unknown
+    # Truly unknown tag IS in unknown
+    assert "unknown_xyz" in unknown
 
 
 # -- schedule_background_classification --
