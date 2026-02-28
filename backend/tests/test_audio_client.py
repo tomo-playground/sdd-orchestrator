@@ -73,6 +73,47 @@ class TestSynthesizeTTS:
         assert quality is True
 
     @pytest.mark.asyncio
+    async def test_naturalness_suffix_appended(self):
+        """instruct에 TTS_NATURALNESS_SUFFIX가 자동 추가된다."""
+        resp_data = {
+            "audio_base64": base64.b64encode(b"wav").decode(),
+            "sample_rate": 24000,
+            "duration": 1.0,
+            "quality_passed": True,
+        }
+        client_instance = _make_mock_client("post", resp_data)
+
+        with (
+            patch("services.audio_client.httpx.AsyncClient", return_value=client_instance),
+            patch("services.audio_client.TTS_NATURALNESS_SUFFIX", "speak naturally"),
+        ):
+            await synthesize_tts(text="hello", instruct="A calm female voice")
+
+        sent_payload = client_instance.post.call_args[1]["json"]
+        assert "speak naturally" in sent_payload["instruct"]
+        assert sent_payload["instruct"].startswith("A calm female voice")
+
+    @pytest.mark.asyncio
+    async def test_naturalness_suffix_alone_when_no_instruct(self):
+        """instruct가 빈 문자열이면 suffix만 사용된다."""
+        resp_data = {
+            "audio_base64": base64.b64encode(b"wav").decode(),
+            "sample_rate": 24000,
+            "duration": 1.0,
+            "quality_passed": True,
+        }
+        client_instance = _make_mock_client("post", resp_data)
+
+        with (
+            patch("services.audio_client.httpx.AsyncClient", return_value=client_instance),
+            patch("services.audio_client.TTS_NATURALNESS_SUFFIX", "speak naturally"),
+        ):
+            await synthesize_tts(text="hello", instruct="")
+
+        sent_payload = client_instance.post.call_args[1]["json"]
+        assert sent_payload["instruct"] == "speak naturally"
+
+    @pytest.mark.asyncio
     async def test_server_error_raises(self):
         """HTTP errors propagate without affecting scene-level circuit breaker."""
         client_instance = _make_mock_client("post", side_effect=httpx.ConnectError("connection refused"))

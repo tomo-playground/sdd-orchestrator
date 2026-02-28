@@ -10,7 +10,7 @@ import time
 
 import httpx
 
-from config import logger
+from config import TTS_NATURALNESS_SUFFIX, logger
 
 # Circuit breaker state — tracks consecutive *scene-level* failures so that
 # retries within a single scene don't trip the breaker on their own.
@@ -76,6 +76,10 @@ async def synthesize_tts(
         raise RuntimeError("Audio Server circuit breaker is open")
 
     url, timeout = _get_audio_server_config()
+
+    # Append naturalness suffix to reduce robotic/AI-sounding output
+    if TTS_NATURALNESS_SUFFIX:
+        instruct = f"{instruct}, {TTS_NATURALNESS_SUFFIX}" if instruct else TTS_NATURALNESS_SUFFIX
 
     payload = {
         "text": text,

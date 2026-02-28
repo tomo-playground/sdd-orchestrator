@@ -27,7 +27,7 @@
 | Phase 21 (Persona-based Menu Reorganization) | 전체 완료 (ARCHIVED) |
 | Phase 22 (Backend Complete Image Generation) | 전체 완료 (ARCHIVED) |
 | Phase 23 (Project/Group UX 개선) | 전체 완료 (ARCHIVED) |
-| Phase 24 (Script 탭 → 하이브리드 채팅 AI) | 전체 완료 |
+| Phase 24 (Script 탭 → 하이브리드 채팅 AI) | 전체 완료 (ARCHIVED) |
 | 테스트 | Backend 2,667 + Frontend 435 = **총 3,102개** |
 
 ### 최근 작업
