@@ -134,8 +134,9 @@ SD_DEFAULT_CLIP_SKIP = int(os.getenv("SD_DEFAULT_CLIP_SKIP", "2"))
 # Maximum weight for style LoRAs (applied to both character and narrator scenes)
 STYLE_LORA_WEIGHT_CAP = float(os.getenv("STYLE_LORA_WEIGHT_CAP", "0.76"))
 
-# --- SD API Timeouts (lightweight operations) ---
+# --- SD API Timeouts ---
 SD_API_TIMEOUT = float(os.getenv("SD_API_TIMEOUT", "10"))
+SD_MODEL_SWITCH_TIMEOUT = float(os.getenv("SD_MODEL_SWITCH_TIMEOUT", "120"))
 
 # --- ControlNet Timeouts ---
 CONTROLNET_API_TIMEOUT = float(os.getenv("CONTROLNET_API_TIMEOUT", "10"))

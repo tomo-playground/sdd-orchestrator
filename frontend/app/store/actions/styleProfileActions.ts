@@ -200,7 +200,8 @@ export async function loadStyleProfileFromId(
       useStoryboardStore.getState().set({ hiResEnabled: !!profile.default_enable_hr });
     }
 
-    await changeSdModel(
+    // Fire-and-forget: don't block profile loading on SD model switch
+    changeSdModel(
       {
         ...profile,
         sd_model_name: profile.sd_model?.name || null,
@@ -214,27 +215,38 @@ export async function loadStyleProfileFromId(
 
 // --- Helper: Change SD model in background ---
 
+let _lastSdModel: string | null = null;
+
 async function changeSdModel(
   profile: StyleProfileSelection,
   showToast: (msg: string, type: "success" | "error") => void
 ) {
-  if (profile.sd_model_name) {
-    try {
-      await axios.post(`${ADMIN_API_BASE}/sd/options`, {
-        sd_model_checkpoint: profile.sd_model_name,
-      });
-      showToast(
-        `Style profile "${profile.display_name || profile.name}" loaded\n` +
-          `Model: ${profile.sd_model_name}\n` +
-          `LoRAs: ${profile.loras?.length || 0}\n` +
-          `Embeddings: ${(profile.negative_embeddings?.length || 0) + (profile.positive_embeddings?.length || 0)}`,
-        "success"
-      );
-    } catch (err) {
-      console.error("Failed to change SD model:", err);
-      showToast(`Profile loaded but model change failed: ${profile.sd_model_name}`, "error");
-    }
-  } else {
-    showToast(`Style profile "${profile.display_name || profile.name}" selected`, "success");
+  const profileLabel = profile.display_name || profile.name;
+  if (!profile.sd_model_name) {
+    showToast(`Style profile "${profileLabel}" selected`, "success");
+    return;
+  }
+
+  // Skip if same model is already loaded
+  if (_lastSdModel === profile.sd_model_name) {
+    showToast(`Style profile "${profileLabel}" loaded (model unchanged)`, "success");
+    return;
+  }
+
+  try {
+    await axios.post(`${ADMIN_API_BASE}/sd/options`, {
+      sd_model_checkpoint: profile.sd_model_name,
+    });
+    _lastSdModel = profile.sd_model_name;
+    showToast(
+      `Style profile "${profileLabel}" loaded\n` +
+        `Model: ${profile.sd_model_name}\n` +
+        `LoRAs: ${profile.loras?.length || 0}\n` +
+        `Embeddings: ${(profile.negative_embeddings?.length || 0) + (profile.positive_embeddings?.length || 0)}`,
+      "success"
+    );
+  } catch (err) {
+    console.error("Failed to change SD model:", err);
+    showToast(`Profile loaded but model change failed: ${profile.sd_model_name}`, "error");
   }
 }

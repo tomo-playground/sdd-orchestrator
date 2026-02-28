@@ -4,7 +4,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from config import SD_API_TIMEOUT, SD_LORAS_URL, SD_MODELS_URL, SD_OPTIONS_URL, logger
+from config import SD_API_TIMEOUT, SD_LORAS_URL, SD_MODEL_SWITCH_TIMEOUT, SD_MODELS_URL, SD_OPTIONS_URL, logger
 from database import get_db
 from models import Embedding, SDModel
 from schemas import (
@@ -215,7 +215,7 @@ async def update_sd_options(request: SDModelRequest):
     payload = {"sd_model_checkpoint": request.sd_model_checkpoint}
     try:
         async with httpx.AsyncClient() as client:
-            res = await client.post(SD_OPTIONS_URL, json=payload, timeout=SD_API_TIMEOUT)
+            res = await client.post(SD_OPTIONS_URL, json=payload, timeout=SD_MODEL_SWITCH_TIMEOUT)
             res.raise_for_status()
             data = res.json()
             model_name = request.sd_model_checkpoint
