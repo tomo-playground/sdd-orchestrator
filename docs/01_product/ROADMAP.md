@@ -173,6 +173,7 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Storyboard Version History | — |
 | IP-Adapter 캐릭터 유사도 고도화 (SDXL 미착수) | [명세](FEATURES/CHARACTER_CONSISTENCY.md) |
+| 캐릭터 레퍼런스 9세트 프롬프트 생성 + 품질 체크 | 캐릭터 생성 시 포즈/표정/앵글 조합으로 9세트 레퍼런스 프롬프트를 생성하고, WD14 등으로 캐릭터 특징 반영 여부를 자동 검증. 현재는 단일 프롬프트+검증 없음 |
 
 ### Intelligence & Automation
 
