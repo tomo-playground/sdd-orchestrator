@@ -73,7 +73,6 @@ const initialState: Omit<
   | "showToast"
   | "dismissToast"
   | "resetUI"
-  | "resetUI"
   | "toggleAdvancedSettings"
   | "toggleLabMenu"
   | "setPendingAutoRun"
