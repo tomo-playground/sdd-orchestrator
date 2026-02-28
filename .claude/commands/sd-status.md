@@ -43,8 +43,8 @@ curl -s http://127.0.0.1:7860/sdapi/v1/sd-models | head -c 100
 ✅ 연결됨 (http://127.0.0.1:7860)
 
 ### 현재 모델
-- **Checkpoint**: animagine-xl.safetensors
-- **VAE**: sdxl_vae.safetensors
+- **Checkpoint**: anyloraCheckpoint_bakedvaeBlessedFp16.safetensors
+- **VAE**: baked (내장)
 
 ### 로드된 LoRA
 - eureka_v9.safetensors

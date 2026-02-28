@@ -23,9 +23,10 @@ cd stable-diffusion-webui
 
 ### 1.2 체크포인트 모델
 
-**권장 모델:** Anime 스타일
-- `anythingV3_fp16.safetensors` (SD1.5 기반)
-- `animagine-xl.safetensors` (SDXL 기반)
+**권장 모델:** Anime 스타일 (SD1.5 기반)
+- `anyloraCheckpoint_bakedvaeBlessedFp16.safetensors` (프롬프트 표현력 최상, LoRA 호환성 최강) ← **현재 사용 중**
+- `Counterfeit-V3.0.safetensors` (디테일 강세)
+- `meinamix_meinaV11.safetensors` (적은 프롬프트로 예쁜 결과)
 
 **설치 경로:** `models/Stable-diffusion/`
 
@@ -178,13 +179,13 @@ SDXL 모델 사용 시 IP-Adapter도 SDXL 버전 필요:
 
 | 항목 | 권장값 |
 |------|--------|
-| 체크포인트 | `anythingV3_fp16.safetensors` (SD1.5) |
-| IP-Adapter | `ip-adapter-plus_sd15.safetensors` |
+| 체크포인트 | `anyloraCheckpoint_bakedvaeBlessedFp16.safetensors` (SD1.5) |
+| IP-Adapter | `ip-adapter-plus-face_sd15.safetensors` (clip_face) |
 | IP-Adapter 모듈 | `ip-adapter_clip_sd15` |
-| IP-Adapter Weight | 0.7 ~ 0.8 |
+| IP-Adapter Weight | 0.35 (POC 30-scene 테스트 최적값) |
 | ControlNet | `control_v11p_sd15_openpose` |
 | Negative Embedding | `easynegative` |
 
 ---
 
-**Last Updated:** 2026-01-27
+**Last Updated:** 2026-02-28
