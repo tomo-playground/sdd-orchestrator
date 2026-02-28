@@ -34,6 +34,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
   const showToast = useUIStore((s) => s.showToast);
   const [group, setGroup] = useState<GroupData | null>(null);
   const [groupName, setGroupName] = useState("");
+  const [groupDesc, setGroupDesc] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -57,6 +58,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
           narrator_voice_preset_id: g.narrator_voice_preset_id ?? null,
         });
         setGroupName(g.name || "");
+        setGroupDesc(g.description || "");
         setPresets(
           presetsRes.data.map((p: Record<string, unknown>) => ({
             id: p.id as number,
@@ -84,6 +86,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
     try {
       await axios.put(`${API_BASE}/groups/${groupId}`, {
         name: groupName.trim(),
+        description: groupDesc.trim() || null,
         render_preset_id: group.render_preset_id,
         style_profile_id: group.style_profile_id,
         narrator_voice_preset_id: group.narrator_voice_preset_id,
@@ -128,6 +131,18 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
               onChange={(e) => setGroupName(e.target.value)}
               className={inputCls}
               placeholder="시리즈 이름"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className={labelCls}>설명</label>
+            <textarea
+              value={groupDesc}
+              onChange={(e) => setGroupDesc(e.target.value)}
+              className={inputCls}
+              placeholder="시리즈에 대한 간단한 설명"
+              rows={2}
             />
           </div>
 
