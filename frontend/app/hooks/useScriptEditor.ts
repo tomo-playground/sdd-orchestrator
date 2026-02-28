@@ -141,6 +141,11 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     });
     dirtyRef.current = true;
     useStoryboardStore.getState().set({ isDirty: true });
+    // Sync updated scenes to global store for autoSave
+    queueMicrotask(() => {
+      const s = stateRef.current;
+      syncToGlobalStore(s.scenes, buildSyncMeta(s));
+    });
   }, []);
 
   const generate = useCallback(async () => {
@@ -194,7 +199,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         customConcept?: { title: string; concept: string };
       }
     ) => {
-      if (!state.threadId) return;
+      if (!stateRef.current.threadId) return;
       setState((prev) => ({
         ...prev,
         isGenerating: true,
@@ -206,10 +211,10 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       }));
       try {
         const body: Record<string, unknown> = {
-          thread_id: state.threadId,
+          thread_id: stateRef.current.threadId,
           action,
           feedback,
-          trace_id: state.traceId || undefined,
+          trace_id: stateRef.current.traceId || undefined,
         };
         if (conceptId !== undefined) body.concept_id = conceptId;
         if (options?.feedbackPreset) body.feedback_preset = options.feedbackPreset;
@@ -239,7 +244,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
       }
     },
-    [state.threadId, state.traceId, showToast]
+    [showToast]
   );
 
   const submitFeedback = useCallback(
@@ -249,8 +254,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            thread_id: state.threadId,
-            storyboard_id: state.storyboardId,
+            thread_id: stateRef.current.threadId,
+            storyboard_id: stateRef.current.storyboardId,
             rating,
             feedback_text: feedbackText || undefined,
           }),
@@ -261,20 +266,21 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         showToast("피드백 저장 실패", "error");
       }
     },
-    [state.threadId, state.storyboardId, showToast]
+    [showToast]
   );
 
   const save = useCallback(async () => {
     setState((prev) => ({ ...prev, isSaving: true }));
-    const body = buildSavePayload(state, groupId);
-    const storeMeta = buildSyncMeta(state);
+    const current = stateRef.current;
+    const body = buildSavePayload(current, groupId);
+    const storeMeta = buildSyncMeta(current);
     try {
-      if (state.storyboardId) {
-        const res = await axios.put(`${API_BASE}/storyboards/${state.storyboardId}`, body);
+      if (current.storyboardId) {
+        const res = await axios.put(`${API_BASE}/storyboards/${current.storyboardId}`, body);
         setState((prev) => ({ ...prev, storyboardVersion: res.data.version }));
         useContextStore
           .getState()
-          .setContext({ storyboardId: state.storyboardId, storyboardTitle: state.topic.trim() });
+          .setContext({ storyboardId: current.storyboardId, storyboardTitle: current.topic.trim() });
       } else {
         const res = await axios.post(`${API_BASE}/storyboards`, body);
         const newId = res.data.storyboard_id;
@@ -285,19 +291,19 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         }));
         useContextStore
           .getState()
-          .setContext({ storyboardId: newId, storyboardTitle: state.topic.trim() });
+          .setContext({ storyboardId: newId, storyboardTitle: current.topic.trim() });
         onSavedRef.current?.(newId);
       }
-      syncToGlobalStore(state.scenes, storeMeta);
+      syncToGlobalStore(current.scenes, storeMeta);
       dirtyRef.current = false;
       useStoryboardStore.getState().set({ isDirty: false });
-      showToast(state.storyboardId ? "Script saved" : "Script created", "success");
+      showToast(current.storyboardId ? "Script saved" : "Script created", "success");
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
         showToast("다른 탭에서 수정되었습니다. 다시 저장해주세요.", "error");
-        if (state.storyboardId) {
+        if (stateRef.current.storyboardId) {
           try {
-            const fresh = await axios.get(`${API_BASE}/storyboards/${state.storyboardId}`);
+            const fresh = await axios.get(`${API_BASE}/storyboards/${stateRef.current.storyboardId}`);
             setState((prev) => ({ ...prev, storyboardVersion: fresh.data.version ?? null }));
           } catch {
             /* silent */
@@ -312,7 +318,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     } finally {
       setState((prev) => ({ ...prev, isSaving: false }));
     }
-  }, [state, groupId, showToast]);
+  }, [groupId, showToast]);
 
   const loadStoryboard = useCallback(
     async (id: number) => {
