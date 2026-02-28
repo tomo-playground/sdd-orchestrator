@@ -7,7 +7,7 @@ test.describe("Characters — VRT", () => {
     await clearLocalStorage(page);
     await mockGlobalApis(page);
     await mockCharactersApis(page);
-    await page.goto("/characters");
+    await page.goto("/admin/characters");
     await waitForPageReady(page);
     await hideAnimations(page);
     await expect(page).toHaveScreenshot("characters-list.png");
@@ -17,7 +17,7 @@ test.describe("Characters — VRT", () => {
     await clearLocalStorage(page);
     await mockGlobalApis(page);
     await mockCharactersEmptyApis(page);
-    await page.goto("/characters");
+    await page.goto("/admin/characters");
     await waitForPageReady(page);
     await hideAnimations(page);
     await expect(page).toHaveScreenshot("characters-empty.png");
@@ -27,7 +27,7 @@ test.describe("Characters — VRT", () => {
     await clearLocalStorage(page);
     await mockGlobalApis(page);
     await mockCharactersApis(page);
-    await page.goto("/characters/new");
+    await page.goto("/admin/characters/new");
     await waitForPageReady(page);
     await hideAnimations(page);
     await expect(page).toHaveScreenshot("characters-new.png");
@@ -37,7 +37,7 @@ test.describe("Characters — VRT", () => {
     await clearLocalStorage(page);
     await mockGlobalApis(page);
     await mockCharactersApis(page);
-    await page.goto("/characters/1");
+    await page.goto("/admin/characters/1");
     await waitForPageReady(page);
     await hideAnimations(page);
     await expect(page).toHaveScreenshot("characters-detail.png");

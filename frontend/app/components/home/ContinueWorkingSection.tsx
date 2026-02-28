@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clock, Loader2 } from "lucide-react";
 import { formatRelativeTime } from "../../utils/format";
+import { API_BASE } from "../../constants";
 
 type RecentStoryboard = {
   id: number;
@@ -31,7 +32,7 @@ export default function ContinueWorkingSection() {
   useEffect(() => {
     async function fetchRecent() {
       try {
-        const res = await fetch(`/api/storyboards?limit=3`);
+        const res = await fetch(`${API_BASE}/storyboards?limit=3`);
         if (!res.ok) throw new Error("fetch failed");
         const data = await res.json();
         setItems(data.items ?? []);

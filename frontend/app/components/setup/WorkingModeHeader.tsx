@@ -16,7 +16,7 @@ export default function WorkingModeHeader() {
         want. The system only assembles and renders.
       </p>
       <Link
-        href="/manage"
+        href="/admin"
         className="w-fit rounded-full border border-zinc-300 bg-white/80 px-4 py-2 text-[12px] font-semibold tracking-[0.2em] text-zinc-600 uppercase shadow-sm"
       >
         Manage

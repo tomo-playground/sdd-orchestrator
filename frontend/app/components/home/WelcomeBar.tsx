@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import Button from "../ui/Button";
+import { API_BASE } from "../../constants";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -19,7 +20,7 @@ export default function WelcomeBar() {
   useEffect(() => {
     async function fetchCount() {
       try {
-        const res = await fetch("/api/storyboards?limit=1");
+        const res = await fetch(`${API_BASE}/storyboards?limit=1`);
         if (!res.ok) return;
         const data = await res.json();
         setTotalCount(data.total ?? 0);

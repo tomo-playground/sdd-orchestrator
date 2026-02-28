@@ -39,9 +39,8 @@ test.describe("Home Page", () => {
     await expect(page.getByText("Characters (1)")).toBeVisible();
   });
 
-  test("Manage button navigates to /manage", async ({ page }) => {
-    await page.getByTestId("manage-link").click();
-    await expect(page).toHaveURL(/\/manage/);
-    await expect(page.getByRole("heading", { name: "Manage" })).toBeVisible();
+  test("Admin button navigates to /admin", async ({ page }) => {
+    await page.getByRole("link", { name: "Admin" }).click();
+    await expect(page).toHaveURL(/\/admin/);
   });
 });

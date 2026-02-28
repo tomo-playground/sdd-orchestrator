@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import TagBrowserTab from "../../app/(app)/lab/tabs/TagBrowserTab";
+import TagBrowserTab from "../../app/admin/lab/tabs/TagBrowserTab";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({

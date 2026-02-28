@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { RenderHistoryItem } from "../../types";
 import { useUIStore } from "../../store/useUIStore";
 import { formatRelativeTime } from "../../utils/format";
+import { API_BASE } from "../../constants";
 
 const DISPLAY_COUNT = 30;
 const EXPANDED_LIMIT = 50;
@@ -27,7 +28,7 @@ export default function ShowcaseSection() {
   const fetchHistory = useCallback(async (limit: number) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/video/render-history?offset=0&limit=${limit}`);
+      const res = await fetch(`${API_BASE}/video/render-history?offset=0&limit=${limit}`);
       if (!res.ok) throw new Error("fetch failed");
       const data = await res.json();
       setItems(Array.isArray(data.items) ? data.items : []);

@@ -133,7 +133,7 @@ export default function SetupPanel({
 
       <footer className="flex justify-center">
         <Link
-          href="/manage"
+          href="/admin"
           className="text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-700"
         >
           Manage Keywords & Assets

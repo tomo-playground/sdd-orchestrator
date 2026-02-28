@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Tag } from "../types";
+import { API_BASE } from "../constants";
 
 const TAG_BROWSER_GROUPS = [
   "expression",
@@ -24,7 +25,7 @@ export function useTagBrowser() {
   const fetchTags = useCallback(async (group: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/tags?group_name=${group}`);
+      const res = await fetch(`${API_BASE}/tags?group_name=${group}`);
       if (res.ok) {
         const data = await res.json();
         setTags(data.tags ?? data);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Palette, Mic, Music, Loader2 } from "lucide-react";
+import { API_BASE } from "../../constants";
 
 type Stats = {
   characters: number;
@@ -20,10 +21,10 @@ export default function QuickStatsBar() {
     async function fetchStats() {
       try {
         const [charactersRes, stylesRes, voicesRes, musicRes] = await Promise.all([
-          fetch("/api/characters"),
-          fetch("/api/style-profiles"),
-          fetch("/api/voice-presets"),
-          fetch("/api/music-presets"),
+          fetch(`${API_BASE}/characters`),
+          fetch(`${API_BASE}/style-profiles`),
+          fetch(`${API_BASE}/voice-presets`),
+          fetch(`${API_BASE}/music-presets`),
         ]);
 
         const [characters, styles, voices, music] = await Promise.all([
@@ -56,28 +57,28 @@ export default function QuickStatsBar() {
       label: "Characters",
       icon: Users,
       count: stats?.characters ?? 0,
-      href: "/library?tab=characters",
+      href: "/admin/characters",
     },
     {
       id: "styles",
       label: "Styles",
       icon: Palette,
       count: stats?.styles ?? 0,
-      href: "/library?tab=style",
+      href: "/admin/styles",
     },
     {
       id: "voices",
       label: "Voices",
       icon: Mic,
       count: stats?.voices ?? 0,
-      href: "/library?tab=voices",
+      href: "/admin/voices",
     },
     {
       id: "music",
       label: "Music",
       icon: Music,
       count: stats?.music ?? 0,
-      href: "/library?tab=music",
+      href: "/admin/music",
     },
   ];
 

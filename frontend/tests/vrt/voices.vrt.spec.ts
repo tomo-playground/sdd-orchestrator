@@ -7,7 +7,7 @@ test.describe("Voices — VRT", () => {
     await clearLocalStorage(page);
     await mockGlobalApis(page);
     await mockVoicesApis(page);
-    await page.goto("/voices");
+    await page.goto("/admin/voices");
     await waitForPageReady(page);
     await hideAnimations(page);
     await expect(page).toHaveScreenshot("voices-list.png");
@@ -17,7 +17,7 @@ test.describe("Voices — VRT", () => {
     await clearLocalStorage(page);
     await mockGlobalApis(page);
     await mockVoicesEmptyApis(page);
-    await page.goto("/voices");
+    await page.goto("/admin/voices");
     await waitForPageReady(page);
     await hideAnimations(page);
     await expect(page).toHaveScreenshot("voices-empty.png");

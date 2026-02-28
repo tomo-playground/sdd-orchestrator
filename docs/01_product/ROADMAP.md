@@ -18,16 +18,19 @@
 | Phase 14 (ControlNet Pose Pipeline) | 전체 완료 (ARCHIVED) |
 | **Phase 15 (Prompt Input UX 고도화)** | **전체 완료 — A-0~A-3 + B-1~B-3 (18/18)** |
 | Phase 16 (WD14 Smart Validation) | 전체 완료 (ARCHIVED) |
-| **Phase 17 (Service/Admin 분리)** | **17-0/0.5/1 완료, 17-2~3 미착수** |
+| **Phase 17 (Service/Admin 분리)** | **17-0/0.5/1/2 완료, 17-3 미착수** |
 | **Cross Audit P0~P3** | **전체 완료 — P0 14건+P1 32건+P2 39건+P3 21건 = 106건** |
 | Phase 18 (Stage Workflow) | 전체 완료 (ARCHIVED) |
 | **Phase 19 (Studio 탭 페르소나 재배치)** | **전체 완료 — 19-1(9) + 19-2(2) + 19-3(4) = 15/15** |
 | **DB Schema Cleanup** | **전체 완료 — Sprint A (7/7), Sprint B (3/4, 1건 취소)** |
-| **Phase 20 (Agent-Aware Inventory)** | **20-A 완료 (9/9), 20-B/C 미착수** |
-| 테스트 | Backend 2,667 + Frontend 399 = **총 3,066개** (valence +27 = 3,093, Phase 20-A +42) |
+| **Phase 20 (Agent-Aware Inventory)** | **전체 완료 — 20-A (9/9), 20-B (5/5), 20-C (5/5)** |
+| 테스트 | Backend 2,667 + Frontend 435 = **총 3,102개** (Phase 20-A +42, Phase 20-B +36) |
 
 ### 최근 작업
 
+- **Phase 17-2: Frontend Route Group 분리** (02-28): `(app)/` route group → `(service)/` + `admin/` 분리. ServiceShell(Home/Studio/Admin 3탭) + AdminShell(좌측 사이드바+breadcrumb). Characters/Styles/Tags/Voices/Music/Prompts/Lab/System → `admin/` 이동. Library 해체(TabsTab/StyleTab/PromptsTab → admin 하위 독립 페이지). Settings→admin/system, Lab→admin/lab. 후방 호환 redirects 6개(next.config.ts) + `/library?tab=X` 클라이언트 리다이렉트. VRT 7개 spec 갱신. `(app)/` 폴더 전체 삭제. ~70파일 이동, ~10파일 경로 참조 수정.
+- **Phase 20-C: Autonomous Express** (02-28): Express 경량 캐스팅 구현. `director_plan_lite` 노드(Flash 모델, 캐릭터 10명 제한) + `director_plan_lite.j2` 캐스팅 전용 템플릿. `route_after_start` 3분기(Full→director_plan, Express→director_plan_lite, Quick→writer) + `route_after_inventory_resolve` 조건부 엣지. `load_fallback_character()` 최근 사용 캐릭터 fallback. `_skip_guard` inventory_resolve 제거(Express skip 충돌 방지). Frontend: `pipelineSteps` expressOnly 플래그 + casting 스텝, ScriptOptionsCard AI 캐스팅 안내, ManualScriptEditor 2단계 확인 + ExpressCastingSummary AI 결정 요약 카드. 11파일 변경(3신규+8수정).
+- **Phase 20-B: Casting UX (Frontend)** (02-28): `useScriptEditor.ts` 847→251줄 리팩터링(types/mappers/sseProcessor/actions 4파일 분리). `CastingRecommendation` 타입 + Zustand TRANSIENT 상태. SSE `inventory_resolve` → 스토어 저장. CharacterSelector "AI 추천" 그룹(Sparkles 배지+amber 하이라이트). CastingBanner 수락/무시 CTA. StageCastingCompareCard 비교 카드. pipelineSteps "리서치/캐스팅" 라벨. `mapScenesToItems` DRY 통합, stale closure 수정, parseSSEStream null guard. 36개 테스트 추가(mappers 9+sseProcessor 12+pipeline 3+CastingBanner 6+CompareCard 6). 23파일 +1,729/-966줄.
 - **Phase 17-1: Backend 논리적 분리** (02-28): Service(`/api/v1/`) + Admin(`/api/admin/`) 2-tier 라우터 분리. 10개 분할 라우터(characters, tags, backgrounds 등) `service_router` + `admin_router` 이중화, `admin.py` `/admin/` prefix 제거, `routers/__init__.py` 조립 재작성(29개→2줄 include), OpenAPI 문서 분리(`/docs` Service, `/admin/docs` Admin). Frontend `API_ROOT`+`API_BASE`+`ADMIN_API_BASE` 3-tier 상수 + ~50개 파일 URL 마이그레이션. 65개 백엔드 테스트 URL prefix 갱신. 117파일 +1,219/-1,158줄.
 - **Phase 20-A: Director Inventory Awareness** (02-28): 인벤토리 인지 + 캐스팅 추천 구현. `inventory.py` 서비스(캐릭터 프루닝 20명, usage_count 정렬), `CastingRecommendation` Pydantic + `DirectorPlanOutput.casting`, `ScriptState` 3키 확장, `director_plan.j2` 인벤토리 섹션 + CoT 가이드, `director_plan_node` 인벤토리 로드 + 캐스팅 추출, `inventory_resolve` 노드(5항목 유효성 검증 + user override 병합), 18노드 그래프(`director_plan → inventory_resolve → research`), SSE `_NODE_META` + Frontend 캐스팅 토스트. 42개 테스트 추가. 17파일 +934/-22줄.
 - **DB Schema Cleanup Sprint B 5-1** (02-28): LangGraph Checkpoint GC 배치 구현 — `gc_checkpoints()` 함수 + `POST /admin/checkpoint-gc` 엔드포인트. UUID v6 시간 기반 cutoff로 오래된 thread 삭제. 초회 실행: 157 threads 삭제, rows 60% 감소(checkpoints 3044→1131, writes 12978→5230). 기본 보존기간: 7일 (`CHECKPOINT_GC_RETENTION_DAYS`).
@@ -277,11 +280,11 @@ graph LR
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | `(service)/` route group — Home, Studio, Storyboards | 미착수 |
-| 2 | `(admin)/` route group — Characters, Styles, Tags, Lab, System | 미착수 |
-| 3 | Library 페이지 해체 → Admin 하위 재배치 | 미착수 |
-| 4 | Settings 해체 → Admin > System + Service > 유저 설정 | 미착수 |
-| 5 | `/` vs `/admin` 경로 기반 역할 식별 + 네비게이션 분리 | 미착수 |
+| 1 | `(service)/` route group — Home, Studio, Storyboards | ✅ (02-28) |
+| 2 | `admin/` route group — Characters, Styles, Tags, Lab, System | ✅ (02-28) |
+| 3 | Library 페이지 해체 → Admin 하위 재배치 | ✅ (02-28) |
+| 4 | Settings 해체 → Admin > System + Service > 유저 설정 | ✅ (02-28) |
+| 5 | `/` vs `/admin` 경로 기반 역할 식별 + 네비게이션 분리 | ✅ (02-28) |
 
 ### Phase 17-3: 유저 UI 간소화
 
@@ -371,21 +374,21 @@ Script → **Stage** → Direct → Publish 4단계 워크플로우. [상세 명
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | CharacterSelector "AI Recommended" 그룹 + Sparkles 배지 | 미착수 |
-| 2 | Script 탭 캐스팅 배너 (추천 수신 → 수락/무시 CTA) | 미착수 |
-| 3 | `StageCastingCompareCard.tsx` 비교 카드 (라이프사이클 5단계) | 미착수 |
-| 4 | character_id Optional → Director 자율 캐스팅 | 미착수 |
-| 5 | `pipelineSteps.ts` "디렉터/캐스팅" 스텝 통합 | 미착수 |
+| 1 | CharacterSelector "AI Recommended" 그룹 + Sparkles 배지 | ✅ (02-28) |
+| 2 | Script 탭 캐스팅 배너 (추천 수신 → 수락/무시 CTA) | ✅ (02-28) |
+| 3 | `StageCastingCompareCard.tsx` 비교 카드 (라이프사이클 5단계) | ✅ (02-28) |
+| 4 | character_id Optional → Director 자율 캐스팅 | ✅ (02-28) |
+| 5 | `pipelineSteps.ts` "리서치/캐스팅" 스텝 라벨 변경 | ✅ (02-28) |
 
 ### Phase 20-C: Autonomous Express
 
 | # | 항목 | 상태 |
 |---|------|------|
-| 1 | `director_plan_lite` 경량 노드 (Flash, 캐릭터 10명 제한) | 미착수 |
-| 2 | Express 라우팅 3분기 (`routing.py` + `script_graph.py` 확장) | 미착수 |
-| 3 | One-Click Express UI (2단계 확인 + AI 결정 요약 카드) | 미착수 |
-| 4 | 자율 결정 로그 SSE 스트림 | 미착수 |
-| 5 | Fallback 전략 (최근 사용 캐릭터 + monologue) | 미착수 |
+| 1 | `director_plan_lite` 경량 노드 (Flash, 캐릭터 10명 제한) | ✅ (02-28) |
+| 2 | Express 라우팅 3분기 (`routing.py` + `script_graph.py` 확장) | ✅ (02-28) |
+| 3 | One-Click Express UI (2단계 확인 + AI 결정 요약 카드) | ✅ (02-28) |
+| 4 | 자율 결정 로그 SSE 스트림 | ✅ (02-28) |
+| 5 | Fallback 전략 (최근 사용 캐릭터 + monologue) | ✅ (02-28) |
 
 ---
 
@@ -485,7 +488,7 @@ Phase 9 이후 또는 우선순위 미정 항목.
 |------|------|------|
 | ~~1~~ | ~~17-0: API 정리 (34→29개)~~ | ✅ 완료 (02-25) |
 | ~~2~~ | ~~17-1: Backend 논리적 분리 (`/api/v1/` + `/api/admin/`)~~ | ✅ 완료 (02-28) |
-| 3 | 17-2: Frontend Route Group 분리 (`/` + `/admin`) | 유저/관리자 UI 분리 |
+| ~~3~~ | ~~17-2: Frontend Route Group 분리 (`/` + `/admin`)~~ | ✅ 완료 (02-28) |
 | 4 | 17-3: 유저 UI 간소화 (Advanced 토글, Quick Render, Tooltip) | 유저 경험 최적화 |
 
 **Phase 20 — Agent-Aware Inventory Pipeline**
@@ -493,8 +496,8 @@ Phase 9 이후 또는 우선순위 미정 항목.
 | 순위 | 작업 | 근거 |
 |------|------|------|
 | ~~1~~ | ~~20-A: Director Inventory Awareness (Backend MVP, 9항목)~~ | ✅ 완료 (02-28) |
-| 2 | 20-B: Casting UX (Frontend, 5항목) — 선행: useScriptEditor 분리 | 유저 가치 전달 |
-| 3 | 20-C: Autonomous Express (5항목) | 토픽만으로 전체 생성 |
+| ~~2~~ | ~~20-B: Casting UX (Frontend, 5항목) — useScriptEditor 리팩터링 포함~~ | ✅ 완료 (02-28) |
+| ~~3~~ | ~~20-C: Autonomous Express (5항목)~~ | ✅ 완료 (02-28) |
 
 **Tier 3 — 장기**
 
