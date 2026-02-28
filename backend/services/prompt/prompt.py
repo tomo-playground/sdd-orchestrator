@@ -629,14 +629,20 @@ async def validate_tags_with_danbooru_async(tags: list[str]) -> tuple[list[str],
     unknown: list[str] = []
 
     try:
+        from services.keywords.core import normalize_prompt_token
+
         existing_tags = {tag.name for tag in db.query(Tag.name).all()}
 
         for tag in tags:
-            if tag in existing_tags or tag.replace("_", " ") in existing_tags:
+            # Strip SD weights/parens for DB lookup (e.g. "(tag:1.2)" → "tag")
+            lookup_key = normalize_prompt_token(tag)
+            if lookup_key in existing_tags or lookup_key.replace("_", " ") in existing_tags:
                 validated.append(tag)
             else:
                 validated.append(tag)
-                unknown.append(tag)
+                # Return normalized version for background classification
+                if lookup_key:
+                    unknown.append(lookup_key)
                 logger.debug("[Danbooru Async] Unknown tag (fail-open): %s", tag)
 
         return validated, unknown

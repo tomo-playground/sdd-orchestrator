@@ -287,7 +287,13 @@ class TagClassifier:
             defer_commit: True이면 commit을 건너뛴다 (배치 호출 시 호출자가 commit).
             valence: 감정 극성 (positive/negative/neutral). None이면 변경 안 함.
         """
+        from services.keywords.core import normalize_prompt_token
         from services.keywords.patterns import GROUP_NAME_TO_LAYER
+
+        # Strip SD weights/parens before DB save (e.g. "(tag:1.2)" → "tag")
+        tag = normalize_prompt_token(tag)
+        if not tag:
+            return
 
         try:
             stmt = select(Tag).where(Tag.name == tag)
@@ -415,9 +421,7 @@ def classify_tags_background_llm(tags: list[str]) -> None:
         # Step 2: LLM 분류 (최대 30개)
         llm_classified = 0
         if still_unknown:
-            llm_results = asyncio.run(
-                _classify_via_llm_batch(still_unknown[:30])
-            )
+            llm_results = asyncio.run(_classify_via_llm_batch(still_unknown[:30]))
             for lr in llm_results:
                 cr: ClassificationResult = {
                     "group": lr["group_name"],
@@ -437,7 +441,10 @@ def classify_tags_background_llm(tags: list[str]) -> None:
         if total:
             logger.info(
                 "🔄 [Background] Classified %d/%d tags (danbooru=%d, llm=%d)",
-                total, len(tags), danbooru_classified, llm_classified,
+                total,
+                len(tags),
+                danbooru_classified,
+                llm_classified,
             )
     except Exception as e:
         logger.error("❌ [Background LLM] Classification failed: %s", e)
