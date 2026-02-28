@@ -28,6 +28,8 @@
 
 ### 최근 작업
 
+- **GroupConfig structure 컬럼 제거** (02-28): 무의미한 structure 설정 제거 (Express→AI 자동, Standard→Script 탭). 13파일, Alembic 마이그레이션 포함.
+- **FIX FIRST 1-1 보완: final_match_rate 기록** (02-28): Auto Edit 후 WD14 재검증으로 final_match_rate 측정·ActivityLog 저장.
 - **Phase 17-3: 유저 UI 간소화** (02-28): Tooltip 시스템(10개 용어), Direct Advanced 토글, Publish Quick Render. 14파일 변경.
 - **Phase 20-D: Script 탭 캐스팅 UX 잔여** (02-28): optgroup AI 추천 분리, Structure 추천 배지, inventory_resolve 매핑.
 - **Phase 17-1 API prefix 오분류 수정** (02-28): service 엔드포인트 13개 ADMIN→API_BASE 전환. 9파일 수정.
