@@ -15,6 +15,7 @@ import SceneClothingModal from "./SceneClothingModal";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import SceneEssentialFields from "./SceneEssentialFields";
 import SceneToolsContent from "../studio/SceneToolsContent";
+import SceneEnvironmentPicker from "./SceneEnvironmentPicker";
 
 export type SceneEditTab = "script" | "visual" | "settings"; // Keep for compatibility if needed, but unused in logic
 
@@ -211,6 +212,12 @@ export default function SceneCard({
               basePromptA={basePromptA}
               onUpdateScene={onUpdateScene}
               showAdvancedSettings={showAdvancedSettings}
+            />
+            {/* Environment Picker (environment, time, weather, particle) */}
+            <SceneEnvironmentPicker
+              contextTags={scene.context_tags}
+              tagsByGroup={tagsByGroup}
+              onUpdate={(tags) => onUpdateScene({ context_tags: tags })}
             />
           </div>
         </CollapsibleSection>

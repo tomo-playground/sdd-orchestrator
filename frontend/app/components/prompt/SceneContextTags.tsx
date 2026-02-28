@@ -9,6 +9,7 @@ type Props = {
   sceneTagGroups: string[];
   isExclusiveGroup: (groupName: string) => boolean;
   onUpdate: (tags: SceneContextTagsType) => void;
+  excludeGroups?: string[];
 };
 
 const GROUP_LABELS: Record<string, string> = {
@@ -47,8 +48,13 @@ export default function SceneContextTags({
   sceneTagGroups,
   isExclusiveGroup,
   onUpdate,
+  excludeGroups,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
+
+  const visibleGroups = excludeGroups
+    ? sceneTagGroups.filter((g) => !excludeGroups.includes(g))
+    : sceneTagGroups;
 
   const getSelectedTags = (group: string): string[] => {
     if (!contextTags) return [];
@@ -81,9 +87,12 @@ export default function SceneContextTags({
     onUpdate(current);
   };
 
-  const totalSelected = sceneTagGroups.reduce((acc, group) => acc + getSelectedTags(group).length, 0);
+  const totalSelected = visibleGroups.reduce(
+    (acc, group) => acc + getSelectedTags(group).length,
+    0
+  );
 
-  if (sceneTagGroups.length === 0) {
+  if (visibleGroups.length === 0) {
     return null;
   }
 
@@ -113,8 +122,8 @@ export default function SceneContextTags({
       </button>
 
       {expanded && (
-        <div className="rounded-2xl border border-zinc-200 bg-white/80 p-3 grid gap-3">
-          {sceneTagGroups.map((group) => {
+        <div className="grid gap-3 rounded-2xl border border-zinc-200 bg-white/80 p-3">
+          {visibleGroups.map((group) => {
             const tags = tagsByGroup[group] || [];
             const selected = getSelectedTags(group);
             const isExclusive = isExclusiveGroup(group);
@@ -124,9 +133,7 @@ export default function SceneContextTags({
                 <div className="flex items-center gap-1 text-[11px] font-semibold tracking-[0.15em] text-zinc-400 uppercase">
                   <span>{GROUP_ICONS[group]}</span>
                   <span>{GROUP_LABELS[group] || group}</span>
-                  {isExclusive && (
-                    <span className="text-[11px] text-zinc-300">(single)</span>
-                  )}
+                  {isExclusive && <span className="text-[11px] text-zinc-300">(single)</span>}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {tags.map((tag) => {
@@ -138,7 +145,7 @@ export default function SceneContextTags({
                         onClick={() => handleTagToggle(group, tag.name)}
                         className={`rounded-full px-2 py-0.5 text-[12px] transition-all ${
                           isSelected
-                            ? "bg-zinc-800 text-white font-medium"
+                            ? "bg-zinc-800 font-medium text-white"
                             : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                         }`}
                       >

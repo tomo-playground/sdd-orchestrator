@@ -30,11 +30,17 @@ export type SceneContextTags = {
   expression?: string[];
   gaze?: string; // exclusive (single select)
   pose?: string[];
-  action?: string[];
+  action?: string[]; // legacy (action_body/hand/daily로 분리됨)
+  action_body?: string[];
+  action_hand?: string[];
+  action_daily?: string[];
   camera?: string; // exclusive (single select)
   environment?: string[];
   mood?: string[];
-  emotion?: string;
+  emotion?: string; // TTS용 (finalize에서 주입)
+  time_of_day?: string[];
+  weather?: string[];
+  particle?: string[];
 };
 
 export type SceneCharacterAction = {

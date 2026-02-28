@@ -6,6 +6,7 @@ import type { Scene, Tag } from "../../types";
 import DebugTabContent from "./DebugTabContent";
 import SceneContextTags from "../prompt/SceneContextTags";
 import SceneCharacterActions from "./SceneCharacterActions";
+import { ENV_GROUPS } from "./SceneEnvironmentPicker";
 
 type SceneSettingsFieldsProps = {
   scene: Scene;
@@ -51,6 +52,7 @@ export default function SceneSettingsFields({
         sceneTagGroups={sceneTagGroups}
         isExclusiveGroup={isExclusiveGroup}
         onUpdate={(tags) => onUpdateScene({ context_tags: tags })}
+        excludeGroups={[...ENV_GROUPS]}
       />
 
       {/* Scene Character Actions (Dialogue only) */}
