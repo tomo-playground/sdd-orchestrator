@@ -63,7 +63,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
     <Modal open onClose={onClose} size="sm">
       <Modal.Header>
         <h2 className="text-sm font-bold text-zinc-900">
-          {isEdit ? "Edit Project" : "New Project"}
+          {isEdit ? "채널 편집" : "새 채널"}
         </h2>
         <button onClick={onClose} className="text-xs text-zinc-400 hover:text-zinc-600">
           x
@@ -82,7 +82,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
             id="project-form-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="My Project"
+            placeholder="내 채널"
             className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
             autoFocus
           />

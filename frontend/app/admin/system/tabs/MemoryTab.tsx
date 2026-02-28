@@ -10,7 +10,7 @@ const NS_LABELS: Record<string, string> = {
   character: "Character",
   topic: "Topic",
   user: "User",
-  group: "Group",
+  group: "시리즈",
   feedback: "Feedback",
 };
 

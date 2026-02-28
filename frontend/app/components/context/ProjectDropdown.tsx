@@ -59,7 +59,7 @@ export default function ProjectDropdown({
         className="flex max-w-[200px] items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-zinc-700 transition hover:bg-zinc-100"
       >
         {current && <ProjectAvatar project={current} />}
-        <span className="truncate text-xs font-semibold">{current?.name ?? "Project"}</span>
+        <span className="truncate text-xs font-semibold">{current?.name ?? "채널"}</span>
         <svg className="h-3 w-3 shrink-0 text-zinc-400" viewBox="0 0 20 20" fill="currentColor">
           <path
             fillRule="evenodd"
@@ -114,7 +114,7 @@ export default function ProjectDropdown({
                     setOpen(false);
                   }}
                   className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-400 group-hover:flex hover:bg-zinc-100 hover:text-zinc-700"
-                  title="Edit project"
+                  title="채널 편집"
                 >
                   <svg
                     className="h-3 w-3"
@@ -139,7 +139,7 @@ export default function ProjectDropdown({
                     setOpen(false);
                   }}
                   className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-400 group-hover:flex hover:bg-zinc-100 hover:text-red-500"
-                  title="Delete project"
+                  title="채널 삭제"
                 >
                   <svg
                     className="h-3 w-3"
@@ -167,7 +167,7 @@ export default function ProjectDropdown({
             }}
             className="flex w-full items-center gap-1 px-3 py-2 text-left text-xs font-medium text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-700"
           >
-            + New Project
+            + 새 채널
           </button>
         </div>
       </Popover>

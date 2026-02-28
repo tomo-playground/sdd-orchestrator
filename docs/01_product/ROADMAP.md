@@ -52,6 +52,21 @@
 
 ---
 
+## Next Up: Phase 23 — Project/Group UX 개선
+
+> 명세: [PROJECT_GROUP.md](FEATURES/PROJECT_GROUP.md) §2
+
+DB 구조 유지, UX만 개선. Zero-config → 용어 → 설정 가시성 → 내비게이션 순서로 진행.
+
+| Sub-Phase | 이름 | 우선순위 | 핵심 | 상태 |
+|-----------|------|---------|------|------|
+| 23-1 | Zero-Config Start | P0 | 신규 유저 자동 프로비저닝, Empty State CTA | 완료 |
+| 23-2 | 용어 통일 | P0 | UI 라벨 Project→채널, Group→시리즈, Storyboard→영상 (13파일) | 완료 |
+| 23-3 | 설정 가시성 | P1 | GroupResponse 프리셋 이름, GroupDropdown 요약 뱃지 | 미착수 |
+| 23-4 | 내비게이션 개선 | P2 | 컨텍스트 전환 시 리다이렉트 제거 | 미착수 |
+
+---
+
 ## Completed Phases (ARCHIVED)
 
 | Phase | 이름 | 핵심 성과 | 아카이브 |
@@ -116,6 +131,7 @@ graph LR
     P19 --> P20["Phase 20<br/>Agent-Aware<br/>Inventory"]
     P20 --> P21["Phase 21<br/>Persona Menu<br/>Reorganization"]
     P21 --> P22["Phase 22<br/>Backend Complete<br/>Image Generation"]
+    P22 --> P23["Phase 23<br/>Project/Group<br/>UX 개선"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -143,6 +159,7 @@ graph LR
     style P20 fill:#4CAF50,color:#fff
     style P21 fill:#4CAF50,color:#fff
     style P22 fill:#4CAF50,color:#fff
+    style P23 fill:#FF9800,color:#fff
 ```
 
 ---
@@ -164,8 +181,8 @@ Phase 20 이후 또는 우선순위 미정 항목.
 
 | 기능 | 참조 |
 |------|------|
-| Tag Intelligence (채널별 태그 정책 + 데이터 기반 추천) | [명세](FEATURES/PROJECT_GROUP.md) §2-2 |
-| Series Intelligence (에피소드 연결 + 성공 패턴 학습) | [명세](FEATURES/PROJECT_GROUP.md) §2-3 |
+| Tag Intelligence (채널별 태그 정책 + 데이터 기반 추천) | [명세](FEATURES/PROJECT_GROUP.md) §3-1 |
+| Series Intelligence (에피소드 연결 + 성공 패턴 학습) | [명세](FEATURES/PROJECT_GROUP.md) §3-2 |
 | LoRA Calibration Automation | — |
 
 ### Infrastructure & Scale
@@ -173,6 +190,6 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | 기능 | 참조 |
 |------|------|
 | PipelineControl 커스텀 (노드 on/off) + 분산 큐 (Celery/Redis) | Phase 9-4 잔여 |
-| 배치 렌더링 + 큐 (그룹 일괄 렌더, WebSocket 진행률) | [명세](FEATURES/PROJECT_GROUP.md) §3-1 |
-| 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-2 |
+| 배치 렌더링 + 큐 (그룹 일괄 렌더, WebSocket 진행률) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
+| 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | 분석 대시보드 (Match Rate 추이, 프로젝트 간 비교) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |

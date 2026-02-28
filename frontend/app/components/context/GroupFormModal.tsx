@@ -37,7 +37,7 @@ export default function GroupFormModal({ projectId, onSave, onClose }: Props) {
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
-        <h2 className="text-sm font-bold text-zinc-900">New Group</h2>
+        <h2 className="text-sm font-bold text-zinc-900">새 시리즈</h2>
         <button
           onClick={onClose}
           aria-label="Close dialog"
@@ -56,7 +56,7 @@ export default function GroupFormModal({ projectId, onSave, onClose }: Props) {
             id="group-form-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Series Name"
+            placeholder="시리즈 이름"
             className={inputCls}
             autoFocus
           />

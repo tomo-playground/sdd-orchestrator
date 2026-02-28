@@ -98,11 +98,11 @@ export async function createGroup(data: {
   try {
     const res = await axios.post<GroupItem>(`${API_BASE}/groups`, data);
     if (projectId) await fetchGroups(projectId);
-    showToast("Group created", "success");
+    showToast("시리즈 생성됨", "success");
     return res.data;
   } catch (error) {
     console.error("[createGroup] Failed:", error);
-    showToast("Failed to create group", "error");
+    showToast("시리즈 생성 실패", "error");
     return undefined;
   }
 }
@@ -116,11 +116,11 @@ export async function updateGroup(
   try {
     const res = await axios.put<GroupItem>(`${API_BASE}/groups/${groupId}`, data);
     if (projectId) await fetchGroups(projectId);
-    showToast("Group updated", "success");
+    showToast("시리즈 수정됨", "success");
     return res.data;
   } catch (error) {
     console.error("[updateGroup] Failed:", error);
-    showToast("Failed to update group", "error");
+    showToast("시리즈 수정 실패", "error");
     return undefined;
   }
 }
@@ -131,14 +131,14 @@ export async function deleteGroup(groupId: number): Promise<boolean> {
   try {
     await axios.delete(`${API_BASE}/groups/${groupId}`);
     if (projectId) await fetchGroups(projectId);
-    showToast("Group deleted", "success");
+    showToast("시리즈 삭제됨", "success");
     return true;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 409) {
-      showToast("Cannot delete: group has storyboards", "error");
+      showToast("삭제 불가: 영상이 존재합니다", "error");
     } else {
       console.error("[deleteGroup] Failed:", error);
-      showToast("Failed to delete group", "error");
+      showToast("시리즈 삭제 실패", "error");
     }
     return false;
   }

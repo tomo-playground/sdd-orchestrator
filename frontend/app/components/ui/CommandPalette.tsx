@@ -105,7 +105,7 @@ export default function CommandPalette() {
           items.push({
             id: `s-${sb.id}`,
             label: sb.title,
-            sublabel: `Storyboard #${sb.id}`,
+            sublabel: `영상 #${sb.id}`,
             type: "storyboard",
             action: () => {
               const group = groups.find((g) => g.id === sb.group_id);
@@ -235,7 +235,7 @@ export default function CommandPalette() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search projects, groups, storyboards..."
+            placeholder="채널, 시리즈, 영상 검색..."
             className="flex-1 bg-transparent text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
             role="combobox"
             aria-expanded={results.length > 0}
@@ -282,8 +282,8 @@ export default function CommandPalette() {
                     <div className="truncate text-[12px] text-zinc-400">{item.sublabel}</div>
                   )}
                 </div>
-                <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-medium text-zinc-400 uppercase">
-                  {item.type}
+                <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-medium text-zinc-400">
+                  {{ project: "채널", group: "시리즈", storyboard: "영상" }[item.type]}
                 </span>
               </button>
             ))

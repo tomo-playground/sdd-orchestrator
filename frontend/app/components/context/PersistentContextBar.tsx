@@ -43,7 +43,7 @@ export default function PersistentContextBar() {
   const handleDeleteProject = useCallback(
     async (project: { id: number; name: string }) => {
       const ok = await confirm({
-        title: "Delete Project",
+        title: "채널 삭제",
         message: (
           <>
             <span className="font-semibold text-zinc-900">{project.name}</span>을(를)
@@ -67,7 +67,7 @@ export default function PersistentContextBar() {
     async (id: number) => {
       const group = groups.find((g) => g.id === id);
       const ok = await confirm({
-        title: "Delete Group",
+        title: "시리즈 삭제",
         message: (
           <>
             <span className="font-semibold text-zinc-900">{group?.name ?? "this group"}</span>
@@ -162,7 +162,7 @@ export default function PersistentContextBar() {
           {groupId !== null && groupId !== ALL_GROUPS_ID && (
             <button
               onClick={() => setConfigGroupId(groupId)}
-              title="Group settings"
+              title="시리즈 설정"
               className="shrink-0 rounded p-0.5 text-zinc-400 transition hover:bg-zinc-200 hover:text-zinc-600"
             >
               <Settings className="h-3 w-3" />

@@ -71,7 +71,7 @@ export default function GroupDropdown({
       >
         <FolderOpen className="h-3.5 w-3.5 shrink-0" />
         <span className="truncate">
-          {isEmpty ? "+ Add Group" : isAll ? "All Groups" : (current?.name ?? "Group")}
+          {isEmpty ? "+ 시리즈 추가" : isAll ? "전체 시리즈" : (current?.name ?? "시리즈")}
         </span>
         {!isEmpty && <ChevronDown className="h-3 w-3 shrink-0 text-zinc-400" />}
       </button>
@@ -106,7 +106,7 @@ function DropdownContent({
           }`}
         >
           <FolderOpen className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-          <span className="truncate">All Groups</span>
+          <span className="truncate">전체 시리즈</span>
           {isAll && <Check className="ml-auto h-3 w-3 shrink-0 text-zinc-400" />}
         </button>
       )}
@@ -132,7 +132,7 @@ function DropdownContent({
                 onEdit(g);
               }}
               className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-400 group-hover/item:flex hover:bg-zinc-100 hover:text-zinc-700"
-              title="Edit group"
+              title="시리즈 편집"
             >
               <Pencil className="h-3 w-3" />
             </button>
@@ -144,7 +144,7 @@ function DropdownContent({
                 onDelete(g);
               }}
               className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-400 group-hover/item:flex hover:bg-zinc-100 hover:text-red-500"
-              title="Delete group"
+              title="시리즈 삭제"
             >
               <Trash2 className="h-3 w-3" />
             </button>
@@ -162,7 +162,7 @@ function DropdownFooter({ onNew }: { onNew: () => void }) {
         onClick={onNew}
         className="flex w-full items-center gap-1 px-3 py-2 text-left text-xs font-medium text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-700"
       >
-        + New Group
+        + 새 시리즈
       </button>
     </div>
   );

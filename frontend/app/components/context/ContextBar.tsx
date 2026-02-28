@@ -56,7 +56,7 @@ export default function ContextBar({ title }: Props) {
             onClick={() => setIsEditing(true)}
             className="max-w-[200px] truncate text-sm font-bold text-zinc-900 transition hover:text-zinc-700 md:max-w-sm"
           >
-            {title || "New Storyboard"}
+            {title || "새 영상"}
           </button>
         </Tooltip>
       )}

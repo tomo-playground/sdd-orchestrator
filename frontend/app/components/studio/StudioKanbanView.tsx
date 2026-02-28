@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Layers } from "lucide-react";
 import { useStudioKanban } from "../../hooks/useStudioKanban";
 import { useContextStore } from "../../store/useContextStore";
 import { useUIStore } from "../../store/useUIStore";
@@ -15,6 +16,9 @@ const COLUMNS = ["draft", "in_prod", "rendered", "published"] as const;
 export default function StudioKanbanView() {
   const router = useRouter();
   const projectId = useContextStore((s) => s.projectId);
+  const groups = useContextStore((s) => s.groups);
+  const isLoadingGroups = useContextStore((s) => s.isLoadingGroups);
+  const setUI = useUIStore((s) => s.set);
   const { columns, isLoading, total } = useStudioKanban();
 
   const handleCardClick = (id: number) => {
@@ -31,11 +35,26 @@ export default function StudioKanbanView() {
         <p className="mb-2 text-sm text-zinc-500">영상을 만들려면 채널이 필요합니다.</p>
         <Button
           size="sm"
-          onClick={() =>
-            useUIStore.getState().set({ showSetupWizard: true, setupWizardInitialStep: 1 })
-          }
+          onClick={() => setUI({ showSetupWizard: true, setupWizardInitialStep: 1 })}
         >
           채널 만들기
+        </Button>
+      </div>
+    );
+  }
+
+  if (!isLoadingGroups && groups.length === 0) {
+    return (
+      <div className="px-6 py-16 text-center">
+        <div className="mb-3 inline-flex rounded-full bg-amber-50 p-3">
+          <Layers className="h-6 w-6 text-amber-500" />
+        </div>
+        <p className="mb-2 text-sm text-zinc-700">시리즈를 만들어야 영상을 저장할 수 있습니다.</p>
+        <Button
+          size="sm"
+          onClick={() => setUI({ showSetupWizard: true, setupWizardInitialStep: 2 })}
+        >
+          시리즈 만들기
         </Button>
       </div>
     );
@@ -49,13 +68,13 @@ export default function StudioKanbanView() {
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-zinc-800">Projects</h2>
+              <h2 className="text-lg font-bold text-zinc-800">영상 목록</h2>
               <p className="text-xs text-zinc-400">
-                {isLoading ? "Loading..." : `${total} storyboard${total !== 1 ? "s" : ""}`}
+                {isLoading ? "로딩 중..." : `${total}개 영상`}
               </p>
             </div>
             <Button onClick={handleNewShorts} size="md">
-              + New Shorts
+              + 새 영상
             </Button>
           </div>
 

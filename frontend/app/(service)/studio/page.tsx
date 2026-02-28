@@ -201,7 +201,7 @@ function StudioContent() {
       <div className={SUB_NAV_CLASSES}>
         <div className="flex items-center justify-between px-8 py-2">
           {/* Left: Title */}
-          <ContextBar title={storyboardTitle || "New Storyboard"} />
+          <ContextBar title={storyboardTitle || "새 영상"} />
 
           {/* Center: Status + Tabs */}
           <div className="flex items-center gap-3">
@@ -229,12 +229,12 @@ function StudioContent() {
       {groups.length === 0 && (
         <div className="shrink-0 px-8 pt-3">
           <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-xs text-amber-800">Create a group to start saving storyboards.</p>
+            <p className="text-xs text-amber-800">영상을 저장하려면 시리즈를 만들어야 합니다.</p>
             <button
               onClick={() => setShowGroupModal(true)}
               className="shrink-0 rounded-full bg-amber-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-amber-700"
             >
-              + Create Group
+              + 시리즈 만들기
             </button>
           </div>
         </div>

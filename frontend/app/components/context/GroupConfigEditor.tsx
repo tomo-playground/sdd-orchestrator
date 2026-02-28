@@ -108,10 +108,10 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
       });
       const projectId = useContextStore.getState().projectId;
       if (projectId) fetchGroups(projectId);
-      showToast("Group config saved", "success");
+      showToast("시리즈 설정 저장됨", "success");
       onClose();
     } catch {
-      showToast("Failed to save config", "error");
+      showToast("시리즈 설정 저장 실패", "error");
     } finally {
       setSaving(false);
     }
@@ -122,7 +122,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
   return (
     <Modal open onClose={onClose} size="md">
       <Modal.Header>
-        <h2 className="text-sm font-bold text-zinc-900">Group Config</h2>
+        <h2 className="text-sm font-bold text-zinc-900">시리즈 설정</h2>
         <button onClick={onClose} className="text-xs text-zinc-400 hover:text-zinc-600">
           x
         </button>
@@ -140,12 +140,12 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
         <div className="max-h-[60vh] space-y-4 overflow-y-auto px-5 py-4">
           {/* Group Name */}
           <div>
-            <label className={labelCls}>Group Name</label>
+            <label className={labelCls}>시리즈 이름</label>
             <input
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
               className={inputCls}
-              placeholder="Group name"
+              placeholder="시리즈 이름"
             />
           </div>
 
