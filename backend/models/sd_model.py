@@ -92,6 +92,10 @@ class StyleProfile(Base, TimestampMixin):
     default_clip_skip: Mapped[int | None] = mapped_column(Integer)
     default_enable_hr: Mapped[bool | None] = mapped_column(Boolean)
 
+    # Reference image defaults (per-style override for config_prompt constants)
+    reference_env_tags: Mapped[list[str] | None] = mapped_column(JSONB)
+    reference_camera_tags: Mapped[list[str] | None] = mapped_column(JSONB)
+
     # Settings
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

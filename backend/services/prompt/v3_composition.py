@@ -7,9 +7,15 @@ minimize risk in the composition hot-path. Do NOT refactor to external calls
 without validating all tag paths.
 """
 
+from __future__ import annotations
+
 import functools
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
+
+if TYPE_CHECKING:
+    from services.style_context import StyleContext
 
 from config import (
     BACKGROUND_SCENE_MARKER,
@@ -429,7 +435,7 @@ class V3PromptBuilder:
         ]
 
     @classmethod
-    def _strip_char_base_from_scene(cls, character: "Character", scene_tags: list[str]) -> list[str]:
+    def _strip_char_base_from_scene(cls, character: Character, scene_tags: list[str]) -> list[str]:
         """Remove character base prompt tokens from scene_tags to prevent duplication.
 
         When frontend sends a pre-composed prompt, it already contains character
@@ -902,7 +908,7 @@ class V3PromptBuilder:
         return resolved
 
     def _apply_gender_enhancement(
-        self, character: "Character", char_tags_data: list[dict], layers: list[list[str]]
+        self, character: Character, char_tags_data: list[dict], layers: list[list[str]]
     ) -> None:
         """Add male enhancement tags if character is male (SD model bias fix)."""
         gender = (character.gender or "").lower()
@@ -1154,6 +1160,7 @@ class V3PromptBuilder:
         character: Character,
         reference_extra_tags: list[str] | None = None,
         quality_tags: list[str] | None = None,
+        style_ctx: StyleContext | None = None,
     ) -> str:
         """Compose prompt for character reference image generation.
 
@@ -1212,10 +1219,10 @@ class V3PromptBuilder:
         self._ensure_quality_tags(layers)
 
         # 8. Inject reference defaults (white_background, camera)
-        self._inject_reference_defaults(layers)
+        self._inject_reference_defaults(layers, style_ctx=style_ctx)
 
-        # 9. Inject LoRAs (character × scale, style full weight)
-        self._inject_loras_for_reference(character, layers)
+        # 9. Inject LoRAs (character × scale, style LoRA from both character + StyleProfile)
+        self._inject_loras_for_reference(character, layers, style_ctx=style_ctx)
 
         # 10. Gender enhancement
         self._apply_gender_enhancement(character, char_tags_data, layers)
@@ -1235,22 +1242,40 @@ class V3PromptBuilder:
                 tags.append(t)
         return tags
 
-    def _inject_reference_defaults(self, layers: list[list[str]]) -> None:
-        """Inject fixed environment and camera tags for reference images.
+    def _inject_reference_defaults(
+        self,
+        layers: list[list[str]],
+        style_ctx: StyleContext | None = None,
+    ) -> None:
+        """Inject environment and camera tags for reference images.
+
+        Priority: StyleProfile DB value > config_prompt.py global constant.
+        - None → fallback to global constant (existing behavior)
+        - [] empty list → intentionally skip injection (opt-out)
 
         Background tags are placed in LAYER_QUALITY (front of prompt) for maximum
         influence — SD pays more attention to earlier tokens.
         """
+        # Resolve env tags: StyleProfile DB > global constant
+        env_tags: list[str] | None = style_ctx.reference_env_tags if style_ctx else None
+        if env_tags is None:
+            env_tags = REFERENCE_ENV_TAGS
+
+        # Resolve camera tags: StyleProfile DB > global constant
+        camera_tags: list[str] | None = style_ctx.reference_camera_tags if style_ctx else None
+        if camera_tags is None:
+            camera_tags = REFERENCE_CAMERA_TAGS
+
         # Background suppression → LAYER_QUALITY (position 0) for maximum priority
         quality_norms = {self._strip_weight(t).lower().replace(" ", "_") for t in layers[LAYER_QUALITY]}
-        for tag in REFERENCE_ENV_TAGS:
+        for tag in env_tags:
             key = self._strip_weight(tag).lower().replace(" ", "_")
             if key not in quality_norms:
                 layers[LAYER_QUALITY].append(tag)
                 quality_norms.add(key)
 
         cam_norms = {self._strip_weight(t).lower().replace(" ", "_") for t in layers[LAYER_CAMERA]}
-        for tag in REFERENCE_CAMERA_TAGS:
+        for tag in camera_tags:
             key = self._strip_weight(tag).lower().replace(" ", "_")
             if key not in cam_norms:
                 layers[LAYER_CAMERA].append(tag)
@@ -1260,49 +1285,72 @@ class V3PromptBuilder:
         self,
         character: Character,
         layers: list[list[str]],
+        *,
+        style_ctx: StyleContext | None = None,
     ) -> None:
         """Inject LoRAs for reference: character LoRA × REFERENCE_LORA_SCALE, style LoRA × REFERENCE_STYLE_LORA_SCALE.
+
+        Sources:
+        - character.loras: character + style LoRAs attached to the character
+        - style_ctx.loras: style LoRAs from the StyleProfile (deduped against character.loras)
 
         Uses batch query to avoid N+1.
         """
         from config import REFERENCE_LORA_SCALE, REFERENCE_STYLE_LORA_SCALE
 
-        if not character.loras:
-            return
+        injected_lora_ids: set[int] = set()
 
-        # Batch query all LoRA objects (N+1 prevention)
-        lora_ids = [entry.get("lora_id") for entry in character.loras if entry.get("lora_id")]
-        if not lora_ids:
-            return
-        lora_objs = self.db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
-        lora_map = {lora.id: lora for lora in lora_objs}
+        # --- 1. Character-attached LoRAs ---
+        if character.loras:
+            lora_ids = [entry.get("lora_id") for entry in character.loras if entry.get("lora_id")]
+            if lora_ids:
+                lora_objs = self.db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
+                lora_map = {lora.id: lora for lora in lora_objs}
 
-        for lora_entry in character.loras:
-            lora_id = lora_entry.get("lora_id")
-            if not lora_id:
-                continue
-            lora_obj = lora_map.get(lora_id)
-            if not lora_obj:
-                continue
+                for lora_entry in character.loras:
+                    lora_id = lora_entry.get("lora_id")
+                    if not lora_id:
+                        continue
+                    lora_obj = lora_map.get(lora_id)
+                    if not lora_obj:
+                        continue
 
-            base_weight = lora_entry.get("weight")
-            if base_weight is None:
-                base_weight = self.get_effective_lora_weight(lora_obj)
+                    base_weight = lora_entry.get("weight")
+                    if base_weight is None:
+                        base_weight = self.get_effective_lora_weight(lora_obj)
 
-            if lora_obj.lora_type == "style":
-                # Style LoRA: scaled down to prevent character sheet composition
+                    if lora_obj.lora_type == "style":
+                        weight = round(base_weight * REFERENCE_STYLE_LORA_SCALE, 2)
+                        weight = self._cap_lora_weight(weight)
+                        layers[LAYER_ATMOSPHERE].append(f"<lora:{lora_obj.name}:{weight}>")
+                    else:
+                        weight = round(base_weight * REFERENCE_LORA_SCALE, 2)
+                        weight = self._cap_lora_weight(weight)
+                        layers[LAYER_IDENTITY].append(f"<lora:{lora_obj.name}:{weight}>")
+                        for trigger in lora_obj.trigger_words or []:
+                            if not self._trigger_exists_in_layers(trigger, layers):
+                                layers[LAYER_IDENTITY].append(trigger)
+
+                    injected_lora_ids.add(lora_id)
+
+        # --- 2. StyleProfile LoRAs (dedup against character-attached) ---
+        if style_ctx and style_ctx.loras:
+            for style_lora in style_ctx.loras:
+                lora_id = style_lora.get("lora_id")
+                if not lora_id or lora_id in injected_lora_ids:
+                    continue
+                lora_name = style_lora.get("name")
+                if not lora_name:
+                    continue
+                base_weight = style_lora.get("weight", 0.7)
                 weight = round(base_weight * REFERENCE_STYLE_LORA_SCALE, 2)
                 weight = self._cap_lora_weight(weight)
-                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora_obj.name}:{weight}>")
-            else:
-                # Character LoRA: scaled down for identity hint
-                weight = round(base_weight * REFERENCE_LORA_SCALE, 2)
-                weight = self._cap_lora_weight(weight)
-                layers[LAYER_IDENTITY].append(f"<lora:{lora_obj.name}:{weight}>")
-                # Add trigger words for character LoRAs only
-                for trigger in lora_obj.trigger_words or []:
+                layers[LAYER_ATMOSPHERE].append(f"<lora:{lora_name}:{weight}>")
+                # Add trigger words from StyleProfile LoRA
+                for trigger in style_lora.get("trigger_words") or []:
                     if not self._trigger_exists_in_layers(trigger, layers):
-                        layers[LAYER_IDENTITY].append(trigger)
+                        layers[LAYER_ATMOSPHERE].append(trigger)
+                injected_lora_ids.add(lora_id)
 
 
 def get_v3_prompt_builder():

@@ -17,14 +17,15 @@ export function useAutoScroll<T>(deps: T[]) {
     isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
   }, []);
 
+  const depsLength = deps.length;
+
   useEffect(() => {
     if (!isAtBottomRef.current) return;
     const el = containerRef.current;
     if (el) {
       el.scrollTop = el.scrollHeight;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [depsLength]);
 
   const scrollToBottom = useCallback(() => {
     const el = containerRef.current;

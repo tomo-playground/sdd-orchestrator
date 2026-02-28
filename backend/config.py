@@ -160,8 +160,36 @@ SD_REFERENCE_NUM_CANDIDATES = int(os.getenv("SD_REFERENCE_NUM_CANDIDATES", "3"))
 # 0.4: balanced between character identity and pose freedom (reviewed 2026-02)
 REFERENCE_LORA_SCALE = float(os.getenv("REFERENCE_LORA_SCALE", "0.4"))
 # Style LoRA weight multiplier for reference images
-# 0.5: prevent style LoRA from producing character sheets/multiple views
-REFERENCE_STYLE_LORA_SCALE = float(os.getenv("REFERENCE_STYLE_LORA_SCALE", "0.3"))
+# 0.45: balance between style visibility and prompt adherence (reviewed 2026-02)
+REFERENCE_STYLE_LORA_SCALE = float(os.getenv("REFERENCE_STYLE_LORA_SCALE", "0.45"))
+
+# --- Base Model ---
+# SSOT for SD base model identifiers. All API inputs are normalized to these values.
+SUPPORTED_BASE_MODELS: set[str] = {"SD1.5", "SDXL", "FLUX"}
+# Normalization map: common variants → canonical value
+BASE_MODEL_ALIASES: dict[str, str] = {
+    "sd1.5": "SD1.5",
+    "sd 1.5": "SD1.5",
+    "sd15": "SD1.5",
+    "sd1_5": "SD1.5",
+    "sdxl": "SDXL",
+    "sd xl": "SDXL",
+    "flux": "FLUX",
+}
+
+
+def normalize_base_model(value: str | None) -> str | None:
+    """Normalize base_model to canonical form. Returns None if input is None."""
+    if value is None:
+        return None
+    canonical = BASE_MODEL_ALIASES.get(value.strip().lower())
+    if canonical:
+        return canonical
+    # Already canonical
+    if value in SUPPORTED_BASE_MODELS:
+        return value
+    return value  # unknown value — pass through, don't block
+
 
 # --- External API ---
 DANBOORU_API_BASE = os.getenv("DANBOORU_API_BASE", "https://danbooru.donmai.us")
@@ -412,8 +440,7 @@ DEFAULT_REFERENCE_NEGATIVE_PROMPT = ", ".join(
         "(outdoors:1.5)",
         "(indoors:1.5)",
         "(ornate:1.3)",
-        "(pattern:1.3)",
-        "(decorative_background:1.5)",
+        "(patterned_background:1.3)",
         "(gradient_background:1.5)",
         "(abstract_background:1.5)",
         "(colorful_background:1.5)",
@@ -421,7 +448,7 @@ DEFAULT_REFERENCE_NEGATIVE_PROMPT = ", ".join(
         "(black_background:1.3)",
         "border",
         "frame",
-        "shadow",
+        "(shadow:1.3)",
         # --- 멀티뷰 억제 ---
         "(multiple_views:1.8)",
         "(character_sheet:1.8)",

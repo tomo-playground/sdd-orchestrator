@@ -32,6 +32,7 @@
 
 ### 최근 작업
 
+- **StyleProfile reference_env_tags / reference_camera_tags 추가** (02-28): StyleProfile에 JSONB 필드 2개 추가. ORM, StyleContext, V3PromptBuilder, preview.py, controlnet.py, schemas.py 수정. Alembic 마이그레이션 + 기존 5개 프로필 시딩. 테스트 4개 추가 (총 155개 통과). DB_SCHEMA.md 동기화.
 - **Lab StyleProfile DB 파라미터 적용 수정** (02-28): `generate_image_with_v3()`에서 StyleProfile의 steps/cfg_scale/sampler_name/clip_skip이 무시되던 버그 수정. `override_settings`로 clip_skip 전달. preview.py 패턴 일관성 확보.
 - **Phase 24 코드 리뷰 수정** (02-28): SSE 에러 BLOCKER 수정(preflight 포함), topic min_length, structure 케이스 정규화(id→name), sendMessage 동시 요청 방지, character_name null 처리, ChatMessage memo 효과 복원(callbacks 분리), topic_analysis 서비스 추출. 15테스트.
 - **characters.preview_locked 필드 제거** (02-28): 미사용 기능 전체 삭제. ORM 모델, 스키마 3곳, preview.py 가드, Frontend 타입/배지/필터, 테스트 fixtures, 문서 3종 정리. Alembic 마이그레이션 포함. 12파일.

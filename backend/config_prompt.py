@@ -124,6 +124,5 @@ REFERENCE_CAMERA_TAGS: list[str] = [
     "full_body",
     "(standing:1.2)",
     "looking_at_viewer",
-    "front_view",
-    "straight_on",
+    "facing_viewer",
 ]

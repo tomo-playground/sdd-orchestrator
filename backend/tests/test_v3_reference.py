@@ -175,8 +175,8 @@ class TestReferenceStyleLoRA:
         char = _make_character(loras=[{"lora_id": 2, "weight": 0.7}])
         result = builder.compose_for_reference(char)
 
-        # Style LoRA: 0.7 × REFERENCE_STYLE_LORA_SCALE(0.3) = 0.21
-        assert "<lora:flat_color:0.21>" in result
+        # Style LoRA: 0.7 × REFERENCE_STYLE_LORA_SCALE(0.45) = 0.32
+        assert "<lora:flat_color:0.32>" in result
 
     @patch("services.prompt.v3_composition.TagRuleCache")
     @patch("services.prompt.v3_composition.TagFilterCache")
@@ -202,8 +202,8 @@ class TestReferenceStyleLoRA:
         char = _make_character(loras=[{"lora_id": 2, "weight": 0.9}])
         result = builder.compose_for_reference(char)
 
-        # Style LoRA: 0.9 × REFERENCE_STYLE_LORA_SCALE(0.3) = 0.27 (below cap)
-        assert "<lora:flat_color:0.27>" in result
+        # Style LoRA: 0.9 × REFERENCE_STYLE_LORA_SCALE(0.45) = 0.41 (below cap)
+        assert "<lora:flat_color:0.41>" in result
         assert "<lora:flat_color:0.9>" not in result
 
 
@@ -339,8 +339,77 @@ class TestInjectReferenceDefaults:
         assert "solid_background" in quality
         assert "(solo:1.5)" in layers[LAYER_CAMERA]
         assert "looking_at_viewer" in layers[LAYER_CAMERA]
-        assert "front_view" in layers[LAYER_CAMERA]
-        assert "straight_on" in layers[LAYER_CAMERA]
+        assert "facing_viewer" in layers[LAYER_CAMERA]
+
+    def test_uses_style_ctx_env_tags(self, builder):
+        """StyleContext의 reference_env_tags가 전역 상수보다 우선한다."""
+        from services.style_context import StyleContext
+
+        ctx = StyleContext(
+            profile_id=1,
+            profile_name="test",
+            reference_env_tags=["(gray_background:1.5)", "studio_lighting"],
+        )
+        layers = [[] for _ in range(12)]
+        builder._inject_reference_defaults(layers, style_ctx=ctx)
+
+        quality = layers[LAYER_QUALITY]
+        assert "(gray_background:1.5)" in quality
+        assert "studio_lighting" in quality
+        # 전역 폴백 태그가 없어야 함
+        assert "(white_background:1.8)" not in quality
+
+    def test_uses_style_ctx_camera_tags(self, builder):
+        """StyleContext의 reference_camera_tags가 전역 상수보다 우선한다."""
+        from services.style_context import StyleContext
+
+        ctx = StyleContext(
+            profile_id=1,
+            profile_name="test",
+            reference_camera_tags=["(solo:1.3)", "upper_body"],
+        )
+        layers = [[] for _ in range(12)]
+        builder._inject_reference_defaults(layers, style_ctx=ctx)
+
+        camera = layers[LAYER_CAMERA]
+        assert "(solo:1.3)" in camera
+        assert "upper_body" in camera
+        # 전역 폴백의 full_body가 없어야 함
+        assert "full_body" not in camera
+
+    def test_empty_list_skips_injection(self, builder):
+        """빈 배열 []은 의도적 비활성화 — 태그 주입 안 함."""
+        from services.style_context import StyleContext
+
+        ctx = StyleContext(
+            profile_id=1,
+            profile_name="test",
+            reference_env_tags=[],
+            reference_camera_tags=[],
+        )
+        layers = [[] for _ in range(12)]
+        builder._inject_reference_defaults(layers, style_ctx=ctx)
+
+        assert layers[LAYER_QUALITY] == []
+        assert layers[LAYER_CAMERA] == []
+
+    def test_none_falls_back_to_global(self, builder):
+        """style_ctx 필드가 None이면 전역 상수로 폴백."""
+        from services.style_context import StyleContext
+
+        ctx = StyleContext(
+            profile_id=1,
+            profile_name="test",
+            reference_env_tags=None,
+            reference_camera_tags=None,
+        )
+        layers = [[] for _ in range(12)]
+        builder._inject_reference_defaults(layers, style_ctx=ctx)
+
+        # 전역 REFERENCE_ENV_TAGS 폴백
+        assert "(white_background:1.8)" in layers[LAYER_QUALITY]
+        # 전역 REFERENCE_CAMERA_TAGS 폴백
+        assert "(solo:1.5)" in layers[LAYER_CAMERA]
 
     def test_no_duplicate_if_already_present(self, builder):
         layers = [[] for _ in range(12)]

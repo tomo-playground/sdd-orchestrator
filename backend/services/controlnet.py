@@ -667,8 +667,12 @@ async def generate_reference_for_character(
     from services.style_context import resolve_style_context_for_profile
 
     quality_tags = _resolve_quality_tags_for_character(character, db)
+
+    # Resolve StyleContext before compose (needed for reference_env_tags/camera_tags + params)
+    style_ctx = resolve_style_context_for_profile(character.style_profile_id, db)
+
     builder = V3PromptBuilder(db)
-    full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags)
+    full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags, style_ctx=style_ctx)
 
     # Construct negative prompt
     base_negative = character.reference_negative_prompt or DEFAULT_REFERENCE_NEGATIVE_PROMPT
@@ -676,9 +680,6 @@ async def generate_reference_for_character(
         extras = [n for n in character.recommended_negative if n not in base_negative]
         if extras:
             base_negative += ", " + ", ".join(extras)
-
-    # Resolve StyleProfile generation parameters (override global defaults)
-    style_ctx = resolve_style_context_for_profile(character.style_profile_id, db)
     steps = style_ctx.default_steps if (style_ctx and style_ctx.default_steps is not None) else SD_REFERENCE_STEPS
     cfg_scale = (
         style_ctx.default_cfg_scale

@@ -531,6 +531,8 @@ Model + LoRAs + Embeddings 번들.
 | `default_sampler_name` | String(50) | 화풍별 기본 샘플러 |
 | `default_clip_skip` | Integer | 화풍별 기본 CLIP Skip |
 | `default_enable_hr` | Boolean | 화풍별 Hi-Res(Hires Fix) 기본 ON/OFF |
+| `reference_env_tags` | JSONB | 레퍼런스 이미지 배경 태그 (NULL=전역 폴백, []=비활성화) |
+| `reference_camera_tags` | JSONB | 레퍼런스 이미지 카메라 태그 (NULL=전역 폴백, []=비활성화) |
 | `is_default` | Boolean | |
 | `is_active` | Boolean | |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |

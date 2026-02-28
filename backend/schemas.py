@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from config import (
     DEFAULT_CONTROLNET_WEIGHT,
@@ -20,9 +20,19 @@ from config import (
     SD_DEFAULT_SAMPLER,
     SD_DEFAULT_STEPS,
     SD_DEFAULT_WIDTH,
+    normalize_base_model,
 )
 
 logger = logging.getLogger(__name__)
+
+
+class _BaseModelNormMixin(BaseModel):
+    """Mixin: normalizes base_model field (e.g. 'SD 1.5' → 'SD1.5')."""
+
+    @field_validator("base_model", mode="before", check_fields=False)
+    @classmethod
+    def _normalize_base_model(cls, v: str | None) -> str | None:
+        return normalize_base_model(v)
 
 
 class CharacterLoRA(BaseModel):
@@ -821,7 +831,7 @@ class TagSearchResponse(TagResponse):
     replacement_tag_name: str | None = None
 
 
-class LoRABase(BaseModel):
+class LoRABase(_BaseModelNormMixin):
     name: str = Field(max_length=200)
     display_name: str | None = Field(default=None, max_length=200)
     lora_type: str | None = None  # character, style, pose
@@ -846,7 +856,7 @@ class LoRACreate(LoRABase):
     pass
 
 
-class LoRAUpdate(BaseModel):
+class LoRAUpdate(_BaseModelNormMixin):
     name: str | None = Field(default=None, max_length=200)
     display_name: str | None = Field(default=None, max_length=200)
     lora_type: str | None = None
@@ -1005,7 +1015,7 @@ class AssignPreviewResponse(BaseModel):
 # ============================================================
 
 
-class SDModelBase(BaseModel):
+class SDModelBase(_BaseModelNormMixin):
     name: str
     display_name: str | None = None
     model_type: str = "checkpoint"
@@ -1021,7 +1031,7 @@ class SDModelCreate(SDModelBase):
     pass
 
 
-class SDModelUpdate(BaseModel):
+class SDModelUpdate(_BaseModelNormMixin):
     name: str | None = None
     display_name: str | None = None
     model_type: str | None = None
@@ -1045,7 +1055,7 @@ class SDModelResponse(SDModelBase):
 # ============================================================
 
 
-class EmbeddingBase(BaseModel):
+class EmbeddingBase(_BaseModelNormMixin):
     name: str
     display_name: str | None = None
     embedding_type: str = "negative"
@@ -1059,7 +1069,7 @@ class EmbeddingCreate(EmbeddingBase):
     pass
 
 
-class EmbeddingUpdate(BaseModel):
+class EmbeddingUpdate(_BaseModelNormMixin):
     name: str | None = None
     display_name: str | None = None
     embedding_type: str | None = None
@@ -1100,6 +1110,8 @@ class StyleProfileBase(BaseModel):
     default_sampler_name: str | None = None
     default_clip_skip: int | None = None
     default_enable_hr: bool | None = None
+    reference_env_tags: list[str] | None = None
+    reference_camera_tags: list[str] | None = None
     is_default: bool = False
     is_active: bool = True
 
@@ -1123,6 +1135,8 @@ class StyleProfileUpdate(BaseModel):
     default_sampler_name: str | None = None
     default_clip_skip: int | None = None
     default_enable_hr: bool | None = None
+    reference_env_tags: list[str] | None = None
+    reference_camera_tags: list[str] | None = None
     is_default: bool | None = None
     is_active: bool | None = None
 
@@ -1170,6 +1184,8 @@ class StyleProfileFullResponse(BaseModel):
     default_clip_skip: int | None = None
     default_enable_hr: bool | None = None
     default_ip_adapter_model: str | None = None
+    reference_env_tags: list[str] | None = None
+    reference_camera_tags: list[str] | None = None
     is_default: bool = False
     is_active: bool = True
 

@@ -69,17 +69,19 @@ def _build_reference_negative(
 
 
 def _resolve_quality_tags_for_character(character: Character, db: Session) -> list[str] | None:
-    """Resolve StyleProfile quality tags via Character's most recent Storyboard → Group.
+    """Resolve StyleProfile quality tags for a character.
 
-    Path: Character → StoryboardCharacter → Storyboard → Group → Config → StyleProfile.
+    Priority: Character → Storyboard → Group → StyleProfile (Group 경유)
+    Fallback: Character.style_profile_id → StyleProfile.default_positive (직접 참조)
+
     Returns parsed default_positive tokens, or None if no StyleProfile is configured.
     """
     from models.storyboard import Storyboard
     from models.storyboard_character import StoryboardCharacter
     from services.prompt import split_prompt_tokens
-    from services.style_context import resolve_style_context_from_group
+    from services.style_context import resolve_style_context_for_profile, resolve_style_context_from_group
 
-    # Find the most recent storyboard using this character
+    # 1. Try Group path: Character → Storyboard → Group → StyleProfile
     sc = (
         db.query(StoryboardCharacter)
         .join(Storyboard, StoryboardCharacter.storyboard_id == Storyboard.id)
@@ -90,18 +92,20 @@ def _resolve_quality_tags_for_character(character: Character, db: Session) -> li
         .order_by(Storyboard.id.desc())
         .first()
     )
-    if not sc:
-        return None
+    if sc:
+        storyboard = db.query(Storyboard).filter(Storyboard.id == sc.storyboard_id).first()
+        if storyboard and storyboard.group_id:
+            ctx = resolve_style_context_from_group(storyboard.group_id, db)
+            if ctx and ctx.default_positive:
+                return split_prompt_tokens(ctx.default_positive)
 
-    storyboard = db.query(Storyboard).filter(Storyboard.id == sc.storyboard_id).first()
-    if not storyboard or not storyboard.group_id:
-        return None
+    # 2. Fallback: Character.style_profile_id → StyleProfile.default_positive
+    if character.style_profile_id:
+        ctx = resolve_style_context_for_profile(character.style_profile_id, db)
+        if ctx and ctx.default_positive:
+            return split_prompt_tokens(ctx.default_positive)
 
-    ctx = resolve_style_context_from_group(storyboard.group_id, db)
-    if not ctx or not ctx.default_positive:
-        return None
-
-    return split_prompt_tokens(ctx.default_positive)
+    return None
 
 
 def _get_character_for_preview(db: Session, character_id: int, *, with_tags: bool = False) -> Character:
@@ -144,11 +148,11 @@ async def regenerate_reference(
     # Resolve StyleProfile quality tags (Group → Config → StyleProfile.default_positive)
     quality_tags = _resolve_quality_tags_for_character(character, db)
 
-    builder = V3PromptBuilder(db)
-    full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags)
-
-    # Resolve StyleContext for negative embeddings
+    # Resolve StyleContext before compose (needed for reference_env_tags/camera_tags + negative)
     style_ctx = resolve_style_context_for_profile(character.style_profile_id, db)
+
+    builder = V3PromptBuilder(db)
+    full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags, style_ctx=style_ctx)
     if character.reference_negative_prompt:
         neg_prompt = character.reference_negative_prompt
         if character.recommended_negative:
@@ -335,12 +339,11 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
         ct.tag = tag
         temp_char.tags.append(ct)
 
-    # 3. Compose prompt
-    builder = V3PromptBuilder(db)
-    full_prompt = builder.compose_for_reference(temp_char)
-
-    # Resolve StyleContext for negative embeddings
+    # 3. Resolve StyleContext before compose (needed for reference_env_tags/camera_tags + negative)
     style_ctx = resolve_style_context_for_profile(request.style_profile_id, db)
+
+    builder = V3PromptBuilder(db)
+    full_prompt = builder.compose_for_reference(temp_char, style_ctx=style_ctx)
     neg_prompt = _build_reference_negative(style_ctx, None)
 
     if style_ctx and style_ctx.sd_model_name:

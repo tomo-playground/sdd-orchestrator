@@ -30,6 +30,8 @@ class StyleContext:
     default_sampler_name: str | None = None
     default_clip_skip: int | None = None
     default_enable_hr: bool | None = None
+    reference_env_tags: list[str] | None = None
+    reference_camera_tags: list[str] | None = None
 
 
 def _resolve_embedding_triggers(embedding_ids: list[int] | None, db: Session) -> list[str]:
@@ -98,6 +100,8 @@ def _build_style_context(profile, db: Session) -> StyleContext:
         default_sampler_name=profile.default_sampler_name,
         default_clip_skip=profile.default_clip_skip,
         default_enable_hr=profile.default_enable_hr,
+        reference_env_tags=profile.reference_env_tags,
+        reference_camera_tags=profile.reference_camera_tags,
     )
 
 
@@ -114,12 +118,7 @@ def resolve_style_context(storyboard_id: int | None, db: Session) -> StyleContex
     if not storyboard:
         return None
 
-    group = (
-        db.query(Group)
-        .options(joinedload(Group.project))
-        .filter(Group.id == storyboard.group_id)
-        .first()
-    )
+    group = db.query(Group).options(joinedload(Group.project)).filter(Group.id == storyboard.group_id).first()
     if not group:
         return None
 
@@ -136,12 +135,7 @@ def resolve_style_context_from_group(group_id: int, db: Session) -> StyleContext
     from models.group import Group
     from services.config_resolver import resolve_effective_config
 
-    group = (
-        db.query(Group)
-        .options(joinedload(Group.project))
-        .filter(Group.id == group_id)
-        .first()
-    )
+    group = db.query(Group).options(joinedload(Group.project)).filter(Group.id == group_id).first()
     if not group:
         logger.warning("Group %d not found", group_id)
         return None
