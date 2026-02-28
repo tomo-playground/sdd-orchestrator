@@ -11,6 +11,8 @@ from models.associations import SceneCharacterAction, SceneTag
 from models.media_asset import MediaAsset
 from models.scene import Scene
 from schemas import SceneActionSave
+from services.asset_service import AssetService
+from services.storage import get_storage
 from services.storyboard.helpers import _sanitize_candidates_for_db
 
 
@@ -135,6 +137,17 @@ def _link_media_asset(db: Session, db_scene: Scene, image_url: str) -> None:
     asset = db.query(MediaAsset).filter(MediaAsset.storage_key == storage_key).first()
 
     if not asset:
+        # Compute checksum + file_size from storage
+        checksum = None
+        file_size = None
+        try:
+            local_path = get_storage().get_local_path(storage_key)
+            image_bytes = local_path.read_bytes()
+            checksum = AssetService.compute_checksum(image_bytes)
+            file_size = len(image_bytes)
+        except Exception as e:
+            logger.warning("[_link_media_asset] Failed to compute checksum for %s: %s", storage_key, e)
+
         asset = MediaAsset(
             file_type="image",
             storage_key=storage_key,
@@ -142,6 +155,8 @@ def _link_media_asset(db: Session, db_scene: Scene, image_url: str) -> None:
             mime_type="image/png",
             owner_type="scene",
             owner_id=db_scene.id,
+            checksum=checksum,
+            file_size=file_size,
         )
         db.add(asset)
         db.flush()

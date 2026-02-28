@@ -13,6 +13,35 @@ from fastapi.staticfiles import StaticFiles
 from routers import admin_app_router, service_app_router
 
 
+def _auto_seed_valence(db) -> None:
+    """Auto-seed valence for unclassified tags in background thread."""
+    from models.tag import Tag
+
+    target_groups = ["expression", "gaze", "mood"]
+    count = (
+        db.query(Tag.id)
+        .filter(Tag.group_name.in_(target_groups), Tag.is_active.is_(True), Tag.valence.is_(None))
+        .count()
+    )
+    if count == 0:
+        return
+
+    from config import GEMINI_API_KEY, logger
+
+    if not GEMINI_API_KEY:
+        logger.warning("[Valence] %d tags need valence but GEMINI_API_KEY not set", count)
+        return
+
+    import threading
+
+    from routers.admin import _run_valence_classification
+
+    logger.info("[Valence] %d unclassified tags found, seeding in background...", count)
+    threading.Thread(
+        target=_run_valence_classification, args=(target_groups, False), daemon=True, name="valence-seed"
+    ).start()
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Initialize resources on startup and clean up on shutdown."""
@@ -61,6 +90,9 @@ async def lifespan(_app: FastAPI):
         synced = sync_default_layers()
         if synced > 0:
             logger.info(f"✅ [Sync] Fixed {synced} stale default_layer values on startup")
+
+        # Auto-seed valence for unclassified tags (non-blocking)
+        _auto_seed_valence(db)
 
     except Exception as e:
         logger.error(f"Failed to initialize tag caches or self-correct: {e}")

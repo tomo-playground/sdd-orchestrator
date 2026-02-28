@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from langgraph.store.base import BaseStore
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.agent.nodes.research import research_node
 from services.agent.state import ScriptState
@@ -18,10 +17,10 @@ from services.agent.tools.research_tools import (
 # ── 도구 정의 테스트 ──────────────────────────────────────
 
 
-def test_get_research_tools_returns_5_tools():
-    """5개 도구가 정의되어야 한다."""
+def test_get_research_tools_returns_4_tools():
+    """4개 도구가 정의되어야 한다."""
     tools = get_research_tools()
-    assert len(tools) == 5
+    assert len(tools) == 4
 
     tool_names = []
     for tool in tools:
@@ -34,7 +33,6 @@ def test_get_research_tools_returns_5_tools():
         "search_character_history",
         "fetch_url_content",
         "analyze_trending",
-        "get_group_dna",
     ]
     assert set(tool_names) == set(expected)
 
@@ -150,76 +148,6 @@ async def test_analyze_trending_executor():
 
     assert "[트렌딩 분석]" in result
     assert "AI" in result
-
-
-@pytest.mark.asyncio
-async def test_get_group_dna_from_store():
-    """그룹 DNA를 Store에서 조회."""
-    mock_store = AsyncMock(spec=BaseStore)
-    mock_db = AsyncMock()
-    state = {}
-
-    mock_item = MagicMock()
-    mock_item.value = {"tone": "친근함", "worldview": "일상"}
-    mock_store.asearch.return_value = [mock_item]
-
-    executors = create_research_executors(mock_store, mock_db, state)
-    result = await executors["get_group_dna"](group_id=1)
-
-    assert "[그룹 DNA]" in result
-
-
-@pytest.mark.asyncio
-async def test_get_group_dna_from_db():
-    """그룹 DNA를 DB에서 조회."""
-    mock_store = AsyncMock(spec=BaseStore)
-    mock_db = AsyncMock(spec=AsyncSession)
-    state = {}
-
-    # Store에 없음
-    mock_store.asearch.return_value = []
-
-    # DB에서 조회 (scalar_one_or_none은 동기 메서드)
-    mock_result = Mock()
-    mock_result.scalar_one_or_none.return_value = {
-        "tone": "진지함",
-        "worldview": "판타지",
-        "guidelines": "청소년 관람가",
-    }
-
-    # execute는 비동기 메서드
-    async def mock_execute(*args, **kwargs):
-        return mock_result
-
-    mock_db.execute = mock_execute
-
-    executors = create_research_executors(mock_store, mock_db, state)
-    result = await executors["get_group_dna"](group_id=1)
-
-    assert "[그룹 DNA]" in result
-    assert "진지함" in result
-
-
-@pytest.mark.asyncio
-async def test_get_group_dna_not_found():
-    """그룹 DNA가 없을 때."""
-    mock_store = AsyncMock(spec=BaseStore)
-    mock_db = AsyncMock(spec=AsyncSession)
-    state = {}
-
-    mock_store.asearch.return_value = []
-    mock_result = Mock()
-    mock_result.scalar_one_or_none.return_value = None
-
-    async def mock_execute(*args, **kwargs):
-        return mock_result
-
-    mock_db.execute = mock_execute
-
-    executors = create_research_executors(mock_store, mock_db, state)
-    result = await executors["get_group_dna"](group_id=999)
-
-    assert "채널 DNA 없음" in result
 
 
 # ── research_node 통합 테스트 ────────────────────────────

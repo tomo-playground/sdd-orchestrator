@@ -29,8 +29,13 @@
 | Phase 23 (Project/Group UX 개선) | 전체 완료 (ARCHIVED) |
 | 테스트 | Backend 2,667 + Frontend 435 = **총 3,102개** |
 
+### 진행 중
+
+- **Phase 24: Script 탭 → 하이브리드 채팅 AI 인터페이스** (02-28~): 폼 기반 Script 탭을 하이브리드 레이아웃(좌측 설정 사이드바 + 우측 채팅)으로 전환. 토픽 분석 API, SSE 콜백, 채팅 UI 7단계.
+
 ### 최근 작업
 
+- **P0~P1 안정화** (02-28): P0-1 ActivityLog(기존 해결), P0-2 checksum 보완(`_link_media_asset`), P0-3 base_seed(기존 해결), P1-1 identity_score(정상 확인), P1-2 valence 시딩(startup 자동화). 테스트 오류 2건 수정(research tools 5→4, graph 18→19노드). 5파일.
 - **Phase 23: Project/Group UX 개선** (02-28): Zero-Config 자동 프로비저닝, 용어 통일(채널/시리즈/영상), 설정 가시성(ConfigBadges), 내비게이션 개선(리다이렉트 제거). 4/4 완료.
 - **Phase 22: Backend Complete Image Generation** (02-28): SD 이미지 생성→저장까지 Backend 자율 완결, Frontend SPOF 제거. MinIO 저장+DB 갱신을 Backend에서 처리, Graceful Degradation fallback. 8파일 변경.
 - **Phase 21: Persona-based Menu Reorganization** (02-28): Admin을 Library/Settings/Dev 3-tier로 재편. Shell 3종 + 14개 라우트 신설, admin/ dead code 제거. 120파일 변경.

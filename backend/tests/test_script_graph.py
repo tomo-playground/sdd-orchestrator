@@ -171,17 +171,18 @@ async def test_graph_error_short_circuit_writer(mock_db_ctx, mock_gen_script):
     assert result.get("review_result") is None
 
 
-def test_graph_18_nodes():
-    """18노드가 모두 등록되어 있다."""
+def test_graph_19_nodes():
+    """19노드가 모두 등록되어 있다."""
     graph = build_script_graph()
     compiled = graph.compile()
     node_names = set(compiled.get_graph().nodes.keys())
     assert "director_plan" in node_names
+    assert "director_plan_lite" in node_names
     assert "inventory_resolve" in node_names
     assert "director_checkpoint" in node_names
     assert "explain" in node_names
     assert "concept_gate" in node_names
-    assert len(node_names - {"__start__", "__end__"}) == 18
+    assert len(node_names - {"__start__", "__end__"}) == 19
 
 
 # -- Writer Safety Retry 테스트 --
