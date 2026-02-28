@@ -1,6 +1,6 @@
 # Project(Channel) & Group(Story Group) System
 
-**상태**: Phase 0~1 완료, Phase 2 (UX 개선) 신규 정의, 3-1~3-3 장기 백로그
+**상태**: Phase 0~2 완료, 3-1~3-3 장기 백로그
 **최종 갱신**: 2026-02-28
 
 ---
@@ -67,27 +67,27 @@ UI 라벨만 변경. 코드 변수명(Project/Group/Storyboard)은 유지.
 | 1 | UI 라벨 변경 | Project→채널, Group→시리즈, Storyboard→영상 (13개 파일) | Dropdown, Modal, ContextBar, CommandPalette, Actions 등 | 완료 |
 | 2 | SetupWizard 일관성 확인 | 이미 "채널"/"시리즈" 사용 중 — 전체 UI 일관성 검증 완료 | `SetupWizardStepIndicator.tsx` | 완료 |
 
-### 2-3. 설정 가시성 (P1)
+### 2-3. 설정 가시성 (P1) — 완료
 
 Group 선택 시 어떤 설정이 적용되는지 한눈에 파악 가능하게.
 
-| # | 항목 | 설명 | 수정 파일 |
-|---|------|------|----------|
-| 1 | GroupResponse에 프리셋 이름 추가 | `style_profile_name`, `voice_preset_name`, `render_preset_name` 필드 | `schemas.py`, `routers/groups.py` |
-| 2 | GroupItem 타입 확장 | 위 3개 이름 필드 추가 | `types/index.ts` |
-| 3 | GroupDropdown 설정 요약 뱃지 | 그룹명 옆에 화풍/보이스/렌더 이름 표시 | `GroupDropdown.tsx` |
-| 4 | 색상 코딩 확대 | CommandPalette 아이콘 → 카드/리스트 UI 적용 | 관련 컴포넌트 |
+| # | 항목 | 설명 | 수정 파일 | 상태 |
+|---|------|------|----------|------|
+| 1 | GroupResponse에 프리셋 이름 추가 | `style_profile_name`, `voice_preset_name`, `render_preset_name` 필드 | `schemas.py`, `models/group.py` | 완료 |
+| 2 | GroupItem 타입 확장 | 위 3개 이름 필드 추가 | `types/index.ts` | 완료 |
+| 3 | GroupDropdown 설정 요약 뱃지 | 그룹명 옆에 화풍/보이스/렌더 이름 표시 | `GroupDropdown.tsx` (ConfigBadges) | 완료 |
+| 4 | 색상 코딩 확대 | CommandPalette 아이콘 타입별 색상 (Project=보라, Group=하늘, Storyboard=황) | `CommandPalette.tsx` | 완료 |
 
 > 기존 2-1 #2 (색상 코딩 확대) 흡수
 
-### 2-4. 내비게이션 개선 (P2)
+### 2-4. 내비게이션 개선 (P2) — 완료
 
 컨텍스트 전환 시 불필요한 리다이렉트 제거.
 
-| # | 항목 | 설명 | 수정 파일 |
-|---|------|------|----------|
-| 1 | 프로젝트 전환 시 리다이렉트 제거 | Studio에서 프로젝트 변경해도 현재 페이지 유지, 데이터만 갱신 | `PersistentContextBar.tsx` |
-| 2 | CommandPalette 전환 시 리다이렉트 제거 | `router.push("/")` → 현재 페이지 유지 | `CommandPalette.tsx` (L78, L99) |
+| # | 항목 | 설명 | 수정 파일 | 상태 |
+|---|------|------|----------|------|
+| 1 | 프로젝트 전환 시 리다이렉트 제거 | Studio에서 프로젝트 변경해도 현재 페이지 유지, `router.replace()` 사용 | `PersistentContextBar.tsx` | 완료 |
+| 2 | CommandPalette 전환 시 리다이렉트 제거 | `router.push("/")` → `router.replace("/studio")` 현재 페이지 유지 | `CommandPalette.tsx` | 완료 |
 
 ---
 
@@ -134,9 +134,7 @@ Group 선택 시 어떤 설정이 적용되는지 한눈에 파악 가능하게.
 ## 4. 의존성
 
 ```
-완료: Phase 0 (Foundation) → Phase 1 (Core + Config + UI + Render Preset 관리)
-           ↓
-신규: Phase 2-1 Zero-Config (P0) → 2-2 용어 (P0) → 2-3 설정 가시성 (P1) → 2-4 내비게이션 (P2)
+완료: Phase 0 (Foundation) → Phase 1 (Core + Config + UI + Render Preset 관리) → Phase 2 (UX 개선 전체)
            ↓
 백로그: 3-1 Tag Intelligence ← tag_effectiveness 데이터 축적 필요
         3-2 Series Intelligence ← 에피소드 데이터 축적 필요
