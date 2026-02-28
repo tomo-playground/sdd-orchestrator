@@ -147,7 +147,7 @@ CONTROLNET_DEFAULT_SAMPLER = os.getenv("CONTROLNET_DEFAULT_SAMPLER", "Euler a")
 
 # --- Character Reference Generation ---
 SD_REFERENCE_STEPS = int(os.getenv("SD_REFERENCE_STEPS", "25"))
-SD_REFERENCE_CFG_SCALE = float(os.getenv("SD_REFERENCE_CFG_SCALE", "7.0"))  # Lowered from 9.0 for softer colors
+SD_REFERENCE_CFG_SCALE = float(os.getenv("SD_REFERENCE_CFG_SCALE", "9.0"))
 SD_REFERENCE_HR_UPSCALER = os.getenv("SD_REFERENCE_HR_UPSCALER", "R-ESRGAN 4x+ Anime6B")
 SD_REFERENCE_DENOISING = float(os.getenv("SD_REFERENCE_DENOISING", "0.35"))
 # ControlNet pose for character reference images (standing = single full-body)
@@ -385,8 +385,6 @@ DEFAULT_REFERENCE_BASE_PROMPT = ", ".join(
         "(simple_background:1.3)",
         "plain_background",
         "solid_background",
-        "soft_lighting",
-        "natural_colors",
     ]
 )
 DEFAULT_REFERENCE_NEGATIVE_PROMPT = ", ".join(
