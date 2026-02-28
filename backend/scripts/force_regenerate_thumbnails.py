@@ -1,7 +1,8 @@
 import asyncio
-import sys
-from pathlib import Path
 import base64
+import sys
+import uuid
+from pathlib import Path
 
 import httpx
 
@@ -11,12 +12,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import SD_BASE_URL, logger
 from database import SessionLocal
 from models import Character, MediaAsset
+from services.storage import get_storage
 
 # Force update these IDs
 TARGET_IDS = [12, 16, 15, 14, 17, 18, 13]
 
+
 async def generate_character_preview(client, character, db):
-    """Generate a preview image for a character and link via MediaAsset."""
+    """Generate a preview image for a character and upload via Storage."""
     logger.info(f"🎨 Generating preview for: {character.name} (ID: {character.id})")
 
     # Use reference prompt or custom prompt
@@ -27,20 +30,17 @@ async def generate_character_preview(client, character, db):
     if character.loras and len(character.loras) > 0:
         lora_id = character.loras[0]["lora_id"]
         weight = character.loras[0]["weight"]
-        # We need to fetch LoRA name from DB
         from models import LoRA
+
         lora = db.query(LoRA).filter(LoRA.id == lora_id).first()
 
         if lora:
-            # Add trigger words
             if lora.trigger_words:
                 prompt = f"{', '.join(lora.trigger_words[:3])}, {prompt}"
-            # Add LoRA tag
             prompt = f"{prompt}, <lora:{lora.name}:{weight}>"
 
     logger.info(f"   Prompt: {prompt[:100]}...")
 
-    # Generate image via SD WebUI
     payload = {
         "prompt": prompt,
         "negative_prompt": negative,
@@ -53,24 +53,21 @@ async def generate_character_preview(client, character, db):
     }
 
     try:
-        response = await client.post(
-            f"{SD_BASE_URL}/sdapi/v1/txt2img",
-            json=payload,
-            timeout=180.0
-        )
+        response = await client.post(f"{SD_BASE_URL}/sdapi/v1/txt2img", json=payload, timeout=180.0)
         response.raise_for_status()
         result = response.json()
 
         if result.get("images"):
-            # Save image
             image_data = base64.b64decode(result["images"][0])
-            filename = f"character_preview_{character.name.lower().replace(' ', '_')}_{character.id}.png"
-            storage_key = f"outputs/images/stored/{filename}"
-            filepath = Path(storage_key)
-            filepath.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(filepath, "wb") as f:
-                f.write(image_data)
+            # File name and storage key
+            unique_id = uuid.uuid4().hex[:8]
+            filename = f"character_{character.id}_preview_{unique_id}.png"
+            storage_key = f"characters/{character.id}/preview/{filename}"
+
+            # Save to underlying S3/Local storage wrapper
+            storage = get_storage()
+            public_url = storage.save(storage_key, image_data, content_type="image/png")
 
             # Define attributes for MediaAsset explicitly
             asset_kwargs = {
@@ -79,7 +76,7 @@ async def generate_character_preview(client, character, db):
                 "file_name": filename,
                 "mime_type": "image/png",
                 "owner_type": "character",
-                "owner_id": character.id
+                "owner_id": character.id,
             }
 
             # Create or update MediaAsset
@@ -92,7 +89,7 @@ async def generate_character_preview(client, character, db):
                 db.flush()
                 character.preview_image_asset_id = asset.id
 
-            logger.info(f"   ✅ Saved: /{storage_key}")
+            logger.info(f"   ✅ Saved to Storage: {public_url}")
             return True
         else:
             logger.error("   ❌ No image generated")
@@ -102,10 +99,10 @@ async def generate_character_preview(client, character, db):
         logger.error(f"   ❌ Generation failed: {e}")
         return False
 
+
 async def main():
     db = SessionLocal()
     try:
-        # Get target characters
         characters = db.query(Character).filter(Character.id.in_(TARGET_IDS)).all()
 
         if not characters:
@@ -123,13 +120,13 @@ async def main():
                 else:
                     logger.warning(f"⚠️ Failed to generate image for {char.name}")
 
-                # Rate limiting to let the GPU cool down over successive generations
-                await asyncio.sleep(3)
+                await asyncio.sleep(2)
 
         logger.info("🎉 Forced preview generation complete!")
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

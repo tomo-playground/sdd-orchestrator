@@ -150,7 +150,7 @@ export async function processSSEStream(
     if (event.status === "waiting_for_input") {
       isWaiting = true;
     }
-    if (event.status === "error" && event.node === "error") {
+    if (event.status === "error") {
       throw new Error(event.error ?? "Stream failed");
     }
   });
