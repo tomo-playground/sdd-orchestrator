@@ -51,7 +51,7 @@ export default function VoiceStyleSection({
             {voicePresetId && (
               <p className="text-[11px] text-indigo-500">Voice preset selected — cloned voice.</p>
             )}
-            <ChangeInStageLink />
+            <OpenGroupConfigLink />
           </div>
         ) : (
           <>
@@ -112,15 +112,15 @@ export default function VoiceStyleSection({
   );
 }
 
-/** Shared link button to navigate back to Stage tab */
-function ChangeInStageLink() {
+/** Link to open GroupConfigEditor (SSOT for narrator voice preset) */
+function OpenGroupConfigLink() {
   return (
     <button
       type="button"
-      onClick={() => useUIStore.getState().setActiveTab("stage")}
+      onClick={() => useUIStore.getState().openGroupConfig()}
       className="text-[11px] font-medium text-zinc-400 transition hover:text-zinc-600"
     >
-      Change in Stage →
+      시리즈 설정에서 변경 →
     </button>
   );
 }

@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import type { ToastItem, AutopilotCheckpoint } from "../types";
+import { useContextStore } from "./useContextStore";
+import { ALL_GROUPS_ID } from "../constants";
 
 export type StudioTab = "script" | "stage" | "direct" | "publish";
 
@@ -40,6 +42,10 @@ export interface UIState {
   // New storyboard mode (URL-independent flag for ?new=true)
   isNewStoryboardMode: boolean;
 
+  // Group config modal (SSOT UI)
+  configGroupId: number | null;
+  openGroupConfig: () => void;
+
   // Autopilot lock
   isAutoRunning: boolean;
 
@@ -71,6 +77,7 @@ const initialState: Omit<
   | "toggleAdvancedSettings"
   | "toggleLabMenu"
   | "setPendingAutoRun"
+  | "openGroupConfig"
 > = {
   toasts: [],
   activeTab: "direct",
@@ -84,6 +91,7 @@ const initialState: Omit<
   showPreflightModal: false,
   showSetupWizard: false,
   setupWizardInitialStep: 1 as 1 | 2,
+  configGroupId: null,
   isNewStoryboardMode: false,
   isAutoRunning: false,
   pendingAutoRun: false,
@@ -97,6 +105,10 @@ export const useUIStore = create<UIState>((set) => ({
   toggleLabMenu: () => set((state) => ({ showLabMenu: !state.showLabMenu })),
   setPendingAutoRun: (v) => set({ pendingAutoRun: v }),
   setActiveTab: (tab) => set({ activeTab: tab }),
+  openGroupConfig: () => {
+    const gid = useContextStore.getState().groupId;
+    if (gid !== null && gid !== ALL_GROUPS_ID) set({ configGroupId: gid });
+  },
 
   showToast: (message, type) => {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2);

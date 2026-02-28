@@ -9,7 +9,7 @@ import LoadingSpinner from "../ui/LoadingSpinner";
 import VoicePresetSelector from "../voice/VoicePresetSelector";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
-import { fetchGroups } from "../../store/actions/groupActions";
+import { fetchGroups, loadGroupDefaults } from "../../store/actions/groupActions";
 
 import { SelectField, labelCls, inputCls } from "./GroupConfigHelpers";
 
@@ -91,8 +91,9 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
         style_profile_id: group.style_profile_id,
         narrator_voice_preset_id: group.narrator_voice_preset_id,
       });
-      const projectId = useContextStore.getState().projectId;
+      const { projectId, groupId: activeGroupId } = useContextStore.getState();
       if (projectId) fetchGroups(projectId);
+      if (activeGroupId === groupId) await loadGroupDefaults(groupId);
       showToast("시리즈 설정 저장됨", "success");
       onClose();
     } catch {

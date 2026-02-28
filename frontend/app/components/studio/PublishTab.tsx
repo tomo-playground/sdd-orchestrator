@@ -22,15 +22,7 @@ export default function PublishTab() {
   const effectivePresetName = useContextStore((s) => s.effectivePresetName);
   const effectivePresetSource = useContextStore((s) => s.effectivePresetSource);
 
-  const {
-    scenes,
-    store,
-    setOutput,
-    canRender,
-    disabledReason,
-    handleRender,
-    handleSetVoicePresetId,
-  } = usePublishRender();
+  const { scenes, store, setOutput, canRender, disabledReason, handleRender } = usePublishRender();
 
   const handleQuickRender = useCallback(() => {
     setOutput(QUICK_RENDER_DEFAULTS);
@@ -97,7 +89,6 @@ export default function PublishTab() {
             voiceDesignPrompt={store.voiceDesignPrompt}
             setVoiceDesignPrompt={(v) => setOutput({ voiceDesignPrompt: v })}
             voicePresetId={store.voicePresetId}
-            setVoicePresetId={handleSetVoicePresetId}
             bgmMode={store.bgmMode}
             setBgmMode={(v) => setOutput({ bgmMode: v })}
             musicPresetId={store.musicPresetId}

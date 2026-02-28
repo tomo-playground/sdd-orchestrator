@@ -190,23 +190,6 @@ export function usePublishRender() {
     [scenes, topic, setOutput, showToast, projectId, groupId, storyboardId]
   );
 
-  // --- Voice preset sync ---
-  const handleSetVoicePresetId = useCallback(
-    async (v: number | null) => {
-      setOutput({ voicePresetId: v });
-      if (groupId) {
-        try {
-          await axios.put(`${API_BASE}/groups/${groupId}`, {
-            narrator_voice_preset_id: v,
-          });
-        } catch (err) {
-          console.error("[setVoicePresetId] Failed to update group:", err);
-        }
-      }
-    },
-    [setOutput, groupId]
-  );
-
   return {
     scenes,
     store,
@@ -214,6 +197,5 @@ export function usePublishRender() {
     canRender,
     disabledReason: getDisabledReason(),
     handleRender,
-    handleSetVoicePresetId,
   };
 }

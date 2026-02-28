@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Mic } from "lucide-react";
 import { useRenderStore } from "../../store/useRenderStore";
+import { useUIStore } from "../../store/useUIStore";
 import StageVoiceCard from "./StageVoiceCard";
 import type { VoicePreset } from "../../types";
 import type { AudioPlayer } from "../../hooks/useAudioPlayer";
@@ -13,7 +13,7 @@ type Props = {
 };
 
 export default function StageVoiceSection({ audioPlayer, voicePresets }: Props) {
-  const router = useRouter();
+  const openGroupConfig = useUIStore((s) => s.openGroupConfig);
   const voicePresetId = useRenderStore((s) => s.voicePresetId);
 
   const selectedPreset = voicePresets.find((p) => p.id === voicePresetId) ?? null;
@@ -23,10 +23,10 @@ export default function StageVoiceSection({ audioPlayer, voicePresets }: Props) 
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-zinc-800">Voice</h3>
         <button
-          onClick={() => router.push("/library/voices")}
+          onClick={openGroupConfig}
           className="text-[11px] font-medium text-blue-600 hover:text-blue-700"
         >
-          Change Preset
+          시리즈 설정에서 변경
         </button>
       </div>
 
@@ -35,7 +35,7 @@ export default function StageVoiceSection({ audioPlayer, voicePresets }: Props) 
           <Mic className="mb-2 h-7 w-7 text-zinc-300" />
           <p className="text-xs font-medium text-zinc-500">No voice preset selected</p>
           <p className="mt-0.5 text-[11px] text-zinc-400">
-            Choose a voice preset in Library to preview here.
+            시리즈 설정에서 나레이터 음성을 선택하세요.
           </p>
         </div>
       ) : (

@@ -106,6 +106,8 @@ docs/
   - SD 생성 파라미터는 Group 레벨에서는 관리하지 않음 (제거됨).
   - 실제 이미지 생성 시에는 `_adjust_parameters()`에서 StyleProfile 값이 최종 적용된다.
   - 캐릭터 프리뷰 생성도 동일: `preview.py`에서 StyleContext 기반 오버라이드.
+- **원천 UI 수정 원칙**: 설정 값의 SSOT를 소유한 UI에서만 수정을 허용한다. 다른 화면에서 동일 값을 표시할 때는 **읽기 전용**으로 보여주고, 수정이 필요하면 원천 UI로 이동시킨다. 특수한 케이스가 아닌 한 인라인 수정 금지.
+  - 예: `narrator_voice_preset_id` → GroupConfigEditor가 원천. 렌더 패널은 읽기 전용 + "시리즈 설정에서 변경" 링크.
 
 ## DB Schema Design Principles
 - **관심사 분리**: 콘텐츠 테이블(storyboards)과 설정 필드(groups의 FK/DNA)를 구분한다.

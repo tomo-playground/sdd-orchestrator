@@ -7,6 +7,16 @@ import { fetchProjects } from "../store/actions/projectActions";
 import { fetchGroups, loadGroupDefaults } from "../store/actions/groupActions";
 import { ALL_GROUPS_ID } from "../constants";
 
+/** Clear studio URL params (?id, ?new) to prevent stale storyboard loading after context switch. */
+function clearStudioUrlParams() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.has("id") || url.searchParams.has("new")) {
+    url.searchParams.delete("id");
+    url.searchParams.delete("new");
+    window.history.replaceState({}, "", url.toString());
+  }
+}
+
 /**
  * Manages project/group lifecycle:
  * - Fetches projects on mount
@@ -76,6 +86,7 @@ export function useProjectGroups() {
       useStoryboardStore.getState().reset();
       useRenderStore.getState().reset();
       useUIStore.getState().resetUI();
+      clearStudioUrlParams();
     },
     [setContext, clearScenes]
   );
@@ -87,6 +98,7 @@ export function useProjectGroups() {
       useStoryboardStore.getState().reset();
       useRenderStore.getState().reset();
       useUIStore.getState().resetUI();
+      clearStudioUrlParams();
     },
     [setContext, clearScenes]
   );

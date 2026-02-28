@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronRight, Clapperboard, Settings, X } from "lucide-react";
@@ -34,7 +34,7 @@ export default function PersistentContextBar() {
   const clearScenes = useCallback(() => setScenes([]), [setScenes]);
 
   const { confirm, dialogProps } = useConfirm();
-  const [configGroupId, setConfigGroupId] = useState<number | null>(null);
+  const configGroupId = useUIStore((s) => s.configGroupId);
   const [projectModalMode, setProjectModalMode] = useState<"edit" | null>(null);
   const showSetupWizard = useUIStore((s) => s.showSetupWizard);
   const setupWizardInitialStep = useUIStore((s) => s.setupWizardInitialStep);
@@ -133,7 +133,7 @@ export default function PersistentContextBar() {
             currentId={groupId}
             onSelect={handleGroupSelect}
             onNew={() => setUI({ showSetupWizard: true, setupWizardInitialStep: 2 })}
-            onEdit={(g) => setConfigGroupId(g.id)}
+            onEdit={(g) => setUI({ configGroupId: g.id })}
             onDelete={(g) => handleDeleteGroup(g.id)}
             showAllOption
           />
@@ -161,7 +161,7 @@ export default function PersistentContextBar() {
         <div className="flex items-center gap-1">
           {groupId !== null && groupId !== ALL_GROUPS_ID && (
             <button
-              onClick={() => setConfigGroupId(groupId)}
+              onClick={() => setUI({ configGroupId: groupId })}
               title="시리즈 설정"
               className="shrink-0 rounded p-0.5 text-zinc-400 transition hover:bg-zinc-200 hover:text-zinc-600"
             >
@@ -181,7 +181,7 @@ export default function PersistentContextBar() {
       </div>
 
       {configGroupId && (
-        <GroupConfigEditor groupId={configGroupId} onClose={() => setConfigGroupId(null)} />
+        <GroupConfigEditor groupId={configGroupId} onClose={() => setUI({ configGroupId: null })} />
       )}
 
       {projectModalMode === "edit" && projectId && (
