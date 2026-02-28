@@ -26,12 +26,12 @@
 | DB Schema Cleanup | 전체 완료 (ARCHIVED) |
 | Phase 21 (Persona-based Menu Reorganization) | 전체 완료 (ARCHIVED) |
 | Phase 22 (Backend Complete Image Generation) | 전체 완료 (ARCHIVED) |
+| Phase 23 (Project/Group UX 개선) | 전체 완료 (ARCHIVED) |
 | 테스트 | Backend 2,667 + Frontend 435 = **총 3,102개** |
 
 ### 최근 작업
 
-- **Phase 23-4: 내비게이션 개선** (02-28): 프로젝트/그룹 전환 시 Home 강제 이동 제거, Studio에서만 URL 정리(replace), CommandPalette storyboardId 미초기화 버그 수정. 2파일 변경.
-- **Phase 23-3: 설정 가시성** (02-28): Group ORM @property 3개 + GroupResponse 프리셋 이름 필드, GroupDropdown ConfigBadges 뱃지, joinedload N+1 방지. 5파일 변경.
+- **Phase 23: Project/Group UX 개선** (02-28): Zero-Config 자동 프로비저닝, 용어 통일(채널/시리즈/영상), 설정 가시성(ConfigBadges), 내비게이션 개선(리다이렉트 제거). 4/4 완료.
 - **Phase 22: Backend Complete Image Generation** (02-28): SD 이미지 생성→저장까지 Backend 자율 완결, Frontend SPOF 제거. MinIO 저장+DB 갱신을 Backend에서 처리, Graceful Degradation fallback. 8파일 변경.
 - **Phase 21: Persona-based Menu Reorganization** (02-28): Admin을 Library/Settings/Dev 3-tier로 재편. Shell 3종 + 14개 라우트 신설, admin/ dead code 제거. 120파일 변경.
 - **GroupConfig를 Groups에 병합** (02-28): group_config 테이블 삭제, FK 3개+channel_dna를 groups 테이블에 통합. language/duration 제거. Alembic 마이그레이션+코드리뷰 완료. 25파일.
@@ -51,21 +51,6 @@
 - **02-26~02-27 작업**: Phase 18 Stage Workflow, Cross Audit 106건, 프롬프트 품질 수정, Tag Group 세분화, autoSave 3-Layer 방어 등. [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md)
 - **02-20~02-25 작업**: Phase 8/14/15/16/17-0 구현, Agent Pipeline 수정, 환경 태그 수정 등. [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md)
 - **렌더링 품질 개선** (02-14~17): Scene Text 동적 높이/폰트, Safe Zone, 얼굴 감지, TTS 정규화. 52개 테스트
-
----
-
-## Phase 23 — Project/Group UX 개선 (전체 완료)
-
-> 명세: [PROJECT_GROUP.md](FEATURES/PROJECT_GROUP.md) §2
-
-DB 구조 유지, UX만 개선. Zero-config → 용어 → 설정 가시성 → 내비게이션 순서로 진행.
-
-| Sub-Phase | 이름 | 우선순위 | 핵심 | 상태 |
-|-----------|------|---------|------|------|
-| 23-1 | Zero-Config Start | P0 | 신규 유저 자동 프로비저닝, Empty State CTA | 완료 |
-| 23-2 | 용어 통일 | P0 | UI 라벨 Project→채널, Group→시리즈, Storyboard→영상 (13파일) | 완료 |
-| 23-3 | 설정 가시성 | P1 | GroupResponse 프리셋 이름, GroupDropdown 요약 뱃지 | 완료 |
-| 23-4 | 내비게이션 개선 | P2 | 컨텍스트 전환 시 리다이렉트 제거 | 완료 |
 
 ---
 
@@ -101,6 +86,7 @@ DB 구조 유지, UX만 개선. Zero-config → 용어 → 설정 가시성 → 
 | DB Cleanup | Schema Cleanup | Sprint A 7건 FIX + Sprint B 3건 DROP + Checkpoint GC. 10/11 (1건 취소) | [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md) · [명세](FEATURES/DB_SCHEMA_CLEANUP.md) |
 | 21 | Persona-based Menu Reorganization | Library/Settings/Dev 3-tier, Shell 3종, admin dead code 제거. 6/6 | [명세](FEATURES/PERSONA_MENU_REORGANIZATION.md) |
 | 22 | Backend Complete Image Generation | SD 생성→저장 Backend 자율 완결, Frontend SPOF 제거, Graceful Degradation | [명세](FEATURES/IMAGE_GENERATION_PROGRESS.md) |
+| 23 | Project/Group UX 개선 | Zero-Config, 용어 통일(채널/시리즈/영상), ConfigBadges, 내비게이션 개선. 4/4 | [명세](FEATURES/PROJECT_GROUP.md) |
 
 ---
 
@@ -161,7 +147,7 @@ graph LR
     style P20 fill:#4CAF50,color:#fff
     style P21 fill:#4CAF50,color:#fff
     style P22 fill:#4CAF50,color:#fff
-    style P23 fill:#FF9800,color:#fff
+    style P23 fill:#4CAF50,color:#fff
 ```
 
 ---
