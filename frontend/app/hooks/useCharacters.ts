@@ -29,7 +29,20 @@ export function useCharacters(): UseCharactersResult {
     setError(null);
     try {
       const res = await axios.get<{ items: Character[] }>(`${API_BASE}/characters`);
-      setCharacters(res.data.items ?? []);
+      const items = res.data.items ?? [];
+      setCharacters(items);
+
+      // ConnectionGuard용 캐릭터 프리뷰 캐시 (Backend 다운 시 사용)
+      try {
+        const previews = items
+          .filter((c) => c.preview_image_url)
+          .map((c) => ({ name: c.name, url: c.preview_image_url! }));
+        if (previews.length > 0) {
+          localStorage.setItem("character_previews", JSON.stringify(previews));
+        }
+      } catch {
+        // localStorage 접근 실패 무시
+      }
     } catch (err) {
       console.error("[useCharacters] Error:", err);
       setError("Failed to load characters");
