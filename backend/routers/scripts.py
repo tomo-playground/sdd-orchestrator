@@ -42,6 +42,7 @@ router = APIRouter(prefix="/scripts", tags=["scripts"])
 # -- 노드별 SSE 메타데이터 --
 _NODE_META: dict[str, dict] = {
     "director_plan": {"label": "디렉터 계획", "percent": 3},
+    "director_plan_lite": {"label": "빠른 캐스팅", "percent": 3},
     "inventory_resolve": {"label": "캐스팅", "percent": 4},
     "research": {"label": "리서치", "percent": 5},
     "critic": {"label": "컨셉 토론", "percent": 15},
@@ -155,6 +156,7 @@ def _is_graph_interrupt(exc: Exception) -> bool:
 
 # AI Transparency: 노드별 reasoning 데이터 추출 매핑
 _NODE_RESULT_KEYS: dict[str, str | list[str]] = {
+    "director_plan_lite": "casting_recommendation",
     "inventory_resolve": "casting_recommendation",
     "critic": ["critic_result", "debate_log"],  # Phase 10-C-3: 토론 로그 추가
     "concept_gate": ["critic_result"],  # 사용자 선택 반영된 critic_result

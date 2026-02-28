@@ -67,7 +67,9 @@ def _build_appearance_summary(character: Character) -> str:
 
 
 def load_characters(
-    db: Session, group_id: int | None = None, max_count: int | None = None  # noqa: ARG001
+    db: Session,
+    group_id: int | None = None,
+    max_count: int | None = None,  # noqa: ARG001
 ) -> list[CharacterSummary]:
     """활성 캐릭터 목록을 usage_count 기준 정렬로 로드.
 
@@ -134,3 +136,20 @@ def load_styles(db: Session) -> list[StyleSummary]:
 def load_structures() -> list[StructureMeta]:
     """인메모리 구조 메타데이터 반환."""
     return list(STRUCTURE_METADATA)
+
+
+def load_fallback_character(db: Session) -> dict | None:
+    """최근 사용 캐릭터 반환. storyboard_characters → storyboards.created_at DESC."""
+    from models.storyboard import Storyboard  # noqa: PLC0415
+
+    row = db.execute(
+        select(StoryboardCharacter.character_id, Character.name)
+        .join(Storyboard, StoryboardCharacter.storyboard_id == Storyboard.id)
+        .join(Character, StoryboardCharacter.character_id == Character.id)
+        .where(Character.deleted_at.is_(None))
+        .order_by(Storyboard.created_at.desc())
+        .limit(1)
+    ).first()
+    if not row:
+        return None
+    return {"character_id": row[0], "character_name": row[1]}

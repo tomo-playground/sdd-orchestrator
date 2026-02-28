@@ -65,8 +65,14 @@ function ReferencesToggle({ editor }: { editor: ScriptEditorActions }) {
 }
 
 export default function ScriptOptionsCard({
-  editor, presets, languages, durations,
-  onPresetChange, onGenerate, expandedStep, onStepClick,
+  editor,
+  presets,
+  languages,
+  durations,
+  onPresetChange,
+  onGenerate,
+  expandedStep,
+  onStepClick,
 }: Props) {
   return (
     <section className={SECTION_CLASSES}>
@@ -150,20 +156,27 @@ export default function ScriptOptionsCard({
       {editor.skipStages.length === 0 && <ReferencesToggle editor={editor} />}
 
       {/* Generate button — card footer */}
-      <div className="mt-8 flex justify-end border-t border-zinc-200/60 pt-6">
-        <Button
-          size="md"
-          variant="primary"
-          disabled={!editor.topic.trim() || editor.isGenerating}
-          onClick={onGenerate}
-        >
-          {editor.isGenerating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          {editor.isGenerating ? editor.progress?.label || "Generating..." : "Generate Script"}
-        </Button>
+      <div className="mt-8 border-t border-zinc-200/60 pt-6">
+        {editor.skipStages.length > 0 && !editor.characterId && (
+          <p className="mb-3 text-[11px] text-amber-600">
+            캐릭터 미선택 — AI가 토픽에 맞는 캐릭터를 자동 캐스팅합니다
+          </p>
+        )}
+        <div className="flex justify-end">
+          <Button
+            size="md"
+            variant="primary"
+            disabled={!editor.topic.trim() || editor.isGenerating}
+            onClick={onGenerate}
+          >
+            {editor.isGenerating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {editor.isGenerating ? editor.progress?.label || "Generating..." : "Generate Script"}
+          </Button>
+        </div>
       </div>
 
       {/* Pipeline stepper */}

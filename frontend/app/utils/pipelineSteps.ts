@@ -3,9 +3,16 @@ import type { PipelineStep, ScriptStreamEvent } from "../types";
 /** Express 프리셋 기본 skip_stages (Backend SSOT: config_pipelines.py VALID_SKIP_STAGES) */
 export const EXPRESS_SKIP_STAGES = ["research", "concept", "production", "explain"] as const;
 
-type StepDef = PipelineStep & { stage?: string };
+type StepDef = PipelineStep & { stage?: string; expressOnly?: boolean };
 
 const ALL_STEPS: StepDef[] = [
+  {
+    id: "casting",
+    label: "캐스팅",
+    status: "idle",
+    nodes: ["Quick Casting"],
+    expressOnly: true,
+  },
   {
     id: "research",
     label: "리서치/캐스팅",
@@ -41,7 +48,8 @@ const ALL_STEPS: StepDef[] = [
 
 const NODE_TO_STEP: Record<string, string> = {
   director_plan: "research",
-  inventory_resolve: "research",
+  director_plan_lite: "casting",
+  inventory_resolve: "casting",
   research: "research",
   critic: "concept",
   concept_gate: "concept",
@@ -61,10 +69,13 @@ const NODE_TO_STEP: Record<string, string> = {
 
 export function getInitialSteps(skipStages: string[]): PipelineStep[] {
   const skipSet = new Set(skipStages);
-  return ALL_STEPS.filter((s) => !s.stage || !skipSet.has(s.stage)).map(
+  const isExpress = skipSet.has("research");
+  return ALL_STEPS.filter((s) => {
+    if (s.stage && skipSet.has(s.stage)) return false;
+    if (s.expressOnly && !isExpress) return false;
+    return true;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    ({ stage: _stage, ...step }) => ({ ...step })
-  );
+  }).map(({ stage: _stage, expressOnly: _eo, ...step }) => ({ ...step }));
 }
 
 export function updatePipelineSteps(
@@ -81,7 +92,12 @@ export function updatePipelineSteps(
   }
 
   const skipSet = new Set(skipStages);
-  const filteredIds = ALL_STEPS.filter((s) => !s.stage || !skipSet.has(s.stage)).map((s) => s.id);
+  const isExpress = skipSet.has("research");
+  const filteredIds = ALL_STEPS.filter((s) => {
+    if (s.stage && skipSet.has(s.stage)) return false;
+    if (s.expressOnly && !isExpress) return false;
+    return true;
+  }).map((s) => s.id);
   const targetIdx = filteredIds.indexOf(stepId);
   if (targetIdx < 0) return steps;
 

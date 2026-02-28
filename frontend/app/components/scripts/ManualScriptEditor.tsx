@@ -9,6 +9,7 @@ import ConceptSelectionPanel from "./ConceptSelectionPanel";
 import ReviewApprovalPanel from "./ReviewApprovalPanel";
 import AgentReasoningPanel from "./AgentReasoningPanel";
 import CastingBanner from "./CastingBanner";
+import ExpressCastingSummary from "./ExpressCastingSummary";
 import ScriptFeedbackWidget from "./ScriptFeedbackWidget";
 import Button from "../ui/Button";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
@@ -58,6 +59,17 @@ export default function ManualScriptEditor({ editor, onPresetChange }: Props) {
       });
       if (!ok) return;
     }
+
+    // Express 모드 + 캐릭터 미선택 → 자동 캐스팅 확인
+    if (!editor.characterId && editor.skipStages.length > 0) {
+      const ok = await confirm({
+        title: "AI 자동 캐스팅",
+        message: "캐릭터가 선택되지 않았습니다. AI가 토픽에 맞는 캐릭터를 자동 선택합니다.",
+        confirmLabel: "자동 캐스팅으로 시작",
+      });
+      if (!ok) return;
+    }
+
     editor.generate();
   };
 
@@ -137,6 +149,18 @@ export default function ManualScriptEditor({ editor, onPresetChange }: Props) {
           productionSnapshot={editor.productionSnapshot}
         />
       )}
+
+      {/* Express casting summary — post-generation (Express only) */}
+      {editor.justGenerated &&
+        !editor.isGenerating &&
+        !editor.isWaitingForInput &&
+        casting &&
+        editor.skipStages.length > 0 && (
+          <ExpressCastingSummary
+            casting={casting}
+            onGoToStage={() => useUIStore.getState().setActiveTab("stage")}
+          />
+        )}
 
       {/* Post-generation CTA */}
       {editor.justGenerated && !editor.isGenerating && !editor.isWaitingForInput && (

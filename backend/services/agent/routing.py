@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from config import LANGGRAPH_MAX_REVISIONS, logger
 from config_pipelines import (
+    INVENTORY_CASTING_ENABLED,
     LANGGRAPH_CHECKPOINT_LOW_THRESHOLD,
     LANGGRAPH_MAX_CHECKPOINT_REVISIONS,
     LANGGRAPH_MAX_DIRECTOR_REVISIONS,
@@ -29,11 +30,31 @@ def _has_error(state: ScriptState) -> bool:
 
 
 def route_after_start(state: ScriptState) -> str:
-    """START 이후: skip_stages에 따라 director_plan 또는 writer 분기."""
+    """START 이후: skip_stages에 따라 3분기.
+
+    - Express + 캐스팅 활성화 → director_plan_lite (경량 캐스팅)
+    - Express + 캐스팅 비활성화 → writer (기존 Quick 동작)
+    - Full/Standard/Creator → director_plan
+    """
     skip = state.get("skip_stages") or []
     if "research" in skip and "concept" in skip:
+        # 캐릭터 미선택 + 캐스팅 활성화일 때만 경량 캐스팅
+        if (
+            INVENTORY_CASTING_ENABLED
+            and state.get("preset") == "express"
+            and not state.get("character_id")
+        ):
+            return "director_plan_lite"
         return "writer"
     return "director_plan"
+
+
+def route_after_inventory_resolve(state: ScriptState) -> str:
+    """inventory_resolve 이후: Express → writer 직행, Full → research."""
+    skip = state.get("skip_stages") or []
+    if "research" in skip:
+        return "writer"
+    return "research"
 
 
 def route_after_research(state: ScriptState) -> str:

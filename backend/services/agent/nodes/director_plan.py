@@ -15,14 +15,14 @@ from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState
 
 
-def _load_inventory(group_id: int | None) -> dict:
+def _load_inventory(group_id: int | None, max_count: int | None = None) -> dict:
     """DB에서 인벤토리를 로드하고 세션을 닫는다. 실패 시 빈 dict 반환."""
     from database import get_db_session  # noqa: PLC0415
     from services.agent.inventory import load_characters, load_structures, load_styles  # noqa: PLC0415
 
     try:
         with get_db_session() as db:
-            characters = load_characters(db, group_id=group_id)
+            characters = load_characters(db, group_id=group_id, max_count=max_count)
             styles = load_styles(db)
             structures = load_structures()
         return {

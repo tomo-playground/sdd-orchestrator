@@ -7,7 +7,7 @@ from services.agent.state import ScriptState
 # Core 노드 (writer, review, revise, finalize, learn)는 매핑하지 않음 — 항상 실행
 _NODE_STAGE_MAP: dict[str, str] = {
     "director_plan": "research",
-    "inventory_resolve": "research",
+    # inventory_resolve: 그래프 엣지로만 도달 → 라우팅이 가드 역할, skip_guard 불필요
     "research": "research",
     "critic": "concept",
     "concept_gate": "concept",
