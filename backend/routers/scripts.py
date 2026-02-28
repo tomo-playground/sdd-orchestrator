@@ -96,9 +96,11 @@ def _build_config(thread_id: str, *, trace_id: str | None = None) -> dict:
 
     trace_id가 주어지면 (resume) 기존 trace에 이어서 기록한다.
     """
+    from config_pipelines import LANGGRAPH_RECURSION_LIMIT  # noqa: PLC0415
     from services.agent.observability import create_langfuse_handler  # noqa: PLC0415
 
-    cfg: dict = {"configurable": {"thread_id": thread_id}}
+    # Phase 25: review-revise + checkpoint 루프 중첩으로 기본 limit(25) 초과 가능
+    cfg: dict = {"configurable": {"thread_id": thread_id}, "recursion_limit": LANGGRAPH_RECURSION_LIMIT}
     handler = create_langfuse_handler(trace_id=trace_id, session_id=thread_id)
     if handler is not None:
         cfg["callbacks"] = [handler]

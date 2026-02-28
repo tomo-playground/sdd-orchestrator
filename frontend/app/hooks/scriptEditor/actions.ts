@@ -74,6 +74,7 @@ export function buildSavePayload(s: ScriptEditorState, groupId: number | null) {
       tail_padding: sc.tail_padding ?? null,
       background_id: sc.background_id ?? null,
       ken_burns_preset: sc.ken_burns_preset ?? null,
+      context_tags: sc.context_tags ?? null,
     })),
   };
 }

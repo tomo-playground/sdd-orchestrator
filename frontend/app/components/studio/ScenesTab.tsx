@@ -156,7 +156,7 @@ export default function ScenesTab() {
         {/* ── Center Panel: Context Strip + Scene Editor ── */}
         <main className={CENTER_PANEL_CLASSES}>
           {/* Context Strip — read-only badges + Advanced toggle + Stage deep link */}
-          <div className="flex items-center gap-2 border-b border-zinc-100 px-8 py-1.5">
+          <div className="flex shrink-0 items-center gap-2 border-b border-zinc-100 bg-white px-8 py-1.5">
             {currentStyleProfile && (
               <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
                 {currentStyleProfile.display_name ?? currentStyleProfile.name}
@@ -202,7 +202,7 @@ export default function ScenesTab() {
           />
 
           {currentScene && (
-            <div className="flex-1 overflow-y-auto px-8 py-8">
+            <div className="scrollbar-hide flex-1 overflow-y-auto px-8 py-8">
               <div className="mx-auto w-full max-w-5xl">
                 <SceneCard
                   key={currentScene.client_id}

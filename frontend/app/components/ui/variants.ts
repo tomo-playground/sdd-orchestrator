@@ -68,8 +68,8 @@ export const STUDIO_2COL_LAYOUT =
   "grid grid-cols-[280px_1fr] gap-0 h-full min-h-[600px] overflow-hidden";
 
 export const LEFT_PANEL_CLASSES =
-  "flex flex-col border-r border-zinc-200 bg-zinc-50/50 overflow-y-auto";
-export const CENTER_PANEL_CLASSES = "flex flex-col overflow-y-auto";
+  "flex flex-col border-r border-zinc-200 bg-zinc-50/50 overflow-y-auto scrollbar-hide";
+export const CENTER_PANEL_CLASSES = "flex flex-col overflow-hidden";
 
 /** Publish tab: settings (left) + preview/output (right). */
 export const PUBLISH_2COL_LAYOUT = "grid grid-cols-1 gap-6 md:grid-cols-[1fr_380px] md:items-start";

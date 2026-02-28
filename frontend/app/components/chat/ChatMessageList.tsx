@@ -18,7 +18,7 @@ export default function ChatMessageList({ messages, callbacks, data }: Props) {
     <div
       ref={containerRef}
       onScroll={handleScroll}
-      className="flex-1 overflow-y-auto py-6"
+      className="scrollbar-hide flex-1 overflow-y-auto py-6"
     >
       <div className="mx-auto max-w-3xl space-y-5 px-6">
         {messages.map((msg) => (

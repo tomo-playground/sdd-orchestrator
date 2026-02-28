@@ -112,11 +112,7 @@ export default function StageTab() {
   if (!storyboardId || scenes.length === 0) {
     return (
       <div className="flex h-full items-center justify-center px-8 py-8">
-        <EmptyState
-          icon={Image}
-          title="씬이 없습니다"
-          description="먼저 스크립트를 생성하세요."
-        />
+        <EmptyState icon={Image} title="씬이 없습니다" description="먼저 스크립트를 생성하세요." />
       </div>
     );
   }
@@ -130,7 +126,7 @@ export default function StageTab() {
   ];
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto px-5 py-4">
+    <div className="scrollbar-hide flex h-full flex-col overflow-y-auto px-5 py-4">
       {/* Header */}
       <div className="mb-4">
         <h2 className="text-base font-semibold text-zinc-900">스테이지 — 사전 준비</h2>

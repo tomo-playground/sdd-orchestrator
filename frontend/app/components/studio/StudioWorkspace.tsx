@@ -21,7 +21,7 @@ export default function StudioWorkspace() {
       {activeTab === "direct" && <ScenesTab />}
 
       {activeTab === "publish" && (
-        <div className="h-full w-full overflow-y-auto px-8 py-8">
+        <div className="scrollbar-hide h-full w-full overflow-y-auto px-8 py-8">
           <PublishTab />
         </div>
       )}
