@@ -14,9 +14,16 @@ type Props = {
 
 export default function ChatArea({ editor }: Props) {
   const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const setPendingAutoRun = useUIStore((s) => s.setPendingAutoRun);
   const handleNavigate = useCallback(
-    (tab: string) => setActiveTab(tab as StudioTab),
-    [setActiveTab]
+    (tab: string) => {
+      if (tab === "stage") {
+        setPendingAutoRun(true);
+      } else {
+        setActiveTab(tab as StudioTab);
+      }
+    },
+    [setActiveTab, setPendingAutoRun]
   );
 
   const callbacks: ChatMessageCallbacks = useMemo(

@@ -25,7 +25,7 @@ export default function CompletionCard({ text, sceneCount, onNavigate }: Props) 
           <Button size="sm" variant="outline" onClick={() => onNavigate("direct")}>
             <Pencil className="h-3.5 w-3.5" />씬 편집하기
           </Button>
-          <Button size="sm" variant="success" onClick={() => onNavigate("publish")}>
+          <Button size="sm" variant="success" onClick={() => onNavigate("stage")}>
             <Play className="h-3.5 w-3.5" />
             영상 제작 시작
           </Button>
