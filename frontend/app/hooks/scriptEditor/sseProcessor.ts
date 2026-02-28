@@ -6,6 +6,14 @@ import { updatePipelineSteps } from "../../utils/pipelineSteps";
 import { mapEventScenes } from "./mappers";
 import type { SceneItem, ScriptEditorState } from "./types";
 
+function friendlyErrorMessage(raw: string): string {
+  if (raw.includes("500")) return "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+  if (raw.includes("429")) return "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
+  if (raw.includes("Stream failed") || raw.includes("stream"))
+    return "생성 중 오류가 발생했습니다.";
+  return raw;
+}
+
 export async function parseSSEStream(
   response: Response,
   onEvent: (event: ScriptStreamEvent) => void
@@ -14,24 +22,28 @@ export async function parseSSEStream(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const parts = buffer.split("\n\n");
-    buffer = parts.pop() || "";
-    for (const part of parts) {
-      if (part.startsWith("data: ")) {
-        let parsed;
-        try {
-          parsed = JSON.parse(part.slice(6));
-        } catch {
-          console.warn("[SSE] malformed event skipped:", part.slice(0, 80));
-          continue;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || "";
+      for (const part of parts) {
+        if (part.startsWith("data: ")) {
+          let parsed;
+          try {
+            parsed = JSON.parse(part.slice(6));
+          } catch {
+            console.warn("[SSE] malformed event skipped:", part.slice(0, 80));
+            continue;
+          }
+          onEvent(parsed);
         }
-        onEvent(parsed);
       }
     }
+  } finally {
+    reader.cancel();
   }
 }
 
@@ -151,7 +163,7 @@ export async function processSSEStream(
       isWaiting = true;
     }
     if (event.status === "error") {
-      throw new Error(event.error ?? "Stream failed");
+      throw new Error(friendlyErrorMessage(event.error ?? "Stream failed"));
     }
   });
 
