@@ -30,6 +30,7 @@
 
 ### 최근 작업
 
+- **Phase 23-4: 내비게이션 개선** (02-28): 프로젝트/그룹 전환 시 Home 강제 이동 제거, Studio에서만 URL 정리(replace), CommandPalette storyboardId 미초기화 버그 수정. 2파일 변경.
 - **Phase 23-3: 설정 가시성** (02-28): Group ORM @property 3개 + GroupResponse 프리셋 이름 필드, GroupDropdown ConfigBadges 뱃지, joinedload N+1 방지. 5파일 변경.
 - **Phase 22: Backend Complete Image Generation** (02-28): SD 이미지 생성→저장까지 Backend 자율 완결, Frontend SPOF 제거. MinIO 저장+DB 갱신을 Backend에서 처리, Graceful Degradation fallback. 8파일 변경.
 - **Phase 21: Persona-based Menu Reorganization** (02-28): Admin을 Library/Settings/Dev 3-tier로 재편. Shell 3종 + 14개 라우트 신설, admin/ dead code 제거. 120파일 변경.
@@ -53,7 +54,7 @@
 
 ---
 
-## Next Up: Phase 23 — Project/Group UX 개선
+## Phase 23 — Project/Group UX 개선 (전체 완료)
 
 > 명세: [PROJECT_GROUP.md](FEATURES/PROJECT_GROUP.md) §2
 
@@ -64,7 +65,7 @@ DB 구조 유지, UX만 개선. Zero-config → 용어 → 설정 가시성 → 
 | 23-1 | Zero-Config Start | P0 | 신규 유저 자동 프로비저닝, Empty State CTA | 완료 |
 | 23-2 | 용어 통일 | P0 | UI 라벨 Project→채널, Group→시리즈, Storyboard→영상 (13파일) | 완료 |
 | 23-3 | 설정 가시성 | P1 | GroupResponse 프리셋 이름, GroupDropdown 요약 뱃지 | 완료 |
-| 23-4 | 내비게이션 개선 | P2 | 컨텍스트 전환 시 리다이렉트 제거 | 미착수 |
+| 23-4 | 내비게이션 개선 | P2 | 컨텍스트 전환 시 리다이렉트 제거 | 완료 |
 
 ---
 
