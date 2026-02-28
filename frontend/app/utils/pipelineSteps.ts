@@ -1,9 +1,6 @@
 import type { PipelineStep, ScriptStreamEvent } from "../types";
 
-/** Express 프리셋 기본 skip_stages (Backend SSOT: config_pipelines.py VALID_SKIP_STAGES) */
-export const EXPRESS_SKIP_STAGES = ["research", "concept", "production", "explain"] as const;
-
-type StepDef = PipelineStep & { stage?: string; expressOnly?: boolean };
+type StepDef = PipelineStep & { stage?: string };
 
 const ALL_STEPS: StepDef[] = [
   {
@@ -11,7 +8,6 @@ const ALL_STEPS: StepDef[] = [
     label: "캐릭터 분석 중",
     status: "idle",
     nodes: ["Quick Casting"],
-    expressOnly: true,
   },
   {
     id: "research",
@@ -47,8 +43,7 @@ const ALL_STEPS: StepDef[] = [
 ];
 
 const NODE_TO_STEP: Record<string, string> = {
-  director_plan: "research",
-  director_plan_lite: "casting",
+  director_plan: "casting",
   inventory_resolve: "casting",
   research: "research",
   critic: "concept",
@@ -67,21 +62,23 @@ const NODE_TO_STEP: Record<string, string> = {
   learn: "complete",
 };
 
-export function getInitialSteps(skipStages: string[]): PipelineStep[] {
+/** Director 판단 전: 모든 스텝을 표시 */
+export function getInitialSteps(): PipelineStep[] {
+  return ALL_STEPS.map(({ stage: _stage, ...step }) => ({ ...step }));
+}
+
+/** Director 결정 수신 후: skipStages 기반 스텝 필터링 */
+export function applyDirectorPlan(steps: PipelineStep[], skipStages: string[]): PipelineStep[] {
   const skipSet = new Set(skipStages);
-  const isExpress = skipSet.has("research");
-  return ALL_STEPS.filter((s) => {
-    if (s.stage && skipSet.has(s.stage)) return false;
-    if (s.expressOnly && !isExpress) return false;
-    return true;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  }).map(({ stage: _stage, expressOnly: _eo, ...step }) => ({ ...step }));
+  return steps.filter((s) => {
+    const def = ALL_STEPS.find((d) => d.id === s.id);
+    return !def?.stage || !skipSet.has(def.stage);
+  });
 }
 
 export function updatePipelineSteps(
   steps: PipelineStep[],
-  event: ScriptStreamEvent,
-  skipStages: string[]
+  event: ScriptStreamEvent
 ): PipelineStep[] {
   const stepId = NODE_TO_STEP[event.node];
   if (!stepId) {
@@ -91,17 +88,11 @@ export function updatePipelineSteps(
     return steps;
   }
 
-  const skipSet = new Set(skipStages);
-  const isExpress = skipSet.has("research");
-  const filteredIds = ALL_STEPS.filter((s) => {
-    if (s.stage && skipSet.has(s.stage)) return false;
-    if (s.expressOnly && !isExpress) return false;
-    return true;
-  }).map((s) => s.id);
-  let targetIdx = filteredIds.indexOf(stepId);
-  // Standard 모드에서 casting 스텝이 필터링되므로 research로 fallback
+  const stepIds = steps.map((s) => s.id);
+  let targetIdx = stepIds.indexOf(stepId);
+  // casting 스텝이 Director에 의해 필터링된 경우 research로 fallback
   if (targetIdx < 0 && stepId === "casting") {
-    targetIdx = filteredIds.indexOf("research");
+    targetIdx = stepIds.indexOf("research");
   }
   if (targetIdx < 0) return steps;
 

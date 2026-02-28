@@ -4,19 +4,15 @@ import { useCallback, useMemo } from "react";
 import ChatMessageList from "./ChatMessageList";
 import ChatInput from "./ChatInput";
 import ProgressBar from "./ProgressBar";
-import ModeChips from "./ModeChips";
 import { useUIStore, type StudioTab } from "../../store/useUIStore";
 import type { ChatScriptEditorActions } from "../../hooks/useChatScriptEditor";
 import type { ChatMessageCallbacks, ChatMessageData } from "./ChatMessage";
-import type { ScriptMode } from "./ModeChips";
 
 type Props = {
   editor: ChatScriptEditorActions;
-  currentMode: ScriptMode;
-  onPresetChange: (preset: string, skipStages: string[]) => void;
 };
 
-export default function ChatArea({ editor, currentMode, onPresetChange }: Props) {
+export default function ChatArea({ editor }: Props) {
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const setPendingAutoRun = useUIStore((s) => s.setPendingAutoRun);
   const handleNavigate = useCallback(
@@ -59,9 +55,6 @@ export default function ChatArea({ editor, currentMode, onPresetChange }: Props)
             <p className="mt-1.5 text-sm text-zinc-500">
               주제를 입력하면 AI가 최적의 설정을 추천해 드려요
             </p>
-          </div>
-          <div className="mb-4 w-full max-w-xs">
-            <ModeChips currentMode={currentMode} onPresetChange={onPresetChange} />
           </div>
           <div className="w-full max-w-3xl">
             <ChatInput

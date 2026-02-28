@@ -6,8 +6,7 @@ import StoryboardGeneratorPanel from "../storyboard/StoryboardGeneratorPanel";
 import CharacterSelectSection from "./CharacterSelectSection";
 import PipelineStepper from "./PipelineStepper";
 import Button from "../ui/Button";
-import { SECTION_CLASSES, FORM_TEXTAREA_CLASSES, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
-import { EXPRESS_SKIP_STAGES } from "../../utils/pipelineSteps";
+import { SECTION_CLASSES, FORM_TEXTAREA_CLASSES } from "../ui/variants";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import type { ScriptEditorActions } from "../../hooks/useScriptEditor";
 import type { Preset, LangOption } from "../../hooks/usePresets";
@@ -17,13 +16,10 @@ type Props = {
   presets: Preset[];
   languages: LangOption[];
   durations: number[];
-  onPresetChange?: (preset: string, skipStages: string[]) => void;
   onGenerate: () => void;
   expandedStep: string | null;
   onStepClick: (id: string) => void;
 };
-
-const TAB_BASE = "px-4 py-1.5 text-xs font-semibold rounded-lg transition";
 
 function ReferencesToggle({ editor }: { editor: ScriptEditorActions }) {
   const [open, setOpen] = useState(false);
@@ -70,7 +66,6 @@ export default function ScriptOptionsCard({
   presets,
   languages,
   durations,
-  onPresetChange,
   onGenerate,
   expandedStep,
   onStepClick,
@@ -78,7 +73,7 @@ export default function ScriptOptionsCard({
   const casting = useStoryboardStore((s) => s.castingRecommendation);
   return (
     <section className={SECTION_CLASSES}>
-      {/* Mode tabs header */}
+      {/* Header */}
       <div className="mb-8 flex items-center justify-between border-b border-zinc-100 pb-5">
         <div>
           <h2 className="text-lg font-bold text-zinc-900">Script Options</h2>
@@ -91,30 +86,6 @@ export default function ScriptOptionsCard({
             <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">
               {editor.scenes.length} scenes
             </span>
-          )}
-          {onPresetChange && (
-            <div className="flex gap-1 rounded-xl bg-zinc-100 p-1">
-              {(["express", "standard", "creator"] as const).map((p) => {
-                const isActive =
-                  p === "express"
-                    ? editor.skipStages.length > 0
-                    : p === "creator"
-                      ? editor.skipStages.length === 0 && editor.preset === "creator"
-                      : editor.skipStages.length === 0 && editor.preset !== "creator";
-                return (
-                  <button
-                    key={p}
-                    className={`${TAB_BASE} ${isActive ? TAB_ACTIVE : TAB_INACTIVE}`}
-                    onClick={() => {
-                      const stages = p === "express" ? [...EXPRESS_SKIP_STAGES] : [];
-                      onPresetChange(p, stages);
-                    }}
-                  >
-                    {p === "express" ? "Express" : p === "standard" ? "Standard" : "Creator"}
-                  </button>
-                );
-              })}
-            </div>
           )}
         </div>
       </div>
@@ -155,16 +126,11 @@ export default function ScriptOptionsCard({
         />
       </div>
 
-      {/* References — Standard/Creator only */}
-      {editor.skipStages.length === 0 && <ReferencesToggle editor={editor} />}
+      {/* References — always visible */}
+      <ReferencesToggle editor={editor} />
 
       {/* Generate button — card footer */}
       <div className="mt-8 border-t border-zinc-200/60 pt-6">
-        {editor.skipStages.length > 0 && !editor.characterId && (
-          <p className="mb-3 text-[11px] text-amber-600">
-            캐릭터 미선택 — AI가 토픽에 맞는 캐릭터를 자동 캐스팅합니다
-          </p>
-        )}
         <div className="flex justify-end">
           <Button
             size="md"

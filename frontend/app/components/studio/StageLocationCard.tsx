@@ -95,7 +95,7 @@ export default function StageLocationCard({
                 disabled={isRegenerating}
               >
                 <RefreshCw className="h-3 w-3" />
-                Save & Regenerate
+                저장 후 재생성
               </Button>
               <button
                 onClick={cancelEdit}
@@ -118,7 +118,7 @@ export default function StageLocationCard({
             <button
               onClick={startEdit}
               className="rounded p-0.5 text-zinc-300 opacity-0 transition group-hover:opacity-100 hover:text-zinc-500"
-              title="Edit tags"
+              title="태그 편집"
             >
               <Pencil className="h-3 w-3" />
             </button>
@@ -127,7 +127,7 @@ export default function StageLocationCard({
 
         {/* Scene count */}
         <p className="mb-2 text-[11px] text-zinc-400">
-          {location.scene_ids.length} scene{location.scene_ids.length !== 1 ? "s" : ""}
+          {location.scene_ids.length}개 씬
         </p>
 
         {/* Actions */}
@@ -141,7 +141,7 @@ export default function StageLocationCard({
             disabled={isRegenerating}
           >
             <RefreshCw className="h-3 w-3" />
-            {location.has_image ? "Regenerate" : "Generate"}
+            {location.has_image ? "재생성" : "생성"}
           </Button>
         )}
       </div>

@@ -44,8 +44,6 @@ const CONTENT_FIELDS: ReadonlySet<string> = new Set([
   "characterBId",
   "characterBName",
   "references",
-  "preset",
-  "skipStages",
 ]);
 
 const INITIAL_STATE: ScriptEditorState = {
@@ -64,8 +62,7 @@ const INITIAL_STATE: ScriptEditorState = {
   storyboardId: null,
   storyboardVersion: null,
   isSaving: false,
-  skipStages: [],
-  preset: null,
+  directorSkipStages: [],
   threadId: null,
   isWaitingForInput: false,
   isWaitingForConcept: false,
@@ -158,7 +155,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       isGenerating: true,
       progress: null,
       justGenerated: false,
-      pipelineSteps: getInitialSteps(prev.skipStages),
+      pipelineSteps: getInitialSteps(),
       nodeResults: {},
     }));
     try {
@@ -278,9 +275,10 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       if (current.storyboardId) {
         const res = await axios.put(`${API_BASE}/storyboards/${current.storyboardId}`, body);
         setState((prev) => ({ ...prev, storyboardVersion: res.data.version }));
-        useContextStore
-          .getState()
-          .setContext({ storyboardId: current.storyboardId, storyboardTitle: current.topic.trim() });
+        useContextStore.getState().setContext({
+          storyboardId: current.storyboardId,
+          storyboardTitle: current.topic.trim(),
+        });
       } else {
         const res = await axios.post(`${API_BASE}/storyboards`, body);
         const newId = res.data.storyboard_id;
@@ -303,7 +301,9 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         showToast("다른 탭에서 수정되었습니다. 다시 저장해주세요.", "error");
         if (stateRef.current.storyboardId) {
           try {
-            const fresh = await axios.get(`${API_BASE}/storyboards/${stateRef.current.storyboardId}`);
+            const fresh = await axios.get(
+              `${API_BASE}/storyboards/${stateRef.current.storyboardId}`
+            );
             setState((prev) => ({ ...prev, storyboardVersion: fresh.data.version ?? null }));
           } catch {
             /* silent */

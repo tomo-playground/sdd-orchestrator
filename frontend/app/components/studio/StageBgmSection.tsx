@@ -6,6 +6,7 @@ import { Music } from "lucide-react";
 import axios from "axios";
 import { useRenderStore } from "../../store/useRenderStore";
 import { useUIStore } from "../../store/useUIStore";
+import EmptyState from "../ui/EmptyState";
 import { API_BASE, ADMIN_API_BASE } from "../../constants";
 import { getErrorMsg } from "../../utils/error";
 import StageBgmCard from "./StageBgmCard";
@@ -73,18 +74,12 @@ export default function StageBgmSection({ audioPlayer }: Props) {
           onClick={() => router.push("/library/music")}
           className="text-[11px] font-medium text-blue-600 hover:text-blue-700"
         >
-          Change
+          변경
         </button>
       </div>
 
       {isEmpty ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 py-8">
-          <Music className="mb-2 h-7 w-7 text-zinc-300" />
-          <p className="text-xs font-medium text-zinc-500">No BGM configured</p>
-          <p className="mt-0.5 text-[11px] text-zinc-400">
-            Set up background music in Library to preview here.
-          </p>
-        </div>
+        <EmptyState icon={Music} title="라이브러리에서 BGM을 설정하세요" variant="inline" />
       ) : bgmMode === "manual" && selectedPreset ? (
         <StageBgmCard
           mode="manual"

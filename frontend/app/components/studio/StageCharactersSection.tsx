@@ -7,6 +7,7 @@ import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useCharacters } from "../../hooks/useCharacters";
 import { isMultiCharStructure } from "../../utils/structure";
 import CharacterSelector from "../setup/CharacterSelector";
+import EmptyState from "../ui/EmptyState";
 import StageCastingCompareCard from "./StageCastingCompareCard";
 import StageCharacterCard from "./StageCharacterCard";
 import type { CharacterFull, VoicePreset } from "../../types";
@@ -97,7 +98,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
 
   return (
     <section>
-      <h3 className="mb-3 text-sm font-semibold text-zinc-800">Characters</h3>
+      <h3 className="mb-3 text-sm font-semibold text-zinc-800">캐릭터</h3>
 
       {/* Casting comparison card */}
       {casting && (
@@ -112,7 +113,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
       {/* Character Selectors */}
       <div className="mb-4 flex flex-wrap gap-3">
         <CharacterSelector
-          label={isDialogue ? "Speaker A" : "Character"}
+          label={isDialogue ? "화자 A" : "캐릭터"}
           characters={characters}
           selectedCharacterId={selectedCharacterId}
           onSelect={(charId) => {
@@ -124,7 +125,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
         />
         {isDialogue && (
           <CharacterSelector
-            label="Speaker B"
+            label="화자 B"
             characters={characters}
             selectedCharacterId={selectedCharacterBId}
             onSelect={(charId) => {
@@ -139,21 +140,15 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
       {sameWarning && (
         <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-          Speaker A and B are the same character.
+          화자 A와 B가 같은 캐릭터입니다.
         </div>
       )}
 
       {/* Character Cards */}
       {!hasAny ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 py-8">
-          <Users className="mb-2 h-7 w-7 text-zinc-300" />
-          <p className="text-xs font-medium text-zinc-500">No characters selected</p>
-          <p className="mt-0.5 text-[11px] text-zinc-400">
-            Select a character above to see preview
-          </p>
-        </div>
+        <EmptyState icon={Users} title="위에서 캐릭터를 선택하세요" variant="inline" />
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
           {charA && (
             <StageCharacterCard
               key={charA.id}

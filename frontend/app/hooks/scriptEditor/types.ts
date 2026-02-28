@@ -54,8 +54,7 @@ export type ScriptEditorState = {
   storyboardId: number | null;
   storyboardVersion: number | null;
   isSaving: boolean;
-  skipStages: string[];
-  preset: string | null;
+  directorSkipStages: string[];
   threadId: string | null;
   isWaitingForInput: boolean;
   isWaitingForConcept: boolean;

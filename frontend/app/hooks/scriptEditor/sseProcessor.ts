@@ -2,7 +2,7 @@ import type React from "react";
 import type { ScriptStreamEvent } from "../../types";
 import { useRenderStore } from "../../store/useRenderStore";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
-import { updatePipelineSteps } from "../../utils/pipelineSteps";
+import { updatePipelineSteps, applyDirectorPlan } from "../../utils/pipelineSteps";
 import { mapEventScenes } from "./mappers";
 import type { SceneItem, ScriptEditorState } from "./types";
 
@@ -69,7 +69,27 @@ export async function processSSEStream(
 
     // Single setState per event to avoid race conditions between renders
     setState((prev) => {
-      const nextSteps = updatePipelineSteps(prev.pipelineSteps, event, prev.skipStages);
+      let nextSteps = updatePipelineSteps(prev.pipelineSteps, event);
+
+      // Director plan 수신 시: skip_stages 파생 + 스텝 필터링
+      if (event.node === "director_plan" && event.node_result) {
+        const result = event.node_result as Record<string, unknown>;
+        const directorSkip = Array.isArray(result.skip_stages)
+          ? (result.skip_stages as string[])
+          : [];
+        nextSteps = applyDirectorPlan(nextSteps, directorSkip);
+        return {
+          ...prev,
+          progress: { node: event.node, label: event.label, percent: event.percent },
+          pipelineSteps: nextSteps,
+          directorSkipStages: directorSkip,
+          nodeResults: event.node_result
+            ? { ...prev.nodeResults, [event.node]: event.node_result as Record<string, unknown> }
+            : prev.nodeResults,
+          threadId: options?.trackThreadId && event.thread_id ? event.thread_id : prev.threadId,
+          traceId: event.trace_id ?? prev.traceId,
+        };
+      }
       let nextNodeResults = event.node_result
         ? { ...prev.nodeResults, [event.node]: event.node_result as Record<string, unknown> }
         : prev.nodeResults;

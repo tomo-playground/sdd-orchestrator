@@ -9,7 +9,7 @@ import ConceptSelectionPanel from "./ConceptSelectionPanel";
 import ReviewApprovalPanel from "./ReviewApprovalPanel";
 import AgentReasoningPanel from "./AgentReasoningPanel";
 import CastingBanner from "./CastingBanner";
-import ExpressCastingSummary from "./ExpressCastingSummary";
+import AiCastingSummary from "./AiCastingSummary";
 import ScriptFeedbackWidget from "./ScriptFeedbackWidget";
 import Button from "../ui/Button";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
@@ -19,10 +19,9 @@ import type { ScriptEditorActions } from "../../hooks/useScriptEditor";
 
 type Props = {
   editor: ScriptEditorActions;
-  onPresetChange?: (preset: string, skipStages: string[]) => void;
 };
 
-export default function ManualScriptEditor({ editor, onPresetChange }: Props) {
+export default function ManualScriptEditor({ editor }: Props) {
   const { presets, languages, durations } = usePresets();
   const { confirm, dialogProps } = useConfirm();
   const casting = useStoryboardStore((s) => s.castingRecommendation);
@@ -60,8 +59,8 @@ export default function ManualScriptEditor({ editor, onPresetChange }: Props) {
       if (!ok) return;
     }
 
-    // Express 모드 + 캐릭터 미선택 → 자동 캐스팅 확인
-    if (!editor.characterId && editor.skipStages.length > 0) {
+    // 캐릭터 미선택 시 자동 캐스팅 확인
+    if (!editor.characterId) {
       const ok = await confirm({
         title: "AI 자동 캐스팅",
         message: "캐릭터가 선택되지 않았습니다. AI가 토픽에 맞는 캐릭터를 자동 선택합니다.",
@@ -94,7 +93,6 @@ export default function ManualScriptEditor({ editor, onPresetChange }: Props) {
         presets={presets}
         languages={languages}
         durations={durations}
-        onPresetChange={onPresetChange}
         onGenerate={handleGenerate}
         expandedStep={expandedStep}
         onStepClick={(id) => setExpandedStep((prev) => (prev === id ? null : id))}
@@ -115,7 +113,7 @@ export default function ManualScriptEditor({ editor, onPresetChange }: Props) {
           nodeResults={editor.nodeResults}
           expandedStep={expandedStep}
           onToggle={setExpandedStep}
-          skipStages={editor.skipStages}
+          skipStages={editor.directorSkipStages}
         />
       )}
 
@@ -150,17 +148,13 @@ export default function ManualScriptEditor({ editor, onPresetChange }: Props) {
         />
       )}
 
-      {/* Express casting summary — post-generation (Express only) */}
-      {editor.justGenerated &&
-        !editor.isGenerating &&
-        !editor.isWaitingForInput &&
-        casting &&
-        editor.skipStages.length > 0 && (
-          <ExpressCastingSummary
-            casting={casting}
-            onGoToStage={() => useUIStore.getState().setActiveTab("stage")}
-          />
-        )}
+      {/* AI casting summary — post-generation */}
+      {editor.justGenerated && !editor.isGenerating && !editor.isWaitingForInput && casting && (
+        <AiCastingSummary
+          casting={casting}
+          onGoToStage={() => useUIStore.getState().setActiveTab("stage")}
+        />
+      )}
 
       {/* Post-generation CTA */}
       {editor.justGenerated && !editor.isGenerating && !editor.isWaitingForInput && (

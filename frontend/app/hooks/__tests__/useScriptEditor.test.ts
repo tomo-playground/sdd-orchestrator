@@ -59,7 +59,6 @@ describe("useScriptEditor — dirty tracking & unmount sync", () => {
     ["characterId", 42],
     ["characterName", "Alice"],
     ["references", "https://example.com"],
-    ["preset", "cinematic"],
   ] as const)("marks isDirty for content field: %s", (key, value) => {
     const { result } = renderHook(() => useScriptEditor());
 

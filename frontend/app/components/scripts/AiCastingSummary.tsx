@@ -8,7 +8,7 @@ type Props = {
   onGoToStage: () => void;
 };
 
-export default function ExpressCastingSummary({ casting, onGoToStage }: Props) {
+export default function AiCastingSummary({ casting, onGoToStage }: Props) {
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
       <div className="flex items-center gap-2">

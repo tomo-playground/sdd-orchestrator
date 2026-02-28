@@ -4,6 +4,7 @@ import { Mic } from "lucide-react";
 import { useRenderStore } from "../../store/useRenderStore";
 import { useUIStore } from "../../store/useUIStore";
 import StageVoiceCard from "./StageVoiceCard";
+import EmptyState from "../ui/EmptyState";
 import type { VoicePreset } from "../../types";
 import type { AudioPlayer } from "../../hooks/useAudioPlayer";
 
@@ -21,7 +22,7 @@ export default function StageVoiceSection({ audioPlayer, voicePresets }: Props) 
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-zinc-800">Voice</h3>
+        <h3 className="text-sm font-semibold text-zinc-800">음성</h3>
         <button
           onClick={openGroupConfig}
           className="text-[11px] font-medium text-blue-600 hover:text-blue-700"
@@ -31,13 +32,7 @@ export default function StageVoiceSection({ audioPlayer, voicePresets }: Props) 
       </div>
 
       {!selectedPreset ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 py-8">
-          <Mic className="mb-2 h-7 w-7 text-zinc-300" />
-          <p className="text-xs font-medium text-zinc-500">No voice preset selected</p>
-          <p className="mt-0.5 text-[11px] text-zinc-400">
-            시리즈 설정에서 나레이터 음성을 선택하세요.
-          </p>
-        </div>
+        <EmptyState icon={Mic} title="시리즈 설정에서 나레이터 음성을 선택하세요" variant="inline" />
       ) : (
         <StageVoiceCard preset={selectedPreset} audioPlayer={audioPlayer} />
       )}

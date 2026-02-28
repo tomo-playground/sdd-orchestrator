@@ -10,6 +10,7 @@ import { cx, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
 import CommandPalette from "../ui/CommandPalette";
 import { ToastContainer } from "../ui/Toast";
 import ConnectionGuard from "./ConnectionGuard";
+import AppFooter from "./AppFooter";
 import PersistentContextBar from "../context/PersistentContextBar";
 import { useBackendHealth } from "../../hooks/useBackendHealth";
 import type { ReactNode, ComponentType } from "react";
@@ -100,9 +101,7 @@ export default function ServiceShell({ children }: { children: ReactNode }) {
         <Suspense>
           <NavBar />
         </Suspense>
-        <kbd className="hidden rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[12px] text-zinc-400 sm:inline-block">
-          <span className="text-zinc-300">&#x2318;</span>K
-        </kbd>
+        <span className="text-[11px] font-medium tracking-wide text-zinc-300">Shorts Producer</span>
       </header>
 
       <PersistentContextBar />
@@ -115,6 +114,8 @@ export default function ServiceShell({ children }: { children: ReactNode }) {
       >
         {children}
       </div>
+
+      <AppFooter connectionStatus={connectionStatus} />
 
       <CommandPalette />
       {hasToasts && <ToastContainer />}

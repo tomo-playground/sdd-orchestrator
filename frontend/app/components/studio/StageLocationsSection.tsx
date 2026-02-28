@@ -6,6 +6,7 @@ import axios from "axios";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useUIStore } from "../../store/useUIStore";
 import Button from "../ui/Button";
+import EmptyState from "../ui/EmptyState";
 import { API_BASE, API_TIMEOUT } from "../../constants";
 import { getErrorMsg } from "../../utils/error";
 import StageLocationCard from "./StageLocationCard";
@@ -83,10 +84,10 @@ export default function StageLocationsSection({ storyboardId, onStatusChange }: 
       await axios.post(`${API_BASE}/storyboards/${storyboardId}/stage/generate-backgrounds`, null, {
         timeout: API_TIMEOUT.STAGE_GENERATE,
       });
-      showToast("Background generation complete", "success");
+      showToast("배경 생성 완료", "success");
       await fetchStatus();
     } catch (error) {
-      showToast(getErrorMsg(error, "Background generation failed"), "error");
+      showToast(getErrorMsg(error, "배경 생성 실패"), "error");
       useStoryboardStore.getState().set({ stageStatus: "failed" });
     } finally {
       setIsGenerating(false);
@@ -103,13 +104,13 @@ export default function StageLocationsSection({ storyboardId, onStatusChange }: 
         { timeout: API_TIMEOUT.STAGE_GENERATE }
       );
       if (res.data.status === "regenerated") {
-        showToast("Background regenerated", "success");
+        showToast("배경 재생성 완료", "success");
         await fetchStatus();
       } else {
-        showToast("Regeneration failed", "error");
+        showToast("재생성 실패", "error");
       }
     } catch (error) {
-      showToast(getErrorMsg(error, "Regeneration failed"), "error");
+      showToast(getErrorMsg(error, "재생성 실패"), "error");
     } finally {
       setRegeneratingKey(null);
     }
@@ -118,10 +119,10 @@ export default function StageLocationsSection({ storyboardId, onStatusChange }: 
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-zinc-800">Locations</h3>
+        <h3 className="text-sm font-semibold text-zinc-800">배경</h3>
         <div className="flex items-center gap-2">
           {stageStatus === "failed" && (
-            <span className="text-[11px] font-medium text-red-500">Generation Failed</span>
+            <span className="text-[11px] font-medium text-red-500">생성 실패</span>
           )}
           <Button
             size="sm"
@@ -131,36 +132,30 @@ export default function StageLocationsSection({ storyboardId, onStatusChange }: 
             disabled={isGenerating || isLoading}
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            {locations.length > 0 ? "Regenerate All" : "Generate"}
+            {locations.length > 0 ? "전체 재생성" : "생성"}
           </Button>
         </div>
       </div>
 
       {/* Loading state */}
       {isLoading && locations.length === 0 && (
-        <div className="flex items-center justify-center py-10">
+        <div className="flex items-center justify-center py-6">
           <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
         </div>
       )}
 
       {/* Empty state */}
       {!isLoading && locations.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 py-10">
-          <ImageIcon className="mb-2 h-8 w-8 text-zinc-300" />
-          <p className="text-xs font-medium text-zinc-500">No locations detected</p>
-          <p className="mt-0.5 text-[11px] text-zinc-400">
-            Generate backgrounds to derive locations from scene tags.
-          </p>
-        </div>
+        <EmptyState icon={ImageIcon} title="배경 이미지를 생성하세요" variant="inline" />
       )}
 
       {/* Location Cards Grid */}
       {locations.length > 0 && (
         <>
           <p className="mb-2 text-[11px] text-zinc-400">
-            {ready}/{total} locations ready
+            {ready}/{total}개 배경 준비 완료
           </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {locations.map((loc) => (
               <StageLocationCard
                 key={loc.location_key}

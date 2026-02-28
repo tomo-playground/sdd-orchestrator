@@ -30,9 +30,7 @@ export function buildGenerateBody(
     language: s.language,
     structure: s.structure,
     group_id: groupId,
-    skip_stages: s.skipStages,
   };
-  if (s.preset) body.preset = s.preset;
   if (s.characterId) body.character_id = s.characterId;
   if (s.characterBId) body.character_b_id = s.characterBId;
   const refs = s.references.trim();
@@ -111,4 +109,3 @@ export function handleStreamOutcome(opts: StreamOutcomeOpts): boolean {
   showToast("No scenes returned", "warning");
   return false;
 }
-

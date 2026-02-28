@@ -53,11 +53,11 @@ export default function StageTab() {
     value: boolean;
     tooltip?: React.ReactNode;
   }[] = [
-    { key: "autoRewritePrompt", label: "Auto Rewrite", value: autoRewritePrompt },
-    { key: "autoReplaceRiskyTags", label: "Safe Tags", value: autoReplaceRiskyTags },
+    { key: "autoRewritePrompt", label: "자동 리라이트", value: autoRewritePrompt },
+    { key: "autoReplaceRiskyTags", label: "안전 태그", value: autoReplaceRiskyTags },
     {
       key: "hiResEnabled",
-      label: "Hi-Res",
+      label: "고해상도",
       value: hiResEnabled,
       tooltip: <InfoTooltip term="hi-res" position="bottom" />,
     },
@@ -99,11 +99,11 @@ export default function StageTab() {
           return s;
         });
         setScenes(updated);
-        showToast(`${assignments.length} scenes assigned to backgrounds`, "success");
+        showToast(`${assignments.length}개 씬에 배경이 할당되었습니다`, "success");
       }
       setActiveTab("direct");
     } catch (error) {
-      showToast(getErrorMsg(error, "Assignment failed — please retry"), "error");
+      showToast(getErrorMsg(error, "배경 할당에 실패했습니다 — 다시 시도하세요"), "error");
     } finally {
       setIsAssigning(false);
     }
@@ -114,53 +114,33 @@ export default function StageTab() {
       <div className="flex h-full items-center justify-center px-8 py-8">
         <EmptyState
           icon={Image}
-          title="No Scenes Yet"
-          description="Generate a script first to set up the stage."
+          title="씬이 없습니다"
+          description="먼저 스크립트를 생성하세요."
         />
       </div>
     );
   }
 
   const readinessCategories = [
-    {
-      key: "style",
-      label: "Style",
-      ready: currentStyleProfile?.id != null,
-    },
-    {
-      key: "locations",
-      label: "Locations",
-      ready: locTotal > 0 && locReady === locTotal,
-    },
-    {
-      key: "characters",
-      label: "Characters",
-      ready: materials?.characters?.ready ?? false,
-    },
-    {
-      key: "voice",
-      label: "Voice",
-      ready: materials?.voice?.ready ?? false,
-    },
-    {
-      key: "music",
-      label: "BGM",
-      ready: materials?.music?.ready ?? false,
-    },
+    { key: "style", label: "화풍", ready: currentStyleProfile?.id != null },
+    { key: "locations", label: "배경", ready: locTotal > 0 && locReady === locTotal },
+    { key: "characters", label: "캐릭터", ready: materials?.characters?.ready ?? false },
+    { key: "voice", label: "음성", ready: materials?.voice?.ready ?? false },
+    { key: "music", label: "BGM", ready: materials?.music?.ready ?? false },
   ];
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto px-8 py-6">
+    <div className="flex h-full flex-col overflow-y-auto px-5 py-4">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-base font-semibold text-zinc-900">Stage — Pre-production</h2>
+      <div className="mb-4">
+        <h2 className="text-base font-semibold text-zinc-900">스테이지 — 사전 준비</h2>
         <p className="mt-0.5 text-xs text-zinc-500">
-          Prepare backgrounds, characters, voice, and music before directing scenes.
+          배경, 캐릭터, 음성, 음악을 준비한 후 씬을 연출하세요.
         </p>
       </div>
 
       {/* Readiness Bar */}
-      <div className="mb-6">
+      <div className="mb-4">
         <StageReadinessBar
           categories={readinessCategories}
           isAssigning={isAssigning}
@@ -169,29 +149,17 @@ export default function StageTab() {
       </div>
 
       {/* Sections */}
-      <div className="space-y-8">
-        {/* Visual Style */}
+      <div className="space-y-5">
+        {/* Visual Style + Generation Settings — inline */}
         <section>
-          <h3 className="mb-3 text-sm font-semibold text-zinc-800">Visual Style</h3>
-          <StyleProfileSelector
-            currentProfileName={
-              currentStyleProfile?.display_name ?? currentStyleProfile?.name ?? null
-            }
-          />
-        </section>
-
-        <div className="border-t border-zinc-100" />
-        <StageLocationsSection storyboardId={storyboardId} onStatusChange={handleLocStatusChange} />
-
-        <div className="border-t border-zinc-100" />
-        <StageCharactersSection audioPlayer={audioPlayer} voicePresets={voicePresets} />
-
-        <div className="border-t border-zinc-100" />
-
-        {/* Generation Settings */}
-        <section>
-          <h3 className="mb-3 text-sm font-semibold text-zinc-800">Generation Settings</h3>
-          <div className="flex flex-wrap gap-1.5">
+          <h3 className="mb-3 text-sm font-semibold text-zinc-800">화풍 및 생성 설정</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <StyleProfileSelector
+              currentProfileName={
+                currentStyleProfile?.display_name ?? currentStyleProfile?.name ?? null
+              }
+            />
+            <span className="mx-1 h-4 w-px bg-zinc-200" />
             {TOGGLES.map((t) => (
               <label
                 key={t.key}
@@ -214,10 +182,9 @@ export default function StageTab() {
           </div>
         </section>
 
-        <div className="border-t border-zinc-100" />
+        <StageLocationsSection storyboardId={storyboardId} onStatusChange={handleLocStatusChange} />
+        <StageCharactersSection audioPlayer={audioPlayer} voicePresets={voicePresets} />
         <StageVoiceSection audioPlayer={audioPlayer} voicePresets={voicePresets} />
-
-        <div className="border-t border-zinc-100" />
         <StageBgmSection audioPlayer={audioPlayer} />
       </div>
     </div>

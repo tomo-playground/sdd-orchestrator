@@ -254,7 +254,7 @@ describe("processSSEStream integration", () => {
     // setState is called per event; verify thread_id is passed through
     expect(setState).toHaveBeenCalled();
     const updater = setState.mock.calls[0][0];
-    const prev = { threadId: null, pipelineSteps: [], skipStages: [], nodeResults: {} };
+    const prev = { threadId: null, pipelineSteps: [], directorSkipStages: [], nodeResults: {} };
     const next = updater(prev);
     expect(next.threadId).toBe("thread-abc");
   });

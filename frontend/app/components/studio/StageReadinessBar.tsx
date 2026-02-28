@@ -24,12 +24,12 @@ export default function StageReadinessBar({ categories, isAssigning, onContinue 
       {/* Progress header */}
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-medium text-zinc-600">
-          Pre-production: {readyCount}/{categories.length} ready
+          사전 준비: {readyCount}/{categories.length} 완료
         </span>
         {allReady && (
           <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            All Ready
+            모두 준비됨
           </span>
         )}
       </div>
@@ -65,7 +65,7 @@ export default function StageReadinessBar({ categories, isAssigning, onContinue 
       {allReady && (
         <div className="mt-3 flex justify-end">
           <Button size="sm" onClick={onContinue} loading={isAssigning} disabled={isAssigning}>
-            Continue to Direct
+            디렉트로 이동
             <ArrowRight className="ml-1 h-3.5 w-3.5" />
           </Button>
         </div>
