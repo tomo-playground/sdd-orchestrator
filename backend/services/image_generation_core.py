@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from config import (
     SD_BASE_URL,
     SD_DEFAULT_CFG_SCALE,
+    SD_DEFAULT_CLIP_SKIP,
     SD_DEFAULT_HEIGHT,
     SD_DEFAULT_SAMPLER,
     SD_DEFAULT_STEPS,
@@ -138,10 +139,10 @@ async def generate_image_with_v3(
             logger.warning(f"{mode_prefix} No group_id or storyboard_id, skipping Style LoRAs")
 
     # 3. Ensure correct SD checkpoint for the StyleProfile
+    style_ctx = None
     if storyboard_id or group_id:
         from services.style_context import resolve_style_context, resolve_style_context_from_group
 
-        style_ctx = None
         if group_id:
             style_ctx = resolve_style_context_from_group(group_id, db)
         elif storyboard_id:
@@ -174,13 +175,33 @@ async def generate_image_with_v3(
         final_prompt = prompt_str
         logger.debug(f"{mode_prefix} No storyboard/group, using prompt as-is")
 
-    # 5. Build SD payload
+    # 5. Build SD payload — base from sd_params > config.py defaults
+    steps = sd_params.get("steps", SD_DEFAULT_STEPS) if sd_params else SD_DEFAULT_STEPS
+    cfg_scale = sd_params.get("cfg_scale", SD_DEFAULT_CFG_SCALE) if sd_params else SD_DEFAULT_CFG_SCALE
+    sampler_name = sd_params.get("sampler", SD_DEFAULT_SAMPLER) if sd_params else SD_DEFAULT_SAMPLER
+    clip_skip = sd_params.get("clip_skip", SD_DEFAULT_CLIP_SKIP) if sd_params else SD_DEFAULT_CLIP_SKIP
+
+    # StyleProfile DB 값 우선 적용 (preview.py 패턴과 동일)
+    if style_ctx:
+        if style_ctx.default_steps is not None:
+            steps = style_ctx.default_steps
+        if style_ctx.default_cfg_scale is not None:
+            cfg_scale = style_ctx.default_cfg_scale
+        if style_ctx.default_sampler_name:
+            sampler_name = style_ctx.default_sampler_name
+        if style_ctx.default_clip_skip is not None:
+            clip_skip = style_ctx.default_clip_skip
+
     payload = {
         "prompt": final_prompt,
         "negative_prompt": negative_prompt,
-        "steps": sd_params.get("steps", SD_DEFAULT_STEPS) if sd_params else SD_DEFAULT_STEPS,
-        "cfg_scale": sd_params.get("cfg_scale", SD_DEFAULT_CFG_SCALE) if sd_params else SD_DEFAULT_CFG_SCALE,
-        "sampler_name": (sd_params.get("sampler", SD_DEFAULT_SAMPLER) if sd_params else SD_DEFAULT_SAMPLER),
+        "steps": steps,
+        "cfg_scale": cfg_scale,
+        "sampler_name": sampler_name,
+        "override_settings": {
+            "CLIP_stop_at_last_layers": max(1, int(clip_skip)),
+        },
+        "override_settings_restore_afterwards": True,
         "width": sd_params.get("width", SD_DEFAULT_WIDTH) if sd_params else SD_DEFAULT_WIDTH,
         "height": sd_params.get("height", SD_DEFAULT_HEIGHT) if sd_params else SD_DEFAULT_HEIGHT,
         "seed": sd_params.get("seed", -1) if sd_params else -1,
