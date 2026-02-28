@@ -4,6 +4,25 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+
+@pytest.fixture(autouse=True)
+def _reset_danbooru_circuit():
+    """Reset Danbooru circuit breaker state before each test.
+
+    services.danbooru uses module-level _circuit_failures / _circuit_open_until.
+    Without resetting, tests that trigger ConnectTimeout (e.g.
+    test_returns_none_on_network_error) pollute state for later tests,
+    causing get_post_image to short-circuit and return None.
+    """
+    import services.danbooru as mod
+
+    mod._circuit_failures = 0
+    mod._circuit_open_until = 0.0
+    yield
+    mod._circuit_failures = 0
+    mod._circuit_open_until = 0.0
+
+
 # ------------------------------------------------------------------
 # Danbooru get_post_image
 # ------------------------------------------------------------------

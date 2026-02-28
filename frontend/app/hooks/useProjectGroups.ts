@@ -52,25 +52,31 @@ export function useProjectGroups() {
 
   // Track whether initial group fetch has been triggered to prevent double-fetch
   const groupFetchedForProjectRef = useRef<number | null>(null);
+  // Track whether recovery has already been attempted to prevent infinite loop
+  // when a project genuinely has no groups (API returns [])
+  const recoveryAttemptedRef = useRef<number | null>(null);
 
   // Fetch groups when projectId changes
   useEffect(() => {
     if (projectId !== null) {
       groupFetchedForProjectRef.current = projectId;
+      recoveryAttemptedRef.current = null; // reset recovery on project change
       fetchGroups(projectId);
     }
   }, [projectId]);
 
   // Recovery: re-fetch groups if lost after transient state reset
-  // Only triggers when initial fetch already completed (ref matches) and groups are empty
+  // Only triggers once per project — prevents infinite loop when project has no groups
   const isLoadingGroups = useContextStore((s) => s.isLoadingGroups);
   useEffect(() => {
     if (
       projectId !== null &&
       groups.length === 0 &&
       !isLoadingGroups &&
-      groupFetchedForProjectRef.current === projectId
+      groupFetchedForProjectRef.current === projectId &&
+      recoveryAttemptedRef.current !== projectId
     ) {
+      recoveryAttemptedRef.current = projectId;
       fetchGroups(projectId);
     }
   }, [projectId, groups.length, isLoadingGroups]);

@@ -786,3 +786,53 @@ class TestAutoRewrite:
         result = _apply_auto_rewrite("1girl, <lora:test:0.8>, standing")
         assert "<lora:test:0.8>" in result
         assert "improved" in result
+
+
+# ────────────────────────────────────────────
+# _debug_verify_loras log level
+# ────────────────────────────────────────────
+
+
+class TestDebugVerifyLoras:
+    """Test _debug_verify_loras uses correct log levels."""
+
+    def test_lora_found_logs_debug(self, caplog):
+        import logging
+
+        from services.generation_prompt import _debug_verify_loras
+
+        ctx = GenerationContext(request=_make_request())
+        ctx.prompt = "1girl, <lora:test:0.8>"
+        ctx.character = _make_character()
+        with caplog.at_level(logging.DEBUG):
+            _debug_verify_loras(ctx)
+        assert any("LoRA Check" in r.message and r.levelno == logging.DEBUG for r in caplog.records)
+
+    def test_no_lora_with_character_logs_warning(self, caplog):
+        import logging
+
+        from services.generation_prompt import _debug_verify_loras
+
+        ctx = GenerationContext(request=_make_request())
+        ctx.prompt = "1girl, standing"
+        ctx.character = _make_character()
+        with caplog.at_level(logging.DEBUG):
+            _debug_verify_loras(ctx)
+        assert any("LoRA Check" in r.message and r.levelno == logging.WARNING for r in caplog.records)
+
+    def test_no_lora_background_scene_logs_debug(self, caplog):
+        """Background/narrator scene (no character) should NOT emit WARNING."""
+        import logging
+
+        from services.generation_prompt import _debug_verify_loras
+
+        ctx = GenerationContext(request=_make_request(character_id=None))
+        ctx.prompt = "no_humans, bedroom, night"
+        ctx.character = None
+        with caplog.at_level(logging.DEBUG):
+            _debug_verify_loras(ctx)
+        # Should log at DEBUG, not WARNING
+        lora_records = [r for r in caplog.records if "LoRA Check" in r.message]
+        assert len(lora_records) == 1
+        assert lora_records[0].levelno == logging.DEBUG
+        assert "background/narrator" in lora_records[0].message

@@ -35,6 +35,9 @@ import type { AutoRunStepId } from "../../utils/preflight";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { initAutoSave } from "../../store/effects/autoSave";
 
+/** AutoRun step → Studio tab mapping (에러 시 관련 탭에서만 상세 패널 표시) */
+const STEP_TO_TAB: Record<string, string> = { stage: "stage", images: "direct", render: "publish" };
+
 function StudioContent() {
   const { isLoadingDb, loadedProfileId, storyboardId, needsStyleProfile } =
     useStudioInitialization();
@@ -92,7 +95,12 @@ function StudioContent() {
 
   // Autopilot
   const autopilot = useAutopilot();
+  const activeTab = useUIStore((s) => s.activeTab);
   const showAutoRun = autopilot.autoRunState.status !== "idle";
+  // Error 시 관련 탭에서만 상세 패널 표시 (다른 탭은 SubNav 뱃지만)
+  const isAutoRunError = autopilot.autoRunState.status === "error";
+  const showAutoRunPanel =
+    showAutoRun && (!isAutoRunError || STEP_TO_TAB[autopilot.autoRunState.step] === activeTab);
 
   const isAutoRunningRef = useRef(false);
   isAutoRunningRef.current = autopilot.isAutoRunning;
@@ -241,8 +249,8 @@ function StudioContent() {
         </div>
       )}
 
-      {/* AutoRun Status — inside flex column, before workspace */}
-      {showAutoRun && (
+      {/* AutoRun Status — 에러 시 관련 탭에서만, 그 외는 모든 탭에서 표시 */}
+      {showAutoRunPanel && (
         <div className="shrink-0 px-8 pt-3">
           <AutoRunStatus
             autoRunState={autopilot.autoRunState}

@@ -90,7 +90,7 @@ def _inject_narrator_defense(request: SceneGenerateRequest) -> None:
     has_person = any(ind in prompt_norm for ind in _PERSON_INDICATORS)
     if not has_person and "no_humans" not in prompt_norm:
         request.prompt = f"no_humans, {request.prompt}"
-        logger.info("🚫 [Narrator] Auto-injected no_humans for background scene")
+        logger.debug("🚫 [Narrator] Auto-injected no_humans for background scene")
 
 
 def _append_narrator_negative(request: SceneGenerateRequest) -> None:
@@ -100,7 +100,7 @@ def _append_narrator_negative(request: SceneGenerateRequest) -> None:
     from config import NARRATOR_NEGATIVE_PROMPT_EXTRA
 
     request.negative_prompt = f"{request.negative_prompt}, {NARRATOR_NEGATIVE_PROMPT_EXTRA}"
-    logger.info("🚫 [Narrator Negative] Appended person-exclusion tags to negative prompt")
+    logger.debug("🚫 [Narrator Negative] Appended person-exclusion tags to negative prompt")
 
 
 # ── Prompt handlers ─────────────────────────────────────────────────
@@ -474,10 +474,16 @@ def _apply_strategy_to_request(strategy, request) -> None:
 
 
 def _debug_verify_loras(ctx: GenerationContext) -> None:
-    """Debug: verify LoRA tags in final prompt."""
+    """Debug: verify LoRA tags in final prompt.
+
+    Background/narrator scenes (no character) legitimately lack LoRA tags,
+    so we log at DEBUG instead of WARNING for those cases.
+    """
     lora_tags_found = re.findall(r"<lora:[^>]+>", ctx.prompt)
     if lora_tags_found:
         logger.debug("✅ [LoRA Check] %d LoRA tags in prompt: %s", len(lora_tags_found), lora_tags_found)
+    elif not ctx.character:
+        logger.debug("ℹ️ [LoRA Check] No <lora:> tags — background/narrator scene (expected)")
     else:
         logger.warning("⚠️ [LoRA Check] No <lora:> tags found in cleaned prompt!")
 

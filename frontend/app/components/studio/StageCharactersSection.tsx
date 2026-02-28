@@ -88,11 +88,11 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
         characters.find((c) => c.id === casting.character_b_id)?.name ?? casting.character_b_name;
       setPlan({ selectedCharacterBId: casting.character_b_id, selectedCharacterBName: name });
     }
-    setPlan({ castingRecommendation: null });
+    setPlan({ castingRecommendation: null, isDirty: true });
   };
 
   const handleDismissCasting = () => {
-    setPlan({ castingRecommendation: null });
+    setPlan({ castingRecommendation: null, isDirty: true });
   };
 
   return (

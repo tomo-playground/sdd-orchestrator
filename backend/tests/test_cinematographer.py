@@ -65,6 +65,50 @@ def test_parse_scenes_markdown_codeblock():
     assert result == [{"order": 1}]
 
 
+# ── 빈 응답 / 설명 텍스트 혼재 방어 테스트 ──────────────────
+
+
+def test_parse_scenes_empty_string():
+    """빈 문자열 → None (json.JSONDecodeError 방지)."""
+    assert _parse_scenes("") is None
+
+
+def test_parse_scenes_whitespace_only():
+    """공백만 있는 응답 → None."""
+    assert _parse_scenes("   \n\t  ") is None
+
+
+def test_parse_scenes_preamble_then_json():
+    """설명 텍스트 뒤에 JSON이 이어지는 경우 → 전략 3으로 추출."""
+    body = json.dumps({"scenes": [{"order": 1, "text": "test"}]})
+    response = f"알겠습니다. 각 씬에 비주얼 디자인을 추가하겠습니다.\n\n{body}"
+    result = _parse_scenes(response)
+    assert result == [{"order": 1, "text": "test"}]
+
+
+def test_parse_scenes_tool_explanation_no_json():
+    """도구 사용 설명만 반환하고 JSON 없는 경우 → None."""
+    response = (
+        "validate_danbooru_tag 도구로 brown_hair를 검증했습니다. "
+        "이 태그는 유효합니다. 다음으로 카메라 앵글을 검토하겠습니다."
+    )
+    assert _parse_scenes(response) is None
+
+
+def test_parse_scenes_raw_json_no_codeblock():
+    """코드블록 없이 raw JSON만 반환되는 경우."""
+    body = json.dumps({"scenes": [{"order": 1, "camera": "close-up"}]})
+    assert _parse_scenes(body) == [{"order": 1, "camera": "close-up"}]
+
+
+def test_parse_scenes_json_with_trailing_text():
+    """JSON 뒤에 설명 텍스트가 붙는 경우 → 전략 3으로 추출."""
+    body = json.dumps({"scenes": [{"order": 1}]})
+    response = f"결과:\n{body}\n\n이상 비주얼 디자인입니다."
+    result = _parse_scenes(response)
+    assert result == [{"order": 1}]
+
+
 # ── Graceful degradation (error를 설정하지 않음) ─────────────
 
 

@@ -268,17 +268,23 @@ async def call_with_tools(
             len(tool_logs),
         )
         try:
-            # JSON 출력 강제 지시문 추가
-            fallback_contents = list(contents)
-            fallback_contents.append(
-                "Your previous response was empty. "
-                "Please provide your final answer now as valid JSON only. "
-                "Do not include any explanation or markdown — output raw JSON."
+            # 도구 없이 새 요청: 원본 프롬프트 + JSON 강제 지시
+            fallback_instruction = (
+                "You used tools but did not provide a final JSON response. "
+                "Based on the tool results in the conversation, "
+                "provide your final answer now as valid JSON only. "
+                "Do not include any explanation, markdown fences, or preamble — output raw JSON."
             )
+            # contents에 이미 도구 결과가 포함되어 있으므로 그대로 활용
+            fallback_contents = list(contents)
+            fallback_contents.append(fallback_instruction)
+
+            no_tools_config = types.GenerateContentConfig(temperature=temperature, tools=[])
             async with trace_llm_call(name=f"{trace_name}_fallback", input_text="fallback") as llm:
                 fallback_resp = await gemini_client.aio.models.generate_content(
                     model=GEMINI_TEXT_MODEL,
                     contents=fallback_contents,  # type: ignore[arg-type]
+                    config=no_tools_config,
                 )
                 llm.record(fallback_resp)
 

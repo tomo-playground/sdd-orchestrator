@@ -42,11 +42,11 @@ export default function ManualScriptEditor({ editor, onPresetChange }: Props) {
     if (casting.structure) {
       editor.setField("structure", casting.structure);
     }
-    useStoryboardStore.getState().set({ castingRecommendation: null });
+    useStoryboardStore.getState().set({ castingRecommendation: null, isDirty: true });
   };
 
   const handleDismissCasting = () => {
-    useStoryboardStore.getState().set({ castingRecommendation: null });
+    useStoryboardStore.getState().set({ castingRecommendation: null, isDirty: true });
   };
 
   const handleGenerate = async () => {

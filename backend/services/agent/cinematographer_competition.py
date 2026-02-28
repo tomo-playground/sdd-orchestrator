@@ -248,10 +248,21 @@ async def _run_single_lens(
                     "error": None,
                 }
 
+            resp_preview = (response or "")[:120]
             if attempt < max_attempts:
-                logger.warning("[CinemaCompetition] %s: JSON 파싱 실패 (attempt %d), 재시도", role, attempt)
+                logger.warning(
+                    "[CinemaCompetition] %s: JSON 파싱 실패 (attempt %d), 재시도 (응답=%r)",
+                    role,
+                    attempt,
+                    resp_preview,
+                )
             else:
-                logger.warning("[CinemaCompetition] %s: JSON 파싱 실패 (%d회)", role, max_attempts)
+                logger.warning(
+                    "[CinemaCompetition] %s: JSON 파싱 실패 (%d회) (응답=%r)",
+                    role,
+                    max_attempts,
+                    resp_preview,
+                )
 
         except Exception as e:
             logger.warning("[CinemaCompetition] %s 실패: %s", role, e)

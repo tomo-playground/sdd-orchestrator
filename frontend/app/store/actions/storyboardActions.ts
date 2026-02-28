@@ -73,7 +73,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
       language: language || undefined,
       character_id: selectedCharacterId || undefined,
       character_b_id: selectedCharacterBId || undefined,
-      casting_recommendation: sbState.castingRecommendation ?? undefined,
+      casting_recommendation: sbState.castingRecommendation ?? null,
       scenes: buildScenesPayload(scenes),
     };
 
@@ -250,7 +250,7 @@ export async function persistStoryboard(): Promise<boolean> {
       version: sbState.storyboardVersion ?? undefined,
       bgm_prompt: bgmPrompt || undefined,
       bgm_mood: bgmMood || undefined,
-      casting_recommendation: sbState.castingRecommendation ?? undefined,
+      casting_recommendation: sbState.castingRecommendation ?? null,
       scenes: buildScenesPayload(scenes),
     };
 

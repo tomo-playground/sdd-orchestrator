@@ -1,6 +1,6 @@
 # Project(Channel) & Group(Story Group) System
 
-**상태**: Phase 0~2 완료, 3-1~3-3 장기 백로그
+**상태**: 완료 (Phase 0~2 전체 완료, 3-1~3-3은 ROADMAP Backlog 독립 추적)
 **최종 갱신**: 2026-02-28
 
 ---

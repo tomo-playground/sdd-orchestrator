@@ -1,6 +1,6 @@
 "use client";
 
-import type { AutoRunStepId, Scene } from "../../types";
+import type { AutoRunStepId } from "../../types";
 import { AUTO_RUN_STEPS } from "../../constants";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import { Tooltip } from "../ui";

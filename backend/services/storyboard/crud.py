@@ -329,9 +329,10 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     if request.language is not None:
         storyboard.language = request.language
 
-    # Phase 20-C: Casting recommendation
-    if request.casting_recommendation is not None:
-        storyboard.casting_recommendation = request.casting_recommendation.model_dump()
+    # Phase 20-C: Casting recommendation (always update — full save means null = clear)
+    storyboard.casting_recommendation = (
+        request.casting_recommendation.model_dump() if request.casting_recommendation else None
+    )
 
     # Phase 12-C: BGM prompt/mood
     new_bgm_prompt = request.bgm_prompt

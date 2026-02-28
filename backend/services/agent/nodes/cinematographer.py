@@ -257,19 +257,91 @@ async def _run(state: ScriptState, db_session: object) -> dict:
 def _parse_scenes(response: str) -> list[dict] | None:
     """LLM 응답에서 scenes 배열을 추출한다.
 
-    코드블록 추출 후 parse_json_response()로 이스케이프 복구를 시도한다.
-    실패 시 None.
+    추출 전략 (우선순위):
+    1. ```json 코드블록 내부
+    2. 응답 전체를 parse_json_response()로 시도
+    3. {"scenes" 패턴 위치부터 끝까지 추출
+    빈 응답 시 즉시 None 반환.
     """
-    try:
-        # 코드블록이 응답 중간에 있을 수 있으므로 먼저 추출
-        match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
-        json_text = match.group(1) if match else response
+    if not response or not response.strip():
+        logger.warning("[Cinematographer] 빈 응답 수신, 파싱 스킵")
+        return None
 
-        result_data = parse_json_response(json_text)
+    # 전략 1: ```json 코드블록 추출
+    match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
+    if match:
+        parsed = _try_parse_json_dict(match.group(1))
+        if parsed is not None:
+            return parsed
+
+    # 전략 2: 응답 전체를 직접 파싱
+    parsed = _try_parse_json_dict(response)
+    if parsed is not None:
+        return parsed
+
+    # 전략 3: {"scenes" 패턴부터 매칭 중괄호까지 추출 (앞뒤에 텍스트가 붙는 경우)
+    scenes_idx = response.find('{"scenes"')
+    if scenes_idx == -1:
+        scenes_idx = response.find("{'scenes")  # single-quote fallback
+    if scenes_idx >= 0:
+        json_candidate = _extract_balanced_braces(response, scenes_idx)
+        if json_candidate:
+            parsed = _try_parse_json_dict(json_candidate)
+            if parsed is not None:
+                return parsed
+        # 균형 추출 실패 시 끝까지 시도
+        parsed = _try_parse_json_dict(response[scenes_idx:])
+        if parsed is not None:
+            return parsed
+
+    logger.warning(
+        "[Cinematographer] JSON 파싱 실패: 유효한 scenes JSON을 찾을 수 없음 (응답 길이=%d, 앞 100자=%r)",
+        len(response),
+        response[:100],
+    )
+    return None
+
+
+def _extract_balanced_braces(text: str, start: int) -> str | None:
+    """start 위치의 '{'부터 대응하는 '}'까지 추출한다. 실패 시 None."""
+    if start >= len(text) or text[start] != "{":
+        return None
+    depth = 0
+    in_string = False
+    escape = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if escape:
+            escape = False
+            continue
+        if ch == "\\":
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    return None
+
+
+def _try_parse_json_dict(text: str) -> list[dict] | None:
+    """텍스트에서 scenes 배열을 가진 dict를 파싱. 실패 시 None.
+
+    dict에 scenes 키가 없으면 빈 리스트를 반환한다 (후방 호환).
+    """
+    if not text or not text.strip():
+        return None
+    try:
+        result_data = parse_json_response(text)
         if not isinstance(result_data, dict):
-            logger.warning("[Cinematographer] Expected dict, got %s", type(result_data).__name__)
             return None
         return result_data.get("scenes", [])
-    except (json.JSONDecodeError, ValueError, TypeError) as e:
-        logger.warning("[Cinematographer] JSON 파싱 실패: %s", e)
+    except (json.JSONDecodeError, ValueError, TypeError):
         return None

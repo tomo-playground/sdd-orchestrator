@@ -9,8 +9,8 @@ import type { SceneItem, ScriptEditorState } from "./types";
 function friendlyErrorMessage(raw: string): string {
   if (raw.includes("500")) return "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
   if (raw.includes("429")) return "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
-  if (raw.includes("Stream failed") || raw.includes("stream"))
-    return "생성 중 오류가 발생했습니다.";
+  // "stream" 단독 매칭 제거 — SSE 데이터에 "stream" 문자열이 정상 포함될 수 있음
+  if (raw.includes("Stream failed")) return "생성 중 오류가 발생했습니다.";
   return raw;
 }
 
