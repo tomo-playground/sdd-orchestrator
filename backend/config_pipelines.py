@@ -70,8 +70,7 @@ LANGGRAPH_MAX_REVISIONS = int(os.getenv("LANGGRAPH_MAX_REVISIONS", "3"))
 REVISE_EXPANSION_ENABLED = os.getenv("REVISE_EXPANSION_ENABLED", "true").lower() == "true"
 REVISE_MAX_EXPANSION_SCENES = int(os.getenv("REVISE_MAX_EXPANSION_SCENES", "5"))
 # --- Stage-Level Skip ---
-VALID_SKIP_STAGES: frozenset[str] = frozenset({"research", "concept", "production", "explain"})
-LANGGRAPH_DEFAULT_SKIP_STAGES: list[str] = list(VALID_SKIP_STAGES)  # 기본=Express (구 Quick 동작 유지)
+VALID_SKIP_STAGES: frozenset[str] = frozenset({"research", "concept", "explain"})
 LANGGRAPH_AUTO_REVIEW_THRESHOLD = float(os.getenv("LANGGRAPH_AUTO_REVIEW_THRESHOLD", "0.7"))
 LANGGRAPH_NARRATIVE_THRESHOLD = float(os.getenv("LANGGRAPH_NARRATIVE_THRESHOLD", "0.6"))
 LANGGRAPH_MAX_DIRECTOR_REVISIONS = int(os.getenv("LANGGRAPH_MAX_DIRECTOR_REVISIONS", "3"))
@@ -143,33 +142,6 @@ FEEDBACK_PRESETS: dict[str, dict] = {
     },
 }
 
-LANGGRAPH_PRESETS: dict[str, dict] = {
-    "express": {
-        "id": "express",
-        "name": "Express",
-        "name_ko": "빠른 생성",
-        "description": "최소 실행으로 빠르게 대본 생성",
-        "auto_approve": True,
-        "skip_stages": ["research", "concept", "production", "explain"],
-    },
-    "standard": {
-        "id": "standard",
-        "name": "Standard",
-        "name_ko": "스탠다드",
-        "description": "AI가 컨셉~대본 자동 생성, 검토 후 승인",
-        "auto_approve": True,
-        "skip_stages": [],
-    },
-    "creator": {
-        "id": "creator",
-        "name": "Creator",
-        "name_ko": "크리에이터",
-        "description": "AI 초안 생성 + 핵심 결정은 사용자",
-        "auto_approve": False,
-        "skip_stages": [],
-    },
-}
-
 # --- Research Node — Quality Scoring ---
 RESEARCH_QUALITY_LOW = float(os.getenv("RESEARCH_QUALITY_LOW", "0.3"))
 RESEARCH_QUALITY_THRESHOLD = float(os.getenv("RESEARCH_QUALITY_THRESHOLD", "0.5"))
@@ -193,7 +165,3 @@ OLLAMA_DEFAULT_MODEL = os.getenv("OLLAMA_DEFAULT_MODEL", "exaone3.5:7.8b")
 # --- Phase 20-A: Director Inventory Awareness ---
 INVENTORY_MAX_CHARACTERS = int(os.getenv("INVENTORY_MAX_CHARACTERS", "20"))
 INVENTORY_CASTING_ENABLED = os.getenv("INVENTORY_CASTING_ENABLED", "true").lower() == "true"
-
-# --- Phase 20-C: Express Autonomous Casting ---
-DIRECTOR_LITE_MODEL = os.getenv("DIRECTOR_LITE_MODEL", "gemini-2.5-flash")
-INVENTORY_LITE_MAX_CHARACTERS = int(os.getenv("INVENTORY_LITE_MAX_CHARACTERS", "10"))

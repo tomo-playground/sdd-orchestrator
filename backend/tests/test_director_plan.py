@@ -249,10 +249,16 @@ async def test_director_plan_casting_disabled(mock_run):
 
 
 @pytest.mark.asyncio
-async def test_director_plan_skip_returns_casting_none():
-    """skip 시 casting_recommendation도 None."""
+async def test_director_plan_always_runs_with_skip_stages():
+    """Phase 25: Director Plan은 skip_stages와 무관하게 항상 실행된다.
+
+    skip_stages는 Director가 자율 결정하므로 입력값은 무시된다.
+    """
     state = {"topic": "테스트", "duration": 30, "skip_stages": ["research"]}
     result = await director_plan_node(state)
 
-    assert result["director_plan"] is None
-    assert result["casting_recommendation"] is None
+    # Director Plan은 항상 실행 (skip하지 않음)
+    # LLM 호출 실패 시 graceful degradation으로 None 반환 가능하지만
+    # skip_stages 때문에 None이 되지는 않음
+    assert "director_plan" in result
+    assert "skip_stages" in result

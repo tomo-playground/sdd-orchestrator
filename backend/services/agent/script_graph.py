@@ -1,15 +1,15 @@
-"""Script Generation Graph — 19노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
+"""Script Generation Graph — 18노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
 
 Quick:   START → writer → review → [passed→finalize / failed→revise] → learn → END
-Express: START → director_plan_lite → inventory_resolve → writer → review → finalize → learn → END
 Full:    START → director_plan → inventory_resolve → research → [critic / research(재실행)] →
          concept_gate → writer → review →
          [passed→director_checkpoint / failed→revise] →
          [proceed→cinematographer / revise→writer (재생성)] →
          ┌→ tts_designer ────┐
-         ├→ sound_designer ──┤→ director → [human_gate] → finalize → explain → learn → END
+         ├→ sound_designer ──┤→ director → finalize → explain → learn → END
          └→ copyright_reviewer┘
 
+Director Plan이 execution_plan으로 skip_stages를 자율 결정 (Phase 25).
 에러 발생 시: 어떤 노드든 error 설정 → 다음 분기에서 finalize로 short-circuit.
 """
 
@@ -52,15 +52,13 @@ from services.agent.state import ScriptState
 
 
 def build_script_graph() -> StateGraph:
-    """19노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
-    from services.agent.nodes.director_plan_lite import director_plan_lite_node  # noqa: PLC0415
+    """18노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
     from services.agent.nodes.inventory_resolve import inventory_resolve_node  # noqa: PLC0415
 
     graph = StateGraph(ScriptState)
 
-    # 노드 등록 (19개)
+    # 노드 등록 (18개)
     graph.add_node("director_plan", director_plan_node)
-    graph.add_node("director_plan_lite", director_plan_lite_node)
     graph.add_node("inventory_resolve", inventory_resolve_node)
     graph.add_node("research", research_node)
     graph.add_node("critic", critic_node)
@@ -79,14 +77,13 @@ def build_script_graph() -> StateGraph:
     graph.add_node("explain", explain_node)
     graph.add_node("learn", learn_node)
 
-    # START → 3분기 (quick→writer, express→director_plan_lite, full→director_plan)
-    graph.add_conditional_edges(START, route_after_start, ["director_plan", "director_plan_lite", "writer"])
+    # START → 2분기 (skip_stages 직접 지정→writer, 기본→director_plan)
+    graph.add_conditional_edges(START, route_after_start, ["director_plan", "writer"])
 
-    # director_plan → inventory_resolve, director_plan_lite → inventory_resolve
+    # director_plan → inventory_resolve
     graph.add_edge("director_plan", "inventory_resolve")
-    graph.add_edge("director_plan_lite", "inventory_resolve")
 
-    # inventory_resolve → 조건부 (express→writer, full→research)
+    # inventory_resolve → 조건부 (skip→writer, full→research)
     graph.add_conditional_edges("inventory_resolve", route_after_inventory_resolve, ["research", "writer"])
     graph.add_conditional_edges("research", route_after_research, ["critic", "research", "finalize"])
     graph.add_edge("critic", "concept_gate")
@@ -124,14 +121,14 @@ def build_script_graph() -> StateGraph:
     graph.add_edge("sound_designer", "director")
     graph.add_edge("copyright_reviewer", "director")
 
-    # director → human_gate | finalize | production 노드 재실행 | revise
+    # director → finalize | production 노드 재실행 | revise
     graph.add_conditional_edges(
         "director",
         route_after_director,
-        ["finalize", "human_gate", "cinematographer", "tts_designer", "sound_designer", "revise"],
+        ["finalize", "cinematographer", "tts_designer", "sound_designer", "revise"],
     )
 
-    # human_gate → finalize | revise
+    # human_gate → finalize | revise (남겨두되 현재 도달하지 않음)
     graph.add_conditional_edges(
         "human_gate",
         route_after_human_gate,

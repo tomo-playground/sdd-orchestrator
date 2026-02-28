@@ -384,7 +384,7 @@ class StoryboardRequest(BaseModel):
     character_id: int | None = None
     character_b_id: int | None = None
     group_id: int | None = None
-    preset: str | None = None  # "express" | "standard" | "creator"
+    preset: str | None = Field(default=None, json_schema_extra={"deprecated": True})
     skip_stages: list[str] | None = None  # ["research", "concept", "production", "explain"]
     references: list[str] | None = Field(default=None, max_length=5)  # URL 또는 텍스트 (최대 5개)
     selected_concept: dict | None = None  # Critic 선정 컨셉 (title, concept, strengths)

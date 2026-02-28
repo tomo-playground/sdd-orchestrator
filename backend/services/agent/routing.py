@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from config import LANGGRAPH_MAX_REVISIONS, logger
 from config_pipelines import (
-    INVENTORY_CASTING_ENABLED,
     LANGGRAPH_CHECKPOINT_LOW_THRESHOLD,
     LANGGRAPH_MAX_CHECKPOINT_REVISIONS,
     LANGGRAPH_MAX_DIRECTOR_REVISIONS,
@@ -30,21 +29,12 @@ def _has_error(state: ScriptState) -> bool:
 
 
 def route_after_start(state: ScriptState) -> str:
-    """START 이후: skip_stages에 따라 3분기.
+    """START 이후: Director가 항상 실행.
 
-    - Express + 캐스팅 활성화 → director_plan_lite (경량 캐스팅)
-    - Express + 캐스팅 비활성화 → writer (기존 Quick 동작)
-    - Full/Standard/Creator → director_plan
+    외부 override(skip_stages 직접 지정) 시에만 writer 직행.
     """
     skip = state.get("skip_stages") or []
-    if "research" in skip and "concept" in skip:
-        # 캐릭터 미선택 + 캐스팅 활성화일 때만 경량 캐스팅
-        if (
-            INVENTORY_CASTING_ENABLED
-            and state.get("preset") == "express"
-            and not state.get("character_id")
-        ):
-            return "director_plan_lite"
+    if skip:  # API에서 skip_stages를 직접 지정한 경우 (테스트/디버깅용)
         return "writer"
     return "director_plan"
 
@@ -143,31 +133,22 @@ def route_after_cinematographer(state: ScriptState) -> list[str] | str:
 
 
 def route_after_director(state: ScriptState) -> str:
-    """Director 이후: approve → human_gate/finalize, revise → 해당 노드."""
+    """Director 이후: approve → finalize, revise → 해당 노드."""
     if _has_error(state):
         return "finalize"
 
     decision = state.get("director_decision", "approve")
 
-    if decision == "error":
-        if state.get("auto_approve"):
-            logger.warning("[LangGraph] Director error (auto_approve), graceful → finalize")
-            return "finalize"
-        logger.warning("[LangGraph] Director error → human_gate")
-        return "human_gate"
-
-    if decision == "approve":
-        if state.get("auto_approve"):
-            return "finalize"
-        return "human_gate"
+    if decision in ("error", "approve"):
+        return "finalize"
 
     # revision 횟수 체크 (최대 LANGGRAPH_MAX_DIRECTOR_REVISIONS)
     count = state.get("director_revision_count", 0)
     if count >= LANGGRAPH_MAX_DIRECTOR_REVISIONS:
         logger.warning("[LangGraph] Director revision 최대 횟수(%d) 도달, 강제 통과", count)
-        return "human_gate"
+        return "finalize"
 
-    return _DIRECTOR_DECISION_MAP.get(decision, "human_gate")
+    return _DIRECTOR_DECISION_MAP.get(decision, "finalize")
 
 
 def route_after_director_checkpoint(state: ScriptState) -> str:

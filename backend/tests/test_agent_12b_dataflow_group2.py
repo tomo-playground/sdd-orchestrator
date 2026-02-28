@@ -207,12 +207,12 @@ class TestRoutingErrorDecision:
         state = {"director_checkpoint_decision": "error"}
         assert route_after_director_checkpoint(state) == "cinematographer"
 
-    def test_director_error_routes_to_human_gate(self):
-        """Director error (no auto_approve) -> human_gate."""
+    def test_director_error_routes_to_finalize(self):
+        """Director error -> finalize (Phase 25: human_gate 제거)."""
         from services.agent.routing import route_after_director
 
         state = {"director_decision": "error", "auto_approve": False}
-        assert route_after_director(state) == "human_gate"
+        assert route_after_director(state) == "finalize"
 
     def test_director_error_auto_approve_routes_to_finalize(self):
         """Director error + auto_approve -> finalize."""

@@ -11,11 +11,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from config import logger
-from config_pipelines import (
-    LANGGRAPH_DEFAULT_SKIP_STAGES,
-    LANGGRAPH_PRESETS,
-    VALID_SKIP_STAGES,
-)
+from config_pipelines import VALID_SKIP_STAGES
 from database import get_db
 from schemas import (
     FeedbackPresetOption,
@@ -23,7 +19,6 @@ from schemas import (
     ScriptFeedbackRequest,
     ScriptFeedbackResponse,
     ScriptGenerateResponse,
-    ScriptPresetItem,
     ScriptPresetsResponse,
     ScriptResumeRequest,
     StoryboardRequest,
@@ -44,7 +39,6 @@ router = APIRouter(prefix="/scripts", tags=["scripts"])
 # -- 노드별 SSE 메타데이터 --
 _NODE_META: dict[str, dict] = {
     "director_plan": {"label": "디렉터 계획", "percent": 3},
-    "director_plan_lite": {"label": "빠른 캐스팅", "percent": 3},
     "inventory_resolve": {"label": "캐스팅", "percent": 4},
     "research": {"label": "리서치", "percent": 5},
     "critic": {"label": "컨셉 토론", "percent": 15},
@@ -64,25 +58,15 @@ _NODE_META: dict[str, dict] = {
 }
 
 
-def _resolve_skip_stages(request: StoryboardRequest, preset_data: dict) -> list[str]:
-    """skip_stages 해석 우선순위: (1) 명시적 request.skip_stages > (2) preset > (3) 기본값."""
-    # 1) 명시적 skip_stages
+def _resolve_skip_stages(request: StoryboardRequest) -> list[str]:
+    """skip_stages 해석: 명시적 지정만 허용, 미지정 시 빈 리스트 (Director가 채움)."""
     if request.skip_stages is not None:
         return [s for s in request.skip_stages if s in VALID_SKIP_STAGES]
-
-    # 2) preset의 skip_stages
-    if preset_data and "skip_stages" in preset_data:
-        return list(preset_data["skip_stages"])
-
-    # 3) 기본값 (Express 동작)
-    return list(LANGGRAPH_DEFAULT_SKIP_STAGES)
+    return []
 
 
 def _request_to_state(request: StoryboardRequest) -> ScriptState:
     """StoryboardRequest → ScriptState 변환."""
-    preset_data = LANGGRAPH_PRESETS.get(request.preset or "") or {}
-    skip_stages = _resolve_skip_stages(request, preset_data)
-
     return ScriptState(
         topic=request.topic,
         description=request.description or "",
@@ -96,8 +80,8 @@ def _request_to_state(request: StoryboardRequest) -> ScriptState:
         group_id=request.group_id,
         references=request.references,
         preset=request.preset,
-        auto_approve=preset_data.get("auto_approve", True),
-        skip_stages=skip_stages,
+        auto_approve=True,
+        skip_stages=_resolve_skip_stages(request),
         revision_count=0,
     )
 
@@ -167,7 +151,7 @@ def _is_graph_interrupt(exc: Exception) -> bool:
 
 # AI Transparency: 노드별 reasoning 데이터 추출 매핑
 _NODE_RESULT_KEYS: dict[str, str | list[str]] = {
-    "director_plan_lite": "casting_recommendation",
+    "director_plan": ["director_plan", "skip_stages"],  # Phase 25: execution_plan → skip_stages 전달
     "inventory_resolve": "casting_recommendation",
     "critic": ["critic_result", "debate_log"],  # Phase 10-C-3: 토론 로그 추가
     "concept_gate": ["critic_result"],  # 사용자 선택 반영된 critic_result
@@ -533,19 +517,8 @@ async def resume_script(request: ScriptResumeRequest):
 
 @router.get("/presets", response_model=ScriptPresetsResponse)
 async def get_script_presets():
-    """사용 가능한 Preset 목록을 반환한다 (레거시 프리셋 제외)."""
-    items = [
-        ScriptPresetItem(
-            id=p["id"],
-            name=p["name"],
-            name_ko=p["name_ko"],
-            description=p["description"],
-            auto_approve=p.get("auto_approve", False),
-            skip_stages=p.get("skip_stages", []),
-        )
-        for p in LANGGRAPH_PRESETS.values()
-    ]
-    return ScriptPresetsResponse(presets=items)
+    """Preset 목록 — deprecated (Director 자율 실행으로 대체). 빈 리스트 반환."""
+    return ScriptPresetsResponse(presets=[])
 
 
 @router.get("/feedback-presets", response_model=FeedbackPresetsResponse)

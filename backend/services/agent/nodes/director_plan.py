@@ -1,7 +1,8 @@
-"""Director Plan 노드 — 초기 목표 수립 + 캐스팅 추천.
+"""Director Plan 노드 — 초기 목표 수립 + 캐스팅 추천 + 실행 계획 결정.
 
-Full 모드에서 START 직후 실행되어 creative_goal, target_emotion,
+START 직후 실행되어 creative_goal, target_emotion,
 quality_criteria 등을 설정한다. Phase 20-A: 인벤토리 인지 + 캐스팅 추천.
+Phase 25: execution_plan으로 skip_stages를 자율 결정.
 """
 
 from __future__ import annotations
@@ -10,7 +11,6 @@ from config import logger
 from config_pipelines import DIRECTOR_MODEL, INVENTORY_CASTING_ENABLED
 from services.agent.llm_models import CastingRecommendation, DirectorPlanOutput, validate_with_model
 from services.agent.nodes._production_utils import run_production_step
-from services.agent.nodes._skip_guard import should_skip
 from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState
 
@@ -35,11 +35,21 @@ def _extract_casting(result: dict) -> dict | None:
         return None
 
 
-async def director_plan_node(state: ScriptState, config=None) -> dict:
-    """Creative Director의 초기 목표 수립 + 캐스팅 추천 노드."""
-    if should_skip(state, "director_plan"):
-        return {"director_plan": None, "casting_recommendation": None}
+def _derive_skip_stages(result: dict) -> list[str]:
+    """execution_plan에서 skip_stages를 결정."""
+    ep = result.get("execution_plan") or {}
+    stages: list[str] = []
+    if not ep.get("run_research", True):
+        stages.append("research")
+    if not ep.get("run_concept", True):
+        stages.append("concept")
+    if not ep.get("run_explain", True):
+        stages.append("explain")
+    return stages
 
+
+async def director_plan_node(state: ScriptState, config=None) -> dict:
+    """Creative Director의 초기 목표 수립 + 캐스팅 추천 + 실행 계획 노드."""
     template_vars = {
         "topic": state.get("topic", ""),
         "description": state.get("description", ""),
@@ -86,14 +96,18 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
         # Phase 20-A: 캐스팅 추천 추출
         casting = _extract_casting(result) if INVENTORY_CASTING_ENABLED else None
 
+        # Phase 25: execution_plan → skip_stages 자율 결정
+        derived_skip_stages = _derive_skip_stages(result)
+
         logger.info("[LangGraph] Director Plan 수립 완료: goal=%s", plan["creative_goal"][:50])
         return {
             "director_plan": plan,
             "casting_recommendation": casting,
             "valid_character_ids": valid_char_ids,
             "valid_style_profile_ids": valid_style_ids,
+            "skip_stages": derived_skip_stages,
         }
 
     except Exception as e:
         logger.warning("[LangGraph] Director Plan 실패, graceful degradation: %s", e)
-        return {"director_plan": None, "casting_recommendation": None}
+        return {"director_plan": None, "casting_recommendation": None, "skip_stages": []}

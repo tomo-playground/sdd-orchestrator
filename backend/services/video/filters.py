@@ -162,7 +162,12 @@ def _apply_ken_burns(
         builder._resolved_presets = {}
     builder._resolved_presets[i] = preset_name
     if preset_name == "none":
-        builder.filters.append(f"[v{i}_scaled]null[v{i}_kb]")
+        # Static hold: zoompan with no movement to generate correct frame count/fps.
+        # Using null filter here would pass only 1 frame, breaking xfade transitions.
+        builder.filters.append(
+            f"[v{i}_scaled]zoompan=z='1':x='0':y='0'"
+            f":d={motion_frames}:s={builder.out_w}x{builder.out_h}:fps={VIDEO_FPS}[v{i}_kb]"
+        )
     else:
         params = get_preset(preset_name)
         zoompan = build_zoompan_filter(

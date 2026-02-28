@@ -117,7 +117,7 @@ class ScriptState(TypedDict, total=False):
     references: list[str] | None  # 소재 URL/텍스트 목록
 
     # Graph 설정
-    preset: str | None  # "express" | "standard" | "creator"
+    preset: str | None  # deprecated — 향후 제거 예정
     auto_approve: bool  # Full Auto에서 Human Gate 자동 승인
     skip_stages: list[str]  # ["research", "concept", "production", "explain"]
 

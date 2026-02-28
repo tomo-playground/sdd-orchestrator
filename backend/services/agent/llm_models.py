@@ -53,6 +53,15 @@ class CastingRecommendation(BaseModel):
 # -- Director Plan --
 
 
+class ExecutionPlan(BaseModel):
+    """Director가 토픽 복잡도를 분석하여 결정하는 실행 계획."""
+
+    run_research: bool = True
+    run_concept: bool = True
+    run_explain: bool = True
+    reasoning: str = ""
+
+
 class DirectorPlanOutput(BaseModel):
     """Director Plan 노드의 LLM 응답."""
 
@@ -62,6 +71,7 @@ class DirectorPlanOutput(BaseModel):
     risk_areas: list[str] = []
     style_direction: str = ""
     casting: CastingRecommendation | None = None
+    execution_plan: ExecutionPlan = Field(default_factory=ExecutionPlan)
 
 
 # -- Director ReAct --
