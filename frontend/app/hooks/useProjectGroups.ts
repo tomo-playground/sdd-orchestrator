@@ -5,6 +5,7 @@ import { useRenderStore } from "../store/useRenderStore";
 import { useUIStore } from "../store/useUIStore";
 import { fetchProjects } from "../store/actions/projectActions";
 import { fetchGroups, loadGroupDefaults } from "../store/actions/groupActions";
+import { cancelPendingSave } from "../store/effects/autoSave";
 import { ALL_GROUPS_ID } from "../constants";
 
 /**
@@ -85,6 +86,7 @@ export function useProjectGroups() {
 
   const selectProject = useCallback(
     (id: number) => {
+      cancelPendingSave();
       setContext({ projectId: id, groupId: null, storyboardId: null, storyboardTitle: "" });
       clearScenes();
       useStoryboardStore.getState().reset();
@@ -97,6 +99,7 @@ export function useProjectGroups() {
 
   const selectGroup = useCallback(
     (id: number) => {
+      cancelPendingSave();
       setContext({ groupId: id, storyboardId: null, storyboardTitle: "" });
       clearScenes();
       useStoryboardStore.getState().reset();

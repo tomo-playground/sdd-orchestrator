@@ -7,6 +7,14 @@ let isSaving = false;
 let initialized = false;
 let cleanupFn: (() => void) | null = null;
 
+/** Cancel any pending debounced save. Call on context switch (group/project change). */
+export function cancelPendingSave() {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+}
+
 function scheduleSave() {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(async () => {
