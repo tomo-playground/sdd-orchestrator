@@ -8,42 +8,42 @@ type StepDef = PipelineStep & { stage?: string; expressOnly?: boolean };
 const ALL_STEPS: StepDef[] = [
   {
     id: "casting",
-    label: "캐스팅",
+    label: "캐릭터 분석 중",
     status: "idle",
     nodes: ["Quick Casting"],
     expressOnly: true,
   },
   {
     id: "research",
-    label: "리서치/캐스팅",
+    label: "자료 조사 중",
     status: "idle",
     nodes: ["Research"],
     stage: "research",
   },
   {
     id: "concept",
-    label: "컨셉",
+    label: "컨셉 구상 중",
     status: "idle",
     nodes: ["Critic", "Concept Gate"],
     stage: "concept",
   },
-  { id: "script", label: "대본", status: "idle", nodes: ["Writer"] },
-  { id: "review", label: "검증", status: "idle", nodes: ["Review", "Revise"] },
+  { id: "script", label: "대본 작성 중", status: "idle", nodes: ["Writer"] },
+  { id: "review", label: "품질 검증 중", status: "idle", nodes: ["Review", "Revise"] },
   {
     id: "production",
-    label: "프로덕션",
+    label: "연출 설정 중",
     status: "idle",
     nodes: ["Cinematographer", "TTS Designer", "Sound Designer", "Copyright Reviewer"],
     stage: "production",
   },
   {
     id: "director",
-    label: "디렉터",
+    label: "최종 검토 중",
     status: "idle",
     nodes: ["Director", "Human Gate"],
     stage: "production",
   },
-  { id: "complete", label: "완료", status: "idle", nodes: ["Finalize", "Explain", "Learn"] },
+  { id: "complete", label: "마무리 중", status: "idle", nodes: ["Finalize", "Explain", "Learn"] },
 ];
 
 const NODE_TO_STEP: Record<string, string> = {
