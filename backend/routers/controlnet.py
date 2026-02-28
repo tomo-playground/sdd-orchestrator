@@ -103,10 +103,10 @@ async def detect_pose(request: PoseDetectRequest):
             error="No pose detected",
         )
     except Exception as e:
-        logger.exception("Pose detection failed")
+        logger.exception("Pose detection failed: %s", e)
         return PoseDetectResponse(
             success=False,
-            error=str(e),
+            error="Pose detection failed",
         )
 
 
@@ -198,11 +198,11 @@ async def upload_reference(request: ReferenceImageRequest):
             success=True,
         )
     except Exception as e:
-        logger.exception("Failed to save reference image")
+        logger.exception("Failed to save reference image: %s", e)
         return ReferenceImageResponse(
             character_key=request.character_key,
             success=False,
-            error=str(e),
+            error="Failed to save reference image",
         )
 
 
@@ -299,11 +299,11 @@ async def upload_photo_ref(request: UploadPhotoReferenceRequest, db: Session = D
             ),
         )
     except Exception as e:
-        logger.exception("Failed to upload photo reference")
+        logger.exception("Failed to upload photo reference: %s", e)
         return UploadPhotoReferenceResponse(
             character_key=request.character_key,
             success=False,
-            error=str(e),
+            error="Failed to upload photo reference",
         )
 
 

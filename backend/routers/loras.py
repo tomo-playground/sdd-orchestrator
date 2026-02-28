@@ -73,7 +73,7 @@ async def search_civitai(
 
     except httpx.HTTPError as e:
         logger.error("Civitai search failed: %s", e)
-        raise HTTPException(status_code=502, detail=f"Civitai API error: {e}") from e
+        raise HTTPException(status_code=502, detail="Civitai API error") from e
 
 
 @router.post("/import-civitai/{civitai_id}", response_model=LoRAResponse)
@@ -125,7 +125,7 @@ async def import_from_civitai(civitai_id: int, db: Session = Depends(get_db)):
 
     except httpx.HTTPError as e:
         logger.error("Civitai import failed: %s", e)
-        raise HTTPException(status_code=502, detail=f"Civitai API error: {e}") from e
+        raise HTTPException(status_code=502, detail="Civitai API error") from e
 
 
 @router.get("/{lora_id}", response_model=LoRAResponse)

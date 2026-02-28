@@ -14,7 +14,9 @@ from routers import admin_app_router, service_app_router
 
 
 def _auto_seed_valence(db) -> None:
-    """Auto-seed valence for unclassified tags in background thread."""
+    """Schedule valence classification as a background asyncio task."""
+    import asyncio
+
     from models.tag import Tag
 
     target_groups = ["expression", "gaze", "mood"]
@@ -32,14 +34,10 @@ def _auto_seed_valence(db) -> None:
         logger.warning("[Valence] %d tags need valence but GEMINI_API_KEY not set", count)
         return
 
-    import threading
-
     from routers.admin import _run_valence_classification
 
     logger.info("[Valence] %d unclassified tags found, seeding in background...", count)
-    threading.Thread(
-        target=_run_valence_classification, args=(target_groups, False), daemon=True, name="valence-seed"
-    ).start()
+    asyncio.create_task(_run_valence_classification(target_groups, False))
 
 
 @asynccontextmanager
@@ -131,12 +129,21 @@ async def lifespan(_app: FastAPI):
 # --- App Setup ---
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
-from config import CORS_ORIGINS
+from config import CORS_ORIGINS  # noqa: E402
+from config import logger as _logger  # noqa: E402
+
+_cors_credentials = True
+if "*" in CORS_ORIGINS:
+    _logger.error(
+        "CORS misconfiguration: allow_credentials=True with wildcard origin '*'. "
+        "Forcing allow_credentials=False to prevent browser rejection."
+    )
+    _cors_credentials = False
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=_cors_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

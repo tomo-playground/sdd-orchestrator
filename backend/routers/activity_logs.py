@@ -141,7 +141,7 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
     except Exception as exc:
         db.rollback()
         logger.exception("Failed to create activity log")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
 @router.get("/storyboard/{storyboard_id}")
@@ -182,7 +182,7 @@ def get_storyboard_logs(storyboard_id: int, status: str | None = None, limit: in
         }
     except Exception as exc:
         logger.exception(f"Failed to get logs for storyboard {storyboard_id}")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
 @router.patch("/{log_id}/status")
@@ -220,7 +220,7 @@ def update_log_status(log_id: int, request: UpdateStatusRequest, db: Session = D
     except Exception as exc:
         db.rollback()
         logger.exception(f"Failed to update log {log_id} status")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
 @router.delete("/{log_id}")
@@ -243,7 +243,7 @@ def delete_log(log_id: int, db: Session = Depends(get_db)):
     except Exception as exc:
         db.rollback()
         logger.exception(f"Failed to delete log {log_id}")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
 @router.get("/analyze/patterns")
@@ -402,7 +402,7 @@ def analyze_patterns(
 
     except Exception as exc:
         logger.exception("Failed to analyze patterns")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
 @router.get("/suggest-conflict-rules")
@@ -545,7 +545,7 @@ def suggest_conflict_rules(
 
     except Exception as exc:
         logger.exception("Failed to suggest conflict rules")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
 @router.get("/success-combinations")
@@ -759,7 +759,7 @@ def get_success_combinations(
 
     except Exception as exc:
         logger.exception("Failed to generate success combinations")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
 class ApplyConflictRulesRequest(BaseModel):
@@ -883,4 +883,4 @@ def apply_conflict_rules(request: ApplyConflictRulesRequest, db: Session = Depen
     except Exception as exc:
         db.rollback()
         logger.exception("Failed to apply conflict rules")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="Internal server error") from exc

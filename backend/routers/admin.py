@@ -84,10 +84,8 @@ class ClassifyValenceResponse(BaseModel):
     message: str
 
 
-def _run_valence_classification(group_names: list[str], force: bool) -> None:
+async def _run_valence_classification(group_names: list[str], force: bool) -> None:
     """Background task: LLM으로 태그 valence 일괄 분류."""
-    import asyncio
-
     from database import SessionLocal
 
     db = SessionLocal()
@@ -108,7 +106,7 @@ def _run_valence_classification(group_names: list[str], force: bool) -> None:
         from services.tag_classifier import TagClassifier
         from services.tag_classifier_llm import classify_valence_via_llm
 
-        results = asyncio.run(classify_valence_via_llm(tag_names))
+        results = await classify_valence_via_llm(tag_names)
         classifier = TagClassifier(db)
         saved = 0
         for r in results:
@@ -119,7 +117,7 @@ def _run_valence_classification(group_names: list[str], force: bool) -> None:
             try:
                 db.commit()
             except Exception as e:
-                logger.error("❌ [Valence] Batch commit failed: %s", e)
+                logger.error("[Valence] Batch commit failed: %s", e)
                 db.rollback()
                 return
 
@@ -129,7 +127,7 @@ def _run_valence_classification(group_names: list[str], force: bool) -> None:
         TagValenceCache.refresh(db)
         logger.info("[Valence] Classified %d/%d tags", saved, len(tag_names))
     except Exception as e:
-        logger.error("❌ [Valence] Classification failed: %s", e)
+        logger.error("[Valence] Classification failed: %s", e)
     finally:
         db.close()
 
@@ -232,7 +230,8 @@ async def deprecate_tag(tag_id: int, request: DeprecateTagRequest, db: Session =
         db.refresh(tag)
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
+        logger.exception("Failed to deprecate tag %d", tag_id)
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
     return {
         "success": True,
@@ -271,7 +270,8 @@ async def activate_tag(tag_id: int, db: Session = Depends(get_db)):
         db.refresh(tag)
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
+        logger.exception("Failed to activate tag %d", tag_id)
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
     return {"success": True, "tag": {"id": tag.id, "name": tag.name, "is_active": tag.is_active}}
 

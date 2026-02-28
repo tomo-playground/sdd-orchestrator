@@ -50,6 +50,15 @@ from services.validation import validate_scene_image
 
 router = APIRouter(tags=["scene"])
 
+# Background task tracking to prevent GC of fire-and-forget tasks
+_background_tasks: set[asyncio.Task] = set()
+
+
+def _track_task(task: asyncio.Task) -> None:
+    """Register a background task and auto-remove on completion."""
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
 
 @router.post("/scene/generate", response_model=SceneGenerateResponse)
 async def generate_scene_image_endpoint(request: SceneGenerateRequest):
@@ -560,7 +569,7 @@ async def generate_scene_async(request: SceneGenerateRequest):
     """Start async image generation and return task_id for SSE polling."""
     logger.info("[Scene Gen Async] %s", scrub_payload(request.model_dump()))
     task = create_image_task()
-    asyncio.create_task(run_image_gen(task.task_id, request))
+    _track_task(asyncio.create_task(run_image_gen(task.task_id, request)))
     return ImageGenAccepted(task_id=task.task_id)
 
 
@@ -645,3 +654,5 @@ async def _image_event_generator(task_id: str) -> AsyncGenerator[str]:
         logger.debug("[SSE] Client disconnected for image task %s", task_id)
     except Exception:
         logger.exception("[SSE] Error in image progress stream for task %s", task_id)
+        error_event = ImageProgressEvent(task_id=task_id, stage="failed", error="Internal error")
+        yield f"data: {json.dumps(error_event.model_dump())}\n\n"

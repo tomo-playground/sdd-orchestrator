@@ -76,6 +76,8 @@ class ImageTaskProgress:
 
 # In-memory store
 _tasks: dict[str, ImageTaskProgress] = {}
+_get_call_count: int = 0
+_CLEANUP_INTERVAL: int = 10  # Run cleanup every N get_image_task() calls
 
 
 def create_image_task() -> ImageTaskProgress:
@@ -90,6 +92,11 @@ def create_image_task() -> ImageTaskProgress:
 
 def get_image_task(task_id: str) -> ImageTaskProgress | None:
     """Get a task by ID, or None if not found / expired."""
+    global _get_call_count
+    _get_call_count += 1
+    if _get_call_count % _CLEANUP_INTERVAL == 0:
+        _cleanup_expired()
+
     task = _tasks.get(task_id)
     if task and (time.time() - task.created_at) > IMAGE_TASK_TTL_SECONDS:
         del _tasks[task_id]

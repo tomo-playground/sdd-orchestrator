@@ -188,7 +188,7 @@ async def list_sd_webui_models():
             return {"models": data if isinstance(data, list) else []}
     except httpx.HTTPError as exc:
         logger.exception("SD models fetch failed")
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(status_code=502, detail="SD WebUI API error") from exc
 
 
 @router.get("/sd/options")
@@ -205,7 +205,7 @@ async def get_sd_options():
             return {"options": {}, "model": "Unknown"}
     except httpx.HTTPError as exc:
         logger.exception("SD options fetch failed")
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(status_code=502, detail="SD WebUI API error") from exc
 
 
 @router.post("/sd/options")
@@ -224,7 +224,7 @@ async def update_sd_options(request: SDModelRequest):
             return {"ok": True, "model": model_name}
     except httpx.HTTPError as exc:
         logger.exception("SD options update failed")
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(status_code=502, detail="SD WebUI API error") from exc
 
 
 @router.get("/sd/loras")
@@ -239,4 +239,4 @@ async def list_sd_loras():
             return {"loras": data if isinstance(data, list) else []}
     except httpx.HTTPError as exc:
         logger.exception("SD LoRAs fetch failed")
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(status_code=502, detail="SD WebUI API error") from exc
