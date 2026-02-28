@@ -55,7 +55,18 @@ def apply_transitions(builder: VideoBuilder) -> None:
 
             prev_dur = builder.scene_durations[i - 1]
             # xfade consumes transition_dur from the previous stream
-            acc_offset += prev_dur - builder.transition_dur
+            delta = prev_dur - builder.transition_dur
+            if delta <= 0:
+                logger.warning(
+                    "Scene %d: xfade delta=%.3f (prev_dur=%.3f - transition=%.3f) <= 0, "
+                    "clamping to 0.05s to avoid Invalid argument",
+                    i,
+                    delta,
+                    prev_dur,
+                    builder.transition_dur,
+                )
+                delta = 0.05
+            acc_offset += delta
             builder.filters.append(
                 f"{curr_v}[v{i}_raw]xfade=transition={transition}:"
                 f"duration={builder.transition_dur}:offset={acc_offset}[v{i}_m]"

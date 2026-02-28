@@ -125,7 +125,10 @@ def _save_preview_asset(db: Session, character_id: int, image_bytes: bytes) -> t
 
     asset_service = AssetService(db)
     asset = asset_service.save_character_preview(character_id, image_bytes)
-    db.query(Character).filter(Character.id == character_id).update({"preview_image_asset_id": asset.id})
+    db.query(Character).filter(
+        Character.id == character_id,
+        Character.deleted_at.is_(None),
+    ).update({"preview_image_asset_id": asset.id})
     db.commit()
     return asset.url, asset.id
 

@@ -159,6 +159,20 @@ def calculate_scene_durations(
             total_tts_dur = h_pad + tts_durations[i] + t_pad + tts_padding + xfade_compensation
             base_duration = max(base_duration, total_tts_dur)
 
+        # Ensure scene duration > transition_dur to prevent xfade offset <= 0
+        # xfade needs: prev_dur - transition_dur > 0, so prev_dur > transition_dur
+        if transition_dur > 0:
+            min_scene_dur = transition_dur + 0.1
+            if base_duration < min_scene_dur:
+                logger.warning(
+                    "Scene %d: duration %.2fs < min %.2fs (transition_dur=%.2f), clamping up",
+                    i,
+                    base_duration,
+                    min_scene_dur,
+                    transition_dur,
+                )
+                base_duration = min_scene_dur
+
         durations.append(base_duration)
     return durations
 
