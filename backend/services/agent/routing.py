@@ -140,6 +140,9 @@ def route_after_director(state: ScriptState) -> str:
     decision = state.get("director_decision", "approve")
 
     if decision in ("error", "approve"):
+        mode = state.get("interaction_mode", "guided")
+        if mode == "hands_on":
+            return "human_gate"
         return "finalize"
 
     # revision 횟수 체크 (최대 LANGGRAPH_MAX_DIRECTOR_REVISIONS)
@@ -187,6 +190,13 @@ def route_after_director_checkpoint(state: ScriptState) -> str:
         logger.info("[LangGraph] Checkpoint low score (%.2f): 강한 피드백으로 writer 호출", score)
 
     return "writer"
+
+
+def route_after_director_plan_gate(state: ScriptState) -> str:
+    """Director Plan Gate 이후: revise → director_plan (재수립), 그 외 → inventory_resolve."""
+    if state.get("plan_action") == "revise":
+        return "director_plan"
+    return "inventory_resolve"
 
 
 def route_after_concept_gate(state: ScriptState) -> str:

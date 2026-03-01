@@ -131,6 +131,19 @@ export async function processSSEStream(
         };
       }
 
+      // Director plan gate interrupt
+      if (
+        event.status === "waiting_for_input" &&
+        event.node === "director_plan_gate" &&
+        event.result?.director_plan
+      ) {
+        return {
+          ...base,
+          isGenerating: false,
+          isWaitingForPlan: true,
+        };
+      }
+
       // Human gate interrupt (review approval)
       if (event.status === "waiting_for_input") {
         const draftScenes = event.result?.scenes ? mapEventScenes(event.result.scenes) : [];

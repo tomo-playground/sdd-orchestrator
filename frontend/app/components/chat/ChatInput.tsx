@@ -3,19 +3,37 @@
 import { useState, useRef, useCallback, type KeyboardEvent, type ChangeEvent } from "react";
 import { SendHorizonal } from "lucide-react";
 
+type InteractionMode = "auto" | "guided" | "hands_on";
+
 type Props = {
   onSend: (text: string) => Promise<void>;
   disabled: boolean;
   hasMessages: boolean;
   hasTopic: boolean;
   borderless?: boolean;
+  interactionMode?: InteractionMode;
+  onModeChange?: (mode: InteractionMode) => void;
 };
 
 const SUGGESTIONS = ["카페 알바생이 본 이별 장면", "첫 출근날 실수 모음", "오래된 친구와의 재회"];
 
+const MODE_OPTIONS = [
+  { value: "auto" as const, label: "Auto" },
+  { value: "guided" as const, label: "Guided" },
+  { value: "hands_on" as const, label: "Hands-on" },
+] as const;
+
 const MAX_ROWS = 3;
 
-export default function ChatInput({ onSend, disabled, hasMessages, hasTopic, borderless }: Props) {
+export default function ChatInput({
+  onSend,
+  disabled,
+  hasMessages,
+  hasTopic,
+  borderless,
+  interactionMode,
+  onModeChange,
+}: Props) {
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const showSuggestions = !hasMessages || (!text.trim() && !hasTopic);
@@ -58,6 +76,27 @@ export default function ChatInput({ onSend, disabled, hasMessages, hasTopic, bor
       className={borderless ? "bg-white pt-3 pb-4" : "border-t border-zinc-100 bg-white pt-3 pb-4"}
     >
       <div className="mx-auto max-w-3xl px-4">
+        {/* Mode chips */}
+        {interactionMode && onModeChange && (
+          <div className="mb-2 flex gap-1.5">
+            {MODE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                disabled={disabled}
+                onClick={() => onModeChange(opt.value)}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+                  interactionMode === opt.value
+                    ? "border-zinc-800 bg-zinc-800 text-white"
+                    : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Suggestion chips */}
         {showSuggestions && (
           <div className="mb-3 flex flex-wrap gap-2">

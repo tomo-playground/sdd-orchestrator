@@ -29,10 +29,13 @@
 | Phase 23 (Project/Group UX 개선) | 전체 완료 (ARCHIVED) |
 | Phase 24 (Script 탭 → 하이브리드 채팅 AI) | 전체 완료 (ARCHIVED) |
 | Phase 25 (Director 자율 실행 계획) | 전체 완료 (ARCHIVED) |
-| 테스트 | Backend 2,940 + Frontend 435 = **총 3,375개** |
+| **Phase 26 (Script 협업형 UX)** | **P0 완료** — 스트리밍 메시지 + 3단계 모드 + Plan 검토 카드 |
+| 테스트 | Backend 2,947 + Frontend 438 = **총 3,385개** |
 
 ### 최근 작업
 
+- **Phase 26: Script 협업형 UX** (03-01): P0 완료. director_plan_gate 노드 추가(19노드), interaction_mode 3단계(auto/guided/hands_on), PipelineStepCard·PlanReviewCard 채팅 UI, 모드 선택 칩. Backend 10파일 + Frontend 11파일, 테스트 19개 추가. [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md)
+- **Danbooru 태그 품질 근본 수정** (03-01): `_apply_tag_aliases()` split 버그 수정(comma target 단일 토큰 버그), Cinematographer 템플릿 복합 포즈→분리 형식 + 금지 태그 확장, tag_aliases 18건 추가(복합 포즈 9, 복합 표현 4, 무효 태그 5), ORM 정합 수정, 테스트 9개. Storyboard 1059 전 씬 데이터 보정 완료.
 - **Phase 25: Director 자율 실행 계획** (03-01): Express/Standard/Creator 프리셋 제거. Director가 토픽 분석 → `execution_plan`으로 skip_stages 자율 결정. director_plan_lite/human_gate 제거, VALID_SKIP_STAGES에서 production 제거(항상 실행). recursion_limit 100, context_tags 저장 누락 수정, FFmpeg null→zoompan 수정. 5커밋.
 - **Studio 워크플로우 감사 수정 — 보안/안정성/UX 전면 개선** (03-01): str(e) API 노출 전면 제거, SSE polling 폴백, VoicePreset 중앙화, Orphan GC 확장, finalize negative_prompt 직접 주입, 대화형 토픽 분석. 코드 리뷰 2회, 38파일.
 - **감사 후속 안정화 + 런타임 버그 수정** (03-01): FFmpeg xfade offset 음수 방지, SD 가중치 태그 정규화, Cinematographer JSON 파싱 3단계, 캐스팅 dismiss 3-layer 버그 수정. 6커밋, 코드 리뷰 2회.
@@ -113,6 +116,7 @@ graph LR
     P22 --> P23["Phase 23<br/>Project/Group<br/>UX 개선"]
     P23 --> P24["Phase 24<br/>하이브리드<br/>채팅 AI"]
     P24 --> P25["Phase 25<br/>Director 자율<br/>실행 계획"]
+    P25 --> P26["Phase 26<br/>Script 협업형<br/>UX"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -143,6 +147,7 @@ graph LR
     style P23 fill:#4CAF50,color:#fff
     style P24 fill:#4CAF50,color:#fff
     style P25 fill:#4CAF50,color:#fff
+    style P26 fill:#4CAF50,color:#fff
 ```
 
 ---
@@ -175,6 +180,8 @@ Phase 20 이후 또는 우선순위 미정 항목.
 |------|------|
 | YouTube Upload Phase 2~3 (Quota 대시보드, 업로드 큐, 예약 업로드) | [명세](FEATURES/YOUTUBE_UPLOAD.md) §Phase 2~3 |
 | ~~Express 모드 재검토~~ | **Phase 25에서 해결** — Director 자율 실행으로 대체. 프리셋 제거 완료 |
+| Script 생성 후 대화형 수정 루프 (씬 부분 재생성) | [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md) §P1 |
+| Script Canvas 분할 뷰 (좌 채팅 + 우 씬 프리뷰) | [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md) §P2 |
 
 ### Infrastructure & Scale
 

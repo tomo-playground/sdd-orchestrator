@@ -9,6 +9,10 @@ from services.agent.state import ScriptState
 
 async def human_gate_node(state: ScriptState) -> dict:
     """사용자에게 승인/수정을 요청한다. interrupt()로 그래프를 일시 중지."""
+    mode = state.get("interaction_mode", "guided")
+    if mode != "hands_on":
+        return {"human_action": "approve"}
+
     user_input = interrupt(
         {
             "type": "review_approval",

@@ -19,7 +19,7 @@ async def concept_gate_node(state: ScriptState) -> dict:
     if should_skip(state, "concept_gate"):
         return {"concept_action": "select"}
 
-    if state.get("auto_approve"):
+    if state.get("interaction_mode", "guided") == "auto" or state.get("auto_approve"):
         return {"concept_action": "select"}
 
     critic_result = state.get("critic_result") or {}

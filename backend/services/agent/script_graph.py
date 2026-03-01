@@ -1,7 +1,7 @@
-"""Script Generation Graph — 18노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
+"""Script Generation Graph — 19노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
 
 Quick:   START → writer → review → [passed→finalize / failed→revise] → learn → END
-Full:    START → director_plan → inventory_resolve → research → [critic / research(재실행)] →
+Full:    START → director_plan → director_plan_gate → inventory_resolve → research → [critic / research(재실행)] →
          concept_gate → writer → review →
          [passed→director_checkpoint / failed→revise] →
          [proceed→cinematographer / revise→writer (재생성)] →
@@ -24,6 +24,7 @@ from services.agent.nodes.critic import critic_node
 from services.agent.nodes.director import director_node
 from services.agent.nodes.director_checkpoint import director_checkpoint_node
 from services.agent.nodes.director_plan import director_plan_node
+from services.agent.nodes.director_plan_gate import director_plan_gate_node
 from services.agent.nodes.explain import explain_node
 from services.agent.nodes.finalize import finalize_node
 from services.agent.nodes.human_gate import human_gate_node
@@ -39,6 +40,7 @@ from services.agent.routing import (
     route_after_concept_gate,
     route_after_director,
     route_after_director_checkpoint,
+    route_after_director_plan_gate,
     route_after_finalize,
     route_after_human_gate,
     route_after_inventory_resolve,
@@ -52,13 +54,14 @@ from services.agent.state import ScriptState
 
 
 def build_script_graph() -> StateGraph:
-    """18노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
+    """19노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
     from services.agent.nodes.inventory_resolve import inventory_resolve_node  # noqa: PLC0415
 
     graph = StateGraph(ScriptState)
 
-    # 노드 등록 (18개)
+    # 노드 등록 (19개)
     graph.add_node("director_plan", director_plan_node)
+    graph.add_node("director_plan_gate", director_plan_gate_node)
     graph.add_node("inventory_resolve", inventory_resolve_node)
     graph.add_node("research", research_node)
     graph.add_node("critic", critic_node)
@@ -80,8 +83,13 @@ def build_script_graph() -> StateGraph:
     # START → 2분기 (skip_stages 직접 지정→writer, 기본→director_plan)
     graph.add_conditional_edges(START, route_after_start, ["director_plan", "writer"])
 
-    # director_plan → inventory_resolve
-    graph.add_edge("director_plan", "inventory_resolve")
+    # director_plan → director_plan_gate → inventory_resolve | director_plan (재수립)
+    graph.add_edge("director_plan", "director_plan_gate")
+    graph.add_conditional_edges(
+        "director_plan_gate",
+        route_after_director_plan_gate,
+        ["inventory_resolve", "director_plan"],
+    )
 
     # inventory_resolve → 조건부 (skip→writer, full→research)
     graph.add_conditional_edges("inventory_resolve", route_after_inventory_resolve, ["research", "writer"])
@@ -121,14 +129,14 @@ def build_script_graph() -> StateGraph:
     graph.add_edge("sound_designer", "director")
     graph.add_edge("copyright_reviewer", "director")
 
-    # director → finalize | production 노드 재실행 | revise
+    # director → finalize | human_gate(hands_on) | production 노드 재실행 | revise
     graph.add_conditional_edges(
         "director",
         route_after_director,
-        ["finalize", "cinematographer", "tts_designer", "sound_designer", "revise"],
+        ["finalize", "human_gate", "cinematographer", "tts_designer", "sound_designer", "revise"],
     )
 
-    # human_gate → finalize | revise (남겨두되 현재 도달하지 않음)
+    # human_gate → finalize | revise (hands_on 모드에서만 도달)
     graph.add_conditional_edges(
         "human_gate",
         route_after_human_gate,

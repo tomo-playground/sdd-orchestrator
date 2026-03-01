@@ -265,10 +265,11 @@ class TestHumanGatePayloadExtended:
     """interrupt payload에 Director 판단 근거가 포함되는지 검증한다."""
 
     async def test_interrupt_payload_contains_director_fields(self):
-        """interrupt payload에 6개 필드가 존재한다."""
+        """interrupt payload에 6개 필드가 존재한다 (hands_on 모드)."""
         from services.agent.nodes.human_gate import human_gate_node
 
         state = {
+            "interaction_mode": "hands_on",
             "draft_scenes": [{"scene_id": 1}],
             "review_result": {"passed": True},
             "scene_reasoning": [{"why": "hook"}],
@@ -295,10 +296,11 @@ class TestHumanGatePayloadExtended:
         assert len(captured_payload["director_reasoning_steps"]) == 1
 
     async def test_interrupt_payload_none_fields(self):
-        """Director 필드가 없는 state에서도 None으로 포함된다."""
+        """Director 필드가 없는 state에서도 None으로 포함된다 (hands_on 모드)."""
         from services.agent.nodes.human_gate import human_gate_node
 
         state = {
+            "interaction_mode": "hands_on",
             "draft_scenes": [{"scene_id": 1}],
             "review_result": {"passed": True},
         }

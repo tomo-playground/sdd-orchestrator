@@ -2,6 +2,7 @@ export type {
   SceneItem,
   ScriptProgress,
   ScriptEditorState,
+  ResumeAction,
   ResumeOptions,
   ScriptEditorActions,
   ScriptEditorOptions,

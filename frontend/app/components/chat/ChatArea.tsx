@@ -63,6 +63,8 @@ export default function ChatArea({ editor }: Props) {
               hasMessages={false}
               hasTopic={false}
               borderless
+              interactionMode={editor.interactionMode}
+              onModeChange={editor.setInteractionMode}
             />
           </div>
         </div>
@@ -83,6 +85,8 @@ export default function ChatArea({ editor }: Props) {
             disabled={editor.isGenerating}
             hasMessages={editor.chatMessages.length > 1}
             hasTopic={!!editor.topic.trim()}
+            interactionMode={editor.interactionMode}
+            onModeChange={editor.setInteractionMode}
           />
         </>
       )}

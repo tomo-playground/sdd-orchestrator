@@ -795,6 +795,11 @@ export type ImageGenProgress = {
   // Flat fields from Backend SSE completed event
   image?: string; // Base64 result on completion
   used_prompt?: string;
+  used_negative_prompt?: string;
+  used_steps?: number;
+  used_cfg_scale?: number;
+  used_sampler?: string;
+  seed?: number;
   warnings?: string[];
   error?: string;
   controlnet_pose?: string;
@@ -916,6 +921,9 @@ export type ScriptStreamEvent = {
     production_snapshot?: ProductionSnapshot;
     // sound_designer → finalize
     sound_recommendation?: { prompt?: string; mood?: string; duration?: number };
+    // director_plan_gate
+    director_plan?: Record<string, unknown>;
+    skip_stages?: string[];
   };
   error?: string;
   thread_id?: string;

@@ -120,6 +120,9 @@ class ScriptState(TypedDict, total=False):
     preset: str | None  # deprecated — 향후 제거 예정
     auto_approve: bool  # Full Auto에서 Human Gate 자동 승인
     skip_stages: list[str]  # ["research", "concept", "production", "explain"]
+    interaction_mode: str  # "auto" | "guided" | "hands_on"
+    plan_action: str | None  # "proceed" | "revise" (Director Plan Gate 결과)
+    plan_revision_count: int  # Director Plan 재수정 횟수
 
     # 중간 상태
     draft_scenes: list[dict] | None

@@ -21,6 +21,7 @@ import type {
   ScriptEditorState,
   ScriptEditorActions,
   ScriptEditorOptions,
+  ResumeAction,
 } from "./scriptEditor";
 
 // Re-export types for backward compat
@@ -28,6 +29,7 @@ export type {
   SceneItem,
   ScriptProgress,
   ScriptEditorState,
+  ResumeAction,
   ResumeOptions,
   ScriptEditorActions,
 } from "./scriptEditor";
@@ -76,6 +78,8 @@ const INITIAL_STATE: ScriptEditorState = {
   nodeResults: {},
   traceId: null,
   productionSnapshot: null,
+  interactionMode: "guided",
+  isWaitingForPlan: false,
 };
 
 export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActions {
@@ -187,7 +191,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
 
   const resume = useCallback(
     async (
-      action: "approve" | "revise" | "select" | "regenerate" | "custom_concept",
+      action: ResumeAction,
       feedback?: string,
       conceptId?: number,
       options?: {
@@ -202,6 +206,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         isGenerating: true,
         isWaitingForInput: false,
         isWaitingForConcept: false,
+        isWaitingForPlan: false,
         concepts: null,
         recommendedConceptId: null,
         progress: null,

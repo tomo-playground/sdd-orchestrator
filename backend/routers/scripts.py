@@ -39,7 +39,8 @@ router = APIRouter(prefix="/scripts", tags=["scripts"])
 # -- 노드별 SSE 메타데이터 --
 _NODE_META: dict[str, dict] = {
     "director_plan": {"label": "디렉터 계획", "percent": 3},
-    "inventory_resolve": {"label": "캐스팅", "percent": 4},
+    "director_plan_gate": {"label": "플랜 검토", "percent": 4},
+    "inventory_resolve": {"label": "캐스팅", "percent": 5},
     "research": {"label": "리서치", "percent": 5},
     "critic": {"label": "컨셉 토론", "percent": 15},
     "concept_gate": {"label": "컨셉 선택", "percent": 20},
@@ -67,6 +68,7 @@ def _resolve_skip_stages(request: StoryboardRequest) -> list[str]:
 
 def _request_to_state(request: StoryboardRequest) -> ScriptState:
     """StoryboardRequest → ScriptState 변환."""
+    mode = request.interaction_mode or "guided"
     return ScriptState(
         topic=request.topic,
         description=request.description or "",
@@ -80,7 +82,8 @@ def _request_to_state(request: StoryboardRequest) -> ScriptState:
         group_id=request.group_id,
         references=request.references,
         preset=request.preset,
-        auto_approve=True,
+        auto_approve=(mode == "auto"),
+        interaction_mode=mode,
         skip_stages=_resolve_skip_stages(request),
         revision_count=0,
     )
@@ -281,7 +284,15 @@ async def _read_interrupt_state(graph, config: dict) -> tuple[str, dict]:  # noq
         interrupt_node = pending[0] if pending else "unknown"
 
         result: dict = {}
-        if interrupt_node == "concept_gate":
+        if interrupt_node == "director_plan_gate":
+            director_plan = vals.get("director_plan", {})
+            skip_stages = vals.get("skip_stages", [])
+            result = {
+                "type": "plan_review",
+                "director_plan": director_plan,
+                "skip_stages": skip_stages,
+            }
+        elif interrupt_node == "concept_gate":
             critic_result = vals.get("critic_result", {})
             result = {
                 "type": "concept_selection",

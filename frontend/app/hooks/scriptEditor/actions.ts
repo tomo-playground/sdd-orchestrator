@@ -30,6 +30,7 @@ export function buildGenerateBody(
     language: s.language,
     structure: s.structure,
     group_id: groupId,
+    interaction_mode: s.interactionMode,
   };
   if (s.characterId) body.character_id = s.characterId;
   if (s.characterBId) body.character_b_id = s.characterBId;

@@ -11,7 +11,9 @@ export type ChatContentType =
   | "concept_gate"
   | "review_gate"
   | "completion"
-  | "error";
+  | "error"
+  | "pipeline_step"
+  | "plan_review_gate";
 
 export type SettingsRecommendation = {
   status: "recommend" | "clarify";
@@ -41,6 +43,10 @@ export type ChatMessage = {
   productionSnapshot?: ProductionSnapshot | null;
   errorMessage?: string;
   questions?: string[];
+  nodeName?: string;
+  nodeResult?: Record<string, unknown>;
+  directorPlan?: Record<string, unknown>;
+  skipStages?: string[];
 };
 
 export type ActiveProgress = ScriptProgress | null;

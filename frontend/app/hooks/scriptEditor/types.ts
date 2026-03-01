@@ -68,6 +68,8 @@ export type ScriptEditorState = {
   nodeResults: Record<string, Record<string, unknown>>;
   traceId: string | null;
   productionSnapshot: ProductionSnapshot | null;
+  interactionMode: "auto" | "guided" | "hands_on";
+  isWaitingForPlan: boolean;
 };
 
 export type ResumeOptions = {
@@ -76,12 +78,21 @@ export type ResumeOptions = {
   customConcept?: { title: string; concept: string };
 };
 
+export type ResumeAction =
+  | "approve"
+  | "revise"
+  | "select"
+  | "regenerate"
+  | "custom_concept"
+  | "proceed"
+  | "revise_plan";
+
 export type ScriptEditorActions = ScriptEditorState & {
   setField: <K extends keyof ScriptEditorState>(key: K, value: ScriptEditorState[K]) => void;
   updateScene: (index: number, patch: Partial<SceneItem>) => void;
   generate: () => Promise<void>;
   resume: (
-    action: "approve" | "revise" | "select" | "regenerate" | "custom_concept",
+    action: ResumeAction,
     feedback?: string,
     conceptId?: number,
     options?: ResumeOptions

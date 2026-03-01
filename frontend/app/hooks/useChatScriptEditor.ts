@@ -24,7 +24,16 @@ export type ChatScriptEditorActions = ScriptEditorActions & {
   applyAndGenerate: (rec: SettingsRecommendation) => void;
   confirmAndGenerate: () => void;
   clearChat: () => void;
+  setInteractionMode: (mode: "auto" | "guided" | "hands_on") => void;
 };
+
+const PIPELINE_NODES = new Set([
+  "director_plan",
+  "critic",
+  "writer",
+  "cinematographer",
+  "director",
+]);
 
 function createWelcomeMessage(): ChatMessage {
   return {
@@ -56,6 +65,48 @@ export function useChatScriptEditor(options?: {
   // ── SSE → Chat event callback (injected into useScriptEditor) ──
   const onNodeEvent = useCallback(
     (event: ScriptStreamEvent) => {
+      // Pipeline step messages for major nodes
+      if (event.status === "running" && PIPELINE_NODES.has(event.node) && event.node_result) {
+        setChatMessages((prev) => {
+          const existing = prev.findIndex(
+            (m) => m.contentType === "pipeline_step" && m.nodeName === event.node
+          );
+          const msg: ChatMessage = {
+            id: existing >= 0 ? prev[existing].id : nextId(),
+            role: "assistant",
+            contentType: "pipeline_step",
+            nodeName: event.node,
+            nodeResult: event.node_result as Record<string, unknown>,
+            timestamp: Date.now(),
+          };
+          if (existing >= 0) {
+            const next = [...prev];
+            next[existing] = msg;
+            return next;
+          }
+          return [...prev, msg];
+        });
+      }
+
+      // Director plan gate
+      if (
+        event.status === "waiting_for_input" &&
+        event.node === "director_plan_gate" &&
+        event.result?.director_plan
+      ) {
+        setActiveProgress(null);
+        addMessage({
+          id: nextId(),
+          role: "assistant",
+          contentType: "plan_review_gate",
+          text: "디렉터 플랜을 검토해주세요.",
+          directorPlan: event.result.director_plan as Record<string, unknown>,
+          skipStages: (event.result.skip_stages as string[]) ?? [],
+          timestamp: Date.now(),
+        });
+        return;
+      }
+
       if (event.status === "running") {
         setActiveProgress({ node: event.node, label: event.label, percent: event.percent });
         return;
@@ -252,6 +303,10 @@ export function useChatScriptEditor(options?: {
     editorRef.current.reset();
   }, []);
 
+  const setInteractionMode = useCallback((mode: "auto" | "guided" | "hands_on") => {
+    editorRef.current.setField("interactionMode", mode);
+  }, []);
+
   return {
     ...editor,
     chatMessages,
@@ -260,5 +315,6 @@ export function useChatScriptEditor(options?: {
     applyAndGenerate,
     confirmAndGenerate,
     clearChat,
+    setInteractionMode,
   };
 }

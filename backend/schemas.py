@@ -388,6 +388,7 @@ class StoryboardRequest(BaseModel):
     skip_stages: list[str] | None = None  # ["research", "concept", "production", "explain"]
     references: list[str] | None = Field(default=None, max_length=5)  # URL 또는 텍스트 (최대 5개)
     selected_concept: dict | None = None  # Critic 선정 컨셉 (title, concept, strengths)
+    interaction_mode: Literal["auto", "guided", "hands_on"] = "guided"
 
 
 class SceneCandidate(BaseModel):
@@ -623,6 +624,10 @@ class SceneGenerateResponse(BaseModel):
     ip_adapter_reference: str | None = None
     warnings: list[str] = []
     used_prompt: str | None = None
+    used_negative_prompt: str | None = None
+    used_steps: int | None = None
+    used_cfg_scale: float | None = None
+    used_sampler: str | None = None
 
 
 class BatchSceneResult(BaseModel):
@@ -1539,6 +1544,11 @@ class ImageProgressEvent(BaseModel):
     preview_image: str | None = None  # Base64 preview during generation
     image: str | None = None  # Base64 result on completion
     used_prompt: str | None = None
+    used_negative_prompt: str | None = None
+    used_steps: int | None = None
+    used_cfg_scale: float | None = None
+    used_sampler: str | None = None
+    seed: int | None = None
     warnings: list[str] = []
     error: str | None = None
     controlnet_pose: str | None = None

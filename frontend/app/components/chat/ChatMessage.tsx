@@ -9,14 +9,16 @@ import ConceptCard from "./messages/ConceptCard";
 import ReviewCard from "./messages/ReviewCard";
 import CompletionCard from "./messages/CompletionCard";
 import ErrorCard from "./messages/ErrorCard";
+import PipelineStepCard from "./messages/PipelineStepCard";
+import PlanReviewCard from "./messages/PlanReviewCard";
 import type { ChatMessage as ChatMessageType, SettingsRecommendation } from "../../types/chat";
-import type { SceneItem, ResumeOptions } from "../../hooks/scriptEditor/types";
+import type { SceneItem, ResumeOptions, ResumeAction } from "../../hooks/scriptEditor/types";
 import type { FeedbackPreset } from "../../types";
 
 export type ChatMessageCallbacks = {
   onApplyAndGenerate: (rec: SettingsRecommendation) => void;
   onResume: (
-    action: "approve" | "revise" | "select" | "regenerate" | "custom_concept",
+    action: ResumeAction,
     feedback?: string,
     conceptId?: number,
     options?: ResumeOptions
@@ -70,6 +72,10 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
           onNavigate={callbacks.onNavigate}
         />
       );
+    case "pipeline_step":
+      return <PipelineStepCard message={message} />;
+    case "plan_review_gate":
+      return <PlanReviewCard message={message} onResume={callbacks.onResume} />;
     case "error":
       return <ErrorCard message={message.errorMessage} onRetry={callbacks.onRetry} />;
     default:
