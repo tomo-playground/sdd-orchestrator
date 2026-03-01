@@ -54,6 +54,7 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
   "group_id": null,
   "preset": "creator",
   "skip_stages": ["research", "concept", "production", "explain"],
+  "interaction_mode": "guided",
   "references": ["https://example.com/reference"],
   "selected_concept": null
 }

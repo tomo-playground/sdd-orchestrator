@@ -35,16 +35,11 @@
 ### 최근 작업
 
 - **QA 리그레션 테스트 + 커버리지 확장** (03-01): Agent Team(backend-qa+frontend-qa+e2e-qa) 병렬 실행. 신규 테스트 246개(Backend 108+Frontend 105+E2E 33), stale test 44건 수정(Backend 8+VRT/E2E 36), Frontend 커버리지 55.6%→64.4%(+8.8%p). 런타임 버그 0건. [상세](../03_engineering/testing/BUG_REPORT.md)
-- **LoRA/프롬프트 안정화 + Debug Payload 표준화** (03-01): Shinkai StyleProfile LoRA 수정 3건(random trigger word, 가중치 cap 버그, 배경 억제 negative 수정), debug_payload `{request, actual}` 2레벨 구조 표준화(SSE+Sync 통일), seed 필드 추가(schema+frontend), `filter_prompt_tokens()` NULL tag_alias 방어, CLAUDE.md 컨벤션 추가. `select_style_trigger_words()` 헬퍼 추출, TRANSIENT_KEYS 캐릭터 필드 추가. 8파일, 코드 리뷰 2회.
+- **LoRA/프롬프트 안정화 + Debug Payload 표준화** (03-01): Shinkai StyleProfile LoRA 수정 3건(random trigger word→결정적 선택, 가중치 cap 중복 로직→공통 헬퍼 추출, 배경 억제 negative 수정), debug_payload `{request, actual}` 2레벨 구조 표준화(SSE+Sync 통일), seed 필드 추가(schema+frontend), `filter_prompt_tokens()` NULL tag_alias 방어, TRANSIENT_KEYS 캐릭터 필드 추가, SSE timeout 감지 강화. 10파일, 코드 리뷰 2회.
 - **Phase 26: Script 협업형 UX** (03-01): P0+P1 완료. P0: director_plan_gate 노드 추가(19노드), interaction_mode 3단계, PipelineStepCard·PlanReviewCard. P1: 생성 후 대화형 씬 수정 — `POST /scripts/edit-scenes` (Gemini 단일 호출), SceneEditDiffCard(Before/After diff), Accept/Reject, 편집 모드 ChatInput. Backend 4파일 + Frontend 7파일. [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md)
-- **Danbooru 태그 품질 근본 수정** (03-01): `_apply_tag_aliases()` split 버그 수정(comma target 단일 토큰 버그), Cinematographer 템플릿 복합 포즈→분리 형식 + 금지 태그 확장, tag_aliases 18건 추가(복합 포즈 9, 복합 표현 4, 무효 태그 5), ORM 정합 수정, 테스트 9개. Storyboard 1059 전 씬 데이터 보정 완료.
-- **Phase 25: Director 자율 실행 계획** (03-01): Express/Standard/Creator 프리셋 제거. Director가 토픽 분석 → `execution_plan`으로 skip_stages 자율 결정. director_plan_lite/human_gate 제거, VALID_SKIP_STAGES에서 production 제거(항상 실행). recursion_limit 100, context_tags 저장 누락 수정, FFmpeg null→zoompan 수정. 5커밋.
-- **Studio 워크플로우 감사 수정 — 보안/안정성/UX 전면 개선** (03-01): str(e) API 노출 전면 제거, SSE polling 폴백, VoicePreset 중앙화, Orphan GC 확장, finalize negative_prompt 직접 주입, 대화형 토픽 분석. 코드 리뷰 2회, 38파일.
-- **감사 후속 안정화 + 런타임 버그 수정** (03-01): FFmpeg xfade offset 음수 방지, SD 가중치 태그 정규화, Cinematographer JSON 파싱 3단계, 캐스팅 dismiss 3-layer 버그 수정. 6커밋, 코드 리뷰 2회.
-- **02-28 작업**: Phase 21~24 구현, StyleProfile 5개 체제 정립, DB Schema 정리(GroupConfig 병합 등), P0~P1 안정화. [아카이브](../99_archive/archive/ROADMAP_PHASE_21_24.md)
+- **03-01 이전 작업**: Phase 25, Studio 감사, Danbooru 태그 수정 등. [아카이브](../99_archive/archive/ROADMAP_PHASE_25_26.md)
+- **02-28 작업**: Phase 21~24 구현, StyleProfile 5개 체제 정립, DB Schema 정리. [아카이브](../99_archive/archive/ROADMAP_PHASE_21_24.md)
 - **02-26~02-27 작업**: Phase 18~20, Cross Audit 106건. [아카이브](../99_archive/archive/ROADMAP_PHASE_19_20.md)
-- **02-20~02-25 작업**: Phase 8/14/15/16/17-0. [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md)
-- **렌더링 품질 개선** (02-14~17): Scene Text 동적 높이/폰트, Safe Zone, 얼굴 감지, TTS 정규화. 52개 테스트
 
 ---
 
@@ -65,7 +60,7 @@
 | 7-Y | Layout Standardization | Library+Settings 분리, 공유 레이아웃, 네비 4탭, Setup Wizard | [아카이브](../99_archive/archive/ROADMAP_PHASE_7_Y.md) |
 | 7-Z | Home Dashboard & Publish UX | 창작 대시보드 전환, 2-Column Home, 3-Column Publish | [아카이브](../99_archive/archive/ROADMAP_PHASE_7_Z.md) |
 | 8 | Multi-Style Architecture | StyleProfile, LoRA base_model, Checkpoint 자동 전환, Hi-Res 기본값 | [아카이브](../99_archive/archive/ROADMAP_PHASE_8_14_16.md) |
-| 9 | Agentic AI Pipeline | LangGraph 17-노드, Memory Store, LangFuse, Concept Gate, NarrativeScore | [아카이브](../99_archive/archive/ROADMAP_PHASE_9.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
+| 9 | Agentic AI Pipeline | LangGraph 19-노드, Memory Store, LangFuse, Concept Gate, NarrativeScore | [아카이브](../99_archive/archive/ROADMAP_PHASE_9.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
 | 10 | True Agentic Architecture | ReAct Loop, Director-as-Orchestrator, Gemini Function Calling, 3-Architect Debate | [아카이브](../99_archive/archive/ROADMAP_PHASE_10.md) · [명세](FEATURES/AGENTIC_PIPELINE.md) |
 | 11 | Scene Diversity & Frontal Bias Fix | 정면 편향 해소, Gaze 5종, 정면 비율 22%, Tier 2 Pipeline 고도화 | [아카이브](../99_archive/archive/ROADMAP_PHASE_11.md) |
 | 12 | Agent Enhancement & AI BGM | Agent Bug Fix 5건, Data Flow 10건, 3-Mode BGM, Gemini Model Upgrade | [아카이브](../99_archive/archive/ROADMAP_PHASE_12_13.md) |
@@ -82,7 +77,7 @@
 | 22 | Backend Complete Image Generation | SD 생성→저장 Backend 자율 완결, Frontend SPOF 제거, Graceful Degradation | [아카이브](../99_archive/archive/ROADMAP_PHASE_21_24.md) · [명세](FEATURES/IMAGE_GENERATION_PROGRESS.md) |
 | 23 | Project/Group UX 개선 | Zero-Config, 용어 통일(채널/시리즈/영상), ConfigBadges, 내비게이션 개선. 4/4 | [아카이브](../99_archive/archive/ROADMAP_PHASE_21_24.md) · [명세](FEATURES/PROJECT_GROUP.md) |
 | 24 | Script 탭 → 하이브리드 채팅 AI | 좌측 설정 사이드바+우측 채팅, analyze-topic API, SSE 콜백, Chat UI 7종, 코드 리뷰 7건 수정 | [아카이브](../99_archive/archive/ROADMAP_PHASE_21_24.md) |
-| 25 | Director 자율 실행 계획 | 프리셋 제거, Director execution_plan 자율 결정, director_plan_lite/human_gate 삭제, production 항상 실행 | — |
+| 25 | Director 자율 실행 계획 | 프리셋 제거, Director execution_plan 자율 결정, director_plan_lite/human_gate 삭제, production 항상 실행 | [아카이브](../99_archive/archive/ROADMAP_PHASE_25_26.md) |
 
 ---
 

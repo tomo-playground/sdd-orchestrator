@@ -23,7 +23,7 @@ graph TB
 
         subgraph Pipeline ["Agentic Pipeline — LangGraph"]
             direction LR
-            Nodes["17 Agent Nodes<br/>Director Plan · Checkpoint · Writer<br/>Critic · Research · Cinematographer<br/>Review · Sound · TTS ..."]
+            Nodes["19 Agent Nodes<br/>Director Plan · Plan Gate · Writer<br/>Critic · Research · Cinematographer<br/>Review · Sound · TTS ..."]
             Tools["9 Gemini Tools<br/>Research 5 + Cine 4"]
             Nodes --- Tools
         end
@@ -66,16 +66,20 @@ graph TB
 
 ### Agentic Pipeline Flow
 
-17개 에이전트 노드가 **Quick** (6노드) / **Full** (17노드) 모드로 자율 협업합니다. Director가 Plan→Checkpoint→ReAct Loop으로 품질을 관리하고, Score 기반 라우팅으로 안전망을 제공합니다.
+19개 에이전트 노드가 **Interaction Mode** (Auto/Guided/Hands-on)와 **skip_stages** 파라미터에 따라 자율 협업합니다. Director가 Plan→Checkpoint→ReAct Loop으로 품질을 관리하고, Score 기반 라우팅으로 안전망을 제공합니다.
 
 ```mermaid
 flowchart TD
     START(("START"))
 
-    START -->|"Full"| director_plan["Director Plan<br/>목표 수립"]
-    START -->|"Quick"| writer
+    START -->|"skip_stages 직접 지정"| writer
+    START -->|"기본"| director_plan["Director Plan<br/>목표 수립"]
 
-    director_plan --> research["Research<br/>5 Tools · Memory Store"]
+    director_plan --> director_plan_gate{"Plan Gate"}
+    director_plan_gate -->|"Plan 승인"| inventory_resolve
+    director_plan_gate -.->|"Plan 반려/수정"| director_plan
+    
+    inventory_resolve --> research["Research<br/>5 Tools · Memory Store"]
     research --> critic["Critic<br/>3-Architect Debate"]
     critic --> concept_gate{"Concept<br/>Gate"}
     concept_gate -->|"Select"| writer["Writer<br/>Planning + Script Gen"]
@@ -124,8 +128,8 @@ flowchart TD
 
 ## 주요 기능
 
-1.  **Agentic AI Pipeline**: Director, Writer, Critic, Research, Cinematographer 등 17개 에이전트 노드가 LangGraph 기반으로 자율 협업하며 스토리보드를 창작합니다.
-    - Director-as-Orchestrator (Plan→Checkpoint→ReAct Loop), Score 기반 라우팅 (안전망)
+1.  **Agentic AI Pipeline**: Director, Writer, Critic, Research, Cinematographer 등 19개 에이전트 노드가 LangGraph 기반으로 자율 협업하며 스토리보드를 창작합니다.
+    - 3단계 협업형 UX (Auto/Guided/Hands-on) 및 Stage-Level Skip 지원
     - Revision History 누적 (동일 실패 반복 방지), 최대 리비전 3회
     - Tool-Calling (Gemini Function Calling 9개), 3-Architect Debate, NarrativeScore
 2.  **12-Layer Prompt Engine**: 캐릭터의 고유 속성(Trait)과 임시 속성(Outfit)을 분리하여 일관성 있는 이미지를 생성합니다.
@@ -158,7 +162,7 @@ backend/
 ├── routers/          # 도메인별 API 엔드포인트 (29개 라우터)
 ├── services/
 │   ├── agent/        # LangGraph Agentic Pipeline
-│   │   ├── nodes/    #   17개 에이전트 노드 + 5개 유틸리티 모듈
+│   │   ├── nodes/    #   19개 에이전트 노드 + 5개 유틸리티 모듈
 │   │   ├── tools/    #   Gemini Function Calling 9개 도구
 │   │   ├── state.py  #   ScriptState (Graph State)
 │   │   └── routing.py#   8개 조건부 라우팅 함수

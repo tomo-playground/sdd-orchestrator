@@ -17,7 +17,7 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. LangGraph Agentic Pipeline
 | Backend | FastAPI + LangGraph | `routers/` (API), `services/` (로직), `services/agent/` (Agentic Pipeline) |
 | Frontend | Next.js 16, React 19 | `app/(app)/` (Home, Studio, Scripts, Library, Settings), Zustand 4-Store |
 | DB | PostgreSQL | Storyboard → Scene → CharacterAction 계층 구조 |
-| AI | LangGraph + Gemini | 17개 노드 (Director, Writer, Critic, Research, Cinematographer 등), Gemini Function Calling |
+| AI | LangGraph + Gemini | 19개 노드 (Director, Writer, Critic, Research, Cinematographer 등), Gemini Function Calling |
 | Observability | LangFuse | 셀프호스팅, 파이프라인 트레이싱 |
 
 ### V3 Backend 구조
@@ -26,7 +26,7 @@ backend/
 ├── routers/          # API 엔드포인트 (29개 라우터)
 ├── services/
 │   ├── agent/        # LangGraph Agentic Pipeline
-│   │   ├── nodes/    #   17개 노드 (Director, Writer, Critic, Research, Cinematographer 등)
+│   │   ├── nodes/    #   19개 노드 (Director, Writer, Critic, Research, Cinematographer 등)
 │   │   ├── tools/    #   Gemini Function Calling 도구
 │   │   ├── state.py  #   Graph State
 │   │   └── routing.py#   조건부 라우팅

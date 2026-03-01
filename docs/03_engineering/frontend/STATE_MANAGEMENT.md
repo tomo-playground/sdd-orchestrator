@@ -299,7 +299,7 @@ React Query 대신, 도메인별 커스텀 훅을 통해 `axios`로 데이터를
 | Hook | 역할 |
 |------|------|
 | **`usePublishRender`** | 렌더링 워크플로우 통합 (BGM/폰트 리스트 로드, 렌더 실행, BGM 프리뷰) |
-| **`useScriptEditor`** | Script 탭 통합 에디터 (Quick/Full 모드, LangGraph AI Agent SSE) |
+| **`useScriptEditor`** | Script 탭 통합 에디터 (Interaction Mode, LangGraph AI Agent SSE) |
 | **`useSceneActions`** | Scene 편집 공통 액션 (추가/삭제/핀/업데이트, IP-Adapter/배경 로드) |
 | **`useCharacterAutoLoad`** | 캐릭터 변경 시 LoRA/프롬프트/IP-Adapter 자동 로드 |
 | **`useProjectGroups`** | Project/Group 목록 로드 및 CRUD |
@@ -365,8 +365,8 @@ graph TD
 graph LR
     subgraph Script["Script Tab"]
         SE[useScriptEditor]
-        SE --> Q[Quick 모드<br/>직접 API]
-        SE --> F[Full 모드<br/>LangGraph SSE]
+        SE --> Q[Express 모드<br/>직접 API]
+        SE --> F[Auto/Guided 모드<br/>LangGraph SSE]
     end
 
     subgraph Edit["Edit Tab"]
@@ -396,7 +396,7 @@ graph LR
 
 | 탭 | 주요 훅 | 스토어 | 설명 |
 |----|---------|--------|------|
-| Script | `useScriptEditor` | StoryboardStore | Quick(직접 API) / Full(LangGraph SSE) 모드 |
+| Script | `useScriptEditor` | StoryboardStore | Express(직접 API) / Auto/Guided(LangGraph SSE) 모드 |
 | Edit | `useSceneActions`, `useCharacterAutoLoad` | StoryboardStore | 씬 편집, LoRA 자동 로드, Autopilot |
 | Publish | `usePublishRender`, `useMaterialsCheck` | RenderStore | 사전 체크 → 렌더 실행 |
 | 공통 | — | ContextStore | Project/Group 선택 → effective 설정 cascade |

@@ -1,6 +1,6 @@
 # Agentic AI Pipeline & True Agentic Architecture
 
-**상태**: **완료/안정** (Phase 9~10 기반 + Phase 11~13 고도화 완료, 2026-02-22)
+**상태**: **완료/안정** (Phase 9~26 기반 + Phase 26 협업형 UX 고도화, 2026-03-01)
 **관련**: [AGENT_SPEC.md](../../03_engineering/backend/AGENT_SPEC.md), [SCRIPT_QUALITY_UX.md](SCRIPT_QUALITY_UX.md)
 
 ---
@@ -46,23 +46,31 @@
 | **Observability** | LangFuse v3 (셀프호스팅 Docker) | PostgreSQL + ClickHouse + Redis + MinIO |
 | **Frontend** | SSE (`astream` → SSE) | 기존 패턴 재활용, Human Gate는 POST resume |
 
-### 2-2. 제어 스펙트럼 (Control Spectrum)
+### 2-2. 제어 스펙트럼 (Control Spectrum & Interaction Mode)
 
-사용자가 **AI 개입 수준을 선택**하는 유연한 파이프라인:
+사용자가 **AI 개입 및 진행 수준을 선택**하는 유연한 파이프라인:
 
+#### 1) Stage-Level Skip (`skip_stages`)
 | Preset | `skip_stages` | 설명 |
 |--------|---------------|------|
 | **express** | `["research", "concept", "production", "explain"]` | Gemini 1회 생성 후 즉시 검토 (가장 빠름) |
 | **standard** | `["research", "explain"]` | Concept Gate 생략, Production(이미지/음성) 자동 실행 |
-| **creator** | `[]` (빈 배열) | Research부터 Explain까지 모든 디테일 제어 및 Human Gate 개입 |
+| **creator** | `[]` (빈 배열) | Research부터 Explain까지 모든 디테일 제어 가능 |
 
-> 이전의 "Quick", "Full" 모드 이원화는 폐기되었으며, 현재는 **Stage-Level Skip (`skip_stages`) 통합 아키텍처**로 단일화되었습니다.
+#### 2) Interaction Mode (3단계 협업형 UX)
+| 모드 | 설명 |
+|------|------|
+| **Auto** | 전체 파이프라인 무인 자동화 (게이트 대기 없음) |
+| **Guided** | `concept_gate` + `director_plan_gate` (계획 및 컨셉 검토 검증) |
+| **Hands-on**| Guided + `human_gate` (최종 렌더링 전 디테일 점검/재시도 결정) |
 
-### 2-3. 17-노드 그래프 구조
+> 💡 "Quick", "Full" 등 기존 분기 하드코딩 모델은 폐기되었으며, 현재는 **`skip_stages`와 `interaction_mode` 파라미터 기반 단일 통합 아키텍처**로 동작합니다.
 
-전체 그래프 경로는 `skip_stages` 값에 따라 유동적으로 단축됩니다:
+### 2-3. 19-노드 그래프 구조
+
+전체 그래프 경로는 `skip_stages`와 `interaction_mode` 값에 따라 유동적으로 단축/정지됩니다:
 ```
-START → director_plan → Research → Critic → concept_gate → Writer → Review → [Revise]
+START → director_plan → [director_plan_gate] → inventory_resolve → Research → Critic → [concept_gate] → Writer → Review → [Revise]
   → director_checkpoint(score-based) → Cinematographer | TTS | Sound | Copyright
   → Director(ReAct) → [human_gate] → Finalize → Explain → Learn → END
 ```
@@ -71,8 +79,8 @@ START → director_plan → Research → Critic → concept_gate → Writer → 
 
 | 분류 | 에이전트 | Agentic 레벨 |
 |------|---------|-------------|
-| AI Agent | Writer, Critic, Review, Director, Research, Cinematographer, Explain, **director_checkpoint** | ReAct/Tool-Calling |
-| Hybrid | Human Gate, Concept Gate | AI + Human interrupt |
+| AI Agent | Writer, Critic, Review, Director, Research, Cinematographer, Explain, **director_checkpoint**, inventory_resolve | ReAct/Tool-Calling |
+| Hybrid | Human Gate, Concept Gate, Director Plan Gate | AI + Human interrupt |
 | System | Finalize, Learn, TTS Designer, Sound Designer, Copyright Reviewer, **director_plan** | 규칙 기반 |
 
 ### 2-4. Director-as-Orchestrator (2026-02-19)
@@ -143,6 +151,14 @@ Review 노드에서 Full 모드 전용 서사 평가 (LANGGRAPH_NARRATIVE_THRESH
 | **5E. References** | URL/텍스트 소재 분석, SSRF 방어, Gemini 분석→research_brief | [x] |
 | **5F. Director-as-Orchestrator** | director_plan + director_checkpoint 노드, Score-Based Routing, 15→17노드 | [x] |
 | **5G. Pipeline 고도화** | MAX_REVISIONS 2→3, revision_history 누적, Checkpoint 임계값 튜닝 | [x] |
+
+### Phase 26: Script 협업형 UX (2026-03-01)
+
+| Phase | 핵심 | 상태 |
+|-------|------|------|
+| **26A. 3단계 제어 모드** | Auto, Guided, Hands-on 체계 도입 (`interaction_mode`) | [x] |
+| **26B. Plan 리뷰 UI/UX**| `director_plan_gate` 도입으로 19노드 그래프 안착, Plan 검토/수정 흐름 구현 | [x] |
+| **26C. Pipeline 실시간 뷰**| `PipelineStepCard`로 각 노드 진행 상태를 Streaming, 중복 방지 upsert | [x] |
 
 ### Phase 10~14: True Agentic & Pipeline Refinement (2026-02-18 ~ 22)
 

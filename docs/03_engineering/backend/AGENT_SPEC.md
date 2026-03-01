@@ -17,7 +17,7 @@
 
 ---
 
-## 2. 에이전트 목록 (17개)
+## 2. 에이전트 목록 (19개)
 
 ### 2-1. AI Agent (7개)
 
@@ -51,15 +51,17 @@
 | 11 | `review` | 3-tier 검증: 규칙 → Gemini 피드백 → 서사 품질(NarrativeScore). Phase 10-A: Self-Reflection | 규칙 → LLM (비용 절감) |
 | 12 | `revise` | 수정. 규칙 기반 수정 → 복잡 오류는 Gemini 재생성 (Self-Reflection 활용) | 규칙 → LLM |
 
-### 2-5. System (5개)
+### 2-5. System (7개)
 
 | # | 노드명 | 역할 | 동작 |
 |---|--------|------|------|
-| 13 | `director_plan` | Director 초기 목표 수립 (creative_goal, target_emotion, quality_criteria, risk_areas, style_direction). Full 모드 첫 노드. Gemini 호출. 실패 시 graceful degradation (None) | Full 모드 START 직후 실행 |
-| 14 | `concept_gate` | 컨셉 선택 게이트 (Full Auto: pass-through, Creator: `interrupt()`) | 선택/재생성/커스텀 컨셉 지원 |
-| 15 | `human_gate` | 승인 게이트 — `interrupt()` 기반 사용자 대기 | 승인/수정 결정 → `human_action` |
-| 16 | `finalize` | 최종화 — Quick: 패스스루, Full: Production 결과 병합 | cinematographer + tts + sound + copyright → `final_scenes` |
-| 17 | `learn` | 학습 — Memory Store 저장 | topic/character/user 히스토리 업데이트 |
+| 13 | `director_plan` | Director 초기 목표 수립 (creative_goal, target_emotion, quality_criteria, risk_areas, style_direction). Gemini 호출. | 파이프라인 시작 시 실행 |
+| 14 | `director_plan_gate` | 목표 수립에 대한 승인/반려 (Guided/Hands-on 모드) | `human_action` (승인/계획수정) |
+| 15 | `inventory_resolve` | 에이전트 캐스팅 및 배경/음악 인벤토리 리졸버 | `director_plan` 확정 후 할당 |
+| 16 | `concept_gate` | 컨셉 선택 게이트 (Guided/Hands-on 모드: `interrupt()`) | 선택/재생성/커스텀 컨셉 지원 |
+| 17 | `human_gate` | 승인 게이트 — `interrupt()` 기반 사용자 대기 (Hands-on 전용) | 승인/수정 결정 → `human_action` |
+| 18 | `finalize` | 최종화 — Production 결과 병합 | cinematographer + tts + sound + copyright → `final_scenes` |
+| 19 | `learn` | 학습 — Memory Store 저장 | topic/character/user 히스토리 업데이트 |
 
 ---
 
@@ -175,14 +177,14 @@ Director가 revise 판정 시 `_agent_messaging.py`를 통해:
 
 ## 6. 그래프 구조
 
-### 6-1. Quick 모드 (6노드)
+### 6-1. Interaction Mode: Express (단축 실행)
 
 ```
-START → writer → review → [revise] → finalize → learn → END
+START → director_plan → inventory_resolve → writer → review → [revise] → finalize → learn → END
 ```
 
 - Gemini 1회 호출 (~30초)
-- Production chain 스킵, explain 스킵
+- Production chain 스킵 (`skip_stages` 활용)
 
 ### 6-2. Full 모드 (17노드, 병렬 실행)
 
@@ -333,8 +335,8 @@ class ScriptState(TypedDict, total=False):
     references: list[str] | None  # 소재 URL/텍스트 목록
 
     # Graph 설정
-    mode: str           # "quick" | "full"
-    preset: str | None  # "quick" | "full_auto" | "creator"
+    interaction_mode: str # "auto" | "guided" | "hands_on"
+    skip_stages: list[str] | None
     auto_approve: bool
 
     # 중간 상태
@@ -452,7 +454,7 @@ class ScriptState(TypedDict, total=False):
 backend/services/agent/
 ├── __init__.py           # 공개 API (build_script_graph, ScriptState 등)
 ├── state.py              # ScriptState, ReviewResult, NarrativeScore 등 TypedDict
-├── script_graph.py       # 17노드 StateGraph 구성 (병렬 fan-out)
+├── script_graph.py       # 19노드 StateGraph 구성 (병렬 fan-out)
 ├── routing.py            # 조건 분기 함수 (8개)
 ├── messages.py           # AgentMessage 프로토콜 + State Condensation
 ├── checkpointer.py       # AsyncPostgresSaver 싱글턴
@@ -466,6 +468,8 @@ backend/services/agent/
 │   └── cinematographer_tools.py # Cinematographer Agent 도구 4개
 └── nodes/
     ├── director_plan.py      # [System] Director 초기 목표 수립 (Gemini 호출)
+    ├── director_plan_gate.py # [System] 목표 생성 대기/승인
+    ├── inventory_resolve.py  # [System] 인벤토리(캐릭터, 보이스 등) 에이전트 매핑
     ├── research.py           # [Tool-Calling] Memory + 소재 + 트렌딩 + DNA
     ├── critic.py             # [AI Agent] 3인 Architect 토론 (Phase 10-C-3)
     ├── concept_gate.py       # [System] 컨셉 선택 (interrupt / pass-through)

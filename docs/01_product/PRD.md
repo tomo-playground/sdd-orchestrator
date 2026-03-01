@@ -9,9 +9,10 @@
 ```mermaid
 graph TD
     subgraph Planning ["1. 기획 단계 (Agentic Pipeline)"]
-        Topic[주제/캐릭터/소재 입력] --> Graph["<b>LangGraph 17-노드</b><br/>Agentic Pipeline"]
+        Topic[주제/캐릭터/소재 입력] --> Graph["<b>LangGraph 19-노드</b><br/>Agentic Pipeline"]
         Graph --> DirPlan["<b>Director Plan</b><br/>창작 목표 수립"]
-        DirPlan --> Research["<b>Research Agent</b><br/>Tool-Calling (5개 도구)"]
+        DirPlan --> PlanGate["<b>Plan Gate</b><br/>목표/계획 승인"]
+        PlanGate --> Research["<b>Research Agent</b><br/>Tool-Calling (5개 도구)"]
         Graph --> Writer["<b>Writer Agent</b><br/>Planning + 대본 생성"]
         Writer --> Critic["<b>Critic Agent</b><br/>3인 토론 + KPI 수렴"]
         Critic --> ConceptGate["<b>Concept Gate</b><br/>사용자 컨셉 선택"]
@@ -85,7 +86,7 @@ mindmap
 | 6 | TTS/음성 | Qwen3-TTS 로컬, Voice Preset, Context-Aware, 오디오 정규화 | 완료 |
 | 7 | AI BGM | Stable Audio Open, Music Preset, SHA256 캐시 | 완료 |
 | 8 | 프로젝트/그룹 | Cascading Config, Group Defaults, Channel DNA | Phase 2-1 완료 |
-| 9 | Agentic AI Pipeline | LangGraph 17-노드, Quick/Full 모드, Revise 루프, Memory, LangFuse | 완료 |
+| 9 | Agentic AI Pipeline | LangGraph 19-노드, 3단계 협업형 UX(Auto/Guided/Hands-on), Memory, LangFuse | 완료 |
 | 10 | True Agentic Architecture | Director-as-Orchestrator, Score 기반 라우팅, Revision History, ReAct Loop | 완료 |
 | 11 | Studio Coordinator + Script Vertical | Studio 코디네이터 + 대본 버티컬 분리 (Zustand 4-Store) | 완료 |
 | 12 | Scene UX Enhancement | Figma 기반 씬 편집 개선 (Phase A~G), 3-Column 레이아웃 | 완료 |
@@ -104,8 +105,8 @@ mindmap
 
 | # | 요구사항 | 상태 |
 |---|---------|------|
-| 1 | LangGraph 17-노드 조건 분기 그래프 (Quick 6노드 / Full 17노드) | 완료 |
-| 2 | Quick/Full 모드 토글 + Preset 3종 (Balanced, Creative, Efficient) | 완료 |
+| 1 | LangGraph 19-노드 조건 분기 그래프 (Interaction Mode 기반 유연 제어) | 완료 |
+| 2 | 3단계 협업형 UX (Auto, Guided, Hands-on) 및 Stage-level Skip 통합 | 완료 |
 | 3 | Revise 루프 (MAX_REVISIONS=3) + Human Gate (Creator 모드 interrupt) | 완료 |
 | 4 | AsyncPostgresStore Memory + LangFuse v3 Docker Observability | 완료 |
 | 5 | Concept Gate (Critic 3컨셉 사용자 선택) + Interactive Feedback 4종 프리셋 | 완료 |
@@ -144,7 +145,7 @@ mindmap
 | # | 항목 | 검증 기준 |
 |---|------|----------|
 | 1 | **Autopilot** | 주제 입력 후 '이미지 생성 완료'까지 멈춤 없이 진행되는가? |
-| 2 | **Agentic Quality** | Quick/Full 모드에서 NarrativeScore ≥ 0.6 이상 달성하는가? |
+| 2 | **Agentic Quality** | Auto/Guided 모드에서 NarrativeScore ≥ 0.6 이상 달성하는가? |
 | 3 | **Consistency** | 캐릭터의 머리색/옷이 Base Prompt대로 유지되는가? |
 | 4 | **Rendering** | 최종 비디오 파일 생성, 소리(TTS+BGM) 정상 출력되는가? |
 | 5 | **UI Resilience** | 새로고침해도 Draft가 복구되는가? |

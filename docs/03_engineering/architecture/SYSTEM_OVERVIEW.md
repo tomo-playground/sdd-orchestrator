@@ -21,8 +21,8 @@ graph TB
     subgraph Backend ["Backend (FastAPI)"]
         Router["API Router (Endpoints)"]
 
-        subgraph AgentLayer ["Agentic Pipeline (LangGraph · 17노드)"]
-            AgentSvc["Script Graph<br/>(Director Plan→Writer→Review→<br/>Checkpoint→Cinematographer→Director)"]
+        subgraph AgentLayer ["Agentic Pipeline (LangGraph · 19노드)"]
+            AgentSvc["Script Graph<br/>(Director Plan→Plan Gate→Writer→Review→<br/>Checkpoint→Cinematographer→Director)"]
             CriticNode["Critic / Debate"]
             ResearchNode["Research Node"]
             ProductionNodes["Production<br/>(Cinematographer, Sound, TTS)"]
@@ -123,8 +123,8 @@ sequenceDiagram
     Note over U,DB: Phase 1 — Storyboard Creation (Agentic)
     U->>F: 주제 입력
     F->>B: POST /storyboards/create
-    B->>AG: LangGraph 실행 (Quick/Full)
-    AG->>Gem: Research + Critic + Writer
+    B->>AG: LangGraph 실행 (Interaction Mode)
+    AG->>Gem: Director Plan + Plan Gate
     Gem-->>AG: 씬 구성 반환
     AG->>Gem: Review + Cinematographer
     Gem-->>AG: Danbooru 태그, TTS, Sound
@@ -187,9 +187,9 @@ Router (API 엔드포인트)
 backend/
 ├── routers/              # API 엔드포인트 (30개)
 ├── services/
-│   ├── agent/            # LangGraph Agentic Pipeline (Phase 9~10)
-│   │   ├── nodes/        # 그래프 노드 17개 (director_plan, writer, review, revise,
-│   │   │                 #   director_checkpoint, cinematographer, tts_designer,
+│   ├── agent/            # LangGraph Agentic Pipeline (Phase 9~26)
+│   │   ├── nodes/        # 그래프 노드 19개 (director_plan, director_plan_gate, writer, review, revise,
+│   │   │                 #   director_checkpoint, cinematographer, tts_designer, inventory_resolve,
 │   │   │                 #   sound_designer, copyright_reviewer, director, human_gate,
 │   │   │                 #   finalize, explain, learn, critic, concept_gate, research)
 │   │   ├── tools/        # 에이전트 도구 (research_tools, cinematographer_tools)
@@ -353,7 +353,7 @@ frontend/app/
 
 ### AI & Media
 - **LLM/LVM**: Google Gemini 2.5 Flash (Text/Vision/Storyboard), Gemini 2.5 Flash Image (이미지 생성)
-- **Workflow**: LangGraph (Agentic Pipeline 17-노드: Director Plan → Writer → Review → Checkpoint → Cinematographer → Director → Finalize)
+- **Workflow**: LangGraph (Agentic Pipeline 19-노드: Director Plan → Plan Gate → Writer → Review → Checkpoint → Cinematographer → Director → Finalize)
 - **Checkpointer**: AsyncPostgresSaver (psycopg v3, LangGraph 체크포인트)
 - **Memory**: AsyncPostgresStore (LangGraph Memory Store)
 - **Image**: Stable Diffusion WebUI (A1111) + ControlNet v1.1 + IP-Adapter Plus

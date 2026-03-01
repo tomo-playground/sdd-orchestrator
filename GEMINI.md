@@ -10,7 +10,7 @@
 - 문서 업데이트 시 `docs/` 디렉토리 구조를 따르며, 800줄을 넘지 않도록 관리합니다.
 
 ## Architecture Overview
-- **Backend**: FastAPI + LangGraph Agentic Pipeline (17개 노드)
+- **Backend**: FastAPI + LangGraph Agentic Pipeline (19개 노드)
 - **Frontend**: Next.js 16, React 19, Zustand 5
 - **DB**: PostgreSQL + SQLAlchemy + Alembic
 - **AI**: Google Gemini (`google-genai`), Stable Diffusion WebUI (SDXL)
