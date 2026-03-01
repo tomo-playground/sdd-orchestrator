@@ -5,7 +5,7 @@ DB 의존 함수는 mock으로 검증, 순수 함수는 직접 테스트.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from services.agent.inventory import (
     STRUCTURE_METADATA,
@@ -13,6 +13,8 @@ from services.agent.inventory import (
     StructureMeta,
     StyleSummary,
     _build_appearance_summary,
+    _build_character_summary,
+    load_characters,
     load_structures,
 )
 
@@ -132,6 +134,124 @@ class TestStructureMetadata:
     def test_tones_are_set(self):
         for s in STRUCTURE_METADATA:
             assert len(s.tone) > 0
+
+
+class TestBuildCharacterSummary:
+    """_build_character_summary 헬퍼."""
+
+    def _make_char(self, **kwargs):
+        char = MagicMock()
+        char.id = kwargs.get("id", 1)
+        char.name = kwargs.get("name", "테스트")
+        char.gender = kwargs.get("gender", "female")
+        char.tags = []
+        char.loras = kwargs.get("loras", None)
+        char.preview_image_asset_id = kwargs.get("preview_image_asset_id", None)
+        return char
+
+    def test_basic(self):
+        char = self._make_char(id=5, name="소라", gender="female")
+        result = _build_character_summary(char, count=3)
+        assert result.id == 5
+        assert result.name == "소라"
+        assert result.usage_count == 3
+
+    def test_has_lora_true(self):
+        char = self._make_char(loras=[{"lora_id": 1}])
+        result = _build_character_summary(char, count=0)
+        assert result.has_lora is True
+
+    def test_has_lora_false(self):
+        char = self._make_char(loras=None)
+        result = _build_character_summary(char, count=0)
+        assert result.has_lora is False
+
+    def test_has_reference_true(self):
+        char = self._make_char(preview_image_asset_id=42)
+        result = _build_character_summary(char, count=0)
+        assert result.has_reference is True
+
+    def test_has_reference_false(self):
+        char = self._make_char(preview_image_asset_id=None)
+        result = _build_character_summary(char, count=0)
+        assert result.has_reference is False
+
+    def test_unknown_gender_fallback(self):
+        char = self._make_char(gender=None)
+        result = _build_character_summary(char, count=0)
+        assert result.gender == "unknown"
+
+
+class TestLoadCharactersGroupFilter:
+    """load_characters() group_id 필터링 로직."""
+
+    def _make_summary(self, name: str, usage: int = 1) -> CharacterSummary:
+        return CharacterSummary(
+            id=1, name=name, gender="female",
+            appearance_summary="", has_lora=False, has_reference=False,
+            usage_count=usage,
+        )
+
+    def test_no_group_id_calls_all(self):
+        """group_id=None이면 전체 캐릭터 반환."""
+        db = MagicMock()
+        all_chars = [self._make_summary("예민이", 69)]
+
+        with patch("services.agent.inventory._load_all_characters", return_value=all_chars) as mock_all, \
+             patch("services.agent.inventory._load_characters_for_group") as mock_group:
+            result = load_characters(db, group_id=None)
+
+        mock_all.assert_called_once()
+        mock_group.assert_not_called()
+        assert result == all_chars
+
+    def test_group_id_returns_group_chars(self):
+        """group_id 제공 시 그룹 캐릭터만 반환."""
+        db = MagicMock()
+        group_chars = [self._make_summary("소라", 2), self._make_summary("하나", 1)]
+
+        with patch("services.agent.inventory._load_characters_for_group", return_value=group_chars) as mock_group, \
+             patch("services.agent.inventory._load_all_characters") as mock_all:
+            result = load_characters(db, group_id=12)
+
+        mock_group.assert_called_once_with(db, 12, 20)
+        mock_all.assert_not_called()
+        assert result == group_chars
+
+    def test_group_id_no_chars_falls_back_to_all(self):
+        """그룹에 캐릭터 없으면 전체 폴백."""
+        db = MagicMock()
+        all_chars = [self._make_summary("예민이", 69)]
+
+        with patch("services.agent.inventory._load_characters_for_group", return_value=[]), \
+             patch("services.agent.inventory._load_all_characters", return_value=all_chars) as mock_all:
+            result = load_characters(db, group_id=99)
+
+        mock_all.assert_called_once()
+        assert result == all_chars
+
+    def test_group_chars_sorted_by_usage(self):
+        """그룹 캐릭터는 usage_count 내림차순 정렬 유지."""
+        db = MagicMock()
+        group_chars = [
+            self._make_summary("유카리", 2),
+            self._make_summary("소라", 1),
+            self._make_summary("하나", 1),
+        ]
+
+        with patch("services.agent.inventory._load_characters_for_group", return_value=group_chars):
+            result = load_characters(db, group_id=12)
+
+        assert result[0].name == "유카리"
+
+    def test_max_count_passed_through(self):
+        """max_count가 내부 함수로 전달됨."""
+        db = MagicMock()
+
+        with patch("services.agent.inventory._load_all_characters", return_value=[]) as mock_all:
+            load_characters(db, group_id=None, max_count=5)
+
+        mock_all.assert_called_once_with(db, 5)
 
 
 class TestStyleSummary:
