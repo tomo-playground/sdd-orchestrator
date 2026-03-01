@@ -75,6 +75,7 @@ You engage in conversation to gather enough context before making recommendation
 ```json
 {
   "status": "clarify",
+  "resolved_topic": "대화에서 파악한 핵심 주제 (최대 50자, 한국어)",
   "questions": ["질문 1", "질문 2"],
   "reasoning": "질문하는 이유 (한국어, 친근한 톤)"
 }
@@ -84,6 +85,7 @@ You engage in conversation to gather enough context before making recommendation
 ```json
 {
   "status": "recommend",
+  "resolved_topic": "대화에서 파악한 핵심 주제 (최대 50자, 한국어)",
   "duration": 30,
   "language": "Korean",
   "structure": "monologue",

@@ -30,10 +30,11 @@
 | Phase 24 (Script 탭 → 하이브리드 채팅 AI) | 전체 완료 (ARCHIVED) |
 | Phase 25 (Director 자율 실행 계획) | 전체 완료 (ARCHIVED) |
 | **Phase 26 (Script 협업형 UX)** | **P0+P1 완료** — 스트리밍 메시지 + 3단계 모드 + Plan 검토 + 대화형 씬 수정 |
-| 테스트 | Backend 3,055 + Frontend 543 + E2E 36 = **총 3,634개** |
+| 테스트 | Backend 3,067 + Frontend 543 + E2E 36 = **총 3,646개** |
 
 ### 최근 작업
 
+- **TTS 시드 결정론화 + Narrator 옵션 스피커** (03-01): ① Video 삭제 404 버그(`ADMIN_API_BASE`→`API_BASE`) 수정. ② TTS 시드 불일치 근본 수정 — `hash()` → `hashlib.sha256`, `TTS_DEFAULT_SEED=42` 상수화, `_resolve_voice_preset_id` preset bypass 제거, `_get_voice_design_for_scene` 우선순위 역전(preset 항상 우선). ③ Narrator 옵션 스피커 — Monologue/Dialogue/Confession 전 구조에서 Narrator 선택적 허용, `_VALID_SPEAKERS` 모듈 상수, creative_qc+review+revise 검증/auto-fix 업데이트, 템플릿 3개, tts_designer Narrator 컨텍스트 로딩. 테스트 12개 추가.
 - **QA 리그레션 테스트 + 커버리지 확장** (03-01): Agent Team(backend-qa+frontend-qa+e2e-qa) 병렬 실행. 신규 테스트 246개(Backend 108+Frontend 105+E2E 33), stale test 44건 수정(Backend 8+VRT/E2E 36), Frontend 커버리지 55.6%→64.4%(+8.8%p). 런타임 버그 0건. [상세](../03_engineering/testing/BUG_REPORT.md)
 - **LoRA/프롬프트 안정화 + Debug Payload 표준화** (03-01): Shinkai StyleProfile LoRA 수정 3건(random trigger word→결정적 선택, 가중치 cap 중복 로직→공통 헬퍼 추출, 배경 억제 negative 수정), debug_payload `{request, actual}` 2레벨 구조 표준화(SSE+Sync 통일), seed 필드 추가(schema+frontend), `filter_prompt_tokens()` NULL tag_alias 방어, TRANSIENT_KEYS 캐릭터 필드 추가, SSE timeout 감지 강화. 10파일, 코드 리뷰 2회.
 - **Phase 26: Script 협업형 UX** (03-01): P0+P1 완료. P0: director_plan_gate 노드 추가(19노드), interaction_mode 3단계, PipelineStepCard·PlanReviewCard. P1: 생성 후 대화형 씬 수정 — `POST /scripts/edit-scenes` (Gemini 단일 호출), SceneEditDiffCard(Before/After diff), Accept/Reject, 편집 모드 ChatInput. Backend 4파일 + Frontend 7파일. [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md)

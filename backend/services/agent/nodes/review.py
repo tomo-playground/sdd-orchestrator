@@ -120,7 +120,11 @@ def _validate_scenes(
         if speaker:
             speakers_found.add(speaker)
 
-    if structure in ("Dialogue", "Narrated Dialogue"):
+    if structure in ("Monologue", "Confession"):
+        invalid = speakers_found - {"A", "Narrator"}
+        if invalid:
+            errors.append(f"{structure}는 speaker='A' 또는 'Narrator'만 허용 — 잘못된 speaker 발견: {', '.join(sorted(invalid))}")
+    elif structure in ("Dialogue", "Narrated Dialogue"):
         for s in ("A", "B"):
             if s not in speakers_found:
                 warnings.append(f"Dialogue 구조에서 speaker '{s}'가 등장하지 않음")

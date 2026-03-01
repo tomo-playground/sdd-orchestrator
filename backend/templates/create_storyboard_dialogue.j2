@@ -100,10 +100,10 @@ CRITICAL STYLE CONSISTENCY RULE:
 - For "chibi" style, always use: "chibi, super_deformed, small_body, big_head" ✓
 
 Instructions:
-1. Create a dialogue between Speaker A and Speaker B.
+1. Create a dialogue between Speaker A and Speaker B. Optional: use "Narrator" sparingly for brief intro/transition.
    - Target: {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
    - Each scene duration: set to 3 (backend auto-calculates based on script reading time)
-2. Alternate speakers: A, B, A, B... (roughly equal distribution).
+2. Alternate speakers: A, B, A, B... (roughly equal distribution). Narrator scenes should be RARE (max 1-2) — keep focus on A/B dialogue.
 3. Each single scene's image shows ONLY the current speaker (1girl or 1boy).
 {% if is_multi_character_capable %}
    - For multi scenes: show BOTH characters together with interaction tags.
@@ -121,7 +121,7 @@ Instructions:
      * STRICT LENGTH RULE: 10–30 characters (Korean) / 20–60 characters (English).
      * Scripts UNDER 10 characters cause TTS audio defects — always write 10+ chars.
      * Must fit in 2 lines when rendered on screen.
-   - speaker: "A" or "B"
+   - speaker: "A" or "B" (or "Narrator" for rare intro/transition scenes)
    - duration: set to 3 (backend auto-calculates based on script reading time)
 {% if is_multi_character_capable %}
    - scene_mode: "single" (default, one character) or "multi" (both characters together)

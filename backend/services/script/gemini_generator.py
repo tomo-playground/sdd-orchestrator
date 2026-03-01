@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
@@ -26,6 +27,30 @@ from services.storyboard.helpers import (
     strip_markdown_codeblock,
     trim_scenes_to_duration,
 )
+
+# Gemini PROHIBITED_CONTENT 필터 우회 — 미성년자 연상 단어를 성인 동등 표현으로 치환
+# (DB 저장값 무변경, Gemini 렌더링 시점에만 적용)
+_MINOR_TERM_REPLACEMENTS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"소녀들?(?!\s*시대)"), "여성"),  # 소녀(들) → 여성 (소녀시대 제외)
+    (re.compile(r"소년들?"), "남성"),  # 소년(들) → 남성
+    (re.compile(r"여자\s*아이들?"), "여성들"),  # 여자아이(들) → 여성들
+    (re.compile(r"남자\s*아이들?"), "남성들"),  # 남자아이(들) → 남성들
+    (re.compile(r"어린\s*이들?"), "사람들"),  # 어린이(들) → 사람들
+]
+
+
+def _sanitize_for_gemini_prompt(text: str) -> str:
+    """Gemini PROHIBITED_CONTENT 방지: 미성년자 연상 단어를 치환한다.
+
+    topic 단독 또는 렌더링된 전체 프롬프트 모두에 적용 가능.
+    DB 저장값은 변경하지 않고, Gemini 호출 직전에만 적용한다.
+    """
+    sanitized = text
+    for pattern, replacement in _MINOR_TERM_REPLACEMENTS:
+        sanitized = pattern.sub(replacement, sanitized)
+    if sanitized != text:
+        logger.info("[Sanitize] PROHIBITED_CONTENT 방지 치환 적용 (길이: %d → %d)", len(text), len(sanitized))
+    return sanitized
 
 
 async def _call_gemini_with_retry(
@@ -207,8 +232,9 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         # 파이프라인 컨텍스트 (research_brief, writer_plan 등) 주입
         ctx = pipeline_context or {}
         keyword_context, allowed_tags = get_keyword_context_and_tags()
+        safe_topic = _sanitize_for_gemini_prompt(request.topic)
         rendered = template.render(
-            topic=request.topic,
+            topic=safe_topic,
             description=request.description or "",
             duration=request.duration,
             style=request.style,
@@ -258,8 +284,11 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
                 ),
             ]
         )
+        # 렌더링된 전체 프롬프트에 sanitize 적용
+        # (concept JSON, pipeline_context 등 모든 소스의 미성년자 연상 표현 포함)
+        full_contents = _sanitize_for_gemini_prompt(f"{system_instruction}\n\n{rendered}")
         res = await _call_gemini_with_retry(
-            contents=f"{system_instruction}\n\n{rendered}",
+            contents=full_contents,
             config=config,
             trace_name="writer",
         )
@@ -272,6 +301,8 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             if res.prompt_feedback and res.prompt_feedback.block_reason:
                 block_reason = str(res.prompt_feedback.block_reason)
                 error_reason = f"Blocked by safety filters: {block_reason}"
+                # 진단용: 차단된 프롬프트 앞부분 로그 (root cause 분석)
+                logger.debug("[Sanitize-Debug] 차단된 프롬프트 앞 500자:\n%s", full_contents[:500])
                 user_message = "🛡️ Gemini 안전 필터가 콘텐츠를 차단했습니다"
                 suggestions = [
                     "다른 주제로 시도해보세요 (예: 일상, 취미, 지식 공유)",

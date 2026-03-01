@@ -116,7 +116,7 @@ Instructions:
    - STRICT: Create {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
    - NEVER exceed {{ ((duration / 2) | round | int) }} scenes. Fewer scenes is acceptable.
    - Each scene duration: set to 3 (backend auto-calculates based on script reading time)
-2. Use Actor A only. Make it a first-person confession (spoken tone).
+2. Use Actor A primarily. Optional: use "Narrator" for brief intro/transition lines (max 1-2 scenes).
 3. For EACH scene, follow this process:
    a) Write the script first
    b) Extract key location words from the script
@@ -132,7 +132,7 @@ Instructions:
      * STRICT LENGTH RULE: 10–30 characters (Korean) / 20–60 characters (English).
      * Scripts UNDER 10 characters cause TTS audio defects — always write 10+ chars.
      * Must fit in 2 lines when rendered on screen (~15 chars per line for Korean).
-   - speaker: "A"
+   - speaker: "A" (or "Narrator" for brief narrative intro, use sparingly)
    - duration: set to 3 (backend auto-calculates based on script reading time)
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
      * REQUIRED categories (pick ONE tag from each category in the Allowed Keywords list below):

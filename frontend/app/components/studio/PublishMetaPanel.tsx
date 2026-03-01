@@ -6,7 +6,7 @@ import { useRenderStore } from "../../store/useRenderStore";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
-import { ADMIN_API_BASE } from "../../constants";
+import { API_BASE } from "../../constants";
 import { updateStoryboardMetadata } from "../../store/actions/storyboardActions";
 import { useYouTubeUpload } from "../../hooks/useYouTubeUpload";
 import RenderedVideosSection from "../video/RenderedVideosSection";
@@ -41,7 +41,7 @@ export function PublishVideosSection({
       try {
         const filename = url.split("/").pop();
         if (!filename) return;
-        await axios.post(`${ADMIN_API_BASE}/video/delete`, { filename });
+        await axios.post(`${API_BASE}/video/delete`, { filename });
         setOutput({
           recentVideos: recentVideos.filter((v) => v.url.split("/").pop() !== filename),
         });

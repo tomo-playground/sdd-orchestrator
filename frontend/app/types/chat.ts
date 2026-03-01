@@ -33,6 +33,7 @@ export type SceneEditResult = {
 
 export type SettingsRecommendation = {
   status: "recommend" | "clarify";
+  resolved_topic?: string; // Backend이 대화에서 추론한 최종 토픽
   questions?: string[];
   reasoning: string;
   duration: number;

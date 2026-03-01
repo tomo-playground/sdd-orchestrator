@@ -53,16 +53,22 @@ async def analyze_topic(
         return fallback
 
     status = parsed.get("status", "recommend")
+    resolved_topic = str(parsed.get("resolved_topic", "") or "").strip()[:50]
     questions = parsed.get("questions") or []
     if status == "clarify" and questions:
         return TopicAnalyzeResponse(
             status="clarify",
+            resolved_topic=resolved_topic or topic,
             questions=questions,
             reasoning=parsed.get("reasoning", ""),
         )
 
     result = _validate_topic_analysis(parsed, characters)
-    return TopicAnalyzeResponse(status="recommend", **result)
+    return TopicAnalyzeResponse(
+        status="recommend",
+        resolved_topic=resolved_topic or topic,
+        **result,
+    )
 
 
 def _validate_character(parsed: dict, key: str, valid_char_map: dict) -> tuple[int | None, str | None]:

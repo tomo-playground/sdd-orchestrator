@@ -186,14 +186,15 @@ export function useChatScriptEditor(options?: {
   editorRef.current = editor;
 
   // ── Scene edit actions (extracted hook) ──
-  const { handleEditRequest, applySceneEdits, rejectSceneEdit, isEditingRef } =
-    useSceneEditActions({
+  const { handleEditRequest, applySceneEdits, rejectSceneEdit, isEditingRef } = useSceneEditActions(
+    {
       editorRef,
       chatMessagesRef,
       topicRef,
       addMessage,
       setChatMessages,
-    });
+    }
+  );
 
   // ── Topic analysis via API (대화형 핑퐁 지원) ──
   const sendMessage = useCallback(
@@ -208,7 +209,9 @@ export function useChatScriptEditor(options?: {
         return;
       }
 
-      // 첫 user 메시지에서만 topic 설정 (ref 기반 — setState 배칭과 무관)
+      // 첫 user 메시지에서 초기 topic 설정
+      // — API 에러 시 fallback. 정상 응답 시 resolved_topic으로 덮어씌워짐
+      // — 에러 발생 시 이전 성공한 resolved_topic 또는 첫 메시지 text가 유지됨 (의도된 동작)
       if (!topicRef.current) {
         topicRef.current = text;
         editorRef.current.setField("topic", text);
@@ -238,6 +241,8 @@ export function useChatScriptEditor(options?: {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             topic: topicRef.current || text,
+            // description: 신규 채팅 생성 시 undefined (챗봇은 messages로 맥락 대체)
+            // 기존 스토리보드 로드 시 DB description을 carry-over하여 파이프라인에 전달
             description: editorRef.current.description || undefined,
             group_id: groupId,
             messages: trimmedHistory,
@@ -245,6 +250,12 @@ export function useChatScriptEditor(options?: {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: SettingsRecommendation = await res.json();
+
+        // Backend이 대화에서 추론한 실제 토픽으로 항상 갱신 (주제 변경 시 stale 방지)
+        if (data.resolved_topic) {
+          topicRef.current = data.resolved_topic;
+          editorRef.current.setField("topic", data.resolved_topic);
+        }
 
         if (data.status === "clarify") {
           addMessage({

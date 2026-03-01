@@ -137,7 +137,9 @@ export async function generateSceneImageFor(
     }
   } catch (error) {
     // Timeout: task is still running on server, don't create duplicate via sync
-    const isTimeout = error instanceof Error && error.message.includes("timeout");
+    const isTimeout =
+      (axios.isAxiosError(error) && error.code === "ECONNABORTED") ||
+      (error instanceof Error && error.message.includes("timeout"));
     if (isTimeout) {
       if (!silent) showToast("이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.", "error");
       return null;

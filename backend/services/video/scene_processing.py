@@ -7,6 +7,7 @@ instance as its first argument.
 
 from __future__ import annotations
 
+import hashlib
 import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -16,6 +17,7 @@ from config import (
     STORAGE_MODE,
     TTS_CACHE_DIR,
     TTS_DEFAULT_LANGUAGE,
+    TTS_DEFAULT_SEED,
     TTS_MAX_NEW_TOKENS,
     TTS_MAX_RETRIES,
     TTS_MIN_DURATION_SEC,
@@ -248,18 +250,17 @@ def _resolve_voice_preset_id(
 ) -> int | None:
     """Resolve voice_preset_id for a scene following priority:
 
-    1. scene_req.voice_design_prompt  (per-scene override -- skip preset lookup)
-    2. Speaker-specific preset (Narrator -> storyboard, Character -> character)
-    3. VideoRequest.voice_preset_id   (global render panel preset)
+    1. Speaker-specific preset (Character -> character.voice_preset_id)
+    2. VideoRequest.voice_preset_id   (global render panel preset)
+
+    Note: per-scene voice_design_prompt does NOT bypass preset lookup.
+    Seed must always come from the preset; voice design text is handled
+    separately in _get_voice_design_for_scene.
     """
     scene_req = builder.request.scenes[scene_idx]
 
-    # 1. Per-scene voice_design_prompt overrides everything
-    if scene_req.voice_design_prompt:
-        logger.debug(f"[TTS] Scene {scene_idx}: using per-scene voice_design_prompt, skipping preset")
-        return None
-
-    # 2. Speaker-specific preset
+    # Speaker-specific preset (seed must always come from preset, even if scene has voice_design_prompt)
+    # voice_design text priority is handled separately in _get_voice_design_for_scene
     speaker = scene_req.speaker or DEFAULT_SPEAKER
     logger.debug(f"[TTS] Scene {scene_idx}: speaker='{speaker}', storyboard_id={builder.request.storyboard_id}")
     speaker_preset = get_speaker_voice_preset(
@@ -270,7 +271,7 @@ def _resolve_voice_preset_id(
         logger.info(f"[TTS] Scene {scene_idx}: using speaker-specific preset {speaker_preset}")
         return speaker_preset
 
-    # 3. Global fallback
+    # Global fallback
     logger.info(f"[TTS] Scene {scene_idx}: falling back to global preset {builder.request.voice_preset_id}")
     return builder.request.voice_preset_id
 
@@ -325,9 +326,15 @@ async def generate_tts(
         voice_design = _get_voice_design_for_scene(builder, scene_req, preset_voice_design, clean_script, i)
         voice_design = translate_voice_prompt(voice_design or "")
 
-        # Seed: preset seed > preset base prompt hash > per-scene hash
-        # Use base prompt hash (not per-scene context prompt) to keep voice consistent
-        voice_seed = preset_seed or (hash(preset_voice_design or voice_design or "") % (2**31))
+        # Seed: preset seed > preset base prompt hash > fixed default
+        # Never use per-scene voice_design for seed — it breaks voice consistency across scenes
+        # hashlib.sha256 ensures deterministic result regardless of PYTHONHASHSEED
+        if preset_seed:
+            voice_seed = preset_seed
+        elif preset_voice_design:
+            voice_seed = int(hashlib.sha256(preset_voice_design.encode()).hexdigest()[:8], 16) % (2**31)
+        else:
+            voice_seed = TTS_DEFAULT_SEED
 
         # Pad very short scripts to prevent TTS model hang
         # Use spaces (not dots) — dots cause TTS server failures on dot-heavy text
@@ -427,50 +434,51 @@ def _get_voice_design_for_scene(
     """Resolve the voice design prompt following the priority logic.
 
     Priority:
-    1. Scene-specific voice design prompt (explicit)
-    2. Global voice design prompt from request (explicit)
-    3. Auto-generated context-aware prompt (only for non-narrators)
-    4. Fallback to preset base prompt
+    1. preset base + scene_emotion  (preset exists → character identity preserved)
+    2. scene/global voice_design_prompt  (no preset → use explicit prompt as-is)
+    3. Gemini context-aware generation  (no preset, no explicit prompt)
+
+    When a preset exists, per-scene voice_design_prompt is ignored to prevent
+    Agentic Pipeline emotion prompts from overriding the character's voice identity.
     """
     from config import DEFAULT_SPEAKER
 
-    # 1. Explicit prompts (Scene > Global)
-    voice_design = getattr(scene_req, "voice_design_prompt", None) or getattr(
-        builder.request, "voice_design_prompt", None
-    )
-
-    # 2. Context-Aware: preset base + emotion suffix (no Gemini call)
     speaker = getattr(scene_req, "speaker", DEFAULT_SPEAKER)
+    scene_emotion = getattr(scene_req, "scene_emotion", None)
 
-    if not voice_design and preset_voice_design:
-        scene_emotion = getattr(scene_req, "scene_emotion", None)
+    # 1. Preset exists → always use preset base + emotion (ignore per-scene prompt)
+    if preset_voice_design:
         if scene_emotion:
             voice_design = f"{preset_voice_design}, {scene_emotion}"
             logger.info(f"Scene {scene_idx}: Voice design (Speaker={speaker}): base + emotion='{scene_emotion}'")
         else:
             voice_design = preset_voice_design
             logger.info(f"Scene {scene_idx}: Voice design (Speaker={speaker}): base preset only")
+        return voice_design
 
-    if not voice_design and not preset_voice_design:
-        # No preset — generate from scratch via Gemini (rare: narrator without preset)
-        context_parts: list[str] = []
-        scene_emotion = getattr(scene_req, "scene_emotion", None)
-        if scene_emotion:
-            context_parts.append(f"Emotion: {scene_emotion}")
-        ko_prompt = getattr(scene_req, "image_prompt_ko", None)
-        if ko_prompt:
-            context_parts.append(ko_prompt)
-        elif img_prompt := getattr(scene_req, "image_prompt", None):
-            context_parts.append(img_prompt)
+    # 2. No preset — use explicit per-scene or global prompt
+    voice_design = getattr(scene_req, "voice_design_prompt", None) or getattr(
+        builder.request, "voice_design_prompt", None
+    )
+    if voice_design:
+        logger.info(f"Scene {scene_idx}: Voice design (Speaker={speaker}): explicit prompt (no preset)")
+        return voice_design
 
-        context_text = ". ".join(context_parts)
-        if context_text:
-            voice_design = generate_context_aware_voice_prompt(clean_script, context_text)
-            if voice_design:
-                logger.info(f"Scene {scene_idx}: Auto-generated voice design (Speaker={speaker}): '{voice_design}'")
+    # 3. No preset, no explicit prompt — generate via Gemini (narrator without preset)
+    context_parts: list[str] = []
+    if scene_emotion:
+        context_parts.append(f"Emotion: {scene_emotion}")
+    ko_prompt = getattr(scene_req, "image_prompt_ko", None)
+    if ko_prompt:
+        context_parts.append(ko_prompt)
+    elif img_prompt := getattr(scene_req, "image_prompt", None):
+        context_parts.append(img_prompt)
 
-    # 3. Fallback to preset
-    if not voice_design:
-        voice_design = preset_voice_design
+    context_text = ". ".join(context_parts)
+    if context_text:
+        voice_design = generate_context_aware_voice_prompt(clean_script, context_text)
+        if voice_design:
+            logger.info(f"Scene {scene_idx}: Auto-generated voice design (Speaker={speaker}): '{voice_design}'")
+            return voice_design
 
-    return voice_design
+    return None

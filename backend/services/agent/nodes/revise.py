@@ -23,6 +23,7 @@ from services.script.gemini_generator import generate_script
 _DURATION_RE = re.compile(r"씬 (\d+): duration이 0 이하")
 _FIELD_RE = re.compile(r"씬 (\d+): 필수 필드 '(script|image_prompt)' 누락")
 _DURATION_DEFICIT_RE = re.compile(r"총 duration 부족")
+_INVALID_SPEAKER_RE = re.compile(r"speaker='A' 또는 'Narrator'만 허용")
 
 
 def _has_duration_deficit(errors: list[str]) -> bool:
@@ -50,6 +51,13 @@ def _try_rule_fix(scenes: list[dict], errors: list[str], *, fallback_prompt: str
             idx, field = int(m.group(1)) - 1, m.group(2)
             if 0 <= idx < len(scenes) and not scenes[idx].get(field):
                 scenes[idx][field] = "(placeholder)" if field == "script" else fallback_prompt
+        elif _INVALID_SPEAKER_RE.search(err):
+            # Monologue에 B 등 완전히 잘못된 speaker가 섞인 경우 → "A"로 교정 (Narrator는 보존)
+            fixed = sum(1 for s in scenes if s.get("speaker") not in ("A", "Narrator"))
+            for scene in scenes:
+                if scene.get("speaker") not in ("A", "Narrator"):
+                    scene["speaker"] = "A"
+            logger.info("[Revise] invalid speaker 교정: %d개 씬 → 'A'로 변경 (Narrator 보존)", fixed)
         else:
             unresolved += 1
     return unresolved == 0

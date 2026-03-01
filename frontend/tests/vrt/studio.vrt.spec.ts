@@ -22,8 +22,6 @@ test.describe("Studio — VRT", () => {
     // Extra wait for async data loading (chat editor, storyboard data)
     await page.waitForTimeout(1000);
     await hideAnimations(page);
-    await expect(page).toHaveScreenshot("studio-with-scenes.png", { maxDiffPixels: 20000 });
+    await expect(page).toHaveScreenshot("studio-with-scenes.png", { maxDiffPixels: 5000 });
   });
-
-
 });

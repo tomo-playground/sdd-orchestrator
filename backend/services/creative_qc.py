@@ -9,6 +9,14 @@ from services.storyboard.helpers import calculate_max_scenes, calculate_min_scen
 _GAZE_TAGS: frozenset[str] = frozenset(CATEGORY_PATTERNS.get("gaze", []))
 _POSE_TAGS: frozenset[str] = frozenset(CATEGORY_PATTERNS.get("pose", []))
 
+# Narrator는 모든 구조에서 선택적으로 허용 (CLAUDE.md 설계 원칙)
+_VALID_SPEAKERS: dict[str, frozenset[str]] = {
+    "Monologue": frozenset({"A", "Narrator"}),
+    "Dialogue": frozenset({"A", "B", "Narrator"}),
+    "Confession": frozenset({"A", "Narrator"}),
+    "Narrated Dialogue": frozenset({"Narrator", "A", "B"}),
+}
+
 
 def _extract_tags_from_prompt(prompt: str, tag_set: frozenset[str]) -> list[str]:
     """프롬프트에서 특정 카테고리 태그를 추출한다."""
@@ -81,19 +89,15 @@ def validate_scripts(
             issues.append(f"Scene {i}: duration {d}s invalid")
     checks["scene_duration_range"] = "PASS" if dur_range_ok else "WARN"
 
-    # Speaker rules
+    # Speaker rules — Narrator is optional in all structures (see module-level _VALID_SPEAKERS)
     speaker_ok = True
     for i, s in enumerate(scripts):
         speaker = s.get("speaker", "")
-        if structure == "Monologue" and speaker != "A":
+        # 미등록 structure는 A+Narrator만 허용 (새 structure 추가 시 _VALID_SPEAKERS에 명시 필요)
+        valid = _VALID_SPEAKERS.get(structure, frozenset({"A", "Narrator"}))
+        if speaker not in valid:
             speaker_ok = False
-            issues.append(f"Scene {i}: Monologue expects speaker='A', got '{speaker}'")
-        elif structure == "Dialogue" and speaker not in ("A", "B"):
-            speaker_ok = False
-            issues.append(f"Scene {i}: Dialogue expects speaker A/B, got '{speaker}'")
-        elif structure == "Narrated Dialogue" and speaker not in ("Narrator", "A", "B"):
-            speaker_ok = False
-            issues.append(f"Scene {i}: Narrated Dialogue expects Narrator/A/B, got '{speaker}'")
+            issues.append(f"Scene {i}: {structure} expects speaker in {sorted(valid)}, got '{speaker}'")
     checks["speaker_rule"] = "PASS" if speaker_ok else "FAIL"
 
     # Speaker distribution check

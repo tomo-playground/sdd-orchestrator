@@ -677,6 +677,7 @@ TTS_MAX_NEW_TOKENS = int(
 TTS_MIN_DURATION_SEC = float(os.getenv("TTS_MIN_DURATION_SEC", "1.0"))  # Min TTS length (sec)
 TTS_MIN_SPEAKABLE_CHARS = int(os.getenv("TTS_MIN_SPEAKABLE_CHARS", "2"))  # Min word chars for TTS
 TTS_MAX_RETRIES = int(os.getenv("TTS_MAX_RETRIES", "2"))  # Retry count on quality failure
+TTS_DEFAULT_SEED = int(os.getenv("TTS_DEFAULT_SEED", "42"))  # Fallback seed when preset has no seed
 
 # --- TTS Performance ---
 TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "120"))

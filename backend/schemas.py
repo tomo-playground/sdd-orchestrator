@@ -2262,6 +2262,7 @@ class TopicAnalyzeResponse(BaseModel):
     """POST /scripts/analyze-topic 응답."""
 
     status: Literal["recommend", "clarify"] = "recommend"
+    resolved_topic: str = ""  # 대화에서 추론한 최종 토픽 (Frontend topicRef 갱신용)
     questions: list[str] | None = None
     reasoning: str = ""
     # status=recommend 일 때 사용

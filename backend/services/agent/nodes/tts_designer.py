@@ -11,21 +11,25 @@ _FALLBACK_TTS = {"tts_designs": []}
 
 
 def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
-    """캐릭터 ID로 성별/이름/음성 프리셋을 로드하여 TTS Designer에 전달."""
+    """캐릭터 ID + 그룹 Narrator 프리셋으로 음성 컨텍스트를 로드하여 TTS Designer에 전달."""
     from database import get_db_session
     from models.character import Character
+    from models.group import Group
     from models.voice_preset import VoicePreset
 
     character_id = state.get("character_id")
     character_b_id = state.get("character_b_id")
-    if not character_id:
+    group_id = state.get("group_id")
+    if not character_id and not group_id:
         return None
 
-    speakers: dict[str, int] = {"A": character_id}
+    results: list[dict] = []
+    speakers: dict[str, int] = {}
+    if character_id:
+        speakers["A"] = character_id
     if character_b_id:
         speakers["B"] = character_b_id
 
-    results: list[dict] = []
     with get_db_session() as db:
         for speaker, cid in speakers.items():
             char = db.query(Character).filter(Character.id == cid).first()
@@ -41,6 +45,17 @@ def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
                 if preset and preset.voice_design_prompt:
                     info["reference_voice"] = preset.voice_design_prompt
             results.append(info)
+
+        # Narrator 보이스 — 그룹의 narrator_voice_preset 관계에서 로드 (추가 쿼리 없음)
+        if group_id:
+            group = db.query(Group).filter(Group.id == group_id).first()
+            if group and group.narrator_voice_preset and group.narrator_voice_preset.voice_design_prompt:
+                results.append({
+                    "speaker": "Narrator",
+                    "name": "Narrator",
+                    "gender": "neutral",
+                    "reference_voice": group.narrator_voice_preset.voice_design_prompt,
+                })
 
     return results if results else None
 
