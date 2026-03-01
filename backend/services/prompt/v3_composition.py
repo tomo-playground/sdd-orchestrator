@@ -84,13 +84,14 @@ CHARACTER_ONLY_LAYERS = frozenset(range(LAYER_SUBJECT, LAYER_ACTION + 1))
 
 
 def select_style_trigger_words(trigger_words: list[str], lora_type: str | None = "style") -> list[str]:
-    """Style LoRA: 결정적으로 1개만 선택 (과도한 스타일 강조 방지).
+    """Style LoRA: primary trigger word(첫 번째)만 선택 (과도한 스타일 강조 방지).
 
-    동일 trigger_words 목록은 항상 동일한 결과를 반환하여 재현성을 보장한다.
+    여러 substyle trigger가 있는 LoRA(예: Shinkai — "shinkai makoto", "kimi no na wa." 등)는
+    항상 첫 번째 trigger(가장 일반적인 기본 스타일)를 선택한다.
+    hash() 기반 선택은 PYTHONHASHSEED에 따라 서버 재시작마다 달라지므로 제거.
     """
     if lora_type == "style" and len(trigger_words) > 1:
-        idx = hash(tuple(trigger_words)) % len(trigger_words)
-        return [trigger_words[idx]]
+        return [trigger_words[0]]
     return trigger_words
 
 
