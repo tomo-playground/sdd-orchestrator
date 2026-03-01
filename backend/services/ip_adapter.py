@@ -195,18 +195,24 @@ def load_reference_images(character_key: str, db: Session) -> list[dict[str, Any
     Returns:
         List of dicts: [{"angle": "front", "asset_id": 123, "image_b64": "..."}, ...]
     """
+    from models.media_asset import MediaAsset
+
     char = db.query(Character).filter(Character.name == character_key, Character.deleted_at.is_(None)).first()
-    if not char or not char.reference_images:
+    if not char:
         return []
 
+    # reference_images가 없으면 preview_image_asset_id로 자동 fallback
+    refs: list[dict] = char.reference_images or []
+    if not refs and char.preview_image_asset_id:
+        refs = [{"angle": "front", "asset_id": char.preview_image_asset_id}]
+        logger.debug("[IPAdapter] %s: reference_images 없음 → preview_image 자동 fallback (asset_id=%d)", character_key, char.preview_image_asset_id)
+
     results: list[dict[str, Any]] = []
-    for ref in char.reference_images:
+    for ref in refs:
         angle = ref.get("angle", "front")
         asset_id = ref.get("asset_id")
         if not asset_id:
             continue
-        from models.media_asset import MediaAsset
-
         asset = db.query(MediaAsset).filter(MediaAsset.id == asset_id).first()
         if not asset or not asset.url:
             continue
