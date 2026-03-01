@@ -32,6 +32,7 @@ export default function ChatArea({ editor }: Props) {
       onResume: editor.resume,
       onRetry: editor.confirmAndGenerate,
       onNavigate: handleNavigate,
+      onSendMessage: editor.sendMessage,
       onAcceptEdit: editor.applySceneEdits,
       onRejectEdit: editor.rejectSceneEdit,
     }),
@@ -40,6 +41,7 @@ export default function ChatArea({ editor }: Props) {
       editor.resume,
       editor.confirmAndGenerate,
       handleNavigate,
+      editor.sendMessage,
       editor.applySceneEdits,
       editor.rejectSceneEdit,
     ]

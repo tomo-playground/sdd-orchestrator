@@ -69,17 +69,64 @@ def _build_appearance_summary(character: Character) -> str:
 def load_characters(
     db: Session,
     group_id: int | None = None,
-    max_count: int | None = None,  # noqa: ARG001
+    max_count: int | None = None,
 ) -> list[CharacterSummary]:
     """활성 캐릭터 목록을 usage_count 기준 정렬로 로드.
 
-    Args:
-        group_id: 향후 그룹별 필터링을 위해 예약됨 (Phase B에서 구현 예정).
+    group_id가 주어지면 해당 그룹 스토리보드에 사용된 캐릭터만 반환.
+    해당 그룹에 캐릭터가 없으면(신규 그룹) 전체 캐릭터로 폴백.
     """
     if max_count is None:
         max_count = INVENTORY_MAX_CHARACTERS
 
-    # usage_count 서브쿼리: storyboard_characters에서 해당 캐릭터 사용 횟수
+    if group_id is not None:
+        group_results = _load_characters_for_group(db, group_id, max_count)
+        if group_results:
+            return group_results
+
+    return _load_all_characters(db, max_count)
+
+
+def _build_character_summary(char: Character, count: int) -> CharacterSummary:
+    return CharacterSummary(
+        id=char.id,
+        name=char.name,
+        gender=char.gender or "unknown",
+        appearance_summary=_build_appearance_summary(char),
+        has_lora=bool(char.loras),
+        has_reference=bool(char.preview_image_asset_id),
+        usage_count=count,
+    )
+
+
+def _load_characters_for_group(db: Session, group_id: int, max_count: int) -> list[CharacterSummary]:
+    """그룹에서 실제 사용된 캐릭터만 usage_count 내림차순으로 로드."""
+    from models.storyboard import Storyboard  # noqa: PLC0415
+
+    usage_subq = (
+        select(
+            StoryboardCharacter.character_id,
+            func.count().label("usage_count"),
+        )
+        .join(Storyboard, StoryboardCharacter.storyboard_id == Storyboard.id)
+        .where(Storyboard.group_id == group_id)
+        .group_by(StoryboardCharacter.character_id)
+        .subquery()
+    )
+    query = (
+        select(Character, usage_subq.c.usage_count)
+        .join(usage_subq, Character.id == usage_subq.c.character_id)
+        .where(Character.deleted_at.is_(None))
+        .options(selectinload(Character.tags).selectinload(CharacterTag.tag))
+        .order_by(usage_subq.c.usage_count.desc(), Character.created_at.desc())
+        .limit(max_count)
+    )
+    rows = db.execute(query).all()
+    return [_build_character_summary(row[0], row[1]) for row in rows]
+
+
+def _load_all_characters(db: Session, max_count: int) -> list[CharacterSummary]:
+    """전체 캐릭터를 글로벌 usage_count 내림차순으로 로드."""
     usage_subq = (
         select(
             StoryboardCharacter.character_id,
@@ -88,7 +135,6 @@ def load_characters(
         .group_by(StoryboardCharacter.character_id)
         .subquery()
     )
-
     query = (
         select(Character, func.coalesce(usage_subq.c.usage_count, 0).label("usage_count"))
         .outerjoin(usage_subq, Character.id == usage_subq.c.character_id)
@@ -100,24 +146,8 @@ def load_characters(
         )
         .limit(max_count)
     )
-
     rows = db.execute(query).all()
-    results: list[CharacterSummary] = []
-    for row in rows:
-        char: Character = row[0]
-        count: int = row[1]
-        results.append(
-            CharacterSummary(
-                id=char.id,
-                name=char.name,
-                gender=char.gender or "unknown",
-                appearance_summary=_build_appearance_summary(char),
-                has_lora=bool(char.loras),
-                has_reference=bool(char.preview_image_asset_id),
-                usage_count=count,
-            )
-        )
-    return results
+    return [_build_character_summary(row[0], row[1]) for row in rows]
 
 
 def load_styles(db: Session) -> list[StyleSummary]:

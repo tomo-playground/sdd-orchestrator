@@ -8,6 +8,7 @@ import type { ChatMessage, SettingsRecommendation } from "../../../types/chat";
 type Props = {
   message: ChatMessage;
   onApplyAndGenerate: (rec: SettingsRecommendation) => void;
+  onSendMessage?: (text: string) => void;
 };
 
 function structureLabel(structure: string): string {
@@ -26,8 +27,12 @@ function formatCharacters(rec: SettingsRecommendation): string {
   return rec.character_name;
 }
 
-export default function SettingsRecommendCard({ message, onApplyAndGenerate }: Props) {
+export default function SettingsRecommendCard({ message, onApplyAndGenerate, onSendMessage }: Props) {
   const [applied, setApplied] = useState(false);
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [feedback, setFeedback] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
   const rec = message.recommendation;
   if (!rec) return null;
 
@@ -36,9 +41,14 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate }: P
     setApplied(true);
   };
 
-  const handleRequestEdit = () => {
-    const input = document.querySelector<HTMLTextAreaElement>("[data-chat-input]");
-    input?.focus();
+  const handleRevise = () => {
+    if (mode === "view") {
+      setMode("edit");
+      return;
+    }
+    if (!feedback.trim()) return;
+    setSubmitted(true);
+    onSendMessage?.(feedback.trim());
   };
 
   return (
@@ -64,18 +74,35 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate }: P
           </li>
         </ul>
 
-        {!applied ? (
+        {mode === "edit" && !submitted && (
+          <textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="수정 요청을 입력하세요. 예: 소라로 캐릭터 변경, 60초로 늘려줘"
+            className="w-full rounded-xl border border-violet-200 bg-white p-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-violet-400 focus:outline-none"
+            rows={2}
+            autoFocus
+          />
+        )}
+
+        {submitted && (
+          <p className="text-xs text-violet-600">수정 요청이 전달되었습니다.</p>
+        )}
+
+        {!applied && !submitted && (
           <div className="flex gap-2">
             <Button size="sm" variant="primary" className="flex-1" onClick={handleGenerate}>
               <Sparkles className="h-3.5 w-3.5" />
               스크립트 생성
             </Button>
-            <Button size="sm" variant="secondary" onClick={handleRequestEdit}>
+            <Button size="sm" variant="secondary" onClick={handleRevise}>
               <MessageSquare className="h-3.5 w-3.5" />
-              수정할게요
+              {mode === "edit" ? "요청 전송" : "수정할게요"}
             </Button>
           </div>
-        ) : (
+        )}
+
+        {applied && (
           <Button size="sm" variant="secondary" className="w-full" disabled>
             <Check className="h-3.5 w-3.5" />
             생성 시작됨

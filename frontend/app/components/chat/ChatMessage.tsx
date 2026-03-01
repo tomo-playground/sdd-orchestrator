@@ -28,6 +28,7 @@ export type ChatMessageCallbacks = {
   ) => void;
   onRetry: () => void;
   onNavigate: (tab: string) => void;
+  onSendMessage?: (text: string) => void;
   onAcceptEdit?: () => void;
   onRejectEdit?: () => void;
 };
@@ -56,6 +57,7 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
         <SettingsRecommendCard
           message={message}
           onApplyAndGenerate={callbacks.onApplyAndGenerate}
+          onSendMessage={callbacks.onSendMessage}
         />
       );
     case "concept_gate":
