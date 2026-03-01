@@ -70,6 +70,11 @@ Match your visual design to this plan:
    - ❌ FORBIDDEN: non-tag words (`SCENE`, `BASE`, `EXAMPLE`) or English descriptions as tags
    - ❌ FORBIDDEN: emotion adjectives as tags (`confident`, `satisfied`, `anxious`, `tormented`, `resigned`, `paranoid`)
    - ✅ CORRECT: use Danbooru expression tags (`smirk`, `smile`, `nervous`, `crying`, `tired`, `scared`)
+   - ❌ FORBIDDEN gender tags: `female`, `male` (system injects `1girl`/`1boy` automatically)
+   - ❌ FORBIDDEN compound expressions: `happy_smile`, `sly_smile`, `pensive_expression`, `puzzled_expression`
+   - ✅ CORRECT expressions: `smile`, `smirk`, `confused`, `looking_down`
+   - ❌ FORBIDDEN zero-post tags: `bishoujo` (0 posts), `daylight` (0 posts), `extreme_close-up` (0 posts)
+   - ✅ CORRECT: `bishounen` (27K), `day` + `sunlight`, `close-up` + `face_focus`
 2. **Camera variety**: Use at least 3 different camera angles across all scenes
    - Available: close-up, cowboy_shot, upper_body, full_body, from_above, from_below, dutch_angle
 3. **Gaze variety (CRITICAL)**: Do NOT use `looking_at_viewer` on more than 2 scenes.
@@ -87,8 +92,11 @@ Match your visual design to this plan:
    | looking_afar | cowboy_shot | Gazing into distance / resolution |
 4. **Pose variety**: Avoid `standing` + `looking_at_viewer` in consecutive scenes.
    Use diverse poses from the list below. Pick poses that match the script's action/emotion.
-   - **Standing**: standing, standing_arms_crossed, standing_hands_on_hips, standing_arms_up, standing_waving, standing_thumbs_up, standing_looking_up, standing_from_behind, profile_standing
-   - **Sitting**: sitting, sitting_chin_rest, sitting_leaning, sitting_eating
+   ⚠️ Poses are ALWAYS separate tags — body position + gesture as individual comma-separated tags:
+     ✅ `standing, crossed_arms` (two tags)  ❌ `standing_arms_crossed` (compound, NOT on Danbooru)
+   - **Standing combos**: standing + (crossed_arms | hands_on_hips | arms_up | waving | thumbs_up)
+   - **Sitting combos**: sitting + (chin_rest | leaning_forward | eating)
+   - **Other positions**: profile_standing, from_behind
    - **Action**: walking, running, jumping, kneeling, crouching, lying, pointing_forward, covering_face
    - **Daily life**: eating, cooking, holding_umbrella, writing, leaning_wall
    - ❌ NEVER use generic `holding_object`. Instead use specific tags: `holding_phone`, `holding_cup`, `holding_book`, `holding_bag`, etc.
@@ -154,7 +162,7 @@ Match your visual design to this plan:
 13. **Narrative function → Visual strategy** (CRITICAL):
     Map each scene's role in the story to its visual approach:
     | Story Role | Camera | Technique | Purpose |
-    | Hook (scene 0-1) | dutch_angle, extreme_close-up | backlighting, depth_of_field | Grab attention |
+    | Hook (scene 0-1) | dutch_angle, close-up | backlighting, depth_of_field | Grab attention |
     | Rising | from_side, cowboy_shot | sidelighting, light_rays | Build tension |
     | Climax | from_below, close-up | backlighting, silhouette | Maximum impact |
     | Resolution | wide_shot, from_above | golden_hour, bokeh | Release/reflection |

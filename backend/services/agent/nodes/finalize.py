@@ -42,6 +42,7 @@ def _apply_tag_aliases(scenes: list[dict]) -> None:
 
     replaced_count = 0
     removed_count = 0
+    split_count = 0
     for scene in scenes:
         prompt = scene.get("image_prompt", "")
         if not prompt:
@@ -57,12 +58,20 @@ def _apply_tag_aliases(scenes: list[dict]) -> None:
             elif replacement is None:
                 removed_count += 1
             else:
-                result.append(replacement)
+                parts = [p.strip() for p in replacement.split(",") if p.strip()]
+                result.extend(parts)
                 replaced_count += 1
+                if len(parts) > 1:
+                    split_count += 1
         scene["image_prompt"] = ", ".join(result)
 
     if replaced_count or removed_count:
-        logger.info("[Finalize] TagAlias: %d replaced, %d removed", replaced_count, removed_count)
+        logger.info(
+            "[Finalize] TagAlias: %d replaced (%d split), %d removed",
+            replaced_count,
+            split_count,
+            removed_count,
+        )
 
 
 def _inject_negative_prompts(scenes: list[dict]) -> None:
