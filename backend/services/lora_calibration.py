@@ -11,7 +11,7 @@ import io
 import httpx
 from PIL import Image
 
-from config import LAB_DEFAULT_SD_STEPS, SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, logger
+from config import LAB_DEFAULT_SD_STEPS, SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, cap_style_lora_weight, logger
 from services.controlnet import build_controlnet_args, load_pose_reference
 from services.validation import compare_prompt_to_tags, wd14_predict_tags
 
@@ -238,10 +238,12 @@ def get_optimal_weights_from_db(lora_names: list[str]) -> dict[str, float]:
                     "default_weight": lora.default_weight,
                 }
             )
+            # Style/Detail LoRA: weight cap 적용
+            weight = cap_style_lora_weight(weight, lora.lora_type)
             # Store with normalized name for matching
             normalized = lora.name.lower().replace(".safetensors", "")
             weights[normalized] = weight
-            logger.info("🔧 [LoRA Weight] %s → %.2f", lora.name, weight)
+            logger.info("🔧 [LoRA Weight] %s → %.2f (type=%s)", lora.name, weight, lora.lora_type)
 
     finally:
         db.close()

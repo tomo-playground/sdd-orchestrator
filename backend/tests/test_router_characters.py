@@ -56,7 +56,8 @@ class TestCharactersRouter:
         # Try to create duplicate
         response = client.post("/api/admin/characters", json=request_data)
         assert response.status_code == 409
-        assert "already exists" in response.json()["detail"].lower()
+        detail = response.json()["detail"]
+        assert "already exists" in detail.lower() or "이미 존재" in detail
 
     def test_create_character_with_tags(self, client: TestClient, db_session, sample_tag):
         """Create character with tags (limited assertion due to async router behavior)."""
@@ -80,7 +81,8 @@ class TestCharactersRouter:
         """Get non-existent character returns 404."""
         response = client.get("/api/v1/characters/99999")
         assert response.status_code == 404
-        assert "not found" in response.json()["detail"].lower()
+        detail = response.json()["detail"]
+        assert "not found" in detail.lower() or "찾을 수 없습니다" in detail
 
     def test_get_character_success(self, client: TestClient, db_session):
         """Get existing character."""

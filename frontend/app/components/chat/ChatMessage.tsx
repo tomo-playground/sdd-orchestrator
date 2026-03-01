@@ -11,9 +11,12 @@ import CompletionCard from "./messages/CompletionCard";
 import ErrorCard from "./messages/ErrorCard";
 import PipelineStepCard from "./messages/PipelineStepCard";
 import PlanReviewCard from "./messages/PlanReviewCard";
+import SceneEditDiffCard from "./messages/SceneEditDiffCard";
 import type { ChatMessage as ChatMessageType, SettingsRecommendation } from "../../types/chat";
 import type { SceneItem, ResumeOptions, ResumeAction } from "../../hooks/scriptEditor/types";
 import type { FeedbackPreset } from "../../types";
+
+const noop = () => {};
 
 export type ChatMessageCallbacks = {
   onApplyAndGenerate: (rec: SettingsRecommendation) => void;
@@ -25,6 +28,8 @@ export type ChatMessageCallbacks = {
   ) => void;
   onRetry: () => void;
   onNavigate: (tab: string) => void;
+  onAcceptEdit?: () => void;
+  onRejectEdit?: () => void;
 };
 
 export type ChatMessageData = {
@@ -76,6 +81,16 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
       return <PipelineStepCard message={message} />;
     case "plan_review_gate":
       return <PlanReviewCard message={message} onResume={callbacks.onResume} />;
+    case "scene_edit_diff":
+      return message.editResult ? (
+        <SceneEditDiffCard
+          editResult={message.editResult}
+          scenes={data.scenes}
+          onAccept={callbacks.onAcceptEdit ?? noop}
+          onReject={callbacks.onRejectEdit ?? noop}
+          isApplied={!!message.editApplied}
+        />
+      ) : null;
     case "error":
       return <ErrorCard message={message.errorMessage} onRetry={callbacks.onRetry} />;
     default:

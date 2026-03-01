@@ -312,24 +312,28 @@ async def test_cinematographer_node_json_parsing_graceful():
     config = {"configurable": {"db": mock_db}}
 
     with patch("services.agent.tools.base.call_with_tools") as mock_call:
-        # 2회 모두 파싱 불가 응답
+        # 첫 시도: call_with_tools 파싱 불가
         mock_call.return_value = (
             "This is not valid JSON",
             [],
         )
 
-        result = await cinematographer_node(state, config)
+        with patch("services.agent.tools.base.call_direct", new_callable=AsyncMock) as mock_direct:
+            # 두 번째 시도: call_direct도 파싱 불가
+            mock_direct.return_value = "Still not valid JSON"
+            result = await cinematographer_node(state, config)
 
     assert "error" not in result
     assert result["cinematographer_result"] is None
-    # retry 포함 2회 호출
-    assert mock_call.call_count == 2
+    # attempt 1: call_with_tools 1회, attempt 2: call_direct 1회
+    assert mock_call.call_count == 1
+    assert mock_direct.call_count == 1
 
 
 @pytest.mark.asyncio
 @patch("config_pipelines.CINEMATOGRAPHER_COMPETITION_ENABLED", False)
 async def test_cinematographer_node_retry_succeeds_on_second_attempt():
-    """첫 번째 파싱 실패 → 두 번째 성공 (retry). Competition 비활성화 상태로 테스트."""
+    """첫 번째 파싱 실패 → 두 번째 성공 (retry via call_direct). Competition 비활성화 상태로 테스트."""
     mock_db = AsyncMock()
 
     state: ScriptState = {
@@ -341,18 +345,19 @@ async def test_cinematographer_node_retry_succeeds_on_second_attempt():
     valid_json = '{"scenes": [{"order": 1, "text": "테스트", "visual_tags": ["1girl"], "camera": "close-up", "environment": "indoors"}]}'
 
     with patch("services.agent.tools.base.call_with_tools") as mock_call:
-        mock_call.side_effect = [
-            ("", []),  # 첫 시도: 빈 응답
-            (valid_json, []),  # 두 번째: 성공
-        ]
+        mock_call.return_value = ("", [])  # 첫 시도: 빈 응답
 
-        with patch("services.agent.nodes.cinematographer.validate_visuals") as mock_validate:
-            mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
-            result = await cinematographer_node(state, config)
+        with patch("services.agent.tools.base.call_direct", new_callable=AsyncMock) as mock_direct:
+            mock_direct.return_value = valid_json  # 두 번째: call_direct 성공
+
+            with patch("services.agent.nodes.cinematographer.validate_visuals") as mock_validate:
+                mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
+                result = await cinematographer_node(state, config)
 
     assert result["cinematographer_result"] is not None
     assert len(result["cinematographer_result"]["scenes"]) == 1
-    assert mock_call.call_count == 2
+    assert mock_call.call_count == 1
+    assert mock_direct.call_count == 1
 
 
 @pytest.mark.asyncio

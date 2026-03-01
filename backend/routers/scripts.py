@@ -16,6 +16,8 @@ from database import get_db
 from schemas import (
     FeedbackPresetOption,
     FeedbackPresetsResponse,
+    ScriptEditRequest,
+    ScriptEditResponse,
     ScriptFeedbackRequest,
     ScriptFeedbackResponse,
     ScriptGenerateResponse,
@@ -573,3 +575,13 @@ async def submit_script_feedback(request: ScriptFeedbackRequest):
 
     logger.info("[Feedback] %s 피드백 저장: thread=%s", request.rating, request.thread_id)
     return ScriptFeedbackResponse(success=True, message="피드백이 저장되었습니다")
+
+
+@router.post("/edit-scenes", response_model=ScriptEditResponse)
+async def edit_scenes_endpoint(request: ScriptEditRequest):
+    """Gemini를 사용하여 씬들을 자연어 지시에 따라 일괄 편집한다."""
+    from services.scripts.scene_editor import edit_scenes  # noqa: PLC0415
+
+    scenes_data = [s.model_dump() for s in request.scenes]
+    context_data = request.context.model_dump()
+    return await edit_scenes(request.instruction, scenes_data, context_data)

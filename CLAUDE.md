@@ -142,6 +142,33 @@ docs/
   3. Frontend 타입(interface)을 Backend 스키마와 일치시킴
   4. REST API 명세 (`docs/03_engineering/api/REST_API.md`) 업데이트
 
+## Image Generation Debug Payload Convention
+이미지 생성 결과의 `debug_payload`는 반드시 **`{request, actual}`** 2-레벨 구조로 저장한다.
+
+```json
+{
+  "request": { /* Frontend가 보낸 원본 요청 */ },
+  "actual": {
+    "prompt": "Backend가 최종 구성한 프롬프트 (LoRA, 스타일 태그 포함)",
+    "negative_prompt": "최종 네거티브 프롬프트",
+    "steps": 25,
+    "cfg_scale": 7.0,
+    "sampler": "DPM++ 2M Karras",
+    "seed": 123456
+  }
+}
+```
+
+**Backend 책임**: `_generate_scene_image_with_db()` 결과에 `used_prompt`, `used_negative_prompt`, `used_steps`, `used_cfg_scale`, `used_sampler` 필드를 반드시 포함한다.
+- SSE 경로: `ImageProgressEvent` 스키마의 `used_*` 필드로 전달
+- Sync 경로: `SceneGenerateResponse`의 `used_*` 필드로 전달
+
+**Frontend 책임**: SSE/Sync 양쪽 모두 `debug_payload`를 `{request, actual}` 구조로 구성한다.
+- `request`: Frontend `requestPayload` 원본
+- `actual`: Backend 응답의 `used_*` 필드 + `seed`
+
+**신규 생성 파라미터 추가 시**: Backend `result["used_X"]` → 스키마 `used_X` 필드 → Frontend `actual.X` 까지 3곳 동기화 필수.
+
 ## Code Modularization Principles (중복 로직 금지)
 - **변환 로직 모듈화**: 동일한 데이터 변환이 여러 곳에서 필요하면 **반드시 헬퍼 함수로 추출**한다.
   - 예: `sanitizeCandidatesForDb()` — candidates 저장 시 `image_url` 제거

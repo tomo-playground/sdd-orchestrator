@@ -82,6 +82,18 @@ LAYER_NAMES: list[str] = [
 # Layers that only apply when a character is present (SUBJECT through ACTION)
 CHARACTER_ONLY_LAYERS = frozenset(range(LAYER_SUBJECT, LAYER_ACTION + 1))
 
+
+def select_style_trigger_words(trigger_words: list[str], lora_type: str | None = "style") -> list[str]:
+    """Style LoRA: 결정적으로 1개만 선택 (과도한 스타일 강조 방지).
+
+    동일 trigger_words 목록은 항상 동일한 결과를 반환하여 재현성을 보장한다.
+    """
+    if lora_type == "style" and len(trigger_words) > 1:
+        idx = hash(tuple(trigger_words)) % len(trigger_words)
+        return [trigger_words[idx]]
+    return trigger_words
+
+
 # Layers that participate in valence cross-check.
 # Note: gaze tags share LAYER_EXPRESSION(7) with expression tags,
 # so gaze↔mood valence conflicts are also caught via this layer check.
@@ -745,7 +757,8 @@ class V3PromptBuilder:
                 info = self._get_lora_info(lora_name)
                 active_loras[lora_name] = info
                 target = LAYER_ATMOSPHERE if info.lora_type == "style" else LAYER_IDENTITY
-                for trigger in info.trigger_words:
+                triggers = select_style_trigger_words(info.trigger_words, info.lora_type)
+                for trigger in triggers:
                     if not self._trigger_exists_in_layers(trigger, layers):
                         layers[target].append(trigger)
 
@@ -772,7 +785,8 @@ class V3PromptBuilder:
                 # Fallback style LoRAs: cap to avoid interference with character LoRA
                 if is_fallback:
                     weight = min(weight, FALLBACK_STYLE_LORA_WEIGHT_MAX)
-                for trigger in lora_info.get("trigger_words", []):
+                triggers = select_style_trigger_words(lora_info.get("trigger_words", []))
+                for trigger in triggers:
                     if not self._trigger_exists_in_layers(trigger, layers):
                         layers[LAYER_ATMOSPHERE].append(trigger)
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{name}:{self._cap_lora_weight(weight)}>")

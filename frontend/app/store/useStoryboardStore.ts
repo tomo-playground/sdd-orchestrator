@@ -200,6 +200,10 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "loraTriggerWords",
   "characterLoras",
   "characterBLoras",
+  "selectedCharacterId",
+  "selectedCharacterBId",
+  "selectedCharacterName",
+  "selectedCharacterBName",
 ];
 
 export const useStoryboardStore = create<StoryboardStore>()(

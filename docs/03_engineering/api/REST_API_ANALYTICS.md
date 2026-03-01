@@ -269,6 +269,7 @@ LangGraph 기반 AI 대본 생성 파이프라인. SSE 스트리밍으로 노드
 | GET | `/scripts/presets` | LangGraph 프리셋 목록 |
 | GET | `/scripts/feedback-presets` | 피드백 프리셋 목록 |
 | POST | `/scripts/feedback` | 스크립트 생성 피드백 제출 |
+| POST | `/scripts/edit-scenes` | Gemini 기반 씬 자연어 편집 |
 
 ### `POST /scripts/generate-stream` — SSE 이벤트
 
@@ -324,6 +325,34 @@ LangGraph 기반 AI 대본 생성 파이프라인. SSE 스트리밍으로 노드
   "trace_id": null
 }
 ```
+
+### `POST /scripts/edit-scenes` — 씬 자연어 편집
+
+**Request:** `ScriptEditRequest`
+```json
+{
+  "instruction": "3번 씬 대사를 더 감성적으로",
+  "scenes": [
+    { "scene_index": 0, "script": "원본 대사", "speaker": "Narrator", "duration": 3.0, "image_prompt": "1girl, sitting", "image_prompt_ko": "" }
+  ],
+  "context": { "topic": "카페 이별", "language": "Korean", "structure": "Monologue" }
+}
+```
+
+**Response:** `ScriptEditResponse`
+```json
+{
+  "edited_scenes": [
+    { "scene_index": 0, "script": "수정된 대사", "speaker": null, "duration": null, "image_prompt": null, "image_prompt_ko": null }
+  ],
+  "reasoning": "감성적 표현으로 변경",
+  "unchanged_count": 4
+}
+```
+
+- Gemini 단일 호출로 변경된 씬만 반환
+- 변경하지 않은 필드는 `null`
+- `scene_index` 범위 밖이면 무시
 
 ---
 

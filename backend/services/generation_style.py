@@ -7,9 +7,10 @@ from __future__ import annotations
 
 import re
 
-from config import logger
+from config import cap_style_lora_weight, logger
 from services.keywords.core import normalize_prompt_token
 from services.prompt import split_prompt_tokens
+from services.prompt.v3_composition import select_style_trigger_words
 
 
 def apply_style_profile_to_prompt(
@@ -59,8 +60,10 @@ def _build_lora_parts(ctx, prompt: str, skip_loras: bool) -> tuple[list[str], li
     if ctx.loras and not skip_loras:
         for lr in ctx.loras:
             if lr.get("trigger_words"):
-                trigger_words.extend(lr["trigger_words"])
-            lora_tags.append(f"<lora:{lr['name']}:{lr['weight']}>")
+                tw = select_style_trigger_words(lr["trigger_words"], lr.get("lora_type"))
+                trigger_words.extend(tw)
+            weight = cap_style_lora_weight(lr["weight"], lr.get("lora_type"))
+            lora_tags.append(f"<lora:{lr['name']}:{weight}>")
 
     # Defense-in-depth: skip LoRA tags/trigger words already in prompt
     existing_lora_names = set(re.findall(r"<lora:([^:]+):", prompt))
@@ -76,9 +79,7 @@ def _build_lora_parts(ctx, prompt: str, skip_loras: bool) -> tuple[list[str], li
 
 def _compose_positive(ctx, prompt: str, lora_tags: list[str], trigger_words: list[str]) -> str:
     """Compose final positive prompt with deduplication."""
-    existing_normalized = {
-        normalize_prompt_token(t) for t in split_prompt_tokens(prompt) if normalize_prompt_token(t)
-    }
+    existing_normalized = {normalize_prompt_token(t) for t in split_prompt_tokens(prompt) if normalize_prompt_token(t)}
     parts: list[str] = []
 
     # 1. Default positive prompt (quality tags), skip tokens already in prompt

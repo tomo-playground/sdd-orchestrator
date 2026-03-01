@@ -73,6 +73,7 @@ def _build_style_context(profile, db: Session) -> StyleContext:
                     "lora_id": lora_id,
                     "weight": weight,
                     "name": lora_obj.name,
+                    "lora_type": lora_obj.lora_type or "style",
                     "trigger_words": list(lora_obj.trigger_words) if lora_obj.trigger_words else [],
                 }
             )

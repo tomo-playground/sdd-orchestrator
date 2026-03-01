@@ -3025,3 +3025,54 @@ class SyncedCountResponse(BaseModel):
     """Response for sync operations."""
 
     synced: int
+
+
+# ============================================================
+# Script Edit Schemas (P1 — Scene Edit via Gemini)
+# ============================================================
+
+
+class ScriptEditSceneInput(BaseModel):
+    """씬 편집 입력 — 현재 씬 상태."""
+
+    scene_index: int
+    script: str = ""
+    speaker: str = "Narrator"
+    duration: float = 3.0
+    image_prompt: str = ""
+    image_prompt_ko: str = ""
+
+
+class ScriptEditContext(BaseModel):
+    """편집 컨텍스트 — 스토리 전체 정보."""
+
+    topic: str = ""
+    language: str = "Korean"
+    structure: str = "Monologue"
+
+
+class ScriptEditRequest(BaseModel):
+    """POST /scripts/edit-scenes 요청."""
+
+    instruction: str = Field(min_length=1, max_length=2000)
+    scenes: list[ScriptEditSceneInput] = Field(min_length=1, max_length=30)
+    context: ScriptEditContext = Field(default_factory=ScriptEditContext)
+
+
+class ScriptEditedScene(BaseModel):
+    """수정된 씬 — 변경된 필드만 non-null."""
+
+    scene_index: int
+    script: str | None = None
+    speaker: str | None = None
+    duration: float | None = None
+    image_prompt: str | None = None
+    image_prompt_ko: str | None = None
+
+
+class ScriptEditResponse(BaseModel):
+    """POST /scripts/edit-scenes 응답."""
+
+    edited_scenes: list[ScriptEditedScene]
+    reasoning: str = ""
+    unchanged_count: int = 0

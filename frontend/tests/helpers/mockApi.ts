@@ -29,20 +29,16 @@ const storyboardListItems = () => MOCK_STORYBOARDS.map(({ scenes: _s, ...rest })
 export async function mockGlobalApis(page: Page) {
   await page.route("**/health", (route) => route.fulfill({ json: { status: "ok" } }));
 
-  await page.route("**/projects", (route) => {
+  await page.route(/\/projects(\?.*)?$/, (route) => {
     if (route.request().method() === "GET") {
-      return route.fulfill({
-        json: { items: MOCK_PROJECTS, total: MOCK_PROJECTS.length, offset: 0, limit: 50 },
-      });
+      return route.fulfill({ json: MOCK_PROJECTS });
     }
     return route.continue();
   });
 
-  await page.route("**/groups**", (route) => {
+  await page.route("**/api/**/groups**", (route) => {
     if (route.request().method() === "GET") {
-      return route.fulfill({
-        json: { items: MOCK_GROUPS, total: MOCK_GROUPS.length, offset: 0, limit: 50 },
-      });
+      return route.fulfill({ json: MOCK_GROUPS });
     }
     return route.continue();
   });
@@ -50,7 +46,8 @@ export async function mockGlobalApis(page: Page) {
 // ── Studio page ──────────────────────────────────────────────
 
 export async function mockStudioApis(page: Page) {
-  await page.route("**/storyboards", (route) => {
+  // Match storyboards list (with or without query params) and individual storyboard by ID
+  await page.route(/\/storyboards(\?.*)?$/, (route) => {
     if (route.request().method() === "GET") {
       const items = storyboardListItems();
       return route.fulfill({
@@ -60,7 +57,7 @@ export async function mockStudioApis(page: Page) {
     return route.continue();
   });
 
-  await page.route("**/storyboards/*", (route) => {
+  await page.route(/\/storyboards\/(\d+)$/, (route) => {
     const url = route.request().url();
     const match = url.match(/\/storyboards\/(\d+)$/);
     if (match && route.request().method() === "GET") {
@@ -78,7 +75,7 @@ export async function mockStudioApis(page: Page) {
     return route.continue();
   });
 
-  await page.route("**/characters", (route) => {
+  await page.route("**/api/**/characters", (route) => {
     if (route.request().method() === "GET") {
       return route.fulfill({
         json: { items: MOCK_CHARACTERS, total: MOCK_CHARACTERS.length, offset: 0, limit: 50 },
@@ -108,7 +105,7 @@ export async function mockStudioApis(page: Page) {
 // ── Characters page ──────────────────────────────────────────
 
 export async function mockCharactersApis(page: Page) {
-  await page.route("**/characters", (route) => {
+  await page.route("**/api/**/characters", (route) => {
     if (route.request().method() === "GET") {
       return route.fulfill({
         json: {
@@ -122,7 +119,7 @@ export async function mockCharactersApis(page: Page) {
     return route.continue();
   });
 
-  await page.route("**/characters/*", (route) => {
+  await page.route("**/api/**/characters/*", (route) => {
     const url = route.request().url();
     if (url.match(/\/characters\/\d+$/) && route.request().method() === "GET") {
       return route.fulfill({ json: MOCK_CHARACTER_DETAIL });
@@ -138,7 +135,7 @@ export async function mockCharactersApis(page: Page) {
 }
 
 export async function mockCharactersEmptyApis(page: Page) {
-  await page.route("**/characters", (route) => {
+  await page.route("**/api/**/characters", (route) => {
     if (route.request().method() === "GET") {
       return route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 50 } });
     }
@@ -194,7 +191,7 @@ export async function mockMusicEmptyApis(page: Page) {
 // ── Scripts page ─────────────────────────────────────────────
 
 export async function mockScriptsApis(page: Page) {
-  await page.route("**/storyboards", (route) => {
+  await page.route(/\/storyboards(\?.*)?$/, (route) => {
     if (route.request().method() === "GET") {
       const items = storyboardListItems();
       return route.fulfill({
@@ -204,7 +201,7 @@ export async function mockScriptsApis(page: Page) {
     return route.continue();
   });
 
-  await page.route("**/storyboards/*", (route) => {
+  await page.route(/\/storyboards\/(\d+)$/, (route) => {
     const url = route.request().url();
     const match = url.match(/\/storyboards\/(\d+)$/);
     if (match && route.request().method() === "GET") {
@@ -216,7 +213,7 @@ export async function mockScriptsApis(page: Page) {
   });
 
   await page.route("**/presets", (route) => route.fulfill({ json: MOCK_PRESETS }));
-  await page.route("**/characters", (route) => {
+  await page.route("**/api/**/characters", (route) => {
     if (route.request().method() === "GET") {
       return route.fulfill({
         json: {
@@ -233,14 +230,14 @@ export async function mockScriptsApis(page: Page) {
 
 /** Scripts page mock returning empty storyboard list */
 export async function mockScriptsEmptyApis(page: Page) {
-  await page.route("**/storyboards", (route) => {
+  await page.route(/\/storyboards(\?.*)?$/, (route) => {
     if (route.request().method() === "GET") {
       return route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 50 } });
     }
     return route.continue();
   });
   await page.route("**/presets", (route) => route.fulfill({ json: MOCK_PRESETS }));
-  await page.route("**/characters", (route) => {
+  await page.route("**/api/**/characters", (route) => {
     if (route.request().method() === "GET") {
       return route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 50 } });
     }
@@ -250,7 +247,7 @@ export async function mockScriptsEmptyApis(page: Page) {
 // ── Lab page ─────────────────────────────────────────────────
 
 export async function mockLabApis(page: Page) {
-  await page.route("**/characters", (route) => {
+  await page.route("**/api/**/characters", (route) => {
     if (route.request().method() === "GET") {
       return route.fulfill({
         json: {
@@ -264,11 +261,9 @@ export async function mockLabApis(page: Page) {
     return route.continue();
   });
 
-  await page.route("**/groups**", (route) => {
+  await page.route("**/api/**/groups**", (route) => {
     if (route.request().method() === "GET") {
-      return route.fulfill({
-        json: { items: MOCK_GROUPS, total: MOCK_GROUPS.length, offset: 0, limit: 50 },
-      });
+      return route.fulfill({ json: MOCK_GROUPS });
     }
     return route.continue();
   });
@@ -344,7 +339,7 @@ export async function mockManageApis(page: Page) {
   await page.route("**/presets", (route) => route.fulfill({ json: MOCK_PRESETS }));
   await page.route("**/tags", (route) => route.fulfill({ json: [] }));
   await page.route("**/loras**", (route) => route.fulfill({ json: [] }));
-  await page.route("**/characters", (route) => {
+  await page.route("**/api/**/characters", (route) => {
     if (route.request().method() === "GET") {
       return route.fulfill({
         json: {
@@ -357,7 +352,7 @@ export async function mockManageApis(page: Page) {
     }
     return route.continue();
   });
-  await page.route("**/storyboards", (route) => {
+  await page.route(/\/storyboards(\?.*)?$/, (route) => {
     if (route.request().method() === "GET") {
       const items = storyboardListItems();
       return route.fulfill({

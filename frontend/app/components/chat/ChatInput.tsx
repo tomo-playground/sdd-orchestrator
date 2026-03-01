@@ -13,6 +13,7 @@ type Props = {
   borderless?: boolean;
   interactionMode?: InteractionMode;
   onModeChange?: (mode: InteractionMode) => void;
+  isEditMode?: boolean;
 };
 
 const SUGGESTIONS = ["카페 알바생이 본 이별 장면", "첫 출근날 실수 모음", "오래된 친구와의 재회"];
@@ -33,10 +34,11 @@ export default function ChatInput({
   borderless,
   interactionMode,
   onModeChange,
+  isEditMode,
 }: Props) {
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const showSuggestions = !hasMessages || (!text.trim() && !hasTopic);
+  const showSuggestions = !isEditMode && (!hasMessages || (!text.trim() && !hasTopic));
 
   const adjustHeight = useCallback(() => {
     const el = textareaRef.current;
@@ -124,7 +126,11 @@ export default function ChatInput({
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             disabled={disabled}
-            placeholder="어떤 쇼츠를 만들까요?"
+            placeholder={
+              isEditMode
+                ? "수정할 내용을 입력하세요 (예: 3번 씬 대사를 감성적으로)"
+                : "어떤 쇼츠를 만들까요?"
+            }
             className="flex-1 resize-none bg-transparent text-sm text-zinc-800 outline-none placeholder:text-zinc-400 disabled:opacity-50"
           />
           <button

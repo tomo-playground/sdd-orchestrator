@@ -13,7 +13,23 @@ export type ChatContentType =
   | "completion"
   | "error"
   | "pipeline_step"
-  | "plan_review_gate";
+  | "plan_review_gate"
+  | "scene_edit_diff";
+
+export type SceneEditedScene = {
+  scene_index: number;
+  script?: string | null;
+  speaker?: string | null;
+  duration?: number | null;
+  image_prompt?: string | null;
+  image_prompt_ko?: string | null;
+};
+
+export type SceneEditResult = {
+  editedScenes: SceneEditedScene[];
+  reasoning: string;
+  unchangedCount: number;
+};
 
 export type SettingsRecommendation = {
   status: "recommend" | "clarify";
@@ -47,6 +63,8 @@ export type ChatMessage = {
   nodeResult?: Record<string, unknown>;
   directorPlan?: Record<string, unknown>;
   skipStages?: string[];
+  editResult?: SceneEditResult;
+  editApplied?: boolean;
 };
 
 export type ActiveProgress = ScriptProgress | null;

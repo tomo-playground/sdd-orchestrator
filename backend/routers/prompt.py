@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from config import logger
+from config import cap_style_lora_weight, logger
 from database import get_db
 from schemas import (
     EditPromptRequest,
@@ -281,9 +281,11 @@ async def compose_prompt(
 
         lora_weights = None
         if request.loras:
-            lora_weights = {lora.name: lora.weight for lora in request.loras}
+            lora_weights = {lora.name: cap_style_lora_weight(lora.weight, lora.lora_type) for lora in request.loras}
         elif style_loras:
-            lora_weights = {lr["name"]: lr["weight"] for lr in style_loras}
+            lora_weights = {
+                lr["name"]: cap_style_lora_weight(lr["weight"], lr.get("lora_type", "style")) for lr in style_loras
+            }
 
         # 6. Compose negative preview
         scene_negative = ""

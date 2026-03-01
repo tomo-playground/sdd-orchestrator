@@ -94,9 +94,9 @@ export async function generateSceneImageFor(
 
   const debugPayload = { ...requestPayload };
 
-  // Try async SSE first, fallback to sync on 404/405 only
+  // Try async SSE first, fallback to sync on any SSE failure
   try {
-    const sseData = await generateWithSSE(scene.client_id, requestPayload, silent);
+    const sseData = await generateWithSSE(scene.client_id, requestPayload);
     if (sseData?.image) {
       const result = await processGeneratedImages({
         images: [sseData.image],
@@ -117,16 +117,33 @@ export async function generateSceneImageFor(
         return {
           ...result,
           debug_prompt: prompt,
-          debug_payload: JSON.stringify(debugPayload, null, 2),
+          debug_payload: JSON.stringify(
+            {
+              request: debugPayload,
+              actual: {
+                prompt: sseData.used_prompt,
+                negative_prompt: sseData.used_negative_prompt,
+                steps: sseData.used_steps,
+                cfg_scale: sseData.used_cfg_scale,
+                sampler: sseData.used_sampler,
+                seed: sseData.seed,
+              },
+            },
+            null,
+            2
+          ),
         };
       }
     }
   } catch (error) {
-    // Only fallback to sync if SSE endpoint doesn't exist
-    const isEndpointMissing =
-      axios.isAxiosError(error) &&
-      (error.response?.status === 404 || error.response?.status === 405);
-    if (!isEndpointMissing) return null;
+    // Timeout: task is still running on server, don't create duplicate via sync
+    const isTimeout = error instanceof Error && error.message.includes("timeout");
+    if (isTimeout) {
+      if (!silent) showToast("이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.", "error");
+      return null;
+    }
+    // Other SSE failures (connection refused, stream lost): fall through to sync fallback
+    console.warn("[generateSceneImageFor] SSE failed, falling back to sync");
   }
 
   return generateSync({
@@ -150,10 +167,8 @@ function clearImageGenProgress(sceneClientId: string) {
 /** SSE-based async image generation — returns raw SSE data for caller to process */
 async function generateWithSSE(
   sceneClientId: string,
-  payload: Record<string, unknown>,
-  silent: boolean
+  payload: Record<string, unknown>
 ): Promise<ImageGenProgress | null> {
-  const { showToast } = useUIStore.getState();
   const updateProgress = (p: ImageGenProgress) => {
     const { imageGenProgress } = useStoryboardStore.getState();
     useStoryboardStore.getState().set({
@@ -168,7 +183,7 @@ async function generateWithSSE(
     return final;
   } catch (error) {
     clearImageGenProgress(sceneClientId);
-    if (!silent) showToast(getErrorMsg(error, "이미지 생성 실패"), "error");
+    // Don't show toast here — caller falls back to sync which has its own error handling.
     throw error;
   }
 }
@@ -209,7 +224,21 @@ async function generateSync(opts: GenerateOpts): Promise<Partial<Scene> | null> 
         return {
           ...result,
           debug_prompt: prompt,
-          debug_payload: JSON.stringify(debugPayload, null, 2),
+          debug_payload: JSON.stringify(
+            {
+              request: debugPayload,
+              actual: {
+                prompt: res.data.used_prompt,
+                negative_prompt: res.data.used_negative_prompt,
+                steps: res.data.used_steps,
+                cfg_scale: res.data.used_cfg_scale,
+                sampler: res.data.used_sampler,
+                seed: res.data.seed,
+              },
+            },
+            null,
+            2
+          ),
         };
       }
     }
@@ -217,7 +246,21 @@ async function generateSync(opts: GenerateOpts): Promise<Partial<Scene> | null> 
     return {
       image_prompt: res.data.used_prompt || undefined,
       debug_prompt: prompt,
-      debug_payload: JSON.stringify(debugPayload, null, 2),
+      debug_payload: JSON.stringify(
+        {
+          request: debugPayload,
+          actual: {
+            prompt: res.data.used_prompt,
+            negative_prompt: res.data.used_negative_prompt,
+            steps: res.data.used_steps,
+            cfg_scale: res.data.used_cfg_scale,
+            sampler: res.data.used_sampler,
+            seed: res.data.seed,
+          },
+        },
+        null,
+        2
+      ),
     } as Partial<Scene>;
   } catch (error) {
     if (!silent) showToast(getErrorMsg(error, "이미지 생성 실패"), "error");
@@ -274,7 +317,9 @@ export async function generateSceneCandidates(
   }
   if (!candidates.length) {
     if (!silent) {
-      useUIStore.getState().showToast("3회 시도 모두 실패했습니다. 프롬프트를 확인해 주세요.", "error");
+      useUIStore
+        .getState()
+        .showToast("3회 시도 모두 실패했습니다. 프롬프트를 확인해 주세요.", "error");
     }
     return null;
   }

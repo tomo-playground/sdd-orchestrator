@@ -112,15 +112,17 @@ def _adjust_parameters(ctx: GenerationContext) -> None:
         logger.info("🔍 [StyleProfile] Auto-enabled Hi-Res for '%s'", style_ctx.profile_name)
 
     # Apply optimal LoRA weights from calibration DB
-    lora_names = extract_lora_names(ctx.prompt)
-    if lora_names:
-        try:
-            optimal_weights = get_optimal_weights_from_db(lora_names)
-            if optimal_weights:
-                ctx.prompt = apply_optimal_lora_weights(ctx.prompt, optimal_weights)
-                logger.info("🔧 [LoRA] Applied calibrated weights: %s", optimal_weights)
-        except Exception as e:
-            logger.warning("🔧 [LoRA] Failed to get optimal weights: %s", e)
+    # Skip when V3 composition was used — V3 already applies StyleProfile weights + cap
+    if not ctx.style_loras:
+        lora_names = extract_lora_names(ctx.prompt)
+        if lora_names:
+            try:
+                optimal_weights = get_optimal_weights_from_db(lora_names)
+                if optimal_weights:
+                    ctx.prompt = apply_optimal_lora_weights(ctx.prompt, optimal_weights)
+                    logger.info("🔧 [LoRA] Applied calibrated weights: %s", optimal_weights)
+            except Exception as e:
+                logger.warning("🔧 [LoRA] Failed to get optimal weights: %s", e)
 
 
 def _build_payload(ctx: GenerationContext) -> dict:
@@ -288,6 +290,10 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
 
     result = await _call_sd_api(payload, ctx)
     result["used_prompt"] = ctx.prompt
+    result["used_negative_prompt"] = ctx.negative_prompt
+    result["used_steps"] = ctx.steps
+    result["used_cfg_scale"] = ctx.cfg_scale
+    result["used_sampler"] = ctx.request.sampler_name
     result["consistency_quality"] = ctx.consistency.quality_score
 
     return result

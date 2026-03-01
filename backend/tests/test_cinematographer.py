@@ -132,8 +132,10 @@ async def test_valid_json_returns_result():
 @pytest.mark.asyncio
 async def test_json_parse_failure_no_error():
     """JSON 파싱 실패 → error 미설정, cinematographer_result=None."""
+    _CD = "services.agent.tools.base.call_direct"
     with patch(_CWT, new_callable=AsyncMock, return_value=("not json {{{", [])):
-        result = await _run(_make_state(), MagicMock())
+        with patch(_CD, new_callable=AsyncMock, return_value="still not json"):
+            result = await _run(_make_state(), MagicMock())
     assert "error" not in result
     assert result["cinematographer_result"] is None
     assert result["cinematographer_tool_logs"] == []
@@ -142,8 +144,10 @@ async def test_json_parse_failure_no_error():
 @pytest.mark.asyncio
 async def test_non_dict_response_no_error():
     """json.loads가 non-dict → error 미설정, cinematographer_result=None."""
+    _CD = "services.agent.tools.base.call_direct"
     with patch(_CWT, new_callable=AsyncMock, return_value=('"just a string"', [])):
-        result = await _run(_make_state(), MagicMock())
+        with patch(_CD, new_callable=AsyncMock, return_value='"still a string"'):
+            result = await _run(_make_state(), MagicMock())
     assert "error" not in result
     assert result["cinematographer_result"] is None
 
@@ -184,9 +188,11 @@ async def test_tool_logs_preserved_on_parse_failure():
 @pytest.mark.asyncio
 async def test_empty_scenes_key():
     """scenes 키 없는 dict → 파싱 실패로 cinematographer_result=None."""
+    _CD = "services.agent.tools.base.call_direct"
     with patch(_CWT, new_callable=AsyncMock, return_value=('{"data": "x"}', [])):
-        with patch(_QC, return_value={"ok": True, "issues": [], "checks": {}}):
-            result = await _run(_make_state(), MagicMock())
+        with patch(_CD, new_callable=AsyncMock, return_value='{"data": "y"}'):
+            with patch(_QC, return_value={"ok": True, "issues": [], "checks": {}}):
+                result = await _run(_make_state(), MagicMock())
     assert result["cinematographer_result"] is None
 
 

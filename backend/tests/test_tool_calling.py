@@ -382,7 +382,7 @@ class TestCallWithTools:
 
         mock_part_text = MagicMock()
         mock_part_text.function_call = None
-        mock_part_text.text = "중간 텍스트"
+        mock_part_text.text = '{"result": "ok"}'
 
         mock_response = MagicMock()
         mock_response.candidates = [
@@ -412,7 +412,7 @@ class TestCallWithTools:
                 max_calls=1,
             )
 
-        assert response == "중간 텍스트"
+        assert response == '{"result": "ok"}'
         # fallback 미발동 → 1회만 호출
         assert mock_client.aio.models.generate_content.call_count == 1
 

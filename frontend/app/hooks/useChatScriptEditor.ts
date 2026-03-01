@@ -5,6 +5,7 @@ import { API_BASE } from "../constants";
 import { useContextStore } from "../store/useContextStore";
 import { useUIStore } from "../store/useUIStore";
 import { useScriptEditor } from "./useScriptEditor";
+import { useSceneEditActions } from "./useSceneEditActions";
 import type { ScriptEditorActions } from "./scriptEditor";
 import type { ScriptStreamEvent } from "../types";
 import type { ChatMessage, ActiveProgress, SettingsRecommendation } from "../types/chat";
@@ -25,6 +26,8 @@ export type ChatScriptEditorActions = ScriptEditorActions & {
   confirmAndGenerate: () => void;
   clearChat: () => void;
   setInteractionMode: (mode: "auto" | "guided" | "hands_on") => void;
+  applySceneEdits: () => void;
+  rejectSceneEdit: () => void;
 };
 
 const PIPELINE_NODES = new Set([
@@ -182,11 +185,28 @@ export function useChatScriptEditor(options?: {
   const editorRef = useRef(editor);
   editorRef.current = editor;
 
+  // ── Scene edit actions (extracted hook) ──
+  const { handleEditRequest, applySceneEdits, rejectSceneEdit, isEditingRef } =
+    useSceneEditActions({
+      editorRef,
+      chatMessagesRef,
+      topicRef,
+      addMessage,
+      setChatMessages,
+    });
+
   // ── Topic analysis via API (대화형 핑퐁 지원) ──
   const sendMessage = useCallback(
     async (text: string) => {
-      if (isAnalyzingRef.current) return;
+      if (isAnalyzingRef.current || isEditingRef.current) return;
       addMessage({ id: nextId(), role: "user", contentType: "user", text, timestamp: Date.now() });
+
+      // Post-completion: 씬이 있으면 편집 모드로 전환
+      const hasCompletion = chatMessagesRef.current.some((m) => m.contentType === "completion");
+      if (hasCompletion && editorRef.current.scenes.length > 0) {
+        await handleEditRequest(text);
+        return;
+      }
 
       // 첫 user 메시지에서만 topic 설정 (ref 기반 — setState 배칭과 무관)
       if (!topicRef.current) {
@@ -258,7 +278,7 @@ export function useChatScriptEditor(options?: {
         isAnalyzingRef.current = false;
       }
     },
-    [groupId, addMessage]
+    [groupId, addMessage, handleEditRequest, isEditingRef]
   );
 
   // ── Apply recommendation fields to editor state (shared helper, refs-only → stable) ──
@@ -316,5 +336,7 @@ export function useChatScriptEditor(options?: {
     confirmAndGenerate,
     clearChat,
     setInteractionMode,
+    applySceneEdits,
+    rejectSceneEdit,
   };
 }

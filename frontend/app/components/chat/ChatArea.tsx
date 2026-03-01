@@ -32,8 +32,17 @@ export default function ChatArea({ editor }: Props) {
       onResume: editor.resume,
       onRetry: editor.confirmAndGenerate,
       onNavigate: handleNavigate,
+      onAcceptEdit: editor.applySceneEdits,
+      onRejectEdit: editor.rejectSceneEdit,
     }),
-    [editor.applyAndGenerate, editor.resume, editor.confirmAndGenerate, handleNavigate]
+    [
+      editor.applyAndGenerate,
+      editor.resume,
+      editor.confirmAndGenerate,
+      handleNavigate,
+      editor.applySceneEdits,
+      editor.rejectSceneEdit,
+    ]
   );
 
   const data: ChatMessageData = useMemo(
@@ -45,6 +54,11 @@ export default function ChatArea({ editor }: Props) {
   );
 
   const isInitialState = editor.chatMessages.length <= 1;
+  const isEditMode = useMemo(
+    () =>
+      editor.chatMessages.some((m) => m.contentType === "completion") && editor.scenes.length > 0,
+    [editor.chatMessages, editor.scenes.length]
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -87,6 +101,7 @@ export default function ChatArea({ editor }: Props) {
             hasTopic={!!editor.topic.trim()}
             interactionMode={editor.interactionMode}
             onModeChange={editor.setInteractionMode}
+            isEditMode={isEditMode}
           />
         </>
       )}

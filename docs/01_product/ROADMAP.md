@@ -29,12 +29,14 @@
 | Phase 23 (Project/Group UX 개선) | 전체 완료 (ARCHIVED) |
 | Phase 24 (Script 탭 → 하이브리드 채팅 AI) | 전체 완료 (ARCHIVED) |
 | Phase 25 (Director 자율 실행 계획) | 전체 완료 (ARCHIVED) |
-| **Phase 26 (Script 협업형 UX)** | **P0 완료** — 스트리밍 메시지 + 3단계 모드 + Plan 검토 카드 |
-| 테스트 | Backend 2,947 + Frontend 438 = **총 3,385개** |
+| **Phase 26 (Script 협업형 UX)** | **P0+P1 완료** — 스트리밍 메시지 + 3단계 모드 + Plan 검토 + 대화형 씬 수정 |
+| 테스트 | Backend 3,055 + Frontend 543 + E2E 36 = **총 3,634개** |
 
 ### 최근 작업
 
-- **Phase 26: Script 협업형 UX** (03-01): P0 완료. director_plan_gate 노드 추가(19노드), interaction_mode 3단계(auto/guided/hands_on), PipelineStepCard·PlanReviewCard 채팅 UI, 모드 선택 칩. Backend 10파일 + Frontend 11파일, 테스트 19개 추가. [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md)
+- **QA 리그레션 테스트 + 커버리지 확장** (03-01): Agent Team(backend-qa+frontend-qa+e2e-qa) 병렬 실행. 신규 테스트 246개(Backend 108+Frontend 105+E2E 33), stale test 44건 수정(Backend 8+VRT/E2E 36), Frontend 커버리지 55.6%→64.4%(+8.8%p). 런타임 버그 0건. [상세](../03_engineering/testing/BUG_REPORT.md)
+- **LoRA/프롬프트 안정화 + Debug Payload 표준화** (03-01): Shinkai StyleProfile LoRA 수정 3건(random trigger word, 가중치 cap 버그, 배경 억제 negative 수정), debug_payload `{request, actual}` 2레벨 구조 표준화(SSE+Sync 통일), seed 필드 추가(schema+frontend), `filter_prompt_tokens()` NULL tag_alias 방어, CLAUDE.md 컨벤션 추가. `select_style_trigger_words()` 헬퍼 추출, TRANSIENT_KEYS 캐릭터 필드 추가. 8파일, 코드 리뷰 2회.
+- **Phase 26: Script 협업형 UX** (03-01): P0+P1 완료. P0: director_plan_gate 노드 추가(19노드), interaction_mode 3단계, PipelineStepCard·PlanReviewCard. P1: 생성 후 대화형 씬 수정 — `POST /scripts/edit-scenes` (Gemini 단일 호출), SceneEditDiffCard(Before/After diff), Accept/Reject, 편집 모드 ChatInput. Backend 4파일 + Frontend 7파일. [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md)
 - **Danbooru 태그 품질 근본 수정** (03-01): `_apply_tag_aliases()` split 버그 수정(comma target 단일 토큰 버그), Cinematographer 템플릿 복합 포즈→분리 형식 + 금지 태그 확장, tag_aliases 18건 추가(복합 포즈 9, 복합 표현 4, 무효 태그 5), ORM 정합 수정, 테스트 9개. Storyboard 1059 전 씬 데이터 보정 완료.
 - **Phase 25: Director 자율 실행 계획** (03-01): Express/Standard/Creator 프리셋 제거. Director가 토픽 분석 → `execution_plan`으로 skip_stages 자율 결정. director_plan_lite/human_gate 제거, VALID_SKIP_STAGES에서 production 제거(항상 실행). recursion_limit 100, context_tags 저장 누락 수정, FFmpeg null→zoompan 수정. 5커밋.
 - **Studio 워크플로우 감사 수정 — 보안/안정성/UX 전면 개선** (03-01): str(e) API 노출 전면 제거, SSE polling 폴백, VoicePreset 중앙화, Orphan GC 확장, finalize negative_prompt 직접 주입, 대화형 토픽 분석. 코드 리뷰 2회, 38파일.
@@ -180,7 +182,7 @@ Phase 20 이후 또는 우선순위 미정 항목.
 |------|------|
 | YouTube Upload Phase 2~3 (Quota 대시보드, 업로드 큐, 예약 업로드) | [명세](FEATURES/YOUTUBE_UPLOAD.md) §Phase 2~3 |
 | ~~Express 모드 재검토~~ | **Phase 25에서 해결** — Director 자율 실행으로 대체. 프리셋 제거 완료 |
-| Script 생성 후 대화형 수정 루프 (씬 부분 재생성) | [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md) §P1 |
+| ~~Script 생성 후 대화형 수정 루프 (씬 부분 재생성)~~ | **Phase 26 P1에서 완료** — edit-scenes API + SceneEditDiffCard |
 | Script Canvas 분할 뷰 (좌 채팅 + 우 씬 프리뷰) | [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md) §P2 |
 
 ### Infrastructure & Scale

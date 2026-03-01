@@ -114,13 +114,11 @@ def filter_prompt_tokens(prompt: str) -> str:
         # 1. Check for Aliases first (Always apply replacements if defined)
         replacement = TagAliasCache.get_replacement(normalized)
         if replacement is not ...:
+            if not replacement:
+                # Alias maps to empty/None → skip this token
+                seen.add(normalized)
+                continue
             _get_logger().info(f"🔄 [Filter] Auto-replacing Alias: '{normalized}' -> '{replacement}'")
-            # If replacement contains multiple tags (e.g. "tag, <lora:...>"), we need to re-process them?
-            # normalize_prompt_token handles single token. If replacement is "a, b", it might need splitting?
-            # But here we are appending to 'cleaned'. Ideally we append the replacement string directly.
-            # But wait, 'cleaned' is joined by ", " at the end.
-
-            # Simple replacement
             cleaned.append(replacement)
             replaced_count += 1
             seen.add(normalized) # Mark original as seen
@@ -139,7 +137,7 @@ def filter_prompt_tokens(prompt: str) -> str:
                 seen.add(normalized)
         elif normalized in synonym_lookup:
             canonical = synonym_lookup[normalized]
-            if canonical not in seen:
+            if canonical and canonical not in seen:
                 cleaned.append(canonical)
                 seen.add(canonical)
         else:
