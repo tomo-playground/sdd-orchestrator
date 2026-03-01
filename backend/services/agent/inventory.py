@@ -113,7 +113,7 @@ def load_characters(
                 gender=char.gender or "unknown",
                 appearance_summary=_build_appearance_summary(char),
                 has_lora=bool(char.loras),
-                has_reference=bool(char.reference_images),
+                has_reference=bool(char.preview_image_asset_id),
                 usage_count=count,
             )
         )

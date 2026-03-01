@@ -198,31 +198,20 @@ def load_reference_images(character_key: str, db: Session) -> list[dict[str, Any
     from models.media_asset import MediaAsset
 
     char = db.query(Character).filter(Character.name == character_key, Character.deleted_at.is_(None)).first()
-    if not char:
+    if not char or not char.preview_image_asset_id:
         return []
 
-    # reference_images가 없으면 preview_image_asset_id로 자동 fallback
-    refs: list[dict] = char.reference_images or []
-    if not refs and char.preview_image_asset_id:
-        refs = [{"angle": "front", "asset_id": char.preview_image_asset_id}]
-        logger.debug("[IPAdapter] %s: reference_images 없음 → preview_image 자동 fallback (asset_id=%d)", character_key, char.preview_image_asset_id)
+    asset = db.query(MediaAsset).filter(MediaAsset.id == char.preview_image_asset_id).first()
+    if not asset or not asset.url:
+        return []
 
-    results: list[dict[str, Any]] = []
-    for ref in refs:
-        angle = ref.get("angle", "front")
-        asset_id = ref.get("asset_id")
-        if not asset_id:
-            continue
-        asset = db.query(MediaAsset).filter(MediaAsset.id == asset_id).first()
-        if not asset or not asset.url:
-            continue
-        try:
-            img_bytes = load_image_bytes(asset.url)
-            image_b64_str = base64.b64encode(img_bytes).decode("utf-8")
-            results.append({"angle": angle, "asset_id": asset_id, "image_b64": image_b64_str})
-        except Exception as e:
-            logger.warning("Failed to load reference angle '%s' for %s: %s", angle, character_key, e)
-    return results
+    try:
+        img_bytes = load_image_bytes(asset.url)
+        image_b64_str = base64.b64encode(img_bytes).decode("utf-8")
+        return [{"angle": "front", "asset_id": char.preview_image_asset_id, "image_b64": image_b64_str}]
+    except Exception as e:
+        logger.warning("[IPAdapter] Failed to load preview image for %s: %s", character_key, e)
+        return []
 
 
 # Angle tag mapping for select_best_reference

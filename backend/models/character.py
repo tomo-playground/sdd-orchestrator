@@ -87,7 +87,3 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
     # IP-Adapter guidance (Phase 3-A: per-character override, nullable = use config default)
     ip_adapter_guidance_start: Mapped[float | None] = mapped_column(Float)
     ip_adapter_guidance_end: Mapped[float | None] = mapped_column(Float)
-
-    # Multi-angle references (Phase 2-A)
-    # [{"angle": "front", "asset_id": 123}, {"angle": "side_left", "asset_id": 124}]
-    reference_images: Mapped[list[dict] | None] = mapped_column(JSONB)

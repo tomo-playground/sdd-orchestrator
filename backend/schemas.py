@@ -913,8 +913,6 @@ class CharacterBase(BaseModel):
     ip_adapter_model: str | None = None
     ip_adapter_guidance_start: float | None = None
     ip_adapter_guidance_end: float | None = None
-    # Multi-angle references: [{"angle": "front", "asset_id": 123}, ...]
-    reference_images: list[dict] | None = None
     voice_preset_id: int | None = None
 
 
@@ -941,7 +939,6 @@ class CharacterUpdate(BaseModel):
     ip_adapter_model: str | None = None
     ip_adapter_guidance_start: float | None = None
     ip_adapter_guidance_end: float | None = None
-    reference_images: list[dict] | None = None
     voice_preset_id: int | None = None
     tags: list[CharacterTagLink] | None = None
     # Legacy support (will be migrated to tags in router)
@@ -1963,28 +1960,6 @@ class ReferenceQualityResponse(BaseModel):
     height: int = 0
     warnings: list[str] = []
 
-
-class ReferenceAngleInput(BaseModel):
-    """Single angle reference for multi-angle upload."""
-
-    angle: str  # "front" | "side_left" | "side_right" | "back"
-    image_b64: str
-
-
-class MultiReferenceRequest(BaseModel):
-    character_key: str
-    references: list[ReferenceAngleInput]
-
-
-class MultiReferenceSaved(BaseModel):
-    angle: str
-    asset_id: int | None = None
-    filename: str
-
-
-class MultiReferenceResponse(BaseModel):
-    character_key: str
-    references: list[MultiReferenceSaved]
 
 
 class ImageStoreResponse(BaseModel):

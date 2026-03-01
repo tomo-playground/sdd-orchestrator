@@ -7,14 +7,10 @@ from sqlalchemy.orm import Session
 from config import DEFAULT_CHARACTER_PRESET, logger
 from database import get_db
 from models.character import Character
-from models.media_asset import MediaAsset
 from schemas import (
     ControlNetStatusResponse,
     DeletedKeyResponse,
     IPAdapterStatusResponse,
-    MultiReferenceRequest,
-    MultiReferenceResponse,
-    MultiReferenceSaved,
     PoseListResponse,
     PoseReferenceResponse,
     QualityInfo,
@@ -314,32 +310,3 @@ async def upload_photo_ref(request: UploadPhotoReferenceRequest, db: Session = D
         )
 
 
-@router.post("/ip-adapter/reference/multi", response_model=MultiReferenceResponse)
-async def save_multi_references(request: MultiReferenceRequest, db: Session = Depends(get_db)):
-    """Save multi-angle reference images for a character."""
-    char = db.query(Character).filter(Character.name == request.character_key).first()
-    if not char:
-        raise HTTPException(status_code=404, detail=f"Character '{request.character_key}' not found")
-
-    saved_refs: list[MultiReferenceSaved] = []
-    for ref in request.references:
-        # Save each angle as a separate reference file
-        filename = save_reference_image(f"{request.character_key}_{ref.angle}", ref.image_b64, db=db)
-        asset = (
-            db.query(MediaAsset)
-            .filter(MediaAsset.storage_key == f"shared/references/{request.character_key}_{ref.angle}.png")
-            .first()
-        )
-        saved_refs.append(
-            MultiReferenceSaved(
-                angle=ref.angle,
-                asset_id=asset.id if asset else None,
-                filename=filename,
-            )
-        )
-
-    # Update character.reference_images JSONB
-    char.reference_images = [{"angle": r.angle, "asset_id": r.asset_id} for r in saved_refs if r.asset_id]
-    db.commit()
-
-    return MultiReferenceResponse(character_key=request.character_key, references=saved_refs)
