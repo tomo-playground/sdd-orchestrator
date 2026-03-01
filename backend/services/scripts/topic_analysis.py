@@ -29,6 +29,11 @@ async def analyze_topic(
 
     inventory = load_full_inventory(group_id)
     characters = inventory.get("characters", [])
+    logger.info(
+        "[AnalyzeTopic] group_id=%s, characters=%s",
+        group_id,
+        [(c.id, c.name) for c in characters],
+    )
 
     template_vars = {
         "topic": topic,

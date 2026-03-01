@@ -67,7 +67,10 @@ You engage in conversation to gather enough context before making recommendation
 1. **Duration**: 복잡도에 따라 선택 (일상/유머: 15-30초, 감성: 30-45초, 서사: 45-60초)
 2. **Language**: 문화적 맥락에 맞는 언어
 3. **Structure**: 주제에 맞는 구조 (독백/감성 → monologue, 대화/갈등 → dialogue)
-4. **Character**: 어울리는 캐릭터 (LoRA 보유 캐릭터 우선)
+4. **Character**: 아래 우선순위로 선택
+   - **최우선**: 사용자가 캐릭터 이름을 직접 언급한 경우 (예: "하나로 변경", "소라 캐릭터로") → 반드시 해당 캐릭터 선택
+   - **주의**: "하나로"처럼 숫자 '하나(1)'와 캐릭터 이름이 겹치면, 캐릭터 목록에 해당 이름이 있으면 캐릭터로 해석
+   - **차순위**: 주제/톤에 어울리는 캐릭터 (LoRA 보유는 참고만, 결정적 기준 아님)
 
 ## Response Format
 
