@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-03-01)
+## 현재 상태 (2026-03-02)
 
 | 항목 | 상태 |
 |------|------|
@@ -34,6 +34,7 @@
 
 ### 최근 작업
 
+- **Realistic 배경 품질 + 프롬프트 방어 강화** (03-02): ① Realistic 배경 생성 품질 개선 — `_generate_background_image`에 `_adjust_parameters()` 적용(StyleProfile steps/cfg/sampler/Hi-Res), default_positive → 포토그래피 태그(`RAW photo, soft ambient lighting, muted tones, 35mm film`), Civitai 권장 negative(deformed iris/pupils, semi-realistic) + UnrealisticDream 임베딩 교체. ② Style Conflict Filter — `_tag_base_key()`로 가중치 토큰`(anime:1.3)` 필터링 수정, 템플릿 Realistic 금지 태그 명시. ③ Negative Prompt 3-레이어 원칙 정립 — StyleProfile=품질/화풍, Character=캐릭터 특화, `normalize_negative_prompt()` 가중치 우선 dedup, 전체 13개 캐릭터 custom_negative_prompt 정리. ④ `_ensure_framing_tag()` — standing+framing 없을 때 full_body 자동 삽입(4개 compose 메서드). ⑤ 캐릭터 base_prompt 수정 — 수빈/지호 Gemini 안전 위반 표현 제거(10 year old→chibi tags), 하나/소라 null→기본 설명 추가. ⑥ Makoto Shinkai StyleProfile 수정 — positive 괄호 그룹 버그, negative embedding 텍스트 중복 제거. ⑦ Code Review P1 fixes — `Any` 반환 타입, None 가드, token-exact 매칭, `_SKIP_ENV_REF_TAGS` 모듈 상수. PROMPT_SPEC_V2.md 섹션 11 대폭 보강.
 - **TTS 시드 결정론화 + Narrator 옵션 스피커** (03-01): ① Video 삭제 404 버그(`ADMIN_API_BASE`→`API_BASE`) 수정. ② TTS 시드 불일치 근본 수정 — `hash()` → `hashlib.sha256`, `TTS_DEFAULT_SEED=42` 상수화, `_resolve_voice_preset_id` preset bypass 제거, `_get_voice_design_for_scene` 우선순위 역전(preset 항상 우선). ③ Narrator 옵션 스피커 — Monologue/Dialogue/Confession 전 구조에서 Narrator 선택적 허용, `_VALID_SPEAKERS` 모듈 상수, creative_qc+review+revise 검증/auto-fix 업데이트, 템플릿 3개, tts_designer Narrator 컨텍스트 로딩. 테스트 12개 추가.
 - **QA 리그레션 테스트 + 커버리지 확장** (03-01): Agent Team(backend-qa+frontend-qa+e2e-qa) 병렬 실행. 신규 테스트 246개(Backend 108+Frontend 105+E2E 33), stale test 44건 수정(Backend 8+VRT/E2E 36), Frontend 커버리지 55.6%→64.4%(+8.8%p). 런타임 버그 0건. [상세](../03_engineering/testing/BUG_REPORT.md)
 - **LoRA/프롬프트 안정화 + Debug Payload 표준화** (03-01): Shinkai StyleProfile LoRA 수정 3건(random trigger word→결정적 선택, 가중치 cap 중복 로직→공통 헬퍼 추출, 배경 억제 negative 수정), debug_payload `{request, actual}` 2레벨 구조 표준화(SSE+Sync 통일), seed 필드 추가(schema+frontend), `filter_prompt_tokens()` NULL tag_alias 방어, TRANSIENT_KEYS 캐릭터 필드 추가, SSE timeout 감지 강화. 10파일, 코드 리뷰 2회.
