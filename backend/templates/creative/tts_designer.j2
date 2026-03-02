@@ -68,6 +68,7 @@ IMPORTANT:
     {
       "scene_id": 1,
       "voice_design_prompt": "Very annoyed tone, sounding like they have a cold.",
+      "voice_design_prompt_ko": "매우 짜증난 톤으로, 감기에 걸린 듯한 쉰 목소리.",
       "pacing": {
         "head_padding": 0.2,
         "tail_padding": 0.5
@@ -82,4 +83,7 @@ IMPORTANT:
 }
 ```
 
-CRITICAL: The `voice_design_prompt` MUST be in English. The reasoning or internal thoughts (if any) can be in {{ language }}.
+CRITICAL:
+- `voice_design_prompt` MUST be in English (used by TTS engine directly).
+- `voice_design_prompt_ko` MUST be in Korean — a brief, natural-language explanation of the voice direction for this scene (1-2 sentences). Omit for `skip: true` scenes.
+- For [PRESET CONFIGURED] speakers, omit both `voice_design_prompt` and `voice_design_prompt_ko`.

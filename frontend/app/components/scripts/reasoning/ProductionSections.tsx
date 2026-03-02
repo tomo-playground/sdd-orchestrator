@@ -71,6 +71,7 @@ export function TtsDesignerSection({ data }: SectionProps) {
       {designs.map((d, i) => {
         const pacing = d.pacing as Record<string, number> | undefined;
         const voicePrompt = d.voice_design_prompt ? String(d.voice_design_prompt) : null;
+        const voicePromptKo = d.voice_design_prompt_ko ? String(d.voice_design_prompt_ko) : null;
         return (
           <div key={i} className="rounded-lg bg-zinc-50 px-3 py-2">
             <div className="flex items-center gap-2">
@@ -83,7 +84,8 @@ export function TtsDesignerSection({ data }: SectionProps) {
                 </span>
               )}
             </div>
-            {voicePrompt && <p className="mt-0.5 text-[11px] text-zinc-600">{voicePrompt}</p>}
+            {voicePrompt && <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-600">{voicePrompt}</p>}
+            {voicePromptKo && <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-400">{voicePromptKo}</p>}
           </div>
         );
       })}
