@@ -146,6 +146,7 @@ async def _generate_background_image(
     location_tags: list[str],
     style_loras: list[dict],
     quality_tags: list[str] | None,
+    negative_tags: str | None,
     db: Session,
 ) -> bytes | None:
     """Generate a single no_humans background image via SD WebUI."""
@@ -164,6 +165,10 @@ async def _generate_background_image(
     negative = f"{DEFAULT_SCENE_NEGATIVE_PROMPT}, {NARRATOR_NEGATIVE_PROMPT_EXTRA}, {_ANTI_SEPIA_NEGATIVE}"
     if V3PromptBuilder._is_anime_style(quality_tags):
         negative = f"{negative}, {_ANTI_REALISTIC_NEGATIVE}"
+    
+    if negative_tags:
+        negative = f"{negative}, {negative_tags}"
+
     request = SceneGenerateRequest(prompt=prompt, negative_prompt=negative)
     ctx = GenerationContext(request=request)
     ctx.prompt = prompt
@@ -224,6 +229,7 @@ async def generate_location_backgrounds(
     style_ctx = resolve_style_context(storyboard_id, db)
     style_loras = extract_style_loras(style_ctx)
     quality_tags = style_ctx.default_positive.split(", ") if style_ctx and style_ctx.default_positive else None
+    negative_tags = style_ctx.default_negative if style_ctx else None
     style_profile_id = style_ctx.profile_id if style_ctx else None
 
     if style_ctx and style_ctx.sd_model_name:
@@ -268,7 +274,7 @@ async def generate_location_backgrounds(
             db.flush()
 
         # Generate image
-        img_bytes = await _generate_background_image(loc_info["tags"], style_loras, quality_tags, db)
+        img_bytes = await _generate_background_image(loc_info["tags"], style_loras, quality_tags, negative_tags, db)
         if not img_bytes:
             results.append({"location_key": loc_key, "background_id": bg.id, "status": "failed"})
             continue
@@ -404,13 +410,14 @@ async def regenerate_background(
     style_ctx = resolve_style_context(storyboard_id, db)
     style_loras = extract_style_loras(style_ctx)
     quality_tags = style_ctx.default_positive.split(", ") if style_ctx and style_ctx.default_positive else None
+    negative_tags = style_ctx.default_negative if style_ctx else None
 
     if style_ctx and style_ctx.sd_model_name:
         from services.image_generation_core import _ensure_correct_checkpoint
 
         await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
-    img_bytes = await _generate_background_image(bg.tags or [], style_loras, quality_tags, db)
+    img_bytes = await _generate_background_image(bg.tags or [], style_loras, quality_tags, negative_tags, db)
     if not img_bytes:
         return {"background_id": bg.id, "status": "failed"}
 
