@@ -387,16 +387,8 @@ class V3PromptBuilder:
         if quality_tags:
             layers[LAYER_QUALITY].extend(quality_tags)
 
-        # L1 Subject — no_humans + scenery + style-aware enforcement
+        # L1 Subject — no_humans + scenery
         layers[LAYER_SUBJECT].extend([BACKGROUND_SCENE_MARKER, "scenery"])
-        if self._is_anime_style(quality_tags):
-            layers[LAYER_SUBJECT].extend(
-                [
-                    "anime_style",
-                    "illustration",
-                    "2d",
-                ]
-            )
 
         # L9 Camera — wide_shot default for background
         layers[LAYER_CAMERA].append("wide_shot")
@@ -427,13 +419,6 @@ class V3PromptBuilder:
 
         return self._flatten_layers(layers)
 
-    @staticmethod
-    def _is_anime_style(quality_tags: list[str] | None) -> bool:
-        """Detect anime style from quality tags (derived from StyleProfile.default_positive)."""
-        if not quality_tags:
-            return False  # unknown style → don't add anime-specific negative tags
-        joined = " ".join(t.lower().replace("_", " ") for t in quality_tags)
-        return any(kw in joined for kw in ("anime", "cel shading", "illustration", "2d"))
 
     @staticmethod
     def _strip_character_layers(layers: list[list[str]]) -> None:

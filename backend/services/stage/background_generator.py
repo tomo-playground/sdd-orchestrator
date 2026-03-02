@@ -26,11 +26,6 @@ from services.asset_service import AssetService
 from services.keywords.db_cache import TagAliasCache
 from services.style_context import extract_style_loras, resolve_style_context
 
-# Anti-realistic tags to force anime style for backgrounds
-_ANTI_REALISTIC_NEGATIVE = "realistic, photorealistic, photo, 3d, render, cgi, photograph"
-# Anti-sepia: prevent washed-out monochrome backgrounds
-_ANTI_SEPIA_NEGATIVE = "monochrome, sepia, desaturated, washed_out, greyscale, faded"
-
 # ── Location extraction ──────────────────────────────────────────────
 
 _LOCATION_GROUP_PREFIX = "location_"
@@ -162,9 +157,7 @@ async def _generate_background_image(
         style_loras=style_loras,
     )
 
-    negative = f"{DEFAULT_SCENE_NEGATIVE_PROMPT}, {NARRATOR_NEGATIVE_PROMPT_EXTRA}, {_ANTI_SEPIA_NEGATIVE}"
-    if V3PromptBuilder._is_anime_style(quality_tags):
-        negative = f"{negative}, {_ANTI_REALISTIC_NEGATIVE}"
+    negative = f"{DEFAULT_SCENE_NEGATIVE_PROMPT}, {NARRATOR_NEGATIVE_PROMPT_EXTRA}"
     
     if negative_tags:
         negative = f"{negative}, {negative_tags}"
