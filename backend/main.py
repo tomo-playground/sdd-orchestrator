@@ -140,6 +140,14 @@ app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
 from config import CORS_ORIGINS  # noqa: E402
 from config import logger as _logger  # noqa: E402
 
+import logging
+
+class HealthCheckFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.getMessage().find("GET /health") == -1
+
+logging.getLogger("uvicorn.access").addFilter(HealthCheckFilter())
+
 _cors_credentials = True
 if "*" in CORS_ORIGINS:
     _logger.error(
