@@ -53,6 +53,7 @@ class TestLoadCharacterVoiceContext:
         assert result[0]["name"] == "미도리"
         assert result[0]["gender"] == "male"
         assert "reference_voice" not in result[0]
+        assert result[0]["has_preset"] is False
 
     @patch("database.get_db_session")
     def test_two_characters_with_voice_preset(self, mock_db_ctx):
@@ -103,9 +104,11 @@ class TestLoadCharacterVoiceContext:
         assert result[0]["speaker"] == "A"
         assert result[0]["gender"] == "male"
         assert result[0]["reference_voice"] == "Deep masculine voice"
+        assert result[0]["has_preset"] is True
         assert result[1]["speaker"] == "B"
         assert result[1]["gender"] == "female"
         assert result[1]["reference_voice"] == "Soft feminine voice"
+        assert result[1]["has_preset"] is True
 
     @patch("database.get_db_session")
     def test_character_not_found_skipped(self, mock_db_ctx):

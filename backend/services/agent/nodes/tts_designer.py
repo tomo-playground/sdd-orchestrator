@@ -39,11 +39,13 @@ def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
                 "speaker": speaker,
                 "name": char.name,
                 "gender": char.gender or "female",
+                "has_preset": False,
             }
             if char.voice_preset_id:
                 preset = db.query(VoicePreset).filter(VoicePreset.id == char.voice_preset_id).first()
                 if preset and preset.voice_design_prompt:
                     info["reference_voice"] = preset.voice_design_prompt
+                    info["has_preset"] = True
             results.append(info)
 
         # Narrator 보이스 — 그룹의 narrator_voice_preset 관계에서 로드 (추가 쿼리 없음)
@@ -55,6 +57,7 @@ def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
                     "name": "Narrator",
                     "gender": "neutral",
                     "reference_voice": group.narrator_voice_preset.voice_design_prompt,
+                    "has_preset": True,
                 })
 
     return results if results else None
