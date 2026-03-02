@@ -101,13 +101,19 @@ export default function StageLocationsSection({ storyboardId, onStatusChange }: 
           return next;
         });
       }
-      await fetchStatus();
+      try {
+        await fetchStatus();
+      } finally {
+        setIsGenerating(false);
+      }
       if (failCount > 0) {
+        if (failCount === allKeys.length) {
+          useStoryboardStore.getState().set({ stageStatus: "failed" });
+        }
         showToast(`${failCount}개 배경 재생성 실패`, "error");
       } else {
         showToast("전체 배경 재생성 완료", "success");
       }
-      setIsGenerating(false);
     } else {
       // First-time generation (batch)
       setIsGenerating(true);
