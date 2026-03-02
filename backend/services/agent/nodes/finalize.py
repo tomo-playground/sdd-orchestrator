@@ -376,13 +376,15 @@ def _auto_populate_scene_flags(
 
 
 def _flatten_tts_designs(scenes: list[dict]) -> None:
-    """tts_design dict → voice_design_prompt, head_padding, tail_padding 분해."""
+    """tts_design dict → voice_design_prompt, head_padding, tail_padding, scene_emotion 분해."""
     for scene in scenes:
         tts = scene.pop("tts_design", None)
         if not tts or tts.get("skip"):
             continue
         if vdp := tts.get("voice_design_prompt"):
             scene["voice_design_prompt"] = vdp
+        if emotion := tts.get("emotion"):
+            scene["scene_emotion"] = emotion
         pacing = tts.get("pacing") or {}
         if (hp := pacing.get("head_padding")) is not None:
             scene["head_padding"] = hp

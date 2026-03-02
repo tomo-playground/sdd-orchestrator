@@ -15,6 +15,7 @@ export default function ScriptTab() {
     (id: number) => {
       router.replace(`/studio?id=${id}`);
       useUIStore.getState().setActiveTab("stage");
+      useUIStore.getState().setPendingAutoRun(true);
     },
     [router]
   );

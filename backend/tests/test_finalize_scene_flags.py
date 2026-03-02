@@ -121,6 +121,55 @@ class TestAutoPopulateSceneFlags:
         assert scenes[2]["use_ip_adapter"] is True
 
 
+class TestFlattenTtsDesigns:
+    """Tests for _flatten_tts_designs — tts_design dict 분해 로직."""
+
+    def test_extracts_voice_design_prompt(self):
+        """voice_design_prompt가 scene에 복사된다."""
+        from services.agent.nodes.finalize import _flatten_tts_designs
+
+        scenes = [{"tts_design": {"voice_design_prompt": "warm tone", "pacing": {}}}]
+        _flatten_tts_designs(scenes)
+        assert scenes[0]["voice_design_prompt"] == "warm tone"
+        assert "tts_design" not in scenes[0]
+
+    def test_extracts_scene_emotion(self):
+        """emotion 필드가 scene_emotion으로 복사된다."""
+        from services.agent.nodes.finalize import _flatten_tts_designs
+
+        scenes = [{"tts_design": {"emotion": "frustrated", "pacing": {}}}]
+        _flatten_tts_designs(scenes)
+        assert scenes[0]["scene_emotion"] == "frustrated"
+
+    def test_preset_scene_emotion_without_voice_design_prompt(self):
+        """preset 캐릭터: voice_design_prompt 없어도 emotion은 추출된다."""
+        from services.agent.nodes.finalize import _flatten_tts_designs
+
+        scenes = [{"tts_design": {"emotion": "happy", "pacing": {"head_padding": 0.2, "tail_padding": 0.8}}}]
+        _flatten_tts_designs(scenes)
+        assert scenes[0].get("voice_design_prompt") is None
+        assert scenes[0]["scene_emotion"] == "happy"
+        assert scenes[0]["head_padding"] == 0.2
+        assert scenes[0]["tail_padding"] == 0.8
+
+    def test_skip_scene_not_extracted(self):
+        """skip=True 씬은 아무것도 추출하지 않는다."""
+        from services.agent.nodes.finalize import _flatten_tts_designs
+
+        scenes = [{"tts_design": {"skip": True, "emotion": "sad"}}]
+        _flatten_tts_designs(scenes)
+        assert "scene_emotion" not in scenes[0]
+        assert "voice_design_prompt" not in scenes[0]
+
+    def test_no_tts_design_unchanged(self):
+        """tts_design 없는 씬은 그대로 유지된다."""
+        from services.agent.nodes.finalize import _flatten_tts_designs
+
+        scenes = [{"speaker": "A", "script": "hello"}]
+        _flatten_tts_designs(scenes)
+        assert scenes[0] == {"speaker": "A", "script": "hello"}
+
+
 class TestDialogueCharacterBFlags:
     """Dialogue 구조: character_b_id 기반 speaker B ControlNet/IP-Adapter 테스트."""
 

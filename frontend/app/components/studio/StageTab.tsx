@@ -19,6 +19,7 @@ import StageLocationsSection from "./StageLocationsSection";
 import StageCharactersSection from "./StageCharactersSection";
 import StageVoiceSection from "./StageVoiceSection";
 import StageBgmSection from "./StageBgmSection";
+import StageScenePrepSection from "./StageScenePrepSection";
 import InfoTooltip from "../ui/InfoTooltip";
 
 export default function StageTab() {
@@ -178,6 +179,7 @@ export default function StageTab() {
           </div>
         </section>
 
+        <StageScenePrepSection />
         <StageLocationsSection storyboardId={storyboardId} onStatusChange={handleLocStatusChange} />
         <StageCharactersSection audioPlayer={audioPlayer} voicePresets={voicePresets} />
         <StageVoiceSection audioPlayer={audioPlayer} voicePresets={voicePresets} />

@@ -141,13 +141,21 @@ def _append_history(state: ScriptState) -> list[dict]:
     """현재 review_result + reflection을 revision_history에 추가."""
     history = list(state.get("revision_history") or [])
     review = state.get("review_result") or {}
+    narrative = review.get("narrative_score") or {}
     entry: dict = {
         "attempt": len(history) + 1,
         "errors": review.get("errors", []),
+        "warnings": review.get("warnings", []),
         "reflection": state.get("review_reflection"),
         "score": state.get("director_checkpoint_score"),
         "tier": "pending",  # 아래에서 실제 tier로 업데이트
     }
+    # narrative_score: 재생성 이유가 서사 품질 미달인 경우에만 포함
+    if narrative.get("overall") is not None:
+        entry["narrative_score"] = {
+            "overall": narrative["overall"],
+            "feedback": narrative.get("feedback"),
+        }
     history.append(entry)
     return history
 

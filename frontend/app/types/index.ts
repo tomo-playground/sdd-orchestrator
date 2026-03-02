@@ -856,9 +856,11 @@ export type QualityGate = {
 export type RevisionHistoryEntry = {
   attempt: number;
   errors?: string[];
+  warnings?: string[];
   reflection?: string;
   score?: number;
   tier?: "rule_fix" | "expansion" | "regeneration";
+  narrative_score?: { overall: number; feedback?: string };
 };
 
 export type DebateLogEntry = {

@@ -47,6 +47,23 @@ export default function RevisionHistorySection({ history }: Props) {
                 </ul>
               )}
 
+              {entry.warnings && entry.warnings.length > 0 && (
+                <ul className="mt-1 space-y-0.5">
+                  {entry.warnings.map((w, j) => (
+                    <li key={j} className="text-[11px] leading-relaxed text-amber-600">
+                      {w}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {entry.narrative_score != null && (
+                <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
+                  서사 점수 {Math.round(entry.narrative_score.overall * 100)}%
+                  {entry.narrative_score.feedback && ` · ${entry.narrative_score.feedback}`}
+                </p>
+              )}
+
               {entry.reflection && (
                 <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">{entry.reflection}</p>
               )}
