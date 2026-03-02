@@ -67,6 +67,7 @@ IMPORTANT:
   "tts_designs": [
     {
       "scene_id": 1,
+      "emotion": "frustrated",
       "voice_design_prompt": "Very annoyed tone, sounding like they have a cold.",
       "voice_design_prompt_ko": "매우 짜증난 톤으로, 감기에 걸린 듯한 쉰 목소리.",
       "pacing": {
@@ -84,6 +85,7 @@ IMPORTANT:
 ```
 
 CRITICAL:
+- `emotion` MUST always be included (copy from `context_tags.emotion`). Required for ALL scenes including [PRESET CONFIGURED] speakers.
 - `voice_design_prompt` MUST be in English (used by TTS engine directly).
 - `voice_design_prompt_ko` MUST be in Korean — a brief, natural-language explanation of the voice direction for this scene (1-2 sentences). Omit for `skip: true` scenes.
-- For [PRESET CONFIGURED] speakers, omit both `voice_design_prompt` and `voice_design_prompt_ko`.
+- For [PRESET CONFIGURED] speakers, omit both `voice_design_prompt` and `voice_design_prompt_ko`, but ALWAYS include `emotion` and `pacing`.

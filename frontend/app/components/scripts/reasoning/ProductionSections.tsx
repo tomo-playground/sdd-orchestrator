@@ -70,6 +70,7 @@ export function TtsDesignerSection({ data }: SectionProps) {
       <p className="text-[11px] text-zinc-500">{designs.length}개 씬 음성 설계</p>
       {designs.map((d, i) => {
         const pacing = d.pacing as Record<string, number> | undefined;
+        const emotion = d.emotion ? String(d.emotion) : null;
         const voicePrompt = d.voice_design_prompt ? String(d.voice_design_prompt) : null;
         const voicePromptKo = d.voice_design_prompt_ko ? String(d.voice_design_prompt_ko) : null;
         return (
@@ -78,6 +79,11 @@ export function TtsDesignerSection({ data }: SectionProps) {
               <span className="text-[11px] font-medium text-zinc-400">
                 #{String(d.scene_id ?? i + 1)}
               </span>
+              {emotion && (
+                <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[11px] text-rose-600">
+                  {emotion}
+                </span>
+              )}
               {pacing && (
                 <span className="text-[11px] text-zinc-400">
                   pad: {pacing.head_padding ?? 0}s / {pacing.tail_padding ?? 0}s
