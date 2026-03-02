@@ -14,9 +14,19 @@ from services.prompt.v3_composition import select_style_trigger_words
 
 
 def apply_style_profile_to_prompt(
-    prompt: str, negative_prompt: str, storyboard_id: int | None, db, *, skip_loras: bool = False
+    prompt: str,
+    negative_prompt: str,
+    storyboard_id: int | None,
+    db,
+    *,
+    skip_loras: bool = False,
+    skip_quality: bool = False,
 ) -> tuple[str, str]:
     """Apply Style Profile settings from Storyboard to prompt.
+
+    Args:
+        skip_quality: True이면 quality tags(default_positive) prepend를 건너뛴다.
+            V3 Builder가 L0에 직접 배치할 때 이중 주입 방지.
 
     Returns: (modified_prompt, modified_negative_prompt)
     """
@@ -33,7 +43,7 @@ def apply_style_profile_to_prompt(
         logger.info("🎨 [Style Profile] Applying '%s' (ID: %d)", ctx.profile_name, ctx.profile_id)
 
         lora_tags, trigger_words = _build_lora_parts(ctx, prompt, skip_loras)
-        modified_prompt = _compose_positive(ctx, prompt, lora_tags, trigger_words)
+        modified_prompt = _compose_positive(ctx, prompt, lora_tags, trigger_words, skip_quality=skip_quality)
         modified_negative = _compose_negative(ctx, negative_prompt)
 
         logger.info(
@@ -77,13 +87,16 @@ def _build_lora_parts(ctx, prompt: str, skip_loras: bool) -> tuple[list[str], li
     return lora_tags, trigger_words
 
 
-def _compose_positive(ctx, prompt: str, lora_tags: list[str], trigger_words: list[str]) -> str:
+def _compose_positive(
+    ctx, prompt: str, lora_tags: list[str], trigger_words: list[str], *, skip_quality: bool = False
+) -> str:
     """Compose final positive prompt with deduplication."""
     existing_normalized = {normalize_prompt_token(t) for t in split_prompt_tokens(prompt) if normalize_prompt_token(t)}
     parts: list[str] = []
 
     # 1. Default positive prompt (quality tags), skip tokens already in prompt
-    if ctx.default_positive:
+    # skip_quality=True: V3 Builder가 L0에 직접 배치 → 여기선 건너뜀
+    if ctx.default_positive and not skip_quality:
         new_tokens = [
             t for t in split_prompt_tokens(ctx.default_positive) if normalize_prompt_token(t) not in existing_normalized
         ]

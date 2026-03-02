@@ -459,6 +459,7 @@ class V3PromptBuilder:
         character: Character | None = None,
         scene_character_actions: list[dict] | None = None,
         clothing_override: list[str] | None = None,
+        quality_tags: list[str] | None = None,
     ) -> str:
         """Composes a prompt specifically for a Character project."""
         # Defense: character_id is explicitly set, so strip no_humans instead of
@@ -493,6 +494,10 @@ class V3PromptBuilder:
         # 4. Initialize 12 layers
         layers: list[list[str]] = [[] for _ in range(12)]
 
+        # 4b. L0 quality tags (Tier 1: style_profile 소유)
+        if quality_tags:
+            layers[LAYER_QUALITY].extend(quality_tags)
+
         # 5-6. Distribute character + scene tags into layers
         self._distribute_tags(char_tags_data, scene_tags, scene_tag_info, layers)
 
@@ -526,20 +531,33 @@ class V3PromptBuilder:
         DB tags: layer/group_name from Tag model.
         custom_base_prompt tags: layer/group_name resolved via get_tag_info()
         (DB lookup → pattern fallback) instead of hardcoding LAYER_IDENTITY.
+
+        Dedup rules (Tier 소유권):
+        - DB 태그 먼저 수집 → seen_names set 구성
+        - custom_base_prompt 순회 시 동일 normalized name이면 skip
+        - 같은 group_name이면 custom이 DB를 대체 (override)
         """
-        char_tags_data = []
+        char_tags_data: list[dict] = []
+        seen_names: set[str] = set()
+        seen_groups: dict[str, int] = {}  # group_name → char_tags_data index
+
+        # Phase 1: DB tags
         for char_tag in character.tags:
             tag = char_tag.tag
-            char_tags_data.append(
-                {
-                    "name": tag.name,
-                    "layer": tag.default_layer,
-                    "weight": char_tag.weight,
-                    "is_permanent": char_tag.is_permanent,
-                    "group_name": tag.group_name,
-                }
-            )
+            norm = tag.name.lower().replace(" ", "_").strip()
+            entry = {
+                "name": tag.name,
+                "layer": tag.default_layer,
+                "weight": char_tag.weight,
+                "is_permanent": char_tag.is_permanent,
+                "group_name": tag.group_name,
+            }
+            if tag.group_name:
+                seen_groups[tag.group_name] = len(char_tags_data)
+            char_tags_data.append(entry)
+            seen_names.add(norm)
 
+        # Phase 2: custom_base_prompt (보완 역할, 중복 skip)
         TagFilterCache.initialize(self.db)
         if character.custom_base_prompt:
             custom_tags = [t.strip() for t in character.custom_base_prompt.split(",")]
@@ -550,16 +568,27 @@ class V3PromptBuilder:
                 tag_info_map = self.get_tag_info(normalized)
 
                 for bt, norm in zip(custom_tags, normalized):
+                    if norm in seen_names:
+                        continue  # 동일 태그 → skip
                     info = tag_info_map.get(norm, {})
-                    char_tags_data.append(
-                        {
-                            "name": bt,
-                            "layer": info.get("layer", LAYER_IDENTITY),
-                            "weight": 1.0,
-                            "is_permanent": True,
-                            "group_name": info.get("group_name"),
-                        }
-                    )
+                    gn = info.get("group_name")
+                    new_entry = {
+                        "name": bt,
+                        "layer": info.get("layer", LAYER_IDENTITY),
+                        "weight": 1.0,
+                        "is_permanent": True,
+                        "group_name": gn,
+                    }
+                    # 같은 group이면 custom이 DB를 대체 (override)
+                    if gn and gn in seen_groups:
+                        idx = seen_groups[gn]
+                        char_tags_data[idx] = new_entry
+                        seen_names.add(norm)
+                        continue
+                    char_tags_data.append(new_entry)
+                    seen_names.add(norm)
+                    if gn:
+                        seen_groups[gn] = len(char_tags_data) - 1
 
         return char_tags_data
 
@@ -814,10 +843,16 @@ class V3PromptBuilder:
         tags: list[str],
         character_loras: list[dict] | None = None,
         style_loras: list[dict] | None = None,
+        quality_tags: list[str] | None = None,
     ) -> str:
         """Generic composition without direct DB character object."""
         tags = self._resolve_aliases(tags)
         layers: list[list[str]] = [[] for _ in range(12)]
+
+        # L0 quality tags (Tier 1: style_profile 소유)
+        if quality_tags:
+            layers[LAYER_QUALITY].extend(quality_tags)
+
         tag_info = self.get_tag_info(tags)
 
         for tag in tags:

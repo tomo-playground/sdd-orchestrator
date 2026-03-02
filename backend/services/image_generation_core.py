@@ -286,9 +286,9 @@ def compose_scene_with_style(
 
     warnings: list[str] = []
 
-    # 1. Apply style profile quality tags + embedding triggers (LoRAs handled by V3)
+    # 1. Apply style profile embedding triggers (LoRAs + quality handled by V3 L0)
     styled_prompt, modified_negative = apply_style_profile_to_prompt(
-        raw_prompt, negative_prompt, storyboard_id, db, skip_loras=True
+        raw_prompt, negative_prompt, storyboard_id, db, skip_loras=True, skip_quality=True
     )
 
     # 2. V3 composition
@@ -300,11 +300,14 @@ def compose_scene_with_style(
 
         scene_tags = merge_tags_dedup(scene_tags, background_tags)
 
-    # Resolve sd_model_base for LoRA compatibility checking
+    # Resolve StyleContext once: sd_model_base + quality_tags
     sd_model_base: str | None = None
+    quality_tags: list[str] | None = None
     style_ctx = resolve_style_context(storyboard_id, db) if storyboard_id else None
     if style_ctx:
         sd_model_base = style_ctx.sd_model_base or None
+        if style_ctx.default_positive:
+            quality_tags = split_prompt_tokens(style_ctx.default_positive)
 
     builder = V3PromptBuilder(db, sd_model_base=sd_model_base)
 
@@ -345,6 +348,7 @@ def compose_scene_with_style(
                 scene_tags,
                 style_loras=style_loras,
                 scene_character_actions=scene_character_actions,
+                quality_tags=quality_tags,
             )
         else:
             composed = builder.compose_for_character(
@@ -354,6 +358,7 @@ def compose_scene_with_style(
                 character=character,
                 scene_character_actions=scene_character_actions,
                 clothing_override=clothing_override,
+                quality_tags=quality_tags,
             )
     elif character:
         composed = builder.compose_for_character(
@@ -363,9 +368,10 @@ def compose_scene_with_style(
             character=character,
             scene_character_actions=scene_character_actions,
             clothing_override=clothing_override,
+            quality_tags=quality_tags,
         )
     else:
-        composed = builder.compose(scene_tags, style_loras=style_loras)
+        composed = builder.compose(scene_tags, style_loras=style_loras, quality_tags=quality_tags)
 
     # 3. Merge character negative prompts (custom + recommended, both chars)
     for char in [character, char_b]:

@@ -2573,3 +2573,147 @@ class TestStripCharBaseFromScene:
         # gentle_smile should NOT appear — stripped from scene + overridden from char
         assert "gentle_smile" not in result
         assert "outdoors" in result
+
+
+# ────────────────────────────────────────────
+# Tier Ownership: quality_tags L0 injection
+# ────────────────────────────────────────────
+
+
+class TestQualityTagsL0Injection:
+    """quality_tags 파라미터로 L0에 직접 배치 테스트."""
+
+    def test_quality_tags_param_populates_l0(self, builder):
+        """quality_tags 전달 시 L0에 배치 확인."""
+        quality = ["RAW photo", "ultra realistic"]
+        with patch.object(builder, "get_tag_info", return_value={}):
+            result = builder.compose(["1girl"], quality_tags=quality)
+        assert "RAW photo" in result
+        assert "ultra realistic" in result
+        # Quality tags는 프롬프트 앞쪽 (L0)에 위치해야 함
+        raw_idx = result.find("RAW photo")
+        girl_idx = result.find("1girl")
+        assert raw_idx < girl_idx
+
+    def test_ensure_quality_skips_when_l0_filled(self, builder):
+        """L0이 이미 채워져 있으면 _ensure_quality_tags fallback 미주입."""
+        layers = [["RAW photo"]] + [[] for _ in range(11)]
+        V3PromptBuilder._ensure_quality_tags(layers)
+        # FALLBACK_QUALITY_TAGS가 추가되지 않아야 함
+        assert layers[LAYER_QUALITY] == ["RAW photo"]
+
+    def test_quality_tags_in_compose_for_character(self, builder):
+        """compose_for_character에서 quality_tags L0 배치 확인."""
+        char = MagicMock()
+        char.id = 1
+        char.gender = "female"
+        char.custom_base_prompt = None
+        char.tags = []
+        char.loras = []
+        char.reference_base_prompt = None
+
+        builder.db.query.return_value.filter.return_value.first.return_value = char
+
+        quality = ["masterpiece", "best_quality"]
+        with patch.object(builder, "get_tag_info", return_value={}):
+            result = builder.compose_for_character(
+                character_id=1,
+                scene_tags=["smile", "outdoors"],
+                quality_tags=quality,
+            )
+        assert "masterpiece" in result
+        assert "best_quality" in result
+
+    def test_quality_not_in_scene_tags_when_skip_quality(self):
+        """skip_quality=True 시 _compose_positive에서 quality 미포함 확인."""
+        from services.generation_style import _compose_positive
+
+        ctx = MagicMock()
+        ctx.default_positive = "masterpiece, best_quality"
+        ctx.positive_embeddings = []
+
+        result = _compose_positive(ctx, "1girl, smile", [], [], skip_quality=True)
+        assert "masterpiece" not in result
+        assert "1girl" in result
+
+    def test_quality_included_when_skip_quality_false(self):
+        """skip_quality=False(기본값) 시 quality tags 포함 확인."""
+        from services.generation_style import _compose_positive
+
+        ctx = MagicMock()
+        ctx.default_positive = "masterpiece, best_quality"
+        ctx.positive_embeddings = []
+
+        result = _compose_positive(ctx, "1girl, smile", [], [])
+        assert "masterpiece" in result
+        assert "1girl" in result
+
+
+# ────────────────────────────────────────────
+# Tier Ownership: _collect_character_tags dedup
+# ────────────────────────────────────────────
+
+
+class TestCollectCharacterTagsDedup:
+    """_collect_character_tags DB태그/custom_base_prompt 중복 제거 테스트."""
+
+    def test_dedup_by_name(self, builder):
+        """DB 태그와 custom_base_prompt에 동일 태그 → 1회만 수집."""
+        char = MagicMock()
+        char.gender = "female"
+        char.reference_base_prompt = None
+        char.loras = []
+
+        # DB tag: brown_hair
+        db_tag = MagicMock()
+        db_tag.tag.name = "brown_hair"
+        db_tag.tag.default_layer = 3
+        db_tag.tag.group_name = "hair_color"
+        db_tag.weight = 1.0
+        db_tag.is_permanent = True
+        char.tags = [db_tag]
+
+        # custom_base_prompt: brown_hair (중복)
+        char.custom_base_prompt = "brown_hair"
+
+        with patch.object(
+            builder, "get_tag_info", return_value={"brown_hair": {"layer": 3, "group_name": "hair_color"}}
+        ):
+            with patch("services.prompt.v3_composition.TagFilterCache"):
+                result = builder._collect_character_tags(char)
+
+        # brown_hair는 1번만 수집되어야 함
+        names = [r["name"] for r in result]
+        assert names.count("brown_hair") == 1
+
+    def test_custom_overrides_db_group(self, builder):
+        """같은 group_name → custom이 DB를 대체."""
+        char = MagicMock()
+        char.gender = "female"
+        char.reference_base_prompt = None
+        char.loras = []
+
+        # DB tag: brown_hair (hair_color group)
+        db_tag = MagicMock()
+        db_tag.tag.name = "brown_hair"
+        db_tag.tag.default_layer = 3
+        db_tag.tag.group_name = "hair_color"
+        db_tag.weight = 1.0
+        db_tag.is_permanent = True
+        char.tags = [db_tag]
+
+        # custom: blonde_hair (같은 hair_color group → DB 대체)
+        char.custom_base_prompt = "blonde_hair"
+
+        with patch("services.prompt.v3_composition.TagFilterCache") as mock_fc:
+            mock_fc.is_restricted.return_value = False
+            with patch.object(
+                builder,
+                "get_tag_info",
+                return_value={"blonde_hair": {"layer": 3, "group_name": "hair_color"}},
+            ):
+                result = builder._collect_character_tags(char)
+
+        names = [r["name"] for r in result]
+        assert "blonde_hair" in names
+        assert "brown_hair" not in names

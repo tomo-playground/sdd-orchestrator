@@ -126,3 +126,23 @@ REFERENCE_CAMERA_TAGS: list[str] = [
     "looking_at_viewer",
     "facing_viewer",
 ]
+
+# --- 12-Layer Ownership (Tier 소유권) ---
+# 각 레이어를 소유하는 Tier. 소유자만 해당 레이어에 태그를 주입할 수 있다.
+# Tier 1: style_profile — Quality(L0), Atmosphere(L11)
+# Tier 2: character — Subject~Accessory(L1~L6)
+# Tier 3: scene — Expression~Environment(L7~L10)
+LAYER_OWNERS: dict[int, str] = {
+    0: "style_profile",  # Quality
+    1: "character",  # Subject
+    2: "character",  # Identity
+    3: "character",  # Body
+    4: "character",  # Main Cloth
+    5: "character",  # Detail Cloth
+    6: "character",  # Accessory
+    7: "scene",  # Expression
+    8: "scene",  # Action
+    9: "scene",  # Camera
+    10: "scene",  # Environment
+    11: "style_profile",  # Atmosphere
+}
