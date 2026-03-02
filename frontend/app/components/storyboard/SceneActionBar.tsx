@@ -81,10 +81,20 @@ export default function SceneActionBar({
         {/* Stage background indicator */}
         {scene.background_id && !scene.isGenerating && (
           <div
-            className="flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[12px] text-emerald-600"
+            className="flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 pl-2.5 pr-1.5 py-1 text-[12px] text-emerald-600"
             title="Stage 배경이 ControlNet 참조로 사용됩니다"
           >
-            🎬 BG#{scene.background_id}
+            <span>🎬 BG#{scene.background_id}</span>
+            <button
+              type="button"
+              onClick={() => onUpdateScene({ background_id: null, environment_reference_id: null })}
+              className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-emerald-500 hover:bg-emerald-200 hover:text-emerald-700 transition"
+              title="배경 매핑 해제"
+            >
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         )}
 

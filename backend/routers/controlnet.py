@@ -1,5 +1,7 @@
 """ControlNet API endpoints."""
 
+import base64
+
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -230,8 +232,6 @@ async def get_reference(character_key: str):
 @router.get("/ip-adapter/reference/{character_key}/image")
 async def get_reference_image(character_key: str, db: Session = Depends(get_db)):
     """Get a specific reference image as PNG file."""
-    import base64
-
     from services.controlnet import load_reference_image
 
     image_b64 = load_reference_image(character_key, db=db)

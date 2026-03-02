@@ -143,10 +143,12 @@ async def _generate_background_image(
     quality_tags: list[str] | None,
     negative_tags: str | None,
     db: Session,
+    *,
+    style_ctx=None,
 ) -> bytes | None:
     """Generate a single no_humans background image via SD WebUI."""
     from schemas import SceneGenerateRequest
-    from services.generation import _build_payload, _call_sd_api_raw
+    from services.generation import _adjust_parameters, _build_payload, _call_sd_api_raw
     from services.generation_context import GenerationContext
     from services.prompt.v3_composition import V3PromptBuilder
 
@@ -158,14 +160,18 @@ async def _generate_background_image(
     )
 
     negative = f"{DEFAULT_SCENE_NEGATIVE_PROMPT}, {NARRATOR_NEGATIVE_PROMPT_EXTRA}"
-    
     if negative_tags:
         negative = f"{negative}, {negative_tags}"
 
     request = SceneGenerateRequest(prompt=prompt, negative_prompt=negative)
     ctx = GenerationContext(request=request)
+    ctx.style_context = style_ctx
+    ctx.style_loras = style_loras
     ctx.prompt = prompt
     ctx.negative_prompt = negative
+
+    # Apply StyleProfile parameters (steps, cfg_scale, sampler, Hi-Res)
+    _adjust_parameters(ctx)
 
     payload = _build_payload(ctx)
     logger.info("[Stage] Generating background: %s", prompt[:120])
@@ -267,7 +273,9 @@ async def generate_location_backgrounds(
             db.flush()
 
         # Generate image
-        img_bytes = await _generate_background_image(loc_info["tags"], style_loras, quality_tags, negative_tags, db)
+        img_bytes = await _generate_background_image(
+            loc_info["tags"], style_loras, quality_tags, negative_tags, db, style_ctx=style_ctx
+        )
         if not img_bytes:
             results.append({"location_key": loc_key, "background_id": bg.id, "status": "failed"})
             continue
@@ -410,7 +418,9 @@ async def regenerate_background(
 
         await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
-    img_bytes = await _generate_background_image(bg.tags or [], style_loras, quality_tags, negative_tags, db)
+    img_bytes = await _generate_background_image(
+        bg.tags or [], style_loras, quality_tags, negative_tags, db, style_ctx=style_ctx
+    )
     if not img_bytes:
         return {"background_id": bg.id, "status": "failed"}
 

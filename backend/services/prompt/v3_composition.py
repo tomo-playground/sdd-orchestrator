@@ -359,6 +359,7 @@ class V3PromptBuilder:
         layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
         layers[LAYER_CAMERA] = self._resolve_camera_conflicts(layers[LAYER_CAMERA])
         self._ensure_quality_tags(layers)
+        self._ensure_framing_tag(layers)
 
         return self._flatten_layers(layers)
 
@@ -416,9 +417,9 @@ class V3PromptBuilder:
         layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
         layers[LAYER_CAMERA] = self._resolve_camera_conflicts(layers[LAYER_CAMERA])
         self._ensure_quality_tags(layers)
+        self._ensure_framing_tag(layers)
 
         return self._flatten_layers(layers)
-
 
     @staticmethod
     def _strip_character_layers(layers: list[list[str]]) -> None:
@@ -515,6 +516,7 @@ class V3PromptBuilder:
 
         # 12. Ensure quality tags
         self._ensure_quality_tags(layers)
+        self._ensure_framing_tag(layers)
 
         return self._flatten_layers(layers)
 
@@ -884,6 +886,7 @@ class V3PromptBuilder:
         layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
         layers[LAYER_CAMERA] = self._resolve_camera_conflicts(layers[LAYER_CAMERA])
         self._ensure_quality_tags(layers)
+        self._ensure_framing_tag(layers)
 
         return self._flatten_layers(layers)
 
@@ -1151,6 +1154,24 @@ class V3PromptBuilder:
                 result.append(token)
 
         return result
+
+    def _ensure_framing_tag(self, layers: list[list[str]]) -> None:
+        """Auto-add full_body framing when a standing pose has no explicit framing tag.
+
+        Prevents legs being cut off when only a camera direction (from_side, from_behind)
+        is set without a shot-type framing (full_body, cowboy_shot, upper_body, etc.).
+        """
+        all_framing = CAMERA_FRAMING_WIDE | CAMERA_FRAMING_MID | CAMERA_FRAMING_CLOSE
+        has_framing = any(
+            t.lower().replace(" ", "_").strip("() ").split(":")[0] in all_framing for t in layers[LAYER_CAMERA]
+        )
+        if has_framing:
+            return
+        # Check ACTION layer for standing pose
+        action_bases = {t.lower().replace(" ", "_").strip("() ").split(":")[0] for t in layers[LAYER_ACTION]}
+        if "standing" in action_bases:
+            layers[LAYER_CAMERA].insert(0, "full_body")
+            logger.debug("[Camera] Auto-added full_body for standing pose without framing tag")
 
     # ── compose_for_reference ────────────────────────────────────────────
 

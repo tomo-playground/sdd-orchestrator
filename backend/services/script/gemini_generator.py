@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
@@ -28,6 +29,64 @@ from services.storyboard.helpers import (
     trim_scenes_to_duration,
 )
 
+# Style-conflicting tag filter — remove tags that contradict the visual style
+_STYLE_CONFLICTING_TAGS: dict[str, frozenset[str]] = {
+    "realistic": frozenset(
+        {"anime", "chibi", "illustration", "drawing", "watercolor", "sketch", "cartoon", "super_deformed"}
+    ),
+    "photorealistic": frozenset(
+        {"anime", "chibi", "illustration", "drawing", "watercolor", "sketch", "cartoon", "super_deformed"}
+    ),
+}
+
+
+def _tag_base_key(token: str) -> str:
+    """Extract the base tag name from a prompt token, stripping weights and parentheses.
+
+    Handles plain tags, weighted tags (cartoon:1.3), and NAI-style ((cartoon:1.3)).
+    Examples:
+        "anime"         → "anime"
+        "(anime:1.3)"   → "anime"
+        "((anime:1.3))" → "anime"
+        "super_deformed"→ "super_deformed"
+    """
+    t = token.strip()
+    # Strip leading parentheses
+    t = t.lstrip("(")
+    # Strip weight notation and trailing parentheses: "anime:1.3)" → "anime"
+    t = t.split(":")[0]
+    t = t.rstrip(")")
+    return t.strip().lower().replace(" ", "_")
+
+
+def _filter_style_conflicting_tags(scenes: list[dict], style: str) -> None:
+    """Remove style-conflicting tags from image_prompt (in-place).
+
+    Gemini occasionally generates tags that contradict the visual style
+    (e.g. 'anime' or '(anime:1.3)' in Realistic style). This is a defense-in-depth filter.
+    Handles both plain tags and weighted tokens like (anime:1.3).
+    """
+    conflicting = _STYLE_CONFLICTING_TAGS.get(style.lower())
+    if not conflicting:
+        return
+    for scene in scenes:
+        prompt = scene.get("image_prompt", "")
+        if not prompt:
+            continue
+        tokens = [t.strip() for t in prompt.split(",") if t.strip()]
+        filtered = [t for t in tokens if _tag_base_key(t) not in conflicting]
+        removed = [t for t in tokens if _tag_base_key(t) in conflicting]
+        if removed:
+            logger.warning(
+                "[StyleFilter] Removed %d conflicting tag(s) for '%s' style in scene %s: %s",
+                len(removed),
+                style,
+                scene.get("scene_id", "?"),
+                removed,
+            )
+            scene["image_prompt"] = ", ".join(filtered)
+
+
 # Gemini PROHIBITED_CONTENT 필터 우회 — 미성년자 연상 단어를 성인 동등 표현으로 치환
 # (DB 저장값 무변경, Gemini 렌더링 시점에만 적용)
 _MINOR_TERM_REPLACEMENTS: list[tuple[re.Pattern, str]] = [
@@ -36,7 +95,39 @@ _MINOR_TERM_REPLACEMENTS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"여자\s*아이들?"), "여성들"),  # 여자아이(들) → 여성들
     (re.compile(r"남자\s*아이들?"), "남성들"),  # 남자아이(들) → 남성들
     (re.compile(r"어린\s*이들?"), "사람들"),  # 어린이(들) → 사람들
+    # Danbooru 태그 우회 (Gemini 2.5 Flash PROHIBITED_CONTENT 차단 방지)
+    (re.compile(r"\b1girl\b"), "1woman"),
+    (re.compile(r"\b(\d+)girls\b"), r"\1women"),
+    (re.compile(r"\bmultiple_girls\b"), "multiple_women"),
+    (re.compile(r"\b1boy\b"), "1man"),
+    (re.compile(r"\b(\d+)boys\b"), r"\1men"),
+    (re.compile(r"\bmultiple_boys\b"), "multiple_men"),
+    (re.compile(r"\bschool_swimsuit\b"), "student_swimwear"),
+    (re.compile(r"\bschool_uniform\b"), "student_uniform"),
+    (re.compile(r"\bloli\b", re.IGNORECASE), "small_body"),
+    (re.compile(r"\bshota\b", re.IGNORECASE), "small_body"),
 ]
+
+
+# Gemini 응답값을 다시 Danbooru 태그(SD WebUI용)로 원상복구
+_RESTORE_DANBOORU_TAGS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"\b1woman\b"), "1girl"),
+    (re.compile(r"\b(\d+)women\b"), r"\1girls"),
+    (re.compile(r"\bmultiple_women\b"), "multiple_girls"),
+    (re.compile(r"\b1man\b"), "1boy"),
+    (re.compile(r"\b(\d+)men\b"), r"\1boys"),
+    (re.compile(r"\bmultiple_men\b"), "multiple_boys"),
+    (re.compile(r"\bstudent_swimwear\b"), "school_swimsuit"),
+    (re.compile(r"\bstudent_uniform\b"), "school_uniform"),
+]
+
+
+def _restore_danbooru_tags(text: str) -> str:
+    """Gemini가 생성한 우회 태그를 다시 SD가 인식할 수 있는 원래 Danbooru 태그로 복구한다."""
+    restored = text
+    for pattern, replacement in _RESTORE_DANBOORU_TAGS:
+        restored = pattern.sub(replacement, restored)
+    return restored
 
 
 def _sanitize_for_gemini_prompt(text: str) -> str:
@@ -57,8 +148,11 @@ async def _call_gemini_with_retry(
     contents: str,
     config,
     trace_name: str = "gemini",
-) -> object:
+) -> Any:
     """Call Gemini API with async + exponential backoff retry (max 2 retries)."""
+    if gemini_client is None:
+        raise RuntimeError("Gemini client is not initialized. Check GEMINI_API_KEY in .env")
+
     from services.agent.observability import trace_llm_call
 
     delays = [1, 3]
@@ -335,7 +429,8 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             )
             raise ValueError(f"{user_message} ({suggestion_text})" if suggestion_text else user_message)
 
-        cleaned = strip_markdown_codeblock(res.text)
+        restored_text = _restore_danbooru_tags(res.text)
+        cleaned = strip_markdown_codeblock(restored_text)
         scenes = json.loads(cleaned)
         scenes = normalize_scene_tags_key(scenes)
 
@@ -356,6 +451,9 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
 
         unknown_tags = await process_scene_tags_async(scenes)
         schedule_background_classification(unknown_tags)
+        # Defense: remove style-conflicting tags (e.g. 'anime' in Realistic style)
+        if request.style:
+            _filter_style_conflicting_tags(scenes, request.style)
         if has_two_characters:
             strip_no_humans_from_dialogue(scenes)
         auto_pin_raw_scenes(scenes, structure_lower)

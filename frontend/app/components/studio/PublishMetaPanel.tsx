@@ -6,7 +6,7 @@ import { useRenderStore } from "../../store/useRenderStore";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
-import { API_BASE } from "../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../constants";
 import { updateStoryboardMetadata } from "../../store/actions/storyboardActions";
 import { useYouTubeUpload } from "../../hooks/useYouTubeUpload";
 import RenderedVideosSection from "../video/RenderedVideosSection";
@@ -143,13 +143,12 @@ export function PublishCaptionLikes() {
             캡션
           </label>
           <span
-            className={`text-[12px] font-bold ${
-              videoCaption.length >= 60
+            className={`text-[12px] font-bold ${videoCaption.length >= 60
                 ? "text-red-500"
                 : videoCaption.length >= 50
                   ? "text-amber-500"
                   : "text-zinc-400"
-            }`}
+              }`}
           >
             {videoCaption.length}/60
           </span>

@@ -71,7 +71,9 @@ CRITICAL STYLE CONSISTENCY RULE:
 - Visual Style "{{ style }}" MUST be applied to ALL scenes consistently
 - If style is "Anime", do NOT add `realistic`, `photorealistic`, or `photo` tags (anime is SD default)
 - If style is "chibi", add "chibi" tag to EVERY scene
-- If style is "Realistic", add `realistic` to every scene. Do NOT add chibi/water_color/sketch tags
+- If style is "Realistic", add `photorealistic` to every scene.
+  STRICTLY FORBIDDEN for Realistic: anime, chibi, illustration, drawing, watercolor, sketch, cartoon, super_deformed
+  These tags DESTROY photorealistic output — never use them when style is Realistic
 - Style tags should appear AFTER mood tags in image_prompt
 - For "chibi" style, always use: "chibi, super_deformed, small_body, big_head" ✓
 - NEVER use spaces: "super deformed" ✗, "small body" ✗

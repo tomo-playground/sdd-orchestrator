@@ -22,6 +22,19 @@ if TYPE_CHECKING:
 
 _PERSON_INDICATORS = frozenset({"1girl", "1boy", "2girls", "2boys", "3girls", "3boys", "solo", "couple", "group"})
 
+# Tags that indicate the scene should use a plain/abstract background → skip env reference injection
+_SKIP_ENV_REF_TAGS = frozenset(
+    {
+        "simple_background",
+        "white_background",
+        "transparent_background",
+        "abstract_background",
+        "black_background",
+        "grey_background",
+        "monochrome_background",
+    }
+)
+
 
 def _collect_context_tags(context_tags: dict) -> list[str]:
     """Flatten context_tags dict into a tag list."""
@@ -187,13 +200,24 @@ def _handle_character_scene(
         character_b_id=effective_b_id,
         background_tags=bg_tags,
     )
+
+    # Check if scene requires a simple/abstract background (token-exact match)
+    prompt_tokens = {t.strip().lower().replace(" ", "_") for t in cleaned_prompt.split(",") if t.strip()}
+    should_skip_env_ref = bool(_SKIP_ENV_REF_TAGS & prompt_tokens)
+
     # Auto-set environment reference from background image
     if bg_image_asset_id and not request.environment_reference_id:
-        request.environment_reference_id = bg_image_asset_id
-        request.environment_reference_weight = bg_weight or 0.15
-        logger.info(
-            "🏠 [Background] Auto-set environment_reference_id=%d (weight=%.2f)", bg_image_asset_id, bg_weight or 0.15
-        )
+        if should_skip_env_ref:
+            logger.info("🚫 [Background] Skipped environment reference injection due to abstract/simple background tag")
+        else:
+            request.environment_reference_id = bg_image_asset_id
+            request.environment_reference_weight = bg_weight or 0.15
+            logger.info(
+                "🏠 [Background] Auto-set environment_reference_id=%d (weight=%.2f)",
+                bg_image_asset_id,
+                bg_weight or 0.15,
+            )
+
     logger.debug("🎨 [V3 Engine] Composed prompt for character %d", request.character_id)
     return cleaned_prompt, compose_warnings
 

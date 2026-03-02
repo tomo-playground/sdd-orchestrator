@@ -143,18 +143,46 @@ def normalize_prompt_tokens(prompt: str) -> str:
     return ", ".join(merged)
 
 
+_WEIGHTED_TOKEN_RE = re.compile(r"^\((.+?)(?::[+-]?\d*\.?\d+)?\)$")
+_BARE_WEIGHT_RE = re.compile(r"^(.+?):[+-]?\d*\.?\d+$")
+
+
+def _negative_base_key(token: str) -> str:
+    """Extract base tag from a negative prompt token for dedup comparison.
+
+    Strips parentheses and weight notation so that "(cartoon:1.3)" and "cartoon"
+    map to the same key "cartoon".
+    """
+    stripped = token.strip()
+    m = _WEIGHTED_TOKEN_RE.match(stripped)
+    if m:
+        return m.group(1).lower().replace(" ", "_").strip()
+    m = _BARE_WEIGHT_RE.match(stripped)
+    if m:
+        return m.group(1).lower().replace(" ", "_").strip()
+    return stripped.lower().replace(" ", "_").strip()
+
+
 def normalize_negative_prompt(negative: str) -> str:
-    """Normalize negative prompt by deduplicating tokens."""
+    """Normalize negative prompt by deduplicating tokens.
+
+    Weighted tokens e.g. (cartoon:1.3) take precedence over plain cartoon.
+    Both exact-string duplicates and base-tag duplicates are removed.
+    """
     tokens = split_prompt_tokens(negative)
-    seen = set()
-    merged: list[str] = []
+    seen: dict[str, str] = {}  # base_key → best token
+    order: list[str] = []
     for token in tokens:
-        key = token.lower()
-        if key in seen:
+        key = _negative_base_key(token)
+        if not key:
             continue
-        seen.add(key)
-        merged.append(token)
-    return ", ".join(merged)
+        if key not in seen:
+            seen[key] = token
+            order.append(key)
+        elif ":" in token and ":" not in seen[key]:
+            # Upgrade plain token to weighted version
+            seen[key] = token
+    return ", ".join(seen[k] for k in order)
 
 
 def extract_lora_names(prompt: str) -> list[str]:
