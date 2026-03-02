@@ -392,12 +392,9 @@ class V3PromptBuilder:
         if self._is_anime_style(quality_tags):
             layers[LAYER_SUBJECT].extend(
                 [
-                    "(anime_coloring:1.5)",
-                    "(flat_color:1.0)",
-                    "(illustration:1.3)",
-                    "(2d:1.2)",
-                    "(colorful:1.2)",
                     "anime_style",
+                    "illustration",
+                    "2d",
                 ]
             )
 
@@ -434,7 +431,7 @@ class V3PromptBuilder:
     def _is_anime_style(quality_tags: list[str] | None) -> bool:
         """Detect anime style from quality tags (derived from StyleProfile.default_positive)."""
         if not quality_tags:
-            return True  # default to anime when no style info
+            return False  # unknown style → don't add anime-specific negative tags
         joined = " ".join(t.lower().replace("_", " ") for t in quality_tags)
         return any(kw in joined for kw in ("anime", "cel shading", "illustration", "2d"))
 

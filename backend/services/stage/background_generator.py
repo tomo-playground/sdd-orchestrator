@@ -43,17 +43,21 @@ def _find_best_matching_bg(scene_key: str, loc_to_bg: dict[str, dict]) -> tuple[
     for bg_key, bg_info in loc_to_bg.items():
         bg_set = set(bg_key.split("_"))
         overlap = len(scene_set & bg_set) / len(scene_set | bg_set)
-        if (scene_set <= bg_set or bg_set <= scene_set or overlap > 0.5) and overlap > best_score:
+        if (scene_set <= bg_set or bg_set <= scene_set or overlap > 0.85) and overlap > best_score:
             best_info, best_key, best_score = bg_info, bg_key, overlap
     return best_info, best_key
 
 
 def _filter_location_tags(env_tags: list[str], db: Session) -> list[str]:
-    """Filter environment tags to location-only (group_name starts with 'location_')."""
+    """Filter environment tags to location-only (group_name starts with 'location_') or background_type."""
     if not env_tags:
         return []
     normed = [t.lower().strip() for t in env_tags]
-    rows = db.query(Tag.name).filter(Tag.name.in_(normed), Tag.group_name.like(f"{_LOCATION_GROUP_PREFIX}%")).all()
+    # Include both location_* and background_type tags for grouping
+    rows = db.query(Tag.name).filter(
+        Tag.name.in_(normed),
+        (Tag.group_name.like(f"{_LOCATION_GROUP_PREFIX}%")) | (Tag.group_name == "background_type")
+    ).all()
     return [r.name for r in rows]
 
 
@@ -122,9 +126,9 @@ def _merge_subset_locations(loc_map: dict[str, dict]) -> dict[str, dict]:
             if other == key or other in absorbed:
                 continue
             other_set = set(other.split("_"))
-            # Merge if one is a subset of the other, or Jaccard similarity > 0.5
+            # Merge if one is a subset of the other, or Jaccard similarity > 0.85
             overlap = len(key_set & other_set) / len(key_set | other_set)
-            if key_set <= other_set or other_set <= key_set or overlap > 0.5:
+            if key_set <= other_set or other_set <= key_set or overlap > 0.85:
                 merged[key]["scene_ids"].extend(loc_map[other]["scene_ids"])
                 for t in loc_map[other]["tags"]:
                     if t not in merged[key]["tags"]:
@@ -181,8 +185,13 @@ async def _generate_background_image(
 # ── Public API ───────────────────────────────────────────────────────
 
 
-async def generate_location_backgrounds(storyboard_id: int, db: Session) -> list[dict]:
+async def generate_location_backgrounds(
+    storyboard_id: int, db: Session, *, force: bool = False
+) -> list[dict]:
     """Generate background images for each location in a storyboard.
+
+    Args:
+        force: If True, regenerate images even when they already exist.
 
     Returns list of {location_key, background_id, status} dicts.
     """
@@ -241,7 +250,7 @@ async def generate_location_backgrounds(storyboard_id: int, db: Session) -> list
             existing_q = existing_q.filter(Background.style_profile_id.is_(None))
         existing = existing_q.first()
 
-        if existing and existing.image_asset_id:
+        if existing and existing.image_asset_id and not force:
             results.append({"location_key": loc_key, "background_id": existing.id, "status": "exists"})
             continue
 
@@ -267,7 +276,6 @@ async def generate_location_backgrounds(storyboard_id: int, db: Session) -> list
         asset = asset_svc.save_background_image(bg.id, img_bytes)
         bg.image_asset_id = asset.id
         db.commit()
-
         results.append({"location_key": loc_key, "background_id": bg.id, "status": "generated"})
         logger.info("[Stage] Background generated: %s (ID=%d)", loc_key, bg.id)
 

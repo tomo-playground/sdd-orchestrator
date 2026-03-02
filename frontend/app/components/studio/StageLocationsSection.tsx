@@ -26,7 +26,7 @@ export default function StageLocationsSection({ storyboardId, onStatusChange }: 
   const [ready, setReady] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [regeneratingKey, setRegeneratingKey] = useState<string | null>(null);
+  const [regeneratingKeys, setRegeneratingKeys] = useState<Set<string>>(new Set());
 
   const fetchStatus = useCallback(async () => {
     if (!storyboardId) return;
@@ -78,24 +78,57 @@ export default function StageLocationsSection({ storyboardId, onStatusChange }: 
   }, [fetchStatus]);
 
   const handleGenerate = async () => {
-    setIsGenerating(true);
-    useStoryboardStore.getState().set({ stageStatus: "staging" });
-    try {
-      await axios.post(`${API_BASE}/storyboards/${storyboardId}/stage/generate-backgrounds`, null, {
-        timeout: API_TIMEOUT.STAGE_GENERATE,
-      });
-      showToast("배경 생성 완료", "success");
+    if (locations.length > 0) {
+      // Force-regenerate all: run each location individually for per-card progress
+      setIsGenerating(true);
+      useStoryboardStore.getState().set({ stageStatus: "staging" });
+      const allKeys = locations.map((l) => l.location_key);
+      setRegeneratingKeys(new Set(allKeys));
+      let failCount = 0;
+      for (const key of allKeys) {
+        try {
+          await axios.post(
+            `${API_BASE}/storyboards/${storyboardId}/stage/regenerate-background/${key}`,
+            null,
+            { timeout: API_TIMEOUT.STAGE_GENERATE }
+          );
+        } catch {
+          failCount++;
+        }
+        setRegeneratingKeys((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }
       await fetchStatus();
-    } catch (error) {
-      showToast(getErrorMsg(error, "배경 생성 실패"), "error");
-      useStoryboardStore.getState().set({ stageStatus: "failed" });
-    } finally {
+      if (failCount > 0) {
+        showToast(`${failCount}개 배경 재생성 실패`, "error");
+      } else {
+        showToast("전체 배경 재생성 완료", "success");
+      }
       setIsGenerating(false);
+    } else {
+      // First-time generation (batch)
+      setIsGenerating(true);
+      useStoryboardStore.getState().set({ stageStatus: "staging" });
+      try {
+        await axios.post(`${API_BASE}/storyboards/${storyboardId}/stage/generate-backgrounds`, null, {
+          timeout: API_TIMEOUT.STAGE_GENERATE,
+        });
+        showToast("배경 생성 완료", "success");
+        await fetchStatus();
+      } catch (error) {
+        showToast(getErrorMsg(error, "배경 생성 실패"), "error");
+        useStoryboardStore.getState().set({ stageStatus: "failed" });
+      } finally {
+        setIsGenerating(false);
+      }
     }
   };
 
   const handleRegenerate = async (locationKey: string, tags?: string[]) => {
-    setRegeneratingKey(locationKey);
+    setRegeneratingKeys((prev) => new Set(prev).add(locationKey));
     try {
       const body = tags ? { tags } : null;
       const res = await axios.post(
@@ -112,7 +145,11 @@ export default function StageLocationsSection({ storyboardId, onStatusChange }: 
     } catch (error) {
       showToast(getErrorMsg(error, "재생성 실패"), "error");
     } finally {
-      setRegeneratingKey(null);
+      setRegeneratingKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(locationKey);
+        return next;
+      });
     }
   };
 
@@ -160,7 +197,7 @@ export default function StageLocationsSection({ storyboardId, onStatusChange }: 
               <StageLocationCard
                 key={loc.location_key}
                 location={loc}
-                isRegenerating={regeneratingKey === loc.location_key}
+                isRegenerating={regeneratingKeys.has(loc.location_key)}
                 onRegenerate={(tags) => handleRegenerate(loc.location_key, tags)}
               />
             ))}

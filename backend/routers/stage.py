@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
@@ -32,14 +32,18 @@ def _get_storyboard_or_404(storyboard_id: int, db: Session) -> Storyboard:
     "/{storyboard_id}/stage/generate-backgrounds",
     response_model=StageGenerateResponse,
 )
-async def generate_backgrounds(storyboard_id: int, db: Session = Depends(get_db)):
+async def generate_backgrounds(
+    storyboard_id: int,
+    force: bool = Query(False, description="If true, regenerate even if image already exists"),
+    db: Session = Depends(get_db),
+):
     """Generate no_humans background images for each location."""
     _get_storyboard_or_404(storyboard_id, db)
 
     from services.stage.background_generator import generate_location_backgrounds
 
     try:
-        results = await generate_location_backgrounds(storyboard_id, db)
+        results = await generate_location_backgrounds(storyboard_id, db, force=force)
     except ValueError as e:
         from services.error_responses import raise_user_error
 
