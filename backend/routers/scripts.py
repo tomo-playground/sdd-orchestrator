@@ -253,7 +253,10 @@ def _build_production_snapshot(vals: dict) -> dict:
     if plan := vals.get("director_plan"):
         snapshot["director_plan"] = plan
     if cinema := vals.get("cinematographer_result"):
-        snapshot["cinematographer"] = cinema
+        snapshot["cinematographer"] = {
+            "result": cinema,
+            "tool_logs": vals.get("cinematographer_tool_logs") or [],
+        }
     if tts := vals.get("tts_designer_result"):
         snapshot["tts_designer"] = tts
     if sound := vals.get("sound_designer_result"):
