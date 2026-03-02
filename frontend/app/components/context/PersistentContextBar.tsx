@@ -94,9 +94,15 @@ export default function PersistentContextBar() {
         return;
       }
       selectGroup(id);
+      if (isStudio) router.replace("/studio");
     },
-    [selectGroup, isAutoRunning, showToast]
+    [selectGroup, isAutoRunning, showToast, isStudio, router]
   );
+
+  const handleDismiss = useCallback(() => {
+    resetContext();
+    if (isStudio) router.replace("/studio");
+  }, [resetContext, isStudio, router]);
 
   const hasStoryboard = storyboardId !== null && !isHome;
 
@@ -170,7 +176,7 @@ export default function PersistentContextBar() {
           )}
           {hasStoryboard && (
             <button
-              onClick={resetContext}
+              onClick={handleDismiss}
               className="shrink-0 rounded p-0.5 text-zinc-400 transition hover:bg-zinc-200 hover:text-zinc-600"
               title="Dismiss storyboard context"
             >
