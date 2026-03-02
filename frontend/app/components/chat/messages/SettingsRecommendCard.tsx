@@ -46,9 +46,28 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, onS
       setMode("edit");
       return;
     }
-    if (!feedback.trim()) return;
+    const trimmed = feedback.trim();
+    if (!trimmed) return;
     setSubmitted(true);
-    onSendMessage?.(feedback.trim());
+    onSendMessage?.(trimmed);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleRevise();
+    }
+  };
+
+  const adjustHeight = (el: HTMLTextAreaElement) => {
+    el.style.height = "auto";
+    const lineHeight = 20;
+    el.style.height = `${Math.min(el.scrollHeight, lineHeight * 3)}px`;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setFeedback(e.target.value);
+    adjustHeight(e.target);
   };
 
   return (
@@ -75,21 +94,32 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, onS
         </ul>
 
         {mode === "edit" && !submitted && (
-          <textarea
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            placeholder="수정 요청을 입력하세요. 예: 소라로 캐릭터 변경, 60초로 늘려줘"
-            className="w-full rounded-xl border border-violet-200 bg-white p-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-violet-400 focus:outline-none"
-            rows={2}
-            autoFocus
-          />
+          <div className="flex items-end gap-2 rounded-2xl border border-violet-200 bg-white px-3 py-2 focus-within:border-violet-400 focus-within:ring-1 focus-within:ring-violet-400 transition-shadow">
+            <textarea
+              value={feedback}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              placeholder="수정 요청을 입력하세요. 예: 소라로 캐릭터 변경, 60초로 늘려줘"
+              className="flex-1 resize-none bg-transparent text-sm text-zinc-800 outline-none placeholder:text-zinc-400 min-h-[20px] pb-1"
+              rows={1}
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={handleRevise}
+              disabled={!feedback.trim()}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white transition-colors hover:bg-violet-700 disabled:opacity-30 mb-0.5"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m3 3 3 9-3 9 19-9ZM6 12h16" /></svg>
+            </button>
+          </div>
         )}
 
         {submitted && (
-          <p className="text-xs text-violet-600">수정 요청이 전달되었습니다.</p>
+          <p className="text-xs text-violet-600 px-2">수정 요청이 전달되었습니다.</p>
         )}
 
-        {!applied && !submitted && (
+        {!applied && !submitted && mode === "view" && (
           <div className="flex gap-2">
             <Button size="sm" variant="primary" className="flex-1" onClick={handleGenerate}>
               <Sparkles className="h-3.5 w-3.5" />
@@ -97,7 +127,7 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, onS
             </Button>
             <Button size="sm" variant="secondary" onClick={handleRevise}>
               <MessageSquare className="h-3.5 w-3.5" />
-              {mode === "edit" ? "요청 전송" : "수정할게요"}
+              수정할게요
             </Button>
           </div>
         )}

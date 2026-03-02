@@ -33,9 +33,28 @@ const PlanReviewCard = memo(function PlanReviewCard({ message, onResume }: Props
       setMode("edit");
       return;
     }
-    if (!feedback.trim()) return;
+    const trimmed = feedback.trim();
+    if (!trimmed) return;
     setSubmitted(true);
-    onResume("revise_plan", feedback.trim());
+    onResume("revise_plan", trimmed);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleRevise();
+    }
+  };
+
+  const adjustHeight = (el: HTMLTextAreaElement) => {
+    el.style.height = "auto";
+    const lineHeight = 20;
+    el.style.height = `${Math.min(el.scrollHeight, lineHeight * 3)}px`;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setFeedback(e.target.value);
+    adjustHeight(e.target);
   };
 
   return (
@@ -72,34 +91,45 @@ const PlanReviewCard = memo(function PlanReviewCard({ message, onResume }: Props
         </div>
       )}
 
-      {mode === "edit" && (
-        <textarea
-          value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
-          placeholder="수정 요청 사항을 입력하세요..."
-          className="mb-3 w-full rounded border border-blue-200 bg-white p-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-blue-400 focus:outline-none"
-          rows={3}
-          disabled={submitted}
-        />
-      )}
-
-      {!submitted && (
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={handleProceed}
-            className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            진행해주세요
-          </button>
+      {mode === "edit" && !submitted ? (
+        <div className="flex items-end gap-2 rounded-2xl border border-blue-200 bg-white px-3 py-2 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-shadow">
+          <textarea
+            value={feedback}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder="수정 요청 사항을 입력하세요... (예: 감성적인 톤 추가)"
+            className="flex-1 resize-none bg-transparent text-sm text-zinc-800 outline-none placeholder:text-zinc-400 min-h-[20px] pb-1"
+            rows={1}
+            autoFocus
+          />
           <button
             type="button"
             onClick={handleRevise}
-            className="rounded-lg border border-blue-300 bg-white px-4 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-50"
+            disabled={!feedback.trim()}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:opacity-30 mb-0.5"
           >
-            {mode === "edit" ? "수정 요청 전송" : "수정할게요"}
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m3 3 3 9-3 9 19-9ZM6 12h16" /></svg>
           </button>
         </div>
+      ) : (
+        !submitted && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleProceed}
+              className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition"
+            >
+              진행해주세요
+            </button>
+            <button
+              type="button"
+              onClick={handleRevise}
+              className="rounded-lg border border-blue-300 bg-white px-4 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-50 transition"
+            >
+              수정할게요
+            </button>
+          </div>
+        )
       )}
 
       {submitted && <p className="text-xs text-blue-600">요청이 전달되었습니다.</p>}
