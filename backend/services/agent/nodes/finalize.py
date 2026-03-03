@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from config import (
     DEFAULT_GAZE_TAG,
+    DEFAULT_MOOD_TAG,
     DEFAULT_POSE_TAG,
     DEFAULT_SCENE_NEGATIVE_PROMPT,
     DURATION_DEFICIT_THRESHOLD,
@@ -77,7 +78,9 @@ def _apply_tag_aliases(scenes: list[dict]) -> None:
 def _inject_negative_prompts(scenes: list[dict]) -> None:
     """빈 negative_prompt에 기본값을 주입하고, LLM의 negative_prompt_extra를 병합한다."""
     for scene in scenes:
-        base = scene.get("negative_prompt") or DEFAULT_SCENE_NEGATIVE_PROMPT
+        base = (scene.get("negative_prompt") or "").strip()
+        if not base:
+            base = DEFAULT_SCENE_NEGATIVE_PROMPT
         extra = scene.get("negative_prompt_extra")
         if extra:
             base = f"{base}, {extra}"
@@ -143,11 +146,10 @@ def _inject_default_context_tags(scenes: list[dict]) -> None:
         elif ctx.get("expression") is None:
             ctx["expression"] = DEFAULT_EXPRESSION_TAG
 
-        # mood: emotion에서 자동 생성 (빈 mood 해결)
+        # mood: emotion에서 자동 생성, 파생 실패 시 기본값 (빈 mood 방지)
         if ctx.get("mood") is None:
             derived_mood = derive_mood_from_emotion(emotion) if emotion else None
-            if derived_mood:
-                ctx["mood"] = derived_mood
+            ctx["mood"] = derived_mood or DEFAULT_MOOD_TAG
 
 
 def _inject_writer_plan_emotions(scenes: list[dict], writer_plan: dict | None) -> None:
@@ -319,6 +321,108 @@ def _inject_location_negative_tags(scenes: list[dict], writer_plan: dict | None)
             scene["negative_prompt"] = f"{existing_neg}, {neg_tag}" if existing_neg else neg_tag
 
 
+def _load_char_exclusive_tags(character_id: int, db) -> dict[str, set[str]]:
+    """캐릭터의 EXCLUSIVE 그룹 태그를 {group_name: {tag_names}} 형태로 반환."""
+    from sqlalchemy.orm import joinedload  # noqa: PLC0415
+
+    from config_prompt import EXCLUSIVE_TAG_GROUPS  # noqa: PLC0415
+    from models.associations import CharacterTag  # noqa: PLC0415
+    from models.character import Character  # noqa: PLC0415
+
+    char = (
+        db.query(Character)
+        .options(joinedload(Character.tags).joinedload(CharacterTag.tag))
+        .filter(Character.id == character_id)
+        .first()
+    )
+    if not char:
+        return {}
+
+    result: dict[str, set[str]] = {}
+    for char_tag in char.tags:
+        tag = char_tag.tag
+        if tag.group_name in EXCLUSIVE_TAG_GROUPS:
+            result.setdefault(tag.group_name, set()).add(tag.name.lower().replace(" ", "_").strip())
+    return result
+
+
+def _strip_token_weight(token: str) -> str:
+    """SD 가중치 구문 제거: (tag:1.15) → tag, bare → bare."""
+    norm = token.lower().replace(" ", "_").strip()
+    if norm.startswith("(") and ":" in norm:
+        return norm[1:].split(":")[0]
+    return norm
+
+
+def _filter_exclusive_identity_tags(
+    scenes: list[dict],
+    character_id: int | None,
+    character_b_id: int | None,
+    db,
+) -> None:
+    """image_prompt에서 캐릭터 DB 태그와 충돌하는 EXCLUSIVE 그룹 태그를 제거.
+
+    Cinematographer가 캐릭터의 identity를 모호하게 출력한 경우
+    (예: DB=black_hair인데 dark_hair 출력) 해당 태그를 제거하여
+    V3 compose가 DB 태그만 사용하도록 보장한다.
+    """
+    if not character_id:
+        return
+
+    char_a_exclusive = _load_char_exclusive_tags(character_id, db)
+    char_b_exclusive = _load_char_exclusive_tags(character_b_id, db) if character_b_id else {}
+
+    if not char_a_exclusive and not char_b_exclusive:
+        return
+
+    from models.tag import Tag  # noqa: PLC0415
+
+    # 전체 씬에서 bare 토큰을 수집 → IN 쿼리 1회로 그룹 정보 일괄 조회
+    all_bare: set[str] = set()
+    for scene in scenes:
+        if scene.get("speaker") == "Narrator":
+            continue
+        for t in (scene.get("image_prompt") or "").split(","):
+            bare = _strip_token_weight(t.strip())
+            if bare:
+                all_bare.add(bare)
+
+    if not all_bare:
+        return
+
+    tag_rows = db.query(Tag.name, Tag.group_name).filter(Tag.name.in_(all_bare)).all()
+    tag_group_map: dict[str, str | None] = {row.name: row.group_name for row in tag_rows}
+
+    removed_total = 0
+    for scene in scenes:
+        speaker = scene.get("speaker", "")
+        if speaker == "Narrator":
+            continue
+        prompt = scene.get("image_prompt", "")
+        if not prompt:
+            continue
+
+        exclusive = char_b_exclusive if speaker == "B" else char_a_exclusive
+        if not exclusive:
+            continue
+
+        tokens = [t.strip() for t in prompt.split(",")]
+        filtered = []
+        for token in tokens:
+            if not token:
+                continue
+            bare = _strip_token_weight(token)
+            group = tag_group_map.get(bare)
+            if group and group in exclusive and bare not in exclusive[group]:
+                removed_total += 1
+                continue
+            filtered.append(token)
+        scene["image_prompt"] = ", ".join(filtered)
+
+    if removed_total:
+        logger.info("[Finalize] EXCLUSIVE identity 태그 %d개 제거 (캐릭터 DB 태그 우선)", removed_total)
+
+
 def _auto_populate_scene_flags(
     scenes: list[dict],
     character_id: int | None,
@@ -423,6 +527,16 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         scenes = [copy.deepcopy(s) for s in (state.get("draft_scenes") or [])]
 
     _sanitize_quality_tags(scenes)
+
+    from ._finalize_validators import (
+        filter_style_modifiers,
+        normalize_ip_adapter_weights,
+        validate_controlnet_poses,
+        validate_ip_adapter_weights,
+        validate_ken_burns_presets,
+    )
+
+    filter_style_modifiers(scenes)
     _apply_tag_aliases(scenes)
     _inject_negative_prompts(scenes)
 
@@ -431,12 +545,20 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     resolve_prompt_conflicts(scenes)
     _copy_scene_level_to_context_tags(scenes)
 
-    from ._context_tag_utils import check_camera_diversity, diversify_expressions, validate_context_tag_categories
+    from ._context_tag_utils import (
+        check_camera_diversity,
+        diversify_actions,
+        diversify_expressions,
+        diversify_gazes,
+        validate_context_tag_categories,
+    )
 
     validate_context_tag_categories(scenes)
     _inject_writer_plan_emotions(scenes, state.get("writer_plan"))
     _inject_default_context_tags(scenes)
     diversify_expressions(scenes)
+    diversify_gazes(scenes)
+    diversify_actions(scenes)
     _normalize_environment_tags(scenes)
     _inject_location_map_tags(scenes, state.get("writer_plan"))
     _inject_location_negative_tags(scenes, state.get("writer_plan"))
@@ -458,29 +580,39 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         except Exception:
             logger.warning("[Finalize] LLM tag classification failed (non-fatal)", exc_info=True)
 
-    from ._finalize_validators import (
-        validate_controlnet_poses,
-        validate_ip_adapter_weights,
-        validate_ken_burns_presets,
-    )
-
     validate_controlnet_poses(scenes)
-    validate_ip_adapter_weights(scenes)
     validate_ken_burns_presets(scenes)
     check_camera_diversity(scenes)
-    _auto_populate_scene_flags(scenes, state.get("character_id"), state.get("character_b_id"))
-    _flatten_tts_designs(scenes)
 
-    # Duration 최종 보정 (Review/Revise 경유 후에도 부족할 수 있음)
-    target_duration = state.get("duration", 0)
-    if target_duration > 0:
-        _ensure_minimum_duration(scenes, target_duration, state.get("language", "Korean"))
+    # DB 세션 1회로 IP-Adapter 정규화 + character_actions 변환
+    character_id = (
+        state.get("character_id") if state.get("character_id") is not None else state.get("draft_character_id")
+    )
+    character_b_id = (
+        state.get("character_b_id") if state.get("character_b_id") is not None else state.get("draft_character_b_id")
+    )
+    with get_db_session() as db_session:
+        # group_id fallback: 캐릭터 미지정 시 그룹의 캐릭터에서 해결
+        group_id = state.get("group_id")
+        if not character_id and group_id:
+            character_id, character_b_id = _resolve_characters_from_group(
+                group_id,
+                state.get("structure", ""),
+                db_session,
+            )
 
-    # character_actions 변환: context_tags → ControlNet 포즈/표정 데이터
-    character_id = state.get("character_id")
-    character_b_id = state.get("character_b_id")
-    if character_id or character_b_id:
-        with get_db_session() as db_session:
+        _filter_exclusive_identity_tags(scenes, character_id, character_b_id, db_session)
+        normalize_ip_adapter_weights(scenes, character_id, character_b_id, db=db_session)
+        validate_ip_adapter_weights(scenes)
+        _auto_populate_scene_flags(scenes, character_id, character_b_id)
+        _flatten_tts_designs(scenes)
+
+        # Duration 최종 보정 (Review/Revise 경유 후에도 부족할 수 있음)
+        target_duration = state.get("duration", 0)
+        if target_duration > 0:
+            _ensure_minimum_duration(scenes, target_duration, state.get("language", "Korean"))
+
+        if character_id or character_b_id:
             _populate_character_actions(scenes, character_id, character_b_id, db_session)
 
     return {
@@ -488,6 +620,30 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         "sound_recommendation": sound_rec,
         "copyright_result": copyright_result,
     }
+
+
+def _resolve_characters_from_group(
+    group_id: int,
+    structure: str,
+    db,
+) -> tuple[int | None, int | None]:
+    """group_id → 그룹의 캐릭터에서 character_id/character_b_id 해결."""
+    from models.character import Character
+
+    chars = (
+        db.query(Character.id)
+        .filter(Character.group_id == group_id, Character.deleted_at.is_(None))
+        .order_by(Character.id)
+        .limit(2)
+        .all()
+    )
+    if not chars:
+        return None, None
+    char_a = chars[0].id
+    _DIALOGUE_STRUCTURES = {"Dialogue", "Narrated Dialogue"}
+    char_b = chars[1].id if len(chars) > 1 and structure in _DIALOGUE_STRUCTURES else None
+    logger.info("[Finalize] Resolved characters from group %d: A=%s, B=%s", group_id, char_a, char_b)
+    return char_a, char_b
 
 
 def _populate_character_actions(

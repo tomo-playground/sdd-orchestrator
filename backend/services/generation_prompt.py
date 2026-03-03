@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from config import FACEID_SUPPRESS_TAGS, FACEID_SUPPRESS_WEIGHT, logger
+from config import DEFAULT_SCENE_NEGATIVE_PROMPT, FACEID_SUPPRESS_TAGS, FACEID_SUPPRESS_WEIGHT, logger
 from schemas import PromptRewriteRequest, SceneGenerateRequest
 from services.generation_style import apply_style_profile_to_prompt
 from services.image_generation_core import compose_scene_with_style
@@ -386,13 +386,15 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     Routes to specialized handlers based on request state.
     Writes results to ctx (prompt, negative_prompt, character, consistency, warnings).
     """
+
     from sqlalchemy.orm import joinedload
 
     from models import Character
+    from models.group import Group
 
     character_obj = (
         db.query(Character)
-        .options(joinedload(Character.style_profile))
+        .options(joinedload(Character.group).joinedload(Group.style_profile))
         .filter(Character.id == request.character_id)
         .first()
     )
@@ -462,7 +464,8 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     ctx.prompt = suppress_face_tags_for_faceid(ctx.prompt, strategy.ip_adapter_model)
 
     _append_narrator_negative(request)
-    ctx.negative_prompt = request.negative_prompt or ""
+
+    ctx.negative_prompt = request.negative_prompt or DEFAULT_SCENE_NEGATIVE_PROMPT
     ctx.warnings.extend(compose_warnings)
     ctx.warnings.extend(strategy.warnings)
 

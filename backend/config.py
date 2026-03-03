@@ -398,6 +398,12 @@ ENABLE_DANBOORU_VALIDATION = os.getenv("ENABLE_DANBOORU_VALIDATION", "true").low
 # --- Quality Tag Fallback (used when StyleProfile provides no quality tags) ---
 FALLBACK_QUALITY_TAGS: list[str] = ["masterpiece", "best_quality"]
 
+# --- ADetailer (face inpainting post-process) ---
+ADETAILER_ENABLED: bool = True
+ADETAILER_FACE_MODEL: str = "face_yolov8n.pt"  # default: fast model
+ADETAILER_DENOISING_STRENGTH: float = 0.4  # 0.3–0.5 safe range
+ADETAILER_HIGH_ACCURACY_PROFILE_IDS: set[int] = {2}  # face_yolov8s.pt (Realistic)
+
 # --- V3 Prompt Composition Constants (extracted to config_prompt.py) ---
 from config_prompt import *  # noqa: E402, F401, F403
 
@@ -409,18 +415,12 @@ DEFAULT_REFERENCE_BASE_PROMPT = ", ".join(
         "masterpiece",
         "best_quality",
         "ultra-detailed",
-        "(solo:1.5)",
+        "solo",
         "full_body",
-        "(standing:1.2)",
-        "portrait",
-        "facing_viewer",
-        "front_view",
+        "standing",
         "looking_at_viewer",
-        "straight_on",
-        "(white_background:1.3)",
-        "(simple_background:1.3)",
-        "plain_background",
-        "solid_background",
+        "simple_background",
+        "white_background",
     ]
 )
 DEFAULT_REFERENCE_NEGATIVE_PROMPT = ", ".join(
@@ -442,21 +442,9 @@ DEFAULT_REFERENCE_NEGATIVE_PROMPT = ", ".join(
         "watermark",
         "username",
         "blurry",
-        # --- 배경 억제 (강화) ---
-        "(detailed_background:1.8)",
-        "(scenery:1.5)",
-        "(outdoors:1.5)",
-        "(indoors:1.5)",
-        "(ornate:1.3)",
-        "(patterned_background:1.3)",
-        "(gradient_background:1.5)",
-        "(abstract_background:1.5)",
-        "(colorful_background:1.5)",
-        "(grey_background:1.3)",
-        "(black_background:1.3)",
-        "border",
-        "frame",
-        "(shadow:1.3)",
+        # --- 배경 억제 (최소화 — 복잡한 배경만 방지) ---
+        "busy_background",
+        "detailed_background",
         # --- 멀티뷰 억제 ---
         "(multiple_views:1.8)",
         "(character_sheet:1.8)",
@@ -489,10 +477,11 @@ REFERENCE_ADAIN_WEIGHT_INDOOR = float(os.getenv("REFERENCE_ADAIN_WEIGHT_INDOOR",
 REFERENCE_ADAIN_WEIGHT_OUTDOOR = float(os.getenv("REFERENCE_ADAIN_WEIGHT_OUTDOOR", "0.25"))
 REFERENCE_ADAIN_GUIDANCE_END = float(os.getenv("REFERENCE_ADAIN_GUIDANCE_END", "0.5"))
 
-# Default pose/gaze/expression for ControlNet when Gemini omits context_tags
+# Default pose/gaze/expression/mood for ControlNet when Gemini omits context_tags
 DEFAULT_POSE_TAG = "standing"
 DEFAULT_GAZE_TAG = "looking_at_viewer"
 DEFAULT_EXPRESSION_TAG = "smile"
+DEFAULT_MOOD_TAG = "neutral"
 
 # --- Gemini Imagen Cost (USD per request) ---
 GEMINI_IMAGE_EDIT_COST_USD = float(os.getenv("GEMINI_IMAGE_EDIT_COST_USD", "0.0401"))
