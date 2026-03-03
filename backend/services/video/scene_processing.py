@@ -446,8 +446,27 @@ def _get_voice_design_for_scene(
     speaker = getattr(scene_req, "speaker", DEFAULT_SPEAKER)
     scene_emotion = getattr(scene_req, "scene_emotion", None)
 
-    # 1. Preset exists → always use preset base + emotion (ignore per-scene prompt)
+    # 1. Preset exists → Gemini modifies base with scene context (seed stays preset-based)
     if preset_voice_design:
+        context_parts: list[str] = []
+        if scene_emotion:
+            context_parts.append(f"Emotion: {scene_emotion}")
+        ko_prompt = getattr(scene_req, "image_prompt_ko", None)
+        if ko_prompt:
+            context_parts.append(ko_prompt)
+        elif img_prompt := getattr(scene_req, "image_prompt", None):
+            context_parts.append(img_prompt)
+
+        context_text = ". ".join(context_parts)
+        if context_text:
+            voice_design = generate_context_aware_voice_prompt(
+                clean_script, context_text, base_prompt=preset_voice_design
+            )
+            if voice_design:
+                logger.info(f"Scene {scene_idx}: Voice design (Speaker={speaker}): Gemini-adapted from preset")
+                return voice_design
+
+        # Fallback: simple concatenation when Gemini unavailable or no context
         if scene_emotion:
             voice_design = f"{preset_voice_design}, {scene_emotion}"
             logger.info(f"Scene {scene_idx}: Voice design (Speaker={speaker}): base + emotion='{scene_emotion}'")

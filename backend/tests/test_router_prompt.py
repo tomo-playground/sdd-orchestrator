@@ -42,7 +42,7 @@ class TestPromptCompose:
         """Compose prompt using V3 engine with character_id."""
         from models import Character
 
-        char = Character(name="Test Char", gender="female")
+        char = Character(name="Test Char", gender="female", group_id=1)
         db_session.add(char)
         db_session.commit()
         char_id = char.id
@@ -66,7 +66,7 @@ class TestPromptCompose:
         """Compose merges context_tags into tokens."""
         from models import Character
 
-        char = Character(name="Context Char", gender="female")
+        char = Character(name="Context Char", gender="female", group_id=1)
         db_session.add(char)
         db_session.commit()
 
@@ -89,7 +89,7 @@ class TestPromptCompose:
         """Compose includes LoRA weights in response."""
         from models import Character
 
-        char = Character(name="LoRA Char", gender="female")
+        char = Character(name="LoRA Char", gender="female", group_id=1)
         db_session.add(char)
         db_session.commit()
 
@@ -109,7 +109,7 @@ class TestPromptCompose:
         """Compose with storyboard_id resolves style LoRAs from DB when not sent by frontend."""
         from models import Character
 
-        char = Character(name="Style Test Char", gender="female")
+        char = Character(name="Style Test Char", gender="female", group_id=1)
         db_session.add(char)
         db_session.commit()
 
@@ -136,7 +136,7 @@ class TestPromptCompose:
         """When frontend sends loras explicitly, DB resolve is skipped."""
         from models import Character
 
-        char = Character(name="Explicit LoRA Char", gender="female")
+        char = Character(name="Explicit LoRA Char", gender="female", group_id=1)
         db_session.add(char)
         db_session.commit()
 
@@ -183,7 +183,7 @@ class TestValidateTags:
         db_session.commit()
 
         request_data = {"tags": ["smile"], "check_danbooru": False}
-        response = client.post("/api/admin/prompt/validate-tags", json=request_data)
+        response = client.post("/api/v1/prompt/validate-tags", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -195,7 +195,7 @@ class TestValidateTags:
     def test_validate_tags_unknown_tag(self, client: TestClient, db_session):
         """Unknown tags are reported."""
         request_data = {"tags": ["nonexistent_tag_xyz"], "check_danbooru": False}
-        response = client.post("/api/admin/prompt/validate-tags", json=request_data)
+        response = client.post("/api/v1/prompt/validate-tags", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -205,7 +205,7 @@ class TestValidateTags:
         """Tags with alias replacements are flagged as risky."""
         # "medium_shot" is aliased to "cowboy_shot" in conftest
         request_data = {"tags": ["medium_shot"], "check_danbooru": False}
-        response = client.post("/api/admin/prompt/validate-tags", json=request_data)
+        response = client.post("/api/v1/prompt/validate-tags", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -215,7 +215,7 @@ class TestValidateTags:
     def test_validate_tags_empty_list(self, client: TestClient, db_session):
         """Validate empty tag list."""
         request_data = {"tags": []}
-        response = client.post("/api/admin/prompt/validate-tags", json=request_data)
+        response = client.post("/api/v1/prompt/validate-tags", json=request_data)
         assert response.status_code == 200
         data = response.json()
         assert data["total_tags"] == 0
@@ -227,7 +227,7 @@ class TestValidateTags:
         db_session.commit()
 
         request_data = {"tags": ["smile", "unknown_xyz"], "check_danbooru": False}
-        response = client.post("/api/admin/prompt/validate-tags", json=request_data)
+        response = client.post("/api/v1/prompt/validate-tags", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -255,7 +255,7 @@ class TestAutoReplace:
         """Risky tags are replaced with alternatives."""
         # "medium_shot" -> "cowboy_shot" via TagAliasCache (set in conftest)
         request_data = {"tags": ["medium_shot", "smile"]}
-        response = client.post("/api/admin/prompt/auto-replace", json=request_data)
+        response = client.post("/api/v1/prompt/auto-replace", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -266,7 +266,7 @@ class TestAutoReplace:
     def test_auto_replace_no_changes(self, client: TestClient):
         """Safe tags pass through unchanged."""
         request_data = {"tags": ["smile", "standing"]}
-        response = client.post("/api/admin/prompt/auto-replace", json=request_data)
+        response = client.post("/api/v1/prompt/auto-replace", json=request_data)
         assert response.status_code == 200
         data = response.json()
 
@@ -277,7 +277,7 @@ class TestAutoReplace:
     def test_auto_replace_empty_list(self, client: TestClient):
         """Auto-replace empty tag list."""
         request_data = {"tags": []}
-        response = client.post("/api/admin/prompt/auto-replace", json=request_data)
+        response = client.post("/api/v1/prompt/auto-replace", json=request_data)
         assert response.status_code == 200
         data = response.json()
         assert data["replaced"] == []
@@ -285,7 +285,7 @@ class TestAutoReplace:
     def test_auto_replace_preserves_original(self, client: TestClient):
         """Response includes original tag list."""
         request_data = {"tags": ["medium_shot", "smile"]}
-        response = client.post("/api/admin/prompt/auto-replace", json=request_data)
+        response = client.post("/api/v1/prompt/auto-replace", json=request_data)
         assert response.status_code == 200
         data = response.json()
         assert data["original"] == ["medium_shot", "smile"]

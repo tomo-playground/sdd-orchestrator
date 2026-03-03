@@ -26,6 +26,27 @@ from services.asset_service import AssetService
 from services.keywords.db_cache import TagAliasCache
 from services.style_context import extract_style_loras, resolve_style_context
 
+# ── Background quality overrides ─────────────────────────────────────
+# StyleProfile.default_positive is optimized for character scene quality.
+# Background generation uses different quality tags (atmospheric, no face focus).
+# Keyed by StyleProfile ID.
+_BG_QUALITY_OVERRIDES: dict[int, str] = {
+    2: "RAW photo, soft ambient lighting, muted tones, shallow depth of field, natural light, 35mm film, high quality",  # Realistic
+}
+
+
+def _resolve_bg_quality_tags(style_ctx) -> list[str] | None:
+    """Resolve background-specific quality tags.
+
+    Uses _BG_QUALITY_OVERRIDES when available, falls back to StyleProfile.default_positive.
+    """
+    if not style_ctx:
+        return None
+    override = _BG_QUALITY_OVERRIDES.get(style_ctx.profile_id)
+    quality_str = override if override is not None else style_ctx.default_positive
+    return quality_str.split(", ") if quality_str else None
+
+
 # ── Location extraction ──────────────────────────────────────────────
 
 _LOCATION_GROUP_PREFIX = "location_"
@@ -49,10 +70,14 @@ def _filter_location_tags(env_tags: list[str], db: Session) -> list[str]:
         return []
     normed = [t.lower().strip() for t in env_tags]
     # Include both location_* and background_type tags for grouping
-    rows = db.query(Tag.name).filter(
-        Tag.name.in_(normed),
-        (Tag.group_name.like(f"{_LOCATION_GROUP_PREFIX}%")) | (Tag.group_name == "background_type")
-    ).all()
+    rows = (
+        db.query(Tag.name)
+        .filter(
+            Tag.name.in_(normed),
+            (Tag.group_name.like(f"{_LOCATION_GROUP_PREFIX}%")) | (Tag.group_name == "background_type"),
+        )
+        .all()
+    )
     return [r.name for r in rows]
 
 
@@ -189,9 +214,7 @@ async def _generate_background_image(
 # ── Public API ───────────────────────────────────────────────────────
 
 
-async def generate_location_backgrounds(
-    storyboard_id: int, db: Session, *, force: bool = False
-) -> list[dict]:
+async def generate_location_backgrounds(storyboard_id: int, db: Session, *, force: bool = False) -> list[dict]:
     """Generate background images for each location in a storyboard.
 
     Args:
@@ -227,7 +250,7 @@ async def generate_location_backgrounds(
     # Resolve style context + ensure correct SD checkpoint
     style_ctx = resolve_style_context(storyboard_id, db)
     style_loras = extract_style_loras(style_ctx)
-    quality_tags = style_ctx.default_positive.split(", ") if style_ctx and style_ctx.default_positive else None
+    quality_tags = _resolve_bg_quality_tags(style_ctx)
     negative_tags = style_ctx.default_negative if style_ctx else None
     style_profile_id = style_ctx.profile_id if style_ctx else None
 
@@ -410,7 +433,7 @@ async def regenerate_background(
 
     style_ctx = resolve_style_context(storyboard_id, db)
     style_loras = extract_style_loras(style_ctx)
-    quality_tags = style_ctx.default_positive.split(", ") if style_ctx and style_ctx.default_positive else None
+    quality_tags = _resolve_bg_quality_tags(style_ctx)
     negative_tags = style_ctx.default_negative if style_ctx else None
 
     if style_ctx and style_ctx.sd_model_name:

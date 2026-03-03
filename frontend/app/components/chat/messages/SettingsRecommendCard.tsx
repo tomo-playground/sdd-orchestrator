@@ -1,74 +1,113 @@
 "use client";
 
 import { useState } from "react";
-import { Bot, Check, Sparkles, MessageSquare } from "lucide-react";
+import { Bot, Check, ChevronDown, Sparkles } from "lucide-react";
 import Button from "../../ui/Button";
 import type { ChatMessage, SettingsRecommendation } from "../../../types/chat";
 
 type Props = {
   message: ChatMessage;
   onApplyAndGenerate: (rec: SettingsRecommendation) => void;
-  onSendMessage?: (text: string) => void;
 };
 
-function structureLabel(structure: string): string {
-  const map: Record<string, string> = {
-    Monologue: "독백 (1인)",
-    Dialogue: "대화 (2인)",
-    Confession: "고백 (1인)",
-    Narrated_Dialogue: "나레이션 대화 (2인)",
-  };
-  return map[structure] ?? structure;
+const selectClass =
+  "appearance-none rounded-lg border border-zinc-200 bg-white pl-2 pr-6 py-1 text-sm text-zinc-800 " +
+  "outline-none cursor-pointer hover:border-violet-300 focus:border-violet-400 focus:ring-1 focus:ring-violet-400";
+
+const DIALOGUE_STRUCTURES = new Set(["Dialogue", "Narrated Dialogue"]);
+
+function InlineSelect({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+  disabled: boolean;
+}) {
+  return (
+    <li className="flex items-center gap-2">
+      <span className="w-16 shrink-0 font-medium text-zinc-500">{label}</span>
+      <span className="relative inline-block">
+        <select
+          className={selectClass}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+        >
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        {!disabled && (
+          <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-zinc-400" />
+        )}
+      </span>
+    </li>
+  );
 }
 
-function formatCharacters(rec: SettingsRecommendation): string {
-  if (!rec.character_name) return "미정";
-  if (rec.character_b_name) return `${rec.character_name}, ${rec.character_b_name}`;
-  return rec.character_name;
-}
-
-export default function SettingsRecommendCard({ message, onApplyAndGenerate, onSendMessage }: Props) {
-  const [applied, setApplied] = useState(false);
-  const [mode, setMode] = useState<"view" | "edit">("view");
-  const [feedback, setFeedback] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
+export default function SettingsRecommendCard({ message, onApplyAndGenerate }: Props) {
   const rec = message.recommendation;
   if (!rec) return null;
 
+  const opts = rec.available_options;
+  const [local, setLocal] = useState({
+    structure: rec.structure,
+    duration: rec.duration,
+    language: rec.language,
+    character_id: rec.character_id,
+    character_b_id: rec.character_b_id,
+  });
+  const [applied, setApplied] = useState(false);
+
+  const patch = <K extends keyof typeof local>(key: K, val: (typeof local)[K]) =>
+    setLocal((prev) => ({ ...prev, [key]: val }));
+
+  const isDialogue = DIALOGUE_STRUCTURES.has(local.structure);
+
+  const buildRec = (): SettingsRecommendation => {
+    const charName =
+      opts?.characters.find((c) => c.id === local.character_id)?.name ?? rec.character_name;
+    const charBName =
+      opts?.characters.find((c) => c.id === local.character_b_id)?.name ?? rec.character_b_name;
+    return {
+      ...rec,
+      ...local,
+      character_name: charName,
+      character_b_id: isDialogue ? local.character_b_id : null,
+      character_b_name: isDialogue ? charBName : null,
+    };
+  };
+
   const handleGenerate = () => {
-    onApplyAndGenerate(rec);
+    onApplyAndGenerate(buildRec());
     setApplied(true);
   };
 
-  const handleRevise = () => {
-    if (mode === "view") {
-      setMode("edit");
-      return;
-    }
-    const trimmed = feedback.trim();
-    if (!trimmed) return;
-    setSubmitted(true);
-    onSendMessage?.(trimmed);
-  };
+  // 옵션 목록 구성
+  const structureOpts = opts?.structures ?? [{ value: rec.structure, label: rec.structure }];
+  const durationOpts: { value: string; label: string }[] =
+    opts?.durations.map((d) => ({
+      value: String(d),
+      label: `${d}초`,
+    })) ?? [{ value: String(rec.duration), label: `${rec.duration}초` }];
+  const languageOpts = opts?.languages ?? [{ value: rec.language, label: rec.language }];
+  const characterOpts: { value: string; label: string }[] = [
+    { value: "", label: "미정" },
+    ...(opts?.characters.map((c) => ({ value: String(c.id), label: c.name })) ?? []),
+  ];
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleRevise();
-    }
-  };
-
-  const adjustHeight = (el: HTMLTextAreaElement) => {
-    el.style.height = "auto";
-    const lineHeight = 20;
-    el.style.height = `${Math.min(el.scrollHeight, lineHeight * 3)}px`;
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setFeedback(e.target.value);
-    adjustHeight(e.target);
-  };
+  // character_b: character_a와 다른 캐릭터만 표시
+  const characterBOpts = characterOpts.filter(
+    (o) => o.value === "" || o.value !== String(local.character_id ?? "")
+  );
 
   return (
     <div className="flex gap-2">
@@ -76,63 +115,54 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, onS
         <Bot className="h-4 w-4 text-violet-600" />
       </div>
       <div className="max-w-[85%] space-y-3 rounded-2xl border border-violet-200 bg-violet-50 p-4">
-        <p className="text-sm text-zinc-700">{rec.reasoning}</p>
+        {rec.reasoning && <p className="text-sm text-zinc-700">{rec.reasoning}</p>}
 
-        <ul className="space-y-1 rounded-xl bg-white p-3 text-sm text-zinc-700">
-          <li>
-            <span className="font-medium text-zinc-500">구성:</span> {structureLabel(rec.structure)}
-          </li>
-          <li>
-            <span className="font-medium text-zinc-500">길이:</span> {rec.duration}초
-          </li>
-          <li>
-            <span className="font-medium text-zinc-500">캐릭터:</span> {formatCharacters(rec)}
-          </li>
-          <li>
-            <span className="font-medium text-zinc-500">언어:</span> {rec.language}
-          </li>
+        <ul className="space-y-2 rounded-xl bg-white p-3 text-sm text-zinc-700">
+          <InlineSelect
+            label="구성"
+            value={local.structure}
+            options={structureOpts}
+            onChange={(v) => patch("structure", v)}
+            disabled={applied}
+          />
+          <InlineSelect
+            label="길이"
+            value={String(local.duration)}
+            options={durationOpts}
+            onChange={(v) => patch("duration", Number(v))}
+            disabled={applied}
+          />
+          <InlineSelect
+            label="언어"
+            value={local.language}
+            options={languageOpts}
+            onChange={(v) => patch("language", v)}
+            disabled={applied}
+          />
+          <InlineSelect
+            label="캐릭터"
+            value={String(local.character_id ?? "")}
+            options={characterOpts}
+            onChange={(v) => patch("character_id", v ? Number(v) : null)}
+            disabled={applied}
+          />
+          {isDialogue && (
+            <InlineSelect
+              label="캐릭터B"
+              value={String(local.character_b_id ?? "")}
+              options={characterBOpts}
+              onChange={(v) => patch("character_b_id", v ? Number(v) : null)}
+              disabled={applied}
+            />
+          )}
         </ul>
 
-        {mode === "edit" && !submitted && (
-          <div className="flex items-end gap-2 rounded-2xl border border-violet-200 bg-white px-3 py-2 focus-within:border-violet-400 focus-within:ring-1 focus-within:ring-violet-400 transition-shadow">
-            <textarea
-              value={feedback}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              placeholder="수정 요청을 입력하세요. 예: 소라로 캐릭터 변경, 60초로 늘려줘"
-              className="flex-1 resize-none bg-transparent text-sm text-zinc-800 outline-none placeholder:text-zinc-400 min-h-[20px] pb-1"
-              rows={1}
-              autoFocus
-            />
-            <button
-              type="button"
-              onClick={handleRevise}
-              disabled={!feedback.trim()}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white transition-colors hover:bg-violet-700 disabled:opacity-30 mb-0.5"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m3 3 3 9-3 9 19-9ZM6 12h16" /></svg>
-            </button>
-          </div>
-        )}
-
-        {submitted && (
-          <p className="text-xs text-violet-600 px-2">수정 요청이 전달되었습니다.</p>
-        )}
-
-        {!applied && !submitted && mode === "view" && (
-          <div className="flex gap-2">
-            <Button size="sm" variant="primary" className="flex-1" onClick={handleGenerate}>
-              <Sparkles className="h-3.5 w-3.5" />
-              스크립트 생성
-            </Button>
-            <Button size="sm" variant="secondary" onClick={handleRevise}>
-              <MessageSquare className="h-3.5 w-3.5" />
-              수정할게요
-            </Button>
-          </div>
-        )}
-
-        {applied && (
+        {!applied ? (
+          <Button size="sm" variant="primary" className="w-full" onClick={handleGenerate}>
+            <Sparkles className="h-3.5 w-3.5" />
+            스크립트 생성
+          </Button>
+        ) : (
           <Button size="sm" variant="secondary" className="w-full" disabled>
             <Check className="h-3.5 w-3.5" />
             생성 시작됨

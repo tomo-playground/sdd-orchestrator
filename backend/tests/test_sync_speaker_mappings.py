@@ -18,7 +18,7 @@ class TestSyncSpeakerMappingsMonologue:
         from models.storyboard_character import StoryboardCharacter
 
         # Create a character
-        char = Character(name="Solo Character", gender="female")
+        char = Character(name="Solo Character", gender="female", group_id=1)
         db_session.add(char)
         db_session.flush()
 
@@ -98,8 +98,8 @@ class TestSyncSpeakerMappingsDialogue:
         from models.storyboard_character import StoryboardCharacter
 
         # Create two characters
-        char_a = Character(name="Character A", gender="female")
-        char_b = Character(name="Character B", gender="male")
+        char_a = Character(name="Character A", gender="female", group_id=1)
+        char_b = Character(name="Character B", gender="male", group_id=1)
         db_session.add_all([char_a, char_b])
         db_session.flush()
 
@@ -154,8 +154,8 @@ class TestSyncSpeakerMappingsUpdate:
         from models.storyboard_character import StoryboardCharacter
 
         # Create characters
-        char_a = Character(name="Character A", gender="female")
-        char_b = Character(name="Character B", gender="male")
+        char_a = Character(name="Character A", gender="female", group_id=1)
+        char_b = Character(name="Character B", gender="male", group_id=1)
         db_session.add_all([char_a, char_b])
         db_session.flush()
 
@@ -249,6 +249,7 @@ class TestVoicePresetResolution:
         char = Character(
             name="Actor A",
             gender="female",
+            group_id=1,
             voice_preset_id=voice.id,
         )
         db_session.add(char)

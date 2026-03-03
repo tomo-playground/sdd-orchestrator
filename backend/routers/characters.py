@@ -7,12 +7,15 @@ Router only handles HTTP mapping + error conversion.
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from config import logger
 from database import get_db
 from schemas import (
     AssignPreviewRequest,
     AssignPreviewResponse,
     BatchRegenerateResponse,
     CharacterCreate,
+    CharacterDuplicateRequest,
+    CharacterDuplicateResponse,
     CharacterEditPreviewResponse,
     CharacterEnhancePreviewResponse,
     CharacterPreviewRequest,
@@ -31,6 +34,7 @@ from services.characters import (
     assign_wizard_preview,
     batch_regenerate_references,
     create_character,
+    duplicate_character,
     edit_preview,
     enhance_preview,
     generate_wizard_preview,
@@ -56,13 +60,13 @@ async def list_trashed_characters_endpoint(db: Session = Depends(get_db)):
 
 @service_router.get("", response_model=PaginatedCharacterList)
 async def list_characters_endpoint(
-    style_profile_id: int | None = None,
+    group_id: int | None = None,
     offset: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db),
 ):
     """List all characters with their tags and tag metadata."""
-    return list_characters(db, style_profile_id=style_profile_id, offset=offset, limit=limit)
+    return list_characters(db, group_id=group_id, offset=offset, limit=limit)
 
 
 @service_router.get("/{character_id}", response_model=CharacterResponse)
@@ -74,7 +78,7 @@ async def get_character_endpoint(character_id: int, db: Session = Depends(get_db
         raise HTTPException(status_code=404, detail="캐릭터를 찾을 수 없습니다") from None
 
 
-@admin_router.post("/preview", response_model=CharacterPreviewResponse)
+@service_router.post("/preview", response_model=CharacterPreviewResponse)
 async def preview_character_endpoint(
     data: CharacterPreviewRequest,
     db: Session = Depends(get_db),
@@ -90,7 +94,7 @@ async def preview_character_endpoint(
         raise_user_error("character_preview", e)
 
 
-@admin_router.post("", response_model=CharacterResponse, status_code=201)
+@service_router.post("", response_model=CharacterResponse, status_code=201)
 async def create_character_endpoint(data: CharacterCreate, db: Session = Depends(get_db)):
     """Create a new character and link tags."""
     try:
@@ -99,7 +103,7 @@ async def create_character_endpoint(data: CharacterCreate, db: Session = Depends
         raise HTTPException(status_code=409, detail="같은 이름의 캐릭터가 이미 존재합니다") from None
 
 
-@admin_router.put("/{character_id}", response_model=CharacterResponse)
+@service_router.put("/{character_id}", response_model=CharacterResponse)
 async def update_character_endpoint(
     character_id: int,
     data: CharacterUpdate,
@@ -112,7 +116,7 @@ async def update_character_endpoint(
         raise HTTPException(status_code=404, detail="캐릭터를 찾을 수 없습니다") from None
 
 
-@admin_router.delete("/{character_id}", response_model=OkDeletedResponse)
+@service_router.delete("/{character_id}", response_model=OkDeletedResponse)
 async def delete_character_endpoint(character_id: int, db: Session = Depends(get_db)):
     """Soft-delete a character."""
     try:
@@ -122,12 +126,35 @@ async def delete_character_endpoint(character_id: int, db: Session = Depends(get
         raise HTTPException(status_code=404, detail="캐릭터를 찾을 수 없습니다") from None
 
 
-@admin_router.post("/{character_id}/restore", response_model=OkRestoredResponse)
+@service_router.post("/{character_id}/restore", response_model=OkRestoredResponse)
 async def restore_character_endpoint(character_id: int, db: Session = Depends(get_db)):
     """Restore a soft-deleted character."""
     try:
         name = restore_character(db, character_id)
         return {"ok": True, "restored": name}
+    except ValueError:
+        raise HTTPException(status_code=404, detail="캐릭터를 찾을 수 없습니다") from None
+
+
+@service_router.post("/{character_id}/duplicate", response_model=CharacterDuplicateResponse, status_code=201)
+async def duplicate_character_endpoint(
+    character_id: int,
+    data: CharacterDuplicateRequest,
+    db: Session = Depends(get_db),
+):
+    """Duplicate a character into a different group."""
+    try:
+        char = duplicate_character(
+            db,
+            source_id=character_id,
+            target_group_id=data.target_group_id,
+            new_name=data.new_name,
+            copy_loras=data.copy_loras,
+            copy_preview=data.copy_preview,
+        )
+        return char
+    except ConflictError:
+        raise HTTPException(status_code=409, detail="같은 이름의 캐릭터가 이미 존재합니다") from None
     except ValueError:
         raise HTTPException(status_code=404, detail="캐릭터를 찾을 수 없습니다") from None
 
@@ -142,7 +169,7 @@ async def permanently_delete_endpoint(character_id: int, db: Session = Depends(g
         raise HTTPException(status_code=404, detail="캐릭터를 찾을 수 없습니다") from None
 
 
-@admin_router.post("/{character_id}/regenerate-reference", response_model=RegenerateReferenceResponse)
+@service_router.post("/{character_id}/regenerate-reference", response_model=RegenerateReferenceResponse)
 async def regenerate_reference_endpoint(
     character_id: int,
     data: RegenerateReferenceRequest | None = None,
@@ -156,7 +183,8 @@ async def regenerate_reference_endpoint(
             controlnet_pose=data.controlnet_pose if data else None,
             num_candidates=data.num_candidates if data else 1,
         )
-    except ValueError:
+    except ValueError as e:
+        logger.error("[Regenerate] ValueError: %s", e, exc_info=True)
         raise HTTPException(status_code=400, detail="레퍼런스 재생성 파라미터가 올바르지 않습니다") from None
     except RuntimeError as e:
         from services.error_responses import raise_user_error
@@ -164,7 +192,7 @@ async def regenerate_reference_endpoint(
         raise_user_error("character_update", e)
 
 
-@admin_router.post("/{character_id}/enhance-preview", response_model=CharacterEnhancePreviewResponse)
+@service_router.post("/{character_id}/enhance-preview", response_model=CharacterEnhancePreviewResponse)
 async def enhance_preview_endpoint(character_id: int, db: Session = Depends(get_db)):
     """Enhance the character's preview image using Gemini image generation."""
     try:
@@ -173,7 +201,7 @@ async def enhance_preview_endpoint(character_id: int, db: Session = Depends(get_
         raise HTTPException(status_code=400, detail="프리뷰 향상에 실패했습니다") from None
 
 
-@admin_router.post("/{character_id}/edit-preview", response_model=CharacterEditPreviewResponse)
+@service_router.post("/{character_id}/edit-preview", response_model=CharacterEditPreviewResponse)
 async def edit_preview_endpoint(
     character_id: int,
     instruction: str = Body(..., embed=True),
@@ -186,7 +214,7 @@ async def edit_preview_endpoint(
         raise HTTPException(status_code=400, detail="프리뷰 편집에 실패했습니다") from None
 
 
-@admin_router.post("/{character_id}/assign-preview", response_model=AssignPreviewResponse)
+@service_router.post("/{character_id}/assign-preview", response_model=AssignPreviewResponse)
 async def assign_preview_endpoint(
     character_id: int,
     data: AssignPreviewRequest,

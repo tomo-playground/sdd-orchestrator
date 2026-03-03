@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { API_BASE, ADMIN_API_BASE } from "../../../../constants";
+import { API_BASE } from "../../../../constants";
 import { useCharacters } from "../../../../hooks/useCharacters";
 import { useUIStore } from "../../../../store/useUIStore";
 import { getErrorMsg } from "../../../../utils/error";
-import type { CharacterFull, Tag } from "../../../../types";
+import type { CharacterFull, GroupItem, Tag } from "../../../../types";
 import type { WizardTag } from "../builder/steps/AppearanceStep";
 import type { WizardLoRA } from "../builder/wizardReducer";
 import type { WizardCategory } from "../builder/wizardTemplates";
@@ -35,6 +35,7 @@ function formFromCharacter(ch: CharacterFull): CharacterFormData {
     name: ch.name,
     description: ch.description ?? "",
     gender: ch.gender,
+    group_id: ch.group_id,
     custom_base_prompt: ch.custom_base_prompt ?? "",
     custom_negative_prompt: ch.custom_negative_prompt ?? "",
     reference_base_prompt: ch.reference_base_prompt ?? "",
@@ -60,11 +61,22 @@ export function useCharacterEdit(rawId: number) {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isEditingPreview, setIsEditingPreview] = useState(false);
 
+  // Groups for series dropdown
+  const [groups, setGroups] = useState<GroupItem[]>([]);
+
   // Tag/LoRA editing state
   const [selectedTags, setSelectedTags] = useState<WizardTag[]>([]);
   const [selectedLoras, setSelectedLoras] = useState<WizardLoRA[]>([]);
   const [initialTags, setInitialTags] = useState<WizardTag[]>([]);
   const [initialLoras, setInitialLoras] = useState<WizardLoRA[]>([]);
+
+  // ── Load groups ────────────────────────────────────────────
+  useEffect(() => {
+    axios
+      .get<GroupItem[]>(`${API_BASE}/groups`)
+      .then((res) => setGroups(res.data))
+      .catch(() => {});
+  }, []);
 
   // ── Load character ─────────────────────────────────────────
   useEffect(() => {
@@ -132,13 +144,46 @@ export function useCharacterEdit(rawId: number) {
     setSelectedLoras((prev) => {
       const exists = prev.some((l) => l.loraId === loraId);
       if (exists) return prev.filter((l) => l.loraId !== loraId);
-      return [...prev, { loraId, weight: defaultWeight }];
+      // Single-select: replace previous character LoRA
+      return [{ loraId, weight: defaultWeight }];
     });
   }, []);
 
   const handleUpdateLoraWeight = useCallback((loraId: number, weight: number) => {
     setSelectedLoras((prev) => prev.map((l) => (l.loraId === loraId ? { ...l, weight } : l)));
   }, []);
+
+  // ── Group change ────────────────────────────────────────────
+  const handleGroupChange = useCallback((newGroupId: number) => {
+    setForm((prev) => (prev ? { ...prev, group_id: newGroupId } : prev));
+  }, []);
+
+  // Derive current style profile name from groups + form.group_id
+  const currentStyleName = useMemo(() => {
+    if (!form?.group_id || groups.length === 0) return character?.style_profile_name ?? null;
+    const g = groups.find((g) => g.id === form.group_id);
+    return g?.style_profile_name ?? character?.style_profile_name ?? null;
+  }, [form?.group_id, groups, character?.style_profile_name]);
+
+  // ── StyleProfile LoRA exclusion ──────────────────────────
+  const [styleLoraIds, setStyleLoraIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (!form?.group_id || groups.length === 0) return;
+    const g = groups.find((g) => g.id === form.group_id);
+    const spId = g?.style_profile_id;
+    if (!spId) {
+      setStyleLoraIds([]);
+      return;
+    }
+    axios
+      .get(`${API_BASE}/style-profiles/${spId}/full`)
+      .then((res) => {
+        const loras: { id: number }[] = res.data.loras ?? [];
+        setStyleLoraIds(loras.map((l) => l.id));
+      })
+      .catch(() => setStyleLoraIds([]));
+  }, [form?.group_id, groups]);
 
   // ── Save ───────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
@@ -153,6 +198,7 @@ export function useCharacterEdit(rawId: number) {
         name: form.name.trim(),
         description: form.description.trim() || null,
         gender: form.gender,
+        group_id: form.group_id,
         custom_base_prompt: form.custom_base_prompt.trim() || null,
         custom_negative_prompt: form.custom_negative_prompt.trim() || null,
         reference_base_prompt: form.reference_base_prompt.trim() || null,
@@ -172,7 +218,7 @@ export function useCharacterEdit(rawId: number) {
           weight: l.weight,
         })),
       };
-      const res = await axios.put(`${ADMIN_API_BASE}/characters/${character.id}`, payload);
+      const res = await axios.put(`${API_BASE}/characters/${character.id}`, payload);
       setCharacter(res.data);
       setForm(formFromCharacter(res.data));
 
@@ -196,7 +242,7 @@ export function useCharacterEdit(rawId: number) {
   const handleDelete = useCallback(async () => {
     if (!character) return false;
     try {
-      await axios.delete(`${ADMIN_API_BASE}/characters/${character.id}`);
+      await axios.delete(`${API_BASE}/characters/${character.id}`);
       showToast("Character deleted", "success");
       router.push("/library/characters");
       return true;
@@ -212,7 +258,7 @@ export function useCharacterEdit(rawId: number) {
     setIsRegenerating(true);
     try {
       const res = await axios.post<{ ok: boolean; url?: string }>(
-        `${ADMIN_API_BASE}/characters/${character.id}/regenerate-reference`
+        `${API_BASE}/characters/${character.id}/regenerate-reference`
       );
       if (res.data.ok && res.data.url) {
         setCharacter((prev) =>
@@ -233,7 +279,7 @@ export function useCharacterEdit(rawId: number) {
     setIsEnhancing(true);
     try {
       const res = await axios.post<{ ok?: boolean; url?: string }>(
-        `${ADMIN_API_BASE}/characters/${character.id}/enhance-preview`
+        `${API_BASE}/characters/${character.id}/enhance-preview`
       );
       if (res.data.url) {
         setCharacter((prev) =>
@@ -255,7 +301,7 @@ export function useCharacterEdit(rawId: number) {
       setIsEditingPreview(true);
       try {
         const res = await axios.post<{ ok?: boolean; url?: string }>(
-          `${ADMIN_API_BASE}/characters/${character.id}/edit-preview`,
+          `${API_BASE}/characters/${character.id}/edit-preview`,
           { instruction: instruction.trim() }
         );
         if (res.data.url) {
@@ -293,6 +339,7 @@ export function useCharacterEdit(rawId: number) {
       ? form.name !== character.name ||
         form.description !== (character.description ?? "") ||
         form.gender !== character.gender ||
+        form.group_id !== character.group_id ||
         form.custom_base_prompt !== (character.custom_base_prompt ?? "") ||
         form.custom_negative_prompt !== (character.custom_negative_prompt ?? "") ||
         form.reference_base_prompt !== (character.reference_base_prompt ?? "") ||
@@ -309,12 +356,16 @@ export function useCharacterEdit(rawId: number) {
   return {
     character,
     form,
+    groups,
+    currentStyleName,
+    styleLoraIds,
     isCharLoading,
     isSaving,
     selectedTags,
     selectedLoras,
     isDirty,
     updateField,
+    handleGroupChange,
     handleToggleTag,
     handleSearchTagSelect,
     handleToggleLora,

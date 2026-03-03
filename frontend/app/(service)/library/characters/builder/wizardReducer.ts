@@ -13,9 +13,11 @@ export type CandidateImage = { image: string; seed: number };
 
 export type WizardState = {
   step: WizardStep;
-  // Style selection (Step 0)
-  style_profile_id: number | null;
+  // Group selection (Step 0)
+  group_id: number | null;
+  groupStyleProfileId: number | null; // derived from selected group
   styleBaseModel: string | null; // SD model base_model for LoRA filtering
+  styleLoraIds: number[]; // LoRA IDs from StyleProfile (excluded from selection)
   // Basic info (Step 1+)
   name: string;
   gender: ActorGender;
@@ -39,7 +41,13 @@ export type WizardState = {
 
 export type WizardAction =
   | { type: "SET_STEP"; step: WizardStep }
-  | { type: "SET_STYLE_PROFILE"; id: number; baseModel: string | null }
+  | {
+      type: "SET_GROUP";
+      groupId: number;
+      styleProfileId: number | null;
+      baseModel: string | null;
+      styleLoraIds: number[];
+    }
   | { type: "SET_NAME"; name: string }
   | { type: "SET_GENDER"; gender: ActorGender }
   | { type: "SET_DESCRIPTION"; description: string }
@@ -68,12 +76,14 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
   switch (action.type) {
     case "SET_STEP":
       return { ...state, step: action.step };
-    case "SET_STYLE_PROFILE":
+    case "SET_GROUP":
       return {
         ...state,
-        style_profile_id: action.id,
+        group_id: action.groupId,
+        groupStyleProfileId: action.styleProfileId,
         styleBaseModel: action.baseModel,
-        // Clear incompatible LoRAs when style changes
+        styleLoraIds: action.styleLoraIds,
+        // Clear incompatible LoRAs when group/style changes
         selectedLoras: [],
       };
     case "SET_NAME":
@@ -106,12 +116,10 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
           selectedLoras: state.selectedLoras.filter((l) => l.loraId !== action.loraId),
         };
       }
+      // Single-select: replace previous character LoRA
       return {
         ...state,
-        selectedLoras: [
-          ...state.selectedLoras,
-          { loraId: action.loraId, weight: action.defaultWeight },
-        ],
+        selectedLoras: [{ loraId: action.loraId, weight: action.defaultWeight }],
       };
     }
     case "UPDATE_LORA_WEIGHT":
@@ -161,8 +169,10 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
 
 export const INITIAL_WIZARD_STATE: WizardState = {
   step: 0,
-  style_profile_id: null,
+  group_id: null,
+  groupStyleProfileId: null,
   styleBaseModel: null,
+  styleLoraIds: [],
   name: "",
   gender: "female",
   description: "",

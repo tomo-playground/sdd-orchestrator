@@ -1256,7 +1256,7 @@ class TestApplySceneCharacterActions:
         from models.character import Character
 
         tag_ids = self._seed_tags(db_session, [("crying", LAYER_EXPRESSION), ("kneeling", LAYER_ACTION)])
-        char = Character(name="test_char", custom_base_prompt="1girl")
+        char = Character(name="test_char", custom_base_prompt="1girl", group_id=1)
         db_session.add(char)
         db_session.flush()
 

@@ -155,7 +155,7 @@ class TestIPAdapterReferences:
         mock_list.return_value = [
             {"character_key": "hana", "filename": "hana.png"},
         ]
-        resp = client.get("/api/admin/controlnet/ip-adapter/references")
+        resp = client.get("/api/v1/controlnet/ip-adapter/references")
         assert resp.status_code == 200
         data = resp.json()
         assert "references" in data

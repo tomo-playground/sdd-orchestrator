@@ -164,7 +164,7 @@ class TestTranslateKoEndpoint:
 
         client = TestClient(app)
         resp = client.post(
-            "/api/admin/prompt/translate-ko",
+            "/api/v1/prompt/translate-ko",
             json={"ko_text": "미소짓는 소녀"},
         )
         assert resp.status_code == 200

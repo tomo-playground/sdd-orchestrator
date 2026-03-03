@@ -35,7 +35,6 @@ class CastingRecommendation(BaseModel):
     character_b_id: int | None = None
     character_b_name: str = ""
     structure: str | None = None
-    style_profile_id: int | None = None
     reasoning: str = ""
 
     @model_validator(mode="after")

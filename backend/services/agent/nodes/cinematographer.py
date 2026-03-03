@@ -15,9 +15,49 @@ from services.creative_utils import parse_json_response
 
 _EMPTY_RESULT: dict = {"cinematographer_result": None, "cinematographer_tool_logs": []}
 
+# 캐릭터 태그 계층 분류용 group_name 셋
+_IDENTITY_GROUPS = frozenset(
+    {
+        "identity",
+        "hair_color",
+        "hair_length",
+        "hair_style",
+        "eye_color",
+        "eye_detail",
+    }
+)
+_APPEARANCE_GROUPS = frozenset(
+    {
+        "skin_color",
+        "body_feature",
+        "body_type",
+        "appearance",
+        "clothing_top",
+        "clothing_bottom",
+        "clothing_outfit",
+        "clothing",
+        "clothing_detail",
+        "legwear",
+        "footwear",
+        "accessory",
+        "hair_accessory",
+    }
+)
+# Layer 8 (ACTION): 캐릭터 기본/선호 동작 힌트 (씬별 override 가능)
+_ACTION_HINT_GROUPS = frozenset(
+    {
+        "pose",
+        "action_body",
+        "action_hand",
+        "action_daily",
+        "action",
+        "gesture",
+    }
+)
 
-def _load_characters_tags(state: ScriptState, db) -> dict[str, list[str]] | None:
-    """캐릭터 ID → Speaker별 태그 목록 로드. LoRA 트리거 워드 포함."""
+
+def _load_characters_tags(state: ScriptState, db) -> dict[str, dict[str, list[str]]] | None:
+    """캐릭터 ID → Speaker별 계층화된 태그 목록 로드."""
     character_id = state.get("character_id")
     if not character_id:
         return None
@@ -27,46 +67,58 @@ def _load_characters_tags(state: ScriptState, db) -> dict[str, list[str]] | None
     if char_b_id:
         speakers["B"] = char_b_id
 
-    result: dict[str, list[str]] = {}
+    result: dict[str, dict[str, list[str]]] = {}
     for speaker, cid in speakers.items():
         tags = _load_single_character_tags(cid, db)
-        if tags:
+        if any(tags.values()):
             result[speaker] = tags
 
     return result if result else None
 
 
-def _load_single_character_tags(cid: int, db) -> list[str]:
-    """단일 캐릭터의 태그 + LoRA 트리거 워드를 로드한다."""
+def _load_single_character_tags(cid: int, db) -> dict[str, list[str]]:
+    """단일 캐릭터의 계층화된 태그 + LoRA 트리거 워드를 로드한다."""
     from sqlalchemy import select  # noqa: PLC0415
 
     from models.character import Character  # noqa: PLC0415
+
+    empty: dict[str, list[str]] = {"identity": [], "appearance": [], "lora_triggers": [], "action_hints": []}
 
     try:
         stmt = select(Character).where(Character.id == cid)
         char = db.execute(stmt).scalar_one_or_none()
         if not char:
-            return []
+            return empty
 
-        tags = [ct.tag.name for ct in char.tags if ct.tag]
+        result: dict[str, list[str]] = {"identity": [], "appearance": [], "lora_triggers": [], "action_hints": []}
 
-        # LoRA 트리거 워드 추가
+        for ct in char.tags:
+            if not ct.tag:
+                continue
+            group = ct.tag.group_name or ""
+            if group in _IDENTITY_GROUPS:
+                result["identity"].append(ct.tag.name)
+            elif group in _APPEARANCE_GROUPS:
+                result["appearance"].append(ct.tag.name)
+            elif group in _ACTION_HINT_GROUPS:
+                result["action_hints"].append(ct.tag.name)
+            # else: expression, gaze 등 → 생략 (Cinematographer가 씬별로 자유 생성)
+
+        # LoRA 트리거 워드 추가 (배치 조회로 N+1 방지)
         if char.loras:
             from models.lora import LoRA  # noqa: PLC0415
 
-            for lora_entry in char.loras:
-                lora_id = lora_entry.get("lora_id")
-                if not lora_id:
-                    continue
-                lora_stmt = select(LoRA).where(LoRA.id == lora_id)
-                lora_obj = db.execute(lora_stmt).scalar_one_or_none()
-                if lora_obj and lora_obj.trigger_words:
-                    tags.extend(lora_obj.trigger_words)
+            lora_ids = [e.get("lora_id") for e in char.loras if e.get("lora_id")]
+            if lora_ids:
+                lora_objs = db.execute(select(LoRA).where(LoRA.id.in_(lora_ids))).scalars().all()
+                for lora_obj in lora_objs:
+                    if lora_obj.trigger_words:
+                        result["lora_triggers"].extend(lora_obj.trigger_words)
 
-        return tags
+        return result
     except Exception as e:
         logger.warning("[Cinematographer] 캐릭터 태그 로드 실패 (cid=%d): %s", cid, e)
-        return []
+        return empty
 
 
 async def cinematographer_node(state: ScriptState, config: RunnableConfig) -> dict:

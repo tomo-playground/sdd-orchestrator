@@ -348,6 +348,7 @@ class TestComposeForCharacterSkipsStyleLoRA:
         character = Character(
             name="test_char_style_skip",
             gender="female",
+            group_id=1,
             loras=[
                 {"lora_id": character_lora_a.id, "weight": 0.8},
                 {"lora_id": style_lora.id, "weight": 0.7},  # style-type should be SKIPPED
@@ -397,6 +398,7 @@ class TestComposeForCharacterSkipsStyleLoRA:
         character = Character(
             name="test_char_style_param",
             gender="female",
+            group_id=1,
             loras=[
                 {"lora_id": character_lora_a.id, "weight": 0.8},
                 {"lora_id": style_lora.id, "weight": 0.5},  # will be skipped from character.loras

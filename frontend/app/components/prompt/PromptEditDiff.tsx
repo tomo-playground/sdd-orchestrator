@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ADMIN_API_BASE } from "../../constants";
+import { API_BASE } from "../../constants";
 import { computeTokenDiff } from "../../utils/promptDiff";
 
 type PromptEditDiffProps = {
@@ -17,7 +17,7 @@ async function fetchEditPrompt(
   instruction: string,
   characterId?: number | null
 ): Promise<string> {
-  const res = await fetch(`${ADMIN_API_BASE}/prompt/edit-prompt`, {
+  const res = await fetch(`${API_BASE}/prompt/edit-prompt`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

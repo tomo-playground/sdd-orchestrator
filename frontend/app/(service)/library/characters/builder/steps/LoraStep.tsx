@@ -4,11 +4,7 @@ import { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import type { LoRA, ActorGender } from "../../../../../types";
 import type { WizardLoRA } from "../wizardReducer";
-import {
-  FILTER_PILL_ACTIVE,
-  FILTER_PILL_INACTIVE,
-  FORM_INPUT_COMPACT_CLASSES,
-} from "../../../../../components/ui/variants";
+import { FORM_INPUT_COMPACT_CLASSES } from "../../../../../components/ui/variants";
 import LoraCard from "../components/LoraCard";
 
 type LoraStepProps = {
@@ -16,39 +12,43 @@ type LoraStepProps = {
   selectedLoras: WizardLoRA[];
   gender: ActorGender;
   styleBaseModel?: string | null;
+  /** LoRA IDs already applied by StyleProfile — hidden from selection */
+  excludeLoraIds?: number[];
   onToggleLora: (loraId: number, defaultWeight: number) => void;
   onUpdateWeight: (loraId: number, weight: number) => void;
 };
-
-type TypeFilter = "all" | "character" | "style";
-
-const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "character", label: "Character" },
-  { value: "style", label: "Style" },
-];
 
 export default function LoraStep({
   allLoras,
   selectedLoras,
   gender,
   styleBaseModel,
+  excludeLoraIds,
   onToggleLora,
   onUpdateWeight,
 }: LoraStepProps) {
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const excludeSet = useMemo(() => new Set(excludeLoraIds ?? []), [excludeLoraIds]);
+
+  const hasCharacterLoras = useMemo(
+    () => allLoras.some((l) => l.lora_type === "character"),
+    [allLoras]
+  );
 
   const filteredLoras = useMemo(() => {
     return allLoras.filter((lora) => {
+      // Only show character-type LoRAs (style/detail are managed by StyleProfile)
+      if (lora.lora_type !== "character") return false;
+
+      // Exclude LoRAs already applied by StyleProfile (safety net)
+      if (excludeSet.has(lora.id)) return false;
+
       // Gender filter: show if unlocked or matching
       if (lora.gender_locked && lora.gender_locked !== gender) return false;
 
       // Base model compatibility: skip LoRAs incompatible with the selected style
       if (styleBaseModel && lora.base_model && lora.base_model !== styleBaseModel) return false;
-
-      // Type filter
-      if (typeFilter !== "all" && lora.lora_type !== typeFilter) return false;
 
       // Search filter
       if (searchQuery.trim()) {
@@ -62,35 +62,21 @@ export default function LoraStep({
 
       return true;
     });
-  }, [allLoras, gender, styleBaseModel, typeFilter, searchQuery]);
+  }, [allLoras, excludeSet, gender, styleBaseModel, searchQuery]);
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h2 className="text-sm font-semibold text-zinc-800">Select LoRAs</h2>
+        <h2 className="text-sm font-semibold text-zinc-800">Character LoRA</h2>
         <p className="mt-0.5 text-xs text-zinc-400">
-          Optional. Choose character or style LoRAs to apply.
+          캐릭터 고유 외형을 부여할 LoRA를 선택하세요. 화풍 LoRA는 시리즈 설정에서 관리됩니다.
         </p>
       </div>
 
-      {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Type pills */}
-        {TYPE_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => setTypeFilter(opt.value)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-              typeFilter === opt.value ? FILTER_PILL_ACTIVE : FILTER_PILL_INACTIVE
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-
-        {/* Search input */}
-        <div className="relative ml-auto w-48">
+      {/* Search */}
+      {hasCharacterLoras && (
+        <div className="relative w-48">
           <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
           <input
             type="text"
@@ -100,7 +86,7 @@ export default function LoraStep({
             className={`${FORM_INPUT_COMPACT_CLASSES} py-1.5 pl-8 text-xs`}
           />
         </div>
-      </div>
+      )}
 
       {/* Card grid */}
       {filteredLoras.length > 0 ? (
@@ -123,16 +109,12 @@ export default function LoraStep({
         </div>
       ) : (
         <div className="flex items-center justify-center rounded-xl border border-dashed border-zinc-200 py-12">
-          <p className="text-sm text-zinc-400">No LoRAs match the current filter</p>
+          <p className="text-sm text-zinc-400">사용 가능한 캐릭터 LoRA가 없습니다</p>
         </div>
       )}
 
-      {/* Selected count */}
-      {selectedLoras.length > 0 && (
-        <p className="text-xs text-zinc-500">
-          {selectedLoras.length} LoRA{selectedLoras.length !== 1 ? "s" : ""} selected
-        </p>
-      )}
+      {/* Selected indicator */}
+      {selectedLoras.length > 0 && <p className="text-xs text-zinc-500">1 LoRA selected</p>}
     </div>
   );
 }

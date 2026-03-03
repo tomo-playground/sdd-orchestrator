@@ -63,7 +63,6 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
     # Phase 20-A: 인벤토리 로드 (DB 세션은 LLM 호출 전에 닫음)
     inventory: dict = {}
     valid_char_ids: list[int] | None = None
-    valid_style_ids: list[int] | None = None
 
     if INVENTORY_CASTING_ENABLED:
         inventory = _load_inventory(state.get("group_id"))
@@ -72,7 +71,6 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
             template_vars["structures"] = inventory.get("structures", [])
             template_vars["styles"] = inventory.get("styles", [])
             valid_char_ids = [c.id for c in inventory["characters"]]
-            valid_style_ids = [s.id for s in inventory.get("styles", [])]
 
     try:
         async with trace_llm_call(name="director_plan", input_text=template_vars.get("topic", "")):
@@ -104,7 +102,6 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
             "director_plan": plan,
             "casting_recommendation": casting,
             "valid_character_ids": valid_char_ids,
-            "valid_style_profile_ids": valid_style_ids,
             "skip_stages": derived_skip_stages,
         }
 

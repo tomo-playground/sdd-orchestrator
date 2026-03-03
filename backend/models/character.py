@@ -8,8 +8,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
     from models.associations import CharacterTag
+    from models.group import Group
     from models.media_asset import MediaAsset
-    from models.sd_model import StyleProfile
 
 from models.base import Base, SoftDeleteMixin, TimestampMixin
 
@@ -21,10 +21,10 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
     __table_args__ = (UniqueConstraint("name", name="uq_characters_name"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    style_profile_id: Mapped[int | None] = mapped_column(
+    group_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("style_profiles.id", ondelete="SET NULL"),
-        nullable=True,
+        ForeignKey("groups.id", ondelete="RESTRICT"),
+        nullable=False,
         index=True,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -44,10 +44,7 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
     reference_negative_prompt: Mapped[str | None] = mapped_column(Text)
 
     # Relationships
-    style_profile: Mapped["StyleProfile | None"] = relationship(
-        "StyleProfile",
-        foreign_keys=[style_profile_id],
-    )
+    group: Mapped["Group"] = relationship("Group", back_populates="characters")
 
     # V3: Relational Tags
     tags: Mapped[list["CharacterTag"]] = relationship("CharacterTag", backref="character", cascade="all, delete-orphan")

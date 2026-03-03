@@ -9,11 +9,9 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session, joinedload
 
 from config import (
-    DEFAULT_REFERENCE_BASE_PROMPT,
-    DEFAULT_REFERENCE_NEGATIVE_PROMPT,
     logger,
 )
-from models import Character, CharacterTag, LoRA
+from models import Character, CharacterTag, Group, LoRA
 from schemas import CharacterCreate, CharacterTagLink, CharacterUpdate
 
 from .lora_enrichment import enrich_character_loras, enrich_with_lora_map
@@ -32,7 +30,7 @@ def _base_character_query(db: Session):
     """Shared joinedload pattern for character queries."""
     return db.query(Character).options(
         joinedload(Character.tags).joinedload(CharacterTag.tag),
-        joinedload(Character.style_profile),
+        joinedload(Character.group).joinedload(Group.style_profile),
     )
 
 
@@ -44,9 +42,12 @@ def _populate_tag_metadata(character: Character) -> None:
         char_tag.group_name = char_tag.tag.group_name
 
 
-def _populate_style_profile_name(character: Character) -> None:
-    """Set style_profile_name from the joined relationship for serialization."""
-    character.style_profile_name = character.style_profile.name if character.style_profile else None
+def _populate_group_fields(character: Character) -> None:
+    """Set group_name and style_profile_name from group relationship for serialization."""
+    character.group_name = character.group.name if character.group else None
+    character.style_profile_name = (
+        character.group.style_profile.name if character.group and character.group.style_profile else None
+    )
 
 
 def _merge_tags(data) -> list:
@@ -88,7 +89,7 @@ def _save_tag_links(db: Session, character_id: int, tags: list) -> None:
 
 def list_characters(
     db: Session,
-    style_profile_id: int | None = None,
+    group_id: int | None = None,
     offset: int = 0,
     limit: int = 50,
 ) -> dict:
@@ -96,15 +97,15 @@ def list_characters(
     from sqlalchemy import func
 
     base = db.query(Character).filter(Character.deleted_at.is_(None))
-    if style_profile_id is not None:
-        base = base.filter(Character.style_profile_id == style_profile_id)
+    if group_id is not None:
+        base = base.filter(Character.group_id == group_id)
 
     total = base.with_entities(func.count(Character.id)).scalar() or 0
 
     characters = (
         base.options(
             joinedload(Character.tags).joinedload(CharacterTag.tag),
-            joinedload(Character.style_profile),
+            joinedload(Character.group).joinedload(Group.style_profile),
         )
         .order_by(Character.name)
         .offset(offset)
@@ -118,7 +119,7 @@ def list_characters(
 
     for char in characters:
         _populate_tag_metadata(char)
-        _populate_style_profile_name(char)
+        _populate_group_fields(char)
         if char.loras:
             char.loras = enrich_with_lora_map(char.loras, lora_map)
 
@@ -132,7 +133,7 @@ def get_character_or_raise(db: Session, character_id: int) -> Character:
         raise ValueError("Character not found")
 
     _populate_tag_metadata(character)
-    _populate_style_profile_name(character)
+    _populate_group_fields(character)
     if character.loras:
         character.loras = enrich_character_loras(db, character.loras)
 
@@ -141,6 +142,10 @@ def get_character_or_raise(db: Session, character_id: int) -> Character:
 
 def create_character(db: Session, data: CharacterCreate) -> Character:
     """Create a character with tags, LoRA enrichment, and default prompts."""
+    # Validate group_id exists
+    if not db.query(Group).filter(Group.id == data.group_id).first():
+        raise ValueError("Group not found")
+
     existing = db.query(Character).filter(Character.name == data.name, Character.deleted_at.is_(None)).first()
     if existing:
         raise ConflictError("Character name already exists")
@@ -150,10 +155,9 @@ def create_character(db: Session, data: CharacterCreate) -> Character:
     if char_data.get("loras"):
         char_data["loras"] = enrich_character_loras(db, char_data["loras"])
 
-    if not char_data.get("reference_base_prompt"):
-        char_data["reference_base_prompt"] = DEFAULT_REFERENCE_BASE_PROMPT
-    if not char_data.get("reference_negative_prompt"):
-        char_data["reference_negative_prompt"] = DEFAULT_REFERENCE_NEGATIVE_PROMPT
+    # reference_base_prompt / reference_negative_prompt:
+    # 공통 태그는 config 상수가 SSOT (compose_for_reference + preview.py가 자동 주입).
+    # DB에는 캐릭터 고유 태그만 저장. 값이 없으면 NULL로 유지.
 
     character = Character(**char_data)
     db.add(character)
@@ -177,6 +181,11 @@ def update_character(db: Session, character_id: int, data: CharacterUpdate) -> C
         exclude={"tags", "identity_tags", "clothing_tags"},
         exclude_unset=True,
     )
+
+    # Validate group_id if being changed
+    if "group_id" in update_data and update_data["group_id"] is not None:
+        if not db.query(Group).filter(Group.id == update_data["group_id"]).first():
+            raise ValueError("Group not found")
 
     if "loras" in update_data and update_data["loras"]:
         update_data["loras"] = enrich_character_loras(db, update_data["loras"])
@@ -235,6 +244,54 @@ def permanently_delete_character(db: Session, character_id: int) -> str:
     db.commit()
     logger.info("[Characters] Permanently deleted: %s", name)
     return name
+
+
+def duplicate_character(
+    db: Session,
+    source_id: int,
+    target_group_id: int,
+    new_name: str,
+    copy_loras: bool = False,
+    copy_preview: bool = False,
+) -> Character:
+    """Duplicate a character into a (possibly different) group."""
+    source = _base_character_query(db).filter(Character.id == source_id, Character.deleted_at.is_(None)).first()
+    if not source:
+        raise ValueError("Character not found")
+
+    if not db.query(Group).filter(Group.id == target_group_id).first():
+        raise ValueError("Group not found")
+
+    if db.query(Character).filter(Character.name == new_name, Character.deleted_at.is_(None)).first():
+        raise ConflictError("Character name already exists")
+
+    new_char = Character(
+        group_id=target_group_id,
+        name=new_name,
+        gender=source.gender,
+        description=source.description,
+        custom_base_prompt=source.custom_base_prompt,
+        custom_negative_prompt=source.custom_negative_prompt,
+        reference_base_prompt=source.reference_base_prompt,
+        reference_negative_prompt=source.reference_negative_prompt,
+        voice_preset_id=source.voice_preset_id,
+        ip_adapter_weight=source.ip_adapter_weight,
+        ip_adapter_model=source.ip_adapter_model,
+        ip_adapter_guidance_start=source.ip_adapter_guidance_start,
+        ip_adapter_guidance_end=source.ip_adapter_guidance_end,
+        loras=[{"lora_id": lr["lora_id"], "weight": lr["weight"]} for lr in source.loras]
+        if copy_loras and source.loras
+        else None,
+        preview_image_asset_id=source.preview_image_asset_id if copy_preview else None,
+    )
+    db.add(new_char)
+    db.flush()
+
+    for ct in source.tags:
+        db.add(CharacterTag(character_id=new_char.id, tag_id=ct.tag_id, weight=ct.weight, is_permanent=ct.is_permanent))
+
+    db.commit()
+    return get_character_or_raise(db, new_char.id)
 
 
 def list_trashed_characters(db: Session) -> list[dict]:

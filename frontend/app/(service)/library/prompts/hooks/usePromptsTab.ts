@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { API_BASE, ADMIN_API_BASE, PROMPT_APPLY_KEY } from "../../../../constants";
+import { API_BASE, PROMPT_APPLY_KEY } from "../../../../constants";
 import type { PromptHistory } from "../../../../types";
 
 import type { UiCallbacks } from "../../../../types";
@@ -62,7 +62,7 @@ export function usePromptsTab(ui: UiCallbacks) {
       if (!ok) return;
       setDeletingPromptId(id);
       try {
-        await axios.delete(`${ADMIN_API_BASE}/prompt-histories/${id}`);
+        await axios.delete(`${API_BASE}/prompt-histories/${id}`);
         setPromptHistories((prev) => prev.filter((p) => p.id !== id));
       } catch (error) {
         const msg = axios.isAxiosError(error)
@@ -81,7 +81,7 @@ export function usePromptsTab(ui: UiCallbacks) {
       try {
         const prompt = promptHistoriesRef.current.find((p) => p.id === id);
         if (!prompt) return;
-        await axios.put(`${ADMIN_API_BASE}/prompt-histories/${id}`, {
+        await axios.put(`${API_BASE}/prompt-histories/${id}`, {
           is_favorite: !prompt.is_favorite,
         });
         setPromptHistories((prev) =>

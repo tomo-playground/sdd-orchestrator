@@ -36,7 +36,7 @@ def _strip_trailing_hallucination(wav: np.ndarray, sr: int) -> np.ndarray:
         peak_after = np.max(rms[min_idx + 1 :])
         median_rms = np.median(rms[:scan_start]) if scan_start > 0 else np.median(rms)
 
-        if valley_rms < median_rms * 0.05 and peak_after > median_rms * 0.15:
+        if valley_rms < median_rms * 0.02 and peak_after > median_rms * 0.25:
             cut_sample = min_idx * frame_len
             logger.info(
                 "[TTS] Trailing hallucination cut: valley=%.4f, peak=%.4f (median=%.4f) at %.2fs",
@@ -72,8 +72,8 @@ def _compress_internal_silence(wav: np.ndarray, sr: int) -> np.ndarray:
     return result
 
 
-def normalize_audio(wav: np.ndarray, target_dbfs: float = -20.0) -> np.ndarray:
-    """Normalize audio to target dBFS level."""
+def normalize_audio(wav: np.ndarray, target_dbfs: float = -23.0, peak_limit_db: float = -1.0) -> np.ndarray:
+    """Normalize audio to target dBFS with peak limiting (no hard clipping)."""
     rms = np.sqrt(np.mean(wav**2))
 
     if rms < 1e-6:
@@ -82,16 +82,22 @@ def normalize_audio(wav: np.ndarray, target_dbfs: float = -20.0) -> np.ndarray:
 
     current_dbfs = 20 * np.log10(rms)
     gain_db = target_dbfs - current_dbfs
-    gain_linear = 10 ** (gain_db / 20)
 
+    # 피크 제한: 증폭 후 피크가 peak_limit_db를 넘지 않도록
+    peak = np.max(np.abs(wav))
+    if peak > 1e-6:
+        max_gain_db = peak_limit_db - 20 * np.log10(peak)
+        gain_db = min(gain_db, max_gain_db)
+
+    gain_linear = 10 ** (gain_db / 20)
     normalized = wav * gain_linear
-    normalized = np.clip(normalized, -1.0, 1.0)
 
     logger.info(
-        "[TTS] Audio normalized: %.1f dBFS -> %.1f dBFS (gain: %.1f dB)",
+        "[TTS] Audio normalized: %.1f dBFS -> %.1f dBFS (gain: %.1f dB, peak: %.3f)",
         current_dbfs,
         target_dbfs,
         gain_db,
+        np.max(np.abs(normalized)),
     )
     return normalized
 

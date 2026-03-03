@@ -93,6 +93,14 @@ docs/
 - **SD WebUI**: API 모드 실행 (`--api` 옵션)
 - **환경 변수**: `backend/.env` 파일 필수 (`DATABASE_URL`, `GEMINI_API_KEY` 등)
 
+## Service vs Admin API 분리 기준
+- **Service API** (`/api/v1`): 일반 사용자가 서비스 화면(`app/(service)/`)에서 직접 수행하는 기능
+  - 캐릭터 CRUD/프리뷰/레퍼런스, 프롬프트 번역/편집/태그검증, IP-Adapter 레퍼런스 조회, YouTube OAuth, 스토리보드/씬/렌더링 등
+- **Admin API** (`/api/admin`): 시스템 관리, 일괄 작업, Back-office 전용
+  - SD 모델/임베딩 관리, LoRA CUD, StyleProfile CUD, 일괄 레퍼런스 재생성, 영구 삭제, Lab/실험, Activity Logs, 캐시 갱신 등
+- **Frontend 규칙**: 서비스 화면에서는 `API_BASE` 사용. `ADMIN_API_BASE`는 어드민 페이지(`app/admin/`)에서만 사용.
+- **Backend 규칙**: 라우터 파일에서 `service_router`와 `admin_router`를 분리. `routers/__init__.py`에서 각각 등록.
+
 ## Configuration Principles (SSOT)
 - **설정 값**: 모든 환경 변수 및 상수는 `backend/config.py`에서 관리합니다. 개별 파일 하드코딩 금지.
 - **옵션 목록**: Language, Structure 등 도메인 옵션은 **Backend가 SSOT**. Frontend는 API 응답을 소비만 한다. `frontend/constants/`에 도메인 옵션 하드코딩 금지.
@@ -108,13 +116,23 @@ docs/
   - 캐릭터 프리뷰 생성도 동일: `preview.py`에서 StyleContext 기반 오버라이드.
 - **원천 UI 수정 원칙**: 설정 값의 SSOT를 소유한 UI에서만 수정을 허용한다. 다른 화면에서 동일 값을 표시할 때는 **읽기 전용**으로 보여주고, 수정이 필요하면 원천 UI로 이동시킨다. 특수한 케이스가 아닌 한 인라인 수정 금지.
   - 예: `narrator_voice_preset_id` → GroupConfigEditor가 원천. 렌더 패널은 읽기 전용 + "시리즈 설정에서 변경" 링크.
+- **캐릭터 레퍼런스 프롬프트 SSOT** (공통 vs 고유 분리):
+  - **공통 태그 = 상수 SSOT** (`config.py`, `config_prompt.py`):
+    - Positive: `REFERENCE_ENV_TAGS` (배경), `REFERENCE_CAMERA_TAGS` (카메라), `_ensure_quality_tags()` (품질)
+    - Negative: `DEFAULT_REFERENCE_NEGATIVE_PROMPT` (품질·배경·멀티뷰 억제)
+    - `compose_for_reference()` + `preview.py` 머지 로직이 자동 주입
+  - **캐릭터 고유 태그 = DB** (`characters.reference_base_prompt`, `reference_negative_prompt`):
+    - Positive: 캐릭터 특화 보정만 (`chibi`, `flat_color`, `hrkzdrm_cs`, `expressionless` 등)
+    - Negative: 캐릭터 특화 억제만 (`armor, bodysuit`, `1girl`, `realistic` 등)
+  - ❌ DB에 공통 태그 중복 저장 금지 (`white_background`, `simple_background`, `solo`, `standing`, `lowres`, `bad_anatomy`, `detailed_background`, `multiple_views` 등)
+  - 공통 태그 변경 시 상수 1곳만 수정. DB 캐릭터별 업데이트 불필요.
 
 ## DB Schema Design Principles
 - **관심사 분리**: 콘텐츠 테이블(storyboards)과 설정 필드(groups의 FK/DNA)를 구분한다.
 - **`default_` prefix 금지**: 실제 값에 `default_` 붙이지 않는다. cascade/fallback 문맥에서만 사용.
 - **Boolean은 Boolean**: `Integer`로 boolean 저장 금지. `Boolean` 타입 + `is_`/`_enabled` 네이밍.
 - **JSON은 JSONB**: `Text`에 JSON 문자열 저장 금지. 구조화 데이터는 반드시 `JSONB`.
-- **설정 소유권**: `System Default < Group` (2단계). 콘텐츠 엔티티는 설정을 소유하지 않는다. Identity(채널명/아바타)는 Project → Group → Storyboard ORM 관계로 전달.
+- **설정 소유권**: `System Default < Group` (2단계). 콘텐츠 엔티티는 설정을 소유하지 않는다. Identity(채널명/아바타)는 Project → Group → Storyboard ORM 관계로 전달. **Character는 Group에 종속** (`group_id` NOT NULL FK) — 화풍은 Group.style_profile에서 자동 상속, Character가 독자적으로 화풍을 소유하지 않는다.
 - **미디어 참조는 media_asset_id 필수**: 이미지/비디오/오디오 URL을 직접 저장하지 않는다.
   - ❌ `image_url: "http://localhost:9000/..."` — 환경 종속, 이동 불가
   - ✅ `media_asset_id: 123` — `media_assets` 테이블 FK 참조
@@ -315,6 +333,11 @@ docs/
    - `DB_SCHEMA.md` + `SCHEMA_SUMMARY.md` 업데이트 여부
    - Known Issues 목록 갱신 필요 여부
 3. DBA BLOCKER 발견 시 수정 후 재검증, PASS 후에만 커밋 진행
+
+**테스트 실패 수정 파이프라인**:
+- 테스트 실패가 다수(3개 파일 이상) 발생하면 **멀티 에이전트 병렬 수정** 사용.
+- 파일별로 독립 에이전트에게 분석+수정 위임 (DB fixture는 공유하므로 실행은 순차, 분석/수정만 병렬).
+- 테스트 실행 자체는 단일 프로세스 (`pytest`)로 최종 검증.
 
 ## 용어 정의 (Terminology)
 

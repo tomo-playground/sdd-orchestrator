@@ -35,6 +35,9 @@ async def analyze_topic(
         [(c.id, c.name) for c in characters],
     )
 
+    # 인라인 편집용 옵션 목록 구성
+    available_options = _build_options(group_id, characters)
+
     template_vars = {
         "topic": topic,
         "description": description or "",
@@ -66,12 +69,14 @@ async def analyze_topic(
             resolved_topic=resolved_topic or topic,
             questions=questions,
             reasoning=parsed.get("reasoning", ""),
+            available_options=available_options,
         )
 
     result = _validate_topic_analysis(parsed, characters)
     return TopicAnalyzeResponse(
         status="recommend",
         resolved_topic=resolved_topic or topic,
+        available_options=available_options,
         **result,
     )
 
@@ -118,3 +123,20 @@ def _validate_topic_analysis(parsed: dict, characters: list) -> dict:
         "character_b_name": character_b_name,
         "reasoning": parsed.get("reasoning", ""),
     }
+
+
+def _build_options(group_id: int | None, characters: list) -> AvailableOptions:
+    """인라인 편집용 옵션 목록을 구성한다 (DB 세션 불필요)."""
+    from config import SHORTS_DURATIONS, STORYBOARD_LANGUAGES
+    from schemas import AvailableOptions
+    from services.presets import PRESETS
+
+    structures = [{"value": p.structure, "label": p.name_ko} for p in PRESETS.values()]
+    char_list = [{"id": c.id, "name": c.name} for c in characters]
+
+    return AvailableOptions(
+        durations=SHORTS_DURATIONS,
+        structures=structures,
+        languages=STORYBOARD_LANGUAGES,
+        characters=char_list,
+    )

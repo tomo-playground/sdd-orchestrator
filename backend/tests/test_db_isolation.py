@@ -17,7 +17,7 @@ def _setup_hierarchy(db_session):
     db_session.flush()
     scene = Scene(storyboard_id=storyboard.id, order=0, script="s0")
     db_session.add(scene)
-    character = Character(name="Test Char")
+    character = Character(name="Test Char", group_id=1)
     db_session.add(character)
     db_session.flush()
     return storyboard, scene, character

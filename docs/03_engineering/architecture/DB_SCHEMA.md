@@ -1,4 +1,4 @@
-# Database Schema (v3.32)
+# Database Schema (v3.33)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.33 | 2026-03-02 | Character-Group 소유권: `characters.style_profile_id` 제거 → `characters.group_id` NOT NULL FK (RESTRICT). Group이 화풍 유일한 SSOT |
 | v3.32 | 2026-02-28 | `group_config` 테이블 제거 → `groups` 통합 (render_preset_id, style_profile_id, narrator_voice_preset_id). `channel_dna` 컬럼 제거 |
 | v3.31 | 2026-02-28 | DB Schema Cleanup: `characters.reference_source_type` DROP, `scenes.last_seed` DROP. `is_permanent` / `lora_type=style` Known Issue 해소 표기. `embeddings` 구현 완료 표기. `characters.prompt_mode` 문서 삭제 |
 | v3.30 | 2026-02-26 | Phase 18 Stage Workflow: `backgrounds`에 `storyboard_id` FK(CASCADE) + `location_key` + partial unique index 추가. `storyboards`에 `stage_status` 추가 |
@@ -48,9 +49,9 @@ erDiagram
     music_presets }o--o| media_assets : "audio"
     render_presets }o--o| music_presets : "bgm_ai"
 
+    groups ||--o{ characters : "owns"
     characters ||--o{ character_tags : "has"
     characters }o--o{ scene_character_actions : "acts_in"
-    characters }o--o| style_profiles : "style"
     storyboard_characters }o--o| characters : "maps_to"
 
     tags ||--o{ character_tags : "linked"
@@ -434,12 +435,12 @@ WD14 피드백 루프 데이터.
 **중요**: `storage_key`는 버킷명(`shorts-producer`)을 포함하지 않음. `get_storage().get_url(key)`가 버킷명을 자동 추가.
 
 ### `characters`
-캐릭터 프리셋. V3에서는 `character_tags` 관계형 테이블로 태그 연결.
+캐릭터 프리셋. Group에 소속되며 화풍은 Group에서 상속. V3에서는 `character_tags` 관계형 테이블로 태그 연결.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `style_profile_id` | Integer (FK → style_profiles, SET NULL) | 캐릭터별 스타일 프로파일 오버라이드 |
+| `group_id` | Integer (FK → groups, RESTRICT, NOT NULL) | 소속 시리즈 (화풍은 Group에서 자동 상속) |
 | `name` | String(100) | Unique |
 | `gender` | String(10) | `female`, `male` |
 | `description` | String(500) | |
@@ -448,8 +449,8 @@ WD14 피드백 루프 데이터.
 | `recommended_negative` | Text[] | 캐릭터별 네거티브 |
 | `custom_base_prompt` | Text | V3 compose 입력: LAYER_IDENTITY(2)에 배치 |
 | `custom_negative_prompt` | Text | Frontend `buildNegativePrompt()` 입력 |
-| `reference_base_prompt` | Text | 레퍼런스 이미지 전용 (V3 compose 미사용) |
-| `reference_negative_prompt` | Text | 레퍼런스 이미지 전용 |
+| `reference_base_prompt` | Text | 레퍼런스 전용 — 캐릭터 고유 태그만 (공통은 config 상수 자동 주입) |
+| `reference_negative_prompt` | Text | 레퍼런스 전용 — 캐릭터 고유 억제만 (공통은 DEFAULT 상수 머지) |
 | **IP-Adapter** | | |
 | `ip_adapter_weight` | Float | 0.0-1.0 |
 | `ip_adapter_model` | String(50) | `clip`, `clip_face`, `faceid` |

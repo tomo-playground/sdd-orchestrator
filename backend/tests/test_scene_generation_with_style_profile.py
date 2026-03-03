@@ -48,6 +48,7 @@ def setup_test_data(db_session: Session):
     character = Character(
         name="test_character",
         gender="female",
+        group_id=1,
     )
     db_session.add(character)
     db_session.flush()

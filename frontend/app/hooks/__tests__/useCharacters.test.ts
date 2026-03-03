@@ -42,7 +42,8 @@ function buildCharacterNegative(character: CharacterFull): string {
 
 const BASE_CHARACTER: CharacterFull = {
   id: 1,
-  style_profile_id: null,
+  group_id: 1,
+  group_name: "Default Group",
   style_profile_name: null,
   name: "Test Character",
   description: null,

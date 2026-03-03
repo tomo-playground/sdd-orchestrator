@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from models.character import Character
     from models.project import Project
     from models.render_preset import RenderPreset
     from models.sd_model import StyleProfile
@@ -44,6 +45,7 @@ class Group(Base, TimestampMixin):
 
     # Relationships
     project: Mapped[Project] = relationship("Project", back_populates="groups")
+    characters: Mapped[list[Character]] = relationship("Character", back_populates="group")
     storyboards: Mapped[list[Storyboard]] = relationship("Storyboard", back_populates="group")
     render_preset: Mapped[RenderPreset | None] = relationship(
         "RenderPreset",
@@ -70,3 +72,8 @@ class Group(Base, TimestampMixin):
     @property
     def voice_preset_name(self) -> str | None:
         return self.narrator_voice_preset.name if self.narrator_voice_preset else None
+
+    @property
+    def character_count(self) -> int:
+        """Active character count — set by router via _character_count."""
+        return getattr(self, "_character_count", 0)

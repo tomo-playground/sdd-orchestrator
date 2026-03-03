@@ -1,11 +1,11 @@
 "use client";
 
-import { useReducer, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useReducer, useEffect, useCallback, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
 import { Settings2 } from "lucide-react";
-import { ADMIN_API_BASE } from "../../../../constants";
+import { API_BASE } from "../../../../constants";
 import { useUIStore } from "../../../../store/useUIStore";
 import { getErrorMsg } from "../../../../utils/error";
 import { CONTAINER_CLASSES } from "../../../../components/ui/variants";
@@ -20,7 +20,7 @@ import { wizardReducer, INITIAL_WIZARD_STATE, type WizardStep } from "./wizardRe
 import WizardNavBar from "./components/WizardNavBar";
 import WizardPreviewPanel from "./WizardPreviewPanel";
 import { useWizardPreview } from "./useWizardPreview";
-import StyleStep from "./steps/StyleStep";
+import GroupStep from "./steps/GroupStep";
 import BasicInfoStep from "./steps/BasicInfoStep";
 import AppearanceStep from "./steps/AppearanceStep";
 import LoraStep from "./steps/LoraStep";
@@ -30,6 +30,7 @@ import PromptsStep from "./steps/PromptsStep";
 
 export default function CharacterWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
   const [state, dispatch] = useReducer(wizardReducer, INITIAL_WIZARD_STATE);
@@ -45,9 +46,51 @@ export default function CharacterWizard() {
     searchResults,
   } = useTagData();
 
+  // ── Auto-select group from URL ?group_id=X ────────────────
+  const autoGroupHandled = useRef(false);
+  useEffect(() => {
+    if (autoGroupHandled.current) return;
+    const groupIdParam = searchParams.get("group_id");
+    if (!groupIdParam) return;
+    const groupId = parseInt(groupIdParam, 10);
+    if (isNaN(groupId)) return;
+    autoGroupHandled.current = true;
+
+    // Fetch group data to get style_profile_id, then resolve baseModel + LoRA IDs
+    axios
+      .get(`${API_BASE}/groups/${groupId}`)
+      .then(async (res) => {
+        const g = res.data;
+        const spId: number | null = g.style_profile_id ?? null;
+        let baseModel: string | null = null;
+        let spLoraIds: number[] = [];
+        if (spId != null) {
+          try {
+            const spRes = await axios.get(`${API_BASE}/style-profiles/${spId}/full`);
+            baseModel = spRes.data.sd_model?.base_model ?? null;
+            spLoraIds = (spRes.data.loras ?? []).map((l: { id: number }) => l.id);
+          } catch {
+            /* fallback to null */
+          }
+        }
+        dispatch({
+          type: "SET_GROUP",
+          groupId: g.id,
+          styleProfileId: spId,
+          baseModel,
+          styleLoraIds: spLoraIds,
+        });
+        // Skip Step 0 by jumping to Step 1
+        dispatch({ type: "SET_STEP", step: 1 });
+      })
+      .catch(() => {
+        showToast("시리즈를 찾을 수 없습니다", "error");
+      });
+  }, [searchParams, showToast]);
+
   // ── beforeunload guard ───────────────────────────────────
   const isDirty =
-    state.style_profile_id !== null ||
+    state.group_id !== null ||
     state.name.length > 0 ||
     state.description.length > 0 ||
     state.selectedTags.length > 0 ||
@@ -191,7 +234,7 @@ export default function CharacterWizard() {
         name: state.name.trim(),
         gender: state.gender,
         description: state.description.trim() || null,
-        style_profile_id: state.style_profile_id,
+        group_id: state.group_id,
         tags: allTags,
         loras: state.selectedLoras.map((l) => ({ lora_id: l.loraId, weight: l.weight })),
         custom_base_prompt: state.custom_base_prompt.trim() || null,
@@ -200,7 +243,7 @@ export default function CharacterWizard() {
         reference_negative_prompt: state.reference_negative_prompt.trim() || null,
       };
 
-      const res = await axios.post(`${ADMIN_API_BASE}/characters`, payload);
+      const res = await axios.post(`${API_BASE}/characters`, payload);
       await assignPreview(res.data.id);
       showToast("Character created!", "success");
       router.push(`/library/characters/${res.data.id}`);
@@ -223,7 +266,7 @@ export default function CharacterWizard() {
 
   const canProceed =
     state.step === 0
-      ? state.style_profile_id !== null
+      ? state.group_id !== null
       : state.step === 1
         ? state.name.trim().length >= 2
         : state.step === 2
@@ -245,7 +288,7 @@ export default function CharacterWizard() {
   }, [state.step]);
 
   // ── Step headers ─────────────────────────────────────────
-  const stepLabels = ["Style", "Basic Info", "Appearance", "LoRA", "Prompts"];
+  const stepLabels = ["Series", "Basic Info", "Appearance", "LoRA", "Prompts"];
 
   // ── Loading ──────────────────────────────────────────────
   if (isLoading) {
@@ -312,9 +355,11 @@ export default function CharacterWizard() {
         {/* Right: Step content */}
         <div className="rounded-2xl border border-zinc-200/60 bg-white p-5">
           {state.step === 0 && (
-            <StyleStep
-              selectedId={state.style_profile_id}
-              onSelect={(id, baseModel) => dispatch({ type: "SET_STYLE_PROFILE", id, baseModel })}
+            <GroupStep
+              selectedGroupId={state.group_id}
+              onSelect={(groupId, styleProfileId, baseModel, styleLoraIds) =>
+                dispatch({ type: "SET_GROUP", groupId, styleProfileId, baseModel, styleLoraIds })
+              }
             />
           )}
           {state.step === 1 && (
@@ -346,6 +391,7 @@ export default function CharacterWizard() {
               selectedLoras={state.selectedLoras}
               gender={state.gender}
               styleBaseModel={state.styleBaseModel}
+              excludeLoraIds={state.styleLoraIds}
               onToggleLora={(loraId, defaultWeight) =>
                 dispatch({ type: "TOGGLE_LORA", loraId, defaultWeight })
               }

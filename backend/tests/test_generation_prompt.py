@@ -113,7 +113,7 @@ class TestContextTagsInPipeline:
             context_tags={"expression": ["smile"], "camera": "cowboy_shot"},
         )
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = _make_character()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("composed", "bad", [])
@@ -135,7 +135,7 @@ class TestContextTagsInPipeline:
             context_tags={"environment": ["night"], "mood": ["dark"]},
         )
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = None
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("composed", "bad", [])
@@ -151,7 +151,7 @@ class TestContextTagsInPipeline:
         """Without context_tags, prompt passes through unchanged."""
         req = _make_request(prompt="1girl, standing", context_tags=None)
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = _make_character()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("composed", "bad", [])
@@ -177,7 +177,7 @@ class TestPreparePromptFlag:
         mock_style.return_value = (prompt_with_lora, "bad")
         req = _make_request(prompt_pre_composed=True, prompt=prompt_with_lora)
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = _make_character()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             cleaned, warnings, char, _strategy = _call_prepare(req, db)
@@ -197,7 +197,7 @@ class TestPreparePromptFlag:
         mock_resolve.return_value = [{"name": "J_huiben", "weight": 0.8, "trigger_words": ["J_huiben"]}]
         req = _make_request(prompt_pre_composed=True, prompt="masterpiece, 1girl, standing")
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = _make_character()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             cleaned, warnings, char, _strategy = _call_prepare(req, db)
@@ -215,7 +215,7 @@ class TestPreparePromptFlag:
         mock_style.return_value = ("masterpiece, 1girl, standing", "bad")
         req = _make_request(prompt_pre_composed=True, prompt="masterpiece, 1girl, standing", storyboard_id=None)
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = _make_character()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
         cleaned, warnings, char, _strategy = _call_prepare(req, db)
 
@@ -228,7 +228,7 @@ class TestPreparePromptFlag:
         """prompt_pre_composed=False + character → compose_scene_with_style called."""
         req = _make_request(prompt_pre_composed=False)
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = _make_character()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("v3_composed", "bad", [])
@@ -246,7 +246,7 @@ class TestPreparePromptFlag:
         """scene_id from request must be forwarded to compose_scene_with_style."""
         req = _make_request(prompt_pre_composed=False, scene_id=42)
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = _make_character()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("composed", "neg", [])
@@ -261,7 +261,7 @@ class TestPreparePromptFlag:
         """No scene_id → scene_id=None passed to compose_scene_with_style."""
         req = _make_request(prompt_pre_composed=False)
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = _make_character()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("composed", "neg", [])
@@ -271,8 +271,9 @@ class TestPreparePromptFlag:
         assert call_kwargs["scene_id"] is None
 
     @patch("services.character_consistency.load_reference_image", return_value=None)
+    @patch("services.generation_prompt._resolve_style_loras", return_value=[])
     @patch("services.generation_prompt.apply_style_profile_to_prompt")
-    def test_no_character_applies_full_style_profile(self, mock_style, mock_ref):
+    def test_no_character_applies_full_style_profile(self, mock_style, mock_resolve, mock_ref):
         """No character_id → full style profile applied, V3 not called."""
         mock_style.return_value = ("quality, scenery, sunset", "bad")
         req = _make_request(character_id=None)
@@ -569,7 +570,7 @@ class TestBatchLoraResolution:
             style_loras=[{"lora_id": 5, "weight": 0.7}],
         )
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = _make_character()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("composed", "bad", [])
@@ -588,7 +589,7 @@ class TestBatchLoraResolution:
         mock_resolve.return_value = db_loras
         req = _make_request(prompt_pre_composed=False, style_loras=[])
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = _make_character()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("composed", "bad", [])
@@ -614,7 +615,7 @@ class TestNarratorBackgroundFiltering:
         """no_humans + character_id=None → compose_scene_with_style called."""
         req = _make_request(character_id=None, prompt="no_humans, bedroom, night, full_body, standing")
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = None
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("no_humans, bedroom, night", "bad", [])
@@ -631,7 +632,7 @@ class TestNarratorBackgroundFiltering:
         """compose_scene_with_style strips character tags from no_humans scenes."""
         req = _make_request(character_id=None, prompt="no_humans, bedroom, full_body, standing")
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = None
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("no_humans, bedroom", "bad", [])
@@ -646,7 +647,7 @@ class TestNarratorBackgroundFiltering:
         """Environment tags (bedroom, night) preserved through compose_scene_with_style."""
         req = _make_request(character_id=None, prompt="no_humans, bedroom, night")
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = None
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("no_humans, bedroom, night", "bad", [])
@@ -664,7 +665,7 @@ class TestNarratorBackgroundFiltering:
         mock_resolve.return_value = style_loras
         req = _make_request(character_id=None, prompt="no_humans, bedroom")
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = None
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("no_humans, bedroom, <lora:flat_color:0.7>", "bad", [])
@@ -674,8 +675,9 @@ class TestNarratorBackgroundFiltering:
         assert call_kwargs["style_loras"] == style_loras
 
     @patch("services.character_consistency.load_reference_image", return_value=None)
+    @patch("services.generation_prompt._resolve_style_loras", return_value=[])
     @patch("services.generation_prompt.apply_style_profile_to_prompt")
-    def test_no_character_with_person_tags_uses_style_profile(self, mock_style, mock_ref):
+    def test_no_character_with_person_tags_uses_style_profile(self, mock_style, mock_resolve, mock_ref):
         """No character_id but person tags (1girl) → style profile only, no no_humans."""
         mock_style.return_value = ("1girl, standing, cafe", "bad")
         req = _make_request(character_id=None, prompt="1girl, standing, cafe")
@@ -697,7 +699,7 @@ class TestNarratorBackgroundFiltering:
         mock_resolve.return_value = []
         req = _make_request(character_id=None, prompt="scenery, sunset, mountain")
         db = MagicMock()
-        db.query.return_value.filter.return_value.first.return_value = None
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
             mock_compose.return_value = ("no_humans, scenery, sunset, mountain", "bad", [])

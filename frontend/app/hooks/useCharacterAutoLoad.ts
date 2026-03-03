@@ -5,7 +5,7 @@ import axios from "axios";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useUIStore } from "../store/useUIStore";
 import { useCharacters } from "./useCharacters";
-import { ADMIN_API_BASE } from "../constants";
+import { API_BASE } from "../constants";
 
 /**
  * Auto-load character LoRA/prompt settings and IP-Adapter references.
@@ -24,7 +24,7 @@ export function useCharacterAutoLoad() {
   // Load IP-Adapter reference images on mount
   useEffect(() => {
     axios
-      .get(`${ADMIN_API_BASE}/controlnet/ip-adapter/references`)
+      .get(`${API_BASE}/controlnet/ip-adapter/references`)
       .then((res) => {
         const refs = res.data.references || [];
         referenceImagesRef.current = refs;

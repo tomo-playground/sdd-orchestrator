@@ -13,14 +13,14 @@ class TestValidateCasting:
 
     def test_valid_casting_passes(self):
         casting = {"character_id": 1, "character_name": "A", "structure": "monologue"}
-        state = ScriptState(valid_character_ids=[1, 2, 3], valid_style_profile_ids=[10])
+        state = ScriptState(valid_character_ids=[1, 2, 3])
         result = _validate_casting(casting, state)
         assert result is not None
         assert result["character_id"] == 1
 
     def test_invalid_character_id_removed(self):
         casting = {"character_id": 99, "character_name": "X", "structure": "monologue"}
-        state = ScriptState(valid_character_ids=[1, 2, 3], valid_style_profile_ids=[])
+        state = ScriptState(valid_character_ids=[1, 2, 3])
         result = _validate_casting(casting, state)
         assert result is not None
         assert result["character_id"] is None
@@ -33,7 +33,7 @@ class TestValidateCasting:
             "character_b_name": "X",
             "structure": "dialogue",
         }
-        state = ScriptState(valid_character_ids=[1, 2], valid_style_profile_ids=[])
+        state = ScriptState(valid_character_ids=[1, 2])
         result = _validate_casting(casting, state)
         assert result is not None
         # dialogue → monologue로 변경됨 (char_b 없으므로)
@@ -47,44 +47,38 @@ class TestValidateCasting:
             "character_b_name": "A",
             "structure": "dialogue",
         }
-        state = ScriptState(valid_character_ids=[1, 2], valid_style_profile_ids=[])
+        state = ScriptState(valid_character_ids=[1, 2])
         result = _validate_casting(casting, state)
         assert result is not None
         assert result["character_b_id"] is None
 
     def test_two_char_structure_without_b_fallback(self):
         casting = {"character_id": 1, "character_name": "A", "structure": "narrated_dialogue"}
-        state = ScriptState(valid_character_ids=[1], valid_style_profile_ids=[])
+        state = ScriptState(valid_character_ids=[1])
         result = _validate_casting(casting, state)
         assert result is not None
         assert result["structure"] == "monologue"
 
-    def test_invalid_style_removed(self):
-        casting = {"character_id": 1, "character_name": "A", "structure": "monologue", "style_profile_id": 99}
-        state = ScriptState(valid_character_ids=[1], valid_style_profile_ids=[10, 20])
-        result = _validate_casting(casting, state)
-        assert result is not None
-        assert result["style_profile_id"] is None
-
     def test_all_invalid_returns_none(self):
         casting = {"character_id": 99, "character_name": "X"}
-        state = ScriptState(valid_character_ids=[1], valid_style_profile_ids=[])
+        state = ScriptState(valid_character_ids=[1])
         result = _validate_casting(casting, state)
         assert result is None
 
     def test_empty_valid_ids(self):
         casting = {"character_id": 1, "character_name": "A", "structure": "monologue"}
-        state = ScriptState(valid_character_ids=[], valid_style_profile_ids=[])
+        state = ScriptState(valid_character_ids=[])
         result = _validate_casting(casting, state)
         assert result is not None
         assert result["character_id"] is None
 
-    def test_valid_style_kept(self):
-        casting = {"character_id": 1, "character_name": "A", "structure": "monologue", "style_profile_id": 10}
-        state = ScriptState(valid_character_ids=[1], valid_style_profile_ids=[10, 20])
+    def test_style_profile_id_passthrough(self):
+        """style_profile_id는 검증 없이 그대로 통과 (Group 소유권 체제)."""
+        casting = {"character_id": 1, "character_name": "A", "structure": "monologue", "style_profile_id": 99}
+        state = ScriptState(valid_character_ids=[1])
         result = _validate_casting(casting, state)
         assert result is not None
-        assert result["style_profile_id"] == 10
+        assert result["style_profile_id"] == 99
 
 
 class TestInventoryResolveNode:
@@ -109,7 +103,6 @@ class TestInventoryResolveNode:
             character_id=42,
             casting_recommendation={"character_id": 1, "character_name": "A", "structure": "monologue"},
             valid_character_ids=[1, 2],
-            valid_style_profile_ids=[],
         )
         result = await inventory_resolve_node(state)
         # user 선택 유지 → character_id는 result에 포함되지 않음
@@ -125,7 +118,6 @@ class TestInventoryResolveNode:
                 "structure": "monologue",
             },
             valid_character_ids=[1, 2],
-            valid_style_profile_ids=[],
         )
         result = await inventory_resolve_node(state)
         assert result["character_id"] == 1
@@ -138,7 +130,6 @@ class TestInventoryResolveNode:
             structure="dialogue",
             casting_recommendation={"character_id": 1, "character_name": "A", "structure": "monologue"},
             valid_character_ids=[1],
-            valid_style_profile_ids=[],
         )
         result = await inventory_resolve_node(state)
         assert "structure" not in result

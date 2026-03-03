@@ -1,7 +1,4 @@
-"""Tests for Group API (PUT /groups/{id}) with config fields.
-
-Covers narrator_voice_preset_id update and verifies partial update behavior.
-"""
+"""Tests for Group API — config update + defaults endpoint."""
 
 import pytest
 from sqlalchemy.orm import Session
@@ -136,3 +133,146 @@ class TestGroupConfigUpdate:
         assert resp.status_code == 200
         data = resp.json()
         assert data["narrator_voice_preset_id"] == voice_preset_id
+
+
+class TestGroupDefaults:
+    """Test GET /groups/{id}/defaults — 시리즈 이력 기반 기본값."""
+
+    def _setup(self, db_session: Session) -> int:
+        from models import Group, Project
+
+        project = Project(name="Test Project")
+        db_session.add(project)
+        db_session.commit()
+        db_session.refresh(project)
+
+        group = Group(project_id=project.id, name="Test Group")
+        db_session.add(group)
+        db_session.commit()
+        db_session.refresh(group)
+        return group.id
+
+    def _add_storyboard(self, db_session: Session, group_id: int, **overrides):
+        from models.storyboard import Storyboard
+
+        defaults = {
+            "group_id": group_id,
+            "title": "Test SB",
+            "structure": "Monologue",
+            "duration": 30,
+            "language": "Korean",
+        }
+        defaults.update(overrides)
+        sb = Storyboard(**defaults)
+        db_session.add(sb)
+        db_session.commit()
+
+    def test_defaults_no_history(self, client, db_session):
+        """이력 없는 그룹은 has_history=false + 전역 기본값."""
+        group_id = self._setup(db_session)
+        resp = client.get(f"/api/v1/groups/{group_id}/defaults")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["has_history"] is False
+        assert data["structure"] == "Monologue"
+        assert "available_options" in data
+        assert len(data["available_options"]["durations"]) > 0
+
+    def test_defaults_with_history(self, client, db_session):
+        """이력 있는 그룹은 has_history=true + 최빈값."""
+        group_id = self._setup(db_session)
+        for _ in range(3):
+            self._add_storyboard(
+                db_session, group_id, duration=45, structure="Dialogue", language="Korean",
+            )
+        self._add_storyboard(
+            db_session, group_id, duration=30, structure="Monologue", language="English",
+        )
+
+        resp = client.get(f"/api/v1/groups/{group_id}/defaults")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["has_history"] is True
+        assert data["duration"] == 45
+        assert data["structure"] == "Dialogue"
+        assert data["language"] == "Korean"
+
+    def test_defaults_404_nonexistent(self, client):
+        """존재하지 않는 그룹은 404."""
+        resp = client.get("/api/v1/groups/99999/defaults")
+        assert resp.status_code == 404
+
+    def test_defaults_available_options_structures(self, client, db_session):
+        """available_options.structures는 presets에서 가져온 목록."""
+        group_id = self._setup(db_session)
+        resp = client.get(f"/api/v1/groups/{group_id}/defaults")
+        data = resp.json()
+        structures = data["available_options"]["structures"]
+        values = [s["value"] for s in structures]
+        assert "Monologue" in values
+        assert "Dialogue" in values
+
+    def test_defaults_dialogue_with_characters(self, client, db_session):
+        """Dialogue 이력 + 캐릭터 2명 → character_b_id 반환."""
+        from models import Character
+
+        group_id = self._setup(db_session)
+        char_a = Character(group_id=group_id, name="Alice")
+        char_b = Character(group_id=group_id, name="Bob")
+        db_session.add_all([char_a, char_b])
+        db_session.commit()
+        db_session.refresh(char_a)
+        db_session.refresh(char_b)
+
+        for _ in range(3):
+            self._add_storyboard(
+                db_session, group_id, duration=45, structure="Dialogue", language="Korean",
+            )
+
+        resp = client.get(f"/api/v1/groups/{group_id}/defaults")
+        data = resp.json()
+        assert data["has_history"] is True
+        assert data["character_id"] == char_a.id
+        assert data["character_name"] == "Alice"
+        assert data["character_b_id"] == char_b.id
+        assert data["character_b_name"] == "Bob"
+
+    def test_defaults_monologue_no_character_b(self, client, db_session):
+        """Monologue → character_b는 None."""
+        from models import Character
+
+        group_id = self._setup(db_session)
+        char_a = Character(group_id=group_id, name="Solo")
+        char_b = Character(group_id=group_id, name="Extra")
+        db_session.add_all([char_a, char_b])
+        db_session.commit()
+
+        for _ in range(3):
+            self._add_storyboard(
+                db_session, group_id, duration=30, structure="Monologue", language="Korean",
+            )
+
+        resp = client.get(f"/api/v1/groups/{group_id}/defaults")
+        data = resp.json()
+        assert data["character_b_id"] is None
+        assert data["character_b_name"] is None
+
+    def test_defaults_narrated_dialogue_with_characters(self, client, db_session):
+        """Narrated Dialogue → character_b 포함."""
+        from models import Character
+
+        group_id = self._setup(db_session)
+        char_a = Character(group_id=group_id, name="Jiho")
+        char_b = Character(group_id=group_id, name="Subin")
+        db_session.add_all([char_a, char_b])
+        db_session.commit()
+        db_session.refresh(char_a)
+
+        for _ in range(3):
+            self._add_storyboard(
+                db_session, group_id, duration=45, structure="Narrated Dialogue", language="Korean",
+            )
+
+        resp = client.get(f"/api/v1/groups/{group_id}/defaults")
+        data = resp.json()
+        assert data["character_b_id"] is not None

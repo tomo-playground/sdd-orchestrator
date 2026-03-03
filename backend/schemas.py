@@ -160,6 +160,7 @@ class GroupResponse(BaseModel):
     render_preset_name: str | None = None
     style_profile_name: str | None = None
     voice_preset_name: str | None = None
+    character_count: int = 0
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -198,7 +199,6 @@ class CastingRecommendationSchema(BaseModel):
     character_b_id: int | None = None
     character_b_name: str = ""
     structure: str | None = None
-    style_profile_id: int | None = None
     reasoning: str = Field(default="", max_length=2000)
 
 
@@ -900,7 +900,7 @@ class CharacterBase(BaseModel):
     name: str = Field(max_length=100)
     description: str | None = Field(default=None, max_length=2000)
     gender: str | None = None
-    style_profile_id: int | None = None
+    group_id: int
     loras: list[CharacterLoRA] | None = None
     recommended_negative: list[str] | None = None
     custom_base_prompt: str | None = Field(default=None, max_length=10000)
@@ -927,7 +927,7 @@ class CharacterUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=100)
     description: str | None = Field(default=None, max_length=2000)
     gender: str | None = None
-    style_profile_id: int | None = None
+    group_id: int | None = None
     loras: list[CharacterLoRA] | None = None
     recommended_negative: list[str] | None = None
     custom_base_prompt: str | None = Field(default=None, max_length=10000)
@@ -949,7 +949,8 @@ class CharacterUpdate(BaseModel):
 class CharacterResponse(CharacterBase):
     id: int
     tags: list[CharacterTagLink] = []
-    style_profile_name: str | None = None  # Derived from style_profile relationship
+    group_name: str | None = None  # Derived from group relationship
+    style_profile_name: str | None = None  # Derived from group.style_profile (2-hop)
     preview_image_asset_id: int | None = None
     preview_image_url: str | None = None  # Read-only from @property
     preview_key: str | None = None  # Read-only from @property (storage key)
@@ -964,7 +965,7 @@ class CharacterPreviewRequest(BaseModel):
     gender: str = "female"
     tag_ids: list[int] = []
     loras: list[CharacterLoRA] | None = None
-    style_profile_id: int | None = None
+    style_profile_id: int | None = None  # Wizard-only: derived from selected group's style_profile_id
     controlnet_pose: str | None = None  # Pose name (default: config SD_REFERENCE_CONTROLNET_POSE)
     num_candidates: int = Field(default=1, ge=1, le=5)  # Number of candidates to generate
 
@@ -999,6 +1000,24 @@ class RegenerateReferenceResponse(BaseModel):
     ok: bool
     url: str | None = None
     candidates: list[CandidateImage] = []
+
+
+class CharacterDuplicateRequest(BaseModel):
+    """Request to duplicate a character into a different group."""
+
+    target_group_id: int
+    new_name: str = Field(max_length=100)
+    copy_loras: bool = False
+    copy_preview: bool = False
+
+
+class CharacterDuplicateResponse(BaseModel):
+    id: int
+    name: str
+    group_id: int
+    group_name: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AssignPreviewRequest(BaseModel):
@@ -1153,6 +1172,7 @@ class SDModelBrief(BaseModel):
     id: int
     name: str
     display_name: str | None = None
+    base_model: str | None = None
 
 
 class LoRABrief(BaseModel):
@@ -1961,7 +1981,6 @@ class ReferenceQualityResponse(BaseModel):
     warnings: list[str] = []
 
 
-
 class ImageStoreResponse(BaseModel):
     """Response for POST /image/store."""
 
@@ -2233,6 +2252,15 @@ class TopicAnalyzeRequest(BaseModel):
     messages: list[ChatMessageItem] | None = Field(default=None, max_length=20)
 
 
+class AvailableOptions(BaseModel):
+    """인라인 편집용 옵션 목록 (SSOT: config.py + presets.py + DB)."""
+
+    durations: list[int]
+    structures: list[dict]  # [{value, label}]
+    languages: list[dict]  # [{value, label}]
+    characters: list[dict]  # [{id, name}]
+
+
 class TopicAnalyzeResponse(BaseModel):
     """POST /scripts/analyze-topic 응답."""
 
@@ -2248,6 +2276,21 @@ class TopicAnalyzeResponse(BaseModel):
     character_name: str | None = None
     character_b_id: int | None = None
     character_b_name: str | None = None
+    available_options: AvailableOptions | None = None
+
+
+class GroupDefaultsResponse(BaseModel):
+    """GET /groups/{group_id}/defaults 응답."""
+
+    duration: int
+    structure: str
+    language: str
+    character_id: int | None = None
+    character_name: str | None = None
+    character_b_id: int | None = None
+    character_b_name: str | None = None
+    has_history: bool
+    available_options: AvailableOptions | None = None
 
 
 # ============================================================
@@ -2338,6 +2381,7 @@ class ReferenceItem(BaseModel):
     """Single IP-Adapter reference."""
 
     character_key: str
+    character_id: int | None = None
     filename: str | None = None
     image_b64: str | None = None
     preset: ReferencePreset | None = None

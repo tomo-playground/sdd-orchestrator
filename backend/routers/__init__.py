@@ -11,8 +11,9 @@ from fastapi import APIRouter
 service_app_router = APIRouter(prefix="/api/v1")
 admin_app_router = APIRouter(prefix="/api/admin")
 
-# ── Service-only routers (10) ───────────────────────────────
+# ── Service-only routers (11) ──────────────────────────────
 from .assets import router as assets_router
+from .controlnet import service_router as controlnet_svc
 from .groups import router as groups_router
 from .presets import router as presets_router
 from .projects import router as projects_router
@@ -34,6 +35,7 @@ for _r in [
     prompt_histories_router,
     assets_router,
     stage_router,
+    controlnet_svc,
 ]:
     service_app_router.include_router(_r)
 
@@ -61,7 +63,7 @@ for _r in [
 ]:
     admin_app_router.include_router(_r)
 
-# ── Split routers (10): service + admin ─────────────────────
+# ── Split routers (10 service + 9 admin) ─────────────────────
 from .backgrounds import admin_router as bg_adm
 from .backgrounds import service_router as bg_svc
 from .characters import admin_router as char_adm
@@ -80,7 +82,6 @@ from .tags import admin_router as tags_adm
 from .tags import service_router as tags_svc
 from .voice_presets import admin_router as voice_adm
 from .voice_presets import service_router as voice_svc
-from .youtube import admin_router as yt_adm
 from .youtube import service_router as yt_svc
 
 for _svc in [
@@ -105,7 +106,6 @@ for _adm in [
     bg_adm,
     tags_adm,
     quality_adm,
-    yt_adm,
     prompt_adm,
     rp_adm,
 ]:

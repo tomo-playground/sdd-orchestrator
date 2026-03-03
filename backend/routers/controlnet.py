@@ -40,7 +40,8 @@ from services.ip_adapter import (
     validate_reference_quality,
 )
 
-router = APIRouter(prefix="/controlnet", tags=["controlnet"])
+router = APIRouter(prefix="/controlnet", tags=["controlnet-admin"])
+service_router = APIRouter(prefix="/controlnet", tags=["controlnet"])
 
 
 class PoseDetectRequest(BaseModel):
@@ -164,7 +165,7 @@ async def get_ip_adapter_status():
     }
 
 
-@router.get("/ip-adapter/references", response_model=ReferenceListResponse)
+@service_router.get("/ip-adapter/references", response_model=ReferenceListResponse)
 async def list_references(db: Session = Depends(get_db)):
     """List all saved reference images for IP-Adapter with presets from DB/Config."""
     # 1. Get physical files
@@ -229,7 +230,7 @@ async def get_reference(character_key: str):
     )
 
 
-@router.get("/ip-adapter/reference/{character_key}/image")
+@service_router.get("/ip-adapter/reference/{character_key}/image")
 async def get_reference_image(character_key: str, db: Session = Depends(get_db)):
     """Get a specific reference image as PNG file."""
     from services.controlnet import load_reference_image
@@ -308,5 +309,3 @@ async def upload_photo_ref(request: UploadPhotoReferenceRequest, db: Session = D
             success=False,
             error="Failed to upload photo reference",
         )
-
-

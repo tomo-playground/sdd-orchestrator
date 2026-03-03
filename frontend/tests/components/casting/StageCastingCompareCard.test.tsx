@@ -10,15 +10,14 @@ const CASTING: CastingRecommendation = {
   character_b_id: null,
   character_b_name: "",
   structure: "Monologue",
-  style_profile_id: null,
   reasoning: "Matches the topic well",
 };
 
 const CURRENT_CHAR: Character = {
   id: 1,
   name: "Alice",
-  style_profile_id: null,
-  style_profile_name: null,
+  group_id: 1,
+  group_name: "Default Group",
   description: null,
   gender: "female",
   identity_tags: null,

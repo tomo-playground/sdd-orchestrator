@@ -69,41 +69,18 @@ def _build_reference_negative(
 
 
 def _resolve_quality_tags_for_character(character: Character, db: Session) -> list[str] | None:
-    """Resolve StyleProfile quality tags for a character.
+    """Resolve StyleProfile quality tags for a character via group_id.
 
-    Priority: Character → Storyboard → Group → StyleProfile (Group 경유)
-    Fallback: Character.style_profile_id → StyleProfile.default_positive (직접 참조)
+    Character → Group → StyleProfile.default_positive
 
     Returns parsed default_positive tokens, or None if no StyleProfile is configured.
     """
-    from models.storyboard import Storyboard
-    from models.storyboard_character import StoryboardCharacter
     from services.prompt import split_prompt_tokens
-    from services.style_context import resolve_style_context_for_profile, resolve_style_context_from_group
+    from services.style_context import resolve_style_context_from_group
 
-    # 1. Try Group path: Character → Storyboard → Group → StyleProfile
-    sc = (
-        db.query(StoryboardCharacter)
-        .join(Storyboard, StoryboardCharacter.storyboard_id == Storyboard.id)
-        .filter(
-            StoryboardCharacter.character_id == character.id,
-            Storyboard.deleted_at.is_(None),
-        )
-        .order_by(Storyboard.id.desc())
-        .first()
-    )
-    if sc:
-        storyboard = db.query(Storyboard).filter(Storyboard.id == sc.storyboard_id).first()
-        if storyboard and storyboard.group_id:
-            ctx = resolve_style_context_from_group(storyboard.group_id, db)
-            if ctx and ctx.default_positive:
-                return split_prompt_tokens(ctx.default_positive)
-
-    # 2. Fallback: Character.style_profile_id → StyleProfile.default_positive
-    if character.style_profile_id:
-        ctx = resolve_style_context_for_profile(character.style_profile_id, db)
-        if ctx and ctx.default_positive:
-            return split_prompt_tokens(ctx.default_positive)
+    ctx = resolve_style_context_from_group(character.group_id, db)
+    if ctx and ctx.default_positive:
+        return split_prompt_tokens(ctx.default_positive)
 
     return None
 
@@ -151,15 +128,15 @@ async def regenerate_reference(
     from services.generation import generate_scene_image
     from services.image import decode_data_url
     from services.prompt.v3_composition import V3PromptBuilder
-    from services.style_context import resolve_style_context_for_profile
+    from services.style_context import resolve_style_context_from_group
 
     character = _get_character_for_preview(db, character_id, with_tags=True)
 
     # Resolve StyleProfile quality tags (Group → Config → StyleProfile.default_positive)
     quality_tags = _resolve_quality_tags_for_character(character, db)
 
-    # Resolve StyleContext before compose (needed for reference_env_tags/camera_tags + negative)
-    style_ctx = resolve_style_context_for_profile(character.style_profile_id, db)
+    # Resolve StyleContext via Group (needed for reference_env_tags/camera_tags + negative)
+    style_ctx = resolve_style_context_from_group(character.group_id, db)
 
     builder = V3PromptBuilder(db)
     full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags, style_ctx=style_ctx)

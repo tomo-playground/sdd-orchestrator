@@ -31,6 +31,13 @@ export type SceneEditResult = {
   unchangedCount: number;
 };
 
+export type AvailableOptions = {
+  durations: number[];
+  structures: { value: string; label: string }[];
+  languages: { value: string; label: string }[];
+  characters: { id: number; name: string }[];
+};
+
 export type SettingsRecommendation = {
   status: "recommend" | "clarify";
   resolved_topic?: string; // Backend이 대화에서 추론한 최종 토픽
@@ -43,6 +50,7 @@ export type SettingsRecommendation = {
   character_name: string | null;
   character_b_id: number | null;
   character_b_name: string | null;
+  available_options?: AvailableOptions;
 };
 
 export type ChatMessage = {

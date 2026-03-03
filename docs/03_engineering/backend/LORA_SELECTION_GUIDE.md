@@ -185,8 +185,8 @@ Scene 생성 시 `STYLE_LORA_WEIGHT_CAP`, 레퍼런스 생성 시 `REFERENCE_STY
 | 항목 | 설정 |
 |------|------|
 | Style LoRA Scale | `REFERENCE_STYLE_LORA_SCALE = 0.45` |
-| 환경 태그 | `(white_background:1.8), (simple_background:1.5)` 등 |
-| 카메라 | `solo, looking_at_viewer, facing_viewer` 고정 |
+| 환경 태그 | `simple_background, white_background` (가중치 없음) |
+| 카메라 | `solo, full_body, standing, looking_at_viewer` 고정 |
 
 **Offset LoRA의 이점**: 흰 배경 환경에서도 색감/선 질감에서 화풍 힌트가 유지됩니다. 일반 LoRA는 white_background와 충돌하여 아티팩트가 발생할 수 있습니다.
 

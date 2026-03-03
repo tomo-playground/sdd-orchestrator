@@ -10,7 +10,6 @@ const CASTING: CastingRecommendation = {
   character_b_id: 2,
   character_b_name: "Bob",
   structure: "Dialogue",
-  style_profile_id: null,
   reasoning: "Good chemistry",
 };
 

@@ -86,9 +86,8 @@ export function useTrashTab(
           : item.type === "character"
             ? `/characters/${item.id}/restore`
             : `/prompt-histories/${item.id}/restore`;
-      const base = item.type === "character" ? ADMIN_API_BASE : API_BASE;
       try {
-        await axios.post(`${base}${endpoint}`);
+        await axios.post(`${API_BASE}${endpoint}`);
         showToast("Restored", "success");
         void fetchTrash();
       } catch {
@@ -114,6 +113,7 @@ export function useTrashTab(
           : item.type === "character"
             ? `/characters/${item.id}/permanent`
             : `/prompt-histories/${item.id}/permanent`;
+      // character permanent delete는 admin API에만 존재
       const base = item.type === "character" ? ADMIN_API_BASE : API_BASE;
       try {
         await axios.delete(`${base}${endpoint}`);

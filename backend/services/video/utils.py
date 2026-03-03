@@ -156,11 +156,10 @@ def calculate_scene_durations(
         t_pad = getattr(scene, "tail_padding", 0.0) or 0.0
 
         if tts_valid[i] and tts_durations[i] > 0:
-            # adelay shifts audio start by (transition_dur + h_pad).
+            # adelay shifts audio start by (transition_dur + h_pad) for ALL scenes.
             # acrossfade consumes the last transition_dur of non-last scenes.
-            # Add transition_dur to compensate so TTS finishes before fade-out.
-            xfade_compensation = transition_dur if i < num_scenes - 1 else 0.0
-            total_tts_dur = h_pad + tts_durations[i] + t_pad + tts_padding + xfade_compensation
+            xfade_tail = transition_dur if i < num_scenes - 1 else 0.0
+            total_tts_dur = transition_dur + h_pad + tts_durations[i] + t_pad + tts_padding + xfade_tail
             base_duration = max(base_duration, total_tts_dur)
 
         # Ensure scene duration > transition_dur to prevent xfade offset <= 0

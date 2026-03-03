@@ -11,6 +11,7 @@ from .action_resolver import (
 from .crud import (
     ConflictError,
     create_character,
+    duplicate_character,
     get_character_or_raise,
     list_characters,
     list_trashed_characters,
@@ -38,6 +39,7 @@ __all__ = [
     # crud
     "ConflictError",
     "create_character",
+    "duplicate_character",
     "get_character_or_raise",
     "list_characters",
     "list_trashed_characters",

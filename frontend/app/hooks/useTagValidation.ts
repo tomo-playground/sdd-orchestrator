@@ -5,7 +5,7 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
 import type { TagValidationResult } from "../components/prompt/TagValidationWarning";
-import { ADMIN_API_BASE } from "../constants";
+import { API_BASE } from "../constants";
 
 type UseTagValidationResult = {
   validationResult: TagValidationResult | null;
@@ -28,7 +28,7 @@ export default function useTagValidation(): UseTagValidationResult {
 
       setIsValidating(true);
       try {
-        const response = await axios.post(`${ADMIN_API_BASE}/prompt/validate-tags`, {
+        const response = await axios.post(`${API_BASE}/prompt/validate-tags`, {
           tags,
           check_danbooru: checkDanbooru,
         });
@@ -46,7 +46,7 @@ export default function useTagValidation(): UseTagValidationResult {
 
   const autoReplaceTags = useCallback(async (tags: string[]): Promise<string[] | null> => {
     try {
-      const response = await axios.post(`${ADMIN_API_BASE}/prompt/auto-replace`, {
+      const response = await axios.post(`${API_BASE}/prompt/auto-replace`, {
         tags,
       });
       return response.data.replaced;

@@ -73,18 +73,16 @@ def load_characters(
 ) -> list[CharacterSummary]:
     """활성 캐릭터 목록을 usage_count 기준 정렬로 로드.
 
-    group_id가 주어지면 해당 그룹 스토리보드에 사용된 캐릭터만 반환.
-    해당 그룹에 캐릭터가 없으면(신규 그룹) 전체 캐릭터로 폴백.
+    group_id가 주어지면 해당 그룹 소속 캐릭터만 반환 (Character.group_id 기반).
+    group_id가 없으면 빈 리스트 (group_id 필수 원칙).
     """
     if max_count is None:
         max_count = INVENTORY_MAX_CHARACTERS
 
     if group_id is not None:
-        group_results = _load_characters_for_group(db, group_id, max_count)
-        if group_results:
-            return group_results
+        return _load_characters_for_group(db, group_id, max_count)
 
-    return _load_all_characters(db, max_count)
+    return []
 
 
 def _build_character_summary(char: Character, count: int) -> CharacterSummary:
@@ -100,7 +98,7 @@ def _build_character_summary(char: Character, count: int) -> CharacterSummary:
 
 
 def _load_characters_for_group(db: Session, group_id: int, max_count: int) -> list[CharacterSummary]:
-    """그룹에서 실제 사용된 캐릭터만 usage_count 내림차순으로 로드."""
+    """그룹 소속 캐릭터를 usage_count 내림차순으로 로드 (Character.group_id 기반)."""
     from models.storyboard import Storyboard  # noqa: PLC0415
 
     usage_subq = (
@@ -114,36 +112,11 @@ def _load_characters_for_group(db: Session, group_id: int, max_count: int) -> li
         .subquery()
     )
     query = (
-        select(Character, usage_subq.c.usage_count)
-        .join(usage_subq, Character.id == usage_subq.c.character_id)
-        .where(Character.deleted_at.is_(None))
-        .options(selectinload(Character.tags).selectinload(CharacterTag.tag))
-        .order_by(usage_subq.c.usage_count.desc(), Character.created_at.desc())
-        .limit(max_count)
-    )
-    rows = db.execute(query).all()
-    return [_build_character_summary(row[0], row[1]) for row in rows]
-
-
-def _load_all_characters(db: Session, max_count: int) -> list[CharacterSummary]:
-    """전체 캐릭터를 글로벌 usage_count 내림차순으로 로드."""
-    usage_subq = (
-        select(
-            StoryboardCharacter.character_id,
-            func.count().label("usage_count"),
-        )
-        .group_by(StoryboardCharacter.character_id)
-        .subquery()
-    )
-    query = (
         select(Character, func.coalesce(usage_subq.c.usage_count, 0).label("usage_count"))
         .outerjoin(usage_subq, Character.id == usage_subq.c.character_id)
-        .where(Character.deleted_at.is_(None))
+        .where(Character.deleted_at.is_(None), Character.group_id == group_id)
         .options(selectinload(Character.tags).selectinload(CharacterTag.tag))
-        .order_by(
-            func.coalesce(usage_subq.c.usage_count, 0).desc(),
-            Character.created_at.desc(),
-        )
+        .order_by(func.coalesce(usage_subq.c.usage_count, 0).desc(), Character.created_at.desc())
         .limit(max_count)
     )
     rows = db.execute(query).all()
@@ -192,18 +165,24 @@ def load_full_inventory(group_id: int | None, max_count: int | None = None) -> d
         return {}
 
 
-def load_fallback_character(db: Session) -> dict | None:
-    """최근 사용 캐릭터 반환. storyboard_characters → storyboards.created_at DESC."""
+def load_fallback_character(db: Session, *, group_id: int | None = None) -> dict | None:
+    """최근 사용 캐릭터 반환. storyboard_characters → storyboards.created_at DESC.
+
+    group_id가 주어지면 해당 그룹 소속 캐릭터로 한정 (Character.group_id 기반).
+    """
     from models.storyboard import Storyboard  # noqa: PLC0415
 
-    row = db.execute(
+    query = (
         select(StoryboardCharacter.character_id, Character.name)
         .join(Storyboard, StoryboardCharacter.storyboard_id == Storyboard.id)
         .join(Character, StoryboardCharacter.character_id == Character.id)
         .where(Character.deleted_at.is_(None))
-        .order_by(Storyboard.created_at.desc())
-        .limit(1)
-    ).first()
+    )
+    if group_id is not None:
+        query = query.where(Character.group_id == group_id)
+    query = query.order_by(Storyboard.created_at.desc()).limit(1)
+
+    row = db.execute(query).first()
     if not row:
         return None
     return {"character_id": row[0], "character_name": row[1]}

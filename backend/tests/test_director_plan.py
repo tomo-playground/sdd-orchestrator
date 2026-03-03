@@ -207,7 +207,6 @@ async def test_director_plan_with_casting(mock_inventory, mock_run):
     assert result["casting_recommendation"] is not None
     assert result["casting_recommendation"]["character_id"] == 1
     assert result["valid_character_ids"] == [1]
-    assert result["valid_style_profile_ids"] == [10]
 
 
 @pytest.mark.asyncio

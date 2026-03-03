@@ -16,7 +16,6 @@ _TWO_CHAR_STRUCTURES = frozenset({"dialogue", "narrated_dialogue"})
 def _validate_casting(casting: dict, state: ScriptState) -> dict | None:
     """캐스팅 추천의 유효성을 검증한다. 실패 시 None."""
     valid_chars = state.get("valid_character_ids") or []
-    valid_styles = state.get("valid_style_profile_ids") or []
 
     # 1. character_id 유효성
     char_id = casting.get("character_id")
@@ -46,14 +45,8 @@ def _validate_casting(casting: dict, state: ScriptState) -> dict | None:
         )
         casting["structure"] = "monologue"
 
-    # 5. style_profile_id 유효성
-    style_id = casting.get("style_profile_id")
-    if style_id and style_id not in valid_styles:
-        logger.info("[LangGraph] inventory_resolve: style_profile_id=%s 유효하지 않음, 무시", style_id)
-        casting["style_profile_id"] = None
-
     # 유효한 추천이 하나도 없으면 None
-    if not casting.get("character_id") and not casting.get("structure") and not casting.get("style_profile_id"):
+    if not casting.get("character_id") and not casting.get("structure"):
         return None
 
     return casting

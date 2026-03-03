@@ -333,13 +333,10 @@ class TestInjectReferenceDefaults:
 
         # Env tags are injected into LAYER_QUALITY for maximum SD priority
         quality = layers[LAYER_QUALITY]
-        assert "(white_background:1.8)" in quality
-        assert "(simple_background:1.5)" in quality
-        assert "plain_background" in quality
-        assert "solid_background" in quality
-        assert "(solo:1.5)" in layers[LAYER_CAMERA]
+        assert "simple_background" in quality
+        assert "white_background" in quality
+        assert "solo" in layers[LAYER_CAMERA]
         assert "looking_at_viewer" in layers[LAYER_CAMERA]
-        assert "facing_viewer" in layers[LAYER_CAMERA]
 
     def test_uses_style_ctx_env_tags(self, builder):
         """StyleContext의 reference_env_tags가 전역 상수보다 우선한다."""
@@ -357,7 +354,7 @@ class TestInjectReferenceDefaults:
         assert "(gray_background:1.5)" in quality
         assert "studio_lighting" in quality
         # 전역 폴백 태그가 없어야 함
-        assert "(white_background:1.8)" not in quality
+        assert "white_background" not in quality
 
     def test_uses_style_ctx_camera_tags(self, builder):
         """StyleContext의 reference_camera_tags가 전역 상수보다 우선한다."""
@@ -407,16 +404,16 @@ class TestInjectReferenceDefaults:
         builder._inject_reference_defaults(layers, style_ctx=ctx)
 
         # 전역 REFERENCE_ENV_TAGS 폴백
-        assert "(white_background:1.8)" in layers[LAYER_QUALITY]
+        assert "white_background" in layers[LAYER_QUALITY]
         # 전역 REFERENCE_CAMERA_TAGS 폴백
-        assert "(solo:1.5)" in layers[LAYER_CAMERA]
+        assert "solo" in layers[LAYER_CAMERA]
 
     def test_no_duplicate_if_already_present(self, builder):
         layers = [[] for _ in range(12)]
-        layers[LAYER_QUALITY] = ["(white_background:1.8)"]
-        layers[LAYER_CAMERA] = ["(solo:1.5)"]
+        layers[LAYER_QUALITY] = ["white_background"]
+        layers[LAYER_CAMERA] = ["solo"]
 
         builder._inject_reference_defaults(layers)
 
-        assert layers[LAYER_QUALITY].count("(white_background:1.8)") == 1
-        assert layers[LAYER_CAMERA].count("(solo:1.5)") == 1
+        assert layers[LAYER_QUALITY].count("white_background") == 1
+        assert layers[LAYER_CAMERA].count("solo") == 1

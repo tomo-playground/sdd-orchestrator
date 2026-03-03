@@ -88,12 +88,12 @@ export default function StageCharacterCard({
           </p>
         )}
 
-        {/* Style & LoRA — inline */}
-        {(characterFull?.style_profile_name || (characterFull?.loras?.length ?? 0) > 0) && (
+        {/* Group & LoRA — inline */}
+        {(characterFull?.group_name || (characterFull?.loras?.length ?? 0) > 0) && (
           <div className="mb-1.5 flex flex-wrap items-center gap-1 text-[11px]">
-            {characterFull?.style_profile_name && (
+            {characterFull?.group_name && (
               <span className="rounded bg-indigo-50 px-1.5 py-px font-medium text-indigo-700">
-                {characterFull.style_profile_name}
+                {characterFull.group_name}
               </span>
             )}
             {characterFull?.loras?.map((lora, i) => (

@@ -4,6 +4,110 @@ from __future__ import annotations
 
 from config import logger
 
+# ---------------------------------------------------------------------------
+# Style modifier filter
+# ---------------------------------------------------------------------------
+
+_STYLE_MODIFIER_TAGS = frozenset(
+    {
+        "high_contrast",
+        "highly_detailed",
+        "vibrant_colors",
+        "soft_colors",
+        "pastel_colors",
+        "muted_colors",
+        "flat_color",
+        "detailed",
+        "very_detailed",
+        "ultra_detailed",
+    }
+)
+
+
+def filter_style_modifiers(scenes: list[dict]) -> None:
+    """image_prompt에서 StyleProfile 영역 수식어를 제거한다.
+
+    이 태그들은 StyleProfile이 v3_composition에서 자동 주입하므로
+    Cinematographer가 임의로 추가한 것은 제거한다.
+    """
+    removed_total = 0
+    for scene in scenes:
+        prompt = scene.get("image_prompt", "")
+        if not prompt:
+            continue
+        tokens = [t.strip() for t in prompt.split(",")]
+        cleaned = [t for t in tokens if t.lower().replace(" ", "_") not in _STYLE_MODIFIER_TAGS]
+        removed = len(tokens) - len(cleaned)
+        if removed:
+            scene["image_prompt"] = ", ".join(cleaned)
+            removed_total += removed
+    if removed_total:
+        logger.info("[Finalize] Style modifier 제거: %d개 태그", removed_total)
+
+
+# ---------------------------------------------------------------------------
+# IP-Adapter weight normalizer
+# ---------------------------------------------------------------------------
+
+
+def _get_character_ip_weight(cid: int | None, db=None) -> float | None:
+    """캐릭터 DB에서 ip_adapter_weight 기본값을 조회한다."""
+    if not cid:
+        return None
+    try:
+        from sqlalchemy import select  # noqa: PLC0415
+
+        from models.character import Character  # noqa: PLC0415
+
+        if db is None:
+            from database import get_db_session  # noqa: PLC0415
+
+            with get_db_session() as db:
+                char = db.execute(
+                    select(Character).where(Character.id == cid),
+                ).scalar_one_or_none()
+                if char and hasattr(char, "ip_adapter_weight"):
+                    return char.ip_adapter_weight
+        else:
+            char = db.execute(
+                select(Character).where(Character.id == cid),
+            ).scalar_one_or_none()
+            if char and hasattr(char, "ip_adapter_weight"):
+                return char.ip_adapter_weight
+    except Exception:
+        pass
+    return None
+
+
+def normalize_ip_adapter_weights(
+    scenes: list[dict],
+    character_id: int | None,
+    character_b_id: int | None = None,
+    db=None,
+) -> None:
+    """Cinematographer가 null로 남긴 ip_adapter_weight를 캐릭터 DB 기본값으로 통일한다.
+
+    Narrator 씬은 항상 0.0. Speaker별 캐릭터 기본값 적용.
+    """
+    from config import DEFAULT_IP_ADAPTER_WEIGHT  # noqa: PLC0415
+
+    weight_a = _get_character_ip_weight(character_id, db) if character_id else None
+    weight_b = _get_character_ip_weight(character_b_id, db) if character_b_id else None
+
+    for scene in scenes:
+        speaker = scene.get("speaker", "")
+        if speaker == "Narrator":
+            scene["ip_adapter_weight"] = 0.0
+            continue
+
+        if scene.get("ip_adapter_weight") is not None:
+            continue  # Cinematographer가 명시한 값 보존
+
+        if speaker == "B":
+            scene["ip_adapter_weight"] = weight_b or DEFAULT_IP_ADAPTER_WEIGHT
+        else:
+            scene["ip_adapter_weight"] = weight_a or DEFAULT_IP_ADAPTER_WEIGHT
+
 
 def validate_controlnet_poses(scenes: list[dict]) -> None:
     """controlnet_pose 값이 POSE_MAPPING 키에 있는지 검증. 무효 시 None 리셋.

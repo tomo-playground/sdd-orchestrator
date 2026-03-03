@@ -209,8 +209,10 @@ def generate_context_aware_voice_prompt(
                 "You are an expert voice director. Your task is to MODIFY the provided 'Base Voice Description' "
                 "to match the emotional 'Scene Context' and 'Script'.\n"
                 "Keep the speaker's original age, gender, and core characteristics from the Base Description, "
-                "but adjust the TONE and EMOTION to fit the scene. Prioritize natural, authentic delivery.\n"
-                "Output ONLY the modified English description (e.g., 'A calm male voice' -> 'A male voice shouting angrily').\n"
+                "but adjust the TONE and EMOTION to fit the scene. Prioritize natural, conversational delivery.\n"
+                "IMPORTANT: For dialogue content, prefer subtle emotional expression over dramatic extremes. "
+                "Avoid 'shouting', 'yelling', 'screaming' unless the script explicitly demands it.\n"
+                "Output ONLY the modified English description (e.g., 'A calm female voice' -> 'A warm female voice with a gentle melancholic tone').\n"
                 "Keep it under 20 words."
             )
             user_prompt_content = (
@@ -224,7 +226,9 @@ def generate_context_aware_voice_prompt(
                 "You are an expert voice director. Your task is to generate a SHORT, PRECISE "
                 "English description of the speaker's voice and tone for a TTS engine.\n"
                 "Analyze the provided Korean script and Scene Context (visuals/situation).\n"
-                "Output ONLY the English description (e.g., 'A man shouting angrily', 'A whispering woman').\n"
+                "IMPORTANT: Prefer natural, conversational tone. Avoid extreme expressions like "
+                "'shouting', 'yelling', 'screaming' unless the script explicitly calls for it.\n"
+                "Output ONLY the English description (e.g., 'A warm man speaking with mild frustration', 'A gentle woman whispering softly').\n"
                 "Do NOT include the script itself. Keep it under 15 words."
             )
             user_prompt_content = (

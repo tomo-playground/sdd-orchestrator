@@ -183,7 +183,11 @@ class TestBuildCharacterSummary:
 
 
 class TestLoadCharactersGroupFilter:
-    """load_characters() group_id 필터링 로직."""
+    """load_characters() group_id 필터링 로직.
+
+    Phase 2 리팩토링: group_id 필수화로 _load_all_characters 제거.
+    group_id=None이면 빈 리스트 반환, group_id 있으면 _load_characters_for_group 호출.
+    """
 
     def _make_summary(self, name: str, usage: int = 1) -> CharacterSummary:
         return CharacterSummary(
@@ -192,43 +196,35 @@ class TestLoadCharactersGroupFilter:
             usage_count=usage,
         )
 
-    def test_no_group_id_calls_all(self):
-        """group_id=None이면 전체 캐릭터 반환."""
+    def test_no_group_id_returns_empty(self):
+        """group_id=None이면 빈 리스트 반환 (group_id 필수 원칙)."""
         db = MagicMock()
-        all_chars = [self._make_summary("예민이", 69)]
 
-        with patch("services.agent.inventory._load_all_characters", return_value=all_chars) as mock_all, \
-             patch("services.agent.inventory._load_characters_for_group") as mock_group:
+        with patch("services.agent.inventory._load_characters_for_group") as mock_group:
             result = load_characters(db, group_id=None)
 
-        mock_all.assert_called_once()
         mock_group.assert_not_called()
-        assert result == all_chars
+        assert result == []
 
     def test_group_id_returns_group_chars(self):
         """group_id 제공 시 그룹 캐릭터만 반환."""
         db = MagicMock()
         group_chars = [self._make_summary("소라", 2), self._make_summary("하나", 1)]
 
-        with patch("services.agent.inventory._load_characters_for_group", return_value=group_chars) as mock_group, \
-             patch("services.agent.inventory._load_all_characters") as mock_all:
+        with patch("services.agent.inventory._load_characters_for_group", return_value=group_chars) as mock_group:
             result = load_characters(db, group_id=12)
 
         mock_group.assert_called_once_with(db, 12, 20)
-        mock_all.assert_not_called()
         assert result == group_chars
 
-    def test_group_id_no_chars_falls_back_to_all(self):
-        """그룹에 캐릭터 없으면 전체 폴백."""
+    def test_group_id_no_chars_returns_empty(self):
+        """그룹에 캐릭터 없으면 빈 리스트 반환 (폴백 없음)."""
         db = MagicMock()
-        all_chars = [self._make_summary("예민이", 69)]
 
-        with patch("services.agent.inventory._load_characters_for_group", return_value=[]), \
-             patch("services.agent.inventory._load_all_characters", return_value=all_chars) as mock_all:
+        with patch("services.agent.inventory._load_characters_for_group", return_value=[]):
             result = load_characters(db, group_id=99)
 
-        mock_all.assert_called_once()
-        assert result == all_chars
+        assert result == []
 
     def test_group_chars_sorted_by_usage(self):
         """그룹 캐릭터는 usage_count 내림차순 정렬 유지."""
@@ -245,13 +241,13 @@ class TestLoadCharactersGroupFilter:
         assert result[0].name == "유카리"
 
     def test_max_count_passed_through(self):
-        """max_count가 내부 함수로 전달됨."""
+        """max_count가 _load_characters_for_group으로 전달됨."""
         db = MagicMock()
 
-        with patch("services.agent.inventory._load_all_characters", return_value=[]) as mock_all:
-            load_characters(db, group_id=None, max_count=5)
+        with patch("services.agent.inventory._load_characters_for_group", return_value=[]) as mock_group:
+            load_characters(db, group_id=10, max_count=5)
 
-        mock_all.assert_called_once_with(db, 5)
+        mock_group.assert_called_once_with(db, 10, 5)
 
 
 class TestStyleSummary:

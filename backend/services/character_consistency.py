@@ -190,22 +190,25 @@ class CharacterConsistencyResolver:
 
     @staticmethod
     def _resolve_ip_adapter_model(character) -> str | None:
-        """Resolve IP-Adapter model: character > style_profile > default.
+        """Resolve IP-Adapter model: character > group.style_profile > default.
 
         Priority:
         1. 캐릭터 명시값 (character.ip_adapter_model)
-        2. 스타일 프로필 기본값 (style_profile.default_ip_adapter_model)
+        2. 그룹 스타일 프로필 기본값 (group.style_profile.default_ip_adapter_model)
         3. 글로벌 기본값 (None → downstream defaults to clip_face)
         """
         char_model = getattr(character, "ip_adapter_model", None)
         if char_model:
             return char_model
 
-        style_profile = getattr(character, "style_profile", None)
-        if style_profile:
-            default_model = getattr(style_profile, "default_ip_adapter_model", None)
-            if default_model:
-                return default_model
+        # Character → Group → StyleProfile (ownership cascade)
+        group = getattr(character, "group", None)
+        if group:
+            style_profile = getattr(group, "style_profile", None)
+            if style_profile:
+                default_model = getattr(style_profile, "default_ip_adapter_model", None)
+                if default_model:
+                    return default_model
 
         return None
 

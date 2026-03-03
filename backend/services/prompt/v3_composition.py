@@ -765,9 +765,20 @@ class V3PromptBuilder:
                             layers[LAYER_IDENTITY].append(trigger)
 
         # Scene-triggered LoRAs (+ 트리거 워드 주입)
+        # style LoRA는 StyleProfile SSOT에 속한 것만 허용 (다른 화풍 혼입 방지)
+        style_lora_names = {l.get("name") for l in (style_loras or []) if l.get("name")}
         for tag in scene_tags:
             lora_name = LoRATriggerCache.get_lora_name(tag)
             if lora_name and lora_name not in active_loras:
+                lora_type = LoRATriggerCache.get_lora_type(lora_name)
+                if lora_type == "style" and lora_name not in style_lora_names:
+                    from config import logger as _logger
+
+                    _logger.info(
+                        "Scene-triggered style LoRA '%s' (tag '%s') blocked — not in active StyleProfile",
+                        lora_name, tag,
+                    )
+                    continue
                 info = self._get_lora_info(lora_name)
                 active_loras[lora_name] = info
                 target = LAYER_ATMOSPHERE if info.lora_type == "style" else LAYER_IDENTITY
@@ -882,12 +893,15 @@ class V3PromptBuilder:
                 injected_lora_names.add(lora_name)
 
         # Auto-triggered LoRAs from tags (+ 트리거 워드 주입)
+        # style LoRA는 StyleProfile SSOT에 속한 것만 허용
         for tag in tags:
             lora_name = LoRATriggerCache.get_lora_name(tag)
             if lora_name:
                 if lora_name in style_lora_names or lora_name in injected_lora_names:
                     continue
                 info = self._get_lora_info(lora_name)
+                if info.lora_type == "style" and lora_name not in style_lora_names:
+                    continue  # StyleProfile 외 style LoRA 차단
                 target = LAYER_ATMOSPHERE if info.lora_type == "style" else LAYER_IDENTITY
                 layers[target].append(f"<lora:{lora_name}:{self._cap_lora_weight(info.weight)}>")
                 for trigger in info.trigger_words:
@@ -943,6 +957,20 @@ class V3PromptBuilder:
             else:
                 resolved.append(replacement)
         return resolved
+
+    def _resolve_aliases_positional(self, tags: list[str]) -> list[str | None]:
+        """Resolve aliases preserving position. Dropped tags become None."""
+        TagAliasCache.initialize(self.db)
+        result: list[str | None] = []
+        for tag in tags:
+            replacement = TagAliasCache.get_replacement(tag)
+            if replacement is ...:
+                result.append(tag)
+            elif replacement is None:
+                result.append(None)
+            else:
+                result.append(replacement)
+        return result
 
     def _apply_gender_enhancement(
         self, character: Character, char_tags_data: list[dict], layers: list[list[str]]
@@ -1234,16 +1262,16 @@ class V3PromptBuilder:
         if reference_extra_tags:
             ref_tags.extend(reference_extra_tags)
 
-        # 3. Resolve aliases on all tag names & build lookup set
-        all_tag_names = [ct["name"] for ct in char_tags_data] + ref_tags
-        resolved_names = self._resolve_aliases(all_tag_names)
-        resolved_set = {n.lower().replace(" ", "_").strip() for n in resolved_names}
+        # 3. Resolve aliases on char tags (positional — dropped tags filtered out)
+        char_resolved = self._resolve_aliases_positional([ct["name"] for ct in char_tags_data])
+        # Filter out dropped char tags and update names
+        char_tags_data = [
+            {**ct, "name": resolved} for ct, resolved in zip(char_tags_data, char_resolved) if resolved is not None
+        ]
 
-        # 3-1. Build original→resolved mapping for char_tags_data
-        orig_char_names = [ct["name"] for ct in char_tags_data]
-        resolved_char_names = resolved_names[: len(orig_char_names)]
-        for ct, resolved in zip(char_tags_data, resolved_char_names, strict=True):
-            ct["name"] = resolved  # alias 해소 결과 반영
+        # 3-1. Resolve aliases on ref tags
+        ref_tags = [t for t in self._resolve_aliases(ref_tags)]
+        resolved_set = {n.lower().replace(" ", "_").strip() for n in ([ct["name"] for ct in char_tags_data] + ref_tags)}
 
         # 4. Get tag info for reference tags
         ref_tag_info = self.get_tag_info(ref_tags) if ref_tags else {}

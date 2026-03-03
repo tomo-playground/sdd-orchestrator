@@ -196,6 +196,47 @@ export function useChatScriptEditor(options?: {
     }
   );
 
+  // ── 시리즈 이력 기본값으로 Gemini 호출 스킵 ──
+  const tryGroupDefaults = useCallback(
+    async (text: string): Promise<boolean> => {
+      if (!groupId || topicRef.current) return false; // 첫 메시지만
+      try {
+        const res = await fetch(`${API_BASE}/groups/${groupId}/defaults`);
+        if (!res.ok) return false;
+        const defaults = await res.json();
+        if (!defaults.has_history) return false;
+
+        topicRef.current = text;
+        editorRef.current.setField("topic", text);
+        addMessage({
+          id: nextId(),
+          role: "assistant",
+          contentType: "settings_recommend",
+          text: "이전 에피소드 설정을 기반으로 추천합니다. 변경이 필요하면 드롭다운에서 수정하세요.",
+          recommendation: {
+            status: "recommend",
+            resolved_topic: text,
+            reasoning:
+              "이전 에피소드 설정을 기반으로 추천합니다. 변경이 필요하면 드롭다운에서 수정하세요.",
+            duration: defaults.duration,
+            language: defaults.language,
+            structure: defaults.structure,
+            character_id: defaults.character_id,
+            character_name: defaults.character_name,
+            character_b_id: defaults.character_b_id ?? null,
+            character_b_name: defaults.character_b_name ?? null,
+            available_options: defaults.available_options,
+          },
+          timestamp: Date.now(),
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [groupId, addMessage]
+  );
+
   // ── Topic analysis via API (대화형 핑퐁 지원) ──
   const sendMessage = useCallback(
     async (text: string) => {
@@ -209,40 +250,39 @@ export function useChatScriptEditor(options?: {
         return;
       }
 
-      // 첫 user 메시지에서 초기 topic 설정
-      // — API 에러 시 fallback. 정상 응답 시 resolved_topic으로 덮어씌워짐
-      // — 에러 발생 시 이전 성공한 resolved_topic 또는 첫 메시지 text가 유지됨 (의도된 동작)
-      if (!topicRef.current) {
-        topicRef.current = text;
-        editorRef.current.setField("topic", text);
-      }
-
-      // 대화 이력 구성 (user + assistant text)
-      const history = chatMessagesRef.current
-        .filter(
-          (m) =>
-            (m.role === "user" && m.contentType === "user") ||
-            (m.role === "assistant" &&
-              (m.contentType === "clarification" || m.contentType === "settings_recommend"))
-        )
-        .map((m) => {
-          let msgText = m.text || "";
-          if (m.questions?.length) msgText += "\n" + m.questions.map((q) => `• ${q}`).join("\n");
-          return { role: m.role, text: msgText };
-        });
-      history.push({ role: "user", text });
-      // Backend max_length=20 — 최근 메시지만 전송
-      const trimmedHistory = history.slice(-20);
-
+      // P1: 시리즈 이력이 있으면 Gemini 호출 스킵
       isAnalyzingRef.current = true;
       try {
+        const usedDefaults = await tryGroupDefaults(text);
+        if (usedDefaults) return;
+
+        // 첫 user 메시지에서 초기 topic 설정
+        if (!topicRef.current) {
+          topicRef.current = text;
+          editorRef.current.setField("topic", text);
+        }
+
+        // 대화 이력 구성 (user + assistant text)
+        const history = chatMessagesRef.current
+          .filter(
+            (m) =>
+              (m.role === "user" && m.contentType === "user") ||
+              (m.role === "assistant" &&
+                (m.contentType === "clarification" || m.contentType === "settings_recommend"))
+          )
+          .map((m) => {
+            let msgText = m.text || "";
+            if (m.questions?.length) msgText += "\n" + m.questions.map((q) => `• ${q}`).join("\n");
+            return { role: m.role, text: msgText };
+          });
+        history.push({ role: "user", text });
+        const trimmedHistory = history.slice(-20);
+
         const res = await fetch(`${API_BASE}/scripts/analyze-topic`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             topic: topicRef.current || text,
-            // description: 신규 채팅 생성 시 undefined (챗봇은 messages로 맥락 대체)
-            // 기존 스토리보드 로드 시 DB description을 carry-over하여 파이프라인에 전달
             description: editorRef.current.description || undefined,
             group_id: groupId,
             messages: trimmedHistory,
@@ -251,7 +291,6 @@ export function useChatScriptEditor(options?: {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: SettingsRecommendation = await res.json();
 
-        // Backend이 대화에서 추론한 실제 토픽으로 항상 갱신 (주제 변경 시 stale 방지)
         if (data.resolved_topic) {
           topicRef.current = data.resolved_topic;
           editorRef.current.setField("topic", data.resolved_topic);
@@ -289,7 +328,7 @@ export function useChatScriptEditor(options?: {
         isAnalyzingRef.current = false;
       }
     },
-    [groupId, addMessage, handleEditRequest, isEditingRef]
+    [groupId, addMessage, handleEditRequest, isEditingRef, tryGroupDefaults]
   );
 
   // ── Apply recommendation fields to editor state (shared helper, refs-only → stable) ──
@@ -301,10 +340,9 @@ export function useChatScriptEditor(options?: {
       editorRef.current.setField("characterId", rec.character_id);
       editorRef.current.setField("characterName", rec.character_name);
     }
-    if (rec.character_b_id != null) {
-      editorRef.current.setField("characterBId", rec.character_b_id);
-      editorRef.current.setField("characterBName", rec.character_b_name);
-    }
+    // character_b: 항상 명시적으로 설정 (Monologue 전환 시 null로 정리)
+    editorRef.current.setField("characterBId", rec.character_b_id);
+    editorRef.current.setField("characterBName", rec.character_b_name);
   }, []);
 
   // ── Generate — just delegates to editor.generate(), SSE flows via onNodeEvent ──

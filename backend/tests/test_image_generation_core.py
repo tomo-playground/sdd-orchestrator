@@ -78,6 +78,7 @@ class TestGenerateImageWithV3:
 
         character = Character(
             name="Test Char",
+            group_id=1,
             loras=[{"lora_id": char_lora.id, "weight": 1.0}],
         )
         db_session.add(character)

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
+from models.character import Character
 from models.group import Group
 from models.project import Project
 from models.storyboard import Storyboard
@@ -13,6 +15,7 @@ from schemas import (
     DeleteStatusResponse,
     EffectiveConfigResponse,
     GroupCreate,
+    GroupDefaultsResponse,
     GroupResponse,
     GroupUpdate,
     RenderPresetResponse,
@@ -30,12 +33,25 @@ _GROUP_RESPONSE_OPTIONS = (
 )
 
 
+def _attach_character_counts(db: Session, groups: list[Group]) -> list[Group]:
+    """Batch-load active character counts onto Group instances."""
+    counts = dict(
+        db.query(Character.group_id, func.count(Character.id))
+        .filter(Character.deleted_at.is_(None))
+        .group_by(Character.group_id)
+        .all()
+    )
+    for g in groups:
+        g._character_count = counts.get(g.id, 0)  # type: ignore[attr-defined]
+    return groups
+
+
 @router.get("", response_model=list[GroupResponse])
 def list_groups(project_id: int | None = None, db: Session = Depends(get_db)):
     query = db.query(Group).options(*_GROUP_RESPONSE_OPTIONS)
     if project_id is not None:
         query = query.filter(Group.project_id == project_id)
-    return query.all()
+    return _attach_character_counts(db, query.all())
 
 
 @router.get("/{group_id}", response_model=GroupResponse)
@@ -43,6 +59,7 @@ def get_group(group_id: int, db: Session = Depends(get_db)):
     group = db.query(Group).options(*_GROUP_RESPONSE_OPTIONS).filter(Group.id == group_id).first()
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
+    _attach_character_counts(db, [group])
     return group
 
 
@@ -87,6 +104,19 @@ def update_group(group_id: int, body: GroupUpdate, db: Session = Depends(get_db)
         setattr(group, key, value)
     db.commit()
     return db.query(Group).options(*_GROUP_RESPONSE_OPTIONS).filter(Group.id == group_id).first()
+
+
+# ---- Group Defaults (시리즈 이력 기반) ----
+
+
+@router.get("/{group_id}/defaults", response_model=GroupDefaultsResponse)
+def get_group_defaults(group_id: int, db: Session = Depends(get_db)):
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    from services.groups.defaults import infer_group_defaults
+
+    return infer_group_defaults(group_id, db)
 
 
 # ---- Effective Config ----

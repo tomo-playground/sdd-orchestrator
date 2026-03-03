@@ -143,7 +143,7 @@ async def negative_preview(
     return {"negative_prompt": neg_prompt, "negative_sources": neg_sources}
 
 
-@admin_router.post("/translate-ko", response_model=TranslateKoResponse)
+@service_router.post("/translate-ko", response_model=TranslateKoResponse)
 def translate_ko_endpoint(
     request: TranslateKoRequest,
     db: Session = Depends(get_db),
@@ -158,7 +158,7 @@ def translate_ko_endpoint(
     return result
 
 
-@admin_router.post("/edit-prompt", response_model=EditPromptResponse)
+@service_router.post("/edit-prompt", response_model=EditPromptResponse)
 def edit_prompt_endpoint(
     request: EditPromptRequest,
     db: Session = Depends(get_db),
@@ -366,7 +366,7 @@ class AutoReplaceRequest(BaseModel):
     tags: list[str]
 
 
-@admin_router.post("/validate-tags", response_model=ValidateTagsResponse)
+@service_router.post("/validate-tags", response_model=ValidateTagsResponse)
 async def validate_tags(
     request: ValidateTagsRequest,
     db: Session = Depends(get_db),
@@ -426,7 +426,7 @@ async def validate_tags(
     )
 
 
-@admin_router.post("/auto-replace")
+@service_router.post("/auto-replace")
 async def replace_tags(request: AutoReplaceRequest):
     """Automatically replace known risky tags with safe alternatives.
 

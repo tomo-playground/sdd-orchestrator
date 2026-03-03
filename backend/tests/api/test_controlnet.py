@@ -94,7 +94,7 @@ class TestReferenceImages:
 
     def test_list_reference_images(self, client: TestClient):
         """Test listing available reference images."""
-        response = client.get("/api/admin/controlnet/ip-adapter/references")
+        response = client.get("/api/v1/controlnet/ip-adapter/references")
         assert response.status_code == 200
         data = response.json()
         assert "references" in data

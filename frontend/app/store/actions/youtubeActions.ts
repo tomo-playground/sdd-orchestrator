@@ -1,12 +1,10 @@
 import axios from "axios";
-import { API_BASE, ADMIN_API_BASE } from "../../constants";
+import { API_BASE } from "../../constants";
 import type { YouTubeCredential, YouTubeUploadStatus } from "../../types";
 
 export async function checkYouTubeConnection(projectId: number): Promise<YouTubeCredential | null> {
   try {
-    const res = await axios.get<YouTubeCredential>(
-      `${ADMIN_API_BASE}/youtube/credentials/${projectId}`
-    );
+    const res = await axios.get<YouTubeCredential>(`${API_BASE}/youtube/credentials/${projectId}`);
     return res.data;
   } catch {
     return null;
@@ -15,9 +13,7 @@ export async function checkYouTubeConnection(projectId: number): Promise<YouTube
 
 export async function getYouTubeAuthUrl(projectId: number): Promise<string | null> {
   try {
-    const res = await axios.get<{ auth_url: string }>(
-      `${ADMIN_API_BASE}/youtube/authorize/${projectId}`
-    );
+    const res = await axios.get<{ auth_url: string }>(`${API_BASE}/youtube/authorize/${projectId}`);
     return res.data.auth_url;
   } catch {
     return null;
@@ -29,7 +25,7 @@ export async function exchangeYouTubeCode(
   state: string
 ): Promise<YouTubeCredential | null> {
   try {
-    const res = await axios.post<YouTubeCredential>(`${ADMIN_API_BASE}/youtube/callback`, null, {
+    const res = await axios.post<YouTubeCredential>(`${API_BASE}/youtube/callback`, null, {
       params: { code, state },
     });
     return res.data;
@@ -40,7 +36,7 @@ export async function exchangeYouTubeCode(
 
 export async function disconnectYouTube(projectId: number): Promise<boolean> {
   try {
-    await axios.delete(`${ADMIN_API_BASE}/youtube/credentials/${projectId}`);
+    await axios.delete(`${API_BASE}/youtube/credentials/${projectId}`);
     return true;
   } catch {
     return false;

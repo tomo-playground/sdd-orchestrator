@@ -173,7 +173,6 @@ class ScriptState(TypedDict, total=False):
     # Phase 20-A: Director Inventory Awareness
     casting_recommendation: dict | None  # CastingRecommendation (Pydantic → dict)
     valid_character_ids: list[int] | None  # 인벤토리 캐릭터 ID 목록 (검증용)
-    valid_style_profile_ids: list[int] | None  # 인벤토리 스타일 ID 목록 (검증용)
 
     # Director Plan (Full 모드 — 초기 목표 수립)
     director_plan: DirectorPlan | None

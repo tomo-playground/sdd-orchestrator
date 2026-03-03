@@ -240,13 +240,13 @@ class TestStoryboardSoftDelete:
 
 class TestCharacterSoftDelete:
     def _create_character(self, client, name: str) -> int:
-        resp = client.post("/api/admin/characters", json={"name": name})
+        resp = client.post("/api/v1/characters", json={"name": name, "group_id": 1})
         assert resp.status_code == 201
         return resp.json()["id"]
 
     def test_soft_delete_excludes_from_list(self, client):
         cid = self._create_character(client, "DelChar")
-        client.delete(f"/api/admin/characters/{cid}")
+        client.delete(f"/api/v1/characters/{cid}")
 
         resp = client.get("/api/v1/characters")
         assert resp.status_code == 200
@@ -255,14 +255,14 @@ class TestCharacterSoftDelete:
 
     def test_soft_delete_excludes_from_get(self, client):
         cid = self._create_character(client, "HiddenChar")
-        client.delete(f"/api/admin/characters/{cid}")
+        client.delete(f"/api/v1/characters/{cid}")
 
         resp = client.get(f"/api/v1/characters/{cid}")
         assert resp.status_code == 404
 
     def test_trash_returns_deleted(self, client):
         cid = self._create_character(client, "TrashChar")
-        client.delete(f"/api/admin/characters/{cid}")
+        client.delete(f"/api/v1/characters/{cid}")
 
         resp = client.get("/api/v1/characters/trash")
         assert resp.status_code == 200
@@ -271,9 +271,9 @@ class TestCharacterSoftDelete:
 
     def test_restore_recovers(self, client):
         cid = self._create_character(client, "RestoreChar")
-        client.delete(f"/api/admin/characters/{cid}")
+        client.delete(f"/api/v1/characters/{cid}")
 
-        resp = client.post(f"/api/admin/characters/{cid}/restore")
+        resp = client.post(f"/api/v1/characters/{cid}/restore")
         assert resp.status_code == 200
 
         resp = client.get("/api/v1/characters")
@@ -282,7 +282,7 @@ class TestCharacterSoftDelete:
 
     def test_permanent_delete_removes(self, client):
         cid = self._create_character(client, "PermChar")
-        client.delete(f"/api/admin/characters/{cid}")
+        client.delete(f"/api/v1/characters/{cid}")
 
         resp = client.delete(f"/api/admin/characters/{cid}/permanent")
         assert resp.status_code == 200
@@ -299,10 +299,13 @@ class TestCharacterSoftDelete:
 
 class TestPromptHistorySoftDelete:
     def _create_history(self, client, name: str) -> int:
-        resp = client.post("/api/v1/prompt-histories", json={
-            "name": name,
-            "positive_prompt": "test prompt",
-        })
+        resp = client.post(
+            "/api/v1/prompt-histories",
+            json={
+                "name": name,
+                "positive_prompt": "test prompt",
+            },
+        )
         assert resp.status_code == 201
         return resp.json()["id"]
 

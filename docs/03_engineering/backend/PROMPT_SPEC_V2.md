@@ -336,7 +336,7 @@ restricted:
   - nature, mountain, street, office, bedroom, bathroom, garden
 ```
 
-**Known Issue #8**: 아래 레퍼런스 전용 태그가 restricted 미등록 → 씬 오염 발생 (Section 9 참조)
+~~**Known Issue #8**~~: 레퍼런스 프롬프트 SSOT 분리로 해결 완료 (Section 9 참조)
 
 ---
 
@@ -372,32 +372,13 @@ restricted:
 
 이중 주입, is_permanent 혼용, Style LoRA 배치, 무효 태그 검증, IP-Adapter 모델, LoRA 가중치 캡, Hi-Res 기본값 — 모두 v1.2~v1.3에서 해결.
 
-### **Issue 8: 레퍼런스 프롬프트 씬 오염 (CRITICAL)**
+### ~~Issue 8: 레퍼런스 프롬프트 씬 오염~~ (해결 완료 — 2026-03-02)
 
-**현상**: `custom_base_prompt`에 레퍼런스 전용 태그 포함 시, 모든 씬이 정자세 + 흰 배경으로 생성.
-
-**오염 경로**:
-```
-Character.custom_base_prompt
-  "white_background, standing, full_body, front_view..."
-       ↓
-v3_composition.py Stage 2: TagFilterCache.is_restricted() → False
-       ↓
-LAYER_IDENTITY (L2)에 추가 → 모든 씬에 포함
-```
-
-**원인**: `tag_filters` restricted 목록에 아래 태그 미등록:
-
-| 분류 | 누락 태그 |
-|------|----------|
-| 배경 | `white_background`, `simple_background`, `plain_background`, `solid_background` |
-| 포즈/구도 | `standing`, `full_body`, `front_view`, `facing_viewer`, `straight_on` |
-| 시선 | `looking_at_viewer` |
-| 기타 | `portrait`, `solo` |
-
-**출처**: `config.py` `DEFAULT_REFERENCE_BASE_PROMPT` 태그가 캐릭터 `custom_base_prompt`에 유입.
-
-**수정 방향**: restricted 태그 확장 + `custom_base_prompt` 입력 검증.
+**해결**: 레퍼런스 프롬프트 SSOT 분리로 근본 해결.
+- 공통 태그(`white_background`, `solo`, `standing` 등) → `config.py`/`config_prompt.py` 상수가 SSOT. `compose_for_reference()` + `preview.py`가 자동 주입.
+- DB `reference_base_prompt` / `reference_negative_prompt` → 캐릭터 고유 태그만 저장 (공통 중복 금지).
+- 새 캐릭터 생성 시 상수를 DB에 복사하지 않음 (NULL 유지).
+- CLAUDE.md "캐릭터 레퍼런스 프롬프트 SSOT" 원칙 참조.
 
 ---
 

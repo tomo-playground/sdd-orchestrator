@@ -1,5 +1,5 @@
 import { useContextStore } from "../useContextStore";
-import { API_ROOT, ADMIN_API_BASE } from "../../constants";
+import { API_ROOT, API_BASE } from "../../constants";
 import type { ProjectItem } from "../../types";
 
 export function getCurrentProject(): ProjectItem | null {
@@ -22,5 +22,5 @@ export function getChannelAvatarUrl(): string | null {
 export function resolveAvatarUrl(avatarKey: string): string {
   if (avatarKey.startsWith("/")) return `${API_ROOT}${avatarKey}`;
   if (avatarKey.startsWith("http")) return avatarKey;
-  return `${ADMIN_API_BASE}/controlnet/ip-adapter/reference/${avatarKey}/image`;
+  return `${API_BASE}/controlnet/ip-adapter/reference/${avatarKey}/image`;
 }

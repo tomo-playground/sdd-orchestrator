@@ -48,7 +48,7 @@ IMPORTANT:
 |---------|----------------------|
 | happy/joy | Warm, bright, upbeat tone with natural laughter inflection |
 | sad/melancholy | Soft, slow, heavy tone with trailing sentences |
-| angry/frustrated | Sharp, forceful, fast-paced with emphasis |
+| angry/frustrated | Slightly tense, clipped words, raised pitch — avoid shouting unless script explicitly demands it |
 | scared/nervous | Trembling, quick breaths, higher pitch with hesitation |
 | surprised/shocked | Sudden pitch change, gasping quality |
 | calm/peaceful | Steady, measured pace, warm and low tone |
@@ -58,7 +58,7 @@ IMPORTANT:
 ## Guidelines
 - **Non-speech scenes**: If a scene has `"speakable": false`, set `"skip": true` for that scene. Do NOT generate a voice design for non-speakable content. Also skip if the script contains only punctuation (e.g., "...", "?!") or stage directions.
 - **Narrator**: Should reflect the overall mood and atmosphere of the scene. For storytelling content, the narrator should express emotions (e.g., excitement, sadness, urgency) that match the narrative arc, rather than staying neutral.
-- **Characters**: Should have highly expressive and context-dependent tones.
+- **Characters**: Should have expressive but NATURAL conversational tones. Avoid extreme vocal expressions (shouting, screaming, yelling) — prefer subtle emotional nuance that sounds like a real conversation.
 - **Pacing**: Use `head_padding` (typically 0.1s - 0.5s) for scene intro and `tail_padding` (typically 0.5s - 1.2s) for resonance after a line. Increase padding for emotional or dramatic moments.
 
 ## Output Format (JSON)

@@ -37,7 +37,7 @@ def seed_prompt_rules():
 def test_validate_tags_empty(client: TestClient):
     """Test tag validation with empty list."""
     response = client.post(
-        "/api/admin/prompt/validate-tags",
+        "/api/v1/prompt/validate-tags",
         json={"tags": [], "check_danbooru": False},
     )
     assert response.status_code == 200
@@ -52,7 +52,7 @@ def test_validate_tags_with_db_tags(client: TestClient):
     """Test tag validation against DB (tags likely in DB)."""
     # Test with tags that are likely in the production DB
     response = client.post(
-        "/api/admin/prompt/validate-tags",
+        "/api/v1/prompt/validate-tags",
         json={"tags": ["1girl", "standing"], "check_danbooru": False},
     )
     assert response.status_code == 200
@@ -67,7 +67,7 @@ def test_validate_tags_risky_known(client: TestClient):
     """Test detection of known risky tags."""
     # Use tags from RISKY_TAG_REPLACEMENTS that are unlikely to be in DB
     response = client.post(
-        "/api/admin/prompt/validate-tags",
+        "/api/v1/prompt/validate-tags",
         json={"tags": ["birds eye view", "high angle", "low angle"], "check_danbooru": False},
     )
     assert response.status_code == 200
@@ -100,7 +100,7 @@ def test_validate_tags_danbooru_error(client: TestClient):
 def test_auto_replace_empty(client: TestClient):
     """Test auto-replacement with empty list."""
     response = client.post(
-        "/api/admin/prompt/auto-replace",
+        "/api/v1/prompt/auto-replace",
         json={"tags": []},
     )
     assert response.status_code == 200
@@ -114,7 +114,7 @@ def test_auto_replace_empty(client: TestClient):
 def test_auto_replace_risky_tags(client: TestClient):
     """Test auto-replacement of known risky tags."""
     response = client.post(
-        "/api/admin/prompt/auto-replace",
+        "/api/v1/prompt/auto-replace",
         json={"tags": ["medium shot", "1girl", "close up", "standing"]},
     )
     assert response.status_code == 200
@@ -133,7 +133,7 @@ def test_auto_replace_risky_tags(client: TestClient):
 def test_auto_replace_no_risky(client: TestClient):
     """Test auto-replacement when no risky tags present."""
     response = client.post(
-        "/api/admin/prompt/auto-replace",
+        "/api/v1/prompt/auto-replace",
         json={"tags": ["1girl", "standing", "smile"]},
     )
     assert response.status_code == 200
@@ -148,7 +148,7 @@ def test_auto_replace_no_risky(client: TestClient):
 def test_auto_replace_with_removal(client: TestClient):
     """Test auto-replacement with tags that should be removed."""
     response = client.post(
-        "/api/admin/prompt/auto-replace",
+        "/api/v1/prompt/auto-replace",
         json={"tags": ["1girl", "unreal engine", "standing", "octane render"]},
     )
     assert response.status_code == 200
@@ -176,14 +176,14 @@ def test_validate_tags_request_validation(client: TestClient):
     """Test request validation for validate-tags endpoint."""
     # Missing tags field
     response = client.post(
-        "/api/admin/prompt/validate-tags",
+        "/api/v1/prompt/validate-tags",
         json={"check_danbooru": True},
     )
     assert response.status_code == 422
 
     # Invalid tags type
     response = client.post(
-        "/api/admin/prompt/validate-tags",
+        "/api/v1/prompt/validate-tags",
         json={"tags": "not_a_list", "check_danbooru": True},
     )
     assert response.status_code == 422
@@ -193,14 +193,14 @@ def test_auto_replace_request_validation(client: TestClient):
     """Test request validation for auto-replace endpoint."""
     # Missing tags field
     response = client.post(
-        "/api/admin/prompt/auto-replace",
+        "/api/v1/prompt/auto-replace",
         json={},
     )
     assert response.status_code == 422
 
     # Invalid tags type
     response = client.post(
-        "/api/admin/prompt/auto-replace",
+        "/api/v1/prompt/auto-replace",
         json={"tags": "not_a_list"},
     )
     assert response.status_code == 422
@@ -217,7 +217,7 @@ def test_auto_replace_request_validation(client: TestClient):
 def test_validate_tags_various_inputs(client: TestClient, tags: list[str], expected_total: int):
     """Test tag validation with various input combinations."""
     response = client.post(
-        "/api/admin/prompt/validate-tags",
+        "/api/v1/prompt/validate-tags",
         json={"tags": tags, "check_danbooru": False},
     )
     assert response.status_code == 200

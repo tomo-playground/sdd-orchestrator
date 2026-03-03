@@ -2,9 +2,9 @@
 
 Verifies:
 1. Voice seed always comes from the character's voice preset (not per-scene hash).
-2. When a preset exists, voice design uses preset base + scene_emotion,
-   ignoring Agentic Pipeline per-scene voice_design_prompt that would override
-   the character's voice identity.
+2. When a preset exists, Gemini adapts the preset base with scene context/emotion.
+   Seed stays preset-based so voice identity is preserved; only delivery style varies.
+3. Fallback to simple concatenation when Gemini is unavailable.
 """
 import hashlib
 import unittest
@@ -127,18 +127,21 @@ class TestVoiceSeedConsistency(unittest.TestCase):
 
 
 class TestGetVoiceDesignForScene(unittest.TestCase):
-    """_get_voice_design_for_scene must preserve character identity via preset."""
+    """_get_voice_design_for_scene: Gemini adapts preset + fallback to concatenation."""
+
+    _GEMINI_PATCH = "services.video.scene_processing.generate_context_aware_voice_prompt"
 
     def setUp(self):
         from services.video.scene_processing import _get_voice_design_for_scene
         self._get = _get_voice_design_for_scene
 
-    def _scene(self, voice_design_prompt: str = "", scene_emotion: str | None = None) -> MagicMock:
+    def _scene(self, voice_design_prompt: str = "", scene_emotion: str | None = None,
+               image_prompt_ko: str | None = None) -> MagicMock:
         s = MagicMock()
         s.voice_design_prompt = voice_design_prompt
         s.scene_emotion = scene_emotion
         s.speaker = "A"
-        s.image_prompt_ko = None
+        s.image_prompt_ko = image_prompt_ko
         s.image_prompt = None
         return s
 
@@ -147,17 +150,26 @@ class TestGetVoiceDesignForScene(unittest.TestCase):
         b.request.voice_design_prompt = global_prompt
         return b
 
-    def test_preset_base_used_when_preset_exists(self):
-        """preset 있으면 per-scene prompt 무시하고 preset base 사용."""
-        scene = self._scene(voice_design_prompt="Gemini generated warm tone", scene_emotion=None)
+    @patch(_GEMINI_PATCH, return_value="A boy speaking with hopeful warmth")
+    def test_preset_with_emotion_calls_gemini(self, mock_gemini):
+        """프리셋 + 감정 있으면 Gemini가 맥락 기반 voice design 생성."""
+        scene = self._scene(scene_emotion="hopeful")
         result = self._get(self._builder(), scene, "preset base voice", "스크립트", 0)
-        self.assertEqual(result, "preset base voice")
+        mock_gemini.assert_called_once()
+        self.assertEqual(result, "A boy speaking with hopeful warmth")
 
-    def test_preset_plus_emotion_when_scene_emotion_set(self):
-        """preset + scene_emotion 조합."""
-        scene = self._scene(voice_design_prompt="Gemini warm tone", scene_emotion="hopeful")
+    @patch(_GEMINI_PATCH, return_value="")
+    def test_preset_with_emotion_fallback_on_gemini_failure(self, mock_gemini):
+        """Gemini 실패 시 단순 연결 fallback."""
+        scene = self._scene(scene_emotion="hopeful")
         result = self._get(self._builder(), scene, "preset base voice", "스크립트", 0)
         self.assertEqual(result, "preset base voice, hopeful")
+
+    def test_preset_no_emotion_no_context_returns_preset(self):
+        """감정/맥락 없으면 Gemini 호출 없이 프리셋 그대로."""
+        scene = self._scene()
+        result = self._get(self._builder(), scene, "preset base voice", "스크립트", 0)
+        self.assertEqual(result, "preset base voice")
 
     def test_per_scene_prompt_used_only_when_no_preset(self):
         """preset 없으면 per-scene prompt 사용."""
@@ -171,21 +183,15 @@ class TestGetVoiceDesignForScene(unittest.TestCase):
         result = self._get(self._builder(global_prompt="global voice"), scene, None, "스크립트", 0)
         self.assertEqual(result, "global voice")
 
-    def test_preset_overrides_per_scene_prompt_identity_preserved(self):
-        """핵심 regression: Gemini가 생성한 per-scene prompt가 캐릭터 정체성을 덮어쓰지 않는다."""
-        preset = "A teenage boy with passionate, energetic voice. Fast pace, mid-to-high pitch."
-        scenes_emotions = ["hopeful", "cheerful", "calm"]
-
-        for emotion in scenes_emotions:
-            scene = self._scene(
-                voice_design_prompt=f"A warm {emotion} tone without character info",
-                scene_emotion=emotion,
-            )
-            result = self._get(self._builder(), scene, preset, "스크립트", 0)
-            self.assertIsNotNone(result, f"result must not be None (emotion={emotion})")
-            assert result is not None
-            self.assertIn("teenage boy", result, f"캐릭터 정보가 유지되어야 함 (emotion={emotion})")
-            self.assertIn(emotion, result, f"감정 수식이 붙어야 함 (emotion={emotion})")
+    @patch(_GEMINI_PATCH)
+    def test_gemini_receives_base_prompt(self, mock_gemini):
+        """Gemini에 base_prompt가 전달되어 캐릭터 정체성이 보존된다."""
+        mock_gemini.return_value = "A teenage boy whispering with hope"
+        preset = "A teenage boy with passionate voice"
+        scene = self._scene(scene_emotion="hopeful", image_prompt_ko="교실에서 친구를 바라보는 장면")
+        self._get(self._builder(), scene, preset, "스크립트", 0)
+        _, kwargs = mock_gemini.call_args
+        self.assertEqual(kwargs["base_prompt"], preset)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Palette, Pencil, RefreshCw, Sparkles, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, Copy, Pencil, RefreshCw, Sparkles, Trash2, UserRound } from "lucide-react";
 import { resolveImageUrl } from "../../../../utils/url";
 import { CONTAINER_CLASSES } from "../../../../components/ui/variants";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
@@ -17,6 +17,7 @@ import {
   IpAdapterSection,
   SectionCard,
 } from "./CharacterDetailSections";
+import DuplicateDialog from "./DuplicateDialog";
 import GeminiEditModal from "./GeminiEditModal";
 import AppearanceStep from "../builder/steps/AppearanceStep";
 import LoraStep from "../builder/steps/LoraStep";
@@ -30,6 +31,7 @@ export default function CharacterDetailPage() {
   const { confirm, dialogProps } = useConfirm();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [geminiEditOpen, setGeminiEditOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
 
   const {
     tagsByGroup,
@@ -43,12 +45,16 @@ export default function CharacterDetailPage() {
   const {
     character,
     form,
+    groups,
+    currentStyleName,
+    styleLoraIds,
     isCharLoading,
     isSaving,
     selectedTags,
     selectedLoras,
     isDirty,
     updateField,
+    handleGroupChange,
     handleToggleTag,
     handleSearchTagSelect,
     handleToggleLora,
@@ -115,14 +121,12 @@ export default function CharacterDetailPage() {
           </Link>
           <span className="text-zinc-300">/</span>
           <h1 className="text-lg font-bold text-zinc-900">{character.name}</h1>
-          {character.style_profile_name && (
-            <span className="flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500">
-              <Palette className="h-3 w-3" />
-              {character.style_profile_name}
-            </span>
-          )}
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setDuplicateOpen(true)}>
+            <Copy className="h-3.5 w-3.5" />
+            Duplicate
+          </Button>
           <Button variant="ghost" size="sm" onClick={onDelete}>
             <Trash2 className="h-3.5 w-3.5" />
             Delete
@@ -203,7 +207,13 @@ export default function CharacterDetailPage() {
 
         {/* Right: Detail sections */}
         <div className="space-y-4">
-          <BasicInfoSection form={form} onChange={updateField} />
+          <BasicInfoSection
+            form={form}
+            onChange={updateField}
+            groups={groups}
+            onGroupChange={handleGroupChange}
+            currentStyleName={currentStyleName}
+          />
 
           <SectionCard
             title="Voice"
@@ -259,6 +269,7 @@ export default function CharacterDetailPage() {
               allLoras={allLoras}
               selectedLoras={selectedLoras}
               gender={form.gender ?? "female"}
+              excludeLoraIds={styleLoraIds}
               onToggleLora={handleToggleLora}
               onUpdateWeight={handleUpdateLoraWeight}
             />
@@ -288,6 +299,13 @@ export default function CharacterDetailPage() {
             setGeminiEditOpen(false);
           }}
           onApplyPromptEdit={(edited) => updateField("custom_base_prompt", edited)}
+        />
+      )}
+      {duplicateOpen && (
+        <DuplicateDialog
+          character={character}
+          groups={groups}
+          onClose={() => setDuplicateOpen(false)}
         />
       )}
       <ConfirmDialog {...dialogProps} />

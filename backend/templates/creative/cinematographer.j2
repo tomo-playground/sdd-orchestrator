@@ -8,10 +8,15 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 
 {% if characters_tags %}
 ## Character Visual Tags (per speaker)
-{% for speaker, tags in characters_tags.items() %}
+{% for speaker, tag_layers in characters_tags.items() %}
 ### Speaker "{{ speaker }}"
-{{ tags | tojson(indent=2) }}
+**IDENTITY (NEVER modify):** {{ tag_layers.identity | tojson }}
+**APPEARANCE (NEVER modify):** {{ tag_layers.appearance | tojson }}
+**LoRA triggers (ALWAYS include):** {{ tag_layers.lora_triggers | tojson }}
+{% if tag_layers.action_hints %}**Preferred actions (use as default, override per scene):** {{ tag_layers.action_hints | tojson }}{% endif %}
 {% endfor %}
+CRITICAL: Include ALL identity + appearance + lora_trigger tags in every character scene's image_prompt exactly as listed. Do NOT rephrase, omit, or replace them.
+Action hints are the character's typical poses/actions — use them as defaults but freely override with scene-appropriate actions.
 {% elif character_tags %}
 ## Character Visual Tags
 {{ character_tags | tojson(indent=2) }}
@@ -109,12 +114,7 @@ Match your visual design to this plan:
    | looking_to_the_side | `profile standing` |
    | looking_up | `standing looking up` |
    For Narrator scenes: set `controlnet_pose` to `null`.
-   **IP-Adapter Weight** (`ip_adapter_weight`): Adjust based on pose direction to prevent reference image conflict.
-   | Pose Direction | Weight Range | Examples |
-   | Front-facing | 0.7 ~ 0.9 | standing, looking at viewer, waving |
-   | Side-facing | 0.3 ~ 0.5 | profile standing, walking, leaning wall |
-   | Back-facing | 0.0 ~ 0.2 | from behind |
-   | Narrator (no character) | 0.0 | No character in scene |
+   **IP-Adapter Weight** (`ip_adapter_weight`): Leave as `null`. System auto-assigns based on character DB defaults. Pose-based adjustment is handled automatically at generation time.
 5. **Environment consistency**: Maintain consistent setting within scene groups. Use `context_tags.environment` to specify the scene's location as an English tag (e.g. kitchen, outdoor_garden, classroom).
    - Include furniture/props that anchor the scene: `office_chair`, `desk`, `bed`, `sofa`, `chair`
    - Do NOT add weather/atmosphere tags (rain, cloud, moon, night, snow) unless the script explicitly mentions them
@@ -213,7 +213,7 @@ Match your visual design to this plan:
         "environment": ["kitchen", "indoors"]
       },
       "controlnet_pose": "standing",
-      "ip_adapter_weight": 0.7,
+      "ip_adapter_weight": null,
       "negative_prompt_extra": "",
       "ken_burns_preset": "zoom_in_center"
     },

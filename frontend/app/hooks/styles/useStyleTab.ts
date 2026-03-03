@@ -28,17 +28,29 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
 
   // Character counts per style profile & linked characters for selected profile
   const [allCharacters, setAllCharacters] = useState<Character[]>([]);
+  const [allGroups, setAllGroups] = useState<{ id: number; style_profile_id: number | null }[]>([]);
   const [linkedCharacters, setLinkedCharacters] = useState<Character[]>([]);
 
+  // Build group_id → style_profile_id lookup from groups
+  const groupStyleMap = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const g of allGroups) {
+      if (g.style_profile_id != null) m.set(g.id, g.style_profile_id);
+    }
+    return m;
+  }, [allGroups]);
+
+  // Aggregate character counts by style_profile_id (resolved via group)
   const characterCounts = useMemo(() => {
     const counts = new Map<number, number>();
     for (const ch of allCharacters) {
-      if (ch.style_profile_id != null) {
-        counts.set(ch.style_profile_id, (counts.get(ch.style_profile_id) ?? 0) + 1);
+      const spId = ch.group_id != null ? groupStyleMap.get(ch.group_id) : undefined;
+      if (spId != null) {
+        counts.set(spId, (counts.get(spId) ?? 0) + 1);
       }
     }
     return counts;
-  }, [allCharacters]);
+  }, [allCharacters, groupStyleMap]);
 
   const sdModelMap = useMemo(() => {
     const m = new Map<number, SDModelEntry>();
@@ -92,17 +104,29 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     }
   }, []);
 
-  const fetchLinkedCharacters = useCallback(async (profileId: number) => {
+  const fetchAllGroups = useCallback(async () => {
     try {
-      const res = await axios.get<{ items: Character[] }>(`${API_BASE}/characters`, {
-        params: { style_profile_id: profileId, limit: 100 },
-      });
-      setLinkedCharacters(res.data.items ?? []);
+      const res = await axios.get<{ id: number; style_profile_id: number | null }[]>(
+        `${API_BASE}/groups`
+      );
+      setAllGroups(res.data ?? []);
     } catch {
-      console.error("Failed to fetch linked characters");
-      setLinkedCharacters([]);
+      console.error("Failed to fetch groups for character counts");
     }
   }, []);
+
+  const fetchLinkedCharacters = useCallback(
+    (profileId: number) => {
+      // Characters are linked to groups, not directly to style profiles.
+      // Use cached allGroups to resolve group_id → style_profile_id.
+      const matchingGroupIds = new Set(
+        allGroups.filter((g) => g.style_profile_id === profileId).map((g) => g.id)
+      );
+      const linked = allCharacters.filter((ch) => matchingGroupIds.has(ch.group_id));
+      setLinkedCharacters(linked);
+    },
+    [allCharacters, allGroups]
+  );
 
   // ── Style CRUD ─────────────────────────────────────
 
@@ -316,6 +340,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     void fetchEmbeddings();
     void lora.fetchPublicLoras();
     void fetchAllCharacters();
+    void fetchAllGroups();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {

@@ -174,7 +174,6 @@ export async function processSSEStream(
             character_b_id: typeof c.character_b_id === "number" ? c.character_b_id : null,
             character_b_name: typeof c.character_b_name === "string" ? c.character_b_name : "",
             structure: typeof c.structure === "string" ? c.structure : null,
-            style_profile_id: typeof c.style_profile_id === "number" ? c.style_profile_id : null,
             reasoning: typeof c.reasoning === "string" ? c.reasoning : "",
           },
         });

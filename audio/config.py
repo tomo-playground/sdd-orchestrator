@@ -23,7 +23,7 @@ TTS_DEFAULT_LANGUAGE = os.getenv("TTS_DEFAULT_LANGUAGE", "korean")
 # Post-processing
 TTS_AUDIO_TRIM_TOP_DB = int(os.getenv("TTS_AUDIO_TRIM_TOP_DB", "60"))
 TTS_AUDIO_FADE_MS = int(os.getenv("TTS_AUDIO_FADE_MS", "15"))
-TTS_SILENCE_MAX_MS = int(os.getenv("TTS_SILENCE_MAX_MS", "500"))
+TTS_SILENCE_MAX_MS = int(os.getenv("TTS_SILENCE_MAX_MS", "800"))
 
 # --- MusicGen Configuration ---
 MUSICGEN_MODEL_NAME = os.getenv("MUSICGEN_MODEL_NAME", "facebook/musicgen-small")

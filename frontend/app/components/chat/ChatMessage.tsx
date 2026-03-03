@@ -57,7 +57,6 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
         <SettingsRecommendCard
           message={message}
           onApplyAndGenerate={callbacks.onApplyAndGenerate}
-          onSendMessage={callbacks.onSendMessage}
         />
       );
     case "concept_gate":

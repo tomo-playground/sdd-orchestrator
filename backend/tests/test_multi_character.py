@@ -73,8 +73,8 @@ class TestMultiCharacterCapable:
         db_session.add(lora)
         db_session.flush()
 
-        char_a = Character(name="char_a", loras=[{"lora_id": lora.id, "weight": 1.0}])
-        char_b = Character(name="char_b", loras=[])
+        char_a = Character(name="char_a", group_id=1, loras=[{"lora_id": lora.id, "weight": 1.0}])
+        char_b = Character(name="char_b", group_id=1, loras=[])
         db_session.add_all([char_a, char_b])
         db_session.flush()
 
@@ -90,8 +90,8 @@ class TestMultiCharacterCapable:
         db_session.add(lora)
         db_session.flush()
 
-        char_a = Character(name="char_c", loras=[{"lora_id": lora.id, "weight": 1.0}])
-        char_b = Character(name="char_d", loras=[])
+        char_a = Character(name="char_c", group_id=1, loras=[{"lora_id": lora.id, "weight": 1.0}])
+        char_b = Character(name="char_d", group_id=1, loras=[])
         db_session.add_all([char_a, char_b])
         db_session.flush()
 
@@ -103,8 +103,8 @@ class TestMultiCharacterCapable:
         from models.character import Character
         from services.storyboard import _check_multi_character_capable
 
-        char_a = Character(name="char_e", loras=[])
-        char_b = Character(name="char_f", loras=[])
+        char_a = Character(name="char_e", group_id=1, loras=[])
+        char_b = Character(name="char_f", group_id=1, loras=[])
         db_session.add_all([char_a, char_b])
         db_session.flush()
 
@@ -177,7 +177,7 @@ def _make_char_with_tags(db, name, gender, tag_defs, loras=None):
     from models.character import Character
     from models.tag import Tag
 
-    char = Character(name=name, gender=gender, loras=loras)
+    char = Character(name=name, gender=gender, group_id=1, loras=loras)
     db.add(char)
     db.flush()
 

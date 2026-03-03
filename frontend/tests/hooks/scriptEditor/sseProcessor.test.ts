@@ -137,7 +137,6 @@ describe("casting recommendation from SSE", () => {
         character_b_id: 2,
         character_b_name: "Bob",
         structure: "Dialogue",
-        style_profile_id: 10,
         reasoning: "Best fit for topic",
       },
     };
@@ -153,7 +152,6 @@ describe("casting recommendation from SSE", () => {
         character_b_id: 2,
         character_b_name: "Bob",
         structure: "Dialogue",
-        style_profile_id: 10,
         reasoning: "Best fit for topic",
       },
     });

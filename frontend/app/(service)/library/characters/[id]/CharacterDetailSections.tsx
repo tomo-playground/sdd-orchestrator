@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import type { ActorGender } from "../../../../types";
+import { ChevronDown, ChevronRight, FolderOpen, Palette } from "lucide-react";
+import type { ActorGender, GroupItem } from "../../../../types";
 import Input from "../../../../components/ui/Input";
 import Textarea from "../../../../components/ui/Textarea";
 import { findDuplicateTokens } from "../shared/promptDuplicateCheck";
@@ -15,6 +15,7 @@ export type CharacterFormData = {
   name: string;
   description: string;
   gender: ActorGender | null;
+  group_id: number | null;
   custom_base_prompt: string;
   custom_negative_prompt: string;
   reference_base_prompt: string;
@@ -79,12 +80,57 @@ export function SectionCard({
 }
 
 // ── Basic Info ───────────────────────────────────────────────
-type BasicInfoProps = { form: CharacterFormData; onChange: FormOnChange };
+type BasicInfoProps = {
+  form: CharacterFormData;
+  onChange: FormOnChange;
+  groups: GroupItem[];
+  onGroupChange: (groupId: number) => void;
+  currentStyleName?: string | null;
+};
 
-export function BasicInfoSection({ form, onChange }: BasicInfoProps) {
+export function BasicInfoSection({
+  form,
+  onChange,
+  groups,
+  onGroupChange,
+  currentStyleName,
+}: BasicInfoProps) {
   return (
     <SectionCard title="Basic Info">
       <div className="space-y-3">
+        {/* Series select */}
+        <div>
+          <label className="mb-1 block text-xs font-medium text-zinc-500">소속 시리즈</label>
+          <div className="flex items-center gap-2">
+            {groups.length > 0 ? (
+              <select
+                value={form.group_id ?? ""}
+                onChange={(e) => {
+                  const id = Number(e.target.value);
+                  if (id) onGroupChange(id);
+                }}
+                className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-600 transition hover:border-zinc-300 focus:border-zinc-400 focus:outline-none"
+              >
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-600">
+                <FolderOpen className="h-3 w-3" />
+                Loading...
+              </span>
+            )}
+            {currentStyleName && (
+              <span className="flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600">
+                <Palette className="h-3 w-3" />
+                {currentStyleName}
+              </span>
+            )}
+          </div>
+        </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-zinc-500">Name</label>
           <Input

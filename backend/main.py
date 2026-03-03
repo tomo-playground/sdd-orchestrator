@@ -37,6 +37,7 @@ def _auto_seed_valence(db) -> None:
     from routers.admin import _run_valence_classification
 
     logger.info("[Valence] %d unclassified tags found, seeding in background...", count)
+
     def _on_valence_done(t: asyncio.Task) -> None:
         if t.cancelled():
             return
@@ -131,20 +132,33 @@ async def lifespan(_app: FastAPI):
     flush_langfuse()
     await close_store()
     await close_checkpointer()
+
+    # Close Gemini client connections before event loop closes
+    from config import gemini_client
+
+    if gemini_client:
+        try:
+            await gemini_client.aio.aclose()
+            logger.info("🛑 [Shutdown] Gemini client closed")
+        except Exception as e:
+            logger.warning("⚠️ [Shutdown] Gemini client close error: %s", e)
+
     logger.info("🛑 [Shutdown] Application execution finished")
 
 
 # --- App Setup ---
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
+import logging
+
 from config import CORS_ORIGINS  # noqa: E402
 from config import logger as _logger  # noqa: E402
 
-import logging
 
 class HealthCheckFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         return record.getMessage().find("GET /health") == -1
+
 
 logging.getLogger("uvicorn.access").addFilter(HealthCheckFilter())
 

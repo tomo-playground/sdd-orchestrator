@@ -89,7 +89,7 @@ class TestLoadCharacterContext:
         """Character with no tags returns empty tag lists."""
         from models.character import Character
 
-        char = Character(name="NoTags", gender="male")
+        char = Character(name="NoTags", gender="male", group_id=1)
         db_session.add(char)
         db_session.commit()
 
@@ -108,7 +108,7 @@ class TestLoadCharacterContext:
         from models.character import Character
         from models.tag import Tag
 
-        char = Character(name="IdentityTest", gender="female")
+        char = Character(name="IdentityTest", gender="female", group_id=1)
         db_session.add(char)
         db_session.flush()
 
@@ -134,7 +134,7 @@ class TestLoadCharacterContext:
         from models.character import Character
         from models.tag import Tag
 
-        char = Character(name="CostumeTest", gender="female")
+        char = Character(name="CostumeTest", gender="female", group_id=1)
         db_session.add(char)
         db_session.flush()
 
@@ -159,7 +159,7 @@ class TestLoadCharacterContext:
         from models.character import Character
         from models.tag import Tag
 
-        char = Character(name="MixedTest", gender="female")
+        char = Character(name="MixedTest", gender="female", group_id=1)
         db_session.add(char)
         db_session.flush()
 
@@ -198,6 +198,7 @@ class TestLoadCharacterContext:
         char = Character(
             name="LoRATest",
             gender="female",
+            group_id=1,
             loras=[{"lora_id": lora.id, "weight": 0.8}],
         )
         db_session.add(char)
@@ -214,6 +215,7 @@ class TestLoadCharacterContext:
         char = Character(
             name="MissingLoRA",
             gender="female",
+            group_id=1,
             loras=[{"lora_id": 99999, "weight": 0.5}],
         )
         db_session.add(char)
@@ -229,6 +231,7 @@ class TestLoadCharacterContext:
         char = Character(
             name="PromptTest",
             gender="male",
+            group_id=1,
             custom_base_prompt="1boy, solo, detailed_eyes",
         )
         db_session.add(char)
@@ -241,7 +244,7 @@ class TestLoadCharacterContext:
         """If gender is None, defaults to 'female'."""
         from models.character import Character
 
-        char = Character(name="NoGender")
+        char = Character(name="NoGender", group_id=1)
         db_session.add(char)
         db_session.commit()
 
@@ -252,7 +255,7 @@ class TestLoadCharacterContext:
         """description 필드가 컨텍스트에 포함된다."""
         from models.character import Character
 
-        char = Character(name="WithDesc", gender="male", description="활발한 남학생")
+        char = Character(name="WithDesc", gender="male", group_id=1, description="활발한 남학생")
         db_session.add(char)
         db_session.commit()
 
@@ -263,7 +266,7 @@ class TestLoadCharacterContext:
         """description이 None이면 빈 문자열."""
         from models.character import Character
 
-        char = Character(name="NoDesc", gender="female")
+        char = Character(name="NoDesc", gender="female", group_id=1)
         db_session.add(char)
         db_session.commit()
 

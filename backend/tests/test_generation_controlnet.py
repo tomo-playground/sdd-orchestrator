@@ -296,7 +296,7 @@ class TestGetPoseFromCharacterActions:
         scene = Scene(storyboard_id=sb.id, order=0, script="test")
         db_session.add(scene)
         db_session.flush()
-        char = Character(name="TestChar", gender="female")
+        char = Character(name="TestChar", gender="female", group_id=1)
         db_session.add(char)
         db_session.flush()
         tag = Tag(name="walking", category="scene", group_name="pose", default_layer=8)
@@ -333,7 +333,7 @@ class TestGetPoseFromCharacterActions:
         scene = Scene(storyboard_id=sb.id, order=0, script="test")
         db_session.add(scene)
         db_session.flush()
-        char = Character(name="TestChar2", gender="male")
+        char = Character(name="TestChar2", gender="male", group_id=1)
         db_session.add(char)
         db_session.flush()
 

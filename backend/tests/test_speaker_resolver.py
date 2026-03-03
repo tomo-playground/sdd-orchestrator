@@ -92,7 +92,7 @@ class TestStoryboardCharacterLoading:
         from models.storyboard_character import StoryboardCharacter
 
         # Create a character
-        char = Character(name="Test Char A", gender="female")
+        char = Character(name="Test Char A", gender="female", group_id=1)
         db_session.add(char)
         db_session.flush()
 

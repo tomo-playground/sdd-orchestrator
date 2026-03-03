@@ -324,8 +324,8 @@ export type CharacterTagLink = {
 
 export type Character = {
   id: number;
-  style_profile_id: number | null;
-  style_profile_name: string | null;
+  group_id: number;
+  group_name: string | null;
   name: string;
   description: string | null;
   gender: ActorGender | null;
@@ -404,8 +404,9 @@ export type CharacterFullLoRA = {
 
 export type CharacterFull = {
   id: number;
-  style_profile_id: number | null;
-  style_profile_name: string | null;
+  group_id: number;
+  group_name: string | null;
+  style_profile_name: string | null; // derived from group.style_profile_name
   name: string;
   description: string | null;
   gender: ActorGender | null;
@@ -579,7 +580,6 @@ export type CastingRecommendation = {
   character_b_id: number | null;
   character_b_name: string;
   structure: string | null;
-  style_profile_id: number | null;
   reasoning: string;
 };
 
@@ -717,6 +717,7 @@ export type GroupItem = {
   render_preset_name: string | null;
   style_profile_name: string | null;
   voice_preset_name: string | null;
+  character_count: number;
 };
 
 // ============================================================

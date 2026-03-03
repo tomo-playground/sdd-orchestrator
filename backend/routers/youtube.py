@@ -24,10 +24,9 @@ from services.youtube.upload import UploadParams, upload_video_to_youtube
 logger = logging.getLogger(__name__)
 
 service_router = APIRouter(prefix="/youtube", tags=["youtube"])
-admin_router = APIRouter(prefix="/youtube", tags=["youtube-admin"])
 
 
-@admin_router.get("/authorize/{project_id}", response_model=YouTubeAuthURLResponse)
+@service_router.get("/authorize/{project_id}", response_model=YouTubeAuthURLResponse)
 def authorize(project_id: int):
     """Generate Google OAuth URL for YouTube authorization."""
     try:
@@ -39,7 +38,7 @@ def authorize(project_id: int):
         raise_user_error("youtube_auth", e)
 
 
-@admin_router.post("/callback", response_model=YouTubeCredentialResponse)
+@service_router.post("/callback", response_model=YouTubeCredentialResponse)
 def callback(
     code: str = Query(...),
     state: str = Query(...),
@@ -60,7 +59,7 @@ def callback(
         raise_user_error("youtube_auth", e, status_code=400)
 
 
-@admin_router.get("/credentials/{project_id}", response_model=YouTubeCredentialResponse)
+@service_router.get("/credentials/{project_id}", response_model=YouTubeCredentialResponse)
 def get_credential(project_id: int, db: Session = Depends(get_db)):
     """Get YouTube credential for a project."""
     cred = (
@@ -76,7 +75,7 @@ def get_credential(project_id: int, db: Session = Depends(get_db)):
     return cred
 
 
-@admin_router.delete("/credentials/{project_id}", response_model=YouTubeRevokeResponse)
+@service_router.delete("/credentials/{project_id}", response_model=YouTubeRevokeResponse)
 def delete_credential(project_id: int, db: Session = Depends(get_db)):
     """Revoke YouTube credential for a project."""
     revoke_credential(db, project_id)

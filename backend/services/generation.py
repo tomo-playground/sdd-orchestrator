@@ -14,7 +14,11 @@ from typing import TYPE_CHECKING
 import httpx
 from fastapi import HTTPException
 
-from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, logger
+from config import (
+    SD_TIMEOUT_SECONDS,
+    SD_TXT2IMG_URL,
+    logger,
+)
 from database import SessionLocal
 from schemas import SceneGenerateRequest
 from services.generation_controlnet import apply_controlnet as _apply_controlnet
@@ -125,6 +129,41 @@ def _adjust_parameters(ctx: GenerationContext) -> None:
                 logger.warning("🔧 [LoRA] Failed to get optimal weights: %s", e)
 
 
+def _build_adetailer_args(style_profile_id: int | None = None) -> dict | None:
+    """Build ADetailer alwayson_scripts args for face inpainting.
+
+    Returns None when ADetailer is disabled or should be skipped.
+    Uses higher-accuracy model for realistic profiles (id in ADETAILER_HIGH_ACCURACY_PROFILE_IDS).
+    """
+    from config import (
+        ADETAILER_DENOISING_STRENGTH,
+        ADETAILER_ENABLED,
+        ADETAILER_FACE_MODEL,
+        ADETAILER_HIGH_ACCURACY_PROFILE_IDS,
+    )
+
+    if not ADETAILER_ENABLED:
+        return None
+
+    face_model = "face_yolov8s.pt" if style_profile_id in ADETAILER_HIGH_ACCURACY_PROFILE_IDS else ADETAILER_FACE_MODEL
+    return {
+        "ADetailer": {
+            "args": [
+                {
+                    "ad_model": face_model,
+                    "ad_prompt": "",
+                    "ad_negative_prompt": "",
+                    "ad_confidence": 0.3,
+                    "ad_mask_blur": 4,
+                    "ad_denoising_strength": ADETAILER_DENOISING_STRENGTH,
+                    "ad_inpaint_only_masked": True,
+                    "ad_inpaint_only_masked_padding": 32,
+                }
+            ]
+        }
+    }
+
+
 def _build_payload(ctx: GenerationContext) -> dict:
     """Build the SD txt2img payload from context."""
     req = ctx.request
@@ -154,6 +193,9 @@ def _build_payload(ctx: GenerationContext) -> dict:
                 "denoising_strength": req.denoising_strength,
             }
         )
+    adetailer = _build_adetailer_args(ctx.style_context.profile_id if ctx.style_context else None)
+    if adetailer:
+        payload["alwayson_scripts"] = adetailer
     return payload
 
 
