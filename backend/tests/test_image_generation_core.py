@@ -1,5 +1,5 @@
 """
-TDD tests for image_generation_core -- unified V3 Prompt Engine + SD integration.
+TDD tests for image_generation_core -- unified Prompt Engine + SD integration.
 
 Phase 1: Lab + Studio unified image generation.
 """
@@ -234,7 +234,7 @@ class TestComposeSceneWithStyle:
         mock_db.query.return_value.filter.return_value.first.return_value = mock_char
 
         with (
-            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.image_generation_core.PromptBuilder") as MockBuilder,
             patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
         ):
             mock_apply.return_value = ("high_quality, 1girl, smile", "lowres, bad anatomy")
@@ -270,7 +270,7 @@ class TestComposeSceneWithStyle:
         mock_db = MagicMock()
 
         with (
-            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.image_generation_core.PromptBuilder") as MockBuilder,
             patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
         ):
             mock_apply.return_value = ("no_humans, sunset", "lowres")
@@ -298,7 +298,7 @@ class TestComposeSceneWithStyle:
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
         with (
-            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.image_generation_core.PromptBuilder") as MockBuilder,
             patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
         ):
             # Style profile returns negative with duplicates
@@ -330,7 +330,7 @@ class TestComposeSceneWithStyle:
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
         with (
-            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.image_generation_core.PromptBuilder") as MockBuilder,
             patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
         ):
             mock_apply.return_value = ("1girl, vibrant_colors", "lowres")
@@ -360,7 +360,7 @@ class TestComposeSceneWithStyle:
         mock_db.query.return_value.filter.return_value.first.return_value = mock_char
 
         with (
-            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.image_generation_core.PromptBuilder") as MockBuilder,
             patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
         ):
             mock_apply.return_value = ("1girl, smile", "lowres, bad anatomy")
@@ -392,7 +392,7 @@ class TestComposeSceneWithStyle:
         mock_db.query.return_value.filter.return_value.first.return_value = mock_char
 
         with (
-            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.image_generation_core.PromptBuilder") as MockBuilder,
             patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
         ):
             mock_apply.return_value = ("1girl, smile", "lowres")
@@ -433,9 +433,9 @@ class TestComposeSceneWithStyle:
         mock_db.query.return_value.filter.return_value.first.side_effect = lambda: next(chars_by_call)
 
         with (
-            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.image_generation_core.PromptBuilder") as MockBuilder,
             patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
-            patch("services.prompt.v3_multi_character.MultiCharacterComposer") as MockComposer,
+            patch("services.prompt.multi_character.MultiCharacterComposer") as MockComposer,
             patch("services.style_context.resolve_style_context", return_value=None),
         ):
             mock_apply.return_value = ("1boy, 1girl", "lowres")
@@ -535,7 +535,7 @@ class TestComposeWarningsMerge:
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
         with (
-            patch("services.image_generation_core.V3PromptBuilder") as MockBuilder,
+            patch("services.image_generation_core.PromptBuilder") as MockBuilder,
             patch("services.generation.apply_style_profile_to_prompt") as mock_apply,
             patch("services.style_context.resolve_style_context", return_value=None),
         ):

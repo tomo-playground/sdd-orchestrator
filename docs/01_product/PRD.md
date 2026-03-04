@@ -23,7 +23,7 @@ graph TD
     end
 
     subgraph Production ["2. 생산 단계"]
-        DB_Store --> Prompt[V3 Prompt Engine<br/>12-Layer Builder]
+        DB_Store --> Prompt[Prompt Engine<br/>12-Layer Builder]
         Prompt --> SD["<b>SD WebUI API</b><br/>이미지 생성"]
         SD --> Quality["<b>Cinematographer</b><br/>Tool-Calling (4개 도구)<br/>+ WD14 검증"]
         Quality -- "낮음 (Fail)" --> AutoEdit[Gemini Auto-Correction]
@@ -79,7 +79,7 @@ mindmap
 | # | 기능 | 설명 | 상태 |
 |---|------|------|------|
 | 1 | AI 스토리보드 생성 | Gemini API 기반 주제→스토리보드 자동 기획 | 완료 |
-| 2 | V3 Prompt Engine | 12-Layer Builder + 4개 런타임 캐시 | 완료 |
+| 2 | Prompt Engine | 12-Layer Builder + 4개 런타임 캐시 | 완료 |
 | 3 | 캐릭터 시스템 | 다중 캐릭터, LoRA, Tag Autocomplete, IP-Adapter | 완료 |
 | 4 | 이미지 생성 | SD WebUI API + ControlNet + 포즈 제어 (28개 포즈) | 완료 |
 | 5 | 영상 렌더링 | FFmpeg Pipeline, Ken Burns, 13개 전환 효과, Full/Post Layout | 완료 |

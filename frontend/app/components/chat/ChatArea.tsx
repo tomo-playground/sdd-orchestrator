@@ -47,12 +47,14 @@ export default function ChatArea({ editor }: Props) {
     ]
   );
 
+  const lastContentType = editor.chatMessages[editor.chatMessages.length - 1]?.contentType;
   const data: ChatMessageData = useMemo(
     () => ({
       scenes: editor.scenes,
       feedbackPresets: editor.feedbackPresets,
+      hasError: lastContentType === "error",
     }),
-    [editor.scenes, editor.feedbackPresets]
+    [editor.scenes, editor.feedbackPresets, lastContentType]
   );
 
   const isInitialState = editor.chatMessages.length <= 1;
@@ -104,6 +106,7 @@ export default function ChatArea({ editor }: Props) {
             interactionMode={editor.interactionMode}
             onModeChange={editor.setInteractionMode}
             isEditMode={isEditMode}
+            onCancel={editor.cancelOperation}
           />
         </>
       )}

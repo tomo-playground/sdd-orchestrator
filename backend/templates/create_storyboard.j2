@@ -10,6 +10,14 @@ Description: {{ description }}
 ## Creative Direction (from Director)
 {{ director_plan_context }}
 {% endif %}
+{% if chat_context %}
+
+## User Intent Context
+사용자의 사전 대화에서 파악된 의도입니다. 창작 방향에 참고하세요.
+{% for msg in chat_context %}
+- **{{ "사용자" if msg.role == "user" else "시스템" }}**: {{ msg.text }}
+{% endfor %}
+{% endif %}
 {% if research_brief %}
 
 ## Reference Information
@@ -61,6 +69,7 @@ CRITICAL IMAGE PROMPT RULE:
 - ONLY use Danbooru tags from the Allowed Keywords list below
 - NEVER invent new tags or use general photography terms not in Danbooru
 - FORBIDDEN examples: "medium shot" (0 posts), "bust shot" (incorrect term)
+- FORBIDDEN environment tags: "dark_room", "high_contrast_shadow", "cinematic_shadows", "glowing_screen", "projector_screen" (produce monotonous/dark results)
 - SAFE examples: "cowboy_shot" (729K posts), "upper_body" (1.01M posts), "full_body" (892K posts)
 - Tags not in training data produce unpredictable/broken results
 - When unsure, choose high-frequency tags from the list

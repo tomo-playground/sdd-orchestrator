@@ -1,4 +1,4 @@
-# 프로젝트: Shorts Producer (V3)
+# 프로젝트: Shorts Producer
 
 AI 기반 쇼츠 영상 자동화 워크스페이스. LangGraph Agentic Pipeline (Gemini) + Stable Diffusion (이미지) + Qwen3-TTS (음성) + FFmpeg (렌더링).
 
@@ -20,7 +20,7 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. LangGraph Agentic Pipeline
 | AI | LangGraph + Gemini | 19개 노드 (Director, Writer, Critic, Research, Cinematographer 등), Gemini Function Calling |
 | Observability | LangFuse | 셀프호스팅, 파이프라인 트레이싱 |
 
-### V3 Backend 구조
+### Backend 구조
 ```
 backend/
 ├── routers/          # API 엔드포인트 (29개 라우터)
@@ -31,11 +31,11 @@ backend/
 │   │   ├── state.py  #   Graph State
 │   │   └── routing.py#   조건부 라우팅
 │   ├── video/        # FFmpeg 렌더링 파이프라인
-│   ├── prompt/       # 프롬프트 엔진 (v3_composition.py: 12-Layer Builder)
+│   ├── prompt/       # 프롬프트 엔진 (composition.py: 12-Layer Builder)
 │   ├── keywords/     # 태그 시스템 패키지 (core, db, db_cache, processing, validation 등)
 │   ├── storyboard/   # 스토리보드 CRUD, Scene Builder
 │   └── characters/   # 캐릭터 관리, LoRA 연동
-├── models/           # SQLAlchemy ORM (associations.py: V3 relational tags)
+├── models/           # SQLAlchemy ORM (associations.py: relational tags)
 ├── templates/        # Jinja2 30개 (스토리보드 5종 + Creative 21종 + 파셜 4종)
 └── config.py         # 모든 상수/환경변수 SSOT
 ```
@@ -66,7 +66,7 @@ docs/
 - **제품 스펙**: `docs/01_product/PRD.md`
 - **API 명세**: `docs/03_engineering/api/REST_API.md`
 - **DB 스키마**: `docs/03_engineering/architecture/DB_SCHEMA.md`
-- **프롬프트 설계**: `docs/03_engineering/backend/PROMPT_SPEC_V2.md`
+- **프롬프트 설계**: `docs/03_engineering/backend/PROMPT_SPEC.md`
 - **테스트 전략**: `docs/03_engineering/testing/TEST_STRATEGY.md`
 - **테스트 시나리오**: `docs/03_engineering/testing/TEST_SCENARIOS.md`
 - **개발 가이드**: `docs/guides/CONTRIBUTING.md`
@@ -159,6 +159,28 @@ docs/
   2. 라우터에 `response_model=` 지정
   3. Frontend 타입(interface)을 Backend 스키마와 일치시킴
   4. REST API 명세 (`docs/03_engineering/api/REST_API.md`) 업데이트
+
+## Gemini API 호출 규칙
+
+### system_instruction 분리 (필수)
+- `system_instruction`은 반드시 `GenerateContentConfig.system_instruction` 파라미터로 전달
+- ❌ `contents`에 system prompt 합치기 금지: `f"{system_prompt}\n\n{user_prompt}"`
+- ✅ `GenerateContentConfig(system_instruction=system_prompt)` + `contents=user_prompt`
+- 이유: `contents`에 합치면 Gemini 안전 필터가 더 엄격하게 작동
+
+### Safety Settings (필수)
+- 모든 Gemini 호출에 `GEMINI_SAFETY_SETTINGS` (config.py) 적용
+- 개별 파일에 safety settings 하드코딩 금지 → config.py SSOT
+
+### PROHIBITED_CONTENT 폴백 (필수)
+- `PROHIBITED_CONTENT` 감지 시 `GEMINI_FALLBACK_MODEL` (gemini-2.0-flash)로 자동 1회 재시도
+- 폴백 사용 시 반드시 로그 기록: `[Fallback] PROHIBITED_CONTENT → {fallback_model}`
+- 폴백도 실패 시 사용자에게 에러 전파
+
+### Sanitization (유지)
+- `_sanitize_for_gemini_prompt()`: Gemini 호출 직전 미성년자 연상 단어 치환
+- `_restore_danbooru_tags()`: Gemini 응답을 SD용 Danbooru 태그로 복원
+- 2.5 Flash 유지율을 높이기 위한 1차 방어선 (폴백은 2차)
 
 ## Image Generation Debug Payload Convention
 이미지 생성 결과의 `debug_payload`는 반드시 **`{request, actual}`** 2-레벨 구조로 저장한다.

@@ -70,6 +70,7 @@ export type ScriptEditorState = {
   productionSnapshot: ProductionSnapshot | null;
   interactionMode: "auto" | "guided" | "hands_on";
   isWaitingForPlan: boolean;
+  chatContext: Array<{ role: string; text: string }>;
 };
 
 export type ResumeOptions = {
@@ -101,6 +102,8 @@ export type ScriptEditorActions = ScriptEditorState & {
   save: () => Promise<void>;
   loadStoryboard: (id: number) => Promise<void>;
   reset: () => void;
+  /** SSE 파이프라인 스트림을 중단하고 isGenerating을 리셋한다. */
+  cancel: () => void;
 };
 
 export type ScriptEditorOptions = {

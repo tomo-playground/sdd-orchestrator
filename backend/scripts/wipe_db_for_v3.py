@@ -41,7 +41,7 @@ def wipe_data():
 
         conn.commit()
 
-    print("\n✨ Database is now clean and ready for V3 characters!")
+    print("\n✨ Database is now clean and ready for characters!")
 
 if __name__ == "__main__":
     wipe_data()

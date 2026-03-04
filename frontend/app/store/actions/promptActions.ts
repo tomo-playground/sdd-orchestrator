@@ -16,7 +16,7 @@ export function buildNegativePrompt(scene: Scene): string {
   return deduplicatePromptTokens(combined);
 }
 
-/** Return raw image_prompt — Backend handles V3 composition via context_tags. */
+/** Return raw image_prompt — Backend handles prompt composition via context_tags. */
 export function buildScenePrompt(scene: Scene): string | null {
   return scene.image_prompt.trim() || null;
 }

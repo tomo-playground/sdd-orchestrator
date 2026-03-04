@@ -232,7 +232,13 @@ async def test_finalize_node_populates_scene_flags():
         "language": "Korean",
     }
 
-    with patch("services.agent.nodes.finalize.get_db_session"):
+    with (
+        patch("services.agent.nodes.finalize.get_db_session"),
+        patch(
+            "services.agent.nodes._finalize_validators._get_character_info",
+            return_value=(None, False),
+        ),
+    ):
         result = await finalize_node(state, config={})
 
     final = result["final_scenes"]
@@ -262,7 +268,13 @@ async def test_finalize_express_mode_auto_assigns_controlnet():
         "language": "Korean",
     }
 
-    with patch("services.agent.nodes.finalize.get_db_session"):
+    with (
+        patch("services.agent.nodes.finalize.get_db_session"),
+        patch(
+            "services.agent.nodes._finalize_validators._get_character_info",
+            return_value=(None, False),
+        ),
+    ):
         result = await finalize_node(state, config={})
 
     final = result["final_scenes"]

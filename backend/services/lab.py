@@ -1,7 +1,7 @@
 """
 Lab service -- experiment execution and tag effectiveness aggregation.
 
-Phase 1 Integration: Uses unified image_generation_core.py for V3 Prompt Engine.
+Phase 1 Integration: Uses unified image_generation_core.py for Prompt Engine.
 """
 
 from __future__ import annotations
@@ -34,10 +34,10 @@ async def run_experiment(
     batch_id: str | None = None,
 ) -> LabExperiment:
     """
-    Run a single experiment using V3 Prompt Engine.
+    Run a single experiment using Prompt Engine.
 
     Phase 1 Integration: Uses unified image_generation_core.py
-    - Applies V3 Prompt Builder (Character LoRA + Scene Tags + Style LoRAs)
+    - Applies Prompt Builder (Character LoRA + Scene Tags + Style LoRAs)
     - Applies Style Profile (Quality Tags + Negative Prompt)
     - Stores final_prompt and loras_applied metadata
     """
@@ -78,7 +78,7 @@ async def run_experiment(
     db.flush()
 
     try:
-        # V3 Prompt Engine + SD Generation
+        # Prompt Engine + SD Generation
         result = await generate_image_with_v3(
             db=db,
             prompt=target_tags,
@@ -96,7 +96,7 @@ async def run_experiment(
             mode="lab",
         )
 
-        # Store V3 metadata
+        # Store composition metadata
         experiment.final_prompt = result.final_prompt
         experiment.loras_applied = result.loras_applied
         experiment.seed = result.seed
@@ -116,7 +116,7 @@ async def run_experiment(
         experiment.match_rate = match_rate
         experiment.wd14_result = _build_wd14_result(comparison, tags)
 
-        # Log warnings from V3 (if any)
+        # Log warnings from prompt composition (if any)
         if result.warnings:
             logger.warning(
                 "[Lab] Experiment %s warnings: %s",
@@ -184,7 +184,7 @@ async def run_batch(
     seeds: list[int] | None = None,
     notes: str | None = None,
 ) -> dict[str, Any]:
-    """Run a batch of experiments with the same tags (V3 Prompt Engine)."""
+    """Run a batch of experiments with the same tags (Prompt Engine)."""
     count = min(count, LAB_BATCH_MAX_SIZE)
     bid = uuid.uuid4().hex[:12]
     results: list[LabExperiment] = []
@@ -284,8 +284,8 @@ async def compose_and_run(
 ) -> LabExperiment:
     """Scene Lab: run experiment with scene_description tags.
 
-    V3 composition is handled inside run_experiment → generate_image_with_v3.
-    No direct V3PromptBuilder call here (DRY).
+    prompt composition is handled inside run_experiment → generate_image_with_v3.
+    No direct PromptBuilder call here (DRY).
     """
     from services.prompt.prompt import split_prompt_tokens
 

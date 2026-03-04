@@ -15,7 +15,7 @@ def main():
         # Update Hana with complete data
         hana = db.query(Character).filter(Character.name == "Hana").first()
         if hana:
-            hana.description = "Test character for V3 - Generic anime girl with long hair and blue eyes"
+            hana.description = "Test character for - Generic anime girl with long hair and blue eyes"
             hana.recommended_negative = ["verybadimagenegative_v1.3", "easynegative", "badhandv4"]
             hana.custom_base_prompt = "1girl, solo, long hair, blue eyes"
             hana.custom_negative_prompt = "verybadimagenegative_v1.3, easynegative, badhandv4"

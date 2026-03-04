@@ -31,7 +31,7 @@
 | 파일 | 변경 |
 |------|------|
 | `config_prompt.py` | `LAYER_OWNERS` 상수 추가 |
-| `v3_composition.py` | `_collect_character_tags` 중복 제거, `quality_tags` 파라미터 추가 |
+| `composition.py` | `_collect_character_tags` 중복 제거, `quality_tags` 파라미터 추가 |
 | `generation_style.py` | `skip_quality` 플래그 추가 |
 | `image_generation_core.py` | `skip_quality=True` + `quality_tags` 전달 |
 

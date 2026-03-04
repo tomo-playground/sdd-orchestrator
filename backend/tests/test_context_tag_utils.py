@@ -6,10 +6,10 @@ import pytest
 
 from services.agent.nodes._context_tag_utils import (
     EMOTION_TO_EXPRESSION,
-    check_camera_diversity,
     derive_expression_from_emotion,
     validate_context_tag_categories,
 )
+from services.agent.nodes._diversify_utils import diversify_cameras
 
 # ── derive_expression_from_emotion ────────────────────────────────────
 
@@ -110,34 +110,37 @@ class TestValidateContextTagCategories:
         assert "mood" not in scenes[0]["context_tags"]  # 키 삭제
 
 
-# ── check_camera_diversity ────────────────────────────────────────────
+# ── diversify_cameras ────────────────────────────────────────────
 
 
-class TestCheckCameraDiversity:
-    """카메라 다양성 소프트 경고 테스트."""
+class TestDiversifyCamerasUnit:
+    """카메라 다양성 보정 단위 테스트."""
 
-    def test_diverse_no_warning(self, caplog):
+    def test_diverse_no_change(self, caplog):
         scenes = [
-            {"context_tags": {"camera": "close-up"}},
-            {"context_tags": {"camera": "medium_shot"}},
-            {"context_tags": {"camera": "wide_shot"}},
+            {"context_tags": {"camera": "close-up", "emotion": "sad"}},
+            {"context_tags": {"camera": "cowboy_shot", "emotion": "happy"}},
+            {"context_tags": {"camera": "full_body", "emotion": "angry"}},
         ]
-        with caplog.at_level(logging.WARNING):
-            check_camera_diversity(scenes)
-        assert "카메라 다양성 부족" not in caplog.text
+        with caplog.at_level(logging.INFO):
+            diversify_cameras(scenes)
+        assert "Camera 단조로움 감지" not in caplog.text
 
-    def test_repetitive_warns(self, caplog):
+    def test_repetitive_corrected(self, caplog):
         scenes = [
-            {"context_tags": {"camera": "close-up"}},
-            {"context_tags": {"camera": "close-up"}},
-            {"context_tags": {"camera": "close-up"}},
+            {"context_tags": {"camera": "close-up", "emotion": "happy"}},
+            {"context_tags": {"camera": "close-up", "emotion": "angry"}},
+            {"context_tags": {"camera": "close-up", "emotion": "sad"}},
         ]
-        with caplog.at_level(logging.WARNING):
-            check_camera_diversity(scenes)
-        assert "카메라 다양성 부족" in caplog.text
+        with caplog.at_level(logging.INFO):
+            diversify_cameras(scenes)
+        assert "Camera 단조로움 감지" in caplog.text
 
     def test_less_than_3_scenes_no_check(self, caplog):
-        scenes = [{"context_tags": {"camera": "close-up"}}, {"context_tags": {"camera": "close-up"}}]
-        with caplog.at_level(logging.WARNING):
-            check_camera_diversity(scenes)
-        assert "카메라 다양성 부족" not in caplog.text
+        scenes = [
+            {"context_tags": {"camera": "close-up", "emotion": "sad"}},
+            {"context_tags": {"camera": "close-up", "emotion": "happy"}},
+        ]
+        with caplog.at_level(logging.INFO):
+            diversify_cameras(scenes)
+        assert "Camera 단조로움 감지" not in caplog.text

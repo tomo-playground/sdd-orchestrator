@@ -1,7 +1,7 @@
 """Tests for _finalize_validators.py: style modifier filter + IP-Adapter weight normalizer.
 
 Also tests diversify_gazes(), diversify_actions(), diversify_expressions(),
-validate_context_tag_categories(), check_camera_diversity() from _context_tag_utils.py.
+validate_context_tag_categories(), diversify_cameras(), diversify_poses() from _context_tag_utils.py.
 And finalize.py helper functions.
 """
 
@@ -11,14 +11,12 @@ from services.agent.nodes._context_tag_utils import (
     _coerce_str,
     _infer_emotion_from_script,
     _normalize_emotion,
-    check_camera_diversity,
     derive_expression_from_emotion,
     derive_mood_from_emotion,
-    diversify_actions,
     diversify_expressions,
-    diversify_gazes,
     validate_context_tag_categories,
 )
+from services.agent.nodes._diversify_utils import diversify_actions, diversify_gazes
 from services.agent.nodes._finalize_validators import (
     filter_style_modifiers,
     normalize_ip_adapter_weights,
@@ -80,6 +78,51 @@ class TestFilterStyleModifiers:
 # ── normalize_ip_adapter_weights ──────────────────────────────────────
 
 
+class TestHasCharacterLora:
+    """_has_character_lora 헬퍼 테스트."""
+
+    def test_none_cid_returns_false(self):
+        from services.agent.nodes._finalize_validators import _has_character_lora
+
+        assert _has_character_lora(None, db=MagicMock()) is False
+
+    def test_none_db_returns_false(self):
+        from services.agent.nodes._finalize_validators import _has_character_lora
+
+        assert _has_character_lora(1, db=None) is False
+
+    def test_character_not_found(self):
+        from services.agent.nodes._finalize_validators import _has_character_lora
+
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = None
+        assert _has_character_lora(1, db=db) is False
+
+    def test_character_no_loras(self):
+        from services.agent.nodes._finalize_validators import _has_character_lora
+
+        db = MagicMock()
+        char = MagicMock(loras=[], ip_adapter_weight=None)
+        db.execute.return_value.scalar_one_or_none.return_value = char
+        assert _has_character_lora(1, db=db) is False
+
+    def test_character_with_non_character_lora(self):
+        from services.agent.nodes._finalize_validators import _has_character_lora
+
+        db = MagicMock()
+        char = MagicMock(loras=[{"lora_type": "style", "name": "flat_color"}], ip_adapter_weight=None)
+        db.execute.return_value.scalar_one_or_none.return_value = char
+        assert _has_character_lora(1, db=db) is False
+
+    def test_character_with_character_lora(self):
+        from services.agent.nodes._finalize_validators import _has_character_lora
+
+        db = MagicMock()
+        char = MagicMock(loras=[{"lora_type": "character", "name": "usagi_drop"}], ip_adapter_weight=None)
+        db.execute.return_value.scalar_one_or_none.return_value = char
+        assert _has_character_lora(1, db=db) is True
+
+
 class TestNormalizeIPAdapterWeights:
     """IP-Adapter weight 정규화 테스트."""
 
@@ -99,10 +142,10 @@ class TestNormalizeIPAdapterWeights:
         assert scenes[0]["ip_adapter_weight"] == 0.5
 
     @patch(
-        "services.agent.nodes._finalize_validators._get_character_ip_weight",
-        return_value=0.8,
+        "services.agent.nodes._finalize_validators._get_character_info",
+        return_value=(0.8, True),
     )
-    def test_normalizes_to_character_db_weight(self, mock_weight):
+    def test_normalizes_to_character_db_weight(self, mock_info):
         """캐릭터 DB 값으로 통일."""
         scenes = [
             {"speaker": "A", "ip_adapter_weight": None},
@@ -113,21 +156,21 @@ class TestNormalizeIPAdapterWeights:
         assert scenes[1]["ip_adapter_weight"] == 0.8
 
     @patch(
-        "services.agent.nodes._finalize_validators._get_character_ip_weight",
-        return_value=None,
+        "services.agent.nodes._finalize_validators._get_character_info",
+        return_value=(None, True),
     )
-    def test_fallback_to_default_when_no_db_weight(self, mock_weight):
+    def test_fallback_to_default_when_no_db_weight(self, mock_info):
         """DB에 값 없으면 DEFAULT_IP_ADAPTER_WEIGHT(0.7) 사용."""
         scenes = [{"speaker": "A"}]
         normalize_ip_adapter_weights(scenes, character_id=1)
         assert scenes[0]["ip_adapter_weight"] == 0.7
 
     @patch(
-        "services.agent.nodes._finalize_validators._get_character_ip_weight",
+        "services.agent.nodes._finalize_validators._get_character_info",
     )
-    def test_speaker_b_uses_own_weight(self, mock_weight):
+    def test_speaker_b_uses_own_weight(self, mock_info):
         """Speaker B는 character_b_id 기반 weight 사용."""
-        mock_weight.side_effect = lambda cid, db=None: {10: 0.6, 20: 0.9}.get(cid)
+        mock_info.side_effect = lambda cid, db=None: {10: (0.6, True), 20: (0.9, True)}.get(cid, (None, False))
         scenes = [
             {"speaker": "A"},
             {"speaker": "B"},
@@ -636,68 +679,126 @@ class TestDiversifyExpressions:
         assert scenes[0]["context_tags"]["expression"] == "smile"
 
 
-# ── check_camera_diversity ───────────────────────────────────────────
+# ── diversify_cameras ───────────────────────────────────────────
 
 
-class TestCheckCameraDiversity:
-    """카메라 다양성 소프트 경고 테스트."""
+class TestDiversifyCameras:
+    """카메라 다양성 보정 테스트."""
 
-    def test_dominant_camera_logs_warning(self):
-        """50% 초과 동일 카메라 → 경고 로그."""
+    def test_dominant_camera_corrected(self):
+        """50% 초과 동일 카메라 + emotion 있으면 교정."""
+        from services.agent.nodes._diversify_utils import diversify_cameras
+
         scenes = [
-            {"context_tags": {"camera": "cowboy_shot"}},
-            {"context_tags": {"camera": "cowboy_shot"}},
-            {"context_tags": {"camera": "cowboy_shot"}},
-            {"context_tags": {"camera": "close_up"}},
+            {"context_tags": {"camera": "cowboy_shot", "emotion": "sad"}},
+            {"context_tags": {"camera": "cowboy_shot", "emotion": "angry"}},
+            {"context_tags": {"camera": "cowboy_shot", "emotion": "hopeful"}},
+            {"context_tags": {"camera": "close-up"}},
         ]
-        with patch("services.agent.nodes._context_tag_utils.logger") as mock_logger:
-            check_camera_diversity(scenes)
-            mock_logger.warning.assert_called_once()
-            assert "cowboy_shot" in mock_logger.warning.call_args[0][1]
+        diversify_cameras(scenes)
+        cameras = [s["context_tags"]["camera"] for s in scenes]
+        # 최소 1개는 교정되어야 함
+        assert cameras.count("cowboy_shot") < 3
 
-    def test_diverse_camera_no_warning(self):
-        """다양한 카메라 → 경고 없음."""
+    def test_diverse_camera_no_change(self):
+        """다양한 카메라 → 변경 없음."""
+        from services.agent.nodes._diversify_utils import diversify_cameras
+
         scenes = [
-            {"context_tags": {"camera": "cowboy_shot"}},
-            {"context_tags": {"camera": "close_up"}},
-            {"context_tags": {"camera": "medium_shot"}},
-            {"context_tags": {"camera": "full_body"}},
+            {"context_tags": {"camera": "cowboy_shot", "emotion": "happy"}},
+            {"context_tags": {"camera": "close-up", "emotion": "sad"}},
+            {"context_tags": {"camera": "full_body", "emotion": "angry"}},
+            {"context_tags": {"camera": "upper_body", "emotion": "calm"}},
         ]
-        with patch("services.agent.nodes._context_tag_utils.logger") as mock_logger:
-            check_camera_diversity(scenes)
-            mock_logger.warning.assert_not_called()
+        diversify_cameras(scenes)
+        assert scenes[0]["context_tags"]["camera"] == "cowboy_shot"
+        assert scenes[1]["context_tags"]["camera"] == "close-up"
 
     def test_few_scenes_skipped(self):
         """3씬 미만이면 건너뜀."""
-        scenes = [
-            {"context_tags": {"camera": "cowboy_shot"}},
-            {"context_tags": {"camera": "cowboy_shot"}},
-        ]
-        with patch("services.agent.nodes._context_tag_utils.logger") as mock_logger:
-            check_camera_diversity(scenes)
-            mock_logger.warning.assert_not_called()
+        from services.agent.nodes._diversify_utils import diversify_cameras
 
-    def test_no_camera_tags(self):
-        """camera 태그 없는 씬들은 건너뜀."""
         scenes = [
-            {"context_tags": {}},
-            {"context_tags": {}},
-            {"context_tags": {}},
+            {"context_tags": {"camera": "cowboy_shot", "emotion": "sad"}},
+            {"context_tags": {"camera": "cowboy_shot", "emotion": "angry"}},
         ]
-        with patch("services.agent.nodes._context_tag_utils.logger") as mock_logger:
-            check_camera_diversity(scenes)
-            mock_logger.warning.assert_not_called()
+        diversify_cameras(scenes)
+        assert scenes[0]["context_tags"]["camera"] == "cowboy_shot"
+
+    def test_no_emotion_no_change(self):
+        """emotion 없으면 교정하지 않음."""
+        from services.agent.nodes._diversify_utils import diversify_cameras
+
+        scenes = [
+            {"context_tags": {"camera": "cowboy_shot"}},
+            {"context_tags": {"camera": "cowboy_shot"}},
+            {"context_tags": {"camera": "cowboy_shot"}},
+        ]
+        diversify_cameras(scenes)
+        cameras = [s["context_tags"]["camera"] for s in scenes]
+        assert cameras.count("cowboy_shot") == 3
 
     def test_camera_angle_alias(self):
         """camera_angle 키도 인식."""
+        from services.agent.nodes._diversify_utils import diversify_cameras
+
         scenes = [
-            {"context_tags": {"camera_angle": "close_up"}},
-            {"context_tags": {"camera_angle": "close_up"}},
-            {"context_tags": {"camera_angle": "close_up"}},
+            {"context_tags": {"camera_angle": "close_up", "emotion": "happy"}},
+            {"context_tags": {"camera_angle": "close_up", "emotion": "angry"}},
+            {"context_tags": {"camera_angle": "close_up", "emotion": "sad"}},
         ]
-        with patch("services.agent.nodes._context_tag_utils.logger") as mock_logger:
-            check_camera_diversity(scenes)
-            mock_logger.warning.assert_called_once()
+        diversify_cameras(scenes)
+        # camera_angle가 아닌 camera로 교정됨
+        corrected = sum(1 for s in scenes if s["context_tags"].get("camera"))
+        assert corrected >= 1
+
+
+# ── diversify_poses ───────────────────────────────────────────
+
+
+class TestDiversifyPoses:
+    """포즈 다양성 보정 테스트."""
+
+    def test_dominant_pose_corrected(self):
+        """50% 초과 동일 pose + emotion 있으면 교정."""
+        from services.agent.nodes._diversify_utils import diversify_poses
+
+        scenes = [
+            {"speaker": "A", "context_tags": {"pose": "standing", "emotion": "sad"}},
+            {"speaker": "A", "context_tags": {"pose": "standing", "emotion": "excited"}},
+            {"speaker": "A", "context_tags": {"pose": "standing", "emotion": "angry"}},
+            {"speaker": "A", "context_tags": {"pose": "sitting"}},
+        ]
+        diversify_poses(scenes)
+        poses = [s["context_tags"]["pose"] for s in scenes]
+        assert poses.count("standing") < 3
+
+    def test_narrator_excluded(self):
+        """Narrator 씬은 제외."""
+        from services.agent.nodes._diversify_utils import diversify_poses
+
+        scenes = [
+            {"speaker": "Narrator", "context_tags": {"pose": "standing", "emotion": "sad"}},
+            {"speaker": "Narrator", "context_tags": {"pose": "standing", "emotion": "happy"}},
+            {"speaker": "Narrator", "context_tags": {"pose": "standing", "emotion": "angry"}},
+        ]
+        diversify_poses(scenes)
+        # Narrator만 있으면 char_scenes < 3이라 스킵
+        assert all(s["context_tags"]["pose"] == "standing" for s in scenes)
+
+    def test_diverse_pose_no_change(self):
+        """이미 다양한 pose → 변경 없음."""
+        from services.agent.nodes._diversify_utils import diversify_poses
+
+        scenes = [
+            {"speaker": "A", "context_tags": {"pose": "standing", "emotion": "happy"}},
+            {"speaker": "A", "context_tags": {"pose": "sitting", "emotion": "sad"}},
+            {"speaker": "A", "context_tags": {"pose": "arms_crossed", "emotion": "angry"}},
+            {"speaker": "A", "context_tags": {"pose": "arms_up", "emotion": "excited"}},
+        ]
+        diversify_poses(scenes)
+        assert scenes[0]["context_tags"]["pose"] == "standing"
+        assert scenes[1]["context_tags"]["pose"] == "sitting"
 
 
 # ── finalize.py helper functions ─────────────────────────────────────
@@ -1568,7 +1669,6 @@ class TestFilterExclusiveIdentityTags:
             tag_group_map: {bare_tag_name: group_name} — Tag 테이블 룩업
         """
         from models.character import Character
-        from models.tag import Tag
 
         char = MagicMock()
         mock_tags = []
@@ -1595,10 +1695,7 @@ class TestFilterExclusiveIdentityTags:
 
                     fq = MagicMock()
                     fq.all = MagicMock(
-                        return_value=[
-                            SimpleNamespace(name=tn, group_name=gn)
-                            for tn, gn in tag_group_map.items()
-                        ],
+                        return_value=[SimpleNamespace(name=tn, group_name=gn) for tn, gn in tag_group_map.items()],
                     )
                     fq.first = MagicMock(return_value=None)
                     return fq
@@ -1714,7 +1811,6 @@ class TestFilterExclusiveIdentityTags:
     def test_speaker_b_uses_char_b_exclusive(self):
         """Dialogue: Speaker B는 character_b의 EXCLUSIVE 태그 기준으로 필터링."""
         from models.character import Character
-
         from services.agent.nodes.finalize import _filter_exclusive_identity_tags
 
         scenes = [
@@ -1770,10 +1866,7 @@ class TestFilterExclusiveIdentityTags:
 
                     fq = MagicMock()
                     fq.all = MagicMock(
-                        return_value=[
-                            SimpleNamespace(name=tn, group_name=gn)
-                            for tn, gn in tag_map.items()
-                        ],
+                        return_value=[SimpleNamespace(name=tn, group_name=gn) for tn, gn in tag_map.items()],
                     )
                     return fq
 

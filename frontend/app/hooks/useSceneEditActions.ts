@@ -3,34 +3,39 @@
 import { useCallback, useRef, type MutableRefObject } from "react";
 import { API_BASE } from "../constants";
 import type { ScriptEditorActions } from "./scriptEditor";
-import type { ChatMessage, SceneEditResult } from "../types/chat";
-
-function nextId() {
-  return crypto.randomUUID();
-}
-
-function assistantMsg(text: string): ChatMessage {
-  return { id: nextId(), role: "assistant", contentType: "assistant", text, timestamp: Date.now() };
-}
+import type { ChatMessage, SceneEditDiffMessage, SceneEditResult } from "../types/chat";
+import { createMessageId, createAssistantMessage } from "../utils/chatMessageFactory";
 
 type SceneEditDeps = {
-  editorRef: MutableRefObject<ScriptEditorActions>;
+  editorRef: MutableRefObject<ScriptEditorActions | null>;
   chatMessagesRef: MutableRefObject<ChatMessage[]>;
   topicRef: MutableRefObject<string>;
   addMessage: (msg: ChatMessage) => void;
   setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
+  addTypingIndicator: (hint: string) => string;
+  removeTypingIndicator: (id: string) => void;
 };
 
 export function useSceneEditActions(deps: SceneEditDeps) {
-  const { editorRef, chatMessagesRef, topicRef, addMessage, setChatMessages } = deps;
+  const {
+    editorRef,
+    chatMessagesRef,
+    topicRef,
+    addMessage,
+    setChatMessages,
+    addTypingIndicator,
+    removeTypingIndicator,
+  } = deps;
   const isEditingRef = useRef(false);
 
   const handleEditRequest = useCallback(
     async (text: string) => {
-      if (isEditingRef.current) return;
+      if (isEditingRef.current || !editorRef.current) return;
       isEditingRef.current = true;
+      const editor = editorRef.current;
+      const typingId = addTypingIndicator("수정 사항 분석 중...");
       try {
-        const scenes = editorRef.current.scenes.map((s) => ({
+        const scenes = editor.scenes.map((s) => ({
           scene_index: s.order,
           script: s.script,
           speaker: s.speaker,
@@ -46,8 +51,8 @@ export function useSceneEditActions(deps: SceneEditDeps) {
             scenes,
             context: {
               topic: topicRef.current,
-              language: editorRef.current.language,
-              structure: editorRef.current.structure,
+              language: editor.language,
+              structure: editor.structure,
             },
           }),
         });
@@ -56,8 +61,9 @@ export function useSceneEditActions(deps: SceneEditDeps) {
           throw new Error(body?.detail || `HTTP ${res.status}`);
         }
         const data = await res.json();
+        removeTypingIndicator(typingId);
         if (!data.edited_scenes?.length) {
-          addMessage(assistantMsg("수정할 내용을 찾지 못했습니다."));
+          addMessage(createAssistantMessage("수정할 내용을 찾지 못했습니다."));
           return;
         }
         const editResult: SceneEditResult = {
@@ -66,27 +72,31 @@ export function useSceneEditActions(deps: SceneEditDeps) {
           unchangedCount: data.unchanged_count ?? 0,
         };
         addMessage({
-          id: nextId(),
+          id: createMessageId(),
           role: "assistant",
           contentType: "scene_edit_diff",
           editResult,
           timestamp: Date.now(),
         });
       } catch (err) {
+        removeTypingIndicator(typingId);
         console.error("[SceneEdit]", err);
-        addMessage(assistantMsg("씬 수정 중 오류가 발생했습니다. 다시 시도해 주세요."));
+        addMessage(createAssistantMessage("씬 수정 중 오류가 발생했습니다. 다시 시도해 주세요."));
       } finally {
         isEditingRef.current = false;
       }
     },
-    [editorRef, topicRef, addMessage]
+    [editorRef, topicRef, addMessage, addTypingIndicator, removeTypingIndicator]
   );
 
   const applySceneEdits = useCallback(() => {
     const diffMsg = [...chatMessagesRef.current]
       .reverse()
-      .find((m) => m.contentType === "scene_edit_diff" && !m.editApplied);
-    if (!diffMsg?.editResult) return;
+      .find(
+        (m): m is SceneEditDiffMessage => m.contentType === "scene_edit_diff" && !m.editApplied
+      );
+    if (!diffMsg || !editorRef.current) return;
+    const editor = editorRef.current;
     for (const edited of diffMsg.editResult.editedScenes) {
       const patch: Record<string, unknown> = {};
       if (edited.script != null) patch.script = edited.script;
@@ -94,18 +104,18 @@ export function useSceneEditActions(deps: SceneEditDeps) {
       if (edited.duration != null) patch.duration = edited.duration;
       if (edited.image_prompt != null) patch.image_prompt = edited.image_prompt;
       if (edited.image_prompt_ko != null) patch.image_prompt_ko = edited.image_prompt_ko;
-      const arrIdx = editorRef.current.scenes.findIndex((s) => s.order === edited.scene_index);
-      if (arrIdx >= 0) editorRef.current.updateScene(arrIdx, patch);
+      const arrIdx = editor.scenes.findIndex((s) => s.order === edited.scene_index);
+      if (arrIdx >= 0) editor.updateScene(arrIdx, patch);
     }
-    editorRef.current.save();
+    editor.save();
     setChatMessages((prev) =>
       prev.map((m) => (m.id === diffMsg.id ? { ...m, editApplied: true } : m))
     );
-    addMessage(assistantMsg("수정 사항이 적용되었습니다."));
+    addMessage(createAssistantMessage("수정 사항이 적용되었습니다."));
   }, [editorRef, chatMessagesRef, setChatMessages, addMessage]);
 
   const rejectSceneEdit = useCallback(() => {
-    addMessage(assistantMsg("수정을 취소했습니다."));
+    addMessage(createAssistantMessage("수정을 취소했습니다."));
   }, [addMessage]);
 
   return { handleEditRequest, applySceneEdits, rejectSceneEdit, isEditingRef };

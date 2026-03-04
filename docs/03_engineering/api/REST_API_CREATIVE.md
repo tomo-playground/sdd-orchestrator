@@ -215,7 +215,7 @@ Phase 2 Production Pipeline을 시작합니다 (비동기 BackgroundTask).
 |------|------|------|------|
 | group_id | int | O | 대상 그룹 ID |
 | title | string | X | 스토리보드 제목 (기본: 세션 objective) |
-| deep_parse | bool | X | true: V3 12-Layer 태그 분해 적용 |
+| deep_parse | bool | X | true: 12-Layer 태그 분해 적용 |
 
 **Response:**
 ```json

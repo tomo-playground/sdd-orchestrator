@@ -1,4 +1,4 @@
-"""Prompt History model for V3 Schema."""
+"""Prompt History model ."""
 
 from sqlalchemy import BigInteger, Boolean, Float, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB

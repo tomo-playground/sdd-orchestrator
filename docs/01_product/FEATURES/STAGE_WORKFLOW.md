@@ -341,7 +341,7 @@ localStorage 마이그레이션: `"edit"` → `"direct"` 자동 매핑.
 |---------|------|------|
 | `Background` 모델 (`tags`, `weight`, `image_asset_id`) | 완료 | `models/background.py` |
 | `_resolve_background()` → `environment_reference_id` 전환 | 완료 | `generation_prompt.py` |
-| `compose_for_reference()` 프롬프트 메서드 | 완료 | `v3_composition.py` |
+| `compose_for_reference()` 프롬프트 메서드 | 완료 | `composition.py` |
 | `useMaterialsCheck` 훅 + `MaterialsPopover` | 완료 | Frontend 에셋 체크 |
 | `WriterPlan.locations` (Agent State) | 완료 | `agent/state.py` |
 | `StudioThreeColumnLayout` | 완료 | 기존 레이아웃 컴포넌트 |
@@ -382,7 +382,7 @@ localStorage 마이그레이션: `"edit"` → `"direct"` 자동 매핑.
 | 파일 | 상태 | 설명 |
 |------|------|------|
 | `services/stage/background_generator.py` | 신규 | 배경 생성 서비스 |
-| `services/prompt/v3_composition.py` | 수정 | `compose_for_background()` 추가 |
+| `services/prompt/composition.py` | 수정 | `compose_for_background()` 추가 |
 | `routers/stage.py` | 신규 | Stage API 라우터 |
 | `models/background.py` | 수정 | `storyboard_id`, `location_key` 추가 |
 | `models/storyboard.py` | 수정 | `stage_status` 추가 |

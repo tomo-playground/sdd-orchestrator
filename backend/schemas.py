@@ -373,6 +373,13 @@ class StoryboardDetailResponse(BaseModel):
     scenes: list[SceneDetailResponse] = []
 
 
+class ChatContextMessage(BaseModel):
+    """사전 대화 이력 항목."""
+
+    role: Literal["user", "assistant"] = "user"
+    text: str = Field(default="", max_length=2000)
+
+
 class StoryboardRequest(BaseModel):
     topic: str = Field(max_length=500)
     description: str | None = Field(default=None, max_length=2000)
@@ -389,6 +396,7 @@ class StoryboardRequest(BaseModel):
     references: list[str] | None = Field(default=None, max_length=5)  # URL 또는 텍스트 (최대 5개)
     selected_concept: dict | None = None  # Critic 선정 컨셉 (title, concept, strengths)
     interaction_mode: Literal["auto", "guided", "hands_on"] = "guided"
+    chat_context: list[ChatContextMessage] | None = Field(default=None, max_length=20)
 
 
 class SceneCandidate(BaseModel):
@@ -593,13 +601,13 @@ class SceneGenerateRequest(BaseModel):
     environment_reference_weight: float = 0.3
     # Background asset reference (auto-inject tags + Reference AdaIN atmosphere)
     background_id: int | None = None
-    # Scene DB ID for character_actions lookup during V3 composition
+    # Scene DB ID for character_actions lookup during prompt composition
     scene_id: int | None = None
-    # Explicit V3 composition flag (True when frontend /prompt/compose already ran V3)
+    # Explicit prompt composition flag (True when frontend /prompt/compose already ran)
     # DEPRECATED: Frontend should send raw prompt + context_tags instead.
     prompt_pre_composed: bool = False
     # Scene context tags (expression, pose, gaze, camera, environment, mood)
-    # Backend merges these into V3 composition automatically.
+    # Backend merges these into prompt composition automatically.
     context_tags: dict | None = None
     # Post-processing toggles (wired from frontend OPTIONS panel)
     auto_rewrite_prompt: bool = False
@@ -628,6 +636,7 @@ class SceneGenerateResponse(BaseModel):
     used_steps: int | None = None
     used_cfg_scale: float | None = None
     used_sampler: str | None = None
+    consistency_quality: str | None = None  # "high" | "medium" | "low"
 
 
 class BatchSceneResult(BaseModel):
@@ -698,7 +707,7 @@ class PromptComposeLoRA(BaseModel):
 
 
 class PromptComposeRequest(BaseModel):
-    """Request for composing a prompt via V3 engine."""
+    """Request for composing a prompt via prompt composition engine."""
 
     tokens: list[str]  # Raw prompt tokens
     mode: Literal["auto", "standard", "lora"] = "auto"

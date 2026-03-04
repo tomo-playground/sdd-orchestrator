@@ -1,6 +1,6 @@
 """
 Unified image generation core for Lab + Studio.
-Provides single source of truth for V3 Prompt Engine + SD integration.
+Provides single source of truth for Prompt Engine + SD integration.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ from config import (
     logger,
 )
 from services.prompt.prompt import normalize_negative_prompt, split_prompt_tokens
-from services.prompt.v3_composition import V3PromptBuilder
+from services.prompt.composition import PromptBuilder
 
 
 async def _ensure_correct_checkpoint(sd_model_name: str) -> None:
@@ -97,7 +97,7 @@ async def generate_image_with_v3(
     scene_id: int | None = None,
 ) -> ImageGenerationResult:
     """
-    Generate image using V3 Prompt Engine + SD.
+    Generate image using Prompt Engine + SD.
 
     Args:
         db: Database session
@@ -266,7 +266,7 @@ def compose_scene_with_style(
     background_tags: list[str] | None = None,
     clothing_override: list[str] | None = None,
 ) -> tuple[str, str, list[str]]:
-    """Compose scene prompt: StyleProfile + V3 composition (SSOT).
+    """Compose scene prompt: StyleProfile + prompt composition (SSOT).
 
     Shared by Studio Direct (generation.py) and Creative Lab (creative_studio.py).
     Flow matches Studio Direct exactly:
@@ -286,12 +286,12 @@ def compose_scene_with_style(
 
     warnings: list[str] = []
 
-    # 1. Apply style profile embedding triggers (LoRAs + quality handled by V3 L0)
+    # 1. Apply style profile embedding triggers (LoRAs + quality handled by prompt composition L0)
     styled_prompt, modified_negative = apply_style_profile_to_prompt(
         raw_prompt, negative_prompt, storyboard_id, db, skip_loras=True, skip_quality=True
     )
 
-    # 2. V3 composition
+    # 2. prompt composition
     scene_tags = split_prompt_tokens(styled_prompt)
 
     # Merge background tags into scene tags (dedup to avoid duplicate environment tokens)
@@ -309,7 +309,7 @@ def compose_scene_with_style(
         if style_ctx.default_positive:
             quality_tags = split_prompt_tokens(style_ctx.default_positive)
 
-    builder = V3PromptBuilder(db, sd_model_base=sd_model_base)
+    builder = PromptBuilder(db, sd_model_base=sd_model_base)
 
     character = None
     if character_id:
@@ -337,7 +337,7 @@ def compose_scene_with_style(
     # Multi-character routing
     char_b = None
     if character and character_b_id:
-        from services.prompt.v3_multi_character import MultiCharacterComposer
+        from services.prompt.multi_character import MultiCharacterComposer
 
         char_b = db.query(Character).filter(Character.id == character_b_id, Character.deleted_at.is_(None)).first()
         if char_b:

@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import SessionLocal
 from services.prompt import split_prompt_tokens
-from services.prompt.v3_composition import V3PromptBuilder
+from services.prompt.composition import PromptBuilder
 from services.style_context import resolve_style_context_from_group
 
 PASS = "\033[92mPASS\033[0m"
@@ -38,7 +38,7 @@ def check(name: str, condition: bool, detail: str = ""):
 
 def main():
     db = SessionLocal()
-    builder = V3PromptBuilder(db)
+    builder = PromptBuilder(db)
 
     print("\n═══ 실사풍 Style Profile Quality Tag 검증 ═══\n")
 
@@ -105,7 +105,7 @@ def main():
     # ── 4. MultiCharacterComposer ──
     print("\n▸ 시나리오 4: MultiCharacterComposer quality 검증")
     from models.character import Character
-    from services.prompt.v3_multi_character import MultiCharacterComposer
+    from services.prompt.multi_character import MultiCharacterComposer
 
     char_a = db.query(Character).filter(Character.id == 8).first()  # Flat Color Girl
     char_b = db.query(Character).filter(Character.id == 12).first()  # Flat Color Boy

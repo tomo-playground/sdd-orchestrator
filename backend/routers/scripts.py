@@ -83,6 +83,7 @@ def _request_to_state(request: StoryboardRequest) -> ScriptState:
         character_b_id=request.character_b_id,
         group_id=request.group_id,
         references=request.references,
+        chat_context=request.chat_context,
         preset=request.preset,
         auto_approve=(mode == "auto"),
         interaction_mode=mode,

@@ -121,6 +121,7 @@ class ScriptState(TypedDict, total=False):
     auto_approve: bool  # Full Auto에서 Human Gate 자동 승인
     skip_stages: list[str]  # ["research", "concept", "production", "explain"]
     interaction_mode: str  # "auto" | "guided" | "hands_on"
+    chat_context: list[dict] | None  # 사전 대화 이력 [{role, text}]
     plan_action: str | None  # "proceed" | "revise" (Director Plan Gate 결과)
     plan_revision_count: int  # Director Plan 재수정 횟수
 

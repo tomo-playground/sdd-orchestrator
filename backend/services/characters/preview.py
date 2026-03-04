@@ -124,10 +124,10 @@ async def regenerate_reference(
     controlnet_pose: str | None = None,
     num_candidates: int = 1,
 ) -> dict:
-    """Regenerate the character's reference image using V3 12-Layer prompt system."""
+    """Regenerate the character's reference image using 12-Layer prompt system."""
     from services.generation import generate_scene_image
     from services.image import decode_data_url
-    from services.prompt.v3_composition import V3PromptBuilder
+    from services.prompt.composition import PromptBuilder
     from services.style_context import resolve_style_context_from_group
 
     character = _get_character_for_preview(db, character_id, with_tags=True)
@@ -138,7 +138,7 @@ async def regenerate_reference(
     # Resolve StyleContext via Group (needed for reference_env_tags/camera_tags + negative)
     style_ctx = resolve_style_context_from_group(character.group_id, db)
 
-    builder = V3PromptBuilder(db)
+    builder = PromptBuilder(db)
     full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags, style_ctx=style_ctx)
     if character.reference_negative_prompt:
         neg_prompt = character.reference_negative_prompt
@@ -302,10 +302,10 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
     """Generate temporary preview image(s) for the wizard (no DB save).
 
     Builds an in-memory Character from tag_ids + loras, composes a
-    V3 12-Layer reference prompt, and calls SD WebUI with ControlNet pose.
+    12-Layer reference prompt, and calls SD WebUI with ControlNet pose.
     """
     from services.generation import generate_scene_image
-    from services.prompt.v3_composition import V3PromptBuilder
+    from services.prompt.composition import PromptBuilder
     from services.style_context import resolve_style_context_for_profile
 
     # 1. Validate tag_ids exist
@@ -331,7 +331,7 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
     # 3. Resolve StyleContext before compose (needed for reference_env_tags/camera_tags + negative)
     style_ctx = resolve_style_context_for_profile(request.style_profile_id, db)
 
-    builder = V3PromptBuilder(db)
+    builder = PromptBuilder(db)
     full_prompt = builder.compose_for_reference(temp_char, style_ctx=style_ctx)
     neg_prompt = _build_reference_negative(style_ctx, None)
 

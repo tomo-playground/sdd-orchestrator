@@ -13,6 +13,7 @@ from services.agent.llm_models import CastingRecommendation, DirectorPlanOutput,
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState
+from services.script.gemini_generator import sanitize_chat_context as _sanitize_chat_context
 
 
 def _load_inventory(group_id: int | None, max_count: int | None = None) -> dict:
@@ -58,6 +59,7 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
         "language": state.get("language", "ko"),
         "structure": state.get("structure", ""),
         "references": state.get("references") or [],
+        "chat_context": _sanitize_chat_context(state.get("chat_context") or []),
     }
 
     # Phase 20-A: 인벤토리 로드 (DB 세션은 LLM 호출 전에 닫음)

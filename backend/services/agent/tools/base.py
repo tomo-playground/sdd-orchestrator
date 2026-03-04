@@ -12,7 +12,7 @@ from typing import Any, TypedDict
 
 from google.genai import types
 
-from config import GEMINI_TEXT_MODEL, gemini_client, logger
+from config import GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, logger
 from services.agent.observability import trace_llm_call
 
 
@@ -135,6 +135,7 @@ async def call_with_tools(
     config = types.GenerateContentConfig(
         tools=tools,  # type: ignore[arg-type]
         temperature=temperature,
+        safety_settings=GEMINI_SAFETY_SETTINGS,
     )
 
     while call_count < max_calls:
@@ -301,7 +302,9 @@ async def call_with_tools(
             fallback_contents = list(contents)
             fallback_contents.append(fallback_instruction)
 
-            no_tools_config = types.GenerateContentConfig(temperature=temperature, tools=[])
+            no_tools_config = types.GenerateContentConfig(
+                temperature=temperature, tools=[], safety_settings=GEMINI_SAFETY_SETTINGS
+            )
             async with trace_llm_call(name=f"{trace_name}_fallback", input_text="fallback") as llm:
                 fallback_resp = await gemini_client.aio.models.generate_content(
                     model=GEMINI_TEXT_MODEL,
@@ -329,7 +332,9 @@ async def call_direct(
     if not gemini_client:
         raise RuntimeError("Gemini client not initialized")
 
-    no_tools_config = types.GenerateContentConfig(temperature=temperature, tools=[])
+    no_tools_config = types.GenerateContentConfig(
+        temperature=temperature, tools=[], safety_settings=GEMINI_SAFETY_SETTINGS
+    )
     async with trace_llm_call(name=trace_name, input_text=prompt[:1000]) as llm:
         response = await gemini_client.aio.models.generate_content(
             model=GEMINI_TEXT_MODEL,

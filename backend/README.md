@@ -88,7 +88,7 @@ uv run ruff check .                       # 린트
 | 문서 | 설명 |
 |------|------|
 | [AGENT_SPEC.md](../docs/03_engineering/backend/AGENT_SPEC.md) | Agentic Pipeline 설계 |
-| [PROMPT_SPEC_V2.md](../docs/03_engineering/backend/PROMPT_SPEC_V2.md) | 프롬프트 엔진 명세 |
+| [PROMPT_SPEC.md](../docs/03_engineering/backend/PROMPT_SPEC.md) | 프롬프트 엔진 명세 |
 | [RENDER_PIPELINE.md](../docs/03_engineering/backend/RENDER_PIPELINE.md) | 렌더링 파이프라인 |
 | [REST_API.md](../docs/03_engineering/api/REST_API.md) | API 명세 |
 | [DB_SCHEMA.md](../docs/03_engineering/architecture/DB_SCHEMA.md) | DB 스키마 |

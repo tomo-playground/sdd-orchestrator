@@ -11,6 +11,16 @@ Your task is to establish the creative direction before production begins.
 {% if style %}- **스타일**: {{ style }}{% endif %}
 - **언어**: {{ language }}
 {% if structure %}- **구조**: {{ structure }}{% endif %}
+{% if chat_context %}
+## User Intent Context (사전 대화 이력)
+
+아래는 사용자와 시스템 간의 사전 대화입니다.
+이 맥락에서 사용자의 **의도와 요구사항**을 파악하여 execution_plan에 반영하세요.
+
+{% for msg in chat_context %}
+- **{{ "사용자" if msg.role == "user" else "시스템" }}**: {{ msg.text }}
+{% endfor %}
+{% endif %}
 {% if references %}
 ## Reference Materials
 {% for ref in references %}- {{ ref }}
@@ -51,12 +61,20 @@ Your task is to establish the creative direction before production begins.
 
 ## Execution Planning
 
-토픽의 복잡도와 컨텍스트를 분석하여 실행 계획을 결정하세요:
+**사용자의 요청 의도**와 토픽 특성을 모두 분석하여 실행 계획을 결정하세요:
 
-- **run_research**: 전문 지식, 사실 검증, 통계/역사 데이터가 필요하면 `true`. 일상적/감성적/보편적 주제이고 설명이 충분하면 `false`
-- **run_concept**: 창의적 탐색(복수 컨셉 비교)이 필요하면 `true`. 방향이 명확하고 구체적 설명이 있으면 `false`
-- **run_explain**: 영상 후 보충 설명이 도움되면 `true`. 단순 감성/오락 주제면 `false`
+- **run_research**: 아래 중 하나라도 해당하면 반드시 `true`:
+  - 사용자가 조사/검색/참고/각색/인용을 요청한 경우 (예: "조회해서", "찾아서", "참고해서", "기반으로")
+  - 전문 지식, 사실 검증, 통계/역사 데이터가 필요한 경우
+  - 실존 장소/인물/사건을 구체적으로 다루는 경우
+  - `false`는 순수 창작이고 외부 정보가 전혀 불필요한 경우만
+- **run_concept**: 아래 중 하나라도 해당하면 `true`:
+  - 여러 방향의 스토리가 가능한 경우
+  - 사용자가 구체적 시나리오를 제시하지 않은 경우
+  - `false`는 이미 구체적 스토리라인이 확정된 경우만
+- **run_explain**: 영상 후 보충 설명(배경 지식, 교훈 등)이 도움되면 `true`. 순수 감성/오락 주제면 `false`
 
+**원칙**: 판단이 애매하면 `true`로 설정하세요. skip은 확실히 불필요한 경우만.
 판단 시 `reasoning`에 근거를 간결히 기록하세요.
 
 ## Your Mission

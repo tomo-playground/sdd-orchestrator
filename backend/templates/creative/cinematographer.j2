@@ -57,6 +57,14 @@ Match your visual design to this plan:
 {% endif %}
 {% endif %}
 
+{% if chat_context %}
+## User Intent Context
+사용자의 사전 대화에서 파악된 의도입니다. 창작 방향에 참고하세요.
+{% for msg in chat_context %}
+- **{{ "사용자" if msg.role == "user" else "시스템" }}**: {{ msg.text }}
+{% endfor %}
+{% endif %}
+
 {% if creative_direction %}
 ## Your Creative Direction: {{ creative_direction.name }}
 {{ creative_direction.instruction }}

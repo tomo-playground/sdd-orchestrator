@@ -31,7 +31,7 @@ graph TB
 
         subgraph Services ["Core Services"]
             StorySvc["Storyboard Service"]
-            PromptSvc["V3 Prompt Engine"]
+            PromptSvc["Prompt Engine"]
             ImageSvc["Image Generation Service"]
             CreativeSvc["Creative Engine (Multi-Agent)"]
             VideoSvc["Video Render Pipeline"]
@@ -208,7 +208,7 @@ backend/
 │   ├── script/           # 대본 생성 (Gemini 연동)
 │   │   └── gemini_generator.py
 │   ├── keywords/         # 태그 시스템 (core, db, db_cache, validation, suggestions 등)
-│   ├── prompt/           # V3 12-Layer Prompt Builder
+│   ├── prompt/           # 12-Layer Prompt Builder
 │   ├── characters/       # 캐릭터 서비스 (crud, preview, speaker_resolver 등)
 │   ├── video/            # FFmpeg 렌더링 파이프라인 (builder, effects, filters, encoding, tts_postprocess)
 │   ├── audio/            # Music 생성 (Stable Audio Open)

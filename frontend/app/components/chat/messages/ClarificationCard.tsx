@@ -1,10 +1,10 @@
 "use client";
 
 import { Bot } from "lucide-react";
-import type { ChatMessage } from "../../../types/chat";
+import type { ClarificationMessage } from "../../../types/chat";
 
 type Props = {
-  message: ChatMessage;
+  message: ClarificationMessage;
 };
 
 export default function ClarificationCard({ message }: Props) {

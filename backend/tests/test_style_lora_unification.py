@@ -11,7 +11,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from models import LoRA, SDModel, StyleProfile
-from services.prompt.v3_composition import V3PromptBuilder
+from services.prompt.composition import PromptBuilder
 
 
 @pytest.fixture
@@ -114,7 +114,7 @@ class TestStyleLoRAUnification:
             }
         ]
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
 
         # Act
         result = builder.compose(
@@ -148,7 +148,7 @@ class TestStyleLoRAUnification:
             }
         ]
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
 
         # Act
         result = builder.compose(
@@ -171,7 +171,7 @@ class TestStyleLoRAUnification:
         style_loras = style_profile_with_lora.loras
         character_loras = []  # Narrator has no character LoRAs
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
 
         # Act
         result = builder.compose(
@@ -219,7 +219,7 @@ class TestStyleLoRAUnification:
             },
         ]
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
 
         # Act
         result = builder.compose(
@@ -273,7 +273,7 @@ class TestStyleLoRADeduplication:
             }
         ]
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
 
         # Act
         result = builder.compose(
@@ -309,7 +309,7 @@ class TestStyleLoRAFallback:
             }
         ]
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
 
         # Act
         result = builder.compose(
@@ -362,7 +362,7 @@ class TestComposeForCharacterSkipsStyleLoRA:
         db_session.add(char_tag)
         db_session.flush()
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
 
         # Act
         result = builder.compose_for_character(
@@ -416,7 +416,7 @@ class TestComposeForCharacterSkipsStyleLoRA:
             {"name": style_lora.name, "weight": 0.7, "trigger_words": style_lora.trigger_words},
         ]
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
 
         # Act
         result = builder.compose_for_character(
@@ -449,7 +449,7 @@ class TestConsistentStyleAcrossScenes:
         Then: All should have the same StyleProfile LoRA
         """
         style_loras = style_profile_with_lora.loras
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
 
         # Scene 1: Speaker A
         result_a = builder.compose(

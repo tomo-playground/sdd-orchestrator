@@ -393,6 +393,26 @@ def _filter_exclusive_identity_tags(
     tag_rows = db.query(Tag.name, Tag.group_name).filter(Tag.name.in_(all_bare)).all()
     tag_group_map: dict[str, str | None] = {row.name: row.group_name for row in tag_rows}
 
+    # alias 해소: DB에서 직접 못 찾은 토큰을 TagAliasCache로 표준 태그 일괄 조회 (N+1 방지)
+    unresolved = all_bare - set(tag_group_map.keys())
+    if unresolved:
+        from services.keywords.db_cache import TagAliasCache  # noqa: PLC0415
+
+        alias_map: dict[str, str] = {}
+        for token in unresolved:
+            replacement = TagAliasCache.get_replacement(token)
+            if replacement is ... or replacement is None:
+                continue
+            alias_map[token] = replacement.split(",")[0].strip()
+
+        if alias_map:
+            std_names = set(alias_map.values())
+            std_rows = db.query(Tag.name, Tag.group_name).filter(Tag.name.in_(std_names)).all()
+            std_group_map = {r.name: r.group_name for r in std_rows}
+            for token, std_name in alias_map.items():
+                if std_name in std_group_map:
+                    tag_group_map[token] = std_group_map[std_name]
+
     removed_total = 0
     for scene in scenes:
         speaker = scene.get("speaker", "")
@@ -546,11 +566,14 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     _copy_scene_level_to_context_tags(scenes)
 
     from ._context_tag_utils import (
-        check_camera_diversity,
-        diversify_actions,
         diversify_expressions,
-        diversify_gazes,
         validate_context_tag_categories,
+    )
+    from ._diversify_utils import (
+        diversify_actions,
+        diversify_cameras,
+        diversify_gazes,
+        diversify_poses,
     )
 
     validate_context_tag_categories(scenes)
@@ -559,6 +582,8 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     diversify_expressions(scenes)
     diversify_gazes(scenes)
     diversify_actions(scenes)
+    diversify_cameras(scenes)
+    diversify_poses(scenes)
     _normalize_environment_tags(scenes)
     _inject_location_map_tags(scenes, state.get("writer_plan"))
     _inject_location_negative_tags(scenes, state.get("writer_plan"))
@@ -582,7 +607,6 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
 
     validate_controlnet_poses(scenes)
     validate_ken_burns_presets(scenes)
-    check_camera_diversity(scenes)
 
     # DB 세션 1회로 IP-Adapter 정규화 + character_actions 변환
     character_id = (

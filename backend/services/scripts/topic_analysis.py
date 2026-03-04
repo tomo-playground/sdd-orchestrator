@@ -17,15 +17,16 @@ async def analyze_topic(
     대화 이력(messages)이 있으면 맥락을 유지하며,
     정보가 부족하면 clarify 질문을 반환한다.
     """
-    from config import GEMINI_TEXT_MODEL, SHORTS_DURATIONS, STORYBOARD_LANGUAGES, gemini_client, template_env
+    from config import (
+        GEMINI_SAFETY_SETTINGS,
+        GEMINI_TEXT_MODEL,
+        SHORTS_DURATIONS,
+        STORYBOARD_LANGUAGES,
+        gemini_client,
+        template_env,
+    )
     from services.agent.inventory import STRUCTURE_METADATA, load_full_inventory
     from services.creative_utils import parse_json_response
-
-    fallback = TopicAnalyzeResponse(duration=30, language="Korean", structure="Monologue")
-
-    if not gemini_client:
-        logger.warning("[AnalyzeTopic] Gemini 클라이언트 미설정, 기본값 반환")
-        return fallback
 
     inventory = load_full_inventory(group_id)
     characters = inventory.get("characters", [])
@@ -35,8 +36,16 @@ async def analyze_topic(
         [(c.id, c.name) for c in characters],
     )
 
-    # 인라인 편집용 옵션 목록 구성
+    # 인라인 편집용 옵션 목록 구성 (fallback 포함 항상 반환)
     available_options = _build_options(group_id, characters)
+    fallback = TopicAnalyzeResponse(
+        duration=30, language="Korean", structure="Monologue",
+        available_options=available_options,
+    )
+
+    if not gemini_client:
+        logger.warning("[AnalyzeTopic] Gemini 클라이언트 미설정, 기본값 반환")
+        return fallback
 
     template_vars = {
         "topic": topic,
@@ -49,11 +58,15 @@ async def analyze_topic(
     }
 
     try:
+        from google.genai import types
+
         tmpl = template_env.get_template("creative/analyze_topic.j2")
         prompt = tmpl.render(**template_vars)
+        config = types.GenerateContentConfig(safety_settings=GEMINI_SAFETY_SETTINGS)
         response = await gemini_client.aio.models.generate_content(
             model=GEMINI_TEXT_MODEL,
             contents=prompt,
+            config=config,
         )
         parsed = parse_json_response(response.text or "")
     except Exception as e:

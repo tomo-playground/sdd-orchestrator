@@ -58,14 +58,14 @@ async def classify_unknown_scene_tags(scenes: list[dict], db: Session) -> int:
     Returns:
         분류된 태그 수
     """
-    from services.prompt.v3_composition import V3PromptBuilder
+    from services.prompt.composition import PromptBuilder
     from services.tag_classifier import TagClassifier
 
     all_tags = _extract_all_scene_tags(scenes)
     if not all_tags:
         return 0
 
-    builder = V3PromptBuilder(db)
+    builder = PromptBuilder(db)
     unknown_tags = builder.find_unknown_tags(all_tags)
     if not unknown_tags:
         logger.info("[Tag Classification] No unknown tags found")

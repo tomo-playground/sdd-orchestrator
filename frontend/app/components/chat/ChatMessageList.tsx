@@ -12,12 +12,16 @@ type Props = {
 };
 
 export default function ChatMessageList({ messages, callbacks, data }: Props) {
-  const { containerRef, handleScroll } = useAutoScroll(messages);
+  const lastTs = messages[messages.length - 1]?.timestamp ?? 0;
+  const { containerRef, handleScroll } = useAutoScroll(messages.length, lastTs);
 
   return (
     <div
       ref={containerRef}
       onScroll={handleScroll}
+      role="log"
+      aria-live="polite"
+      aria-label="채팅 메시지"
       className="scrollbar-hide flex-1 overflow-y-auto py-6"
     >
       <div className="mx-auto max-w-3xl space-y-5 px-6">

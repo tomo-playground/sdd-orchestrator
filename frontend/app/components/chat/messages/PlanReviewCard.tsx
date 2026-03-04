@@ -1,11 +1,12 @@
 "use client";
 
 import { memo, useState } from "react";
-import type { ChatMessage } from "@/app/types/chat";
+import { SendHorizonal } from "lucide-react";
+import type { PlanReviewGateMessage } from "@/app/types/chat";
 import type { ResumeAction, ResumeOptions } from "@/app/hooks/scriptEditor/types";
 
 type Props = {
-  message: ChatMessage;
+  message: PlanReviewGateMessage;
   onResume: (
     action: ResumeAction,
     feedback?: string,
@@ -18,8 +19,8 @@ const PlanReviewCard = memo(function PlanReviewCard({ message, onResume }: Props
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [feedback, setFeedback] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const plan = message.directorPlan || {};
-  const skipStages = message.skipStages || [];
+  const plan = message.directorPlan;
+  const skipStages = message.skipStages;
   const creativeGoal = plan.creative_goal ? String(plan.creative_goal) : null;
   const targetEmotion = plan.target_emotion ? String(plan.target_emotion) : null;
 
@@ -61,6 +62,13 @@ const PlanReviewCard = memo(function PlanReviewCard({ message, onResume }: Props
     <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
       <h3 className="mb-2 text-sm font-semibold text-blue-900">디렉터 플랜 검토</h3>
 
+      {message.topic && (
+        <div className="mb-3 rounded-lg bg-blue-100/60 px-3 py-2">
+          <span className="text-xs font-medium text-blue-600">요청</span>
+          <p className="text-sm text-blue-900">{message.topic}</p>
+        </div>
+      )}
+
       {creativeGoal && (
         <div className="mb-2">
           <span className="text-xs font-medium text-blue-700">크리에이티브 목표</span>
@@ -92,13 +100,13 @@ const PlanReviewCard = memo(function PlanReviewCard({ message, onResume }: Props
       )}
 
       {mode === "edit" && !submitted ? (
-        <div className="flex items-end gap-2 rounded-2xl border border-blue-200 bg-white px-3 py-2 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-shadow">
+        <div className="flex items-end gap-2 rounded-2xl border border-blue-200 bg-white px-3 py-2 transition-shadow focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400">
           <textarea
             value={feedback}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="수정 요청 사항을 입력하세요... (예: 감성적인 톤 추가)"
-            className="flex-1 resize-none bg-transparent text-sm text-zinc-800 outline-none placeholder:text-zinc-400 min-h-[20px] pb-1"
+            className="min-h-[20px] flex-1 resize-none bg-transparent pb-1 text-sm text-zinc-800 outline-none placeholder:text-zinc-400"
             rows={1}
             autoFocus
           />
@@ -106,9 +114,9 @@ const PlanReviewCard = memo(function PlanReviewCard({ message, onResume }: Props
             type="button"
             onClick={handleRevise}
             disabled={!feedback.trim()}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:opacity-30 mb-0.5"
+            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:opacity-30"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m3 3 3 9-3 9 19-9ZM6 12h16" /></svg>
+            <SendHorizonal className="h-4 w-4" />
           </button>
         </div>
       ) : (
@@ -117,14 +125,14 @@ const PlanReviewCard = memo(function PlanReviewCard({ message, onResume }: Props
             <button
               type="button"
               onClick={handleProceed}
-              className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition"
+              className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700"
             >
               진행해주세요
             </button>
             <button
               type="button"
               onClick={handleRevise}
-              className="rounded-lg border border-blue-300 bg-white px-4 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-50 transition"
+              className="rounded-lg border border-blue-300 bg-white px-4 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-50"
             >
               수정할게요
             </button>

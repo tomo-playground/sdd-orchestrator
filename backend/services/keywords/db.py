@@ -39,13 +39,13 @@ def load_allowed_tags_from_db() -> set[str]:
 def load_known_keywords() -> set[str]:
     """Load all known keywords from database."""
     allowed = load_allowed_tags_from_db()
-    # Synonyms and effectiveness tracking are currently disabled in Pure V3 slimdown
+    # Synonyms and effectiveness tracking are currently disabled in slimdown
     known = allowed.copy()
     known.update(get_ignore_tokens())
     return known
 
 def load_synonyms_from_db() -> dict[str, str]:
-    """Load tag synonyms (Stub for V3)."""
+    """Load tag synonyms (Stub)."""
     return {}
 
 def load_tag_effectiveness_map() -> dict[str, tuple[float | None, int]]:
@@ -107,7 +107,7 @@ _SCENE_GROUPS = [
 ]
 
 # Maps DB layer groups → Gemini-readable category names
-# Must align with v3_composition.py 12-Layer system and create_storyboard.j2 template
+# Must align with composition.py 12-Layer system and create_storyboard.j2 template
 _DB_GROUP_TO_GEMINI_CATEGORY = {
     "layer_0": None,           # QUALITY — auto-composed, not for Gemini selection
     "layer_1": None,           # SUBJECT — auto-composed (1boy, solo, etc.)

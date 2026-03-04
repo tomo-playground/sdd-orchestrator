@@ -200,9 +200,9 @@ class TestComposeForBackground:
     def _get_builder(self):
         db = MagicMock()
         # Mock tag_info to return LAYER_ENVIRONMENT for all tags
-        from services.prompt.v3_composition import LAYER_ENVIRONMENT, V3PromptBuilder
+        from services.prompt.composition import LAYER_ENVIRONMENT, PromptBuilder
 
-        builder = V3PromptBuilder(db)
+        builder = PromptBuilder(db)
         builder.get_tag_info = MagicMock(
             return_value={tag: {"layer": LAYER_ENVIRONMENT} for tag in ["classroom", "indoors", "desk"]}
         )
@@ -250,10 +250,10 @@ class TestComposeForBackground:
 
     def test_no_character_tags(self):
         """Character-only layer tags should be excluded."""
-        from services.prompt.v3_composition import CHARACTER_ONLY_LAYERS, V3PromptBuilder
+        from services.prompt.composition import CHARACTER_ONLY_LAYERS, PromptBuilder
 
         db = MagicMock()
-        builder = V3PromptBuilder(db)
+        builder = PromptBuilder(db)
 
         # Simulate a tag that maps to CHARACTER layer
         char_layer = list(CHARACTER_ONLY_LAYERS)[0]

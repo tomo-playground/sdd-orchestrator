@@ -1,4 +1,4 @@
-"""SQLAlchemy models for Pure V3 Shorts Producer."""
+"""SQLAlchemy models for Shorts Producer."""
 
 from models.activity_log import ActivityLog
 from models.associations import CharacterTag, SceneCharacterAction, SceneTag

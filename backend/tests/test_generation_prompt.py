@@ -107,7 +107,7 @@ class TestContextTagsInPipeline:
     @patch("services.character_consistency.load_reference_image", return_value=None)
     @patch("services.generation_prompt._resolve_style_loras", return_value=[])
     def test_context_tags_merged_into_character_scene(self, mock_resolve, mock_ref):
-        """context_tags are prepended to prompt before V3 composition."""
+        """context_tags are prepended to prompt before prompt composition."""
         req = _make_request(
             prompt="1girl, standing",
             context_tags={"expression": ["smile"], "camera": "cowboy_shot"},
@@ -274,7 +274,7 @@ class TestPreparePromptFlag:
     @patch("services.generation_prompt._resolve_style_loras", return_value=[])
     @patch("services.generation_prompt.apply_style_profile_to_prompt")
     def test_no_character_applies_full_style_profile(self, mock_style, mock_resolve, mock_ref):
-        """No character_id → full style profile applied, V3 not called."""
+        """No character_id → full style profile applied, prompt composition not called."""
         mock_style.return_value = ("quality, scenery, sunset", "bad")
         req = _make_request(character_id=None)
         db = MagicMock()
@@ -389,7 +389,7 @@ class TestStyleProfileSkipLoras:
         mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}
         db = self._mock_db(default_positive="masterpiece, best_quality")
 
-        # Prompt already contains the same quality tags (from V3 /prompt/compose)
+        # Prompt already contains the same quality tags (from prompt composition /prompt/compose)
         result_prompt, _ = apply_style_profile_to_prompt("masterpiece, best_quality, 1girl, standing", "", 10, db)
 
         # Each quality tag should appear exactly once
@@ -490,7 +490,7 @@ class TestStyleProfileSkipLoras:
         loras = [{"lora_id": 1, "weight": 0.7}]
         db = self._mock_db(profile_loras=loras)
 
-        # Prompt already contains flat_color LoRA (from V3 composition)
+        # Prompt already contains flat_color LoRA (from prompt composition)
         prompt_with_lora = "1girl, flat_color, <lora:flat_color:0.76>"
         result_prompt, _ = apply_style_profile_to_prompt(prompt_with_lora, "", 10, db, skip_loras=False)
 
@@ -695,7 +695,7 @@ class TestNarratorBackgroundFiltering:
     @patch("services.character_consistency.load_reference_image", return_value=None)
     @patch("services.generation_prompt.apply_style_profile_to_prompt")
     def test_no_character_no_person_tags_injects_no_humans(self, mock_style, mock_ref, mock_resolve):
-        """No character_id + no person tags → auto-inject no_humans, use V3 background."""
+        """No character_id + no person tags → auto-inject no_humans, use background."""
         mock_resolve.return_value = []
         req = _make_request(character_id=None, prompt="scenery, sunset, mountain")
         db = MagicMock()
@@ -705,7 +705,7 @@ class TestNarratorBackgroundFiltering:
             mock_compose.return_value = ("no_humans, scenery, sunset, mountain", "bad", [])
             cleaned, _, char, _strategy = _call_prepare(req, db)
 
-        # no_humans auto-injected → V3 background composition called
+        # no_humans auto-injected → background composition called
         mock_compose.assert_called_once()
         assert "no_humans" in req.prompt
 

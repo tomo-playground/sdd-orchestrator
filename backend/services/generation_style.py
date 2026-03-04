@@ -10,7 +10,7 @@ import re
 from config import cap_style_lora_weight, logger
 from services.keywords.core import normalize_prompt_token
 from services.prompt import split_prompt_tokens
-from services.prompt.v3_composition import select_style_trigger_words
+from services.prompt.composition import select_style_trigger_words
 
 
 def apply_style_profile_to_prompt(

@@ -1,4 +1,4 @@
-"""LoRA model for Pure V3."""
+"""LoRA model for """
 
 from decimal import Decimal
 from typing import TYPE_CHECKING

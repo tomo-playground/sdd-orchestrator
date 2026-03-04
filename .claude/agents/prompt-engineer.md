@@ -157,16 +157,16 @@ DB 품질 데이터를 분석하여 프롬프트를 개선합니다:
 
 ### 설계 문서
 - `docs/03_engineering/backend/` - 백엔드 기술 문서
-  - `PROMPT_SPEC_V2.md` - 프롬프트 설계 규칙
+  - `PROMPT_SPEC.md` - 프롬프트 설계 규칙
   - `AGENT_SPEC.md` - LangGraph Agent 아키텍처
 - `docs/04_operations/SD_WEBUI_SETUP.md` - SD WebUI 설정
 - `docs/01_product/FEATURES/VISUAL_TAG_BROWSER.md` - 비주얼 태그 브라우저 기능 명세
 
 ### 코드 참조
-- `backend/services/prompt/` - V3 프롬프트 엔진
-  - `v3_composition.py` - V3 PromptBuilder (12-Layer)
-  - `v3_multi_character.py` - 2인 동시 출연 Multi-Character Composer
-  - `v3_service.py` - V3 서비스 레이어
+- `backend/services/prompt/` - 프롬프트 엔진
+  - `composition.py` - PromptBuilder (12-Layer)
+  - `multi_character.py` - 2인 동시 출연 Multi-Character Composer
+  - `service.py` - 서비스 레이어
   - `prompt.py` - 프롬프트 유틸 (split, normalize, apply_optimal_lora_weights)
 - `backend/services/keywords/` - 태그 시스템 패키지 (9개 모듈: core, db, db_cache, formatting, patterns, processing, suggestions, sync, validation)
 - `backend/services/generation.py` - 이미지 생성 오케스트레이터

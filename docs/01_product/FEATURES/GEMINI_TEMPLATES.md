@@ -27,7 +27,7 @@
 
 ## 선행 조건
 
-- V3 Prompt Engine 완료 (6-2.5 완료)
+- Prompt Engine 완료 (6-2.5 완료)
 - 기존 `create_storyboard.j2` 분석 완료
 
 ## 수락 기준

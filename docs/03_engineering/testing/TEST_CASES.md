@@ -110,10 +110,10 @@
 
 | ID | 테스트 케이스 | 유형 | 파일 |
 |----|-------------|------|------|
-| TC-3.1.1 | 12개 레이어 순서대로 합성 | Unit | `test_v3_composition.py` |
-| TC-3.1.2 | Intra-layer 중복 제거 | Unit | `test_v3_composition.py` |
+| TC-3.1.1 | 12개 레이어 순서대로 합성 | Unit | `test_composition.py` |
+| TC-3.1.2 | Intra-layer 중복 제거 | Unit | `test_composition.py` |
 | TC-3.1.3 | 빈 태그 → base prompt만 반환 | Unit | `test_prompt_compose_error.py` |
-| TC-3.1.4 | V3 Reference 테스트 | Unit | `test_v3_reference.py` |
+| TC-3.1.4 | Reference 테스트 | Unit | `test_reference.py` |
 
 ### TC-3.2 태그 처리
 

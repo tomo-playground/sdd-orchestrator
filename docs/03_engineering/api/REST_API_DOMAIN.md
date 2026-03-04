@@ -167,7 +167,7 @@ Tags, Keywords, ControlNet, LoRA, Avatar, Assets, Backgrounds, Prompt, SD, Chara
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/prompt/compose` | V3 12-Layer 프롬프트 합성 |
+| POST | `/prompt/compose` | 12-Layer 프롬프트 합성 |
 | POST | `/prompt/rewrite` | 프롬프트 스타일 재작성 |
 | POST | `/prompt/split` | 예시 프롬프트를 base/scene으로 분리 |
 | POST | `/prompt/validate` | 프롬프트 문법 검증 |

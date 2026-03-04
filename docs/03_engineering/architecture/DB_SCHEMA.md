@@ -296,7 +296,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `thumbnail_asset_id` | Integer (FK → media_assets, SET NULL) | 태그 썸네일 이미지 (Visual Tag Browser) |
 
 
-**`default_layer` 매핑** (V3 12-Layer System):
+**`default_layer` 매핑** (12-Layer System):
 
 | 값 | 상수 | 용도 | 예시 태그 |
 |----|------|------|-----------|
@@ -314,7 +314,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | 11 | LAYER_ATMOSPHERE | 스타일/분위기/조명 | `anime_style`, `melancholic`, `day` |
 
 > Fallback: DB에 없는 태그는 `LAYER_SUBJECT(1)`로 배치됨.
-> 코드 위치: `backend/services/prompt/v3_composition.py` L12-23
+> 코드 위치: `backend/services/prompt/composition.py` L12-23
 
 ### `tag_rules`
 태그 간 충돌/의존성 규칙 (개별 태그 레벨).
@@ -674,7 +674,7 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 | `group_id` | Integer (FK → groups, CASCADE) | 소속 그룹 (필수) |
 | `prompt_used` | Text | 사용된 프롬프트 |
 | `negative_prompt` | Text | 네거티브 프롬프트 |
-| `final_prompt` | Text | V3 Prompt Engine 최종 프롬프트 |
+| `final_prompt` | Text | Prompt Engine 최종 프롬프트 |
 | `loras_applied` | JSONB | 적용된 LoRA 목록 |
 | `target_tags` | JSONB | 타겟 태그 |
 | `sd_params` | JSONB | SD 생성 파라미터 |

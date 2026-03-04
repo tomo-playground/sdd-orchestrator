@@ -12,7 +12,6 @@ import {
   ERROR_BG,
   ERROR_TEXT,
 } from "../ui/variants";
-import LayerView from "./LayerView";
 import GroupedView from "./GroupedView";
 import LinearView from "./LinearView";
 
@@ -44,8 +43,6 @@ export type NegativeSourceInfo = {
   tokens: string[];
 };
 
-export type ComposedLayer = { index: number; name: string; tokens: string[] };
-
 type ComposeResult = {
   prompt: string;
   tokens: string[];
@@ -58,132 +55,89 @@ type ComposeResult = {
   };
   negative_prompt?: string;
   negative_sources?: NegativeSourceInfo[];
-  layers?: ComposedLayer[];
 };
 
-type ViewMode = "layers" | "grouped" | "linear";
+type ViewMode = "grouped" | "linear";
 
-// Category colors for visual grouping
-const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  quality: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
-  subject: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
-  identity: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
-  hair_color: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
-  hair_length: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
-  hair_style: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
-  hair_accessory: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
-  eye_color: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200" },
-  skin_color: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
-  body_feature: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
-  body_type: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
-  eye_detail: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200" },
-  appearance: { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200" },
-  expression: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
-  gaze: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
-  pose: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
-  action_body: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
-  action_hand: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
-  action_daily: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
-  action: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
-  gesture: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
-  camera: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" },
-  location_indoor: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
-  location_indoor_general: {
-    bg: "bg-emerald-50",
-    text: "text-emerald-700",
-    border: "border-emerald-200",
-  },
-  location_indoor_specific: {
-    bg: "bg-emerald-50",
-    text: "text-emerald-700",
-    border: "border-emerald-200",
-  },
-  location_outdoor: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
-  environment: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
-  background_type: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
-  time_of_day: { bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200" },
-  weather: { bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200" },
-  particle: { bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200" },
-  lighting: { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200" },
-  mood: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200" },
-  clothing_top: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
-  clothing_bottom: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
-  clothing_outfit: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
-  clothing: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
-  clothing_detail: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
-  legwear: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
-  footwear: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
-  accessory: { bg: "bg-fuchsia-50", text: "text-fuchsia-700", border: "border-fuchsia-200" },
-  style: { bg: "bg-fuchsia-50", text: "text-fuchsia-700", border: "border-fuchsia-200" },
-  lora: { bg: "bg-violet-100", text: "text-violet-700", border: "border-violet-300" },
-  break: { bg: "bg-red-100", text: "text-red-700", border: "border-red-300" },
-  unknown: { bg: "bg-zinc-100", text: "text-zinc-600", border: "border-zinc-200" },
-};
-
-// Category display names
-const CATEGORY_LABELS: Record<string, string> = {
-  quality: "퀄리티",
-  subject: "피사체",
-  identity: "캐릭터",
-  hair_color: "헤어",
-  hair_length: "헤어",
-  hair_style: "헤어",
-  hair_accessory: "헤어",
-  eye_color: "눈",
-  eye_detail: "눈 디테일",
-  skin_color: "피부",
-  body_feature: "신체",
-  body_type: "체형",
-  appearance: "외모",
-  expression: "표정",
-  gaze: "시선",
-  pose: "포즈",
-  action: "동작",
-  action_body: "몸 동작",
-  action_hand: "손 동작",
-  action_daily: "일상 동작",
-  gesture: "제스처",
-  camera: "카메라",
-  location_indoor: "실내",
-  location_indoor_general: "실내 일반",
-  location_indoor_specific: "실내 상세",
-  location_outdoor: "야외",
-  environment: "환경",
-  background_type: "배경",
-  time_of_day: "시간대",
-  time_weather: "시간/날씨",
-  weather: "날씨",
-  particle: "파티클",
-  lighting: "조명",
-  mood: "분위기",
-  clothing: "의류",
-  clothing_top: "상의",
-  clothing_bottom: "하의",
-  clothing_outfit: "전신복",
-  clothing_detail: "의상 디테일",
-  legwear: "레그웨어",
-  footwear: "신발",
-  accessory: "액세서리",
-  style: "스타일",
+// 24 fine-grained categories → 12 layer-level groups
+const CATEGORY_TO_LAYER: Record<string, string> = {
+  quality: "Quality",
+  subject: "Subject",
+  identity: "Identity",
+  hair_color: "Identity",
+  hair_length: "Identity",
+  hair_style: "Identity",
+  hair_accessory: "Identity",
+  eye_color: "Identity",
+  eye_detail: "Identity",
+  skin_color: "Identity",
+  body_feature: "Body",
+  body_type: "Body",
+  appearance: "Identity",
+  expression: "Expression",
+  gaze: "Expression",
+  pose: "Action",
+  action: "Action",
+  action_body: "Action",
+  action_hand: "Action",
+  action_daily: "Action",
+  gesture: "Action",
+  camera: "Camera",
+  location_indoor: "Environment",
+  location_indoor_general: "Environment",
+  location_indoor_specific: "Environment",
+  location_outdoor: "Environment",
+  environment: "Environment",
+  background_type: "Environment",
+  time_of_day: "Atmosphere",
+  time_weather: "Atmosphere",
+  weather: "Atmosphere",
+  particle: "Atmosphere",
+  lighting: "Atmosphere",
+  mood: "Atmosphere",
+  clothing: "Clothing",
+  clothing_top: "Clothing",
+  clothing_bottom: "Clothing",
+  clothing_outfit: "Clothing",
+  clothing_detail: "Clothing",
+  legwear: "Clothing",
+  footwear: "Clothing",
+  accessory: "Accessory",
+  style: "Style",
   lora: "LoRA",
-  break: "구분선",
-  unknown: "기타",
+  break: "Break",
 };
 
-/** Fallback: format raw group_name as display label. */
-function getCategoryLabel(group: string): string {
-  return CATEGORY_LABELS[group] ?? group.replace(/_/g, " ");
+function getLayerGroup(category: string): string {
+  return CATEGORY_TO_LAYER[category] ?? "Other";
 }
 
-function getTokenCategory(token: string): string {
-  if (token.startsWith("<lora:")) return "lora";
-  if (token.startsWith("<model:")) return "lora";
+// Layer-level colors (12 groups + extras)
+export const LAYER_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  Quality: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  Subject: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  Identity: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
+  Body: { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
+  Clothing: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
+  Accessory: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200" },
+  Expression: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
+  Action: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+  Camera: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" },
+  Environment: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  Atmosphere: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200" },
+  Style: { bg: "bg-fuchsia-50", text: "text-fuchsia-700", border: "border-fuchsia-200" },
+  LoRA: { bg: "bg-violet-100", text: "text-violet-700", border: "border-violet-300" },
+  Break: { bg: "bg-red-100", text: "text-red-700", border: "border-red-300" },
+  Other: { bg: "bg-zinc-100", text: "text-zinc-600", border: "border-zinc-200" },
+};
+
+function getSpecialCategory(token: string): string | null {
+  if (token.startsWith("<lora:") || token.startsWith("<model:")) return "lora";
   if (token === "BREAK") return "break";
-  return "unknown";
+  return null;
 }
 
 const VIEW_MODES: { key: ViewMode; label: string }[] = [
-  { key: "layers", label: "Layers" },
   { key: "grouped", label: "Grouped" },
   { key: "linear", label: "Linear" },
 ];
@@ -205,7 +159,7 @@ export default function ComposedPromptPreview({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ComposeResult | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("layers");
+  const [viewMode, setViewMode] = useState<ViewMode>("grouped");
 
   // API-based tag classification (15.7)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -232,13 +186,10 @@ export default function ComposedPromptPreview({
 
   const getCategory = useCallback(
     (token: string): string => {
-      if (token.startsWith("<lora:")) return "lora";
-      if (token === "BREAK") return "break";
+      const special = getSpecialCategory(token);
+      if (special) return special;
 
-      const apiCategory = apiCategories[token] || getCachedCategory(token);
-      if (apiCategory) return apiCategory;
-
-      return getTokenCategory(token);
+      return apiCategories[token] || getCachedCategory(token) || "unknown";
     },
     [apiCategories, getCachedCategory]
   );
@@ -316,13 +267,13 @@ export default function ComposedPromptPreview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tokens, composePrompt]);
 
-  // Group tokens by display label for grouped view
+  // Group tokens by 12-layer groups
   const groupedTokens = (result?.tokens || tokens).reduce(
     (acc, token) => {
       const category = getCategory(token);
-      const label = getCategoryLabel(category);
-      if (!acc[label]) acc[label] = { category, tokens: [] };
-      acc[label].tokens.push(token);
+      const layer = getLayerGroup(category);
+      if (!acc[layer]) acc[layer] = { category: layer, tokens: [] };
+      acc[layer].tokens.push(token);
       return acc;
     },
     {} as Record<string, { category: string; tokens: string[] }>
@@ -331,14 +282,11 @@ export default function ComposedPromptPreview({
   const getTokenStyle = useCallback(
     (token: string) => {
       const category = getCategory(token);
-      return CATEGORY_COLORS[category] || CATEGORY_COLORS.unknown;
+      const layer = getLayerGroup(category);
+      return LAYER_COLORS[layer] || LAYER_COLORS.Other;
     },
     [getCategory]
   );
-
-  // Determine effective view mode (fallback if layers unavailable)
-  const hasLayers = !!result?.layers && result.layers.length > 0;
-  const effectiveMode = viewMode === "layers" && !hasLayers ? "grouped" : viewMode;
 
   if (tokens.length === 0) {
     return null;
@@ -373,30 +321,22 @@ export default function ComposedPromptPreview({
         </div>
         <div className="flex items-center gap-2">
           {result?.prompt && <CopyButton text={result.prompt} variant="label" />}
-          {/* 3-way segment control */}
+          {/* View mode segment control */}
           <div className="flex overflow-hidden rounded-full border border-zinc-200">
-            {VIEW_MODES.map(({ key, label }) => {
-              const isDisabled = key === "layers" && !hasLayers;
-              const isActive = effectiveMode === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  disabled={isDisabled}
-                  onClick={() => setViewMode(key)}
-                  className={`px-2 py-1 text-[11px] font-semibold transition-colors ${
-                    isActive
-                      ? "bg-zinc-800 text-white"
-                      : isDisabled
-                        ? "cursor-not-allowed bg-white text-zinc-300"
-                        : "bg-white text-zinc-600 hover:bg-zinc-50"
-                  }`}
-                  title={isDisabled ? "Multi-character scenes have no layer data" : undefined}
-                >
-                  {label}
-                </button>
-              );
-            })}
+            {VIEW_MODES.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setViewMode(key)}
+                className={`px-2 py-1 text-[11px] font-semibold transition-colors ${
+                  viewMode === key
+                    ? "bg-zinc-800 text-white"
+                    : "bg-white text-zinc-600 hover:bg-zinc-50"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           <button
             type="button"
@@ -414,12 +354,9 @@ export default function ComposedPromptPreview({
 
       {/* Token display — compose result only */}
       {result &&
-        (effectiveMode === "layers" && result.layers ? (
-          <LayerView layers={result.layers} />
-        ) : effectiveMode === "grouped" ? (
+        (viewMode === "grouped" ? (
           <GroupedView
             groupedTokens={groupedTokens}
-            categoryColors={CATEGORY_COLORS}
             getTokenStyle={getTokenStyle}
           />
         ) : (

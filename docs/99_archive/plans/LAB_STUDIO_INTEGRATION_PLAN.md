@@ -15,7 +15,7 @@
 
 ### 해결
 - **공통 Core 모듈** (`image_generation_core.py`) 생성
-- Lab/Studio 모두 **동일한 V3 Prompt Engine + Style Profile** 사용
+- Lab/Studio 모두 **동일한 Prompt Engine + Style Profile** 사용
 - **3단계 점진적 마이그레이션**: Tag Lab → Scene Lab → Studio
 
 ### 예상 효과
@@ -81,7 +81,7 @@ ORDER BY avg_match_rate DESC;
 ```python
 """
 Unified image generation core for Lab + Studio.
-Provides single source of truth for V3 Prompt Engine + SD integration.
+Provides single source of truth for Prompt Engine + SD integration.
 """
 
 from __future__ import annotations
@@ -95,7 +95,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, logger
-from services.prompt.v3_composition import V3PromptBuilder
+from services.prompt.v3_composition import PromptBuilder
 
 
 class ImageGenerationResult(BaseModel):
@@ -131,7 +131,7 @@ async def generate_image_with_v3(
     mode: Literal["studio", "lab"] = "studio",
 ) -> ImageGenerationResult:
     """
-    Generate image using V3 Prompt Engine + SD.
+    Generate image using Prompt Engine + SD.
 
     Args:
         db: Database session
@@ -179,21 +179,21 @@ async def generate_image_with_v3(
     warnings = []
     if character_id:
         try:
-            builder = V3PromptBuilder(db)
+            builder = PromptBuilder(db)
             final_prompt = builder.compose_for_character(
                 character_id=character_id,
                 scene_tags=scene_tags,
                 style_loras=style_loras,
             )
-            logger.debug(f"{mode_prefix} V3 composition complete")
+            logger.debug(f"{mode_prefix} prompt composition complete")
         except Exception as e:
-            logger.error(f"{mode_prefix} V3 composition failed: {e}")
+            logger.error(f"{mode_prefix} prompt composition failed: {e}")
             if mode == "studio":
                 raise
             else:
                 # Lab: fallback to prompt without V3
                 final_prompt = prompt_str
-                warnings.append(f"V3 composition failed: {e}")
+                warnings.append(f"prompt composition failed: {e}")
     else:
         final_prompt = prompt_str
         logger.debug(f"{mode_prefix} No character_id, using prompt as-is")

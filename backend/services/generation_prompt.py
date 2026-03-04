@@ -64,7 +64,7 @@ def _merge_context_tags(request: SceneGenerateRequest) -> None:
 
 
 def _resolve_style_loras(storyboard_id: int | None, db) -> list[dict]:
-    """Resolve style LoRAs from DB config cascade for V3 engine.
+    """Resolve style LoRAs from DB config cascade for prompt engine.
 
     Delegates to image_generation_core.resolve_style_loras_from_storyboard (SSOT).
     """
@@ -123,7 +123,7 @@ def _handle_pre_composed(request: SceneGenerateRequest, db) -> tuple[str, list[s
     """Handle prompt_pre_composed=True: style profile + safety-net LoRA injection.
 
     DEPRECATED: Frontend should send raw prompt + context_tags instead.
-    Backend handles V3 composition directly via _handle_character_scene().
+    Backend handles prompt composition directly via _handle_character_scene().
     """
     logger.warning("⚠️ [DEPRECATED] prompt_pre_composed=True received. Use raw prompt + context_tags instead.")
     has_lora_tags = "<lora:" in request.prompt
@@ -183,7 +183,7 @@ def _resolve_background(request: SceneGenerateRequest, db) -> tuple[list[str] | 
 def _handle_character_scene(
     request: SceneGenerateRequest, db, effective_b_id: int | None, *, style_loras: list[dict] | None = None
 ) -> tuple[str, list[str]]:
-    """Handle raw prompt + character: V3 composition with style LoRAs."""
+    """Handle raw prompt + character: prompt composition with style LoRAs."""
     _merge_context_tags(request)
     if style_loras is None:
         style_loras = _resolve_style_loras(request.storyboard_id, db)
@@ -225,7 +225,7 @@ def _handle_character_scene(
 def _handle_background_scene(
     request: SceneGenerateRequest, db, *, style_loras: list[dict] | None = None
 ) -> tuple[str, list[str]]:
-    """Handle narrator (no_humans) scene: V3 background composition."""
+    """Handle narrator (no_humans) scene: background composition."""
     _merge_context_tags(request)
     if style_loras is None:
         style_loras = _resolve_style_loras(request.storyboard_id, db)
@@ -381,7 +381,7 @@ def _apply_auto_rewrite(prompt: str) -> str:
 
 
 def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) -> None:
-    """Orchestrator: prepare the final prompt via style profile + V3 composition.
+    """Orchestrator: prepare the final prompt via style profile + prompt composition.
 
     Routes to specialized handlers based on request state.
     Writes results to ctx (prompt, negative_prompt, character, consistency, warnings).

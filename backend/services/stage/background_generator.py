@@ -175,9 +175,9 @@ async def _generate_background_image(
     from schemas import SceneGenerateRequest
     from services.generation import _adjust_parameters, _build_payload, _call_sd_api_raw
     from services.generation_context import GenerationContext
-    from services.prompt.v3_composition import V3PromptBuilder
+    from services.prompt.composition import PromptBuilder
 
-    builder = V3PromptBuilder(db)
+    builder = PromptBuilder(db)
     prompt = builder.compose_for_background(
         location_tags=location_tags,
         quality_tags=quality_tags,

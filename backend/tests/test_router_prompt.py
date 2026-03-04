@@ -39,7 +39,7 @@ class TestPromptCompose:
     """Test POST /prompt/compose endpoint."""
 
     def test_compose_prompt_with_character(self, client: TestClient, db_session):
-        """Compose prompt using V3 engine with character_id."""
+        """Compose prompt using prompt engine with character_id."""
         from models import Character
 
         char = Character(name="Test Char", gender="female", group_id=1)
@@ -128,7 +128,7 @@ class TestPromptCompose:
         assert response.status_code == 200
         data = response.json()
         mock_resolve.assert_called_once()
-        # LoRA should be in composed prompt (weight may be calibrated by V3)
+        # LoRA should be in composed prompt (weight may be calibrated by prompt composition)
         assert "<lora:J_huiben:" in data["prompt"]
         assert "J_huiben" in data["lora_weights"]
 
@@ -163,7 +163,7 @@ class TestPromptCompose:
             "character_id": 99999,
         }
         response = client.post("/api/v1/prompt/compose", json=request_data)
-        # V3PromptService may raise or handle gracefully
+        # PromptService may raise or handle gracefully
         assert response.status_code in (200, 500)
 
     def test_compose_prompt_missing_required_field(self, client: TestClient):

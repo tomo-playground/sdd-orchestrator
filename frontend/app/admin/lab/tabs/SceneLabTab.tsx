@@ -544,7 +544,7 @@ function ProcessVisualization({
           <ArrowRight className="h-3 w-3 text-zinc-300" />
         </div>
         <div>
-          <span className="text-[12px] font-medium text-zinc-500">V3 Composed:</span>
+          <span className="text-[12px] font-medium text-zinc-500">Composed:</span>
           <p className="mt-0.5 text-xs break-all text-zinc-700">{composedPrompt}</p>
         </div>
       </div>

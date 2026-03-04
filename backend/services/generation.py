@@ -116,7 +116,7 @@ def _adjust_parameters(ctx: GenerationContext) -> None:
         logger.info("🔍 [StyleProfile] Auto-enabled Hi-Res for '%s'", style_ctx.profile_name)
 
     # Apply optimal LoRA weights from calibration DB
-    # Skip when V3 composition was used — V3 already applies StyleProfile weights + cap
+    # Skip when prompt composition was used — already applies StyleProfile weights + cap
     if not ctx.style_loras:
         lora_names = extract_lora_names(ctx.prompt)
         if lora_names:
@@ -337,5 +337,10 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
     result["used_cfg_scale"] = ctx.cfg_scale
     result["used_sampler"] = ctx.request.sampler_name
     result["consistency_quality"] = ctx.consistency.quality_score
+
+    if ctx.consistency.quality_score == "low":
+        low_msg = "캐릭터 일관성 품질이 낮습니다 (LoRA/레퍼런스 부족). 캐릭터 설정을 확인하세요."
+        result.setdefault("warnings", []).append(low_msg)
+        logger.warning("[Generation] Consistency quality=low for character — %s", low_msg)
 
     return result

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from config import GEMINI_TEXT_MODEL, gemini_client, logger, template_env
+from google.genai import types
+
+from config import GEMINI_FALLBACK_MODEL, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, logger, template_env
 from config_pipelines import CREATIVE_PIPELINE_MAX_RETRIES
 from services.agent.observability import trace_llm_call
 from services.creative_utils import parse_json_response
@@ -32,14 +34,17 @@ async def run_production_step(
     resolved_model = model or GEMINI_TEXT_MODEL
     tmpl = template_env.get_template(template_name)
     retry_vars = dict(template_vars)
+    config = types.GenerateContentConfig(safety_settings=GEMINI_SAFETY_SETTINGS)
 
     for retry in range(CREATIVE_PIPELINE_MAX_RETRIES + 1):
         prompt = tmpl.render(**retry_vars)
+        used_fallback = False
         try:
             async with trace_llm_call(name=step_name, input_text=prompt[:2000], model=resolved_model) as llm:
                 response = await gemini_client.aio.models.generate_content(
                     model=resolved_model,
                     contents=prompt,
+                    config=config,
                 )
                 llm.record(response)
             raw_text = response.text or ""
@@ -49,12 +54,32 @@ async def run_production_step(
                 block_reason = getattr(feedback_info, "block_reason", None) if feedback_info else None
                 if feedback_info:
                     logger.warning("[%s] Empty response, prompt_feedback: %s", step_name, feedback_info)
-                if block_reason:
-                    # 안전 필터 차단 — 동일 프롬프트 재시도 무의미, 즉시 실패
+                if block_reason and "PROHIBITED_CONTENT" in str(block_reason):
+                    # PROHIBITED_CONTENT → 폴백 모델로 1회 재시도
+                    logger.warning("[%s][Fallback] PROHIBITED_CONTENT → %s", step_name, GEMINI_FALLBACK_MODEL)
+                    async with trace_llm_call(
+                        name=f"{step_name}_fallback", input_text=prompt[:2000], model=GEMINI_FALLBACK_MODEL
+                    ) as llm_fb:
+                        response = await gemini_client.aio.models.generate_content(
+                            model=GEMINI_FALLBACK_MODEL,
+                            contents=prompt,
+                            config=config,
+                        )
+                        llm_fb.record(response)
+                    raw_text = response.text or ""
+                    used_fallback = True
+                    if not raw_text:
+                        raise ValueError(f"Safety filter blocked (fallback also failed): {block_reason}")
+                elif block_reason:
                     raise ValueError(f"Safety filter blocked: {block_reason}")
-                raise ValueError("Empty LLM response received")
+                else:
+                    raise ValueError("Empty LLM response received")
             parsed = parse_json_response(raw_text)
         except Exception as e:
+            # 폴백 성공 후 파싱 실패 → 재시도 무의미, 즉시 raise
+            if used_fallback:
+                logger.error("[%s] Fallback 응답 파싱 실패 (재시도 불가): %s", step_name, e)
+                raise
             logger.warning("[%s] 호출/파싱 실패 (retry %d): %s", step_name, retry, e)
             if retry < CREATIVE_PIPELINE_MAX_RETRIES:
                 retry_vars = {**template_vars, "feedback": f"JSON Error: {e}. Valid JSON only."}

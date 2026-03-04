@@ -200,13 +200,13 @@ class TestMultiCharacterComposer:
 
     def test_subject_layer_mixed_gender(self, db_session):
         """male + female -> '1boy, 1girl' in subject."""
-        from services.prompt.v3_composition import V3PromptBuilder
-        from services.prompt.v3_multi_character import MultiCharacterComposer
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
 
         char_a = _make_char_with_tags(db_session, "hero", "male", [("red_hair", 2, 1.0)])
         char_b = _make_char_with_tags(db_session, "heroine", "female", [("blue_hair", 2, 1.0)])
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
         composer = MultiCharacterComposer(builder)
         result = composer.compose(char_a, char_b, ["classroom"])
 
@@ -215,13 +215,13 @@ class TestMultiCharacterComposer:
 
     def test_subject_layer_same_gender(self, db_session):
         """female + female -> '2girls' in subject."""
-        from services.prompt.v3_composition import V3PromptBuilder
-        from services.prompt.v3_multi_character import MultiCharacterComposer
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
 
         char_a = _make_char_with_tags(db_session, "sister_a", "female", [("red_hair", 2, 1.0)])
         char_b = _make_char_with_tags(db_session, "sister_b", "female", [("blue_hair", 2, 1.0)])
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
         composer = MultiCharacterComposer(builder)
         result = composer.compose(char_a, char_b, ["classroom"])
 
@@ -230,13 +230,13 @@ class TestMultiCharacterComposer:
 
     def test_identity_tags_both_preserved(self, db_session):
         """Both characters' identity tags appear in output."""
-        from services.prompt.v3_composition import V3PromptBuilder
-        from services.prompt.v3_multi_character import MultiCharacterComposer
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
 
         char_a = _make_char_with_tags(db_session, "char_a", "male", [("red_hair", 2, 1.0)])
         char_b = _make_char_with_tags(db_session, "char_b", "female", [("blue_hair", 2, 1.0)])
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
         composer = MultiCharacterComposer(builder)
         result = composer.compose(char_a, char_b, ["classroom"])
 
@@ -245,13 +245,13 @@ class TestMultiCharacterComposer:
 
     def test_lora_dedup_same_style(self, db_session):
         """Shared style LoRA only injected once."""
-        from services.prompt.v3_composition import V3PromptBuilder
-        from services.prompt.v3_multi_character import MultiCharacterComposer
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
 
         char_a = _make_char_with_tags(db_session, "a1", "male", [("red_hair", 2, 1.0)])
         char_b = _make_char_with_tags(db_session, "b1", "female", [("blue_hair", 2, 1.0)])
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
         composer = MultiCharacterComposer(builder)
         style_loras = [
             {"name": "flat_color", "weight": 0.7, "trigger_words": []},
@@ -263,8 +263,8 @@ class TestMultiCharacterComposer:
 
     def test_lora_weight_scale_applied(self, db_session):
         """multi_char_weight_scale reduces LoRA weight."""
-        from services.prompt.v3_composition import V3PromptBuilder
-        from services.prompt.v3_multi_character import MultiCharacterComposer
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
 
         lora = LoRA(
             name="char_lora_a",
@@ -284,7 +284,7 @@ class TestMultiCharacterComposer:
         )
         char_b = _make_char_with_tags(db_session, "other_char", "female", [("blue_hair", 2, 1.0)])
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
         composer = MultiCharacterComposer(builder)
         result = composer.compose(char_a, char_b, ["classroom"])
 
@@ -293,8 +293,8 @@ class TestMultiCharacterComposer:
 
     def test_trigger_prompt_used_when_available(self, db_session):
         """LoRA multi_char_trigger_prompt used in subject."""
-        from services.prompt.v3_composition import V3PromptBuilder
-        from services.prompt.v3_multi_character import MultiCharacterComposer
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
 
         lora = LoRA(
             name="j_huiben_test",
@@ -315,7 +315,7 @@ class TestMultiCharacterComposer:
         )
         char_b = _make_char_with_tags(db_session, "trigger_char_b", "female", [("blue_hair", 2, 1.0)])
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
         composer = MultiCharacterComposer(builder)
         result = composer.compose(char_a, char_b, ["classroom"])
 
@@ -324,13 +324,13 @@ class TestMultiCharacterComposer:
 
     def test_fallback_to_gender_tags_without_trigger(self, db_session):
         """No trigger prompt -> fallback to gender tags."""
-        from services.prompt.v3_composition import V3PromptBuilder
-        from services.prompt.v3_multi_character import MultiCharacterComposer
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
 
         char_a = _make_char_with_tags(db_session, "no_trigger_a", "male", [("red_hair", 2, 1.0)])
         char_b = _make_char_with_tags(db_session, "no_trigger_b", "female", [("blue_hair", 2, 1.0)])
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
         composer = MultiCharacterComposer(builder)
         result = composer.compose(char_a, char_b, ["classroom"])
 
@@ -338,13 +338,13 @@ class TestMultiCharacterComposer:
 
     def test_camera_prefers_wide_framing(self, db_session):
         """Multi-char prefer wide_shot/upper_body over close-up."""
-        from services.prompt.v3_composition import V3PromptBuilder
-        from services.prompt.v3_multi_character import MultiCharacterComposer
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
 
         char_a = _make_char_with_tags(db_session, "cam_a", "male", [("red_hair", 2, 1.0)])
         char_b = _make_char_with_tags(db_session, "cam_b", "female", [("blue_hair", 2, 1.0)])
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
         composer = MultiCharacterComposer(builder)
         result = composer.compose(char_a, char_b, ["close-up", "classroom"])
 
@@ -353,11 +353,11 @@ class TestMultiCharacterComposer:
 
     def test_single_char_unchanged(self, db_session):
         """compose_for_character() not affected (regression)."""
-        from services.prompt.v3_composition import V3PromptBuilder
+        from services.prompt.composition import PromptBuilder
 
         char = _make_char_with_tags(db_session, "solo_char", "female", [("red_hair", 2, 1.0)])
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
         result = builder.compose_for_character(char.id, ["classroom"], character=char)
 
         assert "red_hair" in result
@@ -450,13 +450,13 @@ class TestMultiCharacterComposerQuality:
 
     def test_quality_uses_fallback_when_no_style(self, db_session):
         """No style profile → fallback quality tags (masterpiece, best_quality)."""
-        from services.prompt.v3_composition import V3PromptBuilder
-        from services.prompt.v3_multi_character import MultiCharacterComposer
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
 
         char_a = _make_char_with_tags(db_session, "q_a", "male", [("red_hair", 2, 1.0)])
         char_b = _make_char_with_tags(db_session, "q_b", "female", [("blue_hair", 2, 1.0)])
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
         composer = MultiCharacterComposer(builder)
         result = composer.compose(char_a, char_b, ["classroom"])
 
@@ -465,13 +465,13 @@ class TestMultiCharacterComposerQuality:
 
     def test_quality_respects_style_profile_tags(self, db_session):
         """With realistic quality_tags → no anime tags injected."""
-        from services.prompt.v3_composition import V3PromptBuilder
-        from services.prompt.v3_multi_character import MultiCharacterComposer
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
 
         char_a = _make_char_with_tags(db_session, "r_a", "male", [("red_hair", 2, 1.0)])
         char_b = _make_char_with_tags(db_session, "r_b", "female", [("blue_hair", 2, 1.0)])
 
-        builder = V3PromptBuilder(db_session)
+        builder = PromptBuilder(db_session)
         composer = MultiCharacterComposer(builder)
         result = composer.compose(
             char_a,

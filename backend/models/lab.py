@@ -38,7 +38,7 @@ class LabExperiment(Base, TimestampMixin):
     prompt_used: Mapped[str] = mapped_column(Text, nullable=False)
     negative_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # V3 Prompt Engine metadata (Phase 1 integration)
+    # Prompt Engine metadata (Phase 1 integration)
     final_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
     loras_applied: Mapped[list | None] = mapped_column(JSONB, nullable=True)
 

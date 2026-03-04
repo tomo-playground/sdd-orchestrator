@@ -465,7 +465,7 @@ Phase A에서 개선된 TagAutocomplete 위에 시각적 태그 탐색 기능을
 
 | 영역 | 파일 | 핵심 변경 |
 |------|------|---------|
-| 조합 로직 | `v3_composition.py` | `compose()` 반환값에 레이어별 분해 정보 추가 |
+| 조합 로직 | `composition.py` | `compose()` 반환값에 레이어별 분해 정보 추가 |
 | 입력 UI | `TagAutocomplete.tsx` | 디바운스, 한글, 인기도, 구분자, 폐기 태그 |
 | 미리보기 | `ComposedPromptPreview.tsx` | 레이어별 태그 분해 + 조합 결과 표시 |
 | 검증 | `/prompt/validate-tags` | 응답 스키마 통일 + `response_model` 추가 |
@@ -499,7 +499,7 @@ Phase A에서 개선된 TagAutocomplete 위에 시각적 태그 탐색 기능을
 | `routers/prompt.py` | 기존 `/compose` 확장 — `layers` 응답 필드 추가 |
 | `routers/tags.py` | 검색 응답에 wd14_count/deprecated 포함 확인 |
 | `schemas.py` | ValidateTagsResponse 수정, ComposeResponse에 `layers` 필드 추가 |
-| `services/prompt/v3_composition.py` | `compose()` 반환값에 레이어별 분해 정보 추가 |
+| `services/prompt/composition.py` | `compose()` 반환값에 레이어별 분해 정보 추가 |
 
 ---
 

@@ -42,8 +42,8 @@
 - **내용**: `CORS_ORIGINS` 환경변수를 `*`로 설정하면 CSRF 공격에 완전 노출. 현재 기본값(`localhost:3000`)은 안전하나 배포 시 위험.
 - **조치**: startup 시 `allow_credentials=True` + `*` 조합 감지 → 에러로 차단.
 
-### P0-5. V3PromptBuilder 1,252줄 단일 클래스 [Tech Lead]
-- **위치**: `backend/services/prompt/v3_composition.py` (1,361줄)
+### P0-5. PromptBuilder 1,252줄 단일 클래스 [Tech Lead]
+- **위치**: `backend/services/prompt/composition.py` (1,361줄)
 - **내용**: CLAUDE.md 클래스 최대 200줄 기준 6.3배 초과. 유지보수성 심각.
 - **조치**: Background/Character/Reference 컴포저를 별도 클래스로 분리 (Strategy/Mixin 패턴).
 
@@ -275,7 +275,7 @@
 2. `asyncio.create_task` 결과 보관 패턴 적용 (P0-2)
 3. SSE Progress Race Condition 수정 (P0-3)
 4. CORS startup 검증 추가 (P0-4)
-5. V3PromptBuilder 분할 착수 (P0-5)
+5. PromptBuilder 분할 착수 (P0-5)
 
 ### Sprint B — 1~2주 (P1 핵심)
 6. response_model 일괄 추가 (~60개)

@@ -152,7 +152,7 @@ Gemini Auto Edit 요약 통계를 간단하게 조회합니다.
 ### 핵심 개념
 
 - **Tag Lab**: 개별 태그 조합의 렌더링 품질 실험
-- **Scene Lab**: V3 Prompt Engine을 사용한 씬 구성 실험
+- **Scene Lab**: Prompt Engine을 사용한 씬 구성 실험
 - **Creative Lab**: 멀티 에이전트 협업 → [REST_API_CREATIVE.md](./REST_API_CREATIVE.md)
 
 | Method | Path | Description |

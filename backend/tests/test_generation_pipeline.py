@@ -107,7 +107,7 @@ class TestIPAdapterAutoActivation:
 class TestLoRAWeightCap:
     """Test LoRA weight handling in _adjust_parameters.
 
-    V3 composition의 _cap_lora_weight()가 STYLE_LORA_WEIGHT_CAP SSOT.
+    prompt composition의 _cap_lora_weight()가 STYLE_LORA_WEIGHT_CAP SSOT.
     _adjust_parameters()는 calibration DB 값만 적용 (이중 capping 없음).
     """
 
@@ -132,8 +132,8 @@ class TestLoRAWeightCap:
         assert "<lora:char_lora:0.6>" in result
         assert "<lora:unknown:0.5>" in result
 
-    def test_v3_cap_is_ssot(self):
-        """V3 composition's _cap_lora_weight is the single source of truth for capping.
+    def test_cap_is_ssot(self):
+        """prompt composition's _cap_lora_weight is the single source of truth for capping.
 
         _adjust_parameters no longer applies STYLE_LORA_WEIGHT_CAP.
         """

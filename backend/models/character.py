@@ -46,7 +46,7 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
     # Relationships
     group: Mapped["Group"] = relationship("Group", back_populates="characters")
 
-    # V3: Relational Tags
+    # Relational Tags
     tags: Mapped[list["CharacterTag"]] = relationship("CharacterTag", backref="character", cascade="all, delete-orphan")
 
     # Media & Display

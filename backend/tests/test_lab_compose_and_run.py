@@ -1,7 +1,7 @@
 """Tests for lab.py compose_and_run -- must not call V3Builder directly.
 
-WARNING #6: compose_and_run must delegate V3 composition to run_experiment
-(which uses generate_image_with_v3), not invoke V3PromptBuilder directly.
+WARNING #6: compose_and_run must delegate prompt composition to run_experiment
+(which uses generate_image_with_v3), not invoke PromptBuilder directly.
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -12,7 +12,7 @@ from models.lab import LabExperiment
 
 
 class TestComposeAndRunDelegation:
-    """compose_and_run must not call V3PromptBuilder directly."""
+    """compose_and_run must not call PromptBuilder directly."""
 
     @pytest.mark.asyncio
     async def test_no_direct_v3_builder_call(self, db_session):
@@ -33,7 +33,7 @@ class TestComposeAndRunDelegation:
         with (
             patch("services.lab.run_experiment", new_callable=AsyncMock) as mock_run,
             patch(
-                "services.prompt.v3_composition.V3PromptBuilder"
+                "services.prompt.composition.PromptBuilder"
             ) as MockBuilder,
         ):
             mock_run.return_value = mock_experiment
@@ -50,7 +50,7 @@ class TestComposeAndRunDelegation:
             # run_experiment should be called
             mock_run.assert_called_once()
 
-            # V3PromptBuilder should NOT be instantiated
+            # PromptBuilder should NOT be instantiated
             MockBuilder.assert_not_called()
 
     @pytest.mark.asyncio

@@ -67,12 +67,12 @@ export function useCharacters(): UseCharactersResult {
 
   /**
    * Build a prompt string from character's DB tags + custom_base_prompt.
-   * Includes identity/clothing tags from V3 character_tags relationship.
+   * Includes identity/clothing tags from character_tags relationship.
    */
   const buildCharacterPrompt = useCallback((character: CharacterFull): string => {
     const parts: string[] = [];
 
-    // 1. Include V3 DB tags (identity, clothing, etc.)
+    // 1. Include DB tags (identity, clothing, etc.)
     if (character.tags?.length) {
       for (const tag of character.tags) {
         if (!tag.name) continue;

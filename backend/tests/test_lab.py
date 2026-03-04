@@ -1,7 +1,7 @@
 """
 TDD tests for Lab service -- Tag Lab (Area C).
 
-Phase 1: Updated for V3 Prompt Engine integration.
+Phase 1: Updated for Prompt Engine integration.
 """
 
 import base64
@@ -40,7 +40,7 @@ def _create_test_group(db_session):
 
 
 class TestRunExperiment:
-    """Test run_experiment() -- single experiment execution with V3 Prompt Engine."""
+    """Test run_experiment() -- single experiment execution with Prompt Engine."""
 
     @pytest.mark.asyncio
     async def test_run_experiment_success(self, db_session):
@@ -163,7 +163,7 @@ class TestRunExperiment:
 
         with patch(
             "services.image_generation_core.generate_image_with_v3",
-            side_effect=Exception("V3 composition failed"),
+            side_effect=Exception("prompt composition failed"),
         ):
             from services.lab import run_experiment
 
@@ -175,7 +175,7 @@ class TestRunExperiment:
 
         assert result.status == "failed"
         assert result.notes is not None
-        assert "V3 composition failed" in result.notes
+        assert "prompt composition failed" in result.notes
 
 
 class TestRunBatch:

@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bot, Check, ChevronDown, Sparkles } from "lucide-react";
 import Button from "../../ui/Button";
-import type { ChatMessage, SettingsRecommendation } from "../../../types/chat";
+import type { SettingsRecommendMessage, SettingsRecommendation } from "../../../types/chat";
 
 type Props = {
-  message: ChatMessage;
+  message: SettingsRecommendMessage;
   onApplyAndGenerate: (rec: SettingsRecommendation) => void;
+  /** 생성 실패 시 true → 버튼 재활성화 */
+  hasError?: boolean;
 };
 
 const selectClass =
@@ -46,17 +48,15 @@ function InlineSelect({
           ))}
         </select>
         {!disabled && (
-          <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-zinc-400" />
+          <ChevronDown className="pointer-events-none absolute top-1/2 right-1.5 h-3 w-3 -translate-y-1/2 text-zinc-400" />
         )}
       </span>
     </li>
   );
 }
 
-export default function SettingsRecommendCard({ message, onApplyAndGenerate }: Props) {
+export default function SettingsRecommendCard({ message, onApplyAndGenerate, hasError }: Props) {
   const rec = message.recommendation;
-  if (!rec) return null;
-
   const opts = rec.available_options;
   const [local, setLocal] = useState({
     structure: rec.structure,
@@ -66,6 +66,11 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate }: P
     character_b_id: rec.character_b_id,
   });
   const [applied, setApplied] = useState(false);
+
+  // 생성 실패 시 버튼 재활성화
+  useEffect(() => {
+    if (hasError && applied) setApplied(false);
+  }, [hasError, applied]);
 
   const patch = <K extends keyof typeof local>(key: K, val: (typeof local)[K]) =>
     setLocal((prev) => ({ ...prev, [key]: val }));
@@ -93,11 +98,10 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate }: P
 
   // 옵션 목록 구성
   const structureOpts = opts?.structures ?? [{ value: rec.structure, label: rec.structure }];
-  const durationOpts: { value: string; label: string }[] =
-    opts?.durations.map((d) => ({
-      value: String(d),
-      label: `${d}초`,
-    })) ?? [{ value: String(rec.duration), label: `${rec.duration}초` }];
+  const durationOpts: { value: string; label: string }[] = opts?.durations.map((d) => ({
+    value: String(d),
+    label: `${d}초`,
+  })) ?? [{ value: String(rec.duration), label: `${rec.duration}초` }];
   const languageOpts = opts?.languages ?? [{ value: rec.language, label: rec.language }];
   const characterOpts: { value: string; label: string }[] = [
     { value: "", label: "미정" },

@@ -11,7 +11,7 @@ class LabExperimentRunRequest(BaseModel):
     """
     Request to run a single experiment.
 
-    Phase 1: Requires group_id for V3 Prompt Engine + Style Profile.
+    Phase 1: Requires group_id for Prompt Engine + Style Profile.
     """
 
     experiment_type: str = "tag_render"
@@ -29,7 +29,7 @@ class LabExperimentResponse(BaseModel):
     """
     Single experiment result.
 
-    Phase 1: Includes V3 metadata (final_prompt, loras_applied).
+    Phase 1: Includes composition metadata (final_prompt, loras_applied).
     """
 
     id: int
@@ -50,8 +50,8 @@ class LabExperimentResponse(BaseModel):
     notes: str | None = None
     created_at: datetime | None = None
 
-    # V3 Prompt Engine metadata (Phase 1)
-    final_prompt: str | None = None  # Full prompt after V3 composition
+    # Prompt Engine metadata (Phase 1)
+    final_prompt: str | None = None  # Full prompt after prompt composition
     loras_applied: list[dict] | None = None  # [{name, weight, source}]
 
     model_config = ConfigDict(from_attributes=True)
@@ -61,7 +61,7 @@ class LabBatchRunRequest(BaseModel):
     """
     Request to run a batch of experiments.
 
-    Phase 1: Requires group_id for V3 Prompt Engine + Style Profile.
+    Phase 1: Requires group_id for Prompt Engine + Style Profile.
     """
 
     experiment_type: str = "tag_render"

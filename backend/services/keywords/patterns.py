@@ -902,7 +902,7 @@ CATEGORY_PRIORITY: dict[str, int] = {
 }
 
 # ── group_name → 12-Layer 매핑 (SSOT) ────────────────────────────────
-# v3_composition._infer_layer_from_pattern() 와 sync.py 양쪽에서 참조
+# composition._infer_layer_from_pattern() 와 sync.py 양쪽에서 참조
 GROUP_NAME_TO_LAYER: dict[str, int] = {
     "quality": 0,  # LAYER_QUALITY
     "subject": 1,  # LAYER_SUBJECT

@@ -41,6 +41,9 @@ export function buildGenerateBody(
       .map((r) => r.trim())
       .filter(Boolean);
   }
+  if (s.chatContext?.length) {
+    body.chat_context = s.chatContext;
+  }
   return body;
 }
 

@@ -1,11 +1,11 @@
-"""V3 Prompt Composition constants extracted from config.py.
+"""Prompt Composition constants extracted from config.py.
 
 가중치, 태그셋, 마커 상수를 분리하여 config.py 파일 크기를 400줄 이하로 유지한다.
 """
 
 from __future__ import annotations
 
-# --- V3 Prompt Composition Weights ---
+# --- Prompt Composition Weights ---
 PERMANENT_IDENTITY_WEIGHT_BOOST = 1.15
 PERMANENT_DETAIL_WEIGHT_BOOST = 1.1
 FALLBACK_STYLE_LORA_WEIGHT_MAX = 0.5
@@ -19,7 +19,7 @@ BISHOUNEN_WEIGHT = 1.1
 # --- Valence (emotion polarity) ---
 VALID_VALENCES: frozenset[str] = frozenset({"positive", "negative", "neutral"})
 
-# --- V3 Prompt Composition Tags ---
+# --- Prompt Composition Tags ---
 BACKGROUND_SCENE_MARKER = "no_humans"
 GENERIC_LOCATION_TAGS: frozenset[str] = frozenset({"indoors", "outdoors"})
 

@@ -177,7 +177,7 @@ async def writer_node(state: ScriptState) -> dict:
         plan = await _create_plan(state, selected_concept=selected_concept)
 
     # 파이프라인 컨텍스트를 별도 dict로 분리 (description 과적 방지)
-    pipeline_ctx: dict[str, str] = {}
+    pipeline_ctx: dict[str, str | list] = {}
     research_brief = state.get("research_brief")
     if research_brief:
         # 12-B-2: dict인 경우 텍스트로 포맷팅
@@ -218,6 +218,10 @@ async def writer_node(state: ScriptState) -> dict:
                 plan_text += f"- **{loc_name}** (scenes {scenes_str}): {tags_str}\n"
         plan_text += "\n이 계획을 기반으로 대본을 작성하세요."
         pipeline_ctx["writer_plan"] = plan_text
+
+    chat_context = state.get("chat_context")
+    if chat_context:
+        pipeline_ctx["chat_context"] = chat_context
 
     feedback = state.get("revision_feedback")
     if feedback:

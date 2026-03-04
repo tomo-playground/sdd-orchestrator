@@ -36,6 +36,7 @@ export type ChatMessageCallbacks = {
 export type ChatMessageData = {
   scenes: SceneItem[];
   feedbackPresets: FeedbackPreset[] | null;
+  hasError?: boolean;
 };
 
 type Props = {
@@ -47,9 +48,9 @@ type Props = {
 const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Props) {
   switch (message.contentType) {
     case "user":
-      return <UserBubble text={message.text ?? ""} />;
+      return <UserBubble text={message.text} />;
     case "assistant":
-      return <AssistantBubble text={message.text ?? ""} />;
+      return <AssistantBubble text={message.text} />;
     case "clarification":
       return <ClarificationCard message={message} />;
     case "settings_recommend":
@@ -57,6 +58,7 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
         <SettingsRecommendCard
           message={message}
           onApplyAndGenerate={callbacks.onApplyAndGenerate}
+          hasError={data.hasError}
         />
       );
     case "concept_gate":
@@ -73,7 +75,7 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
     case "completion":
       return (
         <CompletionCard
-          text={message.text ?? ""}
+          text={message.text}
           sceneCount={data.scenes.length}
           onNavigate={callbacks.onNavigate}
         />
@@ -83,7 +85,7 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
     case "plan_review_gate":
       return <PlanReviewCard message={message} onResume={callbacks.onResume} />;
     case "scene_edit_diff":
-      return message.editResult ? (
+      return (
         <SceneEditDiffCard
           editResult={message.editResult}
           scenes={data.scenes}
@@ -91,7 +93,7 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
           onReject={callbacks.onRejectEdit ?? noop}
           isApplied={!!message.editApplied}
         />
-      ) : null;
+      );
     case "error":
       return <ErrorCard message={message.errorMessage} onRetry={callbacks.onRetry} />;
     default:

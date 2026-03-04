@@ -150,7 +150,7 @@ def test_scene_generation_applies_style_profile(setup_test_data, client: TestCli
     # 2. Trigger words should be included
     assert "test_trigger" in captured_payload["prompt"]
 
-    # 3. Default positive quality tags should be present (V3 may reorder)
+    # 3. Default positive quality tags should be present (composition may reorder)
     assert "masterpiece" in captured_payload["prompt"]
     assert "best quality" in captured_payload["prompt"] or "best_quality" in captured_payload["prompt"]
 

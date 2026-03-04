@@ -108,9 +108,9 @@ def get_tag_rules_summary() -> dict[str, Any]:
         db.close()
 
 def get_effective_tags() -> dict[str, list[str]]:
-    """Get tags grouped by effectiveness level (Stub for V3)."""
+    """Get tags grouped by effectiveness level (Stub)."""
     return {"high": [], "medium": [], "low": [], "unknown": []}
 
 def get_tag_effectiveness_report() -> list[dict[str, Any]]:
-    """Get full effectiveness report for all tags (Stub for V3)."""
+    """Get full effectiveness report for all tags (Stub)."""
     return []

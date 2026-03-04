@@ -2,15 +2,15 @@
  * GroupedView — Tokens grouped by semantic category for ComposedPromptPreview.
  */
 
+import { LAYER_COLORS } from "./ComposedPromptPreview";
+
 type GroupedViewProps = {
   groupedTokens: Record<string, { category: string; tokens: string[] }>;
-  categoryColors: Record<string, { bg: string; text: string; border: string }>;
   getTokenStyle: (token: string) => { bg: string; text: string; border: string };
 };
 
 export default function GroupedView({
   groupedTokens,
-  categoryColors,
   getTokenStyle,
 }: GroupedViewProps) {
   return (
@@ -18,7 +18,7 @@ export default function GroupedView({
       {Object.entries(groupedTokens).map(([label, group]) => (
         <div key={label} className="flex items-start gap-2">
           <span
-            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${categoryColors[group.category]?.bg || "bg-zinc-100"} ${categoryColors[group.category]?.text || "text-zinc-600"}`}
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${LAYER_COLORS[group.category]?.bg || "bg-zinc-100"} ${LAYER_COLORS[group.category]?.text || "text-zinc-600"}`}
           >
             {label}
           </span>

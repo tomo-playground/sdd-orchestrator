@@ -1,4 +1,4 @@
-"""Association tables for Many-to-Many relationships (V3 Schema)."""
+"""Association tables for Many-to-Many relationships (Schema)."""
 
 from typing import TYPE_CHECKING
 

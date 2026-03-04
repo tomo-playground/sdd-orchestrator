@@ -94,10 +94,10 @@ backend/
 │   ├── voice_presets.py  # 음성 프리셋
 │   └── cleanup.py        # 정리/GC
 ├── services/
-│   ├── prompt/           # V3 12-Layer Prompt Engine (4개 모듈)
-│   │   ├── v3_composition.py    # V3 PromptBuilder (12-Layer)
-│   │   ├── v3_multi_character.py # 2인 동시 출연 composer
-│   │   ├── v3_service.py        # V3 서비스 레이어
+│   ├── prompt/           # 12-Layer Prompt Engine (4개 모듈)
+│   │   ├── composition.py       # PromptBuilder (12-Layer)
+│   │   ├── multi_character.py   # 2인 동시 출연 composer
+│   │   ├── service.py           # 서비스 레이어
 │   │   └── prompt.py            # 프롬프트 유틸
 │   ├── keywords/         # 태그 시스템 (9개 모듈)
 │   ├── video/            # FFmpeg 렌더링 패키지 (10개 모듈)
@@ -253,7 +253,7 @@ Apidog OAS 스펙을 조회하여 API 설계 시 참조합니다.
   - `SYSTEM_OVERVIEW.md` - 시스템 아키텍처 개요
 - `docs/03_engineering/backend/` - 백엔드 기술 문서 (신규 문서는 여기에 배치)
   - `AGENT_SPEC.md` - LangGraph Agent 아키텍처
-  - `PROMPT_SPEC_V2.md` - 프롬프트 설계 규칙
+  - `PROMPT_SPEC.md` - 프롬프트 설계 규칙
   - `RENDER_PIPELINE.md` - 렌더링 파이프라인
   - `SOFT_DELETE.md` - Soft Delete 기술 설계
   - `API_NO_BASE64_IN_BODY.md` - API Base64 분리 정책

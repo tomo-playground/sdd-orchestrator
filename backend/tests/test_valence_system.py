@@ -133,19 +133,19 @@ class TestFlattenLayersValence:
     """_flatten_layers에서 valence 교차 충돌 감지 테스트."""
 
     def _make_builder(self):
-        from services.prompt.v3_composition import V3PromptBuilder
+        from services.prompt.composition import PromptBuilder
 
         mock_db = MagicMock()
-        builder = V3PromptBuilder.__new__(V3PromptBuilder)
+        builder = PromptBuilder.__new__(PromptBuilder)
         builder.db = mock_db
         builder._last_composed_layers = None
         return builder
 
-    @patch("services.prompt.v3_composition.TagRuleCache", _FakeRuleCache)
+    @patch("services.prompt.composition.TagRuleCache", _FakeRuleCache)
     @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCache)
     def test_smile_melancholic_drops_melancholic(self):
         """smile(L7, positive) + melancholic(L11, negative) → melancholic 제거."""
-        from services.prompt.v3_composition import LAYER_ATMOSPHERE, LAYER_EXPRESSION
+        from services.prompt.composition import LAYER_ATMOSPHERE, LAYER_EXPRESSION
 
         builder = self._make_builder()
         layers = [[] for _ in range(12)]
@@ -156,11 +156,11 @@ class TestFlattenLayersValence:
         assert "smile" in result
         assert "melancholic" not in result
 
-    @patch("services.prompt.v3_composition.TagRuleCache", _FakeRuleCache)
+    @patch("services.prompt.composition.TagRuleCache", _FakeRuleCache)
     @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCache)
     def test_smile_romantic_both_kept(self):
         """smile(positive) + romantic(positive) → 둘 다 유지."""
-        from services.prompt.v3_composition import LAYER_ATMOSPHERE, LAYER_EXPRESSION
+        from services.prompt.composition import LAYER_ATMOSPHERE, LAYER_EXPRESSION
 
         builder = self._make_builder()
         layers = [[] for _ in range(12)]
@@ -171,11 +171,11 @@ class TestFlattenLayersValence:
         assert "smile" in result
         assert "romantic" in result
 
-    @patch("services.prompt.v3_composition.TagRuleCache", _FakeRuleCache)
+    @patch("services.prompt.composition.TagRuleCache", _FakeRuleCache)
     @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCache)
     def test_neutral_expression_allows_any_mood(self):
         """serious(neutral) + melancholic(negative) → 둘 다 유지."""
-        from services.prompt.v3_composition import LAYER_ATMOSPHERE, LAYER_EXPRESSION
+        from services.prompt.composition import LAYER_ATMOSPHERE, LAYER_EXPRESSION
 
         builder = self._make_builder()
         layers = [[] for _ in range(12)]
@@ -186,11 +186,11 @@ class TestFlattenLayersValence:
         assert "serious" in result
         assert "melancholic" in result
 
-    @patch("services.prompt.v3_composition.TagRuleCache", _FakeRuleCache)
+    @patch("services.prompt.composition.TagRuleCache", _FakeRuleCache)
     @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCache)
     def test_angry_romantic_drops_romantic(self):
         """angry(negative, L7) + romantic(positive, L11) → romantic 제거."""
-        from services.prompt.v3_composition import LAYER_ATMOSPHERE, LAYER_EXPRESSION
+        from services.prompt.composition import LAYER_ATMOSPHERE, LAYER_EXPRESSION
 
         builder = self._make_builder()
         layers = [[] for _ in range(12)]
@@ -201,11 +201,11 @@ class TestFlattenLayersValence:
         assert "angry" in result
         assert "romantic" not in result
 
-    @patch("services.prompt.v3_composition.TagRuleCache", _FakeRuleCache)
+    @patch("services.prompt.composition.TagRuleCache", _FakeRuleCache)
     @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCache)
     def test_non_valence_layers_unaffected(self):
         """non-valence 레이어 (L9, L10 등)는 valence 체크 안 함."""
-        from services.prompt.v3_composition import LAYER_CAMERA, LAYER_ENVIRONMENT
+        from services.prompt.composition import LAYER_CAMERA, LAYER_ENVIRONMENT
 
         builder = self._make_builder()
         layers = [[] for _ in range(12)]
@@ -216,11 +216,11 @@ class TestFlattenLayersValence:
         assert "close-up" in result
         assert "outdoors" in result
 
-    @patch("services.prompt.v3_composition.TagRuleCache", _FakeRuleCache)
+    @patch("services.prompt.composition.TagRuleCache", _FakeRuleCache)
     @patch("services.keywords.db_cache.TagValenceCache", _FakeValenceCache)
     def test_unknown_valence_tag_passes(self):
         """valence 미분류 태그는 충돌 체크 없이 통과."""
-        from services.prompt.v3_composition import LAYER_ATMOSPHERE, LAYER_EXPRESSION
+        from services.prompt.composition import LAYER_ATMOSPHERE, LAYER_EXPRESSION
 
         builder = self._make_builder()
         layers = [[] for _ in range(12)]

@@ -81,5 +81,7 @@ async def test_generate_script_uses_fallback_system_prompt(mock_gemini_client, m
 
                 assert mock_call.called
                 kwargs = mock_call.call_args.kwargs
-                contents = kwargs.get("contents")
-                assert "SYSTEM: You are a professional storyboarder and scriptwriter" in contents
+                # system_instruction은 config에 분리되어 전달됨
+                config = kwargs.get("config")
+                assert config is not None
+                assert "You are a professional storyboarder and scriptwriter" in config.system_instruction

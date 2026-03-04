@@ -70,7 +70,7 @@ Requires 규칙 확인
 ```
 
 ## 관련 파일
-- `docs/03_engineering/backend/PROMPT_SPEC_V2.md` - 프롬프트 설계 규칙
+- `docs/03_engineering/backend/PROMPT_SPEC.md` - 프롬프트 설계 규칙
 - `docs/03_engineering/backend/PROMPT_PIPELINE.md` - 프롬프트 파이프라인
-- `backend/services/prompt/v3_composition.py` - V3 PromptBuilder (12-Layer)
+- `backend/services/prompt/composition.py` - PromptBuilder (12-Layer)
 - `backend/services/keywords/validation.py` - 태그 검증 로직

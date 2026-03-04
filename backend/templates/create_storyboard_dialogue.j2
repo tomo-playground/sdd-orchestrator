@@ -34,7 +34,7 @@ Language: {{ language }}
 - Speaker A gets roughly half the scenes, Speaker B gets the rest
 - Alternate speakers: A → B → A → B → A...
 - Most scenes show ONLY the speaking character (single person in frame)
-- Both characters share the SAME environment/location across all scenes
+- Characters share the same primary environment, but 1-2 location transitions are allowed at emotional turning points
 - Conversation must feel natural and flow logically
 
 DIALOGUE STRUCTURE OPTIMIZATION:
@@ -50,8 +50,8 @@ DIALOGUE STRUCTURE OPTIMIZATION:
   * A 씬: cowboy_shot 또는 upper_body (대화 중 자연스러운 프레임)
   * B 반응 씬: close-up (감정 전달 강화)
   * 핵심 대립 씬: close-up 양쪽 모두 (감정 클라이맥스)
-- **환경 일관성**: 대화가 진행되는 동일한 장소를 모든 씬에서 유지
-  * 장소 이동 없이 같은 환경 태그 세트 반복 사용
+- **환경 변화**: 감정 전환점에서 1-2회 장소 이동 허용
+  * 기본은 같은 장소 유지, 클라이맥스/전환 시 새 장소로 이동 가능
 {% if is_multi_character_capable %}
 
 ⚠️ MULTI-CHARACTER SCENE RULES (scene_mode: "multi"):
@@ -85,6 +85,7 @@ CRITICAL IMAGE PROMPT RULE:
 - ONLY use Danbooru tags from the Allowed Keywords list below
 - NEVER invent new tags or use general photography terms not in Danbooru
 - FORBIDDEN examples: "medium shot" (0 posts), "bust shot" (incorrect term)
+- FORBIDDEN environment tags: "dark_room", "high_contrast_shadow", "cinematic_shadows", "glowing_screen", "projector_screen" (produce monotonous/dark results)
 - SAFE examples: "cowboy shot" (729K posts), "upper body" (1.01M posts), "full_body" (892K posts)
 
 CRITICAL TAG FORMAT RULES:
@@ -114,7 +115,7 @@ Instructions:
 {% if is_multi_character_capable %}
       For multi scenes: include BOTH speakers' character tags + interaction tags
 {% endif %}
-   c) Keep the same environment across all scenes
+   c) Keep the same primary environment, with 1-2 location transitions allowed at emotional turning points
 5. Each scene must include:
    - scene_id (starting at 1)
    - script: spoken line in {{ language }}.

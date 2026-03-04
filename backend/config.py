@@ -101,6 +101,18 @@ GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.5-flash")
 # Gemini Classifier Model — 태그 분류 전용 (lightweight, 항상 Flash 사용)
 GEMINI_CLASSIFIER_MODEL = os.getenv("GEMINI_CLASSIFIER_MODEL", "gemini-2.5-flash")
 GEMINI_CLASSIFIER_TIMEOUT_MS = int(os.getenv("GEMINI_CLASSIFIER_TIMEOUT_MS", "30000"))
+# Gemini Fallback Model — PROHIBITED_CONTENT 차단 시 자동 폴백 (2.0 Flash는 과도한 필터 없음)
+GEMINI_FALLBACK_MODEL = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-2.0-flash")
+
+# 공통 Safety Settings — 모든 Gemini 호출에서 재사용 (config.py SSOT)
+_BLOCK_NONE = genai.types.HarmBlockThreshold.BLOCK_NONE
+GEMINI_SAFETY_SETTINGS: list[genai.types.SafetySetting] = [
+    genai.types.SafetySetting(category=genai.types.HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold=_BLOCK_NONE),
+    genai.types.SafetySetting(category=genai.types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=_BLOCK_NONE),
+    genai.types.SafetySetting(category=genai.types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold=_BLOCK_NONE),
+    genai.types.SafetySetting(category=genai.types.HarmCategory.HARM_CATEGORY_HARASSMENT, threshold=_BLOCK_NONE),
+    genai.types.SafetySetting(category=genai.types.HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY, threshold=_BLOCK_NONE),
+]
 
 template_env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
 
@@ -404,7 +416,7 @@ ADETAILER_FACE_MODEL: str = "face_yolov8n.pt"  # default: fast model
 ADETAILER_DENOISING_STRENGTH: float = 0.4  # 0.3–0.5 safe range
 ADETAILER_HIGH_ACCURACY_PROFILE_IDS: set[int] = {2}  # face_yolov8s.pt (Realistic)
 
-# --- V3 Prompt Composition Constants (extracted to config_prompt.py) ---
+# --- Prompt Composition Constants (extracted to config_prompt.py) ---
 from config_prompt import *  # noqa: E402, F401, F403
 
 # --- Reference Image Generation Defaults ---
@@ -566,6 +578,7 @@ DEFAULT_USE_CONTROLNET = True
 DEFAULT_CONTROLNET_WEIGHT = 0.8
 DEFAULT_USE_IP_ADAPTER = False
 DEFAULT_IP_ADAPTER_WEIGHT = 0.7
+MIN_IP_ADAPTER_WEIGHT_NO_LORA = 0.5  # LoRA 없는 캐릭터의 최소 IP-Adapter weight
 DEFAULT_MULTI_GEN_ENABLED = False
 
 # --- IP-Adapter Defaults ---

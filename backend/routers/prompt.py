@@ -27,14 +27,14 @@ from services.prompt import (
 )
 from services.prompt.ko_translator import translate_ko_to_prompt
 from services.prompt.prompt_editor import edit_prompt_with_instruction
-from services.prompt.v3_service import V3PromptService
+from services.prompt.service import PromptService
 
 service_router = APIRouter(prefix="/prompt", tags=["prompt"])
 admin_router = APIRouter(prefix="/prompt", tags=["prompt-admin"])
 
 
 def _convert_loras(loras: list | None) -> list[dict] | None:
-    """Convert PromptComposeLoRA list to V3 style_loras dicts."""
+    """Convert PromptComposeLoRA list to style_loras dicts."""
     if not loras:
         return None
     return [
@@ -184,15 +184,15 @@ async def compose_prompt(
     request: PromptComposeRequest,
     db: Session = Depends(get_db),
 ):
-    """Compose a prompt using V3 12-Layer engine.
+    """Compose a prompt using 12-Layer engine.
 
-    When character_id is provided, uses V3PromptService with full
+    When character_id is provided, uses PromptService with full
     character tags, LoRA triggers, and gender enhancement from DB.
-    Otherwise uses V3PromptBuilder.compose() for generic composition.
+    Otherwise uses PromptBuilder.compose() for generic composition.
 
     Accepts optional base_prompt (quality tags) and context_tags
     (scene context like expression, gaze, pose) which are merged
-    into the token list before V3 composition.
+    into the token list before prompt composition.
     """
     logger.info(
         "📥 [Prompt Compose] character_id=%s, %d tokens, loras=%s",
@@ -239,17 +239,17 @@ async def compose_prompt(
             if scene and scene.scene_mode == "multi":
                 effective_b_id = request.character_b_id
 
-        # 4. V3 engine composition (character tags, LoRAs, gender loaded from DB)
+        # 4. prompt engine composition (character tags, LoRAs, gender loaded from DB)
         builder_ref = None  # Track builder for layer extraction
         if request.character_id and effective_b_id:
             from models.character import Character
-            from services.prompt.v3_composition import V3PromptBuilder
-            from services.prompt.v3_multi_character import MultiCharacterComposer
+            from services.prompt.composition import PromptBuilder
+            from services.prompt.multi_character import MultiCharacterComposer
 
             char_a = db.query(Character).filter(Character.id == request.character_id).first()
             char_b = db.query(Character).filter(Character.id == effective_b_id).first()
             if char_a and char_b:
-                builder = V3PromptBuilder(db)
+                builder = PromptBuilder(db)
                 composer = MultiCharacterComposer(builder)
                 composed_prompt = composer.compose(
                     char_a,
@@ -259,21 +259,21 @@ async def compose_prompt(
                 )
                 # Multi-char: builder_ref stays None (no single 12-layer decomposition)
             else:
-                v3_service = V3PromptService(db)
-                composed_prompt = v3_service.generate_prompt_for_scene(
+                service = PromptService(db)
+                composed_prompt = service.generate_prompt_for_scene(
                     character_id=request.character_id,
                     scene_tags=all_tokens,
                     style_loras=style_loras,
                 )
-                builder_ref = v3_service.builder
+                builder_ref = service.builder
         else:
-            v3_service = V3PromptService(db)
-            composed_prompt = v3_service.generate_prompt_for_scene(
+            service = PromptService(db)
+            composed_prompt = service.generate_prompt_for_scene(
                 character_id=request.character_id,
                 scene_tags=all_tokens,
                 style_loras=style_loras,
             )
-            builder_ref = v3_service.builder
+            builder_ref = service.builder
 
         # 5. Build response
         composed_tokens = split_prompt_tokens(composed_prompt)

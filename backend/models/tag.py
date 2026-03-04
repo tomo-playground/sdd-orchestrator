@@ -1,4 +1,4 @@
-"""Tag model for Pure V3 Prompt Engine."""
+"""Tag model for Pure Prompt Engine."""
 
 import re
 
@@ -27,7 +27,7 @@ class Tag(Base, TimestampMixin):
     group_name: Mapped[str | None] = mapped_column(String(50))
     description: Mapped[str | None] = mapped_column(String(500))
 
-    # V3 Logic: The core of the 12-Layer system
+    # Core Logic: The core of the 12-Layer system
     default_layer: Mapped[int] = mapped_column(Integer, default=0)  # 0-11
     usage_scope: Mapped[str] = mapped_column(String(20), default="ANY")  # PERMANENT, TRANSIENT, ANY
     priority: Mapped[int] = mapped_column(Integer, default=100)

@@ -80,6 +80,7 @@ const INITIAL_STATE: ScriptEditorState = {
   productionSnapshot: null,
   interactionMode: "guided",
   isWaitingForPlan: false,
+  chatContext: [],
 };
 
 export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActions {
@@ -95,6 +96,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
   const stateRef = useRef(state);
   stateRef.current = state;
   const dirtyRef = useRef(false);
+  const streamAbortRef = useRef<AbortController | null>(null);
 
   // Sync to global store on unmount
   useEffect(() => {
@@ -153,6 +155,9 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     // stateRef.current를 통해 항상 최신 state를 읽어 stale closure 방지
     const currentState = stateRef.current;
     if (!currentState.topic.trim()) return;
+    streamAbortRef.current?.abort();
+    const controller = new AbortController();
+    streamAbortRef.current = controller;
     useStoryboardStore.getState().set({ castingRecommendation: null });
     setState((prev) => ({
       ...prev,
@@ -167,6 +172,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(buildGenerateBody(currentState, groupId)),
+        signal: controller.signal,
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
@@ -184,8 +190,11 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         showToast,
       });
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       showToast(err instanceof Error ? err.message : "Generation failed", "error");
       setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
+    } finally {
+      streamAbortRef.current = null;
     }
   }, [groupId, showToast]);
 
@@ -201,6 +210,9 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       }
     ) => {
       if (!stateRef.current.threadId) return;
+      streamAbortRef.current?.abort();
+      const controller = new AbortController();
+      streamAbortRef.current = controller;
       setState((prev) => ({
         ...prev,
         isGenerating: true,
@@ -228,6 +240,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
+          signal: controller.signal,
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -242,8 +255,11 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           showToast("대본 생성이 완료되지 않았습니다", "warning");
         }
       } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         showToast(err instanceof Error ? err.message : "Resume failed", "error");
         setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
+      } finally {
+        streamAbortRef.current = null;
       }
     },
     [showToast]
@@ -344,6 +360,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           scenes: mapLoadedScenes(data.scenes ?? []),
           storyboardId: id,
           storyboardVersion: data.version ?? null,
+          chatContext: [],
         }));
         dirtyRef.current = false;
         useContextStore
@@ -362,6 +379,12 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     setState({ ...INITIAL_STATE });
   }, []);
 
+  const cancel = useCallback(() => {
+    streamAbortRef.current?.abort();
+    streamAbortRef.current = null;
+    setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
+  }, []);
+
   return {
     ...state,
     setField,
@@ -372,5 +395,6 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     save,
     loadStoryboard,
     reset,
+    cancel,
   };
 }

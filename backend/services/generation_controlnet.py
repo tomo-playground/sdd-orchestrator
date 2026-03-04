@@ -114,6 +114,11 @@ def _apply_ip_adapter(ctx: GenerationContext, strategy, args: list, db) -> None:
         return
     ref_image = load_reference_image(strategy.ip_adapter_reference, db=db)
     if not ref_image:
+        logger.warning(
+            "🧑 [IP-Adapter] Reference image load failed for '%s' — skipping IP-Adapter",
+            strategy.ip_adapter_reference,
+        )
+        ctx.warnings.append(f"IP-Adapter reference load failed: {strategy.ip_adapter_reference}")
         return
     # Safety clamp: pose direction → weight limit
     from services.controlnet import clamp_ip_adapter_weight  # noqa: PLC0415
@@ -195,13 +200,13 @@ def _detect_env_conflict(env_asset, request: SceneGenerateRequest, db) -> str | 
 
 def _check_tag_conflict(ref_scene, request: SceneGenerateRequest, db) -> str | None:
     """Check environment tag mismatch between reference and current scene."""
-    from services.prompt.v3_composition import LAYER_ENVIRONMENT, V3PromptBuilder
+    from services.prompt.composition import LAYER_ENVIRONMENT, PromptBuilder
 
     ref_env = set(ref_scene.context_tags.get("environment", [])) if ref_scene.context_tags else set()
     if not ref_env:
         return None
 
-    builder = V3PromptBuilder(db)
+    builder = PromptBuilder(db)
     curr_tokens = split_prompt_tokens(request.prompt)
     curr_tag_info = builder.get_tag_info(curr_tokens)
     curr_env = {tag for tag, info in curr_tag_info.items() if info.get("layer") == LAYER_ENVIRONMENT}

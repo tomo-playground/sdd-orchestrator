@@ -51,7 +51,7 @@ Character.loras    → character 타입만 보유
 
 ### 2-1. 프롬프트 준수율 (Match Rate)
 
-V3 PromptBuilder가 12-Layer로 정밀 배치한 태그가 실제 이미지에 반영되는 비율.
+PromptBuilder가 12-Layer로 정밀 배치한 태그가 실제 이미지에 반영되는 비율.
 
 | Match Rate | 판정 | 조치 |
 |:----------:|------|------|
@@ -233,14 +233,14 @@ artist name, jpeg artifacts, cropped
 
 ## 관련 문서
 
-- [Prompt System Specification](./PROMPT_SPEC_V2.md) — V3 12-Layer 프롬프트 전체 명세
+- [Prompt System Specification](./PROMPT_SPEC.md) — 12-Layer 프롬프트 전체 명세
 - [RENDER_PIPELINE.md](./RENDER_PIPELINE.md) — FFmpeg 렌더링 파이프라인
 
 ## 관련 코드
 
 | 파일 | 역할 |
 |------|------|
-| `services/prompt/v3_composition.py` | V3 12-Layer PromptBuilder, LoRA 주입 |
+| `services/prompt/composition.py` | 12-Layer PromptBuilder, LoRA 주입 |
 | `services/style_context.py` | StyleContext 해석, LoRA resolve |
 | `services/lora_calibration.py` | LoRA 캘리브레이션 서비스 |
 | `services/characters/preview.py` | 캐릭터 레퍼런스 생성 |

@@ -193,7 +193,7 @@ export default function SessionResultView({
                 onChange={(e) => setDeepParse(e.target.checked)}
                 className="rounded border-zinc-300"
               />
-              Deep Parse (V3 Prompt)
+              Deep Parse (Prompt)
             </label>
             <button
               onClick={handleSend}

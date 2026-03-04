@@ -186,6 +186,13 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
         # Store requested environment_reference_id for deferred assignment
         deferred_env_refs.append(s_data.environment_reference_id)
 
+        # negative_prompt 방어: 빈 값이면 기본값 주입 (DB에 빈 문자열 저장 방지)
+        neg_prompt = s_data.negative_prompt
+        if not neg_prompt or not neg_prompt.strip():
+            from config import DEFAULT_SCENE_NEGATIVE_PROMPT  # noqa: PLC0415
+
+            neg_prompt = DEFAULT_SCENE_NEGATIVE_PROMPT
+
         db_scene = Scene(
             storyboard_id=storyboard_id,
             client_id=getattr(s_data, "client_id", None) or str(uuid4()),
@@ -196,7 +203,7 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             scene_mode=getattr(s_data, "scene_mode", "single") or "single",
             image_prompt=s_data.image_prompt,
             image_prompt_ko=s_data.image_prompt_ko,
-            negative_prompt=s_data.negative_prompt,
+            negative_prompt=neg_prompt,
             width=s_data.width,
             height=s_data.height,
             context_tags=s_data.context_tags,

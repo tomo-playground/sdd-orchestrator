@@ -90,6 +90,11 @@ def auto_populate_character_actions(
 
         is_multi = scene.get("scene_mode") == "multi"
         speaker = scene.get("speaker", "")
+
+        # 단일 캐릭터 + speaker 빈 문자열 폴백: character_id가 있고 B가 없으면 "A"로 간주
+        if not speaker and character_id and not character_b_id:
+            speaker = "A"
+
         char_id = speaker_map.get(speaker)
         if not char_id and not is_multi:
             continue  # Narrator or unknown speaker (single scene)

@@ -65,7 +65,7 @@ class TagCategoryCache:
         group_name이 있으면 그대로 prompt layer key로 사용한다.
         없으면 DB category → prompt category 매핑으로 fallback.
 
-        Gemini Template Context Tags → V3 12-Layer Mapping:
+        Gemini Template Context Tags → 12-Layer Mapping:
         - expression, gaze → LAYER_EXPRESSION (7)
         - pose, action → LAYER_ACTION (8)
         - camera → LAYER_CAMERA (9)

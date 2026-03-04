@@ -2,12 +2,12 @@
 
 import { Bot } from "lucide-react";
 import ReviewApprovalPanel from "../../scripts/ReviewApprovalPanel";
-import type { ChatMessage } from "../../../types/chat";
+import type { ReviewGateMessage } from "../../../types/chat";
 import type { SceneItem, ResumeOptions } from "../../../hooks/scriptEditor/types";
 import type { FeedbackPreset } from "../../../types";
 
 type Props = {
-  message: ChatMessage;
+  message: ReviewGateMessage;
   scenes: SceneItem[];
   feedbackPresets: FeedbackPreset[] | null;
   onResume: (

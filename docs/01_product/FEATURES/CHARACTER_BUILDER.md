@@ -173,7 +173,7 @@
 
 **프리뷰 생성** (NovelAI on-demand 패턴):
 - "Generate Preview" 버튼 → `POST /characters/preview` (신규 API)
-- 선택된 태그 + LoRA로 V3 12-Layer 프롬프트 조합 → SD 이미지 생성
+- 선택된 태그 + LoRA로 12-Layer 프롬프트 조합 → SD 이미지 생성
 - SSE 진행률 바 (기존 `generate-async` 패턴): 프롬프트 조합(10%) → 이미지 생성(50-90%) → 완료(100%)
 - 결과 이미지 → 좌측 Sticky Preview에 표시
 - Save 전까지 임시 이미지 (MediaAsset 미생성)
@@ -253,7 +253,7 @@ class CharacterPreviewResponse(BaseModel):
 ```
 
 **구현**: `preview.py`의 `regenerate_reference`에서 프롬프트 조합 + SD 호출 로직을 추출.
-`character_id` 없이 `tag_ids` → Tag 조회 → V3 12-Layer 조합 → SD 호출 → base64 반환.
+`character_id` 없이 `tag_ids` → Tag 조회 → 12-Layer 조합 → SD 호출 → base64 반환.
 
 ### 2. `POST /characters/{id}/assign-preview` — 프리뷰 이미지 연결
 

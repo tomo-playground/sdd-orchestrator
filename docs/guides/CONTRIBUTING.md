@@ -193,7 +193,7 @@ cd frontend && npx eslint .                       # TypeScript
 - [ ] 출력 JSON 스키마 변경 시 Backend Pydantic 스키마와 동기화
 - [ ] Gemini Function Calling 도구 시그니처 변경 시 Backend + DBA 리뷰
 
-**버전 관리**: 프롬프트 문서 [`PROMPT_SPEC_V2.md`](../03_engineering/backend/PROMPT_SPEC_V2.md)의 Changelog에 변경 이력 기록.
+**버전 관리**: 프롬프트 문서 [`PROMPT_SPEC.md`](../03_engineering/backend/PROMPT_SPEC.md)의 Changelog에 변경 이력 기록.
 
 **모니터링**: LangFuse에서 변경 전/후 트레이스를 비교하여 품질 저하 여부 확인.
 

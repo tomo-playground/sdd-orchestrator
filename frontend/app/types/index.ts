@@ -98,7 +98,7 @@ export type Scene = {
   multi_gen_enabled?: boolean | null;
   // Auto-pin flag from backend (Gemini context_tags analysis)
   _auto_pin_previous?: boolean;
-  // V3 scene-level character actions (expression/pose per character)
+  // scene-level character actions (expression/pose per character)
   character_actions?: SceneCharacterAction[];
   // Per-scene clothing override: { "<character_id>": ["tag1", "tag2"] }
   clothing_tags?: Record<string, string[]> | null;
@@ -253,7 +253,7 @@ export type DraftScene = {
   ip_adapter_reference?: string | null;
   ip_adapter_weight?: number | null;
   multi_gen_enabled?: boolean | null;
-  // V3 scene-level character actions (expression/pose per character)
+  // scene-level character actions (expression/pose per character)
   character_actions?: SceneCharacterAction[];
 };
 
@@ -331,7 +331,7 @@ export type Character = {
   gender: ActorGender | null;
   identity_tags: number[] | null; // Legacy
   clothing_tags: number[] | null; // Legacy
-  tags: CharacterTagLink[] | null; // V3
+  tags: CharacterTagLink[] | null;
   loras: CharacterLoRA[] | null;
   recommended_negative: string[] | null;
   custom_base_prompt: string | null;

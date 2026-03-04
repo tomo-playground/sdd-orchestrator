@@ -32,7 +32,7 @@ async def api_run_experiment(
     db: Session = Depends(get_db),
 ):
     """
-    Run a single experiment using V3 Prompt Engine.
+    Run a single experiment using Prompt Engine.
 
     Phase 1: Requires group_id for Style Profile + Character LoRA.
     """
@@ -60,9 +60,9 @@ async def api_compose_and_run(
     db: Session = Depends(get_db),
 ):
     """
-    Scene Lab: compose scene via V3, then generate and validate.
+    Scene Lab: compose scene via prompt composition, then generate and validate.
 
-    Phase 1: Uses V3 Prompt Engine for scene composition.
+    Phase 1: Uses Prompt Engine for scene composition.
     """
     if not req.scene_description:
         raise HTTPException(
@@ -96,7 +96,7 @@ async def api_run_batch(
     db: Session = Depends(get_db),
 ):
     """
-    Run a batch of experiments using V3 Prompt Engine.
+    Run a batch of experiments using Prompt Engine.
 
     Phase 1: All experiments use the same group_id for consistent Style Profile.
     """

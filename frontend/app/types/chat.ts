@@ -1,20 +1,7 @@
 import type { ConceptCandidate, ProductionSnapshot, ScriptStreamEvent } from ".";
-import type { SceneItem, ScriptProgress } from "../hooks/scriptEditor/types";
+import type { ScriptProgress } from "../hooks/scriptEditor/types";
 
-// ── Message content types ──
-
-export type ChatContentType =
-  | "user"
-  | "assistant"
-  | "settings_recommend"
-  | "clarification"
-  | "concept_gate"
-  | "review_gate"
-  | "completion"
-  | "error"
-  | "pipeline_step"
-  | "plan_review_gate"
-  | "scene_edit_diff";
+// ── Shared types ──
 
 export type SceneEditedScene = {
   scene_index: number;
@@ -40,7 +27,7 @@ export type AvailableOptions = {
 
 export type SettingsRecommendation = {
   status: "recommend" | "clarify";
-  resolved_topic?: string; // Backend이 대화에서 추론한 최종 토픽
+  resolved_topic?: string;
   questions?: string[];
   reasoning: string;
   duration: number;
@@ -53,28 +40,105 @@ export type SettingsRecommendation = {
   available_options?: AvailableOptions;
 };
 
-export type ChatMessage = {
+// ── Discriminated Union: ChatMessage ──
+
+type ChatMessageBase = {
   id: string;
-  role: "user" | "assistant" | "system";
-  contentType: ChatContentType;
-  text?: string;
   timestamp: number;
-  // Typed payloads per contentType
-  recommendation?: SettingsRecommendation;
-  concepts?: ConceptCandidate[];
-  recommendedConceptId?: number | null;
-  scenes?: SceneItem[];
+};
+
+export type UserMessage = ChatMessageBase & {
+  role: "user";
+  contentType: "user";
+  text: string;
+};
+
+export type AssistantMessage = ChatMessageBase & {
+  role: "assistant";
+  contentType: "assistant";
+  text: string;
+};
+
+export type SettingsRecommendMessage = ChatMessageBase & {
+  role: "assistant";
+  contentType: "settings_recommend";
+  text: string;
+  recommendation: SettingsRecommendation;
+};
+
+export type ClarificationMessage = ChatMessageBase & {
+  role: "assistant";
+  contentType: "clarification";
+  text: string;
+  questions?: string[];
+};
+
+export type ConceptGateMessage = ChatMessageBase & {
+  role: "assistant";
+  contentType: "concept_gate";
+  text: string;
+  concepts: ConceptCandidate[];
+  recommendedConceptId: number | null;
+};
+
+export type ReviewGateMessage = ChatMessageBase & {
+  role: "assistant";
+  contentType: "review_gate";
+  text: string;
   reviewResult?: Record<string, unknown>;
   productionSnapshot?: ProductionSnapshot | null;
-  errorMessage?: string;
-  questions?: string[];
-  nodeName?: string;
-  nodeResult?: Record<string, unknown>;
-  directorPlan?: Record<string, unknown>;
-  skipStages?: string[];
-  editResult?: SceneEditResult;
+};
+
+export type CompletionMessage = ChatMessageBase & {
+  role: "assistant";
+  contentType: "completion";
+  text: string;
+};
+
+export type ErrorMessage = ChatMessageBase & {
+  role: "assistant";
+  contentType: "error";
+  text: string;
+  errorMessage: string;
+};
+
+export type PipelineStepMessage = ChatMessageBase & {
+  role: "assistant";
+  contentType: "pipeline_step";
+  nodeName: string;
+  nodeResult: Record<string, unknown>;
+};
+
+export type PlanReviewGateMessage = ChatMessageBase & {
+  role: "assistant";
+  contentType: "plan_review_gate";
+  text: string;
+  topic?: string;
+  directorPlan: Record<string, unknown>;
+  skipStages: string[];
+};
+
+export type SceneEditDiffMessage = ChatMessageBase & {
+  role: "assistant";
+  contentType: "scene_edit_diff";
+  editResult: SceneEditResult;
   editApplied?: boolean;
 };
+
+export type ChatMessage =
+  | UserMessage
+  | AssistantMessage
+  | SettingsRecommendMessage
+  | ClarificationMessage
+  | ConceptGateMessage
+  | ReviewGateMessage
+  | CompletionMessage
+  | ErrorMessage
+  | PipelineStepMessage
+  | PlanReviewGateMessage
+  | SceneEditDiffMessage;
+
+export type ChatContentType = ChatMessage["contentType"];
 
 export type ActiveProgress = ScriptProgress | null;
 

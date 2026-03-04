@@ -665,10 +665,10 @@ async def generate_reference_for_character(
     Returns:
         Saved filename
     """
-    # Build prompt using V3 12-Layer system (alias/conflict resolution, batch LoRA query)
+    # Build prompt using 12-Layer system (alias/conflict resolution, batch LoRA query)
     from config import SD_DEFAULT_SAMPLER, SD_REFERENCE_CFG_SCALE, SD_REFERENCE_STEPS
     from services.characters.preview import _resolve_quality_tags_for_character
-    from services.prompt.v3_composition import V3PromptBuilder
+    from services.prompt.composition import PromptBuilder
     from services.style_context import resolve_style_context_from_group
 
     quality_tags = _resolve_quality_tags_for_character(character, db)
@@ -676,7 +676,7 @@ async def generate_reference_for_character(
     # Resolve StyleContext via Group (needed for reference_env_tags/camera_tags + params)
     style_ctx = resolve_style_context_from_group(character.group_id, db)
 
-    builder = V3PromptBuilder(db)
+    builder = PromptBuilder(db)
     full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags, style_ctx=style_ctx)
 
     # Construct negative prompt: DB 고유 태그 + 상수 공통 머지

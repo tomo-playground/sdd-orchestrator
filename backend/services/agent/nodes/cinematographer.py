@@ -193,6 +193,10 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     writer_plan = state.get("writer_plan")
     director_plan = state.get("director_plan")
 
+    from services.script.gemini_generator import sanitize_chat_context  # noqa: PLC0415
+
+    chat_context = sanitize_chat_context(state.get("chat_context") or [])
+
     tmpl = template_env.get_template("creative/cinematographer.j2")
     base_prompt = tmpl.render(
         scenes=scenes,
@@ -202,6 +206,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         writer_plan=writer_plan,
         director_plan=director_plan,
         feedback=director_feedback,
+        chat_context=chat_context,
     )
 
     # Full 모드 경쟁 시도 (성공 시 즉시 반환)
