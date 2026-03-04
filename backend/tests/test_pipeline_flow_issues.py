@@ -990,7 +990,10 @@ class TestTopicAnalysisEmptyGroupFallback:
 
         result = await analyze_topic("테스트 주제", None, group_id=99)
 
-        assert len(result.available_options.characters) == 1
+        chars = result.available_options.characters
+        assert len(chars) == 1
+        assert chars[0]["id"] == 1
+        assert chars[0]["name"] == "테스트캐릭터"
 
 
 class TestWriterSafetyRetryThenEmptyScenes:
