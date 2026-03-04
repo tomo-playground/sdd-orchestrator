@@ -53,6 +53,7 @@ class DebateContext:
     language: str
     max_rounds: int
     character_name: str | None = None
+    character_b_name: str | None = None
     reference_guidelines: str | None = None
     research_brief: dict | None = None
     prev_concepts: dict | None = None
@@ -154,6 +155,7 @@ async def run_architects(db, session: CreativeSession, round_number: int, ctx: D
             language=ctx.language,
             structure=ctx.structure,
             character_name=ctx.character_name,
+            character_b_name=ctx.character_b_name,
             reference_guidelines=ctx.reference_guidelines,
             research_brief=ctx.research_brief,
             director_plan=ctx.director_plan,

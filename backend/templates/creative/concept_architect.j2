@@ -13,8 +13,20 @@ Create a compelling concept for a {{ duration }}s shorts video.
 {{ structure }}
 
 {% if character_name %}
-## Character
+## Character A
 Name: {{ character_name }}
+{% endif %}
+{% if character_b_name %}
+## Character B
+Name: {{ character_b_name }}
+{% endif %}
+{% if character_b_name or structure in ("Dialogue", "Narrated Dialogue") %}
+
+## Dialogue Rules (MANDATORY)
+- This is a **two-character conversation**. Both Speaker A and Speaker B MUST appear.
+- Alternate speakers across scenes: A → B → A → B (with occasional Narrator allowed).
+- Speaker A = {{ character_name or "Character A" }}, Speaker B = {{ character_b_name or "Character B" }}.
+- Do NOT make all scenes speaker="A". At least 40% of non-Narrator scenes must be Speaker B.
 {% endif %}
 
 {% if director_plan %}

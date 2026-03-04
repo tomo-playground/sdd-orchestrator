@@ -174,6 +174,30 @@ def strip_no_humans_from_dialogue(scenes: list[dict]) -> None:
                 )
 
 
+def ensure_dialogue_speakers(scenes: list[dict]) -> None:
+    """Quick 모드 방어선: Dialogue 씬에 A와 B 모두 존재하는지 확인하고 자동 수정 (in-place).
+
+    A,B 모두 존재하면 빠른 탈출. 아니면 non-Narrator 씬을 교대 배정.
+    """
+    speakers = {s.get("speaker") for s in scenes}
+    if "A" in speakers and "B" in speakers:
+        return  # 양쪽 모두 존재 — OK
+
+    non_narrator = [s for s in scenes if s.get("speaker") != "Narrator"]
+    if not non_narrator:
+        logger.warning("[PostProcess] ensure_dialogue_speakers: non-Narrator 씬 없음, 수정 불가")
+        return
+
+    for i, scene in enumerate(non_narrator):
+        scene["speaker"] = "A" if i % 2 == 0 else "B"
+
+    logger.warning(
+        "[PostProcess] Dialogue speaker 자동 교대 배정: %d개 non-Narrator 씬 (원래 speakers=%s)",
+        len(non_narrator),
+        speakers,
+    )
+
+
 def auto_pin_raw_scenes(scenes: list[dict], structure_lower: str) -> None:
     """Set _auto_pin_previous flags on raw Gemini scene dicts (in-place)."""
     is_dialogue_structure = structure_lower in ("dialogue", "narrated dialogue")

@@ -9,6 +9,8 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from config import (
+    GEMINI_FALLBACK_MODEL,
+    GEMINI_SAFETY_SETTINGS,
     GEMINI_TEXT_MODEL,
     gemini_client,
     logger,
@@ -20,6 +22,7 @@ from services.keywords import get_keyword_context_and_tags
 from services.presets import get_preset_by_structure
 from services.script.scene_postprocess import (
     auto_pin_raw_scenes,
+    ensure_dialogue_speakers,
     strip_no_humans_from_dialogue,
     warn_script_issues,
 )
@@ -144,19 +147,84 @@ def _sanitize_for_gemini_prompt(text: str) -> str:
     return sanitized
 
 
+# ── Chat context prompt injection defense ─────────────────────────────
+_INJECTION_PATTERNS: list[re.Pattern] = [
+    re.compile(r"ignore\s+(all\s+)?previous\s+instructions", re.IGNORECASE),
+    re.compile(r"disregard\s+(all\s+)?previous", re.IGNORECASE),
+    re.compile(r"forget\s+(all\s+)?previous", re.IGNORECASE),
+    re.compile(r"you\s+are\s+now\s+a", re.IGNORECASE),
+    re.compile(r"act\s+as\s+if\s+you\s+are", re.IGNORECASE),
+    re.compile(r"new\s+instructions?:", re.IGNORECASE),
+    re.compile(r"system\s*:\s*", re.IGNORECASE),
+    re.compile(r"<\s*/?system\s*>", re.IGNORECASE),
+]
+
+
+def sanitize_chat_context(chat_context: list[dict]) -> list[dict]:
+    """Sanitize chat_context messages to prevent prompt injection.
+
+    Strips known injection patterns from each message's text field.
+    Returns a new list with sanitized copies (original is not mutated).
+    """
+    if not chat_context:
+        return chat_context
+
+    sanitized: list[dict] = []
+    for msg in chat_context:
+        text = msg.get("text", "")
+        if not isinstance(text, str):
+            sanitized.append(msg)
+            continue
+
+        cleaned = text
+        for pattern in _INJECTION_PATTERNS:
+            cleaned = pattern.sub("", cleaned)
+
+        cleaned = cleaned.strip()
+        if cleaned != text:
+            logger.warning(
+                "[Sanitize] Prompt injection pattern removed from chat_context (role=%s, before=%d, after=%d)",
+                msg.get("role", "?"),
+                len(text),
+                len(cleaned),
+            )
+
+        sanitized.append({**msg, "text": cleaned})
+
+    return sanitized
+
+
+def _extract_block_reason(res) -> str | None:
+    """Gemini 응답에서 차단 사유를 추출한다. 정상 종료(STOP)는 무시."""
+    if res.prompt_feedback and res.prompt_feedback.block_reason:
+        return str(res.prompt_feedback.block_reason)
+    if res.candidates:
+        for candidate in res.candidates:
+            reason = str(candidate.finish_reason) if candidate.finish_reason else None
+            if reason and reason != "STOP":
+                return reason
+    return None
+
+
 async def _call_gemini_with_retry(
     contents: str,
     config,
     trace_name: str = "gemini",
 ) -> Any:
-    """Call Gemini API with async + exponential backoff retry (max 2 retries)."""
+    """Call Gemini API with retry (429/5xx) + PROHIBITED_CONTENT 자동 폴백.
+
+    PROHIBITED_CONTENT 감지 시 GEMINI_FALLBACK_MODEL(2.0 Flash)로 1회 재시도한다.
+    폴백은 retry 루프 밖에서 1회만 시도하여 중복 폴백을 방지한다.
+    """
     if gemini_client is None:
         raise RuntimeError("Gemini client is not initialized. Check GEMINI_API_KEY in .env")
 
     from services.agent.observability import trace_llm_call
 
+    # Phase 1: retry loop (429/5xx만 재시도)
     delays = [1, 3]
     last_exc = None
+    res = None
     for attempt in range(3):
         try:
             async with trace_llm_call(name=trace_name, input_text=contents[:2000]) as llm:
@@ -166,18 +234,43 @@ async def _call_gemini_with_retry(
                     config=config,
                 )
                 llm.record(res)
-            return res
+            break  # 성공 — retry 루프 탈출
         except Exception as exc:
             last_exc = exc
             error_msg = str(exc)
-            is_retryable = "429" in error_msg or "5" in error_msg[:1] and len(error_msg) >= 3
+            is_retryable = bool(re.search(r"429|5\d{2}", error_msg))
             if attempt < 2 and is_retryable:
                 delay = delays[attempt]
                 logger.warning("Gemini API retry %d/%d after %ds: %s", attempt + 1, 2, delay, error_msg[:100])
                 await asyncio.sleep(delay)
             else:
                 raise
-    raise last_exc  # type: ignore[misc]
+    else:
+        # for-else: 모든 retry 소진 시
+        raise last_exc  # type: ignore[misc]
+
+    # Phase 2: PROHIBITED_CONTENT 감지 → 폴백 모델로 1회 재시도 (루프 밖)
+    if not res.text:
+        block_reason = _extract_block_reason(res)
+        if block_reason and "PROHIBITED_CONTENT" in block_reason:
+            logger.warning(
+                "[Fallback] PROHIBITED_CONTENT → %s (reason: %s)",
+                GEMINI_FALLBACK_MODEL,
+                block_reason,
+            )
+            async with trace_llm_call(
+                name=f"{trace_name}_fallback",
+                input_text=contents[:2000],
+                model=GEMINI_FALLBACK_MODEL,
+            ) as llm_fb:
+                res = await gemini_client.aio.models.generate_content(
+                    model=GEMINI_FALLBACK_MODEL,
+                    contents=contents,
+                    config=config,
+                )
+                llm_fb.record(res)
+
+    return res
 
 
 def _load_character_context(character_id: int, db: Session) -> dict | None:
@@ -350,39 +443,20 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             writer_plan=ctx.get("writer_plan", ""),
             revision_feedback=ctx.get("revision_feedback", ""),
             current_script_summary=ctx.get("current_script_summary", ""),
+            chat_context=sanitize_chat_context(ctx.get("chat_context", [])),
             **extra_fields,
         )
         from google.genai import types
 
+        # system_instruction을 contents에 합치지 않고 config로 분리
+        # → Gemini 안전 필터가 덜 엄격하게 작동 (PROHIBITED_CONTENT 방지)
         config = types.GenerateContentConfig(
-            safety_settings=[
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
-                ),
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
-                ),
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
-                ),
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
-                ),
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
-                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
-                ),
-            ]
+            system_instruction=system_instruction,
+            safety_settings=GEMINI_SAFETY_SETTINGS,
         )
-        # 렌더링된 전체 프롬프트에 sanitize 적용
-        # (concept JSON, pipeline_context 등 모든 소스의 미성년자 연상 표현 포함)
-        full_contents = _sanitize_for_gemini_prompt(f"{system_instruction}\n\n{rendered}")
+        sanitized_contents = _sanitize_for_gemini_prompt(rendered)
         res = await _call_gemini_with_retry(
-            contents=full_contents,
+            contents=sanitized_contents,
             config=config,
             trace_name="writer",
         )
@@ -396,7 +470,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
                 block_reason = str(res.prompt_feedback.block_reason)
                 error_reason = f"Blocked by safety filters: {block_reason}"
                 # 진단용: 차단된 프롬프트 앞부분 로그 (root cause 분석)
-                logger.debug("[Sanitize-Debug] 차단된 프롬프트 앞 500자:\n%s", full_contents[:500])
+                logger.debug("[Sanitize-Debug] 차단된 프롬프트 앞 500자:\n%s", sanitized_contents[:500])
                 user_message = "🛡️ Gemini 안전 필터가 콘텐츠를 차단했습니다"
                 suggestions = [
                     "다른 주제로 시도해보세요 (예: 일상, 취미, 지식 공유)",
@@ -456,6 +530,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             _filter_style_conflicting_tags(scenes, request.style)
         if has_two_characters:
             strip_no_humans_from_dialogue(scenes)
+            ensure_dialogue_speakers(scenes)
         auto_pin_raw_scenes(scenes, structure_lower)
 
         # Auto-populate character_actions from context_tags

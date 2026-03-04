@@ -39,13 +39,15 @@ def _normalize_research_brief(research_brief) -> dict | None:
 def _build_debate_context(state: ScriptState) -> DebateContext:
     """ScriptState에서 DebateContext를 생성한다."""
     research_brief = _normalize_research_brief(state.get("research_brief"))
+    casting = state.get("casting_recommendation") or {}
     return DebateContext(
         topic=state.get("topic", ""),
         duration=state.get("duration", 10),
         structure=state.get("structure", "Monologue"),
         language=state.get("language", "Korean"),
         max_rounds=CREATIVE_MAX_ROUNDS,
-        character_name=None,
+        character_name=casting.get("character_name") or None,
+        character_b_name=casting.get("character_b_name") or None,
         research_brief=research_brief,
         director_plan=state.get("director_plan"),
     )

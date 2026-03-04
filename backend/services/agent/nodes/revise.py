@@ -24,6 +24,7 @@ _DURATION_RE = re.compile(r"씬 (\d+): duration이 0 이하")
 _FIELD_RE = re.compile(r"씬 (\d+): 필수 필드 '(script|image_prompt)' 누락")
 _DURATION_DEFICIT_RE = re.compile(r"총 duration 부족")
 _INVALID_SPEAKER_RE = re.compile(r"speaker='A' 또는 'Narrator'만 허용")
+_DIALOGUE_MISSING_SPEAKER_RE = re.compile(r"Dialogue 구조에서 speaker '([AB])'가 등장하지 않음")
 
 
 def _has_duration_deficit(errors: list[str]) -> bool:
@@ -58,6 +59,15 @@ def _try_rule_fix(scenes: list[dict], errors: list[str], *, fallback_prompt: str
                 if scene.get("speaker") not in ("A", "Narrator"):
                     scene["speaker"] = "A"
             logger.info("[Revise] invalid speaker 교정: %d개 씬 → 'A'로 변경 (Narrator 보존)", fixed)
+        elif _DIALOGUE_MISSING_SPEAKER_RE.search(err):
+            # Dialogue에서 A 또는 B가 빠진 경우 → non-Narrator 씬을 교대 배정
+            non_narrator = [s for s in scenes if s.get("speaker") != "Narrator"]
+            if non_narrator:
+                for i, scene in enumerate(non_narrator):
+                    scene["speaker"] = "A" if i % 2 == 0 else "B"
+                logger.info("[Revise] Dialogue speaker 교대 배정: %d개 non-Narrator 씬", len(non_narrator))
+            else:
+                unresolved += 1
         else:
             unresolved += 1
     return unresolved == 0
