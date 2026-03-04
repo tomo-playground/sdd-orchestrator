@@ -616,6 +616,126 @@ class TestCinematographerNullGuard:
         assert result is None
 
 
+# ═══════════════════════════════════════════════════════
+# 7. Phase 28-B: Error Recovery + 글로벌 리비전 상한
+# ═══════════════════════════════════════════════════════
+
+
+class TestCopyrightReviewerFallbackWarn:
+    """Phase 28-B #8: copyright_reviewer API 실패 시 WARN 반환."""
+
+    @pytest.mark.asyncio
+    @patch("services.agent.nodes.copyright_reviewer.run_production_step")
+    async def test_fallback_returns_warn_not_pass(self, mock_run):
+        """API 실패 시 fallback은 WARN + fallback_reason."""
+        from services.agent.nodes.copyright_reviewer import copyright_reviewer_node
+
+        mock_run.side_effect = Exception("API timeout")
+        state = {"cinematographer_result": {"scenes": [{"order": 1}]}}
+        result = await copyright_reviewer_node(state)
+
+        cr = result["copyright_reviewer_result"]
+        assert cr["overall"] == "WARN"
+        assert cr["fallback_reason"] == "api_error"
+        assert cr["confidence"] == 0.0
+
+
+class TestDirectorUnknownDecisionLogging:
+    """Phase 28-B #9: 미등록 decision 경고 로깅."""
+
+    def test_unknown_decision_logs_warning_and_returns_finalize(self):
+        """미등록 decision → 경고 로그 + finalize fallback."""
+        from services.agent.routing import route_after_director
+
+        state = {"director_decision": "invalid_action", "director_revision_count": 0}
+        with patch("services.agent.routing.logger") as mock_logger:
+            result = route_after_director(state)
+            assert result == "finalize"
+            warning_msgs = [str(c) for c in mock_logger.warning.call_args_list]
+            assert any("미등록 decision" in m for m in warning_msgs)
+
+
+class TestTotalRevisionsFunction:
+    """Phase 28-B #10: _total_revisions 파생 계산 함수."""
+
+    def test_sums_all_revision_counters(self):
+        """3개 카운터 합산."""
+        from services.agent.routing import _total_revisions
+
+        state = {
+            "revision_count": 2,
+            "director_checkpoint_revision_count": 3,
+            "director_revision_count": 1,
+        }
+        assert _total_revisions(state) == 6
+
+    def test_defaults_to_zero_for_missing_counters(self):
+        """카운터 없으면 0."""
+        from services.agent.routing import _total_revisions
+
+        assert _total_revisions({}) == 0
+
+    def test_partial_counters(self):
+        """일부 카운터만 있을 때."""
+        from services.agent.routing import _total_revisions
+
+        assert _total_revisions({"revision_count": 5}) == 5
+
+
+class TestGlobalRevisionCap:
+    """Phase 28-B #10: 글로벌 리비전 상한 (10회)."""
+
+    def test_review_global_cap_forces_through(self):
+        """review: 글로벌 상한 도달 → revise 대신 강제 통과."""
+        from services.agent.routing import route_after_review
+
+        state = {
+            "review_result": {"passed": False},
+            "revision_count": 2,
+            "director_checkpoint_revision_count": 5,
+            "director_revision_count": 3,  # total=10
+        }
+        result = route_after_review(state)
+        # 강제 통과 → director_checkpoint 또는 finalize
+        assert result != "revise"
+
+    def test_director_global_cap_forces_finalize(self):
+        """director: 글로벌 상한 도달 → finalize."""
+        from services.agent.routing import route_after_director
+
+        state = {
+            "director_decision": "revise_script",
+            "revision_count": 3,
+            "director_checkpoint_revision_count": 3,
+            "director_revision_count": 4,  # total=10
+        }
+        assert route_after_director(state) == "finalize"
+
+    def test_checkpoint_global_cap_forces_cinematographer(self):
+        """checkpoint: 글로벌 상한 도달 → cinematographer 강제."""
+        from services.agent.routing import route_after_director_checkpoint
+
+        state = {
+            "director_checkpoint_decision": "revise",
+            "revision_count": 3,
+            "director_checkpoint_revision_count": 4,
+            "director_revision_count": 3,  # total=10
+        }
+        assert route_after_director_checkpoint(state) == "cinematographer"
+
+    def test_below_cap_allows_revise(self):
+        """글로벌 상한 미만 → 정상 revise 허용."""
+        from services.agent.routing import route_after_review
+
+        state = {
+            "review_result": {"passed": False},
+            "revision_count": 1,
+            "director_checkpoint_revision_count": 1,
+            "director_revision_count": 1,  # total=3
+        }
+        assert route_after_review(state) == "revise"
+
+
 class TestFinalizeEmptyGroupWarning:
     """Phase 28-A: finalize 빈 그룹 경고 로깅."""
 

@@ -556,13 +556,18 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         validate_ken_burns_presets,
     )
 
-    filter_style_modifiers(scenes)
-    _apply_tag_aliases(scenes)
-    _inject_negative_prompts(scenes)
+    # Phase 28-B: 논리 그룹별 try/except 래핑 (non-fatal)
+    # 그룹 1: 태그 정규화
+    try:
+        filter_style_modifiers(scenes)
+        _apply_tag_aliases(scenes)
+        _inject_negative_prompts(scenes)
+        from ._prompt_conflict_resolver import resolve_prompt_conflicts
 
-    from ._prompt_conflict_resolver import resolve_prompt_conflicts
+        resolve_prompt_conflicts(scenes)
+    except Exception:
+        logger.warning("[Finalize] 태그 정규화 일부 실패 (non-fatal)", exc_info=True)
 
-    resolve_prompt_conflicts(scenes)
     _copy_scene_level_to_context_tags(scenes)
 
     from ._context_tag_utils import (
@@ -576,22 +581,29 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         diversify_poses,
     )
 
-    validate_context_tag_categories(scenes)
-    _inject_writer_plan_emotions(scenes, state.get("writer_plan"))
-    _inject_default_context_tags(scenes)
-    diversify_expressions(scenes)
-    diversify_gazes(scenes)
-    diversify_actions(scenes)
-    diversify_cameras(scenes)
-    diversify_poses(scenes)
-    _normalize_environment_tags(scenes)
-    _inject_location_map_tags(scenes, state.get("writer_plan"))
-    _inject_location_negative_tags(scenes, state.get("writer_plan"))
+    # 그룹 2: context_tags 주입 + 다양성 처리
+    try:
+        validate_context_tag_categories(scenes)
+        _inject_writer_plan_emotions(scenes, state.get("writer_plan"))
+        _inject_default_context_tags(scenes)
+        diversify_expressions(scenes)
+        diversify_gazes(scenes)
+        diversify_actions(scenes)
+        diversify_cameras(scenes)
+        diversify_poses(scenes)
+    except Exception:
+        logger.warning("[Finalize] context_tags/다양성 처리 실패 (non-fatal)", exc_info=True)
 
-    # Post-location conflict re-check: positive↔negative 교차 충돌만 재검사
-    from ._prompt_conflict_resolver import _resolve_positive_negative_conflicts
+    # 그룹 3: 환경/로케이션 태그
+    try:
+        _normalize_environment_tags(scenes)
+        _inject_location_map_tags(scenes, state.get("writer_plan"))
+        _inject_location_negative_tags(scenes, state.get("writer_plan"))
+        from ._prompt_conflict_resolver import _resolve_positive_negative_conflicts
 
-    _resolve_positive_negative_conflicts(scenes)
+        _resolve_positive_negative_conflicts(scenes)
+    except Exception:
+        logger.warning("[Finalize] 환경/로케이션 태그 처리 실패 (non-fatal)", exc_info=True)
 
     # 미분류 태그 LLM 사전 분류 (이미지 생성 전)
     from config_pipelines import FEATURE_TAG_LLM_CLASSIFICATION
@@ -605,8 +617,15 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         except Exception:
             logger.warning("[Finalize] LLM tag classification failed (non-fatal)", exc_info=True)
 
-    validate_controlnet_poses(scenes)
-    validate_ken_burns_presets(scenes)
+    # 그룹 4: 검증 (개별 래핑)
+    try:
+        validate_controlnet_poses(scenes)
+    except Exception:
+        logger.warning("[Finalize] controlnet pose 검증 실패 (non-fatal)", exc_info=True)
+    try:
+        validate_ken_burns_presets(scenes)
+    except Exception:
+        logger.warning("[Finalize] ken_burns preset 검증 실패 (non-fatal)", exc_info=True)
 
     # DB 세션 1회로 IP-Adapter 정규화 + character_actions 변환
     character_id = (

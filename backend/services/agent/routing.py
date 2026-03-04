@@ -10,6 +10,7 @@ from config_pipelines import (
     LANGGRAPH_CHECKPOINT_LOW_THRESHOLD,
     LANGGRAPH_MAX_CHECKPOINT_REVISIONS,
     LANGGRAPH_MAX_DIRECTOR_REVISIONS,
+    LANGGRAPH_MAX_GLOBAL_REVISIONS,
     RESEARCH_MAX_RETRIES,
     RESEARCH_QUALITY_LOW,
 )
@@ -26,6 +27,18 @@ _DIRECTOR_DECISION_MAP: dict[str, str] = {
 def _has_error(state: ScriptState) -> bool:
     """에러 상태인지 확인."""
     return bool(state.get("error"))
+
+
+def _total_revisions(state: ScriptState) -> int:
+    """전체 리비전 횟수를 파생 계산한다 (state 필드 추가 없이).
+
+    review-revise + director checkpoint + director post-production 합산.
+    """
+    return (
+        state.get("revision_count", 0)
+        + state.get("director_checkpoint_revision_count", 0)
+        + state.get("director_revision_count", 0)
+    )
 
 
 def route_after_start(state: ScriptState) -> str:
@@ -115,12 +128,16 @@ def route_after_review(state: ScriptState) -> str:
     # 실패했으나 revision 여유가 있으면 revise
     if not passed:
         count = state.get("revision_count", 0)
-        if count < LANGGRAPH_MAX_REVISIONS:
+        total = _total_revisions(state)
+        if total >= LANGGRAPH_MAX_GLOBAL_REVISIONS:
+            logger.warning("[LangGraph] 글로벌 리비전 상한(%d) 도달, 강제 통과", LANGGRAPH_MAX_GLOBAL_REVISIONS)
+        elif count < LANGGRAPH_MAX_REVISIONS:
             return "revise"
-        logger.warning(
-            "[LangGraph] 최대 revision 횟수(%d) 도달, 강제 통과",
-            LANGGRAPH_MAX_REVISIONS,
-        )
+        else:
+            logger.warning(
+                "[LangGraph] 최대 revision 횟수(%d) 도달, 강제 통과",
+                LANGGRAPH_MAX_REVISIONS,
+            )
 
     # passed 또는 max_revision 도달 → production skip: finalize / else: director_checkpoint
     if "production" in (state.get("skip_stages") or []):
@@ -148,13 +165,26 @@ def route_after_director(state: ScriptState) -> str:
             return "human_gate"
         return "finalize"
 
+    # 글로벌 리비전 상한 체크 (Phase 28-B #10)
+    total = _total_revisions(state)
+    if total >= LANGGRAPH_MAX_GLOBAL_REVISIONS:
+        logger.warning(
+            "[LangGraph] 글로벌 리비전 상한(%d) 도달 (total=%d), 강제 finalize", LANGGRAPH_MAX_GLOBAL_REVISIONS, total
+        )
+        return "finalize"
+
     # revision 횟수 체크 (최대 LANGGRAPH_MAX_DIRECTOR_REVISIONS)
     count = state.get("director_revision_count", 0)
     if count >= LANGGRAPH_MAX_DIRECTOR_REVISIONS:
         logger.warning("[LangGraph] Director revision 최대 횟수(%d) 도달, 강제 통과", count)
         return "finalize"
 
-    return _DIRECTOR_DECISION_MAP.get(decision, "finalize")
+    # Phase 28-B #9: 미등록 decision 경고 로깅
+    target = _DIRECTOR_DECISION_MAP.get(decision)
+    if target is None:
+        logger.warning("[LangGraph] Director 미등록 decision '%s', finalize로 fallback", decision)
+        return "finalize"
+    return target
 
 
 def route_after_director_checkpoint(state: ScriptState) -> str:
@@ -177,6 +207,14 @@ def route_after_director_checkpoint(state: ScriptState) -> str:
         return "cinematographer"
 
     if decision == "proceed":
+        return "cinematographer"
+
+    # 글로벌 리비전 상한 체크 (Phase 28-B #10)
+    total = _total_revisions(state)
+    if total >= LANGGRAPH_MAX_GLOBAL_REVISIONS:
+        logger.warning(
+            "[LangGraph] 글로벌 리비전 상한(%d) 도달, cinematographer로 강제 진행", LANGGRAPH_MAX_GLOBAL_REVISIONS
+        )
         return "cinematographer"
 
     # revise 횟수 체크

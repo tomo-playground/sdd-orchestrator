@@ -18,15 +18,16 @@ def _recalculate_overall(checks: list[dict]) -> str:
     return "PASS"
 
 
-_FALLBACK_PASS = {
-    "overall": "PASS",
-    "checks": [{"type": "api_fallback", "status": "PASS", "detail": "Skipped due to error", "suggestion": None}],
+_FALLBACK_WARN = {
+    "overall": "WARN",
+    "checks": [{"type": "api_fallback", "status": "WARN", "detail": "Skipped due to error", "suggestion": None}],
     "confidence": 0.0,
+    "fallback_reason": "api_error",
 }
 
 
 async def copyright_reviewer_node(state: ScriptState) -> dict:
-    """씬의 저작권/IP 위험을 검토한다. 최대 재시도 실패 시 fallback PASS."""
+    """씬의 저작권/IP 위험을 검토한다. 최대 재시도 실패 시 fallback WARN."""
     from services.agent.nodes._skip_guard import should_skip  # noqa: PLC0415
 
     if should_skip(state, "copyright_reviewer"):
@@ -67,5 +68,5 @@ async def copyright_reviewer_node(state: ScriptState) -> dict:
         logger.info("[LangGraph] Copyright Reviewer 완료: %s", result.get("overall"))
         return {"copyright_reviewer_result": result}
     except Exception as e:
-        logger.warning("[LangGraph] Copyright Reviewer 실패, fallback PASS: %s", e)
-        return {"copyright_reviewer_result": _FALLBACK_PASS}
+        logger.warning("[LangGraph] Copyright Reviewer 실패, fallback WARN: %s", e)
+        return {"copyright_reviewer_result": _FALLBACK_WARN}

@@ -169,13 +169,13 @@ async def test_copyright_reviewer_node(mock_step, cinema_result):
 @pytest.mark.asyncio
 @patch("services.agent.nodes.copyright_reviewer.run_production_step", new_callable=AsyncMock)
 async def test_copyright_reviewer_fallback(mock_step, cinema_result):
-    """Copyright Reviewer 실패 시 fallback PASS를 반환한다."""
+    """Copyright Reviewer 실패 시 fallback WARN을 반환한다."""
     from services.agent.nodes.copyright_reviewer import copyright_reviewer_node
 
     mock_step.side_effect = RuntimeError("API error")
     state = {"cinematographer_result": cinema_result}
     result = await copyright_reviewer_node(state)
-    assert result["copyright_reviewer_result"]["overall"] == "PASS"
+    assert result["copyright_reviewer_result"]["overall"] == "WARN"
     assert result["copyright_reviewer_result"]["confidence"] == 0.0
 
 

@@ -238,7 +238,7 @@ class TestCopyrightReviewerOverallRecalculation:
         assert result["copyright_reviewer_result"]["overall"] == "FAIL"
 
     async def test_fallback_on_exception(self):
-        """run_production_step 예외 시 fallback PASS를 반환한다."""
+        """run_production_step 예외 시 fallback WARN을 반환한다."""
         from services.agent.nodes.copyright_reviewer import copyright_reviewer_node
 
         state = {
@@ -252,7 +252,7 @@ class TestCopyrightReviewerOverallRecalculation:
         ):
             result = await copyright_reviewer_node(state)
 
-        assert result["copyright_reviewer_result"]["overall"] == "PASS"
+        assert result["copyright_reviewer_result"]["overall"] == "WARN"
         assert result["copyright_reviewer_result"]["checks"][0]["type"] == "api_fallback"
 
 
