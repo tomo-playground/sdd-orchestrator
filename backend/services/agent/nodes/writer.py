@@ -68,7 +68,7 @@ def _is_scenes_empty(scenes: list[dict]) -> bool:
 
 
 def _extract_reasoning(scenes: list[dict]) -> list[dict]:
-    """각 씬에서 reasoning 필드를 분리 추출한다. 원본 씬 dict를 변경하지 않는다."""
+    """각 씬에서 reasoning 필드를 분리 추출한다. 원본 씬 dict 보호, scenes 리스트는 in-place 교체."""
     reasoning = []
     cleaned = []
     for scene in scenes:

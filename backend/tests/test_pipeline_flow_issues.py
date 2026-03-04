@@ -940,13 +940,11 @@ class TestCheckpointNegativeScore:
 class TestDirectorPlanGateFallback:
     """Phase 28-D #16: director_plan_gate의 None → {} 폴백 확인."""
 
-    def test_none_director_plan_becomes_empty_dict(self):
-        """director_plan이 None이면 interrupt에 빈 dict 전달."""
-        # auto 모드에서는 interrupt 없이 proceed — 폴백 로직 자체가 적용되는지 확인
-        # director_plan_gate_node 내부에서 `state.get("director_plan") or {}` 확인
-        import inspect
-
+    @pytest.mark.asyncio
+    async def test_none_director_plan_no_error_in_auto_mode(self):
+        """director_plan=None + auto 모드 → 에러 없이 proceed."""
         from services.agent.nodes.director_plan_gate import director_plan_gate_node
 
-        source = inspect.getsource(director_plan_gate_node)
-        assert 'state.get("director_plan") or {}' in source
+        state = {"interaction_mode": "auto", "director_plan": None}
+        result = await director_plan_gate_node(state)
+        assert result["plan_action"] == "proceed"

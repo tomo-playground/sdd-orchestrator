@@ -127,8 +127,8 @@ async def lifespan(_app: FastAPI):
         if _old_client is not None:
             try:
                 await _old_client.aio.aclose()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("[Startup] Old Gemini client close: %s", e)
         logger.info("[Startup] Gemini client re-initialized on running event loop")
 
     # Initialize LangGraph Checkpointer + Store

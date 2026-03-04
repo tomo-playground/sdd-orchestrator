@@ -186,14 +186,8 @@ def _load_all_characters() -> list:
         from models.character import Character
 
         with get_db_session() as db:
-            rows = (
-                db.query(Character)
-                .filter(Character.deleted_at.is_(None))
-                .order_by(Character.name)
-                .limit(20)
-                .all()
-            )
-            return [_build_character_summary(c, 0) for c in rows]
+            rows = db.query(Character).filter(Character.deleted_at.is_(None)).order_by(Character.name).limit(20).all()
+            return [_build_character_summary(c, 0) for c in rows]  # 0 = no score (추천 전용)
     except Exception as e:
         logger.warning("[AnalyzeTopic] 전체 캐릭터 로드 실패: %s", e)
         return []
