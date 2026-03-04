@@ -228,7 +228,7 @@ async def writer_node(state: ScriptState) -> dict:
         pipeline_ctx["revision_feedback"] = feedback
 
     request = StoryboardRequest(
-        topic=state["topic"],
+        topic=state.get("topic", ""),
         description=state.get("description", ""),
         duration=state.get("duration", 10),
         style=state.get("style", "Anime"),

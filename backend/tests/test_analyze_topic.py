@@ -149,3 +149,52 @@ def test_full_result_has_all_fields(validate):
     }
     assert expected_keys.issubset(set(result.keys()))
     assert result["structure"] == "Monologue"
+
+
+# ── Character ID 타입 변환 검증 (Event loop / Gemini 응답 방어) ──
+
+
+def test_character_id_string_coerced_to_int(validate):
+    """Gemini가 character_id를 문자열로 반환해도 int 변환 후 매칭."""
+    result = validate({"character_id": "1"})
+    assert result["character_id"] == 1
+    assert result["character_name"] == "유나"
+
+
+def test_character_b_id_string_coerced(validate):
+    """character_b_id 문자열도 int 변환."""
+    result = validate({"character_b_id": "2"})
+    assert result["character_b_id"] == 2
+    assert result["character_b_name"] == "하루"
+
+
+def test_character_id_float_coerced(validate):
+    """Gemini가 float(1.0)을 반환해도 int로 변환."""
+    result = validate({"character_id": 1.0})
+    assert result["character_id"] == 1
+    assert result["character_name"] == "유나"
+
+
+def test_character_id_invalid_string_cleared(validate):
+    """변환 불가능한 문자열은 None으로 처리."""
+    result = validate({"character_id": "unknown"})
+    assert result["character_id"] is None
+
+
+def test_character_id_zero_cleared(validate):
+    """character_id=0은 falsy이므로 None처럼 처리되어야 한다."""
+    result = validate({"character_id": 0})
+    assert result["character_id"] is None
+
+
+def test_character_id_hallucinated_not_in_group(validate):
+    """Gemini가 존재하지 않는 ID(999)를 반환하면 None."""
+    result = validate({"character_id": 999, "character_b_id": 888})
+    assert result["character_id"] is None
+    assert result["character_b_id"] is None
+
+
+def test_empty_characters_with_string_id(validate):
+    """캐릭터 목록 비어있으면 어떤 ID도 매칭 불가."""
+    result = validate({"character_id": "1"}, characters=[])
+    assert result["character_id"] is None

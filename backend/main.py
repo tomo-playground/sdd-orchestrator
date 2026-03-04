@@ -115,6 +115,22 @@ async def lifespan(_app: FastAPI):
     else:
         logger.warning("[Audio] Audio Server not ready (will retry on first request): %s", health)
 
+    # Reinitialize Gemini client within running event loop
+    # (genai.Client created at import-time may bind httpx session to a stale loop)
+    from google import genai as _genai
+
+    import config as _cfg
+
+    if _cfg.GEMINI_API_KEY:
+        _old_client = _cfg.gemini_client
+        _cfg.gemini_client = _genai.Client(api_key=_cfg.GEMINI_API_KEY)
+        if _old_client is not None:
+            try:
+                await _old_client.aio.aclose()
+            except Exception:
+                pass
+        logger.info("[Startup] Gemini client re-initialized on running event loop")
+
     # Initialize LangGraph Checkpointer + Store
     from services.agent.checkpointer import close_checkpointer, get_checkpointer
     from services.agent.store import close_store, get_store

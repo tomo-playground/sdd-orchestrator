@@ -30,6 +30,11 @@ async def analyze_topic(
 
     inventory = load_full_inventory(group_id)
     characters = inventory.get("characters", [])
+
+    # group_id가 없으면 캐릭터가 빈 배열 — 추천용이므로 전체 캐릭터 로드
+    if not characters and group_id is None:
+        characters = _load_all_characters()
+
     logger.debug(
         "[AnalyzeTopic] group_id=%s, characters=%s",
         group_id,
@@ -39,7 +44,9 @@ async def analyze_topic(
     # 인라인 편집용 옵션 목록 구성 (fallback 포함 항상 반환)
     available_options = _build_options(group_id, characters)
     fallback = TopicAnalyzeResponse(
-        duration=30, language="Korean", structure="Monologue",
+        duration=30,
+        language="Korean",
+        structure="Monologue",
         available_options=available_options,
     )
 
@@ -69,6 +76,12 @@ async def analyze_topic(
             config=config,
         )
         parsed = parse_json_response(response.text or "")
+        logger.debug(
+            "[AnalyzeTopic] Gemini 응답: character_id=%s, character_b_id=%s, valid_chars=%s",
+            parsed.get("character_id"),
+            parsed.get("character_b_id"),
+            [c.id for c in characters],
+        )
     except Exception as e:
         logger.warning("[AnalyzeTopic] Gemini 호출/파싱 실패, 기본값 반환: %s", e)
         return fallback
@@ -96,8 +109,16 @@ async def analyze_topic(
 
 def _validate_character(parsed: dict, key: str, valid_char_map: dict) -> tuple[int | None, str | None]:
     """캐릭터 ID/Name 쌍을 검증한다. 유효하지 않으면 (None, None) 반환."""
-    char_id = parsed.get(key)
-    if char_id and char_id in valid_char_map:
+    raw = parsed.get(key)
+    if raw is None:
+        return None, None
+    try:
+        char_id = int(raw)
+    except (TypeError, ValueError):
+        return None, None
+    if char_id <= 0:
+        return None, None
+    if char_id in valid_char_map:
         return char_id, valid_char_map[char_id]
     return None, None
 
@@ -153,3 +174,25 @@ def _build_options(group_id: int | None, characters: list) -> AvailableOptions:
         languages=STORYBOARD_LANGUAGES,
         characters=char_list,
     )
+
+
+def _load_all_characters() -> list:
+    """group_id 없이 전체 활성 캐릭터를 로드한다 (추천 전용)."""
+    from database import get_db_session
+    from services.agent.inventory import _build_character_summary
+
+    try:
+        from models.character import Character
+
+        with get_db_session() as db:
+            rows = (
+                db.query(Character)
+                .filter(Character.deleted_at.is_(None))
+                .order_by(Character.name)
+                .limit(20)
+                .all()
+            )
+            return [_build_character_summary(c, 0) for c in rows]
+    except Exception as e:
+        logger.warning("[AnalyzeTopic] 전체 캐릭터 로드 실패: %s", e)
+        return []

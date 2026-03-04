@@ -133,7 +133,7 @@ def _summarize_scenes(scenes: list[dict]) -> str:
 def _make_request(state: ScriptState, desc: str) -> StoryboardRequest:
     """state에서 StoryboardRequest를 생성한다."""
     return StoryboardRequest(
-        topic=state["topic"],
+        topic=state.get("topic", ""),
         description=desc,
         duration=state.get("duration", 10),
         style=state.get("style", "Anime"),
