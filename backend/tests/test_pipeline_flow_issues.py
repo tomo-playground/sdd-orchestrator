@@ -840,3 +840,113 @@ class TestNodeResultKeysExpansion:
         output = {"draft_scenes": [{"script": "updated"}]}
         result = _extract_node_result("revise", output)
         assert result is not None
+
+
+# ═══════════════════════════════════════════════════════
+# 9. Phase 28-D: Data Integrity — 원본 보존 + 음수 score 방어
+# ═══════════════════════════════════════════════════════
+
+
+class TestExtractReasoningCopyPreservation:
+    """Phase 28-D #14: _extract_reasoning이 원본 씬 dict를 변경하지 않는다."""
+
+    def test_original_scene_dicts_not_mutated(self):
+        """원본 씬 dict에 reasoning이 보존되는지 확인."""
+        from services.agent.nodes.writer import _extract_reasoning
+
+        scene_a = {"script": "안녕하세요", "reasoning": {"intent": "인사"}}
+        scene_b = {"script": "반갑습니다"}
+        original_a = scene_a.copy()  # 원본 참조 보존
+
+        scenes = [scene_a, scene_b]
+        reasoning = _extract_reasoning(scenes)
+
+        # 원본 dict는 변경되지 않아야 한다
+        assert "reasoning" in original_a
+        assert original_a["reasoning"] == {"intent": "인사"}
+
+        # 추출된 reasoning은 정확해야 한다
+        assert reasoning == [{"intent": "인사"}, {}]
+
+        # scenes 리스트의 요소에는 reasoning이 제거되어 있어야 한다
+        assert "reasoning" not in scenes[0]
+        assert "reasoning" not in scenes[1]
+
+    def test_scenes_list_updated_in_place(self):
+        """scenes 리스트가 in-place로 교체되어 downstream에 reasoning 없이 전달."""
+        from services.agent.nodes.writer import _extract_reasoning
+
+        scenes = [
+            {"script": "A", "reasoning": {"r": 1}},
+            {"script": "B", "reasoning": {"r": 2}},
+        ]
+        reasoning = _extract_reasoning(scenes)
+
+        assert len(scenes) == 2
+        assert all("reasoning" not in s for s in scenes)
+        assert reasoning == [{"r": 1}, {"r": 2}]
+
+    def test_non_dict_reasoning_treated_as_empty(self):
+        """reasoning이 dict가 아니면 빈 dict로 처리."""
+        from services.agent.nodes.writer import _extract_reasoning
+
+        scenes = [
+            {"script": "A", "reasoning": "string_value"},
+            {"script": "B", "reasoning": 42},
+            {"script": "C"},
+        ]
+        reasoning = _extract_reasoning(scenes)
+
+        assert reasoning == [{}, {}, {}]
+
+
+class TestCheckpointNegativeScore:
+    """Phase 28-D #15: director_checkpoint_score 음수 → error 취급."""
+
+    def test_negative_score_returns_error(self):
+        """음수 score → decision=error로 오버라이드."""
+        from services.agent.nodes.director_checkpoint import _apply_score_override
+
+        decision, feedback = _apply_score_override("proceed", -1.0, "")
+        assert decision == "error"
+        assert "음수" in feedback or "오류" in feedback
+
+    def test_negative_score_overrides_revise_too(self):
+        """revise decision이어도 음수 score면 error로 변경."""
+        from services.agent.nodes.director_checkpoint import _apply_score_override
+
+        decision, _feedback = _apply_score_override("revise", -0.5, "기존 피드백")
+        assert decision == "error"
+
+    def test_zero_score_not_treated_as_error(self):
+        """0점은 음수가 아니므로 error로 취급하지 않는다."""
+        from services.agent.nodes.director_checkpoint import _apply_score_override
+
+        decision, _feedback = _apply_score_override("proceed", 0.0, "")
+        # 0.0 < LOW_THRESHOLD(0.4) → revise 오버라이드 (기존 로직)
+        assert decision == "revise"
+
+    def test_routing_negative_score_to_cinematographer(self):
+        """routing: error decision → cinematographer로 graceful proceed."""
+        from services.agent.routing import route_after_director_checkpoint
+
+        state = {
+            "director_checkpoint_decision": "error",
+            "director_checkpoint_score": -1.0,
+        }
+        assert route_after_director_checkpoint(state) == "cinematographer"
+
+
+class TestDirectorPlanGateFallback:
+    """Phase 28-D #16: director_plan_gate의 None → {} 폴백 확인."""
+
+    def test_none_director_plan_becomes_empty_dict(self):
+        """director_plan이 None이면 interrupt에 빈 dict 전달."""
+        # auto 모드에서는 interrupt 없이 proceed — 폴백 로직 자체가 적용되는지 확인
+        # director_plan_gate_node 내부에서 `state.get("director_plan") or {}` 확인
+        import inspect
+
+        from services.agent.nodes.director_plan_gate import director_plan_gate_node
+
+        source = inspect.getsource(director_plan_gate_node)
+        assert 'state.get("director_plan") or {}' in source

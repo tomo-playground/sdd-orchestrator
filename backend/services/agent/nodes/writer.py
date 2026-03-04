@@ -68,14 +68,14 @@ def _is_scenes_empty(scenes: list[dict]) -> bool:
 
 
 def _extract_reasoning(scenes: list[dict]) -> list[dict]:
-    """각 씬에서 reasoning 필드를 추출한다. 없으면 빈 리스트."""
+    """각 씬에서 reasoning 필드를 분리 추출한다. 원본 씬 dict를 변경하지 않는다."""
     reasoning = []
+    cleaned = []
     for scene in scenes:
-        r = scene.pop("reasoning", None)
-        if isinstance(r, dict):
-            reasoning.append(r)
-        else:
-            reasoning.append({})
+        r = scene.get("reasoning")
+        reasoning.append(r if isinstance(r, dict) else {})
+        cleaned.append({k: v for k, v in scene.items() if k != "reasoning"})
+    scenes[:] = cleaned
     return reasoning
 
 

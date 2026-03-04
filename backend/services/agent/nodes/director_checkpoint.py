@@ -25,6 +25,11 @@ def _apply_score_override(decision: str, score: float, feedback: str) -> tuple[s
     Returns:
         (overridden_decision, overridden_feedback)
     """
+    # Phase 28-D #15: 음수 score는 LLM 응답 오류로 간주 → error (cinematographer 진행)
+    if score < 0:
+        logger.warning("[LangGraph] Checkpoint score 음수(%.2f), LLM 오류로 간주", score)
+        return "error", feedback or "Checkpoint 점수 음수 — LLM 응답 오류"
+
     if decision == "proceed" and score < LANGGRAPH_CHECKPOINT_LOW_THRESHOLD:
         feedback = feedback or "구조 재작성 필요 (score < low threshold)"
         logger.warning(
