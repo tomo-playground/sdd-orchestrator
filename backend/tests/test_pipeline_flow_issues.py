@@ -948,3 +948,192 @@ class TestDirectorPlanGateFallback:
         state = {"interaction_mode": "auto", "director_plan": None}
         result = await director_plan_gate_node(state)
         assert result["plan_action"] == "proceed"
+
+
+# ═══════════════════════════════════════════════════════
+# 10. Phase 28 추가 시나리오: 누락 커버리지 보강
+# ═══════════════════════════════════════════════════════
+
+
+class TestTopicAnalysisEmptyGroupFallback:
+    """시나리오 2: group_id 있으나 캐릭터 0개 → _load_all_characters 폴백."""
+
+    @pytest.mark.asyncio
+    @patch("config.gemini_client", None)
+    @patch("services.agent.inventory.load_full_inventory")
+    @patch("services.scripts.topic_analysis._load_all_characters")
+    async def test_empty_group_triggers_fallback_load(self, mock_load_all, mock_inventory):
+        """group_id 지정했지만 캐릭터 0개 → _load_all_characters 호출."""
+        from services.scripts.topic_analysis import analyze_topic
+
+        mock_inventory.return_value = {"characters": []}
+        mock_load_all.return_value = []
+
+        result = await analyze_topic("테스트 주제", None, group_id=99)
+
+        mock_load_all.assert_called_once()
+        assert result.available_options is not None
+
+    @pytest.mark.asyncio
+    @patch("config.gemini_client", None)
+    @patch("services.agent.inventory.load_full_inventory")
+    @patch("services.scripts.topic_analysis._load_all_characters")
+    async def test_fallback_characters_included_in_options(self, mock_load_all, mock_inventory):
+        """폴백 로드 캐릭터가 available_options에 포함된다."""
+        from services.scripts.topic_analysis import analyze_topic
+
+        mock_inventory.return_value = {"characters": []}
+        mock_char = MagicMock()
+        mock_char.id = 1
+        mock_char.name = "테스트캐릭터"
+        mock_load_all.return_value = [mock_char]
+
+        result = await analyze_topic("테스트 주제", None, group_id=99)
+
+        assert len(result.available_options.characters) == 1
+
+
+class TestWriterSafetyRetryThenEmptyScenes:
+    """시나리오 7: Safety 재시도 성공 후에도 빈 씬 → 빈 씬 가드 동작."""
+
+    @pytest.mark.asyncio
+    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_db_session")
+    @patch("services.agent.nodes.writer.generate_script")
+    async def test_safety_retry_then_empty_triggers_guard(self, mock_gen, mock_db, mock_gemini):
+        """Safety 에러 → 재시도 성공 → 빈 씬 → 빈 씬 가드 재시도 → 복구."""
+        from services.agent.nodes.writer import writer_node
+
+        mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
+        mock_db.return_value.__exit__ = MagicMock(return_value=False)
+        mock_gemini.aio = MagicMock()
+
+        # 1차: Safety 에러, 2차: Safety 통과 but 빈 씬, 3차: 빈 씬 가드 재시도 성공
+        mock_gen.side_effect = [
+            Exception("SAFETY filter blocked"),
+            {"scenes": [], "character_id": 1},
+            {"scenes": [{"script": "복구됨", "duration": 5}], "character_id": 1},
+        ]
+
+        state = {"topic": "test", "duration": 10}
+        result = await writer_node(state)
+
+        assert "error" not in result
+        assert len(result["draft_scenes"]) == 1
+        assert mock_gen.call_count == 3
+
+    @pytest.mark.asyncio
+    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_db_session")
+    @patch("services.agent.nodes.writer.generate_script")
+    async def test_safety_retry_then_empty_all_fail(self, mock_gen, mock_db, mock_gemini):
+        """Safety 에러 → 재시도 성공 → 빈 씬 → 빈 씬 재시도도 빈 씬 → error."""
+        from services.agent.nodes.writer import writer_node
+
+        mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
+        mock_db.return_value.__exit__ = MagicMock(return_value=False)
+        mock_gemini.aio = MagicMock()
+
+        mock_gen.side_effect = [
+            Exception("SAFETY filter blocked"),
+            {"scenes": [], "character_id": 1},
+            {"scenes": [], "character_id": 1},
+        ]
+
+        state = {"topic": "test", "duration": 10}
+        result = await writer_node(state)
+
+        assert "error" in result
+        assert "빈 스크립트" in result["error"]
+
+
+class TestCheckpointLoopEmptyScenes:
+    """시나리오 8: Checkpoint → Writer 재실행 후 빈 씬 → 가드 동작.
+
+    라우팅 레벨 빈 씬 검사는 TestRouteAfterWriterEmptyScenes에서 커버.
+    이 클래스는 checkpoint 루프 맥락에서 writer_node 자체의 빈 씬 가드를 검증.
+    """
+
+    @pytest.mark.asyncio
+    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_db_session")
+    @patch("services.agent.nodes.writer.generate_script")
+    async def test_writer_in_checkpoint_loop_empty_returns_error(self, mock_gen, mock_db, mock_gemini):
+        """Checkpoint 루프 내 writer → 빈 씬 2회 → error."""
+        from services.agent.nodes.writer import writer_node
+
+        mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
+        mock_db.return_value.__exit__ = MagicMock(return_value=False)
+        mock_gemini.aio = MagicMock()
+        mock_gen.return_value = {"scenes": [], "character_id": 1}
+
+        state = {
+            "topic": "test",
+            "duration": 10,
+            "director_checkpoint_revision_count": 1,
+            "director_checkpoint_feedback": "더 몰입감 있게",
+        }
+        result = await writer_node(state)
+
+        assert "error" in result
+        assert "빈 스크립트" in result["error"]
+
+
+class TestMultipleProductionSimultaneousFailure:
+    """시나리오 9: Production 2개 이상 동시 실패 → 각각 fallback_reason."""
+
+    @pytest.mark.asyncio
+    @patch("services.agent.nodes.copyright_reviewer.run_production_step")
+    @patch("services.agent.nodes.sound_designer.run_production_step")
+    @patch("services.agent.nodes.tts_designer.run_production_step")
+    async def test_all_three_production_fail_combined_state(self, mock_tts_run, mock_sound_run, mock_cr_run):
+        """3개 동시 실패 시 state 전체 구조의 fallback_reason 일관성 검증."""
+        from services.agent.nodes.copyright_reviewer import copyright_reviewer_node
+        from services.agent.nodes.sound_designer import sound_designer_node
+        from services.agent.nodes.tts_designer import tts_designer_node
+
+        mock_tts_run.side_effect = Exception("TTS API timeout")
+        mock_sound_run.side_effect = Exception("Sound API timeout")
+        mock_cr_run.side_effect = Exception("Copyright API timeout")
+
+        state = {"cinematographer_result": {"scenes": [{"order": 1}]}}
+
+        tts_result = await tts_designer_node(state)
+        sound_result = await sound_designer_node(state)
+        cr_result = await copyright_reviewer_node(state)
+
+        assert tts_result["tts_designer_result"]["fallback_reason"] == "api_error"
+        assert sound_result["sound_designer_result"]["fallback_reason"] == "api_error"
+        assert cr_result["copyright_reviewer_result"]["fallback_reason"] == "api_error"
+
+    def test_director_routing_with_multiple_fallbacks(self):
+        """Director가 복수 fallback 결과 state에서 정상 라우팅."""
+        from services.agent.routing import route_after_director
+
+        state = {
+            "director_decision": "approve",
+            "tts_designer_result": {"tts_designs": [], "fallback_reason": "api_error"},
+            "sound_designer_result": {
+                "recommendation": {"prompt": "", "mood": "neutral", "duration": 30},
+                "fallback_reason": "api_error",
+            },
+            "copyright_reviewer_result": {
+                "overall": "WARN",
+                "fallback_reason": "api_error",
+            },
+        }
+        assert route_after_director(state) == "finalize"
+
+    def test_director_routing_with_mixed_results(self):
+        """정상 + fallback 혼합 state에서 Director 라우팅 정상."""
+        from services.agent.routing import route_after_director
+
+        state = {
+            "director_decision": "approve",
+            "tts_designer_result": {"tts_designs": [{"voice": "alloy"}]},
+            "sound_designer_result": {
+                "recommendation": {"prompt": "", "mood": "neutral", "duration": 30},
+                "fallback_reason": "api_error",
+            },
+        }
+        assert route_after_director(state) == "finalize"
