@@ -171,9 +171,11 @@ def sanitize_chat_context(chat_context: list[dict]) -> list[dict]:
 
     sanitized: list[dict] = []
     for msg in chat_context:
-        text = msg.get("text", "")
+        # Pydantic 모델 또는 dict 양쪽 지원
+        raw = msg if isinstance(msg, dict) else msg.model_dump()
+        text = raw.get("text", "")
         if not isinstance(text, str):
-            sanitized.append(msg)
+            sanitized.append(raw)
             continue
 
         cleaned = text
@@ -184,12 +186,12 @@ def sanitize_chat_context(chat_context: list[dict]) -> list[dict]:
         if cleaned != text:
             logger.warning(
                 "[Sanitize] Prompt injection pattern removed from chat_context (role=%s, before=%d, after=%d)",
-                msg.get("role", "?"),
+                raw.get("role", "?"),
                 len(text),
                 len(cleaned),
             )
 
-        sanitized.append({**msg, "text": cleaned})
+        sanitized.append({**raw, "text": cleaned})
 
     return sanitized
 
