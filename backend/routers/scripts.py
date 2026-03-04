@@ -161,9 +161,11 @@ def _is_graph_interrupt(exc: Exception) -> bool:
 _NODE_RESULT_KEYS: dict[str, str | list[str]] = {
     "director_plan": ["director_plan", "skip_stages"],  # Phase 25: execution_plan → skip_stages 전달
     "inventory_resolve": "casting_recommendation",
+    "research": ["research_brief", "research_score"],  # Phase 28-C: SSE 관측성 추가
     "critic": ["critic_result", "debate_log"],  # Phase 10-C-3: 토론 로그 추가
     "concept_gate": ["critic_result"],  # 사용자 선택 반영된 critic_result
     "review": "review_result",
+    "revise": "draft_scenes",  # Phase 28-C: SSE 관측성 추가
     "cinematographer": ["cinematographer_result", "cinematographer_tool_logs"],
     "tts_designer": "tts_designer_result",
     "sound_designer": "sound_designer_result",

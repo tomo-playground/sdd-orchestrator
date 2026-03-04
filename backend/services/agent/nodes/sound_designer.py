@@ -7,7 +7,10 @@ from services.agent.nodes._production_utils import run_production_step
 from services.agent.state import ScriptState
 from services.creative_qc import validate_music
 
-_FALLBACK_SOUND = {"recommendation": {"prompt": "", "mood": "neutral", "duration": 30}}
+_FALLBACK_SOUND = {
+    "recommendation": {"prompt": "", "mood": "neutral", "duration": 30},
+    "fallback_reason": "api_error",
+}
 
 
 async def sound_designer_node(state: ScriptState) -> dict:

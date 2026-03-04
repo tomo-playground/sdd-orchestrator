@@ -7,7 +7,7 @@ from services.agent.nodes._production_utils import run_production_step
 from services.agent.state import ScriptState
 from services.creative_qc import validate_tts_design
 
-_FALLBACK_TTS = {"tts_designs": []}
+_FALLBACK_TTS = {"tts_designs": [], "fallback_reason": "api_error"}
 
 
 def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
@@ -52,13 +52,15 @@ def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
         if group_id:
             group = db.query(Group).filter(Group.id == group_id).first()
             if group and group.narrator_voice_preset and group.narrator_voice_preset.voice_design_prompt:
-                results.append({
-                    "speaker": "Narrator",
-                    "name": "Narrator",
-                    "gender": "neutral",
-                    "reference_voice": group.narrator_voice_preset.voice_design_prompt,
-                    "has_preset": True,
-                })
+                results.append(
+                    {
+                        "speaker": "Narrator",
+                        "name": "Narrator",
+                        "gender": "neutral",
+                        "reference_voice": group.narrator_voice_preset.voice_design_prompt,
+                        "has_preset": True,
+                    }
+                )
 
     return results if results else None
 

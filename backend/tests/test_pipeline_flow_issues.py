@@ -751,3 +751,92 @@ class TestFinalizeEmptyGroupWarning:
             assert result == (None, None)
             mock_logger.warning.assert_called_once()
             assert "Group 6" in mock_logger.warning.call_args[0][0] % mock_logger.warning.call_args[0][1:]
+
+
+# ═══════════════════════════════════════════════════════
+# 8. Phase 28-C: Observability — fallback_reason 표준화 + SSE 키 확장
+# ═══════════════════════════════════════════════════════
+
+
+class TestProductionFallbackReason:
+    """Phase 28-C #11: 3개 Production 노드 모두 fallback_reason 포함."""
+
+    @pytest.mark.asyncio
+    @patch("services.agent.nodes.tts_designer.run_production_step")
+    async def test_tts_fallback_has_reason(self, mock_run):
+        """TTS Designer 실패 → fallback_reason 포함."""
+        from services.agent.nodes.tts_designer import tts_designer_node
+
+        mock_run.side_effect = Exception("timeout")
+        state = {"cinematographer_result": {"scenes": []}}
+        result = await tts_designer_node(state)
+
+        tts = result["tts_designer_result"]
+        assert tts["fallback_reason"] == "api_error"
+        assert tts["tts_designs"] == []
+
+    @pytest.mark.asyncio
+    @patch("services.agent.nodes.sound_designer.run_production_step")
+    async def test_sound_fallback_has_reason(self, mock_run):
+        """Sound Designer 실패 → fallback_reason 포함."""
+        from services.agent.nodes.sound_designer import sound_designer_node
+
+        mock_run.side_effect = Exception("timeout")
+        state = {"cinematographer_result": {"scenes": []}}
+        result = await sound_designer_node(state)
+
+        sound = result["sound_designer_result"]
+        assert sound["fallback_reason"] == "api_error"
+        assert sound["recommendation"]["mood"] == "neutral"
+
+    @pytest.mark.asyncio
+    @patch("services.agent.nodes.copyright_reviewer.run_production_step")
+    async def test_copyright_fallback_has_reason(self, mock_run):
+        """Copyright Reviewer 실패 → fallback_reason 포함 (Phase B 검증 재확인)."""
+        from services.agent.nodes.copyright_reviewer import copyright_reviewer_node
+
+        mock_run.side_effect = Exception("timeout")
+        state = {"cinematographer_result": {"scenes": []}}
+        result = await copyright_reviewer_node(state)
+
+        cr = result["copyright_reviewer_result"]
+        assert cr["fallback_reason"] == "api_error"
+        assert cr["overall"] == "WARN"
+
+
+class TestNodeResultKeysExpansion:
+    """Phase 28-C #12: _NODE_RESULT_KEYS에 research, revise 추가."""
+
+    def test_research_key_registered(self):
+        """research 노드가 SSE 키에 등록됨."""
+        from routers.scripts import _NODE_RESULT_KEYS
+
+        assert "research" in _NODE_RESULT_KEYS
+        keys = _NODE_RESULT_KEYS["research"]
+        assert isinstance(keys, list)
+        assert "research_brief" in keys
+        assert "research_score" in keys
+
+    def test_revise_key_registered(self):
+        """revise 노드가 SSE 키에 등록됨."""
+        from routers.scripts import _NODE_RESULT_KEYS
+
+        assert "revise" in _NODE_RESULT_KEYS
+
+    def test_extract_node_result_research(self):
+        """research 노드 결과 추출 함수 동작 확인."""
+        from routers.scripts import _extract_node_result
+
+        output = {"research_brief": {"topic_summary": "test"}, "research_score": {"overall": 0.8}}
+        result = _extract_node_result("research", output)
+        assert result is not None
+        assert result["brief"]["topic_summary"] == "test"
+        assert result["score"]["overall"] == 0.8
+
+    def test_extract_node_result_revise(self):
+        """revise 노드 결과 추출 함수 동작 확인."""
+        from routers.scripts import _extract_node_result
+
+        output = {"draft_scenes": [{"script": "updated"}]}
+        result = _extract_node_result("revise", output)
+        assert result is not None
