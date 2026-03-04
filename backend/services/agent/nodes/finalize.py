@@ -662,6 +662,7 @@ def _resolve_characters_from_group(
         .all()
     )
     if not chars:
+        logger.warning("[Finalize] Group %d에 캐릭터 없음, character_id=None 유지", group_id)
         return None, None
     char_a = chars[0].id
     _DIALOGUE_STRUCTURES = {"Dialogue", "Narrated Dialogue"}

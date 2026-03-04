@@ -187,7 +187,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     character_id = state.get("character_id")
     director_feedback = state.get("director_feedback")
 
-    characters_tags = _load_characters_tags(state, db_session)
+    characters_tags = _load_characters_tags(state, db_session) or {}
 
     style = state.get("style", "Anime")
     writer_plan = state.get("writer_plan")

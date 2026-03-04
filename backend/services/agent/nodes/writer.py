@@ -62,6 +62,11 @@ def _append_safety_hint(description: str) -> str:
     return f"{description}{_SAFETY_HINT}".strip()
 
 
+def _is_scenes_empty(scenes: list[dict]) -> bool:
+    """씬 리스트가 비어있거나 모든 씬의 script가 빈 문자열인지 확인."""
+    return not scenes or all(not s.get("script", "").strip() for s in scenes)
+
+
 def _extract_reasoning(scenes: list[dict]) -> list[dict]:
     """각 씬에서 reasoning 필드를 추출한다. 없으면 빈 리스트."""
     reasoning = []
@@ -258,6 +263,22 @@ async def writer_node(state: ScriptState) -> dict:
                 return {"error": str(e)}
 
         scenes = result.get("scenes", [])
+
+        # Phase 28-A: 빈 씬 자체 검증 + 1회 재시도
+        if _is_scenes_empty(scenes):
+            logger.warning("[LangGraph] Writer: 빈 씬 감지 (%d scenes), 힌트 추가 1회 재시도", len(scenes))
+            retry_desc = (state.get("description") or "") + "\n\n[중요] 반드시 1개 이상의 씬을 생성하세요."
+            request.description = retry_desc
+            try:
+                retry_result = await generate_script(request, db, pipeline_context=pipeline_ctx)
+                scenes = retry_result.get("scenes", [])
+                result = retry_result
+            except Exception as retry_err:
+                logger.error("[LangGraph] Writer 빈 씬 재시도 실패: %s", retry_err)
+                return {"error": f"빈 스크립트 생성 (재시도 실패: {retry_err})"}
+            if _is_scenes_empty(scenes):
+                logger.error("[LangGraph] Writer 재시도 후에도 빈 씬")
+                return {"error": "빈 스크립트 — Writer가 유효한 씬을 생성하지 못했습니다"}
 
         # Duration auto-calculation from reading time
         from services.storyboard.helpers import estimate_reading_duration

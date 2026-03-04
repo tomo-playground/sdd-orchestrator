@@ -36,6 +36,43 @@ export default function ReviewApprovalPanel({
   const [feedback, setFeedback] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
 
+  // Phase 28-A: 0개 씬 → 에러 메시지 + 승인 버튼 제거
+  if (scenes.length === 0) {
+    return (
+      <section className="mt-6 rounded-2xl border-2 border-red-200 bg-red-50/50 p-6">
+        <h3 className="mb-3 text-sm font-semibold text-red-800">씬 생성 실패</h3>
+        <p className="mb-4 text-xs text-red-700">
+          AI가 씬을 생성하지 못했습니다. 주제를 변경하거나 수정을 요청해주세요.
+        </p>
+        <Button size="md" variant="secondary" onClick={() => setShowFeedback(true)}>
+          <Edit3 className="h-4 w-4" />
+          수정 요청
+        </Button>
+        {showFeedback && (
+          <>
+            <textarea
+              className="mt-4 w-full rounded-lg border border-zinc-200 p-3 text-sm"
+              rows={3}
+              placeholder="수정 사항을 입력하세요..."
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+            />
+            {feedback.trim() && (
+              <Button
+                size="md"
+                variant="gradient"
+                className="mt-2"
+                onClick={() => onRevise(feedback.trim())}
+              >
+                전송
+              </Button>
+            )}
+          </>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section className="mt-6 rounded-2xl border-2 border-amber-200 bg-amber-50/50 p-6">
       <h3 className="mb-3 text-sm font-semibold text-amber-800">검토 대기 중</h3>

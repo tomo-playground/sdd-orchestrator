@@ -81,9 +81,12 @@ def route_after_research(state: ScriptState) -> str:
 
 
 def route_after_writer(state: ScriptState) -> str:
-    """writer 이후: 에러 → finalize (short-circuit), 정상 → review."""
+    """writer 이후: 에러/빈 씬 → finalize (short-circuit), 정상 → review."""
     if _has_error(state):
         logger.warning("[LangGraph] writer 에러, finalize로 short-circuit")
+        return "finalize"
+    if not state.get("draft_scenes"):
+        logger.warning("[LangGraph] writer 빈 씬, finalize로 short-circuit")
         return "finalize"
     return "review"
 

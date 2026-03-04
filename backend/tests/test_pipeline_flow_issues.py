@@ -6,6 +6,7 @@
 3. [LOW] human_gate revision_count 리셋 후 무한 수정 가능성
 4. [LOW] learn 노드 draft_character_id vs character_id 불일치
 5. [INFO] routing 엣지 케이스 (review_result=None, 중첩 루프 카운터)
+6. [Phase 28-A] 빈 씬 가드 + 라우팅 방어 + SSE falsy 체크
 """
 
 from __future__ import annotations
@@ -463,3 +464,170 @@ class TestRoutingEdgeCases:
         assert route_after_concept_gate({"concept_action": "regenerate"}) == "critic"
         assert route_after_concept_gate({"concept_action": "select"}) == "writer"
         assert route_after_concept_gate({}) == "writer"
+
+
+# ═══════════════════════════════════════════════════════
+# 6. Phase 28-A: 빈 씬 가드 + 라우팅 방어
+# ═══════════════════════════════════════════════════════
+
+
+class TestRouteAfterWriterEmptyScenes:
+    """Phase 28-A: route_after_writer 빈 씬 검사."""
+
+    def test_empty_scenes_routes_to_finalize(self):
+        """draft_scenes: [] → finalize short-circuit."""
+        from services.agent.routing import route_after_writer
+
+        state = {"draft_scenes": []}
+        assert route_after_writer(state) == "finalize"
+
+    def test_missing_scenes_routes_to_finalize(self):
+        """draft_scenes 키 없음 → finalize short-circuit."""
+        from services.agent.routing import route_after_writer
+
+        assert route_after_writer({}) == "finalize"
+
+    def test_none_scenes_routes_to_finalize(self):
+        """draft_scenes: None → finalize short-circuit."""
+        from services.agent.routing import route_after_writer
+
+        state = {"draft_scenes": None}
+        assert route_after_writer(state) == "finalize"
+
+    def test_valid_scenes_routes_to_review(self):
+        """정상 씬 → review 경로."""
+        from services.agent.routing import route_after_writer
+
+        state = {"draft_scenes": [{"script": "hello", "duration": 5}]}
+        assert route_after_writer(state) == "review"
+
+    def test_error_takes_precedence_over_empty_scenes(self):
+        """error + 빈 씬 → error가 우선 (finalize)."""
+        from services.agent.routing import route_after_writer
+
+        state = {"error": "some error", "draft_scenes": []}
+        assert route_after_writer(state) == "finalize"
+
+
+class TestWriterEmptySceneRetry:
+    """Phase 28-A: writer_node 빈 씬 재시도 로직."""
+
+    @pytest.mark.asyncio
+    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_db_session")
+    @patch("services.agent.nodes.writer.generate_script")
+    async def test_empty_scenes_triggers_retry(self, mock_gen, mock_db, mock_gemini):
+        """빈 씬 반환 → 힌트 추가 1회 재시도."""
+        from services.agent.nodes.writer import writer_node
+
+        mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
+        mock_db.return_value.__exit__ = MagicMock(return_value=False)
+        mock_gemini.aio = MagicMock()
+
+        # 1차: 빈 씬, 2차: 정상
+        mock_gen.side_effect = [
+            {"scenes": [], "character_id": 1},
+            {"scenes": [{"script": "retry ok", "duration": 5}], "character_id": 1},
+        ]
+
+        state = {"topic": "test", "duration": 10}
+        result = await writer_node(state)
+
+        assert "error" not in result
+        assert len(result["draft_scenes"]) == 1
+        assert mock_gen.call_count == 2
+
+    @pytest.mark.asyncio
+    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_db_session")
+    @patch("services.agent.nodes.writer.generate_script")
+    async def test_both_attempts_empty_returns_error(self, mock_gen, mock_db, mock_gemini):
+        """2회 모두 빈 씬 → error 반환."""
+        from services.agent.nodes.writer import writer_node
+
+        mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
+        mock_db.return_value.__exit__ = MagicMock(return_value=False)
+        mock_gemini.aio = MagicMock()
+
+        mock_gen.return_value = {"scenes": [], "character_id": 1}
+
+        state = {"topic": "test", "duration": 10}
+        result = await writer_node(state)
+
+        assert "error" in result
+        assert "빈 스크립트" in result["error"]
+
+    @pytest.mark.asyncio
+    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_db_session")
+    @patch("services.agent.nodes.writer.generate_script")
+    async def test_all_empty_scripts_treated_as_empty(self, mock_gen, mock_db, mock_gemini):
+        """모든 씬의 script가 빈 문자열 → 빈 씬 취급."""
+        from services.agent.nodes.writer import writer_node
+
+        mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
+        mock_db.return_value.__exit__ = MagicMock(return_value=False)
+        mock_gemini.aio = MagicMock()
+
+        mock_gen.return_value = {
+            "scenes": [{"script": "", "duration": 5}, {"script": "   ", "duration": 5}],
+            "character_id": 1,
+        }
+
+        state = {"topic": "test", "duration": 10}
+        result = await writer_node(state)
+
+        assert "error" in result
+
+    @pytest.mark.asyncio
+    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_db_session")
+    @patch("services.agent.nodes.writer.generate_script")
+    async def test_retry_exception_returns_error(self, mock_gen, mock_db, mock_gemini):
+        """재시도 중 예외 → error 반환."""
+        from services.agent.nodes.writer import writer_node
+
+        mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
+        mock_db.return_value.__exit__ = MagicMock(return_value=False)
+        mock_gemini.aio = MagicMock()
+
+        mock_gen.side_effect = [
+            {"scenes": [], "character_id": 1},
+            Exception("Gemini timeout"),
+        ]
+
+        state = {"topic": "test", "duration": 10}
+        result = await writer_node(state)
+
+        assert "error" in result
+        assert "재시도 실패" in result["error"]
+
+
+class TestCinematographerNullGuard:
+    """Phase 28-A: cinematographer characters_tags None → {} 폴백."""
+
+    def test_load_characters_tags_returns_empty_dict_on_no_character(self):
+        """character_id 없으면 _load_characters_tags → None, 호출부에서 {} 폴백."""
+        from services.agent.nodes.cinematographer import _load_characters_tags
+
+        state = {}
+        result = _load_characters_tags(state, MagicMock())
+        # 함수 자체는 None 반환, 호출부에서 `or {}` 적용
+        assert result is None
+
+
+class TestFinalizeEmptyGroupWarning:
+    """Phase 28-A: finalize 빈 그룹 경고 로깅."""
+
+    def test_empty_group_returns_none_with_logging(self):
+        """빈 그룹 → (None, None) + 경고 로그."""
+        from services.agent.nodes.finalize import _resolve_characters_from_group
+
+        mock_db = MagicMock()
+        mock_db.query.return_value.filter.return_value.order_by.return_value.limit.return_value.all.return_value = []
+
+        with patch("services.agent.nodes.finalize.logger") as mock_logger:
+            result = _resolve_characters_from_group(6, "Monologue", mock_db)
+            assert result == (None, None)
+            mock_logger.warning.assert_called_once()
+            assert "Group 6" in mock_logger.warning.call_args[0][0] % mock_logger.warning.call_args[0][1:]

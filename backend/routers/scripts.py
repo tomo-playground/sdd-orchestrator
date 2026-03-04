@@ -312,7 +312,7 @@ async def _read_interrupt_state(graph, config: dict) -> tuple[str, dict]:  # noq
                 ("review_result", "review_result"),
                 ("scene_reasoning", "scene_reasoning"),
             ]:
-                if vals.get(key):
+                if vals.get(key) is not None:
                     result[out_key] = vals[key]
             ps = _build_production_snapshot(vals)
             if ps:
