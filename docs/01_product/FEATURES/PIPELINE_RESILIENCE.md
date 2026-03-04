@@ -1,6 +1,6 @@
 # Pipeline Resilience — Agentic AI 기반 파이프라인 견고성 개선
 
-**상태**: Phase 28 — 진행 중 (Phase A 착수)
+**상태**: Phase 28 — **완료** (Phase A~D 전체 구현)
 **선행**: Phase 27 (Chat System UX), [AGENTIC_PIPELINE.md](AGENTIC_PIPELINE.md)
 **근거**: 파이프라인 플로우 검수 (2026-03-04) — 24개 이슈 발견, 실사용 캐릭터 배정 장애 재현
 
@@ -148,34 +148,34 @@ Agentic 시스템이라면 Writer가 0개 씬을 인지하고 **자체적으로 
 
 ## 4. 구현 전략
 
-### Phase A: Critical Guard (P0) — 예상 반나절
+### Phase A: Critical Guard (P0) — ✅ 완료 (`7e4c5c7b`)
 
-1. `writer`: 빈 씬 자체 검증 + 힌트 추가 1회 재시도 + error 설정
-2. `route_after_writer`: `not state.get("draft_scenes")` 검사 추가
-3. `_read_interrupt_state`: `is not None` 체크로 변경
-4. `ReviewApprovalPanel`: 0개 씬 → 에러 메시지 + 승인 버튼 제거 (수정 요청만 유지)
-5. `finalize._resolve_characters_from_group`: 빈 그룹 경고 로깅 강화
-6. `cinematographer._load_characters_tags`: `None` → `{}` 폴백 (1줄)
+1. ✅ `writer`: 빈 씬 자체 검증 + 힌트 추가 1회 재시도 + error 설정
+2. ✅ `route_after_writer`: `not state.get("draft_scenes")` 검사 추가
+3. ✅ `_read_interrupt_state`: `is not None` 체크로 변경
+4. ✅ `ReviewApprovalPanel`: 0개 씬 → 에러 메시지 + 승인 버튼 제거 (수정 요청만 유지)
+5. ✅ `finalize._resolve_characters_from_group`: 빈 그룹 경고 로깅 강화
+6. ✅ `cinematographer._load_characters_tags`: `None` → `{}` 폴백
 
-### Phase B: Error Recovery (P1) — 예상 반나절
+### Phase B: Error Recovery (P1) — ✅ 완료 (`7b8a20c6`)
 
-7. `finalize` validator 논리 그룹별 try/except 래핑 (`exc_info=True`)
-8. `copyright_reviewer` fallback `"PASS"` → `"WARN"` + `fallback_reason`
-9. `_DIRECTOR_DECISION_MAP` unknown decision 경고 로깅 (**#8과 동시 구현**)
-10. 글로벌 리비전 파생 계산 `_total_revisions(state)` + 라우팅 상한 체크 (state 필드 추가 없음)
+7. ✅ `finalize` validator 논리 그룹별 try/except 래핑 (`exc_info=True`)
+8. ✅ `copyright_reviewer` fallback `"PASS"` → `"WARN"` + `fallback_reason`
+9. ✅ `_DIRECTOR_DECISION_MAP` unknown decision 경고 로깅
+10. ✅ 글로벌 리비전 파생 계산 `_total_revisions(state)` + 라우팅 상한 체크 (`LANGGRAPH_MAX_GLOBAL_REVISIONS=10`)
 
-### Phase C: Observability (P2) — 예상 0.5일 (Phase B 이후)
+### Phase C: Observability (P2) — ✅ 완료 (`9cd058c5`)
 
-11. `fallback_reason` 필드 표준화 (tts/sound)
-12. `_NODE_RESULT_KEYS`에 research, revise 추가
-13. Frontend fallback 경고 배지 + Production NODE_LABELS 추가
+11. ✅ `fallback_reason` 필드 표준화 (tts/sound)
+12. ✅ `_NODE_RESULT_KEYS`에 research, revise 추가
+13. ✅ Frontend fallback 경고 배지 + Production NODE_LABELS 6개 추가
 
-### Phase D: Data Integrity (P2~P3) — 예상 0.5일
+### Phase D: Data Integrity (P2~P3) — ✅ 완료 (`078a0bd0`)
 
-14. `_extract_reasoning` 복사본에서 pop (원본 보존)
-15. `director_checkpoint_score` 음수 → error 취급
-16. `director_plan_gate` None → `{}` 폴백
-17. `revision_history` 상한 (글로벌 카운터 도입 후 자동 제한되므로 우선순위 낮음)
+14. ✅ `_extract_reasoning` 복사본에서 strip (원본 dict 보호, `scenes[:] = cleaned`)
+15. ✅ `director_checkpoint_score` 음수 → error 취급 (cinematographer graceful proceed)
+16. ✅ `director_plan_gate` None → `{}` 폴백 (이미 적용됨, 검증 완료)
+17. ⏭️ `revision_history` 상한 — 글로벌 캡(10)으로 자연 제한, 별도 구현 불필요
 
 > **Phase 의존성**: Phase B (#8 fallback_reason 정의) → Phase C (#11, #13 Frontend 소비). Phase C는 B 완료 후 진행.
 
