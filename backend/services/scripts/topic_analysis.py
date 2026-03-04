@@ -31,8 +31,9 @@ async def analyze_topic(
     inventory = load_full_inventory(group_id)
     characters = inventory.get("characters", [])
 
-    # group_id가 없으면 캐릭터가 빈 배열 — 추천용이므로 전체 캐릭터 로드
-    if not characters and group_id is None:
+    # 캐릭터가 비었으면 전체 활성 캐릭터를 폴백 로드 (추천용)
+    # group_id가 있어도 해당 그룹에 캐릭터가 없을 수 있음
+    if not characters:
         characters = _load_all_characters()
 
     logger.debug(
