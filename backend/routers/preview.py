@@ -37,6 +37,7 @@ async def preview_tts(
     try:
         return await preview_scene_tts(req, db)
     except Exception as e:
+        db.rollback()
         raise_user_error("tts_preview", e)
 
 
@@ -52,6 +53,7 @@ async def preview_tts_batch(
     try:
         return await preview_batch_tts(req, db)
     except Exception as e:
+        db.rollback()
         raise_user_error("tts_batch_preview", e)
 
 
@@ -67,6 +69,7 @@ async def preview_frame(
     try:
         return await preview_scene_frame(req, db)
     except Exception as e:
+        db.rollback()
         raise_user_error("frame_preview", e)
 
 
@@ -90,4 +93,5 @@ async def validate_pre_render(
     try:
         return await preview_validate(req, db)
     except Exception as e:
+        db.rollback()
         raise_user_error("pre_validate", e)

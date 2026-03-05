@@ -133,10 +133,21 @@ async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
 
 
 def _save_audio_asset(db: Session, audio_bytes: bytes, cache_key: str):
-    """Save audio bytes to storage and register as temp asset."""
+    """Save audio bytes to storage and register as temp asset.
+
+    If an asset with the same storage_key already exists, return it
+    (avoids UniqueViolation on force_regenerate with identical audio).
+    """
+    from models.media_asset import MediaAsset
+
     digest = hashlib.sha256(audio_bytes).hexdigest()[:16]
     file_name = f"tts_preview_{digest}.wav"
     storage_key = f"previews/tts/{file_name}"
+
+    # Return existing asset if storage_key already registered
+    existing = db.query(MediaAsset).filter(MediaAsset.storage_key == storage_key).first()
+    if existing:
+        return existing
 
     storage = get_storage()
     storage.save(storage_key, audio_bytes, content_type="audio/wav")
