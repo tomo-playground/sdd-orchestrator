@@ -19,6 +19,7 @@ async def run_production_step(
     extract_key: str,
     step_name: str,
     model: str | None = None,
+    system_instruction: str | None = None,
 ) -> dict:
     """Production step: 템플릿 렌더 → Gemini → JSON 파싱 → QC → 재시도.
 
@@ -34,7 +35,10 @@ async def run_production_step(
     resolved_model = model or GEMINI_TEXT_MODEL
     tmpl = template_env.get_template(template_name)
     retry_vars = dict(template_vars)
-    config = types.GenerateContentConfig(safety_settings=GEMINI_SAFETY_SETTINGS)
+    config = types.GenerateContentConfig(
+        safety_settings=GEMINI_SAFETY_SETTINGS,
+        system_instruction=system_instruction,
+    )
 
     for retry in range(CREATIVE_PIPELINE_MAX_RETRIES + 1):
         prompt = tmpl.render(**retry_vars)

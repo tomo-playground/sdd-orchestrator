@@ -11,7 +11,7 @@ from typing import TypedDict
 
 from google.genai.types import GenerateContentConfig, HttpOptions
 
-from config import GEMINI_CLASSIFIER_MODEL, GEMINI_CLASSIFIER_TIMEOUT_MS, gemini_client, logger
+from config import GEMINI_CLASSIFIER_MODEL, GEMINI_CLASSIFIER_TIMEOUT_MS, GEMINI_SAFETY_SETTINGS, gemini_client, logger
 from config_prompt import VALID_VALENCES as _VALID_VALENCES
 from services.keywords.patterns import GROUP_NAME_TO_LAYER
 
@@ -142,6 +142,7 @@ async def classify_tags_via_llm(tags: list[str]) -> list[LLMClassificationResult
             contents=prompt,
             config=GenerateContentConfig(
                 http_options=HttpOptions(timeout=GEMINI_CLASSIFIER_TIMEOUT_MS),
+                safety_settings=GEMINI_SAFETY_SETTINGS,
             ),
         )
         text = response.text or ""
@@ -211,6 +212,7 @@ async def classify_valence_via_llm(tags: list[str]) -> list[LLMValenceResult]:
             contents=prompt,
             config=GenerateContentConfig(
                 http_options=HttpOptions(timeout=GEMINI_CLASSIFIER_TIMEOUT_MS),
+                safety_settings=GEMINI_SAFETY_SETTINGS,
             ),
         )
         text = response.text or ""

@@ -9,8 +9,11 @@ from __future__ import annotations
 
 import json
 
+from google.genai import types
+
 from config import (
     DURATION_DEFICIT_THRESHOLD,
+    GEMINI_SAFETY_SETTINGS,
     LANGGRAPH_AUTO_REVIEW_THRESHOLD,
     REVIEW_SCRIPT_MAX_CHARS_OTHER,
     SCRIPT_LENGTH_KOREAN,
@@ -159,10 +162,15 @@ async def _gemini_evaluate(
             language=language,
             threshold=LANGGRAPH_AUTO_REVIEW_THRESHOLD,
         )
+        config = types.GenerateContentConfig(
+            system_instruction="You are a script quality evaluator for short-form video scenes.",
+            safety_settings=GEMINI_SAFETY_SETTINGS,
+        )
         async with trace_llm_call(name="review_gemini_evaluate", input_text=prompt[:2000], model=REVIEW_MODEL) as llm:
             response = await gemini_client.aio.models.generate_content(
                 model=REVIEW_MODEL,
                 contents=prompt,
+                config=config,
             )
             llm.record(response)
         return response.text
@@ -218,12 +226,17 @@ async def _narrative_evaluate(
             language=language,
             threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
         )
+        config = types.GenerateContentConfig(
+            system_instruction="You are a narrative quality evaluator specializing in short-form video storytelling.",
+            safety_settings=GEMINI_SAFETY_SETTINGS,
+        )
         async with trace_llm_call(
             name="review_narrative_evaluate", input_text=prompt[:2000], model=REVIEW_MODEL
         ) as llm:
             response = await gemini_client.aio.models.generate_content(
                 model=REVIEW_MODEL,
                 contents=prompt,
+                config=config,
             )
             llm.record(response)
         return _parse_narrative_score(response.text or "")
@@ -261,10 +274,15 @@ async def _self_reflect(
             narrative_score=review_result.get("narrative_score"),
             narrative_threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
         )
+        config = types.GenerateContentConfig(
+            system_instruction="You are a self-reflection agent that analyzes review failures and proposes fix strategies.",
+            safety_settings=GEMINI_SAFETY_SETTINGS,
+        )
         async with trace_llm_call(name="review_self_reflect", input_text=prompt[:2000], model=REVIEW_MODEL) as llm:
             response = await gemini_client.aio.models.generate_content(
                 model=REVIEW_MODEL,
                 contents=prompt,
+                config=config,
             )
             llm.record(response)
 
@@ -350,10 +368,15 @@ async def _unified_evaluate(
             rule_errors=rule_errors,
             rule_warnings=rule_warnings,
         )
+        config = types.GenerateContentConfig(
+            system_instruction="You are a unified review agent that evaluates technical quality, narrative strength, and self-reflection for short-form video scripts.",
+            safety_settings=GEMINI_SAFETY_SETTINGS,
+        )
         async with trace_llm_call(name="review_unified_evaluate", input_text=prompt[:2000], model=REVIEW_MODEL) as llm:
             response = await gemini_client.aio.models.generate_content(
                 model=REVIEW_MODEL,
                 contents=prompt,
+                config=config,
             )
             llm.record(response)
 

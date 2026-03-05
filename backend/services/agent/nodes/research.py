@@ -15,10 +15,12 @@ import re
 from urllib.parse import urlparse
 
 import httpx
+from google.genai import types
 from langchain_core.runnables import RunnableConfig
 from langgraph.store.base import BaseStore
 
 from config import (
+    GEMINI_SAFETY_SETTINGS,
     GEMINI_TEXT_MODEL,
     RESEARCH_MAX_REFERENCES,
     RESEARCH_URL_FETCH_TIMEOUT,
@@ -188,10 +190,15 @@ async def _analyze_references(refs: list[str], state: ScriptState) -> str | None
             logger.warning("[Research] Gemini 클라이언트 없음 — 원문 fallback")
             return _fallback_brief(materials)
 
+        config = types.GenerateContentConfig(
+            system_instruction="You are a content analyst for short-form video production. Analyze reference materials and extract key insights.",
+            safety_settings=GEMINI_SAFETY_SETTINGS,
+        )
         async with trace_llm_call(name="research_analyze_references", input_text=prompt[:2000]) as llm:
             response = await gemini_client.aio.models.generate_content(
                 model=GEMINI_TEXT_MODEL,
                 contents=prompt,
+                config=config,
             )
             llm.record(response)
         raw = response.text or ""

@@ -177,6 +177,12 @@ docs/
 - 폴백 사용 시 반드시 로그 기록: `[Fallback] PROHIBITED_CONTENT → {fallback_model}`
 - 폴백도 실패 시 사용자에게 에러 전파
 
+### Gemini API 호출 체크리스트 (신규 호출 시 필수)
+1. `GenerateContentConfig(system_instruction=..., safety_settings=GEMINI_SAFETY_SETTINGS)` 사용
+2. `contents`에는 사용자 데이터/템플릿 렌더링 결과만 전달
+3. `GEMINI_SAFETY_SETTINGS` (config.py) 필수 — 인라인 safety settings 정의 금지
+4. 위반 시 PROHIBITED_CONTENT 하드 블록 위험 증가
+
 ### Sanitization (유지)
 - `_sanitize_for_gemini_prompt()`: Gemini 호출 직전 미성년자 연상 단어 치환
 - `_restore_danbooru_tags()`: Gemini 응답을 SD용 Danbooru 태그로 복원

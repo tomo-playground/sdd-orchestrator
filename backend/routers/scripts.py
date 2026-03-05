@@ -330,7 +330,7 @@ async def _preflight_safety_check(topic: str, description: str) -> str | None:
     """주제의 안전성을 사전 검증한다. 차단 시 에러 메시지, 통과 시 None."""
     from google.genai import types  # noqa: PLC0415
 
-    from config import GEMINI_TEXT_MODEL, gemini_client  # noqa: PLC0415
+    from config import GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client  # noqa: PLC0415
 
     if not gemini_client:
         return None
@@ -339,17 +339,7 @@ async def _preflight_safety_check(topic: str, description: str) -> str | None:
     if description:
         prompt += f"\n설명: {description[:200]}"
 
-    safety = [
-        types.SafetySetting(category=c, threshold=types.HarmBlockThreshold.BLOCK_NONE)
-        for c in [
-            types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-            types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-            types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-            types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-            types.HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
-        ]
-    ]
-    cfg = types.GenerateContentConfig(safety_settings=safety, max_output_tokens=10)
+    cfg = types.GenerateContentConfig(safety_settings=GEMINI_SAFETY_SETTINGS, max_output_tokens=10)
     try:
         res = await gemini_client.aio.models.generate_content(
             model=GEMINI_TEXT_MODEL,

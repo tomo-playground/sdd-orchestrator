@@ -11,6 +11,7 @@ from google import genai
 
 from config import (
     GEMINI_API_KEY,
+    GEMINI_SAFETY_SETTINGS,
     GEMINI_TEXT_MODEL,
     OLLAMA_BASE_URL,
     OLLAMA_TIMEOUT,
@@ -68,13 +69,7 @@ class GeminiProvider:
         config = GenerateContentConfig(
             system_instruction=system_prompt,
             temperature=temperature,
-            safety_settings=[
-                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_CIVIC_INTEGRITY", "threshold": "BLOCK_NONE"},
-            ],
+            safety_settings=GEMINI_SAFETY_SETTINGS,
         )
         try:
             from services.agent.observability import trace_llm_call

@@ -95,9 +95,11 @@ class TestEditWithCharacter:
 
         assert result["edited_prompt"] == "sitting, cafe, warm_lighting"
         call_args = mock_client.models.generate_content.call_args
-        contents = call_args.kwargs.get("contents", "")
-        assert "brown_hair" in contents
-        assert "blue_eyes" in contents
+        # Character tags are now in system_instruction (via config)
+        config_obj = call_args.kwargs.get("config")
+        system_inst = config_obj.system_instruction if config_obj else ""
+        assert "brown_hair" in system_inst
+        assert "blue_eyes" in system_inst
 
 
 class TestEditCache:

@@ -11,9 +11,10 @@ import json
 import time
 
 from fastapi import HTTPException
+from google.genai import types
 from sqlalchemy.orm import Session
 
-from config import CACHE_DIR, CACHE_TTL_SECONDS, GEMINI_TEXT_MODEL, gemini_client, logger
+from config import CACHE_DIR, CACHE_TTL_SECONDS, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, logger
 from services.prompt.ko_translator import _build_exclude_section
 
 
@@ -46,7 +47,7 @@ def edit_prompt_with_instruction(
 
     exclude_section = _build_exclude_section(character_id, db)
 
-    system_instruction = (
+    system_prompt = (
         "You are a Danbooru tag editor. Given existing comma-separated tags "
         "and an edit instruction, return the modified tag list.\n\n"
         "Rules:\n"
@@ -55,15 +56,20 @@ def edit_prompt_with_instruction(
         "3. Keep the Danbooru underscore format (e.g. cowboy_shot, looking_at_viewer)\n"
         "4. Do NOT change character identity tags (hair, eyes, body, clothing)"
         f"{exclude_section}\n\n"
-        f"Current tags: {current_prompt.strip()}\n"
-        f"Instruction: {instruction.strip()}\n\n"
         "Output ONLY the modified comma-separated tags, no explanation."
     )
 
+    user_content = f"Current tags: {current_prompt.strip()}\nInstruction: {instruction.strip()}"
+
     try:
+        config = types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            safety_settings=GEMINI_SAFETY_SETTINGS,
+        )
         res = gemini_client.models.generate_content(
             model=GEMINI_TEXT_MODEL,
-            contents=system_instruction,
+            contents=user_content,
+            config=config,
         )
         text = (res.text or "").strip().replace("```", "")
         result = {"edited_prompt": text}

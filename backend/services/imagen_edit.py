@@ -22,6 +22,7 @@ from PIL import Image
 from config import (
     GEMINI_IMAGE_EDIT_COST_USD,
     GEMINI_IMAGE_VISION_COST_USD,
+    GEMINI_SAFETY_SETTINGS,
     GEMINI_TEXT_MODEL,
     gemini_client,
 )
@@ -102,12 +103,16 @@ OUTPUT (JSON only, NO explanations):
 CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from this list: pose, expression, gaze, framing, hands
 """
 
+            analyze_config = types.GenerateContentConfig(
+                safety_settings=GEMINI_SAFETY_SETTINGS,
+            )
             res = await self.client.aio.models.generate_content(
                 model=GEMINI_TEXT_MODEL,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
                     instruction,
                 ],
+                config=analyze_config,
             )
 
             result = parse_json_payload(res.text)
@@ -181,12 +186,14 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             logger.info(f"🎨 Editing image with Gemini Nano Banana ({edit_type})...")
 
             # Gemini API 호출 (async)
+            edit_config = types.GenerateContentConfig(
+                response_modalities=["Image"],
+                safety_settings=GEMINI_SAFETY_SETTINGS,
+            )
             response = await self.client.aio.models.generate_content(
                 model="gemini-2.5-flash-image",
                 contents=[edit_prompt, base_image],
-                config={
-                    "response_modalities": ["Image"],
-                },
+                config=edit_config,
             )
 
             # 결과 추출 → base64
@@ -202,7 +209,7 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
                 "edit_type": edit_type,
             }
 
-        except Exception as e:
+        except Exception:
             logger.error("Image editing failed", exc_info=True)
             raise
 
@@ -231,10 +238,14 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             )
 
             logger.info("✨ Enhancing image with Gemini...")
+            enhance_config = types.GenerateContentConfig(
+                response_modalities=["Image"],
+                safety_settings=GEMINI_SAFETY_SETTINGS,
+            )
             response = await self.client.aio.models.generate_content(
                 model="gemini-2.5-flash-image",
                 contents=[prompt, base_image],
-                config={"response_modalities": ["Image"]},
+                config=enhance_config,
             )
 
             enhanced_data = response.candidates[0].content.parts[0].inline_data.data
@@ -243,7 +254,7 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
             logger.info("✅ Image enhance complete (cost: $%.4f)", GEMINI_IMAGE_EDIT_COST_USD)
             return {"enhanced_image": enhanced_b64, "cost_usd": GEMINI_IMAGE_EDIT_COST_USD}
 
-        except Exception as e:
+        except Exception:
             logger.error("Image enhance failed", exc_info=True)
             raise
 
@@ -368,12 +379,16 @@ If NO mismatches are found:
 CRITICAL: Return ONLY valid JSON. Each edit_type must be one of: pose, expression, gaze, framing, hands
 """
 
+            suggest_config = types.GenerateContentConfig(
+                safety_settings=GEMINI_SAFETY_SETTINGS,
+            )
             res = await self.client.aio.models.generate_content(
                 model=GEMINI_TEXT_MODEL,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
                     instruction,
                 ],
+                config=suggest_config,
             )
 
             result = parse_json_payload(res.text)
@@ -392,7 +407,7 @@ CRITICAL: Return ONLY valid JSON. Each edit_type must be one of: pose, expressio
             logger.info(f"✅ Edit suggestions generated: {len(result.get('suggestions', []))} suggestions")
             return result
 
-        except Exception as e:
+        except Exception:
             logger.error("Suggest edit failed", exc_info=True)
             raise
 
@@ -612,7 +627,7 @@ async def auto_edit_with_gemini(
 
         return result
 
-    except Exception as e:
+    except Exception:
         logger.error("[Auto Edit] Failed", exc_info=True)
         raise
 

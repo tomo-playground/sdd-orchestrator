@@ -194,7 +194,10 @@ async def try_scene_expand(
 
     실패 시 None을 반환하여 Tier 3(전체 재생성)으로 fallback.
     """
-    from config import GEMINI_TEXT_MODEL, gemini_client, template_env
+
+    from google.genai import types
+
+    from config import GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, template_env
 
     if not gemini_client:
         logger.warning("[Revise] Expansion: Gemini 클라이언트 없음, 건너뜀")
@@ -235,10 +238,15 @@ async def try_scene_expand(
             feedback="\n".join(feedback_parts) if feedback_parts else "",
         )
 
+        expand_config = types.GenerateContentConfig(
+            system_instruction="You are a scene expansion specialist for short-form video scripts. Generate new scenes that seamlessly integrate with existing ones.",
+            safety_settings=GEMINI_SAFETY_SETTINGS,
+        )
         async with trace_llm_call(name="revise_scene_expand", input_text=prompt[:2000]) as llm:
             response = await gemini_client.aio.models.generate_content(
                 model=GEMINI_TEXT_MODEL,
                 contents=prompt,
+                config=expand_config,
             )
             llm.record(response)
 

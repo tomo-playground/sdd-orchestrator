@@ -93,11 +93,13 @@ class TestTranslateKoWithCharacter:
         )
 
         assert result["translated_prompt"] == "sitting, cafe, warm_lighting"
-        # Verify exclude section was included
+        # Verify exclude section was included in system_instruction
         call_args = mock_client.models.generate_content.call_args
-        contents = call_args.kwargs.get("contents", "")
-        assert "brown_hair" in contents
-        assert "blue_eyes" in contents
+        config = call_args.kwargs.get("config")
+        assert config is not None
+        system_instruction = config.system_instruction or ""
+        assert "brown_hair" in system_instruction
+        assert "blue_eyes" in system_instruction
 
 
 class TestTranslateKoCache:

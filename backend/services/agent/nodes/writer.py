@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 
-from config import GEMINI_TEXT_MODEL, gemini_client, logger, template_env
+from config import GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, logger, template_env
 from config_pipelines import LANGGRAPH_PLANNING_ENABLED
 from database import get_db_session
 from schemas import StoryboardRequest
@@ -114,19 +114,11 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
         from google.genai import types
 
         plan_config = types.GenerateContentConfig(
-            safety_settings=[
-                types.SafetySetting(
-                    category=c,
-                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
-                )
-                for c in [
-                    types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-                    types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                    types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-                    types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-                    types.HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
-                ]
-            ],
+            system_instruction=(
+                "You are a writing planner for short-form video scripts. "
+                "Create hook strategies, emotional arcs, and scene distributions."
+            ),
+            safety_settings=GEMINI_SAFETY_SETTINGS,
         )
         async with trace_llm_call(name="writer_planning", input_text=prompt[:2000]) as llm:
             response = await gemini_client.aio.models.generate_content(

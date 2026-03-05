@@ -1,4 +1,4 @@
-"""Korean scene description → Danbooru-style image prompt translator.
+"""Korean scene description -> Danbooru-style image prompt translator.
 
 Uses Gemini to convert Korean scene descriptions into comma-separated
 Danbooru tags suitable for Stable Diffusion image generation.
@@ -12,9 +12,10 @@ import json
 import time
 
 from fastapi import HTTPException
+from google.genai import types
 from sqlalchemy.orm import Session
 
-from config import CACHE_DIR, CACHE_TTL_SECONDS, GEMINI_TEXT_MODEL, gemini_client, logger
+from config import CACHE_DIR, CACHE_TTL_SECONDS, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, logger
 
 
 def _build_exclude_section(character_id: int | None, db: Session | None) -> str:
@@ -67,9 +68,8 @@ def translate_ko_to_prompt(
             return cached
 
     exclude_section = _build_exclude_section(character_id, db)
-    current_section = f"\nCurrent EN prompt (for reference): {current_prompt}" if current_prompt else ""
 
-    instruction = (
+    system_prompt = (
         "You are a Danbooru tag expert. Convert the Korean scene description "
         "into comma-separated Danbooru-style tags for Stable Diffusion.\n\n"
         "Rules:\n"
@@ -79,20 +79,27 @@ def translate_ko_to_prompt(
         "4. Use standard Danbooru tags: cowboy_shot, looking_at_viewer, smile, etc.\n"
         "5. If camera/composition is implied, add appropriate tags"
         f"{exclude_section}\n\n"
-        f"Korean: {ko_text}"
-        f"{current_section}\n\n"
         "Output ONLY the tags, no explanation."
     )
 
+    user_content = f"Korean: {ko_text}"
+    if current_prompt:
+        user_content += f"\nCurrent EN prompt (for reference): {current_prompt}"
+
     try:
+        config = types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            safety_settings=GEMINI_SAFETY_SETTINGS,
+        )
         res = gemini_client.models.generate_content(
             model=GEMINI_TEXT_MODEL,
-            contents=instruction,
+            contents=user_content,
+            config=config,
         )
         text = (res.text or "").strip().replace("```", "")
         result = {"translated_prompt": text, "source_ko": ko_text}
         cache_file.write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
         return result
     except Exception as exc:
-        logger.exception("KO → EN translation failed")
+        logger.exception("KO -> EN translation failed")
         raise HTTPException(status_code=500, detail="Translation failed") from exc

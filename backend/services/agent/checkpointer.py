@@ -1,8 +1,7 @@
 """AsyncPostgresSaver 싱글턴 — LangGraph checkpoint 저장소.
 
 서버 기동 시 한 번 초기화하고, 종료 시 정리한다.
-from_conn_string()는 async context manager이므로,
-psycopg.AsyncConnection을 직접 관리하여 수명을 분리한다.
+AsyncConnectionPool을 사용하여 동시 checkpoint 접근을 지원한다.
 """
 
 from __future__ import annotations
@@ -12,17 +11,18 @@ from datetime import datetime, timedelta, timezone
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg import AsyncConnection, sql
+from psycopg_pool import AsyncConnectionPool
 
 from config import CHECKPOINT_GC_RETENTION_DAYS, DATABASE_URL, logger
 
 _checkpointer: AsyncPostgresSaver | None = None
-_conn: AsyncConnection | None = None
+_pool: AsyncConnectionPool | None = None
 _lock = asyncio.Lock()
 
 
 async def get_checkpointer() -> AsyncPostgresSaver:
     """싱글턴 checkpointer를 반환한다. 최초 호출 시 초기화."""
-    global _checkpointer, _conn
+    global _checkpointer, _pool
     if _checkpointer is not None:
         return _checkpointer
 
@@ -31,21 +31,27 @@ async def get_checkpointer() -> AsyncPostgresSaver:
         if _checkpointer is not None:
             return _checkpointer
 
-        _conn = await AsyncConnection.connect(DATABASE_URL, autocommit=True, prepare_threshold=0)
-        _checkpointer = AsyncPostgresSaver(conn=_conn)
+        _pool = AsyncConnectionPool(
+            DATABASE_URL,
+            min_size=2,
+            max_size=5,
+            kwargs={"autocommit": True, "prepare_threshold": 0},
+        )
+        await _pool.open()
+        _checkpointer = AsyncPostgresSaver(conn=_pool)
         await _checkpointer.setup()
-        logger.info("[LangGraph] AsyncPostgresSaver 초기화 완료")
+        logger.info("[LangGraph] AsyncPostgresSaver 초기화 완료 (pool: 2-5)")
         return _checkpointer
 
 
 async def close_checkpointer() -> None:
-    """checkpointer 커넥션을 정리한다."""
-    global _checkpointer, _conn
+    """checkpointer 커넥션 풀을 정리한다."""
+    global _checkpointer, _pool
     async with _lock:
-        if _conn is not None:
-            await _conn.close()
+        if _pool is not None:
+            await _pool.close()
         _checkpointer = None
-        _conn = None
+        _pool = None
     logger.info("[LangGraph] AsyncPostgresSaver 종료 완료")
 
 

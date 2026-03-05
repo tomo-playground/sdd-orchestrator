@@ -12,7 +12,10 @@ async def edit_scenes(
     context: dict,
 ) -> ScriptEditResponse:
     """Gemini를 호출하여 씬들을 편집 지시에 따라 수정한다."""
-    from config import GEMINI_TEXT_MODEL, gemini_client, template_env
+
+    from google.genai import types
+
+    from config import GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, template_env
     from services.creative_utils import parse_json_response
 
     fallback = ScriptEditResponse(edited_scenes=[], reasoning="", unchanged_count=len(scenes))
@@ -24,9 +27,14 @@ async def edit_scenes(
     try:
         tmpl = template_env.get_template("creative/edit_scenes.j2")
         prompt = tmpl.render(instruction=instruction, scenes=scenes, context=context)
+        edit_config = types.GenerateContentConfig(
+            system_instruction="You are a scene editor for short-form video scripts. Edit scenes according to the given instruction while preserving overall narrative coherence.",
+            safety_settings=GEMINI_SAFETY_SETTINGS,
+        )
         response = await gemini_client.aio.models.generate_content(
             model=GEMINI_TEXT_MODEL,
             contents=prompt,
+            config=edit_config,
         )
         parsed = parse_json_response(response.text or "")
     except Exception as e:

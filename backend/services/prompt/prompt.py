@@ -9,8 +9,9 @@ import time
 from functools import lru_cache
 
 from fastapi import HTTPException
+from google.genai import types
 
-from config import CACHE_DIR, CACHE_TTL_SECONDS, GEMINI_TEXT_MODEL, gemini_client, logger
+from config import CACHE_DIR, CACHE_TTL_SECONDS, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, logger
 from schemas import PromptRewriteRequest, PromptSplitRequest
 from services.keywords import CATEGORY_PATTERNS
 from services.keywords.db_cache import TagCategoryCache
@@ -111,7 +112,7 @@ def normalize_prompt_tokens(prompt: str) -> str:
         # Deduplicate by LoRA/model name only (ignore weight differences)
         # Last occurrence wins (has the latest/correct weight)
         name_pattern = re.compile(r"<(?:lora|model):([^:>]+)", re.IGNORECASE)
-        seen_names: dict[str, str] = {}  # name → full tag
+        seen_names: dict[str, str] = {}  # name -> full tag
         for tag in tags:
             match = name_pattern.search(tag)
             if match:
@@ -127,7 +128,7 @@ def normalize_prompt_tokens(prompt: str) -> str:
     cleaned = re.sub(r"<model:[^>]+>", "", cleaned, flags=re.IGNORECASE)
     tokens = split_prompt_tokens(cleaned)
 
-    # Normalize tag format (space → underscore) for SD compatibility
+    # Normalize tag format (space -> underscore) for SD compatibility
     tokens = normalize_tag_spaces(tokens)
 
     seen = set()
@@ -170,7 +171,7 @@ def normalize_negative_prompt(negative: str) -> str:
     Both exact-string duplicates and base-tag duplicates are removed.
     """
     tokens = split_prompt_tokens(negative)
-    seen: dict[str, str] = {}  # base_key → best token
+    seen: dict[str, str] = {}  # base_key -> best token
     order: list[str] = []
     for token in tokens:
         key = _negative_base_key(token)
@@ -380,9 +381,14 @@ def rewrite_prompt(request: PromptRewriteRequest) -> dict:
         )
     user_input = f"BASE: {request.base_prompt}\nSCENE: {request.scene_prompt}\nSTYLE: {request.style}\n"
     try:
+        gemini_config = types.GenerateContentConfig(
+            system_instruction=instruction,
+            safety_settings=GEMINI_SAFETY_SETTINGS,
+        )
         res = gemini_client.models.generate_content(
             model=GEMINI_TEXT_MODEL,
-            contents=f"{instruction}\n\n{user_input}",
+            contents=user_input,
+            config=gemini_config,
         )
         text = res.text.strip().replace("```", "")
         if request.mode == "scene":
@@ -414,9 +420,14 @@ def split_prompt_example(request: PromptSplitRequest) -> dict:
     )
     user_input = f"EXAMPLE: {request.example_prompt}\nSTYLE: {request.style}\n"
     try:
+        gemini_config = types.GenerateContentConfig(
+            system_instruction=instruction,
+            safety_settings=GEMINI_SAFETY_SETTINGS,
+        )
         res = gemini_client.models.generate_content(
             model=GEMINI_TEXT_MODEL,
-            contents=f"{instruction}\n\n{user_input}",
+            contents=user_input,
+            config=gemini_config,
         )
         text = res.text.strip().replace("```json", "").replace("```", "")
         data = json.loads(text)
@@ -432,9 +443,9 @@ def split_prompt_example(request: PromptSplitRequest) -> dict:
 
 
 def merge_tags_dedup(base: list[str], extra: list[str]) -> list[str]:
-    """extra 태그를 base에 중복 없이 병합한다 (원본 base 리스트를 변경하지 않음).
+    """extra tags are merged into base without duplicates (original base list is not modified).
 
-    정규화 키: lowercase + 공백→언더스코어 + strip.
+    Normalization key: lowercase + space->underscore + strip.
     """
     result = list(base)
     existing = {t.lower().replace(" ", "_").strip() for t in result}
@@ -451,9 +462,9 @@ def normalize_tag_spaces(tags: list[str]) -> list[str]:
 
     Stable Diffusion uses underscores, not spaces.
     Example:
-    - "thumbs up" → "thumbs_up"
-    - " _day " → "day" (strips leading/trailing underscores)
-    - "tag__1" → "tag_1" (deduplicates underscores)
+    - "thumbs up" -> "thumbs_up"
+    - " _day " -> "day" (strips leading/trailing underscores)
+    - "tag__1" -> "tag_1" (deduplicates underscores)
     """
     normalized = []
     for tag in tags:
@@ -482,8 +493,8 @@ def fix_compound_adjectives(tags: list[str]) -> list[str]:
     """Fix compound adjective tags by separating them.
 
     Gemini often generates invalid compound tags not in Danbooru:
-    - "short green hair" (0 posts) → "short_hair, green_hair" (2.7M + 519K posts)
-    - "white blue dress" (0 posts) → "white_dress, blue_dress"
+    - "short green hair" (0 posts) -> "short_hair, green_hair" (2.7M + 519K posts)
+    - "white blue dress" (0 posts) -> "white_dress, blue_dress"
 
     This function detects common patterns and splits them into valid tags.
 
@@ -498,17 +509,17 @@ def fix_compound_adjectives(tags: list[str]) -> list[str]:
     # Pattern: (adj1)_(adj2)_(noun)
     # Common nouns that get compound adjectives
     COMPOUND_PATTERNS = [
-        # Hair: "short_green_hair" → "short_hair", "green_hair"
+        # Hair: "short_green_hair" -> "short_hair", "green_hair"
         (
             r"^(short|long|medium)_([\w]+)_hair$",
             lambda m: [f"{m.group(1)}_hair", f"{m.group(2)}_hair"],
         ),
-        # Clothing: "white_blue_dress" → "white_dress", "blue_dress"
+        # Clothing: "white_blue_dress" -> "white_dress", "blue_dress"
         (
             r"^([\w]+)_([\w]+)_(dress|shirt|skirt|pants|shorts|hoodie)$",
             lambda m: [f"{m.group(1)}_{m.group(3)}", f"{m.group(2)}_{m.group(3)}"],
         ),
-        # Accessories: "black_white_ribbon" → "black_ribbon", "white_ribbon"
+        # Accessories: "black_white_ribbon" -> "black_ribbon", "white_ribbon"
         (
             r"^([\w]+)_([\w]+)_(ribbon|bow|tie|hat|cap)$",
             lambda m: [f"{m.group(1)}_{m.group(3)}", f"{m.group(2)}_{m.group(3)}"],
@@ -573,7 +584,7 @@ def validate_tags_with_danbooru(tags: list[str]) -> list[str]:
             # Try space format for legacy DB tags
             elif tag.replace("_", " ") in existing_tags:
                 validated.append(tag)  # Keep underscore format
-                logger.debug(f"[Danbooru] Fast path (space): {tag.replace('_', ' ')} → {tag}")
+                logger.debug(f"[Danbooru] Fast path (space): {tag.replace('_', ' ')} -> {tag}")
                 continue
 
             # Session cache: Already checked in this call
@@ -603,7 +614,7 @@ def validate_tags_with_danbooru(tags: list[str]) -> list[str]:
                     session_cache[tag] = tag
 
                     post_count = tag_info.get("post_count", 0)
-                    logger.info(f"[Danbooru] ✅ Valid: {tag} ({post_count:,} posts)")
+                    logger.info(f"[Danbooru] Valid: {tag} ({post_count:,} posts)")
 
                     # Add to DB for next time (fast path)
                     category = tag_info.get("category", "unknown")
@@ -617,7 +628,7 @@ def validate_tags_with_danbooru(tags: list[str]) -> list[str]:
 
                 else:
                     # Invalid tag (0 posts) - try to fix
-                    logger.warning(f"[Danbooru] ❌ Invalid: {tag} (0 posts)")
+                    logger.warning(f"[Danbooru] Invalid: {tag} (0 posts)")
 
                     # Attempt to split compound adjectives
                     fixed = fix_compound_adjectives([tag])
@@ -625,14 +636,14 @@ def validate_tags_with_danbooru(tags: list[str]) -> list[str]:
                         # Successfully split - use the parts
                         validated.extend(fixed)
                         session_cache[tag] = fixed
-                        logger.info(f"[Danbooru] 🔧 Split: {tag} → {fixed}")
+                        logger.info(f"[Danbooru] Split: {tag} -> {fixed}")
                     else:
                         # Can't fix - log and skip
-                        logger.warning(f"[Danbooru] ⚠️  Skipping: {tag} (unfixable)")
+                        logger.warning(f"[Danbooru] Skipping: {tag} (unfixable)")
                         session_cache[tag] = None
 
             except Exception as exc:
-                logger.error(f"[Danbooru] 🚨 API Error for {tag}: {exc}")
+                logger.error(f"[Danbooru] API Error for {tag}: {exc}")
                 # On error, keep the tag (fail-open)
                 validated.append(tag)
                 session_cache[tag] = tag
@@ -663,7 +674,7 @@ async def validate_tags_with_danbooru_async(tags: list[str]) -> tuple[list[str],
     known_tags = TagCategoryCache._cache
 
     for tag in tags:
-        # Strip SD weights/parens for lookup (e.g. "(tag:1.2)" → "tag")
+        # Strip SD weights/parens for lookup (e.g. "(tag:1.2)" -> "tag")
         lookup_key = normalize_prompt_token(tag)
         if lookup_key in known_tags:
             validated.append(tag)
@@ -683,7 +694,7 @@ def normalize_and_fix_tags(prompt: str) -> str:
 
     Pipeline:
     1. Split prompt into tags
-    2. Normalize spaces → underscores
+    2. Normalize spaces -> underscores
     3. Fix compound adjective patterns
     4. Join back into prompt string
 
@@ -717,7 +728,7 @@ def normalize_and_fix_tags(prompt: str) -> str:
 # Analysis Tools (Ported from prompt_composition.py)
 # ============================================================
 
-# Build reverse lookup: token → category (cached at module load)
+# Build reverse lookup: token -> category (cached at module load)
 _TOKEN_TO_CATEGORY: dict[str, str] = {}
 for _category, _tokens in CATEGORY_PATTERNS.items():
     for _token in _tokens:
@@ -756,7 +767,7 @@ def get_token_category(token: str) -> str | None:
     if normalized in _TOKEN_TO_CATEGORY:
         return _TOKEN_TO_CATEGORY[normalized]
 
-    # 3. Partial match for compound tokens (e.g., "long blue hair" → "hair_color")
+    # 3. Partial match for compound tokens (e.g., "long blue hair" -> "hair_color")
     for category, patterns in CATEGORY_PATTERNS.items():
         for pattern in patterns:
             p_lower = pattern.lower()
