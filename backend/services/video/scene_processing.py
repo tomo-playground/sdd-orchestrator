@@ -458,7 +458,7 @@ def _get_voice_design_for_scene(
     if preset_voice_design:
         # Consistency mode: 프리셋 instruct 고정 (Gemini 감정 적응 미개입)
         if TTS_VOICE_CONSISTENCY_MODE:
-            logger.info(f"Scene {scene_idx}: Voice design (Speaker={speaker}): consistency mode — preset only")
+            logger.info("Scene %d: Voice design (Speaker=%s): consistency mode — preset only", scene_idx, speaker)
             return preset_voice_design
 
         context_parts: list[str] = []
