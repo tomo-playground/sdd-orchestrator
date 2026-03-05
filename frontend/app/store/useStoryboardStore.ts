@@ -183,7 +183,6 @@ const SCENE_TRANSIENT_FIELDS: ReadonlySet<string> = new Set([
   "debug_payload",
   "debug_prompt",
   "_auto_pin_previous",
-  "tts_asset_id",
 ]);
 
 /** Fields excluded from persistence (transient / runtime-derived). */

@@ -331,6 +331,7 @@ class SceneDetailResponse(BaseModel):
     voice_design_prompt: str | None = None
     head_padding: float | None = None
     tail_padding: float | None = None
+    tts_asset_id: int | None = None
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -457,6 +458,7 @@ class StoryboardScene(BaseModel):
     voice_design_prompt: str | None = None
     head_padding: float | None = None
     tail_padding: float | None = None
+    tts_asset_id: int | None = None
 
     model_config = ConfigDict(extra="allow")
 

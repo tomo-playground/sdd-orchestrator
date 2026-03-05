@@ -176,7 +176,7 @@ export function useStudioInitialization() {
         });
         const structure = data.structure || DEFAULT_STRUCTURE;
         const isMulti = isMultiCharStructure(structure);
-        const charBId = isMulti ? (data.character_b_id || null) : null;
+        const charBId = isMulti ? data.character_b_id || null : null;
         setPlan({
           selectedCharacterId: data.character_id || null,
           selectedCharacterBId: charBId,
@@ -347,5 +347,14 @@ function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
     multi_gen_enabled: (s.multi_gen_enabled as boolean | null) ?? null,
     _auto_pin_previous: (s._auto_pin_previous as boolean) ?? false,
     character_actions: (s.character_actions as Scene["character_actions"]) || undefined,
+    // TTS & Pacing (from TTS Designer / preview)
+    voice_design_prompt: (s.voice_design_prompt as string | null) ?? null,
+    head_padding: (s.head_padding as number | null) ?? null,
+    tail_padding: (s.tail_padding as number | null) ?? null,
+    tts_asset_id: (s.tts_asset_id as number | null) ?? null,
+    // Per-scene overrides
+    controlnet_pose: (s.controlnet_pose as string | null) ?? null,
+    clothing_tags: (s.clothing_tags as Record<string, string[]> | null) ?? null,
+    ken_burns_preset: (s.ken_burns_preset as string | null) ?? null,
   }));
 }

@@ -118,6 +118,9 @@ def serialize_scene(
         "voice_design_prompt": scene.voice_design_prompt,
         "head_padding": scene.head_padding,
         "tail_padding": scene.tail_padding,
+        "tts_asset_id": scene.tts_asset_id,
+        "clothing_tags": scene.clothing_tags,
+        "ken_burns_preset": getattr(scene, "ken_burns_preset", None),
     }
 
 
@@ -224,6 +227,8 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
             voice_design_prompt=getattr(s_data, "voice_design_prompt", None),
             head_padding=getattr(s_data, "head_padding", None),
             tail_padding=getattr(s_data, "tail_padding", None),
+            tts_asset_id=getattr(s_data, "tts_asset_id", None),
+            clothing_tags=getattr(s_data, "clothing_tags", None),
         )
         db.add(db_scene)
         db.flush()

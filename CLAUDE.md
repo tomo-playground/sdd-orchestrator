@@ -218,6 +218,57 @@ docs/
   - ❌ `autoSaveStoryboard()`에만 적용하고 `persistStoryboard()`에서 누락하는 실수 방지
 - **테스트 케이스 필수**: 공통 헬퍼 함수는 **단위 테스트로 방어**한다.
 
+## Data Mapping Principles (Spread Passthrough 패턴)
+데이터 변환 함수(API 응답 → Store, Store → API 페이로드, ORM → dict 등)에서 **Whitelist 매핑(필드 명시 나열) 금지**. 신규 필드 추가 시 매핑 함수 누락으로 인한 **null 덮어쓰기 데이터 소실**을 방지한다.
+
+**원칙**: Spread(`...`)로 모든 필드를 패스스루하고, **변환이 필요한 필드만 오버라이드**.
+
+```typescript
+// ❌ Whitelist — 새 필드 추가 시 누락 위험 → null 덮어쓰기 → 데이터 소실
+function mapDbScenes(dbScenes) {
+  return dbScenes.map(s => ({
+    id: s.id,
+    script: s.script,
+    // voice_design_prompt 깜빡하면 소실
+  }));
+}
+
+// ✅ Spread Passthrough — 모든 필드 자동 생존
+function mapDbScenes(dbScenes) {
+  return dbScenes.map((s, i) => ({
+    ...s,                        // 패스스루 (신규 필드 자동 포함)
+    id: (s.id as number) || i,   // 변환 필요한 것만 오버라이드
+    isGenerating: false,         // UI-only 필드 초기화
+  })) as Scene[];
+}
+```
+
+**Store → API 페이로드** 방향에서는 UI-only 필드를 **destructuring exclude**로 제거:
+```typescript
+// ✅ UI-only 필드 제외 후 나머지 패스스루
+const { isGenerating, debug_payload, debug_prompt, ...apiFields } = scene;
+return { ...apiFields, scene_id: i };
+```
+
+**Backend ORM → dict** 방향에서는 관계 enrichment만 별도 처리:
+```python
+# ✅ model_dump() 기반 패스스루 + 관계 필드만 별도 enrichment
+base = {c.key: getattr(scene, c.key) for c in Scene.__table__.columns}
+base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
+```
+
+**적용 대상** (8개 함수):
+| 함수 | 파일 | 방향 |
+|------|------|------|
+| `mapDbScenes` | `useStudioInitialization.ts` | DB→Store |
+| `mapGeminiScenes` | `storyboardActions.ts` | Gemini→Store |
+| `buildScenesPayload` | `buildScenesPayload.ts` | Store→API |
+| `buildSavePayload` | `scriptEditor/actions.ts` | Editor→API |
+| `mapScenesToItems` | `scriptEditor/mappers.ts` | Scene→SceneItem |
+| `syncToGlobalStore` | `scriptEditor/mappers.ts` | SceneItem→Scene |
+| `serialize_scene` | `scene_builder.py` | ORM→dict |
+| `create_scenes` | `scene_builder.py` | schema→ORM |
+
 ## Frontend State Sync Principles (Active Entity Deletion)
 - **삭제 = 즉시 정리**: 현재 활성 엔티티(스토리보드, 씬 등)를 삭제하면 **스토어 전체 리셋** + 안전한 화면으로 리다이렉트. `storyboardId: null`만 설정하고 나머지 데이터를 방치하지 않는다.
 - **404 = 삭제된 것으로 간주**: API에서 404 반환 시 에러를 무시하지 않는다. 토스트 메시지 표시 + 스토어 리셋 + URL 정리.

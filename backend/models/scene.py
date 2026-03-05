@@ -48,6 +48,8 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     voice_design_prompt: Mapped[str | None] = mapped_column(Text)
     head_padding: Mapped[float | None] = mapped_column(Float, default=0.0)
     tail_padding: Mapped[float | None] = mapped_column(Float, default=0.0)
+    # Linked TTS preview asset (reuse preview TTS in final render)
+    tts_asset_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id", ondelete="SET NULL"), nullable=True)
 
     # Image Generation Params (Optional overrides)
     width: Mapped[int] = mapped_column(Integer, default=512)
