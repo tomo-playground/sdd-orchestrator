@@ -22,42 +22,33 @@ export function sanitizeCandidatesForDb(candidates: Scene["candidates"]): Array<
 /**
  * Map Scene[] to API payload format for storyboard save/update.
  * Single source of truth — used by autoSave, persist, and styleProfile flows.
+ * Spread passthrough: UI-only 필드를 제거하고 나머지를 그대로 전달.
+ * 신규 필드 추가 시 매핑 누락으로 인한 데이터 소실 방지.
  */
 export function buildScenesPayload(scenes: Scene[]) {
-  return scenes.map((s, i) => ({
-    scene_id: i,
-    client_id: s.client_id,
-    script: s.script,
-    speaker: s.speaker,
-    duration: s.duration,
-    image_prompt: s.image_prompt,
-    image_prompt_ko: s.image_prompt_ko,
+  return scenes.map((s, i) => {
+    // Destructure out UI-only fields that should not be sent to API
+    const {
+      id: _id,
+      order: _order,
+      isGenerating: _isGenerating,
+      debug_payload: _debugPayload,
+      debug_prompt: _debugPrompt,
+      _auto_pin_previous,
+      prompt_history_id: _promptHistoryId,
+      activity_log_id: _activityLogId,
+      negative_prompt_extra: _negativePromptExtra,
+      image_url: _imageUrl,
+      ...rest
+    } = s;
 
-    width: s.width || 512,
-    height: s.height || 768,
-    negative_prompt: s.negative_prompt,
-    context_tags: s.context_tags,
-    background_id: s.background_id ?? null,
-    character_actions: s.character_actions || undefined,
-    image_asset_id: s.image_asset_id ?? null,
-    environment_reference_id: s.environment_reference_id ?? null,
-    environment_reference_weight: s.environment_reference_weight ?? 0.3,
-    use_reference_only: s.use_reference_only ?? true,
-    reference_only_weight: s.reference_only_weight ?? 0.5,
-    candidates: sanitizeCandidatesForDb(s.candidates),
-    // Per-scene generation settings override
-    use_controlnet: s.use_controlnet ?? null,
-    controlnet_weight: s.controlnet_weight ?? null,
-    use_ip_adapter: s.use_ip_adapter ?? null,
-    ip_adapter_reference: s.ip_adapter_reference ?? null,
-    ip_adapter_weight: s.ip_adapter_weight ?? null,
-    multi_gen_enabled: s.multi_gen_enabled ?? null,
-    controlnet_pose: s.controlnet_pose ?? null,
-    voice_design_prompt: s.voice_design_prompt ?? null,
-    head_padding: s.head_padding ?? null,
-    tail_padding: s.tail_padding ?? null,
-    ken_burns_preset: s.ken_burns_preset ?? null,
-    tts_asset_id: s.tts_asset_id ?? null,
-    clothing_tags: s.clothing_tags ?? null,
-  }));
+    return {
+      ...rest,
+      // API-specific overrides
+      scene_id: i,
+      width: s.width || 512,
+      height: s.height || 768,
+      candidates: sanitizeCandidatesForDb(s.candidates),
+    };
+  });
 }

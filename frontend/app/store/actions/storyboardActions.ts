@@ -148,6 +148,7 @@ export async function saveStoryboard(): Promise<boolean> {
 /**
  * Map raw Gemini API scene response to typed Scene array.
  * Single source of truth for Gemini -> Scene mapping.
+ * Spread passthrough: Gemini 출력 필드를 그대로 전달하고, 고정값/합성값만 오버라이드.
  */
 export function mapGeminiScenes(
   rawScenes: Record<string, unknown>[],
@@ -158,30 +159,23 @@ export function mapGeminiScenes(
     const combined = [baseNegative, sceneNegative].filter(Boolean).join(", ").trim();
 
     return {
+      ...(s as unknown as Scene),
+      // New scene fixed values
       id: 0,
       client_id: generateSceneClientId(),
       order: i,
+      image_url: null,
+      width: 512,
+      height: 768,
+      // Fallbacks for required fields
       script: (s.script as string) || "",
       speaker: ((s.speaker as string) || "Narrator") as Scene["speaker"],
       duration: (s.duration as number) || 3,
       image_prompt: (s.image_prompt as string) || "",
       image_prompt_ko: (s.image_prompt_ko as string) || "",
-      image_url: null,
-      width: 512,
-      height: 768,
+      // Composite negative prompt (base + scene-level)
       negative_prompt: combined,
-      context_tags: (s.context_tags as Scene["context_tags"]) || undefined,
-      character_actions: (s.character_actions as Scene["character_actions"]) || undefined,
-      use_controlnet: (s.use_controlnet as boolean) ?? undefined,
-      controlnet_weight: (s.controlnet_weight as number) ?? undefined,
-      controlnet_pose: (s.controlnet_pose as string) ?? undefined,
-      use_ip_adapter: (s.use_ip_adapter as boolean) ?? undefined,
-      ip_adapter_weight: (s.ip_adapter_weight as number) ?? undefined,
-      multi_gen_enabled: (s.multi_gen_enabled as boolean) ?? undefined,
-      voice_design_prompt: (s.voice_design_prompt as string) ?? undefined,
-      head_padding: (s.head_padding as number) ?? undefined,
-      tail_padding: (s.tail_padding as number) ?? undefined,
-      ken_burns_preset: (s.ken_burns_preset as string) ?? undefined,
+      // UI-only fields (always reset)
       isGenerating: false,
       debug_payload: "",
       _auto_pin_previous: (s._auto_pin_previous as boolean) ?? false,

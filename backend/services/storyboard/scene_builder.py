@@ -58,70 +58,52 @@ def serialize_scene(
 ) -> dict:
     """Serialize a Scene ORM object to dict for API response.
 
+    Spread Passthrough: Scene.__table__.columns 자동 수집 후
+    관계/계산 필드만 오버라이드. 신규 컬럼 추가 시 매핑 누락 방지.
+
     Args:
         scene: Scene ORM object
         asset_url_map: Optional mapping of media_asset_id -> URL for candidates
         auto_pin_previous: Whether this scene should auto-pin to previous scene's environment
     """
-    # Enrich candidates with URLs if asset_url_map is provided
-    candidates_with_url = None
-    if scene.candidates:
-        candidates_with_url = []
-        for c in scene.candidates:
-            enriched = dict(c)  # Copy to avoid mutating DB data
-            asset_id = c.get("media_asset_id")
-            if asset_id and asset_url_map and asset_id in asset_url_map:
-                enriched["image_url"] = asset_url_map[asset_id]
-            candidates_with_url.append(enriched)
+    # 1. 모든 DB 컬럼 자동 수집
+    base = {c.key: getattr(scene, c.key) for c in Scene.__table__.columns}
 
-    return {
-        "id": scene.id,
-        "client_id": scene.client_id,
-        "scene_id": scene.order,
-        "script": scene.script,
-        "speaker": scene.speaker,
-        "duration": scene.duration,
-        "image_prompt": scene.image_prompt,
-        "image_prompt_ko": scene.image_prompt_ko,
-        "negative_prompt": scene.negative_prompt,
-        "scene_mode": scene.scene_mode,
-        "image_url": scene.image_asset.url if scene.image_asset else scene.image_url,
-        "width": scene.width,
-        "height": scene.height,
-        "context_tags": scene.context_tags,
-        "background_id": scene.background_id,
-        "tags": [{"tag_id": t.tag_id, "weight": t.weight} for t in scene.tags],
-        "character_actions": [
-            {
-                "character_id": a.character_id,
-                "tag_id": a.tag_id,
-                "tag_name": a.tag.name if a.tag else None,
-                "weight": a.weight,
-            }
-            for a in scene.character_actions
-        ],
-        "use_reference_only": scene.use_reference_only,
-        "reference_only_weight": scene.reference_only_weight,
-        "environment_reference_id": scene.environment_reference_id,
-        "environment_reference_weight": scene.environment_reference_weight,
-        "image_asset_id": scene.image_asset_id,
-        "candidates": candidates_with_url,
-        "_auto_pin_previous": auto_pin_previous,
-        # Per-scene generation settings override
-        "use_controlnet": scene.use_controlnet,
-        "controlnet_weight": scene.controlnet_weight,
-        "controlnet_pose": scene.controlnet_pose,
-        "use_ip_adapter": scene.use_ip_adapter,
-        "ip_adapter_reference": scene.ip_adapter_reference,
-        "ip_adapter_weight": scene.ip_adapter_weight,
-        "multi_gen_enabled": scene.multi_gen_enabled,
-        "voice_design_prompt": scene.voice_design_prompt,
-        "head_padding": scene.head_padding,
-        "tail_padding": scene.tail_padding,
-        "tts_asset_id": scene.tts_asset_id,
-        "clothing_tags": scene.clothing_tags,
-        "ken_burns_preset": getattr(scene, "ken_burns_preset", None),
-    }
+    # 2. 별칭 필드
+    base["scene_id"] = scene.order  # order → scene_id alias
+
+    # 3. 관계 기반 파생 필드
+    base["image_url"] = scene.image_url  # @property: image_asset.url
+    base["tags"] = [{"tag_id": t.tag_id, "weight": t.weight} for t in scene.tags]
+    base["character_actions"] = [
+        {
+            "character_id": a.character_id,
+            "tag_id": a.tag_id,
+            "tag_name": a.tag.name if a.tag else None,
+            "weight": a.weight,
+        }
+        for a in scene.character_actions
+    ]
+
+    # 4. candidates: 방어 복사 (ORM JSONB 참조 mutation 방지) + URL enrichment
+    if scene.candidates:
+        if asset_url_map:
+            enriched_candidates = []
+            for c in scene.candidates:
+                enriched = dict(c)
+                asset_id = c.get("media_asset_id")
+                if asset_id and asset_id in asset_url_map:
+                    enriched["image_url"] = asset_url_map[asset_id]
+                enriched_candidates.append(enriched)
+            base["candidates"] = enriched_candidates
+        else:
+            base["candidates"] = [dict(c) for c in scene.candidates]
+
+    # 5. 추가 파생 필드
+    base["_auto_pin_previous"] = auto_pin_previous
+    base["ken_burns_preset"] = getattr(scene, "ken_burns_preset", None)
+
+    return base
 
 
 def _link_media_asset(db: Session, db_scene: Scene, image_url: str) -> None:
@@ -167,6 +149,66 @@ def _link_media_asset(db: Session, db_scene: Scene, image_url: str) -> None:
     db_scene.image_asset_id = asset.id
 
 
+_SCENE_COLUMN_KEYS: set[str] | None = None
+
+
+def _get_scene_column_keys() -> set[str]:
+    """Scene 모델의 DB 컬럼 이름 집합 (모듈 레벨 캐시)."""
+    global _SCENE_COLUMN_KEYS  # noqa: PLW0603
+    if _SCENE_COLUMN_KEYS is None:
+        _SCENE_COLUMN_KEYS = {c.key for c in Scene.__table__.columns}
+    return _SCENE_COLUMN_KEYS
+
+
+def _build_scene_kwargs(s_data, storyboard_id: int, idx: int) -> dict:
+    """Pydantic schema → Scene 컬럼 kwargs (Spread Passthrough).
+
+    schema.model_dump()에서 Scene 컬럼에 해당하는 필드만 필터 후
+    필수 오버라이드만 적용. 신규 컬럼 추가 시 매핑 누락 방지.
+    """
+    # 1. schema → dict (관계/특수 필드 제외)
+    # image_asset_id: Scene 생성 후 별도 asset linking 로직에서 설정
+    _exclude = {"tags", "character_actions", "scene_id", "image_asset_id", "candidates"}
+    raw = s_data.model_dump(exclude=_exclude) if hasattr(s_data, "model_dump") else {}
+
+    # 2. Scene 컬럼에 해당하는 필드만 필터
+    col_keys = _get_scene_column_keys()
+    kwargs = {k: v for k, v in raw.items() if k in col_keys}
+
+    # 3. 필수 오버라이드
+    kwargs["storyboard_id"] = storyboard_id
+    kwargs["order"] = idx
+    kwargs["client_id"] = getattr(s_data, "client_id", None) or str(uuid4())
+    kwargs["scene_mode"] = getattr(s_data, "scene_mode", "single") or "single"
+    kwargs["environment_reference_id"] = None  # Deferred — set after asset remap
+
+    # 4. 기본값 방어
+    if kwargs.get("use_reference_only") is None:
+        kwargs["use_reference_only"] = True
+    if kwargs.get("reference_only_weight") is None:
+        kwargs["reference_only_weight"] = 0.5
+    if kwargs.get("environment_reference_weight") is None:
+        kwargs["environment_reference_weight"] = 0.3
+
+    # 5. negative_prompt 방어: 빈 값이면 기본값 주입
+    neg = kwargs.get("negative_prompt")
+    if not neg or not neg.strip():
+        from config import DEFAULT_SCENE_NEGATIVE_PROMPT  # noqa: PLC0415
+
+        kwargs["negative_prompt"] = DEFAULT_SCENE_NEGATIVE_PROMPT
+
+    # 6. image_url data: URI 방어 (property이므로 kwargs에서 제거)
+    kwargs.pop("image_url", None)
+
+    # 7. candidates JSONB 변환
+    if s_data.candidates:
+        kwargs["candidates"] = _sanitize_candidates_for_db(s_data.candidates)
+    else:
+        kwargs["candidates"] = None
+
+    return kwargs
+
+
 def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
     """Create scenes with tags and character actions for a storyboard."""
     # Track old→new asset ID mapping for environment_reference_id remapping
@@ -181,55 +223,13 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
         if image_url and image_url.startswith("data:"):
             image_url = None
 
-        # Convert Pydantic SceneCandidate models to dicts for JSONB storage
-        candidates_for_db = None
-        if s_data.candidates:
-            candidates_for_db = _sanitize_candidates_for_db(s_data.candidates)
-
         # Store requested environment_reference_id for deferred assignment
         deferred_env_refs.append(s_data.environment_reference_id)
 
-        # negative_prompt 방어: 빈 값이면 기본값 주입 (DB에 빈 문자열 저장 방지)
-        neg_prompt = s_data.negative_prompt
-        if not neg_prompt or not neg_prompt.strip():
-            from config import DEFAULT_SCENE_NEGATIVE_PROMPT  # noqa: PLC0415
+        # Spread Passthrough: schema → Scene 컬럼 kwargs 자동 매핑
+        scene_kwargs = _build_scene_kwargs(s_data, storyboard_id, idx)
 
-            neg_prompt = DEFAULT_SCENE_NEGATIVE_PROMPT
-
-        db_scene = Scene(
-            storyboard_id=storyboard_id,
-            client_id=getattr(s_data, "client_id", None) or str(uuid4()),
-            order=idx,
-            script=s_data.script,
-            speaker=s_data.speaker,
-            duration=s_data.duration,
-            scene_mode=getattr(s_data, "scene_mode", "single") or "single",
-            image_prompt=s_data.image_prompt,
-            image_prompt_ko=s_data.image_prompt_ko,
-            negative_prompt=neg_prompt,
-            width=s_data.width,
-            height=s_data.height,
-            context_tags=s_data.context_tags,
-            use_reference_only=s_data.use_reference_only if s_data.use_reference_only is not None else True,
-            reference_only_weight=s_data.reference_only_weight or 0.5,
-            background_id=getattr(s_data, "background_id", None),
-            environment_reference_id=None,  # Deferred — set after asset remap
-            environment_reference_weight=s_data.environment_reference_weight or 0.3,
-            candidates=candidates_for_db,
-            # Per-scene generation settings override
-            use_controlnet=getattr(s_data, "use_controlnet", None),
-            controlnet_weight=getattr(s_data, "controlnet_weight", None),
-            controlnet_pose=getattr(s_data, "controlnet_pose", None),
-            use_ip_adapter=getattr(s_data, "use_ip_adapter", None),
-            ip_adapter_reference=getattr(s_data, "ip_adapter_reference", None),
-            ip_adapter_weight=getattr(s_data, "ip_adapter_weight", None),
-            multi_gen_enabled=getattr(s_data, "multi_gen_enabled", None),
-            voice_design_prompt=getattr(s_data, "voice_design_prompt", None),
-            head_padding=getattr(s_data, "head_padding", None),
-            tail_padding=getattr(s_data, "tail_padding", None),
-            tts_asset_id=getattr(s_data, "tts_asset_id", None),
-            clothing_tags=getattr(s_data, "clothing_tags", None),
-        )
+        db_scene = Scene(**scene_kwargs)
         db.add(db_scene)
         db.flush()
 

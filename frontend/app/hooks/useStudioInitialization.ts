@@ -313,8 +313,12 @@ function loadCharacterBData(
 }
 
 // --- Helper: Map DB scenes to frontend Scene type ---
+// Spread passthrough: DB 필드를 그대로 전달하고, 변환/기본값이 필요한 필드만 오버라이드.
+// 신규 필드 추가 시 매핑 누락으로 인한 데이터 소실 방지.
 function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
   return dbScenes.map((s, i) => ({
+    ...(s as unknown as Scene),
+    // Fallbacks for required fields
     id: (s.id as number) || i,
     client_id: (s.client_id as string) || generateSceneClientId(),
     order: (s.order as number) ?? (s.scene_id as number) ?? i,
@@ -323,38 +327,10 @@ function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
     duration: (s.duration as number) || 3,
     image_prompt: (s.image_prompt as string) || "",
     image_prompt_ko: (s.image_prompt_ko as string) || "",
-    image_url: (s.image_url as string) || null,
-    image_asset_id: (s.image_asset_id as number) ?? null,
-    description: (s.description as string) || "",
-    width: (s.width as number) || 512,
-    height: (s.height as number) || 768,
-    candidates: (s.candidates as Scene["candidates"]) || undefined,
     negative_prompt: (s.negative_prompt as string) || "",
+    // UI-only fields (always reset)
     isGenerating: false,
     debug_payload: "",
-    context_tags: (s.context_tags as Record<string, string[]>) || undefined,
-    background_id: (s.background_id as number) ?? null,
-    environment_reference_id: (s.environment_reference_id as number) ?? null,
-    environment_reference_weight: (s.environment_reference_weight as number) || undefined,
-    use_reference_only: (s.use_reference_only as boolean) ?? undefined,
-    reference_only_weight: (s.reference_only_weight as number) || undefined,
-    // Per-scene generation settings override (null = inherit global)
-    use_controlnet: (s.use_controlnet as boolean | null) ?? null,
-    controlnet_weight: (s.controlnet_weight as number | null) ?? null,
-    use_ip_adapter: (s.use_ip_adapter as boolean | null) ?? null,
-    ip_adapter_reference: (s.ip_adapter_reference as string | null) ?? null,
-    ip_adapter_weight: (s.ip_adapter_weight as number | null) ?? null,
-    multi_gen_enabled: (s.multi_gen_enabled as boolean | null) ?? null,
     _auto_pin_previous: (s._auto_pin_previous as boolean) ?? false,
-    character_actions: (s.character_actions as Scene["character_actions"]) || undefined,
-    // TTS & Pacing (from TTS Designer / preview)
-    voice_design_prompt: (s.voice_design_prompt as string | null) ?? null,
-    head_padding: (s.head_padding as number | null) ?? null,
-    tail_padding: (s.tail_padding as number | null) ?? null,
-    tts_asset_id: (s.tts_asset_id as number | null) ?? null,
-    // Per-scene overrides
-    controlnet_pose: (s.controlnet_pose as string | null) ?? null,
-    clothing_tags: (s.clothing_tags as Record<string, string[]> | null) ?? null,
-    ken_burns_preset: (s.ken_burns_preset as string | null) ?? null,
   }));
 }
