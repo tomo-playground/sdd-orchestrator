@@ -3,9 +3,14 @@ import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { generateSceneClientId } from "../../utils/uuid";
 import type { SceneItem } from "./types";
 
-/** Shared Scene → SceneItem mapper. preserveClientId keeps existing client_id from loaded data. */
+/**
+ * Shared Scene → SceneItem mapper. preserveClientId keeps existing client_id from loaded data.
+ * Spread passthrough: Scene 필드를 그대로 전달하고 필수 기본값만 오버라이드.
+ */
 function mapScenesToItems(scenes: Scene[], opts?: { preserveClientId?: boolean }): SceneItem[] {
   return scenes.map((s, i) => ({
+    ...(s as unknown as SceneItem),
+    // Required field overrides
     id: s.id ?? i + 1,
     client_id: opts?.preserveClientId
       ? (s.client_id ?? generateSceneClientId())
@@ -17,20 +22,6 @@ function mapScenesToItems(scenes: Scene[], opts?: { preserveClientId?: boolean }
     image_prompt: s.image_prompt ?? "",
     image_prompt_ko: s.image_prompt_ko ?? "",
     image_url: s.image_url ?? null,
-    context_tags: s.context_tags ?? undefined,
-    character_actions: s.character_actions ?? undefined,
-    use_controlnet: s.use_controlnet ?? undefined,
-    controlnet_weight: s.controlnet_weight ?? undefined,
-    controlnet_pose: s.controlnet_pose ?? undefined,
-    use_ip_adapter: s.use_ip_adapter ?? undefined,
-    ip_adapter_weight: s.ip_adapter_weight ?? undefined,
-    multi_gen_enabled: s.multi_gen_enabled ?? undefined,
-    negative_prompt_extra: s.negative_prompt_extra ?? undefined,
-    voice_design_prompt: s.voice_design_prompt ?? undefined,
-    head_padding: s.head_padding ?? undefined,
-    tail_padding: s.tail_padding ?? undefined,
-    ken_burns_preset: s.ken_burns_preset ?? undefined,
-    background_id: s.background_id ?? null,
   }));
 }
 
@@ -56,35 +47,21 @@ export type SyncMeta = {
   characterBName?: string | null;
 };
 
-/** Map local SceneItem[] → global Scene[] and sync to useStoryboardStore. */
+/**
+ * Map local SceneItem[] → global Scene[] and sync to useStoryboardStore.
+ * Spread passthrough: SceneItem 필드를 그대로 전달하고 Scene 전용 필드만 추가/오버라이드.
+ */
 export function syncToGlobalStore(scenes: SceneItem[], meta: SyncMeta) {
   const mapped = scenes.map((s, i) => ({
+    ...(s as unknown as Scene),
+    // Required overrides
     id: s.id ?? i + 1,
-    client_id: s.client_id,
     order: s.order ?? i + 1,
-    script: s.script,
     speaker: s.speaker as Scene["speaker"],
-    duration: s.duration,
-    image_prompt: s.image_prompt,
-    image_prompt_ko: s.image_prompt_ko,
-    image_url: s.image_url,
     negative_prompt: s.negative_prompt_extra || "",
+    // UI-only fields (always reset)
     isGenerating: false,
     debug_payload: "",
-    context_tags: s.context_tags,
-    character_actions: s.character_actions,
-    use_controlnet: s.use_controlnet,
-    controlnet_weight: s.controlnet_weight,
-    controlnet_pose: s.controlnet_pose,
-    use_ip_adapter: s.use_ip_adapter,
-    ip_adapter_weight: s.ip_adapter_weight,
-    multi_gen_enabled: s.multi_gen_enabled,
-    negative_prompt_extra: s.negative_prompt_extra,
-    voice_design_prompt: s.voice_design_prompt,
-    head_padding: s.head_padding,
-    tail_padding: s.tail_padding,
-    ken_burns_preset: s.ken_burns_preset,
-    background_id: s.background_id ?? null,
   }));
   useStoryboardStore.getState().setScenes(mapped);
   const { characterId, characterName, characterBId, characterBName, ...rest } = meta;

@@ -59,27 +59,17 @@ export function buildSavePayload(s: ScriptEditorState, groupId: number | null) {
     character_id: s.characterId,
     character_b_id: s.characterBId,
     version: s.storyboardVersion ?? undefined,
-    scenes: s.scenes.map((sc, i) => ({
-      scene_id: i,
-      client_id: sc.client_id,
-      script: sc.script,
-      speaker: sc.speaker,
-      duration: sc.duration,
-      image_prompt: sc.image_prompt,
-      image_prompt_ko: sc.image_prompt_ko,
-      use_controlnet: sc.use_controlnet ?? null,
-      controlnet_weight: sc.controlnet_weight ?? null,
-      controlnet_pose: sc.controlnet_pose ?? null,
-      use_ip_adapter: sc.use_ip_adapter ?? null,
-      ip_adapter_weight: sc.ip_adapter_weight ?? null,
-      multi_gen_enabled: sc.multi_gen_enabled ?? null,
-      voice_design_prompt: sc.voice_design_prompt ?? null,
-      head_padding: sc.head_padding ?? null,
-      tail_padding: sc.tail_padding ?? null,
-      background_id: sc.background_id ?? null,
-      ken_burns_preset: sc.ken_burns_preset ?? null,
-      context_tags: sc.context_tags ?? null,
-    })),
+    // Spread passthrough: UI-only 필드 제거 후 나머지 패스스루
+    scenes: s.scenes.map((sc, i) => {
+      const {
+        id: _id,
+        order: _order,
+        image_url: _imageUrl,
+        negative_prompt_extra: _extra,
+        ...rest
+      } = sc;
+      return { ...rest, scene_id: i };
+    }),
   };
 }
 
