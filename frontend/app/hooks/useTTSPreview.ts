@@ -121,10 +121,41 @@ export function useTTSPreview(storyboardId: number | null) {
   const regenerate = useCallback(
     async (scene: Scene) => {
       audioPlayer.stop();
-      updateState(scene.client_id, { ...IDLE_STATE });
-      await previewScene(scene);
+      const clientId = scene.client_id;
+      updateState(clientId, {
+        status: "loading",
+        error: null,
+        audioUrl: null,
+        duration: null,
+        cacheKey: null,
+      });
+
+      try {
+        const res = await axios.post<SceneTTSPreviewResponse>(`${API_BASE}/preview/tts`, {
+          script: scene.script,
+          speaker: scene.speaker || "Narrator",
+          storyboard_id: storyboardId,
+          voice_design_prompt: scene.voice_design_prompt || null,
+          language: "korean",
+          force_regenerate: true,
+        });
+
+        const data = res.data;
+        updateState(clientId, {
+          status: "idle",
+          audioUrl: data.audio_url,
+          duration: data.duration,
+          cacheKey: data.cache_key,
+        });
+        audioPlayer.play(data.audio_url);
+      } catch (err) {
+        const msg = axios.isAxiosError(err)
+          ? (err.response?.data?.detail ?? err.message)
+          : "TTS regenerate failed";
+        updateState(clientId, { status: "error", error: msg });
+      }
     },
-    [audioPlayer, updateState, previewScene]
+    [storyboardId, audioPlayer, updateState]
   );
 
   return {

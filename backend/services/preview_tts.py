@@ -95,6 +95,11 @@ async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
     cache_key = tts_cache_key(cleaned, voice_preset_id, voice_design, req.language)
     cache_path = TTS_CACHE_DIR / f"{cache_key}.wav"
 
+    # Force regenerate: delete existing cache
+    if req.force_regenerate and cache_path.exists():
+        cache_path.unlink()
+        logger.info("[Preview] TTS cache deleted (force): %s", cache_key)
+
     # Check cache
     if cache_path.exists():
         audio_bytes = cache_path.read_bytes()
