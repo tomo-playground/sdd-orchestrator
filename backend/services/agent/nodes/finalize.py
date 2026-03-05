@@ -546,6 +546,13 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     else:
         scenes = [copy.deepcopy(s) for s in (state.get("draft_scenes") or [])]
 
+    # Defense: Cinematographer may overwrite speaker assignments → re-enforce A/B alternation
+    structure = (state.get("structure") or "").lower()
+    if structure in ("dialogue", "narrated dialogue"):
+        from services.script.scene_postprocess import ensure_dialogue_speakers  # noqa: PLC0415
+
+        ensure_dialogue_speakers(scenes)
+
     _sanitize_quality_tags(scenes)
 
     from ._finalize_validators import (
