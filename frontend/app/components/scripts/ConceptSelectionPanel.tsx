@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Lightbulb, Check, RefreshCw, PenLine } from "lucide-react";
+import { Lightbulb, Check, RefreshCw, PenLine, ChevronDown, ChevronUp } from "lucide-react";
 import Button from "../ui/Button";
 import type { ConceptCandidate } from "../../types";
 
@@ -21,6 +21,7 @@ export default function ConceptSelectionPanel({
   onCustomConcept,
 }: Props) {
   const [selectedId, setSelectedId] = useState<number | null>(recommendedId);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showCustom, setShowCustom] = useState(false);
   const [customTitle, setCustomTitle] = useState("");
   const [customConcept, setCustomConcept] = useState("");
@@ -55,36 +56,65 @@ export default function ConceptSelectionPanel({
         {candidates.map((c, i) => {
           const isSelected = selectedId === i;
           const isRecommended = recommendedId === i;
+          const isExpanded = expandedId === i;
           return (
-            <button
+            <div
               key={`concept-${i}`}
-              type="button"
-              onClick={() => setSelectedId(i)}
-              className={`flex min-h-[180px] flex-col rounded-xl border-2 p-4 text-left transition-all ${
+              className={`flex flex-col rounded-xl border-2 text-left transition-all ${
                 isSelected
                   ? "scale-[1.02] border-amber-500 bg-white ring-2 ring-amber-300"
                   : "border-zinc-200 bg-white hover:border-amber-300"
               }`}
             >
-              <div className="flex items-center gap-1.5">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[11px] font-bold text-amber-700">
-                  {i + 1}
-                </span>
-                <p className="line-clamp-2 text-sm font-semibold text-zinc-900">{c.title}</p>
-                {isRecommended && (
-                  <span className="shrink-0 rounded-full bg-amber-500 px-1.5 py-0.5 text-[11px] font-medium text-white">
-                    AI 추천
+              <button
+                type="button"
+                onClick={() => setSelectedId(i)}
+                className="flex flex-1 flex-col p-4"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[11px] font-bold text-amber-700">
+                    {i + 1}
                   </span>
+                  <p className="line-clamp-2 text-sm font-semibold text-zinc-900">{c.title}</p>
+                  {isRecommended && (
+                    <span className="shrink-0 rounded-full bg-amber-500 px-1.5 py-0.5 text-[11px] font-medium text-white">
+                      AI 추천
+                    </span>
+                  )}
+                  {isSelected && <Check className="ml-auto h-4 w-4 shrink-0 text-amber-600" />}
+                </div>
+                <p
+                  className={`mt-2 flex-1 text-xs leading-relaxed text-zinc-600 ${isExpanded ? "" : "line-clamp-4"}`}
+                >
+                  {c.concept}
+                </p>
+                {c.strengths && c.strengths.length > 0 && (
+                  <p
+                    className={`mt-2 text-[11px] text-emerald-600 ${isExpanded ? "" : "line-clamp-2"}`}
+                  >
+                    + {c.strengths.join(" / + ")}
+                  </p>
                 )}
-                {isSelected && <Check className="ml-auto h-4 w-4 shrink-0 text-amber-600" />}
-              </div>
-              <p className="mt-2 line-clamp-3 flex-1 text-xs leading-relaxed text-zinc-600">
-                {c.concept}
-              </p>
-              {c.strengths && c.strengths.length > 0 && (
-                <p className="mt-auto truncate text-[11px] text-emerald-600">+ {c.strengths[0]}</p>
-              )}
-            </button>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpandedId(isExpanded ? null : i);
+                }}
+                className="flex items-center justify-center gap-0.5 border-t border-zinc-100 py-1.5 text-[11px] text-zinc-400 hover:text-zinc-600"
+              >
+                {isExpanded ? (
+                  <>
+                    접기 <ChevronUp className="h-3 w-3" />
+                  </>
+                ) : (
+                  <>
+                    더보기 <ChevronDown className="h-3 w-3" />
+                  </>
+                )}
+              </button>
+            </div>
           );
         })}
       </div>
