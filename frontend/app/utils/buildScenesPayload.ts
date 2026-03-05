@@ -39,6 +39,7 @@ export function buildScenesPayload(scenes: Scene[]) {
       activity_log_id: _activityLogId,
       negative_prompt_extra: _negativePromptExtra,
       image_url: _imageUrl,
+      candidates: _candidates,
       ...rest
     } = s;
 

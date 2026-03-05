@@ -305,7 +305,7 @@ async def generate_tts(
 
     # --- Linked TTS preview asset: skip generation if valid ---
     tts_asset_id = scene_req.tts_asset_id
-    if tts_asset_id:
+    if tts_asset_id is not None:
         try:
             from database import SessionLocal
             from models import MediaAsset

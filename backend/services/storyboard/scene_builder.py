@@ -101,6 +101,7 @@ def serialize_scene(
 
     # 5. 추가 파생 필드
     base["_auto_pin_previous"] = auto_pin_previous
+    # ken_burns_preset: DB 컬럼 미존재 — Frontend Scene 타입 호환용 (Cinematographer 출력)
     base["ken_burns_preset"] = getattr(scene, "ken_burns_preset", None)
 
     return base

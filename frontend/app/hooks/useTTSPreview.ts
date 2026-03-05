@@ -68,7 +68,7 @@ export function useTTSPreview(storyboardId: number | null) {
           voiceDesign: data.voice_design ?? null,
           voiceSeed: data.voice_seed ?? null,
         });
-        updateScene(clientId, { tts_asset_id: data.temp_asset_id });
+        updateScene(clientId, { tts_asset_id: data.temp_asset_id ?? null });
 
         // Auto-play after generation
         audioPlayer.play(data.audio_url);
@@ -160,7 +160,7 @@ export function useTTSPreview(storyboardId: number | null) {
           voiceDesign: data.voice_design ?? null,
           voiceSeed: data.voice_seed ?? null,
         });
-        updateScene(clientId, { tts_asset_id: data.temp_asset_id });
+        updateScene(clientId, { tts_asset_id: data.temp_asset_id ?? null });
         audioPlayer.play(data.audio_url);
       } catch (err) {
         const msg = axios.isAxiosError(err)
