@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -11,6 +12,9 @@ from models.associations import SceneCharacterAction, SceneTag
 from models.media_asset import MediaAsset
 from models.scene import Scene
 from schemas import SceneActionSave
+
+if TYPE_CHECKING:
+    from schemas import StoryboardScene
 from services.asset_service import AssetService
 from services.storage import get_storage
 from services.storyboard.helpers import _sanitize_candidates_for_db
@@ -161,7 +165,7 @@ def _get_scene_column_keys() -> set[str]:
     return _SCENE_COLUMN_KEYS
 
 
-def _build_scene_kwargs(s_data, storyboard_id: int, idx: int) -> dict:
+def _build_scene_kwargs(s_data: StoryboardScene, storyboard_id: int, idx: int) -> dict:
     """Pydantic schema → Scene 컬럼 kwargs (Spread Passthrough).
 
     schema.model_dump()에서 Scene 컬럼에 해당하는 필드만 필터 후
@@ -170,7 +174,7 @@ def _build_scene_kwargs(s_data, storyboard_id: int, idx: int) -> dict:
     # 1. schema → dict (관계/특수 필드 제외)
     # image_asset_id: Scene 생성 후 별도 asset linking 로직에서 설정
     _exclude = {"tags", "character_actions", "scene_id", "image_asset_id", "candidates"}
-    raw = s_data.model_dump(exclude=_exclude) if hasattr(s_data, "model_dump") else {}
+    raw = s_data.model_dump(exclude=_exclude)
 
     # 2. Scene 컬럼에 해당하는 필드만 필터
     col_keys = _get_scene_column_keys()
@@ -210,7 +214,7 @@ def _build_scene_kwargs(s_data, storyboard_id: int, idx: int) -> dict:
     return kwargs
 
 
-def create_scenes(db: Session, storyboard_id: int, scenes_data: list) -> None:
+def create_scenes(db: Session, storyboard_id: int, scenes_data: list[StoryboardScene]) -> None:
     """Create scenes with tags and character actions for a storyboard."""
     # Track old→new asset ID mapping for environment_reference_id remapping
     asset_id_remap: dict[int, int] = {}

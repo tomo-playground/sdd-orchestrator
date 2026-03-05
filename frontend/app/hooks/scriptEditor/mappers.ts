@@ -58,6 +58,7 @@ export function syncToGlobalStore(scenes: SceneItem[], meta: SyncMeta) {
     id: s.id ?? i + 1,
     order: s.order ?? i + 1,
     speaker: s.speaker as Scene["speaker"],
+    // SceneItem에 negative_prompt 없음 — negative_prompt_extra에서 변환
     negative_prompt: s.negative_prompt_extra || "",
     // UI-only fields (always reset)
     isGenerating: false,
