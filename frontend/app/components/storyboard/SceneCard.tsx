@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import type { Scene, ImageValidation, ImageGenProgress, Tag, GeminiSuggestion } from "../../types";
+import type {
+  Scene,
+  ImageValidation,
+  ImageGenProgress,
+  Tag,
+  GeminiSuggestion,
+  TTSPreviewState,
+} from "../../types";
+import type { AudioPlayer } from "../../hooks/useAudioPlayer";
 import { isMultiCharStructure } from "../../utils/structure";
 import { useUIStore } from "../../store/useUIStore";
 import SceneImagePanel from "./SceneImagePanel";
@@ -65,6 +73,10 @@ type SceneCardProps = {
   buildNegativePrompt: (scene: Scene) => string;
   buildScenePrompt: (scene: Scene) => string | null;
   showToast: (message: string, type: "success" | "error") => void;
+  ttsState?: TTSPreviewState;
+  onTTSPreview?: () => void;
+  onTTSRegenerate?: () => void;
+  audioPlayer?: AudioPlayer;
 };
 
 export default function SceneCard({
@@ -108,6 +120,10 @@ export default function SceneCard({
   buildNegativePrompt,
   buildScenePrompt,
   showToast,
+  ttsState,
+  onTTSPreview,
+  onTTSRegenerate,
+  audioPlayer,
 }: SceneCardProps) {
   const [geminiEditOpen, setGeminiEditOpen] = useState(false);
   const [geminiTargetChange, setGeminiTargetChange] = useState("");
@@ -195,6 +211,10 @@ export default function SceneCard({
             onUpdateScene={onUpdateScene}
             onSpeakerChange={onSpeakerChange}
             onImageUpload={onImageUpload}
+            ttsState={ttsState}
+            onTTSPreview={onTTSPreview}
+            onTTSRegenerate={onTTSRegenerate}
+            audioPlayer={audioPlayer}
           />
         </div>
       </div>

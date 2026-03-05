@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Scene } from "../../types";
+import type { Scene, TTSPreviewState } from "../../types";
+import type { AudioPlayer } from "../../hooks/useAudioPlayer";
 import { isMultiCharStructure } from "../../utils/structure";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { Input, Textarea } from "../ui";
@@ -14,6 +15,10 @@ type SceneEssentialFieldsProps = {
   onUpdateScene: (updates: Partial<Scene>) => void;
   onSpeakerChange: (speaker: Scene["speaker"]) => void;
   onImageUpload: (file: File | undefined) => void;
+  ttsState?: TTSPreviewState;
+  onTTSPreview?: () => void;
+  onTTSRegenerate?: () => void;
+  audioPlayer?: AudioPlayer;
 };
 
 export default function SceneEssentialFields({
@@ -22,6 +27,10 @@ export default function SceneEssentialFields({
   onUpdateScene,
   onSpeakerChange,
   onImageUpload,
+  ttsState,
+  onTTSPreview,
+  onTTSRegenerate,
+  audioPlayer,
 }: SceneEssentialFieldsProps) {
   const hasMultipleSpeakers = isMultiCharStructure(structure ?? "");
   const isNarratedDialogue = structure?.toLowerCase() === "narrated dialogue";
@@ -39,7 +48,17 @@ export default function SceneEssentialFields({
           rows={3}
           className="text-sm"
         />
-        <ScriptMeta script={scene.script} />
+        <div className="flex items-center gap-2">
+          <ScriptMeta script={scene.script} />
+          {onTTSPreview && scene.script.trim() && (
+            <TTSPreviewButton
+              state={ttsState}
+              isPlaying={audioPlayer?.playingUrl === ttsState?.audioUrl && !!ttsState?.audioUrl}
+              onPreview={onTTSPreview}
+              onRegenerate={onTTSRegenerate}
+            />
+          )}
+        </div>
       </div>
 
       {/* Speaker, Duration, Upload - 3 Column Grid */}
@@ -155,5 +174,61 @@ function ScriptMeta({ script }: { script: string }) {
       <span>·</span>
       <span>읽기 {readTime.toFixed(1)}초</span>
     </div>
+  );
+}
+
+/* ---- TTS Preview Button ---- */
+
+function TTSPreviewButton({
+  state,
+  isPlaying,
+  onPreview,
+  onRegenerate,
+}: {
+  state?: TTSPreviewState;
+  isPlaying: boolean;
+  onPreview: () => void;
+  onRegenerate?: () => void;
+}) {
+  const isLoading = state?.status === "loading";
+  const hasAudio = !!state?.audioUrl;
+  const isError = state?.status === "error";
+  const isCached = state?.status === "cached";
+
+  return (
+    <span className="ml-auto flex items-center gap-1">
+      <button
+        onClick={onPreview}
+        disabled={isLoading}
+        className={`rounded-full px-2 py-0.5 text-[11px] font-medium transition ${
+          isLoading
+            ? "bg-amber-50 text-amber-500"
+            : isPlaying
+              ? "bg-blue-100 text-blue-700"
+              : isError
+                ? "bg-red-50 text-red-500 hover:bg-red-100"
+                : isCached
+                  ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                  : hasAudio
+                    ? "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                    : "bg-zinc-50 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+        }`}
+        title={isError ? state?.error || "TTS error" : isPlaying ? "Stop" : "TTS Preview"}
+      >
+        {isLoading ? "..." : isPlaying ? "Stop" : hasAudio ? "Play" : "TTS"}
+      </button>
+      {state?.duration != null && (
+        <span className="text-[11px] text-zinc-400">{state.duration.toFixed(1)}s</span>
+      )}
+      {hasAudio && onRegenerate && (
+        <button
+          onClick={onRegenerate}
+          className="text-[11px] text-zinc-400 hover:text-zinc-600"
+          title="Regenerate"
+        >
+          Re
+        </button>
+      )}
+    </span>
   );
 }

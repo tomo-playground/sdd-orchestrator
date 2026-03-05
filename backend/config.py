@@ -685,6 +685,9 @@ TTS_MIN_SPEAKABLE_CHARS = int(os.getenv("TTS_MIN_SPEAKABLE_CHARS", "2"))  # Min 
 TTS_MAX_RETRIES = int(os.getenv("TTS_MAX_RETRIES", "2"))  # Retry count on quality failure
 TTS_DEFAULT_SEED = int(os.getenv("TTS_DEFAULT_SEED", "42"))  # Fallback seed when preset has no seed
 
+TTS_PREVIEW_BATCH_CONCURRENCY = int(os.getenv("TTS_PREVIEW_BATCH_CONCURRENCY", "3"))
+MAX_PREVIEW_IMAGE_BYTES = int(os.getenv("MAX_PREVIEW_IMAGE_BYTES", str(10 * 1024 * 1024)))  # 10MB
+
 # --- TTS Performance ---
 TTS_TIMEOUT_SECONDS = int(os.getenv("TTS_TIMEOUT_SECONDS", "120"))
 TTS_CACHE_DIR = PROMPT_CACHE_DIR / "tts"

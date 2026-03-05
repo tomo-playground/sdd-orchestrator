@@ -3105,3 +3105,149 @@ class ScriptEditResponse(BaseModel):
     edited_scenes: list[ScriptEditedScene]
     reasoning: str = ""
     unchanged_count: int = 0
+
+
+# ============================================================
+# Preview Schemas (Phase 29 — Video Pre-validation)
+# ============================================================
+
+
+class SceneTTSPreviewRequest(BaseModel):
+    """POST /preview/tts — 개별 씬 TTS 프리뷰 요청."""
+
+    script: str = Field(max_length=2000)
+    speaker: str = DEFAULT_SPEAKER
+    storyboard_id: int | None = None
+    voice_preset_id: int | None = None
+    voice_design_prompt: str | None = None
+    scene_emotion: str | None = None
+    language: str = "korean"
+
+
+class SceneTTSPreviewResponse(BaseModel):
+    """POST /preview/tts — 개별 씬 TTS 프리뷰 응답."""
+
+    audio_url: str
+    duration: float
+    cache_key: str
+    cached: bool
+    voice_seed: int | None = None
+    temp_asset_id: int
+
+
+class BatchTTSPreviewRequest(BaseModel):
+    """POST /preview/tts-batch — 일괄 TTS 프리뷰 요청."""
+
+    scenes: list[SceneTTSPreviewRequest] = Field(max_length=30)
+    storyboard_id: int | None = None
+    voice_preset_id: int | None = None
+
+
+class BatchTTSPreviewItem(BaseModel):
+    """배치 TTS 프리뷰 개별 결과."""
+
+    scene_index: int
+    status: Literal["success", "cached", "failed"]
+    audio_url: str | None = None
+    duration: float | None = None
+    cache_key: str
+    error: str | None = None
+
+
+class BatchTTSPreviewResponse(BaseModel):
+    """POST /preview/tts-batch — 일괄 TTS 프리뷰 응답."""
+
+    items: list[BatchTTSPreviewItem]
+    total_duration: float
+    cached_count: int
+    generated_count: int
+    failed_count: int
+
+
+class SceneFramePreviewRequest(BaseModel):
+    """POST /preview/frame — 개별 씬 프레임 합성 요청."""
+
+    image_url: str
+    script: str = ""
+    layout_style: Literal["full", "post"] = "post"
+    include_scene_text: bool = True
+    scene_text_font: str | None = None
+    channel_name: str | None = None
+    caption: str | None = None
+    width: int = 1080
+    height: int = 1920
+
+
+class FrameLayoutInfo(BaseModel):
+    """프레임 레이아웃 분석 정보."""
+
+    font_size: int | None = None
+    face_detected: bool = False
+    text_brightness: float | None = None
+
+
+class SceneFramePreviewResponse(BaseModel):
+    """POST /preview/frame — 프레임 합성 응답."""
+
+    preview_url: str
+    temp_asset_id: int
+    layout_info: FrameLayoutInfo
+
+
+class TimelineSceneInput(BaseModel):
+    """타임라인 씬 입력."""
+
+    script: str = ""
+    duration: float = 3.0
+    tts_duration: float | None = None
+
+
+class TimelineRequest(BaseModel):
+    """POST /preview/timeline — 타임라인 데이터 요청."""
+
+    scenes: list[TimelineSceneInput] = Field(max_length=30)
+    speed_multiplier: float = 1.0
+    transition_type: str = "fade"
+
+
+class TimelineSceneOutput(BaseModel):
+    """타임라인 씬 출력."""
+
+    scene_index: int
+    effective_duration: float
+    tts_duration: float | None = None
+    has_tts: bool = False
+    start_time: float = 0.0
+    end_time: float = 0.0
+
+
+class TimelineResponse(BaseModel):
+    """POST /preview/timeline — 타임라인 응답."""
+
+    scenes: list[TimelineSceneOutput]
+    total_duration: float
+
+
+class PreValidateIssue(BaseModel):
+    """사전 검증 이슈 항목."""
+
+    level: Literal["error", "warning", "info"]
+    scene_index: int | None = None
+    category: str
+    message: str
+
+
+class PreValidateRequest(BaseModel):
+    """POST /preview/validate — 사전 검증 요청."""
+
+    storyboard_id: int
+
+
+class PreValidateResponse(BaseModel):
+    """POST /preview/validate — 사전 검증 응답."""
+
+    is_ready: bool
+    issues: list[PreValidateIssue]
+    total_duration: float | None = None
+    cached_tts_count: int = 0
+    total_scenes: int = 0

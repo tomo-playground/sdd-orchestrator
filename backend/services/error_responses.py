@@ -43,6 +43,10 @@ _USER_MESSAGES: dict[str, str] = {
     "script_generate": "스크립트 생성에 실패했습니다.",
     "stage_generate": "배경 생성에 실패했습니다.",
     "stage_regenerate": "배경 재생성에 실패했습니다.",
+    "tts_preview": "TTS 미리듣기에 실패했습니다.",
+    "tts_batch_preview": "일괄 TTS 미리듣기에 실패했습니다.",
+    "frame_preview": "프레임 프리뷰에 실패했습니다.",
+    "pre_validate": "사전 검증에 실패했습니다.",
 }
 
 

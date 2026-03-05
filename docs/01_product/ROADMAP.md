@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-03-04)
+## 현재 상태 (2026-03-05)
 
 | 항목 | 상태 |
 |------|------|
@@ -32,10 +32,12 @@
 | Phase 26 (Script 협업형 UX) | 전체 완료 (ARCHIVED) |
 | Character-Group 소유권 개편 | 전체 완료 (ARCHIVED) |
 | Phase 27 (Chat System UX & Architecture) | 전체 완료 — P0(타이핑 인디케이터+히스토리 영속+a11y) + P1(Discriminated Union+AbortController+에러 복구+AutoScroll) + P2(헬퍼 통합+모드 툴팁) |
+| Phase 29 (Video Pre-validation) | Sub-Phase A 진행 중 — 씬별 TTS 미리듣기/프레임 프리뷰/타임라인/사전검증 |
 | 테스트 | Backend 3,095 + Frontend 543 + E2E 36 = **총 3,674개** |
 
 ### 최근 작업
 
+- **Phase 29 Video Pre-validation 착수** (03-05): 4-Sub-Phase(A~D) 구성. Sub-Phase A: 씬별 TTS 미리듣기(캐시 키 동일성 설계 — 프리뷰 WAV를 렌더링에서 100% 재사용). Sub-Phase B: 씬별 프레임 프리뷰(Pillow 합성). Sub-Phase C: 타임라인 시각화. Sub-Phase D: 통합 사전검증 리포트. 신규 7파일 + 수정 5파일, 5개 엔드포인트, 테스트 목표 45개. [명세](FEATURES/VIDEO_PREVALIDATION.md)
 - **Phase 28 Pipeline Resilience 완료** (03-04): 4-Phase(A~D) 전체 구현. Phase A: 빈 씬 다층 방어선(writer 재시도+routing 가드+SSE is not None+ReviewApprovalPanel 에러 UI). Phase B: 에러 복구(finalize validator 래핑+copyright WARN+unknown decision 로깅+글로벌 리비전 상한 `_total_revisions()` 파생 계산). Phase C: 관측성(fallback_reason 3노드 표준화+SSE research/revise 키+PipelineStepCard 6노드 라벨+fallback 배지). Phase D: 데이터 무결성(_extract_reasoning 원본 보존+checkpoint 음수 score→error). 70개 테스트, 커밋 4건(`7e4c5c7b`~`078a0bd0`). [명세](FEATURES/PIPELINE_RESILIENCE.md)
 - **파이프라인 플로우 검수 + Phase 28 착수** (03-04): 19-노드 파이프라인 전체 검수로 24개 이슈 발견. ① 캐릭터 배정 버그 수정 — `topic_analysis` 빈 그룹 폴백(`d1d64b82`), `_validate_character` int 변환+0 가드(`d00ac5ae`). ② writer/revise `state["topic"]` KeyError 방어(`d00ac5ae`). ③ Gemini Event loop 재초기화(`d00ac5ae`). ④ 피처 문서 `PIPELINE_RESILIENCE.md` 작성 — Agentic AI 5대 요건 기준 17개 개선항목, P0~P3 우선순위, 4-Phase 구현 전략. ⑤ 크로스 리뷰(Tech Lead+DBA+Frontend+Backend) — Critical 3건(Director 이미 구현, #6+#14 의존성, 리비전 수치 오류), Suggestion 7건 반영. [명세](FEATURES/PIPELINE_RESILIENCE.md)
 - **Chat System 리팩토링 + 취소 UI + chat_context 확장** (03-03): Phase 27 잔여 3건 해소. ① 훅 분리 — `useChatScriptEditor`(432줄→107줄) 오케스트레이터로 축소, `useChatMessages`(상태+영속화+복원), `useStreamingPipeline`(SSE→ChatMessage 변환), `useTopicAnalysis`(분석 API+설정 적용+생성+취소) 3개 훅 추출. `useSceneEditActions`와 동일한 deps 의존성 주입 패턴. ② 취소 버튼 UI — `ChatInput` `onCancel` prop, `disabled+onCancel` 시 빨간 정지 버튼(`Square` lucide), `cancelOperation` → `abortRef.abort()`(토픽 분석)+`editor.cancel()`(SSE 파이프라인)+프로그레스 초기화. `useScriptEditor`에 `cancel()` 메서드+`streamAbortRef` 추가(generate/resume fetch에 signal 연결, AbortError 처리). ③ chat_context 확장 — Writer(`pipeline_ctx["chat_context"]`→`gemini_generator.py` template.render→`create_storyboard.j2` User Intent Context 섹션), Cinematographer(`tmpl.render(chat_context=)`→`cinematographer.j2` User Intent Context 섹션). 후방 호환: `{% if chat_context %}` 가드. 14개 파일 변경(신규 3+수정 11), 빌드 PASS, 코드 리뷰 Critical 1건(SSE cancel) 즉시 수정.
@@ -137,6 +139,7 @@ graph LR
     P25 --> P26["Phase 26<br/>Script 협업형<br/>UX"]
     P26 --> P27["Phase 27<br/>Chat System<br/>UX & Architecture"]
     P27 --> P28["Phase 28<br/>Pipeline<br/>Resilience"]
+    P28 --> P29["Phase 29<br/>Video<br/>Pre-validation"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -169,7 +172,8 @@ graph LR
     style P25 fill:#4CAF50,color:#fff
     style P26 fill:#4CAF50,color:#fff
     style P27 fill:#4CAF50,color:#fff
-    style P28 fill:#2196F3,color:#fff
+    style P28 fill:#4CAF50,color:#fff
+    style P29 fill:#2196F3,color:#fff
 ```
 
 ---

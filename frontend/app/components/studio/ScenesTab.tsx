@@ -36,6 +36,8 @@ import {
   handleSavePrompt,
 } from "../../store/actions/sceneActions";
 import { useSceneActions } from "../../hooks/useSceneActions";
+import { useTTSPreview } from "../../hooks/useTTSPreview";
+import { useContextStore } from "../../store/useContextStore";
 
 export default function ScenesTab() {
   const { scenes, currentSceneIndex } = useStoryboardStore(
@@ -113,6 +115,8 @@ export default function ScenesTab() {
   const showAdvancedSettings = useUIStore((s) => s.showAdvancedSettings);
   const toggleAdvancedSettings = useUIStore((s) => s.toggleAdvancedSettings);
   const currentStyleProfile = useRenderStore((s) => s.currentStyleProfile);
+  const storyboardId = useContextStore((s) => s.storyboardId);
+  const ttsPreview = useTTSPreview(storyboardId);
 
   if (scenes.length === 0) {
     return (
@@ -273,6 +277,10 @@ export default function ScenesTab() {
                   buildNegativePrompt={buildNegativePrompt}
                   buildScenePrompt={buildScenePrompt}
                   showToast={showToast}
+                  ttsState={ttsPreview.previewStates.get(currentScene.client_id)}
+                  onTTSPreview={() => ttsPreview.previewScene(currentScene)}
+                  onTTSRegenerate={() => ttsPreview.regenerate(currentScene)}
+                  audioPlayer={ttsPreview.audioPlayer}
                 />
               </div>
             </div>

@@ -986,3 +986,100 @@ export type ConsistencyResponse = {
   overall_consistency: number;
   scenes: SceneDriftResponse[];
 };
+
+// ── Preview Types (Phase 29) ────────────────────────────
+
+export type TTSPreviewState = {
+  status: "idle" | "loading" | "playing" | "cached" | "error";
+  audioUrl: string | null;
+  duration: number | null;
+  cacheKey: string | null;
+  error: string | null;
+};
+
+export type SceneTTSPreviewRequest = {
+  script: string;
+  speaker?: string;
+  storyboard_id?: number | null;
+  voice_preset_id?: number | null;
+  voice_design_prompt?: string | null;
+  scene_emotion?: string | null;
+  language?: string;
+};
+
+export type SceneTTSPreviewResponse = {
+  audio_url: string;
+  duration: number;
+  cache_key: string;
+  cached: boolean;
+  voice_seed: number | null;
+  temp_asset_id: number;
+};
+
+export type BatchTTSPreviewResponse = {
+  items: Array<{
+    scene_index: number;
+    status: "success" | "cached" | "failed";
+    audio_url: string | null;
+    duration: number | null;
+    cache_key: string;
+    error: string | null;
+  }>;
+  total_duration: number;
+  cached_count: number;
+  generated_count: number;
+  failed_count: number;
+};
+
+export type SceneFramePreviewRequest = {
+  image_url: string;
+  script?: string;
+  layout_style?: "full" | "post";
+  include_scene_text?: boolean;
+  scene_text_font?: string | null;
+  channel_name?: string | null;
+  caption?: string | null;
+  width?: number;
+  height?: number;
+};
+
+export type SceneFramePreviewResponse = {
+  preview_url: string;
+  temp_asset_id: number;
+  layout_info: {
+    font_size: number | null;
+    face_detected: boolean;
+    text_brightness: number | null;
+  };
+};
+
+export type TimelineSceneInput = {
+  script: string;
+  duration: number;
+  tts_duration: number | null;
+};
+
+export type TimelineResponse = {
+  scenes: Array<{
+    scene_index: number;
+    effective_duration: number;
+    tts_duration: number | null;
+    has_tts: boolean;
+    start_time: number;
+    end_time: number;
+  }>;
+  total_duration: number;
+};
+
+export type PreValidateResponse = {
+  is_ready: boolean;
+  issues: Array<{
+    level: "error" | "warning" | "info";
+    scene_index: number | null;
+    category: string;
+    message: string;
+  }>;
+  total_duration: number | null;
+  cached_tts_count: number;
+  total_scenes: number;
+};
