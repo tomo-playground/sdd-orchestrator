@@ -195,38 +195,68 @@ function TTSPreviewButton({
   const isError = state?.status === "error";
   const isCached = state?.status === "cached";
 
+  if (isLoading) {
+    return (
+      <span className="ml-auto flex items-center gap-1">
+        <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-500">
+          생성 중...
+        </span>
+      </span>
+    );
+  }
+
+  if (isError) {
+    return (
+      <span className="ml-auto flex items-center gap-1.5">
+        <button
+          onClick={onPreview}
+          className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-500 hover:bg-red-100"
+          title={state?.error || "TTS error"}
+        >
+          재시도
+        </button>
+      </span>
+    );
+  }
+
+  if (!hasAudio) {
+    return (
+      <span className="ml-auto">
+        <button
+          onClick={onPreview}
+          className="rounded-full bg-zinc-50 px-2.5 py-0.5 text-xs font-medium text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+          title="TTS 미리듣기"
+        >
+          미리듣기
+        </button>
+      </span>
+    );
+  }
+
+  // Has audio: show play + duration + regenerate
   return (
-    <span className="ml-auto flex items-center gap-1">
+    <span className="ml-auto flex items-center gap-1.5">
       <button
         onClick={onPreview}
-        disabled={isLoading}
-        className={`rounded-full px-2 py-0.5 text-[11px] font-medium transition ${
-          isLoading
-            ? "bg-amber-50 text-amber-500"
-            : isPlaying
-              ? "bg-blue-100 text-blue-700"
-              : isError
-                ? "bg-red-50 text-red-500 hover:bg-red-100"
-                : isCached
-                  ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                  : hasAudio
-                    ? "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                    : "bg-zinc-50 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+        className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition ${
+          isPlaying
+            ? "bg-blue-100 text-blue-700"
+            : isCached
+              ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
         }`}
-        title={isError ? state?.error || "TTS error" : isPlaying ? "Stop" : "TTS Preview"}
+        title={isPlaying ? "정지" : isCached ? "캐시된 TTS 재생" : "TTS 재생"}
       >
-        {isLoading ? "..." : isPlaying ? "Stop" : hasAudio ? "Play" : "TTS"}
+        {isPlaying ? "■ 정지" : "▶ 재생"}
       </button>
-      {state?.duration != null && (
-        <span className="text-[11px] text-zinc-400">{state.duration.toFixed(1)}s</span>
-      )}
-      {hasAudio && onRegenerate && (
+      <span className="text-[11px] text-zinc-400">{state?.duration?.toFixed(1)}s</span>
+      {onRegenerate && (
         <button
           onClick={onRegenerate}
-          className="text-[11px] text-zinc-400 hover:text-zinc-600"
-          title="Regenerate"
+          className="rounded-full bg-zinc-50 px-2 py-0.5 text-xs text-zinc-400 hover:bg-amber-50 hover:text-amber-600"
+          title="캐시 삭제 후 새로 생성"
         >
-          Re
+          재생성
         </button>
       )}
     </span>
