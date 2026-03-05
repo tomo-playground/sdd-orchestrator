@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-from pydantic import ValidationError
-
 from services.agent.llm_models import CastingRecommendation, DirectorPlanOutput
 
 
@@ -34,37 +31,43 @@ class TestCastingRecommendation:
         )
         assert m.character_b_id == 2
 
-    def test_dialogue_missing_char_b_fails(self):
-        with pytest.raises(ValidationError, match="character_b_id"):
-            CastingRecommendation.model_validate(
-                {
-                    "character_id": 1,
-                    "character_name": "A",
-                    "structure": "dialogue",
-                }
-            )
+    def test_dialogue_missing_char_b_degrades_to_monologue(self):
+        """dialogue + character_b 없음 → monologue로 강등 (에러 아님)."""
+        m = CastingRecommendation.model_validate(
+            {
+                "character_id": 1,
+                "character_name": "A",
+                "structure": "dialogue",
+            }
+        )
+        assert m.structure == "monologue"
+        assert m.character_b_id is None
 
-    def test_narrated_dialogue_missing_char_b_fails(self):
-        with pytest.raises(ValidationError, match="character_b_id"):
-            CastingRecommendation.model_validate(
-                {
-                    "character_id": 1,
-                    "character_name": "A",
-                    "structure": "narrated_dialogue",
-                }
-            )
+    def test_narrated_dialogue_missing_char_b_degrades_to_monologue(self):
+        """narrated_dialogue + character_b 없음 → monologue로 강등."""
+        m = CastingRecommendation.model_validate(
+            {
+                "character_id": 1,
+                "character_name": "A",
+                "structure": "narrated_dialogue",
+            }
+        )
+        assert m.structure == "monologue"
 
-    def test_duplicate_ids_fails(self):
-        with pytest.raises(ValidationError, match="달라야"):
-            CastingRecommendation.model_validate(
-                {
-                    "character_id": 1,
-                    "character_name": "A",
-                    "character_b_id": 1,
-                    "character_b_name": "A",
-                    "structure": "dialogue",
-                }
-            )
+    def test_duplicate_ids_degrades(self):
+        """중복 ID → character_b 제거 + monologue 강등."""
+        m = CastingRecommendation.model_validate(
+            {
+                "character_id": 1,
+                "character_name": "A",
+                "character_b_id": 1,
+                "character_b_name": "A",
+                "structure": "dialogue",
+            }
+        )
+        assert m.character_b_id is None
+        assert m.character_b_name == ""
+        assert m.structure == "monologue"
 
     def test_all_none_defaults(self):
         m = CastingRecommendation.model_validate({})

@@ -25,7 +25,8 @@ class TestValidateCasting:
         assert result is not None
         assert result["character_id"] is None
 
-    def test_invalid_char_b_removed(self):
+    def test_invalid_char_b_auto_assigned(self):
+        """유효하지 않은 character_b_id → 다른 유효 캐릭터로 자동 할당."""
         casting = {
             "character_id": 1,
             "character_name": "A",
@@ -36,10 +37,26 @@ class TestValidateCasting:
         state = ScriptState(valid_character_ids=[1, 2])
         result = _validate_casting(casting, state)
         assert result is not None
-        # dialogue → monologue로 변경됨 (char_b 없으므로)
+        # 다른 유효 캐릭터(2)가 자동 할당되어 dialogue 유지
+        assert result["structure"] == "dialogue"
+        assert result["character_b_id"] == 2
+
+    def test_invalid_char_b_no_alternative_fallback(self):
+        """유효하지 않은 character_b_id + 대안 없음 → monologue 강등."""
+        casting = {
+            "character_id": 1,
+            "character_name": "A",
+            "character_b_id": 99,
+            "character_b_name": "X",
+            "structure": "dialogue",
+        }
+        state = ScriptState(valid_character_ids=[1])
+        result = _validate_casting(casting, state)
+        assert result is not None
         assert result["structure"] == "monologue"
 
-    def test_duplicate_ids_fixed(self):
+    def test_duplicate_ids_auto_assigned(self):
+        """중복 ID → character_b를 다른 캐릭터로 자동 할당."""
         casting = {
             "character_id": 1,
             "character_name": "A",
@@ -50,9 +67,35 @@ class TestValidateCasting:
         state = ScriptState(valid_character_ids=[1, 2])
         result = _validate_casting(casting, state)
         assert result is not None
-        assert result["character_b_id"] is None
+        assert result["character_b_id"] == 2
+        assert result["structure"] == "dialogue"
 
-    def test_two_char_structure_without_b_fallback(self):
+    def test_duplicate_ids_no_alternative(self):
+        """중복 ID + 대안 없음 → monologue 강등."""
+        casting = {
+            "character_id": 1,
+            "character_name": "A",
+            "character_b_id": 1,
+            "character_b_name": "A",
+            "structure": "dialogue",
+        }
+        state = ScriptState(valid_character_ids=[1])
+        result = _validate_casting(casting, state)
+        assert result is not None
+        assert result["character_b_id"] is None
+        assert result["structure"] == "monologue"
+
+    def test_two_char_structure_without_b_auto_assigned(self):
+        """2인 구조 + character_b 없음 + 대안 있음 → 자동 할당."""
+        casting = {"character_id": 1, "character_name": "A", "structure": "narrated_dialogue"}
+        state = ScriptState(valid_character_ids=[1, 3])
+        result = _validate_casting(casting, state)
+        assert result is not None
+        assert result["structure"] == "narrated_dialogue"
+        assert result["character_b_id"] == 3
+
+    def test_two_char_structure_without_b_no_alternative(self):
+        """2인 구조 + character_b 없음 + 대안 없음 → monologue 강등."""
         casting = {"character_id": 1, "character_name": "A", "structure": "narrated_dialogue"}
         state = ScriptState(valid_character_ids=[1])
         result = _validate_casting(casting, state)

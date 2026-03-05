@@ -56,6 +56,7 @@ Your task is to establish the creative direction before production begins.
 1. **토픽 분석**: 주제의 핵심 감정과 장르를 파악하세요
 2. **구조 선택**: 1인 독백 vs 대화/갈등에 따라 monologue, dialogue, narrated_dialogue, confession 중 선택
 3. **캐릭터 선택**: LoRA가 있는 캐릭터를 우선 고려하세요 (이미지 일관성 높음). 사용 횟수가 많은 캐릭터는 검증된 캐릭터입니다
+   - **dialogue/narrated_dialogue 선택 시**: 반드시 서로 다른 2명의 캐릭터를 character_id와 character_b_id에 각각 기재하세요
 4. **ID 교차검증**: 캐릭터 ID와 이름을 반드시 함께 기재하세요
 {% endif %}
 
@@ -72,7 +73,7 @@ Your task is to establish the creative direction before production begins.
   - 여러 방향의 스토리가 가능한 경우
   - 사용자가 구체적 시나리오를 제시하지 않은 경우
   - `false`는 이미 구체적 스토리라인이 확정된 경우만
-- **run_explain**: 영상 후 보충 설명(배경 지식, 교훈 등)이 도움되면 `true`. 순수 감성/오락 주제면 `false`
+- **run_explain**: 보충 설명 필요 여부를 판단하여 기록하세요 (explain 노드는 항상 실행됩니다)
 
 **원칙**: 판단이 애매하면 `true`로 설정하세요. skip은 확실히 불필요한 경우만.
 판단 시 `reasoning`에 근거를 간결히 기록하세요.
@@ -110,10 +111,10 @@ Your task is to establish the creative direction before production begins.
     }{% if characters %},
     "casting": {
         "character_id": 1,
-        "character_name": "캐릭터 이름 (ID와 반드시 일치)",
-        "character_b_id": null,
-        "character_b_name": "",
-        "structure": "monologue",
+        "character_name": "캐릭터A 이름 (ID와 반드시 일치)",
+        "character_b_id": 2,
+        "character_b_name": "캐릭터B 이름 (dialogue/narrated_dialogue 구조 시 필수, 1인 구조면 null)",
+        "structure": "dialogue",
         "style_profile_id": null,
         "reasoning": "이 캐릭터/구조/스타일을 추천하는 근거 (한국어)"
     }{% endif %}

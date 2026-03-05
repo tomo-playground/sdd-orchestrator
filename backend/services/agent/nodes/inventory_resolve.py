@@ -37,13 +37,19 @@ def _validate_casting(casting: dict, state: ScriptState) -> dict | None:
         casting["character_b_id"] = None
         casting["character_b_name"] = ""
 
-    # 4. 구조 적합성: 2인 구조 → character_b_id 필수
+    # 4. 구조 적합성: 2인 구조 → character_b_id 자동 할당 시도
     structure = casting.get("structure")
     if structure in _TWO_CHAR_STRUCTURES and casting.get("character_id") and not casting.get("character_b_id"):
-        logger.info(
-            "[LangGraph] inventory_resolve: 2인 구조(%s)에 character_b 없음, 구조를 monologue로 변경", structure
-        )
-        casting["structure"] = "monologue"
+        char_id = casting["character_id"]
+        others = [cid for cid in valid_chars if cid != char_id]
+        if others:
+            casting["character_b_id"] = others[0]
+            logger.info(
+                "[LangGraph] inventory_resolve: 2인 구조(%s)에 character_b 자동 할당 → %s", structure, others[0]
+            )
+        else:
+            logger.info("[LangGraph] inventory_resolve: 2인 구조(%s)에 다른 캐릭터 없음, monologue로 변경", structure)
+            casting["structure"] = "monologue"
 
     # 유효한 추천이 하나도 없으면 None
     if not casting.get("character_id") and not casting.get("structure"):

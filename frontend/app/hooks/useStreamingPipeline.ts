@@ -15,10 +15,16 @@ import { createMessageId } from "../utils/chatMessageFactory";
 
 const PIPELINE_NODES = new Set([
   "director_plan",
+  "research",
   "critic",
   "writer",
+  "review",
   "cinematographer",
+  "tts_designer",
+  "sound_designer",
+  "copyright_reviewer",
   "director",
+  "explain",
 ]);
 
 type StreamingPipelineDeps = {

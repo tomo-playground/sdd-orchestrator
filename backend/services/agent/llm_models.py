@@ -39,13 +39,13 @@ class CastingRecommendation(BaseModel):
 
     @model_validator(mode="after")
     def _validate_casting(self) -> CastingRecommendation:
-        """2인 구조 시 character_b_id 필수, 중복 ID 방지."""
+        """2인 구조 시 character_b_id 없으면 monologue로 강등, 중복 ID 방지."""
         if self.structure in _TWO_CHAR_STRUCTURES and self.character_id and not self.character_b_id:
-            msg = f"2인 구조({self.structure})에 character_b_id 필수"
-            raise ValueError(msg)
+            self.structure = "monologue"
         if self.character_id and self.character_id == self.character_b_id:
-            msg = "character_id와 character_b_id는 달라야 합니다"
-            raise ValueError(msg)
+            self.character_b_id = None
+            self.character_b_name = ""
+            self.structure = "monologue"
         return self
 
 

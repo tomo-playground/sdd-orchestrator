@@ -16,6 +16,7 @@ const NODE_LABELS: Record<string, string> = {
   sound_designer: "BGM 설계",
   copyright_reviewer: "저작권 검토",
   director: "통합 검증",
+  explain: "창작 결정 설명",
 };
 
 function hasContent(obj?: Record<string, unknown>): boolean {
@@ -61,6 +62,11 @@ function extractSummary(nodeName: string, result?: Record<string, unknown>): str
       const brief = result.brief as Record<string, unknown> | undefined;
       return brief?.topic_summary ? String(brief.topic_summary) : "리서치 완료";
     }
+    case "explain": {
+      const exp = result.explanation as Record<string, unknown> | undefined;
+      const decisions = Array.isArray(exp?.key_decisions) ? exp.key_decisions : [];
+      return decisions.length > 0 ? `핵심 결정 ${decisions.length}건` : "분석 완료";
+    }
     case "director":
       return result.decision === "approve" ? "승인" : "수정 요청";
     default:
@@ -71,6 +77,43 @@ function extractSummary(nodeName: string, result?: Record<string, unknown>): str
 function hasFallback(result?: Record<string, unknown>): boolean {
   if (!result) return false;
   return result.fallback_reason !== undefined;
+}
+
+const EXPLAIN_SECTIONS: { key: string; label: string }[] = [
+  { key: "visual_strategy", label: "비주얼 전략" },
+  { key: "audio_strategy", label: "오디오 전략" },
+  { key: "quality_tradeoffs", label: "품질 트레이드오프" },
+  { key: "overall_coherence", label: "전체 일관성" },
+];
+
+function ExplainDetail({ result }: { result: Record<string, unknown> }) {
+  const exp = (result.explanation ?? result) as Record<string, unknown>;
+  const decisions = Array.isArray(exp.key_decisions) ? (exp.key_decisions as string[]) : [];
+
+  return (
+    <div className="mt-1.5 space-y-2 rounded border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-600">
+      {EXPLAIN_SECTIONS.map(({ key, label }) => {
+        const val = exp[key];
+        if (!val) return null;
+        return (
+          <div key={key}>
+            <span className="font-semibold text-zinc-700">{label}</span>
+            <p className="mt-0.5 whitespace-pre-wrap">{String(val)}</p>
+          </div>
+        );
+      })}
+      {decisions.length > 0 && (
+        <div>
+          <span className="font-semibold text-zinc-700">핵심 결정</span>
+          <ul className="mt-0.5 list-inside list-disc space-y-0.5">
+            {decisions.map((d, i) => (
+              <li key={i}>{d}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 }
 
 type Props = { message: PipelineStepMessage };
@@ -109,11 +152,15 @@ const PipelineStepCard = memo(function PipelineStepCard({ message }: Props) {
             </span>
           )}
         </button>
-        {expanded && expandable && (
-          <pre className="mt-1.5 max-h-40 overflow-auto rounded border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-600">
-            {JSON.stringify(nodeResult, null, 2)}
-          </pre>
-        )}
+        {expanded &&
+          expandable &&
+          (nodeName === "explain" ? (
+            <ExplainDetail result={nodeResult} />
+          ) : (
+            <pre className="mt-1.5 max-h-40 overflow-auto rounded border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-600">
+              {JSON.stringify(nodeResult, null, 2)}
+            </pre>
+          ))}
       </div>
     </div>
   );
