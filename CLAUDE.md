@@ -257,7 +257,7 @@ base = {c.key: getattr(scene, c.key) for c in Scene.__table__.columns}
 base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ```
 
-**적용 대상** (8개 함수):
+**적용 완료** (8개 함수 — 전환 완료):
 | 함수 | 파일 | 방향 |
 |------|------|------|
 | `mapDbScenes` | `useStudioInitialization.ts` | DB→Store |
