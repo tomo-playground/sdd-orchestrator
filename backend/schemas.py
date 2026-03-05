@@ -3133,6 +3133,7 @@ class SceneTTSPreviewResponse(BaseModel):
     cache_key: str
     cached: bool
     voice_seed: int | None = None
+    voice_design: str | None = None
     temp_asset_id: int
 
 

@@ -995,6 +995,8 @@ export type TTSPreviewState = {
   duration: number | null;
   cacheKey: string | null;
   error: string | null;
+  voiceDesign: string | null;
+  voiceSeed: number | null;
 };
 
 export type SceneTTSPreviewRequest = {
@@ -1013,6 +1015,7 @@ export type SceneTTSPreviewResponse = {
   cache_key: string;
   cached: boolean;
   voice_seed: number | null;
+  voice_design: string | null;
   temp_asset_id: number;
 };
 

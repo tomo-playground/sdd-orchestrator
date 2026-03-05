@@ -15,6 +15,8 @@ const IDLE_STATE: TTSPreviewState = {
   duration: null,
   cacheKey: null,
   error: null,
+  voiceDesign: null,
+  voiceSeed: null,
 };
 
 export function useTTSPreview(storyboardId: number | null) {
@@ -61,6 +63,8 @@ export function useTTSPreview(storyboardId: number | null) {
           audioUrl: data.audio_url,
           duration: data.duration,
           cacheKey: data.cache_key,
+          voiceDesign: data.voice_design ?? null,
+          voiceSeed: data.voice_seed ?? null,
         });
 
         // Auto-play after generation
@@ -101,6 +105,7 @@ export function useTTSPreview(storyboardId: number | null) {
               error: item.error || "Failed",
             });
           } else {
+            // Note: batch API doesn't return voiceDesign/voiceSeed per item
             updateState(scene.client_id, {
               status: item.status === "cached" ? "cached" : "idle",
               audioUrl: item.audio_url,
@@ -146,6 +151,8 @@ export function useTTSPreview(storyboardId: number | null) {
           audioUrl: data.audio_url,
           duration: data.duration,
           cacheKey: data.cache_key,
+          voiceDesign: data.voice_design ?? null,
+          voiceSeed: data.voice_seed ?? null,
         });
         audioPlayer.play(data.audio_url);
       } catch (err) {

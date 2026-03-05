@@ -191,12 +191,6 @@ function AudioWaveform() {
           }}
         />
       ))}
-      <style>{`
-        @keyframes tts-bar {
-          0% { height: 3px; }
-          100% { height: 11px; }
-        }
-      `}</style>
     </span>
   );
 }
@@ -221,10 +215,14 @@ function TTSPreviewButton({
 
   if (isLoading) {
     return (
-      <span className="ml-auto flex items-center gap-1">
-        <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-500">
-          생성 중...
+      <span className="ml-auto flex items-center gap-2">
+        <span className="relative h-1.5 w-20 overflow-hidden rounded-full bg-amber-100">
+          <span
+            className="absolute inset-y-0 left-0 rounded-full bg-amber-400"
+            style={{ animation: "tts-progress 6s ease-out forwards" }}
+          />
         </span>
+        <span className="text-[11px] font-medium text-amber-500">생성 중</span>
       </span>
     );
   }
@@ -275,6 +273,14 @@ function TTSPreviewButton({
       </button>
       {isPlaying && <AudioWaveform />}
       <span className="text-[11px] text-zinc-400">{state?.duration?.toFixed(1)}s</span>
+      {process.env.NODE_ENV === "development" && state?.voiceDesign && (
+        <span
+          className="max-w-[120px] truncate text-[11px] text-zinc-300"
+          title={`voice: ${state.voiceDesign} | seed: ${state.voiceSeed}`}
+        >
+          {state.voiceDesign}
+        </span>
+      )}
       {onRegenerate && (
         <button
           onClick={onRegenerate}

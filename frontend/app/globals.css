@@ -100,3 +100,15 @@ select:focus {
 * {
   box-sizing: border-box;
 }
+
+/* TTS preview animations */
+@keyframes tts-bar {
+  0% { height: 3px; }
+  100% { height: 11px; }
+}
+@keyframes tts-progress {
+  0% { width: 5%; }
+  30% { width: 50%; }
+  60% { width: 75%; }
+  100% { width: 92%; }
+}

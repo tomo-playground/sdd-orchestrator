@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import io
+import random
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
@@ -46,6 +47,7 @@ class _TtsGenResult:
     cache_key: str
     cached: bool
     voice_seed: int
+    voice_design: str | None
 
 
 async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
@@ -95,17 +97,21 @@ async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
     cache_key = tts_cache_key(cleaned, voice_preset_id, voice_design, req.language)
     cache_path = TTS_CACHE_DIR / f"{cache_key}.wav"
 
-    # Force regenerate: delete existing cache
-    if req.force_regenerate and cache_path.exists():
-        cache_path.unlink()
-        logger.info("[Preview] TTS cache deleted (force): %s", cache_key)
+    # Force regenerate: delete existing cache + randomise seed
+    if req.force_regenerate:
+        if cache_path.exists():
+            cache_path.unlink()
+        voice_seed = random.randint(0, 2**31 - 1)
+        logger.info("[Preview] TTS force regenerate seed=%d, cache_key=%s", voice_seed, cache_key)
 
     # Check cache
     if cache_path.exists():
         audio_bytes = cache_path.read_bytes()
         duration = _wav_duration(audio_bytes)
         logger.info("[Preview] TTS cache hit: %s (%.1fs)", cache_key, duration)
-        return _TtsGenResult(audio_bytes, duration, cache_key, cached=True, voice_seed=voice_seed)
+        return _TtsGenResult(
+            audio_bytes, duration, cache_key, cached=True, voice_seed=voice_seed, voice_design=voice_design
+        )
 
     # Generate TTS
     max_tokens = min(
@@ -129,7 +135,9 @@ async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
     cache_path.write_bytes(audio_bytes)
     logger.info("[Preview] TTS generated + cached: %s (%.1fs)", cache_key, duration)
 
-    return _TtsGenResult(audio_bytes, duration, cache_key, cached=False, voice_seed=voice_seed)
+    return _TtsGenResult(
+        audio_bytes, duration, cache_key, cached=False, voice_seed=voice_seed, voice_design=voice_design
+    )
 
 
 def _save_audio_asset(db: Session, audio_bytes: bytes, cache_key: str):
@@ -192,6 +200,7 @@ async def preview_scene_tts(
         cache_key=gen.cache_key,
         cached=gen.cached,
         voice_seed=gen.voice_seed,
+        voice_design=gen.voice_design,
         temp_asset_id=asset.id,
     )
 
