@@ -219,9 +219,14 @@ export default function SceneCard({
         </div>
       </div>
 
-      {/* ── Tier 2: Customize (Collapsible, Default Open) ── */}
+      {/* ── Tier 2: Customize (Collapsible, Default Closed) ── */}
       <div className="relative z-10">
-        <CollapsibleSection title="Customize" defaultOpen className="mt-2">
+        <CollapsibleSection
+          title="Customize"
+          hint="프롬프트 상세"
+          defaultOpen={false}
+          className="mt-2"
+        >
           <div className="grid gap-4">
             {/* Prompt + Background */}
             <ScenePromptFields

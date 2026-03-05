@@ -177,6 +177,30 @@ function ScriptMeta({ script }: { script: string }) {
   );
 }
 
+/* ---- Audio Waveform Animation (TTS playing indicator) ---- */
+
+function AudioWaveform() {
+  return (
+    <span className="inline-flex items-end gap-px" style={{ width: 12, height: 12 }}>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="inline-block w-[3px] rounded-sm bg-blue-500"
+          style={{
+            animation: `tts-bar 0.8s ease-in-out ${i * 0.15}s infinite alternate`,
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes tts-bar {
+          0% { height: 3px; }
+          100% { height: 11px; }
+        }
+      `}</style>
+    </span>
+  );
+}
+
 /* ---- TTS Preview Button ---- */
 
 function TTSPreviewButton({
@@ -249,6 +273,7 @@ function TTSPreviewButton({
       >
         {isPlaying ? "■ 정지" : "▶ 재생"}
       </button>
+      {isPlaying && <AudioWaveform />}
       <span className="text-[11px] text-zinc-400">{state?.duration?.toFixed(1)}s</span>
       {onRegenerate && (
         <button

@@ -4,6 +4,8 @@ import { SIDE_PANEL_LABEL } from "./variants";
 
 interface CollapsibleSectionProps {
   title: string;
+  /** Collapsed 상태에서 title 우측에 표시할 힌트 텍스트 */
+  hint?: string;
   children: ReactNode;
   defaultOpen?: boolean;
   className?: string;
@@ -12,6 +14,7 @@ interface CollapsibleSectionProps {
 
 export default function CollapsibleSection({
   title,
+  hint,
   children,
   defaultOpen = false,
   className = "",
@@ -29,10 +32,17 @@ export default function CollapsibleSection({
         aria-controls={contentId}
         className={`group flex w-full items-center justify-between ${headerClassName}`}
       >
-        <span
-          className={`${SIDE_PANEL_LABEL} !mb-0 cursor-pointer transition-colors group-hover:text-zinc-600`}
-        >
-          {title}
+        <span className="flex items-center gap-2">
+          <span
+            className={`${SIDE_PANEL_LABEL} !mb-0 cursor-pointer transition-colors group-hover:text-zinc-600`}
+          >
+            {title}
+          </span>
+          {hint && !isOpen && (
+            <span className="text-[11px] text-zinc-400 transition-colors group-hover:text-blue-500">
+              {hint}
+            </span>
+          )}
         </span>
         <ChevronDown
           className={`h-4 w-4 text-zinc-400 transition-transform duration-200 ${

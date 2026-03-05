@@ -225,7 +225,8 @@ export default function ScenePromptFields({
                 return (
                   <div key={src.source} className="flex items-start gap-2">
                     <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${style.bg} ${style.text}`}
+                      className={`max-w-[100px] shrink-0 truncate rounded-full px-2 py-0.5 text-[11px] font-semibold ${style.bg} ${style.text}`}
+                      title={getSourceLabel(src.source)}
                     >
                       {getSourceLabel(src.source)}
                     </span>

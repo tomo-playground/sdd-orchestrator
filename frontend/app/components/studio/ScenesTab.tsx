@@ -162,17 +162,26 @@ export default function ScenesTab() {
           {/* Context Strip — read-only badges + Advanced toggle + Stage deep link */}
           <div className="flex shrink-0 items-center gap-2 border-b border-zinc-100 bg-white px-8 py-1.5">
             {currentStyleProfile && (
-              <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+              <span
+                className="max-w-[140px] truncate rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700"
+                title={currentStyleProfile.display_name ?? currentStyleProfile.name}
+              >
                 {currentStyleProfile.display_name ?? currentStyleProfile.name}
               </span>
             )}
             {selectedCharacterName && (
-              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
+              <span
+                className="max-w-[120px] truncate rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700"
+                title={`A: ${selectedCharacterName}`}
+              >
                 A: {selectedCharacterName}
               </span>
             )}
             {selectedCharacterBName && (
-              <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700">
+              <span
+                className="max-w-[120px] truncate rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700"
+                title={`B: ${selectedCharacterBName}`}
+              >
                 B: {selectedCharacterBName}
               </span>
             )}
