@@ -160,8 +160,8 @@ class TestPreviewSceneTTS:
         mock_asset.id = 1
 
         with (
-            patch("services.preview.TTS_CACHE_DIR", tmp_path),
-            patch("services.preview._save_audio_asset", return_value=mock_asset),
+            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
+            patch("services.preview_tts._save_audio_asset", return_value=mock_asset),
         ):
             result = await preview_scene_tts(req, mock_db)
 
@@ -193,13 +193,13 @@ class TestPreviewSceneTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview.TTS_CACHE_DIR", tmp_path),
+            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.audio_client.synthesize_tts",
                 new_callable=AsyncMock,
                 return_value=(wav_bytes, 22050, 1.0, True),
             ) as mock_synth,
-            patch("services.preview._save_audio_asset", return_value=mock_asset),
+            patch("services.preview_tts._save_audio_asset", return_value=mock_asset),
         ):
             result = await preview_scene_tts(req, mock_db)
 
@@ -239,7 +239,7 @@ class TestPreviewSceneTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview.TTS_CACHE_DIR", tmp_path),
+            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.video.tts_helpers.get_speaker_voice_preset",
                 return_value=5,
@@ -257,7 +257,7 @@ class TestPreviewSceneTTS:
                 new_callable=AsyncMock,
                 return_value=(wav_bytes, 22050, 1.5, True),
             ),
-            patch("services.preview._save_audio_asset", return_value=mock_asset),
+            patch("services.preview_tts._save_audio_asset", return_value=mock_asset),
         ):
             result = await preview_scene_tts(req, mock_db)
 
@@ -287,13 +287,13 @@ class TestPreviewSceneTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview.TTS_CACHE_DIR", tmp_path),
+            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.audio_client.synthesize_tts",
                 new_callable=AsyncMock,
                 return_value=(wav_bytes, 22050, 1.0, True),
             ),
-            patch("services.preview._save_audio_asset", return_value=mock_asset),
+            patch("services.preview_tts._save_audio_asset", return_value=mock_asset),
         ):
             result = await preview_scene_tts(req, mock_db)
 
@@ -332,13 +332,13 @@ class TestPreviewBatchTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview.TTS_CACHE_DIR", tmp_path),
+            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.audio_client.synthesize_tts",
                 new_callable=AsyncMock,
                 return_value=(wav_bytes, 22050, 2.0, True),
             ),
-            patch("services.preview._save_audio_asset", return_value=mock_asset),
+            patch("services.preview_tts._save_audio_asset", return_value=mock_asset),
         ):
             result = await preview_batch_tts(req, mock_db)
 
@@ -378,13 +378,13 @@ class TestPreviewBatchTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview.TTS_CACHE_DIR", tmp_path),
+            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.audio_client.synthesize_tts",
                 new_callable=AsyncMock,
                 return_value=(wav_bytes, 22050, 1.5, True),
             ),
-            patch("services.preview._save_audio_asset", return_value=mock_asset),
+            patch("services.preview_tts._save_audio_asset", return_value=mock_asset),
         ):
             result = await preview_batch_tts(req, mock_db)
 
@@ -419,7 +419,7 @@ class TestPreviewBatchTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview.TTS_CACHE_DIR", tmp_path),
+            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.video.tts_helpers.get_speaker_voice_preset",
                 return_value=None,
@@ -429,7 +429,7 @@ class TestPreviewBatchTTS:
                 new_callable=AsyncMock,
                 return_value=(wav_bytes, 22050, 1.0, True),
             ),
-            patch("services.preview._save_audio_asset", return_value=mock_asset),
+            patch("services.preview_tts._save_audio_asset", return_value=mock_asset),
         ):
             result = await preview_batch_tts(req, mock_db)
 
@@ -463,13 +463,13 @@ class TestPreviewBatchTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview.TTS_CACHE_DIR", tmp_path),
+            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.audio_client.synthesize_tts",
                 new_callable=AsyncMock,
                 return_value=(wav_bytes, 22050, 1.0, True),
             ),
-            patch("services.preview._save_audio_asset", return_value=mock_asset),
+            patch("services.preview_tts._save_audio_asset", return_value=mock_asset),
         ):
             result = await preview_batch_tts(req, mock_db)
 
@@ -680,7 +680,7 @@ class TestPreviewValidate:
         mock_db = MagicMock()
         mock_db.get.return_value = mock_storyboard
 
-        with patch("services.preview.TTS_CACHE_DIR", tmp_path):
+        with patch("services.preview_validate.TTS_CACHE_DIR", tmp_path):
             result = await preview_validate(req, mock_db)
 
         assert result.is_ready is False
@@ -710,7 +710,7 @@ class TestPreviewValidate:
         mock_db = MagicMock()
         mock_db.get.return_value = mock_storyboard
 
-        with patch("services.preview.TTS_CACHE_DIR", tmp_path):
+        with patch("services.preview_validate.TTS_CACHE_DIR", tmp_path):
             result = await preview_validate(req, mock_db)
 
         # Empty script is a warning, not an error
@@ -741,7 +741,7 @@ class TestPreviewValidate:
         mock_db = MagicMock()
         mock_db.get.return_value = mock_storyboard
 
-        with patch("services.preview.TTS_CACHE_DIR", tmp_path):
+        with patch("services.preview_validate.TTS_CACHE_DIR", tmp_path):
             result = await preview_validate(req, mock_db)
 
         script_warnings = [
@@ -776,7 +776,7 @@ class TestPreviewValidate:
         mock_db = MagicMock()
         mock_db.get.return_value = mock_storyboard
 
-        with patch("services.preview.TTS_CACHE_DIR", tmp_path):
+        with patch("services.preview_validate.TTS_CACHE_DIR", tmp_path):
             result = await preview_validate(req, mock_db)
 
         duration_warnings = [i for i in result.issues if i.category == "duration" and i.level == "warning"]
@@ -806,7 +806,7 @@ class TestPreviewValidate:
         mock_db = MagicMock()
         mock_db.get.return_value = mock_storyboard
 
-        with patch("services.preview.TTS_CACHE_DIR", tmp_path):
+        with patch("services.preview_validate.TTS_CACHE_DIR", tmp_path):
             result = await preview_validate(req, mock_db)
 
         assert result.is_ready is True
@@ -824,7 +824,7 @@ class TestWavDuration:
 
     def test_calculates_correct_duration(self):
         """WAV duration is correctly calculated from bytes."""
-        from services.preview import _wav_duration
+        from services.preview_tts import _wav_duration
 
         buf = io.BytesIO()
         with wave.open(buf, "w") as wf:
@@ -838,7 +838,7 @@ class TestWavDuration:
 
     def test_stereo_wav(self):
         """Stereo WAV duration is correctly calculated."""
-        from services.preview import _wav_duration
+        from services.preview_tts import _wav_duration
 
         buf = io.BytesIO()
         with wave.open(buf, "w") as wf:

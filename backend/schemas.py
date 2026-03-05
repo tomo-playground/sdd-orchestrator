@@ -3167,7 +3167,7 @@ class BatchTTSPreviewResponse(BaseModel):
 class SceneFramePreviewRequest(BaseModel):
     """POST /preview/frame — 개별 씬 프레임 합성 요청."""
 
-    image_url: str
+    image_url: str = Field(pattern=r"^(https?://|/outputs/).+")
     script: str = ""
     layout_style: Literal["full", "post"] = "post"
     include_scene_text: bool = True
