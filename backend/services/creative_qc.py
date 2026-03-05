@@ -268,13 +268,14 @@ def validate_music(recommendation: list[dict] | dict) -> dict:
     return {"ok": len(issues) == 0, "issues": issues, "checks": {"music_recommendation": status}}
 
 
-def validate_tts_design(tts_designs: list[dict]) -> dict:
+def validate_tts_design(tts_designs: list[dict], preset_speakers: set[str] | None = None) -> dict:
     """Validate tts designer output for emotional design quality.
 
     Returns: {"ok": bool, "issues": [str], "checks": {name: "PASS"|"FAIL"}}
     """
     issues: list[str] = []
     checks: dict[str, str] = {}
+    preset_speakers = preset_speakers or set()
 
     if not tts_designs:
         issues.append("No TTS designs provided")
@@ -285,9 +286,15 @@ def validate_tts_design(tts_designs: list[dict]) -> dict:
     prompt_ok = True
     pacing_ok = True
     for i, d in enumerate(tts_designs):
-        if not d.get("voice_design_prompt"):
+        # skip 노드는 검증 생략
+        if d.get("skip"):
+            continue
+
+        speaker = d.get("speaker") or "Unknown"
+        # 프리셋 화자가 아니거나, 프리셋 정보가 없는 경우에만 voice_design_prompt 필수 체크
+        if speaker not in preset_speakers and not d.get("voice_design_prompt"):
             prompt_ok = False
-            issues.append(f"Scene {i}: missing voice_design_prompt")
+            issues.append(f"Scene {i} (Speaker {speaker}): missing voice_design_prompt")
 
         pacing = d.get("pacing", {})
         head = pacing.get("head_padding", 0)

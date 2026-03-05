@@ -6,6 +6,7 @@ Verifies:
    Seed stays preset-based so voice identity is preserved; only delivery style varies.
 3. Fallback to simple concatenation when Gemini is unavailable.
 """
+
 import hashlib
 import unittest
 from unittest.mock import MagicMock, patch
@@ -39,6 +40,7 @@ class TestResolveVoicePresetId(unittest.TestCase):
 
     def setUp(self):
         from services.video.scene_processing import _resolve_voice_preset_id
+
         self._resolve = _resolve_voice_preset_id
 
     @patch("services.video.scene_processing.get_speaker_voice_preset", return_value=16)
@@ -133,10 +135,12 @@ class TestGetVoiceDesignForScene(unittest.TestCase):
 
     def setUp(self):
         from services.video.scene_processing import _get_voice_design_for_scene
+
         self._get = _get_voice_design_for_scene
 
-    def _scene(self, voice_design_prompt: str = "", scene_emotion: str | None = None,
-               image_prompt_ko: str | None = None) -> MagicMock:
+    def _scene(
+        self, voice_design_prompt: str = "", scene_emotion: str | None = None, image_prompt_ko: str | None = None
+    ) -> MagicMock:
         s = MagicMock()
         s.voice_design_prompt = voice_design_prompt
         s.scene_emotion = scene_emotion
@@ -150,6 +154,7 @@ class TestGetVoiceDesignForScene(unittest.TestCase):
         b.request.voice_design_prompt = global_prompt
         return b
 
+    @patch("services.video.scene_processing.TTS_VOICE_CONSISTENCY_MODE", False)
     @patch(_GEMINI_PATCH, return_value="A boy speaking with hopeful warmth")
     def test_preset_with_emotion_calls_gemini(self, mock_gemini):
         """프리셋 + 감정 있으면 Gemini가 맥락 기반 voice design 생성."""
@@ -158,6 +163,7 @@ class TestGetVoiceDesignForScene(unittest.TestCase):
         mock_gemini.assert_called_once()
         self.assertEqual(result, "A boy speaking with hopeful warmth")
 
+    @patch("services.video.scene_processing.TTS_VOICE_CONSISTENCY_MODE", False)
     @patch(_GEMINI_PATCH, return_value="")
     def test_preset_with_emotion_fallback_on_gemini_failure(self, mock_gemini):
         """Gemini 실패 시 단순 연결 fallback."""
@@ -183,6 +189,7 @@ class TestGetVoiceDesignForScene(unittest.TestCase):
         result = self._get(self._builder(global_prompt="global voice"), scene, None, "스크립트", 0)
         self.assertEqual(result, "global voice")
 
+    @patch("services.video.scene_processing.TTS_VOICE_CONSISTENCY_MODE", False)
     @patch(_GEMINI_PATCH)
     def test_gemini_receives_base_prompt(self, mock_gemini):
         """Gemini에 base_prompt가 전달되어 캐릭터 정체성이 보존된다."""
@@ -192,6 +199,62 @@ class TestGetVoiceDesignForScene(unittest.TestCase):
         self._get(self._builder(), scene, preset, "스크립트", 0)
         _, kwargs = mock_gemini.call_args
         self.assertEqual(kwargs["base_prompt"], preset)
+
+
+class TestVoiceConsistencyMode(unittest.TestCase):
+    """TTS_VOICE_CONSISTENCY_MODE: ON → Gemini 미호출, OFF → 기존 동작."""
+
+    _GEMINI_PATCH = "services.video.scene_processing.generate_context_aware_voice_prompt"
+
+    def setUp(self):
+        from services.video.scene_processing import _get_voice_design_for_scene
+
+        self._get = _get_voice_design_for_scene
+
+    def _scene(self, scene_emotion: str | None = None) -> MagicMock:
+        s = MagicMock()
+        s.voice_design_prompt = ""
+        s.scene_emotion = scene_emotion
+        s.speaker = "A"
+        s.image_prompt_ko = "교실 장면"
+        s.image_prompt = None
+        return s
+
+    def _builder(self) -> MagicMock:
+        b = MagicMock()
+        b.request.voice_design_prompt = ""
+        return b
+
+    @patch("services.video.scene_processing.TTS_VOICE_CONSISTENCY_MODE", True)
+    @patch(_GEMINI_PATCH)
+    def test_consistency_mode_skips_gemini(self, mock_gemini):
+        """consistency ON → Gemini 미호출, 프리셋 그대로 반환."""
+        scene = self._scene(scene_emotion="hopeful")
+        result = self._get(self._builder(), scene, "preset base voice", "스크립트", 0)
+        mock_gemini.assert_not_called()
+        self.assertEqual(result, "preset base voice")
+
+    @patch("services.video.scene_processing.TTS_VOICE_CONSISTENCY_MODE", False)
+    @patch(_GEMINI_PATCH, return_value="Gemini adapted voice")
+    def test_consistency_mode_off_calls_gemini(self, mock_gemini):
+        """consistency OFF → 기존 Gemini 호출 동작."""
+        scene = self._scene(scene_emotion="hopeful")
+        result = self._get(self._builder(), scene, "preset base voice", "스크립트", 0)
+        mock_gemini.assert_called_once()
+        self.assertEqual(result, "Gemini adapted voice")
+
+    @patch("services.video.scene_processing.TTS_VOICE_CONSISTENCY_MODE", True)
+    @patch(_GEMINI_PATCH)
+    def test_all_scenes_same_instruct(self, mock_gemini):
+        """consistency ON → 3개 씬 모두 동일 instruct 반환."""
+        preset = "A warm teenage boy voice"
+        results = []
+        for i in range(3):
+            scene = self._scene(scene_emotion=["hopeful", "sad", "angry"][i])
+            result = self._get(self._builder(), scene, preset, f"스크립트 {i}", i)
+            results.append(result)
+        self.assertTrue(all(r == preset for r in results), f"All scenes must return same preset: {results}")
+        mock_gemini.assert_not_called()
 
 
 if __name__ == "__main__":

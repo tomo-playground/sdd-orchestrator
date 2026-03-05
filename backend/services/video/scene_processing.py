@@ -18,12 +18,15 @@ from config import (
     TTS_CACHE_DIR,
     TTS_DEFAULT_LANGUAGE,
     TTS_DEFAULT_SEED,
-    TTS_MAX_NEW_TOKENS,
+    TTS_MAX_NEW_TOKENS_BASE,
+    TTS_MAX_NEW_TOKENS_CAP,
+    TTS_MAX_NEW_TOKENS_PER_CHAR,
     TTS_MAX_RETRIES,
     TTS_MIN_DURATION_SEC,
     TTS_REPETITION_PENALTY,
     TTS_TEMPERATURE,
     TTS_TOP_P,
+    TTS_VOICE_CONSISTENCY_MODE,
     logger,
 )
 from services.audio_client import record_scene_failure as _audio_scene_failure
@@ -276,6 +279,12 @@ def _resolve_voice_preset_id(
     return builder.request.voice_preset_id
 
 
+def _calculate_max_new_tokens(text: str) -> int:
+    """텍스트 길이 기반 동적 max_new_tokens. Qwen3-TTS 12Hz 기준 안전 마진."""
+    dynamic = len(text) * TTS_MAX_NEW_TOKENS_PER_CHAR
+    return min(max(dynamic, TTS_MAX_NEW_TOKENS_BASE), TTS_MAX_NEW_TOKENS_CAP)
+
+
 async def generate_tts(
     builder: VideoBuilder,
     i: int,
@@ -337,11 +346,10 @@ async def generate_tts(
             voice_seed = TTS_DEFAULT_SEED
 
         # Pad very short scripts to prevent TTS model hang
-        # Use spaces (not dots) — dots cause TTS server failures on dot-heavy text
         tts_text = clean_script
-        if len(tts_text) < 10:
-            tts_text = tts_text.ljust(10)
-            logger.info(f"[TTS] Scene {i}: padded short script '{clean_script}' -> '{tts_text}'")
+        if len(tts_text.strip()) < 3:
+            tts_text = tts_text.strip() + "."
+            logger.info(f"[TTS] Scene {i}: padded very short script '{clean_script}' -> '{tts_text}'")
 
         # Dynamic min duration based on script length (short scripts can't reach 1s)
         speakable_len = len(clean_script.replace(".", "").replace("!", "").replace("?", "").strip())
@@ -379,7 +387,7 @@ async def generate_tts(
                     temperature=TTS_TEMPERATURE,
                     top_p=TTS_TOP_P,
                     repetition_penalty=TTS_REPETITION_PENALTY,
-                    max_new_tokens=TTS_MAX_NEW_TOKENS,
+                    max_new_tokens=_calculate_max_new_tokens(tts_text),
                 )
             except Exception as gen_err:
                 logger.warning(
@@ -448,6 +456,11 @@ def _get_voice_design_for_scene(
 
     # 1. Preset exists → Gemini modifies base with scene context (seed stays preset-based)
     if preset_voice_design:
+        # Consistency mode: 프리셋 instruct 고정 (Gemini 감정 적응 미개입)
+        if TTS_VOICE_CONSISTENCY_MODE:
+            logger.info(f"Scene {scene_idx}: Voice design (Speaker={speaker}): consistency mode — preset only")
+            return preset_voice_design
+
         context_parts: list[str] = []
         if scene_emotion:
             context_parts.append(f"Emotion: {scene_emotion}")

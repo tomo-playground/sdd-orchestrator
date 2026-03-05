@@ -84,14 +84,61 @@ class TestCleanScriptForTtsWithFilter:
         assert "그래서" in result
 
     def test_excessive_dots_collapsed(self):
-        """과도한 연속 점은 단일 점으로 축소."""
+        """과도한 연속 점은 말줄임표(3개)로 축소."""
         result = clean_script_for_tts("너도...........")
-        assert result == "너도."
+        assert result == "너도..."
 
-    def test_excessive_dots_no_dot_flood(self):
-        """축소 후 점이 2개 이상 남지 않아야 함."""
+    def test_excessive_dots_no_flood(self):
+        """축소 후 점이 4개 이상 남지 않아야 함."""
         result = clean_script_for_tts("진짜.............. 그랬어?")
-        assert ".." not in result
+        assert "...." not in result
+
+
+class TestPunctuationPreservation:
+    """문장부호 보존: 말줄임표/감정 강도 부분 보존."""
+
+    def test_ellipsis_preserved(self):
+        """말줄임표 3개 보존."""
+        result = clean_script_for_tts("그래서... 결국...")
+        assert "그래서..." in result
+        assert "결국..." in result
+
+    def test_double_exclamation_preserved(self):
+        result = clean_script_for_tts("대박!!")
+        assert result == "대박!!"
+
+    def test_triple_exclamation_reduced(self):
+        """3개 → 2개로 축소."""
+        result = clean_script_for_tts("대박!!!")
+        assert result == "대박!!"
+
+    def test_double_question_preserved(self):
+        result = clean_script_for_tts("진짜??")
+        assert result == "진짜??"
+
+    def test_triple_question_reduced(self):
+        result = clean_script_for_tts("진짜???")
+        assert result == "진짜??"
+
+
+class TestTtsEndingPunctuation:
+    """clean_script_for_tts: 마침표 보장 (TTS 종료 신호)."""
+
+    def test_appends_period_when_missing(self):
+        result = clean_script_for_tts("안녕하세요")
+        assert result == "안녕하세요."
+
+    def test_no_double_period(self):
+        result = clean_script_for_tts("안녕하세요.")
+        assert result == "안녕하세요."
+
+    def test_preserves_exclamation(self):
+        result = clean_script_for_tts("대단해!")
+        assert result == "대단해!"
+
+    def test_preserves_question_mark(self):
+        result = clean_script_for_tts("정말이야?")
+        assert result == "정말이야?"
 
 
 class TestHasSpeakableContent:

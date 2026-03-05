@@ -86,6 +86,8 @@ async def tts_designer_node(state: ScriptState) -> dict:
 
     # 캐릭터 프로필 주입 (성별, 이름, 참조 음성)
     characters_voice = _load_character_voice_context(state)
+    preset_speakers = {c["speaker"] for c in (characters_voice or []) if c.get("has_preset")}
+
     if characters_voice:
         template_vars["characters"] = characters_voice
 
@@ -95,7 +97,7 @@ async def tts_designer_node(state: ScriptState) -> dict:
         result = await run_production_step(
             template_name="creative/tts_designer.j2",
             template_vars=template_vars,
-            validate_fn=lambda extracted: validate_tts_design(extracted),
+            validate_fn=lambda extracted: validate_tts_design(extracted, preset_speakers=preset_speakers),
             extract_key="tts_designs",
             step_name="tts_designer",
         )

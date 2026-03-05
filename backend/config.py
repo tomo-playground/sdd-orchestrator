@@ -648,6 +648,7 @@ REFERENCE_MIN_FACE_RATIO = 0.10  # Face must be at least 10% of image area
 
 # --- TTS Configuration ---
 TTS_DEFAULT_LANGUAGE = os.getenv("TTS_DEFAULT_LANGUAGE", "korean")
+TTS_VOICE_CONSISTENCY_MODE = os.getenv("TTS_VOICE_CONSISTENCY_MODE", "true").lower() == "true"
 
 # --- Voice Preset Configuration ---
 VOICE_PRESET_MAX_FILE_SIZE = int(os.getenv("VOICE_PRESET_MAX_FILE_SIZE", str(10 * 1024 * 1024)))  # 10MB
@@ -673,7 +674,10 @@ TTS_REPETITION_PENALTY = float(
 )  # Lowered from 1.2 to 1.0 (speed + reduce hallucination)
 TTS_MAX_NEW_TOKENS = int(
     os.getenv("TTS_MAX_NEW_TOKENS", "1024")
-)  # Reduced from 2048: shorts scripts are short, 1024 is sufficient and faster
+)  # Deprecated: Audio Server 기본값용. Backend는 TTS_MAX_NEW_TOKENS_BASE/PER_CHAR/CAP 사용
+TTS_MAX_NEW_TOKENS_BASE = int(os.getenv("TTS_MAX_NEW_TOKENS_BASE", "1024"))
+TTS_MAX_NEW_TOKENS_PER_CHAR = int(os.getenv("TTS_MAX_NEW_TOKENS_PER_CHAR", "30"))
+TTS_MAX_NEW_TOKENS_CAP = int(os.getenv("TTS_MAX_NEW_TOKENS_CAP", "2048"))
 
 # --- TTS Quality Validation & Retry ---
 TTS_MIN_DURATION_SEC = float(os.getenv("TTS_MIN_DURATION_SEC", "1.0"))  # Min TTS length (sec)

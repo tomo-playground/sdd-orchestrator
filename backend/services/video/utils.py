@@ -263,16 +263,20 @@ def clean_script_for_tts(raw_script: str) -> str:
         text,
     )
 
-    # Normalize repeated punctuation
-    text = re.sub(r"\.{2,}", ".", text)  # ... -> .
-    text = re.sub(r"!{2,}", "!", text)  # !!! -> !
-    text = re.sub(r"\?{2,}", "?", text)  # ??? -> ?
+    # Normalize repeated punctuation (말줄임표·감정 강도 부분 보존)
+    text = re.sub(r"\.{4,}", "...", text)  # .... → ... (3개 보존)
+    text = re.sub(r"!{3,}", "!!", text)  # !!! → !! (2개 보존)
+    text = re.sub(r"\?{3,}", "??", text)  # ??? → ?? (2개 보존)
     text = re.sub(r"\s+", " ", text)  # Multiple spaces -> single
 
     # Convert number+Korean unit to spoken Korean (prevents TTS hang)
     text = _expand_korean_numbers(text)
 
-    return text.strip()
+    text = text.strip()
+    # TTS 종료 신호: 문장 끝 구두점이 없으면 마침표 추가
+    if text and text[-1] not in ".!?":
+        text += "."
+    return text
 
 
 def _expand_korean_numbers(text: str) -> str:

@@ -36,7 +36,8 @@ def _strip_trailing_hallucination(wav: np.ndarray, sr: int) -> np.ndarray:
         peak_after = np.max(rms[min_idx + 1 :])
         median_rms = np.median(rms[:scan_start]) if scan_start > 0 else np.median(rms)
 
-        if valley_rms < median_rms * 0.02 and peak_after > median_rms * 0.25:
+        remaining_frames = len(rms) - min_idx - 1
+        if remaining_frames >= 3 and valley_rms < median_rms * 0.01 and peak_after > median_rms * 0.4:
             cut_sample = min_idx * frame_len
             logger.info(
                 "[TTS] Trailing hallucination cut: valley=%.4f, peak=%.4f (median=%.4f) at %.2fs",

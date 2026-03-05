@@ -37,15 +37,13 @@ def _extract_casting(result: dict) -> dict | None:
 
 
 def _derive_skip_stages(result: dict) -> list[str]:
-    """execution_plan에서 skip_stages를 결정."""
+    """execution_plan에서 skip_stages를 결정. explain은 항상 실행."""
     ep = result.get("execution_plan") or {}
     stages: list[str] = []
     if not ep.get("run_research", True):
         stages.append("research")
     if not ep.get("run_concept", True):
         stages.append("concept")
-    if not ep.get("run_explain", True):
-        stages.append("explain")
     return stages
 
 
