@@ -33,10 +33,12 @@
 | Character-Group 소유권 개편 | 전체 완료 (ARCHIVED) |
 | Phase 27 (Chat System UX & Architecture) | 전체 완료 — P0(타이핑 인디케이터+히스토리 영속+a11y) + P1(Discriminated Union+AbortController+에러 복구+AutoScroll) + P2(헬퍼 통합+모드 툴팁) |
 | Phase 29 (Video Pre-validation) | Sub-Phase A~B 완료 — TTS 프리뷰/렌더 연결 + 씬 필드 소실 수정 + Spread Passthrough 패턴 전환 |
-| 테스트 | Backend 3,095 + Frontend 543 + E2E 36 = **총 3,674개** |
+| 테스트 | Backend 3,101 + Frontend 543 + E2E 36 = **총 3,680개** |
 
 ### 최근 작업
 
+- **Dialogue 스피커 ALL-A 버그 수정** (03-05): 근본 원인 — Cinematographer Gemini 호출이 speaker를 "A"로 리셋 → Finalize가 cinematographer_result를 그대로 사용 → ensure_dialogue_speakers() 방어선이 Writer 이후에만 존재. ~40% 발생률(6/15 최근 Dialogue 스토리보드). ① Finalize 2차 방어 — `_merge_production_results()` 직후 `ensure_dialogue_speakers()` 재호출(Dialogue/Narrated Dialogue 구조 한정). ② Cinematographer 템플릿 — `CRITICAL: Keep speaker field EXACTLY as given` 지시 추가. ③ 통합 테스트 6건(ALL-A 교정, 멱등성, Narrator 보존, Narrated Dialogue, Monologue 미적용, draft_scenes 경로). 커밋 `fd7708e9`, `bd18358b`.
+- **Auto Run 파이프라인 22건 버그 수정** (03-05): 심층분석(3 에이전트 병렬)으로 28개 이슈 발견 → 4 에이전트 병렬로 22건 수정. Critical 3(AbortSignal SSE 취소, Batch 프롬프트 불일치, TTS 캐시키 scene_emotion 누락), High 6(stageStatus 복구, persistStoryboard 반환값 체크, didScenesChanged 7필드 추가, tts_asset_id transient, DB 풀 고갈 3-Phase 분리, batch scene_id), Medium 9(image_prompt 렌더 누락, env_ref 보존, concurrent guard, TTS fallback 로깅, TTS 실패 추적, Gemini system_instruction 분리, per-task circuit breaker, atomic cache write, image_prompt schema), Low 6. 15파일 변경, 커밋 `e70ca535`.
 - **Phase 29-B TTS 프리뷰→렌더 연결 + Spread Passthrough 전환 완료** (03-05): ① tts_asset_id 기반 TTS 재사용 — 프리뷰 TTS를 렌더 시 재생성하지 않고 직접 사용(Scene DB 컬럼 추가, Frontend/Backend 파이프라인 연결). ② 씬 필드 소실 근본 원인 수정 — `mapDbScenes()`에서 6개 필드 누락 → 스토리보드 재로드 시 null 덮어쓰기. ③ Spread Passthrough 패턴 8개 함수 전환 완료 — mapDbScenes, mapGeminiScenes, buildScenesPayload, buildSavePayload, mapScenesToItems, syncToGlobalStore(Frontend 6), serialize_scene, create_scenes(Backend 2). CLAUDE.md Data Mapping Principles 규칙 추가. 순 -75줄 감소. 코드 리뷰 3회(BLOCKER 1+WARNING 4+Suggestion 2 전체 수정).
 - **Phase 29-A TTS 프리뷰 UX 개선** (03-05): ① 프로그레스 바 — "생성 중..." 텍스트를 CSS 애니메이션 프로그레스 바로 교체(6s ease-out, 5%→92%). ② 디버그 프롬프트 — Backend 응답에 `voice_design` 필드 추가(최종 TTS 프롬프트: 번역+emotion 주입 후), dev 환경에서 voice_design+seed hover 표시. ③ 인라인 `@keyframes`를 `globals.css`로 통합(DOM 중복 주입 제거). 6파일 변경, 커밋 `294e17c9`.
 - **Phase 29 Video Pre-validation 착수** (03-05): 4-Sub-Phase(A~D) 구성. Sub-Phase A: 씬별 TTS 미리듣기(캐시 키 동일성 설계 — 프리뷰 WAV를 렌더링에서 100% 재사용). Sub-Phase B: 씬별 프레임 프리뷰(Pillow 합성). Sub-Phase C: 타임라인 시각화. Sub-Phase D: 통합 사전검증 리포트. 신규 7파일 + 수정 5파일, 5개 엔드포인트, 테스트 목표 45개. [명세](FEATURES/VIDEO_PREVALIDATION.md)
