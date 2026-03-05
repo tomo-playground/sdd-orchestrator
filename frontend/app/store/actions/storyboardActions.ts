@@ -198,7 +198,14 @@ function didScenesChangeDuringSave(before: Scene[], after: Scene[]): boolean {
       scene.image_prompt !== prev.image_prompt ||
       scene.script !== prev.script ||
       scene.negative_prompt !== prev.negative_prompt ||
-      scene.candidates !== prev.candidates
+      scene.candidates !== prev.candidates ||
+      scene.environment_reference_id !== prev.environment_reference_id ||
+      scene.background_id !== prev.background_id ||
+      scene.voice_design_prompt !== prev.voice_design_prompt ||
+      scene.ken_burns_preset !== prev.ken_burns_preset ||
+      scene.head_padding !== prev.head_padding ||
+      scene.tail_padding !== prev.tail_padding ||
+      scene.context_tags !== prev.context_tags
     );
   });
 }

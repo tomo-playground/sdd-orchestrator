@@ -120,26 +120,27 @@ export function usePublishRender() {
               }
             : null;
 
+        const renderScenes = scenes.filter((s) => s.image_url);
         const payload = {
           project_id: projectId,
           group_id: groupId,
           storyboard_id: storyboardId,
-          scenes: scenes
-            .filter((s) => s.image_url)
-            .map((s) => ({
-              image_url: s.image_url!,
-              script: s.script,
-              speaker: s.speaker,
-              duration: s.duration,
-              voice_design_prompt: s.voice_design_prompt ?? undefined,
-              head_padding: s.head_padding ?? undefined,
-              tail_padding: s.tail_padding ?? undefined,
-              background_id: s.background_id ?? undefined,
-              ken_burns_preset: s.ken_burns_preset ?? undefined,
-              scene_emotion: s.context_tags?.emotion ?? s.context_tags?.mood?.[0] ?? undefined,
-              image_prompt_ko: s.image_prompt_ko ?? undefined,
-              tts_asset_id: s.tts_asset_id ?? undefined,
-            })),
+          scenes: renderScenes.map((s, i) => ({
+            image_url: s.image_url!,
+            script: s.script,
+            speaker: s.speaker,
+            duration: s.duration,
+            order: i, // L-1: scene order
+            image_prompt: s.image_prompt ?? undefined, // M-1
+            voice_design_prompt: s.voice_design_prompt ?? undefined,
+            head_padding: s.head_padding ?? undefined,
+            tail_padding: s.tail_padding ?? undefined,
+            background_id: s.background_id ?? undefined,
+            ken_burns_preset: s.ken_burns_preset ?? undefined,
+            scene_emotion: s.context_tags?.emotion ?? s.context_tags?.mood?.[0] ?? undefined,
+            image_prompt_ko: s.image_prompt_ko ?? undefined,
+            tts_asset_id: s.tts_asset_id ?? undefined,
+          })),
           storyboard_title: topic || "my_shorts",
           layout_style: mode,
           ken_burns_preset: rs.kenBurnsPreset,
@@ -169,6 +170,10 @@ export function usePublishRender() {
           if (mode === "full") setOutput({ videoUrlFull: url, videoUrl: url });
           else setOutput({ videoUrlPost: url, videoUrl: url });
           const current = useRenderStore.getState().recentVideos;
+          // L-4: Include project/group info in recentVideos
+          const currentProject = getCurrentProject();
+          const ctxState = useContextStore.getState();
+          const currentGroup = ctxState.groups.find((g) => g.id === groupId);
           setOutput({
             recentVideos: [
               {
@@ -176,6 +181,10 @@ export function usePublishRender() {
                 label: mode,
                 createdAt: Date.now(),
                 renderHistoryId: result.render_history_id,
+                projectId: projectId ?? undefined,
+                projectName: currentProject?.name,
+                groupId: groupId ?? undefined,
+                groupName: currentGroup?.name,
               },
               ...current.slice(0, 9),
             ],

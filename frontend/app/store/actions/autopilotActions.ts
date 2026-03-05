@@ -23,6 +23,9 @@ export async function runAutoRunFromStep(
   autopilot: UseAutopilotReturn,
   stepsToRun?: AutoRunStepId[]
 ) {
+  // M-5: Guard against duplicate execution
+  if (useUIStore.getState().isAutoRunning) return;
+
   // Derive startStep from stepsToRun to prevent mismatch
   if (stepsToRun?.length) {
     startStep = stepsToRun[0];
@@ -49,6 +52,9 @@ export async function runAutoRunFromStep(
     showToast("Create a script first", "error");
     return;
   }
+
+  // C-1: AbortController for cancelling SSE render on autopilot cancel
+  const abortController = new AbortController();
 
   startRun();
   useUIStore.getState().set({ isAutoRunning: true });
@@ -115,7 +121,9 @@ export async function runAutoRunFromStep(
 
         // 3) Save & sync
         useStoryboardStore.getState().set({ stageStatus: "staged" });
-        await persistStoryboard();
+        // H-2: Check persistStoryboard return value
+        const stageSaved = await persistStoryboard();
+        if (!stageSaved) throw new Error("Failed to save storyboard after stage");
         workingScenes = useStoryboardStore.getState().scenes;
         pushAutoRunLog("Stage complete");
       }
@@ -227,8 +235,9 @@ export async function runAutoRunFromStep(
 
         // Sync workingScenes after auto-pin
         workingScenes = useStoryboardStore.getState().scenes;
-        // Always save progress — even if some scenes failed
-        await persistStoryboard();
+        // H-2: Always save progress — even if some scenes failed
+        const imgSaved = await persistStoryboard();
+        if (!imgSaved) throw new Error("Failed to save storyboard after image generation");
         // Re-sync after persistStoryboard: scene IDs may have changed
         workingScenes = useStoryboardStore.getState().scenes;
         pushAutoRunLog("Images generated");
@@ -271,27 +280,28 @@ export async function runAutoRunFromStep(
               }
             : null;
 
+        const renderScenes = workingScenes.filter((s) => s.image_url);
         const payload = {
           project_id: renderProjectId,
           group_id: renderGroupId,
           storyboard_id: ctxStore.storyboardId,
           storyboard_title: useStoryboardStore.getState().topic || "my_shorts",
-          scenes: workingScenes
-            .filter((s) => s.image_url)
-            .map((s) => ({
-              image_url: s.image_url,
-              script: s.script,
-              speaker: s.speaker,
-              duration: s.duration,
-              voice_design_prompt: s.voice_design_prompt ?? undefined,
-              head_padding: s.head_padding ?? undefined,
-              tail_padding: s.tail_padding ?? undefined,
-              background_id: s.background_id ?? undefined,
-              ken_burns_preset: s.ken_burns_preset ?? undefined,
-              scene_emotion: s.context_tags?.emotion ?? s.context_tags?.mood?.[0] ?? undefined,
-              image_prompt_ko: s.image_prompt_ko ?? undefined,
-              tts_asset_id: s.tts_asset_id ?? undefined,
-            })),
+          scenes: renderScenes.map((s, i) => ({
+            image_url: s.image_url,
+            script: s.script,
+            speaker: s.speaker,
+            duration: s.duration,
+            order: i, // L-1: scene order
+            image_prompt: s.image_prompt ?? undefined, // M-1
+            voice_design_prompt: s.voice_design_prompt ?? undefined,
+            head_padding: s.head_padding ?? undefined,
+            tail_padding: s.tail_padding ?? undefined,
+            background_id: s.background_id ?? undefined,
+            ken_burns_preset: s.ken_burns_preset ?? undefined,
+            scene_emotion: s.context_tags?.emotion ?? s.context_tags?.mood?.[0] ?? undefined,
+            image_prompt_ko: s.image_prompt_ko ?? undefined,
+            tts_asset_id: s.tts_asset_id ?? undefined,
+          })),
           layout_style: layoutStyle,
           ken_burns_preset: store.kenBurnsPreset,
           ken_burns_intensity: store.kenBurnsIntensity,
@@ -311,9 +321,14 @@ export async function runAutoRunFromStep(
           overlay_settings: overlaySettings,
           post_card_settings: postCardSettings,
         };
-        const result = await renderWithProgress(payload, (p) => {
-          pushAutoRunLog(`Rendering... ${p.percent}% (${p.message || p.stage})`);
-        });
+        // C-1: Pass AbortSignal so autopilot cancel aborts render SSE
+        const result = await renderWithProgress(
+          payload,
+          (p) => {
+            pushAutoRunLog(`Rendering... ${p.percent}% (${p.message || p.stage})`);
+          },
+          abortController.signal
+        );
         const videoUrl = result.video_url;
         if (!videoUrl) throw new Error(`${layoutStyle} render failed`);
         const withTs = `${videoUrl}?t=${Date.now()}`;
@@ -346,6 +361,13 @@ export async function runAutoRunFromStep(
     setActiveTab("publish");
     showToast("Auto Run complete!", "success");
   } catch (err) {
+    // C-1: Abort any in-flight render SSE on error/cancel
+    abortController.abort();
+    // H-1: Restore stageStatus on failure
+    const sbNow = useStoryboardStore.getState();
+    if (sbNow.stageStatus === "staging") {
+      useStoryboardStore.getState().set({ stageStatus: "failed" });
+    }
     const message = err instanceof Error ? err.message : "Autopilot failed";
     setAutoRunError(currentStep, message);
     pushAutoRunLog(message);

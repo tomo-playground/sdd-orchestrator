@@ -162,7 +162,7 @@ def _merge_subset_locations(loc_map: dict[str, dict]) -> dict[str, dict]:
 # ── Image generation ─────────────────────────────────────────────────
 
 
-async def _generate_background_image(
+def _prepare_bg_prompt(
     location_tags: list[str],
     style_loras: list[dict],
     quality_tags: list[str] | None,
@@ -170,11 +170,11 @@ async def _generate_background_image(
     db: Session,
     *,
     style_ctx=None,
-) -> bytes | None:
-    """Generate a single no_humans background image via SD WebUI."""
-    from schemas import SceneGenerateRequest
-    from services.generation import _adjust_parameters, _build_payload, _call_sd_api_raw
-    from services.generation_context import GenerationContext
+) -> dict:
+    """Prepare background prompt data (requires DB for PromptBuilder).
+
+    Returns dict with prompt, negative, style_ctx, style_loras for SD call.
+    """
     from services.prompt.composition import PromptBuilder
 
     builder = PromptBuilder(db)
@@ -188,6 +188,20 @@ async def _generate_background_image(
     if negative_tags:
         negative = f"{negative}, {negative_tags}"
 
+    return {"prompt": prompt, "negative": negative, "style_ctx": style_ctx, "style_loras": style_loras}
+
+
+async def _generate_bg_from_prompt(prompt_data: dict) -> bytes | None:
+    """Generate a background image from pre-built prompt data (no DB needed)."""
+    from schemas import SceneGenerateRequest
+    from services.generation import _adjust_parameters, _build_payload, _call_sd_api_raw
+    from services.generation_context import GenerationContext
+
+    prompt = prompt_data["prompt"]
+    negative = prompt_data["negative"]
+    style_ctx = prompt_data["style_ctx"]
+    style_loras = prompt_data["style_loras"]
+
     request = SceneGenerateRequest(prompt=prompt, negative_prompt=negative)
     ctx = GenerationContext(request=request)
     ctx.style_context = style_ctx
@@ -195,9 +209,7 @@ async def _generate_background_image(
     ctx.prompt = prompt
     ctx.negative_prompt = negative
 
-    # Apply StyleProfile parameters (steps, cfg_scale, sampler, Hi-Res)
     _adjust_parameters(ctx)
-
     payload = _build_payload(ctx)
     logger.info("[Stage] Generating background: %s", prompt[:120])
 
@@ -212,6 +224,76 @@ async def _generate_background_image(
 
 
 # ── Public API ───────────────────────────────────────────────────────
+
+
+async def _process_single_location(
+    loc_key: str,
+    loc_info: dict,
+    storyboard_id: int,
+    style_profile_id: int | None,
+    style_loras: list[dict],
+    quality_tags: list[str] | None,
+    negative_tags: str | None,
+    style_ctx,
+    db: Session,
+    *,
+    force: bool = False,
+) -> dict:
+    """Process a single location: DB check → prompt build → SD call → save.
+
+    Splits DB usage and SD API call to avoid long connection pool hold.
+    """
+    # Phase 1: DB — check existing / create record / build prompt
+    existing_q = db.query(Background).filter(
+        Background.storyboard_id == storyboard_id,
+        Background.location_key == loc_key,
+        Background.deleted_at.is_(None),
+    )
+    if style_profile_id is not None:
+        existing_q = existing_q.filter(Background.style_profile_id == style_profile_id)
+    else:
+        existing_q = existing_q.filter(Background.style_profile_id.is_(None))
+    existing = existing_q.first()
+
+    if existing and existing.image_asset_id and not force:
+        return {"location_key": loc_key, "background_id": existing.id, "status": "exists"}
+
+    bg = existing or Background(
+        name=loc_info["name"],
+        storyboard_id=storyboard_id,
+        location_key=loc_key,
+        tags=loc_info["tags"],
+        is_system=False,
+        style_profile_id=style_profile_id,
+    )
+    if not existing:
+        db.add(bg)
+        db.flush()
+    bg_id = bg.id
+
+    prompt_data = _prepare_bg_prompt(
+        loc_info["tags"],
+        style_loras,
+        quality_tags,
+        negative_tags,
+        db,
+        style_ctx=style_ctx,
+    )
+    db.commit()  # Release DB connection before SD call
+
+    # Phase 2: SD API call (no DB needed, 30-60s)
+    img_bytes = await _generate_bg_from_prompt(prompt_data)
+    if not img_bytes:
+        return {"location_key": loc_key, "background_id": bg_id, "status": "failed"}
+
+    # Phase 3: Save result (DB auto-reconnects)
+    asset_svc = AssetService(db)
+    asset = asset_svc.save_background_image(bg_id, img_bytes)
+    bg_fresh = db.get(Background, bg_id)
+    bg_fresh.image_asset_id = asset.id
+    db.commit()
+    logger.info("[Stage] Background generated: %s (ID=%d)", loc_key, bg_id)
+    return {"location_key": loc_key, "background_id": bg_id, "status": "generated"}
 
 
 async def generate_location_backgrounds(storyboard_id: int, db: Session, *, force: bool = False) -> list[dict]:
@@ -263,53 +345,24 @@ async def generate_location_backgrounds(storyboard_id: int, db: Session, *, forc
     db.commit()
 
     results: list[dict] = []
-    asset_svc = AssetService(db)
 
     for loc_key, loc_info in locations.items():
-        # Check if background already exists (with matching style_profile_id)
-        existing_q = db.query(Background).filter(
-            Background.storyboard_id == storyboard_id,
-            Background.location_key == loc_key,
-            Background.deleted_at.is_(None),
+        result = await _process_single_location(
+            loc_key,
+            loc_info,
+            storyboard_id,
+            style_profile_id,
+            style_loras,
+            quality_tags,
+            negative_tags,
+            style_ctx,
+            db,
+            force=force,
         )
-        if style_profile_id is not None:
-            existing_q = existing_q.filter(Background.style_profile_id == style_profile_id)
-        else:
-            existing_q = existing_q.filter(Background.style_profile_id.is_(None))
-        existing = existing_q.first()
+        results.append(result)
 
-        if existing and existing.image_asset_id and not force:
-            results.append({"location_key": loc_key, "background_id": existing.id, "status": "exists"})
-            continue
-
-        # Create or reuse Background record
-        bg = existing or Background(
-            name=loc_info["name"],
-            storyboard_id=storyboard_id,
-            location_key=loc_key,
-            tags=loc_info["tags"],
-            is_system=False,
-            style_profile_id=style_profile_id,
-        )
-        if not existing:
-            db.add(bg)
-            db.flush()
-
-        # Generate image
-        img_bytes = await _generate_background_image(
-            loc_info["tags"], style_loras, quality_tags, negative_tags, db, style_ctx=style_ctx
-        )
-        if not img_bytes:
-            results.append({"location_key": loc_key, "background_id": bg.id, "status": "failed"})
-            continue
-
-        asset = asset_svc.save_background_image(bg.id, img_bytes)
-        bg.image_asset_id = asset.id
-        db.commit()
-        results.append({"location_key": loc_key, "background_id": bg.id, "status": "generated"})
-        logger.info("[Stage] Background generated: %s (ID=%d)", loc_key, bg.id)
-
-    # Update stage status
+    # Update stage status (re-fetch after commits in _process_single_location)
+    storyboard = db.get(Storyboard, storyboard_id)
     failed = sum(1 for r in results if r["status"] == "failed")
     storyboard.stage_status = STAGE_STATUS_FAILED if failed == len(results) else STAGE_STATUS_STAGED
     db.commit()
@@ -377,10 +430,6 @@ def assign_backgrounds_to_scenes(storyboard_id: int, db: Session) -> list[dict]:
         if scene.background_id != bg_id:
             scene.background_id = bg_id
             changed = True
-        # Clear old scene-to-scene pin; Stage background takes over
-        if scene.environment_reference_id:
-            scene.environment_reference_id = None
-            changed = True
         if changed:
             assignments.append({"scene_id": scene.id, "background_id": bg_id, "location_key": key})
 
@@ -441,18 +490,31 @@ async def regenerate_background(
 
         await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
-    img_bytes = await _generate_background_image(
-        bg.tags or [], style_loras, quality_tags, negative_tags, db, style_ctx=style_ctx
+    # Phase 1: Build prompt (DB needed), then release connection
+    bg_id = bg.id
+    bg_tags = list(bg.tags or [])
+    prompt_data = _prepare_bg_prompt(
+        bg_tags,
+        style_loras,
+        quality_tags,
+        negative_tags,
+        db,
+        style_ctx=style_ctx,
     )
-    if not img_bytes:
-        return {"background_id": bg.id, "status": "failed"}
-
-    # Update style_profile_id + save asset together on success
-    bg.style_profile_id = style_ctx.profile_id if style_ctx else None
-    asset_svc = AssetService(db)
-    asset = asset_svc.save_background_image(bg.id, img_bytes)
-    bg.image_asset_id = asset.id
     db.commit()
 
-    logger.info("[Stage] Background regenerated: %s (ID=%d)", location_key, bg.id)
-    return {"background_id": bg.id, "status": "regenerated"}
+    # Phase 2: SD call (no DB needed, 30-60s)
+    img_bytes = await _generate_bg_from_prompt(prompt_data)
+    if not img_bytes:
+        return {"background_id": bg_id, "status": "failed"}
+
+    # Phase 3: Save result (DB auto-reconnects)
+    bg_fresh = db.get(Background, bg_id)
+    bg_fresh.style_profile_id = style_ctx.profile_id if style_ctx else None
+    asset_svc = AssetService(db)
+    asset = asset_svc.save_background_image(bg_id, img_bytes)
+    bg_fresh.image_asset_id = asset.id
+    db.commit()
+
+    logger.info("[Stage] Background regenerated: %s (ID=%d)", location_key, bg_id)
+    return {"background_id": bg_id, "status": "regenerated"}

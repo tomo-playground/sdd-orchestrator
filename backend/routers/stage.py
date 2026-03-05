@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
+from config import STAGE_STATUS_STAGING
 from database import get_db
 from models.background import Background
 from models.scene import Scene
@@ -38,7 +39,9 @@ async def generate_backgrounds(
     db: Session = Depends(get_db),
 ):
     """Generate no_humans background images for each location."""
-    _get_storyboard_or_404(storyboard_id, db)
+    sb = _get_storyboard_or_404(storyboard_id, db)
+    if sb.stage_status == STAGE_STATUS_STAGING:
+        raise HTTPException(status_code=409, detail="Background generation already in progress")
 
     from services.stage.background_generator import generate_location_backgrounds
 

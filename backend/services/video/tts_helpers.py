@@ -65,9 +65,10 @@ def tts_cache_key(
     voice_preset_id: int | None,
     voice_design_prompt: str | None,
     language: str,
+    scene_emotion: str = "",
 ) -> str:
     """Deterministic hash for TTS caching based on text + voice config."""
-    parts = f"{text}|{voice_preset_id}|{voice_design_prompt or ''}|{language}"
+    parts = f"{text}|{voice_preset_id}|{voice_design_prompt or ''}|{language}|{scene_emotion or ''}"
     return hashlib.sha256(parts.encode()).hexdigest()[:16]
 
 
@@ -81,12 +82,19 @@ def translate_voice_prompt(prompt: str) -> str:
         logger.warning("[TTS] No Gemini client, skipping voice prompt translation")
         return prompt
     try:
+        from google.genai.types import GenerateContentConfig
+
+        from config import GEMINI_SAFETY_SETTINGS
+
         res = gemini_client.models.generate_content(
             model=GEMINI_TEXT_MODEL,
-            contents=(
-                "Translate the following Korean TTS voice description to English. "
-                "Return ONLY the translated text, nothing else.\n\n"
-                f"{prompt}"
+            contents=prompt,
+            config=GenerateContentConfig(
+                system_instruction=(
+                    "Translate the following Korean TTS voice description to English. "
+                    "Return ONLY the translated text, nothing else."
+                ),
+                safety_settings=GEMINI_SAFETY_SETTINGS,
             ),
         )
         translated = (res.text or "").strip()
@@ -235,11 +243,17 @@ def generate_context_aware_voice_prompt(
                 f"Script (Korean): {script}\nScene Context: {context_text}\n\nVoice Design Prompt (English):"
             )
 
-        prompt = f"{system_instruction}\n\n{user_prompt_content}"
+        from google.genai.types import GenerateContentConfig
+
+        from config import GEMINI_SAFETY_SETTINGS
 
         res = gemini_client.models.generate_content(
             model=GEMINI_TEXT_MODEL,
-            contents=prompt,
+            contents=user_prompt_content,
+            config=GenerateContentConfig(
+                system_instruction=system_instruction,
+                safety_settings=GEMINI_SAFETY_SETTINGS,
+            ),
         )
 
         voice_prompt = (res.text or "").strip()

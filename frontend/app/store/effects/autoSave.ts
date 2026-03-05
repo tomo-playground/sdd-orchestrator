@@ -49,13 +49,24 @@ export function initAutoSave(): () => void {
   }
   initialized = true;
 
-  const unsubscribe = useStoryboardStore.subscribe((state, prevState) => {
+  const unsubscribeSb = useStoryboardStore.subscribe((state, prevState) => {
     if (!state.isDirty || state.isDirty === prevState.isDirty) return;
     scheduleSave();
   });
 
+  // When autopilot ends (isAutoRunning true→false), flush any pending dirty state.
+  // The storyboard subscribe above only fires on isDirty changes, so if isDirty
+  // was already true during autopilot it would never trigger a save.
+  const unsubscribeUi = useUIStore.subscribe((state, prevState) => {
+    if (prevState.isAutoRunning && !state.isAutoRunning) {
+      const { isDirty } = useStoryboardStore.getState();
+      if (isDirty) scheduleSave();
+    }
+  });
+
   cleanupFn = () => {
-    unsubscribe();
+    unsubscribeSb();
+    unsubscribeUi();
     if (debounceTimer) {
       clearTimeout(debounceTimer);
       debounceTimer = null;

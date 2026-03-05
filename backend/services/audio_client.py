@@ -12,12 +12,11 @@ import httpx
 
 from config import TTS_NATURALNESS_SUFFIX, logger
 
-# Circuit breaker state — tracks consecutive *scene-level* failures so that
-# retries within a single scene don't trip the breaker on their own.
+# Circuit breaker state — per-task isolation so concurrent video builds
+# don't interfere with each other's breaker state.
 _CIRCUIT_SCENE_FAILURE_THRESHOLD = 3
 _CIRCUIT_COOLDOWN_SEC = 60
-_consecutive_scene_failures = 0
-_circuit_open_until = 0.0
+_circuit_state: dict[str, dict] = {}  # task_id -> {"failures": int, "open_until": float}
 
 
 def _get_audio_server_config() -> tuple[str, float]:
@@ -27,33 +26,41 @@ def _get_audio_server_config() -> tuple[str, float]:
     return AUDIO_SERVER_URL, AUDIO_TIMEOUT_SECONDS
 
 
-def _check_circuit() -> bool:
+def _get_state(task_id: str) -> dict:
+    """Get or create circuit breaker state for a task."""
+    if task_id not in _circuit_state:
+        _circuit_state[task_id] = {"failures": 0, "open_until": 0.0}
+    return _circuit_state[task_id]
+
+
+def _check_circuit(task_id: str = "default") -> bool:
     """Return True if circuit is closed (requests allowed)."""
-    global _consecutive_scene_failures, _circuit_open_until
+    state = _get_state(task_id)
     now = time.monotonic()
-    if _consecutive_scene_failures >= _CIRCUIT_SCENE_FAILURE_THRESHOLD:
-        if now < _circuit_open_until:
+    if state["failures"] >= _CIRCUIT_SCENE_FAILURE_THRESHOLD:
+        if now < state["open_until"]:
             return False
-        logger.info("[AudioClient] Circuit breaker: retrying after cooldown")
-        _consecutive_scene_failures = 0
+        logger.info("[AudioClient] Circuit breaker (%s): retrying after cooldown", task_id)
+        state["failures"] = 0
     return True
 
 
-def record_scene_success() -> None:
+def record_scene_success(task_id: str = "default") -> None:
     """Call after a scene's TTS/music generation succeeds (possibly after retries)."""
-    global _consecutive_scene_failures
-    _consecutive_scene_failures = 0
+    state = _get_state(task_id)
+    state["failures"] = 0
 
 
-def record_scene_failure() -> None:
+def record_scene_failure(task_id: str = "default") -> None:
     """Call after a scene exhausts all retries with no usable audio."""
-    global _consecutive_scene_failures, _circuit_open_until
-    _consecutive_scene_failures += 1
-    if _consecutive_scene_failures >= _CIRCUIT_SCENE_FAILURE_THRESHOLD:
-        _circuit_open_until = time.monotonic() + _CIRCUIT_COOLDOWN_SEC
+    state = _get_state(task_id)
+    state["failures"] += 1
+    if state["failures"] >= _CIRCUIT_SCENE_FAILURE_THRESHOLD:
+        state["open_until"] = time.monotonic() + _CIRCUIT_COOLDOWN_SEC
         logger.warning(
-            "[AudioClient] Circuit breaker OPEN (%d consecutive scenes failed)",
-            _consecutive_scene_failures,
+            "[AudioClient] Circuit breaker OPEN (%s: %d consecutive scenes failed)",
+            task_id,
+            state["failures"],
         )
 
 
@@ -66,13 +73,14 @@ async def synthesize_tts(
     top_p: float = 0.8,
     repetition_penalty: float = 1.0,
     max_new_tokens: int = 1024,
+    task_id: str = "default",
 ) -> tuple[bytes, int, float, bool]:
     """Call Audio Server /tts/synthesize.
 
     Returns (audio_bytes, sample_rate, duration, quality_passed).
     Raises httpx.HTTPStatusError or RuntimeError on failure.
     """
-    if not _check_circuit():
+    if not _check_circuit(task_id):
         raise RuntimeError("Audio Server circuit breaker is open")
 
     url, timeout = _get_audio_server_config()
@@ -119,12 +127,13 @@ async def generate_music(
     prompt: str,
     duration: float = 30.0,
     seed: int = -1,
+    task_id: str = "default",
 ) -> tuple[bytes, int, int]:
     """Call Audio Server /music/generate.
 
     Returns (wav_bytes, sample_rate, actual_seed).
     """
-    if not _check_circuit():
+    if not _check_circuit(task_id):
         raise RuntimeError("Audio Server circuit breaker is open")
 
     from config import MUSIC_TIMEOUT_SECONDS

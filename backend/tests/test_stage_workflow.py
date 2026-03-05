@@ -436,13 +436,20 @@ class TestStyleProfileCaching:
         new_bg.image_asset_id = None
         new_bg.style_profile_id = style_profile_id
 
+        # db.get() is used in Phase 3 to re-fetch bg after SD call
+        db.get = MagicMock(return_value=existing_bg or new_bg)
+
         with (
             p1,
             p2,
             p3,
             patch("services.stage.background_generator.resolve_style_context", return_value=style_ctx),
             patch("services.stage.background_generator.extract_style_loras", return_value=[]),
-            patch("services.stage.background_generator._generate_background_image", return_value=b"img"),
+            patch(
+                "services.stage.background_generator._prepare_bg_prompt",
+                return_value={"prompt": "p", "negative": "n", "style_ctx": style_ctx, "style_loras": []},
+            ),
+            patch("services.stage.background_generator._generate_bg_from_prompt", return_value=b"img"),
             patch("services.stage.background_generator.AssetService", return_value=asset_svc),
             patch("services.stage.background_generator.Background", return_value=new_bg),
         ):
@@ -484,18 +491,25 @@ class TestStyleProfileCaching:
         style_ctx.default_positive = "masterpiece"
         style_ctx.sd_model_name = None
 
+        asset_mock = MagicMock()
+        asset_mock.id = 200
+        asset_svc = MagicMock()
+        asset_svc.save_background_image.return_value = asset_mock
+
+        # After commit(), db.get() re-fetches the bg record
+        db.get = MagicMock(return_value=bg)
+
         with (
             patch("services.stage.background_generator.resolve_style_context", return_value=style_ctx),
             patch("services.stage.background_generator.extract_style_loras", return_value=[]),
-            patch("services.stage.background_generator._generate_background_image", return_value=b"fake_img"),
+            patch(
+                "services.stage.background_generator._prepare_bg_prompt",
+                return_value={"prompt": "p", "negative": "n", "style_ctx": style_ctx, "style_loras": []},
+            ),
+            patch("services.stage.background_generator._generate_bg_from_prompt", return_value=b"fake_img"),
+            patch("services.stage.background_generator.AssetService", return_value=asset_svc),
         ):
-            asset_mock = MagicMock()
-            asset_mock.id = 200
-            asset_svc = MagicMock()
-            asset_svc.save_background_image.return_value = asset_mock
-
-            with patch("services.stage.background_generator.AssetService", return_value=asset_svc):
-                result = asyncio.new_event_loop().run_until_complete(regenerate_background(1, "cafe", db))
+            result = asyncio.new_event_loop().run_until_complete(regenerate_background(1, "cafe", db))
 
         assert bg.style_profile_id == 7
         assert result["status"] == "regenerated"

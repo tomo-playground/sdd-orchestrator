@@ -50,9 +50,28 @@ _translate_voice_prompt = translate_voice_prompt  # noqa: F841 — alias for voi
 _get_speaker_voice_preset = get_speaker_voice_preset  # noqa: F841 — alias for tests
 
 
+def _atomic_cache_write(src: Path, dst: Path) -> None:
+    """Copy *src* to *dst* atomically (same filesystem rename)."""
+    import os
+    import tempfile
+
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    tmp_fd, tmp_path = tempfile.mkstemp(dir=dst.parent, suffix=".tmp")
+    try:
+        os.close(tmp_fd)
+        shutil.copy2(src, tmp_path)
+        os.replace(tmp_path, dst)  # atomic on same filesystem
+    except Exception:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise
+
+
 async def process_scenes(builder: VideoBuilder) -> None:
     """Process all scenes: images, TTS, and subtitles."""
     from services.video.progress import calc_overall_percent
+
+    tts_failed_scenes: list[int] = []
 
     for i, scene in enumerate(builder.request.scenes):
         if builder._progress:
@@ -94,6 +113,8 @@ async def process_scenes(builder: VideoBuilder) -> None:
                 clean_script,
                 tts_path,
             )
+            if not has_valid_tts:
+                tts_failed_scenes.append(i)
         else:
             logger.info(f"Scene {i}: no speakable content ('{raw_script[:30]}'), skipping TTS")
             has_valid_tts, tts_duration = False, 0.0
@@ -121,6 +142,14 @@ async def process_scenes(builder: VideoBuilder) -> None:
 
         builder.tts_valid.append(has_valid_tts)
         builder.tts_durations.append(tts_duration)
+
+    if tts_failed_scenes:
+        logger.warning(
+            "[process_scenes] TTS failed for %d/%d scenes: indices=%s",
+            len(tts_failed_scenes),
+            builder.num_scenes,
+            tts_failed_scenes,
+        )
 
 
 def _load_scene_image(builder: VideoBuilder, img_src: str | None) -> bytes:
@@ -301,6 +330,7 @@ async def generate_tts(
         logger.warning(f"Scene {i}: empty script, skipping TTS")
         return False, 0.0
 
+    task_id = builder.project_id
     scene_req = builder.request.scenes[i]
 
     # --- Linked TTS preview asset: skip generation if valid ---
@@ -313,15 +343,31 @@ async def generate_tts(
             db = SessionLocal()
             try:
                 asset = db.get(MediaAsset, tts_asset_id)
-                if asset and asset.storage_key and asset.file_type == "audio":
+                if not asset:
+                    logger.warning(
+                        "[generate_tts] tts_asset_id=%d not found in DB, falling back to generation", tts_asset_id
+                    )
+                elif not asset.storage_key:
+                    logger.warning("[generate_tts] tts_asset_id=%d has no storage_key, falling back", tts_asset_id)
+                elif asset.file_type != "audio":
+                    logger.warning(
+                        "[generate_tts] tts_asset_id=%d file_type=%s (not audio), falling back",
+                        tts_asset_id,
+                        asset.file_type,
+                    )
+                else:
                     storage = get_storage()
                     local = storage.get_local_path(asset.storage_key)
                     if local.exists():
                         shutil.copy2(local, tts_path)
                         tts_duration = builder._get_audio_duration(tts_path)
                         logger.info(f"Scene {i}: Using linked TTS asset {tts_asset_id}, duration={tts_duration}s")
-                        _audio_scene_success()
+                        _audio_scene_success(task_id)
                         return True, tts_duration
+                    else:
+                        logger.warning(
+                            "[generate_tts] tts_asset_id=%d file not found at %s, falling back", tts_asset_id, local
+                        )
             finally:
                 db.close()
         except Exception as e:
@@ -332,18 +378,20 @@ async def generate_tts(
 
     # --- TTS result cache lookup ---
     voice_design_for_cache = scene_req.voice_design_prompt or builder.request.voice_design_prompt or ""
+    scene_emotion = getattr(scene_req, "scene_emotion", "") or ""
     cache_key = tts_cache_key(
         clean_script,
         resolved_preset_id,
         voice_design_for_cache,
         TTS_DEFAULT_LANGUAGE,
+        scene_emotion,
     )
     cached = TTS_CACHE_DIR / f"{cache_key}.wav"
     if cached.exists() and cached.stat().st_size > 0:
         shutil.copy2(cached, tts_path)
         tts_duration = builder._get_audio_duration(tts_path)
         logger.info(f"Scene {i}: TTS cache hit ({cache_key}), duration={tts_duration}s")
-        _audio_scene_success()
+        _audio_scene_success(task_id)
         return True, tts_duration
 
     try:
@@ -412,6 +460,7 @@ async def generate_tts(
                     top_p=TTS_TOP_P,
                     repetition_penalty=TTS_REPETITION_PENALTY,
                     max_new_tokens=_calculate_max_new_tokens(tts_text),
+                    task_id=task_id,
                 )
             except Exception as gen_err:
                 logger.warning(
@@ -426,13 +475,13 @@ async def generate_tts(
 
             if quality_passed and duration >= min_duration:
                 tts_path.write_bytes(audio_bytes)
-                shutil.copy2(tts_path, cached)
+                _atomic_cache_write(tts_path, cached)
                 tts_duration = builder._get_audio_duration(tts_path)
                 if attempt > 0:
                     logger.info(f"[TTS] Scene {i}: passed on attempt {attempt + 1}, duration={tts_duration:.2f}s")
                 else:
                     logger.info(f"TTS success: duration={tts_duration}s, seed={attempt_seed}")
-                _audio_scene_success()
+                _audio_scene_success(task_id)
                 return True, tts_duration
 
             logger.warning(
@@ -444,15 +493,15 @@ async def generate_tts(
             tts_path.write_bytes(best_bytes)
             tts_duration = builder._get_audio_duration(tts_path)
             logger.warning(f"[TTS] Scene {i}: all retries exhausted, using best attempt ({best_dur:.2f}s, uncached)")
-            _audio_scene_success()
+            _audio_scene_success(task_id)
             return True, tts_duration
 
         logger.warning(f"[TTS] Scene {i}: all retries exhausted with no usable audio, falling back to silent scene")
-        _audio_scene_failure()
+        _audio_scene_failure(task_id)
         return False, 0.0
     except Exception as e:
         logger.warning(f"[TTS] Scene {i}: unexpected error ({e}), falling back to silent scene")
-        _audio_scene_failure()
+        _audio_scene_failure(task_id)
         return False, 0.0
 
 

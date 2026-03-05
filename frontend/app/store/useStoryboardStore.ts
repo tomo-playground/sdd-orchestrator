@@ -183,6 +183,7 @@ const SCENE_TRANSIENT_FIELDS: ReadonlySet<string> = new Set([
   "debug_payload",
   "debug_prompt",
   "_auto_pin_previous",
+  "tts_asset_id", // session-only: TTS preview asset, 만료 가능
 ]);
 
 /** Fields excluded from persistence (transient / runtime-derived). */

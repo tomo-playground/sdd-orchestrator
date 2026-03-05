@@ -6,7 +6,7 @@ import type { Scene } from "../../types";
 import { storeSceneImage } from "./imageActions";
 import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
 import { resolveSceneControlnet, resolveSceneIpAdapter } from "../../utils/sceneSettingsResolver";
-import { buildNegativePrompt } from "./promptActions";
+import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
 
 interface BatchResult {
   index: number;
@@ -43,21 +43,44 @@ export async function generateBatchImages(sceneClientIds: string[]): Promise<Bat
   }
 
   try {
+    const { storyboardId } = useContextStore.getState();
+    // C-2: HiRes settings matching generateSceneImageFor
+    const hiResPayload = sbState.hiResEnabled
+      ? {
+          enable_hr: true,
+          hr_scale: 1.5,
+          hr_upscaler: "R-ESRGAN 4x+ Anime6B",
+          hr_second_pass_steps: 10,
+          denoising_strength: 0.35,
+        }
+      : {};
+
     const sceneRequests = targetScenes.map((scene) => {
       const controlnet = resolveSceneControlnet(scene, sbState);
       const ipAdapter = resolveSceneIpAdapter(scene, sbState);
-      // Narrator scenes: disable ControlNet (no character to pose) and IP-Adapter (no reference)
       const isNarrator = scene.speaker === "Narrator";
+      // C-2: Use buildScenePrompt for consistent prompt construction
+      const prompt = buildScenePrompt(scene) || "";
       return {
-        prompt: scene.image_prompt || "",
+        prompt,
         negative_prompt: buildNegativePrompt(scene),
         seed: -1,
         width: scene.width || 512,
         height: scene.height || 768,
+        ...hiResPayload,
         character_id: resolveCharacterIdForSpeaker(scene.speaker, sbState) || 0,
-        storyboard_id: useContextStore.getState().storyboardId || undefined,
+        character_b_id: sbState.selectedCharacterBId || undefined,
+        storyboard_id: storyboardId || undefined,
+        scene_id: scene.id > 0 ? scene.id : undefined, // H-6
+        background_id: scene.background_id || undefined,
+        context_tags: scene.context_tags || undefined,
+        style_loras: sbState.characterLoras || [],
+        auto_rewrite_prompt: sbState.autoRewritePrompt,
+        auto_replace_risky_tags: sbState.autoReplaceRiskyTags,
+        client_id: scene.client_id,
         use_controlnet: controlnet.enabled && !isNarrator,
         controlnet_weight: controlnet.weight,
+        controlnet_pose: scene.controlnet_pose || undefined,
         use_ip_adapter: ipAdapter.enabled && !!ipAdapter.reference && !isNarrator,
         ip_adapter_reference: isNarrator ? undefined : ipAdapter.reference || undefined,
         ip_adapter_weight: ipAdapter.weight || 0.7,
@@ -79,8 +102,8 @@ export async function generateBatchImages(sceneClientIds: string[]): Promise<Bat
     const { results } = res.data;
 
     // Store images in parallel, then update scenes
-    const { projectId, groupId, storyboardId } = useContextStore.getState();
-    const canStore = projectId && groupId && storyboardId;
+    const { projectId, groupId, storyboardId: ctxStoryboardId } = useContextStore.getState();
+    const canStore = projectId && groupId && ctxStoryboardId;
 
     await Promise.all(
       results.map(async (result) => {
@@ -99,7 +122,7 @@ export async function generateBatchImages(sceneClientIds: string[]): Promise<Bat
             dataUrl,
             projectId,
             groupId,
-            storyboardId,
+            ctxStoryboardId,
             scene.id,
             `scene_${scene.id}_${Date.now()}.png`,
             scene.client_id
@@ -110,7 +133,7 @@ export async function generateBatchImages(sceneClientIds: string[]): Promise<Bat
               dataUrl,
               projectId,
               groupId,
-              storyboardId,
+              ctxStoryboardId,
               scene.id,
               `scene_${scene.id}_${Date.now()}_retry.png`,
               scene.client_id

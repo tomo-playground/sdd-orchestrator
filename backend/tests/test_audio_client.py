@@ -23,8 +23,7 @@ def _reset_circuit():
     """Reset circuit breaker state before each test."""
     import services.audio_client as mod
 
-    mod._consecutive_scene_failures = 0
-    mod._circuit_open_until = 0.0
+    mod._circuit_state.clear()
     yield
 
 
@@ -125,7 +124,8 @@ class TestSynthesizeTTS:
                 await synthesize_tts(text="hello")
 
             # Scene-level counter NOT incremented (caller is responsible)
-            assert mod._consecutive_scene_failures == 0
+            state = mod._circuit_state.get("default", {})
+            assert state.get("failures", 0) == 0
 
 
 class TestGenerateMusic:
@@ -160,8 +160,9 @@ class TestCircuitBreaker:
         for _ in range(_CIRCUIT_SCENE_FAILURE_THRESHOLD):
             record_scene_failure()
 
-        assert mod._consecutive_scene_failures >= _CIRCUIT_SCENE_FAILURE_THRESHOLD
-        assert mod._circuit_open_until > 0
+        state = mod._circuit_state.get("default", {})
+        assert state.get("failures", 0) >= _CIRCUIT_SCENE_FAILURE_THRESHOLD
+        assert state.get("open_until", 0) > 0
 
     def test_scene_success_resets_counter(self):
         import services.audio_client as mod
@@ -170,7 +171,8 @@ class TestCircuitBreaker:
         record_scene_failure()
         record_scene_success()
 
-        assert mod._consecutive_scene_failures == 0
+        state = mod._circuit_state.get("default", {})
+        assert state.get("failures", 0) == 0
 
     @pytest.mark.asyncio
     async def test_open_circuit_rejects_requests(self):
@@ -189,9 +191,10 @@ class TestCircuitBreaker:
 
         # One scene failed all retries → 1 scene failure
         record_scene_failure()
-        assert mod._consecutive_scene_failures == 1
+        state = mod._circuit_state["default"]
+        assert state["failures"] == 1
         # Circuit still closed (threshold is 3)
-        assert mod._consecutive_scene_failures < _CIRCUIT_SCENE_FAILURE_THRESHOLD
+        assert state["failures"] < _CIRCUIT_SCENE_FAILURE_THRESHOLD
 
     def test_multiple_scene_failures_trip_breaker(self):
         """3 consecutive scenes failing → circuit opens."""
@@ -199,11 +202,12 @@ class TestCircuitBreaker:
 
         record_scene_failure()  # scene 1 failed
         record_scene_failure()  # scene 2 failed
-        assert mod._consecutive_scene_failures == 2
+        assert mod._circuit_state["default"]["failures"] == 2
 
         record_scene_failure()  # scene 3 failed → OPEN
-        assert mod._consecutive_scene_failures == 3
-        assert mod._circuit_open_until > 0
+        state = mod._circuit_state["default"]
+        assert state["failures"] == 3
+        assert state["open_until"] > 0
 
     def test_success_between_failures_resets(self):
         """Success between failures prevents breaker from tripping."""
@@ -214,7 +218,22 @@ class TestCircuitBreaker:
         record_scene_success()  # scene 3 succeeded → reset
         record_scene_failure()  # scene 4 failed
 
-        assert mod._consecutive_scene_failures == 1
+        assert mod._circuit_state["default"]["failures"] == 1
+
+    def test_per_task_isolation(self):
+        """Different task_ids have independent circuit breaker state."""
+        import services.audio_client as mod
+
+        record_scene_failure("task_a")
+        record_scene_failure("task_a")
+        record_scene_failure("task_a")  # task_a opens
+
+        # task_b is still closed
+        state_b = mod._circuit_state.get("task_b", {"failures": 0})
+        assert state_b["failures"] == 0
+
+        state_a = mod._circuit_state["task_a"]
+        assert state_a["failures"] == _CIRCUIT_SCENE_FAILURE_THRESHOLD
 
 
 class TestCheckHealth:
