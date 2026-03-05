@@ -303,6 +303,30 @@ async def generate_tts(
 
     scene_req = builder.request.scenes[i]
 
+    # --- Linked TTS preview asset: skip generation if valid ---
+    tts_asset_id = scene_req.tts_asset_id
+    if tts_asset_id:
+        try:
+            from database import SessionLocal
+            from models import MediaAsset
+
+            db = SessionLocal()
+            try:
+                asset = db.get(MediaAsset, tts_asset_id)
+                if asset and asset.storage_key and asset.file_type == "audio":
+                    storage = get_storage()
+                    local = storage.get_local_path(asset.storage_key)
+                    if local.exists():
+                        shutil.copy2(local, tts_path)
+                        tts_duration = builder._get_audio_duration(tts_path)
+                        logger.info(f"Scene {i}: Using linked TTS asset {tts_asset_id}, duration={tts_duration}s")
+                        _audio_scene_success()
+                        return True, tts_duration
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning(f"Scene {i}: Failed to load linked TTS asset {tts_asset_id}, falling back: {e}")
+
     # --- Resolve voice preset for this scene (speaker-aware) ---
     resolved_preset_id = _resolve_voice_preset_id(builder, i)
 

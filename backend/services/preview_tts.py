@@ -254,6 +254,7 @@ async def preview_batch_tts(
                     audio_url=asset.url,
                     duration=gen.duration,
                     cache_key=gen.cache_key,
+                    temp_asset_id=asset.id,
                 )
             )
 

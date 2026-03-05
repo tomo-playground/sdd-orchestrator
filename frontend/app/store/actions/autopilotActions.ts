@@ -290,6 +290,7 @@ export async function runAutoRunFromStep(
               ken_burns_preset: s.ken_burns_preset ?? undefined,
               scene_emotion: s.context_tags?.emotion ?? s.context_tags?.mood?.[0] ?? undefined,
               image_prompt_ko: s.image_prompt_ko ?? undefined,
+              tts_asset_id: s.tts_asset_id ?? undefined,
             })),
           layout_style: layoutStyle,
           ken_burns_preset: store.kenBurnsPreset,

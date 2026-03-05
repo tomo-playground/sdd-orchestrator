@@ -106,6 +106,8 @@ export type Scene = {
   voice_design_prompt?: string | null;
   head_padding?: number | null;
   tail_padding?: number | null;
+  // Linked TTS preview asset (session-only, transient)
+  tts_asset_id?: number | null;
   // Per-scene Ken Burns preset (from Cinematographer agent)
   ken_burns_preset?: string | null;
 };
@@ -1027,6 +1029,7 @@ export type BatchTTSPreviewResponse = {
     duration: number | null;
     cache_key: string;
     error: string | null;
+    temp_asset_id: number | null;
   }>;
   total_duration: number;
   cached_count: number;

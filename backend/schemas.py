@@ -498,6 +498,8 @@ class VideoScene(BaseModel):
     scene_emotion: str | None = None
     # Korean scene description (for context-aware voice generation)
     image_prompt_ko: str | None = None
+    # Linked TTS preview asset (skip TTS generation if valid)
+    tts_asset_id: int | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -3154,6 +3156,7 @@ class BatchTTSPreviewItem(BaseModel):
     duration: float | None = None
     cache_key: str
     error: str | None = None
+    temp_asset_id: int | None = None
 
 
 class BatchTTSPreviewResponse(BaseModel):

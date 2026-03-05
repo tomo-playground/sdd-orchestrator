@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import axios from "axios";
 import { API_BASE } from "../constants";
 import { useAudioPlayer } from "./useAudioPlayer";
+import { useStoryboardStore } from "../store/useStoryboardStore";
 import type {
   TTSPreviewState,
   SceneTTSPreviewResponse,
@@ -25,6 +26,7 @@ export function useTTSPreview(storyboardId: number | null) {
   statesRef.current = previewStates;
   const [isPreviewingAll, setIsPreviewingAll] = useState(false);
   const audioPlayer = useAudioPlayer();
+  const updateScene = useStoryboardStore((s) => s.updateScene);
 
   const updateState = useCallback((clientId: string, update: Partial<TTSPreviewState>) => {
     setPreviewStates((prev) => {
@@ -66,6 +68,7 @@ export function useTTSPreview(storyboardId: number | null) {
           voiceDesign: data.voice_design ?? null,
           voiceSeed: data.voice_seed ?? null,
         });
+        updateScene(clientId, { tts_asset_id: data.temp_asset_id });
 
         // Auto-play after generation
         audioPlayer.play(data.audio_url);
@@ -76,7 +79,7 @@ export function useTTSPreview(storyboardId: number | null) {
         updateState(clientId, { status: "error", error: msg });
       }
     },
-    [storyboardId, audioPlayer, updateState]
+    [storyboardId, audioPlayer, updateState, updateScene]
   );
 
   const previewAll = useCallback(
@@ -112,6 +115,9 @@ export function useTTSPreview(storyboardId: number | null) {
               duration: item.duration,
               cacheKey: item.cache_key,
             });
+            if (item.temp_asset_id) {
+              updateScene(scene.client_id, { tts_asset_id: item.temp_asset_id });
+            }
           }
         }
       } catch {
@@ -120,7 +126,7 @@ export function useTTSPreview(storyboardId: number | null) {
         setIsPreviewingAll(false);
       }
     },
-    [storyboardId, updateState]
+    [storyboardId, updateState, updateScene]
   );
 
   const regenerate = useCallback(
@@ -154,6 +160,7 @@ export function useTTSPreview(storyboardId: number | null) {
           voiceDesign: data.voice_design ?? null,
           voiceSeed: data.voice_seed ?? null,
         });
+        updateScene(clientId, { tts_asset_id: data.temp_asset_id });
         audioPlayer.play(data.audio_url);
       } catch (err) {
         const msg = axios.isAxiosError(err)
@@ -162,7 +169,7 @@ export function useTTSPreview(storyboardId: number | null) {
         updateState(clientId, { status: "error", error: msg });
       }
     },
-    [storyboardId, audioPlayer, updateState]
+    [storyboardId, audioPlayer, updateState, updateScene]
   );
 
   return {
