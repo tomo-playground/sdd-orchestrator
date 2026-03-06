@@ -184,9 +184,12 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
   const applyFields = useCallback(
     (rec: SettingsRecommendation) => {
       if (!editorRef.current) return;
-      // duration, language만 유의미 (구성/캐릭터는 Director SSOT)
       editorRef.current.setField("duration", rec.duration);
       editorRef.current.setField("language", rec.language);
+      // structure도 반영 — Director가 캐릭터 없이도 올바른 구조로 진행하도록
+      if (rec.structure) {
+        editorRef.current.setField("structure", rec.structure);
+      }
     },
     [editorRef]
   );

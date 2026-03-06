@@ -31,8 +31,9 @@ export function buildGenerateBody(
     language: s.language,
     group_id: groupId,
     interaction_mode: s.interactionMode,
-    // structure, character_id, character_b_id는 전달하지 않음
-    // → Director가 주제 분석 후 캐스팅(구조+캐릭터) 결정 → plan_review에서 사용자 승인/수정
+    // analyze-topic에서 추천된 structure가 있으면 전달 (Director 힌트)
+    // character_id, character_b_id는 Director 캐스팅 SSOT
+    ...(s.structure && { structure: s.structure }),
   };
   const refs = s.references.trim();
   if (refs) {
