@@ -17,12 +17,12 @@ def _validate_casting(casting: dict, state: ScriptState) -> dict | None:
     """캐스팅 추천의 유효성을 검증한다. 실패 시 None."""
     valid_chars = state.get("valid_character_ids") or []
 
-    # 1. character_id 유효성
-    char_id = casting.get("character_id")
-    if char_id and char_id not in valid_chars:
-        logger.info("[LangGraph] inventory_resolve: character_id=%s 유효하지 않음, 무시", char_id)
-        casting["character_id"] = None
-        casting["character_name"] = ""
+    # 1. character_a_id 유효성
+    char_a_id = casting.get("character_a_id")
+    if char_a_id and char_a_id not in valid_chars:
+        logger.info("[LangGraph] inventory_resolve: character_a_id=%s 유효하지 않음, 무시", char_a_id)
+        casting["character_a_id"] = None
+        casting["character_a_name"] = ""
 
     # 2. character_b_id 유효성
     char_b_id = casting.get("character_b_id")
@@ -32,16 +32,16 @@ def _validate_casting(casting: dict, state: ScriptState) -> dict | None:
         casting["character_b_name"] = ""
 
     # 3. 중복 검증
-    if casting.get("character_id") and casting["character_id"] == casting.get("character_b_id"):
-        logger.info("[LangGraph] inventory_resolve: character_id == character_b_id, B를 제거")
+    if casting.get("character_a_id") and casting["character_a_id"] == casting.get("character_b_id"):
+        logger.info("[LangGraph] inventory_resolve: character_a_id == character_b_id, B를 제거")
         casting["character_b_id"] = None
         casting["character_b_name"] = ""
 
     # 4. 구조 적합성: 2인 구조 → character_b_id 자동 할당 시도
     structure = casting.get("structure")
-    if structure in _TWO_CHAR_STRUCTURES and casting.get("character_id") and not casting.get("character_b_id"):
-        char_id = casting["character_id"]
-        others = [cid for cid in valid_chars if cid != char_id]
+    if structure in _TWO_CHAR_STRUCTURES and casting.get("character_a_id") and not casting.get("character_b_id"):
+        char_a_id = casting["character_a_id"]
+        others = [cid for cid in valid_chars if cid != char_a_id]
         if others:
             casting["character_b_id"] = others[0]
             logger.info(
@@ -52,7 +52,7 @@ def _validate_casting(casting: dict, state: ScriptState) -> dict | None:
             casting["structure"] = "monologue"
 
     # 유효한 추천이 하나도 없으면 None
-    if not casting.get("character_id") and not casting.get("structure"):
+    if not casting.get("character_a_id") and not casting.get("structure"):
         return None
 
     return casting
@@ -79,10 +79,10 @@ async def inventory_resolve_node(state: ScriptState, config=None) -> dict:
     # User override 병합: user가 이미 선택한 값은 유지
     result: dict = {"casting_recommendation": validated}
 
-    # character_id: user 선택 우선
+    # character_id (ScriptState 키) ← casting의 character_a_id
     user_char = state.get("character_id")
-    if not user_char and validated.get("character_id"):
-        result["character_id"] = validated["character_id"]
+    if not user_char and validated.get("character_a_id"):
+        result["character_id"] = validated["character_a_id"]
 
     # character_b_id: user 선택 우선
     user_char_b = state.get("character_b_id")

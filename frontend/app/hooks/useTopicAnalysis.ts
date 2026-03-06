@@ -187,9 +187,9 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
       editorRef.current.setField("duration", rec.duration);
       editorRef.current.setField("language", rec.language);
       editorRef.current.setField("structure", rec.structure);
-      if (rec.character_id != null) {
-        editorRef.current.setField("characterId", rec.character_id);
-        editorRef.current.setField("characterName", rec.character_name);
+      if (rec.character_a_id != null) {
+        editorRef.current.setField("characterId", rec.character_a_id);
+        editorRef.current.setField("characterName", rec.character_a_name);
       }
       // character_b: 항상 명시적으로 설정 (Monologue 전환 시 null로 정리)
       editorRef.current.setField("characterBId", rec.character_b_id);

@@ -20,7 +20,7 @@ export default function AiCastingSummary({ casting, onGoToStage }: Props) {
         <div>
           <span className="text-amber-600">캐릭터</span>
           <span className="ml-2 font-medium text-amber-900">
-            {casting.character_name || "미정"}
+            {casting.character_a_name || "미정"}
             {casting.character_b_name ? ` & ${casting.character_b_name}` : ""}
           </span>
         </div>

@@ -30,9 +30,9 @@ export default function ManualScriptEditor({ editor }: Props) {
 
   const handleAcceptCasting = () => {
     if (!casting) return;
-    if (casting.character_id != null) {
-      editor.setField("characterId", casting.character_id);
-      editor.setField("characterName", casting.character_name);
+    if (casting.character_a_id != null) {
+      editor.setField("characterId", casting.character_a_id);
+      editor.setField("characterName", casting.character_a_name);
     }
     if (casting.character_b_id != null) {
       editor.setField("characterBId", casting.character_b_id);

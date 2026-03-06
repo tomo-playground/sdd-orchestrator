@@ -15,7 +15,7 @@ export default function CastingBanner({ casting, onAccept, onDismiss }: Props) {
       <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-amber-900">
-          AI 캐스팅 추천: {casting.character_name}
+          AI 캐스팅 추천: {casting.character_a_name}
           {casting.character_b_name ? ` & ${casting.character_b_name}` : ""}
           {casting.structure && (
             <span className="ml-1.5 text-xs font-normal text-amber-600">({casting.structure})</span>

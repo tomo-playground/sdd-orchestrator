@@ -46,7 +46,7 @@ def _build_debate_context(state: ScriptState) -> DebateContext:
         structure=state.get("structure", "Monologue"),
         language=state.get("language", "Korean"),
         max_rounds=CREATIVE_MAX_ROUNDS,
-        character_name=casting.get("character_name") or None,
+        character_name=casting.get("character_a_name") or None,
         character_b_name=casting.get("character_b_name") or None,
         research_brief=research_brief,
         director_plan=state.get("director_plan"),

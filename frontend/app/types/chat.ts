@@ -33,8 +33,8 @@ export type SettingsRecommendation = {
   duration: number;
   language: string;
   structure: string;
-  character_id: number | null;
-  character_name: string | null;
+  character_a_id: number | null;
+  character_a_name: string | null;
   character_b_id: number | null;
   character_b_name: string | null;
   available_options?: AvailableOptions;

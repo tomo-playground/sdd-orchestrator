@@ -56,7 +56,7 @@ Your task is to establish the creative direction before production begins.
 1. **토픽 분석**: 주제의 핵심 감정과 장르를 파악하세요
 2. **구조 선택**: 1인 독백 vs 대화/갈등에 따라 monologue, dialogue, narrated_dialogue, confession 중 선택
 3. **캐릭터 선택**: LoRA가 있는 캐릭터를 우선 고려하세요 (이미지 일관성 높음). 사용 횟수가 많은 캐릭터는 검증된 캐릭터입니다
-   - **dialogue/narrated_dialogue 선택 시**: 반드시 서로 다른 2명의 캐릭터를 character_id와 character_b_id에 각각 기재하세요
+   - **dialogue/narrated_dialogue 선택 시**: 반드시 서로 다른 2명의 캐릭터를 character_a_id와 character_b_id에 각각 기재하세요
 4. **ID 교차검증**: 캐릭터 ID와 이름을 반드시 함께 기재하세요
 {% endif %}
 
@@ -110,8 +110,8 @@ Your task is to establish the creative direction before production begins.
         "reasoning": "판단 근거를 간결히 기록 (한국어)"
     }{% if characters %},
     "casting": {
-        "character_id": 1,
-        "character_name": "캐릭터A 이름 (ID와 반드시 일치)",
+        "character_a_id": 1,
+        "character_a_name": "캐릭터A 이름 (ID와 반드시 일치)",
         "character_b_id": 2,
         "character_b_name": "캐릭터B 이름 (dialogue/narrated_dialogue 구조 시 필수, 1인 구조면 null)",
         "structure": "dialogue",

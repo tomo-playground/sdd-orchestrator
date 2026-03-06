@@ -166,11 +166,11 @@ export async function processSSEStream(
     // Phase 20-B: 캐스팅 추천 → Zustand 스토어 저장 (setState 밖에서 직접 실행)
     if (event.node === "inventory_resolve" && event.node_result) {
       const c = event.node_result as Record<string, unknown>;
-      if (typeof c.character_name === "string") {
+      if (typeof c.character_a_name === "string") {
         useStoryboardStore.getState().set({
           castingRecommendation: {
-            character_id: typeof c.character_id === "number" ? c.character_id : null,
-            character_name: c.character_name as string,
+            character_a_id: typeof c.character_a_id === "number" ? c.character_a_id : null,
+            character_a_name: c.character_a_name as string,
             character_b_id: typeof c.character_b_id === "number" ? c.character_b_id : null,
             character_b_name: typeof c.character_b_name === "string" ? c.character_b_name : "",
             structure: typeof c.structure === "string" ? c.structure : null,

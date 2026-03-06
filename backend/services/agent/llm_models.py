@@ -30,19 +30,25 @@ _TWO_CHAR_STRUCTURES = frozenset({"dialogue", "narrated_dialogue"})
 class CastingRecommendation(BaseModel):
     """Director의 캐스팅 추천."""
 
-    character_id: int | None = None
-    character_name: str = ""
-    character_b_id: int | None = None
-    character_b_name: str = ""
+    character_a_id: int | None = None   # Speaker A 캐릭터 ID
+    character_a_name: str = ""          # Speaker A 캐릭터 이름
+    character_b_id: int | None = None   # Speaker B 캐릭터 ID
+    character_b_name: str = ""          # Speaker B 캐릭터 이름
     structure: str | None = None
     reasoning: str = ""
+
+    @field_validator("character_a_name", "character_b_name", "reasoning", mode="before")
+    @classmethod
+    def _coerce_none_to_empty(cls, v: object) -> str:  # noqa: ANN401
+        """Gemini가 null을 명시 반환할 때 빈 문자열로 변환."""
+        return str(v) if v is not None else ""
 
     @model_validator(mode="after")
     def _validate_casting(self) -> CastingRecommendation:
         """2인 구조 시 character_b_id 없으면 monologue로 강등, 중복 ID 방지."""
-        if self.structure in _TWO_CHAR_STRUCTURES and self.character_id and not self.character_b_id:
+        if self.structure in _TWO_CHAR_STRUCTURES and self.character_a_id and not self.character_b_id:
             self.structure = "monologue"
-        if self.character_id and self.character_id == self.character_b_id:
+        if self.character_a_id and self.character_a_id == self.character_b_id:
             self.character_b_id = None
             self.character_b_name = ""
             self.structure = "monologue"

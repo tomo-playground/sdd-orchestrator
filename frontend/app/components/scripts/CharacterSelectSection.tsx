@@ -36,7 +36,7 @@ export default function CharacterSelectSection({
   const casting = useStoryboardStore((s) => s.castingRecommendation);
   const isMultiChar = isMultiCharStructure(structure);
 
-  const recA = casting?.character_id ?? null;
+  const recA = casting?.character_a_id ?? null;
   const recB = casting?.character_b_id ?? null;
 
   const { recommended, others, hasRec } = useMemo(() => {

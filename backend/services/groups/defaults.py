@@ -83,16 +83,16 @@ def _group_characters(
 
 
 def _chars_to_fields(chars: list[tuple[int, str]], structure: str) -> dict:
-    """캐릭터 목록을 character_id/character_b_id 필드 dict로 변환."""
+    """캐릭터 목록을 character_a_id/character_b_id 필드 dict로 변환."""
     result: dict = {
-        "character_id": None,
-        "character_name": None,
+        "character_a_id": None,
+        "character_a_name": None,
         "character_b_id": None,
         "character_b_name": None,
     }
     if chars:
-        result["character_id"] = chars[0][0]
-        result["character_name"] = chars[0][1]
+        result["character_a_id"] = chars[0][0]
+        result["character_a_name"] = chars[0][1]
     if len(chars) > 1 and structure in _DIALOGUE_STRUCTURES:
         result["character_b_id"] = chars[1][0]
         result["character_b_name"] = chars[1][1]

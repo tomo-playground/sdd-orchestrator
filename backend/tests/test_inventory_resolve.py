@@ -12,24 +12,24 @@ class TestValidateCasting:
     """_validate_casting 유효성 검증 로직."""
 
     def test_valid_casting_passes(self):
-        casting = {"character_id": 1, "character_name": "A", "structure": "monologue"}
+        casting = {"character_a_id": 1, "character_a_name": "A", "structure": "monologue"}
         state = ScriptState(valid_character_ids=[1, 2, 3])
         result = _validate_casting(casting, state)
         assert result is not None
-        assert result["character_id"] == 1
+        assert result["character_a_id"] == 1
 
-    def test_invalid_character_id_removed(self):
-        casting = {"character_id": 99, "character_name": "X", "structure": "monologue"}
+    def test_invalid_character_a_id_removed(self):
+        casting = {"character_a_id": 99, "character_a_name": "X", "structure": "monologue"}
         state = ScriptState(valid_character_ids=[1, 2, 3])
         result = _validate_casting(casting, state)
         assert result is not None
-        assert result["character_id"] is None
+        assert result["character_a_id"] is None
 
     def test_invalid_char_b_auto_assigned(self):
         """유효하지 않은 character_b_id → 다른 유효 캐릭터로 자동 할당."""
         casting = {
-            "character_id": 1,
-            "character_name": "A",
+            "character_a_id": 1,
+            "character_a_name": "A",
             "character_b_id": 99,
             "character_b_name": "X",
             "structure": "dialogue",
@@ -44,8 +44,8 @@ class TestValidateCasting:
     def test_invalid_char_b_no_alternative_fallback(self):
         """유효하지 않은 character_b_id + 대안 없음 → monologue 강등."""
         casting = {
-            "character_id": 1,
-            "character_name": "A",
+            "character_a_id": 1,
+            "character_a_name": "A",
             "character_b_id": 99,
             "character_b_name": "X",
             "structure": "dialogue",
@@ -58,8 +58,8 @@ class TestValidateCasting:
     def test_duplicate_ids_auto_assigned(self):
         """중복 ID → character_b를 다른 캐릭터로 자동 할당."""
         casting = {
-            "character_id": 1,
-            "character_name": "A",
+            "character_a_id": 1,
+            "character_a_name": "A",
             "character_b_id": 1,
             "character_b_name": "A",
             "structure": "dialogue",
@@ -73,8 +73,8 @@ class TestValidateCasting:
     def test_duplicate_ids_no_alternative(self):
         """중복 ID + 대안 없음 → monologue 강등."""
         casting = {
-            "character_id": 1,
-            "character_name": "A",
+            "character_a_id": 1,
+            "character_a_name": "A",
             "character_b_id": 1,
             "character_b_name": "A",
             "structure": "dialogue",
@@ -87,7 +87,7 @@ class TestValidateCasting:
 
     def test_two_char_structure_without_b_auto_assigned(self):
         """2인 구조 + character_b 없음 + 대안 있음 → 자동 할당."""
-        casting = {"character_id": 1, "character_name": "A", "structure": "narrated_dialogue"}
+        casting = {"character_a_id": 1, "character_a_name": "A", "structure": "narrated_dialogue"}
         state = ScriptState(valid_character_ids=[1, 3])
         result = _validate_casting(casting, state)
         assert result is not None
@@ -96,28 +96,28 @@ class TestValidateCasting:
 
     def test_two_char_structure_without_b_no_alternative(self):
         """2인 구조 + character_b 없음 + 대안 없음 → monologue 강등."""
-        casting = {"character_id": 1, "character_name": "A", "structure": "narrated_dialogue"}
+        casting = {"character_a_id": 1, "character_a_name": "A", "structure": "narrated_dialogue"}
         state = ScriptState(valid_character_ids=[1])
         result = _validate_casting(casting, state)
         assert result is not None
         assert result["structure"] == "monologue"
 
     def test_all_invalid_returns_none(self):
-        casting = {"character_id": 99, "character_name": "X"}
+        casting = {"character_a_id": 99, "character_a_name": "X"}
         state = ScriptState(valid_character_ids=[1])
         result = _validate_casting(casting, state)
         assert result is None
 
     def test_empty_valid_ids(self):
-        casting = {"character_id": 1, "character_name": "A", "structure": "monologue"}
+        casting = {"character_a_id": 1, "character_a_name": "A", "structure": "monologue"}
         state = ScriptState(valid_character_ids=[])
         result = _validate_casting(casting, state)
         assert result is not None
-        assert result["character_id"] is None
+        assert result["character_a_id"] is None
 
     def test_style_profile_id_passthrough(self):
         """style_profile_id는 검증 없이 그대로 통과 (Group 소유권 체제)."""
-        casting = {"character_id": 1, "character_name": "A", "structure": "monologue", "style_profile_id": 99}
+        casting = {"character_a_id": 1, "character_a_name": "A", "structure": "monologue", "style_profile_id": 99}
         state = ScriptState(valid_character_ids=[1])
         result = _validate_casting(casting, state)
         assert result is not None
@@ -144,7 +144,7 @@ class TestInventoryResolveNode:
         """user가 이미 character_id를 선택한 경우 → Director 추천 무시."""
         state = ScriptState(
             character_id=42,
-            casting_recommendation={"character_id": 1, "character_name": "A", "structure": "monologue"},
+            casting_recommendation={"character_a_id": 1, "character_a_name": "A", "structure": "monologue"},
             valid_character_ids=[1, 2],
         )
         result = await inventory_resolve_node(state)
@@ -156,13 +156,14 @@ class TestInventoryResolveNode:
         """user가 선택하지 않은 경우 → Director 추천 적용."""
         state = ScriptState(
             casting_recommendation={
-                "character_id": 1,
-                "character_name": "A",
+                "character_a_id": 1,
+                "character_a_name": "A",
                 "structure": "monologue",
             },
             valid_character_ids=[1, 2],
         )
         result = await inventory_resolve_node(state)
+        # casting의 character_a_id가 ScriptState의 character_id로 merge됨
         assert result["character_id"] == 1
         assert result["structure"] == "monologue"
 
@@ -171,7 +172,7 @@ class TestInventoryResolveNode:
         """user가 구조를 선택한 경우 → Director 추천 무시."""
         state = ScriptState(
             structure="dialogue",
-            casting_recommendation={"character_id": 1, "character_name": "A", "structure": "monologue"},
+            casting_recommendation={"character_a_id": 1, "character_a_name": "A", "structure": "monologue"},
             valid_character_ids=[1],
         )
         result = await inventory_resolve_node(state)

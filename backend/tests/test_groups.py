@@ -232,8 +232,8 @@ class TestGroupDefaults:
         resp = client.get(f"/api/v1/groups/{group_id}/defaults")
         data = resp.json()
         assert data["has_history"] is True
-        assert data["character_id"] == char_a.id
-        assert data["character_name"] == "Alice"
+        assert data["character_a_id"] == char_a.id
+        assert data["character_a_name"] == "Alice"
         assert data["character_b_id"] == char_b.id
         assert data["character_b_name"] == "Bob"
 

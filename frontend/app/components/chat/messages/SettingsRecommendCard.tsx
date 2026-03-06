@@ -62,7 +62,7 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, has
     structure: rec.structure,
     duration: rec.duration,
     language: rec.language,
-    character_id: rec.character_id,
+    character_a_id: rec.character_a_id,
     character_b_id: rec.character_b_id,
   });
   const [applied, setApplied] = useState(false);
@@ -79,13 +79,13 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, has
 
   const buildRec = (): SettingsRecommendation => {
     const charName =
-      opts?.characters.find((c) => c.id === local.character_id)?.name ?? rec.character_name;
+      opts?.characters.find((c) => c.id === local.character_a_id)?.name ?? rec.character_a_name;
     const charBName =
       opts?.characters.find((c) => c.id === local.character_b_id)?.name ?? rec.character_b_name;
     return {
       ...rec,
       ...local,
-      character_name: charName,
+      character_a_name: charName,
       character_b_id: isDialogue ? local.character_b_id : null,
       character_b_name: isDialogue ? charBName : null,
     };
@@ -110,7 +110,7 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, has
 
   // character_b: character_a와 다른 캐릭터만 표시
   const characterBOpts = characterOpts.filter(
-    (o) => o.value === "" || o.value !== String(local.character_id ?? "")
+    (o) => o.value === "" || o.value !== String(local.character_a_id ?? "")
   );
 
   return (
@@ -145,9 +145,9 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, has
           />
           <InlineSelect
             label="캐릭터"
-            value={String(local.character_id ?? "")}
+            value={String(local.character_a_id ?? "")}
             options={characterOpts}
-            onChange={(v) => patch("character_id", v ? Number(v) : null)}
+            onChange={(v) => patch("character_a_id", v ? Number(v) : null)}
             disabled={applied}
           />
           {isDialogue && (

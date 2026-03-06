@@ -5,8 +5,8 @@ import StageCastingCompareCard from "../../../app/components/studio/StageCasting
 import type { CastingRecommendation, Character } from "../../../app/types";
 
 const CASTING: CastingRecommendation = {
-  character_id: 2,
-  character_name: "Eve",
+  character_a_id: 2,
+  character_a_name: "Eve",
   character_b_id: null,
   character_b_name: "",
   structure: "Monologue",

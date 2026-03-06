@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from config import logger
 from schemas import TopicAnalyzeResponse
+
+if TYPE_CHECKING:
+    from schemas import AvailableOptions
 
 
 async def analyze_topic(
@@ -77,9 +82,14 @@ async def analyze_topic(
             config=config,
         )
         parsed = parse_json_response(response.text or "")
+        # 구 키 → 신 키 폴백 (LLM이 이전 포맷으로 응답할 경우 대비)
+        if "character_id" in parsed and "character_a_id" not in parsed:
+            parsed["character_a_id"] = parsed.pop("character_id")
+        if "character_name" in parsed and "character_a_name" not in parsed:
+            parsed["character_a_name"] = parsed.pop("character_name")
         logger.debug(
-            "[AnalyzeTopic] Gemini 응답: character_id=%s, character_b_id=%s, valid_chars=%s",
-            parsed.get("character_id"),
+            "[AnalyzeTopic] Gemini 응답: character_a_id=%s, character_b_id=%s, valid_chars=%s",
+            parsed.get("character_a_id"),
             parsed.get("character_b_id"),
             [c.id for c in characters],
         )
@@ -145,15 +155,15 @@ def _validate_topic_analysis(parsed: dict, characters: list) -> dict:
     if language not in valid_languages:
         language = "Korean"
 
-    character_id, character_name = _validate_character(parsed, "character_id", valid_char_map)
+    character_a_id, character_a_name = _validate_character(parsed, "character_a_id", valid_char_map)
     character_b_id, character_b_name = _validate_character(parsed, "character_b_id", valid_char_map)
 
     return {
         "duration": duration,
         "language": language,
         "structure": structure,
-        "character_id": character_id,
-        "character_name": character_name,
+        "character_a_id": character_a_id,
+        "character_a_name": character_a_name,
         "character_b_id": character_b_id,
         "character_b_name": character_b_name,
         "reasoning": parsed.get("reasoning", ""),

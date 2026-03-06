@@ -33,7 +33,7 @@ export default function StageCastingCompareCard({
         <div className="flex-1 rounded-lg border border-amber-300 bg-amber-100/60 px-3 py-2 text-center">
           <p className="text-[11px] text-amber-500">추천</p>
           <p className="text-sm font-medium text-amber-800">
-            {casting.character_name}
+            {casting.character_a_name}
             {casting.character_b_name ? ` & ${casting.character_b_name}` : ""}
           </p>
           {casting.structure && (

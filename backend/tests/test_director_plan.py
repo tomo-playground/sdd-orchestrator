@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from services.agent.llm_models import DirectorPlanOutput, validate_with_model
 from services.agent.nodes.director_plan import director_plan_node
+from services.agent.state import ScriptState
 
 # -- Validation 테스트 (Pydantic 모델 사용) --
 
@@ -63,7 +65,7 @@ async def test_director_plan_node_success(mock_run):
         "style_direction": "따뜻한 톤",
     }
 
-    state = {"topic": "테스트 주제", "duration": 30}
+    state = cast(ScriptState, {"topic": "테스트 주제", "duration": 30})
     result = await director_plan_node(state)
 
     assert result["director_plan"] is not None
@@ -77,7 +79,7 @@ async def test_director_plan_node_failure_graceful(mock_run):
     """Gemini 실패 시 graceful degradation — director_plan: None."""
     mock_run.side_effect = RuntimeError("Gemini API 실패")
 
-    state = {"topic": "실패 테스트", "duration": 30}
+    state = cast(ScriptState, {"topic": "실패 테스트", "duration": 30})
     result = await director_plan_node(state)
 
     assert result["director_plan"] is None
@@ -93,7 +95,7 @@ async def test_director_plan_node_partial_response(mock_run):
         "quality_criteria": ["기준 1"],
     }
 
-    state = {"topic": "부분 응답", "duration": 30}
+    state = cast(ScriptState, {"topic": "부분 응답", "duration": 30})
     result = await director_plan_node(state)
 
     plan = result["director_plan"]
@@ -147,7 +149,7 @@ async def test_director_plan_populates_all_fields(mock_run):
         "style_direction": "따뜻한 파스텔톤",
     }
 
-    state = {"topic": "여행", "duration": 30}
+    state = cast(ScriptState, {"topic": "여행", "duration": 30})
     result = await director_plan_node(state)
 
     plan = result["director_plan"]
@@ -164,7 +166,7 @@ async def test_director_plan_none_does_not_set_error(mock_run):
     """실패해도 error 필드를 설정하지 않는다 (graceful)."""
     mock_run.side_effect = RuntimeError("타임아웃")
 
-    state = {"topic": "실패", "duration": 30}
+    state = cast(ScriptState, {"topic": "실패", "duration": 30})
     result = await director_plan_node(state)
 
     assert result["director_plan"] is None
@@ -193,6 +195,7 @@ async def test_director_plan_with_casting(mock_inventory, mock_run):
         "target_emotion": "감동",
         "quality_criteria": ["Hook"],
         "casting": {
+            # 구 포맷 폴백 검증: _extract_casting()이 character_id → character_a_id 변환
             "character_id": 1,
             "character_name": "미도리야",
             "structure": "monologue",
@@ -200,12 +203,12 @@ async def test_director_plan_with_casting(mock_inventory, mock_run):
         },
     }
 
-    state = {"topic": "히어로", "duration": 30}
+    state = cast(ScriptState, {"topic": "히어로", "duration": 30})
     result = await director_plan_node(state)
 
     assert result["director_plan"] is not None
     assert result["casting_recommendation"] is not None
-    assert result["casting_recommendation"]["character_id"] == 1
+    assert result["casting_recommendation"]["character_a_id"] == 1
     assert result["valid_character_ids"] == [1]
 
 
@@ -221,7 +224,7 @@ async def test_director_plan_inventory_failure_graceful(mock_inventory, mock_run
         "quality_criteria": ["기준"],
     }
 
-    state = {"topic": "테스트", "duration": 30}
+    state = cast(ScriptState, {"topic": "테스트", "duration": 30})
     result = await director_plan_node(state)
 
     assert result["director_plan"] is not None
@@ -239,7 +242,7 @@ async def test_director_plan_casting_disabled(mock_run):
         "quality_criteria": ["기준"],
     }
 
-    state = {"topic": "테스트", "duration": 30}
+    state = cast(ScriptState, {"topic": "테스트", "duration": 30})
     result = await director_plan_node(state)
 
     assert result["director_plan"] is not None
@@ -253,7 +256,7 @@ async def test_director_plan_always_runs_with_skip_stages():
 
     skip_stages는 Director가 자율 결정하므로 입력값은 무시된다.
     """
-    state = {"topic": "테스트", "duration": 30, "skip_stages": ["research"]}
+    state = cast(ScriptState, {"topic": "테스트", "duration": 30, "skip_stages": ["research"]})
     result = await director_plan_node(state)
 
     # Director Plan은 항상 실행 (skip하지 않음)

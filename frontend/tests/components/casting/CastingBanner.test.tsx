@@ -5,8 +5,8 @@ import CastingBanner from "../../../app/components/scripts/CastingBanner";
 import type { CastingRecommendation } from "../../../app/types";
 
 const CASTING: CastingRecommendation = {
-  character_id: 1,
-  character_name: "Alice",
+  character_a_id: 1,
+  character_a_name: "Alice",
   character_b_id: 2,
   character_b_name: "Bob",
   structure: "Dialogue",

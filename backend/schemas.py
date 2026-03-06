@@ -194,10 +194,10 @@ class StoryboardBase(BaseModel):
 class CastingRecommendationSchema(BaseModel):
     """Phase 20-C: AI casting recommendation persisted with storyboard."""
 
-    character_id: int | None = None
-    character_name: str = ""
-    character_b_id: int | None = None
-    character_b_name: str = ""
+    character_a_id: int | None = None   # Speaker A 캐릭터 ID
+    character_a_name: str = ""          # Speaker A 캐릭터 이름
+    character_b_id: int | None = None   # Speaker B 캐릭터 ID
+    character_b_name: str = ""          # Speaker B 캐릭터 이름
     structure: str | None = None
     reasoning: str = Field(default="", max_length=2000)
 
@@ -2287,10 +2287,10 @@ class TopicAnalyzeResponse(BaseModel):
     duration: int = 30
     language: str = "Korean"
     structure: str = "Monologue"
-    character_id: int | None = None
-    character_name: str | None = None
-    character_b_id: int | None = None
-    character_b_name: str | None = None
+    character_a_id: int | None = None     # Speaker A 캐릭터 ID
+    character_a_name: str | None = None   # Speaker A 캐릭터 이름
+    character_b_id: int | None = None     # Speaker B 캐릭터 ID
+    character_b_name: str | None = None   # Speaker B 캐릭터 이름
     available_options: AvailableOptions | None = None
 
 
@@ -2300,10 +2300,10 @@ class GroupDefaultsResponse(BaseModel):
     duration: int
     structure: str
     language: str
-    character_id: int | None = None
-    character_name: str | None = None
-    character_b_id: int | None = None
-    character_b_name: str | None = None
+    character_a_id: int | None = None     # Speaker A 캐릭터 ID
+    character_a_name: str | None = None   # Speaker A 캐릭터 이름
+    character_b_id: int | None = None     # Speaker B 캐릭터 ID
+    character_b_name: str | None = None   # Speaker B 캐릭터 이름
     has_history: bool
     available_options: AvailableOptions | None = None
 

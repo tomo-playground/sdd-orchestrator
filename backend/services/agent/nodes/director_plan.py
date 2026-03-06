@@ -28,6 +28,11 @@ def _extract_casting(result: dict) -> dict | None:
     raw = result.get("casting")
     if not raw or not isinstance(raw, dict):
         return None
+    # 구 키 → 신 키 폴백 (LLM이 이전 포맷으로 응답할 경우 대비)
+    if "character_id" in raw and "character_a_id" not in raw:
+        raw["character_a_id"] = raw.pop("character_id")
+    if "character_name" in raw and "character_a_name" not in raw:
+        raw["character_a_name"] = raw.pop("character_name")
     try:
         validated = CastingRecommendation.model_validate(raw)
         return validated.model_dump()

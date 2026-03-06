@@ -55,7 +55,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
   const { characters, getCharacterFull } = useCharacters();
 
   const isDialogue = isMultiCharStructure(structure);
-  const recommendedIds = [casting?.character_id, casting?.character_b_id].filter(
+  const recommendedIds = [casting?.character_a_id, casting?.character_b_id].filter(
     (id): id is number => id != null
   );
 
@@ -76,11 +76,11 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
 
   const handleAcceptCasting = () => {
     if (!casting) return;
-    if (casting.character_id != null) {
-      const char = characters.find((c) => c.id === casting.character_id);
+    if (casting.character_a_id != null) {
+      const char = characters.find((c) => c.id === casting.character_a_id);
       setPlan({
-        selectedCharacterId: casting.character_id,
-        selectedCharacterName: char?.name ?? casting.character_name,
+        selectedCharacterId: casting.character_a_id,
+        selectedCharacterName: char?.name ?? casting.character_a_name,
       });
       if (char?.gender) setPlan({ actorAGender: char.gender });
     }

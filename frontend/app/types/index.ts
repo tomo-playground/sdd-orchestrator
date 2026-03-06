@@ -577,8 +577,8 @@ export type EvaluationSummary = {
 // ============================================================
 
 export type CastingRecommendation = {
-  character_id: number | null;
-  character_name: string;
+  character_a_id: number | null;
+  character_a_name: string;
   character_b_id: number | null;
   character_b_name: string;
   structure: string | null;
