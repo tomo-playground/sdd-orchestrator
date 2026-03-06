@@ -1,4 +1,5 @@
 import type React from "react";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { syncToGlobalStore } from "./mappers";
 import type { SceneItem, ScriptEditorState } from "./types";
 import type { SyncMeta } from "./mappers";
@@ -86,6 +87,8 @@ export function handleStreamOutcome(opts: StreamOutcomeOpts): boolean {
   const { finalScenes, isWaiting, meta, setState, dirtyRef, showToast } = opts;
   if (isWaiting) return false;
   if (finalScenes) {
+    // Director 캐스팅 결과를 editor state에 함께 반영 (save 시 DB 동기화용)
+    const casting = useStoryboardStore.getState().castingRecommendation;
     setState((prev) => ({
       ...prev,
       scenes: finalScenes,
@@ -93,6 +96,13 @@ export function handleStreamOutcome(opts: StreamOutcomeOpts): boolean {
       progress: null,
       isWaitingForInput: false,
       justGenerated: true,
+      ...(casting && {
+        structure: casting.structure || prev.structure,
+        characterId: casting.character_a_id ?? prev.characterId,
+        characterBId: casting.character_b_id ?? prev.characterBId,
+        characterName: casting.character_a_name || prev.characterName,
+        characterBName: casting.character_b_name || prev.characterBName,
+      }),
     }));
     syncToGlobalStore(finalScenes, meta);
     dirtyRef.current = false;

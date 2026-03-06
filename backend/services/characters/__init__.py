@@ -8,6 +8,7 @@ from .action_resolver import (
     auto_populate_character_actions,
     extract_actions_from_context_tags,
 )
+from .casting_sync import cascade_casting_to_scenes, ensure_dialogue_speakers_in_db, swap_character_in_prompt
 from .crud import (
     ConflictError,
     create_character,
@@ -59,6 +60,10 @@ __all__ = [
     # action_resolver
     "auto_populate_character_actions",
     "extract_actions_from_context_tags",
+    # casting_sync
+    "cascade_casting_to_scenes",
+    "ensure_dialogue_speakers_in_db",
+    "swap_character_in_prompt",
     # speaker_resolver
     "assign_speakers",
     "resolve_all_speakers",

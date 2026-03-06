@@ -19,6 +19,7 @@ const PIPELINE_NODES = new Set([
   "critic",
   "writer",
   "review",
+  "revise",
   "cinematographer",
   "tts_designer",
   "sound_designer",

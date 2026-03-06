@@ -40,7 +40,12 @@ def _sync_speaker_mappings(
         logger.debug("[SpeakerMapping] Skipping sync (both character_id and character_b_id omitted)")
         return
 
-    from services.characters import assign_speakers
+    from services.characters import assign_speakers, cascade_casting_to_scenes
+    from services.characters.casting_sync import ensure_dialogue_speakers_in_db
+    from services.characters.speaker_resolver import resolve_all_speakers
+
+    # Snapshot old mapping BEFORE update (for cascade diff)
+    old_map = resolve_all_speakers(storyboard_id, db)
 
     is_multi = structure.lower() in _MULTI_CHAR_STRUCTURES if structure else True
 
@@ -57,6 +62,14 @@ def _sync_speaker_mappings(
     # assign_speakers handles deletion of old mappings before inserting new ones
     assign_speakers(storyboard_id, speaker_map, db)
 
+    # Cascade: sync scene_character_actions + image_prompt LoRA tags
+    if old_map:
+        cascade_casting_to_scenes(storyboard_id, old_map, speaker_map, db)
+
+    # Defense: Dialogue with both speakers → ensure A/B alternation in scenes
+    if is_multi and SPEAKER_A in speaker_map and SPEAKER_B in speaker_map:
+        ensure_dialogue_speakers_in_db(storyboard_id, db)
+
 
 def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
     """Save a full storyboard and its scenes to the DB."""
@@ -68,12 +81,17 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
 
     from services.seed_anchoring import generate_base_seed
 
+    # casting_recommendation.structure가 있으면 Director 결정을 우선 적용
+    effective_struct = request.structure
+    if request.casting_recommendation and request.casting_recommendation.structure:
+        effective_struct = request.casting_recommendation.structure
+
     db_storyboard = Storyboard(
         title=safe_title,
         description=request.description,
         group_id=request.group_id,
         caption=request.caption,
-        structure=request.structure,
+        structure=effective_struct,
         duration=request.duration,
         language=request.language,
         bgm_prompt=request.bgm_prompt,
@@ -87,9 +105,16 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
     create_scenes(db, db_storyboard.id, request.scenes)
 
     # Save speaker→character mappings (Non-Dialogue → SPEAKER_B ignored)
-    _sync_speaker_mappings(
-        db, db_storyboard.id, request.character_id, request.character_b_id, structure=request.structure or ""
-    )
+    # Casting fallback: Frontend가 character_id를 보내지 않아도 casting_recommendation에서 추출
+    char_id = request.character_id
+    char_b_id = request.character_b_id
+    effective_structure = request.structure or ""
+    if not char_id and request.casting_recommendation:
+        char_id = request.casting_recommendation.character_a_id
+        char_b_id = request.casting_recommendation.character_b_id
+        if request.casting_recommendation.structure:
+            effective_structure = request.casting_recommendation.structure
+    _sync_speaker_mappings(db, db_storyboard.id, char_id, char_b_id, structure=effective_structure)
 
     db.commit()
     db.refresh(db_storyboard)
@@ -331,7 +356,11 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
         storyboard.group_id = request.group_id
     storyboard.caption = request.caption
     # Keep structure in sync with latest request (Monologue / Dialogue / Narrated Dialogue)
-    storyboard.structure = request.structure
+    # casting_recommendation.structure가 있으면 Director 결정을 우선 적용
+    if request.casting_recommendation and request.casting_recommendation.structure:
+        storyboard.structure = request.casting_recommendation.structure
+    else:
+        storyboard.structure = request.structure
     if request.duration is not None:
         storyboard.duration = request.duration
     if request.language is not None:
@@ -425,9 +454,16 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     create_scenes(db, storyboard_id, request.scenes)
 
     # Update speaker→character mappings (Non-Dialogue → SPEAKER_B ignored)
-    _sync_speaker_mappings(
-        db, storyboard_id, request.character_id, request.character_b_id, structure=request.structure or ""
-    )
+    # Casting fallback: Frontend가 character_id를 보내지 않아도 casting_recommendation에서 추출
+    char_id = request.character_id
+    char_b_id = request.character_b_id
+    effective_structure = request.structure or ""
+    if not char_id and request.casting_recommendation:
+        char_id = request.casting_recommendation.character_a_id
+        char_b_id = request.casting_recommendation.character_b_id
+        if request.casting_recommendation.structure:
+            effective_structure = request.casting_recommendation.structure
+    _sync_speaker_mappings(db, storyboard_id, char_id, char_b_id, structure=effective_structure)
 
     # Increment version (optimistic locking)
     storyboard.version += 1

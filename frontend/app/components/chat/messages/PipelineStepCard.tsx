@@ -2,7 +2,7 @@
 
 import { memo, useState } from "react";
 import type { PipelineStepMessage } from "@/app/types/chat";
-import { ChevronDown, ChevronRight, Bot, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, Bot, AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react";
 
 const NODE_LABELS: Record<string, string> = {
   director_plan: "디렉터 계획",
@@ -42,10 +42,16 @@ function extractSummary(nodeName: string, result?: Record<string, unknown>): str
       const scenes = Array.isArray(result.scenes) ? result.scenes : [];
       return `${scenes.length}개 씬 작성`;
     }
-    case "review":
-      return result.passed ? "통과" : "수정 필요";
-    case "revise":
-      return "수정 완료";
+    case "review": {
+      const errors = Array.isArray(result.errors) ? result.errors : [];
+      const warnings = Array.isArray(result.warnings) ? result.warnings : [];
+      if (result.passed) return "통과";
+      return `수정 필요 (오류 ${errors.length}건${warnings.length ? `, 경고 ${warnings.length}건` : ""})`;
+    }
+    case "revise": {
+      const revised = Array.isArray(result.scenes) ? result.scenes : [];
+      return revised.length > 0 ? `${revised.length}개 씬 수정 완료` : "수정 완료";
+    }
     case "cinematographer":
       return "비주얼 디자인 완료";
     case "tts_designer": {
@@ -67,8 +73,12 @@ function extractSummary(nodeName: string, result?: Record<string, unknown>): str
       const decisions = Array.isArray(exp?.key_decisions) ? exp.key_decisions : [];
       return decisions.length > 0 ? `핵심 결정 ${decisions.length}건` : "분석 완료";
     }
-    case "director":
-      return result.decision === "approve" ? "승인" : "수정 요청";
+    case "director": {
+      const score = typeof result.director_checkpoint_score === "number"
+        ? ` (${(result.director_checkpoint_score * 100).toFixed(0)}점)`
+        : "";
+      return result.decision === "approve" ? `승인${score}` : `수정 요청${score}`;
+    }
     default:
       return "완료";
   }
@@ -116,6 +126,78 @@ function ExplainDetail({ result }: { result: Record<string, unknown> }) {
   );
 }
 
+function ReviewDetail({ result }: { result: Record<string, unknown> }) {
+  const errors = Array.isArray(result.errors) ? (result.errors as string[]) : [];
+  const warnings = Array.isArray(result.warnings) ? (result.warnings as string[]) : [];
+  const ns = result.narrative_score as Record<string, unknown> | undefined;
+  const gemini = result.gemini_feedback as string | undefined;
+
+  return (
+    <div className="mt-1.5 space-y-1.5 rounded border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-600">
+      {errors.length > 0 && (
+        <div>
+          <span className="flex items-center gap-1 font-semibold text-red-600">
+            <AlertCircle className="h-3 w-3" /> 오류 {errors.length}건
+          </span>
+          <ul className="mt-0.5 list-inside list-disc space-y-0.5 text-red-700">
+            {errors.map((e, i) => <li key={i}>{e}</li>)}
+          </ul>
+        </div>
+      )}
+      {warnings.length > 0 && (
+        <div>
+          <span className="flex items-center gap-1 font-semibold text-amber-600">
+            <AlertTriangle className="h-3 w-3" /> 경고 {warnings.length}건
+          </span>
+          <ul className="mt-0.5 list-inside list-disc space-y-0.5 text-amber-700">
+            {warnings.map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
+        </div>
+      )}
+      {gemini && (
+        <div>
+          <span className="font-semibold text-zinc-700">Gemini 피드백</span>
+          <p className="mt-0.5 whitespace-pre-wrap">{gemini}</p>
+        </div>
+      )}
+      {ns && typeof ns.overall === "number" && (
+        <div>
+          <span className="font-semibold text-zinc-700">서사 품질</span>
+          <span className="ml-1 text-zinc-500">{(ns.overall * 100).toFixed(0)}점</span>
+          {typeof ns.feedback === "string" && ns.feedback && (
+            <p className="mt-0.5 whitespace-pre-wrap text-zinc-500">{ns.feedback}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DirectorDetail({ result }: { result: Record<string, unknown> }) {
+  const feedback = result.feedback || result.director_checkpoint_feedback;
+  const score = typeof result.director_checkpoint_score === "number"
+    ? result.director_checkpoint_score : null;
+
+  return (
+    <div className="mt-1.5 space-y-1.5 rounded border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-600">
+      {score !== null && (
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-zinc-700">품질 점수</span>
+          <span className={`font-mono ${score >= 0.7 ? "text-green-600" : "text-amber-600"}`}>
+            {(score * 100).toFixed(0)}점
+          </span>
+        </div>
+      )}
+      {typeof feedback === "string" && feedback && (
+        <div>
+          <span className="font-semibold text-zinc-700">피드백</span>
+          <p className="mt-0.5 whitespace-pre-wrap">{feedback}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 type Props = { message: PipelineStepMessage };
 
 const PipelineStepCard = memo(function PipelineStepCard({ message }: Props) {
@@ -152,15 +234,16 @@ const PipelineStepCard = memo(function PipelineStepCard({ message }: Props) {
             </span>
           )}
         </button>
-        {expanded &&
-          expandable &&
-          (nodeName === "explain" ? (
-            <ExplainDetail result={nodeResult} />
-          ) : (
+        {expanded && expandable && (
+          nodeName === "explain" ? <ExplainDetail result={nodeResult} />
+          : nodeName === "review" ? <ReviewDetail result={nodeResult} />
+          : nodeName === "director" ? <DirectorDetail result={nodeResult} />
+          : (
             <pre className="mt-1.5 max-h-40 overflow-auto rounded border border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-600">
               {JSON.stringify(nodeResult, null, 2)}
             </pre>
-          ))}
+          )
+        )}
       </div>
     </div>
   );
