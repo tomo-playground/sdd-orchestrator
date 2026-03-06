@@ -443,6 +443,76 @@ def _filter_exclusive_identity_tags(
         logger.info("[Finalize] EXCLUSIVE identity 태그 %d개 제거 (캐릭터 DB 태그 우선)", removed_total)
 
 
+_CLOTHING_GROUPS = frozenset({"clothing", "clothing_top", "clothing_bottom", "clothing_outfit", "clothing_detail"})
+_ACCESSORY_GROUPS = frozenset({"accessory", "hair_accessory", "legwear", "footwear"})
+
+
+def _enforce_character_clothing(
+    scenes: list[dict],
+    character_id: int | None,
+    character_b_id: int | None,
+    db,
+) -> None:
+    """캐릭터 DB의 clothing/accessory 태그가 image_prompt에 누락되었으면 보강.
+
+    Cinematographer가 복장을 누락하거나 변경한 경우,
+    캐릭터 DB의 기본 복장 태그를 image_prompt에 추가한다.
+    clothing_override가 있는 씬은 건너뛴다 (의도적 변경).
+    """
+    if not character_id:
+        return
+
+    from sqlalchemy.orm import joinedload  # noqa: PLC0415
+
+    from models.associations import CharacterTag  # noqa: PLC0415
+    from models.character import Character  # noqa: PLC0415
+
+    def _load_clothing_tags(cid: int) -> list[str]:
+        char = (
+            db.query(Character)
+            .options(joinedload(Character.tags).joinedload(CharacterTag.tag))
+            .filter(Character.id == cid)
+            .first()
+        )
+        if not char:
+            return []
+        tags = []
+        for ct in char.tags:
+            tag = ct.tag
+            if tag.group_name in _CLOTHING_GROUPS | _ACCESSORY_GROUPS:
+                tags.append(tag.name.lower().replace(" ", "_").strip())
+        return tags
+
+    char_a_clothing = _load_clothing_tags(character_id)
+    char_b_clothing = _load_clothing_tags(character_b_id) if character_b_id else []
+
+    if not char_a_clothing and not char_b_clothing:
+        return
+
+    injected_total = 0
+    for scene in scenes:
+        speaker = scene.get("speaker", "")
+        if speaker == "Narrator":
+            continue
+        if scene.get("clothing_override"):
+            continue
+
+        clothing_tags = char_b_clothing if speaker == "B" else char_a_clothing
+        if not clothing_tags:
+            continue
+
+        prompt = scene.get("image_prompt", "")
+        prompt_tokens = {t.strip().lower().replace(" ", "_") for t in prompt.split(",")}
+
+        missing = [t for t in clothing_tags if t not in prompt_tokens]
+        if missing:
+            scene["image_prompt"] = prompt + ", " + ", ".join(missing) if prompt else ", ".join(missing)
+            injected_total += len(missing)
+
+    if injected_total:
+        logger.info("[Finalize] 캐릭터 복장 태그 %d개 보강 (DB 기본 복장)", injected_total)
+
+
 def _auto_populate_scene_flags(
     scenes: list[dict],
     character_id: int | None,
@@ -652,6 +722,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
             )
 
         _filter_exclusive_identity_tags(scenes, character_id, character_b_id, db_session)
+        _enforce_character_clothing(scenes, character_id, character_b_id, db_session)
         normalize_ip_adapter_weights(scenes, character_id, character_b_id, db=db_session)
         validate_ip_adapter_weights(scenes)
         _auto_populate_scene_flags(scenes, character_id, character_b_id)
