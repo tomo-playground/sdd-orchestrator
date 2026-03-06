@@ -181,7 +181,8 @@ def ensure_dialogue_speakers(scenes: list[dict]) -> None:
     """
     speakers = {s.get("speaker") for s in scenes}
     if "A" in speakers and "B" in speakers:
-        return  # 양쪽 모두 존재 — OK
+        logger.info("[PostProcess] Dialogue speakers OK: %s (%d씬)", speakers, len(scenes))
+        return
 
     non_narrator = [s for s in scenes if s.get("speaker") != "Narrator"]
     if not non_narrator:

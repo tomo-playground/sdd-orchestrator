@@ -101,10 +101,16 @@ CRITICAL STYLE CONSISTENCY RULE:
 - For "chibi" style, always use: "chibi, super_deformed, small_body, big_head" ✓
 
 Instructions:
-1. Create a dialogue between Speaker A and Speaker B. Optional: use "Narrator" sparingly for brief intro/transition.
+1. Create a **natural conversation** between Speaker A and Speaker B. This is a DIALOGUE, not a monologue.
    - Target: {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
    - Each scene duration: set to 3 (backend auto-calculates based on script reading time)
-2. Alternate speakers: A, B, A, B... (roughly equal distribution). Narrator scenes should be RARE (max 1-2) — keep focus on A/B dialogue.
+2. **STRICT ALTERNATION**: A, B, A, B, A, B... Each scene's speaker MUST alternate.
+   - Speaker A gets roughly half the scenes, Speaker B gets the rest.
+   - Narrator scenes are RARE (max 1) — keep focus on A↔B back-and-forth.
+   - ❌ FORBIDDEN: Two consecutive scenes with the same speaker (e.g., A, A).
+   - ✅ REQUIRED: Every script line must be ADDRESSED TO or RESPONDING TO the other character.
+   - ❌ BAD script: "와, 여기 너무 예쁘다!" (talking to self — this is monologue, not dialogue)
+   - ✅ GOOD script: "야, 이거 봐! 완전 영화 속 장면 같지 않아?" (talking to the other person)
 3. Each single scene's image shows ONLY the current speaker (1girl or 1boy).
 {% if is_multi_character_capable %}
    - For multi scenes: show BOTH characters together with interaction tags.
@@ -147,59 +153,87 @@ Instructions:
 4. **SPEAKER IDENTITY SEPARATION** - Never mix A's tags with B's tags
 5. **IF NO PERFECT MATCH**: Choose closest tag from Recommended list
 
-Output Format:
+Output Format (4-scene dialogue example — notice A↔B alternation and conversational scripts):
 [
   {
     "scene_id": 1,
-    "script": "...",
-    "speaker": "A",
-    "duration": 4,
-{% if is_multi_character_capable %}
-    "scene_mode": "single",
-{% endif %}
-    "image_prompt": "[speaker_A_identity_tags], [expression], [gaze], [pose], [action], [camera], [environment], [mood]",
-    "image_prompt_ko": "카페에서 긴장한 표정으로 상대를 바라보는 모습",
-    "context_tags": {
-      "expression": ["[expression_tag]"],
-      "gaze": "[gaze_tag]",
-      "pose": ["[pose_tag]"],
-      "action": ["[action_tag]"],
-      "props": ["[props_tag if applicable]"],
-      "camera": "[camera_tag]",
-      "environment": ["[location_tag]", "[time_tag]"],
-      "mood": ["[mood_tag]"]
-    }
-  },
-{% if is_multi_character_capable %}
-  {
-    "scene_id": 2,
-    "script": "...",
+    "script": "야, 이거 좀 봐! 진짜 영화 속 장면 같지 않아?",
     "speaker": "A",
     "duration": 3,
-    "scene_mode": "multi",
-    "image_prompt": "[speaker_A_identity_tags], [speaker_B_identity_tags], eye_contact, facing_another, [pose], [camera], [environment], [mood]",
-    "image_prompt_ko": "두 캐릭터가 서로 마주 보는 순간",
-    "context_tags": {
-      "expression": ["[expression_tag]"],
-      "gaze": "eye_contact",
-      "pose": ["standing"],
-      "action": ["facing_another"],
-      "camera": "cowboy_shot",
-      "environment": ["[location_tag]"],
-      "mood": ["[mood_tag]"]
-    }
-  },
-{% endif %}
-  {
-    "scene_id": {{ 3 if is_multi_character_capable else 2 }},
-    "script": "...",
-    "speaker": "B",
-    "duration": 4,
 {% if is_multi_character_capable %}
     "scene_mode": "single",
 {% endif %}
-    "image_prompt": "[speaker_B_identity_tags], [expression], [gaze], [pose], [action], [camera], [environment], [mood]",
-    "image_prompt_ko": "살짝 미소 지으며 커피잔을 내려놓는 모습",
-    "context_tags": { ... }
+    "image_prompt": "[speaker_A_identity_tags], smile, looking_at_viewer, pointing, cowboy_shot, outdoors, day, excited",
+    "image_prompt_ko": "신나서 상대에게 풍경을 가리키며 말하는 모습",
+    "context_tags": {
+      "expression": ["smile"],
+      "gaze": "looking_at_viewer",
+      "pose": ["standing"],
+      "action": ["pointing"],
+      "camera": "cowboy_shot",
+      "environment": ["outdoors", "day"],
+      "mood": ["excited"]
+    }
+  },
+  {
+    "scene_id": 2,
+    "script": "진짜? 나는 저기 분수대가 더 마음에 드는데?",
+    "speaker": "B",
+    "duration": 3,
+{% if is_multi_character_capable %}
+    "scene_mode": "single",
+{% endif %}
+    "image_prompt": "[speaker_B_identity_tags], slight_smile, looking_away, hand_on_hip, upper_body, outdoors, day, relaxed",
+    "image_prompt_ko": "살짝 웃으며 다른 곳을 가리키는 모습",
+    "context_tags": {
+      "expression": ["slight_smile"],
+      "gaze": "looking_away",
+      "pose": ["standing"],
+      "action": ["hand_on_hip"],
+      "camera": "upper_body",
+      "environment": ["outdoors", "day"],
+      "mood": ["relaxed"]
+    }
+  },
+  {
+    "scene_id": 3,
+    "script": "에이, 너 맨날 그러더라. 내 말 한 번만 들어봐!",
+    "speaker": "A",
+    "duration": 3,
+{% if is_multi_character_capable %}
+    "scene_mode": "single",
+{% endif %}
+    "image_prompt": "[speaker_A_identity_tags], pout, looking_at_viewer, arms_crossed, close-up, outdoors, day, playful",
+    "image_prompt_ko": "볼을 부풀리며 상대를 설득하려는 표정",
+    "context_tags": {
+      "expression": ["pout"],
+      "gaze": "looking_at_viewer",
+      "pose": ["arms_crossed"],
+      "action": ["arms_crossed"],
+      "camera": "close-up",
+      "environment": ["outdoors", "day"],
+      "mood": ["playful"]
+    }
+  },
+  {
+    "scene_id": 4,
+    "script": "알았어 알았어, 너 하자는 대로 할게. 대신 젤라또 사줘!",
+    "speaker": "B",
+    "duration": 3,
+{% if is_multi_character_capable %}
+    "scene_mode": "single",
+{% endif %}
+    "image_prompt": "[speaker_B_identity_tags], grin, looking_at_viewer, open_hands, cowboy_shot, outdoors, day, happy",
+    "image_prompt_ko": "웃으며 양보하면서 조건을 내거는 모습",
+    "context_tags": {
+      "expression": ["grin"],
+      "gaze": "looking_at_viewer",
+      "pose": ["standing"],
+      "action": ["open_hands"],
+      "camera": "cowboy_shot",
+      "environment": ["outdoors", "day"],
+      "mood": ["happy"]
+    }
   }
 ]
+NOTE: Above is a 4-scene example. Your output should have {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes with A↔B strictly alternating.
