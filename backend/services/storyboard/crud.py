@@ -18,7 +18,7 @@ from schemas import StoryboardSave, StoryboardUpdate
 from services.storyboard.helpers import calculate_auto_pin_flags, truncate_title
 from services.storyboard.scene_builder import create_scenes, serialize_scene
 
-_MULTI_CHAR_STRUCTURES = {"dialogue", "narrated dialogue"}
+_MULTI_CHAR_STRUCTURES = {"dialogue", "narrated dialogue", "narrated_dialogue"}
 
 
 def _sync_speaker_mappings(
@@ -61,7 +61,8 @@ def _sync_speaker_mappings(
         if not is_multi:
             logger.warning(
                 "[SpeakerMapping] character_b_id=%d provided but structure=%s — mapping B anyway",
-                character_b_id, structure,
+                character_b_id,
+                structure,
             )
 
     # assign_speakers handles deletion of old mappings before inserting new ones
@@ -362,13 +363,13 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     storyboard.caption = request.caption
     # Keep structure in sync with latest request (Monologue / Dialogue / Narrated Dialogue)
     # casting_recommendation.structure가 있으면 Director 결정을 우선 적용
-    # .title()로 정규화: Gemini가 "dialogue" 반환 시 "Dialogue"로 통일 (presets SSOT 기준)
-    if request.casting_recommendation and request.casting_recommendation.structure:
-        storyboard.structure = request.casting_recommendation.structure.title()
-    elif request.structure:
-        storyboard.structure = request.structure.title()
-    else:
-        storyboard.structure = request.structure
+    # 정규화: 언더스코어→공백 + .title() — "narrated_dialogue" → "Narrated Dialogue"
+    raw_structure = (
+        request.casting_recommendation.structure
+        if request.casting_recommendation and request.casting_recommendation.structure
+        else request.structure
+    )
+    storyboard.structure = raw_structure.replace("_", " ").title() if raw_structure else raw_structure
     if request.duration is not None:
         storyboard.duration = request.duration
     if request.language is not None:
