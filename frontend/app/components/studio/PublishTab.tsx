@@ -3,11 +3,13 @@
 import { useCallback } from "react";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { RenderMediaPanel, RenderSidePanel } from "../video/RenderSettingsPanel";
 import VideoPreviewHero from "../video/VideoPreviewHero";
 import { PublishVideosSection, PublishCaptionLikes } from "./PublishMetaPanel";
 import { usePublishRender } from "../../hooks/usePublishRender";
 import { useTTSPreview } from "../../hooks/useTTSPreview";
+import { useTimeline } from "../../hooks/useTimeline";
 import { PUBLISH_2COL_LAYOUT } from "../ui/variants";
 import TimelineBar from "./TimelineBar";
 import PreRenderReport from "../video/PreRenderReport";
@@ -28,9 +30,24 @@ export default function PublishTab() {
   const { scenes, store, setOutput, canRender, disabledReason, handleRender } = usePublishRender();
   const storyboardId = useContextStore((s) => s.storyboardId);
   const { previewAll, isPreviewingAll, previewStates } = useTTSPreview(storyboardId);
+  const { timeline } = useTimeline({
+    scenes,
+    ttsStates: previewStates,
+    speedMultiplier: store.speedMultiplier,
+    transitionType: store.transitionType,
+  });
   const cachedCount = [...previewStates.values()].filter(
     (s) => s.status === "cached" || s.audioUrl
   ).length;
+
+  const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const handleTimelineSceneClick = useCallback(
+    (index: number) => {
+      useStoryboardStore.getState().set({ currentSceneIndex: index });
+      setActiveTab("direct");
+    },
+    [setActiveTab]
+  );
 
   const handleQuickRender = useCallback(() => {
     setOutput(QUICK_RENDER_DEFAULTS);
@@ -100,6 +117,8 @@ export default function PublishTab() {
               scenes={scenes}
               ttsStates={previewStates}
               speedMultiplier={store.speedMultiplier}
+              timeline={timeline}
+              onSceneClick={handleTimelineSceneClick}
             />
 
             <PreRenderReport storyboardId={storyboardId} />

@@ -37,7 +37,9 @@ import {
 } from "../../store/actions/sceneActions";
 import { useSceneActions } from "../../hooks/useSceneActions";
 import { useTTSPreview } from "../../hooks/useTTSPreview";
+import { useTimeline } from "../../hooks/useTimeline";
 import { useContextStore } from "../../store/useContextStore";
+import TimelineBar from "./TimelineBar";
 
 export default function ScenesTab() {
   const { scenes, currentSceneIndex } = useStoryboardStore(
@@ -117,6 +119,14 @@ export default function ScenesTab() {
   const currentStyleProfile = useRenderStore((s) => s.currentStyleProfile);
   const storyboardId = useContextStore((s) => s.storyboardId);
   const ttsPreview = useTTSPreview(storyboardId);
+  const speedMultiplier = useRenderStore((s) => s.speedMultiplier);
+  const transitionType = useRenderStore((s) => s.transitionType);
+  const { timeline } = useTimeline({
+    scenes,
+    ttsStates: ttsPreview.previewStates,
+    speedMultiplier,
+    transitionType,
+  });
 
   if (scenes.length === 0) {
     return (
@@ -146,7 +156,18 @@ export default function ScenesTab() {
             onRemoveScene={(idx) => handleRemoveScene(scenes[idx].client_id)}
             onReorderScene={reorderScenes}
             imageValidationResults={imageValidationResults}
+            timeline={timeline}
           />
+          <div className="border-t border-zinc-200 px-3 py-2">
+            <TimelineBar
+              scenes={scenes}
+              ttsStates={ttsPreview.previewStates}
+              speedMultiplier={speedMultiplier}
+              timeline={timeline}
+              activeSceneIndex={currentSceneIndex}
+              onSceneClick={setCurrentSceneIndex}
+            />
+          </div>
           <div className="space-y-4 border-t border-zinc-200 p-4">
             <SceneInsightsContent
               imageValidationResults={imageValidationResults}

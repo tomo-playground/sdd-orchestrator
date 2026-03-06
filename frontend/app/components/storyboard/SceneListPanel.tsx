@@ -1,8 +1,9 @@
 "use client";
 
 import { forwardRef, useEffect, useRef, useState } from "react";
-import type { Scene, ImageValidation } from "../../types";
+import type { Scene, ImageValidation, TimelineResponse } from "../../types";
 import { hasSceneImage } from "../../utils/sceneCompletion";
+import { formatMmSs } from "../../utils/format";
 import { cx, SUCCESS_BG, WARNING_BG, ERROR_BG } from "../ui/variants";
 import Button from "../ui/Button";
 
@@ -14,6 +15,7 @@ type SceneListPanelProps = {
   onRemoveScene: (index: number) => void;
   onReorderScene: (from: number, to: number) => void;
   imageValidationResults?: Record<string, ImageValidation>;
+  timeline?: TimelineResponse | null;
 };
 
 export default function SceneListPanel({
@@ -24,6 +26,7 @@ export default function SceneListPanel({
   onRemoveScene,
   onReorderScene,
   imageValidationResults,
+  timeline,
 }: SceneListPanelProps) {
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -32,7 +35,8 @@ export default function SceneListPanel({
     if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [currentSceneIndex]);
 
-  const totalDuration = scenes.reduce((sum, s) => sum + (s.duration ?? 0), 0);
+  const clientTotal = scenes.reduce((sum, s) => sum + (s.duration ?? 0), 0);
+  const totalDuration = timeline?.total_duration ?? clientTotal;
 
   return (
     <div className="flex h-full flex-col">
@@ -40,7 +44,7 @@ export default function SceneListPanel({
       <div className="border-b border-zinc-200 px-4 py-3">
         <h2 className="text-[12px] font-medium tracking-wider text-zinc-400 uppercase">Scenes</h2>
         <p className="mt-0.5 text-[11px] text-zinc-400">
-          {scenes.length}개 씬 &middot; 총 {totalDuration}초
+          {scenes.length}개 씬 &middot; 총 {formatMmSs(totalDuration)}
         </p>
       </div>
 
@@ -53,21 +57,28 @@ export default function SceneListPanel({
             아래 버튼으로 추가하세요.
           </div>
         ) : (
-          scenes.map((scene, idx) => (
-            <SceneListItem
-              key={scene.client_id}
-              ref={(el) => {
-                itemRefs.current[idx] = el;
-              }}
-              scene={scene}
-              index={idx}
-              isActive={idx === currentSceneIndex}
-              imageValidationResults={imageValidationResults}
-              onSelect={() => onSceneSelect(idx)}
-              onRemove={() => onRemoveScene(idx)}
-              onReorder={onReorderScene}
-            />
-          ))
+          scenes.map((scene, idx) => {
+            const tl = timeline?.scenes[idx];
+            return (
+              <SceneListItem
+                key={scene.client_id}
+                ref={(el) => {
+                  itemRefs.current[idx] = el;
+                }}
+                scene={scene}
+                index={idx}
+                isActive={idx === currentSceneIndex}
+                imageValidationResults={imageValidationResults}
+                effectiveDuration={tl?.effective_duration}
+                ttsExtended={
+                  tl ? tl.has_tts && tl.effective_duration > (scene.duration ?? 3) : false
+                }
+                onSelect={() => onSceneSelect(idx)}
+                onRemove={() => onRemoveScene(idx)}
+                onReorder={onReorderScene}
+              />
+            );
+          })
         )}
       </div>
 
@@ -88,13 +99,25 @@ type SceneListItemProps = {
   index: number;
   isActive: boolean;
   imageValidationResults?: Record<string, ImageValidation>;
+  effectiveDuration?: number;
+  ttsExtended?: boolean;
   onSelect: () => void;
   onRemove: () => void;
   onReorder: (from: number, to: number) => void;
 };
 
 const SceneListItem = forwardRef<HTMLDivElement, SceneListItemProps>(function SceneListItem(
-  { scene, index, isActive, imageValidationResults, onSelect, onRemove, onReorder },
+  {
+    scene,
+    index,
+    isActive,
+    imageValidationResults,
+    effectiveDuration,
+    ttsExtended,
+    onSelect,
+    onRemove,
+    onReorder,
+  },
   ref
 ) {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -151,7 +174,14 @@ const SceneListItem = forwardRef<HTMLDivElement, SceneListItemProps>(function Sc
       {/* Content */}
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-medium text-zinc-700">{scriptPreview}</p>
-        <p className="text-[11px] text-zinc-400">{scene.duration ?? 3}초</p>
+        <p className="text-[11px] text-zinc-400">
+          {(effectiveDuration ?? scene.duration ?? 3).toFixed(1)}초
+          {ttsExtended && (
+            <span className="ml-0.5 text-amber-500" title="TTS 확장">
+              +
+            </span>
+          )}
+        </p>
       </div>
 
       {/* Completion Dots */}

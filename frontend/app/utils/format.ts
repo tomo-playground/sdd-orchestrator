@@ -13,3 +13,10 @@ export function formatRelativeTime(value: string | number): string {
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
 }
+
+/** Format seconds as "m:ss" (e.g. 165 → "2:45") */
+export function formatMmSs(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
