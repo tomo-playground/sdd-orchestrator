@@ -28,12 +28,11 @@ export function buildGenerateBody(
     description: s.description.trim() || undefined,
     duration: s.duration,
     language: s.language,
-    structure: s.structure,
     group_id: groupId,
     interaction_mode: s.interactionMode,
+    // structure, character_id, character_b_id는 전달하지 않음
+    // → Director가 주제 분석 후 캐스팅(구조+캐릭터) 결정 → plan_review에서 사용자 승인/수정
   };
-  if (s.characterId) body.character_id = s.characterId;
-  if (s.characterBId) body.character_b_id = s.characterBId;
   const refs = s.references.trim();
   if (refs) {
     body.references = refs

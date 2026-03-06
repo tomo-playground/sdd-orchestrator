@@ -20,9 +20,7 @@ export type SceneEditResult = {
 
 export type AvailableOptions = {
   durations: number[];
-  structures: { value: string; label: string }[];
   languages: { value: string; label: string }[];
-  characters: { id: number; name: string }[];
 };
 
 export type SettingsRecommendation = {
@@ -33,10 +31,6 @@ export type SettingsRecommendation = {
   duration: number;
   language: string;
   structure: string;
-  character_a_id: number | null;
-  character_a_name: string | null;
-  character_b_id: number | null;
-  character_b_name: string | null;
   available_options?: AvailableOptions;
 };
 

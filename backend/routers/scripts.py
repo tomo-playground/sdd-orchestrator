@@ -77,10 +77,10 @@ def _request_to_state(request: StoryboardRequest) -> ScriptState:
         duration=request.duration,
         style=request.style,
         language=request.language,
-        structure=request.structure,
+        structure="",  # Director 캐스팅 SSOT
         actor_a_gender=request.actor_a_gender,
-        character_id=request.character_id,
-        character_b_id=request.character_b_id,
+        character_id=None,
+        character_b_id=None,
         group_id=request.group_id,
         references=request.references,
         chat_context=request.chat_context,
@@ -299,6 +299,7 @@ async def _read_interrupt_state(graph, config: dict) -> tuple[str, dict]:  # noq
                 "type": "plan_review",
                 "director_plan": director_plan,
                 "skip_stages": skip_stages,
+                "casting_recommendation": vals.get("casting_recommendation"),
             }
         elif interrupt_node == "concept_gate":
             critic_result = vals.get("critic_result", {})

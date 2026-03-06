@@ -20,7 +20,16 @@ def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
     character_id = state.get("character_id")
     character_b_id = state.get("character_b_id")
     group_id = state.get("group_id")
+
+    logger.info(
+        "[TTS Voice] 음성 컨텍스트 로드 시작: character_id=%s, character_b_id=%s, group_id=%s",
+        character_id,
+        character_b_id,
+        group_id,
+    )
+
     if not character_id and not group_id:
+        logger.info("[TTS Voice] 캐릭터/그룹 ID 없음 — 음성 컨텍스트 스킵")
         return None
 
     results: list[dict] = []
@@ -34,6 +43,7 @@ def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
         for speaker, cid in speakers.items():
             char = db.query(Character).filter(Character.id == cid).first()
             if not char:
+                logger.warning("[TTS Voice] Speaker %s: character_id=%s DB에 없음", speaker, cid)
                 continue
             info: dict = {
                 "speaker": speaker,
@@ -46,6 +56,25 @@ def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
                 if preset and preset.voice_design_prompt:
                     info["reference_voice"] = preset.voice_design_prompt
                     info["has_preset"] = True
+                    logger.info(
+                        "[TTS Voice] Speaker %s(%s): Voice Preset 로드 (preset_id=%s)",
+                        speaker,
+                        char.name,
+                        char.voice_preset_id,
+                    )
+                else:
+                    logger.info(
+                        "[TTS Voice] Speaker %s(%s): Voice Preset id=%s 존재하나 prompt 없음 → Gemini 생성",
+                        speaker,
+                        char.name,
+                        char.voice_preset_id,
+                    )
+            else:
+                logger.info(
+                    "[TTS Voice] Speaker %s(%s): Voice Preset 미설정 → Gemini 생성",
+                    speaker,
+                    char.name,
+                )
             results.append(info)
 
         # Narrator 보이스 — 그룹의 narrator_voice_preset 관계에서 로드 (추가 쿼리 없음)
@@ -61,6 +90,20 @@ def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
                         "has_preset": True,
                     }
                 )
+                logger.info("[TTS Voice] Narrator: Voice Preset 로드 (group_id=%s)", group_id)
+            elif group:
+                logger.info("[TTS Voice] Narrator: Voice Preset 미설정 (group_id=%s)", group_id)
+
+    if results:
+        preset_count = sum(1 for r in results if r.get("has_preset"))
+        logger.info(
+            "[TTS Voice] 음성 컨텍스트 로드 완료: %d명 (Preset: %d, Gemini 생성: %d)",
+            len(results),
+            preset_count,
+            len(results) - preset_count,
+        )
+    else:
+        logger.info("[TTS Voice] 음성 컨텍스트 없음 — 전체 Gemini 생성")
 
     return results if results else None
 
@@ -97,7 +140,10 @@ async def tts_designer_node(state: ScriptState) -> dict:
         result = await run_production_step(
             template_name="creative/tts_designer.j2",
             template_vars=template_vars,
-            validate_fn=lambda extracted: validate_tts_design(extracted, preset_speakers=preset_speakers),
+            validate_fn=lambda extracted: validate_tts_design(
+                extracted if isinstance(extracted, list) else [],
+                preset_speakers=preset_speakers,
+            ),
             extract_key="tts_designs",
             step_name="tts_designer",
         )

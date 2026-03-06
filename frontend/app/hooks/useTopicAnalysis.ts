@@ -184,16 +184,9 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
   const applyFields = useCallback(
     (rec: SettingsRecommendation) => {
       if (!editorRef.current) return;
+      // duration, language만 유의미 (구성/캐릭터는 Director SSOT)
       editorRef.current.setField("duration", rec.duration);
       editorRef.current.setField("language", rec.language);
-      editorRef.current.setField("structure", rec.structure);
-      if (rec.character_a_id != null) {
-        editorRef.current.setField("characterId", rec.character_a_id);
-        editorRef.current.setField("characterName", rec.character_a_name);
-      }
-      // character_b: 항상 명시적으로 설정 (Monologue 전환 시 null로 정리)
-      editorRef.current.setField("characterBId", rec.character_b_id);
-      editorRef.current.setField("characterBName", rec.character_b_name);
     },
     [editorRef]
   );
@@ -218,7 +211,8 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
       applyFields(rec);
       syncChatContext();
       addMessage(createAssistantMessage("설정을 반영하고 스크립트를 생성합니다..."));
-      editorRef.current?.generate();
+      // setTimeout: React 배치 업데이트 → 렌더 → stateRef 갱신 후 generate 실행
+      setTimeout(() => editorRef.current?.generate(), 0);
     },
     [applyFields, addMessage, syncChatContext, editorRef]
   );

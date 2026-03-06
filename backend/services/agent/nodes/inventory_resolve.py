@@ -1,6 +1,7 @@
 """Phase 20-A: Inventory Resolve 노드.
 
-Director의 캐스팅 추천을 유효성 검증하고, user override와 병합한다.
+Director의 캐스팅 추천을 유효성 검증 후 state에 확정한다.
+캐스팅 SSOT: Director 추천 → plan_review 사용자 승인 → 이 노드에서 확정.
 Pure Python 노드 (LLM 호출 없음).
 """
 
@@ -58,8 +59,12 @@ def _validate_casting(casting: dict, state: ScriptState) -> dict | None:
     return casting
 
 
-async def inventory_resolve_node(state: ScriptState, config=None) -> dict:
-    """인벤토리 유효성 검증 + user override 병합."""
+async def inventory_resolve_node(state: ScriptState, config=None) -> dict:  # noqa: ARG001
+    """Director 캐스팅 추천을 검증하고 state에 확정한다.
+
+    캐스팅 SSOT = Director 추천 (plan_review에서 사용자가 승인/수정 피드백).
+    Frontend는 structure/character를 전달하지 않으므로 user override 로직 불필요.
+    """
     if should_skip(state, "inventory_resolve"):
         return {"casting_recommendation": None}
 
@@ -76,28 +81,20 @@ async def inventory_resolve_node(state: ScriptState, config=None) -> dict:
         logger.info("[LangGraph] inventory_resolve: 유효한 추천 없음")
         return {"casting_recommendation": None}
 
-    # User override 병합: user가 이미 선택한 값은 유지
+    # Director 캐스팅을 state에 확정 (SSOT)
     result: dict = {"casting_recommendation": validated}
 
-    # character_id (ScriptState 키) ← casting의 character_a_id
-    user_char = state.get("character_id")
-    if not user_char and validated.get("character_a_id"):
+    if validated.get("character_a_id"):
         result["character_id"] = validated["character_a_id"]
-
-    # character_b_id: user 선택 우선
-    user_char_b = state.get("character_b_id")
-    if not user_char_b and validated.get("character_b_id"):
+    if validated.get("character_b_id"):
         result["character_b_id"] = validated["character_b_id"]
-
-    # structure: user 선택 우선 (빈 문자열이 아닌 경우)
-    user_structure = state.get("structure", "")
-    if not user_structure and validated.get("structure"):
+    if validated.get("structure"):
         result["structure"] = validated["structure"]
 
     logger.info(
         "[LangGraph] inventory_resolve 완료: char=%s, char_b=%s, structure=%s",
-        result.get("character_id", "user"),
-        result.get("character_b_id", "user"),
-        result.get("structure", "user"),
+        result.get("character_id", "-"),
+        result.get("character_b_id", "-"),
+        result.get("structure", "-"),
     )
     return result

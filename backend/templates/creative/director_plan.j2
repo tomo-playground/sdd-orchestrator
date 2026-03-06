@@ -32,11 +32,10 @@ Your task is to establish the creative direction before production begins.
 
 ### Characters ({{ characters|length }}명)
 {% for char in characters %}
-- **ID {{ char.id }}**: {{ char.name }} ({{ char.gender }})
+- **ID {{ char.id }}**: {{ char.name }} ({{ char.gender }}) — 출연 {{ char.usage_count }}회{% if char.usage_count >= 10 %} ⭐시리즈 주연{% endif %}
+
   - 특징: {{ char.appearance_summary or "미설정" }}
-  - LoRA: {{ "전용 LoRA (일관성 높음)" if char.has_lora else "없음" }}
-  - 레퍼런스: {{ "있음" if char.has_reference else "없음" }}
-  - 사용 횟수: {{ char.usage_count }}회
+  - LoRA: {{ "있음" if char.has_lora else "없음" }} / 레퍼런스: {{ "있음" if char.has_reference else "없음" }}
 {% endfor %}
 
 ### Structures ({{ structures|length }}종)
@@ -55,7 +54,11 @@ Your task is to establish the creative direction before production begins.
 아래 4단계로 최적의 캐스팅을 추천하세요:
 1. **토픽 분석**: 주제의 핵심 감정과 장르를 파악하세요
 2. **구조 선택**: 1인 독백 vs 대화/갈등에 따라 monologue, dialogue, narrated_dialogue, confession 중 선택
-3. **캐릭터 선택**: LoRA가 있는 캐릭터를 우선 고려하세요 (이미지 일관성 높음). 사용 횟수가 많은 캐릭터는 검증된 캐릭터입니다
+3. **캐릭터 선택** (가장 중요):
+   - **1순위: 캐릭터 성격·분위기 적합성** — 주제와 가장 어울리는 캐릭터를 선택하세요
+   - **2순위: 사용 횟수** — 사용 횟수가 많은 캐릭터는 시리즈의 간판이므로 적극 활용하세요
+   - **3순위: LoRA 보유** — LoRA가 있으면 이미지 일관성이 높지만, 필수 조건은 아닙니다
+   - **다양성 원칙**: 매번 같은 캐릭터를 뽑지 마세요. 다양한 캐릭터에 골고루 기회를 주세요
    - **dialogue/narrated_dialogue 선택 시**: 반드시 서로 다른 2명의 캐릭터를 character_a_id와 character_b_id에 각각 기재하세요
 4. **ID 교차검증**: 캐릭터 ID와 이름을 반드시 함께 기재하세요
 {% endif %}

@@ -955,45 +955,22 @@ class TestDirectorPlanGateFallback:
 # ═══════════════════════════════════════════════════════
 
 
-class TestTopicAnalysisEmptyGroupFallback:
-    """시나리오 2: group_id 있으나 캐릭터 0개 → _load_all_characters 폴백."""
+class TestTopicAnalysisFallback:
+    """analyze_topic: Gemini 미설정 시 기본값 반환."""
 
     @pytest.mark.asyncio
     @patch("config.gemini_client", None)
-    @patch("services.agent.inventory.load_full_inventory")
-    @patch("services.scripts.topic_analysis._load_all_characters")
-    async def test_empty_group_triggers_fallback_load(self, mock_load_all, mock_inventory):
-        """group_id 지정했지만 캐릭터 0개 → _load_all_characters 호출."""
+    async def test_no_gemini_returns_fallback(self):
+        """Gemini 클라이언트 없으면 기본값(duration=30, Korean, Monologue) 반환."""
         from services.scripts.topic_analysis import analyze_topic
-
-        mock_inventory.return_value = {"characters": []}
-        mock_load_all.return_value = []
 
         result = await analyze_topic("테스트 주제", None, group_id=99)
 
-        mock_load_all.assert_called_once()
+        assert result.duration == 30
+        assert result.language == "Korean"
+        assert result.structure == "Monologue"
         assert result.available_options is not None
-
-    @pytest.mark.asyncio
-    @patch("config.gemini_client", None)
-    @patch("services.agent.inventory.load_full_inventory")
-    @patch("services.scripts.topic_analysis._load_all_characters")
-    async def test_fallback_characters_included_in_options(self, mock_load_all, mock_inventory):
-        """폴백 로드 캐릭터가 available_options에 포함된다."""
-        from services.scripts.topic_analysis import analyze_topic
-
-        mock_inventory.return_value = {"characters": []}
-        mock_char = MagicMock()
-        mock_char.id = 1
-        mock_char.name = "테스트캐릭터"
-        mock_load_all.return_value = [mock_char]
-
-        result = await analyze_topic("테스트 주제", None, group_id=99)
-
-        chars = result.available_options.characters
-        assert len(chars) == 1
-        assert chars[0]["id"] == 1
-        assert chars[0]["name"] == "테스트캐릭터"
+        assert result.available_options.durations
 
 
 class TestWriterSafetyRetryThenEmptyScenes:

@@ -194,10 +194,10 @@ class StoryboardBase(BaseModel):
 class CastingRecommendationSchema(BaseModel):
     """Phase 20-C: AI casting recommendation persisted with storyboard."""
 
-    character_a_id: int | None = None   # Speaker A 캐릭터 ID
-    character_a_name: str = ""          # Speaker A 캐릭터 이름
-    character_b_id: int | None = None   # Speaker B 캐릭터 ID
-    character_b_name: str = ""          # Speaker B 캐릭터 이름
+    character_a_id: int | None = None  # Speaker A 캐릭터 ID
+    character_a_name: str = ""  # Speaker A 캐릭터 이름
+    character_b_id: int | None = None  # Speaker B 캐릭터 ID
+    character_b_name: str = ""  # Speaker B 캐릭터 이름
     structure: str | None = None
     reasoning: str = Field(default="", max_length=2000)
 
@@ -387,10 +387,10 @@ class StoryboardRequest(BaseModel):
     duration: int = 10
     style: str = "Anime"
     language: str = "Korean"
-    structure: str = DEFAULT_STRUCTURE
+    structure: str = ""  # 빈값 = Director가 캐스팅 시 결정 (Frontend 미전달)
     actor_a_gender: str = "female"
-    character_id: int | None = None
-    character_b_id: int | None = None
+    character_id: int | None = None  # Director가 캐스팅 시 결정 (Frontend 미전달)
+    character_b_id: int | None = None  # Director가 캐스팅 시 결정 (Frontend 미전달)
     group_id: int | None = None
     preset: str | None = Field(default=None, json_schema_extra={"deprecated": True})
     skip_stages: list[str] | None = None  # ["research", "concept", "production", "explain"]
@@ -2268,12 +2268,12 @@ class TopicAnalyzeRequest(BaseModel):
 
 
 class AvailableOptions(BaseModel):
-    """인라인 편집용 옵션 목록 (SSOT: config.py + presets.py + DB)."""
+    """인라인 편집용 옵션 목록 (duration, language만 유의미. 구성/캐릭터는 Director SSOT)."""
 
     durations: list[int]
-    structures: list[dict]  # [{value, label}]
     languages: list[dict]  # [{value, label}]
-    characters: list[dict]  # [{id, name}]
+    structures: list[dict] | None = None  # Director SSOT → 미사용
+    characters: list[dict] | None = None  # Director SSOT → 미사용
 
 
 class TopicAnalyzeResponse(BaseModel):
@@ -2287,10 +2287,10 @@ class TopicAnalyzeResponse(BaseModel):
     duration: int = 30
     language: str = "Korean"
     structure: str = "Monologue"
-    character_a_id: int | None = None     # Speaker A 캐릭터 ID
-    character_a_name: str | None = None   # Speaker A 캐릭터 이름
-    character_b_id: int | None = None     # Speaker B 캐릭터 ID
-    character_b_name: str | None = None   # Speaker B 캐릭터 이름
+    character_a_id: int | None = None  # Speaker A 캐릭터 ID
+    character_a_name: str | None = None  # Speaker A 캐릭터 이름
+    character_b_id: int | None = None  # Speaker B 캐릭터 ID
+    character_b_name: str | None = None  # Speaker B 캐릭터 이름
     available_options: AvailableOptions | None = None
 
 
@@ -2300,10 +2300,10 @@ class GroupDefaultsResponse(BaseModel):
     duration: int
     structure: str
     language: str
-    character_a_id: int | None = None     # Speaker A 캐릭터 ID
-    character_a_name: str | None = None   # Speaker A 캐릭터 이름
-    character_b_id: int | None = None     # Speaker B 캐릭터 ID
-    character_b_name: str | None = None   # Speaker B 캐릭터 이름
+    character_a_id: int | None = None  # Speaker A 캐릭터 ID
+    character_a_name: str | None = None  # Speaker A 캐릭터 이름
+    character_b_id: int | None = None  # Speaker B 캐릭터 ID
+    character_b_name: str | None = None  # Speaker B 캐릭터 이름
     has_history: bool
     available_options: AvailableOptions | None = None
 

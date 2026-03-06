@@ -16,8 +16,6 @@ const selectClass =
   "appearance-none rounded-lg border border-zinc-200 bg-white pl-2 pr-6 py-1 text-sm text-zinc-800 " +
   "outline-none cursor-pointer hover:border-violet-300 focus:border-violet-400 focus:ring-1 focus:ring-violet-400";
 
-const DIALOGUE_STRUCTURES = new Set(["Dialogue", "Narrated Dialogue"]);
-
 function InlineSelect({
   label,
   value,
@@ -59,11 +57,8 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, has
   const rec = message.recommendation;
   const opts = rec.available_options;
   const [local, setLocal] = useState({
-    structure: rec.structure,
     duration: rec.duration,
     language: rec.language,
-    character_a_id: rec.character_a_id,
-    character_b_id: rec.character_b_id,
   });
   const [applied, setApplied] = useState(false);
 
@@ -75,43 +70,22 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, has
   const patch = <K extends keyof typeof local>(key: K, val: (typeof local)[K]) =>
     setLocal((prev) => ({ ...prev, [key]: val }));
 
-  const isDialogue = DIALOGUE_STRUCTURES.has(local.structure);
-
-  const buildRec = (): SettingsRecommendation => {
-    const charName =
-      opts?.characters.find((c) => c.id === local.character_a_id)?.name ?? rec.character_a_name;
-    const charBName =
-      opts?.characters.find((c) => c.id === local.character_b_id)?.name ?? rec.character_b_name;
-    return {
-      ...rec,
-      ...local,
-      character_a_name: charName,
-      character_b_id: isDialogue ? local.character_b_id : null,
-      character_b_name: isDialogue ? charBName : null,
-    };
-  };
+  const buildRec = (): SettingsRecommendation => ({
+    ...rec,
+    ...local,
+  });
 
   const handleGenerate = () => {
     onApplyAndGenerate(buildRec());
     setApplied(true);
   };
 
-  // 옵션 목록 구성
-  const structureOpts = opts?.structures ?? [{ value: rec.structure, label: rec.structure }];
+  // 옵션 목록 구성 (구성/캐릭터는 Director SSOT → 여기서 표시하지 않음)
   const durationOpts: { value: string; label: string }[] = opts?.durations.map((d) => ({
     value: String(d),
     label: `${d}초`,
   })) ?? [{ value: String(rec.duration), label: `${rec.duration}초` }];
   const languageOpts = opts?.languages ?? [{ value: rec.language, label: rec.language }];
-  const characterOpts: { value: string; label: string }[] = [
-    { value: "", label: "미정" },
-    ...(opts?.characters.map((c) => ({ value: String(c.id), label: c.name })) ?? []),
-  ];
-
-  // character_b: character_a와 다른 캐릭터만 표시
-  const characterBOpts = characterOpts.filter(
-    (o) => o.value === "" || o.value !== String(local.character_a_id ?? "")
-  );
 
   return (
     <div className="flex gap-2">
@@ -122,13 +96,6 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, has
         {rec.reasoning && <p className="text-sm text-zinc-700">{rec.reasoning}</p>}
 
         <ul className="space-y-2 rounded-xl bg-white p-3 text-sm text-zinc-700">
-          <InlineSelect
-            label="구성"
-            value={local.structure}
-            options={structureOpts}
-            onChange={(v) => patch("structure", v)}
-            disabled={applied}
-          />
           <InlineSelect
             label="길이"
             value={String(local.duration)}
@@ -143,22 +110,6 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, has
             onChange={(v) => patch("language", v)}
             disabled={applied}
           />
-          <InlineSelect
-            label="캐릭터"
-            value={String(local.character_a_id ?? "")}
-            options={characterOpts}
-            onChange={(v) => patch("character_a_id", v ? Number(v) : null)}
-            disabled={applied}
-          />
-          {isDialogue && (
-            <InlineSelect
-              label="캐릭터B"
-              value={String(local.character_b_id ?? "")}
-              options={characterBOpts}
-              onChange={(v) => patch("character_b_id", v ? Number(v) : null)}
-              disabled={applied}
-            />
-          )}
         </ul>
 
         {!applied ? (
