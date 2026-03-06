@@ -712,12 +712,11 @@ class TestExclusiveGroupsConstant:
         assert "eye_color" in EXCLUSIVE_TAG_GROUPS
         assert "hair_length" in EXCLUSIVE_TAG_GROUPS
         assert "skin_color" in EXCLUSIVE_TAG_GROUPS
+        assert "clothing" in EXCLUSIVE_TAG_GROUPS
+        assert "accessory" in EXCLUSIVE_TAG_GROUPS
 
     def test_does_not_contain_hair_style(self):
         assert "hair_style" not in EXCLUSIVE_TAG_GROUPS
-
-    def test_does_not_contain_clothing(self):
-        assert "clothing" not in EXCLUSIVE_TAG_GROUPS
 
 
 # ────────────────────────────────────────────
@@ -2151,6 +2150,58 @@ class TestSceneOverrideGroups:
 
         all_tokens = [t for layer in layers for t in layer]
         assert "brown_hair" in all_tokens  # identity group protected
+
+    def test_clothing_group_protected_by_exclusive(self, builder):
+        """Clothing group in EXCLUSIVE_TAG_GROUPS: scene clothing tags cannot override char clothing."""
+        char_info = {
+            "school_uniform": _make_tag_info("school_uniform", LAYER_MAIN_CLOTH, group="clothing"),
+        }
+        scene_info = {
+            "casual_clothes": _make_tag_info("casual_clothes", LAYER_MAIN_CLOTH, group="clothing"),
+        }
+        all_info = {**char_info, **scene_info}
+        builder.get_tag_info = MagicMock(
+            side_effect=lambda names: {
+                n: all_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in all_info
+            }
+        )
+
+        char_tags = [
+            {"name": "school_uniform", "layer": LAYER_MAIN_CLOTH, "weight": 1.0, "group_name": "clothing"},
+        ]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["casual_clothes"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "school_uniform" in all_tokens  # char clothing protected
+        assert "casual_clothes" not in all_tokens  # scene clothing blocked
+
+    def test_accessory_group_protected_by_exclusive(self, builder):
+        """Accessory group in EXCLUSIVE_TAG_GROUPS: scene accessory tags cannot override char accessory."""
+        char_info = {
+            "glasses": _make_tag_info("glasses", LAYER_ACCESSORY, group="accessory"),
+        }
+        scene_info = {
+            "hat": _make_tag_info("hat", LAYER_ACCESSORY, group="accessory"),
+        }
+        all_info = {**char_info, **scene_info}
+        builder.get_tag_info = MagicMock(
+            side_effect=lambda names: {
+                n: all_info[n] for n in [t.lower().replace(" ", "_").strip() for t in names] if n in all_info
+            }
+        )
+
+        char_tags = [
+            {"name": "glasses", "layer": LAYER_ACCESSORY, "weight": 1.0, "group_name": "accessory"},
+        ]
+        layers = [[] for _ in range(12)]
+
+        builder._distribute_tags(char_tags, ["hat"], scene_info, layers)
+
+        all_tokens = [t for layer in layers for t in layer]
+        assert "glasses" in all_tokens  # char accessory protected
+        assert "hat" not in all_tokens  # scene accessory blocked
 
     def test_non_override_group_not_affected(self, builder):
         """Clothing group not overridden when scene has different groups."""

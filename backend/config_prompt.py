@@ -6,8 +6,8 @@
 from __future__ import annotations
 
 # --- Prompt Composition Weights ---
-PERMANENT_IDENTITY_WEIGHT_BOOST = 1.15
-PERMANENT_DETAIL_WEIGHT_BOOST = 1.1
+PERMANENT_IDENTITY_WEIGHT_BOOST = 1.25
+PERMANENT_DETAIL_WEIGHT_BOOST = 1.2
 FALLBACK_STYLE_LORA_WEIGHT_MAX = 0.5
 NON_FRONTAL_GAZE_WEIGHT = 1.25
 EXPRESSION_ACTION_WEIGHT_BOOST = 1.2
@@ -60,6 +60,8 @@ EXCLUSIVE_TAG_GROUPS: frozenset[str] = frozenset(
         "eye_color",
         "hair_length",
         "skin_color",
+        "clothing",
+        "accessory",
     }
 )
 

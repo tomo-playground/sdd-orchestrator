@@ -583,9 +583,9 @@ DEFAULT_MULTI_GEN_ENABLED = False
 
 # --- IP-Adapter Defaults ---
 # Default IP-Adapter settings (per-character overrides stored in DB)
-# weight=0.35: POC 30-scene 실험 검증값 (clip_face + no BREAK 최적)
+# weight=0.50: V2 상향 (기존 0.35, 업계 권장 0.5~0.7)
 DEFAULT_CHARACTER_PRESET = {
-    "weight": 0.35,
+    "weight": 0.50,
     "model": "clip_face",
 }
 

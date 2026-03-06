@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-03-06)
+## 현재 상태 (2026-03-07)
 
 | 항목 | 상태 |
 |------|------|
@@ -35,10 +35,12 @@
 | Phase 29 (Video Pre-validation) | Sub-Phase A~C 완료 — TTS 프리뷰/렌더 연결 + 씬 필드 소실 수정 + Spread Passthrough + 타임라인 시각화 |
 | Casting 네이밍 정규화 | 완료 — character_id→character_a_id (Casting 컨텍스트), 27개 파일, JSONB 마이그레이션 |
 | Checkpointer 리팩토링 | 완료 — 싱글턴→per-request 패턴, DB 풀 고갈 방지 |
-| 테스트 | Backend 3,476 + Frontend 543 + E2E 36 = **총 4,055개** |
+| **Phase 30 (Character Consistency V2)** | **진행 중** — Sub-Phase A 완료(Config 튜닝). B(Gemini 템플릿) C(Dual IP-Adapter) D(LoRA 트레이닝) E(Outfit Profile) 미착수 |
+| 테스트 | Backend 3,478 + Frontend 543 + E2E 36 = **총 4,057개** |
 
 ### 최근 작업
 
+- **Phase 30 캐릭터 일관성 강화 계획 수립** (03-07): 씬 간 복장 드리프트 + 얼굴 미세 변동 근본 원인 분석. 5-Sub-Phase 구성: A(Config 튜닝 — IP-Adapter 0.35→0.50, Clothing Exclusive Group), B(Gemini 템플릿 복장 고정), C(Dual IP-Adapter face+body), D(13명 Character LoRA Kohya 트레이닝), E(OutfitProfile DB 시스템). 외부 사례 조사 기반(IP-Adapter 0.5~0.7 권장, Dual Reference 워크플로우, LoRA rank 32 트레이닝). [명세](FEATURES/CHARACTER_CONSISTENCY_V2.md)
 - **Dialogue 구조 case-insensitive 비교 + Pre-flight B캐릭터 지원** (03-06): ① `isMultiCharStructure()` `.toLowerCase()` 적용 — Gemini가 반환하는 `"dialogue"`(소문자)도 정상 인식. 이 단일 버그로 인해 Speaker B 옵션 미표시, 캐릭터 B 데이터 삭제, Studio 초기화 시 charBId=null 등 연쇄 장애 발생. 13개 호출 사이트 전수 검증. ② Pre-flight 다이얼로그 지원 — checkCharacter/checkVoice/checkIpAdapter에 B 캐릭터 검증 추가. ③ ChatArea isInitialState에 scenes.length 조건 추가 — 리로드 시 빈 화면 방지. ④ castingRecommendation 적용 후 null 클리어 — 배너 잔류 방지. ⑤ Backend crud.py structure `.title()` 정규화 — DB 케이스 통일. ⑥ creative_qc.py speaker distribution `.lower()` 비교. 8파일 변경, 테스트 전체 PASS.
 - **Casting SSOT Race Condition 근본 수정** (03-06): 3-에이전트 병렬 심층분석으로 5개 누락 경로 발견. 근본 원인: generate() 시작 시 `castingRecommendation=null` 초기화 → autoSave 경합(isDirty=true + 2s debounce) → null casting + Monologue로 PUT → `_sync_speaker_mappings`에서 B 매핑 전삭 → TTS fallback voice. ① `isScriptGenerating` Zustand 플래그 — autoSave에서 스크립트 생성 중 저장 완전 차단. ② casting null 초기화 제거 — generate 시작 시 이전 casting 보존. ③ `syncToGlobalStore` meta에 casting 머지 — setState 비동기 타이밍 이슈 해소. ④ 완료 후 isDirty=true 트리거 — autoSave가 최종 casting으로 DB 갱신. ⑤ Backend 방어: `character_b_id` 명시 시 structure 무관하게 B 매핑 저장(warning 로그). 5파일 변경, autoSave 테스트 10개 PASS.
 - **Dialogue 템플릿 대화 품질 강화** (03-06): ① Output Format 교체 — placeholder `"..."` → 실제 한국어 대화체 4씬 few-shot 예시(A→B→A→B 교대 패턴). ② Instructions 강화 — STRICT ALTERNATION 규칙, 독백/대화 ❌/✅ 예시, FORBIDDEN 연속 동일 화자. ③ `ensure_dialogue_speakers()` 성공 로그 추가. 검증: Gemini 10씬 완벽 A/B 교대 + 대화체 스크립트 생성 확인.
@@ -153,6 +155,7 @@ graph LR
     P26 --> P27["Phase 27<br/>Chat System<br/>UX & Architecture"]
     P27 --> P28["Phase 28<br/>Pipeline<br/>Resilience"]
     P28 --> P29["Phase 29<br/>Video<br/>Pre-validation"]
+    P29 --> P30["Phase 30<br/>Character<br/>Consistency V2"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -187,6 +190,7 @@ graph LR
     style P27 fill:#4CAF50,color:#fff
     style P28 fill:#4CAF50,color:#fff
     style P29 fill:#2196F3,color:#fff
+    style P30 fill:#FF9800,color:#fff
 ```
 
 ---
@@ -202,8 +206,8 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | VEO Clip (Video Generation 통합) | [명세](FEATURES/VEO_CLIP.md) |
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Storyboard Version History | — |
-| IP-Adapter 캐릭터 유사도 고도화 (SD1.5 완료, SDXL 보류 — GPU 한계) | [명세](FEATURES/CHARACTER_CONSISTENCY.md) |
-| 캐릭터 레퍼런스 9세트 프롬프트 생성 + 품질 체크 | 캐릭터 생성 시 포즈/표정/앵글 조합으로 9세트 레퍼런스 프롬프트를 생성하고, WD14 등으로 캐릭터 특징 반영 여부를 자동 검증. 현재는 단일 프롬프트+검증 없음 |
+| ~~IP-Adapter 캐릭터 유사도 고도화~~ | **Phase 30으로 승격** — [V1 명세](FEATURES/CHARACTER_CONSISTENCY.md) · [V2 명세](FEATURES/CHARACTER_CONSISTENCY_V2.md) |
+| ~~캐릭터 레퍼런스 9세트 프롬프트 생성 + 품질 체크~~ | **Phase 30-D에 포함** — LoRA 트레이닝용 레퍼런스 이미지 생성 |
 
 ### Intelligence & Automation
 
