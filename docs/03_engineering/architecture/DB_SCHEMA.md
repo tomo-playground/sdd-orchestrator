@@ -780,7 +780,7 @@ ORM 모델 컬럼 선언 순서: PK → Parent FK → Identity(name) → Metadat
 
 ---
 
-**Last Updated:** 2026-02-28
-**Schema Version:** v3.32
+**Last Updated:** 2026-03-02
+**Schema Version:** v3.33
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic

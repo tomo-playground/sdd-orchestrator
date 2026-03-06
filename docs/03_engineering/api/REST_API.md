@@ -473,7 +473,7 @@ Stage 진행 상태 및 location별 배경 준비 현황.
 
 ---
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-05
 **API Version:** v4.1
 **Backend Version:** FastAPI 0.109+
 **Database:** PostgreSQL 14+

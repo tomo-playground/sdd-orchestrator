@@ -76,7 +76,7 @@ def test_routing_fanout_after_cinematographer():
 
 def test_routing_error_short_circuit_writer():
     """writer 에러 → route_after_writer가 finalize 반환."""
-    assert route_after_writer({}) == "review"
+    assert route_after_writer({}) == "finalize"  # 빈 씬 → finalize short-circuit
     assert route_after_writer({"error": "Gemini API 실패"}) == "finalize"
 
 

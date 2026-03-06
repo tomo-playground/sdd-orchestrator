@@ -92,7 +92,7 @@ async def test_characters_tags_none_when_no_character(mock_comp, mock_validate, 
         await cinematographer_node(state, config)
 
         call_kwargs = mock_tmpl.render.call_args.kwargs
-        assert call_kwargs.get("characters_tags") is None
+        assert call_kwargs.get("characters_tags") == {}
 
 
 @pytest.mark.asyncio

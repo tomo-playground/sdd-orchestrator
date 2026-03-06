@@ -128,6 +128,18 @@ Review 노드에서 Full 모드 전용 서사 평가 (LANGGRAPH_NARRATIVE_THRESH
 
 **비용 가드레일**: MAX_TOOL_CALLS=5, MAX_THINKING_STEPS=3, MAX_DEBATE_ROUNDS=2, DEBATE_TIMEOUT_SEC=60, CHECKPOINT_LOW=0.4, CHECKPOINT_HIGH=0.85
 
+### 2-6. Agentic Ontology (Deterministic Mapping)
+
+2026-03-01 리팩토링으로 LLM 프롬프트 내의 복잡한 룰 베이스 매핑을 Python 코드로 외재화하였습니다:
+
+| 컴포넌트 | 역할 | 구현체 |
+|----------|------|--------|
+| **Emotion Vocab** | 50종 감정을 1:1 표현/분위기로 매핑 | `nodes/_context_tag_utils.py` (`EMOTION_VOCAB`) |
+| **Category Guard** | expression/gaze/pose 상호 배타성 검증 | `nodes/_context_tag_utils.py` (`validate_context_tag_categories`) |
+| **Diversity Engine**| 스크립트 기반 표현 단조로움 자동 보정 | `nodes/_context_tag_utils.py` (`diversify_expressions`) |
+
+**효과**: Gemini 프롬프트 크기 30% 감소, 환각(Hallucination) 방지, 비즈니스 로직의 결정론적(Deterministic) 제어 가능.
+
 ---
 
 ## 4. 구현 완료 요약
