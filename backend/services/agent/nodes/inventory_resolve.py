@@ -70,6 +70,14 @@ async def inventory_resolve_node(state: ScriptState, config=None) -> dict:  # no
 
     casting = state.get("casting_recommendation")
     if not casting or not isinstance(casting, dict):
+        # Director가 캐스팅을 생성하지 않았어도, Frontend가 structure를 지정했으면 보존
+        user_structure = state.get("structure", "")
+        if user_structure:
+            logger.info(
+                "[LangGraph] inventory_resolve: 캐스팅 추천 없음, user structure='%s' 보존",
+                user_structure,
+            )
+            return {"structure": user_structure}
         logger.info("[LangGraph] inventory_resolve: 캐스팅 추천 없음, 패스스루")
         return {"casting_recommendation": None}
 
