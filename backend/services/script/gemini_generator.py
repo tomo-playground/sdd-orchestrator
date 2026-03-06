@@ -367,7 +367,8 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         raise HTTPException(status_code=503, detail="Gemini key missing")
     try:
         structure_lower = request.structure.lower()
-        has_two_characters = structure_lower in ("dialogue", "narrated dialogue")
+        structure_normalized = structure_lower.replace("_", " ")
+        has_two_characters = structure_normalized in ("dialogue", "narrated dialogue")
 
         # Dialogue validation (structures with two characters)
         if has_two_characters:

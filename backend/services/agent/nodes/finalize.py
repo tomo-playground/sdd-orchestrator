@@ -548,7 +548,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
 
     # Defense: Cinematographer may overwrite speaker assignments → re-enforce A/B alternation
     structure = (state.get("structure") or "").lower()
-    if structure in ("dialogue", "narrated dialogue"):
+    if structure.replace("_", " ") in ("dialogue", "narrated dialogue"):
         from services.script.scene_postprocess import ensure_dialogue_speakers  # noqa: PLC0415
 
         ensure_dialogue_speakers(scenes)
@@ -691,7 +691,7 @@ def _resolve_characters_from_group(
         logger.warning("[Finalize] Group %d에 캐릭터 없음, character_id=None 유지", group_id)
         return None, None
     char_a = chars[0].id
-    _DIALOGUE_STRUCTURES = {"Dialogue", "Narrated Dialogue"}
+    _DIALOGUE_STRUCTURES = {"Dialogue", "Narrated Dialogue", "Narrated_Dialogue"}
     char_b = chars[1].id if len(chars) > 1 and structure in _DIALOGUE_STRUCTURES else None
     logger.info("[Finalize] Resolved characters from group %d: A=%s, B=%s", group_id, char_a, char_b)
     return char_a, char_b

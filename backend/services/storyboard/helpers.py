@@ -116,7 +116,7 @@ def calculate_auto_pin_flags(scenes: list, structure: str | None = None) -> dict
     result: dict[int, bool] = {}
 
     # For Dialogue/Narrated Dialogue: all scenes share the same background
-    is_dialogue = structure and structure.lower() in ("dialogue", "narrated dialogue")
+    is_dialogue = structure and structure.lower().replace("_", " ") in ("dialogue", "narrated dialogue")
 
     if is_dialogue:
         for i, scene in enumerate(scenes):

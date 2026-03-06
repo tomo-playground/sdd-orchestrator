@@ -26,7 +26,7 @@ interface BatchResponse {
  * Generate images for multiple scenes in a single batch API call.
  * Updates each scene's state as results come back.
  */
-export async function generateBatchImages(sceneClientIds: string[]): Promise<BatchResponse | null> {
+export async function generateBatchImages(sceneClientIds: string[], signal?: AbortSignal): Promise<BatchResponse | null> {
   const sbState = useStoryboardStore.getState();
   const { scenes, updateScene } = sbState;
 
@@ -96,7 +96,7 @@ export async function generateBatchImages(sceneClientIds: string[]): Promise<Bat
       {
         scenes: sceneRequests,
       },
-      { timeout: API_TIMEOUT.IMAGE_GENERATION * sceneRequests.length }
+      { timeout: API_TIMEOUT.IMAGE_GENERATION * sceneRequests.length, signal }
     );
 
     const { results } = res.data;

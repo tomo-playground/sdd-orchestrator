@@ -262,6 +262,7 @@ function StudioContent() {
               const start = s.some((sc) => !sc.background_id) ? "stage" : "images";
               runAutoRunFromStep(start, autopilot);
             }}
+            onCancel={autopilot.cancel}
           />
         </div>
       )}

@@ -201,7 +201,7 @@ def ensure_dialogue_speakers(scenes: list[dict]) -> None:
 
 def auto_pin_raw_scenes(scenes: list[dict], structure_lower: str) -> None:
     """Set _auto_pin_previous flags on raw Gemini scene dicts (in-place)."""
-    is_dialogue_structure = structure_lower in ("dialogue", "narrated dialogue")
+    is_dialogue_structure = structure_lower.replace("_", " ") in ("dialogue", "narrated dialogue")
 
     if is_dialogue_structure:
         logger.info("[Storyboard] Auto-pin: %s structure - all scenes share background", structure_lower)

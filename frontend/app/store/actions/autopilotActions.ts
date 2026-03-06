@@ -44,6 +44,7 @@ export async function runAutoRunFromStep(
     setError: setAutoRunError,
     checkCancelled: assertNotCancelled,
     pushLog: pushAutoRunLog,
+    cancel: cancelFn,
   } = autopilot;
 
   const allowedSteps = stepsToRun || AUTO_RUN_STEPS.map((s) => s.id as AutoRunStepId);
@@ -53,8 +54,15 @@ export async function runAutoRunFromStep(
     return;
   }
 
-  // C-1: AbortController for cancelling SSE render on autopilot cancel
+  // C-1: AbortController for cancelling in-flight HTTP requests on autopilot cancel
   const abortController = new AbortController();
+
+  // Patch cancel to also abort in-flight requests immediately
+  const originalCancel = cancelFn;
+  autopilot.cancel = () => {
+    originalCancel();
+    abortController.abort();
+  };
 
   startRun();
   useUIStore.getState().set({ isAutoRunning: true });
@@ -87,7 +95,7 @@ export async function runAutoRunFromStep(
         await axios.post(
           `${API_BASE}/storyboards/${storyboardId}/stage/generate-backgrounds`,
           null,
-          { timeout: API_TIMEOUT.STAGE_GENERATE }
+          { timeout: API_TIMEOUT.STAGE_GENERATE, signal: abortController.signal }
         );
         pushAutoRunLog("Backgrounds generated");
         assertNotCancelled();
@@ -97,7 +105,7 @@ export async function runAutoRunFromStep(
         const assignRes = await axios.post(
           `${API_BASE}/storyboards/${storyboardId}/stage/assign-backgrounds`,
           null,
-          { timeout: API_TIMEOUT.DEFAULT }
+          { timeout: API_TIMEOUT.DEFAULT, signal: abortController.signal }
         );
         const assignments = assignRes.data.assignments ?? [];
         if (assignments.length > 0) {
@@ -176,7 +184,7 @@ export async function runAutoRunFromStep(
         // Single-gen scenes: batch mode with server-side throttling
         if (singleGenScenes.length > 0) {
           const sceneClientIds = singleGenScenes.map((s) => s.client_id);
-          const batchResult = await generateBatchImages(sceneClientIds);
+          const batchResult = await generateBatchImages(sceneClientIds, abortController.signal);
 
           // Check for scenes that need retry: either batch API failure OR
           // successful generation but failed image store (missing image_asset_id)
@@ -368,7 +376,8 @@ export async function runAutoRunFromStep(
     if (sbNow.stageStatus === "staging") {
       useStoryboardStore.getState().set({ stageStatus: "failed" });
     }
-    const message = err instanceof Error ? err.message : "Autopilot failed";
+    const isAborted = axios.isCancel(err) || (err instanceof DOMException && err.name === "AbortError");
+    const message = isAborted ? "Autopilot cancelled" : (err instanceof Error ? err.message : "Autopilot failed");
     setAutoRunError(currentStep, message);
     pushAutoRunLog(message);
     if (message !== "Autopilot cancelled") {

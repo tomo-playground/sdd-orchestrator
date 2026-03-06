@@ -10,6 +10,7 @@ type AutoRunStatusProps = {
   storyboardTitle?: string;
   onResume: (step: AutoRunStepId) => void;
   onRestart: () => void;
+  onCancel?: () => void;
 };
 
 export default function AutoRunStatus({
@@ -18,6 +19,7 @@ export default function AutoRunStatus({
   storyboardTitle,
   onResume,
   onRestart,
+  onCancel,
 }: AutoRunStatusProps) {
   const [isLogCollapsed, setIsLogCollapsed] = useState(true);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -49,6 +51,15 @@ export default function AutoRunStatus({
           <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             {autoRunState.status}
           </span>
+          {autoRunState.status === "running" && onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-full border border-red-200 bg-red-50 px-3 py-0.5 text-[12px] font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100"
+            >
+              Stop
+            </button>
+          )}
           {autoRunLog.length > 0 && (
             <button
               type="button"

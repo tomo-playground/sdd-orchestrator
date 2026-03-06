@@ -17,6 +17,7 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 {% endfor %}
 CRITICAL: Include ALL identity + appearance + lora_trigger tags in every character scene's image_prompt exactly as listed. Do NOT rephrase, omit, or replace them.
 Action hints are the character's typical poses/actions — use them as defaults but freely override with scene-appropriate actions.
+CRITICAL: MAINTAIN the character's default CLOTHING and ACCESSORIES across ALL scenes. Do NOT change, remove, or replace outfit tags unless the script explicitly describes an outfit change. Outfit consistency is as important as face consistency.
 {% elif character_tags %}
 ## Character Visual Tags
 {{ character_tags | tojson(indent=2) }}

@@ -65,11 +65,12 @@ def _most_common(values: list, default=None):
     return counter.most_common(1)[0][0]
 
 
-_DIALOGUE_STRUCTURES = {"Dialogue", "Narrated Dialogue"}
+_DIALOGUE_STRUCTURES = {"Dialogue", "Narrated Dialogue", "Narrated_Dialogue"}
 
 
 def _group_characters(
-    group_id: int, db: Session,
+    group_id: int,
+    db: Session,
 ) -> list[tuple[int, str]]:
     """그룹의 활성 캐릭터 목록을 반환한다 (최대 2명)."""
     rows = (

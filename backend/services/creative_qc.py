@@ -102,7 +102,7 @@ def validate_scripts(
 
     # Speaker distribution check
     speakers_found = {s.get("speaker", "") for s in scripts}
-    structure_lower = structure.lower() if structure else ""
+    structure_lower = structure.lower().replace("_", " ") if structure else ""
     if structure_lower == "dialogue":
         missing = {"A", "B"} - speakers_found
         if missing:
