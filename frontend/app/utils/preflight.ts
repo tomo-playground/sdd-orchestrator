@@ -13,6 +13,7 @@ import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useRenderStore } from "../store/useRenderStore";
 import { useContextStore } from "../store/useContextStore";
 import { checkStageStep, checkImagesStep, checkRenderStep } from "./preflight-steps";
+import { isMultiCharStructure } from "./structure";
 export type { StageCheckInput } from "./preflight-steps";
 
 // ============================================================
@@ -71,11 +72,13 @@ export interface PreflightResult {
 export interface PreflightInput {
   // Settings
   topic: string;
+  structure: string;
   characterName: string | null;
   characterId: number | null;
   characterBName: string | null;
   characterBId: number | null;
   voiceName: string;
+  voiceBName: string;
   bgmMode: "manual" | "auto";
   bgmFile: string | null;
   bgmPrompt: string;
@@ -84,6 +87,7 @@ export interface PreflightInput {
   controlnetWeight: number;
   ipAdapterEnabled: boolean;
   ipAdapterReference: string | null;
+  ipAdapterReferenceB: string | null;
 
   // SD Params
   steps: number;
@@ -125,6 +129,9 @@ function checkTopic(topic: string): SettingsCheck {
 function checkCharacter(
   name: string | null,
   id: number | null,
+  nameB: string | null,
+  idB: number | null,
+  structure: string,
   scenes: (Scene | DraftScene)[]
 ): SettingsCheck {
   // Narrator-only storyboards don't require a character
@@ -145,6 +152,18 @@ function checkCharacter(
       message: "Character Preset을 선택하세요",
     };
   }
+  const isMulti = isMultiCharStructure(structure);
+  if (isMulti && idB && nameB) {
+    return { valid: true, value: `${name} & ${nameB}`, required: true };
+  }
+  if (isMulti && (!idB || !nameB)) {
+    return {
+      valid: false,
+      value: null,
+      required: true,
+      message: `${name} 선택됨 — Character B 필요`,
+    };
+  }
   return {
     valid: true,
     value: name,
@@ -152,18 +171,22 @@ function checkCharacter(
   };
 }
 
-function checkVoice(voiceName: string): SettingsCheck {
-  if (!voiceName) {
+function checkVoice(voiceName: string, voiceBName: string, structure: string): SettingsCheck {
+  const isMulti = isMultiCharStructure(structure);
+  if (!voiceName && !voiceBName) {
     return {
-      valid: true, // Not required
+      valid: true,
       value: "기본값",
       required: false,
       message: "기본 음성 사용",
     };
   }
+  if (isMulti && voiceName && voiceBName) {
+    return { valid: true, value: `${voiceName} / ${voiceBName}`, required: false };
+  }
   return {
     valid: true,
-    value: voiceName,
+    value: voiceName || voiceBName || "기본값",
     required: false,
   };
 }
@@ -202,28 +225,27 @@ function checkControlnet(enabled: boolean, weight: number): SettingsCheck {
   };
 }
 
-function checkIpAdapter(enabled: boolean, reference: string | null): SettingsCheck {
+function checkIpAdapter(
+  enabled: boolean,
+  reference: string | null,
+  referenceB: string | null,
+  structure: string
+): SettingsCheck {
   if (!enabled) {
-    return {
-      valid: true,
-      value: "비활성",
-      required: false,
-    };
+    return { valid: true, value: "비활성", required: false };
   }
   if (!reference) {
-    return {
-      valid: false,
-      value: null,
-      required: false,
-      message: "IP-Adapter 참조 이미지 필요",
-    };
+    return { valid: false, value: null, required: false, message: "IP-Adapter 참조 이미지 필요" };
   }
-  const refName = reference.split("/").pop() || reference;
-  return {
-    valid: true,
-    value: refName.length > 20 ? refName.slice(0, 20) + "..." : refName,
-    required: false,
-  };
+  const nameA = reference.split("/").pop() || reference;
+  const shortA = nameA.length > 20 ? nameA.slice(0, 20) + "..." : nameA;
+  const isMulti = isMultiCharStructure(structure);
+  if (isMulti && referenceB) {
+    const nameB = referenceB.split("/").pop() || referenceB;
+    const shortB = nameB.length > 20 ? nameB.slice(0, 20) + "..." : nameB;
+    return { valid: true, value: `${shortA} & ${shortB}`, required: false };
+  }
+  return { valid: true, value: shortA, required: false };
 }
 
 // ============================================================
@@ -237,11 +259,23 @@ export function runPreflight(input: PreflightInput): PreflightResult {
   // Check settings
   const settings = {
     topic: checkTopic(input.topic),
-    character: checkCharacter(input.characterName, input.characterId, input.scenes),
-    voice: checkVoice(input.voiceName),
+    character: checkCharacter(
+      input.characterName,
+      input.characterId,
+      input.characterBName,
+      input.characterBId,
+      input.structure,
+      input.scenes
+    ),
+    voice: checkVoice(input.voiceName, input.voiceBName, input.structure),
     bgm: checkBgm(input.bgmFile),
     controlnet: checkControlnet(input.controlnetEnabled, input.controlnetWeight),
-    ipAdapter: checkIpAdapter(input.ipAdapterEnabled, input.ipAdapterReference),
+    ipAdapter: checkIpAdapter(
+      input.ipAdapterEnabled,
+      input.ipAdapterReference,
+      input.ipAdapterReferenceB,
+      input.structure
+    ),
   };
 
   // Collect errors and warnings from settings
@@ -345,14 +379,24 @@ export function buildPreflightInput(): PreflightInput {
   const render = useRenderStore.getState();
   const ctx = useContextStore.getState();
   const sp = render.currentStyleProfile;
-  const voiceName = render.voicePresetId ? `Preset #${render.voicePresetId}` : "";
+  // Dialogue: show character names as voice labels (each character owns its voice_preset)
+  // Narrator-only: show group narrator preset
+  const isMulti = isMultiCharStructure(sb.structure);
+  const voiceName = isMulti
+    ? (sb.selectedCharacterName ?? "")
+    : render.voicePresetId
+      ? `Preset #${render.voicePresetId}`
+      : "";
+  const voiceBName = isMulti ? (sb.selectedCharacterBName ?? "") : "";
   return {
     topic: sb.topic,
+    structure: sb.structure,
     characterName: sb.selectedCharacterName,
     characterId: sb.selectedCharacterId,
     characterBName: sb.selectedCharacterBName ?? null,
     characterBId: sb.selectedCharacterBId ?? null,
     voiceName,
+    voiceBName,
     bgmMode: render.bgmMode,
     bgmFile: render.bgmFile,
     bgmPrompt: render.bgmPrompt,
@@ -361,6 +405,7 @@ export function buildPreflightInput(): PreflightInput {
     controlnetWeight: sb.controlnetWeight,
     ipAdapterEnabled: sb.useIpAdapter,
     ipAdapterReference: sb.ipAdapterReference || null,
+    ipAdapterReferenceB: sb.ipAdapterReferenceB || null,
     steps: sp?.default_steps ?? 27,
     cfgScale: sp?.default_cfg_scale ?? 7.0,
     sampler: sp?.default_sampler_name ?? "DPM++ 2M Karras",

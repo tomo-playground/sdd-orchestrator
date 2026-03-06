@@ -119,8 +119,12 @@ export function handleStreamOutcome(opts: StreamOutcomeOpts): boolean {
       : meta;
     syncToGlobalStore(finalScenes, syncMeta);
     // Mark dirty so autoSave persists the final casting/structure to DB
+    // Casting이 selectedCharacter A/B에 반영되었으므로 추천 배너도 함께 클리어
     dirtyRef.current = true;
-    useStoryboardStore.getState().set({ isDirty: true });
+    useStoryboardStore.getState().set({
+      isDirty: true,
+      ...(casting && { castingRecommendation: null }),
+    });
     showToast("Script generated", "success");
     return true;
   }

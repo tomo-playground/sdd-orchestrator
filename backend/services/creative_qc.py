@@ -102,14 +102,15 @@ def validate_scripts(
 
     # Speaker distribution check
     speakers_found = {s.get("speaker", "") for s in scripts}
-    if structure == "Dialogue":
+    structure_lower = structure.lower() if structure else ""
+    if structure_lower == "dialogue":
         missing = {"A", "B"} - speakers_found
         if missing:
             checks["speaker_distribution"] = "FAIL"
             issues.append(f"Dialogue requires both A and B, missing: {', '.join(sorted(missing))}")
         else:
             checks["speaker_distribution"] = "PASS"
-    elif structure == "Narrated Dialogue":
+    elif structure_lower == "narrated dialogue":
         missing = {"Narrator", "A", "B"} - speakers_found
         if missing:
             checks["speaker_distribution"] = "FAIL"

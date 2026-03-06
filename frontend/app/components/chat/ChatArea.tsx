@@ -57,7 +57,7 @@ export default function ChatArea({ editor }: Props) {
     [editor.scenes, editor.feedbackPresets, lastContentType]
   );
 
-  const isInitialState = editor.chatMessages.length <= 1;
+  const isInitialState = editor.chatMessages.length <= 1 && editor.scenes.length === 0;
   const isEditMode = useMemo(
     () =>
       editor.chatMessages.some((m) => m.contentType === "completion") && editor.scenes.length > 0,

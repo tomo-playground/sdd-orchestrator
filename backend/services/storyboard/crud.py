@@ -362,8 +362,11 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     storyboard.caption = request.caption
     # Keep structure in sync with latest request (Monologue / Dialogue / Narrated Dialogue)
     # casting_recommendation.structure가 있으면 Director 결정을 우선 적용
+    # .title()로 정규화: Gemini가 "dialogue" 반환 시 "Dialogue"로 통일 (presets SSOT 기준)
     if request.casting_recommendation and request.casting_recommendation.structure:
-        storyboard.structure = request.casting_recommendation.structure
+        storyboard.structure = request.casting_recommendation.structure.title()
+    elif request.structure:
+        storyboard.structure = request.structure.title()
     else:
         storyboard.structure = request.structure
     if request.duration is not None:

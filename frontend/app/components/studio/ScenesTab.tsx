@@ -68,6 +68,7 @@ export default function ScenesTab() {
     selectedCharacterBName,
     basePromptA,
     basePromptB,
+    structure,
   } = useStoryboardStore(
     useShallow((s) => ({
       loraTriggerWords: s.loraTriggerWords,
@@ -79,6 +80,7 @@ export default function ScenesTab() {
       selectedCharacterBName: s.selectedCharacterBName,
       basePromptA: s.basePromptA,
       basePromptB: s.basePromptB,
+      structure: s.structure,
     }))
   );
 
@@ -299,7 +301,7 @@ export default function ScenesTab() {
                   selectedCharacterId={resolvedCharacterId}
                   basePromptA={resolvedBasePrompt}
                   characterLoras={resolvedCharacterLoras}
-                  structure={useStoryboardStore.getState().structure}
+                  structure={structure}
                   characterAName={selectedCharacterName}
                   characterBName={selectedCharacterBName}
                   selectedCharacterBId={selectedCharacterBId}
