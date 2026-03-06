@@ -124,8 +124,8 @@ Warning 이하는 리포트 후 커밋 진행 가능합니다.
 | PM | 제품/로드맵/문서 | memory, context7 | /roadmap, /docs, /vrt, /test, /pm-check |
 | Prompt Engineer | 프롬프트/태그/데이터 분석 | danbooru, huggingface, postgres, memory | /prompt-validate, /sd-status |
 | Storyboard Writer | 템플릿/스크립트/Gemini | context7, memory | /roadmap |
-| QA Validator | 테스트/검증/품질 | playwright, postgres, memory | /test, /review, /vrt |
-| FFmpeg Expert | 렌더링/비디오/오디오 | ffmpeg, memory | /vrt |
+| QA Validator | 테스트/검증/품질 | playwright, postgres, memory | /test, /review, /vrt, /sd-status, /prompt-validate |
+| FFmpeg Expert | 렌더링/비디오/오디오 | ffmpeg, memory | /vrt, /roadmap |
 | UI/UX Engineer | UI 설계/접근성 | playwright, memory | /vrt, /test |
 | Frontend Dev | Next.js/React/Zustand | playwright, context7, memory, API spec | /test frontend, /vrt |
 | Backend Dev | FastAPI/서비스/스토리지 | context7, postgres, memory, API spec | /test backend, /sd-status, /db, /pose |

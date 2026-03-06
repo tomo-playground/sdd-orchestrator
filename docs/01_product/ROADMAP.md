@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-03-05)
+## 현재 상태 (2026-03-06)
 
 | 항목 | 상태 |
 |------|------|
@@ -32,11 +32,18 @@
 | Phase 26 (Script 협업형 UX) | 전체 완료 (ARCHIVED) |
 | Character-Group 소유권 개편 | 전체 완료 (ARCHIVED) |
 | Phase 27 (Chat System UX & Architecture) | 전체 완료 — P0(타이핑 인디케이터+히스토리 영속+a11y) + P1(Discriminated Union+AbortController+에러 복구+AutoScroll) + P2(헬퍼 통합+모드 툴팁) |
-| Phase 29 (Video Pre-validation) | Sub-Phase A~B 완료 — TTS 프리뷰/렌더 연결 + 씬 필드 소실 수정 + Spread Passthrough 패턴 전환 |
-| 테스트 | Backend 3,101 + Frontend 543 + E2E 36 = **총 3,680개** |
+| Phase 29 (Video Pre-validation) | Sub-Phase A~C 완료 — TTS 프리뷰/렌더 연결 + 씬 필드 소실 수정 + Spread Passthrough + 타임라인 시각화 |
+| Casting 네이밍 정규화 | 완료 — character_id→character_a_id (Casting 컨텍스트), 27개 파일, JSONB 마이그레이션 |
+| Checkpointer 리팩토링 | 완료 — 싱글턴→per-request 패턴, DB 풀 고갈 방지 |
+| 테스트 | Backend 3,476 + Frontend 543 + E2E 36 = **총 4,055개** |
 
 ### 최근 작업
 
+- **Dialogue 템플릿 대화 품질 강화** (03-06): ① Output Format 교체 — placeholder `"..."` → 실제 한국어 대화체 4씬 few-shot 예시(A→B→A→B 교대 패턴). ② Instructions 강화 — STRICT ALTERNATION 규칙, 독백/대화 ❌/✅ 예시, FORBIDDEN 연속 동일 화자. ③ `ensure_dialogue_speakers()` 성공 로그 추가. 검증: Gemini 10씬 완벽 A/B 교대 + 대화체 스크립트 생성 확인.
+- **Casting 네이밍 정규화** (03-06): `character_id`→`character_a_id`, `character_name`→`character_a_name` (Casting 컨텍스트 내에서만). ① Backend 10파일 — CastingRecommendation, inventory_resolve 머지 경계, director_plan 구→신 키 폴백, topic_analysis/critic/defaults/schemas. ② Frontend 11파일 — types, components, hooks, tests. ③ Alembic JSONB 키 리네임 마이그레이션. ④ ScriptState.character_id 등 경계 외 필드 변경 없음. 테스트 163개 PASS.
+- **Checkpointer per-request 전환** (03-06): AsyncConnectionPool 기반 per-request checkpointer/store 생성. 라우터 의존성 주입 패턴. DB 풀 고갈 방지.
+- **Phase 29-C 타임라인 시각화** (03-06): useTimeline 훅(/preview/timeline API debounce), TimelineBar 서버 effective_duration 사용 + 클릭 네비게이션 + 호버 상세, SceneListPanel 서버 계산 총 시간 표시.
+- **기존 테스트 수정** (03-06): test_cinematographer_tags(characters_tags None→{}), test_routing(빈 씬 finalize), test_director_plan(Pyright dict→ScriptState cast), topic_analysis.py(TYPE_CHECKING import).
 - **Dialogue 스피커 ALL-A 버그 수정** (03-05): 근본 원인 — Cinematographer Gemini 호출이 speaker를 "A"로 리셋 → Finalize가 cinematographer_result를 그대로 사용 → ensure_dialogue_speakers() 방어선이 Writer 이후에만 존재. ~40% 발생률(6/15 최근 Dialogue 스토리보드). ① Finalize 2차 방어 — `_merge_production_results()` 직후 `ensure_dialogue_speakers()` 재호출(Dialogue/Narrated Dialogue 구조 한정). ② Cinematographer 템플릿 — `CRITICAL: Keep speaker field EXACTLY as given` 지시 추가. ③ 통합 테스트 6건(ALL-A 교정, 멱등성, Narrator 보존, Narrated Dialogue, Monologue 미적용, draft_scenes 경로). 커밋 `fd7708e9`, `bd18358b`.
 - **Auto Run 파이프라인 22건 버그 수정** (03-05): 심층분석(3 에이전트 병렬)으로 28개 이슈 발견 → 4 에이전트 병렬로 22건 수정. Critical 3(AbortSignal SSE 취소, Batch 프롬프트 불일치, TTS 캐시키 scene_emotion 누락), High 6(stageStatus 복구, persistStoryboard 반환값 체크, didScenesChanged 7필드 추가, tts_asset_id transient, DB 풀 고갈 3-Phase 분리, batch scene_id), Medium 9(image_prompt 렌더 누락, env_ref 보존, concurrent guard, TTS fallback 로깅, TTS 실패 추적, Gemini system_instruction 분리, per-task circuit breaker, atomic cache write, image_prompt schema), Low 6. 15파일 변경, 커밋 `e70ca535`.
 - **Phase 29-B TTS 프리뷰→렌더 연결 + Spread Passthrough 전환 완료** (03-05): ① tts_asset_id 기반 TTS 재사용 — 프리뷰 TTS를 렌더 시 재생성하지 않고 직접 사용(Scene DB 컬럼 추가, Frontend/Backend 파이프라인 연결). ② 씬 필드 소실 근본 원인 수정 — `mapDbScenes()`에서 6개 필드 누락 → 스토리보드 재로드 시 null 덮어쓰기. ③ Spread Passthrough 패턴 8개 함수 전환 완료 — mapDbScenes, mapGeminiScenes, buildScenesPayload, buildSavePayload, mapScenesToItems, syncToGlobalStore(Frontend 6), serialize_scene, create_scenes(Backend 2). CLAUDE.md Data Mapping Principles 규칙 추가. 순 -75줄 감소. 코드 리뷰 3회(BLOCKER 1+WARNING 4+Suggestion 2 전체 수정).

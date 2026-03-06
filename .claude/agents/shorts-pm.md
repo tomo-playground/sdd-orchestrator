@@ -113,23 +113,19 @@ allowed_tools: ["mcp__memory__*", "mcp__context7__*"]
 
 ```
 docs/
-├── 00_meta/          # 문서 관리 규칙
 ├── 01_product/       # 제품 (PRD, 로드맵, 기능 명세)
 │   ├── ROADMAP.md    # 상태 추적
 │   ├── PRD.md        # 제품 요구사항
-│   └── FEATURES/     # 기능별 what/why (20개 명세)
-├── 02_design/        # UI/UX 설계
-│   ├── UI_PROPOSAL.md
-│   ├── STUDIO_DESIGN_GUIDE.md
-│   └── wireframes/
+│   └── FEATURES/     # 기능별 what/why (34개 명세)
+├── 02_design/        # UI/UX 설계 (13개 + wireframes/)
 ├── 03_engineering/   # 기술 설계 how
-│   ├── api/          # REST API
-│   ├── architecture/ # DB 스키마, 시스템 개요
-│   ├── backend/      # 프롬프트, 렌더링, Agent, Soft Delete
+│   ├── api/          # REST API (5개: 메인 + 분할)
+│   ├── architecture/ # DB 스키마, 시스템 개요 (6개)
+│   ├── backend/      # 프롬프트, 렌더링, Agent, LoRA, Soft Delete (7개)
 │   ├── frontend/     # 상태 관리
-│   └── testing/      # 테스트 전략/시나리오/VRT 가이드
-├── 04_operations/    # 운영 (배포, SD, TTS, 스토리지)
-├── 99_archive/       # 완료 문서 아카이브
+│   └── testing/      # 테스트 전략/시나리오/VRT/버그리포트 (5개)
+├── 04_operations/    # 운영 (배포, SD, TTS, 스토리지, 포즈) (9개)
+├── 99_archive/       # 완료 문서 아카이브 (archive/, features/, plans/, reports/)
 └── guides/           # CONTRIBUTING
 ```
 
@@ -139,7 +135,7 @@ docs/
 - `docs/01_product/` - 제품 문서 디렉토리
   - `ROADMAP.md` - 로드맵 (상태 추적)
   - `PRD.md` - 제품 요구사항 (DoD §4)
-  - `FEATURES/` - 기능별 명세 (what/why, 신규 기능은 여기에 배치)
+  - `FEATURES/` - 기능별 명세 34개 (what/why, 신규 기능은 여기에 배치)
 
 ### 문서 구조 & 메타
 - `CLAUDE.md` - 프로젝트 설정 및 문서 구조 섹션

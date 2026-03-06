@@ -357,7 +357,7 @@ frontend/app/
 - **Checkpointer**: AsyncPostgresSaver (psycopg v3, LangGraph 체크포인트)
 - **Memory**: AsyncPostgresStore (LangGraph Memory Store)
 - **Image**: Stable Diffusion WebUI (A1111) + ControlNet v1.1 + IP-Adapter Plus
-- **TTS**: Qwen3-TTS (12Hz-1.7B-VoiceDesign)
+- **TTS**: Qwen3-TTS (12Hz-1.7B-VoiceDesign, 0115 Update)
 - **Music**: Stable Audio Open 1.0 (AI BGM 생성)
 - **Validation**: WD14 (Waifu Diffusion v1.4) Vit-Tagger-v2 (ONNX)
 - **Video**: FFmpeg (Filter complex, Ken Burns effect)

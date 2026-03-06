@@ -1,6 +1,6 @@
 # 프로젝트: Shorts Producer
 
-AI 기반 쇼츠 영상 자동화 워크스페이스. LangGraph Agentic Pipeline (Gemini) + Stable Diffusion (이미지) + Qwen3-TTS (음성) + FFmpeg (렌더링).
+AI 기반 쇼츠 영상 자동화 워크스페이스. LangGraph Agentic Pipeline (Gemini) + Stable Diffusion (이미지) + Qwen3-TTS (12Hz) + FFmpeg (렌더링).
 
 ## Agent 공통 규칙
 
@@ -23,10 +23,10 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. LangGraph Agentic Pipeline
 ### Backend 구조
 ```
 backend/
-├── routers/          # API 엔드포인트 (29개 라우터)
+├── routers/          # API 엔드포인트 (30개 라우터)
 ├── services/
 │   ├── agent/        # LangGraph Agentic Pipeline
-│   │   ├── nodes/    #   19개 노드 (Director, Writer, Critic, Research, Cinematographer 등)
+│   │   ├── nodes/    #   20개 노드 (Director, Writer, Critic, Research, Cinematographer 등)
 │   │   ├── tools/    #   Gemini Function Calling 도구
 │   │   ├── state.py  #   Graph State
 │   │   └── routing.py#   조건부 라우팅
@@ -36,27 +36,26 @@ backend/
 │   ├── storyboard/   # 스토리보드 CRUD, Scene Builder
 │   └── characters/   # 캐릭터 관리, LoRA 연동
 ├── models/           # SQLAlchemy ORM (associations.py: relational tags)
-├── templates/        # Jinja2 30개 (스토리보드 5종 + Creative 21종 + 파셜 4종)
+├── templates/        # Jinja2 33개 (스토리보드 5종 + Creative 23종 + 파셜 5종)
 └── config.py         # 모든 상수/환경변수 SSOT
 ```
 
 ## 문서 구조
 ```
 docs/
-├── 00_meta/          # 문서 관리 규칙
 ├── 01_product/       # 제품 (PRD, 로드맵, 기능 명세)
 │   ├── PRD.md
 │   ├── ROADMAP.md
-│   └── FEATURES/     # 미구현 기능별 명세 (what/why)
-├── 02_design/        # UI/UX 설계
+│   └── FEATURES/     # 기능별 명세 34개 (what/why)
+├── 02_design/        # UI/UX 설계 (13개 + wireframes/)
 ├── 03_engineering/   # 기술 설계 (how)
-│   ├── api/          # REST API 명세
-│   ├── architecture/ # DB 스키마, 시스템 개요
-│   ├── backend/      # 프롬프트, 렌더링, Soft Delete 등
+│   ├── api/          # REST API 명세 (5개: 메인 + 도메인/프리셋/분석/Creative 분할)
+│   ├── architecture/ # DB 스키마, 시스템 개요 (6개)
+│   ├── backend/      # 프롬프트, 렌더링, Agent, LoRA, Soft Delete (7개)
 │   ├── frontend/     # 상태 관리
-│   └── testing/      # 테스트 전략, 시나리오
-├── 04_operations/    # 운영 (배포, SD WebUI, 트러블슈팅)
-├── 99_archive/       # 완료된 문서 아카이브
+│   └── testing/      # 테스트 전략, 시나리오, VRT, 버그리포트 (5개)
+├── 04_operations/    # 운영 (배포, SD, TTS, 스토리지, 포즈, 트러블슈팅) (9개)
+├── 99_archive/       # 완료된 문서 아카이브 (archive/, features/, plans/, reports/)
 └── guides/           # 개발 가이드 (CONTRIBUTING)
 ```
 
@@ -64,9 +63,11 @@ docs/
 - **로드맵**: `docs/01_product/ROADMAP.md`
 - **기능 명세**: `docs/01_product/FEATURES/*.md`
 - **제품 스펙**: `docs/01_product/PRD.md`
-- **API 명세**: `docs/03_engineering/api/REST_API.md`
+- **API 명세**: `docs/03_engineering/api/REST_API.md` (+ REST_API_DOMAIN/PRESETS/ANALYTICS/CREATIVE)
 - **DB 스키마**: `docs/03_engineering/architecture/DB_SCHEMA.md`
 - **프롬프트 설계**: `docs/03_engineering/backend/PROMPT_SPEC.md`
+- **LoRA 가이드**: `docs/03_engineering/backend/LORA_SELECTION_GUIDE.md`
+- **렌더링 파이프라인**: `docs/03_engineering/backend/RENDER_PIPELINE.md`
 - **테스트 전략**: `docs/03_engineering/testing/TEST_STRATEGY.md`
 - **테스트 시나리오**: `docs/03_engineering/testing/TEST_SCENARIOS.md`
 - **개발 가이드**: `docs/guides/CONTRIBUTING.md`
@@ -326,16 +327,16 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 | Agent | 역할 | Commands |
 |-------|------|----------|
-| **Tech Lead** | 개발 총괄, 코드 리뷰, 크로스 에이전트 조율 | `/roadmap`, `/test`, `/review`, `/db`, `/docs` |
-| **PM Agent** | 로드맵/우선순위/문서 구조 관리 | `/roadmap`, `/docs`, `/vrt`, `/test`, `/pm-check` |
-| **Prompt Engineer** | SD 프롬프트 최적화 + 데이터 기반 고도화 | `/prompt-validate`, `/sd-status` |
-| **Storyboard Writer** | 스토리보드/스크립트 작성 | `/roadmap` |
-| **QA Validator** | 품질 체크/테스트 검증/TROUBLESHOOTING | `/test`, `/review`, `/vrt`, `/sd-status`, `/prompt-validate` |
-| **FFmpeg Expert** | 렌더링/비디오 효과 | `/vrt`, `/roadmap` |
-| **UI/UX Engineer** | UI 설계/와이어프레임/사용성 개선 | `/vrt`, `/test` |
+| **Tech Lead** | 개발 총괄, 크로스 에이전트 조율, 기술 의사결정 | `/roadmap`, `/test`, `/review`, `/db`, `/docs` |
+| **PM Agent** | 로드맵/우선순위/문서 관리, 프로젝트 진행 조율 | `/roadmap`, `/docs`, `/vrt`, `/test`, `/pm-check` |
+| **Prompt Engineer** | SD 프롬프트 최적화, Danbooru/Civitai 기반 인사이트 | `/prompt-validate`, `/sd-status` |
+| **Storyboard Writer** | 스토리보드/스크립트 작성, Jinja2 템플릿 최적화 | `/roadmap` |
+| **QA Validator** | 품질 체크, TROUBLESHOOTING 관리, 테스트 검증 | `/test`, `/review`, `/vrt`, `/sd-status`, `/prompt-validate` |
+| **FFmpeg Expert** | 영상 렌더링, FFmpeg 명령어, 비디오 효과 | `/vrt`, `/roadmap` |
+| **UI/UX Engineer** | UI/UX 설계, 와이어프레임, 사용성 개선 | `/vrt`, `/test` |
 | **Frontend Dev** | Next.js/React 개발, Zustand 상태 관리 | `/test frontend`, `/vrt` |
-| **Backend Dev** | FastAPI 개발, 서비스 로직, 스토리지 | `/test backend`, `/sd-status`, `/db`, `/pose` |
-| **DBA** | DB 설계, Alembic 마이그레이션, 쿼리 최적화 | `/db`, `/test backend` |
+| **Backend Dev** | FastAPI 개발, 서비스 로직, API 설계 | `/test backend`, `/sd-status`, `/db`, `/pose` |
+| **DBA** | PostgreSQL DB 설계, 마이그레이션, 쿼리 최적화 | `/db`, `/test backend` |
 | **Security Engineer** | 보안 취약점 분석, 인증/인가, 시크릿 관리 | `/review`, `/test` |
 
 > **향후 확장**: 프로덕션 배포 및 규모 확장 시 DevOps Agent 분리 검토 (현재 인프라 담당: Backend Dev)

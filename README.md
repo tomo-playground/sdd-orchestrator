@@ -1,6 +1,6 @@
 # Shorts Producer
 
-**Shorts Producer**는 쇼츠 영상 콘텐츠 제작을 자동화하는 AI 기반 워크스페이스입니다. **LangGraph** 기반 Agentic AI Pipeline에서 **Google Gemini**가 스토리보드를 기획하고, **Stable Diffusion**으로 이미지를 생성하며, **Qwen3-TTS**로 음성을 합성하고, **FFmpeg**로 최종 영상을 렌더링합니다.
+**Shorts Producer**는 쇼츠 영상 콘텐츠 제작을 자동화하는 AI 기반 워크스페이스입니다. **LangGraph** 기반 Agentic AI Pipeline에서 **Google Gemini**가 스토리보드를 기획하고, **Stable Diffusion**으로 이미지를 생성하며, **Qwen3-TTS (12Hz)**로 음성을 합성하고, **FFmpeg**로 최종 영상을 렌더링합니다.
 
 ## System Architecture
 
@@ -136,7 +136,7 @@ flowchart TD
 3.  **지능형 검수**:
     - **WD14 Tagger**: 생성 이미지와 프롬프트 키워드 일치 여부를 정량 검증합니다.
     - **Gemini Vision**: 검증 점수가 낮으면 이미지를 시각 분석하여 보정합니다.
-4.  **TTS & 렌더링**: Qwen3-TTS 로컬 음성 합성 (오디오 정규화) + AI BGM + FFmpeg 영상 합성으로 최종 영상을 완성합니다.
+4.  **TTS & 렌더링**: Qwen3-TTS (12Hz) 로컬 음성 합성 (오디오 정규화) + AI BGM + FFmpeg 영상 합성으로 최종 영상을 완성합니다.
 5.  **스마트 렌더링**: 얼굴 감지 기반 크롭, 동적 Scene Text 높이, 플랫폼별 Safe Zone, 배경 밝기 기반 텍스트 색상 자동 조정.
 
 ## 기술 스택
@@ -148,7 +148,7 @@ flowchart TD
 | DB | PostgreSQL, SQLAlchemy, Alembic |
 | AI Pipeline | LangGraph, Google Gemini (`google-genai`), 30 Jinja2 Templates |
 | Image Gen | Stable Diffusion WebUI (SDXL), ControlNet, IP-Adapter |
-| TTS | Qwen3-TTS (로컬 MPS) |
+| TTS | Qwen3-TTS (12Hz, 로컬 MPS) |
 | Video | FFmpeg (Ken Burns, 13종 전환 효과) |
 | Storage | MinIO/S3 |
 | Observability | LangFuse (셀프호스팅) |

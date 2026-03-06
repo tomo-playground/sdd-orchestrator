@@ -60,7 +60,7 @@ backend/
 ├── schemas.py            # Pydantic 스키마 (메인)
 ├── schemas_lab.py        # Lab 전용 스키마
 ├── schemas_creative.py   # Creative Pipeline 전용 스키마
-├── routers/              # API 엔드포인트 (33개)
+├── routers/              # API 엔드포인트 (30개)
 │   ├── storyboard.py     # 스토리보드 CRUD + 생성
 │   ├── scene.py          # 씬 이미지 생성/편집
 │   ├── characters.py     # 캐릭터 CRUD
@@ -69,30 +69,19 @@ backend/
 │   ├── creative_presets.py # Creative 프리셋
 │   ├── lab.py            # Creative Lab
 │   ├── scripts.py        # 스크립트 관리
-│   ├── groups.py         # 그룹 CRUD
-│   ├── projects.py       # 프로젝트 CRUD
+│   ├── groups.py, projects.py # 그룹/프로젝트 CRUD
 │   ├── admin.py          # DB 관리, 캐시 리프레시
-│   ├── analytics.py      # 분석 대시보드
-│   ├── youtube.py        # YouTube 업로드
+│   ├── activity_logs.py  # 활동 로그
 │   ├── video.py          # 비디오 렌더링
-│   ├── assets.py         # 에셋 관리
-│   ├── avatar.py         # 아바타
-│   ├── backgrounds.py    # 배경
-│   ├── keywords.py       # 키워드/태그 검색
+│   ├── assets.py, backgrounds.py # 에셋/배경
 │   ├── loras.py          # LoRA 관리
-│   ├── memory.py         # 메모리
-│   ├── music_presets.py  # 음악 프리셋
-│   ├── presets.py        # 프리셋
-│   ├── prompt_histories.py # 프롬프트 히스토리
+│   ├── preview.py        # 프리뷰/타임라인
 │   ├── quality.py        # 품질 분석
-│   ├── render_presets.py # 렌더 프리셋
-│   ├── sd.py             # SD WebUI 연동
+│   ├── stage.py          # Stage 워크플로우
 │   ├── sd_models.py      # SD 모델 관리
-│   ├── settings.py       # 설정
-│   ├── style_profiles.py # 스타일 프로필
-│   ├── tags.py           # 태그 CRUD
-│   ├── voice_presets.py  # 음성 프리셋
-│   └── cleanup.py        # 정리/GC
+│   ├── style_profiles.py, render_presets.py, voice_presets.py, music_presets.py
+│   ├── tags.py, settings.py, memory.py, presets.py, prompt_histories.py
+│   └── youtube.py        # YouTube 업로드
 ├── services/
 │   ├── prompt/           # 12-Layer Prompt Engine (4개 모듈)
 │   │   ├── composition.py       # PromptBuilder (12-Layer)
@@ -113,7 +102,7 @@ backend/
 │   ├── agent/            # LangGraph Creative Pipeline
 │   │   ├── script_graph.py      # 메인 그래프
 │   │   ├── state.py, routing.py # 상태/라우팅
-│   │   ├── nodes/               # 17개 에이전트 노드 (director, writer, critic, cinematographer 등)
+│   │   ├── nodes/               # 20개 에이전트 노드 (director, writer, critic, cinematographer 등)
 │   │   ├── tools/               # 에이전트 도구 (research, cinematographer)
 │   │   ├── store.py, checkpointer.py
 │   │   └── observability.py     # Langfuse 연동

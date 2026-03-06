@@ -14,7 +14,7 @@
 - **Frontend**: Next.js 16, React 19, Zustand 5
 - **DB**: PostgreSQL + SQLAlchemy + Alembic
 - **AI**: Google Gemini (`google-genai`), Stable Diffusion WebUI (SDXL)
-- **TTS**: Qwen3-TTS (로컬 MPS)
+- **TTS**: Qwen3-TTS (12Hz, 로컬 MPS)
 - **Observability**: LangFuse (셀프호스팅)
 
 ## Gemini 사용 현황
