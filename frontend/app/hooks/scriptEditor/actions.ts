@@ -49,6 +49,7 @@ export function buildGenerateBody(
 
 /** Build PUT/POST body for /storyboards. */
 export function buildSavePayload(s: ScriptEditorState, groupId: number | null) {
+  const casting = useStoryboardStore.getState().castingRecommendation;
   return {
     title: s.topic.trim(),
     description: s.description.trim() || undefined,
@@ -58,6 +59,7 @@ export function buildSavePayload(s: ScriptEditorState, groupId: number | null) {
     group_id: groupId,
     character_id: s.characterId,
     character_b_id: s.characterBId,
+    casting_recommendation: casting ?? undefined,
     version: s.storyboardVersion ?? undefined,
     // Spread passthrough: UI-only 필드 제거 후 나머지 패스스루
     scenes: s.scenes.map((sc, i) => {
