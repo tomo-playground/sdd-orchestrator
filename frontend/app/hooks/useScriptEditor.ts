@@ -158,7 +158,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     streamAbortRef.current?.abort();
     const controller = new AbortController();
     streamAbortRef.current = controller;
-    useStoryboardStore.getState().set({ castingRecommendation: null });
+    useStoryboardStore.getState().set({ isScriptGenerating: true });
     setState((prev) => ({
       ...prev,
       isGenerating: true,
@@ -194,6 +194,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       showToast(err instanceof Error ? err.message : "Generation failed", "error");
       setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
     } finally {
+      useStoryboardStore.getState().set({ isScriptGenerating: false });
       streamAbortRef.current = null;
     }
   }, [groupId, showToast]);
@@ -213,6 +214,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       streamAbortRef.current?.abort();
       const controller = new AbortController();
       streamAbortRef.current = controller;
+      useStoryboardStore.getState().set({ isScriptGenerating: true });
       setState((prev) => ({
         ...prev,
         isGenerating: true,
@@ -259,6 +261,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         showToast(err instanceof Error ? err.message : "Resume failed", "error");
         setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
       } finally {
+        useStoryboardStore.getState().set({ isScriptGenerating: false });
         streamAbortRef.current = null;
       }
     },

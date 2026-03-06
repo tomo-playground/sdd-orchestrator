@@ -18,13 +18,14 @@ export function cancelPendingSave() {
 function scheduleSave() {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(async () => {
-    const { isDirty, scenes } = useStoryboardStore.getState();
+    const { isDirty, scenes, isScriptGenerating } = useStoryboardStore.getState();
     const { isAutoRunning } = useUIStore.getState();
     // Skip save during autoRun — it manages its own persist calls
+    // Skip save during script generation — casting data not yet available (race condition)
     const hasGeneratingScene = scenes.some((s) => s.isGenerating);
-    if (!isDirty || scenes.length === 0 || isSaving || isAutoRunning || hasGeneratingScene) {
+    if (!isDirty || scenes.length === 0 || isSaving || isAutoRunning || hasGeneratingScene || isScriptGenerating) {
       // Re-schedule: generation will finish → updateScene sets isDirty → retry
-      if (hasGeneratingScene && isDirty) scheduleSave();
+      if ((hasGeneratingScene || isScriptGenerating) && isDirty) scheduleSave();
       return;
     }
 

@@ -39,6 +39,7 @@
 
 ### 최근 작업
 
+- **Casting SSOT Race Condition 근본 수정** (03-06): 3-에이전트 병렬 심층분석으로 5개 누락 경로 발견. 근본 원인: generate() 시작 시 `castingRecommendation=null` 초기화 → autoSave 경합(isDirty=true + 2s debounce) → null casting + Monologue로 PUT → `_sync_speaker_mappings`에서 B 매핑 전삭 → TTS fallback voice. ① `isScriptGenerating` Zustand 플래그 — autoSave에서 스크립트 생성 중 저장 완전 차단. ② casting null 초기화 제거 — generate 시작 시 이전 casting 보존. ③ `syncToGlobalStore` meta에 casting 머지 — setState 비동기 타이밍 이슈 해소. ④ 완료 후 isDirty=true 트리거 — autoSave가 최종 casting으로 DB 갱신. ⑤ Backend 방어: `character_b_id` 명시 시 structure 무관하게 B 매핑 저장(warning 로그). 5파일 변경, autoSave 테스트 10개 PASS.
 - **Dialogue 템플릿 대화 품질 강화** (03-06): ① Output Format 교체 — placeholder `"..."` → 실제 한국어 대화체 4씬 few-shot 예시(A→B→A→B 교대 패턴). ② Instructions 강화 — STRICT ALTERNATION 규칙, 독백/대화 ❌/✅ 예시, FORBIDDEN 연속 동일 화자. ③ `ensure_dialogue_speakers()` 성공 로그 추가. 검증: Gemini 10씬 완벽 A/B 교대 + 대화체 스크립트 생성 확인.
 - **Casting 네이밍 정규화** (03-06): `character_id`→`character_a_id`, `character_name`→`character_a_name` (Casting 컨텍스트 내에서만). ① Backend 10파일 — CastingRecommendation, inventory_resolve 머지 경계, director_plan 구→신 키 폴백, topic_analysis/critic/defaults/schemas. ② Frontend 11파일 — types, components, hooks, tests. ③ Alembic JSONB 키 리네임 마이그레이션. ④ ScriptState.character_id 등 경계 외 필드 변경 없음. 테스트 163개 PASS.
 - **Checkpointer per-request 전환** (03-06): AsyncConnectionPool 기반 per-request checkpointer/store 생성. 라우터 의존성 주입 패턴. DB 풀 고갈 방지.

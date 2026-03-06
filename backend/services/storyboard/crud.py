@@ -55,9 +55,14 @@ def _sync_speaker_mappings(
     if character_id:
         speaker_map[SPEAKER_A] = character_id
 
-    # Map Speaker B to character_b_id (Dialogue only)
-    if is_multi and character_b_id:
+    # Map Speaker B: explicit character_b_id always wins (defense against structure mismatch)
+    if character_b_id:
         speaker_map[SPEAKER_B] = character_b_id
+        if not is_multi:
+            logger.warning(
+                "[SpeakerMapping] character_b_id=%d provided but structure=%s — mapping B anyway",
+                character_b_id, structure,
+            )
 
     # assign_speakers handles deletion of old mappings before inserting new ones
     assign_speakers(storyboard_id, speaker_map, db)

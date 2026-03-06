@@ -106,8 +106,21 @@ export function handleStreamOutcome(opts: StreamOutcomeOpts): boolean {
         characterBName: casting.character_b_name || prev.characterBName,
       }),
     }));
-    syncToGlobalStore(finalScenes, meta);
-    dirtyRef.current = false;
+    // meta는 setState 반영 전 값이므로, casting 정보를 직접 머지하여 Zustand에 동기화
+    const syncMeta = casting
+      ? {
+          ...meta,
+          structure: casting.structure || meta.structure,
+          characterId: casting.character_a_id ?? meta.characterId,
+          characterBId: casting.character_b_id ?? meta.characterBId,
+          characterName: casting.character_a_name || meta.characterName,
+          characterBName: casting.character_b_name || meta.characterBName,
+        }
+      : meta;
+    syncToGlobalStore(finalScenes, syncMeta);
+    // Mark dirty so autoSave persists the final casting/structure to DB
+    dirtyRef.current = true;
+    useStoryboardStore.getState().set({ isDirty: true });
     showToast("Script generated", "success");
     return true;
   }

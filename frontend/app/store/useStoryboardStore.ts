@@ -89,6 +89,9 @@ export interface StoryboardStore {
   // Casting recommendation (Phase 20-B)
   castingRecommendation: CastingRecommendation | null;
 
+  // Script generation in progress (blocks autoSave to prevent casting race condition)
+  isScriptGenerating: boolean;
+
   // Dirty flag
   isDirty: boolean;
 
@@ -161,6 +164,7 @@ const initialState: Omit<
   stageStatus: "pending" as StageStatus,
   storyboardVersion: null,
   castingRecommendation: null,
+  isScriptGenerating: false,
 };
 
 export const STORYBOARD_STORE_KEY = "shorts-producer:storyboard:v1";
@@ -190,6 +194,7 @@ const SCENE_TRANSIENT_FIELDS: ReadonlySet<string> = new Set([
 const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "isDirty",
   "isGenerating",
+  "isScriptGenerating",
   "validatingSceneId",
   "markingStatusSceneId",
   "sceneTab",
