@@ -116,10 +116,10 @@ async def lifespan(_app: FastAPI):
         logger.warning("[Audio] Audio Server not ready (will retry on first request): %s", health)
 
     # Initialize LangGraph Checkpointer + Store
-    from services.agent.checkpointer import close_checkpointer, get_checkpointer
+    from services.agent.checkpointer import close_checkpointer, init_checkpointer
     from services.agent.store import close_store, get_store
 
-    await get_checkpointer()
+    await init_checkpointer()
     await get_store()
 
     logger.info("🚀 [Startup] Application started successfully")

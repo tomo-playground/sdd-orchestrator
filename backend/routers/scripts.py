@@ -143,13 +143,13 @@ async def generate_script_endpoint(
 ):
     """동기 엔드포인트 — 내부적으로 Graph를 경유한다."""
     logger.info("📝 [Script Generate] %s", request.model_dump())
-    graph = await get_compiled_graph()
-    state = _request_to_state(request)
-    config = _build_config(_resolve_thread_id())
-    result = await graph.ainvoke(state, config)
-    if result.get("error"):
-        raise HTTPException(status_code=500, detail=result["error"])
-    return _state_to_response(result)
+    async with get_compiled_graph() as graph:
+        state = _request_to_state(request)
+        config = _build_config(_resolve_thread_id())
+        result = await graph.ainvoke(state, config)
+        if result.get("error"):
+            raise HTTPException(status_code=500, detail=result["error"])
+        return _state_to_response(result)
 
 
 def _is_graph_interrupt(exc: Exception) -> bool:
@@ -366,9 +366,6 @@ async def _stream_graph_events(
     """Graph를 스트리밍하며 SSE 이벤트를 yield한다."""
     from services.agent.observability import update_trace_on_interrupt  # noqa: PLC0415
 
-    graph = await get_compiled_graph()
-    char_ids: list[int | None] = [None, None]
-
     # Safety preflight — 초기 생성 요청(topic 포함 dict)일 때만 실행
     if isinstance(graph_input, dict) and graph_input.get("topic"):
         blocked = await _preflight_safety_check(
@@ -387,65 +384,67 @@ async def _stream_graph_events(
             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
             return
 
-    interrupted = False
-    try:
-        async for event in graph.astream(graph_input, config, stream_mode="updates"):
-            for node_name, node_output in event.items():
-                if not isinstance(node_output, dict):
-                    continue
-                payload = _build_node_payload(node_name, thread_id, node_output, char_ids)
-                yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
-
-    except Exception as e:
-        if _is_graph_interrupt(e):
-            interrupted = True
-        else:
-            logger.exception("[SSE] %s error: %s", label, e)
-            error_payload = {
-                "node": "error",
-                "label": "오류",
-                "percent": 0,
-                "status": "error",
-                "error": "스토리보드 생성 중 오류가 발생했습니다",
-            }
-            yield f"data: {json.dumps(error_payload, ensure_ascii=False)}\n\n"
-
-    # astream은 interrupt 시 예외 없이 스트림만 종료할 수 있음 — 상태로 감지
-    if not interrupted:
+    async with get_compiled_graph() as graph:
+        char_ids: list[int | None] = [None, None]
+        interrupted = False
         try:
-            snapshot = await graph.aget_state(config)
-            if snapshot.next:
+            async for event in graph.astream(graph_input, config, stream_mode="updates"):
+                for node_name, node_output in event.items():
+                    if not isinstance(node_output, dict):
+                        continue
+                    payload = _build_node_payload(node_name, thread_id, node_output, char_ids)
+                    yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+        except Exception as e:
+            if _is_graph_interrupt(e):
                 interrupted = True
-        except Exception:
-            pass
+            else:
+                logger.exception("[SSE] %s error: %s", label, e)
+                error_payload = {
+                    "node": "error",
+                    "label": "오류",
+                    "percent": 0,
+                    "status": "error",
+                    "error": "스토리보드 생성 중 오류가 발생했습니다",
+                }
+                yield f"data: {json.dumps(error_payload, ensure_ascii=False)}\n\n"
 
-    if interrupted:
-        interrupt_node, result = await _read_interrupt_state(graph, config)
-        meta = _NODE_META.get(interrupt_node, {"label": "대기", "percent": 50})
-        payload_interrupt: dict = {
-            "node": interrupt_node,
-            "label": meta["label"],
-            "percent": meta["percent"],
-            "status": "waiting_for_input",
-            "thread_id": thread_id,
-        }
-        # config의 요청별 handler에서 trace_id 추출 (v3: trace_context dict)
-        handler_trace_id = None
-        callbacks = config.get("callbacks", [])
-        if callbacks:
-            ctx = getattr(callbacks[0], "trace_context", None)
-            handler_trace_id = ctx.get("trace_id") if ctx else None
-            if handler_trace_id:
-                payload_interrupt["trace_id"] = handler_trace_id
-        if result:
-            payload_interrupt["result"] = result
+        # astream은 interrupt 시 예외 없이 스트림만 종료할 수 있음 — 상태로 감지
+        if not interrupted:
+            try:
+                snapshot = await graph.aget_state(config)
+                if snapshot.next:
+                    interrupted = True
+            except Exception:
+                pass
 
-        update_trace_on_interrupt(
-            result or {"status": "waiting_for_input"},
-            trace_id=handler_trace_id,
-        )
+        if interrupted:
+            interrupt_node, result = await _read_interrupt_state(graph, config)
+            meta = _NODE_META.get(interrupt_node, {"label": "대기", "percent": 50})
+            payload_interrupt: dict = {
+                "node": interrupt_node,
+                "label": meta["label"],
+                "percent": meta["percent"],
+                "status": "waiting_for_input",
+                "thread_id": thread_id,
+            }
+            # config의 요청별 handler에서 trace_id 추출 (v3: trace_context dict)
+            handler_trace_id = None
+            callbacks = config.get("callbacks", [])
+            if callbacks:
+                ctx = getattr(callbacks[0], "trace_context", None)
+                handler_trace_id = ctx.get("trace_id") if ctx else None
+                if handler_trace_id:
+                    payload_interrupt["trace_id"] = handler_trace_id
+            if result:
+                payload_interrupt["result"] = result
 
-        yield f"data: {json.dumps(payload_interrupt, ensure_ascii=False)}\n\n"
+            update_trace_on_interrupt(
+                result or {"status": "waiting_for_input"},
+                trace_id=handler_trace_id,
+            )
+
+            yield f"data: {json.dumps(payload_interrupt, ensure_ascii=False)}\n\n"
 
 
 @router.post(

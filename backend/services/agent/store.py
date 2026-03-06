@@ -34,6 +34,7 @@ async def get_store() -> AsyncPostgresStore:
             DATABASE_URL,
             min_size=2,
             max_size=5,
+            open=False,
             kwargs={"autocommit": True, "prepare_threshold": 0, "row_factory": dict_row},
         )
         await _pool.open()

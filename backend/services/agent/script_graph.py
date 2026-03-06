@@ -15,6 +15,8 @@ Director Plan이 execution_plan으로 skip_stages를 자율 결정 (Phase 25).
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from langgraph.graph import END, START, StateGraph
 
 from services.agent.nodes.cinematographer import cinematographer_node
@@ -157,11 +159,12 @@ def build_script_graph() -> StateGraph:
     return graph
 
 
+@asynccontextmanager
 async def get_compiled_graph():
-    """checkpointer + store를 주입하고 컴파일된 그래프를 반환한다."""
+    """요청별 checkpointer를 주입하고 컴파일된 그래프를 yield한다."""
     from services.agent.checkpointer import get_checkpointer
     from services.agent.store import get_store
 
-    checkpointer = await get_checkpointer()
-    store = await get_store()
-    return build_script_graph().compile(checkpointer=checkpointer, store=store)
+    async with get_checkpointer() as checkpointer:
+        store = await get_store()
+        yield build_script_graph().compile(checkpointer=checkpointer, store=store)
