@@ -12,11 +12,10 @@ def _make_style_ctx(default_negative="", negative_embeddings=None):
     return ctx
 
 
-def _make_character(name, custom_negative="", common_negative_prompts=None):
+def _make_character(name, negative_prompt=None):
     char = MagicMock()
     char.name = name
-    char.scene_negative_prompt = custom_negative or None
-    char.common_negative_prompts = common_negative_prompts
+    char.negative_prompt = negative_prompt
     return char
 
 
@@ -94,7 +93,7 @@ class TestComposeNegativePreviewCharacterOnly:
 
     @patch("services.style_context.resolve_style_context", return_value=None)
     def test_character_custom_negative(self, _):
-        char = _make_character("Miku", custom_negative="nsfw, revealing_clothes")
+        char = _make_character("Miku", negative_prompt="nsfw, revealing_clothes")
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = char
 
@@ -111,8 +110,8 @@ class TestComposeNegativePreviewCharacterOnly:
         assert sources[0]["source"] == "character:Miku"
 
     @patch("services.style_context.resolve_style_context", return_value=None)
-    def test_character_common_negative_prompts(self, _):
-        char = _make_character("Miku", common_negative_prompts=["verybadimagenegative_v1.3"])
+    def test_character_negative_prompt(self, _):
+        char = _make_character("Miku", negative_prompt="verybadimagenegative_v1.3")
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = char
 
@@ -134,7 +133,7 @@ class TestComposeNegativePreviewCombined:
     @patch("services.style_context.resolve_style_context")
     def test_all_sources_combined(self, mock_ctx):
         mock_ctx.return_value = _make_style_ctx(default_negative="worst quality")
-        char = _make_character("Miku", custom_negative="nsfw")
+        char = _make_character("Miku", negative_prompt="nsfw")
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = char
 
@@ -159,7 +158,7 @@ class TestComposeNegativePreviewCombined:
     def test_deduplication(self, mock_ctx):
         """Duplicate tokens across sources should be deduplicated in final string."""
         mock_ctx.return_value = _make_style_ctx(default_negative="nsfw, worst quality")
-        char = _make_character("Miku", custom_negative="nsfw")
+        char = _make_character("Miku", negative_prompt="nsfw")
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = char
 
@@ -182,8 +181,8 @@ class TestComposeNegativePreviewMultiChar:
 
     @patch("services.style_context.resolve_style_context", return_value=None)
     def test_two_characters(self, _):
-        char_a = _make_character("Miku", custom_negative="nsfw")
-        char_b = _make_character("Rin", custom_negative="muscular, facial_hair")
+        char_a = _make_character("Miku", negative_prompt="nsfw")
+        char_b = _make_character("Rin", negative_prompt="muscular, facial_hair")
         db = MagicMock()
         # Return different chars for sequential queries
         db.query.return_value.filter.return_value.first.side_effect = [

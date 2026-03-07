@@ -335,11 +335,8 @@ export type Character = {
   clothing_tags: number[] | null; // Legacy
   tags: CharacterTagLink[] | null;
   loras: CharacterLoRA[] | null;
-  common_negative_prompts: string[] | null;
-  scene_positive_prompt: string | null;
-  scene_negative_prompt: string | null;
-  reference_positive_prompt: string | null;
-  reference_negative_prompt: string | null;
+  positive_prompt: string | null;
+  negative_prompt: string | null;
   reference_image_asset_id: number | null;
   reference_image_url: string | null;
   reference_key: string | null;
@@ -416,11 +413,8 @@ export type CharacterFull = {
   identity_tags: { id: number; name: string; group_name: string }[];
   clothing_tags: { id: number; name: string; group_name: string }[];
   loras: CharacterFullLoRA[];
-  common_negative_prompts: string[];
-  scene_positive_prompt: string | null;
-  scene_negative_prompt: string | null;
-  reference_positive_prompt: string | null;
-  reference_negative_prompt: string | null;
+  positive_prompt: string | null;
+  negative_prompt: string | null;
   reference_image_url: string | null;
   ip_adapter_weight: number | null;
   ip_adapter_model: string | null;

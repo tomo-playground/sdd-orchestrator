@@ -435,14 +435,14 @@ class PromptBuilder:
         """Remove character base prompt tokens from scene_tags to prevent duplication.
 
         When frontend sends a pre-composed prompt, it already contains character
-        base tokens (from scene_positive_prompt). Stripping them ensures compose
+        base tokens (from positive_prompt). Stripping them ensures compose
         doesn't double-include them and allows scene override to work.
         """
-        if not character.scene_positive_prompt:
+        if not character.positive_prompt:
             return scene_tags
         base_tokens = {
             cls._strip_weight(bt.strip().lower().replace(" ", "_"))
-            for bt in character.scene_positive_prompt.split(",")
+            for bt in character.positive_prompt.split(",")
             if bt.strip()
         }
         if not base_tokens:
@@ -557,10 +557,10 @@ class PromptBuilder:
             char_tags_data.append(entry)
             seen_names.add(norm)
 
-        # Phase 2: scene_positive_prompt (보완 역할, 중복 skip)
+        # Phase 2: positive_prompt (보완 역할, 중복 skip)
         TagFilterCache.initialize(self.db)
-        if character.scene_positive_prompt:
-            custom_tags = [t.strip() for t in character.scene_positive_prompt.split(",")]
+        if character.positive_prompt:
+            custom_tags = [t.strip() for t in character.positive_prompt.split(",")]
             custom_tags = [bt for bt in custom_tags if bt and not TagFilterCache.is_restricted(bt)]
 
             if custom_tags:
@@ -1258,12 +1258,13 @@ class PromptBuilder:
         - Environment: white_background fixed
         - No scene_tags (Gemini)
         - quality_tags: explicit quality tags from StyleProfile (skips anime fallback)
+        - positive_prompt: same field as scene path (unified character appearance prompt)
         """
-        # 1. Collect character tags (DB + scene_positive_prompt)
+        # 1. Collect character tags (DB + positive_prompt) — same as scene path
         char_tags_data = self._collect_character_tags(character)
 
-        # 2. Parse reference_positive_prompt for extra correction tags
-        ref_tags = self._parse_reference_tags(character.reference_positive_prompt)
+        # 2. Extra correction tags from caller (e.g. pose override)
+        ref_tags: list[str] = []
         if reference_extra_tags:
             ref_tags.extend(reference_extra_tags)
 

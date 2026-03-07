@@ -38,7 +38,7 @@ def _make_character(
     gender: str = "female",
     tags: list | None = None,
     loras: list | None = None,
-    scene_positive_prompt: str = "",
+    positive_prompt: str = "",
 ):
     """Build a mock Character object."""
     char = MagicMock()
@@ -47,7 +47,7 @@ def _make_character(
     char.gender = gender
     char.tags = tags or []
     char.loras = loras
-    char.scene_positive_prompt = scene_positive_prompt
+    char.positive_prompt = positive_prompt
     return char
 
 
@@ -100,7 +100,7 @@ class TestLoadCharacterContext:
         assert result["identity_tags"] == []
         assert result["costume_tags"] == []
         assert result["lora_triggers"] == []
-        assert result["scene_positive_prompt"] == ""
+        assert result["positive_prompt"] == ""
 
     def test_identity_tags_layer_0_to_3(self, db_session):
         """Tags with default_layer 0-3 are classified as identity."""
@@ -224,21 +224,21 @@ class TestLoadCharacterContext:
         result = _load_character_context(char.id, db_session)
         assert result["lora_triggers"] == []
 
-    def test_scene_positive_prompt(self, db_session):
-        """scene_positive_prompt is included in context."""
+    def test_positive_prompt(self, db_session):
+        """positive_prompt is included in context."""
         from models.character import Character
 
         char = Character(
             name="PromptTest",
             gender="male",
             group_id=1,
-            scene_positive_prompt="1boy, solo, detailed_eyes",
+            positive_prompt="1boy, solo, detailed_eyes",
         )
         db_session.add(char)
         db_session.commit()
 
         result = _load_character_context(char.id, db_session)
-        assert result["scene_positive_prompt"] == "1boy, solo, detailed_eyes"
+        assert result["positive_prompt"] == "1boy, solo, detailed_eyes"
 
     def test_gender_defaults_to_female(self, db_session):
         """If gender is None, defaults to 'female'."""
@@ -311,7 +311,7 @@ class TestTemplateCharacterContext:
             "identity_tags": ["pink_hair", "green_eyes"],
             "costume_tags": ["school_uniform", "red_ribbon"],
             "lora_triggers": ["sakura_trigger"],
-            "scene_positive_prompt": "",
+            "positive_prompt": "",
         }
         rendered = template.render(
             topic="test",
@@ -343,7 +343,7 @@ class TestTemplateCharacterContext:
             "identity_tags": [],
             "costume_tags": [],
             "lora_triggers": [],
-            "scene_positive_prompt": "",
+            "positive_prompt": "",
         }
         rendered = template.render(
             topic="test",
@@ -374,7 +374,7 @@ class TestTemplateCharacterContext:
             "identity_tags": ["green_hair"],
             "costume_tags": [],
             "lora_triggers": [],
-            "scene_positive_prompt": "",
+            "positive_prompt": "",
         }
         rendered = template.render(
             topic="test",

@@ -95,10 +95,8 @@ export default function CharacterWizard() {
     state.description.length > 0 ||
     state.selectedTags.length > 0 ||
     state.selectedLoras.length > 0 ||
-    state.scene_positive_prompt.length > 0 ||
-    state.scene_negative_prompt.length > 0 ||
-    state.reference_positive_prompt.length > 0 ||
-    state.reference_negative_prompt.length > 0;
+    state.positive_prompt.length > 0 ||
+    state.negative_prompt.length > 0;
 
   useEffect(() => {
     if (!isDirty) return;
@@ -237,10 +235,8 @@ export default function CharacterWizard() {
         group_id: state.group_id,
         tags: allTags,
         loras: state.selectedLoras.map((l) => ({ lora_id: l.loraId, weight: l.weight })),
-        scene_positive_prompt: state.scene_positive_prompt.trim() || null,
-        scene_negative_prompt: state.scene_negative_prompt.trim() || null,
-        reference_positive_prompt: state.reference_positive_prompt.trim() || null,
-        reference_negative_prompt: state.reference_negative_prompt.trim() || null,
+        positive_prompt: state.positive_prompt.trim() || null,
+        negative_prompt: state.negative_prompt.trim() || null,
       };
 
       const res = await axios.post(`${API_BASE}/characters`, payload);
@@ -402,10 +398,8 @@ export default function CharacterWizard() {
           )}
           {state.step === 4 && (
             <PromptsStep
-              customBasePrompt={state.scene_positive_prompt}
-              customNegativePrompt={state.scene_negative_prompt}
-              referenceBasePrompt={state.reference_positive_prompt}
-              referenceNegativePrompt={state.reference_negative_prompt}
+              positivePrompt={state.positive_prompt}
+              negativePrompt={state.negative_prompt}
               selectedTagNames={state.selectedTags.map((t) => t.name)}
               onFieldChange={(field, value) => dispatch({ type: "SET_PROMPT_FIELD", field, value })}
             />

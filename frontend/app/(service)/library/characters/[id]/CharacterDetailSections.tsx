@@ -16,10 +16,8 @@ export type CharacterFormData = {
   description: string;
   gender: ActorGender | null;
   group_id: number | null;
-  scene_positive_prompt: string;
-  scene_negative_prompt: string;
-  reference_positive_prompt: string;
-  reference_negative_prompt: string;
+  positive_prompt: string;
+  negative_prompt: string;
   voice_preset_id: number | null;
   ip_adapter_weight: number;
   ip_adapter_model: string;
@@ -321,20 +319,20 @@ type PromptsProps = {
 
 export function PromptsSection({ form, onChange, selectedTagNames = [] }: PromptsProps) {
   const duplicates = useMemo(
-    () => findDuplicateTokens(form.scene_positive_prompt, selectedTagNames),
-    [form.scene_positive_prompt, selectedTagNames]
+    () => findDuplicateTokens(form.positive_prompt, selectedTagNames),
+    [form.positive_prompt, selectedTagNames]
   );
 
   return (
     <div className="space-y-5">
       <PromptPair
-        label="Custom (appended to auto-generated tags)"
-        positiveValue={form.scene_positive_prompt}
-        negativeValue={form.scene_negative_prompt}
-        onPositiveChange={(v) => onChange("scene_positive_prompt", v)}
-        onNegativeChange={(v) => onChange("scene_negative_prompt", v)}
-        positivePlaceholder="e.g. masterpiece, best quality, ..."
-        negativePlaceholder="e.g. lowres, bad anatomy, ..."
+        label="캐릭터 프롬프트 (씬·레퍼런스 공통 적용)"
+        positiveValue={form.positive_prompt}
+        negativeValue={form.negative_prompt}
+        onPositiveChange={(v) => onChange("positive_prompt", v)}
+        onNegativeChange={(v) => onChange("negative_prompt", v)}
+        positivePlaceholder="DB 태그에 없는 추가 보정 태그 (선택사항)"
+        negativePlaceholder="e.g. (red_sweater:1.3), (wings:1.3), very_long_hair, ..."
       />
       {duplicates.length > 0 && (
         <p className="text-[11px] text-amber-600">
@@ -342,16 +340,6 @@ export function PromptsSection({ form, onChange, selectedTagNames = [] }: Prompt
           {duplicates.map((d) => formatTagName(d)).join(", ")}
         </p>
       )}
-      <hr className="border-zinc-100" />
-      <PromptPair
-        label="Reference (IP-Adapter 레퍼런스 이미지 생성용)"
-        positiveValue={form.reference_positive_prompt}
-        negativeValue={form.reference_negative_prompt}
-        onPositiveChange={(v) => onChange("reference_positive_prompt", v)}
-        onNegativeChange={(v) => onChange("reference_negative_prompt", v)}
-        positivePlaceholder="e.g. masterpiece, best quality, anime portrait, looking at viewer, clean background"
-        negativePlaceholder="e.g. lowres, bad anatomy, multiple views, ..."
-      />
     </div>
   );
 }

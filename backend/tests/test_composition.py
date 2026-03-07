@@ -390,7 +390,7 @@ class TestRestrictedTags:
         char = MagicMock()
         char.id = 1
         char.gender = "female"
-        char.scene_positive_prompt = "brown_hair, kitchen, long_hair, outdoors"
+        char.positive_prompt = "brown_hair, kitchen, long_hair, outdoors"
         char.tags = []
         char.loras = []
 
@@ -1256,7 +1256,7 @@ class TestApplySceneCharacterActions:
         from models.character import Character
 
         tag_ids = self._seed_tags(db_session, [("crying", LAYER_EXPRESSION), ("kneeling", LAYER_ACTION)])
-        char = Character(name="test_char", scene_positive_prompt="1girl", group_id=1)
+        char = Character(name="test_char", positive_prompt="1girl", group_id=1)
         db_session.add(char)
         db_session.flush()
 
@@ -1391,8 +1391,8 @@ class TestComposeForReferenceQuality:
         char.gender = "female"
         char.tags = []
         char.loras = []
-        char.scene_positive_prompt = "1girl"
-        char.reference_positive_prompt = None
+        char.positive_prompt = "1girl"
+        char.positive_prompt = None
 
         result = builder.compose_for_reference(char)
 
@@ -1415,8 +1415,8 @@ class TestComposeForReferenceQuality:
         char.gender = "female"
         char.tags = []
         char.loras = []
-        char.scene_positive_prompt = "1girl"
-        char.reference_positive_prompt = None
+        char.positive_prompt = "1girl"
+        char.positive_prompt = None
 
         result = builder.compose_for_reference(char, quality_tags=["photorealistic", "raw_photo"])
 
@@ -1622,7 +1622,7 @@ class TestLayerCapture:
         char = MagicMock()
         char.id = 1
         char.gender = "female"
-        char.scene_positive_prompt = "brown_hair"
+        char.positive_prompt = "brown_hair"
         char.tags = []
         char.loras = []
 
@@ -1909,7 +1909,7 @@ class TestCollectCharacterTagsLayerPlacement:
 
         char = MagicMock()
         char.tags = []
-        char.scene_positive_prompt = "gentle_smile"
+        char.positive_prompt = "gentle_smile"
 
         result = builder._collect_character_tags(char)
         tag_data = next(t for t in result if t["name"] == "gentle_smile")
@@ -1934,7 +1934,7 @@ class TestCollectCharacterTagsLayerPlacement:
 
         char = MagicMock()
         char.tags = []
-        char.scene_positive_prompt = "soft_lighting"
+        char.positive_prompt = "soft_lighting"
 
         result = builder._collect_character_tags(char)
         tag_data = next(t for t in result if t["name"] == "soft_lighting")
@@ -1952,7 +1952,7 @@ class TestCollectCharacterTagsLayerPlacement:
 
         char = MagicMock()
         char.tags = []
-        char.scene_positive_prompt = "blouse"
+        char.positive_prompt = "blouse"
 
         result = builder._collect_character_tags(char)
         tag_data = next(t for t in result if t["name"] == "blouse")
@@ -1969,7 +1969,7 @@ class TestCollectCharacterTagsLayerPlacement:
 
         char = MagicMock()
         char.tags = []
-        char.scene_positive_prompt = "masterpiece"
+        char.positive_prompt = "masterpiece"
 
         result = builder._collect_character_tags(char)
         tag_data = next(t for t in result if t["name"] == "masterpiece")
@@ -1999,7 +1999,7 @@ class TestCollectCharacterTagsLayerPlacement:
 
         char = MagicMock()
         char.tags = []
-        char.scene_positive_prompt = "gentle_smile, soft_lighting, hoodie"
+        char.positive_prompt = "gentle_smile, soft_lighting, hoodie"
 
         result = builder._collect_character_tags(char)
         layers = {t["name"]: t["layer"] for t in result}
@@ -2297,7 +2297,7 @@ class TestEndToEndExpressionOverride:
         char = MagicMock()
         char.id = 1
         char.gender = "female"
-        char.scene_positive_prompt = "gentle_smile"
+        char.positive_prompt = "gentle_smile"
         char.tags = []
         char.loras = []
 
@@ -2346,7 +2346,7 @@ class TestEndToEndExpressionOverride:
         char = MagicMock()
         char.id = 1
         char.gender = "female"
-        char.scene_positive_prompt = "gentle_smile"
+        char.positive_prompt = "gentle_smile"
         char.tags = []
         char.loras = []
 
@@ -2496,7 +2496,7 @@ class TestWeightSyntaxHandling:
         char = MagicMock()
         char.id = 1
         char.gender = "female"
-        char.scene_positive_prompt = "gentle_smile"
+        char.positive_prompt = "gentle_smile"
         char.tags = []
         char.loras = []
 
@@ -2525,7 +2525,7 @@ class TestStripCharBaseFromScene:
     def test_strips_base_tokens(self):
         """scene_positive_prompt tokens are removed from scene_tags."""
         char = MagicMock()
-        char.scene_positive_prompt = "gentle_smile, soft_lighting, masterpiece"
+        char.positive_prompt = "gentle_smile, soft_lighting, masterpiece"
 
         scene_tags = ["crying", "gentle_smile", "soft_lighting", "outdoors", "masterpiece"]
         result = PromptBuilder._strip_char_base_from_scene(char, scene_tags)
@@ -2539,7 +2539,7 @@ class TestStripCharBaseFromScene:
     def test_strips_weighted_base_tokens(self):
         """Weighted scene tokens matching base tokens are stripped."""
         char = MagicMock()
-        char.scene_positive_prompt = "gentle_smile, brown_hair"
+        char.positive_prompt = "gentle_smile, brown_hair"
 
         scene_tags = ["(gentle_smile:1.15)", "(brown_hair:1.15)", "crying"]
         result = PromptBuilder._strip_char_base_from_scene(char, scene_tags)
@@ -2551,7 +2551,7 @@ class TestStripCharBaseFromScene:
     def test_no_base_prompt_passthrough(self):
         """No scene_positive_prompt → scene_tags returned as-is."""
         char = MagicMock()
-        char.scene_positive_prompt = None
+        char.positive_prompt = None
 
         scene_tags = ["crying", "outdoors"]
         result = PromptBuilder._strip_char_base_from_scene(char, scene_tags)
@@ -2561,7 +2561,7 @@ class TestStripCharBaseFromScene:
     def test_space_underscore_normalization(self):
         """Space-separated base tokens match underscore scene tokens."""
         char = MagicMock()
-        char.scene_positive_prompt = "gentle smile, soft lighting"
+        char.positive_prompt = "gentle smile, soft lighting"
 
         scene_tags = ["gentle_smile", "soft_lighting", "crying"]
         result = PromptBuilder._strip_char_base_from_scene(char, scene_tags)
@@ -2608,7 +2608,7 @@ class TestStripCharBaseFromScene:
         char = MagicMock()
         char.id = 1
         char.gender = "female"
-        char.scene_positive_prompt = "gentle_smile"
+        char.positive_prompt = "gentle_smile"
         char.tags = []
         char.loras = []
 
@@ -2659,10 +2659,10 @@ class TestQualityTagsL0Injection:
         char = MagicMock()
         char.id = 1
         char.gender = "female"
-        char.scene_positive_prompt = None
+        char.positive_prompt = None
         char.tags = []
         char.loras = []
-        char.reference_positive_prompt = None
+        char.positive_prompt = None
 
         builder.db.query.return_value.filter.return_value.first.return_value = char
 
@@ -2713,7 +2713,7 @@ class TestCollectCharacterTagsDedup:
         """DB 태그와 scene_positive_prompt에 동일 태그 → 1회만 수집."""
         char = MagicMock()
         char.gender = "female"
-        char.reference_positive_prompt = None
+        char.positive_prompt = None
         char.loras = []
 
         # DB tag: brown_hair
@@ -2726,7 +2726,7 @@ class TestCollectCharacterTagsDedup:
         char.tags = [db_tag]
 
         # scene_positive_prompt: brown_hair (중복)
-        char.scene_positive_prompt = "brown_hair"
+        char.positive_prompt = "brown_hair"
 
         with patch.object(
             builder, "get_tag_info", return_value={"brown_hair": {"layer": 3, "group_name": "hair_color"}}
@@ -2742,7 +2742,7 @@ class TestCollectCharacterTagsDedup:
         """같은 group_name → custom이 DB를 대체."""
         char = MagicMock()
         char.gender = "female"
-        char.reference_positive_prompt = None
+        char.positive_prompt = None
         char.loras = []
 
         # DB tag: brown_hair (hair_color group)
@@ -2755,7 +2755,7 @@ class TestCollectCharacterTagsDedup:
         char.tags = [db_tag]
 
         # custom: blonde_hair (같은 hair_color group → DB 대체)
-        char.scene_positive_prompt = "blonde_hair"
+        char.positive_prompt = "blonde_hair"
 
         with patch("services.prompt.composition.TagFilterCache") as mock_fc:
             mock_fc.is_restricted.return_value = False

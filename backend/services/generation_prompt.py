@@ -477,10 +477,8 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     for _ch in _chars_for_neg:
         if not _ch:
             continue
-        if _ch.scene_negative_prompt:
-            ctx.negative_prompt = f"{ctx.negative_prompt}, {_ch.scene_negative_prompt}"
-        if _ch.common_negative_prompts:
-            ctx.negative_prompt = f"{ctx.negative_prompt}, {', '.join(_ch.common_negative_prompts)}"
+        if _ch.negative_prompt:
+            ctx.negative_prompt = f"{ctx.negative_prompt}, {_ch.negative_prompt}"
 
     ctx.warnings.extend(compose_warnings)
     ctx.warnings.extend(strategy.warnings)

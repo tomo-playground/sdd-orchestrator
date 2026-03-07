@@ -36,10 +36,8 @@ function formFromCharacter(ch: CharacterFull): CharacterFormData {
     description: ch.description ?? "",
     gender: ch.gender,
     group_id: ch.group_id,
-    scene_positive_prompt: ch.scene_positive_prompt ?? "",
-    scene_negative_prompt: ch.scene_negative_prompt ?? "",
-    reference_positive_prompt: ch.reference_positive_prompt ?? "",
-    reference_negative_prompt: ch.reference_negative_prompt ?? "",
+    positive_prompt: ch.positive_prompt ?? "",
+    negative_prompt: ch.negative_prompt ?? "",
     voice_preset_id: ch.voice_preset_id ?? null,
     ip_adapter_weight: ch.ip_adapter_weight ?? 0.35,
     ip_adapter_model: ch.ip_adapter_model ?? "clip_face",
@@ -199,10 +197,8 @@ export function useCharacterEdit(rawId: number) {
         description: form.description.trim() || null,
         gender: form.gender,
         group_id: form.group_id,
-        scene_positive_prompt: form.scene_positive_prompt.trim() || null,
-        scene_negative_prompt: form.scene_negative_prompt.trim() || null,
-        reference_positive_prompt: form.reference_positive_prompt.trim() || null,
-        reference_negative_prompt: form.reference_negative_prompt.trim() || null,
+        positive_prompt: form.positive_prompt.trim() || null,
+        negative_prompt: form.negative_prompt.trim() || null,
         voice_preset_id: form.voice_preset_id,
         ip_adapter_weight: form.ip_adapter_weight,
         ip_adapter_model: form.ip_adapter_model,
@@ -340,10 +336,8 @@ export function useCharacterEdit(rawId: number) {
         form.description !== (character.description ?? "") ||
         form.gender !== character.gender ||
         form.group_id !== character.group_id ||
-        form.scene_positive_prompt !== (character.scene_positive_prompt ?? "") ||
-        form.scene_negative_prompt !== (character.scene_negative_prompt ?? "") ||
-        form.reference_positive_prompt !== (character.reference_positive_prompt ?? "") ||
-        form.reference_negative_prompt !== (character.reference_negative_prompt ?? "") ||
+        form.positive_prompt !== (character.positive_prompt ?? "") ||
+        form.negative_prompt !== (character.negative_prompt ?? "") ||
         form.voice_preset_id !== (character.voice_preset_id ?? null) ||
         form.ip_adapter_weight !== (character.ip_adapter_weight ?? 0.35) ||
         form.ip_adapter_model !== (character.ip_adapter_model ?? "clip_face") ||

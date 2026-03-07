@@ -25,8 +25,8 @@ from config import (
     SD_TXT2IMG_URL,
     logger,
 )
-from services.prompt.prompt import normalize_negative_prompt, split_prompt_tokens
 from services.prompt.composition import PromptBuilder
+from services.prompt.prompt import normalize_negative_prompt, split_prompt_tokens
 
 
 async def _ensure_correct_checkpoint(sd_model_name: str) -> None:
@@ -373,14 +373,12 @@ def compose_scene_with_style(
     else:
         composed = builder.compose(scene_tags, style_loras=style_loras, quality_tags=quality_tags)
 
-    # 3. Merge character negative prompts (custom + recommended, both chars)
+    # 3. Merge character negative prompts (both chars)
     for char in [character, char_b]:
         if not char:
             continue
-        if char.scene_negative_prompt:
-            modified_negative = f"{modified_negative}, {char.scene_negative_prompt}"
-        if char.common_negative_prompts:
-            modified_negative = f"{modified_negative}, {', '.join(char.common_negative_prompts)}"
+        if char.negative_prompt:
+            modified_negative = f"{modified_negative}, {char.negative_prompt}"
 
     # 4. Merge builder warnings (LoRA compatibility, etc.)
     warnings.extend(builder.warnings)

@@ -679,12 +679,8 @@ async def generate_reference_for_character(
     builder = PromptBuilder(db)
     full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags, style_ctx=style_ctx)
 
-    # Construct negative prompt: DB 고유 태그 + 상수 공통 머지
-    base_negative = character.reference_negative_prompt or ""
-    if character.common_negative_prompts:
-        extras = [n for n in character.common_negative_prompts if n not in base_negative]
-        if extras:
-            base_negative += ", " + ", ".join(extras)
+    # Construct negative prompt: 캐릭터 통합 네거티브 + 상수 공통 머지
+    base_negative = character.negative_prompt or ""
     # Always merge DEFAULT_REFERENCE_NEGATIVE_PROMPT (공통 품질/배경/멀티뷰 억제)
     existing_tags = {t.strip() for t in base_negative.split(",") if t.strip()}
     for tag in DEFAULT_REFERENCE_NEGATIVE_PROMPT.split(", "):

@@ -58,7 +58,7 @@ def _compose_negative_preview(
 
     Reuses the same logic as image_generation_core.compose_scene_with_style:
       1. StyleProfile: default_negative + negative_embeddings
-      2. Character(s): scene_negative_prompt + common_negative_prompts
+      2. Character(s): negative_prompt
       3. Scene: user-entered negative_prompt
 
     Returns: (final_negative, sources_list)
@@ -96,10 +96,8 @@ def _compose_negative_preview(
         if not char:
             continue
         char_tokens: list[str] = []
-        if char.scene_negative_prompt:
-            char_tokens.extend(split_prompt_tokens(char.scene_negative_prompt))
-        if char.common_negative_prompts:
-            char_tokens.extend(char.common_negative_prompts)
+        if char.negative_prompt:
+            char_tokens.extend(split_prompt_tokens(char.negative_prompt))
         if char_tokens:
             sources.append({"source": f"character:{char.name}", "tokens": char_tokens})
             parts.append(", ".join(char_tokens))

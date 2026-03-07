@@ -23,15 +23,13 @@ def builder():
 def _make_character(
     gender=None,
     loras=None,
-    reference_positive_prompt=None,
-    scene_positive_prompt=None,
+    positive_prompt=None,
 ):
     """Helper to build a mock Character."""
     char = MagicMock()
     char.gender = gender
     char.loras = loras or []
-    char.reference_positive_prompt = reference_positive_prompt
-    char.scene_positive_prompt = scene_positive_prompt
+    char.positive_prompt = positive_prompt
     char.tags = []
     return char
 
@@ -226,14 +224,14 @@ class TestReferenceDedup:
         mock_rule.initialize.return_value = None
         mock_rule.is_conflicting.return_value = False
 
-        # Character with tag that also appears in reference_positive_prompt
+        # Character with tag that also appears in positive_prompt
         char_tag = MagicMock()
         char_tag.tag = MagicMock()
         char_tag.tag.name = "solo"
         char_tag.tag.default_layer = LAYER_CAMERA
         char_tag.weight = 1.0
 
-        char = _make_character(reference_positive_prompt="solo, white_background")
+        char = _make_character(positive_prompt="solo, white_background")
         char.tags = [char_tag]
 
         result = builder.compose_for_reference(char)

@@ -917,11 +917,8 @@ class CharacterBase(BaseModel):
     gender: str | None = None
     group_id: int
     loras: list[CharacterLoRA] | None = None
-    common_negative_prompts: list[str] | None = None
-    scene_positive_prompt: str | None = Field(default=None, max_length=10000)
-    scene_negative_prompt: str | None = Field(default=None, max_length=10000)
-    reference_positive_prompt: str | None = Field(default=None, max_length=10000)
-    reference_negative_prompt: str | None = Field(default=None, max_length=10000)
+    positive_prompt: str | None = Field(default=None, max_length=10000)
+    negative_prompt: str | None = Field(default=None, max_length=10000)
     # reference_image_url: read-only @property via reference_image_asset (CharacterResponse only)
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
@@ -943,11 +940,8 @@ class CharacterUpdate(BaseModel):
     gender: str | None = None
     group_id: int | None = None
     loras: list[CharacterLoRA] | None = None
-    common_negative_prompts: list[str] | None = None
-    scene_positive_prompt: str | None = Field(default=None, max_length=10000)
-    scene_negative_prompt: str | None = Field(default=None, max_length=10000)
-    reference_positive_prompt: str | None = Field(default=None, max_length=10000)
-    reference_negative_prompt: str | None = Field(default=None, max_length=10000)
+    positive_prompt: str | None = Field(default=None, max_length=10000)
+    negative_prompt: str | None = Field(default=None, max_length=10000)
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
     ip_adapter_guidance_start: float | None = None

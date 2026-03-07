@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ARRAY, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,16 +34,12 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
     # Multiple LoRAs with weights: [{"lora_id": 1, "weight": 1.0}, ...]
     loras: Mapped[list[dict] | None] = mapped_column(JSONB)
 
-    # Prompt Components — Scene (씬 생성용)
-    scene_positive_prompt: Mapped[str | None] = mapped_column(Text)
-    scene_negative_prompt: Mapped[str | None] = mapped_column(Text)
-
-    # Prompt Components — Reference (레퍼런스/프리뷰 생성용)
-    reference_positive_prompt: Mapped[str | None] = mapped_column(Text)
-    reference_negative_prompt: Mapped[str | None] = mapped_column(Text)
-
-    # Prompt Components — Common (씬+레퍼런스 양쪽 공통 부정)
-    common_negative_prompts: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
+    # Prompt Components — Unified (씬+레퍼런스 공통 외형 프롬프트)
+    # positive_prompt: DB character_tags에 없는 추가 보정 (씬/레퍼런스 양쪽 동일 적용)
+    # negative_prompt: 경쟁 색상, LoRA 아티팩트 억제 (씬/레퍼런스 양쪽 동일 적용)
+    # 레퍼런스 배경(white_background 등)은 config.py 상수로 자동 주입됨
+    positive_prompt: Mapped[str | None] = mapped_column(Text)
+    negative_prompt: Mapped[str | None] = mapped_column(Text)
 
     # Relationships
     group: Mapped["Group"] = relationship("Group", back_populates="characters")
