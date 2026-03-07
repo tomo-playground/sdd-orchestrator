@@ -25,6 +25,8 @@ export interface SettingsCheck {
   value: string | null;
   required: boolean;
   message?: string;
+  /** valid=true이지만 soft warning이 있을 때 (예: BGM 없음, ControlNet 비활성) */
+  warning?: boolean;
 }
 
 export interface StepCheck {
@@ -194,10 +196,11 @@ function checkVoice(voiceName: string, voiceBName: string, structure: string): S
 function checkBgm(bgmFile: string | null): SettingsCheck {
   if (!bgmFile) {
     return {
-      valid: true, // Not required
+      valid: true,
       value: null,
       required: false,
       message: "BGM 없음 (무음)",
+      warning: true,
     };
   }
   // Extract filename from path
@@ -216,6 +219,7 @@ function checkControlnet(enabled: boolean, weight: number): SettingsCheck {
       value: "비활성",
       required: false,
       message: "포즈 제어 비활성 (권장: 활성)",
+      warning: true,
     };
   }
   return {

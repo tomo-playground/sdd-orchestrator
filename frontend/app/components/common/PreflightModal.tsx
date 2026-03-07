@@ -224,10 +224,22 @@ function SettingRow({
   check,
 }: {
   label: string;
-  check: { valid: boolean; value: string | null; required: boolean; message?: string };
+  check: {
+    valid: boolean;
+    value: string | null;
+    required: boolean;
+    message?: string;
+    warning?: boolean;
+  };
 }) {
-  const icon = check.valid ? "✓" : check.required ? "❌" : "⚠";
-  const iconColor = check.valid ? SUCCESS_ICON : check.required ? ERROR_ICON : "text-yellow-500";
+  const icon = check.valid ? (check.warning ? "⚠" : "✓") : check.required ? "❌" : "⚠";
+  const iconColor = check.valid
+    ? check.warning
+      ? "text-yellow-500"
+      : SUCCESS_ICON
+    : check.required
+      ? ERROR_ICON
+      : "text-yellow-500";
 
   return (
     <div className="flex items-center justify-between px-3 py-2 text-sm">
@@ -251,7 +263,12 @@ function StepRow({
 }: {
   stepId: AutoRunStepId;
   label: string;
-  check: { needed: boolean; reason: string; count?: number; categories?: { label: string; ready: boolean; detail: string }[] };
+  check: {
+    needed: boolean;
+    reason: string;
+    count?: number;
+    categories?: { label: string; ready: boolean; detail: string }[];
+  };
   enabled: boolean;
   onToggle: () => void;
   disabled: boolean;
