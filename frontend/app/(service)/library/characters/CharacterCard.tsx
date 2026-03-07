@@ -28,7 +28,7 @@ const GENDER_GLOW: Record<string, string> = {
 const DEFAULT_GLOW = "group-hover:shadow-zinc-500/20";
 
 export default function CharacterCard({ character: ch }: Props) {
-  const imgSrc = resolveImageUrl(ch.preview_image_url);
+  const imgSrc = resolveImageUrl(ch.reference_image_url);
   const loraCount = ch.loras?.length ?? 0;
   const tagCount = ch.tags?.length ?? 0;
   const gender = ch.gender ?? "unknown";

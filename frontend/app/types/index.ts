@@ -340,9 +340,9 @@ export type Character = {
   scene_negative_prompt: string | null;
   reference_positive_prompt: string | null;
   reference_negative_prompt: string | null;
-  preview_image_asset_id: number | null;
-  preview_image_url: string | null;
-  preview_key: string | null;
+  reference_image_asset_id: number | null;
+  reference_image_url: string | null;
+  reference_key: string | null;
   ip_adapter_weight: number | null;
   ip_adapter_model: string | null;
   voice_preset_id: number | null;
@@ -421,7 +421,7 @@ export type CharacterFull = {
   scene_negative_prompt: string | null;
   reference_positive_prompt: string | null;
   reference_negative_prompt: string | null;
-  preview_image_url: string | null;
+  reference_image_url: string | null;
   ip_adapter_weight: number | null;
   ip_adapter_model: string | null;
   ip_adapter_guidance_start: number | null;
@@ -593,7 +593,7 @@ export type StoryboardCastMember = {
   id: number;
   name: string;
   speaker: string;
-  preview_url: string | null;
+  reference_url: string | null;
 };
 
 export type StageStatus = "pending" | "staging" | "staged" | "failed" | null;

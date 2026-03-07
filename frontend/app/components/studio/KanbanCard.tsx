@@ -45,9 +45,9 @@ export default function KanbanCard({ item, onClick }: KanbanCardProps) {
               className="flex h-5 w-5 items-center justify-center rounded-full border border-white bg-zinc-200 text-[11px] font-bold text-zinc-500"
               title={c.name}
             >
-              {c.preview_url ? (
+              {c.reference_url ? (
                 <img
-                  src={c.preview_url}
+                  src={c.reference_url}
                   alt={c.name}
                   className="h-full w-full rounded-full object-cover"
                 />

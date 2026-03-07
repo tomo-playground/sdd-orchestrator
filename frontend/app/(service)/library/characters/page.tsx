@@ -15,12 +15,12 @@ import { PAGE_TITLE_CLASSES, SEARCH_INPUT_CLASSES } from "../../../components/ui
 import { API_BASE } from "../../../constants";
 import type { GroupItem } from "../../../types";
 
-type FilterKey = "all" | "has_lora" | "has_preview";
+type FilterKey = "all" | "has_lora" | "has_reference";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "All" },
   { key: "has_lora", label: "Has LoRA" },
-  { key: "has_preview", label: "Has Preview" },
+  { key: "has_reference", label: "Has Reference" },
 ];
 
 export default function AdminCharactersPage() {
@@ -66,7 +66,7 @@ export default function AdminCharactersPage() {
     }
 
     if (filter === "has_lora") result = result.filter((ch) => (ch.loras?.length ?? 0) > 0);
-    if (filter === "has_preview") result = result.filter((ch) => !!ch.preview_image_url);
+    if (filter === "has_reference") result = result.filter((ch) => !!ch.reference_image_url);
 
     return result;
   }, [characters, search, filter, selectedGroupId]);

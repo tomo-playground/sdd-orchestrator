@@ -109,7 +109,7 @@ class TestReferenceImages:
         # Mock DB with a character that has a preview image
         mock_db = MagicMock()
         mock_char = MagicMock()
-        mock_char.preview_image_url = "s3://bucket/ref.png"
+        mock_char.reference_image_url = "s3://bucket/ref.png"
         mock_db.query.return_value.filter.return_value.first.return_value = mock_char
 
         fake_bytes = b"fake_image_data"

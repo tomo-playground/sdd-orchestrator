@@ -164,7 +164,7 @@ showSidebar = !pathname.startsWith("/manage")
 | `prompt_mode === "lora"` | `lora` | `bg-violet-100 text-violet-700` |
 | `prompt_mode === "standard"` | `standard` | `bg-zinc-100 text-zinc-600` |
 | `prompt_mode === "auto"` | `auto` | `bg-emerald-100 text-emerald-700` |
-| `preview_image_url` 없음 | `No Image` | `bg-rose-100 text-rose-600` |
+| `reference_image_url` 없음 | `No Image` | `bg-rose-100 text-rose-600` |
 
 ### 3.5 검색/필터
 
@@ -174,7 +174,7 @@ showSidebar = !pathname.startsWith("/manage")
 - **필터 옵션**:
   - All (기본)
   - Has LoRA (`loras.length > 0`)
-  - Has Preview (`preview_image_url !== null`)
+  - Has Reference (`reference_image_url !== null`)
 
 ```
 [Search characters...]  [All v]

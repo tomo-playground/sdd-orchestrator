@@ -51,25 +51,24 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
     # Relational Tags
     tags: Mapped[list["CharacterTag"]] = relationship("CharacterTag", backref="character", cascade="all, delete-orphan")
 
-    # Media & Display
-    # preview_image_url column removed
-    preview_image_asset_id: Mapped[int | None] = mapped_column(
+    # Media & Display — Reference image for IP-Adapter face consistency
+    reference_image_asset_id: Mapped[int | None] = mapped_column(
         ForeignKey("media_assets.id", ondelete="SET NULL"),
     )
-    preview_image_asset: Mapped["MediaAsset"] = relationship(
-        foreign_keys=[preview_image_asset_id],
+    reference_image_asset: Mapped["MediaAsset"] = relationship(
+        foreign_keys=[reference_image_asset_id],
     )
 
     @property
-    def preview_image_url(self) -> str | None:
-        if self.preview_image_asset:
-            return self.preview_image_asset.url
+    def reference_image_url(self) -> str | None:
+        if self.reference_image_asset:
+            return self.reference_image_asset.url
         return None
 
     @property
-    def preview_key(self) -> str | None:
-        if self.preview_image_asset:
-            return self.preview_image_asset.storage_key
+    def reference_key(self) -> str | None:
+        if self.reference_image_asset:
+            return self.reference_image_asset.storage_key
         return None
 
     # Voice

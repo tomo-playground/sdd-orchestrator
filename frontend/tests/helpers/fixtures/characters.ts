@@ -6,7 +6,7 @@ export const MOCK_CHARACTERS_LIST = [
     name: "Hana",
     gender: "female",
     description: "Cheerful high school girl",
-    preview_image_url: null,
+    reference_image_url: null,
     scene_positive_prompt: null,
     tags: [
       { id: 1, name: "brown_hair" },
@@ -19,7 +19,7 @@ export const MOCK_CHARACTERS_LIST = [
     name: "Riku",
     gender: "male",
     description: "Calm university student",
-    preview_image_url: null,
+    reference_image_url: null,
     scene_positive_prompt: null,
     tags: [{ id: 3, name: "black_hair" }],
     loras: [],
@@ -31,7 +31,7 @@ export const MOCK_CHARACTER_DETAIL = {
   name: "Hana",
   gender: "female",
   description: "Cheerful high school girl with brown hair",
-  preview_image_url: null,
+  reference_image_url: null,
   scene_positive_prompt: null,
   tags: [
     { id: 1, name: "brown_hair" },

@@ -105,7 +105,7 @@ export default function CharacterDetailPage() {
     );
   }
 
-  const imgSrc = resolveImageUrl(character.preview_image_url);
+  const imgSrc = resolveImageUrl(character.reference_image_url);
 
   return (
     <div className={`${CONTAINER_CLASSES} py-6`}>
@@ -289,7 +289,7 @@ export default function CharacterDetailPage() {
       {previewOpen && <ImagePreviewModal src={imgSrc} onClose={() => setPreviewOpen(false)} />}
       {geminiEditOpen && (
         <GeminiEditModal
-          previewImageUrl={imgSrc ?? undefined}
+          referenceImageUrl={imgSrc ?? undefined}
           isProcessing={isEditingPreview}
           currentPrompt={form?.scene_positive_prompt || ""}
           characterId={rawId}

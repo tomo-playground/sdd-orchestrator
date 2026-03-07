@@ -460,13 +460,13 @@ WD14 피드백 루프 데이터.
 | **Voice** | | |
 | `voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 캐릭터 고유 음성 프리셋 |
 | **Display** | | |
-| `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
+| `reference_image_asset_id` | Integer (FK → media_assets, SET NULL) | IP-Adapter 참조 이미지 (얼굴 일관성용) |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
-- `preview_image_url` (`@property`): `preview_image_asset.url` 반환
-- `preview_key` (`@property`): `preview_image_asset.storage_key` 반환
+- `reference_image_url` (`@property`): `reference_image_asset.url` 반환
+- `reference_key` (`@property`): `reference_image_asset.storage_key` 반환
 
 
 ### `loras`

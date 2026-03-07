@@ -340,10 +340,10 @@ export default function StyleProfileEditor({
                 href={`/library/characters/${ch.id}`}
                 className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-2.5 transition hover:border-indigo-200 hover:bg-white"
               >
-                {ch.preview_image_url ? (
+                {ch.reference_image_url ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
-                    src={ch.preview_image_url}
+                    src={ch.reference_image_url}
                     alt={ch.name}
                     className="h-8 w-8 shrink-0 rounded-lg object-cover"
                   />

@@ -262,7 +262,7 @@ export function useCharacterEdit(rawId: number) {
       );
       if (res.data.ok && res.data.url) {
         setCharacter((prev) =>
-          prev ? { ...prev, preview_image_url: res.data.url ?? null } : prev
+          prev ? { ...prev, reference_image_url: res.data.url ?? null } : prev
         );
         showToast("Preview regenerated", "success");
       }
@@ -283,7 +283,7 @@ export function useCharacterEdit(rawId: number) {
       );
       if (res.data.url) {
         setCharacter((prev) =>
-          prev ? { ...prev, preview_image_url: res.data.url ?? null } : prev
+          prev ? { ...prev, reference_image_url: res.data.url ?? null } : prev
         );
         showToast("Preview enhanced", "success");
       }
@@ -306,7 +306,7 @@ export function useCharacterEdit(rawId: number) {
         );
         if (res.data.url) {
           setCharacter((prev) =>
-            prev ? { ...prev, preview_image_url: res.data.url ?? null } : prev
+            prev ? { ...prev, reference_image_url: res.data.url ?? null } : prev
           );
           showToast("Preview edited", "success");
         }

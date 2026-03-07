@@ -146,7 +146,7 @@ class TestBuildCharacterSummary:
         char.gender = kwargs.get("gender", "female")
         char.tags = []
         char.loras = kwargs.get("loras", None)
-        char.preview_image_asset_id = kwargs.get("preview_image_asset_id", None)
+        char.reference_image_asset_id = kwargs.get("reference_image_asset_id", None)
         return char
 
     def test_basic(self):
@@ -167,12 +167,12 @@ class TestBuildCharacterSummary:
         assert result.has_lora is False
 
     def test_has_reference_true(self):
-        char = self._make_char(preview_image_asset_id=42)
+        char = self._make_char(reference_image_asset_id=42)
         result = _build_character_summary(char, count=0)
         assert result.has_reference is True
 
     def test_has_reference_false(self):
-        char = self._make_char(preview_image_asset_id=None)
+        char = self._make_char(reference_image_asset_id=None)
         result = _build_character_summary(char, count=0)
         assert result.has_reference is False
 

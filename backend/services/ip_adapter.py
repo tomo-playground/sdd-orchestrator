@@ -198,19 +198,19 @@ def load_reference_images(character_key: str, db: Session) -> list[dict[str, Any
     from models.media_asset import MediaAsset
 
     char = db.query(Character).filter(Character.name == character_key, Character.deleted_at.is_(None)).first()
-    if not char or not char.preview_image_asset_id:
+    if not char or not char.reference_image_asset_id:
         return []
 
-    asset = db.query(MediaAsset).filter(MediaAsset.id == char.preview_image_asset_id).first()
+    asset = db.query(MediaAsset).filter(MediaAsset.id == char.reference_image_asset_id).first()
     if not asset or not asset.url:
         return []
 
     try:
         img_bytes = load_image_bytes(asset.url)
         image_b64_str = base64.b64encode(img_bytes).decode("utf-8")
-        return [{"angle": "front", "asset_id": char.preview_image_asset_id, "image_b64": image_b64_str}]
+        return [{"angle": "front", "asset_id": char.reference_image_asset_id, "image_b64": image_b64_str}]
     except Exception as e:
-        logger.warning("[IPAdapter] Failed to load preview image for %s: %s", character_key, e)
+        logger.warning("[IPAdapter] Failed to load reference image for %s: %s", character_key, e)
         return []
 
 

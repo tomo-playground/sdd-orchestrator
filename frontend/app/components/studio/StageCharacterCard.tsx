@@ -31,10 +31,10 @@ export default function StageCharacterCard({
     <div className="flex gap-3 overflow-hidden rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
       {/* Preview image — compact thumbnail */}
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
-        {character.preview_image_url ? (
+        {character.reference_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={character.preview_image_url}
+            src={character.reference_image_url}
             alt={character.name}
             className="h-full w-full object-cover"
           />

@@ -77,7 +77,7 @@ class TestDetectNullOwner:
         db_session.add(char)
         db_session.flush()
         asset = _make_asset(db_session, storage_key="protected/preview.png")
-        char.preview_image_asset_id = asset.id
+        char.reference_image_asset_id = asset.id
         db_session.commit()
 
         gc = MediaGCService(db_session)

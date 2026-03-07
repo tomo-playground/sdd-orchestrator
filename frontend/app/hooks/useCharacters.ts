@@ -35,8 +35,8 @@ export function useCharacters(): UseCharactersResult {
       // ConnectionGuard용 캐릭터 프리뷰 캐시 (Backend 다운 시 사용)
       try {
         const previews = items
-          .filter((c) => c.preview_image_url)
-          .map((c) => ({ name: c.name, url: c.preview_image_url! }));
+          .filter((c) => c.reference_image_url)
+          .map((c) => ({ name: c.name, url: c.reference_image_url! }));
         if (previews.length > 0) {
           localStorage.setItem("character_previews", JSON.stringify(previews));
         }

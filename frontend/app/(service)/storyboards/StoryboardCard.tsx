@@ -36,10 +36,10 @@ export default function StoryboardCard({ sb, onClick, onDelete }: StoryboardCard
               title={`${c.speaker}: ${c.name}`}
               className="h-6 w-6 shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100"
             >
-              {c.preview_url ? (
+              {c.reference_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={c.preview_url}
+                  src={c.reference_url}
                   alt={c.name}
                   className="h-full w-full object-cover object-top"
                 />

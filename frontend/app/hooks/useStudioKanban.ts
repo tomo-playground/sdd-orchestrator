@@ -13,7 +13,7 @@ export type StoryboardListItem = {
     id: number;
     name: string;
     speaker: string;
-    preview_url: string | null;
+    reference_url: string | null;
   }>;
   kanban_status: "draft" | "in_prod" | "rendered" | "published";
   stage_status: "pending" | "staging" | "staged" | "failed" | null;

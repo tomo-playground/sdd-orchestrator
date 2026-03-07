@@ -204,7 +204,7 @@ def list_storyboards_from_db(
                         "id": char.id,
                         "name": char.name,
                         "speaker": sc.speaker,
-                        "preview_url": char.preview_image_url,
+                        "reference_url": char.reference_image_url,
                     }
                 )
         result.append(
@@ -301,7 +301,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
                     "speaker": sc.speaker,
                     "character_id": char.id,
                     "character_name": char.name,
-                    "preview_image_url": char.preview_image_url,
+                    "reference_image_url": char.reference_image_url,
                 }
             )
 

@@ -181,7 +181,7 @@
 
 ### 완료 → Save
 
-**2-step Save 흐름** (현행 API 제약: `CharacterCreate`에 `preview_image_asset_id` 없음):
+**2-step Save 흐름** (현행 API 제약: `CharacterCreate`에 `reference_image_asset_id` 없음):
 
 ```
 1. POST /characters (name, gender, tags, loras)  →  character_id 반환
@@ -266,7 +266,7 @@ class AssignPreviewRequest(BaseModel):
 
 # Response
 class AssignPreviewResponse(BaseModel):
-    preview_image_url: str  # 저장된 이미지 URL
+    reference_image_url: str  # 저장된 이미지 URL
     asset_id: int           # media_assets.id
 ```
 

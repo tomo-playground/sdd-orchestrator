@@ -40,7 +40,7 @@ OWNER_TYPE_MAP: dict[str, type] = {
 # Assets referenced here must never be treated as orphans
 FK_REFERENCES: list[tuple[type, str]] = [
     (Background, "image_asset_id"),
-    (Character, "preview_image_asset_id"),
+    (Character, "reference_image_asset_id"),
     (LoRA, "preview_image_asset_id"),
     (SDModel, "preview_image_asset_id"),
     (RenderHistory, "media_asset_id"),

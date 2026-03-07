@@ -342,7 +342,7 @@ class StoryboardCharacterResponse(BaseModel):
     speaker: str  # "A", "B"
     character_id: int
     character_name: str
-    preview_image_url: str | None = None  # Response-only: derived from Character.preview_image_url
+    reference_image_url: str | None = None  # Response-only: derived from Character.reference_image_url
 
 
 class StoryboardDetailResponse(BaseModel):
@@ -922,8 +922,7 @@ class CharacterBase(BaseModel):
     scene_negative_prompt: str | None = Field(default=None, max_length=10000)
     reference_positive_prompt: str | None = Field(default=None, max_length=10000)
     reference_negative_prompt: str | None = Field(default=None, max_length=10000)
-    # preview_image_url removed - now read-only @property via preview_image_asset
-    # CharacterResponse gets it automatically via from_attributes=True from ORM model
+    # reference_image_url: read-only @property via reference_image_asset (CharacterResponse only)
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
     ip_adapter_guidance_start: float | None = None
@@ -949,7 +948,6 @@ class CharacterUpdate(BaseModel):
     scene_negative_prompt: str | None = Field(default=None, max_length=10000)
     reference_positive_prompt: str | None = Field(default=None, max_length=10000)
     reference_negative_prompt: str | None = Field(default=None, max_length=10000)
-    # preview_image_url removed - now read-only @property via preview_image_asset
     ip_adapter_weight: float | None = None
     ip_adapter_model: str | None = None
     ip_adapter_guidance_start: float | None = None
@@ -966,9 +964,9 @@ class CharacterResponse(CharacterBase):
     tags: list[CharacterTagLink] = []
     group_name: str | None = None  # Derived from group relationship
     style_profile_name: str | None = None  # Derived from group.style_profile (2-hop)
-    preview_image_asset_id: int | None = None
-    preview_image_url: str | None = None  # Read-only from @property
-    preview_key: str | None = None  # Read-only from @property (storage key)
+    reference_image_asset_id: int | None = None
+    reference_image_url: str | None = None  # Read-only from @property
+    reference_key: str | None = None  # Read-only from @property (storage key)
     deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -1023,7 +1021,7 @@ class CharacterDuplicateRequest(BaseModel):
     target_group_id: int
     new_name: str = Field(max_length=100)
     copy_loras: bool = False
-    copy_preview: bool = False
+    copy_reference: bool = False
 
 
 class CharacterDuplicateResponse(BaseModel):
@@ -1042,7 +1040,7 @@ class AssignPreviewRequest(BaseModel):
 
 
 class AssignPreviewResponse(BaseModel):
-    preview_image_url: str
+    reference_image_url: str
     asset_id: int
 
 

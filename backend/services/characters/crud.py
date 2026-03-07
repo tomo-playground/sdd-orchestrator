@@ -252,7 +252,7 @@ def duplicate_character(
     target_group_id: int,
     new_name: str,
     copy_loras: bool = False,
-    copy_preview: bool = False,
+    copy_reference: bool = False,
 ) -> Character:
     """Duplicate a character into a (possibly different) group."""
     source = _base_character_query(db).filter(Character.id == source_id, Character.deleted_at.is_(None)).first()
@@ -283,7 +283,7 @@ def duplicate_character(
         loras=[{"lora_id": lr["lora_id"], "weight": lr["weight"]} for lr in source.loras]
         if copy_loras and source.loras
         else None,
-        preview_image_asset_id=source.preview_image_asset_id if copy_preview else None,
+        reference_image_asset_id=source.reference_image_asset_id if copy_reference else None,
     )
     db.add(new_char)
     db.flush()

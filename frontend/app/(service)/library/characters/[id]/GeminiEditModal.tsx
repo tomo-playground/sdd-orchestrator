@@ -15,7 +15,7 @@ const EXAMPLES = [
 ];
 
 type Props = {
-  previewImageUrl: string | undefined;
+  referenceImageUrl: string | undefined;
   isProcessing: boolean;
   currentPrompt: string;
   characterId: number;
@@ -25,7 +25,7 @@ type Props = {
 };
 
 export default function GeminiEditModal({
-  previewImageUrl,
+  referenceImageUrl,
   isProcessing,
   currentPrompt,
   characterId,
@@ -62,11 +62,11 @@ export default function GeminiEditModal({
         {phase === "input" && (
           <div className="space-y-4">
             {/* Current preview */}
-            {previewImageUrl && (
+            {referenceImageUrl && (
               <div className="flex justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={previewImageUrl}
+                  src={referenceImageUrl}
                   alt="Current Preview"
                   className="h-40 w-auto rounded-xl border border-zinc-200 object-cover"
                 />

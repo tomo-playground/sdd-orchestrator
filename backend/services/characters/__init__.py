@@ -22,7 +22,7 @@ from .crud import (
     update_character,
 )
 from .lora_enrichment import enrich_character_loras
-from .preview import (
+from .reference import (
     assign_wizard_preview,
     batch_regenerate_references,
     edit_preview,

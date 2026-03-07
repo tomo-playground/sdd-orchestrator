@@ -57,7 +57,7 @@ const BASE_CHARACTER: CharacterFull = {
   scene_negative_prompt: null,
   reference_positive_prompt: null,
   reference_negative_prompt: null,
-  preview_image_url: null,
+  reference_image_url: null,
   ip_adapter_weight: null,
   ip_adapter_model: null,
   ip_adapter_guidance_start: null,

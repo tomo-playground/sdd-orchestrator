@@ -23,7 +23,7 @@
 - `_sync_speaker_mappings()`: 저장/업데이트 시 speaker→character 매핑 동기화
 - `auto_populate_character_actions()`: Gemini 스토리보드 생성 시 캐릭터 액션 자동 생성
 - `_load_character_context()`: Character A/B 각각 로드 → Gemini 템플릿에 전달
-- `StoryboardDetailResponse.characters`: 캐스트 정보 (speaker, character_name, preview_image_url) 반환
+- `StoryboardDetailResponse.characters`: 캐스트 정보 (speaker, character_name, reference_image_url) 반환
 - `get_storyboard_by_id()`: `storyboard_characters` eager load + characters 리스트 빌드
 
 ### Frontend

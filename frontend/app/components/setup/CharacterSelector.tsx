@@ -106,7 +106,7 @@ export default function CharacterSelector({
         {selectedChar ? (
           <>
             <CharacterThumbnail
-              src={resolveImageUrl(selectedChar.preview_image_url)}
+              src={resolveImageUrl(selectedChar.reference_image_url)}
               name={selectedChar.name}
             />
             <span className="truncate">{selectedChar.name}</span>
@@ -158,7 +158,7 @@ export default function CharacterSelector({
                     } ${isRec && group.highlight ? "bg-amber-50/50" : ""}`}
                   >
                     <CharacterThumbnail
-                      src={resolveImageUrl(char.preview_image_url)}
+                      src={resolveImageUrl(char.reference_image_url)}
                       name={char.name}
                       size={32}
                     />

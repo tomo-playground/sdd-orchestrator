@@ -92,7 +92,7 @@ def _build_character_summary(char: Character, count: int) -> CharacterSummary:
         gender=char.gender or "unknown",
         appearance_summary=_build_appearance_summary(char),
         has_lora=bool(char.loras),
-        has_reference=bool(char.preview_image_asset_id),
+        has_reference=bool(char.reference_image_asset_id),
         usage_count=count,
     )
 

@@ -339,7 +339,7 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
     Args:
         character_key: Unique key for the character (e.g., "eureka", "midoriya")
         image_b64: Base64 encoded image (with or without data URI prefix)
-        db: Optional DB session to update character.preview_image_url
+        db: Optional DB session to update character.reference_image_asset_id
 
     Returns:
         Saved filename
@@ -380,9 +380,9 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
         )
 
         if char:
-            char.preview_image_asset_id = asset.id
+            char.reference_image_asset_id = asset.id
             db.commit()
-            logger.info(f"Updated character preview Asset ID in DB for: {character_key} (Asset: {asset.id})")
+            logger.info(f"Updated character reference Asset ID in DB for: {character_key} (Asset: {asset.id})")
 
     return filename
 
@@ -400,13 +400,13 @@ def load_reference_image(character_key: str, db: Session | None = None) -> str |
     if not db:
         return None
 
-    # Load from DB preview_image_url
+    # Load from DB reference_image_url
     char = db.query(Character).filter(Character.name == character_key, Character.deleted_at.is_(None)).first()
-    if not char or not char.preview_image_url:
+    if not char or not char.reference_image_url:
         return None
 
     try:
-        img_bytes = load_image_bytes(char.preview_image_url)
+        img_bytes = load_image_bytes(char.reference_image_url)
         return base64.b64encode(img_bytes).decode("utf-8")
     except Exception as e:
         logger.warning(f"Failed to load image for {character_key}: {e}")
@@ -422,10 +422,10 @@ def list_reference_images(db: Session | None = None) -> list[dict[str, str | int
     if not db:
         return []
 
-    # Get all characters with preview images
+    # Get all characters with reference images
     chars = (
         db.query(Character)
-        .filter(Character.preview_image_asset_id.isnot(None), Character.deleted_at.is_(None))
+        .filter(Character.reference_image_asset_id.isnot(None), Character.deleted_at.is_(None))
         .order_by(Character.id)
         .all()
     )
@@ -434,7 +434,7 @@ def list_reference_images(db: Session | None = None) -> list[dict[str, str | int
         {
             "character_key": char.name,
             "character_id": char.id,
-            "filename": os.path.basename(char.preview_image_url) if char.preview_image_url else "",
+            "filename": os.path.basename(char.reference_image_url) if char.reference_image_url else "",
         }
         for char in chars
     ]
@@ -667,7 +667,7 @@ async def generate_reference_for_character(
     """
     # Build prompt using 12-Layer system (alias/conflict resolution, batch LoRA query)
     from config import SD_DEFAULT_SAMPLER, SD_REFERENCE_CFG_SCALE, SD_REFERENCE_STEPS
-    from services.characters.preview import _resolve_quality_tags_for_character
+    from services.characters.reference import _resolve_quality_tags_for_character
     from services.prompt.composition import PromptBuilder
     from services.style_context import resolve_style_context_from_group
 

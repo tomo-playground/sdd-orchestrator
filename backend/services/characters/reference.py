@@ -1,4 +1,4 @@
-"""Character preview image generation, enhancement, and editing.
+"""Character reference image generation, enhancement, and editing.
 
 All functions are async — they call external APIs (SD WebUI, Gemini Imagen)
 that may take 30-60s.
@@ -85,7 +85,7 @@ def _resolve_quality_tags_for_character(character: Character, db: Session) -> li
     return None
 
 
-def _get_character_for_preview(db: Session, character_id: int, *, with_tags: bool = False) -> Character:
+def _get_character_for_reference(db: Session, character_id: int, *, with_tags: bool = False) -> Character:
     """Fetch character with validation for preview operations."""
     query = db.query(Character)
     if with_tags:
@@ -96,8 +96,8 @@ def _get_character_for_preview(db: Session, character_id: int, *, with_tags: boo
     return character
 
 
-def _save_preview_asset(db: Session, character_id: int, image_bytes: bytes) -> tuple[str, int]:
-    """Save image bytes as a preview asset and update the character. Returns (url, asset_id)."""
+def _save_reference_asset(db: Session, character_id: int, image_bytes: bytes) -> tuple[str, int]:
+    """Save image bytes as a reference asset and update the character. Returns (url, asset_id)."""
     from services.asset_service import AssetService
 
     asset_service = AssetService(db)
@@ -108,7 +108,7 @@ def _save_preview_asset(db: Session, character_id: int, image_bytes: bytes) -> t
             Character.id == character_id,
             Character.deleted_at.is_(None),
         )
-        .update({"preview_image_asset_id": asset.id})
+        .update({"reference_image_asset_id": asset.id})
     )
     if rows == 0:
         db.rollback()
@@ -130,7 +130,7 @@ async def regenerate_reference(
     from services.prompt.composition import PromptBuilder
     from services.style_context import resolve_style_context_from_group
 
-    character = _get_character_for_preview(db, character_id, with_tags=True)
+    character = _get_character_for_reference(db, character_id, with_tags=True)
 
     # Resolve StyleProfile quality tags (Group → Config → StyleProfile.default_positive)
     quality_tags = _resolve_quality_tags_for_character(character, db)
@@ -214,7 +214,7 @@ async def regenerate_reference(
 
     # Save first candidate as the preview (backward compat)
     image_bytes = decode_data_url(f"data:image/png;base64,{candidates[0].image}")
-    url, _ = _save_preview_asset(db, character_id, image_bytes)
+    url, _ = _save_reference_asset(db, character_id, image_bytes)
     return {
         "ok": True,
         "url": url,
@@ -227,11 +227,11 @@ async def enhance_preview(db: Session, character_id: int) -> dict:
     from services.image import decode_data_url, load_as_data_url
     from services.imagen_edit import get_imagen_service
 
-    character = _get_character_for_preview(db, character_id)
-    if not character.preview_image_url:
+    character = _get_character_for_reference(db, character_id)
+    if not character.reference_image_url:
         raise ValueError("No preview image to enhance")
 
-    image_b64 = load_as_data_url(character.preview_image_url)
+    image_b64 = load_as_data_url(character.reference_image_url)
 
     # Release DB connection before long Gemini API call
     db.close()
@@ -241,7 +241,7 @@ async def enhance_preview(db: Session, character_id: int) -> dict:
 
     # Session auto-reconnects on next use
     enhanced_bytes = decode_data_url(f"data:image/png;base64,{result['enhanced_image']}")
-    url, _ = _save_preview_asset(db, character_id, enhanced_bytes)
+    url, _ = _save_reference_asset(db, character_id, enhanced_bytes)
     return {"ok": True, "url": url, "cost_usd": result["cost_usd"]}
 
 
@@ -250,11 +250,11 @@ async def edit_preview(db: Session, character_id: int, instruction: str) -> dict
     from services.image import decode_data_url, load_as_data_url
     from services.imagen_edit import get_imagen_service
 
-    character = _get_character_for_preview(db, character_id, with_tags=True)
-    if not character.preview_image_url:
+    character = _get_character_for_reference(db, character_id, with_tags=True)
+    if not character.reference_image_url:
         raise ValueError("No preview image to edit")
 
-    image_b64 = load_as_data_url(character.preview_image_url)
+    image_b64 = load_as_data_url(character.reference_image_url)
     tag_names = [ct.tag.name for ct in character.tags if ct.tag]
     original_prompt = ", ".join(tag_names) if tag_names else ""
 
@@ -270,7 +270,7 @@ async def edit_preview(db: Session, character_id: int, instruction: str) -> dict
 
     # Session auto-reconnects on next use
     edited_bytes = decode_data_url(f"data:image/png;base64,{result['edited_image']}")
-    url, _ = _save_preview_asset(db, character_id, edited_bytes)
+    url, _ = _save_reference_asset(db, character_id, edited_bytes)
     return {
         "ok": True,
         "url": url,
@@ -405,7 +405,7 @@ async def assign_wizard_preview(db: Session, character_id: int, request: AssignP
     """Save a wizard-generated preview image to an existing character."""
     import base64
 
-    _get_character_for_preview(db, character_id, with_tags=False)  # Validates existence + not locked
+    _get_character_for_reference(db, character_id, with_tags=False)  # Validates existence + not locked
 
     # Decode base64
     try:
@@ -413,9 +413,9 @@ async def assign_wizard_preview(db: Session, character_id: int, request: AssignP
     except Exception as exc:
         raise ValueError(f"Invalid base64 image data: {exc}") from exc
 
-    url, asset_id = _save_preview_asset(db, character_id, image_bytes)
+    url, asset_id = _save_reference_asset(db, character_id, image_bytes)
 
     return {
-        "preview_image_url": url,
+        "reference_image_url": url,
         "asset_id": asset_id,
     }

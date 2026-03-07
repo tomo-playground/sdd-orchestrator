@@ -57,7 +57,7 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
     }
   };
 
-  const charsWithImage = characters.filter((c) => c.preview_image_asset_id);
+  const charsWithImage = characters.filter((c) => c.reference_image_asset_id);
 
   return (
     <Modal open onClose={onClose} size="sm">
@@ -137,13 +137,13 @@ export default function ProjectFormModal({ project, onSave, onClose }: Props) {
                 None
               </button>
               {charsWithImage.map((ch) => {
-                const imgUrl = resolveImageUrl(ch.preview_image_url);
-                const isSelected = avatarAssetId === ch.preview_image_asset_id;
+                const imgUrl = resolveImageUrl(ch.reference_image_url);
+                const isSelected = avatarAssetId === ch.reference_image_asset_id;
                 return (
                   <button
                     key={ch.id}
                     type="button"
-                    onClick={() => setAvatarAssetId(ch.preview_image_asset_id!)}
+                    onClick={() => setAvatarAssetId(ch.reference_image_asset_id!)}
                     title={ch.name}
                     className={`h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 transition ${isSelected
                         ? "border-zinc-900 ring-2 ring-zinc-300"

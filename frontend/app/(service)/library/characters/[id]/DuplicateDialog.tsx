@@ -31,7 +31,7 @@ export default function DuplicateDialog({ character, groups, onClose }: Props) {
   const [targetGroupId, setTargetGroupId] = useState<number>(character.group_id);
   const [newName, setNewName] = useState(character.name);
   const [copyLoras, setCopyLoras] = useState(false);
-  const [copyPreview, setCopyPreview] = useState(false);
+  const [copyReference, setCopyPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +46,7 @@ export default function DuplicateDialog({ character, groups, onClose }: Props) {
           target_group_id: targetGroupId,
           new_name: newName.trim(),
           copy_loras: copyLoras,
-          copy_preview: copyPreview,
+          copy_reference: copyReference,
         }
       );
       showToast(`복제 완료: ${res.data.name}`, "success");
@@ -122,11 +122,11 @@ export default function DuplicateDialog({ character, groups, onClose }: Props) {
           <label className="flex items-center gap-2 text-sm text-zinc-600">
             <input
               type="checkbox"
-              checked={copyPreview}
+              checked={copyReference}
               onChange={(e) => setCopyPreview(e.target.checked)}
               className="accent-zinc-700"
             />
-            프리뷰 이미지
+            레퍼런스 이미지
           </label>
         </div>
       </div>
