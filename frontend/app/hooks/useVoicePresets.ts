@@ -122,10 +122,22 @@ export function useVoicePresets(ui: UiCallbacks) {
     setSaving(true);
     try {
       if (editId) {
-        await axios.put(`${ADMIN_API_BASE}/voice-presets/${editId}`, {
+        const updatePayload: Record<string, unknown> = {
           name: editing.name,
           description: editing.description,
-        });
+          voice_design_prompt: editing.voice_design_prompt,
+          sample_text: editing.sample_text,
+          language: editing.language,
+        };
+        if (previewSeed !== null) {
+          updatePayload.voice_seed = previewSeed;
+        }
+        await axios.put(`${ADMIN_API_BASE}/voice-presets/${editId}`, updatePayload);
+        if (previewAssetId) {
+          await axios.post(`${ADMIN_API_BASE}/voice-presets/${editId}/attach-preview`, null, {
+            params: { temp_asset_id: previewAssetId },
+          });
+        }
       } else {
         const res = await axios.post(`${ADMIN_API_BASE}/voice-presets`, {
           name: editing.name,

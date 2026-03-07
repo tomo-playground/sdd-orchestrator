@@ -117,58 +117,54 @@ export default function AdminVoicesPage() {
                 placeholder="Optional"
               />
             </div>
-            {!editId && (
-              <>
-                <div className="col-span-2">
-                  <label className={labelCls}>Voice Design Prompt *</label>
-                  <input
-                    value={editing.voice_design_prompt}
-                    onChange={(e) => set("voice_design_prompt", e.target.value)}
-                    className={inputCls}
-                    placeholder="e.g. calm 40s female narrator"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className={labelCls}>Sample Text</label>
-                  <input
-                    value={editing.sample_text}
-                    onChange={(e) => set("sample_text", e.target.value)}
-                    className={inputCls}
-                    placeholder="Text to preview the voice with"
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Language</label>
-                  <select
-                    value={editing.language}
-                    onChange={(e) => set("language", e.target.value)}
-                    className={inputCls}
-                  >
-                    {languages.map((l) => (
-                      <option key={l.value} value={l.value}>
-                        {l.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex items-end gap-2">
-                  <Button
-                    size="sm"
-                    variant="gradient"
-                    onClick={handlePreview}
-                    disabled={previewing || !editing.voice_design_prompt?.trim()}
-                    loading={previewing}
-                  >
-                    Preview
-                  </Button>
-                  {previewUrl && (
-                    <Button size="sm" variant="outline" onClick={() => playAudio(previewUrl)}>
-                      Play Preview
-                    </Button>
-                  )}
-                </div>
-              </>
-            )}
+            <div className="col-span-2">
+              <label className={labelCls}>Voice Design Prompt *</label>
+              <input
+                value={editing.voice_design_prompt}
+                onChange={(e) => set("voice_design_prompt", e.target.value)}
+                className={inputCls}
+                placeholder="e.g. calm 40s female narrator"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className={labelCls}>Sample Text</label>
+              <input
+                value={editing.sample_text}
+                onChange={(e) => set("sample_text", e.target.value)}
+                className={inputCls}
+                placeholder="Text to preview the voice with"
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Language</label>
+              <select
+                value={editing.language}
+                onChange={(e) => set("language", e.target.value)}
+                className={inputCls}
+              >
+                {languages.map((l) => (
+                  <option key={l.value} value={l.value}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end gap-2">
+              <Button
+                size="sm"
+                variant="gradient"
+                onClick={handlePreview}
+                disabled={previewing || !editing.voice_design_prompt?.trim()}
+                loading={previewing}
+              >
+                Preview
+              </Button>
+              {previewUrl && (
+                <Button size="sm" variant="outline" onClick={() => playAudio(previewUrl)}>
+                  Play Preview
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="flex justify-end pt-2">
