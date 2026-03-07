@@ -107,22 +107,25 @@ class TestRebuildImagePrompt:
         assert "hallway" in tags
         assert "moonlight" in tags
 
-    def test_skip_old_format_no_cinematic_no_props(self):
-        """확장 필드 없는 기존 스토리보드는 건너뛴다."""
-        original_prompt = "nervous, holding_knife, kitchen"
+    def test_rebuilds_when_standard_fields_present(self):
+        """B-1: cinematic/props 없어도 action/environment 등 표준 필드가 있으면 재조립."""
         scenes = [
             {
                 "speaker": "A",
-                "image_prompt": original_prompt,
+                "image_prompt": "nervous, holding_knife, white_shirt, kitchen",
                 "context_tags": {
-                    "emotion": "nervous",
-                    "action": "holding_knife",
+                    "emotion": "nervous",  # _CONTEXT_TAG_FIELDS 아님 → 무시
+                    "action": "holding_knife",  # _CONTEXT_TAG_FIELDS → 재조립
                     "environment": ["kitchen"],
                 },
             }
         ]
         _rebuild_image_prompt_from_context_tags(scenes)
-        assert scenes[0]["image_prompt"] == original_prompt
+        prompt = scenes[0]["image_prompt"]
+        # 재조립 → action + environment만 포함, white_shirt(복장 오염) 제거됨
+        assert "holding_knife" in prompt
+        assert "kitchen" in prompt
+        assert "white_shirt" not in prompt
 
     def test_skip_no_context_tags(self):
         original_prompt = "some_tag, another_tag"
@@ -161,12 +164,12 @@ class TestRebuildImagePrompt:
         _rebuild_image_prompt_from_context_tags(scenes)
         assert "cowboy_shot" in scenes[0]["image_prompt"]
 
-    def test_multiple_scenes_partial_rebuild(self):
-        """확장 형식 씬만 재조립, 나머지는 유지."""
+    def test_multiple_scenes_both_rebuild(self):
+        """B-1: 두 씬 모두 표준 필드 있으면 각각 재조립."""
         scenes = [
             {
                 "speaker": "A",
-                "image_prompt": "old_prompt",
+                "image_prompt": "old_prompt, blue_skirt",
                 "context_tags": {"emotion": "happy", "action": "smile"},
             },
             {
@@ -180,16 +183,18 @@ class TestRebuildImagePrompt:
             },
         ]
         _rebuild_image_prompt_from_context_tags(scenes)
-        assert scenes[0]["image_prompt"] == "old_prompt"  # no cinematic/props → skip
-        assert "crying" in scenes[1]["image_prompt"]  # rebuilt
+        # 씬 0: action="smile" → 재조립, blue_skirt(복장 오염) 제거
+        assert "smile" in scenes[0]["image_prompt"]
+        assert "blue_skirt" not in scenes[0]["image_prompt"]
+        # 씬 1: 재조립
+        assert "crying" in scenes[1]["image_prompt"]
 
-    def test_empty_props_and_cinematic(self):
-        """빈 배열이면 cinematic/props 존재로 간주하지 않음."""
-        original = "some_tags"
+    def test_empty_props_and_cinematic_but_action_present(self):
+        """B-1: cinematic/props 빈 배열이어도 action이 있으면 재조립."""
         scenes = [
             {
                 "speaker": "A",
-                "image_prompt": original,
+                "image_prompt": "some_tags, red_dress",
                 "context_tags": {
                     "action": "walking",
                     "cinematic": [],
@@ -197,5 +202,14 @@ class TestRebuildImagePrompt:
                 },
             }
         ]
+        _rebuild_image_prompt_from_context_tags(scenes)
+        # action="walking" → 재조립, red_dress 제거
+        assert "walking" in scenes[0]["image_prompt"]
+        assert "red_dress" not in scenes[0]["image_prompt"]
+
+    def test_skip_completely_empty_context_tags(self):
+        """context_tags가 완전히 빈 dict이면 skip (구 스토리보드 후방 호환)."""
+        original = "some_tags, white_shirt"
+        scenes = [{"speaker": "A", "image_prompt": original, "context_tags": {}}]
         _rebuild_image_prompt_from_context_tags(scenes)
         assert scenes[0]["image_prompt"] == original

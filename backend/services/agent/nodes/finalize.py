@@ -445,6 +445,8 @@ def _filter_exclusive_identity_tags(
 
 _CLOTHING_GROUPS = frozenset({"clothing", "clothing_top", "clothing_bottom", "clothing_outfit", "clothing_detail"})
 _ACCESSORY_GROUPS = frozenset({"accessory", "hair_accessory", "legwear", "footwear"})
+# context_tags 표준 필드 — 하나라도 있으면 image_prompt 재조립 대상
+_CONTEXT_TAG_FIELDS = frozenset({"camera", "pose", "gaze", "action", "expression", "environment", "cinematic", "props"})
 
 
 def _enforce_character_clothing(
@@ -585,9 +587,11 @@ def _validate_cross_field_consistency(scenes: list[dict]) -> None:
 
 
 def _rebuild_image_prompt_from_context_tags(scenes: list[dict]) -> None:
-    """확장 context_tags(cinematic/props 포함)에서 image_prompt를 재조립한다.
+    """context_tags에서 image_prompt를 재조립하여 복장/identity 오염을 차단한다.
 
-    확장 필드가 없는 기존 스토리보드는 건너뛴다 (후방 호환).
+    context_tags 표준 필드(camera/pose/gaze/action/expression/environment/cinematic/props)
+    중 하나라도 있으면 재조립 실행 — Gemini가 image_prompt에 임의 삽입한 복장·identity 태그
+    를 제거하는 효과. context_tags가 완전히 비어있는 구 스토리보드만 건너뛴다 (후방 호환).
     재조립 순서는 PromptBuilder 12-Layer와 매핑된다:
       camera(L9) → pose+gaze(L7/L8) → action(L8) → props(L8)
       → expression(L7) → environment(L10) → cinematic(L11)
@@ -597,8 +601,9 @@ def _rebuild_image_prompt_from_context_tags(scenes: list[dict]) -> None:
         ctx = scene.get("context_tags")
         if not ctx:
             continue
-        # 확장 형식 감지: cinematic 또는 props 존재 시에만 재조립
-        if not (ctx.get("cinematic") or ctx.get("props")):
+        # context_tags에 표준 필드가 하나라도 있으면 재조립 (B-1: 조건 완화)
+        # 구 스토리보드(context_tags 완전 비어있음)는 skip하여 후방 호환 유지
+        if not any(ctx.get(f) for f in _CONTEXT_TAG_FIELDS):
             continue
 
         tags: list[str] = []
