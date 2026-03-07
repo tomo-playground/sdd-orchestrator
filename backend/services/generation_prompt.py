@@ -466,6 +466,22 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     _append_narrator_negative(request)
 
     ctx.negative_prompt = request.negative_prompt or DEFAULT_SCENE_NEGATIVE_PROMPT
+
+    # Merge character-specific negative prompts (scene_negative + common_negative)
+    _chars_for_neg = [character_obj]
+    if effective_b_id:
+        from models import Character as _CharModel
+
+        _char_b = db.query(_CharModel).filter(_CharModel.id == effective_b_id).first()
+        _chars_for_neg.append(_char_b)
+    for _ch in _chars_for_neg:
+        if not _ch:
+            continue
+        if _ch.scene_negative_prompt:
+            ctx.negative_prompt = f"{ctx.negative_prompt}, {_ch.scene_negative_prompt}"
+        if _ch.common_negative_prompts:
+            ctx.negative_prompt = f"{ctx.negative_prompt}, {', '.join(_ch.common_negative_prompts)}"
+
     ctx.warnings.extend(compose_warnings)
     ctx.warnings.extend(strategy.warnings)
 

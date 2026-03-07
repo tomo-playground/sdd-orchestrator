@@ -47,14 +47,11 @@ Actor A Gender: {{ actor_a_gender }}
 
 {% with ctx=character_context, speaker=None %}{% include '_partials/character_profile.j2' %}{% endwith %}
 
-⚠️ CHARACTER CONSISTENCY RULES:
-- You MUST include ALL Identity Tags and Costume Tags in EVERY scene's image_prompt
-- Do NOT invent, modify, or omit any character appearance tags
-- Do NOT add alternative hair colors, eye colors, hair lengths, skin colors, or outfits
-- NEVER add tags like brown_hair when Identity Tags say red_hair, or brown_eyes when Identity Tags say purple_eyes
-- Use ONLY the exact Identity/Costume tags provided above — do not paraphrase or substitute
-- Place character tags BEFORE expression/pose/environment tags in image_prompt
-- These tags are FIXED across all scenes for visual consistency
+⚠️ CHARACTER TAG RULES:
+- Do NOT include character identity tags (hair, eyes, body) or costume tags in image_prompt
+- These are injected automatically by the system for visual consistency
+- Do NOT invent clothing, hair colors, eye colors, or outfits — the system handles all character appearance
+- Focus image_prompt ONLY on: expression, gaze, pose, action, props, camera, environment, mood
 {% endif %}
 
 CRITICAL LANGUAGE RULE:

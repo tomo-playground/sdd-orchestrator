@@ -18,15 +18,11 @@ Language: {{ language }}
 {% with ctx=character_b_context, speaker="B" %}{% include '_partials/character_profile.j2' %}{% endwith %}
 {% endif %}
 
-⚠️ CHARACTER CONSISTENCY RULES:
-- Speaker A scenes: include ALL of Speaker A's Identity + Costume + LoRA tags
-- Speaker B scenes: include ALL of Speaker B's Identity + Costume + LoRA tags
-- NEVER mix character tags between speakers
-- Do NOT invent, modify, or omit any character appearance tags
-- Do NOT add alternative hair colors, eye colors, hair lengths, skin colors, or outfits
-- NEVER add tags like brown_hair when Identity Tags say red_hair, or brown_eyes when Identity Tags say blue_eyes
-- Use ONLY the exact Identity/Costume tags provided above — do not paraphrase or substitute
-- Place character tags BEFORE expression/pose/environment tags in image_prompt
+⚠️ CHARACTER TAG RULES:
+- Do NOT include character identity tags (hair, eyes, body) or costume tags in image_prompt
+- These are injected automatically by the system for visual consistency
+- Do NOT invent clothing, hair colors, eye colors, or outfits — the system handles all character appearance
+- Focus image_prompt ONLY on: expression, gaze, pose, action, props, camera, environment, mood
 
 ⚠️ DIALOGUE STRUCTURE RULES:
 - STRICT: Create {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds total
@@ -57,7 +53,7 @@ DIALOGUE STRUCTURE OPTIMIZATION:
 ⚠️ MULTI-CHARACTER SCENE RULES (scene_mode: "multi"):
 - You MAY create 1-2 scenes where BOTH characters appear together
 - Use these ONLY for key emotional moments (reunion, confrontation, farewell, shared reaction)
-- Multi scenes: include BOTH characters' identity/costume/LoRA tags in image_prompt
+- Multi scenes: character tags are injected automatically — do NOT add them
 - Multi scenes: subject tag should reflect both characters (e.g., "1boy, 1girl" / "2girls" / "2boys")
 {% if character_context and character_b_context %}
 {% if character_context.gender == "male" and character_b_context.gender == "male" %}
@@ -136,7 +132,7 @@ Instructions:
    - image_prompt: detailed ENGLISH scene description for SD (comma-separated tags)
      * REQUIRED categories from Allowed Keywords:
        - expression, gaze, pose, action, props, camera, environment, mood
-     * Use the CURRENT SPEAKER's identity/costume/LoRA tags
+     * Character identity/costume tags are injected automatically — do NOT add them
 {% include '_partials/image_prompt_ko_rules.j2' %}
 {% include '_partials/emotion_consistency_rules.j2' %}
 6. Return ONLY raw JSON array.
@@ -163,7 +159,7 @@ Output Format (4-scene dialogue example — notice A↔B alternation and convers
 {% if is_multi_character_capable %}
     "scene_mode": "single",
 {% endif %}
-    "image_prompt": "[speaker_A_identity_tags], smile, looking_at_viewer, pointing, cowboy_shot, outdoors, day, excited",
+    "image_prompt": "smile, looking_at_viewer, pointing, cowboy_shot, outdoors, day, excited",
     "image_prompt_ko": "신나서 상대에게 풍경을 가리키며 말하는 모습",
     "context_tags": {
       "expression": ["smile"],
@@ -183,7 +179,7 @@ Output Format (4-scene dialogue example — notice A↔B alternation and convers
 {% if is_multi_character_capable %}
     "scene_mode": "single",
 {% endif %}
-    "image_prompt": "[speaker_B_identity_tags], slight_smile, looking_away, hand_on_hip, upper_body, outdoors, day, relaxed",
+    "image_prompt": "slight_smile, looking_away, hand_on_hip, upper_body, outdoors, day, relaxed",
     "image_prompt_ko": "살짝 웃으며 다른 곳을 가리키는 모습",
     "context_tags": {
       "expression": ["slight_smile"],
@@ -203,7 +199,7 @@ Output Format (4-scene dialogue example — notice A↔B alternation and convers
 {% if is_multi_character_capable %}
     "scene_mode": "single",
 {% endif %}
-    "image_prompt": "[speaker_A_identity_tags], pout, looking_at_viewer, arms_crossed, close-up, outdoors, day, playful",
+    "image_prompt": "pout, looking_at_viewer, arms_crossed, close-up, outdoors, day, playful",
     "image_prompt_ko": "볼을 부풀리며 상대를 설득하려는 표정",
     "context_tags": {
       "expression": ["pout"],
@@ -223,7 +219,7 @@ Output Format (4-scene dialogue example — notice A↔B alternation and convers
 {% if is_multi_character_capable %}
     "scene_mode": "single",
 {% endif %}
-    "image_prompt": "[speaker_B_identity_tags], grin, looking_at_viewer, open_hands, cowboy_shot, outdoors, day, happy",
+    "image_prompt": "grin, looking_at_viewer, open_hands, cowboy_shot, outdoors, day, happy",
     "image_prompt_ko": "웃으며 양보하면서 조건을 내거는 모습",
     "context_tags": {
       "expression": ["grin"],

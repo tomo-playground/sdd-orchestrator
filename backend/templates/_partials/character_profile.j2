@@ -1,23 +1,16 @@
 {# Character profile block for Writer templates.
-   Provides character identity (visual) AND personality context for dialogue writing.
+   Provides character personality context for dialogue writing.
+   Identity/costume tags are injected automatically by PromptBuilder — Gemini should NOT generate them.
    Expects: ctx (character_context or character_b_context), speaker ("A", "B", or None for monologue) #}
-{% if speaker %}SPEAKER {{ speaker }} - {% endif %}FIXED CHARACTER IDENTITY (MANDATORY):
+{% if speaker %}SPEAKER {{ speaker }} - {% endif %}CHARACTER PROFILE:
 Character Name: {{ ctx.name }}
 Gender: {{ ctx.gender }}
 {%- if ctx.description %}
 Personality/Background: {{ ctx.description }}
 {%- endif %}
-{%- if ctx.identity_tags | length > 0 %}
-Identity Tags (hair, eyes, body - NEVER change these):
-{{ ctx.identity_tags | join(', ') }}
-{%- endif %}
 {%- if ctx.costume_tags | length > 0 %}
-Costume Tags (clothing, accessories - NEVER change these):
+Costume Reference (for script context only — do NOT include in image_prompt):
 {{ ctx.costume_tags | join(', ') }}
-{%- endif %}
-{%- if ctx.lora_triggers | length > 0 %}
-LoRA Trigger Words (MUST include in every scene{% if speaker %} where speaker={{ speaker }}{% endif %}):
-{{ ctx.lora_triggers | join(', ') }}
 {%- endif %}
 
 ⚠️ SCRIPT RULES for {{ ctx.name }}:

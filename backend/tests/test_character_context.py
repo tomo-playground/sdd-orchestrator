@@ -298,7 +298,7 @@ class TestTemplateCharacterContext:
             keyword_context="",
             character_context=None,
         )
-        assert "FIXED CHARACTER IDENTITY" not in rendered
+        assert "CHARACTER PROFILE" not in rendered
 
     def test_template_with_character_context(self):
         """Template renders character identity block when context provided."""
@@ -324,12 +324,12 @@ class TestTemplateCharacterContext:
             keyword_context="",
             character_context=ctx,
         )
-        assert "FIXED CHARACTER IDENTITY" in rendered
+        assert "CHARACTER PROFILE" in rendered
         assert "Sakura" in rendered
-        assert "pink_hair, green_eyes" in rendered
+        # identity_tags and lora_triggers are no longer rendered in template
+        # costume_tags rendered as "Costume Reference" (script context only)
         assert "school_uniform, red_ribbon" in rendered
-        assert "sakura_trigger" in rendered
-        assert "CHARACTER CONSISTENCY RULES" in rendered
+        assert "CHARACTER TAG RULES" in rendered
 
     def test_template_omits_empty_sections(self):
         """Template omits identity/costume/lora sections when empty."""
@@ -356,12 +356,10 @@ class TestTemplateCharacterContext:
             keyword_context="",
             character_context=ctx,
         )
-        assert "FIXED CHARACTER IDENTITY" in rendered
+        assert "CHARACTER PROFILE" in rendered
         assert "Plain" in rendered
-        # Header lines for tag sections should not appear when lists are empty
-        assert "Identity Tags (hair, eyes, body" not in rendered
-        assert "Costume Tags (clothing, accessories" not in rendered
-        assert "LoRA Trigger Words (MUST include" not in rendered
+        # Costume Reference should not appear when costume_tags is empty
+        assert "Costume Reference" not in rendered
         assert "Personality/Background" not in rendered
 
     def test_template_renders_description_and_script_rules(self):
@@ -424,8 +422,8 @@ class TestTemplateCharacterContext:
             character_context=ctx_a,
             character_b_context=ctx_b,
         )
-        assert "SPEAKER A - FIXED CHARACTER IDENTITY" in rendered
-        assert "SPEAKER B - FIXED CHARACTER IDENTITY" in rendered
+        assert "SPEAKER A - CHARACTER PROFILE" in rendered
+        assert "SPEAKER B - CHARACTER PROFILE" in rendered
         assert "미도리" in rendered
         assert "유카리" in rendered
         assert "활발한 남학생" in rendered

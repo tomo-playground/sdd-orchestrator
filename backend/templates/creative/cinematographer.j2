@@ -10,16 +10,13 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 ## Character Visual Tags (per speaker)
 {% for speaker, tag_layers in characters_tags.items() %}
 ### Speaker "{{ speaker }}"
-**IDENTITY (NEVER modify):** {{ tag_layers.identity | tojson }}
-**APPEARANCE (NEVER modify):** {{ tag_layers.appearance | tojson }}
-**LoRA triggers (ALWAYS include):** {{ tag_layers.lora_triggers | tojson }}
 {% if tag_layers.action_hints %}**Preferred actions (use as default, override per scene):** {{ tag_layers.action_hints | tojson }}{% endif %}
 {% endfor %}
 ⚠️ CHARACTER TAG RULES (MANDATORY):
-- Do NOT write character identity tags (hair, eyes, body) or clothing/accessory tags in `image_prompt`. The system auto-injects these from the character database.
-- In `image_prompt`, write ONLY: scene-specific tags (camera, environment, lighting, action, pose, expression, props).
-- Do NOT invent or add clothing tags (e.g. `blue_skirt`, `white_shirt`, `checkered_shirt`) that are not listed in the character's APPEARANCE above.
-- LoRA trigger words listed above MUST be included in every character scene's `image_prompt`.
+- Do NOT write character identity tags (hair, eyes, body), clothing/accessory tags, or LoRA trigger words in `image_prompt`
+- These are ALL injected automatically by the system from the character database
+- In `image_prompt`, write ONLY: scene-specific tags (camera, environment, lighting, action, pose, expression, props)
+- Do NOT invent or add clothing tags (e.g. `blue_skirt`, `white_shirt`, `checkered_shirt`)
 Action hints are the character's typical poses/actions — use them as defaults but freely override with scene-appropriate actions.
 {% elif character_tags %}
 ## Character Visual Tags
