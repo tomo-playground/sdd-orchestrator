@@ -22,44 +22,54 @@ def _make_char_with_clothing(tags_data: list[tuple[str, str]]):
     return char
 
 
-def _make_db(char_a=None, char_b=None):
-    """Create a mock DB that returns characters by ID."""
+def _make_tag_rows(tags_data: list[tuple[str, str]]):
+    """Create mock Tag rows for db.query(Tag).filter().all()."""
+    rows = []
+    for name, group in tags_data:
+        row = MagicMock()
+        row.name = name
+        row.group_name = group
+        rows.append(row)
+    return rows
+
+
+def _make_db(char_a=None, char_b=None, tag_rows=None):
+    """Create a mock DB that returns characters by ID and tags by name."""
+    from models.tag import Tag  # noqa: F811
+
+    char_call_count = [0]
 
     def _query(model):
+        # Tag query path
+        if model is Tag:
+            q = MagicMock()
+
+            def _tag_filter(*_a, **_kw):
+                fq = MagicMock()
+                fq.all.return_value = tag_rows or []
+                return fq
+
+            q.filter = MagicMock(side_effect=_tag_filter)
+            return q
+
+        # Character query path
         q = MagicMock()
         q.options.return_value = q
 
-        def _filter(*args, **kwargs):
+        def _filter(*_a, **_kw):
             fq = MagicMock()
-            # Determine which character based on filter arg
-            fq.first.return_value = char_a  # default
+            if char_call_count[0] == 0:
+                fq.first.return_value = char_a
+            else:
+                fq.first.return_value = char_b
+            char_call_count[0] += 1
             return fq
 
         q.filter = MagicMock(side_effect=_filter)
         return q
 
     db = MagicMock()
-    # Track call count to return char_a first, char_b second
-    call_count = [0]
-    original_query = _query
-
-    def _tracked_query(model):
-        q = MagicMock()
-        q.options.return_value = q
-
-        def _filter(*args, **kwargs):
-            fq = MagicMock()
-            if call_count[0] == 0:
-                fq.first.return_value = char_a
-            else:
-                fq.first.return_value = char_b
-            call_count[0] += 1
-            return fq
-
-        q.filter = MagicMock(side_effect=_filter)
-        return q
-
-    db.query = MagicMock(side_effect=_tracked_query)
+    db.query = MagicMock(side_effect=_query)
     return db
 
 
@@ -174,3 +184,154 @@ class TestEnforceCharacterClothing:
         _enforce_character_clothing(scenes, 1, None, db)
 
         assert scenes[0]["image_prompt"] == "1girl, smile"
+
+
+class TestStripNonDbClothing:
+    """Gemini가 자의적으로 추가한 비-DB 복장 태그 제거 테스트."""
+
+    def test_removes_gemini_added_clothing(self):
+        """DB에 없는 복장 태그를 제거하고 DB 태그를 보강."""
+        char = _make_char_with_clothing([("pink_dress", "clothing_outfit")])
+        tag_rows = _make_tag_rows(
+            [
+                ("pink_dress", "clothing_outfit"),
+                ("blue_skirt", "clothing_bottom"),
+            ]
+        )
+        db = _make_db(char_a=char, tag_rows=tag_rows)
+        scenes = [{"speaker": "A", "image_prompt": "1girl, blue_skirt, smile"}]
+
+        _enforce_character_clothing(scenes, 1, None, db)
+
+        prompt = scenes[0]["image_prompt"]
+        assert "blue_skirt" not in prompt
+        assert "pink_dress" in prompt
+
+    def test_keeps_non_clothing_tags(self):
+        """복장이 아닌 태그(카메라, 환경 등)는 유지."""
+        char = _make_char_with_clothing([("school_uniform", "clothing")])
+        tag_rows = _make_tag_rows(
+            [
+                ("school_uniform", "clothing"),
+                ("close-up", "camera"),
+                ("kitchen", "environment"),
+            ]
+        )
+        db = _make_db(char_a=char, tag_rows=tag_rows)
+        scenes = [{"speaker": "A", "image_prompt": "1girl, close-up, kitchen"}]
+
+        _enforce_character_clothing(scenes, 1, None, db)
+
+        prompt = scenes[0]["image_prompt"]
+        assert "close-up" in prompt
+        assert "kitchen" in prompt
+        assert "school_uniform" in prompt
+
+    def test_removes_multiple_conflicting_clothing(self):
+        """Gemini가 여러 복장 태그를 추가해도 모두 제거."""
+        char = _make_char_with_clothing(
+            [
+                ("green_hoodie", "clothing_top"),
+                ("cargo_pants", "clothing_bottom"),
+            ]
+        )
+        tag_rows = _make_tag_rows(
+            [
+                ("green_hoodie", "clothing_top"),
+                ("cargo_pants", "clothing_bottom"),
+                ("white_shirt", "clothing_top"),
+                ("brown_pants", "clothing_bottom"),
+                ("checkered_shirt", "clothing_top"),
+            ]
+        )
+        db = _make_db(char_a=char, tag_rows=tag_rows)
+        scenes = [
+            {
+                "speaker": "A",
+                "image_prompt": "1boy, white_shirt, brown_pants, checkered_shirt, smile",
+            }
+        ]
+
+        _enforce_character_clothing(scenes, 1, None, db)
+
+        prompt = scenes[0]["image_prompt"]
+        assert "white_shirt" not in prompt
+        assert "brown_pants" not in prompt
+        assert "checkered_shirt" not in prompt
+        assert "green_hoodie" in prompt
+        assert "cargo_pants" in prompt
+
+    def test_preserves_db_clothing_in_prompt(self):
+        """DB 복장 태그가 이미 prompt에 있으면 유지 + 중복 추가 안 함."""
+        char = _make_char_with_clothing([("school_uniform", "clothing")])
+        tag_rows = _make_tag_rows([("school_uniform", "clothing")])
+        db = _make_db(char_a=char, tag_rows=tag_rows)
+        scenes = [{"speaker": "A", "image_prompt": "1girl, school_uniform, smile"}]
+
+        _enforce_character_clothing(scenes, 1, None, db)
+
+        prompt = scenes[0]["image_prompt"]
+        assert prompt.count("school_uniform") == 1
+
+    def test_clothing_override_bypasses_strip(self):
+        """clothing_override 씬은 비-DB 복장 제거도 건너뜀."""
+        char = _make_char_with_clothing([("school_uniform", "clothing")])
+        tag_rows = _make_tag_rows(
+            [
+                ("summer_dress", "clothing_outfit"),
+            ]
+        )
+        db = _make_db(char_a=char, tag_rows=tag_rows)
+        scenes = [
+            {
+                "speaker": "A",
+                "image_prompt": "1girl, summer_dress, smile",
+                "clothing_override": ["summer_dress"],
+            }
+        ]
+
+        _enforce_character_clothing(scenes, 1, None, db)
+
+        prompt = scenes[0]["image_prompt"]
+        assert "summer_dress" in prompt
+        assert "school_uniform" not in prompt
+
+    def test_speaker_b_strip_and_inject(self):
+        """Speaker B도 비-DB 복장 제거 + DB 복장 보강 적용."""
+        char_a = _make_char_with_clothing([("pink_dress", "clothing_outfit")])
+        char_b = _make_char_with_clothing([("hoodie", "clothing_top")])
+        tag_rows = _make_tag_rows(
+            [
+                ("pink_dress", "clothing_outfit"),
+                ("hoodie", "clothing_top"),
+                ("blue_jacket", "clothing_top"),
+            ]
+        )
+        db = _make_db(char_a=char_a, char_b=char_b, tag_rows=tag_rows)
+        scenes = [
+            {"speaker": "A", "image_prompt": "1girl, smile"},
+            {"speaker": "B", "image_prompt": "1boy, blue_jacket, smile"},
+        ]
+
+        _enforce_character_clothing(scenes, 1, 2, db)
+
+        prompt_a = scenes[0]["image_prompt"]
+        assert "pink_dress" in prompt_a
+
+        prompt_b = scenes[1]["image_prompt"]
+        assert "blue_jacket" not in prompt_b
+        assert "hoodie" in prompt_b
+
+    def test_unknown_tag_not_in_db_preserved(self):
+        """DB Tag 테이블에 없는 토큰(group_name 불명)은 제거하지 않음."""
+        char = _make_char_with_clothing([("school_uniform", "clothing")])
+        # tag_rows에 invented_tag이 없음 → group_name을 알 수 없으므로 유지
+        tag_rows = _make_tag_rows([("school_uniform", "clothing")])
+        db = _make_db(char_a=char, tag_rows=tag_rows)
+        scenes = [{"speaker": "A", "image_prompt": "1girl, invented_tag, smile"}]
+
+        _enforce_character_clothing(scenes, 1, None, db)
+
+        prompt = scenes[0]["image_prompt"]
+        assert "invented_tag" in prompt
+        assert "school_uniform" in prompt

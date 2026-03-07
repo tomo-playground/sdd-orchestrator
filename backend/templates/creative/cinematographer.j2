@@ -15,9 +15,12 @@ Add visual design (Danbooru tags, camera angles, environment) to each scripted s
 **LoRA triggers (ALWAYS include):** {{ tag_layers.lora_triggers | tojson }}
 {% if tag_layers.action_hints %}**Preferred actions (use as default, override per scene):** {{ tag_layers.action_hints | tojson }}{% endif %}
 {% endfor %}
-CRITICAL: Include ALL identity + appearance + lora_trigger tags in every character scene's image_prompt exactly as listed. Do NOT rephrase, omit, or replace them.
+⚠️ CHARACTER TAG RULES (MANDATORY):
+- Do NOT write character identity tags (hair, eyes, body) or clothing/accessory tags in `image_prompt`. The system auto-injects these from the character database.
+- In `image_prompt`, write ONLY: scene-specific tags (camera, environment, lighting, action, pose, expression, props).
+- Do NOT invent or add clothing tags (e.g. `blue_skirt`, `white_shirt`, `checkered_shirt`) that are not listed in the character's APPEARANCE above.
+- LoRA trigger words listed above MUST be included in every character scene's `image_prompt`.
 Action hints are the character's typical poses/actions — use them as defaults but freely override with scene-appropriate actions.
-CRITICAL: MAINTAIN the character's default CLOTHING and ACCESSORIES across ALL scenes. Do NOT change, remove, or replace outfit tags unless the script explicitly describes an outfit change. Outfit consistency is as important as face consistency.
 {% elif character_tags %}
 ## Character Visual Tags
 {{ character_tags | tojson(indent=2) }}
@@ -151,7 +154,7 @@ Match your visual design to this plan:
    - **Rule**: If the script mentions a key action (checking phone, cooking, reading), the related prop MUST appear in image_prompt. Do NOT omit props that define the scene's core action.
    - Do NOT add objects unrelated to the script (e.g. holding_book in a cooking scene)
    - ❌ NEVER use vague/generic action tags: `holding_object`, `doing_something`, `using_device`. Always specify the exact object: `holding_phone`, `holding_cup`, `reading_book`, etc.
-8. **image_prompt**: Complete comma-separated tag string ready for Stable Diffusion
+8. **image_prompt**: Scene-specific comma-separated tags ready for Stable Diffusion (character identity/clothing tags are auto-injected — do NOT include them)
 9. **negative_prompt_extra**: Scene-specific tags to exclude from generation. Combined with the default negative prompt.
    - Only add tags that are specifically problematic for THIS scene. Do NOT repeat default negative tags.
    - Narrator scenes (no character): add `"1girl, 1boy, person"` to prevent unwanted character generation
@@ -212,7 +215,7 @@ Match your visual design to this plan:
       "duration": 2.5,
       "camera": "close-up",
       "environment": "kitchen",
-      "image_prompt": "1girl, brown_hair, purple_eyes, nervous, holding_knife, kitchen, close-up, indoor",
+      "image_prompt": "nervous, holding_knife, kitchen, close-up, indoor",
       "image_prompt_ko": "어두운 주방에서 긴장한 표정으로 칼을 잡고 있는 모습",
       "context_tags": {
         "emotion": "nervous",

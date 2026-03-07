@@ -453,10 +453,10 @@ def _enforce_character_clothing(
     character_b_id: int | None,
     db,
 ) -> None:
-    """캐릭터 DB의 clothing/accessory 태그가 image_prompt에 누락되었으면 보강.
+    """캐릭터 DB의 clothing/accessory 태그로 image_prompt를 교정.
 
-    Cinematographer가 복장을 누락하거나 변경한 경우,
-    캐릭터 DB의 기본 복장 태그를 image_prompt에 추가한다.
+    1단계: Gemini가 추가한 비-DB 복장/액세서리 태그를 제거
+    2단계: DB 복장 태그가 누락되었으면 보강
     clothing_override가 있는 씬은 건너뛴다 (의도적 변경).
     """
     if not character_id:
@@ -466,8 +466,9 @@ def _enforce_character_clothing(
 
     from models.associations import CharacterTag  # noqa: PLC0415
     from models.character import Character  # noqa: PLC0415
+    from models.tag import Tag  # noqa: PLC0415
 
-    def _load_clothing_tags(cid: int) -> list[str]:
+    def _load_clothing_tags(cid: int) -> set[str]:
         char = (
             db.query(Character)
             .options(joinedload(Character.tags).joinedload(CharacterTag.tag))
@@ -475,21 +476,40 @@ def _enforce_character_clothing(
             .first()
         )
         if not char:
-            return []
-        tags = []
+            return set()
+        tags: set[str] = set()
         for ct in char.tags:
             tag = ct.tag
             if tag.group_name in _CLOTHING_GROUPS | _ACCESSORY_GROUPS:
-                tags.append(tag.name.lower().replace(" ", "_").strip())
+                tags.add(tag.name.lower().replace(" ", "_").strip())
         return tags
 
     char_a_clothing = _load_clothing_tags(character_id)
-    char_b_clothing = _load_clothing_tags(character_b_id) if character_b_id else []
+    char_b_clothing = _load_clothing_tags(character_b_id) if character_b_id else set()
 
     if not char_a_clothing and not char_b_clothing:
         return
 
+    # 전체 씬의 토큰을 수집하여 DB tag 테이블에서 group_name 일괄 조회 (N+1 방지)
+    all_tokens: set[str] = set()
+    for scene in scenes:
+        if scene.get("speaker") == "Narrator":
+            continue
+        for t in (scene.get("image_prompt") or "").split(","):
+            bare = _strip_token_weight(t.strip())
+            if bare:
+                all_tokens.add(bare)
+
+    if not all_tokens:
+        return
+
+    tag_rows = db.query(Tag.name, Tag.group_name).filter(Tag.name.in_(all_tokens)).all()
+    tag_group_map: dict[str, str | None] = {row.name: row.group_name for row in tag_rows}
+
+    clothing_accessory_groups = _CLOTHING_GROUPS | _ACCESSORY_GROUPS
+    removed_total = 0
     injected_total = 0
+
     for scene in scenes:
         speaker = scene.get("speaker", "")
         if speaker == "Narrator":
@@ -502,15 +522,33 @@ def _enforce_character_clothing(
             continue
 
         prompt = scene.get("image_prompt", "")
-        prompt_tokens = {t.strip().lower().replace(" ", "_") for t in prompt.split(",")}
+        tokens = [t.strip() for t in prompt.split(",")]
 
-        missing = [t for t in clothing_tags if t not in prompt_tokens]
+        # 1단계: 비-DB 복장 태그 제거
+        filtered: list[str] = []
+        for token in tokens:
+            if not token:
+                continue
+            bare = _strip_token_weight(token)
+            group = tag_group_map.get(bare)
+            if group and group in clothing_accessory_groups and bare not in clothing_tags:
+                removed_total += 1
+                continue
+            filtered.append(token)
+
+        # 2단계: DB 복장 태그 누락 보강
+        filtered_set = {_strip_token_weight(t.strip()).lower().replace(" ", "_") for t in filtered}
+        missing = [t for t in clothing_tags if t not in filtered_set]
         if missing:
-            scene["image_prompt"] = prompt + ", " + ", ".join(missing) if prompt else ", ".join(missing)
+            filtered.extend(missing)
             injected_total += len(missing)
 
+        scene["image_prompt"] = ", ".join(filtered)
+
+    if removed_total:
+        logger.info("[Finalize] 비-DB 복장 태그 %d개 제거 (Gemini 자의적 추가분)", removed_total)
     if injected_total:
-        logger.info("[Finalize] 캐릭터 복장 태그 %d개 보강 (DB 기본 복장)", injected_total)
+        logger.info("[Finalize] DB 복장 태그 %d개 보강 (누락분)", injected_total)
 
 
 def _auto_populate_scene_flags(
