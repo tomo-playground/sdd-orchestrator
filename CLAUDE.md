@@ -117,12 +117,15 @@ docs/
   - 캐릭터 프리뷰 생성도 동일: `preview.py`에서 StyleContext 기반 오버라이드.
 - **원천 UI 수정 원칙**: 설정 값의 SSOT를 소유한 UI에서만 수정을 허용한다. 다른 화면에서 동일 값을 표시할 때는 **읽기 전용**으로 보여주고, 수정이 필요하면 원천 UI로 이동시킨다. 특수한 케이스가 아닌 한 인라인 수정 금지.
   - 예: `narrator_voice_preset_id` → GroupConfigEditor가 원천. 렌더 패널은 읽기 전용 + "시리즈 설정에서 변경" 링크.
-- **캐릭터 레퍼런스 프롬프트 SSOT** (공통 vs 고유 분리):
+- **캐릭터 프롬프트 SSOT** (Phase 30-K: 2필드 통합):
+  - **DB 필드**: `characters.positive_prompt` (긍정) + `characters.negative_prompt` (부정) — 씬·레퍼런스 양쪽에 동일하게 적용
+  - **씬 경로**: `_collect_character_tags()` → `positive_prompt` 토큰을 DB 태그와 합산. `generation_prompt.py`/`image_generation_core.py` → `negative_prompt` 머지
+  - **레퍼런스 경로**: `compose_for_reference()` → `_collect_character_tags()`로 동일 `positive_prompt` 사용. `reference.py` → `negative_prompt` 우선, 없으면 `_build_reference_negative()` fallback
   - **공통 태그 = 상수 SSOT** (`config.py`, `config_prompt.py`):
     - Positive: `REFERENCE_ENV_TAGS` (배경), `REFERENCE_CAMERA_TAGS` (카메라), `_ensure_quality_tags()` (품질)
     - Negative: `DEFAULT_REFERENCE_NEGATIVE_PROMPT` (품질·배경·멀티뷰 억제)
     - `compose_for_reference()` + `preview.py` 머지 로직이 자동 주입
-  - **캐릭터 고유 태그 = DB** (`characters.reference_positive_prompt`, `reference_negative_prompt`):
+  - **캐릭터 고유 태그 = DB** (`positive_prompt`, `negative_prompt`):
     - Positive: 캐릭터 특화 보정만 (`chibi`, `flat_color`, `hrkzdrm_cs`, `expressionless` 등)
     - Negative: 캐릭터 특화 억제만 (`armor, bodysuit`, `1girl`, `realistic` 등)
   - ❌ DB에 공통 태그 중복 저장 금지 (`white_background`, `simple_background`, `solo`, `standing`, `lowres`, `bad_anatomy`, `detailed_background`, `multiple_views` 등)

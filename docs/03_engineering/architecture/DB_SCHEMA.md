@@ -446,11 +446,8 @@ WD14 피드백 루프 데이터.
 | `description` | String(500) | |
 | **Prompt** | | |
 | `loras` | JSONB | LoRA 설정 (아래 구조 참조) |
-| `common_negative_prompts` | Text[] | 캐릭터별 네거티브 |
-| `scene_positive_prompt` | Text | V3 compose 입력: LAYER_IDENTITY(2)에 배치 |
-| `scene_negative_prompt` | Text | Frontend `buildNegativePrompt()` 입력 |
-| `reference_positive_prompt` | Text | 레퍼런스 전용 — 캐릭터 고유 태그만 (공통은 config 상수 자동 주입) |
-| `reference_negative_prompt` | Text | 레퍼런스 전용 — 캐릭터 고유 억제만 (공통은 DEFAULT 상수 머지) |
+| `positive_prompt` | Text | 씬·레퍼런스 공용 긍정 프롬프트 — 캐릭터 특화 보정 태그만 (공통 태그는 config 상수 자동 주입) |
+| `negative_prompt` | Text | 씬·레퍼런스 공용 부정 프롬프트 — 캐릭터 특화 억제만 (공통은 DEFAULT 상수 머지) |
 | **IP-Adapter** | | |
 | `ip_adapter_weight` | Float | 0.0-1.0 |
 | `ip_adapter_model` | String(50) | `clip`, `clip_face`, `faceid` |
