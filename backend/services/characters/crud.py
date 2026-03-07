@@ -155,7 +155,7 @@ def create_character(db: Session, data: CharacterCreate) -> Character:
     if char_data.get("loras"):
         char_data["loras"] = enrich_character_loras(db, char_data["loras"])
 
-    # reference_positive_prompt / reference_negative_prompt:
+    # positive_prompt / negative_prompt:
     # 공통 태그는 config 상수가 SSOT (compose_for_reference + preview.py가 자동 주입).
     # DB에는 캐릭터 고유 태그만 저장. 값이 없으면 NULL로 유지.
 

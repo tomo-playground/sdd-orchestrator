@@ -380,13 +380,13 @@ class TestRestrictedTags:
 
     @patch("services.prompt.composition.TagFilterCache")
     def test_restricted_tags_filtered(self, mock_cache, builder):
-        """Restricted tags should be filtered from scene_positive_prompt."""
+        """Restricted tags should be filtered from positive_prompt."""
         from unittest.mock import MagicMock
 
         mock_cache.initialize.return_value = None
         mock_cache.is_restricted.side_effect = lambda tag: tag.lower() in {"kitchen", "outdoors"}
 
-        # Mock character with scene_positive_prompt containing restricted tags
+        # Mock character with positive_prompt containing restricted tags
         char = MagicMock()
         char.id = 1
         char.gender = "female"
@@ -1889,11 +1889,11 @@ class TestGetTagInfoGroupNameFallback:
 
 
 class TestCollectCharacterTagsLayerPlacement:
-    """Test scene_positive_prompt tags get correct layer/group_name from DB or pattern."""
+    """Test positive_prompt tags get correct layer/group_name from DB or pattern."""
 
     @patch("services.prompt.composition.TagFilterCache")
     def test_expression_tag_placed_in_expression_layer(self, mock_filter, builder):
-        """gentle_smile from scene_positive_prompt → layer from DB (LAYER_EXPRESSION)."""
+        """gentle_smile from positive_prompt → layer from DB (LAYER_EXPRESSION)."""
         mock_filter.initialize.return_value = None
         mock_filter.is_restricted.return_value = False
 
@@ -1977,7 +1977,7 @@ class TestCollectCharacterTagsLayerPlacement:
 
     @patch("services.prompt.composition.TagFilterCache")
     def test_multiple_tags_correct_layers(self, mock_filter, builder):
-        """Multiple scene_positive_prompt tags → each gets correct layer."""
+        """Multiple positive_prompt tags → each gets correct layer."""
         mock_filter.initialize.return_value = None
         mock_filter.is_restricted.return_value = False
 
@@ -2523,7 +2523,7 @@ class TestStripCharBaseFromScene:
     """Verify character base tokens are stripped from scene_tags to prevent duplication."""
 
     def test_strips_base_tokens(self):
-        """scene_positive_prompt tokens are removed from scene_tags."""
+        """positive_prompt tokens are removed from scene_tags."""
         char = MagicMock()
         char.positive_prompt = "gentle_smile, soft_lighting, masterpiece"
 
@@ -2549,7 +2549,7 @@ class TestStripCharBaseFromScene:
         assert len([t for t in result if "brown_hair" in t]) == 0
 
     def test_no_base_prompt_passthrough(self):
-        """No scene_positive_prompt → scene_tags returned as-is."""
+        """No positive_prompt → scene_tags returned as-is."""
         char = MagicMock()
         char.positive_prompt = None
 
@@ -2707,10 +2707,10 @@ class TestQualityTagsL0Injection:
 
 
 class TestCollectCharacterTagsDedup:
-    """_collect_character_tags DB태그/scene_positive_prompt 중복 제거 테스트."""
+    """_collect_character_tags DB태그/positive_prompt 중복 제거 테스트."""
 
     def test_dedup_by_name(self, builder):
-        """DB 태그와 scene_positive_prompt에 동일 태그 → 1회만 수집."""
+        """DB 태그와 positive_prompt에 동일 태그 → 1회만 수집."""
         char = MagicMock()
         char.gender = "female"
         char.positive_prompt = None
@@ -2725,7 +2725,7 @@ class TestCollectCharacterTagsDedup:
         db_tag.is_permanent = True
         char.tags = [db_tag]
 
-        # scene_positive_prompt: brown_hair (중복)
+        # positive_prompt: brown_hair (중복)
         char.positive_prompt = "brown_hair"
 
         with patch.object(

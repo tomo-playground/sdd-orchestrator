@@ -653,8 +653,8 @@ async def generate_reference_for_character(
 
     # INTENTIONAL BYPASS: This function intentionally does NOT use
     # generate_image_with_v3() because reference images use the character's
-    # own reference_positive_prompt + reference_negative_prompt (special logic
-    # for IP-Adapter/Reference-only reference images).
+    # own positive_prompt + negative_prompt via compose_for_reference()
+    # (special logic for IP-Adapter/Reference-only reference images).
 
     Args:
         db: Database session

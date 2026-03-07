@@ -480,7 +480,7 @@ class PromptBuilder:
         if not character:
             return self.compose(scene_tags, style_loras=style_loras)
 
-        # 1-2. Collect character tags (DB + scene_positive_prompt)
+        # 1-2. Collect character tags (DB + positive_prompt)
         char_tags_data = self._collect_character_tags(character)
 
         # 2b. Strip character base tokens from scene_tags to prevent duplication
@@ -526,15 +526,15 @@ class PromptBuilder:
         return self._flatten_layers(layers)
 
     def _collect_character_tags(self, character: Character) -> list[dict]:
-        """Collect character tags from DB associations + scene_positive_prompt.
+        """Collect character tags from DB associations + positive_prompt.
 
         DB tags: layer/group_name from Tag model.
-        scene_positive_prompt tags: layer/group_name resolved via get_tag_info()
+        positive_prompt tags: layer/group_name resolved via get_tag_info()
         (DB lookup → pattern fallback) instead of hardcoding LAYER_IDENTITY.
 
         Dedup rules (Tier 소유권):
         - DB 태그 먼저 수집 → seen_names set 구성
-        - scene_positive_prompt 순회 시 동일 normalized name이면 skip
+        - positive_prompt 순회 시 동일 normalized name이면 skip
         - 같은 group_name이면 custom이 DB를 대체 (override)
         """
         char_tags_data: list[dict] = []
@@ -1318,18 +1318,6 @@ class PromptBuilder:
 
         # 11. Flatten with dedup + conflict resolution
         return self._flatten_layers(layers)
-
-    def _parse_reference_tags(self, prompt: str | None) -> list[str]:
-        """Parse reference_positive_prompt into individual tags, filtering restricted ones."""
-        if not prompt:
-            return []
-        TagFilterCache.initialize(self.db)
-        tags = []
-        for token in prompt.split(","):
-            t = token.strip()
-            if t and not TagFilterCache.is_restricted(t):
-                tags.append(t)
-        return tags
 
     def _inject_reference_defaults(
         self,

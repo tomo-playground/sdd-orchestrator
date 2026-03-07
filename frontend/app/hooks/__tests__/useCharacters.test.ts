@@ -19,9 +19,9 @@ function buildCharacterPrompt(character: CharacterFull): string {
     }
   }
 
-  if (character.scene_positive_prompt) {
+  if (character.positive_prompt) {
     const existing = new Set(parts.map((p) => p.replace(/[():\d.]/g, "").toLowerCase()));
-    const custom = character.scene_positive_prompt
+    const custom = character.positive_prompt
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
@@ -37,7 +37,7 @@ function buildCharacterPrompt(character: CharacterFull): string {
 }
 
 function buildCharacterNegative(character: CharacterFull): string {
-  return character.scene_negative_prompt || "";
+  return character.negative_prompt || "";
 }
 
 const BASE_CHARACTER: CharacterFull = {
@@ -52,11 +52,8 @@ const BASE_CHARACTER: CharacterFull = {
   identity_tags: [],
   clothing_tags: [],
   loras: [],
-  common_negative_prompts: [],
-  scene_positive_prompt: null,
-  scene_negative_prompt: null,
-  reference_positive_prompt: null,
-  reference_negative_prompt: null,
+  positive_prompt: null,
+  negative_prompt: null,
   reference_image_url: null,
   ip_adapter_weight: null,
   ip_adapter_model: null,
@@ -67,7 +64,7 @@ const BASE_CHARACTER: CharacterFull = {
 };
 
 describe("buildCharacterPrompt", () => {
-  it("returns empty string when no tags and no scene_positive_prompt", () => {
+  it("returns empty string when no tags and no positive_prompt", () => {
     const result = buildCharacterPrompt(BASE_CHARACTER);
     expect(result).toBe("");
   });
@@ -124,17 +121,17 @@ describe("buildCharacterPrompt", () => {
     expect(result).toBe("solo, 1boy");
   });
 
-  it("appends scene_positive_prompt tokens", () => {
+  it("appends positive_prompt tokens", () => {
     const char: CharacterFull = {
       ...BASE_CHARACTER,
       tags: [{ tag_id: 1, name: "solo", weight: 1.0, is_permanent: true }],
-      scene_positive_prompt: "anime_style, flat color",
+      positive_prompt: "anime_style, flat color",
     };
     const result = buildCharacterPrompt(char);
     expect(result).toBe("solo, anime_style, flat color");
   });
 
-  it("deduplicates scene_positive_prompt tokens that overlap with tags", () => {
+  it("deduplicates positive_prompt tokens that overlap with tags", () => {
     const char: CharacterFull = {
       ...BASE_CHARACTER,
       tags: [
@@ -142,23 +139,23 @@ describe("buildCharacterPrompt", () => {
         { tag_id: 2, name: "1boy", weight: 1.0, is_permanent: true },
         { tag_id: 3, name: "blue_shirt", weight: 1.0, is_permanent: true },
       ],
-      scene_positive_prompt: "solo, blue_shirt, extra_tag",
+      positive_prompt: "solo, blue_shirt, extra_tag",
     };
     const result = buildCharacterPrompt(char);
     expect(result).toBe("solo, 1boy, blue_shirt, extra_tag");
   });
 
-  it("works with only scene_positive_prompt (no tags)", () => {
+  it("works with only positive_prompt (no tags)", () => {
     const char: CharacterFull = {
       ...BASE_CHARACTER,
       tags: [],
-      scene_positive_prompt: "1girl, white_dress",
+      positive_prompt: "1girl, white_dress",
     };
     const result = buildCharacterPrompt(char);
     expect(result).toBe("1girl, white_dress");
   });
 
-  it("matches Flat Color Boy scenario (tags + empty scene_positive_prompt)", () => {
+  it("matches Flat Color Boy scenario (tags + empty positive_prompt)", () => {
     const char: CharacterFull = {
       ...BASE_CHARACTER,
       name: "Flat Color Boy",
@@ -168,7 +165,7 @@ describe("buildCharacterPrompt", () => {
         { tag_id: 9102, name: "anime_style", layer: 0, weight: 1.0, is_permanent: true },
         { tag_id: 561, name: "blue_shirt", layer: 5, weight: 1.0, is_permanent: true },
       ],
-      scene_positive_prompt: "",
+      positive_prompt: "",
     };
     const result = buildCharacterPrompt(char);
     expect(result).toBe("solo, 1boy, anime_style, blue_shirt");
@@ -199,10 +196,10 @@ describe("buildCharacterPrompt", () => {
 });
 
 describe("buildCharacterNegative", () => {
-  it("returns scene_negative_prompt", () => {
+  it("returns negative_prompt", () => {
     const char: CharacterFull = {
       ...BASE_CHARACTER,
-      scene_negative_prompt: "easynegative, lowres",
+      negative_prompt: "easynegative, lowres",
     };
     expect(buildCharacterNegative(char)).toBe("easynegative, lowres");
   });
