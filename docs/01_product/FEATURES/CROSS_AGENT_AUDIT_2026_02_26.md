@@ -86,7 +86,7 @@
 | 19 | `medium_shot`, `bust_shot` FORBIDDEN인데 CATEGORY_PATTERNS 등록 | Prompt | DAT | S |
 | 20 | `POSE_MAPPING` 키 공백 형식 (Danbooru 언더바 불일치) | Prompt | DAT | S |
 | 21 | ~~`compose_for_reference` alias 해소 후 필터링 결함~~ (해결 — `_resolve_aliases_positional` 도입) | Prompt | DAT | M |
-| 22 | `custom_base_prompt` 태그 `is_permanent` 미설정 | Prompt | DAT | S |
+| 22 | `scene_positive_prompt` 태그 `is_permanent` 미설정 | Prompt | DAT | S |
 | 23 | `MultiCharacterComposer` TagRuleCache 충돌 검사 누락 | Prompt | DAT | M |
 | 24 | 템플릿 "open mouth" 공백 형식 | Prompt | DAT | S |
 

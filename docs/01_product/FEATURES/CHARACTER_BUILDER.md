@@ -243,7 +243,7 @@ class CharacterPreviewRequest(BaseModel):
     gender: str                          # "female" | "male"
     tag_ids: list[int]                   # 선택된 태그 ID 목록
     loras: list[CharacterLoRA] | None    # LoRA 설정
-    custom_base_prompt: str | None       # 추가 프롬프트 (선택)
+    scene_positive_prompt: str | None       # 추가 프롬프트 (선택)
 
 # Response
 class CharacterPreviewResponse(BaseModel):

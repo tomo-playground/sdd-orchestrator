@@ -16,9 +16,9 @@ export type CharacterFormData = {
   description: string;
   gender: ActorGender | null;
   group_id: number | null;
-  custom_base_prompt: string;
-  custom_negative_prompt: string;
-  reference_base_prompt: string;
+  scene_positive_prompt: string;
+  scene_negative_prompt: string;
+  reference_positive_prompt: string;
   reference_negative_prompt: string;
   voice_preset_id: number | null;
   ip_adapter_weight: number;
@@ -321,18 +321,18 @@ type PromptsProps = {
 
 export function PromptsSection({ form, onChange, selectedTagNames = [] }: PromptsProps) {
   const duplicates = useMemo(
-    () => findDuplicateTokens(form.custom_base_prompt, selectedTagNames),
-    [form.custom_base_prompt, selectedTagNames]
+    () => findDuplicateTokens(form.scene_positive_prompt, selectedTagNames),
+    [form.scene_positive_prompt, selectedTagNames]
   );
 
   return (
     <div className="space-y-5">
       <PromptPair
         label="Custom (appended to auto-generated tags)"
-        positiveValue={form.custom_base_prompt}
-        negativeValue={form.custom_negative_prompt}
-        onPositiveChange={(v) => onChange("custom_base_prompt", v)}
-        onNegativeChange={(v) => onChange("custom_negative_prompt", v)}
+        positiveValue={form.scene_positive_prompt}
+        negativeValue={form.scene_negative_prompt}
+        onPositiveChange={(v) => onChange("scene_positive_prompt", v)}
+        onNegativeChange={(v) => onChange("scene_negative_prompt", v)}
         positivePlaceholder="e.g. masterpiece, best quality, ..."
         negativePlaceholder="e.g. lowres, bad anatomy, ..."
       />
@@ -345,9 +345,9 @@ export function PromptsSection({ form, onChange, selectedTagNames = [] }: Prompt
       <hr className="border-zinc-100" />
       <PromptPair
         label="Reference (IP-Adapter 레퍼런스 이미지 생성용)"
-        positiveValue={form.reference_base_prompt}
+        positiveValue={form.reference_positive_prompt}
         negativeValue={form.reference_negative_prompt}
-        onPositiveChange={(v) => onChange("reference_base_prompt", v)}
+        onPositiveChange={(v) => onChange("reference_positive_prompt", v)}
         onNegativeChange={(v) => onChange("reference_negative_prompt", v)}
         positivePlaceholder="e.g. masterpiece, best quality, anime portrait, looking at viewer, clean background"
         negativePlaceholder="e.g. lowres, bad anatomy, multiple views, ..."

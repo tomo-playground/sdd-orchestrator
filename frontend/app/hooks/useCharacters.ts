@@ -66,7 +66,7 @@ export function useCharacters(): UseCharactersResult {
   }, []);
 
   /**
-   * Build a prompt string from character's DB tags + custom_base_prompt.
+   * Build a prompt string from character's DB tags + scene_positive_prompt.
    * Includes identity/clothing tags from character_tags relationship.
    */
   const buildCharacterPrompt = useCallback((character: CharacterFull): string => {
@@ -84,10 +84,10 @@ export function useCharacters(): UseCharactersResult {
       }
     }
 
-    // 2. Append custom_base_prompt tokens (avoid duplicates)
-    if (character.custom_base_prompt) {
+    // 2. Append scene_positive_prompt tokens (avoid duplicates)
+    if (character.scene_positive_prompt) {
       const existing = new Set(parts.map((p) => p.replace(/[():\d.]/g, "").toLowerCase()));
-      const custom = character.custom_base_prompt
+      const custom = character.scene_positive_prompt
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean);
@@ -103,12 +103,12 @@ export function useCharacters(): UseCharactersResult {
   }, []);
 
   /**
-   * Build a negative prompt string from character's custom_negative_prompt.
+   * Build a negative prompt string from character's scene_negative_prompt.
    * SSOT: Character Edit Modal - use exactly what user configured, no auto-combining.
    */
   const buildCharacterNegative = useCallback((character: CharacterFull): string => {
-    // Return custom_negative_prompt as-is (user's configured value)
-    return character.custom_negative_prompt || "";
+    // Return scene_negative_prompt as-is (user's configured value)
+    return character.scene_negative_prompt || "";
   }, []);
 
   return {

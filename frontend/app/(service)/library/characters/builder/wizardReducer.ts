@@ -27,9 +27,9 @@ export type WizardState = {
   selectedLoras: WizardLoRA[];
   isSaving: boolean;
   // Prompts
-  custom_base_prompt: string;
-  custom_negative_prompt: string;
-  reference_base_prompt: string;
+  scene_positive_prompt: string;
+  scene_negative_prompt: string;
+  reference_positive_prompt: string;
   reference_negative_prompt: string;
   // Preview
   previewImage: string | null; // base64
@@ -65,9 +65,9 @@ export type WizardAction =
   | { type: "CLEAR_PREVIEW" };
 
 export type PromptField =
-  | "custom_base_prompt"
-  | "custom_negative_prompt"
-  | "reference_base_prompt"
+  | "scene_positive_prompt"
+  | "scene_negative_prompt"
+  | "reference_positive_prompt"
   | "reference_negative_prompt";
 
 // ── Reducer ──────────────────────────────────────────────────
@@ -180,9 +180,9 @@ export const INITIAL_WIZARD_STATE: WizardState = {
   selectedTags: [],
   selectedLoras: [],
   isSaving: false,
-  custom_base_prompt: "",
-  custom_negative_prompt: "",
-  reference_base_prompt: "",
+  scene_positive_prompt: "",
+  scene_negative_prompt: "",
+  reference_positive_prompt: "",
   reference_negative_prompt: "",
   previewImage: null,
   previewSeed: null,

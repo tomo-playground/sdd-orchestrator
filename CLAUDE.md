@@ -122,7 +122,7 @@ docs/
     - Positive: `REFERENCE_ENV_TAGS` (배경), `REFERENCE_CAMERA_TAGS` (카메라), `_ensure_quality_tags()` (품질)
     - Negative: `DEFAULT_REFERENCE_NEGATIVE_PROMPT` (품질·배경·멀티뷰 억제)
     - `compose_for_reference()` + `preview.py` 머지 로직이 자동 주입
-  - **캐릭터 고유 태그 = DB** (`characters.reference_base_prompt`, `reference_negative_prompt`):
+  - **캐릭터 고유 태그 = DB** (`characters.reference_positive_prompt`, `reference_negative_prompt`):
     - Positive: 캐릭터 특화 보정만 (`chibi`, `flat_color`, `hrkzdrm_cs`, `expressionless` 등)
     - Negative: 캐릭터 특화 억제만 (`armor, bodysuit`, `1girl`, `realistic` 등)
   - ❌ DB에 공통 태그 중복 저장 금지 (`white_background`, `simple_background`, `solo`, `standing`, `lowres`, `bad_anatomy`, `detailed_background`, `multiple_views` 등)

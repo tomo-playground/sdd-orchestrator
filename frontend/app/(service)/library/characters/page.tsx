@@ -61,7 +61,7 @@ export default function AdminCharactersPage() {
         (ch) =>
           ch.name.toLowerCase().includes(q) ||
           ch.description?.toLowerCase().includes(q) ||
-          ch.custom_base_prompt?.toLowerCase().includes(q)
+          ch.scene_positive_prompt?.toLowerCase().includes(q)
       );
     }
 

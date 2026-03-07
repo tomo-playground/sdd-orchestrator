@@ -92,8 +92,8 @@ Target은 특정 모델이 아니라 **역할(Role)**로 정의한다. 구현체
 | 시점 | 입력 | 분류 | 입력자 | 미리보기 |
 |------|------|------|--------|:---:|
 | 캐릭터 외형 | `hair_color`, `eye_color` 등 | 구조화 태그 선택 | 사용자 | O (칩) |
-| 캐릭터 커스텀 | `custom_base_prompt` | 이미지 프롬프트 | 사용자 | X |
-| 캐릭터 레퍼런스 | `reference_base_prompt` | 이미지 프롬프트 | 사용자 | X |
+| 캐릭터 커스텀 | `scene_positive_prompt` | 이미지 프롬프트 | 사용자 | X |
+| 캐릭터 레퍼런스 | `reference_positive_prompt` | 이미지 프롬프트 | 사용자 | X |
 | 스타일 기본값 | `default_positive/negative` | 이미지 프롬프트 | 사용자 | X |
 | 음성 | `voice_design_prompt` | 음성 설계문 | 사용자 | 미리듣기만 |
 

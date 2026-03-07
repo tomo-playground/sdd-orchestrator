@@ -155,7 +155,7 @@ def create_character(db: Session, data: CharacterCreate) -> Character:
     if char_data.get("loras"):
         char_data["loras"] = enrich_character_loras(db, char_data["loras"])
 
-    # reference_base_prompt / reference_negative_prompt:
+    # reference_positive_prompt / reference_negative_prompt:
     # 공통 태그는 config 상수가 SSOT (compose_for_reference + preview.py가 자동 주입).
     # DB에는 캐릭터 고유 태그만 저장. 값이 없으면 NULL로 유지.
 
@@ -270,10 +270,11 @@ def duplicate_character(
         name=new_name,
         gender=source.gender,
         description=source.description,
-        custom_base_prompt=source.custom_base_prompt,
-        custom_negative_prompt=source.custom_negative_prompt,
-        reference_base_prompt=source.reference_base_prompt,
+        scene_positive_prompt=source.scene_positive_prompt,
+        scene_negative_prompt=source.scene_negative_prompt,
+        reference_positive_prompt=source.reference_positive_prompt,
         reference_negative_prompt=source.reference_negative_prompt,
+        common_negative_prompts=source.common_negative_prompts,
         voice_preset_id=source.voice_preset_id,
         ip_adapter_weight=source.ip_adapter_weight,
         ip_adapter_model=source.ip_adapter_model,

@@ -70,7 +70,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 
 ### `characters` — 캐릭터 프리셋
 - `id` (PK), `style_profile_id` (FK → style_profiles, SET NULL), `name` (Unique), `gender`, `description`
-- **Prompt**: `loras` (JSONB), `custom_base_prompt`, `custom_negative_prompt`, `recommended_negative` (ARRAY), `reference_base_prompt`, `reference_negative_prompt`, `prompt_mode`
+- **Prompt**: `loras` (JSONB), `scene_positive_prompt`, `scene_negative_prompt`, `common_negative_prompts` (ARRAY), `reference_positive_prompt`, `reference_negative_prompt`, `prompt_mode`
 - **IP-Adapter**: `ip_adapter_weight`, `ip_adapter_model`, `ip_adapter_guidance_start`, `ip_adapter_guidance_end`
 - **Reference**: `reference_source_type`, `reference_images` (JSONB)
 - **Voice**: `voice_preset_id` (FK → voice_presets)

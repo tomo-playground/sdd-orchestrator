@@ -272,7 +272,7 @@ def compose_scene_with_style(
     Flow matches Studio Direct exactly:
       1. apply_style_profile_to_prompt(skip_loras=True) → quality tags + embeddings
       2. V3 compose_for_character / compose → character tags + LoRA injection
-      3. Merge character custom_negative_prompt (if character_id)
+      3. Merge character scene_negative_prompt (if character_id)
       4. Detect non-Danbooru tags → warnings
 
     scene_character_actions can be provided directly (e.g. from context_tags)
@@ -377,10 +377,10 @@ def compose_scene_with_style(
     for char in [character, char_b]:
         if not char:
             continue
-        if char.custom_negative_prompt:
-            modified_negative = f"{modified_negative}, {char.custom_negative_prompt}"
-        if char.recommended_negative:
-            modified_negative = f"{modified_negative}, {', '.join(char.recommended_negative)}"
+        if char.scene_negative_prompt:
+            modified_negative = f"{modified_negative}, {char.scene_negative_prompt}"
+        if char.common_negative_prompts:
+            modified_negative = f"{modified_negative}, {', '.join(char.common_negative_prompts)}"
 
     # 4. Merge builder warnings (LoRA compatibility, etc.)
     warnings.extend(builder.warnings)

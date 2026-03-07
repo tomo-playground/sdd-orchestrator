@@ -142,12 +142,12 @@ async def regenerate_reference(
     full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags, style_ctx=style_ctx)
     if character.reference_negative_prompt:
         neg_prompt = character.reference_negative_prompt
-        if character.recommended_negative:
-            extras = [n for n in character.recommended_negative if n not in neg_prompt]
+        if character.common_negative_prompts:
+            extras = [n for n in character.common_negative_prompts if n not in neg_prompt]
             if extras:
                 neg_prompt += ", " + ", ".join(extras)
     else:
-        neg_prompt = _build_reference_negative(style_ctx, character.recommended_negative)
+        neg_prompt = _build_reference_negative(style_ctx, character.common_negative_prompts)
     # Always merge DEFAULT (covers custom negative_prompt branch where _build_reference_negative was NOT called)
     existing_tags = {t.strip() for t in neg_prompt.split(",")}
     for tag in DEFAULT_REFERENCE_NEGATIVE_PROMPT.split(", "):

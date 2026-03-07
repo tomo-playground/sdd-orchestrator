@@ -287,9 +287,9 @@ async function loadCharacterForRole(
       fields.basePrompt === "basePromptA" ? "selectedCharacterName" : "selectedCharacterBName";
     const updates: Record<string, unknown> = {
       [fields.loras]: char.loras || [],
-      // Backend CharacterResponse uses custom_base_prompt / custom_negative_prompt
-      [fields.basePrompt]: char.custom_base_prompt || "",
-      [fields.baseNegative]: char.custom_negative_prompt || "",
+      // Backend CharacterResponse uses scene_positive_prompt / scene_negative_prompt
+      [fields.basePrompt]: char.scene_positive_prompt || "",
+      [fields.baseNegative]: char.scene_negative_prompt || "",
       [nameField]: char.name || null,
     };
     setPlan(updates);

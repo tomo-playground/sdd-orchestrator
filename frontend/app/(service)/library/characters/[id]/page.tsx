@@ -291,14 +291,14 @@ export default function CharacterDetailPage() {
         <GeminiEditModal
           previewImageUrl={imgSrc ?? undefined}
           isProcessing={isEditingPreview}
-          currentPrompt={form?.custom_base_prompt || ""}
+          currentPrompt={form?.scene_positive_prompt || ""}
           characterId={rawId}
           onClose={() => setGeminiEditOpen(false)}
           onSubmit={(instruction) => {
             void handleEditPreview(instruction);
             setGeminiEditOpen(false);
           }}
-          onApplyPromptEdit={(edited) => updateField("custom_base_prompt", edited)}
+          onApplyPromptEdit={(edited) => updateField("scene_positive_prompt", edited)}
         />
       )}
       {duplicateOpen && (

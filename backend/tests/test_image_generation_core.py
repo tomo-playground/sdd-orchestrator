@@ -227,10 +227,10 @@ class TestComposeSceneWithStyle:
     def test_calls_style_profile_then_v3(self):
         """Must call apply_style_profile_to_prompt(skip_loras=True) then V3 compose."""
         mock_db = MagicMock()
-        # Character query returns mock (no custom_negative_prompt → no merge)
+        # Character query returns mock (no scene_negative_prompt → no merge)
         mock_char = MagicMock()
         mock_char.id = 10
-        mock_char.custom_negative_prompt = None
+        mock_char.scene_negative_prompt = None
         mock_db.query.return_value.filter.return_value.first.return_value = mock_char
 
         with (
@@ -352,11 +352,11 @@ class TestComposeSceneWithStyle:
             assert "Non-Danbooru tags detected" in warnings[0]
             assert "vibrant_colors" in warnings[0]
 
-    def test_character_custom_negative_prompt_merged(self):
-        """Character custom_negative_prompt must be merged into negative."""
+    def test_character_scene_negative_prompt_merged(self):
+        """Character scene_negative_prompt must be merged into negative."""
         mock_db = MagicMock()
         mock_char = MagicMock()
-        mock_char.custom_negative_prompt = "nsfw, revealing_clothes"
+        mock_char.scene_negative_prompt = "nsfw, revealing_clothes"
         mock_db.query.return_value.filter.return_value.first.return_value = mock_char
 
         with (
@@ -383,12 +383,12 @@ class TestComposeSceneWithStyle:
             assert "lowres" in negative
             assert "bad anatomy" in negative
 
-    def test_recommended_negative_merged(self):
-        """Character recommended_negative (list[str]) must be merged into negative."""
+    def test_common_negative_prompts_merged(self):
+        """Character common_negative_prompts (list[str]) must be merged into negative."""
         mock_db = MagicMock()
         mock_char = MagicMock()
-        mock_char.custom_negative_prompt = None
-        mock_char.recommended_negative = ["verybadimagenegative_v1.3", "easynegative"]
+        mock_char.scene_negative_prompt = None
+        mock_char.common_negative_prompts = ["verybadimagenegative_v1.3", "easynegative"]
         mock_db.query.return_value.filter.return_value.first.return_value = mock_char
 
         with (
@@ -415,18 +415,18 @@ class TestComposeSceneWithStyle:
             assert "lowres" in negative
 
     def test_char_b_custom_negative_merged(self):
-        """Multi-char scene: char_b's custom_negative_prompt must be merged."""
+        """Multi-char scene: char_b's scene_negative_prompt must be merged."""
         mock_db = MagicMock()
 
         mock_char_a = MagicMock()
         mock_char_a.id = 10
-        mock_char_a.custom_negative_prompt = "nsfw"
-        mock_char_a.recommended_negative = None
+        mock_char_a.scene_negative_prompt = "nsfw"
+        mock_char_a.common_negative_prompts = None
 
         mock_char_b = MagicMock()
         mock_char_b.id = 20
-        mock_char_b.custom_negative_prompt = "muscular, facial_hair"
-        mock_char_b.recommended_negative = None
+        mock_char_b.scene_negative_prompt = "muscular, facial_hair"
+        mock_char_b.common_negative_prompts = None
 
         # DB query chain: first call → char_a, second → char_b
         chars_by_call = iter([mock_char_a, mock_char_b])

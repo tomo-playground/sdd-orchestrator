@@ -34,8 +34,8 @@ export default function PromptsStep({
         label="Custom (appended to auto-generated tags)"
         positiveValue={customBasePrompt}
         negativeValue={customNegativePrompt}
-        onPositiveChange={(v) => onFieldChange("custom_base_prompt", v)}
-        onNegativeChange={(v) => onFieldChange("custom_negative_prompt", v)}
+        onPositiveChange={(v) => onFieldChange("scene_positive_prompt", v)}
+        onNegativeChange={(v) => onFieldChange("scene_negative_prompt", v)}
         positivePlaceholder="e.g. masterpiece, best quality, ..."
         negativePlaceholder="e.g. lowres, bad anatomy, ..."
       />
@@ -52,7 +52,7 @@ export default function PromptsStep({
         label="Reference (IP-Adapter 레퍼런스 이미지 생성용)"
         positiveValue={referenceBasePrompt}
         negativeValue={referenceNegativePrompt}
-        onPositiveChange={(v) => onFieldChange("reference_base_prompt", v)}
+        onPositiveChange={(v) => onFieldChange("reference_positive_prompt", v)}
         onNegativeChange={(v) => onFieldChange("reference_negative_prompt", v)}
         positivePlaceholder="e.g. masterpiece, best quality, anime portrait, looking at viewer, clean background"
         negativePlaceholder="e.g. lowres, bad anatomy, multiple views, ..."

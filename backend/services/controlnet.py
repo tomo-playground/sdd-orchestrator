@@ -653,7 +653,7 @@ async def generate_reference_for_character(
 
     # INTENTIONAL BYPASS: This function intentionally does NOT use
     # generate_image_with_v3() because reference images use the character's
-    # own reference_base_prompt + reference_negative_prompt (special logic
+    # own reference_positive_prompt + reference_negative_prompt (special logic
     # for IP-Adapter/Reference-only reference images).
 
     Args:
@@ -681,8 +681,8 @@ async def generate_reference_for_character(
 
     # Construct negative prompt: DB 고유 태그 + 상수 공통 머지
     base_negative = character.reference_negative_prompt or ""
-    if character.recommended_negative:
-        extras = [n for n in character.recommended_negative if n not in base_negative]
+    if character.common_negative_prompts:
+        extras = [n for n in character.common_negative_prompts if n not in base_negative]
         if extras:
             base_negative += ", " + ", ".join(extras)
     # Always merge DEFAULT_REFERENCE_NEGATIVE_PROMPT (공통 품질/배경/멀티뷰 억제)

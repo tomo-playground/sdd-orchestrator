@@ -34,14 +34,16 @@ class Character(Base, TimestampMixin, SoftDeleteMixin):
     # Multiple LoRAs with weights: [{"lora_id": 1, "weight": 1.0}, ...]
     loras: Mapped[list[dict] | None] = mapped_column(JSONB)
 
-    # Prompt Components
-    recommended_negative: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
-    custom_base_prompt: Mapped[str | None] = mapped_column(Text)
-    custom_negative_prompt: Mapped[str | None] = mapped_column(Text)
+    # Prompt Components — Scene (씬 생성용)
+    scene_positive_prompt: Mapped[str | None] = mapped_column(Text)
+    scene_negative_prompt: Mapped[str | None] = mapped_column(Text)
 
-    # Reference image generation prompts (for IP-Adapter reference creation)
-    reference_base_prompt: Mapped[str | None] = mapped_column(Text)
+    # Prompt Components — Reference (레퍼런스/프리뷰 생성용)
+    reference_positive_prompt: Mapped[str | None] = mapped_column(Text)
     reference_negative_prompt: Mapped[str | None] = mapped_column(Text)
+
+    # Prompt Components — Common (씬+레퍼런스 양쪽 공통 부정)
+    common_negative_prompts: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
 
     # Relationships
     group: Mapped["Group"] = relationship("Group", back_populates="characters")

@@ -12,11 +12,11 @@ def _make_style_ctx(default_negative="", negative_embeddings=None):
     return ctx
 
 
-def _make_character(name, custom_negative="", recommended_negative=None):
+def _make_character(name, custom_negative="", common_negative_prompts=None):
     char = MagicMock()
     char.name = name
-    char.custom_negative_prompt = custom_negative or None
-    char.recommended_negative = recommended_negative
+    char.scene_negative_prompt = custom_negative or None
+    char.common_negative_prompts = common_negative_prompts
     return char
 
 
@@ -111,8 +111,8 @@ class TestComposeNegativePreviewCharacterOnly:
         assert sources[0]["source"] == "character:Miku"
 
     @patch("services.style_context.resolve_style_context", return_value=None)
-    def test_character_recommended_negative(self, _):
-        char = _make_character("Miku", recommended_negative=["verybadimagenegative_v1.3"])
+    def test_character_common_negative_prompts(self, _):
+        char = _make_character("Miku", common_negative_prompts=["verybadimagenegative_v1.3"])
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = char
 

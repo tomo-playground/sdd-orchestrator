@@ -435,14 +435,14 @@ class PromptBuilder:
         """Remove character base prompt tokens from scene_tags to prevent duplication.
 
         When frontend sends a pre-composed prompt, it already contains character
-        base tokens (from custom_base_prompt). Stripping them ensures compose
+        base tokens (from scene_positive_prompt). Stripping them ensures compose
         doesn't double-include them and allows scene override to work.
         """
-        if not character.custom_base_prompt:
+        if not character.scene_positive_prompt:
             return scene_tags
         base_tokens = {
             cls._strip_weight(bt.strip().lower().replace(" ", "_"))
-            for bt in character.custom_base_prompt.split(",")
+            for bt in character.scene_positive_prompt.split(",")
             if bt.strip()
         }
         if not base_tokens:
@@ -480,7 +480,7 @@ class PromptBuilder:
         if not character:
             return self.compose(scene_tags, style_loras=style_loras)
 
-        # 1-2. Collect character tags (DB + custom_base_prompt)
+        # 1-2. Collect character tags (DB + scene_positive_prompt)
         char_tags_data = self._collect_character_tags(character)
 
         # 2b. Strip character base tokens from scene_tags to prevent duplication
@@ -526,15 +526,15 @@ class PromptBuilder:
         return self._flatten_layers(layers)
 
     def _collect_character_tags(self, character: Character) -> list[dict]:
-        """Collect character tags from DB associations + custom_base_prompt.
+        """Collect character tags from DB associations + scene_positive_prompt.
 
         DB tags: layer/group_name from Tag model.
-        custom_base_prompt tags: layer/group_name resolved via get_tag_info()
+        scene_positive_prompt tags: layer/group_name resolved via get_tag_info()
         (DB lookup → pattern fallback) instead of hardcoding LAYER_IDENTITY.
 
         Dedup rules (Tier 소유권):
         - DB 태그 먼저 수집 → seen_names set 구성
-        - custom_base_prompt 순회 시 동일 normalized name이면 skip
+        - scene_positive_prompt 순회 시 동일 normalized name이면 skip
         - 같은 group_name이면 custom이 DB를 대체 (override)
         """
         char_tags_data: list[dict] = []
@@ -557,10 +557,10 @@ class PromptBuilder:
             char_tags_data.append(entry)
             seen_names.add(norm)
 
-        # Phase 2: custom_base_prompt (보완 역할, 중복 skip)
+        # Phase 2: scene_positive_prompt (보완 역할, 중복 skip)
         TagFilterCache.initialize(self.db)
-        if character.custom_base_prompt:
-            custom_tags = [t.strip() for t in character.custom_base_prompt.split(",")]
+        if character.scene_positive_prompt:
+            custom_tags = [t.strip() for t in character.scene_positive_prompt.split(",")]
             custom_tags = [bt for bt in custom_tags if bt and not TagFilterCache.is_restricted(bt)]
 
             if custom_tags:
@@ -1255,11 +1255,11 @@ class PromptBuilder:
         - No scene_tags (Gemini)
         - quality_tags: explicit quality tags from StyleProfile (skips anime fallback)
         """
-        # 1. Collect character tags (DB + custom_base_prompt)
+        # 1. Collect character tags (DB + scene_positive_prompt)
         char_tags_data = self._collect_character_tags(character)
 
-        # 2. Parse reference_base_prompt for extra correction tags
-        ref_tags = self._parse_reference_tags(character.reference_base_prompt)
+        # 2. Parse reference_positive_prompt for extra correction tags
+        ref_tags = self._parse_reference_tags(character.reference_positive_prompt)
         if reference_extra_tags:
             ref_tags.extend(reference_extra_tags)
 
@@ -1315,7 +1315,7 @@ class PromptBuilder:
         return self._flatten_layers(layers)
 
     def _parse_reference_tags(self, prompt: str | None) -> list[str]:
-        """Parse reference_base_prompt into individual tags, filtering restricted ones."""
+        """Parse reference_positive_prompt into individual tags, filtering restricted ones."""
         if not prompt:
             return []
         TagFilterCache.initialize(self.db)

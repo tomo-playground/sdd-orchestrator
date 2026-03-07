@@ -318,7 +318,7 @@ def _load_character_context(character_id: int, db: Session) -> dict | None:
         "identity_tags": identity_tags,
         "costume_tags": costume_tags,
         "lora_triggers": lora_triggers,
-        "custom_base_prompt": char.custom_base_prompt or "",
+        "scene_positive_prompt": char.scene_positive_prompt or "",
     }
     logger.info(
         "[Character Context] %s: identity=%s, costume=%s, lora_triggers=%s",

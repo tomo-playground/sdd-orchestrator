@@ -917,10 +917,10 @@ class CharacterBase(BaseModel):
     gender: str | None = None
     group_id: int
     loras: list[CharacterLoRA] | None = None
-    recommended_negative: list[str] | None = None
-    custom_base_prompt: str | None = Field(default=None, max_length=10000)
-    custom_negative_prompt: str | None = Field(default=None, max_length=10000)
-    reference_base_prompt: str | None = Field(default=None, max_length=10000)
+    common_negative_prompts: list[str] | None = None
+    scene_positive_prompt: str | None = Field(default=None, max_length=10000)
+    scene_negative_prompt: str | None = Field(default=None, max_length=10000)
+    reference_positive_prompt: str | None = Field(default=None, max_length=10000)
     reference_negative_prompt: str | None = Field(default=None, max_length=10000)
     # preview_image_url removed - now read-only @property via preview_image_asset
     # CharacterResponse gets it automatically via from_attributes=True from ORM model
@@ -944,10 +944,10 @@ class CharacterUpdate(BaseModel):
     gender: str | None = None
     group_id: int | None = None
     loras: list[CharacterLoRA] | None = None
-    recommended_negative: list[str] | None = None
-    custom_base_prompt: str | None = Field(default=None, max_length=10000)
-    custom_negative_prompt: str | None = Field(default=None, max_length=10000)
-    reference_base_prompt: str | None = Field(default=None, max_length=10000)
+    common_negative_prompts: list[str] | None = None
+    scene_positive_prompt: str | None = Field(default=None, max_length=10000)
+    scene_negative_prompt: str | None = Field(default=None, max_length=10000)
+    reference_positive_prompt: str | None = Field(default=None, max_length=10000)
     reference_negative_prompt: str | None = Field(default=None, max_length=10000)
     # preview_image_url removed - now read-only @property via preview_image_asset
     ip_adapter_weight: float | None = None
