@@ -133,12 +133,12 @@ async def test_graph_passthrough_preserves_scenes(
     input_state = _build_state_from_request(snapshot["request"])
     result = await graph.ainvoke(input_state)
 
-    # Finalize가 추가 필드(negative_prompt, character_actions 등)를 병합하므로
-    # 핵심 필드가 보존되는지 검증 (정확한 동치 대신 subset 검증)
+    # Finalize가 negative_prompt, character_actions 추가 + image_prompt 복장 태그 교정을 수행하므로
+    # script/speaker만 보존 검증 (image_prompt는 Phase 30-B+ DB 복장 강제로 의도적 변경)
     draft = result["draft_scenes"]
     final = result["final_scenes"]
     assert len(draft) == len(final), f"Scene count mismatch: {len(draft)} vs {len(final)}"
-    preserved_keys = {"script", "speaker", "image_prompt"}
+    preserved_keys = {"script", "speaker"}
     for i, (d, f) in enumerate(zip(draft, final, strict=True)):
         for key in preserved_keys:
             if key in d:

@@ -141,15 +141,15 @@ class TestInventoryResolveNode:
 
     @pytest.mark.asyncio
     async def test_user_override_character(self):
-        """user가 이미 character_id를 선택한 경우 → Director 추천 무시."""
+        """Director 캐스팅이 SSOT — user의 기존 character_id와 무관하게 Director 추천 적용."""
         state = ScriptState(
             character_id=42,
             casting_recommendation={"character_a_id": 1, "character_a_name": "A", "structure": "monologue"},
             valid_character_ids=[1, 2],
         )
         result = await inventory_resolve_node(state)
-        # user 선택 유지 → character_id는 result에 포함되지 않음
-        assert "character_id" not in result
+        # Director 추천 character_a_id=1 이 character_id로 확정됨
+        assert result["character_id"] == 1
 
     @pytest.mark.asyncio
     async def test_director_recommendation_applied(self):
@@ -169,14 +169,15 @@ class TestInventoryResolveNode:
 
     @pytest.mark.asyncio
     async def test_user_structure_override(self):
-        """user가 구조를 선택한 경우 → Director 추천 무시."""
+        """Director 캐스팅이 SSOT — user의 기존 structure와 무관하게 Director 추천 적용."""
         state = ScriptState(
             structure="dialogue",
             casting_recommendation={"character_a_id": 1, "character_a_name": "A", "structure": "monologue"},
             valid_character_ids=[1],
         )
         result = await inventory_resolve_node(state)
-        assert "structure" not in result
+        # Director 추천 structure="monologue" 이 확정됨
+        assert result["structure"] == "monologue"
 
     @pytest.mark.asyncio
     async def test_graceful_degradation_invalid_casting(self):
