@@ -202,7 +202,7 @@ async def test_director_node_approve(mock_step):
         "copyright_reviewer_result": {"overall": "PASS"},
         "director_revision_count": 0,
     }
-    result = await director_node(state)
+    result = await director_node(state, {})
     assert result["director_decision"] == "approve"
     assert result["director_feedback"] == "모든 요소가 잘 조화됩니다."
     assert result["director_revision_count"] == 1
@@ -238,7 +238,7 @@ async def test_director_node_revise(mock_step):
         "copyright_reviewer_result": {"overall": "PASS"},
         "director_revision_count": 0,
     }
-    result = await director_node(state)
+    result = await director_node(state, {})
     # 첫 스텝에서 revise, 두 번째 스텝에서 approve → 최종 approve
     assert result["director_decision"] == "approve"
     assert result["director_revision_count"] == 1
@@ -260,7 +260,7 @@ async def test_director_node_error_fallback(mock_step):
         "copyright_reviewer_result": {},
         "director_revision_count": 0,
     }
-    result = await director_node(state)
+    result = await director_node(state, {})
     assert result["director_decision"] == "error"
     assert result["director_revision_count"] == 1
 

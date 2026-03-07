@@ -103,7 +103,7 @@ async def test_director_react_approve_first_step(mock_run, mock_production_resul
         "concept_regen_count": 0,
     }
 
-    result = await director_node(state)
+    result = await director_node(state, {})
 
     assert result["director_decision"] == "approve"
     assert result["director_reasoning_steps"]
@@ -147,7 +147,7 @@ async def test_director_react_max_steps(mock_run, mock_production_results):
         "concept_regen_count": 0,
     }
 
-    result = await director_node(state)
+    result = await director_node(state, {})
 
     # 3번 호출 (MAX_REACT_STEPS=3)
     assert mock_run.call_count == 3
@@ -182,7 +182,7 @@ async def test_director_react_approve_second_step(mock_run, mock_production_resu
         "concept_regen_count": 0,
     }
 
-    result = await director_node(state)
+    result = await director_node(state, {})
 
     # 2번만 호출 (두 번째 스텝에서 종료)
     assert mock_run.call_count == 2
@@ -224,7 +224,7 @@ async def test_director_react_previous_steps_context(mock_run, mock_production_r
         "concept_regen_count": 0,
     }
 
-    await director_node(state)
+    await director_node(state, {})
 
     # 첫 호출 시 previous_steps는 빈 리스트
     assert len(captured_vars[0]) == 0
@@ -246,7 +246,7 @@ async def test_director_react_error_fallback(mock_run, mock_production_results):
         "concept_regen_count": 0,
     }
 
-    result = await director_node(state)
+    result = await director_node(state, {})
 
     # 양쪽 실패 시 error 결정
     assert result["director_decision"] == "error"
@@ -300,7 +300,7 @@ async def test_director_bidirectional_communication(
         "concept_regen_count": 0,
     }
 
-    result = await director_node(state)
+    result = await director_node(state, {})
 
     # Agent 메시지 호출 확인
     assert mock_run_agent.call_count == 1
@@ -367,7 +367,7 @@ async def test_director_multiple_agent_interactions(
         "concept_regen_count": 0,
     }
 
-    result = await director_node(state)
+    result = await director_node(state, {})
 
     # 2 스텝 실행 (revise → approve)
     assert len(result["director_reasoning_steps"]) == 2
@@ -410,7 +410,7 @@ async def test_director_agent_error_handling(
         "concept_regen_count": 0,
     }
 
-    result = await director_node(state)
+    result = await director_node(state, {})
 
     # 에러에도 불구하고 2 스텝 실행됨
     assert len(result["director_reasoning_steps"]) == 2
@@ -443,7 +443,7 @@ async def test_director_visual_qc_result_in_template_vars(mock_run, mock_product
         "concept_regen_count": 0,
     }
 
-    await director_node(state)
+    await director_node(state, {})
 
     assert len(captured_vars) == 1
     assert captured_vars[0]["visual_qc_result"] == qc
@@ -463,7 +463,7 @@ async def test_director_visual_qc_result_none(mock_run, mock_production_results)
         "concept_regen_count": 0,
     }
 
-    result = await director_node(state)
+    result = await director_node(state, {})
     assert result["director_decision"] == "approve"
 
 
@@ -511,7 +511,7 @@ async def test_director_inline_revision_result_propagated(
         "concept_regen_count": 0,
     }
 
-    result = await director_node(state)
+    result = await director_node(state, {})
 
     # 핵심 검증: 수정된 cinematographer_result가 반환 dict에 포함
     assert "cinematographer_result" in result
@@ -564,7 +564,7 @@ async def test_director_feedback_in_reasoning_steps(
         "concept_regen_count": 0,
     }
 
-    result = await director_node(state)
+    result = await director_node(state, {})
 
     steps = result["director_reasoning_steps"]
     assert len(steps) == 2
@@ -613,7 +613,7 @@ async def test_director_previous_feedback_in_template_vars(
         "concept_regen_count": 0,
     }
 
-    await director_node(state)
+    await director_node(state, {})
 
     # 두 번째 호출 시 previous_steps에 feedback 포함
     assert len(captured_vars) == 2

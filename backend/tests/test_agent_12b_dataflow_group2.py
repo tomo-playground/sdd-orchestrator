@@ -186,7 +186,7 @@ class TestDirectorRetry:
                 return_value=AsyncMock(),
             ),
         ):
-            result = await director_node(state)
+            result = await director_node(state, {})
 
         assert result["director_decision"] == "error"
         assert "평가 불가" in result["director_feedback"]
