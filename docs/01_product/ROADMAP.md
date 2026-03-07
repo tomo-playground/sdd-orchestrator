@@ -35,11 +35,12 @@
 | Phase 29 (Video Pre-validation) | Sub-Phase A~C 완료 — TTS 프리뷰/렌더 연결 + 씬 필드 소실 수정 + Spread Passthrough + 타임라인 시각화 |
 | Casting 네이밍 정규화 | 완료 — character_id→character_a_id (Casting 컨텍스트), 27개 파일, JSONB 마이그레이션 |
 | Checkpointer 리팩토링 | 완료 — 싱글턴→per-request 패턴, DB 풀 고갈 방지 |
-| **Phase 30 (Character Consistency V2)** | **진행 중** — A(Config 튜닝)+B(Gemini 복장 고정)+F(네이밍 개선+복장 보호) 완료. NoobAI-XL+Regional Prompter+Pipeline Inpaint 테스트 완료. C(Dual IP-Adapter) D(LoRA 트레이닝) E(Outfit Profile) G(멀티캐릭터 Inpaint) 미착수 |
+| **Phase 30 (Character Consistency V2)** | **진행 중** — A(Config 튜닝)+B(Gemini 복장 고정)+B+(Finalize 복장 교정 2단계)+F(네이밍 개선+복장 보호) 완료. NoobAI-XL+Regional Prompter+Pipeline Inpaint 테스트 완료. C(Dual IP-Adapter) D(LoRA 트레이닝) E(Outfit Profile) G(멀티캐릭터 Inpaint) 미착수 |
 | 테스트 | Backend 3,478 + Frontend 543 + E2E 36 = **총 4,057개** |
 
 ### 최근 작업
 
+- **Phase 30-B+ Finalize 복장 교정 강화 + Voice Preset Edit UI** (03-07): ① Finalize `_enforce_character_clothing` 2단계 교정 — 기존 inject-only → remove(비DB 복장 태그 제거) + inject(DB 복장 태그 주입). Tag 테이블 group_name 기반 동적 판별(하드코딩 없음). ② Cinematographer 템플릿 디렉티브 변경 — "캐릭터 identity/clothing 태그 작성 금지, 시스템 자동 주입" 지시. image_prompt 예시에서 캐릭터 태그 제거. ③ 전체 13명 캐릭터 `scene_positive_prompt` 정리 — DB tags + StyleProfile + PromptBuilder 자동 주입으로 대체. ④ DB 태그 정리 — 유나/도윤 `photorealistic`, 하나 `female`, 소라 `male` 부적절 태그 제거. ⑤ Voice Preset Edit UI — 편집 모드에서도 voice_design_prompt/sample_text/language 수정 + 프리뷰 재생성 가능. handleSave에 전체 필드 + attach-preview 지원. 테스트 8개 추가.
 - **Phase 30-F 프롬프트 필드 네이밍 개선 + 복장 보호** (03-07): ① 캐릭터 프롬프트 5개 필드 리네이밍 — `custom_base_prompt`→`scene_positive_prompt`, `custom_negative_prompt`→`scene_negative_prompt`, `reference_base_prompt`→`reference_positive_prompt`, `recommended_negative`→`common_negative_prompts`. ② DB 데이터 정상화 — 품질 태그/임베딩 중복 제거 + 13명 전원 복장 보호 태그 설정. 38파일 변경, 305테스트 PASS. DBA+Tech Lead 리뷰 반영.
 - **Phase 30 캐릭터 일관성 강화 계획 수립** (03-07): 씬 간 복장 드리프트 + 얼굴 미세 변동 근본 원인 분석. 7-Sub-Phase 구성: A(Config 튜닝)+B(Gemini 복장 고정)+F(네이밍+복장 보호) 완료, C(Dual IP-Adapter)+D(LoRA 트레이닝)+E(Outfit Profile)+G(멀티캐릭터 Inpaint) 대기. NoobAI-XL/Regional Prompter/Pipeline Inpaint 비교 테스트. [명세](FEATURES/CHARACTER_CONSISTENCY_V2.md)
 - **Dialogue 구조 case-insensitive 비교 + Pre-flight B캐릭터 지원** (03-06): ① `isMultiCharStructure()` `.toLowerCase()` 적용 — Gemini가 반환하는 `"dialogue"`(소문자)도 정상 인식. 이 단일 버그로 인해 Speaker B 옵션 미표시, 캐릭터 B 데이터 삭제, Studio 초기화 시 charBId=null 등 연쇄 장애 발생. 13개 호출 사이트 전수 검증. ② Pre-flight 다이얼로그 지원 — checkCharacter/checkVoice/checkIpAdapter에 B 캐릭터 검증 추가. ③ ChatArea isInitialState에 scenes.length 조건 추가 — 리로드 시 빈 화면 방지. ④ castingRecommendation 적용 후 null 클리어 — 배너 잔류 방지. ⑤ Backend crud.py structure `.title()` 정규화 — DB 케이스 통일. ⑥ creative_qc.py speaker distribution `.lower()` 비교. 8파일 변경, 테스트 전체 PASS.

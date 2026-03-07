@@ -39,9 +39,13 @@ def _make_db(char_a=None, char_b=None, tag_rows=None):
 
     char_call_count = [0]
 
-    def _query(model):
-        # Tag query path
-        if model is Tag:
+    def _query(*models):
+        from models.character import Character as CharModel
+
+        # Character query path uses exactly 1 arg == Character
+        is_char = len(models) == 1 and models[0] is CharModel
+        if not is_char:
+            # Tag query path: db.query(Tag) or db.query(Tag.name, Tag.group_name)
             q = MagicMock()
 
             def _tag_filter(*_a, **_kw):

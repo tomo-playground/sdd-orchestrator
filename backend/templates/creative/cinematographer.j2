@@ -94,6 +94,7 @@ Match your visual design to this plan:
    - ✅ CORRECT: `bishounen` (27K), `day` + `sunlight`, `close-up` + `face_focus`
 2. **Camera variety**: Use at least 3 different camera angles across all scenes
    - Available: close-up, cowboy_shot, upper_body, full_body, from_above, from_below, dutch_angle
+   Set the chosen camera in `context_tags.camera` (string).
 3. **Gaze variety (CRITICAL)**: Do NOT use `looking_at_viewer` on more than 2 scenes.
    Use at least 3 different gaze directions across all scenes:
    - Introspective/conflict: looking_down, looking_to_the_side, closed_eyes
@@ -143,9 +144,9 @@ Match your visual design to this plan:
      ❌ FORBIDDEN: emotions NOT in this list (e.g. `worried`, `perplexed`, `deadpan`, `stoic`, `solemn`)
      ❌ FORBIDDEN: compound emotions (`lonely_expression`, `slightly_nervous`)
      ✅ Pick the CLOSEST match from the list above.
-   - Only set: `emotion`, `action`, `pose`, `gaze`, `environment` in context_tags.
+   - Only set: `emotion`, `action`, `pose`, `gaze`, `camera`, `environment`, `cinematic`, `props` in context_tags.
 7. **Scene-specific objects** (CRITICAL for narrative fidelity):
-   Based on the script content, add relevant object/prop/action tags to **both** `image_prompt` and `context_tags.action`:
+   Based on the script content, add action tags to `context_tags.action` and object/prop tags to `context_tags.props` (array):
    - Phone/message scene: `holding_phone`, `looking_at_phone`, `cellphone`, `smartphone`
    - Cooking scene: `knife`, `cutting_board`, `frying_pan`, `plate`, `food`, `apron`
    - Study scene: `book`, `desk`, `pen`, `notebook`, `lamp`
@@ -154,7 +155,7 @@ Match your visual design to this plan:
    - **Rule**: If the script mentions a key action (checking phone, cooking, reading), the related prop MUST appear in image_prompt. Do NOT omit props that define the scene's core action.
    - Do NOT add objects unrelated to the script (e.g. holding_book in a cooking scene)
    - ❌ NEVER use vague/generic action tags: `holding_object`, `doing_something`, `using_device`. Always specify the exact object: `holding_phone`, `holding_cup`, `reading_book`, etc.
-8. **image_prompt**: Scene-specific comma-separated tags ready for Stable Diffusion (character identity/clothing tags are auto-injected — do NOT include them)
+8. **image_prompt**: Auto-rebuilt from `context_tags` by the system. Write a flat comma-separated fallback (no character identity/clothing tags).
 9. **negative_prompt_extra**: Scene-specific tags to exclude from generation. Combined with the default negative prompt.
    - Only add tags that are specifically problematic for THIS scene. Do NOT repeat default negative tags.
    - Narrator scenes (no character): add `"1girl, 1boy, person"` to prevent unwanted character generation
@@ -171,6 +172,7 @@ Match your visual design to this plan:
     - Time: golden_hour, dusk, dawn, blue_hour
     - Do NOT use more than 2 lighting/depth tags per scene (overload prevention)
     - INVALID tags (do NOT use): rim_light, dramatic_lighting, cinematic_lighting, warm_lighting, cold_lighting
+    Put all cinematic technique tags in `context_tags.cinematic` (array). Max 2 per scene.
 13. **Narrative function → Visual strategy** (CRITICAL):
     Map each scene's role in the story to its visual approach:
     | Story Role | Camera | Technique | Purpose |
@@ -219,10 +221,13 @@ Match your visual design to this plan:
       "image_prompt_ko": "어두운 주방에서 긴장한 표정으로 칼을 잡고 있는 모습",
       "context_tags": {
         "emotion": "nervous",
+        "camera": "close-up",
         "action": "holding_knife",
         "pose": "standing",
         "gaze": "looking_down",
-        "environment": ["kitchen", "indoors"]
+        "environment": ["kitchen", "indoors"],
+        "cinematic": ["depth_of_field"],
+        "props": ["knife"]
       },
       "controlnet_pose": "standing",
       "ip_adapter_weight": null,
@@ -239,8 +244,10 @@ Match your visual design to this plan:
       "image_prompt": "no_humans, scenery, hallway, dark, light, door, indoors, night",
       "image_prompt_ko": "어둠 속 복도에 한 줄기 빛이 새어 나오는 풍경",
       "context_tags": {
+        "camera": "from_above",
         "environment": ["hallway", "indoors", "night"],
-        "mood": ["dark", "light"]
+        "cinematic": ["moonlight"],
+        "props": ["door"]
       },
       "controlnet_pose": null,
       "ip_adapter_weight": 0.0,

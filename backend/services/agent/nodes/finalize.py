@@ -551,6 +551,106 @@ def _enforce_character_clothing(
         logger.info("[Finalize] DB 복장 태그 %d개 보강 (누락분)", injected_total)
 
 
+# ── context_tags 구조화: cross-field 검증 + image_prompt 재조립 ──────
+
+_CAMERA_GAZE_CONFLICTS: dict[str, dict[str, str]] = {
+    "from_behind": {"looking_at_viewer": "looking_back"},
+    "from_below": {"looking_down": "looking_up"},
+    "from_above": {"looking_up": "looking_down"},
+}
+
+
+def _validate_cross_field_consistency(scenes: list[dict]) -> None:
+    """context_tags의 camera↔gaze 물리적 모순을 감지하고 교정한다."""
+    for i, scene in enumerate(scenes):
+        ctx = scene.get("context_tags")
+        if not ctx:
+            continue
+
+        camera = ctx.get("camera", "")
+        gaze = ctx.get("gaze", "")
+
+        if camera in _CAMERA_GAZE_CONFLICTS:
+            fix_map = _CAMERA_GAZE_CONFLICTS[camera]
+            if gaze in fix_map:
+                fixed = fix_map[gaze]
+                logger.info(
+                    "[Finalize] Scene %d: camera-gaze conflict %s+%s → gaze=%s",
+                    i,
+                    camera,
+                    gaze,
+                    fixed,
+                )
+                ctx["gaze"] = fixed
+
+
+def _rebuild_image_prompt_from_context_tags(scenes: list[dict]) -> None:
+    """확장 context_tags(cinematic/props 포함)에서 image_prompt를 재조립한다.
+
+    확장 필드가 없는 기존 스토리보드는 건너뛴다 (후방 호환).
+    재조립 순서는 PromptBuilder 12-Layer와 매핑된다:
+      camera(L9) → pose+gaze(L7/L8) → action(L8) → props(L8)
+      → expression(L7) → environment(L10) → cinematic(L11)
+    """
+    rebuilt_count = 0
+    for scene in scenes:
+        ctx = scene.get("context_tags")
+        if not ctx:
+            continue
+        # 확장 형식 감지: cinematic 또는 props 존재 시에만 재조립
+        if not (ctx.get("cinematic") or ctx.get("props")):
+            continue
+
+        tags: list[str] = []
+        speaker = scene.get("speaker", "")
+        is_narrator = speaker == "Narrator"
+
+        if is_narrator:
+            tags.extend(["no_humans", "scenery"])
+
+        # L7: camera
+        camera = ctx.get("camera") or scene.get("camera")
+        if camera:
+            tags.append(camera)
+
+        if not is_narrator:
+            # L8: pose + gaze
+            if ctx.get("pose"):
+                tags.append(ctx["pose"])
+            if ctx.get("gaze"):
+                tags.append(ctx["gaze"])
+
+        # L8: action
+        if ctx.get("action"):
+            tags.append(ctx["action"])
+
+        # L8: props
+        for p in ctx.get("props") or []:
+            tags.append(p)
+
+        # L9: expression (non-Narrator)
+        if not is_narrator and ctx.get("expression"):
+            tags.append(ctx["expression"])
+
+        # L10: environment
+        env = ctx.get("environment")
+        if isinstance(env, str):
+            tags.append(env)
+        elif isinstance(env, list):
+            tags.extend(env)
+
+        # L11: cinematic
+        for c in ctx.get("cinematic") or []:
+            tags.append(c)
+
+        if tags:
+            scene["image_prompt"] = ", ".join(tags)
+            rebuilt_count += 1
+
+    if rebuilt_count:
+        logger.info("[Finalize] image_prompt rebuilt from context_tags: %d scenes", rebuilt_count)
+
+
 def _auto_populate_scene_flags(
     scenes: list[dict],
     character_id: int | None,
@@ -719,6 +819,13 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         _resolve_positive_negative_conflicts(scenes)
     except Exception:
         logger.warning("[Finalize] 환경/로케이션 태그 처리 실패 (non-fatal)", exc_info=True)
+
+    # 그룹 3.5: context_tags 구조화 — cross-field 검증 + image_prompt 재조립
+    try:
+        _validate_cross_field_consistency(scenes)
+        _rebuild_image_prompt_from_context_tags(scenes)
+    except Exception:
+        logger.warning("[Finalize] context_tags 구조화 처리 실패 (non-fatal)", exc_info=True)
 
     # 미분류 태그 LLM 사전 분류 (이미지 생성 전)
     from config_pipelines import FEATURE_TAG_LLM_CLASSIFICATION
