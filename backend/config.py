@@ -182,6 +182,10 @@ REFERENCE_LORA_SCALE = float(os.getenv("REFERENCE_LORA_SCALE", "0.4"))
 # Style LoRA weight multiplier for reference images
 # 0.45: balance between style visibility and prompt adherence (reviewed 2026-02)
 REFERENCE_STYLE_LORA_SCALE = float(os.getenv("REFERENCE_STYLE_LORA_SCALE", "0.45"))
+# Character LoRA weight multiplier for scene images
+# 0.45: prevents LoRA from overriding clothing color tags while preserving face identity
+# Without scaling, LoRA at full weight (0.7) dominates clothing — text tags ignored
+SCENE_CHARACTER_LORA_SCALE = float(os.getenv("SCENE_CHARACTER_LORA_SCALE", "0.45"))
 
 # --- Base Model ---
 # SSOT for SD base model identifiers. All API inputs are normalized to these values.

@@ -116,8 +116,8 @@ def _adjust_parameters(ctx: GenerationContext) -> None:
         logger.info("🔍 [StyleProfile] Auto-enabled Hi-Res for '%s'", style_ctx.profile_name)
 
     # Apply optimal LoRA weights from calibration DB
-    # Skip when prompt composition was used — already applies StyleProfile weights + cap
-    if not ctx.style_loras:
+    # Skip when prompt composition was used — already applies character/style LoRA weights + scale + cap
+    if not ctx.style_loras and not ctx.character:
         lora_names = extract_lora_names(ctx.prompt)
         if lora_names:
             try:

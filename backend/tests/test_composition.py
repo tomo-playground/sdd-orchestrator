@@ -1018,7 +1018,8 @@ class TestLoRAWeightCap:
         builder._inject_loras(character, [], layers, None)
 
         all_tokens = [t for layer in layers for t in layer]
-        assert "<lora:char_lora:0.76>" in all_tokens
+        # 0.89 × SCENE_CHARACTER_LORA_SCALE(0.45) = 0.4 (scaled before cap)
+        assert "<lora:char_lora:0.4>" in all_tokens
         assert "<lora:char_lora:0.89>" not in all_tokens
 
     @patch("services.prompt.composition.LoRATriggerCache")

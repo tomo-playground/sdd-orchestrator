@@ -759,6 +759,10 @@ class PromptBuilder:
                         _logger.warning("LoRA compatibility: %s", msg)
                     if weight is None:
                         weight = self.get_effective_lora_weight(lora_obj)
+                    # Scale character LoRA for scene: prevents clothing color override
+                    from config import SCENE_CHARACTER_LORA_SCALE
+
+                    weight = round(weight * SCENE_CHARACTER_LORA_SCALE, 2)
                     active_loras[lora_obj.name] = LoRAInfo(weight, lora_obj.lora_type, lora_obj.trigger_words or [])
                     for trigger in lora_obj.trigger_words or []:
                         if not self._trigger_exists_in_layers(trigger, layers):
