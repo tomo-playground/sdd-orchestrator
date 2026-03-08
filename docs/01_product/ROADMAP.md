@@ -35,11 +35,12 @@
 | Phase 29 (Video Pre-validation) | Sub-Phase A~C 완료 — TTS 프리뷰/렌더 연결 + 씬 필드 소실 수정 + Spread Passthrough + 타임라인 시각화 |
 | Casting 네이밍 정규화 | 완료 — character_id→character_a_id (Casting 컨텍스트), 27개 파일, JSONB 마이그레이션 |
 | Checkpointer 리팩토링 | 완료 — 싱글턴→per-request 패턴, DB 풀 고갈 방지 |
-| **Phase 30 (Character Consistency V2)** | **진행 중** — A(Config 튜닝)+B(Gemini 복장 고정)+B+(Finalize 복장 교정 2단계)+F(네이밍 개선+복장 보호)+F-2(레퍼런스 네이밍 통일)+H(context_tags 구조화)+I(Gemini 역할 분리+scene_negative 버그 수정)+J(SCENE_CHARACTER_LORA_SCALE 복장 색상 드리프트 방지)+K(프롬프트 통합 5필드→2필드)+L(B-1 image_prompt 복장 오염 차단 강화) 완료. NoobAI-XL+Regional Prompter+Pipeline Inpaint 테스트 완료. C(Dual IP-Adapter) D(LoRA 트레이닝) G(멀티캐릭터 Inpaint) 미착수 |
+| **Phase 30 (Character Consistency V2)** | **진행 중** — A(Config 튜닝)+B(Gemini 복장 고정)+B+(Finalize 복장 교정 2단계)+F(네이밍 개선+복장 보호)+F-2(레퍼런스 네이밍 통일)+H(context_tags 구조화)+I(Gemini 역할 분리+scene_negative 버그 수정)+J(SCENE_CHARACTER_LORA_SCALE 복장 색상 드리프트 방지)+K(프롬프트 통합 5필드→2필드)+L(B-1 image_prompt 복장 오염 차단 강화)+M(sitting 포즈 기형 근본 보정) 완료. NoobAI-XL+Regional Prompter+Pipeline Inpaint 테스트 완료. C(Dual IP-Adapter) D(LoRA 트레이닝) G(멀티캐릭터 Inpaint) 미착수 |
 | 테스트 | Backend 3,478 + Frontend 543 + E2E 36 = **총 4,057개** |
 
 ### 최근 작업
 
+- **Phase 30-M sitting 포즈 기형 근본 보정** (03-08): sitting 씬 전신 노출로 인한 다리 기형 문제 해결. ① 전체 12명 캐릭터 `negative_prompt`에 다리 기형 억제 태그 추가(`bad_legs, deformed_legs, extra_legs, uneven_legs, missing_leg, poorly_drawn_legs`). ② cinematographer.j2 SITTING+CAMERA RULE 추가 — sitting 시 `upper_body`/`cowboy_shot`/`close-up` 강제, `full_body` 금지. ③ storyboard 1088 11개 씬 카메라 태그 가중치 강화(`upper_body:1.3`, `cowboy_shot:1.3`). ④ `controlnet_pose` `sitting_neutral` → `chin_rest` 교체 — 무릎 당겨 앉은 자세로 다리 노출 최소화. ⑤ `/scene/generate` + `/image/store` 2-step 흐름 REST_API.md 문서화. **백로그**: ControlNet weight 분리 제어(포즈 vs 프레이밍) ROADMAP 등록.
 - **Phase 30-L B-1 image_prompt 복장 오염 차단 강화** (03-07): `_rebuild_image_prompt_from_context_tags` 재조립 조건 확대 — 기존 cinematic/props 존재 시에만 → `_CONTEXT_TAG_FIELDS`(camera/pose/gaze/action/expression/environment/cinematic/props) 중 하나라도 있으면 재조립 실행. Gemini가 image_prompt에 임의 삽입한 복장·identity 태그 자동 제거. 구 스토리보드(context_tags 완전 비어있음) 후방 호환 유지. 테스트 3개 업데이트 + 1개 신규 = 15/15 PASS.
 - **LangGraph director_node config 타입 수정** (03-07): `config: RunnableConfig | None = None` → `config: RunnableConfig` — LangGraph 노드는 항상 config 주입되므로 optional 불필요. `UserWarning: The 'config' parameter should be typed as 'RunnableConfig'` 경고 제거. 테스트 3개 파일 `director_node(state, {})` 인자 추가 대응. 52/52 PASS.
 - **Pre-flight BGM/ControlNet ⚠️ 표시 일관성 수정** (03-07): `SettingsCheck`에 `warning?: boolean` 플래그 추가. BGM 없음/ControlNet 비활성 시 `warning: true` 설정 → `SettingRow`에서 ✓(초록) 대신 ⚠️(노란) 표시. 상단 경고 배너와 시각적 일관성 확보.
@@ -235,6 +236,12 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | ~~Express 모드 재검토~~ | **Phase 25에서 해결** — Director 자율 실행으로 대체. 프리셋 제거 완료 |
 | ~~Script 생성 후 대화형 수정 루프 (씬 부분 재생성)~~ | **Phase 26 P1에서 완료** — edit-scenes API + SceneEditDiffCard |
 | Script Canvas 분할 뷰 (좌 채팅 + 우 씬 프리뷰) | [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md) §P2 |
+
+### Image Quality & Pose Control
+
+| 기능 | 설명 |
+|------|------|
+| ControlNet weight 분리 제어 (포즈 vs 프레이밍) | weight 0.4~0.5로 낮춰 포즈 골격 유지 + camera 태그(`upper_body`, `cowboy_shot`)가 프레이밍 결정. sitting 씬 전신/상반신 혼재 해결. 씬 1개 비교 테스트 후 전체 적용 |
 
 ### Infrastructure & Scale
 

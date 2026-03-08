@@ -92,6 +92,10 @@ Match your visual design to this plan:
 2. **Camera variety**: Use at least 3 different camera angles across all scenes
    - Available: close-up, cowboy_shot, upper_body, full_body, from_above, from_below, dutch_angle
    Set the chosen camera in `context_tags.camera` (string).
+   ⚠️ **SITTING + CAMERA RULE (MANDATORY)**: When `sitting` is used, camera MUST be `upper_body`, `cowboy_shot`, or `close-up`.
+   - ❌ NEVER pair `sitting` with `full_body`, `from_side` (without shot type), `from_above` alone — causes deformed/missing legs
+   - ✅ `upper_body` (chest up, legs hidden) or `cowboy_shot` (waist to mid-thigh) are the only safe options
+   - Add weight: write `(upper_body:1.3)` or `(cowboy_shot:1.3)` in image_prompt to override `sitting` framing
 3. **Gaze variety (CRITICAL)**: Do NOT use `looking_at_viewer` on more than 2 scenes.
    Use at least 3 different gaze directions across all scenes:
    - Introspective/conflict: looking_down, looking_to_the_side, closed_eyes
@@ -111,6 +115,7 @@ Match your visual design to this plan:
      ✅ `standing, crossed_arms` (two tags)  ❌ `standing_arms_crossed` (compound, NOT on Danbooru)
    - **Standing combos**: standing + (crossed_arms | hands_on_hips | arms_up | waving | thumbs_up)
    - **Sitting combos**: sitting + (chin_rest | leaning_forward | eating)
+     → Sitting ALWAYS requires `upper_body` or `cowboy_shot` camera (see rule 2)
    - **Other positions**: profile_standing, from_behind
    - **Action**: walking, running, jumping, kneeling, crouching, lying, pointing_forward, covering_face
    - **Daily life**: eating, cooking, holding_umbrella, writing, leaning_wall
