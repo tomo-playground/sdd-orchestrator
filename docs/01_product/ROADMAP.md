@@ -242,6 +242,7 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | 기능 | 설명 |
 |------|------|
 | ControlNet weight 분리 제어 (포즈 vs 프레이밍) | weight 0.4~0.5로 낮춰 포즈 골격 유지 + camera 태그(`upper_body`, `cowboy_shot`)가 프레이밍 결정. sitting 씬 전신/상반신 혼재 해결. 씬 1개 비교 테스트 후 전체 적용 |
+| **sitting 계열 ControlNet 근본 해결** | ② 동적 weight 완료(`_resolve_controlnet_weight`: action→0.80, emotional→0.45, default). ① 전용 에셋 미완료 — `scripts/generate_sitting_pose_assets.py` 실행 후 `sitting_side/floor/knees_up.png` 생성 → `controlnet.py` 주석 해제 → `finalize.py SITTING_POSES`에서 해당 포즈 제거하면 재활성화 |
 
 ### Infrastructure & Scale
 

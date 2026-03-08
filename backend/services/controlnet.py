@@ -64,6 +64,10 @@ POSE_MAPPING: dict[str, str] = {
     "head_rest": "sitting_chin_rest.png",  # alias
     "leaning": "sitting_leaning.png",
     "leaning_forward": "sitting_leaning.png",  # alias
+    # TODO: generate_sitting_pose_assets.py 실행 후 아래 주석 해제
+    # "sitting_side": "sitting_side.png",       # 측면 앉기 (from_side 씬용)
+    # "sitting_floor": "sitting_floor.png",     # 바닥 앉기 (무릎 세우기)
+    # "sitting_knees_up": "sitting_knees_up.png",  # 무릎 끌어안기 (감성 씬용)
     # Action/Storytelling poses
     "walking": "walking.png",
     "running": "running.png",
@@ -95,7 +99,33 @@ POSE_MAPPING: dict[str, str] = {
     "leaning_wall": "leaning_wall.png",
     "leaning_against_wall": "leaning_wall.png",  # alias
     "sitting_eating": "sitting_eating.png",
+    # TODO: generate_sitting_pose_assets.py 실행 후 아래 주석 해제
+    # "sitting_side": "sitting_side.png",       # 측면 앉기 (from_side 씬용)
+    # "sitting_floor": "sitting_floor.png",     # 바닥 앉기 (무릎 세우기)
+    # "sitting_knees_up": "sitting_knees_up.png",  # 무릎 끌어안기 (감성 씬용)
 }
+
+# sitting 계열 포즈 — ControlNet 자동 활성화 제외 (하체 왜곡 문제).
+# 전용 고품질 에셋(sitting_side.png 등) 생성 후 집합에서 제거하면 재활성화됨.
+# 에셋 생성: scripts/generate_sitting_pose_assets.py
+SITTING_EXCLUDED_POSES: frozenset[str] = frozenset(
+    {
+        "sitting",
+        "sitting_on_chair",
+        "chin_rest",
+        "head_rest",
+        "seiza",
+        "wariza",
+        "indian_style",
+        "leaning",
+        "leaning_forward",
+        "sitting_eating",
+        # 에셋 생성 후 제거 대상:
+        # "sitting_side",      # → sitting_side.png 생성 시
+        # "sitting_floor",     # → sitting_floor.png 생성 시
+        # "sitting_knees_up",  # → sitting_knees_up.png 생성 시
+    }
+)
 
 # Poses that require IP-Adapter weight reduction to avoid reference-pose conflict.
 # Omitted poses default to "front" direction (max weight = 1.0).

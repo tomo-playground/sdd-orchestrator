@@ -656,6 +656,54 @@ def _rebuild_image_prompt_from_context_tags(scenes: list[dict]) -> None:
         logger.info("[Finalize] image_prompt rebuilt from context_tags: %d scenes", rebuilt_count)
 
 
+# Action 포즈: 골격 정밀도가 중요 → 높은 weight
+_ACTION_POSES: frozenset[str] = frozenset(
+    {
+        "running",
+        "jumping",
+        "pointing_forward",
+        "pointing",
+        "arms_up",
+    }
+)
+
+# 감성/서정 mood: SD 자유 구성 허용 → 낮은 weight
+_EMOTIONAL_MOODS: frozenset[str] = frozenset(
+    {
+        # EMOTION_VOCAB 파생 mood (_context_tag_utils.py SSOT)
+        "melancholic",  # sad, grieving, guilty → melancholic
+        "lonely",  # lonely → lonely
+        "gloomy",  # tired → gloomy
+        "somber",  # resigned → somber
+        "bittersweet",  # bittersweet → bittersweet
+        # cinematographer가 자유롭게 생성하는 감성 mood
+        "serene",
+        "reflective",
+        "nostalgic",
+        "romantic",
+        "peaceful",
+        "pensive",
+        "quiet",
+    }
+)
+
+
+def _resolve_controlnet_weight(scene: dict, default: float) -> float:
+    """씬 맥락(포즈 타입 + mood)에 따라 ControlNet weight 동적 결정.
+
+    - Action 포즈 → 0.80 (포즈 정밀도 우선)
+    - 감성/서정 mood → 0.45 (SD 자유 구성 허용)
+    - 일반 → default
+    """
+    pose = scene.get("controlnet_pose", "")
+    mood = (scene.get("context_tags") or {}).get("mood", "")
+    if pose in _ACTION_POSES:
+        return 0.80
+    if mood in _EMOTIONAL_MOODS:
+        return 0.45
+    return default
+
+
 def _auto_populate_scene_flags(
     scenes: list[dict],
     character_id: int | None,
@@ -674,7 +722,7 @@ def _auto_populate_scene_flags(
         DEFAULT_MULTI_GEN_ENABLED,
         DEFAULT_POSE_TAG,
     )
-    from services.controlnet import POSE_MAPPING  # noqa: PLC0415
+    from services.controlnet import POSE_MAPPING, SITTING_EXCLUDED_POSES  # noqa: PLC0415
 
     valid_poses = set(POSE_MAPPING.keys())
 
@@ -684,21 +732,26 @@ def _auto_populate_scene_flags(
         scene_char_id = character_b_id if scene.get("speaker") == "B" else character_id
 
         # controlnet_pose 자동 할당: Cinematographer 미실행 시 context_tags.pose에서 파생
+        # sitting 계열은 ControlNet 자동 활성화 제외 (하체 왜곡 문제)
         if not scene.get("controlnet_pose") and not is_narrator and scene_char_id:
             ctx_pose = (scene.get("context_tags") or {}).get("pose", DEFAULT_POSE_TAG)
-            if ctx_pose in valid_poses:
+            if ctx_pose in SITTING_EXCLUDED_POSES:
+                scene["controlnet_pose"] = ctx_pose  # pose 기록은 하되 use_controlnet은 False
+            elif ctx_pose in valid_poses:
                 scene["controlnet_pose"] = ctx_pose
             elif ctx_pose and ctx_pose.replace("_", " ") in valid_poses:
                 scene["controlnet_pose"] = ctx_pose.replace("_", " ")
             else:
                 scene["controlnet_pose"] = DEFAULT_POSE_TAG
 
-        has_pose = bool(scene.get("controlnet_pose"))
+        assigned_pose = scene.get("controlnet_pose")
+        is_sitting_pose = assigned_pose in SITTING_EXCLUDED_POSES
+        has_pose = bool(assigned_pose) and not is_sitting_pose
 
         if scene.get("use_controlnet") is None:
             scene["use_controlnet"] = has_pose and not is_narrator
         if scene.get("controlnet_weight") is None and scene["use_controlnet"]:
-            scene["controlnet_weight"] = DEFAULT_CONTROLNET_WEIGHT
+            scene["controlnet_weight"] = _resolve_controlnet_weight(scene, DEFAULT_CONTROLNET_WEIGHT)
 
         if scene.get("use_ip_adapter") is None:
             scene["use_ip_adapter"] = bool(scene_char_id) and not is_narrator
