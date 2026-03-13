@@ -49,3 +49,7 @@ temp/
 backend/.coverage
 .playwright-mcp/
 output/
+.cp-images/
+
+# Terminal Paste Image folder
+.cp-images/
