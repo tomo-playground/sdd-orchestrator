@@ -22,8 +22,25 @@ _model: Qwen3TTSModel | None = None
 def _resolve_device() -> str:
     device = TTS_DEVICE
     if device == "auto":
-        device = "mps" if torch.backends.mps.is_available() else "cpu"
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif torch.backends.mps.is_available():
+            device = "mps"
+        else:
+            device = "cpu"
     return device
+
+
+def _resolve_dtype(device: str) -> torch.dtype:
+    """Select optimal dtype for the device.
+
+    CUDA/CPU: float32 — Qwen3-TTS autoregressive generation requires
+    full precision for stable output quality and consistent duration.
+    MPS: bfloat16 — Apple Silicon requires bfloat16 for MPS compatibility.
+    """
+    if device == "mps":
+        return torch.bfloat16
+    return torch.float32
 
 
 def load_model() -> Qwen3TTSModel:
@@ -33,11 +50,12 @@ def load_model() -> Qwen3TTSModel:
         return _model
 
     device = _resolve_device()
-    logger.info("Loading Qwen3-TTS model (%s) on %s...", TTS_MODEL_NAME, device)
+    dtype = _resolve_dtype(device)
+    logger.info("Loading Qwen3-TTS model (%s) on %s (dtype=%s)...", TTS_MODEL_NAME, device, dtype)
 
     model = Qwen3TTSModel.from_pretrained(
         TTS_MODEL_NAME,
-        dtype=torch.bfloat16 if device == "mps" else torch.float32,
+        dtype=dtype,
         attn_implementation=TTS_ATTN_IMPLEMENTATION,
     )
     model.model.to(device)

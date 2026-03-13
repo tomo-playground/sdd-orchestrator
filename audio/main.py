@@ -76,10 +76,19 @@ async def synthesize_tts(req: TTSSynthesizeRequest):
 
         req.seed = int(torch.randint(0, 2**31, (1,)).item())
 
+    # Korean text preprocessing (numbers → spoken Korean)
+    synth_text = req.text
+    if req.language.lower() in ("korean", "ko", "kr"):
+        from services.text_preprocess import preprocess_korean
+
+        synth_text = preprocess_korean(req.text)
+        if synth_text != req.text:
+            logger.info("[TTS] Preprocessed: %s → %s", req.text, synth_text)
+
     try:
         wavs, sr = await asyncio.to_thread(
             tts_engine.synthesize,
-            text=req.text,
+            text=synth_text,
             instruct=req.instruct,
             language=req.language,
             seed=req.seed,
