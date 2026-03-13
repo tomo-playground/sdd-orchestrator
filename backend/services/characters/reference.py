@@ -172,6 +172,7 @@ async def regenerate_reference(
     enable_hr = style_ctx.default_enable_hr if (style_ctx and style_ctx.default_enable_hr is not None) else False
 
     pose = controlnet_pose or SD_REFERENCE_CONTROLNET_POSE
+    use_cn = bool(pose)
 
     # Release DB connection before long SD WebUI call (~30-60s)
     db.close()
@@ -192,8 +193,8 @@ async def regenerate_reference(
             hr_scale=1.5 if enable_hr else 1.0,
             hr_upscaler=SD_REFERENCE_HR_UPSCALER,
             denoising_strength=SD_REFERENCE_DENOISING if enable_hr else 0.0,
-            use_controlnet=True,
-            controlnet_pose=pose,
+            use_controlnet=use_cn,
+            controlnet_pose=pose if use_cn else None,
             controlnet_weight=SD_REFERENCE_CONTROLNET_WEIGHT,
             controlnet_control_mode=SD_REFERENCE_CONTROLNET_MODE,
         )
@@ -351,6 +352,7 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
     enable_hr = style_ctx.default_enable_hr if (style_ctx and style_ctx.default_enable_hr is not None) else False
 
     pose = request.controlnet_pose or SD_REFERENCE_CONTROLNET_POSE
+    use_cn = bool(pose)
     num_candidates = request.num_candidates
 
     # Release DB connection before long SD call
@@ -372,8 +374,8 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
             hr_scale=1.5 if enable_hr else 1.0,
             hr_upscaler=SD_REFERENCE_HR_UPSCALER,
             denoising_strength=SD_REFERENCE_DENOISING if enable_hr else 0.0,
-            use_controlnet=True,
-            controlnet_pose=pose,
+            use_controlnet=use_cn,
+            controlnet_pose=pose if use_cn else None,
             controlnet_weight=SD_REFERENCE_CONTROLNET_WEIGHT,
             controlnet_control_mode=SD_REFERENCE_CONTROLNET_MODE,
         )

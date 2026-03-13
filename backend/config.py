@@ -167,11 +167,12 @@ CONTROLNET_DEFAULT_SAMPLER = os.getenv("CONTROLNET_DEFAULT_SAMPLER", "Euler a")
 
 # --- Character Reference Generation ---
 SD_REFERENCE_STEPS = int(os.getenv("SD_REFERENCE_STEPS", "25"))
-SD_REFERENCE_CFG_SCALE = float(os.getenv("SD_REFERENCE_CFG_SCALE", "9.0"))
+SD_REFERENCE_CFG_SCALE = float(os.getenv("SD_REFERENCE_CFG_SCALE", "7.0"))
 SD_REFERENCE_HR_UPSCALER = os.getenv("SD_REFERENCE_HR_UPSCALER", "R-ESRGAN 4x+ Anime6B")
 SD_REFERENCE_DENOISING = float(os.getenv("SD_REFERENCE_DENOISING", "0.35"))
 # ControlNet pose for character reference images (standing = single full-body)
-SD_REFERENCE_CONTROLNET_POSE = os.getenv("SD_REFERENCE_CONTROLNET_POSE", "standing")
+# upper_body framing — no full-body pose needed for reference
+SD_REFERENCE_CONTROLNET_POSE = os.getenv("SD_REFERENCE_CONTROLNET_POSE", "")
 SD_REFERENCE_CONTROLNET_WEIGHT = float(os.getenv("SD_REFERENCE_CONTROLNET_WEIGHT", "0.8"))
 SD_REFERENCE_CONTROLNET_MODE = os.getenv("SD_REFERENCE_CONTROLNET_MODE", "ControlNet is more important")
 # Number of candidate images to generate for character preview selection
@@ -181,7 +182,9 @@ SD_REFERENCE_NUM_CANDIDATES = int(os.getenv("SD_REFERENCE_NUM_CANDIDATES", "3"))
 REFERENCE_LORA_SCALE = float(os.getenv("REFERENCE_LORA_SCALE", "0.4"))
 # Style LoRA weight multiplier for reference images
 # 0.45: balance between style visibility and prompt adherence (reviewed 2026-02)
-REFERENCE_STYLE_LORA_SCALE = float(os.getenv("REFERENCE_STYLE_LORA_SCALE", "0.45"))
+# Style LoRA disabled for reference images — reference is for character identity only,
+# style should not interfere with clean background + character silhouette
+REFERENCE_STYLE_LORA_SCALE = float(os.getenv("REFERENCE_STYLE_LORA_SCALE", "0.0"))
 # Character LoRA weight multiplier for scene images
 # 0.45: prevents LoRA from overriding clothing color tags while preserving face identity
 # Without scaling, LoRA at full weight (0.7) dominates clothing — text tags ignored
@@ -432,11 +435,10 @@ DEFAULT_REFERENCE_BASE_PROMPT = ", ".join(
         "best_quality",
         "ultra-detailed",
         "solo",
-        "full_body",
-        "standing",
+        "upper_body",
         "looking_at_viewer",
-        "simple_background",
-        "white_background",
+        "(simple_background:1.3)",
+        "(white_background:1.3)",
     ]
 )
 DEFAULT_REFERENCE_NEGATIVE_PROMPT = ", ".join(
@@ -458,9 +460,17 @@ DEFAULT_REFERENCE_NEGATIVE_PROMPT = ", ".join(
         "watermark",
         "username",
         "blurry",
-        # --- 배경 억제 (최소화 — 복잡한 배경만 방지) ---
+        # --- 배경 억제 (밝고 단순한 배경 강제) ---
         "busy_background",
         "detailed_background",
+        "(dark_background:1.3)",
+        "(black_background:1.3)",
+        "shadow",
+        "dramatic_lighting",
+        "moody",
+        "night",
+        "night_sky",
+        "dark",
         # --- 멀티뷰 억제 ---
         "(multiple_views:1.8)",
         "(character_sheet:1.8)",
@@ -583,7 +593,7 @@ DEFAULT_CONTROLNET_WEIGHT = 0.8
 DEFAULT_USE_IP_ADAPTER = False
 DEFAULT_IP_ADAPTER_WEIGHT = 0.7
 MIN_IP_ADAPTER_WEIGHT_NO_LORA = 0.5  # LoRA 없는 캐릭터의 최소 IP-Adapter weight
-DEFAULT_MULTI_GEN_ENABLED = False
+DEFAULT_MULTI_GEN_ENABLED = True
 
 # --- IP-Adapter Defaults ---
 # Default IP-Adapter settings (per-character overrides stored in DB)
