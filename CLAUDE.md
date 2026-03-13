@@ -23,7 +23,7 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. LangGraph Agentic Pipeline
 ### Backend 구조
 ```
 backend/
-├── routers/          # API 엔드포인트 (30개 라우터)
+├── routers/          # API 엔드포인트 (29개 라우터)
 ├── services/
 │   ├── agent/        # LangGraph Agentic Pipeline
 │   │   ├── nodes/    #   20개 노드 (Director, Writer, Critic, Research, Cinematographer 등)

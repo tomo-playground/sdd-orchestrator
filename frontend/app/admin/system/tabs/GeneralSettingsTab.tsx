@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useSettingsTab } from "../hooks/useSettingsTab";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
 import { useUIStore } from "../../../store/useUIStore";
-import AnalyticsSection from "./AnalyticsSection";
 import CacheRefreshSection from "./CacheRefreshSection";
 import MediaAssetsSection from "./MediaAssetsSection";
 
@@ -21,14 +20,6 @@ export default function SettingsTab() {
     setCleanupOptions,
     fetchStorageStats,
     handleCleanup,
-    autoEditSettings,
-    costSummary,
-    isLoadingAutoEdit,
-    fetchAutoEditSettings,
-    analytics,
-    isLoadingAnalytics,
-    analyticsStoryboardFilter,
-    fetchAnalytics,
     mediaStats,
     isLoadingMediaStats,
     fetchMediaStats,
@@ -45,34 +36,6 @@ export default function SettingsTab() {
 
   return (
     <section className="grid gap-8 rounded-2xl border border-zinc-200/60 bg-white p-8 text-xs text-zinc-600 shadow-sm">
-      {/* Interface Settings */}
-      <div className="grid gap-6">
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-          <span className="text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
-            Interface Settings
-          </span>
-        </div>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-zinc-900">Show Lab Menu</p>
-              <p className="text-[12px] text-zinc-400">
-                Enable experimental features and analytics.
-              </p>
-            </div>
-            <label className="relative inline-flex cursor-pointer items-center">
-              <input
-                type="checkbox"
-                checked={useUIStore((s) => s.showLabMenu)}
-                onChange={useUIStore((s) => s.toggleLabMenu)}
-                className="peer sr-only"
-              />
-              <div className="peer h-6 w-11 rounded-full bg-zinc-200 peer-checked:bg-indigo-600 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-zinc-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full"></div>
-            </label>
-          </div>
-        </div>
-      </div>
-
       {/* Storage Section */}
       <div className="grid gap-6">
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
@@ -320,162 +283,6 @@ export default function SettingsTab() {
         )}
       </div>
 
-      {/* Gemini Auto Edit Configuration */}
-      <div className="grid gap-6">
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-          <span className="text-[12px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
-            Gemini Auto Edit
-          </span>
-          <button
-            type="button"
-            onClick={fetchAutoEditSettings}
-            disabled={isLoadingAutoEdit}
-            className="rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-[12px] font-bold text-zinc-600 shadow-sm transition-colors hover:bg-zinc-50 disabled:opacity-50"
-          >
-            {isLoadingAutoEdit ? "Loading..." : "Refresh"}
-          </button>
-        </div>
-
-        {autoEditSettings && costSummary && (
-          <div className="grid gap-6">
-            {/* Cost Summary Cards */}
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-                <div className="text-2xl font-black text-zinc-900">
-                  ${costSummary.today.toFixed(2)}
-                </div>
-                <p className="mt-1 text-[12px] font-medium tracking-widest text-zinc-400 uppercase">
-                  Today
-                </p>
-                <p className="text-[11px] text-zinc-400">{costSummary.edit_count_today} edits</p>
-              </div>
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-                <div className="text-2xl font-black text-zinc-900">
-                  ${costSummary.this_week.toFixed(2)}
-                </div>
-                <p className="mt-1 text-[12px] font-medium tracking-widest text-zinc-400 uppercase">
-                  This Week
-                </p>
-              </div>
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-                <div className="text-2xl font-black text-zinc-900">
-                  ${costSummary.this_month.toFixed(2)}
-                </div>
-                <p className="mt-1 text-[12px] font-medium tracking-widest text-zinc-400 uppercase">
-                  This Month
-                </p>
-                <p className="text-[11px] text-zinc-400">{costSummary.edit_count_month} edits</p>
-              </div>
-              <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
-                <div className="text-2xl font-black text-indigo-600">
-                  ${costSummary.total.toFixed(2)}
-                </div>
-                <p className="mt-1 text-[12px] font-medium tracking-widest text-indigo-500 uppercase">
-                  Total
-                </p>
-              </div>
-            </div>
-
-            {/* Settings Controls */}
-            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-              <div className="grid gap-6">
-                <div className="flex items-center justify-between rounded-2xl border border-zinc-50 bg-zinc-50/50 p-4">
-                  <div>
-                    <p className="text-sm font-bold text-zinc-700">Auto Edit Enabled</p>
-                    <p className="mt-1 text-[12px] text-zinc-400">
-                      Automatically fix images with low Match Rate
-                    </p>
-                  </div>
-                  <label className="relative inline-flex cursor-not-allowed items-center opacity-75">
-                    <input
-                      type="checkbox"
-                      checked={autoEditSettings.enabled}
-                      disabled
-                      className="peer sr-only"
-                    />
-                    <div className="peer h-6 w-11 rounded-full bg-zinc-200 peer-checked:bg-indigo-600 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-zinc-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full"></div>
-                  </label>
-                </div>
-
-                <div className="grid gap-3 opacity-75">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-zinc-700">Match Rate Threshold</label>
-                    <span className="text-sm font-black text-indigo-600">
-                      {(autoEditSettings.threshold * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="0.9"
-                    step="0.05"
-                    value={autoEditSettings.threshold}
-                    disabled
-                    className="h-2 w-full cursor-not-allowed appearance-none rounded-lg bg-zinc-200 accent-indigo-600"
-                  />
-                  <p className="text-[12px] text-zinc-400">
-                    Trigger auto-edit when Match Rate &lt;{" "}
-                    {(autoEditSettings.threshold * 100).toFixed(0)}%
-                  </p>
-                </div>
-
-                <div className="grid gap-3 opacity-75">
-                  <label className="text-xs font-bold text-zinc-700">Max Cost per Storyboard</label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-zinc-400">$</span>
-                    <input
-                      type="number"
-                      min="0.1"
-                      max="10"
-                      step="0.1"
-                      value={autoEditSettings.max_cost_per_storyboard}
-                      disabled
-                      className="flex-1 cursor-not-allowed rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-bold text-zinc-700"
-                    />
-                  </div>
-                  <p className="text-[12px] text-zinc-400">
-                    Stop auto-editing when storyboard cost exceeds this limit
-                  </p>
-                </div>
-
-                <div className="grid gap-3 opacity-75">
-                  <label className="text-xs font-bold text-zinc-700">Max Retries per Scene</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="5"
-                    step="1"
-                    value={autoEditSettings.max_retries_per_scene}
-                    disabled
-                    className="cursor-not-allowed rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-bold text-zinc-700"
-                  />
-                  <p className="text-[12px] text-zinc-400">
-                    Maximum edit attempts per scene before giving up
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-center">
-                  <p className="mb-1 text-[12px] font-bold tracking-widest text-indigo-600 uppercase">
-                    Configuration Source
-                  </p>
-                  <p className="text-[13px] text-indigo-700">
-                    These settings are managed in{" "}
-                    <code className="rounded bg-indigo-100 px-1 py-0.5 font-mono">.env</code> file
-                  </p>
-                  <p className="mt-2 text-[12px] text-indigo-500">
-                    Edit{" "}
-                    <code className="rounded bg-indigo-100 px-1 py-0.5 font-mono">
-                      backend/.env
-                    </code>{" "}
-                    to change configuration
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* System Caches */}
       <CacheRefreshSection
         isRefreshingCaches={isRefreshingCaches}
@@ -494,14 +301,6 @@ export default function SettingsTab() {
         mediaCleanupResult={mediaCleanupResult}
         isMediaCleaning={isMediaCleaning}
         handleMediaCleanup={handleMediaCleanup}
-      />
-
-      {/* Performance Analytics */}
-      <AnalyticsSection
-        analytics={analytics}
-        isLoadingAnalytics={isLoadingAnalytics}
-        analyticsStoryboardFilter={analyticsStoryboardFilter}
-        fetchAnalytics={fetchAnalytics}
       />
 
       {/* Render Settings Link */}

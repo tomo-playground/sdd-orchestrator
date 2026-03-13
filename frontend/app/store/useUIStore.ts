@@ -56,9 +56,6 @@ export interface UIState {
   // Preferences
   showAdvancedSettings: boolean;
   toggleAdvancedSettings: () => void;
-  showLabMenu: boolean;
-  toggleLabMenu: () => void;
-
   set: (updates: Partial<UIState>) => void;
   setActiveTab: (tab: StudioTab) => void;
   showToast: (message: string, type: "success" | "error" | "warning") => void;
@@ -74,14 +71,12 @@ const initialState: Omit<
   | "dismissToast"
   | "resetUI"
   | "toggleAdvancedSettings"
-  | "toggleLabMenu"
   | "setPendingAutoRun"
   | "openGroupConfig"
 > = {
   toasts: [],
   activeTab: "direct",
   showAdvancedSettings: false, // Default closed
-  showLabMenu: false,
   imagePreviewSrc: null,
   imagePreviewCandidates: null,
   videoPreviewSrc: null,
@@ -101,7 +96,6 @@ export const useUIStore = create<UIState>((set) => ({
   set: (updates) => set((state) => ({ ...state, ...updates })),
   toggleAdvancedSettings: () =>
     set((state) => ({ showAdvancedSettings: !state.showAdvancedSettings })),
-  toggleLabMenu: () => set((state) => ({ showLabMenu: !state.showLabMenu })),
   setPendingAutoRun: (v) => set({ pendingAutoRun: v }),
   setActiveTab: (tab) => set({ activeTab: tab }),
   openGroupConfig: () => {

@@ -1,1 +1,1 @@
-export type SettingsTab = "general" | "presets" | "youtube" | "trash" | "memory";
+export type SettingsTab = "general" | "presets" | "youtube" | "trash";

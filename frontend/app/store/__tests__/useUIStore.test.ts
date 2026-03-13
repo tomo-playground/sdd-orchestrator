@@ -82,14 +82,6 @@ describe("useUIStore", () => {
     });
   });
 
-  describe("toggleLabMenu", () => {
-    it("toggles showLabMenu", () => {
-      expect(useUIStore.getState().showLabMenu).toBe(false);
-      useUIStore.getState().toggleLabMenu();
-      expect(useUIStore.getState().showLabMenu).toBe(true);
-    });
-  });
-
   describe("setPendingAutoRun", () => {
     it("sets pendingAutoRun value", () => {
       useUIStore.getState().setPendingAutoRun(true);

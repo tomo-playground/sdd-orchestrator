@@ -320,12 +320,6 @@ export async function mockManageApis(page: Page) {
 
   // SettingsTab
   await page.route("**/storage/stats**", (route) => route.fulfill({ json: MOCK_STORAGE_STATS }));
-  await page.route("**/settings/auto-edit**", (route) =>
-    route.fulfill({ json: { enabled: false } })
-  );
-  await page.route("**/analytics/gemini-edits**", (route) =>
-    route.fulfill({ json: { items: [], total: 0 } })
-  );
   await page.route("**/admin/media-assets/stats**", (route) =>
     route.fulfill({ json: { total: 0, total_size_mb: 0 } })
   );

@@ -1,6 +1,6 @@
 # API Specification - Analytics & Admin API (v4.0)
 
-Quality, Activity Logs, Gemini Edit Analytics, Lab Experiments, Admin, Settings, YouTube, Scripts, Memory 관련 API 명세입니다.
+Quality, Activity Logs, Gemini Edit Analytics, Lab Experiments, Admin, Settings, YouTube, Scripts 관련 API 명세입니다.
 
 > 메인 문서: [REST_API.md](./REST_API.md) | Domain API: [REST_API_DOMAIN.md](./REST_API_DOMAIN.md)
 
@@ -16,7 +16,6 @@ Quality, Activity Logs, Gemini Edit Analytics, Lab Experiments, Admin, Settings,
 6. [Settings](#settings) - Gemini Auto Edit 설정
 7. [YouTube](#youtube) - YouTube OAuth & 업로드
 8. [Scripts](#scripts) - LangGraph 기반 대본 생성
-9. [Memory](#memory) - Memory Store 관리
 
 ---
 
@@ -353,24 +352,6 @@ LangGraph 기반 AI 대본 생성 파이프라인. SSE 스트리밍으로 노드
 - Gemini 단일 호출로 변경된 씬만 반환
 - 변경하지 않은 필드는 `null`
 - `scene_index` 범위 밖이면 무시
-
----
-
-## Memory
-
-> 라우터 prefix: `/memory`
-
-LangGraph Agent의 Memory Store를 관리합니다.
-
-| Method | Path | Description | Response Model |
-|--------|------|-------------|----------------|
-| GET | `/memory/stats` | 네임스페이스별 카운트 통계 | `MemoryStatsResponse` |
-| GET | `/memory/{ns_type}` | 타입별 항목 목록 | `MemoryListResponse` |
-| GET | `/memory/{ns_type}/{ns_id}` | 특정 네임스페이스 조회 | `MemoryListResponse` |
-| DELETE | `/memory/{ns_type}/{ns_id}/{key}` | 단일 항목 삭제 | `MemoryDeleteResponse` |
-| DELETE | `/memory/{ns_type}/{ns_id}` | 네임스페이스 전체 삭제 | `MemoryDeleteResponse` |
-
-**유효한 ns_type:** `character`, `topic`, `user`, `group`, `feedback`
 
 ---
 

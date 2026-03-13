@@ -17,39 +17,6 @@ export type CleanupResult = {
   details: Record<string, { deleted: number; freed_mb: number; files?: string[] }>;
 };
 
-type AutoEditSettings = {
-  enabled: boolean;
-  threshold: number;
-  max_cost_per_storyboard: number;
-  max_retries_per_scene: number;
-};
-
-type CostSummary = {
-  today: number;
-  this_week: number;
-  this_month: number;
-  total: number;
-  edit_count_today: number;
-  edit_count_month: number;
-};
-
-export type EditAnalytics = {
-  total_edits: number;
-  total_cost_usd: number;
-  avg_improvement: number;
-  edits: Array<{
-    id: number;
-    storyboard_id: number;
-    scene_id: number;
-    original_match_rate: number;
-    final_match_rate: number;
-    improvement: number;
-    cost_usd: number;
-    created_at: string;
-  }>;
-  by_improvement_range: Record<string, number>;
-};
-
 type CleanupOptions = {
   cleanup_videos: boolean;
   video_max_age_days: number;
@@ -110,16 +77,6 @@ export function useSettingsTab(ui: UiCallbacks) {
     cleanup_candidates: false,
   });
 
-  // Gemini Auto Edit state
-  const [autoEditSettings, setAutoEditSettings] = useState<AutoEditSettings | null>(null);
-  const [costSummary, setCostSummary] = useState<CostSummary | null>(null);
-  const [isLoadingAutoEdit, setIsLoadingAutoEdit] = useState(false);
-
-  // Gemini Analytics state
-  const [analytics, setAnalytics] = useState<EditAnalytics | null>(null);
-  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
-  const [analyticsStoryboardFilter, setAnalyticsStoryboardFilter] = useState<number | null>(null);
-
   // Media Assets GC state
   const [mediaStats, setMediaStats] = useState<MediaStats | null>(null);
   const [isLoadingMediaStats, setIsLoadingMediaStats] = useState(false);
@@ -171,36 +128,6 @@ export function useSettingsTab(ui: UiCallbacks) {
     },
     [cleanupOptions, ui]
   );
-
-  const fetchAutoEditSettings = useCallback(async () => {
-    setIsLoadingAutoEdit(true);
-    try {
-      const [settingsRes, costRes] = await Promise.all([
-        axios.get(`${ADMIN_API_BASE}/settings/auto-edit`),
-        axios.get(`${ADMIN_API_BASE}/settings/auto-edit/cost-summary`),
-      ]);
-      setAutoEditSettings(settingsRes.data);
-      setCostSummary(costRes.data);
-    } catch {
-      setAutoEditSettings(null);
-      setCostSummary(null);
-    } finally {
-      setIsLoadingAutoEdit(false);
-    }
-  }, []);
-
-  const fetchAnalytics = useCallback(async (storyboardId?: number | null) => {
-    setIsLoadingAnalytics(true);
-    try {
-      const params = storyboardId ? { storyboard_id: storyboardId } : {};
-      const res = await axios.get(`${ADMIN_API_BASE}/analytics/gemini-edits`, { params });
-      setAnalytics(res.data);
-    } catch {
-      setAnalytics(null);
-    } finally {
-      setIsLoadingAnalytics(false);
-    }
-  }, []);
 
   // ── Media Assets GC ────────────────────────────────
 
@@ -271,10 +198,8 @@ export function useSettingsTab(ui: UiCallbacks) {
 
   useEffect(() => {
     void fetchStorageStats();
-    void fetchAutoEditSettings();
-    void fetchAnalytics(analyticsStoryboardFilter);
     void fetchMediaStats();
-  }, [analyticsStoryboardFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     // Storage
@@ -286,17 +211,6 @@ export function useSettingsTab(ui: UiCallbacks) {
     setCleanupOptions,
     fetchStorageStats,
     handleCleanup,
-    // Auto Edit
-    autoEditSettings,
-    costSummary,
-    isLoadingAutoEdit,
-    fetchAutoEditSettings,
-    // Analytics
-    analytics,
-    isLoadingAnalytics,
-    analyticsStoryboardFilter,
-    setAnalyticsStoryboardFilter,
-    fetchAnalytics,
     // Media Assets GC
     mediaStats,
     isLoadingMediaStats,
