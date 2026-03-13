@@ -773,10 +773,11 @@ def _draw_overlay_header(
         avatar_image = load_avatar_image(settings.avatar_file)
         if avatar_image:
             try:
-                avatar_resized = avatar_image.resize((avatar_radius * 2, avatar_radius * 2), Image.LANCZOS)
+                avatar_resized = avatar_image.resize((avatar_radius * 2, avatar_radius * 2), Image.LANCZOS).convert("RGBA")
                 mask = Image.new("L", (avatar_radius * 2, avatar_radius * 2), 0)
                 mask_draw = ImageDraw.Draw(mask)
                 mask_draw.ellipse((0, 0, avatar_radius * 2, avatar_radius * 2), fill=255)
+                avatar_resized.putalpha(mask)
                 canvas.alpha_composite(
                     avatar_resized,
                     (avatar_center[0] - avatar_radius, avatar_center[1] - avatar_radius),

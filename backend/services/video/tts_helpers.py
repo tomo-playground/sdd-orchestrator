@@ -67,8 +67,17 @@ def tts_cache_key(
     language: str,
     scene_emotion: str = "",
 ) -> str:
-    """Deterministic hash for TTS caching based on text + voice config."""
-    parts = f"{text}|{voice_preset_id}|{voice_design_prompt or ''}|{language}|{scene_emotion or ''}"
+    """Deterministic hash for TTS caching based on text + voice config.
+
+    Includes TTS_NATURALNESS_SUFFIX so cache auto-invalidates when
+    the global suffix setting changes.
+    """
+    from config import TTS_NATURALNESS_SUFFIX
+
+    parts = (
+        f"{text}|{voice_preset_id}|{voice_design_prompt or ''}|"
+        f"{language}|{scene_emotion or ''}|{TTS_NATURALNESS_SUFFIX}"
+    )
     return hashlib.sha256(parts.encode()).hexdigest()[:16]
 
 

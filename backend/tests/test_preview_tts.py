@@ -76,9 +76,11 @@ class TestTTSCacheKeyConsistency:
         assert all(c in "0123456789abcdef" for c in key)
 
     def test_key_matches_sha256_truncation(self):
-        """Cache key matches manual SHA-256 calculation."""
+        """Cache key matches manual SHA-256 calculation (includes naturalness suffix)."""
+        from config import TTS_NATURALNESS_SUFFIX
+
         text, pid, design, lang, emotion = "hello", 1, "warm", "korean", ""
-        parts = f"{text}|{pid}|{design}|{lang}|{emotion}"
+        parts = f"{text}|{pid}|{design}|{lang}|{emotion}|{TTS_NATURALNESS_SUFFIX}"
         expected = hashlib.sha256(parts.encode()).hexdigest()[:16]
         actual = tts_cache_key(text, pid, design, lang)
         assert actual == expected
@@ -93,7 +95,9 @@ class TestTTSCacheKeyConsistency:
 
     def test_none_preset_id_uses_none_string(self):
         """None preset_id is included as 'None' in the hash input."""
-        parts_none = f"test|{None}|{''}|korean|"
+        from config import TTS_NATURALNESS_SUFFIX
+
+        parts_none = f"test|{None}|{''}|korean||{TTS_NATURALNESS_SUFFIX}"
         expected = hashlib.sha256(parts_none.encode()).hexdigest()[:16]
         actual = tts_cache_key("test", None, None, "korean")
         assert actual == expected

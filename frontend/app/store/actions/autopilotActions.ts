@@ -273,7 +273,7 @@ export async function runAutoRunFromStep(
           layoutStyle === "full" && project
             ? {
                 channel_name: project.name,
-                avatar_key: project.avatar_key || project.handle || project.name,
+                avatar_key: project.avatar_key || null,
                 frame_style: store.frameStyle,
                 caption: store.videoCaption,
                 likes_count: store.videoLikesCount,
@@ -283,7 +283,7 @@ export async function runAutoRunFromStep(
           layoutStyle === "post" && project
             ? {
                 channel_name: project.name,
-                avatar_key: project.avatar_key || project.handle || project.name,
+                avatar_key: project.avatar_key || null,
                 caption: store.videoCaption,
               }
             : null;

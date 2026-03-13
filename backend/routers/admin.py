@@ -371,6 +371,67 @@ async def clear_image_cache_endpoint():
 
 
 # ============================================================
+# TTS / Music Cache Clear
+# ============================================================
+
+
+class TTSCacheClearResponse(BaseModel):
+    backend_cleared: int
+    audio_server_cleared: int
+    db_scenes_reset: int
+    message: str
+
+
+@router.delete("/cache/tts", response_model=TTSCacheClearResponse)
+async def clear_tts_cache(
+    storyboard_id: int | None = Query(None, description="특정 스토리보드의 tts_asset_id도 초기화"),
+    db: Session = Depends(get_db),
+):
+    """Clear TTS caches (Backend + Audio Server) and optionally reset DB tts_asset_id."""
+    from config import AUDIO_SERVER_TTS_CACHE_DIR, TTS_CACHE_DIR
+
+    # 1. Backend TTS cache
+    backend_count = 0
+    if TTS_CACHE_DIR.exists():
+        for f in TTS_CACHE_DIR.glob("*.wav"):
+            f.unlink()
+            backend_count += 1
+
+    # 2. Audio Server TTS cache
+    audio_count = 0
+    if AUDIO_SERVER_TTS_CACHE_DIR.exists():
+        for f in AUDIO_SERVER_TTS_CACHE_DIR.glob("*.wav"):
+            f.unlink()
+            audio_count += 1
+
+    # 3. DB tts_asset_id reset (optional)
+    db_count = 0
+    if storyboard_id:
+        from models.scene import Scene
+
+        scenes = db.query(Scene).filter(
+            Scene.storyboard_id == storyboard_id,
+            Scene.deleted_at.is_(None),
+            Scene.tts_asset_id.isnot(None),
+        ).all()
+        for s in scenes:
+            s.tts_asset_id = None
+            db_count += 1
+        db.commit()
+
+    logger.info(
+        "[Admin] TTS cache cleared: backend=%d, audio_server=%d, db_reset=%d (storyboard=%s)",
+        backend_count, audio_count, db_count, storyboard_id,
+    )
+    return TTSCacheClearResponse(
+        backend_cleared=backend_count,
+        audio_server_cleared=audio_count,
+        db_scenes_reset=db_count,
+        message=f"TTS cache cleared: {backend_count + audio_count} files, {db_count} scenes reset",
+    )
+
+
+# ============================================================
 # Tag Thumbnail Batch Generation (Phase 15-B)
 # ============================================================
 

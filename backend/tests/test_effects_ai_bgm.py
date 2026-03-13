@@ -96,12 +96,12 @@ class TestProbeDuration:
 
 
 class TestBuildBgmLoopFilters:
-    """Tests for _build_bgm_loop_filters (asplit + acrossfade)."""
+    """Tests for _build_bgm_loop_filters (aloop-based)."""
 
-    @patch("services.video.effects._probe_duration")
+    @patch("services.video.effects._probe_audio_info")
     def test_no_loop_when_bgm_longer(self, mock_probe):
         """BGM longer than video → no loop filters, return raw input label."""
-        mock_probe.return_value = 60.0
+        mock_probe.return_value = (60.0, 32000)
         builder = MagicMock()
         builder._total_dur = 45.0
         builder.filters = []
@@ -110,9 +110,9 @@ class TestBuildBgmLoopFilters:
         assert label == "[5:a]"
         assert len(builder.filters) == 0
 
-    @patch("services.video.effects._probe_duration")
+    @patch("services.video.effects._probe_audio_info")
     def test_no_loop_when_bgm_equal(self, mock_probe):
-        mock_probe.return_value = 45.0
+        mock_probe.return_value = (45.0, 32000)
         builder = MagicMock()
         builder._total_dur = 45.0
         builder.filters = []
@@ -120,10 +120,10 @@ class TestBuildBgmLoopFilters:
         label = _build_bgm_loop_filters(builder, 5, "/tmp/bgm.wav")
         assert label == "[5:a]"
 
-    @patch("services.video.effects._probe_duration")
+    @patch("services.video.effects._probe_audio_info")
     def test_no_loop_when_bgm_within_margin(self, mock_probe):
         """BGM 0.5s shorter than video → within 1s margin, no loop."""
-        mock_probe.return_value = 44.5
+        mock_probe.return_value = (44.5, 32000)
         builder = MagicMock()
         builder._total_dur = 45.0
         builder.filters = []
@@ -131,49 +131,57 @@ class TestBuildBgmLoopFilters:
         label = _build_bgm_loop_filters(builder, 5, "/tmp/bgm.wav")
         assert label == "[5:a]"
 
-    @patch("services.video.effects._probe_duration")
-    def test_loop_with_crossfade(self, mock_probe):
-        """30s BGM for 45s video → asplit=2 + 1 acrossfade."""
-        mock_probe.return_value = 30.0
+    @patch("services.video.effects._probe_audio_info")
+    def test_loop_with_aloop(self, mock_probe):
+        """30s BGM for 45s video → aloop=1 (1 extra repeat)."""
+        mock_probe.return_value = (30.0, 32000)
         builder = MagicMock()
         builder._total_dur = 45.0
         builder.filters = []
 
         label = _build_bgm_loop_filters(builder, 5, "/tmp/bgm.wav")
         assert label == "[bgm_looped]"
-        # asplit + 1 acrossfade
-        assert len(builder.filters) == 2
-        assert "asplit=2" in builder.filters[0]
-        assert "acrossfade" in builder.filters[1]
-        assert "[bgm_looped]" in builder.filters[1]
+        assert len(builder.filters) == 1
+        assert "aloop=loop=1" in builder.filters[0]
+        assert "size=960000" in builder.filters[0]  # 30.0 * 32000
+        assert "[bgm_looped]" in builder.filters[0]
 
-    @patch("services.video.effects._probe_duration")
+    @patch("services.video.effects._probe_audio_info")
     def test_multiple_loops(self, mock_probe):
-        """10s BGM for 45s video → multiple copies with chained crossfades."""
-        mock_probe.return_value = 10.0
+        """10s BGM for 45s video → aloop with multiple repeats."""
+        mock_probe.return_value = (10.0, 44100)
         builder = MagicMock()
         builder._total_dur = 45.0
         builder.filters = []
 
         label = _build_bgm_loop_filters(builder, 5, "/tmp/bgm.wav")
         assert label == "[bgm_looped]"
-        # 1 asplit + N-1 acrossfades
-        copies = int(builder.filters[0].split("asplit=")[1].split("[")[0])
-        assert copies >= 4
-        assert len(builder.filters) == 1 + (copies - 1)
+        assert len(builder.filters) == 1
+        assert "aloop=loop=4" in builder.filters[0]  # ceil(45/10)-1 = 4
+        assert "size=441000" in builder.filters[0]  # 10.0 * 44100
 
-    @patch("services.video.effects._probe_duration")
+    @patch("services.video.effects._probe_audio_info")
+    def test_48khz_sample_rate(self, mock_probe):
+        """48kHz BGM should use correct sample count."""
+        mock_probe.return_value = (20.0, 48000)
+        builder = MagicMock()
+        builder._total_dur = 45.0
+        builder.filters = []
+
+        label = _build_bgm_loop_filters(builder, 5, "/tmp/bgm.wav")
+        assert label == "[bgm_looped]"
+        assert "size=960000" in builder.filters[0]  # 20.0 * 48000
+
+    @patch("services.video.effects._probe_audio_info")
     def test_probe_failure_uses_fallback_loop(self, mock_probe):
-        """ffprobe failure → fallback to 3 copies with crossfade."""
-        mock_probe.return_value = 0.0
+        """ffprobe failure → fallback aloop."""
+        mock_probe.return_value = (0.0, 0)
         builder = MagicMock()
         builder._total_dur = 45.0
         builder.filters = []
 
         label = _build_bgm_loop_filters(builder, 5, "/tmp/bgm.wav")
         assert label == "[bgm_looped]"
-        # 3 fallback copies: asplit=3 + 2 acrossfades
-        assert len(builder.filters) == 3
-        assert "asplit=3" in builder.filters[0]
-        assert "acrossfade" in builder.filters[1]
-        assert "[bgm_looped]" in builder.filters[2]
+        assert len(builder.filters) == 1
+        assert "aloop=loop=2" in builder.filters[0]  # _BGM_FALLBACK_COPIES(3) - 1
+        assert "[bgm_looped]" in builder.filters[0]

@@ -1,7 +1,7 @@
 """MusicGen music generation service.
 
 Uses facebook/musicgen-medium (1.5B) via HuggingFace transformers.
-Global model + threading lock for inference safety.
+On-demand GPU loading: load model → generate → unload to free VRAM.
 """
 
 from __future__ import annotations
@@ -26,9 +26,6 @@ from config import (
 
 logger = logging.getLogger("audio-server")
 
-# Global model cache (lazy-loaded on first use)
-_musicgen_model = None
-_musicgen_processor = None
 _inference_lock = threading.Lock()
 
 
@@ -47,12 +44,8 @@ def _resolve_device() -> str:
     return "cpu"
 
 
-def load_model():
-    """Load the MusicGen model and processor (blocking). Called at startup."""
-    global _musicgen_model, _musicgen_processor
-    if _musicgen_model is not None:
-        return _musicgen_model, _musicgen_processor
-
+def _load_model_to_device():
+    """Load model and processor onto the resolved device. Returns (model, processor, device)."""
     from transformers import AutoProcessor, MusicgenForConditionalGeneration
 
     device = _resolve_device()
@@ -62,15 +55,37 @@ def load_model():
     model = MusicgenForConditionalGeneration.from_pretrained(MUSICGEN_MODEL_NAME)
     model = model.to(device)
 
-    _musicgen_model = model
-    _musicgen_processor = processor
     logger.info("[MusicGen] Model loaded successfully")
-    return _musicgen_model, _musicgen_processor
+    return model, processor, device
+
+
+def _unload_model(model, processor):
+    """Delete model/processor and free GPU memory."""
+    import gc
+
+    del model
+    del processor
+    gc.collect()
+
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            logger.info("[MusicGen] GPU memory released")
+    except Exception:
+        pass
+
+
+def load_model():
+    """No-op for backward compatibility. Model is now loaded on-demand."""
+    logger.info("[MusicGen] On-demand mode: model will be loaded per request")
+    return None, None
 
 
 def get_model():
-    """Return (model, processor) tuple or (None, None) if not loaded."""
-    return _musicgen_model, _musicgen_processor
+    """Return (None, None). Model is no longer cached globally."""
+    return None, None
 
 
 def get_device() -> str:
@@ -94,6 +109,7 @@ def generate_music(
 ) -> tuple[bytes, int, int, bool]:
     """Generate music from text prompt.
 
+    Loads model on-demand and unloads after generation to free VRAM.
     Returns (wav_bytes, sample_rate, actual_seed, cache_hit).
     """
     import torch
@@ -110,24 +126,23 @@ def generate_music(
         return cached.read_bytes(), MUSICGEN_SAMPLE_RATE, seed, True
 
     with _inference_lock:
-        model, processor = _musicgen_model, _musicgen_processor
-        if model is None or processor is None:
-            raise RuntimeError("MusicGen model not loaded")
+        model, processor, device = _load_model_to_device()
+        try:
+            max_new_tokens = int(duration * MUSICGEN_TOKENS_PER_SECOND)
 
-        device = _resolve_device()
-        max_new_tokens = int(duration * MUSICGEN_TOKENS_PER_SECOND)
+            logger.info(
+                "[MusicGen] Generating: prompt=%r, duration=%.1fs, seed=%d, tokens=%d",
+                prompt[:60],
+                duration,
+                seed,
+                max_new_tokens,
+            )
 
-        logger.info(
-            "[MusicGen] Generating: prompt=%r, duration=%.1fs, seed=%d, tokens=%d",
-            prompt[:60],
-            duration,
-            seed,
-            max_new_tokens,
-        )
-
-        inputs = processor(text=[prompt], padding=True, return_tensors="pt").to(device)
-        torch.manual_seed(seed)
-        audio_values = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=True)
+            inputs = processor(text=[prompt], padding=True, return_tensors="pt").to(device)
+            torch.manual_seed(seed)
+            audio_values = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=True)
+        finally:
+            _unload_model(model, processor)
 
     audio = audio_values[0, 0].cpu().float().numpy()
 

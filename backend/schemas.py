@@ -510,7 +510,7 @@ class VideoScene(BaseModel):
 
 class OverlaySettings(BaseModel):
     channel_name: str = "daily_shorts"
-    avatar_key: str = "daily_shorts"
+    avatar_key: str | None = None
     likes_count: str = "12.5k"
     posted_time: str = "2분 전"
     caption: str = "Amazing video! #shorts"
@@ -520,7 +520,7 @@ class OverlaySettings(BaseModel):
 
 class PostCardSettings(BaseModel):
     channel_name: str = "creator"
-    avatar_key: str = "creator"
+    avatar_key: str | None = None
     caption: str = ""
 
 
@@ -556,7 +556,7 @@ class VideoRequest(BaseModel):
     post_card_settings: PostCardSettings | None = None
     audio_ducking: bool = True
     bgm_volume: float = 0.4
-    ducking_threshold: float = 0.01
+    ducking_threshold: float = 0.03
     bgm_mode: str = "manual"  # "manual" | "auto"
     music_preset_id: int | None = None  # Music Preset (bgm_mode="manual")
     bgm_prompt: str | None = None  # Sound Designer prompt (bgm_mode="auto")

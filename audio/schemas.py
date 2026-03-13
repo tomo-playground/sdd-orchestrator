@@ -28,7 +28,7 @@ class TTSSynthesizeResponse(BaseModel):
 # --- MusicGen ---
 class MusicGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, description="Music description prompt")
-    duration: float = Field(30.0, ge=1.0, le=30.0)
+    duration: float = Field(30.0, ge=1.0, le=300.0)
     seed: int = Field(-1, description="Random seed (-1 = random)")
 
 

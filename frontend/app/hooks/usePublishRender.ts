@@ -105,7 +105,7 @@ export function usePublishRender() {
           mode === "full" && project
             ? {
                 channel_name: project.name,
-                avatar_key: project.avatar_key || project.handle || project.name,
+                avatar_key: project.avatar_key || null,
                 frame_style: rs.frameStyle,
                 caption: rs.videoCaption,
                 likes_count: rs.videoLikesCount,
@@ -115,7 +115,7 @@ export function usePublishRender() {
           mode === "post" && project
             ? {
                 channel_name: project.name,
-                avatar_key: project.avatar_key || project.handle || project.name,
+                avatar_key: project.avatar_key || null,
                 caption: rs.videoCaption,
               }
             : null;

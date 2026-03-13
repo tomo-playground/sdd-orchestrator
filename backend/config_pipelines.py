@@ -53,8 +53,6 @@ CREATIVE_AGENT_TEMPLATES: dict[str, str] = {
     "tts_designer": "creative/tts_designer.j2",
     "sound_designer": "creative/sound_designer.j2",
     "copyright_reviewer": "creative/copyright_reviewer.j2",
-    # QC Agents
-    "script_qc": "creative/script_qc.j2",
 }
 
 # --- LangFuse Observability ---

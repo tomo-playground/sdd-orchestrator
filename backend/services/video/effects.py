@@ -189,13 +189,13 @@ def _resolve_bgm_path(builder: VideoBuilder) -> str | None:
     return str(storage.get_local_path(storage_key))
 
 
-_BGM_CROSSFADE_SEC = 2.0
 _BGM_LOOP_MARGIN_SEC = 1.0  # Skip looping if BGM is within this margin of _total_dur
 _BGM_FALLBACK_COPIES = 3  # Minimum loop copies when ffprobe fails
+_BGM_DEFAULT_SAMPLE_RATE = 32000  # MusicGen default; used as fallback
 
 
-def _probe_duration(path: str) -> float:
-    """Return audio duration in seconds via ffprobe. Returns 0 on failure."""
+def _probe_audio_info(path: str) -> tuple[float, int]:
+    """Return (duration_secs, sample_rate) via ffprobe. Returns (0, 0) on failure."""
     import subprocess
 
     try:
@@ -204,10 +204,12 @@ def _probe_duration(path: str) -> float:
                 "ffprobe",
                 "-v",
                 "error",
+                "-select_streams",
+                "a:0",
                 "-show_entries",
-                "format=duration",
+                "stream=sample_rate:format=duration",
                 "-of",
-                "default=noprint_wrappers=1:nokey=1",
+                "csv=p=0",
                 path,
             ],
             capture_output=True,
@@ -215,68 +217,82 @@ def _probe_duration(path: str) -> float:
             timeout=5,
         )
         if result.returncode != 0:
-            stderr = result.stderr.strip()
-            logger.warning("[BGM] ffprobe non-zero exit (%d) for %s: %s", result.returncode, path, stderr)
-            return 0.0
-        raw = result.stdout.strip()
-        if not raw:
+            logger.warning("[BGM] ffprobe non-zero exit (%d) for %s: %s", result.returncode, path, result.stderr.strip())
+            return 0.0, 0
+        lines = [ln.strip() for ln in result.stdout.strip().splitlines() if ln.strip()]
+        if not lines:
             logger.warning("[BGM] ffprobe returned empty output for %s", path)
-            return 0.0
-        return float(raw)
+            return 0.0, 0
+        # csv output: "sample_rate\nduration" or "sample_rate,duration"
+        sample_rate = 0
+        duration = 0.0
+        for line in lines:
+            parts = line.split(",")
+            for part in parts:
+                part = part.strip()
+                if not part:
+                    continue
+                val = float(part)
+                if val > 1000:  # sample_rate is typically 32000/44100/48000
+                    sample_rate = int(val)
+                else:
+                    duration = val
+        return duration, sample_rate
     except Exception as e:
-        logger.warning("[BGM] Failed to probe duration for %s: %s", path, e)
-        return 0.0
+        logger.warning("[BGM] Failed to probe audio info for %s: %s", path, e)
+        return 0.0, 0
+
+
+def _probe_duration(path: str) -> float:
+    """Return audio duration in seconds via ffprobe. Returns 0 on failure."""
+    dur, _ = _probe_audio_info(path)
+    return dur
 
 
 def _build_bgm_loop_filters(builder: VideoBuilder, bgm_idx: int, bgm_path: str) -> str:
-    """Build filter chain that loops BGM with crossfade at seams.
+    """Build filter chain that loops BGM using aloop.
 
     Returns the FFmpeg stream label to use downstream (e.g. ``"[bgm_looped]"``
     or ``f"[{bgm_idx}:a]"`` when no looping is needed).
 
-    When ffprobe fails (bgm_dur <= 0), falls back to looping the BGM
-    a fixed number of times to prevent early termination.
+    Uses FFmpeg ``aloop`` filter for seamless repetition instead of
+    asplit+acrossfade which collapses identical streams.
     """
     import math
 
-    bgm_dur = _probe_duration(bgm_path)
+    bgm_dur, sample_rate = _probe_audio_info(bgm_path)
+    if sample_rate <= 0:
+        sample_rate = _BGM_DEFAULT_SAMPLE_RATE
 
     # No looping needed if BGM already covers video (with margin)
     if bgm_dur > 0 and bgm_dur >= builder._total_dur - _BGM_LOOP_MARGIN_SEC:
         return f"[{bgm_idx}:a]"
 
-    # ffprobe failure: use fallback loop count with a conservative crossfade
+    # ffprobe failure: use fallback loop count
     if bgm_dur <= 0:
         logger.warning(
-            "[BGM] ffprobe failed for %s, using fallback %d copies",
+            "[BGM] ffprobe failed for %s, using fallback %d loops",
             bgm_path,
             _BGM_FALLBACK_COPIES,
         )
-        copies = _BGM_FALLBACK_COPIES
-        xfade = 1.0  # Conservative default
+        loops = _BGM_FALLBACK_COPIES - 1  # aloop: loop=N means N extra repeats
+        sample_count = sample_rate * 60  # Conservative: assume 60s
     else:
-        xfade = min(_BGM_CROSSFADE_SEC, bgm_dur * 0.4)
-        effective_dur = bgm_dur - xfade
-        copies = max(2, math.ceil(builder._total_dur / effective_dur))
+        loops = max(1, math.ceil(builder._total_dur / bgm_dur) - 1)
+        sample_count = int(bgm_dur * sample_rate)
 
     logger.info(
-        "[BGM] bgm=%.1fs, video=%.1fs, xfade=%.1fs → %d copies",
+        "[BGM] bgm=%.1fs, video=%.1fs → aloop=%d (total ~%.0fs)",
         bgm_dur,
         builder._total_dur,
-        xfade,
-        copies,
+        loops,
+        bgm_dur * (loops + 1) if bgm_dur > 0 else 0,
     )
 
-    # asplit into N copies
-    labels = [f"[bgm_{i}]" for i in range(copies)]
-    builder.filters.append(f"[{bgm_idx}:a]asplit={copies}{''.join(labels)}")
-
-    # Chain acrossfade between consecutive copies
-    curr = labels[0]
-    for i in range(1, copies):
-        out = f"[bgm_cf{i}]" if i < copies - 1 else "[bgm_looped]"
-        builder.filters.append(f"{curr}{labels[i]}acrossfade=d={xfade}:c1=tri:c2=tri{out}")
-        curr = out
+    builder.filters.append(
+        f"[{bgm_idx}:a]aloop=loop={loops}:size={sample_count}:start=0,"
+        f"asetpts=PTS-STARTPTS[bgm_looped]"
+    )
 
     return "[bgm_looped]"
 
@@ -295,7 +311,7 @@ def _apply_ducked_bgm(builder: VideoBuilder, bgm_label: str, bgm_vol: float) -> 
     threshold = builder.request.ducking_threshold
     builder.filters.append(
         f"[bgm_vol][narr_key]sidechaincompress="
-        f"threshold={threshold}:ratio=10:attack=50:release=500:"
+        f"threshold={threshold}:ratio=4:attack=80:release=800:"
         f"level_sc=1:makeup=1[bgm_ducked]"
     )
     # 4. Mix ducked BGM with narration (normalize=0: prevent automatic 1/N volume scaling)

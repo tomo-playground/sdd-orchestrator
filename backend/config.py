@@ -124,6 +124,9 @@ if SD_BASE_URL == "http://127.0.0.1:7860":
 AUDIO_SERVER_URL = os.getenv("AUDIO_SERVER_URL", "http://127.0.0.1:8001")
 AUDIO_TIMEOUT_SECONDS = float(os.getenv("AUDIO_TIMEOUT_SECONDS", "180"))
 MUSIC_TIMEOUT_SECONDS = float(os.getenv("MUSIC_TIMEOUT_SECONDS", "600"))  # 10min for MusicGen
+AUDIO_SERVER_TTS_CACHE_DIR = pathlib.Path(
+    os.getenv("AUDIO_SERVER_TTS_CACHE_DIR", str(pathlib.Path.home() / ".cache" / "audio-server" / "tts"))
+)
 
 SD_TXT2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
 SD_MODELS_URL = f"{SD_BASE_URL}/sdapi/v1/sd-models"
@@ -590,7 +593,7 @@ DEFAULT_CONTROLNET_WEIGHT = 0.8
 DEFAULT_USE_IP_ADAPTER = False
 DEFAULT_IP_ADAPTER_WEIGHT = 0.7
 MIN_IP_ADAPTER_WEIGHT_NO_LORA = 0.5  # LoRA 없는 캐릭터의 최소 IP-Adapter weight
-DEFAULT_MULTI_GEN_ENABLED = True
+DEFAULT_MULTI_GEN_ENABLED = False
 
 # --- IP-Adapter Defaults ---
 # Default IP-Adapter settings (per-character overrides stored in DB)
@@ -659,7 +662,7 @@ REFERENCE_MIN_FACE_RATIO = 0.10  # Face must be at least 10% of image area
 
 # --- TTS Configuration ---
 TTS_DEFAULT_LANGUAGE = os.getenv("TTS_DEFAULT_LANGUAGE", "korean")
-TTS_VOICE_CONSISTENCY_MODE = os.getenv("TTS_VOICE_CONSISTENCY_MODE", "true").lower() == "true"
+TTS_VOICE_CONSISTENCY_MODE = os.getenv("TTS_VOICE_CONSISTENCY_MODE", "false").lower() == "true"
 
 # --- Voice Preset Configuration ---
 VOICE_PRESET_MAX_FILE_SIZE = int(os.getenv("VOICE_PRESET_MAX_FILE_SIZE", str(10 * 1024 * 1024)))  # 10MB
@@ -672,7 +675,7 @@ VOICE_PRESET_ALLOWED_FORMATS = {"wav", "mp3", "flac", "ogg"}
 # Empty string = disabled. Applies to all TTS calls (scene rendering + voice preview).
 TTS_NATURALNESS_SUFFIX = os.getenv(
     "TTS_NATURALNESS_SUFFIX",
-    "with natural, human-like speech rhythm and varied intonation",
+    "with natural, human-like speech rhythm, varied intonation, and a slightly fast conversational pace",
 )
 
 # --- TTS Generation Parameters ---

@@ -154,6 +154,29 @@ class VideoBuilder:
         self._progress.notify()
 
     # ------------------------------------------------------------------
+    # Pre-flight checks
+    # ------------------------------------------------------------------
+
+    async def _check_audio_server(self) -> None:
+        """Verify Audio Server is reachable before starting the build."""
+        from services.audio_client import check_health
+
+        health = await check_health()
+        status = health.get("status", "error")
+        if status == "error":
+            raise ConnectionError(
+                "Audio Server is not reachable. "
+                "Please start the audio server before rendering."
+            )
+        tts_loaded = any(
+            m.get("name") == "qwen3-tts" and m.get("loaded")
+            for m in health.get("models", [])
+        )
+        if not tts_loaded:
+            logger.warning("[Video Build] Audio Server TTS model not loaded yet (status=%s)", status)
+        logger.info("[Video Build] Audio Server health: %s", status)
+
+    # ------------------------------------------------------------------
     # Pipeline
     # ------------------------------------------------------------------
 
@@ -162,6 +185,10 @@ class VideoBuilder:
         logger.info("Video build started: %s", self.request.storyboard_title)
         if self.num_scenes == 0:
             raise ValueError("Cannot render video: no scenes provided")
+
+        # Pre-flight: Audio Server health check
+        await self._check_audio_server()
+
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -213,12 +240,14 @@ class VideoBuilder:
         if self.request.overlay_settings:
             self.request.overlay_settings.likes_count = full_views
             self.request.overlay_settings.posted_time = full_time
-            self.avatar_file = await self._ensure_avatar_file(self.request.overlay_settings.avatar_key)
-            if self.avatar_file:
-                self.request.overlay_settings.avatar_file = self.avatar_file
+            if self.request.overlay_settings.avatar_key:
+                self.avatar_file = await self._ensure_avatar_file(self.request.overlay_settings.avatar_key)
+                if self.avatar_file:
+                    self.request.overlay_settings.avatar_file = self.avatar_file
 
         if self.request.post_card_settings:
-            self.post_avatar_file = await self._ensure_avatar_file(self.request.post_card_settings.avatar_key)
+            if self.request.post_card_settings.avatar_key:
+                self.post_avatar_file = await self._ensure_avatar_file(self.request.post_card_settings.avatar_key)
 
     async def _process_scenes(self) -> None:
         from services.video.scene_processing import process_scenes
@@ -298,7 +327,9 @@ class VideoBuilder:
                         return
 
             if preset.prompt:
-                bgm_dur = preset.duration or max(30.0, self._total_dur)
+                from config import MUSICGEN_MAX_DURATION
+
+                bgm_dur = min(preset.duration or max(30.0, self._total_dur), MUSICGEN_MAX_DURATION)
                 await self._generate_and_set_bgm(preset.prompt, bgm_dur, preset.seed or -1)
         except Exception:
             db.rollback()
@@ -346,7 +377,9 @@ class VideoBuilder:
                 logger.debug("[Video Build] auto BGM: no prompt available")
                 return
 
-            bgm_dur = max(30.0, self._total_dur)
+            from config import MUSICGEN_MAX_DURATION
+
+            bgm_dur = min(max(30.0, self._total_dur), MUSICGEN_MAX_DURATION)
             wav_bytes = await self._generate_and_set_bgm(prompt, bgm_dur, -1)
 
             # Cache the generated asset back to storyboard
