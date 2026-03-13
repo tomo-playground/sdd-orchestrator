@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Tag,
   FlaskConical,
-  BarChart3,
   Cpu,
   Settings,
   ChevronLeft,
@@ -46,7 +45,6 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Quality",
     items: [
       { id: "lab", label: "Lab", icon: FlaskConical, href: "/dev/lab" },
-      { id: "logs", label: "Logs", icon: BarChart3, href: "/dev/logs" },
     ],
   },
   {
