@@ -78,7 +78,6 @@ export type Scene = {
   debug_payload: string;
   debug_prompt?: string;
   context_tags?: SceneContextTags;
-  prompt_history_id?: number; // Track which prompt history was applied
   activity_log_id?: number; // Track generation log for success/fail marking
   // Consistency Enhancements
   use_reference_only?: boolean;
@@ -242,7 +241,6 @@ export type DraftScene = {
   }>;
   negative_prompt: string;
   context_tags?: SceneContextTags;
-  prompt_history_id?: number;
   activity_log_id?: number;
   // Background asset reference
   background_id?: number | null;
@@ -490,38 +488,6 @@ export type DraftData = {
   recentVideos?: RecentVideo[];
   scenes?: DraftScene[];
   checkpoint?: AutopilotCheckpoint;
-};
-
-// ============================================================
-// Prompt History Types
-// ============================================================
-
-export type PromptHistoryLoRA = {
-  lora_id: number;
-  name: string;
-  weight: number;
-};
-
-export type PromptHistory = {
-  id: number;
-  name: string;
-  positive_prompt: string;
-  negative_prompt: string | null;
-  steps: number | null;
-  cfg_scale: number | null;
-  sampler_name: string | null;
-  seed: number | null;
-  clip_skip: number | null;
-  character_id: number | null;
-  lora_settings: PromptHistoryLoRA[] | null;
-  context_tags: SceneContextTags | null;
-  last_match_rate: number | null;
-  avg_match_rate: number | null;
-  validation_count: number;
-  is_favorite: boolean;
-  use_count: number;
-  preview_image_url: string | null;
-  deleted_at?: string | null;
 };
 
 // Evaluation types (15.6)

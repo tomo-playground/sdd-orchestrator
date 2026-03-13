@@ -35,7 +35,6 @@ def check_entity_ids():
         "loras": {"pk": "id", "refs": []},
         "style_profiles": {"pk": "id", "refs": []},
         "activity_logs": {"pk": "id", "refs": ["storyboard_id", "scene_id", "character_id"]},
-        "prompt_histories": {"pk": "id", "refs": ["character_id"]},
         "scene_tags": {"pk": None, "refs": ["scene_id", "tag_id"]},
         "scene_character_actions": {"pk": None, "refs": ["scene_id", "character_id"]},
     }

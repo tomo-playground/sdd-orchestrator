@@ -6,7 +6,7 @@ Phase 18-0: Location Model + DB
 - Partial unique index on (storyboard_id, location_key) to prevent duplicates
 
 Revision ID: s1t2u3v4w5x6
-Revises: r5k6l7m8n9o0
+Revises: e684c36207f5
 Create Date: 2026-02-26 18:00:00.000000
 """
 
@@ -15,7 +15,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "s1t2u3v4w5x6"
-down_revision = "r5k6l7m8n9o0"
+down_revision = "e684c36207f5"
 branch_labels = None
 depends_on = None
 

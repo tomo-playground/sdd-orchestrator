@@ -17,7 +17,6 @@ from models.lora import LoRA
 from models.media_asset import MediaAsset
 from models.music_preset import MusicPreset
 from models.project import Project
-from models.prompt_history import PromptHistory
 from models.render_history import RenderHistory
 from models.render_preset import RenderPreset
 from models.scene import Scene
@@ -56,7 +55,6 @@ __all__ = [
     "SceneCharacterAction",
     "ActivityLog",
     "SceneQualityScore",
-    "PromptHistory",
     "RenderHistory",
     "VoicePreset",
     "MusicPreset",

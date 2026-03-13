@@ -12,7 +12,7 @@ import { loadStyleProfileFromId } from "../store/actions/styleProfileActions";
 import { initializeVideoMetadata } from "../store/actions/outputActions";
 import { loadGroupDefaults } from "../store/actions/groupActions";
 import type { Scene } from "../types";
-import { API_BASE, DEFAULT_STRUCTURE, PROMPT_APPLY_KEY } from "../constants";
+import { API_BASE, DEFAULT_STRUCTURE } from "../constants";
 import { generateSceneClientId } from "../utils/uuid";
 import { isMultiCharStructure } from "../utils/structure";
 
@@ -106,33 +106,6 @@ export function useStudioInitialization() {
     }
     prevStoryboardIdRef.current = storyboardId;
   }, [storyboardId]);
-
-  // Apply prompt from localStorage (from /manage Prompts tab)
-  useEffect(() => {
-    const stored = window.localStorage.getItem(PROMPT_APPLY_KEY);
-    if (!stored) return;
-    try {
-      const data = JSON.parse(stored) as Record<string, unknown>;
-      const plan: Record<string, unknown> = {};
-      if (data.positive_prompt) plan.basePromptA = data.positive_prompt;
-      if (data.negative_prompt) plan.baseNegativePromptA = data.negative_prompt;
-      setPlan(plan);
-
-      const { scenes: sc, currentSceneIndex: idx, updateScene } = useStoryboardStore.getState();
-      if (sc.length > 0 && sc[idx]) {
-        const updates: Partial<Scene> = {};
-        if (data.positive_prompt) updates.image_prompt = data.positive_prompt as string;
-        if (data.negative_prompt) updates.negative_prompt = data.negative_prompt as string;
-        if (data.context_tags) updates.context_tags = data.context_tags as Record<string, string[]>;
-        if (data.id) updates.prompt_history_id = data.id as number;
-        updateScene(sc[idx].client_id, updates);
-      }
-      window.localStorage.removeItem(PROMPT_APPLY_KEY);
-      useUIStore.getState().showToast("Prompt applied!", "success");
-    } catch {
-      window.localStorage.removeItem(PROMPT_APPLY_KEY);
-    }
-  }, [setPlan]);
 
   // Load storyboard from DB if ?id=X
   useEffect(() => {

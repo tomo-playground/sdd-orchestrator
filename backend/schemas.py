@@ -1305,58 +1305,6 @@ class GeminiSuggestResponse(BaseModel):
     cost_usd: float  # 비용 ($)
 
 
-# --- Prompt History ---
-
-
-class PromptHistoryBase(BaseModel):
-    name: str | None = None
-    positive_prompt: str
-    negative_prompt: str | None = None
-    steps: int = 20
-    cfg_scale: float = 7.0
-    sampler_name: str | None = None
-    seed: int | None = None
-    clip_skip: int = 2
-    lora_settings: list[dict] | None = None
-    context_tags: list[str] | None = None
-    character_id: int | None = None
-
-
-class PromptHistoryCreate(PromptHistoryBase):
-    pass
-
-
-class PromptHistoryUpdate(BaseModel):
-    name: str | None = None
-    is_favorite: bool | None = None
-
-
-class PromptHistoryResponse(PromptHistoryBase):
-    id: int
-    is_favorite: bool
-    use_count: int
-    last_match_rate: float | None = None
-    avg_match_rate: float | None = None
-    validation_count: int
-    created_at: datetime | None = None
-    deleted_at: datetime | None = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class PromptHistoryApplyResponse(BaseModel):
-    id: int
-    positive_prompt: str
-    negative_prompt: str | None = None
-    steps: int
-    cfg_scale: float
-    sampler_name: str | None = None
-    seed: int | None = None
-    clip_skip: int
-    lora_settings: list[dict] | None = None
-    context_tags: list[str] | None = None
-    use_count: int
-
 
 # ============================================================
 # Voice Preset Schemas
@@ -2443,7 +2391,7 @@ class SDWebUILorasResponse(BaseModel):
 
 
 class TrashedItem(BaseModel):
-    """Item in trashed list (characters, prompt_histories, etc.)."""
+    """Item in trashed list (characters, storyboards, etc.)."""
 
     id: int
     name: str

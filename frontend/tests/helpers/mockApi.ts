@@ -299,11 +299,6 @@ export async function mockManageApis(page: Page) {
   );
   await page.route("**/embeddings**", (route) => route.fulfill({ json: [] }));
 
-  // PromptsTab
-  await page.route("**/prompt-histories**", (route) =>
-    route.fulfill({ json: { items: [], total: 0 } })
-  );
-
   // RenderPresetsTab
   await page.route("**/render-presets**", (route) => route.fulfill({ json: MOCK_RENDER_PRESETS }));
   await page.route("**/audio/list", (route) =>

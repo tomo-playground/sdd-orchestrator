@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Palette, Mic, Music, FileText, type LucideIcon } from "lucide-react";
+import { Users, Palette, Mic, Music, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cx, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
@@ -20,7 +20,6 @@ const TABS: TabItem[] = [
   { href: "/library/styles", label: "Styles", icon: Palette },
   { href: "/library/voices", label: "Voices", icon: Mic },
   { href: "/library/music", label: "Music", icon: Music },
-  { href: "/library/prompts", label: "Prompts", icon: FileText },
 ];
 
 // ── LibraryShell ─────────────────────────────────────────────

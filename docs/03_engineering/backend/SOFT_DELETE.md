@@ -20,13 +20,13 @@ class SoftDeleteMixin:
         return self.deleted_at is not None
 ```
 
-적용 모델: `Storyboard`, `Scene`, `Character`, `PromptHistory`, `Background`, `CreativeSession`, `CreativeAgentPreset`
+적용 모델: `Storyboard`, `Scene`, `Character`, `Background`, `CreativeSession`, `CreativeAgentPreset`
 
 ---
 
 ## 2. 엔드포인트 변경
 
-### Storyboard 기준 (Character, PromptHistory 동일 패턴)
+### Storyboard 기준 (Character 동일 패턴)
 
 | 동작 | Method | Endpoint | 설명 |
 |------|--------|----------|------|
@@ -64,18 +64,14 @@ db.commit()
 def upgrade():
     op.add_column('storyboards', sa.Column('deleted_at', sa.DateTime(), nullable=True))
     op.add_column('characters', sa.Column('deleted_at', sa.DateTime(), nullable=True))
-    op.add_column('prompt_histories', sa.Column('deleted_at', sa.DateTime(), nullable=True))
 
     op.create_index('ix_storyboards_deleted_at', 'storyboards', ['deleted_at'])
     op.create_index('ix_characters_deleted_at', 'characters', ['deleted_at'])
-    op.create_index('ix_prompt_histories_deleted_at', 'prompt_histories', ['deleted_at'])
 
 def downgrade():
-    op.drop_index('ix_prompt_histories_deleted_at')
     op.drop_index('ix_characters_deleted_at')
     op.drop_index('ix_storyboards_deleted_at')
 
-    op.drop_column('prompt_histories', 'deleted_at')
     op.drop_column('characters', 'deleted_at')
     op.drop_column('storyboards', 'deleted_at')
 ```
@@ -91,10 +87,8 @@ def downgrade():
 | `models/base.py` | `SoftDeleteMixin` 추가 |
 | `models/storyboard.py` | Mixin 상속 |
 | `models/character.py` | Mixin 상속 |
-| `models/prompt_history.py` | Mixin 상속 |
 | `routers/storyboard.py` | soft delete + trash/restore/permanent |
 | `routers/characters.py` | soft delete + trash/restore/permanent |
-| `routers/prompt_histories.py` | soft delete + trash/restore/permanent |
 | `schemas.py` | `deleted_at` 필드 추가 |
 | `alembic/versions/` | 마이그레이션 생성 |
 

@@ -198,8 +198,3 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `prompt`, `match_rate`
 - `matched_tags`, `missing_tags`, `extra_tags` (JSONB)
 
-### `prompt_histories` — 프롬프트 히스토리
-- `id` (PK), `name`, `positive_prompt`, `negative_prompt`
-- SD 파라미터 (`steps`, `cfg_scale`, `sampler_name`, `seed`, `clip_skip`), `character_id` (인덱스, FK 없음), `lora_settings` (JSONB), `context_tags` (JSONB)
-- `last_match_rate`, `avg_match_rate`, `is_favorite`, `use_count`
-- `deleted_at` (Soft Delete)

@@ -35,7 +35,6 @@ export function buildScenesPayload(scenes: Scene[]) {
       debug_payload: _debugPayload,
       debug_prompt: _debugPrompt,
       _auto_pin_previous,
-      prompt_history_id: _promptHistoryId,
       activity_log_id: _activityLogId,
       negative_prompt_extra: _negativePromptExtra,
       image_url: _imageUrl,

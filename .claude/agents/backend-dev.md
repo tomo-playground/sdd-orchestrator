@@ -80,7 +80,7 @@ backend/
 │   ├── stage.py          # Stage 워크플로우
 │   ├── sd_models.py      # SD 모델 관리
 │   ├── style_profiles.py, render_presets.py, voice_presets.py, music_presets.py
-│   ├── tags.py, settings.py, memory.py, presets.py, prompt_histories.py
+│   ├── tags.py, settings.py, memory.py, presets.py
 │   └── youtube.py        # YouTube 업로드
 ├── services/
 │   ├── prompt/           # 12-Layer Prompt Engine (4개 모듈)
@@ -130,7 +130,7 @@ backend/
 │   ├── lora.py, media_asset.py, tag.py, tag_alias.py, tag_filter.py
 │   ├── voice_preset.py, render_preset.py, music_preset.py
 │   ├── background.py, storyboard_character.py
-│   ├── activity_log.py, prompt_history.py, render_history.py
+│   ├── activity_log.py, render_history.py
 │   ├── scene_quality.py, sd_model.py, lab.py
 │   ├── youtube_credential.py
 │   └── wd14/             # WD14 Tagger 모델 (ONNX)

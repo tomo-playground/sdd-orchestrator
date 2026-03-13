@@ -549,7 +549,7 @@
 
 ## 커버리지 갭 요약 (미구현 TC)
 
-### 라우터 테스트 미구현 (8개)
+### 라우터 테스트 미구현 (7개)
 
 | 우선순위 | 라우터 | 영향도 |
 |---------|--------|--------|
@@ -557,7 +557,6 @@
 | P2 | `scripts.py` | Script Graph |
 | P2 | `cleanup.py` | 스토리지 정리 |
 | P2 | `backgrounds.py` (라우터) | 에셋 관리 |
-| P3 | `prompt_histories.py` | 이력 관리 |
 | P3 | `sd_models.py` | SD 모델 관리 |
 | P3 | `creative_presets.py` | Creative Engine |
 | P3 | `memory.py` | 추론 메모리 |

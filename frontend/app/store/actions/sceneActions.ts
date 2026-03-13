@@ -5,8 +5,6 @@ import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
 import { API_BASE, ADMIN_API_BASE } from "../../constants";
 import { getErrorMsg } from "../../utils/error";
-import { buildNegativePrompt } from "./promptActions";
-import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
 
 // --------------- Apply Missing Tags ---------------
 
@@ -87,13 +85,6 @@ export async function handleValidateImage(scene: Scene) {
     });
     const matchRate = Math.round((validation.match_rate || 0) * 100);
 
-    if (scene.prompt_history_id && validation.match_rate != null) {
-      axios
-        .post(
-          `${API_BASE}/prompt-histories/${scene.prompt_history_id}/update-score?match_rate=${matchRate}`
-        )
-        .catch((err) => console.warn("[handleValidateImage] Prompt score update failed:", err));
-    }
     const criticalFailure = validation.critical_failure;
     if (criticalFailure?.has_failure && criticalFailure.failures?.length > 0) {
       const first = criticalFailure.failures[0];
@@ -160,34 +151,3 @@ export async function handleMarkFail(scene: Scene) {
   }
 }
 
-// --------------- Save Prompt ---------------
-
-export async function handleSavePrompt(scene: Scene, name: string) {
-  const sbState = useStoryboardStore.getState();
-  const { characterLoras } = sbState;
-  const { showToast } = useUIStore.getState();
-  const characterId = resolveCharacterIdForSpeaker(scene.speaker, sbState);
-  if (!name.trim()) return;
-
-  try {
-    const payload: Record<string, unknown> = {
-      name: name.trim(),
-      positive_prompt: scene.debug_prompt || scene.image_prompt,
-      negative_prompt: buildNegativePrompt(scene),
-      context_tags: scene.context_tags ? Object.values(scene.context_tags).flat() : [],
-    };
-    if (characterId) payload.character_id = characterId;
-    if (characterLoras?.length) {
-      payload.lora_settings = characterLoras.map((lora) => ({
-        lora_id: lora.id ?? 0,
-        name: lora.name,
-        weight: lora.optimal_weight ?? lora.weight ?? 0.7,
-        trigger_words: lora.trigger_words ?? [],
-      }));
-    }
-    await axios.post(`${API_BASE}/prompt-histories`, payload);
-    showToast("Prompt saved!", "success");
-  } catch {
-    showToast("Failed to save prompt", "error");
-  }
-}

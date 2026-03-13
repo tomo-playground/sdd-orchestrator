@@ -289,28 +289,6 @@ SD 모델, LoRA, Embedding 조합으로 구성된 스타일 프로파일 관리.
 
 ---
 
-## Prompt Histories
-
-> 라우터 prefix: `/prompt-histories`
-
-프롬프트 히스토리 CRUD. 사용 횟수, WD14 검증 점수, 즐겨찾기 관리.
-
-| Method | Path | Description | Response Model |
-|--------|------|-------------|----------------|
-| GET | `/prompt-histories` | 목록 (favorite, character_id, search, sort 필터) | `list[PromptHistoryResponse]` |
-| GET | `/prompt-histories/{id}` | 상세 | `PromptHistoryResponse` |
-| POST | `/prompt-histories` | 생성 (201) | `PromptHistoryResponse` |
-| PUT | `/prompt-histories/{id}` | 수정 | `PromptHistoryResponse` |
-| DELETE | `/prompt-histories/{id}` | Soft Delete | `{ok, deleted}` |
-| GET | `/prompt-histories/trash` | Soft Delete된 목록 | 목록 |
-| POST | `/prompt-histories/{id}/restore` | 복원 | `{ok, restored}` |
-| DELETE | `/prompt-histories/{id}/permanent` | 영구 삭제 | `{ok, deleted}` |
-| POST | `/prompt-histories/{id}/toggle-favorite` | 즐겨찾기 토글 | `PromptHistoryResponse` |
-| POST | `/prompt-histories/{id}/apply` | 히스토리 적용 (use_count 증가) | `PromptHistoryApplyResponse` |
-| POST | `/prompt-histories/{id}/update-score` | WD14 점수 업데이트 (match_rate query) | `PromptHistoryResponse` |
-
----
-
 ## 참고 문서
 
 | 문서 | 경로 |

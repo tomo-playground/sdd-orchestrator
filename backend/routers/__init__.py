@@ -11,14 +11,13 @@ from fastapi import APIRouter
 service_app_router = APIRouter(prefix="/api/v1")
 admin_app_router = APIRouter(prefix="/api/admin")
 
-# ── Service-only routers (12) ──────────────────────────────
+# ── Service-only routers (11) ──────────────────────────────
 from .assets import router as assets_router
 from .controlnet import service_router as controlnet_svc
 from .groups import router as groups_router
 from .presets import router as presets_router
 from .preview import service_router as preview_svc
 from .projects import router as projects_router
-from .prompt_histories import router as prompt_histories_router
 from .scene import router as scene_router
 from .scripts import router as scripts_router
 from .stage import router as stage_router
@@ -33,7 +32,6 @@ for _r in [
     scene_router,
     video_router,
     presets_router,
-    prompt_histories_router,
     assets_router,
     stage_router,
     controlnet_svc,

@@ -700,27 +700,6 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 **Read-only 속성**:
 - `image_url` (`@property`): `scene.image_asset.url` 반환
 
-### `prompt_histories`
-저장된 프롬프트 설정.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | Integer (PK) | |
-| `name` | String(200) | |
-| `positive_prompt` | Text | |
-| `negative_prompt` | Text | |
-| `steps`, `cfg_scale`, `seed`, `clip_skip` | Integer/Float | SD 파라미터 |
-| `sampler_name` | String | 샘플러 이름 |
-| `character_id` | Integer | (index-only, 스냅샷 보존을 위해 FK 의도적 미설정) |
-| `lora_settings` | JSONB | |
-| `context_tags` | JSONB | |
-| `last_match_rate`, `avg_match_rate` | Float | |
-| `validation_count` | Integer | |
-| `is_favorite` | Boolean | |
-| `use_count` | Integer | |
-| `deleted_at` | DateTime | Soft Delete 타임스탬프 |
-| `created_at`, `updated_at` | DateTime | 타임스탬프 |
-
 ---
 
 ## JSONB Structures

@@ -59,7 +59,6 @@ type SceneCardProps = {
   onImagePreview: (url: string | null, candidates?: string[]) => void;
   onPinToggle?: () => void;
   pinnedSceneOrder?: number;
-  onSavePrompt?: () => void;
   onMarkSuccess?: () => void;
   onMarkFail?: () => void;
   isMarkingStatus?: boolean;
@@ -105,7 +104,6 @@ export default function SceneCard({
   onImagePreview,
   onPinToggle,
   pinnedSceneOrder,
-  onSavePrompt,
   onMarkSuccess,
   onMarkFail,
   isMarkingStatus = false,
@@ -197,7 +195,6 @@ export default function SceneCard({
             onSceneMenuClose={onSceneMenuClose}
             onUpdateScene={onUpdateScene}
             onRemoveScene={onRemoveScene}
-            onSavePrompt={onSavePrompt}
             showToast={showToast}
             compact={true}
           />

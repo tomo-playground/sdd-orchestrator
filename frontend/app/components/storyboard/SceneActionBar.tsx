@@ -24,7 +24,6 @@ type SceneActionBarProps = {
   onSceneMenuClose: () => void;
   onUpdateScene: (updates: Partial<Scene>) => void;
   onRemoveScene: () => void;
-  onSavePrompt?: () => void;
   showToast: (message: string, type: "success" | "error") => void;
   compact?: boolean;
 };
@@ -52,7 +51,6 @@ export default function SceneActionBar({
   onSceneMenuClose,
   onUpdateScene,
   onRemoveScene,
-  onSavePrompt,
   showToast,
   compact = false,
 }: SceneActionBarProps) {
@@ -228,19 +226,6 @@ export default function SceneActionBar({
           >
             Copy Prompt
           </button>
-
-          {onSavePrompt && scene.image_url && (
-            <button
-              type="button"
-              onClick={() => {
-                onSavePrompt();
-                onSceneMenuClose();
-              }}
-              className="w-full px-3 py-2 text-left text-xs text-emerald-600 hover:bg-emerald-50"
-            >
-              Save Prompt
-            </button>
-          )}
 
           {onEditImageOpen && scene.image_url && !scene.isGenerating && (
             <button

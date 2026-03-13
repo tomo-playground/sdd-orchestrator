@@ -43,7 +43,7 @@ allowed_tools: ["mcp__postgres__*", "mcp__memory__*", "mcp__context7__*"]
 | 참조 (설정) | `SET NULL` | character→voice_preset |
 | 참조 (필수) | `RESTRICT` | group→storyboard |
 | 로그/이력 | `SET NULL` | activity_logs→character |
-| 히스토리/통계 | **FK 없음** (index-only) | prompt_histories, scene_quality_scores |
+| 히스토리/통계 | **FK 없음** (index-only) | scene_quality_scores |
 | Association | `CASCADE` | character_tags |
 | Self-ref | `SET NULL` | creative_traces→parent |
 
@@ -141,7 +141,7 @@ allowed_tools: ["mcp__postgres__*", "mcp__memory__*", "mcp__context7__*"]
 - `docs/03_engineering/architecture/DB_SCHEMA_CREATIVE.md` — Creative Pipeline 스키마
 - `docs/03_engineering/architecture/SCHEMA_SUMMARY.md` — 스키마 요약
 - `docs/03_engineering/backend/SOFT_DELETE.md` — Soft Delete 기술 설계
-- `backend/models/` — SQLAlchemy 모델 (26개: base, storyboard, scene, character, storyboard_character, associations, creative, group, group_config, project, lora, media_asset, tag, tag_alias, tag_filter, voice_preset, render_preset, music_preset, background, activity_log, prompt_history, render_history, scene_quality, sd_model, lab, youtube_credential)
+- `backend/models/` — SQLAlchemy 모델 (25개: base, storyboard, scene, character, storyboard_character, associations, creative, group, group_config, project, lora, media_asset, tag, tag_alias, tag_filter, voice_preset, render_preset, music_preset, background, activity_log, render_history, scene_quality, sd_model, lab, youtube_credential)
 - `backend/alembic/` — 마이그레이션
 - `backend/config.py` — DB URL 및 상수 SSOT
 - `backend/services/config_resolver.py` — Config cascade (Project→Group)

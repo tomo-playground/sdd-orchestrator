@@ -107,12 +107,6 @@ Frontend (단일 Next.js — Route Group 분리)
 |--------|--------|-----------|------|
 | `youtube` | `/youtube` | **upload, upload-status만** | 유튜브 업로드 실행 |
 
-#### 유저 라이브러리
-
-| 라우터 | prefix | 엔드포인트 | 용도 |
-|--------|--------|-----------|------|
-| `prompt_histories` | `/prompt-histories` | CRUD, favorite, apply, update-score, trash, restore | 저장된 프롬프트 |
-
 #### 리소스 조회 (읽기 전용 — Admin이 세팅한 것을 소비)
 
 | 라우터 | prefix | Service에 노출할 엔드포인트 | 용도 |

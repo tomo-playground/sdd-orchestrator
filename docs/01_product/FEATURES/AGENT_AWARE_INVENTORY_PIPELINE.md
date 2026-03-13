@@ -341,7 +341,7 @@ if (event.node === "inventory_resolve" && event.node_result?.casting) {
 | 캐릭터 Chemistry 점수 (2인 구조 시 조합 적합도) | C+ | 대화 자연스러움 향상 |
 | 토픽 자동 분류 (emotional/comedy/educational 등) | B+ | 구조 추천 정확도 향상 |
 | Group 기본 캐릭터 설정 (Director 미추천 시 fallback) | A+ | Phase C Fallback 선행 |
-| prompt_histories 활용 (캐릭터별 평균 Match Rate) | A+ | 안정적인 캐릭터 우선 추천 |
+| scene_quality_scores 활용 (캐릭터별 평균 Match Rate) | A+ | 안정적인 캐릭터 우선 추천 |
 
 ---
 

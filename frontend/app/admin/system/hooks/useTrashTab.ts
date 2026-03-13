@@ -9,10 +9,10 @@ export type TrashItem = {
   id: number;
   name: string | null;
   deleted_at: string;
-  type: "storyboard" | "character" | "prompt_history";
+  type: "storyboard" | "character";
 };
 
-export type FilterType = "all" | "storyboard" | "character" | "prompt_history";
+export type FilterType = "all" | "storyboard" | "character";
 
 // ── Hook ───────────────────────────────────────────────
 
@@ -32,15 +32,12 @@ export function useTrashTab(
   const fetchTrash = useCallback(async () => {
     setLoading(true);
     try {
-      const [sbRes, charRes, phRes] = await Promise.all([
+      const [sbRes, charRes] = await Promise.all([
         axios.get<{ id: number; title: string; deleted_at: string }[]>(
           `${API_BASE}/storyboards/trash`
         ),
         axios.get<{ id: number; name: string; deleted_at: string }[]>(
           `${API_BASE}/characters/trash`
-        ),
-        axios.get<{ id: number; name: string; deleted_at: string }[]>(
-          `${API_BASE}/prompt-histories/trash`
         ),
       ]);
 
@@ -56,12 +53,6 @@ export function useTrashTab(
           name: c.name,
           deleted_at: c.deleted_at,
           type: "character" as const,
-        })),
-        ...phRes.data.map((p) => ({
-          id: p.id,
-          name: p.name,
-          deleted_at: p.deleted_at,
-          type: "prompt_history" as const,
         })),
       ];
 
@@ -83,9 +74,7 @@ export function useTrashTab(
       const endpoint =
         item.type === "storyboard"
           ? `/storyboards/${item.id}/restore`
-          : item.type === "character"
-            ? `/characters/${item.id}/restore`
-            : `/prompt-histories/${item.id}/restore`;
+          : `/characters/${item.id}/restore`;
       try {
         await axios.post(`${API_BASE}${endpoint}`);
         showToast("Restored", "success");
@@ -110,9 +99,7 @@ export function useTrashTab(
       const endpoint =
         item.type === "storyboard"
           ? `/storyboards/${item.id}/permanent`
-          : item.type === "character"
-            ? `/characters/${item.id}/permanent`
-            : `/prompt-histories/${item.id}/permanent`;
+          : `/characters/${item.id}/permanent`;
       // character permanent delete는 admin API에만 존재
       const base = item.type === "character" ? ADMIN_API_BASE : API_BASE;
       try {

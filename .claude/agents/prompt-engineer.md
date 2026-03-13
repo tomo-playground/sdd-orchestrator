@@ -39,7 +39,6 @@ DB 품질 데이터를 분석하여 프롬프트를 개선합니다:
 | `activity_logs` | match_rate, tags_used, sd_params, gemini 편집 전/후 | 생성 성공률, Gemini 편집 효과, 파라미터 영향 |
 | `scene_quality_scores` | match_rate, matched/missing/extra_tags, prompt | 씬별 품질, 누락 태그 패턴 |
 | `evaluation_runs` | match_rate, mode, test_name, matched/missing_tags | Mode A/B 비교, 31개 표준 테스트 시나리오별 성적 |
-| `prompt_histories` | avg_match_rate, use_count, is_favorite, lora_settings | 프롬프트 재사용성, LoRA 효과, 성공 패턴 |
 | `scenes` (candidates) | candidates JSONB 내 match_rate | 멀티 후보 품질 비교, best pick 패턴 |
 
 ### 4. 평가 결과 해석 & 에셋 큐레이션
@@ -99,13 +98,6 @@ DB 품질 데이터를 분석하여 프롬프트를 개선합니다:
 |----------|----------|
 | Standard vs LoRA 비교 | `SELECT test_name, mode, AVG(match_rate) FROM evaluation_runs GROUP BY test_name, mode ORDER BY test_name` |
 | 테스트별 약점 분석 | `SELECT test_name, AVG(match_rate) FROM evaluation_runs WHERE mode='standard' GROUP BY 1 ORDER BY 2 ASC LIMIT 5` |
-
-**prompt_histories** - 프롬프트 재사용성, LoRA 효과
-
-| 시나리오 | 쿼리 예시 |
-|----------|----------|
-| 고품질 프롬프트 추출 | `SELECT prompt, avg_match_rate, use_count FROM prompt_histories WHERE avg_match_rate > 0.8 ORDER BY use_count DESC LIMIT 10` |
-| 캐릭터별 최적 LoRA 세팅 | `SELECT character_id, lora_settings, AVG(avg_match_rate) FROM prompt_histories WHERE lora_settings IS NOT NULL GROUP BY 1, 2 ORDER BY 3 DESC` |
 
 **scenes.candidates** - 멀티 후보 품질 비교
 

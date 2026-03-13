@@ -151,11 +151,11 @@ npm run test:vrt:ui
 | Utils | validation(34), speakerResolver(24), sceneSettingsResolver(14), autoPin(11), format(10) | 161+ |
 | Store | resetAllStores(6) | 6 |
 
-### Router 커버리지: 27/30 라우터 (90%)
+### Router 커버리지: 27/29 라우터 (93%)
 
 **테스트 있음 (27)**: storyboard, characters, style_profiles, loras, prompt, video, settings, presets, admin, quality, tags, activity_logs, controlnet, scene, assets, music_presets, groups, projects, render_presets, voice_presets, backgrounds, lab, memory, scripts, stage, creative_presets, youtube
 
-**테스트 없음 (3)**: prompt_histories, sd_models, (소규모 유틸리티 라우터)
+**테스트 없음 (2)**: sd_models, (소규모 유틸리티 라우터)
 
 > `tests/api/` 통합 테스트가 일부 라우터(lab, render_presets, quality, activity_logs)를 추가 커버
 

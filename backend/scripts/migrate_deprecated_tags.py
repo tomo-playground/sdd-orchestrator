@@ -4,8 +4,7 @@
 This script:
 1. Finds all deprecated tags with replacements
 2. Updates scene_tags, character_tags associations
-3. Updates prompt_histories
-4. Logs all changes for audit trail
+3. Logs all changes for audit trail
 
 Usage:
     python scripts/migrate_deprecated_tags.py [--dry-run] [--verbose]

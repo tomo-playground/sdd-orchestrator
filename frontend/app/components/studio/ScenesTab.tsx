@@ -33,7 +33,6 @@ import {
   handleValidateImage,
   handleMarkSuccess,
   handleMarkFail,
-  handleSavePrompt,
 } from "../../store/actions/sceneActions";
 import { useSceneActions } from "../../hooks/useSceneActions";
 import { useTTSPreview } from "../../hooks/useTTSPreview";
@@ -285,16 +284,6 @@ export default function ScenesTab() {
                       imagePreviewCandidates: candidates || null,
                     })
                   }
-                  onSavePrompt={async () => {
-                    const result = await confirm({
-                      title: "Save Prompt",
-                      message: "Enter a name for this prompt:",
-                      confirmLabel: "Save",
-                      inputField: { label: "Name", placeholder: "Enter prompt name..." },
-                    });
-                    if (result === false) return;
-                    handleSavePrompt(currentScene, result as string);
-                  }}
                   onMarkSuccess={() => handleMarkSuccess(currentScene)}
                   onMarkFail={() => handleMarkFail(currentScene)}
                   isMarkingStatus={markingStatusSceneId === currentScene.client_id}

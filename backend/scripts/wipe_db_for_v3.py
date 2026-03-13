@@ -20,7 +20,6 @@ def wipe_data():
         "scenes",
         "characters",
         "activity_logs",
-        "prompt_histories"
     ]
 
     # Allow-listed table names (validated against hardcoded set above)

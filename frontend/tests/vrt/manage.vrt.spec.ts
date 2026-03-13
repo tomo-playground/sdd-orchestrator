@@ -23,13 +23,6 @@ test.describe("Admin — VRT", () => {
     await expect(page).toHaveScreenshot("manage-style.png");
   });
 
-  test("admin-prompts", async ({ page }) => {
-    await page.goto("/library/prompts");
-    await waitForPageReady(page);
-    await hideAnimations(page);
-    await expect(page).toHaveScreenshot("manage-prompts.png");
-  });
-
   test("admin-system-presets", async ({ page }) => {
     await page.goto("/dev/system?tab=presets");
     await waitForPageReady(page);

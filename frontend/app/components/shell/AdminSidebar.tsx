@@ -9,7 +9,6 @@ import {
   Mic,
   Music,
   Tag,
-  FileText,
   FlaskConical,
   Settings,
   ChevronLeft,
@@ -54,7 +53,6 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Meta",
     items: [
       { id: "tags", label: "Tags", icon: Tag, href: "/admin/tags" },
-      { id: "prompts", label: "Prompts", icon: FileText, href: "/admin/prompts" },
     ],
   },
   {
