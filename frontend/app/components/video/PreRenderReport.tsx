@@ -1,17 +1,22 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { API_BASE } from "../../constants";
 import type { PreValidateResponse } from "../../types";
 
 type PreRenderReportProps = {
   storyboardId: number | null;
+  onValidationComplete?: (isReady: boolean) => void;
 };
 
-export default function PreRenderReport({ storyboardId }: PreRenderReportProps) {
+export default function PreRenderReport({
+  storyboardId,
+  onValidationComplete,
+}: PreRenderReportProps) {
   const [report, setReport] = useState<PreValidateResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const ranForId = useRef<number | null>(null);
 
   const runValidation = useCallback(async () => {
     if (!storyboardId) return;
@@ -21,12 +26,36 @@ export default function PreRenderReport({ storyboardId }: PreRenderReportProps) 
         storyboard_id: storyboardId,
       });
       setReport(res.data);
+      onValidationComplete?.(res.data.is_ready);
     } catch {
       setReport(null);
+      onValidationComplete?.(false);
     } finally {
       setIsLoading(false);
     }
-  }, [storyboardId]);
+  }, [storyboardId, onValidationComplete]);
+
+  // 스토리보드 ID 변경 시 자동 1회 실행 + null 리셋
+  useEffect(() => {
+    if (!storyboardId) {
+      ranForId.current = null;
+      setReport(null);
+      return;
+    }
+    if (storyboardId !== ranForId.current) {
+      ranForId.current = storyboardId;
+      runValidation();
+    }
+  }, [storyboardId, runValidation]);
+
+  const errorCount = report?.issues.filter((i) => i.level === "error").length ?? 0;
+  const warnCount = report?.issues.filter((i) => i.level === "warning").length ?? 0;
+  const infoCount = report?.issues.filter((i) => i.level === "info").length ?? 0;
+
+  const summaryParts: string[] = [];
+  if (errorCount > 0) summaryParts.push(`${errorCount} error`);
+  if (warnCount > 0) summaryParts.push(`${warnCount} warning`);
+  if (infoCount > 0) summaryParts.push(`${infoCount} info`);
 
   return (
     <div className="space-y-3">
@@ -39,7 +68,7 @@ export default function PreRenderReport({ storyboardId }: PreRenderReportProps) 
             : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
         }`}
       >
-        {isLoading ? "검증 중..." : "사전 검증"}
+        {isLoading ? "검증 중..." : report ? "재검증" : "사전 검증"}
       </button>
 
       {report && (
@@ -57,6 +86,11 @@ export default function PreRenderReport({ storyboardId }: PreRenderReportProps) 
               {report.total_scenes}개 씬 / {report.total_duration?.toFixed(1)}s
             </span>
           </div>
+
+          {/* Issue counts summary */}
+          {summaryParts.length > 0 && (
+            <p className="text-xs text-zinc-500">{summaryParts.join(", ")}</p>
+          )}
 
           {/* TTS Cache */}
           {report.cached_tts_count > 0 && (

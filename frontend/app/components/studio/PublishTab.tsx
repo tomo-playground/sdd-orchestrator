@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
@@ -39,6 +39,7 @@ export default function PublishTab() {
   const cachedCount = [...previewStates.values()].filter(
     (s) => s.status === "cached" || s.audioUrl
   ).length;
+  const [validationReady, setValidationReady] = useState<boolean | null>(null);
 
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const handleTimelineSceneClick = useCallback(
@@ -66,6 +67,16 @@ export default function PublishTab() {
               렌더링 설정은 아래에서 미리 구성할 수 있습니다.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Pre-validation failure warning */}
+      {validationReady === false && !disabledReason && (
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+          <span className="text-xl">⚠</span>
+          <p className="text-sm text-amber-800">
+            사전 검증에서 오류가 발견되었습니다. 아래 검증 결과를 확인해주세요.
+          </p>
         </div>
       )}
 
@@ -121,7 +132,10 @@ export default function PublishTab() {
               onSceneClick={handleTimelineSceneClick}
             />
 
-            <PreRenderReport storyboardId={storyboardId} />
+            <PreRenderReport
+              storyboardId={storyboardId}
+              onValidationComplete={setValidationReady}
+            />
           </div>
 
           <RenderMediaPanel

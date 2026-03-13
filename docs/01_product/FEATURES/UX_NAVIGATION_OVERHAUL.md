@@ -1,6 +1,6 @@
 # Phase 31: UX Navigation Overhaul (동선 일관성 개편)
 
-**상태**: A~D 완료, E~F 미착수
+**상태**: 전체 완료 (A~F)
 **목적**: 채널 → 그룹 → LoRA → 캐릭터 → 장면 생성 동선의 일관성 확보, 죽은 코드 정리, 상태 관리 누수 수정
 **분석 근거**: 6-에이전트 병렬 분석 (UI/UX Engineer, Backend Dev, Frontend Dev, Explore x3) — 2026-03-13
 **기존 감사**: `docs/02_design/UI_UX_AUDIT_2026_03_01.md` (42건 중 미해결 항목 포함)
@@ -190,6 +190,6 @@ Sub-Phase F (Soft Delete 통일)   ← 독립, E와 병렬 가능
 - [x] Storyboard permanent delete Admin 이동 — Sub-Phase C
 - [x] Library에 LoRA 탭 추가 (읽기 전용) — Sub-Phase D
 - [x] LibraryShell/SettingsShell → SubNavShell 통합 — Sub-Phase D
-- [ ] Quick-Start API (E2E 온보딩 검증) — Sub-Phase E
-- [ ] Group Soft Delete (Trash 복원 검증) — Sub-Phase F
+- [x] Quick-Start API (E2E 온보딩 검증) — Sub-Phase E
+- [x] Group Soft Delete (Trash 복원 검증) — Sub-Phase F
 - [ ] 기존 테스트 전체 PASS (Backend + Frontend + E2E)

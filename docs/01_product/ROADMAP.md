@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-03-13)
+## 현재 상태 (2026-03-14)
 
 | 항목 | 상태 |
 |------|------|
@@ -36,11 +36,12 @@
 | Casting 네이밍 정규화 | 완료 — character_id→character_a_id (Casting 컨텍스트), 27개 파일, JSONB 마이그레이션 |
 | Checkpointer 리팩토링 | 완료 — 싱글턴→per-request 패턴, DB 풀 고갈 방지 |
 | **Phase 30 (Character Consistency V2)** | **진행 중** — A(Config 튜닝)+B(Gemini 복장 고정)+B+(Finalize 복장 교정 2단계)+F(네이밍 개선+복장 보호)+F-2(레퍼런스 네이밍 통일)+H(context_tags 구조화)+I(Gemini 역할 분리+scene_negative 버그 수정)+J(SCENE_CHARACTER_LORA_SCALE 복장 색상 드리프트 방지)+K(프롬프트 통합 5필드→2필드)+L(B-1 image_prompt 복장 오염 차단 강화)+M(sitting 포즈 기형 근본 보정) 완료. NoobAI-XL+Regional Prompter+Pipeline Inpaint 테스트 완료. C(Dual IP-Adapter) D(LoRA 트레이닝) G(멀티캐릭터 Inpaint) 미착수 |
-| **Phase 31 (UX Navigation Overhaul)** | **A~D 완료** — A(Admin 유령 31파일 삭제+Settings 이동 10파일) B(상태 누수 3건+resetTransientStores DRY) C(LoRA Service/Admin split+response_model 2건+permanent delete Admin 이동+Scene URL 통일) D(SubNavShell 통합+Library LoRA 탭). E(Quick-Start API) F(Soft Delete 통일) 미착수 |
+| **Phase 31 (UX Navigation Overhaul)** | **전체 완료 (A~F)** — A(Admin 유령 31파일 삭제+Settings 이동) B(상태 누수 3건+resetTransientStores DRY) C(LoRA Service/Admin split+response_model+Scene URL 통일) D(SubNavShell 통합+Library LoRA 탭) E(Quick-Start API+SetupWizard 빠른시작+Dead Code 삭제) F(Group Soft Delete+Trash 연동+프리셋 FK 참조 체크 409) |
 | 테스트 | Backend 3,478 + Frontend 543 + E2E 36 = **총 4,057개** |
 
 ### 최근 작업
 
+- **Phase 31 UX Navigation Overhaul E~F 완결** (03-14): ⑤ Sub-Phase E: `POST /api/v1/projects/quick-start` 원자적 생성(Project+Group+기본 StyleProfile 한 트랜잭션), SetupWizard Step 1 "빠른 시작" 버튼(1클릭 Studio 진입), Dead Code 삭제(SetupPanel+WorkingModeHeader). ⑥ Sub-Phase F: Group SoftDeleteMixin 추가+Alembic 마이그레이션(`deleted_at`+인덱스), 전 GET/PUT에 soft delete 필터, Cascade soft delete(소속 캐릭터), restore(batch timestamp), permanent delete(Admin), Trash Tab 시리즈 필터 추가. StyleProfile/RenderPreset/VoicePreset DELETE 시 Group FK 참조 체크(409). useTagData LoRA fetch API 경로 수정. [명세](FEATURES/UX_NAVIGATION_OVERHAUL.md)
 - **Phase 31 UX Navigation Overhaul A~D 구현** (03-13): ① Sub-Phase A: Admin 유령 라우트 9파일+AdminShell 2파일+Lab 고아 18파일+analytics/quality/manage 4파일 삭제(31파일), Settings 탭 6파일+hooks 4파일 이동, import 경로 4건 수정. ② Sub-Phase B: PersistentContextBar handleDismiss/삭제핸들러 3건 완전 리셋 적용(`cancelPendingSave+resetTransientStores+clearStudioUrlParams`), useStudioInitialization RenderStore 완전 리셋, `resetTransientStores()` DRY 헬퍼 추출. ③ Sub-Phase C: LoRA Service/Admin split(GET→Service, CUD→Admin), render_presets/voice_presets DELETE response_model 추가, Storyboard permanent delete Admin 이동, Scene URL `validate_image`→`validate-image` 통일. ④ Sub-Phase D: LibraryShell+SettingsShell→SubNavShell 통합(탭 배열 위임), Library LoRA 탭(읽기 전용) 추가, EditLoraModal 공유 컴포넌트 이동. [명세](FEATURES/UX_NAVIGATION_OVERHAUL.md)
 - **/dev/system 페이지 정리** (03-13): LangFuse 역할 중복 UI 및 죽은 코드 제거. ① Gemini Auto Edit 설정/비용 UI + Performance Analytics 섹션 제거(LangFuse 대시보드로 대체). ② Show Lab Menu 토글 제거(죽은 코드 — 조건부 렌더링 참조 없음, useUIStore에서 완전 삭제). ③ Memory 탭 + Backend 라우터/스키마/테스트 전체 제거(LangGraph Store 인프라는 유지, learn/research 노드 정상 동작). ④ DevSidebar /dev/logs 죽은 링크 제거(페이지 미구현). ⑤ API 명세(REST_API_ANALYTICS.md Memory 섹션), CLAUDE.md 라우터 카운트(30→29), types.ts 동기화. 16파일 -1,008줄.
 - **TTS 감정 적응 + BGM aloop + VRAM 최적화** (03-13): ① TTS CONSISTENCY_MODE off — Gemini 감정 적응 voice design 활성화, faster pace suffix 자동 추가, 캐시 키에 suffix 포함. ② BGM acrossfade→aloop 전환 — `MUSICGEN_MAX_DURATION` 클램핑, ducking 파라미터 튜닝. ③ MusicGen on-demand GPU load/unload — VRAM 절약(사용 시에만 GPU 로드, 완료 후 해제). ④ 빌드 pre-flight Audio Server health check — 서버 다운 시 렌더링 시작 전 즉시 실패. ⑤ Admin API `DELETE /cache/tts` — TTS 캐시 삭제 + DB `tts_asset_id` 일괄 초기화. ⑥ Avatar `avatar_key` Optional 전환 + RGBA 합성 버그 수정. ⑦ Dead code 삭제 — `gemini_imagen.py`, `pipeline-demo` 페이지, creative QC 템플릿 2개. ⑧ Docker SD WebUI `--medvram` 추가.
