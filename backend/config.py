@@ -170,8 +170,7 @@ SD_REFERENCE_STEPS = int(os.getenv("SD_REFERENCE_STEPS", "25"))
 SD_REFERENCE_CFG_SCALE = float(os.getenv("SD_REFERENCE_CFG_SCALE", "7.0"))
 SD_REFERENCE_HR_UPSCALER = os.getenv("SD_REFERENCE_HR_UPSCALER", "R-ESRGAN 4x+ Anime6B")
 SD_REFERENCE_DENOISING = float(os.getenv("SD_REFERENCE_DENOISING", "0.35"))
-# ControlNet pose for character reference images (standing = single full-body)
-# upper_body framing — no full-body pose needed for reference
+# ControlNet pose for reference images (empty = disabled, upper_body framing only)
 SD_REFERENCE_CONTROLNET_POSE = os.getenv("SD_REFERENCE_CONTROLNET_POSE", "")
 SD_REFERENCE_CONTROLNET_WEIGHT = float(os.getenv("SD_REFERENCE_CONTROLNET_WEIGHT", "0.8"))
 SD_REFERENCE_CONTROLNET_MODE = os.getenv("SD_REFERENCE_CONTROLNET_MODE", "ControlNet is more important")
@@ -180,10 +179,8 @@ SD_REFERENCE_NUM_CANDIDATES = int(os.getenv("SD_REFERENCE_NUM_CANDIDATES", "3"))
 # Character LoRA weight multiplier for reference images (identity hint only)
 # 0.4: balanced between character identity and pose freedom (reviewed 2026-02)
 REFERENCE_LORA_SCALE = float(os.getenv("REFERENCE_LORA_SCALE", "0.4"))
-# Style LoRA weight multiplier for reference images
-# 0.45: balance between style visibility and prompt adherence (reviewed 2026-02)
-# Style LoRA disabled for reference images — reference is for character identity only,
-# style should not interfere with clean background + character silhouette
+# Style LoRA weight multiplier for reference images (0.0 = disabled)
+# Reference is for character identity only — style should not interfere with clean background
 REFERENCE_STYLE_LORA_SCALE = float(os.getenv("REFERENCE_STYLE_LORA_SCALE", "0.0"))
 # Character LoRA weight multiplier for scene images
 # 0.45: prevents LoRA from overriding clothing color tags while preserving face identity

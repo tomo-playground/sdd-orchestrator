@@ -1398,6 +1398,8 @@ class PromptBuilder:
 
                     if lora_obj.lora_type == "style":
                         weight = round(base_weight * REFERENCE_STYLE_LORA_SCALE, 2)
+                        if weight <= 0:
+                            continue  # skip disabled style LoRA + its triggers
                         weight = self._cap_lora_weight(weight)
                         layers[LAYER_ATMOSPHERE].append(f"<lora:{lora_obj.name}:{weight}>")
                     else:
@@ -1421,6 +1423,8 @@ class PromptBuilder:
                     continue
                 base_weight = style_lora.get("weight", 0.7)
                 weight = round(base_weight * REFERENCE_STYLE_LORA_SCALE, 2)
+                if weight <= 0:
+                    continue  # skip disabled style LoRA + its triggers
                 weight = self._cap_lora_weight(weight)
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{lora_name}:{weight}>")
                 # Add trigger words from StyleProfile LoRA
