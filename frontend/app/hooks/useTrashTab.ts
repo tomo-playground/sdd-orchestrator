@@ -9,10 +9,10 @@ export type TrashItem = {
   id: number;
   name: string | null;
   deleted_at: string;
-  type: "storyboard" | "character";
+  type: "storyboard" | "character" | "group";
 };
 
-export type FilterType = "all" | "storyboard" | "character";
+export type FilterType = "all" | "storyboard" | "character" | "group";
 
 // ── Hook ───────────────────────────────────────────────
 
@@ -32,12 +32,15 @@ export function useTrashTab(
   const fetchTrash = useCallback(async () => {
     setLoading(true);
     try {
-      const [sbRes, charRes] = await Promise.all([
+      const [sbRes, charRes, groupRes] = await Promise.all([
         axios.get<{ id: number; title: string; deleted_at: string }[]>(
           `${API_BASE}/storyboards/trash`
         ),
         axios.get<{ id: number; name: string; deleted_at: string }[]>(
           `${API_BASE}/characters/trash`
+        ),
+        axios.get<{ id: number; name: string; deleted_at: string }[]>(
+          `${API_BASE}/groups/trash`
         ),
       ]);
 
@@ -53,6 +56,12 @@ export function useTrashTab(
           name: c.name,
           deleted_at: c.deleted_at,
           type: "character" as const,
+        })),
+        ...groupRes.data.map((g) => ({
+          id: g.id,
+          name: g.name,
+          deleted_at: g.deleted_at,
+          type: "group" as const,
         })),
       ];
 
@@ -71,12 +80,13 @@ export function useTrashTab(
 
   const handleRestore = useCallback(
     async (item: TrashItem) => {
-      const endpoint =
-        item.type === "storyboard"
-          ? `/storyboards/${item.id}/restore`
-          : `/characters/${item.id}/restore`;
+      const endpointMap: Record<TrashItem["type"], string> = {
+        storyboard: `/storyboards/${item.id}/restore`,
+        character: `/characters/${item.id}/restore`,
+        group: `/groups/${item.id}/restore`,
+      };
       try {
-        await axios.post(`${API_BASE}${endpoint}`);
+        await axios.post(`${API_BASE}${endpointMap[item.type]}`);
         showToast("Restored", "success");
         void fetchTrash();
       } catch {
@@ -96,14 +106,15 @@ export function useTrashTab(
       });
       if (!ok) return;
 
-      const endpoint =
-        item.type === "storyboard"
-          ? `/storyboards/${item.id}/permanent`
-          : `/characters/${item.id}/permanent`;
-      // permanent delete는 모두 Admin API
+      const endpointMap: Record<TrashItem["type"], string> = {
+        storyboard: `/storyboards/${item.id}/permanent`,
+        character: `/characters/${item.id}/permanent`,
+        group: `/groups/${item.id}/permanent`,
+      };
+      // permanent delete uses Admin API
       const base = ADMIN_API_BASE;
       try {
-        await axios.delete(`${base}${endpoint}`);
+        await axios.delete(`${base}${endpointMap[item.type]}`);
         showToast("Permanently deleted", "success");
         void fetchTrash();
       } catch {

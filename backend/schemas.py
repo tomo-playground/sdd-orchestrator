@@ -75,6 +75,18 @@ class ProjectResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class QuickStartRequest(BaseModel):
+    project_name: str = Field(default="내 채널", max_length=100)
+    group_name: str = Field(default="기본 시리즈", max_length=200)
+
+
+class QuickStartResponse(BaseModel):
+    project_id: int
+    group_id: int
+    style_profile_id: int | None = None
+    message: str
+
+
 class RenderPresetCreate(BaseModel):
     name: str = Field(max_length=100)
     description: str | None = Field(default=None, max_length=2000)
@@ -162,6 +174,16 @@ class GroupResponse(BaseModel):
     voice_preset_name: str | None = None
     character_count: int = 0
     created_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GroupTrashItem(BaseModel):
+    """Soft-deleted group item for trash listing."""
+
+    id: int
+    name: str
+    deleted_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 

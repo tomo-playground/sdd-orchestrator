@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
-import { API_BASE, ADMIN_API_BASE } from "../../../../constants";
+import { API_BASE } from "../../../../constants";
 import { useUIStore } from "../../../../store/useUIStore";
 import type { Tag, LoRA } from "../../../../types";
 import { WIZARD_CATEGORIES } from "../builder/wizardTemplates";
@@ -31,7 +31,7 @@ export function useTagData() {
     const tagFetches = groups.map((g) =>
       axios.get<Tag[]>(`${API_BASE}/tags`, { params: { group_name: g } }),
     );
-    const loraFetch = axios.get<LoRA[]>(`${ADMIN_API_BASE}/loras`);
+    const loraFetch = axios.get<LoRA[]>(`${API_BASE}/loras`);
 
     Promise.all([Promise.all(tagFetches), loraFetch])
       .then(([tagResponses, loraRes]) => {

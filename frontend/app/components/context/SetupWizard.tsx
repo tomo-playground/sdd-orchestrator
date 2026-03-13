@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import { useProjectGroups } from "../../hooks/useProjectGroups";
-import { createProject } from "../../store/actions/projectActions";
+import { createProject, fetchProjects } from "../../store/actions/projectActions";
 import { createGroup } from "../../store/actions/groupActions";
+import { useUIStore } from "../../store/useUIStore";
+import { API_BASE } from "../../constants";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import SetupWizardStepIndicator from "./SetupWizardStepIndicator";
@@ -81,6 +84,25 @@ export default function SetupWizard({ initialStep = 1, existingProjectId, onClos
     }
   };
 
+  const handleQuickStart = async () => {
+    setSaving(true);
+    const { showToast } = useUIStore.getState();
+    try {
+      const res = await axios.post<{ project_id: number; group_id: number }>(
+        `${API_BASE}/projects/quick-start`
+      );
+      await fetchProjects();
+      selectProject(res.data.project_id);
+      selectGroup(res.data.group_id);
+      onClose();
+      router.push("/studio?new=true");
+    } catch {
+      showToast("빠른 시작에 실패했습니다", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const canGoNext = currentStep === 1 && projectData.name.trim().length > 0;
   const canComplete = currentStep === 2 && groupData.name.trim().length > 0;
   const showBackButton = currentStep === 2 && initialStep === 1;
@@ -93,7 +115,27 @@ export default function SetupWizard({ initialStep = 1, existingProjectId, onClos
 
       <div className="px-5 py-4">
         {currentStep === 1 ? (
-          <SetupWizardProjectStep data={projectData} onChange={setProjectData} />
+          <>
+            <SetupWizardProjectStep data={projectData} onChange={setProjectData} />
+            <div className="mt-4 flex items-center gap-3">
+              <div className="h-px flex-1 bg-zinc-700" />
+              <span className="text-xs text-zinc-500">또는</span>
+              <div className="h-px flex-1 bg-zinc-700" />
+            </div>
+            <div className="mt-3 text-center">
+              <Button
+                variant="outline"
+                size="sm"
+                loading={saving}
+                onClick={handleQuickStart}
+              >
+                빠른 시작
+              </Button>
+              <p className="mt-1.5 text-xs text-zinc-500">
+                기본 설정으로 바로 시작합니다
+              </p>
+            </div>
+          </>
         ) : (
           <SetupWizardGroupStep data={groupData} onChange={setGroupData} />
         )}

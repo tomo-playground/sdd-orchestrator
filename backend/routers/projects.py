@@ -7,8 +7,18 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
+from models.group import Group
 from models.project import Project
-from schemas import DeleteStatusResponse, EffectiveConfigResponse, ProjectCreate, ProjectResponse, ProjectUpdate
+from models.sd_model import StyleProfile
+from schemas import (
+    DeleteStatusResponse,
+    EffectiveConfigResponse,
+    ProjectCreate,
+    ProjectResponse,
+    ProjectUpdate,
+    QuickStartRequest,
+    QuickStartResponse,
+)
 from services.config_resolver import apply_system_defaults, resolve_effective_config
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -17,6 +27,34 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 @router.get("", response_model=list[ProjectResponse])
 def list_projects(db: Session = Depends(get_db)):
     return db.query(Project).all()
+
+
+@router.post("/quick-start", response_model=QuickStartResponse, status_code=201)
+def quick_start(body: QuickStartRequest, db: Session = Depends(get_db)):
+    """Create Project + Group + default StyleProfile in one transaction."""
+    project = Project(name=body.project_name)
+    db.add(project)
+    db.flush()
+
+    default_style = db.query(StyleProfile).filter(StyleProfile.is_default.is_(True)).first()
+    style_id = default_style.id if default_style else None
+
+    group = Group(
+        project_id=project.id,
+        name=body.group_name,
+        style_profile_id=style_id,
+    )
+    db.add(group)
+    db.commit()
+    db.refresh(project)
+    db.refresh(group)
+
+    return QuickStartResponse(
+        project_id=project.id,
+        group_id=group.id,
+        style_profile_id=style_id,
+        message="Quick start completed",
+    )
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)

@@ -24,6 +24,7 @@ function formatDate(iso: string): string {
 const TYPE_BADGE: Record<TrashItem["type"], { label: string; color: string }> = {
   storyboard: { label: "영상", color: "bg-blue-100 text-blue-700" },
   character: { label: "Character", color: "bg-purple-100 text-purple-700" },
+  group: { label: "시리즈", color: "bg-green-100 text-green-700" },
 };
 
 export default function TrashTab() {
@@ -38,11 +39,12 @@ export default function TrashTab() {
 
       {/* Filter pills */}
       <div className="flex flex-wrap gap-2">
-        {(["all", "storyboard", "character"] as FilterType[]).map((f) => {
+        {(["all", "storyboard", "character", "group"] as FilterType[]).map((f) => {
           const labels: Record<FilterType, string> = {
             all: "All",
             storyboard: "영상",
             character: "Characters",
+            group: "시리즈",
           };
           const count = f === "all" ? items.length : items.filter((i) => i.type === f).length;
           return (

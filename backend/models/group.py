@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from models.base import Base, TimestampMixin
+from models.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from models.character import Character
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from models.voice_preset import VoicePreset
 
 
-class Group(Base, TimestampMixin):
+class Group(Base, TimestampMixin, SoftDeleteMixin):
     """A series or category of content within a project/channel."""
 
     __tablename__ = "groups"

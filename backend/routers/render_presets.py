@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
+from models.group import Group
 from models.render_preset import RenderPreset
 from schemas import RenderPresetCreate, RenderPresetResponse, RenderPresetUpdate, StatusResponse
 
@@ -56,6 +57,18 @@ def delete_render_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(RenderPreset).filter(RenderPreset.id == preset_id).first()
     if not preset:
         raise HTTPException(status_code=404, detail="Render preset not found")
+
+    # FK reference check: active groups using this preset
+    ref_count = db.query(Group).filter(
+        Group.render_preset_id == preset_id,
+        Group.deleted_at.is_(None),
+    ).count()
+    if ref_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Render preset is used by {ref_count} active group(s)",
+        )
+
     db.delete(preset)
     db.commit()
     return {"status": "deleted", "id": preset_id}

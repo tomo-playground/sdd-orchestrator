@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from config import logger
 from database import get_db
+from models.group import Group
 from models.media_asset import MediaAsset
 from models.voice_preset import VoicePreset
 from schemas import (
@@ -117,6 +118,18 @@ def delete_voice_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(VoicePreset).filter(VoicePreset.id == preset_id).first()
     if not preset:
         raise HTTPException(status_code=404, detail="Voice preset not found")
+
+    # FK reference check: active groups using this preset
+    ref_count = db.query(Group).filter(
+        Group.narrator_voice_preset_id == preset_id,
+        Group.deleted_at.is_(None),
+    ).count()
+    if ref_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Voice preset is used by {ref_count} active group(s)",
+        )
+
     # Clean up MediaAsset
     if preset.audio_asset_id:
         asset = db.get(MediaAsset, preset.audio_asset_id)

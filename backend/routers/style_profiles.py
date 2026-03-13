@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from config import logger
 from database import get_db
 from models import Embedding, LoRA, SDModel, StyleProfile
+from models.group import Group
 from schemas import (
     StyleProfileCreate,
     StyleProfileDeleteResponse,
@@ -178,6 +179,17 @@ async def delete_style_profile(profile_id: int, db: Session = Depends(get_db)):
     profile = db.query(StyleProfile).filter(StyleProfile.id == profile_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Style profile not found")
+
+    # FK reference check: active groups using this profile
+    ref_count = db.query(Group).filter(
+        Group.style_profile_id == profile_id,
+        Group.deleted_at.is_(None),
+    ).count()
+    if ref_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Style profile is used by {ref_count} active group(s)",
+        )
 
     name = profile.name
     db.delete(profile)

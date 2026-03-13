@@ -143,7 +143,7 @@ def get_character_or_raise(db: Session, character_id: int) -> Character:
 def create_character(db: Session, data: CharacterCreate) -> Character:
     """Create a character with tags, LoRA enrichment, and default prompts."""
     # Validate group_id exists
-    if not db.query(Group).filter(Group.id == data.group_id).first():
+    if not db.query(Group).filter(Group.id == data.group_id, Group.deleted_at.is_(None)).first():
         raise ValueError("Group not found")
 
     existing = db.query(Character).filter(Character.name == data.name, Character.deleted_at.is_(None)).first()
@@ -184,7 +184,7 @@ def update_character(db: Session, character_id: int, data: CharacterUpdate) -> C
 
     # Validate group_id if being changed
     if "group_id" in update_data and update_data["group_id"] is not None:
-        if not db.query(Group).filter(Group.id == update_data["group_id"]).first():
+        if not db.query(Group).filter(Group.id == update_data["group_id"], Group.deleted_at.is_(None)).first():
             raise ValueError("Group not found")
 
     if "loras" in update_data and update_data["loras"]:
@@ -259,7 +259,7 @@ def duplicate_character(
     if not source:
         raise ValueError("Character not found")
 
-    if not db.query(Group).filter(Group.id == target_group_id).first():
+    if not db.query(Group).filter(Group.id == target_group_id, Group.deleted_at.is_(None)).first():
         raise ValueError("Group not found")
 
     if db.query(Character).filter(Character.name == new_name, Character.deleted_at.is_(None)).first():

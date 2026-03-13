@@ -14,6 +14,7 @@ admin_app_router = APIRouter(prefix="/api/admin")
 # ── Service-only routers (11) ──────────────────────────────
 from .assets import router as assets_router
 from .controlnet import service_router as controlnet_svc
+from .groups import admin_router as group_adm
 from .groups import router as groups_router
 from .presets import router as presets_router
 from .preview import service_router as preview_svc
@@ -56,6 +57,7 @@ for _r in [
     creative_presets_router,
     activity_logs_router,
     storyboard_adm,
+    group_adm,
 ]:
     admin_app_router.include_router(_r)
 
