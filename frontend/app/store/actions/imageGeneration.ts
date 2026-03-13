@@ -30,7 +30,8 @@ function buildHiResPayload() {
 /** Generate a single image for a scene via SD */
 export async function generateSceneImageFor(
   scene: Scene,
-  silent = false
+  silent = false,
+  overrides?: { seed?: number }
 ): Promise<Partial<Scene> | null> {
   const sbState = useStoryboardStore.getState();
   const { storyboardId } = useContextStore.getState();
@@ -90,6 +91,7 @@ export async function generateSceneImageFor(
     auto_rewrite_prompt: sbState.autoRewritePrompt,
     auto_replace_risky_tags: sbState.autoReplaceRiskyTags,
     client_id: scene.client_id,
+    ...(overrides?.seed !== undefined ? { seed: overrides.seed } : {}),
   };
 
   const debugPayload = { ...requestPayload };
@@ -294,7 +296,9 @@ export async function generateSceneCandidates(
   const candidates: CandidateEntry[] = [];
   let resolvedImagePrompt: string | undefined;
   for (let i = 0; i < 3; i += 1) {
-    const result = await generateSceneImageFor(scene, true);
+    const result = await generateSceneImageFor(scene, true, {
+      seed: Math.floor(Math.random() * 2147483647),
+    });
     if (!result?.image_url || !result?.image_asset_id) continue;
     if (!resolvedImagePrompt && result.image_prompt) {
       resolvedImagePrompt = result.image_prompt;
