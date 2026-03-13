@@ -12,7 +12,6 @@ from models.creative import (
     CreativeTrace,
 )
 from models.group import Group
-from models.lab import LabExperiment
 from models.lora import LoRA
 from models.media_asset import MediaAsset
 from models.music_preset import MusicPreset
@@ -60,7 +59,6 @@ __all__ = [
     "MusicPreset",
     "StoryboardCharacter",
     "YouTubeCredential",
-    "LabExperiment",
     "CreativeAgentPreset",
     "CreativeSession",
     "CreativeSessionRound",

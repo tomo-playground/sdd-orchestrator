@@ -4,8 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
-  Tag,
-  FlaskConical,
   Cpu,
   Settings,
   ChevronLeft,
@@ -35,18 +33,6 @@ type NavGroup = {
 // ── Navigation structure ─────────────────────────────────────
 
 export const NAV_GROUPS: NavGroup[] = [
-  {
-    key: "prompt",
-    label: "Prompt",
-    items: [{ id: "tags", label: "Tags", icon: Tag, href: "/dev/tags" }],
-  },
-  {
-    key: "quality",
-    label: "Quality",
-    items: [
-      { id: "lab", label: "Lab", icon: FlaskConical, href: "/dev/lab" },
-    ],
-  },
   {
     key: "infra",
     label: "Infra",

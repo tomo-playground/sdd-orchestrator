@@ -11,8 +11,6 @@ import {
   MOCK_STORAGE_STATS,
   MOCK_RENDER_PRESETS,
   MOCK_TRASH_ITEMS,
-  MOCK_TAG_EFFECTIVENESS,
-  MOCK_ANALYTICS_SUMMARY,
   MOCK_STORYBOARDS,
   MOCK_CHARACTERS,
   MOCK_GENERATED_SCENES,
@@ -243,45 +241,6 @@ export async function mockScriptsEmptyApis(page: Page) {
     }
     return route.continue();
   });
-}
-// ── Lab page ─────────────────────────────────────────────────
-
-export async function mockLabApis(page: Page) {
-  await page.route("**/api/**/characters", (route) => {
-    if (route.request().method() === "GET") {
-      return route.fulfill({
-        json: {
-          items: MOCK_CHARACTERS_LIST,
-          total: MOCK_CHARACTERS_LIST.length,
-          offset: 0,
-          limit: 50,
-        },
-      });
-    }
-    return route.continue();
-  });
-
-  await page.route("**/api/**/groups**", (route) => {
-    if (route.request().method() === "GET") {
-      return route.fulfill({ json: MOCK_GROUPS });
-    }
-    return route.continue();
-  });
-
-  await page.route("**/lab/experiments**", (route) =>
-    route.fulfill({ json: { items: [], total: 0 } })
-  );
-
-  await page.route("**/lab/analytics/tag-effectiveness**", (route) =>
-    route.fulfill({ json: MOCK_TAG_EFFECTIVENESS })
-  );
-
-  await page.route("**/lab/analytics/summary**", (route) =>
-    route.fulfill({ json: MOCK_ANALYTICS_SUMMARY })
-  );
-
-  await page.route("**/tags**", (route) => route.fulfill({ json: [] }));
-  await page.route("**/loras**", (route) => route.fulfill({ json: [] }));
 }
 // ── Manage page ──────────────────────────────────────────────
 

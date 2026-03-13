@@ -12,8 +12,6 @@ export {
   MOCK_RENDER_PRESETS,
   MOCK_TRASH_ITEMS,
 } from "./manage";
-export { MOCK_TAG_EFFECTIVENESS, MOCK_ANALYTICS_SUMMARY } from "./lab";
-
 export {
   MOCK_STORYBOARDS,
   MOCK_CHARACTERS,

@@ -8,8 +8,6 @@ import {
   Palette,
   Mic,
   Music,
-  Tag,
-  FlaskConical,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -49,17 +47,9 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    key: "meta",
-    label: "Meta",
-    items: [
-      { id: "tags", label: "Tags", icon: Tag, href: "/admin/tags" },
-    ],
-  },
-  {
     key: "tools",
     label: "Tools",
     items: [
-      { id: "lab", label: "Lab", icon: FlaskConical, href: "/admin/lab" },
       { id: "system", label: "System", icon: Settings, href: "/admin/system" },
     ],
   },

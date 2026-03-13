@@ -11,11 +11,10 @@ const nextConfig: NextConfig = {
       { source: "/characters/:path*", destination: "/library/characters/:path*", permanent: true },
       { source: "/voices", destination: "/library/voices", permanent: true },
       { source: "/music", destination: "/library/music", permanent: true },
-      { source: "/lab", destination: "/dev/lab", permanent: true },
       { source: "/manage", destination: "/library/characters", permanent: true },
       { source: "/library", destination: "/library/characters", permanent: false },
       { source: "/settings", destination: "/settings/presets", permanent: false },
-      { source: "/dev", destination: "/dev/tags", permanent: false },
+      { source: "/dev", destination: "/dev/sd-models", permanent: false },
     ];
   },
   async rewrites() {

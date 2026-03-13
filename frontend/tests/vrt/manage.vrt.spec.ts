@@ -9,13 +9,6 @@ test.describe("Admin — VRT", () => {
     await mockManageApis(page);
   });
 
-  test("admin-tags", async ({ page }) => {
-    await page.goto("/dev/tags");
-    await waitForPageReady(page);
-    await hideAnimations(page);
-    await expect(page).toHaveScreenshot("manage-tags.png");
-  });
-
   test("admin-styles", async ({ page }) => {
     await page.goto("/library/styles");
     await waitForPageReady(page);

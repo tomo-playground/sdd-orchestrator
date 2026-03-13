@@ -66,13 +66,7 @@ def main():
         cur.execute("DELETE FROM characters WHERE group_id BETWEEN 14 AND 19")
         print(f"  characters 삭제: {cur.rowcount}건")
 
-        # 1-10. lab_experiments group FK
-        cur.execute(
-            "DELETE FROM lab_experiments WHERE group_id BETWEEN 14 AND 19"
-        )
-        print(f"  lab_experiments 삭제: {cur.rowcount}건")
-
-        # 1-11. groups
+        # 1-10. groups
         cur.execute("DELETE FROM groups WHERE id BETWEEN 14 AND 19")
         print(f"  groups 삭제: {cur.rowcount}건")
 

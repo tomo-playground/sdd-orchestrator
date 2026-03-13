@@ -39,12 +39,11 @@ for _r in [
 ]:
     service_app_router.include_router(_r)
 
-# ── Admin-only routers (8) ──────────────────────────────────
+# ── Admin-only routers (7) ──────────────────────────────────
 from .activity_logs import router as activity_logs_router
 from .admin import router as admin_core_router
 from .controlnet import router as controlnet_router
 from .creative_presets import router as creative_presets_router
-from .lab import router as lab_router
 from .loras import router as loras_router
 from .sd_models import router as sd_models_router
 from .settings import router as settings_router
@@ -56,7 +55,6 @@ for _r in [
     controlnet_router,
     loras_router,
     creative_presets_router,
-    lab_router,
     activity_logs_router,
 ]:
     admin_app_router.include_router(_r)

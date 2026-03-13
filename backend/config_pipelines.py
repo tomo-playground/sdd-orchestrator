@@ -1,6 +1,6 @@
 """Pipeline & integration constants extracted from config.py.
 
-YouTube, Lab, Creative Engine, LangGraph, Ollama 설정을 분리하여
+YouTube, Creative Engine, LangGraph, Ollama 설정을 분리하여
 config.py 파일 크기를 400줄 이하로 유지한다.
 """
 
@@ -19,10 +19,6 @@ YOUTUBE_SCOPES = [
 ]
 YOUTUBE_API_QUOTA_DAILY = int(os.getenv("YOUTUBE_API_QUOTA_DAILY", "10000"))
 YOUTUBE_UPLOAD_COST = int(os.getenv("YOUTUBE_UPLOAD_COST", "1600"))
-
-# --- Lab Configuration ---
-LAB_DEFAULT_SD_STEPS = int(os.getenv("LAB_DEFAULT_SD_STEPS", "20"))
-LAB_BATCH_MAX_SIZE = int(os.getenv("LAB_BATCH_MAX_SIZE", "20"))
 
 # --- Creative Engine Configuration ---
 CREATIVE_MAX_ROUNDS = int(os.getenv("CREATIVE_MAX_ROUNDS", "3"))

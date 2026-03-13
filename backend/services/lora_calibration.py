@@ -11,9 +11,11 @@ import io
 import httpx
 from PIL import Image
 
-from config import LAB_DEFAULT_SD_STEPS, SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, cap_style_lora_weight, logger
+from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, cap_style_lora_weight, logger
 from services.controlnet import build_controlnet_args, load_pose_reference
 from services.validation import compare_prompt_to_tags, wd14_predict_tags
+
+CALIBRATION_DEFAULT_SD_STEPS = 20
 
 # Standard test prompt for calibration
 CALIBRATION_PROMPT = "1girl, standing, waving, classroom, school uniform, smile, anime style, best quality"
@@ -51,7 +53,7 @@ async def generate_test_image(
     payload = {
         "prompt": prompt,
         "negative_prompt": CALIBRATION_NEGATIVE,
-        "steps": LAB_DEFAULT_SD_STEPS,
+        "steps": CALIBRATION_DEFAULT_SD_STEPS,
         "cfg_scale": 7.0,
         "sampler_name": "DPM++ 2M Karras",
         "seed": CALIBRATION_SEED,
