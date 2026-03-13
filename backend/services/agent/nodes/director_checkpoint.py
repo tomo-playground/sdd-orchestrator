@@ -15,7 +15,6 @@ from config_pipelines import (
 )
 from services.agent.llm_models import DirectorCheckpointOutput, validate_with_model
 from services.agent.nodes._production_utils import run_production_step
-from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState
 
 
@@ -68,15 +67,14 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
     }
 
     try:
-        async with trace_llm_call(name="director_checkpoint", input_text=state.get("topic", "")):
-            result = await run_production_step(
-                template_name="creative/director_checkpoint.j2",
-                template_vars=template_vars,
-                validate_fn=lambda data: validate_with_model(DirectorCheckpointOutput, data).model_dump(),
-                extract_key="",
-                step_name="director_checkpoint",
-                model=DIRECTOR_MODEL,
-            )
+        result = await run_production_step(
+            template_name="creative/director_checkpoint.j2",
+            template_vars=template_vars,
+            validate_fn=lambda data: validate_with_model(DirectorCheckpointOutput, data).model_dump(),
+            extract_key="",
+            step_name="director_checkpoint",
+            model=DIRECTOR_MODEL,
+        )
 
         cp = DirectorCheckpointOutput.model_validate(result)
         count = state.get("director_checkpoint_revision_count", 0)
@@ -104,15 +102,14 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
     except Exception as e:
         logger.warning("[LangGraph] Director Checkpoint 1차 실패: %s", e)
         try:
-            async with trace_llm_call(name="director_checkpoint_retry", input_text=state.get("topic", "")):
-                result = await run_production_step(
-                    template_name="creative/director_checkpoint.j2",
-                    template_vars=template_vars,
-                    validate_fn=lambda data: validate_with_model(DirectorCheckpointOutput, data).model_dump(),
-                    extract_key="",
-                    step_name="director_checkpoint_retry",
-                    model=DIRECTOR_MODEL,
-                )
+            result = await run_production_step(
+                template_name="creative/director_checkpoint.j2",
+                template_vars=template_vars,
+                validate_fn=lambda data: validate_with_model(DirectorCheckpointOutput, data).model_dump(),
+                extract_key="",
+                step_name="director_checkpoint_retry",
+                model=DIRECTOR_MODEL,
+            )
             cp = DirectorCheckpointOutput.model_validate(result)
             count = state.get("director_checkpoint_revision_count", 0)
             decision, feedback = _apply_score_override(cp.decision, cp.score, cp.feedback)

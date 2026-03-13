@@ -80,7 +80,7 @@ def _build_config(thread_id: str, *, trace_id: str | None = None) -> dict:
     trace_id가 주어지면 (resume) 기존 trace에 이어서 기록한다.
     """
     from config_pipelines import LANGGRAPH_RECURSION_LIMIT  # noqa: PLC0415
-    from services.agent.observability import create_langfuse_handler, end_root_span  # noqa: PLC0415
+    from services.agent.observability import create_langfuse_handler, end_root_span, update_root_span  # noqa: PLC0415
 
     # Phase 25: review-revise + checkpoint 루프 중첩으로 기본 limit(25) 초과 가능
     cfg: dict = {"configurable": {"thread_id": thread_id}, "recursion_limit": LANGGRAPH_RECURSION_LIMIT}
@@ -90,6 +90,7 @@ def _build_config(thread_id: str, *, trace_id: str | None = None) -> dict:
         cfg["metadata"] = {"langfuse_session_id": thread_id}
         # 파이프라인 완료 후 root span 종료를 위한 cleanup 함수 참조
         cfg["_langfuse_cleanup"] = end_root_span
+        cfg["_langfuse_update_root"] = update_root_span
     return cfg
 
 
@@ -125,8 +126,13 @@ async def generate_script_endpoint(
     async with get_compiled_graph() as graph:
         state = _request_to_state(request)
         config = _build_config(_resolve_thread_id())
+        update_root = config.get("_langfuse_update_root")
+        if update_root:
+            update_root(input_data=state)
         try:
             result = await graph.ainvoke(state, config)
+            if update_root:
+                update_root(output_data=_state_to_response(result))
             if result.get("error"):
                 raise HTTPException(status_code=500, detail=result["error"])
             return _state_to_response(result)

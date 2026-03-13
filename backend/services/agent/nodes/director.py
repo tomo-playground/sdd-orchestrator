@@ -17,7 +17,6 @@ from services.agent.nodes._agent_messaging import (
     run_agent_with_message,
 )
 from services.agent.nodes._production_utils import run_production_step
-from services.agent.observability import trace_llm_call
 from services.agent.state import DirectorReActStep, ScriptState
 
 # Agent 이름 → State 키 매핑 (인라인 수정 결과 반영용)
@@ -81,18 +80,14 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
         }
 
         try:
-            async with trace_llm_call(
-                name=f"director_react_step_{step_num}",
-                input_text=f"Step {step_num}/{LANGGRAPH_MAX_REACT_STEPS}",
-            ):
-                result = await run_production_step(
-                    template_name="creative/director.j2",
-                    template_vars=template_vars,
-                    validate_fn=_react_validate_fn,
-                    extract_key="",
-                    step_name=f"director_step_{step_num}",
-                    model=DIRECTOR_MODEL,
-                )
+            result = await run_production_step(
+                template_name="creative/director.j2",
+                template_vars=template_vars,
+                validate_fn=_react_validate_fn,
+                extract_key="",
+                step_name=f"director_step_{step_num}",
+                model=DIRECTOR_MODEL,
+            )
 
             react = DirectorReActOutput.model_validate(result)
 
@@ -184,17 +179,13 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
         except Exception as e:
             logger.warning("[LangGraph] Director ReAct Step %d 1차 실패: %s", step_num, e)
             try:
-                async with trace_llm_call(
-                    name=f"director_react_step_{step_num}_retry",
-                    input_text=f"Retry Step {step_num}/{LANGGRAPH_MAX_REACT_STEPS}",
-                ):
-                    result = await run_production_step(
-                        template_name="creative/director.j2",
-                        template_vars=template_vars,
-                        validate_fn=_react_validate_fn,
-                        extract_key="",
-                        step_name=f"director_step_{step_num}_retry",
-                        model=DIRECTOR_MODEL,
+                result = await run_production_step(
+                    template_name="creative/director.j2",
+                    template_vars=template_vars,
+                    validate_fn=_react_validate_fn,
+                    extract_key="",
+                    step_name=f"director_step_{step_num}_retry",
+                    model=DIRECTOR_MODEL,
                     )
                 react = DirectorReActOutput.model_validate(result)
                 react_step: DirectorReActStep = {

@@ -242,7 +242,7 @@ async def stream_graph_events(
     label: str,
 ) -> AsyncGenerator[str]:
     """Graph를 스트리밍하며 SSE 이벤트를 yield한다."""
-    from services.agent.observability import end_root_span, update_trace_on_interrupt  # noqa: PLC0415
+    from services.agent.observability import end_root_span, update_root_span, update_trace_on_interrupt  # noqa: PLC0415
 
     # Safety preflight — 초기 생성 요청(topic 포함 dict)일 때만 실행
     if isinstance(graph_input, dict) and graph_input.get("topic"):
@@ -261,6 +261,9 @@ async def stream_graph_events(
             }
             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
             return
+
+    if isinstance(graph_input, dict):
+        update_root_span(input_data=graph_input)
 
     async with get_compiled_graph() as graph:
         char_ids: list[int | None] = [None, None]

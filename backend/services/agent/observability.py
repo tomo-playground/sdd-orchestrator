@@ -26,6 +26,9 @@ from config_pipelines import (
 _langfuse_client = None
 _initialized = False
 
+# GENERATION input/output 최대 기록 길이 (디버깅용)
+_MAX_IO_LEN = 8000
+
 # 요청별 trace_id를 전파하는 contextvar (asyncio 태스크별 자동 분리)
 _current_trace_id: contextvars.ContextVar[str | None] = contextvars.ContextVar("langfuse_trace_id", default=None)
 # 요청별 root span을 전파하는 contextvar (generation의 부모로 사용)
@@ -153,6 +156,23 @@ def update_trace_on_interrupt(interrupt_data: dict, *, trace_id: str | None = No
         logger.warning("[LangFuse] interrupt 트레이스 업데이트 실패: %s", e)
 
 
+def update_root_span(*, input_data: Any = None, output_data: Any = None) -> None:
+    """root span에 input/output을 기록한다."""
+    root_span = _current_root_span.get()
+    if root_span is None:
+        return
+    try:
+        kwargs: dict[str, Any] = {}
+        if input_data is not None:
+            kwargs["input"] = input_data
+        if output_data is not None:
+            kwargs["output"] = output_data
+        if kwargs:
+            root_span.update(**kwargs)
+    except Exception:
+        pass
+
+
 def end_root_span() -> None:
     """요청 완료 시 root span을 종료한다."""
     root_span = _current_root_span.get()
@@ -237,20 +257,20 @@ async def trace_llm_call(
         generation = root_span.start_generation(
             name=name,
             model=model or GEMINI_TEXT_MODEL,
-            input=input_text[:2000],
+            input=input_text[:_MAX_IO_LEN],
         )
     else:
         generation = _langfuse_client.start_generation(
             trace_context=trace_ctx,
             name=name,
             model=model or GEMINI_TEXT_MODEL,
-            input=input_text[:2000],
+            input=input_text[:_MAX_IO_LEN],
         )
     result = LLMCallResult(generation=generation)
     try:
         yield result
         generation.update(
-            output=result.output[:2000] if result.output else "",
+            output=result.output[:_MAX_IO_LEN] if result.output else "",
             usage_details=result.usage,
         )
         generation.end()

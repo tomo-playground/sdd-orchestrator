@@ -11,7 +11,6 @@ from config import logger
 from config_pipelines import DIRECTOR_MODEL, INVENTORY_CASTING_ENABLED
 from services.agent.llm_models import CastingRecommendation, DirectorPlanOutput, validate_with_model
 from services.agent.nodes._production_utils import run_production_step
-from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState
 from services.script.gemini_generator import sanitize_chat_context as _sanitize_chat_context
 
@@ -78,15 +77,14 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
             valid_char_ids = [c.id for c in inventory["characters"]]
 
     try:
-        async with trace_llm_call(name="director_plan", input_text=template_vars.get("topic", "")):
-            result = await run_production_step(
-                template_name="creative/director_plan.j2",
-                template_vars=template_vars,
-                validate_fn=lambda data: validate_with_model(DirectorPlanOutput, data).model_dump(),
-                extract_key="",
-                step_name="director_plan",
-                model=DIRECTOR_MODEL,
-            )
+        result = await run_production_step(
+            template_name="creative/director_plan.j2",
+            template_vars=template_vars,
+            validate_fn=lambda data: validate_with_model(DirectorPlanOutput, data).model_dump(),
+            extract_key="",
+            step_name="director_plan",
+            model=DIRECTOR_MODEL,
+        )
 
         plan = {
             "creative_goal": result.get("creative_goal", ""),
