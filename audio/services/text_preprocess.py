@@ -20,7 +20,7 @@ _DIGITS_NATIVE = {
     6: "여섯", 7: "일곱", 8: "여덟", 9: "아홉", 10: "열",
     20: "스물", 30: "서른", 40: "마흔", 50: "쉰",
 }
-_COUNTER_WORDS = {"개", "명", "번", "잔", "살", "시", "마리", "장", "권", "대", "벌", "켤레", "그루"}
+_COUNTER_WORDS = {"개", "명", "번", "잔", "살", "마리", "장", "권", "대", "벌", "켤레", "그루"}
 
 
 def _num_to_sino(n: int) -> str:
@@ -40,10 +40,16 @@ def _num_to_sino(n: int) -> str:
         big_unit = pos // 4
         sub_pos = pos % 4
 
+        # Guard: _UNITS only covers up to 조 (10^16). Fall back to digit-by-digit.
+        if big_unit >= len(_UNITS):
+            return "".join(_DIGITS_KO[c] for c in s)
+
         if d == 0:
-            # Only add big unit marker at boundary
-            if sub_pos == 0 and big_unit > 0 and any(int(s[j]) != 0 for j in range(max(0, i - 3), i)):
-                result.append(_UNITS[big_unit])
+            # Add big unit marker at 4-digit group boundary if group has non-zero digits
+            if sub_pos == 0 and big_unit > 0:
+                group_start = max(0, i - 3)
+                if any(int(s[j]) != 0 for j in range(group_start, i)):
+                    result.append(_UNITS[big_unit])
             continue
 
         if d == 1 and sub_pos > 0:
@@ -116,6 +122,13 @@ def _convert_percent(m: re.Match) -> str:
     return _num_to_sino(int(m.group(1))) + " 퍼센트"
 
 
+def _convert_duration(m: re.Match) -> str:
+    """3시간 → 삼시간, 5분간 → 오분간."""
+    num = int(m.group(1))
+    suffix = m.group(2)
+    return _num_to_sino(num) + suffix
+
+
 def _convert_plain_number(m: re.Match) -> str:
     """Standalone numbers → Sino-Korean."""
     return _num_to_sino(int(m.group(0)))
@@ -135,8 +148,8 @@ def preprocess_korean(text: str) -> str:
     # Temperature (영하/영상 + 숫자 + 도)
     text = re.sub(r"(영하\s*|영상\s*)?(\d+)도", _convert_temperature, text)
 
-    # Time (시, 분)
-    text = re.sub(r"(\d{1,2})시\s*(?:(\d{1,2})분)?", _convert_time, text)
+    # Time (시, 분) — negative lookahead to avoid matching "시간", "시즌", "시작" etc.
+    text = re.sub(r"(\d{1,2})시(?!간|즌|작|리|험|합|설|청)\s*(?:(\d{1,2})분)?", _convert_time, text)
 
     # Percent
     text = re.sub(r"(\d+)%", _convert_percent, text)
@@ -144,7 +157,10 @@ def preprocess_korean(text: str) -> str:
     # Counter words (native Korean numerals)
     text = _COUNTER_PATTERN.sub(_convert_counter, text)
 
-    # Remaining standalone numbers
-    text = re.sub(r"\b(\d+)\b", _convert_plain_number, text)
+    # Duration (시간, 분간, 초간)
+    text = re.sub(r"(\d+)(시간|분간|초간)", _convert_duration, text)
+
+    # Remaining standalone numbers (use lookaround for Korean context)
+    text = re.sub(r"(?<![가-힣])(\d+)(?![가-힣\d])", _convert_plain_number, text)
 
     return text

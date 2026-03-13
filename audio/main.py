@@ -54,22 +54,6 @@ async def synthesize_tts(req: TTSSynthesizeRequest):
     """Generate TTS audio: synthesize -> post-process -> quality check -> WAV encode."""
     from config import TTS_CACHE_DIR
 
-    # Cache lookup
-    cache_key = tts_engine.tts_cache_key(req.text, req.instruct, req.seed, req.language)
-    cache_path = TTS_CACHE_DIR / f"{cache_key}.wav"
-    if cache_path.exists() and cache_path.stat().st_size > 0:
-        cached_bytes = cache_path.read_bytes()
-        audio_b64 = base64.b64encode(cached_bytes).decode()
-        # Read actual duration and sample rate from cached WAV
-        info = sf.info(cache_path)
-        return TTSSynthesizeResponse(
-            audio_base64=audio_b64,
-            sample_rate=info.samplerate,
-            duration=round(info.duration, 2),
-            quality_passed=True,
-            cache_hit=True,
-        )
-
     # Resolve seed
     if req.seed < 0:
         import torch
@@ -84,6 +68,22 @@ async def synthesize_tts(req: TTSSynthesizeRequest):
         synth_text = preprocess_korean(req.text)
         if synth_text != req.text:
             logger.info("[TTS] Preprocessed: %s → %s", req.text, synth_text)
+
+    # Cache lookup — uses preprocessed text so cache key matches synthesis input
+    cache_key = tts_engine.tts_cache_key(synth_text, req.instruct, req.seed, req.language)
+    cache_path = TTS_CACHE_DIR / f"{cache_key}.wav"
+    if cache_path.exists() and cache_path.stat().st_size > 0:
+        cached_bytes = cache_path.read_bytes()
+        audio_b64 = base64.b64encode(cached_bytes).decode()
+        # Read actual duration and sample rate from cached WAV
+        info = sf.info(cache_path)
+        return TTSSynthesizeResponse(
+            audio_base64=audio_b64,
+            sample_rate=info.samplerate,
+            duration=round(info.duration, 2),
+            quality_passed=True,
+            cache_hit=True,
+        )
 
     try:
         wavs, sr = await asyncio.to_thread(
