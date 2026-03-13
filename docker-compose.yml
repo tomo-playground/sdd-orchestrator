@@ -1,0 +1,90 @@
+# Core infrastructure: PostgreSQL + MinIO + SD WebUI
+# Usage: docker compose up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: shorts_app
+      POSTGRES_PASSWORD: "1234"
+      POSTGRES_DB: shorts_producer
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shorts_app -d shorts_producer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sd-webui:
+    build:
+      context: /home/tomo/Workspace/a1111-docker
+      dockerfile: Dockerfile
+    image: stable-diffusion-webui:latest
+    container_name: sd-webui
+    restart: on-failure:5
+    ports:
+      - "7860:7860"
+    environment:
+      - COMMANDLINE_ARGS=--opt-sdp-attention --enable-insecure-extension-access --listen --port 7860 --api --skip-python-version-check
+      - LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtcmalloc.so
+      - HF_HOME=/workspace/stable-diffusion-webui/cache/huggingface
+      - MPLCONFIGDIR=/workspace/stable-diffusion-webui/cache/matplotlib
+      - STABLE_DIFFUSION_REPO=https://github.com/w-e-w/stablediffusion.git
+    volumes:
+      - /home/tomo/Workspace/stable-diffusion-webui/models/Stable-diffusion:/workspace/stable-diffusion-webui/models/Stable-diffusion
+      - /home/tomo/Workspace/stable-diffusion-webui/models/Lora:/workspace/stable-diffusion-webui/models/Lora
+      - /home/tomo/Workspace/stable-diffusion-webui/embeddings:/workspace/stable-diffusion-webui/embeddings
+      - /home/tomo/Workspace/stable-diffusion-webui/models/ControlNet:/workspace/stable-diffusion-webui/models/ControlNet
+      - /home/tomo/Workspace/stable-diffusion-webui/extensions:/workspace/stable-diffusion-webui/extensions
+      - sd-webui-cache:/workspace/stable-diffusion-webui/cache
+      - sd-webui-output:/workspace/stable-diffusion-webui/outputs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  minio-data:
+  pgadmin-data:
+  sd-webui-cache:
+  sd-webui-output:

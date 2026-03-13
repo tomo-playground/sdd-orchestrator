@@ -24,6 +24,7 @@ build/
 .mcp.json
 .serena/memories/
 .serena/project.yml
+.serena/project.local.yml
 
 # Outputs (generated files)
 outputs/
