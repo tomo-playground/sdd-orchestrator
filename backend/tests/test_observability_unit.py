@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from services.agent.observability import LLMCallResult, _safe_extract_text, _to_hex32
+from services.agent.observability import (
+    LLMCallResult,
+    _current_root_span,
+    _safe_extract_text,
+    _to_hex32,
+    end_root_span,
+)
 
 
 class TestToHex32:
@@ -124,3 +130,35 @@ class TestLLMCallResult:
         assert result.generation is None
         assert result.output == ""
         assert result.usage is None
+
+
+class TestEndRootSpan:
+    def test_ends_and_clears_span(self):
+        mock_span = MagicMock()
+        _current_root_span.set(mock_span)
+
+        end_root_span()
+
+        mock_span.end.assert_called_once()
+        assert _current_root_span.get() is None
+
+    def test_noop_when_no_span(self):
+        _current_root_span.set(None)
+        end_root_span()  # 예외 없이 통과
+
+    def test_idempotent(self):
+        mock_span = MagicMock()
+        _current_root_span.set(mock_span)
+
+        end_root_span()
+        end_root_span()  # 두 번째 호출도 안전
+
+        mock_span.end.assert_called_once()
+
+    def test_swallows_exception(self):
+        mock_span = MagicMock()
+        mock_span.end.side_effect = RuntimeError("connection lost")
+        _current_root_span.set(mock_span)
+
+        end_root_span()  # 예외 삼키고 정상 종료
+        assert _current_root_span.get() is None

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
-
 export default function DevPage() {
-  redirect("/dev/tags");
+  // Redirect handled by next.config.ts redirects rule
+  // (avoids Next.js performance.measure negative timestamp bug)
+  return null;
 }

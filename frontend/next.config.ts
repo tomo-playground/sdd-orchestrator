@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
       { source: "/music", destination: "/library/music", permanent: true },
       { source: "/lab", destination: "/dev/lab", permanent: true },
       { source: "/manage", destination: "/library/characters", permanent: true },
+      { source: "/library", destination: "/library/characters", permanent: false },
+      { source: "/settings", destination: "/settings/presets", permanent: false },
+      { source: "/dev", destination: "/dev/tags", permanent: false },
     ];
   },
   async rewrites() {

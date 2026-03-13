@@ -30,7 +30,7 @@ usage() {
 check_venv() {
   if [ ! -d "$VENV_DIR" ]; then
     echo -e "${YELLOW}venv not found. Creating...${NC}"
-    /Users/tomo/.pyenv/versions/3.13.11/bin/python3 -m venv "$VENV_DIR"
+    python3 -m venv "$VENV_DIR"
     "$VENV_DIR/bin/pip" install -e "$AUDIO_DIR"
   fi
 }
@@ -50,7 +50,7 @@ do_start() {
 
   echo -e "${GREEN}Starting audio server on port $PORT (MPS)...${NC}"
   cd "$AUDIO_DIR"
-  TTS_DEVICE=auto MUSICGEN_DEVICE=auto \
+  TTS_DEVICE=cuda MUSICGEN_DEVICE=cuda \
     "$VENV_DIR/bin/uvicorn" main:app \
     --host 0.0.0.0 --port "$PORT" \
     > "$LOG_FILE" 2>&1 &

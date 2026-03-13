@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-
 export default function SettingsPage() {
-  redirect("/settings/presets");
+  // Redirect handled by next.config.ts redirects rule
+  return null;
 }

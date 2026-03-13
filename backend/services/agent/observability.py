@@ -28,6 +28,8 @@ _initialized = False
 
 # 요청별 trace_id를 전파하는 contextvar (asyncio 태스크별 자동 분리)
 _current_trace_id: contextvars.ContextVar[str | None] = contextvars.ContextVar("langfuse_trace_id", default=None)
+# 요청별 root span을 전파하는 contextvar (generation의 부모로 사용)
+_current_root_span: contextvars.ContextVar[Any] = contextvars.ContextVar("langfuse_root_span", default=None)
 
 
 def _to_hex32(trace_id: str) -> str:
@@ -82,6 +84,15 @@ def create_langfuse_handler(*, trace_id: str | None = None, session_id: str | No
         _current_trace_id.set(trace_id)
 
         trace_ctx: dict[str, str] = {"trace_id": trace_id}
+
+        # Root span을 만들어 이후 generation들의 부모로 사용
+        root_span = _langfuse_client.start_span(
+            trace_context=trace_ctx,
+            name="pipeline",
+            metadata={"session_id": session_id} if session_id else None,
+        )
+        _current_root_span.set(root_span)
+
         handler = CallbackHandler(trace_context=trace_ctx)
         logger.debug("[LangFuse] 핸들러 생성 (trace=%s, session=%s)", trace_id[:16], session_id)
         return handler
@@ -142,8 +153,20 @@ def update_trace_on_interrupt(interrupt_data: dict, *, trace_id: str | None = No
         logger.warning("[LangFuse] interrupt 트레이스 업데이트 실패: %s", e)
 
 
+def end_root_span() -> None:
+    """요청 완료 시 root span을 종료한다."""
+    root_span = _current_root_span.get()
+    if root_span is not None:
+        try:
+            root_span.end()
+        except Exception:
+            pass
+        _current_root_span.set(None)
+
+
 def flush_langfuse() -> None:
     """shutdown 시 LangFuse 버퍼를 플러시한다."""
+    end_root_span()
     if _langfuse_client is not None:
         try:
             _langfuse_client.flush()
@@ -206,12 +229,23 @@ async def trace_llm_call(
 
     raw_trace_id = _current_trace_id.get()
     trace_ctx = {"trace_id": _to_hex32(raw_trace_id)} if raw_trace_id else None
-    generation = _langfuse_client.start_generation(
-        trace_context=trace_ctx,
-        name=name,
-        model=model or GEMINI_TEXT_MODEL,
-        input=input_text[:2000],
-    )
+    root_span = _current_root_span.get()
+
+    # root span이 있으면 자식으로 생성 (계층 구조 — trace_context 불필요)
+    # root span이 없으면 _langfuse_client에서 직접 연결 (trace_context 필요)
+    if root_span:
+        generation = root_span.start_generation(
+            name=name,
+            model=model or GEMINI_TEXT_MODEL,
+            input=input_text[:2000],
+        )
+    else:
+        generation = _langfuse_client.start_generation(
+            trace_context=trace_ctx,
+            name=name,
+            model=model or GEMINI_TEXT_MODEL,
+            input=input_text[:2000],
+        )
     result = LLMCallResult(generation=generation)
     try:
         yield result
