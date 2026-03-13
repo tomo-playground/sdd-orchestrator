@@ -190,6 +190,8 @@ def _resolve_bgm_path(builder: VideoBuilder) -> str | None:
 
 
 _BGM_CROSSFADE_SEC = 2.0
+_BGM_LOOP_MARGIN_SEC = 1.0  # Skip looping if BGM is within this margin of _total_dur
+_BGM_FALLBACK_COPIES = 3  # Minimum loop copies when ffprobe fails
 
 
 def _probe_duration(path: str) -> float:
@@ -231,16 +233,32 @@ def _build_bgm_loop_filters(builder: VideoBuilder, bgm_idx: int, bgm_path: str) 
 
     Returns the FFmpeg stream label to use downstream (e.g. ``"[bgm_looped]"``
     or ``f"[{bgm_idx}:a]"`` when no looping is needed).
+
+    When ffprobe fails (bgm_dur <= 0), falls back to looping the BGM
+    a fixed number of times to prevent early termination.
     """
     import math
 
     bgm_dur = _probe_duration(bgm_path)
-    if bgm_dur <= 0 or bgm_dur >= builder._total_dur:
+
+    # No looping needed if BGM already covers video (with margin)
+    if bgm_dur > 0 and bgm_dur >= builder._total_dur - _BGM_LOOP_MARGIN_SEC:
         return f"[{bgm_idx}:a]"
 
-    xfade = min(_BGM_CROSSFADE_SEC, bgm_dur * 0.4)
-    effective_dur = bgm_dur - xfade
-    copies = max(2, math.ceil(builder._total_dur / effective_dur))
+    # ffprobe failure: use fallback loop count with a conservative crossfade
+    if bgm_dur <= 0:
+        logger.warning(
+            "[BGM] ffprobe failed for %s, using fallback %d copies",
+            bgm_path,
+            _BGM_FALLBACK_COPIES,
+        )
+        copies = _BGM_FALLBACK_COPIES
+        xfade = 1.0  # Conservative default
+    else:
+        xfade = min(_BGM_CROSSFADE_SEC, bgm_dur * 0.4)
+        effective_dur = bgm_dur - xfade
+        copies = max(2, math.ceil(builder._total_dur / effective_dur))
+
     logger.info(
         "[BGM] bgm=%.1fs, video=%.1fs, xfade=%.1fs → %d copies",
         bgm_dur,
@@ -267,9 +285,10 @@ def _apply_ducked_bgm(builder: VideoBuilder, bgm_label: str, bgm_vol: float) -> 
     """Apply BGM with sidechain compression (audio ducking)."""
     # 1. Split narration as sidechain key signal
     builder.filters.append(f"{builder._map_a}asplit=2[narr_out][narr_key]")
-    # 2. Prepare BGM with volume, trim, and fade
+    # 2. Prepare BGM with volume, trim, apad (silence padding), and fade
     builder.filters.append(
         f"{bgm_label}atrim=duration={builder._total_dur},asetpts=PTS-STARTPTS,"
+        f"apad=whole_dur={builder._total_dur},"
         f"volume={bgm_vol},afade=t=out:st={max(0, builder._total_dur - 2)}:d=2[bgm_vol]"
     )
     # 3. Apply sidechain compression
@@ -287,6 +306,7 @@ def _apply_simple_bgm(builder: VideoBuilder, bgm_label: str, bgm_vol: float) -> 
     """Apply BGM with simple fixed-volume mixing."""
     builder.filters.append(
         f"{bgm_label}atrim=duration={builder._total_dur},asetpts=PTS-STARTPTS,"
+        f"apad=whole_dur={builder._total_dur},"
         f"volume={bgm_vol},afade=t=out:st={max(0, builder._total_dur - 2)}:d=2[bgm_f]"
     )
     builder.filters.append(f"{builder._map_a}[bgm_f]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[a_f]")

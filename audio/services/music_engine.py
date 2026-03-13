@@ -1,6 +1,6 @@
-"""MusicGen Small music generation service.
+"""MusicGen music generation service.
 
-Uses facebook/musicgen-small (300M) via HuggingFace transformers.
+Uses facebook/musicgen-medium (1.5B) via HuggingFace transformers.
 Global model + threading lock for inference safety.
 """
 
@@ -38,6 +38,8 @@ def _resolve_device() -> str:
     try:
         import torch
 
+        if torch.cuda.is_available():
+            return "cuda"
         if torch.backends.mps.is_available():
             return "mps"
     except Exception:

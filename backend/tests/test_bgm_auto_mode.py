@@ -134,6 +134,7 @@ class TestPrepareAutoBgm:
             storyboard_id=None,
         )
         builder._ai_bgm_path = None
+        builder._total_dur = 25.0
         builder._generate_and_set_bgm = AsyncMock(return_value=b"wav_data")
 
         with patch("services.video.builder.SessionLocal") as mock_session_cls:
@@ -142,6 +143,7 @@ class TestPrepareAutoBgm:
 
             await VideoBuilder._prepare_auto_bgm(builder)
 
+        # _total_dur=25 < 30 → max(30, 25) = 30
         builder._generate_and_set_bgm.assert_called_once_with(
             "soft piano ambient", 30.0, -1
         )

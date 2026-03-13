@@ -234,6 +234,30 @@ class VideoBuilder:
             self.tts_padding,
             self.transition_dur,
         )
+        self._estimate_total_duration()
+
+    def _estimate_total_duration(self) -> None:
+        """Pre-calculate _total_dur from scene_durations for BGM generation.
+
+        Mirrors the offset accumulation in apply_transitions() so that
+        _prepare_bgm() can request the correct BGM length.
+        """
+        from services.video.effects import MIN_XFADE_OFFSET
+
+        if not self.scene_durations:
+            self._total_dur = 0.0
+            return
+        if self.num_scenes == 1:
+            self._total_dur = self.scene_durations[0]
+            return
+
+        acc_offset = 0.0
+        for i in range(1, self.num_scenes):
+            delta = self.scene_durations[i - 1] - self.transition_dur
+            if delta <= 0:
+                delta = MIN_XFADE_OFFSET
+            acc_offset += delta
+        self._total_dur = acc_offset + self.scene_durations[-1]
 
     async def _prepare_bgm(self) -> None:
         """Prepare AI-generated BGM based on bgm_mode."""
@@ -274,7 +298,8 @@ class VideoBuilder:
                         return
 
             if preset.prompt:
-                await self._generate_and_set_bgm(preset.prompt, preset.duration or 30.0, preset.seed or -1)
+                bgm_dur = preset.duration or max(30.0, self._total_dur)
+                await self._generate_and_set_bgm(preset.prompt, bgm_dur, preset.seed or -1)
         except Exception:
             db.rollback()
             raise
@@ -321,7 +346,8 @@ class VideoBuilder:
                 logger.debug("[Video Build] auto BGM: no prompt available")
                 return
 
-            wav_bytes = await self._generate_and_set_bgm(prompt, 30.0, -1)
+            bgm_dur = max(30.0, self._total_dur)
+            wav_bytes = await self._generate_and_set_bgm(prompt, bgm_dur, -1)
 
             # Cache the generated asset back to storyboard
             if wav_bytes and storyboard:

@@ -26,10 +26,10 @@ TTS_AUDIO_FADE_MS = int(os.getenv("TTS_AUDIO_FADE_MS", "15"))
 TTS_SILENCE_MAX_MS = int(os.getenv("TTS_SILENCE_MAX_MS", "800"))
 
 # --- MusicGen Configuration ---
-MUSICGEN_MODEL_NAME = os.getenv("MUSICGEN_MODEL_NAME", "facebook/musicgen-small")
+MUSICGEN_MODEL_NAME = os.getenv("MUSICGEN_MODEL_NAME", "facebook/musicgen-medium")
 MUSICGEN_DEVICE = os.getenv("MUSICGEN_DEVICE", "auto")
 MUSICGEN_DEFAULT_DURATION = float(os.getenv("MUSICGEN_DEFAULT_DURATION", "30.0"))
-MUSICGEN_MAX_DURATION = float(os.getenv("MUSICGEN_MAX_DURATION", "30.0"))
+MUSICGEN_MAX_DURATION = float(os.getenv("MUSICGEN_MAX_DURATION", "60.0"))
 MUSICGEN_SAMPLE_RATE = int(os.getenv("MUSICGEN_SAMPLE_RATE", "32000"))
 MUSICGEN_TOKENS_PER_SECOND = 50  # EnCodec: 50 auto-regressive steps per second
 
