@@ -194,7 +194,7 @@ async def _analyze_references(refs: list[str], state: ScriptState) -> str | None
             system_instruction="You are a content analyst for short-form video production. Analyze reference materials and extract key insights.",
             safety_settings=GEMINI_SAFETY_SETTINGS,
         )
-        async with trace_llm_call(name="research_analyze_references", input_text=prompt[:2000]) as llm:
+        async with trace_llm_call(name="research_analyze_references", input_text=prompt) as llm:
             response = await gemini_client.aio.models.generate_content(
                 model=GEMINI_TEXT_MODEL,
                 contents=prompt,

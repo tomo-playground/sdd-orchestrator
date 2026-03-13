@@ -10,6 +10,7 @@ from services.agent.observability import (
     _safe_extract_text,
     _to_hex32,
     end_root_span,
+    update_root_span,
 )
 
 
@@ -162,3 +163,44 @@ class TestEndRootSpan:
 
         end_root_span()  # 예외 삼키고 정상 종료
         assert _current_root_span.get() is None
+
+
+class TestUpdateRootSpan:
+    def test_updates_input(self):
+        mock_span = MagicMock()
+        _current_root_span.set(mock_span)
+
+        update_root_span(input_data={"topic": "test"})
+
+        mock_span.update.assert_called_once_with(input={"topic": "test"})
+        _current_root_span.set(None)
+
+    def test_updates_output(self):
+        mock_span = MagicMock()
+        _current_root_span.set(mock_span)
+
+        update_root_span(output_data={"scenes": []})
+
+        mock_span.update.assert_called_once_with(output={"scenes": []})
+        _current_root_span.set(None)
+
+    def test_noop_when_no_span(self):
+        _current_root_span.set(None)
+        update_root_span(input_data={"topic": "test"})  # 예외 없이 통과
+
+    def test_swallows_exception(self):
+        mock_span = MagicMock()
+        mock_span.update.side_effect = RuntimeError("connection lost")
+        _current_root_span.set(mock_span)
+
+        update_root_span(input_data={"topic": "test"})  # 예외 삼키고 정상 종료
+        _current_root_span.set(None)
+
+    def test_noop_when_no_data(self):
+        mock_span = MagicMock()
+        _current_root_span.set(mock_span)
+
+        update_root_span()  # input_data=None, output_data=None
+
+        mock_span.update.assert_not_called()
+        _current_root_span.set(None)

@@ -260,6 +260,7 @@ async def stream_graph_events(
                 "thread_id": thread_id,
             }
             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+            end_root_span()
             return
 
     if isinstance(graph_input, dict):

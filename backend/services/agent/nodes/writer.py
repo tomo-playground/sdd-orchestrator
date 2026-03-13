@@ -120,7 +120,7 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
             ),
             safety_settings=GEMINI_SAFETY_SETTINGS,
         )
-        async with trace_llm_call(name="writer_planning", input_text=prompt[:2000]) as llm:
+        async with trace_llm_call(name="writer_planning", input_text=prompt) as llm:
             response = await gemini_client.aio.models.generate_content(
                 model=GEMINI_TEXT_MODEL,
                 contents=prompt,

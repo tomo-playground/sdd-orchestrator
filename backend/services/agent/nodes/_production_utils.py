@@ -44,7 +44,7 @@ async def run_production_step(
         prompt = tmpl.render(**retry_vars)
         used_fallback = False
         try:
-            async with trace_llm_call(name=step_name, input_text=prompt[:2000], model=resolved_model) as llm:
+            async with trace_llm_call(name=step_name, input_text=prompt, model=resolved_model) as llm:
                 response = await gemini_client.aio.models.generate_content(
                     model=resolved_model,
                     contents=prompt,
@@ -62,7 +62,7 @@ async def run_production_step(
                     # PROHIBITED_CONTENT → 폴백 모델로 1회 재시도
                     logger.warning("[%s][Fallback] PROHIBITED_CONTENT → %s", step_name, GEMINI_FALLBACK_MODEL)
                     async with trace_llm_call(
-                        name=f"{step_name}_fallback", input_text=prompt[:2000], model=GEMINI_FALLBACK_MODEL
+                        name=f"{step_name}_fallback", input_text=prompt, model=GEMINI_FALLBACK_MODEL
                     ) as llm_fb:
                         response = await gemini_client.aio.models.generate_content(
                             model=GEMINI_FALLBACK_MODEL,

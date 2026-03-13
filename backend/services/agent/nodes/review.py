@@ -166,7 +166,7 @@ async def _gemini_evaluate(
             system_instruction="You are a script quality evaluator for short-form video scenes.",
             safety_settings=GEMINI_SAFETY_SETTINGS,
         )
-        async with trace_llm_call(name="review_gemini_evaluate", input_text=prompt[:2000], model=REVIEW_MODEL) as llm:
+        async with trace_llm_call(name="review_gemini_evaluate", input_text=prompt, model=REVIEW_MODEL) as llm:
             response = await gemini_client.aio.models.generate_content(
                 model=REVIEW_MODEL,
                 contents=prompt,
@@ -278,7 +278,7 @@ async def _self_reflect(
             system_instruction="You are a self-reflection agent that analyzes review failures and proposes fix strategies.",
             safety_settings=GEMINI_SAFETY_SETTINGS,
         )
-        async with trace_llm_call(name="review_self_reflect", input_text=prompt[:2000], model=REVIEW_MODEL) as llm:
+        async with trace_llm_call(name="review_self_reflect", input_text=prompt, model=REVIEW_MODEL) as llm:
             response = await gemini_client.aio.models.generate_content(
                 model=REVIEW_MODEL,
                 contents=prompt,
@@ -372,7 +372,7 @@ async def _unified_evaluate(
             system_instruction="You are a unified review agent that evaluates technical quality, narrative strength, and self-reflection for short-form video scripts.",
             safety_settings=GEMINI_SAFETY_SETTINGS,
         )
-        async with trace_llm_call(name="review_unified_evaluate", input_text=prompt[:2000], model=REVIEW_MODEL) as llm:
+        async with trace_llm_call(name="review_unified_evaluate", input_text=prompt, model=REVIEW_MODEL) as llm:
             response = await gemini_client.aio.models.generate_content(
                 model=REVIEW_MODEL,
                 contents=prompt,

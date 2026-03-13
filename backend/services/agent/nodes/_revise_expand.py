@@ -242,7 +242,7 @@ async def try_scene_expand(
             system_instruction="You are a scene expansion specialist for short-form video scripts. Generate new scenes that seamlessly integrate with existing ones.",
             safety_settings=GEMINI_SAFETY_SETTINGS,
         )
-        async with trace_llm_call(name="revise_scene_expand", input_text=prompt[:2000]) as llm:
+        async with trace_llm_call(name="revise_scene_expand", input_text=prompt) as llm:
             response = await gemini_client.aio.models.generate_content(
                 model=GEMINI_TEXT_MODEL,
                 contents=prompt,
