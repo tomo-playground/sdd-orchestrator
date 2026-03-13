@@ -1,26 +1,12 @@
 import { useEffect, useCallback, useRef } from "react";
 import { useContextStore } from "../store/useContextStore";
-import { useStoryboardStore } from "../store/useStoryboardStore";
-import { useRenderStore } from "../store/useRenderStore";
 import { useUIStore } from "../store/useUIStore";
 import { fetchProjects } from "../store/actions/projectActions";
 import { fetchGroups, loadGroupDefaults } from "../store/actions/groupActions";
 import { cancelPendingSave } from "../store/effects/autoSave";
+import { resetTransientStores } from "../store/resetAllStores";
+import { clearStudioUrlParams } from "../utils/url";
 import { ALL_GROUPS_ID } from "../constants";
-
-/**
- * Clear studio URL params (?id, ?new) to prevent stale storyboard loading after context switch.
- * Uses window.history.replaceState instead of Next.js router to avoid hook dependency
- * (this runs inside useCallback, not a component render cycle).
- */
-function clearStudioUrlParams() {
-  const url = new URL(window.location.href);
-  if (url.searchParams.has("id") || url.searchParams.has("new")) {
-    url.searchParams.delete("id");
-    url.searchParams.delete("new");
-    window.history.replaceState({}, "", url.toString());
-  }
-}
 
 /**
  * Manages project/group lifecycle:
@@ -35,8 +21,6 @@ export function useProjectGroups() {
   const projects = useContextStore((s) => s.projects);
   const groups = useContextStore((s) => s.groups);
   const setContext = useContextStore((s) => s.setContext);
-  const setScenes = useStoryboardStore((s) => s.setScenes);
-  const clearScenes = useCallback(() => setScenes([]), [setScenes]);
 
   // Fetch projects on mount
   useEffect(() => {
@@ -104,26 +88,20 @@ export function useProjectGroups() {
     (id: number) => {
       cancelPendingSave();
       setContext({ projectId: id, groupId: null, storyboardId: null, storyboardTitle: "" });
-      clearScenes();
-      useStoryboardStore.getState().reset();
-      useRenderStore.getState().reset();
-      useUIStore.getState().resetUI();
+      resetTransientStores();
       clearStudioUrlParams();
     },
-    [setContext, clearScenes]
+    [setContext]
   );
 
   const selectGroup = useCallback(
     (id: number) => {
       cancelPendingSave();
       setContext({ groupId: id, storyboardId: null, storyboardTitle: "" });
-      clearScenes();
-      useStoryboardStore.getState().reset();
-      useRenderStore.getState().reset();
-      useUIStore.getState().resetUI();
+      resetTransientStores();
       clearStudioUrlParams();
     },
-    [setContext, clearScenes]
+    [setContext]
   );
 
   return { projectId, groupId, projects, groups, selectProject, selectGroup };

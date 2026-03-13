@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
-import { ADMIN_API_BASE } from "../../constants";
+import { API_BASE, ADMIN_API_BASE } from "../../constants";
 import type { LoRA } from "../../types";
 import type { UiCallbacks } from "../../types";
 
@@ -11,7 +11,7 @@ export function useLoraManagement(ui: UiCallbacks) {
 
   const fetchPublicLoras = useCallback(async () => {
     try {
-      const res = await axios.get<LoRA[]>(`${ADMIN_API_BASE}/loras/`);
+      const res = await axios.get<LoRA[]>(`${API_BASE}/loras`);
       setLoraEntries(res.data || []);
     } catch {
       console.error("Failed to fetch public LoRAs");

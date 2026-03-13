@@ -1,6 +1,6 @@
 "use client";
 
-import RenderPresetsTab from "../../../admin/system/tabs/RenderPresetsTab";
+import RenderPresetsTab from "../../../components/settings/RenderPresetsTab";
 
 export default function SettingsPresetsPage() {
   return (

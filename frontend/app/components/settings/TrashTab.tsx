@@ -1,8 +1,8 @@
 "use client";
 
-import { useTrashTab, type TrashItem, type FilterType } from "../hooks/useTrashTab";
-import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
-import Button from "../../../components/ui/Button";
+import { useTrashTab, type TrashItem, type FilterType } from "../../hooks/useTrashTab";
+import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
+import Button from "../ui/Button";
 
 const RETENTION_DAYS = 30;
 

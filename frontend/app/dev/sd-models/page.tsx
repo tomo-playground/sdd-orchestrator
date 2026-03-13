@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import ConfirmDialog, { useConfirm } from "../../components/ui/ConfirmDialog";
 import { useUIStore } from "../../store/useUIStore";
-import EditLoraModal from "./EditLoraModal";
+import EditLoraModal from "../../components/lora/EditLoraModal";
 import { useStyleTab } from "../../hooks/styles/useStyleTab";
 
 export default function DevSdModelsPage() {

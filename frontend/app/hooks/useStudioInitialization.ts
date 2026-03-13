@@ -97,12 +97,7 @@ export function useStudioInitialization() {
       prevStoryboardIdRef.current &&
       prevStoryboardIdRef.current !== storyboardId
     ) {
-      useRenderStore.getState().set({
-        videoUrl: null,
-        videoUrlFull: null,
-        videoUrlPost: null,
-        recentVideos: [],
-      });
+      useRenderStore.getState().reset();
     }
     prevStoryboardIdRef.current = storyboardId;
   }, [storyboardId]);

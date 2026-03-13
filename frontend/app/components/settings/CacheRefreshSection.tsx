@@ -1,6 +1,6 @@
 "use client";
 
-import type { CacheRefreshResult } from "../hooks/useSettingsTab";
+import type { CacheRefreshResult } from "../../hooks/useSettingsTab";
 
 type Props = {
     isRefreshingCaches: boolean;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { API_BASE, ADMIN_API_BASE } from "../../../constants";
-import { useUIStore } from "../../../store/useUIStore";
+import { API_BASE, ADMIN_API_BASE } from "../constants";
+import { useUIStore } from "../store/useUIStore";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -100,8 +100,8 @@ export function useTrashTab(
         item.type === "storyboard"
           ? `/storyboards/${item.id}/permanent`
           : `/characters/${item.id}/permanent`;
-      // character permanent delete는 admin API에만 존재
-      const base = item.type === "character" ? ADMIN_API_BASE : API_BASE;
+      // permanent delete는 모두 Admin API
+      const base = ADMIN_API_BASE;
       try {
         await axios.delete(`${base}${endpoint}`);
         showToast("Permanently deleted", "success");

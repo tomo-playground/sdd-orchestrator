@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useSettingsTab } from "../hooks/useSettingsTab";
-import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
-import { useUIStore } from "../../../store/useUIStore";
+import { useSettingsTab } from "../../hooks/useSettingsTab";
+import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
+import { useUIStore } from "../../store/useUIStore";
 import CacheRefreshSection from "./CacheRefreshSection";
 import MediaAssetsSection from "./MediaAssetsSection";
 

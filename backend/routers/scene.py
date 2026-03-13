@@ -145,7 +145,7 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
         raise_user_error("image_store", e)
 
 
-@router.post("/scene/validate_image", response_model=SceneValidationResponse)
+@router.post("/scene/validate-image", response_model=SceneValidationResponse)
 async def validate_scene_image_endpoint(request: SceneValidateRequest, db: Session = Depends(get_db)):
     logger.info("📥 [Scene Validate Req] %s", scrub_payload(request.model_dump()))
     return validate_scene_image(request, db=db)

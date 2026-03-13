@@ -1,12 +1,12 @@
 "use client";
 
-import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
-import { useUIStore } from "../../../store/useUIStore";
-import { useRenderPresetsTab } from "../hooks/useRenderPresetsTab";
+import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
+import { useUIStore } from "../../store/useUIStore";
+import { useRenderPresetsTab } from "../../hooks/useRenderPresetsTab";
 import {
   FORM_INPUT_COMPACT_CLASSES,
   FORM_LABEL_COMPACT_CLASSES,
-} from "../../../components/ui/variants";
+} from "../ui/variants";
 
 export default function RenderPresetsTab() {
   const showToast = useUIStore((s) => s.showToast);

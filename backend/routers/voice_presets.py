@@ -12,6 +12,7 @@ from database import get_db
 from models.media_asset import MediaAsset
 from models.voice_preset import VoicePreset
 from schemas import (
+    StatusResponse,
     VoicePresetCreate,
     VoicePresetResponse,
     VoicePresetUpdate,
@@ -111,7 +112,7 @@ def update_voice_preset(
     return _preset_to_response(preset)
 
 
-@admin_router.delete("/{preset_id}")
+@admin_router.delete("/{preset_id}", response_model=StatusResponse)
 def delete_voice_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(VoicePreset).filter(VoicePreset.id == preset_id).first()
     if not preset:

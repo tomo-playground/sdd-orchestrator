@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { ADMIN_API_BASE } from "../../../constants";
+import { ADMIN_API_BASE } from "../constants";
 
 // ── Types ──────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ export type CacheRefreshResult = {
   error?: string;
 };
 
-import type { UiCallbacks } from "../../../types";
+import type { UiCallbacks } from "../types";
 
 // ── Hook ───────────────────────────────────────────────
 

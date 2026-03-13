@@ -4,6 +4,17 @@ import { useRenderStore, RENDER_STORE_KEY } from "./useRenderStore";
 import { useUIStore } from "./useUIStore";
 
 /**
+ * Reset Storyboard + Render + UI stores without touching ContextStore.
+ * Use when switching context (project/group change, dismiss, delete)
+ * where ContextStore is managed separately by the caller.
+ */
+export function resetTransientStores() {
+  useStoryboardStore.getState().reset();
+  useRenderStore.getState().reset();
+  useUIStore.getState().resetUI();
+}
+
+/**
  * Reset all stores to initial state.
  * Call when creating a new storyboard to clear previous data.
  *

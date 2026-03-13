@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models.render_preset import RenderPreset
-from schemas import RenderPresetCreate, RenderPresetResponse, RenderPresetUpdate
+from schemas import RenderPresetCreate, RenderPresetResponse, RenderPresetUpdate, StatusResponse
 
 service_router = APIRouter(prefix="/render-presets", tags=["render-presets"])
 admin_router = APIRouter(prefix="/render-presets", tags=["render-presets-admin"])
@@ -51,7 +51,7 @@ def update_render_preset(
     return preset
 
 
-@admin_router.delete("/{preset_id}")
+@admin_router.delete("/{preset_id}", response_model=StatusResponse)
 def delete_render_preset(preset_id: int, db: Session = Depends(get_db)):
     preset = db.query(RenderPreset).filter(RenderPreset.id == preset_id).first()
     if not preset:

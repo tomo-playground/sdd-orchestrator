@@ -37,6 +37,7 @@ from services.storyboard import (
 )
 
 router = APIRouter(prefix="/storyboards", tags=["storyboard"])
+admin_router = APIRouter(prefix="/storyboards", tags=["storyboard-admin"])
 
 
 @router.post("/create", response_model=StoryboardCreateResponse)
@@ -187,7 +188,7 @@ async def set_storyboard_seed(
     )
 
 
-@router.delete("/{storyboard_id}/permanent", response_model=StatusResponse)
+@admin_router.delete("/{storyboard_id}/permanent", response_model=StatusResponse)
 async def permanently_delete_storyboard(storyboard_id: int, db: Session = Depends(get_db)):
     """Permanently delete a storyboard and all associated assets."""
     return permanent_delete_storyboard(db, storyboard_id)

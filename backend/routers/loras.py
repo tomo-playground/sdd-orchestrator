@@ -1,4 +1,8 @@
-"""LoRA CRUD endpoints with Civitai integration."""
+"""LoRA CRUD endpoints with Civitai integration.
+
+Service API: GET (read-only list + detail)
+Admin API: CUD + Civitai import + calibration
+"""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -17,10 +21,11 @@ from schemas import (
 )
 from services.lora_calibration import calibrate_lora
 
-router = APIRouter(prefix="/loras", tags=["loras"])
+service_router = APIRouter(prefix="/loras", tags=["loras"])
+admin_router = APIRouter(prefix="/loras", tags=["loras-admin"])
 
 
-@router.get("", response_model=list[LoRAResponse])
+@service_router.get("", response_model=list[LoRAResponse])
 async def list_loras(
     lora_type: str | None = Query(None, description="Filter by lora_type (style, character)"),
     base_model: str | None = Query(None, description="Filter by base_model (SD1.5, SDXL)"),
@@ -37,7 +42,7 @@ async def list_loras(
     return loras
 
 
-@router.get("/search-civitai", response_model=CivitaiSearchResponse)
+@admin_router.get("/search-civitai", response_model=CivitaiSearchResponse)
 async def search_civitai(
     query: str = Query(..., description="Search query"),
     limit: int = Query(10, ge=1, le=50),
@@ -84,7 +89,7 @@ async def search_civitai(
         raise HTTPException(status_code=502, detail="Civitai API error") from e
 
 
-@router.post("/import-civitai/{civitai_id}", response_model=LoRAResponse)
+@admin_router.post("/import-civitai/{civitai_id}", response_model=LoRAResponse)
 async def import_from_civitai(civitai_id: int, db: Session = Depends(get_db)):
     """Import LoRA metadata from Civitai by model ID."""
     import httpx
@@ -136,7 +141,7 @@ async def import_from_civitai(civitai_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=502, detail="Civitai API error") from e
 
 
-@router.get("/{lora_id}", response_model=LoRAResponse)
+@service_router.get("/{lora_id}", response_model=LoRAResponse)
 async def get_lora(lora_id: int, db: Session = Depends(get_db)):
     """Get a single LoRA by ID."""
     lora = db.query(LoRA).filter(LoRA.id == lora_id).first()
@@ -145,7 +150,7 @@ async def get_lora(lora_id: int, db: Session = Depends(get_db)):
     return lora
 
 
-@router.post("", response_model=LoRAResponse, status_code=201)
+@admin_router.post("", response_model=LoRAResponse, status_code=201)
 async def create_lora(data: LoRACreate, db: Session = Depends(get_db)):
     """Create a new LoRA."""
     existing = db.query(LoRA).filter(LoRA.name == data.name).first()
@@ -160,7 +165,7 @@ async def create_lora(data: LoRACreate, db: Session = Depends(get_db)):
     return lora
 
 
-@router.put("/{lora_id}", response_model=LoRAResponse)
+@admin_router.put("/{lora_id}", response_model=LoRAResponse)
 async def update_lora(lora_id: int, data: LoRAUpdate, db: Session = Depends(get_db)):
     """Update an existing LoRA."""
     lora = db.query(LoRA).filter(LoRA.id == lora_id).first()
@@ -179,7 +184,7 @@ async def update_lora(lora_id: int, data: LoRAUpdate, db: Session = Depends(get_
     return lora
 
 
-@router.delete("/{lora_id}", response_model=OkDeletedResponse)
+@admin_router.delete("/{lora_id}", response_model=OkDeletedResponse)
 async def delete_lora(lora_id: int, db: Session = Depends(get_db)):
     """Delete a LoRA."""
     lora = db.query(LoRA).filter(LoRA.id == lora_id).first()
@@ -193,7 +198,7 @@ async def delete_lora(lora_id: int, db: Session = Depends(get_db)):
     return {"ok": True, "deleted": name}
 
 
-@router.post("/{lora_id}/calibrate", response_model=LoRACalibrateResponse)
+@admin_router.post("/{lora_id}/calibrate", response_model=LoRACalibrateResponse)
 async def calibrate_lora_weight(lora_id: int, db: Session = Depends(get_db)):
     """Calibrate LoRA to find optimal weight for scene expression.
 
@@ -246,7 +251,7 @@ async def calibrate_lora_weight(lora_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/calibrate-all", response_model=CalibrateAllResponse)
+@admin_router.post("/calibrate-all", response_model=CalibrateAllResponse)
 async def calibrate_all_loras(db: Session = Depends(get_db)):
     """Calibrate all LoRAs that haven't been calibrated yet."""
     loras = db.query(LoRA).filter(LoRA.optimal_weight.is_(None)).all()

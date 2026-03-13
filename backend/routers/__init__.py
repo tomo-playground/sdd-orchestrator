@@ -21,6 +21,7 @@ from .projects import router as projects_router
 from .scene import router as scene_router
 from .scripts import router as scripts_router
 from .stage import router as stage_router
+from .storyboard import admin_router as storyboard_adm
 from .storyboard import router as storyboard_router
 from .video import router as video_router
 
@@ -44,7 +45,6 @@ from .activity_logs import router as activity_logs_router
 from .admin import router as admin_core_router
 from .controlnet import router as controlnet_router
 from .creative_presets import router as creative_presets_router
-from .loras import router as loras_router
 from .sd_models import router as sd_models_router
 from .settings import router as settings_router
 
@@ -53,15 +53,17 @@ for _r in [
     settings_router,
     sd_models_router,
     controlnet_router,
-    loras_router,
     creative_presets_router,
     activity_logs_router,
+    storyboard_adm,
 ]:
     admin_app_router.include_router(_r)
 
-# ── Split routers (10 service + 9 admin) ─────────────────────
+# ── Split routers (11 service + 10 admin) ─────────────────────
 from .backgrounds import admin_router as bg_adm
 from .backgrounds import service_router as bg_svc
+from .loras import admin_router as lora_adm
+from .loras import service_router as lora_svc
 from .characters import admin_router as char_adm
 from .characters import service_router as char_svc
 from .music_presets import admin_router as music_adm
@@ -91,6 +93,7 @@ for _svc in [
     yt_svc,
     prompt_svc,
     rp_svc,
+    lora_svc,
 ]:
     service_app_router.include_router(_svc)
 
@@ -104,6 +107,7 @@ for _adm in [
     quality_adm,
     prompt_adm,
     rp_adm,
+    lora_adm,
 ]:
     admin_app_router.include_router(_adm)
 

@@ -36,10 +36,13 @@
 | Casting 네이밍 정규화 | 완료 — character_id→character_a_id (Casting 컨텍스트), 27개 파일, JSONB 마이그레이션 |
 | Checkpointer 리팩토링 | 완료 — 싱글턴→per-request 패턴, DB 풀 고갈 방지 |
 | **Phase 30 (Character Consistency V2)** | **진행 중** — A(Config 튜닝)+B(Gemini 복장 고정)+B+(Finalize 복장 교정 2단계)+F(네이밍 개선+복장 보호)+F-2(레퍼런스 네이밍 통일)+H(context_tags 구조화)+I(Gemini 역할 분리+scene_negative 버그 수정)+J(SCENE_CHARACTER_LORA_SCALE 복장 색상 드리프트 방지)+K(프롬프트 통합 5필드→2필드)+L(B-1 image_prompt 복장 오염 차단 강화)+M(sitting 포즈 기형 근본 보정) 완료. NoobAI-XL+Regional Prompter+Pipeline Inpaint 테스트 완료. C(Dual IP-Adapter) D(LoRA 트레이닝) G(멀티캐릭터 Inpaint) 미착수 |
+| **Phase 31 (UX Navigation Overhaul)** | **A~D 완료** — A(Admin 유령 31파일 삭제+Settings 이동 10파일) B(상태 누수 3건+resetTransientStores DRY) C(LoRA Service/Admin split+response_model 2건+permanent delete Admin 이동+Scene URL 통일) D(SubNavShell 통합+Library LoRA 탭). E(Quick-Start API) F(Soft Delete 통일) 미착수 |
 | 테스트 | Backend 3,478 + Frontend 543 + E2E 36 = **총 4,057개** |
 
 ### 최근 작업
 
+- **Phase 31 UX Navigation Overhaul A~D 구현** (03-13): ① Sub-Phase A: Admin 유령 라우트 9파일+AdminShell 2파일+Lab 고아 18파일+analytics/quality/manage 4파일 삭제(31파일), Settings 탭 6파일+hooks 4파일 이동, import 경로 4건 수정. ② Sub-Phase B: PersistentContextBar handleDismiss/삭제핸들러 3건 완전 리셋 적용(`cancelPendingSave+resetTransientStores+clearStudioUrlParams`), useStudioInitialization RenderStore 완전 리셋, `resetTransientStores()` DRY 헬퍼 추출. ③ Sub-Phase C: LoRA Service/Admin split(GET→Service, CUD→Admin), render_presets/voice_presets DELETE response_model 추가, Storyboard permanent delete Admin 이동, Scene URL `validate_image`→`validate-image` 통일. ④ Sub-Phase D: LibraryShell+SettingsShell→SubNavShell 통합(탭 배열 위임), Library LoRA 탭(읽기 전용) 추가, EditLoraModal 공유 컴포넌트 이동. [명세](FEATURES/UX_NAVIGATION_OVERHAUL.md)
+- **/dev/system 페이지 정리** (03-13): LangFuse 역할 중복 UI 및 죽은 코드 제거. ① Gemini Auto Edit 설정/비용 UI + Performance Analytics 섹션 제거(LangFuse 대시보드로 대체). ② Show Lab Menu 토글 제거(죽은 코드 — 조건부 렌더링 참조 없음, useUIStore에서 완전 삭제). ③ Memory 탭 + Backend 라우터/스키마/테스트 전체 제거(LangGraph Store 인프라는 유지, learn/research 노드 정상 동작). ④ DevSidebar /dev/logs 죽은 링크 제거(페이지 미구현). ⑤ API 명세(REST_API_ANALYTICS.md Memory 섹션), CLAUDE.md 라우터 카운트(30→29), types.ts 동기화. 16파일 -1,008줄.
 - **TTS 감정 적응 + BGM aloop + VRAM 최적화** (03-13): ① TTS CONSISTENCY_MODE off — Gemini 감정 적응 voice design 활성화, faster pace suffix 자동 추가, 캐시 키에 suffix 포함. ② BGM acrossfade→aloop 전환 — `MUSICGEN_MAX_DURATION` 클램핑, ducking 파라미터 튜닝. ③ MusicGen on-demand GPU load/unload — VRAM 절약(사용 시에만 GPU 로드, 완료 후 해제). ④ 빌드 pre-flight Audio Server health check — 서버 다운 시 렌더링 시작 전 즉시 실패. ⑤ Admin API `DELETE /cache/tts` — TTS 캐시 삭제 + DB `tts_asset_id` 일괄 초기화. ⑥ Avatar `avatar_key` Optional 전환 + RGBA 합성 버그 수정. ⑦ Dead code 삭제 — `gemini_imagen.py`, `pipeline-demo` 페이지, creative QC 템플릿 2개. ⑧ Docker SD WebUI `--medvram` 추가.
 - **MusicGen 품질 개선** (03-13): ① CUDA 전환 — `music_engine._resolve_device()` CUDA 자동 감지 추가(기존 MPS/CPU만 체크). ② 모델 업그레이드 — `musicgen-small`(300M) → `musicgen-medium`(1.5B), 음악 품질·다양성 향상. ③ Max Duration 확장 — 30초 → 60초(`MUSICGEN_MAX_DURATION`). ④ BGM 생성 duration 동적화 — `_estimate_total_duration()` 신규(씬 duration+transition 오프셋 합산), `_prepare_bgm()` 전 사전 계산. auto/preset 양쪽 `max(30.0, _total_dur)` 동적 duration 전달. ⑤ ffprobe 실패 시 루프 fallback — 기존: `bgm_dur<=0` → 루프 스킵(raw stream) → 30초 BGM 1회 재생 후 무음. 수정: `_BGM_FALLBACK_COPIES=3` 회 루프+xfade=1.0s. ⑥ BGM apad 추가 — `atrim` 직후 `apad=whole_dur={_total_dur}` 삽입, BGM이 짧아도 무음 패딩으로 영상 길이 보장. ducked/simple 양쪽 적용. ⑦ 루프 경계 마진 — `bgm_dur >= _total_dur` → `bgm_dur >= _total_dur - 1.0`(1초 마진), 불필요한 루프 방지.
 - **TTS 품질 개선 + 이미지 생성 버그 수정** (03-13): ① TTS CUDA 자동 감지 — `_resolve_device()` auto→cuda/mps/cpu, `_resolve_dtype()` CUDA/CPU=float32(품질 우선), MPS=bfloat16. ② 한국어 숫자 전처리 — `text_preprocess.py` 신규(숫자→한자어, 날짜, 시간, 카운터→고유어, 온도, 퍼센트, duration 변환). 18씬 테스트 17/18 통과. ③ TTS 전처리 버그 5건 수정 — 캐시 키 불일치(전처리 후 캐시 키 생성), "시" 카운터 충돌, IndexError guard(17자리+), 시간 패턴 negative lookahead("시간/시즌/시작"), standalone number 한글 lookaround. ④ Multi-gen 동일 이미지 버그 — seed anchoring이 같은 scene_order에 동일 seed 반환 → `generateSceneImageFor`에 `overrides.seed` 파라미터 추가, 후보별 랜덤 seed 전달. ⑤ LoRA trigger word leak — `REFERENCE_STYLE_LORA_SCALE=0.0`에서 weight≤0 LoRA+trigger 스킵. ⑥ TagClassifier TypeError — `classification_confidence` MagicMock 방어. ⑦ WD14 model.onnx 다운로드(SmilingWolf/wd-swinv2-tagger-v3). ⑧ 덕후 연구소 해설자 캐릭터 현우(43) 생성 + 3채널 전체 레퍼런스 이미지 재생성(ID 35-39, 42-43).
@@ -172,6 +175,7 @@ graph LR
     P27 --> P28["Phase 28<br/>Pipeline<br/>Resilience"]
     P28 --> P29["Phase 29<br/>Video<br/>Pre-validation"]
     P29 --> P30["Phase 30<br/>Character<br/>Consistency V2"]
+    P30 --> P31["Phase 31<br/>UX Navigation<br/>Overhaul"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -207,6 +211,7 @@ graph LR
     style P28 fill:#4CAF50,color:#fff
     style P29 fill:#2196F3,color:#fff
     style P30 fill:#FF9800,color:#fff
+    style P31 fill:#9C27B0,color:#fff
 ```
 
 ---
@@ -240,6 +245,7 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | YouTube Upload Phase 2~3 (Quota 대시보드, 업로드 큐, 예약 업로드) | [명세](FEATURES/YOUTUBE_UPLOAD.md) §Phase 2~3 |
 | ~~Express 모드 재검토~~ | **Phase 25에서 해결** — Director 자율 실행으로 대체. 프리셋 제거 완료 |
 | ~~Script 생성 후 대화형 수정 루프 (씬 부분 재생성)~~ | **Phase 26 P1에서 완료** — edit-scenes API + SceneEditDiffCard |
+| ~~동선 일관성 개편 (Admin 정리, LoRA Library 이동, 상태 누수, API 통일)~~ | **Phase 31로 승격** — [명세](FEATURES/UX_NAVIGATION_OVERHAUL.md) |
 | Script Canvas 분할 뷰 (좌 채팅 + 우 씬 프리뷰) | [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md) §P2 |
 
 ### Image Quality & Pose Control

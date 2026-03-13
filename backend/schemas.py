@@ -1841,6 +1841,7 @@ class StatusResponse(BaseModel):
     """Generic status response for simple operations (delete, restore, etc)."""
 
     status: str
+    id: int | None = None
 
 
 class TrashedStoryboardItem(BaseModel):
@@ -1960,7 +1961,7 @@ class CriticalFailureInfo(BaseModel):
 
 
 class SceneValidationResponse(BaseModel):
-    """Response for POST /scene/validate_image."""
+    """Response for POST /scene/validate-image."""
 
     mode: str = "wd14"
     match_rate: float = 0.0

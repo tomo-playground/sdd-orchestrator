@@ -7,9 +7,11 @@ import { ChevronRight, Clapperboard, Settings, X } from "lucide-react";
 import { useProjectGroups } from "../../hooks/useProjectGroups";
 import { useContextStore } from "../../store/useContextStore";
 import { useUIStore } from "../../store/useUIStore";
-import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { deleteGroup } from "../../store/actions/groupActions";
 import { deleteProject, updateProject } from "../../store/actions/projectActions";
+import { cancelPendingSave } from "../../store/effects/autoSave";
+import { resetTransientStores } from "../../store/resetAllStores";
+import { clearStudioUrlParams } from "../../utils/url";
 import { ALL_GROUPS_ID } from "../../constants";
 import ProjectDropdown from "./ProjectDropdown";
 import GroupDropdown from "./GroupDropdown";
@@ -30,9 +32,6 @@ export default function PersistentContextBar() {
   const resetContext = useContextStore((s) => s.resetContext);
   const isAutoRunning = useUIStore((s) => s.isAutoRunning);
   const showToast = useUIStore((s) => s.showToast);
-  const setScenes = useStoryboardStore((s) => s.setScenes);
-  const clearScenes = useCallback(() => setScenes([]), [setScenes]);
-
   const { confirm, dialogProps } = useConfirm();
   const configGroupId = useUIStore((s) => s.configGroupId);
   const [projectModalMode, setProjectModalMode] = useState<"edit" | null>(null);
@@ -56,11 +55,13 @@ export default function PersistentContextBar() {
       if (!ok) return;
       const deleted = await deleteProject(project.id);
       if (deleted && project.id === projectId) {
+        cancelPendingSave();
         setContext({ projectId: null, groupId: null, storyboardId: null, storyboardTitle: "" });
-        clearScenes();
+        resetTransientStores();
+        clearStudioUrlParams();
       }
     },
-    [confirm, projectId, setContext, clearScenes]
+    [confirm, projectId, setContext]
   );
 
   const handleDeleteGroup = useCallback(
@@ -80,11 +81,13 @@ export default function PersistentContextBar() {
       if (!ok) return;
       const deleted = await deleteGroup(id);
       if (deleted && id === groupId) {
+        cancelPendingSave();
         setContext({ groupId: null, storyboardId: null, storyboardTitle: "" });
-        clearScenes();
+        resetTransientStores();
+        clearStudioUrlParams();
       }
     },
-    [confirm, groups, groupId, setContext, clearScenes]
+    [confirm, groups, groupId, setContext]
   );
 
   const handleGroupSelect = useCallback(
@@ -100,7 +103,10 @@ export default function PersistentContextBar() {
   );
 
   const handleDismiss = useCallback(() => {
+    cancelPendingSave();
     resetContext();
+    resetTransientStores();
+    clearStudioUrlParams();
     if (isStudio) router.replace("/studio");
   }, [resetContext, isStudio, router]);
 

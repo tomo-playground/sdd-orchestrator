@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useUIStore } from "../../../store/useUIStore";
-import type { YouTubeCredential } from "../../../types";
+import { useUIStore } from "../store/useUIStore";
+import type { YouTubeCredential } from "../types";
 import {
   checkYouTubeConnection,
   disconnectYouTube,
   getYouTubeAuthUrl,
   exchangeYouTubeCode,
-} from "../../../store/actions/youtubeActions";
+} from "../store/actions/youtubeActions";
 
 // ── Types ──────────────────────────────────────────────
 

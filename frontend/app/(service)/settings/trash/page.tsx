@@ -1,6 +1,6 @@
 "use client";
 
-import TrashTab from "../../../admin/system/tabs/TrashTab";
+import TrashTab from "../../../components/settings/TrashTab";
 
 export default function SettingsTrashPage() {
   return (

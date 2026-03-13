@@ -1,7 +1,7 @@
 "use client";
 
-import type { MediaStats, OrphanReport, MediaCleanupResult } from "../hooks/useSettingsTab";
-import { ERROR_BG, ERROR_TEXT } from "../../../components/ui/variants";
+import type { MediaStats, OrphanReport, MediaCleanupResult } from "../../hooks/useSettingsTab";
+import { ERROR_BG, ERROR_TEXT } from "../ui/variants";
 
 type Props = {
     mediaStats: MediaStats | null;

@@ -1,8 +1,8 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useYouTubeTab } from "../hooks/useYouTubeTab";
-import type { YouTubeCredential } from "../../../types";
+import { useYouTubeTab } from "../../hooks/useYouTubeTab";
+import type { YouTubeCredential } from "../../types";
 
 type Props = { projectId: number | null };
 

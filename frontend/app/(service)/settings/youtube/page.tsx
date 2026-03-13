@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import YouTubeConnectTab from "../../../admin/system/tabs/YouTubeConnectTab";
+import YouTubeConnectTab from "../../../components/settings/YouTubeConnectTab";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import { useContextStore } from "../../../store/useContextStore";
 

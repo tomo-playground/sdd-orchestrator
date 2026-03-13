@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { API_BASE, ADMIN_API_BASE } from "../../../constants";
-import type { MusicPreset, RenderPreset } from "../../../types";
-
-import type { UiCallbacks } from "../../../types";
+import { API_BASE, ADMIN_API_BASE } from "../constants";
+import type { MusicPreset, RenderPreset, UiCallbacks } from "../types";
 
 // ── Types ──────────────────────────────────────────────
 
