@@ -197,7 +197,7 @@ class TagClassifier:
             # DB에 명시적으로 분류된 태그는 최소 0.9 confidence 보장
             return {
                 "group": result.group_name,
-                "confidence": max(result.classification_confidence or 1.0, 0.9),
+                "confidence": max(result.classification_confidence if isinstance(result.classification_confidence, (int, float)) else 1.0, 0.9),
                 "source": "db",
             }
         return None
