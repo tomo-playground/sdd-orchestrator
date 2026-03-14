@@ -73,7 +73,7 @@ class FullLayout:
     BOLD_SUB_TEXT_COLOR: RGBA = (60, 60, 60, 255)  # Dark gray
 
     # === FFmpeg/Video ===
-    # Crop positioning for 512x768 → 1080x1920 conversion
+    # Crop positioning for 832x1216 → 1080x1920 conversion
     CROP_Y_RATIO: float = 0.3  # Crop Y position (0=top, 0.5=center, 1=bottom)
     # Top-weighted crop (30% from top) preserves character head in portrait shots
 

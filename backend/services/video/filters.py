@@ -213,7 +213,7 @@ def _build_post_layout_base(builder: VideoBuilder, i: int, v_idx: int) -> None:
 def _build_full_layout_base(builder: VideoBuilder, i: int, v_idx: int) -> None:
     """Build base scaling/cropping filter for full layout style.
 
-    512x768 (2:3) -> 1080x1920 (9:16) conversion:
+    832x1216 (2:3) -> 1080x1920 (9:16) conversion:
     - Scale to cover output size (vertical priority)
     - Crop with top-weighted positioning (30% from top)
     """
