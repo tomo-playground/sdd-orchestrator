@@ -73,6 +73,13 @@ export async function generateSceneImageFor(
         }
       : { use_ip_adapter: false };
 
+  // Multi-character scene without character B: warn about potential single fallback
+  if (scene.scene_mode === "multi" && !sbState.selectedCharacterBId) {
+    console.warn(
+      "[Multi-Char] scene_mode=multi but selectedCharacterBId is null, multi 씬이 single로 폴백될 수 있음"
+    );
+  }
+
   const requestPayload = {
     prompt,
     negative_prompt: negativePrompt,

@@ -184,6 +184,13 @@ const SceneListItem = forwardRef<HTMLDivElement, SceneListItemProps>(function Sc
         </p>
       </div>
 
+      {/* Multi-character indicator */}
+      {scene.scene_mode === "multi" && (
+        <span className="shrink-0 rounded bg-indigo-100 px-1 py-0.5 text-[11px] font-semibold leading-none text-indigo-700">
+          2P
+        </span>
+      )}
+
       {/* Completion Dots */}
       <CompletionDots scene={scene} imageValidationResults={imageValidationResults} />
 

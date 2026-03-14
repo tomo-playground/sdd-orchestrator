@@ -100,6 +100,7 @@ export function useSceneActions() {
       width: 832,
       height: 1216,
       negative_prompt: baseNegativePromptA,
+      scene_mode: "single" as const,
       isGenerating: false,
       debug_payload: "",
     };

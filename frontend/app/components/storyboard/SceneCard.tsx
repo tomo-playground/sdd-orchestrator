@@ -157,6 +157,13 @@ export default function SceneCard({
 
   return (
     <div className="group relative grid gap-2 rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/30 transition hover:border-zinc-300">
+      {/* Multi-character badge */}
+      {scene.scene_mode === "multi" && (
+        <span className="absolute right-4 top-4 z-30 rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-700">
+          2P
+        </span>
+      )}
+
       {/* ── Tier 1: Essential (Image + Script + Basic Info) ── */}
       <div className="relative z-20 grid gap-6 md:grid-cols-[240px_1fr] lg:grid-cols-[280px_1fr]">
         {/* Left: Visuals */}

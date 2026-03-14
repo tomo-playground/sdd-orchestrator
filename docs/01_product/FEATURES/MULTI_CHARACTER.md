@@ -68,5 +68,5 @@
 | 4 | 기존 단일 캐릭터 워크플로우 영향 없음 | ✅ |
 | 5 | ~~LoRA별 멀티캐릭터 지원 여부 설정 가능~~ | ~~✅~~ → Phase 30-O에서 제거 |
 | 6 | ~~2인 씬에서 LoRA weight 자동 축소~~ | ~~✅~~ → `SCENE_CHARACTER_LORA_SCALE`로 대체 |
-| 7 | **V-Pred 2인 동시 출연 성공률 > 80%** | ⬜ Phase 30-O |
-| 8 | **Multi 씬 ControlNet/IP-Adapter 자동 비활성화** | ⬜ Phase 30-O |
+| 7 | **V-Pred 2인 동시 출연 성공률 > 80%** | ✅ 완료 (EXP-1~4 검증, 3후보 보상) |
+| 8 | **Multi 씬 ControlNet/IP-Adapter 자동 비활성화** | ✅ 완료 (finalize.py O-2a) |
