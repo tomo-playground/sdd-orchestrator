@@ -39,7 +39,7 @@
 | **Phase 31 (UX Navigation Overhaul)** | **전체 완료 (A~F)** — A(Admin 유령 31파일 삭제+Settings 이동) B(상태 누수 3건+resetTransientStores DRY) C(LoRA Service/Admin split+response_model+Scene URL 통일) D(SubNavShell 통합+Library LoRA 탭) E(Quick-Start API+SetupWizard 빠른시작+Dead Code 삭제) F(Group Soft Delete+Trash 연동+프리셋 FK 참조 체크 409) |
 | **Forge 전환 (Stage 1)** | **완료** — A1111→Forge Docker 전환, API 호환성(sampler/scheduler 분리, ControlNet 3슬롯 패딩, IP-Adapter 모듈명, Hi-Res 패치), 파라미터 튜닝(CFG 6.5, DPM++ 2M SDE Karras), ADetailer 확장 설치 |
 | **NoobAI-XL V-Pred 전환 (Stage 4)** | **완료** — SD1.5→NoobAI-XL V-Pred 1.0 전체 스택 마이그레이션, Euler/CFG 4.5/832x1216, is_active 필터 8곳, SD1.5 LoRA 13건 삭제+SDXL LoRA 3종 등록, StyleProfile 2개(Flat Color+MeMaXL)+LoRA 연동, DB 클렌징+MinIO 고아 정리 |
-| 테스트 | Backend 3,478 + Frontend 543 + E2E 36 = **총 4,057개** |
+| 테스트 | Backend 3,451 + Frontend 543 + E2E 36 = **총 4,030개** |
 
 ### 최근 작업
 
