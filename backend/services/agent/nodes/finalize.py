@@ -708,6 +708,35 @@ def _resolve_controlnet_weight(scene: dict, default: float) -> float:
     return default
 
 
+def _validate_scene_modes(scenes: list[dict], structure: str, state: dict) -> None:
+    """O-2: scene_mode 검증/보정 (multi 씬 유효성 확인)."""
+    # O-2c: Dialogue 외 구조에서 multi 차단
+    if structure.replace("_", " ") not in ("dialogue", "narrated dialogue"):
+        for scene in scenes:
+            if scene.get("scene_mode") == "multi":
+                scene["scene_mode"] = "single"
+                logger.warning("[Finalize] Non-dialogue structure, forcing scene_mode=single")
+
+    # O-2e: Narrator + multi 모순 보정
+    for scene in scenes:
+        if scene.get("speaker") == "Narrator" and scene.get("scene_mode") == "multi":
+            scene["scene_mode"] = "single"
+            logger.warning("[Finalize] Narrator scene cannot be multi, forcing single")
+
+    # O-2b: multi인데 character_b_id 없으면 single로 보정
+    state_char_b = state.get("character_b_id") or state.get("draft_character_b_id")
+    if not state_char_b:
+        for scene in scenes:
+            if scene.get("scene_mode") == "multi":
+                scene["scene_mode"] = "single"
+                logger.warning("[Finalize] scene_mode=multi but character_b_id=None, forcing single")
+
+    # O-2d: multi 씬 상한 경고
+    multi_count = sum(1 for s in scenes if s.get("scene_mode") == "multi")
+    if multi_count > 2:
+        logger.warning("[Finalize] %d multi scenes detected (max recommended: 2)", multi_count)
+
+
 def _auto_populate_scene_flags(
     scenes: list[dict],
     character_id: int | None,
@@ -830,32 +859,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
 
         ensure_dialogue_speakers(scenes)
 
-    # ── O-2: scene_mode 검증/보정 ──────────────────────────────────
-    # O-2c: Dialogue 외 구조에서 multi 차단
-    if structure.replace("_", " ") not in ("dialogue", "narrated dialogue"):
-        for scene in scenes:
-            if scene.get("scene_mode") == "multi":
-                scene["scene_mode"] = "single"
-                logger.warning("[Finalize] Non-dialogue structure, forcing scene_mode=single")
-
-    for scene in scenes:
-        # O-2e: Narrator + multi 모순 보정
-        if scene.get("speaker") == "Narrator" and scene.get("scene_mode") == "multi":
-            scene["scene_mode"] = "single"
-            logger.warning("[Finalize] Narrator scene cannot be multi, forcing single")
-
-    # O-2b: multi인데 character_b_id 없으면 single로 보정
-    state_char_b = state.get("character_b_id") or state.get("draft_character_b_id")
-    if not state_char_b:
-        for scene in scenes:
-            if scene.get("scene_mode") == "multi":
-                scene["scene_mode"] = "single"
-                logger.warning("[Finalize] scene_mode=multi but character_b_id=None, forcing single")
-
-    # O-2d: multi 씬 상한 경고
-    multi_count = sum(1 for s in scenes if s.get("scene_mode") == "multi")
-    if multi_count > 2:
-        logger.warning("[Finalize] %d multi scenes detected (max recommended: 2)", multi_count)
+    _validate_scene_modes(scenes, structure, state)
 
     _sanitize_quality_tags(scenes)
 

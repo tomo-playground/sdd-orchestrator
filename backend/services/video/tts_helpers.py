@@ -72,6 +72,9 @@ def tts_cache_key(
 
     Includes TTS_NATURALNESS_SUFFIX so cache auto-invalidates when
     the global suffix setting changes. speaker를 포함하여 화자별 캐시 분리.
+
+    Note: Phase 30-O에서 speaker 파라미터 추가로 기존 캐시 키 형식 변경됨.
+    배포 시 기존 TTS 캐시가 자연스럽게 miss 처리되어 재생성됨 (의도된 동작).
     """
     from config import TTS_NATURALNESS_SUFFIX
 

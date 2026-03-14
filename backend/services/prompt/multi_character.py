@@ -200,27 +200,27 @@ class MultiCharacterComposer:
 
     def _build_lora_string(self, char_a: Character, char_b: Character, style_loras: list[dict] | None) -> str:
         """Build LoRA injection string with dedup and weight scaling."""
-        injected: dict[str, tuple[str, float]] = {}  # name -> (lora_tag, weight)
+        char_loras: dict[str, tuple[str, float]] = {}  # name -> (lora_tag, weight)
+        style_lora_tags: list[str] = []
 
-        # Character LoRAs
+        # Character LoRAs (weight 상한 적용 대상)
         for char in [char_a, char_b]:
-            self._inject_character_loras(char, injected)
+            self._inject_character_loras(char, char_loras)
 
-        # Style LoRAs (dedup)
+        # Style LoRAs (상한 제외, 개별 cap만 적용)
         if style_loras:
             for lora in style_loras:
                 name = lora.get("name", "")
-                if name in injected:
+                if name in char_loras:
                     continue
                 weight = lora.get("weight") or self.builder.get_lora_weight_by_name(name)
                 weight = PromptBuilder._cap_lora_weight(weight)
-                injected[name] = (f"<lora:{name}:{weight}>", float(weight))
+                style_lora_tags.append(f"<lora:{name}:{weight}>")
 
-        if not injected:
-            return ""
-
-        # LoRA weight 합산 상한 검증
-        return self._cap_total_lora_weight(injected)
+        # Character LoRA만 합산 상한 검증
+        capped = self._cap_total_lora_weight(char_loras) if char_loras else ""
+        parts = [p for p in [capped, ", ".join(style_lora_tags)] if p]
+        return ", ".join(parts)
 
     def _inject_character_loras(self, character: Character, injected: dict[str, tuple[str, float]]) -> None:
         """Inject a character's LoRAs with SCENE_CHARACTER_LORA_SCALE 적용."""

@@ -220,9 +220,8 @@ REFERENCE_STYLE_LORA_SCALE = float(os.getenv("REFERENCE_STYLE_LORA_SCALE", "1.0"
 SCENE_CHARACTER_LORA_SCALE = float(os.getenv("SCENE_CHARACTER_LORA_SCALE", "0.45"))
 
 # --- Multi-Character Scene ---
-MULTI_CHAR_NEGATIVE_EXTRA = "solo, fused_body, merged_body"
+MULTI_CHAR_NEGATIVE_EXTRA = os.getenv("MULTI_CHAR_NEGATIVE_EXTRA", "solo, fused_body, merged_body")
 MULTI_CHAR_MAX_TOTAL_LORA_WEIGHT = float(os.getenv("MULTI_CHAR_MAX_TOTAL_LORA_WEIGHT", "1.5"))
-MULTI_CHAR_CANDIDATE_COUNT = int(os.getenv("MULTI_CHAR_CANDIDATE_COUNT", "3"))
 
 # --- Base Model ---
 # SSOT for SD base model identifiers. All API inputs are normalized to these values.
