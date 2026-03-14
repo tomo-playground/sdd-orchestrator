@@ -33,6 +33,14 @@ Evaluate whether the script meets the creative direction established in the plan
 
 {{ review_result | tojson(indent=2) }}
 
+{% if writer_plan and writer_plan.get("locations") %}
+## Writer's Location Map (검증 필수)
+
+{% for loc in writer_plan.get("locations", []) %}
+- **{{ loc.get("name", "?") }}** (씬 인덱스: {{ loc.get("scenes", []) | join(", ") }}): 태그 = {{ loc.get("tags", []) | join(", ") }}
+{% endfor %}
+{% endif %}
+
 ## Evaluation Instructions
 
 다음 기준으로 스크립트를 평가하세요:
@@ -41,6 +49,11 @@ Evaluate whether the script meets the creative direction established in the plan
 2. **Target Emotion 일치도**: 시청자가 의도한 감정을 느낄 수 있는가?
 3. **Quality Criteria 충족도**: Plan의 각 품질 기준을 충족하는가?
 4. **전체 완성도**: 쇼츠 영상으로서 시청 유지력이 있는가?
+5. **Location Map 타당성** (Writer Plan의 locations가 있는 경우 필수 검증):
+   - 각 location에 배정된 씬들이 실제 대본 내용과 일치하는가?
+   - 같은 대화/활동 시퀀스가 다른 장소로 나뉘어지지 않았는가? (예: 발표 중인 씬이 회의실이 아닌 호텔로 배정)
+   - 물리적 이동 없이 장소가 바뀌는 경우가 없는가?
+   - **Location Map 오류 발견 시 반드시 revise 권고**하고 feedback에 "Location Map 수정 필요: [구체적 씬 번호와 올바른 장소]" 형식으로 명시할 것
 
 **통과 기준**: score >= {{ threshold }} 이면 proceed 권장
 

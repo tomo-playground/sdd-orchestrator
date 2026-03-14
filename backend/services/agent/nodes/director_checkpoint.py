@@ -59,6 +59,7 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
     director_plan = state.get("director_plan") or {}
     template_vars = {
         "director_plan": director_plan,
+        "writer_plan": state.get("writer_plan") or {},
         "draft_scenes": state.get("draft_scenes") or [],
         "review_result": state.get("review_result") or {},
         "topic": state.get("topic", ""),
