@@ -731,10 +731,11 @@ def _auto_populate_scene_flags(
     valid_poses = set(POSE_MAPPING.keys())
 
     for scene in scenes:
-        # O-2a: multi 씬은 ControlNet/IP-Adapter 미지원
+        # O-2a: multi 씬은 ControlNet/IP-Adapter 미지원 + 후보 3장 자동 활성화
         if scene.get("scene_mode") == "multi":
             scene["use_controlnet"] = False
             scene["use_ip_adapter"] = False
+            scene["multi_gen_enabled"] = True
             continue
 
         is_narrator = scene.get("speaker") == "Narrator"

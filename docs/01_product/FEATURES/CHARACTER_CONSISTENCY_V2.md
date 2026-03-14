@@ -390,7 +390,7 @@ is_multi_character_capable = (
 
 | # | 항목 | 설명 |
 |---|------|------|
-| O-2a | `_auto_populate_scene_flags()` scene_mode 분기 | `scene_mode=multi` → `use_controlnet=False`, `use_ip_adapter=False` 자동 강제 |
+| O-2a | `_auto_populate_scene_flags()` scene_mode 분기 | `scene_mode=multi` → `use_controlnet=False`, `use_ip_adapter=False`, `multi_gen_enabled=True` 자동 강제 (3후보 생성 → 사용자 선택) |
 | O-2b | `scene_mode=multi` + `character_b_id=None` 검증 | character_b_id 없으면 `scene_mode=single`로 폴백 + 경고 로그 |
 | O-2c | Dialogue 외 구조에서 multi 차단 | Monologue/Confession에서 scene_mode=multi 방지 |
 | O-2d | multi 씬 상한 검증 | 스토리보드당 multi 씬 최대 2개 초과 시 경고 로그 |
