@@ -379,12 +379,14 @@ async def generate_tts(
     # --- TTS result cache lookup ---
     voice_design_for_cache = scene_req.voice_design_prompt or builder.request.voice_design_prompt or ""
     scene_emotion = getattr(scene_req, "scene_emotion", "") or ""
+    speaker = getattr(scene_req, "speaker", None) or DEFAULT_SPEAKER
     cache_key = tts_cache_key(
         clean_script,
         resolved_preset_id,
         voice_design_for_cache,
         TTS_DEFAULT_LANGUAGE,
         scene_emotion,
+        speaker=speaker,
     )
     cached = TTS_CACHE_DIR / f"{cache_key}.wav"
     if cached.exists() and cached.stat().st_size > 0:

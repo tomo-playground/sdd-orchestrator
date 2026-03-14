@@ -27,6 +27,13 @@ if TYPE_CHECKING:
 def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
     """Apply ControlNet + IP-Adapter to payload. Writes to ctx.controlnet_used, ctx.ip_adapter_used."""
     req = ctx.request
+
+    # Multi-character 씬은 ControlNet/IP-Adapter 미지원
+    # (_resolve_effective_character_b_id에서 이미 scene_mode 검증 완료)
+    if getattr(ctx, "character_b_id", None):
+        logger.info("⏭️ [ControlNet] Skipped for multi-character scene")
+        return
+
     strategy = ctx.consistency
     controlnet_args_list: list[dict] = []
 

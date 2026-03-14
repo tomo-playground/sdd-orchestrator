@@ -35,7 +35,6 @@ _SCRIPT_ATTRS = {
     "create_storyboard",
     "_call_gemini_with_retry",
     "_load_character_context",
-    "_check_multi_character_capable",
 }
 
 
@@ -54,7 +53,6 @@ __all__ = [
     "create_storyboard",
     "_call_gemini_with_retry",
     "_load_character_context",
-    "_check_multi_character_capable",
     # helpers
     "strip_markdown_codeblock",
     "normalize_scene_tags_key",

@@ -66,17 +66,18 @@ def tts_cache_key(
     voice_design_prompt: str | None,
     language: str,
     scene_emotion: str = "",
+    speaker: str | None = None,
 ) -> str:
     """Deterministic hash for TTS caching based on text + voice config.
 
     Includes TTS_NATURALNESS_SUFFIX so cache auto-invalidates when
-    the global suffix setting changes.
+    the global suffix setting changes. speaker를 포함하여 화자별 캐시 분리.
     """
     from config import TTS_NATURALNESS_SUFFIX
 
     parts = (
         f"{text}|{voice_preset_id}|{voice_design_prompt or ''}|"
-        f"{language}|{scene_emotion or ''}|{TTS_NATURALNESS_SUFFIX}"
+        f"{language}|{scene_emotion or ''}|{speaker or ''}|{TTS_NATURALNESS_SUFFIX}"
     )
     return hashlib.sha256(parts.encode()).hexdigest()[:16]
 
@@ -185,7 +186,7 @@ def _resolve_character_preset(storyboard_id: int, speaker: str, db) -> int | Non
     resolved_char_id = resolve_speaker_to_character(storyboard_id, speaker, db)
     if not resolved_char_id:
         logger.warning(
-            "[TTS] No character mapping for speaker '%s' in storyboard %d. Falling back to default voice.",
+            "🔊 [TTS] Speaker '%s' could not be resolved to a character (storyboard_id=%d). Falling back to default voice.",
             speaker,
             storyboard_id,
         )

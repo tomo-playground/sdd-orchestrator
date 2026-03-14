@@ -37,13 +37,6 @@ class LoRA(Base, TimestampMixin):
     optimal_weight: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
     calibration_score: Mapped[int | None] = mapped_column(Integer)
 
-    # Multi-Character Support
-    is_multi_character_capable: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
-    multi_char_weight_scale: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
-    # 2인 씬에서 LoRA weight 비율 (예: 0.75 = 기본 weight의 75%)
-    multi_char_trigger_prompt: Mapped[str | None] = mapped_column(String(200))
-    # 멀티캐릭터 호출 프롬프트 (예: "a boy and a girl")
-
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
 

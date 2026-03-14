@@ -335,7 +335,7 @@ class TestTTSWarningOnMissingMapping:
         # Should have logged a warning about missing mapping
         mock_logger.warning.assert_called_once()
         warning_args = mock_logger.warning.call_args[0]
-        assert "No character mapping for speaker" in warning_args[0]
+        assert "could not be resolved to a character" in warning_args[0]
         # %s and %d params: speaker='A', storyboard_id=sb_id
         assert warning_args[1] == "A"
         assert warning_args[2] == sb_id

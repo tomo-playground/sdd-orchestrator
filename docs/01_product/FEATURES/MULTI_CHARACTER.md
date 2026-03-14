@@ -1,6 +1,6 @@
 # Multi-Character 지원
 
-> 상태: **완료** (2026-02-11, Multi-Character LoRA 지원 추가)
+> 상태: **완료** (2026-02-11 기반 구축, Phase 30-O에서 V-Pred 2인 동시 출연 구현 예정)
 
 ## 배경
 
@@ -38,15 +38,25 @@
 - speaker="A" 씬은 Character A 태그/LoRA, speaker="B" 씬은 Character B 태그/LoRA 사용
 - 현재는 "교대 표시" 방식 (씬별 한 캐릭터). "한 프레임에 2캐릭터"는 SD 기술적 한계로 별도 과제.
 
-### Multi-Character LoRA 지원 (2026-02-11)
-- `loras` 테이블에 멀티캐릭터 필드 3개 추가:
-  - `is_multi_character_capable` (Boolean): 2인 동시 출연 지원 여부
-  - `multi_char_weight_scale` (Numeric(3,2)): 2인 씬에서 LoRA weight 축소 비율
-  - `multi_char_trigger_prompt` (String(200)): 멀티캐릭터 전용 호출 프롬프트
-- `scenes.scene_mode` (String(10)): `"single"` (1인) or `"multi"` (2인 동시 출연)
-- Scene Generate API (`POST /scene/generate`): `character_b_id` 파라미터로 두 번째 캐릭터 지정
-- Prompt Compose API (`POST /prompt/compose`): `character_b_id`, `scene_id` 파라미터 추가
-- 2인 동시 출연 시 각 LoRA의 `multi_char_weight_scale`로 가중치 자동 축소
+### Multi-Character LoRA 지원 (2026-02-11) — Phase 30-O에서 제거 예정
+
+> **폐기 예정**: NoobAI-XL V-Pred 전환으로 LoRA 없이도 2인 생성 10/10 성공.
+> LoRA 기반 게이트가 실제 능력을 차단하는 병목이 됨. Phase 30-O에서 3필드 DROP 예정.
+
+- ~~`loras` 테이블에 멀티캐릭터 필드 3개~~ → **Phase 30-O에서 제거**:
+  - ~~`is_multi_character_capable`~~ — 모델 자체가 지원하므로 불필요
+  - ~~`multi_char_weight_scale`~~ — `SCENE_CHARACTER_LORA_SCALE` 상수로 대체 완료
+  - ~~`multi_char_trigger_prompt`~~ — 사용 실적 0건
+- `scenes.scene_mode` (String(10)): `"single"` (1인) or `"multi"` (2인 동시 출연) — **유지**
+- Scene Generate API (`POST /scene/generate`): `character_b_id` 파라미터 — **유지**
+- Prompt Compose API (`POST /prompt/compose`): `character_b_id`, `scene_id` 파라미터 — **유지**
+
+### Phase 30-O: V-Pred 2인 동시 출연 (2026-03-14 착수 예정)
+
+- **방식**: 일반 txt2img 프롬프트 (Regional Prompter/Forge Couple/MultiDiffusion V-Pred 미호환)
+- **게이트 변경**: LoRA 체크 → Dialogue 구조 + 2캐릭터 존재 조건으로 단순화
+- **BLOCKER 방어**: scene_mode=multi 시 ControlNet/IP-Adapter 자동 비활성화
+- **상세 계획**: [CHARACTER_CONSISTENCY_V2.md Sub-Phase O](CHARACTER_CONSISTENCY_V2.md)
 
 ## 수락 기준
 
@@ -56,5 +66,7 @@
 | 2 | 캐릭터별 독립적 포즈/표정 설정 | ✅ |
 | 3 | 생성된 이미지에 다중 캐릭터 반영 | ✅ |
 | 4 | 기존 단일 캐릭터 워크플로우 영향 없음 | ✅ |
-| 5 | LoRA별 멀티캐릭터 지원 여부 설정 가능 | ✅ |
-| 6 | 2인 씬에서 LoRA weight 자동 축소 | ✅ |
+| 5 | ~~LoRA별 멀티캐릭터 지원 여부 설정 가능~~ | ~~✅~~ → Phase 30-O에서 제거 |
+| 6 | ~~2인 씬에서 LoRA weight 자동 축소~~ | ~~✅~~ → `SCENE_CHARACTER_LORA_SCALE`로 대체 |
+| 7 | **V-Pred 2인 동시 출연 성공률 > 80%** | ⬜ Phase 30-O |
+| 8 | **Multi 씬 ControlNet/IP-Adapter 자동 비활성화** | ⬜ Phase 30-O |

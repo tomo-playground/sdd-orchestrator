@@ -83,6 +83,10 @@ def _resolve_effective_character_b_id(request: SceneGenerateRequest, db) -> int 
     """Resolve character_b_id only when scene_mode='multi'."""
     if not request.character_b_id or not request.scene_id:
         return None
+    # 동일 ID 방어
+    if request.character_b_id == request.character_id:
+        logger.warning("👥 [Multi-Char] character_b_id == character_id (%d), ignoring", request.character_id)
+        return None
     from models.scene import Scene
 
     scene = db.query(Scene).filter(Scene.id == request.scene_id, Scene.deleted_at.is_(None)).first()
@@ -472,7 +476,10 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     if effective_b_id:
         from models import Character as _CharModel
 
-        _char_b = db.query(_CharModel).filter(_CharModel.id == effective_b_id).first()
+        _char_b = db.query(_CharModel).filter(
+            _CharModel.id == effective_b_id,
+            _CharModel.deleted_at.is_(None),
+        ).first()
         _chars_for_neg.append(_char_b)
     for _ch in _chars_for_neg:
         if not _ch:

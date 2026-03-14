@@ -129,7 +129,7 @@ def _check_scenes(scenes, issues: list[PreValidateIssue]) -> int:
 
         if has_speakable_content(script):
             cleaned = clean_script_for_tts(script)
-            ck = tts_cache_key(cleaned, None, None, "korean")
+            ck = tts_cache_key(cleaned, None, None, "korean", speaker=getattr(scene, "speaker", None))
             if (TTS_CACHE_DIR / f"{ck}.wav").exists():
                 cached_tts += 1
             else:

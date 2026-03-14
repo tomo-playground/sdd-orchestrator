@@ -80,7 +80,8 @@ class TestTTSCacheKeyConsistency:
         from config import TTS_NATURALNESS_SUFFIX
 
         text, pid, design, lang, emotion = "hello", 1, "warm", "korean", ""
-        parts = f"{text}|{pid}|{design}|{lang}|{emotion}|{TTS_NATURALNESS_SUFFIX}"
+        # speaker=None → 빈 문자열
+        parts = f"{text}|{pid}|{design}|{lang}|{emotion}||{TTS_NATURALNESS_SUFFIX}"
         expected = hashlib.sha256(parts.encode()).hexdigest()[:16]
         actual = tts_cache_key(text, pid, design, lang)
         assert actual == expected
@@ -97,7 +98,8 @@ class TestTTSCacheKeyConsistency:
         """None preset_id is included as 'None' in the hash input."""
         from config import TTS_NATURALNESS_SUFFIX
 
-        parts_none = f"test|{None}|{''}|korean||{TTS_NATURALNESS_SUFFIX}"
+        # speaker=None → 빈 문자열 (2번째 | 뒤)
+        parts_none = f"test|{None}|{''}|korean|||{TTS_NATURALNESS_SUFFIX}"
         expected = hashlib.sha256(parts_none.encode()).hexdigest()[:16]
         actual = tts_cache_key("test", None, None, "korean")
         assert actual == expected
@@ -146,9 +148,9 @@ class TestPreviewSceneTTS:
 
         req = SceneTTSPreviewRequest(script="안녕하세요 테스트입니다.", language="korean")
 
-        # Pre-compute cache key
+        # Pre-compute cache key (speaker 포함)
         cleaned = clean_script_for_tts(req.script)
-        cache_key = tts_cache_key(cleaned, None, None, "korean")
+        cache_key = tts_cache_key(cleaned, None, None, "korean", speaker=req.speaker)
 
         # Create a minimal WAV file in the tmp cache dir
         wav_path = tmp_path / f"{cache_key}.wav"
@@ -212,9 +214,9 @@ class TestPreviewSceneTTS:
         assert result.temp_asset_id == 42
         mock_synth.assert_called_once()
 
-        # Verify cache file was written
+        # Verify cache file was written (speaker 포함)
         cleaned = clean_script_for_tts(req.script)
-        cache_key = tts_cache_key(cleaned, None, None, "korean")
+        cache_key = tts_cache_key(cleaned, None, None, "korean", speaker=req.speaker)
         assert (tmp_path / f"{cache_key}.wav").exists()
 
     @pytest.mark.asyncio

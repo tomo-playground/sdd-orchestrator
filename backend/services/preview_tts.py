@@ -94,7 +94,7 @@ async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
         voice_seed = TTS_DEFAULT_SEED
 
     # Build cache key (identical to render pipeline)
-    cache_key = tts_cache_key(cleaned, voice_preset_id, voice_design, req.language)
+    cache_key = tts_cache_key(cleaned, voice_preset_id, voice_design, req.language, speaker=req.speaker)
     cache_path = TTS_CACHE_DIR / f"{cache_key}.wav"
 
     # Force regenerate: delete existing cache + randomise seed
@@ -241,6 +241,7 @@ async def preview_batch_tts(
                 scene_req.voice_preset_id,
                 scene_req.voice_design_prompt,
                 scene_req.language,
+                speaker=scene_req.speaker,
             )
             logger.warning("[Preview] Batch TTS failed for scene %d: %s", i, result)
             items.append(BatchTTSPreviewItem(scene_index=i, status="failed", cache_key=ck, error=str(result)))

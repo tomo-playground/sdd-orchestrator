@@ -330,37 +330,6 @@ def _load_character_context(character_id: int, db: Session) -> dict | None:
     return ctx
 
 
-def _check_multi_character_capable(
-    character_id: int | None,
-    character_b_id: int | None,
-    db: Session,
-) -> bool:
-    """Check if any LoRA across both characters supports multi-character rendering.
-
-    Queries each character's loras JSONB, looks up LoRA rows, and returns True
-    if at least one has is_multi_character_capable=True.
-    """
-    from models.lora import LoRA
-
-    char_ids = [cid for cid in (character_id, character_b_id) if cid]
-    if not char_ids:
-        return False
-
-    chars = db.query(Character).filter(Character.id.in_(char_ids)).all()
-    lora_ids: set[int] = set()
-    for char in chars:
-        for entry in char.loras or []:
-            lid = entry.get("lora_id")
-            if lid:
-                lora_ids.add(lid)
-
-    if not lora_ids:
-        return False
-
-    count = db.query(LoRA.id).filter(LoRA.id.in_(lora_ids), LoRA.is_multi_character_capable.is_(True)).count()
-    return count > 0
-
-
 async def generate_script(request, db: Session | None = None, pipeline_context: dict | None = None) -> dict:
     """Generate a storyboard from a topic using Gemini (async)."""
     if not gemini_client:
@@ -389,14 +358,14 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         if has_two_characters and request.character_b_id and db:
             character_b_context = _load_character_context(request.character_b_id, db)
 
-        # Detect multi-character capable LoRA for template injection
-        is_multi_character_capable = False
-        if has_two_characters and db:
-            is_multi_character_capable = _check_multi_character_capable(
-                request.character_id, request.character_b_id, db
-            )
-            if is_multi_character_capable:
-                logger.info("[Storyboard] Multi-character capable LoRA detected")
+        # 2인 구조 + 양쪽 캐릭터 지정 → 멀티캐릭터 모드
+        is_multi_character_capable = (
+            structure_normalized in ("dialogue", "narrated dialogue")
+            and request.character_id is not None
+            and request.character_b_id is not None
+        )
+        if is_multi_character_capable:
+            logger.info("[Storyboard] Multi-character mode enabled")
 
         # Release DB connection before Gemini API call (10-30s)
         # DB auto-reconnects when needed later (auto_populate_character_actions)

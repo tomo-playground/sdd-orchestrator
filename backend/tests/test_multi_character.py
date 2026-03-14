@@ -1,39 +1,13 @@
-"""Tests for multi-character support (Phase 1-4)."""
+"""Tests for multi-character support (Phase 30-O)."""
 
 from models.lora import LoRA
 from models.scene import Scene
 from models.storyboard import Storyboard
 
-# ── Phase 1: Model defaults ──────────────────────────────────────────
+# ── Scene model defaults ─────────────────────────────────────────────
 
 
 class TestMultiCharacterModels:
-    def test_lora_multi_character_default_false(self, db_session):
-        """is_multi_character_capable defaults to False."""
-        lora = LoRA(name="test_lora")
-        db_session.add(lora)
-        db_session.flush()
-
-        assert lora.is_multi_character_capable is False
-        assert lora.multi_char_weight_scale is None
-        assert lora.multi_char_trigger_prompt is None
-
-    def test_lora_multi_character_enabled(self, db_session):
-        """LoRA with multi-character fields set correctly."""
-        lora = LoRA(
-            name="j_huiben",
-            is_multi_character_capable=True,
-            multi_char_weight_scale=0.75,
-            multi_char_trigger_prompt="a boy and a girl",
-        )
-        db_session.add(lora)
-        db_session.flush()
-
-        fetched = db_session.query(LoRA).filter(LoRA.name == "j_huiben").first()
-        assert fetched.is_multi_character_capable is True
-        assert float(fetched.multi_char_weight_scale) == 0.75
-        assert fetched.multi_char_trigger_prompt == "a boy and a girl"
-
     def test_scene_mode_default_single(self, db_session):
         """scene_mode defaults to 'single'."""
         sb = Storyboard(title="test", group_id=1)
@@ -60,59 +34,7 @@ class TestMultiCharacterModels:
         assert fetched.scene_mode == "multi"
 
 
-# ── Phase 2: Multi-character capability check ────────────────────────
-
-
-class TestMultiCharacterCapable:
-    def test_check_multi_character_capable_true(self, db_session):
-        """LoRA with is_multi_character_capable=True -> returns True."""
-        from models.character import Character
-        from services.storyboard import _check_multi_character_capable
-
-        lora = LoRA(name="multi_lora", is_multi_character_capable=True)
-        db_session.add(lora)
-        db_session.flush()
-
-        char_a = Character(name="char_a", group_id=1, loras=[{"lora_id": lora.id, "weight": 1.0}])
-        char_b = Character(name="char_b", group_id=1, loras=[])
-        db_session.add_all([char_a, char_b])
-        db_session.flush()
-
-        result = _check_multi_character_capable(char_a.id, char_b.id, db_session)
-        assert result is True
-
-    def test_check_multi_character_capable_false(self, db_session):
-        """LoRA without multi-character flag -> returns False."""
-        from models.character import Character
-        from services.storyboard import _check_multi_character_capable
-
-        lora = LoRA(name="single_lora", is_multi_character_capable=False)
-        db_session.add(lora)
-        db_session.flush()
-
-        char_a = Character(name="char_c", group_id=1, loras=[{"lora_id": lora.id, "weight": 1.0}])
-        char_b = Character(name="char_d", group_id=1, loras=[])
-        db_session.add_all([char_a, char_b])
-        db_session.flush()
-
-        result = _check_multi_character_capable(char_a.id, char_b.id, db_session)
-        assert result is False
-
-    def test_check_multi_character_capable_no_loras(self, db_session):
-        """Characters with no LoRAs -> returns False."""
-        from models.character import Character
-        from services.storyboard import _check_multi_character_capable
-
-        char_a = Character(name="char_e", group_id=1, loras=[])
-        char_b = Character(name="char_f", group_id=1, loras=[])
-        db_session.add_all([char_a, char_b])
-        db_session.flush()
-
-        result = _check_multi_character_capable(char_a.id, char_b.id, db_session)
-        assert result is False
-
-
-# ── Phase 2: Character action resolver multi scene ───────────────────
+# ── Character action resolver multi scene ─────────────────────────────
 
 
 class TestCharacterActionResolverMulti:
@@ -165,7 +87,7 @@ class TestCharacterActionResolverMulti:
         assert 200 not in char_ids, "Speaker B should NOT have actions in single mode"
 
 
-# ── Phase 3: MultiCharacterComposer ─────────────────────────────────
+# ── MultiCharacterComposer ───────────────────────────────────────────
 
 
 def _make_char_with_tags(db, name, gender, tag_defs, loras=None):
@@ -196,7 +118,7 @@ def _make_char_with_tags(db, name, gender, tag_defs, loras=None):
 
 
 class TestMultiCharacterComposer:
-    """Phase 3: MultiCharacterComposer unit tests."""
+    """MultiCharacterComposer unit tests."""
 
     def test_subject_layer_mixed_gender(self, db_session):
         """male + female -> '1boy, 1girl' in subject."""
@@ -243,6 +165,73 @@ class TestMultiCharacterComposer:
         assert "red_hair" in result
         assert "blue_hair" in result
 
+    def test_break_structure(self, db_session):
+        """BREAK 토큰으로 공통/CharA/CharB 분리."""
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
+
+        char_a = _make_char_with_tags(db_session, "brk_a", "male", [("red_hair", 2, 1.0)])
+        char_b = _make_char_with_tags(db_session, "brk_b", "female", [("blue_hair", 2, 1.0)])
+
+        builder = PromptBuilder(db_session)
+        composer = MultiCharacterComposer(builder)
+        result = composer.compose(char_a, char_b, ["classroom"])
+
+        sections = result.split("\nBREAK\n")
+        assert len(sections) == 3, f"Expected 3 BREAK sections, got {len(sections)}"
+        # 공통: quality + subject + scene
+        assert "1boy" in sections[0]
+        # 개별 캐릭터
+        assert "red_hair" in sections[1]
+        assert "blue_hair" in sections[2]
+
+    def test_per_break_dedup(self, db_session):
+        """Per-BREAK dedup: 양쪽 캐릭터에 같은 태그가 있으면 각 섹션에 유지."""
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
+
+        char_a = _make_char_with_tags(db_session, "dd_a", "male", [("school_uniform", 4, 1.0)])
+        char_b = _make_char_with_tags(db_session, "dd_b", "female", [("school_uniform", 4, 1.0)])
+
+        builder = PromptBuilder(db_session)
+        composer = MultiCharacterComposer(builder)
+        result = composer.compose(char_a, char_b, ["classroom"])
+
+        sections = result.split("\nBREAK\n")
+        # 각 캐릭터 섹션에 school_uniform 유지 (per-BREAK dedup)
+        assert "school_uniform" in sections[1]
+        assert "school_uniform" in sections[2]
+
+    def test_banned_tags_solo_removed(self, db_session):
+        """solo 태그가 멀티캐릭터 씬에서 제거됨."""
+        from models.associations import CharacterTag
+        from models.tag import Tag
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
+
+        # solo 태그를 가진 캐릭터
+        char_a = _make_char_with_tags(db_session, "solo_a", "male", [("red_hair", 2, 1.0)])
+        solo_tag = db_session.query(Tag).filter(Tag.name == "solo").first()
+        if not solo_tag:
+            solo_tag = Tag(name="solo", default_layer=1)
+            db_session.add(solo_tag)
+            db_session.flush()
+        ct = CharacterTag(character_id=char_a.id, tag_id=solo_tag.id, weight=1.0)
+        db_session.add(ct)
+        db_session.flush()
+        db_session.refresh(char_a)
+
+        char_b = _make_char_with_tags(db_session, "solo_b", "female", [("blue_hair", 2, 1.0)])
+
+        builder = PromptBuilder(db_session)
+        composer = MultiCharacterComposer(builder)
+        result = composer.compose(char_a, char_b, ["classroom"])
+
+        # solo 는 BREAK 어디에도 없어야 함
+        for section in result.split("\nBREAK\n"):
+            tokens = [t.strip().lower() for t in section.split(",")]
+            assert "solo" not in tokens, f"solo should be removed, found in: {section}"
+
     def test_lora_dedup_same_style(self, db_session):
         """Shared style LoRA only injected once."""
         from services.prompt.composition import PromptBuilder
@@ -261,17 +250,13 @@ class TestMultiCharacterComposer:
 
         assert result.count("<lora:flat_color:") == 1
 
-    def test_lora_weight_scale_applied(self, db_session):
-        """multi_char_weight_scale reduces LoRA weight."""
+    def test_scene_character_lora_scale_applied(self, db_session):
+        """SCENE_CHARACTER_LORA_SCALE 적용으로 LoRA weight 감소."""
+        from config import SCENE_CHARACTER_LORA_SCALE
         from services.prompt.composition import PromptBuilder
         from services.prompt.multi_character import MultiCharacterComposer
 
-        lora = LoRA(
-            name="char_lora_a",
-            lora_type="character",
-            default_weight=1.0,
-            multi_char_weight_scale=0.75,
-        )
+        lora = LoRA(name="char_lora_scaled", lora_type="character", default_weight=1.0)
         db_session.add(lora)
         db_session.flush()
 
@@ -288,56 +273,81 @@ class TestMultiCharacterComposer:
         composer = MultiCharacterComposer(builder)
         result = composer.compose(char_a, char_b, ["classroom"])
 
-        # 1.0 * 0.75 = 0.75
-        assert "<lora:char_lora_a:0.75>" in result
+        expected_weight = round(1.0 * SCENE_CHARACTER_LORA_SCALE, 2)
+        assert f"<lora:char_lora_scaled:{expected_weight}>" in result
 
-    def test_trigger_prompt_used_when_available(self, db_session):
-        """LoRA multi_char_trigger_prompt used in subject."""
+    def test_lora_weight_cap_total(self, db_session):
+        """총 LoRA weight > MULTI_CHAR_MAX_TOTAL_LORA_WEIGHT 시 비례 축소."""
+        from config import MULTI_CHAR_MAX_TOTAL_LORA_WEIGHT, SCENE_CHARACTER_LORA_SCALE
         from services.prompt.composition import PromptBuilder
         from services.prompt.multi_character import MultiCharacterComposer
 
-        lora = LoRA(
-            name="j_huiben_test",
-            lora_type="character",
-            default_weight=0.8,
-            is_multi_character_capable=True,
-            multi_char_trigger_prompt="a boy and a girl",
-        )
-        db_session.add(lora)
+        # 높은 weight LoRA 2개 생성
+        lora_a = LoRA(name="heavy_lora_a", lora_type="character", default_weight=1.0)
+        lora_b = LoRA(name="heavy_lora_b", lora_type="character", default_weight=1.0)
+        db_session.add_all([lora_a, lora_b])
         db_session.flush()
 
+        # 높은 weight 로 설정 → 스케일 후에도 합산이 상한 초과하도록
+        high_w = round(MULTI_CHAR_MAX_TOTAL_LORA_WEIGHT / SCENE_CHARACTER_LORA_SCALE + 1.0, 2)
         char_a = _make_char_with_tags(
             db_session,
-            "trigger_char",
+            "heavy_a",
             "male",
             [("red_hair", 2, 1.0)],
-            loras=[{"lora_id": lora.id, "weight": 0.8}],
+            loras=[{"lora_id": lora_a.id, "weight": high_w}],
         )
-        char_b = _make_char_with_tags(db_session, "trigger_char_b", "female", [("blue_hair", 2, 1.0)])
+        char_b = _make_char_with_tags(
+            db_session,
+            "heavy_b",
+            "female",
+            [("blue_hair", 2, 1.0)],
+            loras=[{"lora_id": lora_b.id, "weight": high_w}],
+        )
 
         builder = PromptBuilder(db_session)
         composer = MultiCharacterComposer(builder)
         result = composer.compose(char_a, char_b, ["classroom"])
 
-        assert "a boy and a girl" in result
-        assert "1boy, 1girl" not in result
+        # LoRA weight 합산이 상한 이하로 축소되었는지 확인
+        import re
 
-    def test_fallback_to_gender_tags_without_trigger(self, db_session):
-        """No trigger prompt -> fallback to gender tags."""
+        weights = [float(m) for m in re.findall(r"<lora:\w+:([\d.]+)>", result)]
+        assert len(weights) == 2, f"Expected 2 LoRAs, got {len(weights)}"
+        assert sum(weights) <= MULTI_CHAR_MAX_TOTAL_LORA_WEIGHT + 0.01
+
+    def test_interaction_tag_injected(self, db_session):
+        """interaction 태그 없으면 facing_another 자동 주입."""
         from services.prompt.composition import PromptBuilder
         from services.prompt.multi_character import MultiCharacterComposer
 
-        char_a = _make_char_with_tags(db_session, "no_trigger_a", "male", [("red_hair", 2, 1.0)])
-        char_b = _make_char_with_tags(db_session, "no_trigger_b", "female", [("blue_hair", 2, 1.0)])
+        char_a = _make_char_with_tags(db_session, "int_a", "male", [("red_hair", 2, 1.0)])
+        char_b = _make_char_with_tags(db_session, "int_b", "female", [("blue_hair", 2, 1.0)])
 
         builder = PromptBuilder(db_session)
         composer = MultiCharacterComposer(builder)
+        # scene_tags에 interaction 태그 없음
         result = composer.compose(char_a, char_b, ["classroom"])
 
-        assert "1boy, 1girl" in result
+        assert "facing_another" in result
+
+    def test_interaction_tag_not_injected_when_present(self, db_session):
+        """이미 interaction 태그가 scene_tags에 있으면 facing_another 추가 안 함."""
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
+
+        char_a = _make_char_with_tags(db_session, "int2_a", "male", [("red_hair", 2, 1.0)])
+        char_b = _make_char_with_tags(db_session, "int2_b", "female", [("blue_hair", 2, 1.0)])
+
+        builder = PromptBuilder(db_session)
+        composer = MultiCharacterComposer(builder)
+        # eye_contact 은 interaction 태그 → facing_another 추가 불필요
+        result = composer.compose(char_a, char_b, ["eye_contact", "classroom"])
+
+        assert "facing_another" not in result
 
     def test_camera_prefers_wide_framing(self, db_session):
-        """Multi-char prefer wide_shot/upper_body over close-up."""
+        """Multi-char prefer wide_shot over close-up."""
         from services.prompt.composition import PromptBuilder
         from services.prompt.multi_character import MultiCharacterComposer
 
@@ -364,15 +374,31 @@ class TestMultiCharacterComposer:
         assert "2girls" not in result
         assert "1boy" not in result
 
+    def test_gender_only_subject_no_trigger_prompt(self, db_session):
+        """trigger_prompt 제거 후 성별 기반 subject만 사용."""
+        from services.prompt.composition import PromptBuilder
+        from services.prompt.multi_character import MultiCharacterComposer
 
-# ── Phase 4: _resolve_effective_character_b_id ────────────────────────
+        char_a = _make_char_with_tags(db_session, "gen_a", "male", [("red_hair", 2, 1.0)])
+        char_b = _make_char_with_tags(db_session, "gen_b", "female", [("blue_hair", 2, 1.0)])
+
+        builder = PromptBuilder(db_session)
+        composer = MultiCharacterComposer(builder)
+        result = composer.compose(char_a, char_b, ["classroom"])
+
+        # 공통 섹션에 성별 태그
+        common_section = result.split("\nBREAK\n")[0]
+        assert "1boy, 1girl" in common_section
+
+
+# ── _resolve_effective_character_b_id ─────────────────────────────────
 
 
 class TestResolveEffectiveCharacterBId:
-    """Phase 4: Backend scene_mode gating for character_b_id."""
+    """Backend scene_mode gating for character_b_id."""
 
     def test_multi_scene_returns_character_b_id(self, db_session):
-        """scene_mode='multi' → returns character_b_id."""
+        """scene_mode='multi' -> returns character_b_id."""
         from schemas import SceneGenerateRequest
         from services.generation import _resolve_effective_character_b_id
 
@@ -394,7 +420,7 @@ class TestResolveEffectiveCharacterBId:
         assert result == 2
 
     def test_single_scene_ignores_character_b_id(self, db_session):
-        """scene_mode='single' → returns None even with character_b_id."""
+        """scene_mode='single' -> returns None even with character_b_id."""
         from schemas import SceneGenerateRequest
         from services.generation import _resolve_effective_character_b_id
 
@@ -416,7 +442,7 @@ class TestResolveEffectiveCharacterBId:
         assert result is None
 
     def test_no_scene_id_returns_none(self, db_session):
-        """No scene_id → returns None."""
+        """No scene_id -> returns None."""
         from schemas import SceneGenerateRequest
         from services.generation import _resolve_effective_character_b_id
 
@@ -429,7 +455,7 @@ class TestResolveEffectiveCharacterBId:
         assert result is None
 
     def test_no_character_b_id_returns_none(self, db_session):
-        """No character_b_id → returns None."""
+        """No character_b_id -> returns None."""
         from schemas import SceneGenerateRequest
         from services.generation import _resolve_effective_character_b_id
 
@@ -441,15 +467,29 @@ class TestResolveEffectiveCharacterBId:
         result = _resolve_effective_character_b_id(request, db_session)
         assert result is None
 
+    def test_same_character_a_b_returns_none(self, db_session):
+        """character_b_id == character_id -> returns None (동일 캐릭터 방어)."""
+        from schemas import SceneGenerateRequest
+        from services.generation import _resolve_effective_character_b_id
 
-# ── Phase: Realistic Style Profile quality tag compat ────────────────
+        request = SceneGenerateRequest(
+            prompt="test",
+            scene_id=1,
+            character_id=5,
+            character_b_id=5,
+        )
+        result = _resolve_effective_character_b_id(request, db_session)
+        assert result is None
+
+
+# ── Quality tag compatibility ─────────────────────────────────────────
 
 
 class TestMultiCharacterComposerQuality:
     """MultiCharacterComposer should not hardcode anime quality tags."""
 
     def test_quality_uses_fallback_when_no_style(self, db_session):
-        """No style profile → fallback quality tags (masterpiece, best_quality)."""
+        """No style profile -> fallback quality tags (masterpiece, best_quality)."""
         from services.prompt.composition import PromptBuilder
         from services.prompt.multi_character import MultiCharacterComposer
 
@@ -464,7 +504,7 @@ class TestMultiCharacterComposerQuality:
         assert "best_quality" in result
 
     def test_quality_respects_style_profile_tags(self, db_session):
-        """With realistic quality_tags → no anime tags injected."""
+        """With realistic quality_tags -> no anime tags injected."""
         from services.prompt.composition import PromptBuilder
         from services.prompt.multi_character import MultiCharacterComposer
 

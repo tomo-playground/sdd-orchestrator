@@ -889,10 +889,6 @@ class LoRABase(_BaseModelNormMixin):
     gender_locked: str | None = None
     civitai_id: int | None = None
     civitai_url: str | None = None
-    # Multi-Character Support
-    is_multi_character_capable: bool = False
-    multi_char_weight_scale: float | None = None
-    multi_char_trigger_prompt: str | None = None
     # preview_image_url removed - now read-only @property via preview_image_asset
 
 
@@ -912,10 +908,6 @@ class LoRAUpdate(_BaseModelNormMixin):
     weight_min: float | None = None
     weight_max: float | None = None
     gender_locked: Literal["female", "male"] | None = None
-    # Multi-Character Support
-    is_multi_character_capable: bool | None = None
-    multi_char_weight_scale: float | None = None
-    multi_char_trigger_prompt: str | None = None
     # preview_image_url removed - now read-only @property via preview_image_asset
 
 

@@ -219,6 +219,10 @@ REFERENCE_STYLE_LORA_SCALE = float(os.getenv("REFERENCE_STYLE_LORA_SCALE", "1.0"
 # Without scaling, LoRA at full weight (0.7) dominates clothing — text tags ignored
 SCENE_CHARACTER_LORA_SCALE = float(os.getenv("SCENE_CHARACTER_LORA_SCALE", "0.45"))
 
+# --- Multi-Character Scene ---
+MULTI_CHAR_NEGATIVE_EXTRA = "solo, fused_body, merged_body"
+MULTI_CHAR_MAX_TOTAL_LORA_WEIGHT = float(os.getenv("MULTI_CHAR_MAX_TOTAL_LORA_WEIGHT", "1.5"))
+
 # --- Base Model ---
 # SSOT for SD base model identifiers. All API inputs are normalized to these values.
 SUPPORTED_BASE_MODELS: set[str] = {"SD1.5", "SDXL", "FLUX"}

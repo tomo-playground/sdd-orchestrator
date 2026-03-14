@@ -341,6 +341,8 @@ def compose_scene_with_style(
         from services.prompt.multi_character import MultiCharacterComposer
 
         char_b = db.query(Character).filter(Character.id == character_b_id, Character.deleted_at.is_(None)).first()
+        if not char_b:
+            logger.warning("👥 [Multi-Char] character_b_id=%d not found or deleted, fallback to single", character_b_id)
         if char_b:
             composer = MultiCharacterComposer(builder)
             composed = composer.compose(
@@ -380,6 +382,12 @@ def compose_scene_with_style(
             continue
         if char.negative_prompt:
             modified_negative = f"{modified_negative}, {char.negative_prompt}"
+
+    # 3b. Multi-char 전용 negative 주입
+    if char_b:
+        from config import MULTI_CHAR_NEGATIVE_EXTRA
+
+        modified_negative = f"{modified_negative}, {MULTI_CHAR_NEGATIVE_EXTRA}"
 
     # 4. Merge builder warnings (LoRA compatibility, etc.)
     warnings.extend(builder.warnings)

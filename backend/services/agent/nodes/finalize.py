@@ -731,6 +731,12 @@ def _auto_populate_scene_flags(
     valid_poses = set(POSE_MAPPING.keys())
 
     for scene in scenes:
+        # O-2a: multi 씬은 ControlNet/IP-Adapter 미지원
+        if scene.get("scene_mode") == "multi":
+            scene["use_controlnet"] = False
+            scene["use_ip_adapter"] = False
+            continue
+
         is_narrator = scene.get("speaker") == "Narrator"
         # Dialogue: speaker B uses character_b_id, others use character_id
         scene_char_id = character_b_id if scene.get("speaker") == "B" else character_id
@@ -822,6 +828,33 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         from services.script.scene_postprocess import ensure_dialogue_speakers  # noqa: PLC0415
 
         ensure_dialogue_speakers(scenes)
+
+    # ── O-2: scene_mode 검증/보정 ──────────────────────────────────
+    # O-2c: Dialogue 외 구조에서 multi 차단
+    if structure.replace("_", " ") not in ("dialogue", "narrated dialogue"):
+        for scene in scenes:
+            if scene.get("scene_mode") == "multi":
+                scene["scene_mode"] = "single"
+                logger.warning("[Finalize] Non-dialogue structure, forcing scene_mode=single")
+
+    for scene in scenes:
+        # O-2e: Narrator + multi 모순 보정
+        if scene.get("speaker") == "Narrator" and scene.get("scene_mode") == "multi":
+            scene["scene_mode"] = "single"
+            logger.warning("[Finalize] Narrator scene cannot be multi, forcing single")
+
+    # O-2b: multi인데 character_b_id 없으면 single로 보정
+    state_char_b = state.get("character_b_id") or state.get("draft_character_b_id")
+    if not state_char_b:
+        for scene in scenes:
+            if scene.get("scene_mode") == "multi":
+                scene["scene_mode"] = "single"
+                logger.warning("[Finalize] scene_mode=multi but character_b_id=None, forcing single")
+
+    # O-2d: multi 씬 상한 경고
+    multi_count = sum(1 for s in scenes if s.get("scene_mode") == "multi")
+    if multi_count > 2:
+        logger.warning("[Finalize] %d multi scenes detected (max recommended: 2)", multi_count)
 
     _sanitize_quality_tags(scenes)
 
