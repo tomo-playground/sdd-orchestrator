@@ -53,3 +53,7 @@ output/
 
 # Terminal Paste Image folder
 .cp-images/
+
+# Experiment data (SD image generation tests)
+test_sdxl_compare/
+forge_tuning/
