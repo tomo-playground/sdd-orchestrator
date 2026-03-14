@@ -7,7 +7,7 @@ import hashlib
 
 import httpx
 
-from config import SD_TXT2IMG_URL, logger
+from config import SD_DEFAULT_SAMPLER, SD_TXT2IMG_URL, apply_sampler_to_payload, logger
 from services.storage import get_storage
 
 
@@ -102,14 +102,14 @@ async def ensure_avatar_file(
         "negative_prompt": "verybadimagenegative_v1.3",
         "steps": 20,
         "cfg_scale": 7.0,
-        "sampler_name": "DPM++ 2M",
-        "scheduler": "karras",
+        "sampler_name": SD_DEFAULT_SAMPLER,
         "seed": -1,
         "width": 256,
         "height": 256,
         "override_settings": {"CLIP_stop_at_last_layers": 2},
         "override_settings_restore_afterwards": True,
     }
+    apply_sampler_to_payload(payload, payload.pop("sampler_name"))
     try:
         logger.info(f"Requesting avatar from SD WebUI: {SD_TXT2IMG_URL}")
         async with httpx.AsyncClient() as client:

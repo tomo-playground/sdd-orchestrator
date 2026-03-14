@@ -28,6 +28,7 @@ def image_cache_key(payload: dict) -> str:
         "steps": payload.get("steps", 28),
         "cfg_scale": payload.get("cfg_scale", 7.0),
         "sampler_name": payload.get("sampler_name", ""),
+        "scheduler": payload.get("scheduler", ""),
         "clip_skip": payload.get("override_settings", {}).get("CLIP_stop_at_last_layers", 2),
     }
     # Include ControlNet fingerprint if present

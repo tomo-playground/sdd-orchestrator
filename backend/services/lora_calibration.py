@@ -11,7 +11,7 @@ import io
 import httpx
 from PIL import Image
 
-from config import SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, cap_style_lora_weight, logger
+from config import SD_DEFAULT_SAMPLER, SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, apply_sampler_to_payload, cap_style_lora_weight, logger
 from services.controlnet import build_controlnet_args, load_pose_reference
 from services.validation import compare_prompt_to_tags, wd14_predict_tags
 
@@ -55,8 +55,7 @@ async def generate_test_image(
         "negative_prompt": CALIBRATION_NEGATIVE,
         "steps": CALIBRATION_DEFAULT_SD_STEPS,
         "cfg_scale": 7.0,
-        "sampler_name": "DPM++ 2M",
-        "scheduler": "karras",
+        "sampler_name": SD_DEFAULT_SAMPLER,
         "seed": CALIBRATION_SEED,
         "width": 512,
         "height": 768,
@@ -75,6 +74,7 @@ async def generate_test_image(
             )
             payload["alwayson_scripts"] = {"controlnet": {"args": [controlnet_args, {"enabled": False}, {"enabled": False}]}}
 
+    apply_sampler_to_payload(payload, payload.pop("sampler_name"))
     try:
         async with httpx.AsyncClient() as client:
             res = await client.post(SD_TXT2IMG_URL, json=payload, timeout=SD_TIMEOUT_SECONDS)
