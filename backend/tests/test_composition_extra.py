@@ -202,34 +202,6 @@ class TestGetLastComposedLayers:
         assert result[0]["tokens"] == ["masterpiece"]
 
 
-# ── _parse_reference_tags ────────────────────────────────────────────
-
-
-class TestParseReferenceTags:
-    @patch("services.keywords.db_cache.TagFilterCache.initialize")
-    @patch("services.keywords.db_cache.TagFilterCache.is_restricted", return_value=False)
-    def test_parses_comma_separated(self, mock_r, mock_init, builder):
-        result = builder._parse_reference_tags("1girl, smile, brown_hair")
-        assert result == ["1girl", "smile", "brown_hair"]
-
-    @patch("services.keywords.db_cache.TagFilterCache.initialize")
-    @patch("services.keywords.db_cache.TagFilterCache.is_restricted", return_value=False)
-    def test_empty_string(self, mock_r, mock_init, builder):
-        assert builder._parse_reference_tags("") == []
-
-    def test_none_input(self, builder):
-        assert builder._parse_reference_tags(None) == []
-
-    @patch("services.keywords.db_cache.TagFilterCache.initialize")
-    @patch(
-        "services.keywords.db_cache.TagFilterCache.is_restricted",
-        side_effect=lambda t: t == "restricted_tag",
-    )
-    def test_restricted_filtered(self, mock_r, mock_init, builder):
-        result = builder._parse_reference_tags("1girl, restricted_tag, smile")
-        assert result == ["1girl", "smile"]
-
-
 # ── _infer_layer_from_pattern (additional coverage) ──────────────────
 
 

@@ -129,7 +129,7 @@ class CharacterConsistencyResolver:
             fallback = []
             for lora_info in character.loras:
                 lora_id = lora_info.get("lora_id")
-                lora_obj = self.db.query(LoRA).filter(LoRA.id == lora_id).first()
+                lora_obj = self.db.query(LoRA).filter(LoRA.id == lora_id, LoRA.is_active.is_(True)).first()
                 if lora_obj and lora_obj.lora_type == "style":
                     weight = lora_info.get("weight")
                     if weight is None:

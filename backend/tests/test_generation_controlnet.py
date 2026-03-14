@@ -26,7 +26,7 @@ class FakeStrategy:
     ip_adapter_enabled: bool = False
     ip_adapter_reference: str | None = None
     ip_adapter_weight: float = 0.7
-    ip_adapter_model: str = "ip-adapter_sd15"
+    ip_adapter_model: str = "NOOB-IPA-MARK1"
     ip_adapter_guidance_start: float | None = None
     ip_adapter_guidance_end: float | None = None
     reference_only_enabled: bool = False

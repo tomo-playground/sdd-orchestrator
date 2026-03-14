@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -108,15 +108,9 @@ class TestDirectorCheckpointRetry:
                 "feedback": "",
             }
 
-        with (
-            patch(
-                "services.agent.nodes.director_checkpoint.run_production_step",
-                side_effect=_mock_run_production_step,
-            ),
-            patch(
-                "services.agent.nodes.director_checkpoint.trace_llm_call",
-                return_value=AsyncMock(),
-            ),
+        with patch(
+            "services.agent.nodes.director_checkpoint.run_production_step",
+            side_effect=_mock_run_production_step,
         ):
             result = await director_checkpoint_node(state)
 
@@ -138,15 +132,9 @@ class TestDirectorCheckpointRetry:
             "director_checkpoint_revision_count": 0,
         }
 
-        with (
-            patch(
-                "services.agent.nodes.director_checkpoint.run_production_step",
-                side_effect=RuntimeError("persistent error"),
-            ),
-            patch(
-                "services.agent.nodes.director_checkpoint.trace_llm_call",
-                return_value=AsyncMock(),
-            ),
+        with patch(
+            "services.agent.nodes.director_checkpoint.run_production_step",
+            side_effect=RuntimeError("persistent error"),
         ):
             result = await director_checkpoint_node(state)
 
@@ -176,15 +164,9 @@ class TestDirectorRetry:
             "director_plan": {},
         }
 
-        with (
-            patch(
-                "services.agent.nodes.director.run_production_step",
-                side_effect=RuntimeError("Gemini down"),
-            ),
-            patch(
-                "services.agent.nodes.director.trace_llm_call",
-                return_value=AsyncMock(),
-            ),
+        with patch(
+            "services.agent.nodes.director.run_production_step",
+            side_effect=RuntimeError("Gemini down"),
         ):
             result = await director_node(state, {})
 

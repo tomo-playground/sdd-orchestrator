@@ -273,12 +273,12 @@ class ImagenTester:
 
         payload = {
             "prompt": prompt,
-            "negative_prompt": "easynegative, lowres, bad anatomy, bad hands, cropped, worst quality",
-            "steps": 25,
-            "cfg_scale": 7.0,
-            "sampler_name": "DPM++ 2M",
-            "width": 512,
-            "height": 768,
+            "negative_prompt": "worst quality, low quality, lowres, bad anatomy, bad hands, cropped",
+            "steps": 28,
+            "cfg_scale": 4.5,
+            "sampler_name": "Euler",
+            "width": 832,
+            "height": 1216,
             "seed": -1,
         }
 

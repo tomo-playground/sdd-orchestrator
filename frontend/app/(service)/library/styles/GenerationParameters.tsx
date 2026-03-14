@@ -75,7 +75,7 @@ export default function GenerationParameters({ profile, onUpdateStyle, labelCls 
               const v = e.target.value;
               onUpdateStyle(profile.id, { default_cfg_scale: v ? Number(v) : null });
             }}
-            placeholder="7.0"
+            placeholder="4.5"
             className={numInputCls}
           />
         </div>
@@ -87,7 +87,7 @@ export default function GenerationParameters({ profile, onUpdateStyle, labelCls 
             onDebouncedChange={(v) =>
               onUpdateStyle(profile.id, { default_sampler_name: v || null })
             }
-            placeholder="DPM++ 2M Karras"
+            placeholder="Euler"
             className={numInputCls}
           />
         </div>
@@ -120,7 +120,7 @@ export default function GenerationParameters({ profile, onUpdateStyle, labelCls 
           <span className="text-xs font-medium text-zinc-600">Hi-Res (Hires Fix)</span>
         </label>
         <span className="text-[11px] text-zinc-400">
-          Auto-enable upscaling for this style (512&rarr;768)
+          Auto-enable upscaling for this style (SDXL 832&times;1216 base)
         </span>
       </div>
     </div>

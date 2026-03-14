@@ -63,9 +63,9 @@ def _track_task(task: asyncio.Task) -> None:
 @router.post("/scene/generate", response_model=SceneGenerateResponse)
 async def generate_scene_image_endpoint(request: SceneGenerateRequest):
     # Validate resolution strategy
-    if request.width != 512 or request.height != 768:
+    if request.width != 832 or request.height != 1216:
         logger.debug(
-            "Non-standard resolution: %dx%d (recommended: 512x768)",
+            "Non-standard resolution: %dx%d (recommended: 832x1216)",
             request.width,
             request.height,
         )

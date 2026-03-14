@@ -16,10 +16,12 @@ from config import (
     DEFAULT_USE_CONTROLNET,
     DEFAULT_USE_IP_ADAPTER,
     SD_DEFAULT_CFG_SCALE,
+    SD_DEFAULT_CLIP_SKIP,
     SD_DEFAULT_HEIGHT,
     SD_DEFAULT_SAMPLER,
     SD_DEFAULT_STEPS,
     SD_DEFAULT_WIDTH,
+    SD_REFERENCE_HR_UPSCALER,
     normalize_base_model,
 )
 
@@ -327,8 +329,8 @@ class SceneDetailResponse(BaseModel):
     negative_prompt: str | None = None
     # Response-only: derived from Scene.image_asset @property
     image_url: str | None = None
-    width: int = 512
-    height: int = 768
+    width: int = 832
+    height: int = 1216
     context_tags: dict | None = None
     clothing_tags: dict | None = None  # Per-scene clothing override
     tags: list[SceneTagResponse] = []
@@ -444,8 +446,8 @@ class StoryboardScene(BaseModel):
     image_prompt_ko: str = ""
     # Input-only: triggers _link_media_asset, not stored directly
     image_url: str | None = None
-    width: int = 512
-    height: int = 768
+    width: int = 832
+    height: int = 1216
 
     # SD Generation Params
     negative_prompt: str | None = Field(default=None, max_length=2000)
@@ -598,10 +600,10 @@ class SceneGenerateRequest(BaseModel):
     seed: int = -1
     width: int = SD_DEFAULT_WIDTH
     height: int = SD_DEFAULT_HEIGHT
-    clip_skip: int = 2
+    clip_skip: int = SD_DEFAULT_CLIP_SKIP
     enable_hr: bool = False
     hr_scale: float = 1.5
-    hr_upscaler: str = "R-ESRGAN 4x+ Anime6B"
+    hr_upscaler: str = SD_REFERENCE_HR_UPSCALER
     hr_second_pass_steps: int = 10
     denoising_strength: float = 0.35
     # V3 Character Integration (optional for Narrator scenes)

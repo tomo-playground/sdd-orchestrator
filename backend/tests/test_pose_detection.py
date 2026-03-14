@@ -173,8 +173,8 @@ class TestControlnetArgs:
             model="openpose",
             weight=1.0,
         )
-        assert args["module"] == "openpose"
-        assert args["model"] == "control_v11p_sd15_openpose [cab727d4]"
+        assert args["module"] == "None"  # Forge: skip preprocessor for pre-processed images
+        assert args["model"] == "openpose_pre"
 
     def test_build_controlnet_args_explicit_preprocessor(self):
         """Explicit preprocessor overrides default module."""
@@ -187,10 +187,10 @@ class TestControlnetArgs:
         assert args["module"] == "none"
 
     def test_combined_args_uses_default_preprocessor(self):
-        """build_combined_controlnet_args uses default openpose preprocessor."""
+        """build_combined_controlnet_args uses default 'None' preprocessor (Forge)."""
         args = build_combined_controlnet_args(
             pose_image="fake_b64",
             pose_weight=0.8,
         )
         assert len(args) == 1
-        assert args[0]["module"] == "openpose"
+        assert args[0]["module"] == "None"

@@ -165,8 +165,8 @@ export function mapGeminiScenes(
       client_id: generateSceneClientId(),
       order: i,
       image_url: null,
-      width: 512,
-      height: 768,
+      width: 832,
+      height: 1216,
       // Fallbacks for required fields
       script: (s.script as string) || "",
       speaker: ((s.speaker as string) || "Narrator") as Scene["speaker"],

@@ -19,7 +19,7 @@ def main():
             logger.error("No SD models found. Run sync_webui_data.py first.")
             return
 
-        # Get negative embeddings (Anime-specific: easynegative, verybadimagenegative, etc.)
+        # Get negative embeddings (if any exist in DB)
         negative_embs = db.query(Embedding).filter(Embedding.embedding_type == "negative").all()
         negative_emb_ids = [emb.id for emb in negative_embs]
 

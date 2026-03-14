@@ -45,7 +45,7 @@ class TestComposeNegativePreviewStyleOnly:
     def test_style_with_embeddings(self, mock_ctx):
         mock_ctx.return_value = _make_style_ctx(
             default_negative="worst quality",
-            negative_embeddings=["easynegative", "badhandv4"],
+            negative_embeddings=["smoothnoob_negative", "SmoothNegative_Hands"],
         )
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = None
@@ -58,18 +58,18 @@ class TestComposeNegativePreviewStyleOnly:
             db=db,
         )
 
-        assert "easynegative" in result
-        assert "badhandv4" in result
+        assert "smoothnoob_negative" in result
+        assert "SmoothNegative_Hands" in result
         assert len(sources) == 1
         # Embeddings merged into style_profile source
-        assert "easynegative" in sources[0]["tokens"]
+        assert "smoothnoob_negative" in sources[0]["tokens"]
 
     @patch("services.style_context.resolve_style_context")
     def test_style_dedup_within_source(self, mock_ctx):
         """default_negative and embeddings sharing same token should not duplicate."""
         mock_ctx.return_value = _make_style_ctx(
-            default_negative="EasyNegative",
-            negative_embeddings=["EasyNegative", "badhandv4"],
+            default_negative="SmoothNoob_Negative",
+            negative_embeddings=["SmoothNoob_Negative", "SmoothNegative_Hands"],
         )
         db = MagicMock()
         db.query.return_value.filter.return_value.first.return_value = None
@@ -83,9 +83,9 @@ class TestComposeNegativePreviewStyleOnly:
         )
 
         assert len(sources) == 1
-        easy_count = sources[0]["tokens"].count("EasyNegative")
-        assert easy_count == 1, f"Expected 1 'EasyNegative' in tokens, got {easy_count}"
-        assert "badhandv4" in sources[0]["tokens"]
+        easy_count = sources[0]["tokens"].count("SmoothNoob_Negative")
+        assert easy_count == 1, f"Expected 1 'SmoothNoob_Negative' in tokens, got {easy_count}"
+        assert "SmoothNegative_Hands" in sources[0]["tokens"]
 
 
 class TestComposeNegativePreviewCharacterOnly:

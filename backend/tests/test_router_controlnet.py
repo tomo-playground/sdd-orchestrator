@@ -125,7 +125,7 @@ class TestSuggestPose:
 class TestIPAdapterStatus:
     """Test GET /controlnet/ip-adapter/status."""
 
-    @patch(f"{PATCH_PREFIX}.get_controlnet_models", return_value=["ip-adapter-plus_sd15", "openpose"])
+    @patch(f"{PATCH_PREFIX}.get_controlnet_models", return_value=["ip-adapter-plus-face_sdxl_vit-h", "openpose"])
     @patch(f"{PATCH_PREFIX}.check_controlnet_available", return_value=True)
     def test_ip_adapter_available(self, mock_check, mock_models, client: TestClient):
         """Return IP-Adapter availability."""

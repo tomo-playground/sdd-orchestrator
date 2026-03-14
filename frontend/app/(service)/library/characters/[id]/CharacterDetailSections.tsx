@@ -252,7 +252,7 @@ export function IpAdapterSection({ form, onChange, onUploadPhoto }: IpAdapterPro
             <input type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
           </label>
           <p className="mt-1 text-[11px] text-zinc-400">
-            실사 사진 업로드 시 얼굴 자동 크롭 + 512x512 리사이즈
+            실사 사진 업로드 시 얼굴 자동 크롭 + 리사이즈
           </p>
         </div>
       )}

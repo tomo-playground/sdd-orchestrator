@@ -117,17 +117,17 @@ class TestReferenceQualityValidation:
 class TestGuidanceParameters:
     """Tests for per-character guidance in build_ip_adapter_args."""
 
-    def test_faceid_default_guidance(self):
-        """FaceID model defaults to guidance_end=0.85."""
+    def test_clip_face_default_guidance(self):
+        """clip_face model defaults to guidance_end=1.0."""
         from services.controlnet import build_ip_adapter_args
 
         args = build_ip_adapter_args(
             reference_image="test_b64",
             weight=0.5,
-            model="faceid",
+            model="clip_face",
         )
         assert args["guidance_start"] == 0.0
-        assert args["guidance_end"] == 0.85
+        assert args["guidance_end"] == 1.0
 
     def test_clip_default_guidance(self):
         """CLIP model defaults to guidance_end=1.0."""
@@ -148,7 +148,7 @@ class TestGuidanceParameters:
         args = build_ip_adapter_args(
             reference_image="test_b64",
             weight=0.5,
-            model="faceid",
+            model="clip_face",
             guidance_start=0.1,
             guidance_end=0.9,
         )
@@ -403,14 +403,14 @@ class TestDualIPAdapter:
         assert abs(args[1]["weight"] - 0.3) < 0.01  # 30%
 
     def test_dual_guidance_passthrough(self):
-        """Custom guidance passed to both units."""
+        """Custom guidance passed to both units (clip_face)."""
         from services.ip_adapter import build_dual_ip_adapter_args
 
         args = build_dual_ip_adapter_args(
             primary_image="primary_b64",
             secondary_image="secondary_b64",
             weight=0.5,
-            model="faceid",
+            model="clip_face",
             guidance_start=0.1,
             guidance_end=0.8,
         )

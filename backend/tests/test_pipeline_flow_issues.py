@@ -804,44 +804,6 @@ class TestProductionFallbackReason:
         assert cr["overall"] == "WARN"
 
 
-class TestNodeResultKeysExpansion:
-    """Phase 28-C #12: _NODE_RESULT_KEYS에 research, revise 추가."""
-
-    def test_research_key_registered(self):
-        """research 노드가 SSE 키에 등록됨."""
-        from routers.scripts import _NODE_RESULT_KEYS
-
-        assert "research" in _NODE_RESULT_KEYS
-        keys = _NODE_RESULT_KEYS["research"]
-        assert isinstance(keys, list)
-        assert "research_brief" in keys
-        assert "research_score" in keys
-
-    def test_revise_key_registered(self):
-        """revise 노드가 SSE 키에 등록됨."""
-        from routers.scripts import _NODE_RESULT_KEYS
-
-        assert "revise" in _NODE_RESULT_KEYS
-
-    def test_extract_node_result_research(self):
-        """research 노드 결과 추출 함수 동작 확인."""
-        from routers.scripts import _extract_node_result
-
-        output = {"research_brief": {"topic_summary": "test"}, "research_score": {"overall": 0.8}}
-        result = _extract_node_result("research", output)
-        assert result is not None
-        assert result["brief"]["topic_summary"] == "test"
-        assert result["score"]["overall"] == 0.8
-
-    def test_extract_node_result_revise(self):
-        """revise 노드 결과 추출 함수 동작 확인."""
-        from routers.scripts import _extract_node_result
-
-        output = {"draft_scenes": [{"script": "updated"}]}
-        result = _extract_node_result("revise", output)
-        assert result is not None
-
-
 # ═══════════════════════════════════════════════════════
 # 9. Phase 28-D: Data Integrity — 원본 보존 + 음수 score 방어
 # ═══════════════════════════════════════════════════════

@@ -32,7 +32,7 @@ async def list_loras(
     db: Session = Depends(get_db),
 ):
     """List all LoRAs with optional filters."""
-    query = db.query(LoRA)
+    query = db.query(LoRA).filter(LoRA.is_active.is_(True))
     if lora_type:
         query = query.filter(LoRA.lora_type == lora_type)
     if base_model:

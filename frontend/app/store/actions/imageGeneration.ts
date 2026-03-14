@@ -76,8 +76,8 @@ export async function generateSceneImageFor(
   const requestPayload = {
     prompt,
     negative_prompt: negativePrompt,
-    width: 512,
-    height: 768,
+    width: 832,
+    height: 1216,
     ...hiResPayload,
     ...controlnetPayload,
     ...ipAdapterPayload,

@@ -147,8 +147,9 @@ class TestReferenceCharacterLoRA:
 
 
 class TestReferenceStyleLoRA:
-    """Style LoRAs should keep full weight (not skipped like in scene compose)."""
+    """Style LoRAs should be scaled by REFERENCE_STYLE_LORA_SCALE."""
 
+    @patch("config.REFERENCE_STYLE_LORA_SCALE", 0.45)
     @patch("services.prompt.composition.TagRuleCache")
     @patch("services.prompt.composition.TagFilterCache")
     @patch("services.prompt.composition.TagAliasCache")
@@ -176,11 +177,12 @@ class TestReferenceStyleLoRA:
         # Style LoRA: 0.7 × REFERENCE_STYLE_LORA_SCALE(0.45) = 0.32
         assert "<lora:flat_color:0.32>" in result
 
+    @patch("config.REFERENCE_STYLE_LORA_SCALE", 0.45)
     @patch("services.prompt.composition.TagRuleCache")
     @patch("services.prompt.composition.TagFilterCache")
     @patch("services.prompt.composition.TagAliasCache")
     def test_style_lora_capped(self, mock_alias, mock_filter, mock_rule, builder):
-        """Style LoRA weight 0.9 → capped to 0.76."""
+        """Style LoRA weight 0.9 × 0.45 = 0.41 (below cap)."""
         mock_alias.initialize.return_value = None
         mock_alias.get_replacement.return_value = ...
         mock_filter.initialize.return_value = None
@@ -286,38 +288,6 @@ class TestReferenceGenderEnhancement:
 
 
 # ────────────────────────────────────────────
-# _parse_reference_tags
-# ────────────────────────────────────────────
-
-
-class TestParseReferenceTags:
-    """Test _parse_reference_tags helper."""
-
-    @patch("services.prompt.composition.TagFilterCache")
-    def test_parses_comma_separated(self, mock_filter, builder):
-        mock_filter.initialize.return_value = None
-        mock_filter.is_restricted.return_value = False
-
-        result = builder._parse_reference_tags("solo, white_background, front_view")
-        assert result == ["solo", "white_background", "front_view"]
-
-    @patch("services.prompt.composition.TagFilterCache")
-    def test_filters_restricted(self, mock_filter, builder):
-        mock_filter.initialize.return_value = None
-        mock_filter.is_restricted.side_effect = lambda t: t == "restricted_tag"
-
-        result = builder._parse_reference_tags("solo, restricted_tag, front_view")
-        assert "restricted_tag" not in result
-        assert "solo" in result
-
-    @patch("services.prompt.composition.TagFilterCache")
-    def test_empty_prompt(self, mock_filter, builder):
-        mock_filter.initialize.return_value = None
-        assert builder._parse_reference_tags(None) == []
-        assert builder._parse_reference_tags("") == []
-
-
-# ────────────────────────────────────────────
 # _inject_reference_defaults
 # ────────────────────────────────────────────
 
@@ -330,11 +300,12 @@ class TestInjectReferenceDefaults:
         builder._inject_reference_defaults(layers)
 
         # Env tags are injected into LAYER_QUALITY for maximum SD priority
+        # Tags may have weights like "(simple_background:1.5)"
         quality = layers[LAYER_QUALITY]
-        assert "simple_background" in quality
-        assert "white_background" in quality
-        assert "solo" in layers[LAYER_CAMERA]
-        assert "looking_at_viewer" in layers[LAYER_CAMERA]
+        assert any("simple_background" in t for t in quality)
+        assert any("white_background" in t for t in quality)
+        assert any("solo" in t for t in layers[LAYER_CAMERA])
+        assert any("looking_at_viewer" in t for t in layers[LAYER_CAMERA])
 
     def test_uses_style_ctx_env_tags(self, builder):
         """StyleContext의 reference_env_tags가 전역 상수보다 우선한다."""
@@ -401,10 +372,10 @@ class TestInjectReferenceDefaults:
         layers = [[] for _ in range(12)]
         builder._inject_reference_defaults(layers, style_ctx=ctx)
 
-        # 전역 REFERENCE_ENV_TAGS 폴백
-        assert "white_background" in layers[LAYER_QUALITY]
+        # 전역 REFERENCE_ENV_TAGS 폴백 (may have weights like "(white_background:1.5)")
+        assert any("white_background" in t for t in layers[LAYER_QUALITY])
         # 전역 REFERENCE_CAMERA_TAGS 폴백
-        assert "solo" in layers[LAYER_CAMERA]
+        assert any("solo" in t for t in layers[LAYER_CAMERA])
 
     def test_no_duplicate_if_already_present(self, builder):
         layers = [[] for _ in range(12)]

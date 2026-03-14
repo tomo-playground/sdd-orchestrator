@@ -272,11 +272,11 @@ class TestHiResPayload:
             "prompt": "masterpiece, 1girl",
             "negative_prompt": "lowres",
             "steps": 24,
-            "cfg_scale": 7.0,
-            "sampler_name": "DPM++ 2M Karras",
+            "cfg_scale": 4.5,
+            "sampler_name": "Euler",
             "seed": -1,
-            "width": 512,
-            "height": 768,
+            "width": 832,
+            "height": 1216,
         }
 
     def test_hires_enabled(self):
@@ -348,6 +348,6 @@ class TestHiResPayload:
 
         # Base params preserved
         assert payload["steps"] == 24
-        assert payload["cfg_scale"] == 7.0
-        assert payload["width"] == 512
-        assert payload["height"] == 768
+        assert payload["cfg_scale"] == 4.5
+        assert payload["width"] == 832
+        assert payload["height"] == 1216

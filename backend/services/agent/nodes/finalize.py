@@ -572,18 +572,20 @@ def _validate_cross_field_consistency(scenes: list[dict]) -> None:
         camera = ctx.get("camera", "")
         gaze = ctx.get("gaze", "")
 
-        if camera in _CAMERA_GAZE_CONFLICTS:
-            fix_map = _CAMERA_GAZE_CONFLICTS[camera]
-            if gaze in fix_map:
-                fixed = fix_map[gaze]
-                logger.info(
-                    "[Finalize] Scene %d: camera-gaze conflict %s+%s → gaze=%s",
-                    i,
-                    camera,
-                    gaze,
-                    fixed,
-                )
-                ctx["gaze"] = fixed
+        cameras = camera if isinstance(camera, list) else [camera]
+        for cam in cameras:
+            if cam in _CAMERA_GAZE_CONFLICTS:
+                fix_map = _CAMERA_GAZE_CONFLICTS[cam]
+                if gaze in fix_map:
+                    fixed = fix_map[gaze]
+                    logger.info(
+                        "[Finalize] Scene %d: camera-gaze conflict %s+%s → gaze=%s",
+                        i,
+                        cam,
+                        gaze,
+                        fixed,
+                    )
+                    ctx["gaze"] = fixed
 
 
 def _rebuild_image_prompt_from_context_tags(scenes: list[dict]) -> None:
@@ -699,8 +701,10 @@ def _resolve_controlnet_weight(scene: dict, default: float) -> float:
     mood = (scene.get("context_tags") or {}).get("mood", "")
     if pose in _ACTION_POSES:
         return 0.80
-    if mood in _EMOTIONAL_MOODS:
-        return 0.45
+    moods = mood if isinstance(mood, list) else [mood]
+    for m in moods:
+        if m in _EMOTIONAL_MOODS:
+            return 0.45
     return default
 
 

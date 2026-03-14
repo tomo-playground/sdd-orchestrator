@@ -192,6 +192,7 @@ def _build_payload(ctx: GenerationContext) -> dict:
                 "hr_upscaler": req.hr_upscaler,
                 "hr_second_pass_steps": req.hr_second_pass_steps,
                 "denoising_strength": req.denoising_strength,
+                "hr_additional_modules": [],  # Forge requires this field (non-None)
             }
         )
     adetailer = _build_adetailer_args(ctx.style_context.profile_id if ctx.style_context else None)

@@ -50,7 +50,7 @@ export const AUTO_RUN_STEPS = [
   { id: "render", label: "Render" },
 ] as const;
 
-export const SAMPLERS = ["DPM++ 2M Karras", "Euler a", "Euler", "DDIM"];
+export const SAMPLERS = ["Euler", "Euler a", "DPM++ 2M Karras", "DDIM"];
 
 export const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 

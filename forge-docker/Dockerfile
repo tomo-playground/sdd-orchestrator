@@ -110,6 +110,24 @@ RUN set -eux; \
 RUN --mount=type=cache,target=/home/webui/.cache/pip,uid=${USER_ID},gid=${GROUP_ID} \
     venv/bin/pip install ultralytics mediapipe
 
+# Install CFG Rescale extension (required for V-Pred models to prevent grey output)
+RUN set -eux; \
+  clone_repo() { \
+    local url="$1"; local target="$2"; local name="$3"; \
+    local attempts=0; \
+    until [ "$attempts" -ge 3 ]; do \
+      echo "Cloning $name (attempt $((attempts+1)) of 3)..."; \
+      git clone "$url" "$target" && return 0; \
+      attempts=$((attempts+1)); sleep 10; \
+    done; \
+    echo "Failed to clone $name"; exit 1; \
+  }; \
+  clone_repo https://github.com/Seshelle/CFG_Rescale_webui.git extensions/CFG_Rescale_webui "CFG Rescale"
+
+# Patch Forge bug: hr_additional_modules defaults to None, causing TypeError on Hi-Res
+RUN sed -i "s/if hasattr(self, 'hr_additional_modules') and 'Use same choices' not in self.hr_additional_modules:/if hasattr(self, 'hr_additional_modules') and self.hr_additional_modules is not None and 'Use same choices' not in self.hr_additional_modules:/" \
+    modules/processing.py
+
 # Create runtime directories that may not exist in the repo
 RUN mkdir -p cache/huggingface cache/matplotlib models/hypernetworks outputs/txt2img-images outputs/img2img-images
 

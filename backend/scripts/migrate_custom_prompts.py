@@ -49,13 +49,13 @@ CHARACTER_PROMPTS = {
         "base_prompt": "1girl, brown_hair, long_hair, brown_eyes, school_uniform, innocent_face",
         "negative_prompt": "nsfw, revealing_clothes, sexy, mature_female, heavy_makeup",
         "reference_base_prompt": "masterpiece, best quality, 1girl, solo, brown_hair, long_hair, brown_eyes, school_uniform, looking_at_viewer, simple_background, white_background, upper_body, innocent_smile, clean_lineart",
-        "reference_negative_prompt": "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), nsfw, revealing_clothes, sexy, mature_female, blurry, text, watermark",
+        "reference_negative_prompt": "worst quality, low quality, lowres, bad anatomy, nsfw, revealing_clothes, sexy, mature_female, blurry, text, watermark",
     },
     "Generic Anime Boy": {
         "base_prompt": "1boy, black_hair, short_hair, brown_eyes, school_uniform, gentle_face",
         "negative_prompt": "nsfw, muscular, shirtless, mature_male, facial_hair",
         "reference_base_prompt": "masterpiece, best quality, 1boy, solo, black_hair, short_hair, brown_eyes, school_uniform, looking_at_viewer, simple_background, white_background, upper_body, gentle_smile, clean_lineart",
-        "reference_negative_prompt": "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), nsfw, muscular, shirtless, mature_male, blurry, text, watermark",
+        "reference_negative_prompt": "worst quality, low quality, lowres, bad anatomy, nsfw, muscular, shirtless, mature_male, blurry, text, watermark",
     },
 }
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from config import SD_DEFAULT_CFG_SCALE, SD_DEFAULT_STEPS
 from schemas import SceneGenerateRequest
 from services.character_consistency import ConsistencyStrategy
 
@@ -34,8 +35,8 @@ class GenerationContext:
     negative_prompt: str = ""
 
     # ── Stage 2: Adjusted (complexity/calibration) ──────────────────────
-    steps: int = 20
-    cfg_scale: float = 7.0
+    steps: int = SD_DEFAULT_STEPS
+    cfg_scale: float = SD_DEFAULT_CFG_SCALE
 
     # ── Stage 3: ControlNet results ─────────────────────────────────────
     controlnet_used: str | None = None

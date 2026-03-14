@@ -27,6 +27,9 @@ from config import (
     DEFAULT_IP_ADAPTER_GUIDANCE_START,
     DEFAULT_REFERENCE_NEGATIVE_PROMPT,
     SD_BASE_URL,
+    SD_DEFAULT_CFG_SCALE,
+    SD_DEFAULT_HEIGHT,
+    SD_DEFAULT_WIDTH,
     SD_TXT2IMG_URL,
     apply_sampler_to_payload,
     logger,
@@ -156,17 +159,19 @@ def clamp_ip_adapter_weight(weight: float, pose_name: str | None) -> float:
 
 # ControlNet models
 CONTROLNET_MODELS = {
-    "openpose": "control_v11p_sd15_openpose [cab727d4]",
-    "depth": "control_v11f1p_sd15_depth [cfd03158]",
-    "canny": "control_v11p_sd15_canny [d14c016b]",
+    "openpose": "openpose_pre",
+    "depth": "noob-sdxl-controlnet-depth-midas-v1-1",
+    "canny": "noob_sdxl_controlnet_canny",
+    "softedge": "noob-sdxl-controlnet-softedge_hed",
+    "tile": "noob-sdxl-controlnet-tile",
+    "lineart_anime": "noob-sdxl-controlnet-lineart_anime",
     "reference": "None",  # Reference-only doesn't need a specific model if using the preprocessor
 }
 
-# IP-Adapter models
+# IP-Adapter models (SDXL / NoobAI-XL)
 IP_ADAPTER_MODELS = {
-    "faceid": "ip-adapter-faceid-plusv2_sd15 [6e14fc1a]",  # Real face only
-    "clip": "ip-adapter-plus_sd15 [836b5c2e]",  # Anime/illustration (recommended)
-    "clip_face": "ip-adapter-plus-face_sd15 [7f7a633a]",  # Face + style
+    "clip": "NOOB-IPA-MARK1",  # Anime/illustration (NoobAI optimized)
+    "clip_face": "ip-adapter-plus-face_sdxl_vit-h",  # Face + style (SDXL)
 }
 
 # Default IP-Adapter for anime characters
@@ -292,10 +297,10 @@ def generate_with_controlnet(
     prompt: str,
     negative_prompt: str,
     pose_image: str,
-    width: int = 512,
-    height: int = 768,
+    width: int = SD_DEFAULT_WIDTH,
+    height: int = SD_DEFAULT_HEIGHT,
     steps: int = 20,
-    cfg_scale: float = 7.0,
+    cfg_scale: float = SD_DEFAULT_CFG_SCALE,
     controlnet_weight: float = 1.0,
 ) -> dict[str, Any]:
     """Generate image with ControlNet pose control.
@@ -357,7 +362,7 @@ def create_pose_from_image(image_b64: str) -> dict[str, Any]:
     payload = {
         "controlnet_module": "openpose_full",
         "controlnet_input_images": [image_b64],
-        "controlnet_processor_res": 512,
+        "controlnet_processor_res": SD_DEFAULT_WIDTH,
     }
 
     resp = requests.post(
@@ -514,7 +519,7 @@ def build_ip_adapter_args(
     Args:
         reference_image: Base64 encoded reference face image
         weight: IP-Adapter influence weight (0.0-1.5). If None, uses default.
-        model: IP-Adapter model type ("clip", "clip_face", "faceid"). If None, uses default.
+        model: IP-Adapter model type ("clip", "clip_face"). If None, uses default.
         guidance_start: Override guidance start. None = use per-model default.
         guidance_end: Override guidance end. None = use per-model default.
 
@@ -551,7 +556,7 @@ def build_ip_adapter_args(
         "model": model_name,
         "weight": weight,
         "resize_mode": "Crop and Resize",
-        "processor_res": 512,
+        "processor_res": SD_DEFAULT_WIDTH,
         "threshold_a": -1,
         "threshold_b": -1,
         "control_mode": control_mode,
@@ -753,8 +758,8 @@ async def generate_reference_for_character(
             "prompt": full_prompt,
             "negative_prompt": normalize_negative_prompt(base_negative),
             "steps": steps,
-            "width": 512,
-            "height": 512,
+            "width": SD_DEFAULT_WIDTH,
+            "height": SD_DEFAULT_WIDTH,  # Square for IP-Adapter reference
             "cfg_scale": cfg_scale,
             "seed": random.randint(0, 2**32 - 1) if attempt > 0 else -1,
         }

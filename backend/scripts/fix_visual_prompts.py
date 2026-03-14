@@ -48,13 +48,13 @@ def main():
                     if addons["neg_append"].strip(", ") not in char.custom_negative_prompt:
                         char.custom_negative_prompt += addons["neg_append"]
                 else:
-                    char.custom_negative_prompt = "verybadimagenegative_v1.3" + addons["neg_append"]
+                    char.custom_negative_prompt = "worst quality, low quality, lowres, bad anatomy" + addons["neg_append"]
 
                 if char.reference_negative_prompt:
                     if addons["neg_append"].strip(", ") not in char.reference_negative_prompt:
                         char.reference_negative_prompt += addons["neg_append"]
                 else:
-                    char.reference_negative_prompt = "verybadimagenegative_v1.3" + addons["neg_append"]
+                    char.reference_negative_prompt = "worst quality, low quality, lowres, bad anatomy" + addons["neg_append"]
                 
                 updated_count += 1
                 print(f"✅ Appended Visual Fixes for '{char.name}' (ID: {char.id})")

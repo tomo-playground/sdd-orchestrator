@@ -743,7 +743,7 @@ class PromptBuilder:
             for lora_info in character.loras:
                 lora_id = lora_info.get("lora_id")
                 weight = lora_info.get("weight")
-                lora_obj = self.db.query(LoRA).filter(LoRA.id == lora_id).first()
+                lora_obj = self.db.query(LoRA).filter(LoRA.id == lora_id, LoRA.is_active.is_(True)).first()
                 if lora_obj:
                     if lora_obj.lora_type == "style":
                         continue  # StyleProfile handles style LoRAs uniformly
@@ -826,7 +826,7 @@ class PromptBuilder:
         result = []
         for lora_info in character.loras or []:
             lora_id = lora_info.get("lora_id")
-            lora_obj = self.db.query(LoRA).filter(LoRA.id == lora_id).first()
+            lora_obj = self.db.query(LoRA).filter(LoRA.id == lora_id, LoRA.is_active.is_(True)).first()
             if lora_obj and lora_obj.lora_type == "style":
                 result.append(
                     {
@@ -1145,7 +1145,7 @@ class PromptBuilder:
         if name in self._lora_info_cache:
             return self._lora_info_cache[name]
 
-        lora = self.db.query(LoRA).filter(LoRA.name == name).first()
+        lora = self.db.query(LoRA).filter(LoRA.name == name, LoRA.is_active.is_(True)).first()
         if not lora:
             info = LoRAInfo(0.7, None, [])
         else:
@@ -1381,7 +1381,7 @@ class PromptBuilder:
         if character.loras:
             lora_ids = [entry.get("lora_id") for entry in character.loras if entry.get("lora_id")]
             if lora_ids:
-                lora_objs = self.db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
+                lora_objs = self.db.query(LoRA).filter(LoRA.id.in_(lora_ids), LoRA.is_active.is_(True)).all()
                 lora_map = {lora.id: lora for lora in lora_objs}
 
                 for lora_entry in character.loras:

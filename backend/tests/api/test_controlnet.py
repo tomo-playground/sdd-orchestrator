@@ -27,7 +27,7 @@ class TestIpAdapterArgs:
         assert args["enabled"] is True
         assert args["image"] == dummy_image
         assert args["weight"] == 0.7
-        assert args["module"] == "ip-adapter_clip_sd15"  # CLIP module for anime
+        assert args["module"] == "CLIP-ViT-H (IPAdapter)"  # CLIP module for anime
         assert args["model"] == IP_ADAPTER_MODELS["clip"]
 
     def test_build_ip_adapter_args_clip_face_model(self):
@@ -42,23 +42,20 @@ class TestIpAdapterArgs:
         )
 
         assert args["enabled"] is True
-        assert args["module"] == "ip-adapter_clip_sd15"  # CLIP module
+        assert args["module"] == "CLIP-ViT-H (IPAdapter)"  # CLIP module
         assert args["model"] == IP_ADAPTER_MODELS["clip_face"]
 
-    def test_build_ip_adapter_args_faceid_model(self):
-        """Test building IP-Adapter args with FaceID model (real faces only)."""
-        from services.controlnet import IP_ADAPTER_MODELS, build_ip_adapter_args
+    def test_build_ip_adapter_args_faceid_removed(self):
+        """FaceID model removed in SDXL — should raise ValueError."""
+        from services.controlnet import build_ip_adapter_args
 
         dummy_image = base64.b64encode(b"fake_image_data").decode()
-        args = build_ip_adapter_args(
-            reference_image=dummy_image,
-            weight=0.8,
-            model="faceid"
-        )
-
-        assert args["enabled"] is True
-        assert args["module"] == "ip-adapter_face_id_plus"  # FaceID module for real faces
-        assert args["model"] == IP_ADAPTER_MODELS["faceid"]
+        with pytest.raises(ValueError, match="Unknown IP-Adapter model"):
+            build_ip_adapter_args(
+                reference_image=dummy_image,
+                weight=0.8,
+                model="faceid"
+            )
 
     def test_build_ip_adapter_args_default_model(self):
         """Test that default model is CLIP_FACE (for anime characters)."""
@@ -73,7 +70,7 @@ class TestIpAdapterArgs:
         )
 
         # Default should use CLIP module
-        assert args["module"] == "ip-adapter_clip_sd15"
+        assert args["module"] == "CLIP-ViT-H (IPAdapter)"
 
     def test_build_ip_adapter_args_invalid_model(self):
         """Test that invalid model raises ValueError."""
@@ -143,7 +140,7 @@ class TestCombinedControlNetArgs:
         )
 
         assert len(args) == 1
-        assert args[0]["module"] == "ip-adapter_clip_sd15"
+        assert args[0]["module"] == "CLIP-ViT-H (IPAdapter)"
         assert args[0]["weight"] == 0.7
 
     def test_build_combined_args_both(self):
@@ -165,7 +162,7 @@ class TestCombinedControlNetArgs:
         assert "openpose" in args[0]["model"].lower()
         assert args[0]["weight"] == 0.8
         # Second should be IP-Adapter
-        assert args[1]["module"] == "ip-adapter_clip_sd15"
+        assert args[1]["module"] == "CLIP-ViT-H (IPAdapter)"
         assert args[1]["weight"] == 0.7
 
     def test_build_combined_args_empty(self):
@@ -195,7 +192,7 @@ class TestSceneGenerationWithIpAdapter:
         assert args["enabled"] is True
         assert args["image"] == ref_image
         assert args["weight"] == 0.7
-        assert args["module"] == "ip-adapter_clip_sd15"
+        assert args["module"] == "CLIP-ViT-H (IPAdapter)"
         assert "model" in args
         assert args["resize_mode"] == "Crop and Resize"
 
@@ -214,9 +211,9 @@ class TestSceneGenerationWithIpAdapter:
             "prompt": "1girl, anime, standing",
             "negative_prompt": "bad quality",
             "steps": 1,  # Minimal steps for speed
-            "cfg_scale": 7.0,
-            "width": 512,
-            "height": 512,
+            "cfg_scale": 4.5,
+            "width": 832,
+            "height": 1216,
             "use_ip_adapter": True,
             "ip_adapter_reference": "test_character",
             "ip_adapter_weight": 0.7,
@@ -235,9 +232,10 @@ class TestIpAdapterModelConstants:
         """Test that all expected IP-Adapter models are defined."""
         from services.controlnet import IP_ADAPTER_MODELS
 
-        assert "faceid" in IP_ADAPTER_MODELS
         assert "clip" in IP_ADAPTER_MODELS
         assert "clip_face" in IP_ADAPTER_MODELS
+        # faceid removed in SDXL (no compatible model)
+        assert "faceid" not in IP_ADAPTER_MODELS
 
     def test_default_model_is_clip(self):
         """Test that default model is CLIP_FACE (for anime)."""

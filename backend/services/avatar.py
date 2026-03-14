@@ -7,7 +7,14 @@ import hashlib
 
 import httpx
 
-from config import SD_DEFAULT_SAMPLER, SD_TXT2IMG_URL, apply_sampler_to_payload, logger
+from config import (
+    SD_DEFAULT_CFG_SCALE,
+    SD_DEFAULT_CLIP_SKIP,
+    SD_DEFAULT_SAMPLER,
+    SD_TXT2IMG_URL,
+    apply_sampler_to_payload,
+    logger,
+)
 from services.storage import get_storage
 
 
@@ -99,14 +106,14 @@ async def ensure_avatar_file(
     prompt = "anime avatar portrait, clean background, head and shoulders, soft lighting, centered, high quality"
     payload = {
         "prompt": prompt,
-        "negative_prompt": "verybadimagenegative_v1.3",
+        "negative_prompt": "worst quality, low quality, lowres, bad anatomy",
         "steps": 20,
-        "cfg_scale": 7.0,
+        "cfg_scale": SD_DEFAULT_CFG_SCALE,
         "sampler_name": SD_DEFAULT_SAMPLER,
         "seed": -1,
         "width": 256,
         "height": 256,
-        "override_settings": {"CLIP_stop_at_last_layers": 2},
+        "override_settings": {"CLIP_stop_at_last_layers": SD_DEFAULT_CLIP_SKIP},
         "override_settings_restore_afterwards": True,
     }
     apply_sampler_to_payload(payload, payload.pop("sampler_name"))

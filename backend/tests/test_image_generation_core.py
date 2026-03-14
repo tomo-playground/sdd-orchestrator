@@ -388,7 +388,7 @@ class TestComposeSceneWithStyle:
         mock_db = MagicMock()
         mock_char = MagicMock()
         mock_char.negative_prompt = None
-        mock_char.negative_prompt = ["verybadimagenegative_v1.3", "easynegative"]
+        mock_char.negative_prompt = ["SmoothNoob_Negative", "SmoothNegative_Hands"]
         mock_db.query.return_value.filter.return_value.first.return_value = mock_char
 
         with (
@@ -410,8 +410,8 @@ class TestComposeSceneWithStyle:
                 db=mock_db,
             )
 
-            assert "verybadimagenegative_v1.3" in negative
-            assert "easynegative" in negative
+            assert "SmoothNoob_Negative" in negative
+            assert "SmoothNegative_Hands" in negative
             assert "lowres" in negative
 
     def test_char_b_custom_negative_merged(self):
@@ -471,7 +471,7 @@ class TestEnsureCorrectCheckpoint:
 
         mock_get_resp = MagicMock()
         mock_get_resp.status_code = 200
-        mock_get_resp.json.return_value = {"sd_model_checkpoint": "realisticVisionV60.safetensors"}
+        mock_get_resp.json.return_value = {"sd_model_checkpoint": "noobaiXLNAIXL_vPredV10.safetensors"}
 
         with patch("services.image_generation_core.httpx.AsyncClient") as MockClient:
             mock_client = AsyncMock()
@@ -479,7 +479,7 @@ class TestEnsureCorrectCheckpoint:
             MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
             MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            await _ensure_correct_checkpoint("realisticVisionV60")
+            await _ensure_correct_checkpoint("noobaiXLNAIXL_vPredV10")
 
             mock_client.get.assert_called_once()
             mock_client.post.assert_not_called()
@@ -503,11 +503,11 @@ class TestEnsureCorrectCheckpoint:
             MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
             MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            await _ensure_correct_checkpoint("realisticVisionV60")
+            await _ensure_correct_checkpoint("noobaiXLNAIXL_vPredV10")
 
             mock_client.post.assert_called_once()
             call_kwargs = mock_client.post.call_args
-            assert call_kwargs[1]["json"]["sd_model_checkpoint"] == "realisticVisionV60"
+            assert call_kwargs[1]["json"]["sd_model_checkpoint"] == "noobaiXLNAIXL_vPredV10"
 
     @pytest.mark.asyncio
     async def test_non_blocking_on_failure(self):
@@ -521,7 +521,7 @@ class TestEnsureCorrectCheckpoint:
             MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
 
             # Must not raise
-            await _ensure_correct_checkpoint("realisticVisionV60")
+            await _ensure_correct_checkpoint("noobaiXLNAIXL_vPredV10")
 
 
 class TestComposeWarningsMerge:
@@ -567,11 +567,11 @@ class TestComposeNegativeOrder:
 
         class FakeCtx:
             negative_embeddings = []
-            default_negative = "EasyNegative"
+            default_negative = "SmoothNoob_Negative"
 
         result = _compose_negative(FakeCtx(), "blurry, lowres")
         tokens = [t.strip() for t in result.split(",")]
-        assert tokens[0] == "EasyNegative"
+        assert tokens[0] == "SmoothNoob_Negative"
 
     def test_embeddings_between_default_and_user(self):
         """Order: default_negative > embeddings > user negative."""
@@ -579,11 +579,11 @@ class TestComposeNegativeOrder:
 
         class FakeCtx:
             negative_embeddings = ["embedding:negV2"]
-            default_negative = "EasyNegative"
+            default_negative = "SmoothNoob_Negative"
 
         result = _compose_negative(FakeCtx(), "blurry")
         tokens = [t.strip() for t in result.split(",")]
-        assert tokens.index("EasyNegative") < tokens.index("embedding:negV2")
+        assert tokens.index("SmoothNoob_Negative") < tokens.index("embedding:negV2")
         assert tokens.index("embedding:negV2") < tokens.index("blurry")
 
     def test_empty_user_negative(self):

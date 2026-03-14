@@ -226,25 +226,3 @@ def test_resume_request_with_concept_id():
     # concept_id 없이도 유효
     req2 = ScriptResumeRequest(thread_id="test-456", action="approve")
     assert req2.concept_id is None
-
-
-# -- _read_interrupt_state 테스트 --
-
-
-@pytest.mark.asyncio
-async def test_read_interrupt_state_concept_gate(sample_critic_result):
-    """_read_interrupt_state가 concept_gate 타입 반환."""
-    from routers.scripts import _read_interrupt_state
-
-    mock_graph = MagicMock()
-    mock_snapshot = MagicMock()
-    mock_snapshot.values = {"critic_result": sample_critic_result}
-    mock_snapshot.next = ("concept_gate",)
-    mock_graph.aget_state = AsyncMock(return_value=mock_snapshot)
-
-    interrupt_node, result = await _read_interrupt_state(mock_graph, {"configurable": {}})
-
-    assert interrupt_node == "concept_gate"
-    assert result["type"] == "concept_selection"
-    assert len(result["candidates"]) == 3
-    assert result["selected_concept"]["agent_role"] == "storyteller"

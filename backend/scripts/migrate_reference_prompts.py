@@ -19,7 +19,7 @@ from models import Character
 # Default reference prompts (moved from controlnet.py hardcoding)
 DEFAULT_REFERENCE_BASE = "masterpiece, best quality, anime portrait, clean background, head and shoulders, looking at viewer, front view, facing front, eye contact, simple background, white background"
 
-DEFAULT_REFERENCE_NEGATIVE = "verybadimagenegative_v1.3, easynegative, (worst quality, low quality:1.4), blurry, text, watermark, from side, from behind, profile"
+DEFAULT_REFERENCE_NEGATIVE = "worst quality, low quality, lowres, bad anatomy, blurry, text, watermark, from side, from behind, profile"
 
 
 def migrate_reference_prompts(db: Session, dry_run: bool = True) -> None:

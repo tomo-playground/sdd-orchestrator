@@ -26,11 +26,11 @@ class TestImageCacheKey:
             "prompt": "1girl, masterpiece",
             "negative_prompt": "lowres",
             "seed": 42,
-            "width": 512,
-            "height": 768,
+            "width": 832,
+            "height": 1216,
             "steps": 28,
-            "cfg_scale": 7.0,
-            "sampler_name": "DPM++ 2M Karras",
+            "cfg_scale": 4.5,
+            "sampler_name": "Euler",
             "override_settings": {"CLIP_stop_at_last_layers": 2},
         }
         k1 = image_cache_key(payload)

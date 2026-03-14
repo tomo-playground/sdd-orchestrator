@@ -36,7 +36,7 @@ async def fetch_sd_models(client, db):
                     name=title,
                     display_name=model_name,
                     model_type="checkpoint",
-                    base_model="SD1.5", # Guessing
+                    base_model="SDXL",  # Default assumption
                     is_active=True
                 )
                 db.add(new_model)

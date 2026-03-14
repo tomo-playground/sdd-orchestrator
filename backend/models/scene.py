@@ -52,8 +52,8 @@ class Scene(Base, TimestampMixin, SoftDeleteMixin):
     tts_asset_id: Mapped[int | None] = mapped_column(ForeignKey("media_assets.id", ondelete="SET NULL"), nullable=True)
 
     # Image Generation Params (Optional overrides)
-    width: Mapped[int] = mapped_column(Integer, default=512)
-    height: Mapped[int] = mapped_column(Integer, default=768)
+    width: Mapped[int] = mapped_column(Integer, default=832)
+    height: Mapped[int] = mapped_column(Integer, default=1216)
 
     # Context tags (JSONB for flexible tag groups)
     context_tags: Mapped[dict | None] = mapped_column(JSONB)

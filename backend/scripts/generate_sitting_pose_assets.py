@@ -60,11 +60,11 @@ POSE_TARGETS: dict[str, dict] = {
 
 # ── SD 파라미터 ───────────────────────────────────────────────────────────────
 TXT2IMG_PARAMS = {
-    "steps": 20,
-    "cfg_scale": 7,
-    "width": 512,
-    "height": 768,
-    "sampler_name": "DPM++ 2M Karras",
+    "steps": 28,
+    "cfg_scale": 4.5,
+    "width": 832,
+    "height": 1216,
+    "sampler_name": "Euler",
 }
 
 
@@ -85,7 +85,7 @@ def extract_openpose_skeleton(image_b64: str) -> str:
     payload = {
         "controlnet_input_images": [image_b64],
         "controlnet_module": "openpose_full",
-        "controlnet_processor_res": 512,
+        "controlnet_processor_res": 832,
     }
     resp = requests.post(
         f"{SD_BASE_URL}/controlnet/detect",

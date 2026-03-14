@@ -635,7 +635,7 @@ class TestPreviewValidate:
 
         req = PreValidateRequest(storyboard_id=9999)
         mock_db = MagicMock()
-        mock_db.get.return_value = None
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         with pytest.raises(ValueError, match="스토리보드를 찾을 수 없습니다"):
             await preview_validate(req, mock_db)
@@ -653,7 +653,7 @@ class TestPreviewValidate:
         mock_storyboard.scenes = []
 
         mock_db = MagicMock()
-        mock_db.get.return_value = mock_storyboard
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = mock_storyboard
 
         result = await preview_validate(req, mock_db)
 
@@ -682,7 +682,7 @@ class TestPreviewValidate:
         mock_storyboard.scenes = [mock_scene]
 
         mock_db = MagicMock()
-        mock_db.get.return_value = mock_storyboard
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = mock_storyboard
 
         with patch("services.preview_validate.TTS_CACHE_DIR", tmp_path):
             result = await preview_validate(req, mock_db)
@@ -712,7 +712,7 @@ class TestPreviewValidate:
         mock_storyboard.scenes = [mock_scene]
 
         mock_db = MagicMock()
-        mock_db.get.return_value = mock_storyboard
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = mock_storyboard
 
         with patch("services.preview_validate.TTS_CACHE_DIR", tmp_path):
             result = await preview_validate(req, mock_db)
@@ -743,7 +743,7 @@ class TestPreviewValidate:
         mock_storyboard.scenes = [mock_scene]
 
         mock_db = MagicMock()
-        mock_db.get.return_value = mock_storyboard
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = mock_storyboard
 
         with patch("services.preview_validate.TTS_CACHE_DIR", tmp_path):
             result = await preview_validate(req, mock_db)
@@ -778,7 +778,7 @@ class TestPreviewValidate:
         mock_storyboard.scenes = scenes
 
         mock_db = MagicMock()
-        mock_db.get.return_value = mock_storyboard
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = mock_storyboard
 
         with patch("services.preview_validate.TTS_CACHE_DIR", tmp_path):
             result = await preview_validate(req, mock_db)
@@ -808,7 +808,7 @@ class TestPreviewValidate:
         mock_storyboard.scenes = [mock_scene]
 
         mock_db = MagicMock()
-        mock_db.get.return_value = mock_storyboard
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = mock_storyboard
 
         with patch("services.preview_validate.TTS_CACHE_DIR", tmp_path):
             result = await preview_validate(req, mock_db)

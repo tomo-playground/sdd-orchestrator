@@ -30,7 +30,7 @@ DEFAULT_LORAS = [
             "eye_color": "purple_eyes",
             "hair_style": "short_hair",
         },
-        "recommended_negative": ["verybadimagenegative_v1.3"],
+        "recommended_negative": ["worst quality, low quality, lowres, bad anatomy"],
     },
     {
         "name": "chibi-laugh",
@@ -40,7 +40,7 @@ DEFAULT_LORAS = [
         "weight_min": 0.3,
         "weight_max": 0.8,
         "base_models": ["*"],  # Works with any model
-        "recommended_negative": ["easynegative"],
+        "recommended_negative": ["worst quality, low quality, lowres"],
     },
 ]
 

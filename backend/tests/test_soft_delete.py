@@ -82,8 +82,8 @@ class TestStoryboardSoftDelete:
         # Soft delete first
         client.delete(f"/api/v1/storyboards/{sb_id}")
 
-        # Permanent delete
-        resp = client.delete(f"/api/v1/storyboards/{sb_id}/permanent")
+        # Permanent delete (admin endpoint)
+        resp = client.delete(f"/api/admin/storyboards/{sb_id}/permanent")
         assert resp.status_code == 200
 
         # Gone from trash

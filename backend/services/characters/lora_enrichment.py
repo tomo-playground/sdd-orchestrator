@@ -22,7 +22,7 @@ def enrich_character_loras(db: Session, loras: list[dict]) -> list[dict]:
     if not lora_ids:
         return loras
 
-    lora_objs = db.query(LoRA).filter(LoRA.id.in_(lora_ids)).all()
+    lora_objs = db.query(LoRA).filter(LoRA.id.in_(lora_ids), LoRA.is_active.is_(True)).all()
     lora_map = {obj.id: obj for obj in lora_objs}
     return enrich_with_lora_map(loras, lora_map)
 

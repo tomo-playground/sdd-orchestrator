@@ -12,7 +12,7 @@ class TestLoRAsRouter:
 
     def test_list_loras_empty(self, client: TestClient, db_session):
         """List LoRAs when database is empty."""
-        response = client.get("/api/admin/loras")
+        response = client.get("/api/v1/loras")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -67,7 +67,7 @@ class TestLoRAsRouter:
 
     def test_get_lora_not_found(self, client: TestClient):
         """Get non-existent LoRA returns 404."""
-        response = client.get("/api/admin/loras/99999")
+        response = client.get("/api/v1/loras/99999")
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
@@ -80,7 +80,7 @@ class TestLoRAsRouter:
         db_session.add(lora)
         db_session.commit()
 
-        response = client.get(f"/api/admin/loras/{lora.id}")
+        response = client.get(f"/api/v1/loras/{lora.id}")
         assert response.status_code == 200
         data = response.json()
 
@@ -153,7 +153,7 @@ class TestLoRAsRouter:
         db_session.add_all([lora1, lora2])
         db_session.commit()
 
-        response = client.get("/api/admin/loras")
+        response = client.get("/api/v1/loras")
         assert response.status_code == 200
         data = response.json()
 

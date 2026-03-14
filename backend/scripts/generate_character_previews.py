@@ -18,7 +18,7 @@ async def generate_character_preview(client, character):
 
     # Use reference prompt or custom prompt
     prompt = character.reference_base_prompt or character.custom_base_prompt or "1girl, anime style"
-    negative = character.reference_negative_prompt or character.custom_negative_prompt or "verybadimagenegative_v1.3"
+    negative = character.reference_negative_prompt or character.custom_negative_prompt or "worst quality, low quality, lowres, bad anatomy"
 
     # Add LoRA if available
     if character.loras and len(character.loras) > 0:
@@ -43,11 +43,11 @@ async def generate_character_preview(client, character):
     payload = {
         "prompt": prompt,
         "negative_prompt": negative,
-        "steps": 20,
-        "cfg_scale": 7.0,
-        "width": 512,
-        "height": 768,
-        "sampler_name": "DPM++ 2M Karras",
+        "steps": 28,
+        "cfg_scale": 4.5,
+        "width": 832,
+        "height": 1216,
+        "sampler_name": "Euler",
         "seed": -1,
     }
 

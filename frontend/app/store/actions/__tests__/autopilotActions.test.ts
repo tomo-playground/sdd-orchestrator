@@ -34,8 +34,8 @@ function makeScene(overrides: Record<string, unknown> = {}) {
     image_prompt: "1girl",
     image_url: null,
     image_asset_id: null,
-    width: 512,
-    height: 768,
+    width: 832,
+    height: 1216,
     ...overrides,
   };
 }

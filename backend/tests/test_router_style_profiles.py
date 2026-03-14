@@ -302,7 +302,7 @@ class TestStyleProfileFullResponse:
         profile = StyleProfile(
             name="ip_adapter_full",
             display_name="IP Adapter Full",
-            default_ip_adapter_model="ip-adapter-faceid_sd15",
+            default_ip_adapter_model="ip-adapter-plus-face_sdxl_vit-h",
         )
         db_session.add(profile)
         db_session.commit()
@@ -311,4 +311,4 @@ class TestStyleProfileFullResponse:
         assert response.status_code == 200
         data = response.json()
 
-        assert data["default_ip_adapter_model"] == "ip-adapter-faceid_sd15"
+        assert data["default_ip_adapter_model"] == "ip-adapter-plus-face_sdxl_vit-h"

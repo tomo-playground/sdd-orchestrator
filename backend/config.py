@@ -136,14 +136,15 @@ SD_TIMEOUT_SECONDS = float(os.getenv("SD_TIMEOUT_SECONDS", "600"))
 SD_BATCH_CONCURRENCY = int(os.getenv("SD_BATCH_CONCURRENCY", "3"))
 
 # --- Image Generation Defaults ---
-# Optimized for Speed + Quality + Post/Full compatibility
-# 512x768 (2:3) allows perfect 1:1 top-crop and full 9:16 cover
-SD_DEFAULT_WIDTH = int(os.getenv("SD_DEFAULT_WIDTH", "512"))
-SD_DEFAULT_HEIGHT = int(os.getenv("SD_DEFAULT_HEIGHT", "768"))
+# NoobAI-XL V-Pred 1.0: Euler only, CFG 4~5, 832x1216 (2:3, ~1M pixels)
+SD_DEFAULT_WIDTH = int(os.getenv("SD_DEFAULT_WIDTH", "832"))
+SD_DEFAULT_HEIGHT = int(os.getenv("SD_DEFAULT_HEIGHT", "1216"))
 SD_DEFAULT_STEPS = int(os.getenv("SD_DEFAULT_STEPS", "28"))
-SD_DEFAULT_CFG_SCALE = float(os.getenv("SD_DEFAULT_CFG_SCALE", "6.5"))
-SD_DEFAULT_SAMPLER = os.getenv("SD_DEFAULT_SAMPLER", "DPM++ 2M SDE Karras")
+SD_DEFAULT_CFG_SCALE = float(os.getenv("SD_DEFAULT_CFG_SCALE", "4.5"))
+SD_DEFAULT_SAMPLER = os.getenv("SD_DEFAULT_SAMPLER", "Euler")
 SD_DEFAULT_CLIP_SKIP = int(os.getenv("SD_DEFAULT_CLIP_SKIP", "2"))
+# V-Pred CFG Rescale (prevents grey output at higher CFG values)
+SD_CFG_RESCALE = float(os.getenv("SD_CFG_RESCALE", "0.2"))
 
 # --- LoRA Weight Cap ---
 # Maximum weight for style LoRAs (applied to both character and narrator scenes)
@@ -175,11 +176,14 @@ def split_sampler_scheduler(sampler_name: str) -> tuple[str, str | None]:
 
 
 def apply_sampler_to_payload(payload: dict, sampler_name: str) -> None:
-    """Set sampler_name and scheduler in payload for Forge compatibility."""
+    """Set sampler_name, scheduler, and CFG Rescale in payload for Forge compatibility."""
     sampler, scheduler = split_sampler_scheduler(sampler_name)
     payload["sampler_name"] = sampler
     if scheduler:
         payload["scheduler"] = scheduler
+    # V-Pred CFG Rescale (prevents grey output)
+    if SD_CFG_RESCALE > 0:
+        payload.setdefault("extra_generation_params", {})["CFG Rescale φ"] = SD_CFG_RESCALE
 
 
 # --- SD API Timeouts ---
@@ -191,11 +195,11 @@ CONTROLNET_API_TIMEOUT = float(os.getenv("CONTROLNET_API_TIMEOUT", "10"))
 CONTROLNET_GENERATE_TIMEOUT = float(os.getenv("CONTROLNET_GENERATE_TIMEOUT", "180"))
 CONTROLNET_DETECT_TIMEOUT = float(os.getenv("CONTROLNET_DETECT_TIMEOUT", "60"))
 # Default sampler for ControlNet-only generation (not using StyleProfile)
-CONTROLNET_DEFAULT_SAMPLER = os.getenv("CONTROLNET_DEFAULT_SAMPLER", "Euler a")
+CONTROLNET_DEFAULT_SAMPLER = os.getenv("CONTROLNET_DEFAULT_SAMPLER", "Euler")
 
 # --- Character Reference Generation ---
-SD_REFERENCE_STEPS = int(os.getenv("SD_REFERENCE_STEPS", "25"))
-SD_REFERENCE_CFG_SCALE = float(os.getenv("SD_REFERENCE_CFG_SCALE", "7.0"))
+SD_REFERENCE_STEPS = int(os.getenv("SD_REFERENCE_STEPS", "28"))
+SD_REFERENCE_CFG_SCALE = float(os.getenv("SD_REFERENCE_CFG_SCALE", "4.5"))
 SD_REFERENCE_HR_UPSCALER = os.getenv("SD_REFERENCE_HR_UPSCALER", "R-ESRGAN 4x+ Anime6B")
 SD_REFERENCE_DENOISING = float(os.getenv("SD_REFERENCE_DENOISING", "0.35"))
 # ControlNet pose for reference images (empty = disabled, upper_body framing only)

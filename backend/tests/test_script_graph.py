@@ -121,10 +121,13 @@ async def test_graph_state_propagation(mock_db_ctx, mock_gen_script, mock_scenes
         {"topic": "전파 테스트", "skip_stages": ["research", "concept", "production", "explain"], "duration": 10}
     )
 
-    # finalize에서 negative_prompt가 주입되므로 핵심 필드만 비교
+    # finalize에서 context_tags 재조립, expression/pose 다양성 처리 등으로
+    # image_prompt가 의도적으로 변경될 수 있으므로 script/speaker만 보존 검증
     for draft, final in zip(result["draft_scenes"], result["final_scenes"]):
         assert draft["script"] == final["script"]
-        assert draft["image_prompt"] == final["image_prompt"]
+        assert draft["speaker"] == final["speaker"]
+        # image_prompt가 존재하는지만 확인 (내용은 finalize가 의도적으로 변경)
+        assert final.get("image_prompt"), "image_prompt should not be empty"
     assert len(result["final_scenes"]) == len(mock_scenes)
 
 

@@ -417,7 +417,7 @@ class TestStyleProfileSkipLoras:
         """Positive/negative embedding trigger words are injected."""
         mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}
         neg_emb = MagicMock()
-        neg_emb.trigger_word = "EasyNegative"
+        neg_emb.trigger_word = "SmoothNoob_Negative"
         pos_emb = MagicMock()
         pos_emb.trigger_word = "beautiful_style"
         db = self._mock_db(
@@ -446,14 +446,14 @@ class TestStyleProfileSkipLoras:
         result_prompt, result_neg = apply_style_profile_to_prompt("1girl", "bad", 10, db)
 
         assert "beautiful_style" in result_prompt
-        assert "EasyNegative" in result_neg
+        assert "SmoothNoob_Negative" in result_neg
 
     @patch("services.config_resolver.resolve_effective_config")
     def test_embeddings_applied_even_with_skip_loras(self, mock_resolve):
         """Embeddings are applied regardless of skip_loras flag."""
         mock_resolve.return_value = {"values": {"style_profile_id": 1}, "sources": {}}
         neg_emb = MagicMock()
-        neg_emb.trigger_word = "EasyNegative"
+        neg_emb.trigger_word = "SmoothNoob_Negative"
         db = self._mock_db(negative_embeddings=[1])
 
         def patched_query(model):
@@ -481,7 +481,7 @@ class TestStyleProfileSkipLoras:
 
         result_prompt, result_neg = apply_style_profile_to_prompt("1girl", "", 10, db, skip_loras=True)
 
-        assert "EasyNegative" in result_neg  # Embedding applied even with skip_loras
+        assert "SmoothNoob_Negative" in result_neg  # Embedding applied even with skip_loras
 
     @patch("services.config_resolver.resolve_effective_config")
     def test_lora_dedup_skips_existing_lora_in_prompt(self, mock_resolve):

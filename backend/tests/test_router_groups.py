@@ -121,7 +121,7 @@ class TestGroupsRouter:
 
         resp = client.delete(f"/api/v1/groups/{gid}")
         assert resp.status_code == 409
-        assert "existing storyboards" in resp.json()["detail"].lower()
+        assert "active storyboard" in resp.json()["detail"].lower()
 
 
 class TestGroupEffectiveConfig:

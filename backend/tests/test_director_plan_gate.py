@@ -208,28 +208,3 @@ def test_graph_edge_director_plan_to_gate():
     assert ("director_plan", "director_plan_gate") in edges
     assert ("director_plan_gate", "inventory_resolve") in edges
     assert ("director_plan_gate", "director_plan") in edges
-
-
-# -- _read_interrupt_state 테스트 --
-
-
-@pytest.mark.asyncio
-async def test_read_interrupt_state_director_plan_gate(sample_director_plan):
-    """_read_interrupt_state가 director_plan_gate 타입 반환."""
-    from routers.scripts import _read_interrupt_state
-
-    mock_graph = MagicMock()
-    mock_snapshot = MagicMock()
-    mock_snapshot.values = {
-        "director_plan": sample_director_plan,
-        "skip_stages": ["research"],
-    }
-    mock_snapshot.next = ("director_plan_gate",)
-    mock_graph.aget_state = AsyncMock(return_value=mock_snapshot)
-
-    interrupt_node, result = await _read_interrupt_state(mock_graph, {"configurable": {}})
-
-    assert interrupt_node == "director_plan_gate"
-    assert result["type"] == "plan_review"
-    assert result["director_plan"] == sample_director_plan
-    assert result["skip_stages"] == ["research"]

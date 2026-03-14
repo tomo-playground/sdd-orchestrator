@@ -44,6 +44,9 @@ class LoRA(Base, TimestampMixin):
     multi_char_trigger_prompt: Mapped[str | None] = mapped_column(String(200))
     # 멀티캐릭터 호출 프롬프트 (예: "a boy and a girl")
 
+    # Status
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+
     # External Metadata & Media
     civitai_id: Mapped[int | None] = mapped_column(Integer)
     civitai_url: Mapped[str | None] = mapped_column(String(500))

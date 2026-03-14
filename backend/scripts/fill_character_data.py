@@ -16,9 +16,9 @@ def main():
         hana = db.query(Character).filter(Character.name == "Hana").first()
         if hana:
             hana.description = "Test character for - Generic anime girl with long hair and blue eyes"
-            hana.recommended_negative = ["verybadimagenegative_v1.3", "easynegative", "badhandv4"]
+            hana.recommended_negative = ["worst quality, low quality, lowres, bad anatomy"]
             hana.custom_base_prompt = "1girl, solo, long hair, blue eyes"
-            hana.custom_negative_prompt = "verybadimagenegative_v1.3, easynegative, badhandv4"
+            hana.custom_negative_prompt = "worst quality, low quality, lowres, bad anatomy, bad hands"
             hana.reference_base_prompt = DEFAULT_REFERENCE_BASE_PROMPT + ", 1girl, long hair, blue eyes"
             hana.reference_negative_prompt = DEFAULT_REFERENCE_NEGATIVE_PROMPT
             logger.info("✅ Updated Hana with complete data")

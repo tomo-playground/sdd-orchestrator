@@ -56,6 +56,7 @@ services:
       - /home/tomo/Workspace/sd-models/lora:/workspace/stable-diffusion-webui/models/Lora
       - /home/tomo/Workspace/sd-models/embeddings:/workspace/stable-diffusion-webui/embeddings
       - /home/tomo/Workspace/sd-models/controlnet:/workspace/stable-diffusion-webui/models/ControlNet
+      - /home/tomo/Workspace/sd-models/clip_vision:/workspace/stable-diffusion-webui/models/clip_vision
       - sd-webui-cache:/workspace/stable-diffusion-webui/cache
       - sd-webui-output:/workspace/stable-diffusion-webui/outputs
     deploy:

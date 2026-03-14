@@ -12,7 +12,16 @@ from __future__ import annotations
 import hashlib
 import json
 
-from config import SD_IMAGE_CACHE_DIR, SD_IMAGE_CACHE_ENABLED, SD_IMAGE_CACHE_MAX_SIZE_MB, logger
+from config import (
+    SD_DEFAULT_CFG_SCALE,
+    SD_DEFAULT_CLIP_SKIP,
+    SD_DEFAULT_HEIGHT,
+    SD_DEFAULT_WIDTH,
+    SD_IMAGE_CACHE_DIR,
+    SD_IMAGE_CACHE_ENABLED,
+    SD_IMAGE_CACHE_MAX_SIZE_MB,
+    logger,
+)
 
 _CACHE_DIR = SD_IMAGE_CACHE_DIR
 
@@ -23,13 +32,13 @@ def image_cache_key(payload: dict) -> str:
         "prompt": payload.get("prompt", ""),
         "negative_prompt": payload.get("negative_prompt", ""),
         "seed": payload.get("seed", -1),
-        "width": payload.get("width", 512),
-        "height": payload.get("height", 768),
+        "width": payload.get("width", SD_DEFAULT_WIDTH),
+        "height": payload.get("height", SD_DEFAULT_HEIGHT),
         "steps": payload.get("steps", 28),
-        "cfg_scale": payload.get("cfg_scale", 7.0),
+        "cfg_scale": payload.get("cfg_scale", SD_DEFAULT_CFG_SCALE),
         "sampler_name": payload.get("sampler_name", ""),
         "scheduler": payload.get("scheduler", ""),
-        "clip_skip": payload.get("override_settings", {}).get("CLIP_stop_at_last_layers", 2),
+        "clip_skip": payload.get("override_settings", {}).get("CLIP_stop_at_last_layers", SD_DEFAULT_CLIP_SKIP),
     }
     # Include ControlNet fingerprint if present
     alwayson = payload.get("alwayson_scripts", {})

@@ -210,7 +210,7 @@ class LoRATriggerCache:
         try:
             from models.lora import LoRA
 
-            loras = db.query(LoRA).all()
+            loras = db.query(LoRA).filter(LoRA.is_active.is_(True)).all()
 
             count = 0
             for lora in loras:

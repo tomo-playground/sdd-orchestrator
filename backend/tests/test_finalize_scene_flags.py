@@ -69,10 +69,12 @@ class TestAutoPopulateSceneFlags:
         assert scenes[0]["multi_gen_enabled"] is True
 
     def test_multi_gen_default(self):
-        """multi_gen_enabled → config 기본값 (True)."""
+        """multi_gen_enabled → config 기본값 (DEFAULT_MULTI_GEN_ENABLED)."""
+        from config import DEFAULT_MULTI_GEN_ENABLED
+
         scenes = [{"speaker": "A"}]
         _auto_populate_scene_flags(scenes, character_id=None)
-        assert scenes[0]["multi_gen_enabled"] is True
+        assert scenes[0]["multi_gen_enabled"] is DEFAULT_MULTI_GEN_ENABLED
 
     def test_context_tags_pose_used_for_controlnet(self):
         """context_tags.pose가 있으면 controlnet_pose로 자동 할당.

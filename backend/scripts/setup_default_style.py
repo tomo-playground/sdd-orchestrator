@@ -2,9 +2,8 @@
 """Setup default SD models, LoRAs, embeddings, and style profile.
 
 Based on current environment:
-- Model: anyloraCheckpoint_bakedvaeBlessedFp16.safetensors (SD1.5 anime, style-neutral, best prompt fidelity)
+- Model: noobaiXLNAIXL_vPred10Version (SDXL anime, V-Pred)
 - LoRA: eureka_v9 (character), chibi-laugh (style)
-- Negative Embeddings: verybadimagenegative_v1.3, easynegative
 
 Usage:
     cd backend && uv run python scripts/setup_default_style.py
@@ -43,15 +42,15 @@ def main():
     try:
         # 1. SD Model
         print("📦 SD Models:")
-        anylora, _ = get_or_create(
+        noobai, _ = get_or_create(
             db,
             SDModel,
-            "anyloraCheckpoint_bakedvaeBlessedFp16.safetensors",
+            "noobaiXLNAIXL_vPred10Version.safetensors",
             {
-                "display_name": "AnyLoRA",
+                "display_name": "NoobAI-XL V-Pred",
                 "model_type": "checkpoint",
-                "base_model": "SD1.5",
-                "description": "Style-neutral SD1.5 model, best prompt fidelity and LoRA compatibility",
+                "base_model": "SDXL",
+                "description": "SDXL anime model with V-Prediction, high quality and LoRA compatibility",
             },
         )
 
@@ -67,13 +66,13 @@ def main():
                 "default_weight": 1.0,
                 "weight_min": 0.5,
                 "weight_max": 1.5,
-                "base_models": ["SD1.5", "anylora"],
+                "base_models": ["SDXL", "noobai-xl"],
                 "character_defaults": {
                     "hair_color": "aqua_hair",
                     "eye_color": "purple_eyes",
                     "hair_style": "short_hair",
                 },
-                "recommended_negative": ["verybadimagenegative_v1.3"],
+                "recommended_negative": ["worst quality, low quality, lowres, bad anatomy"],
             },
         )
 
@@ -88,59 +87,36 @@ def main():
                 "weight_min": 0.3,
                 "weight_max": 0.8,
                 "base_models": ["*"],
-                "recommended_negative": ["easynegative"],
+                "recommended_negative": ["worst quality, low quality, lowres"],
             },
         )
 
-        # 3. Embeddings
-        print("\n🔖 Embeddings:")
-        veryBad, _ = get_or_create(
-            db,
-            Embedding,
-            "verybadimagenegative_v1.3",
-            {
-                "display_name": "Very Bad Image Negative",
-                "embedding_type": "negative",
-                "trigger_word": "verybadimagenegative_v1.3",
-                "description": "Quality improvement negative embedding",
-            },
-        )
-
-        easyNeg, _ = get_or_create(
-            db,
-            Embedding,
-            "easynegative",
-            {
-                "display_name": "Easy Negative",
-                "embedding_type": "negative",
-                "trigger_word": "easynegative",
-                "description": "General negative embedding for better quality",
-            },
-        )
+        # 3. Embeddings (SDXL uses text-based negatives, no SD1.5 embeddings needed)
+        print("\n🔖 Embeddings: (skipped — SDXL uses text-based negatives)")
 
         # 4. Style Profile
         print("\n🎭 Style Profiles:")
-        existing_profile = db.query(StyleProfile).filter(StyleProfile.name == "anylora-default").first()
+        existing_profile = db.query(StyleProfile).filter(StyleProfile.name == "noobai-xl-default").first()
         if existing_profile:
-            print("  ⏭️  Exists: anylora-default")
+            print("  ⏭️  Exists: noobai-xl-default")
         else:
             profile = StyleProfile(
-                name="anylora-default",
-                display_name="AnyLoRA Default",
-                description="Default style with AnyLoRA, Eureka, and Chibi Laugh LoRAs",
-                sd_model_id=anylora.id,
+                name="noobai-xl-default",
+                display_name="NoobAI-XL V-Pred Default",
+                description="Default style with NoobAI-XL V-Pred, Eureka, and Chibi Laugh LoRAs",
+                sd_model_id=noobai.id,
                 loras=[
                     {"lora_id": eureka.id, "weight": 1.0},
                     {"lora_id": chibi.id, "weight": 0.6},
                 ],
-                negative_embeddings=[veryBad.id, easyNeg.id],
+                negative_embeddings=[],
                 default_positive="masterpiece, best_quality, highly_detailed",
-                default_negative="lowres, bad_anatomy, bad_hands, text, error, missing_fingers, extra_digit, fewer_digits, cropped, worst_quality, low_quality, normal_quality, jpeg_artifacts, signature, watermark, username, blurry",
+                default_negative="worst quality, low quality, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, normal quality, jpeg artifacts, signature, watermark, username, blurry",
                 is_default=True,
                 is_active=True,
             )
             db.add(profile)
-            print("  ✅ Created: anylora-default (set as default)")
+            print("  ✅ Created: noobai-xl-default (set as default)")
 
         db.commit()
         print("\n🎉 Setup complete!")

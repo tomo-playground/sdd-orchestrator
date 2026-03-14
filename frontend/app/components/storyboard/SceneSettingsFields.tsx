@@ -91,8 +91,8 @@ export default function SceneSettingsFields({
             const payload = {
               prompt,
               negative_prompt: buildNegativePrompt(scene),
-              width: 512,
-              height: 768,
+              width: 832,
+              height: 1216,
             };
             onUpdateScene({
               debug_payload: JSON.stringify(payload, null, 2),

@@ -46,8 +46,8 @@ export function buildScenesPayload(scenes: Scene[]) {
       ...rest,
       // API-specific overrides
       scene_id: i,
-      width: s.width || 512,
-      height: s.height || 768,
+      width: s.width || 832,
+      height: s.height || 1216,
       candidates: sanitizeCandidatesForDb(s.candidates),
     };
   });

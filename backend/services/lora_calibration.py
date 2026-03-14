@@ -11,7 +11,18 @@ import io
 import httpx
 from PIL import Image
 
-from config import SD_DEFAULT_SAMPLER, SD_TIMEOUT_SECONDS, SD_TXT2IMG_URL, apply_sampler_to_payload, cap_style_lora_weight, logger
+from config import (
+    SD_DEFAULT_CFG_SCALE,
+    SD_DEFAULT_CLIP_SKIP,
+    SD_DEFAULT_HEIGHT,
+    SD_DEFAULT_SAMPLER,
+    SD_DEFAULT_WIDTH,
+    SD_TIMEOUT_SECONDS,
+    SD_TXT2IMG_URL,
+    apply_sampler_to_payload,
+    cap_style_lora_weight,
+    logger,
+)
 from services.controlnet import build_controlnet_args, load_pose_reference
 from services.validation import compare_prompt_to_tags, wd14_predict_tags
 
@@ -54,12 +65,12 @@ async def generate_test_image(
         "prompt": prompt,
         "negative_prompt": CALIBRATION_NEGATIVE,
         "steps": CALIBRATION_DEFAULT_SD_STEPS,
-        "cfg_scale": 7.0,
+        "cfg_scale": SD_DEFAULT_CFG_SCALE,
         "sampler_name": SD_DEFAULT_SAMPLER,
         "seed": CALIBRATION_SEED,
-        "width": 512,
-        "height": 768,
-        "override_settings": {"CLIP_stop_at_last_layers": 2},
+        "width": SD_DEFAULT_WIDTH,
+        "height": SD_DEFAULT_HEIGHT,
+        "override_settings": {"CLIP_stop_at_last_layers": SD_DEFAULT_CLIP_SKIP},
         "override_settings_restore_afterwards": True,
     }
 
