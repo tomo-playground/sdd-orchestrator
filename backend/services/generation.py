@@ -17,6 +17,7 @@ from fastapi import HTTPException
 from config import (
     SD_TIMEOUT_SECONDS,
     SD_TXT2IMG_URL,
+    apply_sampler_to_payload,
     logger,
 )
 from database import SessionLocal
@@ -173,7 +174,6 @@ def _build_payload(ctx: GenerationContext) -> dict:
         "negative_prompt": cleaned_negative,
         "steps": ctx.steps,
         "cfg_scale": ctx.cfg_scale,
-        "sampler_name": req.sampler_name,
         "seed": req.seed,
         "width": req.width,
         "height": req.height,
@@ -183,6 +183,7 @@ def _build_payload(ctx: GenerationContext) -> dict:
         "override_settings_restore_afterwards": True,
         "batch_size": 1,
     }
+    apply_sampler_to_payload(payload, req.sampler_name)
     if req.enable_hr:
         payload.update(
             {
@@ -195,7 +196,7 @@ def _build_payload(ctx: GenerationContext) -> dict:
         )
     adetailer = _build_adetailer_args(ctx.style_context.profile_id if ctx.style_context else None)
     if adetailer:
-        payload["alwayson_scripts"] = adetailer
+        payload.setdefault("alwayson_scripts", {}).update(adetailer)
     return payload
 
 

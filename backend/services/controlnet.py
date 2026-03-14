@@ -28,6 +28,7 @@ from config import (
     DEFAULT_REFERENCE_NEGATIVE_PROMPT,
     SD_BASE_URL,
     SD_TXT2IMG_URL,
+    apply_sampler_to_payload,
     logger,
 )
 from models import Character
@@ -173,12 +174,15 @@ DEFAULT_IP_ADAPTER_MODEL = "clip_face"
 
 
 def check_controlnet_available() -> bool:
-    """Check if ControlNet extension is available."""
-    try:
-        resp = requests.get(f"{SD_BASE_URL}/controlnet/version", timeout=CONTROLNET_API_TIMEOUT)
-        return resp.status_code == 200
-    except Exception:
-        return False
+    """Check if ControlNet is available (A1111 extension or Forge built-in)."""
+    for endpoint in ("/controlnet/version", "/controlnet/model_list"):
+        try:
+            resp = requests.get(f"{SD_BASE_URL}{endpoint}", timeout=CONTROLNET_API_TIMEOUT)
+            if resp.status_code == 200:
+                return True
+        except Exception:
+            pass
+    return False
 
 
 def get_controlnet_models() -> list[str]:
@@ -258,17 +262,22 @@ def build_controlnet_args(
     Returns:
         ControlNet args dict for alwayson_scripts
     """
+    # Forge built-in ControlNet: use "none" for pre-processed images (pose sticks)
+    # to skip preprocessor. Only use model name as module when raw images need processing.
+    module = preprocessor or "None"
     args = {
         "enabled": True,
         "image": input_image,
         "model": CONTROLNET_MODELS.get(model, model),
-        "module": preprocessor or model,  # Default module same as model name (e.g. openpose, canny)
+        "module": module,
         "weight": weight,
-        "control_mode": control_mode,  # "Balanced", "My prompt is more important", "ControlNet is more important"
-        "pixel_perfect": True,
-        "low_vram": False,
+        "control_mode": control_mode,
+        "pixel_perfect": False,  # Not needed when providing pre-processed images
         "guidance_start": 0.0,
         "guidance_end": 1.0,
+        "processor_res": -1,
+        "threshold_a": -1,
+        "threshold_b": -1,
     }
 
     if model == "reference":
@@ -311,7 +320,6 @@ def generate_with_controlnet(
         "width": width,
         "height": height,
         "cfg_scale": cfg_scale,
-        "sampler_name": CONTROLNET_DEFAULT_SAMPLER,
         "alwayson_scripts": {
             "controlnet": {
                 "args": [
@@ -319,11 +327,14 @@ def generate_with_controlnet(
                         input_image=pose_image,
                         model="openpose",
                         weight=controlnet_weight,
-                    )
+                    ),
+                    {"enabled": False},
+                    {"enabled": False},
                 ]
             }
         },
     }
+    apply_sampler_to_payload(payload, CONTROLNET_DEFAULT_SAMPLER)
 
     resp = requests.post(
         f"{SD_BASE_URL}/sdapi/v1/txt2img",
@@ -523,12 +534,13 @@ def build_ip_adapter_args(
         raise ValueError(f"Unknown IP-Adapter model: {model}")
 
     # Select module and control_mode based on model type
+    # Forge built-in ControlNet uses different module names than A1111
     if model == "faceid":
-        module = "ip-adapter_face_id_plus"  # For real faces (InsightFace)
-        control_mode = "ControlNet is more important"  # Prioritize face identity
+        module = "InsightFace+CLIP-H (IPAdapter)"  # Forge name for face ID
+        control_mode = "ControlNet is more important"
         default_end = DEFAULT_IP_ADAPTER_GUIDANCE_END_FACEID
     else:
-        module = "ip-adapter_clip_sd15"  # For anime/illustration (CLIP)
+        module = "CLIP-ViT-H (IPAdapter)"  # Forge name for CLIP-based IP-Adapter
         control_mode = "Balanced"
         default_end = DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP
 
@@ -540,6 +552,8 @@ def build_ip_adapter_args(
         "weight": weight,
         "resize_mode": "Crop and Resize",
         "processor_res": 512,
+        "threshold_a": -1,
+        "threshold_b": -1,
         "control_mode": control_mode,
         "pixel_perfect": False,
         "guidance_start": guidance_start if guidance_start is not None else DEFAULT_IP_ADAPTER_GUIDANCE_START,
@@ -581,7 +595,9 @@ def build_reference_only_args(
         "guidance_start": guidance_start,
         "guidance_end": guidance_end,
         "resize_mode": "Crop and Resize",
-        "processor_res": 512,
+        "processor_res": -1,
+        "threshold_a": -1,
+        "threshold_b": -1,
         "control_mode": "Balanced",
         "pixel_perfect": False,
     }
@@ -740,9 +756,9 @@ async def generate_reference_for_character(
             "width": 512,
             "height": 512,
             "cfg_scale": cfg_scale,
-            "sampler_name": sampler_name,
             "seed": random.randint(0, 2**32 - 1) if attempt > 0 else -1,
         }
+        apply_sampler_to_payload(payload, sampler_name)
 
         logger.info(f"🎨 [{attempt + 1}/{max_attempts}] Generating reference for {character.name}...")
         logger.info(f"  Prompt: {payload['prompt'][:200]}...")

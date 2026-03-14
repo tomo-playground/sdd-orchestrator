@@ -55,7 +55,8 @@ async def generate_test_image(
         "negative_prompt": CALIBRATION_NEGATIVE,
         "steps": CALIBRATION_DEFAULT_SD_STEPS,
         "cfg_scale": 7.0,
-        "sampler_name": "DPM++ 2M Karras",
+        "sampler_name": "DPM++ 2M",
+        "scheduler": "karras",
         "seed": CALIBRATION_SEED,
         "width": 512,
         "height": 768,
@@ -72,7 +73,7 @@ async def generate_test_image(
                 model="openpose",
                 weight=0.8,
             )
-            payload["alwayson_scripts"] = {"controlnet": {"args": [controlnet_args]}}
+            payload["alwayson_scripts"] = {"controlnet": {"args": [controlnet_args, {"enabled": False}, {"enabled": False}]}}
 
     try:
         async with httpx.AsyncClient() as client:

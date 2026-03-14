@@ -41,8 +41,12 @@ def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
     _apply_ip_adapter(ctx, strategy, controlnet_args_list, db)
 
     # Apply combined ControlNet args to payload
+    # Forge requires padding to match default slot count (3) to avoid KeyError
     if controlnet_args_list:
-        payload["alwayson_scripts"] = {"controlnet": {"args": controlnet_args_list}}
+        _FORGE_CN_SLOTS = 3
+        while len(controlnet_args_list) < _FORGE_CN_SLOTS:
+            controlnet_args_list.append({"enabled": False})
+        payload.setdefault("alwayson_scripts", {})["controlnet"] = {"args": controlnet_args_list}
         for i, arg in enumerate(controlnet_args_list):
             debug_arg = {
                 k: (v[:50] + "..." if k == "image" and isinstance(v, str) and len(v) > 50 else v)
@@ -282,10 +286,12 @@ def _apply_reference_adain_from_asset(
                 "model": "None",
                 "weight": weight,
                 "control_mode": "My prompt is more important",
-                "pixel_perfect": True,
-                "low_vram": False,
+                "pixel_perfect": False,
                 "guidance_start": 0.0,
                 "guidance_end": REFERENCE_ADAIN_GUIDANCE_END,
+                "processor_res": -1,
+                "threshold_a": -1,
+                "threshold_b": -1,
             }
         )
         logger.info(

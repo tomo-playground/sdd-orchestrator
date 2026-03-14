@@ -23,6 +23,7 @@ from config import (
     SD_DEFAULT_WIDTH,
     SD_TIMEOUT_SECONDS,
     SD_TXT2IMG_URL,
+    apply_sampler_to_payload,
     logger,
 )
 from services.prompt.composition import PromptBuilder
@@ -197,7 +198,6 @@ async def generate_image_with_v3(
         "negative_prompt": negative_prompt,
         "steps": steps,
         "cfg_scale": cfg_scale,
-        "sampler_name": sampler_name,
         "override_settings": {
             "CLIP_stop_at_last_layers": max(1, int(clip_skip)),
         },
@@ -206,6 +206,7 @@ async def generate_image_with_v3(
         "height": sd_params.get("height", SD_DEFAULT_HEIGHT) if sd_params else SD_DEFAULT_HEIGHT,
         "seed": sd_params.get("seed", -1) if sd_params else -1,
     }
+    apply_sampler_to_payload(payload, sampler_name)
 
     # 6. Apply ControlNet/IP-Adapter (Studio only)
     if mode == "studio" and controlnet_config:

@@ -141,8 +141,8 @@ SD_BATCH_CONCURRENCY = int(os.getenv("SD_BATCH_CONCURRENCY", "3"))
 SD_DEFAULT_WIDTH = int(os.getenv("SD_DEFAULT_WIDTH", "512"))
 SD_DEFAULT_HEIGHT = int(os.getenv("SD_DEFAULT_HEIGHT", "768"))
 SD_DEFAULT_STEPS = int(os.getenv("SD_DEFAULT_STEPS", "28"))
-SD_DEFAULT_CFG_SCALE = float(os.getenv("SD_DEFAULT_CFG_SCALE", "7.0"))
-SD_DEFAULT_SAMPLER = os.getenv("SD_DEFAULT_SAMPLER", "DPM++ 2M Karras")
+SD_DEFAULT_CFG_SCALE = float(os.getenv("SD_DEFAULT_CFG_SCALE", "6.5"))
+SD_DEFAULT_SAMPLER = os.getenv("SD_DEFAULT_SAMPLER", "DPM++ 2M SDE Karras")
 SD_DEFAULT_CLIP_SKIP = int(os.getenv("SD_DEFAULT_CLIP_SKIP", "2"))
 
 # --- LoRA Weight Cap ---
@@ -155,6 +155,31 @@ def cap_style_lora_weight(weight: float, lora_type: str | None) -> float:
     if lora_type in ("style", "detail"):
         return round(min(weight, STYLE_LORA_WEIGHT_CAP), 2)
     return weight
+
+
+# --- Forge Sampler/Scheduler Split ---
+_KNOWN_SCHEDULERS = {"karras", "exponential", "polyexponential"}
+
+
+def split_sampler_scheduler(sampler_name: str) -> tuple[str, str | None]:
+    """Split A1111-style sampler into Forge sampler + scheduler.
+
+    Forge separates sampler and scheduler into distinct API fields.
+    e.g. "DPM++ 2M Karras" → ("DPM++ 2M", "karras")
+         "Euler a"          → ("Euler a", None)
+    """
+    parts = sampler_name.rsplit(" ", 1)
+    if len(parts) == 2 and parts[1].lower() in _KNOWN_SCHEDULERS:
+        return parts[0], parts[1]  # Preserve original case (Forge expects "Karras" not "karras")
+    return sampler_name, None
+
+
+def apply_sampler_to_payload(payload: dict, sampler_name: str) -> None:
+    """Set sampler_name and scheduler in payload for Forge compatibility."""
+    sampler, scheduler = split_sampler_scheduler(sampler_name)
+    payload["sampler_name"] = sampler
+    if scheduler:
+        payload["scheduler"] = scheduler
 
 
 # --- SD API Timeouts ---

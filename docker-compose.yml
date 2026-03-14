@@ -38,25 +38,24 @@ services:
 
   sd-webui:
     build:
-      context: /home/tomo/Workspace/a1111-docker
+      context: ./forge-docker
       dockerfile: Dockerfile
-    image: stable-diffusion-webui:latest
+    image: sd-forge:latest
     container_name: sd-webui
     restart: on-failure:5
     ports:
       - "7860:7860"
     environment:
-      - COMMANDLINE_ARGS=--opt-sdp-attention --medvram --enable-insecure-extension-access --listen --port 7860 --api --skip-python-version-check
+      - COMMANDLINE_ARGS=--opt-sdp-attention --cuda-malloc --enable-insecure-extension-access --listen --port 7860 --api --skip-python-version-check
       - LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtcmalloc.so
       - HF_HOME=/workspace/stable-diffusion-webui/cache/huggingface
       - MPLCONFIGDIR=/workspace/stable-diffusion-webui/cache/matplotlib
       - STABLE_DIFFUSION_REPO=https://github.com/w-e-w/stablediffusion.git
     volumes:
-      - /home/tomo/Workspace/stable-diffusion-webui/models/Stable-diffusion:/workspace/stable-diffusion-webui/models/Stable-diffusion
-      - /home/tomo/Workspace/stable-diffusion-webui/models/Lora:/workspace/stable-diffusion-webui/models/Lora
-      - /home/tomo/Workspace/stable-diffusion-webui/embeddings:/workspace/stable-diffusion-webui/embeddings
-      - /home/tomo/Workspace/stable-diffusion-webui/models/ControlNet:/workspace/stable-diffusion-webui/models/ControlNet
-      - /home/tomo/Workspace/stable-diffusion-webui/extensions:/workspace/stable-diffusion-webui/extensions
+      - /home/tomo/Workspace/sd-models/checkpoints:/workspace/stable-diffusion-webui/models/Stable-diffusion
+      - /home/tomo/Workspace/sd-models/lora:/workspace/stable-diffusion-webui/models/Lora
+      - /home/tomo/Workspace/sd-models/embeddings:/workspace/stable-diffusion-webui/embeddings
+      - /home/tomo/Workspace/sd-models/controlnet:/workspace/stable-diffusion-webui/models/ControlNet
       - sd-webui-cache:/workspace/stable-diffusion-webui/cache
       - sd-webui-output:/workspace/stable-diffusion-webui/outputs
     deploy:
