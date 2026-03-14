@@ -1,68 +1,63 @@
 # SD WebUI 구축 매뉴얼
 
-Shorts Producer 이미지 생성을 위한 Stable Diffusion WebUI 설정 가이드.
+Shorts Producer 이미지 생성을 위한 Stable Diffusion WebUI (Forge) 설정 가이드.
 다른 환경에서 재설치 시 이 문서를 기준으로 구성합니다.
 
 ---
 
-## 1. SD WebUI 설치
-
-### 1.1 설치
+## 1. Forge 설치 (Docker)
 
 ```bash
-git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git
-cd stable-diffusion-webui
-
-# 첫 실행 시 의존성 자동 설치
-./webui.sh --api --listen
+cd /path/to/shorts-producer
+docker compose build sd-webui
+docker compose up -d sd-webui
 ```
 
-**필수 실행 옵션:**
+**Dockerfile:** `forge-docker/Dockerfile`
+**docker-compose.yml** 서비스: `sd-webui`
+
+**필수 실행 옵션** (환경변수 `COMMANDLINE_ARGS`):
 
 | 옵션 | 설명 |
 |------|------|
 | `--api` | REST API 활성화 (Backend 연동 필수) |
-| `--listen` | 외부 IP 접근 허용 (분리 PC 구성 시) |
-| `--medvram` | VRAM 8GB 이하 권장 |
-| `--xformers` | 속도 최적화 (설치된 경우) |
+| `--listen` | 외부 IP 접근 허용 |
+| `--opt-sdp-attention` | SDP Attention 최적화 |
+| `--cuda-malloc` | CUDA 메모리 최적화 |
 
-### 1.2 체크포인트 모델
+### 1.1 체크포인트 모델
 
-**설치 경로:** `models/Stable-diffusion/`
+**설치 경로:** `~/Workspace/sd-models/checkpoints/`
 
-| 파일명 | 용도 | 비고 |
+| 파일명 | 용도 | Base |
 |--------|------|------|
-| `anyloraCheckpoint_bakedvaeBlessedFp16.safetensors` | 애니메이션 전용 ← **주력** | 플랫/신카이/지브리/그림책 화풍 |
-| `realisticVisionV60B1_v51HyperVAE.safetensors` | 실사 전용 | 실화 탐구 시리즈 |
+| `noobaiXLNAIXL_vPred10Version.safetensors` | 전 화풍 통합 ← **주력** | SDXL (V-Pred) |
 
-> **StyleProfile → 체크포인트 매핑** (`backend/config.py` 참조)
-> - Flat Color Anime / Makoto Shinkai / Studio Ghibli / Children Picture Book → `anyloraCheckpoint`
-> - Realistic → `realisticVisionV60B1`
+> **V-Pred 핵심 제약사항:**
+> - Sampler: **Euler만** (DPM++, DDIM 등 비정상 출력)
+> - CFG: **4~5** (7 이상 과포화/깨짐)
+> - CFG Rescale: **0.2** (회색톤 방지 필수)
+> - 해상도: **832x1216** (2:3, 총 픽셀 ~1M)
+> - SD1.5 LoRA/Embedding 호환 불가
 
 ---
 
-## 2. ControlNet 확장
+## 2. ControlNet 모델
 
-### 2.1 설치
-
-1. SD WebUI → **Extensions** → Install from URL
-2. URL: `https://github.com/Mikubill/sd-webui-controlnet.git`
-3. Install → Restart UI
-
-### 2.2 ControlNet 모델
-
-**다운로드:** https://huggingface.co/lllyasviel/ControlNet-v1-1/tree/main
-
-**설치 경로:** `extensions/sd-webui-controlnet/models/`
+**설치 경로:** `~/Workspace/sd-models/controlnet/`
 
 | 파일명 | 모듈 | 용도 |
 |--------|------|------|
-| `control_v11p_sd15_openpose.pth` | `openpose_full` | 포즈 스켈레톤 제어 ← **필수** |
-| `control_v11f1p_sd15_depth.pth` | `depth_midas` | 깊이 제어 (선택) |
+| `openpose_pre` | `openpose_full` | 포즈 스켈레톤 제어 ← **필수** |
+| `noob_sdxl_controlnet_canny` | `canny` | 외곽선 제어 |
+| `noob-sdxl-controlnet-depth-midas-v1-1` | `depth_midas` | 깊이 제어 |
+| `noob-sdxl-controlnet-softedge_hed` | `softedge_hed` | 부드러운 외곽선 |
+| `noob-sdxl-controlnet-tile` | `tile_resample` | 타일 업스케일 |
+| `noob-sdxl-controlnet-lineart_anime` | `lineart_anime` | 라인아트 |
 
-> **주의:** `openpose_full` 모듈 사용 시 손/얼굴 스켈레톤도 인식됨. `openpose`(기본)보다 더 정밀.
+> Backend 매핑: `backend/services/controlnet.py` → `CONTROLNET_MODELS` dict
 
-### 2.3 ControlNet 동작 정책 (Phase 30-N 이후)
+### 2.1 ControlNet 동작 정책
 
 | 포즈 분류 | ControlNet | 이유 |
 |-----------|-----------|------|
@@ -75,135 +70,97 @@ cd stable-diffusion-webui
 
 ---
 
-## 3. IP-Adapter (캐릭터 얼굴 일관성)
+## 3. IP-Adapter (캐릭터 일관성)
 
-### 3.1 모델 다운로드
+### 3.1 모델
 
-**다운로드:** https://huggingface.co/h94/IP-Adapter/tree/main/models
-
-**설치 경로:** `extensions/sd-webui-controlnet/models/`
+**설치 경로:** `~/Workspace/sd-models/controlnet/`
 
 | 파일명 | 용도 | 비고 |
 |--------|------|------|
-| `ip-adapter-plus-face_sd15.safetensors` | 얼굴 + 스타일 ← **현재 사용** | 애니 캐릭터 최적 |
-| `ip-adapter-plus_sd15.safetensors` | 전체 스타일 전이 | 참고용 |
-| `ip-adapter-faceid-plusv2_sd15.safetensors` | 실사 얼굴 전용 | FaceID 필요 |
-
-**현재 적용 weight:** `0.50` (씬 생성), `0.40` (레퍼런스 생성)
-→ `backend/config.py` `DEFAULT_IP_ADAPTER_WEIGHT`, `REFERENCE_LORA_SCALE` 참조
+| `NOOB-IPA-MARK1.safetensors` | 전체 스타일 전이 ← **주력** | NoobAI-XL 전용 |
+| `ip-adapter-plus-face_sdxl_vit-h.safetensors` | 얼굴 + 스타일 | SDXL 호환 |
 
 ### 3.2 CLIP Vision 모델 (필수)
 
-**다운로드:** https://huggingface.co/h94/IP-Adapter/tree/main/models/image_encoder
+**설치 경로:** `~/Workspace/sd-models/clip_vision/`
 
-- `model.safetensors` 다운로드 → **`clip_vision_g.safetensors`** 으로 이름 변경
-- **설치 경로:** `extensions/sd-webui-controlnet/models/`
+| 파일명 | 용도 |
+|--------|------|
+| `CLIP-ViT-bigG-14-laion2B-39B-b160k` | SDXL IP-Adapter용 CLIP Vision |
 
-### 3.3 FaceID LoRA (선택)
-
-실사 얼굴 일관성 강화 시:
-```bash
-pip install insightface onnxruntime
-```
-- `ip-adapter-faceid-plusv2_sd15_lora.safetensors` → `models/Lora/`
-- buffalo_l 모델: https://github.com/deepinsight/insightface/releases → `~/.insightface/models/buffalo_l/`
-
-> **현재 프로젝트:** 애니메이션 캐릭터 위주이므로 FaceID 미사용. CLIP 모델만 설치.
+> Backend 매핑: `backend/services/controlnet.py` → `IP_ADAPTER_MODELS` dict
+> **현재 적용 weight:** `0.50` (씬 생성), `0.40` (레퍼런스 생성)
 
 ---
 
 ## 4. Negative Embeddings
 
-**설치 경로:** `embeddings/`
+**설치 경로:** `~/Workspace/sd-models/embeddings/`
 
-| 파일명 | 다운로드 | 용도 |
-|--------|---------|------|
-| `EasyNegative.safetensors` | Civitai | 일반 품질 개선 |
-| `verybadimagenegative_v1.3.pt` | Civitai | 저품질 방지 |
-| `(painting by bad-artist).pt` | Civitai | 아티스트 스타일 억제 |
+| 파일명 | 유형 | 용도 |
+|--------|------|------|
+| `SmoothNoob_Negative.safetensors` | negative | 일반 품질 억제 |
+| `SmoothNoob_Quality.safetensors` | **positive** | 품질 향상 |
+| `SmoothNegative_Hands.safetensors` | negative | 손 품질 억제 |
 
-> DB에 등록된 6개 임베딩이 전 StyleProfile 네거티브에 자동 적용됨.
-> 파일명이 정확히 일치해야 SD가 인식함.
-
----
-
-## 5. LoRA 모델
-
-**설치 경로:** `models/Lora/`
-
-### 5.1 Style LoRA (StyleProfile 연동, 필수)
-
-| 파일명 | StyleProfile | weight | Trigger |
-|--------|-------------|--------|---------|
-| `flat_color.safetensors` | Flat Color Anime | 0.40 | `flat color` |
-| `ghibli_style_offset.safetensors` | Studio Ghibli | 0.70 | `ghibli style` |
-| `makoto_shinkai_(your_name_+_substyles)_style_lora.safetensors` | Makoto Shinkai | 1.00 | `shinkai makoto` |
-| `J_huiben.safetensors` | Children Picture Book | 0.80 | `J_huiben` |
-
-### 5.2 Detail LoRA (전 StyleProfile 보조)
-
-| 파일명 | weight | 역할 |
-|--------|--------|------|
-| `add_detail.safetensors` | 0.25~0.40 | 디테일 강화 (프로필별 상이) |
-
-### 5.3 Character LoRA (캐릭터별, 선택)
-
-| 파일명 | 캐릭터 | 씬 weight | 레퍼런스 weight | Trigger |
-|--------|--------|-----------|---------------|---------|
-| `Usagi_Drop_-_Nitani_Yukari.safetensors` | 유카리 (id:19) | 0.32 | 0.28 | `udyukari` |
-| `mha_midoriya-10.safetensors` | 미도리 (id:3) | 0.70 | 0.40 | `Midoriya_Izuku` |
-
-> weight가 낮은 이유: Character LoRA weight가 높으면 의상 색상 태그를 무시하는 문제 발생
-> 상세: `docs/03_engineering/backend/LORA_SELECTION_GUIDE.md`
-
-### 5.4 미사용 LoRA (DB 등록됨, 파일만 있으면 됨)
-
-`blindbox_v1_mix`, `chibi-laugh`, `Gentle_Cubism_Light`, `harukaze-doremi-casual`, `eureka_v9`
+> DB에 등록된 3개 임베딩이 StyleProfile에 자동 적용됨.
 
 ---
 
-## 6. Backend 연동
+## 5. CFG Rescale 확장 (V-Pred 필수)
 
-### 6.1 환경 변수
+**설치:** Dockerfile에 자동 포함
+
+```dockerfile
+# forge-docker/Dockerfile
+clone_repo https://github.com/Seshelle/CFG_Rescale_webui.git extensions/CFG_Rescale_webui
+```
+
+**적용:** `backend/config.py` → `SD_CFG_RESCALE = 0.2`
+`apply_sampler_to_payload()`에서 `extra_generation_params["CFG Rescale φ"]`로 자동 주입.
+
+> **미적용 시** V-Pred 출력이 회색으로 나옴. 전환 성패 좌우.
+
+---
+
+## 6. LoRA 모델
+
+**설치 경로:** `~/Workspace/sd-models/lora/`
+
+> **현재 상태:** SD1.5 LoRA 13개는 `is_active=false`로 비활성화됨.
+> SDXL LoRA 재학습(Step 21) 완료 전까지 LoRA 없이 운영.
+
+---
+
+## 7. Backend 연동
+
+### 7.1 환경 변수
 
 `backend/.env`:
 ```bash
-SD_BASE_URL=http://127.0.0.1:7860   # 로컬 동일 PC
-# SD_BASE_URL=http://192.168.x.x:7860  # 별도 PC
+SD_BASE_URL=http://127.0.0.1:7860
 ```
 
-### 6.2 SD WebUI 실행 명령 (권장)
-
-```bash
-# 기본 (로컬, VRAM 여유)
-./webui.sh --api
-
-# 별도 PC에서 접근 허용
-./webui.sh --api --listen
-
-# VRAM 8GB 이하
-./webui.sh --api --listen --medvram
-
-# VRAM 4GB 이하
-./webui.sh --api --listen --lowvram
-```
-
-### 6.3 연결 확인
+### 7.2 연결 확인
 
 ```bash
 # 체크포인트 목록
 curl http://localhost:7860/sdapi/v1/sd-models
 
+# 현재 모델 확인
+curl http://localhost:7860/sdapi/v1/options | jq '.sd_model_checkpoint'
+
 # ControlNet 모델 목록
 curl http://localhost:7860/controlnet/model_list
 
-# ControlNet 모듈 목록
+# IP-Adapter 모듈 목록
 curl http://localhost:7860/controlnet/module_list
 ```
 
 ---
 
-## 7. 포즈 에셋
+## 8. 포즈 에셋
 
 **위치:** `backend/assets/poses/`
 
@@ -214,38 +171,21 @@ curl http://localhost:7860/controlnet/module_list
 - misc: `profile_standing`, `leaning_wall`, `cooking`, `eating`, `holding_object`, `holding_umbrella`, `writing`, `pointing_forward`, `covering_face`, `looking_at_viewer_neutral`
 
 > **sitting 계열 에셋 추가 시:** `scripts/generate_sitting_pose_assets.py` 실행
-> 생성 후 `controlnet.py` 주석 해제 + `SITTING_EXCLUDED_POSES`에서 해당 포즈 제거
 
 ---
 
-## 8. 설치 확인 체크리스트
+## 9. 설치 확인 체크리스트
 
 ```
-[ ] SD WebUI 실행 + /sdapi/v1/sd-models 응답 확인
-[ ] anyloraCheckpoint_bakedvaeBlessedFp16 로드 확인
-[ ] realisticVisionV60B1 로드 확인 (실사 시리즈용)
-[ ] ControlNet 확장 설치 + control_v11p_sd15_openpose 인식 확인
-[ ] ip-adapter-plus-face_sd15 + clip_vision_g 설치 확인
-[ ] EasyNegative / verybadimagenegative_v1.3 임베딩 확인
-[ ] Style LoRA 4종 설치 확인 (flat_color, ghibli, shinkai, J_huiben)
-[ ] add_detail LoRA 설치 확인
-[ ] Character LoRA 2종 설치 확인 (Yukari, Midoriya) ← 선택
+[ ] Forge Docker 빌드 + 실행 (docker compose up -d sd-webui)
+[ ] noobaiXLNAIXL_vPred10Version 로드 확인
+[ ] CFG Rescale 확장 활성화 확인
+[ ] ControlNet openpose_pre 인식 확인
+[ ] NOOB-IPA-MARK1 + CLIP-ViT-bigG 설치 확인
+[ ] SmoothNoob 임베딩 3종 확인
 [ ] backend/.env SD_BASE_URL 설정 확인
 [ ] /sd-status 커맨드로 최종 연결 상태 확인
 ```
-
----
-
-## 9. 트러블슈팅
-
-| 증상 | 원인 | 해결 |
-|------|------|------|
-| IP-Adapter `face_embed` 에러 | 애니 이미지에 FaceID 사용 | `ip-adapter-plus-face_sd15` + `ip-adapter_clip_sd15` 조합으로 변경 |
-| ControlNet 무반응 | 모델/모듈 불일치 | `openpose_full` 모듈 + `control_v11p_sd15_openpose` 모델 확인 |
-| Embedding 인식 안 됨 | 파일명 불일치 | `(painting by bad-artist).pt` — 괄호 포함 정확히 일치해야 함 |
-| VRAM OOM | 해상도 / 배치 크기 | `--medvram` 추가, 해상도 512×768으로 낮춤 |
-| 모델 로드 느림 | HDD 사용 | SSD에 `models/` 디렉토리 위치 권장 |
-| `clip_vision_g` 못 찾음 | 파일명 오류 | `model.safetensors` → 반드시 `clip_vision_g.safetensors`로 이름 변경 |
 
 ---
 
@@ -253,16 +193,94 @@ curl http://localhost:7860/controlnet/module_list
 
 | 항목 | 값 |
 |------|-----|
-| 주력 체크포인트 | `anyloraCheckpoint_bakedvaeBlessedFp16` (SD1.5) |
-| 실사 체크포인트 | `realisticVisionV60B1_v51HyperVAE` (SD1.5) |
-| IP-Adapter 모델 | `ip-adapter-plus-face_sd15` |
-| IP-Adapter 모듈 | `ip-adapter_clip_sd15` |
+| 체크포인트 | `noobaiXLNAIXL_vPred10Version` (SDXL V-Pred) |
+| Sampler | `Euler` |
+| CFG Scale | `4.5` |
+| CFG Rescale | `0.2` |
+| 해상도 | `832 x 1216` |
+| Steps | `28` |
+| IP-Adapter 모델 | `NOOB-IPA-MARK1` / `ip-adapter-plus-face_sdxl_vit-h` |
 | IP-Adapter weight | 0.50 (씬) / 0.40 (레퍼런스) |
-| ControlNet 모델 | `control_v11p_sd15_openpose` |
-| ControlNet 모듈 | `openpose_full` |
+| ControlNet 모델 | `openpose_pre` (포즈) |
 | ControlNet weight | 0.45~0.80 (씬 맥락에 따라 동적) |
-| Negative Embeddings | EasyNegative, verybadimagenegative_v1.3, painting by bad-artist |
+| Negative Embeddings | SmoothNoob_Negative, SmoothNegative_Hands |
+| Positive Embedding | SmoothNoob_Quality |
 
 ---
 
-**Last Updated:** 2026-03-09
+## 11. Rollback 절차 (V-Pred → SD1.5 복원)
+
+전환 실패 또는 품질 문제 시 SD1.5로 복원하는 절차.
+
+### 11.1 코드 복원
+
+```bash
+# 마이그레이션 커밋 되돌리기
+git revert <migration-commit-sha>
+```
+
+### 11.2 DB 복원
+
+```bash
+cd backend
+source .venv/bin/activate
+
+# Alembic downgrade (1단계 롤백)
+alembic downgrade -1
+```
+
+이 명령으로 복원되는 항목:
+- `loras.is_active` 컬럼 제거
+- `sd_models`: NoobAI-XL 레코드 삭제, SD1.5 모델 재활성화
+- `embeddings`: SmoothNoob 3종 삭제, SD1.5 임베딩 재활성화
+- `style_profiles`: SD1.5 파라미터 복원 (sampler, cfg, sd_model_id, embeddings, loras)
+- `loras`: 13개 LoRA 재활성화
+
+### 11.3 SD 모델 파일 복원
+
+```bash
+# SD1.5 모델 백업에서 복원
+cp ~/Workspace/sd-models-backup-sd15/checkpoints/* ~/Workspace/sd-models/checkpoints/
+cp ~/Workspace/sd-models-backup-sd15/controlnet/* ~/Workspace/sd-models/controlnet/
+cp ~/Workspace/sd-models-backup-sd15/embeddings/* ~/Workspace/sd-models/embeddings/
+cp ~/Workspace/sd-models-backup-sd15/lora/* ~/Workspace/sd-models/lora/
+```
+
+> **주의:** `sd-models-backup-sd15/` 디렉토리는 Step 22 (최종 삭제) 전까지 보존.
+
+### 11.4 Docker 재빌드
+
+```bash
+docker compose build sd-webui
+docker compose up -d sd-webui
+```
+
+### 11.5 확인
+
+```bash
+# SD1.5 모델 로드 확인
+curl http://localhost:7860/sdapi/v1/options | jq '.sd_model_checkpoint'
+# 기대값: "anyloraCheckpoint_bakedvaeBlessedFp16.safetensors"
+
+# Backend 테스트
+cd backend && source .venv/bin/activate
+python -m pytest tests/ -q
+```
+
+---
+
+## 12. 트러블슈팅
+
+| 증상 | 원인 | 해결 |
+|------|------|------|
+| 이미지가 회색으로 나옴 | CFG Rescale 미적용 | Forge 설정에서 CFG Rescale 확장 확인, `SD_CFG_RESCALE=0.2` |
+| 이미지 과포화/색번짐 | CFG 너무 높음 | `SD_DEFAULT_CFG_SCALE=4.5` 확인 (V-Pred은 7 이상 금지) |
+| ControlNet 무반응 | SDXL 모델명 불일치 | `controlnet/model_list`로 실제 이름 확인 후 `CONTROLNET_MODELS` 수정 |
+| IP-Adapter 에러 | CLIP Vision 미설치 | `clip_vision/` 디렉토리에 CLIP-ViT-bigG 확인 |
+| Embedding 인식 안 됨 | 파일명 불일치 | `embeddings/` 내 SmoothNoob 파일명 정확히 확인 |
+| VRAM OOM | SDXL은 더 많은 VRAM 필요 | `--opt-sdp-attention` 확인, VRAM 8GB 이상 권장 |
+| `<lora:xxx>` SD 에러 | SD1.5 LoRA 참조 | `is_active=false` 필터 확인, DB에서 비활성 LoRA 조회 차단 |
+
+---
+
+**Last Updated:** 2026-03-14
