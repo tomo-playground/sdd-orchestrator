@@ -416,8 +416,9 @@ class TestResolveEffectiveCharacterBId:
             character_id=1,
             character_b_id=2,
         )
-        result = _resolve_effective_character_b_id(request, db_session)
-        assert result == 2
+        effective_b_id, warnings = _resolve_effective_character_b_id(request, db_session)
+        assert effective_b_id == 2
+        assert warnings == []
 
     def test_single_scene_ignores_character_b_id(self, db_session):
         """scene_mode='single' -> returns None even with character_b_id."""
@@ -438,8 +439,9 @@ class TestResolveEffectiveCharacterBId:
             character_id=1,
             character_b_id=2,
         )
-        result = _resolve_effective_character_b_id(request, db_session)
-        assert result is None
+        effective_b_id, warnings = _resolve_effective_character_b_id(request, db_session)
+        assert effective_b_id is None
+        assert warnings == []
 
     def test_no_scene_id_returns_none(self, db_session):
         """No scene_id -> returns None."""
@@ -451,35 +453,54 @@ class TestResolveEffectiveCharacterBId:
             character_id=1,
             character_b_id=2,
         )
-        result = _resolve_effective_character_b_id(request, db_session)
-        assert result is None
+        effective_b_id, warnings = _resolve_effective_character_b_id(request, db_session)
+        assert effective_b_id is None
+        assert warnings == []
 
     def test_no_character_b_id_returns_none(self, db_session):
-        """No character_b_id -> returns None."""
+        """scene_mode=multi + no character_b_id -> None + warning."""
         from schemas import SceneGenerateRequest
         from services.generation import _resolve_effective_character_b_id
 
+        sb = Storyboard(title="test", group_id=1)
+        db_session.add(sb)
+        db_session.flush()
+
+        scene = Scene(storyboard_id=sb.id, order=0, scene_mode="multi")
+        db_session.add(scene)
+        db_session.flush()
+
         request = SceneGenerateRequest(
             prompt="test",
-            scene_id=1,
+            scene_id=scene.id,
             character_id=1,
         )
-        result = _resolve_effective_character_b_id(request, db_session)
-        assert result is None
+        effective_b_id, warnings = _resolve_effective_character_b_id(request, db_session)
+        assert effective_b_id is None
+        assert len(warnings) == 1
+        assert "single" in warnings[0]
 
     def test_same_character_a_b_returns_none(self, db_session):
         """character_b_id == character_id -> returns None (동일 캐릭터 방어)."""
         from schemas import SceneGenerateRequest
         from services.generation import _resolve_effective_character_b_id
 
+        sb = Storyboard(title="test", group_id=1)
+        db_session.add(sb)
+        db_session.flush()
+
+        scene = Scene(storyboard_id=sb.id, order=0, scene_mode="multi")
+        db_session.add(scene)
+        db_session.flush()
+
         request = SceneGenerateRequest(
             prompt="test",
-            scene_id=1,
+            scene_id=scene.id,
             character_id=5,
             character_b_id=5,
         )
-        result = _resolve_effective_character_b_id(request, db_session)
-        assert result is None
+        effective_b_id, warnings = _resolve_effective_character_b_id(request, db_session)
+        assert effective_b_id is None
 
 
 # ── Quality tag compatibility ─────────────────────────────────────────

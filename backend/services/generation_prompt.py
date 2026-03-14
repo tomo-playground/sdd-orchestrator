@@ -79,21 +79,36 @@ def _resolve_style_loras(storyboard_id: int | None, db) -> list[dict]:
         return []
 
 
-def _resolve_effective_character_b_id(request: SceneGenerateRequest, db) -> int | None:
-    """Resolve character_b_id only when scene_mode='multi'."""
-    if not request.character_b_id or not request.scene_id:
-        return None
-    # 동일 ID 방어
-    if request.character_b_id == request.character_id:
-        logger.warning("👥 [Multi-Char] character_b_id == character_id (%d), ignoring", request.character_id)
-        return None
+def _resolve_effective_character_b_id(
+    request: SceneGenerateRequest, db
+) -> tuple[int | None, list[str]]:
+    """Resolve character_b_id only when scene_mode='multi'.
+
+    Returns (effective_b_id, warnings).
+    """
+    if not request.scene_id:
+        return None, []
     from models.scene import Scene
 
     scene = db.query(Scene).filter(Scene.id == request.scene_id, Scene.deleted_at.is_(None)).first()
-    if scene and scene.scene_mode == "multi":
-        logger.debug("👥 [Multi-Char] scene_mode=multi, using character_b_id=%d", request.character_b_id)
-        return request.character_b_id
-    return None
+    if not scene or scene.scene_mode != "multi":
+        return None, []
+
+    if not request.character_b_id:
+        logger.warning(
+            "⚠️ [Multi-Char] scene_mode=multi but character_b_id missing "
+            "(scene_id=%d) — falling back to single-character generation",
+            request.scene_id,
+        )
+        return None, ["multi 씬이지만 캐릭터 B 정보가 없어 single로 생성됩니다."]
+
+    # 동일 ID 방어
+    if request.character_b_id == request.character_id:
+        logger.warning("👥 [Multi-Char] character_b_id == character_id (%d), ignoring", request.character_id)
+        return None, []
+
+    logger.debug("👥 [Multi-Char] scene_mode=multi, using character_b_id=%d", request.character_b_id)
+    return request.character_b_id, []
 
 
 # ── Narrator defense ────────────────────────────────────────────────
@@ -402,7 +417,8 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
         .filter(Character.id == request.character_id)
         .first()
     )
-    effective_b_id = _resolve_effective_character_b_id(request, db)
+    effective_b_id, b_warnings = _resolve_effective_character_b_id(request, db)
+    ctx.warnings.extend(b_warnings)
 
     # Resolve character consistency strategy
     style_profile_loras = _resolve_style_loras(request.storyboard_id, db) if request.storyboard_id else []
