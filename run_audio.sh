@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Shorts Producer - Audio Server (Local MPS)
-# TTS (Qwen3-TTS) + BGM (MusicGen) on Apple Silicon GPU
+# Shorts Producer - Audio Server (CUDA GPU)
+# TTS (Qwen3-TTS) + BGM (MusicGen) on NVIDIA GPU
 
 set -e
 
@@ -9,7 +9,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 AUDIO_DIR="$SCRIPT_DIR/audio"
 VENV_DIR="$AUDIO_DIR/.venv"
 PORT=8001
-LOG_FILE="/tmp/audio-server.log"
+LOG_DIR="$AUDIO_DIR/logs"
+LOG_FILE="$LOG_DIR/audio.log"
+mkdir -p "$LOG_DIR"
 
 # Colors
 GREEN='\033[0;32m'
@@ -20,7 +22,7 @@ NC='\033[0m'
 usage() {
   echo "Usage: $0 {start|stop|status|logs}"
   echo ""
-  echo "  start   - Start audio server (MPS)"
+  echo "  start   - Start audio server (CUDA)"
   echo "  stop    - Stop audio server"
   echo "  status  - Check server health"
   echo "  logs    - Tail server logs"
@@ -48,12 +50,13 @@ do_start() {
 
   check_venv
 
-  echo -e "${GREEN}Starting audio server on port $PORT (MPS)...${NC}"
+  echo -e "${GREEN}Starting audio server on port $PORT (CUDA)...${NC}"
   cd "$AUDIO_DIR"
+  CUDA_HOME=/usr/local/cuda-12.8 \
   TTS_DEVICE=cuda MUSICGEN_DEVICE=cuda \
     "$VENV_DIR/bin/uvicorn" main:app \
     --host 0.0.0.0 --port "$PORT" \
-    > "$LOG_FILE" 2>&1 &
+    >> "$LOG_FILE" 2>&1 &
 
   echo "PID: $!"
   echo -e "Logs: ${YELLOW}$LOG_FILE${NC}"

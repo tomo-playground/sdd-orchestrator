@@ -1,6 +1,6 @@
 # Video Pre-validation (비디오 사전 검증) — Phase 29
 
-> 상태: Sub-Phase A 진행 중
+> 상태: 전체 완료 (A~D)
 > 시작일: 2026-03-05
 > 선행: Phase 28 (Pipeline Resilience)
 

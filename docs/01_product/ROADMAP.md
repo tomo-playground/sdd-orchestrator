@@ -32,7 +32,7 @@
 | Phase 26 (Script 협업형 UX) | 전체 완료 (ARCHIVED) |
 | Character-Group 소유권 개편 | 전체 완료 (ARCHIVED) |
 | Phase 27 (Chat System UX & Architecture) | 전체 완료 — P0(타이핑 인디케이터+히스토리 영속+a11y) + P1(Discriminated Union+AbortController+에러 복구+AutoScroll) + P2(헬퍼 통합+모드 툴팁) |
-| Phase 29 (Video Pre-validation) | Sub-Phase A~C 완료 — TTS 프리뷰/렌더 연결 + 씬 필드 소실 수정 + Spread Passthrough + 타임라인 시각화 |
+| Phase 29 (Video Pre-validation) | **전체 완료 (A~D)** — TTS 프리뷰/렌더 연결 + 씬 필드 소실 수정 + Spread Passthrough + 타임라인 시각화 + 통합 사전검증 리포트(캐릭터/음성/이미지/스크립트/TTS/시간 7항목, 자동 실행, 렌더 연동) |
 | Casting 네이밍 정규화 | 완료 — character_id→character_a_id (Casting 컨텍스트), 27개 파일, JSONB 마이그레이션 |
 | Checkpointer 리팩토링 | 완료 — 싱글턴→per-request 패턴, DB 풀 고갈 방지 |
 | **Phase 30 (Character Consistency V2)** | **진행 중** — A(Config 튜닝)+B(Gemini 복장 고정)+B+(Finalize 복장 교정 2단계)+F(네이밍 개선+복장 보호)+F-2(레퍼런스 네이밍 통일)+H(context_tags 구조화)+I(Gemini 역할 분리+scene_negative 버그 수정)+J(SCENE_CHARACTER_LORA_SCALE 복장 색상 드리프트 방지)+K(프롬프트 통합 5필드→2필드)+L(B-1 image_prompt 복장 오염 차단 강화)+M(sitting 포즈 기형 근본 보정) 완료. NoobAI-XL+Regional Prompter+Pipeline Inpaint 테스트 완료. C(Dual IP-Adapter) D(LoRA 트레이닝) G(멀티캐릭터 Inpaint) 미착수 |
