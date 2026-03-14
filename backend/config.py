@@ -211,9 +211,9 @@ SD_REFERENCE_NUM_CANDIDATES = int(os.getenv("SD_REFERENCE_NUM_CANDIDATES", "3"))
 # Character LoRA weight multiplier for reference images (identity hint only)
 # 0.4: balanced between character identity and pose freedom (reviewed 2026-02)
 REFERENCE_LORA_SCALE = float(os.getenv("REFERENCE_LORA_SCALE", "0.4"))
-# Style LoRA weight multiplier for reference images (0.0 = disabled)
-# Reference is for character identity only — style should not interfere with clean background
-REFERENCE_STYLE_LORA_SCALE = float(os.getenv("REFERENCE_STYLE_LORA_SCALE", "0.0"))
+# Style LoRA weight multiplier for reference images
+# SDXL(NoobAI-XL): 씬과 동일한 스타일 보장을 위해 1.0 (full weight)
+REFERENCE_STYLE_LORA_SCALE = float(os.getenv("REFERENCE_STYLE_LORA_SCALE", "1.0"))
 # Character LoRA weight multiplier for scene images
 # 0.45: prevents LoRA from overriding clothing color tags while preserving face identity
 # Without scaling, LoRA at full weight (0.7) dominates clothing — text tags ignored

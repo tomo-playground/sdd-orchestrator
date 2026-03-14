@@ -10,6 +10,7 @@ vi.mock("../imageActions", () => ({
   storeSceneImage: vi.fn(),
 }));
 vi.mock("../promptActions", () => ({
+  buildScenePrompt: vi.fn(() => "1girl"),
   buildNegativePrompt: vi.fn(() => "lowres"),
 }));
 vi.mock("../../../utils/speakerResolver", () => ({

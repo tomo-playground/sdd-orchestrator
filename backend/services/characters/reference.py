@@ -142,15 +142,15 @@ async def regenerate_reference(
 
     builder = PromptBuilder(db)
     full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags, style_ctx=style_ctx)
+    # Build negative: always merge all layers (StyleProfile + character + DEFAULT)
+    neg_prompt = _build_reference_negative(style_ctx, None)
+    # Merge character-specific negative on top
     if character.negative_prompt:
-        neg_prompt = character.negative_prompt
-    else:
-        neg_prompt = _build_reference_negative(style_ctx, None)
-    # Always merge DEFAULT (covers custom negative_prompt branch where _build_reference_negative was NOT called)
-    existing_tags = {t.strip() for t in neg_prompt.split(",")}
-    for tag in DEFAULT_REFERENCE_NEGATIVE_PROMPT.split(", "):
-        if tag and tag not in existing_tags:
-            neg_prompt += ", " + tag
+        existing = {t.strip() for t in neg_prompt.split(",")}
+        for tag in character.negative_prompt.split(","):
+            tag = tag.strip()
+            if tag and tag not in existing:
+                neg_prompt += ", " + tag
 
     # Ensure SD WebUI is using the correct checkpoint for this StyleProfile
     if style_ctx and style_ctx.sd_model_name:

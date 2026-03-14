@@ -179,9 +179,11 @@ async def test_qc_failure_still_returns_result():
 @pytest.mark.asyncio
 async def test_tool_logs_preserved_on_parse_failure():
     """JSON 파싱 실패 시에도 tool_logs 보존."""
+    _CD = "services.agent.tools.base.call_direct"
     logs = [{"tool_name": "validate_danbooru_tag", "arguments": {"tag": "test"}, "result": "ok", "error": None}]
     with patch(_CWT, new_callable=AsyncMock, return_value=("not json", logs)):
-        result = await _run(_make_state(), MagicMock())
+        with patch(_CD, new_callable=AsyncMock, return_value="still not json"):
+            result = await _run(_make_state(), MagicMock())
     assert result["cinematographer_tool_logs"] == logs
 
 

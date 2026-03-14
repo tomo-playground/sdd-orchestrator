@@ -132,8 +132,8 @@ describe("casting recommendation from SSE", () => {
       percent: 4,
       status: "running",
       node_result: {
-        character_id: 1,
-        character_name: "Alice",
+        character_a_id: 1,
+        character_a_name: "Alice",
         character_b_id: 2,
         character_b_name: "Bob",
         structure: "Dialogue",
@@ -147,8 +147,8 @@ describe("casting recommendation from SSE", () => {
 
     expect(mockStoryboardSet).toHaveBeenCalledWith({
       castingRecommendation: {
-        character_id: 1,
-        character_name: "Alice",
+        character_a_id: 1,
+        character_a_name: "Alice",
         character_b_id: 2,
         character_b_name: "Bob",
         structure: "Dialogue",

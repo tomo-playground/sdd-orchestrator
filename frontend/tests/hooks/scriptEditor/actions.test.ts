@@ -116,7 +116,8 @@ describe("buildGenerateBody", () => {
     expect(body.language).toBe("ko");
     expect(body.structure).toBe("Monologue");
     expect(body.group_id).toBe(5);
-    expect(body.character_id).toBe(1);
+    // character_id / character_b_id は Director 캐스팅 SSOT로 body에 포함하지 않음
+    expect(body.character_id).toBeUndefined();
     expect(body.interaction_mode).toBe("auto");
   });
 
@@ -138,10 +139,11 @@ describe("buildGenerateBody", () => {
     expect(body.character_b_id).toBeUndefined();
   });
 
-  it("includes character_b_id when present", () => {
+  it("does not include character_b_id (Director casting SSOT)", () => {
     const state = makeEditorState({ characterBId: 2 });
     const body = buildGenerateBody(state, 1);
-    expect(body.character_b_id).toBe(2);
+    // Director 캐스팅 SSOT — character_b_id는 body에 포함하지 않음
+    expect(body.character_b_id).toBeUndefined();
   });
 
   it("parses references from multi-line text", () => {
@@ -245,7 +247,7 @@ describe("handleStreamOutcome", () => {
 
     expect(result).toBe(true);
     expect(setState).toHaveBeenCalled();
-    expect(dirtyRef.current).toBe(false);
+    expect(dirtyRef.current).toBe(true);
     expect(showToast).toHaveBeenCalledWith("Script generated", "success");
   });
 
