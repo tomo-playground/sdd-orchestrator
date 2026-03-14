@@ -134,6 +134,11 @@ Match your visual design to this plan:
    - Include furniture/props that anchor the scene: `office_chair`, `desk`, `bed`, `sofa`, `chair`
    - Do NOT add weather/atmosphere tags (rain, cloud, moon, night, snow) unless the script explicitly mentions them
    - Indoor scenes (kitchen, bedroom, classroom): do NOT add outdoor atmosphere tags
+   - **CRITICAL — Location Continuity Self-Check** (MANDATORY before finalizing output):
+     - Consecutive scenes with the same ongoing activity (presentation, meal, train ride) MUST share identical `context_tags.environment` tags.
+     - A location change is ONLY valid when the script explicitly shows physical movement between scenes.
+     - If you received a Location Map above, it is the authoritative source — follow it exactly and do NOT override it with your own interpretation.
+     - **Before outputting**: scan consecutive scene pairs and verify their environment tags are consistent unless the script explicitly changed location.
 6. **Mood-visual alignment**: Camera and environment must match the script's emotional tone
    - **context_tags.expression**: Do NOT set this field. System auto-derives expression from emotion.
    - **context_tags.mood**: Do NOT set this field. System auto-derives mood from emotion.
@@ -175,6 +180,7 @@ Match your visual design to this plan:
     - Do NOT use more than 2 lighting/depth tags per scene (overload prevention)
     - INVALID tags (do NOT use): rim_light, dramatic_lighting, cinematic_lighting, warm_lighting, cold_lighting
     Put all cinematic technique tags in `context_tags.cinematic` (array). Max 2 per scene.
+   - **Cinematic consistency within a location**: Scenes in the same location SHOULD use cinematic techniques from a consistent "palette". Do NOT drastically switch from `high_contrast, sidelighting` to `golden_hour, bokeh` within the same physical location unless the emotional arc explicitly demands it (e.g. resolution scene after climax).
 13. **Narrative function → Visual strategy** (CRITICAL):
     Map each scene's role in the story to its visual approach:
     | Story Role | Camera | Technique | Purpose |

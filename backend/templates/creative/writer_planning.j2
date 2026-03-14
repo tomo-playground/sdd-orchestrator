@@ -83,10 +83,15 @@ Allocate scenes to narrative structure:
 Define the physical locations where scenes take place. This ensures visual consistency across scenes.
 
 **Rules**:
-- Give each location a short English name (e.g. `piano_room`, `rooftop`, `classroom`)
+- Give each location a short English name (e.g. `train_interior`, `meeting_room`, `hotel_room`)
 - Assign scene indices (0-based) to each location
 - Provide 2-4 Danbooru-standard environment tags per location
 - Most stories use **1-3 locations**. Every scene index must appear in exactly one location.
+- **CRITICAL — Location Continuity Rules**:
+  1. If characters are in the SAME ongoing conversation/activity (meeting, train ride, meal), ALL consecutive scenes of that sequence MUST share the same location.
+  2. A location change ONLY happens when the script explicitly implies physical movement (e.g. "after the meeting ended they went to...", "on the train back", "at dinner").
+  3. Do NOT assign a new location mid-conversation just because the emotional tone changes.
+  4. **Self-check before finalizing**: Read each location's scene range and ask "Did the script explicitly show characters moving between these locations?" If no, keep them in the same location.
 
 **Tag examples** (Danbooru standard, underscore format):
 - Indoor: `indoors`, `kitchen`, `bedroom`, `classroom`, `library`, `office`, `stage`
@@ -135,6 +140,7 @@ Respond in **Korean** with a structured plan in JSON format:
 - `scene_distribution`의 합은 총 씬 개수와 일치해야 함
 - `hook_strategy`는 구체적인 첫 씬 아이디어를 포함해야 함 (추상적 설명 금지)
 - `locations`의 모든 `scenes` 배열을 합치면 0부터 (총 씬 수 - 1)까지 빠짐없이 포함해야 함
+- `locations`의 각 location에 할당된 씬 범위가 스크립트의 실제 공간 이동을 반영하는지 반드시 재확인할 것 (감정 변화 ≠ 장소 변화)
 
 Example for a 10s video:
 ```json

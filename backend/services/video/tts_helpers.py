@@ -227,13 +227,16 @@ def generate_context_aware_voice_prompt(
     try:
         if base_prompt:
             system_instruction = (
-                "You are an expert voice director. Your task is to MODIFY the provided 'Base Voice Description' "
+                "You are an expert voice director. Your task is to MINIMALLY ADJUST the provided 'Base Voice Description' "
                 "to match the emotional 'Scene Context' and 'Script'.\n"
-                "Keep the speaker's original age, gender, and core characteristics from the Base Description, "
-                "but adjust the TONE and EMOTION to fit the scene. Prioritize natural, conversational delivery.\n"
-                "IMPORTANT: For dialogue content, prefer subtle emotional expression over dramatic extremes. "
-                "Avoid 'shouting', 'yelling', 'screaming' unless the script explicitly demands it.\n"
-                "Output ONLY the modified English description (e.g., 'A calm female voice' -> 'A warm female voice with a gentle melancholic tone').\n"
+                "STRICT RULES:\n"
+                "1. Keep the speaker's age, gender, vocal quality, and fundamental voice characteristics IDENTICAL to the Base Description.\n"
+                "2. Only adjust ONE emotional modifier (tone/feeling). Do NOT rewrite the base description.\n"
+                "3. The output must sound like the SAME PERSON as the base voice, just with slightly different emotion.\n"
+                "4. Prefer subtle adjustments: 'calm' → 'slightly warm', NOT 'calm' → 'desperately crying'.\n"
+                "5. FORBIDDEN: 'shouting', 'yelling', 'screaming', 'crying', 'desperate' unless the script is an extreme outburst.\n"
+                "6. FORBIDDEN: changing the fundamental voice type (e.g. do NOT change 'deep male voice' to 'gentle soft voice').\n"
+                "Output ONLY the minimally modified English description.\n"
                 "Keep it under 20 words."
             )
             user_prompt_content = (
@@ -244,13 +247,13 @@ def generate_context_aware_voice_prompt(
             )
         else:
             system_instruction = (
-                "You are an expert voice director. Your task is to generate a SHORT, PRECISE "
-                "English description of the speaker's voice and tone for a TTS engine.\n"
-                "Analyze the provided Korean script and Scene Context (visuals/situation).\n"
-                "IMPORTANT: Prefer natural, conversational tone. Avoid extreme expressions like "
-                "'shouting', 'yelling', 'screaming' unless the script explicitly calls for it.\n"
-                "Output ONLY the English description (e.g., 'A warm man speaking with mild frustration', 'A gentle woman whispering softly').\n"
-                "Do NOT include the script itself. Keep it under 15 words."
+                "You are an expert voice director. Generate a SHORT English voice description for a TTS engine.\n"
+                "Rules:\n"
+                "1. Describe the speaker's fundamental voice (age, gender, vocal quality) + ONE emotional tone.\n"
+                "2. Prefer natural, conversational delivery. Avoid extremes.\n"
+                "3. FORBIDDEN: 'shouting', 'yelling', 'screaming' unless the script explicitly demands it.\n"
+                "4. The description should work for ALL scenes of this character (not too scene-specific).\n"
+                "Output ONLY the English description. Keep it under 15 words."
             )
             user_prompt_content = (
                 f"Script (Korean): {script}\nScene Context: {context_text}\n\nVoice Design Prompt (English):"
