@@ -375,8 +375,21 @@ def _store_tag_in_db(tag_name: str, tag_info: dict) -> None:
         try:
             existing = db.query(Tag).filter(Tag.name == tag_name).first()
             if not existing:
-                category = str(tag_info.get("category", "unknown"))
-                new_tag = Tag(name=tag_name, category=category, group_name="danbooru_validated")
+                # Danbooru API returns numeric category (0=general, 1=artist, 3=copyright, 4=character, 5=meta)
+                # Convert to SD category/group using classify_from_danbooru()
+                danbooru_cat_id = tag_info.get("category")
+                danbooru_cat_name = DANBOORU_CATEGORIES.get(danbooru_cat_id, "general")
+                sd_group = classify_from_danbooru(tag_info) or _classify_general_tag(tag_name)
+
+                if danbooru_cat_name == "character":
+                    category = "character"
+                elif danbooru_cat_name == "meta" or sd_group == "quality":
+                    category = "meta"
+                else:
+                    category = "scene"
+                group_name = sd_group or "danbooru_validated"
+
+                new_tag = Tag(name=tag_name, category=category, group_name=group_name)
                 db.add(new_tag)
                 db.commit()
         finally:
