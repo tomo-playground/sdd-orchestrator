@@ -41,18 +41,16 @@
 | **Forge 전환 (Stage 1)** | **전체 완료 (ARCHIVED)** |
 | **NoobAI-XL V-Pred 전환 (Stage 4)** | **전체 완료 (ARCHIVED)** |
 | **LLM Provider 추상화 Phase A~E** | **전체 완료 (ARCHIVED)** |
+| **Phase 32 (Auto Run Pipeline Hardening)** | **전체 완료 (17/17)** |
 | 테스트 | Backend 3,466 + Frontend 543 + E2E 36 = **총 4,045개** |
 
 ### 진행 중
 
-- **Phase 32**: Auto Run Pipeline Hardening — **17/17 완료** ([명세](FEATURES/AUTO_RUN_PIPELINE_HARDENING.md))
-
-### 다음
-
-- **Phase 33**: Hybrid Match Rate (WD14 + Gemini Vision) — WD14 하드코딩 제거, group_name 기반 태그 라우팅, Gemini Vision으로 비시각적 태그 평가 ([명세](FEATURES/HYBRID_MATCH_RATE.md))
+- **Phase 33**: Hybrid Match Rate (WD14 + Gemini Vision) — 8/17 완료 (잔여: B-3 PROHIBITED_CONTENT 폴백 + C~E) ([명세](FEATURES/HYBRID_MATCH_RATE.md))
 
 ### 최근 작업
 
+- **03-15 Phase 32 완료**: Auto Run Pipeline Hardening 17/17 — TTS prebuild API + AutoRun Progress Bar + BG Quality SSOT + SCENE_TRANSIENT_FIELDS 정합성 + preflight.ts 분리 + 테스트 61개 추가
 - **03-15 Phase 32 착수**: Stage 루프 버그(A-1/A-2) + TTS is_temp promote(B-2) + Preflight bgmMode(C-1/C-2) + ResumeConfirmModal 연결(D-1) + 완료 단계 비활성화(D-2) + batch seed/canStore(D-3/D-4) + TTS_ENGINE SSOT(E-1) + location key 헬퍼(E-3) + polling AbortSignal(E-4) + asyncio.gather 병렬화(E-6). 14/17 항목 완료
 - **03-15 안정화**: Finalize identity 태그 누출 차단(`_enforce_character_clothing` 3단계 제거 로직) + context_tags alias 재적용 순서 보장(`_rebuild_image_prompt_from_context_tags` 후 `_apply_tag_aliases` 재실행) + TTS decrackle voiced-region P99.5 기반 정밀화 + `_load_tags_by_groups` DB 쿼리 통합 + 테스트 +15건
 - **03-03~03-15 작업**: Phase 29~31, Forge 전환, NoobAI-XL V-Pred 전환, LLM Provider 추상화 A~E, LangFuse Observability 개선, MusicGen/TTS 품질, 안정화. [아카이브](../99_archive/archive/ROADMAP_PHASE_27_31.md)
@@ -144,6 +142,45 @@
 
 ---
 
+## Phase 33: Hybrid Match Rate — WD14 + Gemini Vision
+
+**목표**: 하드코딩(`WD14_UNMATCHABLE_TAGS`) 제거, `group_name` 기반 태그 라우팅으로 100% 커버리지 매치레이트 구현
+**명세**: [FEATURES/HYBRID_MATCH_RATE.md](FEATURES/HYBRID_MATCH_RATE.md)
+
+### Sprint A: 그룹 매핑 정비 (P0)
+- [x] A-1: `WD14_DETECTABLE_GROUPS` 확장 — 레거시 미분류 5개 추가 (clothing, action, gesture, eye_detail, identity)
+- [x] A-2: `GEMINI_DETECTABLE_GROUPS` 상수 정의 — DB 실제 group_name 기반 11개
+- [x] A-3: `SKIPPABLE_GROUPS` 상수 정의 — quality, skip, style 등 6개
+- [x] A-4: `WD14_UNMATCHABLE_TAGS` 제거 — 그룹 기반 라우팅으로 완전 대체
+- [x] A-5: `classify_prompt_tokens()` — group_name 기반 3그룹 분류 (wd14/gemini/skipped)
+
+### Sprint B: Gemini Vision 평가 엔진 (P0)
+- [x] B-1: `evaluate_tags_with_gemini()` — 이미지(base64) + 태그 → 태그별 present/confidence
+- [x] B-2: Gemini 프롬프트 템플릿 (`validate_image_tags.j2`) — Danbooru 태그 설명 포함
+- [ ] B-3: LLM Provider 연동 + safety settings + **PROHIBITED_CONTENT 폴백** (🔴 Blocker)
+- [x] B-4: JSON 파싱 + 에러 처리 (실패 시 빈 리스트, graceful degradation)
+
+### Sprint C: 통합 매치레이트 (P0)
+- [ ] C-1: `validate_scene_image()` 리팩토링 — WD14 즉시 + Gemini 비동기
+- [ ] C-2: `compare_prompt_to_tags()` 수정 — wd14_tokens만 비교
+- [ ] C-3: `compute_adjusted_match_rate()` deprecated
+- [ ] C-4: Gemini 결과 도착 시 DB 업데이트 + match_rate 갱신
+- [ ] C-5: API 스키마 확장 — `evaluation_details` 필드
+
+### Sprint D: DB + Frontend (P1)
+- [ ] D-1: `evaluation_details` JSONB 컬럼 추가 (Alembic)
+- [ ] D-2: Frontend — Gemini 결과 수신 후 매치레이트 실시간 갱신
+- [ ] D-3: `SceneInsightsContent` 매치레이트 색상 기준 조정
+- [ ] D-4: 매치레이트 상세 팝업 — 태그별 결과 + 평가 방법 뱃지
+
+### Sprint E: 최적화 + 테스트 (P2)
+- [ ] E-1: gemini_tokens 0개면 API 호출 스킵
+- [ ] E-2: 배치 평가 시 Gemini 호출 병합
+- [ ] E-3: 단위 테스트 (~15개)
+- [ ] E-4: 통합 테스트 (~10개)
+
+---
+
 ## Development Cycle
 
 ```mermaid
@@ -182,6 +219,8 @@ graph LR
     P28 --> P29["Phase 29<br/>Video<br/>Pre-validation"]
     P29 --> P30["Phase 30<br/>Character<br/>Consistency V2"]
     P30 --> P31["Phase 31<br/>UX Navigation<br/>Overhaul"]
+    P31 --> P32["Phase 32<br/>Auto Run<br/>Pipeline"]
+    P32 --> P33["Phase 33<br/>Hybrid<br/>Match Rate"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -218,6 +257,8 @@ graph LR
     style P29 fill:#4CAF50,color:#fff
     style P30 fill:#4CAF50,color:#fff
     style P31 fill:#4CAF50,color:#fff
+    style P32 fill:#4CAF50,color:#fff
+    style P33 fill:#FF9800,color:#fff
 ```
 
 ---
