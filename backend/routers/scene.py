@@ -215,8 +215,12 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
     match_rate = validation_result.get("adjusted_match_rate", validation_result.get("match_rate", 1.0))
     missing_tags = validation_result.get("missing_tags", [])
 
+    # Strip internal fields before exposing in response
+    sanitized_validation = {
+        k: v for k, v in validation_result.items() if k not in ("image_b64", "wd14_matched", "wd14_total")
+    }
     result = {
-        "validation_result": validation_result,
+        "validation_result": sanitized_validation,
         "auto_edit_triggered": False,
     }
 

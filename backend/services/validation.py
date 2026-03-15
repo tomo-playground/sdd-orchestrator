@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import csv
 import hashlib
 import io
@@ -15,6 +16,8 @@ from PIL import Image
 from sqlalchemy.orm import Session
 
 from config import (
+    GEMINI_DETECTABLE_GROUPS,
+    SKIPPABLE_GROUPS,
     WD14_DETECTABLE_GROUPS,
     WD14_MODEL_DIR,
     WD14_THRESHOLD,
@@ -182,8 +185,6 @@ def _get_tag_group(token: str) -> str | None:
 
 def _is_skippable_tag(token: str) -> bool:
     """Check if a tag belongs to a skippable group or is DB-unregistered."""
-    from config import SKIPPABLE_GROUPS
-
     group = _get_tag_group(token)
     return group in SKIPPABLE_GROUPS or group is None
 
@@ -193,7 +194,6 @@ def classify_prompt_tokens(prompt: str) -> dict[str, list[str]]:
 
     Returns dict with wd14_tokens, gemini_tokens, skipped_tokens lists.
     """
-    from config import GEMINI_DETECTABLE_GROUPS, SKIPPABLE_GROUPS
     from services.prompt import split_prompt_tokens
 
     tokens = [normalize_prompt_token(t) for t in split_prompt_tokens(prompt)]
@@ -439,8 +439,6 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
         critical = detect_critical_failure(request.prompt or "", tags)
 
         # Store image_b64 for deferred Gemini evaluation
-        import base64
-
         image_b64_clean = base64.b64encode(image_bytes).decode("ascii")
 
         return {
@@ -453,7 +451,7 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
             "extra": comparison["extra"],
             "skipped": skipped_tokens,
             "partial_matched": comparison["partial_matched"],
-            "tags": tags[:20],
+            "tags": [t["tag"] for t in tags[:20]],
             "critical_failure": critical.to_dict() if critical.has_failure else None,
             "identity_score": identity_score,
             # Phase 33: Gemini deferred evaluation data
@@ -635,36 +633,56 @@ async def apply_gemini_evaluation(
         "details": results,
     }
 
-    # Update DB if possible
     if scene_id and db_factory:
-        try:
-            db = db_factory()
-            try:
-                from models.scene_quality import SceneQualityScore
-
-                score = (
-                    db.query(SceneQualityScore)
-                    .filter(
-                        SceneQualityScore.scene_id == scene_id,
-                        SceneQualityScore.storyboard_id == storyboard_id,
-                    )
-                    .order_by(SceneQualityScore.validated_at.desc())
-                    .first()
-                )
-                if score:
-                    score.match_rate = combined_rate
-                    db.commit()
-                    logger.info(
-                        "[MatchRate] Updated scene %d: %.1f%% → %.1f%% (Gemini +%d/%d)",
-                        scene_id,
-                        (wd14_matched / wd14_total * 100) if wd14_total else 0,
-                        combined_rate * 100,
-                        gemini_matched,
-                        gemini_total,
-                    )
-            finally:
-                db.close()
-        except Exception as exc:
-            logger.error("[MatchRate] DB update failed: %s", exc)
+        _update_db_match_rate(
+            scene_id=scene_id,
+            storyboard_id=storyboard_id,
+            combined_rate=combined_rate,
+            wd14_matched=wd14_matched,
+            wd14_total=wd14_total,
+            gemini_matched=gemini_matched,
+            gemini_total=gemini_total,
+            db_factory=db_factory,
+        )
 
     return summary
+
+
+def _update_db_match_rate(
+    *,
+    scene_id: int,
+    storyboard_id: int | None,
+    combined_rate: float,
+    wd14_matched: int,
+    wd14_total: int,
+    gemini_matched: int,
+    gemini_total: int,
+    db_factory: Any,
+) -> None:
+    """Persist combined match_rate to SceneQualityScore (latest record)."""
+    from models.scene_quality import SceneQualityScore
+
+    try:
+        with db_factory() as db:
+            score = (
+                db.query(SceneQualityScore)
+                .filter(
+                    SceneQualityScore.scene_id == scene_id,
+                    SceneQualityScore.storyboard_id == storyboard_id,
+                )
+                .order_by(SceneQualityScore.validated_at.desc())
+                .first()
+            )
+            if score:
+                score.match_rate = combined_rate
+                db.commit()
+                logger.info(
+                    "[MatchRate] Updated scene %d: %.1f%% → %.1f%% (Gemini +%d/%d)",
+                    scene_id,
+                    (wd14_matched / wd14_total * 100) if wd14_total else 0,
+                    combined_rate * 100,
+                    gemini_matched,
+                    gemini_total,
+                )
+    except Exception as exc:
+        logger.error("[MatchRate] DB update failed: %s", exc)
