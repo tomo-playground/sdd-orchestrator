@@ -642,6 +642,7 @@ async def apply_gemini_evaluation(
             wd14_total=wd14_total,
             gemini_matched=gemini_matched,
             gemini_total=gemini_total,
+            gemini_details=results,
             db_factory=db_factory,
         )
 
@@ -657,9 +658,10 @@ def _update_db_match_rate(
     wd14_total: int,
     gemini_matched: int,
     gemini_total: int,
+    gemini_details: list[dict] | None = None,
     db_factory: Any,
 ) -> None:
-    """Persist combined match_rate to SceneQualityScore (latest record)."""
+    """Persist combined match_rate + evaluation_details to SceneQualityScore."""
     from models.scene_quality import SceneQualityScore
 
     try:
@@ -675,6 +677,15 @@ def _update_db_match_rate(
             )
             if score:
                 score.match_rate = combined_rate
+                score.evaluation_details = {
+                    "mode": "hybrid",
+                    "wd14": {"matched": wd14_matched, "total": wd14_total},
+                    "gemini": {
+                        "matched": gemini_matched,
+                        "total": gemini_total,
+                        "tags": gemini_details or [],
+                    },
+                }
                 db.commit()
                 logger.info(
                     "[MatchRate] Updated scene %d: %.1f%% → %.1f%% (Gemini +%d/%d)",
