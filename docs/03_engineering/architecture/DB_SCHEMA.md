@@ -694,6 +694,7 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 | `prompt` | Text | 사용된 프롬프트 |
 | `match_rate` | Float | WD14 매치율 |
 | `matched_tags`, `missing_tags`, `extra_tags` | JSONB | 상세 태그 분석 결과 |
+| `evaluation_details` | JSONB (nullable) | Hybrid 평가 상세 (Phase 33) — 구조: 아래 참조 |
 | `validated_at` | DateTime | 검증 일시 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
@@ -703,6 +704,15 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 ---
 
 ## JSONB Structures
+
+### `SceneQualityScore.evaluation_details`
+```json
+{
+  "mode": "hybrid",
+  "wd14": { "matched": 8, "total": 12 },
+  "gemini": { "matched": 3, "total": 5, "tags": ["sunset", "cloudy_sky", "dramatic_lighting"] }
+}
+```
 
 ### `Character.loras`
 ```json
