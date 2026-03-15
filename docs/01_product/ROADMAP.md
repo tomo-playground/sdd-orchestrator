@@ -41,10 +41,11 @@
 | **Forge 전환 (Stage 1)** | **전체 완료 (ARCHIVED)** |
 | **NoobAI-XL V-Pred 전환 (Stage 4)** | **전체 완료 (ARCHIVED)** |
 | **LLM Provider 추상화 Phase A~E** | **전체 완료 (ARCHIVED)** |
-| 테스트 | Backend 3,451 + Frontend 543 + E2E 36 = **총 4,030개** |
+| 테스트 | Backend 3,466 + Frontend 543 + E2E 36 = **총 4,045개** |
 
 ### 최근 작업
 
+- **03-15 안정화**: Finalize identity 태그 누출 차단(`_enforce_character_clothing` 3단계 제거 로직) + context_tags alias 재적용 순서 보장(`_rebuild_image_prompt_from_context_tags` 후 `_apply_tag_aliases` 재실행) + TTS decrackle voiced-region P99.5 기반 정밀화 + `_load_tags_by_groups` DB 쿼리 통합 + 테스트 +15건
 - **03-03~03-15 작업**: Phase 29~31, Forge 전환, NoobAI-XL V-Pred 전환, LLM Provider 추상화 A~E, LangFuse Observability 개선, MusicGen/TTS 품질, 안정화. [아카이브](../99_archive/archive/ROADMAP_PHASE_27_31.md)
 - **03-01~03-02 작업**: Phase 26~28, Chat System, Pipeline Resilience, Character-Group 소유권, Service/Admin 분리, Casting/Checkpointer, QA 테스트 등. [아카이브](../99_archive/archive/ROADMAP_PHASE_27_31.md)
 - **03-01 이전 작업**: Phase 25, Studio 감사, Danbooru 태그 수정 등. [아카이브](../99_archive/archive/ROADMAP_PHASE_25_26.md)
