@@ -46,7 +46,7 @@
 
 ### 진행 중
 
-- **Phase 33**: Hybrid Match Rate (WD14 + Gemini Vision) — 8/17 완료 (잔여: B-3 PROHIBITED_CONTENT 폴백 + C~E) ([명세](FEATURES/HYBRID_MATCH_RATE.md))
+- **Phase 33**: Hybrid Match Rate (WD14 + Gemini Vision) — 14/17 완료 (잔여: D~E) ([명세](FEATURES/HYBRID_MATCH_RATE.md))
 
 ### 최근 작업
 
@@ -157,15 +157,15 @@
 ### Sprint B: Gemini Vision 평가 엔진 (P0)
 - [x] B-1: `evaluate_tags_with_gemini()` — 이미지(base64) + 태그 → 태그별 present/confidence
 - [x] B-2: Gemini 프롬프트 템플릿 (`validate_image_tags.j2`) — Danbooru 태그 설명 포함
-- [ ] B-3: LLM Provider 연동 + safety settings + **PROHIBITED_CONTENT 폴백** (🔴 Blocker)
+- [x] B-3: PROHIBITED_CONTENT 폴백 — `_extract_gemini_block_reason()` + `GEMINI_FALLBACK_MODEL` 1회 재시도
 - [x] B-4: JSON 파싱 + 에러 처리 (실패 시 빈 리스트, graceful degradation)
 
 ### Sprint C: 통합 매치레이트 (P0)
-- [ ] C-1: `validate_scene_image()` 리팩토링 — WD14 즉시 + Gemini 비동기
-- [ ] C-2: `compare_prompt_to_tags()` 수정 — wd14_tokens만 비교
-- [ ] C-3: `compute_adjusted_match_rate()` deprecated
-- [ ] C-4: Gemini 결과 도착 시 DB 업데이트 + match_rate 갱신
-- [ ] C-5: API 스키마 확장 — `evaluation_details` 필드
+- [x] C-1: `validate_scene_image()` 리팩토링 — WD14 즉시 + Gemini 비동기 (2-Phase)
+- [x] C-2: `compare_prompt_to_tags()` 수정 — `only_tokens` 파라미터로 wd14_tokens만 비교
+- [x] C-3: `compute_adjusted_match_rate()` deprecated — `wd14_rate` 직접 사용
+- [x] C-4: `apply_gemini_evaluation()` — Background task로 Gemini 결과 → DB match_rate 갱신
+- [x] C-5: `SceneValidationResponse` 스키마 확장 — `wd14_match_rate`, `gemini_tokens` 필드 추가
 
 ### Sprint D: DB + Frontend (P1)
 - [ ] D-1: `evaluation_details` JSONB 컬럼 추가 (Alembic)
