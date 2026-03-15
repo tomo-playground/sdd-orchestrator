@@ -116,22 +116,24 @@ class TestDirectorPlanGateInterruptDefense:
         assert result["plan_revision_count"] == 3
 
     def test_handle_revise_appends_feedback(self):
-        """피드백이 description에 추가된다."""
+        """피드백이 revision_feedback 필드에 저장된다 (description 누적 없음)."""
         from services.agent.nodes.director_plan_gate import _handle_revise
 
         state = {"plan_revision_count": 0, "description": "원본"}
         result = _handle_revise(state, {"feedback": "더 감성적으로"})
         assert result["plan_action"] == "revise"
-        assert "더 감성적으로" in result["description"]
+        assert result["revision_feedback"] == "더 감성적으로"
+        assert "description" not in result  # description에 누적하지 않음
         assert result["plan_revision_count"] == 1
 
     def test_handle_revise_empty_feedback(self):
-        """피드백이 비어있으면 description 유지."""
+        """피드백이 비어있으면 revision_feedback은 빈 문자열."""
         from services.agent.nodes.director_plan_gate import _handle_revise
 
         state = {"plan_revision_count": 0, "description": "원본"}
         result = _handle_revise(state, {})
-        assert result["description"] == "원본"
+        assert result["revision_feedback"] == ""
+        assert "description" not in result  # description 불변
 
     @pytest.mark.asyncio
     async def test_auto_mode_skips_interrupt(self):
