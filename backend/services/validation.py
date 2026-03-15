@@ -14,10 +14,16 @@ from fastapi import HTTPException
 from PIL import Image
 from sqlalchemy.orm import Session
 
-from config import WD14_DETECTABLE_GROUPS, WD14_MODEL_DIR, WD14_THRESHOLD, WD14_UNMATCHABLE_TAGS, logger
+from config import (
+    WD14_DETECTABLE_GROUPS,
+    WD14_MODEL_DIR,
+    WD14_THRESHOLD,
+    logger,
+)
 from schemas import SceneValidateRequest
 from services.image import load_image_bytes
 from services.keywords import normalize_prompt_token
+from services.validation_gemini import evaluate_tags_with_gemini
 
 
 def _extract_storage_key(image_url: str | None) -> str | None:
@@ -163,15 +169,82 @@ def _build_synonym_set(token: str) -> set[str]:
     return synonyms
 
 
-def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str, Any]:
-    """Compare prompt tokens against WD14-detected tags.
+def _get_tag_group(token: str) -> str | None:
+    """Return the group_name for a token, stripping weight markers first."""
+    from services.keywords.db_cache import TagCategoryCache
 
-    Returns dict with matched, partial_matched, missing, extra, skipped lists.
+    stripped = token.strip()
+    if stripped.startswith("(") and ":" in stripped:
+        stripped = stripped.lstrip("(").split(":")[0]
+    stripped = stripped.strip("()")
+    return TagCategoryCache.get_category(stripped)
+
+
+def _is_skippable_tag(token: str) -> bool:
+    """Check if a tag belongs to a skippable group or is DB-unregistered."""
+    from config import SKIPPABLE_GROUPS
+
+    group = _get_tag_group(token)
+    return group in SKIPPABLE_GROUPS or group is None
+
+
+def classify_prompt_tokens(prompt: str) -> dict[str, list[str]]:
+    """Classify prompt tokens into wd14/gemini/skipped by group_name.
+
+    Returns dict with wd14_tokens, gemini_tokens, skipped_tokens lists.
     """
+    from config import GEMINI_DETECTABLE_GROUPS, SKIPPABLE_GROUPS
     from services.prompt import split_prompt_tokens
 
     tokens = [normalize_prompt_token(t) for t in split_prompt_tokens(prompt)]
     tokens = [t for t in tokens if t]
+
+    wd14_tokens: list[str] = []
+    gemini_tokens: list[str] = []
+    skipped_tokens: list[str] = []
+
+    for t in tokens:
+        group = _get_tag_group(t)
+        if group in SKIPPABLE_GROUPS or group is None:
+            skipped_tokens.append(t)
+        elif group in WD14_DETECTABLE_GROUPS:
+            wd14_tokens.append(t)
+        elif group in GEMINI_DETECTABLE_GROUPS:
+            gemini_tokens.append(t)
+        else:
+            skipped_tokens.append(t)
+
+    return {
+        "wd14_tokens": wd14_tokens,
+        "gemini_tokens": gemini_tokens,
+        "skipped_tokens": skipped_tokens,
+    }
+
+
+def compare_prompt_to_tags(
+    prompt: str,
+    tags: list[dict[str, Any]],
+    *,
+    only_tokens: list[str] | None = None,
+) -> dict[str, Any]:
+    """Compare prompt tokens against WD14-detected tags.
+
+    Args:
+        prompt: The prompt string to tokenize (ignored if only_tokens given).
+        tags: WD14-detected tags.
+        only_tokens: If provided, compare only these tokens instead of
+            tokenizing the full prompt. Used by hybrid mode to pass
+            pre-classified wd14_tokens.
+
+    Returns dict with matched, partial_matched, missing, extra, skipped lists.
+    """
+    if only_tokens is not None:
+        tokens = only_tokens
+    else:
+        from services.prompt import split_prompt_tokens  # noqa: PLC0415
+
+        tokens = [normalize_prompt_token(t) for t in split_prompt_tokens(prompt)]
+        tokens = [t for t in tokens if t]
 
     if not tokens:
         return {
@@ -190,8 +263,8 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
     skipped: list[str] = []
 
     for t in tokens:
-        # 0) WD14 unmatchable → skip (not counted in match_rate)
-        if t in WD14_UNMATCHABLE_TAGS:
+        # 0) Skippable group or DB-unregistered → skip
+        if _is_skippable_tag(t):
             skipped.append(t)
             continue
 
@@ -221,7 +294,7 @@ def compare_prompt_to_tags(prompt: str, tags: list[dict[str, Any]]) -> dict[str,
         if item["score"] < 0.5:
             continue
         name = normalize_prompt_token(item["tag"])
-        if not name or name in WD14_UNMATCHABLE_TAGS or name in matched_set:
+        if not name or _is_skippable_tag(name) or name in matched_set:
             continue
         extra.append(item["tag"])
 
@@ -241,8 +314,9 @@ def compute_adjusted_match_rate(
 ) -> float:
     """Compute match rate using only WD14-detectable group tags.
 
-    Tags whose group_name is NOT in WD14_DETECTABLE_GROUPS are excluded
-    from both numerator and denominator, giving a more realistic quality signal.
+    .. deprecated:: Phase 33
+        Replaced by hybrid match rate in ``validate_scene_image()``.
+        Kept for backward compatibility with existing callers.
 
     Returns 0.0 if no detectable tokens exist.
     """
@@ -272,14 +346,14 @@ def compute_adjusted_match_rate(
 
 
 def validate_scene_image(request: SceneValidateRequest, db: Session | None = None) -> dict:
-    """Validate scene image using WD14 tagger.
+    """Validate scene image using WD14 + Gemini hybrid (Phase 33).
 
-    Args:
-        request: SceneValidateRequest with image (image_b64 or image_url) and prompt
-        db: Database session (optional, for saving validation results)
+    Phase 1 (synchronous): WD14 evaluates visual tags → immediate match_rate.
+    Phase 2 (deferred):    Gemini evaluates non-visual tags → updated later.
 
     Returns:
-        Validation result dict with match_rate, matched/missing/extra tags
+        Validation result dict with match_rate, matched/missing/extra tags,
+        plus gemini_tokens list for deferred evaluation.
     """
     try:
         source = request.image_b64 or request.image_url
@@ -288,13 +362,32 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
         image_bytes = load_image_bytes(source)
         image = Image.open(io.BytesIO(image_bytes))
         tags = wd14_predict_tags(image, WD14_THRESHOLD)
-        comparison = compare_prompt_to_tags(request.prompt or "", tags)
-        n_matched = len(comparison["matched"]) + len(comparison["partial_matched"])
-        total = n_matched + len(comparison["missing"])
-        match_rate = (n_matched / total) if total else 0.0
 
-        # Create/Update validation score in DB (if db session provided)
-        # Identity score: how well WD14 tags match character identity traits
+        # Phase 33: Classify tokens by evaluation method
+        classification = classify_prompt_tokens(request.prompt or "")
+        wd14_tokens = classification["wd14_tokens"]
+        gemini_tokens = classification["gemini_tokens"]
+        skipped_tokens = classification["skipped_tokens"]
+
+        # WD14 comparison: only wd14_tokens (pre-classified)
+        comparison = compare_prompt_to_tags(
+            request.prompt or "",
+            tags,
+            only_tokens=wd14_tokens,
+        )
+
+        # WD14-only match rate (immediate)
+        n_wd14_matched = len(comparison["matched"]) + len(comparison["partial_matched"])
+        wd14_total = n_wd14_matched + len(comparison["missing"])
+        wd14_rate = (n_wd14_matched / wd14_total) if wd14_total else 0.0
+
+        # Combined match rate: WD14 now + Gemini pending (updated later via C-4)
+        # Gemini tokens count as "pending" — not yet matched or missing
+        n_gemini = len(gemini_tokens)
+        combined_total = wd14_total + n_gemini
+        match_rate = (n_wd14_matched / combined_total) if combined_total else 0.0
+
+        # Identity score
         identity_score = None
         identity_signature = None
         if request.character_id and db is not None:
@@ -310,7 +403,6 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
             identity_signature = extract_identity_signature(tags, db)
 
         if db is not None:
-            # Use scene_id (DB PK) if provided, fallback to scene_index
             actual_scene_id = request.scene_id or request.scene_index or None
 
             if actual_scene_id:
@@ -342,28 +434,34 @@ def validate_scene_image(request: SceneValidateRequest, db: Session | None = Non
                 missing_tags=comparison["missing"],
             )
 
-        adjusted = compute_adjusted_match_rate(
-            comparison["matched"],
-            comparison["partial_matched"],
-            comparison["missing"],
-        )
-
         from services.critical_failure import detect_critical_failure
 
         critical = detect_critical_failure(request.prompt or "", tags)
 
+        # Store image_b64 for deferred Gemini evaluation
+        import base64
+
+        image_b64_clean = base64.b64encode(image_bytes).decode("ascii")
+
         return {
-            "mode": "wd14",
+            "mode": "hybrid",
             "match_rate": match_rate,
-            "adjusted_match_rate": adjusted,
+            "adjusted_match_rate": wd14_rate,  # backward compat (deprecated)
+            "wd14_match_rate": wd14_rate,
             "matched": comparison["matched"],
             "missing": comparison["missing"],
             "extra": comparison["extra"],
-            "skipped": comparison["skipped"],
+            "skipped": skipped_tokens,
             "partial_matched": comparison["partial_matched"],
             "tags": tags[:20],
             "critical_failure": critical.to_dict() if critical.has_failure else None,
             "identity_score": identity_score,
+            # Phase 33: Gemini deferred evaluation data
+            "gemini_tokens": gemini_tokens,
+            "image_b64": image_b64_clean,
+            # Internal: for background Gemini task
+            "wd14_matched": n_wd14_matched,
+            "wd14_total": wd14_total,
         }
     except Exception as exc:
         logger.exception("Validation failed")
@@ -451,7 +549,7 @@ def _increment_tag_effectiveness(
 
     - matched_tags: use_count++ AND match_count++
     - missing_tags: use_count++ only
-    - Tags in WD14_UNMATCHABLE_TAGS or not in DB are skipped.
+    - Tags in skippable groups or not in WD14_DETECTABLE_GROUPS are skipped.
     """
     from models.tag import Tag, TagEffectiveness
     from services.keywords.db_cache import TagCategoryCache
@@ -462,12 +560,7 @@ def _increment_tag_effectiveness(
 
     try:
         for tag_name in all_tags:
-            if tag_name in WD14_UNMATCHABLE_TAGS:
-                continue
-
-            # Skip tags not in detectable groups (camera, location, etc.)
-            # group=None (DB unregistered) also skipped — consistent with
-            # compute_adjusted_match_rate() which excludes unknown groups.
+            # Skip tags not in WD14-detectable groups
             group = TagCategoryCache.get_category(tag_name)
             if not group or group not in WD14_DETECTABLE_GROUPS:
                 continue
@@ -490,3 +583,88 @@ def _increment_tag_effectiveness(
     except Exception as e:
         logger.error("Failed to update tag effectiveness: %s", e)
         db.rollback()
+
+
+async def apply_gemini_evaluation(
+    *,
+    storyboard_id: int | None,
+    scene_id: int | None,
+    image_b64: str,
+    gemini_tokens: list[str],
+    wd14_matched: int,
+    wd14_total: int,
+    db_factory: Any = None,
+) -> dict[str, Any] | None:
+    """Run deferred Gemini evaluation and update DB match_rate.
+
+    Called as a background task after the WD14 synchronous response.
+
+    Args:
+        storyboard_id: Storyboard ID for DB lookup.
+        scene_id: Scene ID for DB lookup.
+        image_b64: Base64-encoded image.
+        gemini_tokens: Tags to evaluate with Gemini.
+        wd14_matched: Number of WD14-matched tokens (for combined rate).
+        wd14_total: Total WD14-evaluated tokens.
+        db_factory: Callable returning a DB session (for background use).
+
+    Returns:
+        Gemini evaluation summary dict, or None on failure.
+    """
+    if not gemini_tokens:
+        return None
+
+    results = await evaluate_tags_with_gemini(image_b64, gemini_tokens)
+    if not results:
+        logger.info("[MatchRate] Gemini returned no results for scene %s", scene_id)
+        return None
+
+    # Count Gemini matches (confidence >= 0.5 and present=True)
+    gemini_matched = sum(1 for r in results if r.get("present") and r.get("confidence", 0) >= 0.5)
+    gemini_total = len(results)
+
+    # Combined match rate
+    combined_matched = wd14_matched + gemini_matched
+    combined_total = wd14_total + gemini_total
+    combined_rate = (combined_matched / combined_total) if combined_total else 0.0
+
+    summary = {
+        "gemini_matched": gemini_matched,
+        "gemini_total": gemini_total,
+        "combined_match_rate": combined_rate,
+        "details": results,
+    }
+
+    # Update DB if possible
+    if scene_id and db_factory:
+        try:
+            db = db_factory()
+            try:
+                from models.scene_quality import SceneQualityScore
+
+                score = (
+                    db.query(SceneQualityScore)
+                    .filter(
+                        SceneQualityScore.scene_id == scene_id,
+                        SceneQualityScore.storyboard_id == storyboard_id,
+                    )
+                    .order_by(SceneQualityScore.validated_at.desc())
+                    .first()
+                )
+                if score:
+                    score.match_rate = combined_rate
+                    db.commit()
+                    logger.info(
+                        "[MatchRate] Updated scene %d: %.1f%% → %.1f%% (Gemini +%d/%d)",
+                        scene_id,
+                        (wd14_matched / wd14_total * 100) if wd14_total else 0,
+                        combined_rate * 100,
+                        gemini_matched,
+                        gemini_total,
+                    )
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.error("[MatchRate] DB update failed: %s", exc)
+
+    return summary

@@ -103,6 +103,8 @@ GEMINI_CLASSIFIER_MODEL = os.getenv("GEMINI_CLASSIFIER_MODEL", "gemini-2.5-flash
 GEMINI_CLASSIFIER_TIMEOUT_MS = int(os.getenv("GEMINI_CLASSIFIER_TIMEOUT_MS", "30000"))
 # Gemini Fallback Model — PROHIBITED_CONTENT 차단 시 자동 폴백 (2.0 Flash는 과도한 필터 없음)
 GEMINI_FALLBACK_MODEL = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-2.0-flash")
+# Gemini Vision 태그 평가 타임아웃 (초) — evaluate_tags_with_gemini
+GEMINI_VISION_EVAL_TIMEOUT_S = int(os.getenv("GEMINI_VISION_EVAL_TIMEOUT_S", "5"))
 
 # 공통 Safety Settings — 모든 Gemini 호출에서 재사용 (config.py SSOT)
 _BLOCK_NONE = genai.types.HarmBlockThreshold.BLOCK_NONE
@@ -295,85 +297,75 @@ WD14_THRESHOLD = float(os.getenv("WD14_THRESHOLD", "0.35"))
 # Higher than WD14_THRESHOLD to minimize false positives on subject tags
 CRITICAL_FAILURE_SUBJECT_THRESHOLD = float(os.getenv("CRITICAL_FAILURE_SUBJECT_THRESHOLD", "0.7"))
 
-# Tags that WD14 cannot detect (style, quality, lighting, mood, abstract composition)
-# These are excluded from match_rate calculation and reported as "skipped"
-WD14_UNMATCHABLE_TAGS: set[str] = {
-    # Style / rendering
-    "flat_color",
-    "cel_shading",
-    "watercolor",
-    "oil_painting",
-    "sketch",
-    "lineart",
-    "monochrome",
-    "greyscale",
-    # Quality
-    "masterpiece",
-    "best_quality",
-    "high_quality",
-    "normal_quality",
-    "worst_quality",
-    "absurdres",
-    "incredibly_absurdres",
-    "highres",
-    # Lighting
-    "soft_lighting",
-    "natural_light",
-    "natural_lighting",
-    "dramatic_lighting",
-    "volumetric_lighting",
-    "beautiful_lighting",
-    # Mood / time of day
-    "peaceful",
-    "romantic",
-    "mysterious",
-    "morning",
-    "night",
-    "dawn",
-    "dusk",
-    "evening",
-    # Abstract composition
-    "dynamic_angle",
-    "cinematic_composition",
-    # Conceptual / not in WD14 model
-    "anime_style",
-    "bishounen",
-    "anime_coloring",
-}
+# --- Match Rate: Group-based Tag Routing (Phase 33) ---
+# DB tags.group_name을 기반으로 각 태그의 평가 방법을 결정한다.
+# WD14_UNMATCHABLE_TAGS (하드코딩) → 그룹 기반 라우팅으로 대체.
 
-# Character-identity categories exempt from effectiveness filtering.
-# WD14 may under-detect these in stylised anime art, but removing them
-# from prompts breaks character consistency (→ "death spiral").
-# Tags are resolved lazily from CATEGORY_PATTERNS on first access.
 # Tag groups where WD14 can reliably detect presence/absence.
-# Used by compute_adjusted_match_rate() to exclude non-detectable groups
-# (camera, lighting, mood, location, etc.) from the match rate denominator.
+# 시각적 특징 — 로컬 WD14 모델로 무료/즉시 평가.
 WD14_DETECTABLE_GROUPS: frozenset[str] = frozenset(
     {
         "subject",  # 1girl, solo — 0.9+ confidence
         "hair_color",  # black_hair, blonde_hair
-        "hair_length",  # long_hair, short_hair — 최고 감지율 0.683
-        "hair_style",  # ponytail, twintails — 구조적 특징
-        "hair_accessory",  # hairclip, hairband — 시각적 개체
+        "hair_length",  # long_hair, short_hair
+        "hair_style",  # ponytail, twintails
+        "hair_accessory",  # hairclip, hairband
         "eye_color",  # blue_eyes, red_eyes
-        # clothing 계열 (기존 "clothing" 세분화)
+        "eye_detail",  # heterochromia, slit_pupils
+        "skin_color",  # dark_skin, pale_skin
+        # clothing 계열
+        "clothing",  # 레거시 미분류 (935개)
         "clothing_top",  # shirt, jacket
         "clothing_bottom",  # skirt, pants
-        "clothing_outfit",  # dress, uniform — 0.529
+        "clothing_outfit",  # dress, uniform
         "clothing_detail",  # long_sleeves, frills
         "legwear",  # thighhighs, stockings
         "footwear",  # boots, sneakers
         "accessory",  # glasses, hat, earrings
-        "expression",  # smile, open_mouth — 0.217
+        "expression",  # smile, open_mouth
         "gaze",  # looking_at_viewer, closed_eyes
-        "pose",  # standing, sitting — 0.300
-        # action 계열 (기존 "action" 세분화)
+        "pose",  # standing, sitting
+        "gesture",  # pointing, waving
+        # action 계열
+        "action",  # 레거시 미분류 (229개)
         "action_body",  # walking, running
-        "action_hand",  # holding, grabbing — 0.343
+        "action_hand",  # holding, grabbing
         "action_daily",  # reading, eating
-        "body_feature",  # cat_ears, wings — 시각적 특징
+        "body_feature",  # cat_ears, wings
         "appearance",  # freckles, makeup
-        "body_type",  # slim, muscular — 체형
+        "body_type",  # slim, muscular
+        "identity",  # 캐릭터 정체성 (hair/eye 기반)
+    }
+)
+
+# Tag groups evaluated by Gemini Vision (non-visual / contextual).
+# WD14가 감지 못하는 구도, 조명, 분위기, 환경 태그를 Gemini로 평가.
+GEMINI_DETECTABLE_GROUPS: frozenset[str] = frozenset(
+    {
+        "camera",  # cowboy_shot, close-up, from_above
+        "lighting",  # sidelighting, soft_shadow
+        "mood",  # peaceful, romantic, melancholy
+        "environment",  # 환경 전반 (224개)
+        "location_outdoor",  # park, street, beach
+        "location_indoor",  # indoors
+        "location_indoor_specific",  # classroom, library, cafe
+        "location_indoor_general",  # indoors 일반
+        "time_weather",  # rain, sunset, night_sky
+        "time_of_day",  # morning, night
+        "weather",  # rain, snow, cloudy
+    }
+)
+
+# Tag groups excluded from match rate calculation entirely.
+# 평가 불필요하거나 감지 불가능한 태그 — 분모에서 제외.
+SKIPPABLE_GROUPS: frozenset[str] = frozenset(
+    {
+        "quality",  # masterpiece, best_quality
+        "skip",  # 명시적 스킵 태그
+        "style",  # flat_color, cel_shading (렌더링 스타일)
+        "danbooru_validated",  # 메타 태그
+        "background_type",  # simple_background, white_background
+        "particle",  # 파티클 효과 (감지 어려움)
     }
 )
 

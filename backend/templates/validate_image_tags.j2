@@ -1,0 +1,21 @@
+Given an image and a list of Danbooru-style tags, determine whether each tag is visually present in the image.
+
+Tags to evaluate:
+{% for tag in tags %}
+- {{ tag }}
+{% endfor %}
+
+For each tag, respond with a JSON array:
+[
+  {"tag": "tag_name", "present": true, "confidence": 0.95},
+  {"tag": "tag_name", "present": false, "confidence": 0.1}
+]
+
+Rules:
+- "present" means the tag's visual concept is clearly reflected in the image
+- "confidence" is your certainty level (0.0 = unsure, 1.0 = certain)
+- Camera tags (cowboy_shot, close-up, etc.): evaluate the framing/composition
+- Lighting tags (sidelighting, soft_shadow, etc.): evaluate the lighting style
+- Mood tags (peaceful, dramatic, etc.): evaluate the overall atmosphere
+- Location tags (outdoors, classroom, etc.): evaluate the background/setting
+- Respond ONLY with the JSON array, no additional text
