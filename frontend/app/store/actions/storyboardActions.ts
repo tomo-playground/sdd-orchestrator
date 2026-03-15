@@ -304,6 +304,17 @@ export async function persistStoryboard(): Promise<boolean> {
       await syncVersionAfterConflict();
       return false;
     }
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      // 스토리보드가 DB에 없음 (stale ID) — ID 초기화 후 POST로 재시도
+      console.warn("[persistStoryboard] 404 — stale storyboardId, retrying as new");
+      useContextStore.getState().setContext({ storyboardId: null });
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("id");
+        window.history.replaceState({}, "", url.toString());
+      }
+      return persistStoryboard();
+    }
     console.error("[persistStoryboard] Failed:", error);
     useUIStore.getState().showToast("저장에 실패했습니다. 다시 시도해 주세요.", "error");
     return false;
