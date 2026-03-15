@@ -11,7 +11,7 @@ const BACKOFF_BASE_MS = 1000;
  * Automatically reconnects on SSE errors up to MAX_RETRIES times.
  */
 export async function generateWithProgress(
-  payload: Record<string, unknown>,
+  payload: object,
   onProgress?: (p: ImageGenProgress) => void,
   signal?: AbortSignal
 ): Promise<ImageGenProgress> {

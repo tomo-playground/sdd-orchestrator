@@ -4,9 +4,7 @@ import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import type { Scene } from "../../types";
 import { storeSceneImage } from "./imageActions";
-import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
-import { resolveSceneControlnet, resolveSceneIpAdapter } from "../../utils/sceneSettingsResolver";
-import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
+import { buildSceneRequest } from "./imageGeneration";
 
 interface BatchResult {
   index: number;
@@ -44,52 +42,11 @@ export async function generateBatchImages(sceneClientIds: string[], signal?: Abo
 
   try {
     const { storyboardId } = useContextStore.getState();
-    // C-2: HiRes settings matching generateSceneImageFor
-    const hiResPayload = sbState.hiResEnabled
-      ? {
-          enable_hr: true,
-          hr_scale: 1.5,
-          hr_upscaler: "R-ESRGAN 4x+ Anime6B",
-          hr_second_pass_steps: 10,
-          denoising_strength: 0.35,
-        }
-      : {};
 
-    const sceneRequests = targetScenes.map((scene) => {
-      const controlnet = resolveSceneControlnet(scene, sbState);
-      const ipAdapter = resolveSceneIpAdapter(scene, sbState);
-      const isNarrator = scene.speaker === "Narrator";
-      // C-2: Use buildScenePrompt for consistent prompt construction
-      const prompt = buildScenePrompt(scene) || "";
-      return {
-        prompt,
-        negative_prompt: buildNegativePrompt(scene),
-        seed: -1,
-        width: scene.width || 832,
-        height: scene.height || 1216,
-        ...hiResPayload,
-        character_id: resolveCharacterIdForSpeaker(scene.speaker, sbState) || 0,
-        character_b_id: sbState.selectedCharacterBId || undefined,
-        storyboard_id: storyboardId || undefined,
-        scene_id: scene.id > 0 ? scene.id : undefined, // H-6
-        background_id: scene.background_id || undefined,
-        context_tags: scene.context_tags || undefined,
-        style_loras: sbState.characterLoras || [],
-        auto_rewrite_prompt: sbState.autoRewritePrompt,
-        auto_replace_risky_tags: sbState.autoReplaceRiskyTags,
-        client_id: scene.client_id,
-        use_controlnet: controlnet.enabled && !isNarrator,
-        controlnet_weight: controlnet.weight,
-        controlnet_pose: scene.controlnet_pose || undefined,
-        use_ip_adapter: ipAdapter.enabled && !!ipAdapter.reference && !isNarrator,
-        ip_adapter_reference: isNarrator ? undefined : ipAdapter.reference || undefined,
-        ip_adapter_weight: ipAdapter.weight || 0.7,
-        use_reference_only: scene.use_reference_only ?? true,
-        reference_only_weight: scene.reference_only_weight ?? 0.5,
-        environment_reference_id: scene.environment_reference_id || undefined,
-        environment_reference_weight: scene.environment_reference_weight ?? 0.3,
-      };
-    });
+    const sceneRequests = targetScenes.map((scene) => ({
+      ...buildSceneRequest(scene, sbState, storyboardId || null),
+      seed: -1,
+    }));
 
     const res = await axios.post<BatchResponse>(
       `${API_BASE}/scene/generate-batch`,

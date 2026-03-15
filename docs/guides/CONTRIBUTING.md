@@ -67,7 +67,8 @@ npm run dev                   # http://localhost:3000
 
 | 주제 | SSOT 문서 |
 |------|-----------|
-| 아키텍처, 코드 가이드라인, 태그 규칙, DB 규칙 | [`CLAUDE.md`](../../CLAUDE.md) |
+| 아키텍처, 도메인 규칙, 태그 규칙, DB 규칙 | [`CLAUDE.md`](../../CLAUDE.md) |
+| Frontend 코딩 표준 (TypeScript) | [`CODING_STANDARDS.md`](../03_engineering/frontend/CODING_STANDARDS.md) |
 | DB 스키마 상세 | [`DB_SCHEMA.md`](../03_engineering/architecture/DB_SCHEMA.md) |
 | API 명세 (Backend↔Frontend 계약) | [`REST_API.md`](../03_engineering/api/REST_API.md) |
 | 테스트 전략, 커버리지 기준, TDD | [`TEST_STRATEGY.md`](../03_engineering/testing/TEST_STRATEGY.md) |

@@ -14,9 +14,53 @@ import { validateImageCandidate, processGeneratedImages } from "./imageProcessin
 // Re-export for external consumers
 export { storeSceneImage } from "./imageProcessing";
 
-function buildHiResPayload() {
-  const { hiResEnabled } = useStoryboardStore.getState();
-  return hiResEnabled
+/** Typed SD generation request payload. Mirrors backend SceneGenerateRequest. */
+export interface SceneRequest {
+  prompt: string;
+  negative_prompt: string;
+  width: number;
+  height: number;
+  enable_hr?: boolean;
+  hr_scale?: number;
+  hr_upscaler?: string;
+  hr_second_pass_steps?: number;
+  denoising_strength?: number;
+  character_id: number | null;
+  character_b_id?: number;
+  storyboard_id?: number;
+  scene_id?: number;
+  background_id?: number;
+  context_tags?: Record<string, unknown>;
+  style_loras: unknown[];
+  auto_rewrite_prompt: boolean;
+  auto_replace_risky_tags: boolean;
+  client_id: string;
+  use_controlnet: boolean;
+  controlnet_weight: number;
+  controlnet_pose?: string;
+  use_ip_adapter: boolean;
+  ip_adapter_reference?: string;
+  ip_adapter_weight: number;
+  use_reference_only: boolean;
+  reference_only_weight: number;
+  environment_reference_id?: number;
+  environment_reference_weight: number;
+}
+
+/**
+ * Build a complete SD generation request payload from scene + store state.
+ * SSOT: both manual (generateSceneImageFor) and auto-run (generateBatchImages) use this.
+ * Seed is intentionally excluded — callers provide it differently.
+ */
+export function buildSceneRequest(
+  scene: Scene,
+  sbState: ReturnType<typeof useStoryboardStore.getState>,
+  storyboardId: number | null
+): SceneRequest {
+  const controlnet = resolveSceneControlnet(scene, sbState);
+  const ipAdapter = resolveSceneIpAdapter(scene, sbState);
+  const isNarrator = scene.speaker === "Narrator";
+  const hiResPayload = sbState.hiResEnabled
     ? {
         enable_hr: true,
         hr_scale: 1.5,
@@ -25,6 +69,34 @@ function buildHiResPayload() {
         denoising_strength: 0.35,
       }
     : {};
+
+  return {
+    prompt: buildScenePrompt(scene) || "",
+    negative_prompt: buildNegativePrompt(scene),
+    width: scene.width || 832,
+    height: scene.height || 1216,
+    ...hiResPayload,
+    character_id: resolveCharacterIdForSpeaker(scene.speaker, sbState),
+    character_b_id: sbState.selectedCharacterBId || undefined,
+    storyboard_id: storyboardId || undefined,
+    scene_id: scene.id > 0 ? scene.id : undefined,
+    background_id: scene.background_id || undefined,
+    context_tags: scene.context_tags || undefined,
+    style_loras: sbState.characterLoras || [],
+    auto_rewrite_prompt: sbState.autoRewritePrompt,
+    auto_replace_risky_tags: sbState.autoReplaceRiskyTags,
+    client_id: scene.client_id,
+    use_controlnet: controlnet.enabled && !isNarrator,
+    controlnet_weight: controlnet.weight,
+    controlnet_pose: scene.controlnet_pose || undefined,
+    use_ip_adapter: ipAdapter.enabled && !!ipAdapter.reference && !isNarrator,
+    ip_adapter_reference: isNarrator ? undefined : ipAdapter.reference || undefined,
+    ip_adapter_weight: ipAdapter.weight ?? 0.7,
+    use_reference_only: scene.use_reference_only ?? true,
+    reference_only_weight: scene.reference_only_weight ?? 0.5,
+    environment_reference_id: scene.environment_reference_id || undefined,
+    environment_reference_weight: scene.environment_reference_weight ?? 0.3,
+  };
 }
 
 /** Generate a single image for a scene via SD */
@@ -37,68 +109,26 @@ export async function generateSceneImageFor(
   const { storyboardId } = useContextStore.getState();
   const { showToast } = useUIStore.getState();
   const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, sbState);
-  const controlnet = resolveSceneControlnet(scene, sbState);
-  const ipAdapter = resolveSceneIpAdapter(scene, sbState);
+
   // Narrator scenes don't require character selection (no_humans, scenery only)
   if (!selectedCharacterId && scene.speaker !== "Narrator") {
     if (!silent) showToast("Character selection is required", "error");
     return null;
   }
 
-  const prompt = buildScenePrompt(scene);
-  if (!prompt) {
+  if (!scene.image_prompt?.trim()) {
     if (!silent) showToast("Prompt is required", "error");
     return null;
   }
 
-  const negativePrompt = buildNegativePrompt(scene);
-
-  const hiResPayload = buildHiResPayload();
-  // Narrator scenes: disable ControlNet (no character to pose) and IP-Adapter (no reference)
-  const isNarrator = scene.speaker === "Narrator";
-  const controlnetPayload =
-    controlnet.enabled && !isNarrator
-      ? {
-          use_controlnet: true,
-          controlnet_weight: controlnet.weight,
-          controlnet_pose: scene.controlnet_pose || undefined,
-        }
-      : { use_controlnet: false };
-  const ipAdapterPayload =
-    ipAdapter.enabled && ipAdapter.reference && !isNarrator
-      ? {
-          use_ip_adapter: true,
-          ip_adapter_reference: ipAdapter.reference,
-          ip_adapter_weight: ipAdapter.weight,
-        }
-      : { use_ip_adapter: false };
-
   // Multi-character scene without character B: warn user about single fallback
   if (scene.scene_mode === "multi" && !sbState.selectedCharacterBId) {
-    const { showToast } = useUIStore.getState();
     showToast("캐릭터 B가 선택되지 않아 multi 씬이 single로 폴백됩니다.", "warning");
   }
 
-  const requestPayload = {
-    prompt,
-    negative_prompt: negativePrompt,
-    width: 832,
-    height: 1216,
-    ...hiResPayload,
-    ...controlnetPayload,
-    ...ipAdapterPayload,
-    character_id: selectedCharacterId,
-    character_b_id: sbState.selectedCharacterBId || undefined,
-    storyboard_id: storyboardId,
-    scene_id: scene.id > 0 ? scene.id : undefined,
-    background_id: scene.background_id || undefined,
-    context_tags: scene.context_tags || undefined,
-    style_loras: sbState.characterLoras || [],
-    auto_rewrite_prompt: sbState.autoRewritePrompt,
-    auto_replace_risky_tags: sbState.autoReplaceRiskyTags,
-    client_id: scene.client_id,
-    ...(overrides?.seed !== undefined ? { seed: overrides.seed } : {}),
-  };
+  const base = buildSceneRequest(scene, sbState, storyboardId);
+  const requestPayload = overrides?.seed !== undefined ? { ...base, seed: overrides.seed } : base;
+  const prompt = requestPayload.prompt;
 
   const debugPayload = { ...requestPayload };
 
@@ -177,7 +207,7 @@ function clearImageGenProgress(sceneClientId: string) {
 /** SSE-based async image generation — returns raw SSE data for caller to process */
 async function generateWithSSE(
   sceneClientId: string,
-  payload: Record<string, unknown>
+  payload: SceneRequest | (SceneRequest & { seed: number })
 ): Promise<ImageGenProgress | null> {
   const updateProgress = (p: ImageGenProgress) => {
     const { imageGenProgress } = useStoryboardStore.getState();
@@ -200,8 +230,8 @@ async function generateWithSSE(
 
 type GenerateOpts = {
   scene: Scene;
-  requestPayload: Record<string, unknown>;
-  debugPayload: Record<string, unknown>;
+  requestPayload: SceneRequest | (SceneRequest & { seed: number });
+  debugPayload: SceneRequest | (SceneRequest & { seed: number });
   prompt: string;
   selectedCharacterId: number | null;
   silent: boolean;

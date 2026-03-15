@@ -70,6 +70,14 @@ CLAUDE.md 기준에 따라 변경된 파일을 검증하세요:
 - **설정 SSOT**: `backend/config.py` 외에 하드코딩된 상수가 없는지
 - **태그 포맷**: Danbooru 언더바 표준 준수 여부 (태그 관련 변경 시)
 
+**Frontend 변경 시 추가 검토** (`docs/03_engineering/frontend/CODING_STANDARDS.md`):
+- `??` vs `||`: 숫자/boolean 필드에 `||` 기본값 사용 여부
+- 반환 타입: payload 함수가 `Record<string, unknown>` 대신 명시적 `interface` 반환 여부
+- 이중 assertion: `as unknown as T` 패턴 존재 여부
+- 에러 처리: `catch` 블록에 `getErrorMsg()` 또는 `console.error()` 존재 여부
+- Store 접근: `getState()` 함수 시작부 1회 호출 여부
+- 비즈니스 로직 중복: 동일 로직이 두 경로에 각자 구현되어 있지 않은지
+
 ### Step 5: 테스트 커버리지
 
 변경된 코드에 대한 테스트가 존재하는지 확인하세요:
@@ -112,7 +120,8 @@ CLAUDE.md 기준에 따라 변경된 파일을 검증하세요:
 ```
 
 ## 관련 파일
-- `CLAUDE.md` - 코드 가이드라인 (SSOT)
+- `CLAUDE.md` - 아키텍처/도메인 규칙 (SSOT)
+- `docs/03_engineering/frontend/CODING_STANDARDS.md` - Frontend 코딩 표준 (TypeScript)
 - `docs/03_engineering/testing/TEST_STRATEGY.md` - 테스트 전략
 - `backend/pyproject.toml` - Ruff 설정
 - `frontend/eslint.config.mjs` - ESLint 설정
