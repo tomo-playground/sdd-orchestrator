@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from config import logger
 from schemas import TopicAnalyzeResponse
+
+if TYPE_CHECKING:
+    from schemas import AvailableOptions
 
 
 async def analyze_topic(

@@ -296,9 +296,6 @@ def calculate_optimal_font_size(
     """
     char_count = len(text.strip())
 
-    # Clamp base size to min/max range first
-    clamped_base = max(min_font_size, min(base_font_size, max_font_size))
-
     if char_count < 20:
         return max_font_size  # Short text: large font
     elif char_count > 60:

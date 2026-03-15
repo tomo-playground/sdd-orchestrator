@@ -74,10 +74,10 @@ def _validate_url_host(hostname: str) -> None:
     # Resolve hostname to IP and check against private ranges
     try:
         addr_infos = socket.getaddrinfo(hostname, None)
-    except socket.gaierror:
-        raise ValueError(f"Cannot resolve hostname: {hostname}")
+    except socket.gaierror as err:
+        raise ValueError(f"Cannot resolve hostname: {hostname}") from err
 
-    for family, _type, _proto, _canonname, sockaddr in addr_infos:
+    for _family, _type, _proto, _canonname, sockaddr in addr_infos:
         ip = ipaddress.ip_address(sockaddr[0])
         if ip.is_loopback or ip.is_link_local or ip.is_private:
             for network in _PRIVATE_NETWORKS:

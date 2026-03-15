@@ -28,8 +28,96 @@ type SceneActionBarProps = {
   compact?: boolean;
 };
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Popover from "../ui/Popover";
+import { useStoryboardStore } from "../../store/useStoryboardStore";
+
+type BgInfo = { image_url: string | null; tags: string[]; location_key: string } | null;
+
+function BgBadge({ backgroundId, bgInfo, onClear }: { backgroundId: number; bgInfo: BgInfo; onClear: () => void }) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div className="flex cursor-default items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 py-1 pr-1.5 pl-2.5 text-[12px] text-emerald-600">
+        <span>🎬 BG#{backgroundId}</span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClear();
+          }}
+          className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-emerald-500 transition hover:bg-emerald-200 hover:text-emerald-700"
+          title="배경 매핑 해제"
+        >
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      {hovered && (
+        <div className="absolute bottom-full left-0 z-50 mb-1.5 w-56 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg">
+          {/* Thumbnail */}
+          <div className="flex h-16 w-full items-center justify-center overflow-hidden bg-zinc-100">
+            {bgInfo?.image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={bgInfo.image_url}
+                alt={`BG#${backgroundId}`}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-[11px] text-zinc-400">이미지 없음</span>
+            )}
+          </div>
+
+          {/* Meta */}
+          <div className="px-2.5 py-2">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-[12px] font-semibold text-zinc-700">BG#{backgroundId}</span>
+              {bgInfo?.location_key && (
+                <span
+                  className="ml-2 max-w-[100px] truncate text-[11px] text-zinc-400"
+                  title={bgInfo.location_key}
+                >
+                  {bgInfo.location_key}
+                </span>
+              )}
+            </div>
+            {bgInfo?.tags && bgInfo.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {bgInfo.tags.slice(0, 4).map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-500"
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {bgInfo.tags.length > 4 && (
+                  <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-400">
+                    +{bgInfo.tags.length - 4}
+                  </span>
+                )}
+              </div>
+            )}
+            {!bgInfo && <span className="text-[11px] text-zinc-400">배경 정보 로딩 전</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function SceneActionBar({
   scene,
@@ -56,6 +144,10 @@ export default function SceneActionBar({
 }: SceneActionBarProps) {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const { confirm, dialogProps } = useConfirm();
+  const stageLocations = useStoryboardStore((s) => s.stageLocations);
+  const bgInfo = scene.background_id
+    ? (stageLocations.find((loc) => loc.background_id === scene.background_id) ?? null)
+    : null;
 
   return (
     <div className={`flex items-center justify-between ${compact ? "flex-wrap gap-y-2" : ""}`}>
@@ -78,22 +170,11 @@ export default function SceneActionBar({
 
         {/* Stage background indicator */}
         {scene.background_id && !scene.isGenerating && (
-          <div
-            className="flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 pl-2.5 pr-1.5 py-1 text-[12px] text-emerald-600"
-            title="Stage 배경이 ControlNet 참조로 사용됩니다"
-          >
-            <span>🎬 BG#{scene.background_id}</span>
-            <button
-              type="button"
-              onClick={() => onUpdateScene({ background_id: null, environment_reference_id: null })}
-              className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-emerald-500 hover:bg-emerald-200 hover:text-emerald-700 transition"
-              title="배경 매핑 해제"
-            >
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+          <BgBadge
+            backgroundId={scene.background_id}
+            bgInfo={bgInfo}
+            onClear={() => onUpdateScene({ background_id: null, environment_reference_id: null })}
+          />
         )}
 
         {/* Pin toggle — only when no Stage background */}

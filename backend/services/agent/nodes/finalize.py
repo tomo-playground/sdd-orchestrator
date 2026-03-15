@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import TYPE_CHECKING
 
 from config import (
@@ -319,6 +320,74 @@ def _inject_location_negative_tags(scenes: list[dict], writer_plan: dict | None)
         existing_norms = {t.strip().lower() for t in existing_neg.split(",") if t.strip()}
         if neg_tag not in existing_norms:
             scene["negative_prompt"] = f"{existing_neg}, {neg_tag}" if existing_neg else neg_tag
+
+
+def _collect_cinematic_palette(scenes: list[dict], indices: list[int]) -> set[str]:
+    """처음 2개 씬에서 cinematic 태그 팔레트를 수집한다."""
+    palette: set[str] = set()
+    for idx in indices[:2]:
+        ctx = scenes[idx].get("context_tags") or {}
+        palette.update(ctx.get("cinematic") or [])
+    return palette
+
+
+def _pick_anchor(scenes: list[dict], indices: list[int], palette: set[str]) -> str:
+    """팔레트에서 출현 빈도가 가장 높은 태그를 anchor로 선택한다."""
+    counter: Counter[str] = Counter()
+    for idx in indices[:2]:
+        ctx = scenes[idx].get("context_tags") or {}
+        for tag in ctx.get("cinematic") or []:
+            if tag in palette:
+                counter[tag] += 1
+    # 빈도 내림차순, 동점 시 알파벳 순
+    return min(palette, key=lambda t: (-counter[t], t))
+
+
+def _stabilize_location_cinematic(scenes: list[dict], writer_plan: dict | None) -> None:
+    """같은 location 그룹 내 cinematic 태그를 안정화한다.
+
+    Location 그룹의 처음 2개 씬 cinematic을 기준 팔레트로 삼고
+    나머지 씬(마지막 씬 제외)은 팔레트 태그 최소 1개 포함을 보장한다.
+    """
+    if not writer_plan or not writer_plan.get("locations"):
+        return
+
+    locations = writer_plan["locations"]
+    loc_groups: dict[str, list[int]] = {
+        loc["name"]: loc["scenes"]
+        for loc in locations
+        if loc.get("name") and loc.get("scenes")
+    }
+
+    for loc_name, scene_indices in loc_groups.items():
+        valid = [i for i in scene_indices if i < len(scenes)]
+        if len(valid) < 3:
+            continue
+
+        palette_tags = _collect_cinematic_palette(scenes, valid)
+        if not palette_tags:
+            continue
+
+        anchor = _pick_anchor(scenes, valid, palette_tags)
+
+        stable_count = 0
+        for idx in valid[:-1]:
+            ctx = scenes[idx].get("context_tags")
+            if ctx is None:
+                scenes[idx]["context_tags"] = {}
+                ctx = scenes[idx]["context_tags"]
+            cinematic = ctx.get("cinematic") or []
+            if not any(c in palette_tags for c in cinematic):
+                ctx["cinematic"] = [anchor] + [c for c in cinematic if c != anchor][:1]
+                stable_count += 1
+
+        if stable_count:
+            logger.info(
+                "[Finalize] Location '%s': cinematic 안정화 %d씬 (팔레트=%s)",
+                loc_name,
+                stable_count,
+                sorted(palette_tags),
+            )
 
 
 def _load_char_exclusive_tags(character_id: int, db) -> dict[str, set[str]]:
@@ -914,6 +983,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         _normalize_environment_tags(scenes)
         _inject_location_map_tags(scenes, state.get("writer_plan"))
         _inject_location_negative_tags(scenes, state.get("writer_plan"))
+        _stabilize_location_cinematic(scenes, state.get("writer_plan"))
         from ._prompt_conflict_resolver import _resolve_positive_negative_conflicts
 
         _resolve_positive_negative_conflicts(scenes)

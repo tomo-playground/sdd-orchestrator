@@ -15,7 +15,7 @@ from database import get_db_session
 from schemas import StoryboardRequest
 from services.agent.llm_models import WriterPlanOutput
 from services.agent.observability import trace_llm_call
-from services.agent.state import ScriptState, WriterPlan, extract_selected_concept
+from services.agent.state import ScriptState, WriterPlan, build_director_context, extract_selected_concept
 from services.script.gemini_generator import generate_script
 
 _BRIEF_FIELD_LABELS = {
@@ -90,16 +90,6 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
         return None
 
     try:
-        # 12-B-1: Director Plan 컨텍스트
-        director_plan = state.get("director_plan")
-        director_plan_context = None
-        if director_plan:
-            director_plan_context = (
-                f"크리에이티브 목표: {director_plan.get('creative_goal', '')}\n"
-                f"타겟 감정: {director_plan.get('target_emotion', '')}\n"
-                f"품질 기준: {', '.join(director_plan.get('quality_criteria', []))}"
-            )
-
         tmpl = template_env.get_template("creative/writer_planning.j2")
         prompt = tmpl.render(
             topic=state.get("topic", ""),
@@ -108,7 +98,7 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
             language=state.get("language", "Korean"),
             structure=state.get("structure", "Monologue"),
             selected_concept=selected_concept,
-            director_plan_context=director_plan_context,
+            director_plan_context=build_director_context(state),
         )
 
         from google.genai import types
@@ -140,7 +130,11 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
             "emotional_arc": parsed.emotional_arc,
             "scene_distribution": parsed.scene_distribution,
         }
-        if parsed.locations:
+        # location_planner 노드가 선행 실행한 경우 기존 locations 재사용 (생성 스킵)
+        existing_locs = (state.get("writer_plan") or {}).get("locations")
+        if existing_locs:
+            plan["locations"] = existing_locs
+        elif parsed.locations:
             plan["locations"] = [loc.model_dump() for loc in parsed.locations]
 
         logger.info(
@@ -184,13 +178,9 @@ async def writer_node(state: ScriptState) -> dict:
             pipeline_ctx["research_brief"] = research_brief
 
     # 12-B-1: Director Plan 컨텍스트 주입
-    director_plan = state.get("director_plan")
-    if director_plan:
-        pipeline_ctx["director_plan_context"] = (
-            f"크리에이티브 목표: {director_plan.get('creative_goal', '')}\n"
-            f"타겟 감정: {director_plan.get('target_emotion', '')}\n"
-            f"품질 기준: {', '.join(director_plan.get('quality_criteria', []))}"
-        )
+    director_ctx = build_director_context(state)
+    if director_ctx:
+        pipeline_ctx["director_plan_context"] = director_ctx
 
     if plan:
         plan_text = (
@@ -291,10 +281,12 @@ async def writer_node(state: ScriptState) -> dict:
             len(scenes),
             "생성" if plan else "건너뜀",
         )
+        # plan이 None이면 location_planner가 선행 설정한 writer_plan을 보존
+        final_plan = plan if plan is not None else state.get("writer_plan")
         return {
             "draft_scenes": scenes,
             "draft_character_id": result.get("character_id"),
             "draft_character_b_id": result.get("character_b_id"),
             "scene_reasoning": scene_reasoning or None,
-            "writer_plan": plan,
+            "writer_plan": final_plan,
         }

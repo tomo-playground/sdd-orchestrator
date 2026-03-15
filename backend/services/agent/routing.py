@@ -241,9 +241,17 @@ def route_after_director_plan_gate(state: ScriptState) -> str:
 
 
 def route_after_concept_gate(state: ScriptState) -> str:
-    """Concept Gate 이후: regenerate → critic (재생성), 그 외 → writer."""
+    """Concept Gate 이후: regenerate → critic (재생성), 그 외 → location_planner."""
     if state.get("concept_action") == "regenerate":
         return "critic"
+    return "location_planner"
+
+
+def route_after_location_planner(state: ScriptState) -> str:
+    """Location Planner 이후: 에러 → finalize (short-circuit), 정상 → writer."""
+    if _has_error(state):
+        logger.warning("[LangGraph] location_planner 에러, finalize로 short-circuit")
+        return "finalize"
     return "writer"
 
 

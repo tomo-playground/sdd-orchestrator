@@ -481,6 +481,7 @@ def list_reference_images(db: Session | None = None) -> list[dict[str, str | int
             "character_key": char.name,
             "character_id": char.id,
             "filename": os.path.basename(char.reference_image_url) if char.reference_image_url else "",
+            "image_url": char.reference_image_url,
         }
         for char in chars
     ]

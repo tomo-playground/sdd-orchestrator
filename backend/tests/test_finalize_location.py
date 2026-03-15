@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
-from services.agent.nodes.finalize import _inject_location_map_tags, _inject_location_negative_tags
+from services.agent.nodes.finalize import (
+    _collect_cinematic_palette,
+    _inject_location_map_tags,
+    _inject_location_negative_tags,
+    _pick_anchor,
+    _stabilize_location_cinematic,
+)
 
 
 class TestInjectLocationMapTags:
@@ -121,3 +127,178 @@ class TestInjectLocationNegativeTags:
         assert "outdoors" not in scenes[0]["image_prompt"]
         assert "1girl" in scenes[0]["image_prompt"]
         assert "park" in scenes[0]["image_prompt"]
+
+
+class TestStabilizeLocationCinematic:
+    """_stabilize_location_cinematic 테스트."""
+
+    def _make_scene(self, cinematic=None):
+        return {
+            "context_tags": {"cinematic": cinematic or []},
+            "image_prompt": "",
+            "negative_prompt": "",
+        }
+
+    def test_basic_stabilization(self):
+        """4개 씬: 팔레트와 다른 cinematic을 가진 중간 씬이 안정화된다.
+
+        valid = [0, 1, 2, 3]
+        팔레트 = 씬0+씬1 cinematic = {"soft_lighting"}
+        valid[:-1] = [0, 1, 2] 순회 → 씬2가 팔레트 미포함이므로 안정화됨.
+        씬3(마지막)은 순회 제외.
+        """
+        scenes = [
+            self._make_scene(["soft_lighting"]),  # 0: 팔레트 기준
+            self._make_scene(["soft_lighting"]),  # 1: 팔레트 기준
+            self._make_scene(["high_contrast"]),  # 2: 팔레트 미포함 → 안정화 대상
+            self._make_scene(["high_contrast"]),  # 3: 마지막 씬 → 제외
+        ]
+        writer_plan = {
+            "locations": [
+                {"name": "회의실", "scenes": [0, 1, 2, 3], "tags": ["indoors"]},
+            ]
+        }
+        _stabilize_location_cinematic(scenes, writer_plan)
+
+        # 씬2: 팔레트 태그("soft_lighting")가 cinematic 앞에 추가됨
+        cinematic_2 = scenes[2]["context_tags"]["cinematic"]
+        assert "soft_lighting" in cinematic_2
+        assert cinematic_2[0] == "soft_lighting"
+
+        # 씬3(마지막): 팔레트와 달라도 수정 안 됨
+        cinematic_3 = scenes[3]["context_tags"]["cinematic"]
+        assert cinematic_3 == ["high_contrast"]
+
+    def test_fewer_than_3_scenes_skip(self):
+        """location에 씬이 2개만 있으면 안정화를 skip한다."""
+        scenes = [
+            self._make_scene(["soft_lighting"]),  # 0
+            self._make_scene(["high_contrast"]),  # 1
+        ]
+        writer_plan = {
+            "locations": [
+                {"name": "카페", "scenes": [0, 1], "tags": ["indoors"]},
+            ]
+        }
+        original_0 = list(scenes[0]["context_tags"]["cinematic"])
+        original_1 = list(scenes[1]["context_tags"]["cinematic"])
+
+        _stabilize_location_cinematic(scenes, writer_plan)
+
+        # 2개 씬이므로 변경 없음
+        assert scenes[0]["context_tags"]["cinematic"] == original_0
+        assert scenes[1]["context_tags"]["cinematic"] == original_1
+
+    def test_no_palette_tags_skip(self):
+        """처음 2개 씬에 cinematic 태그가 없으면 팔레트 미구성 → skip한다."""
+        scenes = [
+            self._make_scene([]),           # 0: cinematic 없음
+            self._make_scene([]),           # 1: cinematic 없음
+            self._make_scene(["high_contrast"]),  # 2
+        ]
+        writer_plan = {
+            "locations": [
+                {"name": "공원", "scenes": [0, 1, 2], "tags": ["outdoors"]},
+            ]
+        }
+        original = list(scenes[2]["context_tags"]["cinematic"])
+        _stabilize_location_cinematic(scenes, writer_plan)
+
+        # 팔레트가 비어있으므로 씬2 변경 없음
+        assert scenes[2]["context_tags"]["cinematic"] == original
+
+    def test_no_writer_plan_returns_immediately(self):
+        """writer_plan=None이면 즉시 return, 씬 변경 없음."""
+        scenes = [
+            self._make_scene(["soft_lighting"]),
+            self._make_scene(["soft_lighting"]),
+            self._make_scene(["high_contrast"]),
+        ]
+        original = [list(s["context_tags"]["cinematic"]) for s in scenes]
+
+        _stabilize_location_cinematic(scenes, None)
+
+        for i, scene in enumerate(scenes):
+            assert scene["context_tags"]["cinematic"] == original[i]
+
+    def test_last_scene_excluded_from_stabilization(self):
+        """마지막 씬은 팔레트에 없는 cinematic이어도 수정하지 않는다 (감정 절정 보존)."""
+        scenes = [
+            self._make_scene(["soft_lighting"]),  # 0: 팔레트 기준
+            self._make_scene(["soft_lighting"]),  # 1: 팔레트 기준
+            self._make_scene(["soft_lighting"]),  # 2: 팔레트 포함 → 변경 없음
+            self._make_scene(["dramatic"]),       # 3: 마지막 → 제외
+        ]
+        writer_plan = {
+            "locations": [
+                {"name": "옥상", "scenes": [0, 1, 2, 3], "tags": ["outdoors"]},
+            ]
+        }
+        _stabilize_location_cinematic(scenes, writer_plan)
+
+        # 씬3(마지막)은 팔레트와 달라도 "dramatic" 유지
+        assert scenes[3]["context_tags"]["cinematic"] == ["dramatic"]
+
+
+class TestCollectCinematicPalette:
+    """_collect_cinematic_palette 테스트."""
+
+    def test_collects_from_first_two_scenes(self):
+        scenes = [
+            {"context_tags": {"cinematic": ["soft_lighting", "warm_tones"]}},
+            {"context_tags": {"cinematic": ["golden_hour"]}},
+            {"context_tags": {"cinematic": ["high_contrast"]}},
+        ]
+        result = _collect_cinematic_palette(scenes, [0, 1, 2])
+        assert result == {"soft_lighting", "warm_tones", "golden_hour"}
+        assert "high_contrast" not in result
+
+    def test_returns_empty_for_no_cinematic_tags(self):
+        scenes = [
+            {"context_tags": {}},
+            {"context_tags": {"cinematic": []}},
+        ]
+        result = _collect_cinematic_palette(scenes, [0, 1])
+        assert result == set()
+
+    def test_handles_none_context_tags(self):
+        scenes = [
+            {"context_tags": None},
+            {"context_tags": {"cinematic": ["soft_lighting"]}},
+        ]
+        result = _collect_cinematic_palette(scenes, [0, 1])
+        assert result == {"soft_lighting"}
+
+
+class TestPickAnchor:
+    """_pick_anchor 테스트."""
+
+    def test_picks_most_frequent_tag(self):
+        """처음 2개 씬에서 가장 자주 등장하는 태그를 anchor로 선택"""
+        scenes = [
+            {"context_tags": {"cinematic": ["soft_lighting", "warm_tones"]}},
+            {"context_tags": {"cinematic": ["soft_lighting", "golden_hour"]}},
+        ]
+        palette = {"soft_lighting", "warm_tones", "golden_hour"}
+        anchor = _pick_anchor(scenes, [0, 1], palette)
+        assert anchor == "soft_lighting"  # 2회 등장
+
+    def test_tiebreak_uses_alphabetical_order(self):
+        """동점 시 알파벳 순서 첫 번째 태그 선택"""
+        scenes = [
+            {"context_tags": {"cinematic": ["golden_hour"]}},
+            {"context_tags": {"cinematic": ["soft_lighting"]}},
+        ]
+        palette = {"golden_hour", "soft_lighting"}
+        anchor = _pick_anchor(scenes, [0, 1], palette)
+        assert anchor == "golden_hour"  # g < s
+
+    def test_returns_first_of_palette_if_no_matches(self):
+        """씬에 palette 태그가 없으면 sorted(palette)[0] 반환"""
+        scenes = [
+            {"context_tags": {"cinematic": ["unrelated_tag"]}},
+            {"context_tags": {"cinematic": []}},
+        ]
+        palette = {"soft_lighting", "warm_tones"}
+        anchor = _pick_anchor(scenes, [0, 1], palette)
+        assert anchor == sorted(palette)[0]

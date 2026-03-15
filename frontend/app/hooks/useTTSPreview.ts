@@ -56,6 +56,7 @@ export function useTTSPreview(storyboardId: number | null) {
           speaker: scene.speaker || "Narrator",
           storyboard_id: storyboardId,
           voice_design_prompt: scene.voice_design_prompt || null,
+          scene_emotion: scene.context_tags?.emotion ?? undefined,
           language: "korean",
         });
 
@@ -147,6 +148,7 @@ export function useTTSPreview(storyboardId: number | null) {
           speaker: scene.speaker || "Narrator",
           storyboard_id: storyboardId,
           voice_design_prompt: scene.voice_design_prompt || null,
+          scene_emotion: scene.context_tags?.emotion ?? undefined,
           language: "korean",
           force_regenerate: true,
         });

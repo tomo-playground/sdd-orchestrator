@@ -131,6 +131,7 @@ export function usePublishRender() {
             speaker: s.speaker,
             duration: s.duration,
             order: i, // L-1: scene order
+            scene_db_id: s.id || undefined, // voice_design write-back용
             image_prompt: s.image_prompt ?? undefined, // M-1
             voice_design_prompt: s.voice_design_prompt ?? undefined,
             head_padding: s.head_padding ?? undefined,

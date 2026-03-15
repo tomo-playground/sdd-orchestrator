@@ -305,6 +305,7 @@ export type ReferenceImage = {
   character_key: string;
   character_id?: number;
   filename: string;
+  image_url?: string | null;
   preset?: { weight: number; model: string; description?: string };
 };
 

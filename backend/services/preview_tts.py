@@ -8,7 +8,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import io
-import random
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
@@ -83,25 +82,29 @@ async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
         if preset_seed is not None:
             voice_seed = preset_seed
 
-    # Apply scene emotion
-    if req.scene_emotion and req.scene_emotion.strip():
-        voice_design = f"{voice_design}, {req.scene_emotion}" if voice_design else req.scene_emotion
+    if voice_seed is None:
+        voice_seed = TTS_DEFAULT_SEED
+
+    # Build cache key BEFORE emotion/translate mutation — must match render pipeline:
+    # scene_processing.py passes (voice_design_prompt_raw, scene_emotion) as separate args.
+    scene_emotion = req.scene_emotion or ""
+    cache_key = tts_cache_key(
+        cleaned, voice_preset_id, voice_design, req.language, scene_emotion, speaker=req.speaker
+    )
+    cache_path = TTS_CACHE_DIR / f"{cache_key}.wav"
+
+    # Apply scene emotion and translate AFTER cache key is built
+    if scene_emotion.strip():
+        voice_design = f"{voice_design}, {scene_emotion}" if voice_design else scene_emotion
 
     if voice_design:
         voice_design = translate_voice_prompt(voice_design)
 
-    if voice_seed is None:
-        voice_seed = TTS_DEFAULT_SEED
-
-    # Build cache key (identical to render pipeline)
-    cache_key = tts_cache_key(cleaned, voice_preset_id, voice_design, req.language, speaker=req.speaker)
-    cache_path = TTS_CACHE_DIR / f"{cache_key}.wav"
-
-    # Force regenerate: delete existing cache + randomise seed
+    # Force regenerate: 캐시 삭제 후 동일 시드로 재생성
+    # 시드를 바꾸면 목소리 정체성이 완전히 달라지므로 preset 시드 그대로 유지
     if req.force_regenerate:
         if cache_path.exists():
             cache_path.unlink()
-        voice_seed = random.randint(0, 2**31 - 1)
         logger.info("[Preview] TTS force regenerate seed=%d, cache_key=%s", voice_seed, cache_key)
 
     # Check cache

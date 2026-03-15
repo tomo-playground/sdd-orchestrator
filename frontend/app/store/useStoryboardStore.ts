@@ -8,6 +8,7 @@ import type {
   ImageValidation,
   ImageGenProgress,
   StageStatus,
+  StageLocationStatus,
 } from "../types";
 import type { GenerationDefaults } from "../hooks/usePresets";
 import { DEFAULT_STRUCTURE } from "../constants";
@@ -82,6 +83,7 @@ export interface StoryboardStore {
 
   // Stage workflow
   stageStatus: StageStatus;
+  stageLocations: StageLocationStatus[];
 
   // Optimistic locking
   storyboardVersion: number | null;
@@ -162,6 +164,7 @@ const initialState: Omit<
   validationExpanded: {},
   imageGenProgress: {},
   stageStatus: "pending" as StageStatus,
+  stageLocations: [],
   storyboardVersion: null,
   castingRecommendation: null,
   isScriptGenerating: false,
@@ -210,6 +213,7 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "selectedCharacterBId",
   "selectedCharacterName",
   "selectedCharacterBName",
+  "stageLocations",
 ];
 
 export const useStoryboardStore = create<StoryboardStore>()(

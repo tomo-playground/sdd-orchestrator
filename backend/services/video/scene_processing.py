@@ -406,8 +406,20 @@ async def generate_tts(
                 resolved_preset_id,
             )
 
+        was_from_db = bool(getattr(scene_req, "voice_design_prompt", None))
+        scene_db_id_for_wb = getattr(scene_req, "scene_db_id", None)
+        logger.info(
+            "Scene %d: was_from_db=%s, scene_db_id=%s, vdp=%s",
+            i, was_from_db, scene_db_id_for_wb,
+            repr(getattr(scene_req, "voice_design_prompt", None)),
+        )
         voice_design = _get_voice_design_for_scene(builder, scene_req, preset_voice_design, clean_script, i)
         voice_design = translate_voice_prompt(voice_design or "")
+
+        # Priority 1에서 Gemini가 새로 생성한 voice design을 DB에 write-back
+        # → 이후 렌더에서 Priority 0으로 재사용되어 일관된 음성 보장
+        if not was_from_db and voice_design:
+            _persist_voice_design(i, scene_db_id_for_wb, voice_design)
 
         # Seed: preset seed > preset base prompt hash > fixed default
         # Never use per-scene voice_design for seed — it breaks voice consistency across scenes
@@ -507,6 +519,28 @@ async def generate_tts(
         return False, 0.0
 
 
+def _persist_voice_design(scene_idx: int, scene_db_id: int | None, voice_design: str) -> None:
+    """Gemini 생성 voice design을 DB에 write-back (non-fatal).
+
+    이후 렌더에서 Priority 0으로 재사용되어 일관된 음성을 보장한다.
+    scene_db_id가 없으면 no-op.
+    """
+    if not scene_db_id:
+        return
+    try:
+        from database import get_db_session  # noqa: PLC0415
+        from models import Scene as SceneModel  # noqa: PLC0415
+
+        with get_db_session() as _db:
+            _db.query(SceneModel).filter(SceneModel.id == scene_db_id).update(
+                {"voice_design_prompt": voice_design}
+            )
+            _db.commit()
+        logger.info("Scene %d (db_id=%d): voice_design_prompt write-back 완료", scene_idx, scene_db_id)
+    except Exception as _e:
+        logger.warning("Scene %d: voice_design_prompt write-back 실패 (non-fatal): %s", scene_idx, _e)
+
+
 def _get_voice_design_for_scene(
     builder: VideoBuilder,
     scene_req: VideoScene,
@@ -517,17 +551,29 @@ def _get_voice_design_for_scene(
     """Resolve the voice design prompt following the priority logic.
 
     Priority:
-    1. preset base + scene_emotion  (preset exists → character identity preserved)
+    0. scene.voice_design_prompt   (pipeline-generated — TTS Designer → Finalize → DB)
+    1. preset base + scene_emotion (no pipeline result → Gemini adapts on first render)
     2. scene/global voice_design_prompt  (no preset → use explicit prompt as-is)
     3. Gemini context-aware generation  (no preset, no explicit prompt)
 
-    When a preset exists, per-scene voice_design_prompt is ignored to prevent
-    Agentic Pipeline emotion prompts from overriding the character's voice identity.
+    Priority 0 reuses the TTS Designer's result stored in DB to avoid non-deterministic
+    Gemini re-calls on every render. This ensures consistent voice across re-renders.
     """
     from config import DEFAULT_SPEAKER
 
     speaker = getattr(scene_req, "speaker", DEFAULT_SPEAKER)
     scene_emotion = getattr(scene_req, "scene_emotion", None)
+
+    # 0. Pipeline-generated prompt already in DB (TTS Designer → Finalize → scene.voice_design_prompt)
+    # Reuse as-is — avoids non-deterministic Gemini re-call on every render.
+    scene_vdp = getattr(scene_req, "voice_design_prompt", None)
+    if scene_vdp:
+        logger.info(
+            "Scene %d: Voice design (Speaker=%s): reusing pipeline-generated prompt",
+            scene_idx,
+            speaker,
+        )
+        return scene_vdp
 
     # 1. Preset exists → Gemini modifies base with scene context (seed stays preset-based)
     if preset_voice_design:

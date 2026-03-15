@@ -1,8 +1,8 @@
-"""Script Generation Graph — 19노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
+"""Script Generation Graph — 20노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
 
 Quick:   START → writer → review → [passed→finalize / failed→revise] → learn → END
 Full:    START → director_plan → director_plan_gate → inventory_resolve → research → [critic / research(재실행)] →
-         concept_gate → writer → review →
+         concept_gate → location_planner → writer → review →
          [passed→director_checkpoint / failed→revise] →
          [proceed→cinematographer / revise→writer (재생성)] →
          ┌→ tts_designer ────┐
@@ -31,6 +31,7 @@ from services.agent.nodes.explain import explain_node
 from services.agent.nodes.finalize import finalize_node
 from services.agent.nodes.human_gate import human_gate_node
 from services.agent.nodes.learn import learn_node
+from services.agent.nodes.location_planner import location_planner_node
 from services.agent.nodes.research import research_node
 from services.agent.nodes.review import review_node
 from services.agent.nodes.revise import revise_node
@@ -46,6 +47,7 @@ from services.agent.routing import (
     route_after_finalize,
     route_after_human_gate,
     route_after_inventory_resolve,
+    route_after_location_planner,
     route_after_research,
     route_after_review,
     route_after_revise,
@@ -56,18 +58,19 @@ from services.agent.state import ScriptState
 
 
 def build_script_graph() -> StateGraph:
-    """19노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
+    """20노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
     from services.agent.nodes.inventory_resolve import inventory_resolve_node  # noqa: PLC0415
 
     graph = StateGraph(ScriptState)
 
-    # 노드 등록 (19개)
+    # 노드 등록 (20개)
     graph.add_node("director_plan", director_plan_node)
     graph.add_node("director_plan_gate", director_plan_gate_node)
     graph.add_node("inventory_resolve", inventory_resolve_node)
     graph.add_node("research", research_node)
     graph.add_node("critic", critic_node)
     graph.add_node("concept_gate", concept_gate_node)
+    graph.add_node("location_planner", location_planner_node)
     graph.add_node("writer", writer_node)
     graph.add_node("review", review_node)
     graph.add_node("revise", revise_node)
@@ -97,7 +100,8 @@ def build_script_graph() -> StateGraph:
     graph.add_conditional_edges("inventory_resolve", route_after_inventory_resolve, ["research", "writer"])
     graph.add_conditional_edges("research", route_after_research, ["critic", "research", "finalize"])
     graph.add_edge("critic", "concept_gate")
-    graph.add_conditional_edges("concept_gate", route_after_concept_gate, ["writer", "critic"])
+    graph.add_conditional_edges("concept_gate", route_after_concept_gate, ["location_planner", "critic"])
+    graph.add_conditional_edges("location_planner", route_after_location_planner, ["writer", "finalize"])
 
     # writer → review | finalize (에러 short-circuit)
     graph.add_conditional_edges("writer", route_after_writer, ["review", "finalize"])

@@ -203,6 +203,18 @@ class ScriptState(TypedDict, total=False):
     error: str | None
 
 
+def build_director_context(state: ScriptState) -> str | None:
+    """Director Plan 컨텍스트 문자열을 생성한다. director_plan 없으면 None."""
+    director_plan = state.get("director_plan")
+    if not director_plan:
+        return None
+    return (
+        f"크리에이티브 목표: {director_plan.get('creative_goal', '')}\n"
+        f"타겟 감정: {director_plan.get('target_emotion', '')}\n"
+        f"품질 기준: {', '.join(director_plan.get('quality_criteria', []))}"
+    )
+
+
 def extract_selected_concept(state: ScriptState) -> dict | None:
     """critic_result에서 selected_concept를 추출한다. 없으면 None."""
     critic_result = state.get("critic_result")

@@ -528,6 +528,8 @@ class VideoScene(BaseModel):
     image_prompt_ko: str | None = None
     # Linked TTS preview asset (skip TTS generation if valid)
     tts_asset_id: int | None = None
+    # DB scene ID — used to persist resolved voice_design_prompt on first render
+    scene_db_id: int | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -2329,6 +2331,7 @@ class ReferenceItem(BaseModel):
     character_id: int | None = None
     filename: str | None = None
     image_b64: str | None = None
+    image_url: str | None = None  # Response-only: derived from character.reference_image_url
     preset: ReferencePreset | None = None
 
 

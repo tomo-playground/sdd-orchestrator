@@ -257,5 +257,109 @@ class TestVoiceConsistencyMode(unittest.TestCase):
         mock_gemini.assert_not_called()
 
 
+class TestVoiceDesignPriority0(unittest.TestCase):
+    """Priority 0: scene.voice_design_prompt (DB 저장값) 재사용 — Gemini 재호출 없이 일관성 보장."""
+
+    _GEMINI_PATCH = "services.video.scene_processing.generate_context_aware_voice_prompt"
+
+    def setUp(self):
+        from services.video.scene_processing import _get_voice_design_for_scene
+
+        self._get = _get_voice_design_for_scene
+
+    def _scene(self, voice_design_prompt: str | None = None, scene_emotion: str | None = None) -> MagicMock:
+        s = MagicMock()
+        s.voice_design_prompt = voice_design_prompt
+        s.scene_emotion = scene_emotion
+        s.speaker = "A"
+        s.image_prompt_ko = None
+        s.image_prompt = None
+        return s
+
+    def _builder(self) -> MagicMock:
+        b = MagicMock()
+        b.request.voice_design_prompt = ""
+        return b
+
+    @patch("services.video.scene_processing.TTS_VOICE_CONSISTENCY_MODE", False)
+    @patch(_GEMINI_PATCH)
+    def test_priority0_reuses_db_prompt_skips_gemini(self, mock_gemini):
+        """DB에 voice_design_prompt가 있으면 Gemini 재호출 없이 그대로 반환."""
+        scene = self._scene(voice_design_prompt="DB saved: A warm girl voice, excited")
+        result = self._get(self._builder(), scene, "preset base voice", "스크립트", 0)
+        mock_gemini.assert_not_called()
+        self.assertEqual(result, "DB saved: A warm girl voice, excited")
+
+    @patch("services.video.scene_processing.TTS_VOICE_CONSISTENCY_MODE", False)
+    @patch(_GEMINI_PATCH)
+    def test_priority0_takes_precedence_over_preset(self, mock_gemini):
+        """Priority 0이 preset(Priority 1)보다 우선: DB 값이 있으면 preset Gemini 어댑션 스킵."""
+        scene = self._scene(voice_design_prompt="pipeline generated voice design")
+        result = self._get(self._builder(), scene, "preset base", "스크립트", 0)
+        mock_gemini.assert_not_called()
+        self.assertEqual(result, "pipeline generated voice design")
+
+    @patch("services.video.scene_processing.TTS_VOICE_CONSISTENCY_MODE", False)
+    @patch(_GEMINI_PATCH, return_value="Gemini adapted voice")
+    def test_priority0_skipped_when_none(self, mock_gemini):
+        """voice_design_prompt=None이면 Priority 0 스킵 → Priority 1(Gemini) 진행."""
+        scene = self._scene(voice_design_prompt=None, scene_emotion="hopeful")
+        result = self._get(self._builder(), scene, "preset base voice", "스크립트", 0)
+        mock_gemini.assert_called_once()
+        self.assertEqual(result, "Gemini adapted voice")
+
+    @patch("services.video.scene_processing.TTS_VOICE_CONSISTENCY_MODE", False)
+    @patch(_GEMINI_PATCH)
+    def test_multiple_renders_same_result_with_db_value(self, mock_gemini):
+        """동일한 DB 저장값으로 3번 렌더해도 결과 동일 — 재현성 보장."""
+        saved_design = "A teenage girl voice, speaking with restrained sadness"
+        results = []
+        for i in range(3):
+            scene = self._scene(voice_design_prompt=saved_design, scene_emotion="sad")
+            result = self._get(self._builder(), scene, "preset base", f"스크립트 {i}", i)
+            results.append(result)
+        mock_gemini.assert_not_called()
+        self.assertTrue(all(r == saved_design for r in results))
+
+
+class TestPersistVoiceDesign(unittest.TestCase):
+    """_persist_voice_design: DB write-back 함수 단위 테스트."""
+
+    _DB_SESSION_PATCH = "database.get_db_session"
+
+    def setUp(self):
+        from services.video.scene_processing import _persist_voice_design
+
+        self._persist = _persist_voice_design
+
+    @patch("database.get_db_session")
+    def test_no_op_when_scene_db_id_none(self, mock_db_ctx):
+        """scene_db_id=None이면 DB 호출 없이 즉시 반환."""
+        self._persist(0, None, "some voice design")
+        mock_db_ctx.assert_not_called()
+
+    @patch("database.get_db_session")
+    def test_updates_voice_design_when_scene_db_id_set(self, mock_db_ctx):
+        """scene_db_id 있으면 DB update 호출."""
+        mock_db = MagicMock()
+        mock_db_ctx.return_value.__enter__ = MagicMock(return_value=mock_db)
+        mock_db_ctx.return_value.__exit__ = MagicMock(return_value=False)
+
+        self._persist(2, 42, "A warm girl voice, excited")
+
+        mock_db_ctx.assert_called_once()
+        mock_db.query.assert_called_once()
+        mock_db.commit.assert_called_once()
+
+    @patch("database.get_db_session", side_effect=Exception("DB error"))
+    def test_non_fatal_on_db_error(self, _mock_db_ctx):
+        """DB 오류 시 예외 전파 없이 로그만 기록 (non-fatal)."""
+        # 예외가 발생하지 않아야 함
+        try:
+            self._persist(0, 42, "voice design")
+        except Exception as e:  # noqa: BLE001
+            self.fail(f"_persist_voice_design should not raise: {e}")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -167,7 +167,7 @@ class PromptBuilder:
 
         # Map results back: key by normalized (may include weight) AND bare form
         result: dict[str, dict] = {}
-        for norm, bare in zip(normalized_names, bare_names):
+        for norm, bare in zip(normalized_names, bare_names, strict=False):
             if bare in bare_result:
                 result[norm] = bare_result[bare]
                 if norm != bare:
@@ -567,7 +567,7 @@ class PromptBuilder:
                 normalized = [bt.lower().replace(" ", "_").strip() for bt in custom_tags]
                 tag_info_map = self.get_tag_info(normalized)
 
-                for bt, norm in zip(custom_tags, normalized):
+                for bt, norm in zip(custom_tags, normalized, strict=False):
                     if norm in seen_names:
                         continue  # 동일 태그 → skip
                     info = tag_info_map.get(norm, {})
@@ -770,7 +770,7 @@ class PromptBuilder:
 
         # Scene-triggered LoRAs (+ 트리거 워드 주입)
         # style LoRA는 StyleProfile SSOT에 속한 것만 허용 (다른 화풍 혼입 방지)
-        style_lora_names = {l.get("name") for l in (style_loras or []) if l.get("name")}
+        style_lora_names = {lo.get("name") for lo in (style_loras or []) if lo.get("name")}
         for tag in scene_tags:
             lora_name = LoRATriggerCache.get_lora_name(tag)
             if lora_name and lora_name not in active_loras:
@@ -1272,11 +1272,11 @@ class PromptBuilder:
         char_resolved = self._resolve_aliases_positional([ct["name"] for ct in char_tags_data])
         # Filter out dropped char tags and update names
         char_tags_data = [
-            {**ct, "name": resolved} for ct, resolved in zip(char_tags_data, char_resolved) if resolved is not None
+            {**ct, "name": resolved} for ct, resolved in zip(char_tags_data, char_resolved, strict=False) if resolved is not None
         ]
 
         # 3-1. Resolve aliases on ref tags
-        ref_tags = [t for t in self._resolve_aliases(ref_tags)]
+        ref_tags = list(self._resolve_aliases(ref_tags))
         resolved_set = {n.lower().replace(" ", "_").strip() for n in ([ct["name"] for ct in char_tags_data] + ref_tags)}
 
         # 4. Get tag info for reference tags

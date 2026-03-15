@@ -37,6 +37,7 @@ export default function StageLocationsSection({ storyboardId, onStatusChange }: 
         { timeout: API_TIMEOUT.DEFAULT }
       );
       setLocations(res.data.locations);
+      useStoryboardStore.getState().set({ stageLocations: res.data.locations });
       setStageStatus(res.data.stage_status);
       setTotal(res.data.total);
       setReady(res.data.ready);
@@ -119,9 +120,13 @@ export default function StageLocationsSection({ storyboardId, onStatusChange }: 
       setIsGenerating(true);
       useStoryboardStore.getState().set({ stageStatus: "staging" });
       try {
-        await axios.post(`${API_BASE}/storyboards/${storyboardId}/stage/generate-backgrounds`, null, {
-          timeout: API_TIMEOUT.STAGE_GENERATE,
-        });
+        await axios.post(
+          `${API_BASE}/storyboards/${storyboardId}/stage/generate-backgrounds`,
+          null,
+          {
+            timeout: API_TIMEOUT.STAGE_GENERATE,
+          }
+        );
         showToast("배경 생성 완료", "success");
         await fetchStatus();
       } catch (error) {
