@@ -45,7 +45,11 @@
 
 ### 진행 중
 
-- **Phase 32**: Auto Run Pipeline Hardening — 16/17 완료 (잔여: B-3 SCENE_TRANSIENT_FIELDS 정합성 명시) ([명세](FEATURES/AUTO_RUN_PIPELINE_HARDENING.md))
+- **Phase 32**: Auto Run Pipeline Hardening — **17/17 완료** ([명세](FEATURES/AUTO_RUN_PIPELINE_HARDENING.md))
+
+### 다음
+
+- **Phase 33**: Hybrid Match Rate (WD14 + Gemini Vision) — WD14 하드코딩 제거, group_name 기반 태그 라우팅, Gemini Vision으로 비시각적 태그 평가 ([명세](FEATURES/HYBRID_MATCH_RATE.md))
 
 ### 최근 작업
 
@@ -117,7 +121,7 @@
 ### Sprint B: TTS 단계 추가 및 Asset 보호 (P0)
 - [x] B-1: `AUTO_RUN_STEPS`에 "tts" 단계 추가 + TTS prebuild API 구현 (Backend) + `checkTtsStep` 추가
 - [x] B-2: render 완료 후 사용된 tts_asset `is_temp=False` promote — GC 손실 방지 (`scene_processing.py`)
-- [ ] B-3: `SCENE_TRANSIENT_FIELDS`와 `tts_asset_id` 의미론적 정합성 명시
+- [x] B-3: `SCENE_TRANSIENT_FIELDS`와 `tts_asset_id` 의미론적 정합성 명시
 
 ### Sprint C: Preflight 정확성 개선 (P0)
 - [x] C-1: `checkBgm()`에 `bgmMode` 파라미터 추가 — bgmMode="auto" 시 BGM 경고 제거

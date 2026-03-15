@@ -184,13 +184,18 @@ if (typeof window !== "undefined") {
  * Scene fields that are transient (UI-only) and should NOT trigger isDirty / autoSave.
  * e.g. isGenerating is purely visual state — persisting it would cause race conditions
  * where autoSave sends stale image_asset_id: null while generation is in progress.
+ *
+ * NOTE — tts_asset_id: "transient" here means "don't trigger autoSave on update",
+ * NOT "exclude from saves". The TTS Prebuild API (_update_scene_tts_asset) persists
+ * tts_asset_id directly to DB, so autoSave is redundant. On explicit save,
+ * buildScenesPayload(...rest) intentionally includes tts_asset_id in the payload.
  */
 const SCENE_TRANSIENT_FIELDS: ReadonlySet<string> = new Set([
   "isGenerating",
   "debug_payload",
   "debug_prompt",
   "_auto_pin_previous",
-  "tts_asset_id", // session-only: TTS preview asset, 만료 가능
+  "tts_asset_id", // Backend persists directly via TTS Prebuild API; no autoSave trigger needed
 ]);
 
 /** Fields excluded from persistence (transient / runtime-derived). */
