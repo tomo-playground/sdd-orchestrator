@@ -1,14 +1,14 @@
 """Add evaluation_details JSONB to scene_quality_scores
 
-Revision ID: a1b2c3d4e5f6
-Revises: z8a9b0c1d2e3
+Revision ID: c3d4e5f6a7b8
+Revises: b2c3d4e5f6a7
 Create Date: 2026-03-15
 
 Phase 33: Stores hybrid evaluation breakdown (WD14 + Gemini results per tag).
 """
 
-revision = "a1b2c3d4e5f6"
-down_revision = "z8a9b0c1d2e3"
+revision = "c3d4e5f6a7b8"
+down_revision = "b2c3d4e5f6a7"
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB

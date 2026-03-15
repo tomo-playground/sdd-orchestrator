@@ -6,10 +6,11 @@ import { useStoryboardStore } from "../useStoryboardStore";
 import { TTS_ENGINE } from "../../constants";
 import { getCurrentProject } from "../selectors/projectSelectors";
 import { renderWithProgress } from "../../utils/renderWithProgress";
+import type { StudioTab } from "../useUIStore";
 
 type RenderStepCallbacks = {
   setAutoRunStep: (step: AutoRunStepId, msg: string) => void;
-  setActiveTab: (tab: string) => void;
+  setActiveTab: (tab: StudioTab) => void;
   pushAutoRunLog: (msg: string) => void;
 };
 

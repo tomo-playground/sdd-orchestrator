@@ -99,7 +99,7 @@ function StudioContent() {
   // Autopilot
   const autopilot = useAutopilot();
   const { CKPT_KEY, pendingCheckpoint, setPendingCheckpoint } = useAutopilotCheckpoint(
-    storyboardId,
+    storyboardId ? Number(storyboardId) : null,
     autopilot
   );
 

@@ -13,6 +13,7 @@ export type InsightScene = {
 
 type SceneMatchRate = {
   match_rate?: number;
+  wd14_match_rate?: number;
   missing?: string[];
 };
 
