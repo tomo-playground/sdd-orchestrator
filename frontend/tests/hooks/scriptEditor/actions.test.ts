@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // Zustand v5 persist requires localStorage mock before import
 vi.hoisted(() => {
@@ -27,6 +27,7 @@ import {
   buildSavePayload,
   handleStreamOutcome,
 } from "../../../app/hooks/scriptEditor/actions";
+import { useStoryboardStore } from "../../../app/store/useStoryboardStore";
 import type { ScriptEditorState, SceneItem } from "../../../app/hooks/scriptEditor/types";
 
 function makeEditorState(overrides: Partial<ScriptEditorState> = {}): ScriptEditorState {
@@ -159,16 +160,31 @@ describe("buildGenerateBody", () => {
     expect(body.references).toBeUndefined();
   });
 
-  it("includes skip_stages when fastTrack is true", () => {
-    const state = makeEditorState({ fastTrack: true });
+  it("includes skip_stages and character_id when fastTrack is true", () => {
+    const state = makeEditorState({ fastTrack: true, characterId: 1, characterBId: 2 });
     const body = buildGenerateBody(state, 1);
-    expect(body.skip_stages).toEqual(["research", "concept"]);
+    expect(body.skip_stages).toEqual(["research", "concept", "production", "explain"]);
+    expect(body.character_id).toBe(1);
+    expect(body.character_b_id).toBe(2);
   });
 
-  it("omits skip_stages when fastTrack is false", () => {
-    const state = makeEditorState({ fastTrack: false });
+  it("reads skip_stages from store (Backend SSOT)", () => {
+    // Backend가 다른 skip_stages를 반환한 경우 스토어에 반영된 값을 사용
+    useStoryboardStore.getState().set({ fastTrackSkipStages: ["research", "concept"] });
+    const state = makeEditorState({ fastTrack: true, characterId: 1 });
+    const body = buildGenerateBody(state, 1);
+    expect(body.skip_stages).toEqual(["research", "concept"]);
+    // 원복
+    useStoryboardStore.getState().set({
+      fastTrackSkipStages: ["research", "concept", "production", "explain"],
+    });
+  });
+
+  it("omits skip_stages and character_id when fastTrack is false", () => {
+    const state = makeEditorState({ fastTrack: false, characterId: 1 });
     const body = buildGenerateBody(state, 1);
     expect(body.skip_stages).toBeUndefined();
+    expect(body.character_id).toBeUndefined();
   });
 });
 

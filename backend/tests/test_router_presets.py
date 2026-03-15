@@ -29,6 +29,22 @@ class TestPresetsRouter:
         assert "default_style" in first
         assert "default_language" in first
 
+    def test_list_presets_includes_fast_track_skip_stages(self, client: TestClient, db_session):
+        """GET /presets returns fast_track_skip_stages list from Backend SSOT."""
+        response = client.get("/api/v1/presets")
+        assert response.status_code == 200
+        data = response.json()
+
+        assert "fast_track_skip_stages" in data
+        stages = data["fast_track_skip_stages"]
+        assert isinstance(stages, list)
+        assert len(stages) > 0
+        # VALID_SKIP_STAGES 허용 범위 내인지 확인
+        from config_pipelines import FAST_TRACK_SKIP_STAGES, VALID_SKIP_STAGES
+
+        assert stages == FAST_TRACK_SKIP_STAGES
+        assert all(s in VALID_SKIP_STAGES for s in stages)
+
     def test_list_presets_contains_known_ids(self, client: TestClient, db_session):
         """Preset list includes known preset IDs."""
         response = client.get("/api/v1/presets")
@@ -97,9 +113,7 @@ class TestPresetsRouter:
         presets = response.json()["presets"]
 
         for preset in presets:
-            assert len(preset["sample_topics"]) > 0, (
-                f"Preset '{preset['id']}' has no sample topics"
-            )
+            assert len(preset["sample_topics"]) > 0, f"Preset '{preset['id']}' has no sample topics"
 
     def test_preset_detail_has_extra_fields(self, client: TestClient, db_session):
         """Preset detail includes extra_fields key."""
@@ -114,6 +128,4 @@ class TestPresetsRouter:
         presets = response.json()["presets"]
 
         for preset in presets:
-            assert preset["default_style"], (
-                f"Preset '{preset['id']}' missing default_style"
-            )
+            assert preset["default_style"], f"Preset '{preset['id']}' missing default_style"

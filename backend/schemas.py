@@ -1675,6 +1675,7 @@ class PresetListResponse(BaseModel):
     reading_speed: dict[str, ReadingSpeedConfig] = {}
     optional_steps: list[str] = []
     generation_defaults: GenerationDefaults | None = None
+    fast_track_skip_stages: list[str] = []
 
 
 class PresetTopicsResponse(BaseModel):

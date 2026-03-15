@@ -28,6 +28,7 @@ async def list_presets():
         DEFAULT_USE_IP_ADAPTER,
         READING_SPEED,
     )
+    from config_pipelines import FAST_TRACK_SKIP_STAGES  # noqa: PLC0415
 
     return {
         "presets": get_all_presets(),
@@ -43,6 +44,7 @@ async def list_presets():
             "ip_adapter_weight": DEFAULT_IP_ADAPTER_WEIGHT,
             "multi_gen_enabled": DEFAULT_MULTI_GEN_ENABLED,
         },
+        "fast_track_skip_stages": FAST_TRACK_SKIP_STAGES,
     }
 
 

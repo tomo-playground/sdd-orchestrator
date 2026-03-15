@@ -110,7 +110,7 @@ export default function ChatInput({
                   type="button"
                   disabled={disabled}
                   onClick={() => onFastTrackChange(!fastTrack)}
-                  title="Research·Concept 단계 건너뜀 — 약 35초"
+                  title="Research·Concept·Production 건너뜀 — 빠르지만 품질 검증 간소화"
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
                     fastTrack
                       ? "border-amber-500 bg-amber-500 text-white"

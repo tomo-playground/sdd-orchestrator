@@ -46,25 +46,32 @@ def _resolve_skip_stages(request: StoryboardRequest) -> list[str]:
 
 
 def _request_to_state(request: StoryboardRequest) -> ScriptState:
-    """StoryboardRequest → ScriptState 변환."""
+    """StoryboardRequest → ScriptState 변환.
+
+    FastTrack(skip_stages 비어있지 않음)이면 Director가 건너뛰어지므로
+    Frontend에서 보낸 structure/character_id를 그대로 전달한다.
+    일반 Full 모드에서는 Director가 SSOT이므로 빈값/None으로 시작.
+    """
     mode = request.interaction_mode or "guided"
+    skip = _resolve_skip_stages(request)
+    is_fast_track = len(skip) > 0
     return ScriptState(
         topic=request.topic,
         description=request.description or "",
         duration=request.duration,
         style=request.style,
         language=request.language,
-        structure="",  # Director 캐스팅 SSOT
+        structure=request.structure if is_fast_track else "",
         actor_a_gender=request.actor_a_gender,
-        character_id=None,
-        character_b_id=None,
+        character_id=request.character_id if is_fast_track else None,
+        character_b_id=request.character_b_id if is_fast_track else None,
         group_id=request.group_id,
         references=request.references,
         chat_context=request.chat_context,
         preset=request.preset,
         auto_approve=(mode == "auto"),
         interaction_mode=mode,
-        skip_stages=_resolve_skip_stages(request),
+        skip_stages=skip,
         revision_count=0,
     )
 

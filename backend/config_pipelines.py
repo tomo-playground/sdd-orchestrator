@@ -66,7 +66,10 @@ LANGGRAPH_RECURSION_LIMIT = int(os.getenv("LANGGRAPH_RECURSION_LIMIT", "100"))
 REVISE_EXPANSION_ENABLED = os.getenv("REVISE_EXPANSION_ENABLED", "true").lower() == "true"
 REVISE_MAX_EXPANSION_SCENES = int(os.getenv("REVISE_MAX_EXPANSION_SCENES", "5"))
 # --- Stage-Level Skip ---
-VALID_SKIP_STAGES: frozenset[str] = frozenset({"research", "concept", "explain"})
+VALID_SKIP_STAGES: frozenset[str] = frozenset({"research", "concept", "production", "explain"})
+
+# FastTrack 모드에서 건너뛸 스테이지 (Frontend가 /presets에서 읽음)
+FAST_TRACK_SKIP_STAGES: list[str] = ["research", "concept", "production", "explain"]
 LANGGRAPH_AUTO_REVIEW_THRESHOLD = float(os.getenv("LANGGRAPH_AUTO_REVIEW_THRESHOLD", "0.7"))
 LANGGRAPH_NARRATIVE_THRESHOLD = float(os.getenv("LANGGRAPH_NARRATIVE_THRESHOLD", "0.6"))
 LANGGRAPH_MAX_DIRECTOR_REVISIONS = int(os.getenv("LANGGRAPH_MAX_DIRECTOR_REVISIONS", "3"))

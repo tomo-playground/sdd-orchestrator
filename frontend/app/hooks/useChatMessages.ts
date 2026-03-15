@@ -14,6 +14,7 @@ import { createWelcomeMessage } from "../utils/chatMessageFactory";
 
 type ChatMessagesDeps = {
   storyboardId: number | null;
+  chatResetToken: number;
   getMessages: (id: number | null) => ChatMessage[];
   saveMessages: (id: number | null, msgs: ChatMessage[]) => void;
   clearMessages: (id: number | null) => void;
@@ -34,7 +35,14 @@ export type ChatMessagesReturn = {
 };
 
 export function useChatMessages(deps: ChatMessagesDeps): ChatMessagesReturn {
-  const { storyboardId, getMessages, saveMessages, clearMessages, migrateFromTemp } = deps;
+  const {
+    storyboardId,
+    chatResetToken,
+    getMessages,
+    saveMessages,
+    clearMessages,
+    migrateFromTemp,
+  } = deps;
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
     const saved = getMessages(storyboardId);
@@ -65,8 +73,12 @@ export function useChatMessages(deps: ChatMessagesDeps): ChatMessagesReturn {
   // 스토리보드 변경 시 해당 히스토리 복원
   // null → number 전환 시 임시 key 데이터를 새 id로 이관
   const prevStoryboardIdRef = useRef(storyboardId);
+  const prevResetTokenRef = useRef(chatResetToken);
   useEffect(() => {
-    if (prevStoryboardIdRef.current === storyboardId) return;
+    const tokenChanged = prevResetTokenRef.current !== chatResetToken;
+    prevResetTokenRef.current = chatResetToken;
+
+    if (!tokenChanged && prevStoryboardIdRef.current === storyboardId) return;
     const prevId = prevStoryboardIdRef.current;
     prevStoryboardIdRef.current = storyboardId;
 
@@ -79,7 +91,7 @@ export function useChatMessages(deps: ChatMessagesDeps): ChatMessagesReturn {
     setChatMessages(saved.length > 0 ? saved : [createWelcomeMessage()]);
     setActiveProgress(null);
     topicRef.current = "";
-  }, [storyboardId, getMessages, migrateFromTemp]);
+  }, [storyboardId, chatResetToken, getMessages, migrateFromTemp]);
 
   const addMessage = useCallback((msg: ChatMessage) => {
     setChatMessages((prev) => [...prev, msg]);

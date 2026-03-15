@@ -94,6 +94,9 @@ export interface StoryboardStore {
   // Script generation in progress (blocks autoSave to prevent casting race condition)
   isScriptGenerating: boolean;
 
+  // FastTrack skip stages (Backend SSOT, loaded from /presets)
+  fastTrackSkipStages: string[];
+
   // Dirty flag
   isDirty: boolean;
 
@@ -168,6 +171,8 @@ const initialState: Omit<
   storyboardVersion: null,
   castingRecommendation: null,
   isScriptGenerating: false,
+  // Fallback — Backend SSOT: config_pipelines.FAST_TRACK_SKIP_STAGES (loaded via /presets)
+  fastTrackSkipStages: ["research", "concept", "production", "explain"],
 };
 
 export const STORYBOARD_STORE_KEY = "shorts-producer:storyboard:v1";

@@ -53,6 +53,9 @@ export interface UIState {
   pendingAutoRun: boolean;
   setPendingAutoRun: (v: boolean) => void;
 
+  // Store-reset detection (bumped by resetAllStores — lets hooks detect null→null resets)
+  chatResetToken: number;
+
   // Preferences
   showAdvancedSettings: boolean;
   toggleAdvancedSettings: () => void;
@@ -89,6 +92,7 @@ const initialState: Omit<
   isNewStoryboardMode: false,
   isAutoRunning: false,
   pendingAutoRun: false,
+  chatResetToken: 0,
 };
 
 export const useUIStore = create<UIState>((set) => ({

@@ -29,7 +29,7 @@ export default function ScriptTab() {
       editor.loadStoryboard(storyboardId);
     } else if (!storyboardId && loadedRef.current !== null) {
       loadedRef.current = null;
-      editor.reset();
+      editor.clearChat();
     }
   }, [storyboardId]); // eslint-disable-line react-hooks/exhaustive-deps
 

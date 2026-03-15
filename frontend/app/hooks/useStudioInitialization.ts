@@ -70,12 +70,15 @@ export function useStudioInitialization() {
         setPlan({ selectedCharacterId: effectiveCharacterId });
       }
 
-      // Apply backend generation defaults to freshly reset store
+      // Apply backend generation defaults and FastTrack config to freshly reset store
       try {
         const res = await fetch(`${API_BASE}/presets`);
         const data = await res.json();
         if (data?.generation_defaults) {
           useStoryboardStore.getState().applyGenerationDefaults(data.generation_defaults);
+        }
+        if (Array.isArray(data?.fast_track_skip_stages) && data.fast_track_skip_stages.length > 0) {
+          useStoryboardStore.getState().set({ fastTrackSkipStages: data.fast_track_skip_stages });
         }
       } catch {
         // silent — initialState fallback values are used

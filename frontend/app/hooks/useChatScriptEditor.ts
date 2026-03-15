@@ -33,6 +33,7 @@ export function useChatScriptEditor(options?: {
   const groupId = useContextStore((s) => s.groupId);
   const storyboardId = useContextStore((s) => s.storyboardId);
   const showToast = useUIStore((s) => s.showToast);
+  const chatResetToken = useUIStore((s) => s.chatResetToken);
   const { getMessages, saveMessages, clearMessages, migrateFromTemp } = useChatStore();
 
   // ── 1. Chat messages state ──
@@ -47,7 +48,14 @@ export function useChatScriptEditor(options?: {
     addTypingIndicator,
     removeTypingIndicator,
     clearChat: clearChatBase,
-  } = useChatMessages({ storyboardId, getMessages, saveMessages, clearMessages, migrateFromTemp });
+  } = useChatMessages({
+    storyboardId,
+    chatResetToken,
+    getMessages,
+    saveMessages,
+    clearMessages,
+    migrateFromTemp,
+  });
 
   // ── 2. SSE → Chat event pipeline ──
   const editorRef = useRef<ScriptEditorActions | null>(null);

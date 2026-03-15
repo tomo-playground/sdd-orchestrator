@@ -3,6 +3,7 @@ import { useContextStore } from "../useContextStore";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useRenderStore } from "../useRenderStore";
 import { useUIStore } from "../useUIStore";
+import { useChatStore } from "../useChatStore";
 
 // Mock groupActions dynamic import
 vi.mock("../actions/groupActions", () => ({
@@ -15,13 +16,14 @@ describe("resetAllStores", () => {
   const mockSbReset = vi.fn();
   const mockRenderReset = vi.fn();
   const mockResetUI = vi.fn();
+  const mockClearMessages = vi.fn();
   const mockRemoveItem = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     // Provide localStorage mock
     Object.defineProperty(globalThis, "localStorage", {
-      value: { removeItem: mockRemoveItem },
+      value: { removeItem: mockRemoveItem, getItem: () => null, setItem: vi.fn() },
       writable: true,
       configurable: true,
     });
@@ -45,7 +47,13 @@ describe("resetAllStores", () => {
 
     vi.spyOn(useUIStore, "getState").mockReturnValue({
       resetUI: mockResetUI,
+      chatResetToken: 0,
+      set: vi.fn(),
     } as unknown as ReturnType<typeof useUIStore.getState>);
+
+    vi.spyOn(useChatStore, "getState").mockReturnValue({
+      clearMessages: mockClearMessages,
+    } as unknown as ReturnType<typeof useChatStore.getState>);
   });
 
   it("clears localStorage keys", async () => {
@@ -56,7 +64,7 @@ describe("resetAllStores", () => {
     expect(mockRemoveItem).toHaveBeenCalledWith("shorts-producer:render:v1");
   });
 
-  it("resets all 4 stores", async () => {
+  it("resets all stores including chat temporary key", async () => {
     const { resetAllStores } = await import("../resetAllStores");
     await resetAllStores();
 
@@ -64,6 +72,7 @@ describe("resetAllStores", () => {
     expect(mockSbReset).toHaveBeenCalled();
     expect(mockRenderReset).toHaveBeenCalled();
     expect(mockResetUI).toHaveBeenCalled();
+    expect(mockClearMessages).toHaveBeenCalledWith(null);
   });
 
   it("preserves projectId/groupId after reset", async () => {
@@ -90,6 +99,20 @@ describe("resetAllStores", () => {
 
     const { loadGroupDefaults } = await import("../actions/groupActions");
     expect(loadGroupDefaults).not.toHaveBeenCalled();
+  });
+
+  it("bumps chatResetToken after resetUI", async () => {
+    const mockSet = vi.fn();
+    vi.spyOn(useUIStore, "getState").mockReturnValue({
+      resetUI: mockResetUI,
+      chatResetToken: 5,
+      set: mockSet,
+    } as unknown as ReturnType<typeof useUIStore.getState>);
+
+    const { resetAllStores } = await import("../resetAllStores");
+    await resetAllStores();
+
+    expect(mockSet).toHaveBeenCalledWith({ chatResetToken: 6 });
   });
 
   it("skips group defaults reload when groupId is null", async () => {
