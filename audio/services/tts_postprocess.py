@@ -1,11 +1,12 @@
 """TTS audio post-processing: trimming, hallucination detection, silence compression, normalization.
 
-Provides a 5-step pipeline for cleaning Qwen-TTS output:
+Provides a 6-step pipeline for cleaning Qwen-TTS output:
 1. Leading/trailing silence removal (librosa.effects.trim)
 2. Trailing hallucination detection (energy decay->re-rise pattern)
 3. Internal silence compression (cap gaps at TTS_SILENCE_MAX_MS)
-4. Fade-in/out (smooth click artifacts)
-5. Audio normalization (RMS-based dBFS targeting)
+4. Decrackle: median filter to remove impulse noise spikes
+5. Fade-in/out (smooth click artifacts)
+6. Audio normalization (RMS-based dBFS targeting)
 """
 
 from __future__ import annotations
@@ -73,6 +74,45 @@ def _compress_internal_silence(wav: np.ndarray, sr: int) -> np.ndarray:
     return result
 
 
+def _decrackle(wav: np.ndarray, sr: int, kernel_size: int = 3) -> np.ndarray:
+    """Remove impulse noise (crackling) via median filter on spike regions only.
+
+    Instead of applying median filter to the entire signal (which softens
+    transients), we detect sample-to-sample spikes that exceed a threshold
+    and only smooth those regions. This preserves speech quality while
+    removing crackling artifacts from autoregressive TTS generation.
+    """
+    from scipy.signal import medfilt
+
+    diffs = np.abs(np.diff(wav))
+    # Adaptive threshold: spikes > 8x the median difference
+    median_diff = np.median(diffs)
+    threshold = max(median_diff * 8, 0.02)  # floor at 0.02 for very quiet audio
+
+    spike_mask = np.zeros(len(wav), dtype=bool)
+    spike_indices = np.where(diffs > threshold)[0]
+
+    if len(spike_indices) == 0:
+        return wav
+
+    # Expand spike regions by ±2 samples for smooth blending
+    for idx in spike_indices:
+        start = max(0, idx - 2)
+        end = min(len(wav), idx + 3)
+        spike_mask[start:end] = True
+
+    spike_count = len(spike_indices)
+    filtered = medfilt(wav, kernel_size=kernel_size)
+
+    result = wav.copy()
+    result[spike_mask] = filtered[spike_mask]
+
+    if spike_count > 0:
+        logger.info("[TTS] Decrackle: smoothed %d spike regions (threshold=%.4f)", spike_count, threshold)
+
+    return result
+
+
 def normalize_audio(wav: np.ndarray, target_dbfs: float = -23.0, peak_limit_db: float = -1.0) -> np.ndarray:
     """Normalize audio to target dBFS with peak limiting (no hard clipping)."""
     rms = np.sqrt(np.mean(wav**2))
@@ -117,13 +157,16 @@ def trim_tts_audio(wav: np.ndarray, sr: int, normalize: bool = True) -> np.ndarr
     # Step 3: compress internal silence gaps
     trimmed = _compress_internal_silence(trimmed, sr)
 
-    # Step 4: fade-in/out
+    # Step 4: decrackle — remove impulse noise spikes
+    trimmed = _decrackle(trimmed, sr)
+
+    # Step 5: fade-in/out
     fade_samples = int(sr * TTS_AUDIO_FADE_MS / 1000)
     if len(trimmed) > fade_samples * 2:
         trimmed[:fade_samples] *= np.linspace(0, 1, fade_samples)
         trimmed[-fade_samples:] *= np.linspace(1, 0, fade_samples)
 
-    # Step 5: normalize audio
+    # Step 6: normalize audio
     if normalize:
         trimmed = normalize_audio(trimmed)
 
@@ -136,7 +179,7 @@ def validate_tts_duration(wav: np.ndarray, sr: int, min_sec: float) -> bool:
 
 
 def validate_tts_quality(wav: np.ndarray, sr: int) -> bool:
-    """Basic quality checks: silence ratio and SNR proxy."""
+    """Quality checks: silence ratio, SNR proxy, and crackling detection."""
     if len(wav) == 0:
         return False
 
@@ -155,6 +198,20 @@ def validate_tts_quality(wav: np.ndarray, sr: int) -> bool:
     median_abs = np.median(np.abs(wav))
     if median_abs > max_val * 0.3:
         logger.warning("[TTS] Quality check failed: poor SNR (median/peak = %.2f)", median_abs / max_val)
+        return False
+
+    # Crackling detection: count residual spike clusters after decrackle
+    diffs = np.abs(np.diff(wav))
+    median_diff = np.median(diffs)
+    spike_threshold = max(median_diff * 12, 0.03)
+    spikes = np.sum(diffs > spike_threshold)
+    spike_ratio = spikes / len(wav)
+    if spike_ratio > 0.02:
+        logger.warning(
+            "[TTS] Quality check failed: excessive crackling (spikes=%d, ratio=%.3f)",
+            spikes,
+            spike_ratio,
+        )
         return False
 
     return True

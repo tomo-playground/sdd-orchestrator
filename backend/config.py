@@ -717,8 +717,8 @@ TTS_NATURALNESS_SUFFIX = os.getenv(
 TTS_TEMPERATURE = float(os.getenv("TTS_TEMPERATURE", "0.7"))  # Increased slightly for naturalness
 TTS_TOP_P = float(os.getenv("TTS_TOP_P", "0.8"))  # Nucleus sampling (Qwen recommended)
 TTS_REPETITION_PENALTY = float(
-    os.getenv("TTS_REPETITION_PENALTY", "1.0")
-)  # Lowered from 1.2 to 1.0 (speed + reduce hallucination)
+    os.getenv("TTS_REPETITION_PENALTY", "1.05")
+)  # Qwen3-TTS default: 1.05 (stabilize autoregressive generation)
 TTS_MAX_NEW_TOKENS = int(
     os.getenv("TTS_MAX_NEW_TOKENS", "1024")
 )  # Deprecated: Audio Server 기본값용. Backend는 TTS_MAX_NEW_TOKENS_BASE/PER_CHAR/CAP 사용

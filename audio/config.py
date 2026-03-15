@@ -16,7 +16,7 @@ TTS_ATTN_IMPLEMENTATION = os.getenv("TTS_ATTN_IMPLEMENTATION", "sdpa")
 # Generation parameters
 TTS_TEMPERATURE = float(os.getenv("TTS_TEMPERATURE", "0.7"))
 TTS_TOP_P = float(os.getenv("TTS_TOP_P", "0.8"))
-TTS_REPETITION_PENALTY = float(os.getenv("TTS_REPETITION_PENALTY", "1.0"))
+TTS_REPETITION_PENALTY = float(os.getenv("TTS_REPETITION_PENALTY", "1.05"))
 TTS_MAX_NEW_TOKENS = int(os.getenv("TTS_MAX_NEW_TOKENS", "1024"))
 TTS_DEFAULT_LANGUAGE = os.getenv("TTS_DEFAULT_LANGUAGE", "korean")
 
