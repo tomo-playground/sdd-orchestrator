@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Scene, ImageGenProgress, ImageValidation } from "../../types";
+import type { Scene, ImageGenProgress } from "../../types";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
@@ -9,7 +9,7 @@ import { generateWithProgress } from "../../utils/generateWithProgress";
 import { buildScenePrompt, buildNegativePrompt } from "./promptActions";
 import { resolveCharacterIdForSpeaker } from "../../utils/speakerResolver";
 import { resolveSceneControlnet, resolveSceneIpAdapter } from "../../utils/sceneSettingsResolver";
-import { validateImageCandidate, processGeneratedImages } from "./imageProcessing";
+import { processGeneratedImages } from "./imageProcessing";
 
 // Re-export for external consumers
 export { storeSceneImage } from "./imageProcessing";
@@ -127,7 +127,8 @@ export async function generateSceneImageFor(
   }
 
   const base = buildSceneRequest(scene, sbState, storyboardId);
-  const requestPayload = overrides?.seed !== undefined ? { ...base, seed: overrides.seed } : base;
+  const seed = overrides?.seed ?? Math.floor(Math.random() * 2147483647);
+  const requestPayload = { ...base, seed };
   const prompt = requestPayload.prompt;
 
   const debugPayload = { ...requestPayload };
@@ -149,6 +150,14 @@ export async function generateSceneImageFor(
         preStored:
           sseData.image_url && sseData.image_asset_id
             ? { url: sseData.image_url, asset_id: sseData.image_asset_id }
+            : undefined,
+        sseValidation:
+          sseData.match_rate != null
+            ? {
+                match_rate: sseData.match_rate,
+                matched_tags: sseData.matched_tags,
+                missing_tags: sseData.missing_tags,
+              }
             : undefined,
       });
       if (result) {
@@ -313,8 +322,6 @@ export async function generateSceneCandidates(
   scene: Scene,
   silent = false
 ): Promise<Partial<Scene> | null> {
-  const sbState = useStoryboardStore.getState();
-  const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, sbState);
   const prompt = buildScenePrompt(scene);
   if (!prompt) {
     if (!silent) useUIStore.getState().showToast("Prompt is required", "error");
@@ -327,10 +334,10 @@ export async function generateSceneCandidates(
     adjusted_match_rate?: number;
     identity_score?: number;
     image_url?: string;
-    _validation?: ImageValidation;
   };
   const candidates: CandidateEntry[] = [];
   let resolvedImagePrompt: string | undefined;
+
   for (let i = 0; i < 3; i += 1) {
     const result = await generateSceneImageFor(scene, true, {
       seed: Math.floor(Math.random() * 2147483647),
@@ -339,24 +346,25 @@ export async function generateSceneCandidates(
     if (!resolvedImagePrompt && result.image_prompt) {
       resolvedImagePrompt = result.image_prompt;
     }
-    const validation = await validateImageCandidate(
-      result.image_url,
-      prompt,
-      scene.id,
-      selectedCharacterId
-    );
-    const vResult = validation?.validation_result ?? validation;
+    // processGeneratedImages (SSE 경로) 내부에서 이미 validation을 실행하여
+    // imageValidationResults store에 저장하고 result.candidates에 점수를 포함합니다.
+    // 중복 validateImageCandidate 호출 없이 result에서 직접 점수를 읽습니다.
+    const firstCandidate = result.candidates?.[0];
     candidates.push({
       media_asset_id: result.image_asset_id,
-      match_rate: typeof vResult?.match_rate === "number" ? vResult.match_rate : 0,
+      match_rate: typeof firstCandidate?.match_rate === "number" ? firstCandidate.match_rate : 0,
       adjusted_match_rate:
-        typeof vResult?.adjusted_match_rate === "number" ? vResult.adjusted_match_rate : undefined,
+        typeof firstCandidate?.adjusted_match_rate === "number"
+          ? firstCandidate.adjusted_match_rate
+          : undefined,
       identity_score:
-        typeof vResult?.identity_score === "number" ? vResult.identity_score : undefined,
+        typeof firstCandidate?.identity_score === "number"
+          ? firstCandidate.identity_score
+          : undefined,
       image_url: result.image_url,
-      _validation: vResult ?? undefined,
     });
   }
+
   if (!candidates.length) {
     if (!silent) {
       useUIStore
@@ -375,23 +383,27 @@ export async function generateSceneCandidates(
     );
   })[0];
 
-  // Re-use the validation result already obtained during candidate generation.
-  // No redundant API call needed: best._validation was already fetched in the loop.
-  if (best?._validation) {
-    const { imageValidationResults } = useStoryboardStore.getState();
+  // best 후보의 validation 결과로 store를 최종 갱신합니다.
+  // (3회 반복 중 마지막 후보가 store에 남아 있을 수 있으므로 best 기준으로 덮어씁니다.)
+  if (best.match_rate != null || best.adjusted_match_rate != null || best.identity_score != null) {
     useStoryboardStore.getState().set({
       imageValidationResults: {
-        ...imageValidationResults,
-        [scene.client_id]: best._validation,
+        ...useStoryboardStore.getState().imageValidationResults,
+        [scene.client_id]: {
+          match_rate: best.match_rate ?? 0,
+          matched: [],
+          missing: [],
+          extra: [],
+          identity_score: best.identity_score,
+          adjusted_match_rate: best.adjusted_match_rate,
+        },
       },
     });
   }
 
-  const bestAssetId = best.media_asset_id;
-
   return {
     image_url: best.image_url,
-    image_asset_id: bestAssetId,
+    image_asset_id: best.media_asset_id,
     candidates,
     debug_prompt: prompt,
     image_prompt: resolvedImagePrompt || undefined,
