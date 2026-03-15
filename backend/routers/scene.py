@@ -17,6 +17,8 @@ from models.scene import Scene
 from schemas import (
     BatchSceneRequest,
     BatchSceneResponse,
+    BatchValidateRequest,
+    BatchValidateResponse,
     GeminiEditRequest,
     GeminiEditResponse,
     GeminiSuggestRequest,
@@ -171,6 +173,66 @@ async def validate_scene_image_endpoint(request: SceneValidateRequest, db: Sessi
         _track_task(task)
 
     return result
+
+
+@router.post("/scene/validate-batch", response_model=BatchValidateResponse)
+async def validate_batch_images(request: BatchValidateRequest, db: Session = Depends(get_db)):
+    """Batch validate multiple scenes — Gemini 호출 병합 (Phase 33 E-2).
+
+    WD14는 씬별 개별 실행, Gemini는 이미지 기준 병합하여 API 호출 최소화.
+    """
+    from services.validation import batch_apply_gemini_evaluation
+
+    results = []
+    gemini_items = []
+
+    for i, scene_req in enumerate(request.scenes):
+        try:
+            result = validate_scene_image(scene_req, db=db)
+            # Strip internal fields to save memory (N scenes × large base64)
+            response_data = {k: v for k, v in result.items() if k not in ("image_b64", "wd14_matched", "wd14_total")}
+            results.append({"index": i, "status": "success", "data": response_data})
+
+            # Collect Gemini evaluation items
+            gemini_tokens = result.get("gemini_tokens", [])
+            if gemini_tokens and result.get("image_b64"):
+                gemini_items.append(
+                    {
+                        "result_index": i,
+                        "storyboard_id": scene_req.storyboard_id,
+                        "scene_id": scene_req.scene_id or scene_req.scene_index,
+                        "image_b64": result["image_b64"],
+                        "gemini_tokens": gemini_tokens,
+                        "wd14_matched": result.get("wd14_matched", 0),
+                        "wd14_total": result.get("wd14_total", 0),
+                    }
+                )
+        except Exception as e:
+            logger.exception("[Batch Validate] Scene %d failed: %s", i, e)
+            results.append({"index": i, "status": "failed", "error": str(e)})
+
+    # Fire single batched Gemini background task
+    gemini_pending = 0
+    if gemini_items:
+        gemini_pending = len(gemini_items)
+        task = asyncio.create_task(
+            batch_apply_gemini_evaluation(
+                items=gemini_items,
+                db_factory=get_db_session,
+            )
+        )
+        _track_task(task)
+
+    succeeded = sum(1 for r in results if r["status"] == "success")
+    failed = sum(1 for r in results if r["status"] == "failed")
+
+    return {
+        "results": sorted(results, key=lambda r: r["index"]),
+        "total": len(results),
+        "succeeded": succeeded,
+        "failed": failed,
+        "gemini_pending": gemini_pending,
+    }
 
 
 @router.post("/scene/validate-and-auto-edit", response_model=ValidateAndAutoEditResponse)

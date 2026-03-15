@@ -445,3 +445,191 @@ class TestParseGeminiJsonArray:
         text = '[{"tag":"a","present":true},{"no_tag":true,"present":false}]'
         result = _parse_gemini_json_array(text)
         assert len(result) == 1  # second item filtered (no "tag" key)
+
+
+# ---------------------------------------------------------------------------
+# batch_apply_gemini_evaluation (Phase 33 E-2)
+# ---------------------------------------------------------------------------
+
+
+class TestBatchApplyGeminiEvaluation:
+    """batch_apply_gemini_evaluation() 배치 Gemini 평가 검증."""
+
+    @pytest.mark.asyncio
+    async def test_empty_items_returns_empty(self):
+        """빈 items 리스트 → 빈 결과."""
+        from services.validation import batch_apply_gemini_evaluation
+
+        result = await batch_apply_gemini_evaluation(items=[])
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_items_without_gemini_tokens_return_none(self):
+        """gemini_tokens가 없는 항목은 None 반환."""
+        from services.validation import batch_apply_gemini_evaluation
+
+        items = [
+            {"image_b64": "aaa", "gemini_tokens": [], "wd14_matched": 3, "wd14_total": 4},
+        ]
+        result = await batch_apply_gemini_evaluation(items=items)
+        assert result == [None]
+
+    @pytest.mark.asyncio
+    async def test_single_scene_evaluated(self):
+        """단일 씬 → 1회 Gemini 호출."""
+        from services.validation import batch_apply_gemini_evaluation
+
+        gemini_results = [
+            {"tag": "cowboy_shot", "present": True, "confidence": 0.8},
+        ]
+        with patch(
+            "services.validation.evaluate_tags_with_gemini",
+            new=AsyncMock(return_value=gemini_results),
+        ) as mock_eval:
+            items = [{
+                "storyboard_id": 1,
+                "scene_id": 10,
+                "image_b64": "img1_base64",
+                "gemini_tokens": ["cowboy_shot"],
+                "wd14_matched": 5,
+                "wd14_total": 8,
+            }]
+            result = await batch_apply_gemini_evaluation(items=items)
+
+        mock_eval.assert_called_once()
+        assert result[0]["gemini_matched"] == 1
+        assert result[0]["gemini_total"] == 1
+        assert abs(result[0]["combined_match_rate"] - 6 / 9) < 0.001
+
+    @pytest.mark.asyncio
+    async def test_same_image_deduplication(self):
+        """동일 이미지 2씬 → Gemini 1회 호출 (태그 합집합)."""
+        from services.validation import batch_apply_gemini_evaluation
+
+        gemini_results = [
+            {"tag": "cowboy_shot", "present": True, "confidence": 0.9},
+            {"tag": "sunset", "present": True, "confidence": 0.7},
+            {"tag": "cloudy_sky", "present": False, "confidence": 0.3},
+        ]
+        with patch(
+            "services.validation.evaluate_tags_with_gemini",
+            new=AsyncMock(return_value=gemini_results),
+        ) as mock_eval:
+            items = [
+                {
+                    "storyboard_id": 1, "scene_id": 10,
+                    "image_b64": "same_image",
+                    "gemini_tokens": ["cowboy_shot", "sunset"],
+                    "wd14_matched": 4, "wd14_total": 5,
+                },
+                {
+                    "storyboard_id": 1, "scene_id": 11,
+                    "image_b64": "same_image",
+                    "gemini_tokens": ["sunset", "cloudy_sky"],
+                    "wd14_matched": 3, "wd14_total": 4,
+                },
+            ]
+            result = await batch_apply_gemini_evaluation(items=items)
+
+        # Only 1 Gemini call despite 2 scenes (same image)
+        mock_eval.assert_called_once()
+        call_tags = mock_eval.call_args[0][1]
+        assert set(call_tags) == {"cowboy_shot", "sunset", "cloudy_sky"}
+
+        # Scene 0: cowboy_shot(matched) + sunset(matched) = 2/2
+        assert result[0]["gemini_matched"] == 2
+        assert result[0]["gemini_total"] == 2
+
+        # Scene 1: sunset(matched) + cloudy_sky(not present) = 1/2
+        assert result[1]["gemini_matched"] == 1
+        assert result[1]["gemini_total"] == 2
+
+    @pytest.mark.asyncio
+    async def test_different_images_parallel_calls(self):
+        """다른 이미지 2씬 → Gemini 2회 호출 (병렬)."""
+        from services.validation import batch_apply_gemini_evaluation
+
+        call_count = 0
+
+        async def fake_eval(image_b64, tags):
+            nonlocal call_count
+            call_count += 1
+            return [{"tag": t, "present": True, "confidence": 0.8} for t in tags]
+
+        with patch(
+            "services.validation.evaluate_tags_with_gemini",
+            new=fake_eval,
+        ):
+            items = [
+                {
+                    "storyboard_id": 1, "scene_id": 10,
+                    "image_b64": "image_A",
+                    "gemini_tokens": ["tag_a"],
+                    "wd14_matched": 2, "wd14_total": 3,
+                },
+                {
+                    "storyboard_id": 1, "scene_id": 11,
+                    "image_b64": "image_B",
+                    "gemini_tokens": ["tag_b"],
+                    "wd14_matched": 4, "wd14_total": 5,
+                },
+            ]
+            result = await batch_apply_gemini_evaluation(items=items)
+
+        assert call_count == 2
+        assert result[0] is not None
+        assert result[1] is not None
+
+    @pytest.mark.asyncio
+    async def test_db_update_called_for_each_scene(self):
+        """각 씬마다 _update_db_match_rate 호출됨."""
+        from services.validation import batch_apply_gemini_evaluation
+
+        gemini_results = [{"tag": "tag_a", "present": True, "confidence": 0.8}]
+        with (
+            patch(
+                "services.validation.evaluate_tags_with_gemini",
+                new=AsyncMock(return_value=gemini_results),
+            ),
+            patch("services.validation._update_db_match_rate") as mock_update,
+        ):
+            items = [
+                {
+                    "storyboard_id": 1, "scene_id": 10,
+                    "image_b64": "img",
+                    "gemini_tokens": ["tag_a"],
+                    "wd14_matched": 3, "wd14_total": 4,
+                },
+                {
+                    "storyboard_id": 1, "scene_id": 11,
+                    "image_b64": "img",
+                    "gemini_tokens": ["tag_a"],
+                    "wd14_matched": 5, "wd14_total": 6,
+                },
+            ]
+            await batch_apply_gemini_evaluation(items=items, db_factory=MagicMock())
+
+        assert mock_update.call_count == 2
+        scene_ids = {c.kwargs["scene_id"] for c in mock_update.call_args_list}
+        assert scene_ids == {10, 11}
+
+    @pytest.mark.asyncio
+    async def test_gemini_failure_graceful(self):
+        """Gemini 실패 시 해당 그룹은 None 반환 (graceful degradation)."""
+        from services.validation import batch_apply_gemini_evaluation
+
+        with patch(
+            "services.validation.evaluate_tags_with_gemini",
+            new=AsyncMock(return_value=[]),
+        ):
+            items = [{
+                "storyboard_id": 1, "scene_id": 10,
+                "image_b64": "img",
+                "gemini_tokens": ["tag_a"],
+                "wd14_matched": 3, "wd14_total": 4,
+            }]
+            result = await batch_apply_gemini_evaluation(items=items)
+
+        # Empty results → gemini_matched=0, still produces summary
+        assert result[0]["gemini_matched"] == 0
+        assert result[0]["gemini_total"] == 0

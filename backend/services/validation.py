@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import csv
 import hashlib
@@ -17,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from config import (
     GEMINI_DETECTABLE_GROUPS,
+    GEMINI_EVAL_BATCH_CONCURRENCY,
     SKIPPABLE_GROUPS,
     WD14_DETECTABLE_GROUPS,
     WD14_MODEL_DIR,
@@ -647,6 +649,122 @@ async def apply_gemini_evaluation(
         )
 
     return summary
+
+
+async def batch_apply_gemini_evaluation(
+    *,
+    items: list[dict[str, Any]],
+    db_factory: Any = None,
+    concurrency: int = GEMINI_EVAL_BATCH_CONCURRENCY,
+) -> list[dict[str, Any] | None]:
+    """Batch Gemini evaluation with image-based deduplication (Phase 33 E-2).
+
+    Merges Gemini tags for scenes sharing the same image → single API call.
+    Different images are evaluated in parallel with semaphore control.
+
+    Args:
+        items: List of dicts with keys:
+            storyboard_id, scene_id, image_b64, gemini_tokens,
+            wd14_matched, wd14_total.
+        db_factory: Callable returning a DB session context manager.
+        concurrency: Max concurrent Gemini API calls.
+
+    Returns:
+        List of Gemini evaluation summaries (same order as items).
+    """
+    import hashlib
+    from collections import defaultdict
+
+    if not items:
+        return []
+
+    # Group by image hash → deduplicate Gemini calls
+    image_groups: dict[str, list[int]] = defaultdict(list)  # hash → item indices
+    image_b64_map: dict[str, str] = {}  # hash → image_b64
+
+    for idx, item in enumerate(items):
+        if not item.get("gemini_tokens"):
+            continue
+        img_hash = hashlib.sha256(item["image_b64"].encode("ascii")).hexdigest()[:16]
+        image_groups[img_hash].append(idx)
+        image_b64_map[img_hash] = item["image_b64"]
+
+    if not image_groups:
+        return [None] * len(items)
+
+    # Merge tags per image → single Gemini call
+    sem = asyncio.Semaphore(concurrency)
+    results_map: dict[str, list[dict]] = {}  # hash → gemini results
+
+    async def _eval_group(img_hash: str) -> None:
+        indices = image_groups[img_hash]
+        # Union of all gemini_tokens for this image
+        all_tags: list[str] = []
+        seen: set[str] = set()
+        for idx in indices:
+            for tag in items[idx]["gemini_tokens"]:
+                if tag not in seen:
+                    all_tags.append(tag)
+                    seen.add(tag)
+
+        async with sem:
+            try:
+                results_map[img_hash] = await evaluate_tags_with_gemini(image_b64_map[img_hash], all_tags)
+            except Exception as exc:
+                logger.error("[MatchRate] Gemini eval failed for group %s: %s", img_hash, exc)
+                results_map[img_hash] = []
+
+    await asyncio.gather(*[_eval_group(h) for h in image_groups])
+
+    # Map results back to individual scenes
+    output: list[dict[str, Any] | None] = [None] * len(items)
+    for img_hash, indices in image_groups.items():
+        all_results = results_map.get(img_hash, [])
+
+        for idx in indices:
+            item = items[idx]
+            scene_tokens = set(item["gemini_tokens"])
+            scene_results = [r for r in all_results if r["tag"] in scene_tokens]
+
+            gemini_matched = sum(1 for r in scene_results if r.get("present") and r.get("confidence", 0) >= 0.5)
+            gemini_total = len(scene_results)
+
+            wd14_m = item["wd14_matched"]
+            wd14_t = item["wd14_total"]
+            combined_matched = wd14_m + gemini_matched
+            combined_total = wd14_t + gemini_total
+            combined_rate = (combined_matched / combined_total) if combined_total else 0.0
+
+            summary = {
+                "gemini_matched": gemini_matched,
+                "gemini_total": gemini_total,
+                "combined_match_rate": combined_rate,
+                "details": scene_results,
+            }
+            output[idx] = summary
+
+            if item.get("scene_id") and db_factory:
+                _update_db_match_rate(
+                    scene_id=item["scene_id"],
+                    storyboard_id=item.get("storyboard_id"),
+                    combined_rate=combined_rate,
+                    wd14_matched=wd14_m,
+                    wd14_total=wd14_t,
+                    gemini_matched=gemini_matched,
+                    gemini_total=gemini_total,
+                    gemini_details=scene_results,
+                    db_factory=db_factory,
+                )
+
+    n_calls = len(image_groups)
+    n_scenes = sum(len(idxs) for idxs in image_groups.values())
+    logger.info(
+        "[MatchRate] Batch Gemini: %d scenes → %d API calls (saved %d)",
+        n_scenes,
+        n_calls,
+        n_scenes - n_calls,
+    )
+    return output
 
 
 def _update_db_match_rate(

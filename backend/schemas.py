@@ -2004,6 +2004,31 @@ class SceneValidationResponse(BaseModel):
     gemini_tokens: list[str] = []  # Tags pending Gemini evaluation
 
 
+class BatchValidateRequest(BaseModel):
+    """Batch validate multiple scenes (E-2: Gemini 호출 병합)."""
+
+    scenes: list[SceneValidateRequest]
+
+
+class BatchValidateResult(BaseModel):
+    """Single scene validation result within a batch."""
+
+    index: int
+    status: Literal["success", "failed"]
+    data: SceneValidationResponse | None = None
+    error: str | None = None
+
+
+class BatchValidateResponse(BaseModel):
+    """Response for POST /scene/validate-batch."""
+
+    results: list[BatchValidateResult]
+    total: int
+    succeeded: int
+    failed: int
+    gemini_pending: int = 0  # Scenes with pending Gemini evaluation
+
+
 class VideoCreateResponse(BaseModel):
     """Response for POST /video/create (sync)."""
 
