@@ -242,7 +242,12 @@ async def stream_graph_events(
     label: str,
 ) -> AsyncGenerator[str]:
     """Graph를 스트리밍하며 SSE 이벤트를 yield한다."""
-    from services.agent.observability import end_root_span, update_root_span, update_trace_on_interrupt  # noqa: PLC0415
+    from services.agent.observability import (  # noqa: PLC0415, E501
+        end_root_span,
+        update_root_span,
+        update_trace_on_completion,
+        update_trace_on_interrupt,
+    )
 
     # Safety preflight — 초기 생성 요청(topic 포함 dict)일 때만 실행
     if isinstance(graph_input, dict) and graph_input.get("topic"):
@@ -267,8 +272,19 @@ async def stream_graph_events(
         update_root_span(input_data=graph_input)
 
     async with get_compiled_graph() as graph:
+        # Resume 케이스: thread state에서 topic을 읽어 LangFuse input에 의미있는 값 설정
+        if not isinstance(graph_input, dict):
+            try:
+                snapshot = await graph.aget_state(config)
+                topic = (snapshot.values or {}).get("topic", "")
+                resume_val = getattr(graph_input, "resume", None)
+                action = resume_val.get("action") if isinstance(resume_val, dict) else None
+                update_root_span(input_data={"topic": topic, "resume_action": action, "thread_id": thread_id})
+            except Exception:
+                pass
         char_ids: list[int | None] = [None, None]
         interrupted = False
+        errored = False
         try:
             async for event in graph.astream(graph_input, config, stream_mode="updates"):
                 for node_name, node_output in event.items():
@@ -281,6 +297,7 @@ async def stream_graph_events(
             if _is_graph_interrupt(e):
                 interrupted = True
             else:
+                errored = True
                 logger.exception("[SSE] %s error: %s", label, e)
                 error_payload = {
                     "node": "error",
@@ -300,6 +317,13 @@ async def stream_graph_events(
             except Exception:
                 pass
 
+        # config의 요청별 handler에서 trace_id 추출 (v3: trace_context dict)
+        handler_trace_id = None
+        callbacks = config.get("callbacks", [])
+        if callbacks:
+            ctx = getattr(callbacks[0], "trace_context", None)
+            handler_trace_id = ctx.get("trace_id") if ctx else None
+
         if interrupted:
             interrupt_node, result = await read_interrupt_state(graph, config)
             meta = NODE_META.get(interrupt_node, {"label": "대기", "percent": 50})
@@ -310,14 +334,8 @@ async def stream_graph_events(
                 "status": "waiting_for_input",
                 "thread_id": thread_id,
             }
-            # config의 요청별 handler에서 trace_id 추출 (v3: trace_context dict)
-            handler_trace_id = None
-            callbacks = config.get("callbacks", [])
-            if callbacks:
-                ctx = getattr(callbacks[0], "trace_context", None)
-                handler_trace_id = ctx.get("trace_id") if ctx else None
-                if handler_trace_id:
-                    payload_interrupt["trace_id"] = handler_trace_id
+            if handler_trace_id:
+                payload_interrupt["trace_id"] = handler_trace_id
             if result:
                 payload_interrupt["result"] = result
 
@@ -327,6 +345,9 @@ async def stream_graph_events(
             )
 
             yield f"data: {json.dumps(payload_interrupt, ensure_ascii=False)}\n\n"
+        elif not errored:
+            # 정상 완료 시 interrupted: True stale 메타데이터를 리셋 (에러 케이스 제외)
+            update_trace_on_completion(trace_id=handler_trace_id)
 
         # 스트리밍 완료 시 root span 종료 (LangFuse 트레이스 그룹핑)
         end_root_span()

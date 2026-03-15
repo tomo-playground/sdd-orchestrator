@@ -184,6 +184,55 @@ def end_root_span() -> None:
         _current_root_span.set(None)
 
 
+def update_trace_on_completion(*, trace_id: str | None = None, output_data: dict | None = None) -> None:
+    """Resume 완료 시 LangFuse 트레이스의 interrupted 메타데이터를 리셋한다."""
+    if _langfuse_client is None:
+        return
+
+    raw_id = trace_id or _current_trace_id.get()
+    if not raw_id:
+        return
+    resolved_trace_id = _to_hex32(raw_id)
+
+    try:
+        import httpx
+
+        now = datetime.now(UTC).isoformat()
+        body: dict = {
+            "id": resolved_trace_id,
+            "timestamp": now,
+            "metadata": {
+                "interrupted": False,
+                "completed": True,
+            },
+        }
+        if output_data is not None:
+            body["output"] = output_data
+
+        resp = httpx.post(
+            f"{LANGFUSE_BASE_URL}/api/public/ingestion",
+            auth=(LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY),
+            json={
+                "batch": [
+                    {
+                        "id": uuid.uuid4().hex,
+                        "type": "trace-create",
+                        "timestamp": now,
+                        "body": body,
+                    },
+                ],
+            },
+            timeout=5.0,
+        )
+        errors = resp.json().get("errors", [])
+        if errors:
+            logger.warning("[LangFuse] completion 업데이트 오류: %s", errors)
+        else:
+            logger.info("[LangFuse] completion 메타데이터 업데이트 (trace=%s)", resolved_trace_id[:16])
+    except Exception as e:
+        logger.warning("[LangFuse] completion 트레이스 업데이트 실패: %s", e)
+
+
 def flush_langfuse() -> None:
     """shutdown 시 LangFuse 버퍼를 플러시한다."""
     end_root_span()
