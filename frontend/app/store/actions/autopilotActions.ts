@@ -4,7 +4,7 @@ import axios from "axios";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
-import { AUTO_RUN_STEPS, API_BASE, API_TIMEOUT } from "../../constants";
+import { AUTO_RUN_STEPS, API_BASE, API_TIMEOUT, TTS_ENGINE } from "../../constants";
 import { generateBatchImages } from "./batchActions";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
 import { resolveSceneMultiGen } from "../../utils/sceneSettingsResolver";
@@ -265,6 +265,47 @@ export async function runAutoRunFromStep(
             `Image failed for Scene #${failedSceneOrders.map((o) => o + 1).join(", #")} (${workingScenes.length - failedSceneOrders.length} saved)`
           );
         }
+      }
+
+      if (currentStep === "tts") {
+        setAutoRunStep("tts", "Pre-building TTS audio...");
+        setActiveTab("publish");
+        const storyboardId = useContextStore.getState().storyboardId;
+        if (!storyboardId) throw new Error("Storyboard ID required for TTS prebuild");
+
+        const ttsScenes = workingScenes
+          .filter((s) => s.script?.trim())
+          .map((s) => ({
+            scene_db_id: s.id,
+            script: s.script,
+            speaker: s.speaker,
+            voice_design_prompt: s.voice_design_prompt ?? undefined,
+            tts_asset_id: s.tts_asset_id ?? undefined,
+          }));
+
+        if (ttsScenes.length > 0) {
+          const res = await axios.post(
+            `${API_BASE}/scene/tts-prebuild`,
+            { storyboard_id: storyboardId, scenes: ttsScenes, tts_engine: TTS_ENGINE },
+            { timeout: API_TIMEOUT.VIDEO_RENDER, signal: abortController.signal }
+          );
+          const { prebuilt, skipped, failed } = res.data;
+          pushAutoRunLog(`TTS: ${prebuilt} prebuilt, ${skipped} skipped, ${failed} failed`);
+
+          // Update store with new tts_asset_ids
+          const results: Array<{ scene_db_id: number; tts_asset_id: number | null; status: string }> =
+            res.data.results ?? [];
+          for (const r of results) {
+            if (r.tts_asset_id && r.status === "prebuilt") {
+              const scene = workingScenes.find((s) => s.id === r.scene_db_id);
+              if (scene) {
+                useStoryboardStore.getState().updateScene(scene.client_id, { tts_asset_id: r.tts_asset_id });
+              }
+            }
+          }
+          workingScenes = useStoryboardStore.getState().scenes;
+        }
+        pushAutoRunLog("TTS prebuild complete");
       }
 
       if (currentStep === "render") {

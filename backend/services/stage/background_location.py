@@ -8,28 +8,20 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from config import logger
+from config import BG_QUALITY_OVERRIDES, logger
 from models.scene import Scene
 from models.tag import Tag
 from services.keywords.db_cache import TagAliasCache
-
-# ── Background quality overrides ─────────────────────────────────────
-# StyleProfile.default_positive is optimized for character scene quality.
-# Background generation uses different quality tags (atmospheric, no face focus).
-# Keyed by StyleProfile ID.
-_BG_QUALITY_OVERRIDES: dict[int, str] = {
-    2: "RAW photo, soft ambient lighting, muted tones, shallow depth of field, natural light, 35mm film, high quality",  # Realistic
-}
 
 
 def resolve_bg_quality_tags(style_ctx) -> list[str] | None:
     """Resolve background-specific quality tags.
 
-    Uses _BG_QUALITY_OVERRIDES when available, falls back to StyleProfile.default_positive.
+    Uses BG_QUALITY_OVERRIDES (config.py) when available, falls back to StyleProfile.default_positive.
     """
     if not style_ctx:
         return None
-    override = _BG_QUALITY_OVERRIDES.get(style_ctx.profile_id)
+    override = BG_QUALITY_OVERRIDES.get(style_ctx.profile_id)
     quality_str = override if override is not None else style_ctx.default_positive
     return quality_str.split(", ") if quality_str else None
 

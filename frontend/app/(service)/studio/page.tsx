@@ -290,6 +290,7 @@ function StudioContent() {
           <AutoRunStatus
             autoRunState={autopilot.autoRunState}
             autoRunLog={autopilot.autoRunLog}
+            autoRunProgress={autopilot.autoRunProgress}
             storyboardTitle={storyboardTitle || undefined}
             onResume={(step) => {
               const stepIndex = AUTO_RUN_STEPS.findIndex((s) => s.id === step);

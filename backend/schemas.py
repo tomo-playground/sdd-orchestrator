@@ -1327,7 +1327,6 @@ class GeminiSuggestResponse(BaseModel):
     cost_usd: float  # 비용 ($)
 
 
-
 # ============================================================
 # Voice Preset Schemas
 # ============================================================
@@ -3112,6 +3111,43 @@ class BatchTTSPreviewResponse(BaseModel):
     cached_count: int
     generated_count: int
     failed_count: int
+
+
+class TtsPrebuildSceneItem(BaseModel):
+    """TTS 프리빌드 요청의 씬 단위 항목."""
+
+    scene_db_id: int
+    script: str
+    speaker: str = DEFAULT_SPEAKER
+    voice_design_prompt: str | None = None
+    tts_asset_id: int | None = None  # 이미 있으면 스킵
+
+
+class TtsPrebuildRequest(BaseModel):
+    """POST /scene/tts-prebuild — TTS 사전 생성 요청."""
+
+    storyboard_id: int
+    scenes: list[TtsPrebuildSceneItem] = Field(max_length=50)
+    tts_engine: str = "qwen"
+
+
+class TtsPrebuildResult(BaseModel):
+    """TTS 프리빌드 씬별 결과."""
+
+    scene_db_id: int
+    tts_asset_id: int | None
+    status: Literal["prebuilt", "skipped", "failed"]
+    duration: float = 0.0
+    error: str | None = None
+
+
+class TtsPrebuildResponse(BaseModel):
+    """POST /scene/tts-prebuild — TTS 사전 생성 응답."""
+
+    results: list[TtsPrebuildResult]
+    prebuilt: int
+    skipped: int
+    failed: int
 
 
 class SceneFramePreviewRequest(BaseModel):

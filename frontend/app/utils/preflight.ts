@@ -7,27 +7,14 @@
  * 3. Whether autorun can proceed
  */
 
-import type { Scene, DraftScene, AutoRunStepId } from "../types";
-export type { AutoRunStepId } from "../types";
+import type { Scene, DraftScene, AutoRunStepId, SettingsCheck } from "../types";
+export type { AutoRunStepId, SettingsCheck } from "../types";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useRenderStore } from "../store/useRenderStore";
 import { useContextStore } from "../store/useContextStore";
-import { checkStageStep, checkImagesStep, checkRenderStep } from "./preflight-steps";
+import { checkStageStep, checkImagesStep, checkTtsStep, checkRenderStep } from "./preflight-steps";
 import { isMultiCharStructure } from "./structure";
 export type { StageCheckInput } from "./preflight-steps";
-
-// ============================================================
-// Types
-// ============================================================
-
-export interface SettingsCheck {
-  valid: boolean;
-  value: string | null;
-  required: boolean;
-  message?: string;
-  /** valid=true이지만 soft warning이 있을 때 (예: BGM 없음, ControlNet 비활성) */
-  warning?: boolean;
-}
 
 export interface StepCheck {
   needed: boolean;
@@ -62,6 +49,7 @@ export interface PreflightResult {
   steps: {
     stage: StepCheck;
     images: StepCheck;
+    tts: SettingsCheck;
     render: StepCheck;
   };
 
@@ -335,7 +323,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
   }
 
   // Check steps
-  const steps = {
+  const steps: PreflightResult["steps"] = {
     stage: checkStageStep({
       scenes: input.scenes,
       characterName: input.characterName,
@@ -346,6 +334,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
       bgmPrompt: input.bgmPrompt,
     }),
     images: checkImagesStep(input.scenes),
+    tts: checkTtsStep(input.scenes),
     render: checkRenderStep(input.scenes, input.videoUrl),
   };
 
@@ -370,15 +359,18 @@ export function getStepsToExecute(
   preflight: PreflightResult,
   userOverrides?: Partial<Record<AutoRunStepId, boolean>>
 ): AutoRunStepId[] {
-  const stepOrder: AutoRunStepId[] = ["stage", "images", "render"];
+  const stepOrder: AutoRunStepId[] = ["stage", "images", "tts", "render"];
 
   return stepOrder.filter((stepId) => {
     // User can force enable/disable
     if (userOverrides && stepId in userOverrides) {
       return userOverrides[stepId];
     }
-    // Otherwise use preflight result
-    return preflight.steps[stepId].needed;
+    // tts uses SettingsCheck (valid) instead of StepCheck (needed)
+    if (stepId === "tts") {
+      return preflight.steps.tts.valid;
+    }
+    return (preflight.steps[stepId] as StepCheck).needed;
   });
 }
 

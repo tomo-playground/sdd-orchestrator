@@ -7,6 +7,7 @@ import { AUTO_RUN_STEPS } from "../../constants";
 type AutoRunStatusProps = {
   autoRunState: AutoRunState;
   autoRunLog: string[];
+  autoRunProgress?: number;
   storyboardTitle?: string;
   onResume: (step: AutoRunStepId) => void;
   onRestart: () => void;
@@ -16,6 +17,7 @@ type AutoRunStatusProps = {
 export default function AutoRunStatus({
   autoRunState,
   autoRunLog,
+  autoRunProgress,
   storyboardTitle,
   onResume,
   onRestart,
@@ -113,6 +115,14 @@ export default function AutoRunStatus({
           );
         })}
       </div>
+      {autoRunState.status === "running" && autoRunProgress != null && (
+        <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-100">
+          <div
+            className="h-full rounded-full bg-zinc-800 transition-all duration-500"
+            style={{ width: `${autoRunProgress}%` }}
+          />
+        </div>
+      )}
       <p>{autoRunState.message}</p>
       {autoRunState.error && <p className="text-red-500">{autoRunState.error}</p>}
       {isError && autoRunState.step !== "idle" && (

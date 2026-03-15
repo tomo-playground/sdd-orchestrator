@@ -47,6 +47,7 @@ export const DEFAULT_POST_CARD_SETTINGS: PostCardSettings = {
 export const AUTO_RUN_STEPS = [
   { id: "stage", label: "Stage" },
   { id: "images", label: "Images" },
+  { id: "tts", label: "TTS" },
   { id: "render", label: "Render" },
 ] as const;
 

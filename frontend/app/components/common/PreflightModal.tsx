@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import type { PreflightResult, AutoRunStepId } from "../../utils/preflight";
+import type { SettingsCheck } from "../../types";
+import type { PreflightResult, AutoRunStepId, StepCheck } from "../../utils/preflight";
 import { estimateTime, getStepsToExecute } from "../../utils/preflight";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { SUCCESS_ICON, ERROR_ICON } from "../ui/variants";
@@ -16,8 +17,16 @@ interface PreflightModalProps {
 const STEP_LABELS: Record<AutoRunStepId, string> = {
   stage: "Stage",
   images: "Images",
+  tts: "TTS",
   render: "Render",
 };
+
+/** tts uses SettingsCheck (valid) while others use StepCheck (needed) */
+function stepNeeded(stepId: AutoRunStepId, preflight: PreflightResult): boolean {
+  if (stepId === "tts") return preflight.steps.tts.valid;
+  const step = preflight.steps[stepId] as StepCheck;
+  return step.needed;
+}
 
 export default function PreflightModal({ isOpen, preflight, onClose, onRun }: PreflightModalProps) {
   const trapRef = useFocusTrap(isOpen);
@@ -29,7 +38,7 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
   const toggleStep = (stepId: AutoRunStepId) => {
     setStepOverrides((prev) => ({
       ...prev,
-      [stepId]: prev[stepId] === undefined ? !preflight.steps[stepId].needed : !prev[stepId],
+      [stepId]: prev[stepId] === undefined ? !stepNeeded(stepId, preflight) : !prev[stepId],
     }));
   };
 
@@ -37,7 +46,7 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
     if (stepId in stepOverrides) {
       return stepOverrides[stepId]!;
     }
-    return preflight.steps[stepId].needed;
+    return stepNeeded(stepId, preflight);
   };
 
   const stepsToRun = getStepsToExecute(preflight, stepOverrides);
@@ -182,6 +191,7 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
                 steps: {
                   stage: { ...preflight.steps.stage, needed: isStepEnabled("stage") },
                   images: { ...preflight.steps.images, needed: isStepEnabled("images") },
+                  tts: preflight.steps.tts,
                   render: { ...preflight.steps.render, needed: isStepEnabled("render") },
                 },
               })}
@@ -255,6 +265,7 @@ function SettingRow({
 }
 
 function StepRow({
+  stepId,
   label,
   check,
   enabled,
@@ -263,16 +274,19 @@ function StepRow({
 }: {
   stepId: AutoRunStepId;
   label: string;
-  check: {
-    needed: boolean;
-    reason: string;
-    count?: number;
-    categories?: { label: string; ready: boolean; detail: string }[];
-  };
+  check: SettingsCheck | StepCheck;
   enabled: boolean;
   onToggle: () => void;
   disabled: boolean;
 }) {
+  // tts uses SettingsCheck; all others use StepCheck
+  const isSettingsCheck = stepId === "tts";
+  const needed = isSettingsCheck ? (check as SettingsCheck).valid : (check as StepCheck).needed;
+  const reasonText = isSettingsCheck
+    ? ((check as SettingsCheck).value ?? (check as SettingsCheck).message ?? "-")
+    : (check as StepCheck).reason;
+  const categories = isSettingsCheck ? undefined : (check as StepCheck).categories;
+
   return (
     <div className="px-3 py-2 text-sm">
       <div className="flex items-center justify-between">
@@ -288,15 +302,15 @@ function StepRow({
         </div>
         <span
           className={`text-xs ${
-            check.needed ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500"
+            needed ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500"
           }`}
         >
-          {check.needed ? check.reason : `✓ ${check.reason}`}
+          {needed ? reasonText : `✓ ${reasonText}`}
         </span>
       </div>
-      {check.categories && (
+      {categories && (
         <div className="mt-1.5 ml-6 flex flex-wrap gap-1.5">
-          {check.categories.map((cat) => (
+          {categories.map((cat) => (
             <span
               key={cat.label}
               className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${

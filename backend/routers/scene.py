@@ -32,6 +32,8 @@ from schemas import (
     SceneGenerateResponse,
     SceneValidateRequest,
     SceneValidationResponse,
+    TtsPrebuildRequest,
+    TtsPrebuildResponse,
     ValidateAndAutoEditResponse,  # noqa: F401
 )
 from services.asset_service import AssetService
@@ -587,6 +589,19 @@ async def cancel_image_gen(task_id: str):
     task.notify()
     logger.info("[Scene Gen] Task %s cancelled", task_id)
     return SceneCancelResponse(ok=True)
+
+
+@router.post("/scene/tts-prebuild", response_model=TtsPrebuildResponse)
+async def tts_prebuild(request: TtsPrebuildRequest, db: Session = Depends(get_db)):
+    """Autopilot 렌더 전 TTS 사전 생성.
+
+    - 이미 tts_asset_id가 있는 씬은 건너뛴다(skipped).
+    - 나머지 씬을 TTS 생성 후 Scene.tts_asset_id를 업데이트한다(prebuilt).
+    - 씬 단위 실패는 status='failed'로 기록하며 전체 요청은 200을 반환한다.
+    """
+    from services.tts_prebuild import prebuild_tts_for_scenes
+
+    return await prebuild_tts_for_scenes(request, db)
 
 
 @router.get(

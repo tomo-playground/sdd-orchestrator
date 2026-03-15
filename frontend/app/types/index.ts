@@ -151,7 +151,16 @@ export type KenBurnsPreset =
   | "pan_zoom_down"
   | "random";
 
-export type AutoRunStepId = "stage" | "images" | "render";
+export type AutoRunStepId = "stage" | "images" | "tts" | "render";
+
+export type SettingsCheck = {
+  valid: boolean;
+  value: string | null;
+  required: boolean;
+  message?: string;
+  /** valid=true이지만 soft warning이 있을 때 (예: BGM 없음, ControlNet 비활성) */
+  warning?: boolean;
+};
 
 export type CriticalFailureItem = {
   failure_type: "gender_swap" | "no_subject" | "count_mismatch";

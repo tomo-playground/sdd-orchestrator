@@ -4,7 +4,7 @@
  * Separated from preflight.ts to stay within the 400-line file limit.
  */
 
-import type { Scene, DraftScene } from "../types";
+import type { Scene, DraftScene, SettingsCheck } from "../types";
 import type { StepCheck } from "./preflight";
 
 // ============================================================
@@ -96,6 +96,24 @@ export function checkImagesStep(scenes: (Scene | DraftScene)[]): StepCheck {
     needed: true,
     reason: `${scenesWithoutImage.length}/${scenes.length} 이미지 필요`,
     sceneIds: scenesWithoutImage.map((s) => s.id),
+  };
+}
+
+// ============================================================
+// TTS Step
+// ============================================================
+
+export function checkTtsStep(scenes: (Scene | DraftScene)[]): SettingsCheck {
+  const withScript = scenes.filter((s) => s.script?.trim());
+  if (withScript.length === 0) {
+    return { valid: false, value: "스크립트 없음", required: false };
+  }
+  const missing = withScript.filter((s) => !(s as Scene).tts_asset_id);
+  // valid: false when all prebuilt → step skipped; valid: true when generation needed
+  return {
+    valid: missing.length > 0,
+    value: missing.length > 0 ? `${missing.length}개 생성 필요` : "All prebuilt",
+    required: false,
   };
 }
 

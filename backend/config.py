@@ -532,6 +532,14 @@ STAGE_STATUS_STAGING = "staging"
 STAGE_STATUS_STAGED = "staged"
 STAGE_STATUS_FAILED = "failed"
 
+# Background quality overrides per StyleProfile ID.
+# StyleProfile.default_positive is optimized for character scenes;
+# background generation uses different atmospheric quality tags.
+# Keyed by StyleProfile.id.
+BG_QUALITY_OVERRIDES: dict[int, str] = {
+    2: "RAW photo, soft ambient lighting, muted tones, shallow depth of field, natural light, 35mm film, high quality",  # Realistic
+}
+
 # Reference AdaIN — environment atmosphere transfer (replaces Canny for BG pinning)
 # Transfers color statistics (mean/variance) only, no spatial structure
 REFERENCE_ADAIN_WEIGHT = float(os.getenv("REFERENCE_ADAIN_WEIGHT", "0.35"))
@@ -736,6 +744,7 @@ TTS_MAX_RETRIES = int(os.getenv("TTS_MAX_RETRIES", "2"))  # Retry count on quali
 TTS_DEFAULT_SEED = int(os.getenv("TTS_DEFAULT_SEED", "42"))  # Fallback seed when preset has no seed
 
 TTS_PREVIEW_BATCH_CONCURRENCY = int(os.getenv("TTS_PREVIEW_BATCH_CONCURRENCY", "3"))
+TTS_PREBUILD_CONCURRENCY = int(os.getenv("TTS_PREBUILD_CONCURRENCY", "3"))  # Autopilot prebuild 동시성
 MAX_PREVIEW_IMAGE_BYTES = int(os.getenv("MAX_PREVIEW_IMAGE_BYTES", str(10 * 1024 * 1024)))  # 10MB
 
 # --- TTS Performance ---
