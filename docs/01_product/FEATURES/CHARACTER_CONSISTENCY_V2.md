@@ -1,9 +1,9 @@
 # Phase 30: 캐릭터 일관성 강화 (Character Consistency V2)
 
-**상태**: 진행중 — A~N(11개) 완료, **O(Multi-Character Scene) 완료 (03-14)**
+**상태**: 진행중 — A~N(11개) + F-2 + O(Multi-Character) + P(배경-대본 일관성) 완료. C/D 보류(SDXL 재검토)
 **우선순위**: P0 (영상 품질 핵심)
 **관련**: Phase 7-0 (ControlNet), Phase 8 (Multi-Style), CHARACTER_CONSISTENCY.md (V1), MULTI_CHARACTER.md
-**최종 갱신**: 2026-03-14
+**최종 갱신**: 2026-03-15
 
 ---
 
@@ -476,8 +476,10 @@ Step 6  O-6 (문서)                                 ■    — 동기화
 Week 1     Sub-Phase A (Config 튜닝) ■■ 0.5일                    ✅ 완료
            Sub-Phase B (Gemini 템플릿) ■■■■ 2일                  ✅ 완료
            Sub-Phase F-0/F-1 (프롬프트 네이밍 + 데이터 보정) ■■ 1일  ✅ 완료
+           Sub-Phase F-2 (Preview→Reference 리네이밍) ■■ 1일      ✅ 완료 (03-07)
            Sub-Phase H~N (11개 Sub-Phase) ■■■■■■■■ 4일           ✅ 완료
            Sub-Phase O (Multi-Character Scene) ■■ 1일             ✅ 완료 (03-14)
+           Sub-Phase P (배경-대본 일관성 + Location Planner) ■■■ 1일 ✅ 완료 (03-15)
 Week 2-3   Sub-Phase C (Dual IP-Adapter) ■■■■■■ 3일              대기 (SDXL 재검토)
            Sub-Phase D (LoRA 트레이닝) ■■■■■■■■■■ 4주            대기 (SDXL 재검토)
 ```
