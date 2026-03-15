@@ -35,10 +35,11 @@
 | Phase 29 (Video Pre-validation) | **전체 완료 (A~D)** — TTS 프리뷰/렌더 연결 + 씬 필드 소실 수정 + Spread Passthrough + 타임라인 시각화 + 통합 사전검증 리포트(캐릭터/음성/이미지/스크립트/TTS/시간 7항목, 자동 실행, 렌더 연동) |
 | Casting 네이밍 정규화 | 완료 — character_id→character_a_id (Casting 컨텍스트), 27개 파일, JSONB 마이그레이션 |
 | Checkpointer 리팩토링 | 완료 — 싱글턴→per-request 패턴, DB 풀 고갈 방지 |
-| **Phase 30 (Character Consistency V2)** | **진행 중** — A~N(11개) + O(Multi-Character Scene) + **P(배경-대본 일관성 + IP-Adapter 강화) 완료** (03-15) + **F-2(Preview→Reference 네이밍 통일) 완료** (03-07). P: ① DB 배경 매핑 핫픽스(씬 22456/57/64 bg 오매핑 수정) ② Writer Location Continuity 강화(4규칙+self-check) ③ Director Checkpoint Location Map QC(writer_plan 전달+5번 평가기준) ④ Finalize cinematic 안정화(`_stabilize_location_cinematic`: location 그룹 팔레트 기반) ⑤ BG 배지 hover 메타 오버레이(썸네일+tags) ⑥ IP-Adapter race condition 수정(refsLoadedRef)+image_url 노출 ⑦ Location Planner 독립 노드(concept_gate→location_planner→writer, 20노드, `build_director_context` 공통 헬퍼 추출). F-2: characters.preview_image_* → reference_image_*(DB RENAME+FK+인덱스+ORM+서비스 파일+스키마+Frontend 20파일). C(Dual IP-Adapter) D(LoRA 트레이닝) SDXL 전환 후 재검토 |
+| **Phase 30 (Character Consistency V2)** | **전체 완료 (A~P, F-2)** — A~N(11개) + O(Multi-Character Scene) + P(배경-대본 일관성 + IP-Adapter 강화) + F-2(Preview→Reference 네이밍 통일). C(Dual IP-Adapter) D(LoRA 트레이닝)는 SDXL 전환 후 재검토로 보류 — 백로그 등록 |
 | **Phase 31 (UX Navigation Overhaul)** | **전체 완료 (A~F)** — A(Admin 유령 31파일 삭제+Settings 이동) B(상태 누수 3건+resetTransientStores DRY) C(LoRA Service/Admin split+response_model+Scene URL 통일) D(SubNavShell 통합+Library LoRA 탭) E(Quick-Start API+SetupWizard 빠른시작+Dead Code 삭제) F(Group Soft Delete+Trash 연동+프리셋 FK 참조 체크 409) |
 | **Forge 전환 (Stage 1)** | **완료** — A1111→Forge Docker 전환, API 호환성(sampler/scheduler 분리, ControlNet 3슬롯 패딩, IP-Adapter 모듈명, Hi-Res 패치), 파라미터 튜닝(CFG 6.5, DPM++ 2M SDE Karras), ADetailer 확장 설치 |
 | **NoobAI-XL V-Pred 전환 (Stage 4)** | **완료** — SD1.5→NoobAI-XL V-Pred 1.0 전체 스택 마이그레이션, Euler/CFG 4.5/832x1216, is_active 필터 8곳, SD1.5 LoRA 13건 삭제+SDXL LoRA 3종 등록, StyleProfile 2개(Flat Color+MeMaXL)+LoRA 연동, DB 클렌징+MinIO 고아 정리 |
+| **LLM Provider 추상화 Phase A~E** | **완료** (03-15) — `services/llm/` 패키지 구축, `google.genai` 직결 제거, trace + PROHIBITED fallback 중복 해소. Phase F(OllamaProvider)는 LiteLLM SDK 도입으로 대체 예정 — 백로그 등록 |
 | 테스트 | Backend 3,451 + Frontend 543 + E2E 36 = **총 4,030개** |
 
 ### 최근 작업
@@ -269,7 +270,8 @@ Phase 20 이후 또는 우선순위 미정 항목.
 
 | 기능 | 참조 |
 |------|------|
-| **LLM Provider 추상화 (멀티 LLM 지원)** | [설계](../03_engineering/backend/LLM_PROVIDER_ABSTRACTION.md) — Gemini 직결 → Provider 인터페이스 분리, Ollama 대응 준비. Phase A~F 6단계. 노드 파일에서 `google.genai` 직접 import 제거, trace + PROHIBITED fallback 중복 해소 |
+| **LLM Provider 추상화 Phase A~E 완료** | [설계](../03_engineering/backend/LLM_PROVIDER_ABSTRACTION.md) — `services/llm/` 패키지 구축, `google.genai` 직결 제거, trace + PROHIBITED fallback 중복 해소. Phase F(OllamaProvider)는 아래 LiteLLM 항목으로 대체 예정 |
+| **LiteLLM SDK 도입 (Phase F 대체)** | Gemini 외 두 번째 Provider 실제 도입 시점에 착수. `GeminiProvider` 내부를 LiteLLM 호출로 교체 → 100+ Provider 지원, 폴백/재시도 내장, `OllamaProvider` 직접 구현 불필요. 트레이스 중복 방지를 위해 LiteLLM 자동 LangFuse 콜백 비활성화 + 기존 `trace_llm_call()` 유지 필수. OSS LLMOps Stack(LangGraph + LangFuse + LiteLLM) 표준 조합 완성. **착수 조건**: Ollama/Claude 등 두 번째 Provider 실제 사용 확정 시 |
 | PipelineControl 커스텀 (노드 on/off) + 분산 큐 (Celery/Redis) | Phase 9-4 잔여 |
 | 배치 렌더링 + 큐 (그룹 일괄 렌더, WebSocket 진행률) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
