@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 
-from config import GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, logger, template_env
+from config import GEMINI_FALLBACK_MODEL, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, logger, template_env
 from config_pipelines import LANGGRAPH_PLANNING_ENABLED
 from services.agent.llm_models import LocationPlan
 from services.agent.observability import trace_llm_call
@@ -67,6 +67,22 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
             llm.record(response)
 
         text = (response.text or "").strip()
+        if not text:
+            feedback = getattr(response, "prompt_feedback", None)
+            block_reason = getattr(feedback, "block_reason", None) if feedback else None
+            if block_reason and "PROHIBITED_CONTENT" in str(block_reason):
+                logger.warning("[LocationPlanner][Fallback] PROHIBITED_CONTENT → %s", GEMINI_FALLBACK_MODEL)
+                async with trace_llm_call(
+                    name="location_planner_fallback", input_text=prompt, model=GEMINI_FALLBACK_MODEL
+                ) as llm_fb:
+                    response = await gemini_client.aio.models.generate_content(
+                        model=GEMINI_FALLBACK_MODEL,
+                        contents=prompt,
+                        config=config,
+                    )
+                    llm_fb.record(response)
+                text = (response.text or "").strip()
+
         if text.startswith("```"):
             text = text.split("\n", 1)[-1].rsplit("```", 1)[0]
 

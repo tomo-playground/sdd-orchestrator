@@ -532,9 +532,10 @@ def _persist_voice_design(scene_idx: int, scene_db_id: int | None, voice_design:
         from models import Scene as SceneModel  # noqa: PLC0415
 
         with get_db_session() as _db:
-            _db.query(SceneModel).filter(SceneModel.id == scene_db_id).update(
-                {"voice_design_prompt": voice_design}
-            )
+            _db.query(SceneModel).filter(
+                SceneModel.id == scene_db_id,
+                SceneModel.deleted_at.is_(None),
+            ).update({"voice_design_prompt": voice_design})
             _db.commit()
         logger.info("Scene %d (db_id=%d): voice_design_prompt write-back 완료", scene_idx, scene_db_id)
     except Exception as _e:
