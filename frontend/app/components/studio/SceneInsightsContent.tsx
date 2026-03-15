@@ -53,13 +53,14 @@ export default function SceneInsightsContent({
           <div className="grid grid-cols-3 gap-1.5">
             {scenesInfo!.map((scene, index) => {
               const result = imageValidationResults![scene.client_id];
-              const rate = result?.match_rate;
-              const hasRate = rate !== undefined && rate !== null;
+              const rawRate = result?.match_rate;
+              const rate = rawRate != null ? rawRate * 100 : null;
+              const hasRate = rate !== null;
               const colorClass = !hasRate
                 ? "border-zinc-200 bg-zinc-50 text-zinc-400"
-                : rate >= 90
+                : rate! >= 90
                   ? `${SUCCESS_BORDER} ${SUCCESS_BG} ${SUCCESS_TEXT}`
-                  : rate >= 70
+                  : rate! >= 70
                     ? `${WARNING_BORDER} ${WARNING_BG} ${WARNING_TEXT}`
                     : `${ERROR_BORDER} ${ERROR_BG} ${ERROR_TEXT}`;
 

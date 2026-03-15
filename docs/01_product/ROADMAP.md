@@ -43,8 +43,13 @@
 | **LLM Provider 추상화 Phase A~E** | **전체 완료 (ARCHIVED)** |
 | 테스트 | Backend 3,466 + Frontend 543 + E2E 36 = **총 4,045개** |
 
+### 진행 중
+
+- **Phase 32**: Auto Run Pipeline Hardening — 14/17 완료 (잔여: B-1 TTS prebuild API, D-5 progress bar, E-2 DBA 리뷰) ([명세](FEATURES/AUTO_RUN_PIPELINE_HARDENING.md))
+
 ### 최근 작업
 
+- **03-15 Phase 32 착수**: Stage 루프 버그(A-1/A-2) + TTS is_temp promote(B-2) + Preflight bgmMode(C-1/C-2) + ResumeConfirmModal 연결(D-1) + 완료 단계 비활성화(D-2) + batch seed/canStore(D-3/D-4) + TTS_ENGINE SSOT(E-1) + location key 헬퍼(E-3) + polling AbortSignal(E-4) + asyncio.gather 병렬화(E-6). 14/17 항목 완료
 - **03-15 안정화**: Finalize identity 태그 누출 차단(`_enforce_character_clothing` 3단계 제거 로직) + context_tags alias 재적용 순서 보장(`_rebuild_image_prompt_from_context_tags` 후 `_apply_tag_aliases` 재실행) + TTS decrackle voiced-region P99.5 기반 정밀화 + `_load_tags_by_groups` DB 쿼리 통합 + 테스트 +15건
 - **03-03~03-15 작업**: Phase 29~31, Forge 전환, NoobAI-XL V-Pred 전환, LLM Provider 추상화 A~E, LangFuse Observability 개선, MusicGen/TTS 품질, 안정화. [아카이브](../99_archive/archive/ROADMAP_PHASE_27_31.md)
 - **03-01~03-02 작업**: Phase 26~28, Chat System, Pipeline Resilience, Character-Group 소유권, Service/Admin 분리, Casting/Checkpointer, QA 테스트 등. [아카이브](../99_archive/archive/ROADMAP_PHASE_27_31.md)
@@ -97,6 +102,41 @@
 | 31 | UX Navigation Overhaul | Admin 유령 삭제, 상태 누수, LoRA split, SubNavShell, Quick-Start, Group SoftDelete+Trash | [아카이브](../99_archive/archive/ROADMAP_PHASE_27_31.md) · [명세](FEATURES/UX_NAVIGATION_OVERHAUL.md) |
 | — | Forge 전환 + NoobAI-XL V-Pred | A1111→Forge Docker, SD1.5→NoobAI-XL V-Pred 1.0, CFG 4.5/832x1216, SDXL LoRA 3종, DB 클렌징 | [아카이브](../99_archive/archive/ROADMAP_PHASE_27_31.md) |
 | — | LLM Provider 추상화 (A~E) | `services/llm/` 패키지, `google.genai` 직결 제거, trace+PROHIBITED fallback 중복 해소, ruff CLEAN | [아카이브](../99_archive/archive/ROADMAP_PHASE_27_31.md) · [설계](../03_engineering/backend/LLM_PROVIDER_ABSTRACTION.md) |
+
+---
+
+## Phase 32: Auto Run Pipeline Hardening (진행중)
+
+**목표**: Auto Run(Autopilot) 핵심 버그 수정 + TTS 단계 추가 + Resume 기능 연결
+**명세**: [FEATURES/AUTO_RUN_PIPELINE_HARDENING.md](FEATURES/AUTO_RUN_PIPELINE_HARDENING.md)
+
+### Sprint A: Stage 루프 버그 수정 (P0)
+- [x] A-1: `checkStageStep` 환경 태그 없는 씬 예외 처리 — `hasEnvironmentTags()` 헬퍼 + `withoutBg` 필터 조건 추가
+- [x] A-2: stage 부분 할당 실패 경고 로그 — assign 후 env 태그 있는 미할당 씬 카운트 경고
+
+### Sprint B: TTS 단계 추가 및 Asset 보호 (P0)
+- [ ] B-1: `AUTO_RUN_STEPS`에 "tts" 단계 추가 + TTS prebuild API 구현 (Backend) + `checkTtsStep` 추가
+- [x] B-2: render 완료 후 사용된 tts_asset `is_temp=False` promote — GC 손실 방지 (`scene_processing.py`)
+- [ ] B-3: `SCENE_TRANSIENT_FIELDS`와 `tts_asset_id` 의미론적 정합성 명시
+
+### Sprint C: Preflight 정확성 개선 (P0)
+- [x] C-1: `checkBgm()`에 `bgmMode` 파라미터 추가 — bgmMode="auto" 시 BGM 경고 제거
+- [x] C-2: `pendingAutoRun`/`onResume`/`onRestart` 3곳 모두 preflight 기반 `stepsToRun` 결정
+
+### Sprint D: P1 버그 수정
+- [x] D-1: `ResumeConfirmModal` 연결 — `studio/page.tsx` checkpoint localStorage 저장/로드 + 모달 표시 + resume 로직
+- [x] D-2: Resume 시 완료된 단계 버튼 비활성 — `AutoRunStatus.tsx` isDone 단계는 span 렌더링
+- [x] D-3: `batchActions.ts` seed 강제 `-1` 제거 → `Math.random()` 명시적 seed
+- [x] D-4: `generateBatchImages` canStore=false → `console.warn` 경고 로그
+- [ ] D-5: `autoRunProgress` progress bar 연결 — `AutoRunStatus` props에 전달
+
+### Sprint E: P2 코드 품질
+- [x] E-1: `tts_engine: "qwen"` 하드코딩 2곳 → `TTS_ENGINE` 상수 SSOT (`constants/index.ts`)
+- [ ] E-2: `_BG_QUALITY_OVERRIDES` StyleProfile ID 하드코딩 → DB/config.py 이동 (DBA 리뷰)
+- [x] E-3: location key 계산 로직 중복 → `_compute_location_key()` 헬퍼로 통합
+- [x] E-4: `renderWithProgress` polling 폴백에 AbortSignal 전달
+- [x] E-5: `lastRenderHash` 미사용 필드 JSDoc 주석 명시
+- [x] E-6: Stage location 생성 `asyncio.gather` 병렬화
 
 ---
 
@@ -190,7 +230,7 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
 | Storyboard Version History | — |
 | ~~IP-Adapter 캐릭터 유사도 고도화~~ | **Phase 30으로 승격** — [V1 명세](FEATURES/CHARACTER_CONSISTENCY.md) · [V2 명세](FEATURES/CHARACTER_CONSISTENCY_V2.md) |
-| ~~캐릭터 레퍼런스 9세트 프롬프트 생성 + 품질 체크~~ | **Phase 30-D에 포함** — LoRA 트레이닝용 레퍼런스 이미지 생성 |
+| 캐릭터 LoRA 학습 파이프라인 | LoRA 트레이닝용 레퍼런스 9세트 생성 + 학습 자동화 (우선순위 낮음) |
 
 ### Intelligence & Automation
 

@@ -644,6 +644,9 @@ async def _image_event_generator(task_id: str) -> AsyncGenerator[str]:
                 ip_adapter_reference=task.result.get("ip_adapter_reference") if task.result else None,
                 image_url=task.result.get("image_url") if task.result else None,
                 image_asset_id=task.result.get("image_asset_id") if task.result else None,
+                match_rate=task.result.get("match_rate") if task.result else None,
+                matched_tags=task.result.get("matched_tags") if task.result else None,
+                missing_tags=task.result.get("missing_tags") if task.result else None,
             )
             yield f"data: {json.dumps(event.model_dump())}\n\n"
 

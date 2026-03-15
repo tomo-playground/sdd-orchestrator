@@ -17,10 +17,12 @@ import Skeleton from "../../components/ui/Skeleton";
 import ImagePreviewModal from "../../components/ui/ImagePreviewModal";
 import VideoPreviewModal from "../../components/ui/VideoPreviewModal";
 import AutoRunStatus from "../../components/storyboard/AutoRunStatus";
+import ResumeConfirmModal from "../../components/storyboard/ResumeConfirmModal";
 import StoryboardActionsBar from "../../components/storyboard/StoryboardActionsBar";
 import StyleProfileModal from "../../components/setup/StyleProfileModal";
 import { ContextBar, GroupFormModal } from "../../components/context";
 import { useAutopilot } from "../../hooks/useAutopilot";
+import { useAutopilotCheckpoint } from "../../hooks/useAutopilotCheckpoint";
 import { useStudioInitialization } from "../../hooks/useStudioInitialization";
 import { useCharacterAutoLoad } from "../../hooks/useCharacterAutoLoad";
 import { useStudioOnboarding } from "../../hooks/useStudioOnboarding";
@@ -30,8 +32,9 @@ import { runAutoRunFromStep } from "../../store/actions/autopilotActions";
 import { saveStoryboard, persistStoryboard } from "../../store/actions/storyboardActions";
 import { handleStyleProfileComplete } from "../../store/actions/styleProfileActions";
 import PreflightModal from "../../components/common/PreflightModal";
-import { runPreflight, buildPreflightInput } from "../../utils/preflight";
+import { runPreflight, buildPreflightInput, getStepsToExecute } from "../../utils/preflight";
 import type { AutoRunStepId } from "../../utils/preflight";
+import { AUTO_RUN_STEPS } from "../../constants";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { initAutoSave } from "../../store/effects/autoSave";
 
@@ -95,6 +98,11 @@ function StudioContent() {
 
   // Autopilot
   const autopilot = useAutopilot();
+  const { CKPT_KEY, pendingCheckpoint, setPendingCheckpoint } = useAutopilotCheckpoint(
+    storyboardId,
+    autopilot
+  );
+
   const activeTab = useUIStore((s) => s.activeTab);
   const showAutoRun = autopilot.autoRunState.status !== "idle";
   // Error 시 관련 탭에서만 상세 패널 표시 (다른 탭은 SubNav 뱃지만)
@@ -120,11 +128,12 @@ function StudioContent() {
     if (preflight.errors.length > 0) {
       setUI({ showPreflightModal: true });
     } else {
-      // background_id 없는 씬이 있으면 stage부터 시작
-      const currentScenes = useStoryboardStore.getState().scenes;
-      const needsStage = currentScenes.some((s) => !s.background_id);
-      const startStep = needsStage ? "stage" : "images";
-      runAutoRunFromStep(startStep, autopilot);
+      const stepsToRun = getStepsToExecute(preflight);
+      if (stepsToRun.length > 0) {
+        runAutoRunFromStep(stepsToRun[0], autopilot, stepsToRun);
+      } else {
+        useUIStore.getState().showToast("모든 단계가 이미 완료되었습니다.", "success");
+      }
     }
   }, [pendingAutoRun, autopilot, setUI]);
 
@@ -249,6 +258,32 @@ function StudioContent() {
         </div>
       )}
 
+      {pendingCheckpoint && (
+        <ResumeConfirmModal
+          resumeStep={pendingCheckpoint.step}
+          timestamp={pendingCheckpoint.timestamp}
+          onResume={() => {
+            setPendingCheckpoint(null);
+            if (CKPT_KEY) localStorage.removeItem(CKPT_KEY);
+            const stepIndex = AUTO_RUN_STEPS.findIndex((s) => s.id === pendingCheckpoint.step);
+            const stepsFromHere = AUTO_RUN_STEPS.slice(stepIndex).map((s) => s.id as AutoRunStepId);
+            runAutoRunFromStep(pendingCheckpoint.step, autopilot, stepsFromHere);
+          }}
+          onStartFresh={() => {
+            setPendingCheckpoint(null);
+            if (CKPT_KEY) localStorage.removeItem(CKPT_KEY);
+            const preflight = runPreflight(buildPreflightInput());
+            const stepsToRun = getStepsToExecute(preflight);
+            const start = stepsToRun[0] ?? "stage";
+            runAutoRunFromStep(start, autopilot, stepsToRun.length > 0 ? stepsToRun : undefined);
+          }}
+          onDismiss={() => {
+            setPendingCheckpoint(null);
+            if (CKPT_KEY) localStorage.removeItem(CKPT_KEY);
+          }}
+        />
+      )}
+
       {/* AutoRun Status — 에러 시 관련 탭에서만, 그 외는 모든 탭에서 표시 */}
       {showAutoRunPanel && (
         <div className="shrink-0 px-8 pt-3">
@@ -256,11 +291,19 @@ function StudioContent() {
             autoRunState={autopilot.autoRunState}
             autoRunLog={autopilot.autoRunLog}
             storyboardTitle={storyboardTitle || undefined}
-            onResume={(step) => runAutoRunFromStep(step, autopilot)}
+            onResume={(step) => {
+              const stepIndex = AUTO_RUN_STEPS.findIndex((s) => s.id === step);
+              const stepsFromHere = AUTO_RUN_STEPS.slice(stepIndex).map(
+                (s) => s.id as AutoRunStepId
+              );
+              runAutoRunFromStep(step, autopilot, stepsFromHere);
+            }}
             onRestart={() => {
-              const s = useStoryboardStore.getState().scenes;
-              const start = s.some((sc) => !sc.background_id) ? "stage" : "images";
-              runAutoRunFromStep(start, autopilot);
+              autopilot.reset();
+              const preflight = runPreflight(buildPreflightInput());
+              const stepsToRun = getStepsToExecute(preflight);
+              const start = stepsToRun[0] ?? "stage";
+              runAutoRunFromStep(start, autopilot, stepsToRun.length > 0 ? stepsToRun : undefined);
             }}
             onCancel={autopilot.cancel}
           />

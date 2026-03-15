@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Scene } from "../../types";
+import type { Scene, ImageValidation } from "../../types";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
@@ -79,6 +79,12 @@ export type ProcessOpts = {
   controlnet_pose?: string;
   ip_adapter_reference?: string;
   preStored?: { url: string; asset_id: number };
+  /** SSE 응답에 포함된 validation 결과 — 있으면 별도 API 호출 생략 */
+  sseValidation?: {
+    match_rate?: number;
+    matched_tags?: string[];
+    missing_tags?: string[];
+  };
 };
 
 /** Store, validate, and rank generated images (shared by SSE and sync paths) */
@@ -119,15 +125,32 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
         })
       );
 
+  // SSE validation 결과가 있으면 별도 API 호출 생략 (preStored 여부와 무관)
+  const useSseValidation = opts.sseValidation != null;
+
   const validationResults = await Promise.all(
     storedResults.map(async (stored) => {
-      const validation = await validateImageCandidate(
-        stored.url,
-        prompt,
-        sceneDbId,
-        selectedCharacterId
-      );
-      const vResult = validation?.validation_result ?? validation;
+      let vResult: ImageValidation | null | undefined;
+
+      if (useSseValidation) {
+        // SSE validation 결과를 ImageValidation 형태로 변환
+        const sv = opts.sseValidation!;
+        vResult = {
+          match_rate: sv.match_rate ?? 0,
+          matched: sv.matched_tags ?? [],
+          missing: sv.missing_tags ?? [],
+          extra: [],
+        };
+      } else {
+        const validation = await validateImageCandidate(
+          stored.url,
+          prompt,
+          sceneDbId,
+          selectedCharacterId
+        );
+        vResult = validation?.validation_result ?? validation;
+      }
+
       return {
         image_url: stored.url,
         asset_id: stored.asset_id,

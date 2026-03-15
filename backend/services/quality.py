@@ -168,7 +168,16 @@ def get_quality_summary(db: Session, storyboard_id: int) -> dict[str, Any]:
             "scores": [],
         }
 
-    scores = query.order_by(SceneQualityScore.scene_id).all()
+    # Fetch latest record per scene (validated_at DESC, then dedup by scene_id)
+    all_scores = query.order_by(SceneQualityScore.validated_at.desc()).all()
+
+    # Dedup: keep only the most recent record per scene_id
+    seen: set[int] = set()
+    scores = []
+    for s in all_scores:
+        if s.scene_id not in seen:
+            seen.add(s.scene_id)
+            scores.append(s)
 
     if not scores:
         return {
@@ -197,9 +206,11 @@ def get_quality_summary(db: Session, storyboard_id: int) -> dict[str, Any]:
         "scores": [
             {
                 "scene_id": s.scene_id,
-                "match_rate": round(s.match_rate, 3) if s.match_rate else 0.0,
+                "match_rate": round(s.match_rate, 3) if s.match_rate is not None else 0.0,
                 "matched_tags": s.matched_tags or [],
                 "missing_tags": s.missing_tags or [],
+                "extra_tags": s.extra_tags or [],
+                "identity_score": round(s.identity_score, 3) if s.identity_score is not None else None,
                 "validated_at": s.validated_at.isoformat() if s.validated_at else None,
             }
             for s in scores

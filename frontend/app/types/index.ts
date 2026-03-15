@@ -772,6 +772,10 @@ export type ImageGenProgress = {
   retry_reason?: string;
   image_url?: string; // Backend 자율 저장 URL
   image_asset_id?: number; // 저장된 MediaAsset ID
+  // SSE completed 이벤트에 포함되는 validation 결과
+  match_rate?: number;
+  matched_tags?: string[];
+  missing_tags?: string[];
 };
 
 // ============================================================

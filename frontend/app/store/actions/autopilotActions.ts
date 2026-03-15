@@ -3,16 +3,14 @@ import type { UseAutopilotReturn } from "../../hooks/useAutopilot";
 import axios from "axios";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
-import { useRenderStore } from "../useRenderStore";
 import { useUIStore } from "../useUIStore";
 import { AUTO_RUN_STEPS, API_BASE, API_TIMEOUT } from "../../constants";
 import { generateBatchImages } from "./batchActions";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
 import { resolveSceneMultiGen } from "../../utils/sceneSettingsResolver";
-import { getCurrentProject } from "../selectors/projectSelectors";
 import { persistStoryboard } from "./storyboardActions";
 import { applyAutoPinAfterGeneration } from "../../utils/applyAutoPin";
-import { renderWithProgress } from "../../utils/renderWithProgress";
+import { executeRenderStep } from "./autopilotRenderStep";
 
 /**
  * Run the autopilot pipeline from a given step.
@@ -31,8 +29,6 @@ export async function runAutoRunFromStep(
     startStep = stepsToRun[0];
   }
 
-  const renderStore = useRenderStore.getState();
-  const { layoutStyle } = renderStore;
   const sbState = useStoryboardStore.getState();
   const { scenes: initialScenes } = sbState;
   const { showToast, setActiveTab } = useUIStore.getState();
@@ -125,6 +121,19 @@ export async function runAutoRunFromStep(
           });
           setScenes(updated);
           pushAutoRunLog(`${assignments.length} scenes assigned to backgrounds`);
+          // A-2: warn about scenes with env tags that still have no background assigned
+          const currentScenesAfterAssign = useStoryboardStore.getState().scenes;
+          const unassignedWithEnv = currentScenesAfterAssign.filter(
+            (s) =>
+              !s.background_id &&
+              Array.isArray((s.context_tags as Record<string, unknown>)?.environment) &&
+              ((s.context_tags as Record<string, unknown>)?.environment as unknown[]).length > 0
+          );
+          if (unassignedWithEnv.length > 0) {
+            pushAutoRunLog(
+              `Warning: ${unassignedWithEnv.length} scene(s) with environment tags have no background assigned`
+            );
+          }
         }
 
         // 3) Save & sync
@@ -259,109 +268,11 @@ export async function runAutoRunFromStep(
       }
 
       if (currentStep === "render") {
-        setAutoRunStep("render", `Rendering ${layoutStyle} video...`);
-        setActiveTab("publish");
-        const renderProjectId = useContextStore.getState().projectId;
-        const renderGroupId = useContextStore.getState().groupId;
-        if (!renderProjectId || !renderGroupId) {
-          throw new Error("Project/Group context required for render");
-        }
-        const project = getCurrentProject();
-        const store = useRenderStore.getState();
-        const ctxStore = useContextStore.getState();
-        const overlaySettings =
-          layoutStyle === "full" && project
-            ? {
-                channel_name: project.name,
-                avatar_key: project.avatar_key || null,
-                frame_style: store.frameStyle,
-                caption: store.videoCaption,
-                likes_count: store.videoLikesCount,
-              }
-            : null;
-        const postCardSettings =
-          layoutStyle === "post" && project
-            ? {
-                channel_name: project.name,
-                avatar_key: project.avatar_key || null,
-                caption: store.videoCaption,
-              }
-            : null;
-
-        const renderScenes = workingScenes.filter((s) => s.image_url);
-        const payload = {
-          project_id: renderProjectId,
-          group_id: renderGroupId,
-          storyboard_id: ctxStore.storyboardId,
-          storyboard_title: useStoryboardStore.getState().topic || "my_shorts",
-          scenes: renderScenes.map((s, i) => ({
-            image_url: s.image_url,
-            script: s.script,
-            speaker: s.speaker,
-            duration: s.duration,
-            order: i, // L-1: scene order
-            image_prompt: s.image_prompt ?? undefined, // M-1
-            voice_design_prompt: s.voice_design_prompt ?? undefined,
-            head_padding: s.head_padding ?? undefined,
-            tail_padding: s.tail_padding ?? undefined,
-            background_id: s.background_id ?? undefined,
-            ken_burns_preset: s.ken_burns_preset ?? undefined,
-            scene_emotion: s.context_tags?.emotion ?? s.context_tags?.mood?.[0] ?? undefined,
-            image_prompt_ko: s.image_prompt_ko ?? undefined,
-            tts_asset_id: s.tts_asset_id ?? undefined,
-          })),
-          layout_style: layoutStyle,
-          ken_burns_preset: store.kenBurnsPreset,
-          ken_burns_intensity: store.kenBurnsIntensity,
-          transition_type: store.transitionType,
-          speed_multiplier: store.speedMultiplier,
-          bgm_file: store.bgmFile,
-          bgm_mode: store.bgmMode,
-          music_preset_id: store.musicPresetId || null,
-          bgm_prompt: store.bgmMode === "auto" ? store.bgmPrompt || null : null,
-          audio_ducking: store.audioDucking,
-          bgm_volume: store.bgmVolume,
-          include_scene_text: store.includeSceneText,
-          scene_text_font: store.sceneTextFont,
-          tts_engine: "qwen",
-          voice_design_prompt: store.voiceDesignPrompt || null,
-          voice_preset_id: store.voicePresetId || null,
-          overlay_settings: overlaySettings,
-          post_card_settings: postCardSettings,
-        };
-        // C-1: Pass AbortSignal so autopilot cancel aborts render SSE
-        const result = await renderWithProgress(
-          payload,
-          (p) => {
-            pushAutoRunLog(`Rendering... ${p.percent}% (${p.message || p.stage})`);
-          },
-          abortController.signal
-        );
-        const videoUrl = result.video_url;
-        if (!videoUrl) throw new Error(`${layoutStyle} render failed`);
-        const withTs = `${videoUrl}?t=${Date.now()}`;
-        const currentProject = getCurrentProject();
-        const currentGroupId = renderGroupId;
-        const currentGroup = ctxStore.groups.find((g) => g.id === currentGroupId);
-
-        useRenderStore.getState().set({
-          videoUrl: withTs,
-          ...(layoutStyle === "full" ? { videoUrlFull: withTs } : { videoUrlPost: withTs }),
-          recentVideos: [
-            {
-              url: withTs,
-              label: layoutStyle,
-              createdAt: Date.now(),
-              renderHistoryId: result.render_history_id,
-              projectId: renderProjectId,
-              projectName: currentProject?.name,
-              groupId: renderGroupId,
-              groupName: currentGroup?.name,
-            },
-            ...useRenderStore.getState().recentVideos.slice(0, 9),
-          ],
+        await executeRenderStep(workingScenes, abortController.signal, {
+          setAutoRunStep,
+          setActiveTab,
+          pushAutoRunLog,
         });
-        pushAutoRunLog(`${layoutStyle} render complete`);
       }
     }
 
@@ -376,8 +287,13 @@ export async function runAutoRunFromStep(
     if (sbNow.stageStatus === "staging") {
       useStoryboardStore.getState().set({ stageStatus: "failed" });
     }
-    const isAborted = axios.isCancel(err) || (err instanceof DOMException && err.name === "AbortError");
-    const message = isAborted ? "Autopilot cancelled" : (err instanceof Error ? err.message : "Autopilot failed");
+    const isAborted =
+      axios.isCancel(err) || (err instanceof DOMException && err.name === "AbortError");
+    const message = isAborted
+      ? "Autopilot cancelled"
+      : err instanceof Error
+        ? err.message
+        : "Autopilot failed";
     setAutoRunError(currentStep, message);
     pushAutoRunLog(message);
     if (message !== "Autopilot cancelled") {

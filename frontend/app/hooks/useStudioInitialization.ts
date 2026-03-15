@@ -193,9 +193,11 @@ export function useStudioInitialization() {
           void Promise.allSettled(parallelLoads);
         }
 
-        if (data.scenes?.length > 0) {
-          const mapped = mapDbScenes(data.scenes);
+        const mapped = data.scenes?.length > 0 ? mapDbScenes(data.scenes) : null;
+        if (mapped) {
           setScenes(mapped);
+          // Quality scores 자동 로드 (match_rate 복원) — fire-and-forget
+          void loadQualityScores(data.id, mapped);
         }
 
         // Initialize video metadata (caption/likes) once topic is set
@@ -277,6 +279,45 @@ function loadCharacterBData(
   setPlan: (updates: Record<string, unknown>) => void
 ) {
   return loadCharacterForRole(characterId, CHAR_B_FIELDS, setPlan);
+}
+
+// --- Helper: Load quality scores and restore imageValidationResults ---
+async function loadQualityScores(storyboardId: number, scenes: Scene[]) {
+  try {
+    const res = await axios.get(`${API_BASE}/quality/summary/${storyboardId}`);
+    const scores: Array<{
+      scene_id: number;
+      match_rate: number;
+      matched_tags: string[];
+      missing_tags: string[];
+      extra_tags: string[];
+      identity_score?: number;
+    }> = res.data?.scores ?? [];
+
+    if (!scores.length) return;
+
+    // scene_id(DB) → client_id 매핑
+    const sceneById = new Map(scenes.map((s) => [s.id, s.client_id]));
+
+    const validationMap: Record<string, import("../types").ImageValidation> = {};
+    for (const score of scores) {
+      const clientId = sceneById.get(score.scene_id);
+      if (!clientId) continue;
+      validationMap[clientId] = {
+        match_rate: score.match_rate,
+        matched: score.matched_tags ?? [],
+        missing: score.missing_tags ?? [],
+        extra: score.extra_tags ?? [],
+        identity_score: score.identity_score,
+      };
+    }
+
+    if (Object.keys(validationMap).length > 0) {
+      useStoryboardStore.getState().set({ imageValidationResults: validationMap });
+    }
+  } catch {
+    // silent — match rates will show as '--' until user validates manually
+  }
 }
 
 // --- Helper: Map DB scenes to frontend Scene type ---

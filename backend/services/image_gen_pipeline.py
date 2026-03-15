@@ -94,6 +94,43 @@ async def store_image_to_db(image_b64: str, request: SceneGenerateRequest) -> tu
     )
 
 
+async def _run_wd14_validation(
+    image_url: str,
+    prompt: str,
+    storyboard_id: int | None,
+    scene_id: int | None,
+    character_id: int | None,
+) -> dict | None:
+    """Run WD14 validation after image storage. Silent fail on any error.
+
+    Runs in a thread to avoid blocking the async event loop (ONNX inference).
+    Returns validation result dict or None on failure.
+    """
+    def _sync_validate() -> dict | None:
+        try:
+            from schemas import SceneValidateRequest
+            from services.validation import validate_scene_image
+
+            req = SceneValidateRequest(
+                image_url=image_url,
+                prompt=prompt,
+                storyboard_id=storyboard_id,
+                scene_id=scene_id,
+                character_id=character_id,
+            )
+            with get_db_session() as db:
+                return validate_scene_image(req, db=db)
+        except Exception as exc:
+            logger.warning("[WD14 Auto-Validate] Silent fail: %s", exc)
+            return None
+
+    try:
+        return await asyncio.to_thread(_sync_validate)
+    except Exception as exc:
+        logger.warning("[WD14 Auto-Validate] Thread error: %s", exc)
+        return None
+
+
 async def generate_and_validate(task, request: SceneGenerateRequest) -> dict | None:
     """Single generation attempt: compose -> generate -> store -> validate.
 
@@ -173,6 +210,19 @@ async def run_image_gen(task_id: str, request: SceneGenerateRequest) -> None:
                 if url:
                     result["image_url"] = url
                     result["image_asset_id"] = asset_id
+
+                    # WD14 validation after storage (silent fail)
+                    validation = await _run_wd14_validation(
+                        image_url=url,
+                        prompt=result.get("used_prompt") or request.prompt,
+                        storyboard_id=request.storyboard_id,
+                        scene_id=request.scene_id,
+                        character_id=request.character_id,
+                    )
+                    if validation:
+                        result["match_rate"] = validation.get("match_rate")
+                        result["matched_tags"] = validation.get("matched")
+                        result["missing_tags"] = validation.get("missing")
             except Exception as exc:
                 logger.warning("[Backend Store] failed, client fallback: %s", exc)
 

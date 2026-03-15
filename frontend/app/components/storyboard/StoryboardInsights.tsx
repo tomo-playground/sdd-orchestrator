@@ -41,7 +41,7 @@ export default function StoryboardInsights({ scenes, imageValidationResults }: P
       .map((s) => imageValidationResults[s.client_id]?.match_rate)
       .filter((r): r is number => r != null);
     if (rates.length > 0) {
-      avgMatchRate = Math.round(rates.reduce((a, b) => a + b, 0) / rates.length);
+      avgMatchRate = Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 100);
     }
   }
 

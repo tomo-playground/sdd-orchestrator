@@ -95,3 +95,6 @@ export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   mood: "분위기 (romantic, peaceful)",
   style: "스타일 (anime, realistic)",
 };
+
+/** TTS engine identifier. 값 변경 시 backend의 tts_engine 파라미터와 동기화 필요. */
+export const TTS_ENGINE = "qwen" as const;

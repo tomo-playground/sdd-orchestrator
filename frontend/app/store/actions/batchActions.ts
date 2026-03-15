@@ -24,7 +24,10 @@ interface BatchResponse {
  * Generate images for multiple scenes in a single batch API call.
  * Updates each scene's state as results come back.
  */
-export async function generateBatchImages(sceneClientIds: string[], signal?: AbortSignal): Promise<BatchResponse | null> {
+export async function generateBatchImages(
+  sceneClientIds: string[],
+  signal?: AbortSignal
+): Promise<BatchResponse | null> {
   const sbState = useStoryboardStore.getState();
   const { scenes, updateScene } = sbState;
 
@@ -45,7 +48,7 @@ export async function generateBatchImages(sceneClientIds: string[], signal?: Abo
 
     const sceneRequests = targetScenes.map((scene) => ({
       ...buildSceneRequest(scene, sbState, storyboardId || null),
-      seed: -1,
+      seed: Math.floor(Math.random() * 2147483647),
     }));
 
     const res = await axios.post<BatchResponse>(
@@ -61,6 +64,11 @@ export async function generateBatchImages(sceneClientIds: string[], signal?: Abo
     // Store images in parallel, then update scenes
     const { projectId, groupId, storyboardId: ctxStoryboardId } = useContextStore.getState();
     const canStore = projectId && groupId && ctxStoryboardId;
+    if (!canStore) {
+      console.warn(
+        "[generateBatchImages] canStore=false: images will not be persisted (missing projectId/groupId/storyboardId)"
+      );
+    }
 
     await Promise.all(
       results.map(async (result) => {

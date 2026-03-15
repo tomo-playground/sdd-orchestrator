@@ -669,6 +669,10 @@ class SceneGenerateResponse(BaseModel):
     used_cfg_scale: float | None = None
     used_sampler: str | None = None
     consistency_quality: str | None = None  # "high" | "medium" | "low"
+    # WD14 validation results (populated after autonomous backend storage)
+    match_rate: float | None = None
+    matched_tags: list[str] | None = None
+    missing_tags: list[str] | None = None
 
 
 class BatchSceneResult(BaseModel):
@@ -1547,6 +1551,10 @@ class ImageProgressEvent(BaseModel):
     retry_reason: str | None = None
     image_url: str | None = None  # Backend autonomous storage URL
     image_asset_id: int | None = None  # Saved MediaAsset ID
+    # WD14 validation results (populated after autonomous backend storage)
+    match_rate: float | None = None
+    matched_tags: list[str] | None = None
+    missing_tags: list[str] | None = None
 
 
 class SceneEditImageRequest(BaseModel):

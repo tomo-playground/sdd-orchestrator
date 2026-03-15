@@ -356,6 +356,10 @@ async def generate_tts(
                         asset.file_type,
                     )
                 else:
+                    if asset.is_temp:
+                        asset.is_temp = False
+                        db.commit()
+                        logger.info("[TTS] Promoted tts_asset_id=%d to permanent (is_temp=False)", tts_asset_id)
                     storage = get_storage()
                     local = storage.get_local_path(asset.storage_key)
                     if local.exists():
@@ -410,7 +414,9 @@ async def generate_tts(
         scene_db_id_for_wb = getattr(scene_req, "scene_db_id", None)
         logger.info(
             "Scene %d: was_from_db=%s, scene_db_id=%s, vdp=%s",
-            i, was_from_db, scene_db_id_for_wb,
+            i,
+            was_from_db,
+            scene_db_id_for_wb,
             repr(getattr(scene_req, "voice_design_prompt", None)),
         )
         voice_design = _get_voice_design_for_scene(builder, scene_req, preset_voice_design, clean_script, i)

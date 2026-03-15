@@ -433,8 +433,42 @@ def save_reference_image(character_key: str, image_b64: str, db: Session | None 
     return filename
 
 
+def _auto_crop_upper_body(img_bytes: bytes) -> bytes:
+    """Auto-crop fullbody reference to upper body for better IP-Adapter face extraction.
+
+    CLIP Vision resizes input to 224x224. Fullbody images lose face detail at that scale.
+    Cropping to upper body ensures face occupies more pixels → better identity preservation.
+    """
+    from config import IP_ADAPTER_REFERENCE_CROP_RATIO
+
+    from PIL import Image
+
+    img = Image.open(io.BytesIO(img_bytes))
+    w, h = img.size
+    aspect = h / w if w > 0 else 1.0
+
+    # Only crop if image is portrait (aspect > 1.3) — likely fullbody
+    if aspect <= 1.3:
+        return img_bytes
+
+    crop_h = int(h * IP_ADAPTER_REFERENCE_CROP_RATIO)
+    margin_x = int(w * 0.1)
+    cropped = img.crop((margin_x, 0, w - margin_x, crop_h))
+
+    buf = io.BytesIO()
+    cropped.save(buf, format="PNG")
+    logger.info(
+        "✂️ [IP-Adapter] Auto-cropped reference: %dx%d → %dx%d (upper %.0f%%)",
+        w, h, cropped.width, cropped.height, IP_ADAPTER_REFERENCE_CROP_RATIO * 100,
+    )
+    return buf.getvalue()
+
+
 def load_reference_image(character_key: str, db: Session | None = None) -> str | None:
     """Load a reference image for IP-Adapter from DB.
+
+    If IP_ADAPTER_REFERENCE_AUTO_CROP is enabled, auto-crops fullbody images
+    to upper body for better face identity preservation.
 
     Args:
         character_key: Character name to load
@@ -453,6 +487,12 @@ def load_reference_image(character_key: str, db: Session | None = None) -> str |
 
     try:
         img_bytes = load_image_bytes(char.reference_image_url)
+
+        from config import IP_ADAPTER_REFERENCE_AUTO_CROP
+
+        if IP_ADAPTER_REFERENCE_AUTO_CROP:
+            img_bytes = _auto_crop_upper_body(img_bytes)
+
         return base64.b64encode(img_bytes).decode("utf-8")
     except Exception as e:
         logger.warning(f"Failed to load image for {character_key}: {e}")

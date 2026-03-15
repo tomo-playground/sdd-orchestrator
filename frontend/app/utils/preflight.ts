@@ -104,6 +104,7 @@ export interface PreflightInput {
   // State
   scenes: (Scene | DraftScene)[];
   videoUrl: string | null;
+  /** Reserved: future render-cache comparison (currently unused) */
   lastRenderHash?: string;
 }
 
@@ -193,7 +194,15 @@ function checkVoice(voiceName: string, voiceBName: string, structure: string): S
   };
 }
 
-function checkBgm(bgmFile: string | null): SettingsCheck {
+function checkBgm(bgmFile: string | null, bgmMode: "manual" | "auto"): SettingsCheck {
+  if (bgmMode === "auto") {
+    return {
+      valid: true,
+      value: "Auto BGM",
+      required: false,
+    };
+  }
+  // Manual mode
   if (!bgmFile) {
     return {
       valid: true,
@@ -203,7 +212,6 @@ function checkBgm(bgmFile: string | null): SettingsCheck {
       warning: true,
     };
   }
-  // Extract filename from path
   const filename = bgmFile.split("/").pop() || bgmFile;
   return {
     valid: true,
@@ -272,7 +280,7 @@ export function runPreflight(input: PreflightInput): PreflightResult {
       input.scenes
     ),
     voice: checkVoice(input.voiceName, input.voiceBName, input.structure),
-    bgm: checkBgm(input.bgmFile),
+    bgm: checkBgm(input.bgmFile, input.bgmMode),
     controlnet: checkControlnet(input.controlnetEnabled, input.controlnetWeight),
     ipAdapter: checkIpAdapter(
       input.ipAdapterEnabled,

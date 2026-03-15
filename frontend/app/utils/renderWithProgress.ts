@@ -109,7 +109,7 @@ export async function renderWithProgress(
         try {
           const pollRes = await axios.get<RenderProgress>(
             `${API_BASE}/video/progress-poll/${taskId}`,
-            { timeout: 10_000 }
+            { timeout: 10_000, signal }
           );
           const data = pollRes.data;
           onProgress?.(data);

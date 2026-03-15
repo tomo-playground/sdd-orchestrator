@@ -21,11 +21,16 @@ export interface StageCheckInput {
   bgmPrompt: string;
 }
 
+function hasEnvironmentTags(scene: Scene | DraftScene): boolean {
+  const env = (scene as Scene).context_tags?.environment;
+  return Array.isArray(env) && env.length > 0;
+}
+
 export function checkStageStep(input: StageCheckInput): StepCheck {
   const { scenes } = input;
 
   // Sub-category checks
-  const withoutBg = scenes.filter((s) => !s.background_id);
+  const withoutBg = scenes.filter((s) => !s.background_id && hasEnvironmentTags(s));
   const bgReady = scenes.length > 0 && withoutBg.length === 0;
   const charReady = !!input.characterName;
   const voiceReady = !!input.voiceName;
@@ -35,7 +40,8 @@ export function checkStageStep(input: StageCheckInput): StepCheck {
     {
       label: "배경",
       ready: bgReady,
-      detail: scenes.length === 0 ? "씬 없음" : bgReady ? "완료" : `${withoutBg.length}/${scenes.length}`,
+      detail:
+        scenes.length === 0 ? "씬 없음" : bgReady ? "완료" : `${withoutBg.length}/${scenes.length}`,
     },
     {
       label: "캐릭터",
@@ -97,7 +103,10 @@ export function checkImagesStep(scenes: (Scene | DraftScene)[]): StepCheck {
 // Render Step
 // ============================================================
 
-export function checkRenderStep(scenes: (Scene | DraftScene)[], videoUrl: string | null): StepCheck {
+export function checkRenderStep(
+  scenes: (Scene | DraftScene)[],
+  videoUrl: string | null
+): StepCheck {
   if (scenes.length === 0) {
     return {
       needed: true,

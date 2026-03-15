@@ -87,6 +87,14 @@ export default function AutoRunStatus({
                 : "bg-zinc-100 text-zinc-500"
           }`;
           if (isError) {
+            if (isDone) {
+              // 완료된 단계는 error 상태에서도 클릭 불가
+              return (
+                <span key={step.id} className={baseClass}>
+                  {step.label}
+                </span>
+              );
+            }
             return (
               <button
                 key={step.id}
