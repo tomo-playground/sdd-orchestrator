@@ -28,9 +28,7 @@ export default function StoryboardInsights({ scenes, imageValidationResults }: P
   const totalDuration = scenes.reduce((sum, s) => sum + (s.duration || 0), 0);
   const withScript = scenes.filter((s) => s.script.trim().length > 0).length;
   const withImage = scenes.filter((s) => hasSceneImage(s)).length;
-  const complete = scenes.filter(
-    (s) => s.script.trim().length > 0 && hasSceneImage(s)
-  ).length;
+  const complete = scenes.filter((s) => s.script.trim().length > 0 && hasSceneImage(s)).length;
   const completionPct = Math.round((complete / total) * 100);
   const imagePct = Math.round((withImage / total) * 100);
   const renderReady = withScript === total && withImage === total;
@@ -38,7 +36,10 @@ export default function StoryboardInsights({ scenes, imageValidationResults }: P
   let avgMatchRate: number | null = null;
   if (imageValidationResults) {
     const rates = scenes
-      .map((s) => imageValidationResults[s.client_id]?.match_rate)
+      .map((s) => {
+        const v = imageValidationResults[s.client_id];
+        return v?.wd14_match_rate ?? v?.match_rate;
+      })
       .filter((r): r is number => r != null);
     if (rates.length > 0) {
       avgMatchRate = Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 100);
@@ -56,10 +57,7 @@ export default function StoryboardInsights({ scenes, imageValidationResults }: P
           accent={completionPct === 100 ? "emerald" : undefined}
         />
         <Cell label="이미지" value={`${imagePct}%`} />
-        <Cell
-          label="Avg Match"
-          value={avgMatchRate != null ? `${avgMatchRate}%` : "--"}
-        />
+        <Cell label="Avg Match" value={avgMatchRate != null ? `${avgMatchRate}%` : "--"} />
       </div>
       <div
         className={`mt-1.5 rounded-lg px-2 py-1 text-center text-[11px] font-semibold ${

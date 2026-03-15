@@ -27,6 +27,9 @@ class SceneQualityScore(Base, TimestampMixin):
     identity_score: Mapped[float | None] = mapped_column(Float)
     identity_tags_detected: Mapped[dict | None] = mapped_column(JSONB)
 
+    # Phase 33: Hybrid evaluation details
+    evaluation_details: Mapped[dict | None] = mapped_column(JSONB)
+
     validated_at: Mapped[DateTime] = mapped_column(DateTime)
 
     # Relationships

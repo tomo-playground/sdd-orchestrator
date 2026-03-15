@@ -1,9 +1,11 @@
-"""Phase 33 Hybrid Match Rate 관련 단위 테스트.
+"""Phase 33 Hybrid Match Rate 단위 테스트.
 
 coverage:
 - classify_prompt_tokens() — token routing (wd14/gemini/skipped)
+- compare_prompt_to_tags() — only_tokens 파라미터
+- _parse_gemini_json_array() — Gemini 응답 파싱
 - apply_gemini_evaluation() — 비동기 Gemini 평가 + 결합 match_rate
-- _update_db_match_rate() — DB 업데이트 경로
+- _update_db_match_rate() — DB 업데이트 경로 + evaluation_details
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ from services.validation import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_cache(mapping: dict[str, str]):
     """Return a fake TagCategoryCache.get_category callable."""
     return staticmethod(lambda t: mapping.get(t))
@@ -32,6 +35,7 @@ def _make_cache(mapping: dict[str, str]):
 # ---------------------------------------------------------------------------
 # classify_prompt_tokens
 # ---------------------------------------------------------------------------
+
 
 class TestClassifyPromptTokens:
     """classify_prompt_tokens() 토큰 라우팅 검증."""
@@ -83,11 +87,13 @@ class TestClassifyPromptTokens:
         """혼합 프롬프트에서 세 그룹이 모두 올바르게 분류됨."""
         monkeypatch.setattr(
             "services.keywords.db_cache.TagCategoryCache.get_category",
-            _make_cache({
-                "blue_hair": "hair_color",       # WD14
-                "cowboy_shot": "camera",          # Gemini
-                "masterpiece": "quality",         # Skipped
-            }),
+            _make_cache(
+                {
+                    "blue_hair": "hair_color",  # WD14
+                    "cowboy_shot": "camera",  # Gemini
+                    "masterpiece": "quality",  # Skipped
+                }
+            ),
         )
         result = classify_prompt_tokens("blue_hair, cowboy_shot, masterpiece")
         assert result["wd14_tokens"] == ["blue_hair"]
@@ -107,6 +113,7 @@ class TestClassifyPromptTokens:
 # ---------------------------------------------------------------------------
 # _is_skippable_tag
 # ---------------------------------------------------------------------------
+
 
 class TestIsSkippableTag:
     def test_quality_tag_is_skippable(self, monkeypatch):
@@ -134,6 +141,7 @@ class TestIsSkippableTag:
 # ---------------------------------------------------------------------------
 # apply_gemini_evaluation
 # ---------------------------------------------------------------------------
+
 
 class TestApplyGeminiEvaluation:
     """apply_gemini_evaluation() 비동기 배경 태스크 검증."""
@@ -197,10 +205,13 @@ class TestApplyGeminiEvaluation:
     async def test_db_update_called_when_scene_id_provided(self):
         """scene_id가 있을 때 _update_db_match_rate가 호출됨."""
         gemini_results = [{"tag": "cowboy_shot", "present": True, "confidence": 0.8}]
-        with patch(
-            "services.validation.evaluate_tags_with_gemini",
-            new=AsyncMock(return_value=gemini_results),
-        ), patch("services.validation._update_db_match_rate") as mock_update:
+        with (
+            patch(
+                "services.validation.evaluate_tags_with_gemini",
+                new=AsyncMock(return_value=gemini_results),
+            ),
+            patch("services.validation._update_db_match_rate") as mock_update,
+        ):
             await apply_gemini_evaluation(
                 storyboard_id=10,
                 scene_id=5,
@@ -219,10 +230,13 @@ class TestApplyGeminiEvaluation:
     async def test_no_db_update_when_scene_id_none(self):
         """scene_id가 None이면 _update_db_match_rate 미호출."""
         gemini_results = [{"tag": "cowboy_shot", "present": True, "confidence": 0.8}]
-        with patch(
-            "services.validation.evaluate_tags_with_gemini",
-            new=AsyncMock(return_value=gemini_results),
-        ), patch("services.validation._update_db_match_rate") as mock_update:
+        with (
+            patch(
+                "services.validation.evaluate_tags_with_gemini",
+                new=AsyncMock(return_value=gemini_results),
+            ),
+            patch("services.validation._update_db_match_rate") as mock_update,
+        ):
             await apply_gemini_evaluation(
                 storyboard_id=10,
                 scene_id=None,
@@ -238,8 +252,8 @@ class TestApplyGeminiEvaluation:
     async def test_confidence_threshold_applied(self):
         """confidence < 0.5 태그는 매치로 카운트되지 않음."""
         gemini_results = [
-            {"tag": "tag_a", "present": True, "confidence": 0.8},   # counted
-            {"tag": "tag_b", "present": True, "confidence": 0.3},   # not counted (low conf)
+            {"tag": "tag_a", "present": True, "confidence": 0.8},  # counted
+            {"tag": "tag_b", "present": True, "confidence": 0.3},  # not counted (low conf)
             {"tag": "tag_c", "present": False, "confidence": 0.9},  # not counted (not present)
         ]
         with patch(
@@ -262,11 +276,14 @@ class TestApplyGeminiEvaluation:
 # _update_db_match_rate
 # ---------------------------------------------------------------------------
 
+
 def _make_db_factory(mock_db: MagicMock):
     """Create a @contextmanager db_factory that yields mock_db."""
+
     @contextmanager
     def factory():
         yield mock_db
+
     return factory
 
 
@@ -307,6 +324,31 @@ class TestUpdateDbMatchRate:
 
         mock_db.commit.assert_not_called()
 
+    def test_evaluation_details_stored(self):
+        """evaluation_details JSONB가 올바르게 저장됨."""
+        mock_score = MagicMock()
+        mock_db = MagicMock()
+        mock_db.query.return_value.filter.return_value.order_by.return_value.first.return_value = mock_score
+
+        gemini_tags = [{"tag": "cowboy_shot", "present": True, "confidence": 0.9}]
+        _update_db_match_rate(
+            scene_id=1,
+            storyboard_id=10,
+            combined_rate=0.75,
+            wd14_matched=3,
+            wd14_total=4,
+            gemini_matched=1,
+            gemini_total=1,
+            gemini_details=gemini_tags,
+            db_factory=_make_db_factory(mock_db),
+        )
+
+        details = mock_score.evaluation_details
+        assert details["mode"] == "hybrid"
+        assert details["wd14"]["matched"] == 3
+        assert details["gemini"]["total"] == 1
+        assert details["gemini"]["tags"] == gemini_tags
+
     def test_exception_does_not_propagate(self):
         """예외 발생 시 함수 외부로 전파되지 않음 (graceful degradation)."""
         mock_db = MagicMock()
@@ -323,3 +365,83 @@ class TestUpdateDbMatchRate:
             gemini_total=3,
             db_factory=_make_db_factory(mock_db),
         )
+
+
+# ---------------------------------------------------------------------------
+# compare_prompt_to_tags — only_tokens
+# ---------------------------------------------------------------------------
+
+
+class TestComparePromptToTagsOnlyTokens:
+    """compare_prompt_to_tags의 only_tokens 파라미터 검증."""
+
+    def test_only_tokens_limits_comparison(self, monkeypatch):
+        """only_tokens를 전달하면 해당 토큰만 비교."""
+        monkeypatch.setattr(
+            "services.keywords.db_cache.TagCategoryCache.get_category",
+            _make_cache({"blue_hair": "hair_color", "smile": "expression"}),
+        )
+        monkeypatch.setattr(
+            "services.keywords.db_cache.TagAliasCache._cache",
+            {},
+        )
+        monkeypatch.setattr(
+            "services.keywords.db_cache.TagAliasCache.get_replacement",
+            staticmethod(lambda t: ...),
+        )
+
+        from services.validation import compare_prompt_to_tags
+
+        tags = [{"tag": "blue_hair", "score": 0.9, "category": "0"}]
+        result = compare_prompt_to_tags("ignored", tags, only_tokens=["blue_hair"])
+        assert "blue_hair" in result["matched"]
+        assert len(result["matched"]) == 1
+
+    def test_only_tokens_empty_returns_empty(self):
+        from services.validation import compare_prompt_to_tags
+
+        result = compare_prompt_to_tags("ignored", [], only_tokens=[])
+        assert result["matched"] == []
+        assert result["missing"] == []
+
+
+# ---------------------------------------------------------------------------
+# _parse_gemini_json_array
+# ---------------------------------------------------------------------------
+
+
+class TestParseGeminiJsonArray:
+    """Gemini JSON 파싱 검증."""
+
+    def test_valid_json_array(self):
+        from services.validation_gemini import _parse_gemini_json_array
+
+        text = '[{"tag":"a","present":true,"confidence":0.9}]'
+        result = _parse_gemini_json_array(text)
+        assert len(result) == 1
+        assert result[0]["tag"] == "a"
+
+    def test_markdown_code_fence(self):
+        from services.validation_gemini import _parse_gemini_json_array
+
+        text = '```json\n[{"tag":"b","present":false,"confidence":0.1}]\n```'
+        result = _parse_gemini_json_array(text)
+        assert len(result) == 1
+        assert result[0]["present"] is False
+
+    def test_invalid_json_returns_empty(self):
+        from services.validation_gemini import _parse_gemini_json_array
+
+        assert _parse_gemini_json_array("not json at all") == []
+
+    def test_dict_instead_of_list_returns_empty(self):
+        from services.validation_gemini import _parse_gemini_json_array
+
+        assert _parse_gemini_json_array('{"key": "value"}') == []
+
+    def test_missing_required_fields_filtered(self):
+        from services.validation_gemini import _parse_gemini_json_array
+
+        text = '[{"tag":"a","present":true},{"no_tag":true,"present":false}]'
+        result = _parse_gemini_json_array(text)
+        assert len(result) == 1  # second item filtered (no "tag" key)

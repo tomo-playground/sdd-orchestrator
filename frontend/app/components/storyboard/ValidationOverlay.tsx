@@ -39,9 +39,12 @@ export default function ValidationOverlay({
     );
   }
 
-  const rate = Math.round((result.match_rate ?? 0) * 100);
+  // Phase 33: prefer wd14_match_rate for display
+  const displayRate = result.wd14_match_rate ?? result.match_rate ?? 0;
+  const rate = Math.round(displayRate * 100);
   const missingCount = result.missing?.length ?? 0;
   const extraCount = result.extra?.length ?? 0;
+  const pendingCount = result.gemini_tokens?.length ?? 0;
   const criticalFailures = result.critical_failure?.failures ?? [];
   const rateColor =
     rate >= 80 ? "text-emerald-400" : rate >= 50 ? "text-amber-400" : "text-red-400";
@@ -68,13 +71,15 @@ export default function ValidationOverlay({
         <span className={`text-lg font-bold ${rateColor}`}>{rate}%</span>
       </div>
 
-      {/* Missing / Extra counts */}
+      {/* Missing / Extra / Pending counts */}
       <div className="flex gap-3 text-[12px] font-semibold tracking-wider">
         {missingCount > 0 && <span className="text-red-300">MISSING {missingCount}</span>}
         {extraCount > 0 && <span className="text-amber-300">EXTRA {extraCount}</span>}
-        {missingCount === 0 && extraCount === 0 && criticalFailures.length === 0 && (
-          <span className="text-emerald-300">PERFECT MATCH</span>
-        )}
+        {pendingCount > 0 && <span className="text-blue-300">PENDING {pendingCount}</span>}
+        {missingCount === 0 &&
+          extraCount === 0 &&
+          pendingCount === 0 &&
+          criticalFailures.length === 0 && <span className="text-emerald-300">PERFECT MATCH</span>}
       </div>
 
       {/* Missing tags preview */}

@@ -177,10 +177,13 @@ export type CriticalFailureInfo = {
 export type ImageValidation = {
   match_rate: number;
   adjusted_match_rate?: number;
+  wd14_match_rate?: number; // Phase 33: WD14-only rate
   identity_score?: number;
   matched: string[];
   missing: string[];
   extra: string[];
+  skipped?: string[];
+  gemini_tokens?: string[]; // Phase 33: tags pending Gemini eval
   critical_failure?: CriticalFailureInfo | null;
 };
 
