@@ -314,9 +314,15 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         useContextStore
           .getState()
           .setContext({ storyboardId: newId, storyboardTitle: current.topic.trim() });
+        // syncToGlobalStore를 onSaved보다 먼저 호출 — onSaved → setPendingAutoRun(true) 시
+        // preflight가 scenes를 읽기 전에 Zustand 스토어에 씬이 반영되어야 한다.
+        syncToGlobalStore(current.scenes, storeMeta);
         onSavedRef.current?.(newId);
       }
-      syncToGlobalStore(current.scenes, storeMeta);
+      // PUT 분기: syncToGlobalStore는 이미 POST에서 호출됨, PUT에서만 호출
+      if (current.storyboardId) {
+        syncToGlobalStore(current.scenes, storeMeta);
+      }
       dirtyRef.current = false;
       useStoryboardStore.getState().set({ isDirty: false });
       showToast(current.storyboardId ? "Script saved" : "Script created", "success");

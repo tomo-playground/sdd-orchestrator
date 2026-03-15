@@ -270,21 +270,14 @@ async def stream_graph_events(
 
     if isinstance(graph_input, dict):
         update_root_span(input_data=graph_input)
+    # Resume 케이스: trace input은 덮어쓰지 않는다.
+    # 원본 storyboard 요청이 trace input으로 보존돼야 Langfuse에서 올바르게 표시된다.
 
     async with get_compiled_graph() as graph:
-        # Resume 케이스: thread state에서 topic을 읽어 LangFuse input에 의미있는 값 설정
-        if not isinstance(graph_input, dict):
-            try:
-                snapshot = await graph.aget_state(config)
-                topic = (snapshot.values or {}).get("topic", "")
-                resume_val = getattr(graph_input, "resume", None)
-                action = resume_val.get("action") if isinstance(resume_val, dict) else None
-                update_root_span(input_data={"topic": topic, "resume_action": action, "thread_id": thread_id})
-            except Exception:
-                pass
         char_ids: list[int | None] = [None, None]
         interrupted = False
         errored = False
+        final_output: dict | None = None
         try:
             async for event in graph.astream(graph_input, config, stream_mode="updates"):
                 for node_name, node_output in event.items():
@@ -292,6 +285,13 @@ async def stream_graph_events(
                         continue
                     payload = build_node_payload(node_name, thread_id, node_output, char_ids)
                     yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+                    if node_name == "finalize" and node_output.get("final_scenes") is not None:
+                        final_output = {
+                            "scenes": node_output["final_scenes"],
+                            "character_id": char_ids[0],
+                            "character_b_id": char_ids[1],
+                            "sound_recommendation": node_output.get("sound_recommendation"),
+                        }
 
         except Exception as e:
             if _is_graph_interrupt(e):
@@ -342,12 +342,13 @@ async def stream_graph_events(
             update_trace_on_interrupt(
                 result or {"status": "waiting_for_input"},
                 trace_id=handler_trace_id,
+                interrupt_node=interrupt_node,
             )
 
             yield f"data: {json.dumps(payload_interrupt, ensure_ascii=False)}\n\n"
         elif not errored:
-            # 정상 완료 시 interrupted: True stale 메타데이터를 리셋 (에러 케이스 제외)
-            update_trace_on_completion(trace_id=handler_trace_id)
+            # 정상 완료 시 interrupted: True stale 메타데이터를 리셋하고 최종 결과를 output에 기록
+            update_trace_on_completion(trace_id=handler_trace_id, output_data=final_output)
 
         # 스트리밍 완료 시 root span 종료 (LangFuse 트레이스 그룹핑)
         end_root_span()

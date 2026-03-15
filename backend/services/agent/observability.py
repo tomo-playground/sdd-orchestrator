@@ -104,12 +104,17 @@ def create_langfuse_handler(*, trace_id: str | None = None, session_id: str | No
         return None
 
 
-def update_trace_on_interrupt(interrupt_data: dict, *, trace_id: str | None = None) -> None:
+def update_trace_on_interrupt(
+    interrupt_data: dict,
+    *,
+    trace_id: str | None = None,
+    interrupt_node: str = "unknown",
+) -> None:
     """GraphInterrupt 시 Langfuse 트레이스에 중간 결과를 기록한다.
 
-    trace_id를 명시적으로 전달받거나, contextvar에서 읽는다.
-    Langfuse v3 SDK는 OTel 기반이라 trace 직접 업데이트가 불가하여
-    REST ingestion API를 사용한다.
+    interrupt_data는 output이 아닌 metadata에 저장한다.
+    output 필드를 오염시키면 resume 후 Langfuse 목록에서 input/output이
+    뒤바뀌어 보이는 문제가 발생한다.
     """
     if _langfuse_client is None:
         return
@@ -136,10 +141,10 @@ def update_trace_on_interrupt(interrupt_data: dict, *, trace_id: str | None = No
                         "body": {
                             "id": resolved_trace_id,
                             "timestamp": now,
-                            "output": interrupt_data,
                             "metadata": {
                                 "interrupted": True,
-                                "interrupt_node": "human_gate",
+                                "interrupt_node": interrupt_node,
+                                "interrupt_data": interrupt_data,
                             },
                         },
                     },
@@ -151,7 +156,7 @@ def update_trace_on_interrupt(interrupt_data: dict, *, trace_id: str | None = No
         if errors:
             logger.warning("[LangFuse] ingestion 오류: %s", errors)
         else:
-            logger.info("[LangFuse] interrupt 중간 결과 기록 (trace=%s)", resolved_trace_id[:16])
+            logger.info("[LangFuse] interrupt 기록 (node=%s, trace=%s)", interrupt_node, resolved_trace_id[:16])
     except Exception as e:
         logger.warning("[LangFuse] interrupt 트레이스 업데이트 실패: %s", e)
 

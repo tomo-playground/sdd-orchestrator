@@ -121,8 +121,12 @@ function StudioContent() {
 
   // Script → AutoRun chain: pendingAutoRun signal
   const pendingAutoRun = useUIStore((s) => s.pendingAutoRun);
+  const scenesReady = useStoryboardStore((s) => s.scenes.length > 0);
   useEffect(() => {
     if (!pendingAutoRun) return;
+    // Guard: scenes가 아직 Zustand에 반영되지 않았으면 다음 렌더까지 대기
+    // (syncToGlobalStore ↔ setPendingAutoRun 타이밍 경합 방어)
+    if (!scenesReady) return;
     useUIStore.getState().setPendingAutoRun(false);
     const preflight = runPreflight(buildPreflightInput());
     if (preflight.errors.length > 0) {
@@ -135,7 +139,7 @@ function StudioContent() {
         useUIStore.getState().showToast("모든 단계가 이미 완료되었습니다.", "success");
       }
     }
-  }, [pendingAutoRun, autopilot, setUI]);
+  }, [pendingAutoRun, scenesReady, autopilot, setUI]);
 
   // Dirty state guard
   const isDirty = useStoryboardStore((s) => s.isDirty);
