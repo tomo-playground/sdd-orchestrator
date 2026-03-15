@@ -22,6 +22,7 @@ export type ChatScriptEditorActions = ScriptEditorActions & {
   clearChat: () => void;
   cancelOperation: () => void;
   setInteractionMode: (mode: "auto" | "guided" | "hands_on") => void;
+  setFastTrack: (enabled: boolean) => void;
   applySceneEdits: () => void;
   rejectSceneEdit: () => void;
 };
@@ -32,7 +33,7 @@ export function useChatScriptEditor(options?: {
   const groupId = useContextStore((s) => s.groupId);
   const storyboardId = useContextStore((s) => s.storyboardId);
   const showToast = useUIStore((s) => s.showToast);
-  const { getMessages, saveMessages, clearMessages } = useChatStore();
+  const { getMessages, saveMessages, clearMessages, migrateFromTemp } = useChatStore();
 
   // ── 1. Chat messages state ──
   const {
@@ -46,7 +47,7 @@ export function useChatScriptEditor(options?: {
     addTypingIndicator,
     removeTypingIndicator,
     clearChat: clearChatBase,
-  } = useChatMessages({ storyboardId, getMessages, saveMessages, clearMessages });
+  } = useChatMessages({ storyboardId, getMessages, saveMessages, clearMessages, migrateFromTemp });
 
   // ── 2. SSE → Chat event pipeline ──
   const editorRef = useRef<ScriptEditorActions | null>(null);
@@ -113,6 +114,10 @@ export function useChatScriptEditor(options?: {
     editorRef.current?.setField("interactionMode", mode);
   }, []);
 
+  const setFastTrack = useCallback((enabled: boolean) => {
+    editorRef.current?.setField("fastTrack", enabled);
+  }, []);
+
   return {
     ...editor,
     chatMessages,
@@ -123,6 +128,7 @@ export function useChatScriptEditor(options?: {
     clearChat,
     cancelOperation,
     setInteractionMode,
+    setFastTrack,
     applySceneEdits,
     rejectSceneEdit,
   };

@@ -83,6 +83,8 @@ export default function ChatArea({ editor }: Props) {
               borderless
               interactionMode={editor.interactionMode}
               onModeChange={editor.setInteractionMode}
+              fastTrack={editor.fastTrack}
+              onFastTrackChange={editor.setFastTrack}
             />
           </div>
         </div>
@@ -105,6 +107,8 @@ export default function ChatArea({ editor }: Props) {
             hasTopic={!!editor.topic.trim()}
             interactionMode={editor.interactionMode}
             onModeChange={editor.setInteractionMode}
+            fastTrack={editor.fastTrack}
+            onFastTrackChange={editor.setFastTrack}
             isEditMode={isEditMode}
             onCancel={editor.cancelOperation}
           />

@@ -61,6 +61,7 @@ function makeEditorState(overrides: Partial<ScriptEditorState> = {}): ScriptEdit
     traceId: null,
     productionSnapshot: null,
     interactionMode: "auto",
+    fastTrack: false,
     isWaitingForPlan: false,
     chatContext: [],
     ...overrides,
@@ -156,6 +157,18 @@ describe("buildGenerateBody", () => {
     const state = makeEditorState({ references: "" });
     const body = buildGenerateBody(state, 1);
     expect(body.references).toBeUndefined();
+  });
+
+  it("includes skip_stages when fastTrack is true", () => {
+    const state = makeEditorState({ fastTrack: true });
+    const body = buildGenerateBody(state, 1);
+    expect(body.skip_stages).toEqual(["research", "concept"]);
+  });
+
+  it("omits skip_stages when fastTrack is false", () => {
+    const state = makeEditorState({ fastTrack: false });
+    const body = buildGenerateBody(state, 1);
+    expect(body.skip_stages).toBeUndefined();
   });
 });
 

@@ -79,6 +79,7 @@ const INITIAL_STATE: ScriptEditorState = {
   traceId: null,
   productionSnapshot: null,
   interactionMode: "guided",
+  fastTrack: false,
   isWaitingForPlan: false,
   chatContext: [],
 };
@@ -182,6 +183,11 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         trackThreadId: true,
         onNodeEvent: onNodeEventRef.current,
       });
+      // SSE error가 onNodeEvent로 이미 처리된 경우 (채팅 ErrorCard 표시됨) → toast 생략
+      if (result.hasError) {
+        setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
+        return;
+      }
       handleStreamOutcome({
         ...result,
         meta: buildSyncMeta(stateRef.current),
@@ -249,6 +255,11 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         const result = await processSSEStream(response, setState, {
           onNodeEvent: onNodeEventRef.current,
         });
+        // SSE error가 onNodeEvent로 이미 처리된 경우 (채팅 ErrorCard 표시됨) → toast 생략
+        if (result.hasError) {
+          setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
+          return;
+        }
         const meta = buildSyncMeta(stateRef.current);
         if (
           !handleStreamOutcome({ ...result, meta, setState, dirtyRef, showToast }) &&

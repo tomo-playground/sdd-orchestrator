@@ -69,6 +69,7 @@ export type ScriptEditorState = {
   traceId: string | null;
   productionSnapshot: ProductionSnapshot | null;
   interactionMode: "auto" | "guided" | "hands_on";
+  fastTrack: boolean;
   isWaitingForPlan: boolean;
   chatContext: Array<{ role: string; text: string }>;
 };

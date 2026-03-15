@@ -13,6 +13,8 @@ type Props = {
   borderless?: boolean;
   interactionMode?: InteractionMode;
   onModeChange?: (mode: InteractionMode) => void;
+  fastTrack?: boolean;
+  onFastTrackChange?: (enabled: boolean) => void;
   isEditMode?: boolean;
   onCancel?: () => void;
 };
@@ -35,6 +37,8 @@ export default function ChatInput({
   borderless,
   interactionMode,
   onModeChange,
+  fastTrack,
+  onFastTrackChange,
   isEditMode,
   onCancel,
 }: Props) {
@@ -82,7 +86,7 @@ export default function ChatInput({
       <div className="mx-auto max-w-3xl px-4">
         {/* Mode chips */}
         {interactionMode && onModeChange && (
-          <div className="mb-2 flex gap-1.5">
+          <div className="mb-2 flex items-center gap-1.5">
             {MODE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -99,6 +103,24 @@ export default function ChatInput({
                 {opt.label}
               </button>
             ))}
+            {onFastTrackChange && (
+              <>
+                <div className="mx-1 h-3.5 w-px bg-zinc-200" />
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onFastTrackChange(!fastTrack)}
+                  title="Research·Concept 단계 건너뜀 — 약 35초"
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+                    fastTrack
+                      ? "border-amber-500 bg-amber-500 text-white"
+                      : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                  }`}
+                >
+                  ⚡ Fast
+                </button>
+              </>
+            )}
           </div>
         )}
 

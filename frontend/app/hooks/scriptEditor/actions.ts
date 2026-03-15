@@ -34,6 +34,7 @@ export function buildGenerateBody(
     // analyze-topic에서 추천된 structure가 있으면 전달 (Director 힌트)
     // character_id, character_b_id는 Director 캐스팅 SSOT
     ...(s.structure && { structure: s.structure }),
+    ...(s.fastTrack && { skip_stages: ["research", "concept"] }),
   };
   const refs = s.references.trim();
   if (refs) {
