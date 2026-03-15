@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useContextStore } from "../store/useContextStore";
 import { useUIStore } from "../store/useUIStore";
 import { useChatStore } from "../store/useChatStore";
@@ -10,6 +10,7 @@ import { useChatMessages } from "./useChatMessages";
 import { useStreamingPipeline } from "./useStreamingPipeline";
 import { useTopicAnalysis } from "./useTopicAnalysis";
 import type { ScriptEditorActions } from "./scriptEditor";
+import { createReconstructedMessages } from "../utils/chatMessageFactory";
 import type { ChatMessage, ActiveProgress, SettingsRecommendation } from "../types/chat";
 
 export type ChatScriptEditorActions = ScriptEditorActions & {
@@ -88,6 +89,21 @@ export function useChatScriptEditor(options?: {
     showToast,
     editorCancel: editor.cancel,
   });
+
+  // 씬 데이터는 있지만 채팅 히스토리가 유실된 경우 최소 대화 복원
+  const reconstructedRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (
+      storyboardId &&
+      reconstructedRef.current !== storyboardId &&
+      editor.scenes.length > 0 &&
+      chatMessages.length <= 1 &&
+      editor.topic
+    ) {
+      reconstructedRef.current = storyboardId;
+      setChatMessages(createReconstructedMessages(editor.topic, editor.scenes.length));
+    }
+  }, [storyboardId, editor.scenes.length, chatMessages.length, editor.topic, setChatMessages]);
 
   const clearChat = useCallback(() => {
     clearChatBase(() => editorRef.current?.reset());
