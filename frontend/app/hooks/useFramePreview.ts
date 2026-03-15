@@ -60,9 +60,13 @@ export function useFramePreview() {
           layoutInfo: res.data.layout_info,
         });
       } catch (err) {
-        const msg = axios.isAxiosError(err)
-          ? (err.response?.data?.detail ?? err.message)
-          : "Frame preview failed";
+        const detail = axios.isAxiosError(err) ? err.response?.data?.detail : undefined;
+        const msg =
+          typeof detail === "string"
+            ? detail
+            : axios.isAxiosError(err)
+              ? err.message
+              : "Frame preview failed";
         updateState(clientId, { status: "error", error: msg });
       }
     },

@@ -74,9 +74,13 @@ export function useTTSPreview(storyboardId: number | null) {
         // Auto-play after generation
         audioPlayer.play(data.audio_url);
       } catch (err) {
-        const msg = axios.isAxiosError(err)
-          ? (err.response?.data?.detail ?? err.message)
-          : "TTS preview failed";
+        const detail = axios.isAxiosError(err) ? err.response?.data?.detail : undefined;
+        const msg =
+          typeof detail === "string"
+            ? detail
+            : axios.isAxiosError(err)
+              ? err.message
+              : "TTS preview failed";
         updateState(clientId, { status: "error", error: msg });
       }
     },
@@ -165,9 +169,13 @@ export function useTTSPreview(storyboardId: number | null) {
         updateScene(clientId, { tts_asset_id: data.temp_asset_id ?? null });
         audioPlayer.play(data.audio_url);
       } catch (err) {
-        const msg = axios.isAxiosError(err)
-          ? (err.response?.data?.detail ?? err.message)
-          : "TTS regenerate failed";
+        const detail = axios.isAxiosError(err) ? err.response?.data?.detail : undefined;
+        const msg =
+          typeof detail === "string"
+            ? detail
+            : axios.isAxiosError(err)
+              ? err.message
+              : "TTS regenerate failed";
         updateState(clientId, { status: "error", error: msg });
       }
     },

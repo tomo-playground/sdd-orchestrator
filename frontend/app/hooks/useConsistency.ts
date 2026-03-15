@@ -21,7 +21,10 @@ export function useConsistency(storyboardId: number | null) {
       setData(res.data);
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.detail || err.message || "Failed to load consistency data");
+        const detail = err.response?.data?.detail;
+        const msg =
+          typeof detail === "string" ? detail : err.message || "Failed to load consistency data";
+        setError(msg);
       } else {
         setError("Failed to load consistency data");
       }
