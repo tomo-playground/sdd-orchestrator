@@ -103,7 +103,7 @@ def _save_reference_asset(db: Session, character_id: int, image_bytes: bytes) ->
     from services.asset_service import AssetService
 
     asset_service = AssetService(db)
-    asset = asset_service.save_character_preview(character_id, image_bytes)
+    asset = asset_service.save_character_reference(character_id, image_bytes)
     rows = (
         db.query(Character)
         .filter(

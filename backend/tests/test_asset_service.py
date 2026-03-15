@@ -38,15 +38,15 @@ class TestAssetService:
         mock_db.add.assert_called_once()
         mock_db.commit.assert_called_once()
 
-    def test_save_character_preview(self, mock_db, mock_storage):
+    def test_save_character_reference(self, mock_db, mock_storage):
         service = AssetService(mock_db)
         image_bytes = b"fake-png-bytes-for-test"
 
         with patch.object(AssetService, "_get_storage", return_value=mock_storage):
-            asset = service.save_character_preview(character_id=42, image_bytes=image_bytes)
+            asset = service.save_character_reference(character_id=42, image_bytes=image_bytes)
 
         # Verify storage key format
-        assert asset.storage_key.startswith("characters/42/preview/character_42_preview_")
+        assert asset.storage_key.startswith("characters/42/reference/character_42_reference_")
         assert asset.storage_key.endswith(".png")
         assert asset.owner_type == "character"
         assert asset.owner_id == 42
@@ -59,14 +59,14 @@ class TestAssetService:
         assert call_args[0][1] == image_bytes
         assert call_args[1]["content_type"] == "image/png"
 
-    def test_save_character_preview_deterministic_hash(self, mock_db, mock_storage):
-        """Same image bytes produce the same file name (SHA1 digest)."""
+    def test_save_character_reference_deterministic_hash(self, mock_db, mock_storage):
+        """Same image bytes produce the same file name (SHA-256 digest)."""
         service = AssetService(mock_db)
         image_bytes = b"identical-content"
 
         with patch.object(AssetService, "_get_storage", return_value=mock_storage):
-            asset1 = service.save_character_preview(character_id=1, image_bytes=image_bytes)
-            asset2 = service.save_character_preview(character_id=1, image_bytes=image_bytes)
+            asset1 = service.save_character_reference(character_id=1, image_bytes=image_bytes)
+            asset2 = service.save_character_reference(character_id=1, image_bytes=image_bytes)
 
         assert asset1.file_name == asset2.file_name
 

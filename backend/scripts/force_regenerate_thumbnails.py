@@ -62,8 +62,8 @@ async def generate_character_preview(client, character, db):
 
             # File name and storage key
             unique_id = uuid.uuid4().hex[:8]
-            filename = f"character_{character.id}_preview_{unique_id}.png"
-            storage_key = f"characters/{character.id}/preview/{filename}"
+            filename = f"character_{character.id}_reference_{unique_id}.png"
+            storage_key = f"characters/{character.id}/reference/{filename}"
 
             # Save to underlying S3/Local storage wrapper
             storage = get_storage()

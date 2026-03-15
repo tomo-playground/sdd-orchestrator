@@ -66,7 +66,7 @@ async def generate_character_preview(client, character):
             from pathlib import Path
 
             image_data = base64.b64decode(result["images"][0])
-            filename = f"character_preview_{character.name.lower().replace(' ', '_')}.png"
+            filename = f"character_reference_{character.name.lower().replace(' ', '_')}.png"
             filepath = Path("outputs/images/stored") / filename
             filepath.parent.mkdir(parents=True, exist_ok=True)
 

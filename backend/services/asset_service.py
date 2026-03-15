@@ -70,13 +70,13 @@ class AssetService:
         logger.info(f"📊 [Asset Registry] Registered {file_type}: {file_name}{owner_info} ID: {asset.id}")
         return asset
 
-    def save_character_preview(self, character_id: int, image_bytes: bytes) -> MediaAsset:
-        """Save a character preview image to storage and register it in the DB."""
+    def save_character_reference(self, character_id: int, image_bytes: bytes) -> MediaAsset:
+        """Save a character reference image to storage and register it in the DB."""
         import hashlib
 
         digest = hashlib.sha256(image_bytes).hexdigest()[:16]
-        file_name = f"character_{character_id}_preview_{digest}.png"
-        storage_key = f"characters/{character_id}/preview/{file_name}"
+        file_name = f"character_{character_id}_reference_{digest}.png"
+        storage_key = f"characters/{character_id}/reference/{file_name}"
         self._get_storage().save(storage_key, image_bytes, content_type="image/png")
         return self.register_asset(
             file_name=file_name,
