@@ -218,7 +218,7 @@ describe("processSSEStream integration", () => {
     expect(result.isWaiting).toBe(true);
   });
 
-  it("throws on error event", async () => {
+  it("throws on error event when onNodeEvent is not provided", async () => {
     const { processSSEStream } = await import("../../../app/hooks/scriptEditor/sseProcessor");
 
     const event: ScriptStreamEvent = {
@@ -232,6 +232,47 @@ describe("processSSEStream integration", () => {
     const setState = vi.fn();
 
     await expect(processSSEStream(response, setState)).rejects.toThrow("Pipeline exploded");
+  });
+
+  it("returns hasError instead of throwing when onNodeEvent is provided", async () => {
+    const { processSSEStream } = await import("../../../app/hooks/scriptEditor/sseProcessor");
+
+    const event: ScriptStreamEvent = {
+      node: "error",
+      label: "Error",
+      percent: 0,
+      status: "error",
+      error: "Pipeline exploded",
+    };
+    const response = makeSSEResponse([`data: ${JSON.stringify(event)}\n\n`]);
+    const setState = vi.fn();
+    const onNodeEvent = vi.fn();
+
+    const result = await processSSEStream(response, setState, { onNodeEvent });
+
+    expect(result.hasError).toBe(true);
+    expect(result.errorMessage).toBe("Pipeline exploded");
+    // onNodeEvent should have been called with the error event
+    expect(onNodeEvent).toHaveBeenCalledWith(expect.objectContaining({ status: "error" }));
+  });
+
+  it("returns hasError=false on successful stream", async () => {
+    const { processSSEStream } = await import("../../../app/hooks/scriptEditor/sseProcessor");
+
+    const event = {
+      node: "director",
+      label: "Director",
+      percent: 100,
+      status: "completed",
+      result: { scenes: [{ id: 1, script: "Hello" }] },
+    } as unknown as ScriptStreamEvent;
+    const response = makeSSEResponse([`data: ${JSON.stringify(event)}\n\n`]);
+    const setState = vi.fn();
+
+    const result = await processSSEStream(response, setState);
+
+    expect(result.hasError).toBe(false);
+    expect(result.errorMessage).toBeUndefined();
   });
 
   it("tracks threadId when option is set", async () => {

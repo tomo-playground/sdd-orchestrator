@@ -47,7 +47,13 @@ export async function parseSSEStream(
   }
 }
 
-export type StreamResult = { finalScenes: SceneItem[] | null; isWaiting: boolean };
+export type StreamResult = {
+  finalScenes: SceneItem[] | null;
+  isWaiting: boolean;
+  /** true when an SSE error event was already forwarded to onNodeEvent (ErrorCard displayed). */
+  hasError: boolean;
+  errorMessage?: string;
+};
 
 export type SSEStreamOptions = {
   trackThreadId?: boolean;
@@ -63,6 +69,8 @@ export async function processSSEStream(
 ): Promise<StreamResult> {
   let finalScenes: SceneItem[] | null = null;
   let isWaiting = false;
+  let hasError = false;
+  let errorMessage: string | undefined;
 
   await parseSSEStream(response, (event: ScriptStreamEvent) => {
     options?.onNodeEvent?.(event);
@@ -195,9 +203,16 @@ export async function processSSEStream(
       isWaiting = true;
     }
     if (event.status === "error") {
-      throw new Error(friendlyErrorMessage(event.error ?? "Stream failed"));
+      const msg = friendlyErrorMessage(event.error ?? "Stream failed");
+      // onNodeEvent가 있으면 ErrorCard가 이미 채팅에 표시됨 → throw 대신 플래그
+      if (options?.onNodeEvent) {
+        hasError = true;
+        errorMessage = msg;
+      } else {
+        throw new Error(msg);
+      }
     }
   });
 
-  return { finalScenes, isWaiting };
+  return { finalScenes, isWaiting, hasError, errorMessage };
 }

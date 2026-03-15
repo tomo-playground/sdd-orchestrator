@@ -17,6 +17,7 @@ type ChatMessagesDeps = {
   getMessages: (id: number | null) => ChatMessage[];
   saveMessages: (id: number | null, msgs: ChatMessage[]) => void;
   clearMessages: (id: number | null) => void;
+  migrateFromTemp: (newId: number) => void;
 };
 
 export type ChatMessagesReturn = {
@@ -33,7 +34,7 @@ export type ChatMessagesReturn = {
 };
 
 export function useChatMessages(deps: ChatMessagesDeps): ChatMessagesReturn {
-  const { storyboardId, getMessages, saveMessages, clearMessages } = deps;
+  const { storyboardId, getMessages, saveMessages, clearMessages, migrateFromTemp } = deps;
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
     const saved = getMessages(storyboardId);
@@ -46,10 +47,10 @@ export function useChatMessages(deps: ChatMessagesDeps): ChatMessagesReturn {
   const topicRef = useRef<string>("");
 
   // 채팅 메시지 변경 시 store에 자동 저장 (typing indicator 제외, 500ms debounce)
+  // storyboardId가 null이면 임시 key("__new__")에 저장하여 새로고침 시에도 보존
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
-    if (!storyboardId) return;
-    const persistable = chatMessages.filter((m) => !m.id.startsWith("typing-"));
+    const persistable = chatMessages.filter((m) => m.contentType !== "typing");
     if (persistable.length > 1) {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
@@ -62,15 +63,23 @@ export function useChatMessages(deps: ChatMessagesDeps): ChatMessagesReturn {
   }, [chatMessages, storyboardId, saveMessages]);
 
   // 스토리보드 변경 시 해당 히스토리 복원
+  // null → number 전환 시 임시 key 데이터를 새 id로 이관
   const prevStoryboardIdRef = useRef(storyboardId);
   useEffect(() => {
     if (prevStoryboardIdRef.current === storyboardId) return;
+    const prevId = prevStoryboardIdRef.current;
     prevStoryboardIdRef.current = storyboardId;
+
+    // 새 영상(null) → 저장 완료(number) 전환: 임시 채팅을 새 id로 이관
+    if (prevId === null && storyboardId !== null) {
+      migrateFromTemp(storyboardId);
+    }
+
     const saved = getMessages(storyboardId);
     setChatMessages(saved.length > 0 ? saved : [createWelcomeMessage()]);
     setActiveProgress(null);
     topicRef.current = "";
-  }, [storyboardId, getMessages]);
+  }, [storyboardId, getMessages, migrateFromTemp]);
 
   const addMessage = useCallback((msg: ChatMessage) => {
     setChatMessages((prev) => [...prev, msg]);
@@ -83,7 +92,7 @@ export function useChatMessages(deps: ChatMessagesDeps): ChatMessagesReturn {
       {
         id,
         role: "assistant" as const,
-        contentType: "assistant" as const,
+        contentType: "typing" as const,
         text: hint,
         timestamp: Date.now(),
       },

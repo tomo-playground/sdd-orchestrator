@@ -119,6 +119,12 @@ export type SceneEditDiffMessage = ChatMessageBase & {
   editApplied?: boolean;
 };
 
+export type TypingMessage = ChatMessageBase & {
+  role: "assistant";
+  contentType: "typing";
+  text: string;
+};
+
 export type ChatMessage =
   | UserMessage
   | AssistantMessage
@@ -130,7 +136,8 @@ export type ChatMessage =
   | ErrorMessage
   | PipelineStepMessage
   | PlanReviewGateMessage
-  | SceneEditDiffMessage;
+  | SceneEditDiffMessage
+  | TypingMessage;
 
 export type ChatContentType = ChatMessage["contentType"];
 

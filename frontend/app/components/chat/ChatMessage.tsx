@@ -12,6 +12,7 @@ import ErrorCard from "./messages/ErrorCard";
 import PipelineStepCard from "./messages/PipelineStepCard";
 import PlanReviewCard from "./messages/PlanReviewCard";
 import SceneEditDiffCard from "./messages/SceneEditDiffCard";
+import TypingBubble from "./messages/TypingBubble";
 import type { ChatMessage as ChatMessageType, SettingsRecommendation } from "../../types/chat";
 import type { SceneItem, ResumeOptions, ResumeAction } from "../../hooks/scriptEditor/types";
 import type { FeedbackPreset } from "../../types";
@@ -96,6 +97,8 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
       );
     case "error":
       return <ErrorCard message={message.errorMessage} onRetry={callbacks.onRetry} />;
+    case "typing":
+      return <TypingBubble text={message.text} />;
     default:
       return null;
   }

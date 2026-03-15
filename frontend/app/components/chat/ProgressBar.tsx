@@ -6,29 +6,35 @@ type Props = {
   progress: { node: string; label: string; percent: number };
 };
 
-const NODE_LABEL_MAP: Record<string, string> = {
-  director: "디렉터 분석 중",
-  director_plan: "기획 수립 중",
-  director_checkpoint: "디렉터 검토 중",
-  director_plan_gate: "플랜 검토 중",
-  writer: "대본 작성 중",
-  critic: "품질 검토 중",
-  cinematographer: "촬영 설정 중",
-  research: "리서치 중",
-  concept_gate: "컨셉 생성 중",
+/** Fallback: Backend label이 없는 Frontend 전용 상태용 */
+const NODE_LABEL_FALLBACK: Record<string, string> = {
+  connecting: "연결 중",
   review_gate: "검토 준비 중",
-  bgm_selector: "BGM 선택 중",
   image_analysis: "이미지 분석 중",
 };
 
+/** "중" / "완료" 등 이미 상태를 나타내는 접미사 목록 */
+const STATUS_SUFFIXES = ["중", "완료"];
+
+/** Backend rawLabel에 진행형 접미사 "중"을 붙여 반환 */
+function appendProgressSuffix(label: string): string {
+  if (STATUS_SUFFIXES.some((s) => label.endsWith(s))) return label;
+  return `${label} 중`;
+}
+
 function resolveLabel(node: string, rawLabel: string): string {
-  if (NODE_LABEL_MAP[node]) return NODE_LABEL_MAP[node];
-  if (NODE_LABEL_MAP[rawLabel]) return NODE_LABEL_MAP[rawLabel];
-  // If rawLabel looks like a node name (underscores, no spaces), don't show it raw
-  if (rawLabel && !rawLabel.includes(" ") && rawLabel.includes("_")) {
-    return "처리 중";
+  // 1) Backend label 우선 (SSOT)
+  if (rawLabel && rawLabel.trim()) {
+    const trimmed = rawLabel.trim();
+    // node name 형태(underscore, 공백 없음)이면 사람용 label 아님 → fallback
+    if (!trimmed.includes(" ") && trimmed.includes("_")) {
+      return NODE_LABEL_FALLBACK[node] ?? "처리 중";
+    }
+    return appendProgressSuffix(trimmed);
   }
-  return rawLabel || "처리 중...";
+  // 2) Fallback: Frontend 전용 상태
+  if (NODE_LABEL_FALLBACK[node]) return NODE_LABEL_FALLBACK[node];
+  return "처리 중";
 }
 
 export default function ProgressBar({ progress }: Props) {
