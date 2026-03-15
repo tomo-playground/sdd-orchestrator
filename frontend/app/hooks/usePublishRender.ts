@@ -13,6 +13,7 @@ import { getErrorMsg } from "../utils/error";
 export function usePublishRender() {
   const scenes = useStoryboardStore((s) => s.scenes);
   const topic = useStoryboardStore((s) => s.topic);
+  const updateScene = useStoryboardStore((s) => s.updateScene);
   const store = useRenderStore(
     useShallow((s) => ({
       layoutStyle: s.layoutStyle,
@@ -120,7 +121,55 @@ export function usePublishRender() {
               }
             : null;
 
-        const renderScenes = scenes.filter((s) => s.image_url);
+        let renderScenes = scenes.filter((s) => s.image_url);
+
+        // TTS prebuild: tts_asset_id 없는 씬에 대해 렌더 전 자동 생성
+        if (storyboardId) {
+          const missingTts = renderScenes.filter((s) => s.script?.trim() && !s.tts_asset_id);
+          if (missingTts.length > 0) {
+            try {
+              setOutput({
+                renderProgress: {
+                  task_id: "prebuild",
+                  stage: "setup_avatars",
+                  percent: 0,
+                  message: "TTS 준비 중...",
+                  encode_percent: 0,
+                  current_scene: 0,
+                  total_scenes: missingTts.length,
+                },
+              });
+              const prebuildRes = await axios.post(`${API_BASE}/scene/tts-prebuild`, {
+                storyboard_id: storyboardId,
+                scenes: missingTts.map((s) => ({
+                  scene_db_id: s.id,
+                  script: s.script,
+                  speaker: s.speaker,
+                  voice_design_prompt: s.voice_design_prompt ?? undefined,
+                  scene_emotion: s.context_tags?.emotion ?? undefined,
+                  image_prompt_ko: s.image_prompt_ko ?? undefined,
+                })),
+              });
+              const results: Array<{
+                scene_db_id: number;
+                tts_asset_id: number | null;
+                status: string;
+              }> = prebuildRes.data.results ?? [];
+              for (const r of results) {
+                if (r.tts_asset_id && r.status === "prebuilt") {
+                  const matched = renderScenes.find((s) => s.id === r.scene_db_id);
+                  if (matched) updateScene(matched.client_id, { tts_asset_id: r.tts_asset_id });
+                }
+              }
+              // Refresh renderScenes after tts_asset_id updates
+              renderScenes = useStoryboardStore.getState().scenes.filter((s) => s.image_url);
+            } catch (prebuildErr) {
+              // prebuild 실패는 경고만 — 렌더는 계속 진행 (무음 fallback)
+              console.warn("[usePublishRender] TTS prebuild failed:", prebuildErr);
+            }
+          }
+        }
+
         const payload = {
           project_id: projectId,
           group_id: groupId,
@@ -198,7 +247,7 @@ export function usePublishRender() {
         setOutput({ isRendering: false, renderProgress: null });
       }
     },
-    [scenes, topic, setOutput, showToast, projectId, groupId, storyboardId]
+    [scenes, topic, setOutput, showToast, projectId, groupId, storyboardId, updateScene]
   );
 
   return {

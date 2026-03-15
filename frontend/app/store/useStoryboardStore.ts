@@ -263,8 +263,21 @@ export const useStoryboardStore = create<StoryboardStore>()(
           const hasPersistableChange = Object.keys(updates).some(
             (key) => !SCENE_TRANSIENT_FIELDS.has(key)
           );
+          const ttsInvalidatingFields = ["script", "speaker", "voice_design_prompt"] as const;
+          const existing = state.scenes.find((s) => s.client_id === clientId);
+          const needsTtsReset = existing
+            ? ttsInvalidatingFields.some(
+                (field) =>
+                  field in updates &&
+                  (updates as Record<string, unknown>)[field] !==
+                    (existing as Record<string, unknown>)[field]
+              )
+            : false;
+          const finalUpdates = needsTtsReset ? { ...updates, tts_asset_id: null } : updates;
           return {
-            scenes: state.scenes.map((s) => (s.client_id === clientId ? { ...s, ...updates } : s)),
+            scenes: state.scenes.map((s) =>
+              s.client_id === clientId ? { ...s, ...finalUpdates } : s
+            ),
             ...(hasPersistableChange && { isDirty: true }),
           };
         }),

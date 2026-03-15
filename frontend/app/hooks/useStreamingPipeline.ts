@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  type Dispatch,
-  type SetStateAction,
-  type MutableRefObject,
-} from "react";
+import { useCallback, type Dispatch, type SetStateAction, type MutableRefObject } from "react";
 import type { ScriptEditorActions } from "./scriptEditor";
 import type { ScriptStreamEvent, ConceptCandidate } from "../types";
 import type { ChatMessage, ActiveProgress } from "../types/chat";
@@ -37,14 +30,6 @@ type StreamingPipelineDeps = {
 
 export function useStreamingPipeline(deps: StreamingPipelineDeps) {
   const { setChatMessages, setActiveProgress, addMessage, editorRef } = deps;
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  // Cleanup save timer on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, []);
 
   const onNodeEvent = useCallback(
     (event: ScriptStreamEvent) => {
@@ -103,13 +88,18 @@ export function useStreamingPipeline(deps: StreamingPipelineDeps) {
         event.result?.candidates
       ) {
         setActiveProgress(null);
+        const candidates = event.result.candidates as ConceptCandidate[];
+        const selectedConcept = event.result.selected_concept as ConceptCandidate | undefined;
+        const recommendedConceptId = selectedConcept
+          ? candidates.findIndex((c) => c.agent_role === selectedConcept.agent_role)
+          : 0;
         addMessage({
           id: createMessageId(),
           role: "assistant",
           contentType: "concept_gate",
           text: "컨셉을 선택해주세요.",
-          concepts: event.result.candidates as ConceptCandidate[],
-          recommendedConceptId: 0,
+          concepts: candidates,
+          recommendedConceptId: recommendedConceptId >= 0 ? recommendedConceptId : 0,
           timestamp: Date.now(),
         });
         return;
@@ -130,7 +120,8 @@ export function useStreamingPipeline(deps: StreamingPipelineDeps) {
         return;
       }
 
-      // Completed
+      // Completed — chat message only; save is handled by handleStreamOutcome
+      // (onNodeEvent fires during processSSEStream, before scenes are committed)
       if (event.status === "completed" && event.result?.scenes) {
         setActiveProgress(null);
         addMessage({
@@ -140,11 +131,6 @@ export function useStreamingPipeline(deps: StreamingPipelineDeps) {
           text: `스크립트 생성 완료! ${event.result.scenes.length}개 씬이 생성되었습니다.`,
           timestamp: Date.now(),
         });
-        // Auto-save triggers onSaved → setActiveTab("stage")
-        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-        saveTimerRef.current = setTimeout(() => {
-          if (editorRef.current) editorRef.current.save();
-        }, 300);
         return;
       }
 

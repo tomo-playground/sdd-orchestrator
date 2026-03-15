@@ -18,7 +18,6 @@ import pytest
 
 from schemas import TtsPrebuildRequest, TtsPrebuildSceneItem
 
-
 # ── WAV helpers ───────────────────────────────────────────────────────────────
 
 
@@ -249,6 +248,9 @@ class TestPrebuildPrebuilt:
             "SpeakerX",
             "deep and authoritative",
             7,  # storyboard_id
+            scene_emotion=None,
+            image_prompt_ko=None,
+            scene_db_id=30,
         )
 
     @pytest.mark.asyncio
@@ -261,9 +263,7 @@ class TestPrebuildPrebuilt:
 
         request = TtsPrebuildRequest(
             storyboard_id=1,
-            scenes=[
-                TtsPrebuildSceneItem(scene_db_id=40, script="업데이트 테스트", speaker="A", tts_asset_id=None)
-            ],
+            scenes=[TtsPrebuildSceneItem(scene_db_id=40, script="업데이트 테스트", speaker="A", tts_asset_id=None)],
         )
 
         mock_update = MagicMock()
@@ -371,9 +371,7 @@ class TestPrebuildFailed:
 
         request = TtsPrebuildRequest(
             storyboard_id=1,
-            scenes=[
-                TtsPrebuildSceneItem(scene_db_id=70, script="실패 결과 확인", speaker="A", tts_asset_id=None)
-            ],
+            scenes=[TtsPrebuildSceneItem(scene_db_id=70, script="실패 결과 확인", speaker="A", tts_asset_id=None)],
         )
 
         with patch(
@@ -424,7 +422,9 @@ class TestPrebuildMixed:
 
         call_count = 0
 
-        async def _generate_side_effect(script, speaker, voice_design, storyboard_id):
+        async def _generate_side_effect(
+            script, speaker, voice_design, storyboard_id, scene_emotion=None, image_prompt_ko=None, scene_db_id=None
+        ):
             nonlocal call_count
             call_count += 1
             if speaker == "C":
@@ -465,8 +465,7 @@ class TestPrebuildMixed:
         request = TtsPrebuildRequest(
             storyboard_id=1,
             scenes=[
-                TtsPrebuildSceneItem(scene_db_id=i, script="씬", speaker="A", tts_asset_id=100 + i)
-                for i in range(3)
+                TtsPrebuildSceneItem(scene_db_id=i, script="씬", speaker="A", tts_asset_id=100 + i) for i in range(3)
             ],
         )
 

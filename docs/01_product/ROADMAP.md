@@ -43,14 +43,17 @@
 | **LLM Provider 추상화 Phase A~E** | **전체 완료 (ARCHIVED)** |
 | **Phase 32 (Auto Run Pipeline Hardening)** | **전체 완료 (ARCHIVED)** |
 | **Phase 33 (Hybrid Match Rate)** | **전체 완료 (ARCHIVED)** |
-| 테스트 | Backend 3,466 + Frontend 543 + E2E 36 = **총 4,045개** |
+| **TTS 파이프라인 일원화 (Sprint A~D)** | **전체 완료 (ARCHIVED)** |
+| 테스트 | Backend 3,517 + Frontend 543 + E2E 36 = **총 4,096개** |
 
 ### 진행 중
 
-- (없음 — 다음 Phase 대기)
+- **Phase 34** (GPU 순차 독점 실행 & BGM 고도화): Sprint A (GpuModelCache) → B (GpuCoordinator + Forge 연동) → C (ACE-Step 교체). [명세](FEATURES/AUDIO_SERVER_GPU_OPTIMIZATION.md)
 
 ### 최근 작업
 
+- **03-16 스크립트 생성 후 씬 소실 버그 수정**: `useStreamingPipeline`에서 `editor.save()` race condition — onNodeEvent(SSE 처리 중) vs handleStreamOutcome(SSE 종료 후) 타이밍 불일치로 빈 씬 PUT. autoSave(Zustand SSOT) 경로로 전환
+- **03-16 TTS 파이프라인 일원화 완료**: Sprint A~D — `generate_tts_audio()` SSOT 코어, preview/prebuild/render 3경로 통합, tts_asset_id 자동 무효화, prebuild 자동 삽입, scene_processing.py 슬림화(645→295줄). 테스트 51개 PASS
 - **03-16 Phase 33 완료**: Sprint A~E 구현 (22/22) — E-2 배치 Gemini 호출 병합 + validate-batch API + 테스트 33개
 - **03-15 Phase 32 완료**: Auto Run Pipeline Hardening 17/17 — TTS prebuild API + AutoRun Progress Bar + BG Quality SSOT + SCENE_TRANSIENT_FIELDS 정합성 + preflight.ts 분리 + 테스트 61개 추가
 - **03-15 Phase 32 착수**: Stage 루프 버그(A-1/A-2) + TTS is_temp promote(B-2) + Preflight bgmMode(C-1/C-2) + ResumeConfirmModal 연결(D-1) + 완료 단계 비활성화(D-2) + batch seed/canStore(D-3/D-4) + TTS_ENGINE SSOT(E-1) + location key 헬퍼(E-3) + polling AbortSignal(E-4) + asyncio.gather 병렬화(E-6). 14/17 항목 완료
@@ -108,6 +111,7 @@
 | — | LLM Provider 추상화 (A~E) | `services/llm/` 패키지, `google.genai` 직결 제거, trace+PROHIBITED fallback 중복 해소, ruff CLEAN | [아카이브](../99_archive/archive/ROADMAP_PHASE_27_31.md) · [설계](../03_engineering/backend/LLM_PROVIDER_ABSTRACTION.md) |
 | 32 | Auto Run Pipeline Hardening | Stage 루프 버그, TTS 단계 추가, Resume 연결, Preflight 정확성, 코드 품질. 17/17 | [아카이브](../99_archive/archive/ROADMAP_PHASE_32_33.md) · [명세](FEATURES/AUTO_RUN_PIPELINE_HARDENING.md) |
 | 33 | Hybrid Match Rate | WD14+Gemini Vision 2-Phase, group_name 태그 라우팅, 배치 Gemini 병합, 테스트 33개. 22/22 | [아카이브](../99_archive/archive/ROADMAP_PHASE_32_33.md) · [명세](FEATURES/HYBRID_MATCH_RATE.md) |
+| — | TTS 파이프라인 일원화 (Sprint A~D) | `generate_tts_audio()` SSOT, preview/prebuild/render 3경로 통합, tts_asset_id 자동 무효화, prebuild 자동 삽입, scene_processing.py 슬림화 | [설계](../03_engineering/backend/TTS_PIPELINE_UNIFICATION.md) |
 
 ---
 
@@ -151,6 +155,7 @@ graph LR
     P30 --> P31["Phase 31<br/>UX Navigation<br/>Overhaul"]
     P31 --> P32["Phase 32<br/>Auto Run<br/>Pipeline"]
     P32 --> P33["Phase 33<br/>Hybrid<br/>Match Rate"]
+    P33 --> P34["Phase 34<br/>GPU 순차 독점<br/>& BGM 고도화"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -189,6 +194,7 @@ graph LR
     style P31 fill:#4CAF50,color:#fff
     style P32 fill:#4CAF50,color:#fff
     style P33 fill:#4CAF50,color:#fff
+    style P34 fill:#FF9800,color:#fff
 ```
 
 ---

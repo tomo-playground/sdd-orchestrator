@@ -166,7 +166,7 @@ class TestPreviewSceneTTS:
         mock_asset.id = 1
 
         with (
-            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
+            patch("services.video.tts_helpers.TTS_CACHE_DIR", tmp_path),
             patch("services.preview_tts._save_audio_asset", return_value=mock_asset),
         ):
             result = await preview_scene_tts(req, mock_db)
@@ -199,7 +199,7 @@ class TestPreviewSceneTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
+            patch("services.video.tts_helpers.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.audio_client.synthesize_tts",
                 new_callable=AsyncMock,
@@ -245,7 +245,7 @@ class TestPreviewSceneTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
+            patch("services.video.tts_helpers.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.video.tts_helpers.get_speaker_voice_preset",
                 return_value=5,
@@ -293,7 +293,7 @@ class TestPreviewSceneTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
+            patch("services.video.tts_helpers.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.audio_client.synthesize_tts",
                 new_callable=AsyncMock,
@@ -338,7 +338,7 @@ class TestPreviewBatchTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
+            patch("services.video.tts_helpers.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.audio_client.synthesize_tts",
                 new_callable=AsyncMock,
@@ -384,7 +384,7 @@ class TestPreviewBatchTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
+            patch("services.video.tts_helpers.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.audio_client.synthesize_tts",
                 new_callable=AsyncMock,
@@ -425,7 +425,7 @@ class TestPreviewBatchTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
+            patch("services.video.tts_helpers.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.video.tts_helpers.get_speaker_voice_preset",
                 return_value=None,
@@ -469,7 +469,7 @@ class TestPreviewBatchTTS:
         wav_bytes = wav_buf.getvalue()
 
         with (
-            patch("services.preview_tts.TTS_CACHE_DIR", tmp_path),
+            patch("services.video.tts_helpers.TTS_CACHE_DIR", tmp_path),
             patch(
                 "services.audio_client.synthesize_tts",
                 new_callable=AsyncMock,
@@ -830,7 +830,7 @@ class TestWavDuration:
 
     def test_calculates_correct_duration(self):
         """WAV duration is correctly calculated from bytes."""
-        from services.preview_tts import _wav_duration
+        from services.video.tts_helpers import _wav_duration
 
         buf = io.BytesIO()
         with wave.open(buf, "w") as wf:
@@ -844,7 +844,7 @@ class TestWavDuration:
 
     def test_stereo_wav(self):
         """Stereo WAV duration is correctly calculated."""
-        from services.preview_tts import _wav_duration
+        from services.video.tts_helpers import _wav_duration
 
         buf = io.BytesIO()
         with wave.open(buf, "w") as wf:

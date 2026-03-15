@@ -281,6 +281,8 @@ export async function runAutoRunFromStep(
             speaker: s.speaker,
             voice_design_prompt: s.voice_design_prompt ?? undefined,
             tts_asset_id: s.tts_asset_id ?? undefined,
+            scene_emotion: s.context_tags?.emotion ?? undefined,
+            image_prompt_ko: s.image_prompt_ko ?? undefined,
           }));
 
         if (ttsScenes.length > 0) {
@@ -293,13 +295,18 @@ export async function runAutoRunFromStep(
           pushAutoRunLog(`TTS: ${prebuilt} prebuilt, ${skipped} skipped, ${failed} failed`);
 
           // Update store with new tts_asset_ids
-          const results: Array<{ scene_db_id: number; tts_asset_id: number | null; status: string }> =
-            res.data.results ?? [];
+          const results: Array<{
+            scene_db_id: number;
+            tts_asset_id: number | null;
+            status: string;
+          }> = res.data.results ?? [];
           for (const r of results) {
             if (r.tts_asset_id && r.status === "prebuilt") {
               const scene = workingScenes.find((s) => s.id === r.scene_db_id);
               if (scene) {
-                useStoryboardStore.getState().updateScene(scene.client_id, { tts_asset_id: r.tts_asset_id });
+                useStoryboardStore
+                  .getState()
+                  .updateScene(scene.client_id, { tts_asset_id: r.tts_asset_id });
               }
             }
           }

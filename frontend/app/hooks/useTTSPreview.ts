@@ -98,6 +98,7 @@ export function useTTSPreview(storyboardId: number | null) {
             speaker: s.speaker || "Narrator",
             storyboard_id: storyboardId,
             voice_design_prompt: s.voice_design_prompt || null,
+            scene_emotion: s.context_tags?.emotion ?? undefined,
             language: "korean",
           })),
           storyboard_id: storyboardId,

@@ -7,21 +7,11 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import io
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
 from config import (
-    TTS_CACHE_DIR,
-    TTS_DEFAULT_SEED,
-    TTS_MAX_NEW_TOKENS_BASE,
-    TTS_MAX_NEW_TOKENS_CAP,
-    TTS_MAX_NEW_TOKENS_PER_CHAR,
-    TTS_PREVIEW_BATCH_CONCURRENCY,
-    TTS_REPETITION_PENALTY,
-    TTS_TEMPERATURE,
-    TTS_TOP_P,
     logger,
 )
 from schemas import (
@@ -33,8 +23,7 @@ from schemas import (
 )
 from services.asset_service import AssetService
 from services.storage import get_storage
-
-_TTS_BATCH_SEMAPHORE = asyncio.Semaphore(TTS_PREVIEW_BATCH_CONCURRENCY)
+from services.video.tts_helpers import TTS_CONCURRENCY_SEMAPHORE as _TTS_BATCH_SEMAPHORE
 
 
 @dataclass
@@ -51,95 +40,41 @@ class _TtsGenResult:
 
 async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
     """Generate TTS audio without any DB writes (pure I/O + cache)."""
-    from services.audio_client import synthesize_tts
     from services.video.tts_helpers import (
-        get_preset_voice_info,
+        TtsAudioResult,
+        generate_tts_audio,
         get_speaker_voice_preset,
-        translate_voice_prompt,
-        tts_cache_key,
     )
-    from services.video.utils import clean_script_for_tts, has_speakable_content
+    from services.video.utils import has_speakable_content
 
     script = req.script.strip()
     if not script or not has_speakable_content(script):
         raise ValueError("스크립트에 TTS로 변환할 내용이 없습니다.")
 
-    cleaned = clean_script_for_tts(script)
-
-    # Resolve voice preset
+    # Resolve voice preset at call site (core function requires pre-resolved id)
     voice_preset_id = req.voice_preset_id
     if not voice_preset_id and req.storyboard_id:
         voice_preset_id = get_speaker_voice_preset(req.storyboard_id, req.speaker)
 
-    # Resolve voice design + seed
-    voice_design = req.voice_design_prompt
-    voice_seed: int | None = None
-
-    if voice_preset_id:
-        preset_prompt, preset_seed = get_preset_voice_info(voice_preset_id)
-        if not voice_design and preset_prompt:
-            voice_design = preset_prompt
-        if preset_seed is not None:
-            voice_seed = preset_seed
-
-    if voice_seed is None:
-        voice_seed = TTS_DEFAULT_SEED
-
-    # Build cache key BEFORE emotion/translate mutation — must match render pipeline:
-    # scene_processing.py passes (voice_design_prompt_raw, scene_emotion) as separate args.
-    scene_emotion = req.scene_emotion or ""
-    cache_key = tts_cache_key(
-        cleaned, voice_preset_id, voice_design, req.language, scene_emotion, speaker=req.speaker
-    )
-    cache_path = TTS_CACHE_DIR / f"{cache_key}.wav"
-
-    # Apply scene emotion and translate AFTER cache key is built
-    if scene_emotion.strip():
-        voice_design = f"{voice_design}, {scene_emotion}" if voice_design else scene_emotion
-
-    if voice_design:
-        voice_design = translate_voice_prompt(voice_design)
-
-    # Force regenerate: 캐시 삭제 후 동일 시드로 재생성
-    # 시드를 바꾸면 목소리 정체성이 완전히 달라지므로 preset 시드 그대로 유지
-    if req.force_regenerate:
-        if cache_path.exists():
-            cache_path.unlink()
-        logger.info("[Preview] TTS force regenerate seed=%d, cache_key=%s", voice_seed, cache_key)
-
-    # Check cache
-    if cache_path.exists():
-        audio_bytes = cache_path.read_bytes()
-        duration = _wav_duration(audio_bytes)
-        logger.info("[Preview] TTS cache hit: %s (%.1fs)", cache_key, duration)
-        return _TtsGenResult(
-            audio_bytes, duration, cache_key, cached=True, voice_seed=voice_seed, voice_design=voice_design
-        )
-
-    # Generate TTS
-    max_tokens = min(
-        TTS_MAX_NEW_TOKENS_BASE + len(cleaned) * TTS_MAX_NEW_TOKENS_PER_CHAR,
-        TTS_MAX_NEW_TOKENS_CAP,
-    )
-
-    audio_bytes, _sr, duration, _quality = await synthesize_tts(
-        text=cleaned,
-        instruct=voice_design or "",
+    result: TtsAudioResult = await generate_tts_audio(
+        script=script,
+        speaker=req.speaker,
+        voice_preset_id=voice_preset_id,
+        scene_voice_design=req.voice_design_prompt,
+        global_voice_design=None,
+        scene_emotion=req.scene_emotion or "",
         language=req.language,
-        seed=voice_seed,
-        temperature=TTS_TEMPERATURE,
-        top_p=TTS_TOP_P,
-        repetition_penalty=TTS_REPETITION_PENALTY,
-        max_new_tokens=max_tokens,
+        force_regenerate=req.force_regenerate,
+        max_retries=0,  # preview: no retry
     )
-
-    # Save to TTS cache (same location as render pipeline)
-    TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_path.write_bytes(audio_bytes)
-    logger.info("[Preview] TTS generated + cached: %s (%.1fs)", cache_key, duration)
 
     return _TtsGenResult(
-        audio_bytes, duration, cache_key, cached=False, voice_seed=voice_seed, voice_design=voice_design
+        audio_bytes=result.audio_bytes,
+        duration=result.duration,
+        cache_key=result.cache_key,
+        cached=result.cached,
+        voice_seed=result.voice_seed,
+        voice_design=result.voice_design,
     )
 
 
@@ -174,16 +109,6 @@ def _save_audio_asset(db: Session, audio_bytes: bytes, cache_key: str):
         mime_type="audio/wav",
         checksum=AssetService.compute_checksum(audio_bytes),
     )
-
-
-def _wav_duration(wav_bytes: bytes) -> float:
-    """Calculate duration of WAV audio from bytes."""
-    import wave
-
-    with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
-        frames = wf.getnframes()
-        rate = wf.getframerate()
-        return frames / rate if rate > 0 else 0.0
 
 
 # ── Public API ──────────────────────────────────────────

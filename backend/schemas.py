@@ -3149,6 +3149,8 @@ class TtsPrebuildSceneItem(BaseModel):
     speaker: str = DEFAULT_SPEAKER
     voice_design_prompt: str | None = None
     tts_asset_id: int | None = None  # 이미 있으면 스킵
+    scene_emotion: str | None = None  # 캐시 키 일치 + Gemini voice design용
+    image_prompt_ko: str | None = None  # Gemini voice design 컨텍스트용
 
 
 class TtsPrebuildRequest(BaseModel):

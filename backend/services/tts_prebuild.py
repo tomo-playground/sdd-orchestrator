@@ -12,20 +12,10 @@ import hashlib
 from sqlalchemy.orm import Session
 
 from config import (
-    TTS_CACHE_DIR,
-    TTS_DEFAULT_SEED,
-    TTS_MAX_NEW_TOKENS_BASE,
-    TTS_MAX_NEW_TOKENS_CAP,
-    TTS_MAX_NEW_TOKENS_PER_CHAR,
-    TTS_PREBUILD_CONCURRENCY,
-    TTS_REPETITION_PENALTY,
-    TTS_TEMPERATURE,
-    TTS_TOP_P,
     logger,
 )
 from schemas import TtsPrebuildRequest, TtsPrebuildResponse, TtsPrebuildResult
-
-_PREBUILD_SEMAPHORE = asyncio.Semaphore(TTS_PREBUILD_CONCURRENCY)
+from services.video.tts_helpers import TTS_CONCURRENCY_SEMAPHORE as _PREBUILD_SEMAPHORE
 
 
 async def _generate_audio(
@@ -33,82 +23,40 @@ async def _generate_audio(
     speaker: str,
     voice_design_prompt: str | None,
     storyboard_id: int,
+    scene_emotion: str | None = None,
+    image_prompt_ko: str | None = None,
+    scene_db_id: int | None = None,
 ) -> tuple[bytes, float]:
-    """TTS 오디오 바이트와 재생 시간을 반환한다.
-
-    캐시 hit 시 캐시에서 읽고, miss 시 Audio Server에 요청 후 캐시에 저장한다.
-    """
-    from services.audio_client import synthesize_tts
+    """TTS 오디오 바이트와 재생 시간을 반환한다. (generate_tts_audio 위임)"""
     from services.video.tts_helpers import (
-        get_preset_voice_info,
+        TtsAudioResult,
+        generate_tts_audio,
         get_speaker_voice_preset,
-        translate_voice_prompt,
-        tts_cache_key,
+        persist_voice_design,
     )
-    from services.video.utils import clean_script_for_tts, has_speakable_content
 
-    cleaned = clean_script_for_tts(script.strip())
-    if not cleaned or not has_speakable_content(cleaned):
-        raise ValueError("스크립트에 TTS로 변환할 내용이 없습니다.")
-
+    # Resolve voice preset at call site
     voice_preset_id = get_speaker_voice_preset(storyboard_id, speaker)
-    voice_design = voice_design_prompt
-    voice_seed: int | None = None
 
-    if voice_preset_id:
-        preset_prompt, preset_seed = get_preset_voice_info(voice_preset_id)
-        if not voice_design and preset_prompt:
-            voice_design = preset_prompt
-        if preset_seed is not None:
-            voice_seed = preset_seed
-
-    if voice_seed is None:
-        voice_seed = TTS_DEFAULT_SEED
-
-    cache_key = tts_cache_key(cleaned, voice_preset_id, voice_design, "korean", speaker=speaker)
-    cache_path = TTS_CACHE_DIR / f"{cache_key}.wav"
-
-    if voice_design:
-        voice_design = translate_voice_prompt(voice_design)
-
-    if cache_path.exists():
-        audio_bytes = cache_path.read_bytes()
-        duration = _wav_duration(audio_bytes)
-        logger.info("[TtsPrebuild] Cache hit: %s (%.1fs)", cache_key, duration)
-        return audio_bytes, duration
-
-    max_tokens = min(
-        TTS_MAX_NEW_TOKENS_BASE + len(cleaned) * TTS_MAX_NEW_TOKENS_PER_CHAR,
-        TTS_MAX_NEW_TOKENS_CAP,
+    result: TtsAudioResult = await generate_tts_audio(
+        script=script,
+        speaker=speaker,
+        voice_preset_id=voice_preset_id,
+        scene_voice_design=voice_design_prompt,
+        global_voice_design=None,
+        scene_emotion=scene_emotion or "",
+        language=None,  # config default
+        force_regenerate=False,
+        max_retries=2,  # prebuild: 3회 시도
+        image_prompt_ko=image_prompt_ko,
+        scene_db_id=scene_db_id,
     )
 
-    audio_bytes, _sr, duration, _quality = await synthesize_tts(
-        text=cleaned,
-        instruct=voice_design or "",
-        language="korean",
-        seed=voice_seed,
-        temperature=TTS_TEMPERATURE,
-        top_p=TTS_TOP_P,
-        repetition_penalty=TTS_REPETITION_PENALTY,
-        max_new_tokens=max_tokens,
-    )
+    # Gemini가 새로 생성한 voice design → DB write-back
+    if result.was_gemini_generated and result.voice_design and scene_db_id:
+        persist_voice_design(0, scene_db_id, result.voice_design)
 
-    TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_path.write_bytes(audio_bytes)
-    logger.info("[TtsPrebuild] Generated + cached: %s (%.1fs)", cache_key, duration)
-
-    return audio_bytes, duration
-
-
-def _wav_duration(wav_bytes: bytes) -> float:
-    """WAV 바이트에서 재생 시간(초)을 계산한다."""
-    import io
-    import wave
-
-    with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
-        frames = wf.getnframes()
-        rate = wf.getframerate()
-        return frames / rate if rate > 0 else 0.0
+    return result.audio_bytes, result.duration
 
 
 def _save_tts_asset(db: Session, audio_bytes: bytes, scene_db_id: int) -> int:
@@ -161,10 +109,20 @@ async def _prebuild_one(
     script: str,
     speaker: str,
     voice_design_prompt: str | None,
+    scene_emotion: str | None = None,
+    image_prompt_ko: str | None = None,
 ) -> tuple[bytes, float]:
     """세마포어로 동시성을 제한하며 단일 씬 TTS를 생성한다."""
     async with _PREBUILD_SEMAPHORE:
-        return await _generate_audio(script, speaker, voice_design_prompt, storyboard_id)
+        return await _generate_audio(
+            script,
+            speaker,
+            voice_design_prompt,
+            storyboard_id,
+            scene_emotion=scene_emotion,
+            image_prompt_ko=image_prompt_ko,
+            scene_db_id=scene_db_id,
+        )
 
 
 async def prebuild_tts_for_scenes(
@@ -201,6 +159,8 @@ async def prebuild_tts_for_scenes(
             item.script,
             item.speaker,
             item.voice_design_prompt,
+            scene_emotion=item.scene_emotion,
+            image_prompt_ko=item.image_prompt_ko,
         )
         for item in gen_items
     ]
