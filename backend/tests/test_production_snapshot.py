@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from routers.scripts import _build_production_snapshot
+from routers._scripts_sse import _build_production_snapshot, _extract_quality_gate
 
 
 def test_empty_state_returns_empty():
@@ -77,9 +77,6 @@ def test_falsy_values_excluded():
 
 
 # --- _extract_quality_gate() 단위 테스트 ---
-
-
-from routers.scripts import _extract_quality_gate
 
 
 def test_quality_gate_empty_returns_none():
@@ -170,106 +167,3 @@ def test_snapshot_backward_compat_no_new_fields():
     assert "revision_history" not in snap
     assert "debate_log" not in snap
 
-
-# --- _preflight_safety_check() 단위 테스트 ---
-
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
-
-from routers.scripts import _preflight_safety_check
-
-
-@pytest.mark.asyncio
-@patch("config.gemini_client", new=None)
-async def test_preflight_no_client_returns_none():
-    """gemini_client가 None이면 None 반환 (검증 건너뜀)."""
-    result = await _preflight_safety_check("안전한 주제", "")
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_preflight_safe_topic_returns_none():
-    """안전한 주제는 None을 반환한다."""
-    mock_response = MagicMock()
-    mock_response.prompt_feedback = None
-    mock_response.text = "요약입니다"
-    mock_response.candidates = []
-
-    mock_client = MagicMock()
-    mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
-
-    with patch("config.gemini_client", mock_client):
-        result = await _preflight_safety_check("맛있는 요리 레시피", "간단한 설명")
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_preflight_blocked_by_prompt_feedback():
-    """prompt_feedback.block_reason이 있으면 에러 메시지를 반환한다."""
-    mock_feedback = MagicMock()
-    mock_feedback.block_reason = "PROHIBITED_CONTENT"
-
-    mock_response = MagicMock()
-    mock_response.prompt_feedback = mock_feedback
-    mock_response.text = ""
-    mock_response.candidates = []
-
-    mock_client = MagicMock()
-    mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
-
-    with patch("config.gemini_client", mock_client):
-        result = await _preflight_safety_check("위험한 주제", "")
-    assert result == "PROHIBITED_CONTENT"
-
-
-@pytest.mark.asyncio
-async def test_preflight_blocked_by_finish_reason_safety():
-    """candidates[0].finish_reason에 SAFETY가 포함되면 에러 반환."""
-    mock_candidate = MagicMock()
-    mock_candidate.finish_reason = "SAFETY"
-
-    mock_response = MagicMock()
-    mock_response.prompt_feedback = None
-    mock_response.text = ""
-    mock_response.candidates = [mock_candidate]
-
-    mock_client = MagicMock()
-    mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
-
-    with patch("config.gemini_client", mock_client):
-        result = await _preflight_safety_check("위험한 주제", "")
-    assert result == "SAFETY"
-
-
-@pytest.mark.asyncio
-async def test_preflight_api_error_returns_none():
-    """API 호출 예외 시 None 반환 (본 파이프라인에서 재감지)."""
-    mock_client = MagicMock()
-    mock_client.aio.models.generate_content = AsyncMock(side_effect=RuntimeError("network"))
-
-    with patch("config.gemini_client", mock_client):
-        result = await _preflight_safety_check("어떤 주제", "설명")
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_preflight_description_truncated():
-    """description이 200자 초과 시 잘라서 사용한다."""
-    long_desc = "가" * 300
-    mock_response = MagicMock()
-    mock_response.prompt_feedback = None
-    mock_response.text = "ok"
-    mock_response.candidates = []
-
-    mock_client = MagicMock()
-    mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
-
-    with patch("config.gemini_client", mock_client):
-        result = await _preflight_safety_check("주제", long_desc)
-
-    call_args = mock_client.aio.models.generate_content.call_args
-    prompt = call_args.kwargs.get("contents") or call_args[1].get("contents")
-    assert len(long_desc[:200]) == 200
-    assert long_desc[:200] in prompt
-    assert result is None

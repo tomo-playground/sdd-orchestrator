@@ -46,11 +46,10 @@ def _handle_revise(state: ScriptState, user_input: dict) -> dict:
         return {"plan_action": "proceed", "plan_revision_count": count}
 
     feedback = user_input.get("feedback", "")
-    description = state.get("description", "")
-    new_description = f"{description}\n\n[사용자 피드백] {feedback}" if feedback else description
+    # description에 누적하지 않고 revision_feedback 필드에 저장 (writer_node가 별도로 소비)
     return {
         "plan_action": "revise",
-        "description": new_description,
+        "revision_feedback": feedback,
         "plan_revision_count": count,
     }
 

@@ -8,8 +8,8 @@
 
 from __future__ import annotations
 
-from routers.scripts import _build_node_payload, _state_to_response
-
+from routers._scripts_sse import build_node_payload as _build_node_payload
+from routers.scripts import _state_to_response
 
 # ── _build_node_payload ──────────────────────────────────────
 

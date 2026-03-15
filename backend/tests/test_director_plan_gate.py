@@ -5,13 +5,12 @@ director_plan_gate 노드, 라우팅, 그래프 구조, SSE interrupt 읽기를 
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from services.agent.routing import route_after_director, route_after_director_plan_gate
 from services.agent.script_graph import build_script_graph
-
 
 # -- Fixtures --
 
@@ -91,7 +90,7 @@ async def test_director_plan_gate_hands_on_interrupt(mock_interrupt, sample_dire
 @pytest.mark.asyncio
 @patch("services.agent.nodes.director_plan_gate.interrupt")
 async def test_director_plan_gate_revise_plan(mock_interrupt, sample_director_plan):
-    """사용자 revise_plan → description에 피드백 합류."""
+    """사용자 revise_plan → revision_feedback 필드에 피드백 저장, description 누적 없음."""
     mock_interrupt.return_value = {"action": "revise_plan", "feedback": "감정선을 더 강하게"}
     from services.agent.nodes.director_plan_gate import director_plan_gate_node
 
@@ -105,7 +104,9 @@ async def test_director_plan_gate_revise_plan(mock_interrupt, sample_director_pl
     result = await director_plan_gate_node(state)
 
     assert result["plan_action"] == "revise"
-    assert "[사용자 피드백] 감정선을 더 강하게" in result["description"]
+    assert result["revision_feedback"] == "감정선을 더 강하게"
+    # description에 피드백이 누적되지 않아야 함
+    assert "description" not in result
     assert result["plan_revision_count"] == 1
 
 

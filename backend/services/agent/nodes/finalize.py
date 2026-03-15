@@ -11,6 +11,7 @@ from config import (
     DEFAULT_POSE_TAG,
     DEFAULT_SCENE_NEGATIVE_PROMPT,
     DURATION_DEFICIT_THRESHOLD,
+    DURATION_OVERFLOW_THRESHOLD,
     logger,
 )
 from database import get_db_session
@@ -897,16 +898,28 @@ def _flatten_tts_designs(scenes: list[dict]) -> None:
 
 
 def _ensure_minimum_duration(scenes: list[dict], target_duration: int, language: str) -> None:
-    """총 duration이 목표의 85% 미만이면 비례 재분배한다."""
+    """총 duration을 target 범위(85%~130%)로 보정한다.
+
+    - deficit (< 85%): 비례 재분배로 늘림
+    - overflow (> 130%): 비례 스케일 다운
+    """
     total = sum(s.get("duration", 0) for s in scenes)
-    if total >= target_duration * DURATION_DEFICIT_THRESHOLD or total <= 0 or not scenes:
+    if total <= 0 or not scenes:
         return
 
-    from services.agent.nodes._revise_expand import redistribute_durations
+    if total < target_duration * DURATION_DEFICIT_THRESHOLD:
+        from services.agent.nodes._revise_expand import redistribute_durations
 
-    redistribute_durations(scenes, target_duration, language)
-    new_total = sum(s.get("duration", 0) for s in scenes)
-    logger.info("[Finalize] Duration 보정: %.1fs → %.1fs (target=%ds)", total, new_total, target_duration)
+        redistribute_durations(scenes, target_duration, language)
+        new_total = sum(s.get("duration", 0) for s in scenes)
+        logger.info("[Finalize] Duration deficit 보정: %.1fs → %.1fs (target=%ds)", total, new_total, target_duration)
+
+    elif total > target_duration * DURATION_OVERFLOW_THRESHOLD:
+        scale = (target_duration * DURATION_OVERFLOW_THRESHOLD) / total
+        for scene in scenes:
+            scene["duration"] = round(scene.get("duration", 0) * scale, 1)
+        new_total = sum(s.get("duration", 0) for s in scenes)
+        logger.info("[Finalize] Duration overflow 보정: %.1fs → %.1fs (target=%ds)", total, new_total, target_duration)
 
 
 async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:

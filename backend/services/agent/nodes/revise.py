@@ -262,11 +262,21 @@ async def revise_node(state: ScriptState) -> dict:
     with get_db_session() as db:
         try:
             result = await generate_script(_make_request(state, desc), db, pipeline_context=pipeline_ctx)
+            scenes = result.get("scenes") or []
+
+            # writer_node와 동일한 후처리 적용
+            from services.agent.nodes.writer import _extract_reasoning
+            from services.script.scene_postprocess import annotate_speakable
+
+            annotate_speakable(scenes)
+            scene_reasoning = _extract_reasoning(scenes)
+
             logger.info("[LangGraph] Revise 재생성 완료 (revision=%d)", count + 1)
             return {
-                "draft_scenes": result.get("scenes"),
+                "draft_scenes": scenes,
                 "draft_character_id": result.get("character_id"),
                 "draft_character_b_id": result.get("character_b_id"),
+                "scene_reasoning": scene_reasoning or None,
                 "revision_count": count + 1,
                 "revision_history": history,
             }
