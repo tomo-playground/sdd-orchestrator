@@ -125,6 +125,13 @@ REFERENCE_CAMERA_TAGS: list[str] = [
     "upper_body",
     "looking_at_viewer",
 ]
+# Lighting/cinematic tags injected into LAYER_ATMOSPHERE for reference images.
+# Ensures reference rendering style (shading, depth) matches scene output.
+REFERENCE_LIGHTING_TAGS: list[str] = [
+    "sidelighting",
+    "depth_of_field",
+    "soft_shadow",
+]
 
 # --- 12-Layer Ownership (Tier 소유권) ---
 # 각 레이어를 소유하는 Tier. 소유자만 해당 레이어에 태그를 주입할 수 있다.

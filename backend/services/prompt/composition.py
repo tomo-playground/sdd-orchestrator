@@ -41,6 +41,7 @@ from config import (
     PERMANENT_IDENTITY_WEIGHT_BOOST,
     REFERENCE_CAMERA_TAGS,
     REFERENCE_ENV_TAGS,
+    REFERENCE_LIGHTING_TAGS,
     STYLE_LORA_WEIGHT_CAP,
     logger,
 )
@@ -1272,7 +1273,9 @@ class PromptBuilder:
         char_resolved = self._resolve_aliases_positional([ct["name"] for ct in char_tags_data])
         # Filter out dropped char tags and update names
         char_tags_data = [
-            {**ct, "name": resolved} for ct, resolved in zip(char_tags_data, char_resolved, strict=False) if resolved is not None
+            {**ct, "name": resolved}
+            for ct, resolved in zip(char_tags_data, char_resolved, strict=False)
+            if resolved is not None
         ]
 
         # 3-1. Resolve aliases on ref tags
@@ -1357,6 +1360,14 @@ class PromptBuilder:
             if key not in cam_norms:
                 layers[LAYER_CAMERA].append(tag)
                 cam_norms.add(key)
+
+        # Lighting/cinematic tags → LAYER_ATMOSPHERE for scene-matching rendering style
+        atm_norms = {self._strip_weight(t).lower().replace(" ", "_") for t in layers[LAYER_ATMOSPHERE]}
+        for tag in REFERENCE_LIGHTING_TAGS:
+            key = self._strip_weight(tag).lower().replace(" ", "_")
+            if key not in atm_norms:
+                layers[LAYER_ATMOSPHERE].append(tag)
+                atm_norms.add(key)
 
     def _inject_loras_for_reference(
         self,

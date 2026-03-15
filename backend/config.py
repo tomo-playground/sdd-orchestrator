@@ -450,11 +450,18 @@ ENABLE_DANBOORU_VALIDATION = os.getenv("ENABLE_DANBOORU_VALIDATION", "true").low
 # --- Quality Tag Fallback (used when StyleProfile provides no quality tags) ---
 FALLBACK_QUALITY_TAGS: list[str] = ["masterpiece", "best_quality"]
 
-# --- ADetailer (face inpainting post-process) ---
+# --- ADetailer (face + hand inpainting post-process) ---
 ADETAILER_ENABLED: bool = True
 ADETAILER_FACE_MODEL: str = "face_yolov8n.pt"  # default: fast model
+ADETAILER_HAND_MODEL: str = "hand_yolov8n.pt"  # hand fix model
+ADETAILER_HAND_ENABLED: bool = True  # Enable hand inpainting (2nd unit)
 ADETAILER_DENOISING_STRENGTH: float = 0.4  # 0.3–0.5 safe range
+ADETAILER_HAND_DENOISING_STRENGTH: float = 0.35  # Slightly lower for hands (preserve pose)
 ADETAILER_HIGH_ACCURACY_PROFILE_IDS: set[int] = {2}  # face_yolov8s.pt (Realistic)
+
+# --- IP-Adapter Reference Auto-Crop ---
+IP_ADAPTER_REFERENCE_AUTO_CROP: bool = True  # Auto-crop fullbody → upper body
+IP_ADAPTER_REFERENCE_CROP_RATIO: float = 0.4  # Top 40% of image (head + shoulders)
 
 # --- Prompt Composition Constants (extracted to config_prompt.py) ---
 from config_prompt import *  # noqa: E402, F401, F403
@@ -493,17 +500,13 @@ DEFAULT_REFERENCE_NEGATIVE_PROMPT = ", ".join(
         "watermark",
         "username",
         "blurry",
-        # --- 배경 억제 (밝고 단순한 배경 강제) ---
+        # --- 배경 억제 (깨끗한 배경 유지, 렌더링 스타일은 억제하지 않음) ---
         "busy_background",
         "detailed_background",
         "(dark_background:1.3)",
         "(black_background:1.3)",
-        "shadow",
-        "dramatic_lighting",
-        "moody",
         "night",
         "night_sky",
-        "dark",
         # --- 멀티뷰 억제 ---
         "(multiple_views:1.8)",
         "(character_sheet:1.8)",
