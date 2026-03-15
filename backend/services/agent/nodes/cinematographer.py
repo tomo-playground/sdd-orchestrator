@@ -207,6 +207,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         director_plan=director_plan,
         feedback=director_feedback,
         chat_context=chat_context,
+        creative_direction=state.get("creative_direction"),
     )
 
     # Full 모드 경쟁 시도 (성공 시 즉시 반환)
@@ -284,6 +285,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
                     tool_executors=executors,
                     max_calls=10,
                     trace_name="cinematographer_tool_calling",
+                    system_instruction="당신은 쇼츠 영상의 Cinematographer Agent입니다. 각 씬에 Danbooru 태그, 카메라 앵글, 환경 설정을 추가하여 비주얼 디자인을 완성하세요.",
                 )
                 tool_logs = attempt_logs
             else:
@@ -293,6 +295,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
                     prompt=current_prompt,
                     trace_name="cinematographer_direct_retry",
                     temperature=0.0,
+                    system_instruction="당신은 쇼츠 영상의 Cinematographer Agent입니다. 반드시 JSON 형식으로만 응답하세요.",
                 )
         except Exception as e:
             logger.warning("[Cinematographer] Agent 실패 (graceful): %s", e)

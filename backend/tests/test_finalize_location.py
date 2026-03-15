@@ -59,6 +59,52 @@ class TestInjectLocationMapTags:
         assert env.count("classroom") == 1
         assert env.count("indoors") == 1
 
+    def test_inject_out_of_range_scene_inherits_last_location(self):
+        """Revise로 씬 수 증가 → 계획 범위 초과 씬은 마지막 위치 태그를 상속한다."""
+        # 원래 계획: 씬 0,1 → office (계획된 2씬)
+        # Revise Tier 2 후: 씬 2가 추가됨 (범위 초과)
+        scenes = [
+            {"context_tags": {}},  # 씬 0: office
+            {"context_tags": {}},  # 씬 1: office
+            {"context_tags": {}},  # 씬 2: 계획에 없음 → 상속
+        ]
+        writer_plan = {
+            "locations": [
+                {"name": "office", "scenes": [0, 1], "tags": ["office", "indoors"]},
+            ],
+        }
+        _inject_location_map_tags(scenes, writer_plan)
+
+        # 씬 2는 마지막 계획된 위치(office)의 태그를 상속해야 함
+        env2 = scenes[2]["context_tags"]["environment"]
+        assert "office" in env2
+        assert "indoors" in env2
+
+    def test_inject_multiple_locations_out_of_range_inherits_last(self):
+        """다수 location 중 마지막 location 태그를 초과 씬이 상속한다."""
+        scenes = [
+            {"context_tags": {}},  # 씬 0: cafe (location A)
+            {"context_tags": {}},  # 씬 1: rooftop (location B)
+            {"context_tags": {}},  # 씬 2: 계획 초과 → rooftop 상속
+            {"context_tags": {}},  # 씬 3: 계획 초과 → rooftop 상속
+        ]
+        writer_plan = {
+            "locations": [
+                {"name": "cafe", "scenes": [0], "tags": ["cafe", "indoors"]},
+                {"name": "rooftop", "scenes": [1], "tags": ["rooftop", "outdoors"]},
+            ],
+        }
+        _inject_location_map_tags(scenes, writer_plan)
+
+        # 씬 2, 3은 마지막 location(rooftop)의 태그를 상속
+        for i in (2, 3):
+            env = scenes[i]["context_tags"]["environment"]
+            assert "rooftop" in env
+            assert "outdoors" in env
+
+        # 씬 0은 cafe 태그
+        assert "cafe" in scenes[0]["context_tags"]["environment"]
+
 
 class TestInjectLocationNegativeTags:
     """_inject_location_negative_tags 테스트."""

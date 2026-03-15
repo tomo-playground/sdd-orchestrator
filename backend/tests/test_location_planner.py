@@ -30,7 +30,18 @@ class TestEstimateSceneRange:
 
     def test_minimum_floor(self):
         mn, _ = _estimate_scene_range(5)
-        assert mn >= 3
+        assert mn >= 1
+
+    def test_dialogue_45s(self):
+        mn, mx = _estimate_scene_range(45, "Dialogue")
+        assert mn == 8
+        assert mx == 12
+
+    def test_dialogue_45s_vs_monologue_45s(self):
+        """Dialogue should produce fewer scenes than Monologue for same duration."""
+        d_mn, d_mx = _estimate_scene_range(45, "Dialogue")
+        m_mn, m_mx = _estimate_scene_range(45, "Monologue")
+        assert d_mx < m_mx
 
     def test_max_ge_min(self):
         for dur in [5, 10, 15, 20, 30]:

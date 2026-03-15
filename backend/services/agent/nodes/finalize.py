@@ -231,6 +231,11 @@ def _inject_location_map_tags(scenes: list[dict], writer_plan: dict | None) -> N
 
     for i, scene in enumerate(scenes):
         loc_tags = idx_to_tags.get(i)
+        if not loc_tags and idx_to_tags:
+            # Revise로 씬 수가 변경된 경우: 범위 초과 씬은 마지막 위치 태그 상속
+            max_planned_idx = max(idx_to_tags.keys())
+            if i > max_planned_idx:
+                loc_tags = idx_to_tags.get(max_planned_idx)
         if not loc_tags:
             continue
 

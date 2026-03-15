@@ -65,6 +65,7 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
         "topic": state.get("topic", ""),
         "duration": state.get("duration", 30),
         "threshold": LANGGRAPH_CHECKPOINT_THRESHOLD,
+        "feedback": state.get("director_checkpoint_feedback"),
     }
 
     try:
@@ -98,6 +99,8 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
         if decision == "revise":
             update["director_checkpoint_feedback"] = feedback
             update["revision_feedback"] = feedback
+            # writer 재시작 시 revision_count 리셋 — 새 루프에서 revise 기회 보장
+            update["revision_count"] = 0
         return update
 
     except Exception as e:
@@ -122,6 +125,7 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
             if decision == "revise":
                 update["director_checkpoint_feedback"] = feedback
                 update["revision_feedback"] = feedback
+                update["revision_count"] = 0
             return update
         except Exception as retry_err:
             logger.error("[LangGraph] Checkpoint 재시도 실패: %s", retry_err)

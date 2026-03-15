@@ -23,6 +23,7 @@ from services.script.gemini_generator import generate_script
 _DURATION_RE = re.compile(r"씬 (\d+): duration이 0 이하")
 _FIELD_RE = re.compile(r"씬 (\d+): 필수 필드 '(script|image_prompt)' 누락")
 _DURATION_DEFICIT_RE = re.compile(r"총 duration 부족")
+_DURATION_OVERFLOW_RE = re.compile(r"총 duration 초과")
 _INVALID_SPEAKER_RE = re.compile(r"speaker='A' 또는 'Narrator'만 허용")
 _DIALOGUE_MISSING_SPEAKER_RE = re.compile(r"Dialogue 구조에서 speaker '([AB])'가 등장하지 않음")
 
@@ -30,6 +31,11 @@ _DIALOGUE_MISSING_SPEAKER_RE = re.compile(r"Dialogue 구조에서 speaker '([AB]
 def _has_duration_deficit(errors: list[str]) -> bool:
     """에러 목록에 총 duration 부족 에러가 있는지 확인한다."""
     return any(_DURATION_DEFICIT_RE.search(e) for e in errors)
+
+
+def _has_duration_overflow(errors: list[str]) -> bool:
+    """에러 목록에 총 duration 초과 에러가 있는지 확인한다."""
+    return any(_DURATION_OVERFLOW_RE.search(e) for e in errors)
 
 
 def _generate_placeholder_prompt(state: ScriptState) -> str:
@@ -197,6 +203,26 @@ async def revise_node(state: ScriptState) -> dict:
         if new_total >= state.get("duration", 10) * DURATION_DEFICIT_THRESHOLD:
             logger.info("[LangGraph] Revise Tier 1.5 duration 재분배 완료 (revision=%d)", count + 1)
             history[-1]["tier"] = "duration_redistribute"
+            return {"draft_scenes": scenes, "revision_count": count + 1, "revision_history": history}
+
+    # Tier 1.6: duration 초과 → 씬 개수 trim (구조 인식)
+    if _has_duration_overflow(errors):
+        from services.storyboard.helpers import calculate_max_scenes, normalize_structure  # noqa: PLC0415
+
+        structure = normalize_structure(state.get("structure"))
+        duration = state.get("duration", 10)
+        max_sc = calculate_max_scenes(duration, structure)
+        if len(scenes) > max_sc:
+            trimmed_count = len(scenes) - max_sc
+            scenes = scenes[:max_sc]
+            logger.info(
+                "[LangGraph] Revise Tier 1.6 overflow trim: %d씬 제거 → %d씬 (max=%d, structure=%s)",
+                trimmed_count,
+                len(scenes),
+                max_sc,
+                structure,
+            )
+            history[-1]["tier"] = "overflow_trim"
             return {"draft_scenes": scenes, "revision_count": count + 1, "revision_history": history}
 
     # Tier 2: 씬 개수 부족 → 타겟 확장 (기존 씬 보존)

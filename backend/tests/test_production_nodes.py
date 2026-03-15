@@ -205,7 +205,7 @@ async def test_director_node_approve(mock_step):
     result = await director_node(state, {})
     assert result["director_decision"] == "approve"
     assert result["director_feedback"] == "모든 요소가 잘 조화됩니다."
-    assert result["director_revision_count"] == 1
+    assert result["director_revision_count"] == 0  # 즉시 approve → revise 스텝 없음 → 카운트 불변
     # Phase 10-A: reasoning_steps 기록 확인
     assert "director_reasoning_steps" in result
     assert len(result["director_reasoning_steps"]) == 1

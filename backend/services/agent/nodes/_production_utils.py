@@ -58,7 +58,7 @@ async def run_production_step(
                 block_reason = getattr(feedback_info, "block_reason", None) if feedback_info else None
                 if feedback_info:
                     logger.warning("[%s] Empty response, prompt_feedback: %s", step_name, feedback_info)
-                if block_reason and "PROHIBITED_CONTENT" in str(block_reason):
+                if block_reason and "PROHIBITED" in getattr(block_reason, "name", str(block_reason)).upper():
                     # PROHIBITED_CONTENT → 폴백 모델로 1회 재시도
                     logger.warning("[%s][Fallback] PROHIBITED_CONTENT → %s", step_name, GEMINI_FALLBACK_MODEL)
                     async with trace_llm_call(

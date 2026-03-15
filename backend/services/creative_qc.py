@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from config import SCRIPT_LENGTH_KOREAN, SCRIPT_LENGTH_OTHER, logger
 from services.keywords.patterns import CATEGORY_PATTERNS
-from services.storyboard.helpers import calculate_max_scenes, calculate_min_scenes
+from services.storyboard.helpers import calculate_max_scenes, calculate_min_scenes, normalize_structure
 
 _GAZE_TAGS: frozenset[str] = frozenset(CATEGORY_PATTERNS.get("gaze", []))
 _POSE_TAGS: frozenset[str] = frozenset(CATEGORY_PATTERNS.get("pose", []))
@@ -46,9 +46,10 @@ def validate_scripts(
     issues: list[str] = []
     checks: dict[str, str] = {}
 
+    structure = normalize_structure(structure)
     # Scene count check (SSOT: storyboard helpers)
-    min_scenes = calculate_min_scenes(duration)
-    max_scenes = calculate_max_scenes(duration)
+    min_scenes = calculate_min_scenes(duration, structure)
+    max_scenes = calculate_max_scenes(duration, structure)
     count = len(scripts)
     if min_scenes <= count <= max_scenes:
         checks["scene_count"] = "PASS"

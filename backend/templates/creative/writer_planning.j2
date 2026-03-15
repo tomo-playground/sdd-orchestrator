@@ -54,7 +54,7 @@ Choose ONE Hook pattern that best fits this topic:
 
 Define the emotional trajectory for EACH scene. The arc should create a compelling journey:
 
-- **Duration {{ duration }}s** → Expected **{{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes**
+- **Duration {{ duration }}s** → Expected **{% if structure in ("Dialogue", "Narrated Dialogue") %}{{ [3, ((duration / 6) | round | int)] | max }}-{{ ((duration / 4) | round | int) }}{% else %}{{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }}{% endif %} scenes**
 - Map emotions for each scene (e.g., ["호기심", "긴장", "놀람", "감동", "여운"])
 - Ensure a clear **emotional progression**: start → build → peak → resolve
 - Avoid flat arcs (same emotion throughout)
@@ -72,7 +72,7 @@ Allocate scenes to narrative structure:
 - **Climax**: 20-30% of total scenes — Emotional peak or revelation
 - **Resolution**: 1 scene — Lingering emotion or reflection
 
-**Example** for {{ duration }}s ({{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes):
+**Example** for {{ duration }}s ({% if structure in ("Dialogue", "Narrated Dialogue") %}{{ [3, ((duration / 6) | round | int)] | max }}-{{ ((duration / 4) | round | int) }}{% else %}{{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }}{% endif %} scenes):
 - Intro: 1 scene
 - Rising: 2-3 scenes
 - Climax: 1-2 scenes
@@ -136,7 +136,7 @@ Respond in **Korean** with a structured plan in JSON format:
 ```
 
 **IMPORTANT**:
-- `emotional_arc` 배열의 길이는 예상 씬 개수({{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }})와 일치해야 함
+- `emotional_arc` 배열의 길이는 예상 씬 개수({% if structure in ("Dialogue", "Narrated Dialogue") %}{{ [3, ((duration / 6) | round | int)] | max }}-{{ ((duration / 4) | round | int) }}{% else %}{{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }}{% endif %})와 일치해야 함
 - `scene_distribution`의 합은 총 씬 개수와 일치해야 함
 - `hook_strategy`는 구체적인 첫 씬 아이디어를 포함해야 함 (추상적 설명 금지)
 - `locations`의 모든 `scenes` 배열을 합치면 0부터 (총 씬 수 - 1)까지 빠짐없이 포함해야 함

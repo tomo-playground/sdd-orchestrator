@@ -27,7 +27,7 @@ def _valid_scenes(count: int = 5) -> list[dict]:
             "scene_id": i + 1,
             "script": f"테스트 씬 {i + 1}입니다 안녕하세요",
             "speaker": "A",
-            "duration": 3,
+            "duration": 2,
             "image_prompt": "smile, looking_at_viewer, standing, indoors",
         }
         for i in range(count)

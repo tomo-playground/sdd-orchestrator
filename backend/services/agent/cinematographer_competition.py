@@ -232,6 +232,7 @@ async def _run_single_lens(
                     max_calls=10,
                     trace_name=f"cinematographer_{role}",
                     temperature=lens["temperature"],
+                    system_instruction="당신은 쇼츠 영상의 Cinematographer Agent입니다. 각 씬에 Danbooru 태그, 카메라 앵글, 환경 설정을 추가하여 비주얼 디자인을 완성하세요.",
                 )
                 tool_logs = attempt_logs
             else:
@@ -243,6 +244,7 @@ async def _run_single_lens(
                     prompt=current_prompt,
                     trace_name=f"cinematographer_{role}_direct_retry",
                     temperature=0.0,
+                    system_instruction="당신은 쇼츠 영상의 Cinematographer Agent입니다. 반드시 JSON 형식으로만 응답하세요.",
                 )
 
             scenes = _parse_scenes(response)

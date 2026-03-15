@@ -13,7 +13,7 @@ def _make_scene(script: str, speaker: str = "A", **kwargs) -> dict:
         "scene_id": 1,
         "script": script,
         "speaker": speaker,
-        "duration": 3,
+        "duration": 2,
         "image_prompt": "smile, standing, indoors",
         **kwargs,
     }
@@ -25,7 +25,7 @@ def _make_scenes(scripts: list[str]) -> list[dict]:
             "scene_id": i + 1,
             "script": s,
             "speaker": "A" if i % 2 == 0 else "Narrator",
-            "duration": 3,
+            "duration": 2,
             "image_prompt": "smile, standing, indoors",
         }
         for i, s in enumerate(scripts)

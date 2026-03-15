@@ -18,11 +18,11 @@ from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState, WriterPlan, build_director_context, extract_selected_concept
 
 
-def _estimate_scene_range(duration: int) -> tuple[int, int]:
-    """영상 길이(초)로 예상 씬 개수 범위를 계산한다."""
-    min_scenes = max(3, round(duration / 3))
-    max_scenes = max(min_scenes, round(duration / 2))
-    return min_scenes, max_scenes
+def _estimate_scene_range(duration: int, structure: str = "Monologue") -> tuple[int, int]:
+    """영상 길이(초)로 예상 씬 개수 범위를 계산한다 (구조 인식)."""
+    from services.storyboard.helpers import calculate_max_scenes, calculate_min_scenes
+
+    return calculate_min_scenes(duration, structure), calculate_max_scenes(duration, structure)
 
 
 async def _plan_locations(state: ScriptState) -> list[dict] | None:
@@ -32,7 +32,8 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
         return None
 
     duration = state.get("duration", 10)
-    min_s, max_s = _estimate_scene_range(duration)
+    structure = state.get("structure", "Monologue")
+    min_s, max_s = _estimate_scene_range(duration, structure)
     selected_concept = extract_selected_concept(state)
 
     try:
@@ -70,7 +71,7 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
         if not text:
             feedback = getattr(response, "prompt_feedback", None)
             block_reason = getattr(feedback, "block_reason", None) if feedback else None
-            if block_reason and "PROHIBITED_CONTENT" in str(block_reason):
+            if block_reason and "PROHIBITED" in getattr(block_reason, "name", str(block_reason)).upper():
                 logger.warning("[LocationPlanner][Fallback] PROHIBITED_CONTENT → %s", GEMINI_FALLBACK_MODEL)
                 async with trace_llm_call(
                     name="location_planner_fallback", input_text=prompt, model=GEMINI_FALLBACK_MODEL

@@ -186,3 +186,139 @@ async def test_revise_tier15_fails_to_tier3(mock_db, mock_gen):
     assert result["revision_count"] == 1
     # Tier 3 (재생성)이 호출되었어야 함
     assert mock_gen.called
+
+
+# ── Dialogue 구조 씬 수 공식 ──────────────────────────────────
+
+
+class TestDialogueSceneCount:
+    """Dialogue 구조에서 calculate_min/max_scenes이 올바른 공식을 사용한다."""
+
+    def test_dialogue_45s_min(self):
+        """Dialogue 45s: min = ceil(45/6) = 8."""
+        from services.storyboard.helpers import calculate_min_scenes
+
+        assert calculate_min_scenes(45, "Dialogue") == 8
+
+    def test_dialogue_45s_max(self):
+        """Dialogue 45s: max = ceil(45/4) = 12."""
+        from services.storyboard.helpers import calculate_max_scenes
+
+        assert calculate_max_scenes(45, "Dialogue") == 12
+
+    def test_narrated_dialogue_30s_min(self):
+        """Narrated Dialogue 30s: min = ceil(30/6) = 5."""
+        from services.storyboard.helpers import calculate_min_scenes
+
+        assert calculate_min_scenes(30, "Narrated Dialogue") == 5
+
+    def test_narrated_dialogue_underscore_fallback(self):
+        """정규화 전 Narrated_Dialogue도 Dialogue 분기에 진입한다."""
+        from services.storyboard.helpers import calculate_max_scenes
+
+        assert calculate_max_scenes(30, "Narrated_Dialogue") == 8  # ceil(30/4)
+
+    def test_dialogue_max_less_than_monologue_max(self):
+        """같은 duration에서 Dialogue max < Monologue max (씬 밀도 차이)."""
+        from services.storyboard.helpers import calculate_max_scenes
+
+        assert calculate_max_scenes(45, "Dialogue") < calculate_max_scenes(45, "Monologue")
+
+    def test_monologue_min_floor(self):
+        """Monologue 구조는 floor=1 (짧은 duration도 최소 1씬)."""
+        from services.storyboard.helpers import calculate_min_scenes
+
+        assert calculate_min_scenes(5, "Monologue") >= 1
+
+    def test_dialogue_min_floor(self):
+        """Dialogue 구조는 floor=3 (최소 3개 exchange)."""
+        from services.storyboard.helpers import calculate_min_scenes
+
+        assert calculate_min_scenes(5, "Dialogue") == 3
+
+
+# ── Revise Tier 1.6: duration 초과 trim ──────────────────────
+
+
+class TestReviseTier16OverflowTrim:
+    """_has_duration_overflow() + Tier 1.6 씬 수 trim 동작 검증."""
+
+    def test_has_duration_overflow_detects_error(self):
+        """총 duration 초과 에러 문자열을 감지한다."""
+        from services.agent.nodes.revise import _has_duration_overflow
+
+        errors = ["총 duration 초과: 98.5s (목표 45s의 130% = 58.5s 초과)"]
+        assert _has_duration_overflow(errors) is True
+
+    def test_has_duration_overflow_no_match(self):
+        """다른 에러 메시지는 감지하지 않는다."""
+        from services.agent.nodes.revise import _has_duration_overflow
+
+        errors = ["총 duration 부족: 6.0s (목표 45s의 85% 미달)"]
+        assert _has_duration_overflow(errors) is False
+
+    def test_has_duration_overflow_empty(self):
+        """에러가 없으면 False."""
+        from services.agent.nodes.revise import _has_duration_overflow
+
+        assert _has_duration_overflow([]) is False
+
+    @pytest.mark.asyncio
+    async def test_tier16_trims_to_max_scenes(self):
+        """duration 초과 에러 → Tier 1.6이 max_scenes까지 trim."""
+        from services.agent.nodes.revise import revise_node
+
+        # Monologue 10s: max_scenes = ceil(10/2) = 5
+        # 씬 8개로 초과 상태
+        scenes = [
+            {"scene_id": i + 1, "script": f"대사 {i}", "speaker": "A",
+             "duration": 3.0, "image_prompt": "1girl"}
+            for i in range(8)
+        ]
+        state = {
+            "draft_scenes": scenes,
+            "review_result": {
+                "passed": False,
+                "errors": ["총 duration 초과: 24.0s (목표 10s의 130% = 13.0s 초과)"],
+                "warnings": [],
+            },
+            "revision_count": 0,
+            "duration": 10,
+            "language": "Korean",
+            "structure": "Monologue",
+            "topic": "테스트",
+        }
+
+        result = await revise_node(state)
+
+        assert result["revision_count"] == 1
+        assert len(result["draft_scenes"]) == 5  # max_scenes(10, Monologue)
+
+    @pytest.mark.asyncio
+    async def test_tier16_dialogue_trims_correctly(self):
+        """Dialogue 구조 30s: max=8씬, 12씬 → 8씬으로 trim."""
+        from services.agent.nodes.revise import revise_node
+
+        scenes = [
+            {"scene_id": i + 1, "script": f"대사 {i}", "speaker": "A",
+             "duration": 3.0, "image_prompt": "1girl"}
+            for i in range(12)
+        ]
+        state = {
+            "draft_scenes": scenes,
+            "review_result": {
+                "passed": False,
+                "errors": ["총 duration 초과: 36.0s (목표 30s의 130% = 39.0s 초과)"],
+                "warnings": [],
+            },
+            "revision_count": 0,
+            "duration": 30,
+            "language": "Korean",
+            "structure": "Dialogue",
+            "topic": "테스트",
+        }
+
+        result = await revise_node(state)
+
+        assert result["revision_count"] == 1
+        assert len(result["draft_scenes"]) == 8  # max_scenes(30, "Dialogue")

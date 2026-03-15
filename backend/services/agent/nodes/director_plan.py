@@ -58,7 +58,7 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
         "description": state.get("description", ""),
         "duration": state.get("duration", 30),
         "style": state.get("style", ""),
-        "language": state.get("language", "ko"),
+        "language": state.get("language", "Korean"),
         "structure": state.get("structure", ""),
         "references": state.get("references") or [],
         "chat_context": _sanitize_chat_context(state.get("chat_context") or []),

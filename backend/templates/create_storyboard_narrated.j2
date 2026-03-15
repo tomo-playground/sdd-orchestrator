@@ -55,8 +55,8 @@ Narrator Position Roles (all examples 10+ chars):
 - Focus image_prompt ONLY on: expression, gaze, pose, action, props, camera, environment, mood
 
 ⚠️ NARRATED DIALOGUE STRUCTURE RULES:
-- STRICT: Create {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds total
-- NEVER exceed {{ ((duration / 2) | round | int) }} scenes. Fewer scenes is acceptable.
+- STRICT: Create {{ [3, ((duration / 6) | round | int)] | max }}-{{ ((duration / 4) | round | int) }} scenes for {{ duration }} seconds total
+- NEVER exceed {{ ((duration / 4) | round | int) }} scenes. Fewer scenes is acceptable.
 - Distribute evenly: ~⅓ Narrator, ~⅓ A, ~⅓ B
 - Pattern: Narrator → A → B → Narrator → A → B... (repeat as needed)
 - Narrator opens (context), provides mid-story insight, and closes (reflection)
@@ -131,7 +131,7 @@ CRITICAL STYLE CONSISTENCY RULE:
 
 Instructions:
 1. Create a narrated dialogue with Narrator, Speaker A, and Speaker B.
-   - Target: {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
+   - Target: {{ [3, ((duration / 6) | round | int)] | max }}-{{ ((duration / 4) | round | int) }} scenes for {{ duration }} seconds
    - Each scene duration: set to 3 (backend auto-calculates based on script reading time)
 2. Follow pattern: Narrator → A → B → Narrator → A → B... (repeat as needed)
 3. Narrator scenes:

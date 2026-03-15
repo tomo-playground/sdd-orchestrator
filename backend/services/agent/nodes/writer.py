@@ -41,7 +41,7 @@ def _format_brief_text(brief: dict) -> str:
     return "\n".join(parts) if parts else brief.get("topic_summary", "")
 
 
-_SAFETY_KEYWORDS = ("안전 필터", "SAFETY", "safety", "차단", "block")
+_SAFETY_KEYWORDS = ("안전 필터", "SAFETY", "safety", "차단", "block", "PROHIBITED_CONTENT", "PROHIBITED")
 
 _SAFETY_HINT = (
     "\n\n[안전 가이드] 이전 시도가 콘텐츠 정책으로 차단되었습니다. "
@@ -94,7 +94,7 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
         prompt = tmpl.render(
             topic=state.get("topic", ""),
             description=state.get("description", ""),
-            duration=state.get("duration", 10),
+            duration=state.get("duration", 30),
             language=state.get("language", "Korean"),
             structure=state.get("structure", "Monologue"),
             selected_concept=selected_concept,
@@ -262,12 +262,12 @@ async def writer_node(state: ScriptState) -> dict:
                 logger.error("[LangGraph] Writer 재시도 후에도 빈 씬")
                 return {"error": "빈 스크립트 — Writer가 유효한 씬을 생성하지 못했습니다"}
 
-        # Duration auto-calculation from reading time
+        # Duration auto-calculation from reading time (generate_script가 이미 설정했으면 스킵)
         from services.storyboard.helpers import estimate_reading_duration
 
         language = state.get("language", "Korean")
         for scene in scenes:
-            if scene.get("script", "").strip():
+            if scene.get("script", "").strip() and not scene.get("duration"):
                 scene["duration"] = estimate_reading_duration(scene["script"], language)
 
         # Annotate speakable flag (SSOT for TTS eligibility)

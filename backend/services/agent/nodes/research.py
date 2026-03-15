@@ -354,6 +354,7 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
             tool_executors=executors,
             max_calls=5,  # 최대 5번 도구 호출
             trace_name="research_tool_calling",
+            system_instruction="당신은 쇼츠 대본 작성을 위한 Research Agent입니다.",
         )
 
         raw_brief = response.strip() if response else None

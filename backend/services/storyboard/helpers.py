@@ -29,41 +29,62 @@ def normalize_scene_tags_key(scenes: list[dict]) -> list[dict]:
     return scenes
 
 
-def calculate_min_scenes(duration: int) -> int:
+# normalize_structure() 적용 후 결과("Narrated Dialogue")와 미적용 원본("Narrated_Dialogue") 모두 포함.
+# 일부 호출자가 normalize 없이 raw structure를 전달할 수 있으므로 방어적으로 두 형태를 지원한다.
+_DIALOGUE_STRUCTURES: frozenset[str] = frozenset({"Dialogue", "Narrated Dialogue", "Narrated_Dialogue"})
+
+
+def normalize_structure(structure: str | None) -> str:
+    """structure 문자열을 Title Case 표준형으로 정규화한다.
+
+    "monologue" → "Monologue", "narrated_dialogue" → "Narrated Dialogue"
+    """
+    if not structure:
+        return "Monologue"
+    s = structure.strip().replace("_", " ")
+    return " ".join(word.capitalize() for word in s.split())
+
+
+def calculate_min_scenes(duration: int, structure: str | None = None) -> int:
     """Calculate the minimum expected scene count for a given duration.
 
-    Formula: ceil(duration / max_scene_duration) — uses SCENE_DURATION_RANGE[1] (3.5s).
-    This is intentionally lower than the Gemini template's recommended minimum
-    (duration/3) to allow a tolerance buffer for Review validation.
-    Returns at least 1.
+    Dialogue structures use ~6s/exchange — formula: ceil(duration / 6).
+    Other structures: ceil(duration / SCENE_DURATION_RANGE[1]) (3.5s).
+    Returns at least 3 for Dialogue, 1 for others.
     """
+    if structure in _DIALOGUE_STRUCTURES:
+        return max(3, math.ceil(duration / 6.0))
     from config import SCENE_DURATION_RANGE
 
     return max(1, math.ceil(duration / SCENE_DURATION_RANGE[1]))
 
 
-def calculate_max_scenes(duration: int) -> int:
+def calculate_max_scenes(duration: int, structure: str | None = None) -> int:
     """Calculate the maximum allowed scene count for a given duration.
 
-    Formula: ceil(duration / 2) — assumes minimum 2 seconds per scene.
-    Returns at least 1.
+    Dialogue structures use ~4s minimum/exchange — formula: ceil(duration / 4).
+    Other structures: ceil(duration / 2).
+    Returns at least 3 for Dialogue, 1 for others.
     """
+    if structure in _DIALOGUE_STRUCTURES:
+        return max(3, math.ceil(duration / 4.0))
     return max(1, math.ceil(duration / 2))
 
 
-def trim_scenes_to_duration(scenes: list[dict], duration: int) -> list[dict]:
+def trim_scenes_to_duration(scenes: list[dict], duration: int, structure: str | None = None) -> list[dict]:
     """Trim Gemini-generated scenes if count exceeds max for the given duration.
 
     Returns the original list if within bounds, or a trimmed copy.
     """
-    max_scenes = calculate_max_scenes(duration)
+    max_scenes = calculate_max_scenes(duration, structure)
     if len(scenes) <= max_scenes:
         return scenes
     logger.warning(
-        "[Storyboard] Gemini returned %d scenes for %ds (max %d). Trimming.",
+        "[Storyboard] Gemini returned %d scenes for %ds (max %d, structure=%s). Trimming.",
         len(scenes),
         duration,
         max_scenes,
+        structure,
     )
     return scenes[:max_scenes]
 

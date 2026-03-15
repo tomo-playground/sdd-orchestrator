@@ -13,6 +13,7 @@ from google.genai import types
 
 from config import (
     DURATION_DEFICIT_THRESHOLD,
+    DURATION_OVERFLOW_THRESHOLD,
     GEMINI_SAFETY_SETTINGS,
     LANGGRAPH_AUTO_REVIEW_THRESHOLD,
     REVIEW_SCRIPT_MAX_CHARS_OTHER,
@@ -28,7 +29,7 @@ from services.agent.llm_models import (
 )
 from services.agent.observability import trace_llm_call
 from services.agent.state import NarrativeScore, ReviewResult, ScriptState
-from services.storyboard.helpers import calculate_min_scenes
+from services.storyboard.helpers import calculate_min_scenes, normalize_structure
 
 VALID_SPEAKERS = {"Narrator", "A", "B"}
 
@@ -104,7 +105,8 @@ def _validate_scenes(
     errors: list[str] = []
     warnings: list[str] = []
 
-    expected_min = calculate_min_scenes(duration)
+    structure = normalize_structure(structure)
+    expected_min = calculate_min_scenes(duration, structure)
     if len(scenes) < expected_min:
         errors.append(f"씬 개수 부족: {len(scenes)}개 (최소 {expected_min}개 필요, duration={duration}s)")
 
@@ -113,6 +115,13 @@ def _validate_scenes(
     threshold = duration * DURATION_DEFICIT_THRESHOLD
     if duration > 0 and total_dur < threshold:
         errors.append(f"총 duration 부족: {total_dur:.1f}s (목표 {duration}s의 85% = {threshold:.1f}s 미달)")
+
+    # 총 duration 검증: 목표의 DURATION_OVERFLOW_THRESHOLD 초과이면 에러
+    overflow_limit = duration * DURATION_OVERFLOW_THRESHOLD
+    if duration > 0 and total_dur > overflow_limit:
+        errors.append(
+            f"총 duration 초과: {total_dur:.1f}s (목표 {duration}s의 {DURATION_OVERFLOW_THRESHOLD * 100:.0f}% = {overflow_limit:.1f}s 초과)"
+        )
 
     speakers_found: set[str] = set()
     for i, scene in enumerate(scenes):

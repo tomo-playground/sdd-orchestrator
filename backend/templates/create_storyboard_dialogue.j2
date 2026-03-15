@@ -25,8 +25,8 @@ Language: {{ language }}
 - Focus image_prompt ONLY on: expression, gaze, pose, action, props, camera, environment, mood
 
 ⚠️ DIALOGUE STRUCTURE RULES:
-- STRICT: Create {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds total
-- NEVER exceed {{ ((duration / 2) | round | int) }} scenes. Fewer scenes is acceptable.
+- STRICT: Create {{ [3, ((duration / 6) | round | int)] | max }}-{{ ((duration / 4) | round | int) }} scenes for {{ duration }} seconds total
+- NEVER exceed {{ ((duration / 4) | round | int) }} scenes. Fewer scenes is acceptable.
 - Speaker A gets roughly half the scenes, Speaker B gets the rest
 - Alternate speakers: A → B → A → B → A...
 - Most scenes show ONLY the speaking character (single person in frame)
@@ -98,7 +98,7 @@ CRITICAL STYLE CONSISTENCY RULE:
 
 Instructions:
 1. Create a **natural conversation** between Speaker A and Speaker B. This is a DIALOGUE, not a monologue.
-   - Target: {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes for {{ duration }} seconds
+   - Target: {{ [3, ((duration / 6) | round | int)] | max }}-{{ ((duration / 4) | round | int) }} scenes for {{ duration }} seconds
    - Each scene duration: set to 3 (backend auto-calculates based on script reading time)
 2. **STRICT ALTERNATION**: A, B, A, B, A, B... Each scene's speaker MUST alternate.
    - Speaker A gets roughly half the scenes, Speaker B gets the rest.
@@ -232,4 +232,4 @@ Output Format (4-scene dialogue example — notice A↔B alternation and convers
     }
   }
 ]
-NOTE: Above is a 4-scene example. Your output should have {{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} scenes with A↔B strictly alternating.
+NOTE: Above is a 4-scene example. Your output should have {{ [3, ((duration / 6) | round | int)] | max }}-{{ ((duration / 4) | round | int) }} scenes with A↔B strictly alternating.

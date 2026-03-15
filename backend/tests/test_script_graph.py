@@ -19,41 +19,45 @@ from services.agent.state import ScriptState
 
 @pytest.fixture
 def mock_scenes():
-    """review 검증을 통과할 수 있는 유효한 씬 데이터."""
+    """review 검증을 통과할 수 있는 유효한 씬 데이터.
+
+    스크립트 길이를 짧게 유지하여 estimate_reading_duration 합산이
+    target duration(10s) 범위 내에 들도록 조정한다.
+    """
     return [
         {
             "scene_id": 1,
-            "script": "테스트 씬 1입니다 안녕하세요",
+            "script": "안녕 반가워요",
             "speaker": "A",
-            "duration": 3,
+            "duration": 2,
             "image_prompt": "smile, looking_at_viewer, standing, indoors",
         },
         {
             "scene_id": 2,
-            "script": "테스트 씬 2입니다 반갑습니다",
+            "script": "오늘 날씨 좋아요",
             "speaker": "A",
-            "duration": 3,
+            "duration": 2,
             "image_prompt": "happy, looking_at_viewer, sitting, outdoors",
         },
         {
             "scene_id": 3,
-            "script": "테스트 씬 3입니다 감사합니다",
+            "script": "같이 가보자요",
             "speaker": "A",
-            "duration": 3,
+            "duration": 2,
             "image_prompt": "smile, cowboy_shot, classroom, indoors",
         },
         {
             "scene_id": 4,
-            "script": "테스트 씬 4입니다 좋은 하루요",
+            "script": "힘내세요 파이팅",
             "speaker": "A",
-            "duration": 3,
+            "duration": 2,
             "image_prompt": "waving, full_body, park, outdoors",
         },
         {
             "scene_id": 5,
-            "script": "테스트 씬 5입니다 마지막이에요",
+            "script": "감사해요 고마워요",
             "speaker": "A",
-            "duration": 3,
+            "duration": 2,
             "image_prompt": "smile, upper_body, sky, sunset",
         },
     ]

@@ -188,7 +188,7 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
                     model=DIRECTOR_MODEL,
                     )
                 react = DirectorReActOutput.model_validate(result)
-                react_step: DirectorReActStep = {
+                react_step = {
                     "step": step_num,
                     "observe": react.observe,
                     "think": react.think,
@@ -219,16 +219,21 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
         final_decision,
     )
 
-    # 인라인 수정된 결과를 State에 반영 (BUG 1 수정)
+    # revise 스텝이 한 번이라도 발생했을 때만 카운트 증가 (즉시 approve 시 증가 방지)
+    had_revise_step = any(step.get("act", "approve") != "approve" for step in reasoning_steps)
+    new_count = count + 1 if (had_revise_step or final_decision == "error") else count
     result_dict: dict = {
         "director_decision": final_decision,
         "director_feedback": final_feedback,
-        "director_revision_count": count + 1,
+        "director_revision_count": new_count,
         "director_reasoning_steps": reasoning_steps,
         "agent_messages": messages,
     }
     for agent_name in revised_agents:
-        state_key = _AGENT_STATE_KEY_MAP[agent_name]
+        state_key = _AGENT_STATE_KEY_MAP.get(agent_name)
+        if state_key is None:
+            logger.warning("[Director] 알 수 없는 에이전트명 '%s', state 업데이트 스킵", agent_name)
+            continue
         result_dict[state_key] = production_results[agent_name]
 
     return result_dict
