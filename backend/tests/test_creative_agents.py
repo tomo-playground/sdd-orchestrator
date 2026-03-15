@@ -56,20 +56,19 @@ def _make_ollama_async_client(post_side_effect=None, get_side_effect=None):
 # 1. GeminiProvider
 # ---------------------------------------------------------------------------
 class TestGeminiProvider:
-    """GeminiProvider wraps google.genai for text generation."""
+    """GeminiProvider wraps services.llm.GeminiProvider for text generation."""
 
     @pytest.mark.asyncio
     async def test_generate_success(self):
         """Successful Gemini call returns content + token_usage + model_id."""
-        mock_response = MagicMock()
-        mock_response.text = "Once upon a time..."
-        mock_response.usage_metadata = MagicMock(
-            prompt_token_count=10, candidates_token_count=25, total_token_count=35,
-        )
-        mock_client = MagicMock()
-        mock_client.models.generate_content.return_value = mock_response
+        mock_llm_response = MagicMock()
+        mock_llm_response.text = "Once upon a time..."
+        mock_llm_response.usage = {"input": 10, "output": 25, "total": 35}
 
-        with patch("services.creative_agents.genai.Client", return_value=mock_client):
+        mock_inner_provider = AsyncMock()
+        mock_inner_provider.generate = AsyncMock(return_value=mock_llm_response)
+
+        with patch("services.creative_agents._get_llm_provider", return_value=mock_inner_provider):
             from services.creative_agents import GeminiProvider
 
             provider = GeminiProvider(model_name="gemini-2.0-flash", api_key="fake-key")
@@ -84,10 +83,10 @@ class TestGeminiProvider:
     @pytest.mark.asyncio
     async def test_generate_api_error_raises_runtime_error(self):
         """Gemini API failure is wrapped in RuntimeError."""
-        mock_client = MagicMock()
-        mock_client.models.generate_content.side_effect = Exception("quota exceeded")
+        mock_inner_provider = AsyncMock()
+        mock_inner_provider.generate = AsyncMock(side_effect=Exception("quota exceeded"))
 
-        with patch("services.creative_agents.genai.Client", return_value=mock_client):
+        with patch("services.creative_agents._get_llm_provider", return_value=mock_inner_provider):
             from services.creative_agents import GeminiProvider
 
             provider = GeminiProvider(model_name="gemini-2.0-flash", api_key="fake-key")
@@ -178,10 +177,9 @@ class TestGetProvider:
 
     def test_gemini_provider(self):
         """'gemini' returns GeminiProvider instance."""
-        with patch("services.creative_agents.genai.Client"):
-            from services.creative_agents import GeminiProvider, get_provider
+        from services.creative_agents import GeminiProvider, get_provider
 
-            assert isinstance(get_provider("gemini", "gemini-2.0-flash"), GeminiProvider)
+        assert isinstance(get_provider("gemini", "gemini-2.0-flash"), GeminiProvider)
 
     def test_ollama_provider(self):
         """'ollama' returns OllamaProvider instance."""

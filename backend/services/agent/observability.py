@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from config import GEMINI_TEXT_MODEL, logger
+from config import logger
 from config_pipelines import (
     LANGFUSE_BASE_URL,
     LANGFUSE_ENABLED,
@@ -212,6 +212,18 @@ def _safe_extract_text(response: Any) -> str:
         return getattr(response, "text", "") or ""
 
 
+def _extract_usage(response: Any) -> dict[str, int] | None:
+    """Gemini response에서 token usage를 추출한다."""
+    meta = getattr(response, "usage_metadata", None)
+    if not meta:
+        return None
+    return {
+        "input": int(getattr(meta, "prompt_token_count", 0) or 0),
+        "output": int(getattr(meta, "candidates_token_count", 0) or 0),
+        "total": int(getattr(meta, "total_token_count", 0) or 0),
+    }
+
+
 @dataclass
 class LLMCallResult:
     """trace_llm_call()이 yield하는 결과 객체."""
@@ -221,15 +233,14 @@ class LLMCallResult:
     usage: dict[str, int] | None = None
 
     def record(self, response: Any) -> None:
-        """Gemini 응답에서 output 텍스트와 토큰 사용량을 추출한다."""
+        """기존 Gemini response 파싱 (하위 호환 유지)."""
         self.output = _safe_extract_text(response)
-        meta = getattr(response, "usage_metadata", None)
-        if meta:
-            self.usage = {
-                "input": int(getattr(meta, "prompt_token_count", 0) or 0),
-                "output": int(getattr(meta, "candidates_token_count", 0) or 0),
-                "total": int(getattr(meta, "total_token_count", 0) or 0),
-            }
+        self.usage = _extract_usage(response)
+
+    def record_text(self, text: str, usage: dict[str, int] | None = None) -> None:
+        """Provider-agnostic 기록. Ollama 등 non-Gemini provider에서 사용."""
+        self.output = text
+        self.usage = usage
 
 
 @asynccontextmanager
@@ -256,14 +267,14 @@ async def trace_llm_call(
     if root_span:
         generation = root_span.start_generation(
             name=name,
-            model=model or GEMINI_TEXT_MODEL,
+            model=model or "",
             input=input_text[:_MAX_IO_LEN],
         )
     else:
         generation = _langfuse_client.start_generation(
             trace_context=trace_ctx,
             name=name,
-            model=model or GEMINI_TEXT_MODEL,
+            model=model or "",
             input=input_text[:_MAX_IO_LEN],
         )
     result = LLMCallResult(generation=generation)

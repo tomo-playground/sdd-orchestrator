@@ -37,16 +37,18 @@ def cinema_result(mock_scenes):
 
 
 @pytest.mark.asyncio
-@patch("services.agent.nodes._production_utils.gemini_client")
+@patch("services.agent.nodes._production_utils.get_llm_provider")
 @patch("services.agent.nodes._production_utils.template_env")
-async def test_run_production_step_success(mock_tenv, mock_gemini):
+async def test_run_production_step_success(mock_tenv, mock_llm_provider):
     """정상 응답 → QC 통과 시 결과를 반환한다."""
     from services.agent.nodes._production_utils import run_production_step
 
     mock_tenv.get_template.return_value.render.return_value = "prompt"
-    mock_response = MagicMock()
-    mock_response.text = '{"scenes": [{"image_prompt": "test", "camera": "close-up", "environment": "park"}]}'
-    mock_gemini.aio.models.generate_content = AsyncMock(return_value=mock_response)
+    mock_llm_resp = MagicMock()
+    mock_llm_resp.text = '{"scenes": [{"image_prompt": "test", "camera": "close-up", "environment": "park"}]}'
+    mock_provider = MagicMock()
+    mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
+    mock_llm_provider.return_value = mock_provider
 
     result = await run_production_step(
         template_name="creative/cinematographer.j2",
@@ -59,16 +61,18 @@ async def test_run_production_step_success(mock_tenv, mock_gemini):
 
 
 @pytest.mark.asyncio
-@patch("services.agent.nodes._production_utils.gemini_client")
+@patch("services.agent.nodes._production_utils.get_llm_provider")
 @patch("services.agent.nodes._production_utils.template_env")
-async def test_run_production_step_retry_on_qc_fail(mock_tenv, mock_gemini):
+async def test_run_production_step_retry_on_qc_fail(mock_tenv, mock_llm_provider):
     """QC 실패 → 재시도 후 성공."""
     from services.agent.nodes._production_utils import run_production_step
 
     mock_tenv.get_template.return_value.render.return_value = "prompt"
-    mock_response = MagicMock()
-    mock_response.text = '{"scenes": [{"image_prompt": "test"}]}'
-    mock_gemini.aio.models.generate_content = AsyncMock(return_value=mock_response)
+    mock_llm_resp = MagicMock()
+    mock_llm_resp.text = '{"scenes": [{"image_prompt": "test"}]}'
+    mock_provider = MagicMock()
+    mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
+    mock_llm_provider.return_value = mock_provider
 
     call_count = 0
 

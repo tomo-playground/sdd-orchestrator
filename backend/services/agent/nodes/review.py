@@ -9,12 +9,9 @@ from __future__ import annotations
 
 import json
 
-from google.genai import types
-
 from config import (
     DURATION_DEFICIT_THRESHOLD,
     DURATION_OVERFLOW_THRESHOLD,
-    GEMINI_SAFETY_SETTINGS,
     LANGGRAPH_AUTO_REVIEW_THRESHOLD,
     REVIEW_SCRIPT_MAX_CHARS_OTHER,
     SCRIPT_LENGTH_KOREAN,
@@ -27,8 +24,8 @@ from services.agent.llm_models import (
     ReflectionOutput,
     UnifiedReviewOutput,
 )
-from services.agent.observability import trace_llm_call
 from services.agent.state import NarrativeScore, ReviewResult, ScriptState
+from services.llm import LLMConfig, get_llm_provider
 from services.storyboard.helpers import calculate_min_scenes, normalize_structure
 
 VALID_SPEAKERS = {"Narrator", "A", "B"}
@@ -157,12 +154,6 @@ async def _gemini_evaluate(
     language: str,
 ) -> str | None:
     """Gemini에 씬 품질 평가를 요청한다. 실패 시 None 반환."""
-    from config import gemini_client
-
-    if not gemini_client:
-        logger.warning("[LangGraph] Review: Gemini 클라이언트 없음, 평가 건너뜀")
-        return None
-
     try:
         tmpl = template_env.get_template("review_evaluate.j2")
         prompt = tmpl.render(
@@ -171,18 +162,15 @@ async def _gemini_evaluate(
             language=language,
             threshold=LANGGRAPH_AUTO_REVIEW_THRESHOLD,
         )
-        config = types.GenerateContentConfig(
-            system_instruction="You are a script quality evaluator for short-form video scenes.",
-            safety_settings=GEMINI_SAFETY_SETTINGS,
+        llm_response = await get_llm_provider().generate(
+            step_name="review_gemini_evaluate",
+            contents=prompt,
+            config=LLMConfig(
+                system_instruction="You are a script quality evaluator for short-form video scenes.",
+            ),
+            model=REVIEW_MODEL,
         )
-        async with trace_llm_call(name="review_gemini_evaluate", input_text=prompt, model=REVIEW_MODEL) as llm:
-            response = await gemini_client.aio.models.generate_content(
-                model=REVIEW_MODEL,
-                contents=prompt,
-                config=config,
-            )
-            llm.record(response)
-        return response.text
+        return llm_response.text
     except Exception as e:
         logger.warning("[LangGraph] Review Gemini 평가 실패: %s", e)
         return None
@@ -221,12 +209,6 @@ async def _narrative_evaluate(
     language: str,
 ) -> NarrativeScore | None:
     """서사 품질을 Gemini로 평가한다. 에러 시 None (graceful degradation)."""
-    from config import gemini_client
-
-    if not gemini_client:
-        logger.warning("[LangGraph] Narrative: Gemini 클라이언트 없음, 건너뜀")
-        return None
-
     try:
         tmpl = template_env.get_template("creative/narrative_review.j2")
         prompt = tmpl.render(
@@ -235,20 +217,15 @@ async def _narrative_evaluate(
             language=language,
             threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
         )
-        config = types.GenerateContentConfig(
-            system_instruction="You are a narrative quality evaluator specializing in short-form video storytelling.",
-            safety_settings=GEMINI_SAFETY_SETTINGS,
+        llm_response = await get_llm_provider().generate(
+            step_name="review_narrative_evaluate",
+            contents=prompt,
+            config=LLMConfig(
+                system_instruction="You are a narrative quality evaluator specializing in short-form video storytelling.",
+            ),
+            model=REVIEW_MODEL,
         )
-        async with trace_llm_call(
-            name="review_narrative_evaluate", input_text=prompt[:2000], model=REVIEW_MODEL
-        ) as llm:
-            response = await gemini_client.aio.models.generate_content(
-                model=REVIEW_MODEL,
-                contents=prompt,
-                config=config,
-            )
-            llm.record(response)
-        return _parse_narrative_score(response.text or "")
+        return _parse_narrative_score(llm_response.text or "")
     except Exception as e:
         logger.warning("[LangGraph] Narrative 평가 실패: %s", e)
         return None
@@ -265,12 +242,6 @@ async def _self_reflect(
     근본 원인 분석 + 구체적 수정 전략을 Gemini에 요청한다.
     실패 시 None 반환 (graceful degradation).
     """
-    from config import gemini_client
-
-    if not gemini_client:
-        logger.warning("[LangGraph] Self-Reflection: Gemini 클라이언트 없음, 건너뜀")
-        return None
-
     try:
         tmpl = template_env.get_template("creative/review_reflection.j2")
         prompt = tmpl.render(
@@ -283,20 +254,17 @@ async def _self_reflect(
             narrative_score=review_result.get("narrative_score"),
             narrative_threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
         )
-        config = types.GenerateContentConfig(
-            system_instruction="You are a self-reflection agent that analyzes review failures and proposes fix strategies.",
-            safety_settings=GEMINI_SAFETY_SETTINGS,
+        llm_response = await get_llm_provider().generate(
+            step_name="review_self_reflect",
+            contents=prompt,
+            config=LLMConfig(
+                system_instruction="You are a self-reflection agent that analyzes review failures and proposes fix strategies.",
+            ),
+            model=REVIEW_MODEL,
         )
-        async with trace_llm_call(name="review_self_reflect", input_text=prompt, model=REVIEW_MODEL) as llm:
-            response = await gemini_client.aio.models.generate_content(
-                model=REVIEW_MODEL,
-                contents=prompt,
-                config=config,
-            )
-            llm.record(response)
 
         # JSON 파싱
-        text = (response.text or "").strip()
+        text = (llm_response.text or "").strip()
         if text.startswith("```"):
             text = text.split("\n", 1)[-1].rsplit("```", 1)[0]
         data = json.loads(text)
@@ -359,12 +327,6 @@ async def _unified_evaluate(
 
     실패 시 None 반환 (레거시 개별 호출로 폴백).
     """
-    from config import gemini_client
-
-    if not gemini_client:
-        logger.warning("[LangGraph] Unified Review: Gemini 클라이언트 없음, 건너뜀")
-        return None
-
     try:
         tmpl = template_env.get_template("creative/review_unified.j2")
         prompt = tmpl.render(
@@ -377,19 +339,16 @@ async def _unified_evaluate(
             rule_errors=rule_errors,
             rule_warnings=rule_warnings,
         )
-        config = types.GenerateContentConfig(
-            system_instruction="You are a unified review agent that evaluates technical quality, narrative strength, and self-reflection for short-form video scripts.",
-            safety_settings=GEMINI_SAFETY_SETTINGS,
+        llm_response = await get_llm_provider().generate(
+            step_name="review_unified_evaluate",
+            contents=prompt,
+            config=LLMConfig(
+                system_instruction="You are a unified review agent that evaluates technical quality, narrative strength, and self-reflection for short-form video scripts.",
+            ),
+            model=REVIEW_MODEL,
         )
-        async with trace_llm_call(name="review_unified_evaluate", input_text=prompt, model=REVIEW_MODEL) as llm:
-            response = await gemini_client.aio.models.generate_content(
-                model=REVIEW_MODEL,
-                contents=prompt,
-                config=config,
-            )
-            llm.record(response)
 
-        text = (response.text or "").strip()
+        text = (llm_response.text or "").strip()
         if text.startswith("```"):
             text = text.split("\n", 1)[-1].rsplit("```", 1)[0]
 

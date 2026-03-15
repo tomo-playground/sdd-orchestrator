@@ -7,22 +7,20 @@ import time
 from typing import Any, Protocol, runtime_checkable
 
 import httpx
-from google import genai
 
 from config import (
-    GEMINI_API_KEY,
-    GEMINI_SAFETY_SETTINGS,
-    GEMINI_TEXT_MODEL,
     OLLAMA_BASE_URL,
     OLLAMA_TIMEOUT,
     logger,
 )
+from services.llm import LLMConfig
+from services.llm import get_llm_provider as _get_llm_provider
 
 # ── LLM Provider Protocol ───────────────────────────────────
 
 
 @runtime_checkable
-class LLMProvider(Protocol):
+class CreativeAgentProvider(Protocol):
     """Unified interface for LLM providers."""
 
     async def generate(
@@ -47,11 +45,12 @@ class LLMProvider(Protocol):
 
 
 class GeminiProvider:
-    """Google Gemini API provider using google.genai SDK."""
+    """Google Gemini API provider — services.llm 추상화 위임."""
 
     def __init__(self, model_name: str | None = None, api_key: str | None = None) -> None:
-        self.model_name = model_name or GEMINI_TEXT_MODEL
-        self.api_key = api_key or GEMINI_API_KEY
+        self.model_name = model_name
+        # api_key는 services.llm.GeminiProvider가 config에서 읽으므로 참조만 보관
+        self._api_key = api_key
 
     async def generate(
         self,
@@ -59,63 +58,31 @@ class GeminiProvider:
         system_prompt: str,
         temperature: float,
     ) -> dict[str, Any]:
-        from google.genai.types import GenerateContentConfig
-
-        if not self.api_key:
-            msg = "GEMINI_API_KEY not configured"
-            raise RuntimeError(msg)
-
-        client = genai.Client(api_key=self.api_key)
-        config = GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=temperature,
-            safety_settings=GEMINI_SAFETY_SETTINGS,
-        )
         try:
-            from services.agent.observability import trace_llm_call
-
-            async with trace_llm_call(
-                name="creative_agent",
+            llm_response = await _get_llm_provider().generate(
+                step_name="creative_agent",
+                contents=prompt,
+                config=LLMConfig(
+                    system_instruction=system_prompt,
+                    temperature=temperature,
+                ),
                 model=self.model_name,
-                input_text=prompt[:2000],
-            ) as llm:
-                res = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=self.model_name,
-                    contents=prompt,
-                    config=config,
-                )
-                llm.record(res)
+            )
         except Exception as e:
             msg = f"Gemini API error: {e}"
             raise RuntimeError(msg) from e
 
-        content = res.text or ""
-        if not content:
-            # Enhanced logging for empty responses (likely safety filter)
-            candidates = getattr(res, "candidates", [])
-            if candidates:
-                cand = candidates[0]
-                finish_reason = getattr(cand, "finish_reason", "UNKNOWN")
-                safety_ratings = getattr(cand, "safety_ratings", [])
-                logger.warning(
-                    "[Gemini] Empty content. Finish reason: %s. Safety: %s",
-                    finish_reason,
-                    safety_ratings,
-                )
-            else:
-                logger.warning("[Gemini] Empty content and no candidates returned.")
-
-        usage = getattr(res, "usage_metadata", None)
+        content = llm_response.text
+        usage = llm_response.usage or {}
         token_usage = {
-            "prompt_tokens": int(getattr(usage, "prompt_token_count", 0) or 0) if usage else 0,
-            "completion_tokens": int(getattr(usage, "candidates_token_count", 0) or 0) if usage else 0,
-            "total_tokens": int(getattr(usage, "total_token_count", 0) or 0) if usage else 0,
+            "prompt_tokens": usage.get("input", 0),
+            "completion_tokens": usage.get("output", 0),
+            "total_tokens": usage.get("total", 0),
         }
         return {
             "content": content,
             "token_usage": token_usage,
-            "model_id": self.model_name,
+            "model_id": self.model_name or "gemini",
         }
 
 
@@ -181,7 +148,7 @@ class OllamaProvider:
 # ── Factory ──────────────────────────────────────────────────
 
 
-def get_provider(provider_name: str, model_name: str) -> LLMProvider:
+def get_provider(provider_name: str, model_name: str) -> CreativeAgentProvider:
     """Create an LLM provider instance by name."""
     if provider_name == "gemini":
         return GeminiProvider(model_name)

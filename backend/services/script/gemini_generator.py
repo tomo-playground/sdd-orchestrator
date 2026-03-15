@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import re
-from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from config import (
-    GEMINI_FALLBACK_MODEL,
-    GEMINI_SAFETY_SETTINGS,
     GEMINI_TEXT_MODEL,
     gemini_client,
     logger,
@@ -196,84 +192,6 @@ def sanitize_chat_context(chat_context: list[dict]) -> list[dict]:
     return sanitized
 
 
-def _extract_block_reason(res) -> str | None:
-    """Gemini 응답에서 차단 사유를 추출한다. 정상 종료(STOP)는 무시."""
-    if res.prompt_feedback and res.prompt_feedback.block_reason:
-        return str(res.prompt_feedback.block_reason)
-    if res.candidates:
-        for candidate in res.candidates:
-            reason = str(candidate.finish_reason) if candidate.finish_reason else None
-            if reason and reason != "STOP":
-                return reason
-    return None
-
-
-async def _call_gemini_with_retry(
-    contents: str,
-    config,
-    trace_name: str = "gemini",
-) -> Any:
-    """Call Gemini API with retry (429/5xx) + PROHIBITED_CONTENT 자동 폴백.
-
-    PROHIBITED_CONTENT 감지 시 GEMINI_FALLBACK_MODEL(2.0 Flash)로 1회 재시도한다.
-    폴백은 retry 루프 밖에서 1회만 시도하여 중복 폴백을 방지한다.
-    """
-    if gemini_client is None:
-        raise RuntimeError("Gemini client is not initialized. Check GEMINI_API_KEY in .env")
-
-    from services.agent.observability import trace_llm_call
-
-    # Phase 1: retry loop (429/5xx만 재시도)
-    delays = [1, 3]
-    last_exc = None
-    res = None
-    for attempt in range(3):
-        try:
-            async with trace_llm_call(name=trace_name, input_text=contents[:2000]) as llm:
-                res = await gemini_client.aio.models.generate_content(
-                    model=GEMINI_TEXT_MODEL,
-                    contents=contents,
-                    config=config,
-                )
-                llm.record(res)
-            break  # 성공 — retry 루프 탈출
-        except Exception as exc:
-            last_exc = exc
-            error_msg = str(exc)
-            is_retryable = bool(re.search(r"429|5\d{2}", error_msg))
-            if attempt < 2 and is_retryable:
-                delay = delays[attempt]
-                logger.warning("Gemini API retry %d/%d after %ds: %s", attempt + 1, 2, delay, error_msg[:100])
-                await asyncio.sleep(delay)
-            else:
-                raise
-    else:
-        # for-else: 모든 retry 소진 시
-        raise last_exc  # type: ignore[misc]
-
-    # Phase 2: PROHIBITED_CONTENT 감지 → 폴백 모델로 1회 재시도 (루프 밖)
-    if not res.text:
-        block_reason = _extract_block_reason(res)
-        if block_reason and "PROHIBITED_CONTENT" in block_reason:
-            logger.warning(
-                "[Fallback] PROHIBITED_CONTENT → %s (reason: %s)",
-                GEMINI_FALLBACK_MODEL,
-                block_reason,
-            )
-            async with trace_llm_call(
-                name=f"{trace_name}_fallback",
-                input_text=contents[:2000],
-                model=GEMINI_FALLBACK_MODEL,
-            ) as llm_fb:
-                res = await gemini_client.aio.models.generate_content(
-                    model=GEMINI_FALLBACK_MODEL,
-                    contents=contents,
-                    config=config,
-                )
-                llm_fb.record(res)
-
-    return res
-
 
 def _load_character_context(character_id: int, db: Session) -> dict | None:
     """Load character data and classify tags for Gemini template injection."""
@@ -418,20 +336,16 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             chat_context=sanitize_chat_context(ctx.get("chat_context", [])),
             **extra_fields,
         )
-        from google.genai import types
+        from services.llm import LLMConfig, get_llm_provider
 
-        # system_instruction을 contents에 합치지 않고 config로 분리
-        # → Gemini 안전 필터가 덜 엄격하게 작동 (PROHIBITED_CONTENT 방지)
-        config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            safety_settings=GEMINI_SAFETY_SETTINGS,
-        )
         sanitized_contents = _sanitize_for_gemini_prompt(rendered)
-        res = await _call_gemini_with_retry(
+        llm_resp = await get_llm_provider().generate(
+            step_name="writer",
             contents=sanitized_contents,
-            config=config,
-            trace_name="writer",
+            config=LLMConfig(system_instruction=system_instruction),
+            model=GEMINI_TEXT_MODEL,
         )
+        res = llm_resp.raw
         if not res.text:
             # Check why it failed
             error_reason = "Unknown error"

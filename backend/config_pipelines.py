@@ -161,3 +161,6 @@ OLLAMA_DEFAULT_MODEL = os.getenv("OLLAMA_DEFAULT_MODEL", "exaone3.5:7.8b")
 # --- Phase 20-A: Director Inventory Awareness ---
 INVENTORY_MAX_CHARACTERS = int(os.getenv("INVENTORY_MAX_CHARACTERS", "20"))
 INVENTORY_CASTING_ENABLED = os.getenv("INVENTORY_CASTING_ENABLED", "true").lower() == "true"
+
+# LLM Provider 설정
+LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini")  # "gemini" | "ollama"

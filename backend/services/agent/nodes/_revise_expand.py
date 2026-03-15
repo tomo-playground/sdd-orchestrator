@@ -9,8 +9,8 @@ import json
 import re
 
 from config import SCENE_DURATION_RANGE, logger
-from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState, extract_selected_concept
+from services.llm import LLMConfig, get_llm_provider
 from services.storyboard.helpers import strip_markdown_codeblock
 
 _DEFICIT_RE = re.compile(r"씬 개수 부족:\s*(\d+)개\s*\(최소\s*(\d+)개")
@@ -195,13 +195,7 @@ async def try_scene_expand(
     실패 시 None을 반환하여 Tier 3(전체 재생성)으로 fallback.
     """
 
-    from google.genai import types
-
-    from config import GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, template_env
-
-    if not gemini_client:
-        logger.warning("[Revise] Expansion: Gemini 클라이언트 없음, 건너뜀")
-        return None
+    from config import template_env  # noqa: PLC0415
 
     try:
         tmpl = template_env.get_template("creative/scene_expand.j2")
@@ -238,19 +232,14 @@ async def try_scene_expand(
             feedback="\n".join(feedback_parts) if feedback_parts else "",
         )
 
-        expand_config = types.GenerateContentConfig(
-            system_instruction="You are a scene expansion specialist for short-form video scripts. Generate new scenes that seamlessly integrate with existing ones.",
-            safety_settings=GEMINI_SAFETY_SETTINGS,
+        llm_response = await get_llm_provider().generate(
+            step_name="revise_scene_expand",
+            contents=prompt,
+            config=LLMConfig(
+                system_instruction="You are a scene expansion specialist for short-form video scripts. Generate new scenes that seamlessly integrate with existing ones.",
+            ),
         )
-        async with trace_llm_call(name="revise_scene_expand", input_text=prompt) as llm:
-            response = await gemini_client.aio.models.generate_content(
-                model=GEMINI_TEXT_MODEL,
-                contents=prompt,
-                config=expand_config,
-            )
-            llm.record(response)
-
-        raw = strip_markdown_codeblock(response.text or "")
+        raw = strip_markdown_codeblock(llm_response.text)
         new_scenes = json.loads(raw)
 
         if not isinstance(new_scenes, list) or len(new_scenes) == 0:

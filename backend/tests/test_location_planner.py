@@ -115,10 +115,13 @@ class TestLocationPlannerNode:
 
     @pytest.mark.asyncio()
     async def test_no_gemini_client_skips(self, full_state):
-        """gemini_client가 없으면 빈 dict 반환 (graceful degradation)."""
+        """LLM provider 에러 시 빈 dict 반환 (graceful degradation)."""
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(side_effect=RuntimeError("provider unavailable"))
+
         with (
             patch("services.agent.nodes.location_planner.LANGGRAPH_PLANNING_ENABLED", True),
-            patch("services.agent.nodes.location_planner.gemini_client", None),
+            patch("services.agent.nodes.location_planner.get_llm_provider", return_value=mock_provider),
         ):
             result = await location_planner_node(full_state)
         assert result == {}
@@ -126,15 +129,14 @@ class TestLocationPlannerNode:
     @pytest.mark.asyncio()
     async def test_successful_location_planning(self, full_state):
         """정상 케이스: writer_plan.locations가 설정된다."""
-        mock_response = MagicMock()
-        mock_response.text = '{"total_scenes": 5, "locations": [{"name": "kitchen", "scenes": [0, 1, 2, 3, 4], "tags": ["kitchen", "indoors"]}]}'
-
-        mock_client = MagicMock()
-        mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+        mock_llm_resp = MagicMock()
+        mock_llm_resp.text = '{"total_scenes": 5, "locations": [{"name": "kitchen", "scenes": [0, 1, 2, 3, 4], "tags": ["kitchen", "indoors"]}]}'
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
 
         with (
             patch("services.agent.nodes.location_planner.LANGGRAPH_PLANNING_ENABLED", True),
-            patch("services.agent.nodes.location_planner.gemini_client", mock_client),
+            patch("services.agent.nodes.location_planner.get_llm_provider", return_value=mock_provider),
         ):
             result = await location_planner_node(full_state)
 
@@ -149,15 +151,14 @@ class TestLocationPlannerNode:
         """기존 writer_plan 필드를 보존하면서 locations를 추가한다."""
         full_state["writer_plan"] = {"hook_strategy": "기존 훅", "emotional_arc": ["기대", "감동"]}
 
-        mock_response = MagicMock()
-        mock_response.text = '{"total_scenes": 2, "locations": [{"name": "room", "scenes": [0, 1], "tags": ["indoors"]}]}'
-
-        mock_client = MagicMock()
-        mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+        mock_llm_resp = MagicMock()
+        mock_llm_resp.text = '{"total_scenes": 2, "locations": [{"name": "room", "scenes": [0, 1], "tags": ["indoors"]}]}'
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
 
         with (
             patch("services.agent.nodes.location_planner.LANGGRAPH_PLANNING_ENABLED", True),
-            patch("services.agent.nodes.location_planner.gemini_client", mock_client),
+            patch("services.agent.nodes.location_planner.get_llm_provider", return_value=mock_provider),
         ):
             result = await location_planner_node(full_state)
 
@@ -167,13 +168,13 @@ class TestLocationPlannerNode:
 
     @pytest.mark.asyncio()
     async def test_gemini_failure_returns_empty(self, full_state):
-        """Gemini 호출 실패 시 빈 dict 반환 (graceful degradation)."""
-        mock_client = MagicMock()
-        mock_client.aio.models.generate_content = AsyncMock(side_effect=Exception("API error"))
+        """LLM 호출 실패 시 빈 dict 반환 (graceful degradation)."""
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(side_effect=Exception("API error"))
 
         with (
             patch("services.agent.nodes.location_planner.LANGGRAPH_PLANNING_ENABLED", True),
-            patch("services.agent.nodes.location_planner.gemini_client", mock_client),
+            patch("services.agent.nodes.location_planner.get_llm_provider", return_value=mock_provider),
         ):
             result = await location_planner_node(full_state)
 
@@ -182,15 +183,14 @@ class TestLocationPlannerNode:
     @pytest.mark.asyncio()
     async def test_empty_locations_returns_empty(self, full_state):
         """빈 locations 응답 시 빈 dict 반환."""
-        mock_response = MagicMock()
-        mock_response.text = '{"total_scenes": 5, "locations": []}'
-
-        mock_client = MagicMock()
-        mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+        mock_llm_resp = MagicMock()
+        mock_llm_resp.text = '{"total_scenes": 5, "locations": []}'
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
 
         with (
             patch("services.agent.nodes.location_planner.LANGGRAPH_PLANNING_ENABLED", True),
-            patch("services.agent.nodes.location_planner.gemini_client", mock_client),
+            patch("services.agent.nodes.location_planner.get_llm_provider", return_value=mock_provider),
         ):
             result = await location_planner_node(full_state)
 

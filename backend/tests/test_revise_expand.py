@@ -214,21 +214,20 @@ def test_redistribute_empty_scenes():
 
 
 @pytest.mark.asyncio
-@patch("config.gemini_client")
-@patch("config.template_env")
+@patch("services.agent.nodes._revise_expand.get_llm_provider")
 @patch("services.danbooru.schedule_background_classification")
 @patch("services.agent.nodes._revise_expand.postprocess_new_scenes_async", new_callable=AsyncMock, return_value=[])
-async def test_try_scene_expand_success(mock_postprocess, mock_schedule_bg, mock_tenv, mock_gemini):
-    """Gemini가 새 씬을 반환하면 기존 씬에 병합한다."""
+async def test_try_scene_expand_success(mock_postprocess, mock_schedule_bg, mock_llm_provider):
+    """LLM이 새 씬을 반환하면 기존 씬에 병합한다."""
     from services.agent.nodes._revise_expand import try_scene_expand
 
-    mock_tenv.get_template.return_value.render.return_value = "prompt"
-
-    mock_response = MagicMock()
-    mock_response.text = (
+    mock_llm_resp = MagicMock()
+    mock_llm_resp.text = (
         '[{"insert_after": 0, "script": "NEW", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"}]'
     )
-    mock_gemini.aio.models.generate_content = AsyncMock(return_value=mock_response)
+    mock_provider = MagicMock()
+    mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
+    mock_llm_provider.return_value = mock_provider
 
     existing = [
         {"scene_id": 1, "script": "기존 씬 1", "speaker": "A", "duration": 3.0},
@@ -288,10 +287,10 @@ async def test_try_scene_expand_invalid_json(mock_tenv, mock_gemini):
 
 @pytest.mark.asyncio
 async def test_try_scene_expand_no_gemini_client():
-    """Gemini 클라이언트 없음 → None."""
+    """LLM 프로바이더 unavailable → None."""
     from services.agent.nodes._revise_expand import try_scene_expand
 
-    with patch("config.gemini_client", None):
+    with patch("services.agent.nodes._revise_expand.get_llm_provider", side_effect=RuntimeError("no client")):
         result = await try_scene_expand([], {}, deficit=1, target_min=2)
         assert result is None
 

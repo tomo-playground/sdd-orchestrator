@@ -12,8 +12,9 @@ from typing import Any, TypedDict
 
 from google.genai import types
 
-from config import GEMINI_FALLBACK_MODEL, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, logger
-from services.agent.observability import trace_llm_call
+from config import logger
+from services.llm import LLMConfig, get_llm_provider
+from services.llm.gemini_provider import GeminiProvider
 
 
 class ToolCallLog(TypedDict):
@@ -118,13 +119,13 @@ async def call_with_tools(
         (최종 LLM 응답, 도구 호출 로그). max_calls 도달 시에도 누적 텍스트를 반환.
         텍스트가 비어있고 도구 호출이 있었으면, 도구 없이 1회 추가 호출(fallback)을 시도한다.
     """
-    if not gemini_client:
-        raise RuntimeError("Gemini client not initialized")
-
     if max_calls is None:
         from config_pipelines import MAX_TOOL_CALLS_PER_NODE as default_max
 
         max_calls = default_max
+
+    provider: GeminiProvider = get_llm_provider()  # type: ignore[assignment]
+    llm_config = LLMConfig(temperature=temperature, system_instruction=system_instruction)
 
     tool_logs: list[ToolCallLog] = []
     # 첫 메시지는 문자열로 전달
@@ -133,52 +134,19 @@ async def call_with_tools(
     # 매 스텝의 텍스트 파트를 누적 (function_call 혼재 응답에서도 보존)
     accumulated_text: list[str] = []
 
-    config = types.GenerateContentConfig(
-        tools=tools,  # type: ignore[arg-type]
-        temperature=temperature,
-        safety_settings=GEMINI_SAFETY_SETTINGS,
-        system_instruction=system_instruction,
-    )
-
     while call_count < max_calls:
-        # Gemini 호출
-        async with trace_llm_call(name=f"{trace_name}_step_{call_count + 1}", input_text=prompt[:1000]) as llm:
-            response = await gemini_client.aio.models.generate_content(
-                model=GEMINI_TEXT_MODEL,
-                contents=contents,  # type: ignore[arg-type]
-                config=config,
-            )
-            llm.record(response)
+        # GeminiProvider를 통해 Function Calling 호출 (trace + PROHIBITED fallback 내장)
+        llm_response = await provider.generate_with_tools(
+            step_name=f"{trace_name}_step_{call_count + 1}",
+            contents=contents,  # type: ignore[arg-type]
+            config=llm_config,
+            tools=tools,  # type: ignore[arg-type]
+        )
+        response = llm_response.raw
 
         # Tool call 감지
         if not response.candidates:
-            # PROHIBITED_CONTENT 여부 확인 후 fallback 재시도
-            feedback = getattr(response, "prompt_feedback", None)
-            block_reason = getattr(feedback, "block_reason", None)
-            if block_reason:
-                br_name = getattr(block_reason, "name", str(block_reason)).upper()
-                if "PROHIBITED" in br_name:
-                    logger.warning("[Tool-Calling][Fallback] PROHIBITED_CONTENT → %s", GEMINI_FALLBACK_MODEL)
-                    fallback_config = types.GenerateContentConfig(
-                        tools=tools,  # type: ignore[arg-type]
-                        temperature=temperature,
-                        safety_settings=GEMINI_SAFETY_SETTINGS,
-                        system_instruction=system_instruction,
-                    )
-                    async with trace_llm_call(
-                        name=f"{trace_name}_prohibited_fallback", input_text=prompt[:1000], model=GEMINI_FALLBACK_MODEL
-                    ) as llm_fb:
-                        response = await gemini_client.aio.models.generate_content(
-                            model=GEMINI_FALLBACK_MODEL,
-                            contents=contents,  # type: ignore[arg-type]
-                            config=fallback_config,
-                        )
-                        llm_fb.record(response)
-                    if not response.candidates:
-                        logger.warning("[Tool-Calling] Fallback also yielded no candidates, stopping")
-                        break
-                    # 폴백 성공 — 루프 계속
-                    continue
+            block_reason = getattr(getattr(response, "prompt_feedback", None), "block_reason", None)
             logger.warning("[Tool-Calling] No candidates in response (block_reason=%s)", block_reason)
             break
 
@@ -328,25 +296,18 @@ async def call_with_tools(
                 "설명, markdown 코드블록, 서문 없이 순수 JSON만 출력하세요."
             )
             # contents에 이미 도구 결과가 포함되어 있으므로 그대로 활용
-            fallback_contents = list(contents)
+            fallback_contents: list[Any] = list(contents)
             fallback_contents.append(fallback_instruction)
 
-            no_tools_config = types.GenerateContentConfig(
-                temperature=temperature,
+            fallback_resp = await provider.generate_with_tools(
+                step_name=f"{trace_name}_fallback",
+                contents=fallback_contents,  # type: ignore[arg-type]
+                config=LLMConfig(temperature=temperature, system_instruction=system_instruction),
                 tools=[],
-                safety_settings=GEMINI_SAFETY_SETTINGS,
-                system_instruction=system_instruction,
             )
-            async with trace_llm_call(name=f"{trace_name}_fallback", input_text="fallback") as llm:
-                fallback_resp = await gemini_client.aio.models.generate_content(
-                    model=GEMINI_TEXT_MODEL,
-                    contents=fallback_contents,  # type: ignore[arg-type]
-                    config=no_tools_config,
-                )
-                llm.record(fallback_resp)
-
-            if fallback_resp.candidates and fallback_resp.candidates[0].content:
-                fb_parts = fallback_resp.candidates[0].content.parts or []
+            raw_fb = fallback_resp.raw
+            if raw_fb and raw_fb.candidates and raw_fb.candidates[0].content:
+                fb_parts = raw_fb.candidates[0].content.parts or []
                 final = "\n".join(p.text for p in fb_parts if hasattr(p, "text") and p.text).strip()
                 logger.info("[Tool-Calling] Fallback produced %d chars", len(final))
         except Exception as e:
@@ -361,25 +322,11 @@ async def call_direct(
     temperature: float = 0.0,
     system_instruction: str | None = None,
 ) -> str:
-    """도구 없이 Gemini를 직접 호출한다. JSON 강제 재시도 등에 사용."""
-    if not gemini_client:
-        raise RuntimeError("Gemini client not initialized")
-
-    no_tools_config = types.GenerateContentConfig(
-        temperature=temperature,
-        tools=[],
-        safety_settings=GEMINI_SAFETY_SETTINGS,
-        system_instruction=system_instruction,
+    """도구 없이 LLM을 직접 호출한다. JSON 강제 재시도 등에 사용."""
+    provider = get_llm_provider()
+    llm_response = await provider.generate(
+        step_name=trace_name,
+        contents=prompt,
+        config=LLMConfig(temperature=temperature, system_instruction=system_instruction),
     )
-    async with trace_llm_call(name=trace_name, input_text=prompt[:1000]) as llm:
-        response = await gemini_client.aio.models.generate_content(
-            model=GEMINI_TEXT_MODEL,
-            contents=[prompt],  # type: ignore[arg-type]
-            config=no_tools_config,
-        )
-        llm.record(response)
-
-    if response.candidates and response.candidates[0].content:
-        parts = response.candidates[0].content.parts or []
-        return "\n".join(p.text for p in parts if hasattr(p, "text") and p.text).strip()
-    return ""
+    return llm_response.text

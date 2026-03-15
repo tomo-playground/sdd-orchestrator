@@ -16,23 +16,25 @@ import pytest
 
 
 @pytest.mark.asyncio
-@patch("config.gemini_client")
+@patch("services.agent.nodes.review.get_llm_provider")
 @patch("services.agent.nodes.review.template_env")
-async def test_self_reflect_success(mock_tenv, mock_gemini):
+async def test_self_reflect_success(mock_tenv, mock_llm_provider):
     """Self-Reflection이 성공적으로 근본 원인 + 수정 전략을 생성한다."""
     from services.agent.nodes.review import _self_reflect
 
     mock_tenv.get_template.return_value.render.return_value = "prompt"
 
-    # Gemini 응답 mock (JSON 형식)
-    mock_response = MagicMock()
-    mock_response.text = """{
+    # LLM 응답 mock (JSON 형식)
+    mock_llm_resp = MagicMock()
+    mock_llm_resp.text = """{
         "root_cause": "씬 개수가 부족하고 Hook이 약합니다.",
         "impact": "영상이 짧고 청자의 관심을 끌지 못합니다.",
         "strategy": "씬 1의 스크립트를 질문형으로 변경하고, 씬 2-3을 추가하여 Rising Action을 강화하세요.",
         "expected_outcome": "Hook이 강화되고 전체 흐름이 자연스러워집니다."
     }"""
-    mock_gemini.aio.models.generate_content = AsyncMock(return_value=mock_response)
+    mock_provider = MagicMock()
+    mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
+    mock_llm_provider.return_value = mock_provider
 
     review_result = {
         "passed": False,
@@ -54,12 +56,14 @@ async def test_self_reflect_success(mock_tenv, mock_gemini):
 
 
 @pytest.mark.asyncio
-@patch("config.gemini_client")
-async def test_self_reflect_gemini_error(mock_gemini):
-    """Gemini 에러 시 None을 반환한다 (graceful degradation)."""
+@patch("services.agent.nodes.review.get_llm_provider")
+async def test_self_reflect_gemini_error(mock_llm_provider):
+    """LLM 에러 시 None을 반환한다 (graceful degradation)."""
     from services.agent.nodes.review import _self_reflect
 
-    mock_gemini.aio.models.generate_content = AsyncMock(side_effect=RuntimeError("API error"))
+    mock_provider = MagicMock()
+    mock_provider.generate = AsyncMock(side_effect=RuntimeError("API error"))
+    mock_llm_provider.return_value = mock_provider
 
     review_result = {
         "passed": False,
@@ -317,17 +321,19 @@ def _full_state(scene_count=5, duration=10):
 
 
 @pytest.mark.asyncio
-@patch("config.gemini_client")
+@patch("services.agent.nodes.review.get_llm_provider")
 @patch("services.agent.nodes.review.template_env")
-async def test_unified_all_pass_no_reflection(mock_tenv, mock_gemini):
+async def test_unified_all_pass_no_reflection(mock_tenv, mock_llm_provider):
     """통합 호출: technical pass + narrative pass → reflection null."""
     from services.agent.nodes.review import review_node
 
     mock_tenv.get_template.return_value.render.return_value = "prompt"
 
-    mock_response = MagicMock()
-    mock_response.text = _make_unified_json(tech_passed=True, reflection=None)
-    mock_gemini.aio.models.generate_content = AsyncMock(return_value=mock_response)
+    mock_llm_resp = MagicMock()
+    mock_llm_resp.text = _make_unified_json(tech_passed=True, reflection=None)
+    mock_provider = MagicMock()
+    mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
+    mock_llm_provider.return_value = mock_provider
 
     result = await review_node(_full_state())
 
@@ -338,9 +344,9 @@ async def test_unified_all_pass_no_reflection(mock_tenv, mock_gemini):
 
 
 @pytest.mark.asyncio
-@patch("config.gemini_client")
+@patch("services.agent.nodes.review.get_llm_provider")
 @patch("services.agent.nodes.review.template_env")
-async def test_unified_narrative_fail_with_reflection(mock_tenv, mock_gemini):
+async def test_unified_narrative_fail_with_reflection(mock_tenv, mock_llm_provider):
     """통합 호출: narrative fail → reflection 존재."""
     from services.agent.nodes.review import review_node
 
@@ -361,13 +367,15 @@ async def test_unified_narrative_fail_with_reflection(mock_tenv, mock_gemini):
         "expected_outcome": "시청 지속율 향상",
     }
 
-    mock_response = MagicMock()
-    mock_response.text = _make_unified_json(
+    mock_llm_resp = MagicMock()
+    mock_llm_resp.text = _make_unified_json(
         tech_passed=True,
         narrative_scores=low_scores,
         reflection=reflection_data,
     )
-    mock_gemini.aio.models.generate_content = AsyncMock(return_value=mock_response)
+    mock_provider = MagicMock()
+    mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
+    mock_llm_provider.return_value = mock_provider
 
     result = await review_node(_full_state())
 

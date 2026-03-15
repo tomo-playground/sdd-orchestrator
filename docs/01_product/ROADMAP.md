@@ -268,6 +268,7 @@ Phase 20 이후 또는 우선순위 미정 항목.
 
 | 기능 | 참조 |
 |------|------|
+| **LLM Provider 추상화 (멀티 LLM 지원)** | [설계](../03_engineering/backend/LLM_PROVIDER_ABSTRACTION.md) — Gemini 직결 → Provider 인터페이스 분리, Ollama 대응 준비. Phase A~F 6단계. 노드 파일에서 `google.genai` 직접 import 제거, trace + PROHIBITED fallback 중복 해소 |
 | PipelineControl 커스텀 (노드 on/off) + 분산 큐 (Celery/Redis) | Phase 9-4 잔여 |
 | 배치 렌더링 + 큐 (그룹 일괄 렌더, WebSocket 진행률) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |

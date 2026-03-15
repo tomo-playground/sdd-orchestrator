@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import json
 
-from config import GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, logger, template_env
+from config import logger, template_env
 from config_pipelines import LANGGRAPH_PLANNING_ENABLED
 from database import get_db_session
 from schemas import StoryboardRequest
 from services.agent.llm_models import WriterPlanOutput
-from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState, WriterPlan, build_director_context, extract_selected_concept
+from services.llm import LLMConfig, get_llm_provider
 from services.script.gemini_generator import generate_script
 
 _BRIEF_FIELD_LABELS = {
@@ -85,10 +85,6 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
     Hook 전략, 감정 곡선, 씬 배분 계획을 Gemini로 생성한다.
     실패 시 None 반환 (graceful degradation).
     """
-    if not gemini_client:
-        logger.warning("[LangGraph] Writer Planning: Gemini 클라이언트 없음, 건너뜀")
-        return None
-
     try:
         tmpl = template_env.get_template("creative/writer_planning.j2")
         prompt = tmpl.render(
@@ -101,25 +97,19 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
             director_plan_context=build_director_context(state),
         )
 
-        from google.genai import types
-
-        plan_config = types.GenerateContentConfig(
-            system_instruction=(
-                "You are a writing planner for short-form video scripts. "
-                "Create hook strategies, emotional arcs, and scene distributions."
+        llm_response = await get_llm_provider().generate(
+            step_name="writer_planning",
+            contents=prompt,
+            config=LLMConfig(
+                system_instruction=(
+                    "You are a writing planner for short-form video scripts. "
+                    "Create hook strategies, emotional arcs, and scene distributions."
+                ),
             ),
-            safety_settings=GEMINI_SAFETY_SETTINGS,
         )
-        async with trace_llm_call(name="writer_planning", input_text=prompt) as llm:
-            response = await gemini_client.aio.models.generate_content(
-                model=GEMINI_TEXT_MODEL,
-                contents=prompt,
-                config=plan_config,
-            )
-            llm.record(response)
 
         # JSON 파싱 + Pydantic 검증
-        text = (response.text or "").strip()
+        text = llm_response.text.strip()
         if text.startswith("```"):
             text = text.split("\n", 1)[-1].rsplit("```", 1)[0]
         data = json.loads(text)

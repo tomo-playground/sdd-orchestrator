@@ -11,11 +11,11 @@ from __future__ import annotations
 
 import json
 
-from config import GEMINI_FALLBACK_MODEL, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, logger, template_env
+from config import logger, template_env
 from config_pipelines import LANGGRAPH_PLANNING_ENABLED
 from services.agent.llm_models import LocationPlan
-from services.agent.observability import trace_llm_call
 from services.agent.state import ScriptState, WriterPlan, build_director_context, extract_selected_concept
+from services.llm import LLMConfig, get_llm_provider
 
 
 def _estimate_scene_range(duration: int, structure: str = "Monologue") -> tuple[int, int]:
@@ -27,10 +27,6 @@ def _estimate_scene_range(duration: int, structure: str = "Monologue") -> tuple[
 
 async def _plan_locations(state: ScriptState) -> list[dict] | None:
     """Gemini로 Location Map을 생성한다. 실패 시 None 반환."""
-    if not gemini_client:
-        logger.warning("[LocationPlanner] Gemini 클라이언트 없음, 건너뜀")
-        return None
-
     duration = state.get("duration", 10)
     structure = state.get("structure", "Monologue")
     min_s, max_s = _estimate_scene_range(duration, structure)
@@ -50,39 +46,17 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
             expected_scenes_max=max_s,
         )
 
-        from google.genai import types
-
-        config = types.GenerateContentConfig(
-            system_instruction=(
-                "You are a Location Planner for short-form video scripts. "
-                "Output only valid JSON with the locations array. No explanations."
+        llm_response = await get_llm_provider().generate(
+            step_name="location_planner",
+            contents=prompt,
+            config=LLMConfig(
+                system_instruction=(
+                    "You are a Location Planner for short-form video scripts. "
+                    "Output only valid JSON with the locations array. No explanations."
+                ),
             ),
-            safety_settings=GEMINI_SAFETY_SETTINGS,
         )
-        async with trace_llm_call(name="location_planner", input_text=prompt) as llm:
-            response = await gemini_client.aio.models.generate_content(
-                model=GEMINI_TEXT_MODEL,
-                contents=prompt,
-                config=config,
-            )
-            llm.record(response)
-
-        text = (response.text or "").strip()
-        if not text:
-            feedback = getattr(response, "prompt_feedback", None)
-            block_reason = getattr(feedback, "block_reason", None) if feedback else None
-            if block_reason and "PROHIBITED" in getattr(block_reason, "name", str(block_reason)).upper():
-                logger.warning("[LocationPlanner][Fallback] PROHIBITED_CONTENT → %s", GEMINI_FALLBACK_MODEL)
-                async with trace_llm_call(
-                    name="location_planner_fallback", input_text=prompt, model=GEMINI_FALLBACK_MODEL
-                ) as llm_fb:
-                    response = await gemini_client.aio.models.generate_content(
-                        model=GEMINI_FALLBACK_MODEL,
-                        contents=prompt,
-                        config=config,
-                    )
-                    llm_fb.record(response)
-                text = (response.text or "").strip()
+        text = llm_response.text.strip()
 
         if text.startswith("```"):
             text = text.split("\n", 1)[-1].rsplit("```", 1)[0]

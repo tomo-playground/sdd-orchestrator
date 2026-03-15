@@ -28,16 +28,18 @@ class TestWriterTopicKeyError:
     """
 
     @pytest.mark.asyncio
-    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_llm_provider")
     @patch("services.agent.nodes.writer.template_env")
-    async def test_writer_missing_topic_no_crash(self, _mock_tenv, _mock_gemini):
+    async def test_writer_missing_topic_no_crash(self, _mock_tenv, mock_llm_provider):
         """topic 누락 시 KeyError 없이 error 또는 draft_scenes 반환."""
         from services.agent.nodes.writer import writer_node
 
         _mock_tenv.get_template.return_value.render.return_value = "prompt"
-        mock_resp = MagicMock()
-        mock_resp.text = '{"scenes": [{"order": 1, "text": "test", "duration": 3}]}'
-        _mock_gemini.aio.models.generate_content = AsyncMock(return_value=mock_resp)
+        mock_llm_resp = MagicMock()
+        mock_llm_resp.text = '{"hook_strategy": "test", "emotional_arc": [], "scene_distribution": {}}'
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
+        mock_llm_provider.return_value = mock_provider
 
         state = {
             "description": "설명",
@@ -49,16 +51,18 @@ class TestWriterTopicKeyError:
         assert "error" in result or "draft_scenes" in result
 
     @pytest.mark.asyncio
-    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_llm_provider")
     @patch("services.agent.nodes.writer.template_env")
-    async def test_writer_empty_topic_no_crash(self, _mock_tenv, _mock_gemini):
+    async def test_writer_empty_topic_no_crash(self, _mock_tenv, mock_llm_provider):
         """topic이 빈 문자열이면 crash 없이 진행."""
         from services.agent.nodes.writer import writer_node
 
         _mock_tenv.get_template.return_value.render.return_value = "prompt"
-        mock_resp = MagicMock()
-        mock_resp.text = '{"scenes": [{"order": 1, "text": "test", "duration": 3}]}'
-        _mock_gemini.aio.models.generate_content = AsyncMock(return_value=mock_resp)
+        mock_llm_resp = MagicMock()
+        mock_llm_resp.text = '{"hook_strategy": "test", "emotional_arc": [], "scene_distribution": {}}'
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
+        mock_llm_provider.return_value = mock_provider
 
         state = {
             "topic": "",
@@ -515,16 +519,18 @@ class TestWriterEmptySceneRetry:
     """Phase 28-A: writer_node 빈 씬 재시도 로직."""
 
     @pytest.mark.asyncio
-    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_llm_provider")
     @patch("services.agent.nodes.writer.get_db_session")
     @patch("services.agent.nodes.writer.generate_script")
-    async def test_empty_scenes_triggers_retry(self, mock_gen, mock_db, mock_gemini):
+    async def test_empty_scenes_triggers_retry(self, mock_gen, mock_db, mock_llm_provider):
         """빈 씬 반환 → 힌트 추가 1회 재시도."""
         from services.agent.nodes.writer import writer_node
 
         mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
         mock_db.return_value.__exit__ = MagicMock(return_value=False)
-        mock_gemini.aio = MagicMock()
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(side_effect=RuntimeError("planning skip"))
+        mock_llm_provider.return_value = mock_provider
 
         # 1차: 빈 씬, 2차: 정상
         mock_gen.side_effect = [
@@ -540,16 +546,18 @@ class TestWriterEmptySceneRetry:
         assert mock_gen.call_count == 2
 
     @pytest.mark.asyncio
-    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_llm_provider")
     @patch("services.agent.nodes.writer.get_db_session")
     @patch("services.agent.nodes.writer.generate_script")
-    async def test_both_attempts_empty_returns_error(self, mock_gen, mock_db, mock_gemini):
+    async def test_both_attempts_empty_returns_error(self, mock_gen, mock_db, mock_llm_provider):
         """2회 모두 빈 씬 → error 반환."""
         from services.agent.nodes.writer import writer_node
 
         mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
         mock_db.return_value.__exit__ = MagicMock(return_value=False)
-        mock_gemini.aio = MagicMock()
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(side_effect=RuntimeError("planning skip"))
+        mock_llm_provider.return_value = mock_provider
 
         mock_gen.return_value = {"scenes": [], "character_id": 1}
 
@@ -560,16 +568,18 @@ class TestWriterEmptySceneRetry:
         assert "빈 스크립트" in result["error"]
 
     @pytest.mark.asyncio
-    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_llm_provider")
     @patch("services.agent.nodes.writer.get_db_session")
     @patch("services.agent.nodes.writer.generate_script")
-    async def test_all_empty_scripts_treated_as_empty(self, mock_gen, mock_db, mock_gemini):
+    async def test_all_empty_scripts_treated_as_empty(self, mock_gen, mock_db, mock_llm_provider):
         """모든 씬의 script가 빈 문자열 → 빈 씬 취급."""
         from services.agent.nodes.writer import writer_node
 
         mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
         mock_db.return_value.__exit__ = MagicMock(return_value=False)
-        mock_gemini.aio = MagicMock()
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(side_effect=RuntimeError("planning skip"))
+        mock_llm_provider.return_value = mock_provider
 
         mock_gen.return_value = {
             "scenes": [{"script": "", "duration": 5}, {"script": "   ", "duration": 5}],
@@ -582,16 +592,18 @@ class TestWriterEmptySceneRetry:
         assert "error" in result
 
     @pytest.mark.asyncio
-    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_llm_provider")
     @patch("services.agent.nodes.writer.get_db_session")
     @patch("services.agent.nodes.writer.generate_script")
-    async def test_retry_exception_returns_error(self, mock_gen, mock_db, mock_gemini):
+    async def test_retry_exception_returns_error(self, mock_gen, mock_db, mock_llm_provider):
         """재시도 중 예외 → error 반환."""
         from services.agent.nodes.writer import writer_node
 
         mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
         mock_db.return_value.__exit__ = MagicMock(return_value=False)
-        mock_gemini.aio = MagicMock()
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(side_effect=RuntimeError("planning skip"))
+        mock_llm_provider.return_value = mock_provider
 
         mock_gen.side_effect = [
             {"scenes": [], "character_id": 1},
@@ -941,16 +953,18 @@ class TestWriterSafetyRetryThenEmptyScenes:
     """시나리오 7: Safety 재시도 성공 후에도 빈 씬 → 빈 씬 가드 동작."""
 
     @pytest.mark.asyncio
-    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_llm_provider")
     @patch("services.agent.nodes.writer.get_db_session")
     @patch("services.agent.nodes.writer.generate_script")
-    async def test_safety_retry_then_empty_triggers_guard(self, mock_gen, mock_db, mock_gemini):
+    async def test_safety_retry_then_empty_triggers_guard(self, mock_gen, mock_db, mock_llm_provider):
         """Safety 에러 → 재시도 성공 → 빈 씬 → 빈 씬 가드 재시도 → 복구."""
         from services.agent.nodes.writer import writer_node
 
         mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
         mock_db.return_value.__exit__ = MagicMock(return_value=False)
-        mock_gemini.aio = MagicMock()
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(side_effect=RuntimeError("planning skip"))
+        mock_llm_provider.return_value = mock_provider
 
         # 1차: Safety 에러, 2차: Safety 통과 but 빈 씬, 3차: 빈 씬 가드 재시도 성공
         mock_gen.side_effect = [
@@ -967,16 +981,18 @@ class TestWriterSafetyRetryThenEmptyScenes:
         assert mock_gen.call_count == 3
 
     @pytest.mark.asyncio
-    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_llm_provider")
     @patch("services.agent.nodes.writer.get_db_session")
     @patch("services.agent.nodes.writer.generate_script")
-    async def test_safety_retry_then_empty_all_fail(self, mock_gen, mock_db, mock_gemini):
+    async def test_safety_retry_then_empty_all_fail(self, mock_gen, mock_db, mock_llm_provider):
         """Safety 에러 → 재시도 성공 → 빈 씬 → 빈 씬 재시도도 빈 씬 → error."""
         from services.agent.nodes.writer import writer_node
 
         mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
         mock_db.return_value.__exit__ = MagicMock(return_value=False)
-        mock_gemini.aio = MagicMock()
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(side_effect=RuntimeError("planning skip"))
+        mock_llm_provider.return_value = mock_provider
 
         mock_gen.side_effect = [
             Exception("SAFETY filter blocked"),
@@ -999,16 +1015,18 @@ class TestCheckpointLoopEmptyScenes:
     """
 
     @pytest.mark.asyncio
-    @patch("services.agent.nodes.writer.gemini_client")
+    @patch("services.agent.nodes.writer.get_llm_provider")
     @patch("services.agent.nodes.writer.get_db_session")
     @patch("services.agent.nodes.writer.generate_script")
-    async def test_writer_in_checkpoint_loop_empty_returns_error(self, mock_gen, mock_db, mock_gemini):
+    async def test_writer_in_checkpoint_loop_empty_returns_error(self, mock_gen, mock_db, mock_llm_provider):
         """Checkpoint 루프 내 writer → 빈 씬 2회 → error."""
         from services.agent.nodes.writer import writer_node
 
         mock_db.return_value.__enter__ = MagicMock(return_value=MagicMock())
         mock_db.return_value.__exit__ = MagicMock(return_value=False)
-        mock_gemini.aio = MagicMock()
+        mock_provider = MagicMock()
+        mock_provider.generate = AsyncMock(side_effect=RuntimeError("planning skip"))
+        mock_llm_provider.return_value = mock_provider
         mock_gen.return_value = {"scenes": [], "character_id": 1}
 
         state = {

@@ -50,33 +50,23 @@ def test_run_production_step_has_model_param():
 
 @pytest.mark.asyncio
 async def test_run_production_step_uses_custom_model():
-    """run_production_step에 model을 전달하면 해당 모델로 Gemini를 호출하는지 검증."""
-    mock_response = MagicMock()
-    mock_response.text = '{"observe": "ok", "think": "ok", "act": "approve"}'
-
-    mock_client = MagicMock()
-    mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+    """run_production_step에 model을 전달하면 provider.generate(model=)로 전달되는지 검증."""
+    mock_llm_resp = MagicMock()
+    mock_llm_resp.text = '{"observe": "ok", "think": "ok", "act": "approve"}'
+    mock_provider = MagicMock()
+    mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
 
     with (
-        patch("services.agent.nodes._production_utils.gemini_client", mock_client),
+        patch("services.agent.nodes._production_utils.get_llm_provider", return_value=mock_provider),
         patch("services.agent.nodes._production_utils.template_env") as mock_env,
-        patch("services.agent.nodes._production_utils.trace_llm_call") as mock_trace,
     ):
         mock_tmpl = MagicMock()
         mock_tmpl.render.return_value = "test prompt"
         mock_env.get_template.return_value = mock_tmpl
 
-        # trace_llm_call을 async context manager로 모킹
-        mock_llm = MagicMock()
-        mock_llm.record = MagicMock()
-        mock_ctx = AsyncMock()
-        mock_ctx.__aenter__ = AsyncMock(return_value=mock_llm)
-        mock_ctx.__aexit__ = AsyncMock(return_value=False)
-        mock_trace.return_value = mock_ctx
-
         from services.agent.nodes._production_utils import run_production_step
 
-        result = await run_production_step(
+        await run_production_step(
             template_name="test.j2",
             template_vars={},
             validate_fn=lambda x: {"ok": True, "issues": []},
@@ -85,36 +75,25 @@ async def test_run_production_step_uses_custom_model():
             model="gemini-2.5-pro",
         )
 
-        # Gemini 호출 시 model 확인
-        call_kwargs = mock_client.aio.models.generate_content.call_args
+        call_kwargs = mock_provider.generate.call_args
         assert call_kwargs.kwargs.get("model") == "gemini-2.5-pro"
 
 
 @pytest.mark.asyncio
 async def test_run_production_step_default_model_fallback():
-    """model=None일 때 GEMINI_TEXT_MODEL로 폴백하는지 검증."""
-    mock_response = MagicMock()
-    mock_response.text = '{"scenes": [{"script": "test"}]}'
-
-    mock_client = MagicMock()
-    mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+    """model=None일 때 provider.generate(model=None)이 전달되는지 검증."""
+    mock_llm_resp = MagicMock()
+    mock_llm_resp.text = '{"scenes": [{"script": "test"}]}'
+    mock_provider = MagicMock()
+    mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
 
     with (
-        patch("services.agent.nodes._production_utils.gemini_client", mock_client),
-        patch("services.agent.nodes._production_utils.GEMINI_TEXT_MODEL", "gemini-2.5-flash"),
+        patch("services.agent.nodes._production_utils.get_llm_provider", return_value=mock_provider),
         patch("services.agent.nodes._production_utils.template_env") as mock_env,
-        patch("services.agent.nodes._production_utils.trace_llm_call") as mock_trace,
     ):
         mock_tmpl = MagicMock()
         mock_tmpl.render.return_value = "test prompt"
         mock_env.get_template.return_value = mock_tmpl
-
-        mock_llm = MagicMock()
-        mock_llm.record = MagicMock()
-        mock_ctx = AsyncMock()
-        mock_ctx.__aenter__ = AsyncMock(return_value=mock_llm)
-        mock_ctx.__aexit__ = AsyncMock(return_value=False)
-        mock_trace.return_value = mock_ctx
 
         from services.agent.nodes._production_utils import run_production_step
 
@@ -126,8 +105,9 @@ async def test_run_production_step_default_model_fallback():
             step_name="test",
         )
 
-        call_kwargs = mock_client.aio.models.generate_content.call_args
-        assert call_kwargs.kwargs.get("model") == "gemini-2.5-flash"
+        call_kwargs = mock_provider.generate.call_args
+        # model=None이 그대로 전달됨 (실제 해소는 GeminiProvider 내부)
+        assert call_kwargs.kwargs.get("model") is None
 
 
 # --- Step 3: Director → DIRECTOR_MODEL 전달 ---

@@ -65,23 +65,30 @@ async def test_generate_script_uses_fallback_system_prompt(mock_gemini_client, m
     """Quick 모드에서 fallback system instruction이 사용된다."""
     mock_preset = MockPreset()
 
+    mock_raw = MagicMock()
+    mock_raw.text = '[\n  {\n    "scene_id": 1,\n    "script": "Hello",\n    "image_prompt": "1girl, solo",\n    "speaker": "A"\n  }\n]'
+    mock_raw.prompt_feedback = None
+    mock_raw.candidates = []
+    mock_llm_response = MagicMock()
+    mock_llm_response.text = mock_raw.text
+    mock_llm_response.raw = mock_raw
+
+    mock_provider = MagicMock()
+    mock_provider.generate = AsyncMock(return_value=mock_llm_response)
+
     with patch("services.script.gemini_generator.get_preset_by_structure", return_value=mock_preset):
         with patch("services.script.gemini_generator.template_env.get_template") as mock_get_template:
             mock_template = MagicMock()
             mock_template.render.return_value = "Rendered Template Content"
             mock_get_template.return_value = mock_template
 
-            with patch("services.script.gemini_generator._call_gemini_with_retry", new_callable=AsyncMock) as mock_call:
-                mock_response = AsyncMock()
-                mock_response.text = '[\n  {\n    "scene_id": 1,\n    "script": "Hello",\n    "image_prompt": "1girl, solo",\n    "speaker": "A"\n  }\n]'
-                mock_call.return_value = mock_response
-
+            with patch("services.llm.get_llm_provider", return_value=mock_provider):
                 request = MockRequest()
                 await generate_script(request, db=mock_db)
 
-                assert mock_call.called
-                kwargs = mock_call.call_args.kwargs
-                # system_instruction은 config에 분리되어 전달됨
+                assert mock_provider.generate.called
+                kwargs = mock_provider.generate.call_args.kwargs
+                # system_instruction은 LLMConfig에 분리되어 전달됨
                 config = kwargs.get("config")
                 assert config is not None
                 assert "You are a professional storyboarder and scriptwriter" in config.system_instruction

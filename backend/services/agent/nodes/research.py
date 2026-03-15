@@ -15,23 +15,19 @@ import re
 from urllib.parse import urlparse
 
 import httpx
-from google.genai import types
 from langchain_core.runnables import RunnableConfig
 from langgraph.store.base import BaseStore
 
 from config import (
-    GEMINI_SAFETY_SETTINGS,
-    GEMINI_TEXT_MODEL,
     RESEARCH_MAX_REFERENCES,
     RESEARCH_URL_FETCH_TIMEOUT,
     RESEARCH_URL_MAX_BYTES,
-    gemini_client,
     logger,
     template_env,
 )
 from database import get_db_session
-from services.agent.observability import trace_llm_call  # noqa: E402
 from services.agent.state import ScriptState
+from services.llm import LLMConfig, get_llm_provider
 
 
 async def _search_namespace(store: BaseStore, namespace: tuple, label: str) -> str | None:
@@ -186,22 +182,14 @@ async def _analyze_references(refs: list[str], state: ScriptState) -> str | None
             language=state.get("language", "Korean"),
         )
 
-        if not gemini_client:
-            logger.warning("[Research] Gemini 클라이언트 없음 — 원문 fallback")
-            return _fallback_brief(materials)
-
-        config = types.GenerateContentConfig(
-            system_instruction="You are a content analyst for short-form video production. Analyze reference materials and extract key insights.",
-            safety_settings=GEMINI_SAFETY_SETTINGS,
+        llm_response = await get_llm_provider().generate(
+            step_name="research_analyze_references",
+            contents=prompt,
+            config=LLMConfig(
+                system_instruction="You are a content analyst for short-form video production. Analyze reference materials and extract key insights.",
+            ),
         )
-        async with trace_llm_call(name="research_analyze_references", input_text=prompt) as llm:
-            response = await gemini_client.aio.models.generate_content(
-                model=GEMINI_TEXT_MODEL,
-                contents=prompt,
-                config=config,
-            )
-            llm.record(response)
-        raw = response.text or ""
+        raw = llm_response.text
 
         # JSON 파싱
         brief_data = _parse_gemini_json(raw)
