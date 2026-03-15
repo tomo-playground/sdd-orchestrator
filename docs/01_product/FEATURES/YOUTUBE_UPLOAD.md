@@ -94,8 +94,8 @@ services/youtube/
 | Phase | 범위 | 상태 |
 |-------|------|------|
 | Phase 1 | OAuth 연동 + 수동 업로드 + 이력 저장 | **[x] 완료** |
-| Phase 2 | Quota 대시보드 + 업로드 큐 | [ ] |
-| Phase 3 | 예약 업로드 (스케줄링) | [ ] |
+| Phase 2 | Quota 대시보드 + 업로드 큐 | ~~드롭~~ |
+| Phase 3 | 예약 업로드 (스케줄링) | ~~드롭~~ |
 
 ### Phase 1 구현 완료 사항
 - `youtube_credentials` 테이블 (Fernet 암호화)
