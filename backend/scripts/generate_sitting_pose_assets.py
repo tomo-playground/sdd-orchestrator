@@ -28,33 +28,45 @@ ASSETS_DIR = BACKEND_DIR / "assets" / "poses"
 # ── 생성할 포즈 정의 ──────────────────────────────────────────────────────────
 # prompt: SD txt2img로 레퍼런스 이미지 생성용
 # controlnet_pose: 사용할 ControlNet OpenPose 모듈 (openpose_full 권장)
+_BASE_NEG = (
+    "nsfw, deformed, bad anatomy, bad legs, missing legs, extra legs, "
+    "upper_body, cowboy_shot, close-up, cropped, multiple people, "
+    "blurry, low quality"
+)
+
 POSE_TARGETS: dict[str, dict] = {
     "sitting_side": {
         "desc": "측면 앉기 — from_side 씬용",
         "prompt": (
             "1girl, solo, sitting on floor, from_side, profile view, "
-            "knees bent, hands on lap, simple background, white background, "
-            "full body, anime style, masterpiece, best quality"
+            "knees bent, hands on lap, feet visible, full_body, "
+            "white_background, simple_background, "
+            "anime style, masterpiece, best_quality, "
+            "entire body visible, whole body"
         ),
-        "negative": "nsfw, deformed, bad anatomy, multiple people",
+        "negative": _BASE_NEG,
     },
     "sitting_floor": {
         "desc": "바닥 앉기 — 무릎 세우기",
         "prompt": (
             "1girl, solo, sitting on floor, knees up, hugging knees, "
-            "front view, simple background, white background, full body, "
-            "anime style, masterpiece, best quality"
+            "arms wrapped around legs, feet on floor, front view, "
+            "full_body, white_background, simple_background, "
+            "anime style, masterpiece, best_quality, "
+            "entire body visible, whole body"
         ),
-        "negative": "nsfw, deformed, bad anatomy, multiple people",
+        "negative": _BASE_NEG,
     },
     "sitting_knees_up": {
         "desc": "무릎 끌어안기 — 감성 씬용",
         "prompt": (
             "1girl, solo, sitting on floor, knees to chest, arms around knees, "
-            "looking down, simple background, white background, full body, "
-            "anime style, masterpiece, best quality"
+            "looking down, feet visible, full_body, "
+            "white_background, simple_background, "
+            "anime style, masterpiece, best_quality, "
+            "entire body visible, whole body"
         ),
-        "negative": "nsfw, deformed, bad anatomy, multiple people",
+        "negative": _BASE_NEG,
     },
 }
 
@@ -81,7 +93,10 @@ def generate_reference_image(prompt: str, negative: str) -> str:
 
 
 def extract_openpose_skeleton(image_b64: str) -> str:
-    """ControlNet detect API로 OpenPose 스켈레톤 추출 → base64 반환."""
+    """ControlNet detect API로 OpenPose 스켈레톤 추출 → base64 반환.
+
+    openpose_full: 전신 keypoints 감지 (현재 WebUI에서 사용 가능한 최적 전처리기).
+    """
     payload = {
         "controlnet_input_images": [image_b64],
         "controlnet_module": "openpose_full",
