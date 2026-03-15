@@ -520,8 +520,31 @@ def _filter_exclusive_identity_tags(
 
 _CLOTHING_GROUPS = frozenset({"clothing", "clothing_top", "clothing_bottom", "clothing_outfit", "clothing_detail"})
 _ACCESSORY_GROUPS = frozenset({"accessory", "hair_accessory", "legwear", "footwear"})
+_IDENTITY_GROUPS = frozenset({"hair_color", "hair_length", "hair_style", "eye_color", "skin_color", "body_feature", "body_type"})
 # context_tags 표준 필드 — 하나라도 있으면 image_prompt 재조립 대상
 _CONTEXT_TAG_FIELDS = frozenset({"camera", "pose", "gaze", "action", "expression", "environment", "cinematic", "props"})
+
+
+def _load_tags_by_groups(cid: int, groups: frozenset[str], db) -> set[str]:
+    """캐릭터 태그 중 지정 그룹에 속하는 태그 이름 집합을 반환."""
+    from sqlalchemy.orm import joinedload  # noqa: PLC0415
+
+    from models.associations import CharacterTag  # noqa: PLC0415
+    from models.character import Character  # noqa: PLC0415
+
+    char = (
+        db.query(Character)
+        .options(joinedload(Character.tags).joinedload(CharacterTag.tag))
+        .filter(Character.id == cid, Character.deleted_at.is_(None))
+        .first()
+    )
+    if not char:
+        return set()
+    return {
+        ct.tag.name.lower().replace(" ", "_").strip()
+        for ct in char.tags
+        if ct.tag and ct.tag.group_name in groups
+    }
 
 
 def _enforce_character_clothing(
@@ -530,41 +553,26 @@ def _enforce_character_clothing(
     character_b_id: int | None,
     db,
 ) -> None:
-    """캐릭터 DB의 clothing/accessory 태그로 image_prompt를 교정.
+    """캐릭터 DB의 clothing/accessory/identity 태그로 image_prompt를 교정.
 
     1단계: Gemini가 추가한 비-DB 복장/액세서리 태그를 제거
     2단계: DB 복장 태그가 누락되었으면 보강
+    3단계: Gemini가 추가한 비-DB identity 태그(헤어/눈색/체형 등)를 제거
+           (identity 태그는 V3 compose에서 DB 기준으로 주입되므로 보강 불필요)
     clothing_override가 있는 씬은 건너뛴다 (의도적 변경).
     """
     if not character_id:
         return
 
-    from sqlalchemy.orm import joinedload  # noqa: PLC0415
-
-    from models.associations import CharacterTag  # noqa: PLC0415
-    from models.character import Character  # noqa: PLC0415
     from models.tag import Tag  # noqa: PLC0415
 
-    def _load_clothing_tags(cid: int) -> set[str]:
-        char = (
-            db.query(Character)
-            .options(joinedload(Character.tags).joinedload(CharacterTag.tag))
-            .filter(Character.id == cid)
-            .first()
-        )
-        if not char:
-            return set()
-        tags: set[str] = set()
-        for ct in char.tags:
-            tag = ct.tag
-            if tag.group_name in _CLOTHING_GROUPS | _ACCESSORY_GROUPS:
-                tags.add(tag.name.lower().replace(" ", "_").strip())
-        return tags
+    clothing_and_accessory = _CLOTHING_GROUPS | _ACCESSORY_GROUPS
+    char_a_clothing = _load_tags_by_groups(character_id, clothing_and_accessory, db)
+    char_b_clothing = _load_tags_by_groups(character_b_id, clothing_and_accessory, db) if character_b_id else set()
+    char_a_identity = _load_tags_by_groups(character_id, _IDENTITY_GROUPS, db)
+    char_b_identity = _load_tags_by_groups(character_b_id, _IDENTITY_GROUPS, db) if character_b_id else set()
 
-    char_a_clothing = _load_clothing_tags(character_id)
-    char_b_clothing = _load_clothing_tags(character_b_id) if character_b_id else set()
-
-    if not char_a_clothing and not char_b_clothing:
+    if not char_a_clothing and not char_b_clothing and not char_a_identity and not char_b_identity:
         return
 
     # 전체 씬의 토큰을 수집하여 DB tag 테이블에서 group_name 일괄 조회 (N+1 방지)
@@ -583,9 +591,9 @@ def _enforce_character_clothing(
     tag_rows = db.query(Tag.name, Tag.group_name).filter(Tag.name.in_(all_tokens)).all()
     tag_group_map: dict[str, str | None] = {row.name: row.group_name for row in tag_rows}
 
-    clothing_accessory_groups = _CLOTHING_GROUPS | _ACCESSORY_GROUPS
     removed_total = 0
     injected_total = 0
+    identity_removed_total = 0
 
     for scene in scenes:
         speaker = scene.get("speaker", "")
@@ -595,8 +603,7 @@ def _enforce_character_clothing(
             continue
 
         clothing_tags = char_b_clothing if speaker == "B" else char_a_clothing
-        if not clothing_tags:
-            continue
+        identity_tags = char_b_identity if speaker == "B" else char_a_identity
 
         prompt = scene.get("image_prompt", "")
         tokens = [t.strip() for t in prompt.split(",")]
@@ -608,17 +615,32 @@ def _enforce_character_clothing(
                 continue
             bare = _strip_token_weight(token)
             group = tag_group_map.get(bare)
-            if group and group in clothing_accessory_groups and bare not in clothing_tags:
+            if clothing_tags and group and group in clothing_and_accessory and bare not in clothing_tags:
                 removed_total += 1
                 continue
             filtered.append(token)
 
         # 2단계: DB 복장 태그 누락 보강
-        filtered_set = {_strip_token_weight(t.strip()).lower().replace(" ", "_") for t in filtered}
-        missing = [t for t in clothing_tags if t not in filtered_set]
-        if missing:
-            filtered.extend(missing)
-            injected_total += len(missing)
+        if clothing_tags:
+            filtered_set = {_strip_token_weight(t.strip()).lower().replace(" ", "_") for t in filtered}
+            missing = [t for t in clothing_tags if t not in filtered_set]
+            if missing:
+                filtered.extend(missing)
+                injected_total += len(missing)
+
+        # 3단계: 비-DB identity 태그 제거 (헤어/눈색/체형 등 — V3 compose가 DB 기준으로 주입)
+        if identity_tags:
+            identity_filtered: list[str] = []
+            for token in filtered:
+                if not token:
+                    continue
+                bare = _strip_token_weight(token)
+                group = tag_group_map.get(bare)
+                if group and group in _IDENTITY_GROUPS and bare not in identity_tags:
+                    identity_removed_total += 1
+                    continue
+                identity_filtered.append(token)
+            filtered = identity_filtered
 
         scene["image_prompt"] = ", ".join(filtered)
 
@@ -626,6 +648,8 @@ def _enforce_character_clothing(
         logger.info("[Finalize] 비-DB 복장 태그 %d개 제거 (Gemini 자의적 추가분)", removed_total)
     if injected_total:
         logger.info("[Finalize] DB 복장 태그 %d개 보강 (누락분)", injected_total)
+    if identity_removed_total:
+        logger.info("[Finalize] 비-DB identity 태그 %d개 제거 (헤어/눈색/체형 — DB 기준 자동 주입)", identity_removed_total)
 
 
 # ── context_tags 구조화: cross-field 검증 + image_prompt 재조립 ──────
@@ -1009,9 +1033,11 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         logger.warning("[Finalize] 환경/로케이션 태그 처리 실패 (non-fatal)", exc_info=True)
 
     # 그룹 3.5: context_tags 구조화 — cross-field 검증 + image_prompt 재조립
+    # 재조립 후 alias 재적용 필수: context_tags에 비표준 태그(daytime 등)가 있을 수 있음
     try:
         _validate_cross_field_consistency(scenes)
         _rebuild_image_prompt_from_context_tags(scenes)
+        _apply_tag_aliases(scenes)  # 재조립된 image_prompt에 alias 재적용
     except Exception:
         logger.warning("[Finalize] context_tags 구조화 처리 실패 (non-fatal)", exc_info=True)
 

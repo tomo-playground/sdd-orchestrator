@@ -35,7 +35,7 @@ def _make_tag_rows(tags_data: list[tuple[str, str]]):
 
 def _make_db(char_a=None, char_b=None, tag_rows=None):
     """Create a mock DB that returns characters by ID and tags by name."""
-    from models.tag import Tag  # noqa: F811
+    from models.tag import Tag  # noqa: F401
 
     char_call_count = [0]
 
@@ -339,3 +339,111 @@ class TestStripNonDbClothing:
         prompt = scenes[0]["image_prompt"]
         assert "invented_tag" in prompt
         assert "school_uniform" in prompt
+
+
+def _make_db_by_id(char_map: dict[int, object], tag_rows=None):
+    """캐릭터 ID 기준으로 조회하는 mock DB — _load_tags_by_groups 패턴에 적합."""
+    from models.character import Character as CharModel
+
+    def _query(*models):
+        is_char = len(models) == 1 and models[0] is CharModel
+        if not is_char:
+            q = MagicMock()
+
+            def _tag_filter(*_a, **_kw):
+                fq = MagicMock()
+                fq.all.return_value = tag_rows or []
+                return fq
+
+            q.filter = MagicMock(side_effect=_tag_filter)
+            return q
+
+        q = MagicMock()
+        q.options.return_value = q
+
+        def _filter(*args, **_kw):
+            # args[0] is Character.id == cid clause — extract value via str comparison
+            # Simpler: track call args to match character ID
+            fq = MagicMock()
+            # Extract ID from the binary expression (Character.id == cid)
+            # args[0] is BinaryExpression; left is InstrumentedAttribute, right is value
+            char_id = None
+            for clause in args:
+                try:
+                    char_id = clause.right.value  # SQLAlchemy BinaryExpression
+                    break
+                except AttributeError:
+                    pass
+            fq.first.return_value = char_map.get(char_id)
+            return fq
+
+        q.filter = MagicMock(side_effect=_filter)
+        return q
+
+    db = MagicMock()
+    db.query = MagicMock(side_effect=_query)
+    return db
+
+
+class TestIdentityTagRemoval:
+    """Gemini가 임의로 추가한 identity 태그 제거 테스트 (3단계)."""
+
+    def test_removes_gemini_added_identity_tags(self):
+        """DB에 없는 identity 태그(Gemini 추가분)를 image_prompt에서 제거."""
+        # DB: black_hair (hair_color) / Gemini가 dark_hair(hair_color)를 임의 추가
+        char = _make_char_with_clothing(
+            [
+                ("school_uniform", "clothing"),
+                ("black_hair", "hair_color"),
+            ]
+        )
+        tag_rows = _make_tag_rows(
+            [
+                ("school_uniform", "clothing"),
+                ("dark_hair", "hair_color"),  # Gemini 추가한 비-DB identity
+            ]
+        )
+        db = _make_db_by_id({1: char}, tag_rows=tag_rows)
+        scenes = [{"speaker": "A", "image_prompt": "1girl, dark_hair, smile"}]
+
+        _enforce_character_clothing(scenes, 1, None, db)
+
+        prompt = scenes[0]["image_prompt"]
+        # dark_hair는 DB의 black_hair와 다르므로 제거
+        assert "dark_hair" not in prompt
+        # school_uniform 보강
+        assert "school_uniform" in prompt
+
+    def test_identity_tags_not_injected_if_missing(self):
+        """DB에 있는 identity 태그라도 누락 시 보강(inject)하지 않는다 — 제거만 수행."""
+        # DB: black_hair (hair_color) — image_prompt에 없음
+        char = _make_char_with_clothing(
+            [
+                ("black_hair", "hair_color"),
+            ]
+        )
+        tag_rows = _make_tag_rows([])
+        db = _make_db_by_id({1: char}, tag_rows=tag_rows)
+        scenes = [{"speaker": "A", "image_prompt": "1girl, smile"}]
+
+        _enforce_character_clothing(scenes, 1, None, db)
+
+        # identity 태그는 보강하지 않음 (V3 compose가 담당)
+        assert "black_hair" not in scenes[0]["image_prompt"]
+        assert scenes[0]["image_prompt"] == "1girl, smile"
+
+    def test_db_identity_tag_in_prompt_is_preserved(self):
+        """image_prompt에 이미 있는 DB identity 태그는 유지된다."""
+        char = _make_char_with_clothing(
+            [
+                ("black_hair", "hair_color"),
+            ]
+        )
+        tag_rows = _make_tag_rows([("black_hair", "hair_color")])
+        db = _make_db_by_id({1: char}, tag_rows=tag_rows)
+        scenes = [{"speaker": "A", "image_prompt": "1girl, black_hair, smile"}]
+
+        _enforce_character_clothing(scenes, 1, None, db)
+
+        # DB에 있는 identity 태그는 제거하지 않음
+        assert "black_hair" in scenes[0]["image_prompt"]

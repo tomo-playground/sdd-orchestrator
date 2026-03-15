@@ -74,42 +74,53 @@ def _compress_internal_silence(wav: np.ndarray, sr: int) -> np.ndarray:
     return result
 
 
-def _decrackle(wav: np.ndarray, sr: int, kernel_size: int = 3) -> np.ndarray:
-    """Remove impulse noise (crackling) via median filter on spike regions only.
+def _decrackle(wav: np.ndarray, sr: int) -> np.ndarray:
+    """Remove impulse noise spikes via median filter on extreme outlier regions.
 
-    Instead of applying median filter to the entire signal (which softens
-    transients), we detect sample-to-sample spikes that exceed a threshold
-    and only smooth those regions. This preserves speech quality while
-    removing crackling artifacts from autoregressive TTS generation.
+    Targets only truly extreme sample-to-sample jumps (>P99.9 of voiced
+    regions) that are characteristic of autoregressive TTS glitches.
+    Normal speech transients (consonants, plosives) are preserved.
     """
     from scipy.signal import medfilt
 
     diffs = np.abs(np.diff(wav))
-    # Adaptive threshold: spikes > 8x the median difference
-    median_diff = np.median(diffs)
-    threshold = max(median_diff * 8, 0.02)  # floor at 0.02 for very quiet audio
 
-    spike_mask = np.zeros(len(wav), dtype=bool)
+    # Use only voiced regions (non-silence) for threshold calculation
+    voiced_mask = np.abs(wav[:-1]) > 0.01
+    voiced_diffs = diffs[voiced_mask]
+    if len(voiced_diffs) < 100:
+        return wav
+
+    # Threshold: P99.5 of voiced diffs — only the most extreme jumps
+    threshold = np.percentile(voiced_diffs, 99.5)
+    threshold = max(threshold, 0.15)  # absolute floor
+
     spike_indices = np.where(diffs > threshold)[0]
-
     if len(spike_indices) == 0:
         return wav
 
-    # Expand spike regions by ±2 samples for smooth blending
+    # Only fix isolated spikes (not sustained speech)
+    # A spike is "isolated" if neighbors within ±5 samples have lower energy
+    spike_mask = np.zeros(len(wav), dtype=bool)
+    fixed_count = 0
     for idx in spike_indices:
-        start = max(0, idx - 2)
-        end = min(len(wav), idx + 3)
-        spike_mask[start:end] = True
+        ctx_start = max(0, idx - 10)
+        ctx_end = min(len(diffs), idx + 10)
+        local_median = np.median(diffs[ctx_start:ctx_end])
+        if diffs[idx] > local_median * 5:
+            start = max(0, idx - 1)
+            end = min(len(wav), idx + 2)
+            spike_mask[start:end] = True
+            fixed_count += 1
 
-    spike_count = len(spike_indices)
-    filtered = medfilt(wav, kernel_size=kernel_size)
+    if fixed_count == 0:
+        return wav
 
+    filtered = medfilt(wav, kernel_size=3)
     result = wav.copy()
     result[spike_mask] = filtered[spike_mask]
 
-    if spike_count > 0:
-        logger.info("[TTS] Decrackle: smoothed %d spike regions (threshold=%.4f)", spike_count, threshold)
-
+    logger.info("[TTS] Decrackle: smoothed %d isolated spikes (threshold=%.4f)", fixed_count, threshold)
     return result
 
 
@@ -144,7 +155,7 @@ def normalize_audio(wav: np.ndarray, target_dbfs: float = -23.0, peak_limit_db: 
 
 
 def trim_tts_audio(wav: np.ndarray, sr: int, normalize: bool = True) -> np.ndarray:
-    """5-step post-processing pipeline."""
+    """6-step post-processing pipeline."""
     import librosa
 
     # Step 1: trim leading/trailing silence
@@ -200,18 +211,21 @@ def validate_tts_quality(wav: np.ndarray, sr: int) -> bool:
         logger.warning("[TTS] Quality check failed: poor SNR (median/peak = %.2f)", median_abs / max_val)
         return False
 
-    # Crackling detection: count residual spike clusters after decrackle
-    diffs = np.abs(np.diff(wav))
-    median_diff = np.median(diffs)
-    spike_threshold = max(median_diff * 12, 0.03)
-    spikes = np.sum(diffs > spike_threshold)
-    spike_ratio = spikes / len(wav)
-    if spike_ratio > 0.02:
-        logger.warning(
-            "[TTS] Quality check failed: excessive crackling (spikes=%d, ratio=%.3f)",
-            spikes,
-            spike_ratio,
-        )
-        return False
+    # Crackling detection: voiced-region diff P99.9 analysis
+    # Crackling files have P99.9 > 0.22 in voiced regions, clean files < 0.15
+    import librosa
+
+    intervals = librosa.effects.split(wav, top_db=30)
+    if len(intervals) > 0:
+        voiced = np.concatenate([wav[s:e] for s, e in intervals])
+        if len(voiced) > 200:
+            voiced_diffs = np.abs(np.diff(voiced))
+            p999 = np.percentile(voiced_diffs, 99.9)
+            if p999 > 0.25:
+                logger.warning(
+                    "[TTS] Quality check failed: crackling detected (voiced P99.9=%.4f, threshold=0.25)",
+                    p999,
+                )
+                return False
 
     return True

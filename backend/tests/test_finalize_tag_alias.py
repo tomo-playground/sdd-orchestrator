@@ -116,3 +116,53 @@ class TestApplyTagAliasesCompat:
         with _mock_cache({"female": "1girl"}):
             _apply_tag_aliases(scenes)
         assert "image_prompt" not in scenes[0]
+
+
+class TestApplyTagAliasesIdempotent:
+    """_apply_tag_aliases 멱등성 검증 — 2회 연속 적용 시 결과가 동일해야 한다."""
+
+    def test_alias_application_is_idempotent(self):
+        """치환 후 재적용해도 결과가 변하지 않아야 한다."""
+        mapping = {
+            "female": "1girl",
+            "standing_arms_crossed": "standing, crossed_arms",
+            "daylight": "day, sunlight",
+        }
+        scenes = [{"image_prompt": "female, standing_arms_crossed, daylight"}]
+        with _mock_cache(mapping):
+            _apply_tag_aliases(scenes)
+        first_result = scenes[0]["image_prompt"]
+
+        with _mock_cache(mapping):
+            _apply_tag_aliases(scenes)
+        second_result = scenes[0]["image_prompt"]
+
+        assert first_result == second_result
+
+    def test_removal_is_idempotent(self):
+        """태그 제거 후 재적용해도 결과가 변하지 않아야 한다."""
+        mapping = {"bishoujo": None}
+        scenes = [{"image_prompt": "bishoujo, 1girl, smile"}]
+        with _mock_cache(mapping):
+            _apply_tag_aliases(scenes)
+        first_result = scenes[0]["image_prompt"]
+
+        with _mock_cache(mapping):
+            _apply_tag_aliases(scenes)
+        second_result = scenes[0]["image_prompt"]
+
+        assert first_result == second_result
+        assert "bishoujo" not in second_result
+
+    def test_no_alias_passthrough_is_idempotent(self):
+        """alias가 없는 프롬프트는 항상 변하지 않아야 한다."""
+        scenes = [{"image_prompt": "1girl, brown_hair, smile"}]
+        with _mock_cache({}):
+            _apply_tag_aliases(scenes)
+        first_result = scenes[0]["image_prompt"]
+
+        with _mock_cache({}):
+            _apply_tag_aliases(scenes)
+        second_result = scenes[0]["image_prompt"]
+
+        assert first_result == second_result == "1girl, brown_hair, smile"
