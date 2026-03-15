@@ -52,6 +52,7 @@
 
 ### 최근 작업
 
+- **03-16 씬 소실 방어 + LangFuse 정확성**: syncToGlobalStore→onSaved 순서 보장, pendingAutoRun scenesReady 가드, CompletionCard Zustand 직참조, LangFuse interrupt→metadata 이동 + interrupt_node 동적 전달 + final_output 캡처
 - **03-16 스크립트 생성 후 씬 소실 버그 수정**: `useStreamingPipeline`에서 `editor.save()` race condition — onNodeEvent(SSE 처리 중) vs handleStreamOutcome(SSE 종료 후) 타이밍 불일치로 빈 씬 PUT. autoSave(Zustand SSOT) 경로로 전환
 - **03-16 TTS 파이프라인 일원화 완료**: Sprint A~D — `generate_tts_audio()` SSOT 코어, preview/prebuild/render 3경로 통합, tts_asset_id 자동 무효화, prebuild 자동 삽입, scene_processing.py 슬림화(645→295줄). 테스트 51개 PASS
 - **03-16 Phase 33 완료**: Sprint A~E 구현 (22/22) — E-2 배치 Gemini 호출 병합 + validate-batch API + 테스트 33개
