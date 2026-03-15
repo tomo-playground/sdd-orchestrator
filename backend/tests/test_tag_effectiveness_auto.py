@@ -4,7 +4,7 @@ Validates that _increment_tag_effectiveness correctly:
 - Creates new TagEffectiveness records
 - Increments counters (use_count, match_count)
 - Calculates effectiveness ratio
-- Skips WD14_UNMATCHABLE_TAGS
+- Skips tags in SKIPPABLE_GROUPS (quality, style, etc.)
 - Skips tags not in DB
 """
 
@@ -97,8 +97,8 @@ def test_increment_matched_vs_missing(db_session, sample_tags):
 
 
 def test_increment_skips_unmatchable_tags(db_session, sample_tags):
-    """Tags in WD14_UNMATCHABLE_TAGS are not tracked."""
-    # "masterpiece" is in WD14_UNMATCHABLE_TAGS
+    """Tags in skippable groups (quality, style, etc.) are not tracked."""
+    # "masterpiece" has group_name="quality" which is in SKIPPABLE_GROUPS
     masterpiece = Tag(name="masterpiece", category="quality", default_layer=0)
     db_session.add(masterpiece)
     db_session.commit()
@@ -181,7 +181,11 @@ def test_increment_tracks_detectable_group(db_session, sample_tags, monkeypatch)
         type(
             "FakeCache",
             (),
-            {"get_category": staticmethod(lambda t: {"school_uniform": "clothing_outfit", "smile": "expression"}.get(t))},
+            {
+                "get_category": staticmethod(
+                    lambda t: {"school_uniform": "clothing_outfit", "smile": "expression"}.get(t)
+                )
+            },
         ),
     )
 

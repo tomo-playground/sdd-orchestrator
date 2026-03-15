@@ -150,7 +150,27 @@ def store_scene_image(request: ImageStoreRequest, db: Session = Depends(get_db))
 @router.post("/scene/validate-image", response_model=SceneValidationResponse)
 async def validate_scene_image_endpoint(request: SceneValidateRequest, db: Session = Depends(get_db)):
     logger.info("📥 [Scene Validate Req] %s", scrub_payload(request.model_dump()))
-    return validate_scene_image(request, db=db)
+    result = validate_scene_image(request, db=db)
+
+    # Phase 33: Fire-and-forget Gemini evaluation for non-WD14 tags
+    gemini_tokens = result.get("gemini_tokens", [])
+    if gemini_tokens and result.get("image_b64"):
+        from services.validation import apply_gemini_evaluation
+
+        task = asyncio.create_task(
+            apply_gemini_evaluation(
+                storyboard_id=request.storyboard_id,
+                scene_id=request.scene_id or request.scene_index,
+                image_b64=result["image_b64"],
+                gemini_tokens=gemini_tokens,
+                wd14_matched=result.get("wd14_matched", 0),
+                wd14_total=result.get("wd14_total", 0),
+                db_factory=get_db_session,
+            )
+        )
+        _track_task(task)
+
+    return result
 
 
 @router.post("/scene/validate-and-auto-edit", response_model=ValidateAndAutoEditResponse)

@@ -1988,9 +1988,10 @@ class CriticalFailureInfo(BaseModel):
 class SceneValidationResponse(BaseModel):
     """Response for POST /scene/validate-image."""
 
-    mode: str = "wd14"
+    mode: str = "hybrid"
     match_rate: float = 0.0
-    adjusted_match_rate: float = 0.0
+    adjusted_match_rate: float = 0.0  # deprecated: same as wd14_match_rate
+    wd14_match_rate: float = 0.0  # Phase 33: WD14-only match rate
     matched: list[str] = []
     missing: list[str] = []
     extra: list[str] = []
@@ -1999,6 +2000,8 @@ class SceneValidationResponse(BaseModel):
     tags: list[str] = []
     critical_failure: CriticalFailureInfo | None = None
     identity_score: float | None = None
+    # Phase 33: Gemini deferred evaluation metadata
+    gemini_tokens: list[str] = []  # Tags pending Gemini evaluation
 
 
 class VideoCreateResponse(BaseModel):
