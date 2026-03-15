@@ -46,9 +46,9 @@ def test_resolve_feedback_preset_no_preset():
 
 
 def test_route_after_concept_gate_select():
-    """concept_action='select' → 'writer' 라우팅."""
+    """concept_action='select' → 'location_planner' 라우팅 (Phase 30-P-6)."""
     state = {"concept_action": "select"}
-    assert route_after_concept_gate(state) == "writer"
+    assert route_after_concept_gate(state) == "location_planner"
 
 
 def test_route_after_concept_gate_regenerate():

@@ -462,8 +462,8 @@ class TestRoutingEdgeCases:
         from services.agent.routing import route_after_concept_gate
 
         assert route_after_concept_gate({"concept_action": "regenerate"}) == "critic"
-        assert route_after_concept_gate({"concept_action": "select"}) == "writer"
-        assert route_after_concept_gate({}) == "writer"
+        assert route_after_concept_gate({"concept_action": "select"}) == "location_planner"
+        assert route_after_concept_gate({}) == "location_planner"
 
 
 # ═══════════════════════════════════════════════════════

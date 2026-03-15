@@ -199,7 +199,7 @@ def test_graph_has_concept_gate_node():
 
 
 def test_graph_edge_critic_concept_gate_writer():
-    """critic → concept_gate → writer 엣지 검증."""
+    """critic → concept_gate → location_planner → writer 엣지 검증 (Phase 30-P-6)."""
     graph = build_script_graph()
     compiled = graph.compile()
     graph_data = compiled.get_graph()
@@ -207,7 +207,10 @@ def test_graph_edge_critic_concept_gate_writer():
     # concept_gate의 이웃 찾기 — 엣지 탐색
     edges = [(e.source, e.target) for e in graph_data.edges]
     assert ("critic", "concept_gate") in edges
-    assert ("concept_gate", "writer") in edges
+    assert ("concept_gate", "location_planner") in edges
+    assert ("location_planner", "writer") in edges
+    # concept_gate → writer 직통 엣지가 없어야 함 (location_planner 경유)
+    assert ("concept_gate", "writer") not in edges
     # critic → writer 직통 엣지가 없어야 함
     assert ("critic", "writer") not in edges
 
