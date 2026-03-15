@@ -45,7 +45,7 @@
 
 ### 진행 중
 
-- **Phase 32**: Auto Run Pipeline Hardening — 14/17 완료 (잔여: B-1 TTS prebuild API, D-5 progress bar, E-2 DBA 리뷰) ([명세](FEATURES/AUTO_RUN_PIPELINE_HARDENING.md))
+- **Phase 32**: Auto Run Pipeline Hardening — 16/17 완료 (잔여: B-3 SCENE_TRANSIENT_FIELDS 정합성 명시) ([명세](FEATURES/AUTO_RUN_PIPELINE_HARDENING.md))
 
 ### 최근 작업
 
@@ -115,7 +115,7 @@
 - [x] A-2: stage 부분 할당 실패 경고 로그 — assign 후 env 태그 있는 미할당 씬 카운트 경고
 
 ### Sprint B: TTS 단계 추가 및 Asset 보호 (P0)
-- [ ] B-1: `AUTO_RUN_STEPS`에 "tts" 단계 추가 + TTS prebuild API 구현 (Backend) + `checkTtsStep` 추가
+- [x] B-1: `AUTO_RUN_STEPS`에 "tts" 단계 추가 + TTS prebuild API 구현 (Backend) + `checkTtsStep` 추가
 - [x] B-2: render 완료 후 사용된 tts_asset `is_temp=False` promote — GC 손실 방지 (`scene_processing.py`)
 - [ ] B-3: `SCENE_TRANSIENT_FIELDS`와 `tts_asset_id` 의미론적 정합성 명시
 
@@ -128,11 +128,11 @@
 - [x] D-2: Resume 시 완료된 단계 버튼 비활성 — `AutoRunStatus.tsx` isDone 단계는 span 렌더링
 - [x] D-3: `batchActions.ts` seed 강제 `-1` 제거 → `Math.random()` 명시적 seed
 - [x] D-4: `generateBatchImages` canStore=false → `console.warn` 경고 로그
-- [ ] D-5: `autoRunProgress` progress bar 연결 — `AutoRunStatus` props에 전달
+- [x] D-5: `autoRunProgress` progress bar 연결 — `AutoRunStatus` props에 전달
 
 ### Sprint E: P2 코드 품질
 - [x] E-1: `tts_engine: "qwen"` 하드코딩 2곳 → `TTS_ENGINE` 상수 SSOT (`constants/index.ts`)
-- [ ] E-2: `_BG_QUALITY_OVERRIDES` StyleProfile ID 하드코딩 → DB/config.py 이동 (DBA 리뷰)
+- [x] E-2: `_BG_QUALITY_OVERRIDES` StyleProfile ID 하드코딩 → DB/config.py 이동 (DBA 리뷰)
 - [x] E-3: location key 계산 로직 중복 → `_compute_location_key()` 헬퍼로 통합
 - [x] E-4: `renderWithProgress` polling 폴백에 AbortSignal 전달
 - [x] E-5: `lastRenderHash` 미사용 필드 JSDoc 주석 명시
