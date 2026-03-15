@@ -46,10 +46,11 @@
 
 ### 진행 중
 
-- **Phase 33**: Hybrid Match Rate (WD14 + Gemini Vision) — 14/17 완료 (잔여: D~E) ([명세](FEATURES/HYBRID_MATCH_RATE.md))
+- **Phase 33**: Hybrid Match Rate (WD14 + Gemini Vision) — 16/22 완료 (잔여: D-1~D-4, E-2, E-4) ([명세](FEATURES/HYBRID_MATCH_RATE.md))
 
 ### 최근 작업
 
+- **03-15 Phase 33 진행**: validation.py → validation_gemini.py 분리 + context manager 프로토콜 수정 + import 정리 + _update_db_match_rate 헬퍼 추출 + 테스트 18개 (E-1, E-3 완료)
 - **03-15 Phase 32 완료**: Auto Run Pipeline Hardening 17/17 — TTS prebuild API + AutoRun Progress Bar + BG Quality SSOT + SCENE_TRANSIENT_FIELDS 정합성 + preflight.ts 분리 + 테스트 61개 추가
 - **03-15 Phase 32 착수**: Stage 루프 버그(A-1/A-2) + TTS is_temp promote(B-2) + Preflight bgmMode(C-1/C-2) + ResumeConfirmModal 연결(D-1) + 완료 단계 비활성화(D-2) + batch seed/canStore(D-3/D-4) + TTS_ENGINE SSOT(E-1) + location key 헬퍼(E-3) + polling AbortSignal(E-4) + asyncio.gather 병렬화(E-6). 14/17 항목 완료
 - **03-15 안정화**: Finalize identity 태그 누출 차단(`_enforce_character_clothing` 3단계 제거 로직) + context_tags alias 재적용 순서 보장(`_rebuild_image_prompt_from_context_tags` 후 `_apply_tag_aliases` 재실행) + TTS decrackle voiced-region P99.5 기반 정밀화 + `_load_tags_by_groups` DB 쿼리 통합 + 테스트 +15건
@@ -174,9 +175,9 @@
 - [ ] D-4: 매치레이트 상세 팝업 — 태그별 결과 + 평가 방법 뱃지
 
 ### Sprint E: 최적화 + 테스트 (P2)
-- [ ] E-1: gemini_tokens 0개면 API 호출 스킵
+- [x] E-1: gemini_tokens 0개면 API 호출 스킵 (apply_gemini_evaluation + router 조건 가드)
 - [ ] E-2: 배치 평가 시 Gemini 호출 병합
-- [ ] E-3: 단위 테스트 (~15개)
+- [x] E-3: 단위 테스트 18개 (classify_prompt_tokens 6 + _is_skippable_tag 3 + apply_gemini_evaluation 6 + _update_db_match_rate 3)
 - [ ] E-4: 통합 테스트 (~10개)
 
 ---
