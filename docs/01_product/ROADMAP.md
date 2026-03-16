@@ -52,6 +52,7 @@
 
 ### 최근 작업
 
+- **03-17 이미지 품질 개선 + 오디오 상주 모드**: 씬 배경 사라짐 근본 수정(캐릭터 negative 정리, scenery 자동주입, IP-Adapter/Reference AdaIN 비활성화), StyleProfile flat_color_v2:0.3 최적화, IP-Adapter weight SSOT 통일(Backend+Frontend), MeMaXL v6 설치, 오디오 서버 persistent 모드(TTS GPU + MusicGen CPU 상주 로드)
 - **03-17 Speaker Balance 검증 강화**: Narrated Dialogue 캐릭터 배분 수정 — Review에 비율 검증(20% 미만 ERROR) + Narrator 존재 검증(WARNING) 추가, Revise에서 비율 불균형 Tier 3 재생성 위임, ensure_dialogue_speakers 최종 방어선 비율 검사. 테스트 24개 PASS
 - **03-17 화풍/IP-Adapter/프롬프트 품질 개선**: Romantic Warm Anime StyleProfile 구축(flat_color+감성조명), IP-Adapter clip_face→clip(NOOB-IPA-MARK1) SD1.5 잔재 전수 정리, ControlNet 모델명 동적 resolve(Forge 해시 풀네임 호환), CLIP-ViT-bigG preprocessor 자동 매칭, 프롬프트 이중 괄호 방지(weight 재감싸기), TTS 503 재시도(모델 로드 대기), autoSave 무한 재시도 방지, Voice Preset 정비(15개 라인업), Pose 다양성 테스트 12개, system_instruction 사용자 데이터 분리. "우리가 닿는 순간" 시리즈 + 캐릭터(하린/준서) 구축
 - **03-16 FastTrack 안정화 + GPU OOM 방지**: FastTrack에서 Cinematographer 실행(캐릭터 일관성), Writer character_id auto-resolve(group fallback), SSE→handleStreamOutcome 캐릭터 반영 통합, Graph 엣지 cinematographer 누락 수정, hydration 가드(ChatArea+ChatMessageList), GPU OOM 방지(TTS on-demand 로드 + idle 2분 자동 언로드). 테스트 33개 PASS
@@ -255,3 +256,6 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | 배치 렌더링 + 큐 (그룹 일괄 렌더, WebSocket 진행률) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | 분석 대시보드 (Match Rate 추이, 프로젝트 간 비교) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
+| **파이프라인 이상 탐지 자동화** | 시스템 상태 통합 health API, 파이프라인 완료 시 자동 검증 (speaker 배분, TTS 실패, 이미지 미생성), LangFuse 이상 탐지 (노드 실패율/소요시간), GPU VRAM 모니터링 |
+| **클라우드 TTS/BGM 전환** | Replicate(현재 모델 클라우드 실행) 또는 ElevenLabs/Suno. GPU 경합 완전 해소, 비용 발생 |
+| **씬 단위 순차 생성** | IMAGE→TTS를 씬별로 처리 (현재: 전체 IMAGE→전체 TTS). GPU 순차 독점 자연 해결 + 즉시 프리뷰 |
