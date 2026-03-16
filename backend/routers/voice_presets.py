@@ -170,17 +170,27 @@ async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db))
         storage = get_storage()
         storage.save(storage_key, audio_bytes, content_type="audio/wav")
 
-        asset_svc = AssetService(db)
-        asset = asset_svc.register_asset(
-            file_name=file_name,
-            file_type="audio",
-            storage_key=storage_key,
-            owner_type="voice_preview",
-            is_temp=True,
-            file_size=len(audio_bytes),
-            mime_type="audio/wav",
-            checksum=AssetService.compute_checksum(audio_bytes),
-        )
+        # 동일 storage_key의 기존 asset이 있으면 재사용 (재생성 시 unique 위반 방지)
+        from models.media_asset import MediaAsset
+
+        existing = db.query(MediaAsset).filter(MediaAsset.storage_key == storage_key).first()
+        if existing:
+            existing.file_size = len(audio_bytes)
+            existing.checksum = AssetService.compute_checksum(audio_bytes)
+            db.commit()
+            asset = existing
+        else:
+            asset_svc = AssetService(db)
+            asset = asset_svc.register_asset(
+                file_name=file_name,
+                file_type="audio",
+                storage_key=storage_key,
+                owner_type="voice_preview",
+                is_temp=True,
+                file_size=len(audio_bytes),
+                mime_type="audio/wav",
+                checksum=AssetService.compute_checksum(audio_bytes),
+            )
 
         return {
             "audio_url": asset.url,
