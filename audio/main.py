@@ -34,15 +34,36 @@ logging.basicConfig(
 logger = logging.getLogger("audio-server")
 
 
+async def _idle_watchdog():
+    """백그라운드 태스크: idle timeout 초과 시 TTS 모델 자동 언로드."""
+    from config import MODEL_IDLE_TIMEOUT_SECONDS
+
+    while True:
+        await asyncio.sleep(60)  # 1분마다 체크
+        if tts_engine.get_model() is None:
+            continue
+        idle = tts_engine.idle_seconds()
+        if idle > MODEL_IDLE_TIMEOUT_SECONDS:
+            logger.info(
+                "[IdleWatchdog] TTS idle %.0fs > %ds, unloading...",
+                idle,
+                MODEL_IDLE_TIMEOUT_SECONDS,
+            )
+            await asyncio.to_thread(tts_engine.unload_model)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load ML models on startup."""
+    """Load ML models on startup, start idle watchdog."""
     logger.info("[Startup] Loading TTS model...")
     await asyncio.to_thread(tts_engine.load_model)
+    tts_engine.touch()
     logger.info("[Startup] Loading MusicGen model...")
     await asyncio.to_thread(music_engine.load_model)
     logger.info("[Startup] All models loaded")
+    watchdog = asyncio.create_task(_idle_watchdog())
     yield
+    watchdog.cancel()
     logger.info("[Shutdown] Audio Server stopped")
 
 

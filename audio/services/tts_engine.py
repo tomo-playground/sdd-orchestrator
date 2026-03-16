@@ -17,6 +17,7 @@ logger = logging.getLogger("audio-server")
 
 # Global model cache
 _model: Qwen3TTSModel | None = None
+_last_used: float = 0.0  # time.monotonic() of last synthesis
 
 
 def _resolve_device() -> str:
@@ -76,6 +77,37 @@ def get_device() -> str:
     return _resolve_device()
 
 
+def unload_model() -> bool:
+    """GPU 메모리 해제를 위해 모델을 언로드한다. 언로드 성공 시 True."""
+    global _model
+    if _model is None:
+        return False
+    del _model
+    _model = None
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    import gc
+
+    gc.collect()
+    logger.info("Qwen3-TTS model unloaded (GPU memory released)")
+    return True
+
+
+def touch() -> None:
+    """마지막 사용 시각을 갱신한다."""
+    global _last_used
+    import time
+
+    _last_used = time.monotonic()
+
+
+def idle_seconds() -> float:
+    """마지막 사용 이후 경과 시간(초)."""
+    import time
+
+    return time.monotonic() - _last_used if _last_used > 0 else 0.0
+
+
 def synthesize(
     text: str,
     instruct: str,
@@ -88,11 +120,13 @@ def synthesize(
 ) -> tuple[list, int]:
     """Run TTS synthesis. Returns (wavs, sample_rate).
 
-    Raises RuntimeError if model is not loaded.
+    모델이 언로드 상태이면 자동 재로드.
     """
     model = get_model()
     if model is None:
-        raise RuntimeError("TTS model not loaded")
+        logger.info("TTS model not loaded, reloading on demand...")
+        model = load_model()
+    touch()
 
     torch.manual_seed(seed)
     wavs, sr = model.generate_voice_design(
