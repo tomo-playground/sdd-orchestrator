@@ -51,7 +51,14 @@
       "WebFetch(domain:help.descript.com)",
       "WebFetch(domain:docs.synthesia.io)",
       "mcp__serena__list_dir",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(npx next:*)",
+      "Bash(journalctl -u shorts-backend --no-pager -n 50)",
+      "Bash(PGPASSWORD=1234 psql -h 127.0.0.1 -U shorts_app -d shorts_producer -c \":*)",
+      "mcp__civitai__search_models",
+      "Bash(PGPASSWORD=1234 psql -h 127.0.0.1 -U shorts_app -d shorts_producer -c \"\\\\dt *action*\")",
+      "Bash(PGPASSWORD=1234 psql -h 127.0.0.1 -U shorts_app -d shorts_producer -c \"\\\\d scenes\")",
+      "mcp__gemini__gemini-brainstorm"
     ]
   },
   "enableAllProjectMcpServers": true,
