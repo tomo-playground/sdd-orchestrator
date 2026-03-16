@@ -204,16 +204,29 @@ async def writer_node(state: ScriptState) -> dict:
     if feedback:
         pipeline_ctx["revision_feedback"] = feedback
 
+    character_id = state.get("character_id")
+    character_b_id = state.get("character_b_id")
+
+    # FastTrack + Dialogue: character_id 없으면 group에서 자동 resolve
+    structure = state.get("structure", "Monologue")
+    skip_stages = set(state.get("skip_stages") or [])
+    if "production" in skip_stages and not character_id and state.get("group_id"):
+        from services.agent.nodes.finalize import _resolve_characters_from_group  # noqa: PLC0415
+
+        with get_db_session() as resolve_db:
+            character_id, character_b_id = _resolve_characters_from_group(state["group_id"], structure, resolve_db)
+        logger.info("[Writer] FastTrack auto-resolved characters: A=%s, B=%s", character_id, character_b_id)
+
     request = StoryboardRequest(
         topic=state.get("topic", ""),
         description=state.get("description", ""),
         duration=state.get("duration", 10),
         style=state.get("style", "Anime"),
         language=state.get("language", "Korean"),
-        structure=state.get("structure", "Monologue"),
+        structure=structure,
         actor_a_gender=state.get("actor_a_gender", "female"),
-        character_id=state.get("character_id"),
-        character_b_id=state.get("character_b_id"),
+        character_id=character_id,
+        character_b_id=character_b_id,
         group_id=state.get("group_id"),
         selected_concept=selected_concept,
     )
