@@ -53,9 +53,11 @@
 #### 1) Stage-Level Skip (`skip_stages`)
 | Preset | `skip_stages` | 설명 |
 |--------|---------------|------|
-| **express** | `["research", "concept", "production", "explain"]` | Gemini 1회 생성 후 즉시 검토 (가장 빠름) |
+| **FastTrack** | `["research", "concept", "production", "explain"]` | Writer → Cinematographer → Finalize (캐릭터 일관성 유지, 속도 우선) |
 | **standard** | `["research", "explain"]` | Concept Gate 생략, Production(이미지/음성) 자동 실행 |
 | **creator** | `[]` (빈 배열) | Research부터 Explain까지 모든 디테일 제어 가능 |
+
+> **FastTrack `production` skip 동작**: `production` skip 시에도 **Cinematographer는 실행**됩니다 (카메라/표정/IP-Adapter 다양성 확보). TTS Designer, Sound Designer, Copyright Reviewer만 skip → Finalize 직행.
 
 #### 2) Interaction Mode (3단계 협업형 UX)
 | 모드 | 설명 |
@@ -75,7 +77,8 @@ START → director_plan → [director_plan_gate] → inventory_resolve → Resea
   → Director(ReAct) → [human_gate] → Finalize → Explain → Learn → END
 ```
 
-* `skip_stages`에 포함된 단계(예: `"research"`, `"concept"`, `"production"`, `"explain"`)는 Graph 내의 `_skip_guard` 노드를 통해 자동으로 통과(Pass-through)됩니다.
+* `skip_stages`에 포함된 단계는 Graph 라우팅에서 자동 skip됩니다.
+* 예외: `production` skip 시에도 Cinematographer는 실행 (Review → Cinematographer → Finalize). TTS/Sound/Copyright만 skip.
 
 | 분류 | 에이전트 | Agentic 레벨 |
 |------|---------|-------------|
