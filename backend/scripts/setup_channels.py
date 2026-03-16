@@ -107,7 +107,7 @@ def main():
                 "1girl, young_woman, brown_hair, ponytail, hair_tie, tired_eyes, brown_eyes, office_lady, cardigan, beige_cardigan, white_blouse, id_card, lanyard, pencil_skirt, black_skirt, tumbler, flat_color",
                 "detailed_background, gradient, shadow, 3d, realistic",
                 24,
-                "clip_face",
+                "clip",
             ),
             (
                 "오늘도 출근했습니다",
@@ -117,7 +117,7 @@ def main():
                 "1boy, young_man, black_hair, short_hair, glasses, rectangular_glasses, brown_eyes, necktie, loose_necktie, dress_shirt, white_shirt, sleeves_rolled_up, slacks, coffee_cup, flat_color",
                 "detailed_background, gradient, shadow, 3d, realistic",
                 13,
-                "clip_face",
+                "clip",
             ),
             (
                 "급식시간",
@@ -127,7 +127,7 @@ def main():
                 "1boy, male_focus, brown_hair, short_hair, hairband, school_uniform, blazer, blue_blazer, white_shirt, plaid_necktie, black_pants, earphones, one_earphone_removed, hands_in_pockets",
                 "realistic, photorealistic, 3d",
                 16,
-                "clip_face",
+                "clip",
             ),
             (
                 "급식시간",
@@ -137,7 +137,7 @@ def main():
                 "1girl, female_focus, black_hair, short_hair, bob_cut, hair_clip, hairpin, brown_eyes, school_uniform, cardigan, pink_cardigan, sailor_collar, pleated_skirt, navy_skirt, holding_phone, smartphone",
                 "realistic, photorealistic, 3d",
                 10,
-                "clip_face",
+                "clip",
             ),
             (
                 "역사 안 주무셨죠",
@@ -147,7 +147,7 @@ def main():
                 "1boy, young_man, black_hair, messy_hair, glasses, round_eyewear, brown_eyes, hoodie, grey_hoodie, casual, open_book, notebook",
                 "chibi, super_deformed, flat_color",
                 13,
-                "clip_face",
+                "clip",
             ),
             (
                 "역사 안 주무셨죠",
@@ -157,7 +157,7 @@ def main():
                 "1boy, mature_male, black_hair, topknot, facial_hair, goatee, sharp_eyes, brown_eyes, hanbok, traditional_clothes, armor, korean_armor, serious",
                 "chibi, super_deformed, flat_color, modern_clothes",
                 9,
-                "clip_face",
+                "clip",
             ),
             (
                 "역사 안 주무셨죠",
@@ -167,7 +167,7 @@ def main():
                 "1boy, mature_male, black_hair, topknot, beard, gentle_eyes, brown_eyes, hanbok, royal_hanbok, gonryongpo, traditional_clothes, sitting, wise",
                 "chibi, super_deformed, flat_color, modern_clothes",
                 9,
-                "clip_face",
+                "clip",
             ),
         ]
 

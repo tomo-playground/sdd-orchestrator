@@ -183,7 +183,7 @@ async def list_references(db: Session = Depends(get_db)):
             db_char = db_chars[char_key]
             ref["preset"] = {
                 "weight": db_char.ip_adapter_weight or 0.75,
-                "model": db_char.ip_adapter_model or "clip_face",
+                "model": db_char.ip_adapter_model or "clip",
                 "description": db_char.description or f"DB Character: {char_key}",
             }
         else:

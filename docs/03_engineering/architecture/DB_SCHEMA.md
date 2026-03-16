@@ -528,7 +528,7 @@ Model + LoRAs + Embeddings 번들.
 | `negative_embeddings` | Integer[] | Embedding IDs |
 | `default_positive` | Text | 기본 포지티브 |
 | `default_negative` | Text | 기본 네거티브 |
-| `default_ip_adapter_model` | String(20) | IP-Adapter 기본 모델 (`clip_face` / `faceid`) |
+| `default_ip_adapter_model` | String(20) | IP-Adapter 기본 모델 (`clip`=NOOB-IPA-MARK1 / `clip_face`=ViT-H) |
 | `default_steps` | Integer | 화풍별 기본 스텝 수 |
 | `default_cfg_scale` | Float | 화풍별 기본 CFG Scale |
 | `default_sampler_name` | String(50) | 화풍별 기본 샘플러 |

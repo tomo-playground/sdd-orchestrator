@@ -24,7 +24,7 @@ class StyleContext:
     default_negative: str = ""
     sd_model_name: str = ""  # checkpoint 파일명 (e.g. "realisticVisionV60.safetensors")
     sd_model_base: str = ""  # base model type (e.g. "SD1.5", "SDXL")
-    default_ip_adapter_model: str = ""  # clip_face | faceid
+    default_ip_adapter_model: str = ""  # clip (NOOB-IPA-MARK1) | clip_face (SDXL ViT-H)
     default_steps: int | None = None
     default_cfg_scale: float | None = None
     default_sampler_name: str | None = None

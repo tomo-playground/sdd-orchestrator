@@ -26,7 +26,7 @@ def main():
                 "reference_base_prompt": "masterpiece, best quality, anime portrait, eureka, purple hair, green eyes, clean background, looking at viewer",
                 "reference_negative_prompt": "worst quality, low quality, lowres, bad anatomy, blurry",
                 "ip_adapter_weight": 0.80,
-                "ip_adapter_model": "clip_face",
+                "ip_adapter_model": "clip",
             },
             {
                 "name": "Midoriya",
@@ -38,7 +38,7 @@ def main():
                 "reference_base_prompt": "masterpiece, best quality, anime portrait, midoriya izuku, green hair, green eyes, clean background, looking at viewer",
                 "reference_negative_prompt": "worst quality, low quality, lowres, bad anatomy, blurry",
                 "ip_adapter_weight": 0.80,
-                "ip_adapter_model": "clip_face",
+                "ip_adapter_model": "clip",
             },
             {
                 "name": "Generic Anime Girl",
@@ -50,7 +50,7 @@ def main():
                 "reference_base_prompt": "masterpiece, best quality, anime portrait, 1girl, clean background, looking at viewer",
                 "reference_negative_prompt": "worst quality, low quality, lowres, bad anatomy, blurry",
                 "ip_adapter_weight": 0.75,
-                "ip_adapter_model": "clip_face",
+                "ip_adapter_model": "clip",
             },
             {
                 "name": "Generic Anime Boy",
@@ -62,7 +62,7 @@ def main():
                 "reference_base_prompt": "masterpiece, best quality, anime portrait, 1boy, clean background, looking at viewer",
                 "reference_negative_prompt": "worst quality, low quality, lowres, bad anatomy, blurry",
                 "ip_adapter_weight": 0.75,
-                "ip_adapter_model": "clip_face",
+                "ip_adapter_model": "clip",
             },
         ]
 

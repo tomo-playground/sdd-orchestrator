@@ -195,7 +195,7 @@ class CharacterConsistencyResolver:
         Priority:
         1. 캐릭터 명시값 (character.ip_adapter_model)
         2. 그룹 스타일 프로필 기본값 (group.style_profile.default_ip_adapter_model)
-        3. 글로벌 기본값 (None → downstream defaults to clip_face)
+        3. 글로벌 기본값 (None → downstream defaults to clip(NOOB-IPA-MARK1))
         """
         char_model = getattr(character, "ip_adapter_model", None)
         if char_model:
