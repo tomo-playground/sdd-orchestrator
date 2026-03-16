@@ -197,7 +197,8 @@ async def _run(state: ScriptState, db_session: object) -> dict:
 
     chat_context = sanitize_chat_context(state.get("chat_context") or [])
 
-    tmpl = template_env.get_template("creative/cinematographer.j2")
+    _cine_template = "creative/cinematographer.j2"
+    tmpl = template_env.get_template(_cine_template)
     base_prompt = tmpl.render(
         scenes=scenes,
         character_id=character_id,
@@ -278,6 +279,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         current_prompt = prompt if attempt == 1 else prompt + _JSON_RETRY_SUFFIX
         try:
             logger.info("[Cinematographer] Agent 시작 (attempt %d/%d)", attempt, max_attempts)
+            _cine_metadata = {"template": _cine_template}
             if attempt == 1:
                 response, attempt_logs = await call_with_tools(
                     prompt=current_prompt,
@@ -286,6 +288,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
                     max_calls=10,
                     trace_name="cinematographer_tool_calling",
                     system_instruction="당신은 쇼츠 영상의 Cinematographer Agent입니다. 각 씬에 Danbooru 태그, 카메라 앵글, 환경 설정을 추가하여 비주얼 디자인을 완성하세요.",
+                    metadata=_cine_metadata,
                 )
                 tool_logs = attempt_logs
             else:
@@ -296,6 +299,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
                     trace_name="cinematographer_direct_retry",
                     temperature=0.0,
                     system_instruction="당신은 쇼츠 영상의 Cinematographer Agent입니다. 반드시 JSON 형식으로만 응답하세요.",
+                    metadata=_cine_metadata,
                 )
         except Exception as e:
             logger.warning("[Cinematographer] Agent 실패 (graceful): %s", e)

@@ -195,10 +195,11 @@ async def try_scene_expand(
     실패 시 None을 반환하여 Tier 3(전체 재생성)으로 fallback.
     """
 
-    from config import template_env  # noqa: PLC0415
+    from services.agent.langfuse_prompt import get_prompt_template  # noqa: PLC0415
 
     try:
-        tmpl = template_env.get_template("creative/scene_expand.j2")
+        _template_name = "creative/scene_expand.j2"
+        bundle = get_prompt_template(_template_name)
 
         # 피드백 수집
         review = state.get("review_result") or {}
@@ -215,7 +216,7 @@ async def try_scene_expand(
 
         min_dur, max_dur = SCENE_DURATION_RANGE
 
-        prompt = tmpl.render(
+        prompt = bundle.template.render(
             existing_scenes_json=json.dumps(scenes, ensure_ascii=False, indent=2),
             existing_count=len(scenes),
             target_min=target_min,
@@ -232,12 +233,13 @@ async def try_scene_expand(
             feedback="\n".join(feedback_parts) if feedback_parts else "",
         )
 
+        _fallback_sys = "You are a scene expansion specialist for short-form video scripts. Generate new scenes that seamlessly integrate with existing ones."
         llm_response = await get_llm_provider().generate(
             step_name="revise_scene_expand",
             contents=prompt,
-            config=LLMConfig(
-                system_instruction="You are a scene expansion specialist for short-form video scripts. Generate new scenes that seamlessly integrate with existing ones.",
-            ),
+            config=LLMConfig(system_instruction=bundle.system_instruction or _fallback_sys),
+            metadata={"template": _template_name},
+            langfuse_prompt=bundle.langfuse_prompt,
         )
         raw = strip_markdown_codeblock(llm_response.text)
         new_scenes = json.loads(raw)

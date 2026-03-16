@@ -86,7 +86,8 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
     실패 시 None 반환 (graceful degradation).
     """
     try:
-        tmpl = template_env.get_template("creative/writer_planning.j2")
+        _template_name = "creative/writer_planning.j2"
+        tmpl = template_env.get_template(_template_name)
         prompt = tmpl.render(
             topic=state.get("topic", ""),
             description=state.get("description", ""),
@@ -106,6 +107,7 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
                     "Create hook strategies, emotional arcs, and scene distributions."
                 ),
             ),
+            metadata={"template": _template_name},  # B등급: 파일 사용, metadata만 추적
         )
 
         # JSON 파싱 + Pydantic 검증

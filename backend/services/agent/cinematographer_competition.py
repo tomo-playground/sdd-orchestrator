@@ -224,6 +224,7 @@ async def _run_single_lens(
     for attempt in range(1, max_attempts + 1):
         current_prompt = prompt if attempt == 1 else prompt + _JSON_RETRY_SUFFIX
         try:
+            _comp_metadata = {"template": "creative/cinematographer.j2", "lens": role}
             if attempt == 1:
                 response, attempt_logs = await call_with_tools(
                     prompt=current_prompt,
@@ -233,6 +234,7 @@ async def _run_single_lens(
                     trace_name=f"cinematographer_{role}",
                     temperature=lens["temperature"],
                     system_instruction="당신은 쇼츠 영상의 Cinematographer Agent입니다. 각 씬에 Danbooru 태그, 카메라 앵글, 환경 설정을 추가하여 비주얼 디자인을 완성하세요.",
+                    metadata=_comp_metadata,
                 )
                 tool_logs = attempt_logs
             else:
@@ -245,6 +247,7 @@ async def _run_single_lens(
                     trace_name=f"cinematographer_{role}_direct_retry",
                     temperature=0.0,
                     system_instruction="당신은 쇼츠 영상의 Cinematographer Agent입니다. 반드시 JSON 형식으로만 응답하세요.",
+                    metadata=_comp_metadata,
                 )
 
             scenes = _parse_scenes(response)

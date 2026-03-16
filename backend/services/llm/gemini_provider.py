@@ -1,4 +1,5 @@
 """GeminiProvider — Gemini SDK 래퍼. 429 retry + PROHIBITED fallback + trace 내장."""
+
 from __future__ import annotations
 
 import asyncio
@@ -14,6 +15,9 @@ from config import (
 )
 from services.agent.observability import _extract_usage, trace_llm_call
 from services.llm.types import LLMConfig, LLMResponse
+
+# trace input에 system_instruction을 포함할 때의 최대 길이
+_MAX_SYSTEM_LEN = 2000
 
 
 def _is_retryable(exc: Exception) -> bool:
@@ -42,6 +46,9 @@ class GeminiProvider:
         contents: str,
         config: LLMConfig,
         model: str | None = None,
+        *,
+        metadata: dict[str, Any] | None = None,
+        langfuse_prompt: Any = None,
     ) -> LLMResponse:
         """Gemini API를 호출하고 LLMResponse를 반환한다."""
         from google.genai import types
@@ -56,6 +63,12 @@ class GeminiProvider:
             safety_settings=GEMINI_SAFETY_SETTINGS,
         )
 
+        # trace input에 system_instruction 포함 (가시성 확보)
+        trace_input = contents
+        if config.system_instruction:
+            sys_preview = config.system_instruction[:_MAX_SYSTEM_LEN]
+            trace_input = f"[SYSTEM]\n{sys_preview}\n\n[USER]\n{contents}"
+
         # 429/5xx retry
         delays = [1, 3]
         response = None
@@ -64,7 +77,9 @@ class GeminiProvider:
                 async with trace_llm_call(
                     name=step_name,
                     model=resolved_model,
-                    input_text=contents,
+                    input_text=trace_input,
+                    metadata=metadata,
+                    langfuse_prompt=langfuse_prompt,
                 ) as llm:
                     response = await gemini_client.aio.models.generate_content(
                         model=resolved_model,
@@ -97,7 +112,8 @@ class GeminiProvider:
                 async with trace_llm_call(
                     name=f"{step_name}_fallback",
                     model=GEMINI_FALLBACK_MODEL,
-                    input_text=contents,
+                    input_text=trace_input,
+                    metadata=metadata,
                 ) as llm_fb:
                     response = await gemini_client.aio.models.generate_content(
                         model=GEMINI_FALLBACK_MODEL,
@@ -119,6 +135,8 @@ class GeminiProvider:
         config: LLMConfig,
         tools: list,
         model: str | None = None,
+        *,
+        metadata: dict[str, Any] | None = None,
     ) -> LLMResponse:
         """Function Calling 전용 (tools/base.py에서 사용). Protocol 외부 확장."""
         from google.genai import types
@@ -143,6 +161,7 @@ class GeminiProvider:
                     name=step_name,
                     model=resolved_model,
                     input_text=str(contents)[:1000],
+                    metadata=metadata,
                 ) as llm:
                     response = await gemini_client.aio.models.generate_content(
                         model=resolved_model,
@@ -176,6 +195,7 @@ class GeminiProvider:
                     name=f"{step_name}_fallback",
                     model=GEMINI_FALLBACK_MODEL,
                     input_text=str(contents)[:1000],
+                    metadata=metadata,
                 ) as llm_fb:
                     response = await gemini_client.aio.models.generate_content(
                         model=GEMINI_FALLBACK_MODEL,
@@ -189,5 +209,3 @@ class GeminiProvider:
             usage=_extract_usage(response) if response else None,
             raw=response,
         )
-
-

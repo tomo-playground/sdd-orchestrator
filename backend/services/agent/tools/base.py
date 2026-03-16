@@ -98,6 +98,7 @@ async def call_with_tools(
     trace_name: str = "tool_calling",
     temperature: float = 0.7,
     system_instruction: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> tuple[str, list[ToolCallLog]]:
     """Gemini Function Calling 루프 실행.
 
@@ -141,6 +142,7 @@ async def call_with_tools(
             contents=contents,  # type: ignore[arg-type]
             config=llm_config,
             tools=tools,  # type: ignore[arg-type]
+            metadata=metadata,
         )
         response = llm_response.raw
 
@@ -304,6 +306,7 @@ async def call_with_tools(
                 contents=fallback_contents,  # type: ignore[arg-type]
                 config=LLMConfig(temperature=temperature, system_instruction=system_instruction),
                 tools=[],
+                metadata=metadata,
             )
             raw_fb = fallback_resp.raw
             if raw_fb and raw_fb.candidates and raw_fb.candidates[0].content:
@@ -321,6 +324,7 @@ async def call_direct(
     trace_name: str = "direct_call",
     temperature: float = 0.0,
     system_instruction: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> str:
     """도구 없이 LLM을 직접 호출한다. JSON 강제 재시도 등에 사용."""
     provider = get_llm_provider()
@@ -328,5 +332,6 @@ async def call_direct(
         step_name=trace_name,
         contents=prompt,
         config=LLMConfig(temperature=temperature, system_instruction=system_instruction),
+        metadata=metadata,
     )
     return llm_response.text

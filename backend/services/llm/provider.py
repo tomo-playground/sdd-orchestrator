@@ -1,7 +1,8 @@
 """LLMProvider Protocol — 모든 LLM 제공자가 구현해야 하는 인터페이스."""
+
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from services.llm.types import LLMConfig, LLMResponse
 
@@ -21,6 +22,9 @@ class LLMProvider(Protocol):
         contents: str,
         config: LLMConfig,
         model: str | None = None,
+        *,
+        metadata: dict[str, Any] | None = None,
+        langfuse_prompt: Any = None,
     ) -> LLMResponse:
         """LLM을 호출하고 응답을 반환한다.
 
@@ -29,6 +33,8 @@ class LLMProvider(Protocol):
             contents: 사용자 프롬프트
             config: provider-agnostic 설정
             model: 모델 ID. None이면 provider 기본값 사용.
+            metadata: LangFuse 메타데이터 (template_name 등)
+            langfuse_prompt: LangFuse Prompt 객체 (버전 추적용)
 
         Returns:
             LLMResponse(text, usage, raw)

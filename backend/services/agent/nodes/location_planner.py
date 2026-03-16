@@ -11,8 +11,9 @@ from __future__ import annotations
 
 import json
 
-from config import logger, template_env
+from config import logger
 from config_pipelines import LANGGRAPH_PLANNING_ENABLED
+from services.agent.langfuse_prompt import get_prompt_template
 from services.agent.llm_models import LocationPlan
 from services.agent.state import ScriptState, WriterPlan, build_director_context, extract_selected_concept
 from services.llm import LLMConfig, get_llm_provider
@@ -33,8 +34,9 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
     selected_concept = extract_selected_concept(state)
 
     try:
-        tmpl = template_env.get_template("creative/location_planner.j2")
-        prompt = tmpl.render(
+        _template_name = "creative/location_planner.j2"
+        bundle = get_prompt_template(_template_name)
+        prompt = bundle.template.render(
             topic=state.get("topic", ""),
             description=state.get("description", ""),
             duration=duration,
@@ -46,15 +48,16 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
             expected_scenes_max=max_s,
         )
 
+        _fallback_sys = (
+            "You are a Location Planner for short-form video scripts. "
+            "Output only valid JSON with the locations array. No explanations."
+        )
         llm_response = await get_llm_provider().generate(
             step_name="location_planner",
             contents=prompt,
-            config=LLMConfig(
-                system_instruction=(
-                    "You are a Location Planner for short-form video scripts. "
-                    "Output only valid JSON with the locations array. No explanations."
-                ),
-            ),
+            config=LLMConfig(system_instruction=bundle.system_instruction or _fallback_sys),
+            metadata={"template": _template_name},
+            langfuse_prompt=bundle.langfuse_prompt,
         )
         text = llm_response.text.strip()
 

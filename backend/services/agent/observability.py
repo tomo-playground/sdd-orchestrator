@@ -63,6 +63,12 @@ def _ensure_initialized() -> bool:
         return False
 
 
+def get_langfuse_client():
+    """초기화된 LangFuse 클라이언트를 반환한다. 비활성 시 None."""
+    _ensure_initialized()
+    return _langfuse_client
+
+
 def create_langfuse_handler(*, trace_id: str | None = None, session_id: str | None = None):
     """요청별 CallbackHandler를 생성하고 trace_id를 contextvar에 설정한다.
 
@@ -302,11 +308,18 @@ async def trace_llm_call(
     name: str,
     model: str = "",
     input_text: str = "",
+    *,
+    metadata: dict[str, Any] | None = None,
+    langfuse_prompt: Any = None,
 ):
     """Gemini 호출을 LangFuse GENERATION으로 추적한다.
 
     contextvar에서 요청별 trace_id를 읽어 동일 trace 트리에 연결한다.
     LangFuse 비활성 시 no-op으로 동작한다 (graceful degradation).
+
+    Args:
+        metadata: 추가 메타데이터 (template_name 등). generation.metadata에 기록.
+        langfuse_prompt: LangFuse Prompt 객체. generation에 연결하여 버전 추적.
     """
     if _langfuse_client is None:
         yield LLMCallResult()
@@ -316,21 +329,22 @@ async def trace_llm_call(
     trace_ctx = {"trace_id": _to_hex32(raw_trace_id)} if raw_trace_id else None
     root_span = _current_root_span.get()
 
+    gen_kwargs: dict[str, Any] = {
+        "name": name,
+        "model": model or "",
+        "input": input_text[:_MAX_IO_LEN],
+    }
+    if metadata:
+        gen_kwargs["metadata"] = metadata
+    if langfuse_prompt is not None:
+        gen_kwargs["prompt"] = langfuse_prompt
+
     # root span이 있으면 자식으로 생성 (계층 구조 — trace_context 불필요)
     # root span이 없으면 _langfuse_client에서 직접 연결 (trace_context 필요)
     if root_span:
-        generation = root_span.start_generation(
-            name=name,
-            model=model or "",
-            input=input_text[:_MAX_IO_LEN],
-        )
+        generation = root_span.start_generation(**gen_kwargs)
     else:
-        generation = _langfuse_client.start_generation(
-            trace_context=trace_ctx,
-            name=name,
-            model=model or "",
-            input=input_text[:_MAX_IO_LEN],
-        )
+        generation = _langfuse_client.start_generation(trace_context=trace_ctx, **gen_kwargs)
     result = LLMCallResult(generation=generation)
     try:
         yield result

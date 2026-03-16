@@ -19,6 +19,7 @@ from config import (
     template_env,
 )
 from config_pipelines import LANGGRAPH_NARRATIVE_THRESHOLD, REVIEW_MODEL
+from services.agent.langfuse_prompt import get_prompt_template
 from services.agent.llm_models import (
     NarrativeScoreOutput,
     ReflectionOutput,
@@ -175,20 +176,22 @@ async def _gemini_evaluate(
 ) -> str | None:
     """Gemini에 씬 품질 평가를 요청한다. 실패 시 None 반환."""
     try:
-        tmpl = template_env.get_template("review_evaluate.j2")
-        prompt = tmpl.render(
+        _template_name = "review_evaluate.j2"
+        bundle = get_prompt_template(_template_name)
+        prompt = bundle.template.render(
             scenes=json.dumps(scenes, ensure_ascii=False),
             topic=topic,
             language=language,
             threshold=LANGGRAPH_AUTO_REVIEW_THRESHOLD,
         )
+        _fallback_sys = "You are a script quality evaluator for short-form video scenes."
         llm_response = await get_llm_provider().generate(
             step_name="review_gemini_evaluate",
             contents=prompt,
-            config=LLMConfig(
-                system_instruction="You are a script quality evaluator for short-form video scenes.",
-            ),
+            config=LLMConfig(system_instruction=bundle.system_instruction or _fallback_sys),
             model=REVIEW_MODEL,
+            metadata={"template": _template_name},
+            langfuse_prompt=bundle.langfuse_prompt,
         )
         return llm_response.text
     except Exception as e:
@@ -230,20 +233,22 @@ async def _narrative_evaluate(
 ) -> NarrativeScore | None:
     """서사 품질을 Gemini로 평가한다. 에러 시 None (graceful degradation)."""
     try:
-        tmpl = template_env.get_template("creative/narrative_review.j2")
-        prompt = tmpl.render(
+        _template_name_nr = "creative/narrative_review.j2"
+        bundle_nr = get_prompt_template(_template_name_nr)
+        prompt = bundle_nr.template.render(
             scenes=json.dumps(scenes, ensure_ascii=False),
             topic=topic,
             language=language,
             threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
         )
+        _fallback_sys_nr = "You are a narrative quality evaluator specializing in short-form video storytelling."
         llm_response = await get_llm_provider().generate(
             step_name="review_narrative_evaluate",
             contents=prompt,
-            config=LLMConfig(
-                system_instruction="You are a narrative quality evaluator specializing in short-form video storytelling.",
-            ),
+            config=LLMConfig(system_instruction=bundle_nr.system_instruction or _fallback_sys_nr),
             model=REVIEW_MODEL,
+            metadata={"template": _template_name_nr},
+            langfuse_prompt=bundle_nr.langfuse_prompt,
         )
         return _parse_narrative_score(llm_response.text or "")
     except Exception as e:
@@ -263,8 +268,9 @@ async def _self_reflect(
     실패 시 None 반환 (graceful degradation).
     """
     try:
-        tmpl = template_env.get_template("creative/review_reflection.j2")
-        prompt = tmpl.render(
+        _template_name_rf = "creative/review_reflection.j2"
+        bundle_rf = get_prompt_template(_template_name_rf)
+        prompt = bundle_rf.template.render(
             topic=topic,
             language=language,
             structure=structure,
@@ -274,13 +280,14 @@ async def _self_reflect(
             narrative_score=review_result.get("narrative_score"),
             narrative_threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
         )
+        _fallback_sys_rf = "You are a self-reflection agent that analyzes review failures and proposes fix strategies."
         llm_response = await get_llm_provider().generate(
             step_name="review_self_reflect",
             contents=prompt,
-            config=LLMConfig(
-                system_instruction="You are a self-reflection agent that analyzes review failures and proposes fix strategies.",
-            ),
+            config=LLMConfig(system_instruction=bundle_rf.system_instruction or _fallback_sys_rf),
             model=REVIEW_MODEL,
+            metadata={"template": _template_name_rf},
+            langfuse_prompt=bundle_rf.langfuse_prompt,
         )
 
         # JSON 파싱
@@ -348,7 +355,8 @@ async def _unified_evaluate(
     실패 시 None 반환 (레거시 개별 호출로 폴백).
     """
     try:
-        tmpl = template_env.get_template("creative/review_unified.j2")
+        _template_name_ru = "creative/review_unified.j2"
+        tmpl = template_env.get_template(_template_name_ru)
         prompt = tmpl.render(
             scenes=json.dumps(scenes, ensure_ascii=False),
             topic=topic,
@@ -366,6 +374,7 @@ async def _unified_evaluate(
                 system_instruction="You are a unified review agent that evaluates technical quality, narrative strength, and self-reflection for short-form video scripts.",
             ),
             model=REVIEW_MODEL,
+            metadata={"template": _template_name_ru},  # B등급: 파일 사용, metadata만 추적
         )
 
         text = (llm_response.text or "").strip()

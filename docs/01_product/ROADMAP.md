@@ -53,6 +53,7 @@
 
 ### 최근 작업
 
+- **03-17 LangFuse Prompt Management Phase 0+1+1.5 완료**: 프롬프트 가시성 확보 + A등급 14개 chat 타입 이전. `trace_llm_call()`에 template_name/system_instruction 메타데이터 기록, `langfuse_prompt.py` PromptBundle(system+user 분리), A등급 LangFuse runtime fetch + Jinja2 렌더 + 파일 fallback, `call_with_tools`/`call_direct` metadata 전달, 업로드 스크립트(chat/text 자동 분류), 19개 단위 테스트. B등급 19개 text 가시성 업로드. Phase 2(B등급 시스템 프롬프트 분리)는 미착수
 - **03-16 SSOT 위반 정리 P1+P2 완료 (46/49건)**: config.py 상수화(Hi-Res 4개+SAMPLERS+TTS_ENGINE+ENABLE_HR), `/presets` API 확장(hi_res_defaults+samplers+tts_engine+image_defaults+pipeline_metadata), Frontend 하드코딩 제거(constants→store/presets 동기화, 해상도 6곳→상수/store), controlnet.py weight fallback→상수 참조
 - **03-17 Phase 35 완료**: GPT-SoVITS v2 TTS 통합 — SoVITS(:9880 일상TTS) + Qwen3(:8001 보이스디자인 on-demand) + MusicGen(CPU 상주). audio_client SoVITS→Qwen3 fallback, 캐릭터 보이스 레퍼런스 API, 감정별 레퍼런스 탐색, Text Normalization, E2E 검증 완료. SSOT 위반 P0~P2 52건+ 정리
 - **03-17 이미지 품질 개선 + 오디오 상주 모드**: 씬 배경 사라짐 근본 수정(캐릭터 negative 정리, scenery 자동주입, IP-Adapter/Reference AdaIN 비활성화), StyleProfile flat_color_v2:0.3 최적화, IP-Adapter weight SSOT 통일(Backend+Frontend), MeMaXL v6 설치, 오디오 서버 persistent 모드(TTS GPU + MusicGen CPU 상주 로드)
@@ -260,6 +261,7 @@ graph LR
 | 기능 | 참조 |
 |------|------|
 | ~~Phase 34: GPU 순차 독점 실행 & BGM 고도화~~ | **드롭** — ComfyUI 전환으로 GPU 관리 방식 자체가 변경될 예정. Forge 전용 `forge_control.py` 구현이 무의미해짐. BGM(ACE-Step) 고도화는 별도 항목으로 재검토 |
+| ~~**LangFuse Prompt Management Phase 0+1+1.5**~~ | **완료** — 트레이싱 가시성(template_name+system_instruction), A등급 14개 chat 타입 이전(LangFuse runtime fetch+fallback), PromptBundle(system/user 분리), 업로드 스크립트, 19개 테스트. Phase 2(B등급 시스템 프롬프트 분리) 미착수 |
 | **LLM Provider 추상화 Phase A~E 완료** | [설계](../03_engineering/backend/LLM_PROVIDER_ABSTRACTION.md) — `services/llm/` 패키지 구축, `google.genai` 직결 제거, trace + PROHIBITED fallback 중복 해소. Phase F(OllamaProvider)는 아래 LiteLLM 항목으로 대체 예정 |
 | **LiteLLM SDK 도입 (Phase F 대체)** | Gemini 외 두 번째 Provider 실제 도입 시점에 착수. `GeminiProvider` 내부를 LiteLLM 호출로 교체 → 100+ Provider 지원, 폴백/재시도 내장, `OllamaProvider` 직접 구현 불필요. 트레이스 중복 방지를 위해 LiteLLM 자동 LangFuse 콜백 비활성화 + 기존 `trace_llm_call()` 유지 필수. OSS LLMOps Stack(LangGraph + LangFuse + LiteLLM) 표준 조합 완성. **착수 조건**: Ollama/Claude 등 두 번째 Provider 실제 사용 확정 시 |
 | PipelineControl 커스텀 (노드 on/off) + 분산 큐 (Celery/Redis) | Phase 9-4 잔여 |

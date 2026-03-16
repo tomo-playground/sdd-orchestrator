@@ -23,9 +23,9 @@ from config import (
     RESEARCH_URL_FETCH_TIMEOUT,
     RESEARCH_URL_MAX_BYTES,
     logger,
-    template_env,
 )
 from database import get_db_session
+from services.agent.langfuse_prompt import get_prompt_template
 from services.agent.state import ScriptState
 from services.llm import LLMConfig, get_llm_provider
 
@@ -174,20 +174,22 @@ async def _analyze_references(refs: list[str], state: ScriptState) -> str | None
 
     # Gemini 분석
     try:
-        tmpl = template_env.get_template("creative/material_analyst.j2")
-        prompt = tmpl.render(
+        _template_name = "creative/material_analyst.j2"
+        bundle = get_prompt_template(_template_name)
+        prompt = bundle.template.render(
             materials=materials,
             duration=state.get("duration", 30),
             structure=state.get("structure", "Monologue"),
             language=state.get("language", "Korean"),
         )
 
+        _fallback_sys = "You are a content analyst for short-form video production. Analyze reference materials and extract key insights."
         llm_response = await get_llm_provider().generate(
             step_name="research_analyze_references",
             contents=prompt,
-            config=LLMConfig(
-                system_instruction="You are a content analyst for short-form video production. Analyze reference materials and extract key insights.",
-            ),
+            config=LLMConfig(system_instruction=bundle.system_instruction or _fallback_sys),
+            metadata={"template": _template_name},
+            langfuse_prompt=bundle.langfuse_prompt,
         )
         raw = llm_response.text
 
@@ -343,6 +345,7 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
             max_calls=5,  # 최대 5번 도구 호출
             trace_name="research_tool_calling",
             system_instruction="당신은 쇼츠 대본 작성을 위한 Research Agent입니다.",
+            metadata={"template": "research_tool_calling"},
         )
 
         raw_brief = response.strip() if response else None
