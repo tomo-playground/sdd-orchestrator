@@ -92,6 +92,9 @@ type StreamOutcomeOpts = {
   setState: React.Dispatch<React.SetStateAction<ScriptEditorState>>;
   dirtyRef: React.MutableRefObject<boolean>;
   showToast: (msg: string, type: "success" | "error" | "warning") => void;
+  /** SSE completion에서 전달된 캐릭터 ID (Full/FastTrack 공통) */
+  characterId?: number | null;
+  characterBId?: number | null;
 };
 
 /** Shared post-stream handler for generate & resume. Returns true if scenes were produced. */
@@ -99,8 +102,14 @@ export function handleStreamOutcome(opts: StreamOutcomeOpts): boolean {
   const { finalScenes, isWaiting, meta, setState, dirtyRef, showToast } = opts;
   if (isWaiting) return false;
   if (finalScenes) {
-    // Director 캐스팅 결과를 editor state에 함께 반영 (save 시 DB 동기화용)
+    // 캐릭터 해결: casting(Full: inventory_resolve) > completion(공통: SSE result)
     const casting = useStoryboardStore.getState().castingRecommendation;
+    const resolvedCharId = casting?.character_a_id ?? opts.characterId ?? null;
+    const resolvedCharBId = casting?.character_b_id ?? opts.characterBId ?? null;
+    const resolvedCharName = casting?.character_a_name || null;
+    const resolvedCharBName = casting?.character_b_name || null;
+    const resolvedStructure = casting?.structure || null;
+
     setState((prev) => ({
       ...prev,
       scenes: finalScenes,
@@ -108,28 +117,21 @@ export function handleStreamOutcome(opts: StreamOutcomeOpts): boolean {
       progress: null,
       isWaitingForInput: false,
       justGenerated: true,
-      ...(casting && {
-        structure: casting.structure || prev.structure,
-        characterId: casting.character_a_id ?? prev.characterId,
-        characterBId: casting.character_b_id ?? prev.characterBId,
-        characterName: casting.character_a_name || prev.characterName,
-        characterBName: casting.character_b_name || prev.characterBName,
-      }),
+      ...(resolvedStructure && { structure: resolvedStructure }),
+      ...(resolvedCharId && { characterId: resolvedCharId }),
+      ...(resolvedCharBId && { characterBId: resolvedCharBId }),
+      ...(resolvedCharName && { characterName: resolvedCharName }),
+      ...(resolvedCharBName && { characterBName: resolvedCharBName }),
     }));
-    // meta는 setState 반영 전 값이므로, casting 정보를 직접 머지하여 Zustand에 동기화
-    const syncMeta = casting
-      ? {
-          ...meta,
-          structure: casting.structure || meta.structure,
-          characterId: casting.character_a_id ?? meta.characterId,
-          characterBId: casting.character_b_id ?? meta.characterBId,
-          characterName: casting.character_a_name || meta.characterName,
-          characterBName: casting.character_b_name || meta.characterBName,
-        }
-      : meta;
+    const syncMeta = {
+      ...meta,
+      ...(resolvedStructure && { structure: resolvedStructure }),
+      ...(resolvedCharId && { characterId: resolvedCharId }),
+      ...(resolvedCharBId && { characterBId: resolvedCharBId }),
+      ...(resolvedCharName && { characterName: resolvedCharName }),
+      ...(resolvedCharBName && { characterBName: resolvedCharBName }),
+    };
     syncToGlobalStore(finalScenes, syncMeta);
-    // Mark dirty so autoSave persists the final casting/structure to DB
-    // Casting이 selectedCharacter A/B에 반영되었으므로 추천 배너도 함께 클리어
     dirtyRef.current = true;
     useStoryboardStore.getState().set({
       isDirty: true,

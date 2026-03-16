@@ -53,6 +53,9 @@ export type StreamResult = {
   /** true when an SSE error event was already forwarded to onNodeEvent (ErrorCard displayed). */
   hasError: boolean;
   errorMessage?: string;
+  /** SSE completion에서 전달된 캐릭터 ID (Full: Director 캐스팅, FastTrack: Writer auto-resolve) */
+  characterId?: number | null;
+  characterBId?: number | null;
 };
 
 export type SSEStreamOptions = {
@@ -71,6 +74,8 @@ export async function processSSEStream(
   let isWaiting = false;
   let hasError = false;
   let errorMessage: string | undefined;
+  let completionCharId: number | null = null;
+  let completionCharBId: number | null = null;
 
   await parseSSEStream(response, (event: ScriptStreamEvent) => {
     options?.onNodeEvent?.(event);
@@ -190,6 +195,10 @@ export async function processSSEStream(
 
     if (event.status === "completed" && event.result?.scenes) {
       finalScenes = mapEventScenes(event.result.scenes);
+      // 캐릭터 ID 캡처 (Full: Director, FastTrack: Writer auto-resolve)
+      const r = event.result as Record<string, unknown>;
+      completionCharId = (r.character_id as number) || null;
+      completionCharBId = (r.character_b_id as number) || null;
       // Sound Designer → RenderStore auto-populate
       if (event.result.sound_recommendation) {
         useRenderStore.getState().set({
@@ -197,17 +206,6 @@ export async function processSSEStream(
           bgmMood: event.result.sound_recommendation.mood || "",
           bgmMode: "auto",
         });
-      }
-      // FastTrack: Writer가 auto-resolve한 character_id를 store에 반영
-      const resultCharId = (event.result as Record<string, unknown>).character_id as number | null;
-      const resultCharBId = (event.result as Record<string, unknown>).character_b_id as
-        | number
-        | null;
-      if (resultCharId && !useStoryboardStore.getState().selectedCharacterId) {
-        useStoryboardStore.getState().set({ selectedCharacterId: resultCharId });
-      }
-      if (resultCharBId && !useStoryboardStore.getState().selectedCharacterBId) {
-        useStoryboardStore.getState().set({ selectedCharacterBId: resultCharBId });
       }
     }
     if (event.status === "waiting_for_input") {
@@ -225,5 +223,12 @@ export async function processSSEStream(
     }
   });
 
-  return { finalScenes, isWaiting, hasError, errorMessage };
+  return {
+    finalScenes,
+    isWaiting,
+    hasError,
+    errorMessage,
+    characterId: completionCharId,
+    characterBId: completionCharBId,
+  };
 }
