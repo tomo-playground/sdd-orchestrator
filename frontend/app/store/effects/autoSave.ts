@@ -6,6 +6,8 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let isSaving = false;
 let initialized = false;
 let cleanupFn: (() => void) | null = null;
+let consecutiveFailures = 0;
+const MAX_FAILURES = 3;
 
 /** Cancel any pending debounced save. Call on context switch (group/project change). */
 export function cancelPendingSave() {
@@ -23,7 +25,14 @@ function scheduleSave() {
     // Skip save during autoRun — it manages its own persist calls
     // Skip save during script generation — casting data not yet available (race condition)
     const hasGeneratingScene = scenes.some((s) => s.isGenerating);
-    if (!isDirty || scenes.length === 0 || isSaving || isAutoRunning || hasGeneratingScene || isScriptGenerating) {
+    if (
+      !isDirty ||
+      scenes.length === 0 ||
+      isSaving ||
+      isAutoRunning ||
+      hasGeneratingScene ||
+      isScriptGenerating
+    ) {
       // Re-schedule: generation will finish → updateScene sets isDirty → retry
       if ((hasGeneratingScene || isScriptGenerating) && isDirty) scheduleSave();
       return;
@@ -31,12 +40,26 @@ function scheduleSave() {
 
     isSaving = true;
     try {
-      await persistStoryboard();
+      console.log("[AutoSave] persistStoryboard start");
+      const ok = await persistStoryboard();
+      console.log("[AutoSave] persistStoryboard done");
+      if (ok) {
+        consecutiveFailures = 0;
+      } else {
+        consecutiveFailures++;
+        if (consecutiveFailures >= MAX_FAILURES) {
+          console.warn(
+            `[AutoSave] ${MAX_FAILURES}회 연속 실패, 자동 저장 일시 중단 (수동 저장 필요)`
+          );
+          return; // 무한 재시도 방지 — 다음 사용자 변경 시 재시작
+        }
+      }
     } finally {
       isSaving = false;
-      // Re-check: if new changes arrived during save, schedule another save
-      const { isDirty: stillDirty } = useStoryboardStore.getState();
-      if (stillDirty) scheduleSave();
+      if (consecutiveFailures < MAX_FAILURES) {
+        const { isDirty: stillDirty } = useStoryboardStore.getState();
+        if (stillDirty) scheduleSave();
+      }
     }
   }, 2000);
 }
@@ -52,6 +75,7 @@ export function initAutoSave(): () => void {
 
   const unsubscribeSb = useStoryboardStore.subscribe((state, prevState) => {
     if (!state.isDirty || state.isDirty === prevState.isDirty) return;
+    consecutiveFailures = 0; // 새 변경 → 실패 카운터 리셋
     scheduleSave();
   });
 
