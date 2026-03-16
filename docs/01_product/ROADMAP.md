@@ -53,6 +53,7 @@
 
 ### 최근 작업
 
+- **03-16 SSOT 위반 정리 P1+P2 완료 (46/49건)**: config.py 상수화(Hi-Res 4개+SAMPLERS+TTS_ENGINE+ENABLE_HR), `/presets` API 확장(hi_res_defaults+samplers+tts_engine+image_defaults+pipeline_metadata), Frontend 하드코딩 제거(constants→store/presets 동기화, 해상도 6곳→상수/store), controlnet.py weight fallback→상수 참조
 - **03-17 Phase 35 완료**: GPT-SoVITS v2 TTS 통합 — SoVITS(:9880 일상TTS) + Qwen3(:8001 보이스디자인 on-demand) + MusicGen(CPU 상주). audio_client SoVITS→Qwen3 fallback, 캐릭터 보이스 레퍼런스 API, 감정별 레퍼런스 탐색, Text Normalization, E2E 검증 완료. SSOT 위반 P0~P2 52건+ 정리
 - **03-17 이미지 품질 개선 + 오디오 상주 모드**: 씬 배경 사라짐 근본 수정(캐릭터 negative 정리, scenery 자동주입, IP-Adapter/Reference AdaIN 비활성화), StyleProfile flat_color_v2:0.3 최적화, IP-Adapter weight SSOT 통일(Backend+Frontend), MeMaXL v6 설치, 오디오 서버 persistent 모드(TTS GPU + MusicGen CPU 상주 로드)
 - **03-17 Speaker Balance 검증 강화**: Narrated Dialogue 캐릭터 배분 수정 — Review에 비율 검증(20% 미만 ERROR) + Narrator 존재 검증(WARNING) 추가, Revise에서 비율 불균형 Tier 3 재생성 위임, ensure_dialogue_speakers 최종 방어선 비율 검사. 테스트 24개 PASS
@@ -266,7 +267,7 @@ graph LR
 | 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | 분석 대시보드 (Match Rate 추이, 프로젝트 간 비교) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | **파이프라인 이상 탐지 자동화** | 시스템 상태 통합 health API, 파이프라인 완료 시 자동 검증 (speaker 배분, TTS 실패, 이미지 미생성), LangFuse 이상 탐지 (노드 실패율/소요시간), GPU VRAM 모니터링 |
-| **SSOT 위반 정리 (P1~P3, 49건)** | Backend: 기존 상수 참조 누락 13건 + 신규 상수 정의 9건. Frontend: Store 초기값 6건, 해상도 832x1216 6건, Hi-Res/Preflight/SAMPLERS/TTS_ENGINE 등 12건, CATEGORY_DESCRIPTIONS 2건. `/presets` API로 generation_defaults 확장 필요 |
+| ~~SSOT 위반 정리 (P1~P3, 49건)~~ | **P1+P2 완료 (46/49건, 94%)** — Hi-Res 4상수+SAMPLERS+TTS_ENGINE+enable_hr+controlnet weight+해상도 6곳+image_defaults+pipeline_metadata. 잔여 P3 3건(CATEGORY_DESCRIPTIONS, 주석 검증)은 리스크 없어 보류 |
 | ~~Phase 35: GPT-SoVITS v2 TTS 전환~~ | **완료** — SoVITS(:9880) + Qwen3(보이스디자인 on-demand) + MusicGen(CPU). GPU 전환은 cu128 대기 |
 | **클라우드 TTS/BGM 전환** | Replicate(현재 모델 클라우드 실행) 또는 ElevenLabs/Suno. GPU 경합 완전 해소, 비용 발생 |
 | **씬 단위 순차 생성** | IMAGE→TTS를 씬별로 처리 (현재: 전체 IMAGE→전체 TTS). GPU 순차 독점 자연 해결 + 즉시 프리뷰 |
