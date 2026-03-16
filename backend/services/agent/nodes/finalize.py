@@ -871,7 +871,8 @@ def _auto_populate_scene_flags(
         # controlnet_pose 자동 할당: Cinematographer 미실행 시 context_tags.pose에서 파생
         # sitting 계열은 ControlNet 자동 활성화 제외 (하체 왜곡 문제)
         if not scene.get("controlnet_pose") and not is_narrator and scene_char_id:
-            ctx_pose = (scene.get("context_tags") or {}).get("pose", DEFAULT_POSE_TAG)
+            ctx_pose_raw = (scene.get("context_tags") or {}).get("pose", DEFAULT_POSE_TAG)
+            ctx_pose = ctx_pose_raw[0] if isinstance(ctx_pose_raw, list) else ctx_pose_raw
             if ctx_pose in SITTING_EXCLUDED_POSES:
                 scene["controlnet_pose"] = ctx_pose  # pose 기록은 하되 use_controlnet은 False
             elif ctx_pose in valid_poses:
