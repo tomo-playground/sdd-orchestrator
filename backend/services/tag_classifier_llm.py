@@ -71,24 +71,23 @@ class LLMValenceResult(TypedDict):
     confidence: float
 
 
-def _build_prompt(tags: list[str]) -> str:
-    """GROUP_NAME_TO_LAYER 기반 분류 프롬프트 생성."""
-    group_lines = "\n".join(f"  - {group}: {_GROUP_EXAMPLES.get(group, '')}" for group in sorted(_VALID_GROUPS))
-    tag_list = json.dumps(tags, ensure_ascii=False)
-
-    return f"""You are a Danbooru/Stable Diffusion tag classifier.
+_CLASSIFY_SYSTEM = """You are a Danbooru/Stable Diffusion tag classifier.
 
 Classify each tag into exactly one group_name from the list below.
 Consider the OVERALL meaning of compound tags (e.g. "computer_monitor" = environment, "cinematic_shadows" = lighting).
 
-Available group_names and examples:
-{group_lines}
-
-Tags to classify:
-{tag_list}
-
 Respond ONLY with a JSON array. No explanation.
-Format: [{{"tag": "...", "group_name": "...", "confidence": 0.0-1.0}}]"""
+Format: [{"tag": "...", "group_name": "...", "confidence": 0.0-1.0}]"""
+
+
+def _build_system_prompt(tags: list[str]) -> tuple[str, str]:
+    """GROUP_NAME_TO_LAYER 기반 분류 프롬프트 생성. (system, user) 튜플 반환."""
+    group_lines = "\n".join(f"  - {group}: {_GROUP_EXAMPLES.get(group, '')}" for group in sorted(_VALID_GROUPS))
+    tag_list = json.dumps(tags, ensure_ascii=False)
+
+    system = f"{_CLASSIFY_SYSTEM}\n\nAvailable group_names and examples:\n{group_lines}"
+    user = f"Tags to classify:\n{tag_list}"
+    return system, user
 
 
 def _validate_results(
@@ -135,12 +134,13 @@ async def classify_tags_via_llm(tags: list[str]) -> list[LLMClassificationResult
         logger.warning("[TagClassifier LLM] gemini_client is None, skipping")
         return []
 
-    prompt = _build_prompt(tags)
+    system, user = _build_system_prompt(tags)
     try:
         response = await gemini_client.aio.models.generate_content(
             model=GEMINI_CLASSIFIER_MODEL,
-            contents=prompt,
+            contents=user,
             config=GenerateContentConfig(
+                system_instruction=system,
                 http_options=HttpOptions(timeout=GEMINI_CLASSIFIER_TIMEOUT_MS),
                 safety_settings=GEMINI_SAFETY_SETTINGS,
             ),
@@ -160,22 +160,21 @@ async def classify_tags_via_llm(tags: list[str]) -> list[LLMClassificationResult
         return []
 
 
-def _build_valence_prompt(tags: list[str]) -> str:
-    """Valence 분류 프롬프트 생성."""
-    tag_list = json.dumps(tags, ensure_ascii=False)
-
-    return f"""You are an emotion/mood classifier for Stable Diffusion tags.
+_VALENCE_SYSTEM = """You are an emotion/mood classifier for Stable Diffusion tags.
 
 Classify each tag's emotional valence (polarity):
 - "positive": happy, cheerful, warm emotions (e.g. smile, romantic, cozy, happy)
 - "negative": sad, angry, dark emotions (e.g. crying, melancholic, angry, horror)
 - "neutral": no clear emotional direction (e.g. serious, looking_at_viewer, dramatic)
 
-Tags to classify:
-{tag_list}
-
 Respond ONLY with a JSON array. No explanation.
-Format: [{{"tag": "...", "valence": "positive|negative|neutral", "confidence": 0.0-1.0}}]"""
+Format: [{"tag": "...", "valence": "positive|negative|neutral", "confidence": 0.0-1.0}]"""
+
+
+def _build_valence_prompts(tags: list[str]) -> tuple[str, str]:
+    """Valence 분류 (system, user) 튜플 반환."""
+    tag_list = json.dumps(tags, ensure_ascii=False)
+    return _VALENCE_SYSTEM, f"Tags to classify:\n{tag_list}"
 
 
 def _validate_valence_results(raw: list[dict]) -> list[LLMValenceResult]:
@@ -205,12 +204,13 @@ async def classify_valence_via_llm(tags: list[str]) -> list[LLMValenceResult]:
         logger.warning("[TagClassifier LLM] gemini_client is None, skipping valence")
         return []
 
-    prompt = _build_valence_prompt(tags)
+    system, user = _build_valence_prompts(tags)
     try:
         response = await gemini_client.aio.models.generate_content(
             model=GEMINI_CLASSIFIER_MODEL,
-            contents=prompt,
+            contents=user,
             config=GenerateContentConfig(
+                system_instruction=system,
                 http_options=HttpOptions(timeout=GEMINI_CLASSIFIER_TIMEOUT_MS),
                 safety_settings=GEMINI_SAFETY_SETTINGS,
             ),

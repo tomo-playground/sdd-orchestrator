@@ -317,15 +317,16 @@ class TestValencePromptAndValidation:
     """LLM valence 프롬프트 빌드 + 응답 검증 테스트."""
 
     def test_build_valence_prompt_includes_tags(self):
-        from services.tag_classifier_llm import _build_valence_prompt
+        from services.tag_classifier_llm import _build_valence_prompts
 
-        prompt = _build_valence_prompt(["smile", "crying", "serious"])
-        assert "smile" in prompt
-        assert "crying" in prompt
-        assert "serious" in prompt
-        assert "positive" in prompt
-        assert "negative" in prompt
-        assert "neutral" in prompt
+        system, user = _build_valence_prompts(["smile", "crying", "serious"])
+        combined = system + user
+        assert "smile" in combined
+        assert "crying" in combined
+        assert "serious" in combined
+        assert "positive" in system
+        assert "negative" in system
+        assert "neutral" in system
 
     def test_validate_valence_results_valid(self):
         from services.tag_classifier_llm import _validate_valence_results

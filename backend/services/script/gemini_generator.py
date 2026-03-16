@@ -192,7 +192,6 @@ def sanitize_chat_context(chat_context: list[dict]) -> list[dict]:
     return sanitized
 
 
-
 def _load_character_context(character_id: int, db: Session) -> dict | None:
     """Load character data and classify tags for Gemini template injection."""
     char = (
@@ -296,16 +295,6 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
 
         template = template_env.get_template(template_name)
 
-        fallback_instruction = (
-            "SYSTEM: You are a professional storyboarder and scriptwriter. "
-            "Write clear, engaging scripts in the requested language. "
-            "STRICT: Each script must be max 30 chars (Korean) / 60 chars (English) to fit 2 lines on screen. "
-            "If a sentence is too long, split it into two scenes. "
-            "No emojis. Use ONLY the allowed keywords list for image_prompt tags. "
-            "Do not invent new tags. Return raw JSON only."
-        )
-        system_instruction = fallback_instruction
-
         # 파이프라인 컨텍스트 (research_brief, writer_plan 등) 주입
         ctx = pipeline_context or {}
         keyword_context, allowed_tags = get_keyword_context_and_tags()
@@ -338,10 +327,16 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         )
         from services.llm import LLMConfig, get_llm_provider
 
-        sanitized_contents = _sanitize_for_gemini_prompt(rendered)
+        # CLAUDE.md 규칙: system_instruction ↔ contents 분리 필수
+        # 템플릿(지시사항+허용 태그)은 system_instruction으로,
+        # 사용자 입력(토픽)만 contents로 전달하여 안전 필터 오탐 방지
+        system_instruction = _sanitize_for_gemini_prompt(rendered)
+        user_contents = f"Topic: {safe_topic}"
+        if request.description:
+            user_contents += f"\nDescription: {request.description}"
         llm_resp = await get_llm_provider().generate(
             step_name="writer",
-            contents=sanitized_contents,
+            contents=user_contents,
             config=LLMConfig(system_instruction=system_instruction),
             model=GEMINI_TEXT_MODEL,
         )
@@ -356,7 +351,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
                 block_reason = str(res.prompt_feedback.block_reason)
                 error_reason = f"Blocked by safety filters: {block_reason}"
                 # 진단용: 차단된 프롬프트 앞부분 로그 (root cause 분석)
-                logger.debug("[Sanitize-Debug] 차단된 프롬프트 앞 500자:\n%s", sanitized_contents[:500])
+                logger.debug("[Sanitize-Debug] 차단된 프롬프트 앞 500자:\n%s", system_instruction[:500])
                 user_message = "🛡️ Gemini 안전 필터가 콘텐츠를 차단했습니다"
                 suggestions = [
                     "다른 주제로 시도해보세요 (예: 일상, 취미, 지식 공유)",

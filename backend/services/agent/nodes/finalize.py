@@ -360,9 +360,7 @@ def _stabilize_location_cinematic(scenes: list[dict], writer_plan: dict | None) 
 
     locations = writer_plan["locations"]
     loc_groups: dict[str, list[int]] = {
-        loc["name"]: loc["scenes"]
-        for loc in locations
-        if loc.get("name") and loc.get("scenes")
+        loc["name"]: loc["scenes"] for loc in locations if loc.get("name") and loc.get("scenes")
     }
 
     for loc_name, scene_indices in loc_groups.items():
@@ -520,7 +518,9 @@ def _filter_exclusive_identity_tags(
 
 _CLOTHING_GROUPS = frozenset({"clothing", "clothing_top", "clothing_bottom", "clothing_outfit", "clothing_detail"})
 _ACCESSORY_GROUPS = frozenset({"accessory", "hair_accessory", "legwear", "footwear"})
-_IDENTITY_GROUPS = frozenset({"hair_color", "hair_length", "hair_style", "eye_color", "skin_color", "body_feature", "body_type"})
+_IDENTITY_GROUPS = frozenset(
+    {"hair_color", "hair_length", "hair_style", "eye_color", "skin_color", "body_feature", "body_type"}
+)
 # context_tags 표준 필드 — 하나라도 있으면 image_prompt 재조립 대상
 _CONTEXT_TAG_FIELDS = frozenset({"camera", "pose", "gaze", "action", "expression", "environment", "cinematic", "props"})
 
@@ -540,11 +540,7 @@ def _load_tags_by_groups(cid: int, groups: frozenset[str], db) -> set[str]:
     )
     if not char:
         return set()
-    return {
-        ct.tag.name.lower().replace(" ", "_").strip()
-        for ct in char.tags
-        if ct.tag and ct.tag.group_name in groups
-    }
+    return {ct.tag.name.lower().replace(" ", "_").strip() for ct in char.tags if ct.tag and ct.tag.group_name in groups}
 
 
 def _enforce_character_clothing(
@@ -649,7 +645,9 @@ def _enforce_character_clothing(
     if injected_total:
         logger.info("[Finalize] DB 복장 태그 %d개 보강 (누락분)", injected_total)
     if identity_removed_total:
-        logger.info("[Finalize] 비-DB identity 태그 %d개 제거 (헤어/눈색/체형 — DB 기준 자동 주입)", identity_removed_total)
+        logger.info(
+            "[Finalize] 비-DB identity 태그 %d개 제거 (헤어/눈색/체형 — DB 기준 자동 주입)", identity_removed_total
+        )
 
 
 # ── context_tags 구조화: cross-field 검증 + image_prompt 재조립 ──────
@@ -962,6 +960,14 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         scenes, sound_rec, copyright_result = _merge_production_results(state)
     else:
         scenes = [copy.deepcopy(s) for s in (state.get("draft_scenes") or [])]
+        # FastTrack: production skip 시 기본 BGM 추천 생성
+        if not sound_rec:
+            topic = state.get("topic", "")
+            sound_rec = {
+                "prompt": f"soft background music for short video about {topic}",
+                "mood": "neutral",
+                "duration": state.get("duration", 30),
+            }
 
     # Defense: Cinematographer may overwrite speaker assignments → re-enforce A/B alternation
     structure = (state.get("structure") or "").lower()

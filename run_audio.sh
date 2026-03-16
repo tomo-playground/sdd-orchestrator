@@ -48,13 +48,22 @@ do_start() {
     exit 0
   fi
 
+  # Docker 컨테이너가 같은 포트를 점유 중이면 중지
+  DOCKER_NAME=$(docker ps --format '{{.Names}}' --filter "publish=$PORT" 2>/dev/null | head -1)
+  if [ -n "$DOCKER_NAME" ]; then
+    echo -e "${YELLOW}Docker container '$DOCKER_NAME' occupying port $PORT — stopping...${NC}"
+    docker stop "$DOCKER_NAME" > /dev/null 2>&1
+    sleep 1
+  fi
+
   check_venv
 
   echo -e "${GREEN}Starting audio server on port $PORT (CUDA)...${NC}"
   cd "$AUDIO_DIR"
-  CUDA_HOME=/usr/local/cuda-12.8 \
-  TTS_DEVICE=cuda MUSICGEN_DEVICE=cuda \
-    "$VENV_DIR/bin/uvicorn" main:app \
+  export CUDA_HOME=/usr/local/cuda-12.8
+  export TTS_DEVICE=cuda
+  export MUSICGEN_DEVICE=cuda
+  "$VENV_DIR/bin/uvicorn" main:app \
     --host 0.0.0.0 --port "$PORT" \
     >> "$LOG_FILE" 2>&1 &
 

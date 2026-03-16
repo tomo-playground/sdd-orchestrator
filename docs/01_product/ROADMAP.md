@@ -48,10 +48,11 @@
 
 ### 진행 중
 
-- **Phase 34** (GPU 순차 독점 실행 & BGM 고도화): Sprint A (GpuModelCache) → B (GpuCoordinator + Forge 연동) → C (ACE-Step 교체). [명세](FEATURES/AUDIO_SERVER_GPU_OPTIMIZATION.md)
+(없음)
 
 ### 최근 작업
 
+- **03-16 FastTrack 강화 + 새 영상 채팅 잔류 버그 수정**: FastTrack production skip 추가, skip_stages Backend SSOT화(`/presets` API). "새 영상" 클릭 시 이전 채팅이 남는 버그 수정(`chatResetToken` 메커니즘). `storyboardActions.ts` 리팩토링(448→371줄, 헬퍼 추출). `persistStoryboard` 404 재귀 방어 + `pendingAutoRun` storyboardId null 방어. 테스트 37개 PASS
 - **03-16 Script 탭 코드 리뷰 4건 수정**: 에러 이중 표시(ErrorCard+Toast→ErrorCard만), ProgressBar label SSOT(Backend label 우선), typing indicator contentType 분리, 새 영상 채팅 히스토리 보존(`__new__` 임시 key). 테스트 +9개
 - **03-16 씬 소실 방어 + LangFuse 정확성**: syncToGlobalStore→onSaved 순서 보장, pendingAutoRun scenesReady 가드, CompletionCard Zustand 직참조, LangFuse interrupt→metadata 이동 + interrupt_node 동적 전달 + final_output 캡처
 - **03-16 스크립트 생성 후 씬 소실 버그 수정**: `useStreamingPipeline`에서 `editor.save()` race condition — onNodeEvent(SSE 처리 중) vs handleStreamOutcome(SSE 종료 후) 타이밍 불일치로 빈 씬 PUT. autoSave(Zustand SSOT) 경로로 전환
@@ -196,7 +197,7 @@ graph LR
     style P31 fill:#4CAF50,color:#fff
     style P32 fill:#4CAF50,color:#fff
     style P33 fill:#4CAF50,color:#fff
-    style P34 fill:#FF9800,color:#fff
+    style P34 fill:#9E9E9E,color:#fff
 ```
 
 ---
@@ -243,6 +244,7 @@ Phase 20 이후 또는 우선순위 미정 항목.
 
 | 기능 | 참조 |
 |------|------|
+| **Phase 34: GPU 순차 독점 실행 & BGM 고도화** | Sprint A (GpuModelCache) → B (GpuCoordinator + Forge 연동) → C (ACE-Step 교체). [명세](FEATURES/AUDIO_SERVER_GPU_OPTIMIZATION.md) |
 | **LLM Provider 추상화 Phase A~E 완료** | [설계](../03_engineering/backend/LLM_PROVIDER_ABSTRACTION.md) — `services/llm/` 패키지 구축, `google.genai` 직결 제거, trace + PROHIBITED fallback 중복 해소. Phase F(OllamaProvider)는 아래 LiteLLM 항목으로 대체 예정 |
 | **LiteLLM SDK 도입 (Phase F 대체)** | Gemini 외 두 번째 Provider 실제 도입 시점에 착수. `GeminiProvider` 내부를 LiteLLM 호출로 교체 → 100+ Provider 지원, 폴백/재시도 내장, `OllamaProvider` 직접 구현 불필요. 트레이스 중복 방지를 위해 LiteLLM 자동 LangFuse 콜백 비활성화 + 기존 `trace_llm_call()` 유지 필수. OSS LLMOps Stack(LangGraph + LangFuse + LiteLLM) 표준 조합 완성. **착수 조건**: Ollama/Claude 등 두 번째 Provider 실제 사용 확정 시 |
 | PipelineControl 커스텀 (노드 on/off) + 분산 큐 (Celery/Redis) | Phase 9-4 잔여 |
