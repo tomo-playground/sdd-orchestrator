@@ -106,11 +106,11 @@ def build_script_graph() -> StateGraph:
     # writer → review | finalize (에러 short-circuit)
     graph.add_conditional_edges("writer", route_after_writer, ["review", "finalize"])
 
-    # review → director_checkpoint(full) | finalize(quick/error) | revise
+    # review → director_checkpoint(full) | cinematographer(fasttrack) | finalize(error) | revise
     graph.add_conditional_edges(
         "review",
         route_after_review,
-        ["finalize", "director_checkpoint", "revise"],
+        ["finalize", "director_checkpoint", "cinematographer", "revise"],
     )
 
     # revise → review | finalize (에러 short-circuit)
