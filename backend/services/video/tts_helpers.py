@@ -307,6 +307,8 @@ class _ResolvedTtsParams:
     was_gemini: bool
     min_duration: float
     retries: int
+    ref_audio_path: str | None = None
+    ref_text: str = ""
 
 
 def _resolve_voice_seed(
@@ -332,6 +334,41 @@ def _calculate_min_duration(cleaned: str, default_min: float) -> float:
     return default_min
 
 
+def _resolve_voice_ref_audio(character_id: int | None) -> tuple[str | None, str]:
+    """캐릭터의 TTS 레퍼런스 오디오 경로를 해석한다. (SoVITS용)
+
+    Returns: (ref_audio_path, ref_text) or (None, "")
+    """
+    if not character_id:
+        return None, ""
+    try:
+        from database import get_db_session  # noqa: PLC0415
+        from models.media_asset import MediaAsset  # noqa: PLC0415
+
+        with get_db_session() as db:
+            # 캐릭터의 가장 최근 TTS 에셋을 레퍼런스로 사용
+            asset = (
+                db.query(MediaAsset)
+                .filter(
+                    MediaAsset.owner_type == "character",
+                    MediaAsset.owner_id == character_id,
+                    MediaAsset.file_type == "audio",
+                )
+                .order_by(MediaAsset.created_at.desc())
+                .first()
+            )
+            if not asset:
+                return None, ""
+            from config import MINIO_BUCKET, MINIO_ENDPOINT  # noqa: PLC0415
+
+            ref_url = f"{MINIO_ENDPOINT}/{MINIO_BUCKET}/{asset.storage_key}"
+            logger.info("[TTS] SoVITS ref audio for char %d: %s", character_id, asset.storage_key)
+            return ref_url, ""
+    except Exception as e:
+        logger.warning("[TTS] Failed to resolve voice ref for char %d: %s", character_id, e)
+        return None, ""
+
+
 def _resolve_tts_params(
     *,
     script: str,
@@ -344,6 +381,7 @@ def _resolve_tts_params(
     force_regenerate: bool,
     max_retries: int,
     image_prompt_ko: str | None,
+    character_id: int | None = None,
 ) -> tuple[_ResolvedTtsParams | None, TtsAudioResult | None]:
     """스크립트 전처리, 프리셋/시드/캐시/보이스 디자인 해석.
 
@@ -397,6 +435,7 @@ def _resolve_tts_params(
         image_prompt_ko=image_prompt_ko,
         speaker=speaker,
     )
+    ref_audio_path, ref_text = _resolve_voice_ref_audio(character_id)
     return _ResolvedTtsParams(
         tts_text=tts_text,
         cleaned=cleaned,
@@ -409,6 +448,8 @@ def _resolve_tts_params(
         was_gemini=was_gemini,
         min_duration=_calculate_min_duration(cleaned, TTS_MIN_DURATION_SEC),
         retries=max_retries if max_retries >= 0 else TTS_MAX_RETRIES,
+        ref_audio_path=ref_audio_path,
+        ref_text=ref_text,
     ), None
 
 
@@ -466,7 +507,9 @@ async def _try_synthesize_with_retries(
                 repetition_penalty=TTS_REPETITION_PENALTY,
                 max_new_tokens=_calculate_max_new_tokens(p.tts_text),
                 task_id=task_id,
-                force=force and attempt == 0,  # 첫 시도에만 오디오 서버 캐시 삭제
+                force=force and attempt == 0,
+                ref_audio_path=p.ref_audio_path,
+                ref_text=p.ref_text,
             )
         except Exception as gen_err:
             logger.warning("[TTS] attempt %d/%d audio server error: %s", attempt + 1, 1 + p.retries, gen_err)
@@ -556,6 +599,7 @@ async def generate_tts_audio(
     image_prompt_ko: str | None = None,
     scene_db_id: int | None = None,
     task_id: str = "default",
+    character_id: int | None = None,
 ) -> TtsAudioResult:
     """TTS 오디오 생성 코어 함수 (SSOT).
 
@@ -573,6 +617,7 @@ async def generate_tts_audio(
         force_regenerate=force_regenerate,
         max_retries=max_retries,
         image_prompt_ko=image_prompt_ko,
+        character_id=character_id,
     )
     if cache_hit:
         return cache_hit
