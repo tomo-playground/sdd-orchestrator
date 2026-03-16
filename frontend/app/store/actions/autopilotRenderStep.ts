@@ -3,7 +3,6 @@ import type { AutoRunStepId } from "../../types";
 import { useContextStore } from "../useContextStore";
 import { useRenderStore } from "../useRenderStore";
 import { useStoryboardStore } from "../useStoryboardStore";
-import { TTS_ENGINE } from "../../constants";
 import { getCurrentProject } from "../selectors/projectSelectors";
 import { renderWithProgress } from "../../utils/renderWithProgress";
 import type { StudioTab } from "../useUIStore";
@@ -98,7 +97,7 @@ export async function executeRenderStep(
     bgm_volume: store.bgmVolume,
     include_scene_text: store.includeSceneText,
     scene_text_font: store.sceneTextFont,
-    tts_engine: TTS_ENGINE,
+    tts_engine: store.ttsEngine,
     voice_design_prompt: store.voiceDesignPrompt || null,
     voice_preset_id: store.voicePresetId || null,
     overlay_settings: overlaySettings,

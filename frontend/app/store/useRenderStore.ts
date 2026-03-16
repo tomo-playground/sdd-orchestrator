@@ -49,7 +49,8 @@ export interface RenderStore {
   fontList: FontItem[];
   sceneTextFont: string;
   loadedFonts: Set<string>;
-  ttsEngine: "qwen";
+  /** Backend SSOT: loaded from /presets API. Fallback: "sovits" */
+  ttsEngine: string;
   voiceDesignPrompt: string;
   voicePresetId: number | null;
   /** Cached voice presets — shared across Studio tabs */
@@ -95,7 +96,7 @@ const initialState: Omit<RenderStore, "set" | "reset" | "fetchVoicePresets"> = {
   fontList: [] as FontItem[],
   sceneTextFont: DEFAULT_SCENE_TEXT_FONT,
   loadedFonts: new Set<string>(),
-  ttsEngine: "qwen",
+  ttsEngine: "sovits",
   voiceDesignPrompt: "",
   voicePresetId: null,
   voicePresets: [] as VoicePreset[],

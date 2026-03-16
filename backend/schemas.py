@@ -16,6 +16,7 @@ from config import (
     DEFAULT_REFERENCE_ONLY_WEIGHT,
     DEFAULT_SPEAKER,
     DEFAULT_STRUCTURE,
+    DEFAULT_TTS_ENGINE,
     DEFAULT_USE_CONTROLNET,
     DEFAULT_USE_IP_ADAPTER,
     SD_DEFAULT_CFG_SCALE,
@@ -24,7 +25,10 @@ from config import (
     SD_DEFAULT_SAMPLER,
     SD_DEFAULT_STEPS,
     SD_DEFAULT_WIDTH,
-    SD_REFERENCE_HR_UPSCALER,
+    SD_HI_RES_DENOISING_STRENGTH,
+    SD_HI_RES_SCALE,
+    SD_HI_RES_SECOND_PASS_STEPS,
+    SD_HI_RES_UPSCALER,
     normalize_base_model,
 )
 
@@ -607,10 +611,10 @@ class SceneGenerateRequest(BaseModel):
     height: int = SD_DEFAULT_HEIGHT
     clip_skip: int = SD_DEFAULT_CLIP_SKIP
     enable_hr: bool = False
-    hr_scale: float = 1.5
-    hr_upscaler: str = SD_REFERENCE_HR_UPSCALER
-    hr_second_pass_steps: int = 10
-    denoising_strength: float = 0.35
+    hr_scale: float = SD_HI_RES_SCALE
+    hr_upscaler: str = SD_HI_RES_UPSCALER
+    hr_second_pass_steps: int = SD_HI_RES_SECOND_PASS_STEPS
+    denoising_strength: float = SD_HI_RES_DENOISING_STRENGTH
     # V3 Character Integration (optional for Narrator scenes)
     character_id: int | None = None
     character_b_id: int | None = None  # Multi-character: second character
@@ -1671,6 +1675,15 @@ class GenerationDefaults(BaseModel):
     multi_gen_enabled: bool = DEFAULT_MULTI_GEN_ENABLED
 
 
+class HiResDefaults(BaseModel):
+    """Hi-Res Fix defaults (SSOT from config.py)."""
+
+    scale: float = SD_HI_RES_SCALE
+    upscaler: str = SD_HI_RES_UPSCALER
+    second_pass_steps: int = SD_HI_RES_SECOND_PASS_STEPS
+    denoising_strength: float = SD_HI_RES_DENOISING_STRENGTH
+
+
 class PresetListResponse(BaseModel):
     presets: list[PresetSummary]
     languages: list[LanguageOption]
@@ -1678,6 +1691,9 @@ class PresetListResponse(BaseModel):
     reading_speed: dict[str, ReadingSpeedConfig] = {}
     optional_steps: list[str] = []
     generation_defaults: GenerationDefaults | None = None
+    hi_res_defaults: HiResDefaults | None = None
+    samplers: list[str] = []
+    tts_engine: str = DEFAULT_TTS_ENGINE
     fast_track_skip_stages: list[str] = []
 
 
@@ -3162,7 +3178,7 @@ class TtsPrebuildRequest(BaseModel):
 
     storyboard_id: int
     scenes: list[TtsPrebuildSceneItem] = Field(max_length=50)
-    tts_engine: str = "qwen"
+    tts_engine: str = DEFAULT_TTS_ENGINE
 
 
 class TtsPrebuildResult(BaseModel):

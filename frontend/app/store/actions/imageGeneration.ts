@@ -60,15 +60,15 @@ export function buildSceneRequest(
   const controlnet = resolveSceneControlnet(scene, sbState);
   const ipAdapter = resolveSceneIpAdapter(scene, sbState);
   const isNarrator = scene.speaker === "Narrator";
-  // Backend SSOT: schemas.py SceneGenerateRequest defaults
-  // hr_scale=1.5, hr_upscaler=SD_REFERENCE_HR_UPSCALER, hr_second_pass_steps=10, denoising_strength=0.35
+  // Backend SSOT: hi_res_defaults from /presets API → store.hiResDefaults
+  const hrd = sbState.hiResDefaults;
   const hiResPayload = sbState.hiResEnabled
     ? {
         enable_hr: true,
-        hr_scale: 1.5,
-        hr_upscaler: "R-ESRGAN 4x+ Anime6B",
-        hr_second_pass_steps: 10,
-        denoising_strength: 0.35,
+        hr_scale: hrd?.scale ?? 1.5,
+        hr_upscaler: hrd?.upscaler ?? "R-ESRGAN 4x+ Anime6B",
+        hr_second_pass_steps: hrd?.second_pass_steps ?? 10,
+        denoising_strength: hrd?.denoising_strength ?? 0.35,
       }
     : {};
 

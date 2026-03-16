@@ -5,7 +5,7 @@ import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
 import { useRenderStore } from "../useRenderStore";
-import { AUTO_RUN_STEPS, API_BASE, API_TIMEOUT, TTS_ENGINE } from "../../constants";
+import { AUTO_RUN_STEPS, API_BASE, API_TIMEOUT } from "../../constants";
 import { generateBatchImages } from "./batchActions";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
 import { resolveSceneMultiGen } from "../../utils/sceneSettingsResolver";
@@ -305,7 +305,11 @@ export async function runAutoRunFromStep(
         if (ttsScenes.length > 0) {
           const res = await axios.post(
             `${API_BASE}/scene/tts-prebuild`,
-            { storyboard_id: storyboardId, scenes: ttsScenes, tts_engine: TTS_ENGINE },
+            {
+              storyboard_id: storyboardId,
+              scenes: ttsScenes,
+              tts_engine: useRenderStore.getState().ttsEngine,
+            },
             { timeout: API_TIMEOUT.VIDEO_RENDER, signal: abortController.signal }
           );
           const { prebuilt, skipped, failed } = res.data;

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { API_BASE } from "../constants";
+import type { HiResDefaults } from "../types";
 
 export type Preset = {
   id: string;
@@ -33,6 +34,10 @@ export function usePresets(skip = false) {
   const [pipelineMetadata, setPipelineMetadata] = useState<StepMetadata[]>([]);
   const [generationDefaults, setGenerationDefaults] = useState<GenerationDefaults | null>(null);
   const [fastTrackSkipStages, setFastTrackSkipStages] = useState<string[]>([]);
+  // Backend SSOT fields (SSOT 위반 해소 — /presets API에서 수신)
+  const [hiResDefaults, setHiResDefaults] = useState<HiResDefaults | null>(null);
+  const [samplers, setSamplers] = useState<string[]>([]);
+  const [ttsEngine, setTtsEngine] = useState<string | null>(null);
 
   useEffect(() => {
     if (skip) return;
@@ -48,6 +53,10 @@ export function usePresets(skip = false) {
         if (data?.generation_defaults) setGenerationDefaults(data.generation_defaults);
         if (Array.isArray(data?.fast_track_skip_stages))
           setFastTrackSkipStages(data.fast_track_skip_stages);
+        // Backend SSOT fields
+        if (data?.hi_res_defaults) setHiResDefaults(data.hi_res_defaults);
+        if (Array.isArray(data?.samplers)) setSamplers(data.samplers);
+        if (data?.tts_engine) setTtsEngine(data.tts_engine);
       })
       .catch((err) => console.error("[usePresets] fetch failed:", err));
   }, [skip]);
@@ -61,5 +70,8 @@ export function usePresets(skip = false) {
     pipelineMetadata,
     generationDefaults,
     fastTrackSkipStages,
+    hiResDefaults,
+    samplers,
+    ttsEngine,
   };
 }

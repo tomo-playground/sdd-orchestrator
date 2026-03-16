@@ -151,6 +151,25 @@ SD_DEFAULT_CLIP_SKIP = int(os.getenv("SD_DEFAULT_CLIP_SKIP", "2"))
 # V-Pred CFG Rescale (prevents grey output at higher CFG values)
 SD_CFG_RESCALE = float(os.getenv("SD_CFG_RESCALE", "0.2"))
 
+# --- Hi-Res Fix Defaults ---
+SD_HI_RES_SCALE = float(os.getenv("SD_HI_RES_SCALE", "1.5"))
+SD_HI_RES_UPSCALER = os.getenv("SD_HI_RES_UPSCALER", "R-ESRGAN 4x+ Anime6B")
+SD_HI_RES_SECOND_PASS_STEPS = int(os.getenv("SD_HI_RES_SECOND_PASS_STEPS", "10"))
+SD_HI_RES_DENOISING_STRENGTH = float(os.getenv("SD_HI_RES_DENOISING_STRENGTH", "0.35"))
+
+# --- Sampler Options (SSOT for Frontend) ---
+SD_SAMPLERS: list[str] = [
+    "Euler",
+    "Euler a",
+    "DPM++ 2M",
+    "DPM++ 2M Karras",
+    "DPM++ SDE Karras",
+    "DDIM",
+]
+
+# --- TTS Engine Default ---
+DEFAULT_TTS_ENGINE = os.getenv("DEFAULT_TTS_ENGINE", "sovits")
+
 # --- LoRA Weight Cap ---
 # Maximum weight for style LoRAs (applied to both character and narrator scenes)
 STYLE_LORA_WEIGHT_CAP = float(os.getenv("STYLE_LORA_WEIGHT_CAP", "0.76"))

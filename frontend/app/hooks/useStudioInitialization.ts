@@ -70,7 +70,7 @@ export function useStudioInitialization() {
         setPlan({ selectedCharacterId: effectiveCharacterId });
       }
 
-      // Apply backend generation defaults and FastTrack config to freshly reset store
+      // Apply backend generation defaults and SSOT config to freshly reset store
       try {
         const res = await fetch(`${API_BASE}/presets`);
         const data = await res.json();
@@ -79,6 +79,13 @@ export function useStudioInitialization() {
         }
         if (Array.isArray(data?.fast_track_skip_stages) && data.fast_track_skip_stages.length > 0) {
           useStoryboardStore.getState().set({ fastTrackSkipStages: data.fast_track_skip_stages });
+        }
+        // Backend SSOT: Hi-Res defaults, TTS engine
+        if (data?.hi_res_defaults) {
+          useStoryboardStore.getState().set({ hiResDefaults: data.hi_res_defaults });
+        }
+        if (data?.tts_engine) {
+          useRenderStore.getState().set({ ttsEngine: data.tts_engine });
         }
       } catch {
         // silent — initialState fallback values are used
@@ -91,6 +98,26 @@ export function useStudioInitialization() {
       window.history.replaceState({}, "", url.toString());
     })();
   }, [searchParams, setPlan]);
+
+  // Sync Backend SSOT values (hi_res_defaults, tts_engine) on mount.
+  // The ?new=true path also fetches /presets inline, but ?id=X does not — this
+  // effect ensures SSOT values are always loaded regardless of entry path.
+  // Double-fetch on ?new=true is harmless (idempotent set).
+  useEffect(() => {
+    fetch(`${API_BASE}/presets`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.hi_res_defaults) {
+          useStoryboardStore.getState().set({ hiResDefaults: data.hi_res_defaults });
+        }
+        if (data?.tts_engine) {
+          useRenderStore.getState().set({ ttsEngine: data.tts_engine });
+        }
+      })
+      .catch(() => {
+        // silent — fallback values in store are used
+      });
+  }, []);
 
   // Clear transient data when switching between storyboards (not on initial mount)
   const prevStoryboardIdRef = useRef<string | null>(null);

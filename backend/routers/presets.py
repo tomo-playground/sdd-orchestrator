@@ -24,9 +24,15 @@ async def list_presets():
         DEFAULT_CONTROLNET_WEIGHT,
         DEFAULT_IP_ADAPTER_WEIGHT,
         DEFAULT_MULTI_GEN_ENABLED,
+        DEFAULT_TTS_ENGINE,
         DEFAULT_USE_CONTROLNET,
         DEFAULT_USE_IP_ADAPTER,
         READING_SPEED,
+        SD_HI_RES_DENOISING_STRENGTH,
+        SD_HI_RES_SCALE,
+        SD_HI_RES_SECOND_PASS_STEPS,
+        SD_HI_RES_UPSCALER,
+        SD_SAMPLERS,
     )
     from config_pipelines import FAST_TRACK_SKIP_STAGES  # noqa: PLC0415
 
@@ -44,6 +50,14 @@ async def list_presets():
             "ip_adapter_weight": DEFAULT_IP_ADAPTER_WEIGHT,
             "multi_gen_enabled": DEFAULT_MULTI_GEN_ENABLED,
         },
+        "hi_res_defaults": {
+            "scale": SD_HI_RES_SCALE,
+            "upscaler": SD_HI_RES_UPSCALER,
+            "second_pass_steps": SD_HI_RES_SECOND_PASS_STEPS,
+            "denoising_strength": SD_HI_RES_DENOISING_STRENGTH,
+        },
+        "samplers": SD_SAMPLERS,
+        "tts_engine": DEFAULT_TTS_ENGINE,
         "fast_track_skip_stages": FAST_TRACK_SKIP_STAGES,
     }
 

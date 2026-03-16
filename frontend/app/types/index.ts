@@ -111,6 +111,14 @@ export type Scene = {
   ken_burns_preset?: string | null;
 };
 
+/** Hi-Res upscaling defaults — Backend SSOT via /presets API */
+export type HiResDefaults = {
+  scale: number;
+  upscaler: string;
+  second_pass_steps: number;
+  denoising_strength: number;
+};
+
 export type AudioItem = { name: string; url: string };
 export type FontItem = { name: string };
 
@@ -479,7 +487,7 @@ export type DraftData = {
   subtitleFont?: string;
   sceneTextFont?: string;
   speedMultiplier?: number;
-  ttsEngine?: "qwen";
+  ttsEngine?: string;
   voiceDesignPrompt?: string;
   overlaySettings?: OverlaySettings;
   postCardSettings?: PostCardSettings;

@@ -9,6 +9,7 @@ import type {
   ImageGenProgress,
   StageStatus,
   StageLocationStatus,
+  HiResDefaults,
 } from "../types";
 import type { GenerationDefaults } from "../hooks/usePresets";
 import { DEFAULT_STRUCTURE } from "../constants";
@@ -97,6 +98,9 @@ export interface StoryboardStore {
   // FastTrack skip stages (Backend SSOT, loaded from /presets)
   fastTrackSkipStages: string[];
 
+  // Hi-Res defaults (Backend SSOT, loaded from /presets)
+  hiResDefaults: HiResDefaults | null;
+
   // Dirty flag
   isDirty: boolean;
 
@@ -173,6 +177,8 @@ const initialState: Omit<
   isScriptGenerating: false,
   // Fallback — Backend SSOT: config_pipelines.FAST_TRACK_SKIP_STAGES (loaded via /presets)
   fastTrackSkipStages: ["research", "concept", "production", "explain"],
+  // Backend SSOT: hi_res_defaults from /presets API (null until loaded)
+  hiResDefaults: null,
 };
 
 export const STORYBOARD_STORE_KEY = "shorts-producer:storyboard:v1";
@@ -216,6 +222,7 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "validationExpanded",
   "imageValidationResults",
   "imageGenProgress",
+  "hiResDefaults",
   "loraTriggerWords",
   "characterLoras",
   "characterBLoras",

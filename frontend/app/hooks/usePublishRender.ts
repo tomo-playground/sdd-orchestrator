@@ -5,7 +5,7 @@ import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useRenderStore } from "../store/useRenderStore";
 import { useContextStore } from "../store/useContextStore";
 import { useUIStore } from "../store/useUIStore";
-import { API_BASE, TTS_ENGINE } from "../constants";
+import { API_BASE } from "../constants";
 import { getCurrentProject, hasValidProfile } from "../store/selectors/projectSelectors";
 import { renderWithProgress } from "../utils/renderWithProgress";
 import { getErrorMsg } from "../utils/error";
@@ -198,7 +198,7 @@ export function usePublishRender() {
           transition_type: rs.transitionType,
           include_scene_text: rs.includeSceneText,
           scene_text_font: rs.sceneTextFont,
-          tts_engine: TTS_ENGINE,
+          tts_engine: rs.ttsEngine,
           voice_design_prompt: rs.voiceDesignPrompt,
           voice_preset_id: rs.voicePresetId || null,
           speed_multiplier: rs.speedMultiplier,
