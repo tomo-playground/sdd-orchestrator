@@ -170,6 +170,11 @@ class CharacterConsistencyResolver:
             return True, ip_adapter_reference, weight, model, guidance_start, guidance_end
 
         # Auto-enable: check if character has a reference image
+        from config import IP_ADAPTER_AUTO_ENABLE  # noqa: PLC0415
+
+        if not IP_ADAPTER_AUTO_ENABLE:
+            return False, None, 0.35, None, None, None
+
         ref_image = load_reference_image(character.name, db=self.db)
         if ref_image:
             # Auto-enable: character weight takes priority (user didn't explicitly set)

@@ -106,6 +106,10 @@ def _apply_reference_only(req, ctx: GenerationContext, strategy, args: list, db)
 
 def _apply_environment(req: SceneGenerateRequest, ctx: GenerationContext, args: list, db) -> None:
     """Apply environment atmosphere via Reference AdaIN with conflict detection."""
+    from config import ENVIRONMENT_REFERENCE_ENABLED  # noqa: PLC0415
+
+    if not ENVIRONMENT_REFERENCE_ENABLED:
+        return
     if not req.environment_reference_id:
         return
     is_no_humans = "no_humans" in ctx.prompt
