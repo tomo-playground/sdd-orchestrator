@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import ChatMessageList from "./ChatMessageList";
 import ChatInput from "./ChatInput";
 import ProgressBar from "./ProgressBar";
@@ -57,7 +57,15 @@ export default function ChatArea({ editor }: Props) {
     [editor.scenes, editor.feedbackPresets, lastContentType]
   );
 
-  const isInitialState = editor.chatMessages.length <= 1 && editor.scenes.length === 0;
+  // Zustand persist hydration 가드: SSR에서는 항상 초기 상태(빈 채팅)로 렌더
+  // → 클라이언트 hydration 후 실제 메시지로 전환 (hydration mismatch 방지)
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  const isInitialState =
+    !hydrated || (editor.chatMessages.length <= 1 && editor.scenes.length === 0);
   const isEditMode = useMemo(
     () =>
       editor.chatMessages.some((m) => m.contentType === "completion") && editor.scenes.length > 0,
