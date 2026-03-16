@@ -91,7 +91,7 @@ export function buildSceneRequest(
     controlnet_pose: scene.controlnet_pose || undefined,
     use_ip_adapter: ipAdapter.enabled && !!ipAdapter.reference && !isNarrator,
     ip_adapter_reference: isNarrator ? undefined : ipAdapter.reference || undefined,
-    ip_adapter_weight: ipAdapter.weight ?? 0.7,
+    ip_adapter_weight: ipAdapter.weight ?? 0.35,
     use_reference_only: scene.use_reference_only ?? true,
     reference_only_weight: scene.reference_only_weight ?? 0.5,
     environment_reference_id: scene.environment_reference_id || undefined,

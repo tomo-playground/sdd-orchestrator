@@ -149,9 +149,9 @@ const initialState: Omit<
   controlnetWeight: 0.8,
   useIpAdapter: false,
   ipAdapterReference: "",
-  ipAdapterWeight: 0.7,
+  ipAdapterWeight: 0.35,
   ipAdapterReferenceB: "",
-  ipAdapterWeightB: 0.7,
+  ipAdapterWeightB: 0.35,
   // Scenes
   scenes: [],
   currentSceneIndex: 0,
@@ -246,7 +246,7 @@ export const useStoryboardStore = create<StoryboardStore>()(
             merged.baseNegativePromptB = "";
             merged.characterBLoras = [];
             merged.ipAdapterReferenceB = "";
-            merged.ipAdapterWeightB = 0.7;
+            merged.ipAdapterWeightB = 0.35;
           }
           // Character B 직접 해제 시 기존 multi 씬 scene_mode → single 전환
           if ("selectedCharacterBId" in updates && updates.selectedCharacterBId === null) {

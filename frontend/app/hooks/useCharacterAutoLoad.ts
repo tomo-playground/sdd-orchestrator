@@ -44,7 +44,7 @@ export function useCharacterAutoLoad() {
           if (matchA && !state.ipAdapterReference) {
             updates.useIpAdapter = true;
             updates.ipAdapterReference = matchA.character_key;
-            updates.ipAdapterWeight = matchA.preset?.weight ?? state.ipAdapterWeight ?? 0.75;
+            updates.ipAdapterWeight = matchA.preset?.weight ?? state.ipAdapterWeight ?? 0.35;
           }
         }
 
@@ -52,7 +52,7 @@ export function useCharacterAutoLoad() {
           const matchB = refs.find((r) => r.character_id === state.selectedCharacterBId);
           if (matchB && !state.ipAdapterReferenceB) {
             updates.ipAdapterReferenceB = matchB.character_key;
-            updates.ipAdapterWeightB = matchB.preset?.weight ?? state.ipAdapterWeightB ?? 0.75;
+            updates.ipAdapterWeightB = matchB.preset?.weight ?? state.ipAdapterWeightB ?? 0.35;
           }
         }
 
