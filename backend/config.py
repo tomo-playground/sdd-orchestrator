@@ -125,6 +125,7 @@ if SD_BASE_URL == "http://127.0.0.1:7860":
 
 # --- Audio Server (TTS + MusicGen sidecar) ---
 AUDIO_SERVER_URL = os.getenv("AUDIO_SERVER_URL", "http://127.0.0.1:8001")
+SOVITS_SERVER_URL = os.getenv("SOVITS_SERVER_URL", "http://127.0.0.1:9880")
 AUDIO_TIMEOUT_SECONDS = float(os.getenv("AUDIO_TIMEOUT_SECONDS", "180"))
 MUSIC_TIMEOUT_SECONDS = float(os.getenv("MUSIC_TIMEOUT_SECONDS", "600"))  # 10min for MusicGen
 AUDIO_SERVER_TTS_CACHE_DIR = pathlib.Path(

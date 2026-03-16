@@ -83,7 +83,53 @@ def _extract_server_error(resp: httpx.Response) -> str:
     return f"HTTP {resp.status_code}"
 
 
-async def synthesize_tts(
+async def _synthesize_sovits(
+    text: str,
+    ref_audio_path: str,
+    ref_text: str = "",
+    task_id: str = "default",
+) -> tuple[bytes, int, float, bool]:
+    """Call GPT-SoVITS /tts endpoint. Returns (wav_bytes, sample_rate, duration, quality_passed)."""
+    from config import SOVITS_SERVER_URL  # noqa: PLC0415
+
+    payload = {
+        "text": text,
+        "text_lang": "ko",
+        "ref_audio_path": ref_audio_path,
+        "prompt_text": ref_text,
+        "prompt_lang": "ko",
+        "speed_factor": 1.0,
+        "media_type": "wav",
+        "streaming_mode": False,
+    }
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{SOVITS_SERVER_URL}/tts",
+            json=payload,
+            timeout=180,
+        )
+        if not resp.is_success:
+            detail = _extract_server_error(resp)
+            raise RuntimeError(f"SoVITS 합성 실패: {detail}")
+
+    # SoVITS returns raw WAV bytes
+    import io  # noqa: PLC0415
+
+    import numpy as np  # noqa: PLC0415
+    import soundfile as sf  # noqa: PLC0415
+
+    audio_data, sr = sf.read(io.BytesIO(resp.content))
+    duration = len(audio_data) / sr
+    # Quality check: not silent
+    rms = float(np.sqrt(np.mean(audio_data**2)))
+    quality_passed = rms > 0.001
+
+    logger.info("[SoVITS] Generated: %.1fs, sr=%d, quality=%s", duration, sr, quality_passed)
+    return resp.content, sr, duration, quality_passed
+
+
+async def _synthesize_qwen3(
     text: str,
     instruct: str = "",
     language: str = "korean",
@@ -92,22 +138,11 @@ async def synthesize_tts(
     top_p: float = 0.8,
     repetition_penalty: float = 1.0,
     max_new_tokens: int = 1024,
-    task_id: str = "default",
     force: bool = False,
 ) -> tuple[bytes, int, float, bool]:
-    """Call Audio Server /tts/synthesize.
-
-    Returns (audio_bytes, sample_rate, duration, quality_passed).
-    Raises httpx.HTTPStatusError or RuntimeError on failure.
-    """
-    if not _check_circuit(task_id):
-        raise RuntimeError("Audio Server circuit breaker is open")
-
-    await _ensure_server_reachable()
-
+    """Call Qwen3-TTS Audio Server /tts/synthesize (legacy fallback)."""
     url, timeout = _get_audio_server_config()
 
-    # Append naturalness suffix to reduce robotic/AI-sounding output
     if TTS_NATURALNESS_SUFFIX:
         instruct = f"{instruct}, {TTS_NATURALNESS_SUFFIX}" if instruct else TTS_NATURALNESS_SUFFIX
 
@@ -123,37 +158,65 @@ async def synthesize_tts(
         "force": force,
     }
 
+    async with httpx.AsyncClient() as client:
+        resp = None
+        for _retry in range(3):
+            resp = await client.post(f"{url}/tts/synthesize", json=payload, timeout=timeout)
+            if resp.status_code != 503 or _retry >= 2:
+                break
+            logger.info("[AudioClient] TTS 503 (model loading), waiting 15s... (%d/2)", _retry + 1)
+            await asyncio.sleep(15)
+        if not resp.is_success:
+            detail = _extract_server_error(resp)
+            raise RuntimeError(f"Qwen3 TTS 합성 실패: {detail}")
+
+    data = resp.json()
+    audio_bytes = base64.b64decode(data["audio_base64"])
+    return audio_bytes, data["sample_rate"], data["duration"], data["quality_passed"]
+
+
+async def synthesize_tts(
+    text: str,
+    instruct: str = "",
+    language: str = "korean",
+    seed: int = -1,
+    temperature: float = 0.7,
+    top_p: float = 0.8,
+    repetition_penalty: float = 1.0,
+    max_new_tokens: int = 1024,
+    task_id: str = "default",
+    force: bool = False,
+    ref_audio_path: str | None = None,
+    ref_text: str = "",
+) -> tuple[bytes, int, float, bool]:
+    """TTS synthesis with SoVITS → Qwen3 fallback chain.
+
+    If ref_audio_path is provided, uses GPT-SoVITS for consistent voice cloning.
+    Falls back to Qwen3-TTS on SoVITS failure.
+    Returns (audio_bytes, sample_rate, duration, quality_passed).
+    """
+    if not _check_circuit(task_id):
+        raise RuntimeError("Audio Server circuit breaker is open")
+
+    # SoVITS path: reference audio available
+    if ref_audio_path:
+        try:
+            result = await _synthesize_sovits(text, ref_audio_path, ref_text, task_id)
+            logger.info("[TTS] SoVITS success: '%s...'", text[:30])
+            return result
+        except Exception as e:
+            logger.warning("[TTS] SoVITS failed, falling back to Qwen3: %s", e)
+
+    # Qwen3 fallback (or primary if no ref_audio)
     try:
-        async with httpx.AsyncClient() as client:
-            # 503 = 모델 로드 중 → 대기 후 재시도 (최대 2회)
-            resp = None
-            for _retry in range(3):
-                resp = await client.post(
-                    f"{url}/tts/synthesize",
-                    json=payload,
-                    timeout=timeout,
-                )
-                if resp.status_code != 503 or _retry >= 2:
-                    break
-                logger.info("[AudioClient] TTS 503 (model loading), waiting 15s... (%d/2)", _retry + 1)
-                await asyncio.sleep(15)
-            if not resp.is_success:
-                detail = _extract_server_error(resp)
-                raise RuntimeError(f"TTS 합성 실패: {detail}")
-
-        data = resp.json()
-        audio_bytes = base64.b64decode(data["audio_base64"])
-
-        return (
-            audio_bytes,
-            data["sample_rate"],
-            data["duration"],
-            data["quality_passed"],
+        await _ensure_server_reachable()
+        result = await _synthesize_qwen3(
+            text, instruct, language, seed, temperature, top_p, repetition_penalty, max_new_tokens, force,
         )
-    except RuntimeError:
-        raise
+        logger.info("[TTS] Qwen3 success: '%s...'", text[:30])
+        return result
     except Exception as e:
-        logger.error("[AudioClient] TTS synthesis failed: %s", e)
+        logger.error("[AudioClient] TTS synthesis failed (all engines): %s", e)
         raise
 
 

@@ -9,9 +9,17 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 AUDIO_DIR="$SCRIPT_DIR/audio"
 VENV_DIR="$AUDIO_DIR/.venv"
 PORT=8001
+
+# GPT-SoVITS
+SOVITS_DIR="$HOME/Workspace/GPT-SoVITS"
+SOVITS_VENV="$SOVITS_DIR/.venv"
+SOVITS_PORT=9880
+SOVITS_LOG_DIR="$SOVITS_DIR/logs"
+
 LOG_DIR="$AUDIO_DIR/logs"
 LOG_FILE="$LOG_DIR/audio.log"
-mkdir -p "$LOG_DIR"
+SOVITS_LOG_FILE="$SOVITS_LOG_DIR/sovits.log"
+mkdir -p "$LOG_DIR" "$SOVITS_LOG_DIR"
 
 # Colors
 GREEN='\033[0;32m'
@@ -39,6 +47,10 @@ check_venv() {
 
 get_pid() {
   pgrep -f "uvicorn main:app.*--port $PORT" 2>/dev/null || true
+}
+
+get_sovits_pid() {
+  pgrep -f "api_v2.py.*-p $SOVITS_PORT" 2>/dev/null || true
 }
 
 do_start() {
@@ -71,33 +83,60 @@ do_start() {
   echo -e "Logs: ${YELLOW}$LOG_FILE${NC}"
   echo ""
 
-  # Wait for health
+  # Wait for audio server health
   echo -n "Loading models"
   for i in $(seq 1 60); do
     if curl -sf "http://localhost:$PORT/health" > /dev/null 2>&1; then
       echo ""
       curl -s "http://localhost:$PORT/health" | python3 -m json.tool
       echo -e "\n${GREEN}Audio server ready!${NC}"
-      return
+      break
     fi
     echo -n "."
     sleep 2
   done
 
-  echo ""
-  echo -e "${RED}Startup timeout. Check logs: tail -f $LOG_FILE${NC}"
-  exit 1
+  # Start GPT-SoVITS API server
+  SOVITS_PID=$(get_sovits_pid)
+  if [ -n "$SOVITS_PID" ]; then
+    echo -e "${YELLOW}GPT-SoVITS already running (PID $SOVITS_PID)${NC}"
+  elif [ -d "$SOVITS_DIR" ]; then
+    echo -e "${GREEN}Starting GPT-SoVITS on port $SOVITS_PORT...${NC}"
+    cd "$SOVITS_DIR"
+    PYTHONPATH=".:GPT_SoVITS" "$SOVITS_VENV/bin/python3" api_v2.py \
+      -a 127.0.0.1 -p "$SOVITS_PORT" \
+      >> "$SOVITS_LOG_FILE" 2>&1 &
+    echo "GPT-SoVITS PID: $!"
+
+    # Wait for SoVITS health
+    echo -n "Loading SoVITS"
+    for i in $(seq 1 60); do
+      if curl -sf "http://localhost:$SOVITS_PORT/tts" > /dev/null 2>&1 || curl -sf "http://localhost:$SOVITS_PORT/" > /dev/null 2>&1; then
+        echo -e "\n${GREEN}GPT-SoVITS ready!${NC}"
+        break
+      fi
+      echo -n "."
+      sleep 2
+    done
+  else
+    echo -e "${YELLOW}GPT-SoVITS not installed at $SOVITS_DIR — skipping${NC}"
+  fi
 }
 
 do_stop() {
   PID=$(get_pid)
-  if [ -z "$PID" ]; then
+  if [ -n "$PID" ]; then
+    kill "$PID"
+    echo -e "${GREEN}Audio server stopped (PID $PID)${NC}"
+  else
     echo "Audio server not running."
-    return
   fi
 
-  kill "$PID"
-  echo -e "${GREEN}Audio server stopped (PID $PID)${NC}"
+  SOVITS_PID=$(get_sovits_pid)
+  if [ -n "$SOVITS_PID" ]; then
+    kill "$SOVITS_PID"
+    echo -e "${GREEN}GPT-SoVITS stopped (PID $SOVITS_PID)${NC}"
+  fi
 }
 
 do_status() {
