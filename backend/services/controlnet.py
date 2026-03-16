@@ -280,7 +280,7 @@ def build_controlnet_args(
         "pixel_perfect": False,  # Not needed when providing pre-processed images
         "guidance_start": 0.0,
         "guidance_end": 1.0,
-        "processor_res": -1,
+        "processor_res": SD_DEFAULT_WIDTH,  # NoobAI-XL: 832 (-1은 Forge가 512로 fallback)
         "threshold_a": -1,
         "threshold_b": -1,
     }
@@ -288,7 +288,8 @@ def build_controlnet_args(
     if model == "reference":
         args["module"] = "reference_only"
         args["model"] = "None"
-        args["guidance_end"] = 0.75  # Allow prompt to take over in later steps for better flexibility
+        args["processor_res"] = -1  # reference는 preprocessor 불필요
+        args["guidance_end"] = 0.75
 
     return args
 
