@@ -439,9 +439,9 @@ def _auto_crop_upper_body(img_bytes: bytes) -> bytes:
     CLIP Vision resizes input to 224x224. Fullbody images lose face detail at that scale.
     Cropping to upper body ensures face occupies more pixels → better identity preservation.
     """
-    from config import IP_ADAPTER_REFERENCE_CROP_RATIO
-
     from PIL import Image
+
+    from config import IP_ADAPTER_REFERENCE_CROP_RATIO
 
     img = Image.open(io.BytesIO(img_bytes))
     w, h = img.size
@@ -459,7 +459,11 @@ def _auto_crop_upper_body(img_bytes: bytes) -> bytes:
     cropped.save(buf, format="PNG")
     logger.info(
         "✂️ [IP-Adapter] Auto-cropped reference: %dx%d → %dx%d (upper %.0f%%)",
-        w, h, cropped.width, cropped.height, IP_ADAPTER_REFERENCE_CROP_RATIO * 100,
+        w,
+        h,
+        cropped.width,
+        cropped.height,
+        IP_ADAPTER_REFERENCE_CROP_RATIO * 100,
     )
     return buf.getvalue()
 
