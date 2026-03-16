@@ -3181,6 +3181,20 @@ class TtsPrebuildResponse(BaseModel):
     failed: int
 
 
+class BgmPrebuildRequest(BaseModel):
+    """POST /storyboards/{id}/stage/bgm-prebuild — BGM 사전 생성 요청."""
+
+    bgm_prompt: str | None = None
+
+
+class BgmPrebuildResponse(BaseModel):
+    """POST /storyboards/{id}/stage/bgm-prebuild — BGM 사전 생성 응답."""
+
+    status: Literal["prebuilt", "skipped", "no_prompt", "failed"]
+    bgm_audio_asset_id: int | None = None
+    error: str | None = None
+
+
 class SceneFramePreviewRequest(BaseModel):
     """POST /preview/frame — 개별 씬 프레임 합성 요청."""
 

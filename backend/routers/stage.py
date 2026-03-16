@@ -11,6 +11,8 @@ from models.background import Background
 from models.scene import Scene
 from models.storyboard import Storyboard
 from schemas import (
+    BgmPrebuildRequest,
+    BgmPrebuildResponse,
     StageAssignResponse,
     StageGenerateResponse,
     StageLocationStatus,
@@ -155,3 +157,19 @@ async def regenerate_background_endpoint(
         raise  # unreachable; satisfies type checker
 
     return StageRegenerateResponse(**result)
+
+
+@router.post(
+    "/{storyboard_id}/stage/bgm-prebuild",
+    response_model=BgmPrebuildResponse,
+)
+async def bgm_prebuild(
+    storyboard_id: int,
+    body: BgmPrebuildRequest | None = None,
+    db: Session = Depends(get_db),
+):
+    """Pre-generate BGM audio for storyboard during Stage phase."""
+    from services.bgm_prebuild import prebuild_bgm
+
+    prompt = body.bgm_prompt if body else None
+    return await prebuild_bgm(storyboard_id, prompt, db)

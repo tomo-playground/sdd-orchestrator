@@ -4,6 +4,7 @@ import axios from "axios";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
+import { useRenderStore } from "../useRenderStore";
 import { AUTO_RUN_STEPS, API_BASE, API_TIMEOUT, TTS_ENGINE } from "../../constants";
 import { generateBatchImages } from "./batchActions";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
@@ -142,6 +143,22 @@ export async function runAutoRunFromStep(
         const stageSaved = await persistStoryboard();
         if (!stageSaved) throw new Error("Failed to save storyboard after stage");
         workingScenes = useStoryboardStore.getState().scenes;
+
+        // 4) BGM prebuild (auto 모드 only, non-blocking)
+        const { bgmMode, bgmPrompt } = useRenderStore.getState();
+        if (bgmMode === "auto" && bgmPrompt) {
+          setAutoRunStep("stage", "Generating BGM...");
+          try {
+            await axios.post(
+              `${API_BASE}/storyboards/${storyboardId}/stage/bgm-prebuild`,
+              { bgm_prompt: bgmPrompt },
+              { timeout: API_TIMEOUT.VIDEO_RENDER, signal: abortController.signal }
+            );
+            pushAutoRunLog("BGM prebuilt");
+          } catch {
+            pushAutoRunLog("BGM prebuild skipped (will generate during render)");
+          }
+        }
         pushAutoRunLog("Stage complete");
       }
 
