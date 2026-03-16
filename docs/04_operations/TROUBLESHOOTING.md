@@ -199,3 +199,29 @@ grep "Filter" backend/logs/backend.log
 ```
 
 > **참고**: 태그 자체는 모델에 독립적이지만, 실제 이미지 품질/효과는 모델의 학습 데이터에 따라 달라집니다.
+
+## 🖼️ Forge ControlNet API
+
+### KeyError: 0 / KeyError: 'openpose_pre' (복수 ControlNet unit)
+*   **증상**: 이미지 생성 시 Forge 로그에 `KeyError: 0` 또는 `KeyError: 'openpose_pre'`. 이미지는 생성되지만 ControlNet/IP-Adapter 효과 미적용.
+*   **원인**: Forge API는 ControlNet `image` 필드를 `{"image": base64, "mask": null}` dict로 기대. base64 문자열을 직접 전달하면 `controlnet_filename_dict` 매칭 실패.
+*   **해결**: `backend/services/controlnet.py`에서 image 형식을 dict로 변경.
+    ```python
+    # ❌ 에러
+    "image": input_image,
+    # ✅ 정상
+    "image": {"image": input_image, "mask": None},
+    ```
+*   **적용 범위**: openpose unit, IP-Adapter unit, Reference-Only unit 모두 동일.
+*   **참고**: [Forge Issue #186](https://github.com/lllyasviel/stable-diffusion-webui-forge/issues/186), [Discussion #1380](https://github.com/lllyasviel/stable-diffusion-webui-forge/discussions/1380)
+
+### processor_res 512 fallback (SD1.5 잔재)
+*   **증상**: Forge 로그에 `preprocessor resolution = 512`. NoobAI-XL(832x1216)인데 SD1.5 해상도로 전처리.
+*   **원인**: `processor_res: -1` 설정 시 Forge가 512로 fallback.
+*   **해결**: `processor_res`를 `SD_DEFAULT_WIDTH`(832)로 명시 설정. reference unit은 preprocessor 불필요하므로 -1 유지.
+
+### IP-Adapter NOOB-IPA-MARK1 size mismatch
+*   **증상**: `RuntimeError: size mismatch for proj.weight: [8192, 1280] vs [8192, 1024]`
+*   **원인**: `NOOB-IPA-MARK1`은 ViT-bigG(1280) 기반인데 preprocessor가 `CLIP-ViT-H`(1024)로 설정됨.
+*   **해결**: preprocessor를 `CLIP-ViT-bigG (IPAdapter)`로 변경. 또는 기본 모델을 `ip-adapter-plus-face_sdxl_vit-h`(ViT-H 호환)로 전환.
+*   **주의**: 모델명 변경 전 반드시 Forge 재시작 후 재현 여부 확인. WSL 재시작 후 일시적 에러일 수 있음.
