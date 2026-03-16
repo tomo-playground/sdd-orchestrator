@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import axios from "axios";
 import { API_BASE } from "../constants";
+import { getErrorMsg } from "../utils/error";
 import { useAudioPlayer } from "./useAudioPlayer";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import type {
@@ -74,14 +75,7 @@ export function useTTSPreview(storyboardId: number | null) {
         // Auto-play after generation
         audioPlayer.play(data.audio_url);
       } catch (err) {
-        const detail = axios.isAxiosError(err) ? err.response?.data?.detail : undefined;
-        const msg =
-          typeof detail === "string"
-            ? detail
-            : axios.isAxiosError(err)
-              ? err.message
-              : "TTS preview failed";
-        updateState(clientId, { status: "error", error: msg });
+        updateState(clientId, { status: "error", error: getErrorMsg(err, "TTS preview failed") });
       }
     },
     [storyboardId, audioPlayer, updateState, updateScene]
@@ -170,14 +164,10 @@ export function useTTSPreview(storyboardId: number | null) {
         updateScene(clientId, { tts_asset_id: data.temp_asset_id ?? null });
         audioPlayer.play(data.audio_url);
       } catch (err) {
-        const detail = axios.isAxiosError(err) ? err.response?.data?.detail : undefined;
-        const msg =
-          typeof detail === "string"
-            ? detail
-            : axios.isAxiosError(err)
-              ? err.message
-              : "TTS regenerate failed";
-        updateState(clientId, { status: "error", error: msg });
+        updateState(clientId, {
+          status: "error",
+          error: getErrorMsg(err, "TTS regenerate failed"),
+        });
       }
     },
     [storyboardId, audioPlayer, updateState, updateScene]

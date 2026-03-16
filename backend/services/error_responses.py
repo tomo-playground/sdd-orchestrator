@@ -68,7 +68,11 @@ def raise_user_error(
     """
     message = _USER_MESSAGES.get(operation, "요청 처리에 실패했습니다.")
     logger.exception("[%s] %s", operation, exc)
+    detail: dict = {"message": message, "code": operation}
+    error_str = str(exc)
+    if error_str:
+        detail["error"] = error_str
     raise HTTPException(
         status_code=status_code,
-        detail={"message": message, "code": operation},
+        detail=detail,
     ) from exc

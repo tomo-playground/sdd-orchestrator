@@ -250,10 +250,13 @@ export const useStoryboardStore = create<StoryboardStore>()(
           }
           // Character B 직접 해제 시 기존 multi 씬 scene_mode → single 전환
           if ("selectedCharacterBId" in updates && updates.selectedCharacterBId === null) {
-            merged.scenes = state.scenes.map((s) =>
-              s.scene_mode === "multi" ? { ...s, scene_mode: "single" } : s
-            );
-            merged.isDirty = true;
+            const hasMultiScene = state.scenes.some((s) => s.scene_mode === "multi");
+            if (hasMultiScene) {
+              merged.scenes = state.scenes.map((s) =>
+                s.scene_mode === "multi" ? { ...s, scene_mode: "single" } : s
+              );
+              merged.isDirty = true;
+            }
           }
           return merged;
         }),

@@ -65,6 +65,19 @@ def record_scene_failure(task_id: str = "default") -> None:
         )
 
 
+async def _ensure_model_ready(model_name: str) -> None:
+    """모델 로드 상태를 확인하고, 미로드 시 명확한 에러를 발생시킨다."""
+    health = await check_health()
+    if health.get("status") == "error":
+        raise RuntimeError("오디오 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.")
+
+    for model in health.get("models", []):
+        if model.get("name") == model_name and not model.get("loaded"):
+            raise RuntimeError(
+                f"오디오 모델({model_name})이 로드되지 않았습니다. 'run_audio.sh start'로 모델을 먼저 로드해주세요."
+            )
+
+
 async def synthesize_tts(
     text: str,
     instruct: str = "",
@@ -84,6 +97,8 @@ async def synthesize_tts(
     """
     if not _check_circuit(task_id):
         raise RuntimeError("Audio Server circuit breaker is open")
+
+    await _ensure_model_ready("qwen3-tts")
 
     url, timeout = _get_audio_server_config()
 
@@ -145,6 +160,8 @@ async def generate_music(
     """
     if not _check_circuit(task_id):
         raise RuntimeError("Audio Server circuit breaker is open")
+
+    await _ensure_model_ready("musicgen-small")
 
     from config import MUSIC_TIMEOUT_SECONDS
 

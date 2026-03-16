@@ -484,6 +484,179 @@ describe("persistStoryboard scene index preservation", () => {
   });
 });
 
+describe("didScenesChangeDuringSave — deep comparison for objects", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("same context_tags content but different reference → isDirty: false", async () => {
+    const tags = { pose: "standing", expression: "smile", environment: ["office"] };
+    const scenesBeforeSave = [
+      {
+        id: 1,
+        client_id: "c1",
+        script: "S1",
+        image_asset_id: 100,
+        image_url: null,
+        context_tags: { ...tags },
+      },
+    ];
+    // Different object reference but same content
+    const scenesAfterSave = [
+      {
+        id: 1,
+        client_id: "c1",
+        script: "S1",
+        image_asset_id: 100,
+        image_url: null,
+        context_tags: { ...tags },
+      },
+    ];
+
+    const getStateSpy = vi.spyOn(useStoryboardStore, "getState");
+    const sbBase = makeStoryboardState({ scenes: scenesBeforeSave });
+    const sbAfter = makeStoryboardState({ scenes: scenesAfterSave });
+
+    getStateSpy
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbAfter as never)
+      .mockReturnValueOnce(sbAfter as never);
+
+    vi.spyOn(useContextStore, "getState").mockReturnValue(
+      makeContextState({ storyboardId: 42, groupId: 1 }) as never
+    );
+    vi.spyOn(useUIStore, "getState").mockReturnValue(makeUIState() as never);
+    vi.spyOn(useRenderStore, "getState").mockReturnValue(makeRenderState() as never);
+
+    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { scene_ids: [10], version: 2 },
+    });
+
+    await persistStoryboard();
+
+    expect(sbAfter.set).toHaveBeenCalledWith(expect.objectContaining({ isDirty: false }));
+  });
+
+  it("same candidates content but different reference → isDirty: false", async () => {
+    const cands = [{ media_asset_id: 100, match_rate: 0.8 }];
+    const scenesBeforeSave = [
+      {
+        id: 1,
+        client_id: "c1",
+        script: "S1",
+        image_asset_id: 100,
+        image_url: null,
+        candidates: [...cands],
+      },
+    ];
+    const scenesAfterSave = [
+      {
+        id: 1,
+        client_id: "c1",
+        script: "S1",
+        image_asset_id: 100,
+        image_url: null,
+        candidates: [...cands],
+      },
+    ];
+
+    const getStateSpy = vi.spyOn(useStoryboardStore, "getState");
+    const sbBase = makeStoryboardState({ scenes: scenesBeforeSave });
+    const sbAfter = makeStoryboardState({ scenes: scenesAfterSave });
+
+    getStateSpy
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbAfter as never)
+      .mockReturnValueOnce(sbAfter as never);
+
+    vi.spyOn(useContextStore, "getState").mockReturnValue(
+      makeContextState({ storyboardId: 42, groupId: 1 }) as never
+    );
+    vi.spyOn(useUIStore, "getState").mockReturnValue(makeUIState() as never);
+    vi.spyOn(useRenderStore, "getState").mockReturnValue(makeRenderState() as never);
+
+    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { scene_ids: [10], version: 2 },
+    });
+
+    await persistStoryboard();
+
+    expect(sbAfter.set).toHaveBeenCalledWith(expect.objectContaining({ isDirty: false }));
+  });
+
+  it("actually different context_tags content → isDirty: true", async () => {
+    const scenesBeforeSave = [
+      {
+        id: 1,
+        client_id: "c1",
+        script: "S1",
+        image_asset_id: 100,
+        image_url: null,
+        context_tags: { pose: "standing" },
+      },
+    ];
+    const scenesAfterSave = [
+      {
+        id: 1,
+        client_id: "c1",
+        script: "S1",
+        image_asset_id: 100,
+        image_url: null,
+        context_tags: { pose: "sitting" },
+      },
+    ];
+
+    const getStateSpy = vi.spyOn(useStoryboardStore, "getState");
+    const sbBase = makeStoryboardState({ scenes: scenesBeforeSave });
+    const sbAfter = makeStoryboardState({ scenes: scenesAfterSave });
+
+    getStateSpy
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbBase as never)
+      .mockReturnValueOnce(sbAfter as never)
+      .mockReturnValueOnce(sbAfter as never);
+
+    vi.spyOn(useContextStore, "getState").mockReturnValue(
+      makeContextState({ storyboardId: 42, groupId: 1 }) as never
+    );
+    vi.spyOn(useUIStore, "getState").mockReturnValue(makeUIState() as never);
+    vi.spyOn(useRenderStore, "getState").mockReturnValue(makeRenderState() as never);
+
+    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { scene_ids: [10], version: 2 },
+    });
+
+    await persistStoryboard();
+
+    expect(sbAfter.set).toHaveBeenCalledWith(expect.objectContaining({ isDirty: true }));
+  });
+
+  it("same array reference → isDirty: false (fast path)", async () => {
+    const scenes = [{ id: 1, client_id: "c1", script: "S1", image_asset_id: 100, image_url: null }];
+    // Same reference for both before and after
+    const sbState = makeStoryboardState({ scenes });
+
+    const getStateSpy = vi.spyOn(useStoryboardStore, "getState");
+    getStateSpy.mockReturnValue(sbState as never);
+
+    vi.spyOn(useContextStore, "getState").mockReturnValue(
+      makeContextState({ storyboardId: 42, groupId: 1 }) as never
+    );
+    vi.spyOn(useUIStore, "getState").mockReturnValue(makeUIState() as never);
+    vi.spyOn(useRenderStore, "getState").mockReturnValue(makeRenderState() as never);
+
+    (axios.put as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { scene_ids: [10], version: 2 },
+    });
+
+    await persistStoryboard();
+
+    expect(sbState.set).toHaveBeenCalledWith(expect.objectContaining({ isDirty: false }));
+  });
+});
+
 describe("sanitizeCandidatesForDb", () => {
   it("removes image_url from candidates (prevents localhost URLs in DB)", () => {
     const candidates = [

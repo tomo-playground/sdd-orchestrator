@@ -54,9 +54,11 @@ function applySaveResult(
 
 /** Detect scene changes during save flight to preserve isDirty accurately. */
 function didScenesChangeDuringSave(before: Scene[], after: Scene[]): boolean {
+  if (before === after) return false;
   if (before.length !== after.length) return true;
   return after.some((scene, idx) => {
     const prev = before[idx];
+    if (scene === prev) return false;
     if (!prev || scene.client_id !== prev.client_id) return true;
     return (
       scene.image_asset_id !== prev.image_asset_id ||
@@ -64,14 +66,17 @@ function didScenesChangeDuringSave(before: Scene[], after: Scene[]): boolean {
       scene.image_prompt !== prev.image_prompt ||
       scene.script !== prev.script ||
       scene.negative_prompt !== prev.negative_prompt ||
-      scene.candidates !== prev.candidates ||
       scene.environment_reference_id !== prev.environment_reference_id ||
       scene.background_id !== prev.background_id ||
       scene.voice_design_prompt !== prev.voice_design_prompt ||
       scene.ken_burns_preset !== prev.ken_burns_preset ||
       scene.head_padding !== prev.head_padding ||
       scene.tail_padding !== prev.tail_padding ||
-      scene.context_tags !== prev.context_tags
+      // Object/array fields: reference check + deep fallback (prevent false positives)
+      (scene.context_tags !== prev.context_tags &&
+        JSON.stringify(scene.context_tags) !== JSON.stringify(prev.context_tags)) ||
+      (scene.candidates !== prev.candidates &&
+        JSON.stringify(scene.candidates) !== JSON.stringify(prev.candidates))
     );
   });
 }

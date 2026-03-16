@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import axios from "axios";
 import { API_BASE } from "../constants";
+import { getErrorMsg } from "../utils/error";
 import type { SceneFramePreviewResponse } from "../types";
 
 export type FramePreviewState = {
@@ -60,14 +61,7 @@ export function useFramePreview() {
           layoutInfo: res.data.layout_info,
         });
       } catch (err) {
-        const detail = axios.isAxiosError(err) ? err.response?.data?.detail : undefined;
-        const msg =
-          typeof detail === "string"
-            ? detail
-            : axios.isAxiosError(err)
-              ? err.message
-              : "Frame preview failed";
-        updateState(clientId, { status: "error", error: msg });
+        updateState(clientId, { status: "error", error: getErrorMsg(err, "Frame preview failed") });
       }
     },
     [updateState]
