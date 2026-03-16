@@ -201,6 +201,28 @@ def get_controlnet_models() -> list[str]:
     return []
 
 
+# Runtime cache: Forge model_list에서 동적 resolve한 결과 캐시
+_resolved_model_cache: dict[str, str] = {}
+
+
+def _resolve_model_name(partial_name: str) -> str:
+    """Forge는 해시 포함 풀네임을 요구. partial_name → 'name [hash]' 형식으로 resolve."""
+    if partial_name in ("None", "none"):
+        return "None"
+    if "[" in partial_name:
+        return partial_name  # 이미 해시 포함
+    if partial_name in _resolved_model_cache:
+        return _resolved_model_cache[partial_name]
+    models = get_controlnet_models()
+    for full_name in models:
+        if partial_name.lower() in full_name.lower():
+            _resolved_model_cache[partial_name] = full_name
+            logger.info("[ControlNet] Resolved '%s' → '%s'", partial_name, full_name)
+            return full_name
+    logger.warning("[ControlNet] Model '%s' not found in Forge, using as-is", partial_name)
+    return partial_name
+
+
 def load_pose_reference(pose_name: str) -> str | None:
     """Load a pose reference image as base64 using StorageService.
 
@@ -273,7 +295,7 @@ def build_controlnet_args(
     args = {
         "enabled": True,
         "image": input_image,
-        "model": CONTROLNET_MODELS.get(model, model),
+        "model": _resolve_model_name(CONTROLNET_MODELS.get(model, model)),
         "module": module,
         "weight": weight,
         "control_mode": control_mode,
@@ -580,9 +602,10 @@ def build_ip_adapter_args(
     if model is None:
         model = preset.get("model", DEFAULT_IP_ADAPTER_MODEL)
 
-    model_name = IP_ADAPTER_MODELS.get(model or "")
-    if not model_name:
+    raw_name = IP_ADAPTER_MODELS.get(model or "")
+    if not raw_name:
         raise ValueError(f"Unknown IP-Adapter model: {model}")
+    model_name = _resolve_model_name(raw_name)
 
     # Select module and control_mode based on model type
     # Forge built-in ControlNet uses different module names than A1111
