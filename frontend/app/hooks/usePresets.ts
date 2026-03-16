@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { API_BASE } from "../constants";
-import type { HiResDefaults } from "../types";
+import type { HiResDefaults, ImageDefaults } from "../types";
 
 export type Preset = {
   id: string;
@@ -23,6 +23,7 @@ export type GenerationDefaults = {
   use_ip_adapter: boolean;
   ip_adapter_weight: number;
   multi_gen_enabled: boolean;
+  enable_hr: boolean;
 };
 
 export function usePresets(skip = false) {
@@ -36,6 +37,7 @@ export function usePresets(skip = false) {
   const [fastTrackSkipStages, setFastTrackSkipStages] = useState<string[]>([]);
   // Backend SSOT fields (SSOT 위반 해소 — /presets API에서 수신)
   const [hiResDefaults, setHiResDefaults] = useState<HiResDefaults | null>(null);
+  const [imageDefaults, setImageDefaults] = useState<ImageDefaults | null>(null);
   const [samplers, setSamplers] = useState<string[]>([]);
   const [ttsEngine, setTtsEngine] = useState<string | null>(null);
 
@@ -55,6 +57,7 @@ export function usePresets(skip = false) {
           setFastTrackSkipStages(data.fast_track_skip_stages);
         // Backend SSOT fields
         if (data?.hi_res_defaults) setHiResDefaults(data.hi_res_defaults);
+        if (data?.image_defaults) setImageDefaults(data.image_defaults);
         if (Array.isArray(data?.samplers)) setSamplers(data.samplers);
         if (data?.tts_engine) setTtsEngine(data.tts_engine);
       })
@@ -71,6 +74,7 @@ export function usePresets(skip = false) {
     generationDefaults,
     fastTrackSkipStages,
     hiResDefaults,
+    imageDefaults,
     samplers,
     ttsEngine,
   };

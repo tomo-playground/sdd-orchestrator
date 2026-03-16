@@ -3,7 +3,7 @@ import axios from "axios";
 import { useConfirm } from "../components/ui/ConfirmDialog";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useUIStore } from "../store/useUIStore";
-import { API_BASE } from "../constants";
+import { API_BASE, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT } from "../constants";
 import type { Scene } from "../types";
 import { generateSceneClientId } from "../utils/uuid";
 
@@ -98,9 +98,9 @@ export function useSceneActions() {
       image_prompt: "",
       image_prompt_ko: "",
       image_url: null,
-      // Backend SSOT: config.py SD_DEFAULT_WIDTH=832, SD_DEFAULT_HEIGHT=1216
-      width: 832,
-      height: 1216,
+      // Backend SSOT fallback: /presets API image_defaults
+      width: DEFAULT_IMAGE_WIDTH,
+      height: DEFAULT_IMAGE_HEIGHT,
       negative_prompt: baseNegativePromptA,
       scene_mode: "single" as const,
       isGenerating: false,

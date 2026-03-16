@@ -1,4 +1,5 @@
 import type { Scene } from "../types";
+import { DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT } from "../constants";
 
 /**
  * Sanitize candidates for DB storage.
@@ -51,9 +52,9 @@ export function buildScenesPayload(scenes: Scene[]) {
       ...rest,
       // API-specific overrides
       scene_id: i,
-      // Backend SSOT: config.py SD_DEFAULT_WIDTH=832, SD_DEFAULT_HEIGHT=1216
-      width: s.width || 832,
-      height: s.height || 1216,
+      // Backend SSOT fallback: /presets API image_defaults
+      width: s.width || DEFAULT_IMAGE_WIDTH,
+      height: s.height || DEFAULT_IMAGE_HEIGHT,
       candidates: sanitizeCandidatesForDb(s.candidates),
     };
   });

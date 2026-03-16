@@ -119,6 +119,12 @@ export type HiResDefaults = {
   denoising_strength: number;
 };
 
+/** Image generation resolution defaults — Backend SSOT via /presets API */
+export type ImageDefaults = {
+  width: number;
+  height: number;
+};
+
 export type AudioItem = { name: string; url: string };
 export type FontItem = { name: string };
 

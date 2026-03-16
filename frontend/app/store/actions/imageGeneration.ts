@@ -75,9 +75,9 @@ export function buildSceneRequest(
   return {
     prompt: buildScenePrompt(scene) || "",
     negative_prompt: buildNegativePrompt(scene),
-    // Backend SSOT: config.py SD_DEFAULT_WIDTH=832, SD_DEFAULT_HEIGHT=1216
-    width: scene.width || 832,
-    height: scene.height || 1216,
+    // Backend SSOT: /presets API image_defaults → store.imageDefaults
+    width: scene.width || sbState.imageDefaults.width,
+    height: scene.height || sbState.imageDefaults.height,
     ...hiResPayload,
     character_id: resolveCharacterIdForSpeaker(scene.speaker, sbState),
     character_b_id: sbState.selectedCharacterBId || undefined,
@@ -94,7 +94,7 @@ export function buildSceneRequest(
     controlnet_pose: scene.controlnet_pose || undefined,
     use_ip_adapter: ipAdapter.enabled && !!ipAdapter.reference && !isNarrator,
     ip_adapter_reference: isNarrator ? undefined : ipAdapter.reference || undefined,
-    // Backend SSOT: config.py DEFAULT_IP_ADAPTER_WEIGHT = 0.35
+    // Backend SSOT: /presets API generation_defaults.ip_adapter_weight → store.ipAdapterWeight
     ip_adapter_weight: ipAdapter.weight ?? 0.35,
     // Backend SSOT: config.py (schemas.py SceneGenerateRequest.use_reference_only default=True)
     use_reference_only: scene.use_reference_only ?? true,

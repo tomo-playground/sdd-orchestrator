@@ -22,12 +22,15 @@ async def list_presets():
     """
     from config import (  # noqa: PLC0415
         DEFAULT_CONTROLNET_WEIGHT,
+        DEFAULT_ENABLE_HR,
         DEFAULT_IP_ADAPTER_WEIGHT,
         DEFAULT_MULTI_GEN_ENABLED,
         DEFAULT_TTS_ENGINE,
         DEFAULT_USE_CONTROLNET,
         DEFAULT_USE_IP_ADAPTER,
         READING_SPEED,
+        SD_DEFAULT_HEIGHT,
+        SD_DEFAULT_WIDTH,
         SD_HI_RES_DENOISING_STRENGTH,
         SD_HI_RES_SCALE,
         SD_HI_RES_SECOND_PASS_STEPS,
@@ -49,12 +52,17 @@ async def list_presets():
             "use_ip_adapter": DEFAULT_USE_IP_ADAPTER,
             "ip_adapter_weight": DEFAULT_IP_ADAPTER_WEIGHT,
             "multi_gen_enabled": DEFAULT_MULTI_GEN_ENABLED,
+            "enable_hr": DEFAULT_ENABLE_HR,
         },
         "hi_res_defaults": {
             "scale": SD_HI_RES_SCALE,
             "upscaler": SD_HI_RES_UPSCALER,
             "second_pass_steps": SD_HI_RES_SECOND_PASS_STEPS,
             "denoising_strength": SD_HI_RES_DENOISING_STRENGTH,
+        },
+        "image_defaults": {
+            "width": SD_DEFAULT_WIDTH,
+            "height": SD_DEFAULT_HEIGHT,
         },
         "samplers": SD_SAMPLERS,
         "tts_engine": DEFAULT_TTS_ENGINE,

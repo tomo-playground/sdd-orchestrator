@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from config import (
     DEFAULT_CONTROLNET_WEIGHT,
+    DEFAULT_ENABLE_HR,
     DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT,
     DEFAULT_IP_ADAPTER_WEIGHT,
     DEFAULT_LORA_WEIGHT,
@@ -610,7 +611,7 @@ class SceneGenerateRequest(BaseModel):
     width: int = SD_DEFAULT_WIDTH
     height: int = SD_DEFAULT_HEIGHT
     clip_skip: int = SD_DEFAULT_CLIP_SKIP
-    enable_hr: bool = False
+    enable_hr: bool = DEFAULT_ENABLE_HR
     hr_scale: float = SD_HI_RES_SCALE
     hr_upscaler: str = SD_HI_RES_UPSCALER
     hr_second_pass_steps: int = SD_HI_RES_SECOND_PASS_STEPS
@@ -1673,6 +1674,7 @@ class GenerationDefaults(BaseModel):
     use_ip_adapter: bool = DEFAULT_USE_IP_ADAPTER
     ip_adapter_weight: float = DEFAULT_IP_ADAPTER_WEIGHT
     multi_gen_enabled: bool = DEFAULT_MULTI_GEN_ENABLED
+    enable_hr: bool = DEFAULT_ENABLE_HR
 
 
 class HiResDefaults(BaseModel):
@@ -1684,14 +1686,31 @@ class HiResDefaults(BaseModel):
     denoising_strength: float = SD_HI_RES_DENOISING_STRENGTH
 
 
+class ImageDefaults(BaseModel):
+    """Image dimension defaults (SSOT from config.py)."""
+
+    width: int = SD_DEFAULT_WIDTH
+    height: int = SD_DEFAULT_HEIGHT
+
+
+class StepMetadata(BaseModel):
+    """Pipeline step metadata for Frontend display."""
+
+    key: str
+    label: str
+    desc: str = ""
+
+
 class PresetListResponse(BaseModel):
     presets: list[PresetSummary]
     languages: list[LanguageOption]
     durations: list[int]
     reading_speed: dict[str, ReadingSpeedConfig] = {}
     optional_steps: list[str] = []
+    pipeline_metadata: list[StepMetadata] = []
     generation_defaults: GenerationDefaults | None = None
     hi_res_defaults: HiResDefaults | None = None
+    image_defaults: ImageDefaults | None = None
     samplers: list[str] = []
     tts_engine: str = DEFAULT_TTS_ENGINE
     fast_track_skip_stages: list[str] = []

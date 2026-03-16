@@ -25,6 +25,7 @@ from config import (
     DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP,
     DEFAULT_IP_ADAPTER_GUIDANCE_END_FACEID,
     DEFAULT_IP_ADAPTER_GUIDANCE_START,
+    DEFAULT_IP_ADAPTER_WEIGHT,
     DEFAULT_REFERENCE_NEGATIVE_PROMPT,
     SD_BASE_URL,
     SD_DEFAULT_CFG_SCALE,
@@ -598,7 +599,7 @@ def build_ip_adapter_args(
 
     # Use provided values or fall back to preset
     if weight is None:
-        weight = preset.get("weight", 0.35)
+        weight = preset.get("weight", DEFAULT_IP_ADAPTER_WEIGHT)
     if model is None:
         model = preset.get("model", DEFAULT_IP_ADAPTER_MODEL)
 

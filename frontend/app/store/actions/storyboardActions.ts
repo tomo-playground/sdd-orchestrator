@@ -3,7 +3,13 @@ import { useContextStore } from "../useContextStore";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useRenderStore } from "../useRenderStore";
 import { useUIStore } from "../useUIStore";
-import { API_BASE, API_TIMEOUT, DEFAULT_STRUCTURE } from "../../constants";
+import {
+  API_BASE,
+  API_TIMEOUT,
+  DEFAULT_STRUCTURE,
+  DEFAULT_IMAGE_WIDTH,
+  DEFAULT_IMAGE_HEIGHT,
+} from "../../constants";
 import { getErrorMsg } from "../../utils/error";
 import type { Scene } from "../../types";
 import { generateSceneClientId } from "../../utils/uuid";
@@ -185,9 +191,9 @@ export function mapGeminiScenes(
       client_id: generateSceneClientId(),
       order: i,
       image_url: null,
-      // Backend SSOT: config.py SD_DEFAULT_WIDTH=832, SD_DEFAULT_HEIGHT=1216
-      width: 832,
-      height: 1216,
+      // Backend SSOT fallback: /presets API image_defaults
+      width: DEFAULT_IMAGE_WIDTH,
+      height: DEFAULT_IMAGE_HEIGHT,
       script: (s.script as string) || "",
       speaker: ((s.speaker as string) || "Narrator") as Scene["speaker"],
       duration: (s.duration as number) || 3,

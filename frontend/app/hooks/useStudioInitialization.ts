@@ -80,9 +80,12 @@ export function useStudioInitialization() {
         if (Array.isArray(data?.fast_track_skip_stages) && data.fast_track_skip_stages.length > 0) {
           useStoryboardStore.getState().set({ fastTrackSkipStages: data.fast_track_skip_stages });
         }
-        // Backend SSOT: Hi-Res defaults, TTS engine
+        // Backend SSOT: Hi-Res defaults, image defaults, TTS engine
         if (data?.hi_res_defaults) {
           useStoryboardStore.getState().set({ hiResDefaults: data.hi_res_defaults });
+        }
+        if (data?.image_defaults) {
+          useStoryboardStore.getState().set({ imageDefaults: data.image_defaults });
         }
         if (data?.tts_engine) {
           useRenderStore.getState().set({ ttsEngine: data.tts_engine });
@@ -99,7 +102,7 @@ export function useStudioInitialization() {
     })();
   }, [searchParams, setPlan]);
 
-  // Sync Backend SSOT values (hi_res_defaults, tts_engine) on mount.
+  // Sync Backend SSOT values (hi_res_defaults, image_defaults, tts_engine) on mount.
   // The ?new=true path also fetches /presets inline, but ?id=X does not — this
   // effect ensures SSOT values are always loaded regardless of entry path.
   // Double-fetch on ?new=true is harmless (idempotent set).
@@ -109,6 +112,9 @@ export function useStudioInitialization() {
       .then((data) => {
         if (data?.hi_res_defaults) {
           useStoryboardStore.getState().set({ hiResDefaults: data.hi_res_defaults });
+        }
+        if (data?.image_defaults) {
+          useStoryboardStore.getState().set({ imageDefaults: data.image_defaults });
         }
         if (data?.tts_engine) {
           useRenderStore.getState().set({ ttsEngine: data.tts_engine });

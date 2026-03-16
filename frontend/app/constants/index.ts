@@ -27,6 +27,10 @@ export const ALL_GROUPS_ID = -1;
 export const DEFAULT_BGM = "kawaii-dance-upbeat-japan-anime-edm-242104.mp3";
 export const DEFAULT_SCENE_TEXT_FONT = "온글잎 박다현체.ttf";
 export const DEFAULT_STRUCTURE = "Monologue";
+
+// Backend SSOT fallback: /presets API image_defaults (config.py SD_DEFAULT_WIDTH/HEIGHT)
+export const DEFAULT_IMAGE_WIDTH = 832;
+export const DEFAULT_IMAGE_HEIGHT = 1216;
 export const DRAFT_STORAGE_KEY = "shorts-producer:draft:v1";
 export const MAX_IMAGE_CACHE_SIZE = 8_000_000;
 

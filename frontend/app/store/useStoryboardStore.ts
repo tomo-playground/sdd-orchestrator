@@ -10,9 +10,10 @@ import type {
   StageStatus,
   StageLocationStatus,
   HiResDefaults,
+  ImageDefaults,
 } from "../types";
 import type { GenerationDefaults } from "../hooks/usePresets";
-import { DEFAULT_STRUCTURE } from "../constants";
+import { DEFAULT_STRUCTURE, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT } from "../constants";
 import { generateSceneClientId } from "../utils/uuid";
 import { isMultiCharStructure } from "../utils/structure";
 
@@ -101,6 +102,9 @@ export interface StoryboardStore {
   // Hi-Res defaults (Backend SSOT, loaded from /presets)
   hiResDefaults: HiResDefaults | null;
 
+  // Image resolution defaults (Backend SSOT, loaded from /presets)
+  imageDefaults: ImageDefaults;
+
   // Dirty flag
   isDirty: boolean;
 
@@ -179,6 +183,8 @@ const initialState: Omit<
   fastTrackSkipStages: ["research", "concept", "production", "explain"],
   // Backend SSOT: hi_res_defaults from /presets API (null until loaded)
   hiResDefaults: null,
+  // Backend SSOT fallback: /presets API image_defaults (config.py SD_DEFAULT_WIDTH/HEIGHT)
+  imageDefaults: { width: DEFAULT_IMAGE_WIDTH, height: DEFAULT_IMAGE_HEIGHT },
 };
 
 export const STORYBOARD_STORE_KEY = "shorts-producer:storyboard:v1";
@@ -223,6 +229,7 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "imageValidationResults",
   "imageGenProgress",
   "hiResDefaults",
+  "imageDefaults",
   "loraTriggerWords",
   "characterLoras",
   "characterBLoras",
@@ -329,6 +336,7 @@ export const useStoryboardStore = create<StoryboardStore>()(
           useIpAdapter: defaults.use_ip_adapter,
           ipAdapterWeight: defaults.ip_adapter_weight,
           multiGenEnabled: defaults.multi_gen_enabled,
+          hiResEnabled: defaults.enable_hr,
         })),
       reset: () => set({ ...initialState, isDirty: false }),
     }),
