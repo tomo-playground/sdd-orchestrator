@@ -1,6 +1,6 @@
 """LangFuse Prompt Management — chat 타입 fetch + Jinja2 렌더 + 파일 fallback.
 
-A등급 템플릿을 LangFuse chat 프롬프트로 관리한다.
+include 없는 템플릿을 LangFuse chat 프롬프트로 관리한다.
 - system 메시지: 역할/규칙 (LangFuse UI에서 편집 가능)
 - user 메시지: Jinja2 템플릿 (데이터 조립)
 
@@ -17,12 +17,14 @@ from jinja2 import BaseLoader, Environment
 from config import logger, template_env
 
 # LangFuse에서 fetch한 텍스트를 Jinja2로 렌더링하기 위한 환경
-# FileSystemLoader 없이 from_string() 전용 (include 미지원 — A등급 전용)
+# FileSystemLoader 없이 from_string() 전용 (include 미지원)
 _lf_jinja_env = Environment(loader=BaseLoader())
 
-# A등급: LangFuse에서 runtime fetch하는 템플릿 (include 없음, 단순 로직)
-A_GRADE_TEMPLATES: frozenset[str] = frozenset(
+# LangFuse에서 runtime fetch하는 템플릿 ({% include %} 미사용)
+# A등급(단순) + B등급(include 없는 복잡 로직) 통합
+LANGFUSE_MANAGED_TEMPLATES: frozenset[str] = frozenset(
     {
+        # --- A등급: 단순 변수 치환 + 경량 로직 ---
         "creative/analyze_topic.j2",
         "creative/concept_architect.j2",
         "creative/location_planner.j2",
@@ -37,8 +39,21 @@ A_GRADE_TEMPLATES: frozenset[str] = frozenset(
         "creative/review_reflection.j2",
         "validate_image_tags.j2",
         "review_evaluate.j2",
+        # --- B등급: include 없는 복잡 로직 (Phase 2) ---
+        "creative/director.j2",
+        "creative/scriptwriter.j2",
+        "creative/director_plan.j2",
+        "creative/writer_planning.j2",
+        "creative/tts_designer.j2",
+        "creative/director_checkpoint.j2",
+        "creative/explain.j2",
+        "creative/director_evaluate.j2",
+        "creative/review_unified.j2",
     }
 )
+
+# 하위 호환 별칭
+A_GRADE_TEMPLATES = LANGFUSE_MANAGED_TEMPLATES
 
 
 @dataclass
@@ -104,14 +119,13 @@ def _parse_chat_prompt(prompt: Any) -> tuple[str | None, Any]:
 def get_prompt_template(template_name: str) -> PromptBundle:
     """LangFuse 우선 fetch → PromptBundle 반환. 실패 시 로컬 파일 fallback.
 
-    A등급 템플릿만 LangFuse fetch를 시도하고, B등급은 항상 로컬 파일 사용.
+    LANGFUSE_MANAGED_TEMPLATES에 포함된 템플릿만 LangFuse fetch를 시도.
+    include 사용 템플릿(cinematographer, create_storyboard 등)은 항상 로컬 파일.
 
     Returns:
         PromptBundle(template, system_instruction, langfuse_prompt)
-        - chat 타입이면 system_instruction에 system 메시지 포함
-        - text 타입 또는 파일 fallback이면 system_instruction=None
     """
-    if template_name in A_GRADE_TEMPLATES:
+    if template_name in LANGFUSE_MANAGED_TEMPLATES:
         from services.agent.observability import get_langfuse_client
 
         lf = get_langfuse_client()

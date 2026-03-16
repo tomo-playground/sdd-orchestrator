@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from services.agent.langfuse_prompt import (
     A_GRADE_TEMPLATES,
+    LANGFUSE_MANAGED_TEMPLATES,
     PromptBundle,
     _to_langfuse_name,
     get_prompt_template,
@@ -34,24 +35,42 @@ class TestToLangfuseName:
         assert _to_langfuse_name("validate_image_tags.j2") == "validate-image-tags"
 
 
-class TestAGradeTemplates:
-    """A등급 템플릿 목록 검증."""
+class TestManagedTemplates:
+    """LangFuse 관리 템플릿 목록 검증."""
 
     def test_count(self):
-        assert len(A_GRADE_TEMPLATES) == 14
+        assert len(LANGFUSE_MANAGED_TEMPLATES) == 23  # A등급 14 + B등급 9
+
+    def test_backward_compat_alias(self):
+        assert A_GRADE_TEMPLATES is LANGFUSE_MANAGED_TEMPLATES
 
     def test_all_are_j2(self):
-        for t in A_GRADE_TEMPLATES:
+        for t in LANGFUSE_MANAGED_TEMPLATES:
             assert t.endswith(".j2"), f"{t}는 .j2로 끝나야 합니다"
 
-    def test_no_includes_in_a_grade(self):
-        """A등급 템플릿에는 {% include %} 사용 금지."""
+    def test_no_includes_in_managed(self):
+        """관리 대상 템플릿에는 {% include %} 사용 금지."""
         from pathlib import Path
 
         templates_dir = Path(__file__).resolve().parent.parent / "templates"
-        for t in A_GRADE_TEMPLATES:
+        for t in LANGFUSE_MANAGED_TEMPLATES:
             content = (templates_dir / t).read_text(encoding="utf-8")
-            assert "{% include" not in content, f"A등급 {t}에 include 발견 — B등급으로 재분류 필요"
+            assert "{% include" not in content, f"관리 대상 {t}에 include 발견 — 제외 필요"
+
+    def test_b_grade_templates_included(self):
+        """B등급 include 없는 9개가 포함되었는지 확인."""
+        b_grade = {
+            "creative/director.j2",
+            "creative/scriptwriter.j2",
+            "creative/director_plan.j2",
+            "creative/writer_planning.j2",
+            "creative/tts_designer.j2",
+            "creative/director_checkpoint.j2",
+            "creative/explain.j2",
+            "creative/director_evaluate.j2",
+            "creative/review_unified.j2",
+        }
+        assert b_grade.issubset(LANGFUSE_MANAGED_TEMPLATES)
 
 
 class TestPromptBundle:
@@ -76,13 +95,32 @@ class TestPromptBundle:
 class TestGetPromptTemplate:
     """get_prompt_template() 동작 테스트."""
 
-    def test_b_grade_always_file_fallback(self):
-        """B등급 템플릿은 항상 로컬 파일 사용."""
+    def test_include_template_always_file_fallback(self):
+        """{% include %} 사용 템플릿은 항상 로컬 파일."""
         bundle = get_prompt_template("creative/cinematographer.j2")
         assert isinstance(bundle, PromptBundle)
         assert bundle.langfuse_prompt is None
         assert bundle.system_instruction is None
         assert hasattr(bundle.template, "render")
+
+    def test_b_grade_managed_uses_langfuse(self):
+        """B등급(include 없음)도 LangFuse에서 fetch."""
+        mock_prompt = MagicMock()
+        mock_prompt.prompt = [
+            {"role": "system", "content": "You are the Production Director."},
+            {"role": "user", "content": "Results: {{ results | tojson }}"},
+        ]
+        mock_prompt.version = 1
+
+        mock_client = MagicMock()
+        mock_client.get_prompt.return_value = mock_prompt
+
+        with patch("services.agent.observability.get_langfuse_client", return_value=mock_client):
+            bundle = get_prompt_template("creative/director.j2")
+            assert bundle.system_instruction == "You are the Production Director."
+            assert bundle.langfuse_prompt is mock_prompt
+            rendered = bundle.template.render(results={"test": True})
+            assert '"test": true' in rendered
 
     def test_a_grade_fallback_when_langfuse_disabled(self):
         """LangFuse 비활성 시 A등급도 로컬 파일 사용."""

@@ -33,7 +33,7 @@ from config_pipelines import (  # noqa: E402
     DIRECTOR_MODEL,
     REVIEW_MODEL,
 )
-from services.agent.langfuse_prompt import A_GRADE_TEMPLATES  # noqa: E402
+from services.agent.langfuse_prompt import LANGFUSE_MANAGED_TEMPLATES  # noqa: E402
 
 # 노드별 모델 매핑 (config_pipelines.py SSOT)
 NODE_MODEL_MAP: dict[str, str] = {
@@ -49,7 +49,7 @@ NODE_MODEL_MAP: dict[str, str] = {
 }
 DEFAULT_MODEL = "gemini-2.5-flash"
 
-A_GRADE_PATHS: set[str] = set(A_GRADE_TEMPLATES)
+MANAGED_PATHS: set[str] = set(LANGFUSE_MANAGED_TEMPLATES)
 
 # A등급 프롬프트의 system_instruction (노드 하드코딩에서 추출)
 # 빈 문자열 = 역할이 템플릿에 내장 (system 메시지 없이 업로드)
@@ -82,6 +82,43 @@ SYSTEM_INSTRUCTIONS: dict[str, str] = {
     "analyze-topic": "",
     "sound-designer": "",
     "copyright-reviewer": "",
+    # --- B등급 Phase 2: include 없는 복잡 로직 ---
+    "director": (
+        "You are the Production Director using the ReAct Loop framework. "
+        "Follow the Observe → Think → Act process. 모든 텍스트는 한국어로 작성. Respond only in valid JSON."
+    ),
+    "scriptwriter": (
+        "You are an expert Scriptwriter for short-form video content. "
+        "Convert concepts into scene-by-scene scripts with natural dialogue. Respond only in valid JSON."
+    ),
+    "director-plan": (
+        "You are the Creative Director for a short-form video project. "
+        "Establish creative direction, casting, and execution plan. 모든 텍스트는 한국어로 작성. Respond only in valid JSON."
+    ),
+    "writer-planning": (
+        "You are a Script Planning Specialist. "
+        "Create hook strategies, emotional arcs, scene distributions, and location maps. Respond only in valid JSON."
+    ),
+    "tts-designer": (
+        "You are a TTS Designer for short-form video. "
+        "Design emotional tonality and vocal expression for each scene. Respond only in valid JSON."
+    ),
+    "director-checkpoint": (
+        "You are the Creative Director reviewing a script before production. "
+        "Evaluate whether the script meets the creative direction. 모든 텍스트는 한국어로 작성. Respond only in valid JSON."
+    ),
+    "explain": (
+        "You are a Creative Director explaining production decisions. "
+        "Analyze all production results and explain creative choices. 모든 설명은 한국어로 작성. Respond only in valid JSON."
+    ),
+    "director-evaluate": (
+        "You are a Creative Director evaluating concept proposals. "
+        "Score each concept on hook, arc, feasibility, and originality. All text in Korean. Respond only in valid JSON."
+    ),
+    "review-unified": (
+        "You are a unified review agent that evaluates technical quality, narrative strength, "
+        "and self-reflection for short-form video scripts. Respond only in valid JSON."
+    ),
 }
 
 
@@ -96,12 +133,12 @@ def to_langfuse_name(template_path: str) -> str:
     return name.replace("_", "-")
 
 
-def _build_prompt_payload(lf_name: str, content: str, is_a_grade: bool) -> tuple[list | str, str]:
+def _build_prompt_payload(lf_name: str, content: str, is_managed: bool) -> tuple[list | str, str]:
     """(prompt_data, type) 튜플을 반환한다.
 
     A등급: chat 타입 [system, user] / B등급: text 타입.
     """
-    if not is_a_grade:
+    if not is_managed:
         return content, "text"
 
     sys_text = SYSTEM_INSTRUCTIONS.get(lf_name, "")
@@ -117,7 +154,7 @@ def collect_templates(templates_dir: Path, grade: str) -> list[tuple[str, str, s
     results = []
     for j2_file in sorted(templates_dir.rglob("*.j2")):
         rel = str(j2_file.relative_to(templates_dir))
-        if grade == "A" and rel not in A_GRADE_PATHS:
+        if grade == "A" and rel not in MANAGED_PATHS:
             continue
         lf_name = to_langfuse_name(rel)
         content = j2_file.read_text(encoding="utf-8")
@@ -139,8 +176,8 @@ def upload(dry_run: bool = False, grade: str = "all") -> None:
 
     for rel, lf_name, content in templates:
         model = NODE_MODEL_MAP.get(lf_name, DEFAULT_MODEL)
-        is_a = rel in A_GRADE_PATHS
-        grade_label = "A" if is_a else "B"
+        is_a = rel in MANAGED_PATHS
+        grade_label = "M" if is_a else "F"
         ptype = "chat" if is_a else "text"
         sys_text = SYSTEM_INSTRUCTIONS.get(lf_name, "")
         sys_info = f" sys={len(sys_text)}자" if sys_text else ""
@@ -161,7 +198,7 @@ def upload(dry_run: bool = False, grade: str = "all") -> None:
 
     for rel, lf_name, content in templates:
         model = NODE_MODEL_MAP.get(lf_name, DEFAULT_MODEL)
-        is_a = rel in A_GRADE_PATHS
+        is_a = rel in MANAGED_PATHS
         prompt_data, prompt_type = _build_prompt_payload(lf_name, content, is_a)
         try:
             lf.create_prompt(
