@@ -45,7 +45,7 @@ async def prebuild_bgm(
     if not prompt:
         return BgmPrebuildResponse(status="no_prompt")
 
-    # Phase 2: DB 커넥션 반납 후 외부 호출
+    # Phase 2: DB 커넥션 반납 후 외부 호출 (MusicGen ~60초, DB pool 고갈 방지)
     db.close()
     try:
         wav_bytes = await _generate_bgm(prompt)
@@ -53,14 +53,20 @@ async def prebuild_bgm(
         logger.warning("[BgmPrebuild] Music generation failed: %s", exc)
         return BgmPrebuildResponse(status="failed", error=str(exc))
 
-    # Phase 3: 에셋 저장 + 스토리보드 연결
+    # Phase 3: 새 세션으로 에셋 저장 + 스토리보드 연결
+    from database import SessionLocal  # noqa: PLC0415
+
+    phase3_db = SessionLocal()
     try:
-        asset_id = _save_bgm_asset(db, storyboard_id, wav_bytes)
-        _link_to_storyboard(db, storyboard_id, asset_id)
+        asset_id = _save_bgm_asset(phase3_db, storyboard_id, wav_bytes)
+        _link_to_storyboard(phase3_db, storyboard_id, asset_id)
         return BgmPrebuildResponse(status="prebuilt", bgm_audio_asset_id=asset_id)
     except Exception as exc:
+        phase3_db.rollback()
         logger.warning("[BgmPrebuild] DB write failed: %s", exc)
         return BgmPrebuildResponse(status="failed", error=str(exc))
+    finally:
+        phase3_db.close()
 
 
 async def _generate_bgm(prompt: str) -> bytes:
