@@ -192,6 +192,20 @@ async def regenerate_reference_endpoint(
         raise_user_error("character_update", e)
 
 
+@service_router.post("/{character_id}/generate-voice-ref")
+async def generate_voice_ref_endpoint(character_id: int, db: Session = Depends(get_db)):
+    """Generate a voice reference sample for GPT-SoVITS using Qwen3-TTS."""
+    from services.characters.voice_ref import generate_voice_reference  # noqa: PLC0415
+
+    try:
+        result = await generate_voice_reference(db, character_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e)) from None
+
+
 @service_router.post("/{character_id}/enhance-preview", response_model=CharacterEnhancePreviewResponse)
 async def enhance_preview_endpoint(character_id: int, db: Session = Depends(get_db)):
     """Enhance the character's preview image using Gemini image generation."""

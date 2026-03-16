@@ -335,35 +335,49 @@ def _calculate_min_duration(cleaned: str, default_min: float) -> float:
 
 
 def _resolve_voice_ref_audio(character_id: int | None) -> tuple[str | None, str]:
-    """캐릭터의 TTS 레퍼런스 오디오 경로를 해석한다. (SoVITS용)
+    """캐릭터의 TTS 레퍼런스 오디오 로컬 경로를 해석한다. (SoVITS용)
 
-    Returns: (ref_audio_path, ref_text) or (None, "")
+    MinIO에서 다운로드 후 로컬 캐시 경로를 반환.
+    Returns: (local_file_path, ref_text) or (None, "")
     """
     if not character_id:
         return None, ""
     try:
+        from pathlib import Path  # noqa: PLC0415
+
         from database import get_db_session  # noqa: PLC0415
         from models.media_asset import MediaAsset  # noqa: PLC0415
 
         with get_db_session() as db:
-            # 캐릭터의 가장 최근 TTS 에셋을 레퍼런스로 사용
             asset = (
                 db.query(MediaAsset)
                 .filter(
-                    MediaAsset.owner_type == "character",
+                    MediaAsset.owner_type == "character_voice_ref",
                     MediaAsset.owner_id == character_id,
-                    MediaAsset.file_type == "audio",
                 )
                 .order_by(MediaAsset.created_at.desc())
                 .first()
             )
             if not asset:
                 return None, ""
+
+        # 로컬 캐시 경로
+        cache_dir = Path("/tmp/sovits_refs")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        local_path = cache_dir / f"char_{character_id}_{asset.id}.wav"
+
+        if not local_path.exists():
+            import httpx  # noqa: PLC0415
+
             from config import MINIO_BUCKET, MINIO_ENDPOINT  # noqa: PLC0415
 
-            ref_url = f"{MINIO_ENDPOINT}/{MINIO_BUCKET}/{asset.storage_key}"
-            logger.info("[TTS] SoVITS ref audio for char %d: %s", character_id, asset.storage_key)
-            return ref_url, ""
+            url = f"{MINIO_ENDPOINT}/{MINIO_BUCKET}/{asset.storage_key}"
+            resp = httpx.get(url, timeout=30)
+            resp.raise_for_status()
+            local_path.write_bytes(resp.content)
+            logger.info("[TTS] Downloaded voice ref: char %d → %s", character_id, local_path)
+
+        return str(local_path), ""
     except Exception as e:
         logger.warning("[TTS] Failed to resolve voice ref for char %d: %s", character_id, e)
         return None, ""
