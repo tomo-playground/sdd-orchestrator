@@ -516,7 +516,10 @@ class PromptBuilder:
         # 10. Gender enhancement for male characters (SD model bias)
         self._apply_gender_enhancement(character, char_tags_data, layers)
 
-        # 11. Resolve environment and camera conflicts
+        # 11. Inject 'scenery' when environment tags exist (background rendering signal)
+        self._inject_scenery_if_needed(layers)
+
+        # 12. Resolve environment and camera conflicts
         layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
         layers[LAYER_CAMERA] = self._resolve_camera_conflicts(layers[LAYER_CAMERA])
 
@@ -1164,6 +1167,26 @@ class PromptBuilder:
         return self._get_lora_info(name).weight
 
     # ── Conflict resolution ──────────────────────────────────────────────
+
+    def _inject_scenery_if_needed(self, layers: list[list[str]]) -> None:
+        """Inject 'scenery' tag when environment tags exist but no abstract background.
+
+        Danbooru 기반 모델(NoobAI-XL)에서 'scenery'는 배경 렌더링의 핵심 신호.
+        캐릭터 LoRA가 attention을 점유하는 상황에서도 배경 생성을 명시적으로 요청.
+        """
+        env_tokens = layers[LAYER_ENVIRONMENT]
+        if not env_tokens:
+            return
+        env_norms = {t.lower().replace(" ", "_").strip() for t in env_tokens}
+        abstract_bg = {
+            "simple_background", "white_background", "transparent_background",
+            "black_background", "grey_background", "gradient_background",
+        }
+        if env_norms & abstract_bg:
+            return
+        if "scenery" in env_norms:
+            return
+        env_tokens.append("scenery")
 
     def _resolve_location_conflicts(self, env_tokens: list[str]) -> list[str]:
         """Remove conflicting location tags (indoor vs outdoor) from the environment layer.
