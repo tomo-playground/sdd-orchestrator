@@ -54,13 +54,8 @@ async def _idle_watchdog():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load ML models on startup, start idle watchdog."""
-    logger.info("[Startup] Loading TTS model...")
-    await asyncio.to_thread(tts_engine.load_model)
-    tts_engine.touch()
-    logger.info("[Startup] Loading MusicGen model...")
-    await asyncio.to_thread(music_engine.load_model)
-    logger.info("[Startup] All models loaded")
+    """Start idle watchdog. Models load on-demand (GPU 경합 방지)."""
+    logger.info("[Startup] On-demand mode — TTS/MusicGen load on first request")
     watchdog = asyncio.create_task(_idle_watchdog())
     yield
     watchdog.cancel()
@@ -197,7 +192,7 @@ async def health_check():
         ),
     ]
 
-    all_loaded = all(m.loaded for m in models)
-    status = "ok" if all_loaded else "loading"
+    # on-demand 모드: 모델 미로드도 정상 (첫 요청 시 로드)
+    status = "ok"
 
     return HealthResponse(status=status, models=models)
