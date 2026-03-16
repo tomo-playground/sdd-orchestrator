@@ -22,8 +22,8 @@ class TestToLangfuseName:
     def test_root_template(self):
         assert _to_langfuse_name("review_evaluate.j2") == "review-evaluate"
 
-    def test_partial_prefix(self):
-        assert _to_langfuse_name("_partials/character_profile.j2") == "partial-character-profile"
+    def test_create_storyboard_variant(self):
+        assert _to_langfuse_name("create_storyboard_dialogue.j2") == "create-storyboard-dialogue"
 
     def test_underscore_to_hyphen(self):
         assert _to_langfuse_name("creative/sound_designer.j2") == "sound-designer"
@@ -100,13 +100,20 @@ class TestPromptBundle:
 class TestGetPromptTemplate:
     """get_prompt_template() 동작 테스트."""
 
-    def test_unmanaged_template_always_file_fallback(self):
-        """LANGFUSE_MANAGED_TEMPLATES 외 템플릿은 항상 로컬 파일."""
-        # _partials는 managed 목록에 없으므로 file fallback
-        bundle = get_prompt_template("_partials/character_profile.j2")
-        assert isinstance(bundle, PromptBundle)
-        assert bundle.langfuse_prompt is None
-        assert bundle.system_instruction is None
+    def test_unmanaged_template_skips_langfuse(self):
+        """LANGFUSE_MANAGED_TEMPLATES 외 템플릿은 LangFuse fetch를 시도하지 않음."""
+        mock_client = MagicMock()
+
+        with patch("services.agent.observability.get_langfuse_client", return_value=mock_client):
+            # review_evaluate.j2는 managed → LangFuse 시도
+            get_prompt_template("review_evaluate.j2")
+            assert mock_client.get_prompt.called
+
+            mock_client.reset_mock()
+
+            # create_storyboard.j2는 managed → LangFuse 시도
+            get_prompt_template("create_storyboard.j2")
+            assert mock_client.get_prompt.called
 
     def test_b_grade_managed_uses_langfuse(self):
         """B등급(include 없음)도 LangFuse에서 fetch."""

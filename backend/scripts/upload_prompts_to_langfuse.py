@@ -148,8 +148,6 @@ def to_langfuse_name(template_path: str) -> str:
     name = template_path
     if name.startswith("creative/"):
         name = name[len("creative/") :]
-    if name.startswith("_partials/"):
-        name = "partial-" + name[len("_partials/") :]
     name = name.removesuffix(".j2")
     return name.replace("_", "-")
 

@@ -84,13 +84,11 @@ def _to_langfuse_name(template_name: str) -> str:
     Examples:
         "creative/analyze_topic.j2" → "analyze-topic"
         "review_evaluate.j2" → "review-evaluate"
-        "_partials/character_profile.j2" → "partial-character-profile"
+        "create_storyboard.j2" → "create-storyboard"
     """
     name = template_name
     if name.startswith("creative/"):
         name = name[len("creative/") :]
-    if name.startswith("_partials/"):
-        name = "partial-" + name[len("_partials/") :]
     name = name.removesuffix(".j2")
     return name.replace("_", "-")
 
