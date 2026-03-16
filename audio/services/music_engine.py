@@ -77,15 +77,24 @@ def _unload_model(model, processor):
         pass
 
 
+_global_model = None
+_global_processor = None
+_global_device = None
+
+
 def load_model():
-    """No-op for backward compatibility. Model is now loaded on-demand."""
-    logger.info("[MusicGen] On-demand mode: model will be loaded per request")
-    return None, None
+    """Load MusicGen model globally for persistent mode."""
+    global _global_model, _global_processor, _global_device
+    if _global_model is not None:
+        logger.info("[MusicGen] Already loaded, skipping")
+        return _global_model, _global_processor
+    _global_model, _global_processor, _global_device = _load_model_to_device()
+    return _global_model, _global_processor
 
 
 def get_model():
-    """Return (None, None). Model is no longer cached globally."""
-    return None, None
+    """Return globally cached model, or (None, None) if not loaded."""
+    return _global_model, _global_processor
 
 
 def get_device() -> str:
@@ -126,7 +135,12 @@ def generate_music(
         return cached.read_bytes(), MUSICGEN_SAMPLE_RATE, seed, True
 
     with _inference_lock:
-        model, processor, device = _load_model_to_device()
+        # Persistent mode: use global model. On-demand: load per request.
+        use_global = _global_model is not None
+        if use_global:
+            model, processor, device = _global_model, _global_processor, _global_device
+        else:
+            model, processor, device = _load_model_to_device()
         try:
             max_new_tokens = int(duration * MUSICGEN_TOKENS_PER_SECOND)
 
@@ -142,7 +156,8 @@ def generate_music(
             torch.manual_seed(seed)
             audio_values = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=True)
         finally:
-            _unload_model(model, processor)
+            if not use_global:
+                _unload_model(model, processor)
 
     audio = audio_values[0, 0].cpu().float().numpy()
 
