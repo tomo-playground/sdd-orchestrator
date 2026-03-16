@@ -339,7 +339,9 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         if ctx.get("revision_feedback"):
             user_parts.append(f"Revision Feedback: {ctx['revision_feedback']}")
         if ctx.get("chat_context"):
-            user_parts.append(f"Chat Context: {json.dumps(ctx['chat_context'], ensure_ascii=False)}")
+            cc = ctx["chat_context"]
+            cc_str = json.dumps([m.model_dump() if hasattr(m, "model_dump") else m for m in cc], ensure_ascii=False)
+            user_parts.append(f"Chat Context: {cc_str}")
         user_contents = "\n".join(user_parts)
         llm_resp = await get_llm_provider().generate(
             step_name="writer",
