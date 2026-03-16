@@ -52,8 +52,10 @@ def _load_model_to_device():
     logger.info("[MusicGen] Loading model %s on %s...", MUSICGEN_MODEL_NAME, device)
 
     processor = AutoProcessor.from_pretrained(MUSICGEN_MODEL_NAME)
-    model = MusicgenForConditionalGeneration.from_pretrained(MUSICGEN_MODEL_NAME)
-    model = model.to(device)
+    model = MusicgenForConditionalGeneration.from_pretrained(
+        MUSICGEN_MODEL_NAME,
+        device_map=device,
+    )
 
     logger.info("[MusicGen] Model loaded successfully")
     return model, processor, device

@@ -57,3 +57,4 @@ output/
 # Experiment data (SD image generation tests)
 test_sdxl_compare/
 forge_tuning/
+experiments/

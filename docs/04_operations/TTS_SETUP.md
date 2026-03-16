@@ -1,355 +1,261 @@
-# TTS 시스템 운영 가이드 (Qwen3-TTS)
+# TTS 시스템 운영 가이드
 
 ## 1. 시스템 개요
 
-Shorts Producer는 **Qwen3-TTS** 단일 엔진으로 음성을 생성합니다. 기존 Edge-TTS 및 Google Cloud TTS는 제거되었으며, 모든 TTS 요청은 Qwen3-TTS로 처리됩니다.
+Shorts Producer의 TTS는 **3엔진 분리 아키텍처**입니다. 역할에 따라 엔진이 구분됩니다.
 
-| 항목 | 값 |
-|------|-----|
-| 모델 | `Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign` (0115 Update) |
-| 아키텍처 | End-to-End Discrete Multi-codebook LM |
-| 지연시간 | 최저 97ms (실시간 스트리밍 지원) |
-| 디바이스 | CUDA (run_audio.sh 기본), auto 시 CUDA > MPS > CPU 순 |
-| 모델 로딩 | 서버 lifespan에서 프리로딩 |
-| 출력 형식 | MP3 (soundfile 기록) |
+| 엔진 | 역할 | 포트 | 프로세스 | 상태 |
+|------|------|------|----------|------|
+| **GPT-SoVITS v2** | 씬 TTS (일상 음성 생성) | :9880 | 별도 (Python 3.12) | GPU 상주 |
+| **Qwen3-TTS** | 보이스 디자인 전용 (voice preset 프리뷰, voice reference 생성) | :8001 | Audio Server (Python 3.13) | On-demand |
+| **MusicGen** | BGM 생성 | :8001 | Audio Server (Python 3.13) | CPU 상주 |
+
+> GPT-SoVITS는 Python 3.12 의존성 문제로 Audio Server와 분리된 별도 프로세스입니다.
 
 **아키텍처 흐름:**
 
 ```
-VideoBuilder.build()
-  └─ process_scenes()
-       └─ generate_tts(scene_i)
-            ├─ get_qwen_model()        # 글로벌 싱글톤
-            └─ voice design            # 텍스트 프롬프트로 음성 생성
+Backend :8000 → audio_client.py
+                ├─ synthesize_tts()          → GPT-SoVITS :9880 (씬 TTS, ref_audio 필수)
+                ├─ synthesize_voice_design() → Qwen3-TTS :8001  (보이스 디자인 전용)
+                └─ generate_music()          → MusicGen :8001   (BGM)
 ```
+
+**핵심 규칙**: 씬 TTS에서 Qwen3가 호출되면 **버그**. 씬 TTS는 반드시 SoVITS만 사용.
+
+### VRAM 사용량
+
+| 모델 | VRAM | 상태 |
+|------|------|------|
+| SD WebUI (idle) | 8.5GB | 상주 |
+| GPT-SoVITS | 1.1GB | 상주 |
+| Qwen3-TTS | 3.5GB | on-demand (보이스 디자인 시만) |
+| MusicGen | CPU | 상주 |
+| **합계 (일상)** | **9.6GB / 16GB** | |
 
 ### 시스템 요구 사양
 
 | 항목 | 최소 | 권장 |
 |------|------|------|
-| 하드웨어 | Intel Mac / Linux | Apple Silicon (M1/M2/M3/M4) |
-| Python | 3.13+ | 3.13.11+ |
+| GPU | NVIDIA 8GB VRAM | NVIDIA 16GB VRAM |
+| Python (Audio Server) | 3.13+ | 3.13+ |
+| Python (GPT-SoVITS) | 3.12 | 3.12 |
 | `transformers` | 4.57.3+ | 4.57.3+ |
-| `accelerate` | 1.12.0+ | 1.12.0+ |
 | 메모리 | 16GB | 24GB 이상 |
-| 저장 공간 | 5GB (모델 가중치) | 10GB |
 
-### 시스템 실행 (Audio Server)
+---
 
-TTS 및 BGM 생성 엔진은 독립된 **Audio Server (사이드카)** 로 분리되어 실행됩니다. 
-스크립트는 가상 환경을 자동 구성하므로 설치 및 실행을 한 번에 처리해 줍니다. (\`./audio/.venv\`)
+## 2. 시스템 실행
+
+### Audio Server (Qwen3-TTS + MusicGen)
 
 ```bash
-# 오디오 서버 기동 (포트 8001)
-./run_audio.sh start
-
-# 기동 상태 확인
+./run_audio.sh start    # 포트 8001
 ./run_audio.sh status
-
-# 서버 로그 확인
 ./run_audio.sh logs
-
-# 오디오 서버 중지
 ./run_audio.sh stop
+```
+
+### GPT-SoVITS (별도 프로세스)
+
+```bash
+# GPT-SoVITS 설치 위치
+cd /home/tomo/Workspace/GPT-SoVITS/
+
+# API 서버 기동 (포트 9880)
+.venv/bin/python api_v2.py -a 127.0.0.1 -p 9880
+```
+
+### 헬스 체크
+
+- Audio Server: `GET http://127.0.0.1:8001/health` — Qwen3-TTS, MusicGen 상태
+- GPT-SoVITS: `GET http://127.0.0.1:9880/` — SoVITS 상태
+
+> Audio Server `/health`에는 SoVITS가 표시되지 않음 (별도 프로세스).
+
+---
+
+## 3. 엔진별 역할과 호출 경로
+
+### 3.1 GPT-SoVITS — 씬 TTS (일상 음성)
+
+캐릭터의 voice preset에서 ref_audio를 가져와 음색을 복제합니다.
+
+**호출 경로:**
+```
+preview_tts.py / tts_prebuild.py
+  → generate_tts_audio()          # tts_helpers.py 코어 함수
+    → _resolve_voice_ref_audio()  # 캐릭터 → voice ref 해석
+    → synthesize_tts()            # audio_client.py → SoVITS :9880
+```
+
+**Voice Reference 해석 우선순위** (`_resolve_voice_ref_audio`):
+1. 감정별 voice_ref (`character_voice_ref` + scene_emotion)
+2. default voice_ref (`character_voice_ref` latest)
+3. voice preset 프리뷰 WAV (`character → voice_preset → audio_asset`)
+
+`ref_audio_path`가 None이면 `synthesize_tts()`에서 즉시 에러 (Qwen3 fallback 없음).
+
+### 3.2 Qwen3-TTS — 보이스 디자인 전용
+
+텍스트 프롬프트로 새 음성을 생성합니다. 씬 TTS에서는 사용하지 않습니다.
+
+**사용처:**
+- Voice Preset 프리뷰 생성 (`/admin/voice-presets/preview`)
+- 캐릭터 Voice Reference 생성 (`generate_voice_reference()`)
+
+**호출 경로:**
+```
+voice_presets.py / voice_ref.py
+  → synthesize_voice_design()  # audio_client.py → Qwen3 :8001
+```
+
+### 3.3 MusicGen — BGM
+
+텍스트 프롬프트로 BGM을 생성합니다.
+
+**호출 경로:**
+```
+audio_client.py → generate_music() → MusicGen :8001
 ```
 
 ---
 
-## 2. 설정 (config.py SSOT)
+## 4. 설정 (config.py SSOT)
 
-모든 TTS 설정은 `backend/config.py`에서 관리합니다. 환경 변수로 오버라이드 가능합니다.
+### SoVITS 설정
+
+| 설정 | 기본값 | 환경 변수 |
+|------|--------|-----------|
+| `SOVITS_SERVER_URL` | `http://127.0.0.1:9880` | `SOVITS_SERVER_URL` |
+| `DEFAULT_TTS_ENGINE` | `sovits` | `DEFAULT_TTS_ENGINE` |
+
+### Qwen3-TTS 설정 (Audio Server)
 
 | 설정 | 기본값 | 환경 변수 | 설명 |
 |------|--------|-----------|------|
 | `TTS_MODEL_NAME` | `Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign` | `TTS_MODEL_NAME` | HuggingFace 모델 ID |
-| `TTS_DEVICE` | `"auto"` | `TTS_DEVICE` | `"cuda"` / `"auto"` / `"mps"` / `"cpu"` (`run_audio.sh`는 `cuda` 고정) |
-| `TTS_ATTN_IMPLEMENTATION` | `"sdpa"` | `TTS_ATTN_IMPLEMENTATION` | Attention 구현체 (sdpa 권장) |
-| `TTS_TEMPERATURE` | `0.6` | `TTS_TEMPERATURE` | 생성 다양성 (0.6 = 안정, 0 금지) |
-| `TTS_TOP_P` | `0.8` | `TTS_TOP_P` | Nucleus sampling (Qwen 권장) |
-| `TTS_REPETITION_PENALTY` | `1.0` | `TTS_REPETITION_PENALTY` | 반복 억제 (1.0 권장 - 0115 12Hz 최적화) |
+| `TTS_DEVICE` | `"auto"` | `TTS_DEVICE` | CUDA > MPS > CPU 자동 감지 |
+| `TTS_ATTN_IMPLEMENTATION` | `"sdpa"` | `TTS_ATTN_IMPLEMENTATION` | Attention 구현체 |
+| `TTS_TEMPERATURE` | `0.6` | `TTS_TEMPERATURE` | 생성 다양성 |
+| `TTS_TOP_P` | `0.8` | `TTS_TOP_P` | Nucleus sampling |
+| `TTS_REPETITION_PENALTY` | `1.0` | `TTS_REPETITION_PENALTY` | 반복 억제 |
 
-**디바이스 자동 감지 로직** (`audio/services/tts_engine.py`):
+### Audio Server 공통
 
-```python
-if device == "auto":
-    if torch.cuda.is_available():
-        device = "cuda"
-    elif torch.backends.mps.is_available():
-        device = "mps"
-    else:
-        device = "cpu"
-```
-
-- NVIDIA GPU (WSL2/Linux): CUDA 사용 (float32) — `run_audio.sh`가 `TTS_DEVICE=cuda` 고정
-- Apple Silicon Mac: MPS 사용 (bfloat16)
-- 그 외: CPU 사용 (float32)
+| 설정 | 기본값 | 환경 변수 |
+|------|--------|-----------|
+| `AUDIO_SERVER_URL` | `http://127.0.0.1:8001` | `AUDIO_SERVER_URL` |
+| `MODEL_IDLE_TIMEOUT_SECONDS` | `0` (persistent) | `MODEL_IDLE_TIMEOUT_SECONDS` |
 
 ---
 
-## 3. Voice Design 모드
+## 5. Voice Design 모드
 
 텍스트 프롬프트로 원하는 음성 스타일을 설계합니다. Qwen3-TTS의 `generate_voice_design` API를 사용합니다.
 
-### 사용법
-
-`voice_design_prompt` 필드에 음성 스타일 설명을 입력합니다.
-
-```json
-{
-  "voice_design_prompt": "A calm woman in her 40s with a warm, soothing tone"
-}
-```
-
 ### 한국어 자동 번역
 
-한국어 입력 시 Gemini Flash(`GEMINI_TEXT_MODEL`)로 자동 영어 변환됩니다. 번역 결과는 인메모리 딕셔너리에 캐시됩니다.
+한국어 입력 시 Gemini Flash로 자동 영어 변환됩니다.
 
 | 입력 | 변환 결과 |
 |------|----------|
 | `"차분한 40대 여성"` | `"A calm woman in her 40s"` |
 | `"활기찬 20대 남성 아나운서"` | `"An energetic male announcer in his 20s"` |
 
-**번역 실패 시**: 원본 한국어 프롬프트를 그대로 Qwen3-TTS에 전달합니다.
+### Context-Aware TTS (씬 감정 반영)
 
-### 관련 코드
+| Speaker 유형 | 동작 |
+|-------------|------|
+| **나레이터** | Voice Preset 기본 + 장면 감정 자동 반영 |
+| **캐릭터** | Voice Preset + Gemini 감정 분석 → SoVITS ref_audio로 음색 복제 |
 
-- 번역 함수: `_translate_voice_prompt()` in `services/video/scene_processing.py`
-- 캐시: `_VOICE_PROMPT_CACHE` (프로세스 메모리, 재시작 시 초기화)
-- 한글 감지: `[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]` 정규식
-
----
-
----
-
-## 4. 음성 디자인 및 컨텍스트 반영 (Context-Aware TTS)
-
-시스템은 **Speaker** 종류에 따라 다른 전략으로 음성을 생성합니다.
-
-### 4.1 나레이터 (Default Speaker)
-### 4.1 나레이터 (Default Speaker)
-- **목표**: 장면의 분위기와 무드를 반영한 몰입감 있는 나레이션
-- **동작**: `Voice Preset` 설정을 기본으로 하되, 장면별 `context_tags`나 `image_prompt`에서 강한 감정적 신호가 감지되면 **자동으로 감정 톤을 생성하여 반영합니다.**
-- **예외**: 사용자가 `Voice Design Prompt`를 직접 입력한 경우, 해당 프롬프트를 최우선으로 따릅니다.
-
-### 4.2 캐릭터 (Actor A, B 등)
-- **목표**: 시나리오 상황에 맞는 연기 및 감정 표현
-- **동작**: **Context-Aware Logic**이 작동합니다.
-    1. **자동 감정 분석**: Gemini가 `Script`(대사)와 `Prompt (KO)`(지문)를 분석하여 알맞은 목소리 톤(예: "속삭이듯", "소리치며")을 생성합니다.
-    2. **Voice Merge**: 캐릭터에게 설정된 `Voice Preset`(기본 목소리)이 있다면, **기본 목소리 + 감정**을 합쳐서 생성합니다.
-        - *예: "차분한 현서 목소리" + "화난 상황" -> "화내고 있는 현서 목소리"*
-
-### 4.3 우선순위 요약
+### Voice Design 우선순위
 
 | 순위 | 소스 | 설명 |
 |------|------|------|
-| 1 | Per-scene `voice_design_prompt` | 사용자가 직접 입력한 값 (가장 강력함) |
-| 2 | Context-Aware Auto-Generation | **(캐릭터 전용)** 시나리오 기반 자동 감정 생성 |
-| 3 | Voice Preset (Global/Character) | 캐릭터/나레이터의 기본 목소리 설정 |
+| 1 | Per-scene `voice_design_prompt` | 사용자 직접 입력 |
+| 2 | Context-Aware Auto-Generation | 시나리오 기반 자동 감정 생성 |
+| 3 | Voice Preset | 캐릭터/나레이터 기본 목소리 |
 | 4 | System Default | 기본값 |
 
 ---
 
-## 6. RenderPreset TTS 필드
+## 6. 모델 로딩
 
-`render_presets` 테이블에 TTS 설정이 저장됩니다.
+### Audio Server (Qwen3-TTS + MusicGen)
 
-### DB 컬럼
-
-| 컬럼 | 타입 | 제약 조건 | 설명 |
-|------|------|----------|------|
-| `tts_engine` | `String(20)` | CHECK: `'qwen'` 또는 NULL | TTS 엔진 (현재 qwen만 허용) |
-| `voice_design_prompt` | `Text` | nullable | 음성 스타일 설명 텍스트 |
-| `voice_ref_audio_url` | `Text` | nullable | (Deprecated) 참조 음성 URL |
-
-### 마이그레이션
-
-- 파일: `alembic/versions/e6f7a8b9c0d1_render_preset_tts_columns.py`
-- CHECK constraint: `ck_render_presets_tts_engine`
-- 시스템 프리셋 자동 설정: `UPDATE render_presets SET tts_engine = 'qwen' WHERE is_system = true`
-
-### Pydantic 스키마
-
-`RenderPresetCreate`, `RenderPresetUpdate`, `RenderPresetRead` 모두 다음 필드를 포함합니다:
+`audio/main.py` lifespan에서 관리:
+- **Persistent 모드** (`MODEL_IDLE_TIMEOUT_SECONDS=0`): MusicGen CPU 프리로드, Qwen3 on-demand
+- **On-demand 모드**: 첫 요청 시 로드, idle timeout 후 자동 언로드
 
 ```python
-tts_engine: str | None = None
-voice_design_prompt: str | None = None
+# audio/services/tts_engine.py
+model = Qwen3TTSModel.from_pretrained(
+    TTS_MODEL_NAME,
+    dtype=dtype,
+    device_map=device,  # transformers 4.57.3+ 필수
+    attn_implementation=TTS_ATTN_IMPLEMENTATION,
+)
 ```
+
+### GPT-SoVITS
+
+별도 프로세스에서 자체 모델 로딩. `api_v2.py` 기동 시 자동 로드.
 
 ---
 
-## 7. Frontend UI
+## 7. 트러블슈팅
 
-### RenderSettingsPanel
+### SoVITS 서버 미기동
 
-`frontend/app/components/video/RenderSettingsPanel.tsx`의 **AI Voice Style** 섹션에서 설정합니다.
+**증상**: `[TTS] ref_audio_path 필수` 에러 또는 SoVITS 연결 실패
 
-| UI 요소 | 필드 | 설명 |
-|---------|------|------|
-| 목소리 스타일 입력 | `voiceDesignPrompt` | 텍스트로 음성 스타일 설명 |
-| 배속 슬라이더 | `speedMultiplier` | TTS 포함 전체 배속 조절 |
+**대응**: `cd /home/tomo/Workspace/GPT-SoVITS/ && .venv/bin/python api_v2.py -a 127.0.0.1 -p 9880`
 
-### RenderPresetsTab
+### Qwen3 모델 로드 실패 (meta tensor)
 
-`frontend/app/manage/tabs/RenderPresetsTab.tsx`에서 프리셋으로 저장/불러오기가 가능합니다.
+**증상**: `Cannot copy out of meta tensor; no data!`
 
----
+**원인**: `device_map` 미지정 시 transformers 4.57.3+에서 메타 텐서 생성
 
-## 8. 후방 호환성
+**대응**: `from_pretrained(device_map=device)` 사용 (`.to(device)` 금지)
 
-### Edge-TTS 마이그레이션
+### 캐릭터에 Voice Reference 없음
 
-Edge-TTS는 완전히 제거되었으며, 기존 데이터는 자동으로 Qwen으로 변환됩니다.
+**증상**: `ref_audio_path 필수` 에러
 
-**Backend (schemas.py)** - `VideoRequest`의 `model_validator`가 요청 시점에 자동 변환:
+**대응**: 캐릭터에 voice preset 매핑 확인 → voice preset에 프리뷰 WAV 존재 확인
 
-```python
-@model_validator(mode="before")
-@classmethod
-def _migrate_edge_to_qwen(cls, values):
-    if isinstance(values, dict) and values.get("tts_engine") == "edge":
-        values["tts_engine"] = "qwen"
-    return values
+### TTS 캐시 초기화
+
+```bash
+rm -rf ~/.cache/shorts-producer/prompts/tts/ ~/.cache/audio-server/tts/
 ```
-
-**Frontend (Zustand persist merge)** - localStorage에 저장된 `ttsEngine: "edge"` 값은 Zustand의 persist merge 단계에서 `"qwen"`으로 변환됩니다.
-
-**TTSEngine Enum**:
-
-```python
-class TTSEngine(str, Enum):
-    EDGE = "edge"    # 후방 호환용 (실제 사용 불가)
-    QWEN = "qwen"    # 유일한 활성 엔진
-```
-
----
-
-## 9. 모델 로딩
-
-### Lifespan 프리로딩
-
-서버 시작 시 `main.py`의 lifespan에서 모델을 미리 로드합니다.
-
-```python
-# main.py lifespan()
-try:
-    from services.video.scene_processing import get_qwen_model
-    get_qwen_model()
-except Exception as e:
-    logger.warning(f"[TTS] Qwen preload failed (will retry on first request): {e}")
-```
-
-### 글로벌 싱글톤
-
-`get_qwen_model()` 함수는 모델을 글로벌 변수 `_QWEN_MODEL`에 캐시합니다. 한 번 로드되면 프로세스 종료까지 유지됩니다.
-
----
-
-## 10. 트러블슈팅
-
-### 모델 로드 실패
-
-**증상**: 서버 시작 시 `[TTS] Qwen preload failed` 로그
-
-**원인**: 모델 파일 미다운로드, 메모리 부족, 의존성 미설치
-
-**대응**:
-- 서버는 정상 기동됨 (non-blocking 프리로딩)
-- 첫 TTS 요청 시 `get_qwen_model()`이 재시도
-- 모델 다운로드 확인: `python -c "from qwen_tts import Qwen3TTSModel"`
-
-### TTS 생성 실패
-
-**증상**: `TTS generation error (Qwen)` 로그
-
-**대응**:
-- `generate_tts()`가 `(False, 0.0)` 반환
-- 해당 씬은 `anullsrc` (FFmpeg 무음 소스)로 대체
-- 영상 렌더링은 정상 진행됨
-
-### 한국어 번역 실패
-
-**증상**: `[TTS] Voice prompt translation failed` 로그
-
-**원인**: Gemini API 키 미설정, API 할당량 초과, 네트워크 오류
-
-**대응**: 원본 한국어 프롬프트가 그대로 Qwen3-TTS에 전달됩니다.
-
-### 렌더링 속도 저하
-
-**증상**: 8씬 이상 스토리보드에서 렌더링이 느림
-
-**원인**: TTS 생성이 CPU-heavy 작업
-
-**대응**:
-- CUDA 디바이스 사용 권장 (NVIDIA GPU)
-- `./run_audio.sh start`로 기동하면 자동으로 `TTS_DEVICE=cuda` 설정
-- Apple Silicon: `TTS_DEVICE=mps` 환경 변수 설정
-
-### MPS 가속 미작동
-
-**증상**: `torch.backends.mps.is_available()`이 `False` 반환
-
-**원인**: macOS 버전이 낮거나 PyTorch 설치 문제
-
-**대응**: CPU 모드로 자동 전환되지만 속도가 느려질 수 있습니다.
 
 ### 빈 스크립트 씬
 
-**증상**: `Scene {i}: empty script, skipping TTS` 로그
+**증상**: `Scene {i}: empty script, skipping TTS`
 
-**대응**: 정상 동작. 스크립트가 비어 있는 씬은 TTS를 건너뛰고 무음 처리됩니다.
-
-### 수동 검증
-
-```bash
-cd backend && uv run python verify_qwen.py
-```
-
-성공 시 `test_qwen_out.mp3` 파일이 생성됩니다.
+**대응**: 정상 동작. 스크립트 없는 씬은 무음 처리.
 
 ---
 
-## 11. 환경 변수 요약
-
-`.env` 파일에 추가할 수 있는 TTS 관련 환경 변수:
-
-```bash
-# TTS 모델 (기본값 사용 권장)
-TTS_MODEL_NAME=Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
-
-# 디바이스 설정 (auto 권장)
-TTS_DEVICE=auto
-
-# Attention 구현체 (sdpa 권장, eager보다 2-3x 빠름)
-TTS_ATTN_IMPLEMENTATION=sdpa
-
-# 생성 파라미터 (Qwen 권장 안정값)
-TTS_TEMPERATURE=0.6         # 0.6 = 안정, 0 = 금지 (무한 반복)
-TTS_TOP_P=0.8               # Qwen 공식 권장값
-TTS_REPETITION_PENALTY=1.0  # 반복 억제 (12Hz 모델 최적값)
-
-# Gemini API (한국어 번역에 필요)
-GEMINI_API_KEY=your_api_key_here
-```
-
----
-
-## 12. 관련 파일 목록
+## 8. 관련 파일 목록
 
 | 파일 | 역할 |
 |------|------|
-| `backend/config.py` | TTS 설정 SSOT |
-| `backend/main.py` | Lifespan 모델 프리로딩 |
-| `backend/services/video/scene_processing.py` | TTS 생성 핵심 로직 |
-| `backend/services/video/builder.py` | VideoBuilder 파이프라인 |
-| `backend/services/video/utils.py` | `clean_script_for_tts()` 텍스트 정제 |
-| `backend/schemas.py` | `TTSEngine`, `VideoRequest`, `VideoScene` 스키마 |
-| `backend/models/render_preset.py` | RenderPreset TTS 컬럼 정의 |
-| `backend/alembic/versions/e6f7a8b9c0d1_*` | TTS 컬럼 마이그레이션 |
-| `frontend/.../RenderSettingsPanel.tsx` | AI Voice Style UI |
-| `frontend/.../RenderPresetsTab.tsx` | 프리셋 관리 UI |
+| `backend/config.py` | TTS/SoVITS/Audio 설정 SSOT |
+| `backend/services/audio_client.py` | `synthesize_tts()` (SoVITS), `synthesize_voice_design()` (Qwen3), `generate_music()` |
+| `backend/services/video/tts_helpers.py` | `generate_tts_audio()` 코어, `_resolve_voice_ref_audio()` |
+| `backend/services/preview_tts.py` | TTS 프리뷰 |
+| `backend/services/tts_prebuild.py` | TTS 사전 생성 |
+| `backend/services/characters/voice_ref.py` | 캐릭터 Voice Reference 생성 (Qwen3) |
+| `backend/routers/voice_presets.py` | Voice Preset 프리뷰 API (Qwen3) |
+| `audio/services/tts_engine.py` | Qwen3-TTS 모델 로딩/합성 |
+| `audio/services/music_engine.py` | MusicGen 모델 로딩/생성 |
+| `audio/main.py` | Audio Server 엔트리포인트 |
 
 ---
 
-**최종 업데이트**: 2026-03-06 (Qwen3-TTS 0115 12Hz 반영)
+**최종 업데이트**: 2026-03-17 (3엔진 분리 아키텍처 반영, Qwen3 fallback 제거)

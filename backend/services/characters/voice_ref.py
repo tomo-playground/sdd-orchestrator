@@ -14,14 +14,17 @@ async def generate_voice_reference(db: Session, character_id: int) -> dict:
     """캐릭터의 voice_preset으로 레퍼런스 오디오를 생성하고 MinIO에 저장한다."""
     from models.character import Character
     from services.asset_service import AssetService
-    from services.audio_client import synthesize_tts
     from services.storage import get_storage
     from services.video.tts_helpers import get_preset_voice_info
 
-    character = db.query(Character).filter(
-        Character.id == character_id,
-        Character.deleted_at.is_(None),
-    ).first()
+    character = (
+        db.query(Character)
+        .filter(
+            Character.id == character_id,
+            Character.deleted_at.is_(None),
+        )
+        .first()
+    )
     if not character:
         raise ValueError(f"캐릭터를 찾을 수 없습니다: {character_id}")
 
@@ -32,12 +35,15 @@ async def generate_voice_reference(db: Session, character_id: int) -> dict:
     if not voice_design:
         raise ValueError(f"Voice preset {character.voice_preset_id}에 voice_design_prompt가 없습니다.")
 
-    logger.info("[VoiceRef] Generating for '%s' (char %d, preset %d)", character.name, character_id, character.voice_preset_id)
-    audio_bytes, _sr, duration, _quality = await synthesize_tts(
+    logger.info(
+        "[VoiceRef] Generating for '%s' (char %d, preset %d)", character.name, character_id, character.voice_preset_id
+    )
+    from services.audio_client import synthesize_voice_design  # noqa: PLC0415
+
+    audio_bytes, _sr, duration, _quality = await synthesize_voice_design(
         text=VOICE_REF_SAMPLE_TEXT,
         instruct=voice_design,
         seed=voice_seed or -1,
-        task_id=f"voice_ref_{character_id}",
     )
 
     # MinIO에 저장

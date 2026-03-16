@@ -27,6 +27,7 @@ scene_processing.py → generate_tts()         209줄 (렌더링 독자 생성 �
 | retry (3회) | **X** | **X** | O |
 | retry 시 voice_design 단순화 | **X** | **X** | O (attempt별 축약) |
 | voice_design DB write-back | **X** | **X** | O |
+
 | TTS_VOICE_CONSISTENCY_MODE | **X** | **X** | O |
 | 캐시 키에 scene_emotion | O | **X (버그)** | O |
 | language 소스 | req 전달 | 하드코딩 "korean" | config 상수 |

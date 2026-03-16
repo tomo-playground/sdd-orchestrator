@@ -121,8 +121,8 @@ async def _synthesize_sovits(
     ref_text: str = "",
     task_id: str = "default",
 ) -> tuple[bytes, int, float, bool]:
-    """Call GPT-SoVITS /tts endpoint. Returns (wav_bytes, sample_rate, duration, quality_passed)."""
-    from config import SOVITS_SERVER_URL  # noqa: PLC0415
+    """Call Audio Server /tts/sovits (proxied to GPT-SoVITS subprocess)."""
+    url, _ = _get_audio_server_config()
 
     text = _normalize_korean_text(text)
 
@@ -133,37 +133,23 @@ async def _synthesize_sovits(
         "prompt_text": ref_text,
         "prompt_lang": "ko",
         "speed_factor": 1.0,
-        "media_type": "wav",
-        "streaming_mode": False,
     }
 
     async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{SOVITS_SERVER_URL}/tts",
-            json=payload,
-            timeout=180,
-        )
+        resp = await client.post(f"{url}/tts/sovits", json=payload, timeout=180)
         if not resp.is_success:
             detail = _extract_server_error(resp)
             raise RuntimeError(f"SoVITS 합성 실패: {detail}")
 
-    # SoVITS returns raw WAV bytes
-    import io  # noqa: PLC0415
-
-    import numpy as np  # noqa: PLC0415
-    import soundfile as sf  # noqa: PLC0415
-
-    audio_data, sr = sf.read(io.BytesIO(resp.content))
-    duration = len(audio_data) / sr
-    # Quality check: not silent
-    rms = float(np.sqrt(np.mean(audio_data**2)))
-    quality_passed = rms > 0.001
-
-    logger.info("[SoVITS] Generated: %.1fs, sr=%d, quality=%s", duration, sr, quality_passed)
-    return resp.content, sr, duration, quality_passed
+    data = resp.json()
+    audio_bytes = base64.b64decode(data["audio_base64"])
+    logger.info(
+        "[SoVITS] Generated: %.1fs, sr=%d, quality=%s", data["duration"], data["sample_rate"], data["quality_passed"]
+    )
+    return audio_bytes, data["sample_rate"], data["duration"], data["quality_passed"]
 
 
-async def _synthesize_qwen3(
+async def synthesize_voice_design(
     text: str,
     instruct: str = "",
     language: str = "korean",
@@ -174,7 +160,7 @@ async def _synthesize_qwen3(
     max_new_tokens: int = 1024,
     force: bool = False,
 ) -> tuple[bytes, int, float, bool]:
-    """Call Qwen3-TTS Audio Server /tts/synthesize (legacy fallback)."""
+    """Qwen3-TTS 보이스 디자인 전용. Voice preset 프리뷰 및 캐릭터 음성 참조 생성에 사용."""
     url, timeout = _get_audio_server_config()
 
     if TTS_NATURALNESS_SUFFIX:
@@ -223,35 +209,21 @@ async def synthesize_tts(
     ref_audio_path: str | None = None,
     ref_text: str = "",
 ) -> tuple[bytes, int, float, bool]:
-    """TTS synthesis with SoVITS → Qwen3 fallback chain.
+    """TTS synthesis via GPT-SoVITS.
 
-    If ref_audio_path is provided, uses GPT-SoVITS for consistent voice cloning.
-    Falls back to Qwen3-TTS on SoVITS failure.
+    ref_audio_path is required — character's voice preset preview WAV.
+    Qwen3 is NOT used for scene TTS (voice design only).
     Returns (audio_bytes, sample_rate, duration, quality_passed).
     """
     if not _check_circuit(task_id):
         raise RuntimeError("Audio Server circuit breaker is open")
 
-    # SoVITS path: reference audio available
-    if ref_audio_path:
-        try:
-            result = await _synthesize_sovits(text, ref_audio_path, ref_text, task_id)
-            logger.info("[TTS] SoVITS success: '%s...'", text[:30])
-            return result
-        except Exception as e:
-            logger.warning("[TTS] SoVITS failed, falling back to Qwen3: %s", e)
+    if not ref_audio_path:
+        raise RuntimeError("ref_audio_path 필수: 캐릭터에 voice preset이 매핑되어 있는지 확인하세요")
 
-    # Qwen3 fallback (or primary if no ref_audio)
-    try:
-        await _ensure_server_reachable()
-        result = await _synthesize_qwen3(
-            text, instruct, language, seed, temperature, top_p, repetition_penalty, max_new_tokens, force,
-        )
-        logger.info("[TTS] Qwen3 success: '%s...'", text[:30])
-        return result
-    except Exception as e:
-        logger.error("[AudioClient] TTS synthesis failed (all engines): %s", e)
-        raise
+    result = await _synthesize_sovits(text, ref_audio_path, ref_text, task_id)
+    logger.info("[TTS] SoVITS success: '%s...'", text[:30])
+    return result
 
 
 async def generate_music(

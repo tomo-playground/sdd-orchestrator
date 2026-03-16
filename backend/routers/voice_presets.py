@@ -120,10 +120,14 @@ def delete_voice_preset(preset_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Voice preset not found")
 
     # FK reference check: active groups using this preset
-    ref_count = db.query(Group).filter(
-        Group.narrator_voice_preset_id == preset_id,
-        Group.deleted_at.is_(None),
-    ).count()
+    ref_count = (
+        db.query(Group)
+        .filter(
+            Group.narrator_voice_preset_id == preset_id,
+            Group.deleted_at.is_(None),
+        )
+        .count()
+    )
     if ref_count > 0:
         raise HTTPException(
             status_code=409,
@@ -149,14 +153,14 @@ def delete_voice_preset(preset_id: int, db: Session = Depends(get_db)):
 async def preview_voice(req: VoicePreviewRequest, db: Session = Depends(get_db)):
     """Generate a preview audio via Audio Server."""
     from config import TTS_DEFAULT_LANGUAGE
-    from services.audio_client import synthesize_tts
+    from services.audio_client import synthesize_voice_design
     from services.video.tts_helpers import translate_voice_prompt
 
     try:
         voice_design = translate_voice_prompt(req.voice_design_prompt)
         voice_seed = hash(voice_design) % (2**31)
 
-        audio_bytes, _sr, _duration, _quality = await synthesize_tts(
+        audio_bytes, _sr, _duration, _quality = await synthesize_voice_design(
             text=req.sample_text,
             instruct=voice_design,
             language=req.language or TTS_DEFAULT_LANGUAGE,

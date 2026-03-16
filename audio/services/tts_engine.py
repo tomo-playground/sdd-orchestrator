@@ -57,9 +57,9 @@ def load_model() -> Qwen3TTSModel:
     model = Qwen3TTSModel.from_pretrained(
         TTS_MODEL_NAME,
         dtype=dtype,
+        device_map=device,
         attn_implementation=TTS_ATTN_IMPLEMENTATION,
     )
-    model.model.to(device)
     model.device = torch.device(device)
 
     _model = model

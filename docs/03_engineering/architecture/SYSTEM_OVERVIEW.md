@@ -35,8 +35,8 @@ graph TB
             ImageSvc["Image Generation Service"]
             CreativeSvc["Creative Engine (Multi-Agent)"]
             VideoSvc["Video Render Pipeline"]
-            TTSSvc["TTS Service (Qwen3-TTS)"]
-            MusicSvc["Music Service (Stable Audio Open)"]
+            TTSSvc["TTS Service (SoVITS + Qwen3)"]
+            MusicSvc["Music Service (MusicGen)"]
             ValidationSvc["Validation (WD14/Vision)"]
         end
 
@@ -64,7 +64,8 @@ graph TB
         SD["<b>Stable Diffusion WebUI</b><br/>(A1111 API)"]
         CN["ControlNet / IP-Adapter"]
         WD14["WD14 ONNX Tagger"]
-        Qwen["Qwen3-TTS Engine"]
+        SoVITS["<b>GPT-SoVITS v2</b><br/>(:9880 씬 TTS)"]
+        AudioSvr["<b>Audio Server</b><br/>(:8001 Qwen3-TTS + MusicGen)"]
     end
 
     %% Client Flows
@@ -90,8 +91,9 @@ graph TB
     SD <--> CN
     VideoSvc --> FS
     VideoSvc --> MinIO
-    VideoSvc --> Qwen
-    MusicSvc --> FS
+    TTSSvc --> SoVITS
+    TTSSvc --> AudioSvr
+    MusicSvc --> AudioSvr
 
     ValidationSvc <--> WD14
     ValidationSvc <--> Gemini

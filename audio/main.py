@@ -1,7 +1,7 @@
-"""Audio Server — TTS + MusicGen sidecar service.
+"""Audio Server — TTS + SoVITS + MusicGen 통합 사이드카.
 
-Runs as an independent FastAPI app, serving TTS synthesis and music generation
-over HTTP. Backend communicates via audio_client.py.
+3엔진 통합: GPT-SoVITS(씬 TTS) + Qwen3-TTS(보이스 디자인) + MusicGen(BGM).
+SoVITS는 Python 3.12 subprocess로 관리. Backend는 :8001만 호출.
 """
 
 from __future__ import annotations
@@ -15,11 +15,13 @@ from contextlib import asynccontextmanager
 import soundfile as sf
 from fastapi import FastAPI, HTTPException
 
-from schemas import (
+from schemas import (  # noqa: F811
     HealthResponse,
     ModelStatus,
     MusicGenerateRequest,
     MusicGenerateResponse,
+    SoVITSSynthesizeRequest,
+    SoVITSSynthesizeResponse,
     TTSSynthesizeRequest,
     TTSSynthesizeResponse,
 )
@@ -55,7 +57,8 @@ async def _idle_watchdog():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start audio server. Persistent mode preloads TTS at startup."""
-    from config import MODEL_IDLE_TIMEOUT_SECONDS
+    from config import MODEL_IDLE_TIMEOUT_SECONDS, SOVITS_ENABLED
+    from services.sovits_process import sovits_manager
 
     persistent = MODEL_IDLE_TIMEOUT_SECONDS <= 0
     watchdog = None
@@ -68,8 +71,19 @@ async def lifespan(app: FastAPI):
         logger.info("[Startup] On-demand mode — TTS loads on first request (idle=%ds)", MODEL_IDLE_TIMEOUT_SECONDS)
         watchdog = asyncio.create_task(_idle_watchdog())
 
+    # GPT-SoVITS subprocess
+    if SOVITS_ENABLED:
+        started = await sovits_manager.start()
+        if started:
+            logger.info("[Startup] GPT-SoVITS ready (subprocess)")
+        else:
+            logger.warning("[Startup] GPT-SoVITS failed to start — SoVITS TTS unavailable")
+
     yield
 
+    # Shutdown
+    if SOVITS_ENABLED:
+        await sovits_manager.stop()
     if watchdog:
         watchdog.cancel()
     logger.info("[Shutdown] Audio Server stopped")
@@ -158,6 +172,45 @@ async def synthesize_tts(req: TTSSynthesizeRequest):
     )
 
 
+@app.post("/tts/sovits", response_model=SoVITSSynthesizeResponse)
+async def synthesize_sovits(req: SoVITSSynthesizeRequest):
+    """Proxy to GPT-SoVITS subprocess."""
+    import numpy as np  # noqa: PLC0415
+
+    from services.sovits_process import sovits_manager
+
+    if not sovits_manager.is_running:
+        raise HTTPException(status_code=503, detail="GPT-SoVITS is not running")
+
+    try:
+        raw_wav = await sovits_manager.synthesize(
+            text=req.text,
+            ref_audio_path=req.ref_audio_path,
+            prompt_text=req.prompt_text,
+            prompt_lang=req.prompt_lang,
+            text_lang=req.text_lang,
+            speed_factor=req.speed_factor,
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+
+    # Parse WAV, quality check, encode
+    buf = io.BytesIO(raw_wav)
+    audio_data, sr = sf.read(buf, dtype="float32")
+    duration = len(audio_data) / sr
+    rms = float(np.sqrt(np.mean(audio_data**2)))
+    quality_passed = rms > 0.001
+
+    audio_b64 = base64.b64encode(raw_wav).decode()
+
+    return SoVITSSynthesizeResponse(
+        audio_base64=audio_b64,
+        sample_rate=sr,
+        duration=round(duration, 2),
+        quality_passed=quality_passed,
+    )
+
+
 @app.post("/music/generate", response_model=MusicGenerateResponse)
 async def generate_music(req: MusicGenerateRequest):
     """Generate music from text prompt."""
@@ -191,11 +244,19 @@ async def generate_music(req: MusicGenerateRequest):
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Report model loading status."""
+    """Report model loading status (all 3 engines)."""
+    from config import SOVITS_ENABLED
+    from services.sovits_process import sovits_manager
+
     tts_model = tts_engine.get_model()
     music_model, _ = music_engine.get_model()
 
     models = [
+        ModelStatus(
+            name="gpt-sovits",
+            loaded=sovits_manager.is_running if SOVITS_ENABLED else False,
+            device="cuda",
+        ),
         ModelStatus(
             name="qwen3-tts",
             loaded=tts_model is not None,
@@ -208,7 +269,4 @@ async def health_check():
         ),
     ]
 
-    # on-demand 모드: 모델 미로드도 정상 (첫 요청 시 로드)
-    status = "ok"
-
-    return HealthResponse(status=status, models=models)
+    return HealthResponse(status="ok", models=models)

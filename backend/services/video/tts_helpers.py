@@ -352,12 +352,16 @@ def _resolve_voice_ref_audio(character_id: int | None, scene_emotion: str = "") 
             asset = None
             if scene_emotion:
                 emotion_key = f"characters/{character_id}/voice_refs/{scene_emotion}.wav"
-                asset = db.query(MediaAsset).filter(
-                    MediaAsset.owner_type == "character_voice_ref",
-                    MediaAsset.owner_id == character_id,
-                    MediaAsset.storage_key == emotion_key,
-                ).first()
-            # Fallback: default 레퍼런스
+                asset = (
+                    db.query(MediaAsset)
+                    .filter(
+                        MediaAsset.owner_type == "character_voice_ref",
+                        MediaAsset.owner_id == character_id,
+                        MediaAsset.storage_key == emotion_key,
+                    )
+                    .first()
+                )
+            # Fallback 1: default 레퍼런스
             if not asset:
                 asset = (
                     db.query(MediaAsset)
@@ -368,6 +372,16 @@ def _resolve_voice_ref_audio(character_id: int | None, scene_emotion: str = "") 
                     .order_by(MediaAsset.created_at.desc())
                     .first()
                 )
+            # Fallback 2: voice preset 프리뷰 WAV
+            if not asset:
+                from models.character import Character  # noqa: PLC0415
+                from models.voice_preset import VoicePreset  # noqa: PLC0415
+
+                char = db.query(Character).filter(Character.id == character_id).first()
+                if char and char.voice_preset_id:
+                    preset = db.query(VoicePreset).filter(VoicePreset.id == char.voice_preset_id).first()
+                    if preset and preset.audio_asset_id:
+                        asset = db.query(MediaAsset).filter(MediaAsset.id == preset.audio_asset_id).first()
             if not asset:
                 return None, ""
 

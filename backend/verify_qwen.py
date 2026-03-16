@@ -9,6 +9,7 @@ from qwen_tts import Qwen3TTSModel
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def verify_qwen():
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     logger.info(f"Using device: {device}")
@@ -23,9 +24,9 @@ def verify_qwen():
         model = Qwen3TTSModel.from_pretrained(
             model_id,
             dtype=torch.bfloat16 if device == "mps" else torch.float32,
-            attn_implementation="sdpa"
+            device_map=device,
+            attn_implementation="sdpa",
         )
-        model.model.to(device)
         model.device = torch.device(device)
 
         test_text = "안녕하세요. 로컬 Qwen3 TTS 엔진이 정상적으로 작동 중입니다. 만나서 반가워요!"
@@ -37,12 +38,10 @@ def verify_qwen():
         voice_design = "밝고 활기찬 목소리"
 
         # generate_voice_design API 시용 (모델 타입에 맞춰야 함)
-        wavs, sr = model.generate_voice_design(
-            text=test_text,
-            instruct=voice_design
-        )
+        wavs, sr = model.generate_voice_design(text=test_text, instruct=voice_design)
 
         import soundfile as sf
+
         sf.write(output_path, wavs[0], sr)
 
         end_time = time.time()
@@ -55,6 +54,7 @@ def verify_qwen():
 
     except Exception as e:
         logger.error(f"Error during verification: {e}")
+
 
 if __name__ == "__main__":
     verify_qwen()

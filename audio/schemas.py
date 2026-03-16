@@ -26,6 +26,23 @@ class TTSSynthesizeResponse(BaseModel):
     cache_hit: bool = False
 
 
+# --- SoVITS ---
+class SoVITSSynthesizeRequest(BaseModel):
+    text: str = Field(..., min_length=1, description="Text to synthesize")
+    text_lang: str = Field("ko", description="Text language")
+    ref_audio_path: str = Field(..., description="Reference audio file path")
+    prompt_text: str = Field("", description="Reference audio transcript")
+    prompt_lang: str = Field("ko", description="Reference text language")
+    speed_factor: float = Field(1.0, ge=0.5, le=2.0)
+
+
+class SoVITSSynthesizeResponse(BaseModel):
+    audio_base64: str = Field(..., description="WAV audio encoded as base64")
+    sample_rate: int
+    duration: float
+    quality_passed: bool
+
+
 # --- MusicGen ---
 class MusicGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, description="Music description prompt")

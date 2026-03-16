@@ -123,9 +123,8 @@ SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
 if SD_BASE_URL == "http://127.0.0.1:7860":
     logger.info("Using default SD_BASE_URL: %s", SD_BASE_URL)
 
-# --- Audio Server (TTS + MusicGen sidecar) ---
+# --- Audio Server (SoVITS + Qwen3-TTS + MusicGen 통합 사이드카) ---
 AUDIO_SERVER_URL = os.getenv("AUDIO_SERVER_URL", "http://127.0.0.1:8001")
-SOVITS_SERVER_URL = os.getenv("SOVITS_SERVER_URL", "http://127.0.0.1:9880")
 AUDIO_TIMEOUT_SECONDS = float(os.getenv("AUDIO_TIMEOUT_SECONDS", "180"))
 MUSIC_TIMEOUT_SECONDS = float(os.getenv("MUSIC_TIMEOUT_SECONDS", "600"))  # 10min for MusicGen
 VOICE_REF_SAMPLE_TEXT = "안녕하세요. 오늘 하루도 좋은 하루 되시길 바랍니다. 함께 이야기를 나눠볼까요?"

@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Shorts Producer - Audio Server (CUDA GPU)
-# TTS (Qwen3-TTS) + BGM (MusicGen) on NVIDIA GPU
+# 3엔진 통합: GPT-SoVITS(씬TTS) + Qwen3-TTS(보이스디자인) + MusicGen(BGM)
+# SoVITS는 Audio Server가 subprocess로 관리
 
 set -e
 
@@ -10,16 +11,9 @@ AUDIO_DIR="$SCRIPT_DIR/audio"
 VENV_DIR="$AUDIO_DIR/.venv"
 PORT=8001
 
-# GPT-SoVITS
-SOVITS_DIR="$HOME/Workspace/GPT-SoVITS"
-SOVITS_VENV="$SOVITS_DIR/.venv"
-SOVITS_PORT=9880
-SOVITS_LOG_DIR="$SOVITS_DIR/logs"
-
 LOG_DIR="$AUDIO_DIR/logs"
 LOG_FILE="$LOG_DIR/audio.log"
-SOVITS_LOG_FILE="$SOVITS_LOG_DIR/sovits.log"
-mkdir -p "$LOG_DIR" "$SOVITS_LOG_DIR"
+mkdir -p "$LOG_DIR"
 
 # Colors
 GREEN='\033[0;32m'
@@ -30,8 +24,8 @@ NC='\033[0m'
 usage() {
   echo "Usage: $0 {start|stop|status|logs}"
   echo ""
-  echo "  start   - Start audio server (CUDA)"
-  echo "  stop    - Stop audio server"
+  echo "  start   - Start audio server (SoVITS + Qwen3 + MusicGen)"
+  echo "  stop    - Stop audio server (SoVITS subprocess auto-cleanup)"
   echo "  status  - Check server health"
   echo "  logs    - Tail server logs"
   exit 1
@@ -47,10 +41,6 @@ check_venv() {
 
 get_pid() {
   pgrep -f "uvicorn main:app.*--port $PORT" 2>/dev/null || true
-}
-
-get_sovits_pid() {
-  pgrep -f "api_v2.py.*-p $SOVITS_PORT" 2>/dev/null || true
 }
 
 do_start() {
@@ -70,7 +60,7 @@ do_start() {
 
   check_venv
 
-  echo -e "${GREEN}Starting audio server on port $PORT (CUDA)...${NC}"
+  echo -e "${GREEN}Starting audio server on port $PORT (SoVITS + Qwen3 + MusicGen)...${NC}"
   cd "$AUDIO_DIR"
   export CUDA_HOME=/usr/local/cuda-12.8
   export TTS_DEVICE=cuda
@@ -83,59 +73,28 @@ do_start() {
   echo -e "Logs: ${YELLOW}$LOG_FILE${NC}"
   echo ""
 
-  # Wait for audio server health
+  # Wait for health (SoVITS subprocess 포함)
   echo -n "Loading models"
-  for i in $(seq 1 60); do
+  for i in $(seq 1 90); do
     if curl -sf "http://localhost:$PORT/health" > /dev/null 2>&1; then
       echo ""
       curl -s "http://localhost:$PORT/health" | python3 -m json.tool
       echo -e "\n${GREEN}Audio server ready!${NC}"
-      break
+      return
     fi
     echo -n "."
     sleep 2
   done
-
-  # Start GPT-SoVITS API server
-  SOVITS_PID=$(get_sovits_pid)
-  if [ -n "$SOVITS_PID" ]; then
-    echo -e "${YELLOW}GPT-SoVITS already running (PID $SOVITS_PID)${NC}"
-  elif [ -d "$SOVITS_DIR" ]; then
-    echo -e "${GREEN}Starting GPT-SoVITS on port $SOVITS_PORT...${NC}"
-    cd "$SOVITS_DIR"
-    PYTHONPATH=".:GPT_SoVITS" "$SOVITS_VENV/bin/python3" api_v2.py \
-      -a 127.0.0.1 -p "$SOVITS_PORT" \
-      >> "$SOVITS_LOG_FILE" 2>&1 &
-    echo "GPT-SoVITS PID: $!"
-
-    # Wait for SoVITS health
-    echo -n "Loading SoVITS"
-    for i in $(seq 1 60); do
-      if curl -sf "http://localhost:$SOVITS_PORT/tts" > /dev/null 2>&1 || curl -sf "http://localhost:$SOVITS_PORT/" > /dev/null 2>&1; then
-        echo -e "\n${GREEN}GPT-SoVITS ready!${NC}"
-        break
-      fi
-      echo -n "."
-      sleep 2
-    done
-  else
-    echo -e "${YELLOW}GPT-SoVITS not installed at $SOVITS_DIR — skipping${NC}"
-  fi
+  echo -e "\n${RED}Startup timeout (180s)${NC}"
 }
 
 do_stop() {
   PID=$(get_pid)
   if [ -n "$PID" ]; then
     kill "$PID"
-    echo -e "${GREEN}Audio server stopped (PID $PID)${NC}"
+    echo -e "${GREEN}Audio server stopped (PID $PID) — SoVITS subprocess auto-cleanup${NC}"
   else
     echo "Audio server not running."
-  fi
-
-  SOVITS_PID=$(get_sovits_pid)
-  if [ -n "$SOVITS_PID" ]; then
-    kill "$SOVITS_PID"
-    echo -e "${GREEN}GPT-SoVITS stopped (PID $SOVITS_PID)${NC}"
   fi
 }
 

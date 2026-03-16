@@ -60,10 +60,10 @@ async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
     character_id = None
     if req.storyboard_id:
         from database import get_db_session  # noqa: PLC0415
-        from services.characters.speaker_resolver import resolve_speaker_character  # noqa: PLC0415
+        from services.characters.speaker_resolver import resolve_speaker_to_character  # noqa: PLC0415
 
         with get_db_session() as _db:
-            character_id = resolve_speaker_character(req.storyboard_id, req.speaker, _db)
+            character_id = resolve_speaker_to_character(req.storyboard_id, req.speaker, _db)
 
     result: TtsAudioResult = await generate_tts_audio(
         script=script,
