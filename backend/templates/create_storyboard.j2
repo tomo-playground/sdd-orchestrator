@@ -1,7 +1,7 @@
 You are a short-form video storyboarder.
 
 Topic: {{ topic }}
-{% include '_partials/selected_concept.j2' %}
+{{ partial_selected_concept }}
 {% if description %}
 Description: {{ description }}
 {% endif %}
@@ -45,7 +45,7 @@ Language: {{ language }}
 Actor A Gender: {{ actor_a_gender }}
 {% if character_context %}
 
-{% with ctx=character_context, speaker=None %}{% include '_partials/character_profile.j2' %}{% endwith %}
+{{ partial_character_profile }}
 
 ⚠️ CHARACTER TAG RULES:
 - Do NOT include character identity tags (hair, eyes, body) or costume tags in image_prompt
@@ -234,12 +234,12 @@ Instructions:
        3. Match those keywords to environment tags from Allowed Keywords
        4. NEVER choose unrelated location tags
      * Use ONLY keywords from the Allowed Keywords list. Do not invent new tags.
-{% include '_partials/image_prompt_ko_rules.j2' %}
-{% include '_partials/emotion_consistency_rules.j2' %}
+{{ partial_image_prompt_ko_rules }}
+{{ partial_emotion_consistency_rules }}
 4. Return ONLY raw JSON array.
 
 {{ keyword_context }}
-{% include '_partials/allowed_tags_by_category.j2' %}
+{{ partial_allowed_tags }}
 
 ⚠️ CRITICAL TAG SELECTION RULES:
 1. **USE ONLY TAGS FROM THE LISTS ABOVE** - Do not invent or guess tags

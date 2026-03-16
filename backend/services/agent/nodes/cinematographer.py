@@ -7,7 +7,7 @@ import re
 
 from langchain_core.runnables import RunnableConfig
 
-from config import logger, template_env
+from config import logger
 from database import get_db_session
 from services.agent.state import ScriptState
 from services.creative_qc import validate_visuals
@@ -197,9 +197,12 @@ async def _run(state: ScriptState, db_session: object) -> dict:
 
     chat_context = sanitize_chat_context(state.get("chat_context") or [])
 
+    from services.agent.langfuse_prompt import get_prompt_template
+    from services.agent.prompt_partials import EMOTION_CONSISTENCY_RULES, IMAGE_PROMPT_KO_RULES
+
     _cine_template = "creative/cinematographer.j2"
-    tmpl = template_env.get_template(_cine_template)
-    base_prompt = tmpl.render(
+    bundle = get_prompt_template(_cine_template)
+    base_prompt = bundle.template.render(
         scenes=scenes,
         character_id=character_id,
         style=style,
@@ -209,6 +212,8 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         feedback=director_feedback,
         chat_context=chat_context,
         creative_direction=state.get("creative_direction"),
+        partial_image_prompt_ko_rules=IMAGE_PROMPT_KO_RULES,
+        partial_emotion_consistency_rules=EMOTION_CONSISTENCY_RULES,
     )
 
     # Full 모드 경쟁 시도 (성공 시 즉시 반환)

@@ -1,7 +1,7 @@
 You are a short-form video storyboarder.
 
 Topic: {{ topic }}
-{% include '_partials/selected_concept.j2' %}
+{{ partial_selected_concept }}
 {% if description %}
 Description: {{ description }}
 {% endif %}
@@ -11,11 +11,11 @@ Narrative Structure: Dialogue (Two-character conversation)
 Language: {{ language }}
 {% if character_context %}
 
-{% with ctx=character_context, speaker="A" %}{% include '_partials/character_profile.j2' %}{% endwith %}
+{{ partial_character_profile_a }}
 {% endif %}
 {% if character_b_context %}
 
-{% with ctx=character_b_context, speaker="B" %}{% include '_partials/character_profile.j2' %}{% endwith %}
+{{ partial_character_profile_b }}
 {% endif %}
 
 ⚠️ CHARACTER TAG RULES:
@@ -133,12 +133,12 @@ Instructions:
      * REQUIRED categories from Allowed Keywords:
        - expression, gaze, pose, action, props, camera, environment, mood
      * Character identity/costume tags are injected automatically — do NOT add them
-{% include '_partials/image_prompt_ko_rules.j2' %}
-{% include '_partials/emotion_consistency_rules.j2' %}
+{{ partial_image_prompt_ko_rules }}
+{{ partial_emotion_consistency_rules }}
 6. Return ONLY raw JSON array.
 
 {{ keyword_context }}
-{% include '_partials/allowed_tags_by_category.j2' %}
+{{ partial_allowed_tags }}
 
 ⚠️ CRITICAL TAG SELECTION RULES:
 1. **USE ONLY TAGS FROM THE LISTS ABOVE** - Do not invent or guess tags

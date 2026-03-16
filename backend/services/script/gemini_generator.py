@@ -10,7 +10,6 @@ from config import (
     GEMINI_TEXT_MODEL,
     gemini_client,
     logger,
-    template_env,
 )
 from models.associations import CharacterTag
 from models.character import Character
@@ -293,13 +292,34 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         template_name = preset.template if preset else "create_storyboard.j2"
         extra_fields = preset.extra_fields if preset else {}
 
-        template = template_env.get_template(template_name)
+        from services.agent.langfuse_prompt import get_prompt_template
+        from services.agent.prompt_partials import (
+            EMOTION_CONSISTENCY_RULES,
+            IMAGE_PROMPT_KO_RULES,
+            render_allowed_tags,
+            render_character_profile,
+            render_selected_concept,
+        )
+
+        bundle = get_prompt_template(template_name)
 
         # 파이프라인 컨텍스트 (research_brief, writer_plan 등) 주입
         ctx = pipeline_context or {}
         keyword_context, allowed_tags = get_keyword_context_and_tags()
         safe_topic = _sanitize_for_gemini_prompt(request.topic)
-        rendered = template.render(
+
+        # 파셜 pre-render ({% include %} 대체)
+        partial_vars = {
+            "partial_selected_concept": render_selected_concept(request.selected_concept),
+            "partial_character_profile": render_character_profile(character_context),
+            "partial_character_profile_a": render_character_profile(character_context, "A"),
+            "partial_character_profile_b": render_character_profile(character_b_context, "B"),
+            "partial_image_prompt_ko_rules": IMAGE_PROMPT_KO_RULES,
+            "partial_emotion_consistency_rules": EMOTION_CONSISTENCY_RULES,
+            "partial_allowed_tags": render_allowed_tags(allowed_tags),
+        }
+
+        rendered = bundle.template.render(
             topic=safe_topic,
             description=request.description or "",
             duration=request.duration,
@@ -323,6 +343,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             revision_feedback=ctx.get("revision_feedback", ""),
             current_script_summary=ctx.get("current_script_summary", ""),
             chat_context=sanitize_chat_context(ctx.get("chat_context", [])),
+            **partial_vars,
             **extra_fields,
         )
         from services.llm import LLMConfig, get_llm_provider

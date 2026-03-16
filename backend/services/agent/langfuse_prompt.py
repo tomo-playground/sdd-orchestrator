@@ -49,6 +49,12 @@ LANGFUSE_MANAGED_TEMPLATES: frozenset[str] = frozenset(
         "creative/explain.j2",
         "creative/director_evaluate.j2",
         "creative/review_unified.j2",
+        # --- include 제거 완료 (Phase 2 파셜→변수 전환) ---
+        "creative/cinematographer.j2",
+        "create_storyboard.j2",
+        "create_storyboard_confession.j2",
+        "create_storyboard_dialogue.j2",
+        "create_storyboard_narrated.j2",
     }
 )
 

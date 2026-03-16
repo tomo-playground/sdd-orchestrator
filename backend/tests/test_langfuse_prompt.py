@@ -39,7 +39,7 @@ class TestManagedTemplates:
     """LangFuse 관리 템플릿 목록 검증."""
 
     def test_count(self):
-        assert len(LANGFUSE_MANAGED_TEMPLATES) == 23  # A등급 14 + B등급 9
+        assert len(LANGFUSE_MANAGED_TEMPLATES) == 28  # A등급 14 + B등급 9 + include제거 5
 
     def test_backward_compat_alias(self):
         assert A_GRADE_TEMPLATES is LANGFUSE_MANAGED_TEMPLATES
@@ -58,8 +58,8 @@ class TestManagedTemplates:
             assert "{% include" not in content, f"관리 대상 {t}에 include 발견 — 제외 필요"
 
     def test_b_grade_templates_included(self):
-        """B등급 include 없는 9개가 포함되었는지 확인."""
-        b_grade = {
+        """B등급 9개 + include 제거 5개 포함 확인."""
+        expected = {
             "creative/director.j2",
             "creative/scriptwriter.j2",
             "creative/director_plan.j2",
@@ -69,8 +69,13 @@ class TestManagedTemplates:
             "creative/explain.j2",
             "creative/director_evaluate.j2",
             "creative/review_unified.j2",
+            "creative/cinematographer.j2",
+            "create_storyboard.j2",
+            "create_storyboard_confession.j2",
+            "create_storyboard_dialogue.j2",
+            "create_storyboard_narrated.j2",
         }
-        assert b_grade.issubset(LANGFUSE_MANAGED_TEMPLATES)
+        assert expected.issubset(LANGFUSE_MANAGED_TEMPLATES)
 
 
 class TestPromptBundle:
@@ -95,13 +100,13 @@ class TestPromptBundle:
 class TestGetPromptTemplate:
     """get_prompt_template() 동작 테스트."""
 
-    def test_include_template_always_file_fallback(self):
-        """{% include %} 사용 템플릿은 항상 로컬 파일."""
-        bundle = get_prompt_template("creative/cinematographer.j2")
+    def test_unmanaged_template_always_file_fallback(self):
+        """LANGFUSE_MANAGED_TEMPLATES 외 템플릿은 항상 로컬 파일."""
+        # _partials는 managed 목록에 없으므로 file fallback
+        bundle = get_prompt_template("_partials/character_profile.j2")
         assert isinstance(bundle, PromptBundle)
         assert bundle.langfuse_prompt is None
         assert bundle.system_instruction is None
-        assert hasattr(bundle.template, "render")
 
     def test_b_grade_managed_uses_langfuse(self):
         """B등급(include 없음)도 LangFuse에서 fetch."""
@@ -226,3 +231,52 @@ class TestGetPromptTemplate:
             bundle = get_prompt_template("creative/sound_designer.j2")
             rendered = bundle.template.render(data={"key": "value"})
             assert '"key"' in rendered
+
+
+class TestPromptPartials:
+    """prompt_partials 렌더 테스트."""
+
+    def test_static_partials_not_empty(self):
+        from services.agent.prompt_partials import EMOTION_CONSISTENCY_RULES, IMAGE_PROMPT_KO_RULES
+
+        assert len(IMAGE_PROMPT_KO_RULES) > 100
+        assert len(EMOTION_CONSISTENCY_RULES) > 100
+
+    def test_render_selected_concept_none(self):
+        from services.agent.prompt_partials import render_selected_concept
+
+        assert render_selected_concept(None) == ""
+
+    def test_render_selected_concept_with_data(self):
+        from services.agent.prompt_partials import render_selected_concept
+
+        result = render_selected_concept({"title": "Test", "concept": "Story", "strengths": ["a"]})
+        assert "SELECTED CONCEPT" in result
+        assert "Title: Test" in result
+        assert "Strengths: a" in result
+
+    def test_render_character_profile_none(self):
+        from services.agent.prompt_partials import render_character_profile
+
+        assert render_character_profile(None) == ""
+
+    def test_render_character_profile_with_speaker(self):
+        from services.agent.prompt_partials import render_character_profile
+
+        ctx = {"name": "Harin", "gender": "female", "description": "Cheerful", "costume_tags": ["uniform"]}
+        result = render_character_profile(ctx, "A")
+        assert "SPEAKER A" in result
+        assert "Harin" in result
+        assert "uniform" in result
+
+    def test_render_allowed_tags_empty(self):
+        from services.agent.prompt_partials import render_allowed_tags
+
+        assert render_allowed_tags({}) == ""
+
+    def test_render_allowed_tags_with_data(self):
+        from services.agent.prompt_partials import render_allowed_tags
+
+        result = render_allowed_tags({"camera": ["close-up", "cowboy_shot"], "mood": ["peaceful"]})
+        assert "close-up" in result
+        assert "peaceful" in result
