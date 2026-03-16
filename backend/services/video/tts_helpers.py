@@ -334,9 +334,10 @@ def _calculate_min_duration(cleaned: str, default_min: float) -> float:
     return default_min
 
 
-def _resolve_voice_ref_audio(character_id: int | None) -> tuple[str | None, str]:
+def _resolve_voice_ref_audio(character_id: int | None, scene_emotion: str = "") -> tuple[str | None, str]:
     """캐릭터의 TTS 레퍼런스 오디오 로컬 경로를 해석한다. (SoVITS용)
 
+    감정별 레퍼런스 우선 탐색 → 없으면 default fallback.
     MinIO에서 다운로드 후 로컬 캐시 경로를 반환.
     Returns: (local_file_path, ref_text) or (None, "")
     """
@@ -347,15 +348,26 @@ def _resolve_voice_ref_audio(character_id: int | None) -> tuple[str | None, str]
         from models.media_asset import MediaAsset  # noqa: PLC0415
 
         with get_db_session() as db:
-            asset = (
-                db.query(MediaAsset)
-                .filter(
+            # 감정별 레퍼런스 우선 탐색
+            asset = None
+            if scene_emotion:
+                emotion_key = f"characters/{character_id}/voice_refs/{scene_emotion}.wav"
+                asset = db.query(MediaAsset).filter(
                     MediaAsset.owner_type == "character_voice_ref",
                     MediaAsset.owner_id == character_id,
+                    MediaAsset.storage_key == emotion_key,
+                ).first()
+            # Fallback: default 레퍼런스
+            if not asset:
+                asset = (
+                    db.query(MediaAsset)
+                    .filter(
+                        MediaAsset.owner_type == "character_voice_ref",
+                        MediaAsset.owner_id == character_id,
+                    )
+                    .order_by(MediaAsset.created_at.desc())
+                    .first()
                 )
-                .order_by(MediaAsset.created_at.desc())
-                .first()
-            )
             if not asset:
                 return None, ""
 
@@ -447,7 +459,7 @@ def _resolve_tts_params(
         image_prompt_ko=image_prompt_ko,
         speaker=speaker,
     )
-    ref_audio_path, ref_text = _resolve_voice_ref_audio(character_id)
+    ref_audio_path, ref_text = _resolve_voice_ref_audio(character_id, scene_emotion)
     return _ResolvedTtsParams(
         tts_text=tts_text,
         cleaned=cleaned,

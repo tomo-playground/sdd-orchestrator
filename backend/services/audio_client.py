@@ -83,6 +83,38 @@ def _extract_server_error(resp: httpx.Response) -> str:
     return f"HTTP {resp.status_code}"
 
 
+def _normalize_korean_text(text: str) -> str:
+    """한국어 텍스트 정규화 — 숫자/영어/특수문자를 SoVITS G2P가 처리 가능한 형태로 변환."""
+    import re  # noqa: PLC0415
+
+    # 숫자+단위 변환 (기본적인 케이스만)
+    text = re.sub(r"(\d+)%", r"\1퍼센트", text)
+    text = re.sub(r"(\d+)원", lambda m: _num_to_korean(int(m.group(1))) + "원", text)
+    text = re.sub(r"(\d+)개", lambda m: _num_to_korean(int(m.group(1))) + "개", text)
+    text = re.sub(r"(\d+)명", lambda m: _num_to_korean(int(m.group(1))) + "명", text)
+    # 남은 순수 숫자
+    text = re.sub(r"\b(\d+)\b", lambda m: _num_to_korean(int(m.group(1))), text)
+    # 특수문자 정리
+    text = text.replace("...", "…").replace("~", "")
+    return text
+
+
+def _num_to_korean(n: int) -> str:
+    """정수를 한국어 읽기로 변환 (간단 버전)."""
+    if n == 0:
+        return "영"
+    units = ["", "만", "억"]
+    parts = []
+    for u in units:
+        if n == 0:
+            break
+        chunk = n % 10000
+        if chunk > 0:
+            parts.append(f"{chunk}{u}")
+        n //= 10000
+    return "".join(reversed(parts))
+
+
 async def _synthesize_sovits(
     text: str,
     ref_audio_path: str,
@@ -91,6 +123,8 @@ async def _synthesize_sovits(
 ) -> tuple[bytes, int, float, bool]:
     """Call GPT-SoVITS /tts endpoint. Returns (wav_bytes, sample_rate, duration, quality_passed)."""
     from config import SOVITS_SERVER_URL  # noqa: PLC0415
+
+    text = _normalize_korean_text(text)
 
     payload = {
         "text": text,
