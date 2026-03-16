@@ -956,18 +956,20 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     sound_rec: dict | None = None
     copyright_result: dict | None = None
 
-    if "production" not in (state.get("skip_stages") or []) and state.get("cinematographer_result"):
+    if state.get("cinematographer_result"):
+        # Full 모드 또는 FastTrack(cinematographer만 실행) — 공통으로 cinematographer 결과 사용
         scenes, sound_rec, copyright_result = _merge_production_results(state)
     else:
         scenes = [copy.deepcopy(s) for s in (state.get("draft_scenes") or [])]
-        # FastTrack: production skip 시 기본 BGM 추천 생성
-        if not sound_rec:
-            topic = state.get("topic", "")
-            sound_rec = {
-                "prompt": f"soft background music for short video about {topic}",
-                "mood": "neutral",
-                "duration": state.get("duration", 30),
-            }
+
+    # BGM fallback: sound_designer 미실행 시 기본 BGM 추천
+    if not sound_rec:
+        topic = state.get("topic", "")
+        sound_rec = {
+            "prompt": f"soft background music for short video about {topic}",
+            "mood": "neutral",
+            "duration": state.get("duration", 30),
+        }
 
     # Defense: Cinematographer may overwrite speaker assignments → re-enforce A/B alternation
     structure = (state.get("structure") or "").lower()

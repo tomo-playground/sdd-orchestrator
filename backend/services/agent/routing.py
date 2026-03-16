@@ -139,15 +139,24 @@ def route_after_review(state: ScriptState) -> str:
                 LANGGRAPH_MAX_REVISIONS,
             )
 
-    # passed 또는 max_revision 도달 → production skip: finalize / else: director_checkpoint
-    if "production" in (state.get("skip_stages") or []):
-        return "finalize"
+    # passed 또는 max_revision 도달 → production skip 여부에 따라 분기
+    skip = set(state.get("skip_stages") or [])
+    if "production" in skip:
+        # FastTrack: cinematographer만 실행 (캐릭터 일관성 + 카메라 다양성)
+        # director_checkpoint / tts_designer / sound_designer / copyright_reviewer는 skip
+        return "cinematographer"
     return "director_checkpoint"
 
 
 def route_after_cinematographer(state: ScriptState) -> list[str] | str:
-    """cinematographer 이후: 에러 → finalize, 정상 → 3개 병렬 fan-out."""
+    """cinematographer 이후: 에러 → finalize, 정상 → 3개 병렬 fan-out.
+
+    FastTrack(production skip): fan-out 없이 finalize 직행.
+    """
     if _has_error(state):
+        return "finalize"
+    skip = set(state.get("skip_stages") or [])
+    if "production" in skip:
         return "finalize"
     return ["tts_designer", "sound_designer", "copyright_reviewer"]
 
