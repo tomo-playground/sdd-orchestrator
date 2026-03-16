@@ -174,8 +174,8 @@ IP_ADAPTER_MODELS = {
     "clip_face": "ip-adapter-plus-face_sdxl_vit-h",  # Face + style (SDXL)
 }
 
-# Default IP-Adapter for anime characters
-DEFAULT_IP_ADAPTER_MODEL = "clip_face"
+# Default IP-Adapter for anime characters (NoobAI-XL: clip(NOOB-IPA-MARK1) 권장)
+DEFAULT_IP_ADAPTER_MODEL = "clip"
 
 
 def check_controlnet_available() -> bool:
@@ -610,11 +610,15 @@ def build_ip_adapter_args(
     # Select module and control_mode based on model type
     # Forge built-in ControlNet uses different module names than A1111
     if model == "faceid":
-        module = "InsightFace+CLIP-H (IPAdapter)"  # Forge name for face ID
+        module = "InsightFace+CLIP-H (IPAdapter)"
         control_mode = "ControlNet is more important"
         default_end = DEFAULT_IP_ADAPTER_GUIDANCE_END_FACEID
+    elif "NOOB-IPA" in model_name.upper():
+        module = "CLIP-ViT-bigG (IPAdapter)"  # NOOB-IPA-MARK1: ViT-bigG 1280
+        control_mode = "Balanced"
+        default_end = DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP
     else:
-        module = "CLIP-ViT-H (IPAdapter)"  # Forge name for CLIP-based IP-Adapter
+        module = "CLIP-ViT-H (IPAdapter)"  # SDXL 범용: ViT-H 1024
         control_mode = "Balanced"
         default_end = DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP
 
