@@ -140,6 +140,26 @@ def _validate_scenes(
             if s not in speakers_found:
                 errors.append(f"Dialogue 구조에서 speaker '{s}'가 등장하지 않음 — 반드시 A와 B 모두 포함해야 함")
 
+        # (a) Speaker 비율 검증: A,B 모두 존재할 때만 비율 검사 (누락은 위에서 별도 처리)
+        non_narrator = [sc for sc in scenes if sc.get("speaker") in ("A", "B")]
+        if "A" in speakers_found and "B" in speakers_found and len(non_narrator) >= 2:
+            a_count = sum(1 for sc in non_narrator if sc.get("speaker") == "A")
+            b_count = len(non_narrator) - a_count
+            total = len(non_narrator)
+            for label, cnt in [("A", a_count), ("B", b_count)]:
+                pct = cnt / total * 100
+                if pct < 20:
+                    errors.append(
+                        f"Dialogue 구조에서 speaker 비율 불균형 — {label}가 {pct:.0f}%로 최소 20% 미만 (A={a_count}, B={b_count}, 총 {total}씬)"
+                    )
+
+        # (b) Narrator 존재 검증 (Narrated Dialogue 전용)
+        if structure.replace("_", " ") == "Narrated Dialogue":
+            if "Narrator" not in speakers_found:
+                warnings.append(
+                    f"Narrated Dialogue에서 Narrator 씬 없음 — 환경/분위기 묘사 씬 권장 (현재 {len(scenes)}씬 모두 캐릭터)"
+                )
+
     passed = len(errors) == 0
 
     # 사용자용 요약 메시지 생성

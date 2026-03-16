@@ -26,6 +26,7 @@ _DURATION_DEFICIT_RE = re.compile(r"총 duration 부족")
 _DURATION_OVERFLOW_RE = re.compile(r"총 duration 초과")
 _INVALID_SPEAKER_RE = re.compile(r"speaker='A' 또는 'Narrator'만 허용")
 _DIALOGUE_MISSING_SPEAKER_RE = re.compile(r"Dialogue 구조에서 speaker '([AB])'가 등장하지 않음")
+_SPEAKER_IMBALANCE_RE = re.compile(r"speaker 비율 불균형")
 
 
 def _has_duration_deficit(errors: list[str]) -> bool:
@@ -74,6 +75,9 @@ def _try_rule_fix(scenes: list[dict], errors: list[str], *, fallback_prompt: str
                 logger.info("[Revise] Dialogue speaker 교대 배정: %d개 non-Narrator 씬", len(non_narrator))
             else:
                 unresolved += 1
+        elif _SPEAKER_IMBALANCE_RE.search(err):
+            # 비율 불균형은 기계적 수정 불가 → Tier 3 재생성으로 위임
+            unresolved += 1
         else:
             unresolved += 1
     return unresolved == 0
