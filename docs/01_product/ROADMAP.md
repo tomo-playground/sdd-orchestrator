@@ -44,6 +44,7 @@
 | **Phase 32 (Auto Run Pipeline Hardening)** | **전체 완료 (ARCHIVED)** |
 | **Phase 33 (Hybrid Match Rate)** | **전체 완료 (ARCHIVED)** |
 | **TTS 파이프라인 일원화 (Sprint A~D)** | **전체 완료 (ARCHIVED)** |
+| **Phase 35 (GPT-SoVITS TTS 전환)** | **전체 완료** |
 | 테스트 | Backend 3,517 + Frontend 543 + E2E 36 = **총 4,096개** |
 
 ### 진행 중
@@ -52,6 +53,7 @@
 
 ### 최근 작업
 
+- **03-17 Phase 35 완료**: GPT-SoVITS v2 TTS 통합 — SoVITS(:9880 일상TTS) + Qwen3(:8001 보이스디자인 on-demand) + MusicGen(CPU 상주). audio_client SoVITS→Qwen3 fallback, 캐릭터 보이스 레퍼런스 API, 감정별 레퍼런스 탐색, Text Normalization, E2E 검증 완료. SSOT 위반 P0~P2 52건+ 정리
 - **03-17 이미지 품질 개선 + 오디오 상주 모드**: 씬 배경 사라짐 근본 수정(캐릭터 negative 정리, scenery 자동주입, IP-Adapter/Reference AdaIN 비활성화), StyleProfile flat_color_v2:0.3 최적화, IP-Adapter weight SSOT 통일(Backend+Frontend), MeMaXL v6 설치, 오디오 서버 persistent 모드(TTS GPU + MusicGen CPU 상주 로드)
 - **03-17 Speaker Balance 검증 강화**: Narrated Dialogue 캐릭터 배분 수정 — Review에 비율 검증(20% 미만 ERROR) + Narrator 존재 검증(WARNING) 추가, Revise에서 비율 불균형 Tier 3 재생성 위임, ensure_dialogue_speakers 최종 방어선 비율 검사. 테스트 24개 PASS
 - **03-17 화풍/IP-Adapter/프롬프트 품질 개선**: Romantic Warm Anime StyleProfile 구축(flat_color+감성조명), IP-Adapter clip_face→clip(NOOB-IPA-MARK1) SD1.5 잔재 전수 정리, ControlNet 모델명 동적 resolve(Forge 해시 풀네임 호환), CLIP-ViT-bigG preprocessor 자동 매칭, 프롬프트 이중 괄호 방지(weight 재감싸기), TTS 503 재시도(모델 로드 대기), autoSave 무한 재시도 방지, Voice Preset 정비(15개 라인업), Pose 다양성 테스트 12개, system_instruction 사용자 데이터 분리. "우리가 닿는 순간" 시리즈 + 캐릭터(하린/준서) 구축
@@ -163,7 +165,7 @@ graph LR
     P30 --> P31["Phase 31<br/>UX Navigation<br/>Overhaul"]
     P31 --> P32["Phase 32<br/>Auto Run<br/>Pipeline"]
     P32 --> P33["Phase 33<br/>Hybrid<br/>Match Rate"]
-    P33 --> P34["Phase 34<br/>GPU 순차 독점<br/>& BGM 고도화"]
+    P33 -.-> P34["Phase 34<br/>GPU 순차 독점<br/>& BGM 고도화<br/>(DROPPED)"]
 
     style P5 fill:#4CAF50,color:#fff
     style P6 fill:#4CAF50,color:#fff
@@ -202,7 +204,7 @@ graph LR
     style P31 fill:#4CAF50,color:#fff
     style P32 fill:#4CAF50,color:#fff
     style P33 fill:#4CAF50,color:#fff
-    style P34 fill:#9E9E9E,color:#fff
+    style P34 fill:#F44336,color:#fff
 ```
 
 ---
@@ -249,7 +251,7 @@ Phase 20 이후 또는 우선순위 미정 항목.
 
 | 기능 | 참조 |
 |------|------|
-| **Phase 34: GPU 순차 독점 실행 & BGM 고도화** | Sprint A (GpuModelCache) → B (GpuCoordinator + Forge 연동) → C (ACE-Step 교체). [명세](FEATURES/AUDIO_SERVER_GPU_OPTIMIZATION.md) |
+| ~~Phase 34: GPU 순차 독점 실행 & BGM 고도화~~ | **드롭** — ComfyUI 전환으로 GPU 관리 방식 자체가 변경될 예정. Forge 전용 `forge_control.py` 구현이 무의미해짐. BGM(ACE-Step) 고도화는 별도 항목으로 재검토 |
 | **LLM Provider 추상화 Phase A~E 완료** | [설계](../03_engineering/backend/LLM_PROVIDER_ABSTRACTION.md) — `services/llm/` 패키지 구축, `google.genai` 직결 제거, trace + PROHIBITED fallback 중복 해소. Phase F(OllamaProvider)는 아래 LiteLLM 항목으로 대체 예정 |
 | **LiteLLM SDK 도입 (Phase F 대체)** | Gemini 외 두 번째 Provider 실제 도입 시점에 착수. `GeminiProvider` 내부를 LiteLLM 호출로 교체 → 100+ Provider 지원, 폴백/재시도 내장, `OllamaProvider` 직접 구현 불필요. 트레이스 중복 방지를 위해 LiteLLM 자동 LangFuse 콜백 비활성화 + 기존 `trace_llm_call()` 유지 필수. OSS LLMOps Stack(LangGraph + LangFuse + LiteLLM) 표준 조합 완성. **착수 조건**: Ollama/Claude 등 두 번째 Provider 실제 사용 확정 시 |
 | PipelineControl 커스텀 (노드 on/off) + 분산 큐 (Celery/Redis) | Phase 9-4 잔여 |
@@ -258,7 +260,7 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | 분석 대시보드 (Match Rate 추이, 프로젝트 간 비교) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | **파이프라인 이상 탐지 자동화** | 시스템 상태 통합 health API, 파이프라인 완료 시 자동 검증 (speaker 배분, TTS 실패, 이미지 미생성), LangFuse 이상 탐지 (노드 실패율/소요시간), GPU VRAM 모니터링 |
 | **SSOT 위반 정리 (P1~P3, 49건)** | Backend: 기존 상수 참조 누락 13건 + 신규 상수 정의 9건. Frontend: Store 초기값 6건, 해상도 832x1216 6건, Hi-Res/Preflight/SAMPLERS/TTS_ENGINE 등 12건, CATEGORY_DESCRIPTIONS 2건. `/presets` API로 generation_defaults 확장 필요 |
-| **Phase 35: GPT-SoVITS v2 TTS 전환** | Qwen3-TTS → GPT-SoVITS v2. 레퍼런스 오디오 기반 음색 고정, 감정별 레퍼런스 5종, Text Normalization, VRAM 2GB, Fallback 체인. 4일 소요 |
+| ~~Phase 35: GPT-SoVITS v2 TTS 전환~~ | **완료** — SoVITS(:9880) + Qwen3(보이스디자인 on-demand) + MusicGen(CPU). GPU 전환은 cu128 대기 |
 | **클라우드 TTS/BGM 전환** | Replicate(현재 모델 클라우드 실행) 또는 ElevenLabs/Suno. GPU 경합 완전 해소, 비용 발생 |
 | **씬 단위 순차 생성** | IMAGE→TTS를 씬별로 처리 (현재: 전체 IMAGE→전체 TTS). GPU 순차 독점 자연 해결 + 즉시 프리뷰 |
-| **ComfyUI 마이그레이션 (SD Backend 추상화)** | ForgeUI 직결합 → SDClientBase 추상화 → ComfyUI 전환. 캐릭터 일관성(InstantID/PuLID), Forge 종속 해소, 노드 기반 파이프라인 유연성. Sprint A~E(추상화 10~13일) + F~H(scripts 정리 + ComfyUI 구현 6~8일). Phase 34 완료 후 착수 권장. [명세](FEATURES/COMFYUI_MIGRATION.md) |
+| **ComfyUI 마이그레이션 (SD Backend 추상화)** | ForgeUI 직결합 → SDClientBase 추상화 → ComfyUI 전환. 캐릭터 일관성(InstantID/PuLID), Forge 종속 해소, 노드 기반 파이프라인 유연성. Sprint A~E(추상화 10~13일) + F~H(scripts 정리 + ComfyUI 구현 6~8일). [명세](FEATURES/COMFYUI_MIGRATION.md) |
