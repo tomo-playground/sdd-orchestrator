@@ -54,11 +54,26 @@ async def _idle_watchdog():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start idle watchdog. Models load on-demand (GPU 경합 방지)."""
-    logger.info("[Startup] On-demand mode — TTS/MusicGen load on first request")
-    watchdog = asyncio.create_task(_idle_watchdog())
+    """Start audio server. Persistent mode preloads TTS at startup."""
+    from config import MODEL_IDLE_TIMEOUT_SECONDS
+
+    persistent = MODEL_IDLE_TIMEOUT_SECONDS <= 0
+    watchdog = None
+
+    if persistent:
+        logger.info("[Startup] Persistent mode — preloading TTS + MusicGen")
+        await asyncio.to_thread(tts_engine.load_model)
+        logger.info("[Startup] TTS model loaded (GPU)")
+        await asyncio.to_thread(music_engine.load_model)
+        logger.info("[Startup] MusicGen model loaded (CPU), idle watchdog disabled")
+    else:
+        logger.info("[Startup] On-demand mode — TTS loads on first request (idle=%ds)", MODEL_IDLE_TIMEOUT_SECONDS)
+        watchdog = asyncio.create_task(_idle_watchdog())
+
     yield
-    watchdog.cancel()
+
+    if watchdog:
+        watchdog.cancel()
     logger.info("[Shutdown] Audio Server stopped")
 
 
@@ -186,12 +201,12 @@ async def health_check():
         ModelStatus(
             name="qwen3-tts",
             loaded=tts_model is not None,
-            device=tts_engine.get_device() if tts_model else "none",
+            device=tts_engine.get_device(),
         ),
         ModelStatus(
             name="musicgen-small",
             loaded=music_model is not None,
-            device=music_engine.get_device() if music_model else "none",
+            device=music_engine.get_device(),
         ),
     ]
 

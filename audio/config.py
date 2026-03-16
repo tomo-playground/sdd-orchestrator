@@ -34,8 +34,9 @@ MUSICGEN_SAMPLE_RATE = int(os.getenv("MUSICGEN_SAMPLE_RATE", "32000"))
 MUSICGEN_TOKENS_PER_SECOND = 50  # EnCodec: 50 auto-regressive steps per second
 
 # --- Idle Auto-Unload ---
-# GPU 메모리 절약: N초간 요청 없으면 모델 자동 언로드 (다음 요청 시 재로드)
-MODEL_IDLE_TIMEOUT_SECONDS = int(os.getenv("MODEL_IDLE_TIMEOUT_SECONDS", "120"))  # 2분
+# 0 = persistent mode (시작 시 로드, 언로드 안 함)
+# >0 = on-demand mode (N초간 요청 없으면 자동 언로드)
+MODEL_IDLE_TIMEOUT_SECONDS = int(os.getenv("MODEL_IDLE_TIMEOUT_SECONDS", "0"))  # 기본: 상주
 
 # --- Cache ---
 _default_cache = "/app/cache" if pathlib.Path("/app").exists() else str(pathlib.Path.home() / ".cache" / "audio-server")
