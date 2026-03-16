@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from config import logger
+from config import DEFAULT_IP_ADAPTER_WEIGHT, DEFAULT_REFERENCE_ONLY_WEIGHT, logger
 from services.controlnet import load_reference_image
 
 
@@ -22,7 +22,7 @@ class ConsistencyRequest:
     ip_adapter_reference: str | None = None
     ip_adapter_weight: float | None = None
     use_reference_only: bool = False
-    reference_only_weight: float = 0.6
+    reference_only_weight: float = DEFAULT_REFERENCE_ONLY_WEIGHT
 
 
 @dataclass(frozen=True)
@@ -36,14 +36,14 @@ class ConsistencyStrategy:
     # IP-Adapter
     ip_adapter_enabled: bool = False
     ip_adapter_reference: str | None = None
-    ip_adapter_weight: float = 0.35
+    ip_adapter_weight: float = DEFAULT_IP_ADAPTER_WEIGHT
     ip_adapter_model: str | None = None
     ip_adapter_guidance_start: float | None = None
     ip_adapter_guidance_end: float | None = None
 
     # Reference-only (skipped when IP-Adapter is active)
     reference_only_enabled: bool = False
-    reference_only_weight: float = 0.6
+    reference_only_weight: float = DEFAULT_REFERENCE_ONLY_WEIGHT
 
     # Meta
     quality_score: str = "low"  # "high" | "medium" | "low"

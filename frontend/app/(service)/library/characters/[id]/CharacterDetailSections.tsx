@@ -183,7 +183,7 @@ export function VoicePresetSection({ form, onChange }: VoicePresetProps) {
 }
 
 // ── IP-Adapter ──────────────────────────────────────────────
-const IP_ADAPTER_MODELS = ["clip_face", "clip", "faceid"] as const;
+const IP_ADAPTER_MODELS = ["clip_face", "clip"] as const;
 
 type IpAdapterProps = {
   form: CharacterFormData;

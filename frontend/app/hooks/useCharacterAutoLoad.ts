@@ -102,7 +102,7 @@ export function useCharacterAutoLoad() {
         ? {
             useIpAdapter: !!match,
             ipAdapterReference: match?.character_key || "",
-            ipAdapterWeight: match?.preset?.weight ?? charFull.ip_adapter_weight ?? 0.75,
+            ipAdapterWeight: match?.preset?.weight ?? charFull.ip_adapter_weight ?? 0.35,
           }
         : {};
       sbSet({
@@ -158,7 +158,7 @@ export function useCharacterAutoLoad() {
       const ipAdapterBUpdates = refsLoadedRef.current
         ? {
             ipAdapterReferenceB: matchB?.character_key || "",
-            ipAdapterWeightB: matchB?.preset?.weight ?? charFull.ip_adapter_weight ?? 0.75,
+            ipAdapterWeightB: matchB?.preset?.weight ?? charFull.ip_adapter_weight ?? 0.35,
           }
         : {};
       sbSet({
