@@ -198,6 +198,17 @@ export async function processSSEStream(
           bgmMode: "auto",
         });
       }
+      // FastTrack: Writer가 auto-resolve한 character_id를 store에 반영
+      const resultCharId = (event.result as Record<string, unknown>).character_id as number | null;
+      const resultCharBId = (event.result as Record<string, unknown>).character_b_id as
+        | number
+        | null;
+      if (resultCharId && !useStoryboardStore.getState().selectedCharacterId) {
+        useStoryboardStore.getState().set({ selectedCharacterId: resultCharId });
+      }
+      if (resultCharBId && !useStoryboardStore.getState().selectedCharacterBId) {
+        useStoryboardStore.getState().set({ selectedCharacterBId: resultCharBId });
+      }
     }
     if (event.status === "waiting_for_input") {
       isWaiting = true;
