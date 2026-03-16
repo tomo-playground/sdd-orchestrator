@@ -868,9 +868,12 @@ def _auto_populate_scene_flags(
         # Dialogue: speaker B uses character_b_id, others use character_id
         scene_char_id = character_b_id if scene.get("speaker") == "B" else character_id
 
-        # controlnet_pose 자동 할당: Cinematographer 미실행 시 context_tags.pose에서 파생
+        # controlnet_pose 자동 할당/보정: context_tags.pose에서 파생
+        # Cinematographer가 standing(기본값)을 설정한 경우에도 더 적합한 에셋으로 교체
         # sitting 계열은 ControlNet 자동 활성화 제외 (하체 왜곡 문제)
-        if not scene.get("controlnet_pose") and not is_narrator and scene_char_id:
+        current_cn_pose = scene.get("controlnet_pose") or ""
+        should_resolve = not current_cn_pose or current_cn_pose == DEFAULT_POSE_TAG
+        if should_resolve and not is_narrator and scene_char_id:
             ctx_pose_raw = (scene.get("context_tags") or {}).get("pose", DEFAULT_POSE_TAG)
             ctx_pose = (
                 (ctx_pose_raw[0] if ctx_pose_raw else DEFAULT_POSE_TAG)
