@@ -639,7 +639,7 @@ class PromptBuilder:
                     weight = PERMANENT_IDENTITY_WEIGHT_BOOST
                 elif ct["layer"] in (LAYER_DETAIL_CLOTH, LAYER_ACCESSORY):
                     weight = PERMANENT_DETAIL_WEIGHT_BOOST
-            if weight != 1.0:
+            if weight != 1.0 and ":" not in token:
                 token = f"({token}:{weight})"
             layers[ct["layer"]].append(token)
 

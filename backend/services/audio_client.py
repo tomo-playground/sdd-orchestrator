@@ -5,6 +5,7 @@ Pattern: SD WebUI client (services/generation.py) + Circuit Breaker (services/da
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import time
 
@@ -104,11 +105,18 @@ async def synthesize_tts(
 
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{url}/tts/synthesize",
-                json=payload,
-                timeout=timeout,
-            )
+            # 503 = 모델 로드 중 → 대기 후 재시도 (최대 2회)
+            resp = None
+            for _retry in range(3):
+                resp = await client.post(
+                    f"{url}/tts/synthesize",
+                    json=payload,
+                    timeout=timeout,
+                )
+                if resp.status_code != 503 or _retry >= 2:
+                    break
+                logger.info("[AudioClient] TTS 503 (model loading), waiting 15s... (%d/2)", _retry + 1)
+                await asyncio.sleep(15)
             resp.raise_for_status()
 
         data = resp.json()
