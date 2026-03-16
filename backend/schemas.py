@@ -1350,7 +1350,7 @@ class VoicePresetUpdate(BaseModel):
 
 class VoicePreviewRequest(BaseModel):
     voice_design_prompt: str
-    sample_text: str = "안녕하세요, 이것은 테스트 음성입니다."
+    sample_text: str = "어느 날 문득, 익숙한 골목길에서 낯선 설렘을 느꼈다. 바람이 불어오는 방향으로 고개를 돌렸을 때, 그 사람이 서 있었다."
     language: str = "korean"
 
 
