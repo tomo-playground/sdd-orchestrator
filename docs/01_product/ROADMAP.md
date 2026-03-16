@@ -211,7 +211,14 @@ graph LR
 
 ## Feature Backlog
 
-Phase 20 이후 또는 우선순위 미정 항목.
+### ⭐ 최우선 백로그 (P1)
+
+순서대로 진행. ComfyUI 전환이 선행, 캐릭터 일관성 V3가 후행.
+
+| # | 기능 | 설명 | 명세 |
+|---|------|------|------|
+| 1 | **ComfyUI 마이그레이션** | ForgeUI→ComfyUI 전환 + SD Client 추상화. 실험 검증(4회 54장): CN+IPA 동시투입 실패 → 모듈 분리 필수 확정. Phase A(추상화)→B(ComfyUI 구현)→C(프로덕션+FaceID) | [명세](FEATURES/COMFYUI_MIGRATION.md) |
+| 2 | **캐릭터 일관성 V3** | ComfyUI 전환 후 착수. 4-Module 파이프라인(Identity→Context→Refinement→Upscale). FaceID+CN 1-step, 2-Step CN→IPA 폴백, 배치 4씬 일괄, 의상 가변, 멀티캐릭터 FaceID 복수 주입 | [명세](FEATURES/CHARACTER_CONSISTENCY_V3.md) |
 
 ### Content & Creative
 
@@ -263,4 +270,5 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | ~~Phase 35: GPT-SoVITS v2 TTS 전환~~ | **완료** — SoVITS(:9880) + Qwen3(보이스디자인 on-demand) + MusicGen(CPU). GPU 전환은 cu128 대기 |
 | **클라우드 TTS/BGM 전환** | Replicate(현재 모델 클라우드 실행) 또는 ElevenLabs/Suno. GPU 경합 완전 해소, 비용 발생 |
 | **씬 단위 순차 생성** | IMAGE→TTS를 씬별로 처리 (현재: 전체 IMAGE→전체 TTS). GPU 순차 독점 자연 해결 + 즉시 프리뷰 |
-| **ComfyUI 마이그레이션 (SD Backend 추상화)** | ForgeUI 직결합 → SDClientBase 추상화 → ComfyUI 전환. 캐릭터 일관성(InstantID/PuLID), Forge 종속 해소, 노드 기반 파이프라인 유연성. Sprint A~E(추상화 10~13일) + F~H(scripts 정리 + ComfyUI 구현 6~8일). [명세](FEATURES/COMFYUI_MIGRATION.md) |
+| ~~ComfyUI 마이그레이션~~ | **⭐ 최우선 백로그로 이동** — [명세](FEATURES/COMFYUI_MIGRATION.md) |
+| ~~캐릭터 일관성 V3~~ | **⭐ 최우선 백로그로 이동** — [명세](FEATURES/CHARACTER_CONSISTENCY_V3.md) |
