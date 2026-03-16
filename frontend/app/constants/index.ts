@@ -51,6 +51,7 @@ export const AUTO_RUN_STEPS = [
   { id: "render", label: "Render" },
 ] as const;
 
+// TODO: Backend API에서 동적으로 제공 (/admin/sd/samplers)
 export const SAMPLERS = ["Euler", "Euler a", "DPM++ 2M Karras", "DDIM"];
 
 export const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
@@ -97,5 +98,6 @@ export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   style: "스타일 (anime, realistic)",
 };
 
+// TODO: Backend SSOT -- TTS 엔진 선택은 Backend 설정에서 관리
 /** TTS engine identifier. 값 변경 시 backend의 tts_engine 파라미터와 동기화 필요. */
 export const TTS_ENGINE = "qwen" as const;

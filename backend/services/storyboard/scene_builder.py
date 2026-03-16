@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
-from config import logger
+from config import DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT, DEFAULT_REFERENCE_ONLY_WEIGHT, logger
 from models.associations import SceneCharacterAction, SceneTag
 from models.media_asset import MediaAsset
 from models.scene import Scene
@@ -191,9 +191,9 @@ def _build_scene_kwargs(s_data: StoryboardScene, storyboard_id: int, idx: int) -
     if kwargs.get("use_reference_only") is None:
         kwargs["use_reference_only"] = True
     if kwargs.get("reference_only_weight") is None:
-        kwargs["reference_only_weight"] = 0.5
+        kwargs["reference_only_weight"] = DEFAULT_REFERENCE_ONLY_WEIGHT
     if kwargs.get("environment_reference_weight") is None:
-        kwargs["environment_reference_weight"] = 0.3
+        kwargs["environment_reference_weight"] = DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT
 
     # 5. negative_prompt 방어: 빈 값이면 기본값 주입
     neg = kwargs.get("negative_prompt")

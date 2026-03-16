@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from config import (
     DEFAULT_CHARACTER_PRESET,
+    DEFAULT_IP_ADAPTER_WEIGHT,
     IP_ADAPTER_DUAL_PRIMARY_RATIO,
     IP_ADAPTER_DUAL_SECONDARY_RATIO,
     REFERENCE_MIN_FACE_RATIO,
@@ -281,7 +282,7 @@ def build_dual_ip_adapter_args(
     """
     from services.controlnet import build_ip_adapter_args
 
-    base_weight = weight or DEFAULT_CHARACTER_PRESET.get("weight", 0.35)
+    base_weight = weight or DEFAULT_CHARACTER_PRESET.get("weight", DEFAULT_IP_ADAPTER_WEIGHT)
 
     primary_args = build_ip_adapter_args(
         reference_image=primary_image,

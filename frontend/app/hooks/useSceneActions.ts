@@ -67,6 +67,7 @@ export function useSceneActions() {
 
     updateScene(current.client_id, {
       environment_reference_id: referenceScene.image_asset_id,
+      // Backend SSOT: config.py DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT = 0.3
       environment_reference_weight: 0.3,
     });
     showToast(`Scene ${referenceScene.order + 1}의 배경을 참조로 설정했습니다.`, "success");
@@ -97,6 +98,7 @@ export function useSceneActions() {
       image_prompt: "",
       image_prompt_ko: "",
       image_url: null,
+      // Backend SSOT: config.py SD_DEFAULT_WIDTH=832, SD_DEFAULT_HEIGHT=1216
       width: 832,
       height: 1216,
       negative_prompt: baseNegativePromptA,

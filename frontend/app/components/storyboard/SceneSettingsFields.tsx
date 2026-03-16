@@ -91,6 +91,7 @@ export default function SceneSettingsFields({
             const payload = {
               prompt,
               negative_prompt: buildNegativePrompt(scene),
+              // Backend SSOT: config.py SD_DEFAULT_WIDTH=832, SD_DEFAULT_HEIGHT=1216
               width: 832,
               height: 1216,
             };

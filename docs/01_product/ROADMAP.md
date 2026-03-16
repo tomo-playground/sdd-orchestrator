@@ -257,5 +257,6 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | 분석 대시보드 (Match Rate 추이, 프로젝트 간 비교) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | **파이프라인 이상 탐지 자동화** | 시스템 상태 통합 health API, 파이프라인 완료 시 자동 검증 (speaker 배분, TTS 실패, 이미지 미생성), LangFuse 이상 탐지 (노드 실패율/소요시간), GPU VRAM 모니터링 |
+| **SSOT 위반 정리 (P1~P3, 49건)** | Backend: 기존 상수 참조 누락 13건 + 신규 상수 정의 9건. Frontend: Store 초기값 6건, 해상도 832x1216 6건, Hi-Res/Preflight/SAMPLERS/TTS_ENGINE 등 12건, CATEGORY_DESCRIPTIONS 2건. `/presets` API로 generation_defaults 확장 필요 |
 | **클라우드 TTS/BGM 전환** | Replicate(현재 모델 클라우드 실행) 또는 ElevenLabs/Suno. GPU 경합 완전 해소, 비용 발생 |
 | **씬 단위 순차 생성** | IMAGE→TTS를 씬별로 처리 (현재: 전체 IMAGE→전체 TTS). GPU 순차 독점 자연 해결 + 즉시 프리뷰 |

@@ -632,6 +632,7 @@ DEFAULT_IP_ADAPTER_WEIGHT = 0.35
 IP_ADAPTER_AUTO_ENABLE = False  # True: 레퍼런스 이미지 존재 시 자동 활성화, False: 명시적 요청만
 ENVIRONMENT_REFERENCE_ENABLED = False  # True: background_id → Reference AdaIN 적용, False: 프롬프트 태그만
 DEFAULT_REFERENCE_ONLY_WEIGHT = 0.5
+DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT = 0.3
 MIN_IP_ADAPTER_WEIGHT_NO_LORA = 0.5  # LoRA 없는 캐릭터의 최소 IP-Adapter weight
 DEFAULT_MULTI_GEN_ENABLED = False
 

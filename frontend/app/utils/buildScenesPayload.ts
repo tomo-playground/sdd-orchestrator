@@ -51,6 +51,7 @@ export function buildScenesPayload(scenes: Scene[]) {
       ...rest,
       // API-specific overrides
       scene_id: i,
+      // Backend SSOT: config.py SD_DEFAULT_WIDTH=832, SD_DEFAULT_HEIGHT=1216
       width: s.width || 832,
       height: s.height || 1216,
       candidates: sanitizeCandidatesForDb(s.candidates),

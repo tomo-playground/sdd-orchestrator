@@ -10,7 +10,13 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from config import DEFAULT_IP_ADAPTER_WEIGHT, DEFAULT_REFERENCE_ONLY_WEIGHT, logger
+from config import (
+    DEFAULT_IP_ADAPTER_WEIGHT,
+    DEFAULT_LORA_WEIGHT,
+    DEFAULT_REFERENCE_ONLY_WEIGHT,
+    FALLBACK_STYLE_LORA_WEIGHT_MAX,
+    logger,
+)
 from services.controlnet import load_reference_image
 
 
@@ -133,11 +139,11 @@ class CharacterConsistencyResolver:
                 if lora_obj and lora_obj.lora_type == "style":
                     weight = lora_info.get("weight")
                     if weight is None:
-                        weight = float(lora_obj.optimal_weight or lora_obj.default_weight or 0.7)
+                        weight = float(lora_obj.optimal_weight or lora_obj.default_weight or DEFAULT_LORA_WEIGHT)
                     fallback.append(
                         {
                             "name": lora_obj.name,
-                            "weight": min(weight, 0.5),  # Cap fallback weight
+                            "weight": min(weight, FALLBACK_STYLE_LORA_WEIGHT_MAX),  # Cap fallback weight
                             "trigger_words": lora_obj.trigger_words or [],
                         }
                     )
@@ -165,7 +171,7 @@ class CharacterConsistencyResolver:
 
         # Already fully specified
         if use_ip_adapter and ip_adapter_reference:
-            weight = ip_adapter_weight or character.ip_adapter_weight or 0.35
+            weight = ip_adapter_weight or character.ip_adapter_weight or DEFAULT_IP_ADAPTER_WEIGHT
             model = self._resolve_ip_adapter_model(character)
             return True, ip_adapter_reference, weight, model, guidance_start, guidance_end
 
@@ -173,12 +179,12 @@ class CharacterConsistencyResolver:
         from config import IP_ADAPTER_AUTO_ENABLE  # noqa: PLC0415
 
         if not IP_ADAPTER_AUTO_ENABLE:
-            return False, None, 0.35, None, None, None
+            return False, None, DEFAULT_IP_ADAPTER_WEIGHT, None, None, None
 
         ref_image = load_reference_image(character.name, db=self.db)
         if ref_image:
             # Auto-enable: character weight takes priority (user didn't explicitly set)
-            weight = character.ip_adapter_weight or ip_adapter_weight or 0.35
+            weight = character.ip_adapter_weight or ip_adapter_weight or DEFAULT_IP_ADAPTER_WEIGHT
             model = self._resolve_ip_adapter_model(character)
             logger.info(
                 "✨ [Resolver] Auto-enabled IP-Adapter for '%s' (weight=%.2f, model=%s)",
@@ -191,7 +197,7 @@ class CharacterConsistencyResolver:
         # No reference image available
         if use_ip_adapter:
             warnings.append(f"캐릭터 '{character.name}'의 참조 이미지가 없어 IP-Adapter를 사용할 수 없습니다.")
-        return False, None, 0.35, None, None, None
+        return False, None, DEFAULT_IP_ADAPTER_WEIGHT, None, None, None
 
     @staticmethod
     def _resolve_ip_adapter_model(character) -> str | None:

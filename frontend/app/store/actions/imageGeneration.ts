@@ -60,6 +60,8 @@ export function buildSceneRequest(
   const controlnet = resolveSceneControlnet(scene, sbState);
   const ipAdapter = resolveSceneIpAdapter(scene, sbState);
   const isNarrator = scene.speaker === "Narrator";
+  // Backend SSOT: schemas.py SceneGenerateRequest defaults
+  // hr_scale=1.5, hr_upscaler=SD_REFERENCE_HR_UPSCALER, hr_second_pass_steps=10, denoising_strength=0.35
   const hiResPayload = sbState.hiResEnabled
     ? {
         enable_hr: true,
@@ -73,6 +75,7 @@ export function buildSceneRequest(
   return {
     prompt: buildScenePrompt(scene) || "",
     negative_prompt: buildNegativePrompt(scene),
+    // Backend SSOT: config.py SD_DEFAULT_WIDTH=832, SD_DEFAULT_HEIGHT=1216
     width: scene.width || 832,
     height: scene.height || 1216,
     ...hiResPayload,
@@ -91,10 +94,14 @@ export function buildSceneRequest(
     controlnet_pose: scene.controlnet_pose || undefined,
     use_ip_adapter: ipAdapter.enabled && !!ipAdapter.reference && !isNarrator,
     ip_adapter_reference: isNarrator ? undefined : ipAdapter.reference || undefined,
+    // Backend SSOT: config.py DEFAULT_IP_ADAPTER_WEIGHT = 0.35
     ip_adapter_weight: ipAdapter.weight ?? 0.35,
+    // Backend SSOT: config.py (schemas.py SceneGenerateRequest.use_reference_only default=True)
     use_reference_only: scene.use_reference_only ?? true,
+    // Backend SSOT: config.py DEFAULT_REFERENCE_ONLY_WEIGHT = 0.5
     reference_only_weight: scene.reference_only_weight ?? 0.5,
     environment_reference_id: scene.environment_reference_id || undefined,
+    // Backend SSOT: config.py DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT = 0.3
     environment_reference_weight: scene.environment_reference_weight ?? 0.3,
   };
 }

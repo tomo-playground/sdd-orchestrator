@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 
 from sqlalchemy.orm import Session, joinedload
 
-from config import logger
+from config import DEFAULT_LORA_WEIGHT, logger
 
 
 @dataclass(frozen=True)
@@ -62,7 +62,7 @@ def _build_style_context(profile, db: Session) -> StyleContext:
     if profile.loras:
         for lora_config in profile.loras:
             lora_id = lora_config.get("lora_id")
-            weight = lora_config.get("weight", 0.7)
+            weight = lora_config.get("weight", DEFAULT_LORA_WEIGHT)
             if not lora_id:
                 continue
             lora_obj = db.query(LoRA).filter(LoRA.id == lora_id).first()

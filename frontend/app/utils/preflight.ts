@@ -266,8 +266,10 @@ export function buildPreflightInput(): PreflightInput {
     ipAdapterEnabled: sb.useIpAdapter,
     ipAdapterReference: sb.ipAdapterReference || null,
     ipAdapterReferenceB: sb.ipAdapterReferenceB || null,
+    // Backend SSOT: config.py SD_DEFAULT_STEPS=28, SD_DEFAULT_CFG_SCALE=4.5
     steps: sp?.default_steps ?? 28,
     cfgScale: sp?.default_cfg_scale ?? 4.5,
+    // Backend SSOT: config.py SD_DEFAULT_SAMPLER="Euler", SD_DEFAULT_CLIP_SKIP=2
     sampler: sp?.default_sampler_name ?? "Euler",
     clipSkip: sp?.default_clip_skip ?? 2,
     storyboardId: ctx.storyboardId,

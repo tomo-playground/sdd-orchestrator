@@ -9,8 +9,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from config import (
     DEFAULT_CONTROLNET_WEIGHT,
+    DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT,
     DEFAULT_IP_ADAPTER_WEIGHT,
+    DEFAULT_LORA_WEIGHT,
     DEFAULT_MULTI_GEN_ENABLED,
+    DEFAULT_REFERENCE_ONLY_WEIGHT,
     DEFAULT_SPEAKER,
     DEFAULT_STRUCTURE,
     DEFAULT_USE_CONTROLNET,
@@ -628,9 +631,9 @@ class SceneGenerateRequest(BaseModel):
     ip_adapter_weight: float = DEFAULT_IP_ADAPTER_WEIGHT
     # Consistency Enhancements
     use_reference_only: bool = True  # Default to True if character_id exists
-    reference_only_weight: float = 0.5
+    reference_only_weight: float = DEFAULT_REFERENCE_ONLY_WEIGHT
     environment_reference_id: int | None = None  # For Environment Pinning
-    environment_reference_weight: float = 0.3
+    environment_reference_weight: float = DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT
     # Background asset reference (auto-inject tags + Reference AdaIN atmosphere)
     background_id: int | None = None
     # Scene DB ID for character_actions lookup during prompt composition
@@ -887,7 +890,7 @@ class LoRABase(_BaseModelNormMixin):
     lora_type: str | None = None  # character, style, pose
     base_model: str | None = None  # SD1.5, SDXL, etc.
     trigger_words: list[str] | None = None
-    default_weight: float = 0.7
+    default_weight: float = DEFAULT_LORA_WEIGHT
     optimal_weight: float | None = None
     calibration_score: int | None = None
     weight_min: float = 0.1

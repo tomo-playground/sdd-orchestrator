@@ -25,6 +25,7 @@ from config import (
     CAMERA_FRAMING_MID,
     CAMERA_FRAMING_WIDE,
     CHARACTER_CAMERA_TAGS,
+    DEFAULT_LORA_WEIGHT,
     ENVIRONMENT_WEIGHT_BOOST,
     EXCLUSIVE_TAG_GROUPS,
     EXPRESSION_ACTION_WEIGHT_BOOST,
@@ -1143,7 +1144,7 @@ class PromptBuilder:
             return float(lora.optimal_weight)
         if lora.default_weight is not None:
             return float(lora.default_weight)
-        return 0.7
+        return DEFAULT_LORA_WEIGHT
 
     def _get_lora_info(self, name: str) -> LoRAInfo:
         """Looks up LoRA weight, type, and trigger_words by name with caching."""
@@ -1152,7 +1153,7 @@ class PromptBuilder:
 
         lora = self.db.query(LoRA).filter(LoRA.name == name, LoRA.is_active.is_(True)).first()
         if not lora:
-            info = LoRAInfo(0.7, None, [])
+            info = LoRAInfo(DEFAULT_LORA_WEIGHT, None, [])
         else:
             info = LoRAInfo(
                 self.get_effective_lora_weight(lora),
@@ -1452,7 +1453,7 @@ class PromptBuilder:
                 lora_name = style_lora.get("name")
                 if not lora_name:
                     continue
-                base_weight = style_lora.get("weight", 0.7)
+                base_weight = style_lora.get("weight", DEFAULT_LORA_WEIGHT)
                 weight = round(base_weight * REFERENCE_STYLE_LORA_SCALE, 2)
                 if weight <= 0:
                     continue  # skip disabled style LoRA + its triggers

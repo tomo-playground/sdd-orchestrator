@@ -185,6 +185,7 @@ export function mapGeminiScenes(
       client_id: generateSceneClientId(),
       order: i,
       image_url: null,
+      // Backend SSOT: config.py SD_DEFAULT_WIDTH=832, SD_DEFAULT_HEIGHT=1216
       width: 832,
       height: 1216,
       script: (s.script as string) || "",
