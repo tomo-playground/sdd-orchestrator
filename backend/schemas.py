@@ -625,7 +625,7 @@ class SceneGenerateRequest(BaseModel):
     # IP-Adapter options
     use_ip_adapter: bool = False
     ip_adapter_reference: str | None = None  # character_key for saved reference
-    ip_adapter_weight: float = 0.7
+    ip_adapter_weight: float = DEFAULT_IP_ADAPTER_WEIGHT
     # Consistency Enhancements
     use_reference_only: bool = True  # Default to True if character_id exists
     reference_only_weight: float = 0.5
