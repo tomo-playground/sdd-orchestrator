@@ -74,6 +74,7 @@ async def synthesize_tts(
     repetition_penalty: float = 1.0,
     max_new_tokens: int = 1024,
     task_id: str = "default",
+    force: bool = False,
 ) -> tuple[bytes, int, float, bool]:
     """Call Audio Server /tts/synthesize.
 
@@ -98,6 +99,7 @@ async def synthesize_tts(
         "top_p": top_p,
         "repetition_penalty": repetition_penalty,
         "max_new_tokens": max_new_tokens,
+        "force": force,
     }
 
     try:

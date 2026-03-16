@@ -88,6 +88,9 @@ async def synthesize_tts(req: TTSSynthesizeRequest):
     # Cache lookup — uses preprocessed text so cache key matches synthesis input
     cache_key = tts_engine.tts_cache_key(synth_text, req.instruct, req.seed, req.language)
     cache_path = TTS_CACHE_DIR / f"{cache_key}.wav"
+    if req.force and cache_path.exists():
+        cache_path.unlink()
+        logger.info("[TTS] force: cache deleted (%s)", cache_key)
     if cache_path.exists() and cache_path.stat().st_size > 0:
         cached_bytes = cache_path.read_bytes()
         audio_b64 = base64.b64encode(cached_bytes).decode()

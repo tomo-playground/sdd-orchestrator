@@ -442,6 +442,7 @@ async def _try_synthesize_with_retries(
     p: _ResolvedTtsParams,
     *,
     task_id: str,
+    force: bool = False,
 ) -> TtsAudioResult:
     """리트라이 루프: 합성 → 품질 확인 → 캐시 기록 → best fallback."""
     from config import TTS_REPETITION_PENALTY, TTS_TEMPERATURE, TTS_TOP_P
@@ -465,6 +466,7 @@ async def _try_synthesize_with_retries(
                 repetition_penalty=TTS_REPETITION_PENALTY,
                 max_new_tokens=_calculate_max_new_tokens(p.tts_text),
                 task_id=task_id,
+                force=force and attempt == 0,  # 첫 시도에만 오디오 서버 캐시 삭제
             )
         except Exception as gen_err:
             logger.warning("[TTS] attempt %d/%d audio server error: %s", attempt + 1, 1 + p.retries, gen_err)
@@ -576,4 +578,4 @@ async def generate_tts_audio(
         return cache_hit
 
     assert params is not None  # guaranteed when cache_hit is None
-    return await _try_synthesize_with_retries(params, task_id=task_id)
+    return await _try_synthesize_with_retries(params, task_id=task_id, force=force_regenerate)

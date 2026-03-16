@@ -15,6 +15,7 @@ class TTSSynthesizeRequest(BaseModel):
     top_p: float = Field(0.8, ge=0.0, le=1.0)
     repetition_penalty: float = Field(1.0, ge=0.0, le=5.0)
     max_new_tokens: int = Field(1024, ge=64, le=4096)
+    force: bool = Field(False, description="If true, delete cache and regenerate")
 
 
 class TTSSynthesizeResponse(BaseModel):
