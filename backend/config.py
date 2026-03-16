@@ -166,7 +166,8 @@ SD_SAMPLERS: list[str] = [
     "DDIM",
 ]
 
-# --- TTS Engine Default ---
+# --- TTS Engine ---
+SUPPORTED_TTS_ENGINES: list[str] = ["qwen", "sovits"]
 DEFAULT_TTS_ENGINE = os.getenv("DEFAULT_TTS_ENGINE", "sovits")
 
 # --- LoRA Weight Cap ---

@@ -27,6 +27,7 @@ async def list_presets():
         DEFAULT_MULTI_GEN_ENABLED,
         DEFAULT_TTS_ENGINE,
         DEFAULT_USE_CONTROLNET,
+        SUPPORTED_TTS_ENGINES,
         DEFAULT_USE_IP_ADAPTER,
         READING_SPEED,
         SD_DEFAULT_HEIGHT,
@@ -66,6 +67,7 @@ async def list_presets():
         },
         "samplers": SD_SAMPLERS,
         "tts_engine": DEFAULT_TTS_ENGINE,
+        "tts_engines": SUPPORTED_TTS_ENGINES,
         "fast_track_skip_stages": FAST_TRACK_SKIP_STAGES,
     }
 

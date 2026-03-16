@@ -18,6 +18,7 @@ from config import (
     DEFAULT_SPEAKER,
     DEFAULT_STRUCTURE,
     DEFAULT_TTS_ENGINE,
+    SUPPORTED_TTS_ENGINES,
     DEFAULT_USE_CONTROLNET,
     DEFAULT_USE_IP_ADAPTER,
     SD_DEFAULT_CFG_SCALE,
@@ -509,8 +510,7 @@ class SceneActionSave(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class TTSEngine(str, Enum):
-    QWEN = "qwen"
+TTSEngine = Enum("TTSEngine", {v.upper(): v for v in SUPPORTED_TTS_ENGINES}, type=str)  # type: ignore[misc]
 
 
 class VideoScene(BaseModel):
@@ -580,7 +580,7 @@ class VideoRequest(BaseModel):
     ken_burns_intensity: float = 1.0  # Effect intensity (0.5~2.0)
     transition_type: str = "random"  # Scene transition effect (random for variety)
     narrator_voice: str = ""
-    tts_engine: TTSEngine = TTSEngine.QWEN
+    tts_engine: TTSEngine = TTSEngine(DEFAULT_TTS_ENGINE)
     voice_design_prompt: str | None = None  # For Qwen-TTS VoiceDesign
     voice_preset_id: int | None = None  # Voice preset for TTS
     speed_multiplier: float = 1.0
@@ -1713,6 +1713,7 @@ class PresetListResponse(BaseModel):
     image_defaults: ImageDefaults | None = None
     samplers: list[str] = []
     tts_engine: str = DEFAULT_TTS_ENGINE
+    tts_engines: list[str] = Field(default_factory=lambda: list(SUPPORTED_TTS_ENGINES))
     fast_track_skip_stages: list[str] = []
 
 
