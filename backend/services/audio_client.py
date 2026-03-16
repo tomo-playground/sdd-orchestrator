@@ -65,17 +65,22 @@ def record_scene_failure(task_id: str = "default") -> None:
         )
 
 
-async def _ensure_model_ready(model_name: str) -> None:
-    """모델 로드 상태를 확인하고, 미로드 시 명확한 에러를 발생시킨다."""
+async def _ensure_server_reachable() -> None:
+    """오디오 서버 연결 가능 여부만 확인한다. 모델은 on-demand 로드."""
     health = await check_health()
     if health.get("status") == "error":
-        raise RuntimeError("오디오 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.")
+        raise RuntimeError("오디오 서버에 연결할 수 없습니다. 'run_audio.sh start'로 서버를 시작해주세요.")
 
-    for model in health.get("models", []):
-        if model.get("name") == model_name and not model.get("loaded"):
-            raise RuntimeError(
-                f"오디오 모델({model_name})이 로드되지 않았습니다. 'run_audio.sh start'로 모델을 먼저 로드해주세요."
-            )
+
+def _extract_server_error(resp: httpx.Response) -> str:
+    """오디오 서버 HTTP 에러 응답에서 detail 메시지를 추출한다."""
+    try:
+        data = resp.json()
+        if isinstance(data, dict) and "detail" in data:
+            return str(data["detail"])
+    except Exception:
+        pass
+    return f"HTTP {resp.status_code}"
 
 
 async def synthesize_tts(
@@ -98,7 +103,7 @@ async def synthesize_tts(
     if not _check_circuit(task_id):
         raise RuntimeError("Audio Server circuit breaker is open")
 
-    await _ensure_model_ready("qwen3-tts")
+    await _ensure_server_reachable()
 
     url, timeout = _get_audio_server_config()
 
@@ -132,7 +137,9 @@ async def synthesize_tts(
                     break
                 logger.info("[AudioClient] TTS 503 (model loading), waiting 15s... (%d/2)", _retry + 1)
                 await asyncio.sleep(15)
-            resp.raise_for_status()
+            if not resp.is_success:
+                detail = _extract_server_error(resp)
+                raise RuntimeError(f"TTS 합성 실패: {detail}")
 
         data = resp.json()
         audio_bytes = base64.b64decode(data["audio_base64"])
@@ -143,6 +150,8 @@ async def synthesize_tts(
             data["duration"],
             data["quality_passed"],
         )
+    except RuntimeError:
+        raise
     except Exception as e:
         logger.error("[AudioClient] TTS synthesis failed: %s", e)
         raise
@@ -161,7 +170,7 @@ async def generate_music(
     if not _check_circuit(task_id):
         raise RuntimeError("Audio Server circuit breaker is open")
 
-    await _ensure_model_ready("musicgen-small")
+    await _ensure_server_reachable()
 
     from config import MUSIC_TIMEOUT_SECONDS
 
@@ -180,12 +189,16 @@ async def generate_music(
                 json=payload,
                 timeout=MUSIC_TIMEOUT_SECONDS,
             )
-            resp.raise_for_status()
+            if not resp.is_success:
+                detail = _extract_server_error(resp)
+                raise RuntimeError(f"BGM 생성 실패: {detail}")
 
         data = resp.json()
         wav_bytes = base64.b64decode(data["audio_base64"])
 
         return wav_bytes, data["sample_rate"], data["actual_seed"]
+    except RuntimeError:
+        raise
     except Exception as e:
         logger.error("[AudioClient] Music generation failed: %s", e)
         raise

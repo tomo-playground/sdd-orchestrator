@@ -62,7 +62,7 @@ do_start() {
   cd "$AUDIO_DIR"
   export CUDA_HOME=/usr/local/cuda-12.8
   export TTS_DEVICE=cuda
-  export MUSICGEN_DEVICE=cuda
+  export MUSICGEN_DEVICE=cpu
   "$VENV_DIR/bin/uvicorn" main:app \
     --host 0.0.0.0 --port "$PORT" \
     >> "$LOG_FILE" 2>&1 &
