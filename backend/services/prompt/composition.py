@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from services.style_context import StyleContext
 
 from config import (
+    ABSTRACT_BACKGROUND_TAGS,
     BACKGROUND_SCENE_MARKER,
     BISHOUNEN_WEIGHT,
     CAMERA_FRAMING_CLOSE,
@@ -1178,11 +1179,7 @@ class PromptBuilder:
         if not env_tokens:
             return
         env_norms = {t.lower().replace(" ", "_").strip() for t in env_tokens}
-        abstract_bg = {
-            "simple_background", "white_background", "transparent_background",
-            "black_background", "grey_background", "gradient_background",
-        }
-        if env_norms & abstract_bg:
+        if env_norms & ABSTRACT_BACKGROUND_TAGS:
             return
         if "scenery" in env_norms:
             return

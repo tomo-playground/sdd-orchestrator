@@ -112,6 +112,16 @@ CAMERA_FRAMING_CLOSE: frozenset[str] = frozenset(
         "headshot",
     }
 )
+ABSTRACT_BACKGROUND_TAGS: frozenset[str] = frozenset(
+    {
+        "simple_background",
+        "white_background",
+        "transparent_background",
+        "black_background",
+        "grey_background",
+        "gradient_background",
+    }
+)
 MALE_INDICATORS: frozenset[str] = frozenset({"1boy", "2boys", "3boys", "male", "man", "boy"})
 FEMALE_INDICATORS: frozenset[str] = frozenset({"1girl", "2girls", "3girls", "female", "woman", "girl"})
 REFERENCE_ENV_TAGS: list[str] = [
