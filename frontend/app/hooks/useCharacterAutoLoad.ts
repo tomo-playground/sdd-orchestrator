@@ -42,7 +42,6 @@ export function useCharacterAutoLoad() {
         if (state.selectedCharacterId) {
           const matchA = refs.find((r) => r.character_id === state.selectedCharacterId);
           if (matchA && !state.ipAdapterReference) {
-            updates.useIpAdapter = true;
             updates.ipAdapterReference = matchA.character_key;
             updates.ipAdapterWeight = matchA.preset?.weight ?? state.ipAdapterWeight ?? 0.35;
           }
