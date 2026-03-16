@@ -329,11 +329,18 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
 
         # CLAUDE.md 규칙: system_instruction ↔ contents 분리 필수
         # 템플릿(지시사항+허용 태그)은 system_instruction으로,
-        # 사용자 입력(토픽)만 contents로 전달하여 안전 필터 오탐 방지
+        # 사용자 데이터(토픽+피드백+채팅)는 contents로 전달하여 안전 필터 오탐 방지
         system_instruction = _sanitize_for_gemini_prompt(rendered)
-        user_contents = f"Topic: {safe_topic}"
+        user_parts = [f"Topic: {safe_topic}"]
         if request.description:
-            user_contents += f"\nDescription: {request.description}"
+            user_parts.append(f"Description: {request.description}")
+        if request.selected_concept:
+            user_parts.append(f"Selected Concept: {request.selected_concept}")
+        if ctx.get("revision_feedback"):
+            user_parts.append(f"Revision Feedback: {ctx['revision_feedback']}")
+        if ctx.get("chat_context"):
+            user_parts.append(f"Chat Context: {json.dumps(ctx['chat_context'], ensure_ascii=False)}")
+        user_contents = "\n".join(user_parts)
         llm_resp = await get_llm_provider().generate(
             step_name="writer",
             contents=user_contents,
