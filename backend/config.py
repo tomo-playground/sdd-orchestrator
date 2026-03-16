@@ -128,6 +128,7 @@ AUDIO_SERVER_URL = os.getenv("AUDIO_SERVER_URL", "http://127.0.0.1:8001")
 SOVITS_SERVER_URL = os.getenv("SOVITS_SERVER_URL", "http://127.0.0.1:9880")
 AUDIO_TIMEOUT_SECONDS = float(os.getenv("AUDIO_TIMEOUT_SECONDS", "180"))
 MUSIC_TIMEOUT_SECONDS = float(os.getenv("MUSIC_TIMEOUT_SECONDS", "600"))  # 10min for MusicGen
+VOICE_REF_SAMPLE_TEXT = "안녕하세요. 오늘 하루도 좋은 하루 되시길 바랍니다. 함께 이야기를 나눠볼까요?"
 AUDIO_SERVER_TTS_CACHE_DIR = pathlib.Path(
     os.getenv("AUDIO_SERVER_TTS_CACHE_DIR", str(pathlib.Path.home() / ".cache" / "audio-server" / "tts"))
 )

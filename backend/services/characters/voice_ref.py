@@ -7,10 +7,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from config import logger
-
-# 보이스 레퍼런스 생성용 샘플 텍스트 (한국어, 5~10초 분량)
-VOICE_REF_SAMPLE_TEXT = "안녕하세요. 오늘 하루도 좋은 하루 되시길 바랍니다. 함께 이야기를 나눠볼까요?"
+from config import VOICE_REF_SAMPLE_TEXT, logger
 
 
 async def generate_voice_reference(db: Session, character_id: int) -> dict:

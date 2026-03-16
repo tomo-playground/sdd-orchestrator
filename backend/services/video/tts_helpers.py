@@ -343,8 +343,6 @@ def _resolve_voice_ref_audio(character_id: int | None) -> tuple[str | None, str]
     if not character_id:
         return None, ""
     try:
-        from pathlib import Path  # noqa: PLC0415
-
         from database import get_db_session  # noqa: PLC0415
         from models.media_asset import MediaAsset  # noqa: PLC0415
 
@@ -361,8 +359,8 @@ def _resolve_voice_ref_audio(character_id: int | None) -> tuple[str | None, str]
             if not asset:
                 return None, ""
 
-        # 로컬 캐시 경로
-        cache_dir = Path("/tmp/sovits_refs")
+        # 로컬 캐시 경로 (TTS_CACHE_DIR 하위)
+        cache_dir = TTS_CACHE_DIR / "sovits_refs"
         cache_dir.mkdir(parents=True, exist_ok=True)
         local_path = cache_dir / f"char_{character_id}_{asset.id}.wav"
 
