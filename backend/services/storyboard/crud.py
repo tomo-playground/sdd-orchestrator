@@ -398,6 +398,8 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
             preserved_asset_ids.add(s_data.image_asset_id)
         if s_data.environment_reference_id:
             preserved_asset_ids.add(s_data.environment_reference_id)
+        if getattr(s_data, "tts_asset_id", None):
+            preserved_asset_ids.add(s_data.tts_asset_id)
         if s_data.candidates:
             for c in s_data.candidates:
                 mid = c.media_asset_id if hasattr(c, "media_asset_id") else c.get("media_asset_id")
@@ -405,9 +407,9 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
                     preserved_asset_ids.add(mid)
 
     # Defensive: also preserve existing DB scene asset_ids
-    # (guards against Frontend payload missing image_asset_id during race conditions)
+    # (guards against Frontend payload missing asset_id during race conditions)
     existing_scenes = (
-        db.query(Scene.image_asset_id, Scene.environment_reference_id, Scene.candidates)
+        db.query(Scene.image_asset_id, Scene.environment_reference_id, Scene.tts_asset_id, Scene.candidates)
         .filter(Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None))
         .all()
     )
@@ -416,6 +418,8 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
             preserved_asset_ids.add(es.image_asset_id)
         if es.environment_reference_id:
             preserved_asset_ids.add(es.environment_reference_id)
+        if es.tts_asset_id:
+            preserved_asset_ids.add(es.tts_asset_id)
         if es.candidates:
             for c in es.candidates:
                 mid = c.get("media_asset_id") if isinstance(c, dict) else None
