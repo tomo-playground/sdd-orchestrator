@@ -261,3 +261,4 @@ Phase 20 이후 또는 우선순위 미정 항목.
 | **Phase 35: GPT-SoVITS v2 TTS 전환** | Qwen3-TTS → GPT-SoVITS v2. 레퍼런스 오디오 기반 음색 고정, 감정별 레퍼런스 5종, Text Normalization, VRAM 2GB, Fallback 체인. 4일 소요 |
 | **클라우드 TTS/BGM 전환** | Replicate(현재 모델 클라우드 실행) 또는 ElevenLabs/Suno. GPU 경합 완전 해소, 비용 발생 |
 | **씬 단위 순차 생성** | IMAGE→TTS를 씬별로 처리 (현재: 전체 IMAGE→전체 TTS). GPU 순차 독점 자연 해결 + 즉시 프리뷰 |
+| **ComfyUI 마이그레이션 (SD Backend 추상화)** | ForgeUI 직결합 → SDClientBase 추상화 → ComfyUI 전환. 캐릭터 일관성(InstantID/PuLID), Forge 종속 해소, 노드 기반 파이프라인 유연성. Sprint A~E(추상화 10~13일) + F~H(scripts 정리 + ComfyUI 구현 6~8일). Phase 34 완료 후 착수 권장. [명세](FEATURES/COMFYUI_MIGRATION.md) |
