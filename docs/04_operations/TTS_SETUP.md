@@ -47,31 +47,33 @@ Backend :8000 → audio_client.py
 
 ## 2. 시스템 실행
 
-### Audio Server (Qwen3-TTS + MusicGen)
+### Audio Server (SoVITS + Qwen3-TTS + MusicGen)
 
 ```bash
-./run_audio.sh start    # 포트 8001
+./run_audio.sh start    # 포트 8001 (SoVITS subprocess 자동 기동 포함)
 ./run_audio.sh status
 ./run_audio.sh logs
 ./run_audio.sh stop
 ```
 
-### GPT-SoVITS (별도 프로세스)
-
-```bash
-# GPT-SoVITS 설치 위치
-cd /home/tomo/Workspace/GPT-SoVITS/
-
-# API 서버 기동 (포트 9880)
-.venv/bin/python api_v2.py -a 127.0.0.1 -p 9880
-```
+> GPT-SoVITS는 Audio Server의 subprocess로 자동 관리됩니다 (`sovits_process.py`).
+> `run_audio.sh start` 시 SoVITS도 함께 기동, `stop` 시 함께 종료.
+> 수동 기동 불필요.
 
 ### 헬스 체크
 
-- Audio Server: `GET http://127.0.0.1:8001/health` — Qwen3-TTS, MusicGen 상태
-- GPT-SoVITS: `GET http://127.0.0.1:9880/` — SoVITS 상태
+- Audio Server: `GET http://127.0.0.1:8001/health` — SoVITS, Qwen3-TTS, MusicGen 3개 모델 상태 반환
 
-> Audio Server `/health`에는 SoVITS가 표시되지 않음 (별도 프로세스).
+```json
+{
+  "status": "ok",
+  "models": [
+    {"name": "gpt-sovits", "loaded": true, "device": "cuda"},
+    {"name": "qwen3-tts", "loaded": false, "device": "unknown"},
+    {"name": "musicgen-small", "loaded": true, "device": "cpu"}
+  ]
+}
+```
 
 ---
 
@@ -123,11 +125,21 @@ audio_client.py → generate_music() → MusicGen :8001
 
 ## 4. 설정 (config.py SSOT)
 
-### SoVITS 설정
+### SoVITS 설정 (Audio Server config.py)
+
+| 설정 | 기본값 | 환경 변수 | 설명 |
+|------|--------|-----------|------|
+| `SOVITS_ENABLED` | `true` | `SOVITS_ENABLED` | SoVITS subprocess 활성화 |
+| `SOVITS_DIR` | `~/Workspace/GPT-SoVITS` | `SOVITS_DIR` | SoVITS 설치 경로 |
+| `SOVITS_PORT` | `9880` | `SOVITS_PORT` | SoVITS 내부 포트 |
+| `SOVITS_CONFIG` | `GPT_SoVITS/configs/tts_infer.yaml` | `SOVITS_CONFIG` | 추론 설정 파일 |
+| `SOVITS_STARTUP_TIMEOUT` | `120` | `SOVITS_STARTUP_TIMEOUT` | 기동 대기 시간(초) |
+
+### Backend 설정 (backend/config.py)
 
 | 설정 | 기본값 | 환경 변수 |
 |------|--------|-----------|
-| `SOVITS_SERVER_URL` | `http://127.0.0.1:9880` | `SOVITS_SERVER_URL` |
+| `AUDIO_SERVER_URL` | `http://127.0.0.1:8001` | `AUDIO_SERVER_URL` |
 | `DEFAULT_TTS_ENGINE` | `sovits` | `DEFAULT_TTS_ENGINE` |
 
 ### Qwen3-TTS 설정 (Audio Server)
@@ -137,16 +149,26 @@ audio_client.py → generate_music() → MusicGen :8001
 | `TTS_MODEL_NAME` | `Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign` | `TTS_MODEL_NAME` | HuggingFace 모델 ID |
 | `TTS_DEVICE` | `"auto"` | `TTS_DEVICE` | CUDA > MPS > CPU 자동 감지 |
 | `TTS_ATTN_IMPLEMENTATION` | `"sdpa"` | `TTS_ATTN_IMPLEMENTATION` | Attention 구현체 |
-| `TTS_TEMPERATURE` | `0.6` | `TTS_TEMPERATURE` | 생성 다양성 |
+| `TTS_TEMPERATURE` | `0.7` | `TTS_TEMPERATURE` | 생성 다양성 |
 | `TTS_TOP_P` | `0.8` | `TTS_TOP_P` | Nucleus sampling |
-| `TTS_REPETITION_PENALTY` | `1.0` | `TTS_REPETITION_PENALTY` | 반복 억제 |
+| `TTS_REPETITION_PENALTY` | `1.05` | `TTS_REPETITION_PENALTY` | 반복 억제 |
+| `TTS_MAX_NEW_TOKENS` | `1024` | `TTS_MAX_NEW_TOKENS` | 최대 생성 토큰 수 |
+| `TTS_DEFAULT_LANGUAGE` | `korean` | `TTS_DEFAULT_LANGUAGE` | 기본 언어 |
 
 ### Audio Server 공통
 
-| 설정 | 기본값 | 환경 변수 |
-|------|--------|-----------|
-| `AUDIO_SERVER_URL` | `http://127.0.0.1:8001` | `AUDIO_SERVER_URL` |
-| `MODEL_IDLE_TIMEOUT_SECONDS` | `0` (persistent) | `MODEL_IDLE_TIMEOUT_SECONDS` |
+| 설정 | 기본값 | 환경 변수 | 설명 |
+|------|--------|-----------|------|
+| `MODEL_IDLE_TIMEOUT_SECONDS` | `0` (persistent) | `MODEL_IDLE_TIMEOUT_SECONDS` | 0=상주, >0=idle N초 후 언로드 |
+| `CACHE_DIR` | `~/.cache/audio-server` | `CACHE_DIR` | 캐시 루트 디렉토리 |
+
+### Post-Processing 설정
+
+| 설정 | 기본값 | 환경 변수 | 설명 |
+|------|--------|-----------|------|
+| `TTS_AUDIO_TRIM_TOP_DB` | `60` | `TTS_AUDIO_TRIM_TOP_DB` | 무음 판정 dB |
+| `TTS_AUDIO_FADE_MS` | `15` | `TTS_AUDIO_FADE_MS` | Fade in/out 밀리초 |
+| `TTS_SILENCE_MAX_MS` | `800` | `TTS_SILENCE_MAX_MS` | 내부 무음 최대 허용 밀리초 |
 
 ---
 
@@ -209,9 +231,14 @@ model = Qwen3TTSModel.from_pretrained(
 
 ### SoVITS 서버 미기동
 
-**증상**: `[TTS] ref_audio_path 필수` 에러 또는 SoVITS 연결 실패
+**증상**: `GPT-SoVITS is not running` 에러 또는 SoVITS 연결 실패
 
-**대응**: `cd /home/tomo/Workspace/GPT-SoVITS/ && .venv/bin/python api_v2.py -a 127.0.0.1 -p 9880`
+**확인**: `curl http://127.0.0.1:8001/health` → `gpt-sovits.loaded` 확인
+
+**대응**:
+1. Audio Server 재시작: `./run_audio.sh stop && ./run_audio.sh start`
+2. SoVITS 로그 확인: `cat ~/Workspace/GPT-SoVITS/logs/sovits.log`
+3. `SOVITS_ENABLED=true` 환경 변수 확인
 
 ### Qwen3 모델 로드 실패 (meta tensor)
 
@@ -252,10 +279,14 @@ rm -rf ~/.cache/shorts-producer/prompts/tts/ ~/.cache/audio-server/tts/
 | `backend/services/tts_prebuild.py` | TTS 사전 생성 |
 | `backend/services/characters/voice_ref.py` | 캐릭터 Voice Reference 생성 (Qwen3) |
 | `backend/routers/voice_presets.py` | Voice Preset 프리뷰 API (Qwen3) |
+| `audio/main.py` | Audio Server 엔트리포인트 (3엔진 통합) |
+| `audio/config.py` | Audio Server 설정 SSOT |
 | `audio/services/tts_engine.py` | Qwen3-TTS 모델 로딩/합성 |
 | `audio/services/music_engine.py` | MusicGen 모델 로딩/생성 |
-| `audio/main.py` | Audio Server 엔트리포인트 |
+| `audio/services/sovits_process.py` | SoVITS subprocess 라이프사이클 관리 |
+| `audio/services/tts_postprocess.py` | TTS 6단계 후처리 파이프라인 |
+| `audio/services/text_preprocess.py` | 한국어 숫자 전처리 |
 
 ---
 
-**최종 업데이트**: 2026-03-17 (3엔진 분리 아키텍처 반영, Qwen3 fallback 제거)
+**최종 업데이트**: 2026-03-17 (SoVITS subprocess 자동 관리, 설정값 소스 동기화)

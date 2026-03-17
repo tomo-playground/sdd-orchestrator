@@ -21,7 +21,7 @@ graph TB
     subgraph Backend ["Backend (FastAPI)"]
         Router["API Router (Endpoints)"]
 
-        subgraph AgentLayer ["Agentic Pipeline (LangGraph · 19노드)"]
+        subgraph AgentLayer ["Agentic Pipeline (LangGraph · 21노드)"]
             AgentSvc["Script Graph<br/>(Director Plan→Plan Gate→Writer→Review→<br/>Checkpoint→Cinematographer→Director)"]
             CriticNode["Critic / Debate"]
             ResearchNode["Research Node"]
@@ -149,7 +149,7 @@ sequenceDiagram
     rect rgb(240, 255, 240)
     Note over U,DB: Phase 3 — Video Rendering
     F->>B: 렌더링 요청
-    B->>B: Qwen3-TTS + FFmpeg Pipeline
+    B->>B: GPT-SoVITS TTS + FFmpeg Pipeline
     B->>DB: 비디오 에셋 등록
     B-->>F: Video URL 반환
     end
@@ -190,10 +190,11 @@ backend/
 ├── routers/              # API 엔드포인트 (30개)
 ├── services/
 │   ├── agent/            # LangGraph Agentic Pipeline (Phase 9~26)
-│   │   ├── nodes/        # 그래프 노드 19개 (director_plan, director_plan_gate, writer, review, revise,
+│   │   ├── nodes/        # 그래프 노드 21개 (director_plan, director_plan_gate, writer, review, revise,
 │   │   │                 #   director_checkpoint, cinematographer, tts_designer, inventory_resolve,
 │   │   │                 #   sound_designer, copyright_reviewer, director, human_gate,
-│   │   │                 #   finalize, explain, learn, critic, concept_gate, research)
+│   │   │                 #   finalize, explain, learn, critic, concept_gate, research,
+│   │   │                 #   location_planner, research_scoring)
 │   │   ├── tools/        # 에이전트 도구 (research_tools, cinematographer_tools)
 │   │   ├── script_graph.py    # LangGraph 그래프 정의
 │   │   ├── state.py           # 그래프 상태 스키마
@@ -213,7 +214,7 @@ backend/
 │   ├── prompt/           # 12-Layer Prompt Builder
 │   ├── characters/       # 캐릭터 서비스 (crud, preview, speaker_resolver 등)
 │   ├── video/            # FFmpeg 렌더링 파이프라인 (builder, effects, filters, encoding, tts_postprocess)
-│   ├── audio/            # Music 생성 (Stable Audio Open)
+│   ├── audio/            # Audio Client (SoVITS + Qwen3 + MusicGen 호출)
 │   ├── youtube/          # YouTube OAuth + 업로드
 │   ├── image_generation_core.py  # SD WebUI 이미지 생성
 │   ├── creative_*.py     # Creative Engine (agents, debate, qc, utils)
@@ -340,7 +341,7 @@ frontend/app/
 | 코드 파일 | 300줄 권장, 400줄 최대 |
 | 중첩 깊이 | 3단계 이하 |
 | 매개변수 | 4개 이하 |
-| 테스트 | Backend 2,667 + Frontend 379 = 3,046개 |
+| 테스트 | Backend 3,647 + Frontend 65파일 |
 
 **TDD**: 서비스/코어 로직은 테스트 먼저 작성 (Red → Green → Refactor)
 **API 스펙 = 진실**: API/스키마 변경 시 문서 즉시 업데이트 (drift = 버그 취급)
@@ -355,12 +356,12 @@ frontend/app/
 
 ### AI & Media
 - **LLM/LVM**: Google Gemini 2.5 Flash (Text/Vision/Storyboard), Gemini 2.5 Flash Image (이미지 생성)
-- **Workflow**: LangGraph (Agentic Pipeline 19-노드: Director Plan → Plan Gate → Writer → Review → Checkpoint → Cinematographer → Director → Finalize)
+- **Workflow**: LangGraph (Agentic Pipeline 21-노드: Director Plan → Plan Gate → Writer → Review → Checkpoint → Cinematographer → Location Planner → Director → Finalize)
 - **Checkpointer**: AsyncPostgresSaver (psycopg v3, LangGraph 체크포인트)
 - **Memory**: AsyncPostgresStore (LangGraph Memory Store)
 - **Image**: Stable Diffusion WebUI (A1111) + ControlNet v1.1 + IP-Adapter Plus
-- **TTS**: Qwen3-TTS (12Hz-1.7B-VoiceDesign, 0115 Update)
-- **Music**: Stable Audio Open 1.0 (AI BGM 생성)
+- **TTS**: GPT-SoVITS v2 (씬 TTS, 음색 복제) + Qwen3-TTS (12Hz-1.7B-VoiceDesign, 보이스 디자인 전용)
+- **Music**: MusicGen (facebook/musicgen-small, AI BGM 생성)
 - **Validation**: WD14 (Waifu Diffusion v1.4) Vit-Tagger-v2 (ONNX)
 - **Video**: FFmpeg (Filter complex, Ken Burns effect)
 
