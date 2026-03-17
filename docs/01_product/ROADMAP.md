@@ -53,7 +53,8 @@
 
 ### 최근 작업
 
-- **03-17 LangFuse Prompt Management 전체 이전 완료**: 28개 프롬프트 chat 타입 LangFuse 관리. Phase 0(트레이싱 가시성 — template_name+system_instruction metadata) → Phase 1(A등급 14개 runtime fetch+fallback) → Phase 1.5(chat 전환 — system/user 분리) → Phase 2(B등급 9개 + include 5개 파셜→Python 변수). `prompt_partials.py`(5개 파셜 Python 전환), `langfuse_prompt.py`(PromptBundle), 업로드 스크립트(chat/text 자동 분류). 29개 테스트 PASS
+- **03-17 LangFuse 네이티브 통합 완료 (Jinja2 완전 제거)**: 28/28 프롬프트 Jinja2→LangFuse compile() 전환. Sprint 0(PoC: compile_prompt 래퍼) → Sprint 1(C등급 10개) → Sprint 2(B등급 9개 + run_production_step 분기) → Sprint 3+4(A+S등급 10개). `prompt_builders.py`+`_b.py`+`_c.py`(빌더 75개), `_NATIVE_TEMPLATES`(28개), 폴더 기반 네이밍, system/user 완전 분리, 프롬프트 역할 중복 제거, 정적 규칙 system 이전. TTSEngine SSOT, SoVITS 파라미터/후처리. 테스트 3,525개 PASS
+- **03-17 LangFuse Prompt Management 전체 이전 완료**: 28개 프롬프트 chat 타입 LangFuse 관리. Phase 0~2. 29개 테스트 PASS
 - **03-16 SSOT 위반 정리 P1+P2 완료 (46/49건)**: config.py 상수화(Hi-Res 4개+SAMPLERS+TTS_ENGINE+ENABLE_HR), `/presets` API 확장(hi_res_defaults+samplers+tts_engine+image_defaults+pipeline_metadata), Frontend 하드코딩 제거(constants→store/presets 동기화, 해상도 6곳→상수/store), controlnet.py weight fallback→상수 참조
 - **03-17 Phase 35 완료**: GPT-SoVITS v2 TTS 통합 — SoVITS(:9880 일상TTS) + Qwen3(:8001 보이스디자인 on-demand) + MusicGen(CPU 상주). audio_client SoVITS→Qwen3 fallback, 캐릭터 보이스 레퍼런스 API, 감정별 레퍼런스 탐색, Text Normalization, E2E 검증 완료. SSOT 위반 P0~P2 52건+ 정리
 - **03-17 이미지 품질 개선 + 오디오 상주 모드**: 씬 배경 사라짐 근본 수정(캐릭터 negative 정리, scenery 자동주입, IP-Adapter/Reference AdaIN 비활성화), StyleProfile flat_color_v2:0.3 최적화, IP-Adapter weight SSOT 통일(Backend+Frontend), MeMaXL v6 설치, 오디오 서버 persistent 모드(TTS GPU + MusicGen CPU 상주 로드)
@@ -264,7 +265,7 @@ graph LR
 |------|------|
 | ~~Phase 34: GPU 순차 독점 실행 & BGM 고도화~~ | **드롭** — ComfyUI 전환으로 GPU 관리 방식 자체가 변경될 예정. Forge 전용 `forge_control.py` 구현이 무의미해짐. BGM(ACE-Step) 고도화는 별도 항목으로 재검토 |
 | ~~**LangFuse Prompt Management 전체 이전**~~ | **완료** — 28개 프롬프트 chat 타입(system/user 분리). `prompt_partials.py` 파셜 Python 전환, `_partials/` 삭제. 29개 테스트 |
-| **LangFuse 네이티브 통합 (Jinja2 제거)** (P2) | Jinja2 의존 완전 제거 → LangFuse 네이티브 변수(`{{var}}` compile()) 전환. Sprint 1: 인프라+C등급 10개(~300줄) → Sprint 2: B등급 8개+prompt_builders.py(~400줄) → Sprint 3: A등급 7개+Composability(~350줄) → Sprint 4: S등급 3개+Jinja2 제거(~300줄). system/user 분리 정합성 확보, Playground 테스트 가능, PROHIBITED_CONTENT 해소. DoD 8항목, 테스트 ~38개. [명세](FEATURES/LANGFUSE_PROMPT_OPS.md) |
+| ~~**LangFuse 네이티브 통합 (Jinja2 제거)**~~ | **완료** — 28/28 프롬프트 Jinja2→LangFuse compile() 전환. `compile_prompt()` 래퍼, `prompt_builders.py`+`prompt_builders_b.py`+`prompt_builders_c.py` (빌더 75개), `_NATIVE_TEMPLATES` 분기, 폴더 기반 네이밍(`pipeline/`+`storyboard/`+`tool/`+`shared/`), system/user 완전 분리, 프롬프트 역할 중복 제거, 정적 규칙 system 이전. 테스트 3,525개 PASS. [명세](FEATURES/LANGFUSE_PROMPT_OPS.md) |
 | **LLM Provider 추상화 Phase A~E 완료** | [설계](../03_engineering/backend/LLM_PROVIDER_ABSTRACTION.md) — `services/llm/` 패키지 구축, `google.genai` 직결 제거, trace + PROHIBITED fallback 중복 해소. Phase F(OllamaProvider)는 아래 LiteLLM 항목으로 대체 예정 |
 | **LiteLLM SDK 도입 (Phase F 대체)** | Gemini 외 두 번째 Provider 실제 도입 시점에 착수. `GeminiProvider` 내부를 LiteLLM 호출로 교체 → 100+ Provider 지원, 폴백/재시도 내장, `OllamaProvider` 직접 구현 불필요. 트레이스 중복 방지를 위해 LiteLLM 자동 LangFuse 콜백 비활성화 + 기존 `trace_llm_call()` 유지 필수. OSS LLMOps Stack(LangGraph + LangFuse + LiteLLM) 표준 조합 완성. **착수 조건**: Ollama/Claude 등 두 번째 Provider 실제 사용 확정 시 |
 | PipelineControl 커스텀 (노드 on/off) + 분산 큐 (Celery/Redis) | Phase 9-4 잔여 |
