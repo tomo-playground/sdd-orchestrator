@@ -277,5 +277,6 @@ graph LR
 | ~~Phase 35: GPT-SoVITS v2 TTS 전환~~ | **완료** — SoVITS(:9880) + Qwen3(보이스디자인 on-demand) + MusicGen(CPU). GPU 전환은 cu128 대기 |
 | **클라우드 TTS/BGM 전환** | Replicate(현재 모델 클라우드 실행) 또는 ElevenLabs/Suno. GPU 경합 완전 해소, 비용 발생 |
 | **씬 단위 순차 생성** | IMAGE→TTS를 씬별로 처리 (현재: 전체 IMAGE→전체 TTS). GPU 순차 독점 자연 해결 + 즉시 프리뷰 |
+| **캐릭터 복수 표현 리팩토링** | `character_id`+`character_b_id` 하드코딩 → `characters: list[{speaker, character_id, gender}]` 리스트 구조. 3인 이상 확장 가능. DB 스키마+API+State+Frontend 전체 관통. **착수 시점**: 멀티캐릭터(3인+) 기능 요구 시 또는 캐릭터 일관성 V3 착수 시. [명세](FEATURES/MULTI_CHARACTER.md) 확장 |
 | ~~ComfyUI 마이그레이션~~ | **⭐ 최우선 백로그로 이동** — [명세](FEATURES/COMFYUI_MIGRATION.md) |
 | ~~캐릭터 일관성 V3~~ | **⭐ 최우선 백로그로 이동** — [명세](FEATURES/CHARACTER_CONSISTENCY_V3.md) |
