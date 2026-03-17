@@ -397,7 +397,7 @@ async def test_tts_designer_passes_director_feedback(mock_step, cinema_result):
     state = {"cinematographer_result": cinema_result, "critic_result": {}, "director_feedback": "감정 부족"}
     await tts_designer_node(state)
     call_vars = mock_step.call_args[1]["template_vars"]
-    assert call_vars["feedback"] == "감정 부족"
+    assert "감정 부족" in call_vars.get("feedback_section", call_vars.get("feedback", ""))
 
 
 @pytest.mark.asyncio
@@ -415,7 +415,7 @@ async def test_sound_designer_passes_director_feedback(mock_step, cinema_result)
     }
     await sound_designer_node(state)
     call_vars = mock_step.call_args[1]["template_vars"]
-    assert call_vars["feedback"] == "BGM 부적절"
+    assert "BGM 부적절" in call_vars.get("feedback_section", call_vars.get("feedback", ""))
 
 
 @pytest.mark.asyncio
@@ -428,7 +428,7 @@ async def test_copyright_reviewer_passes_director_feedback(mock_step, cinema_res
     state = {"cinematographer_result": cinema_result, "director_feedback": "IP 재검토 필요"}
     await copyright_reviewer_node(state)
     call_vars = mock_step.call_args[1]["template_vars"]
-    assert call_vars["feedback"] == "IP 재검토 필요"
+    assert "IP 재검토 필요" in call_vars.get("feedback_section", call_vars.get("feedback", ""))
 
 
 # -- Fallback 패턴 테스트 --

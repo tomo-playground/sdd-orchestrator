@@ -292,7 +292,19 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         template_name = preset.template if preset else "create_storyboard.j2"
         extra_fields = preset.extra_fields if preset else {}
 
-        from services.agent.langfuse_prompt import get_prompt_template
+        from services.agent.langfuse_prompt import compile_prompt
+        from services.agent.prompt_builders_c import (
+            build_character_tag_rules,
+            build_description_section,
+            build_dialogue_scene_max,
+            build_dialogue_scene_range,
+            build_multi_character_rules,
+            build_multi_scene_mode_field,
+            build_optional_text_section,
+            build_scene_count_max,
+            build_scene_count_range,
+            build_storyboard_chat_context,
+        )
         from services.agent.prompt_partials import (
             EMOTION_CONSISTENCY_RULES,
             IMAGE_PROMPT_KO_RULES,
@@ -301,14 +313,15 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             render_selected_concept,
         )
 
-        bundle = get_prompt_template(template_name)
-
         # 파이프라인 컨텍스트 (research_brief, writer_plan 등) 주입
         ctx = pipeline_context or {}
         keyword_context, allowed_tags = get_keyword_context_and_tags()
         safe_topic = _sanitize_for_gemini_prompt(request.topic)
 
-        # 파셜 pre-render ({% include %} 대체)
+        structure_lower_norm = request.structure.lower().replace("_", " ")
+        is_dialogue_structure = structure_lower_norm in ("dialogue", "narrated dialogue")
+
+        # 파셜 pre-render
         partial_vars = {
             "partial_selected_concept": render_selected_concept(request.selected_concept),
             "partial_character_profile": render_character_profile(character_context),
@@ -319,40 +332,67 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             "partial_allowed_tags": render_allowed_tags(allowed_tags),
         }
 
-        rendered = bundle.template.render(
-            topic=safe_topic,
-            description=request.description or "",
-            duration=request.duration,
-            style=request.style,
-            structure=request.structure,
-            language=request.language,
-            actor_a_gender=request.actor_a_gender,
-            keyword_context=keyword_context,
-            allowed_camera_tags=allowed_tags.get("camera", []),
-            allowed_expression_tags=allowed_tags.get("expression", []),
-            allowed_action_tags=allowed_tags.get("action", []),
-            allowed_environment_tags=allowed_tags.get("environment", []),
-            allowed_mood_tags=allowed_tags.get("mood", []),
-            character_context=character_context,
-            character_b_context=character_b_context,
-            is_multi_character_capable=is_multi_character_capable,
-            selected_concept=request.selected_concept,
-            director_plan_context=ctx.get("director_plan_context", ""),
-            research_brief=ctx.get("research_brief", ""),
-            writer_plan=ctx.get("writer_plan", ""),
-            revision_feedback=ctx.get("revision_feedback", ""),
-            current_script_summary=ctx.get("current_script_summary", ""),
-            chat_context=sanitize_chat_context(ctx.get("chat_context", [])),
+        # 공통 빌더 변수
+        sanitized_chat = sanitize_chat_context(ctx.get("chat_context", []))
+        builder_vars = {
+            "topic": safe_topic,
+            "duration": str(request.duration),
+            "style": request.style,
+            "structure": request.structure,
+            "language": request.language,
+            "actor_a_gender": request.actor_a_gender or "",
+            "keyword_context": keyword_context,
+            "description_section": build_description_section(request.description),
+            "director_plan_context_section": build_optional_text_section(
+                "Creative Direction (from Director)", ctx.get("director_plan_context"),
+            ),
+            "chat_context_block": build_storyboard_chat_context(sanitized_chat),
+            "research_brief_section": build_optional_text_section(
+                "Reference Information", ctx.get("research_brief"),
+            ),
+            "writer_plan_section": build_optional_text_section(
+                "Writer Plan", ctx.get("writer_plan"),
+            ),
+            "revision_feedback_section": build_optional_text_section(
+                "Revision Request", ctx.get("revision_feedback"),
+            ),
+            "current_script_section": build_optional_text_section(
+                "Current Script (revise based on this)", ctx.get("current_script_summary"),
+            ),
+            "character_tag_rules": build_character_tag_rules(character_context is not None),
             **partial_vars,
             **extra_fields,
-        )
+        }
+
+        # structure별 씬 개수 변수
+        if is_dialogue_structure:
+            builder_vars["dialogue_scene_range"] = build_dialogue_scene_range(request.duration)
+            builder_vars["dialogue_scene_max"] = build_dialogue_scene_max(request.duration)
+            builder_vars["multi_character_rules"] = build_multi_character_rules(
+                is_multi_character_capable, character_context, character_b_context,
+            )
+            builder_vars["multi_scene_mode_field"] = build_multi_scene_mode_field(is_multi_character_capable)
+            builder_vars["multi_scene_mode_hint"] = (
+                '   - scene_mode: "single" (default) or "multi" (both characters)'
+                if is_multi_character_capable else ""
+            )
+        else:
+            builder_vars["scene_count_range"] = build_scene_count_range(
+                request.duration, request.structure,
+            )
+            builder_vars["scene_count_max"] = build_scene_count_max(
+                request.duration, request.structure,
+            )
+
+        compiled = compile_prompt(template_name, **builder_vars)
         from services.llm import LLMConfig, get_llm_provider
 
         # CLAUDE.md 규칙: system_instruction ↔ contents 분리 필수
-        # system_instruction: LangFuse system(역할) + 렌더링된 템플릿(지시+규칙+태그)
-        # contents: 사용자 데이터(토픽+피드백+채팅)만 — 안전 필터 오탐 방지
-        lf_system = bundle.system_instruction or ""
-        sys_parts = [lf_system, _sanitize_for_gemini_prompt(rendered)]
+        # system: LangFuse system(역할) + 렌더링된 프롬프트 (지시+규칙+태그)
+        # user: 사용자 데이터 — 안전 필터 오탐 방지
+        lf_system = compiled.system or ""
+        sanitized_user = _sanitize_for_gemini_prompt(compiled.user)
+        sys_parts = [lf_system, sanitized_user]
         system_instruction = "\n\n".join(p for p in sys_parts if p)
 
         user_parts = [f"Topic: {safe_topic}"]
@@ -378,7 +418,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             contents=user_contents,
             config=LLMConfig(system_instruction=system_instruction),
             model=GEMINI_TEXT_MODEL,
-            langfuse_prompt=bundle.langfuse_prompt,
+            langfuse_prompt=compiled.langfuse_prompt,
         )
         res = llm_resp.raw
         if not res.text:

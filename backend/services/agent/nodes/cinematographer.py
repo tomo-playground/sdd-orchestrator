@@ -184,37 +184,46 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     executors = create_cinematographer_executors(db_session, state)
 
     scenes = state.get("draft_scenes") or []
-    character_id = state.get("character_id")
     director_feedback = state.get("director_feedback")
 
     characters_tags = _load_characters_tags(state, db_session) or {}
 
     style = state.get("style", "Anime")
     writer_plan = state.get("writer_plan")
-    director_plan = state.get("director_plan")
 
     from services.script.gemini_generator import sanitize_chat_context  # noqa: PLC0415
 
     chat_context = sanitize_chat_context(state.get("chat_context") or [])
 
-    from services.agent.langfuse_prompt import get_prompt_template
+    from services.agent.langfuse_prompt import compile_prompt
+    from services.agent.prompt_builders_c import (
+        build_character_tags_fallback,
+        build_characters_tags_block,
+        build_chat_context_cinematographer,
+        build_cine_feedback_json_hint,
+        build_cine_feedback_section,
+        build_creative_direction_section,
+        build_style_section,
+        build_writer_plan_section,
+    )
     from services.agent.prompt_partials import EMOTION_CONSISTENCY_RULES, IMAGE_PROMPT_KO_RULES
 
     _cine_template = "creative/cinematographer.j2"
-    bundle = get_prompt_template(_cine_template)
-    base_prompt = bundle.template.render(
-        scenes=scenes,
-        character_id=character_id,
-        style=style,
-        characters_tags=characters_tags,
-        writer_plan=writer_plan,
-        director_plan=director_plan,
-        feedback=director_feedback,
-        chat_context=chat_context,
-        creative_direction=state.get("creative_direction"),
+    compiled = compile_prompt(
+        _cine_template,
+        scenes_json=json.dumps(scenes, ensure_ascii=False, indent=2),
+        characters_tags_block=build_characters_tags_block(characters_tags),
+        character_tags_fallback=build_character_tags_fallback(None),
+        style_section=build_style_section(style),
+        writer_plan_section=build_writer_plan_section(writer_plan),
+        chat_context_block=build_chat_context_cinematographer(chat_context),
+        creative_direction_section=build_creative_direction_section(state.get("creative_direction")),
+        cine_feedback_section=build_cine_feedback_section(director_feedback),
+        cine_feedback_json_hint=build_cine_feedback_json_hint(director_feedback),
         partial_image_prompt_ko_rules=IMAGE_PROMPT_KO_RULES,
         partial_emotion_consistency_rules=EMOTION_CONSISTENCY_RULES,
     )
+    base_prompt = compiled.user
 
     # Full 모드 경쟁 시도 (성공 시 즉시 반환)
     if "production" not in (state.get("skip_stages") or []):
@@ -292,7 +301,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
                     tool_executors=executors,
                     max_calls=10,
                     trace_name="cinematographer_tool_calling",
-                    system_instruction=bundle.system_instruction or "당신은 쇼츠 영상의 Cinematographer Agent입니다. 각 씬에 Danbooru 태그, 카메라 앵글, 환경 설정을 추가하여 비주얼 디자인을 완성하세요.",
+                    system_instruction=compiled.system or "당신은 쇼츠 영상의 Cinematographer Agent입니다. 각 씬에 Danbooru 태그, 카메라 앵글, 환경 설정을 추가하여 비주얼 디자인을 완성하세요.",
                     metadata=_cine_metadata,
                 )
                 tool_logs = attempt_logs
@@ -303,7 +312,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
                     prompt=current_prompt,
                     trace_name="cinematographer_direct_retry",
                     temperature=0.0,
-                    system_instruction=bundle.system_instruction or "당신은 쇼츠 영상의 Cinematographer Agent입니다. 반드시 JSON 형식으로만 응답하세요.",
+                    system_instruction=compiled.system or "당신은 쇼츠 영상의 Cinematographer Agent입니다. 반드시 JSON 형식으로만 응답하세요.",
                     metadata=_cine_metadata,
                 )
         except Exception as e:

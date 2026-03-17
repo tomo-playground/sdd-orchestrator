@@ -28,7 +28,6 @@ async def analyze_topic(
         SHORTS_DURATIONS,
         STORYBOARD_LANGUAGES,
         gemini_client,
-        template_env,
     )
     from services.agent.inventory import STRUCTURE_METADATA
     from services.creative_utils import parse_json_response
@@ -46,21 +45,34 @@ async def analyze_topic(
         logger.warning("[AnalyzeTopic] Gemini 클라이언트 미설정, 기본값 반환")
         return fallback
 
+    from services.agent.langfuse_prompt import compile_prompt
+    from services.agent.prompt_builders_c import (
+        build_description_section,
+        build_durations_list,
+        build_languages_list,
+        build_messages_block,
+        build_structures_list,
+    )
+
     template_vars = {
         "topic": topic,
-        "description": description or "",
-        "durations": SHORTS_DURATIONS,
-        "languages": STORYBOARD_LANGUAGES,
-        "structures": STRUCTURE_METADATA,
-        "messages": messages or [],
+        "description_section": build_description_section(description),
+        "messages_block": build_messages_block(messages),
+        "durations_list": build_durations_list(SHORTS_DURATIONS),
+        "languages_list": build_languages_list(STORYBOARD_LANGUAGES),
+        "structures_list": build_structures_list(STRUCTURE_METADATA),
     }
 
     try:
         from google.genai import types
 
-        tmpl = template_env.get_template("creative/analyze_topic.j2")
-        prompt = tmpl.render(**template_vars)
-        config = types.GenerateContentConfig(safety_settings=GEMINI_SAFETY_SETTINGS)
+        compiled = compile_prompt("creative/analyze_topic.j2", **template_vars)
+        prompt = compiled.user
+        sys_instruction = compiled.system or ""
+        config = types.GenerateContentConfig(
+            safety_settings=GEMINI_SAFETY_SETTINGS,
+            system_instruction=sys_instruction if sys_instruction else None,
+        )
         response = await gemini_client.aio.models.generate_content(
             model=GEMINI_TEXT_MODEL,
             contents=prompt,

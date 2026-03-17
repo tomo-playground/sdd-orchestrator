@@ -10,9 +10,7 @@ import json
 import time
 from dataclasses import dataclass, field
 
-from jinja2 import Environment, FileSystemLoader
-
-from config import BASE_DIR, CREATIVE_AGENT_TEMPLATES, CREATIVE_LEADER_MODEL, logger
+from config import CREATIVE_AGENT_TEMPLATES, CREATIVE_LEADER_MODEL, logger
 from models.creative import CreativeSession
 from services.agent.langfuse_prompt import compile_prompt
 from services.agent.prompt_builders import (
@@ -23,8 +21,6 @@ from services.agent.prompt_builders import (
 )
 from services.creative_agents import generate_parallel, get_provider
 from services.creative_utils import get_next_sequence, load_preset, parse_json_response, record_trace_sync
-
-_template_env = Environment(loader=FileSystemLoader(str(BASE_DIR / "templates")))
 
 # ── Constants ──────────────────────────────────────────────────
 
@@ -140,8 +136,20 @@ async def run_reference_analyst(db, session: CreativeSession, ctx: DebateContext
 
 async def run_architects(db, session: CreativeSession, round_number: int, ctx: DebateContext) -> list[dict]:
     """Run 3 architects in parallel and record traces."""
-    template = _template_env.get_template(CREATIVE_AGENT_TEMPLATES["emotional_arc"])
+    from services.agent.prompt_builders_c import (
+        build_character_name_section,
+        build_critic_feedback_section,
+        build_dialogue_rules_section,
+        build_director_feedback_section,
+        build_director_plan_section,
+        build_korean_quality_rules,
+        build_prev_concept_section,
+        build_reference_guidelines_section,
+        build_research_brief_section,
+    )
+
     agents = []
+    _template_name = CREATIVE_AGENT_TEMPLATES["emotional_arc"]
 
     for arch in ARCHITECT_PERSPECTIVES:
         prev_concept = None
@@ -156,21 +164,28 @@ async def run_architects(db, session: CreativeSession, round_number: int, ctx: D
         perspective = meta.get("perspective", arch["perspective"])
         focus = meta.get("focus_instruction", arch["focus_instruction"])
 
-        prompt = template.render(
-            perspective=perspective,
-            duration=ctx.duration,
+        compiled = compile_prompt(
+            _template_name,
+            duration=str(ctx.duration),
             topic=ctx.topic,
             language=ctx.language,
             structure=ctx.structure,
-            character_name=ctx.character_name,
-            character_b_name=ctx.character_b_name,
-            reference_guidelines=ctx.reference_guidelines,
-            research_brief=ctx.research_brief,
-            director_plan=ctx.director_plan,
-            prev_concept=json.dumps(prev_concept, ensure_ascii=False) if prev_concept else None,
-            director_feedback=ctx.director_feedback,
-            critic_feedback=arch_critic,
+            perspective=perspective,
             focus_instruction=focus,
+            character_a_section=build_character_name_section(ctx.character_name, "Character A"),
+            character_b_section=build_character_name_section(ctx.character_b_name, "Character B"),
+            dialogue_rules_section=build_dialogue_rules_section(
+                ctx.character_b_name, ctx.structure, ctx.character_name,
+            ),
+            director_plan_section=build_director_plan_section(ctx.director_plan),
+            reference_guidelines_section=build_reference_guidelines_section(ctx.reference_guidelines),
+            research_brief_section=build_research_brief_section(ctx.research_brief),
+            prev_concept_section=build_prev_concept_section(
+                json.dumps(prev_concept, ensure_ascii=False) if prev_concept else None
+            ),
+            director_feedback_section=build_director_feedback_section(ctx.director_feedback),
+            critic_feedback_section=build_critic_feedback_section(arch_critic),
+            korean_quality_rules=build_korean_quality_rules(ctx.language),
         )
 
         sys_prompt = (
@@ -186,9 +201,9 @@ async def run_architects(db, session: CreativeSession, round_number: int, ctx: D
                 "preset_id": preset.id if preset else None,
                 "provider": "gemini",
                 "model_name": CREATIVE_LEADER_MODEL,
-                "system_prompt": sys_prompt,
+                "system_prompt": compiled.system or sys_prompt,
                 "temperature": temp,
-                "objective": prompt,
+                "objective": compiled.user,
             }
         )
 

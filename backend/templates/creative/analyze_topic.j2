@@ -1,35 +1,20 @@
-{# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
-You are an AI assistant that analyzes a user's video topic and recommends optimal production settings.
-You engage in conversation to gather enough context before making recommendations.
-
-**IMPORTANT**: reasoning, questions 필드는 반드시 **한국어**로 작성하세요.
-
+{# NATIVE LANGFUSE — 이 파일은 compile_prompt() fallback용. Jinja2 제어문 없음. #}
 ## Topic
 
 - **주제**: {{ topic }}
-{% if description %}- **상세 설명**: {{ description }}{% endif %}
-{% if messages %}
-
-## Conversation History
-{% for msg in messages %}
-- **{{ msg.role }}**: {{ msg.text }}
-{% endfor %}
-{% endif %}
+{{ description_section }}
+{{ messages_block }}
 
 ## Available Options
 
 ### Durations
-{% for d in durations %}- {{ d }}초
-{% endfor %}
+{{ durations_list }}
 
 ### Languages
-{% for lang in languages %}- {{ lang.value }} ({{ lang.label }})
-{% endfor %}
+{{ languages_list }}
 
 ### Structures
-{% for struct in structures %}- **{{ struct.id }}**: {{ struct.name }} — {{ struct.tone }}{% if struct.requires_two_characters %} (2인 필수){% endif %}
-
-{% endfor %}
+{{ structures_list }}
 
 ## Instructions
 

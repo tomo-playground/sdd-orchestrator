@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import re
 
-from config import SCENE_DURATION_RANGE, logger
+from config import logger
 from services.agent.state import ScriptState, extract_selected_concept
 from services.llm import LLMConfig, get_llm_provider
 from services.storyboard.helpers import strip_markdown_codeblock
@@ -195,11 +195,17 @@ async def try_scene_expand(
     실패 시 None을 반환하여 Tier 3(전체 재생성)으로 fallback.
     """
 
-    from services.agent.langfuse_prompt import get_prompt_template  # noqa: PLC0415
+    from services.agent.langfuse_prompt import compile_prompt  # noqa: PLC0415
+    from services.agent.prompt_builders_c import (  # noqa: PLC0415
+        build_character_context_section,
+        build_expand_feedback_section,
+        build_korean_hint,
+        build_selected_concept_json,
+        build_structure_speaker_rule,
+    )
 
     try:
         _template_name = "creative/scene_expand.j2"
-        bundle = get_prompt_template(_template_name)
 
         # 피드백 수집
         review = state.get("review_result") or {}
@@ -214,32 +220,35 @@ async def try_scene_expand(
         if cid := state.get("character_id"):
             char_ctx = f"character_id={cid}"
 
-        min_dur, max_dur = SCENE_DURATION_RANGE
+        language = state.get("language", "Korean")
+        structure = state.get("structure", "Monologue")
+        feedback_str = "\n".join(feedback_parts) if feedback_parts else ""
 
-        prompt = bundle.template.render(
+        compiled = compile_prompt(
+            _template_name,
             existing_scenes_json=json.dumps(scenes, ensure_ascii=False, indent=2),
-            existing_count=len(scenes),
-            target_min=target_min,
-            deficit=deficit,
-            duration=state.get("duration", 10),
+            existing_count=str(len(scenes)),
+            target_min=str(target_min),
+            deficit=str(deficit),
+            duration=str(state.get("duration", 10)),
             topic=state.get("topic", ""),
-            language=state.get("language", "Korean"),
-            structure=state.get("structure", "Monologue"),
+            language=language,
+            structure=structure,
             style=state.get("style", "Anime"),
-            selected_concept=extract_selected_concept(state),
-            character_context=char_ctx,
-            scene_dur_min=min_dur,
-            scene_dur_max=max_dur,
-            feedback="\n".join(feedback_parts) if feedback_parts else "",
+            selected_concept_json=build_selected_concept_json(extract_selected_concept(state)),
+            character_context_section=build_character_context_section(char_ctx),
+            structure_speaker_rule=build_structure_speaker_rule(structure),
+            expand_feedback_section=build_expand_feedback_section(feedback_str),
+            korean_hint=build_korean_hint(language),
         )
 
         _fallback_sys = "You are a scene expansion specialist for short-form video scripts. Generate new scenes that seamlessly integrate with existing ones."
         llm_response = await get_llm_provider().generate(
             step_name="revise_scene_expand",
-            contents=prompt,
-            config=LLMConfig(system_instruction=bundle.system_instruction or _fallback_sys),
+            contents=compiled.user,
+            config=LLMConfig(system_instruction=compiled.system or _fallback_sys),
             metadata={"template": _template_name},
-            langfuse_prompt=bundle.langfuse_prompt,
+            langfuse_prompt=compiled.langfuse_prompt,
         )
         raw = strip_markdown_codeblock(llm_response.text)
         new_scenes = json.loads(raw)

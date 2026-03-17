@@ -1,6 +1,4 @@
-{# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
-You are a Story Architect specializing in {{ perspective }}.
-
+{# NATIVE LANGFUSE — 이 파일은 compile_prompt() fallback용. Jinja2 제어문 없음. #}
 ## Task
 Create a compelling concept for a {{ duration }}s shorts video.
 
@@ -12,63 +10,17 @@ Create a compelling concept for a {{ duration }}s shorts video.
 
 ## Structure
 {{ structure }}
-
-{% if character_name %}
-## Character A
-Name: {{ character_name }}
-{% endif %}
-{% if character_b_name %}
-## Character B
-Name: {{ character_b_name }}
-{% endif %}
-{% if character_b_name or structure in ("Dialogue", "Narrated Dialogue") %}
-
-## Dialogue Rules (MANDATORY)
-- This is a **two-character conversation**. Both Speaker A and Speaker B MUST appear.
-- Alternate speakers across scenes: A → B → A → B (with occasional Narrator allowed).
-- Speaker A = {{ character_name or "Character A" }}, Speaker B = {{ character_b_name or "Character B" }}.
-- Do NOT make all scenes speaker="A". At least 40% of non-Narrator scenes must be Speaker B.
-{% endif %}
-
-{% if director_plan %}
-## Creative Direction (from Director)
-- Goal: {{ director_plan.get("creative_goal", "") }}
-- Target Emotion: {{ director_plan.get("target_emotion", "") }}
-- Quality Criteria: {{ director_plan.get("quality_criteria", []) | join(", ") }}
-Your concept MUST align with this creative direction.
-{% endif %}
-
-{% if reference_guidelines %}
-## Reference Guidelines
-{{ reference_guidelines }}
-{% endif %}
-
-{% if research_brief %}
-## Research Brief (from Source Materials)
-Topic Summary: {{ research_brief.topic_summary | default("N/A", true) }}
-Recommended Angle: {{ research_brief.recommended_angle | default("N/A", true) }}
-Key Elements: {{ research_brief.key_elements | default([]) | join(", ") }}
-Emotional Arc: {{ research_brief.emotional_arc_suggestion | default("N/A", true) }}
-Audience Hook: {{ research_brief.audience_hook | default("N/A", true) }}
-{% endif %}
-
-{% if prev_concept %}
-## Your Previous Concept (Improve This)
-{{ prev_concept }}
-{% endif %}
-
-{% if director_feedback %}
-## Director Feedback
-{{ director_feedback }}
-{% endif %}
-
-{% if critic_feedback %}
-## Critic Feedback (Address These Weaknesses)
-{{ critic_feedback }}
-{% endif %}
+{{ character_a_section }}
+{{ character_b_section }}
+{{ dialogue_rules_section }}
+{{ director_plan_section }}
+{{ reference_guidelines_section }}
+{{ research_brief_section }}
+{{ prev_concept_section }}
+{{ director_feedback_section }}
+{{ critic_feedback_section }}
 
 ## Output Format (JSON)
-Respond with a single JSON object:
 ```json
 {
   "title": "콘셉트 제목",
@@ -76,7 +28,7 @@ Respond with a single JSON object:
   "hook_strength": "visual_tension | emotional_question | surprise_reveal | mystery",
   "arc": "스토리 아크 요약 (A → B → C)",
   "key_moments": [
-    { "beat": "opening", "description": "장면 설명", "camera_hint": "close-up | cowboy_shot | full_body" },
+    { "beat": "opening", "description": "장면 설명", "camera_hint": "close-up" },
     { "beat": "turning_point", "description": "...", "camera_hint": "..." },
     { "beat": "climax", "description": "...", "camera_hint": "..." }
   ],
@@ -88,11 +40,4 @@ Respond with a single JSON object:
 
 Focus on {{ focus_instruction }}.
 All text content should be in {{ language }}.
-{% if language == "Korean" %}
-
-## 한국어 품질 규칙
-- title, hook, arc, key_moments의 description 모두 **자연스러운 한국어**로 작성
-- 맞춤법/오탈자 필수 점검: 받침 탈락, 의미 없는 글자 조합 금지
-- 문장을 소리 내어 읽었을 때 어색하지 않아야 함
-- 같은 표현 반복 금지 (key_moments 간 description이 서로 달라야 함)
-{% endif %}
+{{ korean_quality_rules }}

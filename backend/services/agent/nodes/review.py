@@ -18,7 +18,6 @@ from config import (
     logger,
 )
 from config_pipelines import LANGGRAPH_NARRATIVE_THRESHOLD, REVIEW_MODEL
-from services.agent.langfuse_prompt import get_prompt_template
 from services.agent.llm_models import (
     NarrativeScoreOutput,
     ReflectionOutput,
@@ -269,26 +268,35 @@ async def _self_reflect(
     실패 시 None 반환 (graceful degradation).
     """
     try:
+        from services.agent.langfuse_prompt import compile_prompt  # noqa: PLC0415
+        from services.agent.prompt_builders_c import (  # noqa: PLC0415
+            build_errors_block,
+            build_gemini_feedback_section,
+            build_narrative_score_section,
+            build_warnings_block,
+        )
+
         _template_name_rf = "creative/review_reflection.j2"
-        bundle_rf = get_prompt_template(_template_name_rf)
-        prompt = bundle_rf.template.render(
+        compiled = compile_prompt(
+            _template_name_rf,
             topic=topic,
             language=language,
             structure=structure,
-            errors=review_result.get("errors", []),
-            warnings=review_result.get("warnings", []),
-            gemini_feedback=review_result.get("gemini_feedback"),
-            narrative_score=review_result.get("narrative_score"),
-            narrative_threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
+            errors_block=build_errors_block(review_result.get("errors", [])),
+            warnings_block=build_warnings_block(review_result.get("warnings", [])),
+            gemini_feedback_section=build_gemini_feedback_section(review_result.get("gemini_feedback")),
+            narrative_score_section=build_narrative_score_section(
+                review_result.get("narrative_score"),
+                LANGGRAPH_NARRATIVE_THRESHOLD,
+            ),
         )
-        _fallback_sys_rf = "You are a self-reflection agent that analyzes review failures and proposes fix strategies."
         llm_response = await get_llm_provider().generate(
             step_name="review_self_reflect",
-            contents=prompt,
-            config=LLMConfig(system_instruction=bundle_rf.system_instruction or _fallback_sys_rf),
+            contents=compiled.user,
+            config=LLMConfig(system_instruction=compiled.system or "You are a self-reflection agent that analyzes review failures and proposes fix strategies."),
             model=REVIEW_MODEL,
             metadata={"template": _template_name_rf},
-            langfuse_prompt=bundle_rf.langfuse_prompt,
+            langfuse_prompt=compiled.langfuse_prompt,
         )
 
         # JSON 파싱
@@ -356,28 +364,34 @@ async def _unified_evaluate(
     실패 시 None 반환 (레거시 개별 호출로 폴백).
     """
     try:
+        from services.agent.langfuse_prompt import compile_prompt  # noqa: PLC0415
+        from services.agent.prompt_builders_c import (  # noqa: PLC0415
+            build_rule_errors_section,
+            build_rule_warnings_section,
+        )
+
         _template_name_ru = "creative/review_unified.j2"
-        bundle = get_prompt_template(_template_name_ru)
-        prompt = bundle.template.render(
+        compiled = compile_prompt(
+            _template_name_ru,
             scenes=json.dumps(scenes, ensure_ascii=False),
             topic=topic,
             language=language,
             structure=structure,
-            threshold=LANGGRAPH_AUTO_REVIEW_THRESHOLD,
-            narrative_threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
-            rule_errors=rule_errors,
-            rule_warnings=rule_warnings,
+            threshold=str(LANGGRAPH_AUTO_REVIEW_THRESHOLD),
+            narrative_threshold=str(LANGGRAPH_NARRATIVE_THRESHOLD),
+            rule_errors_section=build_rule_errors_section(rule_errors),
+            rule_warnings_section=build_rule_warnings_section(rule_warnings),
         )
         _fallback_sys_ru = "You are a unified review agent that evaluates technical quality, narrative strength, and self-reflection for short-form video scripts."
         llm_response = await get_llm_provider().generate(
             step_name="review_unified_evaluate",
-            contents=prompt,
+            contents=compiled.user,
             config=LLMConfig(
-                system_instruction=bundle.system_instruction or _fallback_sys_ru,
+                system_instruction=compiled.system or _fallback_sys_ru,
             ),
             model=REVIEW_MODEL,
             metadata={"template": _template_name_ru},
-            langfuse_prompt=bundle.langfuse_prompt,
+            langfuse_prompt=compiled.langfuse_prompt,
         )
 
         text = (llm_response.text or "").strip()

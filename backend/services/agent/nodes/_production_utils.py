@@ -34,6 +34,17 @@ _NATIVE_TEMPLATES: frozenset[str] = frozenset(
         "creative/director_plan.j2",
         "creative/scriptwriter.j2",
         "creative/writer_planning.j2",
+        # A등급 (Sprint 3) — storyboard + tool + pipeline 잔여 10개
+        "creative/analyze_topic.j2",
+        "creative/concept_architect.j2",
+        "creative/cinematographer.j2",
+        "creative/review_reflection.j2",
+        "creative/review_unified.j2",
+        "creative/scene_expand.j2",
+        "create_storyboard.j2",
+        "create_storyboard_confession.j2",
+        "create_storyboard_dialogue.j2",
+        "create_storyboard_narrated.j2",
     }
 )
 

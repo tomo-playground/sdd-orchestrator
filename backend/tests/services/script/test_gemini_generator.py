@@ -62,7 +62,7 @@ def mock_db():
 
 @pytest.mark.asyncio
 async def test_generate_script_uses_fallback_system_prompt(mock_gemini_client, mock_db):
-    """Quick 모드에서 fallback system instruction이 사용된다."""
+    """Quick 모드에서 compile_prompt() 경유 system instruction이 사용된다."""
     mock_preset = MockPreset()
 
     mock_raw = MagicMock()
@@ -76,12 +76,14 @@ async def test_generate_script_uses_fallback_system_prompt(mock_gemini_client, m
     mock_provider = MagicMock()
     mock_provider.generate = AsyncMock(return_value=mock_llm_response)
 
-    with patch("services.script.gemini_generator.get_preset_by_structure", return_value=mock_preset):
-        with patch("services.script.gemini_generator.template_env.get_template") as mock_get_template:
-            mock_template = MagicMock()
-            mock_template.render.return_value = "Rendered Template Content"
-            mock_get_template.return_value = mock_template
+    # compile_prompt 반환값 mock
+    mock_compiled = MagicMock()
+    mock_compiled.system = "You are a professional storyboarder and scriptwriter"
+    mock_compiled.user = "Rendered Template Content"
+    mock_compiled.langfuse_prompt = None
 
+    with patch("services.script.gemini_generator.get_preset_by_structure", return_value=mock_preset):
+        with patch("services.agent.langfuse_prompt.compile_prompt", return_value=mock_compiled):
             with patch("services.llm.get_llm_provider", return_value=mock_provider):
                 request = MockRequest()
                 await generate_script(request, db=mock_db)

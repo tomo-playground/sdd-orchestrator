@@ -17,12 +17,16 @@ import pytest
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes.review.get_llm_provider")
-@patch("services.agent.nodes.review.template_env")
-async def test_self_reflect_success(mock_tenv, mock_llm_provider):
+@patch("services.agent.langfuse_prompt.compile_prompt")
+async def test_self_reflect_success(mock_compile, mock_llm_provider):
     """Self-Reflection이 성공적으로 근본 원인 + 수정 전략을 생성한다."""
     from services.agent.nodes.review import _self_reflect
 
-    mock_tenv.get_template.return_value.render.return_value = "prompt"
+    mock_compiled = MagicMock()
+    mock_compiled.system = "You are a self-reflection agent"
+    mock_compiled.user = "prompt"
+    mock_compiled.langfuse_prompt = None
+    mock_compile.return_value = mock_compiled
 
     # LLM 응답 mock (JSON 형식)
     mock_llm_resp = MagicMock()
@@ -322,12 +326,16 @@ def _full_state(scene_count=5, duration=10):
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes.review.get_llm_provider")
-@patch("services.agent.nodes.review.template_env")
-async def test_unified_all_pass_no_reflection(mock_tenv, mock_llm_provider):
+@patch("services.agent.langfuse_prompt.compile_prompt")
+async def test_unified_all_pass_no_reflection(mock_compile, mock_llm_provider):
     """통합 호출: technical pass + narrative pass → reflection null."""
     from services.agent.nodes.review import review_node
 
-    mock_tenv.get_template.return_value.render.return_value = "prompt"
+    mock_compiled = MagicMock()
+    mock_compiled.system = "system"
+    mock_compiled.user = "prompt"
+    mock_compiled.langfuse_prompt = None
+    mock_compile.return_value = mock_compiled
 
     mock_llm_resp = MagicMock()
     mock_llm_resp.text = _make_unified_json(tech_passed=True, reflection=None)
@@ -345,12 +353,16 @@ async def test_unified_all_pass_no_reflection(mock_tenv, mock_llm_provider):
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes.review.get_llm_provider")
-@patch("services.agent.nodes.review.template_env")
-async def test_unified_narrative_fail_with_reflection(mock_tenv, mock_llm_provider):
+@patch("services.agent.langfuse_prompt.compile_prompt")
+async def test_unified_narrative_fail_with_reflection(mock_compile, mock_llm_provider):
     """통합 호출: narrative fail → reflection 존재."""
     from services.agent.nodes.review import review_node
 
-    mock_tenv.get_template.return_value.render.return_value = "prompt"
+    mock_compiled = MagicMock()
+    mock_compiled.system = "system"
+    mock_compiled.user = "prompt"
+    mock_compiled.langfuse_prompt = None
+    mock_compile.return_value = mock_compiled
 
     low_scores = {
         "hook": 0.2,
