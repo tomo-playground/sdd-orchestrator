@@ -81,21 +81,32 @@ def _resolve_thread_id() -> str:
     return f"script-{uuid.uuid4().hex[:12]}"
 
 
-def _build_config(thread_id: str, *, trace_id: str | None = None) -> dict:
+def _resolve_session_id(storyboard_id: int | None) -> str | None:
+    """storyboard_id가 있으면 LangFuse session_id로 변환한다."""
+    return f"storyboard-{storyboard_id}" if storyboard_id else None
+
+
+def _build_config(
+    thread_id: str,
+    *,
+    trace_id: str | None = None,
+    session_id: str | None = None,
+) -> dict:
     """LangGraph config를 구성한다. 요청별 LangFuse 핸들러를 생성하여 주입.
 
-    trace_id가 주어지면 (resume) 기존 trace에 이어서 기록한다.
+    thread_id: LangGraph 체크포인터용 (UUID 기반, 매 요청 고유)
+    session_id: LangFuse 세션 그룹핑용 (storyboard 기반이면 동일 스토리보드 연결)
+    trace_id: 주어지면 (resume) 기존 trace에 이어서 기록한다.
     """
     from config_pipelines import LANGGRAPH_RECURSION_LIMIT  # noqa: PLC0415
     from services.agent.observability import create_langfuse_handler, end_root_span, update_root_span  # noqa: PLC0415
 
-    # Phase 25: review-revise + checkpoint 루프 중첩으로 기본 limit(25) 초과 가능
+    effective_session_id = session_id or thread_id
     cfg: dict = {"configurable": {"thread_id": thread_id}, "recursion_limit": LANGGRAPH_RECURSION_LIMIT}
-    handler = create_langfuse_handler(trace_id=trace_id, session_id=thread_id)
+    handler = create_langfuse_handler(trace_id=trace_id, session_id=effective_session_id)
     if handler is not None:
         cfg["callbacks"] = [handler]
-        cfg["metadata"] = {"langfuse_session_id": thread_id}
-        # 파이프라인 완료 후 root span 종료를 위한 cleanup 함수 참조
+        cfg["metadata"] = {"langfuse_session_id": effective_session_id}
         cfg["_langfuse_cleanup"] = end_root_span
         cfg["_langfuse_update_root"] = update_root_span
     return cfg
@@ -119,6 +130,8 @@ async def analyze_topic_endpoint(request: TopicAnalyzeRequest):
     """토픽을 분석하여 최적의 영상 설정(duration, language, structure, character)을 추천한다."""
     from services.scripts.topic_analysis import analyze_topic  # noqa: PLC0415
 
+    if request.storyboard_id:
+        logger.info("[analyze-topic] storyboard_id=%d, topic=%s", request.storyboard_id, request.topic[:80])
     messages = [m.model_dump() for m in request.messages] if request.messages else None
     return await analyze_topic(request.topic, request.description, request.group_id, messages)
 
@@ -129,10 +142,10 @@ async def generate_script_endpoint(
     db: Session = Depends(get_db),  # noqa: ARG001
 ):
     """동기 엔드포인트 — 내부적으로 Graph를 경유한다."""
-    logger.info("📝 [Script Generate] %s", request.model_dump())
+    logger.info("📝 [Script Generate] storyboard_id=%s %s", request.storyboard_id, request.model_dump())
     async with get_compiled_graph() as graph:
         state = _request_to_state(request)
-        config = _build_config(_resolve_thread_id())
+        config = _build_config(_resolve_thread_id(), session_id=_resolve_session_id(request.storyboard_id))
         update_root = config.get("_langfuse_update_root")
         if update_root:
             update_root(input_data=state)
@@ -184,10 +197,10 @@ async def generate_script_stream(
     db: Session = Depends(get_db),  # noqa: ARG001
 ):
     """SSE 스트리밍 엔드포인트 — 노드별 진행률을 실시간 전송한다."""
-    logger.info("📝 [Script Generate Stream] %s", request.model_dump())
+    logger.info("📝 [Script Generate Stream] storyboard_id=%s %s", request.storyboard_id, request.model_dump())
     state = _request_to_state(request)
     thread_id = _resolve_thread_id()
-    config = _build_config(thread_id)
+    config = _build_config(thread_id, session_id=_resolve_session_id(request.storyboard_id))
     return StreamingResponse(
         stream_graph_events(state, config, thread_id, "Stream"),
         media_type="text/event-stream",

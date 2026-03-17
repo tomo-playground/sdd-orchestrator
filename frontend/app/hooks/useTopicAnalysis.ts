@@ -16,6 +16,7 @@ import {
   createAssistantMessage,
   createUserMessage,
 } from "../utils/chatMessageFactory";
+import { ensureDraftStoryboard } from "../store/actions/draftActions";
 
 /** chatMessages에서 user/clarification/settings_recommend만 추출하여 {role, text} 배열로 변환 */
 function buildChatHistory(messages: ChatMessage[]): Array<{ role: string; text: string }> {
@@ -96,6 +97,9 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
       abortRef.current = controller;
       const typingId = addTypingIndicator("분석 중...");
       try {
+        // Draft storyboard 확보 (첫 호출 시 생성, 이후 기존 ID 반환)
+        const draftId = await ensureDraftStoryboard();
+
         // 첫 user 메시지에서 초기 topic + description 설정
         if (!topicRef.current) {
           topicRef.current = text;
@@ -118,6 +122,7 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
             topic: topicRef.current || text,
             description: editorRef.current?.description || undefined,
             group_id: groupId,
+            storyboard_id: draftId ?? undefined,
             messages: trimmedHistory,
           }),
         });

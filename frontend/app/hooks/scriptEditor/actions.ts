@@ -1,5 +1,6 @@
 import type React from "react";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { useContextStore } from "../../store/useContextStore";
 import { syncToGlobalStore } from "./mappers";
 import type { SceneItem, ScriptEditorState } from "./types";
 import type { SyncMeta } from "./mappers";
@@ -24,12 +25,14 @@ export function buildGenerateBody(
   s: ScriptEditorState,
   groupId: number | null
 ): Record<string, unknown> {
+  const { storyboardId } = useContextStore.getState();
   const body: Record<string, unknown> = {
     topic: s.topic.trim(),
     description: s.description.trim() || undefined,
     duration: s.duration,
     language: s.language,
     group_id: groupId,
+    storyboard_id: storyboardId ?? undefined,
     interaction_mode: s.interactionMode,
     // analyze-topic에서 추천된 structure가 있으면 전달 (Director 힌트)
     ...(s.structure && { structure: s.structure }),

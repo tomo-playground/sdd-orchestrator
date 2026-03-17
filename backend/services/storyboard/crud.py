@@ -21,6 +21,31 @@ from services.storyboard.scene_builder import create_scenes, serialize_scene
 _MULTI_CHAR_STRUCTURES = {"dialogue", "narrated dialogue", "narrated_dialogue"}
 
 
+def create_draft(db: Session, title: str, group_id: int) -> dict:
+    """Create a minimal draft storyboard (no scenes) for early ID reservation.
+
+    Returns dict with storyboard_id, title, created=True.
+    """
+    from services.storyboard.helpers import truncate_title
+
+    safe_title = truncate_title(title) if title else "Draft"
+    logger.info("[Storyboard Draft] title=%s, group_id=%d", safe_title, group_id)
+
+    db_storyboard = Storyboard(
+        title=safe_title,
+        group_id=group_id,
+    )
+    db.add(db_storyboard)
+    db.commit()
+    db.refresh(db_storyboard)
+
+    return {
+        "storyboard_id": db_storyboard.id,
+        "title": db_storyboard.title,
+        "created": True,
+    }
+
+
 def _sync_speaker_mappings(
     db: Session,
     storyboard_id: int,

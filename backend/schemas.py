@@ -245,6 +245,21 @@ class StoryboardSave(StoryboardBase):
     scenes: list[StoryboardScene]
 
 
+class StoryboardDraftRequest(BaseModel):
+    """POST /storyboards/draft -- 스크립트 생성 전 빈 스토리보드 확보."""
+
+    title: str = Field(default="Draft", max_length=200)
+    group_id: int
+
+
+class StoryboardDraftResponse(BaseModel):
+    """Response for POST /storyboards/draft."""
+
+    storyboard_id: int
+    title: str
+    created: bool  # True=신규 생성, False=기존 반환 (멱등)
+
+
 class StoryboardSaveResponse(BaseModel):
     """Response for POST/PUT /storyboards."""
 
@@ -425,6 +440,7 @@ class StoryboardRequest(BaseModel):
     character_id: int | None = None  # Director가 캐스팅 시 결정 (Frontend 미전달)
     character_b_id: int | None = None  # Director가 캐스팅 시 결정 (Frontend 미전달)
     group_id: int | None = None
+    storyboard_id: int | None = None  # Draft storyboard ID (트레이싱/로깅용)
     preset: str | None = Field(default=None, json_schema_extra={"deprecated": True})
     skip_stages: list[str] | None = None  # ["research", "concept", "production", "explain"]
     references: list[str] | None = Field(default=None, max_length=5)  # URL 또는 텍스트 (최대 5개)
@@ -2273,6 +2289,7 @@ class TopicAnalyzeRequest(BaseModel):
     topic: str = Field(min_length=1, max_length=500)
     description: str | None = Field(default=None, max_length=2000)
     group_id: int | None = None
+    storyboard_id: int | None = None  # Draft storyboard ID (트레이싱/로깅용)
     messages: list[ChatMessageItem] | None = Field(default=None, max_length=20)
 
 

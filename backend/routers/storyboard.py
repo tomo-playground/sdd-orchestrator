@@ -16,6 +16,8 @@ from schemas import (
     StatusResponse,
     StoryboardCreateResponse,  # noqa: F401
     StoryboardDetailResponse,
+    StoryboardDraftRequest,
+    StoryboardDraftResponse,
     StoryboardMetadataUpdateResponse,
     StoryboardRequest,
     StoryboardRestoreResponse,
@@ -26,6 +28,7 @@ from schemas import (
     VerticalStatus,
 )
 from services.storyboard import (
+    create_draft,
     create_storyboard,
     delete_storyboard_from_db,
     get_storyboard_by_id,
@@ -38,6 +41,12 @@ from services.storyboard import (
 
 router = APIRouter(prefix="/storyboards", tags=["storyboard"])
 admin_router = APIRouter(prefix="/storyboards", tags=["storyboard-admin"])
+
+
+@router.post("/draft", response_model=StoryboardDraftResponse)
+async def create_draft_storyboard(request: StoryboardDraftRequest, db: Session = Depends(get_db)):
+    """Create a minimal draft storyboard for early ID reservation."""
+    return create_draft(db, request.title, request.group_id)
 
 
 @router.post("/create", response_model=StoryboardCreateResponse)

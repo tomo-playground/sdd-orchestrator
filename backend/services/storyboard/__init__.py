@@ -2,6 +2,7 @@
 
 from services.storyboard.crud import (
     _sync_speaker_mappings,
+    create_draft,
     delete_storyboard_from_db,
     get_storyboard_by_id,
     list_storyboards_from_db,
@@ -70,6 +71,7 @@ __all__ = [
     "create_scenes",
     # crud
     "_sync_speaker_mappings",
+    "create_draft",
     "save_storyboard_to_db",
     "list_storyboards_from_db",
     "get_storyboard_by_id",
