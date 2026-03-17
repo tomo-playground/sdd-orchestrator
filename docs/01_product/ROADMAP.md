@@ -53,6 +53,7 @@
 
 ### 최근 작업
 
+- **03-18 서비스 네이밍 한국어 통일**: 언어 정책 수립(한국어 기본, 영어 허용 기준), 토스트 87건+빈상태 15건+대화상자 23건 한국어 통일, 칸반 컬럼 한국어화, Backend characters.py 에러 영어 통일(12건), RecentVideoResponse camelCase→snake_case, 구버전 설계 문서 3개 아카이브, STUDIO_DESIGN_GUIDE+UX_FLOW_ANALYSIS 업데이트(13건). CLAUDE.md 용어 사전 확충. [가이드](../02_design/NAMING_CONVENTION.md)
 - **03-17 레거시 스토리보드 생성 경로 제거**: `POST /storyboards/create` 엔드포인트 + `generateStoryboard()` + `mapGeminiScenes()` + `StoryboardCreateResponse` 스키마 + `create_storyboard` lazy alias + E2E mock + 테스트 스크립트 제거. 활성 경로(`/scripts/generate-stream` LangGraph SSE)에 영향 없음. `generate_script()`은 Writer/Revise 노드에서 사용 중이므로 보존. 순감 ~300줄
 - **03-17 LangFuse Trace 네이밍 OTel 표준화**: OTel GenAI Semantic Conventions 기반 trace/generation 네이밍 리팩토링. Trace "LangGraph"→"storyboard.generate/resume", Generation "{operation} {agent}" 포맷 통일, 고카디널리티(step/retry/fallback)→metadata 이동. GeminiProvider PROHIBITED fallback 접미사 제거. 19파일 수정. [가이드](../03_engineering/backend/TRACE_NAMING_GUIDE.md)
 - **03-17 Draft Storyboard 조기 생성**: 첫 Chat 메시지 시 storyboard_id 즉시 확보. 서버 디버깅 추적 + LangFuse session_id 연결 + 작업 유실 방지. thread_id/session_id 분리. [설계](../03_engineering/backend/DRAFT_STORYBOARD.md)
