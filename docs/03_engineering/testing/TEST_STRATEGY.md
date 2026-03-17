@@ -129,9 +129,9 @@ npm run test:vrt:ui
 | Frontend VRT | 24 screenshots (8 specs) | 전체 페이지 커버 |
 | Frontend E2E | 3 specs | 핵심 플로우 커버 |
 
-**총 테스트**: **3,046개** (Backend 2,667 + Frontend 379)
+**총 테스트**: **Backend 3,647+ / Frontend 65 파일**
 
-### Backend 구성 (2,667 tests, 187 files)
+### Backend 구성 (3,647+ tests)
 
 | 유형 | 테스트 수 | 파일 수 | 위치 |
 |------|----------|---------|------|

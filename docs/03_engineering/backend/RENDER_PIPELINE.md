@@ -28,7 +28,7 @@ Step 3: Calculate Durations
 
 Step 4: Prepare BGM
   → File Mode: 정적 파일 / random 선택
-  → AI Mode: Stable Audio Open 실시간 생성 (캐시 우선)
+  → AI Mode: MusicGen 실시간 생성 (캐시 우선)
 
 Step 5: Build FFmpeg Filters
   → Scale/Crop → Ken Burns → Transition → Scene Text Overlay → Audio
@@ -123,7 +123,7 @@ Instagram 카드 스타일. 이미지 + Scene Text 영역 + Caption 영역.
 
 - `music_preset_id` → `MusicPreset` 조회 (우선)
 - 캐시 확인: `audio_asset_id` 존재 + 로컬 파일 있으면 즉시 사용
-- 없으면: Stable Audio Open으로 실시간 생성 (~10-20초)
+- 없으면: MusicGen으로 실시간 생성 (캐시 우선)
 - 폴백: preset 없으면 `bgm_file` 파일 사용 (`"random"` 시 무작위 선택)
 
 ### 7-2. Auto Mode (`bgm_mode="auto"`)

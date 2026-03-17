@@ -454,7 +454,7 @@ class ScriptState(TypedDict, total=False):
 backend/services/agent/
 ├── __init__.py           # 공개 API (build_script_graph, ScriptState 등)
 ├── state.py              # ScriptState, ReviewResult, NarrativeScore 등 TypedDict
-├── script_graph.py       # 19노드 StateGraph 구성 (병렬 fan-out)
+├── script_graph.py       # 21노드 StateGraph 구성 (병렬 fan-out)
 ├── routing.py            # 조건 분기 함수 (8개)
 ├── messages.py           # AgentMessage 프로토콜 + State Condensation
 ├── checkpointer.py       # AsyncPostgresSaver 싱글턴

@@ -175,7 +175,7 @@
 
 ### 3-1. 현재 모델 현황
 
-모든 19개 노드가 **`gemini-2.5-flash`** 사용 중.
+모든 21개 노드가 **`gemini-2.5-flash`** 사용 중.
 
 | 환경변수 | 기본값 | 사용 노드 |
 |---------|--------|----------|
@@ -255,7 +255,7 @@ Sound Designer → prompt 생성 → finalize(씬 메타데이터) → 스냅샷
 | 항목 | 상태 | 위치 |
 |------|------|------|
 | Sound Designer 프롬프트 생성 | **완성** | `nodes/sound_designer.py` |
-| Stable Audio Open 연동 | **완성** | `services/audio/music_generator.py` |
+| MusicGen 연동 (Audio Server) | **완성** | `audio/services/music_engine.py` |
 | Music Preset CRUD + 미리보기 | **완성** | `routers/music_presets.py` |
 | MusicPreset DB 모델 | **완성** | `models/music_preset.py` |
 | 렌더링 BGM 합성 (FFmpeg) | **완성** | `services/video/effects.py` |
@@ -350,8 +350,8 @@ PublishTab
 
 | 항목 | 질문 | 비고 |
 |------|------|------|
-| 생성 품질 | Stable Audio Open 30초 BGM 품질이 쇼츠에 적합한가? | 실제 테스트 필요 |
-| 저작권 | AI 생성 음악 상업적 사용 가능 여부 | SAO 라이선스 확인 |
+| 생성 품질 | MusicGen 30초 BGM 품질이 쇼츠에 적합한가? | 실제 테스트 필요 |
+| 저작권 | AI 생성 음악 상업적 사용 가능 여부 | MusicGen 라이선스 확인 |
 | 프롬프트 수정 UX | 사용자가 Sound Designer 프롬프트를 직접 편집할 수 있어야 하는가? | ProductionSections에서 인라인 편집 검토 |
 | 외부 서비스 대안 | Suno/Udio API 비교 검토 필요한가? | 로컬 GPU 대비 클라우드 트레이드오프 |
 
