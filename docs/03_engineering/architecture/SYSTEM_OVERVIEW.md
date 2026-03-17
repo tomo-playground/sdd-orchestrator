@@ -35,7 +35,7 @@ graph TB
             ImageSvc["Image Generation Service"]
             CreativeSvc["Creative Engine (Multi-Agent)"]
             VideoSvc["Video Render Pipeline"]
-            TTSSvc["TTS Service (SoVITS + Qwen3)"]
+            TTSSvc["TTS Service (Qwen3-TTS)"]
             MusicSvc["Music Service (MusicGen)"]
             ValidationSvc["Validation (WD14/Vision)"]
         end
@@ -64,7 +64,6 @@ graph TB
         SD["<b>Stable Diffusion WebUI</b><br/>(A1111 API)"]
         CN["ControlNet / IP-Adapter"]
         WD14["WD14 ONNX Tagger"]
-        SoVITS["<b>GPT-SoVITS v2</b><br/>(:9880 씬 TTS)"]
         AudioSvr["<b>Audio Server</b><br/>(:8001 Qwen3-TTS + MusicGen)"]
     end
 
@@ -91,7 +90,6 @@ graph TB
     SD <--> CN
     VideoSvc --> FS
     VideoSvc --> MinIO
-    TTSSvc --> SoVITS
     TTSSvc --> AudioSvr
     MusicSvc --> AudioSvr
 
@@ -149,7 +147,7 @@ sequenceDiagram
     rect rgb(240, 255, 240)
     Note over U,DB: Phase 3 — Video Rendering
     F->>B: 렌더링 요청
-    B->>B: GPT-SoVITS TTS + FFmpeg Pipeline
+    B->>B: Qwen3-TTS + FFmpeg Pipeline
     B->>DB: 비디오 에셋 등록
     B-->>F: Video URL 반환
     end
@@ -214,7 +212,7 @@ backend/
 │   ├── prompt/           # 12-Layer Prompt Builder
 │   ├── characters/       # 캐릭터 서비스 (crud, preview, speaker_resolver 등)
 │   ├── video/            # FFmpeg 렌더링 파이프라인 (builder, effects, filters, encoding, tts_postprocess)
-│   ├── audio/            # Audio Client (SoVITS + Qwen3 + MusicGen 호출)
+│   ├── audio/            # Audio Client (Qwen3-TTS + MusicGen 호출)
 │   ├── youtube/          # YouTube OAuth + 업로드
 │   ├── image_generation_core.py  # SD WebUI 이미지 생성
 │   ├── creative_*.py     # Creative Engine (agents, debate, qc, utils)
@@ -360,7 +358,7 @@ frontend/app/
 - **Checkpointer**: AsyncPostgresSaver (psycopg v3, LangGraph 체크포인트)
 - **Memory**: AsyncPostgresStore (LangGraph Memory Store)
 - **Image**: Stable Diffusion WebUI (A1111) + ControlNet v1.1 + IP-Adapter Plus
-- **TTS**: GPT-SoVITS v2 (씬 TTS, 음색 복제) + Qwen3-TTS (12Hz-1.7B-VoiceDesign, 보이스 디자인 전용)
+- **TTS**: Qwen3-TTS (12Hz-1.7B-VoiceDesign, 씬 TTS + 보이스 디자인)
 - **Music**: MusicGen (facebook/musicgen-small, AI BGM 생성)
 - **Validation**: WD14 (Waifu Diffusion v1.4) Vit-Tagger-v2 (ONNX)
 - **Video**: FFmpeg (Filter complex, Ken Burns effect)

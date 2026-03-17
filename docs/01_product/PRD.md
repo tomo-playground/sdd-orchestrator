@@ -28,7 +28,7 @@ graph TD
         SD --> Quality["<b>Cinematographer</b><br/>Tool-Calling (4개 도구)<br/>+ WD14 검증"]
         Quality -- "낮음 (Fail)" --> AutoEdit[Gemini Auto-Correction]
         AutoEdit --> SD
-        Quality -- "높음 (Pass)" --> Audio["<b>GPT-SoVITS / Qwen3-TTS</b><br/>로컬 음성 생성"]
+        Quality -- "높음 (Pass)" --> Audio["<b>Qwen3-TTS</b><br/>로컬 음성 생성"]
     end
 
     subgraph Finalization ["3. 완성 단계"]
@@ -83,7 +83,7 @@ mindmap
 | 3 | 캐릭터 시스템 | 다중 캐릭터, LoRA, Tag Autocomplete, IP-Adapter | 완료 |
 | 4 | 이미지 생성 | SD WebUI API + ControlNet + 포즈 제어 (28개 포즈) | 완료 |
 | 5 | 영상 렌더링 | FFmpeg Pipeline, Ken Burns, 13개 전환 효과, Full/Post Layout | 완료 |
-| 6 | TTS/음성 | GPT-SoVITS(씬 TTS) + Qwen3-TTS(보이스 디자인), Voice Preset, Context-Aware, 오디오 정규화 | 완료 |
+| 6 | TTS/음성 | Qwen3-TTS(씬 TTS + 보이스 디자인), Voice Preset, Context-Aware, 오디오 정규화 | 완료 |
 | 7 | AI BGM | MusicGen (facebook/musicgen-small), Music Preset, SHA256 캐시 | 완료 |
 | 8 | 프로젝트/그룹 | Cascading Config, Group Defaults, Channel DNA | Phase 2-1 완료 |
 | 9 | Agentic AI Pipeline | LangGraph 21-노드, 3단계 협업형 UX(Auto/Guided/Hands-on), Memory, LangFuse | 완료 |
