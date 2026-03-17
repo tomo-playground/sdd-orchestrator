@@ -349,12 +349,17 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         from services.llm import LLMConfig, get_llm_provider
 
         # CLAUDE.md 규칙: system_instruction ↔ contents 분리 필수
-        # LangFuse chat 타입: bundle.system_instruction(역할) + rendered(작업 지시+데이터)
-        # system_instruction에는 역할 정의만, contents에는 렌더링된 템플릿+사용자 데이터
+        # system_instruction: LangFuse system(역할) + 렌더링된 템플릿(지시+규칙+태그)
+        # contents: 사용자 데이터(토픽+피드백+채팅)만 — 안전 필터 오탐 방지
         lf_system = bundle.system_instruction or ""
-        system_instruction = _sanitize_for_gemini_prompt(lf_system) if lf_system else ""
+        sys_parts = [lf_system, _sanitize_for_gemini_prompt(rendered)]
+        system_instruction = "\n\n".join(p for p in sys_parts if p)
 
-        user_parts = [_sanitize_for_gemini_prompt(rendered)]
+        user_parts = [f"Topic: {safe_topic}"]
+        if request.description:
+            user_parts.append(f"Description: {request.description}")
+        if request.selected_concept:
+            user_parts.append(f"Selected Concept: {request.selected_concept}")
         if ctx.get("revision_feedback"):
             user_parts.append(f"Revision Feedback: {ctx['revision_feedback']}")
         if ctx.get("chat_context"):
@@ -362,6 +367,12 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             cc_str = json.dumps([m.model_dump() if hasattr(m, "model_dump") else m for m in cc], ensure_ascii=False)
             user_parts.append(f"Chat Context: {cc_str}")
         user_contents = "\n".join(user_parts)
+        logger.info(
+            "[Writer] system_instruction=%dch, contents=%dch, sys_preview='%s', user_preview='%s'",
+            len(system_instruction), len(user_contents),
+            system_instruction[:150].replace('\n', ' '),
+            user_contents[:150].replace('\n', ' '),
+        )
         llm_resp = await get_llm_provider().generate(
             step_name="writer",
             contents=user_contents,

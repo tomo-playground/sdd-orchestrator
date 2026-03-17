@@ -264,7 +264,7 @@ graph LR
 |------|------|
 | ~~Phase 34: GPU 순차 독점 실행 & BGM 고도화~~ | **드롭** — ComfyUI 전환으로 GPU 관리 방식 자체가 변경될 예정. Forge 전용 `forge_control.py` 구현이 무의미해짐. BGM(ACE-Step) 고도화는 별도 항목으로 재검토 |
 | ~~**LangFuse Prompt Management 전체 이전**~~ | **완료** — 28개 프롬프트 chat 타입(system/user 분리). `prompt_partials.py` 파셜 Python 전환, `_partials/` 삭제. 29개 테스트 |
-| **LangFuse Prompt Ops 2차 개선** (P2) | Sprint 1: A/B 테스트(label 분기, ScriptState 전파, ~120줄) → Sprint 2: Evaluation(자동 스코어링 5종, trace_id 보존, ~200줄+마이그레이션) → Sprint 3: Dataset(골든 16케이스, 노드 격리 회귀, ~250줄) → Sprint 4: 비-Agent 확장(3개 프롬프트, ~100줄). 이원화 해소: LLM 지표=LangFuse SSOT, 이미지/도메인=DB SSOT. DoD 8항목, 테스트 ~30개. [명세](FEATURES/LANGFUSE_PROMPT_OPS.md) |
+| **LangFuse 네이티브 통합 (Jinja2 제거)** (P2) | Jinja2 의존 완전 제거 → LangFuse 네이티브 변수(`{{var}}` compile()) 전환. Sprint 1: 인프라+C등급 10개(~300줄) → Sprint 2: B등급 8개+prompt_builders.py(~400줄) → Sprint 3: A등급 7개+Composability(~350줄) → Sprint 4: S등급 3개+Jinja2 제거(~300줄). system/user 분리 정합성 확보, Playground 테스트 가능, PROHIBITED_CONTENT 해소. DoD 8항목, 테스트 ~38개. [명세](FEATURES/LANGFUSE_PROMPT_OPS.md) |
 | **LLM Provider 추상화 Phase A~E 완료** | [설계](../03_engineering/backend/LLM_PROVIDER_ABSTRACTION.md) — `services/llm/` 패키지 구축, `google.genai` 직결 제거, trace + PROHIBITED fallback 중복 해소. Phase F(OllamaProvider)는 아래 LiteLLM 항목으로 대체 예정 |
 | **LiteLLM SDK 도입 (Phase F 대체)** | Gemini 외 두 번째 Provider 실제 도입 시점에 착수. `GeminiProvider` 내부를 LiteLLM 호출로 교체 → 100+ Provider 지원, 폴백/재시도 내장, `OllamaProvider` 직접 구현 불필요. 트레이스 중복 방지를 위해 LiteLLM 자동 LangFuse 콜백 비활성화 + 기존 `trace_llm_call()` 유지 필수. OSS LLMOps Stack(LangGraph + LangFuse + LiteLLM) 표준 조합 완성. **착수 조건**: Ollama/Claude 등 두 번째 Provider 실제 사용 확정 시 |
 | PipelineControl 커스텀 (노드 on/off) + 분산 큐 (Celery/Redis) | Phase 9-4 잔여 |
