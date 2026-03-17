@@ -23,10 +23,10 @@ export function useConsistency(storyboardId: number | null) {
       if (axios.isAxiosError(err)) {
         const detail = err.response?.data?.detail;
         const msg =
-          typeof detail === "string" ? detail : err.message || "Failed to load consistency data";
+          typeof detail === "string" ? detail : err.message || "일관성 데이터 로드에 실패했습니다";
         setError(msg);
       } else {
-        setError("Failed to load consistency data");
+        setError("일관성 데이터 로드에 실패했습니다");
       }
     } finally {
       setLoading(false);

@@ -169,11 +169,11 @@ export default function AdminMusicPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Music}
-          title={presets.length === 0 ? "No music presets yet" : "No presets match your search"}
+          title={presets.length === 0 ? "BGM 프리셋이 없습니다" : "검색 결과가 없습니다"}
           description={
             presets.length === 0
-              ? "Create a music preset to get started"
-              : "Try a different search term"
+              ? "새 프리셋을 만들어 시작하세요"
+              : "다른 검색어를 입력해 보세요"
           }
           action={
             presets.length === 0 ? (

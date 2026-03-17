@@ -186,11 +186,11 @@ export default function AdminVoicesPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Mic}
-          title={presets.length === 0 ? "No voice presets yet" : "No voices match your search"}
+          title={presets.length === 0 ? "음성 프리셋이 없습니다" : "검색 결과가 없습니다"}
           description={
             presets.length === 0
-              ? "Generate a voice preset to get started"
-              : "Try a different search term"
+              ? "새 음성 프리셋을 생성하여 시작하세요"
+              : "다른 검색어를 입력해 보세요"
           }
           action={
             presets.length === 0 ? (

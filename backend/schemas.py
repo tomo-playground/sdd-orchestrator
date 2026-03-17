@@ -318,8 +318,8 @@ class RecentVideoResponse(BaseModel):
 
     url: str
     label: str | None = None
-    createdAt: int  # Millisecond timestamp
-    renderHistoryId: int | None = None
+    created_at: int  # Millisecond timestamp
+    render_history_id: int | None = None
 
 
 class SceneTagResponse(BaseModel):

@@ -45,7 +45,7 @@ export function useCharacters(): UseCharactersResult {
       }
     } catch (err) {
       console.error("[useCharacters] Error:", err);
-      setError("Failed to load characters");
+      setError("캐릭터 로드에 실패했습니다");
       setCharacters([]);
     } finally {
       setIsLoading(false);

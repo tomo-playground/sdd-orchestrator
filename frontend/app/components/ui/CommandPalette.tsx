@@ -269,7 +269,7 @@ export default function CommandPalette() {
         >
           {results.length === 0 ? (
             <p className="px-4 py-8 text-center text-xs text-zinc-400">
-              {query ? "No results found" : "Type to search..."}
+              {query ? "검색 결과가 없습니다" : "검색어를 입력하세요..."}
             </p>
           ) : (
             results.map((item, idx) => (

@@ -51,7 +51,7 @@ export default function RenderedVideosSection({
           const isUploaded = !!ytVideoId;
           return (
             <div
-              key={`${item.url}-${item.createdAt}`}
+              key={`${item.url}-${item.created_at}`}
               className={cx(
                 "flex items-center gap-2.5 rounded-xl border px-2.5 py-2 transition hover:bg-zinc-50",
                 idx === 0 ? "border-zinc-300 bg-white" : "border-zinc-200 bg-white/70"
@@ -73,14 +73,14 @@ export default function RenderedVideosSection({
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="text-xs font-semibold text-zinc-700 uppercase">{item.label}</span>
                 <span className="text-[11px] text-zinc-400">
-                  {formatRelativeTime(item.createdAt)}
+                  {formatRelativeTime(item.created_at)}
                 </span>
               </div>
               <div className="flex flex-shrink-0 items-center gap-1">
                 {onUploadToYouTube && !isUploaded && (
                   <button
                     type="button"
-                    onClick={() => onUploadToYouTube(item.url, item.renderHistoryId)}
+                    onClick={() => onUploadToYouTube(item.url, item.render_history_id)}
                     className="rounded-md bg-red-600 p-1 text-white transition hover:bg-red-700"
                     title="Upload to YouTube"
                   >
@@ -145,7 +145,7 @@ export default function RenderedVideosSection({
               const isUploaded = !!ytVideoId;
               return (
                 <div
-                  key={`${item.url}-${item.createdAt}`}
+                  key={`${item.url}-${item.created_at}`}
                   className={`group grid gap-2 rounded-2xl border bg-white/70 p-3 shadow-sm ${
                     idx === 0
                       ? "border-zinc-900/40 bg-white shadow-lg ring-2 shadow-zinc-900/10 ring-zinc-900/10"
@@ -178,7 +178,7 @@ export default function RenderedVideosSection({
                       )}
                     </div>
                     <span className="text-[11px] text-zinc-400">
-                      {new Date(item.createdAt).toLocaleString()}
+                      {new Date(item.created_at).toLocaleString()}
                     </span>
                   </div>
                   <div className="aspect-[9/16] w-full overflow-hidden rounded-2xl bg-black shadow">
@@ -200,7 +200,7 @@ export default function RenderedVideosSection({
                     {onUploadToYouTube && !isUploaded && (
                       <button
                         type="button"
-                        onClick={() => onUploadToYouTube(item.url, item.renderHistoryId)}
+                        onClick={() => onUploadToYouTube(item.url, item.render_history_id)}
                         className="flex items-center gap-1 rounded-md bg-red-600 px-2 py-1 text-[12px] font-semibold text-white transition hover:bg-red-700"
                         title="Upload to YouTube"
                       >

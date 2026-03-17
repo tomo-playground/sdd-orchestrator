@@ -298,8 +298,8 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         {
             "url": rh.media_asset.url,
             "label": rh.label,
-            "createdAt": int(rh.created_at.timestamp() * 1000),
-            "renderHistoryId": rh.id,
+            "created_at": int(rh.created_at.timestamp() * 1000),
+            "render_history_id": rh.id,
         }
         for rh in storyboard.render_history[:10]
         if rh.created_at and rh.media_asset

@@ -229,8 +229,8 @@ export function usePublishRender() {
               {
                 url,
                 label: mode,
-                createdAt: Date.now(),
-                renderHistoryId: result.render_history_id,
+                created_at: Date.now(),
+                render_history_id: result.render_history_id,
                 projectId: projectId ?? undefined,
                 projectName: currentProject?.name,
                 groupId: groupId ?? undefined,

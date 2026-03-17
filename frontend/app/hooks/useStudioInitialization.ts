@@ -160,11 +160,11 @@ export function useStudioInitialization() {
         });
         // Restore video data from DB, mapping label to correct slot
         const recentVideos = (data.recent_videos || []).map(
-          (v: { url: string; label?: string; createdAt: number; renderHistoryId?: number }) => ({
+          (v: { url: string; label?: string; created_at: number; render_history_id?: number }) => ({
             url: v.url,
             label: v.label,
-            createdAt: v.createdAt,
-            renderHistoryId: v.renderHistoryId,
+            created_at: v.created_at,
+            render_history_id: v.render_history_id,
           })
         );
         const latestFull = recentVideos.find((v: { label?: string }) => v.label === "full");

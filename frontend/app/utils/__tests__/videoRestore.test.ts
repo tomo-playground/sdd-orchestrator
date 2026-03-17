@@ -8,7 +8,7 @@ import { describe, it, expect } from "vitest";
 type RecentVideo = {
   url: string;
   label?: string;
-  createdAt: number;
+  created_at: number;
 };
 
 /** Mirrors the logic in useStudioInitialization.ts video restore */
@@ -29,8 +29,8 @@ describe("restoreVideoOutput", () => {
     const result = restoreVideoOutput({
       video_url: "http://minio/full.mp4",
       recent_videos: [
-        { url: "http://minio/full.mp4", label: "full", createdAt: 1000 },
-        { url: "http://minio/post.mp4", label: "post", createdAt: 900 },
+        { url: "http://minio/full.mp4", label: "full", created_at: 1000 },
+        { url: "http://minio/post.mp4", label: "post", created_at: 900 },
       ],
     });
     expect(result.videoUrlFull).toBe("http://minio/full.mp4");
@@ -60,8 +60,8 @@ describe("restoreVideoOutput", () => {
     const result = restoreVideoOutput({
       video_url: "http://minio/post.mp4", // Most recent is post
       recent_videos: [
-        { url: "http://minio/post.mp4", label: "post", createdAt: 2000 },
-        { url: "http://minio/full.mp4", label: "full", createdAt: 1000 },
+        { url: "http://minio/post.mp4", label: "post", created_at: 2000 },
+        { url: "http://minio/full.mp4", label: "full", created_at: 1000 },
       ],
     });
     // video_url is the most recent (post), but videoUrlFull should still be the full one
@@ -72,8 +72,8 @@ describe("restoreVideoOutput", () => {
 
   it("preserves recentVideos array", () => {
     const videos = [
-      { url: "http://minio/v1.mp4", label: "full", createdAt: 1000 },
-      { url: "http://minio/v2.mp4", label: "post", createdAt: 900 },
+      { url: "http://minio/v1.mp4", label: "full", created_at: 1000 },
+      { url: "http://minio/v2.mp4", label: "post", created_at: 900 },
     ];
     const result = restoreVideoOutput({
       video_url: "http://minio/v1.mp4",

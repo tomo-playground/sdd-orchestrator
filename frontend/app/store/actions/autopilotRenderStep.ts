@@ -126,8 +126,8 @@ export async function executeRenderStep(
       {
         url: withTs,
         label: layoutStyle,
-        createdAt: Date.now(),
-        renderHistoryId: result.render_history_id,
+        created_at: Date.now(),
+        render_history_id: result.render_history_id,
         projectId: renderProjectId,
         projectName: currentProject?.name,
         groupId: renderGroupId,

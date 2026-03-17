@@ -132,7 +132,7 @@ export default function BgmSection(props: BgmSectionProps) {
           <div className="space-y-1.5 md:col-span-2">
             {bgmMode === "manual" ? (
               <p className="text-xs text-zinc-700">
-                {selectedPreset ? truncate(selectedPreset.name, 28) : "No preset selected"}
+                {selectedPreset ? truncate(selectedPreset.name, 28) : "프리셋이 선택되지 않았습니다"}
               </p>
             ) : (
               <div className="space-y-1">

@@ -217,8 +217,8 @@ export type AutopilotCheckpoint = {
 export type RecentVideo = {
   url: string;
   label: "full" | "post" | "single";
-  createdAt: number;
-  renderHistoryId?: number;
+  created_at: number;
+  render_history_id?: number;
   projectId?: number;
   projectName?: string;
   groupId?: number;
