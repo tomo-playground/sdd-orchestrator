@@ -244,7 +244,7 @@ async def try_scene_expand(
 
         _fallback_sys = "You are a scene expansion specialist for short-form video scripts. Generate new scenes that seamlessly integrate with existing ones."
         llm_response = await get_llm_provider().generate(
-            step_name="revise_scene_expand",
+            step_name="generate_content revise_expand",
             contents=compiled.user,
             config=LLMConfig(system_instruction=compiled.system or _fallback_sys),
             metadata={"template": _template_name},

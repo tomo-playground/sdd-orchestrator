@@ -59,7 +59,7 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
         )
 
         llm_response = await get_llm_provider().generate(
-            step_name="location_planner",
+            step_name="generate_content location_planner",
             contents=compiled.user,
             config=LLMConfig(system_instruction=compiled.system or _fallback_sys),
             metadata={"template": _template_name},

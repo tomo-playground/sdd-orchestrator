@@ -185,11 +185,11 @@ async def _gemini_evaluate(
             threshold=str(LANGGRAPH_AUTO_REVIEW_THRESHOLD),
         )
         llm_response = await get_llm_provider().generate(
-            step_name="review_gemini_evaluate",
+            step_name="evaluate review",
             contents=compiled.user,
             config=LLMConfig(system_instruction=compiled.system),
             model=REVIEW_MODEL,
-            metadata={"template": _template_name},
+            metadata={"template": _template_name, "mode": "gemini"},
             langfuse_prompt=compiled.langfuse_prompt,
         )
         return llm_response.text
@@ -243,11 +243,11 @@ async def _narrative_evaluate(
             threshold=str(LANGGRAPH_NARRATIVE_THRESHOLD),
         )
         llm_response = await get_llm_provider().generate(
-            step_name="review_narrative_evaluate",
+            step_name="evaluate review",
             contents=compiled.user,
             config=LLMConfig(system_instruction=compiled.system),
             model=REVIEW_MODEL,
-            metadata={"template": _template_name_nr},
+            metadata={"template": _template_name_nr, "mode": "narrative"},
             langfuse_prompt=compiled.langfuse_prompt,
         )
         return _parse_narrative_score(llm_response.text or "")
@@ -291,14 +291,14 @@ async def _self_reflect(
             ),
         )
         llm_response = await get_llm_provider().generate(
-            step_name="review_self_reflect",
+            step_name="evaluate review",
             contents=compiled.user,
             config=LLMConfig(
                 system_instruction=compiled.system
                 or "You are a self-reflection agent that analyzes review failures and proposes fix strategies."
             ),
             model=REVIEW_MODEL,
-            metadata={"template": _template_name_rf},
+            metadata={"template": _template_name_rf, "mode": "self_reflect"},
             langfuse_prompt=compiled.langfuse_prompt,
         )
 
@@ -387,13 +387,13 @@ async def _unified_evaluate(
         )
         _fallback_sys_ru = "You are a unified review agent that evaluates technical quality, narrative strength, and self-reflection for short-form video scripts."
         llm_response = await get_llm_provider().generate(
-            step_name="review_unified_evaluate",
+            step_name="evaluate review",
             contents=compiled.user,
             config=LLMConfig(
                 system_instruction=compiled.system or _fallback_sys_ru,
             ),
             model=REVIEW_MODEL,
-            metadata={"template": _template_name_ru},
+            metadata={"template": _template_name_ru, "mode": "unified"},
             langfuse_prompt=compiled.langfuse_prompt,
         )
 

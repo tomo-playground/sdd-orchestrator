@@ -69,16 +69,20 @@ def get_langfuse_client():
     return _langfuse_client
 
 
-def create_langfuse_handler(*, trace_id: str | None = None, session_id: str | None = None):
+def create_langfuse_handler(
+    *,
+    trace_id: str | None = None,
+    session_id: str | None = None,
+    action: str = "generate",
+) -> Any:
     """요청별 CallbackHandler를 생성하고 trace_id를 contextvar에 설정한다.
 
     trace_id가 없으면 새로 생성한다 (fresh generate).
     생성된 trace_id는 동일 asyncio 태스크 내 trace_llm_call()에서 자동 참조된다.
 
-    Langfuse v3 SDK는 trace_context TypedDict를 사용한다:
-      - trace_id: 트레이스 식별자
-      - parent_span_id: (선택) 부모 span
-    session_id는 v3 CallbackHandler에서 미지원하므로 metadata에 포함.
+    Args:
+        action: 워크플로우 액션. "generate" 또는 "resume".
+            Trace name = "storyboard.{action}", Root Span name = "pipeline.{action}".
     """
     if not _ensure_initialized():
         return None
@@ -94,16 +98,23 @@ def create_langfuse_handler(*, trace_id: str | None = None, session_id: str | No
 
         trace_ctx: dict[str, str] = {"trace_id": trace_id}
 
+        # 명시적 Trace 생성 (SDK 기본 "LangGraph" 대신 의미 있는 이름 부여)
+        _langfuse_client.trace(
+            id=trace_id,
+            name=f"storyboard.{action}",
+            session_id=session_id,
+        )
+
         # Root span을 만들어 이후 generation들의 부모로 사용
         root_span = _langfuse_client.start_span(
             trace_context=trace_ctx,
-            name="pipeline",
+            name=f"pipeline.{action}",
             metadata={"session_id": session_id} if session_id else None,
         )
         _current_root_span.set(root_span)
 
         handler = CallbackHandler(trace_context=trace_ctx)
-        logger.debug("[LangFuse] 핸들러 생성 (trace=%s, session=%s)", trace_id[:16], session_id)
+        logger.debug("[LangFuse] 핸들러 생성 (trace=%s, action=%s, session=%s)", trace_id[:16], action, session_id)
         return handler
     except Exception as e:
         logger.warning("[LangFuse] 요청별 핸들러 생성 실패: %s", e)

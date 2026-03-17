@@ -112,7 +112,7 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
             template_vars=template_vars,
             validate_fn=lambda data: validate_with_model(DirectorPlanOutput, data).model_dump(),
             extract_key="",
-            step_name="director_plan",
+            step_name="generate_content director_plan",
             model=DIRECTOR_MODEL,
         )
 

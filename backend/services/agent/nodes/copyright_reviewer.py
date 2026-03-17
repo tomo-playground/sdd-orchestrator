@@ -70,7 +70,7 @@ async def copyright_reviewer_node(state: ScriptState) -> dict:
             template_vars=template_vars,
             validate_fn=lambda extracted: validate_copyright(extracted),
             extract_key="checks",
-            step_name="copyright_reviewer",
+            step_name="evaluate copyright_reviewer",
         )
         # LLM이 생성한 overall을 checks 기반으로 서버사이드 재계산 (일관성 보장)
         result["overall"] = _recalculate_overall(result.get("checks", []))

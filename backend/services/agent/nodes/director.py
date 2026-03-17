@@ -96,7 +96,7 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
                 template_vars=template_vars,
                 validate_fn=_react_validate_fn,
                 extract_key="",
-                step_name=f"director_step_{step_num}",
+                step_name="generate_content director",
                 model=DIRECTOR_MODEL,
             )
 
@@ -195,7 +195,7 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
                     template_vars=template_vars,
                     validate_fn=_react_validate_fn,
                     extract_key="",
-                    step_name=f"director_step_{step_num}_retry",
+                    step_name="generate_content director",
                     model=DIRECTOR_MODEL,
                 )
                 react = DirectorReActOutput.model_validate(result)

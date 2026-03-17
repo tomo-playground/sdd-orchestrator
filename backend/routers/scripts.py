@@ -91,19 +91,21 @@ def _build_config(
     *,
     trace_id: str | None = None,
     session_id: str | None = None,
+    action: str = "generate",
 ) -> dict:
     """LangGraph config를 구성한다. 요청별 LangFuse 핸들러를 생성하여 주입.
 
     thread_id: LangGraph 체크포인터용 (UUID 기반, 매 요청 고유)
     session_id: LangFuse 세션 그룹핑용 (storyboard 기반이면 동일 스토리보드 연결)
     trace_id: 주어지면 (resume) 기존 trace에 이어서 기록한다.
+    action: LangFuse trace/span 네이밍용. "generate" 또는 "resume".
     """
     from config_pipelines import LANGGRAPH_RECURSION_LIMIT  # noqa: PLC0415
     from services.agent.observability import create_langfuse_handler, end_root_span, update_root_span  # noqa: PLC0415
 
     effective_session_id = session_id or thread_id
     cfg: dict = {"configurable": {"thread_id": thread_id}, "recursion_limit": LANGGRAPH_RECURSION_LIMIT}
-    handler = create_langfuse_handler(trace_id=trace_id, session_id=effective_session_id)
+    handler = create_langfuse_handler(trace_id=trace_id, session_id=effective_session_id, action=action)
     if handler is not None:
         cfg["callbacks"] = [handler]
         cfg["metadata"] = {"langfuse_session_id": effective_session_id}
@@ -220,7 +222,7 @@ async def generate_script_stream(
 async def resume_script(request: ScriptResumeRequest):
     """Human Gate / Concept Gate 재개 — thread_id로 interrupt된 그래프를 SSE로 재개한다."""
     logger.info("📝 [Script Resume] thread=%s, action=%s", request.thread_id, request.action)
-    config = _build_config(request.thread_id, trace_id=request.trace_id)
+    config = _build_config(request.thread_id, trace_id=request.trace_id, action="resume")
 
     # 피드백 프리셋 해석
     feedback = request.feedback

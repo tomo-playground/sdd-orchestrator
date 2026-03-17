@@ -114,7 +114,7 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
         )
 
         llm_response = await get_llm_provider().generate(
-            step_name="writer_planning",
+            step_name="generate_content writer",
             contents=compiled.user,
             config=LLMConfig(
                 system_instruction=compiled.system or _fallback_sys,

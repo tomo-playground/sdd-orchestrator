@@ -84,7 +84,7 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
             template_vars=template_vars,
             validate_fn=lambda data: validate_with_model(DirectorCheckpointOutput, data).model_dump(),
             extract_key="",
-            step_name="director_checkpoint",
+            step_name="evaluate director_checkpoint",
             model=DIRECTOR_MODEL,
         )
 
@@ -121,7 +121,7 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
                 template_vars=template_vars,
                 validate_fn=lambda data: validate_with_model(DirectorCheckpointOutput, data).model_dump(),
                 extract_key="",
-                step_name="director_checkpoint_retry",
+                step_name="evaluate director_checkpoint",
                 model=DIRECTOR_MODEL,
             )
             cp = DirectorCheckpointOutput.model_validate(result)

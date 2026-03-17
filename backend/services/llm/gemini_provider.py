@@ -109,11 +109,16 @@ class GeminiProvider:
                     step_name,
                     GEMINI_FALLBACK_MODEL,
                 )
+                fb_metadata = {
+                    **(metadata or {}),
+                    "prohibited_fallback": True,
+                    "fallback_model": GEMINI_FALLBACK_MODEL,
+                }
                 async with trace_llm_call(
-                    name=f"{step_name}_fallback",
+                    name=step_name,
                     model=GEMINI_FALLBACK_MODEL,
                     input_text=trace_input,
-                    metadata=metadata,
+                    metadata=fb_metadata,
                 ) as llm_fb:
                     response = await gemini_client.aio.models.generate_content(
                         model=GEMINI_FALLBACK_MODEL,
@@ -191,11 +196,16 @@ class GeminiProvider:
                     step_name,
                     GEMINI_FALLBACK_MODEL,
                 )
+                fb_metadata = {
+                    **(metadata or {}),
+                    "prohibited_fallback": True,
+                    "fallback_model": GEMINI_FALLBACK_MODEL,
+                }
                 async with trace_llm_call(
-                    name=f"{step_name}_fallback",
+                    name=step_name,
                     model=GEMINI_FALLBACK_MODEL,
                     input_text=str(contents)[:1000],
-                    metadata=metadata,
+                    metadata=fb_metadata,
                 ) as llm_fb:
                     response = await gemini_client.aio.models.generate_content(
                         model=GEMINI_FALLBACK_MODEL,

@@ -150,7 +150,7 @@ async def tts_designer_node(state: ScriptState) -> dict:
                 preset_speakers=preset_speakers,
             ),
             extract_key="tts_designs",
-            step_name="tts_designer",
+            step_name="generate_content tts_designer",
         )
         logger.info("[LangGraph] TTS Designer 완료: %d designs", len(result.get("tts_designs", [])))
         return {"tts_designer_result": result}

@@ -39,7 +39,7 @@ async def explain_node(state: ScriptState) -> dict:
             template_vars=template_vars,
             validate_fn=lambda extracted: {"ok": bool(extracted), "issues": [], "checks": {}},
             extract_key="explanation",
-            step_name="explain",
+            step_name="generate_content explain",
         )
         logger.info("[LangGraph] Explain 완료")
         return {"explanation_result": result}

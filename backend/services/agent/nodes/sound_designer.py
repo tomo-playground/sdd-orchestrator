@@ -51,7 +51,7 @@ async def sound_designer_node(state: ScriptState) -> dict:
             template_vars=template_vars,
             validate_fn=lambda extracted: validate_music(extracted),
             extract_key="recommendation",
-            step_name="sound_designer",
+            step_name="generate_content sound_designer",
         )
         logger.info("[LangGraph] Sound Designer 완료")
         return {"sound_designer_result": result}

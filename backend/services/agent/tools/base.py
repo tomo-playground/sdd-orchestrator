@@ -137,12 +137,13 @@ async def call_with_tools(
 
     while call_count < max_calls:
         # GeminiProvider를 통해 Function Calling 호출 (trace + PROHIBITED fallback 내장)
+        step_metadata = {**(metadata or {}), "step": call_count + 1}
         llm_response = await provider.generate_with_tools(
-            step_name=f"{trace_name}_step_{call_count + 1}",
+            step_name=f"invoke_agent {trace_name}",
             contents=contents,  # type: ignore[arg-type]
             config=llm_config,
             tools=tools,  # type: ignore[arg-type]
-            metadata=metadata,
+            metadata=step_metadata,
         )
         response = llm_response.raw
 
@@ -301,12 +302,13 @@ async def call_with_tools(
             fallback_contents: list[Any] = list(contents)
             fallback_contents.append(fallback_instruction)
 
+            fb_metadata = {**(metadata or {}), "fallback": True, "reason": "no_text_response"}
             fallback_resp = await provider.generate_with_tools(
-                step_name=f"{trace_name}_fallback",
+                step_name=f"invoke_agent {trace_name}",
                 contents=fallback_contents,  # type: ignore[arg-type]
                 config=LLMConfig(temperature=temperature, system_instruction=system_instruction),
                 tools=[],
-                metadata=metadata,
+                metadata=fb_metadata,
             )
             raw_fb = fallback_resp.raw
             if raw_fb and raw_fb.candidates and raw_fb.candidates[0].content:
@@ -329,7 +331,7 @@ async def call_direct(
     """도구 없이 LLM을 직접 호출한다. JSON 강제 재시도 등에 사용."""
     provider = get_llm_provider()
     llm_response = await provider.generate(
-        step_name=trace_name,
+        step_name=f"generate_content {trace_name}",
         contents=prompt,
         config=LLMConfig(temperature=temperature, system_instruction=system_instruction),
         metadata=metadata,

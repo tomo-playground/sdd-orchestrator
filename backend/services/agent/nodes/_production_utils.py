@@ -29,8 +29,13 @@ async def run_production_step(
     Raises: ValueError if max retries exceeded and QC still fails.
     """
     return await _run_native(
-        template_name, template_vars, validate_fn,
-        extract_key, step_name, model, system_instruction,
+        template_name,
+        template_vars,
+        validate_fn,
+        extract_key,
+        step_name,
+        model,
+        system_instruction,
     )
 
 
@@ -44,6 +49,9 @@ async def _run_native(
     system_instruction: str | None,
 ) -> dict:
     """네이티브 경로: compile_prompt() → LLM → QC → 재시도."""
+    # 로그용 짧은 이름: "generate_content sound_designer" → "sound_designer"
+    log_name = step_name.split(" ", 1)[-1] if " " in step_name else step_name
+
     compiled = compile_prompt(template_name, **template_vars)
     resolved_sys = compiled.system or system_instruction or ""
     llm_config = LLMConfig(system_instruction=resolved_sys)
@@ -57,12 +65,16 @@ async def _run_native(
             llm_config = LLMConfig(system_instruction=resolved_sys)
 
         try:
+            step_metadata: dict = {"template": template_name}
+            if retry > 0:
+                step_metadata["retry"] = True
+                step_metadata["attempt"] = retry + 1
             llm_response = await get_llm_provider().generate(
                 step_name=step_name,
                 contents=compiled.user,
                 config=llm_config,
                 model=model,
-                metadata={"template": template_name},
+                metadata=step_metadata,
                 langfuse_prompt=compiled.langfuse_prompt,
             )
             raw_text = llm_response.text
@@ -70,7 +82,7 @@ async def _run_native(
                 raise ValueError("Empty LLM response received")
             parsed = parse_json_response(raw_text)
         except Exception as e:
-            logger.warning("[%s] 호출/파싱 실패 (retry %d): %s", step_name, retry, e)
+            logger.warning("[%s] 호출/파싱 실패 (retry %d): %s", log_name, retry, e)
             if retry < CREATIVE_PIPELINE_MAX_RETRIES:
                 _last_feedback = f"JSON Error: {e}. Valid JSON only."
                 continue
@@ -79,14 +91,14 @@ async def _run_native(
         extracted = parsed if extract_key == "" else parsed.get(extract_key, [])
         qc = validate_fn(extracted)
         if qc["ok"]:
-            logger.info("[%s] QC 통과 (retry %d)", step_name, retry)
+            logger.info("[%s] QC 통과 (retry %d)", log_name, retry)
             return parsed
 
         if retry < CREATIVE_PIPELINE_MAX_RETRIES:
             _last_feedback = "\n".join(f"- {issue}" for issue in qc["issues"])
-            logger.info("[%s] QC 실패, 재시도 %d: %s", step_name, retry, qc["issues"])
+            logger.info("[%s] QC 실패, 재시도 %d: %s", log_name, retry, qc["issues"])
         else:
-            logger.warning("[%s] 최대 재시도 도달, 마지막 결과 사용", step_name)
+            logger.warning("[%s] 최대 재시도 도달, 마지막 결과 사용", log_name)
             return parsed
 
     return {}  # unreachable

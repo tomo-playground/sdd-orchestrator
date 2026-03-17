@@ -186,7 +186,7 @@ async def _analyze_references(refs: list[str], state: ScriptState) -> str | None
         )
 
         llm_response = await get_llm_provider().generate(
-            step_name="research_analyze_references",
+            step_name="generate_content research.analyze",
             contents=compiled.user,
             config=LLMConfig(system_instruction=compiled.system or _fallback_sys),
             metadata={"template": _template_name},
@@ -344,7 +344,7 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
             tools=tools,
             tool_executors=executors,
             max_calls=5,  # 최대 5번 도구 호출
-            trace_name="research_tool_calling",
+            trace_name="research",
             system_instruction="당신은 쇼츠 대본 작성을 위한 Research Agent입니다.",
             metadata={"template": "research_tool_calling"},
         )
