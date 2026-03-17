@@ -144,6 +144,8 @@ async def generate_script_endpoint(
     db: Session = Depends(get_db),  # noqa: ARG001
 ):
     """동기 엔드포인트 — 내부적으로 Graph를 경유한다."""
+    if not request.storyboard_id:
+        raise HTTPException(status_code=422, detail="storyboard_id is required — create a draft storyboard first")
     logger.info("📝 [Script Generate] storyboard_id=%s %s", request.storyboard_id, request.model_dump())
     async with get_compiled_graph() as graph:
         state = _request_to_state(request)
@@ -199,6 +201,8 @@ async def generate_script_stream(
     db: Session = Depends(get_db),  # noqa: ARG001
 ):
     """SSE 스트리밍 엔드포인트 — 노드별 진행률을 실시간 전송한다."""
+    if not request.storyboard_id:
+        raise HTTPException(status_code=422, detail="storyboard_id is required — create a draft storyboard first")
     logger.info("📝 [Script Generate Stream] storyboard_id=%s %s", request.storyboard_id, request.model_dump())
     state = _request_to_state(request)
     thread_id = _resolve_thread_id()
