@@ -366,22 +366,29 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       try {
         const res = await axios.get(`${API_BASE}/storyboards/${id}`);
         const data = res.data;
-        setState((prev) => ({
-          ...prev,
-          topic: data.title ?? "",
-          description: data.description ?? "",
-          duration: data.duration ?? 30,
-          language: data.language ?? "Korean",
-          structure: data.structure ?? "Monologue",
-          characterId: data.character_id ?? null,
-          characterName: data.character_name ?? null,
-          characterBId: data.character_b_id ?? null,
-          characterBName: data.character_b_name ?? null,
-          scenes: mapLoadedScenes(data.scenes ?? []),
-          storyboardId: id,
-          storyboardVersion: data.version ?? null,
-          chatContext: [],
-        }));
+        setState((prev) => {
+          // 다른 스토리보드로 전환 시 DB 값 사용,
+          // 같은 ID 재로드(Draft 생성 직후 등)는 기존 editor 값 보존
+          const isSwitching = prev.storyboardId !== null && prev.storyboardId !== id;
+          return {
+            ...prev,
+            topic: isSwitching ? (data.title ?? "") : prev.topic || data.title || "",
+            description: isSwitching
+              ? (data.description ?? "")
+              : prev.description || data.description || "",
+            duration: data.duration ?? 30,
+            language: data.language ?? "Korean",
+            structure: data.structure ?? "Monologue",
+            characterId: data.character_id ?? null,
+            characterName: data.character_name ?? null,
+            characterBId: data.character_b_id ?? null,
+            characterBName: data.character_b_name ?? null,
+            scenes: mapLoadedScenes(data.scenes ?? []),
+            storyboardId: id,
+            storyboardVersion: data.version ?? null,
+            chatContext: [],
+          };
+        });
         dirtyRef.current = false;
         useContextStore
           .getState()

@@ -16,6 +16,7 @@ async def analyze_topic(
     description: str | None,
     group_id: int | None,  # noqa: ARG001 — 라우터 시그니처 유지
     messages: list[dict] | None = None,
+    storyboard_id: int | None = None,
 ) -> TopicAnalyzeResponse:
     """토픽을 분석하여 최적의 영상 설정을 추천한다.
 
@@ -66,6 +67,9 @@ async def analyze_topic(
     try:
         from google.genai import types
 
+        from services.agent.observability import trace_context, trace_llm_call
+
+        session_id = f"storyboard-{storyboard_id}" if storyboard_id else None
         compiled = compile_prompt("creative/analyze_topic", **template_vars)
         prompt = compiled.user
         sys_instruction = compiled.system or ""
@@ -73,11 +77,22 @@ async def analyze_topic(
             safety_settings=GEMINI_SAFETY_SETTINGS,
             system_instruction=sys_instruction if sys_instruction else None,
         )
-        response = await gemini_client.aio.models.generate_content(
-            model=GEMINI_TEXT_MODEL,
-            contents=prompt,
-            config=config,
-        )
+
+        async with trace_context("topic.analyze", session_id=session_id, input_data={"topic": topic}):
+            async with trace_llm_call(
+                "generate_content analyze_topic",
+                model=GEMINI_TEXT_MODEL,
+                input_text=prompt[:2000],
+                metadata={"template": "creative/analyze_topic"},
+                langfuse_prompt=compiled.langfuse_prompt,
+            ) as llm:
+                response = await gemini_client.aio.models.generate_content(
+                    model=GEMINI_TEXT_MODEL,
+                    contents=prompt,
+                    config=config,
+                )
+                llm.record(response)
+
         parsed = parse_json_response(response.text or "")
         logger.debug("[AnalyzeTopic] Gemini 응답: %s", {k: v for k, v in parsed.items() if k != "reasoning"})
     except Exception as e:

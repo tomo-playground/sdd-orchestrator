@@ -135,7 +135,7 @@ async def analyze_topic_endpoint(request: TopicAnalyzeRequest):
     if request.storyboard_id:
         logger.info("[analyze-topic] storyboard_id=%d, topic=%s", request.storyboard_id, request.topic[:80])
     messages = [m.model_dump() for m in request.messages] if request.messages else None
-    return await analyze_topic(request.topic, request.description, request.group_id, messages)
+    return await analyze_topic(request.topic, request.description, request.group_id, messages, request.storyboard_id)
 
 
 @router.post("/generate", response_model=ScriptGenerateResponse)

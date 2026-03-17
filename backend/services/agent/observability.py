@@ -69,6 +69,40 @@ def get_langfuse_client():
     return _langfuse_client
 
 
+@asynccontextmanager
+async def trace_context(
+    name: str,
+    *,
+    session_id: str | None = None,
+    input_data: Any = None,
+):
+    """LangGraph 비의존 trace context. 내부 trace_llm_call()이 이 trace에 연결된다.
+
+    analyze-topic 등 LangGraph 파이프라인 외부의 독립 Gemini 호출에 사용한다.
+    """
+    if not _ensure_initialized() or _langfuse_client is None:
+        yield
+        return
+
+    trace_id = uuid.uuid4().hex
+    prev_trace_id = _current_trace_id.get()
+    _current_trace_id.set(trace_id)
+    try:
+        _langfuse_client.trace(
+            id=trace_id,
+            name=name,
+            session_id=session_id,
+            input=input_data,
+        )
+        yield
+    finally:
+        _current_trace_id.set(prev_trace_id)
+        try:
+            _langfuse_client.flush()
+        except Exception:
+            pass
+
+
 def create_langfuse_handler(
     *,
     trace_id: str | None = None,

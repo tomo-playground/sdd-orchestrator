@@ -53,6 +53,7 @@
 
 ### 최근 작업
 
+- **03-17 LangFuse Trace 네이밍 OTel 표준화**: OTel GenAI Semantic Conventions 기반 trace/generation 네이밍 리팩토링. Trace "LangGraph"→"storyboard.generate/resume", Generation "{operation} {agent}" 포맷 통일, 고카디널리티(step/retry/fallback)→metadata 이동. GeminiProvider PROHIBITED fallback 접미사 제거. 19파일 수정. [가이드](../03_engineering/backend/TRACE_NAMING_GUIDE.md)
 - **03-17 Draft Storyboard 조기 생성**: 첫 Chat 메시지 시 storyboard_id 즉시 확보. 서버 디버깅 추적 + LangFuse session_id 연결 + 작업 유실 방지. thread_id/session_id 분리. [설계](../03_engineering/backend/DRAFT_STORYBOARD.md)
 - **03-17 Jinja2 완전 제거**: .j2 파일 28개 삭제 + dead code 제거(langfuse_prompt -34%, _production_utils -52%) + config.py jinja2 import 제거 + 테스트 15개 compile_prompt mock 전환 + 현행 문서 13개 LangFuse 프롬프트명으로 교체. 순감 ~3,000줄. 레퍼런스 배경 태그 제거 + TTS persistent 프리로드 포함
 - **03-17 LangFuse 네이티브 통합 완료 (Jinja2 완전 제거)**: 28/28 프롬프트 Jinja2→LangFuse compile() 전환. Sprint 0(PoC: compile_prompt 래퍼) → Sprint 1(C등급 10개) → Sprint 2(B등급 9개 + run_production_step 분기) → Sprint 3+4(A+S등급 10개). `prompt_builders.py`+`_b.py`+`_c.py`(빌더 75개), `_NATIVE_TEMPLATES`(28개), 폴더 기반 네이밍, system/user 완전 분리, 프롬프트 역할 중복 제거, 정적 규칙 system 이전. TTSEngine SSOT, SoVITS 파라미터/후처리. 테스트 3,525개 PASS
