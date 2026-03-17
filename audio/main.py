@@ -61,9 +61,11 @@ async def lifespan(app: FastAPI):
     watchdog = None
 
     if persistent:
-        logger.info("[Startup] Persistent mode — MusicGen preload, TTS on-demand")
+        logger.info("[Startup] Persistent mode — preloading TTS + MusicGen")
+        await asyncio.to_thread(tts_engine.load_model)
+        logger.info("[Startup] TTS(Qwen3) loaded (CUDA)")
         await asyncio.to_thread(music_engine.load_model)
-        logger.info("[Startup] MusicGen loaded (CPU). TTS(Qwen3) loads on-demand.")
+        logger.info("[Startup] MusicGen loaded (CPU)")
     else:
         logger.info("[Startup] On-demand mode — TTS loads on first request (idle=%ds)", MODEL_IDLE_TIMEOUT_SECONDS)
         watchdog = asyncio.create_task(_idle_watchdog())
