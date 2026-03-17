@@ -135,7 +135,7 @@ backend/
 │   ├── youtube_credential.py
 │   └── wd14/             # WD14 Tagger 모델 (ONNX)
 ├── constants/            # 상수 (layout.py, transition.py, testing.py)
-├── templates/            # Jinja2 템플릿 (스토리보드, Creative)
+├── templates/            # (비어 있음 — 프롬프트는 LangFuse에서 관리)
 ├── alembic/              # DB 마이그레이션
 └── tests/                # pytest 테스트
 ```

@@ -36,7 +36,7 @@ backend/
 │   ├── storyboard/   # 스토리보드 CRUD, Scene Builder
 │   └── characters/   # 캐릭터 관리, LoRA 연동
 ├── models/           # SQLAlchemy ORM (associations.py: relational tags)
-├── templates/        # Jinja2 33개 (스토리보드 5종 + Creative 23종 + 파셜 5종)
+├── templates/        # (비어 있음 — 프롬프트는 LangFuse에서 관리)
 └── config.py         # 모든 상수/환경변수 SSOT
 ```
 
@@ -333,7 +333,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | **Tech Lead** | 개발 총괄, 크로스 에이전트 조율, 기술 의사결정 | `/roadmap`, `/test`, `/review`, `/db`, `/docs` |
 | **PM Agent** | 로드맵/우선순위/문서 관리, 프로젝트 진행 조율 | `/roadmap`, `/docs`, `/vrt`, `/test`, `/pm-check` |
 | **Prompt Engineer** | SD 프롬프트 최적화, Danbooru/Civitai 기반 인사이트 | `/prompt-validate`, `/sd-status` |
-| **Storyboard Writer** | 스토리보드/스크립트 작성, Jinja2 템플릿 최적화 | `/roadmap` |
+| **Storyboard Writer** | 스토리보드/스크립트 작성, LangFuse 프롬프트 최적화 | `/roadmap` |
 | **QA Validator** | 품질 체크, TROUBLESHOOTING 관리, 테스트 검증 | `/test`, `/review`, `/vrt`, `/sd-status`, `/prompt-validate` |
 | **FFmpeg Expert** | 영상 렌더링, FFmpeg 명령어, 비디오 효과 | `/vrt`, `/roadmap` |
 | **UI/UX Engineer** | UI/UX 설계, 와이어프레임, 사용성 개선 | `/vrt`, `/test` |

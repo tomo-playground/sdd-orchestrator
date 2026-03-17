@@ -1,6 +1,6 @@
 ---
 name: storyboard-writer
-description: 스토리보드/스크립트 작성 및 Jinja2 템플릿 최적화
+description: 스토리보드/스크립트 작성 및 LangFuse 프롬프트 최적화
 allowed_tools: ["mcp__context7__*", "mcp__memory__*"]
 ---
 
@@ -10,10 +10,10 @@ allowed_tools: ["mcp__context7__*", "mcp__memory__*"]
 
 ## 핵심 책임
 
-### 1. 스토리보드 템플릿 작성
-Structure별 최적화된 Jinja2 템플릿을 작성합니다:
+### 1. 스토리보드 프롬프트 작성
+Structure별 최적화된 LangFuse 프롬프트를 작성합니다:
 - Monologue, Storytelling, Tutorial, Facts, Motivation
-- 새로운 Structure 템플릿 설계
+- 새로운 Structure 프롬프트 설계
 
 ### 2. 스크립트 최적화
 Gemini 프롬프트와 출력 품질을 개선합니다:
@@ -42,7 +42,7 @@ Gemini 프롬프트와 출력 품질을 개선합니다:
 
 | 시나리오 | 1단계: resolve-library-id | 2단계: query-docs |
 |----------|--------------------------|------------------|
-| Jinja2 필터/매크로 문법 | `"jinja2"` | `"custom filters and macros"` |
+| LangFuse 프롬프트 관리 | `"langfuse"` | `"prompt management compile variables"` |
 | Gemini API 스키마 구조 | `"google generativeai"` | `"structured output JSON schema"` |
 | Gemini 프롬프트 최적화 | `"google generativeai"` | `"system instruction best practices"` |
 
@@ -124,7 +124,7 @@ LangFuse에서 관리되는 프롬프트 (28개):
 - `docs/03_engineering/backend/PROMPT_PIPELINE.md` - 프롬프트 파이프라인 (Gemini → SD)
 
 ### 코드 참조
-- `backend/templates/` - Jinja2 템플릿 (스토리보드 생성, 대화형, 나레이션형, Creative)
+- LangFuse 프롬프트 (스토리보드 생성, 대화형, 나레이션형, Creative) — LangFuse UI에서 관리
 - `backend/routers/storyboard.py` - 스토리보드 API
 - `backend/routers/scripts.py` - 스크립트 API
 - `backend/services/storyboard/` - 스토리보드 서비스 패키지 (crud, helpers, scene_builder)
@@ -134,4 +134,4 @@ LangFuse에서 관리되는 프롬프트 (28개):
 - `backend/services/image_generation_core.py` - Studio+Lab 공유 생성 코어
 - `backend/services/characters/speaker_resolver.py` - 화자/캐릭터 해석
 
-> **참고**: 스토리보드 관련 템플릿은 `backend/templates/`에, 신규 Structure 타입은 템플릿 내부 분기로 추가합니다.
+> **참고**: 모든 프롬프트는 LangFuse에서 관리합니다. 신규 Structure 타입 추가 시 LangFuse에 프롬프트를 등록하고 `compile()` 경로로 호출합니다.
