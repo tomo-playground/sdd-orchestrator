@@ -345,77 +345,44 @@ class TestDirectorPlanCriticInjection:
         assert ctx.director_plan is None
 
 
-class TestDirectorPlanTemplateRendering:
-    """템플릿에 Director Plan 섹션이 렌더링되는지 검증."""
+class TestDirectorPlanPromptBuilders:
+    """Director Plan이 프롬프트 빌더 함수를 통해 올바르게 전달되는지 검증.
 
-    def test_concept_architect_renders_director_plan(self):
-        """concept_architect.j2에 director_plan 섹션이 렌더링된다."""
-        from config import template_env
+    Jinja2 로컬 템플릿은 제거되었으므로 (LangFuse 네이티브 전환 완료),
+    빌더 함수의 출력을 직접 검증한다.
+    """
 
-        tmpl = template_env.get_template("creative/concept_architect.j2")
-        rendered = tmpl.render(
-            perspective="Emotional Arc",
-            duration=15,
-            topic="테스트 주제",
-            language="Korean",
-            structure="Monologue",
-            focus_instruction="emotional journey",
-            director_plan={
-                "creative_goal": "감동적 영상",
-                "target_emotion": "여운",
-                "quality_criteria": ["서사", "음악", "연출"],
-            },
-        )
-        assert "Creative Direction" in rendered
-        assert "감동적 영상" in rendered
-        assert "여운" in rendered
-        assert "서사, 음악, 연출" in rendered
+    def test_build_creative_direction_section_with_plan(self):
+        """creative_direction이 있으면 섹션 텍스트가 생성된다."""
+        from services.agent.prompt_builders_c import build_creative_direction_section
 
-    def test_concept_architect_no_director_plan(self):
-        """director_plan이 None이면 섹션이 렌더링되지 않는다."""
-        from config import template_env
+        direction = {
+            "name": "감동적 영상",
+            "instruction": "여운을 남기는 연출",
+            "techniques": ["slow_motion", "close-up"],
+        }
+        result = build_creative_direction_section(direction)
+        assert "감동적 영상" in result
+        assert "여운을 남기는 연출" in result
 
-        tmpl = template_env.get_template("creative/concept_architect.j2")
-        rendered = tmpl.render(
-            perspective="Visual Hook",
-            duration=10,
-            topic="테스트",
-            language="Korean",
-            structure="Monologue",
-            focus_instruction="visual impact",
-            director_plan=None,
-        )
-        assert "Creative Direction" not in rendered
+    def test_build_creative_direction_section_none(self):
+        """creative_direction이 None이면 빈 문자열을 반환한다."""
+        from services.agent.prompt_builders_c import build_creative_direction_section
 
-    def test_writer_planning_renders_director_plan(self):
-        """writer_planning.j2에 director_plan_context 섹션이 렌더링된다."""
-        from config import template_env
+        result = build_creative_direction_section(None)
+        assert result == ""
 
-        tmpl = template_env.get_template("creative/writer_planning.j2")
-        rendered = tmpl.render(
-            topic="테스트",
-            duration=10,
-            language="Korean",
-            structure="Monologue",
-            director_plan_context="크리에이티브 목표: 감동\n타겟 감정: 여운",
-        )
-        assert "Creative Direction" in rendered
-        assert "크리에이티브 목표: 감동" in rendered
+    def test_build_director_plan_section_for_tts_with_plan(self):
+        """director_plan이 있으면 TTS용 섹션이 생성된다."""
+        from services.agent.prompt_builders_b import build_director_plan_section_for_tts
 
-    def test_create_storyboard_renders_director_plan(self):
-        """create_storyboard.j2에 director_plan_context 섹션이 렌더링된다."""
-        from config import template_env
+        plan = {"target_emotion": "nostalgic"}
+        result = build_director_plan_section_for_tts(plan)
+        assert "nostalgic" in result
 
-        tmpl = template_env.get_template("create_storyboard.j2")
-        rendered = tmpl.render(
-            topic="테스트",
-            duration=10,
-            style="Anime",
-            structure="Monologue",
-            language="Korean",
-            actor_a_gender="female",
-            keyword_context="",
-            director_plan_context="크리에이티브 목표: 유머",
-        )
-        assert "Creative Direction" in rendered
-        assert "크리에이티브 목표: 유머" in rendered
+    def test_build_director_plan_section_for_tts_none(self):
+        """director_plan이 None이면 빈 문자열을 반환한다."""
+        from services.agent.prompt_builders_b import build_director_plan_section_for_tts
+
+        result = build_director_plan_section_for_tts(None)
+        assert result == ""

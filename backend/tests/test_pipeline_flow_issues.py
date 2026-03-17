@@ -28,18 +28,18 @@ class TestWriterTopicKeyError:
     """
 
     @pytest.mark.asyncio
-    @patch("services.agent.nodes.writer.get_llm_provider")
-    @patch("services.agent.nodes.writer.template_env")
-    async def test_writer_missing_topic_no_crash(self, _mock_tenv, mock_llm_provider):
+    @patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+    @patch("services.agent.nodes.writer.compile_prompt")
+    async def test_writer_missing_topic_no_crash(self, mock_compile, mock_gen_script):
         """topic 누락 시 KeyError 없이 error 또는 draft_scenes 반환."""
         from services.agent.nodes.writer import writer_node
 
-        _mock_tenv.get_template.return_value.render.return_value = "prompt"
-        mock_llm_resp = MagicMock()
-        mock_llm_resp.text = '{"hook_strategy": "test", "emotional_arc": [], "scene_distribution": {}}'
-        mock_provider = MagicMock()
-        mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
-        mock_llm_provider.return_value = mock_provider
+        mock_compile.return_value = MagicMock(system="sys", user="user", langfuse_prompt=None)
+        mock_gen_script.return_value = {
+            "scenes": [{"script": "test", "duration": 3.0, "speaker": "A", "image_prompt": "1girl"}],
+            "character_id": None,
+            "character_b_id": None,
+        }
 
         state = {
             "description": "설명",
@@ -51,18 +51,18 @@ class TestWriterTopicKeyError:
         assert "error" in result or "draft_scenes" in result
 
     @pytest.mark.asyncio
-    @patch("services.agent.nodes.writer.get_llm_provider")
-    @patch("services.agent.nodes.writer.template_env")
-    async def test_writer_empty_topic_no_crash(self, _mock_tenv, mock_llm_provider):
+    @patch("services.agent.nodes.writer.generate_script", new_callable=AsyncMock)
+    @patch("services.agent.nodes.writer.compile_prompt")
+    async def test_writer_empty_topic_no_crash(self, mock_compile, mock_gen_script):
         """topic이 빈 문자열이면 crash 없이 진행."""
         from services.agent.nodes.writer import writer_node
 
-        _mock_tenv.get_template.return_value.render.return_value = "prompt"
-        mock_llm_resp = MagicMock()
-        mock_llm_resp.text = '{"hook_strategy": "test", "emotional_arc": [], "scene_distribution": {}}'
-        mock_provider = MagicMock()
-        mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
-        mock_llm_provider.return_value = mock_provider
+        mock_compile.return_value = MagicMock(system="sys", user="user", langfuse_prompt=None)
+        mock_gen_script.return_value = {
+            "scenes": [{"script": "test", "duration": 3.0, "speaker": "A", "image_prompt": "1girl"}],
+            "character_id": None,
+            "character_b_id": None,
+        }
 
         state = {
             "topic": "",
@@ -388,7 +388,7 @@ class TestRoutingEdgeCases:
         assert route_after_review(state) == "director_checkpoint"
 
     def test_review_max_revisions_with_production_skip(self):
-        """revision 한도 + production skip → finalize."""
+        """revision 한도 + production skip → cinematographer (FastTrack)."""
         from services.agent.routing import route_after_review
 
         state = {
@@ -396,7 +396,7 @@ class TestRoutingEdgeCases:
             "revision_count": 3,
             "skip_stages": ["production"],
         }
-        assert route_after_review(state) == "finalize"
+        assert route_after_review(state) == "cinematographer"
 
     def test_director_checkpoint_error_decision(self):
         """checkpoint decision=error → cinematographer (graceful proceed)."""

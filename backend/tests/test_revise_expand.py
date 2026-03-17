@@ -249,14 +249,16 @@ async def test_try_scene_expand_success(mock_postprocess, mock_schedule_bg, mock
 
 
 @pytest.mark.asyncio
-@patch("config.gemini_client")
-@patch("config.template_env")
-async def test_try_scene_expand_gemini_error(mock_tenv, mock_gemini):
-    """Gemini API 에러 → None 반환 (Tier 3 fallback)."""
+@patch("services.agent.nodes._revise_expand.get_llm_provider")
+@patch("services.agent.langfuse_prompt.compile_prompt")
+async def test_try_scene_expand_gemini_error(mock_compile, mock_llm_provider):
+    """LLM API 에러 → None 반환 (Tier 3 fallback)."""
     from services.agent.nodes._revise_expand import try_scene_expand
 
-    mock_tenv.get_template.return_value.render.return_value = "prompt"
-    mock_gemini.aio.models.generate_content = AsyncMock(side_effect=RuntimeError("API error"))
+    mock_compile.return_value = MagicMock(system="sys", user="user", langfuse_prompt=None)
+    mock_provider = MagicMock()
+    mock_provider.generate = AsyncMock(side_effect=RuntimeError("API error"))
+    mock_llm_provider.return_value = mock_provider
 
     existing = [{"scene_id": 1, "script": "기존", "speaker": "A", "duration": 3.0}]
     state = {"topic": "테스트", "duration": 10}
@@ -266,17 +268,19 @@ async def test_try_scene_expand_gemini_error(mock_tenv, mock_gemini):
 
 
 @pytest.mark.asyncio
-@patch("config.gemini_client")
-@patch("config.template_env")
-async def test_try_scene_expand_invalid_json(mock_tenv, mock_gemini):
+@patch("services.agent.nodes._revise_expand.get_llm_provider")
+@patch("services.agent.langfuse_prompt.compile_prompt")
+async def test_try_scene_expand_invalid_json(mock_compile, mock_llm_provider):
     """잘못된 JSON → None 반환 (Tier 3 fallback)."""
     from services.agent.nodes._revise_expand import try_scene_expand
 
-    mock_tenv.get_template.return_value.render.return_value = "prompt"
+    mock_compile.return_value = MagicMock(system="sys", user="user", langfuse_prompt=None)
 
     mock_response = MagicMock()
     mock_response.text = "이것은 JSON이 아닙니다"
-    mock_gemini.aio.models.generate_content = AsyncMock(return_value=mock_response)
+    mock_provider = MagicMock()
+    mock_provider.generate = AsyncMock(return_value=mock_response)
+    mock_llm_provider.return_value = mock_provider
 
     existing = [{"scene_id": 1, "script": "기존", "speaker": "A", "duration": 3.0}]
     state = {"topic": "테스트", "duration": 10}

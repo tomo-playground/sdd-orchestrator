@@ -56,14 +56,12 @@ async def test_run_production_step_uses_custom_model():
     mock_provider = MagicMock()
     mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
 
+    mock_compiled = MagicMock(system="sys", user="test prompt", langfuse_prompt=None)
+
     with (
         patch("services.agent.nodes._production_utils.get_llm_provider", return_value=mock_provider),
-        patch("services.agent.nodes._production_utils.template_env") as mock_env,
+        patch("services.agent.nodes._production_utils.compile_prompt", return_value=mock_compiled),
     ):
-        mock_tmpl = MagicMock()
-        mock_tmpl.render.return_value = "test prompt"
-        mock_env.get_template.return_value = mock_tmpl
-
         from services.agent.nodes._production_utils import run_production_step
 
         await run_production_step(
@@ -87,14 +85,12 @@ async def test_run_production_step_default_model_fallback():
     mock_provider = MagicMock()
     mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
 
+    mock_compiled = MagicMock(system="sys", user="test prompt", langfuse_prompt=None)
+
     with (
         patch("services.agent.nodes._production_utils.get_llm_provider", return_value=mock_provider),
-        patch("services.agent.nodes._production_utils.template_env") as mock_env,
+        patch("services.agent.nodes._production_utils.compile_prompt", return_value=mock_compiled),
     ):
-        mock_tmpl = MagicMock()
-        mock_tmpl.render.return_value = "test prompt"
-        mock_env.get_template.return_value = mock_tmpl
-
         from services.agent.nodes._production_utils import run_production_step
 
         await run_production_step(

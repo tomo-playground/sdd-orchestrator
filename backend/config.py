@@ -11,7 +11,6 @@ import pathlib
 
 from dotenv import load_dotenv
 from google import genai
-from jinja2 import Environment, FileSystemLoader
 
 # --- Base Directory ---
 BASE_DIR = pathlib.Path(__file__).resolve().parent
@@ -117,7 +116,6 @@ GEMINI_SAFETY_SETTINGS: list[genai.types.SafetySetting] = [
     genai.types.SafetySetting(category=genai.types.HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY, threshold=_BLOCK_NONE),
 ]
 
-template_env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
 
 SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
 if SD_BASE_URL == "http://127.0.0.1:7860":

@@ -1,12 +1,12 @@
 """Production 노드 컨텍스트 전달 테스트.
 
-BUG 3: Sound Designer에 writer_plan 전달
+BUG 3: Sound Designer에 writer_plan 전달 (emotional_arc_section 빌더 경유)
 BUG 4: TTS Designer/Cinematographer에 director_plan 전달
 """
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -35,7 +35,7 @@ def _base_state(**overrides) -> ScriptState:
 @pytest.mark.asyncio
 @patch("services.agent.nodes.sound_designer.run_production_step", new_callable=AsyncMock)
 async def test_sound_designer_passes_writer_plan(mock_run):
-    """writer_plan이 Sound Designer template_vars에 전달된다."""
+    """writer_plan이 Sound Designer의 emotional_arc_section에 반영된다."""
     from services.agent.nodes.sound_designer import sound_designer_node
 
     mock_run.return_value = {
@@ -53,8 +53,11 @@ async def test_sound_designer_passes_writer_plan(mock_run):
 
     assert mock_run.call_count == 1
     tv = mock_run.call_args.kwargs["template_vars"]
-    assert tv["writer_plan"] == writer_plan
-    assert tv["writer_plan"]["emotional_arc"] == ["curious", "tense", "relieved"]
+    # writer_plan은 빌더 함수를 통해 emotional_arc_section으로 변환
+    assert "emotional_arc_section" in tv
+    assert "curious" in tv["emotional_arc_section"]
+    assert "tense" in tv["emotional_arc_section"]
+    assert "relieved" in tv["emotional_arc_section"]
 
 
 @pytest.mark.asyncio
@@ -73,7 +76,8 @@ async def test_sound_designer_writer_plan_none(mock_run):
 
     assert mock_run.call_count == 1
     tv = mock_run.call_args.kwargs["template_vars"]
-    assert tv["writer_plan"] is None
+    # writer_plan=None → emotional_arc_section은 빈 문자열
+    assert tv["emotional_arc_section"] == ""
     assert "sound_designer_result" in result
 
 
@@ -83,7 +87,7 @@ async def test_sound_designer_writer_plan_none(mock_run):
 @pytest.mark.asyncio
 @patch("services.agent.nodes.tts_designer.run_production_step", new_callable=AsyncMock)
 async def test_tts_designer_passes_director_plan(mock_run):
-    """director_plan이 TTS Designer template_vars에 전달된다."""
+    """director_plan이 TTS Designer의 director_plan_section에 반영된다."""
     from services.agent.nodes.tts_designer import tts_designer_node
 
     mock_run.return_value = {"tts_designs": [{"scene_id": 1, "voice_design_prompt": "calm"}]}
@@ -99,14 +103,15 @@ async def test_tts_designer_passes_director_plan(mock_run):
 
     assert mock_run.call_count == 1
     tv = mock_run.call_args.kwargs["template_vars"]
-    assert tv["director_plan"] == director_plan
-    assert tv["director_plan"]["target_emotion"] == "nostalgic"
+    # director_plan은 빌더 함수를 통해 director_plan_section으로 변환
+    assert "director_plan_section" in tv
+    assert "nostalgic" in tv["director_plan_section"]
 
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes.tts_designer.run_production_step", new_callable=AsyncMock)
 async def test_tts_designer_passes_writer_plan(mock_run):
-    """writer_plan이 TTS Designer template_vars에 전달된다."""
+    """writer_plan이 TTS Designer의 emotional_arc_section에 반영된다."""
     from services.agent.nodes.tts_designer import tts_designer_node
 
     mock_run.return_value = {"tts_designs": []}
@@ -121,7 +126,9 @@ async def test_tts_designer_passes_writer_plan(mock_run):
     await tts_designer_node(state)
 
     tv = mock_run.call_args.kwargs["template_vars"]
-    assert tv["writer_plan"] == writer_plan
+    assert "emotional_arc_section" in tv
+    assert "sad" in tv["emotional_arc_section"]
+    assert "hopeful" in tv["emotional_arc_section"]
 
 
 @pytest.mark.asyncio
@@ -137,8 +144,9 @@ async def test_tts_designer_no_plans(mock_run):
     result = await tts_designer_node(state)
 
     tv = mock_run.call_args.kwargs["template_vars"]
-    assert tv["director_plan"] is None
-    assert tv["writer_plan"] is None
+    # None → 빈 문자열
+    assert tv["director_plan_section"] == ""
+    assert tv["emotional_arc_section"] == ""
     assert "tts_designer_result" in result
 
 
@@ -148,12 +156,12 @@ async def test_tts_designer_no_plans(mock_run):
 @pytest.mark.asyncio
 @patch("services.agent.nodes.cinematographer.validate_visuals")
 @patch("services.agent.tools.base.call_with_tools", new_callable=AsyncMock)
-async def test_cinematographer_passes_director_plan(mock_cwt, mock_qc):
-    """director_plan이 Cinematographer 템플릿 렌더링에 전달된다."""
-    from unittest.mock import MagicMock
-
+@patch("services.agent.langfuse_prompt.compile_prompt")
+async def test_cinematographer_passes_director_plan(mock_compile, mock_cwt, mock_qc):
+    """director_plan이 Cinematographer의 compile_prompt에 creative_direction_section으로 전달된다."""
     from services.agent.nodes.cinematographer import _run
 
+    mock_compile.return_value = MagicMock(system="sys", user="rendered prompt", langfuse_prompt=None)
     mock_cwt.return_value = (
         '```json\n{"scenes": [{"order": 1, "visual_tags": ["smile"]}]}\n```',
         [],
@@ -171,17 +179,13 @@ async def test_cinematographer_passes_director_plan(mock_cwt, mock_qc):
         character_id=None,
         director_feedback=None,
         style="Anime",
+        creative_direction={"creative_goal": "강렬한 액션", "target_emotion": "excited"},
     )
 
     db_mock = MagicMock()
 
-    with patch("services.agent.nodes.cinematographer.template_env") as mock_env:
-        mock_tmpl = MagicMock()
-        mock_tmpl.render.return_value = "rendered prompt"
-        mock_env.get_template.return_value = mock_tmpl
+    await _run(state, db_mock)
 
-        await _run(state, db_mock)
-
-        # template.render() 호출 시 director_plan이 전달되었는지 확인
-        render_kwargs = mock_tmpl.render.call_args.kwargs
-        assert render_kwargs["director_plan"] == director_plan
+    # compile_prompt 호출 시 creative_direction_section이 전달되었는지 확인
+    compile_kwargs = mock_compile.call_args.kwargs
+    assert "creative_direction_section" in compile_kwargs

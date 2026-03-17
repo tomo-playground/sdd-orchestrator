@@ -83,7 +83,7 @@ def check_env():
         AUDIO_DIR,
         FONTS_DIR / "BlackHanSans-Regular.ttf",
         OVERLAY_DIR / "overlay_bold.png",
-        TEMPLATES_DIR / "create_storyboard.j2",
+        TEMPLATES_DIR,
         OUTPUT_DIR
     ]
 
