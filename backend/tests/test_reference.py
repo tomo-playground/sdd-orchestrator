@@ -61,17 +61,17 @@ class TestReferenceQualityTags:
 
 
 # ────────────────────────────────────────────
-# Environment tags (white_background fixed)
+# Environment tags (no forced background)
 # ────────────────────────────────────────────
 
 
 class TestReferenceEnvironmentTags:
-    """Reference images must have white_background + simple_background."""
+    """Reference images should NOT force white_background (natural background)."""
 
     @patch("services.prompt.composition.TagRuleCache")
     @patch("services.prompt.composition.TagFilterCache")
     @patch("services.prompt.composition.TagAliasCache")
-    def test_environment_defaults_injected(self, mock_alias, mock_filter, mock_rule, builder):
+    def test_no_forced_background(self, mock_alias, mock_filter, mock_rule, builder):
         mock_alias.initialize.return_value = None
         mock_alias.get_replacement.return_value = ...
         mock_filter.initialize.return_value = None
@@ -82,8 +82,8 @@ class TestReferenceEnvironmentTags:
         char = _make_character()
         result = builder.compose_for_reference(char)
 
-        assert "white_background" in result
-        assert "simple_background" in result
+        assert "white_background" not in result
+        assert "simple_background" not in result
 
     @patch("services.prompt.composition.TagRuleCache")
     @patch("services.prompt.composition.TagFilterCache")
@@ -295,15 +295,14 @@ class TestReferenceGenderEnhancement:
 class TestInjectReferenceDefaults:
     """Test _inject_reference_defaults helper."""
 
-    def test_injects_env_and_camera(self, builder):
+    def test_injects_camera_only(self, builder):
         layers = [[] for _ in range(12)]
         builder._inject_reference_defaults(layers)
 
-        # Env tags are injected into LAYER_QUALITY for maximum SD priority
-        # Tags may have weights like "(simple_background:1.5)"
+        # ENV_TAGS is empty — no background forced
         quality = layers[LAYER_QUALITY]
-        assert any("simple_background" in t for t in quality)
-        assert any("white_background" in t for t in quality)
+        assert not any("white_background" in t for t in quality)
+        # Camera tags still injected
         assert any("solo" in t for t in layers[LAYER_CAMERA])
         assert any("looking_at_viewer" in t for t in layers[LAYER_CAMERA])
 
@@ -372,17 +371,15 @@ class TestInjectReferenceDefaults:
         layers = [[] for _ in range(12)]
         builder._inject_reference_defaults(layers, style_ctx=ctx)
 
-        # 전역 REFERENCE_ENV_TAGS 폴백 (may have weights like "(white_background:1.5)")
-        assert any("white_background" in t for t in layers[LAYER_QUALITY])
+        # 전역 REFERENCE_ENV_TAGS = [] (no background forced)
+        assert not any("white_background" in t for t in layers[LAYER_QUALITY])
         # 전역 REFERENCE_CAMERA_TAGS 폴백
         assert any("solo" in t for t in layers[LAYER_CAMERA])
 
     def test_no_duplicate_if_already_present(self, builder):
         layers = [[] for _ in range(12)]
-        layers[LAYER_QUALITY] = ["white_background"]
         layers[LAYER_CAMERA] = ["solo"]
 
         builder._inject_reference_defaults(layers)
 
-        assert layers[LAYER_QUALITY].count("white_background") == 1
         assert layers[LAYER_CAMERA].count("solo") == 1

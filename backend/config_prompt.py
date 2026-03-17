@@ -124,12 +124,7 @@ ABSTRACT_BACKGROUND_TAGS: frozenset[str] = frozenset(
 )
 MALE_INDICATORS: frozenset[str] = frozenset({"1boy", "2boys", "3boys", "male", "man", "boy"})
 FEMALE_INDICATORS: frozenset[str] = frozenset({"1girl", "2girls", "3girls", "female", "woman", "girl"})
-REFERENCE_ENV_TAGS: list[str] = [
-    "(simple_background:1.5)",
-    "(white_background:1.5)",
-    "bright",
-    "clean",
-]
+REFERENCE_ENV_TAGS: list[str] = []
 REFERENCE_CAMERA_TAGS: list[str] = [
     "solo",
     "upper_body",
@@ -138,9 +133,8 @@ REFERENCE_CAMERA_TAGS: list[str] = [
 # Lighting/cinematic tags injected into LAYER_ATMOSPHERE for reference images.
 # Ensures reference rendering style (shading, depth) matches scene output.
 REFERENCE_LIGHTING_TAGS: list[str] = [
-    "sidelighting",
+    "soft_lighting",
     "depth_of_field",
-    "soft_shadow",
 ]
 
 # --- 12-Layer Ownership (Tier 소유권) ---

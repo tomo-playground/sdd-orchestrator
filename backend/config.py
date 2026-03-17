@@ -514,13 +514,6 @@ DEFAULT_REFERENCE_NEGATIVE_PROMPT = ", ".join(
         "watermark",
         "username",
         "blurry",
-        # --- 배경 억제 (깨끗한 배경 유지, 렌더링 스타일은 억제하지 않음) ---
-        "busy_background",
-        "detailed_background",
-        "(dark_background:1.3)",
-        "(black_background:1.3)",
-        "night",
-        "night_sky",
         # --- 멀티뷰 억제 ---
         "(multiple_views:1.8)",
         "(character_sheet:1.8)",

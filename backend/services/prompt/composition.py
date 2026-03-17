@@ -1277,7 +1277,7 @@ class PromptBuilder:
         Differences from compose_for_character:
         - Character LoRA: weight × REFERENCE_LORA_SCALE (identity hint only)
         - Style LoRA: full weight (not skipped)
-        - Environment: white_background fixed
+        - Environment: no forced background (natural from style LoRA)
         - No scene_tags (Gemini)
         - quality_tags: explicit quality tags from StyleProfile (skips anime fallback)
         - positive_prompt: same field as scene path (unified character appearance prompt)
@@ -1331,7 +1331,7 @@ class PromptBuilder:
         # 7. Quality tags (before reference defaults — env tags fill LAYER_QUALITY too)
         self._ensure_quality_tags(layers)
 
-        # 8. Inject reference defaults (white_background, camera)
+        # 8. Inject reference defaults (camera, lighting)
         self._inject_reference_defaults(layers, style_ctx=style_ctx)
 
         # 9. Inject LoRAs (character × scale, style LoRA from both character + StyleProfile)
