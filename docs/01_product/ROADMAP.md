@@ -231,7 +231,8 @@ graph LR
 | Storyboard Version History | — |
 | ~~IP-Adapter 캐릭터 유사도 고도화~~ | **Phase 30으로 승격** — [V1 명세](FEATURES/CHARACTER_CONSISTENCY.md) · [V2 명세](FEATURES/CHARACTER_CONSISTENCY_V2.md) |
 | 캐릭터 LoRA 학습 파이프라인 | LoRA 트레이닝용 레퍼런스 9세트 생성 + 학습 자동화 (우선순위 낮음) |
-| **SoVITS TTS 품질 고도화** | Sprint A: 즉시 적용 — `repetition_penalty=1.35`, `text_split_method=cut5`, `top_k=15` 파라미터 전달 + SoVITS 후처리 추가(trim/normalize/decrackle). Sprint B: 감정별 ref_audio 자동 생성 — Qwen3 VoiceDesign으로 base prompt × 감정 변형(calm/happy/sad/angry/surprised) 5종 WAV 자동 생성 → `character_voice_refs`에 저장 → SoVITS 호출 시 `scene_emotion` 매칭 + `aux_ref_audio_paths` 보조 전달. 기존 인프라(Qwen3+보이스프리셋) 활용 |
+| ~~SoVITS TTS 품질 고도화~~ | **보류** — SoVITS(합성음 ref_audio 복제)는 품질 한계 확인. Qwen3 직접 생성이 우수. Sprint A(파라미터 전달) 완료, Sprint B 보류 |
+| **Qwen3 씬 TTS 일관성 개선** | Qwen3를 씬 TTS 기본 엔진으로 전환 + `TTS_VOICE_CONSISTENCY_MODE=true`(동일 preset prompt + 고정 seed → 목소리 일관성). SoVITS는 실제 녹음 ref_audio 확보 시 재검토 |
 
 ### Intelligence & Automation
 

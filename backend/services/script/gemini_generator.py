@@ -349,14 +349,12 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         from services.llm import LLMConfig, get_llm_provider
 
         # CLAUDE.md 규칙: system_instruction ↔ contents 분리 필수
-        # 템플릿(지시사항+허용 태그)은 system_instruction으로,
-        # 사용자 데이터(토픽+피드백+채팅)는 contents로 전달하여 안전 필터 오탐 방지
-        system_instruction = _sanitize_for_gemini_prompt(rendered)
-        user_parts = [f"Topic: {safe_topic}"]
-        if request.description:
-            user_parts.append(f"Description: {request.description}")
-        if request.selected_concept:
-            user_parts.append(f"Selected Concept: {request.selected_concept}")
+        # LangFuse chat 타입: bundle.system_instruction(역할) + rendered(작업 지시+데이터)
+        # system_instruction에는 역할 정의만, contents에는 렌더링된 템플릿+사용자 데이터
+        lf_system = bundle.system_instruction or ""
+        system_instruction = _sanitize_for_gemini_prompt(lf_system) if lf_system else ""
+
+        user_parts = [_sanitize_for_gemini_prompt(rendered)]
         if ctx.get("revision_feedback"):
             user_parts.append(f"Revision Feedback: {ctx['revision_feedback']}")
         if ctx.get("chat_context"):
@@ -369,6 +367,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             contents=user_contents,
             config=LLMConfig(system_instruction=system_instruction),
             model=GEMINI_TEXT_MODEL,
+            langfuse_prompt=bundle.langfuse_prompt,
         )
         res = llm_resp.raw
         if not res.text:

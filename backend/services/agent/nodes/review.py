@@ -16,7 +16,6 @@ from config import (
     REVIEW_SCRIPT_MAX_CHARS_OTHER,
     SCRIPT_LENGTH_KOREAN,
     logger,
-    template_env,
 )
 from config_pipelines import LANGGRAPH_NARRATIVE_THRESHOLD, REVIEW_MODEL
 from services.agent.langfuse_prompt import get_prompt_template
@@ -356,8 +355,8 @@ async def _unified_evaluate(
     """
     try:
         _template_name_ru = "creative/review_unified.j2"
-        tmpl = template_env.get_template(_template_name_ru)
-        prompt = tmpl.render(
+        bundle = get_prompt_template(_template_name_ru)
+        prompt = bundle.template.render(
             scenes=json.dumps(scenes, ensure_ascii=False),
             topic=topic,
             language=language,
@@ -367,14 +366,16 @@ async def _unified_evaluate(
             rule_errors=rule_errors,
             rule_warnings=rule_warnings,
         )
+        _fallback_sys_ru = "You are a unified review agent that evaluates technical quality, narrative strength, and self-reflection for short-form video scripts."
         llm_response = await get_llm_provider().generate(
             step_name="review_unified_evaluate",
             contents=prompt,
             config=LLMConfig(
-                system_instruction="You are a unified review agent that evaluates technical quality, narrative strength, and self-reflection for short-form video scripts.",
+                system_instruction=bundle.system_instruction or _fallback_sys_ru,
             ),
             model=REVIEW_MODEL,
-            metadata={"template": _template_name_ru},  # B등급: 파일 사용, metadata만 추적
+            metadata={"template": _template_name_ru},
+            langfuse_prompt=bundle.langfuse_prompt,
         )
 
         text = (llm_response.text or "").strip()

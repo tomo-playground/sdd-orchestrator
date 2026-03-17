@@ -176,7 +176,7 @@ async def synthesize_tts(req: TTSSynthesizeRequest):
 async def synthesize_sovits(req: SoVITSSynthesizeRequest):
     """Proxy to GPT-SoVITS subprocess + post-processing."""
     from services.sovits_process import sovits_manager
-    from services.tts_postprocess import trim_tts_audio, validate_tts_quality
+    from services.tts_postprocess import normalize_audio, validate_tts_quality
 
     if not sovits_manager.is_running:
         raise HTTPException(status_code=503, detail="GPT-SoVITS is not running")
@@ -201,10 +201,20 @@ async def synthesize_sovits(req: SoVITSSynthesizeRequest):
     except RuntimeError as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
 
-    # Parse WAV → post-process (trim/decrackle/normalize) → quality check
+    # Parse WAV → lightweight post-process → quality check
+    # Note: SoVITS uses trim + normalize only (no hallucination/decrackle — those are Qwen3-specific)
     buf = io.BytesIO(raw_wav)
     audio_data, sr = sf.read(buf, dtype="float32")
-    audio_data = trim_tts_audio(audio_data, sr, normalize=True)
+
+    import librosa  # noqa: PLC0415
+    import numpy as np  # noqa: PLC0415
+
+    trimmed, _ = librosa.effects.trim(audio_data, top_db=60)
+    fade_samples = int(sr * 0.015)
+    if len(trimmed) > fade_samples * 2:
+        trimmed[:fade_samples] *= np.linspace(0, 1, fade_samples)
+        trimmed[-fade_samples:] *= np.linspace(1, 0, fade_samples)
+    audio_data = normalize_audio(trimmed)
     duration = len(audio_data) / sr
     quality_passed = validate_tts_quality(audio_data, sr)
 
