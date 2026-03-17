@@ -22,7 +22,6 @@ from config import (
     GEMINI_VISION_EVAL_TIMEOUT_S,
     gemini_client,
     logger,
-    template_env,
 )
 
 _GEMINI_EVAL_SYSTEM = "You are an image analysis expert specializing in anime/illustration art."
@@ -98,8 +97,11 @@ async def evaluate_tags_with_gemini(
         logger.warning("[MatchRate] Invalid base64 image, skipping vision eval")
         return []
 
-    template = template_env.get_template("validate_image_tags.j2")
-    user_prompt = template.render(tags=tags)
+    from services.agent.langfuse_prompt import compile_prompt
+    from services.agent.prompt_builders import build_tags_block
+
+    compiled = compile_prompt("validate_image_tags.j2", tags_block=build_tags_block(tags))
+    user_prompt = compiled.user
 
     contents = [
         types.Part.from_bytes(data=image_bytes, mime_type="image/png"),

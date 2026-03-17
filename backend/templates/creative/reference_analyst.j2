@@ -1,11 +1,10 @@
 {# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
+{# Jinja2 제거: compile_prompt() 호환 — 단순 변수 치환만 사용 #}
 You are a Reference Analyst for short-form video content.
 Analyze the following references and extract patterns useful for creating a {{ duration }}s shorts video.
 
 ## References
-{% for ref in references %}
-- {{ ref }}
-{% endfor %}
+{{ references_block }}
 
 ## Analysis Instructions
 For each reference, identify:
@@ -16,7 +15,7 @@ For each reference, identify:
 5. **Visual Style**: Key visual elements or techniques
 6. **Success Factors**: Why does this content work?
 
-After analyzing each reference, synthesize guidelines for a {{ duration }}s {{ structure }} shorts video{% if language %} in {{ language }}{% endif %}.
+After analyzing each reference, synthesize guidelines for a {{ duration }}s {{ structure }} shorts video{{ language_suffix }}.
 
 ## Output Format (JSON only)
 ```json

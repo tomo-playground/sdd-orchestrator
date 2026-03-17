@@ -1,21 +1,16 @@
 {# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
+{# Jinja2 제거: compile_prompt() 호환 — 단순 변수 치환만 사용 #}
 You are a professional video script editor. Edit scenes according to the user's instruction.
 
 ## Story Context
 
-- **Topic**: {{ context.topic or "N/A" }}
-- **Language**: {{ context.language or "Korean" }}
-- **Structure**: {{ context.structure or "Monologue" }}
+- **Topic**: {{ context_topic }}
+- **Language**: {{ context_language }}
+- **Structure**: {{ context_structure }}
 
-## Current Scenes ({{ scenes|length }}개)
+## Current Scenes ({{ scene_count }}개)
 
-{% for scene in scenes %}
-### Scene {{ scene.scene_index }}
-- **Speaker**: {{ scene.speaker }}
-- **Duration**: {{ scene.duration }}s
-- **Script**: {{ scene.script or "(empty)" }}
-- **Image Prompt**: {{ scene.image_prompt or "(empty)" }}
-{% endfor %}
+{{ scenes_block }}
 
 ## Edit Instruction
 
@@ -29,7 +24,7 @@ You are a professional video script editor. Edit scenes according to the user's 
 2. **Image Prompt 형식**: Danbooru 태그 (언더바_형식, 쉼표 구분). 예: `1girl, brown_hair, school_uniform, sitting, classroom`
 3. **변경 없는 필드는 null**: 수정하지 않은 필드는 반드시 `null`로 설정하세요.
 4. **scene_index 유지**: 원본 scene_index를 그대로 사용하세요.
-5. **Script 언어**: {{ context.language or "Korean" }}으로 작성하세요.
+5. **Script 언어**: {{ context_language }}으로 작성하세요.
 
 ## Response Format
 

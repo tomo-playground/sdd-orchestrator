@@ -13,8 +13,9 @@ import json
 
 from config import logger
 from config_pipelines import LANGGRAPH_PLANNING_ENABLED
-from services.agent.langfuse_prompt import get_prompt_template
+from services.agent.langfuse_prompt import compile_prompt
 from services.agent.llm_models import LocationPlan
+from services.agent.prompt_builders import build_optional_section, build_selected_concept_block
 from services.agent.state import ScriptState, WriterPlan, build_director_context, extract_selected_concept
 from services.llm import LLMConfig, get_llm_provider
 
@@ -35,29 +36,32 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
 
     try:
         _template_name = "creative/location_planner.j2"
-        bundle = get_prompt_template(_template_name)
-        prompt = bundle.template.render(
-            topic=state.get("topic", ""),
-            description=state.get("description", ""),
-            duration=duration,
-            language=state.get("language", "Korean"),
-            structure=state.get("structure", "Monologue"),
-            selected_concept=selected_concept,
-            director_plan_context=build_director_context(state),
-            expected_scenes_min=min_s,
-            expected_scenes_max=max_s,
-        )
-
         _fallback_sys = (
             "You are a Location Planner for short-form video scripts. "
             "Output only valid JSON with the locations array. No explanations."
         )
+        description = state.get("description", "")
+        director_ctx = build_director_context(state)
+
+        compiled = compile_prompt(
+            _template_name,
+            topic=state.get("topic", ""),
+            description_section=build_optional_section("**Description**:", description) if description else "",
+            duration=str(duration),
+            language=state.get("language", "Korean"),
+            structure=state.get("structure", "Monologue"),
+            director_plan_section=build_optional_section("## Creative Direction (from Director)", director_ctx) if director_ctx else "",
+            selected_concept_section=build_selected_concept_block(selected_concept) if selected_concept else "",
+            expected_scenes_min=str(min_s),
+            expected_scenes_max=str(max_s),
+        )
+
         llm_response = await get_llm_provider().generate(
             step_name="location_planner",
-            contents=prompt,
-            config=LLMConfig(system_instruction=bundle.system_instruction or _fallback_sys),
+            contents=compiled.user,
+            config=LLMConfig(system_instruction=compiled.system or _fallback_sys),
             metadata={"template": _template_name},
-            langfuse_prompt=bundle.langfuse_prompt,
+            langfuse_prompt=compiled.langfuse_prompt,
         )
         text = llm_response.text.strip()
 

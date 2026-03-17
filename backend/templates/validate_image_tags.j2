@@ -1,10 +1,9 @@
 {# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
+{# Jinja2 제거: compile_prompt() 호환 — 단순 변수 치환만 사용 #}
 Given an image and a list of Danbooru-style tags, determine whether each tag is visually present in the image.
 
 Tags to evaluate:
-{% for tag in tags %}
-- {{ tag }}
-{% endfor %}
+{{ tags_block }}
 
 For each tag, respond with a JSON array:
 [

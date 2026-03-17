@@ -14,6 +14,13 @@ from jinja2 import Environment, FileSystemLoader
 
 from config import BASE_DIR, CREATIVE_AGENT_TEMPLATES, CREATIVE_LEADER_MODEL, logger
 from models.creative import CreativeSession
+from services.agent.langfuse_prompt import compile_prompt
+from services.agent.prompt_builders import (
+    build_concepts_block,
+    build_concepts_block_simple,
+    build_optional_section,
+    build_references_block,
+)
 from services.creative_agents import generate_parallel, get_provider
 from services.creative_utils import get_next_sequence, load_preset, parse_json_response, record_trace_sync
 
@@ -70,33 +77,34 @@ class DebateContext:
 
 async def run_reference_analyst(db, session: CreativeSession, ctx: DebateContext) -> dict | None:
     """Phase 0: Analyze user-provided references."""
-    template = _template_env.get_template(CREATIVE_AGENT_TEMPLATES["reference_analyst"])
     session_ctx = dict(session.context or {})
     references = session_ctx.get("references", [])
     if not references:
         return None
 
-    prompt = template.render(
-        references=references,
-        duration=ctx.duration,
+    _template_name = CREATIVE_AGENT_TEMPLATES["reference_analyst"]
+    language_suffix = f" in {ctx.language}" if ctx.language else ""
+    compiled = compile_prompt(
+        _template_name,
+        references_block=build_references_block(references),
+        duration=str(ctx.duration),
         structure=ctx.structure,
         language=ctx.language,
+        language_suffix=language_suffix,
     )
 
     preset = load_preset(db, "reference_analyst")
-    sys_prompt = (
-        preset.system_prompt
-        if preset
-        else "You are a Reference Analyst. Analyze content patterns. Respond only in valid JSON."
-    )
+    _fallback_sys = "You are a Reference Analyst. Analyze content patterns. Respond only in valid JSON."
+    sys_prompt = preset.system_prompt if preset else _fallback_sys
     temp = preset.temperature if preset else 0.5
 
+    prompt = compiled.user
     provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
     start = time.monotonic()
     try:
         result = await provider.generate(
             prompt=prompt,
-            system_prompt=sys_prompt,
+            system_prompt=compiled.system or sys_prompt,
             temperature=temp,
         )
     except Exception as e:
@@ -216,29 +224,28 @@ async def run_devils_advocate(
     ctx: DebateContext,
 ) -> dict | None:
     """Run Devil's Advocate critique on all concepts."""
-    template = _template_env.get_template(CREATIVE_AGENT_TEMPLATES["devils_advocate"])
-    prompt = template.render(
-        concepts=concepts,
-        concept_count=len(concepts),
+    _template_name = CREATIVE_AGENT_TEMPLATES["devils_advocate"]
+    compiled = compile_prompt(
+        _template_name,
+        concepts_block=build_concepts_block(concepts),
+        concept_count=str(len(concepts)),
         topic=ctx.topic,
-        duration=ctx.duration,
+        duration=str(ctx.duration),
         structure=ctx.structure,
     )
 
     preset = load_preset(db, "devils_advocate")
-    sys_prompt = (
-        preset.system_prompt
-        if preset
-        else "You are a Devil's Advocate. Criticize sharply but constructively. Respond only in valid JSON."
-    )
+    _fallback_sys = "You are a Devil's Advocate. Criticize sharply but constructively. Respond only in valid JSON."
+    sys_prompt = preset.system_prompt if preset else _fallback_sys
     temp = preset.temperature if preset else 0.7
 
+    prompt = compiled.user
     provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
     start = time.monotonic()
     try:
         result = await provider.generate(
             prompt=prompt,
-            system_prompt=sys_prompt,
+            system_prompt=compiled.system or sys_prompt,
             temperature=temp,
         )
     except Exception as e:
@@ -280,34 +287,37 @@ async def run_director_evaluate(
     ctx: DebateContext,
 ) -> dict:
     """Director evaluates all concepts."""
-    template = _template_env.get_template(CREATIVE_AGENT_TEMPLATES["creative_director"])
-    prompt = template.render(
-        concepts=concepts,
+    _template_name = CREATIVE_AGENT_TEMPLATES["creative_director"]
+    compiled = compile_prompt(
+        _template_name,
+        concepts_block=build_concepts_block_simple(concepts),
         topic=ctx.topic,
-        duration=ctx.duration,
-        round_number=round_number,
-        max_rounds=ctx.max_rounds,
-        critic_analysis=ctx.prev_evaluation_str,
-        prev_evaluation=ctx.prev_evaluation_str,
-        hook_weight=0.25,
-        arc_weight=0.30,
-        feasibility_weight=0.25,
-        originality_weight=0.20,
+        duration=str(ctx.duration),
+        round_number=str(round_number),
+        max_rounds=str(ctx.max_rounds),
+        critic_analysis_section=build_optional_section(
+            "## Devil's Advocate Analysis", ctx.prev_evaluation_str
+        ),
+        prev_evaluation_section=build_optional_section(
+            "## Previous Round Evaluation", ctx.prev_evaluation_str
+        ),
+        hook_weight="0.25",
+        arc_weight="0.30",
+        feasibility_weight="0.25",
+        originality_weight="0.20",
     )
 
     preset = load_preset(db, "creative_director")
-    sys_prompt = (
-        preset.system_prompt
-        if preset
-        else "You are a Creative Director. Evaluate concepts strictly. Respond only in valid JSON."
-    )
+    _fallback_sys = "You are a Creative Director. Evaluate concepts strictly. Respond only in valid JSON."
+    sys_prompt = preset.system_prompt if preset else _fallback_sys
     temp = preset.temperature if preset else 0.3
 
+    prompt = compiled.user
     provider = get_provider("gemini", CREATIVE_LEADER_MODEL)
     start = time.monotonic()
     result = await provider.generate(
         prompt=prompt,
-        system_prompt=sys_prompt,
+        system_prompt=compiled.system or sys_prompt,
         temperature=temp,
     )
     elapsed_ms = int((time.monotonic() - start) * 1000)

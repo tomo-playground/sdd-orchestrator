@@ -1,15 +1,10 @@
 {# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
+{# Jinja2 제거: compile_prompt() 호환 — 단순 변수 치환만 사용 #}
 You are a Material Analyst for short-form video content.
 Analyze the following source materials provided by the user and extract key insights for creating a {{ duration }}s shorts video.
 
 ## Source Materials
-{% for material in materials %}
-### Material {{ loop.index }}
-**URL**: {{ material.url }}
-**Content**:
-{{ material.content }}
-
-{% endfor %}
+{{ materials_block }}
 
 ## Analysis Instructions
 For each material, extract:

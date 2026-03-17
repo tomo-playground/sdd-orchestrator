@@ -15,7 +15,9 @@ async def edit_scenes(
 
     from google.genai import types
 
-    from config import GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client, template_env
+    from config import GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client
+    from services.agent.langfuse_prompt import compile_prompt
+    from services.agent.prompt_builders import build_scenes_block
     from services.creative_utils import parse_json_response
 
     fallback = ScriptEditResponse(edited_scenes=[], reasoning="", unchanged_count=len(scenes))
@@ -25,15 +27,24 @@ async def edit_scenes(
         return fallback
 
     try:
-        tmpl = template_env.get_template("creative/edit_scenes.j2")
-        prompt = tmpl.render(instruction=instruction, scenes=scenes, context=context)
+        _template_name = "creative/edit_scenes.j2"
+        _fallback_sys = "You are a scene editor for short-form video scripts. Edit scenes according to the given instruction while preserving overall narrative coherence."
+        compiled = compile_prompt(
+            _template_name,
+            instruction=instruction,
+            scenes_block=build_scenes_block(scenes),
+            scene_count=str(len(scenes)),
+            context_topic=context.get("topic") or "N/A",
+            context_language=context.get("language") or "Korean",
+            context_structure=context.get("structure") or "Monologue",
+        )
         edit_config = types.GenerateContentConfig(
-            system_instruction="You are a scene editor for short-form video scripts. Edit scenes according to the given instruction while preserving overall narrative coherence.",
+            system_instruction=compiled.system or _fallback_sys,
             safety_settings=GEMINI_SAFETY_SETTINGS,
         )
         response = await gemini_client.aio.models.generate_content(
             model=GEMINI_TEXT_MODEL,
-            contents=prompt,
+            contents=compiled.user,
             config=edit_config,
         )
         parsed = parse_json_response(response.text or "")

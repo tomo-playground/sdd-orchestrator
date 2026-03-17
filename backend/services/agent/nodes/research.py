@@ -25,7 +25,8 @@ from config import (
     logger,
 )
 from database import get_db_session
-from services.agent.langfuse_prompt import get_prompt_template
+from services.agent.langfuse_prompt import compile_prompt
+from services.agent.prompt_builders import build_materials_block
 from services.agent.state import ScriptState
 from services.llm import LLMConfig, get_llm_provider
 
@@ -175,21 +176,21 @@ async def _analyze_references(refs: list[str], state: ScriptState) -> str | None
     # Gemini 분석
     try:
         _template_name = "creative/material_analyst.j2"
-        bundle = get_prompt_template(_template_name)
-        prompt = bundle.template.render(
-            materials=materials,
-            duration=state.get("duration", 30),
+        _fallback_sys = "You are a content analyst for short-form video production. Analyze reference materials and extract key insights."
+        compiled = compile_prompt(
+            _template_name,
+            materials_block=build_materials_block(materials),
+            duration=str(state.get("duration", 30)),
             structure=state.get("structure", "Monologue"),
             language=state.get("language", "Korean"),
         )
 
-        _fallback_sys = "You are a content analyst for short-form video production. Analyze reference materials and extract key insights."
         llm_response = await get_llm_provider().generate(
             step_name="research_analyze_references",
-            contents=prompt,
-            config=LLMConfig(system_instruction=bundle.system_instruction or _fallback_sys),
+            contents=compiled.user,
+            config=LLMConfig(system_instruction=compiled.system or _fallback_sys),
             metadata={"template": _template_name},
-            langfuse_prompt=bundle.langfuse_prompt,
+            langfuse_prompt=compiled.langfuse_prompt,
         )
         raw = llm_response.text
 

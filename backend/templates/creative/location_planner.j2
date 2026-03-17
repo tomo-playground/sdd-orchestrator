@@ -1,24 +1,14 @@
 {# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
+{# Jinja2 제거: compile_prompt() 호환 — 단순 변수 치환만 사용 #}
 You are a Location Planner for short-form video scripts. Your only job is to define the physical locations for the scenes.
 
 **Topic**: {{ topic }}
-{% if description %}
-**Description**: {{ description }}
-{% endif %}
+{{ description_section }}
 **Duration**: {{ duration }} seconds
 **Language**: {{ language }}
 **Structure**: {{ structure }}
-{% if director_plan_context %}
-
-## Creative Direction (from Director)
-{{ director_plan_context }}
-{% endif %}
-{% if selected_concept %}
-
-## Selected Concept
-**Title**: {{ selected_concept.title }}
-**Concept**: {{ selected_concept.concept }}
-{% endif %}
+{{ director_plan_section }}
+{{ selected_concept_section }}
 
 ## Your Task
 

@@ -1,4 +1,5 @@
 {# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
+{# Jinja2 제거: compile_prompt() 호환 — 단순 변수 치환만 사용 #}
 You are a Devil's Advocate for creative content review.
 
 ## Task
@@ -8,11 +9,7 @@ Critically analyze the following {{ concept_count }} concepts for a {{ duration 
 {{ topic }}
 
 ## Concepts to Critique
-{% for concept in concepts %}
-### Concept {{ loop.index }}: {{ concept.agent_role }}
-{{ concept.content }}
-
-{% endfor %}
+{{ concepts_block }}
 
 ## Critique Dimensions
 Analyze each concept on these 5 dimensions:

@@ -1,4 +1,5 @@
 {# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
+{# Jinja2 제거: compile_prompt() 호환 — 단순 변수 치환만 사용 #}
 You are a Creative Director evaluating concept proposals for a {{ duration }}s shorts video.
 
 ## Topic
@@ -7,21 +8,9 @@ You are a Creative Director evaluating concept proposals for a {{ duration }}s s
 ## Round {{ round_number }}/{{ max_rounds }}
 
 ## Concepts to Evaluate
-{% for concept in concepts %}
-### {{ concept.agent_role }}
-{{ concept.content }}
-
-{% endfor %}
-
-{% if critic_analysis %}
-## Devil's Advocate Analysis
-{{ critic_analysis }}
-{% endif %}
-
-{% if prev_evaluation %}
-## Previous Round Evaluation
-{{ prev_evaluation }}
-{% endif %}
+{{ concepts_block }}
+{{ critic_analysis_section }}
+{{ prev_evaluation_section }}
 
 ## Evaluation Criteria
 Score each concept 0.0~1.0:
