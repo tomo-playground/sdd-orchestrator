@@ -54,7 +54,7 @@
 ### 최근 작업
 
 - **03-17 Draft Storyboard 조기 생성**: 첫 Chat 메시지 시 storyboard_id 즉시 확보. 서버 디버깅 추적 + LangFuse session_id 연결 + 작업 유실 방지. thread_id/session_id 분리. [설계](../03_engineering/backend/DRAFT_STORYBOARD.md)
-- **03-17 Jinja2 Dead Code 완전 제거**: langfuse_prompt.py(-34%), _production_utils.py(-52%) 슬림화. `_run_jinja2()`/`get_prompt_template()`/`PromptBundle`/`_NATIVE_TEMPLATES` 제거. 순감 507줄. 테스트 18개 dead 제거 + 3개 compile_prompt 추가
+- **03-17 Jinja2 완전 제거**: .j2 파일 28개 삭제 + dead code 제거(langfuse_prompt -34%, _production_utils -52%) + config.py jinja2 import 제거 + 테스트 15개 compile_prompt mock 전환 + 현행 문서 13개 LangFuse 프롬프트명으로 교체. 순감 ~3,000줄. 레퍼런스 배경 태그 제거 + TTS persistent 프리로드 포함
 - **03-17 LangFuse 네이티브 통합 완료 (Jinja2 완전 제거)**: 28/28 프롬프트 Jinja2→LangFuse compile() 전환. Sprint 0(PoC: compile_prompt 래퍼) → Sprint 1(C등급 10개) → Sprint 2(B등급 9개 + run_production_step 분기) → Sprint 3+4(A+S등급 10개). `prompt_builders.py`+`_b.py`+`_c.py`(빌더 75개), `_NATIVE_TEMPLATES`(28개), 폴더 기반 네이밍, system/user 완전 분리, 프롬프트 역할 중복 제거, 정적 규칙 system 이전. TTSEngine SSOT, SoVITS 파라미터/후처리. 테스트 3,525개 PASS
 - **03-17 LangFuse Prompt Management 전체 이전 완료**: 28개 프롬프트 chat 타입 LangFuse 관리. Phase 0~2. 29개 테스트 PASS
 - **03-16 SSOT 위반 정리 P1+P2 완료 (46/49건)**: config.py 상수화(Hi-Res 4개+SAMPLERS+TTS_ENGINE+ENABLE_HR), `/presets` API 확장(hi_res_defaults+samplers+tts_engine+image_defaults+pipeline_metadata), Frontend 하드코딩 제거(constants→store/presets 동기화, 해상도 6곳→상수/store), controlnet.py weight fallback→상수 참조
@@ -267,7 +267,7 @@ graph LR
 |------|------|
 | ~~Phase 34: GPU 순차 독점 실행 & BGM 고도화~~ | **드롭** — ComfyUI 전환으로 GPU 관리 방식 자체가 변경될 예정. Forge 전용 `forge_control.py` 구현이 무의미해짐. BGM(ACE-Step) 고도화는 별도 항목으로 재검토 |
 | ~~**LangFuse Prompt Management 전체 이전**~~ | **완료** — 28개 프롬프트 chat 타입(system/user 분리). `prompt_partials.py` 파셜 Python 전환, `_partials/` 삭제. 29개 테스트 |
-| ~~**LangFuse 네이티브 통합 (Jinja2 제거)**~~ | **완료** — 28/28 프롬프트 Jinja2→LangFuse compile() 전환. `compile_prompt()` 래퍼, `prompt_builders.py`+`prompt_builders_b.py`+`prompt_builders_c.py` (빌더 75개), `_NATIVE_TEMPLATES` 분기, 폴더 기반 네이밍(`pipeline/`+`storyboard/`+`tool/`+`shared/`), system/user 완전 분리, 프롬프트 역할 중복 제거, 정적 규칙 system 이전. 테스트 3,525개 PASS. [명세](FEATURES/LANGFUSE_PROMPT_OPS.md) |
+| ~~**LangFuse 네이티브 통합 (Jinja2 완전 제거)**~~ | **완료** — 28/28 프롬프트 LangFuse compile() 전환 + .j2 파일 28개 삭제 + Jinja2 import/template_env/dead code 전면 제거(순감 ~3,000줄). `compile_prompt()` 래퍼, 빌더 75개, 폴더 기반 네이밍. [명세](FEATURES/LANGFUSE_PROMPT_OPS.md) |
 | **LLM Provider 추상화 Phase A~E 완료** | [설계](../03_engineering/backend/LLM_PROVIDER_ABSTRACTION.md) — `services/llm/` 패키지 구축, `google.genai` 직결 제거, trace + PROHIBITED fallback 중복 해소. Phase F(OllamaProvider)는 아래 LiteLLM 항목으로 대체 예정 |
 | **LiteLLM SDK 도입 (Phase F 대체)** | Gemini 외 두 번째 Provider 실제 도입 시점에 착수. `GeminiProvider` 내부를 LiteLLM 호출로 교체 → 100+ Provider 지원, 폴백/재시도 내장, `OllamaProvider` 직접 구현 불필요. 트레이스 중복 방지를 위해 LiteLLM 자동 LangFuse 콜백 비활성화 + 기존 `trace_llm_call()` 유지 필수. OSS LLMOps Stack(LangGraph + LangFuse + LiteLLM) 표준 조합 완성. **착수 조건**: Ollama/Claude 등 두 번째 Provider 실제 사용 확정 시 |
 | PipelineControl 커스텀 (노드 on/off) + 분산 큐 (Celery/Redis) | Phase 9-4 잔여 |
