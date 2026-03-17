@@ -53,6 +53,8 @@
 
 ### 최근 작업
 
+- **03-17 Draft Storyboard 조기 생성**: 첫 Chat 메시지 시 storyboard_id 즉시 확보. 서버 디버깅 추적 + LangFuse session_id 연결 + 작업 유실 방지. thread_id/session_id 분리. [설계](../03_engineering/backend/DRAFT_STORYBOARD.md)
+- **03-17 Jinja2 Dead Code 완전 제거**: langfuse_prompt.py(-34%), _production_utils.py(-52%) 슬림화. `_run_jinja2()`/`get_prompt_template()`/`PromptBundle`/`_NATIVE_TEMPLATES` 제거. 순감 507줄. 테스트 18개 dead 제거 + 3개 compile_prompt 추가
 - **03-17 LangFuse 네이티브 통합 완료 (Jinja2 완전 제거)**: 28/28 프롬프트 Jinja2→LangFuse compile() 전환. Sprint 0(PoC: compile_prompt 래퍼) → Sprint 1(C등급 10개) → Sprint 2(B등급 9개 + run_production_step 분기) → Sprint 3+4(A+S등급 10개). `prompt_builders.py`+`_b.py`+`_c.py`(빌더 75개), `_NATIVE_TEMPLATES`(28개), 폴더 기반 네이밍, system/user 완전 분리, 프롬프트 역할 중복 제거, 정적 규칙 system 이전. TTSEngine SSOT, SoVITS 파라미터/후처리. 테스트 3,525개 PASS
 - **03-17 LangFuse Prompt Management 전체 이전 완료**: 28개 프롬프트 chat 타입 LangFuse 관리. Phase 0~2. 29개 테스트 PASS
 - **03-16 SSOT 위반 정리 P1+P2 완료 (46/49건)**: config.py 상수화(Hi-Res 4개+SAMPLERS+TTS_ENGINE+ENABLE_HR), `/presets` API 확장(hi_res_defaults+samplers+tts_engine+image_defaults+pipeline_metadata), Frontend 하드코딩 제거(constants→store/presets 동기화, 해상도 6곳→상수/store), controlnet.py weight fallback→상수 참조

@@ -38,16 +38,13 @@ def cinema_result(mock_scenes):
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes._production_utils.get_llm_provider")
-@patch("services.agent.nodes._production_utils.get_prompt_template")
-async def test_run_production_step_success(mock_get_prompt, mock_llm_provider):
+@patch("services.agent.nodes._production_utils.compile_prompt")
+async def test_run_production_step_success(mock_compile, mock_llm_provider):
     """정상 응답 → QC 통과 시 결과를 반환한다."""
+    from services.agent.langfuse_prompt import CompiledPrompt
     from services.agent.nodes._production_utils import run_production_step
 
-    mock_bundle = MagicMock()
-    mock_bundle.template.render.return_value = "prompt"
-    mock_bundle.system_instruction = "test system"
-    mock_bundle.langfuse_prompt = None
-    mock_get_prompt.return_value = mock_bundle
+    mock_compile.return_value = CompiledPrompt(system="test system", user="prompt", langfuse_prompt=None)
     mock_llm_resp = MagicMock()
     mock_llm_resp.text = '{"scenes": [{"image_prompt": "test", "camera": "close-up", "environment": "park"}]}'
     mock_provider = MagicMock()
@@ -66,16 +63,13 @@ async def test_run_production_step_success(mock_get_prompt, mock_llm_provider):
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes._production_utils.get_llm_provider")
-@patch("services.agent.nodes._production_utils.get_prompt_template")
-async def test_run_production_step_retry_on_qc_fail(mock_get_prompt, mock_llm_provider):
+@patch("services.agent.nodes._production_utils.compile_prompt")
+async def test_run_production_step_retry_on_qc_fail(mock_compile, mock_llm_provider):
     """QC 실패 → 재시도 후 성공."""
+    from services.agent.langfuse_prompt import CompiledPrompt
     from services.agent.nodes._production_utils import run_production_step
 
-    mock_bundle = MagicMock()
-    mock_bundle.template.render.return_value = "prompt"
-    mock_bundle.system_instruction = "test system"
-    mock_bundle.langfuse_prompt = None
-    mock_get_prompt.return_value = mock_bundle
+    mock_compile.return_value = CompiledPrompt(system="test system", user="prompt", langfuse_prompt=None)
     mock_llm_resp = MagicMock()
     mock_llm_resp.text = '{"scenes": [{"image_prompt": "test"}]}'
     mock_provider = MagicMock()
