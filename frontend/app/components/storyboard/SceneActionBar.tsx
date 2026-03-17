@@ -341,7 +341,7 @@ export default function SceneActionBar({
             onClick={async () => {
               onSceneMenuClose();
               const ok = await confirm({
-                title: "Delete Scene",
+                title: "씬 삭제",
                 message: "이 씬을 삭제하시겠습니까?",
                 confirmLabel: "삭제",
                 variant: "danger",

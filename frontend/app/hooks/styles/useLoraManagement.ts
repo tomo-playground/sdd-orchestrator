@@ -39,8 +39,8 @@ export function useLoraManagement(ui: UiCallbacks) {
   const handleDeleteLora = useCallback(
     async (id: number) => {
       const ok = await ui.confirmDialog({
-        title: "Delete LoRA",
-        message: "Delete this LoRA registration? (File may remain on disk, this removes DB entry)",
+        title: "LoRA 삭제",
+        message: "이 LoRA 등록을 삭제하시겠습니까? (파일은 디스크에 남을 수 있으며, DB 항목만 제거됩니다)",
         confirmLabel: "삭제",
         variant: "danger",
       });

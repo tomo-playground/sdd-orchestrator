@@ -77,8 +77,8 @@ export function useMusic(ui: UiCallbacks) {
   const handleDelete = useCallback(
     async (p: MusicPreset) => {
       const ok = await ui.confirmDialog({
-        title: "Delete Music Preset",
-        message: `Delete "${p.name}"?`,
+        title: "BGM 프리셋 삭제",
+        message: `"${p.name}"을(를) 삭제하시겠습니까?`,
         confirmLabel: "삭제",
         variant: "danger",
       });

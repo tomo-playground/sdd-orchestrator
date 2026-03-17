@@ -155,61 +155,43 @@ def create_langfuse_handler(
         return None
 
 
-def update_trace_on_interrupt(
-    interrupt_data: dict,
-    *,
-    trace_id: str | None = None,
-    interrupt_node: str = "unknown",
-) -> None:
-    """GraphInterrupt 시 Langfuse 트레이스에 중간 결과를 기록한다.
-
-    interrupt_data는 output이 아닌 metadata에 저장한다.
-    output 필드를 오염시키면 resume 후 Langfuse 목록에서 input/output이
-    뒤바뀌어 보이는 문제가 발생한다.
-    """
+def _patch_trace(*, trace_id: str | None, body: dict, label: str) -> None:
+    """Ingestion API로 trace를 업데이트한다 (interrupt/completion 공용)."""
     if _langfuse_client is None:
         return
-
     raw_id = trace_id or _current_trace_id.get()
     if not raw_id:
-        logger.debug("[LangFuse] trace_id 없음, interrupt 기록 건너뜀")
         return
-    resolved_trace_id = _to_hex32(raw_id)
-
+    resolved = _to_hex32(raw_id)
     try:
         import httpx
 
         now = datetime.now(UTC).isoformat()
+        body = {"id": resolved, "timestamp": now, **body}
         resp = httpx.post(
             f"{LANGFUSE_BASE_URL}/api/public/ingestion",
             auth=(LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY),
-            json={
-                "batch": [
-                    {
-                        "id": uuid.uuid4().hex,
-                        "type": "trace-create",
-                        "timestamp": now,
-                        "body": {
-                            "id": resolved_trace_id,
-                            "timestamp": now,
-                            "metadata": {
-                                "interrupted": True,
-                                "interrupt_node": interrupt_node,
-                                "interrupt_data": interrupt_data,
-                            },
-                        },
-                    },
-                ],
-            },
+            json={"batch": [{"id": uuid.uuid4().hex, "type": "trace-create", "timestamp": now, "body": body}]},
             timeout=5.0,
         )
         errors = resp.json().get("errors", [])
         if errors:
-            logger.warning("[LangFuse] ingestion 오류: %s", errors)
+            logger.warning("[LangFuse] %s 오류: %s", label, errors)
         else:
-            logger.info("[LangFuse] interrupt 기록 (node=%s, trace=%s)", interrupt_node, resolved_trace_id[:16])
+            logger.info("[LangFuse] %s (trace=%s)", label, resolved[:16])
     except Exception as e:
-        logger.warning("[LangFuse] interrupt 트레이스 업데이트 실패: %s", e)
+        logger.warning("[LangFuse] %s 실패: %s", label, e)
+
+
+def update_trace_on_interrupt(
+    interrupt_data: dict, *, trace_id: str | None = None, interrupt_node: str = "unknown",
+) -> None:
+    """GraphInterrupt 시 Langfuse 트레이스에 중간 결과를 metadata에 기록한다."""
+    _patch_trace(
+        trace_id=trace_id,
+        body={"metadata": {"interrupted": True, "interrupt_node": interrupt_node, "interrupt_data": interrupt_data}},
+        label=f"interrupt ({interrupt_node})",
+    )
 
 
 def update_root_span(*, input_data: Any = None, output_data: Any = None) -> None:
@@ -241,52 +223,11 @@ def end_root_span() -> None:
 
 
 def update_trace_on_completion(*, trace_id: str | None = None, output_data: dict | None = None) -> None:
-    """Resume 완료 시 LangFuse 트레이스의 interrupted 메타데이터를 리셋한다."""
-    if _langfuse_client is None:
-        return
-
-    raw_id = trace_id or _current_trace_id.get()
-    if not raw_id:
-        return
-    resolved_trace_id = _to_hex32(raw_id)
-
-    try:
-        import httpx
-
-        now = datetime.now(UTC).isoformat()
-        body: dict = {
-            "id": resolved_trace_id,
-            "timestamp": now,
-            "metadata": {
-                "interrupted": False,
-                "completed": True,
-            },
-        }
-        if output_data is not None:
-            body["output"] = output_data
-
-        resp = httpx.post(
-            f"{LANGFUSE_BASE_URL}/api/public/ingestion",
-            auth=(LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY),
-            json={
-                "batch": [
-                    {
-                        "id": uuid.uuid4().hex,
-                        "type": "trace-create",
-                        "timestamp": now,
-                        "body": body,
-                    },
-                ],
-            },
-            timeout=5.0,
-        )
-        errors = resp.json().get("errors", [])
-        if errors:
-            logger.warning("[LangFuse] completion 업데이트 오류: %s", errors)
-        else:
-            logger.info("[LangFuse] completion 메타데이터 업데이트 (trace=%s)", resolved_trace_id[:16])
-    except Exception as e:
-        logger.warning("[LangFuse] completion 트레이스 업데이트 실패: %s", e)
+    """Resume 완료 시 interrupted 메타데이터를 리셋한다."""
+    body: dict = {"metadata": {"interrupted": False, "completed": True}}
+    if output_data is not None:
+        body["output"] = output_data
+    _patch_trace(trace_id=trace_id, body=body, label="completion")
 
 
 def flush_langfuse() -> None:

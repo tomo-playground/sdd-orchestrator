@@ -97,8 +97,8 @@ export function useTrashTab(
   const handlePermanentDelete = useCallback(
     async (item: TrashItem) => {
       const ok = await confirmDialog({
-        title: "Permanent Delete",
-        message: `Permanently delete "${item.name || "Untitled"}"? This cannot be undone.`,
+        title: "영구 삭제",
+        message: `"${item.name || "제목 없음"}"을(를) 영구 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
         confirmLabel: "삭제",
         variant: "danger",
       });

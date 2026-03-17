@@ -46,8 +46,8 @@ export function useCivitai(ui: UiCallbacks) {
         return;
       }
       const ok = await ui.confirmDialog({
-        title: "Download LoRA",
-        message: `Download this LoRA (ID: ${modelId})? It may take a while.`,
+        title: "LoRA 다운로드",
+        message: `이 LoRA(ID: ${modelId})를 다운로드하시겠습니까? 시간이 걸릴 수 있습니다.`,
         confirmLabel: "다운로드",
       });
       if (!ok) return;

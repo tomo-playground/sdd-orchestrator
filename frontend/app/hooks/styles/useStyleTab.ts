@@ -132,9 +132,9 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
 
   const handleCreateStyle = useCallback(async () => {
     const result = await ui.promptDialog({
-      title: "New Style",
-      message: "Enter a name for the new style profile:",
-      inputField: { label: "Name", placeholder: "Enter style name..." },
+      title: "새 화풍",
+      message: "새 화풍의 이름을 입력하세요:",
+      inputField: { label: "이름", placeholder: "화풍 이름 입력..." },
     });
     if (result === false) return;
     const name = result as string;
@@ -153,8 +153,8 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
   const handleDeleteStyle = useCallback(
     async (id: number) => {
       const ok = await ui.confirmDialog({
-        title: "Delete Style",
-        message: "Delete this style profile?",
+        title: "화풍 삭제",
+        message: "이 화풍을 삭제하시겠습니까?",
         confirmLabel: "삭제",
         variant: "danger",
       });
@@ -202,8 +202,8 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
       if (!original) return;
       const newName = `${original.name} (Copy)`;
       const ok = await ui.confirmDialog({
-        title: "Duplicate Style",
-        message: `Duplicate style as "${newName}"?`,
+        title: "화풍 복제",
+        message: `"${newName}"(으)로 화풍을 복제하시겠습니까?`,
         confirmLabel: "복제",
       });
       if (!ok) return;

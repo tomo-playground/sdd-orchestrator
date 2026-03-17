@@ -76,8 +76,8 @@ export function useSceneActions() {
   const handleRemoveScene = useCallback(
     async (clientId: string) => {
       const ok = await confirm({
-        title: "Remove Scene",
-        message: "Remove this scene?",
+        title: "씬 삭제",
+        message: "이 씬을 삭제하시겠습니까?",
         confirmLabel: "삭제",
         variant: "danger",
       });

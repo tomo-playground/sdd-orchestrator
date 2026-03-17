@@ -116,8 +116,8 @@ export default function CharacterWizard() {
       // If there are existing tags, confirm replacement
       if (state.selectedTags.length > 0 && state.templateId) {
         const ok = await confirm({
-          title: "Change Template",
-          message: "Switching templates will replace your current tag selections. Continue?",
+          title: "템플릿 변경",
+          message: "템플릿을 변경하면 현재 태그 선택이 교체됩니다. 계속하시겠습니까?",
           confirmLabel: "교체",
         });
         if (!ok) return;

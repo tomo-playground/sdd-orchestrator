@@ -307,53 +307,36 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     const body = buildSavePayload(current, groupId);
     const storeMeta = buildSyncMeta(current);
     try {
-      if (current.storyboardId) {
-        const res = await axios.put(`${API_BASE}/storyboards/${current.storyboardId}`, body);
-        setState((prev) => ({ ...prev, storyboardVersion: res.data.version }));
-        useContextStore.getState().setContext({
-          storyboardId: current.storyboardId,
-          storyboardTitle: current.topic.trim(),
-        });
-      } else {
-        const res = await axios.post(`${API_BASE}/storyboards`, body);
-        const newId = res.data.storyboard_id;
-        setState((prev) => ({
-          ...prev,
-          storyboardId: newId,
-          storyboardVersion: res.data.version ?? 1,
-        }));
-        useContextStore
-          .getState()
-          .setContext({ storyboardId: newId, storyboardTitle: current.topic.trim() });
-        // syncToGlobalStore를 onSaved보다 먼저 호출 — onSaved → setPendingAutoRun(true) 시
-        // preflight가 scenes를 읽기 전에 Zustand 스토어에 씬이 반영되어야 한다.
-        syncToGlobalStore(current.scenes, storeMeta);
-        onSavedRef.current?.(newId);
-      }
-      // PUT 분기: syncToGlobalStore는 이미 POST에서 호출됨, PUT에서만 호출
-      if (current.storyboardId) {
-        syncToGlobalStore(current.scenes, storeMeta);
-      }
+      const isUpdate = !!current.storyboardId;
+      const res = isUpdate
+        ? await axios.put(`${API_BASE}/storyboards/${current.storyboardId}`, body)
+        : await axios.post(`${API_BASE}/storyboards`, body);
+      const resolvedId = isUpdate ? current.storyboardId! : res.data.storyboard_id;
+      setState((prev) => ({
+        ...prev,
+        storyboardId: resolvedId,
+        storyboardVersion: res.data.version ?? (isUpdate ? prev.storyboardVersion : 1),
+      }));
+      useContextStore.getState().setContext({
+        storyboardId: resolvedId,
+        storyboardTitle: current.topic.trim(),
+      });
+      syncToGlobalStore(current.scenes, storeMeta);
+      if (!isUpdate) onSavedRef.current?.(resolvedId);
       dirtyRef.current = false;
       useStoryboardStore.getState().set({ isDirty: false });
-      showToast(current.storyboardId ? "Script saved" : "Script created", "success");
+      showToast("스크립트 저장 완료", "success");
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
         showToast("다른 탭에서 수정되었습니다. 다시 저장해주세요.", "error");
         if (stateRef.current.storyboardId) {
           try {
-            const fresh = await axios.get(
-              `${API_BASE}/storyboards/${stateRef.current.storyboardId}`
-            );
+            const fresh = await axios.get(`${API_BASE}/storyboards/${stateRef.current.storyboardId}`);
             setState((prev) => ({ ...prev, storyboardVersion: fresh.data.version ?? null }));
-          } catch {
-            /* silent */
-          }
+          } catch { /* silent */ }
         }
       } else {
-        const msg = axios.isAxiosError(err)
-          ? (err.response?.data?.detail ?? err.message)
-          : "Save failed";
+        const msg = axios.isAxiosError(err) ? (err.response?.data?.detail ?? err.message) : "저장 실패";
         showToast(String(msg), "error");
       }
     } finally {
@@ -361,45 +344,32 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     }
   }, [groupId, showToast]);
 
-  const loadStoryboard = useCallback(
-    async (id: number) => {
-      try {
-        const res = await axios.get(`${API_BASE}/storyboards/${id}`);
-        const data = res.data;
-        setState((prev) => {
-          // 다른 스토리보드로 전환 시 DB 값 사용,
-          // 같은 ID 재로드(Draft 생성 직후 등)는 기존 editor 값 보존
-          const isSwitching = prev.storyboardId !== null && prev.storyboardId !== id;
-          return {
-            ...prev,
-            topic: isSwitching ? (data.title ?? "") : prev.topic || data.title || "",
-            description: isSwitching
-              ? (data.description ?? "")
-              : prev.description || data.description || "",
-            duration: data.duration ?? 30,
-            language: data.language ?? "Korean",
-            structure: data.structure ?? "Monologue",
-            characterId: data.character_id ?? null,
-            characterName: data.character_name ?? null,
-            characterBId: data.character_b_id ?? null,
-            characterBName: data.character_b_name ?? null,
-            scenes: mapLoadedScenes(data.scenes ?? []),
-            storyboardId: id,
-            storyboardVersion: data.version ?? null,
-            chatContext: [],
-          };
-        });
-        dirtyRef.current = false;
-        useContextStore
-          .getState()
-          .setContext({ storyboardId: id, storyboardTitle: data.title ?? "" });
-      } catch (err) {
-        showToast("영상 로드에 실패했습니다", "error");
-        console.error("[useScriptEditor] loadStoryboard error:", err);
-      }
-    },
-    [showToast]
-  );
+  const loadStoryboard = useCallback(async (id: number) => {
+    try {
+      const res = await axios.get(`${API_BASE}/storyboards/${id}`);
+      const data = res.data;
+      setState((prev) => {
+        // 다른 스토리보드 전환 시 DB 값 사용, 같은 ID 재로드(Draft 직후)는 기존 값 보존
+        const isSwitching = prev.storyboardId !== null && prev.storyboardId !== id;
+        return {
+          ...prev,
+          topic: isSwitching ? (data.title ?? "") : prev.topic || data.title || "",
+          description: isSwitching ? (data.description ?? "") : prev.description || data.description || "",
+          duration: data.duration ?? 30, language: data.language ?? "Korean",
+          structure: data.structure ?? "Monologue",
+          characterId: data.character_id ?? null, characterName: data.character_name ?? null,
+          characterBId: data.character_b_id ?? null, characterBName: data.character_b_name ?? null,
+          scenes: mapLoadedScenes(data.scenes ?? []),
+          storyboardId: id, storyboardVersion: data.version ?? null, chatContext: [],
+        };
+      });
+      dirtyRef.current = false;
+      useContextStore.getState().setContext({ storyboardId: id, storyboardTitle: data.title ?? "" });
+    } catch (err) {
+      showToast("영상 로드에 실패했습니다", "error");
+      console.error("[useScriptEditor] loadStoryboard error:", err);
+    }
+  }, [showToast]);
 
   const reset = useCallback(() => {
     dirtyRef.current = false;

@@ -75,7 +75,7 @@ export default function CharacterDetailPage() {
   const onDelete = async () => {
     if (!character) return;
     const ok = await confirm({
-      title: "Delete Character",
+      title: "캐릭터 삭제",
       message: (
         <>
           <span className="font-semibold text-zinc-900">{character.name}</span>을(를) 휴지통으로
@@ -90,7 +90,7 @@ export default function CharacterDetailPage() {
 
   const onEnhance = async () => {
     const ok = await confirm({
-      title: "Enhance Preview",
+      title: "프리뷰 보정",
       message: "Gemini로 프리뷰 이미지를 보정합니다. (~$0.04)",
       confirmLabel: "보정",
     });

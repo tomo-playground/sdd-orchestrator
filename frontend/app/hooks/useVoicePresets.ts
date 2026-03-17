@@ -76,8 +76,8 @@ export function useVoicePresets(ui: UiCallbacks) {
   const handleDelete = useCallback(
     async (p: VoicePreset) => {
       const ok = await ui.confirmDialog({
-        title: "Delete Voice Preset",
-        message: `Delete "${p.name}"?`,
+        title: "음성 프리셋 삭제",
+        message: `"${p.name}"을(를) 삭제하시겠습니까?`,
         confirmLabel: "삭제",
         variant: "danger",
       });
