@@ -1,4 +1,5 @@
 {# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
+{# Jinja2 제거: compile_prompt() 호환 — 단순 변수 치환만 사용 #}
 You are the **Creative Director** for a short-form video project.
 Your task is to establish the creative direction before production begins.
 
@@ -7,62 +8,17 @@ Your task is to establish the creative direction before production begins.
 ## Project Brief
 
 - **주제**: {{ topic }}
-{% if description %}- **상세 설명**: {{ description }}{% endif %}
+{{ description_section }}
 - **영상 길이**: {{ duration }}초
-{% if style %}- **스타일**: {{ style }}{% endif %}
+{{ style_section }}
 - **언어**: {{ language }}
-{% if structure %}- **구조**: {{ structure }}{% endif %}
-{% if chat_context %}
-## User Intent Context (사전 대화 이력)
-
-아래는 사용자와 시스템 간의 사전 대화입니다.
-이 맥락에서 사용자의 **의도와 요구사항**을 파악하여 execution_plan에 반영하세요.
-
-{% for msg in chat_context %}
-- **{{ "사용자" if msg.role == "user" else "시스템" }}**: {{ msg.text }}
-{% endfor %}
-{% endif %}
-{% if references %}
-## Reference Materials
-{% for ref in references %}- {{ ref }}
-{% endfor %}
-{% endif %}
-{% if characters %}
-
-## Available Inventory
-
-### Characters ({{ characters|length }}명)
-{% for char in characters %}
-- **ID {{ char.id }}**: {{ char.name }} ({{ char.gender }}) — 출연 {{ char.usage_count }}회{% if char.usage_count >= 10 %} ⭐시리즈 주연{% endif %}
-
-  - 특징: {{ char.appearance_summary or "미설정" }}
-  - LoRA: {{ "있음" if char.has_lora else "없음" }} / 레퍼런스: {{ "있음" if char.has_reference else "없음" }}
-{% endfor %}
-
-### Structures ({{ structures|length }}종)
-{% for struct in structures %}
-- **{{ struct.id }}**: {{ struct.name }} — {{ struct.tone }}{% if struct.requires_two_characters %} (2인 필수){% endif %}
-
-{% endfor %}
-
-### Styles ({{ styles|length }}종)
-{% for sty in styles %}
-- **ID {{ sty.id }}**: {{ sty.name }}{% if sty.description %} — {{ sty.description[:80] }}{% endif %}
-
-{% endfor %}
-
-## Casting Guide
-아래 4단계로 최적의 캐스팅을 추천하세요:
-1. **토픽 분석**: 주제의 핵심 감정과 장르를 파악하세요
-2. **구조 선택**: 1인 독백 vs 대화/갈등에 따라 monologue, dialogue, narrated_dialogue, confession 중 선택
-3. **캐릭터 선택** (가장 중요):
-   - **1순위: 캐릭터 성격·분위기 적합성** — 주제와 가장 어울리는 캐릭터를 선택하세요
-   - **2순위: 사용 횟수** — 사용 횟수가 많은 캐릭터는 시리즈의 간판이므로 적극 활용하세요
-   - **3순위: LoRA 보유** — LoRA가 있으면 이미지 일관성이 높지만, 필수 조건은 아닙니다
-   - **다양성 원칙**: 매번 같은 캐릭터를 뽑지 마세요. 다양한 캐릭터에 골고루 기회를 주세요
-   - **dialogue/narrated_dialogue 선택 시**: 반드시 서로 다른 2명의 캐릭터를 character_a_id와 character_b_id에 각각 기재하세요
-4. **ID 교차검증**: 캐릭터 ID와 이름을 반드시 함께 기재하세요
-{% endif %}
+{{ structure_section }}
+{{ chat_context_block }}
+{{ references_block }}
+{{ characters_block }}
+{{ structures_block }}
+{{ styles_block }}
+{{ casting_guide }}
 
 ## Execution Planning
 
@@ -112,22 +68,9 @@ Your task is to establish the creative direction before production begins.
         "run_concept": true,
         "run_explain": true,
         "reasoning": "판단 근거를 간결히 기록 (한국어)"
-    }{% if characters %},
-    "casting": {
-        "character_a_id": 1,
-        "character_a_name": "캐릭터A 이름 (ID와 반드시 일치)",
-        "character_b_id": 2,
-        "character_b_name": "캐릭터B 이름 (dialogue/narrated_dialogue 구조 시 필수, 1인 구조면 null)",
-        "structure": "dialogue",
-        "style_profile_id": null,
-        "reasoning": "이 캐릭터/구조/스타일을 추천하는 근거 (한국어)"
-    }{% endif %}
+    }{{ casting_json_section }}
 }
 ```
-
-{% if feedback %}
-## Retry Feedback
-{{ feedback }}
-{% endif %}
+{{ feedback_section }}
 
 IMPORTANT: Respond ONLY with the JSON object.

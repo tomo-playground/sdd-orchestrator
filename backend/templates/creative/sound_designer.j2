@@ -1,29 +1,20 @@
 {# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
+{# Jinja2 제거: compile_prompt() 호환 — 단순 변수 치환만 사용 #}
 You are a Sound Designer for short-form video.
 
 ## Task
 Analyze the concept and scenes, then recommend BGM direction.
 
 ## Concept
-{{ concept | tojson(indent=2) }}
-
-{% if writer_plan and writer_plan.emotional_arc %}
-## Emotional Arc (from Writer Plan)
-{{ writer_plan.emotional_arc | join(' → ') }}
-The BGM mood should complement this emotional progression.
-{% endif %}
+{{ concept_json }}
+{{ emotional_arc_section }}
 
 ## Scenes
-{{ scenes | tojson(indent=2) }}
-
-{% if feedback %}
-## Previous Attempt Feedback
-{{ feedback }}
-Fix the issues above in your new recommendation.
-{% endif %}
+{{ scenes_json }}
+{{ feedback_section }}
 
 ## Rules
-1. Match the concept's mood_progression: "{{ concept.mood_progression }}"
+1. Match the concept's mood_progression: "{{ mood_progression }}"
 2. BGM covers approximately {{ duration }}s
 3. Write a Stable Audio Open prompt (English, detailed) for the BGM.
 4. Focus only on the musical atmosphere and energy. (Individual vocal pacing is handled by the TTS Designer).
@@ -36,12 +27,9 @@ Fix the issues above in your new recommendation.
     "mood": "melancholic_to_hopeful",
     "duration": {{ duration }},
     "reasoning": "감정 곡선이 우울에서 희망으로 전환되므로..."
-  }{% if feedback %},
-  "response_message": "Director 피드백에 대한 응답을 여기에 작성하세요. 수정한 BGM 방향성, 이유, 대안을 포함하세요."{% endif %}
+  }{{ feedback_response_hint }}
 }
 ```
 
 CRITICAL: The "reasoning" field MUST be written in {{ language }}. The "prompt" field must remain in English (for Stable Audio).
-{% if language == "Korean" %}
-reasoning은 반드시 한국어로 작성하세요.
-{% endif %}
+{{ language_hint }}

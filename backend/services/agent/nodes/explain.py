@@ -4,6 +4,12 @@ from __future__ import annotations
 
 from config import logger
 from services.agent.nodes._production_utils import run_production_step
+from services.agent.prompt_builders import (
+    build_director_decision_section,
+    build_feedback_section,
+    build_scene_reasoning_section,
+    to_json,
+)
 from services.agent.state import ScriptState
 
 
@@ -15,14 +21,16 @@ async def explain_node(state: ScriptState) -> dict:
         return {"explanation_result": None}
 
     template_vars = {
-        "final_scenes": state.get("final_scenes") or [],
-        "cinematographer_result": state.get("cinematographer_result") or {},
-        "tts_designer_result": state.get("tts_designer_result") or {},
-        "sound_designer_result": state.get("sound_designer_result") or {},
-        "copyright_reviewer_result": state.get("copyright_reviewer_result") or {},
-        "director_decision": state.get("director_decision"),
-        "director_feedback": state.get("director_feedback"),
-        "scene_reasoning": state.get("scene_reasoning") or [],
+        "final_scenes_json": to_json(state.get("final_scenes") or []),
+        "cinematographer_json": to_json(state.get("cinematographer_result") or {}),
+        "tts_designer_json": to_json(state.get("tts_designer_result") or {}),
+        "sound_designer_json": to_json(state.get("sound_designer_result") or {}),
+        "copyright_reviewer_json": to_json(state.get("copyright_reviewer_result") or {}),
+        "director_decision_section": build_director_decision_section(
+            state.get("director_decision"), state.get("director_feedback"),
+        ),
+        "scene_reasoning_section": build_scene_reasoning_section(state.get("scene_reasoning") or []),
+        "feedback_section": build_feedback_section(state.get("director_feedback")),
     }
     try:
         result = await run_production_step(

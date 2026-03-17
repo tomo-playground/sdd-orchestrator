@@ -36,11 +36,15 @@ async def test_create_plan_success():
         "structure": "Monologue",
     }
 
+    mock_compiled = MagicMock()
+    mock_compiled.system = "system"
+    mock_compiled.user = "prompt"
+    mock_compiled.langfuse_prompt = None
+
     with (
-        patch("services.agent.nodes.writer.template_env") as mock_tenv,
+        patch("services.agent.nodes.writer.compile_prompt", return_value=mock_compiled),
         patch("services.agent.nodes.writer.get_llm_provider", return_value=mock_provider),
     ):
-        mock_tenv.get_template.return_value.render.return_value = "prompt"
         plan = await _create_plan(state)
 
     assert plan is not None
@@ -65,11 +69,15 @@ async def test_create_plan_gemini_error():
         "structure": "Monologue",
     }
 
+    mock_compiled = MagicMock()
+    mock_compiled.system = "system"
+    mock_compiled.user = "prompt"
+    mock_compiled.langfuse_prompt = None
+
     with (
-        patch("services.agent.nodes.writer.template_env") as mock_tenv,
+        patch("services.agent.nodes.writer.compile_prompt", return_value=mock_compiled),
         patch("services.agent.nodes.writer.get_llm_provider", return_value=mock_provider),
     ):
-        mock_tenv.get_template.return_value.render.return_value = "prompt"
         plan = await _create_plan(state)
 
     assert plan is None
@@ -195,11 +203,15 @@ async def test_create_plan_with_locations():
         "structure": "Monologue",
     }
 
+    mock_compiled = MagicMock()
+    mock_compiled.system = "system"
+    mock_compiled.user = "prompt"
+    mock_compiled.langfuse_prompt = None
+
     with (
-        patch("services.agent.nodes.writer.template_env") as mock_tenv,
+        patch("services.agent.nodes.writer.compile_prompt", return_value=mock_compiled),
         patch("services.agent.nodes.writer.get_llm_provider", return_value=mock_provider),
     ):
-        mock_tenv.get_template.return_value.render.return_value = "prompt"
         plan = await _create_plan(state)
 
     assert plan is not None
@@ -234,11 +246,15 @@ async def test_create_plan_without_locations_backward_compat():
         "structure": "Monologue",
     }
 
+    mock_compiled = MagicMock()
+    mock_compiled.system = "system"
+    mock_compiled.user = "prompt"
+    mock_compiled.langfuse_prompt = None
+
     with (
-        patch("services.agent.nodes.writer.template_env") as mock_tenv,
+        patch("services.agent.nodes.writer.compile_prompt", return_value=mock_compiled),
         patch("services.agent.nodes.writer.get_llm_provider", return_value=mock_provider),
     ):
-        mock_tenv.get_template.return_value.render.return_value = "prompt"
         plan = await _create_plan(state)
 
     assert plan is not None

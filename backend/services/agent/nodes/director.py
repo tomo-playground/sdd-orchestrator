@@ -17,6 +17,12 @@ from services.agent.nodes._agent_messaging import (
     run_agent_with_message,
 )
 from services.agent.nodes._production_utils import run_production_step
+from services.agent.prompt_builders import (
+    build_previous_steps_block,
+    build_quality_criteria_block,
+    build_visual_qc_section,
+    to_json,
+)
 from services.agent.state import DirectorReActStep, ScriptState
 
 # Agent 이름 → State 키 매핑 (인라인 수정 결과 반영용)
@@ -71,12 +77,17 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
         logger.info("[LangGraph] Director ReAct Step %d/%d", step_num, LANGGRAPH_MAX_REACT_STEPS)
 
         template_vars = {
-            **production_results,
-            "step_number": step_num,
-            "max_steps": LANGGRAPH_MAX_REACT_STEPS,
-            "previous_steps": reasoning_steps,
-            "quality_criteria": (state.get("director_plan") or {}).get("quality_criteria", []),
-            "visual_qc_result": state.get("visual_qc_result"),
+            "cinematographer_json": to_json(production_results.get("cinematographer", {})),
+            "tts_designer_json": to_json(production_results.get("tts_designer", {})),
+            "sound_designer_json": to_json(production_results.get("sound_designer", {})),
+            "copyright_reviewer_json": to_json(production_results.get("copyright_reviewer", {})),
+            "step_number": str(step_num),
+            "max_steps": str(LANGGRAPH_MAX_REACT_STEPS),
+            "quality_criteria_block": build_quality_criteria_block(
+                (state.get("director_plan") or {}).get("quality_criteria", []),
+            ),
+            "visual_qc_section": build_visual_qc_section(state.get("visual_qc_result")),
+            "previous_steps_block": build_previous_steps_block(reasoning_steps),
         }
 
         try:

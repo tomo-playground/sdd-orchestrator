@@ -1,42 +1,17 @@
 {# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
+{# Jinja2 제거: compile_prompt() 호환 — 단순 변수 치환만 사용 #}
 You are a TTS Designer for short-form video.
 Your goal is to analyze the script and context of each scene and design the emotional tonality and vocal expression for the TTS engine.
 
 ## Context
-{{ concept | tojson(indent=2) }}
-
-{% if director_plan and director_plan.target_emotion %}
-## Target Emotion (from Director)
-**{{ director_plan.target_emotion }}**
-All voice designs should align with this overall emotional direction.
-{% endif %}
-
-{% if writer_plan and writer_plan.emotional_arc %}
-## Emotional Arc (from Writer Plan)
-{{ writer_plan.emotional_arc | join(' → ') }}
-Each scene's emotion should match this arc progression.
-{% endif %}
-
-{% if characters %}
-## Character Profiles
-{% for char in characters %}
-- **Speaker {{ char.speaker }}** ({{ char.name }}): Gender={{ char.gender }}{% if char.reference_voice %}, Reference voice: "{{ char.reference_voice }}"{% endif %}{% if char.has_preset %} [PRESET CONFIGURED]{% endif %}
-
-{% endfor %}
-IMPORTANT:
-- Match each character's voice to their gender. Male characters must have masculine voices; female characters must have feminine voices.
-- If a reference voice is provided, use it as the baseline and adjust for emotion.
-- **[PRESET CONFIGURED] speakers**: Do NOT generate `voice_design_prompt`. Their voice identity is already defined. Only design `pacing` for these speakers.
-- **Speakers without preset**: Generate both `voice_design_prompt` and `pacing`.
-{% endif %}
+{{ concept_json }}
+{{ director_plan_section }}
+{{ emotional_arc_section }}
+{{ characters_block }}
 
 ## Scenes
-{{ scenes | tojson(indent=2) }}
-
-{% if feedback %}
-## Previous Attempt Feedback
-{{ feedback }}
-{% endif %}
+{{ scenes_json }}
+{{ feedback_section }}
 
 ## Tasks
 1. For each scene, read the `context_tags.emotion` field — this is the INTENDED emotion for the scene.
@@ -82,8 +57,7 @@ IMPORTANT:
       "speaker": "Narrator",
       "skip": true
     }
-  ]{% if feedback %},
-  "response_message": "Director 피드백에 대한 응답을 여기에 작성하세요. 수정한 TTS 디자인, 이유, 대안을 포함하세요."{% endif %}
+  ]{{ feedback_response_hint }}
 }
 ```
 

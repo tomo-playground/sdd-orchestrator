@@ -14,25 +14,30 @@ from services.agent.langfuse_prompt import (
 
 
 class TestToLangfuseName:
-    """템플릿 경로 → LangFuse 이름 변환 테스트."""
+    """템플릿 경로 → LangFuse 이름 변환 테스트 (폴더 기반 매핑)."""
 
-    def test_creative_prefix_removed(self):
-        assert _to_langfuse_name("creative/analyze_topic.j2") == "analyze-topic"
+    def test_creative_prefix_mapped(self):
+        assert _to_langfuse_name("creative/analyze_topic.j2") == "tool/analyze-topic"
 
-    def test_root_template(self):
-        assert _to_langfuse_name("review_evaluate.j2") == "review-evaluate"
+    def test_root_template_mapped(self):
+        assert _to_langfuse_name("review_evaluate.j2") == "pipeline/review/evaluate"
 
-    def test_create_storyboard_variant(self):
-        assert _to_langfuse_name("create_storyboard_dialogue.j2") == "create-storyboard-dialogue"
+    def test_create_storyboard_variant_mapped(self):
+        assert _to_langfuse_name("create_storyboard_dialogue.j2") == "storyboard/dialogue"
 
-    def test_underscore_to_hyphen(self):
-        assert _to_langfuse_name("creative/sound_designer.j2") == "sound-designer"
+    def test_underscore_to_hyphen_mapped(self):
+        assert _to_langfuse_name("creative/sound_designer.j2") == "pipeline/sound-designer"
 
-    def test_storyboard_root(self):
-        assert _to_langfuse_name("create_storyboard.j2") == "create-storyboard"
+    def test_storyboard_root_mapped(self):
+        assert _to_langfuse_name("create_storyboard.j2") == "storyboard/default"
 
-    def test_validate_image_tags(self):
-        assert _to_langfuse_name("validate_image_tags.j2") == "validate-image-tags"
+    def test_validate_image_tags_mapped(self):
+        assert _to_langfuse_name("validate_image_tags.j2") == "tool/validate-image-tags"
+
+    def test_unmapped_fallback(self):
+        """매핑되지 않은 템플릿은 기존 로직으로 변환."""
+        assert _to_langfuse_name("creative/new_feature.j2") == "new-feature"
+        assert _to_langfuse_name("some_template.j2") == "some-template"
 
 
 class TestManagedTemplates:

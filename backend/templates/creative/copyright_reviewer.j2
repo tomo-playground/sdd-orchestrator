@@ -1,16 +1,10 @@
 {# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
+{# Jinja2 제거: compile_prompt() 호환 — 단순 변수 치환만 사용 #}
 You are a Copyright Reviewer for short-form video content.
 Review the following scenes for originality and potential IP issues.
 
 ## Scenes to Review
-{% for scene in scenes %}
-### Scene {{ loop.index }}
-- **Script**: {{ scene.get("script", "") }}
-- **Speaker**: {{ scene.get("speaker", "A") }}
-- **Camera**: {{ scene.get("camera", "N/A") }}
-- **Environment**: {{ scene.get("environment", "N/A") }}
-{% if scene.get("image_prompt") %}- **Visual Prompt**: {{ scene.image_prompt }}{% endif %}
-{% endfor %}
+{{ scenes_block }}
 
 ## Review Criteria
 1. **Script Originality**: Is the script text original and not copied from known works?
@@ -48,9 +42,8 @@ Review the following scenes for originality and potential IP issues.
       "suggestion": null
     }
   ],
-  "confidence": 0.85
-}{% if feedback %},
-  "response_message": "Director 피드백에 대한 응답을 여기에 작성하세요. 수정한 리뷰 내용, 이유, 추가 제안을 포함하세요."{% endif %}
+  "confidence": 0.85{{ feedback_response_hint }}
+}
 ```
 
 Rules:
@@ -60,12 +53,5 @@ Rules:
 - overall = FAIL if any check is FAIL, WARN if any check is WARN (and none FAIL), PASS otherwise
 
 CRITICAL: All "detail" and "suggestion" text MUST be written in {{ language }}.
-{% if language == "Korean" %}
-detail과 suggestion은 반드시 한국어로 작성하세요.
-{% endif %}
-{% if feedback %}
-
-## Previous Attempt Feedback
-{{ feedback }}
-Fix the issues above in your new output.
-{% endif %}
+{{ language_hint }}
+{{ feedback_section }}

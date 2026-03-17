@@ -4,6 +4,12 @@ from __future__ import annotations
 
 from config import logger
 from services.agent.nodes._production_utils import run_production_step
+from services.agent.prompt_builders import (
+    build_copyright_scenes_block,
+    build_feedback_response_json_hint,
+    build_feedback_section,
+    build_language_hint,
+)
 from services.agent.state import ScriptState
 from services.creative_qc import validate_copyright
 
@@ -48,13 +54,16 @@ async def copyright_reviewer_node(state: ScriptState) -> dict:
 
     cinema = state.get("cinematographer_result") or {}
     scenes = cinema.get("scenes", [])
+    language = state.get("language", "Korean")
+    feedback = state.get("director_feedback")
 
     template_vars = {
-        "scenes": scenes,
-        "language": state.get("language", "Korean"),
+        "scenes_block": build_copyright_scenes_block(scenes),
+        "language": language,
+        "language_hint": build_language_hint(language),
+        "feedback_section": build_feedback_section(feedback),
+        "feedback_response_hint": build_feedback_response_json_hint(feedback),
     }
-    if director_feedback := state.get("director_feedback"):
-        template_vars["feedback"] = director_feedback
     try:
         result = await run_production_step(
             template_name="creative/copyright_reviewer.j2",

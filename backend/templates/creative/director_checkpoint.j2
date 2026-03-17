@@ -1,4 +1,5 @@
 {# MIGRATED TO LANGFUSE — 이 파일은 fallback용으로 유지. 수정은 LangFuse UI에서. #}
+{# Jinja2 제거: compile_prompt() 호환 — 단순 변수 치환만 사용 #}
 You are the **Creative Director** reviewing the script before production begins.
 Evaluate whether the script meets the creative direction established in the plan.
 
@@ -6,41 +7,20 @@ Evaluate whether the script meets the creative direction established in the plan
 
 ## Creative Direction (Plan)
 
-{% if director_plan %}
-- **Creative Goal**: {{ director_plan.get("creative_goal", "N/A") }}
-- **Target Emotion**: {{ director_plan.get("target_emotion", "N/A") }}
-- **Quality Criteria**:
-{% for c in director_plan.get("quality_criteria", []) %}  {{ loop.index }}. {{ c }}
-{% endfor %}
-{% if director_plan.get("style_direction") %}- **Style Direction**: {{ director_plan.get("style_direction") }}{% endif %}
-{% else %}
-(Director Plan 없음 — 일반 기준으로 평가)
-{% endif %}
+{{ director_plan_section }}
 
 ## Draft Script
 
 - **주제**: {{ topic }}
 - **목표 길이**: {{ duration }}초
-- **씬 수**: {{ draft_scenes | length }}개
+- **씬 수**: {{ scene_count }}개
 
-{% for scene in draft_scenes %}
-### Scene {{ loop.index }}
-- **대사**: {{ scene.get("script", "") }}
-- **화자**: {{ scene.get("speaker", "A") }}
-- **길이**: {{ scene.get("duration", 0) }}초
-{% endfor %}
+{{ draft_scenes_block }}
 
 ## Review Result
 
-{{ review_result | tojson(indent=2) }}
-
-{% if writer_plan and writer_plan.get("locations") %}
-## Writer's Location Map (검증 필수)
-
-{% for loc in writer_plan.get("locations", []) %}
-- **{{ loc.get("name", "?") }}** (씬 인덱스: {{ loc.get("scenes", []) | join(", ") }}): 태그 = {{ loc.get("tags", []) | join(", ") }}
-{% endfor %}
-{% endif %}
+{{ review_result_json }}
+{{ locations_section }}
 
 ## Evaluation Instructions
 
@@ -73,10 +53,6 @@ Evaluate whether the script meets the creative direction established in the plan
 - decision은 반드시 "proceed" 또는 "revise"
 - score는 0.0~1.0 범위
 - feedback는 decision이 "revise"일 때만 필수
-
-{% if feedback %}
-## Retry Feedback
-{{ feedback }}
-{% endif %}
+{{ feedback_section }}
 
 IMPORTANT: Respond ONLY with the JSON object.

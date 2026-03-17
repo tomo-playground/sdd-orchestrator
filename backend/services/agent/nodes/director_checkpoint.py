@@ -15,6 +15,13 @@ from config_pipelines import (
 )
 from services.agent.llm_models import DirectorCheckpointOutput, validate_with_model
 from services.agent.nodes._production_utils import run_production_step
+from services.agent.prompt_builders import (
+    build_checkpoint_director_plan_section,
+    build_checkpoint_draft_scenes_block,
+    build_checkpoint_locations_section,
+    build_feedback_section,
+    to_json,
+)
 from services.agent.state import ScriptState
 
 
@@ -57,15 +64,18 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
         return {"director_checkpoint_decision": "proceed"}
 
     director_plan = state.get("director_plan") or {}
+    draft_scenes = state.get("draft_scenes") or []
+    feedback = state.get("director_checkpoint_feedback")
     template_vars = {
-        "director_plan": director_plan,
-        "writer_plan": state.get("writer_plan") or {},
-        "draft_scenes": state.get("draft_scenes") or [],
-        "review_result": state.get("review_result") or {},
+        "director_plan_section": build_checkpoint_director_plan_section(director_plan or None),
+        "draft_scenes_block": build_checkpoint_draft_scenes_block(draft_scenes),
+        "review_result_json": to_json(state.get("review_result") or {}),
         "topic": state.get("topic", ""),
-        "duration": state.get("duration", 30),
-        "threshold": LANGGRAPH_CHECKPOINT_THRESHOLD,
-        "feedback": state.get("director_checkpoint_feedback"),
+        "duration": str(state.get("duration", 30)),
+        "scene_count": str(len(draft_scenes)),
+        "threshold": str(LANGGRAPH_CHECKPOINT_THRESHOLD),
+        "locations_section": build_checkpoint_locations_section(state.get("writer_plan") or {}),
+        "feedback_section": build_feedback_section(feedback, header="## Retry Feedback"),
     }
 
     try:

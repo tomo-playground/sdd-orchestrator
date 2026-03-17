@@ -4,6 +4,14 @@ from __future__ import annotations
 
 from config import logger
 from services.agent.nodes._production_utils import run_production_step
+from services.agent.prompt_builders import (
+    build_director_plan_section_for_tts,
+    build_emotional_arc_section,
+    build_feedback_response_json_hint,
+    build_feedback_section,
+    build_tts_characters_block,
+    to_json,
+)
 from services.agent.state import ScriptState
 from services.creative_qc import validate_tts_design
 
@@ -119,23 +127,20 @@ async def tts_designer_node(state: ScriptState) -> dict:
     scenes = cinema.get("scenes", [])
     concept = state.get("critic_result") or {}
 
-    template_vars = {
-        "scenes": scenes,
-        "concept": concept,
-        "language": state.get("language", "Korean"),
-        "writer_plan": state.get("writer_plan"),
-        "director_plan": state.get("director_plan"),
-    }
-
     # 캐릭터 프로필 주입 (성별, 이름, 참조 음성)
     characters_voice = _load_character_voice_context(state)
     preset_speakers = {c["speaker"] for c in (characters_voice or []) if c.get("has_preset")}
 
-    if characters_voice:
-        template_vars["characters"] = characters_voice
-
-    if director_feedback := state.get("director_feedback"):
-        template_vars["feedback"] = director_feedback
+    feedback = state.get("director_feedback")
+    template_vars = {
+        "concept_json": to_json(concept),
+        "scenes_json": to_json(scenes),
+        "director_plan_section": build_director_plan_section_for_tts(state.get("director_plan")),
+        "emotional_arc_section": build_emotional_arc_section(state.get("writer_plan")),
+        "characters_block": build_tts_characters_block(characters_voice),
+        "feedback_section": build_feedback_section(feedback),
+        "feedback_response_hint": build_feedback_response_json_hint(feedback),
+    }
     try:
         result = await run_production_step(
             template_name="creative/tts_designer.j2",

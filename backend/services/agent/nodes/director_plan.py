@@ -11,6 +11,17 @@ from config import logger
 from config_pipelines import DIRECTOR_MODEL, INVENTORY_CASTING_ENABLED
 from services.agent.llm_models import CastingRecommendation, DirectorPlanOutput, validate_with_model
 from services.agent.nodes._production_utils import run_production_step
+from services.agent.prompt_builders import (
+    build_casting_guide,
+    build_casting_json_section,
+    build_chat_context_block,
+    build_feedback_section,
+    build_inventory_characters_block,
+    build_inventory_structures_block,
+    build_inventory_styles_block,
+    build_optional_section,
+    build_references_block,
+)
 from services.agent.state import ScriptState
 from services.script.gemini_generator import sanitize_chat_context as _sanitize_chat_context
 
@@ -53,28 +64,51 @@ def _derive_skip_stages(result: dict) -> list[str]:
 
 async def director_plan_node(state: ScriptState, config=None) -> dict:
     """Creative Director의 초기 목표 수립 + 캐스팅 추천 + 실행 계획 노드."""
-    template_vars = {
-        "topic": state.get("topic", ""),
-        "description": state.get("description", ""),
-        "duration": state.get("duration", 30),
-        "style": state.get("style", ""),
-        "language": state.get("language", "Korean"),
-        "structure": state.get("structure", ""),
-        "references": state.get("references") or [],
-        "chat_context": _sanitize_chat_context(state.get("chat_context") or []),
-    }
-
     # Phase 20-A: 인벤토리 로드 (DB 세션은 LLM 호출 전에 닫음)
     inventory: dict = {}
     valid_char_ids: list[int] | None = None
+    has_characters = False
+    characters_block = ""
+    structures_block = ""
+    styles_block = ""
+    casting_guide = ""
 
     if INVENTORY_CASTING_ENABLED:
         inventory = _load_inventory(state.get("group_id"))
         if inventory.get("characters"):
-            template_vars["characters"] = inventory["characters"]
-            template_vars["structures"] = inventory.get("structures", [])
-            template_vars["styles"] = inventory.get("styles", [])
+            has_characters = True
+            characters_block = build_inventory_characters_block(inventory["characters"])
+            structures_block = build_inventory_structures_block(inventory.get("structures", []))
+            styles_block = build_inventory_styles_block(inventory.get("styles", []))
+            casting_guide = build_casting_guide()
             valid_char_ids = [c.id for c in inventory["characters"]]
+
+    description = state.get("description", "")
+    style = state.get("style", "")
+    structure = state.get("structure", "")
+    references = state.get("references") or []
+    chat_ctx = _sanitize_chat_context(state.get("chat_context") or [])
+
+    template_vars = {
+        "topic": state.get("topic", ""),
+        "description_section": build_optional_section("- **상세 설명**:", description) if description else "",
+        "duration": str(state.get("duration", 30)),
+        "style_section": f"- **스타일**: {style}" if style else "",
+        "language": state.get("language", "Korean"),
+        "structure_section": f"- **구조**: {structure}" if structure else "",
+        "chat_context_block": build_chat_context_block(chat_ctx) if chat_ctx else "",
+        "references_block": (
+            "\n## Reference Materials\n" + build_references_block(references) if references else ""
+        ),
+        "characters_block": characters_block,
+        "structures_block": structures_block,
+        "styles_block": styles_block,
+        "casting_guide": casting_guide,
+        "casting_json_section": build_casting_json_section(has_characters),
+        "feedback_section": build_feedback_section(
+            state.get("director_plan_feedback"), header="## Retry Feedback"
+        ),
+    }
 
     try:
         result = await run_production_step(

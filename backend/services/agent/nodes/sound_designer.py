@@ -4,6 +4,13 @@ from __future__ import annotations
 
 from config import logger
 from services.agent.nodes._production_utils import run_production_step
+from services.agent.prompt_builders import (
+    build_feedback_response_json_hint,
+    build_feedback_section,
+    build_language_hint,
+    build_sound_emotional_arc_section,
+    to_json,
+)
 from services.agent.state import ScriptState
 from services.creative_qc import validate_music
 
@@ -24,16 +31,20 @@ async def sound_designer_node(state: ScriptState) -> dict:
     scenes = cinema.get("scenes", [])
     concept = state.get("critic_result") or {}
     duration = state.get("duration", 30)
+    language = state.get("language", "Korean")
 
+    feedback = state.get("director_feedback")
     template_vars = {
-        "scenes": scenes,
-        "concept": concept,
-        "duration": duration,
-        "language": state.get("language", "Korean"),
-        "writer_plan": state.get("writer_plan"),
+        "concept_json": to_json(concept),
+        "scenes_json": to_json(scenes),
+        "duration": str(duration),
+        "language": language,
+        "emotional_arc_section": build_sound_emotional_arc_section(state.get("writer_plan")),
+        "feedback_section": build_feedback_section(feedback),
+        "feedback_response_hint": build_feedback_response_json_hint(feedback),
+        "language_hint": build_language_hint(language),
+        "mood_progression": concept.get("mood_progression", ""),
     }
-    if director_feedback := state.get("director_feedback"):
-        template_vars["feedback"] = director_feedback
     try:
         result = await run_production_step(
             template_name="creative/sound_designer.j2",
