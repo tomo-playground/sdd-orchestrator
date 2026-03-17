@@ -123,7 +123,7 @@ SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
 if SD_BASE_URL == "http://127.0.0.1:7860":
     logger.info("Using default SD_BASE_URL: %s", SD_BASE_URL)
 
-# --- Audio Server (SoVITS + Qwen3-TTS + MusicGen 통합 사이드카) ---
+# --- Audio Server (Qwen3-TTS + MusicGen 통합 사이드카) ---
 AUDIO_SERVER_URL = os.getenv("AUDIO_SERVER_URL", "http://127.0.0.1:8001")
 AUDIO_TIMEOUT_SECONDS = float(os.getenv("AUDIO_TIMEOUT_SECONDS", "180"))
 MUSIC_TIMEOUT_SECONDS = float(os.getenv("MUSIC_TIMEOUT_SECONDS", "600"))  # 10min for MusicGen
@@ -167,8 +167,8 @@ SD_SAMPLERS: list[str] = [
 ]
 
 # --- TTS Engine ---
-SUPPORTED_TTS_ENGINES: list[str] = ["qwen", "sovits"]
-DEFAULT_TTS_ENGINE = os.getenv("DEFAULT_TTS_ENGINE", "sovits")
+SUPPORTED_TTS_ENGINES: list[str] = ["qwen"]
+DEFAULT_TTS_ENGINE = os.getenv("DEFAULT_TTS_ENGINE", "qwen")
 
 # --- LoRA Weight Cap ---
 # Maximum weight for style LoRAs (applied to both character and narrator scenes)
@@ -725,7 +725,7 @@ REFERENCE_MIN_FACE_RATIO = 0.10  # Face must be at least 10% of image area
 
 # --- TTS Configuration ---
 TTS_DEFAULT_LANGUAGE = os.getenv("TTS_DEFAULT_LANGUAGE", "korean")
-TTS_VOICE_CONSISTENCY_MODE = os.getenv("TTS_VOICE_CONSISTENCY_MODE", "false").lower() == "true"
+TTS_VOICE_CONSISTENCY_MODE = os.getenv("TTS_VOICE_CONSISTENCY_MODE", "true").lower() == "true"
 
 # --- Voice Preset Configuration ---
 VOICE_PRESET_MAX_FILE_SIZE = int(os.getenv("VOICE_PRESET_MAX_FILE_SIZE", str(10 * 1024 * 1024)))  # 10MB

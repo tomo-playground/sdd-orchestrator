@@ -94,7 +94,7 @@ describe("useRenderStore", () => {
       expect(state.audioDucking).toBe(true);
       expect(state.bgmVolume).toBe(0.25);
       expect(state.speedMultiplier).toBe(1.0);
-      expect(state.ttsEngine).toBe("sovits");
+      expect(state.ttsEngine).toBe("qwen");
       expect(state.isRendering).toBe(false);
       expect(state.bgmMode).toBe("manual");
     });

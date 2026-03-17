@@ -83,80 +83,6 @@ def _extract_server_error(resp: httpx.Response) -> str:
     return f"HTTP {resp.status_code}"
 
 
-def _normalize_korean_text(text: str) -> str:
-    """한국어 텍스트 정규화 — 숫자/영어/특수문자를 SoVITS G2P가 처리 가능한 형태로 변환."""
-    import re  # noqa: PLC0415
-
-    # 숫자+단위 변환 (기본적인 케이스만)
-    text = re.sub(r"(\d+)%", r"\1퍼센트", text)
-    text = re.sub(r"(\d+)원", lambda m: _num_to_korean(int(m.group(1))) + "원", text)
-    text = re.sub(r"(\d+)개", lambda m: _num_to_korean(int(m.group(1))) + "개", text)
-    text = re.sub(r"(\d+)명", lambda m: _num_to_korean(int(m.group(1))) + "명", text)
-    # 남은 순수 숫자
-    text = re.sub(r"\b(\d+)\b", lambda m: _num_to_korean(int(m.group(1))), text)
-    # 특수문자 정리
-    text = text.replace("...", "…").replace("~", "")
-    return text
-
-
-def _num_to_korean(n: int) -> str:
-    """정수를 한국어 읽기로 변환 (간단 버전)."""
-    if n == 0:
-        return "영"
-    units = ["", "만", "억"]
-    parts = []
-    for u in units:
-        if n == 0:
-            break
-        chunk = n % 10000
-        if chunk > 0:
-            parts.append(f"{chunk}{u}")
-        n //= 10000
-    return "".join(reversed(parts))
-
-
-async def _synthesize_sovits(
-    text: str,
-    ref_audio_path: str,
-    ref_text: str = "",
-    task_id: str = "default",
-) -> tuple[bytes, int, float, bool]:
-    """Call Audio Server /tts/sovits (proxied to GPT-SoVITS subprocess)."""
-    url, _ = _get_audio_server_config()
-
-    text = _normalize_korean_text(text)
-
-    payload = {
-        "text": text,
-        "text_lang": "ko",
-        "ref_audio_path": ref_audio_path,
-        "prompt_text": ref_text,
-        "prompt_lang": "ko",
-        "speed_factor": 1.0,
-        "top_k": 15,
-        "top_p": 1.0,
-        "temperature": 1.0,
-        "repetition_penalty": 1.35,
-        "text_split_method": "cut5",
-        "seed": -1,
-        "parallel_infer": True,
-        "split_bucket": True,
-    }
-
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(f"{url}/tts/sovits", json=payload, timeout=180)
-        if not resp.is_success:
-            detail = _extract_server_error(resp)
-            raise RuntimeError(f"SoVITS 합성 실패: {detail}")
-
-    data = resp.json()
-    audio_bytes = base64.b64decode(data["audio_base64"])
-    logger.info(
-        "[SoVITS] Generated: %.1fs, sr=%d, quality=%s", data["duration"], data["sample_rate"], data["quality_passed"]
-    )
-    return audio_bytes, data["sample_rate"], data["duration"], data["quality_passed"]
-
-
 async def synthesize_voice_design(
     text: str,
     instruct: str = "",
@@ -214,23 +140,27 @@ async def synthesize_tts(
     max_new_tokens: int = 1024,
     task_id: str = "default",
     force: bool = False,
-    ref_audio_path: str | None = None,
-    ref_text: str = "",
 ) -> tuple[bytes, int, float, bool]:
-    """TTS synthesis via GPT-SoVITS.
+    """TTS synthesis via Qwen3-TTS (voice design prompt).
 
-    ref_audio_path is required — character's voice preset preview WAV.
-    Qwen3 is NOT used for scene TTS (voice design only).
+    Qwen3 is the sole TTS engine for all scene/preview audio.
     Returns (audio_bytes, sample_rate, duration, quality_passed).
     """
     if not _check_circuit(task_id):
         raise RuntimeError("Audio Server circuit breaker is open")
 
-    if not ref_audio_path:
-        raise RuntimeError("ref_audio_path 필수: 캐릭터에 voice preset이 매핑되어 있는지 확인하세요")
-
-    result = await _synthesize_sovits(text, ref_audio_path, ref_text, task_id)
-    logger.info("[TTS] SoVITS success: '%s...'", text[:30])
+    result = await synthesize_voice_design(
+        text=text,
+        instruct=instruct,
+        language=language,
+        seed=seed,
+        temperature=temperature,
+        top_p=top_p,
+        repetition_penalty=repetition_penalty,
+        max_new_tokens=max_new_tokens,
+        force=force,
+    )
+    logger.info("[TTS] Qwen3 success: '%s...'", text[:30])
     return result
 
 

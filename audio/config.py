@@ -33,15 +33,6 @@ MUSICGEN_MAX_DURATION = float(os.getenv("MUSICGEN_MAX_DURATION", "60.0"))
 MUSICGEN_SAMPLE_RATE = int(os.getenv("MUSICGEN_SAMPLE_RATE", "32000"))
 MUSICGEN_TOKENS_PER_SECOND = 50  # EnCodec: 50 auto-regressive steps per second
 
-# --- GPT-SoVITS Subprocess ---
-SOVITS_ENABLED = os.getenv("SOVITS_ENABLED", "true").lower() == "true"
-SOVITS_DIR = os.getenv("SOVITS_DIR", str(pathlib.Path.home() / "Workspace" / "GPT-SoVITS"))
-SOVITS_VENV = os.getenv("SOVITS_VENV", "")  # 비어있으면 SOVITS_DIR/.venv
-SOVITS_PORT = int(os.getenv("SOVITS_PORT", "9880"))
-SOVITS_CONFIG = os.getenv("SOVITS_CONFIG", "GPT_SoVITS/configs/tts_infer.yaml")
-SOVITS_STARTUP_TIMEOUT = int(os.getenv("SOVITS_STARTUP_TIMEOUT", "120"))
-CUDA_HOME = os.getenv("CUDA_HOME", "/usr/local/cuda-12.8")
-
 # --- Idle Auto-Unload ---
 # 0 = persistent mode (시작 시 로드, 언로드 안 함)
 # >0 = on-demand mode (N초간 요청 없으면 자동 언로드)

@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # Shorts Producer - Audio Server (CUDA GPU)
-# 3엔진 통합: GPT-SoVITS(씬TTS) + Qwen3-TTS(보이스디자인) + MusicGen(BGM)
-# SoVITS는 Audio Server가 subprocess로 관리
+# 2엔진 통합: Qwen3-TTS(씬TTS+보이스디자인) + MusicGen(BGM)
 
 set -e
 
@@ -24,8 +23,8 @@ NC='\033[0m'
 usage() {
   echo "Usage: $0 {start|stop|status|logs}"
   echo ""
-  echo "  start   - Start audio server (SoVITS + Qwen3 + MusicGen)"
-  echo "  stop    - Stop audio server (SoVITS subprocess auto-cleanup)"
+  echo "  start   - Start audio server (Qwen3 + MusicGen)"
+  echo "  stop    - Stop audio server"
   echo "  status  - Check server health"
   echo "  logs    - Tail server logs"
   exit 1
@@ -60,9 +59,8 @@ do_start() {
 
   check_venv
 
-  echo -e "${GREEN}Starting audio server on port $PORT (SoVITS + Qwen3 + MusicGen)...${NC}"
+  echo -e "${GREEN}Starting audio server on port $PORT (Qwen3 + MusicGen)...${NC}"
   cd "$AUDIO_DIR"
-  export CUDA_HOME=/usr/local/cuda-12.8
   export TTS_DEVICE=cuda
   export MUSICGEN_DEVICE=cpu
   "$VENV_DIR/bin/uvicorn" main:app \
@@ -73,7 +71,7 @@ do_start() {
   echo -e "Logs: ${YELLOW}$LOG_FILE${NC}"
   echo ""
 
-  # Wait for health (SoVITS subprocess 포함)
+  # Wait for health
   echo -n "Loading models"
   for i in $(seq 1 90); do
     if curl -sf "http://localhost:$PORT/health" > /dev/null 2>&1; then
@@ -92,7 +90,7 @@ do_stop() {
   PID=$(get_pid)
   if [ -n "$PID" ]; then
     kill "$PID"
-    echo -e "${GREEN}Audio server stopped (PID $PID) — SoVITS subprocess auto-cleanup${NC}"
+    echo -e "${GREEN}Audio server stopped (PID $PID)${NC}"
   else
     echo "Audio server not running."
   fi

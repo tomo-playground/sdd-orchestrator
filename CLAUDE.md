@@ -1,6 +1,6 @@
 # 프로젝트: Shorts Producer
 
-AI 기반 쇼츠 영상 자동화 워크스페이스. LangGraph Agentic Pipeline (Gemini) + Stable Diffusion (이미지) + GPT-SoVITS/Qwen3-TTS (음성) + MusicGen (BGM) + FFmpeg (렌더링).
+AI 기반 쇼츠 영상 자동화 워크스페이스. LangGraph Agentic Pipeline (Gemini) + Stable Diffusion (이미지) + Qwen3-TTS (12Hz) + MusicGen (BGM) + FFmpeg (렌더링).
 
 ## Agent 공통 규칙
 

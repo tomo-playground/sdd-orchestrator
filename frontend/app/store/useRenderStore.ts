@@ -49,7 +49,7 @@ export interface RenderStore {
   fontList: FontItem[];
   sceneTextFont: string;
   loadedFonts: Set<string>;
-  /** Backend SSOT: loaded from /presets API. Fallback: "sovits" */
+  /** Backend SSOT: loaded from /presets API. Fallback: "qwen" */
   ttsEngine: string;
   voiceDesignPrompt: string;
   voicePresetId: number | null;
@@ -96,7 +96,7 @@ const initialState: Omit<RenderStore, "set" | "reset" | "fetchVoicePresets"> = {
   fontList: [] as FontItem[],
   sceneTextFont: DEFAULT_SCENE_TEXT_FONT,
   loadedFonts: new Set<string>(),
-  ttsEngine: "sovits",
+  ttsEngine: "qwen",
   voiceDesignPrompt: "",
   voicePresetId: null,
   voicePresets: [] as VoicePreset[],

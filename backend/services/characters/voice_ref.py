@@ -1,6 +1,6 @@
 """Voice Reference Generator — Qwen3-TTS로 캐릭터 보이스 레퍼런스를 생성한다.
 
-GPT-SoVITS가 음색 복제에 사용할 레퍼런스 오디오를 생성하고 MinIO에 저장한다.
+캐릭터의 voice preset을 기반으로 레퍼런스 오디오를 생성하고 MinIO에 저장한다.
 """
 
 from __future__ import annotations

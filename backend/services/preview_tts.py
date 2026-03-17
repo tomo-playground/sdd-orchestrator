@@ -56,15 +56,6 @@ async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
     if not voice_preset_id and req.storyboard_id:
         voice_preset_id = get_speaker_voice_preset(req.storyboard_id, req.speaker)
 
-    # Resolve character_id for SoVITS voice reference
-    character_id = None
-    if req.storyboard_id:
-        from database import get_db_session  # noqa: PLC0415
-        from services.characters.speaker_resolver import resolve_speaker_to_character  # noqa: PLC0415
-
-        with get_db_session() as _db:
-            character_id = resolve_speaker_to_character(req.storyboard_id, req.speaker, _db)
-
     result: TtsAudioResult = await generate_tts_audio(
         script=script,
         speaker=req.speaker,
@@ -75,7 +66,6 @@ async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
         language=req.language,
         force_regenerate=req.force_regenerate,
         max_retries=0,
-        character_id=character_id,
     )
 
     return _TtsGenResult(

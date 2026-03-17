@@ -26,7 +26,6 @@ async def _generate_audio(
     scene_emotion: str | None = None,
     image_prompt_ko: str | None = None,
     scene_db_id: int | None = None,
-    character_id: int | None = None,
 ) -> tuple[bytes, float]:
     """TTS 오디오 바이트와 재생 시간을 반환한다. (generate_tts_audio 위임)"""
     from services.video.tts_helpers import (
@@ -50,7 +49,6 @@ async def _generate_audio(
         max_retries=2,
         image_prompt_ko=image_prompt_ko,
         scene_db_id=scene_db_id,
-        character_id=character_id,
     )
 
     # Gemini가 새로 생성한 voice design → DB write-back
@@ -112,7 +110,6 @@ async def _prebuild_one(
     voice_design_prompt: str | None,
     scene_emotion: str | None = None,
     image_prompt_ko: str | None = None,
-    character_id: int | None = None,
 ) -> tuple[bytes, float]:
     """세마포어로 동시성을 제한하며 단일 씬 TTS를 생성한다."""
     async with _PREBUILD_SEMAPHORE:
@@ -124,7 +121,6 @@ async def _prebuild_one(
             scene_emotion=scene_emotion,
             image_prompt_ko=image_prompt_ko,
             scene_db_id=scene_db_id,
-            character_id=character_id,
         )
 
 
@@ -154,11 +150,6 @@ async def prebuild_tts_for_scenes(
                 continue
         gen_items.append(item)
 
-    # Speaker → character_id 매핑 (SoVITS 레퍼런스 해석용)
-    from services.characters.speaker_resolver import resolve_all_speakers  # noqa: PLC0415
-
-    speaker_char_map = resolve_all_speakers(request.storyboard_id, db)
-
     # Phase 2: 동시 TTS 생성 (DB 없이)
     gen_tasks = [
         _prebuild_one(
@@ -169,7 +160,6 @@ async def prebuild_tts_for_scenes(
             item.voice_design_prompt,
             scene_emotion=item.scene_emotion,
             image_prompt_ko=item.image_prompt_ko,
-            character_id=speaker_char_map.get(item.speaker),
         )
         for item in gen_items
     ]

@@ -307,8 +307,6 @@ class _ResolvedTtsParams:
     was_gemini: bool
     min_duration: float
     retries: int
-    ref_audio_path: str | None = None
-    ref_text: str = ""
 
 
 def _resolve_voice_seed(
@@ -334,79 +332,6 @@ def _calculate_min_duration(cleaned: str, default_min: float) -> float:
     return default_min
 
 
-def _resolve_voice_ref_audio(character_id: int | None, scene_emotion: str = "") -> tuple[str | None, str]:
-    """캐릭터의 TTS 레퍼런스 오디오 로컬 경로를 해석한다. (SoVITS용)
-
-    감정별 레퍼런스 우선 탐색 → 없으면 default fallback.
-    MinIO에서 다운로드 후 로컬 캐시 경로를 반환.
-    Returns: (local_file_path, ref_text) or (None, "")
-    """
-    if not character_id:
-        return None, ""
-    try:
-        from database import get_db_session  # noqa: PLC0415
-        from models.media_asset import MediaAsset  # noqa: PLC0415
-
-        with get_db_session() as db:
-            # 감정별 레퍼런스 우선 탐색
-            asset = None
-            if scene_emotion:
-                emotion_key = f"characters/{character_id}/voice_refs/{scene_emotion}.wav"
-                asset = (
-                    db.query(MediaAsset)
-                    .filter(
-                        MediaAsset.owner_type == "character_voice_ref",
-                        MediaAsset.owner_id == character_id,
-                        MediaAsset.storage_key == emotion_key,
-                    )
-                    .first()
-                )
-            # Fallback 1: default 레퍼런스
-            if not asset:
-                asset = (
-                    db.query(MediaAsset)
-                    .filter(
-                        MediaAsset.owner_type == "character_voice_ref",
-                        MediaAsset.owner_id == character_id,
-                    )
-                    .order_by(MediaAsset.created_at.desc())
-                    .first()
-                )
-            # Fallback 2: voice preset 프리뷰 WAV
-            if not asset:
-                from models.character import Character  # noqa: PLC0415
-                from models.voice_preset import VoicePreset  # noqa: PLC0415
-
-                char = db.query(Character).filter(Character.id == character_id).first()
-                if char and char.voice_preset_id:
-                    preset = db.query(VoicePreset).filter(VoicePreset.id == char.voice_preset_id).first()
-                    if preset and preset.audio_asset_id:
-                        asset = db.query(MediaAsset).filter(MediaAsset.id == preset.audio_asset_id).first()
-            if not asset:
-                return None, ""
-
-        # 로컬 캐시 경로 (TTS_CACHE_DIR 하위)
-        cache_dir = TTS_CACHE_DIR / "sovits_refs"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        local_path = cache_dir / f"char_{character_id}_{asset.id}.wav"
-
-        if not local_path.exists():
-            import httpx  # noqa: PLC0415
-
-            from config import MINIO_BUCKET, MINIO_ENDPOINT  # noqa: PLC0415
-
-            url = f"{MINIO_ENDPOINT}/{MINIO_BUCKET}/{asset.storage_key}"
-            resp = httpx.get(url, timeout=30)
-            resp.raise_for_status()
-            local_path.write_bytes(resp.content)
-            logger.info("[TTS] Downloaded voice ref: char %d → %s", character_id, local_path)
-
-        return str(local_path), ""
-    except Exception as e:
-        logger.warning("[TTS] Failed to resolve voice ref for char %d: %s", character_id, e)
-        return None, ""
-
-
 def _resolve_tts_params(
     *,
     script: str,
@@ -419,7 +344,6 @@ def _resolve_tts_params(
     force_regenerate: bool,
     max_retries: int,
     image_prompt_ko: str | None,
-    character_id: int | None = None,
 ) -> tuple[_ResolvedTtsParams | None, TtsAudioResult | None]:
     """스크립트 전처리, 프리셋/시드/캐시/보이스 디자인 해석.
 
@@ -473,7 +397,6 @@ def _resolve_tts_params(
         image_prompt_ko=image_prompt_ko,
         speaker=speaker,
     )
-    ref_audio_path, ref_text = _resolve_voice_ref_audio(character_id, scene_emotion)
     return _ResolvedTtsParams(
         tts_text=tts_text,
         cleaned=cleaned,
@@ -486,8 +409,6 @@ def _resolve_tts_params(
         was_gemini=was_gemini,
         min_duration=_calculate_min_duration(cleaned, TTS_MIN_DURATION_SEC),
         retries=max_retries if max_retries >= 0 else TTS_MAX_RETRIES,
-        ref_audio_path=ref_audio_path,
-        ref_text=ref_text,
     ), None
 
 
@@ -546,8 +467,6 @@ async def _try_synthesize_with_retries(
                 max_new_tokens=_calculate_max_new_tokens(p.tts_text),
                 task_id=task_id,
                 force=force and attempt == 0,
-                ref_audio_path=p.ref_audio_path,
-                ref_text=p.ref_text,
             )
         except Exception as gen_err:
             logger.warning("[TTS] attempt %d/%d audio server error: %s", attempt + 1, 1 + p.retries, gen_err)
@@ -637,10 +556,10 @@ async def generate_tts_audio(
     image_prompt_ko: str | None = None,
     scene_db_id: int | None = None,
     task_id: str = "default",
-    character_id: int | None = None,
 ) -> TtsAudioResult:
     """TTS 오디오 생성 코어 함수 (SSOT).
 
+    Qwen3-TTS를 유일 엔진으로 사용한다.
     모든 TTS 생성은 이 함수를 통한다.
     DB 저장/MinIO 업로드는 호출측(preview_tts, tts_prebuild) 책임.
     """
@@ -655,7 +574,6 @@ async def generate_tts_audio(
         force_regenerate=force_regenerate,
         max_retries=max_retries,
         image_prompt_ko=image_prompt_ko,
-        character_id=character_id,
     )
     if cache_hit:
         return cache_hit

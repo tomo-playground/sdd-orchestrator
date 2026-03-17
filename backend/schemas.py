@@ -18,7 +18,6 @@ from config import (
     DEFAULT_SPEAKER,
     DEFAULT_STRUCTURE,
     DEFAULT_TTS_ENGINE,
-    SUPPORTED_TTS_ENGINES,
     DEFAULT_USE_CONTROLNET,
     DEFAULT_USE_IP_ADAPTER,
     SD_DEFAULT_CFG_SCALE,
@@ -31,6 +30,7 @@ from config import (
     SD_HI_RES_SCALE,
     SD_HI_RES_SECOND_PASS_STEPS,
     SD_HI_RES_UPSCALER,
+    SUPPORTED_TTS_ENGINES,
     normalize_base_model,
 )
 
@@ -561,10 +561,12 @@ class PostCardSettings(BaseModel):
 class VideoRequest(BaseModel):
     @model_validator(mode="before")
     @classmethod
-    def _migrate_edge_to_qwen(cls, values):
-        if isinstance(values, dict) and values.get("tts_engine") == "edge":
-            logger.warning("[TTS] tts_engine='edge' deprecated, auto-converting to 'qwen'")
-            values["tts_engine"] = "qwen"
+    def _migrate_legacy_tts_engine(cls, values):
+        if isinstance(values, dict):
+            engine = values.get("tts_engine")
+            if engine in ("edge", "sovits"):
+                logger.warning("[TTS] tts_engine='%s' deprecated, auto-converting to 'qwen'", engine)
+                values["tts_engine"] = "qwen"
         return values
 
     scenes: list[VideoScene]

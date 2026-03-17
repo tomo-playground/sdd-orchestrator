@@ -194,7 +194,7 @@ async def regenerate_reference_endpoint(
 
 @service_router.post("/{character_id}/generate-voice-ref")
 async def generate_voice_ref_endpoint(character_id: int, db: Session = Depends(get_db)):
-    """Generate a voice reference sample for GPT-SoVITS using Qwen3-TTS."""
+    """Generate a voice reference sample using Qwen3-TTS."""
     from services.characters.voice_ref import generate_voice_reference  # noqa: PLC0415
 
     try:

@@ -26,31 +26,6 @@ class TTSSynthesizeResponse(BaseModel):
     cache_hit: bool = False
 
 
-# --- SoVITS ---
-class SoVITSSynthesizeRequest(BaseModel):
-    text: str = Field(..., min_length=1, description="Text to synthesize")
-    text_lang: str = Field("ko", description="Text language")
-    ref_audio_path: str = Field(..., description="Reference audio file path")
-    prompt_text: str = Field("", description="Reference audio transcript")
-    prompt_lang: str = Field("ko", description="Reference text language")
-    speed_factor: float = Field(1.0, ge=0.5, le=2.0)
-    top_k: int = Field(15, ge=1, le=50, description="Top-K sampling")
-    top_p: float = Field(1.0, ge=0.0, le=1.0, description="Nucleus sampling")
-    temperature: float = Field(1.0, ge=0.01, le=2.0, description="Sampling temperature")
-    repetition_penalty: float = Field(1.35, ge=1.0, le=3.0, description="Repetition penalty")
-    text_split_method: str = Field("cut5", description="Text segmentation: cut5=punctuation")
-    seed: int = Field(-1, description="Random seed (-1 = random)")
-    parallel_infer: bool = Field(True, description="Parallel inference")
-    split_bucket: bool = Field(True, description="Bucket splitting")
-
-
-class SoVITSSynthesizeResponse(BaseModel):
-    audio_base64: str = Field(..., description="WAV audio encoded as base64")
-    sample_rate: int
-    duration: float
-    quality_passed: bool
-
-
 # --- MusicGen ---
 class MusicGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, description="Music description prompt")
