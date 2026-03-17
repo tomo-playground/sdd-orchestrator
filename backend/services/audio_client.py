@@ -133,6 +133,14 @@ async def _synthesize_sovits(
         "prompt_text": ref_text,
         "prompt_lang": "ko",
         "speed_factor": 1.0,
+        "top_k": 15,
+        "top_p": 1.0,
+        "temperature": 1.0,
+        "repetition_penalty": 1.35,
+        "text_split_method": "cut5",
+        "seed": -1,
+        "parallel_infer": True,
+        "split_bucket": True,
     }
 
     async with httpx.AsyncClient() as client:

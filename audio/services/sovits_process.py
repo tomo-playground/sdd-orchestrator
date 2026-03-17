@@ -148,6 +148,14 @@ class SoVITSProcessManager:
         prompt_lang: str = "ko",
         text_lang: str = "ko",
         speed_factor: float = 1.0,
+        top_k: int = 15,
+        top_p: float = 1.0,
+        temperature: float = 1.0,
+        repetition_penalty: float = 1.35,
+        text_split_method: str = "cut5",
+        seed: int = -1,
+        parallel_infer: bool = True,
+        split_bucket: bool = True,
     ) -> bytes:
         """SoVITS /tts 호출. raw WAV bytes 반환."""
         if not self.is_running:
@@ -160,6 +168,14 @@ class SoVITSProcessManager:
             "prompt_text": prompt_text,
             "prompt_lang": prompt_lang,
             "speed_factor": speed_factor,
+            "top_k": top_k,
+            "top_p": top_p,
+            "temperature": temperature,
+            "repetition_penalty": repetition_penalty,
+            "text_split_method": text_split_method,
+            "seed": seed,
+            "parallel_infer": parallel_infer,
+            "split_bucket": split_bucket,
             "media_type": "wav",
             "streaming_mode": False,
         }

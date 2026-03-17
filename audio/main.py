@@ -174,10 +174,9 @@ async def synthesize_tts(req: TTSSynthesizeRequest):
 
 @app.post("/tts/sovits", response_model=SoVITSSynthesizeResponse)
 async def synthesize_sovits(req: SoVITSSynthesizeRequest):
-    """Proxy to GPT-SoVITS subprocess."""
-    import numpy as np  # noqa: PLC0415
-
+    """Proxy to GPT-SoVITS subprocess + post-processing."""
     from services.sovits_process import sovits_manager
+    from services.tts_postprocess import trim_tts_audio, validate_tts_quality
 
     if not sovits_manager.is_running:
         raise HTTPException(status_code=503, detail="GPT-SoVITS is not running")
@@ -190,18 +189,29 @@ async def synthesize_sovits(req: SoVITSSynthesizeRequest):
             prompt_lang=req.prompt_lang,
             text_lang=req.text_lang,
             speed_factor=req.speed_factor,
+            top_k=req.top_k,
+            top_p=req.top_p,
+            temperature=req.temperature,
+            repetition_penalty=req.repetition_penalty,
+            text_split_method=req.text_split_method,
+            seed=req.seed,
+            parallel_infer=req.parallel_infer,
+            split_bucket=req.split_bucket,
         )
     except RuntimeError as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
 
-    # Parse WAV, quality check, encode
+    # Parse WAV → post-process (trim/decrackle/normalize) → quality check
     buf = io.BytesIO(raw_wav)
     audio_data, sr = sf.read(buf, dtype="float32")
+    audio_data = trim_tts_audio(audio_data, sr, normalize=True)
     duration = len(audio_data) / sr
-    rms = float(np.sqrt(np.mean(audio_data**2)))
-    quality_passed = rms > 0.001
+    quality_passed = validate_tts_quality(audio_data, sr)
 
-    audio_b64 = base64.b64encode(raw_wav).decode()
+    # Re-encode processed audio as WAV
+    out_buf = io.BytesIO()
+    sf.write(out_buf, audio_data, sr, format="WAV")
+    audio_b64 = base64.b64encode(out_buf.getvalue()).decode()
 
     return SoVITSSynthesizeResponse(
         audio_base64=audio_b64,
