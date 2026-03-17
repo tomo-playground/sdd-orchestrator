@@ -72,7 +72,7 @@ export default function GroupConfigEditor({ groupId, onClose }: Props) {
           }))
         );
       })
-      .catch(() => showToast("Failed to load config", "error"))
+      .catch(() => showToast("설정 로드에 실패했습니다", "error"))
       .finally(() => setLoading(false));
   }, [groupId, showToast]);
 

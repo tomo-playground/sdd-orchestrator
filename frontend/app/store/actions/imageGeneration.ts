@@ -119,12 +119,12 @@ export async function generateSceneImageFor(
 
   // Narrator scenes don't require character selection (no_humans, scenery only)
   if (!selectedCharacterId && scene.speaker !== "Narrator") {
-    if (!silent) showToast("Character selection is required", "error");
+    if (!silent) showToast("캐릭터를 선택해야 합니다", "error");
     return null;
   }
 
   if (!scene.image_prompt?.trim()) {
-    if (!silent) showToast("Prompt is required", "error");
+    if (!silent) showToast("프롬프트를 입력해야 합니다", "error");
     return null;
   }
 
@@ -331,7 +331,7 @@ export async function generateSceneCandidates(
 ): Promise<Partial<Scene> | null> {
   const prompt = buildScenePrompt(scene);
   if (!prompt) {
-    if (!silent) useUIStore.getState().showToast("Prompt is required", "error");
+    if (!silent) useUIStore.getState().showToast("프롬프트를 입력해야 합니다", "error");
     return null;
   }
 

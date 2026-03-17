@@ -240,9 +240,9 @@ export function usePublishRender() {
             ],
           });
         }
-        showToast("Video rendered", "success");
+        showToast("영상 렌더링 완료", "success");
       } catch (err) {
-        showToast(`Render failed: ${getErrorMsg(err, "Unknown error")}`, "error");
+        showToast(`렌더링 실패: ${getErrorMsg(err, "알 수 없는 오류")}`, "error");
       } finally {
         setOutput({ isRendering: false, renderProgress: null });
       }

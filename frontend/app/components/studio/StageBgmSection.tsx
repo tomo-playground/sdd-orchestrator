@@ -57,7 +57,7 @@ export default function StageBgmSection({ audioPlayer }: Props) {
       );
       useRenderStore.getState().set({ bgmPreviewUrl: res.data.audio_url });
     } catch (error) {
-      showToast(getErrorMsg(error, "BGM preview generation failed"), "error");
+      showToast(getErrorMsg(error, "BGM 프리뷰 생성에 실패했습니다"), "error");
     } finally {
       setIsGenerating(false);
     }

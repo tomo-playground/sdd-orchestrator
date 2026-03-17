@@ -1,3 +1,5 @@
+> **ARCHIVED (2026-03-17)**: 현재 코드와 불일치하여 아카이브됨. 현행 설계는 코드 및 CLAUDE.md를 참조.
+
 # Shorts Producer -- Design Philosophy
 
 > 이 문서는 Frontend/Backend 코드베이스 전체 분석과 제품/기술 관점을 종합하여 도출한 디자인 철학이다.

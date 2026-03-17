@@ -140,10 +140,10 @@ export function handleStreamOutcome(opts: StreamOutcomeOpts): boolean {
       isDirty: true,
       ...(casting && { castingRecommendation: null }),
     });
-    showToast("Script generated", "success");
+    showToast("스크립트 생성 완료", "success");
     return true;
   }
   setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
-  showToast("No scenes returned", "warning");
+  showToast("생성된 씬이 없습니다", "warning");
   return false;
 }

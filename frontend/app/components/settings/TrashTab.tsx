@@ -67,7 +67,7 @@ export default function TrashTab() {
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-12 text-zinc-400">
           <span className="text-3xl">&#128465;</span>
-          <p className="text-sm">Trash is empty</p>
+          <p className="text-sm">휴지통이 비어 있습니다</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">

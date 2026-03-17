@@ -47,9 +47,9 @@ export function useYouTubeTab({ projectId, oauthCode, oauthState }: UseYouTubeTa
       setIsConnecting(false);
       if (cred) {
         setCredential(cred);
-        showToast("YouTube connected", "success");
+        showToast("YouTube 연동 완료", "success");
       } else {
-        showToast("YouTube connection failed", "error");
+        showToast("YouTube 연동에 실패했습니다", "error");
       }
       router.replace("/settings/youtube", { scroll: false });
     });
@@ -61,7 +61,7 @@ export function useYouTubeTab({ projectId, oauthCode, oauthState }: UseYouTubeTa
     if (url) {
       window.location.href = url;
     } else {
-      showToast("Failed to get authorization URL", "error");
+      showToast("인증 URL 가져오기에 실패했습니다", "error");
     }
   }, [projectId, showToast]);
 
@@ -70,9 +70,9 @@ export function useYouTubeTab({ projectId, oauthCode, oauthState }: UseYouTubeTa
     const ok = await disconnectYouTube(projectId);
     if (ok) {
       setCredential(null);
-      showToast("YouTube disconnected", "success");
+      showToast("YouTube 연동 해제 완료", "success");
     } else {
-      showToast("Failed to disconnect", "error");
+      showToast("연동 해제에 실패했습니다", "error");
     }
   }, [projectId, showToast]);
 

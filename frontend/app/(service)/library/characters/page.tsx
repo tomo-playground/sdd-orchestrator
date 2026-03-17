@@ -146,11 +146,11 @@ export default function AdminCharactersPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={UserRound}
-          title={characters.length === 0 ? "No characters yet" : "No characters match your filter"}
+          title={characters.length === 0 ? "캐릭터가 없습니다" : "필터와 일치하는 캐릭터가 없습니다"}
           description={
             characters.length === 0
-              ? "Characters maintain visual consistency across scenes"
-              : "Try a different search or filter"
+              ? "캐릭터는 씬 간 시각적 일관성을 유지합니다"
+              : "다른 검색어나 필터를 시도해 보세요"
           }
           action={
             characters.length === 0 ? (

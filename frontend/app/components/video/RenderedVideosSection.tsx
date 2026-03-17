@@ -45,7 +45,7 @@ export default function RenderedVideosSection({
         <span className="text-[12px] font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           Recent ({recentVideos.length})
         </span>
-        {recentVideos.length === 0 && <p className="text-xs text-zinc-400">No videos yet.</p>}
+        {recentVideos.length === 0 && <p className="text-xs text-zinc-400">렌더링된 영상이 없습니다</p>}
         {recentVideos.map((item, idx) => {
           const ytVideoId = uploadedMap?.get(item.url);
           const isUploaded = !!ytVideoId;
@@ -235,7 +235,7 @@ export default function RenderedVideosSection({
       )}
       {recentVideos.length === 0 && (
         <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 p-4 text-xs text-zinc-500">
-          No rendered videos yet. Run a render to see results here.
+          렌더링된 영상이 없습니다. 렌더를 실행하면 여기에 결과가 표시됩니다.
         </div>
       )}
     </section>

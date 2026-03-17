@@ -22,7 +22,7 @@ export async function handleGenerateImage(scene: Scene) {
   // Ensures activity logs have proper storyboard_id and scene IDs are assigned
   const storyboardId = await autoSaveStoryboard();
   if (!storyboardId) {
-    showToast("Failed to save storyboard before generation", "error");
+    showToast("이미지 생성 전 영상 저장에 실패했습니다", "error");
     return;
   }
 
@@ -31,7 +31,7 @@ export async function handleGenerateImage(scene: Scene) {
     .getState()
     .scenes.find((s) => s.client_id === scene.client_id);
   if (!updatedScene) {
-    showToast("Scene not found after save", "error");
+    showToast("저장 후 씬을 찾을 수 없습니다", "error");
     return;
   }
 
@@ -55,7 +55,7 @@ export async function handleGenerateImage(scene: Scene) {
       );
       if (autoPinResult?.success) {
         console.log("[AutoPin]", autoPinResult.message);
-        showToast(`Auto-pin: ${autoPinResult.message}`, "success");
+        showToast(`자동 핀: ${autoPinResult.message}`, "success");
       }
 
       // image_url/image_asset_id are persisted by POST /image/store immediately.
@@ -82,7 +82,7 @@ export function handleImageUpload(clientId: string, file?: File) {
     const { showToast } = useUIStore.getState();
     const { updateScene } = useStoryboardStore.getState();
     if (!projectId || !groupId || !storyboardId) {
-      showToast("Project/Group context required", "error");
+      showToast("채널/시리즈를 먼저 선택하세요", "error");
       return;
     }
     const scene = useStoryboardStore.getState().scenes.find((s) => s.client_id === clientId);
@@ -111,7 +111,7 @@ export function handleImageUpload(clientId: string, file?: File) {
     );
     if (autoPinResult?.success) {
       console.log("[AutoPin]", autoPinResult.message);
-      showToast(`Auto-pin: ${autoPinResult.message}`, "success");
+      showToast(`자동 핀: ${autoPinResult.message}`, "success");
     }
 
     // Auto-save after image upload to persist to DB
@@ -124,18 +124,18 @@ export function handleImageUpload(clientId: string, file?: File) {
 export async function handleEditWithGemini(scene: Scene, targetChange: string) {
   const { showToast } = useUIStore.getState();
   if (!scene.image_url) {
-    showToast("No image to edit. Generate one first.", "error");
+    showToast("편집할 이미지가 없습니다. 먼저 생성하세요.", "error");
     return;
   }
   if (scene.image_url.startsWith("data:")) {
-    showToast("Save the scene first (image must be stored).", "error");
+    showToast("씬을 먼저 저장하세요 (이미지가 저장되어야 합니다)", "error");
     return;
   }
   useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: true });
   try {
     const prompt = buildScenePrompt(scene);
     if (!prompt) {
-      showToast("Prompt build failed", "error");
+      showToast("프롬프트 구성에 실패했습니다", "error");
       useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
       return;
     }
@@ -148,7 +148,7 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
       const dataUrl = `data:image/png;base64,${res.data.edited_image}`;
       const { projectId, groupId, storyboardId } = useContextStore.getState();
       if (!projectId || !groupId || !storyboardId) {
-        showToast("Project/Group context required", "error");
+        showToast("채널/시리즈를 먼저 선택하세요", "error");
         useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
         return;
       }
@@ -172,7 +172,7 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
         isGenerating: false,
       });
       showToast(
-        `Gemini edit done (${res.data.edit_type}) - $${(res.data.cost_usd ?? 0).toFixed(4)}`,
+        `Gemini 편집 완료 (${res.data.edit_type}) - $${(res.data.cost_usd ?? 0).toFixed(4)}`,
         "success"
       );
 
@@ -181,7 +181,7 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
     }
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
-    showToast(`Gemini edit failed: ${msg}`, "error");
+    showToast(`Gemini 편집 실패: ${msg}`, "error");
     useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
   }
 }
@@ -190,17 +190,17 @@ export async function handleEditWithGemini(scene: Scene, targetChange: string) {
 export async function handleSuggestEditWithGemini(scene: Scene): Promise<GeminiSuggestion[]> {
   const { showToast } = useUIStore.getState();
   if (!scene.image_url) {
-    showToast("No image. Generate one first.", "error");
+    showToast("이미지가 없습니다. 먼저 생성하세요.", "error");
     return [];
   }
   if (scene.image_url.startsWith("data:")) {
-    showToast("Save the scene first (image must be stored).", "error");
+    showToast("씬을 먼저 저장하세요 (이미지가 저장되어야 합니다)", "error");
     return [];
   }
   try {
     const prompt = buildScenePrompt(scene);
     if (!prompt) {
-      showToast("Prompt build failed", "error");
+      showToast("프롬프트 구성에 실패했습니다", "error");
       return [];
     }
     const payload =
@@ -210,16 +210,16 @@ export async function handleSuggestEditWithGemini(scene: Scene): Promise<GeminiS
     const res = await axios.post(`${API_BASE}/scene/suggest-edit`, payload);
     if (res.data.has_mismatch && res.data.suggestions?.length > 0) {
       showToast(
-        `${res.data.suggestions.length} suggestions - $${(res.data.cost_usd ?? 0).toFixed(4)}`,
+        `${res.data.suggestions.length}개 제안 - $${(res.data.cost_usd ?? 0).toFixed(4)}`,
         "success"
       );
       return res.data.suggestions;
     }
-    showToast("Image matches prompt well.", "success");
+    showToast("이미지가 프롬프트와 잘 일치합니다", "success");
     return [];
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
-    showToast(`Suggest failed: ${msg}`, "error");
+    showToast(`제안 실패: ${msg}`, "error");
     return [];
   }
 }

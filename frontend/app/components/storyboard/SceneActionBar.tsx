@@ -343,7 +343,7 @@ export default function SceneActionBar({
               const ok = await confirm({
                 title: "Delete Scene",
                 message: "이 씬을 삭제하시겠습니까?",
-                confirmLabel: "Delete",
+                confirmLabel: "삭제",
                 variant: "danger",
               });
               if (ok) onRemoveScene();

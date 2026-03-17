@@ -12,9 +12,4 @@ export {
   MOCK_RENDER_PRESETS,
   MOCK_TRASH_ITEMS,
 } from "./manage";
-export {
-  MOCK_STORYBOARDS,
-  MOCK_CHARACTERS,
-  MOCK_GENERATED_SCENES,
-  MOCK_PRESETS,
-} from "./studio";
+export { MOCK_STORYBOARDS, MOCK_CHARACTERS, MOCK_PRESETS } from "./studio";

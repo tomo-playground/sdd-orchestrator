@@ -394,7 +394,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           .getState()
           .setContext({ storyboardId: id, storyboardTitle: data.title ?? "" });
       } catch (err) {
-        showToast("Failed to load storyboard", "error");
+        showToast("영상 로드에 실패했습니다", "error");
         console.error("[useScriptEditor] loadStoryboard error:", err);
       }
     },

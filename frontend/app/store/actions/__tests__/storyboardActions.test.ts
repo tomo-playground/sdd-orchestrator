@@ -1,11 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import axios from "axios";
-import {
-  mapGeminiScenes,
-  persistStoryboard,
-  saveStoryboard,
-  sanitizeCandidatesForDb,
-} from "../storyboardActions";
+import { persistStoryboard, saveStoryboard, sanitizeCandidatesForDb } from "../storyboardActions";
 import { useContextStore } from "../../useContextStore";
 import { useStoryboardStore } from "../../useStoryboardStore";
 import { useUIStore } from "../../useUIStore";
@@ -101,144 +96,6 @@ function mockAllStores(overrides: Record<string, unknown> = {}) {
 
   return { ctxState, sbState, uiState, renderState };
 }
-
-describe("mapGeminiScenes", () => {
-  it("maps all fields from raw Gemini response", () => {
-    const raw = [
-      {
-        script: "Hello world",
-        speaker: "A",
-        duration: 5,
-        image_prompt: "1girl, smile",
-        image_prompt_ko: "소녀, 미소",
-        negative_prompt: "bad hands",
-        _auto_pin_previous: true,
-      },
-    ];
-
-    const result = mapGeminiScenes(raw, "lowres, blurry");
-
-    expect(result).toHaveLength(1);
-    expect(result[0]).toEqual({
-      id: 0,
-      order: 0,
-      client_id: expect.any(String),
-      script: "Hello world",
-      speaker: "A",
-      duration: 5,
-      image_prompt: "1girl, smile",
-      image_prompt_ko: "소녀, 미소",
-      image_url: null,
-      width: 832,
-      height: 1216,
-      negative_prompt: "lowres, blurry, bad hands",
-      context_tags: undefined,
-      character_actions: undefined,
-      isGenerating: false,
-      debug_payload: "",
-      _auto_pin_previous: true,
-    });
-  });
-
-  it("combines base + scene negative_prompt", () => {
-    const raw = [{ negative_prompt: "extra_fingers" }];
-    const result = mapGeminiScenes(raw, "lowres");
-    expect(result[0].negative_prompt).toBe("lowres, extra_fingers");
-  });
-
-  it("handles empty scene negative_prompt", () => {
-    const raw = [{}];
-    const result = mapGeminiScenes(raw, "lowres");
-    expect(result[0].negative_prompt).toBe("lowres");
-  });
-
-  it("handles empty base negative", () => {
-    const raw = [{ negative_prompt: "bad" }];
-    const result = mapGeminiScenes(raw, "");
-    expect(result[0].negative_prompt).toBe("bad");
-  });
-
-  it("handles both negatives empty", () => {
-    const raw = [{}];
-    const result = mapGeminiScenes(raw, "");
-    expect(result[0].negative_prompt).toBe("");
-  });
-
-  it("returns empty array for empty input", () => {
-    expect(mapGeminiScenes([], "lowres")).toEqual([]);
-  });
-
-  it("provides defaults for missing fields", () => {
-    const raw = [{}];
-    const result = mapGeminiScenes(raw, "");
-
-    expect(result[0].script).toBe("");
-    expect(result[0].speaker).toBe("Narrator");
-    expect(result[0].duration).toBe(3);
-    expect(result[0].image_prompt).toBe("");
-  });
-
-  it("assigns sequential ids and orders for multiple scenes", () => {
-    const raw = [{}, {}, {}];
-    const result = mapGeminiScenes(raw, "");
-
-    expect(result.map((s) => s.id)).toEqual([0, 0, 0]);
-    expect(result.map((s) => s.order)).toEqual([0, 1, 2]);
-  });
-
-  it("uses 0-indexed order matching backend create_scenes convention", () => {
-    const raw = [{ script: "First" }, { script: "Second" }, { script: "Third" }];
-    const result = mapGeminiScenes(raw, "");
-
-    // order must be 0-indexed to match backend create_scenes(order=idx)
-    expect(result[0].order).toBe(0);
-    expect(result[1].order).toBe(1);
-    expect(result[2].order).toBe(2);
-    // id also 0-indexed
-    expect(result[0].id).toBe(0);
-  });
-
-  it("maps _auto_pin_previous true from backend", () => {
-    const raw = [{ _auto_pin_previous: true }];
-    const result = mapGeminiScenes(raw, "");
-    expect(result[0]._auto_pin_previous).toBe(true);
-  });
-
-  it("maps _auto_pin_previous false from backend", () => {
-    const raw = [{ _auto_pin_previous: false }];
-    const result = mapGeminiScenes(raw, "");
-    expect(result[0]._auto_pin_previous).toBe(false);
-  });
-
-  it("defaults _auto_pin_previous to false when missing", () => {
-    const raw = [{}];
-    const result = mapGeminiScenes(raw, "");
-    expect(result[0]._auto_pin_previous).toBe(false);
-  });
-
-  it("maps ken_burns_preset from Cinematographer agent", () => {
-    const raw = [{ ken_burns_preset: "zoom_in_center" }];
-    const result = mapGeminiScenes(raw, "");
-    expect(result[0].ken_burns_preset).toBe("zoom_in_center");
-  });
-
-  it("defaults ken_burns_preset to undefined when missing", () => {
-    const raw = [{}];
-    const result = mapGeminiScenes(raw, "");
-    expect(result[0].ken_burns_preset).toBeUndefined();
-  });
-
-  it("handles mixed _auto_pin_previous values across scenes", () => {
-    const raw = [
-      { _auto_pin_previous: false }, // first scene (location change)
-      { _auto_pin_previous: true }, // same location
-      { _auto_pin_previous: false }, // location change
-      { _auto_pin_previous: true }, // same location
-    ];
-    const result = mapGeminiScenes(raw, "");
-    expect(result.map((s) => s._auto_pin_previous)).toEqual([false, true, false, true]);
-  });
-});
 
 describe("persistStoryboard", () => {
   beforeEach(() => {
@@ -362,7 +219,7 @@ describe("saveStoryboard", () => {
     const result = await saveStoryboard();
 
     expect(result).toBe(false);
-    expect(showToast).toHaveBeenCalledWith("No scenes to save", "error");
+    expect(showToast).toHaveBeenCalledWith("저장할 씬이 없습니다", "error");
   });
 
   it("shows error toast when no groupId", async () => {
@@ -372,7 +229,7 @@ describe("saveStoryboard", () => {
     const result = await saveStoryboard();
 
     expect(result).toBe(false);
-    expect(showToast).toHaveBeenCalledWith("Create a group to save your storyboard", "error");
+    expect(showToast).toHaveBeenCalledWith("영상을 저장하려면 시리즈를 생성하세요", "error");
   });
 
   it("shows success toast for update (existing storyboardId)", async () => {
@@ -387,7 +244,7 @@ describe("saveStoryboard", () => {
     const result = await saveStoryboard();
 
     expect(result).toBe(true);
-    expect(showToast).toHaveBeenCalledWith("Storyboard updated", "success");
+    expect(showToast).toHaveBeenCalledWith("영상 저장 완료", "success");
   });
 
   it("shows success toast for new save (no storyboardId)", async () => {
@@ -405,7 +262,7 @@ describe("saveStoryboard", () => {
     const result = await saveStoryboard();
 
     expect(result).toBe(true);
-    expect(showToast).toHaveBeenCalledWith("Storyboard saved", "success");
+    expect(showToast).toHaveBeenCalledWith("영상 저장 완료", "success");
   });
 
   it("shows error toast on failure", async () => {
@@ -420,7 +277,7 @@ describe("saveStoryboard", () => {
     const result = await saveStoryboard();
 
     expect(result).toBe(false);
-    expect(showToast).toHaveBeenCalledWith("Failed to save storyboard", "error");
+    expect(showToast).toHaveBeenCalledWith("영상 저장에 실패했습니다", "error");
   });
 });
 

@@ -70,7 +70,7 @@ export function useSceneActions() {
       // Backend SSOT: config.py DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT = 0.3
       environment_reference_weight: 0.3,
     });
-    showToast(`Scene ${referenceScene.order + 1}의 배경을 참조로 설정했습니다.`, "success");
+    showToast(`씬 ${referenceScene.order + 1}의 배경을 참조로 설정했습니다.`, "success");
   }, [showToast]);
 
   const handleRemoveScene = useCallback(
@@ -78,7 +78,7 @@ export function useSceneActions() {
       const ok = await confirm({
         title: "Remove Scene",
         message: "Remove this scene?",
-        confirmLabel: "Remove",
+        confirmLabel: "삭제",
         variant: "danger",
       });
       if (ok) useStoryboardStore.getState().removeScene(clientId);

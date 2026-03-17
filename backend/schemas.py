@@ -2156,19 +2156,6 @@ class ConsistencyResponse(BaseModel):
 
 
 # ============================================================
-# Storyboard Create Response
-# ============================================================
-
-
-class StoryboardCreateResponse(BaseModel):
-    """Response for POST /storyboards/create (Gemini script generation)."""
-
-    scenes: list[dict]
-    character_id: int | None = None
-    character_b_id: int | None = None
-
-
-# ============================================================
 # Validate + Auto-Edit Response
 # ============================================================
 

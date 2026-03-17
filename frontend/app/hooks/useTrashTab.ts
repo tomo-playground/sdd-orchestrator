@@ -39,9 +39,7 @@ export function useTrashTab(
         axios.get<{ id: number; name: string; deleted_at: string }[]>(
           `${API_BASE}/characters/trash`
         ),
-        axios.get<{ id: number; name: string; deleted_at: string }[]>(
-          `${API_BASE}/groups/trash`
-        ),
+        axios.get<{ id: number; name: string; deleted_at: string }[]>(`${API_BASE}/groups/trash`),
       ]);
 
       const all: TrashItem[] = [
@@ -68,7 +66,7 @@ export function useTrashTab(
       all.sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
       setItems(all);
     } catch {
-      showToast("Failed to load trash", "error");
+      showToast("휴지통 로드에 실패했습니다", "error");
     } finally {
       setLoading(false);
     }
@@ -87,10 +85,10 @@ export function useTrashTab(
       };
       try {
         await axios.post(`${API_BASE}${endpointMap[item.type]}`);
-        showToast("Restored", "success");
+        showToast("복원 완료", "success");
         void fetchTrash();
       } catch {
-        showToast("Restore failed", "error");
+        showToast("복원에 실패했습니다", "error");
       }
     },
     [showToast, fetchTrash]
@@ -101,7 +99,7 @@ export function useTrashTab(
       const ok = await confirmDialog({
         title: "Permanent Delete",
         message: `Permanently delete "${item.name || "Untitled"}"? This cannot be undone.`,
-        confirmLabel: "Delete",
+        confirmLabel: "삭제",
         variant: "danger",
       });
       if (!ok) return;
@@ -115,10 +113,10 @@ export function useTrashTab(
       const base = ADMIN_API_BASE;
       try {
         await axios.delete(`${base}${endpointMap[item.type]}`);
-        showToast("Permanently deleted", "success");
+        showToast("영구 삭제 완료", "success");
         void fetchTrash();
       } catch {
-        showToast("Delete failed", "error");
+        showToast("삭제에 실패했습니다", "error");
       }
     },
     [showToast, fetchTrash, confirmDialog]

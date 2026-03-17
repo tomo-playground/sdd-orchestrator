@@ -13,11 +13,11 @@ type Props = {
 };
 
 const STATUS_META: Record<string, { label: string; color: string; dot: string }> = {
-  draft: { label: "Draft", color: "bg-zinc-200 text-zinc-600", dot: "bg-zinc-400" },
-  in_prod: { label: "In Production", color: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
-  rendered: { label: "Rendered", color: "bg-blue-100 text-blue-700", dot: "bg-blue-400" },
+  draft: { label: "초안", color: "bg-zinc-200 text-zinc-600", dot: "bg-zinc-400" },
+  in_prod: { label: "제작 중", color: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
+  rendered: { label: "렌더 완료", color: "bg-blue-100 text-blue-700", dot: "bg-blue-400" },
   published: {
-    label: "Published",
+    label: "게시됨",
     color: "bg-emerald-100 text-emerald-700",
     dot: "bg-emerald-400",
   },

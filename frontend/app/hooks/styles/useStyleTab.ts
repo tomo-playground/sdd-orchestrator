@@ -146,7 +146,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
       const msg = axios.isAxiosError(error)
         ? (error.response?.data?.detail ?? error.message)
         : "Unknown error";
-      ui.showToast(`Style create failed: ${msg}`, "error");
+      ui.showToast(`화풍 생성 실패: ${msg}`, "error");
     }
   }, [fetchStyles, ui]);
 
@@ -155,7 +155,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
       const ok = await ui.confirmDialog({
         title: "Delete Style",
         message: "Delete this style profile?",
-        confirmLabel: "Delete",
+        confirmLabel: "삭제",
         variant: "danger",
       });
       if (!ok) return;
@@ -167,7 +167,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
           : "Unknown error";
-        ui.showToast(`Style delete failed: ${msg}`, "error");
+        ui.showToast(`화풍 삭제 실패: ${msg}`, "error");
       }
     },
     [fetchStyles, ui]
@@ -190,7 +190,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
           : "Unknown error";
-        ui.showToast(`Style update failed: ${msg}`, "error");
+        ui.showToast(`화풍 업데이트 실패: ${msg}`, "error");
       }
     },
     [fetchStyles, ui]
@@ -204,7 +204,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
       const ok = await ui.confirmDialog({
         title: "Duplicate Style",
         message: `Duplicate style as "${newName}"?`,
-        confirmLabel: "Duplicate",
+        confirmLabel: "복제",
       });
       if (!ok) return;
 
@@ -232,7 +232,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
           : "Unknown error";
-        ui.showToast(`Style duplicate failed: ${msg}`, "error");
+        ui.showToast(`화풍 복제 실패: ${msg}`, "error");
       }
     },
     [fetchStyles, styleProfiles, ui]
@@ -248,7 +248,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
           : "Unknown error";
-        ui.showToast(`Failed to load style details: ${msg}`, "error");
+        ui.showToast(`화풍 상세 로드 실패: ${msg}`, "error");
       }
     },
     [ui, fetchLinkedCharacters]

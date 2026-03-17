@@ -77,7 +77,7 @@ export async function handleStyleProfileComplete(
       setEffectiveDefaults(profile.id, null, true);
     } catch (err) {
       console.error("[StyleProfile] Failed to update Group:", err);
-      showToast("Style saved locally but Group update failed", "error");
+      showToast("화풍이 로컬에 저장되었으나 시리즈 업데이트에 실패했습니다", "error");
     }
   }
 
@@ -132,10 +132,10 @@ async function updateExistingStoryboard(
       title: topic || "Untitled",
       ...payload,
     });
-    showToast("Storyboard updated", "success");
+    showToast("영상 업데이트 완료", "success");
   } catch (err) {
     console.error("[StyleProfileModal] Failed to update storyboard:", err);
-    showToast("Storyboard update failed", "error");
+    showToast("영상 업데이트에 실패했습니다", "error");
   }
 }
 
@@ -151,10 +151,10 @@ async function createNewStoryboard(
       ...payload,
     });
     useContextStore.getState().setContext({ storyboardId: res.data.storyboard_id });
-    showToast("Storyboard created", "success");
+    showToast("영상 생성 완료", "success");
   } catch (err) {
     console.error("[StyleProfileModal] Failed to create storyboard:", err);
-    showToast("Storyboard creation failed: " + (err as Error).message, "error");
+    showToast("영상 생성에 실패했습니다: " + (err as Error).message, "error");
   }
 }
 
@@ -223,13 +223,13 @@ async function changeSdModel(
 ) {
   const profileLabel = profile.display_name || profile.name;
   if (!profile.sd_model_name) {
-    showToast(`Style profile "${profileLabel}" selected`, "success");
+    showToast(`화풍 "${profileLabel}" 선택됨`, "success");
     return;
   }
 
   // Skip if same model is already loaded
   if (_lastSdModel === profile.sd_model_name) {
-    showToast(`Style profile "${profileLabel}" loaded (model unchanged)`, "success");
+    showToast(`화풍 "${profileLabel}" 로드됨 (모델 변경 없음)`, "success");
     return;
   }
 
@@ -239,14 +239,14 @@ async function changeSdModel(
     });
     _lastSdModel = profile.sd_model_name;
     showToast(
-      `Style profile "${profileLabel}" loaded\n` +
-        `Model: ${profile.sd_model_name}\n` +
-        `LoRAs: ${profile.loras?.length || 0}\n` +
-        `Embeddings: ${(profile.negative_embeddings?.length || 0) + (profile.positive_embeddings?.length || 0)}`,
+      `화풍 "${profileLabel}" 로드됨\n` +
+        `모델: ${profile.sd_model_name}\n` +
+        `LoRA: ${profile.loras?.length || 0}\n` +
+        `임베딩: ${(profile.negative_embeddings?.length || 0) + (profile.positive_embeddings?.length || 0)}`,
       "success"
     );
   } catch (err) {
     console.error("Failed to change SD model:", err);
-    showToast(`Profile loaded but model change failed: ${profile.sd_model_name}`, "error");
+    showToast(`화풍 로드됨, 모델 변경 실패: ${profile.sd_model_name}`, "error");
   }
 }

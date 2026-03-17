@@ -5,7 +5,6 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from config import logger
 from database import get_db
 from models import Storyboard
 from schemas import (
@@ -14,12 +13,10 @@ from schemas import (
     SeedAnchorRequest,
     SeedAnchorResponse,
     StatusResponse,
-    StoryboardCreateResponse,  # noqa: F401
     StoryboardDetailResponse,
     StoryboardDraftRequest,
     StoryboardDraftResponse,
     StoryboardMetadataUpdateResponse,
-    StoryboardRequest,
     StoryboardRestoreResponse,
     StoryboardSave,
     StoryboardSaveResponse,
@@ -29,7 +26,6 @@ from schemas import (
 )
 from services.storyboard import (
     create_draft,
-    create_storyboard,
     delete_storyboard_from_db,
     get_storyboard_by_id,
     list_storyboards_from_db,
@@ -47,12 +43,6 @@ admin_router = APIRouter(prefix="/storyboards", tags=["storyboard-admin"])
 async def create_draft_storyboard(request: StoryboardDraftRequest, db: Session = Depends(get_db)):
     """Create a minimal draft storyboard for early ID reservation."""
     return create_draft(db, request.title, request.group_id)
-
-
-@router.post("/create", response_model=StoryboardCreateResponse)
-async def create_storyboard_endpoint(request: StoryboardRequest, db: Session = Depends(get_db)):
-    logger.info("\U0001f4e5 [Storyboard Req] %s", request.model_dump())
-    return await create_storyboard(request, db)
 
 
 @router.post("", response_model=StoryboardSaveResponse)

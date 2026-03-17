@@ -53,6 +53,7 @@
 
 ### 최근 작업
 
+- **03-17 레거시 스토리보드 생성 경로 제거**: `POST /storyboards/create` 엔드포인트 + `generateStoryboard()` + `mapGeminiScenes()` + `StoryboardCreateResponse` 스키마 + `create_storyboard` lazy alias + E2E mock + 테스트 스크립트 제거. 활성 경로(`/scripts/generate-stream` LangGraph SSE)에 영향 없음. `generate_script()`은 Writer/Revise 노드에서 사용 중이므로 보존. 순감 ~300줄
 - **03-17 LangFuse Trace 네이밍 OTel 표준화**: OTel GenAI Semantic Conventions 기반 trace/generation 네이밍 리팩토링. Trace "LangGraph"→"storyboard.generate/resume", Generation "{operation} {agent}" 포맷 통일, 고카디널리티(step/retry/fallback)→metadata 이동. GeminiProvider PROHIBITED fallback 접미사 제거. 19파일 수정. [가이드](../03_engineering/backend/TRACE_NAMING_GUIDE.md)
 - **03-17 Draft Storyboard 조기 생성**: 첫 Chat 메시지 시 storyboard_id 즉시 확보. 서버 디버깅 추적 + LangFuse session_id 연결 + 작업 유실 방지. thread_id/session_id 분리. [설계](../03_engineering/backend/DRAFT_STORYBOARD.md)
 - **03-17 Jinja2 완전 제거**: .j2 파일 28개 삭제 + dead code 제거(langfuse_prompt -34%, _production_utils -52%) + config.py jinja2 import 제거 + 테스트 15개 compile_prompt mock 전환 + 현행 문서 13개 LangFuse 프롬프트명으로 교체. 순감 ~3,000줄. 레퍼런스 배경 태그 제거 + TTS persistent 프리로드 포함

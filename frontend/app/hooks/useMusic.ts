@@ -79,7 +79,7 @@ export function useMusic(ui: UiCallbacks) {
       const ok = await ui.confirmDialog({
         title: "Delete Music Preset",
         message: `Delete "${p.name}"?`,
-        confirmLabel: "Delete",
+        confirmLabel: "삭제",
         variant: "danger",
       });
       if (!ok) return;
@@ -90,7 +90,7 @@ export function useMusic(ui: UiCallbacks) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
           : "Unknown error";
-        ui.showToast(`Delete failed: ${msg}`, "error");
+        ui.showToast(`삭제 실패: ${msg}`, "error");
       }
     },
     [fetchPresets, ui]
@@ -112,7 +112,7 @@ export function useMusic(ui: UiCallbacks) {
       const msg = axios.isAxiosError(error)
         ? (error.response?.data?.detail ?? error.message)
         : "Unknown error";
-      ui.showToast(`Preview generation failed: ${msg}`, "error");
+      ui.showToast(`프리뷰 생성 실패: ${msg}`, "error");
     } finally {
       setPreviewing(false);
     }
@@ -154,7 +154,7 @@ export function useMusic(ui: UiCallbacks) {
       const msg = axios.isAxiosError(error)
         ? (error.response?.data?.detail ?? error.message)
         : "Unknown error";
-      ui.showToast(`Save failed: ${msg}`, "error");
+      ui.showToast(`저장 실패: ${msg}`, "error");
     } finally {
       setSaving(false);
     }
@@ -221,7 +221,7 @@ export function useMusic(ui: UiCallbacks) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
           : "Unknown error";
-        ui.showToast(`Preview generation failed: ${msg}`, "error");
+        ui.showToast(`프리뷰 생성 실패: ${msg}`, "error");
       } finally {
         setPreviewingId(null);
       }

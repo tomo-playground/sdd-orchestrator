@@ -118,7 +118,7 @@ export default function CharacterWizard() {
         const ok = await confirm({
           title: "Change Template",
           message: "Switching templates will replace your current tag selections. Continue?",
-          confirmLabel: "Replace",
+          confirmLabel: "교체",
         });
         if (!ok) return;
       }
@@ -194,7 +194,7 @@ export default function CharacterWizard() {
   // ── Save ─────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
     if (state.name.trim().length < 2) {
-      showToast("Name must be at least 2 characters", "warning");
+      showToast("이름은 2자 이상이어야 합니다", "warning");
       return;
     }
 
@@ -241,13 +241,13 @@ export default function CharacterWizard() {
 
       const res = await axios.post(`${API_BASE}/characters`, payload);
       await assignPreview(res.data.id);
-      showToast("Character created!", "success");
+      showToast("캐릭터 생성 완료!", "success");
       router.push(`/library/characters/${res.data.id}`);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
-        showToast("A character with this name already exists", "error");
+        showToast("같은 이름의 캐릭터가 이미 존재합니다", "error");
       } else {
-        showToast(getErrorMsg(err, "Failed to create character"), "error");
+        showToast(getErrorMsg(err, "캐릭터 생성에 실패했습니다"), "error");
       }
     } finally {
       dispatch({ type: "SET_SAVING", isSaving: false });

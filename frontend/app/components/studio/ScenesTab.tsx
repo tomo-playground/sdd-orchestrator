@@ -133,11 +133,11 @@ export default function ScenesTab() {
     return (
       <EmptyState
         icon={Film}
-        title="No scenes yet"
-        description="Create a script first to get started with your storyboard."
+        title="씬이 없습니다"
+        description="먼저 스크립트를 생성하세요"
         action={
           <Button onClick={() => setActiveTab("script")} size="lg">
-            Go to Script
+            Script 탭으로 이동
           </Button>
         }
       />
@@ -216,13 +216,13 @@ export default function ScenesTab() {
                     : "border border-zinc-200 text-zinc-400 hover:border-zinc-300 hover:text-zinc-500"
                 }`}
               >
-                Advanced
+                고급 설정
               </button>
               <button
                 onClick={() => setActiveTab("stage")}
                 className="text-[11px] font-medium text-zinc-400 transition hover:text-zinc-600"
               >
-                Edit in Stage →
+                Stage에서 편집 →
               </button>
             </div>
           </div>

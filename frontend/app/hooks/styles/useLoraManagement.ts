@@ -30,7 +30,7 @@ export function useLoraManagement(ui: UiCallbacks) {
       const msg = axios.isAxiosError(error)
         ? (error.response?.data?.detail ?? error.message)
         : "Unknown error";
-      ui.showToast(`LoRA update failed: ${msg}`, "error");
+      ui.showToast(`LoRA 업데이트 실패: ${msg}`, "error");
     } finally {
       setIsUpdatingLora(false);
     }
@@ -41,7 +41,7 @@ export function useLoraManagement(ui: UiCallbacks) {
       const ok = await ui.confirmDialog({
         title: "Delete LoRA",
         message: "Delete this LoRA registration? (File may remain on disk, this removes DB entry)",
-        confirmLabel: "Delete",
+        confirmLabel: "삭제",
         variant: "danger",
       });
       if (!ok) return;
@@ -52,7 +52,7 @@ export function useLoraManagement(ui: UiCallbacks) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
           : "Unknown error";
-        ui.showToast(`LoRA delete failed: ${msg}`, "error");
+        ui.showToast(`LoRA 삭제 실패: ${msg}`, "error");
       }
     },
     [fetchPublicLoras, ui]

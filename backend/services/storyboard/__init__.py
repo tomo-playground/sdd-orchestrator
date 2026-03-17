@@ -30,30 +30,7 @@ from services.storyboard.scene_builder import (
     serialize_scene,
 )
 
-# Lazy imports for services.script to avoid circular import:
-# storyboard/__init__ -> script/gemini_generator -> storyboard/helpers -> storyboard/__init__ (cycle)
-_SCRIPT_ATTRS = {
-    "create_storyboard",
-    "_call_gemini_with_retry",
-    "_load_character_context",
-}
-
-
-def __getattr__(name: str):
-    if name in _SCRIPT_ATTRS:
-        from services.script import gemini_generator
-
-        if name == "create_storyboard":
-            return gemini_generator.generate_script
-        return getattr(gemini_generator, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
 __all__ = [
-    # script (backward compat alias — lazy)
-    "create_storyboard",
-    "_call_gemini_with_retry",
-    "_load_character_context",
     # helpers
     "strip_markdown_codeblock",
     "normalize_scene_tags_key",

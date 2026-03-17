@@ -87,32 +87,6 @@ export const MOCK_CHARACTERS = [
   },
 ];
 
-export const MOCK_GENERATED_SCENES = {
-  scenes: [
-    {
-      script: "Scene one narration",
-      speaker: "Narrator",
-      duration: 4,
-      image_prompt: "1girl, park, sunny_day",
-      image_prompt_ko: "공원의 소녀",
-    },
-    {
-      script: "Dialogue line",
-      speaker: "A",
-      duration: 3,
-      image_prompt: "1girl, talking, cafe",
-      image_prompt_ko: "카페에서 이야기하는 소녀",
-    },
-    {
-      script: "Closing narration",
-      speaker: "Narrator",
-      duration: 3,
-      image_prompt: "1girl, sunset, smiling",
-      image_prompt_ko: "석양 속 미소 짓는 소녀",
-    },
-  ],
-};
-
 export const MOCK_PRESETS = {
   presets: [
     {

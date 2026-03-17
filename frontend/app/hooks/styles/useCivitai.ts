@@ -33,7 +33,7 @@ export function useCivitai(ui: UiCallbacks) {
       const msg = axios.isAxiosError(error)
         ? (error.response?.data?.detail ?? error.message)
         : "Unknown error";
-      ui.showToast(`Search failed: ${msg}`, "error");
+      ui.showToast(`검색 실패: ${msg}`, "error");
     } finally {
       setIsSearchingCivitai(false);
     }
@@ -42,24 +42,24 @@ export function useCivitai(ui: UiCallbacks) {
   const handleDownloadModel = useCallback(
     async (modelId: number, type: "LORA" | "Checkpoint") => {
       if (type !== "LORA") {
-        ui.showToast("Only LoRA download is supported by backend for now.", "warning");
+        ui.showToast("현재 LoRA 다운로드만 지원됩니다", "warning");
         return;
       }
       const ok = await ui.confirmDialog({
         title: "Download LoRA",
         message: `Download this LoRA (ID: ${modelId})? It may take a while.`,
-        confirmLabel: "Download",
+        confirmLabel: "다운로드",
       });
       if (!ok) return;
 
       try {
         await axios.post(`${ADMIN_API_BASE}/loras/import-civitai/${modelId}`);
-        ui.showToast("Download started. Check database later.", "success");
+        ui.showToast("다운로드 시작됨. 나중에 데이터베이스를 확인하세요.", "success");
       } catch (error) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
           : "Unknown error";
-        ui.showToast(`Download failed: ${msg}`, "error");
+        ui.showToast(`다운로드 실패: ${msg}`, "error");
       }
     },
     [ui]

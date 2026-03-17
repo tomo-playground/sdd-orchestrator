@@ -13,7 +13,6 @@ import {
   MOCK_TRASH_ITEMS,
   MOCK_STORYBOARDS,
   MOCK_CHARACTERS,
-  MOCK_GENERATED_SCENES,
   MOCK_PRESETS,
 } from "./fixtures";
 
@@ -62,13 +61,6 @@ export async function mockStudioApis(page: Page) {
       const id = Number(match[1]);
       const sb = MOCK_STORYBOARDS.find((s) => s.id === id);
       return route.fulfill({ json: sb ?? { error: "not found" }, status: sb ? 200 : 404 });
-    }
-    return route.continue();
-  });
-
-  await page.route("**/storyboards/create", (route) => {
-    if (route.request().method() === "POST") {
-      return route.fulfill({ json: MOCK_GENERATED_SCENES });
     }
     return route.continue();
   });

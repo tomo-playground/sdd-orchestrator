@@ -20,7 +20,7 @@ export function useWizardPreview({ state, dispatch, allTagsFlat }: UseWizardPrev
 
   const handleGeneratePreview = useCallback(async () => {
     if (state.selectedTags.length === 0) {
-      showToast("Select at least one tag first", "warning");
+      showToast("태그를 하나 이상 선택하세요", "warning");
       return;
     }
 
@@ -49,9 +49,9 @@ export function useWizardPreview({ state, dispatch, allTagsFlat }: UseWizardPrev
       const candidates = res.data.candidates ?? [{ image: res.data.image, seed: res.data.seed }];
       dispatch({ type: "SET_PREVIEW", image: res.data.image, seed: res.data.seed, candidates });
       const count = candidates.length;
-      showToast(`${count} preview${count > 1 ? "s" : ""} generated!`, "success");
+      showToast(`프리뷰 ${count}개 생성 완료!`, "success");
     } catch (err) {
-      showToast(getErrorMsg(err, "Failed to generate preview"), "error");
+      showToast(getErrorMsg(err, "프리뷰 생성에 실패했습니다"), "error");
       dispatch({ type: "SET_GENERATING", isGenerating: false });
     }
   }, [
@@ -72,7 +72,7 @@ export function useWizardPreview({ state, dispatch, allTagsFlat }: UseWizardPrev
           image_base64: state.previewImage,
         });
       } catch {
-        showToast("Preview could not be assigned", "warning");
+        showToast("프리뷰를 지정할 수 없습니다", "warning");
       }
     },
     [state.previewImage, showToast]

@@ -1,3 +1,5 @@
+> **ARCHIVED (2026-03-17)**: 현재 코드와 불일치하여 아카이브됨. 현행 설계는 코드 및 CLAUDE.md를 참조.
+
 # OutputTab UI Redesign Proposal
 
 ## 현재 구조 (Before)

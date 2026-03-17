@@ -6,7 +6,7 @@ Covers:
 """
 
 from schemas import StoryboardRequest
-from services.storyboard import _load_character_context
+from services.script.gemini_generator import _load_character_context
 
 # ---------------------------------------------------------------------------
 # StoryboardRequest schema

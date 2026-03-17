@@ -49,7 +49,7 @@ export default function PersistentContextBar() {
             삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
           </>
         ),
-        confirmLabel: "Delete",
+        confirmLabel: "삭제",
         variant: "danger",
       });
       if (!ok) return;
@@ -75,7 +75,7 @@ export default function PersistentContextBar() {
             을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
           </>
         ),
-        confirmLabel: "Delete",
+        confirmLabel: "삭제",
         variant: "danger",
       });
       if (!ok) return;
@@ -93,7 +93,7 @@ export default function PersistentContextBar() {
   const handleGroupSelect = useCallback(
     (id: number) => {
       if (isAutoRunning) {
-        showToast("Autopilot running — wait for completion", "warning");
+        showToast("Auto Run 실행 중 — 완료될 때까지 기다려주세요", "warning");
         return;
       }
       selectGroup(id);

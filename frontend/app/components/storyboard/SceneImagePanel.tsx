@@ -224,8 +224,8 @@ export default function SceneImagePanel({
           </>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3">
-            <p className="text-xs text-zinc-400">No image</p>
-            <p className="text-[12px] text-zinc-300">Generate or Upload</p>
+            <p className="text-xs text-zinc-400">이미지 없음</p>
+            <p className="text-[12px] text-zinc-300">생성 또는 업로드</p>
           </div>
         )}
 

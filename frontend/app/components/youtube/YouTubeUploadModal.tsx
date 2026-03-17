@@ -75,12 +75,12 @@ function YouTubeUploadForm({
     });
 
     if (!result) {
-      showToast("Failed to start upload", "error");
+      showToast("업로드 시작에 실패했습니다", "error");
       setUploading(false);
       return;
     }
 
-    showToast("Upload started", "success");
+    showToast("업로드 시작", "success");
 
     // Poll for completion (max 60 polls × 3s = 3 min timeout)
     pollCountRef.current = 0;
@@ -89,7 +89,7 @@ function YouTubeUploadForm({
       if (pollCountRef.current >= 60) {
         if (pollRef.current) clearInterval(pollRef.current);
         pollRef.current = null;
-        showToast("Upload timed out — check YouTube Studio", "warning");
+        showToast("업로드 시간 초과 — YouTube Studio에서 확인하세요", "warning");
         setUploading(false);
         return;
       }
@@ -100,13 +100,13 @@ function YouTubeUploadForm({
       if (status.youtube_upload_status === "completed") {
         if (pollRef.current) clearInterval(pollRef.current);
         pollRef.current = null;
-        showToast(`Uploaded to YouTube: ${status.youtube_video_id}`, "success");
+        showToast(`YouTube 업로드 완료: ${status.youtube_video_id}`, "success");
         setUploading(false);
         onClose();
       } else if (status.youtube_upload_status === "failed") {
         if (pollRef.current) clearInterval(pollRef.current);
         pollRef.current = null;
-        showToast("YouTube upload failed", "error");
+        showToast("YouTube 업로드에 실패했습니다", "error");
         setUploading(false);
       }
     }, 3000);

@@ -121,7 +121,7 @@ export function useSettingsTab(ui: UiCallbacks) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
           : "Unknown error";
-        ui.showToast(`Cleanup failed: ${msg}`, "error");
+        ui.showToast(`정리 실패: ${msg}`, "error");
       } finally {
         setIsCleaningUp(false);
       }
@@ -170,7 +170,7 @@ export function useSettingsTab(ui: UiCallbacks) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
           : "Unknown error";
-        ui.showToast(`Media cleanup failed: ${msg}`, "error");
+        ui.showToast(`미디어 정리 실패: ${msg}`, "error");
       } finally {
         setIsMediaCleaning(false);
       }

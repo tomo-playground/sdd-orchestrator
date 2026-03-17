@@ -97,7 +97,7 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
       const ok = await ui.confirmDialog({
         title: "Delete Preset",
         message: `"${p.name}" 프리셋을 삭제하시겠습니까?`,
-        confirmLabel: "Delete",
+        confirmLabel: "삭제",
         variant: "danger",
       });
       if (!ok) return;
@@ -108,7 +108,7 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
           : "Unknown error";
-        ui.showToast(`Preset delete failed: ${msg}`, "error");
+        ui.showToast(`프리셋 삭제 실패: ${msg}`, "error");
       }
     },
     [fetchPresets, ui]
@@ -130,7 +130,7 @@ export function useRenderPresetsTab(ui: UiCallbacks) {
       const msg = axios.isAxiosError(error)
         ? (error.response?.data?.detail ?? error.message)
         : "Unknown error";
-      ui.showToast(`Preset save failed: ${msg}`, "error");
+      ui.showToast(`프리셋 저장 실패: ${msg}`, "error");
     } finally {
       setSaving(false);
     }

@@ -424,6 +424,47 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 ## 용어 정의 (Terminology)
 
+### 서비스 언어 정책 (2026-03-17)
+
+**기본 언어: 한국어**. 외국어 표현이 자연스러운 부분은 영어 허용.
+상세 기준: `docs/02_design/NAMING_CONVENTION.md`
+
+### 도메인 용어 사전
+
+| 코드 (영문) | UI (한국어) | 설명 |
+|-------------|------------|------|
+| Project | 채널 | 콘텐츠 발행 채널 (최상위) |
+| Group | 시리즈 | 같은 화풍의 영상 묶음 |
+| Storyboard | 영상 | 개별 쇼츠 영상 단위 |
+| Scene | 씬 | 영상 내 개별 장면 |
+| Character | 캐릭터 | AI 캐릭터 |
+| Style Profile | 화풍 | 생성 스타일 프로필 |
+
+### Studio 워크플로우 탭 (현행)
+
+`Script` → `Stage` → `Direct` → `Publish` (4탭)
+
+> 폐기된 탭 이름: Plan, Scenes, Edit, Render, Video, Insights — 문서에서 발견 시 현행 이름으로 교체
+
+### 칸반 상태
+
+| 코드 | UI |
+|------|-----|
+| draft | 초안 |
+| in_prod | 제작 중 |
+| rendered | 렌더 완료 |
+| published | 게시됨 |
+
+### AI 실행 모드
+
+| 코드 | UI | 설명 |
+|------|-----|------|
+| guided | 가이드 모드 | 단계별 확인 |
+| auto | 자동 모드 | AI 전체 자율 |
+| FastTrack | 빠른 생성 | Director/Research/Concept 건너뜀 |
+
+> 폐기된 용어: Express, Quick, hands_on
+
 ### Scene Text vs Caption (2026-01-31 변경)
 
 **혼란 방지를 위한 명확한 용어 구분:**

@@ -13,7 +13,7 @@ export function applyMissingImageTags(scene: Scene, missingOverride?: string[], 
   const { showToast } = useUIStore.getState();
   const missing = missingOverride ?? imageValidationResults[scene.client_id]?.missing ?? [];
   if (!missing.length) {
-    showToast("No missing tags to add", "error");
+    showToast("추가할 누락 태그가 없습니다", "error");
     return;
   }
   const existing = scene.image_prompt
@@ -31,9 +31,9 @@ export function applyMissingImageTags(scene: Scene, missingOverride?: string[], 
   });
   if (addedCount > 0) {
     updateScene(scene.client_id, { image_prompt: next.join(", ") });
-    showToast(`Added ${addedCount} tags to prompt`, "success");
+    showToast(`${addedCount}개 태그가 프롬프트에 추가됨`, "success");
   } else {
-    showToast("All tags already in prompt", "error");
+    showToast("모든 태그가 이미 프롬프트에 있습니다", "error");
   }
 }
 
@@ -60,11 +60,11 @@ export function handleSpeakerChange(scene: Scene, speaker: Scene["speaker"]) {
 export async function handleValidateImage(scene: Scene) {
   const { showToast } = useUIStore.getState();
   if (!scene.image_url) {
-    showToast("Upload or generate an image first.", "error");
+    showToast("이미지를 먼저 업로드하거나 생성하세요", "error");
     return;
   }
   if (scene.image_url.startsWith("data:")) {
-    showToast("Save the scene first (image must be stored).", "error");
+    showToast("씬을 먼저 저장하세요 (이미지가 저장되어야 합니다)", "error");
     return;
   }
   useStoryboardStore.getState().set({ validatingSceneId: scene.client_id });
@@ -94,11 +94,11 @@ export async function handleValidateImage(scene: Scene) {
         count_mismatch: "인물수 불일치",
       };
       const label = labels[first.failure_type] ?? first.failure_type;
-      showToast(`Critical: ${label} — 재생성을 권장합니다 (${matchRate}%)`, "error");
+      showToast(`심각: ${label} — 재생성을 권장합니다 (${matchRate}%)`, "error");
     } else if (matchRate >= 80) {
-      showToast(`Validated! Match ${matchRate}%`, "success");
+      showToast(`검증 완료! 일치율 ${matchRate}%`, "success");
     } else {
-      showToast(`Match ${matchRate}% - check missing tags`, "error");
+      showToast(`일치율 ${matchRate}% - 누락 태그를 확인하세요`, "error");
     }
   } catch (error) {
     showToast(getErrorMsg(error, "이미지 검증 실패"), "error");
@@ -112,7 +112,7 @@ export async function handleValidateImage(scene: Scene) {
 export async function handleMarkSuccess(scene: Scene) {
   const { showToast } = useUIStore.getState();
   if (!scene.activity_log_id) {
-    showToast("No generation log to mark", "error");
+    showToast("표시할 생성 로그가 없습니다", "error");
     return;
   }
   useStoryboardStore.getState().set({
@@ -122,9 +122,9 @@ export async function handleMarkSuccess(scene: Scene) {
     await axios.patch(`${ADMIN_API_BASE}/activity-logs/${scene.activity_log_id}/status`, {
       status: "success",
     });
-    showToast("Marked as success", "success");
+    showToast("성공으로 표시됨", "success");
   } catch {
-    showToast("Failed to mark status", "error");
+    showToast("상태 표시에 실패했습니다", "error");
   } finally {
     useStoryboardStore.getState().set({ markingStatusSceneId: null });
   }
@@ -133,7 +133,7 @@ export async function handleMarkSuccess(scene: Scene) {
 export async function handleMarkFail(scene: Scene) {
   const { showToast } = useUIStore.getState();
   if (!scene.activity_log_id) {
-    showToast("No generation log to mark", "error");
+    showToast("표시할 생성 로그가 없습니다", "error");
     return;
   }
   useStoryboardStore.getState().set({
@@ -143,11 +143,10 @@ export async function handleMarkFail(scene: Scene) {
     await axios.patch(`${ADMIN_API_BASE}/activity-logs/${scene.activity_log_id}/status`, {
       status: "fail",
     });
-    showToast("Marked as fail", "error");
+    showToast("실패로 표시됨", "error");
   } catch {
-    showToast("Failed to mark status", "error");
+    showToast("상태 표시에 실패했습니다", "error");
   } finally {
     useStoryboardStore.getState().set({ markingStatusSceneId: null });
   }
 }
-

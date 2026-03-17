@@ -230,7 +230,7 @@ export default function StyleProfileEditor({
         </div>
         <div className="custom-scrollbar max-h-48 overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3">
           {loraEntries.length === 0 && (
-            <p className="text-[12px] text-zinc-400">No LoRAs registered</p>
+            <p className="text-[12px] text-zinc-400">등록된 LoRA가 없습니다</p>
           )}
           {loraEntries.map((lora) => {
             const active = activeLoraIds.has(lora.id!);
@@ -280,7 +280,7 @@ export default function StyleProfileEditor({
           </div>
           <div className="custom-scrollbar max-h-40 overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3">
             {embeddings.length === 0 && (
-              <p className="text-[12px] text-zinc-400">No embeddings registered</p>
+              <p className="text-[12px] text-zinc-400">등록된 임베딩이 없습니다</p>
             )}
             {embeddings.map((emb) => (
               <label
@@ -307,7 +307,7 @@ export default function StyleProfileEditor({
           </div>
           <div className="custom-scrollbar max-h-40 overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3">
             {embeddings.length === 0 && (
-              <p className="text-[12px] text-zinc-400">No embeddings registered</p>
+              <p className="text-[12px] text-zinc-400">등록된 임베딩이 없습니다</p>
             )}
             {embeddings.map((emb) => (
               <label
@@ -331,7 +331,7 @@ export default function StyleProfileEditor({
       <div className="mt-6 space-y-2">
         <label className={labelCls}>Linked Characters</label>
         {linkedCharacters.length === 0 ? (
-          <p className="text-[12px] text-zinc-400">No characters linked to this style</p>
+          <p className="text-[12px] text-zinc-400">이 화풍에 연결된 캐릭터가 없습니다</p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {linkedCharacters.map((ch) => (

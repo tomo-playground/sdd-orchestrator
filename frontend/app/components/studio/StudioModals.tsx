@@ -46,23 +46,16 @@ export default function StudioModals({
       <ImagePreviewModal
         src={imagePreviewSrc}
         candidates={imagePreviewCandidates || undefined}
-        onClose={() =>
-          setUI({ imagePreviewSrc: null, imagePreviewCandidates: null })
-        }
+        onClose={() => setUI({ imagePreviewSrc: null, imagePreviewCandidates: null })}
       />
 
-      <VideoPreviewModal
-        src={videoPreviewSrc}
-        onClose={() => setUI({ videoPreviewSrc: null })}
-      />
+      <VideoPreviewModal src={videoPreviewSrc} onClose={() => setUI({ videoPreviewSrc: null })} />
 
       {showGroupModal && projectId && (
         <GroupFormModal
           projectId={projectId}
           onSave={async (data) => {
-            const g = await createGroup(
-              data as Parameters<typeof createGroup>[0],
-            );
+            const g = await createGroup(data as Parameters<typeof createGroup>[0]);
             if (g) setContext({ groupId: g.id });
           }}
           onClose={() => setShowGroupModal(false)}
@@ -77,7 +70,7 @@ export default function StudioModals({
           }
           onSkip={() => {
             setShowStyleProfileModal(false);
-            showToast("Style profile selection skipped", "success");
+            showToast("화풍 선택을 건너뛰었습니다", "success");
           }}
         />
       )}
@@ -96,11 +89,7 @@ export default function StudioModals({
                 return;
               }
             }
-            runAutoRunFromStep(
-              stepsToRun[0] || "images",
-              autopilot,
-              stepsToRun,
-            );
+            runAutoRunFromStep(stepsToRun[0] || "images", autopilot, stepsToRun);
           }}
         />
       )}

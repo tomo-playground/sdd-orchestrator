@@ -3,16 +3,8 @@ import { useContextStore } from "../useContextStore";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useRenderStore } from "../useRenderStore";
 import { useUIStore } from "../useUIStore";
-import {
-  API_BASE,
-  API_TIMEOUT,
-  DEFAULT_STRUCTURE,
-  DEFAULT_IMAGE_WIDTH,
-  DEFAULT_IMAGE_HEIGHT,
-} from "../../constants";
-import { getErrorMsg } from "../../utils/error";
+import { API_BASE, API_TIMEOUT, DEFAULT_STRUCTURE } from "../../constants";
 import type { Scene } from "../../types";
-import { generateSceneClientId } from "../../utils/uuid";
 import { buildScenesPayload } from "../../utils/buildScenesPayload";
 
 /** Sync storyboard version from server after 409 Conflict. */
@@ -98,7 +90,7 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
   if (storyboardId) return storyboardId;
   if (useStoryboardStore.getState().scenes.length === 0) return undefined;
   if (!groupId) {
-    showToast("Create a group to save your storyboard", "error");
+    showToast("영상을 저장하려면 시리즈를 생성하세요", "error");
     return undefined;
   }
 
@@ -137,11 +129,11 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
     });
     applySaveResult(scenes, res.data, true);
     syncUrlAfterCreate(newStoryboardId);
-    showToast("Storyboard auto-saved", "success");
+    showToast("영상 자동 저장 완료", "success");
     return newStoryboardId;
   } catch (error) {
     console.error("[autoSaveStoryboard] Failed:", error);
-    showToast("Auto-save failed", "error");
+    showToast("자동 저장에 실패했습니다", "error");
     return undefined;
   }
 }
@@ -152,59 +144,25 @@ export async function autoSaveStoryboard(): Promise<number | undefined> {
  */
 export async function saveStoryboard(): Promise<boolean> {
   const { scenes } = useStoryboardStore.getState();
-  const { groupId, storyboardId } = useContextStore.getState();
+  const { groupId } = useContextStore.getState();
   const { showToast } = useUIStore.getState();
 
   if (scenes.length === 0) {
-    showToast("No scenes to save", "error");
+    showToast("저장할 씬이 없습니다", "error");
     return false;
   }
   if (!groupId) {
-    showToast("Create a group to save your storyboard", "error");
+    showToast("영상을 저장하려면 시리즈를 생성하세요", "error");
     return false;
   }
 
   const ok = await persistStoryboard();
   if (ok) {
-    showToast(storyboardId ? "Storyboard updated" : "Storyboard saved", "success");
+    showToast("영상 저장 완료", "success");
   } else {
-    showToast("Failed to save storyboard", "error");
+    showToast("영상 저장에 실패했습니다", "error");
   }
   return ok;
-}
-
-/**
- * Map raw Gemini API scene response to typed Scene array.
- * Spread passthrough: Gemini 출력 필드를 그대로 전달하고, 고정값/합성값만 오버라이드.
- */
-export function mapGeminiScenes(
-  rawScenes: Record<string, unknown>[],
-  baseNegative: string
-): Scene[] {
-  return rawScenes.map((s, i) => {
-    const sceneNegative = (s.negative_prompt as string) || "";
-    const combined = [baseNegative, sceneNegative].filter(Boolean).join(", ").trim();
-
-    return {
-      ...(s as unknown as Scene),
-      id: 0,
-      client_id: generateSceneClientId(),
-      order: i,
-      image_url: null,
-      // Backend SSOT fallback: /presets API image_defaults
-      width: DEFAULT_IMAGE_WIDTH,
-      height: DEFAULT_IMAGE_HEIGHT,
-      script: (s.script as string) || "",
-      speaker: ((s.speaker as string) || "Narrator") as Scene["speaker"],
-      duration: (s.duration as number) || 3,
-      image_prompt: (s.image_prompt as string) || "",
-      image_prompt_ko: (s.image_prompt_ko as string) || "",
-      negative_prompt: combined,
-      isGenerating: false,
-      debug_payload: "",
-      _auto_pin_previous: (s._auto_pin_previous as boolean) ?? false,
-    };
-  });
 }
 
 /**
@@ -313,71 +271,7 @@ export async function updateStoryboardMetadata(updates: {
       return false;
     }
     console.error("[updateStoryboardMetadata] Failed:", error);
-    showToast("Failed to update metadata", "error");
-    return false;
-  }
-}
-
-/**
- * Generate storyboard via Gemini API and populate scenes.
- * Returns "needs_confirm" if existing scenes would be replaced (caller should confirm).
- * Pass force=true to skip the check.
- */
-export async function generateStoryboard(force = false): Promise<boolean | "needs_confirm"> {
-  const sbState = useStoryboardStore.getState();
-  const { showToast, setActiveTab } = useUIStore.getState();
-  const {
-    scenes: existingScenes,
-    topic,
-    description,
-    duration,
-    style,
-    language,
-    structure,
-    actorAGender,
-    selectedCharacterId,
-    selectedCharacterBId,
-    baseNegativePromptA,
-    setScenes,
-  } = sbState;
-
-  if (!topic.trim()) {
-    showToast("Enter a topic first", "error");
-    return false;
-  }
-
-  if (!force && existingScenes.length > 0) {
-    return "needs_confirm";
-  }
-
-  try {
-    const structureLower = structure.toLowerCase();
-    const hasCharacterB = structureLower === "dialogue" || structureLower === "narrated dialogue";
-    const res = await axios.post(`${API_BASE}/storyboards/create`, {
-      topic,
-      description: description || undefined,
-      duration,
-      style,
-      language,
-      structure,
-      actor_a_gender: actorAGender,
-      character_id: selectedCharacterId || undefined,
-      character_b_id: hasCharacterB ? selectedCharacterBId || undefined : undefined,
-    });
-
-    const data = res.data;
-    if (!data.scenes) return false;
-
-    const mapped = mapGeminiScenes(data.scenes, baseNegativePromptA);
-
-    setScenes(mapped);
-    useStoryboardStore.getState().set({ currentSceneIndex: 0 });
-    setActiveTab("direct");
-    showToast(`Generated ${mapped.length} scenes`, "success");
-    await saveStoryboard();
-    return true;
-  } catch (error) {
-    showToast(getErrorMsg(error, "스토리보드 생성 실패"), "error");
+    showToast("메타데이터 업데이트에 실패했습니다", "error");
     return false;
   }
 }

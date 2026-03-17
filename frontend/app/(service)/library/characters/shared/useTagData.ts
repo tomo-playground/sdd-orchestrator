@@ -29,7 +29,7 @@ export function useTagData() {
   useEffect(() => {
     const groups = WIZARD_CATEGORIES.map((c) => c.groupName);
     const tagFetches = groups.map((g) =>
-      axios.get<Tag[]>(`${API_BASE}/tags`, { params: { group_name: g } }),
+      axios.get<Tag[]>(`${API_BASE}/tags`, { params: { group_name: g } })
     );
     const loraFetch = axios.get<LoRA[]>(`${API_BASE}/loras`);
 
@@ -45,7 +45,7 @@ export function useTagData() {
         setAllTagsFlat(flat);
         setAllLoras(loraRes.data);
       })
-      .catch(() => showToast("Failed to load tag data", "error"))
+      .catch(() => showToast("태그 데이터 로드에 실패했습니다", "error"))
       .finally(() => setIsLoading(false));
   }, [showToast]);
 

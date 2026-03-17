@@ -42,7 +42,7 @@ export function useYouTubeUpload(projectId: number | null, recentVideos: RecentV
   const handleUploadToYouTube = useCallback(
     async (videoUrl: string, renderHistoryId?: number) => {
       if (!ytConnected || !projectId) {
-        showToast("Manage > YouTube에서 먼저 연동하세요", "warning");
+        showToast("Settings > YouTube에서 먼저 연동하세요", "warning");
         return;
       }
       let rhId = renderHistoryId;

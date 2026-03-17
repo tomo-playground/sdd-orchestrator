@@ -47,7 +47,7 @@ export async function runAutoRunFromStep(
   const allowedSteps = stepsToRun || AUTO_RUN_STEPS.map((s) => s.id as AutoRunStepId);
 
   if (!initialScenes.length) {
-    showToast("Create a script first", "error");
+    showToast("먼저 스크립트를 생성하세요", "error");
     return;
   }
 
@@ -347,7 +347,7 @@ export async function runAutoRunFromStep(
 
     setAutoRunDone();
     setActiveTab("publish");
-    showToast("Auto Run complete!", "success");
+    showToast("Auto Run 완료!", "success");
   } catch (err) {
     // C-1: Abort any in-flight render SSE on error/cancel
     abortController.abort();
@@ -366,7 +366,7 @@ export async function runAutoRunFromStep(
     setAutoRunError(currentStep, message);
     pushAutoRunLog(message);
     if (message !== "Autopilot cancelled") {
-      showToast(`Autopilot stopped: ${message}`, "error");
+      showToast(`Auto Run 중단: ${message}`, "error");
     }
   } finally {
     useUIStore.getState().set({ isAutoRunning: false });

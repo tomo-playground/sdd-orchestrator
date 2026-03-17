@@ -98,7 +98,7 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
   }
 
   if (!projectId || !groupId || !currentId) {
-    if (!silent) showToast("Project/Group context required", "error");
+    if (!silent) showToast("채널/시리즈를 먼저 선택하세요", "error");
     return null;
   }
 

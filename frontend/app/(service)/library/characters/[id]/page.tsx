@@ -82,7 +82,7 @@ export default function CharacterDetailPage() {
           이동합니다.
         </>
       ),
-      confirmLabel: "Delete",
+      confirmLabel: "삭제",
       variant: "danger",
     });
     if (ok) await handleDelete();
@@ -92,7 +92,7 @@ export default function CharacterDetailPage() {
     const ok = await confirm({
       title: "Enhance Preview",
       message: "Gemini로 프리뷰 이미지를 보정합니다. (~$0.04)",
-      confirmLabel: "Enhance",
+      confirmLabel: "보정",
     });
     if (ok) await handleEnhance();
   };
@@ -157,7 +157,7 @@ export default function CharacterDetailPage() {
             ) : (
               <div className="text-center">
                 <UserRound className="mx-auto h-12 w-12 text-zinc-300" />
-                <p className="mt-2 text-xs text-zinc-400">No preview</p>
+                <p className="mt-2 text-xs text-zinc-400">프리뷰 없음</p>
               </div>
             )}
             {isBusy && (

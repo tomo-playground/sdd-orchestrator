@@ -352,7 +352,7 @@ function StudioContent() {
           }
           onSkip={() => {
             setShowStyleProfileModal(false);
-            showToast("Style profile selection skipped", "success");
+            showToast("화풍 선택을 건너뛰었습니다", "success");
           }}
         />
       )}

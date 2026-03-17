@@ -22,7 +22,7 @@ export async function ensureDraftStoryboard(): Promise<number | null> {
   if (storyboardId) return storyboardId;
 
   if (!groupId) {
-    useUIStore.getState().showToast("Create a group to start", "error");
+    useUIStore.getState().showToast("시작하려면 시리즈를 생성하세요", "error");
     return null;
   }
 
@@ -55,7 +55,7 @@ export async function ensureDraftStoryboard(): Promise<number | null> {
     return newId;
   } catch (error) {
     console.error("[ensureDraftStoryboard] Failed:", error);
-    useUIStore.getState().showToast("Failed to create draft", "error");
+    useUIStore.getState().showToast("초안 생성에 실패했습니다", "error");
     return null;
   }
 }

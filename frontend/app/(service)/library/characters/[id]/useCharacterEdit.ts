@@ -81,7 +81,7 @@ export function useCharacterEdit(rawId: number) {
     (async () => {
       const ch = await getCharacterFull(rawId);
       if (!ch) {
-        showToast("Character not found", "error");
+        showToast("캐릭터를 찾을 수 없습니다", "error");
         router.replace("/library/characters");
         return;
       }
@@ -187,7 +187,7 @@ export function useCharacterEdit(rawId: number) {
   const handleSave = useCallback(async () => {
     if (!form || !character) return;
     if (form.name.trim().length < 2) {
-      showToast("Name must be at least 2 characters", "warning");
+      showToast("이름은 2자 이상이어야 합니다", "warning");
       return;
     }
     setIsSaving(true);
@@ -226,9 +226,9 @@ export function useCharacterEdit(rawId: number) {
       setInitialTags(wizTags);
       setInitialLoras(wizLoras);
 
-      showToast("Character saved", "success");
+      showToast("캐릭터 저장 완료", "success");
     } catch (err) {
-      showToast(getErrorMsg(err, "Failed to save"), "error");
+      showToast(getErrorMsg(err, "캐릭터 저장에 실패했습니다"), "error");
     } finally {
       setIsSaving(false);
     }
@@ -239,11 +239,11 @@ export function useCharacterEdit(rawId: number) {
     if (!character) return false;
     try {
       await axios.delete(`${API_BASE}/characters/${character.id}`);
-      showToast("Character deleted", "success");
+      showToast("캐릭터 삭제 완료", "success");
       router.push("/library/characters");
       return true;
     } catch (err) {
-      showToast(getErrorMsg(err, "Failed to delete"), "error");
+      showToast(getErrorMsg(err, "캐릭터 삭제에 실패했습니다"), "error");
       return false;
     }
   }, [character, showToast, router]);
@@ -260,10 +260,10 @@ export function useCharacterEdit(rawId: number) {
         setCharacter((prev) =>
           prev ? { ...prev, reference_image_url: res.data.url ?? null } : prev
         );
-        showToast("Preview regenerated", "success");
+        showToast("프리뷰 재생성 완료", "success");
       }
     } catch (err) {
-      showToast(getErrorMsg(err, "Failed to regenerate"), "error");
+      showToast(getErrorMsg(err, "프리뷰 재생성에 실패했습니다"), "error");
     } finally {
       setIsRegenerating(false);
     }
@@ -281,10 +281,10 @@ export function useCharacterEdit(rawId: number) {
         setCharacter((prev) =>
           prev ? { ...prev, reference_image_url: res.data.url ?? null } : prev
         );
-        showToast("Preview enhanced", "success");
+        showToast("프리뷰 향상 완료", "success");
       }
     } catch (err) {
-      showToast(getErrorMsg(err, "Failed to enhance"), "error");
+      showToast(getErrorMsg(err, "프리뷰 향상에 실패했습니다"), "error");
     } finally {
       setIsEnhancing(false);
     }
@@ -304,10 +304,10 @@ export function useCharacterEdit(rawId: number) {
           setCharacter((prev) =>
             prev ? { ...prev, reference_image_url: res.data.url ?? null } : prev
           );
-          showToast("Preview edited", "success");
+          showToast("프리뷰 편집 완료", "success");
         }
       } catch (err) {
-        showToast(getErrorMsg(err, "Failed to edit preview"), "error");
+        showToast(getErrorMsg(err, "프리뷰 편집에 실패했습니다"), "error");
       } finally {
         setIsEditingPreview(false);
       }
