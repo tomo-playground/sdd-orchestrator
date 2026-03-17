@@ -159,6 +159,51 @@ def _parse_chat_prompt(prompt: Any) -> tuple[str | None, Any]:
     return None, tmpl
 
 
+@dataclass
+class CompiledPrompt:
+    """LangFuse compile() 결과 — system/user 완전 분리.
+
+    Jinja2 없이 LangFuse 네이티브 변수({{var}})만 사용.
+    """
+
+    system: str
+    user: str
+    langfuse_prompt: Any = None
+
+
+def compile_prompt(template_name: str, **vars: Any) -> CompiledPrompt:
+    """LangFuse compile()로 system/user 분리된 프롬프트 반환.
+
+    Jinja2 제거 전환용. 제어문이 없는 템플릿만 사용 가능.
+    제어문({% if %}, {% for %})이 있는 템플릿은 vars에서 사전 처리 필요.
+
+    Returns:
+        CompiledPrompt(system, user, langfuse_prompt)
+    """
+    from services.agent.observability import get_langfuse_client
+
+    lf = get_langfuse_client()
+    if lf is not None:
+        lf_name = _to_langfuse_name(template_name)
+        try:
+            prompt = lf.get_prompt(lf_name, label="production")
+            messages = prompt.compile(**vars)
+            system = next((m["content"] for m in messages if m["role"] == "system"), "")
+            user = "\n".join(m["content"] for m in messages if m["role"] == "user")
+            # 미치환 변수 방어
+            for field_name, field_val in [("system", system), ("user", user)]:
+                if "{{" in field_val:
+                    logger.warning("[LangFuse] 미치환 변수 감지 (%s/%s)", lf_name, field_name)
+            return CompiledPrompt(system=system, user=user, langfuse_prompt=prompt)
+        except Exception as e:
+            logger.warning("[LangFuse] compile '%s' 실패, Jinja2 fallback: %s", lf_name, e)
+
+    # Fallback: 로컬 .j2 파일 + Jinja2 렌더링
+    tmpl = template_env.get_template(template_name)
+    rendered = tmpl.render(**vars)
+    return CompiledPrompt(system="", user=rendered)
+
+
 def get_prompt_template(template_name: str) -> PromptBundle:
     """LangFuse 우선 fetch → PromptBundle 반환. 실패 시 로컬 파일 fallback.
 

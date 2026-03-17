@@ -176,21 +176,22 @@ async def _gemini_evaluate(
     """Gemini에 씬 품질 평가를 요청한다. 실패 시 None 반환."""
     try:
         _template_name = "review_evaluate.j2"
-        bundle = get_prompt_template(_template_name)
-        prompt = bundle.template.render(
+        from services.agent.langfuse_prompt import compile_prompt  # noqa: PLC0415
+
+        compiled = compile_prompt(
+            _template_name,
             scenes=json.dumps(scenes, ensure_ascii=False),
             topic=topic,
             language=language,
-            threshold=LANGGRAPH_AUTO_REVIEW_THRESHOLD,
+            threshold=str(LANGGRAPH_AUTO_REVIEW_THRESHOLD),
         )
-        _fallback_sys = "You are a script quality evaluator for short-form video scenes."
         llm_response = await get_llm_provider().generate(
             step_name="review_gemini_evaluate",
-            contents=prompt,
-            config=LLMConfig(system_instruction=bundle.system_instruction or _fallback_sys),
+            contents=compiled.user,
+            config=LLMConfig(system_instruction=compiled.system),
             model=REVIEW_MODEL,
             metadata={"template": _template_name},
-            langfuse_prompt=bundle.langfuse_prompt,
+            langfuse_prompt=compiled.langfuse_prompt,
         )
         return llm_response.text
     except Exception as e:
@@ -233,21 +234,22 @@ async def _narrative_evaluate(
     """서사 품질을 Gemini로 평가한다. 에러 시 None (graceful degradation)."""
     try:
         _template_name_nr = "creative/narrative_review.j2"
-        bundle_nr = get_prompt_template(_template_name_nr)
-        prompt = bundle_nr.template.render(
+        from services.agent.langfuse_prompt import compile_prompt  # noqa: PLC0415
+
+        compiled = compile_prompt(
+            _template_name_nr,
             scenes=json.dumps(scenes, ensure_ascii=False),
             topic=topic,
             language=language,
-            threshold=LANGGRAPH_NARRATIVE_THRESHOLD,
+            threshold=str(LANGGRAPH_NARRATIVE_THRESHOLD),
         )
-        _fallback_sys_nr = "You are a narrative quality evaluator specializing in short-form video storytelling."
         llm_response = await get_llm_provider().generate(
             step_name="review_narrative_evaluate",
-            contents=prompt,
-            config=LLMConfig(system_instruction=bundle_nr.system_instruction or _fallback_sys_nr),
+            contents=compiled.user,
+            config=LLMConfig(system_instruction=compiled.system),
             model=REVIEW_MODEL,
             metadata={"template": _template_name_nr},
-            langfuse_prompt=bundle_nr.langfuse_prompt,
+            langfuse_prompt=compiled.langfuse_prompt,
         )
         return _parse_narrative_score(llm_response.text or "")
     except Exception as e:
