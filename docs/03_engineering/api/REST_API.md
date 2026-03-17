@@ -38,6 +38,19 @@
 
 > Storyboard -> Scene -> CharacterAction 계층 구조. 라우터 prefix: `/storyboards`
 
+### `POST /storyboards/draft`
+최소한의 정보로 draft storyboard를 생성하여 ID를 예약합니다. 첫 Chat 메시지 시 호출되어 서버 트레이싱(LangFuse session_id) 연결 및 작업 유실 방지.
+
+**Request:** `StoryboardDraftRequest`
+```json
+{ "title": "Draft", "group_id": 20 }
+```
+
+**Response:** `StoryboardDraftResponse`
+```json
+{ "storyboard_id": 1118, "title": "Draft", "created": true }
+```
+
 ### `POST /storyboards/create`
 AI (Gemini)를 사용하여 스토리보드를 생성합니다.
 
