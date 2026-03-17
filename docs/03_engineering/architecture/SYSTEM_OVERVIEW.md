@@ -341,7 +341,7 @@ frontend/app/
 | 코드 파일 | 300줄 권장, 400줄 최대 |
 | 중첩 깊이 | 3단계 이하 |
 | 매개변수 | 4개 이하 |
-| 테스트 | Backend 3,647 + Frontend 65파일 |
+| 테스트 | Backend 3,647 + Frontend 599 (65파일) = 4,246개 |
 
 **TDD**: 서비스/코어 로직은 테스트 먼저 작성 (Red → Green → Refactor)
 **API 스펙 = 진실**: API/스키마 변경 시 문서 즉시 업데이트 (drift = 버그 취급)

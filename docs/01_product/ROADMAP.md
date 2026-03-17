@@ -45,7 +45,7 @@
 | **Phase 33 (Hybrid Match Rate)** | **전체 완료 (ARCHIVED)** |
 | **TTS 파이프라인 일원화 (Sprint A~D)** | **전체 완료 (ARCHIVED)** |
 | **Phase 35 (GPT-SoVITS TTS 전환)** | **전체 완료** |
-| 테스트 | Backend 3,517 + Frontend 543 + E2E 36 = **총 4,096개** |
+| 테스트 | Backend 3,647 + Frontend 599 (65파일) = **총 4,246개** |
 
 ### 진행 중
 

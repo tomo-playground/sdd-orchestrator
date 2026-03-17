@@ -125,7 +125,7 @@ npm run test:vrt:ui
 | Backend Integration | ~150 tests (12 files) | 핵심 API 100% |
 | Backend VRT | 44 tests (4 files) | 주요 레이아웃 100% |
 | Backend Benchmark | 18 tests | 성능 기준선 |
-| Frontend Unit | 379 tests (38 files) | 70% line coverage |
+| Frontend Unit | 599 tests (65 files) | 70% line coverage |
 | Frontend VRT | 24 screenshots (8 specs) | 전체 페이지 커버 |
 | Frontend E2E | 3 specs | 핵심 플로우 커버 |
 
@@ -141,7 +141,7 @@ npm run test:vrt:ui
 | VRT | 44 | 4 | `tests/vrt/` |
 | Benchmark | 18 | 1 | `tests/benchmark/` |
 
-### Frontend 구성 (379 tests, 38 files)
+### Frontend 구성 (599 tests, 65 files)
 
 | 카테고리 | 주요 테스트 | 테스트 수 |
 |----------|-----------|----------|
