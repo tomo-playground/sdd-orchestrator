@@ -78,14 +78,53 @@ class PromptBundle:
     _source: str = field(default="file", repr=False)
 
 
+# 템플릿 파일 → LangFuse 폴더 기반 이름 매핑
+_TEMPLATE_TO_LANGFUSE: dict[str, str] = {
+    # pipeline/ — 파이프라인 메인 노드
+    "creative/director.j2": "pipeline/director",
+    "creative/director_plan.j2": "pipeline/director/plan",
+    "creative/director_checkpoint.j2": "pipeline/director/checkpoint",
+    "creative/director_evaluate.j2": "pipeline/director/evaluate",
+    "creative/scriptwriter.j2": "pipeline/writer/script",
+    "creative/writer_planning.j2": "pipeline/writer/planning",
+    "creative/cinematographer.j2": "pipeline/cinematographer",
+    "creative/tts_designer.j2": "pipeline/tts-designer",
+    "creative/sound_designer.j2": "pipeline/sound-designer",
+    "creative/review_unified.j2": "pipeline/review/unified",
+    "review_evaluate.j2": "pipeline/review/evaluate",
+    "creative/review_reflection.j2": "pipeline/review/reflection",
+    "creative/narrative_review.j2": "pipeline/review/narrative",
+    # storyboard/ — 스토리보드 생성 (structure별)
+    "create_storyboard.j2": "storyboard/default",
+    "create_storyboard_dialogue.j2": "storyboard/dialogue",
+    "create_storyboard_narrated.j2": "storyboard/narrated",
+    "create_storyboard_confession.j2": "storyboard/confession",
+    # tool/ — 보조 도구
+    "creative/analyze_topic.j2": "tool/analyze-topic",
+    "creative/concept_architect.j2": "tool/concept-architect",
+    "creative/devils_advocate.j2": "tool/devils-advocate",
+    "creative/copyright_reviewer.j2": "tool/copyright-reviewer",
+    "creative/material_analyst.j2": "tool/material-analyst",
+    "creative/reference_analyst.j2": "tool/reference-analyst",
+    "creative/location_planner.j2": "tool/location-planner",
+    "creative/scene_expand.j2": "tool/scene-expand",
+    "creative/edit_scenes.j2": "tool/edit-scenes",
+    "creative/explain.j2": "tool/explain",
+    "validate_image_tags.j2": "tool/validate-image-tags",
+}
+
+
 def _to_langfuse_name(template_name: str) -> str:
     """템플릿 경로 → LangFuse 프롬프트 이름 변환.
 
     Examples:
-        "creative/analyze_topic.j2" → "analyze-topic"
-        "review_evaluate.j2" → "review-evaluate"
-        "create_storyboard.j2" → "create-storyboard"
+        "creative/director.j2" → "pipeline/director"
+        "create_storyboard.j2" → "storyboard/default"
+        "creative/analyze_topic.j2" → "tool/analyze-topic"
     """
+    if template_name in _TEMPLATE_TO_LANGFUSE:
+        return _TEMPLATE_TO_LANGFUSE[template_name]
+    # fallback: 기존 로직 (미매핑 템플릿)
     name = template_name
     if name.startswith("creative/"):
         name = name[len("creative/") :]

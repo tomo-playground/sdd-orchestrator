@@ -52,99 +52,50 @@ DEFAULT_MODEL = "gemini-2.5-flash"
 MANAGED_PATHS: set[str] = set(LANGFUSE_MANAGED_TEMPLATES)
 
 # A등급 프롬프트의 system_instruction (노드 하드코딩에서 추출)
-# 빈 문자열 = 역할이 템플릿에 내장 (system 메시지 없이 업로드)
+# LangFuse 폴더 기반 이름 사용. 빈 문자열 = LangFuse에 이미 system이 설정됨.
+# 이 dict는 upload 시 fallback으로만 사용. 실제 system instruction은 LangFuse SSOT.
 SYSTEM_INSTRUCTIONS: dict[str, str] = {
-    "location-planner": (
-        "You are a Location Planner for short-form video scripts. "
-        "Output only valid JSON with the locations array. No explanations."
-    ),
-    "material-analyst": (
-        "You are a content analyst for short-form video production. "
-        "Analyze reference materials and extract key insights."
-    ),
-    "scene-expand": (
-        "You are a scene expansion specialist for short-form video scripts. "
-        "Generate new scenes that seamlessly integrate with existing ones."
-    ),
-    "narrative-review": "You are a narrative quality evaluator specializing in short-form video storytelling.",
-    "review-reflection": "You are a self-reflection agent that analyzes review failures and proposes fix strategies.",
-    "review-evaluate": "You are a script quality evaluator for short-form video scenes.",
-    "edit-scenes": (
-        "You are a scene editor for short-form video scripts. "
-        "Edit scenes according to the given instruction while preserving overall narrative coherence."
-    ),
-    "validate-image-tags": "You are an image analysis expert specializing in anime/illustration art.",
-    # Preset-based (DB 우선, 이 값은 fallback/문서용)
-    "concept-architect": "You are a Story Architect. Create compelling concepts for short-form videos. Respond only in valid JSON.",
-    "reference-analyst": "You are a Reference Analyst. Analyze content patterns. Respond only in valid JSON.",
-    "devils-advocate": "You are a Devil's Advocate. Criticize sharply but constructively. Respond only in valid JSON.",
-    # 역할이 템플릿에 내장 (system 메시지 없음)
-    "analyze-topic": "",
-    "sound-designer": "",
-    "copyright-reviewer": "",
-    # --- B등급 Phase 2: include 없는 복잡 로직 ---
-    "director": (
-        "You are the Production Director using the ReAct Loop framework. "
-        "Follow the Observe → Think → Act process. 모든 텍스트는 한국어로 작성. Respond only in valid JSON."
-    ),
-    "scriptwriter": (
-        "You are an expert Scriptwriter for short-form video content. "
-        "Convert concepts into scene-by-scene scripts with natural dialogue. Respond only in valid JSON."
-    ),
-    "director-plan": (
-        "You are the Creative Director for a short-form video project. "
-        "Establish creative direction, casting, and execution plan. 모든 텍스트는 한국어로 작성. Respond only in valid JSON."
-    ),
-    "writer-planning": (
-        "You are a Script Planning Specialist. "
-        "Create hook strategies, emotional arcs, scene distributions, and location maps. Respond only in valid JSON."
-    ),
-    "tts-designer": (
-        "You are a TTS Designer for short-form video. "
-        "Design emotional tonality and vocal expression for each scene. Respond only in valid JSON."
-    ),
-    "director-checkpoint": (
-        "You are the Creative Director reviewing a script before production. "
-        "Evaluate whether the script meets the creative direction. 모든 텍스트는 한국어로 작성. Respond only in valid JSON."
-    ),
-    "explain": (
-        "You are a Creative Director explaining production decisions. "
-        "Analyze all production results and explain creative choices. 모든 설명은 한국어로 작성. Respond only in valid JSON."
-    ),
-    "director-evaluate": (
-        "You are a Creative Director evaluating concept proposals. "
-        "Score each concept on hook, arc, feasibility, and originality. All text in Korean. Respond only in valid JSON."
-    ),
-    "review-unified": (
-        "You are a unified review agent that evaluates technical quality, narrative strength, "
-        "and self-reflection for short-form video scripts. Respond only in valid JSON."
-    ),
-    # --- include 제거 완료 (파셜→변수 전환) ---
-    "cinematographer": (
-        "You are a Cinematographer specializing in AI-generated visual design. "
-        "Add Danbooru tags, camera angles, and environment to each scene. Respond only in valid JSON."
-    ),
-    "create-storyboard": (
-        "You are a short-form video storyboarder. "
-        "Generate scene-by-scene scripts with image prompts in Danbooru tag format. Respond only in valid JSON."
-    ),
-    "create-storyboard-confession": (
-        "You are a short-form video storyboarder specializing in confession/lesson narratives. "
-        "Generate scene-by-scene scripts with image prompts. Respond only in valid JSON."
-    ),
-    "create-storyboard-dialogue": (
-        "You are a short-form video storyboarder specializing in two-character dialogue. "
-        "Generate scene-by-scene scripts with image prompts. Respond only in valid JSON."
-    ),
-    "create-storyboard-narrated": (
-        "You are a short-form video storyboarder specializing in narrated dialogue. "
-        "Generate scene-by-scene scripts with Narrator + A/B speakers. Respond only in valid JSON."
-    ),
+    # pipeline/ — 파이프라인 메인 노드
+    "pipeline/director": "",  # LangFuse에서 관리
+    "pipeline/director/plan": "",
+    "pipeline/director/checkpoint": "",
+    "pipeline/director/evaluate": "",
+    "pipeline/writer/script": "",
+    "pipeline/writer/planning": "",
+    "pipeline/cinematographer": "",
+    "pipeline/tts-designer": "",
+    "pipeline/sound-designer": "",
+    "pipeline/review/unified": "",
+    "pipeline/review/evaluate": "",
+    "pipeline/review/reflection": "",
+    "pipeline/review/narrative": "",
+    # storyboard/ — 스토리보드 생성
+    "storyboard/default": "",
+    "storyboard/dialogue": "",
+    "storyboard/narrated": "",
+    "storyboard/confession": "",
+    # tool/ — 보조 도구
+    "tool/analyze-topic": "",
+    "tool/concept-architect": "",
+    "tool/devils-advocate": "",
+    "tool/copyright-reviewer": "",
+    "tool/material-analyst": "",
+    "tool/reference-analyst": "",
+    "tool/location-planner": "",
+    "tool/scene-expand": "",
+    "tool/edit-scenes": "",
+    "tool/explain": "",
+    "tool/validate-image-tags": "",
 }
 
 
 def to_langfuse_name(template_path: str) -> str:
-    """템플릿 경로 → LangFuse 프롬프트 이름."""
+    """템플릿 경로 → LangFuse 프롬프트 이름 (폴더 기반)."""
+    from services.agent.langfuse_prompt import _TEMPLATE_TO_LANGFUSE
+
+    if template_path in _TEMPLATE_TO_LANGFUSE:
+        return _TEMPLATE_TO_LANGFUSE[template_path]
+    # fallback
     name = template_path
     if name.startswith("creative/"):
         name = name[len("creative/") :]
