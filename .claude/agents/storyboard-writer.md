@@ -61,16 +61,14 @@ Gemini 프롬프트와 출력 품질을 개선합니다:
 
 ## 현재 템플릿 구조
 
-```
-backend/templates/
-├── create_storyboard.j2            # 메인 스토리보드 생성 템플릿
-├── create_storyboard_confession.j2 # 고백형 스토리보드 템플릿
-├── create_storyboard_dialogue.j2   # 대화형 스토리보드 템플릿
-├── create_storyboard_narrated.j2   # 나레이션형 스토리보드 템플릿
-├── review_evaluate.j2              # 리뷰/평가 템플릿
-├── _partials/                      # 공유 파셜 템플릿 (5개)
-└── creative/                       # Creative Pipeline 전용 템플릿 (23개)
-```
+LangFuse에서 관리되는 프롬프트 (28개):
+- `storyboard/default` — 메인 스토리보드 생성
+- `storyboard/confession` — 고백형 스토리보드
+- `storyboard/dialogue` — 대화형 스토리보드
+- `storyboard/narrated` — 나레이션형 스토리보드
+- `pipeline/review/evaluate` — 리뷰/평가
+- `pipeline/*` — Creative Pipeline 노드
+- `tool/*` — 보조 도구
 
 ### 템플릿 출력 구조
 ```json

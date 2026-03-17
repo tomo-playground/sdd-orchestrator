@@ -33,7 +33,7 @@ PRESETS: dict[str, StoryboardPreset] = {
         name_ko="독백",
         description="Single narrator storytelling",
         structure="Monologue",
-        template="create_storyboard.j2",
+        template="create_storyboard",
         sample_topics=[
             "오늘 하루 있었던 일",
             "내가 좋아하는 계절",
@@ -49,7 +49,7 @@ PRESETS: dict[str, StoryboardPreset] = {
         name_ko="대화",
         description="Two-character conversation",
         structure="Dialogue",
-        template="create_storyboard_dialogue.j2",
+        template="create_storyboard_dialogue",
         sample_topics=[
             "첫 만남에서 어색한 대화",
             "오래된 친구와의 재회",
@@ -65,7 +65,7 @@ PRESETS: dict[str, StoryboardPreset] = {
         name_ko="내레이션 대화",
         description="Two characters with narrator commentary",
         structure="Narrated Dialogue",
-        template="create_storyboard_narrated.j2",
+        template="create_storyboard_narrated",
         sample_topics=[
             "10년 후 재회한 첫사랑",
             "면접관이 알아본 지원자의 비밀",
@@ -81,7 +81,7 @@ PRESETS: dict[str, StoryboardPreset] = {
         name_ko="고백/교훈",
         description="Personal confession with life lesson and growth",
         structure="Confession",
-        template="create_storyboard_confession.j2",
+        template="create_storyboard_confession",
         sample_topics=[
             "그때 왜 그랬는지 아직도 모르겠어",
             "아무에게도 말 못 했던 비밀",

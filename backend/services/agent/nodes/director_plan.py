@@ -97,22 +97,18 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
         "language": state.get("language", "Korean"),
         "structure_section": f"- **구조**: {structure}" if structure else "",
         "chat_context_block": build_chat_context_block(chat_ctx) if chat_ctx else "",
-        "references_block": (
-            "\n## Reference Materials\n" + build_references_block(references) if references else ""
-        ),
+        "references_block": ("\n## Reference Materials\n" + build_references_block(references) if references else ""),
         "characters_block": characters_block,
         "structures_block": structures_block,
         "styles_block": styles_block,
         "casting_guide": casting_guide,
         "casting_json_section": build_casting_json_section(has_characters),
-        "feedback_section": build_feedback_section(
-            state.get("director_plan_feedback"), header="## Retry Feedback"
-        ),
+        "feedback_section": build_feedback_section(state.get("director_plan_feedback"), header="## Retry Feedback"),
     }
 
     try:
         result = await run_production_step(
-            template_name="creative/director_plan.j2",
+            template_name="creative/director_plan",
             template_vars=template_vars,
             validate_fn=lambda data: validate_with_model(DirectorPlanOutput, data).model_dump(),
             extract_key="",

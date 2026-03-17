@@ -27,7 +27,7 @@ async def edit_scenes(
         return fallback
 
     try:
-        _template_name = "creative/edit_scenes.j2"
+        _template_name = "creative/edit_scenes"
         _fallback_sys = "You are a scene editor for short-form video scripts. Edit scenes according to the given instruction while preserving overall narrative coherence."
         compiled = compile_prompt(
             _template_name,

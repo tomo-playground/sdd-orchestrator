@@ -12,41 +12,41 @@ from typing import Any
 
 from config import logger
 
-# LangFuse에서 runtime fetch하는 템플릿 ({% include %} 미사용)
-# A등급(단순) + B등급(include 없는 복잡 로직) 통합
+# LangFuse에서 runtime fetch하는 프롬프트 목록
+# A등급(단순) + B등급(복잡 로직) 통합
 LANGFUSE_MANAGED_TEMPLATES: frozenset[str] = frozenset(
     {
         # --- A등급: 단순 변수 치환 + 경량 로직 ---
-        "creative/analyze_topic.j2",
-        "creative/concept_architect.j2",
-        "creative/location_planner.j2",
-        "creative/sound_designer.j2",
-        "creative/material_analyst.j2",
-        "creative/copyright_reviewer.j2",
-        "creative/devils_advocate.j2",
-        "creative/narrative_review.j2",
-        "creative/reference_analyst.j2",
-        "creative/scene_expand.j2",
-        "creative/edit_scenes.j2",
-        "creative/review_reflection.j2",
-        "validate_image_tags.j2",
-        "review_evaluate.j2",
-        # --- B등급: include 없는 복잡 로직 (Phase 2) ---
-        "creative/director.j2",
-        "creative/scriptwriter.j2",
-        "creative/director_plan.j2",
-        "creative/writer_planning.j2",
-        "creative/tts_designer.j2",
-        "creative/director_checkpoint.j2",
-        "creative/explain.j2",
-        "creative/director_evaluate.j2",
-        "creative/review_unified.j2",
-        # --- include 제거 완료 (Phase 2 파셜→변수 전환) ---
-        "creative/cinematographer.j2",
-        "create_storyboard.j2",
-        "create_storyboard_confession.j2",
-        "create_storyboard_dialogue.j2",
-        "create_storyboard_narrated.j2",
+        "creative/analyze_topic",
+        "creative/concept_architect",
+        "creative/location_planner",
+        "creative/sound_designer",
+        "creative/material_analyst",
+        "creative/copyright_reviewer",
+        "creative/devils_advocate",
+        "creative/narrative_review",
+        "creative/reference_analyst",
+        "creative/scene_expand",
+        "creative/edit_scenes",
+        "creative/review_reflection",
+        "validate_image_tags",
+        "review_evaluate",
+        # --- B등급: 복잡 로직 ---
+        "creative/director",
+        "creative/scriptwriter",
+        "creative/director_plan",
+        "creative/writer_planning",
+        "creative/tts_designer",
+        "creative/director_checkpoint",
+        "creative/explain",
+        "creative/director_evaluate",
+        "creative/review_unified",
+        # --- 파셜→변수 전환 완료 ---
+        "creative/cinematographer",
+        "create_storyboard",
+        "create_storyboard_confession",
+        "create_storyboard_dialogue",
+        "create_storyboard_narrated",
     }
 )
 
@@ -54,57 +54,56 @@ LANGFUSE_MANAGED_TEMPLATES: frozenset[str] = frozenset(
 A_GRADE_TEMPLATES = LANGFUSE_MANAGED_TEMPLATES
 
 
-# 템플릿 파일 → LangFuse 폴더 기반 이름 매핑
+# 프롬프트 이름 → LangFuse 폴더 기반 이름 매핑
 _TEMPLATE_TO_LANGFUSE: dict[str, str] = {
     # pipeline/ — 파이프라인 메인 노드
-    "creative/director.j2": "pipeline/director",
-    "creative/director_plan.j2": "pipeline/director/plan",
-    "creative/director_checkpoint.j2": "pipeline/director/checkpoint",
-    "creative/director_evaluate.j2": "pipeline/director/evaluate",
-    "creative/scriptwriter.j2": "pipeline/writer/script",
-    "creative/writer_planning.j2": "pipeline/writer/planning",
-    "creative/cinematographer.j2": "pipeline/cinematographer",
-    "creative/tts_designer.j2": "pipeline/tts-designer",
-    "creative/sound_designer.j2": "pipeline/sound-designer",
-    "creative/review_unified.j2": "pipeline/review/unified",
-    "review_evaluate.j2": "pipeline/review/evaluate",
-    "creative/review_reflection.j2": "pipeline/review/reflection",
-    "creative/narrative_review.j2": "pipeline/review/narrative",
+    "creative/director": "pipeline/director",
+    "creative/director_plan": "pipeline/director/plan",
+    "creative/director_checkpoint": "pipeline/director/checkpoint",
+    "creative/director_evaluate": "pipeline/director/evaluate",
+    "creative/scriptwriter": "pipeline/writer/script",
+    "creative/writer_planning": "pipeline/writer/planning",
+    "creative/cinematographer": "pipeline/cinematographer",
+    "creative/tts_designer": "pipeline/tts-designer",
+    "creative/sound_designer": "pipeline/sound-designer",
+    "creative/review_unified": "pipeline/review/unified",
+    "review_evaluate": "pipeline/review/evaluate",
+    "creative/review_reflection": "pipeline/review/reflection",
+    "creative/narrative_review": "pipeline/review/narrative",
     # storyboard/ — 스토리보드 생성 (structure별)
-    "create_storyboard.j2": "storyboard/default",
-    "create_storyboard_dialogue.j2": "storyboard/dialogue",
-    "create_storyboard_narrated.j2": "storyboard/narrated",
-    "create_storyboard_confession.j2": "storyboard/confession",
+    "create_storyboard": "storyboard/default",
+    "create_storyboard_dialogue": "storyboard/dialogue",
+    "create_storyboard_narrated": "storyboard/narrated",
+    "create_storyboard_confession": "storyboard/confession",
     # tool/ — 보조 도구
-    "creative/analyze_topic.j2": "tool/analyze-topic",
-    "creative/concept_architect.j2": "tool/concept-architect",
-    "creative/devils_advocate.j2": "tool/devils-advocate",
-    "creative/copyright_reviewer.j2": "tool/copyright-reviewer",
-    "creative/material_analyst.j2": "tool/material-analyst",
-    "creative/reference_analyst.j2": "tool/reference-analyst",
-    "creative/location_planner.j2": "tool/location-planner",
-    "creative/scene_expand.j2": "tool/scene-expand",
-    "creative/edit_scenes.j2": "tool/edit-scenes",
-    "creative/explain.j2": "tool/explain",
-    "validate_image_tags.j2": "tool/validate-image-tags",
+    "creative/analyze_topic": "tool/analyze-topic",
+    "creative/concept_architect": "tool/concept-architect",
+    "creative/devils_advocate": "tool/devils-advocate",
+    "creative/copyright_reviewer": "tool/copyright-reviewer",
+    "creative/material_analyst": "tool/material-analyst",
+    "creative/reference_analyst": "tool/reference-analyst",
+    "creative/location_planner": "tool/location-planner",
+    "creative/scene_expand": "tool/scene-expand",
+    "creative/edit_scenes": "tool/edit-scenes",
+    "creative/explain": "tool/explain",
+    "validate_image_tags": "tool/validate-image-tags",
 }
 
 
 def _to_langfuse_name(template_name: str) -> str:
-    """템플릿 경로 → LangFuse 프롬프트 이름 변환.
+    """프롬프트 이름 → LangFuse 프롬프트 이름 변환.
 
     Examples:
-        "creative/director.j2" → "pipeline/director"
-        "create_storyboard.j2" → "storyboard/default"
-        "creative/analyze_topic.j2" → "tool/analyze-topic"
+        "creative/director" → "pipeline/director"
+        "create_storyboard" → "storyboard/default"
+        "creative/analyze_topic" → "tool/analyze-topic"
     """
     if template_name in _TEMPLATE_TO_LANGFUSE:
         return _TEMPLATE_TO_LANGFUSE[template_name]
-    # fallback: 기존 로직 (미매핑 템플릿)
+    # fallback: 미매핑 프롬프트
     name = template_name
     if name.startswith("creative/"):
         name = name[len("creative/") :]
-    name = name.removesuffix(".j2")
     return name.replace("_", "-")
 
 

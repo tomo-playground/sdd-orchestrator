@@ -23,6 +23,7 @@ def load_tags_from_db() -> dict[str, list[str]]:
     finally:
         db.close()
 
+
 def load_allowed_tags_from_db() -> set[str]:
     """Load active tag names from database as allowed set.
 
@@ -36,6 +37,7 @@ def load_allowed_tags_from_db() -> set[str]:
     finally:
         db.close()
 
+
 def load_known_keywords() -> set[str]:
     """Load all known keywords from database."""
     allowed = load_allowed_tags_from_db()
@@ -44,9 +46,11 @@ def load_known_keywords() -> set[str]:
     known.update(get_ignore_tokens())
     return known
 
+
 def load_synonyms_from_db() -> dict[str, str]:
     """Load tag synonyms (Stub)."""
     return {}
+
 
 def load_tag_effectiveness_map() -> dict[str, tuple[float | None, int]]:
     """Load tag effectiveness data from DB.
@@ -66,6 +70,7 @@ def load_tag_effectiveness_map() -> dict[str, tuple[float | None, int]]:
         return {name: (eff, count) for name, eff, count in rows}
     finally:
         db.close()
+
 
 def load_tag_effectiveness_report() -> list[dict[str, Any]]:
     """Load full effectiveness report from DB."""
@@ -99,28 +104,46 @@ def load_tag_effectiveness_report() -> list[dict[str, Any]]:
     finally:
         db.close()
 
+
 # Legacy group mappings for Gemini-friendly prompt formatting
 _SCENE_GROUPS = [
-    "layer_0", "layer_1", "layer_2", "layer_3", "layer_4", "layer_5",
-    "layer_6", "layer_7", "layer_8", "layer_9", "layer_10", "layer_11",
-    "expression", "pose", "camera", "location_indoor", "location_outdoor", "lighting", "mood", "time"
+    "layer_0",
+    "layer_1",
+    "layer_2",
+    "layer_3",
+    "layer_4",
+    "layer_5",
+    "layer_6",
+    "layer_7",
+    "layer_8",
+    "layer_9",
+    "layer_10",
+    "layer_11",
+    "expression",
+    "pose",
+    "camera",
+    "location_indoor",
+    "location_outdoor",
+    "lighting",
+    "mood",
+    "time",
 ]
 
 # Maps DB layer groups → Gemini-readable category names
-# Must align with composition.py 12-Layer system and create_storyboard.j2 template
+# Must align with composition.py 12-Layer system and create_storyboard template
 _DB_GROUP_TO_GEMINI_CATEGORY = {
-    "layer_0": None,           # QUALITY — auto-composed, not for Gemini selection
-    "layer_1": None,           # SUBJECT — auto-composed (1boy, solo, etc.)
-    "layer_2": "character",    # IDENTITY — character features
-    "layer_3": "body",         # BODY — body type
-    "layer_4": "clothing",     # MAIN_CLOTH
-    "layer_5": "clothing",     # DETAIL_CLOTH — merge with clothing
-    "layer_6": "props",        # ACCESSORY — held items, worn accessories (holding_phone, etc.)
-    "layer_7": "expression",   # EXPRESSION
-    "layer_8": "action",       # ACTION — pose, gesture
-    "layer_9": "camera",       # CAMERA — shot type, angle
-    "layer_10": "environment", # ENVIRONMENT — location, time
-    "layer_11": "mood",        # ATMOSPHERE — mood, lighting
+    "layer_0": None,  # QUALITY — auto-composed, not for Gemini selection
+    "layer_1": None,  # SUBJECT — auto-composed (1boy, solo, etc.)
+    "layer_2": "character",  # IDENTITY — character features
+    "layer_3": "body",  # BODY — body type
+    "layer_4": "clothing",  # MAIN_CLOTH
+    "layer_5": "clothing",  # DETAIL_CLOTH — merge with clothing
+    "layer_6": "props",  # ACCESSORY — held items, worn accessories (holding_phone, etc.)
+    "layer_7": "expression",  # EXPRESSION
+    "layer_8": "action",  # ACTION — pose, gesture
+    "layer_9": "camera",  # CAMERA — shot type, angle
+    "layer_10": "environment",  # ENVIRONMENT — location, time
+    "layer_11": "mood",  # ATMOSPHERE — mood, lighting
     # Legacy groups
     "expression": "expression",
     "pose": "action",

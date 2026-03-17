@@ -100,7 +100,7 @@ async def evaluate_tags_with_gemini(
     from services.agent.langfuse_prompt import compile_prompt
     from services.agent.prompt_builders import build_tags_block
 
-    compiled = compile_prompt("validate_image_tags.j2", tags_block=build_tags_block(tags))
+    compiled = compile_prompt("validate_image_tags", tags_block=build_tags_block(tags))
     user_prompt = compiled.user
 
     contents = [

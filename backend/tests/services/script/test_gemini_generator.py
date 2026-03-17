@@ -36,7 +36,7 @@ class MockRequest:
 
 
 class MockPreset:
-    def __init__(self, template="create_storyboard.j2", extra_fields=None):
+    def __init__(self, template="create_storyboard", extra_fields=None):
         self.template = template
         self.extra_fields = extra_fields or {}
 

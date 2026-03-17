@@ -92,7 +92,7 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
 
         try:
             result = await run_production_step(
-                template_name="creative/director.j2",
+                template_name="creative/director",
                 template_vars=template_vars,
                 validate_fn=_react_validate_fn,
                 extract_key="",
@@ -191,13 +191,13 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
             logger.warning("[LangGraph] Director ReAct Step %d 1차 실패: %s", step_num, e)
             try:
                 result = await run_production_step(
-                    template_name="creative/director.j2",
+                    template_name="creative/director",
                     template_vars=template_vars,
                     validate_fn=_react_validate_fn,
                     extract_key="",
                     step_name=f"director_step_{step_num}_retry",
                     model=DIRECTOR_MODEL,
-                    )
+                )
                 react = DirectorReActOutput.model_validate(result)
                 react_step = {
                     "step": step_num,

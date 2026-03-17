@@ -174,7 +174,7 @@ async def _gemini_evaluate(
 ) -> str | None:
     """Gemini에 씬 품질 평가를 요청한다. 실패 시 None 반환."""
     try:
-        _template_name = "review_evaluate.j2"
+        _template_name = "review_evaluate"
         from services.agent.langfuse_prompt import compile_prompt  # noqa: PLC0415
 
         compiled = compile_prompt(
@@ -232,7 +232,7 @@ async def _narrative_evaluate(
 ) -> NarrativeScore | None:
     """서사 품질을 Gemini로 평가한다. 에러 시 None (graceful degradation)."""
     try:
-        _template_name_nr = "creative/narrative_review.j2"
+        _template_name_nr = "creative/narrative_review"
         from services.agent.langfuse_prompt import compile_prompt  # noqa: PLC0415
 
         compiled = compile_prompt(
@@ -276,7 +276,7 @@ async def _self_reflect(
             build_warnings_block,
         )
 
-        _template_name_rf = "creative/review_reflection.j2"
+        _template_name_rf = "creative/review_reflection"
         compiled = compile_prompt(
             _template_name_rf,
             topic=topic,
@@ -293,7 +293,10 @@ async def _self_reflect(
         llm_response = await get_llm_provider().generate(
             step_name="review_self_reflect",
             contents=compiled.user,
-            config=LLMConfig(system_instruction=compiled.system or "You are a self-reflection agent that analyzes review failures and proposes fix strategies."),
+            config=LLMConfig(
+                system_instruction=compiled.system
+                or "You are a self-reflection agent that analyzes review failures and proposes fix strategies."
+            ),
             model=REVIEW_MODEL,
             metadata={"template": _template_name_rf},
             langfuse_prompt=compiled.langfuse_prompt,
@@ -370,7 +373,7 @@ async def _unified_evaluate(
             build_rule_warnings_section,
         )
 
-        _template_name_ru = "creative/review_unified.j2"
+        _template_name_ru = "creative/review_unified"
         compiled = compile_prompt(
             _template_name_ru,
             scenes=json.dumps(scenes, ensure_ascii=False),

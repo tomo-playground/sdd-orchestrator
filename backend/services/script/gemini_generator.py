@@ -289,7 +289,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             db.close()
 
         preset = get_preset_by_structure(request.structure)
-        template_name = preset.template if preset else "create_storyboard.j2"
+        template_name = preset.template if preset else "create_storyboard"
         extra_fields = preset.extra_fields if preset else {}
 
         from services.agent.langfuse_prompt import compile_prompt
@@ -344,20 +344,25 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             "keyword_context": keyword_context,
             "description_section": build_description_section(request.description),
             "director_plan_context_section": build_optional_text_section(
-                "Creative Direction (from Director)", ctx.get("director_plan_context"),
+                "Creative Direction (from Director)",
+                ctx.get("director_plan_context"),
             ),
             "chat_context_block": build_storyboard_chat_context(sanitized_chat),
             "research_brief_section": build_optional_text_section(
-                "Reference Information", ctx.get("research_brief"),
+                "Reference Information",
+                ctx.get("research_brief"),
             ),
             "writer_plan_section": build_optional_text_section(
-                "Writer Plan", ctx.get("writer_plan"),
+                "Writer Plan",
+                ctx.get("writer_plan"),
             ),
             "revision_feedback_section": build_optional_text_section(
-                "Revision Request", ctx.get("revision_feedback"),
+                "Revision Request",
+                ctx.get("revision_feedback"),
             ),
             "current_script_section": build_optional_text_section(
-                "Current Script (revise based on this)", ctx.get("current_script_summary"),
+                "Current Script (revise based on this)",
+                ctx.get("current_script_summary"),
             ),
             "character_tag_rules": build_character_tag_rules(character_context is not None),
             **partial_vars,
@@ -369,19 +374,22 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             builder_vars["dialogue_scene_range"] = build_dialogue_scene_range(request.duration)
             builder_vars["dialogue_scene_max"] = build_dialogue_scene_max(request.duration)
             builder_vars["multi_character_rules"] = build_multi_character_rules(
-                is_multi_character_capable, character_context, character_b_context,
+                is_multi_character_capable,
+                character_context,
+                character_b_context,
             )
             builder_vars["multi_scene_mode_field"] = build_multi_scene_mode_field(is_multi_character_capable)
             builder_vars["multi_scene_mode_hint"] = (
-                '   - scene_mode: "single" (default) or "multi" (both characters)'
-                if is_multi_character_capable else ""
+                '   - scene_mode: "single" (default) or "multi" (both characters)' if is_multi_character_capable else ""
             )
         else:
             builder_vars["scene_count_range"] = build_scene_count_range(
-                request.duration, request.structure,
+                request.duration,
+                request.structure,
             )
             builder_vars["scene_count_max"] = build_scene_count_max(
-                request.duration, request.structure,
+                request.duration,
+                request.structure,
             )
 
         compiled = compile_prompt(template_name, **builder_vars)
@@ -409,9 +417,10 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         user_contents = "\n".join(user_parts)
         logger.info(
             "[Writer] system_instruction=%dch, contents=%dch, sys_preview='%s', user_preview='%s'",
-            len(system_instruction), len(user_contents),
-            system_instruction[:150].replace('\n', ' '),
-            user_contents[:150].replace('\n', ' '),
+            len(system_instruction),
+            len(user_contents),
+            system_instruction[:150].replace("\n", " "),
+            user_contents[:150].replace("\n", " "),
         )
         llm_resp = await get_llm_provider().generate(
             step_name="writer",

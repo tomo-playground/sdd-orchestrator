@@ -52,7 +52,7 @@ async def test_run_production_step_success(mock_compile, mock_llm_provider):
     mock_llm_provider.return_value = mock_provider
 
     result = await run_production_step(
-        template_name="creative/cinematographer.j2",
+        template_name="creative/cinematographer",
         template_vars={"scenes": []},
         validate_fn=lambda x: {"ok": True, "issues": [], "checks": {}},
         extract_key="scenes",
@@ -86,7 +86,7 @@ async def test_run_production_step_retry_on_qc_fail(mock_compile, mock_llm_provi
         return {"ok": True, "issues": [], "checks": {}}
 
     result = await run_production_step(
-        template_name="creative/cinematographer.j2",
+        template_name="creative/cinematographer",
         template_vars={"scenes": []},
         validate_fn=qc_fn,
         extract_key="scenes",

@@ -224,7 +224,7 @@ async def _run_single_lens(
     for attempt in range(1, max_attempts + 1):
         current_prompt = prompt if attempt == 1 else prompt + _JSON_RETRY_SUFFIX
         try:
-            _comp_metadata = {"template": "creative/cinematographer.j2", "lens": role}
+            _comp_metadata = {"template": "creative/cinematographer", "lens": role}
             if attempt == 1:
                 response, attempt_logs = await call_with_tools(
                     prompt=current_prompt,

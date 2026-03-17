@@ -143,7 +143,7 @@ async def tts_designer_node(state: ScriptState) -> dict:
     }
     try:
         result = await run_production_step(
-            template_name="creative/tts_designer.j2",
+            template_name="creative/tts_designer",
             template_vars=template_vars,
             validate_fn=lambda extracted: validate_tts_design(
                 extracted if isinstance(extracted, list) else [],

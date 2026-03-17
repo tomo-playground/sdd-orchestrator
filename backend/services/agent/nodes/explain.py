@@ -27,14 +27,15 @@ async def explain_node(state: ScriptState) -> dict:
         "sound_designer_json": to_json(state.get("sound_designer_result") or {}),
         "copyright_reviewer_json": to_json(state.get("copyright_reviewer_result") or {}),
         "director_decision_section": build_director_decision_section(
-            state.get("director_decision"), state.get("director_feedback"),
+            state.get("director_decision"),
+            state.get("director_feedback"),
         ),
         "scene_reasoning_section": build_scene_reasoning_section(state.get("scene_reasoning") or []),
         "feedback_section": build_feedback_section(state.get("director_feedback")),
     }
     try:
         result = await run_production_step(
-            template_name="creative/explain.j2",
+            template_name="creative/explain",
             template_vars=template_vars,
             validate_fn=lambda extracted: {"ok": bool(extracted), "issues": [], "checks": {}},
             extract_key="explanation",

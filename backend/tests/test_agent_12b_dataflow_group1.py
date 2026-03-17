@@ -16,7 +16,7 @@ import pytest
 
 
 class TestParseCandidatesFieldPreservation:
-    """_parse_candidates가 concept_architect.j2 출력 필드를 보존하는지 검증."""
+    """_parse_candidates가 concept_architect 출력 필드를 보존하는지 검증."""
 
     def test_full_json_preserves_all_fields(self):
         """풀 JSON 입력 → 모든 필드 보존."""

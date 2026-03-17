@@ -66,7 +66,7 @@ async def analyze_topic(
     try:
         from google.genai import types
 
-        compiled = compile_prompt("creative/analyze_topic.j2", **template_vars)
+        compiled = compile_prompt("creative/analyze_topic", **template_vars)
         prompt = compiled.user
         sys_instruction = compiled.system or ""
         config = types.GenerateContentConfig(

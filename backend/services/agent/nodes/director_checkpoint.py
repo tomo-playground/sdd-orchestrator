@@ -80,7 +80,7 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
 
     try:
         result = await run_production_step(
-            template_name="creative/director_checkpoint.j2",
+            template_name="creative/director_checkpoint",
             template_vars=template_vars,
             validate_fn=lambda data: validate_with_model(DirectorCheckpointOutput, data).model_dump(),
             extract_key="",
@@ -117,7 +117,7 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
         logger.warning("[LangGraph] Director Checkpoint 1차 실패: %s", e)
         try:
             result = await run_production_step(
-                template_name="creative/director_checkpoint.j2",
+                template_name="creative/director_checkpoint",
                 template_vars=template_vars,
                 validate_fn=lambda data: validate_with_model(DirectorCheckpointOutput, data).model_dump(),
                 extract_key="",

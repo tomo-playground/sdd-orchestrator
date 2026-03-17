@@ -35,7 +35,7 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
     selected_concept = extract_selected_concept(state)
 
     try:
-        _template_name = "creative/location_planner.j2"
+        _template_name = "creative/location_planner"
         _fallback_sys = (
             "You are a Location Planner for short-form video scripts. "
             "Output only valid JSON with the locations array. No explanations."
@@ -50,7 +50,9 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
             duration=str(duration),
             language=state.get("language", "Korean"),
             structure=state.get("structure", "Monologue"),
-            director_plan_section=build_optional_section("## Creative Direction (from Director)", director_ctx) if director_ctx else "",
+            director_plan_section=build_optional_section("## Creative Direction (from Director)", director_ctx)
+            if director_ctx
+            else "",
             selected_concept_section=build_selected_concept_block(selected_concept) if selected_concept else "",
             expected_scenes_min=str(min_s),
             expected_scenes_max=str(max_s),

@@ -1,13 +1,12 @@
-"""Jinja2 템플릿 → LangFuse Prompt Management 일괄 업로드.
+"""LangFuse Prompt Management 업로드 스크립트.
 
 사용법:
     cd backend && python scripts/upload_prompts_to_langfuse.py
 
 동작:
-    1. templates/ 디렉토리의 모든 .j2 파일을 읽음
-    2. A등급: chat 타입 (system + user 메시지 분리)
-    3. B등급: text 타입 (가시성 전용)
-    4. LangFuse API로 업로드 (production 라벨)
+    1. LANGFUSE_MANAGED_TEMPLATES 목록 기반으로 LangFuse에 프롬프트 등록
+    2. chat 타입 (system + user 메시지 분리)
+    3. LangFuse API로 업로드 (production 라벨)
 
 옵션:
     --dry-run: 업로드 없이 매핑만 출력
@@ -90,7 +89,7 @@ SYSTEM_INSTRUCTIONS: dict[str, str] = {
 
 
 def to_langfuse_name(template_path: str) -> str:
-    """템플릿 경로 → LangFuse 프롬프트 이름 (폴더 기반)."""
+    """프롬프트 이름 → LangFuse 프롬프트 이름 (폴더 기반)."""
     from services.agent.langfuse_prompt import _TEMPLATE_TO_LANGFUSE
 
     if template_path in _TEMPLATE_TO_LANGFUSE:
@@ -99,7 +98,6 @@ def to_langfuse_name(template_path: str) -> str:
     name = template_path
     if name.startswith("creative/"):
         name = name[len("creative/") :]
-    name = name.removesuffix(".j2")
     return name.replace("_", "-")
 
 
@@ -119,26 +117,22 @@ def _build_prompt_payload(lf_name: str, content: str, is_managed: bool) -> tuple
     return messages, "chat"
 
 
-def collect_templates(templates_dir: Path, grade: str) -> list[tuple[str, str, str]]:
-    """(relative_path, langfuse_name, content) 리스트를 반환한다."""
+def collect_templates(templates_dir: Path, grade: str) -> list[tuple[str, str, str]]:  # noqa: ARG001
+    """(prompt_name, langfuse_name, content) 리스트를 반환한다.
+
+    .j2 파일 제거 완료. LANGFUSE_MANAGED_TEMPLATES 기반으로 동작.
+    content는 빈 문자열 (LangFuse SSOT — 파일 시스템에 소스 없음).
+    """
     results = []
-    for j2_file in sorted(templates_dir.rglob("*.j2")):
-        rel = str(j2_file.relative_to(templates_dir))
-        if grade == "A" and rel not in MANAGED_PATHS:
-            continue
-        lf_name = to_langfuse_name(rel)
-        content = j2_file.read_text(encoding="utf-8")
-        results.append((rel, lf_name, content))
+    for prompt_name in sorted(MANAGED_PATHS):
+        lf_name = to_langfuse_name(prompt_name)
+        results.append((prompt_name, lf_name, ""))
     return results
 
 
 def upload(dry_run: bool = False, grade: str = "all") -> None:
     """LangFuse에 프롬프트를 업로드한다."""
     templates_dir = Path(__file__).resolve().parent.parent / "templates"
-    if not templates_dir.exists():
-        print(f"[ERROR] templates 디렉토리 없음: {templates_dir}")
-        sys.exit(1)
-
     templates = collect_templates(templates_dir, grade)
     print(f"\n{'=' * 60}")
     print(f"  LangFuse Prompt Upload — {len(templates)}개 템플릿 ({grade}등급)")

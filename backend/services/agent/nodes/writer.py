@@ -88,7 +88,7 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
     실패 시 None 반환 (graceful degradation).
     """
     try:
-        _template_name = "creative/writer_planning.j2"
+        _template_name = "creative/writer_planning"
         _fallback_sys = (
             "You are a writing planner for short-form video scripts. "
             "Create hook strategies, emotional arcs, and scene distributions."
@@ -106,9 +106,9 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
             duration=str(duration),
             language=state.get("language", "Korean"),
             structure=structure,
-            director_plan_section=build_optional_section(
-                "## Creative Direction (from Director)", director_ctx
-            ) if director_ctx else "",
+            director_plan_section=build_optional_section("## Creative Direction (from Director)", director_ctx)
+            if director_ctx
+            else "",
             selected_concept_section=build_selected_concept_block(selected_concept) if selected_concept else "",
             scene_range=scene_range,
         )

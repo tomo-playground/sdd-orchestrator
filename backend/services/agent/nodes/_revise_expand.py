@@ -205,7 +205,7 @@ async def try_scene_expand(
     )
 
     try:
-        _template_name = "creative/scene_expand.j2"
+        _template_name = "creative/scene_expand"
 
         # 피드백 수집
         review = state.get("review_result") or {}

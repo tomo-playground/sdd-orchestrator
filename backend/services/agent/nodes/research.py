@@ -175,7 +175,7 @@ async def _analyze_references(refs: list[str], state: ScriptState) -> str | None
 
     # Gemini 분석
     try:
-        _template_name = "creative/material_analyst.j2"
+        _template_name = "creative/material_analyst"
         _fallback_sys = "You are a content analyst for short-form video production. Analyze reference materials and extract key insights."
         compiled = compile_prompt(
             _template_name,

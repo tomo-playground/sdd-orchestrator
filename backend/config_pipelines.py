@@ -36,19 +36,19 @@ CREATIVE_AGENT_CATEGORIES = [
 # Creative Lab: Agent-Template Mapping
 CREATIVE_AGENT_TEMPLATES: dict[str, str] = {
     # Concept Phase
-    "emotional_arc": "creative/concept_architect.j2",
-    "visual_hook": "creative/concept_architect.j2",
-    "narrative_twist": "creative/concept_architect.j2",
-    "devils_advocate": "creative/devils_advocate.j2",
-    "creative_director": "creative/director_evaluate.j2",
-    "reference_analyst": "creative/reference_analyst.j2",
-    "material_analyst": "creative/material_analyst.j2",
+    "emotional_arc": "creative/concept_architect",
+    "visual_hook": "creative/concept_architect",
+    "narrative_twist": "creative/concept_architect",
+    "devils_advocate": "creative/devils_advocate",
+    "creative_director": "creative/director_evaluate",
+    "reference_analyst": "creative/reference_analyst",
+    "material_analyst": "creative/material_analyst",
     # Production Phase
-    "scriptwriter": "creative/scriptwriter.j2",
-    "cinematographer": "creative/cinematographer.j2",
-    "tts_designer": "creative/tts_designer.j2",
-    "sound_designer": "creative/sound_designer.j2",
-    "copyright_reviewer": "creative/copyright_reviewer.j2",
+    "scriptwriter": "creative/scriptwriter",
+    "cinematographer": "creative/cinematographer",
+    "tts_designer": "creative/tts_designer",
+    "sound_designer": "creative/sound_designer",
+    "copyright_reviewer": "creative/copyright_reviewer",
 }
 
 # --- LangFuse Observability ---

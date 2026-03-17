@@ -44,7 +44,7 @@ If a scene requires emotional contrast, use NEUTRAL expressions instead of mixin
 
 
 def render_selected_concept(selected_concept: dict | None) -> str:
-    """_partials/selected_concept.j2 대체."""
+    """_partials/selected_concept 대체."""
     if not selected_concept:
         return ""
     title = selected_concept.get("title", "")
@@ -59,20 +59,22 @@ def render_selected_concept(selected_concept: dict | None) -> str:
     ]
     if strengths:
         lines.append(f"Strengths: {', '.join(str(s) for s in strengths)}")
-    lines.extend([
-        "",
-        "YOU MUST follow this concept precisely:",
-        '- The script MUST tell the story described in "Concept" above',
-        "- The title sets the theme — every scene must serve this theme",
-        "- Do NOT invent a different story, angle, or theme",
-        "- Deviating from this concept is a CRITICAL ERROR",
-        "=== END SELECTED CONCEPT ===",
-    ])
+    lines.extend(
+        [
+            "",
+            "YOU MUST follow this concept precisely:",
+            '- The script MUST tell the story described in "Concept" above',
+            "- The title sets the theme — every scene must serve this theme",
+            "- Do NOT invent a different story, angle, or theme",
+            "- Deviating from this concept is a CRITICAL ERROR",
+            "=== END SELECTED CONCEPT ===",
+        ]
+    )
     return "\n".join(lines)
 
 
 def render_character_profile(ctx: dict | None, speaker: str | None = None) -> str:
-    """_partials/character_profile.j2 대체.
+    """_partials/character_profile 대체.
 
     Args:
         ctx: character_context dict (name, gender, description, costume_tags)
@@ -97,11 +99,13 @@ def render_character_profile(ctx: dict | None, speaker: str | None = None) -> st
     if costume_tags:
         lines.append("Costume Reference (for script context only — do NOT include in image_prompt):")
         lines.append(", ".join(str(t) for t in costume_tags))
-    lines.extend([
-        "",
-        f"⚠️ SCRIPT RULES for {name}:",
-        f"- Write dialogue/narration that matches {gender} character's natural speech patterns",
-    ])
+    lines.extend(
+        [
+            "",
+            f"⚠️ SCRIPT RULES for {name}:",
+            f"- Write dialogue/narration that matches {gender} character's natural speech patterns",
+        ]
+    )
     if description:
         lines.append(f"- Reflect this character's personality: {description}")
     lines.append("- The character's gender and personality MUST be consistent across ALL scenes")
@@ -109,7 +113,7 @@ def render_character_profile(ctx: dict | None, speaker: str | None = None) -> st
 
 
 def render_allowed_tags(allowed_tags: dict[str, list[str]]) -> str:
-    """_partials/allowed_tags_by_category.j2 대체.
+    """_partials/allowed_tags_by_category 대체.
 
     Args:
         allowed_tags: {"camera": [...], "expression": [...], ...}

@@ -65,7 +65,7 @@ async def test_run_production_step_uses_custom_model():
         from services.agent.nodes._production_utils import run_production_step
 
         await run_production_step(
-            template_name="test.j2",
+            template_name="test",
             template_vars={},
             validate_fn=lambda x: {"ok": True, "issues": []},
             extract_key="",
@@ -94,7 +94,7 @@ async def test_run_production_step_default_model_fallback():
         from services.agent.nodes._production_utils import run_production_step
 
         await run_production_step(
-            template_name="test.j2",
+            template_name="test",
             template_vars={},
             validate_fn=lambda x: {"ok": True, "issues": []},
             extract_key="scenes",

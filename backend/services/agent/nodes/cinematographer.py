@@ -208,7 +208,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     )
     from services.agent.prompt_partials import EMOTION_CONSISTENCY_RULES, IMAGE_PROMPT_KO_RULES
 
-    _cine_template = "creative/cinematographer.j2"
+    _cine_template = "creative/cinematographer"
     compiled = compile_prompt(
         _cine_template,
         scenes_json=json.dumps(scenes, ensure_ascii=False, indent=2),
@@ -301,7 +301,8 @@ async def _run(state: ScriptState, db_session: object) -> dict:
                     tool_executors=executors,
                     max_calls=10,
                     trace_name="cinematographer_tool_calling",
-                    system_instruction=compiled.system or "당신은 쇼츠 영상의 Cinematographer Agent입니다. 각 씬에 Danbooru 태그, 카메라 앵글, 환경 설정을 추가하여 비주얼 디자인을 완성하세요.",
+                    system_instruction=compiled.system
+                    or "당신은 쇼츠 영상의 Cinematographer Agent입니다. 각 씬에 Danbooru 태그, 카메라 앵글, 환경 설정을 추가하여 비주얼 디자인을 완성하세요.",
                     metadata=_cine_metadata,
                 )
                 tool_logs = attempt_logs
@@ -312,7 +313,8 @@ async def _run(state: ScriptState, db_session: object) -> dict:
                     prompt=current_prompt,
                     trace_name="cinematographer_direct_retry",
                     temperature=0.0,
-                    system_instruction=compiled.system or "당신은 쇼츠 영상의 Cinematographer Agent입니다. 반드시 JSON 형식으로만 응답하세요.",
+                    system_instruction=compiled.system
+                    or "당신은 쇼츠 영상의 Cinematographer Agent입니다. 반드시 JSON 형식으로만 응답하세요.",
                     metadata=_cine_metadata,
                 )
         except Exception as e:

@@ -298,7 +298,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 - DB 저장 (tags 테이블, tag_effectiveness 테이블)
 - API 응답 (JSON 포맷)
 - 프롬프트 생성 (`normalize_prompt_token()` 보존)
-- Gemini 템플릿 예시 (create_storyboard.j2)
+- Gemini 프롬프트 예시 (LangFuse create_storyboard)
 - WD14 검증 결과
 
 **금지 사항**:

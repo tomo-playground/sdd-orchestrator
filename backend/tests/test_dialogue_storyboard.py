@@ -56,7 +56,7 @@ class TestDialoguePreset:
         preset = get_preset_by_structure("Dialogue")
         assert preset is not None
         assert preset.id == "dialogue"
-        assert preset.template == "create_storyboard_dialogue.j2"
+        assert preset.template == "create_storyboard_dialogue"
 
     def test_dialogue_preset_in_all_presets(self):
         from services.presets import get_all_presets
