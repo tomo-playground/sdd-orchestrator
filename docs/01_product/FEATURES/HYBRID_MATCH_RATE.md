@@ -184,7 +184,7 @@ SKIPPABLE_GROUPS: frozenset[str] = frozenset({
 ### Sprint B: Gemini Vision 평가 엔진 (P0)
 
 - [ ] B-1: `evaluate_tags_with_gemini()` 함수 — 이미지(base64) + 태그 목록 → 태그별 present/confidence 반환
-- [ ] B-2: Gemini 프롬프트 템플릿 작성 (`templates/validate_image_tags.j2`) — Danbooru 태그 설명 포함
+- [ ] B-2: Gemini 프롬프트 작성 (`validation/image-tags` LangFuse 프롬프트) — Danbooru 태그 설명 포함
 - [ ] B-3: LLM Provider 연동 — `services/llm/` 패키지 활용, safety settings + fallback 적용
 - [ ] B-4: 결과 파싱 + 에러 처리 — JSON 파싱 실패 시 해당 태그 전체 skipped 처리 (graceful degradation)
 
@@ -234,7 +234,7 @@ SKIPPABLE_GROUPS: frozenset[str] = frozenset({
 |------|------|
 | `config.py` | `GEMINI_DETECTABLE_GROUPS`, `SKIPPABLE_GROUPS` 추가. `WD14_DETECTABLE_GROUPS` 확장. `WD14_UNMATCHABLE_TAGS` 제거 |
 | `services/validation.py` | `classify_prompt_tokens()` 신규, `validate_scene_image()` 리팩토링, `evaluate_tags_with_gemini()` 신규, `compute_adjusted_match_rate()` deprecated |
-| `templates/validate_image_tags.j2` | Gemini 프롬프트 템플릿 신규 |
+| `validation/image-tags` LangFuse 프롬프트 | Gemini 프롬프트 신규 |
 | `schemas.py` | `SceneValidationResponse`에 `evaluation_details` 필드 추가 |
 | `models/scene_quality.py` | `evaluation_details` JSONB 컬럼 추가 |
 | `alembic/versions/` | 마이그레이션 1건 |

@@ -411,9 +411,9 @@ restricted:
 ```
 
 **적용 범위**: 3개 Gemini 템플릿 전체
-- `create_storyboard.j2` (Monologue)
-- `create_storyboard_dialogue.j2` (Dialogue)
-- `create_storyboard_narrated.j2` (Narrated Dialogue)
+- `storyboard/default` (Monologue)
+- `storyboard/dialogue` (Dialogue)
+- `storyboard/narrated-dialogue` (Narrated Dialogue)
 
 ---
 

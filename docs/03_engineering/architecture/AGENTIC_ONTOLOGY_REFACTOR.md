@@ -8,7 +8,7 @@
 
 ## 1. 문제 정의 (As-Is의 한계)
 
-현재 `backend/templates/creative/cinematographer.j2`를 비롯한 주요 프롬프트 템플릿은 지나치게 방대한 제약 조건("금지어", "Danbooru 태그 규칙", "감정-카메라 강제 매핑")을 자연어로 안고 있습니다.
+현재 `pipeline/cinematographer` LangFuse 프롬프트를 비롯한 주요 프롬프트는 지나치게 방대한 제약 조건("금지어", "Danbooru 태그 규칙", "감정-카메라 강제 매핑")을 자연어로 안고 있습니다.
 
 1. **환각 리스크와 방어 코드 양산**: LLM은 본질적으로 확률 모델이므로, `cinematic_shadows` 같은 금지된 태그를 100% 안 쓴다는 보장이 없습니다. 이를 막기 위해 백엔드에서 다시 정규표현식과 Validation 과정을 거치며 수많은 방어 코드가 양산되고 있습니다.
 2. **"Agentic" 철학과의 어긋남**: Agentic AI는 에이전트(LLM)가 상위 수준의 의도(Intent)를 추론하고 시스템(Tool/Code)이 구체적인 행동(Action)을 매핑할 때 가장 강력합니다. 현재는 에이전트에게 250줄짜리 단순 타이핑(문법 검사기 역할)을 강제하고 있습니다.
@@ -88,7 +88,7 @@ class CinematographyOntology:
         pass
 ```
 
-### 📌 Step 3: `cinematographer.j2` 프롬프트 대폭 축소 (다이어트)
+### Step 3: `pipeline/cinematographer` 프롬프트 대폭 축소 (다이어트)
 불필요한 자연어 규칙을 모두 날립니다. 최근 업데이트에서 `holding_object` 통제 등 일부 규칙이 개선되었으나, 여전히 감정과 카메라의 1:1 매핑 규칙이 길게 적혀있습니다.
 
 **[기존 250줄짜리 프롬프트 예시]**
@@ -108,6 +108,6 @@ class CinematographyOntology:
 ---
 
 ## 4. 리뷰 및 점검 포인트 (DoD)
-- [ ] `cinematographer.j2`의 프레임워크가 100줄 이내로 대폭 축소되었는가?
+- [ ] `pipeline/cinematographer` 프롬프트의 프레임워크가 100줄 이내로 대폭 축소되었는가?
 - [ ] 구조화된 Schema(Pydantic)를 통해 LLM이 환각 태그를 뱉을 수 있는 공간 자체가 차단되었는가?
-- [ ] 과거 `cinematographer.j2`에 있던 [Gaze-Pose 연관 규칙, Emotion-Camera 연관 규칙]들이 파이썬 로직(`cinematography_ontology.py`) 으로 누락 없이 이전되었는가?
+- [ ] 과거 `pipeline/cinematographer` 프롬프트에 있던 [Gaze-Pose 연관 규칙, Emotion-Camera 연관 규칙]들이 파이썬 로직(`cinematography_ontology.py`) 으로 누락 없이 이전되었는가?

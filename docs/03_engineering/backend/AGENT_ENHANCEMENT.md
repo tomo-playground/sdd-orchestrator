@@ -15,7 +15,7 @@
 | # | 문제 | 영향 범위 | 근거 |
 |---|------|----------|------|
 | 1 | **Director Plan이 파이프라인에 흐르지 않음** | Research, Critic, Writer | `director_plan` state를 `director_checkpoint`만 읽음. 나머지 창작 노드에 미전달 |
-| 2 | **Research → Critic 데이터 단절** | Critic 3인 Architect | `research_brief`(자유 문자열) vs `concept_architect.j2`(구조화 필드 기대). 항상 N/A 출력 |
+| 2 | **Research → Critic 데이터 단절** | Critic 3인 Architect | `research_brief`(자유 문자열) vs `concept_architect` 프롬프트(구조화 필드 기대). 항상 N/A 출력 |
 | 3 | **`language` 필드 누락** (3개 노드 동일 버그) | tts_designer, sound_designer, copyright_reviewer | 템플릿 `{{ language }}` 사용하나 template_vars에 미전달 → 빈 문자열 |
 | 4 | **예외 시 자동 통과** (품질 게이트 무력화) | director_checkpoint, director | 모든 예외 → `"proceed"` / `"approve"`. 네트워크 순단으로도 불량 통과 |
 | 5 | **Learn 저장 데이터 빈약** (피드백 루프 무효) | learn → research (다음 생성 시) | 품질 점수, revision 횟수, hook 전략 미저장. Research가 품질 패턴 학습 불가 |
@@ -63,7 +63,7 @@
 | 우선순위 | 문제 | 강화 방안 |
 |---------|------|----------|
 | **P1** | `WriterPlanOutput` 모든 필드 기본값 빈 값 → 빈 Plan 통과 | `hook_strategy: Field(min_length=10)`, `emotional_arc: min_length=2` |
-| P2 | `emotional_arc`가 실제 씬 생성에 반영 안 됨 | `create_storyboard.j2`에 plan 섹션 명시적 주입 |
+| P2 | `emotional_arc`가 실제 씬 생성에 반영 안 됨 | `create_storyboard` 프롬프트에 plan 섹션 명시적 주입 |
 | P3 | `estimate_reading_duration`이 모든 씬 duration 덮어씀 | `lock_duration` 메타데이터 예외 처리 |
 
 ### 2-6. Review

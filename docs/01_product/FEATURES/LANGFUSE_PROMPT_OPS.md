@@ -137,7 +137,7 @@ prompt_builders.py                    langfuse_prompt.py
 | **B** | 6~9 | 9 | scriptwriter, concept_architect, explain, director, review_reflection 등 | 낮음 |
 | **C** | 0~5 | 10 | narrative_review, review_evaluate, devils_advocate, edit_scenes 등 | 최소 |
 
-> `director.j2`는 제어문 7개로 B등급 수준 (리뷰 반영: S→B 재분류)
+> `director` 프롬프트는 제어문 7개로 B등급 수준 (리뷰 반영: S→B 재분류)
 
 ---
 
@@ -149,7 +149,7 @@ prompt_builders.py                    langfuse_prompt.py
 
 1. **`compile()` 래퍼 PoC**: `CompiledPrompt` 구현 + C등급 1개(narrative_review)로 E2E 테스트
 2. **Composability PoC**: `@@@langfusePrompt:...@@@` SDK resolve 여부 확인 → 미지원 시 대안 설계
-3. **fallback 호환성**: `.j2` 파일도 `{{variable}}` 형식으로 변환 시 Jinja2 `Environment`가 처리 가능한지 확인
+3. **fallback 호환성**: 로컬 fallback 파일도 `{{variable}}` 형식으로 변환 시 호환 가능한지 확인
 
 ### Sprint 1: C등급 10개 전환
 
@@ -218,7 +218,7 @@ cinematographer(21점), director_plan(21점)
 **최종 정리**:
 - Jinja2 관련 import 제거 (`template_env`, `BaseLoader`, `Environment`)
 - `langfuse_prompt.py`에서 `_lf_jinja_env` 제거
-- fallback `.j2` 파일을 `{{variable}}` 형식으로 통일 (Jinja2 문법 제거)
+- fallback 파일을 `{{variable}}` 형식으로 통일 (Jinja2 문법 제거)
 - `prompt_partials.py` → `prompt_builders.py` 통합 검토
 
 ---
@@ -228,11 +228,11 @@ cinematographer(21점), director_plan(21점)
 Jinja2 제거 후에도 로컬 fallback 유지. 단, **fallback 파일도 네이티브 형식으로 통일**:
 
 ```
-# AS-IS (.j2 fallback): Jinja2 문법
+# AS-IS (Jinja2 fallback): Jinja2 문법
 {% if structure == "Dialogue" %}Speakers: A, B{% endif %}
 {{ scenes | tojson }}
 
-# TO-BE (.j2 fallback): {{variable}} 단순 치환만
+# TO-BE (LangFuse 네이티브 fallback): {{variable}} 단순 치환만
 {{structure_rules}}
 {{scenes_json}}
 ```

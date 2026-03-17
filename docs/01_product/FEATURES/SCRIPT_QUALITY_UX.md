@@ -13,7 +13,7 @@
 | 문제 | 상세 |
 |------|------|
 | **서사 품질 미평가** | Review 노드가 구조만 검증 (필드 존재, duration > 0, speaker 유효성). Hook 강도, 감정 곡선, 클라이맥스 임팩트 등 서사 품질은 평가하지 않음 |
-| **템플릿 구조 가이드 부재** | `create_storyboard.j2`에 Hook/Rising/Climax/Resolution 분배 지시 없음. Gemini가 자유롭게 생성 → 품질 편차 큼 |
+| **템플릿 구조 가이드 부재** | `storyboard/default` 프롬프트에 Hook/Rising/Climax/Resolution 분배 지시 없음. Gemini가 자유롭게 생성 → 품질 편차 큼 |
 | **AI 과정 불투명** | 사용자에게 최종 결과만 전달. Critic 3컨셉, Director 판단 근거, 각 에이전트 reasoning이 감춰져 있음 |
 | **피드백 수단 부족** | Human Gate에서 텍스트 자유 입력만 가능. "뭘 어떻게 수정해야 할지" 모르는 사용자는 피드백 불가 |
 | **Concept 선택 불가** | Critic이 3개 컨셉을 생성하지만 자동 선정만 가능. 사용자가 방향 선택에 참여할 수 없음 |
@@ -90,7 +90,7 @@ class ReviewResult(TypedDict, total=False):
 
 ### 3-1. 템플릿 개선
 
-`create_storyboard.j2`에 추가할 구조 지시:
+`storyboard/default` LangFuse 프롬프트에 추가할 구조 지시:
 
 ```
 ## 씬 구조 가이드
@@ -291,11 +291,11 @@ Overall      ████████░░  0.80
 
 | # | 작업 | 분류 |
 |---|------|------|
-| 1 | `create_storyboard.j2` Hook 구조 가이드 추가 | Template |
+| 1 | `storyboard/default` 프롬프트 Hook 구조 가이드 추가 | Prompt |
 | 2 | `NarrativeScore` TypedDict + `ReviewResult` 확장 | State |
 | 3 | Review 노드에 서사 품질 평가 추가 (Gemini 1회) | Node |
 | 4 | Revise 노드에 narrative feedback 주입 | Node |
-| 5 | 서사 평가 Jinja2 템플릿 작성 (`creative/narrative_review.j2`) | Template |
+| 5 | 서사 평가 LangFuse 프롬프트 작성 (`pipeline/narrative-review`) | Prompt |
 | 6 | 테스트 (서사 평가 로직 + 라우팅 분기) | Test |
 
 ### Phase 9-5B: Concept Gate (Backend + Frontend)
@@ -358,8 +358,8 @@ Overall      ████████░░  0.80
 | `services/agent/nodes/critic.py` | concept summary 출력 추가 |
 | `services/agent/routing.py` | `route_after_critic()` 추가 |
 | `services/agent/script_graph.py` | concept_gate 노드 + 엣지 추가 |
-| `templates/creative/narrative_review.j2` (신규) | 서사 평가 프롬프트 |
-| `templates/creative/create_storyboard.j2` | Hook 구조 가이드 추가 |
+| `pipeline/narrative-review` LangFuse 프롬프트 (신규) | 서사 평가 프롬프트 |
+| `storyboard/default` LangFuse 프롬프트 | Hook 구조 가이드 추가 |
 | `routers/scripts.py` | concept_selection resume 타입, SSE 매핑 업데이트 |
 | `schemas.py` | `ScriptResumeRequest` concept_selection 필드 |
 

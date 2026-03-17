@@ -71,7 +71,7 @@
 
 Full 모드에서 Writer가 대본 생성 전 계획 수립 (`LANGGRAPH_PLANNING_ENABLED=true`):
 
-1. **Planning**: Gemini로 Hook 전략, 감정 곡선, 씬 배분 계획 생성 (`writer_planning.j2`)
+1. **Planning**: Gemini로 Hook 전략, 감정 곡선, 씬 배분 계획 생성 (`pipeline/writer-planning` LangFuse 프롬프트)
 2. **Generation**: 계획을 description에 주입하여 대본 생성
 
 출력: `WriterPlan` (`hook_strategy`, `emotional_arc`, `scene_distribution`)
@@ -91,7 +91,7 @@ for step in range(1, MAX_REACT_STEPS + 1):  # 최대 3 스텝
 
 ### 3-3. Review Self-Reflection
 
-Review 실패 시 Self-Reflection 수행 (`review_reflection.j2`):
+Review 실패 시 Self-Reflection 수행 (`pipeline/review-reflection` LangFuse 프롬프트):
 
 ```
 근본 원인 → 영향 평가 → 수정 전략 → 기대 결과

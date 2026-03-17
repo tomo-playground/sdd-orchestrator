@@ -469,7 +469,7 @@ Phase A에서 개선된 TagAutocomplete 위에 시각적 태그 탐색 기능을
 | 입력 UI | `TagAutocomplete.tsx` | 디바운스, 한글, 인기도, 구분자, 폐기 태그 |
 | 미리보기 | `ComposedPromptPreview.tsx` | 레이어별 태그 분해 + 조합 결과 표시 |
 | 검증 | `/prompt/validate-tags` | 응답 스키마 통일 + `response_model` 추가 |
-| AI 생성 | `cinematographer.j2` | Danbooru 태그 출력 (변경 없음) |
+| AI 생성 | `pipeline/cinematographer` LangFuse 프롬프트 | Danbooru 태그 출력 (변경 없음) |
 
 ### Frontend
 

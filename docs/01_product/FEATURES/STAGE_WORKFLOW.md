@@ -329,7 +329,7 @@ localStorage 마이그레이션: `"edit"` → `"direct"` 자동 매핑.
 | 1 | LangGraph 체크포인트 역직렬화 → plain dict 복원 → `loc.name` AttributeError | **HIGH** | 이중 접근 헬퍼 `_get_loc_field()` 사용 |
 | 2 | `finalize.py` + `writer.py` 5곳 dict 접근 패턴 변경 필요 | MEDIUM | 헬퍼 함수로 dict/Pydantic 양쪽 지원 |
 | 3 | 테스트 7곳 dict 리터럴 → LocationPlan 인스턴스 변경 | LOW | 테스트 업데이트 |
-| 4 | Jinja2 템플릿 (`cinematographer.j2`) — `loc.name` 접근 | 없음 | Jinja2 getattr이 Pydantic attribute 지원 |
+| 4 | LangFuse 프롬프트 (`pipeline/cinematographer`) — `loc.name` 접근 | 없음 | LangFuse 변수 치환으로 Pydantic attribute 지원 |
 
 **구현 전략**: `LocationEntryOutput`(llm_models.py)을 `LocationPlan`으로 rename하여 재사용. TypedDict에는 `list[LocationPlan]` 힌트, 실제 저장은 `model_dump()` dict 유지 (보수적 접근). 읽는 쪽에서 `_get_loc_field()` 헬퍼로 양방향 접근.
 
