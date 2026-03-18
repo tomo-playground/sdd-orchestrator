@@ -3139,6 +3139,7 @@ class SceneTTSPreviewRequest(BaseModel):
     script: str = Field(max_length=2000)
     speaker: str = DEFAULT_SPEAKER
     storyboard_id: int | None = None
+    scene_db_id: int | None = None  # 제공 시 Scene.tts_asset_id DB 즉시 반영
     voice_preset_id: int | None = None
     voice_design_prompt: str | None = None
     scene_emotion: str | None = None

@@ -118,9 +118,22 @@ async def preview_scene_tts(
     req: SceneTTSPreviewRequest,
     db: Session,
 ) -> SceneTTSPreviewResponse:
-    """Generate TTS preview for a single scene. Cache-compatible with render pipeline."""
+    """Generate TTS preview for a single scene. Cache-compatible with render pipeline.
+
+    scene_db_id 제공 시 Scene.tts_asset_id를 즉시 업데이트하여 렌더에 반영되도록 보장한다.
+    """
+    from models.scene import Scene
+
     gen = await _generate_scene_tts(req)
     asset = _save_audio_asset(db, gen.audio_bytes, gen.cache_key)
+
+    if req.scene_db_id is not None:
+        scene = db.get(Scene, req.scene_db_id)
+        if scene and not scene.deleted_at:
+            asset.is_temp = False
+            scene.tts_asset_id = asset.id
+            db.commit()
+            logger.info("[Preview] Scene %d tts_asset_id → %d (permanent)", req.scene_db_id, asset.id)
 
     return SceneTTSPreviewResponse(
         audio_url=asset.url,
