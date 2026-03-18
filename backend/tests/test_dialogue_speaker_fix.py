@@ -227,13 +227,13 @@ class TestReviewSpeakerBalance:
         balance_errors = [e for e in result["errors"] if "비율 불균형" in e]
         assert len(balance_errors) == 0
 
-    def test_narrated_dialogue_no_narrator_warning(self):
-        """Narrated Dialogue에서 Narrator=0 → warning."""
+    def test_narrated_dialogue_no_narrator_error(self):
+        """Narrated Dialogue에서 Narrator=0 → error."""
         scenes = []
         for i in range(8):
             scenes.append(_make_scene("A" if i % 2 == 0 else "B"))
         result = _validate_scenes(scenes, duration=20, language="Korean", structure="Narrated Dialogue")
-        assert any("Narrator 씬 없음" in w for w in result["warnings"])
+        assert any("Narrator 씬 없음" in e for e in result["errors"])
 
     def test_narrated_dialogue_with_narrator_no_warning(self):
         """Narrated Dialogue에서 Narrator 있음 → no warning."""

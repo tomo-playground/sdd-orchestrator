@@ -33,6 +33,8 @@ _MAX_IO_LEN = 8000
 _current_trace_id: contextvars.ContextVar[str | None] = contextvars.ContextVar("langfuse_trace_id", default=None)
 # 요청별 root span을 전파하는 contextvar (generation의 부모로 사용)
 _current_root_span: contextvars.ContextVar[Any] = contextvars.ContextVar("langfuse_root_span", default=None)
+# 요청별 action ("generate" | "resume")을 전파 — trace name 재설정에 사용
+_current_action: contextvars.ContextVar[str] = contextvars.ContextVar("langfuse_action", default="generate")
 
 
 def _to_hex32(trace_id: str) -> str:
@@ -129,6 +131,7 @@ def create_langfuse_handler(
         else:
             trace_id = _to_hex32(trace_id)
         _current_trace_id.set(trace_id)
+        _current_action.set(action)
 
         trace_ctx: dict[str, str] = {"trace_id": trace_id}
 
@@ -184,12 +187,19 @@ def _patch_trace(*, trace_id: str | None, body: dict, label: str) -> None:
 
 
 def update_trace_on_interrupt(
-    interrupt_data: dict, *, trace_id: str | None = None, interrupt_node: str = "unknown",
+    interrupt_data: dict,
+    *,
+    trace_id: str | None = None,
+    interrupt_node: str = "unknown",
 ) -> None:
     """GraphInterrupt 시 Langfuse 트레이스에 중간 결과를 metadata에 기록한다."""
+    action = _current_action.get()
     _patch_trace(
         trace_id=trace_id,
-        body={"metadata": {"interrupted": True, "interrupt_node": interrupt_node, "interrupt_data": interrupt_data}},
+        body={
+            "name": f"storyboard.{action}",
+            "metadata": {"interrupted": True, "interrupt_node": interrupt_node, "interrupt_data": interrupt_data},
+        },
         label=f"interrupt ({interrupt_node})",
     )
 
@@ -223,8 +233,9 @@ def end_root_span() -> None:
 
 
 def update_trace_on_completion(*, trace_id: str | None = None, output_data: dict | None = None) -> None:
-    """Resume 완료 시 interrupted 메타데이터를 리셋한다."""
-    body: dict = {"metadata": {"interrupted": False, "completed": True}}
+    """Resume 완료 시 interrupted 메타데이터를 리셋하고 trace name을 재확정한다."""
+    action = _current_action.get()
+    body: dict = {"name": f"storyboard.{action}", "metadata": {"interrupted": False, "completed": True}}
     if output_data is not None:
         body["output"] = output_data
     _patch_trace(trace_id=trace_id, body=body, label="completion")

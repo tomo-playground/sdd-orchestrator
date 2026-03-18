@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 
 from config import DURATION_DEFICIT_THRESHOLD, LANGGRAPH_MAX_REVISIONS, SCENE_DEFAULT_DURATION, logger
-from config_pipelines import REVISE_EXPANSION_ENABLED, REVISE_MAX_EXPANSION_SCENES
+from config_pipelines import REVISE_EXPANSION_ENABLED, REVISE_MAX_EXPANSION_SCENES, REVISE_ROLLBACK_SCORE_DELTA
 from database import get_db_session
 from schemas import StoryboardRequest
 from services.agent.nodes._revise_expand import (
@@ -187,11 +187,36 @@ async def revise_node(state: ScriptState) -> dict:
         logger.warning("[LangGraph] Revise 최대 횟수 도달 (%d)", count)
         return {"revision_count": count}
 
+    # Score 하락 감지 → best scenes로 rollback (P0: Revise 품질 악화 방지)
+    review = state.get("review_result") or {}
+    current_ns = review.get("narrative_score") or {}
+    current_score = current_ns.get("overall", 0.0)
+    best_score = state.get("best_narrative_score", 0.0)
+    best_scenes = state.get("best_draft_scenes")
+
+    if best_scenes and count > 0 and best_score > 0 and current_score < best_score - REVISE_ROLLBACK_SCORE_DELTA:
+        logger.warning(
+            "[LangGraph] Revise rollback: score %.3f < best %.3f (delta=%.3f > %.2f), best scenes 복원",
+            current_score,
+            best_score,
+            best_score - current_score,
+            REVISE_ROLLBACK_SCORE_DELTA,
+        )
+        import copy  # noqa: PLC0415
+
+        history = _append_history(state)
+        history[-1]["tier"] = "rollback"
+        return {
+            "draft_scenes": copy.deepcopy(best_scenes),
+            "revision_count": LANGGRAPH_MAX_REVISIONS,  # 루프 강제 종료
+            "revision_history": history,
+        }
+
     # Revision History 누적
     history = _append_history(state)
 
     scenes = [s.copy() for s in (state.get("draft_scenes") or [])]
-    errors = (state.get("review_result") or {}).get("errors", [])
+    errors = review.get("errors", [])
     fallback_prompt = _generate_placeholder_prompt(state)
 
     # Tier 1: 규칙 기반 수정

@@ -145,6 +145,8 @@ class ScriptState(TypedDict, total=False):
     revision_count: int
     revision_feedback: str | None
     revision_history: list[dict] | None  # 누적 히스토리 (attempt, errors, reflection, score, tier)
+    best_draft_scenes: list[dict] | None  # 최고 narrative_score 시점의 scenes 스냅샷
+    best_narrative_score: float  # 최고 narrative_score.overall (rollback 기준)
 
     # Human Gate 상태
     human_action: str | None  # "approve" | "revise"

@@ -143,9 +143,16 @@ def build_structure_speaker_rule(structure: str) -> str:
     if structure == "Monologue":
         return '6. Speaker: Always "A" (single narrator).'
     if structure == "Dialogue":
-        return '6. Speakers: "A" and "B" (two characters in conversation).'
+        return (
+            '6. Speakers: "A" and "B" (two characters in conversation). '
+            "CRITICAL: Both A and B MUST each have at least 30% of dialogue scenes."
+        )
     if structure == "Narrated Dialogue":
-        return '6. Speakers: "Narrator" for narration, "A"/"B" for dialogue.'
+        return (
+            '6. Speakers: "Narrator" for narration/description, "A" and "B" for character dialogue. '
+            "CRITICAL: Both A and B MUST each have at least 30% of dialogue scenes. "
+            "Include at least 1 Narrator scene for atmosphere/context."
+        )
     return f"6. Structure: {structure}"
 
 

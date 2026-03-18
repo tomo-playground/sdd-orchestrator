@@ -59,7 +59,7 @@ LANGFUSE_BASE_URL = os.getenv("LANGFUSE_BASE_URL", "http://localhost:3001")
 
 # --- LangGraph ---
 LANGGRAPH_MAX_REVISIONS = int(os.getenv("LANGGRAPH_MAX_REVISIONS", "3"))
-LANGGRAPH_MAX_GLOBAL_REVISIONS = int(os.getenv("LANGGRAPH_MAX_GLOBAL_REVISIONS", "10"))
+LANGGRAPH_MAX_GLOBAL_REVISIONS = int(os.getenv("LANGGRAPH_MAX_GLOBAL_REVISIONS", "6"))
 LANGGRAPH_RECURSION_LIMIT = int(os.getenv("LANGGRAPH_RECURSION_LIMIT", "100"))
 
 # --- Revise: Scene Expansion (Tier 2) ---
@@ -70,6 +70,7 @@ VALID_SKIP_STAGES: frozenset[str] = frozenset({"research", "concept", "productio
 
 # FastTrack 모드에서 건너뛸 스테이지 (Frontend가 /presets에서 읽음)
 FAST_TRACK_SKIP_STAGES: list[str] = ["research", "concept", "production", "explain"]
+REVISE_ROLLBACK_SCORE_DELTA = float(os.getenv("REVISE_ROLLBACK_SCORE_DELTA", "0.1"))
 LANGGRAPH_AUTO_REVIEW_THRESHOLD = float(os.getenv("LANGGRAPH_AUTO_REVIEW_THRESHOLD", "0.7"))
 LANGGRAPH_NARRATIVE_THRESHOLD = float(os.getenv("LANGGRAPH_NARRATIVE_THRESHOLD", "0.6"))
 LANGGRAPH_MAX_DIRECTOR_REVISIONS = int(os.getenv("LANGGRAPH_MAX_DIRECTOR_REVISIONS", "3"))
