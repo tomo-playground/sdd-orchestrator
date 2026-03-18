@@ -258,6 +258,7 @@ graph LR
 | 기능 | 설명 |
 |------|------|
 | ~~sitting 계열 ControlNet 근본 해결~~ | **효용 없음으로 보류** — Phase 30-M/N에서 동적 weight + camera 태그 강제로 실용적 해결 완료. 전용 에셋(sitting_side/floor/knees_up) 생성 시 개선 폭 미미 판단 |
+| ControlNet 포즈 에셋 재활용 검토 | 일반 씬 ControlNet OFF 전환(03-18)으로 OpenPose 에셋 28개 + POSE_MAPPING 미사용 상태. ComfyUI 2-Step 파이프라인 또는 레퍼런스 전용 활용 검토 |
 
 ### Infrastructure & Scale
 
