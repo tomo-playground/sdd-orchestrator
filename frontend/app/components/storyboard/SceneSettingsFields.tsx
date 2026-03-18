@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { Scene, Tag } from "../../types";
-import { DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT } from "../../constants";
 import DebugTabContent from "./DebugTabContent";
 import SceneContextTags from "../prompt/SceneContextTags";
 import SceneCharacterActions from "./SceneCharacterActions";
@@ -92,9 +91,8 @@ export default function SceneSettingsFields({
             const payload = {
               prompt,
               negative_prompt: buildNegativePrompt(scene),
-              // Backend SSOT fallback: /presets API image_defaults
-              width: DEFAULT_IMAGE_WIDTH,
-              height: DEFAULT_IMAGE_HEIGHT,
+              width: 832,
+              height: 1216,
             };
             onUpdateScene({
               debug_payload: JSON.stringify(payload, null, 2),
