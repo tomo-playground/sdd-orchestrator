@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-03-18)
+## 현재 상태 (2026-03-19)
 
 | 항목 | 상태 |
 |------|------|
@@ -230,15 +230,25 @@ graph LR
 
 ## Feature Backlog
 
-### ⭐ 최우선 백로그 (P1)
-
-순서대로 진행. Scoring(베이스라인) → ComfyUI 전환 → 캐릭터 일관성 V3.
+### 🚨 긴급 백로그 (P0)
 
 | # | 기능 | 설명 | 명세 |
 |---|------|------|------|
-| 1 | ~~**LangFuse Scoring**~~ | **Phase 38로 승격 (진행 중)** | [명세](FEATURES/LANGFUSE_SCORING.md) |
-| 2 | **ComfyUI 마이그레이션** | ForgeUI→ComfyUI 전환 + SD Client 추상화. 실험 검증(4회 54장): CN+IPA 동시투입 실패 → 모듈 분리 필수 확정. Phase A(추상화)→B(ComfyUI 구현)→C(프로덕션+FaceID) | [명세](FEATURES/COMFYUI_MIGRATION.md) |
-| 3 | **캐릭터 일관성 V3** | ComfyUI 전환 후 착수. 4-Module 파이프라인(Identity→Context→Refinement→Upscale). FaceID+CN 1-step, 2-Step CN→IPA 폴백, 배치 4씬 일괄, 의상 가변, 멀티캐릭터 FaceID 복수 주입 | [명세](FEATURES/CHARACTER_CONSISTENCY_V3.md) |
+| 1 | **Storyboard Data Integrity** | 씬 데이터 무결성 보장. 발단: SB 1128 — UI 7씬 표시/DB 0씬, 수동 저장 500 FK 위반. Sprint A(Backend FK 검증+에러처리) → B(Auto-Save 복구 경로 강화) → C(Frontend 상태 오염 방어) | [명세](FEATURES/STORYBOARD_DATA_INTEGRITY.md) |
+
+> P1 착수 전 반드시 P0 완료. 데이터 유실 위험 > 기능 개선.
+
+### ⭐ 최우선 백로그 (P1)
+
+순서대로 진행. Enum ID 정규화 → Speaker 동적 역할 Phase A → ComfyUI 전환 → 캐릭터 일관성 V3 + Speaker Phase B~C.
+
+| # | 기능 | 설명 | 명세 |
+|---|------|------|------|
+| 1 | ~~**LangFuse Scoring**~~ | **Phase 38로 승격 (완료)** | [명세](FEATURES/LANGFUSE_SCORING.md) |
+| 2 | **Enum ID 정규화** | structure/language/style 필드의 디스플레이 이름→ID 분리. `{id, label}` SSOT, DB 마이그레이션, `.lower().replace()` 패턴 전면 제거. 47+ Backend + 15+ Frontend 파일. Sprint A(SSOT+정규화)→B(DB 마이그레이션+Frontend)→C(Style 정리) | [명세](FEATURES/ENUM_ID_NORMALIZATION.md) |
+| 3 | **Speaker 동적 역할 (Phase A)** | 정적 `"A"`/`"B"`/`"Narrator"` → `"speaker_1"`/`"speaker_2"`/`"narrator"` 전환. 기존 `character_b_id` 하드코딩 리팩토링 흡수. Phase A(ID 전환)→B(characters 리스트)→C(3인+ 확장). Phase B~C는 ComfyUI 전환 후 | [명세](FEATURES/SPEAKER_DYNAMIC_ROLE.md) |
+| 4 | **ComfyUI 마이그레이션** | ForgeUI→ComfyUI 전환 + SD Client 추상화. 실험 검증(4회 54장): CN+IPA 동시투입 실패 → 모듈 분리 필수 확정. Phase A(추상화)→B(ComfyUI 구현)→C(프로덕션+FaceID) | [명세](FEATURES/COMFYUI_MIGRATION.md) |
+| 5 | **캐릭터 일관성 V3** | ComfyUI 전환 후 착수. 4-Module 파이프라인(Identity→Context→Refinement→Upscale). FaceID+CN 1-step, 2-Step CN→IPA 폴백, 배치 4씬 일괄, 의상 가변, 멀티캐릭터 FaceID 복수 주입 | [명세](FEATURES/CHARACTER_CONSISTENCY_V3.md) |
 
 ### Content & Creative
 
@@ -271,7 +281,7 @@ graph LR
 | Script Canvas 분할 뷰 (좌 채팅 + 우 씬 프리뷰) | [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md) §P2 |
 | **Direct 탭 연출 컨트롤** (생성 완료 후 TTS 음성 톤 조정 + BGM 프리셋 일괄 적용) | [명세](FEATURES/DIRECT_TAB_DIRECTOR_CONTROL.md) |
 | **Studio 탭 URI 표현** (`?tab=script/stage/direct/publish`) | 현재 activeTab이 Zustand 메모리에만 있어 새로고침 시 초기화, 딥링크 불가. `setActiveTab` 호출 시 `router.replace`로 URL sync + 초기 마운트 시 `searchParams.get("tab")` 복원. Option A(query param) 우선 검토 |
-| **Structure/Speaker 타입 비교 정규화** | 디스플레이 네임 string literal로 조건 분기하는 패턴 전면 제거. **P0** `SpeakerBadge.tsx` — `.toLowerCase()` 만 사용, underscore 미변환으로 `"narrated_dialogue"` 포맷 대응 불가. `SceneEssentialFields.tsx:36` — `isNarratedDialogue = structure?.toLowerCase() === "narrated dialogue"` 직접 비교. **개선안**: `normalizeStructure()` SSOT 함수 작성, `isMultiCharStructure()` 전역 통일 적용. `isNarratedDialogue()` 헬퍼 추출. 4개 파일 영향. 발단: Narrator 씬에 Actor A가 표시되는 원인 분석 (2026-03-19) |
+| ~~Structure/Speaker 타입 비교 정규화~~ | **⭐ P1로 승격** — [Enum ID 정규화](FEATURES/ENUM_ID_NORMALIZATION.md) + [Speaker 동적 역할](FEATURES/SPEAKER_DYNAMIC_ROLE.md)로 분리. 발단: Narrator 씬에 Actor A가 표시되는 원인 분석 (2026-03-19) |
 
 ### Image Quality & Pose Control
 
@@ -300,6 +310,6 @@ graph LR
 | ~~Phase 35: GPT-SoVITS v2 TTS 전환~~ | **완료** — SoVITS(:9880) + Qwen3(보이스디자인 on-demand) + MusicGen(CPU). GPU 전환은 cu128 대기 |
 | **클라우드 TTS/BGM 전환** | Replicate(현재 모델 클라우드 실행) 또는 ElevenLabs/Suno. GPU 경합 완전 해소, 비용 발생 |
 | **씬 단위 순차 생성** | IMAGE→TTS를 씬별로 처리 (현재: 전체 IMAGE→전체 TTS). GPU 순차 독점 자연 해결 + 즉시 프리뷰 |
-| **캐릭터 복수 표현 리팩토링** | `character_id`+`character_b_id` 하드코딩 → `characters: list[{speaker, character_id, gender}]` 리스트 구조. 3인 이상 확장 가능. DB 스키마+API+State+Frontend 전체 관통. **착수 시점**: 멀티캐릭터(3인+) 기능 요구 시 또는 캐릭터 일관성 V3 착수 시. [명세](FEATURES/MULTI_CHARACTER.md) 확장 |
+| ~~캐릭터 복수 표현 리팩토링~~ | **⭐ P1로 승격** — [Speaker 동적 역할](FEATURES/SPEAKER_DYNAMIC_ROLE.md) Phase B~C에 흡수. `character_id`+`character_b_id` → `characters: list` 전환 포함 |
 | ~~ComfyUI 마이그레이션~~ | **⭐ 최우선 백로그로 이동** — [명세](FEATURES/COMFYUI_MIGRATION.md) |
 | ~~캐릭터 일관성 V3~~ | **⭐ 최우선 백로그로 이동** — [명세](FEATURES/CHARACTER_CONSISTENCY_V3.md) |
