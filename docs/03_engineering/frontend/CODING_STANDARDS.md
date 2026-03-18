@@ -182,6 +182,29 @@ const req = { ...buildSceneRequest(scene, sbState, storyboardId), ...overrides }
 
 ## 리뷰 체크리스트
 
+---
+
+## 8. Zustand Store 초기값 — 안전 기본값 원칙
+
+Generation 관련 boolean 초기값은 반드시 **`false`(비활성)**으로 설정한다. Backend `/presets` API의 `GenerationDefaults`가 SSOT이며, `applyGenerationDefaults()`가 런타임에 올바른 값을 반영한다.
+
+```typescript
+// ✅ 안전 기본값 — /presets 로드 전에도 부작용 없음
+useControlnet: false,
+useIpAdapter: false,
+hiResEnabled: false,
+multiGenEnabled: false,
+
+// ❌ Backend SSOT와 불일치 위험
+useControlnet: true,  // Backend가 False인데 Frontend가 true → 정책 위반
+```
+
+**이유**: `resolveSceneControlnet(scene, global)`에서 씬 값이 `null`이면 Store 초기값이 fallback으로 사용됨. 초기값이 `true`이면 Backend 정책(OFF)과 반대로 동작.
+
+---
+
+## 리뷰 체크리스트
+
 ```
 [ ] 숫자/boolean 필드에 || 기본값 사용하지 않았는가? (→ ?? 사용)
 [ ] payload 반환 함수가 Record<string, unknown> 이 아닌 interface 를 반환하는가?
@@ -190,4 +213,5 @@ const req = { ...buildSceneRequest(scene, sbState, storyboardId), ...overrides }
 [ ] getState() 가 함수 시작부에서만 호출되는가?
 [ ] 타입 정의가 함수 내부에 중첩되어 있지 않은가?
 [ ] 동일한 로직이 두 곳 이상에 복사되어 있지 않은가?
+[ ] Zustand Store generation boolean 초기값이 false(안전 기본값)인가?
 ```
