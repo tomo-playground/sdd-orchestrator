@@ -90,12 +90,16 @@ async def trace_context(
     prev_trace_id = _current_trace_id.get()
     _current_trace_id.set(trace_id)
     try:
-        # SDK v3: trace() 제거됨 → start_as_current_span으로 대체
+        # SDK v3: start_as_current_span → 자동 trace 생성 + update_current_trace로 메타 설정
         with _langfuse_client.start_as_current_span(
             name=name,
             input=input_data,
-            metadata={"session_id": session_id} if session_id else None,
         ):
+            _langfuse_client.update_current_trace(
+                name=name,
+                session_id=session_id,
+                input=input_data,
+            )
             yield
     finally:
         _current_trace_id.set(prev_trace_id)
@@ -135,10 +139,14 @@ def create_langfuse_handler(
 
         trace_ctx: dict[str, str] = {"trace_id": trace_id}
 
-        # SDK v3: trace() 제거됨 → start_span으로 root trace+span 생성
+        # SDK v3: start_as_current_span → 자동 trace 생성, update_current_trace로 메타 설정
         root_span = _langfuse_client.start_span(
+            name=f"pipeline.{action}",
+            metadata={"trace_id": trace_id},
+        )
+        _langfuse_client.update_current_trace(
             name=f"storyboard.{action}",
-            metadata={"session_id": session_id, "trace_id": trace_id} if session_id else {"trace_id": trace_id},
+            session_id=session_id,
         )
         _current_root_span.set(root_span)
 
