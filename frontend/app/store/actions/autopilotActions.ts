@@ -374,6 +374,7 @@ export async function runAutoRunFromStep(
       showToast(`Auto Run 중단: ${message}`, "error");
     }
   } finally {
+    autopilot.cancel = originalCancel;
     useUIStore.getState().set({ isAutoRunning: false });
   }
 }

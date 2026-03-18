@@ -85,7 +85,7 @@ export default function ChatArea({ editor }: Props) {
           <div className="w-full max-w-3xl">
             <ChatInput
               onSend={editor.sendMessage}
-              disabled={editor.isGenerating}
+              disabled={editor.isGenerating || editor.isAnalyzing}
               hasMessages={false}
               hasTopic={false}
               borderless
@@ -110,7 +110,7 @@ export default function ChatArea({ editor }: Props) {
 
           <ChatInput
             onSend={editor.sendMessage}
-            disabled={editor.isGenerating}
+            disabled={editor.isGenerating || editor.isAnalyzing}
             hasMessages={editor.chatMessages.length > 1}
             hasTopic={!!editor.topic.trim()}
             interactionMode={editor.interactionMode}

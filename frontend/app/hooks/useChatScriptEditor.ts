@@ -16,6 +16,7 @@ import type { ChatMessage, ActiveProgress, SettingsRecommendation } from "../typ
 export type ChatScriptEditorActions = ScriptEditorActions & {
   chatMessages: ChatMessage[];
   activeProgress: ActiveProgress;
+  isAnalyzing: boolean;
   sendMessage: (text: string) => Promise<void>;
   applyAndGenerate: (rec: SettingsRecommendation) => void;
   confirmAndGenerate: () => void;
@@ -84,20 +85,21 @@ export function useChatScriptEditor(options?: {
   );
 
   // ── 5. Topic analysis + generation ──
-  const { sendMessage, confirmAndGenerate, applyAndGenerate, cancelOperation } = useTopicAnalysis({
-    groupId,
-    editorRef,
-    chatMessagesRef,
-    topicRef,
-    addMessage,
-    addTypingIndicator,
-    removeTypingIndicator,
-    setActiveProgress,
-    isEditingRef,
-    handleEditRequest,
-    showToast,
-    editorCancel: editor.cancel,
-  });
+  const { sendMessage, confirmAndGenerate, applyAndGenerate, cancelOperation, isAnalyzing } =
+    useTopicAnalysis({
+      groupId,
+      editorRef,
+      chatMessagesRef,
+      topicRef,
+      addMessage,
+      addTypingIndicator,
+      removeTypingIndicator,
+      setActiveProgress,
+      isEditingRef,
+      handleEditRequest,
+      showToast,
+      editorCancel: editor.cancel,
+    });
 
   // 씬 데이터는 있지만 채팅 히스토리가 유실된 경우 최소 대화 복원
   const reconstructedRef = useRef<number | null>(null);
@@ -130,6 +132,7 @@ export function useChatScriptEditor(options?: {
     ...editor,
     chatMessages,
     activeProgress,
+    isAnalyzing,
     sendMessage,
     applyAndGenerate,
     confirmAndGenerate,

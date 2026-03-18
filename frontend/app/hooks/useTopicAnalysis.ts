@@ -4,6 +4,7 @@ import {
   useCallback,
   useRef,
   useEffect,
+  useState,
   type MutableRefObject,
   type Dispatch,
   type SetStateAction,
@@ -69,6 +70,7 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
   } = deps;
 
   const isAnalyzingRef = useRef(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   // 언마운트 시 진행 중 요청 취소
@@ -82,6 +84,7 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
   const sendMessage = useCallback(
     async (text: string) => {
       if (isAnalyzingRef.current || isEditingRef.current) return;
+      if (!text.trim()) return;
       addMessage(createUserMessage(text));
 
       // Post-completion: 씬이 있으면 편집 모드로 전환
@@ -92,6 +95,7 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
       }
 
       isAnalyzingRef.current = true;
+      setIsAnalyzing(true);
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -99,6 +103,12 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
       try {
         // Draft storyboard 확보 (첫 호출 시 생성, 이후 기존 ID 반환)
         const draftId = await ensureDraftStoryboard();
+        if (draftId === null) {
+          removeTypingIndicator(typingId);
+          isAnalyzingRef.current = false;
+          setIsAnalyzing(false);
+          return;
+        }
 
         // 첫 user 메시지에서 초기 topic + description 설정
         if (!topicRef.current) {
@@ -169,6 +179,7 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
         });
       } finally {
         isAnalyzingRef.current = false;
+        setIsAnalyzing(false);
         abortRef.current = null;
       }
     },
@@ -238,5 +249,6 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
     applyAndGenerate,
     cancelOperation,
     isAnalyzingRef,
+    isAnalyzing,
   };
 }

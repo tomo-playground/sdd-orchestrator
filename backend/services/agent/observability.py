@@ -284,8 +284,19 @@ def get_pipeline_elapsed_sec() -> float | None:
     return round(time.monotonic() - start, 1) if start else None
 
 
-def record_score(name: str, value: float | bool | None, *, comment: str = "") -> None:
-    """현재 trace에 score를 기록한다. 실패 시 파이프라인 미중단."""
+def record_score(
+    name: str,
+    value: float | bool | None,
+    *,
+    observation_id: str | None = None,
+    comment: str = "",
+) -> None:
+    """현재 trace(또는 observation)에 score를 기록한다. 실패 시 파이프라인 미중단.
+
+    Args:
+        observation_id: 특정 observation(span/generation)에 Score를 부착.
+            None이면 trace-level Score로 기록.
+    """
     if value is None:
         return
     if not _ensure_initialized() or _langfuse_client is None:
@@ -300,12 +311,14 @@ def record_score(name: str, value: float | bool | None, *, comment: str = "") ->
     try:
         _langfuse_client.create_score(
             trace_id=trace_id,
+            observation_id=observation_id,
             name=name,
             value=safe_value,
             data_type=data_type,
             comment=comment or None,
         )
-        logger.debug("[LangFuse] Score 기록: %s=%s (trace=%s)", name, value, trace_id[:16])
+        target = f"obs={observation_id[:16]}" if observation_id else f"trace={trace_id[:16]}"
+        logger.debug("[LangFuse] Score 기록: %s=%s (%s)", name, value, target)
     except Exception as e:
         logger.warning("[LangFuse] Score 기록 실패 (non-fatal): %s=%s, %r", name, value, e)
 

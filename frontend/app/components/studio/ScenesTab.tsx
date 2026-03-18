@@ -228,7 +228,7 @@ export default function ScenesTab() {
             duration={currentScene?.duration}
             onPrev={() => setCurrentSceneIndex(Math.max(0, currentSceneIndex - 1))}
             onNext={() => setCurrentSceneIndex(Math.min(scenes.length - 1, currentSceneIndex + 1))}
-            onRemove={() => handleRemoveScene(currentScene.client_id)}
+            onRemove={currentScene ? () => handleRemoveScene(currentScene.client_id) : undefined}
           />
 
           {currentScene && (

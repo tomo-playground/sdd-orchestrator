@@ -158,12 +158,21 @@ async def _process_single_location(
     if not img_bytes:
         return {"location_key": loc_key, "background_id": bg_id, "status": "failed"}
 
-    # Phase 3: Save result (DB auto-reconnects)
-    asset_svc = AssetService(db)
-    asset = asset_svc.save_background_image(bg_id, img_bytes)
-    bg_fresh = db.get(Background, bg_id)
-    bg_fresh.image_asset_id = asset.id
-    db.commit()
+    # Phase 3: Save result (separate session for concurrency safety)
+    from database import SessionLocal
+
+    save_db = SessionLocal()
+    try:
+        asset_svc = AssetService(save_db)
+        asset = asset_svc.save_background_image(bg_id, img_bytes)
+        bg_fresh = save_db.get(Background, bg_id)
+        bg_fresh.image_asset_id = asset.id
+        save_db.commit()
+    except Exception:
+        save_db.rollback()
+        raise
+    finally:
+        save_db.close()
     logger.info("[Stage] Background generated: %s (ID=%d)", loc_key, bg_id)
     return {"location_key": loc_key, "background_id": bg_id, "status": "generated"}
 
@@ -176,7 +185,12 @@ async def generate_location_backgrounds(storyboard_id: int, db: Session, *, forc
 
     Returns list of {location_key, background_id, status} dicts.
     """
-    storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None)).first()
+    storyboard = (
+        db.query(Storyboard)
+        .filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None))
+        .with_for_update()
+        .first()
+    )
     if not storyboard:
         raise ValueError(f"Storyboard {storyboard_id} not found")
 
