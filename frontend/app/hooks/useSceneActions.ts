@@ -45,35 +45,32 @@ export function useSceneActions() {
     const current = scenes[currentSceneIndex];
     if (!current) return;
 
-    // 토글 OFF
     if (current.environment_reference_id) {
       updateScene(current.client_id, { environment_reference_id: null });
       return;
     }
 
-    // Stage 배경 참조 설정 (현재 또는 제거된 background_id)
-    const bgId =
-      current.background_id || (current as Record<string, unknown>)._cleared_background_id;
-    if (!bgId) {
-      showToast("Stage 배경이 없습니다. Stage에서 배경을 먼저 생성하세요.", "error");
+    const currentIdx = scenes.findIndex((s) => s.client_id === current.client_id);
+    let referenceScene = null;
+
+    for (let i = currentIdx - 1; i >= 0; i--) {
+      if (scenes[i].image_asset_id) {
+        referenceScene = scenes[i];
+        break;
+      }
+    }
+
+    if (!referenceScene) {
+      showToast("이전 씬에 고정할 배경 이미지가 없습니다.", "error");
       return;
     }
 
-    try {
-      const res = await axios.get(`${API_BASE}/storyboards/backgrounds/${bgId}/asset-id`);
-      const assetId = res.data?.image_asset_id;
-      if (!assetId) {
-        showToast("배경 이미지가 아직 생성되지 않았습니다.", "error");
-        return;
-      }
-      updateScene(current.client_id, {
-        environment_reference_id: assetId,
-        environment_reference_weight: 0.3,
-      });
-      showToast("Stage 배경을 참조로 설정했습니다.", "success");
-    } catch {
-      showToast("배경 정보를 조회할 수 없습니다.", "error");
-    }
+    updateScene(current.client_id, {
+      environment_reference_id: referenceScene.image_asset_id,
+      // Backend SSOT: config.py DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT = 0.3
+      environment_reference_weight: 0.3,
+    });
+    showToast(`씬 ${referenceScene.order + 1}의 배경을 참조로 설정했습니다.`, "success");
   }, [showToast]);
 
   const handleRemoveScene = useCallback(
