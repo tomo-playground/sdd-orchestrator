@@ -82,16 +82,24 @@ export function useChatMessages(deps: ChatMessagesDeps): ChatMessagesReturn {
     const prevId = prevStoryboardIdRef.current;
     prevStoryboardIdRef.current = storyboardId;
 
-    // 새 영상(null) → 저장 완료(number) 전환: 임시 채팅을 새 id로 이관
+    // 새 영상(null) → 저장 완료(number) 전환: React state 메시지를 새 키로 직접 저장
+    // debounce(500ms) 미완료 시 localStorage.__new__가 비어있을 수 있으므로
+    // localStorage가 아닌 현재 React state를 SSOT로 사용
     if (prevId === null && storyboardId !== null) {
+      const current = chatMessagesRef.current.filter((m) => m.contentType !== "typing");
+      if (current.length > 0) {
+        saveMessages(storyboardId, current);
+      }
       migrateFromTemp(storyboardId);
+      // 이미 React state에 메시지가 있으므로 리셋하지 않고 유지
+      return;
     }
 
     const saved = getMessages(storyboardId);
     setChatMessages(saved.length > 0 ? saved : [createWelcomeMessage()]);
     setActiveProgress(null);
     topicRef.current = "";
-  }, [storyboardId, chatResetToken, getMessages, migrateFromTemp]);
+  }, [storyboardId, chatResetToken, getMessages, saveMessages, migrateFromTemp]);
 
   const addMessage = useCallback((msg: ChatMessage) => {
     setChatMessages((prev) => [...prev, msg]);
