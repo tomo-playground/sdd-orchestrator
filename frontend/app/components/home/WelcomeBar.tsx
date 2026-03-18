@@ -45,8 +45,7 @@ export default function WelcomeBar() {
         {summary && <p className="mt-0.5 text-sm text-zinc-500">{summary}</p>}
       </div>
       <Button variant="primary" size="md" onClick={() => router.push("/studio?new=true")}>
-        <Plus className="h-4 w-4" />
-        New Story
+        <Plus className="h-4 w-4" />새 영상
       </Button>
     </div>
   );
