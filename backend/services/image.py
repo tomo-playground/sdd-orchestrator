@@ -15,7 +15,7 @@ from PIL import Image
 # Values represent the bottom percentage of the screen to avoid
 PLATFORM_SAFE_ZONES = {
     "youtube_shorts": 0.15,  # Bottom 15% (like button, comments, share)
-    "tiktok": 0.20,  # Bottom 20% (more UI elements)
+    "tiktok": 0.25,  # Bottom 25% (extended UI, subtitles)
     "instagram_reels": 0.18,  # Bottom 18% (action buttons)
     "default": 0.15,  # Default fallback
 }
@@ -387,9 +387,10 @@ def calculate_face_centered_crop(
         crop_width = image_width
         crop_height = int(crop_width / target_aspect_ratio)
 
-    # Center crop on face
+    # Center crop on face with an upward bias (face at 40% height)
+    # to avoid bottom safe zones and platform UI.
     crop_x = face_center_x - crop_width // 2
-    crop_y = face_center_y - crop_height // 2
+    crop_y = face_center_y - int(crop_height * 0.4)
 
     # Clamp to image boundaries
     crop_x = max(0, min(crop_x, image_width - crop_width))

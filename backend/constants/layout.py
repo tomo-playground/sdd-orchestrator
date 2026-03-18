@@ -37,7 +37,7 @@ class FullLayout:
     SCENE_TEXT_COLOR: RGBA = (255, 255, 255, 255)  # White
     SCENE_TEXT_STROKE_WIDTH: int = 5
     SCENE_TEXT_STROKE_COLOR: RGBA = (0, 0, 0, 255)  # Black
-    SCENE_TEXT_MAX_LINES: int = 2
+    SCENE_TEXT_MAX_LINES: int = 3
     SCENE_TEXT_MAX_WIDTH_RATIO: float = 0.85  # width * ratio = max scene text width
 
     # Deprecated aliases for backward compatibility
@@ -145,7 +145,7 @@ class PostLayout:
     SUBTITLE_LINE_HEIGHT_RATIO: float = 1.35  # font_size * ratio
     SUBTITLE_TEXT_START_Y_RATIO: float = 0.06  # subtitle_area_height * ratio
     SUBTITLE_TEXT_COLOR: RGBA = (40, 40, 40, 255)  # Dark gray
-    SUBTITLE_MAX_LINES: int = 2
+    SUBTITLE_MAX_LINES: int = 3
     SUBTITLE_MAX_WIDTH_RATIO: float = 0.92  # text_area_width * ratio
 
 

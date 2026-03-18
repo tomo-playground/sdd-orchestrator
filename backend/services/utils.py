@@ -45,7 +45,7 @@ def scrub_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return redacted
 
 
-def wrap_text(text: str, width: int, max_lines: int = 2) -> str:
+def wrap_text(text: str, width: int, max_lines: int = 3) -> str:
     """Wrap text for subtitle display with intelligent line breaking."""
     if not text:
         return ""
@@ -82,7 +82,7 @@ def wrap_text_by_font(
     text: str,
     font: FreeTypeFont,
     max_width_px: int,
-    max_lines: int = 2,
+    max_lines: int = 3,
     balance_lines: bool = True,
 ) -> list[str]:
     """Wrap text based on actual rendered pixel width with balanced line lengths.
@@ -170,18 +170,33 @@ def wrap_text_by_font(
     # 1. 문장부호 기준 강제 분리
     forced_split = None
     # Removed '.' to prevent splitting decimals (e.g. 0.25)
-    for mark in ("…", "!", "?"):
+    for mark in ("…", "!", "?", "..."):
         if mark in text:
             forced_split = mark
             break
 
     if forced_split:
-        head, tail = text.split(forced_split, 1)
-        head = head.strip()
-        tail = tail.strip()
-        if forced_split != "…":
-            head = f"{head}{forced_split}"
-        initial_lines = [head, tail] if tail else [head]
+        import re
+
+        # Split on punctuation marks, keeping the marks with the preceding segment.
+        # Handles both single char marks ("…", "!", "?") and triple dots ("...")
+        regex_pattern = r"(\.\.\.|[…!?])"
+
+        parts = re.split(regex_pattern, text)
+        segments = []
+        i = 0
+        while i < len(parts):
+            seg = parts[i]
+            if i + 1 < len(parts) and parts[i+1]: # Mark exists
+                seg += parts[i+1]
+                i += 2
+            else:
+                i += 1
+
+            clean_seg = seg.strip()
+            if clean_seg:
+                segments.append(clean_seg)
+        initial_lines = segments
     else:
         initial_lines = [text]
 

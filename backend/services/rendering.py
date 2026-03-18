@@ -375,7 +375,12 @@ def render_scene_text_image(
     if font_size_override is None and lines:
         # Use first line for font size calculation
         combined_text = " ".join(lines)
-        subtitle_size = calculate_optimal_font_size(combined_text, base_subtitle_size)
+        subtitle_size = calculate_optimal_font_size(
+            combined_text,
+            base_subtitle_size,
+            min_font_size=int(height * FullLayout.SCENE_TEXT_MIN_FONT_RATIO),
+            max_font_size=base_subtitle_size
+        )
     else:
         subtitle_size = base_subtitle_size
 
@@ -415,7 +420,7 @@ def render_scene_text_image(
             stroke_color = (255, 255, 255, 255)  # White stroke
             shadow_color = (255, 255, 255, 120)  # White shadow
 
-    for idx, line in enumerate(lines[:2]):
+    for idx, line in enumerate(lines[: FullLayout.SCENE_TEXT_MAX_LINES]):
         line_w, _ = _measure_text_with_fallback(draw, line, font, emoji_font)
         text_x = max(0, int((width - line_w) / 2))
         y = text_y_pos + idx * line_height
