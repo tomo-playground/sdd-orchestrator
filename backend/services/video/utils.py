@@ -116,10 +116,10 @@ def calculate_speed_params(speed_multiplier: float) -> tuple[float, float, float
     """
     clamped = max(0.25, min(speed_multiplier or 1.0, 2.0))
     transition_dur = max(0.1, 0.5 / clamped)
-    # Increased padding (0.8s) to account for:
+    # Increased padding (0.5s) to account for:
     # 1. Transition delay (wait for crossfade to finish)
     # 2. Natural pause after sentence
-    tts_padding = 0.8 / clamped
+    tts_padding = 0.5 / clamped
     return transition_dur, tts_padding, clamped
 
 

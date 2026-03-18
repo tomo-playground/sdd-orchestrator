@@ -30,8 +30,8 @@ def build_filters(builder: VideoBuilder) -> None:
 
 def add_scene_text_inputs(builder: VideoBuilder) -> None:
     """Add subtitle image inputs with dynamic positioning."""
-    if not builder.request.include_scene_text:
-        logger.info("Subtitles disabled (include_scene_text=False)")
+    if not builder.request.is_scene_text_included:
+        logger.info("Subtitles disabled (is_scene_text_included=False)")
         return
 
     # For post layout, subtitles are already rendered in compose_post_frame
@@ -183,7 +183,7 @@ def _apply_ken_burns(
 
 def _apply_subtitle_overlay(builder: VideoBuilder, i: int, subtitle_base_idx: int, clip_dur: float) -> None:
     """Apply subtitle overlay after Ken Burns for Full layout."""
-    if builder.request.include_scene_text and not builder.use_post_layout:
+    if builder.request.is_scene_text_included and not builder.use_post_layout:
         sub_idx = subtitle_base_idx + i
         logger.info(f"Scene {i}: Adding subtitle overlay after Ken Burns (input [{sub_idx}:v])")
 
@@ -202,7 +202,7 @@ def _apply_subtitle_overlay(builder: VideoBuilder, i: int, subtitle_base_idx: in
         logger.info(f"Scene {i}: Subtitle overlay complete -> [v{i}_base]")
     else:
         builder.filters.append(f"[v{i}_kb]null[v{i}_base]")
-        logger.info(f"Scene {i}: No subtitles (include_scene_text={builder.request.include_scene_text})")
+        logger.info(f"Scene {i}: No subtitles (is_scene_text_included={builder.request.is_scene_text_included})")
 
 
 def _build_post_layout_base(builder: VideoBuilder, i: int, v_idx: int) -> None:
@@ -278,6 +278,6 @@ def build_audio_filters(builder: VideoBuilder) -> None:
 
         builder.filters.append(
             f"[{a_idx}:a]aresample=44100,aformat=channel_layouts=stereo,"
-            f"adelay={delay_ms}|{delay_ms},apad,"
+            f"adelay={delay_ms}|{delay_ms},volume=1.496,apad,"
             f"atrim=duration={clip_dur},asetpts=PTS-STARTPTS[a{i}_raw]"
         )
