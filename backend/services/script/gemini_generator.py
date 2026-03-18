@@ -191,6 +191,16 @@ def sanitize_chat_context(chat_context: list[dict]) -> list[dict]:
     return sanitized
 
 
+def sanitize_user_input(text: str) -> str:
+    """사용자 입력 문자열에서 prompt injection 패턴을 제거한다."""
+    if not text:
+        return text
+    cleaned = text
+    for pattern in _INJECTION_PATTERNS:
+        cleaned = pattern.sub("", cleaned)
+    return cleaned.strip()
+
+
 def _load_character_context(character_id: int, db: Session) -> dict | None:
     """Load character data and classify tags for Gemini template injection."""
     char = (

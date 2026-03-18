@@ -19,6 +19,7 @@ async def edit_scenes(
     from services.agent.langfuse_prompt import compile_prompt
     from services.agent.prompt_builders import build_scenes_block
     from services.creative_utils import parse_json_response
+    from services.script.gemini_generator import sanitize_user_input
 
     fallback = ScriptEditResponse(edited_scenes=[], reasoning="", unchanged_count=len(scenes))
 
@@ -31,7 +32,7 @@ async def edit_scenes(
         _fallback_sys = "You are a scene editor for short-form video scripts. Edit scenes according to the given instruction while preserving overall narrative coherence."
         compiled = compile_prompt(
             _template_name,
-            instruction=instruction,
+            instruction=sanitize_user_input(instruction),
             scenes_block=build_scenes_block(scenes),
             scene_count=str(len(scenes)),
             context_topic=context.get("topic") or "N/A",
