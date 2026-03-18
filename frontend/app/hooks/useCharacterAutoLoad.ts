@@ -41,17 +41,22 @@ export function useCharacterAutoLoad() {
 
         if (state.selectedCharacterId) {
           const matchA = refs.find((r) => r.character_id === state.selectedCharacterId);
-          if (matchA && !state.ipAdapterReference) {
-            updates.ipAdapterReference = matchA.character_key;
-            updates.ipAdapterWeight = matchA.preset?.weight ?? state.ipAdapterWeight ?? 0.35;
+          if (matchA) {
+            if (!state.ipAdapterReference) {
+              updates.ipAdapterReference = matchA.character_key;
+              updates.ipAdapterWeight = matchA.preset?.weight ?? state.ipAdapterWeight ?? 0.35;
+            }
+            updates.useIpAdapter = true;
           }
         }
 
         if (state.selectedCharacterBId) {
           const matchB = refs.find((r) => r.character_id === state.selectedCharacterBId);
-          if (matchB && !state.ipAdapterReferenceB) {
-            updates.ipAdapterReferenceB = matchB.character_key;
-            updates.ipAdapterWeightB = matchB.preset?.weight ?? state.ipAdapterWeightB ?? 0.35;
+          if (matchB) {
+            if (!state.ipAdapterReferenceB) {
+              updates.ipAdapterReferenceB = matchB.character_key;
+              updates.ipAdapterWeightB = matchB.preset?.weight ?? state.ipAdapterWeightB ?? 0.35;
+            }
           }
         }
 
