@@ -7,30 +7,19 @@ import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 type SceneActionBarProps = {
   scene: Scene;
   sceneIndex: number;
-  qualityScore?: { match_rate: number; missing_tags: string[] } | null;
   sceneMenuOpen: boolean;
   isLoadingSuggestions: boolean;
-  isMarkingStatus?: boolean;
-  pinnedSceneOrder?: number;
-  onGenerateImage: () => void;
   onGeminiEditOpen: () => void;
   onEditImageOpen?: () => void;
   onClothingOpen?: () => void;
   onAutoSuggest: () => void;
-  onPinToggle?: () => void;
-  onMarkSuccess?: () => void;
-  onMarkFail?: () => void;
-  onSceneMenuToggle: () => void;
-  onSceneMenuClose: () => void;
-  onUpdateScene: (updates: Partial<Scene>) => void;
-  onRemoveScene: () => void;
-  showToast: (message: string, type: "success" | "error") => void;
   compact?: boolean;
 };
 
 import { useRef, useState } from "react";
 import Popover from "../ui/Popover";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { useSceneContext } from "./SceneContext";
 
 type BgInfo = { image_url: string | null; tags: string[]; location_key: string } | null;
 
@@ -67,7 +56,6 @@ function BgBadge({ backgroundId, bgInfo, onClear }: { backgroundId: number; bgIn
 
       {hovered && (
         <div className="absolute bottom-full left-0 z-50 mb-1.5 w-56 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg">
-          {/* Thumbnail */}
           <div className="flex h-16 w-full items-center justify-center overflow-hidden bg-zinc-100">
             {bgInfo?.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -81,7 +69,6 @@ function BgBadge({ backgroundId, bgInfo, onClear }: { backgroundId: number; bgIn
             )}
           </div>
 
-          {/* Meta */}
           <div className="px-2.5 py-2">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-[12px] font-semibold text-zinc-700">BG#{backgroundId}</span>
@@ -122,27 +109,33 @@ function BgBadge({ backgroundId, bgInfo, onClear }: { backgroundId: number; bgIn
 export default function SceneActionBar({
   scene,
   sceneIndex,
-  qualityScore,
   sceneMenuOpen,
   isLoadingSuggestions,
-  isMarkingStatus = false,
-  pinnedSceneOrder,
-  onGenerateImage,
   onGeminiEditOpen,
   onEditImageOpen,
   onClothingOpen,
   onAutoSuggest,
-  onPinToggle,
-  onMarkSuccess,
-  onMarkFail,
-  onSceneMenuToggle,
-  onSceneMenuClose,
-  onUpdateScene,
-  onRemoveScene,
-  showToast,
   compact = false,
 }: SceneActionBarProps) {
+  const { data, callbacks } = useSceneContext();
+  const {
+    qualityScore,
+    pinnedSceneOrder,
+    isMarkingStatus,
+  } = data;
+  const {
+    onGenerateImage,
+    onUpdateScene,
+    onRemoveScene,
+    showToast,
+    onPinToggle,
+    onMarkSuccess,
+    onMarkFail,
+    onSceneMenuToggle,
+    onSceneMenuClose,
+  } = callbacks;
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+
   const { confirm, dialogProps } = useConfirm();
   const stageLocations = useStoryboardStore((s) => s.stageLocations);
   const bgInfo = scene.background_id
