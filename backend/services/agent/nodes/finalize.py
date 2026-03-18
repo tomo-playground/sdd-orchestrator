@@ -891,12 +891,8 @@ def _auto_populate_scene_flags(
             else:
                 scene["controlnet_pose"] = DEFAULT_POSE_TAG
 
-        assigned_pose = scene.get("controlnet_pose")
-        is_sitting_pose = assigned_pose in SITTING_EXCLUDED_POSES
-        has_pose = bool(assigned_pose) and not is_sitting_pose
-
         if scene.get("is_controlnet_enabled") is None:
-            scene["is_controlnet_enabled"] = has_pose and not is_narrator
+            scene["is_controlnet_enabled"] = False  # 일반 씬 OFF — 레퍼런스 생성만 ON
         if scene.get("controlnet_weight") is None and scene["is_controlnet_enabled"]:
             scene["controlnet_weight"] = _resolve_controlnet_weight(scene, DEFAULT_CONTROLNET_WEIGHT)
 

@@ -637,7 +637,7 @@ CAPTION_MAX_LENGTH = int(os.getenv("CAPTION_MAX_LENGTH", "60"))
 # Global defaults for per-scene generation flags.
 # Finalize node uses these when auto-populating scene flags.
 # Frontend receives via /presets API → generation_defaults.
-DEFAULT_USE_CONTROLNET = True
+DEFAULT_USE_CONTROLNET = False  # 일반 씬 OFF (프롬프트 충성도 충분), 레퍼런스 생성만 ON
 DEFAULT_CONTROLNET_WEIGHT = 0.8
 DEFAULT_USE_IP_ADAPTER = False
 DEFAULT_IP_ADAPTER_WEIGHT = 0.35  # IP-Adapter 기본 weight (ip_adapter_weight_b 기본값으로도 사용)
