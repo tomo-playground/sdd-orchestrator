@@ -306,20 +306,13 @@ async def run_director_evaluate(
     compiled = compile_prompt(
         _template_name,
         concepts_block=build_concepts_block_simple(concepts),
-        topic=ctx.topic,
-        duration=str(ctx.duration),
-        round_number=str(round_number),
-        max_rounds=str(ctx.max_rounds),
-        critic_analysis_section=build_optional_section(
+        # LangFuse 프롬프트 변수명과 일치: critic_block, prev_eval_block
+        critic_block=build_optional_section(
             "## Devil's Advocate Analysis", ctx.prev_evaluation_str
         ),
-        prev_evaluation_section=build_optional_section(
+        prev_eval_block=build_optional_section(
             "## Previous Round Evaluation", ctx.prev_evaluation_str
         ),
-        hook_weight="0.25",
-        arc_weight="0.30",
-        feasibility_weight="0.25",
-        originality_weight="0.20",
     )
 
     preset = load_preset(db, "creative_director")

@@ -59,10 +59,10 @@ async def copyright_reviewer_node(state: ScriptState) -> dict:
 
     template_vars = {
         "scenes_block": build_copyright_scenes_block(scenes),
-        "language": language,
-        "language_hint": build_language_hint(language),
-        "feedback_section": build_feedback_section(feedback),
-        "feedback_response_hint": build_feedback_response_json_hint(feedback),
+        # LangFuse 프롬프트 변수명과 일치: korean_instruction, feedback_block, feedback_suffix
+        "korean_instruction": build_language_hint(language),
+        "feedback_block": build_feedback_section(feedback),
+        "feedback_suffix": build_feedback_response_json_hint(feedback),
     }
     try:
         result = await run_production_step(

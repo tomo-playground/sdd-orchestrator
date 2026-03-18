@@ -663,7 +663,7 @@ class SceneGenerateRequest(BaseModel):
     scene_id: int | None = None
     # Explicit prompt composition flag (True when frontend /prompt/compose already ran)
     # DEPRECATED: Frontend should send raw prompt + context_tags instead.
-    is_prompt_pre_composed: bool = False
+    prompt_pre_composed: bool = False
     # Scene context tags (expression, pose, gaze, camera, environment, mood)
     # Backend merges these into prompt composition automatically.
     context_tags: dict | None = None

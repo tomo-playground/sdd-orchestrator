@@ -29,9 +29,6 @@ def _estimate_scene_range(duration: int, structure: str = "Monologue") -> tuple[
 
 async def _plan_locations(state: ScriptState) -> list[dict] | None:
     """Gemini로 Location Map을 생성한다. 실패 시 None 반환."""
-    duration = state.get("duration", 10)
-    structure = state.get("structure", "Monologue")
-    min_s, max_s = _estimate_scene_range(duration, structure)
     selected_concept = extract_selected_concept(state)
 
     try:
@@ -45,17 +42,12 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
 
         compiled = compile_prompt(
             _template_name,
-            topic=state.get("topic", ""),
-            description_section=build_optional_section("**Description**:", description) if description else "",
-            duration=str(duration),
-            language=state.get("language", "Korean"),
-            structure=state.get("structure", "Monologue"),
-            director_plan_section=build_optional_section("## Creative Direction (from Director)", director_ctx)
+            # LangFuse 프롬프트 변수명과 일치: description_block, director_plan_block, selected_concept_block
+            description_block=build_optional_section("**Description**:", description) if description else "",
+            director_plan_block=build_optional_section("## Creative Direction (from Director)", director_ctx)
             if director_ctx
             else "",
-            selected_concept_section=build_selected_concept_block(selected_concept) if selected_concept else "",
-            expected_scenes_min=str(min_s),
-            expected_scenes_max=str(max_s),
+            selected_concept_block=build_selected_concept_block(selected_concept) if selected_concept else "",
         )
 
         llm_response = await get_llm_provider().generate(
