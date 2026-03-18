@@ -65,7 +65,7 @@ async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
         scene_emotion=req.scene_emotion or "",
         language=req.language,
         force_regenerate=req.force_regenerate,
-        max_retries=0,
+        max_retries=1,  # voice_design 잘림 감지 시 단순화 1회 재시도
     )
 
     return _TtsGenResult(

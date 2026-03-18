@@ -247,12 +247,18 @@ def _wav_duration(wav_bytes: bytes) -> float:
         return frames / rate if rate > 0 else 0.0
 
 
-def _calculate_max_new_tokens(text: str) -> int:
-    """텍스트 길이 기반 동적 max_new_tokens. Qwen3-TTS 12Hz 기준 안전 마진."""
+def _calculate_max_new_tokens(text: str, instruct: str = "") -> int:
+    """텍스트 + instruct(voice_design) 길이 기반 동적 max_new_tokens.
+
+    Qwen3-TTS는 instruct와 audio 토큰이 예산을 공유한다.
+    instruct가 길수록 audio 토큰이 부족해 음성이 잘릴 수 있으므로
+    instruct 길이를 보정값으로 추가한다 (≈4자 = 1 token).
+    """
     from config import TTS_MAX_NEW_TOKENS_BASE, TTS_MAX_NEW_TOKENS_CAP, TTS_MAX_NEW_TOKENS_PER_CHAR
 
     dynamic = len(text) * TTS_MAX_NEW_TOKENS_PER_CHAR
-    return min(max(dynamic, TTS_MAX_NEW_TOKENS_BASE), TTS_MAX_NEW_TOKENS_CAP)
+    instruct_overhead = len(instruct) // 4  # instruct 토큰 소비 보정
+    return min(max(dynamic + instruct_overhead, TTS_MAX_NEW_TOKENS_BASE), TTS_MAX_NEW_TOKENS_CAP)
 
 
 def _atomic_cache_write(src: Path, dst: Path) -> None:
@@ -282,10 +288,14 @@ def persist_voice_design(scene_idx: int, scene_db_id: int | None, voice_design: 
         from models import Scene as SceneModel  # noqa: PLC0415
 
         with get_db_session() as _db:
-            rows = _db.query(SceneModel).filter(
-                SceneModel.id == scene_db_id,
-                SceneModel.deleted_at.is_(None),
-            ).update({"voice_design_prompt": voice_design})
+            rows = (
+                _db.query(SceneModel)
+                .filter(
+                    SceneModel.id == scene_db_id,
+                    SceneModel.deleted_at.is_(None),
+                )
+                .update({"voice_design_prompt": voice_design})
+            )
             if rows == 0:
                 logger.warning(
                     "Scene %d (db_id=%d): voice_design_prompt write-back 대상 없음 (삭제됨?)",
@@ -475,7 +485,7 @@ async def _try_synthesize_with_retries(
                 temperature=TTS_TEMPERATURE,
                 top_p=TTS_TOP_P,
                 repetition_penalty=TTS_REPETITION_PENALTY,
-                max_new_tokens=_calculate_max_new_tokens(p.tts_text),
+                max_new_tokens=_calculate_max_new_tokens(p.tts_text, current_vd or ""),
                 task_id=task_id,
                 force=force and attempt == 0,
             )
@@ -485,6 +495,19 @@ async def _try_synthesize_with_retries(
 
         if duration > best_dur:
             best_bytes, best_dur = audio_bytes, duration
+
+        # Truncation guard: duration이 텍스트 길이 대비 비정상적으로 짧으면 실패 처리
+        min_expected = len(p.cleaned) * 0.05  # 0.05s/char = 20자/sec (극단적 하한)
+        if quality_passed and duration < min_expected:
+            logger.warning(
+                "[TTS] attempt %d/%d possible truncation: %.2fs for %d chars (expected ≥%.2fs)",
+                attempt + 1,
+                1 + p.retries,
+                duration,
+                len(p.cleaned),
+                min_expected,
+            )
+            quality_passed = False
 
         if quality_passed and duration >= p.min_duration:
             _write_cache(audio_bytes, p.cache_path)
