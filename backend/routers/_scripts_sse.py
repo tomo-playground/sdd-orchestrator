@@ -243,6 +243,7 @@ async def stream_graph_events(
 ) -> AsyncGenerator[str]:
     """Graph를 스트리밍하며 SSE 이벤트를 yield한다."""
     from services.agent.observability import (  # noqa: PLC0415, E501
+        _patch_trace,
         end_root_span,
         update_root_span,
         update_trace_on_completion,
@@ -346,7 +347,14 @@ async def stream_graph_events(
             )
 
             yield f"data: {json.dumps(payload_interrupt, ensure_ascii=False)}\n\n"
-        elif not errored:
+        elif errored:
+            # 에러 시 trace에 error 상태를 명시적으로 기록 (LangFuse 대시보드 필터링용)
+            _patch_trace(
+                trace_id=handler_trace_id,
+                body={"metadata": {"interrupted": False, "completed": False, "errored": True}},
+                label="error",
+            )
+        else:
             # 정상 완료 시 interrupted: True stale 메타데이터를 리셋하고 최종 결과를 output에 기록
             update_trace_on_completion(trace_id=handler_trace_id, output_data=final_output)
 

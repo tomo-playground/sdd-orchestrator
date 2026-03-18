@@ -10,7 +10,7 @@ type SceneNavHeaderProps = {
   duration?: number;
   onPrev: () => void;
   onNext: () => void;
-  onRemove: () => void;
+  onRemove?: () => void;
 };
 
 export default function SceneNavHeader({
@@ -51,13 +51,15 @@ export default function SceneNavHeader({
         {duration != null && <span className="text-xs text-zinc-400">{duration}초</span>}
       </div>
       <div className="flex items-center gap-2">
-        <button
-          onClick={onRemove}
-          className={`rounded-lg p-2 transition-colors ${ERROR_ICON} hover:${ERROR_BG}`}
-          title="Delete Scene"
-        >
-          <Trash2 size={16} />
-        </button>
+        {onRemove && (
+          <button
+            onClick={onRemove}
+            className={`rounded-lg p-2 transition-colors ${ERROR_ICON} hover:${ERROR_BG}`}
+            title="Delete Scene"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
       </div>
     </div>
   );

@@ -451,7 +451,10 @@ async def get_transitions():
 @router.post("/extract-caption", response_model=CaptionExtractResponse)
 async def extract_caption(request: TextExtractRequest):
     """Extract a concise caption from longer text using LLM."""
-    from config import CAPTION_MAX_LENGTH, GEMINI_TEXT_MODEL, gemini_client
+    from google.genai import types
+
+    from config import CAPTION_MAX_LENGTH, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client
+    from services.agent.observability import trace_context, trace_llm_call
 
     text = request.text.strip()
     if not text:
@@ -465,16 +468,34 @@ async def extract_caption(request: TextExtractRequest):
         return CaptionExtractResponse(caption=text)
 
     try:
-        prompt = (
-            f"다음 텍스트에서 핵심 내용만 추출하여 {max_len}자 이내의 간결한 캡션을 만들어주세요.\n"
+        system_instruction = (
+            f"당신은 텍스트 요약 전문가입니다. 주어진 텍스트에서 핵심 내용만 추출하여 "
+            f"{max_len}자 이내의 간결한 캡션을 만들어주세요.\n"
             f"규칙:\n- 반드시 {max_len}자 이내로 작성\n- 핵심 키워드와 주제만 포함\n"
-            f"- 해시태그 포함 가능\n- 이모지 사용 가능하지만 과도하지 않게\n\n"
-            f"텍스트:\n{text}\n\n캡션만 출력하세요 (설명이나 따옴표 없이):"
+            f"- 해시태그 포함 가능\n- 이모지 사용 가능하지만 과도하지 않게\n"
+            f"- 캡션만 출력하세요 (설명이나 따옴표 없이)"
+        )
+        user_prompt = f"텍스트:\n{text}"
+
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            safety_settings=GEMINI_SAFETY_SETTINGS,
         )
 
-        response = await asyncio.to_thread(
-            gemini_client.models.generate_content, model=GEMINI_TEXT_MODEL, contents=prompt
-        )
+        async with trace_context("video.extract_caption", input_data={"text_length": len(text)}):
+            async with trace_llm_call(
+                "generate_content extract_caption",
+                model=GEMINI_TEXT_MODEL,
+                input_text=user_prompt[:2000],
+            ) as llm:
+                response = await asyncio.to_thread(
+                    gemini_client.models.generate_content,
+                    model=GEMINI_TEXT_MODEL,
+                    contents=user_prompt,
+                    config=config,
+                )
+                llm.record(response)
+
         caption = _strip_quotes(response.text.strip() if response.text else text[:max_len])
 
         if len(caption) > max_len:
@@ -491,7 +512,10 @@ async def extract_caption(request: TextExtractRequest):
 @router.post("/extract-hashtags", response_model=HashtagExtractResponse)
 async def extract_hashtags(request: TextExtractRequest):
     """Extract 3 hashtag keywords from topic text using LLM."""
-    from config import CAPTION_MAX_LENGTH, GEMINI_TEXT_MODEL, gemini_client
+    from google.genai import types
+
+    from config import CAPTION_MAX_LENGTH, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client
+    from services.agent.observability import trace_context, trace_llm_call
 
     text = request.text.strip()
     if not text:
@@ -502,16 +526,33 @@ async def extract_hashtags(request: TextExtractRequest):
 
     max_len = CAPTION_MAX_LENGTH
     try:
-        prompt = (
-            "다음 주제에서 핵심 키워드 3개를 해시태그로 추출하세요.\n\n"
+        system_instruction = (
+            "당신은 소셜미디어 해시태그 전문가입니다. 주어진 주제에서 핵심 키워드 3개를 해시태그로 추출하세요.\n\n"
             "규칙:\n- 정확히 3개의 해시태그\n- 각 키워드는 한글 기준 5자 이내 (# 제외)\n"
             "- 형식: #키워드1 #키워드2 #키워드3\n"
-            f"- 해시태그만 출력 (설명이나 따옴표 없이)\n\n주제:\n{text}\n\n해시태그:"
+            "- 해시태그만 출력 (설명이나 따옴표 없이)"
+        )
+        user_prompt = f"주제:\n{text}"
+
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            safety_settings=GEMINI_SAFETY_SETTINGS,
         )
 
-        response = await asyncio.to_thread(
-            gemini_client.models.generate_content, model=GEMINI_TEXT_MODEL, contents=prompt
-        )
+        async with trace_context("video.extract_hashtags", input_data={"topic": text[:200]}):
+            async with trace_llm_call(
+                "generate_content extract_hashtags",
+                model=GEMINI_TEXT_MODEL,
+                input_text=user_prompt[:2000],
+            ) as llm:
+                response = await asyncio.to_thread(
+                    gemini_client.models.generate_content,
+                    model=GEMINI_TEXT_MODEL,
+                    contents=user_prompt,
+                    config=config,
+                )
+                llm.record(response)
+
         hashtags = _strip_quotes(response.text.strip() if response.text else text[:max_len])
 
         if len(hashtags) > max_len:

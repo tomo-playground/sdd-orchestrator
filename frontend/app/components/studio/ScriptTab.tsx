@@ -1,16 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useChatScriptEditor } from "../../hooks/useChatScriptEditor";
 import { useUIStore } from "../../store/useUIStore";
+import { useContextStore } from "../../store/useContextStore";
 import ChatArea from "../chat/ChatArea";
 
 export default function ScriptTab() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const idParam = searchParams.get("id");
-  const storyboardId = idParam ? Number(idParam) : null;
+  const storyboardId = useContextStore((s) => s.storyboardId);
   const onSaved = useCallback(
     (id: number) => {
       router.replace(`/studio?id=${id}`);
@@ -21,7 +20,7 @@ export default function ScriptTab() {
   );
   const editor = useChatScriptEditor({ onSaved });
 
-  // Load storyboard when URL id changes
+  // Load storyboard when contextStore storyboardId changes
   const loadedRef = useRef<number | null>(null);
   useEffect(() => {
     if (storyboardId && loadedRef.current !== storyboardId) {

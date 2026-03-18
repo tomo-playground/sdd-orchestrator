@@ -84,7 +84,6 @@ export async function runAutoRunFromStep(
         if (!storyboardId) throw new Error("Storyboard ID required for Stage");
 
         setAutoRunStep("stage", "Generating backgrounds...");
-        setActiveTab("stage");
         useStoryboardStore.getState().set({ stageStatus: "staging" });
         assertNotCancelled();
 
@@ -169,7 +168,6 @@ export async function runAutoRunFromStep(
 
       if (currentStep === "images") {
         setAutoRunStep("images", "Generating scene images...");
-        setActiveTab("direct");
         assertNotCancelled();
 
         // Track failed scenes to save progress before throwing
@@ -291,7 +289,6 @@ export async function runAutoRunFromStep(
 
       if (currentStep === "tts") {
         setAutoRunStep("tts", "Pre-building TTS audio...");
-        setActiveTab("publish");
         const storyboardId = useContextStore.getState().storyboardId;
         if (!storyboardId) throw new Error("Storyboard ID required for TTS prebuild");
 
