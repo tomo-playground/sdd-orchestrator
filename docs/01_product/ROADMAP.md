@@ -45,14 +45,16 @@
 | **Phase 33 (Hybrid Match Rate)** | **전체 완료 (ARCHIVED)** |
 | **TTS 파이프라인 일원화 (Sprint A~D)** | **전체 완료 (ARCHIVED)** |
 | **Phase 35 (GPT-SoVITS TTS 전환)** | **전체 완료** |
+| **Phase 36 (LangFuse Prompt Quality Hardening)** | **전체 완료** |
 | 테스트 | Backend 3,647 + Frontend 599 (65파일) = **총 4,246개** |
 
 ### 진행 중
 
-- **Phase 36 (LangFuse Prompt Quality Hardening)**: 프롬프트 33개 전수 분석 후 코드↔프롬프트 정합성 + 업계 표준 준수. Sprint A(CRITICAL 2건) → B(HIGH 10건) → C(MEDIUM 14건) → D(LOW 7건). [명세](FEATURES/LANGFUSE_PROMPT_HARDENING.md)
+(없음)
 
 ### 최근 작업
 
+- **03-18 Phase 36 (LangFuse Prompt Quality Hardening) 완료**: 프롬프트 33개 전수 분석, Sprint A~D 33건 중 27건 완료 + 6건 이슈없음/이관. 코드↔프롬프트 가중치 동기화, 무효 Danbooru 태그 8+개 수정, System/User 중복 제거(~4,900 chars 절감), injection 방어, CoT 도입, emotion 별칭 오매핑 수정, context_tags 호환, tags+config 메타데이터 체계 구축. LangFuse 15개 프롬프트 27 새 버전 생성. [명세](FEATURES/LANGFUSE_PROMPT_HARDENING.md)
 - **03-18 Phase 36 Sprint A (CRITICAL 2건) 완료**: (1) `pipeline/review/unified` Narrative 가중치 코드↔프롬프트 동기화(Hook 35→30%, Speaker Tone 10→20%, Script-Image Sync 15→10%). (2) 무효 Danbooru 태그 8개 수정 — `face_focus`→`portrait`(0→256K), `profile_standing`→`from_side`(0→52K), `leaning_wall`→`against_wall`(0→18K), `golden_hour`→`sunset`(61→144K), `bird's_eye_view`→`from_above`(106→334K), `blue_hour`/`warm_lighting` 제거. `pipeline/cinematographer` v2→v4, `storyboard/narrated` v2→v4, `pipeline/review/unified` v2→v3
 - **03-18 Scene Text 줄바꿈 텍스트 소실 수정**: `wrap_text_by_font()` 버그 2건 — (1) placeholder(`\x00ELLIPSIS\x00`) 너비 오염 수정(measure_width 복원), (2) 문장부호 강제 분리 시 첫 세그먼트가 max_lines 독점 → 세그먼트간 줄 예약 + truncation 제거(caller 폰트 축소 위임). RENDER_PIPELINE.md Full/Post 레이아웃 사양 전면 재작성. TikTok Safe Zone 문서 오류(20%→25%) 수정
 - **03-18 파이프라인 품질 개선 + 로그 버그 수정**: LangFuse trace 분석 기반 5건 수정. Revise score 하락 시 best scenes rollback(P0), Writer Speaker B 배분 강화(P1), 글로벌 리비전 10→6(P1), OTel trace name 재설정(P2), Narrator 부재 ERROR 승격(P2). 로그 버그 3건 수정: Danbooru asyncio.run() ThreadPool fallback, mood 화이트리스트 21종 추가, context_tags list→str TypeError(_flatten_tag). 비디오 업로드 project/group ID 자동 조회(storyboard→group→project DB resolve). review.py 분할(523→363줄), danbooru.py 분할(415→327줄). 테스트 +5개(rollback), 307개 PASS

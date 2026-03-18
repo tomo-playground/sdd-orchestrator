@@ -1,6 +1,6 @@
 # Phase 36: LangFuse Prompt Quality Hardening
 
-**상태**: 진행 중
+**상태**: 완료
 **착수일**: 2026-03-18
 **목표**: LangFuse 등록 프롬프트 33개 전수 분석 후 업계 표준 준수 + 코드↔프롬프트 정합성 확보
 
@@ -67,10 +67,34 @@
 
 ---
 
+## LangFuse 프롬프트 버전 관리 가이드 (D-7)
+
+### 라벨 체계
+| 라벨 | 용도 |
+|------|------|
+| `production` | 현재 프로덕션 사용 중 (코드가 이 라벨로 fetch) |
+| `latest` | 최신 버전 (production과 동일 버전 유지) |
+| `deprecated` | 더 이상 사용하지 않음 (unified로 대체된 경우 등) |
+
+### 운영 절차
+1. **수정 시**: 현재 production 내용 fetch → 변경 → 새 버전 생성 (production+latest)
+2. **A/B 테스트 시**: staging 라벨 도입 후, 코드에서 라벨 분기 (향후)
+3. **폐기 시**: production 라벨 제거 + deprecated 라벨 추가
+
+### tags 분류 체계
+- 카테고리: `pipeline`, `storyboard`, `tool`, `shared`
+- 도메인: `danbooru`, `tts`, `bgm`, `review`, `creative`, `script`
+
+### config 활용
+- `model`: 권장 Gemini 모델 (예: `gemini-2.5-flash`)
+- `temperature`: 권장 temperature (review=0.3, creative=0.8, script=0.7)
+
+---
+
 ## 완료 기준 (DoD)
 
-- [ ] CRITICAL 2건 수정 + 코드↔프롬프트 가중치 일치 검증
-- [ ] HIGH 10건 수정 + 무효 태그 0개 달성
-- [ ] MEDIUM 14건 수정
-- [ ] LOW 7건 수정
+- [x] CRITICAL 2건 수정 + 코드↔프롬프트 가중치 일치 검증
+- [x] HIGH 10건 수정 + 무효 태그 0개 달성
+- [x] MEDIUM 14건 수정 (9완료 + 5이슈없음/이관)
+- [x] LOW 7건 수정 (D-6 SKIP, C-10/C-13 이관)
 - [ ] 기존 테스트 전체 PASS (regression 없음)
