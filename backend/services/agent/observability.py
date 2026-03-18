@@ -88,21 +88,25 @@ async def trace_context(
 
     trace_id = uuid.uuid4().hex
     prev_trace_id = _current_trace_id.get()
+    prev_root_span = _current_root_span.get()
     _current_trace_id.set(trace_id)
     try:
         # SDK v3: start_as_current_span → 자동 trace 생성 + update_current_trace로 메타 설정
         with _langfuse_client.start_as_current_span(
             name=name,
             input=input_data,
-        ):
+        ) as span:
             _langfuse_client.update_current_trace(
                 name=name,
                 session_id=session_id,
                 input=input_data,
             )
+            # trace_llm_call()이 이 span을 부모로 사용하도록 설정
+            _current_root_span.set(span)
             yield
     finally:
         _current_trace_id.set(prev_trace_id)
+        _current_root_span.set(prev_root_span)
         try:
             _langfuse_client.flush()
         except Exception:
@@ -139,16 +143,17 @@ def create_langfuse_handler(
 
         trace_ctx: dict[str, str] = {"trace_id": trace_id}
 
-        # SDK v3: start_span()은 컨텍스트에 span을 설정하지 않으므로
-        # update_current_trace() 대신 Ingestion API로 trace 메타 설정
-        root_span = _langfuse_client.start_span(
-            name=f"pipeline.{action}",
-            metadata={"trace_id": trace_id},
-        )
+        # Ingestion API로 trace 메타(이름, 세션) 설정 — start_span보다 먼저 실행하여
+        # trace가 존재하도록 보장
         _patch_trace(
             trace_id=trace_id,
             body={"name": f"storyboard.{action}", "session_id": session_id},
             label="trace_init",
+        )
+        # root span을 기존 trace에 연결 — trace_id 명시하여 독립 trace 생성 방지
+        root_span = _langfuse_client.start_span(
+            name=f"pipeline.{action}",
+            trace_id=trace_id,
         )
         _current_root_span.set(root_span)
 
@@ -325,7 +330,6 @@ async def trace_llm_call(
         return
 
     raw_trace_id = _current_trace_id.get()
-    trace_ctx = {"trace_id": _to_hex32(raw_trace_id)} if raw_trace_id else None
     root_span = _current_root_span.get()
 
     gen_kwargs: dict[str, Any] = {
@@ -339,10 +343,15 @@ async def trace_llm_call(
         gen_kwargs["prompt"] = langfuse_prompt
 
     # SDK v3: start_generation() deprecated → start_observation(as_type='generation')
+    # root_span이 있으면 하위로 연결, 없으면 trace_id로 직접 연결
     if root_span:
         generation = root_span.start_observation(as_type="generation", **gen_kwargs)
+    elif raw_trace_id:
+        generation = _langfuse_client.start_observation(
+            as_type="generation", trace_id=_to_hex32(raw_trace_id), **gen_kwargs
+        )
     else:
-        generation = _langfuse_client.start_observation(as_type="generation", trace_context=trace_ctx, **gen_kwargs)
+        generation = _langfuse_client.start_observation(as_type="generation", **gen_kwargs)
     result = LLMCallResult(generation=generation)
     try:
         yield result
