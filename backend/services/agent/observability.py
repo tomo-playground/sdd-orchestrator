@@ -141,23 +141,19 @@ def create_langfuse_handler(
         _current_trace_id.set(trace_id)
         _current_action.set(action)
 
+        # CallbackHandler가 trace를 단일 관리 — 중복 trace 생성 방지
+        # trace_context로 trace_id 지정, update_trace=True로 trace 메타 자동 업데이트
         trace_ctx: dict[str, str] = {"trace_id": trace_id}
+        handler = CallbackHandler(trace_context=trace_ctx, update_trace=True)
 
-        # Ingestion API로 trace 메타(이름, 세션) 설정 — start_span보다 먼저 실행하여
-        # trace가 존재하도록 보장
+        # session_id는 Ingestion API로 설정 (CallbackHandler가 직접 지원하지 않음)
         _patch_trace(
             trace_id=trace_id,
             body={"name": f"storyboard.{action}", "session_id": session_id},
             label="trace_init",
         )
-        # root span을 기존 trace에 연결 — trace_id 명시하여 독립 trace 생성 방지
-        root_span = _langfuse_client.start_span(
-            name=f"pipeline.{action}",
-            trace_id=trace_id,
-        )
-        _current_root_span.set(root_span)
-
-        handler = CallbackHandler(trace_context=trace_ctx)
+        # root_span은 더 이상 별도 생성하지 않음 — CallbackHandler가 LangGraph span을 자동 생성
+        _current_root_span.set(None)
         logger.debug("[LangFuse] 핸들러 생성 (trace=%s, action=%s, session=%s)", trace_id[:16], action, session_id)
         return handler
     except Exception as e:
@@ -348,7 +344,9 @@ async def trace_llm_call(
         generation = root_span.start_observation(as_type="generation", **gen_kwargs)
     elif raw_trace_id:
         generation = _langfuse_client.start_observation(
-            as_type="generation", trace_id=_to_hex32(raw_trace_id), **gen_kwargs
+            as_type="generation",
+            trace_context={"trace_id": _to_hex32(raw_trace_id)},
+            **gen_kwargs,
         )
     else:
         generation = _langfuse_client.start_observation(as_type="generation", **gen_kwargs)
