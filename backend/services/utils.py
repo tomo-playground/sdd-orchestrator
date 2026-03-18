@@ -105,8 +105,8 @@ def wrap_text_by_font(
     text = text.replace("...", placeholder)
 
     def measure_width(s: str) -> int:
-        """Measure text width in pixels."""
-        bbox = font.getbbox(s)
+        """Measure text width in pixels (placeholder 복원 후 실제 너비 측정)."""
+        bbox = font.getbbox(s.replace(placeholder, "..."))
         return bbox[2] - bbox[0] if bbox else 0
 
     def restore_ellipsis(s: str) -> str:
@@ -201,15 +201,14 @@ def wrap_text_by_font(
         initial_lines = [text]
 
     # 2. 각 줄을 픽셀 너비 기준으로 처리
+    #    텍스트를 절대 버리지 않음 — 줄이 max_lines를 초과하면
+    #    caller(wrap_scene_text)가 감지하여 폰트를 축소한다.
+    #    남은 세그먼트 수만큼 줄을 예약하여 balanced split 가이드로 사용.
     result_lines: list[str] = []
+    non_empty_segments = [s for s in initial_lines if s.strip()]
 
-    for line in initial_lines:
-        if max_lines > 0 and len(result_lines) >= max_lines:
-            break
-
+    for seg_idx, line in enumerate(non_empty_segments):
         line = line.strip()
-        if not line:
-            continue
 
         # 이미 최대 너비 이하면 그대로 추가
         if measure_width(line) <= max_width_px:
@@ -217,22 +216,24 @@ def wrap_text_by_font(
             continue
 
         words = line.split()
-        remaining_lines = max_lines - len(result_lines) if max_lines > 0 else 2
+        # 남은 세그먼트에 최소 1줄씩 예약 (balanced split 가이드)
+        remaining_segments_after = len(non_empty_segments) - seg_idx - 1
+        if max_lines > 0:
+            lines_budget = max_lines - len(result_lines) - remaining_segments_after
+            lines_budget = max(1, lines_budget)
+        else:
+            lines_budget = 2
 
         # 균형 맞추기 시도
-        if balance_lines and remaining_lines >= 2:
-            balanced = find_balanced_split(words, remaining_lines)
-            # 모든 줄이 max_width_px 이하인지 확인
-            if all(measure_width(line) <= max_width_px for line in balanced):
+        if balance_lines and lines_budget >= 2:
+            balanced = find_balanced_split(words, lines_budget)
+            if all(measure_width(bl) <= max_width_px for bl in balanced):
                 result_lines.extend(balanced)
                 continue
 
-        # 균형 맞추기 실패 시 기존 greedy 방식
+        # 균형 맞추기 실패 시 greedy 방식 (텍스트 버리지 않음)
         current_line = ""
         for word in words:
-            if max_lines > 0 and len(result_lines) >= max_lines:
-                break
-
             test_line = f"{current_line} {word}".strip() if current_line else word
 
             if measure_width(test_line) <= max_width_px:
@@ -252,13 +253,11 @@ def wrap_text_by_font(
                             break
                     current_line = trimmed if trimmed else word[:1]
 
-        if current_line and (max_lines == 0 or len(result_lines) < max_lines):
+        if current_line:
             result_lines.append(current_line)
 
-    # max_lines 제한
-    if max_lines > 0 and len(result_lines) > max_lines:
-        result_lines = result_lines[:max_lines]
-
+    # max_lines 제한 없음 — caller가 len(lines) > max_lines를 감지하여
+    # 폰트 축소 등 후속 처리를 수행한다.
     return [restore_ellipsis(line) for line in result_lines]
 
 
