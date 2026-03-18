@@ -83,6 +83,12 @@ export async function runAutoRunFromStep(
         const storyboardId = useContextStore.getState().storyboardId;
         if (!storyboardId) throw new Error("Storyboard ID required for Stage");
 
+        // 0) DB 싱크 보장 — 새 씬이 DB에 저장된 후 배경 생성
+        setAutoRunStep("stage", "씬 데이터 저장 중...");
+        const saved = await persistStoryboard();
+        if (!saved) throw new Error("스토리보드 저장 실패 — Stage를 시작할 수 없습니다.");
+        assertNotCancelled();
+
         setAutoRunStep("stage", "Generating backgrounds...");
         useStoryboardStore.getState().set({ stageStatus: "staging" });
         assertNotCancelled();
