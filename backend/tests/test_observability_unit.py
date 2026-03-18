@@ -245,6 +245,7 @@ class TestRecordScore:
 
             mock_client.create_score.assert_called_once_with(
                 trace_id="abcdef1234567890abcdef1234567890",
+                observation_id=None,
                 name="revision_count",
                 value=2,
                 data_type="NUMERIC",
@@ -261,6 +262,7 @@ class TestRecordScore:
 
             mock_client.create_score.assert_called_once_with(
                 trace_id="abcdef1234567890abcdef1234567890",
+                observation_id=None,
                 name="first_pass",
                 value=1,
                 data_type="BOOLEAN",
@@ -277,6 +279,7 @@ class TestRecordScore:
 
             mock_client.create_score.assert_called_once_with(
                 trace_id="abcdef1234567890abcdef1234567890",
+                observation_id=None,
                 name="first_pass",
                 value=0,
                 data_type="BOOLEAN",
@@ -353,6 +356,7 @@ class TestRecordScore:
 
             mock_client.create_score.assert_called_once_with(
                 trace_id="abcdef1234567890abcdef1234567890",
+                observation_id=None,
                 name="narrative_overall",
                 value=0.8,
                 data_type="NUMERIC",
@@ -369,6 +373,7 @@ class TestRecordScore:
 
             mock_client.create_score.assert_called_once_with(
                 trace_id="abcdef1234567890abcdef1234567890",
+                observation_id=None,
                 name="narrative_overall",
                 value=0.8,
                 data_type="NUMERIC",
