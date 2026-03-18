@@ -2,7 +2,7 @@
 
 Ensures new naming convention is used throughout:
 - subtitles → scene_text
-- include_subtitles → is_scene_text_included
+- include_subtitles → include_scene_text
 """
 
 import pytest
@@ -13,19 +13,19 @@ from schemas import VideoRequest
 class TestSceneTextNaming:
     """Test scene text naming convention."""
 
-    def test_video_request_has_is_scene_text_included_field(self):
-        """VideoRequest should have is_scene_text_included field."""
+    def test_video_request_has_include_scene_text_field(self):
+        """VideoRequest should have include_scene_text field (not include_subtitles)."""
         request = VideoRequest(
             scenes=[],
             layout_style="full",
             width=1080,
             height=1920,
-            is_scene_text_included=True,
+            include_scene_text=True,  # NEW NAMING
             narrator_voice="ko-KR-SunHiNeural",
         )
 
-        assert hasattr(request, "is_scene_text_included")
-        assert request.is_scene_text_included is True
+        assert hasattr(request, "include_scene_text")
+        assert request.include_scene_text is True
 
     def test_post_layout_metrics_naming(self):
         """Post layout metrics should use scene_text naming."""

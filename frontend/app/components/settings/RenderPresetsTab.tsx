@@ -3,7 +3,10 @@
 import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
 import { useUIStore } from "../../store/useUIStore";
 import { useRenderPresetsTab } from "../../hooks/useRenderPresetsTab";
-import { FORM_INPUT_COMPACT_CLASSES, FORM_LABEL_COMPACT_CLASSES } from "../ui/variants";
+import {
+  FORM_INPUT_COMPACT_CLASSES,
+  FORM_LABEL_COMPACT_CLASSES,
+} from "../ui/variants";
 
 export default function RenderPresetsTab() {
   const showToast = useUIStore((s) => s.showToast);
@@ -188,8 +191,8 @@ export default function RenderPresetsTab() {
             <div>
               <label className={labelCls}>Audio Ducking</label>
               <select
-                value={editing.is_audio_ducking_enabled ? "true" : "false"}
-                onChange={(e) => set("is_audio_ducking_enabled", e.target.value === "true")}
+                value={editing.audio_ducking ? "true" : "false"}
+                onChange={(e) => set("audio_ducking", e.target.value === "true")}
                 className={inputCls}
               >
                 <option value="true">Enabled</option>

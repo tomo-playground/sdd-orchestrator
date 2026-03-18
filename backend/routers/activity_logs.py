@@ -37,7 +37,7 @@ class CreateActivityLogRequest(BaseModel):
     status: str | None = "pending"  # success, fail, pending
     image_url: str | None = None
     # Gemini Auto Edit Tracking
-    is_gemini_edited: bool = False
+    gemini_edited: bool = False
     gemini_cost_usd: float | None = None
     original_match_rate: float | None = None
     final_match_rate: float | None = None
@@ -122,7 +122,7 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
             seed=request.seed,
             status=request.status or "pending",
             media_asset_id=media_asset_id,
-            gemini_edited=request.is_gemini_edited,
+            gemini_edited=request.gemini_edited,
             gemini_cost_usd=request.gemini_cost_usd,
             original_match_rate=request.original_match_rate,
             final_match_rate=request.final_match_rate,
@@ -143,7 +143,7 @@ def create_activity_log(request: CreateActivityLogRequest, db: Session = Depends
             "character_id": log.character_id,
             "status": log.status,
             "match_rate": log.match_rate,
-            "is_gemini_edited": log.gemini_edited,
+            "gemini_edited": log.gemini_edited,
             "gemini_cost_usd": log.gemini_cost_usd,
             "original_match_rate": log.original_match_rate,
             "final_match_rate": log.final_match_rate,
@@ -605,7 +605,7 @@ def get_success_combinations(
                 "tags": ["smile", "standing", "cowboy shot", "classroom"],
                 "categories": ["expression", "pose", "camera", "environment"],
                 "avg_success_rate": 0.92,
-                "is_conflict_free": true
+                "conflict_free": true
             }
         ]
     }
@@ -759,7 +759,7 @@ def get_success_combinations(
                     "tags": combination_tags,
                     "categories": combination_categories,
                     "avg_success_rate": round(avg_success_rate, 2),
-                    "is_conflict_free": not has_conflict,
+                    "conflict_free": not has_conflict,
                 }
             )
 

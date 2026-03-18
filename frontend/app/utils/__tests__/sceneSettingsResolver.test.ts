@@ -37,7 +37,7 @@ const GLOBAL_STATE = {
 
 describe("resolveSceneControlnet", () => {
   it("inherits global when scene has null override", () => {
-    const scene = makeScene({ is_controlnet_enabled: null, controlnet_weight: null });
+    const scene = makeScene({ use_controlnet: null, controlnet_weight: null });
     const result = resolveSceneControlnet(scene, GLOBAL_STATE);
     expect(result.enabled).toBe(true);
     expect(result.weight).toBe(0.8);
@@ -51,20 +51,20 @@ describe("resolveSceneControlnet", () => {
   });
 
   it("uses scene override when set to false", () => {
-    const scene = makeScene({ is_controlnet_enabled: false });
+    const scene = makeScene({ use_controlnet: false });
     const result = resolveSceneControlnet(scene, GLOBAL_STATE);
     expect(result.enabled).toBe(false);
   });
 
   it("uses scene override weight", () => {
-    const scene = makeScene({ is_controlnet_enabled: true, controlnet_weight: 0.5 });
+    const scene = makeScene({ use_controlnet: true, controlnet_weight: 0.5 });
     const result = resolveSceneControlnet(scene, GLOBAL_STATE);
     expect(result.enabled).toBe(true);
     expect(result.weight).toBe(0.5);
   });
 
   it("scene override false overrides global true", () => {
-    const scene = makeScene({ is_controlnet_enabled: false });
+    const scene = makeScene({ use_controlnet: false });
     const result = resolveSceneControlnet(scene, { useControlnet: true, controlnetWeight: 0.8 });
     expect(result.enabled).toBe(false);
   });

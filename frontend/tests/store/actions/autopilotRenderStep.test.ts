@@ -85,9 +85,9 @@ function mockDefaultStores() {
     bgmMode: "manual",
     musicPresetId: null,
     bgmPrompt: "",
-    isAudioDuckingEnabled: true,
+    audioDucking: true,
     bgmVolume: 0.3,
-    isSceneTextIncluded: true,
+    includeSceneText: true,
     sceneTextFont: "NotoSansKR",
     voiceDesignPrompt: null,
     voicePresetId: null,
@@ -119,11 +119,11 @@ describe("executeRenderStep", () => {
       const abortController = new AbortController();
       abortController.abort();
 
-      const renderWithProgressMock = renderWithProgressModule.renderWithProgress as ReturnType<
-        typeof vi.fn
-      >;
+      const renderWithProgressMock = renderWithProgressModule.renderWithProgress as ReturnType<typeof vi.fn>;
       // renderWithProgress가 AbortError를 throw하도록 설정 (axios가 abort signal 처리)
-      renderWithProgressMock.mockRejectedValue(new DOMException("Aborted", "AbortError"));
+      renderWithProgressMock.mockRejectedValue(
+        new DOMException("Aborted", "AbortError")
+      );
 
       const callbacks = makeCallbacks();
       const scenes = [makeScene()];
@@ -161,8 +161,12 @@ describe("executeRenderStep", () => {
       await executeRenderStep(scenes, controller.signal, callbacks);
 
       // 완료 로그에 layoutStyle("full") 포함 확인
-      expect(callbacks.pushAutoRunLog).toHaveBeenCalledWith(expect.stringContaining("full"));
-      expect(callbacks.pushAutoRunLog).toHaveBeenCalledWith(expect.stringContaining("complete"));
+      expect(callbacks.pushAutoRunLog).toHaveBeenCalledWith(
+        expect.stringContaining("full")
+      );
+      expect(callbacks.pushAutoRunLog).toHaveBeenCalledWith(
+        expect.stringContaining("complete")
+      );
     });
 
     it("renderWithProgress 성공 시 useRenderStore.set 호출 (videoUrl 업데이트)", async () => {
@@ -194,9 +198,9 @@ describe("executeRenderStep", () => {
         bgmMode: "manual",
         musicPresetId: null,
         bgmPrompt: "",
-        isAudioDuckingEnabled: true,
+        audioDucking: true,
         bgmVolume: 0.3,
-        isSceneTextIncluded: true,
+        includeSceneText: true,
         sceneTextFont: "NotoSansKR",
         voiceDesignPrompt: null,
         voicePresetId: null,
@@ -273,9 +277,9 @@ describe("executeRenderStep", () => {
         bgmMode: "manual",
         musicPresetId: null,
         bgmPrompt: "",
-        isAudioDuckingEnabled: true,
+        audioDucking: true,
         bgmVolume: 0.3,
-        isSceneTextIncluded: true,
+        includeSceneText: true,
         sceneTextFont: "NotoSansKR",
         voiceDesignPrompt: null,
         voicePresetId: null,
@@ -328,9 +332,9 @@ describe("executeRenderStep", () => {
         bgmMode: "manual",
         musicPresetId: null,
         bgmPrompt: "",
-        isAudioDuckingEnabled: true,
+        audioDucking: true,
         bgmVolume: 0.3,
-        isSceneTextIncluded: true,
+        includeSceneText: true,
         sceneTextFont: "NotoSansKR",
         voiceDesignPrompt: null,
         voicePresetId: null,
@@ -354,7 +358,9 @@ describe("executeRenderStep", () => {
       expect(scenes[0].scene_db_id).toBe(1);
 
       // Warning 로그 확인
-      expect(callbacks.pushAutoRunLog).toHaveBeenCalledWith(expect.stringContaining("unstored"));
+      expect(callbacks.pushAutoRunLog).toHaveBeenCalledWith(
+        expect.stringContaining("unstored")
+      );
     });
 
     it("project_id, group_id, storyboard_id가 payload에 포함됨", async () => {
@@ -388,9 +394,9 @@ describe("executeRenderStep", () => {
         bgmMode: "manual",
         musicPresetId: null,
         bgmPrompt: "",
-        isAudioDuckingEnabled: true,
+        audioDucking: true,
         bgmVolume: 0.3,
-        isSceneTextIncluded: true,
+        includeSceneText: true,
         sceneTextFont: "NotoSansKR",
         voiceDesignPrompt: null,
         voicePresetId: null,

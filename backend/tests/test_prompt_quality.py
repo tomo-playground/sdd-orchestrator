@@ -21,13 +21,19 @@ from config import SD_BASE_URL as SD_API
 
 # Skip all tests in this file unless --run-e2e flag is provided
 pytestmark = pytest.mark.skipif(
-    "not config.getoption('--run-e2e', default=False)", reason="E2E tests require SD WebUI. Run with --run-e2e"
+    "not config.getoption('--run-e2e', default=False)",
+    reason="E2E tests require SD WebUI. Run with --run-e2e"
 )
 
 
 def pytest_addoption(parser):
     """Add --run-e2e option."""
-    parser.addoption("--run-e2e", action="store_true", default=False, help="Run E2E quality tests (requires SD WebUI)")
+    parser.addoption(
+        "--run-e2e",
+        action="store_true",
+        default=False,
+        help="Run E2E quality tests (requires SD WebUI)"
+    )
 
 
 # Test configuration
@@ -70,7 +76,7 @@ class TestPromptQualityE2E:
                 "tokens": tokens,
                 "mode": mode,
                 "loras": loras or [],
-                "is_break_enabled": mode == "lora",
+                "use_break": mode == "lora",
             },
             timeout=10.0,
         )
@@ -121,7 +127,11 @@ class TestPromptQualityE2E:
         """
         # Compose prompts for both modes
         mode_a_result = self.compose_prompt(scene_tokens, "standard")
-        mode_b_result = self.compose_prompt(scene_tokens, "lora", loras=[lora_info])
+        mode_b_result = self.compose_prompt(
+            scene_tokens,
+            "lora",
+            loras=[lora_info]
+        )
 
         print("\n=== Mode A (Standard) ===")
         print(f"Prompt: {mode_a_result['prompt'][:100]}...")
@@ -170,18 +180,9 @@ class TestPromptQualityE2E:
 
         # Complex scene (many scene tokens)
         complex_tokens = [
-            "1girl",
-            "smiling",
-            "looking at viewer",
-            "standing",
-            "arms crossed",
-            "from above",
-            "jumping",
-            "dynamic pose",
-            "bedroom",
-            "sunset",
-            "warm lighting",
-            "dramatic",
+            "1girl", "smiling", "looking at viewer", "standing",
+            "arms crossed", "from above", "jumping", "dynamic pose",
+            "bedroom", "sunset", "warm lighting", "dramatic"
         ]
 
         simple_result = self.compose_prompt(simple_tokens, "lora", [lora_info])
@@ -197,7 +198,8 @@ class TestPromptQualityE2E:
 
         # Complex scene should have lower LoRA weight
         assert complex_weight <= simple_weight, (
-            f"Complex scene weight ({complex_weight}) should be <= simple scene weight ({simple_weight})"
+            f"Complex scene weight ({complex_weight}) should be <= "
+            f"simple scene weight ({simple_weight})"
         )
 
     def test_break_token_improves_separation(self, scene_tokens, lora_info):
@@ -210,7 +212,7 @@ class TestPromptQualityE2E:
         # BREAK should appear after subject, before scene extras
         break_idx = result["tokens"].index("BREAK")
         print(f"\nBREAK position: {break_idx} / {len(result['tokens'])}")
-        print(f"Tokens around BREAK: {result['tokens'][max(0, break_idx - 2) : break_idx + 3]}")
+        print(f"Tokens around BREAK: {result['tokens'][max(0,break_idx-2):break_idx+3]}")
 
 
 class TestPromptQualityMetrics:
@@ -235,7 +237,10 @@ class TestPromptQualityMetrics:
             },
             {
                 "name": "Complex composition",
-                "tokens": ["1girl", "smiling", "looking at viewer", "standing", "from above", "classroom", "sunset"],
+                "tokens": [
+                    "1girl", "smiling", "looking at viewer",
+                    "standing", "from above", "classroom", "sunset"
+                ],
                 "expected_high": ["smiling", "standing", "looking at viewer"],
             },
         ]

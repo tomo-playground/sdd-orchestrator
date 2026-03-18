@@ -59,7 +59,7 @@ export async function handleGenerateImage(scene: Scene) {
       }
 
       // image_url/image_asset_id are persisted by POST /image/store immediately.
-      // Other fields (is_controlnet_enabled, ip_adapter_reference, candidates, etc.) auto-saved via isDirty subscribe.
+      // Other fields (use_controlnet, ip_adapter_reference, candidates, etc.) auto-saved via isDirty subscribe.
     } else {
       console.warn("[handleGenerateImage] No result from image generation");
     }

@@ -16,9 +16,9 @@ from services.prompt.prompt import (
 class TestIPAdapterAutoActivation:
     """Test IP-Adapter auto-enable when character reference exists."""
 
-    def _make_request(self, is_ip_adapter_enabled=False, character_id=1):
+    def _make_request(self, use_ip_adapter=False, character_id=1):
         req = MagicMock()
-        req.is_ip_adapter_enabled = is_ip_adapter_enabled
+        req.use_ip_adapter = use_ip_adapter
         req.character_id = character_id
         req.ip_adapter_reference = None
         req.ip_adapter_weight = 0.7
@@ -32,7 +32,7 @@ class TestIPAdapterAutoActivation:
 
     def test_auto_enable_when_reference_exists(self):
         """IP-Adapter enabled if character has a reference image."""
-        request = self._make_request(is_ip_adapter_enabled=False)
+        request = self._make_request(use_ip_adapter=False)
         character = self._make_character()
 
         # Simulate the auto-activation logic from generation.py
@@ -40,29 +40,29 @@ class TestIPAdapterAutoActivation:
             from services.controlnet import load_reference_image
 
             ref = load_reference_image(character.name)
-            if character and not request.is_ip_adapter_enabled and ref:
-                request.is_ip_adapter_enabled = True
+            if character and not request.use_ip_adapter and ref:
+                request.use_ip_adapter = True
                 request.ip_adapter_reference = character.name
                 if character.ip_adapter_weight:
                     request.ip_adapter_weight = character.ip_adapter_weight
                 else:
                     request.ip_adapter_weight = 0.75
 
-        assert request.is_ip_adapter_enabled is True
+        assert request.use_ip_adapter is True
         assert request.ip_adapter_reference == "test_char"
         assert request.ip_adapter_weight == 0.75
 
     def test_custom_weight_from_character(self):
         """IP-Adapter uses character's custom weight if set."""
-        request = self._make_request(is_ip_adapter_enabled=False)
+        request = self._make_request(use_ip_adapter=False)
         character = self._make_character(ip_adapter_weight=0.6)
 
         with patch("services.controlnet.load_reference_image", return_value="base64data"):
             from services.controlnet import load_reference_image
 
             ref = load_reference_image(character.name)
-            if character and not request.is_ip_adapter_enabled and ref:
-                request.is_ip_adapter_enabled = True
+            if character and not request.use_ip_adapter and ref:
+                request.use_ip_adapter = True
                 request.ip_adapter_reference = character.name
                 if character.ip_adapter_weight:
                     request.ip_adapter_weight = character.ip_adapter_weight
@@ -73,26 +73,26 @@ class TestIPAdapterAutoActivation:
 
     def test_no_auto_enable_without_reference(self):
         """IP-Adapter stays off if no reference image."""
-        request = self._make_request(is_ip_adapter_enabled=False)
+        request = self._make_request(use_ip_adapter=False)
         character = self._make_character()
 
         with patch("services.controlnet.load_reference_image", return_value=None):
             from services.controlnet import load_reference_image
 
             ref = load_reference_image(character.name)
-            if character and not request.is_ip_adapter_enabled and ref:
-                request.is_ip_adapter_enabled = True
+            if character and not request.use_ip_adapter and ref:
+                request.use_ip_adapter = True
 
-        assert request.is_ip_adapter_enabled is False
+        assert request.use_ip_adapter is False
 
     def test_no_override_if_already_enabled(self):
         """Don't re-set if IP-Adapter already enabled by user."""
-        request = self._make_request(is_ip_adapter_enabled=True)
+        request = self._make_request(use_ip_adapter=True)
         request.ip_adapter_weight = 0.9
         character = self._make_character(ip_adapter_weight=0.6)
 
-        # Logic should skip because is_ip_adapter_enabled is already True
-        if character and not request.is_ip_adapter_enabled:
+        # Logic should skip because use_ip_adapter is already True
+        if character and not request.use_ip_adapter:
             request.ip_adapter_weight = character.ip_adapter_weight
 
         # Weight should remain user-set

@@ -103,10 +103,7 @@ def serialize_scene(
         else:
             base["candidates"] = [dict(c) for c in scene.candidates]
 
-    # 5. DB→API 필드명 매핑 (DB 컬럼명 ≠ 스키마 필드명)
-    base["is_controlnet_enabled"] = base.pop("use_controlnet", None)
-
-    # 6. 추가 파생 필드
+    # 5. 추가 파생 필드
     base["_auto_pin_previous"] = auto_pin_previous
     # ken_burns_preset: DB 컬럼 미존재 — Frontend Scene 타입 호환용 (Cinematographer 출력)
     base["ken_burns_preset"] = getattr(scene, "ken_burns_preset", None)
@@ -178,12 +175,6 @@ def _build_scene_kwargs(s_data: StoryboardScene, storyboard_id: int, idx: int) -
     # image_asset_id: Scene 생성 후 별도 asset linking 로직에서 설정
     _exclude = {"tags", "character_actions", "scene_id", "image_asset_id", "candidates"}
     raw = s_data.model_dump(exclude=_exclude)
-
-    # 1.5. API→DB 필드명 매핑 (스키마 필드명 ≠ DB 컬럼명)
-    _SCHEMA_TO_DB = {"is_controlnet_enabled": "use_controlnet"}
-    for schema_key, db_key in _SCHEMA_TO_DB.items():
-        if schema_key in raw:
-            raw[db_key] = raw.pop(schema_key)
 
     # 2. Scene 컬럼에 해당하는 필드만 필터
     col_keys = _get_scene_column_keys()

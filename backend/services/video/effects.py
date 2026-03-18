@@ -90,7 +90,7 @@ def apply_overlays(builder: VideoBuilder) -> None:
     """Apply overlay graphics to video with slide-in animation."""
     next_input_idx = builder.num_scenes * 2
     # Subtitle inputs only exist for Full layout
-    if builder.request.is_scene_text_included and not builder.use_post_layout:
+    if builder.request.include_scene_text and not builder.use_post_layout:
         next_input_idx += builder.num_scenes
 
     if not builder.request.overlay_settings:
@@ -153,7 +153,7 @@ def apply_bgm(builder: VideoBuilder) -> None:
     # Build looped BGM stream (crossfade at loop seams)
     bgm_label = _build_bgm_loop_filters(builder, bgm_idx, bgm_path)
 
-    if builder.request.is_audio_ducking_enabled:
+    if builder.request.audio_ducking:
         _apply_ducked_bgm(builder, bgm_label, bgm_vol)
     else:
         _apply_simple_bgm(builder, bgm_label, bgm_vol)
@@ -217,9 +217,7 @@ def _probe_audio_info(path: str) -> tuple[float, int]:
             timeout=5,
         )
         if result.returncode != 0:
-            logger.warning(
-                "[BGM] ffprobe non-zero exit (%d) for %s: %s", result.returncode, path, result.stderr.strip()
-            )
+            logger.warning("[BGM] ffprobe non-zero exit (%d) for %s: %s", result.returncode, path, result.stderr.strip())
             return 0.0, 0
         lines = [ln.strip() for ln in result.stdout.strip().splitlines() if ln.strip()]
         if not lines:
@@ -292,7 +290,8 @@ def _build_bgm_loop_filters(builder: VideoBuilder, bgm_idx: int, bgm_path: str) 
     )
 
     builder.filters.append(
-        f"[{bgm_idx}:a]aloop=loop={loops}:size={sample_count}:start=0,asetpts=PTS-STARTPTS[bgm_looped]"
+        f"[{bgm_idx}:a]aloop=loop={loops}:size={sample_count}:start=0,"
+        f"asetpts=PTS-STARTPTS[bgm_looped]"
     )
 
     return "[bgm_looped]"

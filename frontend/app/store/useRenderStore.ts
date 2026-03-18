@@ -40,10 +40,10 @@ export interface RenderStore {
   kenBurnsIntensity: number;
   transitionType: string;
   isRendering: boolean;
-  isSceneTextIncluded: boolean;
+  includeSceneText: boolean;
   bgmList: AudioItem[];
   bgmFile: string | null;
-  isAudioDuckingEnabled: boolean;
+  audioDucking: boolean;
   bgmVolume: number;
   speedMultiplier: number;
   fontList: FontItem[];
@@ -87,10 +87,10 @@ const initialState: Omit<RenderStore, "set" | "reset" | "fetchVoicePresets"> = {
   kenBurnsIntensity: 1.0,
   transitionType: "random",
   isRendering: false,
-  isSceneTextIncluded: true,
+  includeSceneText: true,
   bgmList: [] as AudioItem[],
   bgmFile: null,
-  isAudioDuckingEnabled: true,
+  audioDucking: true,
   bgmVolume: 0.25,
   speedMultiplier: 1.0,
   fontList: [] as FontItem[],

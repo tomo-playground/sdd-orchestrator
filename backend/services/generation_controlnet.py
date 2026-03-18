@@ -64,7 +64,7 @@ def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
 
 def _apply_pose_control(req: SceneGenerateRequest, ctx: GenerationContext, args: list, db=None) -> None:
     """Apply OpenPose ControlNet if requested."""
-    if not req.is_controlnet_enabled:
+    if not req.use_controlnet:
         return
     pose_name = req.controlnet_pose
     # Phase 3-A: character_actions pose 힌트 활용 (explicit pose 이전)

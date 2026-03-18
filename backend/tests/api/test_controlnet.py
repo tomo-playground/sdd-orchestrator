@@ -18,7 +18,11 @@ class TestIpAdapterArgs:
         from services.controlnet import IP_ADAPTER_MODELS, build_ip_adapter_args
 
         dummy_image = base64.b64encode(b"fake_image_data").decode()
-        args = build_ip_adapter_args(reference_image=dummy_image, weight=0.7, model="clip")
+        args = build_ip_adapter_args(
+            reference_image=dummy_image,
+            weight=0.7,
+            model="clip"
+        )
 
         assert args["enabled"] is True
         assert args["image"] == dummy_image
@@ -31,7 +35,11 @@ class TestIpAdapterArgs:
         from services.controlnet import IP_ADAPTER_MODELS, build_ip_adapter_args
 
         dummy_image = base64.b64encode(b"fake_image_data").decode()
-        args = build_ip_adapter_args(reference_image=dummy_image, weight=0.8, model="clip_face")
+        args = build_ip_adapter_args(
+            reference_image=dummy_image,
+            weight=0.8,
+            model="clip_face"
+        )
 
         assert args["enabled"] is True
         assert args["module"] == "CLIP-ViT-H (IPAdapter)"  # CLIP module
@@ -43,7 +51,11 @@ class TestIpAdapterArgs:
 
         dummy_image = base64.b64encode(b"fake_image_data").decode()
         with pytest.raises(ValueError, match="Unknown IP-Adapter model"):
-            build_ip_adapter_args(reference_image=dummy_image, weight=0.8, model="faceid")
+            build_ip_adapter_args(
+                reference_image=dummy_image,
+                weight=0.8,
+                model="faceid"
+            )
 
     def test_build_ip_adapter_args_default_model(self):
         """Test that default model is CLIP_FACE (for anime characters)."""
@@ -67,7 +79,11 @@ class TestIpAdapterArgs:
         dummy_image = base64.b64encode(b"fake_image_data").decode()
 
         with pytest.raises(ValueError, match="Unknown IP-Adapter model"):
-            build_ip_adapter_args(reference_image=dummy_image, weight=0.7, model="invalid_model")
+            build_ip_adapter_args(
+                reference_image=dummy_image,
+                weight=0.7,
+                model="invalid_model"
+            )
 
 
 class TestReferenceImages:
@@ -185,27 +201,23 @@ class TestSceneGenerationWithIpAdapter:
         # This test requires SD WebUI to be running
         try:
             import requests
-
             resp = requests.get("http://localhost:7860/sdapi/v1/sd-models", timeout=2)
             if resp.status_code != 200:
                 pytest.skip("SD WebUI not available")
         except Exception:
             pytest.skip("SD WebUI not available")
 
-        response = client.post(
-            "/api/v1/scene/generate",
-            json={
-                "prompt": "1girl, anime, standing",
-                "negative_prompt": "bad quality",
-                "steps": 1,  # Minimal steps for speed
-                "cfg_scale": 4.5,
-                "width": 832,
-                "height": 1216,
-                "is_ip_adapter_enabled": True,
-                "ip_adapter_reference": "test_character",
-                "ip_adapter_weight": 0.7,
-            },
-        )
+        response = client.post("/api/v1/scene/generate", json={
+            "prompt": "1girl, anime, standing",
+            "negative_prompt": "bad quality",
+            "steps": 1,  # Minimal steps for speed
+            "cfg_scale": 4.5,
+            "width": 832,
+            "height": 1216,
+            "use_ip_adapter": True,
+            "ip_adapter_reference": "test_character",
+            "ip_adapter_weight": 0.7,
+        })
 
         if response.status_code == 200:
             data = response.json()

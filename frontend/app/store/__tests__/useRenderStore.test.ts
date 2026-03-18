@@ -90,8 +90,8 @@ describe("useRenderStore", () => {
       useRenderStore.getState().reset();
       const state = useRenderStore.getState();
       expect(state.layoutStyle).toBe("post");
-      expect(state.isSceneTextIncluded).toBe(true);
-      expect(state.isAudioDuckingEnabled).toBe(true);
+      expect(state.includeSceneText).toBe(true);
+      expect(state.audioDucking).toBe(true);
       expect(state.bgmVolume).toBe(0.25);
       expect(state.speedMultiplier).toBe(1.0);
       expect(state.ttsEngine).toBe("qwen");

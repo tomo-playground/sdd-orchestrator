@@ -93,7 +93,7 @@ describe("loadGroupDefaults", () => {
           name: "Post \uD45C\uC900",
           bgm_file: "random",
           bgm_volume: 0.4,
-          is_audio_ducking_enabled: true,
+          audio_ducking: true,
           scene_text_font: "\uC628\uAE00\uC78E \uBC15\uB2E4\uD604\uCCB4.ttf",
           layout_style: "post",
           frame_style: "overlay_minimal.png",
@@ -112,7 +112,7 @@ describe("loadGroupDefaults", () => {
     expect(mockSetOutput).toHaveBeenCalledWith({
       bgmFile: "random",
       bgmVolume: 0.4,
-      isAudioDuckingEnabled: true,
+      audioDucking: true,
       sceneTextFont: "\uC628\uAE00\uC78E \uBC15\uB2E4\uD604\uCCB4.ttf",
       layoutStyle: "post",
       frameStyle: "overlay_minimal.png",

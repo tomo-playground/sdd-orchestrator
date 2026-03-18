@@ -171,7 +171,7 @@ class TestPreviewSceneTTS:
         ):
             result = await preview_scene_tts(req, mock_db)
 
-        assert result.is_cached is True
+        assert result.cached is True
         assert result.cache_key == cache_key
         assert result.duration > 0
         assert result.temp_asset_id == 1
@@ -209,7 +209,7 @@ class TestPreviewSceneTTS:
         ):
             result = await preview_scene_tts(req, mock_db)
 
-        assert result.is_cached is False
+        assert result.cached is False
         assert result.duration == 1.0
         assert result.temp_asset_id == 42
         mock_synth.assert_called_once()

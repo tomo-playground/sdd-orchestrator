@@ -18,7 +18,7 @@ import PreRenderReport from "../video/PreRenderReport";
 const QUICK_RENDER_DEFAULTS = {
   kenBurnsPreset: "none" as const,
   transitionType: "fade",
-  isSceneTextIncluded: true,
+  includeSceneText: true,
   speedMultiplier: 1.0,
 };
 
@@ -139,8 +139,8 @@ export default function PublishTab() {
           </div>
 
           <RenderMediaPanel
-            isSceneTextIncluded={store.isSceneTextIncluded}
-            setIsSceneTextIncluded={(v) => setOutput({ isSceneTextIncluded: v })}
+            includeSceneText={store.includeSceneText}
+            setIncludeSceneText={(v) => setOutput({ includeSceneText: v })}
             sceneTextFont={store.sceneTextFont}
             setSceneTextFont={(v) => setOutput({ sceneTextFont: v })}
             fontList={store.fontList}
@@ -153,8 +153,8 @@ export default function PublishTab() {
             setTransitionType={(v) => setOutput({ transitionType: v })}
             speedMultiplier={store.speedMultiplier}
             setSpeedMultiplier={(v) => setOutput({ speedMultiplier: v })}
-            isAudioDuckingEnabled={store.isAudioDuckingEnabled}
-            setIsAudioDuckingEnabled={(v) => setOutput({ isAudioDuckingEnabled: v })}
+            audioDucking={store.audioDucking}
+            setAudioDucking={(v) => setOutput({ audioDucking: v })}
             bgmVolume={store.bgmVolume}
             setBgmVolume={(v) => setOutput({ bgmVolume: v })}
             voiceDesignPrompt={store.voiceDesignPrompt}

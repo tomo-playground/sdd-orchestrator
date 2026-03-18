@@ -101,7 +101,7 @@ export function PublishCaptionLikes() {
         setOutput({ videoCaption: res.data.caption });
         updateStoryboardMetadata({ caption: res.data.caption });
         showToast(
-          res.data.is_fallback
+          res.data.fallback
             ? "캡션을 잘라냈습니다"
             : `캡션 요약 완료 (${res.data.original_length} → ${res.data.caption.length}자)`,
           "success"

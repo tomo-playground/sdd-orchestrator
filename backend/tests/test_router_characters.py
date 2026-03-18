@@ -274,12 +274,12 @@ class TestDuplicateCharacter:
         assert any(ct.tag_id == sample_tag.id for ct in copied_tags)
 
     def test_duplicate_character_loras_flag(self, client: TestClient, db_session):
-        """should_copy_loras=False omits LoRAs, True copies them."""
+        """copy_loras=False omits LoRAs, True copies them."""
         char = Character(name="lora_src", group_id=1, loras=[{"lora_id": 1, "weight": 0.7}])
         db_session.add(char)
         db_session.commit()
 
-        # Without should_copy_loras
+        # Without copy_loras
         r1 = client.post(
             f"/api/v1/characters/{char.id}/duplicate",
             json={"target_group_id": 1, "new_name": "no_lora_copy"},
@@ -288,10 +288,10 @@ class TestDuplicateCharacter:
         d1 = client.get(f"/api/v1/characters/{r1.json()['id']}")
         assert d1.json().get("loras") is None or d1.json()["loras"] == []
 
-        # With should_copy_loras
+        # With copy_loras
         r2 = client.post(
             f"/api/v1/characters/{char.id}/duplicate",
-            json={"target_group_id": 1, "new_name": "with_lora_copy", "should_copy_loras": True},
+            json={"target_group_id": 1, "new_name": "with_lora_copy", "copy_loras": True},
         )
         assert r2.status_code == 201
         d2 = client.get(f"/api/v1/characters/{r2.json()['id']}")

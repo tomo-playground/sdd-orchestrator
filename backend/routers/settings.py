@@ -39,14 +39,14 @@ async def get_auto_edit_settings():
 
     Returns:
         {
-            "is_enabled": False,
+            "enabled": False,
             "threshold": 0.7,
             "max_cost_per_storyboard": 1.0,
             "max_retries_per_scene": 1
         }
     """
     return {
-        "is_enabled": runtime_settings.auto_edit_enabled,
+        "enabled": runtime_settings.auto_edit_enabled,
         "threshold": runtime_settings.auto_edit_threshold,
         "max_cost_per_storyboard": runtime_settings.auto_edit_max_cost,
         "max_retries_per_scene": runtime_settings.auto_edit_max_retries,
@@ -93,7 +93,7 @@ async def update_auto_edit_settings(settings: AutoEditSettingsUpdate):
         "success": True,
         "message": "Runtime settings updated. Restart required for persistence.",
         "current": {
-            "is_enabled": settings.enabled,
+            "enabled": settings.enabled,
             "threshold": settings.threshold,
             "max_cost": settings.max_cost,
             "max_retries": settings.max_retries,

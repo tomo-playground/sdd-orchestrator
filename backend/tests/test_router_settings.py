@@ -17,13 +17,13 @@ class TestAutoEditSettings:
         data = response.json()
 
         # Should contain all expected keys
-        assert "is_enabled" in data
+        assert "enabled" in data
         assert "threshold" in data
         assert "max_cost_per_storyboard" in data
         assert "max_retries_per_scene" in data
 
         # Types
-        assert isinstance(data["is_enabled"], bool)
+        assert isinstance(data["enabled"], bool)
         assert isinstance(data["threshold"], (int, float))
         assert isinstance(data["max_cost_per_storyboard"], (int, float))
         assert isinstance(data["max_retries_per_scene"], int)
@@ -43,7 +43,7 @@ class TestAutoEditSettings:
 
         assert data["success"] is True
         assert "current" in data
-        assert data["current"]["is_enabled"] is True
+        assert data["current"]["enabled"] is True
         assert data["current"]["threshold"] == 0.85
         assert data["current"]["max_cost"] == 2.5
         assert data["current"]["max_retries"] == 3
@@ -154,7 +154,9 @@ class TestCostSummary:
         assert data["edit_count_today"] == 2
         assert data["total"] == 0.15
 
-    def test_cost_summary_old_data_excluded_from_today(self, client: TestClient, db_session):
+    def test_cost_summary_old_data_excluded_from_today(
+        self, client: TestClient, db_session
+    ):
         """Old activity logs excluded from today count but included in total."""
         now = datetime.now(UTC)
         yesterday = now - timedelta(days=2)

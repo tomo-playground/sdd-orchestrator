@@ -30,8 +30,8 @@ export default function DuplicateDialog({ character, groups, onClose }: Props) {
 
   const [targetGroupId, setTargetGroupId] = useState<number>(character.group_id);
   const [newName, setNewName] = useState(character.name);
-  const [shouldCopyLoras, setShouldCopyLoras] = useState(false);
-  const [shouldCopyReference, setShouldCopyReference] = useState(false);
+  const [copyLoras, setCopyLoras] = useState(false);
+  const [copyReference, setCopyPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,8 +45,8 @@ export default function DuplicateDialog({ character, groups, onClose }: Props) {
         {
           target_group_id: targetGroupId,
           new_name: newName.trim(),
-          should_copy_loras: shouldCopyLoras,
-          should_copy_reference: shouldCopyReference,
+          copy_loras: copyLoras,
+          copy_reference: copyReference,
         }
       );
       showToast(`복제 완료: ${res.data.name}`, "success");
@@ -113,8 +113,8 @@ export default function DuplicateDialog({ character, groups, onClose }: Props) {
           <label className="flex items-center gap-2 text-sm text-zinc-600">
             <input
               type="checkbox"
-              checked={shouldCopyLoras}
-              onChange={(e) => setShouldCopyLoras(e.target.checked)}
+              checked={copyLoras}
+              onChange={(e) => setCopyLoras(e.target.checked)}
               className="accent-zinc-700"
             />
             LoRA 설정
@@ -122,8 +122,8 @@ export default function DuplicateDialog({ character, groups, onClose }: Props) {
           <label className="flex items-center gap-2 text-sm text-zinc-600">
             <input
               type="checkbox"
-              checked={shouldCopyReference}
-              onChange={(e) => setShouldCopyReference(e.target.checked)}
+              checked={copyReference}
+              onChange={(e) => setCopyPreview(e.target.checked)}
               className="accent-zinc-700"
             />
             레퍼런스 이미지

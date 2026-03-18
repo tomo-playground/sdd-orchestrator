@@ -74,7 +74,7 @@ def build_ffmpeg_cmd(builder: VideoBuilder) -> list[str]:
     logger.info(f"Video map: {builder._map_v}")
     logger.info(f"Audio map: {builder._map_a}")
     logger.info(f"Total duration: {builder._total_dur:.2f}s")
-    logger.info(f"Include subtitles: {builder.request.is_scene_text_included}")
+    logger.info(f"Include subtitles: {builder.request.include_scene_text}")
     logger.info("=" * 80)
 
     # Store for error diagnostics

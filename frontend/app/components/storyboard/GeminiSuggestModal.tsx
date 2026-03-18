@@ -1,8 +1,7 @@
 "use client";
 
 import type { GeminiSuggestion } from "../../types";
-import Modal from "../ui/Modal";
-import Button from "../ui/Button";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import CloseButton from "./CloseButton";
 
 type GeminiSuggestModalProps = {
@@ -16,40 +15,57 @@ export default function GeminiSuggestModal({
   onClose,
   onApproveSuggestion,
 }: GeminiSuggestModalProps) {
+  const trapRef = useFocusTrap(true);
+
   return (
-    <Modal open onClose={onClose} size="xl" ariaLabelledBy="gemini-suggest-title">
-      <Modal.Header>
-        <h3 id="gemini-suggest-title" className="text-lg font-semibold text-zinc-800">
-          Gemini Auto Suggestions
-        </h3>
-        <CloseButton onClick={onClose} />
-      </Modal.Header>
-
-      <div className="p-6 space-y-4">
-        <p className="text-sm text-zinc-600">
-          Gemini가 이미지와 프롬프트를 비교해 {geminiSuggestions.length}개의 수정 제안을
-          생성했습니다.
-        </p>
-
-        <div className="space-y-3">
-          {geminiSuggestions.map((suggestion, idx) => (
-            <SuggestionCard
-              key={idx}
-              suggestion={suggestion}
-              onApprove={() => onApproveSuggestion(suggestion)}
-            />
-          ))}
+    <div
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="gemini-suggest-title"
+    >
+      <div
+        ref={trapRef}
+        tabIndex={-1}
+        className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl outline-none"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h3 id="gemini-suggest-title" className="text-lg font-semibold text-zinc-800">
+            Gemini Auto Suggestions
+          </h3>
+          <CloseButton onClick={onClose} />
         </div>
 
-        <Button variant="secondary" className="w-full" onClick={onClose}>
-          모든 제안 무시
-        </Button>
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-600">
+            Gemini가 이미지와 프롬프트를 비교해 {geminiSuggestions.length}개의 수정 제안을
+            생성했습니다.
+          </p>
 
-        <p className="text-[12px] text-zinc-400">
-          제안을 승인하면 Gemini가 이미지를 자동으로 편집합니다.
-        </p>
+          <div className="space-y-3">
+            {geminiSuggestions.map((suggestion, idx) => (
+              <SuggestionCard
+                key={idx}
+                suggestion={suggestion}
+                onApprove={() => onApproveSuggestion(suggestion)}
+              />
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+          >
+            모든 제안 무시
+          </button>
+
+          <p className="text-[12px] text-zinc-400">
+            제안을 승인하면 Gemini가 이미지를 자동으로 편집합니다.
+          </p>
+        </div>
       </div>
-    </Modal>
+    </div>
   );
 }
 
@@ -80,9 +96,13 @@ function SuggestionCard({
         <p className="text-sm text-indigo-700">{suggestion.target_change}</p>
       </div>
 
-      <Button variant="primary" className="w-full" onClick={onApprove}>
-        Approve &amp; Edit (~$0.04)
-      </Button>
+      <button
+        type="button"
+        onClick={onApprove}
+        className="w-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white transition hover:from-indigo-600 hover:to-purple-600"
+      >
+        Approve & Edit (~$0.04)
+      </button>
     </div>
   );
 }

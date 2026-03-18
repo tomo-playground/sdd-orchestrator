@@ -18,7 +18,7 @@ export type SceneItem = {
   image_url: string | null;
   context_tags?: Record<string, string | string[]>;
   character_actions?: Scene["character_actions"];
-  is_controlnet_enabled?: boolean | null;
+  use_controlnet?: boolean | null;
   controlnet_weight?: number | null;
   controlnet_pose?: string | null;
   use_ip_adapter?: boolean | null;

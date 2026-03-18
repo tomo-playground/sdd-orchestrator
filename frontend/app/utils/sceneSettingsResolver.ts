@@ -37,7 +37,7 @@ export function resolveSceneControlnet(
   global: GlobalControlnetState
 ): ResolvedControlnet {
   return {
-    enabled: scene.is_controlnet_enabled ?? global.useControlnet,
+    enabled: scene.use_controlnet ?? global.useControlnet,
     weight: scene.controlnet_weight ?? global.controlnetWeight,
   };
 }
@@ -57,6 +57,9 @@ export function resolveSceneIpAdapter(
 }
 
 /** Resolve multi-gen (3x candidates) setting: scene override ?? global */
-export function resolveSceneMultiGen(scene: Scene, global: GlobalMultiGenState): boolean {
+export function resolveSceneMultiGen(
+  scene: Scene,
+  global: GlobalMultiGenState
+): boolean {
   return scene.multi_gen_enabled ?? global.multiGenEnabled;
 }

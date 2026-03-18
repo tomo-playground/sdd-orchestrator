@@ -121,9 +121,9 @@ export default function StageTab() {
   const readinessCategories = [
     { key: "style", label: "화풍", ready: currentStyleProfile?.id != null },
     { key: "locations", label: "배경", ready: locTotal > 0 && locReady === locTotal },
-    { key: "characters", label: "캐릭터", ready: materials?.characters?.is_ready ?? false },
-    { key: "voice", label: "음성", ready: materials?.voice?.is_ready ?? false },
-    { key: "music", label: "BGM", ready: materials?.music?.is_ready ?? false },
+    { key: "characters", label: "캐릭터", ready: materials?.characters?.ready ?? false },
+    { key: "voice", label: "음성", ready: materials?.voice?.ready ?? false },
+    { key: "music", label: "BGM", ready: materials?.music?.ready ?? false },
   ];
 
   return (

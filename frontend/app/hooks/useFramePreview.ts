@@ -49,7 +49,7 @@ export function useFramePreview() {
           image_url: imageUrl,
           script,
           layout_style: layoutStyle,
-          is_scene_text_included: true,
+          include_scene_text: true,
           channel_name: options?.channelName || null,
           caption: options?.caption || null,
           scene_text_font: options?.sceneTextFont || null,

@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import type { Scene } from "../../types";
-import Modal from "../ui/Modal";
-import Button from "../ui/Button";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import PromptEditDiff from "../prompt/PromptEditDiff";
 import CloseButton from "./CloseButton";
 
@@ -37,6 +36,7 @@ export default function GeminiEditModal({
   showToast,
   selectedCharacterId,
 }: GeminiEditModalProps) {
+  const trapRef = useFocusTrap(true);
   const [phase, setPhase] = useState<"input" | "diff">("input");
   const [diffInstruction, setDiffInstruction] = useState("");
 
@@ -50,15 +50,24 @@ export default function GeminiEditModal({
   };
 
   return (
-    <Modal open onClose={onClose} size="lg" ariaLabelledBy="gemini-edit-title">
-      <Modal.Header>
-        <h3 id="gemini-edit-title" className="text-lg font-semibold text-zinc-800">
-          프롬프트 편집
-        </h3>
-        <CloseButton onClick={onClose} />
-      </Modal.Header>
+    <div
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="gemini-edit-title"
+    >
+      <div
+        ref={trapRef}
+        tabIndex={-1}
+        className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl outline-none"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h3 id="gemini-edit-title" className="text-lg font-semibold text-zinc-800">
+            프롬프트 편집
+          </h3>
+          <CloseButton onClick={onClose} />
+        </div>
 
-      <div className="p-6">
         {phase === "input" && (
           <GeminiEditInputPhase
             qualityScore={qualityScore}
@@ -82,7 +91,7 @@ export default function GeminiEditModal({
           />
         )}
       </div>
-    </Modal>
+    </div>
   );
 }
 
@@ -149,22 +158,24 @@ function GeminiEditInputPhase({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Button
-          variant="primary"
-          className="w-full"
+        <button
+          type="button"
           onClick={onPromptPreview}
           disabled={!geminiTargetChange.trim()}
+          className="w-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:from-purple-600 hover:to-pink-600 disabled:cursor-not-allowed disabled:from-purple-300 disabled:to-pink-300"
         >
           프롬프트 미리보기
-        </Button>
+        </button>
         <div className="flex justify-between gap-3">
-          <Button variant="secondary" size="sm" className="flex-1" onClick={onClose}>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-medium text-zinc-500 transition hover:bg-zinc-50"
+          >
             취소
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="flex-1"
+          </button>
+          <button
+            type="button"
             onClick={() => {
               if (!geminiTargetChange.trim()) {
                 showToast("변경 내용을 입력하세요", "error");
@@ -173,9 +184,10 @@ function GeminiEditInputPhase({
               onSubmitImageEdit(geminiTargetChange.trim());
             }}
             disabled={!geminiTargetChange.trim() || isGenerating}
+            className="flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-medium text-zinc-500 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             이미지 직접 편집 (~$0.04)
-          </Button>
+          </button>
         </div>
       </div>
 

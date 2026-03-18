@@ -248,7 +248,7 @@ export default function SettingsTab() {
                           {cleanupResult.deleted_count}
                         </span>
                       </div>
-                      {cleanupResult.is_dry_run && (
+                      {cleanupResult.dry_run && (
                         <div className="mt-3 rounded-lg bg-amber-50 p-2 text-center text-[11px] font-bold tracking-tighter text-amber-600 uppercase">
                           Simulated Results (Dry Run)
                         </div>

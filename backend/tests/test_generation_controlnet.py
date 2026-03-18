@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 @dataclass
 class FakeRequest:
-    is_controlnet_enabled: bool = False
+    use_controlnet: bool = False
     controlnet_pose: str | None = None
     controlnet_weight: float = 1.0
     controlnet_control_mode: str = "Balanced"
@@ -53,7 +53,7 @@ class TestApplyPoseControl:
     def test_skip_when_use_controlnet_false(self):
         from services.generation_controlnet import _apply_pose_control
 
-        req = FakeRequest(is_controlnet_enabled=False)
+        req = FakeRequest(use_controlnet=False)
         ctx = FakeContext(request=req)
         args: list = []
         _apply_pose_control(req, ctx, args)
@@ -64,7 +64,7 @@ class TestApplyPoseControl:
     def test_explicit_pose_used(self, mock_build, mock_load):
         from services.generation_controlnet import _apply_pose_control
 
-        req = FakeRequest(is_controlnet_enabled=True, controlnet_pose="standing", controlnet_weight=0.8)
+        req = FakeRequest(use_controlnet=True, controlnet_pose="standing", controlnet_weight=0.8)
         ctx = FakeContext(request=req)
         args: list = []
         _apply_pose_control(req, ctx, args)
@@ -80,7 +80,7 @@ class TestApplyPoseControl:
     def test_pose_image_not_found_graceful(self, mock_load):
         from services.generation_controlnet import _apply_pose_control
 
-        req = FakeRequest(is_controlnet_enabled=True, controlnet_pose="nonexistent")
+        req = FakeRequest(use_controlnet=True, controlnet_pose="nonexistent")
         ctx = FakeContext(request=req)
         args: list = []
         _apply_pose_control(req, ctx, args)
@@ -93,7 +93,7 @@ class TestApplyPoseControl:
     def test_auto_detect_from_prompt(self, mock_build, mock_load, mock_detect):
         from services.generation_controlnet import _apply_pose_control
 
-        req = FakeRequest(is_controlnet_enabled=True, controlnet_pose=None)
+        req = FakeRequest(use_controlnet=True, controlnet_pose=None)
         ctx = FakeContext(request=req, prompt="1girl, sitting, smile")
         args: list = []
         _apply_pose_control(req, ctx, args)
@@ -106,7 +106,7 @@ class TestApplyPoseControl:
     def test_no_pose_detected_graceful_skip(self, mock_detect):
         from services.generation_controlnet import _apply_pose_control
 
-        req = FakeRequest(is_controlnet_enabled=True, controlnet_pose=None)
+        req = FakeRequest(use_controlnet=True, controlnet_pose=None)
         ctx = FakeContext(request=req, prompt="1girl, smile")
         args: list = []
         _apply_pose_control(req, ctx, args)
@@ -119,7 +119,7 @@ class TestApplyPoseControl:
             patch("services.generation_controlnet.load_pose_reference", return_value="b64"),
             patch("services.generation_controlnet.build_controlnet_args", return_value={"w": 0.6}) as mock_build,
         ):
-            req = FakeRequest(is_controlnet_enabled=True, controlnet_pose="standing", controlnet_weight=0.6)
+            req = FakeRequest(use_controlnet=True, controlnet_pose="standing", controlnet_weight=0.6)
             ctx = FakeContext(request=req)
             args: list = []
             _apply_pose_control(req, ctx, args)
@@ -136,7 +136,7 @@ class TestApplyPoseHint:
         from services.generation_controlnet import _apply_pose_control
 
         db = MagicMock()
-        req = FakeRequest(is_controlnet_enabled=True, controlnet_pose=None, scene_id=42)
+        req = FakeRequest(use_controlnet=True, controlnet_pose=None, scene_id=42)
         ctx = FakeContext(request=req, prompt="1girl, smile")
         args: list = []
         _apply_pose_control(req, ctx, args, db=db)
@@ -153,7 +153,7 @@ class TestApplyPoseHint:
         from services.generation_controlnet import _apply_pose_control
 
         db = MagicMock()
-        req = FakeRequest(is_controlnet_enabled=True, controlnet_pose=None, scene_id=42)
+        req = FakeRequest(use_controlnet=True, controlnet_pose=None, scene_id=42)
         ctx = FakeContext(request=req, prompt="1girl, sitting")
         args: list = []
         _apply_pose_control(req, ctx, args, db=db)
@@ -170,7 +170,7 @@ class TestApplyPoseHint:
             patch("services.generation_controlnet.detect_pose_from_prompt", return_value=None),
             patch("services.generation_controlnet._get_pose_from_character_actions") as mock_hint,
         ):
-            req = FakeRequest(is_controlnet_enabled=True, controlnet_pose=None, scene_id=42)
+            req = FakeRequest(use_controlnet=True, controlnet_pose=None, scene_id=42)
             ctx = FakeContext(request=req, prompt="1girl")
             args: list = []
             _apply_pose_control(req, ctx, args)

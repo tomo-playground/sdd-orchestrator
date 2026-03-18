@@ -18,11 +18,7 @@ vi.mock("../../../app/utils/uuid", () => ({
   generateSceneClientId: () => "test-client-id",
 }));
 
-import {
-  mapEventScenes,
-  mapLoadedScenes,
-  syncToGlobalStore,
-} from "../../../app/hooks/scriptEditor/mappers";
+import { mapEventScenes, mapLoadedScenes, syncToGlobalStore } from "../../../app/hooks/scriptEditor/mappers";
 import { useStoryboardStore } from "../../../app/store/useStoryboardStore";
 
 describe("mapEventScenes", () => {
@@ -65,7 +61,9 @@ describe("mapEventScenes", () => {
   });
 
   it("maps background_id", () => {
-    const scenes = [{ id: 1, background_id: 42 }] as unknown as Scene[];
+    const scenes = [
+      { id: 1, background_id: 42 },
+    ] as unknown as Scene[];
     const result = mapEventScenes(scenes);
     expect(result[0].background_id).toBe(42);
   });
@@ -74,13 +72,13 @@ describe("mapEventScenes", () => {
     const scenes = [
       {
         id: 1,
-        is_controlnet_enabled: true,
+        use_controlnet: true,
         controlnet_weight: 0.5,
         ken_burns_preset: "slow_zoom",
       },
     ] as unknown as Scene[];
     const result = mapEventScenes(scenes);
-    expect(result[0].is_controlnet_enabled).toBe(true);
+    expect(result[0].use_controlnet).toBe(true);
     expect(result[0].controlnet_weight).toBe(0.5);
     expect(result[0].ken_burns_preset).toBe("slow_zoom");
   });
@@ -88,7 +86,9 @@ describe("mapEventScenes", () => {
 
 describe("mapLoadedScenes", () => {
   it("preserves existing client_id from loaded data", () => {
-    const scenes = [{ id: 1, client_id: "existing-id", script: "Hello" }] as unknown as Scene[];
+    const scenes = [
+      { id: 1, client_id: "existing-id", script: "Hello" },
+    ] as unknown as Scene[];
     const result = mapLoadedScenes(scenes);
     expect(result[0].client_id).toBe("existing-id");
   });
