@@ -83,10 +83,28 @@ export type ReviewGateMessage = ChatMessageBase & {
   productionSnapshot?: ProductionSnapshot | null;
 };
 
+export type CompletionSceneSummary = {
+  order: number;
+  speaker: string;
+  duration: number;
+  scriptPreview: string;
+  emotion?: string;
+};
+
+export type CompletionMeta = {
+  topic: string;
+  structure: string;
+  totalDuration: number;
+  characterAName: string | null;
+  characterBName: string | null;
+  sceneSummaries: CompletionSceneSummary[];
+};
+
 export type CompletionMessage = ChatMessageBase & {
   role: "assistant";
   contentType: "completion";
   text: string;
+  meta?: CompletionMeta;
 };
 
 export type ErrorMessage = ChatMessageBase & {

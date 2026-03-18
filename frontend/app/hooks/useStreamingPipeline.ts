@@ -4,7 +4,7 @@ import { useCallback, type Dispatch, type SetStateAction, type MutableRefObject 
 import type { ScriptEditorActions } from "./scriptEditor";
 import type { ScriptStreamEvent, ConceptCandidate } from "../types";
 import type { ChatMessage, ActiveProgress } from "../types/chat";
-import { createMessageId } from "../utils/chatMessageFactory";
+import { createMessageId, buildCompletionMeta } from "../utils/chatMessageFactory";
 
 const PIPELINE_NODES = new Set([
   "director_plan",
@@ -124,11 +124,13 @@ export function useStreamingPipeline(deps: StreamingPipelineDeps) {
       // (onNodeEvent fires during processSSEStream, before scenes are committed)
       if (event.status === "completed" && event.result?.scenes) {
         setActiveProgress(null);
+        const completionMeta = buildCompletionMeta(event.result.scenes, editorRef.current);
         addMessage({
           id: createMessageId(),
           role: "assistant",
           contentType: "completion",
           text: `스크립트 생성 완료! ${event.result.scenes.length}개 씬이 생성되었습니다.`,
+          meta: completionMeta,
           timestamp: Date.now(),
         });
         return;

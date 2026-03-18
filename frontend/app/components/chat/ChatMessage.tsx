@@ -77,6 +77,7 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
       return (
         <CompletionCard
           text={message.text}
+          meta={message.meta}
           sceneCount={data.scenes.length}
           onNavigate={callbacks.onNavigate}
         />
