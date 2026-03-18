@@ -54,6 +54,7 @@
 
 ### 최근 작업
 
+- **03-18 안정화 + SDK 호환 + 테스트 정비**: is_ prefix 롤백 잔재 10건 수정(schemas↔코드↔ORM 전수 동기화). LangFuse SDK v3 호환(trace()→start_span, start_generation→start_observation). 기존 테스트 실패 전수 수정 — tts_max_tokens import, director_react 키명, VRT 베이스라인 6개 갱신, controlnet CLIP모델, stage_workflow mock경로, tts_voice_seed 13건. Home "New Story"→"새 영상" 한국어 통일. 테스트 +55개(환경QC 20+Production QC 15+voice seed 4+기존수정 16)
 - **03-18 Phase 36 P1 추가 수정**: storyboard 4개 context_tags 예시 expression/mood→emotion/cinematic 전환(Cinematographer 호환), tool/edit-scenes·scene-expand 예시 1girl 제거. LangFuse 6개 프롬프트 추가 업데이트
 - **03-18 Phase 36 (LangFuse Prompt Quality Hardening) 완료**: 프롬프트 33개 전수 분석, Sprint A~D 33건 중 27건 완료 + 6건 이슈없음/이관. 코드↔프롬프트 가중치 동기화, 무효 Danbooru 태그 8+개 수정, System/User 중복 제거(~4,900 chars 절감), injection 방어, CoT 도입, emotion 별칭 오매핑 수정, context_tags 호환, tags+config 메타데이터 체계 구축. LangFuse 15개 프롬프트 27 새 버전 생성. [명세](FEATURES/LANGFUSE_PROMPT_HARDENING.md)
 - **03-18 Phase 36 Sprint A (CRITICAL 2건) 완료**: (1) `pipeline/review/unified` Narrative 가중치 코드↔프롬프트 동기화(Hook 35→30%, Speaker Tone 10→20%, Script-Image Sync 15→10%). (2) 무효 Danbooru 태그 8개 수정 — `face_focus`→`portrait`(0→256K), `profile_standing`→`from_side`(0→52K), `leaning_wall`→`against_wall`(0→18K), `golden_hour`→`sunset`(61→144K), `bird's_eye_view`→`from_above`(106→334K), `blue_hour`/`warm_lighting` 제거. `pipeline/cinematographer` v2→v4, `storyboard/narrated` v2→v4, `pipeline/review/unified` v2→v3
