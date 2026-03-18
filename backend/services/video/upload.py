@@ -17,20 +17,52 @@ if TYPE_CHECKING:
     from services.video.builder import VideoBuilder
 
 
+def _resolve_ids(builder: VideoBuilder) -> tuple[int | None, int | None, int | None]:
+    """project/group/storyboard ID를 확정한다. 누락 시 DB에서 조회."""
+    project_id = builder.project_id_int
+    group_id = builder.group_id_int
+    storyboard_id = builder.request.storyboard_id
+
+    if storyboard_id and (not project_id or not group_id):
+        try:
+            from models import Storyboard  # noqa: PLC0415
+
+            db = SessionLocal()
+            try:
+                sb = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
+                if sb:
+                    group_id = group_id or sb.group_id
+                    if sb.group and sb.group.project_id:
+                        project_id = project_id or sb.group.project_id
+                    logger.info(
+                        "[Video Build] IDs resolved from storyboard %d: project=%s, group=%s",
+                        storyboard_id,
+                        project_id,
+                        group_id,
+                    )
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning("[Video Build] ID resolve failed: %s", e)
+
+    return project_id, group_id, storyboard_id
+
+
 def upload_result(builder: VideoBuilder) -> dict:
     """Upload and register the final video, return URL dict."""
-    if builder.project_id_int and builder.group_id_int and builder.request.storyboard_id:
+    project_id, group_id, storyboard_id = _resolve_ids(builder)
+
+    if project_id and group_id and storyboard_id:
         db = SessionLocal()
         try:
             asset_service = AssetService(db)
             asset = asset_service.save_rendered_video(
                 video_path=builder.video_path,
-                project_id=builder.project_id_int,
-                group_id=builder.group_id_int,
-                storyboard_id=builder.request.storyboard_id,
+                project_id=project_id,
+                group_id=group_id,
+                storyboard_id=storyboard_id,
                 file_name=builder.video_filename,
             )
-            # register_asset() already commits — no duplicate commit needed
             url = asset_service.get_asset_url(asset.storage_key)
             logger.info(
                 "[Video Build] Video uploaded and registered: %s (asset_id=%d)",
@@ -44,11 +76,10 @@ def upload_result(builder: VideoBuilder) -> dict:
         finally:
             db.close()
 
-    # Fallback: local-only path (missing project/group/storyboard IDs)
     logger.warning(
         "[Video Build] Fallback to local path — missing IDs (project=%s, group=%s, storyboard=%s)",
-        builder.project_id_int,
-        builder.group_id_int,
-        builder.request.storyboard_id,
+        project_id,
+        group_id,
+        storyboard_id,
     )
     return {"video_url": str(VIDEO_DIR / builder.video_filename)}
