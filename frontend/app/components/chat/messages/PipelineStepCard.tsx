@@ -2,7 +2,7 @@
 
 import { memo, useState } from "react";
 import type { PipelineStepMessage } from "@/app/types/chat";
-import { ChevronDown, ChevronRight, Bot, AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Bot, AlertTriangle, AlertCircle } from "lucide-react";
 
 const NODE_LABELS: Record<string, string> = {
   director_plan: "디렉터 계획",

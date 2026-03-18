@@ -44,9 +44,11 @@ type Props = {
   message: ChatMessageType;
   callbacks: ChatMessageCallbacks;
   data: ChatMessageData;
+  /** true = 마지막 메시지 (인터랙티브 활성화). false = 과거 메시지 (비활성화). */
+  isLatest?: boolean;
 };
 
-const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Props) {
+const ChatMessage = memo(function ChatMessage({ message, callbacks, data, isLatest = true }: Props) {
   switch (message.contentType) {
     case "user":
       return <UserBubble text={message.text} />;
@@ -60,6 +62,7 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
           message={message}
           onApplyAndGenerate={callbacks.onApplyAndGenerate}
           hasError={data.hasError}
+          isInteractive={isLatest}
         />
       );
     case "concept_gate":
@@ -71,6 +74,7 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
           scenes={data.scenes}
           feedbackPresets={data.feedbackPresets}
           onResume={callbacks.onResume}
+          isInteractive={isLatest}
         />
       );
     case "completion":
@@ -85,7 +89,7 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data }: Prop
     case "pipeline_step":
       return <PipelineStepCard message={message} />;
     case "plan_review_gate":
-      return <PlanReviewCard message={message} onResume={callbacks.onResume} />;
+      return <PlanReviewCard message={message} onResume={callbacks.onResume} isInteractive={isLatest} />;
     case "scene_edit_diff":
       return (
         <SceneEditDiffCard

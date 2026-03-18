@@ -1,6 +1,6 @@
 import { useContextStore } from "./useContextStore";
-import { useStoryboardStore, STORYBOARD_STORE_KEY } from "./useStoryboardStore";
-import { useRenderStore, RENDER_STORE_KEY } from "./useRenderStore";
+import { useStoryboardStore, getStoryboardPersistKey } from "./useStoryboardStore";
+import { useRenderStore, getRenderPersistKey } from "./useRenderStore";
 import { useUIStore } from "./useUIStore";
 import { useChatStore } from "./useChatStore";
 
@@ -32,10 +32,11 @@ export async function resetAllStores(options?: { reloadGroupDefaults?: boolean }
     groupId: ctxState.groupId,
   };
 
-  // Clear localStorage to prevent rehydration of old data
+  // Clear per-storyboard localStorage keys to prevent rehydration of old data
+  // getStoryboardPersistKey / getRenderPersistKey use the CURRENT storyboardId before reset
   if (typeof window !== "undefined") {
-    localStorage.removeItem(STORYBOARD_STORE_KEY);
-    localStorage.removeItem(RENDER_STORE_KEY);
+    localStorage.removeItem(getStoryboardPersistKey());
+    localStorage.removeItem(getRenderPersistKey());
   }
 
   // Reset all stores (including chat temporary key)

@@ -16,6 +16,7 @@ import type { GenerationDefaults } from "../hooks/usePresets";
 import { DEFAULT_STRUCTURE, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT } from "../constants";
 import { generateSceneClientId } from "../utils/uuid";
 import { isMultiCharStructure } from "../utils/structure";
+import { useContextStore } from "./useContextStore";
 
 type LoraEntry = {
   id: number;
@@ -189,13 +190,24 @@ const initialState: Omit<
 
 export const STORYBOARD_STORE_KEY = "shorts-producer:storyboard:v1";
 
-// Pre-hydration cleanup: clear localStorage before Zustand hydrates old data
-if (typeof window !== "undefined") {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("new") === "true") {
-    localStorage.removeItem(STORYBOARD_STORE_KEY);
-  }
+// Migrate: remove old single-key format (replaced by per-storyboard keys :sb_{id} / :new)
+if (typeof window !== "undefined" && localStorage.getItem(STORYBOARD_STORE_KEY) !== null) {
+  localStorage.removeItem(STORYBOARD_STORE_KEY);
 }
+
+/** Returns the active per-storyboard localStorage key. */
+export function getStoryboardPersistKey(): string {
+  const sbId = useContextStore.getState().storyboardId;
+  return sbId ? `${STORYBOARD_STORE_KEY}:sb_${sbId}` : `${STORYBOARD_STORE_KEY}:new`;
+}
+
+/** Custom storage that scopes each storyboard to its own localStorage key. */
+const storyboardScopedStorage = {
+  getItem: (_name: string): string | null => localStorage.getItem(getStoryboardPersistKey()),
+  setItem: (_name: string, value: string): void =>
+    localStorage.setItem(getStoryboardPersistKey(), value),
+  removeItem: (_name: string): void => localStorage.removeItem(getStoryboardPersistKey()),
+};
 
 /**
  * Scene fields that are transient (UI-only) and should NOT trigger isDirty / autoSave.
@@ -342,7 +354,7 @@ export const useStoryboardStore = create<StoryboardStore>()(
     }),
     {
       name: STORYBOARD_STORE_KEY,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => storyboardScopedStorage),
       partialize: (state) => {
         const persisted: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(state)) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Bot, Check, ChevronDown, Sparkles } from "lucide-react";
 import Button from "../../ui/Button";
 import type { SettingsRecommendMessage, SettingsRecommendation } from "../../../types/chat";
@@ -10,6 +10,8 @@ type Props = {
   onApplyAndGenerate: (rec: SettingsRecommendation) => void;
   /** 생성 실패 시 true → 버튼 재활성화 */
   hasError?: boolean;
+  /** false = 과거 메시지 → 버튼 비활성화 (default: true) */
+  isInteractive?: boolean;
 };
 
 const selectClass =
@@ -53,19 +55,21 @@ function InlineSelect({
   );
 }
 
-export default function SettingsRecommendCard({ message, onApplyAndGenerate, hasError }: Props) {
+export default function SettingsRecommendCard({
+  message,
+  onApplyAndGenerate,
+  hasError,
+  isInteractive = true,
+}: Props) {
   const rec = message.recommendation;
   const opts = rec.available_options;
   const [local, setLocal] = useState({
     duration: rec.duration,
     language: rec.language,
   });
-  const [applied, setApplied] = useState(false);
-
-  // 생성 실패 시 버튼 재활성화
-  useEffect(() => {
-    if (hasError && applied) setApplied(false);
-  }, [hasError, applied]);
+  const [generateClicked, setGenerateClicked] = useState(false);
+  // 생성 실패 시 버튼 재활성화: applied는 "클릭했고 에러가 없을 때" true
+  const applied = generateClicked && !hasError;
 
   const patch = <K extends keyof typeof local>(key: K, val: (typeof local)[K]) =>
     setLocal((prev) => ({ ...prev, [key]: val }));
@@ -77,7 +81,7 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, has
 
   const handleGenerate = () => {
     onApplyAndGenerate(buildRec());
-    setApplied(true);
+    setGenerateClicked(true);
   };
 
   // 옵션 목록 구성 (구성/캐릭터는 Director SSOT → 여기서 표시하지 않음)
@@ -101,18 +105,18 @@ export default function SettingsRecommendCard({ message, onApplyAndGenerate, has
             value={String(local.duration)}
             options={durationOpts}
             onChange={(v) => patch("duration", Number(v))}
-            disabled={applied}
+            disabled={applied || !isInteractive}
           />
           <InlineSelect
             label="언어"
             value={local.language}
             options={languageOpts}
             onChange={(v) => patch("language", v)}
-            disabled={applied}
+            disabled={applied || !isInteractive}
           />
         </ul>
 
-        {!applied ? (
+        {isInteractive && !applied ? (
           <Button size="sm" variant="primary" className="w-full" onClick={handleGenerate}>
             <Sparkles className="h-3.5 w-3.5" />
             스크립트 생성

@@ -22,6 +22,8 @@ type Props = {
   onPresetRevise?: (presetId: string, params?: Record<string, string>) => void;
   reviewResult?: Record<string, unknown>;
   productionSnapshot?: ProductionSnapshot | null;
+  /** true = 과거 메시지 → 액션 버튼 숨김 */
+  disabled?: boolean;
 };
 
 export default function ReviewApprovalPanel({
@@ -32,6 +34,7 @@ export default function ReviewApprovalPanel({
   onPresetRevise,
   reviewResult,
   productionSnapshot,
+  disabled = false,
 }: Props) {
   const [feedback, setFeedback] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
@@ -110,49 +113,55 @@ export default function ReviewApprovalPanel({
         ))}
       </div>
 
-      {/* Feedback preset buttons */}
-      {feedbackPresets && feedbackPresets.length > 0 && onPresetRevise && (
-        <div className="mb-4">
-          <FeedbackPresetButtons
-            presets={feedbackPresets}
-            onPresetSelect={onPresetRevise}
-            onCustom={() => setShowFeedback(true)}
-          />
-        </div>
-      )}
+      {disabled ? (
+        <p className="text-xs text-amber-600">요청이 전달되었습니다.</p>
+      ) : (
+        <>
+          {/* Feedback preset buttons */}
+          {feedbackPresets && feedbackPresets.length > 0 && onPresetRevise && (
+            <div className="mb-4">
+              <FeedbackPresetButtons
+                presets={feedbackPresets}
+                onPresetSelect={onPresetRevise}
+                onCustom={() => setShowFeedback(true)}
+              />
+            </div>
+          )}
 
-      {/* Feedback input */}
-      {showFeedback && (
-        <textarea
-          className="mb-4 w-full rounded-lg border border-zinc-200 p-3 text-sm"
-          rows={3}
-          placeholder="수정 사항을 입력하세요..."
-          value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
-        />
-      )}
+          {/* Feedback input */}
+          {showFeedback && (
+            <textarea
+              className="mb-4 w-full rounded-lg border border-zinc-200 p-3 text-sm"
+              rows={3}
+              placeholder="수정 사항을 입력하세요..."
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+            />
+          )}
 
-      {/* Action buttons */}
-      <div className="flex gap-3">
-        <Button size="md" variant="gradient" onClick={onApprove}>
-          <CheckCircle className="h-4 w-4" />
-          승인
-        </Button>
-        <Button
-          size="md"
-          variant="secondary"
-          onClick={() => {
-            if (showFeedback && feedback.trim()) {
-              onRevise(feedback.trim());
-            } else {
-              setShowFeedback(true);
-            }
-          }}
-        >
-          <Edit3 className="h-4 w-4" />
-          수정 요청
-        </Button>
-      </div>
+          {/* Action buttons */}
+          <div className="flex gap-3">
+            <Button size="md" variant="gradient" onClick={onApprove}>
+              <CheckCircle className="h-4 w-4" />
+              승인
+            </Button>
+            <Button
+              size="md"
+              variant="secondary"
+              onClick={() => {
+                if (showFeedback && feedback.trim()) {
+                  onRevise(feedback.trim());
+                } else {
+                  setShowFeedback(true);
+                }
+              }}
+            >
+              <Edit3 className="h-4 w-4" />
+              수정 요청
+            </Button>
+          </div>
+        </>
+      )}
     </section>
   );
 }

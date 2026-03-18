@@ -33,8 +33,14 @@ export default function ChatMessageList({ messages, callbacks, data }: Props) {
     >
       {hydrated && (
         <div className="mx-auto max-w-3xl space-y-5 px-6">
-          {messages.map((msg) => (
-            <ChatMessage key={msg.id} message={msg} callbacks={callbacks} data={data} />
+          {messages.map((msg, i) => (
+            <ChatMessage
+              key={msg.id}
+              message={msg}
+              callbacks={callbacks}
+              data={data}
+              isLatest={i === messages.length - 1}
+            />
           ))}
           <div className="h-24 shrink-0" />
         </div>

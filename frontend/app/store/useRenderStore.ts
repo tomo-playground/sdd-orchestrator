@@ -17,6 +17,7 @@ import {
   DEFAULT_POST_CARD_SETTINGS,
   DEFAULT_SCENE_TEXT_FONT,
 } from "../constants";
+import { useContextStore } from "./useContextStore";
 export interface RenderStore {
   // Style Profile
   currentStyleProfile: {
@@ -121,13 +122,24 @@ const initialState: Omit<RenderStore, "set" | "reset" | "fetchVoicePresets"> = {
 
 export const RENDER_STORE_KEY = "shorts-producer:render:v1";
 
-// Pre-hydration cleanup: clear localStorage before Zustand hydrates old data
-if (typeof window !== "undefined") {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("new") === "true") {
-    localStorage.removeItem(RENDER_STORE_KEY);
-  }
+// Migrate: remove old single-key format (replaced by per-storyboard keys :sb_{id} / :new)
+if (typeof window !== "undefined" && localStorage.getItem(RENDER_STORE_KEY) !== null) {
+  localStorage.removeItem(RENDER_STORE_KEY);
 }
+
+/** Returns the active per-storyboard localStorage key for render settings. */
+export function getRenderPersistKey(): string {
+  const sbId = useContextStore.getState().storyboardId;
+  return sbId ? `${RENDER_STORE_KEY}:sb_${sbId}` : `${RENDER_STORE_KEY}:new`;
+}
+
+/** Custom storage that scopes render settings to the active storyboard. */
+const renderScopedStorage = {
+  getItem: (_name: string): string | null => localStorage.getItem(getRenderPersistKey()),
+  setItem: (_name: string, value: string): void =>
+    localStorage.setItem(getRenderPersistKey(), value),
+  removeItem: (_name: string): void => localStorage.removeItem(getRenderPersistKey()),
+};
 
 /** Fields excluded from persistence (transient / runtime-derived). */
 const TRANSIENT_KEYS: (keyof RenderStore)[] = [
@@ -160,7 +172,7 @@ export const useRenderStore = create<RenderStore>()(
     }),
     {
       name: RENDER_STORE_KEY,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => renderScopedStorage),
       partialize: (state) => {
         const persisted: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(state)) {

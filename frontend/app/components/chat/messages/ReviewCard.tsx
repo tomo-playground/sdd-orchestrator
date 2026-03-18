@@ -16,9 +16,11 @@ type Props = {
     conceptId?: number,
     options?: ResumeOptions
   ) => void;
+  /** false = 과거 메시지 → 버튼 비활성화 (default: true) */
+  isInteractive?: boolean;
 };
 
-export default function ReviewCard({ message, scenes, feedbackPresets, onResume }: Props) {
+export default function ReviewCard({ message, scenes, feedbackPresets, onResume, isInteractive = true }: Props) {
   return (
     <div className="flex max-w-2xl gap-2">
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-100">
@@ -38,6 +40,7 @@ export default function ReviewCard({ message, scenes, feedbackPresets, onResume 
           }
           reviewResult={message.reviewResult}
           productionSnapshot={message.productionSnapshot ?? undefined}
+          disabled={!isInteractive}
         />
       </div>
     </div>

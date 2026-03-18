@@ -13,12 +13,15 @@ type Props = {
     conceptId?: number,
     options?: ResumeOptions
   ) => void;
+  /** false = 과거 메시지 → 버튼 비활성화 (default: true) */
+  isInteractive?: boolean;
 };
 
-const PlanReviewCard = memo(function PlanReviewCard({ message, onResume }: Props) {
+const PlanReviewCard = memo(function PlanReviewCard({ message, onResume, isInteractive = true }: Props) {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [feedback, setFeedback] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const effectiveSubmitted = submitted || !isInteractive;
   const plan = message.directorPlan;
   const skipStages = message.skipStages;
   const creativeGoal = plan.creative_goal ? String(plan.creative_goal) : null;
@@ -99,7 +102,7 @@ const PlanReviewCard = memo(function PlanReviewCard({ message, onResume }: Props
         </div>
       )}
 
-      {mode === "edit" && !submitted ? (
+      {mode === "edit" && !effectiveSubmitted ? (
         <div className="flex items-end gap-2 rounded-2xl border border-blue-200 bg-white px-3 py-2 transition-shadow focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400">
           <textarea
             value={feedback}
@@ -120,7 +123,7 @@ const PlanReviewCard = memo(function PlanReviewCard({ message, onResume }: Props
           </button>
         </div>
       ) : (
-        !submitted && (
+        !effectiveSubmitted && (
           <div className="flex gap-2">
             <button
               type="button"
@@ -140,7 +143,7 @@ const PlanReviewCard = memo(function PlanReviewCard({ message, onResume }: Props
         )
       )}
 
-      {submitted && <p className="text-xs text-blue-600">요청이 전달되었습니다.</p>}
+      {effectiveSubmitted && <p className="text-xs text-blue-600">요청이 전달되었습니다.</p>}
     </div>
   );
 });

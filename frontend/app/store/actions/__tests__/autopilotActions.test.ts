@@ -112,9 +112,9 @@ describe("runAutoRunFromStep — image step save-on-failure", () => {
     });
 
     // After batch, scene A has image, scene B doesn't
-    let callCount = 0;
+    let _callCount = 0;
     vi.spyOn(useStoryboardStore, "getState").mockImplementation(() => {
-      callCount++;
+      _callCount++;
       return {
         scenes: [
           { ...sceneA, image_url: "http://img.png", image_asset_id: 555 },
