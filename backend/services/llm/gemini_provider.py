@@ -6,11 +6,11 @@ import asyncio
 import re
 from typing import Any
 
+import config as _cfg
 from config import (
     GEMINI_FALLBACK_MODEL,
     GEMINI_SAFETY_SETTINGS,
     GEMINI_TEXT_MODEL,
-    gemini_client,
     logger,
 )
 from services.agent.observability import _extract_usage, _safe_extract_text, trace_llm_call
@@ -20,9 +20,30 @@ from services.llm.types import LLMConfig, LLMResponse
 _MAX_SYSTEM_LEN = 2000
 
 
+def _get_client():
+    """Gemini client를 반환. closed 시 재생성."""
+    if _cfg.gemini_client is None:
+        return None
+    try:
+        # httpx client closed 여부 — 내부 _client가 closed인지 확인
+        http = getattr(_cfg.gemini_client, "_api_client", None)
+        http = getattr(http, "_httpx_client", None)
+        if http and getattr(http, "is_closed", False):
+            raise RuntimeError("client closed")
+    except (AttributeError, RuntimeError):
+        from google import genai
+
+        logger.info("[GeminiProvider] Client 재생성 (이전 client closed)")
+        _cfg.gemini_client = genai.Client(api_key=_cfg.GEMINI_API_KEY)
+    return _cfg.gemini_client
+
+
 def _is_retryable(exc: Exception) -> bool:
-    """429/5xx 에러인지 확인한다."""
-    return bool(re.search(r"429|5\d{2}", str(exc)))
+    """429/5xx 또는 client closed 에러인지 확인한다."""
+    msg = str(exc)
+    if "client has been closed" in msg:
+        return True
+    return bool(re.search(r"429|5\d{2}", msg))
 
 
 def _extract_block_reason(response: Any) -> str | None:
@@ -53,7 +74,7 @@ class GeminiProvider:
         """Gemini API를 호출하고 LLMResponse를 반환한다."""
         from google.genai import types
 
-        if gemini_client is None:
+        if _get_client() is None:
             raise RuntimeError("Gemini client is not initialized. Check GEMINI_API_KEY in .env")
 
         resolved_model = model or GEMINI_TEXT_MODEL
@@ -81,7 +102,7 @@ class GeminiProvider:
                     metadata=metadata,
                     langfuse_prompt=langfuse_prompt,
                 ) as llm:
-                    response = await gemini_client.aio.models.generate_content(
+                    response = await _get_client().aio.models.generate_content(
                         model=resolved_model,
                         contents=contents,
                         config=gemini_config,
@@ -121,7 +142,7 @@ class GeminiProvider:
                     input_text=trace_input,
                     metadata=fb_metadata,
                 ) as llm_fb:
-                    response = await gemini_client.aio.models.generate_content(
+                    response = await _get_client().aio.models.generate_content(
                         model=GEMINI_FALLBACK_MODEL,
                         contents=contents,
                         config=gemini_config,
@@ -147,7 +168,7 @@ class GeminiProvider:
         """Function Calling 전용 (tools/base.py에서 사용). Protocol 외부 확장."""
         from google.genai import types
 
-        if gemini_client is None:
+        if _get_client() is None:
             raise RuntimeError("Gemini client is not initialized. Check GEMINI_API_KEY in .env")
 
         resolved_model = model or GEMINI_TEXT_MODEL
@@ -169,7 +190,7 @@ class GeminiProvider:
                     input_text=str(contents)[:1000],
                     metadata=metadata,
                 ) as llm:
-                    response = await gemini_client.aio.models.generate_content(
+                    response = await _get_client().aio.models.generate_content(
                         model=resolved_model,
                         contents=contents,
                         config=gemini_config,
@@ -208,7 +229,7 @@ class GeminiProvider:
                     input_text=str(contents)[:1000],
                     metadata=fb_metadata,
                 ) as llm_fb:
-                    response = await gemini_client.aio.models.generate_content(
+                    response = await _get_client().aio.models.generate_content(
                         model=GEMINI_FALLBACK_MODEL,
                         contents=contents,
                         config=gemini_config,

@@ -812,12 +812,15 @@ class TestDebugVerifyLoras:
         self._verify_loras(ctx, caplog)
         assert any("LoRA Check" in r.message and r.levelno == logging.DEBUG for r in caplog.records)
 
-    def test_no_lora_with_character_logs_warning(self, caplog):
+    def test_no_lora_with_character_no_loras_logs_debug(self, caplog):
+        """캐릭터 있지만 LoRA 미할당 시 DEBUG (WARNING 아님)."""
         ctx = GenerationContext(request=_make_request())
         ctx.prompt = "1girl, standing"
         ctx.character = _make_character()
+        ctx.style_loras = []  # LoRA 미할당
         self._verify_loras(ctx, caplog)
-        assert any("LoRA Check" in r.message and r.levelno == logging.WARNING for r in caplog.records)
+        assert any("LoRA Check" in r.message and "no LoRA assigned" in r.message for r in caplog.records)
+        assert all(r.levelno != logging.WARNING for r in caplog.records if "LoRA Check" in r.message)
 
     def test_no_lora_background_scene_logs_debug(self, caplog):
         """Background/narrator scene (no character) should NOT emit WARNING."""

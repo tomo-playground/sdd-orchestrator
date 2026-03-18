@@ -550,6 +550,8 @@ def _debug_verify_loras(ctx: GenerationContext) -> None:
         logger.debug("✅ [LoRA Check] %d LoRA tags in prompt: %s", len(lora_tags_found), lora_tags_found)
     elif not ctx.character:
         logger.debug("ℹ️ [LoRA Check] No <lora:> tags — background/narrator scene (expected)")
+    elif not ctx.style_loras:
+        logger.debug("ℹ️ [LoRA Check] No <lora:> tags — character has no LoRA assigned")
     else:
         logger.warning("⚠️ [LoRA Check] No <lora:> tags found in cleaned prompt!")
 

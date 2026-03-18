@@ -266,7 +266,12 @@ async def writer_node(state: ScriptState) -> dict:
 
         # Phase 28-A: 빈 씬 자체 검증 + 1회 재시도
         if _is_scenes_empty(scenes):
-            logger.warning("[LangGraph] Writer: 빈 씬 감지 (%d scenes), 힌트 추가 1회 재시도", len(scenes))
+            empty_scripts = [s.get("script", "")[:20] for s in scenes]
+            logger.warning(
+                "[LangGraph] Writer: 빈 씬 감지 (%d scenes, scripts=%s), 힌트 추가 1회 재시도",
+                len(scenes),
+                empty_scripts,
+            )
             retry_desc = (state.get("description") or "") + "\n\n[중요] 반드시 1개 이상의 씬을 생성하세요."
             request.description = retry_desc
             try:
