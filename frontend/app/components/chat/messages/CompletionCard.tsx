@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { CheckCircle, ChevronDown, ChevronUp, Pencil, Play } from "lucide-react";
 import Button from "../../ui/Button";
 import { useStoryboardStore } from "../../../store/useStoryboardStore";
@@ -105,7 +105,7 @@ export default function CompletionCard({ text, meta, sceneCount, onNavigate }: P
                 <div key={s.order} className="flex items-center gap-1.5 text-[11px]">
                   <span className="w-4 text-right text-zinc-400">{s.order + 1}</span>
                   <span
-                    className={`rounded px-1 py-0.5 text-[10px] font-medium ${SPEAKER_COLORS[s.speaker] ?? SPEAKER_COLORS.A}`}
+                    className={`rounded px-1 py-0.5 text-[11px] font-medium ${SPEAKER_COLORS[s.speaker] ?? SPEAKER_COLORS.A}`}
                   >
                     {s.speaker}
                   </span>
@@ -138,12 +138,32 @@ export default function CompletionCard({ text, meta, sceneCount, onNavigate }: P
 }
 
 function CompletionActions({ onNavigate }: { onNavigate: (tab: string) => void }) {
+  const [navigated, setNavigated] = useState(false);
+
+  const handleNavigate = useCallback(
+    (tab: string) => {
+      setNavigated(true);
+      onNavigate(tab);
+    },
+    [onNavigate]
+  );
+
   return (
     <div className="mt-3 flex gap-2">
-      <Button size="sm" variant="outline" onClick={() => onNavigate("direct")}>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => handleNavigate("direct")}
+        disabled={navigated}
+      >
         <Pencil className="h-3.5 w-3.5" />씬 편집하기
       </Button>
-      <Button size="sm" variant="success" onClick={() => onNavigate("stage")}>
+      <Button
+        size="sm"
+        variant="success"
+        onClick={() => handleNavigate("stage")}
+        disabled={navigated}
+      >
         <Play className="h-3.5 w-3.5" />
         영상 제작 시작
       </Button>

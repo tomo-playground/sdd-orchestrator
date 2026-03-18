@@ -2,6 +2,7 @@ import type React from "react";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useContextStore } from "../../store/useContextStore";
 import { syncToGlobalStore } from "./mappers";
+import { initializeVideoMetadata } from "../../store/actions/outputActions";
 import type { SceneItem, ScriptEditorState } from "./types";
 import type { SyncMeta } from "./mappers";
 
@@ -74,7 +75,6 @@ export function buildSavePayload(s: ScriptEditorState, groupId: number | null) {
     version: s.storyboardVersion ?? undefined,
     // Spread passthrough: UI-only 필드 제거 후 나머지 패스스루
     scenes: s.scenes.map((sc, i) => {
-      /* eslint-disable @typescript-eslint/no-unused-vars */
       const {
         id: _id,
         order: _order,
@@ -82,7 +82,6 @@ export function buildSavePayload(s: ScriptEditorState, groupId: number | null) {
         negative_prompt_extra: _extra,
         ...rest
       } = sc;
-      /* eslint-enable @typescript-eslint/no-unused-vars */
       return { ...rest, scene_id: i };
     }),
   };
@@ -140,6 +139,10 @@ export function handleStreamOutcome(opts: StreamOutcomeOpts): boolean {
       isDirty: true,
       ...(casting && { castingRecommendation: null }),
     });
+    // 파이프라인 완료 후 실제 topic으로 캡션 재생성 (Draft 타이틀로 잘못 생성된 캡션 교체)
+    if (meta.topic) {
+      void initializeVideoMetadata(meta.topic, true);
+    }
     showToast("스크립트 생성 완료", "success");
     return true;
   }

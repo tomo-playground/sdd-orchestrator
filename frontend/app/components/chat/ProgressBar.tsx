@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 
 type Props = {
   progress: { node: string; label: string; percent: number };
@@ -41,12 +41,17 @@ export default function ProgressBar({ progress }: Props) {
   const label = resolveLabel(progress.node, progress.label);
 
   const pct = Math.round(progress.percent);
+  const isDone = pct >= 100 || label.endsWith("완료");
 
   return (
     <div className="w-full bg-transparent px-4 py-2">
       <div className="mx-auto max-w-3xl rounded-2xl border border-zinc-100 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
+          {isDone ? (
+            <Check className="h-4 w-4 text-emerald-500" />
+          ) : (
+            <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
+          )}
           <span className="text-sm font-medium text-zinc-700">{label}</span>
           <span className="ml-auto text-xs font-semibold text-zinc-400">{pct}%</span>
         </div>

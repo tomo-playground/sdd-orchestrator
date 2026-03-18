@@ -7,13 +7,15 @@ import { updateStoryboardMetadata } from "./storyboardActions";
  * Initialize video metadata (caption + likes) in store.
  * Called after storyboard load/create so values are ready
  * before OutputTab mounts or render executes.
+ *
+ * @param force - true: caption guard 무시하고 재생성 (실제 topic 확정 후 호출 시 사용)
  */
-export async function initializeVideoMetadata(topic: string): Promise<void> {
+export async function initializeVideoMetadata(topic: string, force = false): Promise<void> {
   const render = useRenderStore.getState();
-  if (render.videoCaption && render.videoLikesCount) return;
+  if (!force && render.videoCaption && render.videoLikesCount) return;
 
   // Caption: extract hashtags from topic, fallback to topic itself
-  if (!render.videoCaption && topic) {
+  if ((force || !render.videoCaption) && topic) {
     try {
       const res = await axios.post(`${API_BASE}/video/extract-hashtags`, {
         text: topic,
