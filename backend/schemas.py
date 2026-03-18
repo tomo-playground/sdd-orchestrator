@@ -103,7 +103,7 @@ class RenderPresetCreate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     bgm_file: str | None = None
     bgm_volume: float | None = None
-    audio_ducking: bool | None = None
+    is_audio_ducking_enabled: bool | None = None
     scene_text_font: str | None = None
     layout_style: str | None = None
     frame_style: str | None = None
@@ -120,7 +120,7 @@ class RenderPresetUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     bgm_file: str | None = None
     bgm_volume: float | None = None
-    audio_ducking: bool | None = None
+    is_audio_ducking_enabled: bool | None = None
     scene_text_font: str | None = None
     layout_style: str | None = None
     frame_style: str | None = None
@@ -139,7 +139,7 @@ class RenderPresetResponse(BaseModel):
     is_system: bool = True
     bgm_file: str | None = None
     bgm_volume: float | None = None
-    audio_ducking: bool | None = None
+    is_audio_ducking_enabled: bool | None = Field(default=None, validation_alias="audio_ducking")
     scene_text_font: str | None = None
     layout_style: str | None = None
     frame_style: str | None = None
@@ -151,7 +151,7 @@ class RenderPresetResponse(BaseModel):
     music_preset_id: int | None = None
     created_at: datetime | None = None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class GroupCreate(BaseModel):
@@ -257,7 +257,7 @@ class StoryboardDraftResponse(BaseModel):
 
     storyboard_id: int
     title: str
-    created: bool  # True=신규 생성, False=기존 반환 (멱등)
+    is_created: bool  # True=신규 생성, False=기존 반환 (멱등)
 
 
 class StoryboardSaveResponse(BaseModel):
@@ -369,7 +369,7 @@ class SceneDetailResponse(BaseModel):
     auto_pin_previous: bool = Field(default=False, alias="_auto_pin_previous")
 
     # Per-scene generation settings override (null = inherit global)
-    use_controlnet: bool | None = None
+    is_controlnet_enabled: bool | None = None
     controlnet_weight: float | None = None
     controlnet_pose: str | None = None
     use_ip_adapter: bool | None = None
@@ -497,7 +497,7 @@ class StoryboardScene(BaseModel):
     image_asset_id: int | None = None
 
     # Per-scene generation settings override (null = inherit global)
-    use_controlnet: bool | None = None
+    is_controlnet_enabled: bool | None = None
     controlnet_weight: float | None = None
     controlnet_pose: str | None = None
     use_ip_adapter: bool | None = None
@@ -602,11 +602,11 @@ class VideoRequest(BaseModel):
     voice_design_prompt: str | None = None  # For Qwen-TTS VoiceDesign
     voice_preset_id: int | None = None  # Voice preset for TTS
     speed_multiplier: float = 1.0
-    include_scene_text: bool = True
+    is_scene_text_included: bool = True
     scene_text_font: str | None = None
     overlay_settings: OverlaySettings | None = None
     post_card_settings: PostCardSettings | None = None
-    audio_ducking: bool = True
+    is_audio_ducking_enabled: bool = True
     bgm_volume: float = 0.4
     ducking_threshold: float = 0.03
     bgm_mode: str = "manual"  # "manual" | "auto"
@@ -629,7 +629,7 @@ class SceneGenerateRequest(BaseModel):
     width: int = SD_DEFAULT_WIDTH
     height: int = SD_DEFAULT_HEIGHT
     clip_skip: int = SD_DEFAULT_CLIP_SKIP
-    enable_hr: bool = DEFAULT_ENABLE_HR
+    is_hr_enabled: bool = DEFAULT_ENABLE_HR
     hr_scale: float = SD_HI_RES_SCALE
     hr_upscaler: str = SD_HI_RES_UPSCALER
     hr_second_pass_steps: int = SD_HI_RES_SECOND_PASS_STEPS
@@ -642,18 +642,18 @@ class SceneGenerateRequest(BaseModel):
     # Style LoRAs — ignored by backend; resolved from DB (SSOT). Kept for backward compat.
     style_loras: list[dict] | None = None
     # ControlNet options
-    use_controlnet: bool = False
+    is_controlnet_enabled: bool = False
     controlnet_pose: str | None = None  # Specific pose name or None for auto-detect
     controlnet_weight: float = 1.0
     controlnet_control_mode: str = (
         "Balanced"  # "Balanced" | "My prompt is more important" | "ControlNet is more important"
     )
     # IP-Adapter options
-    use_ip_adapter: bool = False
+    is_ip_adapter_enabled: bool = False
     ip_adapter_reference: str | None = None  # character_key for saved reference
     ip_adapter_weight: float = DEFAULT_IP_ADAPTER_WEIGHT
     # Consistency Enhancements
-    use_reference_only: bool = True  # Default to True if character_id exists
+    is_reference_only_enabled: bool = True  # Default to True if character_id exists
     reference_only_weight: float = DEFAULT_REFERENCE_ONLY_WEIGHT
     environment_reference_id: int | None = None  # For Environment Pinning
     environment_reference_weight: float = DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT
@@ -663,13 +663,13 @@ class SceneGenerateRequest(BaseModel):
     scene_id: int | None = None
     # Explicit prompt composition flag (True when frontend /prompt/compose already ran)
     # DEPRECATED: Frontend should send raw prompt + context_tags instead.
-    prompt_pre_composed: bool = False
+    is_prompt_pre_composed: bool = False
     # Scene context tags (expression, pose, gaze, camera, environment, mood)
     # Backend merges these into prompt composition automatically.
     context_tags: dict | None = None
     # Post-processing toggles (wired from frontend OPTIONS panel)
-    auto_rewrite_prompt: bool = False
-    auto_replace_risky_tags: bool = False
+    is_auto_rewrite_enabled: bool = False
+    is_auto_replace_risky_tags: bool = False
     # Warnings field to return messages from backend
     warnings: list[str] | None = None
     # Stable fallback for stale scene_id resolution
@@ -774,7 +774,7 @@ class PromptComposeRequest(BaseModel):
     tokens: list[str]  # Raw prompt tokens
     mode: Literal["auto", "standard", "lora"] = "auto"
     loras: list[PromptComposeLoRA] | None = None
-    use_break: bool = True  # Insert BREAK token
+    is_break_enabled: bool = True  # Insert BREAK token
     # V3 extension fields
     character_id: int  # required — character tags/LoRAs loaded from DB
     character_b_id: int | None = None  # Multi-character: second character
@@ -1062,8 +1062,8 @@ class CharacterDuplicateRequest(BaseModel):
 
     target_group_id: int
     new_name: str = Field(max_length=100)
-    copy_loras: bool = False
-    copy_reference: bool = False
+    should_copy_loras: bool = False
+    should_copy_reference: bool = False
 
 
 class CharacterDuplicateResponse(BaseModel):
@@ -1613,7 +1613,7 @@ class CaptionExtractResponse(BaseModel):
 
     caption: str
     original_length: int | None = None
-    fallback: bool | None = None
+    is_fallback: bool | None = None
 
 
 class HashtagExtractResponse(BaseModel):
@@ -1621,7 +1621,7 @@ class HashtagExtractResponse(BaseModel):
 
     caption: str
     original_topic: str | None = None
-    fallback: bool | None = None
+    is_fallback: bool | None = None
 
 
 class RenderProgressEvent(BaseModel):
@@ -1687,12 +1687,12 @@ class ReadingSpeedConfig(BaseModel):
 class GenerationDefaults(BaseModel):
     """Per-scene generation flag defaults (SSOT from config.py)."""
 
-    use_controlnet: bool = DEFAULT_USE_CONTROLNET
+    is_controlnet_enabled: bool = DEFAULT_USE_CONTROLNET
     controlnet_weight: float = DEFAULT_CONTROLNET_WEIGHT
-    use_ip_adapter: bool = DEFAULT_USE_IP_ADAPTER
+    is_ip_adapter_enabled: bool = DEFAULT_USE_IP_ADAPTER
     ip_adapter_weight: float = DEFAULT_IP_ADAPTER_WEIGHT
-    multi_gen_enabled: bool = DEFAULT_MULTI_GEN_ENABLED
-    enable_hr: bool = DEFAULT_ENABLE_HR
+    is_multi_gen_enabled: bool = DEFAULT_MULTI_GEN_ENABLED
+    is_hr_enabled: bool = DEFAULT_ENABLE_HR
 
 
 class HiResDefaults(BaseModel):
@@ -1809,7 +1809,7 @@ class ScriptPresetItem(BaseModel):
     name: str
     name_ko: str
     description: str
-    auto_approve: bool = False
+    is_auto_approve: bool = False
     skip_stages: list[str] = []
 
 
@@ -1859,7 +1859,7 @@ class ScriptFeedbackResponse(BaseModel):
 
 
 class VerticalStatus(BaseModel):
-    ready: bool = False
+    is_ready: bool = False
     count: int | None = None
     detail: str | None = None
 
@@ -1961,13 +1961,13 @@ class SeedAnchorResponse(BaseModel):
 
     storyboard_id: int
     base_seed: int | None = None
-    anchored: bool = False
+    is_anchored: bool = False
 
 
 class ImageCacheStatsResponse(BaseModel):
     """Response for image cache stats."""
 
-    enabled: bool = False
+    is_enabled: bool = False
     file_count: int = 0
     total_size_mb: float = 0.0
     max_size_mb: int = 2048
@@ -1993,8 +1993,8 @@ class UploadPhotoReferenceRequest(BaseModel):
 class QualityInfo(BaseModel):
     """Quality info for upload responses."""
 
-    valid: bool = False
-    face_detected: bool = False
+    is_valid: bool = False
+    is_face_detected: bool = False
     face_count: int = 0
     face_size_ratio: float = 0.0
     warnings: list[str] = []
@@ -2010,11 +2010,11 @@ class UploadPhotoReferenceResponse(BaseModel):
 
 class ReferenceQualityResponse(BaseModel):
     character_key: str
-    valid: bool = False
-    face_detected: bool = False
+    is_valid: bool = False
+    is_face_detected: bool = False
     face_count: int = 0
     face_size_ratio: float = 0.0
-    resolution_ok: bool = True
+    is_resolution_ok: bool = True
     width: int = 0
     height: int = 0
     warnings: list[str] = []
@@ -2099,9 +2099,9 @@ class VideoDeleteResponse(BaseModel):
     """Response for POST /video/delete."""
 
     ok: bool
-    deleted: bool = False
+    is_deleted: bool = False
     asset_id: int | None = None
-    legacy: bool | None = None
+    is_legacy: bool | None = None
     reason: str | None = None
 
 
@@ -2164,7 +2164,7 @@ class ValidateAndAutoEditResponse(BaseModel):
     """Response for POST /scene/validate-and-auto-edit."""
 
     validation_result: dict
-    auto_edit_triggered: bool = False
+    is_auto_edit_triggered: bool = False
     edited_image: str | None = None
     edit_cost: float | None = None
     original_match_rate: float | None = None
@@ -2355,7 +2355,7 @@ class SuccessMessageResponse(BaseModel):
 class ControlNetStatusResponse(BaseModel):
     """Response for GET /controlnet/status."""
 
-    available: bool
+    is_available: bool
     models: list[str]
     pose_references: list[str]
 
@@ -2365,7 +2365,7 @@ class PoseInfoItem(BaseModel):
 
     name: str
     filename: str
-    available: bool
+    is_available: bool
 
 
 class PoseListResponse(BaseModel):
@@ -2385,14 +2385,14 @@ class SuggestPoseResponse(BaseModel):
     """Response for POST /controlnet/suggest-pose."""
 
     suggested_pose: str | None
-    available: bool
+    is_available: bool
     image_b64: str | None
 
 
 class IPAdapterStatusResponse(BaseModel):
     """Response for GET /controlnet/ip-adapter/status."""
 
-    available: bool
+    is_available: bool
     models: list[str]
     supported_models: list[str]
 
@@ -2626,7 +2626,7 @@ class CleanupResultDetail(BaseModel):
 
     deleted: int = 0
     storage_errors: list[str] = []
-    dry_run: bool = True
+    is_dry_run: bool = True
 
 
 class DanglingCandidateDetail(BaseModel):
@@ -2634,7 +2634,7 @@ class DanglingCandidateDetail(BaseModel):
 
     scenes_affected: int = 0
     candidates_removed: int = 0
-    dry_run: bool = True
+    is_dry_run: bool = True
 
 
 class OrphanAssetCleanupResponse(BaseModel):
@@ -2676,7 +2676,7 @@ class StorageCleanupResponse(BaseModel):
 
     deleted_count: int
     freed_mb: float
-    dry_run: bool
+    is_dry_run: bool
     details: dict[str, CleanupCategoryDetail]
 
 
@@ -2688,7 +2688,7 @@ class StorageCleanupResponse(BaseModel):
 class AutoEditSettingsResponse(BaseModel):
     """Response for GET /settings/auto-edit."""
 
-    enabled: bool
+    is_enabled: bool
     threshold: float
     max_cost_per_storyboard: float
     max_retries_per_scene: int
@@ -2915,7 +2915,7 @@ class ActivityLogCreatedResponse(BaseModel):
     character_id: int | None = None
     status: str | None = None
     match_rate: float | None = None
-    gemini_edited: bool = False
+    is_gemini_edited: bool = False
     gemini_cost_usd: float | None = None
     original_match_rate: float | None = None
     final_match_rate: float | None = None
@@ -3023,7 +3023,7 @@ class SuggestedCombination(BaseModel):
     tags: list[str]
     categories: list[str]
     avg_success_rate: float
-    conflict_free: bool
+    is_conflict_free: bool
 
 
 class SuccessCombinationSummary(BaseModel):
@@ -3142,7 +3142,7 @@ class SceneTTSPreviewRequest(BaseModel):
     voice_design_prompt: str | None = None
     scene_emotion: str | None = None
     language: str = "korean"
-    force_regenerate: bool = False
+    is_force_regenerate: bool = False
 
 
 class SceneTTSPreviewResponse(BaseModel):
@@ -3151,7 +3151,7 @@ class SceneTTSPreviewResponse(BaseModel):
     audio_url: str
     duration: float
     cache_key: str
-    cached: bool
+    is_cached: bool
     voice_seed: int | None = None
     voice_design: str | None = None
     temp_asset_id: int
@@ -3246,7 +3246,7 @@ class SceneFramePreviewRequest(BaseModel):
     image_url: str = Field(pattern=r"^(https?://|/outputs/).+")
     script: str = ""
     layout_style: Literal["full", "post"] = "post"
-    include_scene_text: bool = True
+    is_scene_text_included: bool = True
     scene_text_font: str | None = None
     channel_name: str | None = None
     caption: str | None = None
@@ -3258,7 +3258,7 @@ class FrameLayoutInfo(BaseModel):
     """프레임 레이아웃 분석 정보."""
 
     font_size: int | None = None
-    face_detected: bool = False
+    is_face_detected: bool = False
     text_brightness: float | None = None
 
 

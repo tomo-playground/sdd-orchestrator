@@ -155,11 +155,11 @@ def check_materials(storyboard_id: int, db: Session = Depends(get_db)):
 
     return MaterialsCheckResponse(
         storyboard_id=storyboard_id,
-        script=VerticalStatus(ready=scene_count > 0, count=scene_count),
-        characters=VerticalStatus(ready=char_count > 0, count=char_count),
-        voice=VerticalStatus(ready=voice_ready),
-        music=VerticalStatus(ready=music_ready),
-        background=VerticalStatus(ready=bg_ready, detail=bg_detail),
+        script=VerticalStatus(is_ready=scene_count > 0, count=scene_count),
+        characters=VerticalStatus(is_ready=char_count > 0, count=char_count),
+        voice=VerticalStatus(is_ready=voice_ready),
+        music=VerticalStatus(is_ready=music_ready),
+        background=VerticalStatus(is_ready=bg_ready, detail=bg_detail),
     )
 
 
@@ -183,7 +183,7 @@ async def set_storyboard_seed(
     return SeedAnchorResponse(
         storyboard_id=storyboard_id,
         base_seed=final_seed,
-        anchored=final_seed is not None,
+        is_anchored=final_seed is not None,
     )
 
 
