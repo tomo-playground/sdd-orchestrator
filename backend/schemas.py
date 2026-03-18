@@ -3151,7 +3151,7 @@ class SceneTTSPreviewResponse(BaseModel):
     audio_url: str
     duration: float
     cache_key: str
-    is_cached: bool
+    cached: bool
     voice_seed: int | None = None
     voice_design: str | None = None
     temp_asset_id: int

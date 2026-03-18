@@ -27,8 +27,8 @@ class TestIpAdapterArgs:
         assert args["enabled"] is True
         assert args["image"] == dummy_image
         assert args["weight"] == 0.7
-        assert args["module"] == "CLIP-ViT-H (IPAdapter)"  # CLIP module for anime
-        assert args["model"] == IP_ADAPTER_MODELS["clip"]
+        assert args["module"] == "CLIP-ViT-bigG (IPAdapter)"  # NOOB-IPA-MARK1: ViT-bigG
+        assert IP_ADAPTER_MODELS["clip"] in args["model"]  # resolved name includes hash
 
     def test_build_ip_adapter_args_clip_face_model(self):
         """Test building IP-Adapter args with CLIP face model."""
@@ -43,7 +43,7 @@ class TestIpAdapterArgs:
 
         assert args["enabled"] is True
         assert args["module"] == "CLIP-ViT-H (IPAdapter)"  # CLIP module
-        assert args["model"] == IP_ADAPTER_MODELS["clip_face"]
+        assert IP_ADAPTER_MODELS["clip_face"] in args["model"]
 
     def test_build_ip_adapter_args_faceid_removed(self):
         """FaceID model removed in SDXL — should raise ValueError."""
@@ -58,10 +58,10 @@ class TestIpAdapterArgs:
             )
 
     def test_build_ip_adapter_args_default_model(self):
-        """Test that default model is CLIP_FACE (for anime characters)."""
+        """Test that default model is CLIP (NOOB-IPA-MARK1)."""
         from services.controlnet import DEFAULT_IP_ADAPTER_MODEL, build_ip_adapter_args
 
-        assert DEFAULT_IP_ADAPTER_MODEL == "clip_face"
+        assert DEFAULT_IP_ADAPTER_MODEL == "clip"
 
         dummy_image = base64.b64encode(b"fake_image_data").decode()
         args = build_ip_adapter_args(
@@ -109,13 +109,19 @@ class TestReferenceImages:
         mock_char.reference_image_url = "s3://bucket/ref.png"
         mock_db.query.return_value.filter.return_value.first.return_value = mock_char
 
-        fake_bytes = b"fake_image_data"
-        fake_b64 = base64.b64encode(fake_bytes).decode()
-        with patch("services.controlnet.load_image_bytes", return_value=fake_bytes):
+        # 유효한 1x1 PNG 바이트 생성
+        from io import BytesIO
+        from PIL import Image
+
+        buf = BytesIO()
+        Image.new("RGB", (1, 1), (255, 0, 0)).save(buf, format="PNG")
+        valid_png = buf.getvalue()
+        expected_b64 = base64.b64encode(valid_png).decode()
+        with patch("services.controlnet.load_image_bytes", return_value=valid_png):
             result = load_reference_image("test_character", db=mock_db)
 
         assert result is not None
-        assert result == fake_b64
+        assert result == expected_b64
 
     def test_load_reference_image_nonexistent(self):
         """Test loading a non-existent reference image returns None."""
@@ -238,11 +244,10 @@ class TestIpAdapterModelConstants:
         assert "faceid" not in IP_ADAPTER_MODELS
 
     def test_default_model_is_clip(self):
-        """Test that default model is CLIP_FACE (for anime)."""
+        """Test that default model is CLIP (NOOB-IPA-MARK1)."""
         from services.controlnet import DEFAULT_IP_ADAPTER_MODEL
 
-        # CLIP_FACE should be default for better facial consistency
-        assert DEFAULT_IP_ADAPTER_MODEL == "clip_face"
+        assert DEFAULT_IP_ADAPTER_MODEL == "clip"
 
     def test_controlnet_models_defined(self):
         """Test that ControlNet models are defined."""
