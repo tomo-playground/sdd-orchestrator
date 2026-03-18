@@ -668,8 +668,8 @@ class SceneGenerateRequest(BaseModel):
     # Backend merges these into prompt composition automatically.
     context_tags: dict | None = None
     # Post-processing toggles (wired from frontend OPTIONS panel)
-    is_auto_rewrite_enabled: bool = False
-    is_auto_replace_risky_tags: bool = False
+    auto_rewrite_enabled: bool = False
+    auto_replace_risky_tags: bool = False
     # Warnings field to return messages from backend
     warnings: list[str] | None = None
     # Stable fallback for stale scene_id resolution

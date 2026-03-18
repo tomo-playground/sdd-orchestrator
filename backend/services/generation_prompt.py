@@ -79,9 +79,7 @@ def _resolve_style_loras(storyboard_id: int | None, db) -> list[dict]:
         return []
 
 
-def _resolve_effective_character_b_id(
-    request: SceneGenerateRequest, db
-) -> tuple[int | None, list[str]]:
+def _resolve_effective_character_b_id(request: SceneGenerateRequest, db) -> tuple[int | None, list[str]]:
     """Resolve character_b_id only when scene_mode='multi'.
 
     Returns (effective_b_id, warnings).
@@ -477,7 +475,7 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     # Post-processing: Safe Tags → Auto Rewrite (before FaceID suppression)
     if request.auto_replace_risky_tags:
         ctx.prompt = _apply_safe_tag_replacement(ctx.prompt, db)
-    if request.auto_rewrite_prompt:
+    if request.auto_rewrite_enabled:
         ctx.prompt = _apply_auto_rewrite(ctx.prompt)
 
     # Phase 3-B: Suppress face tags when FaceID is active
@@ -492,10 +490,14 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     if effective_b_id:
         from models import Character as _CharModel
 
-        _char_b = db.query(_CharModel).filter(
-            _CharModel.id == effective_b_id,
-            _CharModel.deleted_at.is_(None),
-        ).first()
+        _char_b = (
+            db.query(_CharModel)
+            .filter(
+                _CharModel.id == effective_b_id,
+                _CharModel.deleted_at.is_(None),
+            )
+            .first()
+        )
         _chars_for_neg.append(_char_b)
     for _ch in _chars_for_neg:
         if not _ch:
