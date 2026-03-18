@@ -153,7 +153,7 @@ const initialState: Omit<
   autoReplaceRiskyTags: false,
   hiResEnabled: false,
   veoEnabled: false,
-  useControlnet: true,
+  useControlnet: false,
   controlnetWeight: 0.8,
   useIpAdapter: false,
   ipAdapterReference: "",
