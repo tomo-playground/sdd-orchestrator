@@ -170,6 +170,22 @@ export async function runAutoRunFromStep(
         setAutoRunStep("images", "Generating scene images...");
         assertNotCancelled();
 
+        // Guard: Stage를 실행했어야 하는데 배경이 없으면 차단
+        if (allowedSteps.includes("stage")) {
+          const currentScenes = useStoryboardStore.getState().scenes;
+          const missingBg = currentScenes.filter(
+            (s) =>
+              !s.background_id &&
+              Array.isArray((s.context_tags as Record<string, unknown>)?.environment) &&
+              ((s.context_tags as Record<string, unknown>)?.environment as unknown[]).length > 0
+          );
+          if (missingBg.length > 0) {
+            throw new Error(
+              `배경이 생성되지 않은 씬이 ${missingBg.length}개 있습니다. Stage 단계를 먼저 완료해주세요.`
+            );
+          }
+        }
+
         // Track failed scenes to save progress before throwing
         const failedSceneOrders: number[] = [];
 
