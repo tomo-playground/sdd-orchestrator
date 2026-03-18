@@ -40,8 +40,21 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
         description = state.get("description", "")
         director_ctx = build_director_context(state)
 
+        duration = state.get("duration", 30)
+        structure = state.get("structure", "Monologue")
+        from services.agent.prompt_builders_writer import build_scene_range_text
+
+        scene_range = build_scene_range_text(duration, structure)
+        min_s, max_s = scene_range.split("-") if "-" in scene_range else (scene_range, scene_range)
+
         compiled = compile_prompt(
             _template_name,
+            topic=state.get("topic", ""),
+            duration=str(duration),
+            language=state.get("language", "Korean"),
+            structure=structure,
+            expected_scenes_min=min_s,
+            expected_scenes_max=max_s,
             # LangFuse 프롬프트 변수명과 일치: description_block, director_plan_block, selected_concept_block
             description_block=build_optional_section("**Description**:", description) if description else "",
             director_plan_block=build_optional_section("## Creative Direction (from Director)", director_ctx)

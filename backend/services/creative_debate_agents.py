@@ -175,7 +175,9 @@ async def run_architects(db, session: CreativeSession, round_number: int, ctx: D
             character_a_section=build_character_name_section(ctx.character_name, "Character A"),
             character_b_section=build_character_name_section(ctx.character_b_name, "Character B"),
             dialogue_rules_section=build_dialogue_rules_section(
-                ctx.character_b_name, ctx.structure, ctx.character_name,
+                ctx.character_b_name,
+                ctx.structure,
+                ctx.character_name,
             ),
             director_plan_section=build_director_plan_section(ctx.director_plan),
             reference_guidelines_section=build_reference_guidelines_section(ctx.reference_guidelines),
@@ -305,14 +307,18 @@ async def run_director_evaluate(
     _template_name = CREATIVE_AGENT_TEMPLATES["creative_director"]
     compiled = compile_prompt(
         _template_name,
+        topic=ctx.topic,
+        round_number=str(round_number),
+        max_rounds=str(session.max_rounds),
+        duration=str(ctx.duration),
+        hook_weight="0.35",
+        arc_weight="0.25",
+        feasibility_weight="0.20",
+        originality_weight="0.20",
         concepts_block=build_concepts_block_simple(concepts),
         # LangFuse 프롬프트 변수명과 일치: critic_block, prev_eval_block
-        critic_block=build_optional_section(
-            "## Devil's Advocate Analysis", ctx.prev_evaluation_str
-        ),
-        prev_eval_block=build_optional_section(
-            "## Previous Round Evaluation", ctx.prev_evaluation_str
-        ),
+        critic_block=build_optional_section("## Devil's Advocate Analysis", ctx.prev_evaluation_str),
+        prev_eval_block=build_optional_section("## Previous Round Evaluation", ctx.prev_evaluation_str),
     )
 
     preset = load_preset(db, "creative_director")

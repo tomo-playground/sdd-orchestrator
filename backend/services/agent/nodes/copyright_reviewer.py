@@ -59,6 +59,7 @@ async def copyright_reviewer_node(state: ScriptState) -> dict:
 
     template_vars = {
         "scenes_block": build_copyright_scenes_block(scenes),
+        "language": language,
         # LangFuse 프롬프트 변수명과 일치: korean_instruction, feedback_block, feedback_suffix
         "korean_instruction": build_language_hint(language),
         "feedback_block": build_feedback_section(feedback),
