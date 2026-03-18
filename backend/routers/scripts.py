@@ -92,6 +92,7 @@ def _build_config(
     trace_id: str | None = None,
     session_id: str | None = None,
     action: str = "generate",
+    pipeline_mode: str = "full",
 ) -> dict:
     """LangGraph config를 구성한다. 요청별 LangFuse 핸들러를 생성하여 주입.
 
@@ -99,13 +100,16 @@ def _build_config(
     session_id: LangFuse 세션 그룹핑용 (storyboard 기반이면 동일 스토리보드 연결)
     trace_id: 주어지면 (resume) 기존 trace에 이어서 기록한다.
     action: LangFuse trace/span 네이밍용. "generate" 또는 "resume".
+    pipeline_mode: LangFuse trace 태그용. "full" 또는 "fasttrack".
     """
     from config_pipelines import LANGGRAPH_RECURSION_LIMIT  # noqa: PLC0415
     from services.agent.observability import create_langfuse_handler, end_root_span, update_root_span  # noqa: PLC0415
 
     effective_session_id = session_id or thread_id
     cfg: dict = {"configurable": {"thread_id": thread_id}, "recursion_limit": LANGGRAPH_RECURSION_LIMIT}
-    handler = create_langfuse_handler(trace_id=trace_id, session_id=effective_session_id, action=action)
+    handler = create_langfuse_handler(
+        trace_id=trace_id, session_id=effective_session_id, action=action, pipeline_mode=pipeline_mode
+    )
     if handler is not None:
         cfg["callbacks"] = [handler]
         cfg["metadata"] = {"langfuse_session_id": effective_session_id}
@@ -149,7 +153,12 @@ async def generate_script_endpoint(
     logger.info("📝 [Script Generate] storyboard_id=%s %s", request.storyboard_id, request.model_dump())
     async with get_compiled_graph() as graph:
         state = _request_to_state(request)
-        config = _build_config(_resolve_thread_id(), session_id=_resolve_session_id(request.storyboard_id))
+        is_fast_track = len(_resolve_skip_stages(request)) > 0
+        config = _build_config(
+            _resolve_thread_id(),
+            session_id=_resolve_session_id(request.storyboard_id),
+            pipeline_mode="fasttrack" if is_fast_track else "full",
+        )
         update_root = config.get("_langfuse_update_root")
         if update_root:
             update_root(input_data=state)
@@ -206,7 +215,12 @@ async def generate_script_stream(
     logger.info("📝 [Script Generate Stream] storyboard_id=%s %s", request.storyboard_id, request.model_dump())
     state = _request_to_state(request)
     thread_id = _resolve_thread_id()
-    config = _build_config(thread_id, session_id=_resolve_session_id(request.storyboard_id))
+    is_fast_track = len(_resolve_skip_stages(request)) > 0
+    config = _build_config(
+        thread_id,
+        session_id=_resolve_session_id(request.storyboard_id),
+        pipeline_mode="fasttrack" if is_fast_track else "full",
+    )
     return StreamingResponse(
         stream_graph_events(state, config, thread_id, "Stream"),
         media_type="text/event-stream",

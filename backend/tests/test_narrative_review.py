@@ -45,6 +45,9 @@ def test_narrative_score_structure():
         twist_payoff=0.6,
         speaker_tone=0.9,
         script_image_sync=0.8,
+        spoken_naturalness=0.7,
+        retention_flow=0.7,
+        pacing_rhythm=0.7,
         overall=0.75,
         feedback="훅이 강력합니다.",
     )
@@ -86,6 +89,9 @@ async def test_review_node_full_mode_narrative_pass():
         twist_payoff=0.7,
         speaker_tone=0.8,
         script_image_sync=0.9,
+        spoken_naturalness=0.8,
+        retention_flow=0.8,
+        pacing_rhythm=0.8,
         overall=0.83,
         feedback="전체적으로 서사 품질이 우수합니다.",
     )
@@ -122,6 +128,9 @@ async def test_review_node_full_mode_narrative_fail():
         twist_payoff=0.1,
         speaker_tone=0.4,
         script_image_sync=0.5,
+        spoken_naturalness=0.3,
+        retention_flow=0.2,
+        pacing_rhythm=0.2,
         overall=0.24,
         feedback="씬 1의 훅이 약합니다. 질문형 도입부를 사용하세요.",
     )
@@ -252,18 +261,26 @@ def test_routing_narrative_fail_triggers_revise():
 # --- 10. 가중 평균 계산 검증 ---
 
 
+def _all_dimensions(value: float, feedback: str = "") -> dict:
+    """8개 차원 모두 동일 값을 가진 JSON-serializable dict."""
+    d: dict = {
+        "hook": value,
+        "emotional_arc": value,
+        "twist_payoff": value,
+        "speaker_tone": value,
+        "script_image_sync": value,
+        "spoken_naturalness": value,
+        "retention_flow": value,
+        "pacing_rhythm": value,
+    }
+    if feedback:
+        d["feedback"] = feedback
+    return d
+
+
 def test_narrative_score_weights():
     """_parse_narrative_score가 가중 평균을 올바르게 계산한다."""
-    raw = json.dumps(
-        {
-            "hook": 1.0,
-            "emotional_arc": 1.0,
-            "twist_payoff": 1.0,
-            "speaker_tone": 1.0,
-            "script_image_sync": 1.0,
-            "feedback": "만점",
-        }
-    )
+    raw = json.dumps(_all_dimensions(1.0, feedback="만점"))
     score = _parse_narrative_score(raw)
     assert score is not None
     assert score["overall"] == 1.0
@@ -272,16 +289,7 @@ def test_narrative_score_weights():
     assert sum(_NARRATIVE_WEIGHTS.values()) == pytest.approx(1.0)
 
     # 부분 점수 검증
-    raw_partial = json.dumps(
-        {
-            "hook": 0.5,
-            "emotional_arc": 0.5,
-            "twist_payoff": 0.5,
-            "speaker_tone": 0.5,
-            "script_image_sync": 0.5,
-            "feedback": "중간",
-        }
-    )
+    raw_partial = json.dumps(_all_dimensions(0.5, feedback="중간"))
     score_partial = _parse_narrative_score(raw_partial)
     assert score_partial is not None
     assert score_partial["overall"] == pytest.approx(0.5)

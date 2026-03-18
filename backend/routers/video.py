@@ -485,7 +485,7 @@ async def extract_caption(request: TextExtractRequest):
 
     except Exception:
         logger.exception("Caption extraction failed")
-        return CaptionExtractResponse(caption=text[:max_len].rstrip(), fallback=True)
+        return CaptionExtractResponse(caption=text[:max_len].rstrip(), is_fallback=True)
 
 
 @router.post("/extract-hashtags", response_model=HashtagExtractResponse)
@@ -522,7 +522,7 @@ async def extract_hashtags(request: TextExtractRequest):
 
     except Exception:
         logger.exception("Hashtag extraction failed")
-        return HashtagExtractResponse(caption=text[: max_len - 3] + "...", fallback=True)
+        return HashtagExtractResponse(caption=text[: max_len - 3] + "...", is_fallback=True)
 
 
 def _strip_quotes(text: str) -> str:

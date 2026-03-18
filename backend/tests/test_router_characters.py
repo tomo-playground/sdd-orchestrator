@@ -288,10 +288,10 @@ class TestDuplicateCharacter:
         d1 = client.get(f"/api/v1/characters/{r1.json()['id']}")
         assert d1.json().get("loras") is None or d1.json()["loras"] == []
 
-        # With copy_loras
+        # With should_copy_loras
         r2 = client.post(
             f"/api/v1/characters/{char.id}/duplicate",
-            json={"target_group_id": 1, "new_name": "with_lora_copy", "copy_loras": True},
+            json={"target_group_id": 1, "new_name": "with_lora_copy", "should_copy_loras": True},
         )
         assert r2.status_code == 201
         d2 = client.get(f"/api/v1/characters/{r2.json()['id']}")

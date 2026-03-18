@@ -34,29 +34,37 @@ class TestNarrativeWeightsRebalanced:
 
         assert _NARRATIVE_WEIGHTS["script_image_sync"] == 0.10
 
-    def test_hook_weight_reduced(self):
-        """hook 가중치가 0.30으로 조정되었다."""
+    def test_hook_weight(self):
+        """hook 가중치가 0.25이다."""
         from services.agent.nodes.review import _NARRATIVE_WEIGHTS
 
-        assert _NARRATIVE_WEIGHTS["hook"] == 0.30
+        assert _NARRATIVE_WEIGHTS["hook"] == 0.25
 
-    def test_twist_payoff_weight_reduced(self):
-        """twist_payoff 가중치가 0.15로 하향되었다."""
+    def test_twist_payoff_weight(self):
+        """twist_payoff 가중치가 0.10이다."""
         from services.agent.nodes.review import _NARRATIVE_WEIGHTS
 
-        assert _NARRATIVE_WEIGHTS["twist_payoff"] == 0.15
+        assert _NARRATIVE_WEIGHTS["twist_payoff"] == 0.10
 
-    def test_emotional_arc_unchanged(self):
-        """emotional_arc 가중치는 0.25 유지."""
+    def test_emotional_arc_weight(self):
+        """emotional_arc 가중치가 0.15이다."""
         from services.agent.nodes.review import _NARRATIVE_WEIGHTS
 
-        assert _NARRATIVE_WEIGHTS["emotional_arc"] == 0.25
+        assert _NARRATIVE_WEIGHTS["emotional_arc"] == 0.15
 
     def test_speaker_tone_weight(self):
-        """speaker_tone 가중치가 0.20으로 상향되었다."""
+        """speaker_tone 가중치가 0.05이다."""
         from services.agent.nodes.review import _NARRATIVE_WEIGHTS
 
-        assert _NARRATIVE_WEIGHTS["speaker_tone"] == 0.20
+        assert _NARRATIVE_WEIGHTS["speaker_tone"] == 0.05
+
+    def test_new_dimensions_exist(self):
+        """Phase 36에서 추가된 3개 차원이 존재한다."""
+        from services.agent.nodes.review import _NARRATIVE_WEIGHTS
+
+        assert _NARRATIVE_WEIGHTS["spoken_naturalness"] == 0.15
+        assert _NARRATIVE_WEIGHTS["retention_flow"] == 0.10
+        assert _NARRATIVE_WEIGHTS["pacing_rhythm"] == 0.10
 
 
 # ── 12-B-9: Finalize 메타데이터 구조 분리 ───────────────────
@@ -105,8 +113,8 @@ class TestFinalizeMetadataSeparation:
         assert "_sound_recommendation" not in scenes[0]
         assert "_copyright_result" not in scenes[0]
 
-    async def test_quick_mode_returns_none_metadata(self):
-        """Quick 모드에서 sound_recommendation/copyright_result는 None."""
+    async def test_quick_mode_returns_fallback_sound(self):
+        """Quick 모드에서 BGM fallback이 적용된다."""
         from services.agent.nodes.finalize import finalize_node
 
         state = {
@@ -115,11 +123,13 @@ class TestFinalizeMetadataSeparation:
         }
         result = await finalize_node(state, {})
 
-        assert result["sound_recommendation"] is None
+        # BGM fallback: sound_designer 미실행 시 기본 추천 생성
+        assert result["sound_recommendation"] is not None
+        assert "prompt" in result["sound_recommendation"]
         assert result["copyright_result"] is None
 
-    async def test_full_mode_without_sound_result(self):
-        """sound_designer_result가 없을 때 sound_recommendation은 None."""
+    async def test_full_mode_without_sound_result_uses_fallback(self):
+        """sound_designer_result가 없을 때 BGM fallback이 적용된다."""
         from services.agent.nodes.finalize import finalize_node
 
         state = {
@@ -131,7 +141,9 @@ class TestFinalizeMetadataSeparation:
         }
         result = await finalize_node(state, {})
 
-        assert result["sound_recommendation"] is None
+        # BGM fallback: sound_designer 미실행 시 기본 추천 생성
+        assert result["sound_recommendation"] is not None
+        assert "prompt" in result["sound_recommendation"]
         assert result["copyright_result"] is None
 
 

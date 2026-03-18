@@ -26,6 +26,7 @@ from config import (
 )
 from database import get_db_session
 from services.agent.langfuse_prompt import compile_prompt
+from services.agent.observability import record_score
 from services.agent.prompt_builders import build_materials_block
 from services.agent.state import ScriptState
 from services.llm import LLMConfig, get_llm_provider
@@ -361,6 +362,9 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
         from .research_scoring import calculate_research_score  # noqa: PLC0415
 
         score = calculate_research_score(state, tool_logs, raw_brief)
+
+        # Score 기록 (Phase 38)
+        record_score("research_quality", score.get("overall") if score else None)
 
         return {
             "research_brief": structured_brief,

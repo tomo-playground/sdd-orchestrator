@@ -17,13 +17,13 @@ class TestAutoEditSettings:
         data = response.json()
 
         # Should contain all expected keys
-        assert "enabled" in data
+        assert "is_enabled" in data
         assert "threshold" in data
         assert "max_cost_per_storyboard" in data
         assert "max_retries_per_scene" in data
 
         # Types
-        assert isinstance(data["enabled"], bool)
+        assert isinstance(data["is_enabled"], bool)
         assert isinstance(data["threshold"], (int, float))
         assert isinstance(data["max_cost_per_storyboard"], (int, float))
         assert isinstance(data["max_retries_per_scene"], int)

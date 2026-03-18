@@ -18,7 +18,7 @@ class TestControlNetStatus:
         resp = client.get("/api/admin/controlnet/status")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["available"] is True
+        assert data["is_available"] is True
         assert "openpose" in data["models"]
         assert isinstance(data["pose_references"], list)
 
@@ -28,7 +28,7 @@ class TestControlNetStatus:
         resp = client.get("/api/admin/controlnet/status")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["available"] is False
+        assert data["is_available"] is False
         assert data["models"] == []
 
 
@@ -48,7 +48,7 @@ class TestPoses:
         for pose in data["poses"]:
             assert "name" in pose
             assert "filename" in pose
-            assert "available" in pose
+            assert "is_available" in pose
 
     @patch(f"{PATCH_PREFIX}.load_pose_reference", return_value="base64posedata")
     def test_get_pose_reference(self, mock_load, client: TestClient):
@@ -109,7 +109,7 @@ class TestSuggestPose:
         assert resp.status_code == 200
         data = resp.json()
         assert data["suggested_pose"] == "standing"
-        assert data["available"] is True
+        assert data["is_available"] is True
         assert data["image_b64"] == "pose_b64"
 
     @patch(f"{PATCH_PREFIX}.detect_pose_from_prompt", return_value=None)
@@ -119,7 +119,7 @@ class TestSuggestPose:
         assert resp.status_code == 200
         data = resp.json()
         assert data["suggested_pose"] is None
-        assert data["available"] is False
+        assert data["is_available"] is False
 
 
 class TestIPAdapterStatus:
@@ -132,7 +132,7 @@ class TestIPAdapterStatus:
         resp = client.get("/api/admin/controlnet/ip-adapter/status")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["available"] is True
+        assert data["is_available"] is True
         assert len(data["models"]) == 1  # Only ip-adapter model
         assert "ip-adapter" in data["models"][0]
 
@@ -143,7 +143,7 @@ class TestIPAdapterStatus:
         resp = client.get("/api/admin/controlnet/ip-adapter/status")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["available"] is False
+        assert data["is_available"] is False
 
 
 class TestIPAdapterReferences:

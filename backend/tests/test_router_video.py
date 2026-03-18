@@ -311,7 +311,7 @@ class TestExtractCaption:
             assert response.status_code == 200
             data = response.json()
             assert len(data["caption"]) <= 60
-            assert data.get("fallback") is True
+            assert data.get("is_fallback") is True
 
     def test_extract_caption_missing_text_field(self, client: TestClient):
         """Missing text field returns 422 (Pydantic validation)."""

@@ -17,6 +17,7 @@ from services.agent.nodes._agent_messaging import (
     run_agent_with_message,
 )
 from services.agent.nodes._production_utils import run_production_step
+from services.agent.observability import record_score
 from services.agent.prompt_builders import (
     build_previous_steps_block,
     build_production_qc_section,
@@ -235,6 +236,10 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
     # revise 스텝이 한 번이라도 발생했을 때만 카운트 증가 (즉시 approve 시 증가 방지)
     had_revise_step = any(step.get("act", "approve") != "approve" for step in reasoning_steps)
     new_count = count + 1 if (had_revise_step or final_decision == "error") else count
+
+    # Score 기록 (Phase 38)
+    record_score("director_revision_count", new_count)
+
     result_dict: dict = {
         "director_decision": final_decision,
         "director_feedback": final_feedback,

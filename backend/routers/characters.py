@@ -149,8 +149,8 @@ async def duplicate_character_endpoint(
             source_id=character_id,
             target_group_id=data.target_group_id,
             new_name=data.new_name,
-            copy_loras=data.copy_loras,
-            copy_reference=data.copy_reference,
+            copy_loras=data.should_copy_loras,
+            copy_reference=data.should_copy_reference,
         )
         return char
     except ConflictError:

@@ -22,6 +22,7 @@ from services.agent.nodes._review_validators import (
 from services.agent.nodes._review_validators import (
     validate_scenes as _validate_scenes,
 )
+from services.agent.observability import record_score
 from services.agent.state import NarrativeScore, ReviewResult, ScriptState
 from services.llm import LLMConfig, get_llm_provider
 
@@ -350,6 +351,16 @@ async def review_node(state: ScriptState) -> dict:
         "호출" if gemini_feedback else "건너뜀",
         narrative_score.get("overall", -1) if narrative_score else -1,
         "생성" if reflection else "건너뜀",
+    )
+
+    # Score 기록 (Phase 38)
+    record_score("first_pass", result.get("passed"))
+    record_score("script_qc_issues", len(result.get("errors", [])))
+    ns = result.get("narrative_score")
+    record_score(
+        "narrative_overall",
+        ns.get("overall") if ns else None,
+        comment=json.dumps(ns, ensure_ascii=False) if ns else "",
     )
 
     # Best scenes 추적: narrative_score가 이전 최고보다 높으면 갱신

@@ -9,6 +9,7 @@ LangGraph 파이프라인에 영향을 주지 않는다.
 from __future__ import annotations
 
 import contextvars
+import time
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -20,6 +21,7 @@ from config_pipelines import (
     LANGFUSE_BASE_URL,
     LANGFUSE_ENABLED,
     LANGFUSE_PUBLIC_KEY,
+    LANGFUSE_SCORE_CONFIGS,
     LANGFUSE_SECRET_KEY,
 )
 
@@ -35,6 +37,10 @@ _current_trace_id: contextvars.ContextVar[str | None] = contextvars.ContextVar("
 _current_root_span: contextvars.ContextVar[Any] = contextvars.ContextVar("langfuse_root_span", default=None)
 # 요청별 action ("generate" | "resume")을 전파 — trace name 재설정에 사용
 _current_action: contextvars.ContextVar[str] = contextvars.ContextVar("langfuse_action", default="generate")
+# 파이프라인 시작 시각 (Generate 시에만 설정, Resume skip)
+_pipeline_start_time: contextvars.ContextVar[float | None] = contextvars.ContextVar(
+    "langfuse_pipeline_start", default=None
+)
 
 
 def _to_hex32(trace_id: str) -> str:
@@ -118,6 +124,7 @@ def create_langfuse_handler(
     trace_id: str | None = None,
     session_id: str | None = None,
     action: str = "generate",
+    pipeline_mode: str = "full",
 ) -> Any:
     """요청별 CallbackHandler를 생성하고 trace_id를 contextvar에 설정한다.
 
@@ -127,6 +134,8 @@ def create_langfuse_handler(
     Args:
         action: 워크플로우 액션. "generate" 또는 "resume".
             Trace name = "storyboard.{action}", Root Span name = "pipeline.{action}".
+        pipeline_mode: 파이프라인 모드. "full" 또는 "fasttrack".
+            Trace metadata에 기록된다.
     """
     if not _ensure_initialized():
         return None
@@ -141,6 +150,10 @@ def create_langfuse_handler(
         _current_trace_id.set(trace_id)
         _current_action.set(action)
 
+        # Generate 시에만 파이프라인 시작 시각 설정 (Resume skip)
+        if _pipeline_start_time.get() is None:
+            _pipeline_start_time.set(time.monotonic())
+
         # CallbackHandler가 trace를 단일 관리 — 중복 trace 생성 방지
         # trace_context로 trace_id 지정, update_trace=True로 trace 메타 자동 업데이트
         trace_ctx: dict[str, str] = {"trace_id": trace_id}
@@ -149,12 +162,22 @@ def create_langfuse_handler(
         # session_id는 Ingestion API로 설정 (CallbackHandler가 직접 지원하지 않음)
         _patch_trace(
             trace_id=trace_id,
-            body={"name": f"storyboard.{action}", "session_id": session_id},
+            body={
+                "name": f"storyboard.{action}",
+                "session_id": session_id,
+                "metadata": {"pipeline_mode": pipeline_mode},
+            },
             label="trace_init",
         )
         # root_span은 더 이상 별도 생성하지 않음 — CallbackHandler가 LangGraph span을 자동 생성
         _current_root_span.set(None)
-        logger.debug("[LangFuse] 핸들러 생성 (trace=%s, action=%s, session=%s)", trace_id[:16], action, session_id)
+        logger.debug(
+            "[LangFuse] 핸들러 생성 (trace=%s, action=%s, mode=%s, session=%s)",
+            trace_id[:16],
+            action,
+            pipeline_mode,
+            session_id,
+        )
         return handler
     except Exception as e:
         logger.warning("[LangFuse] 요청별 핸들러 생성 실패: %s", e)
@@ -253,6 +276,38 @@ def flush_langfuse() -> None:
             logger.info("[LangFuse] 버퍼 플러시 완료")
         except Exception as e:
             logger.warning("[LangFuse] 플러시 실패: %s", e)
+
+
+def get_pipeline_elapsed_sec() -> float | None:
+    """파이프라인 시작 이후 경과 시간(초). 미설정 시 None."""
+    start = _pipeline_start_time.get()
+    return round(time.monotonic() - start, 1) if start else None
+
+
+def record_score(name: str, value: float | bool | None, *, comment: str = "") -> None:
+    """현재 trace에 score를 기록한다. 실패 시 파이프라인 미중단."""
+    if value is None:
+        return
+    if not _ensure_initialized() or _langfuse_client is None:
+        return
+    trace_id = _current_trace_id.get()
+    if not trace_id:
+        return
+    cfg = LANGFUSE_SCORE_CONFIGS.get(name, {})
+    data_type = cfg.get("data_type", "NUMERIC")
+    # BOOLEAN: SDK는 value를 float(0/1)로 요구
+    safe_value: float = int(value) if isinstance(value, bool) else value
+    try:
+        _langfuse_client.create_score(
+            trace_id=trace_id,
+            name=name,
+            value=safe_value,
+            data_type=data_type,
+            comment=comment or None,
+        )
+        logger.debug("[LangFuse] Score 기록: %s=%s (trace=%s)", name, value, trace_id[:16])
+    except Exception as e:
+        logger.warning("[LangFuse] Score 기록 실패 (non-fatal): %s=%s, %r", name, value, e)
 
 
 # ── Gemini GENERATION 추적 ────────────────────────────────────

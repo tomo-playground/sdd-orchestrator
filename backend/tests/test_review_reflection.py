@@ -131,6 +131,9 @@ async def test_review_node_legacy_skips_reflection_on_success(mock_narrative, mo
         "twist_payoff": 0.6,
         "speaker_tone": 0.7,
         "script_image_sync": 0.8,
+        "spoken_naturalness": 0.7,
+        "retention_flow": 0.7,
+        "pacing_rhythm": 0.7,
         "overall": 0.72,
         "feedback": "훌륭합니다.",
     }
@@ -206,6 +209,9 @@ async def test_review_narrative_failure_triggers_reflection_legacy(mock_narrativ
         "twist_payoff": 0.2,
         "speaker_tone": 0.5,
         "script_image_sync": 0.6,
+        "spoken_naturalness": 0.4,
+        "retention_flow": 0.3,
+        "pacing_rhythm": 0.3,
         "overall": 0.4,
         "feedback": "Hook이 약합니다.",
     }
@@ -244,6 +250,9 @@ def test_build_narrative_score_calculates_overall():
         twist_payoff=1.0,
         speaker_tone=1.0,
         script_image_sync=1.0,
+        spoken_naturalness=1.0,
+        retention_flow=1.0,
+        pacing_rhythm=1.0,
         feedback="만점",
     )
     score = _build_narrative_score(parsed)
@@ -257,7 +266,14 @@ def test_build_narrative_score_empty_feedback():
     from services.agent.nodes.review import _build_narrative_score
 
     parsed = NarrativeScoreOutput(
-        hook=0.5, emotional_arc=0.5, twist_payoff=0.5, speaker_tone=0.5, script_image_sync=0.5
+        hook=0.5,
+        emotional_arc=0.5,
+        twist_payoff=0.5,
+        speaker_tone=0.5,
+        script_image_sync=0.5,
+        spoken_naturalness=0.5,
+        retention_flow=0.5,
+        pacing_rhythm=0.5,
     )
     score = _build_narrative_score(parsed)
     assert score["overall"] == 0.5
@@ -293,6 +309,9 @@ def _make_unified_json(*, tech_passed=True, tech_feedback="", narrative_scores=N
         "twist_payoff": 0.6,
         "speaker_tone": 0.7,
         "script_image_sync": 0.8,
+        "spoken_naturalness": 0.7,
+        "retention_flow": 0.7,
+        "pacing_rhythm": 0.7,
         "feedback": "좋은 스크립트입니다.",
     }
     return json.dumps(
@@ -370,6 +389,9 @@ async def test_unified_narrative_fail_with_reflection(mock_compile, mock_llm_pro
         "twist_payoff": 0.1,
         "speaker_tone": 0.4,
         "script_image_sync": 0.3,
+        "spoken_naturalness": 0.3,
+        "retention_flow": 0.2,
+        "pacing_rhythm": 0.2,
         "feedback": "Hook이 매우 약합니다.",
     }
     reflection_data = {

@@ -143,7 +143,10 @@ class TestGenerateMusic:
         }
         client_instance = _make_mock_client("post", resp_data)
 
-        with patch("services.audio_client.httpx.AsyncClient", return_value=client_instance):
+        with (
+            patch("services.audio_client.httpx.AsyncClient", return_value=client_instance),
+            patch("services.audio_client._ensure_server_reachable", new_callable=AsyncMock),
+        ):
             wav_bytes, sr, seed = await generate_music(prompt="lo-fi chill")
 
         assert wav_bytes == wav_data

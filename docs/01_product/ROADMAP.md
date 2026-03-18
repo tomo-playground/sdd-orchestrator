@@ -51,10 +51,23 @@
 
 ### 진행 중
 
-(없음)
+#### Phase 38: LangFuse Scoring 시스템
+
+ComfyUI 전환 전 품질 베이스라인 축적 목적. 파이프라인 품질 점수를 LangFuse에 기록하여 추적/비교/회귀감지.
+
+| Sprint | 항목 | 상태 |
+|--------|------|------|
+| **A: 인프라** | `record_score` 헬퍼, contextvar trace_id 참조, 예외 처리, Score Config 9개 | 대기 |
+| **B: Score 기록** | Tier 1 (8개) + Tier 2 (1개) 노드별 기록 + 통합 테스트 | 대기 |
+
+**Tier 1 (객관적 8개)**: `first_pass`, `revision_count`, `scene_count`, `visual_qc_issues`, `script_qc_issues`, `research_quality`, `director_revision_count`, `pipeline_duration_sec`
+**Tier 2 (LLM 1개)**: `narrative_overall` (8차원 JSON comment)
+
+[명세](FEATURES/LANGFUSE_SCORING.md)
 
 ### 최근 작업
 
+- **03-18 Phase 38 명세 확정**: 코드 분석(observability.py, 5개 노드, config_pipelines.py, conftest.py, SDK 시그니처) + 4-Agent 리뷰(Tech Lead/QA/Backend Dev/PM) 통합. BLOCKER 4건 해결(revision_count max 6→3, Resume duration 정책, None 중앙 가드, time.monotonic 통일). WARNING 9건 반영(FastTrack narrative_overall ❌, duration max 1800, data_type 자동 추론 등). [명세](FEATURES/LANGFUSE_SCORING.md) v3
 - **03-18 품질 경고 해소 + 테스트 보강**: Gemini SDK non-text parts 경고 해소(response.text→_safe_extract_text, function_call part 안전 처리). voice_design_prompt write-back 로깅 개선(exception repr+scene_db_id+0행 감지). LangFuse 미치환 변수 3건 수정(Phase 36 프롬프트↔코드 변수명 동기화 — director/evaluate, location-planner, copyright-reviewer). is_prompt_pre_composed→prompt_pre_composed 롤백. environment 복사 테스트 5개 추가. 테스트 +5개
 - **03-18 오토런 Stage 스킵 버그 수정 + LangFuse 추가 안정화**: finalize.py `_copy_scene_level_to_context_tags()`에 environment 복사 누락 수정(FastTrack에서 context_tags.environment 비어 Stage 스킵 근본 원인). preflight checkStageStep() 조건 완화(environment 유무와 무관하게 background_id 없으면 Stage 필요). LangFuse resume session_id 누락 수정(storyboard_id 전달). SDK v3 start_span OTel 컨텍스트 미설정 → _patch_trace 전환. Draft 제목 버그 수정
 - **03-18 안정화 + SDK 호환 + 테스트 정비**: is_ prefix 롤백 잔재 10건 수정(schemas↔코드↔ORM 전수 동기화). LangFuse SDK v3 호환(trace()→start_span, start_generation→start_observation). 기존 테스트 실패 전수 수정 — tts_max_tokens import, director_react 키명, VRT 베이스라인 6개 갱신, controlnet CLIP모델, stage_workflow mock경로, tts_voice_seed 13건. Home "New Story"→"새 영상" 한국어 통일. 테스트 +55개(환경QC 20+Production QC 15+voice seed 4+기존수정 16)
@@ -225,12 +238,13 @@ graph LR
 
 ### ⭐ 최우선 백로그 (P1)
 
-순서대로 진행. ComfyUI 전환이 선행, 캐릭터 일관성 V3가 후행.
+순서대로 진행. Scoring(베이스라인) → ComfyUI 전환 → 캐릭터 일관성 V3.
 
 | # | 기능 | 설명 | 명세 |
 |---|------|------|------|
-| 1 | **ComfyUI 마이그레이션** | ForgeUI→ComfyUI 전환 + SD Client 추상화. 실험 검증(4회 54장): CN+IPA 동시투입 실패 → 모듈 분리 필수 확정. Phase A(추상화)→B(ComfyUI 구현)→C(프로덕션+FaceID) | [명세](FEATURES/COMFYUI_MIGRATION.md) |
-| 2 | **캐릭터 일관성 V3** | ComfyUI 전환 후 착수. 4-Module 파이프라인(Identity→Context→Refinement→Upscale). FaceID+CN 1-step, 2-Step CN→IPA 폴백, 배치 4씬 일괄, 의상 가변, 멀티캐릭터 FaceID 복수 주입 | [명세](FEATURES/CHARACTER_CONSISTENCY_V3.md) |
+| 1 | ~~**LangFuse Scoring**~~ | **Phase 38로 승격 (진행 중)** | [명세](FEATURES/LANGFUSE_SCORING.md) |
+| 2 | **ComfyUI 마이그레이션** | ForgeUI→ComfyUI 전환 + SD Client 추상화. 실험 검증(4회 54장): CN+IPA 동시투입 실패 → 모듈 분리 필수 확정. Phase A(추상화)→B(ComfyUI 구현)→C(프로덕션+FaceID) | [명세](FEATURES/COMFYUI_MIGRATION.md) |
+| 3 | **캐릭터 일관성 V3** | ComfyUI 전환 후 착수. 4-Module 파이프라인(Identity→Context→Refinement→Upscale). FaceID+CN 1-step, 2-Step CN→IPA 폴백, 배치 4씬 일괄, 의상 가변, 멀티캐릭터 FaceID 복수 주입 | [명세](FEATURES/CHARACTER_CONSISTENCY_V3.md) |
 
 ### Content & Creative
 
@@ -282,6 +296,7 @@ graph LR
 | 배치 렌더링 + 큐 (그룹 일괄 렌더, WebSocket 진행률) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | 분석 대시보드 (Match Rate 추이, 프로젝트 간 비교) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
+| ~~LangFuse Scoring 시스템~~ | **Phase 38로 승격** — [명세](FEATURES/LANGFUSE_SCORING.md) |
 | **파이프라인 이상 탐지 자동화** | 시스템 상태 통합 health API, 파이프라인 완료 시 자동 검증 (speaker 배분, TTS 실패, 이미지 미생성), LangFuse 이상 탐지 (노드 실패율/소요시간), GPU VRAM 모니터링 |
 | ~~SSOT 위반 정리 (P1~P3, 49건)~~ | **P1+P2 완료 (46/49건, 94%)** — Hi-Res 4상수+SAMPLERS+TTS_ENGINE+enable_hr+controlnet weight+해상도 6곳+image_defaults+pipeline_metadata. 잔여 P3 3건(CATEGORY_DESCRIPTIONS, 주석 검증)은 리스크 없어 보류 |
 | ~~Phase 35: GPT-SoVITS v2 TTS 전환~~ | **완료** — SoVITS(:9880) + Qwen3(보이스디자인 on-demand) + MusicGen(CPU). GPU 전환은 cu128 대기 |

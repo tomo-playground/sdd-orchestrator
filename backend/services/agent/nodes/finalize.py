@@ -15,6 +15,7 @@ from config import (
     logger,
 )
 from database import get_db_session
+from services.agent.observability import get_pipeline_elapsed_sec, record_score
 from services.agent.state import ScriptState
 
 if TYPE_CHECKING:
@@ -1113,6 +1114,11 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
 
         if character_id or character_b_id:
             _populate_character_actions(scenes, character_id, character_b_id, db_session)
+
+    # Phase 38: LangFuse Score 기록 (파이프라인 완료 시점)
+    record_score("revision_count", state.get("revision_count", 0))
+    record_score("scene_count", len(scenes))
+    record_score("pipeline_duration_sec", get_pipeline_elapsed_sec())
 
     return {
         "final_scenes": scenes,

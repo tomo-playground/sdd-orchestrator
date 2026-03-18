@@ -9,6 +9,7 @@ from langchain_core.runnables import RunnableConfig
 
 from config import logger
 from database import get_db_session
+from services.agent.observability import record_score
 from services.agent.state import ScriptState
 from services.creative_qc import validate_visuals
 from services.creative_utils import parse_json_response
@@ -163,6 +164,8 @@ async def _try_competition(
         logger.warning("[Cinematographer] Competition QC WARN/FAIL: %s", qc.get("issues"))
 
     logger.info("[Cinematographer] Competition 완료: winner=%s, scores=%s", comp["winner"], comp["scores"])
+    # Score 기록 (Phase 38)
+    record_score("visual_qc_issues", len(qc.get("issues", [])))
     return {
         "cinematographer_result": {"scenes": comp["scenes"]},
         "cinematographer_tool_logs": comp["tool_logs"],
@@ -342,6 +345,8 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         logger.warning("[Cinematographer] QC WARN/FAIL: %s (결과는 유지)", qc.get("issues"))
 
     logger.info("[Cinematographer] Tool-Calling 완료 (%d 씬, %d 도구 호출)", len(scenes_output), len(tool_logs))
+    # Score 기록 (Phase 38)
+    record_score("visual_qc_issues", len(qc.get("issues", [])))
     return {
         "cinematographer_result": {"scenes": scenes_output},
         "cinematographer_tool_logs": tool_logs,

@@ -160,10 +160,12 @@ class TestNormalizeIPAdapterWeights:
         return_value=(None, True),
     )
     def test_fallback_to_default_when_no_db_weight(self, mock_info):
-        """DB에 값 없으면 DEFAULT_IP_ADAPTER_WEIGHT(0.7) 사용."""
+        """DB에 값 없으면 DEFAULT_IP_ADAPTER_WEIGHT 사용. LoRA 있으므로 min 보정 없음."""
+        from config import DEFAULT_IP_ADAPTER_WEIGHT
+
         scenes = [{"speaker": "A"}]
         normalize_ip_adapter_weights(scenes, character_id=1)
-        assert scenes[0]["ip_adapter_weight"] == 0.7
+        assert scenes[0]["ip_adapter_weight"] == DEFAULT_IP_ADAPTER_WEIGHT
 
     @patch(
         "services.agent.nodes._finalize_validators._get_character_info",
@@ -180,10 +182,12 @@ class TestNormalizeIPAdapterWeights:
         assert scenes[1]["ip_adapter_weight"] == 0.9
 
     def test_no_character_id_uses_default(self):
-        """character_id=None이면 DEFAULT 사용."""
+        """character_id=None이면 DEFAULT 사용. LoRA 없으므로 min 보정 적용."""
+        from config import DEFAULT_IP_ADAPTER_WEIGHT, MIN_IP_ADAPTER_WEIGHT_NO_LORA
+
         scenes = [{"speaker": "A"}]
         normalize_ip_adapter_weights(scenes, character_id=None)
-        assert scenes[0]["ip_adapter_weight"] == 0.7
+        assert scenes[0]["ip_adapter_weight"] == max(DEFAULT_IP_ADAPTER_WEIGHT, MIN_IP_ADAPTER_WEIGHT_NO_LORA)
 
 
 # ── diversify_gazes ───────────────────────────────────────────────────
@@ -1374,7 +1378,8 @@ class TestAutoPopulateSceneFlags:
         scenes = [{"speaker": "A", "context_tags": {"pose": "standing"}}]
         _auto_populate_scene_flags(scenes, character_id=1)
         s = scenes[0]
-        assert s["use_controlnet"] is True
+        # use_controlnet defaults to False (레퍼런스 생성만 ON)
+        assert s["use_controlnet"] is False
         assert s["use_ip_adapter"] is True
         assert s["multi_gen_enabled"] is not None
         assert s.get("controlnet_pose") is not None

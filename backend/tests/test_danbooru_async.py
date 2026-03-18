@@ -91,9 +91,9 @@ def test_schedule_bg_empty_list():
 
 def test_schedule_bg_deduplicates():
     """중복 태그는 set으로 제거."""
-    with patch("services.danbooru._classify_tags_background") as mock_bg:
-        with patch("services.danbooru.asyncio.get_running_loop", side_effect=RuntimeError):
-            from services.danbooru import schedule_background_classification
+    with patch("services._danbooru_sync._classify_tags_background") as mock_bg:
+        with patch("services._danbooru_sync.asyncio.get_running_loop", side_effect=RuntimeError):
+            from services._danbooru_sync import schedule_background_classification
 
             schedule_background_classification(["a", "b", "a", "b", "c"])
 

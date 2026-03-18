@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 from services.controlnet import (
@@ -166,7 +168,8 @@ class TestPoseDetection:
 class TestControlnetArgs:
     """Verify ControlNet args builder for openpose."""
 
-    def test_build_controlnet_args_default_preprocessor(self):
+    @patch("services.controlnet._resolve_model_name", side_effect=lambda x: x)
+    def test_build_controlnet_args_default_preprocessor(self, _mock_resolve):
         """Default openpose uses openpose module for runtime skeleton extraction."""
         args = build_controlnet_args(
             input_image="fake_b64",

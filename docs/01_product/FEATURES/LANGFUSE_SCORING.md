@@ -1,8 +1,8 @@
 # LangFuse Scoring 시스템 도입
 
-**상태**: 계획
+**상태**: Phase 38 진행 중
 **목표**: 파이프라인 품질 점수를 LangFuse에 기록하여 추적/비교/회귀감지
-**리뷰**: Tech Lead PASS(조건부) / PM 승인 / QA 보완 요청 → 반영 완료
+**리뷰**: v1 Tech Lead/PM/QA 반영 → v2 코드 분석 갭 반영 → **v3 4-Agent 리뷰 반영 (BLOCKER 4건 해결)**
 
 ---
 
@@ -44,13 +44,13 @@
 | Score Name | 타입 | 범위 | 소스 | 기록 시점 |
 |-----------|------|------|------|----------|
 | `first_pass` | BOOLEAN | true/false | Review 1차 통과 여부 | Review |
-| `revision_count` | NUMERIC | 0~6 | `state["revision_count"]` (Writer→Review 루프 횟수 단독) | Finalize |
+| `revision_count` | NUMERIC | 0~3 | `state["revision_count"]` (Writer→Review 루프 횟수 단독, max=`LANGGRAPH_MAX_REVISIONS`) | Finalize |
 | `scene_count` | NUMERIC | 1~30 | `len(final_scenes)` (후처리 완료 후) | Finalize |
 | `visual_qc_issues` | NUMERIC | 0~20 | `len(qc.get("issues", []))` | Cinematographer |
 | `script_qc_issues` | NUMERIC | 0~20 | `len(script_qc.get("issues", []))` | Review |
 | `research_quality` | NUMERIC | 0.0~1.0 | `state["research_score"]["overall"]` | Research |
 | `director_revision_count` | NUMERIC | 0~3 | `state["director_revision_count"]` (Director가 revise 판정한 횟수) | Director |
-| `pipeline_duration_sec` | NUMERIC | 0~600 | `time.time() - start_time` | Finalize |
+| `pipeline_duration_sec` | NUMERIC | 0~1800 | `time.monotonic()` 경과 시간 (Generate 시에만 설정, Resume skip) | Finalize |
 
 > **`pipeline_mode`**: Score가 아닌 trace metadata로 기록 (CATEGORICAL은 LangFuse 대시보드 활용도 낮음)
 
@@ -80,68 +80,89 @@ comment 예시:
 ## Score Config (코드 SSOT + LangFuse UI 등록)
 
 ```python
-# config_pipelines.py — SSOT
+# config_pipelines.py — SSOT (max 값은 코드 상수 참조)
 LANGFUSE_SCORE_CONFIGS = {
     "first_pass": {"data_type": "BOOLEAN"},
-    "revision_count": {"data_type": "NUMERIC", "min": 0, "max": 6},
+    "revision_count": {"data_type": "NUMERIC", "min": 0, "max": LANGGRAPH_MAX_REVISIONS},  # 3
     "scene_count": {"data_type": "NUMERIC", "min": 1, "max": 30},
     "visual_qc_issues": {"data_type": "NUMERIC", "min": 0, "max": 20},
     "script_qc_issues": {"data_type": "NUMERIC", "min": 0, "max": 20},
     "research_quality": {"data_type": "NUMERIC", "min": 0, "max": 1},
-    "director_revision_count": {"data_type": "NUMERIC", "min": 0, "max": 3},
-    "pipeline_duration_sec": {"data_type": "NUMERIC", "min": 0, "max": 600},
+    "director_revision_count": {"data_type": "NUMERIC", "min": 0, "max": LANGGRAPH_MAX_DIRECTOR_REVISIONS},  # 3
+    "pipeline_duration_sec": {"data_type": "NUMERIC", "min": 0, "max": 1800},
     "narrative_overall": {"data_type": "NUMERIC", "min": 0, "max": 1},
 }
 ```
 
-코드가 SSOT. LangFuse UI에도 동일하게 등록. 향후 스타트업 시 API 자동 동기화 검토.
+코드가 SSOT. max 값은 하드코딩이 아닌 상수 참조로 동기화 보장. LangFuse UI에도 동일하게 등록.
+
+### LangFuse SDK v3 `create_score()` 시그니처
+
+```python
+def create_score(
+    self, *, name: str, value: float | str,
+    trace_id: str | None = None, observation_id: str | None = None,
+    data_type: Literal["NUMERIC", "BOOLEAN", "CATEGORICAL"] | None = None,
+    comment: str | None = None, config_id: str | None = None,
+    metadata: Any | None = None, score_id: str | None = None,
+    session_id: str | None = None, timestamp: datetime | None = None,
+) -> None:
+```
+
+> **BOOLEAN 주의**: `value`는 Python `bool`이 아닌 **`1` 또는 `0`** (float). `record_score()`에서 `bool → int` 변환 필수.
 
 ---
 
 ## Sprint 구성
 
 ### Sprint A: 인프라 + 테스트
-| # | 항목 | 파일 |
-|---|------|------|
-| A-1 | `record_score(name, value, data_type, comment)` 헬퍼 | `observability.py` |
-| A-2 | `_current_trace_id` contextvar 자동 참조 (LangGraph 파이프라인 경로만) | `observability.py` |
-| A-3 | 예외 처리 정책: try/except 전체 감싸기, 실패 시 warning 로그 + 파이프라인 미중단 | `observability.py` |
-| A-4 | trace_id=None, 네트워크 장애, 범위 초과 시 graceful skip | `observability.py` |
-| A-5 | `LANGFUSE_SCORE_CONFIGS` 상수 정의 | `config_pipelines.py` |
-| A-6 | `create_langfuse_handler()`에서 trace metadata에 `pipeline_mode` 기록 | `observability.py` |
-| A-7 | LangFuse UI에 Score Config 9개 등록 | LangFuse UI |
-| A-8 | `record_score` 단위 테스트 (연결/미연결/trace_id 없음/범위 초과) | `tests/` |
+| # | 항목 | 파일 | 상세 |
+|---|------|------|------|
+| A-1 | `record_score()` 헬퍼 | `observability.py` | value None 가드, data_type 자동 추론, bool→int, graceful skip, try/except |
+| A-5 | `LANGFUSE_SCORE_CONFIGS` 상수 | `config_pipelines.py` | L58 뒤 LangFuse 섹션에 추가. max 값은 코드 상수 참조 |
+| A-6a | `pipeline_mode` metadata 기록 | `observability.py` | `create_langfuse_handler()`에 `pipeline_mode` 파라미터 추가 → `_patch_trace()` body에 포함 |
+| A-6b | `pipeline_mode` 전달 | `scripts.py` | `is_fast_track` → `"fasttrack"` / `"full"` 문자열 변환 후 전달 |
+| A-6c | `_pipeline_start_time` contextvar | `observability.py` | Generate 시에만 `time.monotonic()` 설정 (Resume skip) + `get_pipeline_elapsed_sec()` 공개 함수 |
+| A-7 | LangFuse UI Score Config 등록 | LangFuse UI | 9개 수동 등록 |
+| A-8 | `record_score` 단위 테스트 | `test_observability_unit.py` | 성공/미연결/trace_id 없음/value None skip/bool True→1,False→0/exception 안전성/data_type 자동 추론/pipeline_elapsed_sec 미설정→None |
 
 ### Sprint B: Tier 1 + Tier 2 Score 기록 + 테스트
-| # | 항목 | 파일 | 테스트 |
-|---|------|------|--------|
-| B-1 | Review → `first_pass` + `script_qc_issues` | `nodes/review.py` | mock 호출 검증 |
-| B-2 | Review → `narrative_overall` (comment에 8차원 JSON) | `nodes/review.py` | JSON 직렬화 검증 |
-| B-3 | Finalize → `revision_count` + `scene_count` + `pipeline_duration_sec` | `nodes/finalize.py` | mock 호출 검증 |
-| B-4 | Cinematographer → `visual_qc_issues` | `nodes/cinematographer.py` | mock 호출 검증 |
-| B-5 | Research → `research_quality` | `nodes/research.py` | mock 호출 검증 |
-| B-6 | Director → `director_revision_count` | `nodes/director.py` | mock 호출 검증 |
-| B-7 | 기존 테스트 호환: `conftest.py`에 `record_score` autouse mock fixture | `tests/conftest.py` | 기존 ~120개 테스트 PASS 확인 |
-| B-8 | 통합 테스트: 파이프라인 1회 실행 후 Score 9개 기록 확인 | `tests/` | |
+| # | 항목 | 파일 | 상세 |
+|---|------|------|------|
+| B-1 | Review → `first_pass` + `script_qc_issues` | `nodes/review.py` | **return dict 구성 직전** (최종 passed 확정 후). `record_score("first_pass", result["passed"])`, `record_score("script_qc_issues", len(result.get("errors", [])))`. errors만 카운트 (규칙 기반, Gemini feedback 제외) |
+| B-2 | Review → `narrative_overall` | `nodes/review.py` | `record_score("narrative_overall", ns.get("overall") if ns else None, comment=json.dumps(ns))`. None 가드는 `record_score()` 중앙 처리 |
+| B-3 | Finalize → `revision_count` + `scene_count` + `pipeline_duration_sec` | `nodes/finalize.py` | **return 직전** 3개 연속 기록. Quick/Full 양쪽 경로 모두 |
+| B-4 | Cinematographer → `visual_qc_issues` | `nodes/cinematographer.py` | Competition 경로(L231 return 직전) + 단일 모드 경로(L348 return 직전) **양쪽 삽입**. 실패 경로(`_EMPTY_RESULT`)에서는 미기록 |
+| B-5 | Research → `research_quality` | `nodes/research.py` | `record_score("research_quality", score.get("overall") if score else None)`. 스킵/실패 시 None → 중앙 가드 |
+| B-6 | Director → `director_revision_count` | `nodes/director.py` | `record_score("director_revision_count", new_count)`. approve 시 0 기록 = "문제 없이 통과" |
+| B-7 | conftest.py autouse mock | `tests/conftest.py` | `_reset_langfuse_state` fixture: `obs._initialized=False`, `obs._langfuse_client=None` 리셋 (테스트 간 상태 격리) |
+| B-8 | 노드별 mock 호출 검증 + FastTrack | `tests/test_langfuse_scoring.py` | Full 경로: 9개 Score 호출 검증. FastTrack 경로: 최소 3개(revision_count, scene_count, pipeline_duration_sec) + 미기록 Score 미호출 검증 |
 
 ---
 
 ## 예외 처리 정책 (Sprint A-3, A-4)
 
 ```python
-def record_score(name: str, value: float | str | bool, *,
-                 data_type: str = "NUMERIC", comment: str = "") -> None:
+def record_score(name: str, value: float | bool | None, *,
+                 comment: str = "") -> None:
     """현재 trace에 score를 기록한다. 실패 시 파이프라인 미중단."""
+    if value is None:
+        return  # None 가드 — 노드 스킵/실패 시 안전하게 무시
     if not _ensure_initialized() or _langfuse_client is None:
         return  # LangFuse 비활성
     trace_id = _current_trace_id.get()
     if not trace_id:
         return  # trace context 밖에서 호출
+    # data_type 자동 추론 (LANGFUSE_SCORE_CONFIGS SSOT)
+    cfg = LANGFUSE_SCORE_CONFIGS.get(name, {})
+    data_type = cfg.get("data_type", "NUMERIC")
+    # BOOLEAN: SDK는 value를 float(0/1)로 요구
+    safe_value: float = int(value) if isinstance(value, bool) else value
     try:
         _langfuse_client.create_score(
             trace_id=trace_id,
             name=name,
-            value=value,
+            value=safe_value,
             data_type=data_type,
             comment=comment or None,
         )
@@ -150,13 +171,20 @@ def record_score(name: str, value: float | str | bool, *,
         logger.warning("[LangFuse] Score 기록 실패 (non-fatal): %s=%s, %r", name, value, e)
 ```
 
+**설계 결정**:
+- `value=None` → 즉시 return (노드 스킵/실패 시 중앙 방어, 각 노드에서 개별 None 체크 불필요)
+- `data_type` → `LANGFUSE_SCORE_CONFIGS`에서 자동 추론 (호출측이 지정할 필요 없음)
+- `bool → int` 변환 → SDK 요구사항 캡슐화
+
 | 시나리오 | 동작 |
 |----------|------|
+| value=None | 즉시 return (노드 스킵/실패 시) |
 | LangFuse 비활성 | `_ensure_initialized()` False → 즉시 return |
 | trace_id=None | contextvar None → 즉시 return |
 | 네트워크 장애 | try/except → warning 로그 + 계속 |
 | 범위 초과 | LangFuse 서버측 처리 (거부 시 warning) |
 | SDK rate limit | 동일 — warning + 계속 |
+| SDK 배치 전송 | `create_score()`는 내부 큐에 넣고 즉시 반환, `flush_langfuse()`에서 최종 전송 |
 
 ---
 
@@ -193,9 +221,10 @@ ComfyUI Phase A 후: visual_qc_issues 평균 0.8
 ---
 
 ## 완료 기준 (DoD)
-- [ ] `record_score` 헬퍼 구현 + graceful skip 패턴
+- [ ] `record_score` 헬퍼 구현 (value None 가드 + data_type 자동 추론 + bool→int + graceful skip)
 - [ ] Tier 1 Score 8개 + Tier 2 Score 1개 = 9개 기록
-- [ ] 파이프라인 1회 실행 후 LangFuse Score 탭에 최소 9개 Score 표시
+- [ ] Generate 파이프라인 1회 실행 후 LangFuse Score 탭에 최소 9개 Score 표시
+- [ ] Resume 파이프라인 실행 시에도 해당 노드 Score 정상 기록
 - [ ] FastTrack 모드에서도 `scene_count` + `revision_count` + `pipeline_duration_sec` 최소 3개 기록
 - [ ] Score Config 9개 LangFuse UI에 등록
 - [ ] 기존 Backend 테스트 전체 PASS (Score 기록 실패가 파이프라인 미중단)
@@ -207,12 +236,129 @@ ComfyUI Phase A 후: visual_qc_issues 평균 0.8
 - 점검: LangFuse UI Score 탭 → 최근 trace에 Score 존재 여부
 
 ## 의존성
-- LangFuse v3 SDK `create_score` API — 설치됨
-- `observability.py`의 `_current_trace_id` contextvar — 구현됨
+- LangFuse v3 SDK `create_score` API — 설치됨 (`langfuse>=3.0.0`)
+- `observability.py`의 `_current_trace_id` contextvar — 구현됨 (L33)
 - Phase 37 NarrativeScore 8차원 — 완료
-- `LANGGRAPH_MAX_REVISIONS` 상수 — Score Config max와 동기화 필요
+- `LANGGRAPH_MAX_REVISIONS` (=3) — `revision_count` max 동기화
+- `LANGGRAPH_MAX_DIRECTOR_REVISIONS` (=3) — `director_revision_count` max 동기화
+
+---
+
+## 코드 분석 결과 (2026-03-18)
+
+### 인프라 현황
+
+| 항목 | 위치 | 상태 |
+|------|------|------|
+| `_current_trace_id` contextvar | `observability.py:33` | ✅ 구현됨 |
+| `_ensure_initialized()` | `observability.py:45-65` | ✅ lazy init + graceful degradation |
+| `_langfuse_client` 전역 | `observability.py:26` | ✅ `Langfuse()` 인스턴스 |
+| `_patch_trace()` Ingestion API | `observability.py:164-189` | ✅ httpx 직접 호출 |
+| LangFuse 상수 | `config_pipelines.py:54-58` | ✅ ENABLED/KEY/URL |
+| `record_score()` 헬퍼 | — | ❌ **Sprint A-1에서 구현** |
+| `LANGFUSE_SCORE_CONFIGS` | — | ❌ **Sprint A-5에서 추가** (L58 뒤) |
+
+### Score 소스 데이터 매핑 (코드 검증 완료)
+
+| Score | 소스 코드 위치 | 접근 방식 |
+|-------|---------------|----------|
+| `first_pass` | `review.py` → `ReviewResult["passed"]` (bool) | `record_score("first_pass", result["passed"], data_type="BOOLEAN")` |
+| `script_qc_issues` | `review.py` → `ReviewResult["errors"]` (list[str]) | `record_score("script_qc_issues", len(result.get("errors", [])))` — **errors만** 카운트 (warnings 제외, passed 결정 기준이 errors이므로) |
+| `narrative_overall` | `review.py:187-194` → `_build_narrative_score()` → `.overall` | comment에 8차원 JSON (`{hook, emotional_arc, ...}`) |
+| `visual_qc_issues` | `cinematographer.py:340-348` → `visual_qc_result["issues"]` (list[str]) | `record_score("visual_qc_issues", len(qc.get("issues", [])))` |
+| `research_quality` | `research.py:361-363` → `calculate_research_score()` → `.overall` | float 0.0~1.0 |
+| `director_revision_count` | `director.py:60,241` → `state["director_revision_count"]` | int, 증가 조건: revise 스텝 발생 또는 error |
+| `revision_count` | `state["revision_count"]` (Writer→Review 루프) | Finalize에서 state 읽기 |
+| `scene_count` | `finalize.py` → `len(scenes)` (후처리 완료 후) | Finalize return 직전 |
+| `pipeline_duration_sec` | **ScriptState에 없음** → contextvar로 해결 | 아래 Gap #1 참조 |
+
+### 발견된 Gap 3건 + 해결 방안
+
+#### Gap #1: `pipeline_duration_sec` — ScriptState에 `pipeline_start_time` 없음
+
+**문제**: Finalize에서 파이프라인 경과 시간을 계산하려면 시작 시각이 필요하나, ScriptState에 해당 필드 없음.
+
+**해결**: `observability.py`에 `_pipeline_start_time` contextvar 추가. ScriptState 수정 불필요.
+
+```python
+_pipeline_start_time: contextvars.ContextVar[float | None] = contextvars.ContextVar(
+    "langfuse_pipeline_start", default=None
+)
+
+# create_langfuse_handler()에서 설정 (Generate 시에만, Resume skip):
+if _pipeline_start_time.get() is None:
+    _pipeline_start_time.set(time.monotonic())
+
+# Finalize에서 읽기:
+def get_pipeline_elapsed_sec() -> float | None:
+    start = _pipeline_start_time.get()
+    return round(time.monotonic() - start, 1) if start else None
+```
+
+**Resume 시 동작**: `_pipeline_start_time.get()`이 이미 설정되어 있으면 skip → Generate 시작~최종 Finalize까지의 **총 AI 처리 시간**을 측정. Human Gate 대기 시간은 포함됨 (실 벽시계 시간). Resume trace에서도 동일 start 기준으로 duration 기록.
+
+#### Gap #2: `pipeline_mode` metadata — 두 가지 결정 경로
+
+**문제**: pipeline_mode는 두 경로로 결정됨:
+- (a) API 명시 FastTrack: `scripts.py:48` `is_fast_track = len(skip) > 0` — Trace 생성 시점에 알 수 있음
+- (b) Director Plan 자율 결정: `director_plan_node()` 실행 후 — Trace 이미 생성된 뒤
+
+**해결**: 2단계 기록
+
+```python
+# Step 1: create_langfuse_handler()에 pipeline_mode 파라미터 추가
+#   - API 명시 FastTrack → "fasttrack"
+#   - Director Plan 경유 → "full" (초기값)
+# Step 2: director_plan_node() 완료 후 _patch_trace()로 metadata 업데이트
+#   - skip_stages 자율 결정 결과 추가 (예: "full_skip_research")
+```
+
+`create_langfuse_handler()` 시그니처 변경:
+```python
+def create_langfuse_handler(
+    *, trace_id=None, session_id=None, action="generate",
+    pipeline_mode: str = "full",  # ← 신규 파라미터
+) -> Any:
+```
+
+`scripts.py`에서 호출:
+```python
+handler = create_langfuse_handler(
+    trace_id=trace_id, session_id=session_id, action=action,
+    pipeline_mode="fasttrack" if is_fast_track else "full",
+)
+```
+
+#### Gap #3: BOOLEAN 값 변환
+
+**문제**: LangFuse SDK `create_score(data_type="BOOLEAN")`는 Python `bool`이 아닌 `float(0/1)` 요구.
+
+**해결**: `record_score()` 내부에서 `bool → int` 변환:
+```python
+safe_value: float = int(value) if isinstance(value, bool) else value
+```
+
+### FastTrack Score 기록 범위
+
+FastTrack에서는 Research/Cinematographer/Director 노드를 건너뛸 수 있으므로:
+
+| Score | Full | FastTrack | 비고 |
+|-------|------|-----------|------|
+| `first_pass` | ✅ | ✅ | Review는 항상 실행 |
+| `script_qc_issues` | ✅ | ✅ | Review는 항상 실행 |
+| `narrative_overall` | ✅ | ❌ | Full 모드에서만 Unified Evaluate 실행 (FastTrack은 narrative_score=None) |
+| `visual_qc_issues` | ✅ | ❌ | Cinematographer 스킵 시 미기록 |
+| `research_quality` | ✅ | ❌ | Research 스킵 시 미기록 |
+| `director_revision_count` | ✅ | ❌ | Director 스킵 시 미기록 |
+| `revision_count` | ✅ | ✅ | Finalize에서 state 읽기 |
+| `scene_count` | ✅ | ✅ | Finalize에서 계산 |
+| `pipeline_duration_sec` | ✅ | ✅ | contextvar 기반 |
+
+**DoD 검증**: FastTrack 최소 3개 → `revision_count` + `scene_count` + `pipeline_duration_sec` ✅
 
 ## 리뷰 반영 이력
+
+### v1 리뷰 (초안)
 | 리뷰어 | 핵심 피드백 | 반영 |
 |--------|-----------|------|
 | Tech Lead | `director_revisions` 정의 모호 (BLOCKER) | → `director_revision_count` (실제 수정 횟수)로 명확화 |
@@ -229,3 +375,31 @@ ComfyUI Phase A 후: visual_qc_issues 평균 0.8
 | QA | 기존 테스트 영향 (~120개) | → B-7에 conftest.py autouse fixture 명시 |
 | QA | Config를 코드 SSOT로 | → `LANGFUSE_SCORE_CONFIGS` 상수 정의 (A-5) |
 | QA | 모니터링 방법 부재 | → 모니터링 섹션 신설 |
+
+### v3 리뷰 (4-Agent 통합, 2026-03-18)
+
+**BLOCKER 4건 해결:**
+| 출처 | 이슈 | 해결 |
+|------|------|------|
+| QA+TechLead | `revision_count` max=6 vs 실제 max=3 | → max=`LANGGRAPH_MAX_REVISIONS`(3) 상수 참조로 변경 |
+| QA+Backend | Resume 시 `_pipeline_start_time` 리셋 → duration 왜곡 | → Generate 시에만 설정, Resume skip (`if get() is None:` 가드) |
+| Backend+QA | narrative/research/visual None 가드 누락 | → `record_score()`에 `value is None → return` 중앙 가드 추가 |
+| TechLead | `time.time()` vs `time.monotonic()` 표기 불일치 | → `time.monotonic()`으로 통일 |
+
+**WARNING 반영 (주요):**
+| 출처 | 이슈 | 해결 |
+|------|------|------|
+| TechLead | `narrative_overall` FastTrack = △(조건부) | → ❌(미기록)으로 정정 |
+| QA | `pipeline_duration_sec` max=600 초과 가능 | → max=1800으로 상향 |
+| Backend | `data_type` 매번 명시 필요 | → `LANGFUSE_SCORE_CONFIGS`에서 자동 추론 |
+| Backend | Score 삽입 위치 모호 | → 각 노드 return dict 구성 직전으로 명시 |
+| Backend | Cinematographer 양쪽 경로 삽입 필요 | → Competition + 단일 모드 양쪽 명시 |
+| TechLead | conftest mock 구현 방식 미명시 | → `_reset_langfuse_state` fixture 구체화 |
+| QA | B-8에 FastTrack 전용 테스트 누락 | → FastTrack 경로 검증 추가 |
+| PM | Resume 경로 DoD 부재 | → DoD에 Resume 검증 항목 추가 |
+| PM | LANGFUSE_GUIDE.md 상태 동기화 | → Sprint A 착수 시 함께 업데이트 |
+
+**SUGGESTION 채택:**
+- `observation_id` 파라미터 예약 → 향후 확장 시 추가 (현재 미구현)
+- Tier 3 `trace_id` 영구 저장 → 향후 검토 (현재 범위 밖)
+- 회귀 감지 자동화 → 향후 임계치 기반 알림 검토

@@ -242,9 +242,9 @@ def test_route_start_both_research_concept_skipped():
 
 
 def test_route_review_production_skipped():
-    """production 스킵 + review 통과 → finalize."""
+    """production 스킵 + review 통과 → cinematographer (FastTrack)."""
     state = {"skip_stages": ["production"], "review_result": {"passed": True, "errors": []}}
-    assert route_after_review(state) == "finalize"
+    assert route_after_review(state) == "cinematographer"
 
 
 def test_route_review_production_not_skipped():

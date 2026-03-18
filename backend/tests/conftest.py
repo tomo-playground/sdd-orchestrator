@@ -464,6 +464,18 @@ def init_tag_caches():
     get_token_category.cache_clear()
 
 
+@pytest.fixture(autouse=True)
+def _reset_langfuse_state():
+    """LangFuse 모듈 전역 상태를 테스트 간 격리한다."""
+    import services.agent.observability as obs
+
+    obs._initialized = False
+    obs._langfuse_client = None
+    yield
+    obs._initialized = False
+    obs._langfuse_client = None
+
+
 def create_test_storyboard(
     client,
     title: str | None = None,

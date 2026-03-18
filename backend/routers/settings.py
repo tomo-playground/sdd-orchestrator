@@ -46,7 +46,7 @@ async def get_auto_edit_settings():
         }
     """
     return {
-        "enabled": runtime_settings.auto_edit_enabled,
+        "is_enabled": runtime_settings.auto_edit_enabled,
         "threshold": runtime_settings.auto_edit_threshold,
         "max_cost_per_storyboard": runtime_settings.auto_edit_max_cost,
         "max_retries_per_scene": runtime_settings.auto_edit_max_retries,

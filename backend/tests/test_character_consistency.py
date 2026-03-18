@@ -102,6 +102,7 @@ class TestStyleLoRAResolution:
 
 
 class TestIPAdapterResolution:
+    @patch("config.IP_ADAPTER_AUTO_ENABLE", True)
     @patch("services.character_consistency.load_reference_image", return_value="base64_image_data")
     def test_auto_enable_with_reference_image(self, mock_ref):
         db = MagicMock()
@@ -147,6 +148,7 @@ class TestIPAdapterResolution:
 
 
 class TestReferenceOnlyMutualExclusion:
+    @patch("config.IP_ADAPTER_AUTO_ENABLE", True)
     @patch("services.character_consistency.load_reference_image", return_value="base64_image_data")
     def test_ip_adapter_disables_reference_only(self, mock_ref):
         db = MagicMock()
@@ -179,6 +181,7 @@ class TestReferenceOnlyMutualExclusion:
 
 
 class TestQualityAssessment:
+    @patch("config.IP_ADAPTER_AUTO_ENABLE", True)
     @patch("services.character_consistency.load_reference_image", return_value="base64_image_data")
     def test_high_quality_with_lora_and_ip_adapter(self, mock_ref):
         db = MagicMock()

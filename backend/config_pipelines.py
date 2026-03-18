@@ -76,6 +76,25 @@ LANGGRAPH_NARRATIVE_THRESHOLD = float(os.getenv("LANGGRAPH_NARRATIVE_THRESHOLD",
 LANGGRAPH_MAX_DIRECTOR_REVISIONS = int(os.getenv("LANGGRAPH_MAX_DIRECTOR_REVISIONS", "3"))
 LANGGRAPH_MAX_CONCEPT_REGEN = int(os.getenv("LANGGRAPH_MAX_CONCEPT_REGEN", "2"))
 
+# --- LangFuse Score Config (SSOT) — Phase 38 ---
+LANGFUSE_SCORE_CONFIGS: dict[str, dict] = {
+    # Tier 1: 객관적 지표
+    "first_pass": {"data_type": "BOOLEAN"},
+    "revision_count": {"data_type": "NUMERIC", "min": 0, "max": LANGGRAPH_MAX_REVISIONS},
+    "scene_count": {"data_type": "NUMERIC", "min": 1, "max": 30},
+    "visual_qc_issues": {"data_type": "NUMERIC", "min": 0, "max": 20},
+    "script_qc_issues": {"data_type": "NUMERIC", "min": 0, "max": 20},
+    "research_quality": {"data_type": "NUMERIC", "min": 0, "max": 1},
+    "director_revision_count": {
+        "data_type": "NUMERIC",
+        "min": 0,
+        "max": LANGGRAPH_MAX_DIRECTOR_REVISIONS,
+    },
+    "pipeline_duration_sec": {"data_type": "NUMERIC", "min": 0, "max": 1800},
+    # Tier 2: LLM 자기평가
+    "narrative_overall": {"data_type": "NUMERIC", "min": 0, "max": 1},
+}
+
 # --- Director-as-Orchestrator ---
 LANGGRAPH_MAX_CHECKPOINT_REVISIONS = int(os.getenv("LANGGRAPH_MAX_CHECKPOINT_REVISIONS", "3"))
 LANGGRAPH_CHECKPOINT_THRESHOLD = float(os.getenv("LANGGRAPH_CHECKPOINT_THRESHOLD", "0.7"))
