@@ -955,6 +955,43 @@ class TestCopySceneLevelToContextTags:
         _copy_scene_level_to_context_tags(scenes)
         assert scenes[0]["context_tags"]["camera"] == "close_up"
 
+    # ── environment 복사 테스트 ──────────────────────────────────────
+
+    def test_environment_str_converted_to_list(self):
+        from services.agent.nodes.finalize import _copy_scene_level_to_context_tags
+
+        scenes = [{"environment": "cafe", "context_tags": {}}]
+        _copy_scene_level_to_context_tags(scenes)
+        assert scenes[0]["context_tags"]["environment"] == ["cafe"]
+
+    def test_environment_list_copied_as_is(self):
+        from services.agent.nodes.finalize import _copy_scene_level_to_context_tags
+
+        scenes = [{"environment": ["cafe", "indoors"], "context_tags": {}}]
+        _copy_scene_level_to_context_tags(scenes)
+        assert scenes[0]["context_tags"]["environment"] == ["cafe", "indoors"]
+
+    def test_existing_environment_not_overwritten(self):
+        from services.agent.nodes.finalize import _copy_scene_level_to_context_tags
+
+        scenes = [{"environment": "cafe", "context_tags": {"environment": ["office"]}}]
+        _copy_scene_level_to_context_tags(scenes)
+        assert scenes[0]["context_tags"]["environment"] == ["office"]
+
+    def test_no_environment_key_skipped(self):
+        from services.agent.nodes.finalize import _copy_scene_level_to_context_tags
+
+        scenes = [{"context_tags": {}}]
+        _copy_scene_level_to_context_tags(scenes)
+        assert "environment" not in scenes[0]["context_tags"]
+
+    def test_none_context_tags_initialized_then_environment_copied(self):
+        from services.agent.nodes.finalize import _copy_scene_level_to_context_tags
+
+        scenes = [{"environment": "park", "context_tags": None}]
+        _copy_scene_level_to_context_tags(scenes)
+        assert scenes[0]["context_tags"]["environment"] == ["park"]
+
 
 class TestInjectWriterPlanEmotions:
     """_inject_writer_plan_emotions 테스트."""

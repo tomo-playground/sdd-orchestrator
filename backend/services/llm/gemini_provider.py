@@ -13,7 +13,7 @@ from config import (
     gemini_client,
     logger,
 )
-from services.agent.observability import _extract_usage, trace_llm_call
+from services.agent.observability import _extract_usage, _safe_extract_text, trace_llm_call
 from services.llm.types import LLMConfig, LLMResponse
 
 # trace input에 system_instruction을 포함할 때의 최대 길이
@@ -101,7 +101,8 @@ class GeminiProvider:
                     raise
 
         # PROHIBITED_CONTENT fallback
-        if not (response.text if response else None):
+        _text = _safe_extract_text(response) if response else ""
+        if not _text:
             block_reason = _extract_block_reason(response) if response else None
             if block_reason and "PROHIBITED" in block_reason:
                 logger.warning(
@@ -128,7 +129,7 @@ class GeminiProvider:
                     llm_fb.record(response)
 
         return LLMResponse(
-            text=(response.text or "") if response else "",
+            text=_safe_extract_text(response) if response else "",
             usage=_extract_usage(response) if response else None,
             raw=response,
         )
@@ -215,7 +216,7 @@ class GeminiProvider:
                     llm_fb.record(response)
 
         return LLMResponse(
-            text=(response.text or "") if response else "",
+            text=_safe_extract_text(response) if response else "",
             usage=_extract_usage(response) if response else None,
             raw=response,
         )
