@@ -341,6 +341,10 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | **Backend Dev** | FastAPI 개발, 서비스 로직, API 설계 | `/test backend`, `/sd-status`, `/db`, `/pose` |
 | **DBA** | PostgreSQL DB 설계, 마이그레이션, 쿼리 최적화 | `/db`, `/test backend` |
 | **Security Engineer** | 보안 취약점 분석, 인증/인가, 시크릿 관리 | `/review`, `/test` |
+| **Video Reviewer** | 생성된 영상의 시각적 품질, 프레임 구성 및 편집 완성도 검토 | `/review`, `/vrt` |
+| **Prompt Reviewer** | Stable Diffusion 및 Gemini 프롬프트 최적화, Danbooru 태그 준수 여부 및 문법 검토 | `/prompt-validate`, `/review` |
+| **Voice Reviewer** | TTS 음성의 톤, 속도, 발음 및 감정 표현의 적절성 검토 | `/review` |
+| **Sound Reviewer** | BGM 및 효과음의 조화, 오디오 정규화 상태 및 전반적인 사운드 품질 검토 | `/review` |
 
 > **향후 확장**: 프로덕션 배포 및 규모 확장 시 DevOps Agent 분리 검토 (현재 인프라 담당: Backend Dev)
 
