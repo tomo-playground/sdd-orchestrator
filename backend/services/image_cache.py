@@ -96,7 +96,7 @@ def get_cache_stats() -> dict:
     files = list(_CACHE_DIR.glob("*.b64"))
     total_bytes = sum(f.stat().st_size for f in files)
     return {
-        "is_enabled": SD_IMAGE_CACHE_ENABLED,
+        "enabled": SD_IMAGE_CACHE_ENABLED,
         "file_count": len(files),
         "total_size_mb": round(total_bytes / (1024 * 1024), 2),
         "max_size_mb": SD_IMAGE_CACHE_MAX_SIZE_MB,
