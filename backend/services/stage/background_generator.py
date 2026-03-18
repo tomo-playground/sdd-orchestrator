@@ -188,7 +188,7 @@ async def generate_location_backgrounds(storyboard_id: int, db: Session, *, forc
     storyboard = (
         db.query(Storyboard)
         .filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None))
-        .with_for_update()
+        .with_for_update(of=Storyboard)
         .first()
     )
     if not storyboard:

@@ -244,7 +244,7 @@ async def stream_graph_events(
     """Graph를 스트리밍하며 SSE 이벤트를 yield한다."""
     from services.agent.observability import (  # noqa: PLC0415, E501
         _patch_trace,
-        end_root_span,
+        flush_langfuse,
         update_root_span,
         update_trace_on_completion,
         update_trace_on_interrupt,
@@ -266,7 +266,7 @@ async def stream_graph_events(
                 "thread_id": thread_id,
             }
             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
-            end_root_span()
+            flush_langfuse()
             return
 
     if isinstance(graph_input, dict):
@@ -358,5 +358,5 @@ async def stream_graph_events(
             # 정상 완료 시 interrupted: True stale 메타데이터를 리셋하고 최종 결과를 output에 기록
             update_trace_on_completion(trace_id=handler_trace_id, output_data=final_output)
 
-        # 스트리밍 완료 시 root span 종료 (LangFuse 트레이스 그룹핑)
-        end_root_span()
+        # 스트리밍 완료/에러 시 SDK 버퍼 플러시 + root span 종료
+        flush_langfuse()

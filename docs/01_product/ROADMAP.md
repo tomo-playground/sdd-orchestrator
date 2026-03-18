@@ -48,7 +48,7 @@
 | **Phase 36 (LangFuse Prompt Quality Hardening)** | **전체 완료** |
 | **Phase 37 (Korean Script Quality)** | **전체 완료** |
 | **Phase 38 (LangFuse Scoring)** | **전체 완료** |
-| 테스트 | Backend 3,738 + Frontend 599 (65파일) + 16 = **총 4,353개** |
+| 테스트 | Backend 3,738 + Frontend 599 (65파일) + 16 = **총 4,353개** (03-19 기준) |
 
 ### 진행 중
 
@@ -56,6 +56,8 @@
 
 ### 최근 작업
 
+- **03-19 Phase 38 Sprint C 완성 — observation_id 노드 전달**: `LLMResponse`에 `observation_id` 필드 추가, `call_with_tools` 3-tuple 반환(`str, list[ToolCallLog], str|None`). research/review/cinematographer/director 4개 노드에서 `record_score()` observation_id 실제 전달. `GeminiProvider` obs_id 캡처, `LANGFUSE_TRACING_ENVIRONMENT` SSOT화. 영향 테스트 8파일 3-tuple 대응.
+- **03-19 채팅 카드 비활성화 + localStorage 스토리보드별 키 분리**: ChatMessageList `isLatest` 패턴 — 마지막 메시지만 인터랙티브 활성화, 과거 카드 자동 비활성(SettingsRecommendCard/PlanReviewCard/ReviewCard/ReviewApprovalPanel). useStoryboardStore/useRenderStore localStorage 키를 스토리보드별(`sb_{id}` / `:new`)로 분리 — 스토리보드 전환 시 이전 데이터 노출 차단. ESLint `argsIgnorePattern: "^_"` 추가.
 - **03-18 Phase 38 (LangFuse Scoring) 완료**: Sprint A(인프라: record_score 헬퍼+contextvar+pipeline_mode+Score Config 9개) → Sprint B(5개 노드 Score 기록) → Sprint C(observation_id+LLM-as-Judge). Gemini client 재연결, Writer 로그 개선, LoRA 오경고 제거. 기존 실패 37건 수정. 환경 가이드+.env.example 추가. Score Config 9개 LangFuse API 등록. E2E 검증 296개 Score 축적 확인. 테스트 +35개, 3,725 passed. [명세](FEATURES/LANGFUSE_SCORING.md)
 - **03-18 Phase 38 Sprint C (Observation-Level)**: `record_score()` observation_id 파라미터 추가(observation-level Score 부착 지원). LangFuse LLM-as-Judge 평가자 3개 Legacy→Observation 전환(pacing_rhythm, retention_flow, spoken_naturalness). 유지보수 가이드 추가(3가지 트리거: 노드 변경/프롬프트 변경/플랫폼 변경). [명세](FEATURES/LANGFUSE_SCORING.md) v4
 - **03-18 Phase 38 명세 확정**: 코드 분석(observability.py, 5개 노드, config_pipelines.py, conftest.py, SDK 시그니처) + 4-Agent 리뷰(Tech Lead/QA/Backend Dev/PM) 통합. BLOCKER 4건 해결(revision_count max 6→3, Resume duration 정책, None 중앙 가드, time.monotonic 통일). WARNING 9건 반영(FastTrack narrative_overall ❌, duration max 1800, data_type 자동 추론 등). [명세](FEATURES/LANGFUSE_SCORING.md) v3
@@ -267,6 +269,9 @@ graph LR
 | ~~Script 생성 후 대화형 수정 루프 (씬 부분 재생성)~~ | **Phase 26 P1에서 완료** — edit-scenes API + SceneEditDiffCard |
 | ~~동선 일관성 개편 (Admin 정리, LoRA Library 이동, 상태 누수, API 통일)~~ | **Phase 31로 승격** — [명세](FEATURES/UX_NAVIGATION_OVERHAUL.md) |
 | Script Canvas 분할 뷰 (좌 채팅 + 우 씬 프리뷰) | [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md) §P2 |
+| **Direct 탭 연출 컨트롤** (생성 완료 후 TTS 음성 톤 조정 + BGM 프리셋 일괄 적용) | [명세](FEATURES/DIRECT_TAB_DIRECTOR_CONTROL.md) |
+| **Studio 탭 URI 표현** (`?tab=script/stage/direct/publish`) | 현재 activeTab이 Zustand 메모리에만 있어 새로고침 시 초기화, 딥링크 불가. `setActiveTab` 호출 시 `router.replace`로 URL sync + 초기 마운트 시 `searchParams.get("tab")` 복원. Option A(query param) 우선 검토 |
+| **Structure/Speaker 타입 비교 정규화** | 디스플레이 네임 string literal로 조건 분기하는 패턴 전면 제거. **P0** `SpeakerBadge.tsx` — `.toLowerCase()` 만 사용, underscore 미변환으로 `"narrated_dialogue"` 포맷 대응 불가. `SceneEssentialFields.tsx:36` — `isNarratedDialogue = structure?.toLowerCase() === "narrated dialogue"` 직접 비교. **개선안**: `normalizeStructure()` SSOT 함수 작성, `isMultiCharStructure()` 전역 통일 적용. `isNarratedDialogue()` 헬퍼 추출. 4개 파일 영향. 발단: Narrator 씬에 Actor A가 표시되는 원인 분석 (2026-03-19) |
 
 ### Image Quality & Pose Control
 
@@ -290,6 +295,7 @@ graph LR
 | 분석 대시보드 (Match Rate 추이, 프로젝트 간 비교) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
 | ~~LangFuse Scoring 시스템~~ | **Phase 38로 승격** — [명세](FEATURES/LANGFUSE_SCORING.md) |
 | **파이프라인 이상 탐지 자동화** | 시스템 상태 통합 health API, 파이프라인 완료 시 자동 검증 (speaker 배분, TTS 실패, 이미지 미생성), LangFuse 이상 탐지 (노드 실패율/소요시간), GPU VRAM 모니터링 |
+| **PostgreSQL 통합 테스트 인프라** | 현재 단위테스트가 MagicMock/SQLite를 사용해 PostgreSQL 고유 제약(FOR UPDATE + OUTER JOIN, JSONB, FK CASCADE 등)을 검증하지 못함. pytest-postgresql 또는 testcontainers 기반 실제 PG 인스턴스로 DB 레이어 통합 테스트 추가. 발단: `with_for_update()` + nullable FK JOIN 버그가 테스트 통과 후 프로덕션에서 500 에러로 발현 (2026-03-19) |
 | ~~SSOT 위반 정리 (P1~P3, 49건)~~ | **P1+P2 완료 (46/49건, 94%)** — Hi-Res 4상수+SAMPLERS+TTS_ENGINE+enable_hr+controlnet weight+해상도 6곳+image_defaults+pipeline_metadata. 잔여 P3 3건(CATEGORY_DESCRIPTIONS, 주석 검증)은 리스크 없어 보류 |
 | ~~Phase 35: GPT-SoVITS v2 TTS 전환~~ | **완료** — SoVITS(:9880) + Qwen3(보이스디자인 on-demand) + MusicGen(CPU). GPU 전환은 cu128 대기 |
 | **클라우드 TTS/BGM 전환** | Replicate(현재 모델 클라우드 실행) 또는 ElevenLabs/Suno. GPU 경합 완전 해소, 비용 발생 |
