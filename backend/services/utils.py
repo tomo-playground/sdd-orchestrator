@@ -148,7 +148,7 @@ def wrap_text_by_font(
         lines = []
         current_words: list[str] = []
 
-        for word in words:
+        for wi, word in enumerate(words):
             test_line = " ".join(current_words + [word])
             if measure_width(test_line) <= max(target_width, max_width_px * 0.7):
                 current_words.append(word)
@@ -159,7 +159,7 @@ def wrap_text_by_font(
 
             if len(lines) >= target_lines - 1:
                 # Put remaining words in last line
-                current_words.extend(words[words.index(word) + 1 :])
+                current_words.extend(words[wi + 1 :])
                 break
 
         if current_words:
@@ -187,8 +187,8 @@ def wrap_text_by_font(
         i = 0
         while i < len(parts):
             seg = parts[i]
-            if i + 1 < len(parts) and parts[i+1]: # Mark exists
-                seg += parts[i+1]
+            if i + 1 < len(parts) and parts[i + 1]:  # Mark exists
+                seg += parts[i + 1]
                 i += 2
             else:
                 i += 1

@@ -75,7 +75,9 @@ async def copyright_reviewer_node(state: ScriptState) -> dict:
         # LLM이 생성한 overall을 checks 기반으로 서버사이드 재계산 (일관성 보장)
         result["overall"] = _recalculate_overall(result.get("checks", []))
         logger.info("[LangGraph] Copyright Reviewer 완료: %s", result.get("overall"))
-        return {"copyright_reviewer_result": result}
+        # QC 결과를 별도로 실행하여 Director 전달용 state에 저장
+        qc = validate_copyright(result.get("checks", []))
+        return {"copyright_reviewer_result": result, "copyright_qc_result": qc}
     except Exception as e:
         logger.warning("[LangGraph] Copyright Reviewer 실패, fallback WARN: %s", e)
         return {"copyright_reviewer_result": _FALLBACK_WARN}

@@ -41,6 +41,38 @@ def build_visual_qc_section(visual_qc_result: dict | None) -> str:
     return f"\n\n### Visual QC Warnings\n{items}\n위 다양성/일관성 문제가 감지되었습니다. revise_cinematographer를 고려하세요."
 
 
+def _format_qc_issues(label: str, qc_result: dict | None, revise_hint: str) -> str:
+    """단일 QC 결과를 이슈 문자열로 변환한다. ok이거나 없으면 빈 문자열."""
+    if not qc_result or qc_result.get("ok"):
+        return ""
+    issues = qc_result.get("issues", [])
+    items = "\n".join(f"- {issue}" for issue in issues)
+    return f"\n### {label} QC Warnings\n{items}\n{revise_hint}"
+
+
+def build_production_qc_section(state: dict) -> str:
+    """Director — TTS/Sound/Copyright QC 결과를 포맷팅한다."""
+    parts = [
+        _format_qc_issues(
+            "TTS Design",
+            state.get("tts_qc_result"),
+            "revise_tts_designer를 고려하세요.",
+        ),
+        _format_qc_issues(
+            "Sound Design",
+            state.get("sound_qc_result"),
+            "revise_sound_designer를 고려하세요.",
+        ),
+        _format_qc_issues(
+            "Copyright",
+            state.get("copyright_qc_result"),
+            "revise_copyright_reviewer를 고려하세요.",
+        ),
+    ]
+    combined = "".join(p for p in parts if p)
+    return f"\n{combined}" if combined else ""
+
+
 def build_previous_steps_block(steps: list[dict]) -> str:
     """director — ``{% for prev in previous_steps %}``."""
     if not steps:

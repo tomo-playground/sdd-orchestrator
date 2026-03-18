@@ -19,6 +19,7 @@ from services.agent.nodes._agent_messaging import (
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.prompt_builders import (
     build_previous_steps_block,
+    build_production_qc_section,
     build_quality_criteria_block,
     build_visual_qc_section,
     to_json,
@@ -87,6 +88,7 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
                 (state.get("director_plan") or {}).get("quality_criteria", []),
             ),
             "visual_qc_section": build_visual_qc_section(state.get("visual_qc_result")),
+            "production_qc_section": build_production_qc_section(state),
             "previous_steps_block": build_previous_steps_block(reasoning_steps),
         }
 

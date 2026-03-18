@@ -167,6 +167,9 @@ class ScriptState(TypedDict, total=False):
     cinematographer_result: dict | None
     cinematographer_tool_logs: list[dict] | None  # Phase 10-B-3: Tool-Calling 로그
     visual_qc_result: dict | None  # Cinematographer QC → Director 전달용
+    tts_qc_result: dict | None  # TTS Designer QC → Director 전달용
+    sound_qc_result: dict | None  # Sound Designer QC → Director 전달용
+    copyright_qc_result: dict | None  # Copyright Reviewer QC → Director 전달용
     cinematographer_competition_scores: dict | None  # {"tension": 0.82, "intimacy": 0.75, ...}
     cinematographer_winner: str | None  # 경쟁 승자 role (예: "tension")
     tts_designer_result: dict | None

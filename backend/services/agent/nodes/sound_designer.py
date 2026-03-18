@@ -54,7 +54,9 @@ async def sound_designer_node(state: ScriptState) -> dict:
             step_name="generate_content sound_designer",
         )
         logger.info("[LangGraph] Sound Designer 완료")
-        return {"sound_designer_result": result}
+        # QC 결과를 별도로 실행하여 Director 전달용 state에 저장
+        qc = validate_music(result.get("recommendation", {}))
+        return {"sound_designer_result": result, "sound_qc_result": qc}
     except Exception as e:
         logger.warning("[LangGraph] Sound Designer 실패, fallback: %s", e)
         return {"sound_designer_result": _FALLBACK_SOUND}

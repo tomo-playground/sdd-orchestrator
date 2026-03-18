@@ -124,6 +124,7 @@ from services.agent.prompt_builders_b import (  # noqa: E402, F401
     build_language_hint,
     build_output_format_block,
     build_previous_steps_block,
+    build_production_qc_section,
     build_quality_criteria_block,
     build_scene_range_text,
     build_scene_reasoning_section,

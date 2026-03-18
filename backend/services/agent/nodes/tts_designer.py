@@ -153,7 +153,9 @@ async def tts_designer_node(state: ScriptState) -> dict:
             step_name="generate_content tts_designer",
         )
         logger.info("[LangGraph] TTS Designer 완료: %d designs", len(result.get("tts_designs", [])))
-        return {"tts_designer_result": result}
+        # QC 결과를 별도로 실행하여 Director 전달용 state에 저장
+        qc = validate_tts_design(result.get("tts_designs", []), preset_speakers=preset_speakers)
+        return {"tts_designer_result": result, "tts_qc_result": qc}
     except Exception as e:
         logger.warning("[LangGraph] TTS Designer 실패, fallback: %s", e)
         return {"tts_designer_result": _FALLBACK_TTS}
