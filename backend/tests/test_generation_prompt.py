@@ -172,10 +172,10 @@ class TestPreparePromptFlag:
     @patch("services.character_consistency.load_reference_image", return_value=None)
     @patch("services.generation_prompt.apply_style_profile_to_prompt")
     def test_pre_composed_with_lora_skips_injection(self, mock_style, mock_ref):
-        """prompt_pre_composed=True + LoRA already present → skip_loras=True."""
+        """is_prompt_pre_composed=True + LoRA already present → skip_loras=True."""
         prompt_with_lora = "masterpiece, 1girl, standing, <lora:J_huiben:0.8>, J_huiben"
         mock_style.return_value = (prompt_with_lora, "bad")
-        req = _make_request(prompt_pre_composed=True, prompt=prompt_with_lora)
+        req = _make_request(is_prompt_pre_composed=True, prompt=prompt_with_lora)
         db = MagicMock()
         db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
@@ -191,11 +191,11 @@ class TestPreparePromptFlag:
     @patch("services.generation_prompt._resolve_style_loras")
     @patch("services.generation_prompt.apply_style_profile_to_prompt")
     def test_pre_composed_without_lora_injects_from_db(self, mock_style, mock_resolve, mock_ref):
-        """prompt_pre_composed=True + no LoRA in prompt → resolves from DB and injects."""
+        """is_prompt_pre_composed=True + no LoRA in prompt → resolves from DB and injects."""
         # apply_style_profile returns prompt WITHOUT LoRA (skip_loras=False but profile has none)
         mock_style.return_value = ("masterpiece, 1girl, standing", "bad")
         mock_resolve.return_value = [{"name": "J_huiben", "weight": 0.8, "trigger_words": ["J_huiben"]}]
-        req = _make_request(prompt_pre_composed=True, prompt="masterpiece, 1girl, standing")
+        req = _make_request(is_prompt_pre_composed=True, prompt="masterpiece, 1girl, standing")
         db = MagicMock()
         db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
@@ -211,9 +211,9 @@ class TestPreparePromptFlag:
     @patch("services.generation_prompt._resolve_style_loras")
     @patch("services.generation_prompt.apply_style_profile_to_prompt")
     def test_pre_composed_no_storyboard_no_injection(self, mock_style, mock_resolve, mock_ref):
-        """prompt_pre_composed=True + no storyboard_id → no safety-net injection."""
+        """is_prompt_pre_composed=True + no storyboard_id → no safety-net injection."""
         mock_style.return_value = ("masterpiece, 1girl, standing", "bad")
-        req = _make_request(prompt_pre_composed=True, prompt="masterpiece, 1girl, standing", storyboard_id=None)
+        req = _make_request(is_prompt_pre_composed=True, prompt="masterpiece, 1girl, standing", storyboard_id=None)
         db = MagicMock()
         db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
@@ -225,8 +225,8 @@ class TestPreparePromptFlag:
     @patch("services.character_consistency.load_reference_image", return_value=None)
     @patch("services.generation_prompt._resolve_style_loras", return_value=[])
     def test_raw_prompt_runs_v3(self, mock_resolve, mock_ref):
-        """prompt_pre_composed=False + character → compose_scene_with_style called."""
-        req = _make_request(prompt_pre_composed=False)
+        """is_prompt_pre_composed=False + character → compose_scene_with_style called."""
+        req = _make_request(is_prompt_pre_composed=False)
         db = MagicMock()
         db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
@@ -244,7 +244,7 @@ class TestPreparePromptFlag:
     @patch("services.generation_prompt._resolve_style_loras", return_value=[])
     def test_scene_id_passed_to_compose(self, mock_resolve, mock_ref):
         """scene_id from request must be forwarded to compose_scene_with_style."""
-        req = _make_request(prompt_pre_composed=False, scene_id=42)
+        req = _make_request(is_prompt_pre_composed=False, scene_id=42)
         db = MagicMock()
         db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
@@ -259,7 +259,7 @@ class TestPreparePromptFlag:
     @patch("services.generation_prompt._resolve_style_loras", return_value=[])
     def test_scene_id_none_by_default(self, mock_resolve, mock_ref):
         """No scene_id → scene_id=None passed to compose_scene_with_style."""
-        req = _make_request(prompt_pre_composed=False)
+        req = _make_request(is_prompt_pre_composed=False)
         db = MagicMock()
         db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 
@@ -566,7 +566,7 @@ class TestBatchLoraResolution:
         db_loras = [{"name": "flat_color", "weight": 0.7, "trigger_words": ["flat color"]}]
         mock_resolve.return_value = db_loras
         req = _make_request(
-            prompt_pre_composed=False,
+            is_prompt_pre_composed=False,
             style_loras=[{"lora_id": 5, "weight": 0.7}],
         )
         db = MagicMock()
@@ -587,7 +587,7 @@ class TestBatchLoraResolution:
         """DB resolution is always used regardless of frontend style_loras."""
         db_loras = [{"name": "flat_color", "weight": 0.7, "trigger_words": ["flat color"]}]
         mock_resolve.return_value = db_loras
-        req = _make_request(prompt_pre_composed=False, style_loras=[])
+        req = _make_request(is_prompt_pre_composed=False, style_loras=[])
         db = MagicMock()
         db.query.return_value.options.return_value.filter.return_value.first.return_value = _make_character()
 

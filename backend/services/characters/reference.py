@@ -192,11 +192,11 @@ async def regenerate_reference(
             width=SD_DEFAULT_WIDTH,
             height=SD_DEFAULT_HEIGHT,
             seed=-1,
-            enable_hr=enable_hr,
+            is_hr_enabled=enable_hr,
             hr_scale=SD_HI_RES_SCALE if enable_hr else 1.0,
             hr_upscaler=SD_REFERENCE_HR_UPSCALER,
             denoising_strength=SD_REFERENCE_DENOISING if enable_hr else 0.0,
-            use_controlnet=use_cn,
+            is_controlnet_enabled=use_cn,
             controlnet_pose=pose if use_cn else None,
             controlnet_weight=SD_REFERENCE_CONTROLNET_WEIGHT,
             controlnet_control_mode=SD_REFERENCE_CONTROLNET_MODE,
@@ -205,7 +205,7 @@ async def regenerate_reference(
         if "image" not in res:
             logger.warning("[Preview] Candidate %d failed, skipping", i + 1)
             continue
-        if request.use_controlnet and not res.get("controlnet_pose"):
+        if request.is_controlnet_enabled and not res.get("controlnet_pose"):
             logger.warning("[Preview] ControlNet requested but not applied — check SD WebUI ControlNet extension")
         candidates.append(CandidateImage(image=res["image"], seed=res.get("seed", -1)))
 
@@ -373,11 +373,11 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
             width=SD_DEFAULT_WIDTH,
             height=SD_DEFAULT_HEIGHT,
             seed=-1,
-            enable_hr=enable_hr,
+            is_hr_enabled=enable_hr,
             hr_scale=SD_HI_RES_SCALE if enable_hr else 1.0,
             hr_upscaler=SD_REFERENCE_HR_UPSCALER,
             denoising_strength=SD_REFERENCE_DENOISING if enable_hr else 0.0,
-            use_controlnet=use_cn,
+            is_controlnet_enabled=use_cn,
             controlnet_pose=pose if use_cn else None,
             controlnet_weight=SD_REFERENCE_CONTROLNET_WEIGHT,
             controlnet_control_mode=SD_REFERENCE_CONTROLNET_MODE,
@@ -386,7 +386,7 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
         if "image" not in res:
             logger.warning("[WizardPreview] Candidate %d failed, skipping", i + 1)
             continue
-        if sd_request.use_controlnet and not res.get("controlnet_pose"):
+        if sd_request.is_controlnet_enabled and not res.get("controlnet_pose"):
             logger.warning("[WizardPreview] ControlNet requested but not applied — check SD WebUI ControlNet extension")
         candidates.append(CandidateImage(image=res["image"], seed=res.get("seed", -1)))
 

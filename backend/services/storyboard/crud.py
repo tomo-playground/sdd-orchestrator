@@ -42,7 +42,7 @@ def create_draft(db: Session, title: str, group_id: int) -> dict:
     return {
         "storyboard_id": db_storyboard.id,
         "title": db_storyboard.title,
-        "created": True,
+        "is_created": True,
     }
 
 

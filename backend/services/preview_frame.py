@@ -53,19 +53,19 @@ async def preview_scene_frame(
             height=req.height,
             channel_name=req.channel_name or "",
             caption=req.caption or "",
-            subtitle_text=req.script if req.include_scene_text else "",
+            subtitle_text=req.script if req.is_scene_text_included else "",
             font_path=font_path,
         )
         src_img = Image.open(io.BytesIO(image_bytes))
         face = detect_face(src_img)
-        layout_info.face_detected = face is not None
+        layout_info.is_face_detected = face is not None
         src_img.close()
 
     else:
         src_img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         frame = src_img.resize((req.width, req.height), Image.LANCZOS)
 
-        if req.include_scene_text and req.script.strip():
+        if req.is_scene_text_included and req.script.strip():
             lines = req.script.strip().split("\n")
             font_size = calculate_optimal_font_size(req.script, 40)
             layout_info.font_size = font_size

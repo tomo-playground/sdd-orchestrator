@@ -306,7 +306,7 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
             db.commit()
             logger.info(f"Deleted MediaAsset record ID: {asset.id}")
 
-            return {"ok": True, "deleted": True, "asset_id": asset.id}
+            return {"ok": True, "is_deleted": True, "asset_id": asset.id}
 
         # Fallback: Try legacy local file deletion
         if request.filename:
@@ -315,11 +315,11 @@ async def delete_video(request: VideoDeleteRequest, db: Session = Depends(get_db
             if target.exists():
                 logger.info("Deleting legacy local file: %s", target)
                 target.unlink()
-                return {"ok": True, "deleted": True, "legacy": True}
+                return {"ok": True, "is_deleted": True, "is_legacy": True}
 
         identifier = request.asset_id or request.filename
         logger.debug("Video not found: %s", identifier)
-        return {"ok": False, "deleted": False, "reason": "not_found"}
+        return {"ok": False, "is_deleted": False, "reason": "not_found"}
 
     except Exception as exc:
         db.rollback()
@@ -485,7 +485,7 @@ async def extract_caption(request: TextExtractRequest):
 
     except Exception:
         logger.exception("Caption extraction failed")
-        return CaptionExtractResponse(caption=text[:max_len].rstrip(), fallback=True)
+        return CaptionExtractResponse(caption=text[:max_len].rstrip(), is_fallback=True)
 
 
 @router.post("/extract-hashtags", response_model=HashtagExtractResponse)
@@ -522,7 +522,7 @@ async def extract_hashtags(request: TextExtractRequest):
 
     except Exception:
         logger.exception("Hashtag extraction failed")
-        return HashtagExtractResponse(caption=text[: max_len - 3] + "...", fallback=True)
+        return HashtagExtractResponse(caption=text[: max_len - 3] + "...", is_fallback=True)
 
 
 def _strip_quotes(text: str) -> str:

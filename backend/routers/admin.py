@@ -409,11 +409,15 @@ async def clear_tts_cache(
     if storyboard_id:
         from models.scene import Scene
 
-        scenes = db.query(Scene).filter(
-            Scene.storyboard_id == storyboard_id,
-            Scene.deleted_at.is_(None),
-            Scene.tts_asset_id.isnot(None),
-        ).all()
+        scenes = (
+            db.query(Scene)
+            .filter(
+                Scene.storyboard_id == storyboard_id,
+                Scene.deleted_at.is_(None),
+                Scene.tts_asset_id.isnot(None),
+            )
+            .all()
+        )
         for s in scenes:
             s.tts_asset_id = None
             db_count += 1
@@ -421,7 +425,10 @@ async def clear_tts_cache(
 
     logger.info(
         "[Admin] TTS cache cleared: backend=%d, audio_server=%d, db_reset=%d (storyboard=%s)",
-        backend_count, audio_count, db_count, storyboard_id,
+        backend_count,
+        audio_count,
+        db_count,
+        storyboard_id,
     )
     return TTSCacheClearResponse(
         backend_cleared=backend_count,
@@ -558,10 +565,10 @@ async def cleanup_orphan_assets_full(
         temp_result = gc.cleanup_expired_temp(dry_run=dry_run)
 
         orphans = CleanupResultDetail(
-            deleted=orphan_result.deleted, storage_errors=orphan_result.storage_errors, dry_run=orphan_result.dry_run
+            deleted=orphan_result.deleted, storage_errors=orphan_result.storage_errors, is_dry_run=orphan_result.dry_run
         )
         expired_temp = CleanupResultDetail(
-            deleted=temp_result.deleted, storage_errors=temp_result.storage_errors, dry_run=temp_result.dry_run
+            deleted=temp_result.deleted, storage_errors=temp_result.storage_errors, is_dry_run=temp_result.dry_run
         )
 
         dangling: DanglingCandidateDetail | None = None
@@ -570,7 +577,7 @@ async def cleanup_orphan_assets_full(
             dangling = DanglingCandidateDetail(
                 scenes_affected=cand_result.scenes_affected,
                 candidates_removed=cand_result.candidates_removed,
-                dry_run=cand_result.dry_run,
+                is_dry_run=cand_result.dry_run,
             )
 
         return OrphanAssetCleanupResponse(

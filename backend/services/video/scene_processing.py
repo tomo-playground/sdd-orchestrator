@@ -48,7 +48,7 @@ async def process_scenes(builder: VideoBuilder) -> None:
         clean_script = clean_script_for_tts(raw_script)
 
         # Process subtitles FIRST (before post layout)
-        if builder.request.include_scene_text:
+        if builder.request.is_scene_text_included:
             lines, font_size = wrap_scene_text(builder, clean_script)
             builder.subtitle_lines.append(lines)
             builder.scene_text_font_sizes.append(font_size)

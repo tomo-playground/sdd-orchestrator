@@ -105,7 +105,7 @@ class TestRenderPresetsRouter:
             "bgm_file": "bgm.mp3",
             "bgm_volume": 0.3,
             "bgm_mode": "manual",
-            "audio_ducking": True,
+            "is_audio_ducking_enabled": True,
             "scene_text_font": "NotoSans",
             "layout_style": "post",
             "frame_style": "instagram",
@@ -122,7 +122,7 @@ class TestRenderPresetsRouter:
         assert data["bgm_file"] == "bgm.mp3"
         assert data["bgm_volume"] == 0.3
         assert data["bgm_mode"] == "manual"
-        assert data["audio_ducking"] is True
+        assert data["is_audio_ducking_enabled"] is True
         assert data["scene_text_font"] == "NotoSans"
         assert data["layout_style"] == "post"
         assert data["frame_style"] == "instagram"

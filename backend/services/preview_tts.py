@@ -64,7 +64,7 @@ async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
         global_voice_design=None,
         scene_emotion=req.scene_emotion or "",
         language=req.language,
-        force_regenerate=req.force_regenerate,
+        force_regenerate=req.is_force_regenerate,
         max_retries=0,
     )
 
@@ -126,7 +126,7 @@ async def preview_scene_tts(
         audio_url=asset.url,
         duration=gen.duration,
         cache_key=gen.cache_key,
-        cached=gen.cached,
+        is_cached=gen.cached,
         voice_seed=gen.voice_seed,
         voice_design=gen.voice_design,
         temp_asset_id=asset.id,

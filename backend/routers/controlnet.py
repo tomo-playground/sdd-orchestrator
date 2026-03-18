@@ -60,7 +60,7 @@ async def get_controlnet_status():
     available = check_controlnet_available()
     models = get_controlnet_models() if available else []
     return {
-        "available": available,
+        "is_available": available,
         "models": models,
         "pose_references": list(POSE_MAPPING.keys()),
     }
@@ -75,7 +75,7 @@ async def list_available_poses():
             {
                 "name": pose_name,
                 "filename": filename,
-                "available": load_pose_reference(pose_name) is not None,
+                "is_available": load_pose_reference(pose_name) is not None,
             }
         )
     return {"poses": poses}
@@ -124,12 +124,12 @@ async def suggest_pose_for_tags(tags: list[str]):
         pose_b64 = load_pose_reference(pose)
         return {
             "suggested_pose": pose,
-            "available": pose_b64 is not None,
+            "is_available": pose_b64 is not None,
             "image_b64": pose_b64,
         }
     return {
         "suggested_pose": None,
-        "available": False,
+        "is_available": False,
         "image_b64": None,
     }
 
@@ -159,7 +159,7 @@ async def get_ip_adapter_status():
     models = get_controlnet_models() if available else []
     ip_models = [m for m in models if "ip-adapter" in m.lower()]
     return {
-        "available": len(ip_models) > 0,
+        "is_available": len(ip_models) > 0,
         "models": ip_models,
         "supported_models": list(IP_ADAPTER_MODELS.keys()),
     }
@@ -267,11 +267,11 @@ async def check_reference_quality(character_key: str, db: Session = Depends(get_
     report = validate_reference_quality(image_b64)
     return ReferenceQualityResponse(
         character_key=character_key,
-        valid=report.valid,
-        face_detected=report.face_detected,
+        is_valid=report.valid,
+        is_face_detected=report.face_detected,
         face_count=report.face_count,
         face_size_ratio=report.face_size_ratio,
-        resolution_ok=report.resolution_ok,
+        is_resolution_ok=report.resolution_ok,
         width=report.width,
         height=report.height,
         warnings=report.warnings,
@@ -295,8 +295,8 @@ async def upload_photo_ref(request: UploadPhotoReferenceRequest, db: Session = D
             filename=filename,
             success=True,
             quality=QualityInfo(
-                valid=quality.valid,
-                face_detected=quality.face_detected,
+                is_valid=quality.valid,
+                is_face_detected=quality.face_detected,
                 face_count=quality.face_count,
                 face_size_ratio=quality.face_size_ratio,
                 warnings=quality.warnings,

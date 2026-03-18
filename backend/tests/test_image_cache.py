@@ -125,7 +125,7 @@ class TestImageCacheEviction:
 
     def test_evicts_oldest_when_over_limit(self, tmp_path):
         """When cache exceeds max size, oldest files are evicted."""
-        from services.image_cache import clear_image_cache, save_cached_image
+        from services.image_cache import save_cached_image
 
         # Create large data to trigger eviction with tiny limit
         data = "A" * 1024  # 1KB each
@@ -173,7 +173,7 @@ class TestImageCacheStats:
 
         with patch("services.image_cache._CACHE_DIR", tmp_path):
             stats = get_cache_stats()
-            assert "enabled" in stats
+            assert "is_enabled" in stats
             assert "file_count" in stats
             assert "total_size_mb" in stats
             assert "max_size_mb" in stats

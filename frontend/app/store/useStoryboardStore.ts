@@ -331,12 +331,12 @@ export const useStoryboardStore = create<StoryboardStore>()(
         }),
       applyGenerationDefaults: (defaults: GenerationDefaults) =>
         set(() => ({
-          useControlnet: defaults.use_controlnet,
+          useControlnet: defaults.is_controlnet_enabled,
           controlnetWeight: defaults.controlnet_weight,
-          useIpAdapter: defaults.use_ip_adapter,
+          useIpAdapter: defaults.is_ip_adapter_enabled,
           ipAdapterWeight: defaults.ip_adapter_weight,
-          multiGenEnabled: defaults.multi_gen_enabled,
-          hiResEnabled: defaults.enable_hr,
+          multiGenEnabled: defaults.is_multi_gen_enabled,
+          hiResEnabled: defaults.is_hr_enabled,
         })),
       reset: () => set({ ...initialState, isDirty: false }),
     }),

@@ -398,6 +398,6 @@ def cleanup_all(options: CleanupOptions) -> dict:
     return {
         "deleted_count": total_deleted,
         "freed_mb": round(total_freed / (1024 * 1024), 2),
-        "dry_run": options.dry_run,
+        "is_dry_run": options.dry_run,
         "details": details,
     }

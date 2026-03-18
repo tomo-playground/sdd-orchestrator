@@ -112,8 +112,8 @@ def _adjust_parameters(ctx: GenerationContext) -> None:
             ctx.steps = max(ctx.steps, 25)
 
     # Auto-enable Hi-Res from StyleProfile
-    if style_ctx and style_ctx.default_enable_hr and not ctx.request.enable_hr:
-        ctx.request.enable_hr = True
+    if style_ctx and style_ctx.default_enable_hr and not ctx.request.is_hr_enabled:
+        ctx.request.is_hr_enabled = True
         logger.info("🔍 [StyleProfile] Auto-enabled Hi-Res for '%s'", style_ctx.profile_name)
 
     # Apply optimal LoRA weights from calibration DB
@@ -199,7 +199,7 @@ def _build_payload(ctx: GenerationContext) -> dict:
         "batch_size": 1,
     }
     apply_sampler_to_payload(payload, req.sampler_name)
-    if req.enable_hr:
+    if req.is_hr_enabled:
         payload.update(
             {
                 "enable_hr": True,

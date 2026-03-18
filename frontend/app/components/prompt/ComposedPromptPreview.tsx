@@ -211,7 +211,7 @@ export default function ComposedPromptPreview({
           scene_id: sceneId || undefined,
           context_tags: contextTags || undefined,
           background_id: backgroundId || undefined,
-          use_break: useBreak,
+          is_break_enabled: useBreak,
         }),
       });
 
@@ -355,10 +355,7 @@ export default function ComposedPromptPreview({
       {/* Token display — compose result only */}
       {result &&
         (viewMode === "grouped" ? (
-          <GroupedView
-            groupedTokens={groupedTokens}
-            getTokenStyle={getTokenStyle}
-          />
+          <GroupedView groupedTokens={groupedTokens} getTokenStyle={getTokenStyle} />
         ) : (
           <LinearView
             tokens={result.tokens}

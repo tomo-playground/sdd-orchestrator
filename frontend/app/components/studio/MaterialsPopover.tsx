@@ -35,7 +35,7 @@ export default function MaterialsPopover() {
   const storyboardId = useContextStore((s) => s.storyboardId);
   const { data, isLoading } = useMaterialsCheck(storyboardId);
 
-  const readyCount = data ? MATERIALS.filter((m) => data[m.key]?.ready).length : 0;
+  const readyCount = data ? MATERIALS.filter((m) => data[m.key]?.is_ready).length : 0;
 
   useEffect(() => {
     if (!open) return;
@@ -66,7 +66,7 @@ export default function MaterialsPopover() {
           </p>
           <div className="space-y-1.5">
             {MATERIALS.map((mat) => {
-              const ready = data?.[mat.key]?.ready ?? false;
+              const ready = data?.[mat.key]?.is_ready ?? false;
               return (
                 <button
                   key={mat.key}

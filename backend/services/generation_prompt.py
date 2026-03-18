@@ -79,9 +79,7 @@ def _resolve_style_loras(storyboard_id: int | None, db) -> list[dict]:
         return []
 
 
-def _resolve_effective_character_b_id(
-    request: SceneGenerateRequest, db
-) -> tuple[int | None, list[str]]:
+def _resolve_effective_character_b_id(request: SceneGenerateRequest, db) -> tuple[int | None, list[str]]:
     """Resolve character_b_id only when scene_mode='multi'.
 
     Returns (effective_b_id, warnings).
@@ -116,7 +114,7 @@ def _resolve_effective_character_b_id(
 
 def _inject_narrator_defense(request: SceneGenerateRequest) -> None:
     """Auto-inject no_humans for background scenes without person indicators."""
-    if request.character_id or request.prompt_pre_composed:
+    if request.character_id or request.is_prompt_pre_composed:
         return
     prompt_norm = request.prompt.lower().replace(" ", "_")
     has_person = any(ind in prompt_norm for ind in _PERSON_INDICATORS)
@@ -276,7 +274,7 @@ def _dispatch_prompt_route(request, db, character_obj, effective_b_id, *, style_
 
     Note: prompt_pre_composed path is DEPRECATED.
     """
-    if request.prompt_pre_composed:
+    if request.is_prompt_pre_composed:
         return _handle_pre_composed(request, db)
     elif request.character_id and character_obj:
         return _handle_character_scene(request, db, effective_b_id, style_loras=style_loras)
@@ -300,7 +298,7 @@ def _handle_ip_adapter_reverse_lookup(request: SceneGenerateRequest, db, ctx: Ge
 
     from models import Character
 
-    if request.use_ip_adapter and request.ip_adapter_reference:
+    if request.is_ip_adapter_enabled and request.ip_adapter_reference:
         char = (
             db.query(Character)
             .filter(Character.name == request.ip_adapter_reference, Character.deleted_at.is_(None))
@@ -441,7 +439,7 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
 
     logger.debug(
         "🔀 [Prompt Route] pre_composed=%s, character_id=%s, character_found=%s, quality=%s",
-        request.prompt_pre_composed,
+        request.is_prompt_pre_composed,
         request.character_id,
         character_obj is not None,
         strategy.quality_score,
@@ -475,9 +473,9 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     _handle_ip_adapter_reverse_lookup(request, db, ctx)
 
     # Post-processing: Safe Tags → Auto Rewrite (before FaceID suppression)
-    if request.auto_replace_risky_tags:
+    if request.is_auto_replace_risky_tags:
         ctx.prompt = _apply_safe_tag_replacement(ctx.prompt, db)
-    if request.auto_rewrite_prompt:
+    if request.is_auto_rewrite_enabled:
         ctx.prompt = _apply_auto_rewrite(ctx.prompt)
 
     # Phase 3-B: Suppress face tags when FaceID is active
@@ -492,10 +490,14 @@ def prepare_prompt(request: SceneGenerateRequest, db, ctx: GenerationContext) ->
     if effective_b_id:
         from models import Character as _CharModel
 
-        _char_b = db.query(_CharModel).filter(
-            _CharModel.id == effective_b_id,
-            _CharModel.deleted_at.is_(None),
-        ).first()
+        _char_b = (
+            db.query(_CharModel)
+            .filter(
+                _CharModel.id == effective_b_id,
+                _CharModel.deleted_at.is_(None),
+            )
+            .first()
+        )
         _chars_for_neg.append(_char_b)
     for _ch in _chars_for_neg:
         if not _ch:
@@ -518,10 +520,10 @@ def _resolve_consistency(request, db, character_obj, style_profile_loras):
         character_obj,
         style_profile_loras=style_profile_loras or None,
         req=ConsistencyRequest(
-            use_ip_adapter=request.use_ip_adapter,
+            use_ip_adapter=request.is_ip_adapter_enabled,
             ip_adapter_reference=request.ip_adapter_reference,
             ip_adapter_weight=request.ip_adapter_weight,
-            use_reference_only=request.use_reference_only,
+            use_reference_only=request.is_reference_only_enabled,
             reference_only_weight=request.reference_only_weight,
         ),
     )
@@ -530,11 +532,11 @@ def _resolve_consistency(request, db, character_obj, style_profile_loras):
 def _apply_strategy_to_request(strategy, request) -> None:
     """Apply resolved strategy back to request for backward compat."""
     if strategy.ip_adapter_enabled:
-        request.use_ip_adapter = True
+        request.is_ip_adapter_enabled = True
         request.ip_adapter_reference = strategy.ip_adapter_reference
         request.ip_adapter_weight = strategy.ip_adapter_weight
-    if strategy.reference_only_enabled != request.use_reference_only:
-        request.use_reference_only = strategy.reference_only_enabled
+    if strategy.reference_only_enabled != request.is_reference_only_enabled:
+        request.is_reference_only_enabled = strategy.reference_only_enabled
 
 
 def _debug_verify_loras(ctx: GenerationContext) -> None:

@@ -18,12 +18,12 @@ export type LangOption = { value: string; label: string };
 export type StepMetadata = { key: string; label: string; desc: string };
 export type ReadingSpeedConfig = { cps?: number; wps?: number; unit: string };
 export type GenerationDefaults = {
-  use_controlnet: boolean;
+  is_controlnet_enabled: boolean;
   controlnet_weight: number;
-  use_ip_adapter: boolean;
+  is_ip_adapter_enabled: boolean;
   ip_adapter_weight: number;
-  multi_gen_enabled: boolean;
-  enable_hr: boolean;
+  is_multi_gen_enabled: boolean;
+  is_hr_enabled: boolean;
 };
 
 export function usePresets(skip = false) {

@@ -20,7 +20,7 @@ export interface SceneRequest {
   negative_prompt: string;
   width: number;
   height: number;
-  enable_hr?: boolean;
+  is_hr_enabled?: boolean;
   hr_scale?: number;
   hr_upscaler?: string;
   hr_second_pass_steps?: number;
@@ -32,16 +32,16 @@ export interface SceneRequest {
   background_id?: number;
   context_tags?: Record<string, unknown>;
   style_loras: unknown[];
-  auto_rewrite_prompt: boolean;
-  auto_replace_risky_tags: boolean;
+  is_auto_rewrite_enabled: boolean;
+  is_auto_replace_risky_tags: boolean;
   client_id: string;
-  use_controlnet: boolean;
+  is_controlnet_enabled: boolean;
   controlnet_weight: number;
   controlnet_pose?: string;
-  use_ip_adapter: boolean;
+  is_ip_adapter_enabled: boolean;
   ip_adapter_reference?: string;
   ip_adapter_weight: number;
-  use_reference_only: boolean;
+  is_reference_only_enabled: boolean;
   reference_only_weight: number;
   environment_reference_id?: number;
   environment_reference_weight: number;
@@ -64,7 +64,7 @@ export function buildSceneRequest(
   const hrd = sbState.hiResDefaults;
   const hiResPayload = sbState.hiResEnabled
     ? {
-        enable_hr: true,
+        is_hr_enabled: true,
         hr_scale: hrd?.scale ?? 1.5,
         hr_upscaler: hrd?.upscaler ?? "R-ESRGAN 4x+ Anime6B",
         hr_second_pass_steps: hrd?.second_pass_steps ?? 10,
@@ -86,18 +86,18 @@ export function buildSceneRequest(
     background_id: scene.background_id || undefined,
     context_tags: scene.context_tags || undefined,
     style_loras: sbState.characterLoras || [],
-    auto_rewrite_prompt: sbState.autoRewritePrompt,
-    auto_replace_risky_tags: sbState.autoReplaceRiskyTags,
+    is_auto_rewrite_enabled: sbState.autoRewritePrompt,
+    is_auto_replace_risky_tags: sbState.autoReplaceRiskyTags,
     client_id: scene.client_id,
-    use_controlnet: controlnet.enabled && !isNarrator,
+    is_controlnet_enabled: controlnet.enabled && !isNarrator,
     controlnet_weight: controlnet.weight,
     controlnet_pose: scene.controlnet_pose || undefined,
-    use_ip_adapter: ipAdapter.enabled && !!ipAdapter.reference && !isNarrator,
+    is_ip_adapter_enabled: ipAdapter.enabled && !!ipAdapter.reference && !isNarrator,
     ip_adapter_reference: isNarrator ? undefined : ipAdapter.reference || undefined,
     // Backend SSOT: /presets API generation_defaults.ip_adapter_weight → store.ipAdapterWeight
     ip_adapter_weight: ipAdapter.weight ?? 0.35,
-    // Backend SSOT: config.py (schemas.py SceneGenerateRequest.use_reference_only default=True)
-    use_reference_only: scene.use_reference_only ?? true,
+    // Backend SSOT: config.py (schemas.py SceneGenerateRequest.is_reference_only_enabled default=True)
+    is_reference_only_enabled: scene.use_reference_only ?? true,
     // Backend SSOT: config.py DEFAULT_REFERENCE_ONLY_WEIGHT = 0.5
     reference_only_weight: scene.reference_only_weight ?? 0.5,
     environment_reference_id: scene.environment_reference_id || undefined,

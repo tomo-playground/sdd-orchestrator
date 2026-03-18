@@ -63,7 +63,7 @@ export function useTTSPreview(storyboardId: number | null) {
 
         const data = res.data;
         updateState(clientId, {
-          status: data.cached ? "cached" : "idle",
+          status: data.is_cached ? "cached" : "idle",
           audioUrl: data.audio_url,
           duration: data.duration,
           cacheKey: data.cache_key,
@@ -149,7 +149,7 @@ export function useTTSPreview(storyboardId: number | null) {
           voice_design_prompt: scene.voice_design_prompt || null,
           scene_emotion: scene.context_tags?.emotion ?? undefined,
           language: "korean",
-          force_regenerate: true,
+          is_force_regenerate: true,
         });
 
         const data = res.data;

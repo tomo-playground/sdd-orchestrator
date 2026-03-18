@@ -116,7 +116,7 @@ class TestCreateVideo:
             "layout_style": "full",
             "ken_burns_preset": "slow_zoom_in",
             "transition_type": "fade",
-            "include_scene_text": True,
+            "is_scene_text_included": True,
             "speed_multiplier": 1.0,
             "bgm_volume": 0.3,
         }

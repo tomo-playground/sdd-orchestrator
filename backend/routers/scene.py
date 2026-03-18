@@ -251,7 +251,7 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
     Returns:
         {
             "validation_result": {...},  # WD14 검증 결과
-            "auto_edit_triggered": True/False,
+            "is_auto_edit_triggered": True/False,
             "edited_image": "base64" (if edited),
             "edit_cost": 0.0404 (if edited),
             "original_match_rate": 0.65,
@@ -283,7 +283,7 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
     }
     result = {
         "validation_result": sanitized_validation,
-        "auto_edit_triggered": False,
+        "is_auto_edit_triggered": False,
     }
 
     # Step 2: 자동 편집 체크 (Multi-Level Safety)
@@ -353,7 +353,7 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
             image_b64=image_b64, original_prompt=request.prompt, match_rate=match_rate, missing_tags=missing_tags
         )
 
-        result["auto_edit_triggered"] = True
+        result["is_auto_edit_triggered"] = True
         result["edited_image"] = edit_result["edited_image"]
         result["edit_cost"] = edit_result["cost_usd"]
         result["original_match_rate"] = match_rate
@@ -381,7 +381,7 @@ async def validate_and_auto_edit_scene(request: SceneValidateRequest, db: Sessio
         result["auto_edit_error"] = "자동 편집에 실패했습니다."
 
     # Record Gemini edit in ActivityLog for cost/retry tracking
-    if result.get("auto_edit_triggered"):
+    if result.get("is_auto_edit_triggered"):
         try:
             with get_db_session() as edit_db:
                 edit_log = ActivityLog(

@@ -34,11 +34,11 @@ def main():
         payload = {
             "character_id": char.id,
             "scene_prompt": scene_prompt,
-            "use_ip_adapter": True,
+            "is_ip_adapter_enabled": True,
             "ip_adapter_reference": char.name,
             "ip_adapter_weight": 0.7,
             "width": 512,
-            "height": 512
+            "height": 512,
         }
 
         print(f"🚀 Requesting generation for scene: '{scene_prompt}'")
@@ -50,7 +50,7 @@ def main():
             result = resp.json()
 
             output_path = "outputs/test_verification_generic.png"
-            image_b64 = result['image']
+            image_b64 = result["image"]
 
             # Save the result
             with open(backend_dir / output_path, "wb") as f:
@@ -76,6 +76,7 @@ def main():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

@@ -44,8 +44,8 @@ const truncate = (str: string | undefined, maxLen: number) =>
 /* ======== Media Settings Panel (left column) ======== */
 
 export type RenderMediaPanelProps = {
-  includeSceneText: boolean;
-  setIncludeSceneText: (value: boolean) => void;
+  isSceneTextIncluded: boolean;
+  setIsSceneTextIncluded: (value: boolean) => void;
   sceneTextFont: string;
   setSceneTextFont: (value: string) => void;
   fontList: FontItem[];
@@ -58,8 +58,8 @@ export type RenderMediaPanelProps = {
   setTransitionType: (value: string) => void;
   speedMultiplier: number;
   setSpeedMultiplier: (value: number) => void;
-  audioDucking: boolean;
-  setAudioDucking: (value: boolean) => void;
+  isAudioDuckingEnabled: boolean;
+  setIsAudioDuckingEnabled: (value: boolean) => void;
   bgmVolume: number;
   setBgmVolume: (value: number) => void;
   voiceDesignPrompt: string;
@@ -79,8 +79,8 @@ export type RenderMediaPanelProps = {
 };
 
 export function RenderMediaPanel({
-  includeSceneText,
-  setIncludeSceneText,
+  isSceneTextIncluded,
+  setIsSceneTextIncluded,
   sceneTextFont,
   setSceneTextFont,
   fontList,
@@ -93,8 +93,8 @@ export function RenderMediaPanel({
   setTransitionType,
   speedMultiplier,
   setSpeedMultiplier,
-  audioDucking,
-  setAudioDucking,
+  isAudioDuckingEnabled,
+  setIsAudioDuckingEnabled,
   bgmVolume,
   setBgmVolume,
   voiceDesignPrompt,
@@ -135,8 +135,8 @@ export function RenderMediaPanel({
               Scene Text
               <input
                 type="checkbox"
-                checked={includeSceneText}
-                onChange={(e) => setIncludeSceneText(e.target.checked)}
+                checked={isSceneTextIncluded}
+                onChange={(e) => setIsSceneTextIncluded(e.target.checked)}
                 className="h-4 w-4 accent-zinc-900"
               />
             </label>
@@ -246,8 +246,8 @@ export function RenderMediaPanel({
             setBgmMode={setBgmMode}
             musicPresetId={musicPresetId}
             setMusicPresetId={setMusicPresetId}
-            audioDucking={audioDucking}
-            setAudioDucking={setAudioDucking}
+            isAudioDuckingEnabled={isAudioDuckingEnabled}
+            setIsAudioDuckingEnabled={setIsAudioDuckingEnabled}
             bgmVolume={bgmVolume}
             setBgmVolume={setBgmVolume}
             bgmPrompt={bgmPrompt}

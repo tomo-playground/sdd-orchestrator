@@ -13,7 +13,7 @@ export type StorageStats = {
 export type CleanupResult = {
   deleted_count: number;
   freed_mb: number;
-  dry_run: boolean;
+  is_dry_run: boolean;
   details: Record<string, { deleted: number; freed_mb: number; files?: string[] }>;
 };
 
@@ -48,8 +48,8 @@ export type OrphanReport = {
 };
 
 export type MediaCleanupResult = {
-  orphans: { deleted: number; storage_errors: string[]; dry_run: boolean };
-  expired_temp: { deleted: number; storage_errors: string[]; dry_run: boolean };
+  orphans: { deleted: number; storage_errors: string[]; is_dry_run: boolean };
+  expired_temp: { deleted: number; storage_errors: string[]; is_dry_run: boolean };
   total_deleted: number;
 };
 

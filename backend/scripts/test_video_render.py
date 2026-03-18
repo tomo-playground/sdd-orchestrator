@@ -40,7 +40,7 @@ def test_video_render():
         "narrator_voice": "ko-KR-SunHiNeural",
         "bgm_file": None,
         "bgm_volume": 0.4,
-        "audio_ducking": True,
+        "is_audio_ducking_enabled": True,
         "overlay_settings": {
             "channel_name": "테스트 채널",
             "avatar_key": "test_channel",
@@ -53,7 +53,7 @@ def test_video_render():
         "transition_type": "fade",
         "ken_burns_preset": "random",
         "ken_burns_intensity": 1.0,
-        "include_scene_text": True,
+        "is_scene_text_included": True,
         "speed_multiplier": 1.0,
     }
 

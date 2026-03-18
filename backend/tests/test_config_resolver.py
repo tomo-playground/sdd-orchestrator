@@ -134,7 +134,7 @@ class TestEffectiveConfigAPI:
         assert rp["name"] == "Full Preset Test"
         assert rp["bgm_file"] == "test.mp3"
         assert rp["bgm_volume"] == 0.5
-        assert rp["audio_ducking"] is True
+        assert rp["is_audio_ducking_enabled"] is True
         assert rp["scene_text_font"] == "NotoSans"
         assert rp["layout_style"] == "full"
         assert rp["frame_style"] == "clean"

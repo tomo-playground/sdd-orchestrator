@@ -52,7 +52,7 @@ export default function SceneToolsContent() {
 
   // Scene-level overrides (null = inherit global)
   const sceneMultiGen = currentScene?.multi_gen_enabled;
-  const sceneControlnet = currentScene?.use_controlnet;
+  const sceneControlnet = currentScene?.is_controlnet_enabled;
   const sceneControlnetWeight = currentScene?.controlnet_weight;
   const sceneIpAdapter = currentScene?.use_ip_adapter;
   const sceneIpAdapterRef = currentScene?.ip_adapter_reference;
@@ -90,8 +90,8 @@ export default function SceneToolsContent() {
             label="ControlNet"
             checked={effectiveControlnet}
             hasOverride={hasControlnetOverride}
-            onChange={(v) => setSceneField("use_controlnet", v)}
-            onReset={() => setSceneField("use_controlnet", null)}
+            onChange={(v) => setSceneField("is_controlnet_enabled", v)}
+            onReset={() => setSceneField("is_controlnet_enabled", null)}
             accent="violet"
             disabled={isNarrator}
             disabledReason="Narrator 씬에서는 사용 불가"

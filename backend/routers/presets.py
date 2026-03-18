@@ -27,7 +27,6 @@ async def list_presets():
         DEFAULT_MULTI_GEN_ENABLED,
         DEFAULT_TTS_ENGINE,
         DEFAULT_USE_CONTROLNET,
-        SUPPORTED_TTS_ENGINES,
         DEFAULT_USE_IP_ADAPTER,
         READING_SPEED,
         SD_DEFAULT_HEIGHT,
@@ -37,6 +36,7 @@ async def list_presets():
         SD_HI_RES_SECOND_PASS_STEPS,
         SD_HI_RES_UPSCALER,
         SD_SAMPLERS,
+        SUPPORTED_TTS_ENGINES,
     )
     from config_pipelines import FAST_TRACK_SKIP_STAGES  # noqa: PLC0415
 
@@ -48,12 +48,12 @@ async def list_presets():
         "optional_steps": [],
         "pipeline_metadata": [],
         "generation_defaults": {
-            "use_controlnet": DEFAULT_USE_CONTROLNET,
+            "is_controlnet_enabled": DEFAULT_USE_CONTROLNET,
             "controlnet_weight": DEFAULT_CONTROLNET_WEIGHT,
-            "use_ip_adapter": DEFAULT_USE_IP_ADAPTER,
+            "is_ip_adapter_enabled": DEFAULT_USE_IP_ADAPTER,
             "ip_adapter_weight": DEFAULT_IP_ADAPTER_WEIGHT,
-            "multi_gen_enabled": DEFAULT_MULTI_GEN_ENABLED,
-            "enable_hr": DEFAULT_ENABLE_HR,
+            "is_multi_gen_enabled": DEFAULT_MULTI_GEN_ENABLED,
+            "is_hr_enabled": DEFAULT_ENABLE_HR,
         },
         "hi_res_defaults": {
             "scale": SD_HI_RES_SCALE,

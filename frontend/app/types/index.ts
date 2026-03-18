@@ -87,7 +87,7 @@ export type Scene = {
   environment_reference_id?: number | null;
   environment_reference_weight?: number;
   // Per-scene generation settings override (null = inherit global)
-  use_controlnet?: boolean | null;
+  is_controlnet_enabled?: boolean | null;
   controlnet_weight?: number | null;
   controlnet_pose?: string | null;
   use_ip_adapter?: boolean | null;
@@ -273,7 +273,7 @@ export type DraftScene = {
   environment_reference_id?: number | null;
   environment_reference_weight?: number;
   // Per-scene generation settings override (null = inherit global)
-  use_controlnet?: boolean | null;
+  is_controlnet_enabled?: boolean | null;
   controlnet_weight?: number | null;
   use_ip_adapter?: boolean | null;
   ip_adapter_reference?: string | null;
@@ -485,9 +485,9 @@ export type DraftData = {
   selectedCharacterId?: number | null;
   basePromptA?: string;
   baseNegativePromptA?: string;
-  includeSceneText?: boolean;
+  isSceneTextIncluded?: boolean;
   bgmFile?: string | null;
-  audioDucking?: boolean;
+  isAudioDuckingEnabled?: boolean;
   bgmVolume?: number;
   /** @deprecated Use sceneTextFont instead (CLAUDE.md naming migration) */
   subtitleFont?: string;
@@ -619,7 +619,7 @@ export type RenderPreset = {
   is_system: boolean;
   bgm_file: string | null;
   bgm_volume: number | null;
-  audio_ducking: boolean | null;
+  is_audio_ducking_enabled: boolean | null;
   scene_text_font: string | null;
   layout_style: string | null;
   frame_style: string | null;
@@ -932,7 +932,7 @@ export type ScriptPreset = {
   name_ko: string;
   description: string;
   mode: string;
-  auto_approve: boolean;
+  is_auto_approve: boolean;
 };
 
 export type FeedbackPreset = {
@@ -1006,7 +1006,7 @@ export type SceneTTSPreviewResponse = {
   audio_url: string;
   duration: number;
   cache_key: string;
-  cached: boolean;
+  is_cached: boolean;
   voice_seed: number | null;
   voice_design: string | null;
   temp_asset_id: number;
@@ -1032,7 +1032,7 @@ export type SceneFramePreviewRequest = {
   image_url: string;
   script?: string;
   layout_style?: "full" | "post";
-  include_scene_text?: boolean;
+  is_scene_text_included?: boolean;
   scene_text_font?: string | null;
   channel_name?: string | null;
   caption?: string | null;
@@ -1045,7 +1045,7 @@ export type SceneFramePreviewResponse = {
   temp_asset_id: number;
   layout_info: {
     font_size: number | null;
-    face_detected: boolean;
+    is_face_detected: boolean;
     text_brightness: number | null;
   };
 };

@@ -233,7 +233,7 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
     candidates,
     image_prompt: usedPrompt || undefined,
     activity_log_id: activityLogId,
-    use_controlnet: opts.controlnet_pose ? true : undefined,
+    is_controlnet_enabled: opts.controlnet_pose ? true : undefined,
     ip_adapter_reference: opts.ip_adapter_reference || undefined,
   } as Partial<Scene>;
 }

@@ -1337,7 +1337,7 @@ class TestAutoPopulateSceneFlags:
         scenes = [{"speaker": "A", "context_tags": {"pose": "standing"}}]
         _auto_populate_scene_flags(scenes, character_id=1)
         s = scenes[0]
-        assert s["use_controlnet"] is True
+        assert s["is_controlnet_enabled"] is True
         assert s["use_ip_adapter"] is True
         assert s["multi_gen_enabled"] is not None
         assert s.get("controlnet_pose") is not None
@@ -1347,7 +1347,7 @@ class TestAutoPopulateSceneFlags:
 
         scenes = [{"speaker": "Narrator"}]
         _auto_populate_scene_flags(scenes, character_id=1)
-        assert scenes[0]["use_controlnet"] is False
+        assert scenes[0]["is_controlnet_enabled"] is False
         assert scenes[0]["use_ip_adapter"] is False
 
     def test_no_character_id(self):
@@ -1374,13 +1374,13 @@ class TestAutoPopulateSceneFlags:
         scenes = [
             {
                 "speaker": "A",
-                "use_controlnet": False,
+                "is_controlnet_enabled": False,
                 "use_ip_adapter": False,
                 "multi_gen_enabled": False,
             }
         ]
         _auto_populate_scene_flags(scenes, character_id=1)
-        assert scenes[0]["use_controlnet"] is False
+        assert scenes[0]["is_controlnet_enabled"] is False
         assert scenes[0]["use_ip_adapter"] is False
         assert scenes[0]["multi_gen_enabled"] is False
 

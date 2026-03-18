@@ -45,7 +45,8 @@ export async function loadGroupDefaults(
     const updates: Record<string, unknown> = {};
     if (p.bgm_file) updates.bgmFile = p.bgm_file;
     if (p.bgm_volume != null) updates.bgmVolume = p.bgm_volume;
-    if (p.audio_ducking != null) updates.audioDucking = p.audio_ducking;
+    if (p.is_audio_ducking_enabled != null)
+      updates.isAudioDuckingEnabled = p.is_audio_ducking_enabled;
     if (p.scene_text_font) updates.sceneTextFont = p.scene_text_font;
     if (p.layout_style) updates.layoutStyle = p.layout_style;
     if (p.frame_style) updates.frameStyle = p.frame_style;

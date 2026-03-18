@@ -14,7 +14,7 @@ const truncate = (str: string | undefined, maxLen: number) =>
 export type BgmState = {
   bgmMode: "manual" | "auto";
   musicPresetId: number | null;
-  audioDucking: boolean;
+  isAudioDuckingEnabled: boolean;
   bgmVolume: number;
   bgmPrompt: string;
   bgmMood: string;
@@ -23,7 +23,7 @@ export type BgmState = {
 export type BgmActions = {
   setBgmMode: (v: "manual" | "auto") => void;
   setMusicPresetId: (v: number | null) => void;
-  setAudioDucking: (v: boolean) => void;
+  setIsAudioDuckingEnabled: (v: boolean) => void;
   setBgmVolume: (v: number) => void;
   setBgmPrompt: (v: string) => void;
 };
@@ -41,8 +41,8 @@ export default function BgmSection(props: BgmSectionProps) {
     setBgmMode,
     musicPresetId,
     setMusicPresetId,
-    audioDucking,
-    setAudioDucking,
+    isAudioDuckingEnabled,
+    setIsAudioDuckingEnabled,
     bgmVolume,
     setBgmVolume,
     bgmPrompt,
@@ -132,7 +132,9 @@ export default function BgmSection(props: BgmSectionProps) {
           <div className="space-y-1.5 md:col-span-2">
             {bgmMode === "manual" ? (
               <p className="text-xs text-zinc-700">
-                {selectedPreset ? truncate(selectedPreset.name, 28) : "프리셋이 선택되지 않았습니다"}
+                {selectedPreset
+                  ? truncate(selectedPreset.name, 28)
+                  : "프리셋이 선택되지 않았습니다"}
               </p>
             ) : (
               <div className="space-y-1">
@@ -259,8 +261,8 @@ export default function BgmSection(props: BgmSectionProps) {
             <label className="flex items-center gap-1 text-[12px] whitespace-nowrap text-zinc-500">
               <input
                 type="checkbox"
-                checked={audioDucking}
-                onChange={(e) => setAudioDucking(e.target.checked)}
+                checked={isAudioDuckingEnabled}
+                onChange={(e) => setIsAudioDuckingEnabled(e.target.checked)}
                 className="h-3 w-3 accent-zinc-900"
               />
               Duck

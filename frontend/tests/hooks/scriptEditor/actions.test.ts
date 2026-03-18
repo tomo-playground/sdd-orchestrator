@@ -216,7 +216,7 @@ describe("buildSavePayload", () => {
 
   it("maps scene fields correctly", () => {
     const scene = makeScene({
-      use_controlnet: true,
+      is_controlnet_enabled: true,
       controlnet_weight: 0.8,
       voice_design_prompt: "deep voice",
       head_padding: 0.5,
@@ -229,7 +229,7 @@ describe("buildSavePayload", () => {
     const payload = buildSavePayload(state, 1);
     const s = payload.scenes[0];
 
-    expect(s.use_controlnet).toBe(true);
+    expect(s.is_controlnet_enabled).toBe(true);
     expect(s.controlnet_weight).toBe(0.8);
     expect(s.voice_design_prompt).toBe("deep voice");
     expect(s.head_padding).toBe(0.5);
