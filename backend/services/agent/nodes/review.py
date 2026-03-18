@@ -217,8 +217,12 @@ async def _unified_evaluate(
     structure: str,
     rule_errors: list[str],
     rule_warnings: list[str],
-) -> UnifiedReviewOutput | None:
-    """단일 Gemini 호출로 기술 + 서사 + 리플렉션을 통합 평가한다."""
+) -> tuple[UnifiedReviewOutput | None, str | None]:
+    """단일 Gemini 호출로 기술 + 서사 + 리플렉션을 통합 평가한다.
+
+    Returns:
+        (UnifiedReviewOutput | None, observation_id | None)
+    """
     try:
         from services.agent.langfuse_prompt import compile_prompt  # noqa: PLC0415
         from services.agent.prompt_builders_c import (  # noqa: PLC0415
@@ -255,10 +259,10 @@ async def _unified_evaluate(
         data = json.loads(text)
         unified = UnifiedReviewOutput.model_validate(data)
         logger.info("[LangGraph] Unified Review 파싱 성공")
-        return unified
+        return unified, llm_response.observation_id
     except Exception as e:
         logger.warning("[LangGraph] Unified Review 실패, 레거시 폴백: %s", e)
-        return None
+        return None, None
 
 
 async def _legacy_evaluate(
@@ -304,8 +308,9 @@ async def review_node(state: ScriptState) -> dict:
     narrative_score: NarrativeScore | None = None
     reflection: str | None = None
 
+    review_obs_id: str | None = None
     if is_full:
-        unified = await _unified_evaluate(
+        unified, review_obs_id = await _unified_evaluate(
             scenes,
             topic,
             language,
@@ -354,12 +359,13 @@ async def review_node(state: ScriptState) -> dict:
     )
 
     # Score 기록 (Phase 38)
-    record_score("first_pass", result.get("passed"))
-    record_score("script_qc_issues", len(result.get("errors", [])))
+    record_score("first_pass", result.get("passed"), observation_id=review_obs_id)
+    record_score("script_qc_issues", len(result.get("errors", [])), observation_id=review_obs_id)
     ns = result.get("narrative_score")
     record_score(
         "narrative_overall",
         ns.get("overall") if ns else None,
+        observation_id=review_obs_id,
         comment=json.dumps(ns, ensure_ascii=False) if ns else "",
     )
 

@@ -75,6 +75,7 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
 
     final_decision = "approve"
     final_feedback = ""
+    last_obs_id: str | None = None
 
     for step_num in range(1, LANGGRAPH_MAX_REACT_STEPS + 1):
         logger.info("[LangGraph] Director ReAct Step %d/%d", step_num, LANGGRAPH_MAX_REACT_STEPS)
@@ -103,6 +104,7 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
                 step_name="generate_content director",
                 model=DIRECTOR_MODEL,
             )
+            last_obs_id = result.get("_observation_id") or last_obs_id
 
             react = DirectorReActOutput.model_validate(result)
 
@@ -202,6 +204,7 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
                     step_name="generate_content director",
                     model=DIRECTOR_MODEL,
                 )
+                last_obs_id = result.get("_observation_id") or last_obs_id
                 react = DirectorReActOutput.model_validate(result)
                 react_step = {
                     "step": step_num,
@@ -239,7 +242,7 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
     new_count = count + 1 if (had_revise_step or final_decision == "error") else count
 
     # Score 기록 (Phase 38)
-    record_score("director_revision_count", new_count)
+    record_score("director_revision_count", new_count, observation_id=last_obs_id)
 
     result_dict: dict = {
         "director_decision": final_decision,

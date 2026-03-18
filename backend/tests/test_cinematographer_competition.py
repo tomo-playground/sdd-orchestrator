@@ -185,8 +185,8 @@ async def test_competition_selects_highest_score():
         nonlocal call_count
         call_count += 1
         if call_count == 1:
-            return f"```json\n{diverse_scenes}\n```", []  # tension (highest)
-        return f"```json\n{monotone_scenes}\n```", []
+            return f"```json\n{diverse_scenes}\n```", [], None  # tension (highest)
+        return f"```json\n{monotone_scenes}\n```", [], None
 
     with patch(
         "services.agent.cinematographer_competition.call_with_tools",

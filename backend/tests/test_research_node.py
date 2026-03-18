@@ -53,7 +53,7 @@ def mock_tool_calling():
     """
     with patch("services.agent.tools.base.call_with_tools") as mock_call:
         # 기본값: 빈 brief
-        mock_call.return_value = ("[Research Brief] 기본 분석 결과", [])
+        mock_call.return_value = ("[Research Brief] 기본 분석 결과", [], None)
         yield mock_call
 
 
@@ -63,7 +63,7 @@ def mock_tool_calling():
 async def test_empty_store_returns_none(store, base_state, config, mock_tool_calling):
     """빈 store에서는 research_brief가 None이다."""
     # Tool-Calling이 빈 결과 반환하도록 설정
-    mock_tool_calling.return_value = ("", [])
+    mock_tool_calling.return_value = ("", [], None)
     result = await research_node(base_state, config, store=store)
 
     assert result["research_brief"] is None or result["research_brief"] == ""
@@ -78,6 +78,7 @@ async def test_character_history(store, base_state, config, mock_tool_calling):
     mock_tool_calling.return_value = (
         "[Research Brief] 캐릭터 히스토리 분석 결과",
         [{"tool_name": "search_character_history", "arguments": {}, "result": "...", "error": None}],
+        None,
     )
     result = await research_node(base_state, config, store=store)
 
@@ -95,7 +96,7 @@ async def test_topic_history(store, base_state, config, mock_tool_calling):
     t_key = topic_key("테스트 주제")
     await store.aput(("topic", t_key), "key1", {"summary": "이전 생성 결과", "scene_count": 5})
 
-    mock_tool_calling.return_value = ("[Research Brief] 토픽 히스토리 분석", [])
+    mock_tool_calling.return_value = ("[Research Brief] 토픽 히스토리 분석", [], None)
     result = await research_node(base_state, config, store=store)
     brief = result["research_brief"]
     assert brief is not None
@@ -111,7 +112,7 @@ async def test_user_preferences(store, base_state, config, mock_tool_calling):
         {"total_generations": 10, "positive_ratio": 0.8},
     )
 
-    mock_tool_calling.return_value = ("[Research Brief] 사용자 선호 분석", [])
+    mock_tool_calling.return_value = ("[Research Brief] 사용자 선호 분석", [], None)
     result = await research_node(base_state, config, store=store)
     brief = result["research_brief"]
     assert brief is not None
@@ -141,6 +142,7 @@ async def test_combined_sources(store, base_state, config, mock_tool_calling):
     mock_tool_calling.return_value = (
         "[Research Brief] 캐릭터, 토픽, 사용자 선호, 그룹 DNA 종합 분석",
         [],
+        None,
     )
     result = await research_node(base_state, config, store=store)
     brief = result["research_brief"]
@@ -304,7 +306,7 @@ class TestFallbackBrief:
 
 async def test_no_references_returns_none_brief(store, base_state, config, mock_tool_calling):
     """references 없을 때 기존 동작 유지 (빈 brief)."""
-    mock_tool_calling.return_value = ("", [])
+    mock_tool_calling.return_value = ("", [], None)
     result = await research_node(base_state, config, store=store)
     assert result["research_brief"] is None or result["research_brief"] == ""
 
@@ -324,6 +326,7 @@ async def test_text_reference_with_gemini(store, config, mock_tool_calling):
     mock_tool_calling.return_value = (
         "[Research Brief] 감성 여행 컨셉, 벚꽃 명소 소개",
         [{"tool_name": "fetch_url_content", "arguments": {}, "result": "...", "error": None}],
+        None,
     )
     result = await research_node(state, config, store=store)
 
@@ -349,6 +352,7 @@ async def test_gemini_failure_fallback(store, config, mock_tool_calling):
     mock_tool_calling.return_value = (
         "[Research Brief] 소재 참고: 소재 텍스트입니다",
         [],
+        None,
     )
     result = await research_node(state, config, store=store)
 
@@ -373,6 +377,7 @@ async def test_unsafe_url_blocked(store, config, mock_tool_calling):
     mock_tool_calling.return_value = (
         "[Research Brief] URL fetch 실패",
         [{"tool_name": "fetch_url_content", "arguments": {}, "result": "fetch 실패", "error": None}],
+        None,
     )
     result = await research_node(state, config, store=store)
 
@@ -394,6 +399,7 @@ async def test_no_gemini_client_fallback(store, config, mock_tool_calling):
     mock_tool_calling.return_value = (
         "[Research Brief] 소재 참고: 참고 소재",
         [],
+        None,
     )
     result = await research_node(state, config, store=store)
 

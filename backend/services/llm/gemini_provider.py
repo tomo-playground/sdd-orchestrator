@@ -93,6 +93,7 @@ class GeminiProvider:
         # 429/5xx retry
         delays = [1, 3]
         response = None
+        obs_id: str | None = None
         for attempt in range(3):
             try:
                 async with trace_llm_call(
@@ -108,6 +109,7 @@ class GeminiProvider:
                         config=gemini_config,
                     )
                     llm.record(response)
+                    obs_id = getattr(llm.generation, "id", None)
                 break
             except Exception as exc:
                 if attempt < 2 and _is_retryable(exc):
@@ -148,11 +150,13 @@ class GeminiProvider:
                         config=gemini_config,
                     )
                     llm_fb.record(response)
+                    obs_id = getattr(llm_fb.generation, "id", None)
 
         return LLMResponse(
             text=_safe_extract_text(response) if response else "",
             usage=_extract_usage(response) if response else None,
             raw=response,
+            observation_id=obs_id,
         )
 
     async def generate_with_tools(
@@ -182,6 +186,7 @@ class GeminiProvider:
         # 429/5xx retry
         delays = [1, 3]
         response = None
+        obs_id: str | None = None
         for attempt in range(3):
             try:
                 async with trace_llm_call(
@@ -196,6 +201,7 @@ class GeminiProvider:
                         config=gemini_config,
                     )
                     llm.record(response)
+                    obs_id = getattr(llm.generation, "id", None)
                 break
             except Exception as exc:
                 if attempt < 2 and _is_retryable(exc):
@@ -235,9 +241,11 @@ class GeminiProvider:
                         config=gemini_config,
                     )
                     llm_fb.record(response)
+                    obs_id = getattr(llm_fb.generation, "id", None)
 
         return LLMResponse(
             text=_safe_extract_text(response) if response else "",
             usage=_extract_usage(response) if response else None,
             raw=response,
+            observation_id=obs_id,
         )

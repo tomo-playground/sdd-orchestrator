@@ -284,6 +284,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     max_attempts = 2
     tool_logs: list = []
     scenes_output: list[dict] | None = None
+    cine_obs_id: str | None = None
 
     _JSON_RETRY_SUFFIX = (
         "\n\n[CRITICAL] 이전 응답에서 유효한 JSON을 받지 못했습니다. "
@@ -298,7 +299,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
             logger.info("[Cinematographer] Agent 시작 (attempt %d/%d)", attempt, max_attempts)
             _cine_metadata = {"template": _cine_template}
             if attempt == 1:
-                response, attempt_logs = await call_with_tools(
+                response, attempt_logs, cine_obs_id = await call_with_tools(
                     prompt=current_prompt,
                     tools=tools,
                     tool_executors=executors,
@@ -348,7 +349,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
 
     logger.info("[Cinematographer] Tool-Calling 완료 (%d 씬, %d 도구 호출)", len(scenes_output), len(tool_logs))
     # Score 기록 (Phase 38)
-    record_score("visual_qc_issues", len(qc.get("issues", [])))
+    record_score("visual_qc_issues", len(qc.get("issues", [])), observation_id=cine_obs_id)
     return {
         "cinematographer_result": {"scenes": scenes_output},
         "cinematographer_tool_logs": tool_logs,

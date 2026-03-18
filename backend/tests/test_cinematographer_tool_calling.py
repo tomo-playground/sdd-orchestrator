@@ -255,6 +255,7 @@ async def test_cinematographer_node_tool_calling():
 }
 ```""",
             [{"tool_name": "get_character_visual_tags", "arguments": {}, "result": "...", "error": None}],
+            None,
         )
 
         # validate_visuals 모킹
@@ -291,6 +292,7 @@ async def test_cinematographer_node_no_db_in_config():
         mock_call.return_value = (
             '{"scenes": [{"order": 1, "text": "테스트", "visual_tags": ["1girl"], "camera": "close-up", "environment": "indoors"}]}',
             [],
+            None,
         )
 
         result = await cinematographer_node(state, config)
@@ -316,6 +318,7 @@ async def test_cinematographer_node_json_parsing_graceful():
         mock_call.return_value = (
             "This is not valid JSON",
             [],
+            None,
         )
 
         with patch("services.agent.tools.base.call_direct", new_callable=AsyncMock) as mock_direct:
@@ -345,7 +348,7 @@ async def test_cinematographer_node_retry_succeeds_on_second_attempt():
     valid_json = '{"scenes": [{"order": 1, "text": "테스트", "visual_tags": ["1girl"], "camera": "close-up", "environment": "indoors"}]}'
 
     with patch("services.agent.tools.base.call_with_tools") as mock_call:
-        mock_call.return_value = ("", [])  # 첫 시도: 빈 응답
+        mock_call.return_value = ("", [], None)  # 첫 시도: 빈 응답
 
         with patch("services.agent.tools.base.call_direct", new_callable=AsyncMock) as mock_direct:
             mock_direct.return_value = valid_json  # 두 번째: call_direct 성공
@@ -385,6 +388,7 @@ async def test_cinematographer_node_qc_failure_still_returns():
 }
 ```""",
             [],
+            None,
         )
 
         with patch("services.agent.nodes.cinematographer.validate_visuals") as mock_validate:

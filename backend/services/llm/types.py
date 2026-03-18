@@ -1,4 +1,5 @@
 """Provider-agnostic LLM 요청/응답 타입."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -23,3 +24,4 @@ class LLMResponse:
     text: str
     usage: dict[str, int] | None = None  # input/output/total tokens
     raw: Any = None  # provider raw response (디버깅용)
+    observation_id: str | None = None  # LangFuse observation ID (Score 부착용)

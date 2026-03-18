@@ -175,6 +175,7 @@ async def test_research_node_tool_calling():
         mock_call.return_value = (
             "[Research Brief] 외로움 주제는 공감 Hook이 중요합니다.",
             [{"tool_name": "search_topic_history", "arguments": {}, "result": "...", "error": None}],
+            None,
         )
 
         result = await research_node(state, config, store=mock_store)
@@ -253,6 +254,7 @@ async def test_research_node_with_references():
                     "error": None,
                 }
             ],
+            None,
         )
 
         result = await research_node(state, config, store=mock_store)

@@ -38,9 +38,7 @@ async def test_sound_designer_passes_writer_plan(mock_run):
     """writer_plan이 Sound Designer의 emotional_arc_section에 반영된다."""
     from services.agent.nodes.sound_designer import sound_designer_node
 
-    mock_run.return_value = {
-        "recommendation": {"prompt": "calm guitar", "mood": "calm", "duration": 30}
-    }
+    mock_run.return_value = {"recommendation": {"prompt": "calm guitar", "mood": "calm", "duration": 30}}
 
     writer_plan = {
         "hook_strategy": "질문으로 시작",
@@ -66,9 +64,7 @@ async def test_sound_designer_writer_plan_none(mock_run):
     """writer_plan이 None이어도 Sound Designer가 정상 동작한다."""
     from services.agent.nodes.sound_designer import sound_designer_node
 
-    mock_run.return_value = {
-        "recommendation": {"prompt": "calm guitar", "mood": "calm", "duration": 30}
-    }
+    mock_run.return_value = {"recommendation": {"prompt": "calm guitar", "mood": "calm", "duration": 30}}
 
     state = _base_state(writer_plan=None)
 
@@ -165,6 +161,7 @@ async def test_cinematographer_passes_director_plan(mock_compile, mock_cwt, mock
     mock_cwt.return_value = (
         '```json\n{"scenes": [{"order": 1, "visual_tags": ["smile"]}]}\n```',
         [],
+        None,
     )
     mock_qc.return_value = {"ok": True, "issues": [], "checks": {}}
 

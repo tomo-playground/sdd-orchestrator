@@ -340,7 +340,7 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
     # Tool-Calling 실행
     try:
         logger.info("[Research] Tool-Calling Agent 시작")
-        response, tool_logs = await call_with_tools(
+        response, tool_logs, obs_id = await call_with_tools(
             prompt=prompt,
             tools=tools,
             tool_executors=executors,
@@ -364,7 +364,7 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
         score = calculate_research_score(state, tool_logs, raw_brief)
 
         # Score 기록 (Phase 38)
-        record_score("research_quality", score.get("overall") if score else None)
+        record_score("research_quality", score.get("overall") if score else None, observation_id=obs_id)
 
         return {
             "research_brief": structured_brief,

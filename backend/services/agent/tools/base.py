@@ -99,7 +99,7 @@ async def call_with_tools(
     temperature: float = 0.7,
     system_instruction: str | None = None,
     metadata: dict[str, Any] | None = None,
-) -> tuple[str, list[ToolCallLog]]:
+) -> tuple[str, list[ToolCallLog], str | None]:
     """Gemini Function Calling 루프 실행.
 
     LLM이 도구를 선택적으로 호출하는 ReAct 루프:
@@ -117,7 +117,8 @@ async def call_with_tools(
         temperature: Gemini 생성 온도 (기본 0.7)
 
     Returns:
-        (최종 LLM 응답, 도구 호출 로그). max_calls 도달 시에도 누적 텍스트를 반환.
+        (최종 LLM 응답, 도구 호출 로그, 마지막 LLM observation_id).
+        max_calls 도달 시에도 누적 텍스트를 반환.
         텍스트가 비어있고 도구 호출이 있었으면, 도구 없이 1회 추가 호출(fallback)을 시도한다.
     """
     if max_calls is None:
@@ -134,6 +135,7 @@ async def call_with_tools(
     call_count = 0
     # 매 스텝의 텍스트 파트를 누적 (function_call 혼재 응답에서도 보존)
     accumulated_text: list[str] = []
+    last_obs_id: str | None = None
 
     while call_count < max_calls:
         # GeminiProvider를 통해 Function Calling 호출 (trace + PROHIBITED fallback 내장)
@@ -145,6 +147,7 @@ async def call_with_tools(
             tools=tools,  # type: ignore[arg-type]
             metadata=step_metadata,
         )
+        last_obs_id = llm_response.observation_id
         response = llm_response.raw
 
         # Tool call 감지
@@ -170,7 +173,7 @@ async def call_with_tools(
             final_text = "\n".join(accumulated_text).strip()
             if final_text:
                 logger.info("[Tool-Calling] Final response received (no tool calls)")
-                return final_text, tool_logs
+                return final_text, tool_logs, last_obs_id
             # 텍스트가 비어있으면 fallback으로 진행
             logger.warning("[Tool-Calling] Final response has empty text, falling through to fallback")
             break
@@ -310,6 +313,7 @@ async def call_with_tools(
                 tools=[],
                 metadata=fb_metadata,
             )
+            last_obs_id = fallback_resp.observation_id
             raw_fb = fallback_resp.raw
             if raw_fb and raw_fb.candidates and raw_fb.candidates[0].content:
                 fb_parts = raw_fb.candidates[0].content.parts or []
@@ -318,7 +322,7 @@ async def call_with_tools(
         except Exception as e:
             logger.warning("[Tool-Calling] Fallback call failed: %s", e)
 
-    return final, tool_logs
+    return final, tool_logs, last_obs_id
 
 
 async def call_direct(

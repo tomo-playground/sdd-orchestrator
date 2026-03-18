@@ -228,7 +228,7 @@ class TestDirectorPlanResearchInjection:
 
         async def mock_call_with_tools(prompt, **kwargs):
             captured_prompt["value"] = prompt
-            return ("리서치 결과", [])
+            return ("리서치 결과", [], None)
 
         with patch("services.agent.tools.base.call_with_tools", new=mock_call_with_tools):
             from services.agent.nodes.research import _run_research
@@ -256,7 +256,7 @@ class TestDirectorPlanResearchInjection:
 
         async def mock_call_with_tools(prompt, **kwargs):
             captured_prompt["value"] = prompt
-            return ("결과", [])
+            return ("결과", [], None)
 
         with patch("services.agent.tools.base.call_with_tools", new=mock_call_with_tools):
             from services.agent.nodes.research import _run_research

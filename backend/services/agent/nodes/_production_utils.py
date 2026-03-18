@@ -26,6 +26,7 @@ async def run_production_step(
         model: LLM 모델 ID. None이면 기본 모델(GEMINI_TEXT_MODEL) 사용.
 
     Returns: 전체 파싱된 JSON dict (예: {"scenes": [...], ...}).
+        마지막 LLM 호출의 observation_id가 ``_observation_id`` 키에 포함된다.
     Raises: ValueError if max retries exceeded and QC still fails.
     """
     return await _run_native(
@@ -56,6 +57,7 @@ async def _run_native(
     resolved_sys = compiled.system or system_instruction or ""
     llm_config = LLMConfig(system_instruction=resolved_sys)
     _last_feedback = ""
+    _last_obs_id: str | None = None
 
     for retry in range(CREATIVE_PIPELINE_MAX_RETRIES + 1):
         if retry > 0:
@@ -78,6 +80,7 @@ async def _run_native(
                 langfuse_prompt=compiled.langfuse_prompt,
             )
             raw_text = llm_response.text
+            _last_obs_id = llm_response.observation_id
             if not raw_text:
                 raise ValueError("Empty LLM response received")
             parsed = parse_json_response(raw_text)
@@ -92,6 +95,7 @@ async def _run_native(
         qc = validate_fn(extracted)
         if qc["ok"]:
             logger.info("[%s] QC 통과 (retry %d)", log_name, retry)
+            parsed["_observation_id"] = _last_obs_id
             return parsed
 
         if retry < CREATIVE_PIPELINE_MAX_RETRIES:
@@ -99,6 +103,7 @@ async def _run_native(
             logger.info("[%s] QC 실패, 재시도 %d: %s", log_name, retry, qc["issues"])
         else:
             logger.warning("[%s] 최대 재시도 도달, 마지막 결과 사용", log_name)
+            parsed["_observation_id"] = _last_obs_id
             return parsed
 
     return {}  # unreachable

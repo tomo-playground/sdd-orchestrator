@@ -84,7 +84,7 @@ class TestCallWithTools:
         with patch("services.agent.tools.base.get_llm_provider", return_value=mock_prov):
             tools = [define_tool(name="dummy_tool", description="Dummy", parameters={})]
 
-            response, logs = await call_with_tools(
+            response, logs, _ = await call_with_tools(
                 prompt="테스트 프롬프트",
                 tools=tools,
                 tool_executors={},
@@ -134,7 +134,7 @@ class TestCallWithTools:
             ]
             tool_executors = {"search_history": mock_executor}
 
-            response, logs = await call_with_tools(
+            response, logs, _ = await call_with_tools(
                 prompt="검색해줘",
                 tools=tools,
                 tool_executors=tool_executors,
@@ -173,7 +173,7 @@ class TestCallWithTools:
             tools = [define_tool(name="loop_tool", description="Loop", parameters={})]
             tool_executors = {"loop_tool": mock_executor}
 
-            result_text, logs = await call_with_tools(
+            result_text, logs, _ = await call_with_tools(
                 prompt="루프 테스트",
                 tools=tools,
                 tool_executors=tool_executors,
@@ -216,7 +216,7 @@ class TestCallWithTools:
             tools = [define_tool(name="failing_tool", description="Fail", parameters={})]
             tool_executors = {"failing_tool": failing_executor}
 
-            response, logs = await call_with_tools(
+            response, logs, _ = await call_with_tools(
                 prompt="에러 테스트",
                 tools=tools,
                 tool_executors=tool_executors,
@@ -257,7 +257,7 @@ class TestCallWithTools:
         mock_prov = _mock_provider(mock_response_1, mock_response_2)
 
         with patch("services.agent.tools.base.get_llm_provider", return_value=mock_prov):
-            response, logs = await call_with_tools(
+            response, logs, _ = await call_with_tools(
                 prompt="미지의 도구 테스트",
                 tools=[],
                 tool_executors={},
@@ -304,7 +304,7 @@ class TestCallWithTools:
             tools = [define_tool(name="loop_tool", description="Loop", parameters={})]
             tool_executors = {"loop_tool": mock_executor}
 
-            response, logs = await call_with_tools(
+            response, logs, _ = await call_with_tools(
                 prompt="fallback 테스트",
                 tools=tools,
                 tool_executors=tool_executors,
@@ -345,7 +345,7 @@ class TestCallWithTools:
             tools = [define_tool(name="some_tool", description="Some", parameters={})]
             tool_executors = {"some_tool": mock_executor}
 
-            response, _logs = await call_with_tools(
+            response, _logs, _ = await call_with_tools(
                 prompt="테스트",
                 tools=tools,
                 tool_executors=tool_executors,
@@ -382,7 +382,7 @@ class TestCallWithTools:
             tools = [define_tool(name="loop_tool", description="Loop", parameters={})]
             tool_executors = {"loop_tool": mock_executor}
 
-            response, logs = await call_with_tools(
+            response, logs, _ = await call_with_tools(
                 prompt="실패 테스트",
                 tools=tools,
                 tool_executors=tool_executors,
@@ -418,7 +418,7 @@ class TestCallWithTools:
         with patch("services.agent.tools.base.get_llm_provider", return_value=mock_prov):
             tools = [define_tool(name="dummy", description="Dummy", parameters={})]
 
-            response, logs = await call_with_tools(
+            response, logs, _ = await call_with_tools(
                 prompt="빈 응답 fallback 테스트",
                 tools=tools,
                 tool_executors={},
@@ -447,7 +447,7 @@ class TestCallWithTools:
         with patch("services.agent.tools.base.get_llm_provider", return_value=mock_prov):
             tools = [define_tool(name="dummy", description="Dummy", parameters={})]
 
-            response, logs = await call_with_tools(
+            response, logs, _ = await call_with_tools(
                 prompt="이중 실패 테스트",
                 tools=tools,
                 tool_executors={},
@@ -498,7 +498,7 @@ class TestCallWithTools:
             ]
             tool_executors = {"async_tool": async_executor}
 
-            response, logs = await call_with_tools(
+            response, logs, _ = await call_with_tools(
                 prompt="비동기 테스트",
                 tools=tools,
                 tool_executors=tool_executors,

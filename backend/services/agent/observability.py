@@ -23,6 +23,7 @@ from config_pipelines import (
     LANGFUSE_PUBLIC_KEY,
     LANGFUSE_SCORE_CONFIGS,
     LANGFUSE_SECRET_KEY,
+    LANGFUSE_TRACING_ENVIRONMENT,
 )
 
 _langfuse_client = None
@@ -196,7 +197,7 @@ def _patch_trace(*, trace_id: str | None, body: dict, label: str) -> None:
         import httpx
 
         now = datetime.now(UTC).isoformat()
-        body = {"id": resolved, "timestamp": now, **body}
+        body = {"id": resolved, "timestamp": now, "environment": LANGFUSE_TRACING_ENVIRONMENT, **body}
         resp = httpx.post(
             f"{LANGFUSE_BASE_URL}/api/public/ingestion",
             auth=(LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY),

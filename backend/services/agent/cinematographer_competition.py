@@ -226,7 +226,7 @@ async def _run_single_lens(
         try:
             _comp_metadata = {"template": "creative/cinematographer", "lens": role}
             if attempt == 1:
-                response, attempt_logs = await call_with_tools(
+                response, attempt_logs, _obs_id = await call_with_tools(
                     prompt=current_prompt,
                     tools=tools,
                     tool_executors=executors,
