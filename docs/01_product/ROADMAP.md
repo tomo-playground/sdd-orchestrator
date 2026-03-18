@@ -46,11 +46,12 @@
 | **TTS 파이프라인 일원화 (Sprint A~D)** | **전체 완료 (ARCHIVED)** |
 | **Phase 35 (GPT-SoVITS TTS 전환)** | **전체 완료** |
 | **Phase 36 (LangFuse Prompt Quality Hardening)** | **전체 완료** |
-| 테스트 | Backend 3,647 + Frontend 599 (65파일) = **총 4,246개** |
+| **Phase 37 (Korean Script Quality)** | **전체 완료** |
+| 테스트 | Backend 3,647 + Frontend 599 (65파일) + 16 = **총 4,262개** |
 
 ### 진행 중
 
-- **Phase 37 (Korean Script Quality)**: 한국어 대본 품질 강화 — 구어체 자연스러움 + 문장 간 맥락 연결. Sprint 1(Writer 프롬프트) → 2(Review korean_naturalness) → 3(Revise 피드백) → 4(테스트). [명세](FEATURES/KOREAN_SCRIPT_QUALITY.md)
+(없음)
 
 ### 최근 작업
 
