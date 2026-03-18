@@ -45,13 +45,35 @@ export function useSceneActions() {
     const current = scenes[currentSceneIndex];
     if (!current) return;
 
+    // 토글 OFF
     if (current.environment_reference_id) {
       updateScene(current.client_id, { environment_reference_id: null });
       return;
     }
 
+    // 우선순위 1: Stage 배경이 있으면 그 배경 이미지를 참조
+    if (current.background_id) {
+      try {
+        const res = await axios.get(
+          `${API_BASE}/storyboards/backgrounds/${current.background_id}/asset-id`
+        );
+        const assetId = res.data?.image_asset_id;
+        if (assetId) {
+          updateScene(current.client_id, {
+            environment_reference_id: assetId,
+            environment_reference_weight: 0.3,
+          });
+          showToast("Stage 배경을 참조로 설정했습니다.", "success");
+          return;
+        }
+      } catch {
+        // Stage 배경 조회 실패 → fallback으로 이전 씬 탐색
+      }
+    }
+
+    // 우선순위 2: 이전 씬의 생성된 이미지 참조
     const currentIdx = scenes.findIndex((s) => s.client_id === current.client_id);
-    let referenceScene = null;
+    let referenceScene: Scene | null = null;
 
     for (let i = currentIdx - 1; i >= 0; i--) {
       if (scenes[i].image_asset_id) {
@@ -61,13 +83,12 @@ export function useSceneActions() {
     }
 
     if (!referenceScene) {
-      showToast("이전 씬에 고정할 배경 이미지가 없습니다.", "error");
+      showToast("참조할 배경 이미지가 없습니다.", "error");
       return;
     }
 
     updateScene(current.client_id, {
       environment_reference_id: referenceScene.image_asset_id,
-      // Backend SSOT: config.py DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT = 0.3
       environment_reference_weight: 0.3,
     });
     showToast(`씬 ${referenceScene.order + 1}의 배경을 참조로 설정했습니다.`, "success");

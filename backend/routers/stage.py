@@ -118,6 +118,15 @@ def get_stage_status(storyboard_id: int, db: Session = Depends(get_db)):
     )
 
 
+@router.get("/backgrounds/{background_id}/asset-id")
+def get_background_asset_id(background_id: int, db: Session = Depends(get_db)):
+    """Background의 image_asset_id를 반환한다. 핀 토글에서 Stage 배경 복원 시 사용."""
+    bg = db.query(Background).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
+    if not bg:
+        raise HTTPException(status_code=404, detail="Background not found")
+    return {"background_id": bg.id, "image_asset_id": bg.image_asset_id}
+
+
 @router.post(
     "/{storyboard_id}/stage/assign-backgrounds",
     response_model=StageAssignResponse,
