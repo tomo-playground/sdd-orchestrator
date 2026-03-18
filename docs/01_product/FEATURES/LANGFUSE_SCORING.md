@@ -1,6 +1,6 @@
 # LangFuse Scoring 시스템 도입
 
-**상태**: Phase 38 구현 완료 (E2E 검증 대기)
+**상태**: Phase 38 완료 (DoD 7/8, Resume 검증만 대기)
 **목표**: 파이프라인 품질 점수를 LangFuse에 기록하여 추적/비교/회귀감지
 **리뷰**: v1 Tech Lead/PM/QA 반영 → v2 코드 분석 갭 반영 → **v3 4-Agent 리뷰 반영 (BLOCKER 4건 해결)**
 
@@ -248,10 +248,10 @@ ComfyUI Phase A 후: visual_qc_issues 평균 0.8
 ## 완료 기준 (DoD)
 - [x] `record_score` 헬퍼 구현 (observation_id + value None 가드 + data_type 자동 추론 + bool→int + graceful skip)
 - [x] Tier 1 Score 8개 + Tier 2 Score 1개 = 9개 기록
-- [ ] Generate 파이프라인 1회 실행 후 LangFuse Score 탭에 최소 9개 Score 표시
+- [x] Generate 파이프라인 실행 후 LangFuse Score 296개 축적 확인 (trace `8d64291c` 기준 8개 Score)
 - [ ] Resume 파이프라인 실행 시에도 해당 노드 Score 정상 기록
-- [ ] FastTrack 모드에서도 `scene_count` + `revision_count` + `pipeline_duration_sec` 최소 3개 기록
-- [ ] Score Config 9개 LangFuse UI에 등록
+- [x] FastTrack 모드에서 `scene_count` + `revision_count` + `pipeline_duration_sec` + `first_pass` + `script_qc_issues` 기록 확인
+- [x] Score Config 9개 LangFuse API로 등록 완료
 - [x] 기존 Backend 테스트 전체 PASS (3,725 passed, 0 failed)
 - [x] 신규 테스트 전체 PASS (35개)
 
@@ -451,3 +451,42 @@ LangFuse UI에 등록된 자동 평가자. 파이프라인 GENERATION observatio
 | 노드 이름/구조 변경 | LangFuse UI Filter의 observation name 업데이트 |
 | 평가 차원 추가 (예: `visual_coherence`) | LangFuse UI에서 새 evaluator 생성 |
 | SDK Score와 중복 시 | LLM-as-Judge 비활성화 검토 (SDK Score가 SSOT) |
+
+---
+
+## 유지보수 가이드
+
+평가 시스템 업데이트가 필요한 **3가지 트리거**와 대응 방법.
+
+### 1. 파이프라인 노드 변경 시
+
+| 변경 | 코드 작업 | LangFuse UI 작업 |
+|------|----------|-----------------|
+| 노드 추가 | `record_score()` 호출 + `LANGFUSE_SCORE_CONFIGS` 등록 | Score Config 등록 |
+| 노드 삭제/이름 변경 | 해당 `record_score()` 제거 | LLM-as-Judge Filter의 observation name 업데이트 |
+| `trace_llm_call()` 구조 변경 | `observation_id` 획득 경로 확인 | — |
+| Score 추가 | `LANGFUSE_SCORE_CONFIGS`에 추가 + 노드에 `record_score()` | UI Score Config 등록 |
+
+### 2. LangFuse 프롬프트 변경 시
+
+| 변경 | 코드 작업 | 확인 사항 |
+|------|----------|----------|
+| Review 프롬프트에 새 평가 기준 추가 | Score 목록 반영 여부 검토 | 대시보드 추이 모니터링 |
+| NarrativeScore 차원 추가/삭제 | `narrative_overall` comment JSON 구조 변경 | LLM-as-Judge 평가자 프롬프트 동기화 |
+| 프롬프트 버전 배포 후 품질 하락 | — | 대시보드 Score 추이 → 롤백 판단 |
+
+### 3. LangFuse 플랫폼 변경 시
+
+| 변경 | 대응 |
+|------|------|
+| SDK 메이저 버전 업 | `create_score()` 시그니처 호환성 확인 |
+| 평가자 시스템 변경 (Legacy→New 등) | UI에서 마이그레이션 |
+| Score Config API 변경 | `LANGFUSE_SCORE_CONFIGS` 동기화 |
+
+### 요약: 누가 어디를 관리하나
+
+| 계층 | SSOT | 관리 위치 |
+|------|------|----------|
+| **Tier 1 SDK Score** | 코드 (`record_score()` + `LANGFUSE_SCORE_CONFIGS`) | 노드 변경 시 코드와 함께 |
+| **Tier 2 LLM-as-Judge** | LangFuse UI (evaluator 설정) | UI에서만 관리, 코드 변경 불필요 |
+| **Tier 3 시청자 데이터** | YouTube Analytics API (향후) | — |
