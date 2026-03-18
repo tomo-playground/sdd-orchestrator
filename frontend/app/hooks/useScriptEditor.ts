@@ -131,7 +131,11 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       setState((prev) => ({ ...prev, [key]: value }));
       if (CONTENT_FIELDS.has(key as string)) {
         dirtyRef.current = true;
-        useStoryboardStore.getState().set({ isDirty: true });
+        // topic/description은 글로벌 스토어에 즉시 동기화 — persistStoryboard가 읽을 수 있도록
+        const syncPayload: Record<string, unknown> = { isDirty: true };
+        if (key === "topic") syncPayload.topic = value;
+        if (key === "description") syncPayload.description = value;
+        useStoryboardStore.getState().set(syncPayload);
       }
     },
     []
