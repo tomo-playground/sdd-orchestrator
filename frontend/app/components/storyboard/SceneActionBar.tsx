@@ -11,13 +11,11 @@ type SceneActionBarProps = {
   sceneMenuOpen: boolean;
   isLoadingSuggestions: boolean;
   isMarkingStatus?: boolean;
-  pinnedSceneOrder?: number;
   onGenerateImage: () => void;
   onGeminiEditOpen: () => void;
   onEditImageOpen?: () => void;
   onClothingOpen?: () => void;
   onAutoSuggest: () => void;
-  onPinToggle?: () => void;
   onMarkSuccess?: () => void;
   onMarkFail?: () => void;
   onSceneMenuToggle: () => void;
@@ -38,13 +36,11 @@ export default function SceneActionBar({
   sceneMenuOpen,
   isLoadingSuggestions,
   isMarkingStatus = false,
-  pinnedSceneOrder,
   onGenerateImage,
   onGeminiEditOpen,
   onEditImageOpen,
   onClothingOpen,
   onAutoSuggest,
-  onPinToggle,
   onMarkSuccess,
   onMarkFail,
   onSceneMenuToggle,
@@ -79,61 +75,27 @@ export default function SceneActionBar({
         {/* Stage background indicator */}
         {scene.background_id && !scene.isGenerating && (
           <div
-            className="flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 pl-2.5 pr-1.5 py-1 text-[12px] text-emerald-600"
+            className="flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 py-1 pr-1.5 pl-2.5 text-[12px] text-emerald-600"
             title="Stage 배경이 ControlNet 참조로 사용됩니다"
           >
             <span>🎬 BG#{scene.background_id}</span>
             <button
               type="button"
               onClick={() => onUpdateScene({ background_id: null, environment_reference_id: null })}
-              className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-emerald-500 hover:bg-emerald-200 hover:text-emerald-700 transition"
+              className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-emerald-500 transition hover:bg-emerald-200 hover:text-emerald-700"
               title="배경 매핑 해제"
             >
               <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
         )}
-
-        {/* Pin toggle — only when no Stage background */}
-        {!scene.background_id && sceneIndex > 0 && !scene.isGenerating && onPinToggle && (
-          <Button
-            variant={scene.environment_reference_id ? "secondary" : "outline"}
-            size="sm"
-            icon={!scene.environment_reference_id}
-            onClick={onPinToggle}
-            className={
-              scene.environment_reference_id
-                ? "border-amber-300 bg-amber-100 text-amber-600 hover:bg-amber-200"
-                : ""
-            }
-            title={
-              scene.environment_reference_id
-                ? `S${sceneIndex + 1}→S${pinnedSceneOrder != null ? pinnedSceneOrder + 1 : "?"} 배경 참조 중 (클릭하여 해제)`
-                : "이전 장면의 배경을 참조합니다"
-            }
-          >
-            📌
-            {scene.environment_reference_id ? (
-              <span className="ml-0.5 text-[12px]">
-                S{sceneIndex + 1}
-                {pinnedSceneOrder != null ? `→S${pinnedSceneOrder + 1}` : ""}
-              </span>
-            ) : null}
-          </Button>
-        )}
-
-        {/* Auto pin indicator — only when no Stage background */}
-        {!scene.background_id &&
-          scene._auto_pin_previous &&
-          !scene.environment_reference_id &&
-          !scene.image_url && (
-            <div className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[12px] text-blue-600">
-              <span>💡</span>
-              <span className="font-medium">자동 핀 활성</span>
-            </div>
-          )}
 
         {/* Gemini Edit button */}
         {scene.image_url && !scene.isGenerating && (

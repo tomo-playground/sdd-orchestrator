@@ -2,7 +2,6 @@ import { useCallback, useEffect } from "react";
 import axios from "axios";
 import { useConfirm } from "../components/ui/ConfirmDialog";
 import { useStoryboardStore } from "../store/useStoryboardStore";
-import { useUIStore } from "../store/useUIStore";
 import { API_BASE, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT } from "../constants";
 import type { Scene } from "../types";
 import { generateSceneClientId } from "../utils/uuid";
@@ -15,7 +14,6 @@ export function useSceneActions() {
   const { confirm, dialogProps } = useConfirm();
   const sbSet = useStoryboardStore((s) => s.set);
   const setScenes = useStoryboardStore((s) => s.setScenes);
-  const showToast = useUIStore((s) => s.showToast);
   // Fetch IP-Adapter reference images on mount (skip if already loaded by useCharacterAutoLoad)
   useEffect(() => {
     if (useStoryboardStore.getState().referenceImages.length > 0) return;
@@ -39,39 +37,6 @@ export function useSceneActions() {
     const current = scenes[currentSceneIndex];
     if (current) updateScene(current.client_id, updates);
   }, []);
-
-  const handlePinToggle = useCallback(async () => {
-    const { scenes, currentSceneIndex, updateScene } = useStoryboardStore.getState();
-    const current = scenes[currentSceneIndex];
-    if (!current) return;
-
-    if (current.environment_reference_id) {
-      updateScene(current.client_id, { environment_reference_id: null });
-      return;
-    }
-
-    const currentIdx = scenes.findIndex((s) => s.client_id === current.client_id);
-    let referenceScene = null;
-
-    for (let i = currentIdx - 1; i >= 0; i--) {
-      if (scenes[i].image_asset_id) {
-        referenceScene = scenes[i];
-        break;
-      }
-    }
-
-    if (!referenceScene) {
-      showToast("이전 씬에 고정할 배경 이미지가 없습니다.", "error");
-      return;
-    }
-
-    updateScene(current.client_id, {
-      environment_reference_id: referenceScene.image_asset_id,
-      // Backend SSOT: config.py DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT = 0.3
-      environment_reference_weight: 0.3,
-    });
-    showToast(`씬 ${referenceScene.order + 1}의 배경을 참조로 설정했습니다.`, "success");
-  }, [showToast]);
 
   const handleRemoveScene = useCallback(
     async (clientId: string) => {
@@ -113,7 +78,6 @@ export function useSceneActions() {
   return {
     setCurrentSceneIndex,
     handleUpdateScene,
-    handlePinToggle,
     handleRemoveScene,
     handleAddScene,
     confirm,

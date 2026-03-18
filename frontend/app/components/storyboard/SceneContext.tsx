@@ -42,7 +42,6 @@ export type SceneCallbacksContext = {
   onValidateImage: () => void;
   onApplyMissingTags: (tags: string[]) => void;
   onImagePreview: (url: string | null, candidates?: string[]) => void;
-  onPinToggle?: () => void;
   onMarkSuccess?: () => void;
   onMarkFail?: () => void;
   buildNegativePrompt: (scene: Scene) => string;

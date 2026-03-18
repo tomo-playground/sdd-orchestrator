@@ -57,8 +57,6 @@ type SceneCardProps = {
   onValidateImage: () => void;
   onApplyMissingTags: (tags: string[]) => void;
   onImagePreview: (url: string | null, candidates?: string[]) => void;
-  onPinToggle?: () => void;
-  pinnedSceneOrder?: number;
   onMarkSuccess?: () => void;
   onMarkFail?: () => void;
   isMarkingStatus?: boolean;
@@ -102,8 +100,6 @@ export default function SceneCard({
   onValidateImage,
   onApplyMissingTags,
   onImagePreview,
-  onPinToggle,
-  pinnedSceneOrder,
   onMarkSuccess,
   onMarkFail,
   isMarkingStatus = false,
@@ -159,7 +155,7 @@ export default function SceneCard({
     <div className="group relative grid gap-2 rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/30 transition hover:border-zinc-300">
       {/* Multi-character badge */}
       {scene.scene_mode === "multi" && (
-        <span className="absolute right-4 top-4 z-30 rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-700">
+        <span className="absolute top-4 right-4 z-30 rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-700">
           2P
         </span>
       )}
@@ -191,13 +187,11 @@ export default function SceneCard({
             qualityScore={qualityScore}
             sceneMenuOpen={sceneMenuOpen}
             isLoadingSuggestions={isLoadingSuggestions}
-            pinnedSceneOrder={pinnedSceneOrder}
             onGenerateImage={onGenerateImage}
             onGeminiEditOpen={() => setGeminiEditOpen(true)}
             onEditImageOpen={() => setEditImageOpen(true)}
             onClothingOpen={() => setClothingOpen(true)}
             onAutoSuggest={handleAutoSuggest}
-            onPinToggle={onPinToggle}
             onSceneMenuToggle={onSceneMenuToggle}
             onSceneMenuClose={onSceneMenuClose}
             onUpdateScene={onUpdateScene}

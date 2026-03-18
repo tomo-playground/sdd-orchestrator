@@ -91,7 +91,6 @@ export default function ScenesTab() {
   const {
     setCurrentSceneIndex,
     handleUpdateScene,
-    handlePinToggle,
     handleRemoveScene,
     handleAddScene,
     confirm,
@@ -110,10 +109,6 @@ export default function ScenesTab() {
     characterLoras,
     characterBLoras
   );
-  const pinnedSceneOrder = currentScene?.environment_reference_id
-    ? scenes.find((s) => s.image_asset_id === currentScene.environment_reference_id)?.order
-    : undefined;
-
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const showAdvancedSettings = useUIStore((s) => s.showAdvancedSettings);
   const toggleAdvancedSettings = useUIStore((s) => s.toggleAdvancedSettings);
@@ -268,8 +263,6 @@ export default function ScenesTab() {
                   sceneTagGroups={sceneTagGroups}
                   isExclusiveGroup={isExclusiveGroup}
                   onUpdateScene={handleUpdateScene}
-                  onPinToggle={handlePinToggle}
-                  pinnedSceneOrder={pinnedSceneOrder}
                   onRemoveScene={() => handleRemoveScene(currentScene.client_id)}
                   onSpeakerChange={(speaker) => handleSpeakerChange(currentScene, speaker)}
                   onImageUpload={(file) => handleImageUpload(currentScene.client_id, file)}
