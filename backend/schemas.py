@@ -3142,7 +3142,7 @@ class SceneTTSPreviewRequest(BaseModel):
     voice_design_prompt: str | None = None
     scene_emotion: str | None = None
     language: str = "korean"
-    is_force_regenerate: bool = False
+    force_regenerate: bool = False
 
 
 class SceneTTSPreviewResponse(BaseModel):

@@ -4,7 +4,7 @@ _calculate_max_new_tokens()가 텍스트 길이에 따라
 적절한 토큰 수를 반환하는지 검증한다.
 """
 
-from services.video.scene_processing import _calculate_max_new_tokens
+from services.video.tts_helpers import _calculate_max_new_tokens
 
 
 class TestCalculateMaxNewTokens:

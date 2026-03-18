@@ -198,8 +198,8 @@ async def test_director_react_previous_steps_context(mock_run, mock_production_r
     captured_vars = []
 
     async def capture_and_return(*args, **kwargs):
-        # previous_steps를 deep copy로 캡처 (mutable 리스트 문제 회피)
-        captured_vars.append(list(kwargs["template_vars"].get("previous_steps", [])))
+        # previous_steps_block은 빌더가 포맷팅한 문자열
+        captured_vars.append(kwargs["template_vars"].get("previous_steps_block", ""))
         # 첫 호출
         if len(captured_vars) == 1:
             return {
@@ -226,11 +226,11 @@ async def test_director_react_previous_steps_context(mock_run, mock_production_r
 
     await director_node(state, {})
 
-    # 첫 호출 시 previous_steps는 빈 리스트
-    assert len(captured_vars[0]) == 0
-    # 두 번째 호출 시 previous_steps에 첫 스텝 정보가 포함됨
-    assert len(captured_vars[1]) == 1
-    assert captured_vars[1][0]["step"] == 1
+    # 첫 호출 시 previous_steps_block은 빈 문자열 (스텝 없음)
+    assert captured_vars[0] == ""
+    # 두 번째 호출 시 previous_steps_block에 Step 1 정보가 포함됨
+    assert "Step 1" in captured_vars[1]
+    assert "Step 1 관찰" in captured_vars[1]
 
 
 @pytest.mark.asyncio
@@ -588,7 +588,8 @@ async def test_director_previous_feedback_in_template_vars(
     captured_vars = []
 
     async def capture_and_return(*args, **kwargs):
-        captured_vars.append(list(kwargs["template_vars"].get("previous_steps", [])))
+        # previous_steps_block은 빌더가 포맷팅한 문자열
+        captured_vars.append(kwargs["template_vars"].get("previous_steps_block", ""))
         if len(captured_vars) == 1:
             return {
                 "observe": "Step 1 관찰",
@@ -617,7 +618,7 @@ async def test_director_previous_feedback_in_template_vars(
 
     await director_node(state, {})
 
-    # 두 번째 호출 시 previous_steps에 feedback 포함
+    # 두 번째 호출 시 previous_steps_block에 feedback 포함
     assert len(captured_vars) == 2
-    assert len(captured_vars[1]) == 1
-    assert captured_vars[1][0]["feedback"] == "시각 구성 개선 필요"
+    assert "시각 구성 개선 필요" in captured_vars[1]
+    assert "Feedback sent" in captured_vars[1]
