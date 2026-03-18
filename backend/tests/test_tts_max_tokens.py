@@ -26,3 +26,23 @@ class TestCalculateMaxNewTokens:
         text = "가" * 100
         result = _calculate_max_new_tokens(text)
         assert result == 2048  # 100 * 30 = 3000 > 2048 → cap
+
+    def test_instruct_overhead_added(self):
+        """instruct(voice_design)이 길면 overhead가 추가된다."""
+        # dynamic=990, overhead=50 → 1040 > base(1024) → overhead가 반영됨
+        text = "가" * 33  # 33 * 30 = 990
+        instruct = "a" * 200  # overhead = 200 // 4 = 50
+        result = _calculate_max_new_tokens(text, instruct)
+        assert result == 1040  # 990 + 50
+
+    def test_instruct_overhead_respects_cap(self):
+        """instruct overhead 포함 후에도 CAP 이하."""
+        text = "가" * 68  # 68 * 30 = 2040
+        instruct = "a" * 200  # overhead=50 → 2040+50=2090 > 2048
+        result = _calculate_max_new_tokens(text, instruct)
+        assert result == 2048  # CAP 적용
+
+    def test_empty_instruct_same_as_no_instruct(self):
+        """빈 instruct는 overhead 없음."""
+        text = "가" * 50
+        assert _calculate_max_new_tokens(text) == _calculate_max_new_tokens(text, "")
