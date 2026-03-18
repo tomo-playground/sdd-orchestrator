@@ -328,12 +328,11 @@ async def trace_llm_call(
     if langfuse_prompt is not None:
         gen_kwargs["prompt"] = langfuse_prompt
 
-    # root span이 있으면 자식으로 생성 (계층 구조 — trace_context 불필요)
-    # root span이 없으면 _langfuse_client에서 직접 연결 (trace_context 필요)
+    # SDK v3: start_generation() deprecated → start_observation(as_type='generation')
     if root_span:
-        generation = root_span.start_generation(**gen_kwargs)
+        generation = root_span.start_observation(as_type="generation", **gen_kwargs)
     else:
-        generation = _langfuse_client.start_generation(trace_context=trace_ctx, **gen_kwargs)
+        generation = _langfuse_client.start_observation(as_type="generation", trace_context=trace_ctx, **gen_kwargs)
     result = LLMCallResult(generation=generation)
     try:
         yield result
