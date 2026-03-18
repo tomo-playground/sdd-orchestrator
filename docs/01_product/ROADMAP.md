@@ -47,26 +47,17 @@
 | **Phase 35 (GPT-SoVITS TTS 전환)** | **전체 완료** |
 | **Phase 36 (LangFuse Prompt Quality Hardening)** | **전체 완료** |
 | **Phase 37 (Korean Script Quality)** | **전체 완료** |
+| **Phase 38 (LangFuse Scoring)** | **전체 완료** |
 | 테스트 | Backend 3,738 + Frontend 599 (65파일) + 16 = **총 4,353개** |
 
 ### 진행 중
 
-#### Phase 38: LangFuse Scoring 시스템
-
-ComfyUI 전환 전 품질 베이스라인 축적 목적. 파이프라인 품질 점수를 LangFuse에 기록하여 추적/비교/회귀감지.
-
-| Sprint | 항목 | 상태 |
-|--------|------|------|
-| **A: 인프라** | `record_score` 헬퍼, contextvar, pipeline_mode metadata, Score Config 9개, 단위 테스트 11개 | ✅ 완료 |
-| **B: Score 기록** | 5개 노드 Score 기록, conftest fixture, 검증 테스트 24개 | ✅ 완료 |
-
-**Tier 1 (8개)**: `first_pass`, `revision_count`, `scene_count`, `visual_qc_issues`, `script_qc_issues`, `research_quality`, `director_revision_count`, `pipeline_duration_sec`
-**Tier 2 (1개)**: `narrative_overall` (8차원 JSON comment). 테스트 +35개, 기존 실패 37건 수정. 3,725 passed
-
-[명세](FEATURES/LANGFUSE_SCORING.md)
+(없음)
 
 ### 최근 작업
 
+- **03-18 Phase 38 (LangFuse Scoring) 완료**: Sprint A(인프라: record_score 헬퍼+contextvar+pipeline_mode+Score Config 9개) → Sprint B(5개 노드 Score 기록) → Sprint C(observation_id+LLM-as-Judge). Gemini client 재연결, Writer 로그 개선, LoRA 오경고 제거. 기존 실패 37건 수정. 환경 가이드+.env.example 추가. Score Config 9개 LangFuse API 등록. E2E 검증 296개 Score 축적 확인. 테스트 +35개, 3,725 passed. [명세](FEATURES/LANGFUSE_SCORING.md)
+- **03-18 Phase 38 Sprint C (Observation-Level)**: `record_score()` observation_id 파라미터 추가(observation-level Score 부착 지원). LangFuse LLM-as-Judge 평가자 3개 Legacy→Observation 전환(pacing_rhythm, retention_flow, spoken_naturalness). 유지보수 가이드 추가(3가지 트리거: 노드 변경/프롬프트 변경/플랫폼 변경). [명세](FEATURES/LANGFUSE_SCORING.md) v4
 - **03-18 Phase 38 명세 확정**: 코드 분석(observability.py, 5개 노드, config_pipelines.py, conftest.py, SDK 시그니처) + 4-Agent 리뷰(Tech Lead/QA/Backend Dev/PM) 통합. BLOCKER 4건 해결(revision_count max 6→3, Resume duration 정책, None 중앙 가드, time.monotonic 통일). WARNING 9건 반영(FastTrack narrative_overall ❌, duration max 1800, data_type 자동 추론 등). [명세](FEATURES/LANGFUSE_SCORING.md) v3
 - **03-18 품질 경고 해소 + 테스트 보강**: Gemini SDK non-text parts 경고 해소(response.text→_safe_extract_text, function_call part 안전 처리). voice_design_prompt write-back 로깅 개선(exception repr+scene_db_id+0행 감지). LangFuse 미치환 변수 3건 수정(Phase 36 프롬프트↔코드 변수명 동기화 — director/evaluate, location-planner, copyright-reviewer). is_prompt_pre_composed→prompt_pre_composed 롤백. environment 복사 테스트 5개 추가. 테스트 +5개
 - **03-18 오토런 Stage 스킵 버그 수정 + LangFuse 추가 안정화**: finalize.py `_copy_scene_level_to_context_tags()`에 environment 복사 누락 수정(FastTrack에서 context_tags.environment 비어 Stage 스킵 근본 원인). preflight checkStageStep() 조건 완화(environment 유무와 무관하게 background_id 없으면 Stage 필요). LangFuse resume session_id 누락 수정(storyboard_id 전달). SDK v3 start_span OTel 컨텍스트 미설정 → _patch_trace 전환. Draft 제목 버그 수정
@@ -147,6 +138,7 @@ ComfyUI 전환 전 품질 베이스라인 축적 목적. 파이프라인 품질 
 | 32 | Auto Run Pipeline Hardening | Stage 루프 버그, TTS 단계 추가, Resume 연결, Preflight 정확성, 코드 품질. 17/17 | [아카이브](../99_archive/archive/ROADMAP_PHASE_32_33.md) · [명세](FEATURES/AUTO_RUN_PIPELINE_HARDENING.md) |
 | 33 | Hybrid Match Rate | WD14+Gemini Vision 2-Phase, group_name 태그 라우팅, 배치 Gemini 병합, 테스트 33개. 22/22 | [아카이브](../99_archive/archive/ROADMAP_PHASE_32_33.md) · [명세](FEATURES/HYBRID_MATCH_RATE.md) |
 | — | TTS 파이프라인 일원화 (Sprint A~D) | `generate_tts_audio()` SSOT, preview/prebuild/render 3경로 통합, tts_asset_id 자동 무효화, prebuild 자동 삽입, scene_processing.py 슬림화 | [설계](../03_engineering/backend/TTS_PIPELINE_UNIFICATION.md) |
+| 38 | LangFuse Scoring | 9개 SDK Score + 3개 LLM-as-Judge, observation-level, Score Config API 등록, Gemini client 재연결, 환경 가이드. 테스트 +35개 | [명세](FEATURES/LANGFUSE_SCORING.md) |
 
 ---
 
