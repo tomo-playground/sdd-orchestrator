@@ -193,6 +193,11 @@ def _copy_scene_level_to_context_tags(scenes: list[dict]) -> None:
         if ctx.get("camera") is None and scene.get("camera"):
             ctx["camera"] = scene["camera"]
 
+        # environment: scene["environment"] → context_tags["environment"]
+        if not ctx.get("environment") and scene.get("environment"):
+            env = scene["environment"]
+            ctx["environment"] = env if isinstance(env, list) else [env]
+
 
 def _build_scene_to_tags_map(writer_plan: dict) -> dict[int, list[str]]:
     """writer_plan.locations에서 scene_idx → tags 매핑을 구축한다."""

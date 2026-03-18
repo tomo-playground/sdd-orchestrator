@@ -21,16 +21,12 @@ export interface StageCheckInput {
   bgmPrompt: string;
 }
 
-function hasEnvironmentTags(scene: Scene | DraftScene): boolean {
-  const env = (scene as Scene).context_tags?.environment;
-  return Array.isArray(env) && env.length > 0;
-}
-
 export function checkStageStep(input: StageCheckInput): StepCheck {
   const { scenes } = input;
 
   // Sub-category checks
-  const withoutBg = scenes.filter((s) => !s.background_id && hasEnvironmentTags(s));
+  // background_id가 없으면 Stage 필요 (environment 태그 유무와 무관)
+  const withoutBg = scenes.filter((s) => !s.background_id);
   const bgReady = scenes.length > 0 && withoutBg.length === 0;
   const charReady = !!input.characterName;
   const voiceReady = !!input.voiceName;
