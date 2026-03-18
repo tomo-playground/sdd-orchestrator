@@ -56,6 +56,7 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
     from services.agent.nodes._skip_guard import should_skip  # noqa: PLC0415
 
     if should_skip(state, "director"):
+        record_score("director_revision_count", 0)
         return {"director_decision": "approve", "director_feedback": None}
 
     count = state.get("director_revision_count", 0)

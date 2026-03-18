@@ -11,20 +11,24 @@ export default function StudioWorkspace() {
 
   return (
     <div className="min-h-0 flex-1 overflow-hidden">
-      {/* ScriptTab: hybrid layout manages its own scroll & padding */}
+      {/* 모든 탭을 항상 마운트하고 hidden toggle — 탭 전환 시 상태(TTS 캐시 등) 보존 */}
       <div className={`h-full w-full ${activeTab !== "script" ? "hidden" : ""}`}>
         <ScriptTab />
       </div>
 
-      {activeTab === "stage" && <StageTab />}
+      <div className={`h-full w-full ${activeTab !== "stage" ? "hidden" : ""}`}>
+        <StageTab />
+      </div>
 
-      {activeTab === "direct" && <ScenesTab />}
+      <div className={`h-full w-full ${activeTab !== "direct" ? "hidden" : ""}`}>
+        <ScenesTab />
+      </div>
 
-      {activeTab === "publish" && (
-        <div className="scrollbar-hide h-full w-full overflow-y-auto px-8 py-8">
-          <PublishTab />
-        </div>
-      )}
+      <div
+        className={`scrollbar-hide h-full w-full overflow-y-auto px-8 py-8 ${activeTab !== "publish" ? "hidden" : ""}`}
+      >
+        <PublishTab />
+      </div>
     </div>
   );
 }
