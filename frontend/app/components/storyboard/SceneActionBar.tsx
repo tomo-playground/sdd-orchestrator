@@ -166,7 +166,13 @@ export default function SceneActionBar({
           <BgBadge
             backgroundId={scene.background_id}
             bgInfo={bgInfo}
-            onClear={() => onUpdateScene({ background_id: null, environment_reference_id: null })}
+            onClear={() =>
+              onUpdateScene({
+                background_id: null,
+                environment_reference_id: null,
+                _cleared_background_id: scene.background_id,
+              })
+            }
           />
         )}
 
