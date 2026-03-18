@@ -443,7 +443,7 @@ def render_scene_text_image(
             font,
             emoji_font,
             text_color,
-            stroke_width=FullLayout.SCENE_TEXT_STROKE_WIDTH,
+            stroke_width=max(3, subtitle_size // 16),  # 폰트 비례 (80px=5, 72px=4)
             stroke_fill=stroke_color,
         )
     return canvas

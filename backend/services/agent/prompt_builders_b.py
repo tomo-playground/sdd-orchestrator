@@ -28,12 +28,17 @@ def build_quality_criteria_block(criteria: list[str]) -> str:
 
 
 def build_visual_qc_section(visual_qc_result: dict | None) -> str:
-    """director — ``{% if visual_qc_result and not visual_qc_result.ok %}``."""
+    """director — Visual QC 결과를 포맷팅한다.
+
+    정적 규칙(Environment-Script Consistency 등)은 LangFuse
+    ``creative/director`` system prompt에서 관리한다.
+    이 빌더는 동적 QC 결과(issues 목록)만 조립한다.
+    """
     if not visual_qc_result or visual_qc_result.get("ok"):
         return ""
     issues = visual_qc_result.get("issues", [])
     items = "\n".join(f"- {issue}" for issue in issues)
-    return f"\n\n### Visual QC Warnings\n{items}\n위 다양성 문제가 감지되었습니다. revise_cinematographer를 고려하세요."
+    return f"\n\n### Visual QC Warnings\n{items}\n위 다양성/일관성 문제가 감지되었습니다. revise_cinematographer를 고려하세요."
 
 
 def build_previous_steps_block(steps: list[dict]) -> str:

@@ -136,6 +136,47 @@ def validate_scripts(
     return {"ok": not has_fail, "issues": issues, "checks": checks}
 
 
+def _check_environment_consistency(scenes: list[dict]) -> list[str]:
+    """연속 대화 씬(speaker A↔B 교대)의 배경 불일치를 검출한다."""
+    issues: list[str] = []
+    if len(scenes) < 2:
+        return issues
+
+    # 연속 대화 그룹 식별: speaker가 교대되는 인접 씬들을 하나의 그룹으로 묶음
+    groups: list[list[int]] = []
+    current_group = [0]
+    for i in range(1, len(scenes)):
+        prev_speaker = scenes[i - 1].get("speaker", "")
+        curr_speaker = scenes[i].get("speaker", "")
+        # A↔B 교대이거나 동일 speaker 연속이면 같은 대화 그룹
+        if prev_speaker and curr_speaker and prev_speaker != "Narrator" and curr_speaker != "Narrator":
+            current_group.append(i)
+        else:
+            if len(current_group) >= 2:
+                groups.append(current_group)
+            current_group = [i]
+    if len(current_group) >= 2:
+        groups.append(current_group)
+
+    # 각 대화 그룹 내 환경 불일치 검출
+    for group in groups:
+        envs: dict[int, list] = {}
+        for idx in group:
+            env = scenes[idx].get("environment") or []
+            if isinstance(env, str):
+                env = [env]
+            envs[idx] = env
+        # 유니크 환경 집합
+        env_sets = {idx: frozenset(e) for idx, e in envs.items() if e}
+        unique_envs = set(env_sets.values())
+        if len(unique_envs) > 1:
+            scene_envs = ", ".join(f"Scene {idx}: {list(envs[idx])}" for idx in group)
+            issues.append(
+                f"Consecutive dialogue scenes {group} have inconsistent environments: {scene_envs}"
+            )
+    return issues
+
+
 def validate_visuals(scenes: list[dict]) -> dict:
     """Validate cinematographer output for tag quality.
 
@@ -207,6 +248,14 @@ def validate_visuals(scenes: list[dict]) -> dict:
     if not env_ok:
         missing = [i for i, s in enumerate(scenes) if not s.get("environment")]
         issues.append(f"Scenes {missing}: missing environment")
+
+    # Environment consistency — 연속 대화 씬의 배경 불일치 검출
+    env_consistency_issues = _check_environment_consistency(scenes)
+    if env_consistency_issues:
+        checks["environment_consistency"] = "WARN"
+        issues.extend(env_consistency_issues)
+    elif total > 1:
+        checks["environment_consistency"] = "PASS"
 
     has_fail = any(v == "FAIL" for v in checks.values())
     if has_fail:

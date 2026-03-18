@@ -32,7 +32,7 @@ def _make_builder(**overrides) -> MagicMock:
     b.out_w, b.out_h = 1080, 1920
     b.video_path = Path("/tmp/test_video.mp4")
     b.request = MagicMock()
-    b.request.is_scene_text_included = True
+    b.request.include_scene_text = True
     b.request.storyboard_id = 1
     b.project_id_int, b.group_id_int = 10, 20
     b.video_filename = "test_video.mp4"

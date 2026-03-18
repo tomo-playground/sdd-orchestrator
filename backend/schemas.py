@@ -103,7 +103,7 @@ class RenderPresetCreate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     bgm_file: str | None = None
     bgm_volume: float | None = None
-    is_audio_ducking_enabled: bool | None = None
+    audio_ducking: bool | None = None
     scene_text_font: str | None = None
     layout_style: str | None = None
     frame_style: str | None = None
@@ -120,7 +120,7 @@ class RenderPresetUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     bgm_file: str | None = None
     bgm_volume: float | None = None
-    is_audio_ducking_enabled: bool | None = None
+    audio_ducking: bool | None = None
     scene_text_font: str | None = None
     layout_style: str | None = None
     frame_style: str | None = None
@@ -139,7 +139,7 @@ class RenderPresetResponse(BaseModel):
     is_system: bool = True
     bgm_file: str | None = None
     bgm_volume: float | None = None
-    is_audio_ducking_enabled: bool | None = Field(default=None, validation_alias="audio_ducking")
+    audio_ducking: bool | None = Field(default=None, validation_alias="audio_ducking")
     scene_text_font: str | None = None
     layout_style: str | None = None
     frame_style: str | None = None
@@ -369,7 +369,7 @@ class SceneDetailResponse(BaseModel):
     auto_pin_previous: bool = Field(default=False, alias="_auto_pin_previous")
 
     # Per-scene generation settings override (null = inherit global)
-    is_controlnet_enabled: bool | None = None
+    use_controlnet: bool | None = None
     controlnet_weight: float | None = None
     controlnet_pose: str | None = None
     use_ip_adapter: bool | None = None
@@ -497,7 +497,7 @@ class StoryboardScene(BaseModel):
     image_asset_id: int | None = None
 
     # Per-scene generation settings override (null = inherit global)
-    is_controlnet_enabled: bool | None = None
+    use_controlnet: bool | None = None
     controlnet_weight: float | None = None
     controlnet_pose: str | None = None
     use_ip_adapter: bool | None = None
@@ -602,11 +602,11 @@ class VideoRequest(BaseModel):
     voice_design_prompt: str | None = None  # For Qwen-TTS VoiceDesign
     voice_preset_id: int | None = None  # Voice preset for TTS
     speed_multiplier: float = 1.0
-    is_scene_text_included: bool = True
+    include_scene_text: bool = True
     scene_text_font: str | None = None
     overlay_settings: OverlaySettings | None = None
     post_card_settings: PostCardSettings | None = None
-    is_audio_ducking_enabled: bool = True
+    audio_ducking: bool = True
     bgm_volume: float = 0.4
     ducking_threshold: float = 0.03
     bgm_mode: str = "manual"  # "manual" | "auto"
@@ -629,7 +629,7 @@ class SceneGenerateRequest(BaseModel):
     width: int = SD_DEFAULT_WIDTH
     height: int = SD_DEFAULT_HEIGHT
     clip_skip: int = SD_DEFAULT_CLIP_SKIP
-    is_hr_enabled: bool = DEFAULT_ENABLE_HR
+    enable_hr: bool = DEFAULT_ENABLE_HR
     hr_scale: float = SD_HI_RES_SCALE
     hr_upscaler: str = SD_HI_RES_UPSCALER
     hr_second_pass_steps: int = SD_HI_RES_SECOND_PASS_STEPS
@@ -642,18 +642,18 @@ class SceneGenerateRequest(BaseModel):
     # Style LoRAs — ignored by backend; resolved from DB (SSOT). Kept for backward compat.
     style_loras: list[dict] | None = None
     # ControlNet options
-    is_controlnet_enabled: bool = False
+    use_controlnet: bool = False
     controlnet_pose: str | None = None  # Specific pose name or None for auto-detect
     controlnet_weight: float = 1.0
     controlnet_control_mode: str = (
         "Balanced"  # "Balanced" | "My prompt is more important" | "ControlNet is more important"
     )
     # IP-Adapter options
-    is_ip_adapter_enabled: bool = False
+    use_ip_adapter: bool = False
     ip_adapter_reference: str | None = None  # character_key for saved reference
     ip_adapter_weight: float = DEFAULT_IP_ADAPTER_WEIGHT
     # Consistency Enhancements
-    is_reference_only_enabled: bool = True  # Default to True if character_id exists
+    use_reference_only: bool = True  # Default to True if character_id exists
     reference_only_weight: float = DEFAULT_REFERENCE_ONLY_WEIGHT
     environment_reference_id: int | None = None  # For Environment Pinning
     environment_reference_weight: float = DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT
@@ -1687,12 +1687,12 @@ class ReadingSpeedConfig(BaseModel):
 class GenerationDefaults(BaseModel):
     """Per-scene generation flag defaults (SSOT from config.py)."""
 
-    is_controlnet_enabled: bool = DEFAULT_USE_CONTROLNET
+    use_controlnet: bool = DEFAULT_USE_CONTROLNET
     controlnet_weight: float = DEFAULT_CONTROLNET_WEIGHT
-    is_ip_adapter_enabled: bool = DEFAULT_USE_IP_ADAPTER
+    use_ip_adapter: bool = DEFAULT_USE_IP_ADAPTER
     ip_adapter_weight: float = DEFAULT_IP_ADAPTER_WEIGHT
-    is_multi_gen_enabled: bool = DEFAULT_MULTI_GEN_ENABLED
-    is_hr_enabled: bool = DEFAULT_ENABLE_HR
+    multi_gen_enabled: bool = DEFAULT_MULTI_GEN_ENABLED
+    enable_hr: bool = DEFAULT_ENABLE_HR
 
 
 class HiResDefaults(BaseModel):
@@ -3246,7 +3246,7 @@ class SceneFramePreviewRequest(BaseModel):
     image_url: str = Field(pattern=r"^(https?://|/outputs/).+")
     script: str = ""
     layout_style: Literal["full", "post"] = "post"
-    is_scene_text_included: bool = True
+    include_scene_text: bool = True
     scene_text_font: str | None = None
     channel_name: str | None = None
     caption: str | None = None

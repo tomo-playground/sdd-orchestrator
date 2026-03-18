@@ -841,7 +841,7 @@ def _auto_populate_scene_flags(
     character_id: int | None,
     character_b_id: int | None = None,
 ) -> None:
-    """씬별 생성 플래그(is_controlnet_enabled, use_ip_adapter, multi_gen_enabled) 자동 할당.
+    """씬별 생성 플래그(use_controlnet, use_ip_adapter, multi_gen_enabled) 자동 할당.
 
     이미 값이 있는 필드는 덮어쓰지 않는다 (Cinematographer 명시값 보존).
     Express 모드처럼 Cinematographer가 스킵된 경우, context_tags.pose에서
@@ -861,7 +861,7 @@ def _auto_populate_scene_flags(
     for scene in scenes:
         # O-2a: multi 씬은 ControlNet/IP-Adapter 미지원 + 후보 3장 자동 활성화
         if scene.get("scene_mode") == "multi":
-            scene["is_controlnet_enabled"] = False
+            scene["use_controlnet"] = False
             scene["use_ip_adapter"] = False
             scene["multi_gen_enabled"] = True
             continue
@@ -883,7 +883,7 @@ def _auto_populate_scene_flags(
                 else ctx_pose_raw
             )
             if ctx_pose in SITTING_EXCLUDED_POSES:
-                scene["controlnet_pose"] = ctx_pose  # pose 기록은 하되 is_controlnet_enabled은 False
+                scene["controlnet_pose"] = ctx_pose  # pose 기록은 하되 use_controlnet은 False
             elif ctx_pose in valid_poses:
                 scene["controlnet_pose"] = ctx_pose
             elif ctx_pose and ctx_pose.replace("_", " ") in valid_poses:
@@ -891,9 +891,9 @@ def _auto_populate_scene_flags(
             else:
                 scene["controlnet_pose"] = DEFAULT_POSE_TAG
 
-        if scene.get("is_controlnet_enabled") is None:
-            scene["is_controlnet_enabled"] = False  # 일반 씬 OFF — 레퍼런스 생성만 ON
-        if scene.get("controlnet_weight") is None and scene["is_controlnet_enabled"]:
+        if scene.get("use_controlnet") is None:
+            scene["use_controlnet"] = False  # 일반 씬 OFF — 레퍼런스 생성만 ON
+        if scene.get("controlnet_weight") is None and scene["use_controlnet"]:
             scene["controlnet_weight"] = _resolve_controlnet_weight(scene, DEFAULT_CONTROLNET_WEIGHT)
 
         if scene.get("use_ip_adapter") is None:
@@ -904,7 +904,7 @@ def _auto_populate_scene_flags(
         if scene.get("multi_gen_enabled") is None:
             scene["multi_gen_enabled"] = DEFAULT_MULTI_GEN_ENABLED
 
-    populated = sum(1 for s in scenes if s.get("is_controlnet_enabled") or s.get("use_ip_adapter"))
+    populated = sum(1 for s in scenes if s.get("use_controlnet") or s.get("use_ip_adapter"))
     logger.info("[Finalize] Scene flags populated: %d/%d scenes with generation overrides", populated, len(scenes))
 
 

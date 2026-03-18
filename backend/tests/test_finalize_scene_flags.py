@@ -14,7 +14,7 @@ class TestAutoPopulateSceneFlags:
         """캐릭터 씬 — ControlNet 기본 OFF (프롬프트 충성도 충분)."""
         scenes = [{"speaker": "A", "controlnet_pose": "standing"}]
         _auto_populate_scene_flags(scenes, character_id=1)
-        assert scenes[0]["is_controlnet_enabled"] is False
+        assert scenes[0]["use_controlnet"] is False
 
     def test_character_scene_ip_adapter_on(self):
         """캐릭터 씬 + character_id → use_ip_adapter=True."""
@@ -32,7 +32,7 @@ class TestAutoPopulateSceneFlags:
         """Narrator 씬 → ControlNet OFF, IP-Adapter OFF."""
         scenes = [{"speaker": "Narrator", "controlnet_pose": "standing"}]
         _auto_populate_scene_flags(scenes, character_id=1)
-        assert scenes[0]["is_controlnet_enabled"] is False
+        assert scenes[0]["use_controlnet"] is False
         assert scenes[0]["use_ip_adapter"] is False
 
     def test_existing_values_preserved(self):
@@ -41,14 +41,14 @@ class TestAutoPopulateSceneFlags:
             {
                 "speaker": "A",
                 "controlnet_pose": "standing",
-                "is_controlnet_enabled": True,  # 명시적 ON → 보존
+                "use_controlnet": True,  # 명시적 ON → 보존
                 "use_ip_adapter": False,
                 "controlnet_weight": 0.5,
                 "multi_gen_enabled": True,
             }
         ]
         _auto_populate_scene_flags(scenes, character_id=1)
-        assert scenes[0]["is_controlnet_enabled"] is True  # 명시값 보존
+        assert scenes[0]["use_controlnet"] is True  # 명시값 보존
         assert scenes[0]["use_ip_adapter"] is False
         assert scenes[0]["controlnet_weight"] == 0.5
         assert scenes[0]["multi_gen_enabled"] is True
@@ -66,7 +66,7 @@ class TestAutoPopulateSceneFlags:
         scenes = [{"speaker": "A", "context_tags": {"pose": "sitting"}}]
         _auto_populate_scene_flags(scenes, character_id=1)
         assert scenes[0]["controlnet_pose"] == "sitting"
-        assert scenes[0]["is_controlnet_enabled"] is False
+        assert scenes[0]["use_controlnet"] is False
 
     def test_multiple_scenes_mixed(self):
         """여러 씬 혼합 — 모두 ControlNet OFF, IP-Adapter는 캐릭터만 ON."""
@@ -76,11 +76,11 @@ class TestAutoPopulateSceneFlags:
             {"speaker": "B", "controlnet_pose": "standing"},
         ]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=2)
-        assert scenes[0]["is_controlnet_enabled"] is False
+        assert scenes[0]["use_controlnet"] is False
         assert scenes[0]["use_ip_adapter"] is True
-        assert scenes[1]["is_controlnet_enabled"] is False
+        assert scenes[1]["use_controlnet"] is False
         assert scenes[1]["use_ip_adapter"] is False
-        assert scenes[2]["is_controlnet_enabled"] is False
+        assert scenes[2]["use_controlnet"] is False
         assert scenes[2]["use_ip_adapter"] is True
 
 
@@ -135,14 +135,14 @@ class TestDialogueCharacterBFlags:
         scenes = [{"speaker": "B", "context_tags": {"pose": "sitting"}}]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=2)
         assert scenes[0]["controlnet_pose"] == "sitting"
-        assert scenes[0]["is_controlnet_enabled"] is False
+        assert scenes[0]["use_controlnet"] is False
         assert scenes[0]["use_ip_adapter"] is True
 
     def test_speaker_b_no_character_b_id_disables(self):
         """speaker B + character_b_id=None → 모두 OFF."""
         scenes = [{"speaker": "B"}]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=None)
-        assert scenes[0]["is_controlnet_enabled"] is False
+        assert scenes[0]["use_controlnet"] is False
         assert scenes[0]["use_ip_adapter"] is False
 
     def test_dialogue_mixed_speakers(self):
@@ -153,11 +153,11 @@ class TestDialogueCharacterBFlags:
             {"speaker": "Narrator"},
         ]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=2)
-        assert scenes[0]["is_controlnet_enabled"] is False
+        assert scenes[0]["use_controlnet"] is False
         assert scenes[0]["use_ip_adapter"] is True
-        assert scenes[1]["is_controlnet_enabled"] is False
+        assert scenes[1]["use_controlnet"] is False
         assert scenes[1]["use_ip_adapter"] is True
-        assert scenes[2]["is_controlnet_enabled"] is False
+        assert scenes[2]["use_controlnet"] is False
         assert scenes[2]["use_ip_adapter"] is False
 
 
@@ -189,9 +189,9 @@ async def test_finalize_node_populates_scene_flags():
         result = await finalize_node(state, config={})
 
     final = result["final_scenes"]
-    assert final[0]["is_controlnet_enabled"] is False  # 일반 씬 OFF
+    assert final[0]["use_controlnet"] is False  # 일반 씬 OFF
     assert final[0]["use_ip_adapter"] is True
-    assert final[1]["is_controlnet_enabled"] is False
+    assert final[1]["use_controlnet"] is False
     assert final[1]["use_ip_adapter"] is False
 
 
@@ -226,10 +226,10 @@ async def test_finalize_express_mode_controlnet_off():
 
     final = result["final_scenes"]
     # 캐릭터 씬: ControlNet OFF, IP-Adapter ON
-    assert final[0]["is_controlnet_enabled"] is False
+    assert final[0]["use_controlnet"] is False
     assert final[0]["use_ip_adapter"] is True
     # Narrator: 모두 OFF
-    assert final[1]["is_controlnet_enabled"] is False
+    assert final[1]["use_controlnet"] is False
     # 캐릭터 B: ControlNet OFF, IP-Adapter ON
-    assert final[2]["is_controlnet_enabled"] is False
+    assert final[2]["use_controlnet"] is False
     assert final[2]["use_ip_adapter"] is True

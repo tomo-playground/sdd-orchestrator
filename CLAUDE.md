@@ -164,6 +164,18 @@ docs/
   3. Frontend 타입(interface)을 Backend 스키마와 일치시킴
   4. REST API 명세 (`docs/03_engineering/api/REST_API.md`) 업데이트
 
+## LangFuse 프롬프트 vs Prompt Builder 역할 분리
+
+- **정적 규칙/지시문**: LangFuse 프롬프트(system/user)에서 관리. 코드 하드코딩 금지.
+  - 예: Director의 "Environment-Script Consistency" 검증 기준 → `creative/director` system prompt
+  - 예: Cinematographer의 "Location Map 준수" 규칙 → `creative/cinematographer` system prompt
+- **동적 데이터**: `prompt_builders*.py`가 런타임 데이터를 포맷팅하여 template 변수로 주입.
+  - 예: `build_visual_qc_section()` → QC issues 목록을 마크다운으로 변환
+  - 예: `build_quality_criteria_block()` → director_plan의 quality_criteria 배열을 포맷팅
+- **판단 기준**: "이 텍스트가 프롬프트 버전 변경 없이 바뀔 수 있는가?"
+  - Yes → 빌더 (동적 데이터)
+  - No → LangFuse 프롬프트 (정적 규칙)
+
 ## Gemini API 호출 규칙
 
 ### system_instruction 분리 (필수)

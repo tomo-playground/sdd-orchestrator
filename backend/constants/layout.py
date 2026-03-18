@@ -30,15 +30,15 @@ class FullLayout:
     # === Scene Text Rendering (formerly "Subtitles") ===
     # Scene text = script text overlaid on video (not to be confused with caption metadata)
     SCENE_TEXT_FONT_RATIO: float = 0.042  # height * ratio = font size (81px for 1920h, YouTube Shorts standard)
-    SCENE_TEXT_MIN_FONT_RATIO: float = 0.032  # minimum font size ratio (61px for 1920h)
-    SCENE_TEXT_LINE_HEIGHT_RATIO: float = 1.45  # font_size * ratio = line height
+    SCENE_TEXT_MIN_FONT_RATIO: float = 0.037  # minimum font size ratio (71px for 1920h)
+    SCENE_TEXT_LINE_HEIGHT_RATIO: float = 1.35  # font_size * ratio = line height
     SCENE_TEXT_Y_SINGLE_LINE_RATIO: float = 0.70  # Y position for 1 line (70%)
     SCENE_TEXT_Y_MULTI_LINE_RATIO: float = 0.68  # Y position for 2+ lines (68%)
     SCENE_TEXT_COLOR: RGBA = (255, 255, 255, 255)  # White
     SCENE_TEXT_STROKE_WIDTH: int = 5
     SCENE_TEXT_STROKE_COLOR: RGBA = (0, 0, 0, 255)  # Black
     SCENE_TEXT_MAX_LINES: int = 3
-    SCENE_TEXT_MAX_WIDTH_RATIO: float = 0.85  # width * ratio = max scene text width
+    SCENE_TEXT_MAX_WIDTH_RATIO: float = 0.90  # width * ratio = max scene text width
 
     # Deprecated aliases for backward compatibility
     SUBTITLE_FONT_RATIO = SCENE_TEXT_FONT_RATIO
