@@ -30,10 +30,10 @@ _TWO_CHAR_STRUCTURES = frozenset({"dialogue", "narrated_dialogue"})
 class CastingRecommendation(BaseModel):
     """Director의 캐스팅 추천."""
 
-    character_a_id: int | None = None   # Speaker A 캐릭터 ID
-    character_a_name: str = ""          # Speaker A 캐릭터 이름
-    character_b_id: int | None = None   # Speaker B 캐릭터 ID
-    character_b_name: str = ""          # Speaker B 캐릭터 이름
+    character_a_id: int | None = None  # Speaker A 캐릭터 ID
+    character_a_name: str = ""  # Speaker A 캐릭터 이름
+    character_b_id: int | None = None  # Speaker B 캐릭터 ID
+    character_b_name: str = ""  # Speaker B 캐릭터 이름
     structure: str | None = None
     reasoning: str = ""
 
@@ -147,6 +147,9 @@ class NarrativeScoreOutput(BaseModel):
     twist_payoff: float = 0.0
     speaker_tone: float = 0.0
     script_image_sync: float = 0.0
+    spoken_naturalness: float = 0.0  # TTS 낭독 자연스러움
+    retention_flow: float = 0.0  # 씬→씬 호기심 연결
+    pacing_rhythm: float = 0.0  # 템포/리듬 변화
     feedback: str = ""
 
     @model_validator(mode="before")
@@ -155,7 +158,16 @@ class NarrativeScoreOutput(BaseModel):
         if not isinstance(data, dict):
             return data
         out = dict(data)
-        score_keys = ("hook", "emotional_arc", "twist_payoff", "speaker_tone", "script_image_sync")
+        score_keys = (
+            "hook",
+            "emotional_arc",
+            "twist_payoff",
+            "speaker_tone",
+            "script_image_sync",
+            "spoken_naturalness",
+            "retention_flow",
+            "pacing_rhythm",
+        )
         for k in score_keys:
             v = out.get(k)
             if isinstance(v, int | float):

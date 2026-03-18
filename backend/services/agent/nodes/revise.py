@@ -125,6 +125,17 @@ def _build_feedback(state: ScriptState) -> str:
     if ns := review.get("narrative_score"):
         if ns_fb := ns.get("feedback"):
             parts.append(f"[서사 품질 피드백] {ns_fb}")
+        # 숏폼 품질 차원별 구체적 피드백 (0.5 미만 시)
+        _LOW = 0.5
+        low_dims = []
+        if ns.get("spoken_naturalness", 1.0) < _LOW:
+            low_dims.append("TTS 낭독 자연스러움 부족 — AI톤/어색한 조사·어미 개선 필요")
+        if ns.get("retention_flow", 1.0) < _LOW:
+            low_dims.append("씬 간 호기심 연결 약함 — 각 씬이 다음을 보고 싶게 만드는지 확인")
+        if ns.get("pacing_rhythm", 1.0) < _LOW:
+            low_dims.append("템포/리듬 단조로움 — 문장 길이·종결 패턴 다양화 필요")
+        if low_dims:
+            parts.append("[숏폼 품질 개선]\n" + "\n".join(f"- {d}" for d in low_dims))
 
     return "\n".join(parts)
 

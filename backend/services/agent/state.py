@@ -49,6 +49,9 @@ class NarrativeScore(TypedDict, total=False):
     twist_payoff: float
     speaker_tone: float
     script_image_sync: float
+    spoken_naturalness: float  # TTS 낭독 자연스러움 (AI톤 감지)
+    retention_flow: float  # 씬→씬 호기심 연결
+    pacing_rhythm: float  # 템포/리듬 변화
     overall: float  # 가중 평균
     feedback: str  # 개선 제안 (한국어)
 
