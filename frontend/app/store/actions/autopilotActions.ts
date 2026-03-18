@@ -89,12 +89,17 @@ export async function runAutoRunFromStep(
         assertNotCancelled();
 
         // 1) Generate backgrounds
-        await axios.post(
+        const bgRes = await axios.post(
           `${API_BASE}/storyboards/${storyboardId}/stage/generate-backgrounds`,
           null,
           { timeout: API_TIMEOUT.STAGE_GENERATE, signal: abortController.signal }
         );
-        pushAutoRunLog("Backgrounds generated");
+        const bgResults = bgRes.data.results ?? [];
+        const bgSuccess = bgResults.filter((r: { status: string }) => r.status !== "failed").length;
+        if (bgSuccess === 0 && bgResults.length > 0) {
+          throw new Error("배경 이미지 생성에 실패했습니다. SD WebUI 상태를 확인해주세요.");
+        }
+        pushAutoRunLog(`Backgrounds generated (${bgSuccess}/${bgResults.length})`);
         assertNotCancelled();
 
         // 2) Assign to scenes
