@@ -26,7 +26,7 @@ export default function StoryboardInsights({ scenes, imageValidationResults }: P
   if (scenes.length === 0) return null;
 
   const total = scenes.length;
-  const totalDuration = scenes.reduce((sum, s) => sum + (s.duration || 0), 0);
+  const totalDuration = Math.round(scenes.reduce((sum, s) => sum + (s.duration || 0), 0) * 10) / 10;
   const withScript = scenes.filter((s) => s.script.trim().length > 0).length;
   const withImage = scenes.filter((s) => hasSceneImage(s)).length;
   const complete = scenes.filter((s) => s.script.trim().length > 0 && hasSceneImage(s)).length;
