@@ -48,7 +48,24 @@
 | C-8 | `review/evaluate` + `review/narrative` 레거시 정리 | `review/unified` 사용 중이면 deprecated 처리 |
 | C-9 | `dialogue` 조건부 변수 JSON 안전성 | `{{multi_scene_mode_field}}` 빈 문자열 시 JSON 유효성 확인 |
 | C-10 | Storyboard 공통 규칙 파셜 추출 | 4개 storyboard 공통 70% → `shared/partial-*` 5개 신규 |
-| C-11 | CoT 도입 (cinematographer) | 15개 규칙 동시 적용 → 7단계 Processing Steps 추가 |
+| C-11 | CoT 도입 (cinematographer) | 15개 규칙 동시 적용 → 7단계 Processing Steps 추가 (아래 참조) |
+
+#### C-11: Cinematographer CoT (Chain-of-Thought) 7단계
+
+`pipeline/cinematographer` 프롬프트에 순차 사고 유도 섹션 추가 (Rule 15 뒤, Output Format 앞):
+
+```
+## Processing Steps (follow in order)
+1. Read each scene's script and identify its narrative function (hook/rising/climax/resolution)
+2. For each scene, select emotion from the allowed list based on script content
+3. Choose camera angle matching the narrative function (see Rule 13 table)
+4. Verify gaze variety across all scenes (Rule 3) — adjust if needed
+5. Assign environment tags based on script keywords, then verify location continuity (Rule 5)
+6. Add cinematic techniques matching emotion (Rule 12/14)
+7. Final self-check: consecutive scenes have different camera angles AND gaze directions
+```
+
+**근거**: 15개 규칙을 한꺼번에 적용하면 "Lost in the Middle" 현상으로 뒷부분 규칙(환경 일관성, 카메라 다양성)이 무시됨. 단계적 사고 유도로 각 규칙의 적용 누락 방지.
 | C-12 | `1girl` 예시 정리 | sanitization 변환 혼동 방지 → 예시에서 제거 또는 주석 |
 | C-13 | 변수 형식 통일 | `{{ var }}` vs `{{var}}` → 하나로 통일 |
 | C-14 | `storyboard/dialogue` 예시에 `cinematic` 필드 추가 | cinematographer 호환 |
