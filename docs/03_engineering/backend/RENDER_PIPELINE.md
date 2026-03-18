@@ -1,6 +1,6 @@
 # Render Pipeline Specification
 
-**최종 업데이트**: 2026-02-27
+**최종 업데이트**: 2026-03-18
 
 ## 1. 개요
 
@@ -89,6 +89,21 @@ TTS Audio → Ducking ← BGM Track
 - **Scene Text 위치**: `calculate_optimal_scene_text_y()` — platform 파라미터 지원
 - **배경 밝기 기반 텍스트 색상**: `analyze_text_region_brightness()` — 밝은 배경 시 검은 텍스트
 
+#### Scene Text 사양 (1080×1920 기준)
+
+| 항목 | 상수 | 값 | 1920h 환산 |
+|------|------|----|-----------|
+| 폰트 (base) | `SCENE_TEXT_FONT_RATIO` | 0.042 | 80px |
+| 폰트 (min) | `SCENE_TEXT_MIN_FONT_RATIO` | 0.037 | 71px |
+| 줄높이 | `SCENE_TEXT_LINE_HEIGHT_RATIO` | 1.35 | 108px (base) ~ 95px (min) |
+| 최대 너비 | `SCENE_TEXT_MAX_WIDTH_RATIO` | 0.90 | 972px (화면 90%) |
+| 최대 줄수 | `SCENE_TEXT_MAX_LINES` | 3 | — |
+| 테두리 | `stroke_width` | 폰트 비례 `max(3, size//16)` | 80px→5, 72px→4 |
+| 텍스트 색상 | `SCENE_TEXT_COLOR` | (255,255,255,255) | 흰색 (배경 밝기에 따라 반전) |
+| 테두리 색상 | `SCENE_TEXT_STROKE_COLOR` | (0,0,0,255) | 검정 (배경 밝기에 따라 반전) |
+
+> 상수 SSOT: `backend/constants/layout.py` → `FullLayout` 클래스
+
 ### 5-2. Post Layout
 
 Instagram 카드 스타일. 이미지 + Scene Text 영역 + Caption 영역.
@@ -97,6 +112,19 @@ Instagram 카드 스타일. 이미지 + Scene Text 영역 + Caption 영역.
 - **Scene Text 영역 동적 높이**: 텍스트 길이별 12-25% 선형 보간
 - **블러 배경**: Box Blur(15) + Gaussian Blur(20) 조합
 - **해시태그 색상**: Instagram Blue (#0095F6)
+
+### 5-3. Full vs Post 비교
+
+| 항목 | Full (1080×1920) | Post (1080×1080) |
+|------|-----------------|-----------------|
+| 폰트 base | 80px (0.042) | 37px (0.034) |
+| 폰트 min | 71px (0.037) | 26px (0.024) |
+| 줄높이 비율 | 1.35 | 1.35 |
+| 최대 너비 | 972px (화면 90%) | 카드 내부 92% |
+| 최대 줄수 | 3 | 3 |
+| 테두리 | 폰트 비례 `max(3, size//16)` | 0 (외곽선 없음) |
+| 텍스트 색상 | 흰색 (배경 밝기 적응) | 검정 (40,40,40) |
+| 배치 | 하단 Safe Zone (플랫폼별) | 카드 내 Scene Text 영역 |
 
 ---
 
