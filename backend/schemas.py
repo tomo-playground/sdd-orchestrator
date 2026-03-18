@@ -257,7 +257,7 @@ class StoryboardDraftResponse(BaseModel):
 
     storyboard_id: int
     title: str
-    is_created: bool  # True=신규 생성, False=기존 반환 (멱등)
+    created: bool  # True=신규 생성, False=기존 반환 (멱등)
 
 
 class StoryboardSaveResponse(BaseModel):
