@@ -13,7 +13,7 @@ LangFuse는 이 프로젝트에서 3가지 역할을 담당한다.
 |------|------|------|
 | **Prompt Management** | 28개 프롬프트 chat 타입 관리 (system/user 분리) | ✅ 운영 중 |
 | **Observability** | 파이프라인 Trace/Span/Generation 추적 | ✅ 운영 중 |
-| **Scoring** | 품질 지표 기록/추적/비교 | 📋 계획 중 |
+| **Scoring** | 품질 지표 기록/추적/비교 (9개 Score, Phase 38) | ✅ 운영 중 |
 
 ---
 

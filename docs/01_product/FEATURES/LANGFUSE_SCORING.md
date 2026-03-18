@@ -1,6 +1,6 @@
 # LangFuse Scoring 시스템 도입
 
-**상태**: Phase 38 진행 중
+**상태**: Phase 38 구현 완료 (E2E 검증 대기)
 **목표**: 파이프라인 품질 점수를 LangFuse에 기록하여 추적/비교/회귀감지
 **리뷰**: v1 Tech Lead/PM/QA 반영 → v2 코드 분석 갭 반영 → **v3 4-Agent 리뷰 반영 (BLOCKER 4건 해결)**
 
@@ -96,6 +96,29 @@ LANGFUSE_SCORE_CONFIGS = {
 
 코드가 SSOT. max 값은 하드코딩이 아닌 상수 참조로 동기화 보장. LangFuse UI에도 동일하게 등록.
 
+### Observation-Level Score 전략
+
+LangFuse는 observation-level 평가를 권장 (trace-level은 Legacy). SDK Score도 `observation_id`를 지정하여 **특정 노드의 span/generation에 부착**한다.
+
+| 레벨 | 용도 | 예시 |
+|------|------|------|
+| **observation-level** | 노드별 Score → 노드 성능 개별 추적 | `first_pass` → Review generation |
+| **trace-level** | 파이프라인 전체 Score → 종합 지표 | `pipeline_duration_sec`, `scene_count` |
+
+**observation_id 획득**: `trace_llm_call()` context manager의 `LLMCallResult.generation.id`에서 획득.
+
+```python
+# 노드 내부 (예: review.py)
+async with trace_llm_call("review.evaluate", model=model) as llm:
+    llm.record(response)
+    obs_id = llm.generation.id if llm.generation else None
+
+# Score 기록 시 observation에 부착
+record_score("first_pass", result["passed"], observation_id=obs_id)
+```
+
+**Finalize 노드 예외**: `revision_count`, `scene_count`, `pipeline_duration_sec`는 특정 LLM 호출에 종속되지 않으므로 **trace-level**로 기록 (`observation_id=None`).
+
 ### LangFuse SDK v3 `create_score()` 시그니처
 
 ```python
@@ -118,23 +141,23 @@ def create_score(
 ### Sprint A: 인프라 + 테스트
 | # | 항목 | 파일 | 상세 |
 |---|------|------|------|
-| A-1 | `record_score()` 헬퍼 | `observability.py` | value None 가드, data_type 자동 추론, bool→int, graceful skip, try/except |
+| A-1 | `record_score()` 헬퍼 | `observability.py` | **observation_id 지원**, value None 가드, data_type 자동 추론, bool→int, graceful skip, try/except — ✅ 구현 완료 |
 | A-5 | `LANGFUSE_SCORE_CONFIGS` 상수 | `config_pipelines.py` | L58 뒤 LangFuse 섹션에 추가. max 값은 코드 상수 참조 |
 | A-6a | `pipeline_mode` metadata 기록 | `observability.py` | `create_langfuse_handler()`에 `pipeline_mode` 파라미터 추가 → `_patch_trace()` body에 포함 |
 | A-6b | `pipeline_mode` 전달 | `scripts.py` | `is_fast_track` → `"fasttrack"` / `"full"` 문자열 변환 후 전달 |
 | A-6c | `_pipeline_start_time` contextvar | `observability.py` | Generate 시에만 `time.monotonic()` 설정 (Resume skip) + `get_pipeline_elapsed_sec()` 공개 함수 |
 | A-7 | LangFuse UI Score Config 등록 | LangFuse UI | 9개 수동 등록 |
-| A-8 | `record_score` 단위 테스트 | `test_observability_unit.py` | 성공/미연결/trace_id 없음/value None skip/bool True→1,False→0/exception 안전성/data_type 자동 추론/pipeline_elapsed_sec 미설정→None |
+| A-8 | `record_score` 단위 테스트 | `test_observability_unit.py` | 성공/미연결/trace_id 없음/value None skip/bool True→1,False→0/exception 안전성/data_type 자동 추론/pipeline_elapsed_sec 미설정→None/**observation_id 전달 검증**/observation_id=None→trace-level |
 
 ### Sprint B: Tier 1 + Tier 2 Score 기록 + 테스트
 | # | 항목 | 파일 | 상세 |
 |---|------|------|------|
-| B-1 | Review → `first_pass` + `script_qc_issues` | `nodes/review.py` | **return dict 구성 직전** (최종 passed 확정 후). `record_score("first_pass", result["passed"])`, `record_score("script_qc_issues", len(result.get("errors", [])))`. errors만 카운트 (규칙 기반, Gemini feedback 제외) |
-| B-2 | Review → `narrative_overall` | `nodes/review.py` | `record_score("narrative_overall", ns.get("overall") if ns else None, comment=json.dumps(ns))`. None 가드는 `record_score()` 중앙 처리 |
-| B-3 | Finalize → `revision_count` + `scene_count` + `pipeline_duration_sec` | `nodes/finalize.py` | **return 직전** 3개 연속 기록. Quick/Full 양쪽 경로 모두 |
-| B-4 | Cinematographer → `visual_qc_issues` | `nodes/cinematographer.py` | Competition 경로(L231 return 직전) + 단일 모드 경로(L348 return 직전) **양쪽 삽입**. 실패 경로(`_EMPTY_RESULT`)에서는 미기록 |
-| B-5 | Research → `research_quality` | `nodes/research.py` | `record_score("research_quality", score.get("overall") if score else None)`. 스킵/실패 시 None → 중앙 가드 |
-| B-6 | Director → `director_revision_count` | `nodes/director.py` | `record_score("director_revision_count", new_count)`. approve 시 0 기록 = "문제 없이 통과" |
+| B-1 | Review → `first_pass` + `script_qc_issues` | `nodes/review.py` | **return dict 구성 직전**. `record_score("first_pass", result["passed"], observation_id=obs_id)`. `obs_id`는 `trace_llm_call()` generation.id. errors만 카운트 |
+| B-2 | Review → `narrative_overall` | `nodes/review.py` | `record_score("narrative_overall", ns.get("overall"), observation_id=obs_id, comment=json.dumps(ns))`. 동일 obs_id 사용 |
+| B-3 | Finalize → `revision_count` + `scene_count` + `pipeline_duration_sec` | `nodes/finalize.py` | **return 직전** 3개. **trace-level** (`observation_id=None`) — 특정 LLM 호출에 종속되지 않음 |
+| B-4 | Cinematographer → `visual_qc_issues` | `nodes/cinematographer.py` | Competition + 단일 모드 **양쪽**. `record_score(..., observation_id=obs_id)`. 실패 경로 미기록 |
+| B-5 | Research → `research_quality` | `nodes/research.py` | `record_score("research_quality", score.get("overall"), observation_id=obs_id)`. 스킵/실패 시 None → 중앙 가드 |
+| B-6 | Director → `director_revision_count` | `nodes/director.py` | `record_score("director_revision_count", new_count, observation_id=obs_id)`. approve 시 0 기록 |
 | B-7 | conftest.py autouse mock | `tests/conftest.py` | `_reset_langfuse_state` fixture: `obs._initialized=False`, `obs._langfuse_client=None` 리셋 (테스트 간 상태 격리) |
 | B-8 | 노드별 mock 호출 검증 + FastTrack | `tests/test_langfuse_scoring.py` | Full 경로: 9개 Score 호출 검증. FastTrack 경로: 최소 3개(revision_count, scene_count, pipeline_duration_sec) + 미기록 Score 미호출 검증 |
 
@@ -144,8 +167,9 @@ def create_score(
 
 ```python
 def record_score(name: str, value: float | bool | None, *,
+                 observation_id: str | None = None,
                  comment: str = "") -> None:
-    """현재 trace에 score를 기록한다. 실패 시 파이프라인 미중단."""
+    """현재 trace(또는 observation)에 score를 기록한다. 실패 시 파이프라인 미중단."""
     if value is None:
         return  # None 가드 — 노드 스킵/실패 시 안전하게 무시
     if not _ensure_initialized() or _langfuse_client is None:
@@ -153,27 +177,28 @@ def record_score(name: str, value: float | bool | None, *,
     trace_id = _current_trace_id.get()
     if not trace_id:
         return  # trace context 밖에서 호출
-    # data_type 자동 추론 (LANGFUSE_SCORE_CONFIGS SSOT)
     cfg = LANGFUSE_SCORE_CONFIGS.get(name, {})
     data_type = cfg.get("data_type", "NUMERIC")
-    # BOOLEAN: SDK는 value를 float(0/1)로 요구
     safe_value: float = int(value) if isinstance(value, bool) else value
     try:
         _langfuse_client.create_score(
             trace_id=trace_id,
+            observation_id=observation_id,  # None이면 trace-level
             name=name,
             value=safe_value,
             data_type=data_type,
             comment=comment or None,
         )
-        logger.debug("[LangFuse] Score 기록: %s=%s (trace=%s)", name, value, trace_id[:16])
+        target = f"obs={observation_id[:16]}" if observation_id else f"trace={trace_id[:16]}"
+        logger.debug("[LangFuse] Score 기록: %s=%s (%s)", name, value, target)
     except Exception as e:
         logger.warning("[LangFuse] Score 기록 실패 (non-fatal): %s=%s, %r", name, value, e)
 ```
 
 **설계 결정**:
-- `value=None` → 즉시 return (노드 스킵/실패 시 중앙 방어, 각 노드에서 개별 None 체크 불필요)
-- `data_type` → `LANGFUSE_SCORE_CONFIGS`에서 자동 추론 (호출측이 지정할 필요 없음)
+- `observation_id` → 지정 시 observation-level Score, None이면 trace-level (LangFuse 권장 패턴)
+- `value=None` → 즉시 return (노드 스킵/실패 시 중앙 방어)
+- `data_type` → `LANGFUSE_SCORE_CONFIGS`에서 자동 추론
 - `bool → int` 변환 → SDK 요구사항 캡슐화
 
 | 시나리오 | 동작 |
@@ -221,14 +246,14 @@ ComfyUI Phase A 후: visual_qc_issues 평균 0.8
 ---
 
 ## 완료 기준 (DoD)
-- [ ] `record_score` 헬퍼 구현 (value None 가드 + data_type 자동 추론 + bool→int + graceful skip)
-- [ ] Tier 1 Score 8개 + Tier 2 Score 1개 = 9개 기록
+- [x] `record_score` 헬퍼 구현 (observation_id + value None 가드 + data_type 자동 추론 + bool→int + graceful skip)
+- [x] Tier 1 Score 8개 + Tier 2 Score 1개 = 9개 기록
 - [ ] Generate 파이프라인 1회 실행 후 LangFuse Score 탭에 최소 9개 Score 표시
 - [ ] Resume 파이프라인 실행 시에도 해당 노드 Score 정상 기록
 - [ ] FastTrack 모드에서도 `scene_count` + `revision_count` + `pipeline_duration_sec` 최소 3개 기록
 - [ ] Score Config 9개 LangFuse UI에 등록
-- [ ] 기존 Backend 테스트 전체 PASS (Score 기록 실패가 파이프라인 미중단)
-- [ ] 신규 테스트 전체 PASS
+- [x] 기존 Backend 테스트 전체 PASS (3,725 passed, 0 failed)
+- [x] 신규 테스트 전체 PASS (35개)
 
 ## 모니터링
 - 성공: `logger.debug("[LangFuse] Score 기록: %s=%s")`
@@ -400,6 +425,29 @@ FastTrack에서는 Research/Cinematographer/Director 노드를 건너뛸 수 있
 | PM | LANGFUSE_GUIDE.md 상태 동기화 | → Sprint A 착수 시 함께 업데이트 |
 
 **SUGGESTION 채택:**
-- `observation_id` 파라미터 예약 → 향후 확장 시 추가 (현재 미구현)
+- ~~`observation_id` 파라미터 예약 → 향후 확장 시 추가~~ → ✅ **구현 완료** (2026-03-18)
 - Tier 3 `trace_id` 영구 저장 → 향후 검토 (현재 범위 밖)
 - 회귀 감지 자동화 → 향후 임계치 기반 알림 검토
+
+---
+
+## LLM-as-a-Judge 평가자 (Observation-Level)
+
+LangFuse UI에 등록된 자동 평가자. 파이프라인 GENERATION observation마다 LLM이 자동 채점.
+
+| 평가자 | 평가 대상 | Tier | Runs on |
+|--------|----------|------|---------|
+| `pacing_rhythm` | 페이싱 리듬 | Tier 2 | observations (GENERATION) |
+| `retention_flow` | 몰입 흐름 | Tier 2 | observations (GENERATION) |
+| `spoken_naturalness` | 구어체 자연스러움 | Tier 2 | observations (GENERATION) |
+
+> **Legacy → Observation 전환 완료** (2026-03-18). trace-level(Legacy) → observation-level(GENERATION 필터).
+
+### 유지보수 시 업데이트 필요한 경우
+
+| 변경 사항 | 필요 작업 |
+|-----------|----------|
+| LangFuse 프롬프트 평가 기준 변경 | LangFuse UI에서 Referenced Evaluator 프롬프트 수정 |
+| 노드 이름/구조 변경 | LangFuse UI Filter의 observation name 업데이트 |
+| 평가 차원 추가 (예: `visual_coherence`) | LangFuse UI에서 새 evaluator 생성 |
+| SDK Score와 중복 시 | LLM-as-Judge 비활성화 검토 (SDK Score가 SSOT) |

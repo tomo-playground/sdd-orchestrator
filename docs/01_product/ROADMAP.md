@@ -47,7 +47,7 @@
 | **Phase 35 (GPT-SoVITS TTS 전환)** | **전체 완료** |
 | **Phase 36 (LangFuse Prompt Quality Hardening)** | **전체 완료** |
 | **Phase 37 (Korean Script Quality)** | **전체 완료** |
-| 테스트 | Backend 3,647 + Frontend 599 (65파일) + 16 = **총 4,262개** |
+| 테스트 | Backend 3,738 + Frontend 599 (65파일) + 16 = **총 4,353개** |
 
 ### 진행 중
 
@@ -57,11 +57,11 @@ ComfyUI 전환 전 품질 베이스라인 축적 목적. 파이프라인 품질 
 
 | Sprint | 항목 | 상태 |
 |--------|------|------|
-| **A: 인프라** | `record_score` 헬퍼, contextvar trace_id 참조, 예외 처리, Score Config 9개 | 대기 |
-| **B: Score 기록** | Tier 1 (8개) + Tier 2 (1개) 노드별 기록 + 통합 테스트 | 대기 |
+| **A: 인프라** | `record_score` 헬퍼, contextvar, pipeline_mode metadata, Score Config 9개, 단위 테스트 11개 | ✅ 완료 |
+| **B: Score 기록** | 5개 노드 Score 기록, conftest fixture, 검증 테스트 24개 | ✅ 완료 |
 
-**Tier 1 (객관적 8개)**: `first_pass`, `revision_count`, `scene_count`, `visual_qc_issues`, `script_qc_issues`, `research_quality`, `director_revision_count`, `pipeline_duration_sec`
-**Tier 2 (LLM 1개)**: `narrative_overall` (8차원 JSON comment)
+**Tier 1 (8개)**: `first_pass`, `revision_count`, `scene_count`, `visual_qc_issues`, `script_qc_issues`, `research_quality`, `director_revision_count`, `pipeline_duration_sec`
+**Tier 2 (1개)**: `narrative_overall` (8차원 JSON comment). 테스트 +35개, 기존 실패 37건 수정. 3,725 passed
 
 [명세](FEATURES/LANGFUSE_SCORING.md)
 
