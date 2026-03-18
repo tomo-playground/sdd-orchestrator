@@ -322,6 +322,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
                 )
         except Exception as e:
             logger.warning("[Cinematographer] Agent 실패 (graceful): %s", e)
+            record_score("visual_qc_issues", None)  # 측정 불가 → skip
             return _EMPTY_RESULT
 
         scenes_output = _parse_scenes(response)
@@ -334,6 +335,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
             logger.warning(
                 "[Cinematographer] JSON 파싱 실패 (%d회 시도), cinematographer_result=None으로 진행", max_attempts
             )
+            record_score("visual_qc_issues", None)  # 측정 불가 → skip
             return {"cinematographer_result": None, "cinematographer_tool_logs": tool_logs}
 
     # 타입 가드: for 루프는 break(성공) 또는 return(실패)으로 종료되므로 여기에 도달하면 반드시 not None
