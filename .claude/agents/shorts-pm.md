@@ -140,6 +140,10 @@ docs/
 ### 문서 구조 & 메타
 - `CLAUDE.md` - 프로젝트 설정 및 문서 구조 섹션
 
+### 네이밍 & 용어
+- `docs/02_design/NAMING_CONVENTION.md` - 서비스 네이밍 컨벤션 (한국어 정책 + 용어 사전)
+- `CLAUDE.md` 용어 정의 섹션 - 도메인 용어 매핑 (Project=채널, Group=시리즈, Storyboard=영상, Scene=씬)
+
 ### 기타 참조
 - `docs/03_engineering/architecture/SYSTEM_OVERVIEW.md` - 시스템 아키텍처 개요
 - `docs/04_operations/DEPLOYMENT.md` - 배포 가이드

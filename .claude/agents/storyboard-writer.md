@@ -121,7 +121,7 @@ LangFuse에서 관리되는 프롬프트 (28개):
   - `SCENE_BUILDER_UI.md` - 씬 빌더 UI 명세
 
 ### 기술 문서
-- `docs/03_engineering/backend/PROMPT_PIPELINE.md` - 프롬프트 파이프라인 (Gemini → SD)
+- `docs/03_engineering/backend/PROMPT_SPEC.md` - 프롬프트 파이프라인 (Gemini → SD)
 
 ### 코드 참조
 - LangFuse 프롬프트 (스토리보드 생성, 대화형, 나레이션형, Creative) — LangFuse UI에서 관리

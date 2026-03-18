@@ -102,7 +102,7 @@ backend/
 │   ├── agent/            # LangGraph Creative Pipeline
 │   │   ├── script_graph.py      # 메인 그래프
 │   │   ├── state.py, routing.py # 상태/라우팅
-│   │   ├── nodes/               # 20개 에이전트 노드 (director, writer, critic, cinematographer 등)
+│   │   ├── nodes/               # 21개 에이전트 노드 (director, writer, critic, cinematographer 등)
 │   │   ├── tools/               # 에이전트 도구 (research, cinematographer)
 │   │   ├── store.py, checkpointer.py
 │   │   └── observability.py     # Langfuse 연동

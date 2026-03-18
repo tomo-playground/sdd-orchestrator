@@ -144,9 +144,8 @@ browser_navigate → browser_take_screenshot (전체)
   - `UI_PROPOSAL.md` - UI 제안서
   - `UI_COMPONENTS.md` - UI 컴포넌트 가이드
   - `STUDIO_DESIGN_GUIDE.md` - Studio 디자인 가이드
-  - `DESIGN_PHILOSOPHY.md` - 디자인 철학
   - `UX_FLOW_ANALYSIS.md` - UX 플로우 분석
-  - `MANAGE_SIDEBAR_NAV.md` - 사이드바 네비게이션
+  - `NAMING_CONVENTION.md` - 서비스 네이밍 컨벤션
   - `HOME_VIDEO_GALLERY_PROPOSAL.md` - 홈 비디오 갤러리
   - `wireframes/` - 와이어프레임
 
