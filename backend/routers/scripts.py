@@ -226,7 +226,12 @@ async def generate_script_stream(
 async def resume_script(request: ScriptResumeRequest):
     """Human Gate / Concept Gate 재개 — thread_id로 interrupt된 그래프를 SSE로 재개한다."""
     logger.info("📝 [Script Resume] thread=%s, action=%s", request.thread_id, request.action)
-    config = _build_config(request.thread_id, trace_id=request.trace_id, action="resume")
+    config = _build_config(
+        request.thread_id,
+        trace_id=request.trace_id,
+        session_id=_resolve_session_id(request.storyboard_id),
+        action="resume",
+    )
 
     # 피드백 프리셋 해석
     feedback = request.feedback

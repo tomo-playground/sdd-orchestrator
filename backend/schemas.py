@@ -1800,6 +1800,7 @@ class ScriptResumeRequest(BaseModel):
     feedback_preset_params: dict[str, str] | None = None  # 프리셋 파라미터
     custom_concept: dict | None = None  # 사용자 직접 입력 컨셉
     trace_id: str | None = None  # Langfuse trace 연결용 (generate 시 받은 값)
+    storyboard_id: int | None = None  # LangFuse session 연결용
 
 
 class ScriptPresetItem(BaseModel):
