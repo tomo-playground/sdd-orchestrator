@@ -315,6 +315,10 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             build_scene_count_range,
             build_storyboard_chat_context,
         )
+        from services.agent.prompt_builders_writer import (
+            build_korean_critical_hint,
+            build_korean_rules_block,
+        )
         from services.agent.prompt_partials import (
             EMOTION_CONSISTENCY_RULES,
             IMAGE_PROMPT_KO_RULES,
@@ -375,6 +379,8 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
                 ctx.get("current_script_summary"),
             ),
             "character_tag_rules": build_character_tag_rules(character_context is not None),
+            "korean_rules_block": build_korean_rules_block(request.language),
+            "korean_critical_hint": build_korean_critical_hint(request.language),
             **partial_vars,
             **extra_fields,
         }

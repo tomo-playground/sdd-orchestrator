@@ -50,10 +50,12 @@
 
 ### 진행 중
 
-(없음)
+- **Phase 37 (Korean Script Quality)**: 한국어 대본 품질 강화 — 구어체 자연스러움 + 문장 간 맥락 연결. Sprint 1(Writer 프롬프트) → 2(Review korean_naturalness) → 3(Revise 피드백) → 4(테스트). [명세](FEATURES/KOREAN_SCRIPT_QUALITY.md)
 
 ### 최근 작업
 
+- **03-18 품질 경고 해소 + 테스트 보강**: Gemini SDK non-text parts 경고 해소(response.text→_safe_extract_text, function_call part 안전 처리). voice_design_prompt write-back 로깅 개선(exception repr+scene_db_id+0행 감지). LangFuse 미치환 변수 3건 수정(Phase 36 프롬프트↔코드 변수명 동기화 — director/evaluate, location-planner, copyright-reviewer). is_prompt_pre_composed→prompt_pre_composed 롤백. environment 복사 테스트 5개 추가. 테스트 +5개
+- **03-18 오토런 Stage 스킵 버그 수정 + LangFuse 추가 안정화**: finalize.py `_copy_scene_level_to_context_tags()`에 environment 복사 누락 수정(FastTrack에서 context_tags.environment 비어 Stage 스킵 근본 원인). preflight checkStageStep() 조건 완화(environment 유무와 무관하게 background_id 없으면 Stage 필요). LangFuse resume session_id 누락 수정(storyboard_id 전달). SDK v3 start_span OTel 컨텍스트 미설정 → _patch_trace 전환. Draft 제목 버그 수정
 - **03-18 안정화 + SDK 호환 + 테스트 정비**: is_ prefix 롤백 잔재 10건 수정(schemas↔코드↔ORM 전수 동기화). LangFuse SDK v3 호환(trace()→start_span, start_generation→start_observation). 기존 테스트 실패 전수 수정 — tts_max_tokens import, director_react 키명, VRT 베이스라인 6개 갱신, controlnet CLIP모델, stage_workflow mock경로, tts_voice_seed 13건. Home "New Story"→"새 영상" 한국어 통일. 테스트 +55개(환경QC 20+Production QC 15+voice seed 4+기존수정 16)
 - **03-18 Phase 36 P1 추가 수정**: storyboard 4개 context_tags 예시 expression/mood→emotion/cinematic 전환(Cinematographer 호환), tool/edit-scenes·scene-expand 예시 1girl 제거. LangFuse 6개 프롬프트 추가 업데이트
 - **03-18 Phase 36 (LangFuse Prompt Quality Hardening) 완료**: 프롬프트 33개 전수 분석, Sprint A~D 33건 중 27건 완료 + 6건 이슈없음/이관. 코드↔프롬프트 가중치 동기화, 무효 Danbooru 태그 8+개 수정, System/User 중복 제거(~4,900 chars 절감), injection 방어, CoT 도입, emotion 별칭 오매핑 수정, context_tags 호환, tags+config 메타데이터 체계 구축. LangFuse 15개 프롬프트 27 새 버전 생성. [명세](FEATURES/LANGFUSE_PROMPT_HARDENING.md)
