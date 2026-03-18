@@ -139,14 +139,16 @@ def create_langfuse_handler(
 
         trace_ctx: dict[str, str] = {"trace_id": trace_id}
 
-        # SDK v3: start_as_current_span → 자동 trace 생성, update_current_trace로 메타 설정
+        # SDK v3: start_span()은 컨텍스트에 span을 설정하지 않으므로
+        # update_current_trace() 대신 Ingestion API로 trace 메타 설정
         root_span = _langfuse_client.start_span(
             name=f"pipeline.{action}",
             metadata={"trace_id": trace_id},
         )
-        _langfuse_client.update_current_trace(
-            name=f"storyboard.{action}",
-            session_id=session_id,
+        _patch_trace(
+            trace_id=trace_id,
+            body={"name": f"storyboard.{action}", "session_id": session_id},
+            label="trace_init",
         )
         _current_root_span.set(root_span)
 
