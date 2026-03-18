@@ -6,12 +6,12 @@ Used by TagClassifier for unknown tag classification.
 
 from __future__ import annotations
 
-import asyncio
 import time
 
 import httpx
 
 from config import DANBOORU_API_BASE, DANBOORU_API_TIMEOUT, DANBOORU_USER_AGENT, logger
+from services._danbooru_sync import get_tag_info_sync, schedule_background_classification
 
 # Circuit breaker: 연속 실패 시 Danbooru 호출 건너뛰기
 _CIRCUIT_FAILURE_THRESHOLD = 3  # 연속 N회 실패 시 차단
@@ -317,82 +317,11 @@ async def get_post_image(tag_name: str) -> dict | None:
         return None
 
 
-# Synchronous wrapper for use in non-async contexts
-def get_tag_info_sync(tag_name: str) -> dict | None:
-    """Synchronous version of get_tag_info.
-
-    Safe to call from any thread (main, AnyIO worker, ThreadPoolExecutor).
-    Always creates a fresh event loop via asyncio.run().
-    """
-    try:
-        return asyncio.run(get_tag_info(tag_name))
-    except Exception as e:
-        logger.error("❌ [Danbooru] Sync wrapper error: %s", e)
-        return None
-
-
-def schedule_background_classification(unknown_tags: list[str]) -> None:
-    """Schedule background Danbooru classification for unknown tags.
-
-    Safe to call from both async and sync contexts.
-    - async: uses run_in_executor to avoid blocking the event loop
-    - sync: runs _classify_tags_background directly
-    """
-    if not unknown_tags:
-        return
-
-    unique_tags = list(set(unknown_tags))
-    logger.info("[Danbooru] Scheduling background classification for %d tags", len(unique_tags))
-
-    try:
-        loop = asyncio.get_running_loop()
-        loop.run_in_executor(None, _classify_tags_background, unique_tags)
-    except RuntimeError:
-        _classify_tags_background(unique_tags)
-
-
-def _classify_tags_background(tags: list[str]) -> None:
-    """Classify tags via Danbooru API in background (runs in thread)."""
-    for tag in tags:
-        try:
-            tag_info = asyncio.run(get_tag_info(tag))
-            if tag_info and tag_info.get("post_count", 0) > 0:
-                _store_tag_in_db(tag, tag_info)
-                logger.info("[Danbooru BG] Classified: %s (%d posts)", tag, tag_info.get("post_count", 0))
-            else:
-                logger.debug("[Danbooru BG] Not found: %s", tag)
-        except Exception as e:
-            logger.debug("[Danbooru BG] Error for '%s': %s", tag, e)
-
-
-def _store_tag_in_db(tag_name: str, tag_info: dict) -> None:
-    """Store a validated tag in the DB for future fast-path lookups."""
-    try:
-        from database import SessionLocal
-        from models.tag import Tag
-
-        db = SessionLocal()
-        try:
-            existing = db.query(Tag).filter(Tag.name == tag_name).first()
-            if not existing:
-                # Danbooru API returns numeric category (0=general, 1=artist, 3=copyright, 4=character, 5=meta)
-                # Convert to SD category/group using classify_from_danbooru()
-                danbooru_cat_id = tag_info.get("category")
-                danbooru_cat_name = DANBOORU_CATEGORIES.get(danbooru_cat_id, "general")
-                sd_group = classify_from_danbooru(tag_info) or _classify_general_tag(tag_name)
-
-                if danbooru_cat_name == "character":
-                    category = "character"
-                elif danbooru_cat_name == "meta" or sd_group == "quality":
-                    category = "meta"
-                else:
-                    category = "scene"
-                group_name = sd_group or "danbooru_validated"
-
-                new_tag = Tag(name=tag_name, category=category, group_name=group_name)
-                db.add(new_tag)
-                db.commit()
-        finally:
-            db.close()
-    except Exception as e:
-        logger.debug("[Danbooru BG] DB store error for '%s': %s", tag_name, e)
+__all__ = [
+    "DANBOORU_CATEGORIES",
+    "classify_from_danbooru",
+    "get_post_image",
+    "get_tag_info",
+    "get_tag_info_sync",
+    "schedule_background_classification",
+]
