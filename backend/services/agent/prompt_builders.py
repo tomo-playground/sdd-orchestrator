@@ -102,36 +102,19 @@ def build_selected_concept_block(concept: dict | None) -> str:
 
 
 # ---------------------------------------------------------------------------
-# B등급 빌더 함수 re-export (prompt_builders_b.py에서 분리)
+# Director/QC 빌더 re-export (prompt_builders_b.py)
 # ---------------------------------------------------------------------------
 from services.agent.prompt_builders_b import (  # noqa: E402, F401
-    build_casting_guide,
-    build_casting_json_section,
-    build_chat_context_block,
     build_checkpoint_director_plan_section,
     build_checkpoint_draft_scenes_block,
     build_checkpoint_locations_section,
     build_director_decision_section,
-    build_director_plan_section_for_tts,
-    build_emotional_arc_section,
     build_feedback_response_json_hint,
     build_feedback_section,
-    build_inventory_characters_block,
-    build_inventory_structures_block,
-    build_inventory_styles_block,
-    build_korean_critical_hint,
-    build_korean_rules_block,
-    build_language_hint,
-    build_output_format_block,
     build_previous_steps_block,
     build_production_qc_section,
     build_quality_criteria_block,
-    build_scene_range_text,
     build_scene_reasoning_section,
-    build_scriptwriter_characters_block,
-    build_sound_emotional_arc_section,
-    build_structure_rules_block,
-    build_tts_characters_block,
     build_visual_qc_section,
     to_json,
 )
@@ -180,4 +163,33 @@ from services.agent.prompt_builders_c import (  # noqa: E402, F401
     build_style_section,
     build_warnings_block,
     build_writer_plan_section,
+)
+
+# ---------------------------------------------------------------------------
+# Inventory 빌더 re-export (prompt_builders_inventory.py)
+# ---------------------------------------------------------------------------
+from services.agent.prompt_builders_inventory import (  # noqa: E402, F401
+    build_casting_guide,
+    build_casting_json_section,
+    build_inventory_characters_block,
+    build_inventory_structures_block,
+    build_inventory_styles_block,
+)
+
+# ---------------------------------------------------------------------------
+# Writer/Script 빌더 re-export (prompt_builders_writer.py)
+# ---------------------------------------------------------------------------
+from services.agent.prompt_builders_writer import (  # noqa: E402, F401
+    build_chat_context_block,
+    build_director_plan_section_for_tts,
+    build_emotional_arc_section,
+    build_korean_critical_hint,
+    build_korean_rules_block,
+    build_language_hint,
+    build_output_format_block,
+    build_scene_range_text,
+    build_scriptwriter_characters_block,
+    build_sound_emotional_arc_section,
+    build_structure_rules_block,
+    build_tts_characters_block,
 )

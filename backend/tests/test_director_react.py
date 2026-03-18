@@ -446,8 +446,10 @@ async def test_director_visual_qc_result_in_template_vars(mock_run, mock_product
     await director_node(state, {})
 
     assert len(captured_vars) == 1
-    assert captured_vars[0]["visual_qc_result"] == qc
-    assert captured_vars[0]["visual_qc_result"]["ok"] is False
+    # visual_qc_section은 빌더가 포맷팅한 문자열
+    section = captured_vars[0]["visual_qc_section"]
+    assert "Visual QC Warnings" in section
+    assert "Scene 0→1 동일 gaze 반복" in section
 
 
 @pytest.mark.asyncio

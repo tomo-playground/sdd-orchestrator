@@ -135,6 +135,7 @@ async def tts_designer_node(state: ScriptState) -> dict:
     template_vars = {
         "concept_json": to_json(concept),
         "scenes_json": to_json(scenes),
+        "language": state.get("language", "Korean"),
         "director_plan_section": build_director_plan_section_for_tts(state.get("director_plan")),
         "emotional_arc_section": build_emotional_arc_section(state.get("writer_plan")),
         "characters_block": build_tts_characters_block(characters_voice),
