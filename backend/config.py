@@ -750,6 +750,9 @@ TTS_MAX_NEW_TOKENS_CAP = int(os.getenv("TTS_MAX_NEW_TOKENS_CAP", "2048"))
 # --- TTS Quality Validation & Retry ---
 TTS_MIN_DURATION_SEC = float(os.getenv("TTS_MIN_DURATION_SEC", "1.0"))  # Min TTS length (sec)
 TTS_MIN_SPEAKABLE_CHARS = int(os.getenv("TTS_MIN_SPEAKABLE_CHARS", "2"))  # Min word chars for TTS
+TTS_MIN_SECS_PER_CHAR = float(
+    os.getenv("TTS_MIN_SECS_PER_CHAR", "0.05")
+)  # Truncation guard 하한 (0.05s/char = 20자/sec)
 TTS_MAX_RETRIES = int(os.getenv("TTS_MAX_RETRIES", "2"))  # Retry count on quality failure
 TTS_DEFAULT_SEED = int(os.getenv("TTS_DEFAULT_SEED", "42"))  # Fallback seed when preset has no seed
 

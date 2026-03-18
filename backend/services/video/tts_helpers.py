@@ -497,15 +497,13 @@ async def _try_synthesize_with_retries(
             best_bytes, best_dur = audio_bytes, duration
 
         # Truncation guard: duration이 텍스트 길이 대비 비정상적으로 짧으면 실패 처리
-        min_expected = len(p.cleaned) * 0.05  # 0.05s/char = 20자/sec (극단적 하한)
-        if quality_passed and duration < min_expected:
+        if _check_truncation(quality_passed, duration, p.cleaned):
             logger.warning(
-                "[TTS] attempt %d/%d possible truncation: %.2fs for %d chars (expected ≥%.2fs)",
+                "[TTS] attempt %d/%d possible truncation: %.2fs for %d chars",
                 attempt + 1,
                 1 + p.retries,
                 duration,
                 len(p.cleaned),
-                min_expected,
             )
             quality_passed = False
 
@@ -543,6 +541,19 @@ async def _try_synthesize_with_retries(
         )
 
     raise RuntimeError(f"TTS 생성 실패 (모든 {1 + p.retries}회 시도 실패): script='{p.cleaned[:30]}'")
+
+
+def _check_truncation(quality_passed: bool, duration: float, cleaned: str) -> bool:
+    """duration이 텍스트 길이 대비 비정상적으로 짧으면 truncation으로 판정.
+
+    Returns True if truncated (quality should be treated as failed).
+    """
+    from config import TTS_MIN_SECS_PER_CHAR
+
+    if not quality_passed:
+        return False
+    min_expected = len(cleaned) * TTS_MIN_SECS_PER_CHAR
+    return duration < min_expected
 
 
 def _simplify_voice_design(

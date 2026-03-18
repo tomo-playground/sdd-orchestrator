@@ -1,10 +1,6 @@
-"""동적 max_new_tokens 계산 테스트.
+"""동적 max_new_tokens 계산 및 truncation guard 테스트."""
 
-_calculate_max_new_tokens()가 텍스트 길이에 따라
-적절한 토큰 수를 반환하는지 검증한다.
-"""
-
-from services.video.tts_helpers import _calculate_max_new_tokens
+from services.video.tts_helpers import _calculate_max_new_tokens, _check_truncation
 
 
 class TestCalculateMaxNewTokens:
@@ -46,3 +42,25 @@ class TestCalculateMaxNewTokens:
         """빈 instruct는 overhead 없음."""
         text = "가" * 50
         assert _calculate_max_new_tokens(text) == _calculate_max_new_tokens(text, "")
+
+
+class TestCheckTruncation:
+    """Truncation guard 헬퍼 테스트."""
+
+    def test_short_duration_is_truncated(self):
+        """텍스트 대비 duration이 너무 짧으면 truncation."""
+        # 20자 * 0.05s = 1.0s 필요, 0.3s는 truncation
+        assert _check_truncation(True, 0.3, "가" * 20) is True
+
+    def test_normal_duration_not_truncated(self):
+        """정상 duration은 truncation 아님."""
+        assert _check_truncation(True, 2.0, "가" * 20) is False
+
+    def test_quality_failed_skips_check(self):
+        """quality_passed=False면 truncation 체크 스킵 (이미 실패)."""
+        assert _check_truncation(False, 0.1, "가" * 20) is False
+
+    def test_boundary_duration(self):
+        """경계값: len*0.05와 정확히 같으면 truncation 아님."""
+        text = "가" * 20  # 20 * 0.05 = 1.0s
+        assert _check_truncation(True, 1.0, text) is False
