@@ -13,7 +13,7 @@
 |------|--------|
 | 제품 방향 설정 | `ROADMAP.md` |
 | 태스크 큐 관리 | `backlog.md` |
-| 태스크 계약서 작성 | `current.md` |
+| 태스크 계약서 작성 | `current/태스크명.md` |
 | PR 리뷰 + 최종 판단 | GitHub PR |
 | AI 규칙 유지보수 | `CLAUDE.md` |
 
@@ -54,7 +54,7 @@
        승인 → 머지
        거절 → PR 코멘트 → Claude가 읽고 수정 → push
   ↓
-[자동] current.md → done/NNN_브랜치.md로 이동 (Stop Hook)
+[자동] current/태스크명.md → done/NNN_태스크명.md로 이동 (Stop Hook)
        backlog.md에서 해당 항목 제거
 ```
 
@@ -99,6 +99,16 @@
 ### 템플릿 (`.claude/tasks/_template.md`)
 
 ```markdown
+---
+id:                          # kebab-case (브랜치명과 동일)
+priority:                    # P0 / P1 / P2 / P3
+scope:                       # backend / frontend / fullstack / infra / docs
+branch: feat/                # feat/{id}
+created:                     # YYYY-MM-DD
+status: pending              # pending → running → done / failed
+depends_on:                  # 선행 태스크 id (없으면 비움)
+---
+
 ## 무엇을
 [구현할 기능 한 줄 설명]
 

@@ -640,9 +640,9 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 ### 실행 흐름
 ```
-[사람] .claude/task.md 작성
+[사람] .claude/tasks/current/태스크명.md 작성
   ↓
-[Claude] 부팅: task.md → CLAUDE.md → git status → 작업 시작
+[Claude] 부팅: 브랜치명 → current/태스크명.md → CLAUDE.md → 작업 시작
   ↓
 [Claude] worktree + feat/xxx 브랜치에서 구현
   ↓

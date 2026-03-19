@@ -8,6 +8,12 @@
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$PROJECT_DIR"
 
+# ─── 브랜치 가드: feat/ 브랜치에서만 실행 ───
+BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+if ! echo "$BRANCH" | grep -qE '(^feat/|^worktree-feat/)'; then
+  exit 0
+fi
+
 RETRY_FILE="/tmp/claude-stop-hook-retry-$$"
 MAX_RETRIES=3
 
@@ -28,7 +34,7 @@ if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
   if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
     echo "Stop Hook: ${MAX_RETRIES}회 재시도 초과 — 종료합니다" >&2
     BRANCH=$(git branch --show-current)
-    TASK_NAME=$(echo "$BRANCH" | sed 's|^feat/||')
+    TASK_NAME=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||')
     CURRENT="$PROJECT_DIR/.claude/tasks/current/${TASK_NAME}.md"
     if [ -f "$CURRENT" ]; then
       sed -i 's/^status:.*/status: failed/' "$CURRENT"
@@ -215,7 +221,7 @@ mkdir -p "$DONE_DIR"
 LAST_NUM=$(ls "$DONE_DIR" | grep -oE '^[0-9]+' | sort -n | tail -1 || echo "0")
 NEXT_NUM=$(printf "%03d" $((10#${LAST_NUM:-0} + 1)))
 
-TASK_NAME=$(echo "$BRANCH" | sed 's|^feat/||')
+TASK_NAME=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||')
 CURRENT="$PROJECT_DIR/.claude/tasks/current/${TASK_NAME}.md"
 DONE_FILE="$DONE_DIR/${NEXT_NUM}_${TASK_NAME}.md"
 
