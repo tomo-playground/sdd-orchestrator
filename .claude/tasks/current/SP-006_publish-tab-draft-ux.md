@@ -26,8 +26,17 @@ TTS "Issues Found" 빨간 표시가 Draft에서 불필요한 불안감 유발.
 - 변경 파일 5개 이하
 - Backend 변경 없음
 
-## 힌트
-- RenderSidePanel.tsx:107 — disabled={!canRender || isRendering}
-- usePublishRender.ts:76-81 — canRender 로직
-- PreRenderReport — TTS Issues Found 표시
-- 경고 배너: PublishTab.tsx 상단
+## 구현 계획 (Frontend Dev 리뷰)
+
+### 수정 순서
+| 순서 | 파일 | 변경 |
+|------|------|------|
+| 1 | `RenderSidePanel.tsx` L142-146 | disabledReason 인라인 배지 삭제 (6줄) |
+| 2 | `RenderSidePanel.tsx` L97, L109 | disabled 스타일 조건 분기 (bg-zinc-300 text-zinc-400) |
+| 3 | `PublishTab.tsx` L107-139 | `scenes.length > 0` 조건부 래핑 (TTS 섹션 숨김) |
+
+### 참고
+- usePublishRender.ts:76 canRender 로직 변경 불필요 (씬 0개 → false 정상)
+- disabled:opacity-40 제거 → 조건부 클래스로 대체
+- PublishTab.tsx L61-71 상단 배너는 유지 (SSOT)
+- TTS 섹션 숨기면 PreRenderReport useEffect도 언마운트 → 불필요 API 호출 방지
