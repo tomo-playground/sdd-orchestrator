@@ -65,8 +65,8 @@ async def test_review_node_quick_mode_skips_narrative():
     state: ScriptState = {
         "draft_scenes": _valid_scenes(),
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "topic": "테스트",
         "skip_stages": ["research", "concept", "production", "explain"],
     }
@@ -99,13 +99,13 @@ async def test_review_node_full_mode_narrative_pass():
     state: ScriptState = {
         "draft_scenes": _valid_scenes(),
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "topic": "테스트",
         "skip_stages": [],
     }
     with (
-        patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None),
+        patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=(None, None)),
         patch("services.agent.nodes.review._narrative_evaluate", new_callable=AsyncMock, return_value=high_score),
     ):
         result = await review_node(state)
@@ -138,13 +138,13 @@ async def test_review_node_full_mode_narrative_fail():
     state: ScriptState = {
         "draft_scenes": _valid_scenes(),
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "topic": "테스트",
         "skip_stages": [],
     }
     with (
-        patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None),
+        patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=(None, None)),
         patch("services.agent.nodes.review._narrative_evaluate", new_callable=AsyncMock, return_value=low_score),
     ):
         result = await review_node(state)
@@ -165,15 +165,15 @@ async def test_review_node_rule_fail_skips_narrative():
     state: ScriptState = {
         "draft_scenes": bad_scenes,
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "topic": "테스트",
         "skip_stages": [],
     }
 
     with (
-        patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None),
-        patch("services.agent.nodes.review._gemini_evaluate", new_callable=AsyncMock, return_value=None),
+        patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=(None, None)),
+        patch("services.agent.nodes.review._gemini_evaluate", new_callable=AsyncMock, return_value=(None, None)),
     ):
         result = await review_node(state)
 
@@ -192,13 +192,13 @@ async def test_narrative_evaluate_gemini_error_fallback():
     state: ScriptState = {
         "draft_scenes": _valid_scenes(),
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "topic": "테스트",
         "skip_stages": [],
     }
     with (
-        patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None),
+        patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=(None, None)),
         patch("services.agent.nodes.review._narrative_evaluate", new_callable=AsyncMock, return_value=None),
     ):
         result = await review_node(state)

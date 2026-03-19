@@ -19,7 +19,9 @@ from models import Character
 # Default reference prompts (moved from controlnet.py hardcoding)
 DEFAULT_REFERENCE_BASE = "masterpiece, best quality, anime portrait, clean background, head and shoulders, looking at viewer, front view, facing front, eye contact, simple background, white background"
 
-DEFAULT_REFERENCE_NEGATIVE = "worst quality, low quality, lowres, bad anatomy, blurry, text, watermark, from side, from behind, profile"
+DEFAULT_REFERENCE_NEGATIVE = (
+    "worst quality, low quality, lowres, bad anatomy, blurry, text, watermark, from side, from behind, profile"
+)
 
 
 def migrate_reference_prompts(db: Session, dry_run: bool = True) -> None:
@@ -49,8 +51,12 @@ def migrate_reference_prompts(db: Session, dry_run: bool = True) -> None:
             logger.info(
                 "✅ [%s] Set reference prompts:\n  Base: %s\n  Negative: %s",
                 character.name,
-                character.reference_base_prompt[:80] + "..." if len(character.reference_base_prompt) > 80 else character.reference_base_prompt,
-                character.reference_negative_prompt[:80] + "..." if len(character.reference_negative_prompt) > 80 else character.reference_negative_prompt,
+                character.reference_base_prompt[:80] + "..."
+                if len(character.reference_base_prompt) > 80
+                else character.reference_base_prompt,
+                character.reference_negative_prompt[:80] + "..."
+                if len(character.reference_negative_prompt) > 80
+                else character.reference_negative_prompt,
             )
             updated_count += 1
         else:

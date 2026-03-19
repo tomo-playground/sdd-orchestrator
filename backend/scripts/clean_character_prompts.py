@@ -22,38 +22,87 @@ def get_category_from_patterns(tag_name: str) -> str:
         return "unknown"
 
     # Specific direct mappings for common tags that are always styles/quality
-    if normalized in {"chibi", "super_deformed", "cute", "simple", "toy-like", "toy", "anime_style", "simple_background", "clean_lineart", "vibrant_colors", "clean_lines", "detailed_hair", "expressive_eyes", "anime_coloring", "detailed_eyes"}:
+    if normalized in {
+        "chibi",
+        "super_deformed",
+        "cute",
+        "simple",
+        "toy-like",
+        "toy",
+        "anime_style",
+        "simple_background",
+        "clean_lineart",
+        "vibrant_colors",
+        "clean_lines",
+        "detailed_hair",
+        "expressive_eyes",
+        "anime_coloring",
+        "detailed_eyes",
+    }:
         return "style_quality"
     if normalized == "round_face" or normalized == "innocent_face" or "face" in normalized:
         return "appearance"
     if normalized == "full_body" or normalized == "upper_body" or normalized == "bust_shot":
-        return "appearance" # Treat as framing/body feature for character
+        return "appearance"  # Treat as framing/body feature for character
     if "hair" in normalized or "eyes" in normalized or "skin" in normalized or "body" in normalized:
         return "appearance"
     if "dress" in normalized or "uniform" in normalized or "shirt" in normalized or "pants" in normalized:
         return "clothing"
     if "background" in normalized:
-        return "style_quality" # e.g., simple_background
-
+        return "style_quality"  # e.g., simple_background
 
     # Iterate through CATEGORY_PATTERNS for more general classification
     for category_group, patterns in CATEGORY_PATTERNS.items():
         if normalized in patterns:
             if category_group in {"quality", "style", "subject", "identity"}:
                 return "style_quality"
-            elif category_group in {"hair_color", "hair_length", "hair_style", "hair_accessory", "eye_color", "skin_color", "body_feature", "appearance"}:
+            elif category_group in {
+                "hair_color",
+                "hair_length",
+                "hair_style",
+                "hair_accessory",
+                "eye_color",
+                "skin_color",
+                "body_feature",
+                "appearance",
+            }:
                 return "appearance"
             elif category_group == "clothing":
                 return "clothing"
-            elif category_group in {"expression", "gaze", "pose", "action", "camera", "location_indoor", "environment", "location_outdoor", "background_type", "time_weather", "lighting", "mood"}:
-                return "scene_other" # These should ideally not be in character base
+            elif category_group in {
+                "expression",
+                "gaze",
+                "pose",
+                "action",
+                "camera",
+                "location_indoor",
+                "environment",
+                "location_outdoor",
+                "background_type",
+                "time_weather",
+                "lighting",
+                "mood",
+            }:
+                return "scene_other"  # These should ideally not be in character base
 
     return "unknown"
 
 
 def classify_tag_for_cleanup(tag_name: str, tag_db_info: dict[str, Any]) -> str:
     # Tags that should be explicitly filtered out
-    gender_tags = {"1girl", "1boy", "1other", "male", "female", "man", "woman", "boy", "girl", "male_focus", "female_focus"}
+    gender_tags = {
+        "1girl",
+        "1boy",
+        "1other",
+        "male",
+        "female",
+        "man",
+        "woman",
+        "boy",
+        "girl",
+        "male_focus",
+        "female_focus",
+    }
     if normalize_prompt_token(tag_name) in gender_tags:
         return "gender"
 
@@ -67,7 +116,17 @@ def classify_tag_for_cleanup(tag_name: str, tag_db_info: dict[str, Any]) -> str:
 
     # Character appearance-related
     if db_category == "character":
-        if db_group_name in {"hair_color", "hair_length", "hair_style", "hair_accessory", "eye_color", "skin_color", "body_feature", "appearance", "identity"}:
+        if db_group_name in {
+            "hair_color",
+            "hair_length",
+            "hair_style",
+            "hair_accessory",
+            "eye_color",
+            "skin_color",
+            "body_feature",
+            "appearance",
+            "identity",
+        }:
             return "appearance"
         if db_group_name == "clothing":
             return "clothing"
@@ -83,8 +142,9 @@ def clean_character_prompts(db: Session, dry_run: bool = True) -> None:
     all_tags = db.query(Tag).all()
     tag_name_to_id = {normalize_prompt_token(t.name): t.id for t in all_tags}
     tag_id_to_name = {t.id: normalize_prompt_token(t.name) for t in all_tags}
-    tag_info_map = {normalize_prompt_token(t.name): {"category": t.category, "group_name": t.group_name} for t in all_tags}
-
+    tag_info_map = {
+        normalize_prompt_token(t.name): {"category": t.category, "group_name": t.group_name} for t in all_tags
+    }
 
     characters = db.query(Character).order_by(Character.name).all()
     updated_count = 0
@@ -98,7 +158,7 @@ def clean_character_prompts(db: Session, dry_run: bool = True) -> None:
 
         # Collect tokens from custom_base_prompt
         if original_base_prompt:
-            tokens_from_base = [normalize_prompt_token(t) for t in original_base_prompt.split(',') if t.strip()]
+            tokens_from_base = [normalize_prompt_token(t) for t in original_base_prompt.split(",") if t.strip()]
             all_collected_tokens.update(tokens_from_base)
 
         # Collect tokens from identity_tags
@@ -110,10 +170,10 @@ def clean_character_prompts(db: Session, dry_run: bool = True) -> None:
         all_collected_tokens.update(tokens_from_clothing)
 
         new_custom_base_prompt_tokens: list[str] = []
-        new_identity_tag_names: list[str] = [] # Use names for easier management, convert to IDs at end
-        new_clothing_tag_names: list[str] = [] # Use names for easier management, convert to IDs at end
+        new_identity_tag_names: list[str] = []  # Use names for easier management, convert to IDs at end
+        new_clothing_tag_names: list[str] = []  # Use names for easier management, convert to IDs at end
 
-        for token in sorted(all_collected_tokens): # Sort for consistent order
+        for token in sorted(all_collected_tokens):  # Sort for consistent order
             if not token:
                 continue
 
@@ -136,8 +196,12 @@ def clean_character_prompts(db: Session, dry_run: bool = True) -> None:
                 continue
 
         # Convert tag names back to IDs
-        final_identity_tag_ids = sorted([tag_name_to_id[name] for name in new_identity_tag_names if name in tag_name_to_id])
-        final_clothing_tag_ids = sorted([tag_name_to_id[name] for name in new_clothing_tag_names if name in tag_name_to_id])
+        final_identity_tag_ids = sorted(
+            [tag_name_to_id[name] for name in new_identity_tag_names if name in tag_name_to_id]
+        )
+        final_clothing_tag_ids = sorted(
+            [tag_name_to_id[name] for name in new_clothing_tag_names if name in tag_name_to_id]
+        )
 
         # New base prompt (sorted for consistency)
         new_base_prompt_string = ", ".join(sorted(new_custom_base_prompt_tokens))
@@ -145,13 +209,19 @@ def clean_character_prompts(db: Session, dry_run: bool = True) -> None:
         # Check for changes
         has_changes = False
         if new_base_prompt_string != original_base_prompt:
-            logger.info(f"[{character.name}] custom_base_prompt changed: '{original_base_prompt}' -> '{new_base_prompt_string}'")
+            logger.info(
+                f"[{character.name}] custom_base_prompt changed: '{original_base_prompt}' -> '{new_base_prompt_string}'"
+            )
             has_changes = True
         if set(final_identity_tag_ids) != set(original_identity_ids):
-            logger.info(f"[{character.name}] identity_tags changed: {original_identity_ids} -> {final_identity_tag_ids}")
+            logger.info(
+                f"[{character.name}] identity_tags changed: {original_identity_ids} -> {final_identity_tag_ids}"
+            )
             has_changes = True
         if set(final_clothing_tag_ids) != set(original_clothing_ids):
-            logger.info(f"[{character.name}] clothing_tags changed: {original_clothing_ids} -> {final_clothing_tag_ids}")
+            logger.info(
+                f"[{character.name}] clothing_tags changed: {original_clothing_ids} -> {final_clothing_tag_ids}"
+            )
             has_changes = True
 
         if has_changes:
@@ -186,6 +256,7 @@ def main() -> None:
         clean_character_prompts(db, dry_run=not args.apply)
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

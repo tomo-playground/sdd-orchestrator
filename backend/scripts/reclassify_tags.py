@@ -18,10 +18,36 @@ def reclassify_tags():
 
     # Define rules: keyword -> target category
     rules = {
-        "pose": ["standing", "sitting", "leaning", "lying", "kneeling", "squatting", "crouching", "pose", "t-pose", "from behind", "profile", "side view"],
-        "action": ["running", "walking", "jumping", "dancing", "fighting", "waving", "pointing", "holding", "carrying", "reaching", "shouting", "laughing"],
+        "pose": [
+            "standing",
+            "sitting",
+            "leaning",
+            "lying",
+            "kneeling",
+            "squatting",
+            "crouching",
+            "pose",
+            "t-pose",
+            "from behind",
+            "profile",
+            "side view",
+        ],
+        "action": [
+            "running",
+            "walking",
+            "jumping",
+            "dancing",
+            "fighting",
+            "waving",
+            "pointing",
+            "holding",
+            "carrying",
+            "reaching",
+            "shouting",
+            "laughing",
+        ],
         "expression": ["smile", "grin", "angry", "sad", "crying", "blush", "surprised", "expression"],
-        "camera": ["close-up", "full body", "cowboy shot", "view", "angle", "from above", "from below"]
+        "camera": ["close-up", "full body", "cowboy shot", "view", "angle", "from above", "from below"],
     }
 
     print("[Tag Reclassification Start]")
@@ -47,6 +73,7 @@ def reclassify_tags():
             print(f"Category: {str(row[0]):20} | Count: {row[1]}")
 
     db.close()
+
 
 if __name__ == "__main__":
     reclassify_tags()

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config import logger
+from config import coerce_language_id, logger
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.prompt_builders import (
     build_feedback_response_json_hint,
@@ -31,7 +31,7 @@ async def sound_designer_node(state: ScriptState) -> dict:
     scenes = cinema.get("scenes", [])
     concept = state.get("critic_result") or {}
     duration = state.get("duration", 30)
-    language = state.get("language", "Korean")
+    language = coerce_language_id(state.get("language"))
 
     feedback = state.get("director_feedback")
     template_vars = {

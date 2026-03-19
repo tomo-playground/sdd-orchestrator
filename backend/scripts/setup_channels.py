@@ -30,10 +30,7 @@ def main():
         print(f"  scenes 삭제: {cur.rowcount}건")
 
         # 1-3. storyboard_characters (스토리보드 기준)
-        cur.execute(
-            "DELETE FROM storyboard_characters "
-            "WHERE storyboard_id IN (1089, 1090)"
-        )
+        cur.execute("DELETE FROM storyboard_characters WHERE storyboard_id IN (1089, 1090)")
         print(f"  storyboard_characters 삭제: {cur.rowcount}건")
 
         # 1-4. storyboards

@@ -11,14 +11,11 @@ from models import Character
 # We will switch them to ID 3 (chibi-laugh) or ID 6 (Gentle_Cubism_Light) which might look better than their current setups.
 UPDATES = {
     # Jiho (14) - Switch to chibi-laugh (ID 3)
-    14: [
-        {"lora_id": 3, "weight": 0.65}
-    ],
+    14: [{"lora_id": 3, "weight": 0.65}],
     # Subin (13) - Switch to chibi-laugh (ID 3)
-    13: [
-        {"lora_id": 3, "weight": 0.65}
-    ]
+    13: [{"lora_id": 3, "weight": 0.65}],
 }
+
 
 def main():
     db = SessionLocal()
@@ -30,13 +27,13 @@ def main():
                 # Replace the entire loras JSON
                 char.loras = new_loras
                 updated_count += 1
-                
+
                 # Update their prompts slightly to fit the new Chibi style
                 if "chibi" not in char.custom_base_prompt:
                     char.custom_base_prompt = "chibi style, cute cartoon, " + char.custom_base_prompt
                 if "chibi" not in char.reference_base_prompt:
                     char.reference_base_prompt = "chibi style, cute cartoon, masterpiece, " + char.reference_base_prompt
-                
+
                 print(f"✅ Swapped LoRA to 'chibi-laugh' for '{char.name}' (ID: {char.id})")
             else:
                 print(f"⚠️ Character ID {char_id} not found.")
@@ -48,6 +45,7 @@ def main():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

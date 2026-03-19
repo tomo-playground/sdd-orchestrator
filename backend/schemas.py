@@ -12,6 +12,7 @@ from config import (
     DEFAULT_ENABLE_HR,
     DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT,
     DEFAULT_IP_ADAPTER_WEIGHT,
+    DEFAULT_LANGUAGE,
     DEFAULT_LORA_WEIGHT,
     DEFAULT_MULTI_GEN_ENABLED,
     DEFAULT_REFERENCE_ONLY_WEIGHT,
@@ -434,7 +435,7 @@ class StoryboardRequest(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     duration: int = 10
     style: str = "Anime"
-    language: str = "Korean"
+    language: str = DEFAULT_LANGUAGE
     structure: str = ""  # 빈값 = Director가 캐스팅 시 결정 (Frontend 미전달)
     actor_a_gender: str = "female"
     character_id: int | None = None  # Director가 캐스팅 시 결정 (Frontend 미전달)
@@ -2299,8 +2300,8 @@ class TopicAnalyzeResponse(BaseModel):
     reasoning: str = ""
     # status=recommend 일 때 사용
     duration: int = 30
-    language: str = "Korean"
-    structure: str = "Monologue"
+    language: str = DEFAULT_LANGUAGE
+    structure: str = DEFAULT_STRUCTURE
     character_a_id: int | None = None  # Speaker A 캐릭터 ID
     character_a_name: str | None = None  # Speaker A 캐릭터 이름
     character_b_id: int | None = None  # Speaker B 캐릭터 ID
@@ -3097,8 +3098,8 @@ class ScriptEditContext(BaseModel):
     """편집 컨텍스트 — 스토리 전체 정보."""
 
     topic: str = ""
-    language: str = "Korean"
-    structure: str = "Monologue"
+    language: str = DEFAULT_LANGUAGE
+    structure: str = DEFAULT_STRUCTURE
 
 
 class ScriptEditRequest(BaseModel):

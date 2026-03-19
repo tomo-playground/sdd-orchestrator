@@ -108,9 +108,7 @@ def migrate_reference_filenames(dry_run: bool = False) -> None:
 
 def main() -> None:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Migrate reference image filenames to ID-based format"
-    )
+    parser = argparse.ArgumentParser(description="Migrate reference image filenames to ID-based format")
     parser.add_argument(
         "--dry-run",
         action="store_true",

@@ -37,29 +37,29 @@ class TestEmptyScriptDetection:
 
     def test_dots_only(self):
         scenes = [_make_scene("...")]
-        result = _validate_scenes(scenes, 2, "Korean", "Monologue")
+        result = _validate_scenes(scenes, 2, "korean", "monologue")
         assert not result["passed"]
         assert any("빈 스크립트" in e for e in result["errors"])
 
     def test_spaced_dots(self):
         scenes = [_make_scene("... ...")]
-        result = _validate_scenes(scenes, 2, "Korean", "Monologue")
+        result = _validate_scenes(scenes, 2, "korean", "monologue")
         assert not result["passed"]
         assert any("빈 스크립트" in e for e in result["errors"])
 
     def test_single_dot(self):
         scenes = [_make_scene(".")]
-        result = _validate_scenes(scenes, 2, "Korean", "Monologue")
+        result = _validate_scenes(scenes, 2, "korean", "monologue")
         assert not result["passed"]
 
     def test_empty_string(self):
         scenes = [_make_scene("")]
-        result = _validate_scenes(scenes, 2, "Korean", "Monologue")
+        result = _validate_scenes(scenes, 2, "korean", "monologue")
         assert not result["passed"]
 
     def test_spaces_only(self):
         scenes = [_make_scene("   ")]
-        result = _validate_scenes(scenes, 2, "Korean", "Monologue")
+        result = _validate_scenes(scenes, 2, "korean", "monologue")
         assert not result["passed"]
 
 
@@ -68,13 +68,13 @@ class TestShortScriptWarning:
 
     def test_very_short(self):
         scenes = [_make_scene("안녕")]
-        result = _validate_scenes(scenes, 2, "Korean", "Monologue")
+        result = _validate_scenes(scenes, 2, "korean", "monologue")
         assert result["passed"]  # warning이지 error가 아님
         assert any("너무 짧음" in w for w in result["warnings"])
 
     def test_ok_length(self):
         scenes = [_make_scene("오늘 하루도 정말 힘들었다.")]
-        result = _validate_scenes(scenes, 2, "Korean", "Monologue")
+        result = _validate_scenes(scenes, 2, "korean", "monologue")
         assert result["passed"]
         assert not any("너무 짧음" in w for w in result["warnings"])
 
@@ -90,7 +90,7 @@ class TestMixedScenesDetection:
             "... ...",
             "진짜 화가 났지만 참았어.",
         ]
-        result = _validate_scenes(_make_scenes(scripts), 10, "Korean", "Monologue")
+        result = _validate_scenes(_make_scenes(scripts), 10, "korean", "monologue")
         assert not result["passed"]
         empty_errors = [e for e in result["errors"] if "빈 스크립트" in e]
         assert len(empty_errors) == 2
@@ -101,7 +101,7 @@ class TestMixedScenesDetection:
             "팀장님이 나한테 그러더라.",
             "진짜 화가 났지만 참았어.",
         ]
-        result = _validate_scenes(_make_scenes(scripts), 5, "Korean", "Monologue")
+        result = _validate_scenes(_make_scenes(scripts), 5, "korean", "monologue")
         assert result["passed"]
 
 
@@ -110,10 +110,10 @@ class TestNarratorFallbackPattern:
 
     def test_narrator_description(self):
         scenes = [_make_scene("그녀는 아무 말도 하지 못했다.", speaker="Narrator")]
-        result = _validate_scenes(scenes, 2, "Korean", "Monologue")
+        result = _validate_scenes(scenes, 2, "korean", "monologue")
         assert result["passed"]
 
     def test_interjection_ok(self):
         scenes = [_make_scene("아... 진짜 이런 건가.")]
-        result = _validate_scenes(scenes, 2, "Korean", "Monologue")
+        result = _validate_scenes(scenes, 2, "korean", "monologue")
         assert result["passed"]

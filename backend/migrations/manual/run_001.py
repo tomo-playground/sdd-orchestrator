@@ -15,6 +15,7 @@ sys.path.insert(0, str(backend_dir))
 # Load environment
 load_dotenv(backend_dir / ".env")
 
+
 def main():
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
@@ -56,7 +57,7 @@ def main():
                 if not auto_confirm:
                     try:
                         response = input("Continue? [y/N]: ")
-                        if response.lower() != 'y':
+                        if response.lower() != "y":
                             print("❌ Aborted by user")
                             conn.rollback()
                             return 1
@@ -98,18 +99,19 @@ def main():
 
     except psycopg2.Error as e:
         print(f"\n❌ Database error: {e}")
-        if 'conn' in locals():
+        if "conn" in locals():
             conn.rollback()
         return 1
     except KeyboardInterrupt:
         print("\n\n❌ Interrupted by user")
-        if 'conn' in locals():
+        if "conn" in locals():
             conn.rollback()
         return 1
     finally:
-        if 'conn' in locals():
+        if "conn" in locals():
             conn.close()
             print("🔌 Connection closed")
+
 
 if __name__ == "__main__":
     sys.exit(main())

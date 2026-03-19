@@ -15,6 +15,7 @@ from services.storage import initialize_storage
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cleanup_garbage")
 
+
 def cleanup_garbage():
     """
     Garbage Collection for MediaAssets.
@@ -55,9 +56,7 @@ def cleanup_garbage():
         # (Since we just migrated and didn't backfill owner_type, valid assets have owner_type=NULL too,
         # but they are in used_ids. The ones NOT in used_ids are the leftovers/garbage.)
 
-        candidates_query = db.query(MediaAsset).filter(
-            MediaAsset.owner_type.is_(None)
-        )
+        candidates_query = db.query(MediaAsset).filter(MediaAsset.owner_type.is_(None))
 
         all_null_owner_assets = candidates_query.all()
         logger.info(f"🔎 Found {len(all_null_owner_assets)} assets with NULL owner_type.")
@@ -107,6 +106,7 @@ def cleanup_garbage():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     cleanup_garbage()

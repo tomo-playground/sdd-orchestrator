@@ -59,5 +59,6 @@ def migrate_presets():
     finally:
         db.close()
 
+
 if __name__ == "__main__":
     migrate_presets()

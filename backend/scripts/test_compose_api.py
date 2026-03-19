@@ -9,7 +9,7 @@ test_case_1 = {
     "tokens": ["masterpiece", "best_quality", "1girl", "smile", "standing", "classroom"],
     "mode": "auto",
     "loras": [],
-    "use_break": True
+    "use_break": True,
 }
 
 # Test case 2: With LoRA
@@ -22,11 +22,12 @@ test_case_2 = {
             "weight": 0.8,
             "trigger_words": ["Talho Yuki", "belt", "miniskirt"],
             "lora_type": "character",
-            "optimal_weight": 0.8
+            "optimal_weight": 0.8,
         }
     ],
-    "use_break": True
+    "use_break": True,
 }
+
 
 async def test_compose():
     async with httpx.AsyncClient() as client:
@@ -34,11 +35,7 @@ async def test_compose():
         print("Test Case 1: Simple tokens (no LoRA)")
         print("=" * 60)
         try:
-            response = await client.post(
-                f"{API_BASE}/prompt/compose",
-                json=test_case_1,
-                timeout=10.0
-            )
+            response = await client.post(f"{API_BASE}/prompt/compose", json=test_case_1, timeout=10.0)
             print(f"Status: {response.status_code}")
             if response.status_code == 200:
                 result = response.json()
@@ -54,11 +51,7 @@ async def test_compose():
         print("Test Case 2: With LoRA")
         print("=" * 60)
         try:
-            response = await client.post(
-                f"{API_BASE}/prompt/compose",
-                json=test_case_2,
-                timeout=10.0
-            )
+            response = await client.post(f"{API_BASE}/prompt/compose", json=test_case_2, timeout=10.0)
             print(f"Status: {response.status_code}")
             if response.status_code == 200:
                 result = response.json()
@@ -70,6 +63,8 @@ async def test_compose():
         except Exception as e:
             print(f"❌ Exception: {e}")
 
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(test_compose())

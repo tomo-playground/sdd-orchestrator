@@ -633,3 +633,48 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 **총 52개 테스트 추가** (모두 PASS)
 
+## SDD 자율 실행 워크플로우
+
+### 개요
+**Spec-Driven Development**: 사람이 `task.md`를 작성하면, Claude가 구현부터 PR 생성까지 자율 실행한다.
+
+### 실행 흐름
+```
+[사람] .claude/task.md 작성
+  ↓
+[Claude] 부팅: task.md → CLAUDE.md → git status → 작업 시작
+  ↓
+[Claude] worktree + feat/xxx 브랜치에서 구현
+  ↓
+[Claude] Stop Hook: Lint → pytest → vitest → VRT → E2E (5단계)
+  ↓  실패 시 → self-heal (최대 3회) → 재검증
+  ↓
+[Claude] 커밋 → 푸시 → PR 생성
+  ↓
+[사람] PR 리뷰 → 승인/거절
+  ↓  거절 시 → PR 코멘트 기반 수정 → push → PR 자동 업데이트
+```
+
+### 세션 부팅 프로토콜
+1. `.claude/tasks/current.md` 읽기 — 비어있으면 사용자에게 확인
+2. `CLAUDE.md` 규칙 확인
+3. `git status` + 현재 브랜치 파악
+4. 작업 시작
+
+### 자율 실행 규칙
+- **자율 범위**: 구현 → 테스트 → 커밋 → 푸시 → PR 생성까지 풀 자율
+- **태스크 단위**: 기능 단위, 변경 파일 10개 이하 목표, 크면 task.md 분할
+- **불확실할 때**: 멈추지 말고 보수적인 선택
+- **즉시 중단 조건**: DB 스키마 변경, 외부 의존성 추가 → task.md에 기록 후 중단
+- **완료 기준**: task.md의 DoD 체크리스트 전체 달성
+- **PR 거절 시**: PR 코멘트를 `gh pr view`로 읽고 기존 브랜치에서 수정 → push
+
+### 핵심 파일
+| 파일 | 역할 |
+|------|------|
+| `.claude/tasks/current.md` | 현재 태스크 계약서 — 세션 시작 시 반드시 읽기 |
+| `.claude/tasks/_template.md` | 태스크 작성 템플릿 |
+| `.claude/tasks/NNN_제목.md` | 완료된 태스크 이력 (번호순) |
+| `.claude/done.md` | 완료된 태스크 + 품질 게이트 결과 기록 |
+| `.claude/hooks/on-stop.sh` | Stop Hook: 5단계 품질 게이트 + self-heal (exit 2, 최대 3회) |
+

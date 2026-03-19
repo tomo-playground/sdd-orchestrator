@@ -23,6 +23,7 @@ from psycopg2 import sql  # noqa: E402
 
 load_dotenv(backend_dir / ".env")
 
+
 def check_entity_ids():
     """Check ID consistency across entities."""
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
@@ -49,12 +50,15 @@ def check_entity_ids():
             print("-" * 40)
 
             # Check if table exists
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables
                     WHERE table_name = %s
                 )
-            """, (table,))
+            """,
+                (table,),
+            )
 
             if not cur.fetchone()[0]:
                 print("  ⚠️  Table does not exist")
@@ -62,11 +66,14 @@ def check_entity_ids():
 
             # Check primary key
             if info["pk"]:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT column_name, data_type, is_nullable
                     FROM information_schema.columns
                     WHERE table_name = %s AND column_name = %s
-                """, (table, info["pk"]))
+                """,
+                    (table, info["pk"]),
+                )
 
                 pk_info = cur.fetchone()
                 if pk_info:
@@ -76,11 +83,14 @@ def check_entity_ids():
 
             # Check foreign keys
             for fk in info["refs"]:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT column_name, data_type, is_nullable
                     FROM information_schema.columns
                     WHERE table_name = %s AND column_name = %s
-                """, (table, fk))
+                """,
+                    (table, fk),
+                )
 
                 fk_info = cur.fetchone()
                 if fk_info:
@@ -128,6 +138,7 @@ def check_entity_ids():
 4. Frontend should use DB IDs, not array indices
 5. Activity logs should reference actual entity IDs, not indices
     """)
+
 
 if __name__ == "__main__":
     check_entity_ids()

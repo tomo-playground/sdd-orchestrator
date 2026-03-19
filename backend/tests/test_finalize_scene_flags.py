@@ -176,7 +176,7 @@ async def test_finalize_node_populates_scene_flags():
         "skip_stages": ["production"],
         "character_id": 1,
         "duration": 30,
-        "language": "Korean",
+        "language": "korean",
     }
 
     with (
@@ -212,7 +212,7 @@ async def test_finalize_express_mode_controlnet_off():
         "character_id": 1,
         "character_b_id": 2,
         "duration": 30,
-        "language": "Korean",
+        "language": "korean",
     }
 
     with (

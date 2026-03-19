@@ -1,4 +1,3 @@
-
 from sqlalchemy import text
 
 from database import engine
@@ -8,8 +7,7 @@ def analyze_tts(storyboard_id):
     with engine.connect() as conn:
         # 1. Storyboard info
         storyboard = conn.execute(
-            text("SELECT id, title, group_id, language FROM storyboards WHERE id = :id"),
-            {"id": storyboard_id}
+            text("SELECT id, title, group_id, language FROM storyboards WHERE id = :id"), {"id": storyboard_id}
         ).fetchone()
 
         if not storyboard:
@@ -30,7 +28,7 @@ def analyze_tts(storyboard_id):
                 LEFT JOIN voice_presets vp ON g.narrator_voice_preset_id = vp.id
                 WHERE g.id = :group_id
             """),
-            {"group_id": storyboard.group_id}
+            {"group_id": storyboard.group_id},
         ).fetchone()
 
         print("\n--- Narrator Voice config ---")
@@ -51,7 +49,7 @@ def analyze_tts(storyboard_id):
                 LEFT JOIN voice_presets vp ON c.voice_preset_id = vp.id
                 WHERE sc.storyboard_id = :id
             """),
-            {"id": storyboard_id}
+            {"id": storyboard_id},
         ).fetchall()
 
         print("\n--- Characters Config ---")
@@ -73,7 +71,7 @@ def analyze_tts(storyboard_id):
                 WHERE s.storyboard_id = :id
                 ORDER BY s."order"
             """),
-            {"id": storyboard_id}
+            {"id": storyboard_id},
         ).fetchall()
 
         print("\n--- Scenes and TTS Assets ---")
@@ -95,7 +93,7 @@ def analyze_tts(storyboard_id):
                 ORDER BY created_at DESC
                 LIMIT 10
             """),
-            {"id": storyboard_id}
+            {"id": storyboard_id},
         ).fetchall()
 
         print("\n--- Recent Activity Logs ---")
@@ -104,6 +102,7 @@ def analyze_tts(storyboard_id):
                 print(f"[{log.created_at}] Status: {log.status} | Prompt: {log.prompt[:50]}...")
         else:
             print("No activity logs found for this storyboard.")
+
 
 if __name__ == "__main__":
     analyze_tts(416)

@@ -39,8 +39,15 @@ RULES: list[dict] = [
             and any(
                 p in t.name
                 for p in (
-                    "boots", "shoes", "sneakers", "sandals", "slippers",
-                    "footwear", "loafers", "heels", "pumps",
+                    "boots",
+                    "shoes",
+                    "sneakers",
+                    "sandals",
+                    "slippers",
+                    "footwear",
+                    "loafers",
+                    "heels",
+                    "pumps",
                 )
             )
             or t.name in ("mary_janes",)
@@ -55,13 +62,18 @@ RULES: list[dict] = [
             and any(
                 p in t.name
                 for p in (
-                    "stockings", "socks", "thighhighs", "pantyhose",
-                    "leggings", "kneehighs", "legwear", "tights",
+                    "stockings",
+                    "socks",
+                    "thighhighs",
+                    "pantyhose",
+                    "leggings",
+                    "kneehighs",
+                    "legwear",
+                    "tights",
                 )
             )
             # garter는 legwear에 포함 (garter_belt, garter_straps 등)
-            or (t.group_name == "clothing" and "garter" in t.name
-                and "belt" not in t.name.replace("garter_belt", ""))
+            or (t.group_name == "clothing" and "garter" in t.name and "belt" not in t.name.replace("garter_belt", ""))
         ),
         "new_group": "legwear",
     },
@@ -73,16 +85,35 @@ RULES: list[dict] = [
             and any(
                 p in t.name
                 for p in (
-                    "hat", "glasses", "sunglasses", "goggles", "earring",
-                    "necklace", "bracelet", "choker", "scarf", "beret",
-                    "crown", "tiara", "brooch", "pendant", "headphones",
-                    "earmuffs", "backpack", "purse",
+                    "hat",
+                    "glasses",
+                    "sunglasses",
+                    "goggles",
+                    "earring",
+                    "necklace",
+                    "bracelet",
+                    "choker",
+                    "scarf",
+                    "beret",
+                    "crown",
+                    "tiara",
+                    "brooch",
+                    "pendant",
+                    "headphones",
+                    "earmuffs",
+                    "backpack",
+                    "purse",
                 )
             )
             # 아래는 제외 (false positive)
-            and t.name not in (
-                "baggy_pants", "capri_pants", "string_bikini", "o-ring_bikini",
-                "load_bearing_vest", "chi-hatan_military_uniform",
+            and t.name
+            not in (
+                "baggy_pants",
+                "capri_pants",
+                "string_bikini",
+                "o-ring_bikini",
+                "load_bearing_vest",
+                "chi-hatan_military_uniform",
             )
         ),
         "new_group": "accessory",
@@ -93,19 +124,35 @@ RULES: list[dict] = [
         "filter": lambda t: (
             t.group_name == "clothing"
             and (
-                (t.name.endswith("_bag") and t.name not in (
-                    "bag_of_chips", "blood_bag", "paper_bag",
-                    "pastry_bag", "plastic_bag", "trash_bag",
-                ))
+                (
+                    t.name.endswith("_bag")
+                    and t.name
+                    not in (
+                        "bag_of_chips",
+                        "blood_bag",
+                        "paper_bag",
+                        "pastry_bag",
+                        "plastic_bag",
+                        "trash_bag",
+                    )
+                )
                 or t.name in ("bag", "bag_charm")
-                or (("belt" in t.name or t.name.endswith("_belt"))
-                    and t.name not in ("belt_boots",))
+                or (("belt" in t.name or t.name.endswith("_belt")) and t.name not in ("belt_boots",))
                 or (t.name.endswith("_ring") and t.name not in ("wrestling_ring",))
                 or t.name in ("ring",)
-                or t.name in (
-                    "cap", "baseball_cap", "garrison_cap", "jester_cap",
-                    "mob_cap", "nurse_cap", "peaked_cap", "shako_cap",
-                    "swim_cap", "visor_cap", "flat_cap",
+                or t.name
+                in (
+                    "cap",
+                    "baseball_cap",
+                    "garrison_cap",
+                    "jester_cap",
+                    "mob_cap",
+                    "nurse_cap",
+                    "peaked_cap",
+                    "shako_cap",
+                    "swim_cap",
+                    "visor_cap",
+                    "flat_cap",
                 )
                 or t.name in ("pocket_watch", "wedding_ring")
             )
@@ -117,9 +164,16 @@ RULES: list[dict] = [
         "desc": "clothing non-clothing → subject",
         "filter": lambda t: (
             t.group_name == "clothing"
-            and t.name in (
-                "bag_of_chips", "bean_bag_chair", "blood_bag", "paper_bag",
-                "pastry_bag", "plastic_bag", "trash_bag", "wrestling_ring",
+            and t.name
+            in (
+                "bag_of_chips",
+                "bean_bag_chair",
+                "blood_bag",
+                "paper_bag",
+                "pastry_bag",
+                "plastic_bag",
+                "trash_bag",
+                "wrestling_ring",
             )
         ),
         "new_group": "subject",
@@ -144,10 +198,7 @@ RULES: list[dict] = [
     # 4-f. pants → clothing_bottom
     {
         "desc": "pants → clothing_bottom",
-        "filter": lambda t: (
-            t.group_name == "clothing"
-            and t.name in ("baggy_pants", "capri_pants")
-        ),
+        "filter": lambda t: (t.group_name == "clothing" and t.name in ("baggy_pants", "capri_pants")),
         "new_group": "clothing_bottom",
     },
     # 5. location_indoor misclassifications
@@ -160,11 +211,21 @@ RULES: list[dict] = [
         "desc": "location_indoor → subject",
         "filter": lambda t: (
             t.group_name == "location_indoor"
-            and t.name in (
-                "office_lady", "kitchen_knife", "paper_airplane",
-                "chocolate_bar", "health_bar", "nipple_bar", "spreader_bar",
-                "watermelon_bar", "pool_of_blood", "cum_pool",
-                "rei_no_pool", "manhattan_cafe_(umamusume)", "hakurei_shrine",
+            and t.name
+            in (
+                "office_lady",
+                "kitchen_knife",
+                "paper_airplane",
+                "chocolate_bar",
+                "health_bar",
+                "nipple_bar",
+                "spreader_bar",
+                "watermelon_bar",
+                "pool_of_blood",
+                "cum_pool",
+                "rei_no_pool",
+                "manhattan_cafe_(umamusume)",
+                "hakurei_shrine",
                 "loaded_interior",
             )
         ),
@@ -184,8 +245,7 @@ RULES: list[dict] = [
         "desc": "location_indoor → environment (furniture)",
         "filter": lambda t: (
             t.group_name == "location_indoor"
-            and t.name in ("hospital_bed", "office_chair", "bar_stool",
-                           "pool_ladder", "wading_pool")
+            and t.name in ("hospital_bed", "office_chair", "bar_stool", "pool_ladder", "wading_pool")
         ),
         "new_group": "environment",
     },
@@ -194,12 +254,23 @@ RULES: list[dict] = [
         "desc": "environment → pose",
         "filter": lambda t: (
             t.group_name == "environment"
-            and t.name in (
-                "against_glass", "against_wall", "elbows_on_table",
-                "head_on_pillow", "on_bed", "on_chair", "on_couch",
-                "on_desk", "on_floor", "on_table", "breasts_on_glass",
-                "breasts_on_table", "flower_over_eye",
-                "lap_pillow", "lap_pillow_invitation",
+            and t.name
+            in (
+                "against_glass",
+                "against_wall",
+                "elbows_on_table",
+                "head_on_pillow",
+                "on_bed",
+                "on_chair",
+                "on_couch",
+                "on_desk",
+                "on_floor",
+                "on_table",
+                "breasts_on_glass",
+                "breasts_on_table",
+                "flower_over_eye",
+                "lap_pillow",
+                "lap_pillow_invitation",
             )
         ),
         "new_group": "pose",
@@ -208,9 +279,14 @@ RULES: list[dict] = [
         "desc": "environment → action",
         "filter": lambda t: (
             t.group_name == "environment"
-            and t.name in (
-                "curtain_grab", "pillow_grab", "pillow_hug",
-                "talking_on_phone", "watching_television", "through_wall",
+            and t.name
+            in (
+                "curtain_grab",
+                "pillow_grab",
+                "pillow_hug",
+                "talking_on_phone",
+                "watching_television",
+                "through_wall",
             )
         ),
         "new_group": "action",
@@ -235,20 +311,26 @@ RULES: list[dict] = [
     },
     {
         "desc": "environment → accessory",
-        "filter": lambda t: (
-            t.group_name == "environment"
-            and t.name in ("flower_ornament", "flower_knot")
-        ),
+        "filter": lambda t: (t.group_name == "environment" and t.name in ("flower_ornament", "flower_knot")),
         "new_group": "accessory",
     },
     {
         "desc": "environment → subject",
         "filter": lambda t: (
             t.group_name == "environment"
-            and t.name in (
-                "blood_on_knife", "food_in_mouth", "food_on_body",
-                "food_on_face", "food_on_head", "in_cup", "in_food",
-                "plant_girl", "food_art", "food_focus", "food_print",
+            and t.name
+            in (
+                "blood_on_knife",
+                "food_in_mouth",
+                "food_on_body",
+                "food_on_face",
+                "food_on_head",
+                "in_cup",
+                "in_food",
+                "plant_girl",
+                "food_art",
+                "food_focus",
+                "food_print",
             )
         ),
         "new_group": "subject",
@@ -256,8 +338,7 @@ RULES: list[dict] = [
     {
         "desc": "environment → skip (meta)",
         "filter": lambda t: (
-            t.group_name == "environment"
-            and t.name in ("split_screen", "fourth_wall", "wall_of_text", "text")
+            t.group_name == "environment" and t.name in ("split_screen", "fourth_wall", "wall_of_text", "text")
         ),
         "new_group": "skip",
     },

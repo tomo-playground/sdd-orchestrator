@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 
-from config import logger
+from config import coerce_language_id, coerce_structure_id, logger
 from config_pipelines import LANGGRAPH_PLANNING_ENABLED
 from database import get_db_session
 from schemas import StoryboardRequest
@@ -94,7 +94,7 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
             "Create hook strategies, emotional arcs, and scene distributions."
         )
         duration = state.get("duration", 30)
-        structure = state.get("structure", "Monologue")
+        structure = coerce_structure_id(state.get("structure"))
         description = state.get("description", "")
         director_ctx = build_director_context(state)
         scene_range = build_scene_range_text(duration, structure)
@@ -104,7 +104,7 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
             topic=state.get("topic", ""),
             description_section=build_optional_section("**Description**:", description) if description else "",
             duration=str(duration),
-            language=state.get("language", "Korean"),
+            language=coerce_language_id(state.get("language")),
             structure=structure,
             director_plan_section=build_optional_section("## Creative Direction (from Director)", director_ctx)
             if director_ctx
@@ -223,7 +223,7 @@ async def writer_node(state: ScriptState) -> dict:
     character_b_id = state.get("character_b_id")
 
     # FastTrack + Dialogue: character_id 없으면 group에서 자동 resolve
-    structure = state.get("structure", "Monologue")
+    structure = coerce_structure_id(state.get("structure"))
     skip_stages = set(state.get("skip_stages") or [])
     if "production" in skip_stages and not character_id and state.get("group_id"):
         from services.agent.nodes.finalize import _resolve_characters_from_group  # noqa: PLC0415
@@ -237,7 +237,7 @@ async def writer_node(state: ScriptState) -> dict:
         description=state.get("description", ""),
         duration=state.get("duration", 10),
         style=state.get("style", "Anime"),
-        language=state.get("language", "Korean"),
+        language=coerce_language_id(state.get("language")),
         structure=structure,
         actor_a_gender=state.get("actor_a_gender", "female"),
         character_id=character_id,
@@ -288,7 +288,7 @@ async def writer_node(state: ScriptState) -> dict:
         # Duration auto-calculation from reading time (generate_script가 이미 설정했으면 스킵)
         from services.storyboard.helpers import estimate_reading_duration
 
-        language = state.get("language", "Korean")
+        language = coerce_language_id(state.get("language"))
         for scene in scenes:
             if scene.get("script", "").strip() and not scene.get("duration"):
                 scene["duration"] = estimate_reading_duration(scene["script"], language)

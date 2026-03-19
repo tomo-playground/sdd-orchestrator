@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -21,6 +20,7 @@ def test_model():
         print("Success! Response:", response.text)
     except Exception as e:
         print("Error:", e)
+
 
 if __name__ == "__main__":
     test_model()

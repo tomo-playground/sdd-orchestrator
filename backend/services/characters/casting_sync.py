@@ -202,6 +202,7 @@ def ensure_dialogue_speakers_in_db(
     if changed:
         logger.info(
             "[CastingSync] Dialogue speaker alternation fixed: %d/%d scenes",
-            changed, len(non_narrator),
+            changed,
+            len(non_narrator),
         )
     return changed

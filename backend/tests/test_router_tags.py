@@ -386,4 +386,3 @@ class TestTagsClassification:
         approvals = [{"tag_id": i, "group_name": "x"} for i in range(101)]
         resp = client.post("/api/admin/tags/bulk-approve-classifications", json=approvals)
         assert resp.status_code == 400
-

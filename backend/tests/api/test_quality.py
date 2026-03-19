@@ -192,7 +192,7 @@ def test_quality_alerts_response_structure(client: TestClient):
         (0.7, 200),
         (1.0, 200),
         (-0.1, 200),  # Should still work, just returns all scenes
-        (1.5, 200),   # Should work, just returns no scenes
+        (1.5, 200),  # Should work, just returns no scenes
     ],
 )
 def test_quality_alerts_various_thresholds(client: TestClient, threshold: float, expected_status: int):

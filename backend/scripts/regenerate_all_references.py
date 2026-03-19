@@ -1,4 +1,3 @@
-
 import asyncio
 import os
 import sys
@@ -34,6 +33,7 @@ async def regenerate_references():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     asyncio.run(regenerate_references())

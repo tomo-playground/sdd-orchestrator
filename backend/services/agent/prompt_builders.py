@@ -81,13 +81,13 @@ def build_copyright_scenes_block(scenes: list[dict]) -> str:
     for i, s in enumerate(scenes, 1):
         lines = [
             f"### Scene {i}",
-            f'- **Script**: {s.get("script", "")}',
-            f'- **Speaker**: {s.get("speaker", "A")}',
-            f'- **Camera**: {s.get("camera", "N/A")}',
-            f'- **Environment**: {s.get("environment", "N/A")}',
+            f"- **Script**: {s.get('script', '')}",
+            f"- **Speaker**: {s.get('speaker', 'A')}",
+            f"- **Camera**: {s.get('camera', 'N/A')}",
+            f"- **Environment**: {s.get('environment', 'N/A')}",
         ]
         if s.get("image_prompt"):
-            lines.append(f'- **Visual Prompt**: {s["image_prompt"]}')
+            lines.append(f"- **Visual Prompt**: {s['image_prompt']}")
         parts.append("\n".join(lines))
     return "\n\n".join(parts)
 

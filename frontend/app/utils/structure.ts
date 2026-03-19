@@ -1,5 +1,5 @@
-/** Structure가 다중 캐릭터(Dialogue/Narrated Dialogue)인지 판정 */
+/** Structure가 다중 캐릭터(dialogue/narrated_dialogue)인지 판정 */
 export function isMultiCharStructure(structure: string): boolean {
-  const s = structure.toLowerCase().replace(/_/g, " ");
-  return s === "dialogue" || s === "narrated dialogue";
+  const s = structure.toLowerCase().replace(/ /g, "_");
+  return s === "dialogue" || s === "narrated_dialogue";
 }

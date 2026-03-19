@@ -42,5 +42,6 @@ def wipe_data():
 
     print("\n✨ Database is now clean and ready for characters!")
 
+
 if __name__ == "__main__":
     wipe_data()

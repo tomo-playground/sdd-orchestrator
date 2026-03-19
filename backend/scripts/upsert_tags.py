@@ -1,4 +1,3 @@
-
 from config import logger
 from database import SessionLocal
 from models import Tag
@@ -25,7 +24,7 @@ def upsert_tags():
                     category=data["category"],
                     group_name=data["group_name"],
                     classification_source="manual_fix",
-                    classification_confidence=1.0
+                    classification_confidence=1.0,
                 )
                 db.add(tag)
             else:
@@ -41,6 +40,7 @@ def upsert_tags():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     upsert_tags()

@@ -431,6 +431,7 @@ class TestDualIPAdapter:
 
         # Default weight is 0.50 from config (DEFAULT_CHARACTER_PRESET["weight"])
         from config import DEFAULT_CHARACTER_PRESET
+
         default_w = DEFAULT_CHARACTER_PRESET["weight"]
         assert abs(args[0]["weight"] - default_w * 0.7) < 0.01
         assert abs(args[1]["weight"] - default_w * 0.3) < 0.01

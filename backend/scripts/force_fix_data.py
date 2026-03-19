@@ -1,6 +1,5 @@
 """Force fix all character preview URLs to be relative and fix Eureka's identity tags."""
 
-
 from database import SessionLocal
 from models import Character, CharacterTag, Tag
 
@@ -30,10 +29,11 @@ def main():
             # Find the purple_hair tag link and remove it
             purple_hair_tag = db.query(Tag).filter(Tag.name == "purple_hair").first()
             if purple_hair_tag:
-                char_tag = db.query(CharacterTag).filter(
-                    CharacterTag.character_id == eureka.id,
-                    CharacterTag.tag_id == purple_hair_tag.id
-                ).first()
+                char_tag = (
+                    db.query(CharacterTag)
+                    .filter(CharacterTag.character_id == eureka.id, CharacterTag.tag_id == purple_hair_tag.id)
+                    .first()
+                )
                 if char_tag:
                     db.delete(char_tag)
                     print("  Removed purple_hair tag")
@@ -48,10 +48,11 @@ def main():
                     db.flush()
 
                 # Check if link exists
-                exists = db.query(CharacterTag).filter(
-                    CharacterTag.character_id == eureka.id,
-                    CharacterTag.tag_id == tag.id
-                ).first()
+                exists = (
+                    db.query(CharacterTag)
+                    .filter(CharacterTag.character_id == eureka.id, CharacterTag.tag_id == tag.id)
+                    .first()
+                )
                 if not exists:
                     db.add(CharacterTag(character_id=eureka.id, tag_id=tag.id, is_permanent=True))
                     print(f"  Added {name} tag")
@@ -67,6 +68,7 @@ def main():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

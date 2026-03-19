@@ -169,7 +169,7 @@ class TestDialogueStructureAutoPin:
             create_mock_scene(3, None),  # Speaker A - no tags
             create_mock_scene(4, []),  # Speaker B - empty tags
         ]
-        result = calculate_auto_pin_flags(scenes, structure="Dialogue")
+        result = calculate_auto_pin_flags(scenes, structure="dialogue")
 
         assert result[1] is False  # First scene - no previous
         assert result[2] is True  # Auto-pin (same background by spec)
@@ -186,7 +186,7 @@ class TestDialogueStructureAutoPin:
             create_mock_scene(3, ["workplace"]),  # Speaker B
             create_mock_scene(4, None),  # Narrator
         ]
-        result = calculate_auto_pin_flags(scenes, structure="Narrated Dialogue")
+        result = calculate_auto_pin_flags(scenes, structure="narrated_dialogue")
 
         assert result[1] is False  # First scene
         assert result[2] is True  # Auto-pin
@@ -202,7 +202,7 @@ class TestDialogueStructureAutoPin:
             create_mock_scene(2, ["park"]),  # Different location
             create_mock_scene(3, ["park"]),  # Same as previous
         ]
-        result = calculate_auto_pin_flags(scenes, structure="Monologue")
+        result = calculate_auto_pin_flags(scenes, structure="monologue")
 
         assert result[1] is False  # First
         assert result[2] is False  # Different location
@@ -253,7 +253,7 @@ class TestDialogueStructureAutoPin:
         from services.storyboard import calculate_auto_pin_flags
 
         scenes = [create_mock_scene(1, ["cafe"])]
-        result = calculate_auto_pin_flags(scenes, structure="Dialogue")
+        result = calculate_auto_pin_flags(scenes, structure="dialogue")
 
         assert result[1] is False  # No previous scene
 
@@ -261,5 +261,5 @@ class TestDialogueStructureAutoPin:
         """Dialogue with empty scenes should return empty dict."""
         from services.storyboard import calculate_auto_pin_flags
 
-        result = calculate_auto_pin_flags([], structure="Dialogue")
+        result = calculate_auto_pin_flags([], structure="dialogue")
         assert result == {}

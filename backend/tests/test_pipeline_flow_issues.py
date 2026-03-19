@@ -44,8 +44,8 @@ class TestWriterTopicKeyError:
         state = {
             "description": "설명",
             "duration": 30,
-            "language": "Korean",
-            "structure": "Monologue",
+            "language": "korean",
+            "structure": "monologue",
         }
         result = await writer_node(state)
         assert "error" in result or "draft_scenes" in result
@@ -68,8 +68,8 @@ class TestWriterTopicKeyError:
             "topic": "",
             "description": "",
             "duration": 30,
-            "language": "Korean",
-            "structure": "Monologue",
+            "language": "korean",
+            "structure": "monologue",
         }
         result = await writer_node(state)
         # 빈 topic은 KeyError가 아님 — error 또는 draft_scenes 중 하나
@@ -295,7 +295,7 @@ class TestLearnCharacterIdMismatch:
         state = {
             "topic": "테스트",
             "final_scenes": scenes,
-            "structure": "Monologue",
+            "structure": "monologue",
             "character_id": 42,  # 원본 (inventory_resolve가 확정)
             "draft_character_id": 99,  # writer가 반환한 임시 ID
         }
@@ -318,7 +318,7 @@ class TestLearnCharacterIdMismatch:
         state = {
             "topic": "대화 테스트",
             "final_scenes": scenes,
-            "structure": "Dialogue",
+            "structure": "dialogue",
             "character_id": 10,
             "character_b_id": 20,
         }
@@ -337,7 +337,7 @@ class TestLearnCharacterIdMismatch:
         state = {
             "topic": "테스트",
             "final_scenes": scenes,
-            "structure": "Monologue",
+            "structure": "monologue",
             "character_id": None,
         }
         result = await learn_node(state, config, store=store)
@@ -761,7 +761,7 @@ class TestFinalizeEmptyGroupWarning:
         mock_db.query.return_value.filter.return_value.order_by.return_value.limit.return_value.all.return_value = []
 
         with patch("services.agent.nodes.finalize.logger") as mock_logger:
-            result = _resolve_characters_from_group(6, "Monologue", mock_db)
+            result = _resolve_characters_from_group(6, "monologue", mock_db)
             assert result == (None, None)
             mock_logger.warning.assert_called_once()
             assert "Group 6" in mock_logger.warning.call_args[0][0] % mock_logger.warning.call_args[0][1:]
@@ -943,8 +943,8 @@ class TestTopicAnalysisFallback:
         result = await analyze_topic("테스트 주제", None, group_id=99)
 
         assert result.duration == 30
-        assert result.language == "Korean"
-        assert result.structure == "Monologue"
+        assert result.language == "korean"
+        assert result.structure == "monologue"
         assert result.available_options is not None
         assert result.available_options.durations
 

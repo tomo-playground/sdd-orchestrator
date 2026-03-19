@@ -2,10 +2,10 @@ import os
 import sys
 
 # Adjust path if run from backend dir
-if os.getcwd().endswith('backend'):
-    sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
-elif os.path.exists('backend'):
-     sys.path.append(os.getcwd())
+if os.getcwd().endswith("backend"):
+    sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "..")))
+elif os.path.exists("backend"):
+    sys.path.append(os.getcwd())
 
 from backend.config import DATABASE_URL
 from backend.models.lora import LoRA
@@ -21,13 +21,13 @@ def get_civitai_info():
 
     try:
         target_loras = [
-            'chibi-laugh',
-            'eureka_v9',
-            'flat_color',
-            'Gentle_Cubism_Light',
-            'blindbox_v1_mix',
-            'harukaze-doremi-casual',
-            'mha_midoriya-10'
+            "chibi-laugh",
+            "eureka_v9",
+            "flat_color",
+            "Gentle_Cubism_Light",
+            "blindbox_v1_mix",
+            "harukaze-doremi-casual",
+            "mha_midoriya-10",
         ]
 
         # We might need to use the model class if mapped, or reflection if we want to be safe
@@ -46,6 +46,7 @@ def get_civitai_info():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     get_civitai_info()

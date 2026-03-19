@@ -1,4 +1,3 @@
-
 from database import SessionLocal
 from models.tag import Tag
 
@@ -7,7 +6,7 @@ def normalize_db_tags():
     db = SessionLocal()
     try:
         # 1. Update standard tags
-        tags = db.query(Tag).filter(Tag.name.like('% %')).all()
+        tags = db.query(Tag).filter(Tag.name.like("% %")).all()
         print(f"Found {len(tags)} tags with spaces.")
 
         updated_count = 0
@@ -27,6 +26,7 @@ def normalize_db_tags():
 
         # 2. Cleanup Character prompts (as they might have been created with spaces)
         from models.character import Character
+
         chars = db.query(Character).all()
         for char in chars:
             if char.custom_base_prompt:
@@ -44,6 +44,7 @@ def normalize_db_tags():
         print(f"❌ Error during normalization: {e}")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     normalize_db_tags()

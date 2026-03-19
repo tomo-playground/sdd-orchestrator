@@ -37,7 +37,7 @@ async def fetch_sd_models(client, db):
                     display_name=model_name,
                     model_type="checkpoint",
                     base_model="SDXL",  # Default assumption
-                    is_active=True
+                    is_active=True,
                 )
                 db.add(new_model)
                 count += 1
@@ -49,6 +49,7 @@ async def fetch_sd_models(client, db):
         logger.info(f"✅ Synced {count} new SD Models.")
     except Exception as e:
         logger.error(f"❌ Failed to fetch SD Models: {e}")
+
 
 async def fetch_loras(client, db):
     logger.info("📡 Fetching LoRAs from WebUI...")
@@ -68,9 +69,9 @@ async def fetch_loras(client, db):
                 new_lora = LoRA(
                     name=name,
                     display_name=alias,
-                    lora_type="style", # Default
+                    lora_type="style",  # Default
                     default_weight=0.7,
-                    trigger_words=[] # Can be populated if parsed from metadata
+                    trigger_words=[],  # Can be populated if parsed from metadata
                 )
                 db.add(new_lora)
                 count += 1
@@ -79,6 +80,7 @@ async def fetch_loras(client, db):
         logger.info(f"✅ Synced {count} new LoRAs.")
     except Exception as e:
         logger.error(f"❌ Failed to fetch LoRAs: {e}")
+
 
 async def fetch_embeddings(client, db):
     logger.info("📡 Fetching Embeddings from WebUI...")
@@ -98,11 +100,7 @@ async def fetch_embeddings(client, db):
                 emb_type = "negative" if "neg" in name.lower() or "bad" in name.lower() else "positive"
 
                 new_emb = Embedding(
-                    name=name,
-                    display_name=name,
-                    embedding_type=emb_type,
-                    trigger_word=name,
-                    is_active=True
+                    name=name, display_name=name, embedding_type=emb_type, trigger_word=name, is_active=True
                 )
                 db.add(new_emb)
                 count += 1
@@ -111,6 +109,7 @@ async def fetch_embeddings(client, db):
         logger.info(f"✅ Synced {count} new Embeddings.")
     except Exception as e:
         logger.error(f"❌ Failed to fetch Embeddings: {e}")
+
 
 async def main():
     logger.info(f"🔌 Connecting to SD WebUI at {SD_BASE_URL}...")
@@ -123,6 +122,7 @@ async def main():
 
     db.close()
     logger.info("🎉 Sync complete!")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

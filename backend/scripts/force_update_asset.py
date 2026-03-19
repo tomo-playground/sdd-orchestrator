@@ -22,5 +22,6 @@ def force_update_pose():
 
     print(f"Successfully force-updated {storage_key} in storage.")
 
+
 if __name__ == "__main__":
     force_update_pose()

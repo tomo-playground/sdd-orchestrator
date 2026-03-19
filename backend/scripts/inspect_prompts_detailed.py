@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from database import SessionLocal
 from models import Character
 
+
 def main():
     db = SessionLocal()
     try:
@@ -19,6 +20,7 @@ def main():
                 print("-" * 60)
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

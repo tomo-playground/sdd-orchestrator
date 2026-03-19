@@ -486,14 +486,16 @@ class TestBatchApplyGeminiEvaluation:
             "services.validation.evaluate_tags_with_gemini",
             new=AsyncMock(return_value=gemini_results),
         ) as mock_eval:
-            items = [{
-                "storyboard_id": 1,
-                "scene_id": 10,
-                "image_b64": "img1_base64",
-                "gemini_tokens": ["cowboy_shot"],
-                "wd14_matched": 5,
-                "wd14_total": 8,
-            }]
+            items = [
+                {
+                    "storyboard_id": 1,
+                    "scene_id": 10,
+                    "image_b64": "img1_base64",
+                    "gemini_tokens": ["cowboy_shot"],
+                    "wd14_matched": 5,
+                    "wd14_total": 8,
+                }
+            ]
             result = await batch_apply_gemini_evaluation(items=items)
 
         mock_eval.assert_called_once()
@@ -517,16 +519,20 @@ class TestBatchApplyGeminiEvaluation:
         ) as mock_eval:
             items = [
                 {
-                    "storyboard_id": 1, "scene_id": 10,
+                    "storyboard_id": 1,
+                    "scene_id": 10,
                     "image_b64": "same_image",
                     "gemini_tokens": ["cowboy_shot", "sunset"],
-                    "wd14_matched": 4, "wd14_total": 5,
+                    "wd14_matched": 4,
+                    "wd14_total": 5,
                 },
                 {
-                    "storyboard_id": 1, "scene_id": 11,
+                    "storyboard_id": 1,
+                    "scene_id": 11,
                     "image_b64": "same_image",
                     "gemini_tokens": ["sunset", "cloudy_sky"],
-                    "wd14_matched": 3, "wd14_total": 4,
+                    "wd14_matched": 3,
+                    "wd14_total": 4,
                 },
             ]
             result = await batch_apply_gemini_evaluation(items=items)
@@ -562,16 +568,20 @@ class TestBatchApplyGeminiEvaluation:
         ):
             items = [
                 {
-                    "storyboard_id": 1, "scene_id": 10,
+                    "storyboard_id": 1,
+                    "scene_id": 10,
                     "image_b64": "image_A",
                     "gemini_tokens": ["tag_a"],
-                    "wd14_matched": 2, "wd14_total": 3,
+                    "wd14_matched": 2,
+                    "wd14_total": 3,
                 },
                 {
-                    "storyboard_id": 1, "scene_id": 11,
+                    "storyboard_id": 1,
+                    "scene_id": 11,
                     "image_b64": "image_B",
                     "gemini_tokens": ["tag_b"],
-                    "wd14_matched": 4, "wd14_total": 5,
+                    "wd14_matched": 4,
+                    "wd14_total": 5,
                 },
             ]
             result = await batch_apply_gemini_evaluation(items=items)
@@ -595,16 +605,20 @@ class TestBatchApplyGeminiEvaluation:
         ):
             items = [
                 {
-                    "storyboard_id": 1, "scene_id": 10,
+                    "storyboard_id": 1,
+                    "scene_id": 10,
                     "image_b64": "img",
                     "gemini_tokens": ["tag_a"],
-                    "wd14_matched": 3, "wd14_total": 4,
+                    "wd14_matched": 3,
+                    "wd14_total": 4,
                 },
                 {
-                    "storyboard_id": 1, "scene_id": 11,
+                    "storyboard_id": 1,
+                    "scene_id": 11,
                     "image_b64": "img",
                     "gemini_tokens": ["tag_a"],
-                    "wd14_matched": 5, "wd14_total": 6,
+                    "wd14_matched": 5,
+                    "wd14_total": 6,
                 },
             ]
             await batch_apply_gemini_evaluation(items=items, db_factory=MagicMock())
@@ -622,12 +636,16 @@ class TestBatchApplyGeminiEvaluation:
             "services.validation.evaluate_tags_with_gemini",
             new=AsyncMock(return_value=[]),
         ):
-            items = [{
-                "storyboard_id": 1, "scene_id": 10,
-                "image_b64": "img",
-                "gemini_tokens": ["tag_a"],
-                "wd14_matched": 3, "wd14_total": 4,
-            }]
+            items = [
+                {
+                    "storyboard_id": 1,
+                    "scene_id": 10,
+                    "image_b64": "img",
+                    "gemini_tokens": ["tag_a"],
+                    "wd14_matched": 3,
+                    "wd14_total": 4,
+                }
+            ]
             result = await batch_apply_gemini_evaluation(items=items)
 
         # Empty results → gemini_matched=0, still produces summary

@@ -154,9 +154,7 @@ class TestCostSummary:
         assert data["edit_count_today"] == 2
         assert data["total"] == 0.15
 
-    def test_cost_summary_old_data_excluded_from_today(
-        self, client: TestClient, db_session
-    ):
+    def test_cost_summary_old_data_excluded_from_today(self, client: TestClient, db_session):
         """Old activity logs excluded from today count but included in total."""
         now = datetime.now(UTC)
         yesterday = now - timedelta(days=2)

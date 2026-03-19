@@ -1,4 +1,3 @@
-
 from sqlalchemy.orm.attributes import flag_modified
 
 from database import SessionLocal
@@ -32,7 +31,7 @@ def fix_data():
 
                 if modified:
                     char.loras = new_loras
-                    flag_modified(char, "loras") # Force update for JSON/JSONB
+                    flag_modified(char, "loras")  # Force update for JSON/JSONB
 
         # 2. Update Chibi Chan Prompts
         print("🔧 Updating Chibi Chan prompts...")
@@ -52,6 +51,7 @@ def fix_data():
         print(f"❌ Error: {e}")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     fix_data()

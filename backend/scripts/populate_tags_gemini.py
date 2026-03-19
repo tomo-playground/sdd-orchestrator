@@ -1,4 +1,3 @@
-
 import json
 import os
 import sys
@@ -13,6 +12,7 @@ from models.tag import Tag
 
 BATCH_SIZE = 5
 
+
 def populate_tags():
     if not gemini_client:
         print("❌ GEMINI_API_KEY is not set.")
@@ -22,10 +22,11 @@ def populate_tags():
     try:
         # Fetch tags missing ko_name or description
         print("🔍 Fetching incomplete tags...")
-        tags_to_update = session.query(Tag).filter(
-            (Tag.ko_name is None) | (Tag.ko_name == "") |
-            (Tag.description is None) | (Tag.description == "")
-        ).all()
+        tags_to_update = (
+            session.query(Tag)
+            .filter((Tag.ko_name is None) | (Tag.ko_name == "") | (Tag.description is None) | (Tag.description == ""))
+            .all()
+        )
 
         total = len(tags_to_update)
         print(f"📋 Found {total} tags to update.")
@@ -39,7 +40,7 @@ def populate_tags():
             batch = tags_to_update[i : i + BATCH_SIZE]
             tag_names = [t.name for t in batch]
 
-            print(f"🔄 Processing batch {i//BATCH_SIZE + 1}/{(total + BATCH_SIZE - 1)//BATCH_SIZE}: {tag_names}")
+            print(f"🔄 Processing batch {i // BATCH_SIZE + 1}/{(total + BATCH_SIZE - 1) // BATCH_SIZE}: {tag_names}")
 
             prompt = (
                 "You are an expert anime tag translator. "
@@ -57,10 +58,7 @@ def populate_tags():
             retries = 5
             while retries > 0:
                 try:
-                    response = gemini_client.models.generate_content(
-                        model=GEMINI_TEXT_MODEL,
-                        contents=prompt
-                    )
+                    response = gemini_client.models.generate_content(model=GEMINI_TEXT_MODEL, contents=prompt)
 
                     # Clean up response
                     text = response.text.replace("```json", "").replace("```", "").strip()
@@ -83,13 +81,13 @@ def populate_tags():
 
                     session.commit()
                     print(f"   ✅ Updated {updated_count} tags in this batch.")
-                    break # Success, exit retry loop
+                    break  # Success, exit retry loop
 
                 except Exception as e:
                     error_msg = str(e)
                     if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
-                        print(f"   ⏳ Rate limit hit (429), retrying in {6-retries}0s...")
-                        time.sleep((6-retries) * 10) # 10s, 20s, 30s...
+                        print(f"   ⏳ Rate limit hit (429), retrying in {6 - retries}0s...")
+                        time.sleep((6 - retries) * 10)  # 10s, 20s, 30s...
                         retries -= 1
                     else:
                         print(f"   ❌ Batch failed: {e}")
@@ -105,6 +103,7 @@ def populate_tags():
         session.rollback()
     finally:
         session.close()
+
 
 if __name__ == "__main__":
     populate_tags()

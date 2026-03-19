@@ -284,9 +284,7 @@ def test_isolation(client: TestClient):
 def test_success_combinations_empty(client: TestClient):
     """Test success combinations with no data."""
     ctx = _create_storyboard_with_scenes(client, 1)
-    response = client.get(
-        f"/api/admin/activity-logs/success-combinations?storyboard_id={ctx['storyboard_id']}"
-    )
+    response = client.get(f"/api/admin/activity-logs/success-combinations?storyboard_id={ctx['storyboard_id']}")
     assert response.status_code == 200
     data = response.json()
     assert data["summary"]["total_success"] == 0
@@ -403,9 +401,24 @@ def test_analyze_patterns_basic(client: TestClient):
     """Test basic pattern analysis."""
     ctx = _create_storyboard_with_scenes(client, 3)
     logs = [
-        {"storyboard_id": ctx["storyboard_id"], "scene_id": ctx["scene_ids"][0], "tags": ["smile", "standing"], "status": "success"},
-        {"storyboard_id": ctx["storyboard_id"], "scene_id": ctx["scene_ids"][1], "tags": ["smile", "sitting"], "status": "success"},
-        {"storyboard_id": ctx["storyboard_id"], "scene_id": ctx["scene_ids"][2], "tags": ["frown", "standing"], "status": "fail"},
+        {
+            "storyboard_id": ctx["storyboard_id"],
+            "scene_id": ctx["scene_ids"][0],
+            "tags": ["smile", "standing"],
+            "status": "success",
+        },
+        {
+            "storyboard_id": ctx["storyboard_id"],
+            "scene_id": ctx["scene_ids"][1],
+            "tags": ["smile", "sitting"],
+            "status": "success",
+        },
+        {
+            "storyboard_id": ctx["storyboard_id"],
+            "scene_id": ctx["scene_ids"][2],
+            "tags": ["frown", "standing"],
+            "status": "fail",
+        },
     ]
 
     for log_data in logs:
@@ -430,9 +443,7 @@ def test_analyze_patterns_basic(client: TestClient):
 def test_suggest_conflict_rules_no_data(client: TestClient):
     """Test conflict rules suggestion with no data."""
     ctx = _create_storyboard_with_scenes(client, 1)
-    response = client.get(
-        f"/api/admin/activity-logs/suggest-conflict-rules?storyboard_id={ctx['storyboard_id']}"
-    )
+    response = client.get(f"/api/admin/activity-logs/suggest-conflict-rules?storyboard_id={ctx['storyboard_id']}")
 
     assert response.status_code == 200
     data = response.json()

@@ -29,14 +29,16 @@ _CLOSE_FRAMING_TAGS = frozenset({"close-up", "close_up", "portrait", "headshot",
 _MULTI_BANNED_TAGS = frozenset({"solo"})
 
 # 상호작용 태그 (Gemini 가 하나도 안 넣었을 때 기본 주입)
-_INTERACTION_TAGS = frozenset({
-    "eye_contact",
-    "facing_another",
-    "holding_hands",
-    "hugging",
-    "carrying",
-    "arm_in_arm",
-})
+_INTERACTION_TAGS = frozenset(
+    {
+        "eye_contact",
+        "facing_another",
+        "holding_hands",
+        "hugging",
+        "carrying",
+        "arm_in_arm",
+    }
+)
 
 
 class MultiCharacterComposer:

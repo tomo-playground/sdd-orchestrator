@@ -29,10 +29,7 @@ def replace_deprecated_tags(tokens: list[str]) -> tuple[list[str], dict[str, str
     db = SessionLocal()
     try:
         # Get all deprecated tags and their replacements in one query
-        deprecated_tags = db.query(Tag).filter(
-            Tag.is_active.is_(False),
-            Tag.replacement_tag_id.isnot(None)
-        ).all()
+        deprecated_tags = db.query(Tag).filter(Tag.is_active.is_(False), Tag.replacement_tag_id.isnot(None)).all()
 
         # Build replacement map: {deprecated_name: replacement_name}
         replacement_map = {}
@@ -52,9 +49,7 @@ def replace_deprecated_tags(tokens: list[str]) -> tuple[list[str], dict[str, str
                 replacement = replacement_map[normalized]
                 result.append(replacement)
                 replacements_made[normalized] = replacement
-                _get_logger().info(
-                    f"[TagReplacement] Deprecated tag '{normalized}' → '{replacement}'"
-                )
+                _get_logger().info(f"[TagReplacement] Deprecated tag '{normalized}' → '{replacement}'")
             else:
                 result.append(token)
 
@@ -67,6 +62,7 @@ def replace_deprecated_tags(tokens: list[str]) -> tuple[list[str], dict[str, str
 def expand_synonyms(tokens: list[str]) -> set[str]:
     """Expand a list of tokens to include all known synonyms (bidirectional)."""
     import services.keywords as kw
+
     synonym_lookup = kw.load_synonyms_from_db()
     reverse_map: dict[str, set[str]] = {}
     for syn, tag in synonym_lookup.items():
@@ -121,7 +117,7 @@ def filter_prompt_tokens(prompt: str) -> str:
             _get_logger().info(f"🔄 [Filter] Auto-replacing Alias: '{normalized}' -> '{replacement}'")
             cleaned.append(replacement)
             replaced_count += 1
-            seen.add(normalized) # Mark original as seen
+            seen.add(normalized)  # Mark original as seen
             continue
 
         # NOTE: Effectiveness-based filtering disabled (2026-02-24).
@@ -144,6 +140,8 @@ def filter_prompt_tokens(prompt: str) -> str:
             filtered_count += 1
 
     if filtered_count > 0 or replaced_count > 0:
-        _get_logger().info(f"✨ [Filter] Prompt refined: filtered {filtered_count} tags, replaced {replaced_count} tags")
+        _get_logger().info(
+            f"✨ [Filter] Prompt refined: filtered {filtered_count} tags, replaced {replaced_count} tags"
+        )
 
     return ", ".join(cleaned)

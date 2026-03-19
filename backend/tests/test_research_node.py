@@ -318,8 +318,8 @@ async def test_text_reference_with_gemini(store, config, mock_tool_calling):
         "skip_stages": [],
         "references": ["일본 도쿄에서 벚꽃이 만개했습니다"],
         "duration": 30,
-        "structure": "Monologue",
-        "language": "Korean",
+        "structure": "monologue",
+        "language": "korean",
     }
 
     # Tool-Calling이 URL fetch 도구를 사용하여 소재 분석 결과 반환
@@ -344,8 +344,8 @@ async def test_gemini_failure_fallback(store, config, mock_tool_calling):
         "skip_stages": [],
         "references": ["소재 텍스트입니다"],
         "duration": 30,
-        "structure": "Monologue",
-        "language": "Korean",
+        "structure": "monologue",
+        "language": "korean",
     }
 
     # Tool-Calling 실패 시 fallback
@@ -369,8 +369,8 @@ async def test_unsafe_url_blocked(store, config, mock_tool_calling):
         "skip_stages": [],
         "references": ["http://localhost:9000/secret"],
         "duration": 30,
-        "structure": "Monologue",
-        "language": "Korean",
+        "structure": "monologue",
+        "language": "korean",
     }
 
     # Tool-Calling은 성공하지만 URL fetch는 실패
@@ -392,8 +392,8 @@ async def test_no_gemini_client_fallback(store, config, mock_tool_calling):
         "skip_stages": [],
         "references": ["참고 소재"],
         "duration": 30,
-        "structure": "Monologue",
-        "language": "Korean",
+        "structure": "monologue",
+        "language": "korean",
     }
 
     mock_tool_calling.return_value = (

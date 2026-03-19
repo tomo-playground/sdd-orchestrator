@@ -110,22 +110,34 @@ def _check_scenes(scenes, issues: list[PreValidateIssue]) -> int:
     cached_tts = 0
     for i, scene in enumerate(scenes):
         if not scene.image_asset_id and not _scene_has_image(scene):
-            issues.append(PreValidateIssue(
-                level="error", scene_index=i, category="image",
-                message=f"씬 {i + 1}: 이미지가 없습니다.",
-            ))
+            issues.append(
+                PreValidateIssue(
+                    level="error",
+                    scene_index=i,
+                    category="image",
+                    message=f"씬 {i + 1}: 이미지가 없습니다.",
+                )
+            )
 
         script = scene.script or ""
         if not script.strip():
-            issues.append(PreValidateIssue(
-                level="warning", scene_index=i, category="script",
-                message=f"씬 {i + 1}: 스크립트가 비어있습니다.",
-            ))
+            issues.append(
+                PreValidateIssue(
+                    level="warning",
+                    scene_index=i,
+                    category="script",
+                    message=f"씬 {i + 1}: 스크립트가 비어있습니다.",
+                )
+            )
         elif len(script) > 500:
-            issues.append(PreValidateIssue(
-                level="warning", scene_index=i, category="script",
-                message=f"씬 {i + 1}: 스크립트가 매우 깁니다 ({len(script)}자).",
-            ))
+            issues.append(
+                PreValidateIssue(
+                    level="warning",
+                    scene_index=i,
+                    category="script",
+                    message=f"씬 {i + 1}: 스크립트가 매우 깁니다 ({len(script)}자).",
+                )
+            )
 
         if has_speakable_content(script):
             cleaned = clean_script_for_tts(script)
@@ -133,10 +145,14 @@ def _check_scenes(scenes, issues: list[PreValidateIssue]) -> int:
             if (TTS_CACHE_DIR / f"{ck}.wav").exists():
                 cached_tts += 1
             else:
-                issues.append(PreValidateIssue(
-                    level="info", scene_index=i, category="tts",
-                    message=f"씬 {i + 1}: TTS 캐시 없음 (렌더링 시 생성됩니다).",
-                ))
+                issues.append(
+                    PreValidateIssue(
+                        level="info",
+                        scene_index=i,
+                        category="tts",
+                        message=f"씬 {i + 1}: TTS 캐시 없음 (렌더링 시 생성됩니다).",
+                    )
+                )
     return cached_tts
 
 
@@ -144,10 +160,14 @@ def _check_duration(scenes, issues: list[PreValidateIssue]) -> None:
     """Warn if estimated total duration exceeds 60 seconds."""
     total_dur = sum((s.duration or 3.0) for s in scenes)
     if total_dur > 60:
-        issues.append(PreValidateIssue(
-            level="warning", scene_index=None, category="duration",
-            message=f"예상 영상 길이가 {total_dur:.0f}초로 60초를 초과합니다.",
-        ))
+        issues.append(
+            PreValidateIssue(
+                level="warning",
+                scene_index=None,
+                category="duration",
+                message=f"예상 영상 길이가 {total_dur:.0f}초로 60초를 초과합니다.",
+            )
+        )
 
 
 def _scene_has_image(scene) -> bool:

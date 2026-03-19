@@ -422,7 +422,7 @@ class TestResolveCharactersFromGroup:
         from services.agent.nodes.finalize import _resolve_characters_from_group
 
         db = self._mock_db([(1, "A"), (2, "B")])
-        a, b = _resolve_characters_from_group(1, "Dialogue", db)
+        a, b = _resolve_characters_from_group(1, "dialogue", db)
         assert a == 1
         assert b == 2
 
@@ -430,7 +430,7 @@ class TestResolveCharactersFromGroup:
         from services.agent.nodes.finalize import _resolve_characters_from_group
 
         db = self._mock_db([(1, "A"), (2, "B")])
-        a, b = _resolve_characters_from_group(1, "Narrated Dialogue", db)
+        a, b = _resolve_characters_from_group(1, "narrated_dialogue", db)
         assert a == 1
         assert b == 2
 
@@ -438,7 +438,7 @@ class TestResolveCharactersFromGroup:
         from services.agent.nodes.finalize import _resolve_characters_from_group
 
         db = self._mock_db([(1, "A"), (2, "B")])
-        a, b = _resolve_characters_from_group(1, "Monologue", db)
+        a, b = _resolve_characters_from_group(1, "monologue", db)
         assert a == 1
         assert b is None
 
@@ -446,7 +446,7 @@ class TestResolveCharactersFromGroup:
         from services.agent.nodes.finalize import _resolve_characters_from_group
 
         db = self._mock_db([])
-        a, b = _resolve_characters_from_group(1, "Dialogue", db)
+        a, b = _resolve_characters_from_group(1, "dialogue", db)
         assert a is None
         assert b is None
 
@@ -455,7 +455,7 @@ class TestResolveCharactersFromGroup:
         from services.agent.nodes.finalize import _resolve_characters_from_group
 
         db = self._mock_db([(1, "A")])
-        a, b = _resolve_characters_from_group(1, "Dialogue", db)
+        a, b = _resolve_characters_from_group(1, "dialogue", db)
         assert a == 1
         assert b is None
 
@@ -1189,19 +1189,19 @@ class TestEnsureMinimumDuration:
         from services.agent.nodes.finalize import _ensure_minimum_duration
 
         scenes = [{"duration": 15}, {"duration": 15}, {"duration": 15}]
-        _ensure_minimum_duration(scenes, 45, "Korean")
+        _ensure_minimum_duration(scenes, 45, "korean")
         assert sum(s["duration"] for s in scenes) == 45
 
     def test_empty_scenes_skipped(self):
         from services.agent.nodes.finalize import _ensure_minimum_duration
 
-        _ensure_minimum_duration([], 30, "Korean")  # 에러 안 남
+        _ensure_minimum_duration([], 30, "korean")  # 에러 안 남
 
     def test_zero_duration_skipped(self):
         from services.agent.nodes.finalize import _ensure_minimum_duration
 
         scenes = [{"duration": 0}, {"duration": 0}]
-        _ensure_minimum_duration(scenes, 30, "Korean")
+        _ensure_minimum_duration(scenes, 30, "korean")
         assert sum(s["duration"] for s in scenes) == 0
 
     @patch("services.agent.nodes._revise_expand.redistribute_durations")
@@ -1210,8 +1210,8 @@ class TestEnsureMinimumDuration:
         from services.agent.nodes.finalize import _ensure_minimum_duration
 
         scenes = [{"duration": 5}, {"duration": 5}]  # 10s / 45s = 22%
-        _ensure_minimum_duration(scenes, 45, "Korean")
-        mock_redist.assert_called_once_with(scenes, 45, "Korean")
+        _ensure_minimum_duration(scenes, 45, "korean")
+        mock_redist.assert_called_once_with(scenes, 45, "korean")
 
 
 # ── _build_scene_to_tags_map ─────────────────────────────────────────

@@ -11,7 +11,6 @@ from services.creative_utils import (
     resolve_characters_from_context,
 )
 
-
 # ── _strip_preamble ──────────────────────────────────────
 
 
@@ -31,7 +30,7 @@ class TestStripPreamble:
 
 class TestFixJsonEscapes:
     def test_valid_escapes_preserved(self):
-        assert _fix_json_escapes(r'\"hello\"') == r'\"hello\"'
+        assert _fix_json_escapes(r"\"hello\"") == r"\"hello\""
 
     def test_invalid_backslash_doubled(self):
         result = _fix_json_escapes("\\q")

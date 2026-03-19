@@ -1,4 +1,3 @@
-
 from sqlalchemy import inspect
 
 from database import engine
@@ -10,6 +9,7 @@ def list_tables():
     print("Existing tables:")
     for table in tables:
         print(f"- {table}")
+
 
 if __name__ == "__main__":
     list_tables()

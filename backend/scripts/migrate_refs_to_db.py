@@ -1,4 +1,3 @@
-
 import shutil
 
 from config import ASSETS_DIR, IMAGE_DIR
@@ -20,7 +19,7 @@ def migrate_references():
 
     # 1. Iterate through files in assets/references
     for file_path in ref_dir.glob("*.png"):
-        char_name = file_path.stem.replace("_", " ") # Match DB format
+        char_name = file_path.stem.replace("_", " ")  # Match DB format
         print(f"--- Processing: {char_name} ({file_path.name}) ---")
 
         # Find character in DB
@@ -47,6 +46,7 @@ def migrate_references():
     db.commit()
     print("\n✨ Migration Complete. DB is now the source of truth for these characters.")
     db.close()
+
 
 if __name__ == "__main__":
     migrate_references()

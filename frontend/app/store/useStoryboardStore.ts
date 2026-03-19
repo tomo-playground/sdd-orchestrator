@@ -135,7 +135,7 @@ const initialState: Omit<
   description: "",
   duration: 30,
   style: "Anime",
-  language: "Korean",
+  language: "korean",
   structure: DEFAULT_STRUCTURE,
   actorAGender: "female" as ActorGender,
   // Image plan fields

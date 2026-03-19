@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from langchain_core.runnables import RunnableConfig
 from langgraph.store.base import BaseStore
 
-from config import GEMINI_TEXT_MODEL, logger
+from config import GEMINI_TEXT_MODEL, coerce_structure_id, logger
 from config_pipelines import CREATIVE_LEADER_MODEL, DIRECTOR_MODEL, REVIEW_MODEL
 from services.agent.state import ScriptState
 from services.agent.utils import topic_key
@@ -84,7 +84,7 @@ async def _update_topic(store: BaseStore, state: ScriptState, scenes: list[dict]
 
     entry = {
         "summary": _summarize_scenes(scenes),
-        "structure": state.get("structure", ""),
+        "structure": coerce_structure_id(state.get("structure")),
         "scene_count": len(scenes),
         "created_at": datetime.now(UTC).isoformat(),
         "quality_score": _extract_quality_score(state),

@@ -9,9 +9,10 @@ try:
     from models.lora import LoRA
 except ImportError:
     # If run from root without PYTHONPATH=backend, try setting it up
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
     from backend.database import SessionLocal
     from backend.models.lora import LoRA
+
 
 def check_trigger_words():
     db = SessionLocal()
@@ -28,7 +29,7 @@ def check_trigger_words():
                 if " " in tag:
                     issues.append(f"Space found in '{tag}' (should be '{tag.replace(' ', '_')}')")
                 if tag != tag.lower() and not tag.startswith("by "):
-                     issues.append(f"Uppercase found in '{tag}' (should be '{tag.lower()}')")
+                    issues.append(f"Uppercase found in '{tag}' (should be '{tag.lower()}')")
 
             if issues:
                 param_issues.append((lora.name, issues))
@@ -41,6 +42,7 @@ def check_trigger_words():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     check_trigger_words()

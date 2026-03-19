@@ -7,7 +7,6 @@ from services.identity_score import (
     extract_character_identity_tags,
 )
 
-
 # ── extract_character_identity_tags ───────────────────────
 
 

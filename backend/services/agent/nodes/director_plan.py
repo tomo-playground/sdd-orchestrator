@@ -7,7 +7,7 @@ Phase 25: execution_plan으로 skip_stages를 자율 결정.
 
 from __future__ import annotations
 
-from config import logger
+from config import coerce_language_id, coerce_structure_id, logger
 from config_pipelines import DIRECTOR_MODEL, INVENTORY_CASTING_ENABLED
 from services.agent.llm_models import CastingRecommendation, DirectorPlanOutput, validate_with_model
 from services.agent.nodes._production_utils import run_production_step
@@ -85,7 +85,7 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
 
     description = state.get("description", "")
     style = state.get("style", "")
-    structure = state.get("structure", "")
+    structure = coerce_structure_id(state.get("structure"))
     references = state.get("references") or []
     chat_ctx = _sanitize_chat_context(state.get("chat_context") or [])
 
@@ -94,7 +94,7 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
         "description_section": build_optional_section("- **상세 설명**:", description) if description else "",
         "duration": str(state.get("duration", 30)),
         "style_section": f"- **스타일**: {style}" if style else "",
-        "language": state.get("language", "Korean"),
+        "language": coerce_language_id(state.get("language")),
         "structure_section": f"- **구조**: {structure}" if structure else "",
         "chat_context_block": build_chat_context_block(chat_ctx) if chat_ctx else "",
         "references_block": ("\n## Reference Materials\n" + build_references_block(references) if references else ""),

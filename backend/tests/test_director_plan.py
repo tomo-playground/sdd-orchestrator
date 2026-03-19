@@ -185,7 +185,15 @@ async def test_director_plan_with_casting(mock_inventory, mock_run):
 
     mock_inventory.return_value = {
         "characters": [
-            CharacterSummary(id=1, name="미도리야", gender="male", appearance_summary="green_hair", has_lora=True, has_reference=False, usage_count=5),
+            CharacterSummary(
+                id=1,
+                name="미도리야",
+                gender="male",
+                appearance_summary="green_hair",
+                has_lora=True,
+                has_reference=False,
+                usage_count=5,
+            ),
         ],
         "styles": [StyleSummary(id=10, name="Anime", description="애니메이션")],
         "structures": load_structures(),

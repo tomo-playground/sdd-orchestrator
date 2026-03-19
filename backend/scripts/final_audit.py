@@ -29,7 +29,7 @@ def final_audit():
     for p in prompts:
         tags = p.split(",")
         for t in tags:
-            clean = re.sub(r'[\(\)\[\]]', '', t).split(":")[0].strip().lower()
+            clean = re.sub(r"[\(\)\[\]]", "", t).split(":")[0].strip().lower()
             if clean:
                 all_tags.append(clean)
 
@@ -43,7 +43,24 @@ def final_audit():
     for tag, count in tag_counts.most_common(100):
         is_supported = detect_pose_from_prompt(tag) is not None
         # Heuristic for action/pose tags
-        if any(kw in tag for kw in ["standing", "sitting", "lying", "kneeling", "crouching", "running", "walking", "jumping", "pose", "action", "looking", "facing", "view"]):
+        if any(
+            kw in tag
+            for kw in [
+                "standing",
+                "sitting",
+                "lying",
+                "kneeling",
+                "crouching",
+                "running",
+                "walking",
+                "jumping",
+                "pose",
+                "action",
+                "looking",
+                "facing",
+                "view",
+            ]
+        ):
             status = "✅ Supported" if is_supported else "❌ MISSING"
             print(f"{tag:35} | {count:6} | {status}")
             if not is_supported and count >= 1:
@@ -51,15 +68,20 @@ def final_audit():
 
     # 2. Check Tag Category anomalies
     print("\n[Audit: Category Checks]")
-    scene_tags_posing = db.query(Tag.name).filter(
-        Tag.category == "scene",
-        Tag.name.ilike("%standing%") | Tag.name.ilike("%sitting%") | Tag.name.ilike("%pose%")
-    ).all()
+    scene_tags_posing = (
+        db.query(Tag.name)
+        .filter(
+            Tag.category == "scene",
+            Tag.name.ilike("%standing%") | Tag.name.ilike("%sitting%") | Tag.name.ilike("%pose%"),
+        )
+        .all()
+    )
     print(f"Tags in 'scene' that look like 'pose': {len(scene_tags_posing)}")
     for t in scene_tags_posing[:10]:
         print(f" - {t[0]}")
 
     db.close()
+
 
 if __name__ == "__main__":
     final_audit()

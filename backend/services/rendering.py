@@ -379,7 +379,7 @@ def render_scene_text_image(
             combined_text,
             base_subtitle_size,
             min_font_size=int(height * FullLayout.SCENE_TEXT_MIN_FONT_RATIO),
-            max_font_size=base_subtitle_size
+            max_font_size=base_subtitle_size,
         )
     else:
         subtitle_size = base_subtitle_size
@@ -775,7 +775,9 @@ def _draw_overlay_header(
         avatar_image = load_avatar_image(settings.avatar_file)
         if avatar_image:
             try:
-                avatar_resized = avatar_image.resize((avatar_radius * 2, avatar_radius * 2), Image.LANCZOS).convert("RGBA")
+                avatar_resized = avatar_image.resize((avatar_radius * 2, avatar_radius * 2), Image.LANCZOS).convert(
+                    "RGBA"
+                )
                 mask = Image.new("L", (avatar_radius * 2, avatar_radius * 2), 0)
                 mask_draw = ImageDraw.Draw(mask)
                 mask_draw.ellipse((0, 0, avatar_radius * 2, avatar_radius * 2), fill=255)

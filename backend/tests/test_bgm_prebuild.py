@@ -63,9 +63,7 @@ class TestPrebuildBgm:
     @patch("services.bgm_prebuild._generate_bgm", new_callable=AsyncMock)
     @patch("services.bgm_prebuild._save_bgm_asset")
     @patch("services.bgm_prebuild._link_to_storyboard")
-    async def test_successful_prebuild(
-        self, mock_link, mock_save, mock_gen, mock_db, mock_storyboard
-    ):
+    async def test_successful_prebuild(self, mock_link, mock_save, mock_gen, mock_db, mock_storyboard):
         """정상 생성 시 prebuilt + asset_id 반환."""
         mock_db.query.return_value.filter.return_value.first.return_value = mock_storyboard
         mock_gen.return_value = b"fake-wav-data"
@@ -80,9 +78,7 @@ class TestPrebuildBgm:
 
     @pytest.mark.asyncio
     @patch("services.bgm_prebuild._generate_bgm", new_callable=AsyncMock)
-    async def test_generation_failure_returns_failed(
-        self, mock_gen, mock_db, mock_storyboard
-    ):
+    async def test_generation_failure_returns_failed(self, mock_gen, mock_db, mock_storyboard):
         """MusicGen 호출 실패 시 failed 반환."""
         mock_db.query.return_value.filter.return_value.first.return_value = mock_storyboard
         mock_gen.side_effect = ConnectionError("Audio server down")

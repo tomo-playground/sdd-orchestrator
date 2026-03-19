@@ -46,14 +46,44 @@ def analyze_pose_coverage():
 
     # 4. Known pose keywords from controlnet.py
     pose_keywords = [
-        "standing", "sitting", "lying", "kneeling", "bending",
-        "pointing", "reaching", "holding", "carrying", "looking",
-        "dancing", "fighting", "sleeping", "reading", "typing",
-        "eating", "drinking", "shouting", "crying", "laughing",
-        "hug", "kiss", "handshake", "kick", "punch",
-        "crawling", "squatting", "stretching", "yoga", "swimming",
-        "leaning", "looking back", "profile", "from behind",
-        "laying", "squat", "bent over", "on knees"
+        "standing",
+        "sitting",
+        "lying",
+        "kneeling",
+        "bending",
+        "pointing",
+        "reaching",
+        "holding",
+        "carrying",
+        "looking",
+        "dancing",
+        "fighting",
+        "sleeping",
+        "reading",
+        "typing",
+        "eating",
+        "drinking",
+        "shouting",
+        "crying",
+        "laughing",
+        "hug",
+        "kiss",
+        "handshake",
+        "kick",
+        "punch",
+        "crawling",
+        "squatting",
+        "stretching",
+        "yoga",
+        "swimming",
+        "leaning",
+        "looking back",
+        "profile",
+        "from behind",
+        "laying",
+        "squat",
+        "bent over",
+        "on knees",
     ]
 
     print("\n[DB Pose Tag Analysis]")
@@ -72,6 +102,7 @@ def analyze_pose_coverage():
         print(f"{tag:35} | Count: {count:4} | {status}")
 
     db.close()
+
 
 if __name__ == "__main__":
     analyze_pose_coverage()

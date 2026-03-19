@@ -7,7 +7,14 @@ from __future__ import annotations
 
 import re
 
-from config import DURATION_DEFICIT_THRESHOLD, LANGGRAPH_MAX_REVISIONS, SCENE_DEFAULT_DURATION, logger
+from config import (
+    DURATION_DEFICIT_THRESHOLD,
+    LANGGRAPH_MAX_REVISIONS,
+    SCENE_DEFAULT_DURATION,
+    coerce_language_id,
+    coerce_structure_id,
+    logger,
+)
 from config_pipelines import REVISE_EXPANSION_ENABLED, REVISE_MAX_EXPANSION_SCENES, REVISE_ROLLBACK_SCORE_DELTA
 from database import get_db_session
 from schemas import StoryboardRequest
@@ -158,8 +165,8 @@ def _make_request(state: ScriptState, desc: str) -> StoryboardRequest:
         description=desc,
         duration=state.get("duration", 10),
         style=state.get("style", "Anime"),
-        language=state.get("language", "Korean"),
-        structure=state.get("structure", "Monologue"),
+        language=coerce_language_id(state.get("language")),
+        structure=coerce_structure_id(state.get("structure")),
         actor_a_gender=state.get("actor_a_gender", "female"),
         character_id=state.get("character_id"),
         character_b_id=state.get("character_b_id"),
@@ -238,7 +245,7 @@ async def revise_node(state: ScriptState) -> dict:
 
     # Tier 1.5: duration 부족 → redistribute로 해결 시도
     if _has_duration_deficit(errors):
-        redistribute_durations(scenes, state.get("duration", 10), language=state.get("language", "Korean"))
+        redistribute_durations(scenes, state.get("duration", 10), language=coerce_language_id(state.get("language")))
         new_total = sum(s.get("duration", 0) for s in scenes)
         if new_total >= state.get("duration", 10) * DURATION_DEFICIT_THRESHOLD:
             logger.info("[LangGraph] Revise Tier 1.5 duration 재분배 완료 (revision=%d)", count + 1)
@@ -247,9 +254,9 @@ async def revise_node(state: ScriptState) -> dict:
 
     # Tier 1.6: duration 초과 → 씬 개수 trim (구조 인식)
     if _has_duration_overflow(errors):
-        from services.storyboard.helpers import calculate_max_scenes, normalize_structure  # noqa: PLC0415
+        from services.storyboard.helpers import calculate_max_scenes  # noqa: PLC0415
 
-        structure = normalize_structure(state.get("structure"))
+        structure = coerce_structure_id(state.get("structure"))
         duration = state.get("duration", 10)
         max_sc = calculate_max_scenes(duration, structure)
         if len(scenes) > max_sc:
@@ -278,7 +285,7 @@ async def revise_node(state: ScriptState) -> dict:
                     redistribute_durations(
                         expanded,
                         state.get("duration", 10),
-                        language=state.get("language", "Korean"),
+                        language=coerce_language_id(state.get("language")),
                     )
                     logger.info("[LangGraph] Revise Tier 2 확장 완료 (revision=%d)", count + 1)
                     history[-1]["tier"] = "expansion"

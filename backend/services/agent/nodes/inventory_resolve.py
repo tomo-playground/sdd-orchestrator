@@ -7,11 +7,9 @@ Pure Python 노드 (LLM 호출 없음).
 
 from __future__ import annotations
 
-from config import logger
+from config import MULTI_CHAR_STRUCTURES, coerce_structure_id, logger
 from services.agent.nodes._skip_guard import should_skip
 from services.agent.state import ScriptState
-
-_TWO_CHAR_STRUCTURES = frozenset({"dialogue", "narrated_dialogue"})
 
 
 def _validate_casting(casting: dict, state: ScriptState) -> dict | None:
@@ -40,7 +38,7 @@ def _validate_casting(casting: dict, state: ScriptState) -> dict | None:
 
     # 4. 구조 적합성: 2인 구조 → character_b_id 자동 할당 시도
     structure = casting.get("structure")
-    if structure in _TWO_CHAR_STRUCTURES and casting.get("character_a_id") and not casting.get("character_b_id"):
+    if structure in MULTI_CHAR_STRUCTURES and casting.get("character_a_id") and not casting.get("character_b_id"):
         char_a_id = casting["character_a_id"]
         others = [cid for cid in valid_chars if cid != char_a_id]
         if others:
@@ -71,13 +69,14 @@ async def inventory_resolve_node(state: ScriptState, config=None) -> dict:  # no
     casting = state.get("casting_recommendation")
     if not casting or not isinstance(casting, dict):
         # Director가 캐스팅을 생성하지 않았어도, Frontend가 structure를 지정했으면 보존
-        user_structure = state.get("structure", "")
-        if user_structure:
+        raw_structure = state.get("structure")
+        if raw_structure:
+            coerced = coerce_structure_id(raw_structure)
             logger.info(
                 "[LangGraph] inventory_resolve: 캐스팅 추천 없음, user structure='%s' 보존",
-                user_structure,
+                coerced,
             )
-            return {"structure": user_structure}
+            return {"structure": coerced}
         logger.info("[LangGraph] inventory_resolve: 캐스팅 추천 없음, 패스스루")
         return {"casting_recommendation": None}
 

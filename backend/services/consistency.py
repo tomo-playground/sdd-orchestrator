@@ -54,31 +54,46 @@ def compute_group_drift(
 
     if not b_set and not d_set:
         return GroupDrift(
-            group=group, baseline_tags=baseline_tags, detected_tags=detected_tags,
-            status="no_data", weight=weight,
+            group=group,
+            baseline_tags=baseline_tags,
+            detected_tags=detected_tags,
+            status="no_data",
+            weight=weight,
         )
 
     if not d_set:
         return GroupDrift(
-            group=group, baseline_tags=baseline_tags, detected_tags=detected_tags,
-            status="missing", weight=weight,
+            group=group,
+            baseline_tags=baseline_tags,
+            detected_tags=detected_tags,
+            status="missing",
+            weight=weight,
         )
 
     if not b_set:
         return GroupDrift(
-            group=group, baseline_tags=baseline_tags, detected_tags=detected_tags,
-            status="extra", weight=weight,
+            group=group,
+            baseline_tags=baseline_tags,
+            detected_tags=detected_tags,
+            status="extra",
+            weight=weight,
         )
 
     if b_set & d_set:
         return GroupDrift(
-            group=group, baseline_tags=baseline_tags, detected_tags=detected_tags,
-            status="match", weight=weight,
+            group=group,
+            baseline_tags=baseline_tags,
+            detected_tags=detected_tags,
+            status="match",
+            weight=weight,
         )
 
     return GroupDrift(
-        group=group, baseline_tags=baseline_tags, detected_tags=detected_tags,
-        status="mismatch", weight=weight,
+        group=group,
+        baseline_tags=baseline_tags,
+        detected_tags=detected_tags,
+        status="mismatch",
+        weight=weight,
     )
 
 
@@ -151,20 +166,20 @@ def compute_storyboard_consistency(
     storyboard = db.query(Storyboard).filter(Storyboard.id == storyboard_id).first()
     if not storyboard:
         return ConsistencyResult(
-            storyboard_id=storyboard_id, overall_consistency=1.0, scenes=[],
+            storyboard_id=storyboard_id,
+            overall_consistency=1.0,
+            scenes=[],
         )
 
     # Build speaker → character_id mapping
-    sc_rows = (
-        db.query(StoryboardCharacter)
-        .filter(StoryboardCharacter.storyboard_id == storyboard_id)
-        .all()
-    )
+    sc_rows = db.query(StoryboardCharacter).filter(StoryboardCharacter.storyboard_id == storyboard_id).all()
     speaker_to_char: dict[str, int] = {sc.speaker: sc.character_id for sc in sc_rows}
 
     if not speaker_to_char:
         return ConsistencyResult(
-            storyboard_id=storyboard_id, overall_consistency=1.0, scenes=[],
+            storyboard_id=storyboard_id,
+            overall_consistency=1.0,
+            scenes=[],
         )
 
     # Cache baselines per character

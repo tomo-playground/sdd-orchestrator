@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config import logger
+from config import coerce_language_id, logger
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.prompt_builders import (
     build_director_plan_section_for_tts,
@@ -135,7 +135,7 @@ async def tts_designer_node(state: ScriptState) -> dict:
     template_vars = {
         "concept_json": to_json(concept),
         "scenes_json": to_json(scenes),
-        "language": state.get("language", "Korean"),
+        "language": coerce_language_id(state.get("language")),
         "director_plan_section": build_director_plan_section_for_tts(state.get("director_plan")),
         "emotional_arc_section": build_emotional_arc_section(state.get("writer_plan")),
         "characters_block": build_tts_characters_block(characters_voice),

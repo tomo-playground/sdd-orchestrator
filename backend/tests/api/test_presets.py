@@ -15,6 +15,7 @@ def test_list_presets(client: TestClient):
     assert "name" in preset
     assert "structure" in preset
 
+
 def test_get_preset_detail(client: TestClient):
     """Test getting a specific preset detail."""
     # First get list to find a valid ID
@@ -29,6 +30,7 @@ def test_get_preset_detail(client: TestClient):
     data = response.json()
     assert data["id"] == preset_id
     assert "template" in data
+
 
 def test_get_preset_topics(client: TestClient):
     """Test getting sample topics for a preset."""

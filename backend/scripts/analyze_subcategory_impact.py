@@ -24,6 +24,7 @@ SUBCATEGORY_TO_PROMPT = {
     "clothing": "clothing",
 }
 
+
 def main():
     db = SessionLocal()
 
@@ -33,25 +34,25 @@ def main():
 
     # 1. Basic Stats
     total_tags = db.query(Tag).count()
-    tags_with_subcategory = db.query(Tag).filter(
-        Tag.subcategory.isnot(None),
-        Tag.subcategory != ''
-    ).count()
+    tags_with_subcategory = db.query(Tag).filter(Tag.subcategory.isnot(None), Tag.subcategory != "").count()
 
     print("\n📊 Basic Statistics:")
     print(f"  Total Tags:              {total_tags:,}")
-    print(f"  Tags with subcategory:   {tags_with_subcategory:,} ({tags_with_subcategory/total_tags*100:.1f}%)")
+    print(f"  Tags with subcategory:   {tags_with_subcategory:,} ({tags_with_subcategory / total_tags * 100:.1f}%)")
 
     # 2. Subcategory Distribution
     print("\n📈 Subcategory Distribution:")
     from sqlalchemy import text
-    result = db.execute(text("""
+
+    result = db.execute(
+        text("""
         SELECT subcategory, COUNT(*) as cnt
         FROM tags
         WHERE subcategory IS NOT NULL AND subcategory != ''
         GROUP BY subcategory
         ORDER BY cnt DESC
-    """))
+    """)
+    )
 
     for row in result:
         subcategory, count = row
@@ -63,11 +64,11 @@ def main():
 
     for subcategory, expected_prompt_cat in SUBCATEGORY_TO_PROMPT.items():
         # Find tags where subcategory suggests one category but group_name says another
-        mismatches = db.query(Tag).filter(
-            Tag.subcategory == subcategory,
-            Tag.group_name.isnot(None),
-            Tag.group_name != expected_prompt_cat
-        ).all()
+        mismatches = (
+            db.query(Tag)
+            .filter(Tag.subcategory == subcategory, Tag.group_name.isnot(None), Tag.group_name != expected_prompt_cat)
+            .all()
+        )
 
         if mismatches:
             print(f"\n  subcategory='{subcategory}' → expects '{expected_prompt_cat}'")
@@ -75,6 +76,7 @@ def main():
 
             # Group by actual group_name
             from collections import defaultdict
+
             by_group = defaultdict(list)
             for tag in mismatches:
                 by_group[tag.group_name].append(tag.name)
@@ -91,27 +93,33 @@ def main():
     print("\n🔍 Semantic Validation (subcategory='indoor' but NOT location tag):")
 
     # Tags that have subcategory=indoor but are NOT actually location tags
-    semantic_errors = db.query(Tag).filter(
-        Tag.subcategory == 'indoor',
-        Tag.category != 'scene',  # Not even scene category
-    ).limit(20).all()
+    semantic_errors = (
+        db.query(Tag)
+        .filter(
+            Tag.subcategory == "indoor",
+            Tag.category != "scene",  # Not even scene category
+        )
+        .limit(20)
+        .all()
+    )
 
     if semantic_errors:
         print(f"  Found {len(semantic_errors)} tags marked 'indoor' but not scene/location:")
         for tag in semantic_errors:
-            print(f"    {tag.name:25} | category={tag.category:15} | group={tag.group_name or 'NULL':20} | layer={tag.default_layer}")
+            print(
+                f"    {tag.name:25} | category={tag.category:15} | group={tag.group_name or 'NULL':20} | layer={tag.default_layer}"
+            )
 
     # 5. Consistency Check (same tag, different subcategory?)
     print("\n🧐 Priority Logic Test:")
     print("  Current priority: subcategory > group_name (if granular) > category")
 
     # Find cases where subcategory and group_name both exist
-    both_set = db.query(Tag).filter(
-        Tag.subcategory.isnot(None),
-        Tag.subcategory != '',
-        Tag.group_name.isnot(None),
-        Tag.group_name != ''
-    ).all()
+    both_set = (
+        db.query(Tag)
+        .filter(Tag.subcategory.isnot(None), Tag.subcategory != "", Tag.group_name.isnot(None), Tag.group_name != "")
+        .all()
+    )
 
     consistent_count = 0
     inconsistent_count = 0
@@ -124,12 +132,14 @@ def main():
         else:
             inconsistent_count += 1
             if len(inconsistent_examples) < 10:
-                inconsistent_examples.append({
-                    'tag': tag.name,
-                    'subcategory': tag.subcategory,
-                    'expected': expected,
-                    'group_name': tag.group_name
-                })
+                inconsistent_examples.append(
+                    {
+                        "tag": tag.name,
+                        "subcategory": tag.subcategory,
+                        "expected": expected,
+                        "group_name": tag.group_name,
+                    }
+                )
 
     print(f"  Tags with both subcategory AND group_name set: {len(both_set)}")
     print(f"    ✅ Consistent (subcategory matches group_name): {consistent_count}")
@@ -138,7 +148,9 @@ def main():
     if inconsistent_examples:
         print("\n  Examples of inconsistent tags:")
         for ex in inconsistent_examples:
-            print(f"    {ex['tag']:25} | subcategory={ex['subcategory']:10} → expects '{ex['expected']:20}' | actual group={ex['group_name']}")
+            print(
+                f"    {ex['tag']:25} | subcategory={ex['subcategory']:10} → expects '{ex['expected']:20}' | actual group={ex['group_name']}"
+            )
 
     # 6. Recommendation
     print("\n" + "=" * 80)
@@ -174,6 +186,7 @@ Action:
 """)
 
     db.close()
+
 
 if __name__ == "__main__":
     main()

@@ -24,6 +24,7 @@ class Colors:
     ENDC = "\033[0m"
     BOLD = "\033[1m"
 
+
 def print_result(msg, status="OK"):
     if status == "OK":
         print(f"{Colors.OK}[OK]{Colors.ENDC} {msg}")
@@ -31,6 +32,7 @@ def print_result(msg, status="OK"):
         print(f"{Colors.WARNING}[WARNING]{Colors.ENDC} {msg}")
     else:
         print(f"{Colors.FAIL}[FAIL]{Colors.ENDC} {msg}")
+
 
 def check_env():
     # Get current script directory
@@ -46,11 +48,7 @@ def check_env():
     print_result(".env file exists")
 
     # 2. Check Required Configs
-    configs = {
-        "GEMINI_API_KEY": GEMINI_API_KEY,
-        "SD_BASE_URL": SD_BASE_URL,
-        "API_PUBLIC_URL": API_PUBLIC_URL
-    }
+    configs = {"GEMINI_API_KEY": GEMINI_API_KEY, "SD_BASE_URL": SD_BASE_URL, "API_PUBLIC_URL": API_PUBLIC_URL}
     for key, val in configs.items():
         if val:
             # Mask sensitive info
@@ -84,7 +82,7 @@ def check_env():
         FONTS_DIR / "BlackHanSans-Regular.ttf",
         OVERLAY_DIR / "overlay_bold.png",
         TEMPLATES_DIR,
-        OUTPUT_DIR
+        OUTPUT_DIR,
     ]
 
     for p in critical_paths:
@@ -96,6 +94,7 @@ def check_env():
     print(f"\n{Colors.BOLD}--- Diagnostic Complete ---{Colors.ENDC}")
 
     print(f"\n{Colors.BOLD}--- Diagnostic Complete ---{Colors.ENDC}")
+
 
 if __name__ == "__main__":
     check_env()

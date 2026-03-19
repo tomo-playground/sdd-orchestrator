@@ -19,9 +19,7 @@ def main():
     db = SessionLocal()
     try:
         # Get all characters with negative prompts
-        characters = db.query(Character).filter(
-            Character.recommended_negative.isnot(None)
-        ).all()
+        characters = db.query(Character).filter(Character.recommended_negative.isnot(None)).all()
 
         print(f"Found {len(characters)} characters with negative prompts")
         print()
@@ -31,10 +29,7 @@ def main():
             original = char.recommended_negative.copy() if char.recommended_negative else []
 
             # Remove problematic tags
-            char.recommended_negative = [
-                tag for tag in char.recommended_negative
-                if tag not in TAGS_TO_REMOVE
-            ]
+            char.recommended_negative = [tag for tag in char.recommended_negative if tag not in TAGS_TO_REMOVE]
 
             # Check if anything changed
             if char.recommended_negative != original:

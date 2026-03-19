@@ -25,9 +25,9 @@ from services.keywords.db_cache import TagAliasCache, TagCategoryCache, TagRuleC
 
 def test_category_mapping():
     """Test that tags are mapped to correct categories."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 1: Category Mapping")
-    print("="*80)
+    print("=" * 80)
 
     test_cases = [
         # (tag, expected_category)
@@ -65,36 +65,20 @@ def test_category_mapping():
 
 def test_conflict_filtering():
     """Test that conflicting tags are properly filtered."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 2: Conflict Filtering")
-    print("="*80)
+    print("=" * 80)
 
     test_cases = [
         # (input_tags, expected_kept, expected_removed)
-        (
-            ["crying", "laughing"],
-            ["crying"],
-            ["laughing"]
-        ),
-        (
-            ["sitting", "standing"],
-            ["sitting"],
-            ["standing"]
-        ),
-        (
-            ["1girl", "1boy"],
-            ["1girl"],
-            ["1boy"]
-        ),
-        (
-            ["masterpiece", "lowres"],
-            ["masterpiece"],
-            ["lowres"]
-        ),
+        (["crying", "laughing"], ["crying"], ["laughing"]),
+        (["sitting", "standing"], ["sitting"], ["standing"]),
+        (["1girl", "1boy"], ["1girl"], ["1boy"]),
+        (["masterpiece", "lowres"], ["masterpiece"], ["lowres"]),
         (
             ["bedroom", "classroom"],  # Both location_indoor
             ["bedroom"],
-            ["classroom"]
+            ["classroom"],
         ),
     ]
 
@@ -122,16 +106,26 @@ def test_conflict_filtering():
 
 def test_no_false_positives():
     """Test that non-conflicting tags are NOT filtered."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 3: No False Positives")
-    print("="*80)
+    print("=" * 80)
 
     # These tags should all pass through without being filtered
     test_tags = [
-        "surprised", "looking_at_viewer", "standing", "stretching",
-        "upper_body", "day", "bright", "anime_style",
-        "best_quality", "masterpiece", "1girl",
-        "short_hair", "pink_hair", "school_uniform"
+        "surprised",
+        "looking_at_viewer",
+        "standing",
+        "stretching",
+        "upper_body",
+        "day",
+        "bright",
+        "anime_style",
+        "best_quality",
+        "masterpiece",
+        "1girl",
+        "short_hair",
+        "pink_hair",
+        "school_uniform",
     ]
 
     filtered = filter_conflicting_tokens(test_tags)
@@ -155,23 +149,28 @@ def test_no_false_positives():
 
 def test_compose_standard_mode():
     """Test standard mode composition."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 4: Standard Mode Composition")
-    print("="*80)
+    print("=" * 80)
 
     test_tokens = [
-        "1girl", "short_hair", "pink_hair", "school_uniform",
-        "surprised", "looking_at_viewer", "standing",
-        "bedroom", "day", "bright",
-        "anime_style", "masterpiece", "best_quality"
+        "1girl",
+        "short_hair",
+        "pink_hair",
+        "school_uniform",
+        "surprised",
+        "looking_at_viewer",
+        "standing",
+        "bedroom",
+        "day",
+        "bright",
+        "anime_style",
+        "masterpiece",
+        "best_quality",
     ]
 
     composed = compose_prompt_tokens(
-        tokens=test_tokens,
-        mode="standard",
-        lora_strings=None,
-        trigger_words=None,
-        use_break=False
+        tokens=test_tokens, mode="standard", lora_strings=None, trigger_words=None, use_break=False
     )
 
     # Check that we got a reasonable number of tokens
@@ -187,26 +186,31 @@ def test_compose_standard_mode():
 
 def test_compose_lora_mode():
     """Test LoRA mode composition."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 5: LoRA Mode Composition")
-    print("="*80)
+    print("=" * 80)
 
     test_tokens = [
-        "1girl", "short_hair", "pink_hair", "school_uniform",
-        "surprised", "looking_at_viewer", "standing",
-        "bedroom", "day", "bright",
-        "anime_style", "masterpiece", "best_quality"
+        "1girl",
+        "short_hair",
+        "pink_hair",
+        "school_uniform",
+        "surprised",
+        "looking_at_viewer",
+        "standing",
+        "bedroom",
+        "day",
+        "bright",
+        "anime_style",
+        "masterpiece",
+        "best_quality",
     ]
 
     lora_strings = ["<lora:test_character:0.8>"]
     trigger_words = ["test_character"]
 
     composed = compose_prompt_tokens(
-        tokens=test_tokens,
-        mode="lora",
-        lora_strings=lora_strings,
-        trigger_words=trigger_words,
-        use_break=True
+        tokens=test_tokens, mode="lora", lora_strings=lora_strings, trigger_words=trigger_words, use_break=True
     )
 
     # Check that BREAK and LoRA are present
@@ -248,9 +252,9 @@ def run_all_tests():
         results.append(("LoRA Mode Compose", test_compose_lora_mode()))
 
         # Summary
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TEST SUMMARY")
-        print("="*80)
+        print("=" * 80)
 
         passed = sum(1 for _, result in results if result)
         total = len(results)

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import patch
 
 from services.agent.nodes.critic import (
     _build_critique_feedback,
@@ -12,7 +11,6 @@ from services.agent.nodes.critic import (
     _normalize_research_brief,
     _parse_candidates,
 )
-
 
 # ── _normalize_research_brief ─────────────────────────────
 

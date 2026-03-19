@@ -34,14 +34,14 @@ class TestReviewDialogueSpeakerValidation:
     def test_b_missing_produces_error(self):
         """Dialogue에서 B가 없으면 errors에 포함되어야 한다."""
         scenes = [_make_scene("A"), _make_scene("A"), _make_scene("Narrator")]
-        result = _validate_scenes(scenes, duration=10, language="Korean", structure="Dialogue")
+        result = _validate_scenes(scenes, duration=10, language="korean", structure="dialogue")
         assert not result["passed"]
         assert any("speaker 'B'" in e for e in result["errors"])
 
     def test_a_missing_produces_error(self):
         """Dialogue에서 A가 없으면 errors에 포함되어야 한다."""
         scenes = [_make_scene("B"), _make_scene("B"), _make_scene("Narrator")]
-        result = _validate_scenes(scenes, duration=10, language="Korean", structure="Dialogue")
+        result = _validate_scenes(scenes, duration=10, language="korean", structure="dialogue")
         assert not result["passed"]
         assert any("speaker 'A'" in e for e in result["errors"])
 
@@ -54,21 +54,21 @@ class TestReviewDialogueSpeakerValidation:
             _make_scene("A"),
             _make_scene("B"),
         ]
-        result = _validate_scenes(scenes, duration=10, language="Korean", structure="Dialogue")
+        result = _validate_scenes(scenes, duration=10, language="korean", structure="dialogue")
         speaker_errors = [e for e in result["errors"] if "speaker" in e and "Dialogue" in e]
         assert len(speaker_errors) == 0
 
     def test_narrated_dialogue_also_validates(self):
         """Narrated Dialogue 구조에서도 동일 검증."""
         scenes = [_make_scene("A"), _make_scene("A")]
-        result = _validate_scenes(scenes, duration=10, language="Korean", structure="Narrated Dialogue")
+        result = _validate_scenes(scenes, duration=10, language="korean", structure="narrated_dialogue")
         assert not result["passed"]
         assert any("speaker 'B'" in e for e in result["errors"])
 
     def test_monologue_ignores_b_absence(self):
         """Monologue에서는 B 부재를 검증하지 않아야 한다."""
         scenes = [_make_scene("A"), _make_scene("A")]
-        result = _validate_scenes(scenes, duration=10, language="Korean", structure="Monologue")
+        result = _validate_scenes(scenes, duration=10, language="korean", structure="monologue")
         dialogue_errors = [e for e in result["errors"] if "Dialogue" in e]
         assert len(dialogue_errors) == 0
 
@@ -206,7 +206,7 @@ class TestReviewSpeakerBalance:
         """A=11, B=1 → error (B가 8%로 20% 미만)."""
         scenes = [_make_scene("A")] * 11 + [_make_scene("B")]
         scenes = [_make_scene(s["speaker"]) for s in scenes]
-        result = _validate_scenes(scenes, duration=30, language="Korean", structure="Dialogue")
+        result = _validate_scenes(scenes, duration=30, language="korean", structure="dialogue")
         assert not result["passed"]
         assert any("speaker 비율 불균형" in e for e in result["errors"])
 
@@ -215,7 +215,7 @@ class TestReviewSpeakerBalance:
         scenes = []
         for i in range(10):
             scenes.append(_make_scene("A" if i % 2 == 0 else "B"))
-        result = _validate_scenes(scenes, duration=30, language="Korean", structure="Dialogue")
+        result = _validate_scenes(scenes, duration=30, language="korean", structure="dialogue")
         balance_errors = [e for e in result["errors"] if "비율 불균형" in e]
         assert len(balance_errors) == 0
 
@@ -223,7 +223,7 @@ class TestReviewSpeakerBalance:
         """A=4, B=1 (20%) → pass."""
         scenes = [_make_scene("A")] * 4 + [_make_scene("B")]
         scenes = [_make_scene(s["speaker"]) for s in scenes]
-        result = _validate_scenes(scenes, duration=15, language="Korean", structure="Dialogue")
+        result = _validate_scenes(scenes, duration=15, language="korean", structure="dialogue")
         balance_errors = [e for e in result["errors"] if "비율 불균형" in e]
         assert len(balance_errors) == 0
 
@@ -232,13 +232,13 @@ class TestReviewSpeakerBalance:
         scenes = []
         for i in range(8):
             scenes.append(_make_scene("A" if i % 2 == 0 else "B"))
-        result = _validate_scenes(scenes, duration=20, language="Korean", structure="Narrated Dialogue")
+        result = _validate_scenes(scenes, duration=20, language="korean", structure="narrated_dialogue")
         assert any("Narrator 씬 없음" in e for e in result["errors"])
 
     def test_narrated_dialogue_with_narrator_no_warning(self):
         """Narrated Dialogue에서 Narrator 있음 → no warning."""
         scenes = [_make_scene("A"), _make_scene("B"), _make_scene("Narrator"), _make_scene("A"), _make_scene("B")]
-        result = _validate_scenes(scenes, duration=15, language="Korean", structure="Narrated Dialogue")
+        result = _validate_scenes(scenes, duration=15, language="korean", structure="narrated_dialogue")
         narrator_warnings = [w for w in result["warnings"] if "Narrator 씬 없음" in w]
         assert len(narrator_warnings) == 0
 

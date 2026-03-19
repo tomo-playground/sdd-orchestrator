@@ -108,7 +108,7 @@ class TestSyncSpeakerMappingsDialogue:
             "title": "Dialogue Test",
             "description": "Test",
             "group_id": 1,
-            "structure": "Dialogue",
+            "structure": "dialogue",
             "character_id": char_a.id,
             "character_b_id": char_b.id,
             "scenes": [
@@ -164,7 +164,7 @@ class TestSyncSpeakerMappingsUpdate:
             "title": "Dialogue→Monologue",
             "description": "Test",
             "group_id": 1,
-            "structure": "Dialogue",
+            "structure": "dialogue",
             "character_id": char_a.id,
             "character_b_id": char_b.id,
             "scenes": [
@@ -304,7 +304,7 @@ class TestTTSWarningOnMissingMapping:
             title="Missing Mapping Test",
             description="Test",
             group_id=1,  # Uses default group from seed
-            structure="Monologue",
+            structure="monologue",
         )
         db_session.add(storyboard)
         db_session.commit()

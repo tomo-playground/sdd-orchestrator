@@ -28,11 +28,12 @@ async def search_civitai_for_lora(client, lora_name):
 
         items = data.get("items", [])
         if items:
-            return items[0] # Return best match
+            return items[0]  # Return best match
         return None
     except Exception as e:
         logger.warning(f"⚠️ Search failed for '{lora_name}': {e}")
         return None
+
 
 async def update_lora_metadata(client, db, lora):
     """Update a single LoRA with data from Civitai."""
@@ -79,7 +80,7 @@ async def update_lora_metadata(client, db, lora):
 
     # Infer LoRA Type from tags
     tags = metadata.get("tags", [])
-    inferred_type = "style" # Default
+    inferred_type = "style"  # Default
 
     # Priority based inference
     lower_tags = [t.lower() for t in tags]
@@ -120,6 +121,7 @@ async def update_lora_metadata(client, db, lora):
         logger.info(f"   Unknown changes or already up to date for: {lora.name}")
         return False
 
+
 async def main():
     logger.info("🚀 Starting Civitai Metadata Enrichment...")
 
@@ -146,6 +148,7 @@ async def main():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

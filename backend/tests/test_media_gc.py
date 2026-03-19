@@ -10,6 +10,7 @@ from services.media_gc import MediaGCService
 # Fixtures
 # ============================================================
 
+
 def _make_asset(
     db_session,
     *,
@@ -54,11 +55,10 @@ def _make_character(db_session) -> Character:
     return char
 
 
-
-
 # ============================================================
 # Detection Tests
 # ============================================================
+
 
 class TestDetectNullOwner:
     """Test detection of assets with NULL owner_type."""
@@ -88,7 +88,9 @@ class TestDetectNullOwner:
         """Assets with valid owner_type should not appear in null_owner."""
         proj = _make_project(db_session)
         _make_asset(
-            db_session, owner_type="project", owner_id=proj.id,
+            db_session,
+            owner_type="project",
+            owner_id=proj.id,
             storage_key="valid/1.png",
         )
 
@@ -103,7 +105,9 @@ class TestDetectBrokenFK:
     def test_detects_broken_character_ref(self, db_session):
         """Asset points to character ID that doesn't exist."""
         _make_asset(
-            db_session, owner_type="character", owner_id=99999,
+            db_session,
+            owner_type="character",
+            owner_id=99999,
             storage_key="broken/char.png",
         )
 
@@ -115,7 +119,9 @@ class TestDetectBrokenFK:
     def test_detects_broken_scene_ref(self, db_session):
         """Asset points to scene ID that doesn't exist."""
         _make_asset(
-            db_session, owner_type="scene", owner_id=99999,
+            db_session,
+            owner_type="scene",
+            owner_id=99999,
             storage_key="broken/scene.png",
         )
 
@@ -128,7 +134,9 @@ class TestDetectBrokenFK:
         """Asset with valid owner reference should not be detected."""
         char = _make_character(db_session)
         _make_asset(
-            db_session, owner_type="character", owner_id=char.id,
+            db_session,
+            owner_type="character",
+            owner_id=char.id,
             storage_key="valid/char.png",
         )
 
@@ -143,7 +151,9 @@ class TestDetectExpiredTemp:
     def test_detects_expired_temp(self, db_session):
         old_time = datetime.now(tz=UTC) - timedelta(days=2)
         _make_asset(
-            db_session, is_temp=True, created_at=old_time,
+            db_session,
+            is_temp=True,
+            created_at=old_time,
             storage_key="temp/old.png",
         )
 
@@ -153,7 +163,8 @@ class TestDetectExpiredTemp:
 
     def test_fresh_temp_not_detected(self, db_session):
         _make_asset(
-            db_session, is_temp=True,
+            db_session,
+            is_temp=True,
             storage_key="temp/fresh.png",
         )
 
@@ -164,7 +175,9 @@ class TestDetectExpiredTemp:
     def test_non_temp_old_asset_not_detected(self, db_session):
         old_time = datetime.now(tz=UTC) - timedelta(days=2)
         _make_asset(
-            db_session, is_temp=False, created_at=old_time,
+            db_session,
+            is_temp=False,
+            created_at=old_time,
             storage_key="perm/old.png",
         )
 
@@ -176,6 +189,7 @@ class TestDetectExpiredTemp:
 # ============================================================
 # Cleanup Tests
 # ============================================================
+
 
 class TestCleanupOrphans:
     """Test orphan cleanup operations."""
@@ -236,7 +250,9 @@ class TestCleanupExpiredTemp:
 
         old_time = datetime.now(tz=UTC) - timedelta(days=2)
         _make_asset(
-            db_session, is_temp=True, created_at=old_time,
+            db_session,
+            is_temp=True,
+            created_at=old_time,
             storage_key="temp/expired.png",
         )
         _make_asset(db_session, is_temp=True, storage_key="temp/fresh.png")
@@ -253,13 +269,16 @@ class TestCleanupExpiredTemp:
 # Stats Tests
 # ============================================================
 
+
 class TestGetStats:
     """Test stats collection."""
 
     def test_stats_counts(self, db_session):
         proj = _make_project(db_session)
         _make_asset(
-            db_session, owner_type="project", owner_id=proj.id,
+            db_session,
+            owner_type="project",
+            owner_id=proj.id,
             storage_key="stats/valid.png",
         )
         _make_asset(db_session, is_temp=True, storage_key="stats/temp.png")
@@ -277,6 +296,7 @@ class TestGetStats:
 # ============================================================
 # API Endpoint Tests
 # ============================================================
+
 
 class TestAdminEndpoints:
     """Test admin GC endpoints via TestClient."""

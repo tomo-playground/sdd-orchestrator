@@ -22,9 +22,7 @@ class TimestampMixin:
 class SoftDeleteMixin:
     """Mixin for soft delete support via deleted_at timestamp."""
 
-    deleted_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, default=None, index=True
-    )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None, index=True)
 
     @property
     def is_deleted(self) -> bool:

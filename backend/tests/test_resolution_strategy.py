@@ -35,5 +35,6 @@ class TestResolutionStrategy(unittest.TestCase):
         center_pixel = cropped.getpixel((50, 50))
         self.assertEqual(center_pixel, (0, 128, 0), f"Expected green pixel from middle, got {center_pixel}")
 
+
 if __name__ == "__main__":
     unittest.main()

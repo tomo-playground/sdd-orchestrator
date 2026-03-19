@@ -90,16 +90,19 @@ class TestLastSceneTTSClipPrevention:
         tts_dur = 4.0
         scenes = [_MockScene(), _MockScene()]
         result = calculate_scene_durations(
-            scenes, [True, True], [tts_dur, tts_dur], 1.0, tts_padding, transition_dur,
+            scenes,
+            [True, True],
+            [tts_dur, tts_dur],
+            1.0,
+            tts_padding,
+            transition_dur,
         )
         last_dur = result[-1]
         adelay = transition_dur  # h_pad=0
         available = last_dur - adelay
         # TTS + padding must fit within available window
         needed = tts_dur + tts_padding
-        assert available >= needed, (
-            f"Last scene clip room ({available:.2f}s) < TTS+padding ({needed:.2f}s)"
-        )
+        assert available >= needed, f"Last scene clip room ({available:.2f}s) < TTS+padding ({needed:.2f}s)"
 
     def test_last_scene_with_long_tts(self):
         """긴 TTS(6초)에서도 마지막 씬이 잘리지 않아야 함."""
@@ -108,15 +111,18 @@ class TestLastSceneTTSClipPrevention:
         scenes = [_MockScene(), _MockScene(), _MockScene()]
         tts = [3.0, 5.0, 6.0]
         result = calculate_scene_durations(
-            scenes, [True, True, True], tts, 1.0, tts_padding, transition_dur,
+            scenes,
+            [True, True, True],
+            tts,
+            1.0,
+            tts_padding,
+            transition_dur,
         )
         for i, (dur, tts_d) in enumerate(zip(result, tts)):
             adelay = transition_dur
             available = dur - adelay
             needed = tts_d + tts_padding
-            assert available >= needed, (
-                f"Scene {i}: clip room ({available:.2f}s) < TTS+padding ({needed:.2f}s)"
-            )
+            assert available >= needed, f"Scene {i}: clip room ({available:.2f}s) < TTS+padding ({needed:.2f}s)"
 
     def test_last_scene_with_tail_padding(self):
         """tail_padding이 있는 마지막 씬도 충분한 여유."""
@@ -125,7 +131,12 @@ class TestLastSceneTTSClipPrevention:
         scenes = [_MockScene(tail_padding=0.5), _MockScene(tail_padding=1.0)]
         tts = [3.0, 4.0]
         result = calculate_scene_durations(
-            scenes, [True, True], tts, 1.0, tts_padding, transition_dur,
+            scenes,
+            [True, True],
+            tts,
+            1.0,
+            tts_padding,
+            transition_dur,
         )
         last_dur = result[-1]
         adelay = transition_dur
@@ -144,7 +155,12 @@ class TestLastSceneTTSClipPrevention:
         tts_dur = 4.0
         scenes = [_MockScene()]
         result = calculate_scene_durations(
-            scenes, [True], [tts_dur], 1.0, tts_padding, transition_dur,
+            scenes,
+            [True],
+            [tts_dur],
+            1.0,
+            tts_padding,
+            transition_dur,
         )
         clip_dur = result[0]
         adelay = transition_dur

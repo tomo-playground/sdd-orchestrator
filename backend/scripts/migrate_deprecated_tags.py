@@ -28,10 +28,7 @@ def get_deprecated_tags_map(db) -> dict[int, int]:
     Returns:
         {deprecated_tag_id: replacement_tag_id}
     """
-    deprecated = db.query(Tag).filter(
-        Tag.is_active.is_(False),
-        Tag.replacement_tag_id.isnot(None)
-    ).all()
+    deprecated = db.query(Tag).filter(Tag.is_active.is_(False), Tag.replacement_tag_id.isnot(None)).all()
 
     return {tag.id: tag.replacement_tag_id for tag in deprecated}
 
@@ -51,11 +48,13 @@ def migrate_scene_tags(db, replacement_map: dict[int, int], dry_run: bool = Fals
         old_tag = db.query(Tag).filter(Tag.id == scene_tag.tag_id).first()
         new_tag = db.query(Tag).filter(Tag.id == replacement_map[scene_tag.tag_id]).first()
 
-        changes.append({
-            "scene_id": scene_tag.scene_id,
-            "old_tag": old_tag.name if old_tag else "Unknown",
-            "new_tag": new_tag.name if new_tag else "Unknown"
-        })
+        changes.append(
+            {
+                "scene_id": scene_tag.scene_id,
+                "old_tag": old_tag.name if old_tag else "Unknown",
+                "new_tag": new_tag.name if new_tag else "Unknown",
+            }
+        )
 
         if verbose or dry_run:
             print(f"  Scene {scene_tag.scene_id}: {old_tag.name} → {new_tag.name}")
@@ -87,11 +86,13 @@ def migrate_character_tags(db, replacement_map: dict[int, int], dry_run: bool = 
         old_tag = db.query(Tag).filter(Tag.id == char_tag.tag_id).first()
         new_tag = db.query(Tag).filter(Tag.id == replacement_map[char_tag.tag_id]).first()
 
-        changes.append({
-            "character_id": char_tag.character_id,
-            "old_tag": old_tag.name if old_tag else "Unknown",
-            "new_tag": new_tag.name if new_tag else "Unknown"
-        })
+        changes.append(
+            {
+                "character_id": char_tag.character_id,
+                "old_tag": old_tag.name if old_tag else "Unknown",
+                "new_tag": new_tag.name if new_tag else "Unknown",
+            }
+        )
 
         if verbose or dry_run:
             print(f"  Character {char_tag.character_id}: {old_tag.name} → {new_tag.name}")

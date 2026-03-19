@@ -29,7 +29,9 @@ def analyze_db_assets():
     # 2. Extract potential pose tags
     print("\n[Sampling Pose Tags from DB]")
     # Get tags classified as 'pose' or 'action' or 'motion'
-    pose_related_tags = db.query(Tag.name).filter(Tag.group_name.in_(['pose', 'action', 'motion', 'character_action'])).all()
+    pose_related_tags = (
+        db.query(Tag.name).filter(Tag.group_name.in_(["pose", "action", "motion", "character_action"])).all()
+    )
     print(f"Total tags in pose segments: {len(pose_related_tags)}")
 
     # Check top tags in prompts
@@ -41,7 +43,21 @@ def analyze_db_assets():
 
     token_counts = Counter(all_tokens)
 
-    pose_keywords = ["standing", "sitting", "leaning", "lying", "kneeling", "arms", "hands", "looking", "facing", "pose", "action", "walking", "running"]
+    pose_keywords = [
+        "standing",
+        "sitting",
+        "leaning",
+        "lying",
+        "kneeling",
+        "arms",
+        "hands",
+        "looking",
+        "facing",
+        "pose",
+        "action",
+        "walking",
+        "running",
+    ]
 
     print(f"\n{'Tag (Top Prompts)':30} | {'Count':6} | {'Status'}")
     print("-" * 50)
@@ -52,6 +68,7 @@ def analyze_db_assets():
             print(f"{tag:30} | {count:6} | {status}")
 
     db.close()
+
 
 if __name__ == "__main__":
     analyze_db_assets()

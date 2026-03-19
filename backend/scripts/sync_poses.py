@@ -22,5 +22,6 @@ def sync_poses():
             storage.save(storage_key, f, content_type="image/png")
         print(f"Synced {file_path.name} -> {storage_key}")
 
+
 if __name__ == "__main__":
     sync_poses()

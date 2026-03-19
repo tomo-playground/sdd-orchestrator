@@ -10,9 +10,10 @@ from config import (
     DURATION_OVERFLOW_THRESHOLD,
     REVIEW_SCRIPT_MAX_CHARS_OTHER,
     SCRIPT_LENGTH_KOREAN,
+    coerce_structure_id,
 )
 from services.agent.state import ReviewResult
-from services.storyboard.helpers import calculate_min_scenes, normalize_structure
+from services.storyboard.helpers import calculate_min_scenes
 
 VALID_SPEAKERS = {"Narrator", "A", "B"}
 
@@ -58,7 +59,7 @@ def _validate_single_scene(
             errors.append(f"씬 {idx}: 빈 스크립트 ('{script}')")
         elif len(stripped) < 5:
             warnings.append(f"씬 {idx}: 스크립트 너무 짧음 ({len(script)}자)")
-        max_len = SCRIPT_LENGTH_KOREAN[1] if language == "Korean" else REVIEW_SCRIPT_MAX_CHARS_OTHER
+        max_len = SCRIPT_LENGTH_KOREAN[1] if language == "korean" else REVIEW_SCRIPT_MAX_CHARS_OTHER
         if len(script) > max_len:
             warnings.append(f"씬 {idx}: 스크립트 길이 초과 ({len(script)}자 > {max_len}자)")
 
@@ -79,7 +80,7 @@ def validate_scenes(
     errors: list[str] = []
     warnings: list[str] = []
 
-    structure = normalize_structure(structure)
+    structure = coerce_structure_id(structure)
     expected_min = calculate_min_scenes(duration, structure)
     if len(scenes) < expected_min:
         errors.append(f"씬 개수 부족: {len(scenes)}개 (최소 {expected_min}개 필요, duration={duration}s)")
@@ -105,13 +106,13 @@ def validate_scenes(
         if speaker:
             speakers_found.add(speaker)
 
-    if structure in ("Monologue", "Confession"):
+    if structure in ("monologue", "confession"):
         invalid = speakers_found - {"A", "Narrator"}
         if invalid:
             errors.append(
                 f"{structure}는 speaker='A' 또는 'Narrator'만 허용 — 잘못된 speaker 발견: {', '.join(sorted(invalid))}"
             )
-    elif structure.replace("_", " ") in ("Dialogue", "Narrated Dialogue"):
+    elif structure in ("dialogue", "narrated_dialogue"):
         for s in ("A", "B"):
             if s not in speakers_found:
                 errors.append(f"Dialogue 구조에서 speaker '{s}'가 등장하지 않음 — 반드시 A와 B 모두 포함해야 함")
@@ -130,7 +131,7 @@ def validate_scenes(
                     )
 
         # Narrator 존재 검증 (Narrated Dialogue 전용)
-        if structure.replace("_", " ") == "Narrated Dialogue":
+        if structure == "narrated_dialogue":
             if "Narrator" not in speakers_found:
                 errors.append(
                     f"Narrated Dialogue에서 Narrator 씬 없음 — 최소 1개의 내레이션 씬 필수 (현재 {len(scenes)}씬 모두 캐릭터)"

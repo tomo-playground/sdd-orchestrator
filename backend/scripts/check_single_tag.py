@@ -11,5 +11,6 @@ def check_tag():
         print("Tag not found")
     db.close()
 
+
 if __name__ == "__main__":
     check_tag()

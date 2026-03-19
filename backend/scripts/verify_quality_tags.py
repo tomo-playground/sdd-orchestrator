@@ -114,7 +114,9 @@ def main():
 
         # 4a. quality_tags 명시 전달
         mc_result = composer.compose(
-            char_a, char_b, ["classroom"],
+            char_a,
+            char_b,
+            ["classroom"],
             quality_tags=["photorealistic", "raw_photo"],
         )
         check(
@@ -136,7 +138,9 @@ def main():
 
         # 4c. scene_tags에 quality 태그 포함 (자동 추출)
         mc_extract = composer.compose(
-            char_a, char_b, ["photorealistic", "raw_photo", "classroom"],
+            char_a,
+            char_b,
+            ["photorealistic", "raw_photo", "classroom"],
         )
         check(
             "MultiChar extract: photorealistic 포함",
@@ -161,7 +165,8 @@ def main():
         )
 
         ref_real = builder.compose_for_reference(
-            char_a, quality_tags=["photorealistic", "raw_photo"],
+            char_a,
+            quality_tags=["photorealistic", "raw_photo"],
         )
         check(
             "Reference realistic: photorealistic 포함",
@@ -182,12 +187,7 @@ def main():
     from services.style_context import extract_style_loras
 
     style_loras = extract_style_loras(ctx)
-    scene = (
-        db.query(Scene)
-        .filter(Scene.storyboard_id == 438, Scene.deleted_at.is_(None))
-        .order_by(Scene.order)
-        .first()
-    )
+    scene = db.query(Scene).filter(Scene.storyboard_id == 438, Scene.deleted_at.is_(None)).order_by(Scene.order).first()
     if scene:
         composed_438, neg_438, warns_438 = compose_scene_with_style(
             raw_prompt=scene.image_prompt or "",

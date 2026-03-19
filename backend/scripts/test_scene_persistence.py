@@ -1,7 +1,7 @@
-
 import requests
 
 API_BASE = "http://127.0.0.1:8000"
+
 
 def test_scene_tag_persistence():
     # 1. Prepare Storyboard Save Request
@@ -14,15 +14,15 @@ def test_scene_tag_persistence():
                 "scene_id": 1,
                 "script": "Testing scene tags persistence.",
                 "tags": [
-                    {"tag_id": 50, "weight": 1.2}, # outdoors
-                    {"tag_id": 100, "weight": 1.0} # day
+                    {"tag_id": 50, "weight": 1.2},  # outdoors
+                    {"tag_id": 100, "weight": 1.0},  # day
                 ],
                 "character_actions": [
-                    {"character_id": 1, "tag_id": 20, "weight": 1.2}, # smile
-                    {"character_id": 1, "tag_id": 35, "weight": 1.5} # holding_flower
-                ]
+                    {"character_id": 1, "tag_id": 20, "weight": 1.2},  # smile
+                    {"character_id": 1, "tag_id": 35, "weight": 1.5},  # holding_flower
+                ],
             }
-        ]
+        ],
     }
 
     print("\n--- Testing Scene Tag & Action Save ---")
@@ -37,6 +37,7 @@ def test_scene_tag_persistence():
         # it means the flush and commit worked without error.
     else:
         print(f"❌ Failed to save storyboard: {res.text}")
+
 
 if __name__ == "__main__":
     try:

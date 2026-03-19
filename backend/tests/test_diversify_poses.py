@@ -39,11 +39,11 @@ class TestDiversifyPoses:
         )
         diversify_poses(scenes)
         ctx = [s["context_tags"] for s in scenes]
-        assert ctx[0]["pose"] == "sitting"           # sad → sitting
-        assert ctx[1]["pose"] == "arms_up"            # excited → arms_up
-        assert ctx[2]["pose"] == "leaning_forward"    # nervous → leaning_forward
-        assert ctx[3]["pose"] == "hands_on_hips"      # proud → hands_on_hips
-        assert ctx[4]["pose"] == "hand_on_face"       # embarrassed → hand_on_face
+        assert ctx[0]["pose"] == "sitting"  # sad → sitting
+        assert ctx[1]["pose"] == "arms_up"  # excited → arms_up
+        assert ctx[2]["pose"] == "leaning_forward"  # nervous → leaning_forward
+        assert ctx[3]["pose"] == "hands_on_hips"  # proud → hands_on_hips
+        assert ctx[4]["pose"] == "hand_on_face"  # embarrassed → hand_on_face
 
     def test_diverse_poses_no_change(self):
         """이미 다양하면 교정 안 함."""
@@ -83,7 +83,7 @@ class TestDiversifyPoses:
         # 연속 3개 이상 동일하지 않아야 함
         for i in range(2, len(poses)):
             if poses[i] == poses[i - 1] == poses[i - 2]:
-                pytest.fail(f"연속 3개 동일: {poses[i]} at index {i-2}~{i}")
+                pytest.fail(f"연속 3개 동일: {poses[i]} at index {i - 2}~{i}")
 
     def test_narrator_excluded(self):
         """Narrator 씬은 교정 대상에서 제외."""

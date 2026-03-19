@@ -65,7 +65,7 @@ function mockStores(scenes: ReturnType<typeof makeScene>[]) {
     scenes,
     updateScene,
     set: vi.fn(),
-    structure: "Monologue",
+    structure: "monologue",
   } as never);
 
   vi.spyOn(useContextStore, "getState").mockReturnValue({
@@ -122,7 +122,7 @@ describe("runAutoRunFromStep — image step save-on-failure", () => {
         ],
         updateScene: vi.fn(),
         set: vi.fn(),
-        structure: "Monologue",
+        structure: "monologue",
       } as never;
     });
 
@@ -158,7 +158,7 @@ describe("runAutoRunFromStep — image step save-on-failure", () => {
       scenes: [{ ...scene, image_url: "http://img.png", image_asset_id: 555 }],
       updateScene: vi.fn(),
       set: vi.fn(),
-      structure: "Monologue",
+      structure: "monologue",
     } as never);
 
     const autopilot = makeAutopilot();

@@ -238,8 +238,8 @@ class TestStabilizeLocationCinematic:
     def test_no_palette_tags_skip(self):
         """처음 2개 씬에 cinematic 태그가 없으면 팔레트 미구성 → skip한다."""
         scenes = [
-            self._make_scene([]),           # 0: cinematic 없음
-            self._make_scene([]),           # 1: cinematic 없음
+            self._make_scene([]),  # 0: cinematic 없음
+            self._make_scene([]),  # 1: cinematic 없음
             self._make_scene(["high_contrast"]),  # 2
         ]
         writer_plan = {
@@ -273,7 +273,7 @@ class TestStabilizeLocationCinematic:
             self._make_scene(["soft_lighting"]),  # 0: 팔레트 기준
             self._make_scene(["soft_lighting"]),  # 1: 팔레트 기준
             self._make_scene(["soft_lighting"]),  # 2: 팔레트 포함 → 변경 없음
-            self._make_scene(["dramatic"]),       # 3: 마지막 → 제외
+            self._make_scene(["dramatic"]),  # 3: 마지막 → 제외
         ]
         writer_plan = {
             "locations": [

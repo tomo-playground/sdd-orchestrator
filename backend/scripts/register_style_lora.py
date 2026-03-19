@@ -34,10 +34,7 @@ def register_style_lora(tag_name: str, lora_name_query: str, weight: float = 0.8
         else:
             print(f"✨ Creating new alias for '{tag_name}' -> '{target_tag}'")
             alias = TagAlias(
-                source_tag=tag_name,
-                target_tag=target_tag,
-                reason="Auto-inject Style LoRA",
-                is_active=True
+                source_tag=tag_name, target_tag=target_tag, reason="Auto-inject Style LoRA", is_active=True
             )
             db.add(alias)
 
@@ -49,6 +46,7 @@ def register_style_lora(tag_name: str, lora_name_query: str, weight: float = 0.8
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Map a style tag to a LoRA")

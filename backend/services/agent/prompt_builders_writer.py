@@ -71,7 +71,7 @@ def build_sound_emotional_arc_section(writer_plan: dict | None) -> str:
 
 def build_language_hint(language: str) -> str:
     """sound_designer -- ``{% if language == 'Korean' %}``."""
-    if language == "Korean":
+    if language == "korean":
         return "\nreasoning\uc740 \ubc18\ub4dc\uc2dc \ud55c\uad6d\uc5b4\ub85c \uc791\uc131\ud558\uc138\uc694."
     return ""
 
@@ -115,16 +115,16 @@ def build_scriptwriter_characters_block(characters: dict | None, character_name:
 def build_structure_rules_block(structure: str) -> str:
     """scriptwriter -- structure별 규칙."""
     base = f"- Structure: {structure}"
-    if structure == "Monologue":
+    if structure == "monologue":
         return f'{base}\n- Speaker: Always "A" (single narrator)'
-    if structure == "Dialogue":
+    if structure == "dialogue":
         return (
             f"{base}\n"
             '- Speakers: "A" and "B" (two characters in conversation)\n'
             "- Distribution: A and B must appear roughly equally. Both MUST have at least 1 scene.\n"
             "- Alternation pattern: A \u2192 B \u2192 A \u2192 B (avoid consecutive same-speaker scenes)"
         )
-    if structure == "Narrated Dialogue":
+    if structure == "narrated_dialogue":
         return (
             f"{base}\n"
             '- Speakers: "Narrator" for narration, "A"/"B" for dialogue\n'
@@ -138,7 +138,7 @@ def build_structure_rules_block(structure: str) -> str:
 
 def build_korean_rules_block(language: str) -> str:
     """scriptwriter -- 한국어 전용 규칙."""
-    if language != "Korean":
+    if language != "korean":
         return ""
     return (
         "  6. **\ud55c\uad6d\uc5b4 \ub9de\ucda4\ubc95 \ud544\uc218 \uac80\uc99d**:\n"
@@ -176,20 +176,20 @@ def build_korean_rules_block(language: str) -> str:
 
 def build_korean_critical_hint(language: str) -> str:
     """scriptwriter -- 한국어 CRITICAL 힌트."""
-    if language != "Korean":
+    if language != "korean":
         return ""
     return "\n\ubc18\ub4dc\uc2dc \ubaa8\ub4e0 \ub300\uc0ac\uc640 \uc124\uba85\uc744 \ud55c\uad6d\uc5b4\ub85c \uc791\uc131\ud558\uc138\uc694. \uc601\uc5b4 \uc0ac\uc6a9 \uae08\uc9c0."
 
 
 def build_output_format_block(structure: str) -> str:
     """scriptwriter -- structure별 JSON 예시."""
-    if structure == "Narrated Dialogue":
+    if structure == "narrated_dialogue":
         return (
             '    {"order": 0, "script": "\ub098\ub808\uc774\uc158 \ud14d\uc2a4\ud2b8", "speaker": "Narrator", "duration": 2.5, "speakable": true},\n'
             '    {"order": 1, "script": "A \ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "A", "duration": 3.0, "speakable": true},\n'
             '    {"order": 2, "script": "B \ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "B", "duration": 3.0, "speakable": true}'
         )
-    if structure == "Dialogue":
+    if structure == "dialogue":
         return (
             '    {"order": 0, "script": "A \ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "A", "duration": 3.0, "speakable": true},\n'
             '    {"order": 1, "script": "B \ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "B", "duration": 3.0, "speakable": true}'
@@ -208,7 +208,7 @@ def build_scene_range_text(duration: int, structure: str) -> str:
         min_s = calculate_min_scenes(duration, structure)
         max_s = calculate_max_scenes(duration, structure)
     except Exception:
-        if structure in ("Dialogue", "Narrated Dialogue"):
+        if structure in ("dialogue", "narrated_dialogue"):
             min_s = max(3, round(duration / 6))
             max_s = round(duration / 4)
         else:

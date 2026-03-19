@@ -71,11 +71,7 @@ def extract_identity_signature(
     """
     from models.tag import Tag
 
-    detected_names = [
-        normalize_prompt_token(item["tag"])
-        for item in wd14_tags
-        if item["score"] >= threshold
-    ]
+    detected_names = [normalize_prompt_token(item["tag"]) for item in wd14_tags if item["score"] >= threshold]
     detected_names = [n for n in detected_names if n]
 
     if not detected_names:

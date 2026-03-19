@@ -78,11 +78,13 @@ def test_get_storyboard_not_found(client: TestClient):
 
 def test_save_with_extended_fields(client: TestClient):
     """Test saving and retrieving extended scene fields."""
-    scenes = [_make_scene(
-        0,
-        negative_prompt="bad_hands, blurry",
-        context_tags={"expression": ["smile"], "camera": "close-up"},
-    )]
+    scenes = [
+        _make_scene(
+            0,
+            negative_prompt="bad_hands, blurry",
+            context_tags={"expression": ["smile"], "camera": "close-up"},
+        )
+    ]
     data = create_test_storyboard(client, title="Extended", scenes=scenes)
     sb_id = data["storyboard_id"]
 
@@ -100,11 +102,14 @@ def test_update_storyboard(client: TestClient):
     sb_id = data["storyboard_id"]
 
     # Update with new scenes
-    update_resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
-        "title": "Updated Title",
-        "description": "updated desc",
-        "scenes": [_make_scene(0, script="New script"), _make_scene(1, script="Second scene")],
-    })
+    update_resp = client.put(
+        f"/api/v1/storyboards/{sb_id}",
+        json={
+            "title": "Updated Title",
+            "description": "updated desc",
+            "scenes": [_make_scene(0, script="New script"), _make_scene(1, script="Second scene")],
+        },
+    )
     assert update_resp.status_code == 200
     assert update_resp.json()["status"] == "success"
 
@@ -134,14 +139,17 @@ def test_update_with_environment_reference_id_no_crash(client: TestClient):
 
     # 3. Update with environment_reference_id pointing to the old asset
     #    The asset is preserved because it's referenced by environment_reference_id
-    update_resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
-        "title": "EnvRef Updated",
-        "description": "test",
-        "scenes": [
-            _make_scene(0, script="Scene with env ref", environment_reference_id=asset_id),
-            _make_scene(1, script="Scene B", environment_reference_id=asset_id),
-        ],
-    })
+    update_resp = client.put(
+        f"/api/v1/storyboards/{sb_id}",
+        json={
+            "title": "EnvRef Updated",
+            "description": "test",
+            "scenes": [
+                _make_scene(0, script="Scene with env ref", environment_reference_id=asset_id),
+                _make_scene(1, script="Scene B", environment_reference_id=asset_id),
+            ],
+        },
+    )
     assert update_resp.status_code == 200
 
     # Verify env ref is preserved (asset was kept because it's referenced)
@@ -155,11 +163,14 @@ def test_update_with_nonexistent_environment_reference_id(client: TestClient):
     data = create_test_storyboard(client, title="Bad Ref", scenes=[_make_scene(0)])
     sb_id = data["storyboard_id"]
 
-    update_resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
-        "title": "Bad Ref Updated",
-        "description": "test",
-        "scenes": [_make_scene(0, environment_reference_id=99999)],
-    })
+    update_resp = client.put(
+        f"/api/v1/storyboards/{sb_id}",
+        json={
+            "title": "Bad Ref Updated",
+            "description": "test",
+            "scenes": [_make_scene(0, environment_reference_id=99999)],
+        },
+    )
     # Must not crash — invalid reference should be safely ignored
     assert update_resp.status_code == 200
 

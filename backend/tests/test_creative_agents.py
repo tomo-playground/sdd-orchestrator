@@ -73,7 +73,9 @@ class TestGeminiProvider:
 
             provider = GeminiProvider(model_name="gemini-2.0-flash", api_key="fake-key")
             result = await provider.generate(
-                prompt="Write a story", system_prompt="You are a storyteller.", temperature=0.9,
+                prompt="Write a story",
+                system_prompt="You are a storyteller.",
+                temperature=0.9,
             )
 
         assert result["content"] == "Once upon a time..."
@@ -92,7 +94,9 @@ class TestGeminiProvider:
             provider = GeminiProvider(model_name="gemini-2.0-flash", api_key="fake-key")
             with pytest.raises(RuntimeError, match="Gemini"):
                 await provider.generate(
-                    prompt="Write a story", system_prompt="You are a storyteller.", temperature=0.9,
+                    prompt="Write a story",
+                    system_prompt="You are a storyteller.",
+                    temperature=0.9,
                 )
 
 
@@ -123,7 +127,9 @@ class TestOllamaProvider:
 
             provider = OllamaProvider(model_name="exaone3.5:7.8b")
             result = await provider.generate(
-                prompt="Write a story", system_prompt="You are a storyteller.", temperature=0.7,
+                prompt="Write a story",
+                system_prompt="You are a storyteller.",
+                temperature=0.7,
             )
 
         assert result["content"] == "The hero set out on a journey."
@@ -142,7 +148,9 @@ class TestOllamaProvider:
             provider = OllamaProvider(model_name="exaone3.5:7.8b")
             with pytest.raises(RuntimeError, match="Ollama"):
                 await provider.generate(
-                    prompt="Write a story", system_prompt="You are a storyteller.", temperature=0.7,
+                    prompt="Write a story",
+                    system_prompt="You are a storyteller.",
+                    temperature=0.7,
                 )
 
     @pytest.mark.asyncio

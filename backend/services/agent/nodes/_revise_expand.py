@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import re
 
-from config import logger
+from config import coerce_language_id, coerce_structure_id, logger
 from services.agent.state import ScriptState, extract_selected_concept
 from services.llm import LLMConfig, get_llm_provider
 from services.storyboard.helpers import strip_markdown_codeblock
@@ -72,7 +72,7 @@ def merge_expanded_scenes(existing: list[dict], new_scenes: list[dict]) -> list[
     return result
 
 
-def redistribute_durations(scenes: list[dict], target_duration: int, language: str = "Korean") -> None:
+def redistribute_durations(scenes: list[dict], target_duration: int, language: str = "korean") -> None:
     """총 duration을 target_duration에 맞게 비례 재분배한다.
 
     스케일다운: reading-time floor 적용.
@@ -109,7 +109,7 @@ def redistribute_durations(scenes: list[dict], target_duration: int, language: s
             scene["duration"] = round(min(SCENE_DURATION_MAX, scene["duration"] + per_scene), 1)
 
 
-def postprocess_new_scenes(new_scenes: list[dict], language: str = "Korean") -> None:
+def postprocess_new_scenes(new_scenes: list[dict], language: str = "korean") -> None:
     """새 씬에만 태그 정규화 + negative prompt + duration 재계산을 적용한다."""
     from config import DEFAULT_SCENE_NEGATIVE_PROMPT, ENABLE_DANBOORU_VALIDATION
     from services.keywords import filter_prompt_tokens
@@ -146,7 +146,7 @@ def postprocess_new_scenes(new_scenes: list[dict], language: str = "Korean") -> 
             scene["negative_prompt"] = DEFAULT_SCENE_NEGATIVE_PROMPT
 
 
-async def postprocess_new_scenes_async(new_scenes: list[dict], language: str = "Korean") -> list[str]:
+async def postprocess_new_scenes_async(new_scenes: list[dict], language: str = "korean") -> list[str]:
     """Async version: DB cache only, returns unknown tags for background classification."""
     from config import DEFAULT_SCENE_NEGATIVE_PROMPT, ENABLE_DANBOORU_VALIDATION
     from services.keywords import filter_prompt_tokens
@@ -220,8 +220,8 @@ async def try_scene_expand(
         if cid := state.get("character_id"):
             char_ctx = f"character_id={cid}"
 
-        language = state.get("language", "Korean")
-        structure = state.get("structure", "Monologue")
+        language = coerce_language_id(state.get("language"))
+        structure = coerce_structure_id(state.get("structure"))
         feedback_str = "\n".join(feedback_parts) if feedback_parts else ""
 
         compiled = compile_prompt(
@@ -259,7 +259,9 @@ async def try_scene_expand(
 
         from services.danbooru import schedule_background_classification
 
-        unknown_tags = await postprocess_new_scenes_async(new_scenes, language=state.get("language", "Korean"))
+        unknown_tags = await postprocess_new_scenes_async(
+            new_scenes, language=coerce_language_id(state.get("language"))
+        )
         schedule_background_classification(unknown_tags)
         merged = merge_expanded_scenes([s.copy() for s in scenes], new_scenes)
 

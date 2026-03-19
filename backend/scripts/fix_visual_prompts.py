@@ -29,6 +29,7 @@ UPDATES = {
     },
 }
 
+
 def main():
     db = SessionLocal()
     try:
@@ -38,7 +39,10 @@ def main():
             if char:
                 # 1. Update reference_base_prompt
                 if char.reference_base_prompt:
-                    if "detailed face" not in char.reference_base_prompt and "simple white" not in char.reference_base_prompt:
+                    if (
+                        "detailed face" not in char.reference_base_prompt
+                        and "simple white" not in char.reference_base_prompt
+                    ):
                         char.reference_base_prompt += addons["ref_append"]
                 else:
                     char.reference_base_prompt = char.custom_base_prompt + addons["ref_append"]
@@ -48,14 +52,18 @@ def main():
                     if addons["neg_append"].strip(", ") not in char.custom_negative_prompt:
                         char.custom_negative_prompt += addons["neg_append"]
                 else:
-                    char.custom_negative_prompt = "worst quality, low quality, lowres, bad anatomy" + addons["neg_append"]
+                    char.custom_negative_prompt = (
+                        "worst quality, low quality, lowres, bad anatomy" + addons["neg_append"]
+                    )
 
                 if char.reference_negative_prompt:
                     if addons["neg_append"].strip(", ") not in char.reference_negative_prompt:
                         char.reference_negative_prompt += addons["neg_append"]
                 else:
-                    char.reference_negative_prompt = "worst quality, low quality, lowres, bad anatomy" + addons["neg_append"]
-                
+                    char.reference_negative_prompt = (
+                        "worst quality, low quality, lowres, bad anatomy" + addons["neg_append"]
+                    )
+
                 updated_count += 1
                 print(f"✅ Appended Visual Fixes for '{char.name}' (ID: {char.id})")
             else:
@@ -68,6 +76,7 @@ def main():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

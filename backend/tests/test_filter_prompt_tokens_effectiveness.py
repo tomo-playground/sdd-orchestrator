@@ -20,9 +20,17 @@ from services.keywords import filter_prompt_tokens
 def mock_allowed_tags():
     """Mock allowed tags from DB."""
     return {
-        "smile", "standing", "cowboy_shot", "classroom",
-        "surprised", "confused", "laughing",
-        "open_mouth", "sitting", "black_hair", "blue_eyes",
+        "smile",
+        "standing",
+        "cowboy_shot",
+        "classroom",
+        "surprised",
+        "confused",
+        "laughing",
+        "open_mouth",
+        "sitting",
+        "black_hair",
+        "blue_eyes",
     }
 
 
@@ -80,8 +88,8 @@ class TestEffectivenessFilteringDisabled:
         prompt = "smile, laughing, confused, classroom"
         result = filter_prompt_tokens(prompt)
 
-        assert "laughing" in result   # 0% eff, 194 uses — kept
-        assert "confused" in result   # 0% eff, 39 uses — kept
+        assert "laughing" in result  # 0% eff, 194 uses — kept
+        assert "confused" in result  # 0% eff, 39 uses — kept
 
     @patch("services.keywords.load_synonyms_from_db")
     @patch("services.keywords.load_allowed_tags_from_db")

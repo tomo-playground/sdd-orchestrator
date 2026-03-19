@@ -7,10 +7,10 @@ import { useStoryboardStore } from "../../../store/useStoryboardStore";
 import type { CompletionMeta } from "../../../types/chat";
 
 const STRUCTURE_LABELS: Record<string, string> = {
-  Monologue: "독백",
-  Dialogue: "대화형",
-  "Narrated Dialogue": "내레이션 대화",
-  Confession: "고백",
+  monologue: "독백",
+  dialogue: "대화형",
+  narrated_dialogue: "내레이션 대화",
+  confession: "고백",
 };
 
 const SPEAKER_COLORS: Record<string, string> = {

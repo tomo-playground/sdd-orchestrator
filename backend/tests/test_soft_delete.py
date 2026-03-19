@@ -290,4 +290,3 @@ class TestCharacterSoftDelete:
         resp = client.get("/api/v1/characters/trash")
         ids = [c["id"] for c in resp.json()]
         assert cid not in ids
-

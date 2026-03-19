@@ -18,9 +18,7 @@ class ActivityLog(Base, TimestampMixin):
     storyboard_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("storyboards.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    scene_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("scenes.id", ondelete="SET NULL"), index=True
-    )
+    scene_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("scenes.id", ondelete="SET NULL"), index=True)
     character_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("characters.id", ondelete="SET NULL"), index=True
     )

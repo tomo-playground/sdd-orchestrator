@@ -21,6 +21,7 @@ sys.path.insert(0, str(backend_dir))
 
 load_dotenv(backend_dir / ".env")
 
+
 def main():
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
 
@@ -74,9 +75,9 @@ def main():
         with_scene = cur.fetchone()[0]
 
         print(f"Total logs:         {total}")
-        print(f"With image_url:     {with_image} ({with_image*100//total if total else 0}%)")
-        print(f"With negative:      {with_negative} ({with_negative*100//total if total else 0}%)")
-        print(f"With scene_id:      {with_scene} ({with_scene*100//total if total else 0}%)")
+        print(f"With image_url:     {with_image} ({with_image * 100 // total if total else 0}%)")
+        print(f"With negative:      {with_negative} ({with_negative * 100 // total if total else 0}%)")
+        print(f"With scene_id:      {with_scene} ({with_scene * 100 // total if total else 0}%)")
 
         # Scene ID 검증 (DB ID vs 인덱스)
         print("\n" + "=" * 80)
@@ -120,6 +121,7 @@ def main():
             print("   이전에 인덱스로 저장된 로그일 수 있습니다.")
 
     conn.close()
+
 
 if __name__ == "__main__":
     main()

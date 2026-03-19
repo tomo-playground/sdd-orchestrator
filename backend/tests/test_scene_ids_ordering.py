@@ -28,11 +28,14 @@ def test_post_scene_ids_match_creation_order(client):
 def test_put_scene_ids_match_creation_order(client):
     """PUT /storyboards/{id} returns scene_ids in the same order as the input scenes array."""
     # Create initial storyboard with 3 scenes
-    initial = create_test_storyboard(client, scenes=[
-        {"scene_id": 0, "script": "Old A", "speaker": "Narrator", "duration": 3, "image_prompt": "a"},
-        {"scene_id": 1, "script": "Old B", "speaker": "A", "duration": 3, "image_prompt": "b"},
-        {"scene_id": 2, "script": "Old C", "speaker": "B", "duration": 3, "image_prompt": "c"},
-    ])
+    initial = create_test_storyboard(
+        client,
+        scenes=[
+            {"scene_id": 0, "script": "Old A", "speaker": "Narrator", "duration": 3, "image_prompt": "a"},
+            {"scene_id": 1, "script": "Old B", "speaker": "A", "duration": 3, "image_prompt": "b"},
+            {"scene_id": 2, "script": "Old C", "speaker": "B", "duration": 3, "image_prompt": "c"},
+        ],
+    )
     sb_id = initial["storyboard_id"]
     old_ids = initial["scene_ids"]
     assert len(old_ids) == 3
@@ -44,11 +47,14 @@ def test_put_scene_ids_match_creation_order(client):
         {"scene_id": 2, "script": "New C", "speaker": "B", "duration": 2, "image_prompt": "z"},
         {"scene_id": 3, "script": "New D", "speaker": "Narrator", "duration": 3, "image_prompt": "w"},
     ]
-    resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
-        "title": "Updated",
-        "group_id": 1,
-        "scenes": new_scenes,
-    })
+    resp = client.put(
+        f"/api/v1/storyboards/{sb_id}",
+        json={
+            "title": "Updated",
+            "group_id": 1,
+            "scenes": new_scenes,
+        },
+    )
     assert resp.status_code == 200
 
     new_ids = resp.json()["scene_ids"]
@@ -61,23 +67,29 @@ def test_put_scene_ids_sequential_matches_order_column(client, db_session):
     """Verify scene_ids[i] corresponds to scene with order=i in the DB."""
     from models.scene import Scene
 
-    data = create_test_storyboard(client, scenes=[
-        {"scene_id": 0, "script": "First", "speaker": "Narrator", "duration": 3, "image_prompt": "a"},
-        {"scene_id": 1, "script": "Second", "speaker": "A", "duration": 3, "image_prompt": "b"},
-        {"scene_id": 2, "script": "Third", "speaker": "B", "duration": 3, "image_prompt": "c"},
-    ])
+    data = create_test_storyboard(
+        client,
+        scenes=[
+            {"scene_id": 0, "script": "First", "speaker": "Narrator", "duration": 3, "image_prompt": "a"},
+            {"scene_id": 1, "script": "Second", "speaker": "A", "duration": 3, "image_prompt": "b"},
+            {"scene_id": 2, "script": "Third", "speaker": "B", "duration": 3, "image_prompt": "c"},
+        ],
+    )
     sb_id = data["storyboard_id"]
 
     # Now PUT to recreate scenes
-    resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
-        "title": "Re-created",
-        "group_id": 1,
-        "scenes": [
-            {"scene_id": 0, "script": "New First", "speaker": "Narrator", "duration": 3, "image_prompt": "x"},
-            {"scene_id": 1, "script": "New Second", "speaker": "A", "duration": 4, "image_prompt": "y"},
-            {"scene_id": 2, "script": "New Third", "speaker": "B", "duration": 2, "image_prompt": "z"},
-        ],
-    })
+    resp = client.put(
+        f"/api/v1/storyboards/{sb_id}",
+        json={
+            "title": "Re-created",
+            "group_id": 1,
+            "scenes": [
+                {"scene_id": 0, "script": "New First", "speaker": "Narrator", "duration": 3, "image_prompt": "x"},
+                {"scene_id": 1, "script": "New Second", "speaker": "A", "duration": 4, "image_prompt": "y"},
+                {"scene_id": 2, "script": "New Third", "speaker": "B", "duration": 2, "image_prompt": "z"},
+            ],
+        },
+    )
     assert resp.status_code == 200
     scene_ids = resp.json()["scene_ids"]
 
@@ -93,39 +105,73 @@ def test_put_preserves_image_asset_id_mapping(client, db_session):
     from models.media_asset import MediaAsset
 
     # Create storyboard
-    data = create_test_storyboard(client, scenes=[
-        {"scene_id": 0, "script": "S1", "speaker": "Narrator", "duration": 3, "image_prompt": "a"},
-        {"scene_id": 1, "script": "S2", "speaker": "A", "duration": 3, "image_prompt": "b"},
-        {"scene_id": 2, "script": "S3", "speaker": "B", "duration": 3, "image_prompt": "c"},
-    ])
+    data = create_test_storyboard(
+        client,
+        scenes=[
+            {"scene_id": 0, "script": "S1", "speaker": "Narrator", "duration": 3, "image_prompt": "a"},
+            {"scene_id": 1, "script": "S2", "speaker": "A", "duration": 3, "image_prompt": "b"},
+            {"scene_id": 2, "script": "S3", "speaker": "B", "duration": 3, "image_prompt": "c"},
+        ],
+    )
     sb_id = data["storyboard_id"]
     scene_ids = data["scene_ids"]
 
     # Simulate image storage: create MediaAssets for scene 0 and scene 2 (not 1)
     asset_for_scene_0 = MediaAsset(
-        file_name="scene_0.png", file_type="image", storage_key="test/s0.png",
-        owner_type="scene", owner_id=scene_ids[0], file_size=100, mime_type="image/png",
+        file_name="scene_0.png",
+        file_type="image",
+        storage_key="test/s0.png",
+        owner_type="scene",
+        owner_id=scene_ids[0],
+        file_size=100,
+        mime_type="image/png",
     )
     asset_for_scene_2 = MediaAsset(
-        file_name="scene_2.png", file_type="image", storage_key="test/s2.png",
-        owner_type="scene", owner_id=scene_ids[2], file_size=100, mime_type="image/png",
+        file_name="scene_2.png",
+        file_type="image",
+        storage_key="test/s2.png",
+        owner_type="scene",
+        owner_id=scene_ids[2],
+        file_size=100,
+        mime_type="image/png",
     )
     db_session.add_all([asset_for_scene_0, asset_for_scene_2])
     db_session.flush()
 
     # PUT with image_asset_id: scene 0 and 2 have assets, scene 1 does not
-    resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
-        "title": "With Images",
-        "group_id": 1,
-        "scenes": [
-            {"scene_id": 0, "script": "S1", "speaker": "Narrator", "duration": 3,
-             "image_prompt": "a", "image_asset_id": asset_for_scene_0.id},
-            {"scene_id": 1, "script": "S2", "speaker": "A", "duration": 3,
-             "image_prompt": "b", "image_asset_id": None},
-            {"scene_id": 2, "script": "S3", "speaker": "B", "duration": 3,
-             "image_prompt": "c", "image_asset_id": asset_for_scene_2.id},
-        ],
-    })
+    resp = client.put(
+        f"/api/v1/storyboards/{sb_id}",
+        json={
+            "title": "With Images",
+            "group_id": 1,
+            "scenes": [
+                {
+                    "scene_id": 0,
+                    "script": "S1",
+                    "speaker": "Narrator",
+                    "duration": 3,
+                    "image_prompt": "a",
+                    "image_asset_id": asset_for_scene_0.id,
+                },
+                {
+                    "scene_id": 1,
+                    "script": "S2",
+                    "speaker": "A",
+                    "duration": 3,
+                    "image_prompt": "b",
+                    "image_asset_id": None,
+                },
+                {
+                    "scene_id": 2,
+                    "script": "S3",
+                    "speaker": "B",
+                    "duration": 3,
+                    "image_prompt": "c",
+                    "image_asset_id": asset_for_scene_2.id,
+                },
+            ],
+        },
+    )
     assert resp.status_code == 200
     new_scene_ids = resp.json()["scene_ids"]
     assert len(new_scene_ids) == 3
@@ -137,21 +183,25 @@ def test_put_preserves_image_asset_id_mapping(client, db_session):
         scene = db_session.query(Scene).filter(Scene.id == sid).first()
         assert scene is not None
         if i == 0:
-            assert scene.image_asset_id == asset_for_scene_0.id, \
+            assert scene.image_asset_id == asset_for_scene_0.id, (
                 f"Scene order=0 should have asset {asset_for_scene_0.id}, got {scene.image_asset_id}"
+            )
         elif i == 1:
-            assert scene.image_asset_id is None, \
-                f"Scene order=1 should have no asset, got {scene.image_asset_id}"
+            assert scene.image_asset_id is None, f"Scene order=1 should have no asset, got {scene.image_asset_id}"
         elif i == 2:
-            assert scene.image_asset_id == asset_for_scene_2.id, \
+            assert scene.image_asset_id == asset_for_scene_2.id, (
                 f"Scene order=2 should have asset {asset_for_scene_2.id}, got {scene.image_asset_id}"
+            )
 
 
 def test_multiple_puts_maintain_order_consistency(client):
     """Multiple consecutive PUTs always return scene_ids in correct order."""
-    data = create_test_storyboard(client, scenes=[
-        {"scene_id": 0, "script": "A", "speaker": "Narrator", "duration": 3, "image_prompt": "a"},
-    ])
+    data = create_test_storyboard(
+        client,
+        scenes=[
+            {"scene_id": 0, "script": "A", "speaker": "Narrator", "duration": 3, "image_prompt": "a"},
+        ],
+    )
     sb_id = data["storyboard_id"]
 
     # Do 5 consecutive PUTs, each time adding a scene
@@ -160,11 +210,14 @@ def test_multiple_puts_maintain_order_consistency(client):
             {"scene_id": i, "script": f"S{i}", "speaker": "Narrator", "duration": 3, "image_prompt": f"p{i}"}
             for i in range(n)
         ]
-        resp = client.put(f"/api/v1/storyboards/{sb_id}", json={
-            "title": f"Round {n}",
-            "group_id": 1,
-            "scenes": scenes,
-        })
+        resp = client.put(
+            f"/api/v1/storyboards/{sb_id}",
+            json={
+                "title": f"Round {n}",
+                "group_id": 1,
+                "scenes": scenes,
+            },
+        )
         assert resp.status_code == 200
         ids = resp.json()["scene_ids"]
         assert len(ids) == n, f"Round {n}: expected {n} scene_ids, got {len(ids)}"

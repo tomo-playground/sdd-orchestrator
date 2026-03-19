@@ -220,7 +220,7 @@ class TestLearnEnrichedEntry:
             "final_scenes": [
                 {"scene_id": 1, "script": "첫 씬", "duration": 3},
             ],
-            "structure": "Monologue",
+            "structure": "monologue",
             "skip_stages": [],
             "revision_count": 2,
             "director_checkpoint_score": 0.9,

@@ -6,8 +6,10 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from config import (
+    MULTI_CHAR_STRUCTURES,
     SPEAKER_A,
     SPEAKER_B,
+    coerce_structure_id,
     logger,
 )
 from models.associations import SceneCharacterAction, SceneTag
@@ -17,8 +19,6 @@ from models.storyboard import Storyboard
 from schemas import StoryboardSave, StoryboardUpdate
 from services.storyboard.helpers import calculate_auto_pin_flags, truncate_title
 from services.storyboard.scene_builder import create_scenes, serialize_scene
-
-_MULTI_CHAR_STRUCTURES = {"dialogue", "narrated dialogue", "narrated_dialogue"}
 
 
 def create_draft(db: Session, title: str, group_id: int) -> dict:
@@ -72,7 +72,7 @@ def _sync_speaker_mappings(
     # Snapshot old mapping BEFORE update (for cascade diff)
     old_map = resolve_all_speakers(storyboard_id, db)
 
-    is_multi = structure.lower() in _MULTI_CHAR_STRUCTURES if structure else True
+    is_multi = coerce_structure_id(structure) in MULTI_CHAR_STRUCTURES if structure else True
 
     speaker_map: dict[str, int] = {}
 
@@ -386,15 +386,14 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     if request.group_id is not None:
         storyboard.group_id = request.group_id
     storyboard.caption = request.caption
-    # Keep structure in sync with latest request (Monologue / Dialogue / Narrated Dialogue)
+    # Keep structure in sync with latest request
     # casting_recommendation.structure가 있으면 Director 결정을 우선 적용
-    # 정규화: 언더스코어→공백 + .title() — "narrated_dialogue" → "Narrated Dialogue"
     raw_structure = (
         request.casting_recommendation.structure
         if request.casting_recommendation and request.casting_recommendation.structure
         else request.structure
     )
-    storyboard.structure = raw_structure.replace("_", " ").title() if raw_structure else raw_structure
+    storyboard.structure = coerce_structure_id(raw_structure) if raw_structure else raw_structure
     if request.duration is not None:
         storyboard.duration = request.duration
     if request.language is not None:

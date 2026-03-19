@@ -10,14 +10,13 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from langgraph.store.memory import InMemoryStore
 
 from services.agent.nodes.copyright_reviewer import _recalculate_overall
 from services.agent.utils import topic_key
-
 
 # ── 1. topic_key() 유틸 테스트 ───────────────────────────────
 
@@ -116,7 +115,7 @@ class TestLanguagePassedToTemplateVars:
                 "scenes": [{"scene_id": 1, "script": "테스트 씬"}],
             },
             "critic_result": {"selected_concept": {"theme": "test"}},
-            "language": "Japanese",
+            "language": "japanese",
             "duration": 30,
         }
 
@@ -137,7 +136,7 @@ class TestLanguagePassedToTemplateVars:
             await tts_designer_node(base_state)
 
         assert "language" in captured_vars
-        assert captured_vars["language"] == "Japanese"
+        assert captured_vars["language"] == "japanese"
 
     async def test_sound_designer_passes_language(self, base_state):
         """sound_designer_node가 language를 template_vars에 포함한다."""
@@ -156,7 +155,7 @@ class TestLanguagePassedToTemplateVars:
             await sound_designer_node(base_state)
 
         assert "language" in captured_vars
-        assert captured_vars["language"] == "Japanese"
+        assert captured_vars["language"] == "japanese"
 
     async def test_copyright_reviewer_passes_language(self, base_state):
         """copyright_reviewer_node가 language를 template_vars에 포함한다."""
@@ -178,7 +177,7 @@ class TestLanguagePassedToTemplateVars:
             await copyright_reviewer_node(base_state)
 
         assert "language" in captured_vars
-        assert captured_vars["language"] == "Japanese"
+        assert captured_vars["language"] == "japanese"
 
     async def test_language_defaults_to_korean(self):
         """language 미설정 시 기본값 'Korean'이 전달된다."""
@@ -200,7 +199,7 @@ class TestLanguagePassedToTemplateVars:
         ):
             await tts_designer_node(state_without_language)
 
-        assert captured_vars["language"] == "Korean"
+        assert captured_vars["language"] == "korean"
 
 
 # ── 4. copyright_reviewer overall 서버사이드 재계산 테스트 ───
@@ -215,7 +214,7 @@ class TestCopyrightReviewerOverallRecalculation:
 
         state = {
             "cinematographer_result": {"scenes": [{"scene_id": 1}]},
-            "language": "Korean",
+            "language": "korean",
         }
 
         async def mock_run_production_step(**kwargs):
@@ -243,7 +242,7 @@ class TestCopyrightReviewerOverallRecalculation:
 
         state = {
             "cinematographer_result": {"scenes": []},
-            "language": "Korean",
+            "language": "korean",
         }
 
         with patch(
@@ -284,7 +283,7 @@ class TestLearnCharacterBId:
         state = {
             "topic": "듀오 테스트",
             "final_scenes": scenes,
-            "structure": "Dialogue",
+            "structure": "dialogue",
             "character_id": 10,
             "character_b_id": 20,
         }
@@ -308,7 +307,7 @@ class TestLearnCharacterBId:
         state = {
             "topic": "솔로 테스트",
             "final_scenes": scenes,
-            "structure": "Monologue",
+            "structure": "monologue",
             "character_id": 10,
             "character_b_id": None,
         }
@@ -331,7 +330,7 @@ class TestLearnCharacterBId:
         state = {
             "topic": "듀오 반복",
             "final_scenes": scenes,
-            "structure": "Dialogue",
+            "structure": "dialogue",
             "character_id": 10,
             "character_b_id": 20,
         }
@@ -352,7 +351,7 @@ class TestLearnCharacterBId:
         state = {
             "topic": "B만 테스트",
             "final_scenes": scenes,
-            "structure": "Monologue",
+            "structure": "monologue",
             "character_b_id": 99,
         }
         result = await learn_node(state, config, store=store)

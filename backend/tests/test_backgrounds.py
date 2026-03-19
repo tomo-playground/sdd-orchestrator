@@ -179,9 +179,7 @@ class TestBackgroundsRouter:
             patch("services.storage.get_storage") as mock_storage,
         ):
             mock_svc_cls.return_value.save_background_image.return_value = asset
-            mock_storage.return_value.get_url.return_value = (
-                "http://minio:9000/backgrounds/test.png"
-            )
+            mock_storage.return_value.get_url.return_value = "http://minio:9000/backgrounds/test.png"
 
             png_bytes = make_tiny_png()
             resp = client.post(

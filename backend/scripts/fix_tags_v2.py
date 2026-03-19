@@ -1,4 +1,5 @@
 """Fix tag classification and migrate patterns comprehensively."""
+
 import sys
 from pathlib import Path
 
@@ -20,24 +21,20 @@ def migrate_patterns_to_rules(db):
             # Check if exists
             exists = db.execute(
                 select(ClassificationRule).where(
-                    ClassificationRule.rule_type == "exact",
-                    ClassificationRule.pattern == pattern
+                    ClassificationRule.rule_type == "exact", ClassificationRule.pattern == pattern
                 )
             ).scalar_one_or_none()
 
             if not exists:
                 rule = ClassificationRule(
-                    rule_type="exact",
-                    pattern=pattern,
-                    target_group=group_name,
-                    priority=0,
-                    is_active=True
+                    rule_type="exact", pattern=pattern, target_group=group_name, priority=0, is_active=True
                 )
                 db.add(rule)
                 count += 1
 
     db.commit()
     print(f"✅ Migrated {count} patterns to rules.")
+
 
 def classify_tags_comprehensively(db):
     """Classify tags using the suggestion engine and assign default categories."""
@@ -72,8 +69,8 @@ def classify_tags_comprehensively(db):
             # Default fallback for tags that don't match any rule
             # If it's currently null, we at least give it a category to show up in "Tag Analysis"
             if tag.category is None:
-                tag.category = "scene" # Default category
-                tag.group_name = "subject" # Default group for unknown descriptive tags
+                tag.category = "scene"  # Default category
+                tag.group_name = "subject"  # Default group for unknown descriptive tags
                 tag.classification_source = "default"
                 tag.classification_confidence = 0.5
 
@@ -84,6 +81,7 @@ def classify_tags_comprehensively(db):
 
     db.commit()
     print(f"✅ Finished! Updated {updated} tags. Assigned specific groups to {assigned_groups} tags.")
+
 
 if __name__ == "__main__":
     db = SessionLocal()

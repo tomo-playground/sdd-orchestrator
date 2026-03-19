@@ -21,6 +21,7 @@ UPDATES = {
     },
 }
 
+
 def main():
     db = SessionLocal()
     try:
@@ -43,6 +44,7 @@ def main():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

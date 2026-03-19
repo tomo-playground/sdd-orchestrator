@@ -83,7 +83,9 @@ async def generate_test_image(
                 model="openpose",
                 weight=0.8,
             )
-            payload["alwayson_scripts"] = {"controlnet": {"args": [controlnet_args, {"enabled": False}, {"enabled": False}]}}
+            payload["alwayson_scripts"] = {
+                "controlnet": {"args": [controlnet_args, {"enabled": False}, {"enabled": False}]}
+            }
 
     apply_sampler_to_payload(payload, payload.pop("sampler_name"))
     try:

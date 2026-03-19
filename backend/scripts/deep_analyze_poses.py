@@ -31,8 +31,8 @@ def deep_analyze_poses():
         tags = p.split(",")
         for t in tags:
             # Clean weights like (tag:1.2)
-            clean = re.sub(r'\(+', '', t)
-            clean = re.sub(r'\)+', '', clean)
+            clean = re.sub(r"\(+", "", t)
+            clean = re.sub(r"\)+", "", clean)
             clean = clean.split(":")[0].strip().lower()
             if clean:
                 all_tags.append(clean)
@@ -41,11 +41,36 @@ def deep_analyze_poses():
 
     # 3. Filter for action/body related keywords
     body_keywords = [
-        "pose", "standing", "sitting", "lying", "laying", "kneeling", "crouching",
-        "leaning", "running", "walking", "jumping", "dancing", "sleeping",
-        "arm", "hand", "leg", "foot", "looking", "facing", "view",
-        "pointing", "reaching", "holding", "shouting", "crying", "laughing",
-        "from behind", "profile", "side view", "portrait"
+        "pose",
+        "standing",
+        "sitting",
+        "lying",
+        "laying",
+        "kneeling",
+        "crouching",
+        "leaning",
+        "running",
+        "walking",
+        "jumping",
+        "dancing",
+        "sleeping",
+        "arm",
+        "hand",
+        "leg",
+        "foot",
+        "looking",
+        "facing",
+        "view",
+        "pointing",
+        "reaching",
+        "holding",
+        "shouting",
+        "crying",
+        "laughing",
+        "from behind",
+        "profile",
+        "side view",
+        "portrait",
     ]
 
     print("\n[Deep Data Analysis: Most Frequent Action/Pose Tags]")
@@ -64,6 +89,7 @@ def deep_analyze_poses():
         print(f"{tag:35} | {count:6} | {status}")
 
     db.close()
+
 
 if __name__ == "__main__":
     deep_analyze_poses()

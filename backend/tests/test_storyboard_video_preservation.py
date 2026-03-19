@@ -41,9 +41,14 @@ class TestVideoPreservationOnUpdate:
         video_id = _seed_media_asset(db_session, sb_id, "video")
 
         # Update storyboard
-        res = client.put(f"/api/v1/storyboards/{sb_id}", json={
-            "title": "Updated", "description": "test", "scenes": [],
-        })
+        res = client.put(
+            f"/api/v1/storyboards/{sb_id}",
+            json={
+                "title": "Updated",
+                "description": "test",
+                "scenes": [],
+            },
+        )
         assert res.status_code == 200
 
         # Video asset must still exist
@@ -57,9 +62,14 @@ class TestVideoPreservationOnUpdate:
         sb_id = _create_storyboard(client)
         audio_id = _seed_media_asset(db_session, sb_id, "audio")
 
-        res = client.put(f"/api/v1/storyboards/{sb_id}", json={
-            "title": "Updated", "description": "test", "scenes": [],
-        })
+        res = client.put(
+            f"/api/v1/storyboards/{sb_id}",
+            json={
+                "title": "Updated",
+                "description": "test",
+                "scenes": [],
+            },
+        )
         assert res.status_code == 200
 
         asset = db_session.get(MediaAsset, audio_id)
@@ -72,9 +82,14 @@ class TestVideoPreservationOnUpdate:
         sb_id = _create_storyboard(client)
         cache_id = _seed_media_asset(db_session, sb_id, "cache")
 
-        res = client.put(f"/api/v1/storyboards/{sb_id}", json={
-            "title": "Updated", "description": "test", "scenes": [],
-        })
+        res = client.put(
+            f"/api/v1/storyboards/{sb_id}",
+            json={
+                "title": "Updated",
+                "description": "test",
+                "scenes": [],
+            },
+        )
         assert res.status_code == 200
 
         asset = db_session.get(MediaAsset, cache_id)
@@ -90,9 +105,14 @@ class TestVideoPreservationOnUpdate:
         cache_id = _seed_media_asset(db_session, sb_id, "cache")
         image_id = _seed_media_asset(db_session, sb_id, "image", "_thumb")
 
-        res = client.put(f"/api/v1/storyboards/{sb_id}", json={
-            "title": "Updated", "description": "test", "scenes": [],
-        })
+        res = client.put(
+            f"/api/v1/storyboards/{sb_id}",
+            json={
+                "title": "Updated",
+                "description": "test",
+                "scenes": [],
+            },
+        )
         assert res.status_code == 200
 
         # Render outputs preserved

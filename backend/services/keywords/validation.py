@@ -33,11 +33,16 @@ def validate_prompt_tags(prompt_tags: list[str]) -> dict[str, Any]:
 
         if tag_ids:
             from models.tag import TagRule
-            conflict_rules = db.query(TagRule).filter(
-                TagRule.rule_type == "conflict",
-                TagRule.source_tag_id.in_(tag_ids),
-                TagRule.target_tag_id.in_(tag_ids)
-            ).all()
+
+            conflict_rules = (
+                db.query(TagRule)
+                .filter(
+                    TagRule.rule_type == "conflict",
+                    TagRule.source_tag_id.in_(tag_ids),
+                    TagRule.target_tag_id.in_(tag_ids),
+                )
+                .all()
+            )
 
             seen_conflicts = set()
             for rule in conflict_rules:
@@ -46,31 +51,27 @@ def validate_prompt_tags(prompt_tags: list[str]) -> dict[str, Any]:
                     seen_conflicts.add(pair)
                     tag1 = tag_id_lookup.get(rule.source_tag_id, "?")
                     tag2 = tag_id_lookup.get(rule.target_tag_id, "?")
-                    conflicts.append({
-                        "tag1": tag1, "tag2": tag2,
-                        "message": f"'{tag1}' conflicts with '{tag2}'"
-                    })
+                    conflicts.append({"tag1": tag1, "tag2": tag2, "message": f"'{tag1}' conflicts with '{tag2}'"})
 
-            requires_rules = db.query(TagRule).filter(
-                TagRule.rule_type == "requires",
-                TagRule.source_tag_id.in_(tag_ids)
-            ).all()
+            requires_rules = (
+                db.query(TagRule).filter(TagRule.rule_type == "requires", TagRule.source_tag_id.in_(tag_ids)).all()
+            )
 
             for rule in requires_rules:
                 if rule.target_tag_id not in tag_ids:
                     source_name = tag_id_lookup.get(rule.source_tag_id, "?")
                     target_tag = db.query(Tag).filter(Tag.id == rule.target_tag_id).first()
                     target_name = target_tag.name if target_tag else "?"
-                    missing_deps.append({
-                        "tag": source_name, "requires": target_name,
-                        "message": f"'{source_name}' requires '{target_name}'"
-                    })
+                    missing_deps.append(
+                        {
+                            "tag": source_name,
+                            "requires": target_name,
+                            "message": f"'{source_name}' requires '{target_name}'",
+                        }
+                    )
 
         is_valid = len(conflicts) == 0 and len(missing_deps) == 0
-        return {
-            "valid": is_valid, "conflicts": conflicts,
-            "missing_dependencies": missing_deps, "warnings": warnings
-        }
+        return {"valid": is_valid, "conflicts": conflicts, "missing_dependencies": missing_deps, "warnings": warnings}
     finally:
         db.close()
 
@@ -80,6 +81,7 @@ def get_tag_rules_summary() -> dict[str, Any]:
     db = SessionLocal()
     try:
         from models.tag import TagRule
+
         conflict_count = db.query(TagRule).filter(TagRule.rule_type == "conflict").count()
         requires_count = db.query(TagRule).filter(TagRule.rule_type == "requires").count()
 
@@ -107,9 +109,11 @@ def get_tag_rules_summary() -> dict[str, Any]:
     finally:
         db.close()
 
+
 def get_effective_tags() -> dict[str, list[str]]:
     """Get tags grouped by effectiveness level (Stub)."""
     return {"high": [], "medium": [], "low": [], "unknown": []}
+
 
 def get_tag_effectiveness_report() -> list[dict[str, Any]]:
     """Get full effectiveness report for all tags (Stub)."""

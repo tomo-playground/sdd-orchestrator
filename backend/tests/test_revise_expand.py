@@ -236,8 +236,8 @@ async def test_try_scene_expand_success(mock_postprocess, mock_schedule_bg, mock
     state = {
         "topic": "AI의 미래",
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "style": "Anime",
     }
 

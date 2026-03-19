@@ -6,7 +6,7 @@ from collections import Counter
 
 from sqlalchemy.orm import Session
 
-from config import DEFAULT_STRUCTURE, SHORTS_DURATIONS
+from config import DEFAULT_LANGUAGE, DEFAULT_STRUCTURE, MULTI_CHAR_STRUCTURES, SHORTS_DURATIONS, coerce_structure_id
 from models.character import Character
 from models.storyboard import Storyboard
 from schemas import GroupDefaultsResponse
@@ -36,7 +36,7 @@ def infer_group_defaults(group_id: int, db: Session) -> GroupDefaultsResponse:
         return GroupDefaultsResponse(
             duration=SHORTS_DURATIONS[1] if len(SHORTS_DURATIONS) > 1 else 30,
             structure=DEFAULT_STRUCTURE,
-            language="Korean",
+            language=DEFAULT_LANGUAGE,
             **_chars_to_fields(chars, DEFAULT_STRUCTURE),
             has_history=False,
             available_options=options,
@@ -44,7 +44,7 @@ def infer_group_defaults(group_id: int, db: Session) -> GroupDefaultsResponse:
 
     duration = _most_common([r.duration for r in recent if r.duration], default=30)
     structure = _most_common([r.structure for r in recent if r.structure], default=DEFAULT_STRUCTURE)
-    language = _most_common([r.language for r in recent if r.language], default="Korean")
+    language = _most_common([r.language for r in recent if r.language], default=DEFAULT_LANGUAGE)
     chars = _group_characters(group_id, db)
 
     return GroupDefaultsResponse(
@@ -63,9 +63,6 @@ def _most_common(values: list, default=None):
         return default
     counter = Counter(values)
     return counter.most_common(1)[0][0]
-
-
-_DIALOGUE_STRUCTURES = {"Dialogue", "Narrated Dialogue", "Narrated_Dialogue"}
 
 
 def _group_characters(
@@ -94,7 +91,7 @@ def _chars_to_fields(chars: list[tuple[int, str]], structure: str) -> dict:
     if chars:
         result["character_a_id"] = chars[0][0]
         result["character_a_name"] = chars[0][1]
-    if len(chars) > 1 and structure in _DIALOGUE_STRUCTURES:
+    if len(chars) > 1 and coerce_structure_id(structure) in MULTI_CHAR_STRUCTURES:
         result["character_b_id"] = chars[1][0]
         result["character_b_name"] = chars[1][1]
     return result

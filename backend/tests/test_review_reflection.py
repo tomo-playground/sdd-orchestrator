@@ -49,8 +49,8 @@ async def test_self_reflect_success(mock_compile, mock_llm_provider):
     reflection = await _self_reflect(
         review_result=review_result,
         topic="AI의 미래",
-        language="Korean",
-        structure="Monologue",
+        language="korean",
+        structure="monologue",
     )
 
     assert reflection is not None
@@ -78,8 +78,8 @@ async def test_self_reflect_gemini_error(mock_llm_provider):
     reflection = await _self_reflect(
         review_result=review_result,
         topic="테스트",
-        language="Korean",
-        structure="Monologue",
+        language="korean",
+        structure="monologue",
     )
 
     assert reflection is None
@@ -89,7 +89,7 @@ async def test_self_reflect_gemini_error(mock_llm_provider):
 
 
 @pytest.mark.asyncio
-@patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None)
+@patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=(None, None))
 @patch("services.agent.nodes.review._self_reflect", new_callable=AsyncMock)
 @patch("services.agent.nodes.review._narrative_evaluate", new_callable=AsyncMock)
 @patch("services.agent.nodes.review._gemini_evaluate", new_callable=AsyncMock)
@@ -103,8 +103,8 @@ async def test_review_node_legacy_fallback_on_failure(mock_gemini_eval, mock_nar
     state = {
         "draft_scenes": [{"scene_id": 1, "script": "테스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}],
         "duration": 15,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "topic": "테스트 주제",
         "skip_stages": [],
     }
@@ -118,7 +118,7 @@ async def test_review_node_legacy_fallback_on_failure(mock_gemini_eval, mock_nar
 
 
 @pytest.mark.asyncio
-@patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None)
+@patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=(None, None))
 @patch("services.agent.nodes.review._self_reflect", new_callable=AsyncMock)
 @patch("services.agent.nodes.review._narrative_evaluate", new_callable=AsyncMock)
 async def test_review_node_legacy_skips_reflection_on_success(mock_narrative, mock_reflect, mock_unified):
@@ -144,8 +144,8 @@ async def test_review_node_legacy_skips_reflection_on_success(mock_narrative, mo
             for i in range(1, 6)
         ],
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "topic": "테스트",
         "skip_stages": [],
     }
@@ -165,8 +165,8 @@ async def test_review_node_skips_reflection_in_quick_mode(mock_reflect):
     state = {
         "draft_scenes": [{"scene_id": 1, "script": "테스트", "speaker": "A", "duration": 3, "image_prompt": ""}],
         "duration": 15,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "topic": "테스트",
         "skip_stages": ["research", "concept", "production", "explain"],
     }
@@ -196,7 +196,7 @@ async def test_revise_includes_reflection_in_feedback():
 
 
 @pytest.mark.asyncio
-@patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None)
+@patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=(None, None))
 @patch("services.agent.nodes.review._self_reflect", new_callable=AsyncMock)
 @patch("services.agent.nodes.review._narrative_evaluate", new_callable=AsyncMock)
 async def test_review_narrative_failure_triggers_reflection_legacy(mock_narrative, mock_reflect, mock_unified):
@@ -223,8 +223,8 @@ async def test_review_narrative_failure_triggers_reflection_legacy(mock_narrativ
             for i in range(1, 6)
         ],
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "topic": "테스트",
         "skip_stages": [],
     }
@@ -336,8 +336,8 @@ def _full_state(scene_count=5, duration=10):
             for i in range(1, scene_count + 1)
         ],
         "duration": duration,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "topic": "테스트 주제",
         "skip_stages": [],
     }
@@ -421,7 +421,7 @@ async def test_unified_narrative_fail_with_reflection(mock_compile, mock_llm_pro
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes.review._legacy_evaluate", new_callable=AsyncMock)
-@patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=None)
+@patch("services.agent.nodes.review._unified_evaluate", new_callable=AsyncMock, return_value=(None, None))
 async def test_unified_failure_falls_back_to_legacy(mock_unified, mock_legacy):
     """통합 호출 실패 → 레거시 폴백 동작 확인."""
     from services.agent.nodes.review import review_node

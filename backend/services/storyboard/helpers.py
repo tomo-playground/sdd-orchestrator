@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import re
 
-from config import logger
+from config import MULTI_CHAR_STRUCTURES, coerce_structure_id, logger
 
 
 def strip_markdown_codeblock(text: str) -> str:
@@ -29,22 +29,6 @@ def normalize_scene_tags_key(scenes: list[dict]) -> list[dict]:
     return scenes
 
 
-# normalize_structure() 적용 후 결과("Narrated Dialogue")와 미적용 원본("Narrated_Dialogue") 모두 포함.
-# 일부 호출자가 normalize 없이 raw structure를 전달할 수 있으므로 방어적으로 두 형태를 지원한다.
-_DIALOGUE_STRUCTURES: frozenset[str] = frozenset({"Dialogue", "Narrated Dialogue", "Narrated_Dialogue"})
-
-
-def normalize_structure(structure: str | None) -> str:
-    """structure 문자열을 Title Case 표준형으로 정규화한다.
-
-    "monologue" → "Monologue", "narrated_dialogue" → "Narrated Dialogue"
-    """
-    if not structure:
-        return "Monologue"
-    s = structure.strip().replace("_", " ")
-    return " ".join(word.capitalize() for word in s.split())
-
-
 def calculate_min_scenes(duration: int, structure: str | None = None) -> int:
     """Calculate the minimum expected scene count for a given duration.
 
@@ -52,7 +36,7 @@ def calculate_min_scenes(duration: int, structure: str | None = None) -> int:
     Other structures: ceil(duration / SCENE_DURATION_RANGE[1]) (3.5s).
     Returns at least 3 for Dialogue, 1 for others.
     """
-    if structure in _DIALOGUE_STRUCTURES:
+    if structure in MULTI_CHAR_STRUCTURES:
         return max(3, math.ceil(duration / 6.0))
     from config import SCENE_DURATION_RANGE
 
@@ -66,7 +50,7 @@ def calculate_max_scenes(duration: int, structure: str | None = None) -> int:
     Other structures: ceil(duration / 2).
     Returns at least 3 for Dialogue, 1 for others.
     """
-    if structure in _DIALOGUE_STRUCTURES:
+    if structure in MULTI_CHAR_STRUCTURES:
         return max(3, math.ceil(duration / 4.0))
     return max(1, math.ceil(duration / 2))
 
@@ -91,9 +75,10 @@ def trim_scenes_to_duration(scenes: list[dict], duration: int, structure: str | 
 
 def estimate_reading_duration(text: str, language: str) -> float:
     """Script 텍스트로부터 읽기 시간을 추정한다. config.py READING_SPEED 사용."""
-    from config import READING_DURATION_PADDING, READING_SPEED, SCENE_DURATION_MAX
+    from config import DEFAULT_LANGUAGE, READING_DURATION_PADDING, READING_SPEED, SCENE_DURATION_MAX, coerce_language_id
 
-    cfg = READING_SPEED.get(language, READING_SPEED["Korean"])
+    lang_id = coerce_language_id(language)
+    cfg = READING_SPEED.get(lang_id, READING_SPEED[DEFAULT_LANGUAGE])
     stripped = text.strip()
     if not stripped:
         return 2.0
@@ -137,7 +122,7 @@ def calculate_auto_pin_flags(scenes: list, structure: str | None = None) -> dict
     result: dict[int, bool] = {}
 
     # For Dialogue/Narrated Dialogue: all scenes share the same background
-    is_dialogue = structure and structure.lower().replace("_", " ") in ("dialogue", "narrated dialogue")
+    is_dialogue = structure and coerce_structure_id(structure) in MULTI_CHAR_STRUCTURES
 
     if is_dialogue:
         for i, scene in enumerate(scenes):

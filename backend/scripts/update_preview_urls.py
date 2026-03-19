@@ -1,4 +1,5 @@
 """Update characters with existing reference images from assets/references."""
+
 import sys
 from pathlib import Path
 
@@ -36,6 +37,7 @@ def main():
         raise
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

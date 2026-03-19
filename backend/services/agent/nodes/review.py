@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 
-from config import LANGGRAPH_AUTO_REVIEW_THRESHOLD, logger
+from config import LANGGRAPH_AUTO_REVIEW_THRESHOLD, coerce_language_id, coerce_structure_id, logger
 from config_pipelines import LANGGRAPH_NARRATIVE_THRESHOLD, REVIEW_MODEL
 from services.agent.llm_models import (
     NarrativeScoreOutput,
@@ -297,8 +297,8 @@ async def review_node(state: ScriptState) -> dict:
     """Draft 씬을 검증하고 review_result를 state에 기록한다."""
     scenes = state.get("draft_scenes") or []
     duration = state.get("duration", 10)
-    language = state.get("language", "Korean")
-    structure = state.get("structure", "Monologue")
+    language = coerce_language_id(state.get("language"))
+    structure = coerce_structure_id(state.get("structure"))
     topic = state.get("topic", "")
     is_full = "production" not in (state.get("skip_stages") or [])
 

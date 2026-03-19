@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import time
 
-from config import CREATIVE_MAX_ROUNDS, logger
+from config import CREATIVE_MAX_ROUNDS, coerce_language_id, coerce_structure_id, logger
 from config_pipelines import DEBATE_TIMEOUT_SEC, MAX_DEBATE_ROUNDS
 from database import get_db_session
 from models.creative import CreativeSession
@@ -43,8 +43,8 @@ def _build_debate_context(state: ScriptState) -> DebateContext:
     return DebateContext(
         topic=state.get("topic", ""),
         duration=state.get("duration", 10),
-        structure=state.get("structure", "Monologue"),
-        language=state.get("language", "Korean"),
+        structure=coerce_structure_id(state.get("structure")),
+        language=coerce_language_id(state.get("language")),
         max_rounds=CREATIVE_MAX_ROUNDS,
         character_name=casting.get("character_a_name") or None,
         character_b_name=casting.get("character_b_name") or None,

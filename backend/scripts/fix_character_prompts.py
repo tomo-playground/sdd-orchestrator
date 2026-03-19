@@ -1,6 +1,5 @@
 """Normalize character prompts to Danbooru standard (underscores)."""
 
-
 from database import SessionLocal
 from models.character import Character
 
@@ -26,6 +25,7 @@ def normalize_tag(tag: str) -> str:
 
     return tag.replace(" ", "_")
 
+
 def normalize_prompt(prompt: str) -> str:
     """Normalize a full prompt string."""
     if not prompt:
@@ -33,6 +33,7 @@ def normalize_prompt(prompt: str) -> str:
     tags = [t.strip() for t in prompt.split(",") if t.strip()]
     normalized_tags = [normalize_tag(t) for t in tags]
     return ", ".join([t for t in normalized_tags if t])
+
 
 def main():
     db = SessionLocal()
@@ -70,6 +71,7 @@ def main():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

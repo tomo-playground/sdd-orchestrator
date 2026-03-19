@@ -55,13 +55,9 @@ def find_duplicate_pairs(db):
 
 def merge_effectiveness(db, underscore_id: int, space_id: int):
     """Merge effectiveness data from space to underscore tag."""
-    underscore_eff = db.query(TagEffectiveness).filter(
-        TagEffectiveness.tag_id == underscore_id
-    ).first()
+    underscore_eff = db.query(TagEffectiveness).filter(TagEffectiveness.tag_id == underscore_id).first()
 
-    space_eff = db.query(TagEffectiveness).filter(
-        TagEffectiveness.tag_id == space_id
-    ).first()
+    space_eff = db.query(TagEffectiveness).filter(TagEffectiveness.tag_id == space_id).first()
 
     if not space_eff:
         return "no space data"
@@ -91,19 +87,19 @@ def update_foreign_keys(db, underscore_id: int, space_id: int):
     # synonyms.tag_id
     db.execute(
         text("UPDATE synonyms SET tag_id = :underscore WHERE tag_id = :space"),
-        {"underscore": underscore_id, "space": space_id}
+        {"underscore": underscore_id, "space": space_id},
     )
 
     # tag_rules.source_tag_id
     db.execute(
         text("UPDATE tag_rules SET source_tag_id = :underscore WHERE source_tag_id = :space"),
-        {"underscore": underscore_id, "space": space_id}
+        {"underscore": underscore_id, "space": space_id},
     )
 
     # tag_rules.target_tag_id
     db.execute(
         text("UPDATE tag_rules SET target_tag_id = :underscore WHERE target_tag_id = :space"),
-        {"underscore": underscore_id, "space": space_id}
+        {"underscore": underscore_id, "space": space_id},
     )
 
     # Integer arrays in characters table
@@ -113,7 +109,7 @@ def update_foreign_keys(db, underscore_id: int, space_id: int):
             SET identity_tags = array_replace(identity_tags, :space, :underscore)
             WHERE :space = ANY(identity_tags)
         """),
-        {"underscore": underscore_id, "space": space_id}
+        {"underscore": underscore_id, "space": space_id},
     )
 
     db.execute(
@@ -122,7 +118,7 @@ def update_foreign_keys(db, underscore_id: int, space_id: int):
             SET clothing_tags = array_replace(clothing_tags, :space, :underscore)
             WHERE :space = ANY(clothing_tags)
         """),
-        {"underscore": underscore_id, "space": space_id}
+        {"underscore": underscore_id, "space": space_id},
     )
 
 

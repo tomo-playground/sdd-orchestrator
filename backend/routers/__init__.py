@@ -64,10 +64,10 @@ for _r in [
 # ── Split routers (11 service + 10 admin) ─────────────────────
 from .backgrounds import admin_router as bg_adm
 from .backgrounds import service_router as bg_svc
-from .loras import admin_router as lora_adm
-from .loras import service_router as lora_svc
 from .characters import admin_router as char_adm
 from .characters import service_router as char_svc
+from .loras import admin_router as lora_adm
+from .loras import service_router as lora_svc
 from .music_presets import admin_router as music_adm
 from .music_presets import service_router as music_svc
 from .prompt import admin_router as prompt_adm

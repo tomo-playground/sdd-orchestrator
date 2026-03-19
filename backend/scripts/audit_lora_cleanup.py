@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -19,7 +18,7 @@ def check_loras():
             "flat_color",
             "Gentle_Cubism_Light",
             "harukaze-doremi-casual",
-            "blindbox_v1_mix"
+            "blindbox_v1_mix",
         ]
 
         print(f"Checking {len(lora_names)} LoRAs...")
@@ -45,6 +44,7 @@ def check_loras():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     check_loras()

@@ -26,5 +26,6 @@ def drop_all_tables():
 
     print("✨ Database is now completely empty.")
 
+
 if __name__ == "__main__":
     drop_all_tables()

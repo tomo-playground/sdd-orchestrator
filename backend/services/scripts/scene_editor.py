@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config import logger
+from config import coerce_language_id, coerce_structure_id, logger
 from schemas import ScriptEditedScene, ScriptEditResponse
 
 
@@ -36,8 +36,8 @@ async def edit_scenes(
             scenes_block=build_scenes_block(scenes),
             scene_count=str(len(scenes)),
             context_topic=context.get("topic") or "N/A",
-            context_language=context.get("language") or "Korean",
-            context_structure=context.get("structure") or "Monologue",
+            context_language=coerce_language_id(context.get("language")),
+            context_structure=coerce_structure_id(context.get("structure")),
         )
         edit_config = types.GenerateContentConfig(
             system_instruction=compiled.system or _fallback_sys,

@@ -59,18 +59,18 @@ def test_sample_structure_distribution(samples):
     """구조 분포: Monologue 4건, Dialogue 3건, Narrated Dialogue 3건."""
     structures = [s["structure"] for s in samples]
 
-    assert structures.count("Monologue") == 4, "Expected 4 Monologue samples"
-    assert structures.count("Dialogue") == 3, "Expected 3 Dialogue samples"
-    assert structures.count("Narrated Dialogue") == 3, "Expected 3 Narrated Dialogue samples"
+    assert structures.count("monologue") == 4, "Expected 4 monologue samples"
+    assert structures.count("dialogue") == 3, "Expected 3 dialogue samples"
+    assert structures.count("narrated_dialogue") == 3, "Expected 3 narrated_dialogue samples"
 
 
 def test_sample_language_distribution(samples):
     """언어 분포: Korean 6건, English 2건, Japanese 2건."""
     languages = [s["language"] for s in samples]
 
-    assert languages.count("Korean") == 6, "Expected 6 Korean samples"
-    assert languages.count("English") == 2, "Expected 2 English samples"
-    assert languages.count("Japanese") == 2, "Expected 2 Japanese samples"
+    assert languages.count("korean") == 6, "Expected 6 korean samples"
+    assert languages.count("english") == 2, "Expected 2 english samples"
+    assert languages.count("japanese") == 2, "Expected 2 japanese samples"
 
 
 def test_sample_valid_duration(samples):

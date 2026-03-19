@@ -40,6 +40,7 @@ def set_bucket_public_policy():
     s3.put_bucket_policy(Bucket=BUCKET_NAME, Policy=json.dumps(policy))
     print("Policy set successfully.")
 
+
 if __name__ == "__main__":
     try:
         set_bucket_public_policy()

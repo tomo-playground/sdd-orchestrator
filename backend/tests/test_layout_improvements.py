@@ -1,6 +1,5 @@
 """Tests for layout improvements (Post Type dynamic height, Full Type safe zones)."""
 
-
 import pytest
 from PIL import Image
 
@@ -100,9 +99,7 @@ class TestPlatformSafeZones:
         """YouTube Shorts should have 15% bottom safe zone."""
         # Low complexity → would normally return 0.72
         # But safe zone limits to 0.85 (1.0 - 0.15)
-        y_pos = calculate_optimal_scene_text_y(
-            mock_image, layout_style="full", platform="youtube_shorts"
-        )
+        y_pos = calculate_optimal_scene_text_y(mock_image, layout_style="full", platform="youtube_shorts")
         assert y_pos <= 0.85
 
     def test_tiktok_safe_zone(self, mock_image):

@@ -1,4 +1,3 @@
-
 import asyncio
 import os
 import sys
@@ -25,6 +24,7 @@ async def sync_chibi_chan():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     asyncio.run(sync_chibi_chan())

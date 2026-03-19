@@ -20,10 +20,7 @@ class TestLoRAsRouter:
 
     def test_create_lora_minimal(self, client: TestClient, db_session):
         """Create LoRA with minimal required fields."""
-        request_data = {
-            "name": "test_lora",
-            "display_name": "Test LoRA"
-        }
+        request_data = {"name": "test_lora", "display_name": "Test LoRA"}
 
         response = client.post("/api/admin/loras", json=request_data)
         assert response.status_code == 201
@@ -35,10 +32,7 @@ class TestLoRAsRouter:
 
     def test_create_lora_duplicate_name(self, client: TestClient, db_session):
         """Creating LoRA with duplicate name fails."""
-        request_data = {
-            "name": "duplicate_lora",
-            "display_name": "Duplicate LoRA"
-        }
+        request_data = {"name": "duplicate_lora", "display_name": "Duplicate LoRA"}
 
         # Create first
         response = client.post("/api/admin/loras", json=request_data)
@@ -55,7 +49,7 @@ class TestLoRAsRouter:
             "name": "trigger_lora",
             "display_name": "Trigger LoRA",
             "trigger_words": ["word1", "word2"],
-            "default_weight": 0.8
+            "default_weight": 0.8,
         }
 
         response = client.post("/api/admin/loras", json=request_data)
@@ -73,10 +67,7 @@ class TestLoRAsRouter:
 
     def test_get_lora_success(self, client: TestClient, db_session):
         """Get existing LoRA."""
-        lora = LoRA(
-            name="get_test_lora",
-            display_name="Get Test LoRA"
-        )
+        lora = LoRA(name="get_test_lora", display_name="Get Test LoRA")
         db_session.add(lora)
         db_session.commit()
 
@@ -90,18 +81,12 @@ class TestLoRAsRouter:
 
     def test_update_lora_success(self, client: TestClient, db_session):
         """Update existing LoRA."""
-        lora = LoRA(
-            name="update_test_lora",
-            display_name="Original Name"
-        )
+        lora = LoRA(name="update_test_lora", display_name="Original Name")
         db_session.add(lora)
         db_session.commit()
         lora_id = lora.id
 
-        update_data = {
-            "display_name": "Updated Name",
-            "default_weight": 0.9
-        }
+        update_data = {"display_name": "Updated Name", "default_weight": 0.9}
 
         response = client.put(f"/api/admin/loras/{lora_id}", json=update_data)
         assert response.status_code == 200
@@ -112,19 +97,14 @@ class TestLoRAsRouter:
 
     def test_update_lora_not_found(self, client: TestClient):
         """Update non-existent LoRA returns 404."""
-        update_data = {
-            "display_name": "Updated"
-        }
+        update_data = {"display_name": "Updated"}
 
         response = client.put("/api/admin/loras/99999", json=update_data)
         assert response.status_code == 404
 
     def test_delete_lora_success(self, client: TestClient, db_session):
         """Delete existing LoRA."""
-        lora = LoRA(
-            name="delete_test_lora",
-            display_name="Delete Test LoRA"
-        )
+        lora = LoRA(name="delete_test_lora", display_name="Delete Test LoRA")
         db_session.add(lora)
         db_session.commit()
         lora_id = lora.id
@@ -136,9 +116,7 @@ class TestLoRAsRouter:
         assert data["deleted"] == "delete_test_lora"
 
         # Verify deleted
-        deleted = db_session.query(LoRA).filter(
-            LoRA.id == lora_id
-        ).first()
+        deleted = db_session.query(LoRA).filter(LoRA.id == lora_id).first()
         assert deleted is None
 
     def test_delete_lora_not_found(self, client: TestClient):
@@ -167,15 +145,10 @@ class TestLoRAsRouter:
         response = client.get("/api/admin/loras/search-civitai")
         assert response.status_code == 422  # Validation error
 
-
     def test_import_civitai_duplicate(self, client: TestClient, db_session):
         """Importing duplicate Civitai LoRA fails."""
         # Create existing LoRA with civitai_id
-        lora = LoRA(
-            name="existing_lora",
-            display_name="Existing LoRA",
-            civitai_id=12345
-        )
+        lora = LoRA(name="existing_lora", display_name="Existing LoRA", civitai_id=12345)
         db_session.add(lora)
         db_session.commit()
 
@@ -187,18 +160,12 @@ class TestLoRAsRouter:
 
     def test_update_lora_trigger_words(self, client: TestClient, db_session):
         """Update LoRA trigger words."""
-        lora = LoRA(
-            name="trigger_update_lora",
-            display_name="Trigger Update LoRA",
-            trigger_words=["old_word"]
-        )
+        lora = LoRA(name="trigger_update_lora", display_name="Trigger Update LoRA", trigger_words=["old_word"])
         db_session.add(lora)
         db_session.commit()
         lora_id = lora.id
 
-        update_data = {
-            "trigger_words": ["new_word1", "new_word2"]
-        }
+        update_data = {"trigger_words": ["new_word1", "new_word2"]}
 
         response = client.put(f"/api/admin/loras/{lora_id}", json=update_data)
         assert response.status_code == 200
@@ -213,7 +180,7 @@ class TestLoRAsRouter:
             "display_name": "Weight Range LoRA",
             "default_weight": 0.7,
             "weight_min": 0.5,
-            "weight_max": 1.5
+            "weight_max": 1.5,
         }
 
         response = client.post("/api/admin/loras", json=request_data)
@@ -226,11 +193,7 @@ class TestLoRAsRouter:
 
     def test_create_lora_with_lora_type(self, client: TestClient, db_session):
         """Create LoRA with lora_type."""
-        request_data = {
-            "name": "typed_lora",
-            "display_name": "Typed LoRA",
-            "lora_type": "character"
-        }
+        request_data = {"name": "typed_lora", "display_name": "Typed LoRA", "lora_type": "character"}
 
         response = client.post("/api/admin/loras", json=request_data)
         assert response.status_code == 201

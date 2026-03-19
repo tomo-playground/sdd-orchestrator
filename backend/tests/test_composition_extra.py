@@ -12,11 +12,8 @@ from services.prompt.composition import (
     LAYER_ATMOSPHERE,
     LAYER_CAMERA,
     LAYER_ENVIRONMENT,
-    LAYER_IDENTITY,
     LAYER_MAIN_CLOTH,
-    LAYER_QUALITY,
     LAYER_SUBJECT,
-    LoRAInfo,
     PromptBuilder,
     select_style_trigger_words,
 )

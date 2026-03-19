@@ -1,5 +1,5 @@
-import sys
 import random
+import sys
 from pathlib import Path
 
 # Add backend to path
@@ -43,6 +43,7 @@ UPDATES = {
     ),
 }
 
+
 def main():
     db = SessionLocal()
     try:
@@ -59,7 +60,7 @@ def main():
                 print(f"✅ Updated Voice ID {vid}: {new_name}")
             else:
                 print(f"⚠️ Voice ID {vid} not found.")
-        
+
         db.commit()
         print(f"\n🎉 Successfully updated {updated_count} voice presets.")
 
@@ -68,6 +69,7 @@ def main():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

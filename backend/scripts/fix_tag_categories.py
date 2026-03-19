@@ -1,4 +1,3 @@
-
 from config import logger
 from database import SessionLocal
 from models import Tag
@@ -38,7 +37,7 @@ def fix_tag_categories():
                     category=category,
                     group_name=group,
                     classification_source="manual_fix",
-                    classification_confidence=1.0
+                    classification_confidence=1.0,
                 )
                 db.add(new_tag)
                 count += 1
@@ -50,6 +49,7 @@ def fix_tag_categories():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     fix_tag_categories()

@@ -63,9 +63,9 @@ class TestValidateMusic:
 # ── WARN does not trigger retry (W-7 fix) ─────────────────────
 
 
-def _make_scripts(count: int, language: str = "Korean") -> list[dict]:
+def _make_scripts(count: int, language: str = "korean") -> list[dict]:
     """Helper to create valid script scenes."""
-    text = "테스트 스크립트입니다" if language == "Korean" else "This is a test script"
+    text = "테스트 스크립트입니다" if language == "korean" else "This is a test script"
     return [{"order": i, "script": text, "speaker": "A", "duration": 2.5} for i in range(count)]
 
 
@@ -78,7 +78,7 @@ class TestWarnDoesNotFailScripts:
         scripts = _make_scripts(9)
         for s in scripts:
             s["duration"] = 2.0
-        result = validate_scripts(scripts, "Monologue", 30, "Korean")
+        result = validate_scripts(scripts, "monologue", 30, "korean")
         assert result["checks"]["duration_sum"] == "WARN"
         assert result["ok"] is True
 
@@ -86,7 +86,7 @@ class TestWarnDoesNotFailScripts:
         # Short script → script_length FAIL (triggers retry)
         scripts = _make_scripts(6)
         scripts[0]["script"] = "짧"  # too short (1 char < 5 min)
-        result = validate_scripts(scripts, "Monologue", 30, "Korean")
+        result = validate_scripts(scripts, "monologue", 30, "korean")
         assert result["checks"]["script_length"] == "FAIL"
         assert result["ok"] is False
 
@@ -94,20 +94,20 @@ class TestWarnDoesNotFailScripts:
         # Scene with 1.5s duration vs reading-time ~3.0s → WARN (gap > 1.0s)
         scripts = _make_scripts(6)
         scripts[0]["duration"] = 1.5  # gap > 1.0s from reading time
-        result = validate_scripts(scripts, "Monologue", 30, "Korean")
+        result = validate_scripts(scripts, "monologue", 30, "korean")
         assert result["checks"]["scene_duration_range"] == "WARN"
 
     def test_scene_duration_range_pass(self):
         # All scenes within 2.0-3.5s → PASS
         scripts = _make_scripts(6)
-        result = validate_scripts(scripts, "Monologue", 30, "Korean")
+        result = validate_scripts(scripts, "monologue", 30, "korean")
         assert result["checks"]["scene_duration_range"] == "PASS"
 
     def test_fail_still_fails(self):
         # Wrong speaker → FAIL
         scripts = _make_scripts(6)
         scripts[0]["speaker"] = "X"
-        result = validate_scripts(scripts, "Monologue", 30, "Korean")
+        result = validate_scripts(scripts, "monologue", 30, "korean")
         assert result["checks"]["speaker_rule"] == "FAIL"
         assert result["ok"] is False
 

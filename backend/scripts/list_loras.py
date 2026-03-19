@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from database import SessionLocal
 from models import LoRA
 
+
 def main():
     db = SessionLocal()
     try:
@@ -16,6 +17,7 @@ def main():
             print(f"ID:{l.id} | Name:{l.name} | Type:{l.lora_type}")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

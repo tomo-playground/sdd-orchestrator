@@ -25,6 +25,7 @@ GENERIC_CHARACTERS = [
     },
 ]
 
+
 def create_characters():
     db = SessionLocal()
     try:
@@ -44,6 +45,7 @@ def create_characters():
         print(f"\n🎉 Done! Created {created_count} characters.")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     create_characters()

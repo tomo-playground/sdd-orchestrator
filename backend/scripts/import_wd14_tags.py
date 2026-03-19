@@ -32,6 +32,7 @@ SCOPE_PERMANENT = "PERMANENT"
 SCOPE_TRANSIENT = "TRANSIENT"
 SCOPE_ANY = "ANY"
 
+
 def determine_layer_and_scope(name, wd14_category):
     """
     Heuristic to assign Layer and Scope based on tag name and WD14 category.
@@ -56,27 +57,66 @@ def determine_layer_and_scope(name, wd14_category):
     # Rule 2: Suffix Matching (Identity/Body)
     if name.endswith("_eyes") or name.endswith("_hair") or name.endswith("_skin") or name.endswith("_ears"):
         return LAYER_IDENTITY, SCOPE_PERMANENT
-    if name.endswith("_breasts") or name.endswith("_hips") or name in ["tall", "short", "muscular", "curvy", "slim_body"]:
+    if (
+        name.endswith("_breasts")
+        or name.endswith("_hips")
+        or name in ["tall", "short", "muscular", "curvy", "slim_body"]
+    ):
         return LAYER_BODY, SCOPE_PERMANENT
 
     # Rule 3: Clothing
-    if name.endswith("_uniform") or name.endswith("_dress") or name.endswith("_outfit") or name.endswith("_costume") or name in ["suit", "bikini", "armor"]:
+    if (
+        name.endswith("_uniform")
+        or name.endswith("_dress")
+        or name.endswith("_outfit")
+        or name.endswith("_costume")
+        or name in ["suit", "bikini", "armor"]
+    ):
         return LAYER_MAIN_CLOTH, SCOPE_ANY
-    if name.endswith("_skirt") or name.endswith("_shirt") or name.endswith("_pants") or name.endswith("_jacket") or name.endswith("_shorts"):
-        if name in ["t-shirt", "white_shirt"]: # Common main/detail ambiguity
-             return LAYER_DETAIL_CLOTH, SCOPE_ANY
+    if (
+        name.endswith("_skirt")
+        or name.endswith("_shirt")
+        or name.endswith("_pants")
+        or name.endswith("_jacket")
+        or name.endswith("_shorts")
+    ):
+        if name in ["t-shirt", "white_shirt"]:  # Common main/detail ambiguity
+            return LAYER_DETAIL_CLOTH, SCOPE_ANY
         return LAYER_DETAIL_CLOTH, SCOPE_ANY
-    if name.endswith("_footwear") or name.endswith("_shoes") or name.endswith("_boots") or name.endswith("_socks") or name.endswith("_pantyhose"):
+    if (
+        name.endswith("_footwear")
+        or name.endswith("_shoes")
+        or name.endswith("_boots")
+        or name.endswith("_socks")
+        or name.endswith("_pantyhose")
+    ):
         return LAYER_DETAIL_CLOTH, SCOPE_ANY
 
     # Rule 4: Accessories
-    if name.endswith("_gloves") or name.endswith("_ribbon") or name.endswith("_glasses") or name.endswith("_hat") or name.endswith("_cap"):
+    if (
+        name.endswith("_gloves")
+        or name.endswith("_ribbon")
+        or name.endswith("_glasses")
+        or name.endswith("_hat")
+        or name.endswith("_cap")
+    ):
         return LAYER_ACCESSORY, SCOPE_ANY
     if name in ["jewelry", "necklace", "earrings", "bracelet", "ring", "choker"]:
         return LAYER_ACCESSORY, SCOPE_ANY
 
     # Rule 5: Expression
-    if name in ["smile", "blush", "angry", "sad", "crying", "surprised", "open_mouth", "closed_eyes", "scared", "expressionless"]:
+    if name in [
+        "smile",
+        "blush",
+        "angry",
+        "sad",
+        "crying",
+        "surprised",
+        "open_mouth",
+        "closed_eyes",
+        "scared",
+        "expressionless",
+    ]:
         return LAYER_EXPRESSION, SCOPE_TRANSIENT
     if name.endswith("_expression"):
         return LAYER_EXPRESSION, SCOPE_TRANSIENT
@@ -89,7 +129,16 @@ def determine_layer_and_scope(name, wd14_category):
         return LAYER_ACTION, SCOPE_TRANSIENT
 
     # Rule 7: Camera
-    if name in ["close-up", "portrait", "upper_body", "full_body", "cowboy_shot", "dutch_angle", "from_above", "from_below"]:
+    if name in [
+        "close-up",
+        "portrait",
+        "upper_body",
+        "full_body",
+        "cowboy_shot",
+        "dutch_angle",
+        "from_above",
+        "from_below",
+    ]:
         return LAYER_CAMERA, SCOPE_TRANSIENT
 
     # Rule 8: Environment
@@ -131,13 +180,15 @@ def import_tags():
 
                 layer, scope = determine_layer_and_scope(name, wd14_cat)
 
-                tags_to_insert.append({
-                    "name": name,
-                    "wd14_category": wd14_cat,
-                    "wd14_count": count,
-                    "default_layer": layer,
-                    "usage_scope": scope,
-                })
+                tags_to_insert.append(
+                    {
+                        "name": name,
+                        "wd14_category": wd14_cat,
+                        "wd14_count": count,
+                        "default_layer": layer,
+                        "usage_scope": scope,
+                    }
+                )
 
         # Inject Custom/Critical Tags that might be missing from WD14
         custom_tags = [
@@ -155,29 +206,31 @@ def import_tags():
 
         print(f"➕ Injecting {len(custom_tags)} custom tags...")
         for name, layer, scope in custom_tags:
-            tags_to_insert.append({
-                "name": name,
-                "wd14_category": 0,
-                "wd14_count": 0,
-                "default_layer": layer,
-                "usage_scope": scope,
-            })
+            tags_to_insert.append(
+                {
+                    "name": name,
+                    "wd14_category": 0,
+                    "wd14_count": 0,
+                    "default_layer": layer,
+                    "usage_scope": scope,
+                }
+            )
 
         print(f"📦 Prepared {len(tags_to_insert)} tags. Executing bulk upsert...")
 
         # Batch insert
         batch_size = 1000
         for i in range(0, len(tags_to_insert), batch_size):
-            batch = tags_to_insert[i:i+batch_size]
+            batch = tags_to_insert[i : i + batch_size]
             stmt = insert(Tag).values(batch)
             stmt = stmt.on_conflict_do_update(
-                index_elements=['name'],
+                index_elements=["name"],
                 set_={
                     "wd14_category": stmt.excluded.wd14_category,
                     "wd14_count": stmt.excluded.wd14_count,
                     "default_layer": stmt.excluded.default_layer,
                     "usage_scope": stmt.excluded.usage_scope,
-                }
+                },
             )
             session.execute(stmt)
             session.commit()
@@ -191,6 +244,7 @@ def import_tags():
         raise e
     finally:
         session.close()
+
 
 if __name__ == "__main__":
     import_tags()

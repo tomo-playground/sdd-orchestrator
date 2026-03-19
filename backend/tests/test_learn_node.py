@@ -39,7 +39,7 @@ async def test_no_scenes_skips(store, config):
 
 async def test_first_generation_stores(store, config, scenes):
     """첫 생성 시 토픽과 사용자 통계가 저장된다."""
-    state = {"topic": "새로운 주제", "final_scenes": scenes, "structure": "Monologue"}
+    state = {"topic": "새로운 주제", "final_scenes": scenes, "structure": "monologue"}
     result = await learn_node(state, config, store=store)
     assert result["learn_result"]["stored"] is True
     assert result["learn_result"]["scene_count"] == 2
@@ -53,7 +53,7 @@ async def test_first_generation_stores(store, config, scenes):
 async def test_subsequent_generation_increments(store, config, scenes):
     """추가 생성 시 기존 통계가 증가한다."""
     # 첫 생성
-    state = {"topic": "주제", "final_scenes": scenes, "structure": "Monologue"}
+    state = {"topic": "주제", "final_scenes": scenes, "structure": "monologue"}
     await learn_node(state, config, store=store)
 
     # 두 번째 생성
@@ -65,7 +65,7 @@ async def test_subsequent_generation_increments(store, config, scenes):
 
 async def test_character_count_increments(store, config, scenes):
     """캐릭터 생성 횟수가 증가한다."""
-    state = {"topic": "주제", "final_scenes": scenes, "character_id": 42, "structure": "Monologue"}
+    state = {"topic": "주제", "final_scenes": scenes, "character_id": 42, "structure": "monologue"}
     await learn_node(state, config, store=store)
 
     char_items = await store.asearch(("character", "42"))
@@ -80,7 +80,7 @@ async def test_character_count_increments(store, config, scenes):
 
 async def test_user_stats_init(store, config, scenes):
     """사용자 통계 초기화 시 피드백 관련 필드도 포함된다."""
-    state = {"topic": "주제", "final_scenes": scenes, "structure": "Monologue"}
+    state = {"topic": "주제", "final_scenes": scenes, "structure": "monologue"}
     await learn_node(state, config, store=store)
 
     user_items = await store.asearch(("user", "preferences"))

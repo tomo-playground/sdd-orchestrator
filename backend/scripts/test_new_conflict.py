@@ -17,6 +17,7 @@ from models.storyboard import Storyboard
 load_dotenv()
 API_BASE = "http://localhost:8000"
 
+
 def main():
     db = SessionLocal()
     storyboard_id = None
@@ -36,42 +37,48 @@ def main():
 
         # Conflict: sitting + standing (8 fails)
         for i in range(50, 58):
-            logs.append({
-                "storyboard_id": storyboard_id,
-                "scene_id": i,
-                "prompt": "1girl, running, sleeping, park",
-                "tags_used": ["1girl", "running", "sleeping", "park"],
-                "status": "fail",
-                "match_rate": 0.38,
-                "sd_params": {"steps": 20, "cfg_scale": 7},
-                "seed": 99999,
-            })
+            logs.append(
+                {
+                    "storyboard_id": storyboard_id,
+                    "scene_id": i,
+                    "prompt": "1girl, running, sleeping, park",
+                    "tags_used": ["1girl", "running", "sleeping", "park"],
+                    "status": "fail",
+                    "match_rate": 0.38,
+                    "sd_params": {"steps": 20, "cfg_scale": 7},
+                    "seed": 99999,
+                }
+            )
 
         # Success: just running (3 successes)
         for i in range(60, 63):
-            logs.append({
-                "storyboard_id": storyboard_id,
-                "scene_id": i,
-                "prompt": "1girl, running, park",
-                "tags_used": ["1girl", "running", "park"],
-                "status": "success",
-                "match_rate": 0.88,
-                "sd_params": {"steps": 20, "cfg_scale": 7},
-                "seed": 99998,
-            })
+            logs.append(
+                {
+                    "storyboard_id": storyboard_id,
+                    "scene_id": i,
+                    "prompt": "1girl, running, park",
+                    "tags_used": ["1girl", "running", "park"],
+                    "status": "success",
+                    "match_rate": 0.88,
+                    "sd_params": {"steps": 20, "cfg_scale": 7},
+                    "seed": 99998,
+                }
+            )
 
         # Success: just sleeping (3 successes) -> This proves "sleeping" itself is not the issue
         for i in range(70, 73):
-            logs.append({
-                "storyboard_id": storyboard_id,
-                "scene_id": i,
-                "prompt": "1girl, sleeping, park",
-                "tags_used": ["1girl", "sleeping", "park"],
-                "status": "success",
-                "match_rate": 0.85,
-                "sd_params": {"steps": 20, "cfg_scale": 7},
-                "seed": 99997,
-            })
+            logs.append(
+                {
+                    "storyboard_id": storyboard_id,
+                    "scene_id": i,
+                    "prompt": "1girl, sleeping, park",
+                    "tags_used": ["1girl", "sleeping", "park"],
+                    "status": "success",
+                    "match_rate": 0.85,
+                    "sd_params": {"steps": 20, "cfg_scale": 7},
+                    "seed": 99997,
+                }
+            )
 
         print(f"Creating {len(logs)} test logs...")
 
@@ -88,10 +95,10 @@ def main():
         response = requests.get(
             f"{API_BASE}/activity-logs/suggest-conflict-rules",
             params={
-                "storyboard_id": storyboard_id, # UDPATED: Using storyboard_id
-                "min_occurrences": 3, # Lowered slightly for strict test set
-                "fail_rate_threshold": 0.6
-            }
+                "storyboard_id": storyboard_id,  # UDPATED: Using storyboard_id
+                "min_occurrences": 3,  # Lowered slightly for strict test set
+                "fail_rate_threshold": 0.6,
+            },
         )
 
         if response.status_code == 200:
@@ -114,7 +121,7 @@ def main():
                 print("Applying rule...")
                 apply_response = requests.post(
                     f"{API_BASE}/activity-logs/apply-conflict-rules",
-                    json={"rules": [{"tag1": "running", "tag2": "sleeping"}]}
+                    json={"rules": [{"tag1": "running", "tag2": "sleeping"}]},
                 )
 
                 if apply_response.status_code == 200:
@@ -150,6 +157,7 @@ def main():
                 print(f"⚠️ Cleanup failed: {e}")
 
         db.close()
+
 
 if __name__ == "__main__":
     main()

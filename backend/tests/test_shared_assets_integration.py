@@ -6,7 +6,11 @@ from services.asset_service import AssetService
 from services.storage import get_storage, initialize_storage
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
-_has_assets = (ASSETS_DIR / "audio").exists() and any((ASSETS_DIR / "audio").iterdir()) if (ASSETS_DIR / "audio").exists() else False
+_has_assets = (
+    (ASSETS_DIR / "audio").exists() and any((ASSETS_DIR / "audio").iterdir())
+    if (ASSETS_DIR / "audio").exists()
+    else False
+)
 
 
 @unittest.skipUnless(_has_assets, "Requires local asset files (audio/fonts)")
@@ -39,6 +43,7 @@ class TestSharedAssets(unittest.TestCase):
         keys = store.list_prefix("test/nested/")
         self.assertIn("test/nested/file.txt", keys)
         store.delete("test/nested/file.txt")
+
 
 if __name__ == "__main__":
     unittest.main()

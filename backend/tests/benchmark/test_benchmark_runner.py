@@ -34,8 +34,8 @@ class TestBenchmarkRunner:
         sample = {
             "id": "BM-01",
             "topic": "테스트 주제",
-            "structure": "Monologue",
-            "language": "Korean",
+            "structure": "monologue",
+            "language": "korean",
             "duration": 30,
             "preset": "full_auto",
             "target": "Phase A",
@@ -62,8 +62,8 @@ class TestBenchmarkRunner:
         sample = {
             "id": "BM-01",
             "topic": "테스트",
-            "structure": "Monologue",
-            "language": "Korean",
+            "structure": "monologue",
+            "language": "korean",
             "duration": 30,
             "preset": "full_auto",
         }
@@ -83,16 +83,16 @@ class TestBenchmarkRunner:
             {
                 "id": "BM-01",
                 "topic": "주제1",
-                "structure": "Monologue",
-                "language": "Korean",
+                "structure": "monologue",
+                "language": "korean",
                 "duration": 30,
                 "preset": "full_auto",
             },
             {
                 "id": "BM-02",
                 "topic": "주제2",
-                "structure": "Dialogue",
-                "language": "English",
+                "structure": "dialogue",
+                "language": "english",
                 "duration": 30,
                 "preset": "creator",
             },
@@ -118,8 +118,8 @@ class TestBenchmarkRunner:
         sample = {
             "id": "BM-01",
             "topic": "주제",
-            "structure": "Monologue",
-            "language": "Korean",
+            "structure": "monologue",
+            "language": "korean",
             "duration": 30,
             "preset": "full_auto",
         }

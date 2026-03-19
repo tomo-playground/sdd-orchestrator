@@ -67,9 +67,7 @@ async def test_validate_async_sd_weight_normalization():
         "services.prompt.prompt.TagCategoryCache._cache",
         {"long_wavy_black_hair": "character"},
     ):
-        validated, unknown = await validate_tags_with_danbooru_async(
-            ["(long_wavy_black_hair:1.15)", "unknown_xyz"]
-        )
+        validated, unknown = await validate_tags_with_danbooru_async(["(long_wavy_black_hair:1.15)", "unknown_xyz"])
 
     # Original weighted tag stays in validated (for SD prompt)
     assert "(long_wavy_black_hair:1.15)" in validated

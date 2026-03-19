@@ -32,18 +32,14 @@ payload = {
     "steps": 20,
     "cfg_scale": 7.0,
     "sampler_name": "DPM++ 2M Karras",
-    "seed": -1
+    "seed": -1,
 }
 
 print(f"🚀 Sending V3 Prompt to Backend...\nPrompt: {PROMPT}\n")
 
 try:
-    data_json = json.dumps(payload).encode('utf-8')
-    req = urllib.request.Request(
-        API_URL,
-        data=data_json,
-        headers={'Content-Type': 'application/json'}
-    )
+    data_json = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(API_URL, data=data_json, headers={"Content-Type": "application/json"})
 
     with urllib.request.urlopen(req, timeout=60) as response:
         response_body = response.read()
@@ -58,7 +54,7 @@ try:
     elif "image" in data:  # Backend seems to use 'image' key
         image_b64 = data["image"]
     elif "images" in data and len(data["images"]) > 0:
-         # Some SD backends return list of images
+        # Some SD backends return list of images
         image_b64 = data["images"][0]
 
     if image_b64:

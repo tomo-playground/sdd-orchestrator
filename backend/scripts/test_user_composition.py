@@ -1,4 +1,3 @@
-
 from services.prompt.prompt_composition import compose_prompt_string, get_token_category
 
 from database import SessionLocal
@@ -22,10 +21,27 @@ def test_composition():
     get_token_category.cache_clear()
 
     tokens = [
-        "amazing_quality", "masterpiece", "1girl", "pink_hair", "doremi",
-        "full_body", "outdoors", "_day", "_sun", "day", "bright", "soft_light",
-        "anime_style", "casual_outfit", "smile", "standing", "holding_flower",
-        "sun", "blush", "open_mouth", "anime"
+        "amazing_quality",
+        "masterpiece",
+        "1girl",
+        "pink_hair",
+        "doremi",
+        "full_body",
+        "outdoors",
+        "_day",
+        "_sun",
+        "day",
+        "bright",
+        "soft_light",
+        "anime_style",
+        "casual_outfit",
+        "smile",
+        "standing",
+        "holding_flower",
+        "sun",
+        "blush",
+        "open_mouth",
+        "anime",
     ]
 
     print("--- Token Categories ---")
@@ -46,6 +62,7 @@ def test_composition():
     print(prompt_b)
 
     db.close()
+
 
 if __name__ == "__main__":
     test_composition()

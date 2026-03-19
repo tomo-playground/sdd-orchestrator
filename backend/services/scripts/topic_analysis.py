@@ -24,21 +24,23 @@ async def analyze_topic(
     정보가 부족하면 clarify 질문을 반환한다.
     """
     from config import (
+        DEFAULT_LANGUAGE,
+        DEFAULT_STRUCTURE,
         GEMINI_SAFETY_SETTINGS,
         GEMINI_TEXT_MODEL,
         SHORTS_DURATIONS,
         STORYBOARD_LANGUAGES,
+        STRUCTURE_METADATA,
         gemini_client,
     )
-    from services.agent.inventory import STRUCTURE_METADATA
     from services.creative_utils import parse_json_response
 
     # 인라인 편집용 옵션 목록 구성 (캐릭터/구성은 Director SSOT → 여기서 불필요)
     available_options = _build_options()
     fallback = TopicAnalyzeResponse(
         duration=30,
-        language="Korean",
-        structure="Monologue",
+        language=DEFAULT_LANGUAGE,
+        structure=DEFAULT_STRUCTURE,
         available_options=available_options,
     )
 
@@ -122,23 +124,23 @@ async def analyze_topic(
 
 def _validate_topic_analysis(parsed: dict) -> dict:
     """LLM 반환값을 검증하고, 유효하지 않은 값은 기본값으로 대체한다."""
-    from config import SHORTS_DURATIONS, STORYBOARD_LANGUAGES
-    from services.agent.inventory import STRUCTURE_METADATA
-
-    structure_id_to_name = {s.id: s.name for s in STRUCTURE_METADATA}
+    from config import (
+        DEFAULT_STRUCTURE,
+        SHORTS_DURATIONS,
+        STRUCTURE_IDS,
+        coerce_language_id,
+        coerce_structure_id,
+    )
 
     duration = parsed.get("duration", 30)
     if duration not in SHORTS_DURATIONS:
         duration = 30
 
-    raw_structure = parsed.get("structure", "monologue")
-    structure_key = raw_structure.lower() if isinstance(raw_structure, str) else "monologue"
-    structure = structure_id_to_name.get(structure_key, "Monologue")
+    structure = coerce_structure_id(parsed.get("structure"))
+    if structure not in STRUCTURE_IDS:
+        structure = DEFAULT_STRUCTURE
 
-    language = parsed.get("language", "Korean")
-    valid_languages = {lang["value"] for lang in STORYBOARD_LANGUAGES}
-    if language not in valid_languages:
-        language = "Korean"
+    language = coerce_language_id(parsed.get("language"))
 
     return {
         "duration": duration,

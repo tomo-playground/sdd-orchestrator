@@ -40,7 +40,9 @@ def verify_import():
                 continue
 
             if tag.default_layer != expected_layer or tag.usage_scope != expected_scope:
-                print(f"❌ '{name}': Expected L{expected_layer}/{expected_scope}, Got L{tag.default_layer}/{tag.usage_scope}")
+                print(
+                    f"❌ '{name}': Expected L{expected_layer}/{expected_scope}, Got L{tag.default_layer}/{tag.usage_scope}"
+                )
                 failed += 1
             else:
                 print(f"✅ '{name}': L{tag.default_layer} / {tag.usage_scope}")
@@ -57,6 +59,7 @@ def verify_import():
         print(f"❌ Error: {e}")
     finally:
         session.close()
+
 
 if __name__ == "__main__":
     verify_import()

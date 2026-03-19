@@ -22,6 +22,8 @@ from config import (
     RESEARCH_MAX_REFERENCES,
     RESEARCH_URL_FETCH_TIMEOUT,
     RESEARCH_URL_MAX_BYTES,
+    coerce_language_id,
+    coerce_structure_id,
     logger,
 )
 from database import get_db_session
@@ -182,8 +184,8 @@ async def _analyze_references(refs: list[str], state: ScriptState) -> str | None
             _template_name,
             materials_block=build_materials_block(materials),
             duration=str(state.get("duration", 30)),
-            structure=state.get("structure", "Monologue"),
-            language=state.get("language", "Korean"),
+            structure=coerce_structure_id(state.get("structure")),
+            language=coerce_language_id(state.get("language")),
         )
 
         llm_response = await get_llm_provider().generate(
@@ -295,7 +297,7 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
     description = state.get("description", "")
     character_id = state.get("character_id")
     group_id = state.get("group_id")
-    language = state.get("language", "Korean")
+    language = coerce_language_id(state.get("language"))
     references = state.get("references") or []
 
     prompt_parts = [

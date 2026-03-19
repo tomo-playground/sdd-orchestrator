@@ -23,5 +23,6 @@ def delete_tag(name):
     finally:
         session.close()
 
+
 if __name__ == "__main__":
     delete_tag("anime")

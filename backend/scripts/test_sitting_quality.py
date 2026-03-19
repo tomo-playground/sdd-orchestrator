@@ -10,7 +10,6 @@ Usage:
 from __future__ import annotations
 
 import base64
-import json
 import sys
 from pathlib import Path
 
@@ -25,13 +24,9 @@ OUTPUT_DIR = Path("/tmp/sitting_test")
 POSES_DIR = BACKEND_DIR / "assets" / "poses"
 
 BASE_PROMPT = (
-    "1girl, solo, hrkzdrm_cs, black_hair, brown_eyes, school_uniform, "
-    "indoors, classroom, best_quality, masterpiece"
+    "1girl, solo, hrkzdrm_cs, black_hair, brown_eyes, school_uniform, indoors, classroom, best_quality, masterpiece"
 )
-NEGATIVE = (
-    "lowres, bad_anatomy, bad_hands, deformed, ugly, blurry, "
-    "nsfw, multiple_girls, bad_legs, deformed_legs"
-)
+NEGATIVE = "lowres, bad_anatomy, bad_hands, deformed, ugly, blurry, nsfw, multiple_girls, bad_legs, deformed_legs"
 
 PARAMS = {
     "steps": 28,
@@ -124,7 +119,7 @@ def main() -> None:
             img_bytes = generate(case)
             out = OUTPUT_DIR / f"{case['name']}.png"
             out.write_bytes(img_bytes)
-            print(f"  → 저장: {out} ({len(img_bytes)//1024}KB)")
+            print(f"  → 저장: {out} ({len(img_bytes) // 1024}KB)")
         except Exception as e:
             print(f"  ✗ 실패: {e}")
 

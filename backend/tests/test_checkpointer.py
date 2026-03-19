@@ -27,9 +27,7 @@ async def test_checkpoint_save_and_resume():
         mock_scenes = [{"scene_number": 1, "script": "통합 테스트 씬"}]
 
         with (
-            patch(
-                "services.agent.nodes.draft.generate_script", new_callable=AsyncMock
-            ) as mock_gen,
+            patch("services.agent.nodes.draft.generate_script", new_callable=AsyncMock) as mock_gen,
             patch("services.agent.nodes.draft.SessionLocal"),
         ):
             mock_gen.return_value = {"scenes": mock_scenes}

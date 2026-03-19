@@ -318,8 +318,8 @@ class TestDirectorPlanCriticInjection:
         state = {
             "topic": "테스트",
             "duration": 15,
-            "structure": "Monologue",
-            "language": "Korean",
+            "structure": "monologue",
+            "language": "korean",
             "skip_stages": [],
             "director_plan": {
                 "creative_goal": "감동 영상",
@@ -338,8 +338,8 @@ class TestDirectorPlanCriticInjection:
         state = {
             "topic": "테스트",
             "duration": 10,
-            "structure": "Monologue",
-            "language": "Korean",
+            "structure": "monologue",
+            "language": "korean",
         }
         ctx = _build_debate_context(state)
         assert ctx.director_plan is None

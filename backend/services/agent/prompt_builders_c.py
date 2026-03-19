@@ -38,10 +38,7 @@ def build_durations_list(durations: list[int]) -> str:
 
 def build_languages_list(languages: list[dict]) -> str:
     """{% for lang in languages %} 대체."""
-    return "\n".join(
-        f"- {lang.get('value', '')} ({lang.get('label', '')})"
-        for lang in languages
-    )
+    return "\n".join(f"- {lang.get('value', '')} ({lang.get('label', '')})" for lang in languages)
 
 
 def build_structures_list(structures: list) -> str:
@@ -49,9 +46,13 @@ def build_structures_list(structures: list) -> str:
     parts = []
     for struct in structures:
         sid = getattr(struct, "id", "") if not isinstance(struct, dict) else struct.get("id", "")
-        name = getattr(struct, "name", "") if not isinstance(struct, dict) else struct.get("name", "")
+        name = getattr(struct, "label", "") if not isinstance(struct, dict) else struct.get("label", "")
         tone = getattr(struct, "tone", "") if not isinstance(struct, dict) else struct.get("tone", "")
-        req2 = getattr(struct, "requires_two_characters", False) if not isinstance(struct, dict) else struct.get("requires_two_characters", False)
+        req2 = (
+            getattr(struct, "requires_two_characters", False)
+            if not isinstance(struct, dict)
+            else struct.get("requires_two_characters", False)
+        )
         suffix = " (2인 필수)" if req2 else ""
         parts.append(f"- **{sid}**: {name} — {tone}{suffix}")
     return "\n".join(parts)
@@ -140,14 +141,14 @@ def build_character_context_section(ctx: str | None) -> str:
 
 def build_structure_speaker_rule(structure: str) -> str:
     """{% if structure == 'Monologue' %} 등 대체."""
-    if structure == "Monologue":
+    if structure == "monologue":
         return '6. Speaker: Always "A" (single narrator).'
-    if structure == "Dialogue":
+    if structure == "dialogue":
         return (
             '6. Speakers: "A" and "B" (two characters in conversation). '
             "CRITICAL: Both A and B MUST each have at least 30% of dialogue scenes."
         )
-    if structure == "Narrated Dialogue":
+    if structure == "narrated_dialogue":
         return (
             '6. Speakers: "Narrator" for narration/description, "A" and "B" for character dialogue. '
             "CRITICAL: Both A and B MUST each have at least 30% of dialogue scenes. "
@@ -160,15 +161,12 @@ def build_expand_feedback_section(feedback: str | None) -> str:
     """{% if feedback %} 대체."""
     if not feedback:
         return ""
-    return (
-        f"\n## Feedback from Review\n{feedback}\n"
-        "Consider this feedback when creating new scenes."
-    )
+    return f"\n## Feedback from Review\n{feedback}\nConsider this feedback when creating new scenes."
 
 
 def build_korean_hint(language: str) -> str:
     """{% if language == 'Korean' %} 대체."""
-    if language != "Korean":
+    if language != "korean":
         return ""
     return "\n반드시 모든 대사를 한국어로 작성하세요."
 
@@ -176,9 +174,7 @@ def build_korean_hint(language: str) -> str:
 # ── concept_architect ──────────────────────────────────────
 
 
-def build_character_name_section(
-    name: str | None, label: str = "Character A"
-) -> str:
+def build_character_name_section(name: str | None, label: str = "Character A") -> str:
     """{% if character_name %} 대체."""
     if not name:
         return ""
@@ -191,7 +187,7 @@ def build_dialogue_rules_section(
     char_a_name: str | None = None,
 ) -> str:
     """{% if character_b_name or structure in ('Dialogue', ...) %} 대체."""
-    if not char_b_name and structure not in ("Dialogue", "Narrated Dialogue"):
+    if not char_b_name and structure not in ("dialogue", "narrated_dialogue"):
         return ""
     a = char_a_name or "Character A"
     b = char_b_name or "Character B"
@@ -200,7 +196,7 @@ def build_dialogue_rules_section(
         "- This is a **two-character conversation**. Both Speaker A and Speaker B MUST appear.\n"
         "- Alternate speakers across scenes: A \u2192 B \u2192 A \u2192 B (with occasional Narrator allowed).\n"
         f"- Speaker A = {a}, Speaker B = {b}.\n"
-        "- Do NOT make all scenes speaker=\"A\". At least 40% of non-Narrator scenes must be Speaker B."
+        '- Do NOT make all scenes speaker="A". At least 40% of non-Narrator scenes must be Speaker B.'
     )
 
 
@@ -265,7 +261,7 @@ def build_critic_feedback_section(feedback: str | None) -> str:
 
 def build_korean_quality_rules(language: str) -> str:
     """{% if language == 'Korean' %} 한국어 품질 규칙."""
-    if language != "Korean":
+    if language != "korean":
         return ""
     return (
         "\n## 한국어 품질 규칙\n"
@@ -291,14 +287,16 @@ def build_characters_tags_block(characters_tags: dict | None) -> str:
             parts.append(
                 f"**Preferred actions (use as default, override per scene):** {json.dumps(hints, ensure_ascii=False)}"
             )
-    parts.extend([
-        "\u26a0\ufe0f CHARACTER TAG RULES (MANDATORY):",
-        "- Do NOT write character identity tags (hair, eyes, body), clothing/accessory tags, or LoRA trigger words in `image_prompt`",
-        "- These are ALL injected automatically by the system from the character database",
-        "- In `image_prompt`, write ONLY: scene-specific tags (camera, environment, lighting, action, pose, expression, props)",
-        "- Do NOT invent or add clothing tags (e.g. `blue_skirt`, `white_shirt`, `checkered_shirt`)",
-        "Action hints are the character's typical poses/actions \u2014 use them as defaults but freely override with scene-appropriate actions.",
-    ])
+    parts.extend(
+        [
+            "\u26a0\ufe0f CHARACTER TAG RULES (MANDATORY):",
+            "- Do NOT write character identity tags (hair, eyes, body), clothing/accessory tags, or LoRA trigger words in `image_prompt`",
+            "- These are ALL injected automatically by the system from the character database",
+            "- In `image_prompt`, write ONLY: scene-specific tags (camera, environment, lighting, action, pose, expression, props)",
+            "- Do NOT invent or add clothing tags (e.g. `blue_skirt`, `white_shirt`, `checkered_shirt`)",
+            "Action hints are the character's typical poses/actions \u2014 use them as defaults but freely override with scene-appropriate actions.",
+        ]
+    )
     return "\n".join(parts)
 
 
@@ -367,9 +365,7 @@ def build_writer_plan_section(plan: dict | None) -> str:
             name = loc.get("name", "?")
             scenes = loc.get("scenes", [])
             tags = loc.get("tags", [])
-            parts.append(
-                f"- **{name}** (scenes {', '.join(str(s) for s in scenes)}): {', '.join(tags)}"
-            )
+            parts.append(f"- **{name}** (scenes {', '.join(str(s) for s in scenes)}): {', '.join(tags)}")
         parts.append(
             "**Rules**: Scenes sharing the same location MUST use the same `context_tags.environment` tags listed above. "
             "Do NOT invent new environment tags for scenes already mapped to a location."
@@ -414,10 +410,7 @@ def build_cine_feedback_section(feedback: str | None) -> str:
     """{% if feedback %} — cinematographer 하단 + JSON 예시 내 response_message."""
     if not feedback:
         return ""
-    return (
-        f"\n## Previous Attempt Feedback\n{feedback}\n"
-        "Fix the issues above in your new output."
-    )
+    return f"\n## Previous Attempt Feedback\n{feedback}\nFix the issues above in your new output."
 
 
 def build_cine_feedback_json_hint(feedback: str | None) -> str:
@@ -433,9 +426,7 @@ def build_cine_feedback_json_hint(feedback: str | None) -> str:
 # ── create_storyboard 공통 ──────────────────────────────────
 
 
-def build_optional_text_section(
-    header: str, content: str | None
-) -> str:
+def build_optional_text_section(header: str, content: str | None) -> str:
     """{% if var %}\\n## Header\\n{{ var }}{% endif %} 패턴."""
     if not content:
         return ""
@@ -469,7 +460,7 @@ def build_character_tag_rules(has_character: bool) -> str:
     )
 
 
-def build_scene_count_range(duration: int, structure: str = "Monologue") -> str:
+def build_scene_count_range(duration: int, structure: str = "monologue") -> str:
     """{{ ((duration / 3) | round | int) }}-{{ ((duration / 2) | round | int) }} 대체."""
     from services.storyboard.helpers import (  # noqa: PLC0415
         calculate_max_scenes,
@@ -485,7 +476,7 @@ def build_scene_count_range(duration: int, structure: str = "Monologue") -> str:
     return f"{min_s}-{max_s}"
 
 
-def build_scene_count_max(duration: int, structure: str = "Monologue") -> str:
+def build_scene_count_max(duration: int, structure: str = "monologue") -> str:
     """{{ ((duration / 2) | round | int) }} 대체."""
     from services.storyboard.helpers import calculate_max_scenes  # noqa: PLC0415
 
@@ -519,7 +510,7 @@ def build_multi_character_rules(
     if not is_multi:
         return ""
     parts = [
-        "\n\u26a0\ufe0f MULTI-CHARACTER SCENE RULES (scene_mode: \"multi\"):",
+        '\n\u26a0\ufe0f MULTI-CHARACTER SCENE RULES (scene_mode: "multi"):',
         "- You MAY create 1-2 scenes where BOTH characters appear together",
         "- Use these ONLY for key emotional moments (reunion, confrontation, farewell, shared reaction)",
         "- Multi scenes: character tags are injected automatically \u2014 do NOT add them",
@@ -534,13 +525,15 @@ def build_multi_character_rules(
             parts.append('- Multi scenes subject: "2girls"')
         else:
             parts.append('- Multi scenes subject: "1boy, 1girl"')
-    parts.extend([
-        '- Multi scenes: add interaction tags (e.g., "eye_contact", "facing_another", "hand_holding")',
-        '- Multi scenes: speaker can be "A" or "B" (whoever is speaking in that moment)',
-        '- Each multi scene MUST include "scene_mode": "multi" in JSON output',
-        '- All other scenes MUST include "scene_mode": "single" in JSON output',
-        "- LIMIT: Maximum 1-2 multi scenes per storyboard",
-    ])
+    parts.extend(
+        [
+            '- Multi scenes: add interaction tags (e.g., "eye_contact", "facing_another", "hand_holding")',
+            '- Multi scenes: speaker can be "A" or "B" (whoever is speaking in that moment)',
+            '- Each multi scene MUST include "scene_mode": "multi" in JSON output',
+            '- All other scenes MUST include "scene_mode": "single" in JSON output',
+            "- LIMIT: Maximum 1-2 multi scenes per storyboard",
+        ]
+    )
     return "\n".join(parts)
 
 

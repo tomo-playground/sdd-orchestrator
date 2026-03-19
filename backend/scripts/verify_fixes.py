@@ -26,8 +26,8 @@ def verify_db_data(db):
 
         status = "✅" if tag.category and tag.group_name else "❌"
         if not tag.group_name or tag.group_name == "unknown":
-             status = "❌"
-             all_pass = False
+            status = "❌"
+            all_pass = False
 
         print(f"{status} {name}: category='{tag.category}', group='{tag.group_name}'")
 
@@ -35,6 +35,7 @@ def verify_db_data(db):
         print("✅ All target tags have valid category and group data.")
     else:
         print("❌ Some tags are missing category or group data.")
+
 
 def verify_classification(db):
     print("\n=== 2. Classification Logic Verification ===")
@@ -56,6 +57,7 @@ def verify_classification(db):
         print("✅ Classifier is returning correct groups.")
     else:
         print("❌ Classifier returned unknown or missing groups.")
+
 
 def verify_prompt_logic():
     print("\n=== 3. Prompt Normalization & Deduplication Verification ===")
@@ -98,6 +100,7 @@ def verify_prompt_logic():
         print("✅ Weighted tag deduplication passed.")
     else:
         print(f"❌ Deduplication failed or different behavior. Got: {filtered}")
+
 
 if __name__ == "__main__":
     try:

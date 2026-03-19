@@ -77,7 +77,7 @@ def normalize_all_characters(db: Session, dry_run: bool = True) -> None:
 
     for char in characters:
         changed = False
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info(f"Character: {char.name}")
 
         # Normalize custom_base_prompt
@@ -111,7 +111,7 @@ def normalize_all_characters(db: Session, dry_run: bool = True) -> None:
         if changed:
             updated_count += 1
 
-    logger.info(f"\n{'='*60}")
+    logger.info(f"\n{'=' * 60}")
     if dry_run:
         logger.info("🔍 DRY RUN - No changes committed")
         logger.info(f"Characters that would be updated: {updated_count}/{len(characters)}")
@@ -125,9 +125,7 @@ def main() -> None:
     """Main entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Normalize character prompts to Danbooru standard"
-    )
+    parser = argparse.ArgumentParser(description="Normalize character prompts to Danbooru standard")
     parser.add_argument(
         "--apply",
         action="store_true",

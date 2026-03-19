@@ -14,7 +14,13 @@ def fix_categories():
         "camera": ["upper_body", "full_body", "close_up"],
         "hair_length": ["long_hair", "short_hair"],
         "action": ["thinking", "holding_flower"],
-        "time_weather": ["day", "night", "sunlight", "outdoors", "indoors"], # outdoors/indoors sometimes map to location
+        "time_weather": [
+            "day",
+            "night",
+            "sunlight",
+            "outdoors",
+            "indoors",
+        ],  # outdoors/indoors sometimes map to location
         "subject": ["1girl", "1boy"],
         "expression": ["happy", "smile"],
     }
@@ -34,12 +40,12 @@ def fix_categories():
                     # Update group_name if missing or different (assume group_name ~= category for these basic tags)
                     # For hair_length, category is 'hair_length', group should also be 'hair_length'
                     if tag.group_name != category:
-                         print(f"Updating {tag_name}: group {tag.group_name} -> {category}")
-                         tag.group_name = category
-                         # Mark as manually classified so it sticks
-                         tag.classification_source = "manual"
-                         tag.classification_confidence = 1.0
-                         count += 1
+                        print(f"Updating {tag_name}: group {tag.group_name} -> {category}")
+                        tag.group_name = category
+                        # Mark as manually classified so it sticks
+                        tag.classification_source = "manual"
+                        tag.classification_confidence = 1.0
+                        count += 1
                 else:
                     # Create if not exists
                     print(f"Creating {tag_name} as {category}")
@@ -49,7 +55,7 @@ def fix_categories():
                         category=category,
                         group_name=category,
                         classification_source="manual",
-                        classification_confidence=1.0
+                        classification_confidence=1.0,
                     )
                     db.add(tag)
                     count += 1
@@ -61,6 +67,7 @@ def fix_categories():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     fix_categories()

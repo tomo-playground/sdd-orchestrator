@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -21,6 +20,7 @@ def inspect_aliases():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     inspect_aliases()

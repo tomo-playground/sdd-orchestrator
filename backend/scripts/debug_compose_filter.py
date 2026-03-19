@@ -18,10 +18,21 @@ def test_filter_debug():
 
         # Test tokens from the screenshot
         test_tokens = [
-            "surprised", "looking_at_viewer", "standing", "stretching",
-            "upper_body", "bedroom", "day", "bright",
-            "anime_style", "best_quality", "masterpiece",
-            "1girl", "short_hair", "pink_hair", "school_uniform"
+            "surprised",
+            "looking_at_viewer",
+            "standing",
+            "stretching",
+            "upper_body",
+            "bedroom",
+            "day",
+            "bright",
+            "anime_style",
+            "best_quality",
+            "masterpiece",
+            "1girl",
+            "short_hair",
+            "pink_hair",
+            "school_uniform",
         ]
 
         print(f"\n=== Testing {len(test_tokens)} tokens ===\n")
@@ -52,6 +63,7 @@ def test_filter_debug():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     test_filter_debug()

@@ -21,7 +21,7 @@ class StoryboardPreset:
     sample_topics: list[str] = field(default_factory=list)
     default_duration: int = 30
     default_style: str = "Anime"
-    default_language: str = "Korean"
+    default_language: str = "korean"
     extra_fields: dict = field(default_factory=dict)
 
 
@@ -32,7 +32,7 @@ PRESETS: dict[str, StoryboardPreset] = {
         name="Monologue",
         name_ko="독백",
         description="Single narrator storytelling",
-        structure="Monologue",
+        structure="monologue",
         template="create_storyboard",
         sample_topics=[
             "오늘 하루 있었던 일",
@@ -48,7 +48,7 @@ PRESETS: dict[str, StoryboardPreset] = {
         name="Dialogue",
         name_ko="대화",
         description="Two-character conversation",
-        structure="Dialogue",
+        structure="dialogue",
         template="create_storyboard_dialogue",
         sample_topics=[
             "첫 만남에서 어색한 대화",
@@ -64,7 +64,7 @@ PRESETS: dict[str, StoryboardPreset] = {
         name="Narrated Dialogue",
         name_ko="내레이션 대화",
         description="Two characters with narrator commentary",
-        structure="Narrated Dialogue",
+        structure="narrated_dialogue",
         template="create_storyboard_narrated",
         sample_topics=[
             "10년 후 재회한 첫사랑",
@@ -80,7 +80,7 @@ PRESETS: dict[str, StoryboardPreset] = {
         name="Confession/Lesson",
         name_ko="고백/교훈",
         description="Personal confession with life lesson and growth",
-        structure="Confession",
+        structure="confession",
         template="create_storyboard_confession",
         sample_topics=[
             "그때 왜 그랬는지 아직도 모르겠어",

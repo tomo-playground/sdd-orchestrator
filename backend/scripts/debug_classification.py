@@ -1,4 +1,3 @@
-
 from database import SessionLocal
 from services.keywords.core import normalize_prompt_token
 from services.tag_classifier import TagClassifier
@@ -21,6 +20,7 @@ def debug_classification():
         print(f"'{t}': {group}")
 
     db.close()
+
 
 if __name__ == "__main__":
     debug_classification()

@@ -158,9 +158,9 @@ class TestGroupDefaults:
         defaults = {
             "group_id": group_id,
             "title": "Test SB",
-            "structure": "Monologue",
+            "structure": "monologue",
             "duration": 30,
-            "language": "Korean",
+            "language": "korean",
         }
         defaults.update(overrides)
         sb = Storyboard(**defaults)
@@ -174,7 +174,7 @@ class TestGroupDefaults:
         assert resp.status_code == 200
         data = resp.json()
         assert data["has_history"] is False
-        assert data["structure"] == "Monologue"
+        assert data["structure"] == "monologue"
         assert "available_options" in data
         assert len(data["available_options"]["durations"]) > 0
 
@@ -183,10 +183,18 @@ class TestGroupDefaults:
         group_id = self._setup(db_session)
         for _ in range(3):
             self._add_storyboard(
-                db_session, group_id, duration=45, structure="Dialogue", language="Korean",
+                db_session,
+                group_id,
+                duration=45,
+                structure="dialogue",
+                language="korean",
             )
         self._add_storyboard(
-            db_session, group_id, duration=30, structure="Monologue", language="English",
+            db_session,
+            group_id,
+            duration=30,
+            structure="monologue",
+            language="english",
         )
 
         resp = client.get(f"/api/v1/groups/{group_id}/defaults")
@@ -194,8 +202,8 @@ class TestGroupDefaults:
         data = resp.json()
         assert data["has_history"] is True
         assert data["duration"] == 45
-        assert data["structure"] == "Dialogue"
-        assert data["language"] == "Korean"
+        assert data["structure"] == "dialogue"
+        assert data["language"] == "korean"
 
     def test_defaults_404_nonexistent(self, client):
         """존재하지 않는 그룹은 404."""
@@ -209,8 +217,8 @@ class TestGroupDefaults:
         data = resp.json()
         structures = data["available_options"]["structures"]
         values = [s["value"] for s in structures]
-        assert "Monologue" in values
-        assert "Dialogue" in values
+        assert "monologue" in values
+        assert "dialogue" in values
 
     def test_defaults_dialogue_with_characters(self, client, db_session):
         """Dialogue 이력 + 캐릭터 2명 → character_b_id 반환."""
@@ -226,7 +234,11 @@ class TestGroupDefaults:
 
         for _ in range(3):
             self._add_storyboard(
-                db_session, group_id, duration=45, structure="Dialogue", language="Korean",
+                db_session,
+                group_id,
+                duration=45,
+                structure="dialogue",
+                language="korean",
             )
 
         resp = client.get(f"/api/v1/groups/{group_id}/defaults")
@@ -249,7 +261,11 @@ class TestGroupDefaults:
 
         for _ in range(3):
             self._add_storyboard(
-                db_session, group_id, duration=30, structure="Monologue", language="Korean",
+                db_session,
+                group_id,
+                duration=30,
+                structure="monologue",
+                language="korean",
             )
 
         resp = client.get(f"/api/v1/groups/{group_id}/defaults")
@@ -270,7 +286,11 @@ class TestGroupDefaults:
 
         for _ in range(3):
             self._add_storyboard(
-                db_session, group_id, duration=45, structure="Narrated Dialogue", language="Korean",
+                db_session,
+                group_id,
+                duration=45,
+                structure="narrated_dialogue",
+                language="korean",
             )
 
         resp = client.get(f"/api/v1/groups/{group_id}/defaults")

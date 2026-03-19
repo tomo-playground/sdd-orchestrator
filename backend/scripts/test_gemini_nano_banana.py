@@ -8,6 +8,7 @@ Gemini의 이미지 편집 기능을 사용하여 포즈/액션/표정 변경 �
 - Expression Editing: smile → frown, neutral → surprised 등
 - Gaze Editing: front → looking back 등
 """
+
 import asyncio
 import base64
 import json
@@ -151,13 +152,13 @@ class ImagenTester:
             print("   Get your API key from: https://aistudio.google.com/apikey")
             return
 
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print("🧪 Gemini Nano Banana Test Suite - Eureka Character")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         print(f"📁 Output: {self.session_dir}")
         print(f"📊 Test cases: {len(test_cases)}")
         print(f"🎨 Mode: {'MOCK (no API calls)' if use_mock else 'REAL (API calls, costs apply)'}")
-        print(f"{'='*70}\n")
+        print(f"{'=' * 70}\n")
 
         for i, test_case in enumerate(test_cases, 1):
             print(f"[{i}/{len(test_cases)}] {test_case['name']}")
@@ -171,12 +172,15 @@ class ImagenTester:
             except Exception as e:
                 print(f"❌ Test failed: {str(e)}")
                 import traceback
+
                 traceback.print_exc()
-                self.results.append({
-                    "test_id": test_case["id"],
-                    "status": "error",
-                    "error": str(e),
-                })
+                self.results.append(
+                    {
+                        "test_id": test_case["id"],
+                        "status": "error",
+                        "error": str(e),
+                    }
+                )
 
             print()
 
@@ -305,9 +309,7 @@ class ImagenTester:
         tags = wd14_predict_tags(image, threshold=0.35)
         return tags
 
-    async def _analyze_with_gemini(
-        self, image_b64: str, prompt: str, target_change: str
-    ) -> dict:
+    async def _analyze_with_gemini(self, image_b64: str, prompt: str, target_change: str) -> dict:
         """Gemini Vision으로 포즈 분석"""
         from google.genai import types
 
@@ -342,9 +344,7 @@ OUTPUT (JSON only):
         )
         return parse_json_payload(res.text)
 
-    async def _edit_with_gemini(
-        self, image_b64: str, target_pose: str, preserve_elements: list[str]
-    ) -> dict:
+    async def _edit_with_gemini(self, image_b64: str, target_pose: str, preserve_elements: list[str]) -> dict:
         """Gemini Nano Banana (2.5 Flash Image)로 이미지 편집"""
         import io
 
@@ -475,16 +475,16 @@ Edit this image to match the new pose while keeping everything else identical.
         report_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False))
 
         # 콘솔 출력
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print("📊 TEST SUMMARY")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         print("Character: Eureka Chibi")
         print(f"Total Tests: {len(self.results)}")
         print(f"Completed: {len(completed)}")
         if completed:
-            print(f"✅ Success: {success} ({success/len(completed)*100:.1f}%)")
-            print(f"⚠️  Partial: {partial} ({partial/len(completed)*100:.1f}%)")
-            print(f"❌ Failed: {failed} ({failed/len(completed)*100:.1f}%)")
+            print(f"✅ Success: {success} ({success / len(completed) * 100:.1f}%)")
+            print(f"⚠️  Partial: {partial} ({partial / len(completed) * 100:.1f}%)")
+            print(f"❌ Failed: {failed} ({failed / len(completed) * 100:.1f}%)")
         print(f"💰 Total Cost: ${total_cost:.4f}")
 
         # 난이도별
@@ -493,11 +493,11 @@ Edit this image to match the new pose while keeping everything else identical.
             cases = [r for r in completed if r.get("difficulty") == difficulty]
             if cases:
                 succ = sum(1 for r in cases if r["evaluation"]["verdict"] == "success")
-                print(f"  {difficulty.capitalize()}: {succ}/{len(cases)} ({succ/len(cases)*100:.1f}%)")
+                print(f"  {difficulty.capitalize()}: {succ}/{len(cases)} ({succ / len(cases) * 100:.1f}%)")
 
         print(f"\n📁 Report: {report_path}")
         print(f"📂 Images: {self.session_dir}")
-        print(f"{'='*70}\n")
+        print(f"{'=' * 70}\n")
 
 
 async def main():
@@ -507,7 +507,9 @@ async def main():
     parser = argparse.ArgumentParser(description="Test Gemini Nano Banana with Eureka character")
     parser.add_argument("--limit", type=int, help="Limit number of tests")
     parser.add_argument("--mock", action="store_true", help="Mock mode (no API calls)")
-    parser.add_argument("--test-ids", nargs="+", help="Specific test IDs to run (e.g., eureka_smile_to_frown eureka_looking_back)")
+    parser.add_argument(
+        "--test-ids", nargs="+", help="Specific test IDs to run (e.g., eureka_smile_to_frown eureka_looking_back)"
+    )
     args = parser.parse_args()
 
     tester = ImagenTester()

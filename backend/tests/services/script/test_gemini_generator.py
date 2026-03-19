@@ -17,7 +17,7 @@ class MockRequest:
         description="Desc",
         duration=30,
         style="anime",
-        language="Korean",
+        language="korean",
         actor_a_gender="female",
         selected_concept=None,
         group_id=None,

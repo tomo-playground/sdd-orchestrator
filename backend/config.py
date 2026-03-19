@@ -292,11 +292,103 @@ CHECKPOINT_GC_RETENTION_DAYS = int(os.getenv("CHECKPOINT_GC_RETENTION_DAYS", "7"
 DEFAULT_SCENE_TEXT_FONT = os.getenv("DEFAULT_SCENE_TEXT_FONT", "온글잎 박다현체.ttf")
 DEFAULT_LORA_WEIGHT = float(os.getenv("DEFAULT_LORA_WEIGHT", "0.7"))
 
-# --- Storyboard Defaults ---
-DEFAULT_STRUCTURE = "Monologue"  # Options: "Monologue", "Dialogue"
+# --- Structure & Language SSOT (Sprint A: Enum ID 정규화) ---
+from dataclasses import dataclass  # noqa: E402
+
+
+@dataclass(frozen=True)
+class StructureMeta:
+    """구조 메타데이터 (인메모리 상수)."""
+
+    id: str
+    label: str
+    label_ko: str
+    requires_two_characters: bool
+    tone: str
+
+
+STRUCTURE_METADATA: tuple[StructureMeta, ...] = (
+    StructureMeta(id="monologue", label="Monologue", label_ko="독백", requires_two_characters=False, tone="intimate"),
+    StructureMeta(id="dialogue", label="Dialogue", label_ko="대화형", requires_two_characters=True, tone="dynamic"),
+    StructureMeta(
+        id="narrated_dialogue",
+        label="Narrated Dialogue",
+        label_ko="내레이션 대화",
+        requires_two_characters=True,
+        tone="narrative",
+    ),
+    StructureMeta(
+        id="confession", label="Confession", label_ko="고백", requires_two_characters=False, tone="emotional"
+    ),
+)
+
+STRUCTURE_IDS: frozenset[str] = frozenset(s.id for s in STRUCTURE_METADATA)
+MULTI_CHAR_STRUCTURES: frozenset[str] = frozenset(s.id for s in STRUCTURE_METADATA if s.requires_two_characters)
+STRUCTURE_ID_TO_LABEL: dict[str, str] = {s.id: s.label for s in STRUCTURE_METADATA}
+STRUCTURE_LABEL_TO_ID: dict[str, str] = {s.label: s.id for s in STRUCTURE_METADATA}
+
+
+@dataclass(frozen=True)
+class LanguageMeta:
+    """언어 메타데이터."""
+
+    id: str
+    label: str
+
+
+LANGUAGE_METADATA: tuple[LanguageMeta, ...] = (
+    LanguageMeta(id="korean", label="한국어"),
+    LanguageMeta(id="english", label="English"),
+    LanguageMeta(id="japanese", label="日本語"),
+)
+
+LANGUAGE_IDS: frozenset[str] = frozenset(lang.id for lang in LANGUAGE_METADATA)
+
+DEFAULT_STRUCTURE = "monologue"
+DEFAULT_LANGUAGE = "korean"
 DEFAULT_SPEAKER = "Narrator"  # Default speaker for scenes
 SPEAKER_A = "A"  # Dialogue speaker A
 SPEAKER_B = "B"  # Dialogue speaker B
+
+
+# --- 과도기 호환 함수 (Sprint B DB 마이그레이션 후 제거 예정) ---
+_STRUCTURE_COERCE_MAP: dict[str, str] = {}
+for _s in STRUCTURE_METADATA:
+    _STRUCTURE_COERCE_MAP[_s.id] = _s.id  # "monologue" → "monologue"
+    _STRUCTURE_COERCE_MAP[_s.label.lower()] = _s.id  # "monologue" → "monologue" (중복 무해)
+    _STRUCTURE_COERCE_MAP[_s.label] = _s.id  # "Monologue" → "monologue"
+    _STRUCTURE_COERCE_MAP[_s.label.lower().replace(" ", "_")] = _s.id  # "narrated_dialogue"
+    _STRUCTURE_COERCE_MAP[_s.label.replace(" ", "_")] = _s.id  # "Narrated_Dialogue"
+
+_LANGUAGE_COERCE_MAP: dict[str, str] = {}
+for _lang in LANGUAGE_METADATA:
+    _LANGUAGE_COERCE_MAP[_lang.id] = _lang.id  # "korean" → "korean"
+    _LANGUAGE_COERCE_MAP[_lang.id.title()] = _lang.id  # "Korean" → "korean"
+
+
+def coerce_structure_id(value: str | None) -> str:
+    """구조 문자열을 snake_case ID로 정규화. 인식 불가 시 DEFAULT_STRUCTURE 반환."""
+    if not value:
+        return DEFAULT_STRUCTURE
+    stripped = value.strip()
+    result = _STRUCTURE_COERCE_MAP.get(stripped)
+    if result:
+        return result
+    # fallback: lowercase + underscore 변환 후 재시도
+    normalized = stripped.lower().replace(" ", "_")
+    return _STRUCTURE_COERCE_MAP.get(normalized, DEFAULT_STRUCTURE)
+
+
+def coerce_language_id(value: str | None) -> str:
+    """언어 문자열을 lowercase ID로 정규화. 인식 불가 시 DEFAULT_LANGUAGE 반환."""
+    if not value:
+        return DEFAULT_LANGUAGE
+    stripped = value.strip()
+    result = _LANGUAGE_COERCE_MAP.get(stripped)
+    if result:
+        return result
+    return _LANGUAGE_COERCE_MAP.get(stripped.lower(), DEFAULT_LANGUAGE)
+
 
 # --- CORS Configuration ---
 CORS_ORIGINS: list[str] = [
@@ -773,11 +865,7 @@ MUSICGEN_CACHE_DIR = PROMPT_CACHE_DIR / "music"
 MUSICGEN_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # --- Storyboard Options (SSOT) ---
-STORYBOARD_LANGUAGES = [
-    {"value": "Korean", "label": "한국어"},
-    {"value": "English", "label": "English"},
-    {"value": "Japanese", "label": "日本語"},
-]
+STORYBOARD_LANGUAGES = [{"value": lang.id, "label": lang.label} for lang in LANGUAGE_METADATA]
 SHORTS_DURATIONS = [15, 30, 45, 60]
 
 # --- Script Length Rules (SSOT for scriptwriter + creative_qc.py) ---
@@ -789,9 +877,9 @@ REVIEW_SCRIPT_MAX_CHARS_OTHER = 70  # char-level review threshold for non-Korean
 
 # --- Reading Speed (SSOT for duration estimation + Frontend display) ---
 READING_SPEED: dict[str, dict] = {
-    "Korean": {"cps": 4.0, "unit": "chars"},
-    "Japanese": {"cps": 5.0, "unit": "chars"},
-    "English": {"wps": 2.5, "unit": "words"},
+    "korean": {"cps": 4.0, "unit": "chars"},
+    "japanese": {"cps": 5.0, "unit": "chars"},
+    "english": {"wps": 2.5, "unit": "words"},
 }
 READING_DURATION_PADDING = 0.5  # seconds (자연스러운 호흡 간격)
 SCENE_DURATION_MAX = 10.0  # absolute safety cap per scene

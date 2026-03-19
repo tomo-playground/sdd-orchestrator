@@ -26,7 +26,7 @@ export const ALL_GROUPS_ID = -1;
 
 export const DEFAULT_BGM = "kawaii-dance-upbeat-japan-anime-edm-242104.mp3";
 export const DEFAULT_SCENE_TEXT_FONT = "온글잎 박다현체.ttf";
-export const DEFAULT_STRUCTURE = "Monologue";
+export const DEFAULT_STRUCTURE = "monologue";
 
 // Backend SSOT fallback: /presets API image_defaults (config.py SD_DEFAULT_WIDTH/HEIGHT)
 export const DEFAULT_IMAGE_WIDTH = 832;

@@ -217,7 +217,9 @@ def _probe_audio_info(path: str) -> tuple[float, int]:
             timeout=5,
         )
         if result.returncode != 0:
-            logger.warning("[BGM] ffprobe non-zero exit (%d) for %s: %s", result.returncode, path, result.stderr.strip())
+            logger.warning(
+                "[BGM] ffprobe non-zero exit (%d) for %s: %s", result.returncode, path, result.stderr.strip()
+            )
             return 0.0, 0
         lines = [ln.strip() for ln in result.stdout.strip().splitlines() if ln.strip()]
         if not lines:
@@ -290,8 +292,7 @@ def _build_bgm_loop_filters(builder: VideoBuilder, bgm_idx: int, bgm_path: str) 
     )
 
     builder.filters.append(
-        f"[{bgm_idx}:a]aloop=loop={loops}:size={sample_count}:start=0,"
-        f"asetpts=PTS-STARTPTS[bgm_looped]"
+        f"[{bgm_idx}:a]aloop=loop={loops}:size={sample_count}:start=0,asetpts=PTS-STARTPTS[bgm_looped]"
     )
 
     return "[bgm_looped]"

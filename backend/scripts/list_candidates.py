@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -24,6 +23,7 @@ def list_candidates():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     list_candidates()

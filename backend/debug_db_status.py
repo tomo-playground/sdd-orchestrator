@@ -18,10 +18,11 @@ def check_db():
                 print(f"Could not count {table}: {e}")
 
         try:
-            res = conn.execute(text('SELECT version_num FROM alembic_version')).fetchone()
+            res = conn.execute(text("SELECT version_num FROM alembic_version")).fetchone()
             print(f"Alembic Version: {res[0] if res else 'None'}")
         except Exception as e:
             print(f"Could not get alembic version: {e}")
+
 
 if __name__ == "__main__":
     check_db()

@@ -1,4 +1,5 @@
 """Fill missing data for all characters based on Hana's structure."""
+
 import sys
 from pathlib import Path
 
@@ -43,17 +44,15 @@ def main():
                     db.flush()
 
                 # Check if tag is already linked
-                existing = db.query(CharacterTag).filter(
-                    CharacterTag.character_id == eureka.id,
-                    CharacterTag.tag_id == tag.id
-                ).first()
+                existing = (
+                    db.query(CharacterTag)
+                    .filter(CharacterTag.character_id == eureka.id, CharacterTag.tag_id == tag.id)
+                    .first()
+                )
 
                 if not existing:
                     char_tag = CharacterTag(
-                        character_id=eureka.id,
-                        tag_id=tag.id,
-                        weight=weight,
-                        is_permanent=is_permanent
+                        character_id=eureka.id, tag_id=tag.id, weight=weight, is_permanent=is_permanent
                     )
                     db.add(char_tag)
 
@@ -76,17 +75,15 @@ def main():
                     db.add(tag)
                     db.flush()
 
-                existing = db.query(CharacterTag).filter(
-                    CharacterTag.character_id == midoriya.id,
-                    CharacterTag.tag_id == tag.id
-                ).first()
+                existing = (
+                    db.query(CharacterTag)
+                    .filter(CharacterTag.character_id == midoriya.id, CharacterTag.tag_id == tag.id)
+                    .first()
+                )
 
                 if not existing:
                     char_tag = CharacterTag(
-                        character_id=midoriya.id,
-                        tag_id=tag.id,
-                        weight=weight,
-                        is_permanent=is_permanent
+                        character_id=midoriya.id, tag_id=tag.id, weight=weight, is_permanent=is_permanent
                     )
                     db.add(char_tag)
 
@@ -107,17 +104,15 @@ def main():
                     db.add(tag)
                     db.flush()
 
-                existing = db.query(CharacterTag).filter(
-                    CharacterTag.character_id == generic_girl.id,
-                    CharacterTag.tag_id == tag.id
-                ).first()
+                existing = (
+                    db.query(CharacterTag)
+                    .filter(CharacterTag.character_id == generic_girl.id, CharacterTag.tag_id == tag.id)
+                    .first()
+                )
 
                 if not existing:
                     char_tag = CharacterTag(
-                        character_id=generic_girl.id,
-                        tag_id=tag.id,
-                        weight=weight,
-                        is_permanent=is_permanent
+                        character_id=generic_girl.id, tag_id=tag.id, weight=weight, is_permanent=is_permanent
                     )
                     db.add(char_tag)
 
@@ -138,17 +133,15 @@ def main():
                     db.add(tag)
                     db.flush()
 
-                existing = db.query(CharacterTag).filter(
-                    CharacterTag.character_id == generic_boy.id,
-                    CharacterTag.tag_id == tag.id
-                ).first()
+                existing = (
+                    db.query(CharacterTag)
+                    .filter(CharacterTag.character_id == generic_boy.id, CharacterTag.tag_id == tag.id)
+                    .first()
+                )
 
                 if not existing:
                     char_tag = CharacterTag(
-                        character_id=generic_boy.id,
-                        tag_id=tag.id,
-                        weight=weight,
-                        is_permanent=is_permanent
+                        character_id=generic_boy.id, tag_id=tag.id, weight=weight, is_permanent=is_permanent
                     )
                     db.add(char_tag)
 
@@ -163,6 +156,7 @@ def main():
         raise
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

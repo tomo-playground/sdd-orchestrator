@@ -80,9 +80,7 @@ class TestBatchValidate:
             response = client.post("/api/admin/quality/batch-validate", json=request_data)
             assert response.status_code == 500
 
-    def test_batch_validate_missing_storyboard_id(
-        self, client: TestClient, db_session
-    ):
+    def test_batch_validate_missing_storyboard_id(self, client: TestClient, db_session):
         """Missing storyboard_id returns 422."""
         request_data = {
             "scenes": [{"scene_id": 1, "image_url": "/test.png", "prompt": "test"}],

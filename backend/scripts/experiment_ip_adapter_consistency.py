@@ -17,7 +17,6 @@ Usage:
 import asyncio
 import base64
 import json
-import os
 import sys
 import time
 from datetime import datetime
@@ -130,10 +129,7 @@ VARIATION_SCENARIOS = [
         "name": "04_close_up_emotion",
         "description": "감정적 클로즈업 (슬픈 표정)",
         "scene_tags": (
-            "close-up, face_focus, "
-            "tears, crying, sad, emotional, "
-            "blurry_background, bokeh, "
-            "looking_down, solo"
+            "close-up, face_focus, tears, crying, sad, emotional, blurry_background, bokeh, looking_down, solo"
         ),
         "ip_weight": 0.90,
     },
@@ -141,10 +137,7 @@ VARIATION_SCENARIOS = [
         "name": "05_action_running",
         "description": "달리는 역동적 장면",
         "scene_tags": (
-            "running, motion_blur, dynamic_angle, "
-            "school, hallway, indoor, "
-            "determined, excited, "
-            "full_body, from_side"
+            "running, motion_blur, dynamic_angle, school, hallway, indoor, determined, excited, full_body, from_side"
         ),
         "ip_weight": 0.90,
     },
@@ -186,14 +179,11 @@ VARIATION_SCENARIOS = [
 
 # ─── 유틸리티 ───────────────────────────────────────────────
 
+
 def build_prompt(scene_tags: str) -> str:
     """Style + Character + Scene 프롬프트 조합"""
-    lora_str = ", ".join(
-        f"<lora:{l['name']}:{l['weight']}>" for l in STYLE_LORAS
-    )
-    trigger_str = ", ".join(
-        l["trigger"] for l in STYLE_LORAS if l["trigger"]
-    )
+    lora_str = ", ".join(f"<lora:{l['name']}:{l['weight']}>" for l in STYLE_LORAS)
+    trigger_str = ", ".join(l["trigger"] for l in STYLE_LORAS if l["trigger"])
     parts = [STYLE_POSITIVE]
     if trigger_str:
         parts.append(trigger_str)
@@ -226,18 +216,20 @@ def build_payload(
 
     controlnet_args = []
     if ip_adapter_image_b64:
-        controlnet_args.append({
-            "enabled": True,
-            "image": ip_adapter_image_b64,
-            "module": IP_ADAPTER_MODULE,
-            "model": IP_ADAPTER_MODEL,
-            "weight": ip_weight,
-            "resize_mode": "Crop and Resize",
-            "processor_res": 832,
-            "control_mode": "Balanced",
-            "guidance_start": 0.0,
-            "guidance_end": 1.0,
-        })
+        controlnet_args.append(
+            {
+                "enabled": True,
+                "image": ip_adapter_image_b64,
+                "module": IP_ADAPTER_MODULE,
+                "model": IP_ADAPTER_MODEL,
+                "weight": ip_weight,
+                "resize_mode": "Crop and Resize",
+                "processor_res": 832,
+                "control_mode": "Balanced",
+                "guidance_start": 0.0,
+                "guidance_end": 1.0,
+            }
+        )
     else:
         controlnet_args.append({"enabled": False})
 
@@ -289,7 +281,7 @@ async def generate_image(
         pass
 
     seed = info.get("seed", "unknown")
-    print(f"  [{name}] 완료! ({elapsed:.1f}s, seed={seed}, {len(img_bytes)//1024}KB)")
+    print(f"  [{name}] 완료! ({elapsed:.1f}s, seed={seed}, {len(img_bytes) // 1024}KB)")
 
     # 메타데이터 저장
     meta = {
@@ -319,6 +311,7 @@ async def load_reference_from_minio() -> str:
 
 # ─── 메인 실험 ──────────────────────────────────────────────
 
+
 async def main():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = EXPERIMENT_DIR / timestamp
@@ -337,8 +330,10 @@ async def main():
         ref_payload = build_payload(ref_prompt, ref_negative)  # IP-Adapter 없이
 
         ref_meta = await generate_image(
-            client, ref_payload,
-            SCENE_CONCEPT_REFERENCE["name"], output_dir,
+            client,
+            ref_payload,
+            SCENE_CONCEPT_REFERENCE["name"],
+            output_dir,
         )
         results.append(ref_meta)
 
@@ -359,14 +354,17 @@ async def main():
             prompt = build_prompt(scenario["scene_tags"])
             negative = build_negative()
             payload = build_payload(
-                prompt, negative,
+                prompt,
+                negative,
                 ip_adapter_image_b64=scene_ref_b64,
                 ip_weight=scenario["ip_weight"],
             )
 
             meta = await generate_image(
-                client, payload,
-                f"scene_ref_{scenario['name']}", output_dir,
+                client,
+                payload,
+                f"scene_ref_{scenario['name']}",
+                output_dir,
             )
             meta["reference_type"] = "scene_concept"
             results.append(meta)
@@ -386,14 +384,17 @@ async def main():
             prompt = build_prompt(scenario["scene_tags"])
             negative = build_negative()
             payload = build_payload(
-                prompt, negative,
+                prompt,
+                negative,
                 ip_adapter_image_b64=original_ref_b64,
                 ip_weight=scenario["ip_weight"],
             )
 
             meta = await generate_image(
-                client, payload,
-                f"orig_ref_{scenario['name']}", output_dir,
+                client,
+                payload,
+                f"orig_ref_{scenario['name']}",
+                output_dir,
             )
             meta["reference_type"] = "original_white_bg"
             results.append(meta)
@@ -406,10 +407,7 @@ async def main():
         "style_profile": "Romantic Warm Anime (ID=11)",
         "sd_model": "NoobAI-XL V-Pred 1.0",
         "ip_adapter_model": IP_ADAPTER_MODEL,
-        "hypothesis": (
-            "씬 컨셉 레퍼런스(배경 포함) + IP-Adapter 0.90이 "
-            "흰배경 레퍼런스보다 캐릭터 일관성이 높을 것"
-        ),
+        "hypothesis": ("씬 컨셉 레퍼런스(배경 포함) + IP-Adapter 0.90이 흰배경 레퍼런스보다 캐릭터 일관성이 높을 것"),
         "phases": {
             "phase1": "씬 컨셉 레퍼런스 생성 (카페 장면, IP-Adapter 없음)",
             "phase2": "씬 컨셉 레퍼런스 + IP-Adapter 변형 (6종 + weight 비교 2종)",

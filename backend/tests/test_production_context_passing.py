@@ -19,7 +19,7 @@ def _base_state(**overrides) -> ScriptState:
         "cinematographer_result": {"scenes": [{"order": 1, "text": "테스트"}]},
         "critic_result": {"mood_progression": "calm → tense"},
         "duration": 30,
-        "language": "Korean",
+        "language": "korean",
         "revision_count": 0,
         "concept_regen_count": 0,
         # skip production을 제거해야 노드가 실행됨

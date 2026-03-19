@@ -22,7 +22,7 @@ async def check_available_models():
         count = 0
         pager = gemini_client.models.list()
 
-        print(f"{ 'Model Name':<40} | { 'Display Name'}")
+        print(f"{'Model Name':<40} | {'Display Name'}")
         print("-" * 60)
 
         for model in pager:
@@ -40,11 +40,13 @@ async def check_available_models():
         # Try fallback for older SDK versions or different structures
         try:
             import google.generativeai as genai
+
             print("\n🔄 Trying legacy genai.list_models()...")
             for m in genai.list_models():
                 print(f"{m.name:<40} | {m.supported_generation_methods}")
         except Exception as e2:
             print(f"   Legacy check also failed: {e2}")
+
 
 if __name__ == "__main__":
     asyncio.run(check_available_models())

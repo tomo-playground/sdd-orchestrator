@@ -422,7 +422,9 @@ async def test_copyright_reviewer_passes_director_feedback(mock_step, cinema_res
     state = {"cinematographer_result": cinema_result, "director_feedback": "IP 재검토 필요"}
     await copyright_reviewer_node(state)
     call_vars = mock_step.call_args[1]["template_vars"]
-    assert "IP 재검토 필요" in call_vars.get("feedback_block", call_vars.get("feedback_section", call_vars.get("feedback", "")))
+    assert "IP 재검토 필요" in call_vars.get(
+        "feedback_block", call_vars.get("feedback_section", call_vars.get("feedback", ""))
+    )
 
 
 # -- Fallback 패턴 테스트 --

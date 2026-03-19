@@ -17,37 +17,49 @@ from models import Tag
 
 # Expected categories and their typical patterns
 CATEGORY_PATTERNS = {
-    'expression': ['smiling', 'crying', 'laughing', 'happy', 'sad', 'angry', 'surprised', 'neutral'],
-    'gaze': ['looking_at_viewer', 'looking_away', 'looking_down', 'looking_up', 'closed_eyes', 'eye_contact'],
-    'pose': ['standing', 'sitting', 'lying', 'kneeling', 'crouching', 'squatting'],
-    'action': ['waving', 'pointing', 'stretching', 'running', 'walking', 'jumping'],
-    'camera': ['upper_body', 'full_body', 'cowboy_shot', 'close-up', 'from_above', 'from_below'],
-    'subject': ['1girl', '1boy', '2girls', '2boys', 'solo', 'multiple_girls'],
-    'hair_length': ['short_hair', 'long_hair', 'medium_hair', 'very_long_hair'],
-    'hair_color': ['black_hair', 'brown_hair', 'blonde_hair', 'red_hair', 'blue_hair', 'green_hair', 'pink_hair'],
-    'eye_color': ['blue_eyes', 'brown_eyes', 'green_eyes', 'red_eyes', 'purple_eyes'],
-    'clothing': ['school_uniform', 'dress', 'shirt', 'skirt', 'pants', 'jacket'],
-    'location_indoor': ['bedroom', 'classroom', 'kitchen', 'bathroom', 'office', 'library'],
-    'location_outdoor': ['park', 'street', 'beach', 'forest', 'mountain', 'city'],
-    'time_weather': ['day', 'night', 'sunset', 'sunrise', 'rain', 'snow', 'cloudy'],
-    'lighting': ['bright', 'dark', 'dramatic_lighting', 'soft_lighting', 'backlight'],
-    'quality': ['best_quality', 'high_quality', 'normal_quality', 'low_quality'],
-    'meta': ['masterpiece', 'official_art', 'highres', 'lowres'],
-    'style': ['anime_style', 'realistic', 'cartoon', 'chibi'],
+    "expression": ["smiling", "crying", "laughing", "happy", "sad", "angry", "surprised", "neutral"],
+    "gaze": ["looking_at_viewer", "looking_away", "looking_down", "looking_up", "closed_eyes", "eye_contact"],
+    "pose": ["standing", "sitting", "lying", "kneeling", "crouching", "squatting"],
+    "action": ["waving", "pointing", "stretching", "running", "walking", "jumping"],
+    "camera": ["upper_body", "full_body", "cowboy_shot", "close-up", "from_above", "from_below"],
+    "subject": ["1girl", "1boy", "2girls", "2boys", "solo", "multiple_girls"],
+    "hair_length": ["short_hair", "long_hair", "medium_hair", "very_long_hair"],
+    "hair_color": ["black_hair", "brown_hair", "blonde_hair", "red_hair", "blue_hair", "green_hair", "pink_hair"],
+    "eye_color": ["blue_eyes", "brown_eyes", "green_eyes", "red_eyes", "purple_eyes"],
+    "clothing": ["school_uniform", "dress", "shirt", "skirt", "pants", "jacket"],
+    "location_indoor": ["bedroom", "classroom", "kitchen", "bathroom", "office", "library"],
+    "location_outdoor": ["park", "street", "beach", "forest", "mountain", "city"],
+    "time_weather": ["day", "night", "sunset", "sunrise", "rain", "snow", "cloudy"],
+    "lighting": ["bright", "dark", "dramatic_lighting", "soft_lighting", "backlight"],
+    "quality": ["best_quality", "high_quality", "normal_quality", "low_quality"],
+    "meta": ["masterpiece", "official_art", "highres", "lowres"],
+    "style": ["anime_style", "realistic", "cartoon", "chibi"],
 }
 
 # Categories that should NOT map to location_indoor/outdoor
 NON_LOCATION_CATEGORIES = {
-    'expression', 'gaze', 'pose', 'action', 'camera', 'subject',
-    'hair_length', 'hair_color', 'eye_color', 'clothing', 'quality', 'meta', 'style'
+    "expression",
+    "gaze",
+    "pose",
+    "action",
+    "camera",
+    "subject",
+    "hair_length",
+    "hair_color",
+    "eye_color",
+    "clothing",
+    "quality",
+    "meta",
+    "style",
 }
+
 
 def validate_tag_categories():
     db = SessionLocal()
     try:
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TAG CATEGORY VALIDATION REPORT")
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
         # 1. Category distribution
         print("📊 CATEGORY DISTRIBUTION")
@@ -56,7 +68,7 @@ def validate_tag_categories():
         tags = db.query(Tag).all()
 
         for tag in tags:
-            category_counts[tag.category or 'NULL'] += 1
+            category_counts[tag.category or "NULL"] += 1
 
         for category, count in sorted(category_counts.items(), key=lambda x: -x[1]):
             print(f"  {category:20} : {count:5} tags")
@@ -76,7 +88,11 @@ def validate_tag_categories():
                 if any(pattern in tag_name for pattern in patterns):
                     if tag.category != expected_cat:
                         # Special case: scene can have subcategories
-                        if tag.category == 'scene' and expected_cat in ['location_indoor', 'location_outdoor', 'time_weather']:
+                        if tag.category == "scene" and expected_cat in [
+                            "location_indoor",
+                            "location_outdoor",
+                            "time_weather",
+                        ]:
                             continue
 
                         print(f"  {tag.name:30} -> {tag.category or 'NULL':20} (expected: {expected_cat})")
@@ -93,13 +109,14 @@ def validate_tag_categories():
         print("-" * 80)
 
         from services.keywords.db_cache import TagCategoryCache
+
         TagCategoryCache.initialize(db)
 
         incorrect_mappings = []
         for tag in tags:
             prompt_category = TagCategoryCache.get_category(tag.name)
 
-            if prompt_category in ['location_indoor', 'location_outdoor']:
+            if prompt_category in ["location_indoor", "location_outdoor"]:
                 # Check if this tag should be in a non-location category
                 for expected_cat in NON_LOCATION_CATEGORIES:
                     if expected_cat in CATEGORY_PATTERNS:
@@ -131,12 +148,13 @@ def validate_tag_categories():
         else:
             print("  ✅ All tags have categories")
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("VALIDATION COMPLETE")
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     validate_tag_categories()

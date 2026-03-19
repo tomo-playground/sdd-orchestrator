@@ -68,6 +68,7 @@ class VRTConfig:
     def get_meta_random() -> random.Random:
         """Get Random instance: seeded in test mode, time-based otherwise."""
         import time
+
         if VRTConfig.is_test_mode():
             return random.Random(VRTConfig.META_RANDOM_SEED)
         return random.Random(time.time_ns())
@@ -85,6 +86,7 @@ def get_test_seed(name: str = "default") -> int:
         A deterministic integer seed
     """
     import hashlib
+
     hash_value = hashlib.md5(f"{VRTConfig.FIXED_SEED}|{name}".encode()).hexdigest()
     return int(hash_value[:8], 16)
 
@@ -101,6 +103,7 @@ def create_seeded_random(seed: int | None = None) -> random.Random:
         A Random instance
     """
     import time
+
     if seed is not None:
         return random.Random(seed)
     if VRTConfig.is_test_mode():
@@ -109,6 +112,7 @@ def create_seeded_random(seed: int | None = None) -> random.Random:
 
 
 # === Test Data Generators ===
+
 
 def get_test_views_time(seed: int | None = None) -> tuple[str, str]:
     """
@@ -132,10 +136,10 @@ def get_test_avatar_color(seed: int | None = None) -> tuple[int, int, int]:
         RGB tuple
     """
     palette = [
-        (255, 183, 77),   # Orange
+        (255, 183, 77),  # Orange
         (129, 199, 132),  # Green
         (100, 181, 246),  # Blue
-        (240, 98, 146),   # Pink
+        (240, 98, 146),  # Pink
         (186, 104, 200),  # Purple
     ]
 

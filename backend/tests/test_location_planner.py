@@ -33,14 +33,14 @@ class TestEstimateSceneRange:
         assert mn >= 1
 
     def test_dialogue_45s(self):
-        mn, mx = _estimate_scene_range(45, "Dialogue")
+        mn, mx = _estimate_scene_range(45, "dialogue")
         assert mn == 8
         assert mx == 12
 
     def test_dialogue_45s_vs_monologue_45s(self):
         """Dialogue should produce fewer scenes than Monologue for same duration."""
-        d_mn, d_mx = _estimate_scene_range(45, "Dialogue")
-        m_mn, m_mx = _estimate_scene_range(45, "Monologue")
+        d_mn, d_mx = _estimate_scene_range(45, "dialogue")
+        m_mn, m_mx = _estimate_scene_range(45, "monologue")
         assert d_mx < m_mx
 
     def test_max_ge_min(self):
@@ -84,8 +84,8 @@ def full_state():
         "topic": "첫 번째 칼",
         "description": "요리사의 이야기",
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "skip_stages": [],
     }
 
@@ -152,7 +152,9 @@ class TestLocationPlannerNode:
         full_state["writer_plan"] = {"hook_strategy": "기존 훅", "emotional_arc": ["기대", "감동"]}
 
         mock_llm_resp = MagicMock()
-        mock_llm_resp.text = '{"total_scenes": 2, "locations": [{"name": "room", "scenes": [0, 1], "tags": ["indoors"]}]}'
+        mock_llm_resp.text = (
+            '{"total_scenes": 2, "locations": [{"name": "room", "scenes": [0, 1], "tags": ["indoors"]}]}'
+        )
         mock_provider = MagicMock()
         mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
 

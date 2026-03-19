@@ -22,12 +22,14 @@ def register_doremi_rule():
             existing.reason = "User manual trigger definition"
         else:
             print(f"Creating new alias for '{source_tag}'")
-            db.add(TagAlias(
-                source_tag=source_tag,
-                target_tag=target_tag,
-                reason="User manual trigger definition",
-                is_active=True
-            ))
+            db.add(
+                TagAlias(
+                    source_tag=source_tag,
+                    target_tag=target_tag,
+                    reason="User manual trigger definition",
+                    is_active=True,
+                )
+            )
 
         db.commit()
         print("✅ Doremi rule registered successfully!")
@@ -39,6 +41,7 @@ def register_doremi_rule():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     register_doremi_rule()

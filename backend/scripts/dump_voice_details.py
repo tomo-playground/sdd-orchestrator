@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from database import SessionLocal
 from models import VoicePreset
 
+
 def main():
     db = SessionLocal()
     try:
@@ -22,6 +23,7 @@ def main():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

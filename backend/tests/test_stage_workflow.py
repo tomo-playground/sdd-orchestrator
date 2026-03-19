@@ -293,7 +293,7 @@ class TestAutoPinWithBackgroundId:
             _mock_scene(2, ["cafe"], background_id=10),
             _mock_scene(3, ["cafe"]),
         ]
-        result = calculate_auto_pin_flags(scenes, structure="Dialogue")
+        result = calculate_auto_pin_flags(scenes, structure="dialogue")
 
         assert result[1] is False
         assert result[2] is False  # Has background_id → no auto_pin

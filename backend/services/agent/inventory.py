@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from config import STRUCTURE_METADATA, StructureMeta  # noqa: F401 — re-export for backward compat
 from config_pipelines import INVENTORY_MAX_CHARACTERS
 from models.associations import CharacterTag
 from models.character import Character
@@ -32,30 +33,12 @@ class CharacterSummary:
 
 
 @dataclass
-class StructureMeta:
-    """구조 메타데이터 (인메모리 상수)."""
-
-    id: str
-    name: str
-    requires_two_characters: bool
-    tone: str
-
-
-@dataclass
 class StyleSummary:
     """Director에게 제공할 스타일 요약."""
 
     id: int
     name: str
     description: str
-
-
-STRUCTURE_METADATA: list[StructureMeta] = [
-    StructureMeta(id="monologue", name="Monologue", requires_two_characters=False, tone="intimate"),
-    StructureMeta(id="dialogue", name="Dialogue", requires_two_characters=True, tone="dynamic"),
-    StructureMeta(id="narrated_dialogue", name="Narrated Dialogue", requires_two_characters=True, tone="narrative"),
-    StructureMeta(id="confession", name="Confession", requires_two_characters=False, tone="emotional"),
-]
 
 
 def _build_appearance_summary(character: Character) -> str:

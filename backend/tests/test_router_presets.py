@@ -66,7 +66,7 @@ class TestPresetsRouter:
         assert data["id"] == "monologue"
         assert data["name"] == "Monologue"
         assert data["name_ko"] == "독백"
-        assert data["structure"] == "Monologue"
+        assert data["structure"] == "monologue"
         assert "template" in data
         assert "sample_topics" in data
         assert isinstance(data["sample_topics"], list)
@@ -81,7 +81,7 @@ class TestPresetsRouter:
 
         assert data["id"] == "dialogue"
         assert data["name"] == "Dialogue"
-        assert data["structure"] == "Dialogue"
+        assert data["structure"] == "dialogue"
         assert data["default_duration"] == 30
 
     def test_get_preset_not_found(self, client: TestClient, db_session):

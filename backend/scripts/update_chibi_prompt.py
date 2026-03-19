@@ -1,4 +1,3 @@
-
 from database import SessionLocal
 from models.character import Character
 
@@ -26,6 +25,7 @@ def update_chibi_prompt():
         print(f"❌ Error: {e}")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     update_chibi_prompt()

@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-from config import SCRIPT_LENGTH_KOREAN, SCRIPT_LENGTH_OTHER, logger
+from config import SCRIPT_LENGTH_KOREAN, SCRIPT_LENGTH_OTHER, coerce_structure_id, logger
 from services.keywords.patterns import CATEGORY_PATTERNS
-from services.storyboard.helpers import calculate_max_scenes, calculate_min_scenes, normalize_structure
+from services.storyboard.helpers import calculate_max_scenes, calculate_min_scenes
 
 _GAZE_TAGS: frozenset[str] = frozenset(CATEGORY_PATTERNS.get("gaze", []))
 _POSE_TAGS: frozenset[str] = frozenset(CATEGORY_PATTERNS.get("pose", []))
 
 # Narrator는 모든 구조에서 선택적으로 허용 (CLAUDE.md 설계 원칙)
 _VALID_SPEAKERS: dict[str, frozenset[str]] = {
-    "Monologue": frozenset({"A", "Narrator"}),
-    "Dialogue": frozenset({"A", "B", "Narrator"}),
-    "Confession": frozenset({"A", "Narrator"}),
-    "Narrated Dialogue": frozenset({"Narrator", "A", "B"}),
+    "monologue": frozenset({"A", "Narrator"}),
+    "dialogue": frozenset({"A", "B", "Narrator"}),
+    "confession": frozenset({"A", "Narrator"}),
+    "narrated_dialogue": frozenset({"Narrator", "A", "B"}),
 }
 
 
@@ -46,7 +46,7 @@ def validate_scripts(
     issues: list[str] = []
     checks: dict[str, str] = {}
 
-    structure = normalize_structure(structure)
+    structure = coerce_structure_id(structure)
     # Scene count check (SSOT: storyboard helpers)
     min_scenes = calculate_min_scenes(duration, structure)
     max_scenes = calculate_max_scenes(duration, structure)
@@ -63,7 +63,7 @@ def validate_scripts(
     length_pass = 0
     for i, s in enumerate(scripts):
         script_text = s.get("script", "")
-        if language == "Korean":
+        if language == "korean":
             ok = ko_min <= len(script_text) <= ko_max
         else:
             ok = other_min <= len(script_text.split()) <= other_max
@@ -103,15 +103,14 @@ def validate_scripts(
 
     # Speaker distribution check
     speakers_found = {s.get("speaker", "") for s in scripts}
-    structure_lower = structure.lower().replace("_", " ") if structure else ""
-    if structure_lower == "dialogue":
+    if structure == "dialogue":
         missing = {"A", "B"} - speakers_found
         if missing:
             checks["speaker_distribution"] = "FAIL"
             issues.append(f"Dialogue requires both A and B, missing: {', '.join(sorted(missing))}")
         else:
             checks["speaker_distribution"] = "PASS"
-    elif structure_lower == "narrated dialogue":
+    elif structure == "narrated_dialogue":
         missing = {"Narrator", "A", "B"} - speakers_found
         if missing:
             checks["speaker_distribution"] = "FAIL"
@@ -171,9 +170,7 @@ def _check_environment_consistency(scenes: list[dict]) -> list[str]:
         unique_envs = set(env_sets.values())
         if len(unique_envs) > 1:
             scene_envs = ", ".join(f"Scene {idx}: {list(envs[idx])}" for idx in group)
-            issues.append(
-                f"Consecutive dialogue scenes {group} have inconsistent environments: {scene_envs}"
-            )
+            issues.append(f"Consecutive dialogue scenes {group} have inconsistent environments: {scene_envs}")
     return issues
 
 

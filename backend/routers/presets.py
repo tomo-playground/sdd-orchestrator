@@ -27,7 +27,6 @@ async def list_presets():
         DEFAULT_MULTI_GEN_ENABLED,
         DEFAULT_TTS_ENGINE,
         DEFAULT_USE_CONTROLNET,
-        SUPPORTED_TTS_ENGINES,
         DEFAULT_USE_IP_ADAPTER,
         READING_SPEED,
         SD_DEFAULT_HEIGHT,
@@ -37,6 +36,7 @@ async def list_presets():
         SD_HI_RES_SECOND_PASS_STEPS,
         SD_HI_RES_UPSCALER,
         SD_SAMPLERS,
+        SUPPORTED_TTS_ENGINES,
     )
     from config_pipelines import FAST_TRACK_SKIP_STAGES  # noqa: PLC0415
 

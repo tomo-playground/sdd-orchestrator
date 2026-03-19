@@ -10,18 +10,18 @@ class TestDialogueValidation:
         """Dialogue without character_b_id should raise 400."""
         request = StoryboardRequest(
             topic="Test dialogue",
-            structure="Dialogue",
+            structure="dialogue",
             character_id=1,
             character_b_id=None,
         )
-        assert request.structure == "Dialogue"
+        assert request.structure == "dialogue"
         assert request.character_b_id is None
 
     def test_dialogue_requires_character_id(self):
         """Dialogue without character_id should raise 400."""
         request = StoryboardRequest(
             topic="Test dialogue",
-            structure="Dialogue",
+            structure="dialogue",
             character_id=None,
             character_b_id=2,
         )
@@ -31,7 +31,7 @@ class TestDialogueValidation:
         """Speaker A and B must be different characters."""
         request = StoryboardRequest(
             topic="Test dialogue",
-            structure="Dialogue",
+            structure="dialogue",
             character_id=1,
             character_b_id=1,
         )
@@ -41,7 +41,7 @@ class TestDialogueValidation:
         """Monologue should work fine with character_b_id=None."""
         request = StoryboardRequest(
             topic="Test monologue",
-            structure="Monologue",
+            structure="monologue",
             character_id=1,
         )
         assert request.character_b_id is None
@@ -53,7 +53,7 @@ class TestDialoguePreset:
     def test_dialogue_preset_exists(self):
         from services.presets import get_preset_by_structure
 
-        preset = get_preset_by_structure("Dialogue")
+        preset = get_preset_by_structure("dialogue")
         assert preset is not None
         assert preset.id == "dialogue"
         assert preset.template == "create_storyboard_dialogue"
@@ -62,7 +62,7 @@ class TestDialoguePreset:
         from services.presets import get_all_presets
 
         presets = get_all_presets()
-        dialogue = next((p for p in presets if p["structure"] == "Dialogue"), None)
+        dialogue = next((p for p in presets if p["structure"] == "dialogue"), None)
         assert dialogue is not None
         assert dialogue["name"] == "Dialogue"
 

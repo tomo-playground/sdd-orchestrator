@@ -164,14 +164,8 @@ class VideoBuilder:
         health = await check_health()
         status = health.get("status", "error")
         if status == "error":
-            raise ConnectionError(
-                "Audio Server is not reachable. "
-                "Please start the audio server before rendering."
-            )
-        tts_loaded = any(
-            m.get("name") == "qwen3-tts" and m.get("loaded")
-            for m in health.get("models", [])
-        )
+            raise ConnectionError("Audio Server is not reachable. Please start the audio server before rendering.")
+        tts_loaded = any(m.get("name") == "qwen3-tts" and m.get("loaded") for m in health.get("models", []))
         if not tts_loaded:
             logger.warning("[Video Build] Audio Server TTS model not loaded yet (status=%s)", status)
         logger.info("[Video Build] Audio Server health: %s", status)

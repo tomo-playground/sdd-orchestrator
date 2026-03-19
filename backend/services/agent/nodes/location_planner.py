@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 
-from config import logger
+from config import coerce_language_id, coerce_structure_id, logger
 from config_pipelines import LANGGRAPH_PLANNING_ENABLED
 from services.agent.langfuse_prompt import compile_prompt
 from services.agent.llm_models import LocationPlan
@@ -20,7 +20,7 @@ from services.agent.state import ScriptState, WriterPlan, build_director_context
 from services.llm import LLMConfig, get_llm_provider
 
 
-def _estimate_scene_range(duration: int, structure: str = "Monologue") -> tuple[int, int]:
+def _estimate_scene_range(duration: int, structure: str = "monologue") -> tuple[int, int]:
     """영상 길이(초)로 예상 씬 개수 범위를 계산한다 (구조 인식)."""
     from services.storyboard.helpers import calculate_max_scenes, calculate_min_scenes
 
@@ -41,7 +41,7 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
         director_ctx = build_director_context(state)
 
         duration = state.get("duration", 30)
-        structure = state.get("structure", "Monologue")
+        structure = coerce_structure_id(state.get("structure"))
         from services.agent.prompt_builders_writer import build_scene_range_text
 
         scene_range = build_scene_range_text(duration, structure)
@@ -51,7 +51,7 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
             _template_name,
             topic=state.get("topic", ""),
             duration=str(duration),
-            language=state.get("language", "Korean"),
+            language=coerce_language_id(state.get("language")),
             structure=structure,
             expected_scenes_min=min_s,
             expected_scenes_max=max_s,

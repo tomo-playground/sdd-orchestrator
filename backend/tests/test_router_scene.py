@@ -8,10 +8,12 @@ from main import app
 
 client = TestClient(app)
 
+
 @pytest.fixture
 def mock_asset_service():
     with patch("routers.scene.AssetService") as m:
         yield m
+
 
 def test_store_scene_image_endpoint(mock_asset_service):
     # Prepare mock image and request
@@ -22,7 +24,7 @@ def test_store_scene_image_endpoint(mock_asset_service):
         "group_id": 1,
         "storyboard_id": 1,
         "scene_id": 1,
-        "file_name": "scene_1.png"
+        "file_name": "scene_1.png",
     }
 
     # Mock behavior

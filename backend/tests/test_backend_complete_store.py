@@ -10,9 +10,8 @@ Covers:
 from __future__ import annotations
 
 from contextlib import contextmanager
+from datetime import UTC
 from unittest.mock import AsyncMock, patch
-
-import pytest
 
 from models.media_asset import MediaAsset
 from models.scene import Scene
@@ -28,7 +27,6 @@ from services.image_progress import (
     create_image_task,
 )
 from services.storyboard.helpers import resolve_project_group_ids
-
 
 # ────────────────────────────────────────────
 # resolve_project_group_ids
@@ -104,9 +102,7 @@ class TestBackendStore:
                 "services.image_gen_pipeline.get_db_session",
                 fake_db_session,
             ),
-            patch(
-                "services.image_gen_pipeline.AssetService"
-            ) as MockAssetService,
+            patch("services.image_gen_pipeline.AssetService") as MockAssetService,
             patch(
                 "services.image_gen_pipeline.decode_data_url",
                 return_value=b"\x89PNG\r\n\x1a\n" + b"\x00" * 100,
@@ -116,9 +112,7 @@ class TestBackendStore:
             mock_instance.save_scene_image.return_value = real_asset
             mock_instance.get_asset_url.return_value = "http://minio/test.png"
 
-            url, asset_id = _sync_store_image(
-                "base64data", sb.id, scene.id, "c-store"
-            )
+            url, asset_id = _sync_store_image("base64data", sb.id, scene.id, "c-store")
 
         assert url == "http://minio/test.png"
         assert asset_id == real_asset.id
@@ -136,9 +130,9 @@ class TestBackendStore:
         # Create a scene, note its ID, then soft-delete it
         old_scene = self._make_scene(db_session, sb.id, client_id="cli-fb")
         stale_id = old_scene.id
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        old_scene.deleted_at = datetime.now(timezone.utc)
+        old_scene.deleted_at = datetime.now(UTC)
         db_session.commit()
 
         # Create a new scene with a different client_id
@@ -162,9 +156,7 @@ class TestBackendStore:
                 "services.image_gen_pipeline.get_db_session",
                 fake_db_session,
             ),
-            patch(
-                "services.image_gen_pipeline.AssetService"
-            ) as MockAssetService,
+            patch("services.image_gen_pipeline.AssetService") as MockAssetService,
             patch(
                 "services.image_gen_pipeline.decode_data_url",
                 return_value=b"\x89PNG" + b"\x00" * 100,
@@ -175,9 +167,7 @@ class TestBackendStore:
             mock_instance.get_asset_url.return_value = "http://minio/fb.png"
 
             # Pass stale scene_id + new client_id
-            url, asset_id = _sync_store_image(
-                "base64data", sb.id, stale_id, "cli-fb-new"
-            )
+            url, asset_id = _sync_store_image("base64data", sb.id, stale_id, "cli-fb-new")
 
         assert url == "http://minio/fb.png"
         assert asset_id == real_asset.id
@@ -188,9 +178,7 @@ class TestBackendStore:
     # -- Test 5 --
     async def test_store_image_to_db_no_storyboard_id(self):
         """storyboard_id 없으면 (None, None) 즉시 반환."""
-        request = SceneGenerateRequest(
-            prompt="test", storyboard_id=None, scene_id=1
-        )
+        request = SceneGenerateRequest(prompt="test", storyboard_id=None, scene_id=1)
         result = await store_image_to_db("base64data", request)
         assert result == (None, None)
 

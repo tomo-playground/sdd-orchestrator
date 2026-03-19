@@ -7,6 +7,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from config import DEFAULT_LANGUAGE, DEFAULT_STRUCTURE
+
 # ── Common ────────────────────────────────────────────────────
 
 
@@ -175,8 +177,8 @@ class ShortsSessionCreate(BaseModel):
 
     topic: str
     duration: int = 30
-    structure: str = "Monologue"
-    language: str = "Korean"
+    structure: str = DEFAULT_STRUCTURE
+    language: str = DEFAULT_LANGUAGE
     character_id: int | None = None
     character_ids: dict[str, int] | None = None  # {"A": 1, "B": 2}
     director_mode: str = "advisor"

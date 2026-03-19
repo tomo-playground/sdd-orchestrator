@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from fastapi.testclient import TestClient
 
 from models.creative import CreativeAgentPreset
@@ -54,8 +53,24 @@ class TestCreativePresetsRouter:
         assert "Listed Preset" in names
 
     def test_list_presets_filter_by_category(self, client: TestClient, db_session):
-        p1 = CreativeAgentPreset(name="W1", agent_role="w1", category="writer", role_description="d", system_prompt="p", model_provider="gemini", model_name="gemini-2.5-flash")
-        p2 = CreativeAgentPreset(name="C1", agent_role="c1", category="critic", role_description="d", system_prompt="p", model_provider="gemini", model_name="gemini-2.5-flash")
+        p1 = CreativeAgentPreset(
+            name="W1",
+            agent_role="w1",
+            category="writer",
+            role_description="d",
+            system_prompt="p",
+            model_provider="gemini",
+            model_name="gemini-2.5-flash",
+        )
+        p2 = CreativeAgentPreset(
+            name="C1",
+            agent_role="c1",
+            category="critic",
+            role_description="d",
+            system_prompt="p",
+            model_provider="gemini",
+            model_name="gemini-2.5-flash",
+        )
         db_session.add_all([p1, p2])
         db_session.commit()
 

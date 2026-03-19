@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -16,14 +15,22 @@ def migrate_rules():
         # List of conflicting pairs to migrate
         conflicts = [
             # Expression conflicts
-            ('crying', 'laughing'), ('crying', 'happy'), ('crying', 'smile'),
-            ('sad', 'happy'), ('sad', 'smile'), ('sad', 'laughing'),
-            ('angry', 'happy'), ('angry', 'smile'),
+            ("crying", "laughing"),
+            ("crying", "happy"),
+            ("crying", "smile"),
+            ("sad", "happy"),
+            ("sad", "smile"),
+            ("sad", "laughing"),
+            ("angry", "happy"),
+            ("angry", "smile"),
             # Gaze conflicts
-            ('looking_down', 'looking_up'), ('looking_away', 'looking_at_viewer'),
-            ('closed_eyes', 'looking_at_viewer'),
+            ("looking_down", "looking_up"),
+            ("looking_away", "looking_at_viewer"),
+            ("closed_eyes", "looking_at_viewer"),
             # Pose conflicts
-            ('sitting', 'standing'), ('lying', 'standing'), ('lying', 'sitting'),
+            ("sitting", "standing"),
+            ("lying", "standing"),
+            ("lying", "sitting"),
         ]
 
         count = 0
@@ -39,27 +46,35 @@ def migrate_rules():
                 continue
 
             # Check if rule already exists (bidirectional check not strictly needed if we consistently add, but good for safety)
-            exists = db.query(TagRule).filter(
-                TagRule.source_tag_id == s_tag.id,
-                TagRule.target_tag_id == t_tag.id,
-                TagRule.rule_type == 'conflict'
-            ).first()
+            exists = (
+                db.query(TagRule)
+                .filter(
+                    TagRule.source_tag_id == s_tag.id,
+                    TagRule.target_tag_id == t_tag.id,
+                    TagRule.rule_type == "conflict",
+                )
+                .first()
+            )
 
             if not exists:
                 # Also check reverse direction just in case
-                reverse_exists = db.query(TagRule).filter(
-                    TagRule.source_tag_id == t_tag.id,
-                    TagRule.target_tag_id == s_tag.id,
-                    TagRule.rule_type == 'conflict'
-                ).first()
+                reverse_exists = (
+                    db.query(TagRule)
+                    .filter(
+                        TagRule.source_tag_id == t_tag.id,
+                        TagRule.target_tag_id == s_tag.id,
+                        TagRule.rule_type == "conflict",
+                    )
+                    .first()
+                )
 
                 if not reverse_exists:
                     rule = TagRule(
                         source_tag_id=s_tag.id,
                         target_tag_id=t_tag.id,
-                        rule_type='conflict',
-                        message='Conflicting tags',
-                        is_active=True
+                        rule_type="conflict",
+                        message="Conflicting tags",
+                        is_active=True,
                     )
                     db.add(rule)
                     count += 1
@@ -79,6 +94,7 @@ def migrate_rules():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     migrate_rules()

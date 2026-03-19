@@ -30,7 +30,7 @@ def _make_scene(order: int, speaker: str = "A", script: str = "대사") -> dict:
     }
 
 
-def _base_state(scenes: list[dict], structure: str = "Dialogue") -> dict:
+def _base_state(scenes: list[dict], structure: str = "dialogue") -> dict:
     return {
         "structure": structure,
         "skip_stages": [],
@@ -113,7 +113,7 @@ async def test_finalize_narrated_dialogue_also_defended(db_session):
     from services.agent.nodes.finalize import finalize_node
 
     scenes = [_make_scene(i, "A") for i in range(4)]
-    state = _base_state(scenes, structure="Narrated Dialogue")
+    state = _base_state(scenes, structure="narrated_dialogue")
 
     with patch("services.agent.nodes.finalize.get_db_session", _mock_get_db_session(db_session)):
         result = await finalize_node(state, {})
@@ -129,7 +129,7 @@ async def test_finalize_monologue_no_speaker_fix(db_session):
     from services.agent.nodes.finalize import finalize_node
 
     scenes = [_make_scene(i, "A") for i in range(4)]
-    state = _base_state(scenes, structure="Monologue")
+    state = _base_state(scenes, structure="monologue")
 
     with patch("services.agent.nodes.finalize.get_db_session", _mock_get_db_session(db_session)):
         result = await finalize_node(state, {})
@@ -146,7 +146,7 @@ async def test_finalize_draft_scenes_path_also_defended(db_session):
 
     scenes = [_make_scene(i, "A") for i in range(4)]
     state = {
-        "structure": "Dialogue",
+        "structure": "dialogue",
         "skip_stages": ["production"],
         "character_id": 100,
         "character_b_id": 200,

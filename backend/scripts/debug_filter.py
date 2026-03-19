@@ -15,7 +15,7 @@ def debug_filter():
         TagCategoryCache.initialize(db)
         TagRuleCache.initialize(db)
 
-        test_tags = ['crying', 'laughing', 'standing', 'sitting', 'looking_at_viewer', 'closed_eyes']
+        test_tags = ["crying", "laughing", "standing", "sitting", "looking_at_viewer", "closed_eyes"]
 
         print("\n--- Tag Category Debug ---")
         for tag in test_tags:
@@ -29,6 +29,7 @@ def debug_filter():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     debug_filter()

@@ -191,8 +191,12 @@ class TestLoadCharactersGroupFilter:
 
     def _make_summary(self, name: str, usage: int = 1) -> CharacterSummary:
         return CharacterSummary(
-            id=1, name=name, gender="female",
-            appearance_summary="", has_lora=False, has_reference=False,
+            id=1,
+            name=name,
+            gender="female",
+            appearance_summary="",
+            has_lora=False,
+            has_reference=False,
             usage_count=usage,
         )
 

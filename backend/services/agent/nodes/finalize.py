@@ -12,6 +12,9 @@ from config import (
     DEFAULT_SCENE_NEGATIVE_PROMPT,
     DURATION_DEFICIT_THRESHOLD,
     DURATION_OVERFLOW_THRESHOLD,
+    MULTI_CHAR_STRUCTURES,
+    coerce_language_id,
+    coerce_structure_id,
     logger,
 )
 from database import get_db_session
@@ -984,8 +987,8 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         }
 
     # Defense: Cinematographer may overwrite speaker assignments → re-enforce A/B alternation
-    structure = (state.get("structure") or "").lower()
-    if structure.replace("_", " ") in ("dialogue", "narrated dialogue"):
+    structure = coerce_structure_id(state.get("structure"))
+    if structure in MULTI_CHAR_STRUCTURES:
         from services.script.scene_postprocess import ensure_dialogue_speakers  # noqa: PLC0415
 
         ensure_dialogue_speakers(scenes)
@@ -1096,7 +1099,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         if not character_id and group_id:
             character_id, character_b_id = _resolve_characters_from_group(
                 group_id,
-                state.get("structure", ""),
+                coerce_structure_id(state.get("structure")),
                 db_session,
             )
 
@@ -1110,7 +1113,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         # Duration 최종 보정 (Review/Revise 경유 후에도 부족할 수 있음)
         target_duration = state.get("duration", 0)
         if target_duration > 0:
-            _ensure_minimum_duration(scenes, target_duration, state.get("language", "Korean"))
+            _ensure_minimum_duration(scenes, target_duration, coerce_language_id(state.get("language")))
 
         if character_id or character_b_id:
             _populate_character_actions(scenes, character_id, character_b_id, db_session)
@@ -1146,8 +1149,7 @@ def _resolve_characters_from_group(
         logger.warning("[Finalize] Group %d에 캐릭터 없음, character_id=None 유지", group_id)
         return None, None
     char_a = chars[0].id
-    _DIALOGUE_STRUCTURES = {"Dialogue", "Narrated Dialogue", "Narrated_Dialogue"}
-    char_b = chars[1].id if len(chars) > 1 and structure in _DIALOGUE_STRUCTURES else None
+    char_b = chars[1].id if len(chars) > 1 and coerce_structure_id(structure) in MULTI_CHAR_STRUCTURES else None
     logger.info("[Finalize] Resolved characters from group %d: A=%s, B=%s", group_id, char_a, char_b)
     return char_a, char_b
 

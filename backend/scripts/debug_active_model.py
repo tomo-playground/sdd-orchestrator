@@ -1,9 +1,8 @@
-
 import os
 import sys
 
 # Add backend to sys.path
-sys.path.append(os.path.join(os.getcwd(), 'backend'))
+sys.path.append(os.path.join(os.getcwd(), "backend"))
 
 from backend.database import SessionLocal
 from backend.models.sd_model import SDModel
@@ -36,6 +35,7 @@ def main():
         print(f"Error querying database: {e}")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

@@ -8,6 +8,7 @@ from models.lora import LoRA
 
 CIVITAI_API_URL = "https://civitai.com/api/v1/models"
 
+
 def search_civitai_model(query: str):
     """Search for a model on Civitai by name."""
     try:
@@ -35,7 +36,7 @@ def search_civitai_model(query: str):
             "name": model["name"],
             "version_id": version["id"],
             "version_name": version["name"],
-            "triggers": version.get("trainedWords", [])
+            "triggers": version.get("trainedWords", []),
         }
 
     except Exception as e:
@@ -92,6 +93,7 @@ def sync_triggers(dry_run: bool = False):
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sync LoRA trigger words from Civitai")

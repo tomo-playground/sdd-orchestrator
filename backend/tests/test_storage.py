@@ -12,6 +12,7 @@ def temp_output_dir(tmp_path):
     d.mkdir()
     return d
 
+
 class TestLocalStorage:
     def test_save_and_exists(self, temp_output_dir):
         storage = LocalStorage(base_dir=temp_output_dir, public_url="http://test")
@@ -38,6 +39,7 @@ class TestLocalStorage:
         path = storage.get_local_path(key)
         assert path == temp_output_dir / key
 
+
 class TestS3Storage:
     @patch("boto3.client")
     def test_save(self, mock_boto):
@@ -50,15 +52,10 @@ class TestS3Storage:
             secret_key="secret",
             bucket_name="bucket",
             public_url="http://pub",
-            cache_dir=Path("/tmp/cache")
+            cache_dir=Path("/tmp/cache"),
         )
 
         key = "projects/1/test.png"
         storage.save(key, b"data", content_type="image/png")
 
-        mock_s3.put_object.assert_called_once_with(
-            Bucket="bucket",
-            Key=key,
-            Body=b"data",
-            ContentType="image/png"
-        )
+        mock_s3.put_object.assert_called_once_with(Bucket="bucket", Key=key, Body=b"data", ContentType="image/png")

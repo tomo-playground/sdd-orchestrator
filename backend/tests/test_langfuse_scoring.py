@@ -65,9 +65,7 @@ class TestScoreConfigConsistency:
             "narrative_overall",
         ]
         for name in numeric_names:
-            assert LANGFUSE_SCORE_CONFIGS[name]["data_type"] == "NUMERIC", (
-                f"{name} should be NUMERIC"
-            )
+            assert LANGFUSE_SCORE_CONFIGS[name]["data_type"] == "NUMERIC", f"{name} should be NUMERIC"
 
 
 # ── Import 존재 검증 ─────────────────────────────────────────
@@ -258,10 +256,7 @@ class TestNodeScoreMapping:
             review,
         )
 
-        return "\n".join(
-            inspect.getsource(mod)
-            for mod in [review, finalize, cinematographer, research, director]
-        )
+        return "\n".join(inspect.getsource(mod) for mod in [review, finalize, cinematographer, research, director])
 
     def test_every_config_score_has_recording_node(self):
         """LANGFUSE_SCORE_CONFIGS의 모든 Score가 최소 1개 노드에서 기록된다."""

@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -30,6 +29,7 @@ def check_existing_rule():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     check_existing_rule()

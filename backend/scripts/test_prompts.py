@@ -1,4 +1,5 @@
 """Test V3 character-based prompt generation."""
+
 import asyncio
 import sys
 from pathlib import Path
@@ -27,15 +28,12 @@ async def test_character_prompt():
         ]
 
         for test in test_cases:
-            logger.info(f"\n{'='*60}")
+            logger.info(f"\n{'=' * 60}")
             logger.info(f"Testing character: {test['name']} (ID: {test['character_id']})")
-            logger.info(f"{'='*60}")
+            logger.info(f"{'=' * 60}")
 
             try:
-                prompt = service.generate_prompt_for_scene(
-                    character_id=test['character_id'],
-                    scene_tags=scene_tags
-                )
+                prompt = service.generate_prompt_for_scene(character_id=test["character_id"], scene_tags=scene_tags)
 
                 logger.info("✅ Generated prompt:")
                 logger.info(f"{prompt}")
@@ -46,6 +44,7 @@ async def test_character_prompt():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     asyncio.run(test_character_prompt())

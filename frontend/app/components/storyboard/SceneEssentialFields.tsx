@@ -163,7 +163,7 @@ function ScriptMeta({ script }: { script: string }) {
   const count = isWordBased ? wordCount : charCount;
   const rate = isWordBased ? (cfg?.wps ?? 2.5) : (cfg?.cps ?? 4);
   const readTime = count / rate;
-  const unit = isWordBased ? "words" : language === "Japanese" ? "字" : "자";
+  const unit = isWordBased ? "words" : language === "japanese" ? "字" : "자";
 
   return (
     <div className="flex items-center gap-2 text-[11px] text-zinc-400">

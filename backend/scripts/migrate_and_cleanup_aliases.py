@@ -22,10 +22,10 @@ def migrate_and_cleanup():
 
         print("🔍 Scanning TagAliases for LoRA definitions...")
 
-        lora_pattern = re.compile(r'<lora:([^:>]+)(?::[^:>]+)?(?::([0-9.]+))?>')
+        lora_pattern = re.compile(r"<lora:([^:>]+)(?::[^:>]+)?(?::([0-9.]+))?>")
 
         for alias in aliases:
-            if not alias.target_tag or '<lora:' not in alias.target_tag:
+            if not alias.target_tag or "<lora:" not in alias.target_tag:
                 continue
 
             # Extract LoRA info
@@ -36,9 +36,15 @@ def migrate_and_cleanup():
             print(f"\nProcessing alias: '{alias.source_tag}' -> '{alias.target_tag}'")
 
             # Check if source_tag matches a Character
-            char = db.query(Character).filter(
-                or_(Character.name.ilike(alias.source_tag), Character.name.ilike(alias.source_tag.replace('_', ' ')))
-            ).first()
+            char = (
+                db.query(Character)
+                .filter(
+                    or_(
+                        Character.name.ilike(alias.source_tag), Character.name.ilike(alias.source_tag.replace("_", " "))
+                    )
+                )
+                .first()
+            )
 
             if char:
                 print(f"  ✨ Found matching character: {char.name}")
@@ -52,20 +58,22 @@ def migrate_and_cleanup():
                     lora_obj = db.query(LoRA).filter(LoRA.name == lora_name).first()
                     # Try fuzzy search if not found
                     if not lora_obj:
-                         lora_obj = db.query(LoRA).filter(LoRA.name.ilike(f"%{lora_name}%")).first()
+                        lora_obj = db.query(LoRA).filter(LoRA.name.ilike(f"%{lora_name}%")).first()
 
                     if lora_obj:
                         # Check duplication
-                        exists = any(entry.get('lora_id') == lora_obj.id for entry in current_loras)
+                        exists = any(entry.get("lora_id") == lora_obj.id for entry in current_loras)
                         if not exists:
                             print(f"    -> Migrating LoRA '{lora_obj.name}' (w={weight}) to character")
-                            current_loras.append({
-                                "lora_id": lora_obj.id,
-                                "name": lora_obj.name,
-                                "weight": weight,
-                                "trigger_words": lora_obj.trigger_words or [],
-                                "lora_type": lora_obj.lora_type or "style"
-                            })
+                            current_loras.append(
+                                {
+                                    "lora_id": lora_obj.id,
+                                    "name": lora_obj.name,
+                                    "weight": weight,
+                                    "trigger_words": lora_obj.trigger_words or [],
+                                    "lora_type": lora_obj.lora_type or "style",
+                                }
+                            )
                             modified_char = True
                         else:
                             print(f"    -> Character already has LoRA '{lora_obj.name}'")
@@ -79,10 +87,10 @@ def migrate_and_cleanup():
                 print("  ℹ️  No character matched. LoRA info will be removed from alias but not migrated.")
 
             # Remove LoRA string from target_tag
-            new_target = lora_pattern.sub('', alias.target_tag)
+            new_target = lora_pattern.sub("", alias.target_tag)
             # Clean up commas and spaces
-            new_target = re.sub(r',\s*,', ',', new_target)
-            new_target = new_target.strip().strip(',').strip()
+            new_target = re.sub(r",\s*,", ",", new_target)
+            new_target = new_target.strip().strip(",").strip()
 
             source_norm = alias.source_tag.strip().lower()
             target_norm = new_target.strip().lower()
@@ -108,6 +116,7 @@ def migrate_and_cleanup():
         print(f"❌ Error: {e}")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     migrate_and_cleanup()

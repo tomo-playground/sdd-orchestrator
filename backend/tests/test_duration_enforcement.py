@@ -22,7 +22,7 @@ def test_review_duration_deficit_error():
         {"script": "짧은 대사", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"},
         {"script": "두번째 대사", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"},
     ]
-    result = _validate_scenes(scenes, duration=45, language="Korean", structure="Monologue")
+    result = _validate_scenes(scenes, duration=45, language="korean", structure="monologue")
     duration_errors = [e for e in result["errors"] if "총 duration 부족" in e]
     assert len(duration_errors) == 1
     assert "38.2" in duration_errors[0] or "6.0" in duration_errors[0]
@@ -34,7 +34,7 @@ def test_review_duration_sufficient_no_error():
         {"script": "대사 하나", "speaker": "A", "duration": 5.0, "image_prompt": "1girl"},
         {"script": "대사 둘", "speaker": "A", "duration": 5.0, "image_prompt": "1girl"},
     ]
-    result = _validate_scenes(scenes, duration=10, language="Korean", structure="Monologue")
+    result = _validate_scenes(scenes, duration=10, language="korean", structure="monologue")
     duration_errors = [e for e in result["errors"] if "총 duration 부족" in e]
     assert len(duration_errors) == 0
 
@@ -46,7 +46,7 @@ def test_review_duration_exact_target_no_error():
         {"script": "대사 둘", "speaker": "A", "duration": 5.0, "image_prompt": "1girl"},
         {"script": "대사 셋", "speaker": "A", "duration": 5.0, "image_prompt": "1girl"},
     ]
-    result = _validate_scenes(scenes, duration=15, language="Korean", structure="Monologue")
+    result = _validate_scenes(scenes, duration=15, language="korean", structure="monologue")
     duration_errors = [e for e in result["errors"] if "총 duration 부족" in e]
     assert len(duration_errors) == 0
 
@@ -94,7 +94,7 @@ def test_finalize_ensure_minimum_duration_triggers():
         {"duration": 3.0, "script": "B"},
         {"duration": 3.0, "script": "C"},
     ]
-    _ensure_minimum_duration(scenes, target_duration=45, language="Korean")
+    _ensure_minimum_duration(scenes, target_duration=45, language="korean")
     total = sum(s["duration"] for s in scenes)
     # redistribute가 호출되어 duration이 증가해야 함
     assert total > 9.0
@@ -108,7 +108,7 @@ def test_finalize_ensure_minimum_duration_skips():
         {"duration": 5.0, "script": "A"},
         {"duration": 5.0, "script": "B"},
     ]
-    _ensure_minimum_duration(scenes, target_duration=10, language="Korean")
+    _ensure_minimum_duration(scenes, target_duration=10, language="korean")
     # 변경 없음
     assert scenes[0]["duration"] == 5.0
     assert scenes[1]["duration"] == 5.0
@@ -139,7 +139,7 @@ async def test_revise_tier15_duration_redistribute():
         },
         "revision_count": 0,
         "duration": 45,
-        "language": "Korean",
+        "language": "korean",
         "topic": "테스트",
     }
 
@@ -177,7 +177,7 @@ async def test_revise_tier15_fails_to_tier3(mock_db, mock_gen):
         },
         "revision_count": 0,
         "duration": 60,
-        "language": "Korean",
+        "language": "korean",
         "topic": "테스트",
     }
 
@@ -198,43 +198,43 @@ class TestDialogueSceneCount:
         """Dialogue 45s: min = ceil(45/6) = 8."""
         from services.storyboard.helpers import calculate_min_scenes
 
-        assert calculate_min_scenes(45, "Dialogue") == 8
+        assert calculate_min_scenes(45, "dialogue") == 8
 
     def test_dialogue_45s_max(self):
         """Dialogue 45s: max = ceil(45/4) = 12."""
         from services.storyboard.helpers import calculate_max_scenes
 
-        assert calculate_max_scenes(45, "Dialogue") == 12
+        assert calculate_max_scenes(45, "dialogue") == 12
 
     def test_narrated_dialogue_30s_min(self):
         """Narrated Dialogue 30s: min = ceil(30/6) = 5."""
         from services.storyboard.helpers import calculate_min_scenes
 
-        assert calculate_min_scenes(30, "Narrated Dialogue") == 5
+        assert calculate_min_scenes(30, "narrated_dialogue") == 5
 
     def test_narrated_dialogue_underscore_fallback(self):
         """정규화 전 Narrated_Dialogue도 Dialogue 분기에 진입한다."""
         from services.storyboard.helpers import calculate_max_scenes
 
-        assert calculate_max_scenes(30, "Narrated_Dialogue") == 8  # ceil(30/4)
+        assert calculate_max_scenes(30, "narrated_dialogue") == 8  # ceil(30/4)
 
     def test_dialogue_max_less_than_monologue_max(self):
         """같은 duration에서 Dialogue max < Monologue max (씬 밀도 차이)."""
         from services.storyboard.helpers import calculate_max_scenes
 
-        assert calculate_max_scenes(45, "Dialogue") < calculate_max_scenes(45, "Monologue")
+        assert calculate_max_scenes(45, "dialogue") < calculate_max_scenes(45, "monologue")
 
     def test_monologue_min_floor(self):
         """Monologue 구조는 floor=1 (짧은 duration도 최소 1씬)."""
         from services.storyboard.helpers import calculate_min_scenes
 
-        assert calculate_min_scenes(5, "Monologue") >= 1
+        assert calculate_min_scenes(5, "monologue") >= 1
 
     def test_dialogue_min_floor(self):
         """Dialogue 구조는 floor=3 (최소 3개 exchange)."""
         from services.storyboard.helpers import calculate_min_scenes
 
-        assert calculate_min_scenes(5, "Dialogue") == 3
+        assert calculate_min_scenes(5, "dialogue") == 3
 
 
 # ── Revise Tier 1.6: duration 초과 trim ──────────────────────
@@ -271,8 +271,7 @@ class TestReviseTier16OverflowTrim:
         # Monologue 10s: max_scenes = ceil(10/2) = 5
         # 씬 8개로 초과 상태
         scenes = [
-            {"scene_id": i + 1, "script": f"대사 {i}", "speaker": "A",
-             "duration": 3.0, "image_prompt": "1girl"}
+            {"scene_id": i + 1, "script": f"대사 {i}", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"}
             for i in range(8)
         ]
         state = {
@@ -284,15 +283,15 @@ class TestReviseTier16OverflowTrim:
             },
             "revision_count": 0,
             "duration": 10,
-            "language": "Korean",
-            "structure": "Monologue",
+            "language": "korean",
+            "structure": "monologue",
             "topic": "테스트",
         }
 
         result = await revise_node(state)
 
         assert result["revision_count"] == 1
-        assert len(result["draft_scenes"]) == 5  # max_scenes(10, Monologue)
+        assert len(result["draft_scenes"]) == 5  # max_scenes(10, monologue)
 
     @pytest.mark.asyncio
     async def test_tier16_dialogue_trims_correctly(self):
@@ -300,8 +299,7 @@ class TestReviseTier16OverflowTrim:
         from services.agent.nodes.revise import revise_node
 
         scenes = [
-            {"scene_id": i + 1, "script": f"대사 {i}", "speaker": "A",
-             "duration": 3.0, "image_prompt": "1girl"}
+            {"scene_id": i + 1, "script": f"대사 {i}", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"}
             for i in range(12)
         ]
         state = {
@@ -313,12 +311,12 @@ class TestReviseTier16OverflowTrim:
             },
             "revision_count": 0,
             "duration": 30,
-            "language": "Korean",
-            "structure": "Dialogue",
+            "language": "korean",
+            "structure": "dialogue",
             "topic": "테스트",
         }
 
         result = await revise_node(state)
 
         assert result["revision_count"] == 1
-        assert len(result["draft_scenes"]) == 8  # max_scenes(30, "Dialogue")
+        assert len(result["draft_scenes"]) == 8  # max_scenes(30, "dialogue")

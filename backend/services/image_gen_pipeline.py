@@ -106,6 +106,7 @@ async def _run_wd14_validation(
     Runs in a thread to avoid blocking the async event loop (ONNX inference).
     Returns validation result dict or None on failure.
     """
+
     def _sync_validate() -> dict | None:
         try:
             from schemas import SceneValidateRequest

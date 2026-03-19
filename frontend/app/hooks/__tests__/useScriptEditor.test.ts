@@ -54,8 +54,8 @@ describe("useScriptEditor — dirty tracking & unmount sync", () => {
 
   it.each([
     ["duration", 60],
-    ["language", "English"],
-    ["structure", "Dialogue"],
+    ["language", "english"],
+    ["structure", "dialogue"],
     ["characterId", 42],
     ["characterName", "Alice"],
     ["references", "https://example.com"],
@@ -113,7 +113,7 @@ describe("useScriptEditor — dirty tracking & unmount sync", () => {
 
     act(() => {
       result.current.setField("topic", "My Topic");
-      result.current.setField("language", "English");
+      result.current.setField("language", "english");
       result.current.setField("duration", 60);
     });
 
@@ -121,7 +121,7 @@ describe("useScriptEditor — dirty tracking & unmount sync", () => {
 
     const store = useStoryboardStore.getState();
     expect(store.topic).toBe("My Topic");
-    expect(store.language).toBe("English");
+    expect(store.language).toBe("english");
     expect(store.duration).toBe(60);
   });
 
@@ -156,7 +156,7 @@ describe("useScriptEditor — dirty tracking & unmount sync", () => {
 
     const { result, unmount } = renderHook(() => useScriptEditor());
 
-    act(() => result.current.setField("language", "English"));
+    act(() => result.current.setField("language", "english"));
 
     unmount();
 

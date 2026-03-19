@@ -13,6 +13,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
+from config import MULTI_CHAR_STRUCTURES
+
 
 class QCResult(BaseModel):
     """validate_fn 호환 QC 결과 포맷."""
@@ -23,8 +25,6 @@ class QCResult(BaseModel):
 
 
 # -- Phase 20-A: Casting Recommendation --
-
-_TWO_CHAR_STRUCTURES = frozenset({"dialogue", "narrated_dialogue"})
 
 
 class CastingRecommendation(BaseModel):
@@ -46,7 +46,7 @@ class CastingRecommendation(BaseModel):
     @model_validator(mode="after")
     def _validate_casting(self) -> CastingRecommendation:
         """2인 구조 시 character_b_id 없으면 monologue로 강등, 중복 ID 방지."""
-        if self.structure in _TWO_CHAR_STRUCTURES and self.character_a_id and not self.character_b_id:
+        if self.structure in MULTI_CHAR_STRUCTURES and self.character_a_id and not self.character_b_id:
             self.structure = "monologue"
         if self.character_a_id and self.character_a_id == self.character_b_id:
             self.character_b_id = None

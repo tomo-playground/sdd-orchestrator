@@ -7,7 +7,6 @@ import pytest
 
 from services.video.effects import _resolve_bgm_path
 
-
 # ============================================================
 # _resolve_bgm_path — auto mode
 # ============================================================
@@ -144,9 +143,7 @@ class TestPrepareAutoBgm:
             await VideoBuilder._prepare_auto_bgm(builder)
 
         # _total_dur=25 < 30 → max(30, 25) = 30
-        builder._generate_and_set_bgm.assert_called_once_with(
-            "soft piano ambient", 30.0, -1
-        )
+        builder._generate_and_set_bgm.assert_called_once_with("soft piano ambient", 30.0, -1)
 
     @pytest.mark.asyncio
     async def test_auto_bgm_cache_hit(self):
@@ -235,7 +232,7 @@ class TestStoryboardCrudBgm:
             caption=None,
             structure="monologue",
             duration=30,
-            language="Korean",
+            language="korean",
             bgm_prompt="soft piano ambient",
             bgm_mood="calm",
             casting_recommendation=None,
@@ -270,9 +267,7 @@ class TestStoryboardCrudBgm:
         mock_storyboard.scenes = []
 
         mock_db = MagicMock()
-        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = (
-            mock_storyboard
-        )
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = mock_storyboard
 
         request = SimpleNamespace(
             title="Test",
@@ -281,7 +276,7 @@ class TestStoryboardCrudBgm:
             caption=None,
             structure="monologue",
             duration=30,
-            language="Korean",
+            language="korean",
             bgm_prompt="new prompt",  # Changed!
             bgm_mood="energetic",
             casting_recommendation=None,
@@ -317,9 +312,7 @@ class TestStoryboardCrudBgm:
         mock_storyboard.scenes = []
 
         mock_db = MagicMock()
-        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = (
-            mock_storyboard
-        )
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = mock_storyboard
 
         request = SimpleNamespace(
             title="Test",
@@ -328,7 +321,7 @@ class TestStoryboardCrudBgm:
             caption=None,
             structure="monologue",
             duration=30,
-            language="Korean",
+            language="korean",
             bgm_prompt="same prompt",  # Unchanged
             bgm_mood="calm",
             casting_recommendation=None,

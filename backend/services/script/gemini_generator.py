@@ -332,8 +332,9 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         keyword_context, allowed_tags = get_keyword_context_and_tags()
         safe_topic = _sanitize_for_gemini_prompt(request.topic)
 
-        structure_lower_norm = request.structure.lower().replace("_", " ")
-        is_dialogue_structure = structure_lower_norm in ("dialogue", "narrated dialogue")
+        from config import MULTI_CHAR_STRUCTURES, coerce_structure_id
+
+        is_dialogue_structure = coerce_structure_id(request.structure) in MULTI_CHAR_STRUCTURES
 
         # 파셜 pre-render
         partial_vars = {

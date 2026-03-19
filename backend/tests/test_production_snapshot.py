@@ -166,4 +166,3 @@ def test_snapshot_backward_compat_no_new_fields():
     assert "quality_gate" not in snap
     assert "revision_history" not in snap
     assert "debate_log" not in snap
-

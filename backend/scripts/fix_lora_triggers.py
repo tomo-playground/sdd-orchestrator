@@ -22,8 +22,8 @@ def main():
         # ID 5: flat_color -> should be empty or general
         lora_flat = db.query(LoRA).filter(LoRA.id == 5).first()
         if lora_flat:
-             print(f"Fixing {lora_flat.name}")
-             lora_flat.trigger_words = ["flat color"]
+            print(f"Fixing {lora_flat.name}")
+            lora_flat.trigger_words = ["flat color"]
 
         # ID 6: Gentle_Cubism_Light -> should be general
         lora_cubism = db.query(LoRA).filter(LoRA.id == 6).first()
@@ -38,6 +38,7 @@ def main():
         db.rollback()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

@@ -32,8 +32,8 @@ async def test_create_plan_success():
         "topic": "첫 고백",
         "description": "첫 고백의 순간",
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
     }
 
     mock_compiled = MagicMock()
@@ -65,8 +65,8 @@ async def test_create_plan_gemini_error():
     state: ScriptState = {
         "topic": "테스트",
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
     }
 
     mock_compiled = MagicMock()
@@ -106,8 +106,8 @@ async def test_writer_node_calls_planning_in_full_mode(mock_gen, mock_plan):
         "topic": "테스트 주제",
         "skip_stages": [],
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "actor_a_gender": "female",
     }
 
@@ -134,8 +134,8 @@ async def test_writer_node_skips_planning_in_quick_mode(mock_gen, mock_plan):
         "topic": "테스트 주제",
         "skip_stages": ["research", "concept", "production", "explain"],  # Express 모드
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "actor_a_gender": "female",
     }
 
@@ -161,8 +161,8 @@ async def test_writer_node_planning_disabled(mock_gen, mock_plan):
             "topic": "테스트",
             "skip_stages": [],
             "duration": 10,
-            "language": "Korean",
-            "structure": "Monologue",
+            "language": "korean",
+            "structure": "monologue",
             "actor_a_gender": "female",
         }
 
@@ -199,8 +199,8 @@ async def test_create_plan_with_locations():
     state: ScriptState = {
         "topic": "오래된 친구와의 재회",
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
     }
 
     mock_compiled = MagicMock()
@@ -242,8 +242,8 @@ async def test_create_plan_without_locations_backward_compat():
     state: ScriptState = {
         "topic": "테스트",
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
     }
 
     mock_compiled = MagicMock()
@@ -286,8 +286,8 @@ async def test_plan_text_includes_location_map(mock_gen, mock_plan):
         "topic": "테스트",
         "skip_stages": [],
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "actor_a_gender": "female",
     }
 
@@ -324,8 +324,8 @@ async def test_plan_text_without_locations(mock_gen, mock_plan):
         "topic": "테스트",
         "skip_stages": [],
         "duration": 10,
-        "language": "Korean",
-        "structure": "Monologue",
+        "language": "korean",
+        "structure": "monologue",
         "actor_a_gender": "female",
     }
 

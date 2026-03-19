@@ -103,7 +103,7 @@ export function buildCompletionMeta(
   }));
   return {
     topic: editor?.topic ?? "",
-    structure: editor?.structure ?? "Monologue",
+    structure: editor?.structure ?? "monologue",
     totalDuration: summaries.reduce((sum, s) => sum + s.duration, 0),
     characterAName: editor?.characterName ?? null,
     characterBName: editor?.characterBName ?? null,

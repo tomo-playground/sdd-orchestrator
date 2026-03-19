@@ -5,7 +5,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from database import SessionLocal
-from models import Character, VoicePreset
+from models import VoicePreset
+
 
 def main():
     db = SessionLocal()
@@ -15,6 +16,7 @@ def main():
             print(f"ID:{v.id} | Name:{v.name} | Language:{v.language} | Engine:{v.tts_engine}")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

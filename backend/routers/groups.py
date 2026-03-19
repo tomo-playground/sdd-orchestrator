@@ -54,20 +54,13 @@ def _attach_character_counts(db: Session, groups: list[Group]) -> list[Group]:
 @router.get("/trash", response_model=list[GroupTrashItem])
 def list_deleted_groups(db: Session = Depends(get_db)):
     """List soft-deleted groups for trash view."""
-    groups = (
-        db.query(Group)
-        .filter(Group.deleted_at.isnot(None))
-        .order_by(Group.deleted_at.desc())
-        .all()
-    )
+    groups = db.query(Group).filter(Group.deleted_at.isnot(None)).order_by(Group.deleted_at.desc()).all()
     return groups
 
 
 @router.get("", response_model=list[GroupResponse])
 def list_groups(project_id: int | None = None, db: Session = Depends(get_db)):
-    query = db.query(Group).options(*_GROUP_RESPONSE_OPTIONS).filter(
-        Group.deleted_at.is_(None)
-    )
+    query = db.query(Group).options(*_GROUP_RESPONSE_OPTIONS).filter(Group.deleted_at.is_(None))
     if project_id is not None:
         query = query.filter(Group.project_id == project_id)
     return _attach_character_counts(db, query.all())
@@ -109,39 +102,25 @@ def create_group(body: GroupCreate, db: Session = Depends(get_db)):
     if "style_profile_id" not in fields:
         from models import StyleProfile
 
-        default_profile = (
-            db.query(StyleProfile.id).filter(StyleProfile.is_default.is_(True)).first()
-        )
+        default_profile = db.query(StyleProfile.id).filter(StyleProfile.is_default.is_(True)).first()
         if default_profile:
             fields["style_profile_id"] = default_profile.id
 
     group = Group(**fields)
     db.add(group)
     db.commit()
-    return (
-        db.query(Group)
-        .options(*_GROUP_RESPONSE_OPTIONS)
-        .filter(Group.id == group.id)
-        .first()
-    )
+    return db.query(Group).options(*_GROUP_RESPONSE_OPTIONS).filter(Group.id == group.id).first()
 
 
 @router.put("/{group_id}", response_model=GroupResponse)
 def update_group(group_id: int, body: GroupUpdate, db: Session = Depends(get_db)):
-    group = db.query(Group).filter(
-        Group.id == group_id, Group.deleted_at.is_(None)
-    ).first()
+    group = db.query(Group).filter(Group.id == group_id, Group.deleted_at.is_(None)).first()
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(group, key, value)
     db.commit()
-    return (
-        db.query(Group)
-        .options(*_GROUP_RESPONSE_OPTIONS)
-        .filter(Group.id == group_id)
-        .first()
-    )
+    return db.query(Group).options(*_GROUP_RESPONSE_OPTIONS).filter(Group.id == group_id).first()
 
 
 # ---- Group Defaults ----
@@ -149,9 +128,7 @@ def update_group(group_id: int, body: GroupUpdate, db: Session = Depends(get_db)
 
 @router.get("/{group_id}/defaults", response_model=GroupDefaultsResponse)
 def get_group_defaults(group_id: int, db: Session = Depends(get_db)):
-    group = db.query(Group).filter(
-        Group.id == group_id, Group.deleted_at.is_(None)
-    ).first()
+    group = db.query(Group).filter(Group.id == group_id, Group.deleted_at.is_(None)).first()
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
     from services.groups.defaults import infer_group_defaults
@@ -181,11 +158,7 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
     render_preset_id = result["values"].get("render_preset_id")
     render_preset = None
     if render_preset_id:
-        preset_obj = (
-            db.query(RenderPreset)
-            .filter(RenderPreset.id == render_preset_id)
-            .first()
-        )
+        preset_obj = db.query(RenderPreset).filter(RenderPreset.id == render_preset_id).first()
         if preset_obj:
             render_preset = RenderPresetResponse.model_validate(preset_obj)
 
@@ -203,9 +176,7 @@ def get_group_effective_config(group_id: int, db: Session = Depends(get_db)):
 
 @router.delete("/{group_id}", response_model=DeleteStatusResponse)
 def delete_group(group_id: int, db: Session = Depends(get_db)):
-    group = db.query(Group).filter(
-        Group.id == group_id, Group.deleted_at.is_(None)
-    ).first()
+    group = db.query(Group).filter(Group.id == group_id, Group.deleted_at.is_(None)).first()
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
 
@@ -243,9 +214,7 @@ def delete_group(group_id: int, db: Session = Depends(get_db)):
 @router.post("/{group_id}/restore", response_model=StatusResponse)
 def restore_group(group_id: int, db: Session = Depends(get_db)):
     """Restore a soft-deleted group and its cascade-deleted characters."""
-    group = db.query(Group).filter(
-        Group.id == group_id, Group.deleted_at.isnot(None)
-    ).first()
+    group = db.query(Group).filter(Group.id == group_id, Group.deleted_at.isnot(None)).first()
     if not group:
         raise HTTPException(status_code=404, detail="Deleted group not found")
 
@@ -268,20 +237,14 @@ def restore_group(group_id: int, db: Session = Depends(get_db)):
 @admin_router.delete("/{group_id}/permanent", response_model=StatusResponse)
 def permanent_delete_group(group_id: int, db: Session = Depends(get_db)):
     """Permanently delete a soft-deleted group and all associated data."""
-    group = db.query(Group).filter(
-        Group.id == group_id, Group.deleted_at.isnot(None)
-    ).first()
+    group = db.query(Group).filter(Group.id == group_id, Group.deleted_at.isnot(None)).first()
     if not group:
         raise HTTPException(status_code=404, detail="Deleted group not found")
 
     # Bulk delete: relies on DB-level CASCADE for child tables
     # (character_tags, storyboard_characters, scenes, etc.)
-    db.query(Character).filter(
-        Character.group_id == group_id
-    ).delete(synchronize_session=False)
-    db.query(Storyboard).filter(
-        Storyboard.group_id == group_id
-    ).delete(synchronize_session=False)
+    db.query(Character).filter(Character.group_id == group_id).delete(synchronize_session=False)
+    db.query(Storyboard).filter(Storyboard.group_id == group_id).delete(synchronize_session=False)
 
     db.delete(group)
     db.commit()

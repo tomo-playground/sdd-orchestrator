@@ -1,7 +1,5 @@
 """Phase 37: 8차원 NarrativeScore 테스트."""
 
-import pytest
-
 
 class TestNarrativeWeights:
     """_NARRATIVE_WEIGHTS 가중치 검증."""
@@ -63,11 +61,13 @@ class TestNarrativeScoreOutput:
     def test_clamps_out_of_range(self):
         from services.agent.llm_models import NarrativeScoreOutput
 
-        parsed = NarrativeScoreOutput.model_validate({
-            "spoken_naturalness": 1.5,
-            "retention_flow": -0.3,
-            "pacing_rhythm": 2.0,
-        })
+        parsed = NarrativeScoreOutput.model_validate(
+            {
+                "spoken_naturalness": 1.5,
+                "retention_flow": -0.3,
+                "pacing_rhythm": 2.0,
+            }
+        )
         assert parsed.spoken_naturalness == 1.0
         assert parsed.retention_flow == 0.0
         assert parsed.pacing_rhythm == 1.0
@@ -96,17 +96,19 @@ class TestBuildNarrativeScore:
         from services.agent.llm_models import NarrativeScoreOutput
         from services.agent.nodes.review import _build_narrative_score
 
-        parsed = NarrativeScoreOutput.model_validate({
-            "hook": 1.0,
-            "emotional_arc": 1.0,
-            "twist_payoff": 1.0,
-            "speaker_tone": 1.0,
-            "script_image_sync": 1.0,
-            "spoken_naturalness": 1.0,
-            "retention_flow": 1.0,
-            "pacing_rhythm": 1.0,
-            "feedback": "",
-        })
+        parsed = NarrativeScoreOutput.model_validate(
+            {
+                "hook": 1.0,
+                "emotional_arc": 1.0,
+                "twist_payoff": 1.0,
+                "speaker_tone": 1.0,
+                "script_image_sync": 1.0,
+                "spoken_naturalness": 1.0,
+                "retention_flow": 1.0,
+                "pacing_rhythm": 1.0,
+                "feedback": "",
+            }
+        )
         score = _build_narrative_score(parsed)
         assert abs(score["overall"] - 1.0) < 1e-9
 
@@ -122,11 +124,13 @@ class TestBuildNarrativeScore:
         from services.agent.llm_models import NarrativeScoreOutput
         from services.agent.nodes.review import _build_narrative_score
 
-        parsed = NarrativeScoreOutput.model_validate({
-            "spoken_naturalness": 0.8,
-            "retention_flow": 0.6,
-            "pacing_rhythm": 0.7,
-        })
+        parsed = NarrativeScoreOutput.model_validate(
+            {
+                "spoken_naturalness": 0.8,
+                "retention_flow": 0.6,
+                "pacing_rhythm": 0.7,
+            }
+        )
         score = _build_narrative_score(parsed)
         assert "spoken_naturalness" in score
         assert "retention_flow" in score
@@ -139,10 +143,16 @@ class TestBuildFeedback:
 
     def _make_state(self, **ns_overrides):
         ns = {
-            "hook": 0.8, "emotional_arc": 0.7, "twist_payoff": 0.6,
-            "speaker_tone": 0.9, "script_image_sync": 0.7,
-            "spoken_naturalness": 0.8, "retention_flow": 0.7, "pacing_rhythm": 0.8,
-            "overall": 0.75, "feedback": "테스트",
+            "hook": 0.8,
+            "emotional_arc": 0.7,
+            "twist_payoff": 0.6,
+            "speaker_tone": 0.9,
+            "script_image_sync": 0.7,
+            "spoken_naturalness": 0.8,
+            "retention_flow": 0.7,
+            "pacing_rhythm": 0.8,
+            "overall": 0.75,
+            "feedback": "테스트",
             **ns_overrides,
         }
         return {"review_result": {"narrative_score": ns}}
@@ -178,9 +188,7 @@ class TestBuildFeedback:
     def test_multiple_low_dimensions(self):
         from services.agent.nodes.revise import _build_feedback
 
-        state = self._make_state(
-            spoken_naturalness=0.2, retention_flow=0.3, pacing_rhythm=0.1
-        )
+        state = self._make_state(spoken_naturalness=0.2, retention_flow=0.3, pacing_rhythm=0.1)
         result = _build_feedback(state)
         assert "TTS 낭독" in result
         assert "호기심 연결" in result

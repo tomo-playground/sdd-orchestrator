@@ -58,7 +58,7 @@ async def test_search_topic_history_executor():
     """토픽 히스토리 검색 실행 함수."""
     mock_store = AsyncMock(spec=BaseStore)
     mock_db = AsyncMock()
-    state = {"topic": "외로움", "language": "Korean"}
+    state = {"topic": "외로움", "language": "korean"}
 
     # Store에서 히스토리 반환
     mock_item = MagicMock()
@@ -144,7 +144,7 @@ async def test_analyze_trending_executor():
     state = {}
 
     executors = create_research_executors(mock_store, mock_db, state)
-    result = await executors["analyze_trending"](topic="AI", language="Korean")
+    result = await executors["analyze_trending"](topic="AI", language="korean")
 
     assert "[트렌딩 분석]" in result
     assert "AI" in result
@@ -162,7 +162,7 @@ async def test_research_node_tool_calling():
     state: ScriptState = {
         "topic": "외로움",
         "description": "혼자 있는 시간",
-        "language": "Korean",
+        "language": "korean",
         "character_id": 1,
         "group_id": None,
         "references": [],
@@ -237,7 +237,7 @@ async def test_research_node_with_references():
 
     state: ScriptState = {
         "topic": "AI 트렌드",
-        "language": "Korean",
+        "language": "korean",
         "references": ["https://example.com/ai-news"],
     }
 

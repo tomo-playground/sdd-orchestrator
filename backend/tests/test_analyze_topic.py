@@ -46,19 +46,19 @@ def test_missing_duration_default(validate):
 def test_valid_structure(validate):
     """유효한 structure는 capitalized name으로 반환."""
     result = validate({"structure": "dialogue"})
-    assert result["structure"] == "Dialogue"
+    assert result["structure"] == "dialogue"
 
 
 def test_valid_structure_case_insensitive(validate):
     """대소문자 구분 없이 매칭."""
     result = validate({"structure": "Narrated_Dialogue"})
-    assert result["structure"] == "Narrated Dialogue"
+    assert result["structure"] == "narrated_dialogue"
 
 
 def test_invalid_structure_fallback(validate):
     """유효하지 않은 structure는 Monologue로 대체."""
     result = validate({"structure": "unknown_structure"})
-    assert result["structure"] == "Monologue"
+    assert result["structure"] == "monologue"
 
 
 # ── Language 검증 ──
@@ -67,13 +67,13 @@ def test_invalid_structure_fallback(validate):
 def test_valid_language(validate):
     """유효한 language는 그대로 반환."""
     result = validate({"language": "Japanese"})
-    assert result["language"] == "Japanese"
+    assert result["language"] == "japanese"
 
 
 def test_invalid_language_fallback(validate):
     """유효하지 않은 language는 Korean으로 대체."""
     result = validate({"language": "Chinese"})
-    assert result["language"] == "Korean"
+    assert result["language"] == "korean"
 
 
 # ── 전체 결과 필드 확인 ──
@@ -84,4 +84,4 @@ def test_full_result_has_all_fields(validate):
     result = validate({"duration": 30, "language": "Korean", "structure": "monologue"})
     expected_keys = {"duration", "language", "structure", "reasoning"}
     assert expected_keys.issubset(set(result.keys()))
-    assert result["structure"] == "Monologue"
+    assert result["structure"] == "monologue"

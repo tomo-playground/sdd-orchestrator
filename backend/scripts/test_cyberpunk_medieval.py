@@ -20,11 +20,14 @@ def main():
         # Ensure tags exist in tags table
         print("Ensuring tags exist in DB...")
         for tag_name in ["cyberpunk", "medieval", "fantasy", "city", "castle"]:
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO tags (name, category, priority)
                 VALUES (%s, 'general', 5)
                 ON CONFLICT (name) DO NOTHING
-            """, (tag_name,))
+            """,
+                (tag_name,),
+            )
         conn.commit()
         print("✅ Tags ensured\n")
 
@@ -32,42 +35,45 @@ def main():
 
         # Conflict: cyberpunk + medieval (10 fails)
         for i in range(100, 110):
-            logs.append({
-
-                "scene_index": i,
-                "prompt": "1girl, cyberpunk, medieval, fantasy",
-                "tags": ["1girl", "cyberpunk", "medieval", "fantasy"],
-                "status": "fail",
-                "match_rate": 0.35,
-                "sd_params": {"steps": 20, "cfg_scale": 7},
-                "seed": 88888,
-            })
+            logs.append(
+                {
+                    "scene_index": i,
+                    "prompt": "1girl, cyberpunk, medieval, fantasy",
+                    "tags": ["1girl", "cyberpunk", "medieval", "fantasy"],
+                    "status": "fail",
+                    "match_rate": 0.35,
+                    "sd_params": {"steps": 20, "cfg_scale": 7},
+                    "seed": 88888,
+                }
+            )
 
         # Success: just cyberpunk (3 successes)
         for i in range(110, 113):
-            logs.append({
-
-                "scene_index": i,
-                "prompt": "1girl, cyberpunk, city",
-                "tags": ["1girl", "cyberpunk", "city"],
-                "status": "success",
-                "match_rate": 0.90,
-                "sd_params": {"steps": 20, "cfg_scale": 7},
-                "seed": 88887,
-            })
+            logs.append(
+                {
+                    "scene_index": i,
+                    "prompt": "1girl, cyberpunk, city",
+                    "tags": ["1girl", "cyberpunk", "city"],
+                    "status": "success",
+                    "match_rate": 0.90,
+                    "sd_params": {"steps": 20, "cfg_scale": 7},
+                    "seed": 88887,
+                }
+            )
 
         # Success: just medieval (3 successes)
         for i in range(113, 116):
-            logs.append({
-
-                "scene_index": i,
-                "prompt": "1girl, medieval, castle",
-                "tags": ["1girl", "medieval", "castle"],
-                "status": "success",
-                "match_rate": 0.88,
-                "sd_params": {"steps": 20, "cfg_scale": 7},
-                "seed": 88886,
-            })
+            logs.append(
+                {
+                    "scene_index": i,
+                    "prompt": "1girl, medieval, castle",
+                    "tags": ["1girl", "medieval", "castle"],
+                    "status": "success",
+                    "match_rate": 0.88,
+                    "sd_params": {"steps": 20, "cfg_scale": 7},
+                    "seed": 88886,
+                }
+            )
 
         print(f"Creating {len(logs)} test logs...")
         print("  - 10 fails with 'cyberpunk + medieval'")
@@ -76,20 +82,23 @@ def main():
         print()
 
         for log in logs:
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO activity_logs (
                     scene_index, prompt, tags, sd_params,
                     match_rate, status, seed
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (
-                log["scene_index"],
-                log["prompt"],
-                json.dumps(log["tags"]),
-                json.dumps(log["sd_params"]),
-                log["match_rate"],
-                log["status"],
-                log["seed"],
-            ))
+            """,
+                (
+                    log["scene_index"],
+                    log["prompt"],
+                    json.dumps(log["tags"]),
+                    json.dumps(log["sd_params"]),
+                    log["match_rate"],
+                    log["status"],
+                    log["seed"],
+                ),
+            )
 
         conn.commit()
         print(f"✅ Created {len(logs)} logs\n")
@@ -98,11 +107,7 @@ def main():
         print("Step 1: Getting conflict rule suggestions...")
         response = requests.get(
             f"{API_BASE}/generation-logs/suggest-conflict-rules",
-            params={
-
-                "min_occurrences": 5,
-                "fail_rate_threshold": 0.8
-            }
+            params={"min_occurrences": 5, "fail_rate_threshold": 0.8},
         )
 
         if response.status_code != 200:
@@ -124,13 +129,13 @@ def main():
             print("❌ 'cyberpunk + medieval' not in suggestions")
             print("\nAll suggestions:")
             for rule in result["suggested_rules"][:10]:
-                print(f"  - {rule['tag1']} + {rule['tag2']} ({rule['fail_rate']*100:.0f}% fail rate)")
+                print(f"  - {rule['tag1']} + {rule['tag2']} ({rule['fail_rate'] * 100:.0f}% fail rate)")
             return
 
         print("✅ Found 'cyberpunk + medieval' conflict:")
         print(f"  Co-occurrence: {target_rule['co_occurrence']}")
         print(f"  Fail count: {target_rule['fail_count']}")
-        print(f"  Fail rate: {target_rule['fail_rate']*100:.0f}%")
+        print(f"  Fail rate: {target_rule['fail_rate'] * 100:.0f}%")
         print(f"  Avg match rate: {target_rule['avg_match_rate']}")
         print(f"  Reason: {target_rule['reason']}")
         print()
@@ -139,7 +144,7 @@ def main():
         print("Step 2: Applying rule to database...")
         apply_response = requests.post(
             f"{API_BASE}/generation-logs/apply-conflict-rules",
-            json={"rules": [{"tag1": "cyberpunk", "tag2": "medieval"}]}
+            json={"rules": [{"tag1": "cyberpunk", "tag2": "medieval"}]},
         )
 
         if apply_response.status_code != 200:
@@ -184,6 +189,7 @@ def main():
         conn.rollback()
         print(f"❌ Error: {exc}")
         import traceback
+
         traceback.print_exc()
     finally:
         cur.close()

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config import logger
+from config import coerce_language_id, logger
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.prompt_builders import (
     build_copyright_scenes_block,
@@ -54,7 +54,7 @@ async def copyright_reviewer_node(state: ScriptState) -> dict:
 
     cinema = state.get("cinematographer_result") or {}
     scenes = cinema.get("scenes", [])
-    language = state.get("language", "Korean")
+    language = coerce_language_id(state.get("language"))
     feedback = state.get("director_feedback")
 
     template_vars = {

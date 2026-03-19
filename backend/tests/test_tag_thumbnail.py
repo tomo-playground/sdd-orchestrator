@@ -38,9 +38,7 @@ class TestGetPostImage:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.raise_for_status = MagicMock()
-        mock_response.json.return_value = [
-            {"id": 123, "preview_file_url": "https://cdn.donmai.us/preview/abc.jpg"}
-        ]
+        mock_response.json.return_value = [{"id": 123, "preview_file_url": "https://cdn.donmai.us/preview/abc.jpg"}]
 
         with patch("services.danbooru.httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()

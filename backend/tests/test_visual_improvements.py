@@ -1,6 +1,5 @@
 """Tests for visual quality improvements (blur, text color, font size)."""
 
-
 import pytest
 from PIL import Image
 
@@ -89,7 +88,9 @@ class TestOptimalFontSize:
         assert size == 48, f"Expected 48 (max), got {size}"
 
         # Very small base size should be clamped
-        size = calculate_optimal_font_size("this is a very long text with more than sixty characters in total", base_font_size=10)
+        size = calculate_optimal_font_size(
+            "this is a very long text with more than sixty characters in total", base_font_size=10
+        )
         assert size == 32, f"Expected 32 (min), got {size}"
 
 

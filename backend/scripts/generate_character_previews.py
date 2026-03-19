@@ -1,4 +1,5 @@
 """Generate preview images for all characters using their reference prompts."""
+
 import asyncio
 import sys
 from pathlib import Path
@@ -18,7 +19,11 @@ async def generate_character_preview(client, character):
 
     # Use reference prompt or custom prompt
     prompt = character.reference_base_prompt or character.custom_base_prompt or "1girl, anime style"
-    negative = character.reference_negative_prompt or character.custom_negative_prompt or "worst quality, low quality, lowres, bad anatomy"
+    negative = (
+        character.reference_negative_prompt
+        or character.custom_negative_prompt
+        or "worst quality, low quality, lowres, bad anatomy"
+    )
 
     # Add LoRA if available
     if character.loras and len(character.loras) > 0:
@@ -26,6 +31,7 @@ async def generate_character_preview(client, character):
         weight = character.loras[0]["weight"]
         # We need to fetch LoRA name from DB
         from models import LoRA
+
         db = SessionLocal()
         lora = db.query(LoRA).filter(LoRA.id == lora_id).first()
         db.close()
@@ -52,11 +58,7 @@ async def generate_character_preview(client, character):
     }
 
     try:
-        response = await client.post(
-            f"{SD_BASE_URL}/sdapi/v1/txt2img",
-            json=payload,
-            timeout=120.0
-        )
+        response = await client.post(f"{SD_BASE_URL}/sdapi/v1/txt2img", json=payload, timeout=120.0)
         response.raise_for_status()
         result = response.json()
 
@@ -84,13 +86,16 @@ async def generate_character_preview(client, character):
         logger.error(f"   ❌ Generation failed: {e}")
         return None
 
+
 async def main():
     db = SessionLocal()
     try:
         # Get characters without preview images
-        characters = db.query(Character).filter(
-            (Character.preview_image_url is None) | (Character.preview_image_url == "")
-        ).all()
+        characters = (
+            db.query(Character)
+            .filter((Character.preview_image_url is None) | (Character.preview_image_url == ""))
+            .all()
+        )
 
         if not characters:
             logger.info("✅ All characters already have preview images")
@@ -113,6 +118,7 @@ async def main():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

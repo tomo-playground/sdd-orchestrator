@@ -107,7 +107,11 @@ async def test_tts_designer_stores_qc_result(mock_voice, mock_run):
 
     mock_run.return_value = {
         "tts_designs": [
-            {"speaker": "A", "voice_design_prompt": "calm female", "pacing": {"head_padding": 0.1, "tail_padding": 0.3}},
+            {
+                "speaker": "A",
+                "voice_design_prompt": "calm female",
+                "pacing": {"head_padding": 0.1, "tail_padding": 0.3},
+            },
         ],
     }
 
@@ -170,7 +174,7 @@ async def test_sound_designer_stores_qc_result(mock_run):
         "cinematographer_result": {"scenes": [{"order": 1}]},
         "critic_result": {},
         "duration": 30,
-        "language": "Korean",
+        "language": "korean",
         "director_feedback": None,
         "writer_plan": None,
         "skip_stages": [],
@@ -195,7 +199,7 @@ async def test_sound_designer_qc_failure_stored(mock_run):
         "cinematographer_result": {"scenes": [{"order": 1}]},
         "critic_result": {},
         "duration": 30,
-        "language": "Korean",
+        "language": "korean",
         "director_feedback": None,
         "writer_plan": None,
         "skip_stages": [],
@@ -224,7 +228,7 @@ async def test_copyright_reviewer_stores_qc_result(mock_run):
 
     state = {
         "cinematographer_result": {"scenes": [{"order": 1}]},
-        "language": "Korean",
+        "language": "korean",
         "director_feedback": None,
         "skip_stages": [],
     }
@@ -242,14 +246,19 @@ async def test_copyright_reviewer_qc_failure_stored(mock_run):
 
     mock_run.return_value = {
         "checks": [
-            {"type": "character_similarity", "status": "FAIL", "detail": "Too similar to IP X", "suggestion": "Modify design"},
+            {
+                "type": "character_similarity",
+                "status": "FAIL",
+                "detail": "Too similar to IP X",
+                "suggestion": "Modify design",
+            },
         ],
         "overall": "FAIL",
     }
 
     state = {
         "cinematographer_result": {"scenes": [{"order": 1}]},
-        "language": "Korean",
+        "language": "korean",
         "director_feedback": None,
         "skip_stages": [],
     }

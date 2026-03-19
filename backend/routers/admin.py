@@ -409,11 +409,15 @@ async def clear_tts_cache(
     if storyboard_id:
         from models.scene import Scene
 
-        scenes = db.query(Scene).filter(
-            Scene.storyboard_id == storyboard_id,
-            Scene.deleted_at.is_(None),
-            Scene.tts_asset_id.isnot(None),
-        ).all()
+        scenes = (
+            db.query(Scene)
+            .filter(
+                Scene.storyboard_id == storyboard_id,
+                Scene.deleted_at.is_(None),
+                Scene.tts_asset_id.isnot(None),
+            )
+            .all()
+        )
         for s in scenes:
             s.tts_asset_id = None
             db_count += 1
@@ -421,7 +425,10 @@ async def clear_tts_cache(
 
     logger.info(
         "[Admin] TTS cache cleared: backend=%d, audio_server=%d, db_reset=%d (storyboard=%s)",
-        backend_count, audio_count, db_count, storyboard_id,
+        backend_count,
+        audio_count,
+        db_count,
+        storyboard_id,
     )
     return TTSCacheClearResponse(
         backend_cleared=backend_count,

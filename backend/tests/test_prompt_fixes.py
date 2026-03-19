@@ -1,4 +1,3 @@
-
 from unittest.mock import MagicMock
 
 from models.tag import Tag
@@ -19,7 +18,7 @@ class TestPromptFixes:
             " _bright ",
             "__sun",
             "moon__",
-            "flower_field" # Should preserve middle underscore
+            "flower_field",  # Should preserve middle underscore
         ]
 
         # We expect normalize_tag_spaces to handle lists and return lists

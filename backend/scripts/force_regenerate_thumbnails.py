@@ -24,7 +24,11 @@ async def generate_character_preview(client, character, db):
 
     # Use reference prompt or custom prompt
     prompt = character.reference_base_prompt or character.custom_base_prompt or "1girl, anime style"
-    negative = character.reference_negative_prompt or character.custom_negative_prompt or "worst quality, low quality, lowres, bad anatomy"
+    negative = (
+        character.reference_negative_prompt
+        or character.custom_negative_prompt
+        or "worst quality, low quality, lowres, bad anatomy"
+    )
 
     # Add LoRA if available
     if character.loras and len(character.loras) > 0:
