@@ -679,6 +679,18 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 - **main 직접 커밋 허용**: `.claude/`, `CLAUDE.md`, `.github/workflows/`, `docs/`
 - **feat 브랜치 + PR 필수**: `backend/`, `frontend/`, `audio/`, `scripts/`, 그 외 코드 전부
 
+### Hotfix 워크플로우 (사용자 보고 버그)
+사용자 테스트 중 발견된 버그는 태스크 파일 없이 빠르게 수정한다.
+
+1. `fix/간단설명` 브랜치 생성 (예: `fix/chat-history-loss`)
+2. 수정 → 린트 → 테스트 통과
+3. PR 생성 (본문에 **원인 분석 + 수정 내용** 기록)
+   - `--label "bug"` + `--assignee stopper2008` 필수
+4. PR 생성 직후 `/code-review:code-review {PR번호}` 실행
+5. 리뷰 통과 후 머지
+
+**일반 SDD와 차이점**: task.md 생략, backlog 등록 불필요. 나머지(브랜치, 품질 게이트, PR 메타, 코드 리뷰) 동일.
+
 ### 자율 실행 규칙
 - **자율 범위**: 구현 → 테스트 → 문서 동기화 → 커밋 → 푸시 → PR 생성까지 풀 자율
 - **문서 동기화 (코드 파생 문서만)**: 코드 변경 시 API 명세, DB 스키마, 테스트 시나리오 등 코드에서 파생되는 문서를 함께 업데이트한다. 의사결정 문서(ROADMAP, FEATURES 명세, 아키텍처 설계)는 사람이 작성한다.
