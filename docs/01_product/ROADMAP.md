@@ -48,49 +48,12 @@
 | **Phase 36 (LangFuse Prompt Quality Hardening)** | **전체 완료** |
 | **Phase 37 (Korean Script Quality)** | **전체 완료** |
 | **Phase 38 (LangFuse Scoring)** | **전체 완료** |
-| 테스트 | Backend 3,738 + Frontend 599 (65파일) + 16 = **총 4,353개** (03-19 기준) |
+| **Enum ID 정규화 (Sprint A)** | **전체 완료** |
+| 테스트 | Backend 3,765 + Frontend 599 (65파일) + 16 = **총 4,380개** (03-19 기준) |
 
 ### 진행 중
 
-(없음)
-
-### 최근 작업
-
-- **03-19 Phase 38 Sprint C 완성 — observation_id 노드 전달**: `LLMResponse`에 `observation_id` 필드 추가, `call_with_tools` 3-tuple 반환(`str, list[ToolCallLog], str|None`). research/review/cinematographer/director 4개 노드에서 `record_score()` observation_id 실제 전달. `GeminiProvider` obs_id 캡처, `LANGFUSE_TRACING_ENVIRONMENT` SSOT화. 영향 테스트 8파일 3-tuple 대응.
-- **03-19 채팅 카드 비활성화 + localStorage 스토리보드별 키 분리**: ChatMessageList `isLatest` 패턴 — 마지막 메시지만 인터랙티브 활성화, 과거 카드 자동 비활성(SettingsRecommendCard/PlanReviewCard/ReviewCard/ReviewApprovalPanel). useStoryboardStore/useRenderStore localStorage 키를 스토리보드별(`sb_{id}` / `:new`)로 분리 — 스토리보드 전환 시 이전 데이터 노출 차단. ESLint `argsIgnorePattern: "^_"` 추가.
-- **03-18 Phase 38 (LangFuse Scoring) 완료**: Sprint A(인프라: record_score 헬퍼+contextvar+pipeline_mode+Score Config 9개) → Sprint B(5개 노드 Score 기록) → Sprint C(observation_id+LLM-as-Judge). Gemini client 재연결, Writer 로그 개선, LoRA 오경고 제거. 기존 실패 37건 수정. 환경 가이드+.env.example 추가. Score Config 9개 LangFuse API 등록. E2E 검증 296개 Score 축적 확인. 테스트 +35개, 3,725 passed. [명세](FEATURES/LANGFUSE_SCORING.md)
-- **03-18 Phase 38 Sprint C (Observation-Level)**: `record_score()` observation_id 파라미터 추가(observation-level Score 부착 지원). LangFuse LLM-as-Judge 평가자 3개 Legacy→Observation 전환(pacing_rhythm, retention_flow, spoken_naturalness). 유지보수 가이드 추가(3가지 트리거: 노드 변경/프롬프트 변경/플랫폼 변경). [명세](FEATURES/LANGFUSE_SCORING.md) v4
-- **03-18 Phase 38 명세 확정**: 코드 분석(observability.py, 5개 노드, config_pipelines.py, conftest.py, SDK 시그니처) + 4-Agent 리뷰(Tech Lead/QA/Backend Dev/PM) 통합. BLOCKER 4건 해결(revision_count max 6→3, Resume duration 정책, None 중앙 가드, time.monotonic 통일). WARNING 9건 반영(FastTrack narrative_overall ❌, duration max 1800, data_type 자동 추론 등). [명세](FEATURES/LANGFUSE_SCORING.md) v3
-- **03-18 품질 경고 해소 + 테스트 보강**: Gemini SDK non-text parts 경고 해소(response.text→_safe_extract_text, function_call part 안전 처리). voice_design_prompt write-back 로깅 개선(exception repr+scene_db_id+0행 감지). LangFuse 미치환 변수 3건 수정(Phase 36 프롬프트↔코드 변수명 동기화 — director/evaluate, location-planner, copyright-reviewer). is_prompt_pre_composed→prompt_pre_composed 롤백. environment 복사 테스트 5개 추가. 테스트 +5개
-- **03-18 오토런 Stage 스킵 버그 수정 + LangFuse 추가 안정화**: finalize.py `_copy_scene_level_to_context_tags()`에 environment 복사 누락 수정(FastTrack에서 context_tags.environment 비어 Stage 스킵 근본 원인). preflight checkStageStep() 조건 완화(environment 유무와 무관하게 background_id 없으면 Stage 필요). LangFuse resume session_id 누락 수정(storyboard_id 전달). SDK v3 start_span OTel 컨텍스트 미설정 → _patch_trace 전환. Draft 제목 버그 수정
-- **03-18 안정화 + SDK 호환 + 테스트 정비**: is_ prefix 롤백 잔재 10건 수정(schemas↔코드↔ORM 전수 동기화). LangFuse SDK v3 호환(trace()→start_span, start_generation→start_observation). 기존 테스트 실패 전수 수정 — tts_max_tokens import, director_react 키명, VRT 베이스라인 6개 갱신, controlnet CLIP모델, stage_workflow mock경로, tts_voice_seed 13건. Home "New Story"→"새 영상" 한국어 통일. 테스트 +55개(환경QC 20+Production QC 15+voice seed 4+기존수정 16)
-- **03-18 Phase 36 P1 추가 수정**: storyboard 4개 context_tags 예시 expression/mood→emotion/cinematic 전환(Cinematographer 호환), tool/edit-scenes·scene-expand 예시 1girl 제거. LangFuse 6개 프롬프트 추가 업데이트
-- **03-18 Phase 36 (LangFuse Prompt Quality Hardening) 완료**: 프롬프트 33개 전수 분석, Sprint A~D 33건 중 27건 완료 + 6건 이슈없음/이관. 코드↔프롬프트 가중치 동기화, 무효 Danbooru 태그 8+개 수정, System/User 중복 제거(~4,900 chars 절감), injection 방어, CoT 도입, emotion 별칭 오매핑 수정, context_tags 호환, tags+config 메타데이터 체계 구축. LangFuse 15개 프롬프트 27 새 버전 생성. [명세](FEATURES/LANGFUSE_PROMPT_HARDENING.md)
-- **03-18 Phase 36 Sprint A (CRITICAL 2건) 완료**: (1) `pipeline/review/unified` Narrative 가중치 코드↔프롬프트 동기화(Hook 35→30%, Speaker Tone 10→20%, Script-Image Sync 15→10%). (2) 무효 Danbooru 태그 8개 수정 — `face_focus`→`portrait`(0→256K), `profile_standing`→`from_side`(0→52K), `leaning_wall`→`against_wall`(0→18K), `golden_hour`→`sunset`(61→144K), `bird's_eye_view`→`from_above`(106→334K), `blue_hour`/`warm_lighting` 제거. `pipeline/cinematographer` v2→v4, `storyboard/narrated` v2→v4, `pipeline/review/unified` v2→v3
-- **03-18 렌더링 품질 + Director 검증 강화**: is_ prefix 롤백 정합성 7건(schemas↔코드↔ORM 동기화). Scene Text 타이포그래피 최적화(MAX_WIDTH 85→90%, MIN_FONT 61→71px, LINE_HEIGHT 1.45→1.35, stroke 비례). 환경 일관성 QC(_check_environment_consistency — 연속 대화 배경 불일치 검출). Production QC→Director 전파(TTS/Sound/Copyright 결과 state 저장+프롬프트 주입). prompt_builders 분할(476→206+203+107줄). words.index 버그+tts language 누락 수정. LangFuse Director v3 환경 적합성 기준. 테스트 +55개
-- **03-18 Scene Text 줄바꿈 텍스트 소실 수정**: `wrap_text_by_font()` 버그 2건 — (1) placeholder(`\x00ELLIPSIS\x00`) 너비 오염 수정(measure_width 복원), (2) 문장부호 강제 분리 시 첫 세그먼트가 max_lines 독점 → 세그먼트간 줄 예약 + truncation 제거(caller 폰트 축소 위임). RENDER_PIPELINE.md Full/Post 레이아웃 사양 전면 재작성. TikTok Safe Zone 문서 오류(20%→25%) 수정
-- **03-18 파이프라인 품질 개선 + 로그 버그 수정**: LangFuse trace 분석 기반 5건 수정. Revise score 하락 시 best scenes rollback(P0), Writer Speaker B 배분 강화(P1), 글로벌 리비전 10→6(P1), OTel trace name 재설정(P2), Narrator 부재 ERROR 승격(P2). 로그 버그 3건 수정: Danbooru asyncio.run() ThreadPool fallback, mood 화이트리스트 21종 추가, context_tags list→str TypeError(_flatten_tag). 비디오 업로드 project/group ID 자동 조회(storyboard→group→project DB resolve). review.py 분할(523→363줄), danbooru.py 분할(415→327줄). 테스트 +5개(rollback), 307개 PASS
-- **03-18 서비스 네이밍 한국어 통일**: 언어 정책 수립(한국어 기본, 영어 허용 기준), 토스트 87건+빈상태 15건+대화상자 23건 한국어 통일, 칸반 컬럼 한국어화, Backend characters.py 에러 영어 통일(12건), RecentVideoResponse camelCase→snake_case, 구버전 설계 문서 3개 아카이브, STUDIO_DESIGN_GUIDE+UX_FLOW_ANALYSIS 업데이트(13건). CLAUDE.md 용어 사전 확충. [가이드](../02_design/NAMING_CONVENTION.md)
-- **03-17 레거시 스토리보드 생성 경로 제거**: `POST /storyboards/create` 엔드포인트 + `generateStoryboard()` + `mapGeminiScenes()` + `StoryboardCreateResponse` 스키마 + `create_storyboard` lazy alias + E2E mock + 테스트 스크립트 제거. 활성 경로(`/scripts/generate-stream` LangGraph SSE)에 영향 없음. `generate_script()`은 Writer/Revise 노드에서 사용 중이므로 보존. 순감 ~300줄
-- **03-17 LangFuse Trace 네이밍 OTel 표준화**: OTel GenAI Semantic Conventions 기반 trace/generation 네이밍 리팩토링. Trace "LangGraph"→"storyboard.generate/resume", Generation "{operation} {agent}" 포맷 통일, 고카디널리티(step/retry/fallback)→metadata 이동. GeminiProvider PROHIBITED fallback 접미사 제거. 19파일 수정. [가이드](../03_engineering/backend/TRACE_NAMING_GUIDE.md)
-- **03-17 Draft Storyboard 조기 생성**: 첫 Chat 메시지 시 storyboard_id 즉시 확보. 서버 디버깅 추적 + LangFuse session_id 연결 + 작업 유실 방지. thread_id/session_id 분리. [설계](../03_engineering/backend/DRAFT_STORYBOARD.md)
-- **03-17 Jinja2 완전 제거**: .j2 파일 28개 삭제 + dead code 제거(langfuse_prompt -34%, _production_utils -52%) + config.py jinja2 import 제거 + 테스트 15개 compile_prompt mock 전환 + 현행 문서 13개 LangFuse 프롬프트명으로 교체. 순감 ~3,000줄. 레퍼런스 배경 태그 제거 + TTS persistent 프리로드 포함
-- **03-17 LangFuse 네이티브 통합 완료 (Jinja2 완전 제거)**: 28/28 프롬프트 Jinja2→LangFuse compile() 전환. Sprint 0(PoC: compile_prompt 래퍼) → Sprint 1(C등급 10개) → Sprint 2(B등급 9개 + run_production_step 분기) → Sprint 3+4(A+S등급 10개). `prompt_builders.py`+`_b.py`+`_c.py`(빌더 75개), `_NATIVE_TEMPLATES`(28개), 폴더 기반 네이밍, system/user 완전 분리, 프롬프트 역할 중복 제거, 정적 규칙 system 이전. TTSEngine SSOT, SoVITS 파라미터/후처리. 테스트 3,525개 PASS
-- **03-17 LangFuse Prompt Management 전체 이전 완료**: 28개 프롬프트 chat 타입 LangFuse 관리. Phase 0~2. 29개 테스트 PASS
-- **03-16 SSOT 위반 정리 P1+P2 완료 (46/49건)**: config.py 상수화(Hi-Res 4개+SAMPLERS+TTS_ENGINE+ENABLE_HR), `/presets` API 확장(hi_res_defaults+samplers+tts_engine+image_defaults+pipeline_metadata), Frontend 하드코딩 제거(constants→store/presets 동기화, 해상도 6곳→상수/store), controlnet.py weight fallback→상수 참조
-- **03-17 Phase 35 완료**: GPT-SoVITS v2 TTS 통합 — SoVITS(:9880 일상TTS) + Qwen3(:8001 보이스디자인 on-demand) + MusicGen(CPU 상주). audio_client SoVITS→Qwen3 fallback, 캐릭터 보이스 레퍼런스 API, 감정별 레퍼런스 탐색, Text Normalization, E2E 검증 완료. SSOT 위반 P0~P2 52건+ 정리
-- **03-17 이미지 품질 개선 + 오디오 상주 모드**: 씬 배경 사라짐 근본 수정(캐릭터 negative 정리, scenery 자동주입, IP-Adapter/Reference AdaIN 비활성화), StyleProfile flat_color_v2:0.3 최적화, IP-Adapter weight SSOT 통일(Backend+Frontend), MeMaXL v6 설치, 오디오 서버 persistent 모드(TTS GPU + MusicGen CPU 상주 로드)
-- **03-17 Speaker Balance 검증 강화**: Narrated Dialogue 캐릭터 배분 수정 — Review에 비율 검증(20% 미만 ERROR) + Narrator 존재 검증(WARNING) 추가, Revise에서 비율 불균형 Tier 3 재생성 위임, ensure_dialogue_speakers 최종 방어선 비율 검사. 테스트 24개 PASS
-- **03-17 화풍/IP-Adapter/프롬프트 품질 개선**: Romantic Warm Anime StyleProfile 구축(flat_color+감성조명), IP-Adapter clip_face→clip(NOOB-IPA-MARK1) SD1.5 잔재 전수 정리, ControlNet 모델명 동적 resolve(Forge 해시 풀네임 호환), CLIP-ViT-bigG preprocessor 자동 매칭, 프롬프트 이중 괄호 방지(weight 재감싸기), TTS 503 재시도(모델 로드 대기), autoSave 무한 재시도 방지, Voice Preset 정비(15개 라인업), Pose 다양성 테스트 12개, system_instruction 사용자 데이터 분리. "우리가 닿는 순간" 시리즈 + 캐릭터(하린/준서) 구축
-- **03-16 FastTrack 안정화 + GPU OOM 방지**: FastTrack에서 Cinematographer 실행(캐릭터 일관성), Writer character_id auto-resolve(group fallback), SSE→handleStreamOutcome 캐릭터 반영 통합, Graph 엣지 cinematographer 누락 수정, hydration 가드(ChatArea+ChatMessageList), GPU OOM 방지(TTS on-demand 로드 + idle 2분 자동 언로드). 테스트 33개 PASS
-- **03-16 BGM prebuild + Gemini 안전필터 수정 + 인프라 정리**: STAGE에서 BGM 사전 생성(`/stage/bgm-prebuild` API + MusicGen), Gemini system_instruction↔contents 분리(gemini_generator+tag_classifier_llm), FastTrack 기본 BGM 추천, 오디오 서버 CUDA 수정(`run_audio.sh` export), `docker-compose.audio.yml` 삭제, ChatMessageList hydration 가드, TTS_SETUP.md CUDA 문서화. 테스트 48개 PASS
-- **03-16 FastTrack 강화 + 새 영상 채팅 잔류 버그 수정**: FastTrack production skip 추가, skip_stages Backend SSOT화(`/presets` API). "새 영상" 클릭 시 이전 채팅이 남는 버그 수정(`chatResetToken` 메커니즘). `storyboardActions.ts` 리팩토링(448→371줄, 헬퍼 추출). `persistStoryboard` 404 재귀 방어 + `pendingAutoRun` storyboardId null 방어. 테스트 37개 PASS
-- **03-16 Script 탭 코드 리뷰 4건 수정**: 에러 이중 표시(ErrorCard+Toast→ErrorCard만), ProgressBar label SSOT(Backend label 우선), typing indicator contentType 분리, 새 영상 채팅 히스토리 보존(`__new__` 임시 key). 테스트 +9개
-- **03-16 씬 소실 방어 + LangFuse 정확성**: syncToGlobalStore→onSaved 순서 보장, pendingAutoRun scenesReady 가드, CompletionCard Zustand 직참조, LangFuse interrupt→metadata 이동 + interrupt_node 동적 전달 + final_output 캡처
-- **03-16 스크립트 생성 후 씬 소실 버그 수정**: `useStreamingPipeline`에서 `editor.save()` race condition — onNodeEvent(SSE 처리 중) vs handleStreamOutcome(SSE 종료 후) 타이밍 불일치로 빈 씬 PUT. autoSave(Zustand SSOT) 경로로 전환
-- **03-16 TTS 파이프라인 일원화 완료**: Sprint A~D — `generate_tts_audio()` SSOT 코어, preview/prebuild/render 3경로 통합, tts_asset_id 자동 무효화, prebuild 자동 삽입, scene_processing.py 슬림화(645→295줄). 테스트 51개 PASS
-- **03-16 Phase 33 완료**: Sprint A~E 구현 (22/22) — E-2 배치 Gemini 호출 병합 + validate-batch API + 테스트 33개
-- **03-15 이전 작업**: Phase 29~33, Forge/NoobAI 전환, LLM 추상화, 안정화 등. [아카이브](../99_archive/archive/ROADMAP_PHASE_27_31.md) · [아카이브2](../99_archive/archive/ROADMAP_PHASE_32_33.md)
+> 현재 태스크는 `.claude/tasks/current.md` 참조.
 
 ---
 
@@ -141,6 +104,7 @@
 | 33 | Hybrid Match Rate | WD14+Gemini Vision 2-Phase, group_name 태그 라우팅, 배치 Gemini 병합, 테스트 33개. 22/22 | [아카이브](../99_archive/archive/ROADMAP_PHASE_32_33.md) · [명세](FEATURES/HYBRID_MATCH_RATE.md) |
 | — | TTS 파이프라인 일원화 (Sprint A~D) | `generate_tts_audio()` SSOT, preview/prebuild/render 3경로 통합, tts_asset_id 자동 무효화, prebuild 자동 삽입, scene_processing.py 슬림화 | [설계](../03_engineering/backend/TTS_PIPELINE_UNIFICATION.md) |
 | 38 | LangFuse Scoring | 9개 SDK Score + 3개 LLM-as-Judge, observation-level, Score Config API 등록, Gemini client 재연결, 환경 가이드. 테스트 +35개 | [명세](FEATURES/LANGFUSE_SCORING.md) |
+| — | Enum ID 정규화 (Sprint A) | Structure/Language snake_case SSOT, coerce 과도기 함수, 중복 상수 6곳 통합, normalize_structure 제거, 47+ 방어 패턴 제거. 테스트 +33개 | [명세](FEATURES/ENUM_ID_NORMALIZATION.md) |
 
 ---
 
@@ -228,88 +192,7 @@ graph LR
 
 ---
 
-## Feature Backlog
+## Backlog
 
-### 🚨 긴급 백로그 (P0)
-
-| # | 기능 | 설명 | 명세 |
-|---|------|------|------|
-| 1 | **Storyboard Data Integrity** | 씬 데이터 무결성 보장. 발단: SB 1128 — UI 7씬 표시/DB 0씬, 수동 저장 500 FK 위반. Sprint A(Backend FK 검증+에러처리) → B(Auto-Save 복구 경로 강화) → C(Frontend 상태 오염 방어) | [명세](FEATURES/STORYBOARD_DATA_INTEGRITY.md) |
-
-> P1 착수 전 반드시 P0 완료. 데이터 유실 위험 > 기능 개선.
-
-### ⭐ 최우선 백로그 (P1)
-
-순서대로 진행. Enum ID 정규화 → Speaker 동적 역할 Phase A → ComfyUI 전환 → 캐릭터 일관성 V3 + Speaker Phase B~C.
-
-| # | 기능 | 설명 | 명세 |
-|---|------|------|------|
-| 1 | ~~**LangFuse Scoring**~~ | **Phase 38로 승격 (완료)** | [명세](FEATURES/LANGFUSE_SCORING.md) |
-| 2 | **Enum ID 정규화** | structure/language/style 필드의 디스플레이 이름→ID 분리. `{id, label}` SSOT, DB 마이그레이션, `.lower().replace()` 패턴 전면 제거. 47+ Backend + 15+ Frontend 파일. Sprint A(SSOT+정규화)→B(DB 마이그레이션+Frontend)→C(Style 정리) | [명세](FEATURES/ENUM_ID_NORMALIZATION.md) |
-| 3 | **Speaker 동적 역할 (Phase A)** | 정적 `"A"`/`"B"`/`"Narrator"` → `"speaker_1"`/`"speaker_2"`/`"narrator"` 전환. 기존 `character_b_id` 하드코딩 리팩토링 흡수. Phase A(ID 전환)→B(characters 리스트)→C(3인+ 확장). Phase B~C는 ComfyUI 전환 후 | [명세](FEATURES/SPEAKER_DYNAMIC_ROLE.md) |
-| 4 | **ComfyUI 마이그레이션** | ForgeUI→ComfyUI 전환 + SD Client 추상화. 실험 검증(4회 54장): CN+IPA 동시투입 실패 → 모듈 분리 필수 확정. Phase A(추상화)→B(ComfyUI 구현)→C(프로덕션+FaceID) | [명세](FEATURES/COMFYUI_MIGRATION.md) |
-| 5 | **캐릭터 일관성 V3** | ComfyUI 전환 후 착수. 4-Module 파이프라인(Identity→Context→Refinement→Upscale). FaceID+CN 1-step, 2-Step CN→IPA 폴백, 배치 4씬 일괄, 의상 가변, 멀티캐릭터 FaceID 복수 주입 | [명세](FEATURES/CHARACTER_CONSISTENCY_V3.md) |
-
-### Content & Creative
-
-| 기능 | 참조 |
-|------|------|
-| VEO Clip (Video Generation 통합) | [명세](FEATURES/VEO_CLIP.md) |
-| Profile Export/Import (Style Profile 공유) | [명세](FEATURES/PROFILE_EXPORT_IMPORT.md) |
-| Storyboard Version History | — |
-| ~~IP-Adapter 캐릭터 유사도 고도화~~ | **Phase 30으로 승격** — [V1 명세](FEATURES/CHARACTER_CONSISTENCY.md) · [V2 명세](FEATURES/CHARACTER_CONSISTENCY_V2.md) |
-| 캐릭터 LoRA 학습 파이프라인 | LoRA 트레이닝용 레퍼런스 9세트 생성 + 학습 자동화 (우선순위 낮음) |
-| ~~SoVITS TTS~~ | **드롭** — 합성음 ref_audio 복제 품질 한계 확인. Qwen3 직접 생성이 우수. SoVITS 코드/인프라 제거 완료 |
-| ~~**Qwen3 TTS 전환 + SoVITS 제거**~~ | **완료** — Qwen3를 씬 TTS 유일 엔진으로 전환. SoVITS 코드/인프라/문서 전면 제거 완료 |
-
-### Intelligence & Automation
-
-| 기능 | 참조 |
-|------|------|
-| Tag Intelligence (채널별 태그 정책 + 데이터 기반 추천) | [명세](FEATURES/PROJECT_GROUP.md) §3-1 |
-| Series Intelligence (에피소드 연결 + 성공 패턴 학습) | [명세](FEATURES/PROJECT_GROUP.md) §3-2 |
-| LoRA Calibration Automation | — |
-
-### UX & Workflow
-
-| 기능 | 참조 |
-|------|------|
-| ~~YouTube Upload Phase 2~3~~ | **드롭** — Quota 대시보드/업로드 큐/예약 업로드. Phase 1(수동 업로드)로 충분, 추가 개발 대비 실용 가치 낮음 |
-| ~~Express 모드 재검토~~ | **Phase 25에서 해결** — Director 자율 실행으로 대체. 프리셋 제거 완료 |
-| ~~Script 생성 후 대화형 수정 루프 (씬 부분 재생성)~~ | **Phase 26 P1에서 완료** — edit-scenes API + SceneEditDiffCard |
-| ~~동선 일관성 개편 (Admin 정리, LoRA Library 이동, 상태 누수, API 통일)~~ | **Phase 31로 승격** — [명세](FEATURES/UX_NAVIGATION_OVERHAUL.md) |
-| Script Canvas 분할 뷰 (좌 채팅 + 우 씬 프리뷰) | [명세](FEATURES/SCRIPT_COLLABORATIVE_UX.md) §P2 |
-| **Direct 탭 연출 컨트롤** (생성 완료 후 TTS 음성 톤 조정 + BGM 프리셋 일괄 적용) | [명세](FEATURES/DIRECT_TAB_DIRECTOR_CONTROL.md) |
-| **Studio 탭 URI 표현** (`?tab=script/stage/direct/publish`) | 현재 activeTab이 Zustand 메모리에만 있어 새로고침 시 초기화, 딥링크 불가. `setActiveTab` 호출 시 `router.replace`로 URL sync + 초기 마운트 시 `searchParams.get("tab")` 복원. Option A(query param) 우선 검토 |
-| ~~Structure/Speaker 타입 비교 정규화~~ | **⭐ P1로 승격** — [Enum ID 정규화](FEATURES/ENUM_ID_NORMALIZATION.md) + [Speaker 동적 역할](FEATURES/SPEAKER_DYNAMIC_ROLE.md)로 분리. 발단: Narrator 씬에 Actor A가 표시되는 원인 분석 (2026-03-19) |
-
-### Image Quality & Pose Control
-
-| 기능 | 설명 |
-|------|------|
-| ~~sitting 계열 ControlNet 근본 해결~~ | **효용 없음으로 보류** — Phase 30-M/N에서 동적 weight + camera 태그 강제로 실용적 해결 완료. 전용 에셋(sitting_side/floor/knees_up) 생성 시 개선 폭 미미 판단 |
-| ControlNet 포즈 에셋 재활용 검토 | 일반 씬 ControlNet OFF 전환(03-18)으로 OpenPose 에셋 28개 + POSE_MAPPING 미사용 상태. ComfyUI 2-Step 파이프라인 또는 레퍼런스 전용 활용 검토 |
-
-### Infrastructure & Scale
-
-| 기능 | 참조 |
-|------|------|
-| ~~Phase 34: GPU 순차 독점 실행 & BGM 고도화~~ | **드롭** — ComfyUI 전환으로 GPU 관리 방식 자체가 변경될 예정. Forge 전용 `forge_control.py` 구현이 무의미해짐. BGM(ACE-Step) 고도화는 별도 항목으로 재검토 |
-| ~~**LangFuse Prompt Management 전체 이전**~~ | **완료** — 28개 프롬프트 chat 타입(system/user 분리). `prompt_partials.py` 파셜 Python 전환, `_partials/` 삭제. 29개 테스트 |
-| ~~**LangFuse 네이티브 통합 (Jinja2 완전 제거)**~~ | **완료** — 28/28 프롬프트 LangFuse compile() 전환 + .j2 파일 28개 삭제 + Jinja2 import/template_env/dead code 전면 제거(순감 ~3,000줄). `compile_prompt()` 래퍼, 빌더 75개, 폴더 기반 네이밍. [명세](FEATURES/LANGFUSE_PROMPT_OPS.md) |
-| **LLM Provider 추상화 Phase A~E 완료** | [설계](../03_engineering/backend/LLM_PROVIDER_ABSTRACTION.md) — `services/llm/` 패키지 구축, `google.genai` 직결 제거, trace + PROHIBITED fallback 중복 해소. Phase F(OllamaProvider)는 아래 LiteLLM 항목으로 대체 예정 |
-| **LiteLLM SDK 도입 (Phase F 대체)** | Gemini 외 두 번째 Provider 실제 도입 시점에 착수. `GeminiProvider` 내부를 LiteLLM 호출로 교체 → 100+ Provider 지원, 폴백/재시도 내장, `OllamaProvider` 직접 구현 불필요. 트레이스 중복 방지를 위해 LiteLLM 자동 LangFuse 콜백 비활성화 + 기존 `trace_llm_call()` 유지 필수. OSS LLMOps Stack(LangGraph + LangFuse + LiteLLM) 표준 조합 완성. **착수 조건**: Ollama/Claude 등 두 번째 Provider 실제 사용 확정 시 |
-| PipelineControl 커스텀 (노드 on/off) + 분산 큐 (Celery/Redis) | Phase 9-4 잔여 |
-| 배치 렌더링 + 큐 (그룹 일괄 렌더, WebSocket 진행률) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
-| 브랜딩 시스템 (로고/워터마크, 인트로/아웃트로, 플랫폼별 출력) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
-| 분석 대시보드 (Match Rate 추이, 프로젝트 간 비교) | [명세](FEATURES/PROJECT_GROUP.md) §3-3 |
-| ~~LangFuse Scoring 시스템~~ | **Phase 38로 승격** — [명세](FEATURES/LANGFUSE_SCORING.md) |
-| **파이프라인 이상 탐지 자동화** | 시스템 상태 통합 health API, 파이프라인 완료 시 자동 검증 (speaker 배분, TTS 실패, 이미지 미생성), LangFuse 이상 탐지 (노드 실패율/소요시간), GPU VRAM 모니터링 |
-| **PostgreSQL 통합 테스트 인프라** | 현재 단위테스트가 MagicMock/SQLite를 사용해 PostgreSQL 고유 제약(FOR UPDATE + OUTER JOIN, JSONB, FK CASCADE 등)을 검증하지 못함. pytest-postgresql 또는 testcontainers 기반 실제 PG 인스턴스로 DB 레이어 통합 테스트 추가. 발단: `with_for_update()` + nullable FK JOIN 버그가 테스트 통과 후 프로덕션에서 500 에러로 발현 (2026-03-19) |
-| ~~SSOT 위반 정리 (P1~P3, 49건)~~ | **P1+P2 완료 (46/49건, 94%)** — Hi-Res 4상수+SAMPLERS+TTS_ENGINE+enable_hr+controlnet weight+해상도 6곳+image_defaults+pipeline_metadata. 잔여 P3 3건(CATEGORY_DESCRIPTIONS, 주석 검증)은 리스크 없어 보류 |
-| ~~Phase 35: GPT-SoVITS v2 TTS 전환~~ | **완료** — SoVITS(:9880) + Qwen3(보이스디자인 on-demand) + MusicGen(CPU). GPU 전환은 cu128 대기 |
-| **클라우드 TTS/BGM 전환** | Replicate(현재 모델 클라우드 실행) 또는 ElevenLabs/Suno. GPU 경합 완전 해소, 비용 발생 |
-| **씬 단위 순차 생성** | IMAGE→TTS를 씬별로 처리 (현재: 전체 IMAGE→전체 TTS). GPU 순차 독점 자연 해결 + 즉시 프리뷰 |
-| ~~캐릭터 복수 표현 리팩토링~~ | **⭐ P1로 승격** — [Speaker 동적 역할](FEATURES/SPEAKER_DYNAMIC_ROLE.md) Phase B~C에 흡수. `character_id`+`character_b_id` → `characters: list` 전환 포함 |
-| ~~ComfyUI 마이그레이션~~ | **⭐ 최우선 백로그로 이동** — [명세](FEATURES/COMFYUI_MIGRATION.md) |
-| ~~캐릭터 일관성 V3~~ | **⭐ 최우선 백로그로 이동** — [명세](FEATURES/CHARACTER_CONSISTENCY_V3.md) |
+> 태스크 큐는 `.claude/tasks/backlog.md`로 이관됨 (2026-03-19).
+> Roadmap은 Phase/마일스톤 레벨만 관리한다. 개별 태스크를 여기에 쓰지 않는다.
