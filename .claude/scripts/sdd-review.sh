@@ -35,14 +35,22 @@ REVIEWED_PRS=$(gh pr list --state open --base main --json number,headRefName \
   --jq '.[].number' 2>/dev/null || true)
 
 for PR_NUM in $REVIEWED_PRS; do
-  # "Found N issues" 코멘트가 있는지 확인
+  # 대응이 필요한 코멘트 감지:
+  # 1. Claude 리뷰 이슈 ("Found N issues")
+  # 2. 사람 코멘트 (Claude "Code review"/"Generated with" 제외한 모든 코멘트)
   HAS_ISSUES=$(gh api "repos/tomo-playground/shorts-producer/issues/${PR_NUM}/comments" \
-    --jq '[.[] | select(.body | test("Found [0-9]+ issue"))] | length' 2>/dev/null || echo "0")
+    --jq '[.[] | select(
+      (.body | test("Found [0-9]+ issue")) or
+      ((.body | test("Code review|Generated with")) | not)
+    )] | length' 2>/dev/null || echo "0")
   [ "$HAS_ISSUES" -eq 0 ] && continue
 
-  # 이미 수정 커밋이 있는지 확인 (리뷰 코멘트 이후 push가 있으면 스킵)
+  # 마지막 코멘트 시각 (리뷰 이슈 또는 사람 코멘트)
   LAST_COMMENT_DATE=$(gh api "repos/tomo-playground/shorts-producer/issues/${PR_NUM}/comments" \
-    --jq '[.[] | select(.body | test("Found [0-9]+ issue"))] | last | .created_at' 2>/dev/null || true)
+    --jq '[.[] | select(
+      (.body | test("Found [0-9]+ issue")) or
+      ((.body | test("Code review|Generated with")) | not)
+    )] | last | .created_at' 2>/dev/null || true)
   LAST_PUSH_DATE=$(gh api "repos/tomo-playground/shorts-producer/pulls/${PR_NUM}" \
     --jq '.updated_at' 2>/dev/null || true)
 
