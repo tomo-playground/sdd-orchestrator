@@ -5,6 +5,9 @@ import { ALL_GROUPS_ID } from "../constants";
 
 export type StudioTab = "script" | "stage" | "direct" | "publish";
 
+/** 스토리보드가 없거나 초기 진입 시 보여줄 기본 탭 */
+export const DEFAULT_STUDIO_TAB: StudioTab = "script";
+
 const MAX_TOASTS = 3;
 
 // Module-scope timer map (not in Zustand state — avoids serialization issues)
@@ -78,7 +81,7 @@ const initialState: Omit<
   | "openGroupConfig"
 > = {
   toasts: [],
-  activeTab: "direct",
+  activeTab: DEFAULT_STUDIO_TAB,
   showAdvancedSettings: false, // Default closed
   imagePreviewSrc: null,
   imagePreviewCandidates: null,

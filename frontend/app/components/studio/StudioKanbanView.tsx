@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Layers } from "lucide-react";
 import { useStudioKanban } from "../../hooks/useStudioKanban";
 import { useContextStore } from "../../store/useContextStore";
-import { useUIStore } from "../../store/useUIStore";
+import { useUIStore, type StudioTab, DEFAULT_STUDIO_TAB } from "../../store/useUIStore";
 import KanbanColumn from "./KanbanColumn";
 import HomeSecondaryPanel from "./HomeSecondaryPanel";
 import LoadingSpinner from "../ui/LoadingSpinner";
@@ -12,6 +12,13 @@ import Button from "../ui/Button";
 import { PAGE_2COL_LAYOUT, SECONDARY_PANEL_CLASSES } from "../ui/variants";
 
 const COLUMNS = ["draft", "in_prod", "rendered", "published"] as const;
+
+const STATUS_TAB_MAP: Record<string, StudioTab> = {
+  draft: "script",
+  in_prod: "stage",
+  rendered: "direct",
+  published: "publish",
+};
 
 export default function StudioKanbanView() {
   const router = useRouter();
@@ -21,7 +28,8 @@ export default function StudioKanbanView() {
   const setUI = useUIStore((s) => s.set);
   const { columns, isLoading, total } = useStudioKanban();
 
-  const handleCardClick = (id: number) => {
+  const handleCardClick = (id: number, status: string) => {
+    setUI({ activeTab: STATUS_TAB_MAP[status] ?? DEFAULT_STUDIO_TAB });
     router.push(`/studio?id=${id}`);
   };
 
@@ -90,7 +98,7 @@ export default function StudioKanbanView() {
                   key={col}
                   status={col}
                   items={columns[col] ?? []}
-                  onCardClick={handleCardClick}
+                  onCardClick={(id) => handleCardClick(id, col)}
                 />
               ))}
             </div>

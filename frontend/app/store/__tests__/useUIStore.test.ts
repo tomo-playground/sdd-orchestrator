@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { useUIStore } from "../useUIStore";
+import { useUIStore, DEFAULT_STUDIO_TAB } from "../useUIStore";
 import { useContextStore } from "../useContextStore";
 import { ALL_GROUPS_ID } from "../../constants";
 
@@ -15,8 +15,8 @@ describe("useUIStore", () => {
 
   describe("setActiveTab", () => {
     it("changes the active tab", () => {
-      useUIStore.getState().setActiveTab("script");
-      expect(useUIStore.getState().activeTab).toBe("script");
+      useUIStore.getState().setActiveTab(DEFAULT_STUDIO_TAB);
+      expect(useUIStore.getState().activeTab).toBe(DEFAULT_STUDIO_TAB);
     });
 
     it("changes to publish tab", () => {
@@ -120,14 +120,14 @@ describe("useUIStore", () => {
   describe("resetUI", () => {
     it("resets all state to initial values", () => {
       useUIStore.getState().showToast("msg", "success");
-      useUIStore.getState().setActiveTab("script");
+      useUIStore.getState().setActiveTab(DEFAULT_STUDIO_TAB);
       useUIStore.getState().set({ isAutoRunning: true });
 
       useUIStore.getState().resetUI();
 
       const state = useUIStore.getState();
       expect(state.toasts).toEqual([]);
-      expect(state.activeTab).toBe("direct");
+      expect(state.activeTab).toBe(DEFAULT_STUDIO_TAB);
       expect(state.isAutoRunning).toBe(false);
     });
   });
