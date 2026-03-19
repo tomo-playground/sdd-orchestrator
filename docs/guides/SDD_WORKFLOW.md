@@ -48,7 +48,7 @@
          Lint → pytest → vitest → VRT → E2E (5단계)
          실패 → self-heal (최대 3회) → 재검증
   ↓
-[Claude] 커밋 → 푸시 → PR 생성
+[Claude] 커밋 → 푸시 → PR 생성 (label/reviewer/assignee 자동)
   ↓
 [사람] PR 리뷰
        승인 → 머지
@@ -209,6 +209,31 @@ claude --worktree feat/SP-NNN-설명 --dangerously-skip-permissions -p "시작"
 ```bash
 sdd-run() { claude --worktree "$1" --dangerously-skip-permissions -p "시작"; }
 ```
+
+---
+
+## PR 생성 규칙
+
+Claude가 PR 생성 시 태스크 frontmatter에서 메타 정보를 추출하여 자동 설정:
+
+```bash
+gh pr create \
+  --title "feat: 설명 (SP-NNN)" \
+  --label "SP-NNN,{scope},{priority}" \
+  --reviewer stopper2008 \
+  --assignee stopper2008 \
+  --body "..."
+```
+
+| frontmatter | PR 메타 | 예시 |
+|-------------|---------|------|
+| `id: SP-002` | label | `SP-002` |
+| `scope: frontend` | label | `frontend` |
+| `priority: P1` | label | `P1` |
+| (고정) | reviewer | `stopper2008` |
+| (고정) | assignee | `stopper2008` |
+
+PR body는 `.github/pull_request_template.md` 템플릿 기반.
 
 ---
 
