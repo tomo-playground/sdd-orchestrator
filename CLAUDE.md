@@ -656,10 +656,22 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ```
 
 ### 세션 부팅 프로토콜
-1. 현재 브랜치 확인 (`git branch --show-current` → `feat/SP-NNN-설명`)
-2. SP-NNN 추출 → `.claude/tasks/current/SP-NNN_*.md` 글로브 매칭
-3. `CLAUDE.md` 규칙 확인
-4. 작업 시작
+**첫 응답 시 반드시 아래 SDD 대시보드를 표시한 후 대화를 시작한다:**
+1. `git branch --show-current` → 현재 브랜치
+2. `.claude/tasks/current/` → 실행 중 태스크 목록
+3. `.claude/tasks/backlog.md` → 상위 3개 대기 태스크
+4. feat 브랜치면 SP-NNN 매칭 태스크 자동 로드
+
+```
+📋 SDD Dashboard
+─────────────────
+🔀 Branch: main
+📌 Current: (없음)
+📥 Backlog Top 3:
+  1. [P0] SP-xxx — Storyboard Data Integrity
+  2. [P1] SP-xxx — Enum ID 정규화
+  3. [P1] SP-xxx — Speaker 동적 역할
+```
 
 > **매칭 규칙**: 브랜치 `feat/SP-002-xxx` → 태스크 `.claude/tasks/current/SP-002_xxx.md`
 
