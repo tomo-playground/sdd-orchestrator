@@ -4,7 +4,7 @@ priority: P1
 scope: frontend
 branch: feat/SP-004-e2e-smoke-tests
 created: 2026-03-20
-status: pending
+status: done
 depends_on:
 ---
 
