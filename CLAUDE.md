@@ -663,6 +663,10 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 > **매칭 규칙**: 브랜치 `feat/SP-002-xxx` → 태스크 `.claude/tasks/current/SP-002_xxx.md`
 
+### 커밋 경로 규칙
+- **main 직접 커밋 허용**: `.claude/`, `CLAUDE.md`, `.github/workflows/`, `docs/`
+- **feat 브랜치 + PR 필수**: `backend/`, `frontend/`, 그 외 코드 전부
+
 ### 자율 실행 규칙
 - **자율 범위**: 구현 → 테스트 → 커밋 → 푸시 → PR 생성까지 풀 자율
 - **태스크 단위**: 기능 단위, 변경 파일 10개 이하 목표, 크면 task.md 분할
