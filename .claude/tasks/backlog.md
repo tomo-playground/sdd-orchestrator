@@ -23,7 +23,7 @@
 - [ ] Storyboard Version History
 - [ ] Direct 탭 연출 컨트롤 — TTS 톤 조정 + BGM 프리셋 일괄 적용 | [명세](../../docs/01_product/FEATURES/DIRECT_TAB_DIRECTOR_CONTROL.md)
 - [ ] Studio 탭 URI 표현 — ?tab=script/stage/direct/publish 딥링크
-- [ ] Script Canvas 분할 뷰 — 좌 채팅 + 우 씬 프리뷰 | [명세](../../docs/01_product/FEATURES/SCRIPT_COLLABORATIVE_UX.md) §P2
+- [ ] Script Canvas 분할 뷰 — 좌 채팅 + 우 씬 프리뷰 | [명세](../../docs/99_archive/features/SCRIPT_COLLABORATIVE_UX.md) §P2
 
 ## P3 (인프라/자동화)
 

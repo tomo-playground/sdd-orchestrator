@@ -46,7 +46,7 @@ docs/
 ├── 01_product/       # 제품 (PRD, 로드맵, 기능 명세)
 │   ├── PRD.md
 │   ├── ROADMAP.md
-│   └── FEATURES/     # 기능별 명세 34개 (what/why)
+│   └── FEATURES/     # 미완료 기능 명세 (완료분은 99_archive/features/)
 ├── 02_design/        # UI/UX 설계 (13개 + wireframes/)
 ├── 03_engineering/   # 기술 설계 (how)
 │   ├── api/          # REST API 명세 (5개: 메인 + 도메인/프리셋/분석/Creative 분할)
