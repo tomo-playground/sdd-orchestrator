@@ -33,8 +33,7 @@ def upgrade() -> None:
 
     # Tag existing V1 presets
     op.execute(
-        "UPDATE creative_agent_presets SET category = 'v1_debate' "
-        "WHERE agent_role IS NULL AND deleted_at IS NULL"
+        "UPDATE creative_agent_presets SET category = 'v1_debate' WHERE agent_role IS NULL AND deleted_at IS NULL"
     )
 
     # Seed V2 presets (idempotent: skip if agent_role already exists)

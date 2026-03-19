@@ -4,6 +4,7 @@ Revision ID: h2i3j4k5l6m7
 Revises: g1h2i3j4k5l6
 Create Date: 2026-02-03
 """
+
 import sqlalchemy as sa
 
 from alembic import op
@@ -17,10 +18,7 @@ depends_on = None
 def _column_exists(table_name: str, column_name: str) -> bool:
     conn = op.get_bind()
     result = conn.execute(
-        sa.text(
-            "SELECT 1 FROM information_schema.columns "
-            "WHERE table_name = :t AND column_name = :c"
-        ),
+        sa.text("SELECT 1 FROM information_schema.columns WHERE table_name = :t AND column_name = :c"),
         {"t": table_name, "c": column_name},
     )
     return result.fetchone() is not None
@@ -89,13 +87,14 @@ def downgrade() -> None:
     if not _column_exists("voice_presets", "project_id"):
         op.add_column(
             "voice_presets",
-            sa.Column("project_id", sa.Integer(),
-                      sa.ForeignKey("projects.id", ondelete="SET NULL"), nullable=True),
+            sa.Column("project_id", sa.Integer(), sa.ForeignKey("projects.id", ondelete="SET NULL"), nullable=True),
         )
         op.create_index("ix_voice_presets_project_id", "voice_presets", ["project_id"])
         op.create_index(
-            "uq_voice_presets_project_name", "voice_presets",
-            ["project_id", "name"], unique=True,
+            "uq_voice_presets_project_name",
+            "voice_presets",
+            ["project_id", "name"],
+            unique=True,
             postgresql_where=sa.text("project_id IS NOT NULL"),
         )
 

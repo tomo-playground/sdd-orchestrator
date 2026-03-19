@@ -9,17 +9,18 @@ Revises: 021a74624d6e
 Create Date: 2026-03-14 17:16:56.362339
 
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = 'c802651d6ede'
-down_revision: Union[str, Sequence[str], None] = '021a74624d6e'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "c802651d6ede"
+down_revision: str | Sequence[str] | None = "021a74624d6e"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 # SD1.5 LoRA IDs to delete
 SD15_LORA_IDS = list(range(15, 28))  # 15~27
@@ -126,8 +127,11 @@ def downgrade() -> None:
                     :trigger_words, :default_weight, 'SD1.5', false)
             """),
             {
-                "id": lid, "name": name, "display_name": display,
-                "lora_type": ltype, "trigger_words": triggers,
+                "id": lid,
+                "name": name,
+                "display_name": display,
+                "lora_type": ltype,
+                "trigger_words": triggers,
                 "default_weight": weight,
             },
         )

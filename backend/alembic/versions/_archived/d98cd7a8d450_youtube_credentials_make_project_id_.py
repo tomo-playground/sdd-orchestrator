@@ -58,10 +58,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Drop project_id FK, unique, and column."""
-    op.drop_constraint(
-        "youtube_credentials_project_id_key", "youtube_credentials", type_="unique"
-    )
-    op.drop_constraint(
-        "youtube_credentials_project_id_fkey", "youtube_credentials", type_="foreignkey"
-    )
+    op.drop_constraint("youtube_credentials_project_id_key", "youtube_credentials", type_="unique")
+    op.drop_constraint("youtube_credentials_project_id_fkey", "youtube_credentials", type_="foreignkey")
     op.drop_column("youtube_credentials", "project_id")

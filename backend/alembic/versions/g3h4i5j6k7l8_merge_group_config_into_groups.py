@@ -9,9 +9,10 @@ Revises: f2g3h4i5j6k7
 Create Date: 2026-02-28
 """
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "g3h4i5j6k7l8"
 down_revision = "f2g3h4i5j6k7"
@@ -40,20 +41,26 @@ def upgrade() -> None:
     # 3. Create FK constraints
     op.create_foreign_key(
         "fk_groups_render_preset_id",
-        "groups", "render_presets",
-        ["render_preset_id"], ["id"],
+        "groups",
+        "render_presets",
+        ["render_preset_id"],
+        ["id"],
         ondelete="SET NULL",
     )
     op.create_foreign_key(
         "fk_groups_style_profile_id",
-        "groups", "style_profiles",
-        ["style_profile_id"], ["id"],
+        "groups",
+        "style_profiles",
+        ["style_profile_id"],
+        ["id"],
         ondelete="SET NULL",
     )
     op.create_foreign_key(
         "fk_groups_narrator_voice_preset_id",
-        "groups", "voice_presets",
-        ["narrator_voice_preset_id"], ["id"],
+        "groups",
+        "voice_presets",
+        ["narrator_voice_preset_id"],
+        ["id"],
         ondelete="SET NULL",
     )
 
@@ -66,7 +73,9 @@ def downgrade() -> None:
     op.create_table(
         "group_config",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("group_id", sa.Integer(), sa.ForeignKey("groups.id", ondelete="CASCADE"), unique=True, nullable=False),
+        sa.Column(
+            "group_id", sa.Integer(), sa.ForeignKey("groups.id", ondelete="CASCADE"), unique=True, nullable=False
+        ),
         sa.Column("render_preset_id", sa.Integer(), sa.ForeignKey("render_presets.id", ondelete="SET NULL")),
         sa.Column("style_profile_id", sa.Integer(), sa.ForeignKey("style_profiles.id", ondelete="SET NULL")),
         sa.Column("narrator_voice_preset_id", sa.Integer(), sa.ForeignKey("voice_presets.id", ondelete="SET NULL")),

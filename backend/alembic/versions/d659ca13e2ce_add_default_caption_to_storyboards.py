@@ -5,6 +5,7 @@ Revises: ee73c749faa9
 Create Date: 2026-01-31 18:00:21.293460
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -12,17 +13,17 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = 'd659ca13e2ce'
-down_revision: str | Sequence[str] | None = 'ee73c749faa9'
+revision: str = "d659ca13e2ce"
+down_revision: str | Sequence[str] | None = "ee73c749faa9"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.add_column('storyboards', sa.Column('default_caption', sa.Text(), nullable=True))
+    op.add_column("storyboards", sa.Column("default_caption", sa.Text(), nullable=True))
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_column('storyboards', 'default_caption')
+    op.drop_column("storyboards", "default_caption")

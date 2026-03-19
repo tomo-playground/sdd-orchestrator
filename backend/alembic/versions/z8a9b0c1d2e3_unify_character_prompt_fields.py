@@ -11,10 +11,10 @@ Merges:
 
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from alembic import op
 
 revision = "z8a9b0c1d2e3"
 down_revision = "7d60fb618f36"
@@ -71,9 +71,7 @@ def upgrade() -> None:
         new_negative = _merge_prompts(scene_neg, ref_neg, common_neg_str)
 
         conn.execute(
-            sa.text(
-                "UPDATE characters SET positive_prompt = :pos, negative_prompt = :neg WHERE id = :id"
-            ),
+            sa.text("UPDATE characters SET positive_prompt = :pos, negative_prompt = :neg WHERE id = :id"),
             {"pos": new_positive, "neg": new_negative, "id": char_id},
         )
 

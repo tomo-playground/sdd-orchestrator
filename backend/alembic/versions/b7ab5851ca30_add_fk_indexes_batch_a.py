@@ -9,6 +9,7 @@ Revises: 1f60e2603354
 Create Date: 2026-02-01 15:16:28.593248
 
 """
+
 from collections.abc import Sequence
 
 from alembic import op
@@ -45,43 +46,55 @@ def upgrade() -> None:
 
     op.create_foreign_key(
         "fk_characters_preview_image_asset_id",
-        "characters", "media_assets",
-        ["preview_image_asset_id"], ["id"],
+        "characters",
+        "media_assets",
+        ["preview_image_asset_id"],
+        ["id"],
         ondelete="SET NULL",
     )
 
     op.create_foreign_key(
         "fk_scenes_image_asset_id",
-        "scenes", "media_assets",
-        ["image_asset_id"], ["id"],
+        "scenes",
+        "media_assets",
+        ["image_asset_id"],
+        ["id"],
         ondelete="SET NULL",
     )
 
     op.create_foreign_key(
         "fk_storyboards_video_asset_id",
-        "storyboards", "media_assets",
-        ["video_asset_id"], ["id"],
+        "storyboards",
+        "media_assets",
+        ["video_asset_id"],
+        ["id"],
         ondelete="SET NULL",
     )
 
     op.create_foreign_key(
         "fk_loras_preview_image_asset_id",
-        "loras", "media_assets",
-        ["preview_image_asset_id"], ["id"],
+        "loras",
+        "media_assets",
+        ["preview_image_asset_id"],
+        ["id"],
         ondelete="SET NULL",
     )
 
     op.create_foreign_key(
         "fk_sd_models_preview_image_asset_id",
-        "sd_models", "media_assets",
-        ["preview_image_asset_id"], ["id"],
+        "sd_models",
+        "media_assets",
+        ["preview_image_asset_id"],
+        ["id"],
         ondelete="SET NULL",
     )
 
     op.create_foreign_key(
         "fk_projects_avatar_asset_id",
-        "projects", "media_assets",
-        ["avatar_asset_id"], ["id"],
+        "projects",
+        "media_assets",
+        ["avatar_asset_id"],
+        ["id"],
         ondelete="SET NULL",
     )
 
@@ -92,8 +105,10 @@ def upgrade() -> None:
     op.drop_constraint("scenes_storyboard_id_fkey", "scenes", type_="foreignkey")
     op.create_foreign_key(
         "fk_scenes_storyboard_id",
-        "scenes", "storyboards",
-        ["storyboard_id"], ["id"],
+        "scenes",
+        "storyboards",
+        ["storyboard_id"],
+        ["id"],
         ondelete="CASCADE",
     )
 
@@ -105,7 +120,8 @@ def upgrade() -> None:
     op.drop_index("ix_media_assets_owner_id", table_name="media_assets")
     op.drop_index("ix_media_assets_owner_type", table_name="media_assets")
     op.create_index(
-        "ix_media_assets_owner", "media_assets",
+        "ix_media_assets_owner",
+        "media_assets",
         ["owner_type", "owner_id"],
     )
 
@@ -127,15 +143,19 @@ def upgrade() -> None:
 
     op.create_foreign_key(
         "fk_tag_rules_source_tag_id",
-        "tag_rules", "tags",
-        ["source_tag_id"], ["id"],
+        "tag_rules",
+        "tags",
+        ["source_tag_id"],
+        ["id"],
         ondelete="CASCADE",
     )
 
     op.create_foreign_key(
         "fk_tag_rules_target_tag_id",
-        "tag_rules", "tags",
-        ["target_tag_id"], ["id"],
+        "tag_rules",
+        "tags",
+        ["target_tag_id"],
+        ["id"],
         ondelete="CASCADE",
     )
 
@@ -161,8 +181,10 @@ def downgrade() -> None:
     op.drop_constraint("fk_scenes_storyboard_id", "scenes", type_="foreignkey")
     op.create_foreign_key(
         "scenes_storyboard_id_fkey",
-        "scenes", "storyboards",
-        ["storyboard_id"], ["id"],
+        "scenes",
+        "storyboards",
+        ["storyboard_id"],
+        ["id"],
     )
 
     # P0-1. Drop all *_asset_id FK constraints

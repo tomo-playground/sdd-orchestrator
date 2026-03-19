@@ -264,9 +264,7 @@ def upgrade() -> None:
     )
 
     existing_count = conn.execute(
-        sa.select(sa.func.count())
-        .select_from(presets_table)
-        .where(sa.column("is_system").is_(True))
+        sa.select(sa.func.count()).select_from(presets_table).where(sa.column("is_system").is_(True))
     ).scalar()
 
     if existing_count == 0:

@@ -37,9 +37,7 @@ def upgrade() -> None:
         "backgrounds",
         ["storyboard_id", "location_key", "style_profile_id"],
         unique=True,
-        postgresql_where=sa.text(
-            "deleted_at IS NULL AND storyboard_id IS NOT NULL AND location_key IS NOT NULL"
-        ),
+        postgresql_where=sa.text("deleted_at IS NULL AND storyboard_id IS NOT NULL AND location_key IS NOT NULL"),
     )
 
 
@@ -51,8 +49,6 @@ def downgrade() -> None:
         "backgrounds",
         ["storyboard_id", "location_key"],
         unique=True,
-        postgresql_where=sa.text(
-            "deleted_at IS NULL AND storyboard_id IS NOT NULL AND location_key IS NOT NULL"
-        ),
+        postgresql_where=sa.text("deleted_at IS NULL AND storyboard_id IS NOT NULL AND location_key IS NOT NULL"),
     )
     op.drop_column("backgrounds", "style_profile_id")

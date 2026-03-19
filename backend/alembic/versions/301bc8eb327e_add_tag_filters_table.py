@@ -5,6 +5,7 @@ Revises: 680342bf43a5
 Create Date: 2026-01-29 12:31:23.712416
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -12,8 +13,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '301bc8eb327e'
-down_revision: str | Sequence[str] | None = '680342bf43a5'
+revision: str = "301bc8eb327e"
+down_revision: str | Sequence[str] | None = "680342bf43a5"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -22,18 +23,18 @@ def upgrade() -> None:
     """Create tag_filters table and populate with hardcoded ignore/skip tags."""
     # Create table
     op.create_table(
-        'tag_filters',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('tag_name', sa.String(100), nullable=False),
-        sa.Column('filter_type', sa.String(20), nullable=False),
-        sa.Column('reason', sa.String(200), nullable=True),
-        sa.Column('active', sa.Boolean(), nullable=False, server_default='true'),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
-        sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('tag_name')
+        "tag_filters",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("tag_name", sa.String(100), nullable=False),
+        sa.Column("filter_type", sa.String(20), nullable=False),
+        sa.Column("reason", sa.String(200), nullable=True),
+        sa.Column("active", sa.Boolean(), nullable=False, server_default="true"),
+        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")),
+        sa.Column("updated_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("tag_name"),
     )
-    op.create_index('ix_tag_filters_tag_name', 'tag_filters', ['tag_name'])
+    op.create_index("ix_tag_filters_tag_name", "tag_filters", ["tag_name"])
 
     # Populate with IGNORE_TOKENS from core.py
     connection = op.get_bind()
@@ -80,7 +81,7 @@ def upgrade() -> None:
                 INSERT INTO tag_filters (tag_name, filter_type, reason, active)
                 VALUES (:tag, 'ignore', :reason, true)
             """),
-            {"tag": tag, "reason": reason}
+            {"tag": tag, "reason": reason},
         )
 
     # Populate with SKIP_TAGS from core.py
@@ -157,11 +158,11 @@ def upgrade() -> None:
                 VALUES (:tag, 'skip', :reason, true)
                 ON CONFLICT (tag_name) DO NOTHING
             """),
-            {"tag": tag, "reason": reason}
+            {"tag": tag, "reason": reason},
         )
 
 
 def downgrade() -> None:
     """Remove tag_filters table."""
-    op.drop_index('ix_tag_filters_tag_name', 'tag_filters')
-    op.drop_table('tag_filters')
+    op.drop_index("ix_tag_filters_tag_name", "tag_filters")
+    op.drop_table("tag_filters")

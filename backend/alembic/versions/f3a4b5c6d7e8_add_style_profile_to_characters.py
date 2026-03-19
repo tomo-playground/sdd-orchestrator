@@ -16,9 +16,9 @@ depends_on = None
 
 # Explicit mapping: character_id -> style_profile_id
 EXPLICIT_MAPPING = {
-    3: 1,   # Midoriya → Default Anime
-    8: 3,   # Flat Color Girl → Flat Color Anime
-    9: 1,   # Harukaze Doremi → Default Anime (fallback)
+    3: 1,  # Midoriya → Default Anime
+    8: 3,  # Flat Color Girl → Flat Color Anime
+    9: 1,  # Harukaze Doremi → Default Anime (fallback)
     12: 3,  # Flat Color Boy → Flat Color Anime
     13: 4,  # J_huiben Girl → Children Picture Book
     14: 4,  # J_huiben Boy → Children Picture Book
@@ -51,11 +51,7 @@ def upgrade() -> None:
         sa.column("style_profile_id", sa.Integer),
     )
     for char_id, profile_id in EXPLICIT_MAPPING.items():
-        op.execute(
-            characters.update()
-            .where(characters.c.id == char_id)
-            .values(style_profile_id=profile_id)
-        )
+        op.execute(characters.update().where(characters.c.id == char_id).values(style_profile_id=profile_id))
 
 
 def downgrade() -> None:

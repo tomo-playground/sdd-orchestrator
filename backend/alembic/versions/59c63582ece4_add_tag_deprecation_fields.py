@@ -5,6 +5,7 @@ Revises: d4fc742b4bca
 Create Date: 2026-01-31 01:40:25.790723
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -12,8 +13,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '59c63582ece4'
-down_revision: str | Sequence[str] | None = 'd4fc742b4bca'
+revision: str = "59c63582ece4"
+down_revision: str | Sequence[str] | None = "d4fc742b4bca"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -21,14 +22,14 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     """Add deprecation and replacement fields to tags table."""
     # Add is_active column (default True for existing tags)
-    op.add_column('tags', sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'))
-    op.create_index('ix_tags_is_active', 'tags', ['is_active'])
+    op.add_column("tags", sa.Column("is_active", sa.Boolean(), nullable=False, server_default="true"))
+    op.create_index("ix_tags_is_active", "tags", ["is_active"])
 
     # Add deprecated_reason column
-    op.add_column('tags', sa.Column('deprecated_reason', sa.String(200), nullable=True))
+    op.add_column("tags", sa.Column("deprecated_reason", sa.String(200), nullable=True))
 
     # Add replacement_tag_id column (foreign key to tags.id)
-    op.add_column('tags', sa.Column('replacement_tag_id', sa.Integer(), nullable=True))
+    op.add_column("tags", sa.Column("replacement_tag_id", sa.Integer(), nullable=True))
 
     # Deprecate known non-Danbooru tags
     op.execute("""
@@ -55,7 +56,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Remove deprecation fields from tags table."""
-    op.drop_index('ix_tags_is_active', 'tags')
-    op.drop_column('tags', 'replacement_tag_id')
-    op.drop_column('tags', 'deprecated_reason')
-    op.drop_column('tags', 'is_active')
+    op.drop_index("ix_tags_is_active", "tags")
+    op.drop_column("tags", "replacement_tag_id")
+    op.drop_column("tags", "deprecated_reason")
+    op.drop_column("tags", "is_active")

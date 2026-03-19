@@ -5,6 +5,7 @@ Revises: 301bc8eb327e
 Create Date: 2026-01-29 12:53:54.047031
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -12,8 +13,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '5d52713e8a1f'
-down_revision: str | Sequence[str] | None = '301bc8eb327e'
+revision: str = "5d52713e8a1f"
+down_revision: str | Sequence[str] | None = "301bc8eb327e"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -22,17 +23,17 @@ def upgrade() -> None:
     """Upgrade schema."""
     # Create tag_aliases table
     op.create_table(
-        'tag_aliases',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('source_tag', sa.String(100), nullable=False),
-        sa.Column('target_tag', sa.String(100), nullable=True),  # NULL = remove tag
-        sa.Column('reason', sa.String(200), nullable=True),
-        sa.Column('active', sa.Boolean(), nullable=False, server_default='true'),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
-        sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
-        sa.PrimaryKeyConstraint('id')
+        "tag_aliases",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("source_tag", sa.String(100), nullable=False),
+        sa.Column("target_tag", sa.String(100), nullable=True),  # NULL = remove tag
+        sa.Column("reason", sa.String(200), nullable=True),
+        sa.Column("active", sa.Boolean(), nullable=False, server_default="true"),
+        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")),
+        sa.Column("updated_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")),
+        sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index('ix_tag_aliases_source_tag', 'tag_aliases', ['source_tag'])
+    op.create_index("ix_tag_aliases_source_tag", "tag_aliases", ["source_tag"])
 
     # Populate with RISKY_TAG_REPLACEMENTS
     connection = op.get_bind()
@@ -70,7 +71,6 @@ def upgrade() -> None:
         ("first_person_view", "pov", "Camera: Non-Danbooru term"),
         ("third person view", "from_side", "Camera: Non-Danbooru term"),
         ("third_person_view", "from_side", "Camera: Non-Danbooru term"),
-
         # Lighting
         ("soft lighting", "soft_light", "Lighting: Non-Danbooru term"),
         ("soft_lighting", "soft_light", "Lighting: Non-Danbooru term"),
@@ -88,7 +88,6 @@ def upgrade() -> None:
         ("top_lighting", "light_from_above", "Lighting: Non-Danbooru term"),
         ("bottom lighting", "light_from_below", "Lighting: Non-Danbooru term"),
         ("bottom_lighting", "light_from_below", "Lighting: Non-Danbooru term"),
-
         # Quality/Style (SD-specific)
         ("photorealistic", "realistic", "Quality: SD-specific term"),
         ("photo realistic", "realistic", "Quality: SD-specific term"),
@@ -109,7 +108,6 @@ def upgrade() -> None:
         ("octane_render", None, "Quality: Remove (SD-specific)"),
         ("ray tracing", None, "Quality: Remove (SD-specific)"),
         ("ray_tracing", None, "Quality: Remove (SD-specific)"),
-
         # Composition
         ("rule of thirds", "dynamic_composition", "Composition: Non-Danbooru term"),
         ("rule_of_thirds", "dynamic_composition", "Composition: Non-Danbooru term"),
@@ -119,7 +117,6 @@ def upgrade() -> None:
         ("symmetrical_composition", "symmetry", "Composition: Non-Danbooru term"),
         ("golden ratio", "dynamic_composition", "Composition: Non-Danbooru term"),
         ("golden_ratio", "dynamic_composition", "Composition: Non-Danbooru term"),
-
         # Common typos and variations
         ("bokeh effect", "bokeh", "Typo: Redundant 'effect'"),
         ("bokeh_effect", "bokeh", "Typo: Redundant 'effect'"),
@@ -127,7 +124,6 @@ def upgrade() -> None:
         ("lens_flare_effect", "lens_flare", "Typo: Redundant 'effect'"),
         ("depth of field", "depth_of_field", "Typo: Spacing correction"),
         ("depth_of_field", "depth_of_field", "Typo: Already correct"),
-
         # Appearance / Character (Composite to Individual)
         ("short_green_hair", "short_hair, green_hair", "Composite: Split into components"),
         ("long_blonde_hair", "long_hair, blonde_hair", "Composite: Split into components"),
@@ -146,11 +142,11 @@ def upgrade() -> None:
                 INSERT INTO tag_aliases (source_tag, target_tag, reason, active)
                 VALUES (:source, :target, :reason, true)
             """),
-            {"source": source, "target": target, "reason": reason}
+            {"source": source, "target": target, "reason": reason},
         )
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_index('ix_tag_aliases_source_tag', 'tag_aliases')
-    op.drop_table('tag_aliases')
+    op.drop_index("ix_tag_aliases_source_tag", "tag_aliases")
+    op.drop_table("tag_aliases")

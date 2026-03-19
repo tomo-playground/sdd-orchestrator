@@ -57,7 +57,9 @@ def upgrade() -> None:
 
         # Check if rule already exists (either direction)
         existing = conn.execute(
-            sa.select(sa.literal(1)).select_from(tag_rules).where(
+            sa.select(sa.literal(1))
+            .select_from(tag_rules)
+            .where(
                 sa.or_(
                     sa.and_(tag_rules.c.source_tag_id == src_id, tag_rules.c.target_tag_id == tgt_id),
                     sa.and_(tag_rules.c.source_tag_id == tgt_id, tag_rules.c.target_tag_id == src_id),

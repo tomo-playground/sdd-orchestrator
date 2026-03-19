@@ -8,13 +8,14 @@ Revises: 746fbdbee6ea
 Create Date: 2026-02-08 21:41:52.516356
 
 """
+
 from collections.abc import Sequence
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = 'cdc167b32c1b'
-down_revision: str | Sequence[str] | None = '746fbdbee6ea'
+revision: str = "cdc167b32c1b"
+down_revision: str | Sequence[str] | None = "746fbdbee6ea"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

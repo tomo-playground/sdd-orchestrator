@@ -5,13 +5,14 @@ Revises: 3befa9fd7c2e
 Create Date: 2026-02-01 16:19:56.170308
 
 """
+
 from collections.abc import Sequence
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '2028041a8e51'
-down_revision: str | Sequence[str] | None = '3befa9fd7c2e'
+revision: str = "2028041a8e51"
+down_revision: str | Sequence[str] | None = "3befa9fd7c2e"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -19,10 +20,8 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     """Upgrade schema: Rename image_url → image_storage_key and normalize data."""
     # 1. Rename columns
-    op.alter_column('activity_logs', 'image_url',
-                    new_column_name='image_storage_key')
-    op.alter_column('scene_quality_scores', 'image_url',
-                    new_column_name='image_storage_key')
+    op.alter_column("activity_logs", "image_url", new_column_name="image_storage_key")
+    op.alter_column("scene_quality_scores", "image_url", new_column_name="image_storage_key")
 
     # 2. Data cleanup: MinIO URL → Storage Key
     # Pattern: http://localhost:9000/shorts-producer/projects/... → projects/...
@@ -62,7 +61,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema: Revert column names."""
-    op.alter_column('activity_logs', 'image_storage_key',
-                    new_column_name='image_url')
-    op.alter_column('scene_quality_scores', 'image_storage_key',
-                    new_column_name='image_url')
+    op.alter_column("activity_logs", "image_storage_key", new_column_name="image_url")
+    op.alter_column("scene_quality_scores", "image_storage_key", new_column_name="image_url")

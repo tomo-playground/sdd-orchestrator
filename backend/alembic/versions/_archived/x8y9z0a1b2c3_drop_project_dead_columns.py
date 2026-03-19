@@ -21,18 +21,10 @@ depends_on = None
 
 def upgrade() -> None:
     # Drop FK constraints first
-    op.drop_constraint(
-        "fk_projects_avatar_asset_id", "projects", type_="foreignkey"
-    )
-    op.drop_constraint(
-        "fk_projects_render_preset_id", "projects", type_="foreignkey"
-    )
-    op.drop_constraint(
-        "fk_projects_default_character_id", "projects", type_="foreignkey"
-    )
-    op.drop_constraint(
-        "fk_projects_default_style_profile_id", "projects", type_="foreignkey"
-    )
+    op.drop_constraint("fk_projects_avatar_asset_id", "projects", type_="foreignkey")
+    op.drop_constraint("fk_projects_render_preset_id", "projects", type_="foreignkey")
+    op.drop_constraint("fk_projects_default_character_id", "projects", type_="foreignkey")
+    op.drop_constraint("fk_projects_default_style_profile_id", "projects", type_="foreignkey")
 
     # Drop columns
     op.drop_column("projects", "avatar_asset_id")
@@ -62,18 +54,34 @@ def downgrade() -> None:
 
     # Re-add FK constraints
     op.create_foreign_key(
-        "fk_projects_avatar_asset_id", "projects", "media_assets",
-        ["avatar_asset_id"], ["id"], ondelete="SET NULL",
+        "fk_projects_avatar_asset_id",
+        "projects",
+        "media_assets",
+        ["avatar_asset_id"],
+        ["id"],
+        ondelete="SET NULL",
     )
     op.create_foreign_key(
-        "fk_projects_render_preset_id", "projects", "render_presets",
-        ["render_preset_id"], ["id"], ondelete="SET NULL",
+        "fk_projects_render_preset_id",
+        "projects",
+        "render_presets",
+        ["render_preset_id"],
+        ["id"],
+        ondelete="SET NULL",
     )
     op.create_foreign_key(
-        "fk_projects_default_character_id", "projects", "characters",
-        ["character_id"], ["id"], ondelete="SET NULL",
+        "fk_projects_default_character_id",
+        "projects",
+        "characters",
+        ["character_id"],
+        ["id"],
+        ondelete="SET NULL",
     )
     op.create_foreign_key(
-        "fk_projects_default_style_profile_id", "projects", "style_profiles",
-        ["style_profile_id"], ["id"], ondelete="SET NULL",
+        "fk_projects_default_style_profile_id",
+        "projects",
+        "style_profiles",
+        ["style_profile_id"],
+        ["id"],
+        ondelete="SET NULL",
     )

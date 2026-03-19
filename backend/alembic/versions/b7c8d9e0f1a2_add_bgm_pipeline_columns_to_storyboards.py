@@ -6,9 +6,11 @@ Create Date: 2026-02-20
 
 Phase 12-C: AI BGM Pipeline — bgm_prompt, bgm_mood, bgm_audio_asset_id
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 # revision identifiers, used by Alembic.

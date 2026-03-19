@@ -4,6 +4,7 @@ Revision ID: g1h2i3j4k5l6
 Revises: e6f7a8b9c0d1
 Create Date: 2026-02-02
 """
+
 import sqlalchemy as sa
 
 from alembic import op
@@ -26,10 +27,7 @@ def _table_exists(table_name: str) -> bool:
 def _column_exists(table_name: str, column_name: str) -> bool:
     conn = op.get_bind()
     result = conn.execute(
-        sa.text(
-            "SELECT 1 FROM information_schema.columns "
-            "WHERE table_name = :t AND column_name = :c"
-        ),
+        sa.text("SELECT 1 FROM information_schema.columns WHERE table_name = :t AND column_name = :c"),
         {"t": table_name, "c": column_name},
     )
     return result.fetchone() is not None
@@ -46,7 +44,9 @@ def upgrade() -> None:
             sa.Column("project_id", sa.Integer(), sa.ForeignKey("projects.id", ondelete="SET NULL"), nullable=True),
             sa.Column("source_type", sa.String(20), nullable=False),
             sa.Column("tts_engine", sa.String(20), nullable=True),
-            sa.Column("audio_asset_id", sa.Integer(), sa.ForeignKey("media_assets.id", ondelete="SET NULL"), nullable=True),
+            sa.Column(
+                "audio_asset_id", sa.Integer(), sa.ForeignKey("media_assets.id", ondelete="SET NULL"), nullable=True
+            ),
             sa.Column("voice_design_prompt", sa.Text(), nullable=True),
             sa.Column("language", sa.String(20), nullable=False, server_default="korean"),
             sa.Column("sample_text", sa.Text(), nullable=True),
@@ -91,7 +91,9 @@ def upgrade() -> None:
     if not _column_exists("render_presets", "voice_preset_id"):
         op.add_column(
             "render_presets",
-            sa.Column("voice_preset_id", sa.Integer(), sa.ForeignKey("voice_presets.id", ondelete="SET NULL"), nullable=True),
+            sa.Column(
+                "voice_preset_id", sa.Integer(), sa.ForeignKey("voice_presets.id", ondelete="SET NULL"), nullable=True
+            ),
         )
     op.create_index("ix_render_presets_voice_preset_id", "render_presets", ["voice_preset_id"], if_not_exists=True)
 

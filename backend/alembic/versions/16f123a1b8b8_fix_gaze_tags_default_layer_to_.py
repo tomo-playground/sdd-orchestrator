@@ -9,16 +9,16 @@ Revises: 14e63762812b
 Create Date: 2026-02-20 10:27:34.915374
 
 """
-from typing import Sequence, Union
+
+from collections.abc import Sequence
 
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision: str = "16f123a1b8b8"
-down_revision: Union[str, Sequence[str], None] = "14e63762812b"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "14e63762812b"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 LAYER_EXPRESSION = 7
 

@@ -22,9 +22,7 @@ def upgrade() -> None:
     conn = op.get_bind()
 
     # 1. Delete rows without a media asset (useless without video_url)
-    deleted = conn.execute(
-        sa.text("DELETE FROM render_history WHERE media_asset_id IS NULL")
-    )
+    deleted = conn.execute(sa.text("DELETE FROM render_history WHERE media_asset_id IS NULL"))
     if deleted.rowcount:
         print(f"  Deleted {deleted.rowcount} render_history rows with NULL media_asset_id")
 
@@ -32,9 +30,7 @@ def upgrade() -> None:
     op.drop_column("render_history", "video_url")
 
     # 3. Change FK: SET NULL → CASCADE, nullable → NOT NULL
-    op.drop_constraint(
-        "render_history_media_asset_id_fkey", "render_history", type_="foreignkey"
-    )
+    op.drop_constraint("render_history_media_asset_id_fkey", "render_history", type_="foreignkey")
     op.alter_column(
         "render_history",
         "media_asset_id",
@@ -53,9 +49,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Revert FK to SET NULL + nullable
-    op.drop_constraint(
-        "render_history_media_asset_id_fkey", "render_history", type_="foreignkey"
-    )
+    op.drop_constraint("render_history_media_asset_id_fkey", "render_history", type_="foreignkey")
     op.alter_column(
         "render_history",
         "media_asset_id",

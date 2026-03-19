@@ -26,31 +26,41 @@ depends_on = None
 def upgrade() -> None:
     # 0. Clean dangling references before adding FK constraints
     conn = op.get_bind()
-    conn.execute(sa.text("""
+    conn.execute(
+        sa.text("""
         UPDATE scenes SET environment_reference_id = NULL
         WHERE environment_reference_id IS NOT NULL
         AND environment_reference_id NOT IN (SELECT id FROM media_assets)
-    """))
-    conn.execute(sa.text("""
+    """)
+    )
+    conn.execute(
+        sa.text("""
         UPDATE activity_logs SET storyboard_id = NULL
         WHERE storyboard_id IS NOT NULL
         AND storyboard_id NOT IN (SELECT id FROM storyboards)
-    """))
-    conn.execute(sa.text("""
+    """)
+    )
+    conn.execute(
+        sa.text("""
         UPDATE activity_logs SET scene_id = NULL
         WHERE scene_id IS NOT NULL
         AND scene_id NOT IN (SELECT id FROM scenes)
-    """))
-    conn.execute(sa.text("""
+    """)
+    )
+    conn.execute(
+        sa.text("""
         UPDATE activity_logs SET character_id = NULL
         WHERE character_id IS NOT NULL
         AND character_id NOT IN (SELECT id FROM characters)
-    """))
-    conn.execute(sa.text("""
+    """)
+    )
+    conn.execute(
+        sa.text("""
         UPDATE tags SET replacement_tag_id = NULL
         WHERE replacement_tag_id IS NOT NULL
         AND replacement_tag_id NOT IN (SELECT id FROM tags)
-    """))
+    """)
+    )
 
     # 1. scenes.environment_reference_id FK
     op.create_foreign_key(
