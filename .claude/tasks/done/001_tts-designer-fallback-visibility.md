@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/tts-designer-fallback-visibility
 created: 2026-03-19
-status: pending
+status: done
 depends_on:
 ---
 
