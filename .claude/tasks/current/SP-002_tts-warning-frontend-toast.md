@@ -1,11 +1,11 @@
 ---
-id: tts-warning-frontend-toast
+id: SP-002
 priority: P1
 scope: frontend
-branch: feat/tts-warning-frontend-toast
+branch: feat/SP-002-tts-warning-frontend-toast
 created: 2026-03-19
 status: pending
-depends_on: tts-designer-fallback-visibility
+depends_on: SP-001
 ---
 
 ## 무엇을

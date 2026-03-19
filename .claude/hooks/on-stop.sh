@@ -33,9 +33,9 @@ if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
 
   if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
     echo "Stop Hook: ${MAX_RETRIES}회 재시도 초과 — 종료합니다" >&2
-    TASK_NAME=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||')
-    CURRENT="$PROJECT_DIR/.claude/tasks/current/${TASK_NAME}.md"
-    if [ -f "$CURRENT" ]; then
+    SP_ID=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||' | grep -oE '^SP-[0-9]+')
+    CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
+    if [ -n "$CURRENT" ] && [ -f "$CURRENT" ]; then
       sed -i 's/^status:.*/status: failed/' "$CURRENT"
     fi
     rm -f "$RETRY_FILE"
@@ -220,18 +220,17 @@ BRANCH=$(git branch --show-current)
 DONE_DIR="$PROJECT_DIR/.claude/tasks/done"
 mkdir -p "$DONE_DIR"
 
-LAST_NUM=$(ls "$DONE_DIR" | grep -oE '^[0-9]+' | sort -n | tail -1 || echo "0")
-NEXT_NUM=$(printf "%03d" $((10#${LAST_NUM:-0} + 1)))
+SP_ID=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||' | grep -oE '^SP-[0-9]+')
+CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
 
-TASK_NAME=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||')
-CURRENT="$PROJECT_DIR/.claude/tasks/current/${TASK_NAME}.md"
-DONE_FILE="$DONE_DIR/${NEXT_NUM}_${TASK_NAME}.md"
-
-if [ -f "$CURRENT" ] && [ -s "$CURRENT" ]; then
+if [ -n "$CURRENT" ] && [ -f "$CURRENT" ] && [ -s "$CURRENT" ]; then
+  BASENAME=$(basename "$CURRENT")
+  DONE_FILE="$DONE_DIR/${BASENAME}"
   sed -i 's/^status:.*/status: done/' "$CURRENT"
   mv "$CURRENT" "$DONE_FILE"
 else
-  echo "# $TASK_NAME" > "$DONE_FILE"
+  TASK_NAME=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||')
+  echo "# $TASK_NAME" > "$DONE_DIR/${TASK_NAME}.md"
 fi
 
 cat >> "$DONE_FILE" << EOF

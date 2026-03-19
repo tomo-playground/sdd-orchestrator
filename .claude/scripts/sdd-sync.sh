@@ -31,19 +31,15 @@ MERGED=$(gh pr list --state merged --base main \
 CHANGED=false
 
 for BRANCH in $MERGED; do
-  TASK=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||')
-  CURRENT="$PROJECT_DIR/.claude/tasks/current/${TASK}.md"
+  SP_ID=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||' | grep -oE '^SP-[0-9]+')
+  CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
   DONE_DIR="$PROJECT_DIR/.claude/tasks/done"
 
-  if [ -f "$CURRENT" ]; then
-    # done/ 번호 채번
-    LAST=$(ls "$DONE_DIR" 2>/dev/null | grep -oE '^[0-9]+' | sort -n | tail -1 || echo "0")
-    NEXT=$(printf "%03d" $((10#${LAST:-0} + 1)))
-
-    # status 업데이트 + 이동
+  if [ -n "$CURRENT" ] && [ -f "$CURRENT" ]; then
+    BASENAME=$(basename "$CURRENT")
     sed -i 's/^status:.*/status: done/' "$CURRENT"
-    mv "$CURRENT" "$DONE_DIR/${NEXT}_${TASK}.md"
-    echo "✅ ${TASK} → done/${NEXT}_${TASK}.md"
+    mv "$CURRENT" "$DONE_DIR/${BASENAME}"
+    echo "✅ ${BASENAME} → done/"
     CHANGED=true
   fi
 

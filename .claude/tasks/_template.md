@@ -1,8 +1,8 @@
 ---
-id:                          # kebab-case (브랜치명과 동일)
+id: SP-NNN                   # SP-순번 (프로젝트 고유 ID)
 priority:                    # P0 / P1 / P2 / P3
 scope:                       # backend / frontend / fullstack / infra / docs
-branch: feat/                # feat/{id}
+branch: feat/SP-NNN-설명     # feat/{id}-{kebab-case 설명}
 created:                     # YYYY-MM-DD
 status: pending              # pending → running → done / failed
 depends_on:                  # 선행 태스크 id (없으면 비움)

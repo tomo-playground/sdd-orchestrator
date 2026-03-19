@@ -656,12 +656,12 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ```
 
 ### 세션 부팅 프로토콜
-1. 현재 브랜치 확인 (`git branch --show-current` → `feat/xxx`)
-2. `.claude/tasks/current/xxx.md` 읽기 — 없으면 사용자에게 확인
+1. 현재 브랜치 확인 (`git branch --show-current` → `feat/SP-NNN-설명`)
+2. SP-NNN 추출 → `.claude/tasks/current/SP-NNN_*.md` 글로브 매칭
 3. `CLAUDE.md` 규칙 확인
 4. 작업 시작
 
-> **매칭 규칙**: 브랜치 `feat/xxx` → 태스크 `.claude/tasks/current/xxx.md`
+> **매칭 규칙**: 브랜치 `feat/SP-002-xxx` → 태스크 `.claude/tasks/current/SP-002_xxx.md`
 
 ### 자율 실행 규칙
 - **자율 범위**: 구현 → 테스트 → 커밋 → 푸시 → PR 생성까지 풀 자율
@@ -682,9 +682,9 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ### 핵심 파일
 | 파일 | 역할 |
 |------|------|
-| `.claude/tasks/current/브랜치명.md` | 태스크 계약서 — 브랜치명으로 매칭하여 읽기 |
+| `.claude/tasks/current/SP-NNN_설명.md` | 태스크 계약서 — SP-NNN으로 글로브 매칭 |
 | `.claude/tasks/backlog.md` | 실행 대기 큐 (우선순위 순) |
 | `.claude/tasks/_template.md` | 태스크 작성 템플릿 |
-| `.claude/tasks/done/NNN_브랜치.md` | 완료된 태스크 이력 + 품질 게이트 결과 |
+| `.claude/tasks/done/SP-NNN_설명.md` | 완료된 태스크 이력 + 품질 게이트 결과 |
 | `.claude/hooks/on-stop.sh` | Stop Hook: 5단계 품질 게이트 + self-heal (exit 2, 최대 3회) |
 
