@@ -16,6 +16,16 @@
 - [ ] ComfyUI 마이그레이션 — ForgeUI→ComfyUI + SD Client 추상화 | [명세](../../docs/01_product/FEATURES/COMFYUI_MIGRATION.md)
 - [ ] 캐릭터 일관성 V3 — ComfyUI 전환 후 착수. 4-Module 파이프라인 | [명세](../../docs/01_product/FEATURES/CHARACTER_CONSISTENCY_V3.md)
 
+## P1-E2E (테스트 자동화 — 단계별)
+
+- [x] SP-004 — E2E smoke 테스트 + 기본 인프라 (서버 자동 기동)
+- [ ] SP-005 — API mock 전략 (Playwright route intercept 기반 Gemini/SD mock)
+- [ ] SP-006 — 핵심 플로우 E2E (스토리보드 생성, 씬 이미지 생성)
+- [ ] SP-007 — warning/에러 E2E (SP-003 포함, TTS fallback 토스트 등)
+- [ ] SP-008 — on-stop.sh E2E 단계 완전 연동
+
+> 완료 시 Stop Hook이 E2E까지 자동 실행 → PR Test Plan 수동 항목 제거
+
 ## P2 (기능 확장)
 
 - [ ] VEO Clip — Video Generation 통합 | [명세](../../docs/01_product/FEATURES/VEO_CLIP.md)

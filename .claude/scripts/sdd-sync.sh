@@ -22,9 +22,19 @@ fi
 git pull --ff-only 2>/dev/null || exit 0
 
 # 최근 1시간 내 머지된 PR의 브랜치 목록
-MERGED=$(gh pr list --state merged --base main \
-  --json headRefName,mergedAt \
-  --jq '[.[] | select(.mergedAt > (now - 3600 | todate))] | .[].headRefName' 2>/dev/null || true)
+# current/에 있는 태스크의 브랜치와 머지된 PR을 매칭
+MERGED=""
+for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
+  [ -f "$TASK_FILE" ] || continue
+  TASK_BRANCH=$(grep '^branch:' "$TASK_FILE" | sed 's/^branch: *//' | tr -d '[:space:]')
+  [ -z "$TASK_BRANCH" ] && continue
+  # 이 브랜치가 머지됐는지 확인
+  IS_MERGED=$(gh pr list --state merged --base main --head "$TASK_BRANCH" --json number --jq '.[0].number' 2>/dev/null || true)
+  if [ -n "$IS_MERGED" ]; then
+    MERGED="${MERGED} ${TASK_BRANCH}"
+  fi
+done
+MERGED=$(echo "$MERGED" | xargs)
 
 [ -z "$MERGED" ] && exit 0
 
