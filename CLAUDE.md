@@ -686,6 +686,10 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 - **불확실할 때**: 멈추지 말고 보수적인 선택
 - **즉시 중단 조건**: DB 스키마 변경, 외부 의존성 추가 → task.md에 기록 후 중단
 - **완료 기준**: task.md의 DoD 체크리스트 전체 달성
+- **PR 생성 시 메타 자동 설정**: 태스크 frontmatter에서 추출하여 `gh pr create`에 적용
+  - `--label "SP-NNN,{scope},{priority}"` — 태스크 ID + scope + priority
+  - `--reviewer stopper2008` — 기본 리뷰어
+  - `--assignee stopper2008` — 기본 담당자
 - **PR 거절 시**: PR 코멘트를 `gh pr view`로 읽고 기존 브랜치에서 수정 → push
 
 ### 용어 규칙 (혼용 금지)
