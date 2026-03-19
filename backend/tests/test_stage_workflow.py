@@ -439,6 +439,11 @@ class TestStyleProfileCaching:
         # db.get() is used in Phase 3 to re-fetch bg after SD call
         db.get = MagicMock(return_value=existing_bg or new_bg)
 
+        # Phase 3 creates a separate SessionLocal() — mock it to return a session
+        # with .get() that returns the same bg object
+        save_db_mock = MagicMock()
+        save_db_mock.get = MagicMock(return_value=existing_bg or new_bg)
+
         with (
             p1,
             p2,
@@ -452,6 +457,7 @@ class TestStyleProfileCaching:
             patch("services.stage.background_generator._generate_bg_from_prompt", return_value=b"img"),
             patch("services.stage.background_generator.AssetService", return_value=asset_svc),
             patch("services.stage.background_generator.Background", return_value=new_bg),
+            patch("database.SessionLocal", return_value=save_db_mock),
         ):
             results = asyncio.new_event_loop().run_until_complete(generate_location_backgrounds(1, db))
 

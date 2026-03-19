@@ -122,7 +122,7 @@ async def test_valid_json_returns_result():
             ]
         }
     )
-    with patch(_CWT, new_callable=AsyncMock, return_value=(f"```json\n{valid}\n```", [])):
+    with patch(_CWT, new_callable=AsyncMock, return_value=(f"```json\n{valid}\n```", [], None)):
         with patch(_QC, return_value={"ok": True, "issues": [], "checks": {}}):
             result = await _run(_make_state(), MagicMock())
     assert "error" not in result
@@ -133,7 +133,7 @@ async def test_valid_json_returns_result():
 async def test_json_parse_failure_no_error():
     """JSON 파싱 실패 → error 미설정, cinematographer_result=None."""
     _CD = "services.agent.tools.base.call_direct"
-    with patch(_CWT, new_callable=AsyncMock, return_value=("not json {{{", [])):
+    with patch(_CWT, new_callable=AsyncMock, return_value=("not json {{{", [], None)):
         with patch(_CD, new_callable=AsyncMock, return_value="still not json"):
             result = await _run(_make_state(), MagicMock())
     assert "error" not in result
@@ -145,7 +145,7 @@ async def test_json_parse_failure_no_error():
 async def test_non_dict_response_no_error():
     """json.loads가 non-dict → error 미설정, cinematographer_result=None."""
     _CD = "services.agent.tools.base.call_direct"
-    with patch(_CWT, new_callable=AsyncMock, return_value=('"just a string"', [])):
+    with patch(_CWT, new_callable=AsyncMock, return_value=('"just a string"', [], None)):
         with patch(_CD, new_callable=AsyncMock, return_value='"still a string"'):
             result = await _run(_make_state(), MagicMock())
     assert "error" not in result
@@ -166,7 +166,7 @@ async def test_tool_calling_exception_no_error():
 async def test_qc_failure_still_returns_result():
     """QC FAIL → error 미설정, 결과는 그대로 반환 (graceful)."""
     valid = json.dumps({"scenes": [{"order": 1}]})
-    with patch(_CWT, new_callable=AsyncMock, return_value=(f"```json\n{valid}\n```", [])):
+    with patch(_CWT, new_callable=AsyncMock, return_value=(f"```json\n{valid}\n```", [], None)):
         with patch(
             _QC, return_value={"ok": False, "issues": ["missing tags"], "checks": {"image_prompt_present": "FAIL"}}
         ):
@@ -181,7 +181,7 @@ async def test_tool_logs_preserved_on_parse_failure():
     """JSON 파싱 실패 시에도 tool_logs 보존."""
     _CD = "services.agent.tools.base.call_direct"
     logs = [{"tool_name": "validate_danbooru_tag", "arguments": {"tag": "test"}, "result": "ok", "error": None}]
-    with patch(_CWT, new_callable=AsyncMock, return_value=("not json", logs)):
+    with patch(_CWT, new_callable=AsyncMock, return_value=("not json", logs, None)):
         with patch(_CD, new_callable=AsyncMock, return_value="still not json"):
             result = await _run(_make_state(), MagicMock())
     assert result["cinematographer_tool_logs"] == logs
@@ -191,7 +191,7 @@ async def test_tool_logs_preserved_on_parse_failure():
 async def test_empty_scenes_key():
     """scenes 키 없는 dict → 파싱 실패로 cinematographer_result=None."""
     _CD = "services.agent.tools.base.call_direct"
-    with patch(_CWT, new_callable=AsyncMock, return_value=('{"data": "x"}', [])):
+    with patch(_CWT, new_callable=AsyncMock, return_value=('{"data": "x"}', [], None)):
         with patch(_CD, new_callable=AsyncMock, return_value='{"data": "y"}'):
             with patch(_QC, return_value={"ok": True, "issues": [], "checks": {}}):
                 result = await _run(_make_state(), MagicMock())
@@ -206,7 +206,7 @@ async def test_visual_qc_result_stored_in_state():
     """QC 결과가 visual_qc_result로 state에 저장된다."""
     valid = json.dumps({"scenes": [{"order": 1, "visual_tags": ["brown_hair"]}]})
     qc_result = {"ok": False, "issues": ["camera diversity low"], "checks": {"camera_diversity": "WARN"}}
-    with patch(_CWT, new_callable=AsyncMock, return_value=(f"```json\n{valid}\n```", [])):
+    with patch(_CWT, new_callable=AsyncMock, return_value=(f"```json\n{valid}\n```", [], None)):
         with patch(_QC, return_value=qc_result):
             result = await _run(_make_state(), MagicMock())
     assert "visual_qc_result" in result

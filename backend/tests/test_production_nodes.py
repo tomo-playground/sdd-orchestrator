@@ -113,6 +113,7 @@ async def test_cinematographer_node(mock_validate, mock_call, mock_scenes):
 {{"scenes": {json.dumps(mock_scenes)}}}
 ```""",
         [],
+        None,
     )
     mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
 
@@ -365,6 +366,7 @@ async def test_cinematographer_passes_director_feedback(mock_validate, mock_call
 {{"scenes": {json.dumps(mock_scenes)}}}
 ```""",
         [],
+        None,
     )
     mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
 
