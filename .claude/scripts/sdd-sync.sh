@@ -30,8 +30,11 @@ for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
   [ -f "$TASK_FILE" ] || continue
   TASK_BRANCH=$(grep '^branch:' "$TASK_FILE" | sed 's/^branch: *//' | tr -d '[:space:]')
   [ -z "$TASK_BRANCH" ] && continue
-  # 이 브랜치가 머지됐는지 확인
+  # 이 브랜치가 머지됐는지 확인 (worktree- prefix도 매칭)
   IS_MERGED=$(gh pr list --state merged --base main --head "$TASK_BRANCH" --json number --jq '.[0].number' 2>/dev/null || true)
+  if [ -z "$IS_MERGED" ]; then
+    IS_MERGED=$(gh pr list --state merged --base main --head "worktree-${TASK_BRANCH}" --json number --jq '.[0].number' 2>/dev/null || true)
+  fi
   if [ -n "$IS_MERGED" ]; then
     MERGED="${MERGED} ${TASK_BRANCH}"
   fi
