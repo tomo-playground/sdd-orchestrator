@@ -16,10 +16,10 @@ Playwright E2E smoke 테스트 3개 + 기본 인프라 (서버 자동 기동 포
 가장 기본적인 smoke 테스트부터 시작하여 점진적으로 확장.
 
 ## 완료 기준 (DoD)
-- [ ] `frontend/e2e/` 디렉토리 생성
-- [ ] playwright.config.ts에 E2E 프로젝트 추가 (기존 VRT와 분리)
-- [ ] webServer 설정으로 Backend+Frontend 자동 기동/종료
-- [ ] Smoke 테스트 3개 작성
+- [x] `frontend/e2e/` 디렉토리 생성
+- [x] playwright.config.ts에 E2E 프로젝트 추가 (기존 VRT와 분리)
+- [x] webServer 설정으로 Backend+Frontend 자동 기동/종료
+- [x] Smoke 테스트 3개 작성
   - Home 페이지 로딩 + 기본 요소 확인
   - Studio 페이지 접근 + 탭 전환
   - 스토리보드 목록 페이지 로딩
