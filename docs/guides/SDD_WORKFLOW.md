@@ -192,6 +192,7 @@ Step 5. E2E      → Playwright (서버 실행 중일 때만)
 - **worktree + feature 브랜치** 사용
 - main 브랜치는 항상 깨끗하게 유지
 - PR이 유일한 머지 경로
+- **PR 전 리베이스**: 머지 충돌 방지를 위해 push 전에 `git rebase main` 수행. 충돌 시 Claude가 자율 해결, 해결 불가하면 사용자에게 보고.
 
 ### 실행 명령어
 

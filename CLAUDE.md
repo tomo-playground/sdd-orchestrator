@@ -700,6 +700,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 - **완료 기준**: task.md의 DoD 체크리스트 전체 달성
 - **PR 생성 시**: 태스크 frontmatter에서 label/reviewer/assignee 자동 설정. 상세는 `docs/guides/SDD_WORKFLOW.md` 참조.
 - **PR 생성 직후**: `/code-review:code-review {PR번호}` 실행하여 셀프 리뷰 코멘트를 PR에 남긴다.
+- **PR 전 리베이스**: push 전에 `git rebase main` 수행. 충돌 시 자율 해결, 불가하면 사용자 보고.
 - **PR 거절 시**: PR 코멘트를 `gh pr view`로 읽고 기존 브랜치에서 수정 → push
 
 ### 용어 규칙 (혼용 금지)
