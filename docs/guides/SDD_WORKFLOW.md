@@ -222,6 +222,7 @@ gh pr create \
   --label "SP-NNN,{scope},{priority}" \
   --reviewer stopper2008 \
   --assignee stopper2008 \
+  --project "shorts producer" \
   --body "..."
 ```
 
@@ -230,6 +231,7 @@ gh pr create \
 | `id: SP-002` | label | `SP-002` |
 | `scope: frontend` | label | `frontend` |
 | `priority: P1` | label | `P1` |
+| (고정) | project | `shorts producer` |
 | (고정) | reviewer | `stopper2008` |
 | (고정) | assignee | `stopper2008` |
 
