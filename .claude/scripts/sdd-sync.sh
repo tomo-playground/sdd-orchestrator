@@ -47,9 +47,9 @@ for BRANCH in $MERGED; do
     CHANGED=true
   fi
 
-  # 로컬 브랜치 삭제
-  git branch -d "$BRANCH" 2>/dev/null && echo "🗑️ 브랜치 삭제: $BRANCH"
-  # 원격 추적 브랜치 정리
+  # 로컬 + 원격 브랜치 삭제
+  git branch -d "$BRANCH" 2>/dev/null && echo "🗑️ 로컬 브랜치 삭제: $BRANCH"
+  git push origin --delete "$BRANCH" 2>/dev/null && echo "🗑️ 원격 브랜치 삭제: $BRANCH"
   git remote prune origin 2>/dev/null || true
 done
 

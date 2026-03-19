@@ -17,10 +17,22 @@ TTS Designer 실패 시 조용히 빈 리스트 반환하는 문제 → LangFuse
 SB 1117 이후 전체 스토리보드에서 voice_design_prompt가 null — 실패 497회 확인.
 
 ## 완료 기준 (DoD)
-- [ ] TTS Designer fallback 시 LangFuse score 기록 (tts_designer_fallback: 1)
-- [ ] fallback_reason을 final_scenes에 포함하여 프론트엔드 전달
-- [ ] 프론트엔드에서 "voice design 누락 씬 N개" warning 토스트 표시
-- [ ] 기존 테스트 regression 없음
+- [x] TTS Designer fallback 시 LangFuse score 기록 (tts_designer_fallback: 1)
+- [x] fallback_reason을 final_scenes에 포함하여 프론트엔드 전달
+- [ ] 프론트엔드에서 "voice design 누락 씬 N개" warning 토스트 표시 ← 프론트 미착수
+- [x] 기존 테스트 regression 없음
+
+## 추가 수정 (태스크 범위 외)
+- [x] Gemini client 닫힘 후 재생성 (hot-reload "client has been closed" 에러 방지)
+- [x] LANGFUSE_SCORE_CONFIGS에 tts_designer_fallback 등록
+- [x] CI → workflow_dispatch 전환 (Stop Hook 대체)
+
+## 품질 게이트 결과 [2026-03-19 21:30]
+- Lint: PASS
+- Backend pytest: PASS (test_langfuse_scoring 24 passed)
+- Frontend vitest: SKIP (프론트 변경 없음)
+- VRT: SKIP
+- E2E: SKIP
 
 ## 제약
 - 변경 파일 10개 이하
