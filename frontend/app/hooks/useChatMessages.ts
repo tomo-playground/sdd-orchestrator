@@ -70,8 +70,18 @@ export function useChatMessages(deps: ChatMessagesDeps): ChatMessagesReturn {
     };
   }, [chatMessages, storyboardId, saveMessages]);
 
+  /** 채팅 상태 초기화: 메시지 교체 + progress/topic 리셋 */
+  const resetChatState = useCallback(
+    (msgs: ChatMessage[]) => {
+      setChatMessages(msgs);
+      setActiveProgress(null);
+      topicRef.current = "";
+    },
+    [setChatMessages]
+  );
+
   // 스토리보드 변경 시 해당 히스토리 복원
-  // null → number 전환 시 임시 key 데이터를 새 id로 이관
+  // null → number: (A) 새 영상 첫 저장 → 임시 키 이관, (B) 기존 영상 로드 → 히스토리 복원
   const prevStoryboardIdRef = useRef(storyboardId);
   const prevResetTokenRef = useRef(chatResetToken);
   useEffect(() => {
@@ -82,10 +92,19 @@ export function useChatMessages(deps: ChatMessagesDeps): ChatMessagesReturn {
     const prevId = prevStoryboardIdRef.current;
     prevStoryboardIdRef.current = storyboardId;
 
-    // 새 영상(null) → 저장 완료(number) 전환: React state 메시지를 새 키로 직접 저장
-    // debounce(500ms) 미완료 시 localStorage.__new__가 비어있을 수 있으므로
-    // localStorage가 아닌 현재 React state를 SSOT로 사용
+    // null → number 전환: 두 가지 시나리오 구분
+    // (A) 새 영상 생성 후 첫 저장 → React state를 새 키로 이관 (대화 유지)
+    // (B) 페이지 로드 (?id=X) → storyboardId가 null(초기값) → X로 변경 → 기존 히스토리 복원
     if (prevId === null && storyboardId !== null) {
+      const existingSaved = getMessages(storyboardId);
+      if (existingSaved.length > 0) {
+        // (B) 이미 저장된 히스토리가 있음 → 기존 대화 복원 (덮어쓰기 금지)
+        resetChatState(existingSaved);
+        migrateFromTemp(storyboardId); // 고아 __new__ 키 정리
+        return;
+      }
+      // (A) 새 영상: debounce 미완료 시 localStorage.__new__가 비어있을 수 있으므로
+      // React state를 SSOT로 사용하여 새 키에 저장
       const current = chatMessagesRef.current.filter((m) => m.contentType !== "typing");
       if (current.length > 0) {
         saveMessages(storyboardId, current);
@@ -96,9 +115,7 @@ export function useChatMessages(deps: ChatMessagesDeps): ChatMessagesReturn {
     }
 
     const saved = getMessages(storyboardId);
-    setChatMessages(saved.length > 0 ? saved : [createWelcomeMessage()]);
-    setActiveProgress(null);
-    topicRef.current = "";
+    resetChatState(saved.length > 0 ? saved : [createWelcomeMessage()]);
   }, [storyboardId, chatResetToken, getMessages, saveMessages, migrateFromTemp]);
 
   const addMessage = useCallback((msg: ChatMessage) => {
@@ -126,13 +143,11 @@ export function useChatMessages(deps: ChatMessagesDeps): ChatMessagesReturn {
 
   const clearChat = useCallback(
     (editorReset: () => void) => {
-      setChatMessages([createWelcomeMessage()]);
-      setActiveProgress(null);
-      topicRef.current = "";
+      resetChatState([createWelcomeMessage()]);
       clearMessages(storyboardId);
       editorReset();
     },
-    [storyboardId, clearMessages]
+    [storyboardId, clearMessages, resetChatState]
   );
 
   return {

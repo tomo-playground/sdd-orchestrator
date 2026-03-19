@@ -5,7 +5,7 @@ import type { ChatMessage } from "../types/chat";
 /** 스토리보드 ID별 채팅 히스토리 영속 저장소 */
 
 const MAX_MESSAGES_PER_STORYBOARD = 50;
-const MAX_STORYBOARD_ENTRIES = 10;
+const MAX_STORYBOARD_ENTRIES = 30;
 const STORE_KEY = "shorts-producer:chat:v1";
 
 /** 새 영상(storyboardId=null) 채팅을 임시 저장하는 key */
