@@ -36,21 +36,27 @@ REVIEWED_PRS=$(gh pr list --state open --base main --json number,headRefName \
 
 for PR_NUM in $REVIEWED_PRS; do
   # 대응이 필요한 코멘트 감지:
-  # 1. Claude 리뷰 이슈 ("Found N issues")
-  # 2. 사람 코멘트 (Claude "Code review"/"Generated with" 제외한 모든 코멘트)
-  HAS_ISSUES=$(gh api "repos/tomo-playground/shorts-producer/issues/${PR_NUM}/comments" \
+  # 1. 이슈 코멘트: Claude 리뷰 이슈 또는 사람 코멘트
+  # 2. 인라인 리뷰 코멘트 (PR review comments)
+  ISSUE_COMMENTS=$(gh api "repos/tomo-playground/shorts-producer/issues/${PR_NUM}/comments" \
     --jq '[.[] | select(
       (.body | test("Found [0-9]+ issue")) or
       ((.body | test("Code review|Generated with")) | not)
     )] | length' 2>/dev/null || echo "0")
+  REVIEW_COMMENTS=$(gh api "repos/tomo-playground/shorts-producer/pulls/${PR_NUM}/comments" \
+    --jq 'length' 2>/dev/null || echo "0")
+  HAS_ISSUES=$((ISSUE_COMMENTS + REVIEW_COMMENTS))
   [ "$HAS_ISSUES" -eq 0 ] && continue
 
-  # 마지막 코멘트 시각 (리뷰 이슈 또는 사람 코멘트)
-  LAST_COMMENT_DATE=$(gh api "repos/tomo-playground/shorts-producer/issues/${PR_NUM}/comments" \
+  # 마지막 코멘트 시각 (이슈 코멘트 + 인라인 리뷰 코멘트 중 최신)
+  LAST_ISSUE_DATE=$(gh api "repos/tomo-playground/shorts-producer/issues/${PR_NUM}/comments" \
     --jq '[.[] | select(
       (.body | test("Found [0-9]+ issue")) or
       ((.body | test("Code review|Generated with")) | not)
-    )] | last | .created_at' 2>/dev/null || true)
+    )] | last | .created_at // ""' 2>/dev/null || true)
+  LAST_REVIEW_DATE=$(gh api "repos/tomo-playground/shorts-producer/pulls/${PR_NUM}/comments" \
+    --jq 'last | .created_at // ""' 2>/dev/null || true)
+  LAST_COMMENT_DATE=$(echo -e "${LAST_ISSUE_DATE}\n${LAST_REVIEW_DATE}" | sort -r | head -1)
   LAST_PUSH_DATE=$(gh api "repos/tomo-playground/shorts-producer/pulls/${PR_NUM}" \
     --jq '.updated_at' 2>/dev/null || true)
 
@@ -70,7 +76,7 @@ for PR_NUM in $REVIEWED_PRS; do
   echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} (${BRANCH}) 리뷰 이슈 수정 시작" >> "$LOG"
 
   # 해당 브랜치에서 Claude로 수정 실행
-  claude -p "PR #${PR_NUM} 코드 리뷰 이슈를 수정하세요. gh api repos/tomo-playground/shorts-producer/issues/${PR_NUM}/comments 로 리뷰 코멘트를 읽고, 이슈를 수정한 뒤 커밋+push 하세요. 브랜치: ${BRANCH}" \
+  claude -p "PR #${PR_NUM} 피드백을 반영하세요. gh api repos/tomo-playground/shorts-producer/issues/${PR_NUM}/comments 와 gh api repos/tomo-playground/shorts-producer/pulls/${PR_NUM}/comments 로 이슈 코멘트+인라인 리뷰 코멘트를 모두 읽고, 수정한 뒤 커밋+push 하세요. 브랜치: ${BRANCH}" \
     --dangerously-skip-permissions 2>>"$LOG" || true
 
   rm -f "$LOCK"
