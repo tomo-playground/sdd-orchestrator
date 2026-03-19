@@ -57,8 +57,9 @@ for PR_NUM in $REVIEWED_PRS; do
   LAST_REVIEW_DATE=$(gh api "repos/tomo-playground/shorts-producer/pulls/${PR_NUM}/comments" \
     --jq 'last | .created_at // ""' 2>/dev/null || true)
   LAST_COMMENT_DATE=$(echo -e "${LAST_ISSUE_DATE}\n${LAST_REVIEW_DATE}" | sort -r | head -1)
-  LAST_PUSH_DATE=$(gh api "repos/tomo-playground/shorts-producer/pulls/${PR_NUM}" \
-    --jq '.updated_at' 2>/dev/null || true)
+  # 마지막 커밋 시각 (PR updated_at은 코멘트로도 갱신되므로 부적합)
+  LAST_PUSH_DATE=$(gh api "repos/tomo-playground/shorts-producer/pulls/${PR_NUM}/commits" \
+    --jq 'last | .commit.committer.date // ""' 2>/dev/null || true)
 
   # 리뷰 이후 push가 있으면 이미 수정됨
   if [ -n "$LAST_COMMENT_DATE" ] && [ -n "$LAST_PUSH_DATE" ] && [[ "$LAST_PUSH_DATE" > "$LAST_COMMENT_DATE" ]]; then
