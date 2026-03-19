@@ -656,10 +656,12 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ```
 
 ### 세션 부팅 프로토콜
-1. `.claude/tasks/current.md` 읽기 — 비어있으면 사용자에게 확인
-2. `CLAUDE.md` 규칙 확인
-3. `git status` + 현재 브랜치 파악
+1. 현재 브랜치 확인 (`git branch --show-current` → `feat/xxx`)
+2. `.claude/tasks/current/xxx.md` 읽기 — 없으면 사용자에게 확인
+3. `CLAUDE.md` 규칙 확인
 4. 작업 시작
+
+> **매칭 규칙**: 브랜치 `feat/xxx` → 태스크 `.claude/tasks/current/xxx.md`
 
 ### 자율 실행 규칙
 - **자율 범위**: 구현 → 테스트 → 커밋 → 푸시 → PR 생성까지 풀 자율
@@ -669,12 +671,20 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 - **완료 기준**: task.md의 DoD 체크리스트 전체 달성
 - **PR 거절 시**: PR 코멘트를 `gh pr view`로 읽고 기존 브랜치에서 수정 → push
 
+### 용어 규칙 (혼용 금지)
+| 용어 | 역할 | 위치 | 절대 아닌 것 |
+|------|------|------|------------|
+| **Roadmap** | 제품 방향, Phase, 마일스톤 | `docs/01_product/ROADMAP.md` | 태스크 목록 아님 |
+| **Backlog** | 실행 가능한 태스크 큐 | `.claude/tasks/backlog.md` | 로드맵 아님 |
+| **Task** | 실행 중인 계약서 (브랜치별 1개) | `.claude/tasks/current/브랜치명.md` | 백로그 아님 |
+| **Done** | 완료된 태스크 + 품질 결과 | `.claude/tasks/done/NNN_브랜치.md` | 별도 로그 없음 |
+
 ### 핵심 파일
 | 파일 | 역할 |
 |------|------|
-| `.claude/tasks/current.md` | 현재 태스크 계약서 — 세션 시작 시 반드시 읽기 |
+| `.claude/tasks/current/브랜치명.md` | 태스크 계약서 — 브랜치명으로 매칭하여 읽기 |
+| `.claude/tasks/backlog.md` | 실행 대기 큐 (우선순위 순) |
 | `.claude/tasks/_template.md` | 태스크 작성 템플릿 |
-| `.claude/tasks/NNN_제목.md` | 완료된 태스크 이력 (번호순) |
-| `.claude/done.md` | 완료된 태스크 + 품질 게이트 결과 기록 |
+| `.claude/tasks/done/NNN_브랜치.md` | 완료된 태스크 이력 + 품질 게이트 결과 |
 | `.claude/hooks/on-stop.sh` | Stop Hook: 5단계 품질 게이트 + self-heal (exit 2, 최대 3회) |
 

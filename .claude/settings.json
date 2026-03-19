@@ -9,7 +9,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/auto-lint.sh"
+            "command": "/home/tomo/Workspace/shorts-producer/.claude/hooks/auto-lint.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/tomo/Workspace/shorts-producer/.claude/hooks/on-stop.sh"
           }
         ]
       }
