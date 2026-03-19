@@ -33,7 +33,6 @@ if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
 
   if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
     echo "Stop Hook: ${MAX_RETRIES}회 재시도 초과 — 종료합니다" >&2
-    BRANCH=$(git branch --show-current)
     TASK_NAME=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||')
     CURRENT="$PROJECT_DIR/.claude/tasks/current/${TASK_NAME}.md"
     if [ -f "$CURRENT" ]; then
@@ -65,8 +64,10 @@ CHANGED_TS_UNSTAGED=$(git diff --name-only | grep -E '\.(ts|tsx|js|jsx)$' || tru
 ALL_PY=$(echo -e "${CHANGED_PY}\n${CHANGED_PY_UNSTAGED}" | sort -u | grep -v '^$' || true)
 ALL_TS=$(echo -e "${CHANGED_TS}\n${CHANGED_TS_UNSTAGED}" | sort -u | grep -v '^$' || true)
 
-PY_COUNT=$(echo "$ALL_PY" | grep -c '.' 2>/dev/null || echo "0")
-TS_COUNT=$(echo "$ALL_TS" | grep -c '.' 2>/dev/null || echo "0")
+PY_COUNT=0
+[ -n "$ALL_PY" ] && PY_COUNT=$(echo "$ALL_PY" | wc -l)
+TS_COUNT=0
+[ -n "$ALL_TS" ] && TS_COUNT=$(echo "$ALL_TS" | wc -l)
 TOTAL_CHANGED=$((PY_COUNT + TS_COUNT))
 
 if [ "$TOTAL_CHANGED" -eq 0 ]; then
@@ -128,7 +129,8 @@ if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
 # ─── 최종 판정: scope 기반 병렬 실행 ───
 else
   # Scope 판별: 변경된 영역에 따라 불필요한 테스트 스킵
-  HAS_RENDER_CHANGE=$(echo "$ALL_PY" | grep -cE '(services/video/|services/rendering|services/image)' 2>/dev/null || echo "0")
+  HAS_RENDER_CHANGE=$(echo "$ALL_PY" | grep -cE '(services/video/|services/rendering|services/image)' 2>/dev/null || true)
+  HAS_RENDER_CHANGE=${HAS_RENDER_CHANGE:-0}
 
   FAIL_DIR=$(mktemp -d)
   PIDS=""
@@ -240,7 +242,7 @@ cat >> "$DONE_FILE" << EOF
 - Backend pytest: PASS
 - Frontend vitest: PASS
 - VRT: PASS
-- E2E: ${BACKEND_UP:+PASS}${BACKEND_UP:-SKIP}
+- E2E: $([ "$BACKEND_UP" != "000" ] && echo "PASS" || echo "SKIP")
 EOF
 
 echo "전체 통과 — PR 생성 가능" >&2
