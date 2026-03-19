@@ -94,6 +94,7 @@ def build_node_payload(
                 "character_id": char_ids[0],
                 "character_b_id": char_ids[1],
                 "sound_recommendation": node_output.get("sound_recommendation"),
+                "warnings": node_output.get("warnings"),
             }
 
     nr = _extract_node_result(node_name, node_output)

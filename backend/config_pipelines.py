@@ -94,6 +94,8 @@ LANGFUSE_SCORE_CONFIGS: dict[str, dict] = {
     "pipeline_duration_sec": {"data_type": "NUMERIC", "min": 0, "max": 1800},
     # Tier 2: LLM 자기평가
     "narrative_overall": {"data_type": "NUMERIC", "min": 0, "max": 1},
+    # Tier 3: 장애 감지
+    "tts_designer_fallback": {"data_type": "BOOLEAN"},
 }
 
 # --- Director-as-Orchestrator ---

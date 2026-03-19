@@ -1,10 +1,14 @@
 name: CI
 
+# Disabled: Stop Hook (on-stop.sh)이 로컬에서 동일한 품질 게이트를 수행.
+# Self-hosted runner 전환 시 아래 주석 해제.
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+#     branches: [main]
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch: # 수동 실행만 허용
 
 jobs:
   backend-lint:

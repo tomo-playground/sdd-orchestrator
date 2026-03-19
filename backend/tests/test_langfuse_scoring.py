@@ -43,6 +43,7 @@ class TestScoreConfigConsistency:
             "director_revision_count",
             "pipeline_duration_sec",
             "narrative_overall",
+            "tts_designer_fallback",
         }
         assert expected_names == set(LANGFUSE_SCORE_CONFIGS.keys())
 
@@ -254,9 +255,12 @@ class TestNodeScoreMapping:
             finalize,
             research,
             review,
+            tts_designer,
         )
 
-        return "\n".join(inspect.getsource(mod) for mod in [review, finalize, cinematographer, research, director])
+        return "\n".join(
+            inspect.getsource(mod) for mod in [review, finalize, cinematographer, research, director, tts_designer]
+        )
 
     def test_every_config_score_has_recording_node(self):
         """LANGFUSE_SCORE_CONFIGS의 모든 Score가 최소 1개 노드에서 기록된다."""

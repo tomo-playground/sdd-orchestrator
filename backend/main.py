@@ -133,13 +133,17 @@ async def lifespan(_app: FastAPI):
     await close_store()
     await close_checkpointer()
 
-    # Close Gemini client connections before event loop closes
-    from config import gemini_client
+    # Close Gemini client and recreate for hot-reload compatibility
+    from google import genai as _genai  # noqa: PLC0415
 
-    if gemini_client:
+    import config as _cfg
+
+    if _cfg.gemini_client:
         try:
-            await gemini_client.aio.aclose()
-            logger.info("🛑 [Shutdown] Gemini client closed")
+            await _cfg.gemini_client.aio.aclose()
+            # Recreate client so hot-reload doesn't use a closed client
+            _cfg.gemini_client = _genai.Client(api_key=_cfg.GEMINI_API_KEY) if _cfg.GEMINI_API_KEY else None
+            logger.info("🛑 [Shutdown] Gemini client closed and recreated")
         except Exception as e:
             logger.warning("⚠️ [Shutdown] Gemini client close error: %s", e)
 

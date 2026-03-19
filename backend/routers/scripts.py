@@ -125,6 +125,7 @@ def _state_to_response(result: dict) -> dict:
         "character_id": result.get("draft_character_id"),
         "character_b_id": result.get("draft_character_b_id"),
         "sound_recommendation": result.get("sound_recommendation"),
+        "warnings": result.get("warnings"),
     }
     if result.get("explanation_result"):
         resp["explanation"] = result["explanation_result"]

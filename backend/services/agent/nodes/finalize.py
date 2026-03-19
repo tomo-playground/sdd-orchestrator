@@ -1123,11 +1123,21 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     record_score("scene_count", len(scenes))
     record_score("pipeline_duration_sec", get_pipeline_elapsed_sec())
 
-    return {
+    # TTS Designer fallback 경고를 프론트엔드에 전달
+    tts_result = state.get("tts_designer_result") or {}
+    tts_fallback_reason = tts_result.get("fallback_reason")
+
+    result = {
         "final_scenes": scenes,
         "sound_recommendation": sound_rec,
         "copyright_result": copyright_result,
     }
+    if tts_fallback_reason:
+        result["warnings"] = [
+            f"TTS Designer 실패: voice design이 누락되어 기본 음성으로 생성됩니다. ({tts_fallback_reason})"
+        ]
+
+    return result
 
 
 def _resolve_characters_from_group(

@@ -159,4 +159,7 @@ async def tts_designer_node(state: ScriptState) -> dict:
         return {"tts_designer_result": result, "tts_qc_result": qc}
     except Exception as e:
         logger.warning("[LangGraph] TTS Designer 실패, fallback: %s", e)
-        return {"tts_designer_result": _FALLBACK_TTS}
+        from services.agent.observability import record_score  # noqa: PLC0415
+
+        record_score("tts_designer_fallback", 1)
+        return {"tts_designer_result": {**_FALLBACK_TTS, "fallback_reason": str(e)}}
