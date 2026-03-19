@@ -665,7 +665,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 ### 커밋 경로 규칙
 - **main 직접 커밋 허용**: `.claude/`, `CLAUDE.md`, `.github/workflows/`, `docs/`
-- **feat 브랜치 + PR 필수**: `backend/`, `frontend/`, 그 외 코드 전부
+- **feat 브랜치 + PR 필수**: `backend/`, `frontend/`, `audio/`, `scripts/`, 그 외 코드 전부
 
 ### 자율 실행 규칙
 - **자율 범위**: 구현 → 테스트 → 커밋 → 푸시 → PR 생성까지 풀 자율
