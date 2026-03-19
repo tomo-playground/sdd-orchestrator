@@ -4,6 +4,8 @@
 
 set -euo pipefail
 
+export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"
+
 PROJECT_DIR="/home/tomo/Workspace/shorts-producer"
 cd "$PROJECT_DIR"
 LOG="/tmp/sdd-review.log"
