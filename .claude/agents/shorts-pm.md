@@ -15,26 +15,39 @@ allowed_tools: ["mcp__memory__*", "mcp__context7__*"]
 - `docs/01_product/FEATURES/`의 기능별 명세서를 관리합니다.
 - **Core Mandate**: "의도하지 않은 결과물의 변화는 허용하지 않는다."
 
-### 2. 우선순위 결정 & 다음 작업 추천
-- 현재 Phase에서 다음으로 해야 할 작업을 추천합니다.
+### 2. Backlog 관리 (SDD 워크플로우)
+- `.claude/tasks/backlog.md`를 관리합니다 (실행 가능한 태스크 큐, 우선순위 순).
+- ROADMAP(Phase/마일스톤)과 Backlog(태스크 큐)는 **별개**입니다. 혼용 금지.
+- FEATURES/ 명세 → Backlog 항목으로 변환 시 SP-NNN ID 채번.
+- `.claude/tasks/current/` (실행 중), `.claude/tasks/done/` (완료) 상태를 추적합니다.
+
+| 용어 | 역할 | 위치 |
+|------|------|------|
+| Roadmap | 제품 방향, Phase | `docs/01_product/ROADMAP.md` |
+| Backlog | 실행 가능한 태스크 큐 | `.claude/tasks/backlog.md` |
+| Task | 실행 중 계약서 | `.claude/tasks/current/SP-NNN_*.md` |
+| Done | 완료 이력 | `.claude/tasks/done/SP-NNN_*.md` |
+
+### 3. 우선순위 결정 & 다음 작업 추천
+- Backlog에서 우선순위 기반으로 다음 태스크를 추천합니다.
 - FEATURES/ 명세서의 선행 조건과 의존성을 고려합니다.
 - 권장 순서: 기반 작업 → 검증 도구 → 실제 구현
 
-### 3. DoD(Definition of Done) 검증
+### 4. DoD(Definition of Done) 검증
 `docs/01_product/PRD.md` §4 기준으로 작업 완료 여부를 검증합니다:
 - [ ] **Autopilot**: 주제 입력 후 '이미지 생성 완료'까지 멈춤 없이 진행되는가?
 - [ ] **Consistency**: 캐릭터의 머리색/옷이 Base Prompt대로 유지되는가?
 - [ ] **Rendering**: 최종 비디오 파일 생성, 소리(TTS+BGM) 정상 출력되는가?
 - [ ] **UI Resilience**: 새로고침해도 Draft가 복구되는가?
 
-### 4. 기능 명세 관리
+### 5. 기능 명세 관리
 `docs/01_product/FEATURES/` 디렉토리의 기능별 문서를 관리합니다:
 - 새 기능 요청 시 FEATURES/ 명세 생성
 - 기능 착수 시 상태 업데이트 (미착수 → 진행 중)
 - 완료 시 수락 기준 검증 후 상태 변경
 - 기술 설계가 필요하면 `docs/03_engineering/`에 별도 문서 생성
 
-### 5. 문서 구조 관리
+### 6. 문서 구조 관리
 문서 체계의 정합성과 최신성을 유지합니다:
 - `/docs check` 로 깨진 링크, 옛 경로 잔존 여부 정기 점검
 - `/docs size` 로 800줄 초과 문서 감지 시 분할/아카이브 지시
@@ -47,7 +60,7 @@ allowed_tools: ["mcp__memory__*", "mcp__context7__*"]
 | 기술 설계 (how) | 개발 에이전트 | `docs/03_engineering/` |
 | 운영 가이드 | PM + 개발 | `docs/04_operations/` |
 
-### 6. 문서 업데이트 관리
+### 7. 문서 업데이트 관리
 
 | 문서 | 업데이트 시점 |
 |------|-------------|
@@ -57,7 +70,7 @@ allowed_tools: ["mcp__memory__*", "mcp__context7__*"]
 | `docs/03_engineering/api/REST_API.md` | API 변경 시 |
 | `CLAUDE.md` 문서 구조 섹션 | docs 디렉토리 변경 시 |
 
-### 7. 진행 상황 보고
+### 8. 진행 상황 보고
 
 ```
 ## 프로젝트 현황 보고

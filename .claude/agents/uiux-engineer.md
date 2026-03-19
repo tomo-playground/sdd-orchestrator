@@ -130,6 +130,11 @@ browser_navigate → browser_take_screenshot (전체)
 
 ---
 
+## SDD 워크플로우 참조
+- **코드 변경은 feat 브랜치 필수**: `feat/SP-NNN-설명` 형식. main 직접 커밋 금지.
+- **Stop Hook 품질 게이트**: 자동 실행. 실패 시 self-heal 최대 3회.
+- **상세**: `CLAUDE.md` SDD 자율 실행 워크플로우 섹션 참조.
+
 ## 활용 Commands
 
 | Command | 용도 | 주요 시나리오 |

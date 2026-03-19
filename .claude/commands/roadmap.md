@@ -51,7 +51,19 @@
 3. 사용자에게 변경 내용 미리보기 제공
 4. 승인 후 ROADMAP.md 업데이트
 
+## ROADMAP vs Backlog (혼용 금지)
+
+| 용어 | 역할 | 위치 |
+|------|------|------|
+| **Roadmap** | 제품 방향, Phase, 마일스톤 | `docs/01_product/ROADMAP.md` |
+| **Backlog** | 실행 가능한 태스크 큐 | `.claude/tasks/backlog.md` |
+
+- `/roadmap`은 Phase/마일스톤 조회·관리 전용.
+- 개별 태스크 관리는 `.claude/tasks/` (backlog → current → done).
+- `/roadmap next`는 ROADMAP 기준 다음 방향을 제시하되, 실행 태스크는 Backlog에서 선택.
+
 ## 관련 파일
-- `docs/01_product/ROADMAP.md` - 마스터 로드맵
+- `docs/01_product/ROADMAP.md` - 마스터 로드맵 (Phase/마일스톤)
+- `.claude/tasks/backlog.md` - 실행 가능한 태스크 큐 (우선순위)
 - `docs/01_product/FEATURES/` - 기능별 명세서
 - `docs/01_product/PRD.md` - 제품 요구사항

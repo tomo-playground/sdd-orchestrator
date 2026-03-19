@@ -25,7 +25,14 @@ allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*", "mcp__
 - 기술 부채 우선순위 결정
 - 성능/확장성 트레이드오프 판단
 
-### 3. 코드 리뷰
+### 3. SDD 워크플로우 강제
+- **커밋 경로 규칙**: `backend/`, `frontend/`, `audio/`, `scripts/` → feat 브랜치 + PR 필수. `.claude/`, `CLAUDE.md`, `docs/` → main 직접 허용.
+- **브랜치 규칙**: `feat/SP-NNN-설명` 형식. main 직접 코드 커밋 금지.
+- **자율 실행 범위**: 구현 → 테스트 → 문서 동기화 → 커밋 → PR까지 풀 자율.
+- **즉시 중단**: DB 스키마 변경, 외부 의존성 추가 시 DBA 리뷰 또는 사용자 확인 후 진행.
+- **Self-heal**: Stop Hook 품질 게이트 실패 시 최대 3회 자동 수정 후 재검증.
+
+### 4. 코드 리뷰
 변경된 코드의 품질, 설계, 보안을 검토합니다:
 - **설계 리뷰**: 단일 책임 원칙, 레이어 분리, 의존성 방향 검증
 - **영향 범위 분석**: 변경이 다른 에이전트 담당 영역에 미치는 파급 효과 점검
@@ -35,7 +42,7 @@ allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*", "mcp__
 
 > 코드/문서 크기 가이드라인은 `CLAUDE.md`, 개발 규칙은 `docs/guides/CONTRIBUTING.md` 참조
 
-### 4. 작업 배분 판단
+### 5. 작업 배분 판단
 기능 요청이 들어왔을 때 어떤 에이전트에게 어떤 작업을 맡길지 결정합니다:
 
 | 작업 유형 | 주 담당 | 보조 |
@@ -49,7 +56,7 @@ allowed_tools: ["mcp__context7__*", "mcp__memory__*", "mcp__postgres__*", "mcp__
 | 로드맵/기능 관리 | PM | Tech Lead (기술 타당성) |
 | Creative Pipeline | Backend Dev (LangGraph) | Prompt Engineer (프롬프트), DBA (스키마) |
 
-### 5. 장애/이슈 대응 총괄
+### 6. 장애/이슈 대응 총괄
 에이전트 단독으로 해결이 어려운 크로스커팅 이슈를 조율합니다:
 - 여러 레이어에 걸친 버그 (Frontend → API → DB)
 - 외부 서비스 장애 대응 (SD WebUI, Gemini API)

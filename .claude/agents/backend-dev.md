@@ -221,6 +221,13 @@ Apidog OAS 스펙을 조회하여 API 설계 시 참조합니다.
 
 ---
 
+## SDD 워크플로우 준수
+- **코드 변경은 feat 브랜치 필수**: `feat/SP-NNN-설명` 형식. main 직접 커밋 금지.
+- **구현 완료 → Tech Lead 자동 리뷰**: 코드 변경 후 커밋 전 Tech Lead 리뷰 수행.
+- **Stop Hook 품질 게이트**: Lint → pytest → vitest (자동 실행). 실패 시 self-heal 최대 3회.
+- **DB 스키마 변경 시 즉시 중단**: DBA 리뷰 필수. task.md에 기록 후 사용자 확인.
+- **문서 동기화**: 코드 변경이 API/스키마에 영향을 주면 관련 문서 함께 업데이트.
+
 ## 활용 Commands
 
 | Command | 용도 | 주요 시나리오 |

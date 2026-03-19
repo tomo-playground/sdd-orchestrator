@@ -22,6 +22,13 @@
 
 $ARGUMENTS 값에 따라 scope를 결정하세요.
 
+### Step 0: SDD 브랜치 검증
+
+코드 변경 리뷰 시 현재 브랜치를 확인합니다:
+- `feat/SP-NNN-*` 브랜치: 정상 진행
+- `main` 브랜치에서 `backend/`, `frontend/`, `audio/`, `scripts/` 변경: **⚠️ 경고** — "SDD 규칙 위반: 코드 변경은 feat 브랜치에서 해야 합니다"
+- `main` 브랜치에서 `.claude/`, `docs/`, `CLAUDE.md` 변경: 허용 (인프라/문서)
+
 ### Step 1: 변경 범위 파악
 
 scope에 따라 적절한 diff를 확인하세요:

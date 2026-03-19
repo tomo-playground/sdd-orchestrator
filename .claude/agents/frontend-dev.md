@@ -164,6 +164,12 @@ Backend API 스펙을 조회하여 연동 시 참조합니다.
 
 ---
 
+## SDD 워크플로우 준수
+- **코드 변경은 feat 브랜치 필수**: `feat/SP-NNN-설명` 형식. main 직접 커밋 금지.
+- **구현 완료 → Tech Lead 자동 리뷰**: 코드 변경 후 커밋 전 Tech Lead 리뷰 수행.
+- **Stop Hook 품질 게이트**: Lint → vitest (자동 실행). 실패 시 self-heal 최대 3회.
+- **문서 동기화**: 코드 변경이 UI/API 연동에 영향을 주면 관련 문서 함께 업데이트.
+
 ## 활용 Commands
 
 | Command | 용도 | 주요 시나리오 |

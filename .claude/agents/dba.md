@@ -127,6 +127,12 @@ allowed_tools: ["mcp__postgres__*", "mcp__memory__*", "mcp__context7__*"]
 
 ---
 
+## SDD 워크플로우 준수
+- **스키마 변경은 feat 브랜치 필수**: `feat/SP-NNN-설명` 형식. main 직접 커밋 금지.
+- **스키마 변경 시 DBA 리뷰 필수**: models/*.py 또는 alembic/ 변경 시 자동 호출.
+- **DB_SCHEMA.md + SCHEMA_SUMMARY.md 동기화**: 스키마 변경 시 반드시 문서 업데이트.
+- **상세**: `CLAUDE.md` SDD 자율 실행 워크플로우 섹션 참조.
+
 ## 활용 Commands
 
 | Command | 용도 |
