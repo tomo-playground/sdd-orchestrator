@@ -702,6 +702,10 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 - **PR 생성 시**: 태스크 frontmatter에서 label/reviewer/assignee 자동 설정. 상세는 `docs/guides/SDD_WORKFLOW.md` 참조.
 - **PR 생성 직후**: `/code-review:code-review {PR번호}` 실행하여 셀프 리뷰 코멘트를 PR에 남긴다.
 - **PR 전 리베이스**: push 전에 `git rebase main` 수행. 충돌 시 자율 해결, 불가하면 사용자 보고.
+- **PR 코멘트 대응 (판단 기반)**: 맹목 수용이 아닌 시니어 엔지니어처럼 판단.
+  - 버그 지적 → 즉시 수정 + "수정했습니다" 코멘트
+  - 설계 질문/개선 제안 → CLAUDE.md 대조 후 동의하면 수정, 비동의하면 "현행 유지 이유" 코멘트
+  - 스타일/Nit → 합리적이면 수정, 아니면 스킵
 - **PR 거절 시**: PR 코멘트를 `gh pr view`로 읽고 기존 브랜치에서 수정 → push
 
 ### 용어 규칙 (혼용 금지)

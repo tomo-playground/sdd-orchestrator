@@ -76,8 +76,20 @@ for PR_NUM in $REVIEWED_PRS; do
 
   echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} (${BRANCH}) 리뷰 이슈 수정 시작" >> "$LOG"
 
-  # 해당 브랜치에서 Claude로 수정 실행
-  claude -p "PR #${PR_NUM} 피드백을 반영하세요. gh api repos/tomo-playground/shorts-producer/issues/${PR_NUM}/comments 와 gh api repos/tomo-playground/shorts-producer/pulls/${PR_NUM}/comments 로 이슈 코멘트+인라인 리뷰 코멘트를 모두 읽고, 수정한 뒤 커밋+push 하세요. 브랜치: ${BRANCH}" \
+  # 해당 브랜치에서 Claude로 판단 기반 대응
+  claude -p "PR #${PR_NUM} 피드백을 대응하세요.
+
+1. gh api repos/tomo-playground/shorts-producer/issues/${PR_NUM}/comments 와 gh api repos/tomo-playground/shorts-producer/pulls/${PR_NUM}/comments 로 모든 코멘트를 읽으세요.
+
+2. 각 코멘트를 분류하세요:
+   - 버그 지적 → 즉시 수정
+   - 설계 질문/개선 제안 → CLAUDE.md 규칙과 대조하여 판단
+   - 스타일/Nit → 합리적이면 수정, 아니면 스킵
+
+3. 동의하는 피드백: 코드 수정 + 커밋 + push + PR에 '수정했습니다: [변경 내용]' 코멘트
+4. 비동의하는 피드백: 코드 수정 없이 PR에 '현행 유지 이유: [근거]' 코멘트
+
+브랜치: ${BRANCH}" \
     --dangerously-skip-permissions 2>>"$LOG" || true
 
   rm -f "$LOCK"
