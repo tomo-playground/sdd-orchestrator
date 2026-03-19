@@ -193,9 +193,21 @@ Step 5. E2E      → Playwright (서버 실행 중일 때만)
 - main 브랜치는 항상 깨끗하게 유지
 - PR이 유일한 머지 경로
 
+### 실행 명령어
+
 ```bash
-# Claude 실행 시
-claude --worktree feat/태스크명
+# 단일 실행 (alias 사용)
+sdd-run feat/SP-002-tts-warning-frontend-toast
+
+# 직접 실행
+claude --worktree feat/SP-NNN-설명 --dangerously-skip-permissions -p "시작"
+```
+
+> `-p "시작"` 필수: 없으면 Claude가 사용자 입력 대기 상태로 멈춤.
+
+### alias 설정 (~/.bashrc)
+```bash
+sdd-run() { claude --worktree "$1" --dangerously-skip-permissions -p "시작"; }
 ```
 
 ---
@@ -204,10 +216,22 @@ claude --worktree feat/태스크명
 
 ```
 1. GitHub에서 PR 리뷰, 코멘트 남김
-2. current.md에 한 줄만: "PR #123 피드백 반영"
-3. Claude → gh pr view #123 → 코멘트 읽음
+2. Claude 실행: sdd-run feat/SP-NNN-설명
+3. Claude → gh pr view #NNN → 코멘트 읽음
 4. 기존 브랜치에서 수정 → push → PR 자동 업데이트
 ```
+
+---
+
+## 머지 후 자동 정리
+
+```bash
+# 자동: cron 5분 간격으로 sdd-sync.sh 실행
+# 수동: 즉시 정리
+sdd-sync
+```
+
+동작: main pull → 로컬/원격 feat 브랜치 삭제 → current/ → done/ 이동 → 커밋+푸시
 
 ---
 
@@ -215,18 +239,18 @@ claude --worktree feat/태스크명
 
 ### 매칭 규칙
 ```
-브랜치: feat/xxx → 태스크: .claude/tasks/current/xxx.md
+브랜치: feat/SP-NNN-xxx → 태스크: .claude/tasks/current/SP-NNN_xxx.md
 ```
 
 ### 병렬 실행 흐름
 ```bash
 # 사람: backlog에서 3개 태스크를 current/에 작성
-# 터미널 1
-claude --worktree feat/enum-id-normalization
+# 터미널 1 (또는 tmux 패널)
+sdd-run feat/SP-003-storyboard-integrity
 # 터미널 2
-claude --worktree feat/speaker-dynamic-role
+sdd-run feat/SP-004-enum-id-normalization
 # 터미널 3
-claude --worktree feat/storyboard-integrity
+sdd-run feat/SP-005-speaker-dynamic-role
 ```
 
 ### 병렬 제약
