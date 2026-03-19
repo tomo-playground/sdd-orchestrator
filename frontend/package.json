@@ -10,7 +10,8 @@
     "test": "vitest",
     "test:vrt": "playwright test",
     "test:vrt:update": "playwright test --update-snapshots",
-    "test:vrt:ui": "playwright test --ui"
+    "test:vrt:ui": "playwright test --ui",
+    "test:e2e": "playwright test --config=playwright.e2e.config.ts"
   },
   "dependencies": {
     "axios": "^1.13.2",
