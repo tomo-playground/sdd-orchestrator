@@ -4,7 +4,7 @@ priority: P1
 scope: frontend
 branch: feat/SP-005-kanban-card-default-tab
 created: 2026-03-20
-status: pending
+status: done
 depends_on:
 ---
 
