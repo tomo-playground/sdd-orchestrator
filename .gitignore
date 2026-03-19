@@ -15,6 +15,9 @@ build/
 .env.local
 .env*.local
 
+# Claude Code worktrees
+.claude/worktrees/
+
 # IDE / Tools
 .idea/
 .vscode/
