@@ -4,7 +4,12 @@
 
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+# worktree에서는 CWD가 worktree 경로이므로 우선 사용
+if [ -n "$PWD" ] && { [ -d "$PWD/.git" ] || [ -f "$PWD/.git" ]; }; then
+  PROJECT_DIR="$PWD"
+else
+  PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+fi
 INPUT=$(cat)
 
 # Extract file_path from tool input

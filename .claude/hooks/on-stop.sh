@@ -5,7 +5,12 @@
 # 전략: self-heal 중 → 변경 관련 테스트만 (빠른 피드백)
 #        최종 판정 → Backend+Frontend+VRT 병렬 실행
 
-PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+# worktree에서는 CWD가 worktree 경로이므로 그쪽을 우선 사용
+if [ -n "$PWD" ] && [ -d "$PWD/.git" ] || [ -f "$PWD/.git" ]; then
+  PROJECT_DIR="$PWD"
+else
+  PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+fi
 cd "$PROJECT_DIR"
 
 # ─── 브랜치 가드: feat/ 브랜치에서만 실행 ───
