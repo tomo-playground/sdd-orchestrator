@@ -1765,9 +1765,11 @@ class SoundRecommendation(BaseModel):
 
 class ScriptGenerateResponse(BaseModel):
     scenes: list[ScriptGenerateSceneItem]
+    structure: str | None = None
     character_id: int | None = None
     character_b_id: int | None = None
     sound_recommendation: SoundRecommendation | None = None
+    warnings: list[str] | None = None
 
 
 class ScriptProgressEvent(BaseModel):

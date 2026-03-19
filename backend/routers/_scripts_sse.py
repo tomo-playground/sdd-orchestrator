@@ -91,6 +91,7 @@ def build_node_payload(
             payload["status"] = "completed"
             payload["result"] = {
                 "scenes": final_scenes,
+                "structure": node_output.get("structure"),
                 "character_id": char_ids[0],
                 "character_b_id": char_ids[1],
                 "sound_recommendation": node_output.get("sound_recommendation"),
@@ -290,6 +291,7 @@ async def stream_graph_events(
                     if node_name == "finalize" and node_output.get("final_scenes") is not None:
                         final_output = {
                             "scenes": node_output["final_scenes"],
+                            "structure": node_output.get("structure"),
                             "character_id": char_ids[0],
                             "character_b_id": char_ids[1],
                             "sound_recommendation": node_output.get("sound_recommendation"),

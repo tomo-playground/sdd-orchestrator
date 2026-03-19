@@ -97,6 +97,8 @@ type StreamOutcomeOpts = {
   /** SSE completion에서 전달된 캐릭터 ID (Full/FastTrack 공통) */
   characterId?: number | null;
   characterBId?: number | null;
+  /** Backend에서 결정된 structure (e.g. dialogue, monologue) */
+  structure?: string | null;
   /** Backend warnings (e.g. TTS Designer fallback) */
   warnings?: string[];
 };
@@ -112,7 +114,7 @@ export function handleStreamOutcome(opts: StreamOutcomeOpts): boolean {
     const resolvedCharBId = casting?.character_b_id ?? opts.characterBId ?? null;
     const resolvedCharName = casting?.character_a_name || null;
     const resolvedCharBName = casting?.character_b_name || null;
-    const resolvedStructure = casting?.structure || null;
+    const resolvedStructure = casting?.structure || opts.structure || null;
 
     setState((prev) => ({
       ...prev,

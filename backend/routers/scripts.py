@@ -122,6 +122,7 @@ def _state_to_response(result: dict) -> dict:
     """Graph 결과 → API 응답 dict 변환."""
     resp = {
         "scenes": result.get("final_scenes") or [],
+        "structure": result.get("structure"),
         "character_id": result.get("draft_character_id"),
         "character_b_id": result.get("draft_character_b_id"),
         "sound_recommendation": result.get("sound_recommendation"),

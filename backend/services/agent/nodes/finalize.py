@@ -1129,6 +1129,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
 
     result = {
         "final_scenes": scenes,
+        "structure": structure,
         "sound_recommendation": sound_rec,
         "copyright_result": copyright_result,
     }
