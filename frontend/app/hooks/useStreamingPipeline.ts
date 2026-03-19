@@ -125,11 +125,15 @@ export function useStreamingPipeline(deps: StreamingPipelineDeps) {
       if (event.status === "completed" && event.result?.scenes) {
         setActiveProgress(null);
         const completionMeta = buildCompletionMeta(event.result.scenes, editorRef.current);
+        const warnings = event.result.warnings;
+        const text = warnings?.length
+          ? `스크립트 생성 완료! ${event.result.scenes.length}개 씬이 생성되었습니다.\n⚠️ ${warnings.join("\n⚠️ ")}`
+          : `스크립트 생성 완료! ${event.result.scenes.length}개 씬이 생성되었습니다.`;
         addMessage({
           id: createMessageId(),
           role: "assistant",
           contentType: "completion",
-          text: `스크립트 생성 완료! ${event.result.scenes.length}개 씬이 생성되었습니다.`,
+          text,
           meta: completionMeta,
           timestamp: Date.now(),
         });

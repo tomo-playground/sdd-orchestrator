@@ -917,6 +917,8 @@ export type ScriptStreamEvent = {
     production_snapshot?: ProductionSnapshot;
     // sound_designer → finalize
     sound_recommendation?: { prompt?: string; mood?: string; duration?: number };
+    // finalize warnings (e.g. TTS Designer fallback)
+    warnings?: string[];
     // director_plan_gate
     director_plan?: Record<string, unknown>;
     skip_stages?: string[];

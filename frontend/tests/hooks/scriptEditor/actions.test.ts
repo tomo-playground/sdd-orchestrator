@@ -277,7 +277,7 @@ describe("handleStreamOutcome", () => {
     expect(result).toBe(true);
     expect(setState).toHaveBeenCalled();
     expect(dirtyRef.current).toBe(true);
-    expect(showToast).toHaveBeenCalledWith("Script generated", "success");
+    expect(showToast).toHaveBeenCalledWith("스크립트 생성 완료", "success");
   });
 
   it("shows warning and returns false when no scenes", () => {
@@ -295,6 +295,56 @@ describe("handleStreamOutcome", () => {
     });
 
     expect(result).toBe(false);
-    expect(showToast).toHaveBeenCalledWith("No scenes returned", "warning");
+    expect(showToast).toHaveBeenCalledWith("생성된 씬이 없습니다", "warning");
+  });
+
+  it("shows warning toasts when warnings are present", () => {
+    const setState = vi.fn();
+    const showToast = vi.fn();
+    const dirtyRef = { current: false };
+    const scenes = [makeScene()];
+
+    const result = handleStreamOutcome({
+      finalScenes: scenes,
+      isWaiting: false,
+      meta: buildSyncMeta(makeEditorState()),
+      setState,
+      dirtyRef,
+      showToast,
+      warnings: [
+        "TTS Designer 실패: voice design이 누락되어 기본 음성으로 생성됩니다.",
+      ],
+    });
+
+    expect(result).toBe(true);
+    // success toast + warning toast
+    expect(showToast).toHaveBeenCalledTimes(2);
+    expect(showToast).toHaveBeenNthCalledWith(1, "스크립트 생성 완료", "success");
+    expect(showToast).toHaveBeenNthCalledWith(
+      2,
+      "TTS Designer 실패: voice design이 누락되어 기본 음성으로 생성됩니다.",
+      "warning"
+    );
+  });
+
+  it("does not show warning toast when warnings is empty", () => {
+    const setState = vi.fn();
+    const showToast = vi.fn();
+    const dirtyRef = { current: false };
+    const scenes = [makeScene()];
+
+    handleStreamOutcome({
+      finalScenes: scenes,
+      isWaiting: false,
+      meta: buildSyncMeta(makeEditorState()),
+      setState,
+      dirtyRef,
+      showToast,
+      warnings: [],
+    });
+
+    // Only success toast, no warning toast
+    expect(showToast).toHaveBeenCalledTimes(1);
+    expect(showToast).toHaveBeenCalledWith("스크립트 생성 완료", "success");
   });
 });

@@ -322,4 +322,45 @@ describe("processSSEStream integration", () => {
       bgmMode: "auto",
     });
   });
+
+  it("captures warnings from completed event", async () => {
+    const { processSSEStream } = await import("../../../app/hooks/scriptEditor/sseProcessor");
+
+    const event = {
+      node: "finalize",
+      label: "Finalize",
+      percent: 100,
+      status: "completed",
+      result: {
+        scenes: [{ id: 1, script: "Hello" }],
+        warnings: ["TTS Designer 실패: voice design이 누락되어 기본 음성으로 생성됩니다."],
+      },
+    } as unknown as ScriptStreamEvent;
+    const response = makeSSEResponse([`data: ${JSON.stringify(event)}\n\n`]);
+    const setState = vi.fn();
+
+    const result = await processSSEStream(response, setState);
+
+    expect(result.warnings).toEqual([
+      "TTS Designer 실패: voice design이 누락되어 기본 음성으로 생성됩니다.",
+    ]);
+  });
+
+  it("returns undefined warnings when none present", async () => {
+    const { processSSEStream } = await import("../../../app/hooks/scriptEditor/sseProcessor");
+
+    const event = {
+      node: "finalize",
+      label: "Finalize",
+      percent: 100,
+      status: "completed",
+      result: { scenes: [{ id: 1, script: "Hello" }] },
+    } as unknown as ScriptStreamEvent;
+    const response = makeSSEResponse([`data: ${JSON.stringify(event)}\n\n`]);
+    const setState = vi.fn();
+
+    const result = await processSSEStream(response, setState);
+
+    expect(result.warnings).toBeUndefined();
+  });
 });

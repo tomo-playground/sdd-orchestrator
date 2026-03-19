@@ -97,6 +97,8 @@ type StreamOutcomeOpts = {
   /** SSE completion에서 전달된 캐릭터 ID (Full/FastTrack 공통) */
   characterId?: number | null;
   characterBId?: number | null;
+  /** Backend warnings (e.g. TTS Designer fallback) */
+  warnings?: string[];
 };
 
 /** Shared post-stream handler for generate & resume. Returns true if scenes were produced. */
@@ -144,6 +146,12 @@ export function handleStreamOutcome(opts: StreamOutcomeOpts): boolean {
       void initializeVideoMetadata(meta.topic, true);
     }
     showToast("스크립트 생성 완료", "success");
+    // Backend warnings 토스트 (e.g. TTS Designer fallback)
+    if (opts.warnings?.length) {
+      for (const w of opts.warnings) {
+        showToast(w, "warning");
+      }
+    }
     return true;
   }
   setState((prev) => ({ ...prev, isGenerating: false, progress: null }));

@@ -56,6 +56,8 @@ export type StreamResult = {
   /** SSE completion에서 전달된 캐릭터 ID (Full: Director 캐스팅, FastTrack: Writer auto-resolve) */
   characterId?: number | null;
   characterBId?: number | null;
+  /** Backend warnings (e.g. TTS Designer fallback) */
+  warnings?: string[];
 };
 
 export type SSEStreamOptions = {
@@ -76,6 +78,7 @@ export async function processSSEStream(
   let errorMessage: string | undefined;
   let completionCharId: number | null = null;
   let completionCharBId: number | null = null;
+  let warnings: string[] | undefined;
 
   await parseSSEStream(response, (event: ScriptStreamEvent) => {
     options?.onNodeEvent?.(event);
@@ -199,6 +202,10 @@ export async function processSSEStream(
       const r = event.result as Record<string, unknown>;
       completionCharId = (r.character_id as number) || null;
       completionCharBId = (r.character_b_id as number) || null;
+      // Backend warnings 캡처 (e.g. TTS Designer fallback)
+      if (event.result.warnings?.length) {
+        warnings = event.result.warnings;
+      }
       // Sound Designer → RenderStore auto-populate
       if (event.result.sound_recommendation) {
         useRenderStore.getState().set({
@@ -230,5 +237,6 @@ export async function processSSEStream(
     errorMessage,
     characterId: completionCharId,
     characterBId: completionCharBId,
+    warnings,
   };
 }
