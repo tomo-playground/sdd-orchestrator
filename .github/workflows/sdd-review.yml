@@ -21,7 +21,7 @@ jobs:
       github.event.issue.pull_request != null ||
       github.event_name == 'pull_request_review_comment'
     runs-on: [self-hosted, sdd]
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -39,7 +39,7 @@ jobs:
             echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Skip self-comments and limit ping-pong
+      - name: Check PR is open and skip bots
         id: skip
         env:
           COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
@@ -47,9 +47,18 @@ jobs:
         run: |
           PR_NUM="${{ steps.pr.outputs.number }}"
 
-          # 1. Claude/GitHub Actions 코멘트만 스킵 (CodeRabbit은 대응 대상)
-          if echo "$COMMENT_AUTHOR" | grep -qiE 'github-actions'; then
+          # 0. PR 상태 확인 — 머지/닫힌 PR은 스킵
+          PR_STATE=$(gh pr view "$PR_NUM" --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")
+          if [ "$PR_STATE" != "OPEN" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "PR #${PR_NUM} state=${PR_STATE} → skip"
+            exit 0
+          fi
+
+          # 1. Bot 코멘트 스킵 (github-actions, coderabbit[bot] 포함)
+          if echo "$COMMENT_AUTHOR" | grep -qiE 'github-actions|bot$|\[bot\]'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Bot comment by ${COMMENT_AUTHOR} → skip"
             exit 0
           fi
 
