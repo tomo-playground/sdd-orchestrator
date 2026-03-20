@@ -67,16 +67,15 @@ for BRANCH in $MERGED; do
   git branch -D "worktree-${BRANCH}" 2>/dev/null
   git branch -D "worktree-${SP_ID}" 2>/dev/null
 
-  # worktree 정리 (git worktree remove → 깔끔한 제거)
-  WORKTREE_DIR="$PROJECT_DIR/.claude/worktrees/${BRANCH}"
-  if [ -d "$WORKTREE_DIR" ]; then
-    git worktree remove "$WORKTREE_DIR" --force 2>/dev/null && echo "🗑️ worktree 삭제: $WORKTREE_DIR"
-  fi
-  # SP-009 같은 짧은 이름 worktree도 정리
-  SHORT_WORKTREE="$PROJECT_DIR/.claude/worktrees/${SP_ID}"
-  if [ -d "$SHORT_WORKTREE" ]; then
-    git worktree remove "$SHORT_WORKTREE" --force 2>/dev/null && echo "🗑️ worktree 삭제: $SHORT_WORKTREE"
-  fi
+  # worktree 정리 — Claude 세션 실행 중이면 스킵 (강제 삭제 방지)
+  for WT_DIR in "$PROJECT_DIR/.claude/worktrees/${BRANCH}" "$PROJECT_DIR/.claude/worktrees/${SP_ID}"; do
+    [ -d "$WT_DIR" ] || continue
+    if pgrep -f "worktree.*${SP_ID}\|worktree.*${BRANCH}" > /dev/null 2>&1; then
+      echo "⚠️ worktree 스킵 (Claude 세션 실행 중): $WT_DIR"
+    else
+      git worktree remove "$WT_DIR" --force 2>/dev/null && echo "🗑️ worktree 삭제: $WT_DIR"
+    fi
+  done
 done
 
 # 고아 worktree 정리 (prunable 상태 제거)

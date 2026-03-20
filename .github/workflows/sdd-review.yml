@@ -7,6 +7,10 @@ on:
   pull_request_review_comment:
     types: [created]
 
+concurrency:
+  group: sdd-review-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: true  # 같은 PR에 연속 코멘트 시 이전 job 취소
+
 jobs:
   auto-fix:
     # PR 코멘트일 때만 (issue 코멘트는 PR이 아닐 수 있음)
@@ -26,16 +30,36 @@ jobs:
             echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Skip self-comments
+      - name: Skip self-comments and limit ping-pong
         id: skip
         run: |
+          PR_NUM="${{ steps.pr.outputs.number }}"
           AUTHOR="${{ github.event.comment.user.login }}"
-          # Claude Code 봇이 남긴 코멘트는 스킵 (무한 루프 방지)
-          if echo "$AUTHOR" | grep -qiE 'bot|claude|github-actions'; then
+          BODY="${{ github.event.comment.body }}"
+
+          # 1. 봇 코멘트 스킵 (무한 루프 방지)
+          if echo "$AUTHOR" | grep -qiE 'bot|claude|github-actions|coderabbit'; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          # 2. "수정했습니다" 코멘트는 Claude가 작성한 것 → 스킵
+          if echo "$BODY" | grep -qE '수정했습니다|현행 유지|Generated with Claude'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 3. 핑퐁 횟수 제한 (최대 3회)
+          FIX_COUNT=$(gh api "repos/${{ github.repository }}/issues/${PR_NUM}/comments" \
+            --jq '[.[] | select(.body | test("수정했습니다"))] | length' 2>/dev/null || echo "0")
+          if [ "$FIX_COUNT" -ge 3 ]; then
+            echo "⚠️ 핑퐁 3회 초과 — 수동 확인 필요"
+            gh pr comment "$PR_NUM" --body "⚠️ 자동 수정 3회 도달. 추가 수정은 수동으로 진행해주세요." 2>/dev/null || true
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
 
       - name: Check if fix needed
         if: steps.skip.outputs.skip == 'false'
