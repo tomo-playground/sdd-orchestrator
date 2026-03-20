@@ -673,7 +673,9 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
   3. [P1] SP-xxx — Speaker 동적 역할
 ```
 
-> **매칭 규칙**: 브랜치 `feat/SP-002-xxx` → 태스크 `.claude/tasks/current/SP-002_xxx.md`
+> **매칭 규칙**: 브랜치에서 `SP-NNN`을 추출하여 `.claude/tasks/current/SP-NNN_*.md` 글로브 매칭
+> - `feat/SP-002-xxx` → `SP-002` → `.claude/tasks/current/SP-002_*.md`
+> - `worktree-SP-009` → `SP-009` → `.claude/tasks/current/SP-009_*.md`
 
 ### 커밋 경로 규칙
 - **main 직접 커밋 허용**: `.claude/`, `CLAUDE.md`, `.github/workflows/`, `docs/`

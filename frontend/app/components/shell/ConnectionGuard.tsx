@@ -2,9 +2,6 @@
 
 import { useState, useEffect } from "react";
 import type { ConnectionStatus } from "../../hooks/useBackendHealth";
-import { API_BASE } from "../../constants";
-
-const VIDEO_URL = `${API_BASE.replace(":8000", ":9000")}/shorts-producer/shared/video/connection_loading.mp4`;
 
 const STATUS_MESSAGES: Record<Exclude<ConnectionStatus, "connected">, string> = {
   disconnected: "Backend 서버와 연결이 끊어졌습니다. 재연결을 시도합니다...",
@@ -49,7 +46,7 @@ export default function ConnectionGuard({ status }: { status: ConnectionStatus }
         {message}
       </div>
 
-      {showCharacter ? (
+      {showCharacter && (
         <div className="flex flex-col items-center">
           <div className="h-72 w-56 overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
             <img
@@ -61,15 +58,6 @@ export default function ConnectionGuard({ status }: { status: ConnectionStatus }
           </div>
           <p className="mt-3 text-xs text-white/50">{preview.name}</p>
         </div>
-      ) : (
-        <video
-          src={VIDEO_URL}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="h-80 w-auto rounded-2xl object-contain"
-        />
       )}
 
       <div className="mt-6 flex flex-col items-center gap-2">

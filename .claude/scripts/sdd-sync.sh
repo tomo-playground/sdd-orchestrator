@@ -63,13 +63,20 @@ for BRANCH in $MERGED; do
   git push origin --delete "$BRANCH" 2>/dev/null && echo "🗑️ 원격 브랜치 삭제: $BRANCH"
   git remote prune origin 2>/dev/null || true
 
-  # worktree 디렉토리 삭제
+  # worktree 정리 (git worktree remove → 깔끔한 제거)
   WORKTREE_DIR="$PROJECT_DIR/.claude/worktrees/${BRANCH}"
   if [ -d "$WORKTREE_DIR" ]; then
-    rm -rf "$WORKTREE_DIR"
-    echo "🗑️ worktree 삭제: $WORKTREE_DIR"
+    git worktree remove "$WORKTREE_DIR" --force 2>/dev/null && echo "🗑️ worktree 삭제: $WORKTREE_DIR"
+  fi
+  # SP-009 같은 짧은 이름 worktree도 정리
+  SHORT_WORKTREE="$PROJECT_DIR/.claude/worktrees/${SP_ID}"
+  if [ -d "$SHORT_WORKTREE" ]; then
+    git worktree remove "$SHORT_WORKTREE" --force 2>/dev/null && echo "🗑️ worktree 삭제: $SHORT_WORKTREE"
   fi
 done
+
+# 고아 worktree 정리 (prunable 상태 제거)
+git worktree prune 2>/dev/null
 
 # 변경사항 커밋 + 푸시
 if [ "$CHANGED" = true ] && ! git diff --quiet .claude/tasks/; then

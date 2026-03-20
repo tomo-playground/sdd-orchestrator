@@ -45,7 +45,7 @@ jobs:
       GEMINI_API_KEY: "test-key"
       SD_WEBUI_URL: "http://localhost:7860"
       STORAGE_MODE: "local"
-      ENVIRONMENT: "test"
+      APP_ENV: "test"
     steps:
       - uses: actions/checkout@v4
 
