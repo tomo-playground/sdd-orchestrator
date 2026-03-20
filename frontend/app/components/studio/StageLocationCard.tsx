@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Image as ImageIcon, Loader2, RefreshCw, CheckCircle2, AlertCircle, Pencil, X } from "lucide-react";
+import { Image as ImageIcon, Loader2, RefreshCw, CheckCircle2, AlertCircle, Pencil, Trash2, X } from "lucide-react";
 import Button from "../ui/Button";
 import ImagePreviewModal from "../ui/ImagePreviewModal";
 import type { StageLocationStatus } from "../../types";
@@ -9,11 +9,15 @@ import type { StageLocationStatus } from "../../types";
 export default function StageLocationCard({
   location,
   isRegenerating,
+  isDeleting,
   onRegenerate,
+  onDelete,
 }: {
   location: StageLocationStatus;
   isRegenerating: boolean;
+  isDeleting?: boolean;
   onRegenerate: (tags?: string[]) => void;
+  onDelete?: () => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTags, setEditTags] = useState("");
@@ -132,17 +136,31 @@ export default function StageLocationCard({
 
         {/* Actions */}
         {!isEditing && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full"
-            onClick={() => onRegenerate()}
-            loading={isRegenerating}
-            disabled={isRegenerating}
-          >
-            <RefreshCw className="h-3 w-3" />
-            {location.has_image ? "재생성" : "생성"}
-          </Button>
+          <div className="flex gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => onRegenerate()}
+              loading={isRegenerating}
+              disabled={isRegenerating || isDeleting}
+            >
+              <RefreshCw className="h-3 w-3" />
+              {location.has_image ? "재생성" : "생성"}
+            </Button>
+            {location.has_image && onDelete && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onDelete}
+                loading={isDeleting}
+                disabled={isRegenerating || isDeleting}
+                title="배경 삭제"
+              >
+                <Trash2 className="h-3 w-3 text-red-400" />
+              </Button>
+            )}
+          </div>
         )}
       </div>
       {previewSrc && (

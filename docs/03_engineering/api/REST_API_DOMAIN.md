@@ -148,6 +148,8 @@ Tags, Keywords, ControlNet, LoRA, Avatar, Assets, Backgrounds, Prompt, SD, Chara
 
 배경 프리셋 CRUD. ControlNet Canny 참조 이미지 + 환경 태그 관리.
 
+### Service API (`/api/v1/backgrounds`)
+
 | Method | Path | Description | Response |
 |--------|------|-------------|----------|
 | GET | `/backgrounds` | 목록 (search, category 필터) | `BackgroundResponse[]` |
@@ -158,6 +160,12 @@ Tags, Keywords, ControlNet, LoRA, Avatar, Assets, Backgrounds, Prompt, SD, Chara
 | DELETE | `/backgrounds/{id}` | Soft Delete | `{ok, deleted}` |
 | POST | `/backgrounds/{id}/restore` | 복구 | `BackgroundResponse` |
 | POST | `/backgrounds/{id}/upload-image` | 이미지 업로드 | `BackgroundResponse` |
+
+### Admin API (`/api/admin/backgrounds`)
+
+| Method | Path | Description | Response |
+|--------|------|-------------|----------|
+| DELETE | `/backgrounds/{id}` | Soft Delete (관리자) | `{ok, deleted}` |
 
 ---
 
@@ -300,5 +308,5 @@ SD 모델, LoRA, Embedding 조합으로 구성된 스타일 프로파일 관리.
 
 ---
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-20
 **API Version:** v4.0

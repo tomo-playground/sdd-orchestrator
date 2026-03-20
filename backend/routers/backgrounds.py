@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
 from models.background import Background
-from schemas import BackgroundCreate, BackgroundResponse, BackgroundUpdate
+from schemas import BackgroundCreate, BackgroundResponse, BackgroundUpdate, OkDeletedResponse
 from services.asset_service import AssetService
 
 service_router = APIRouter(prefix="/backgrounds", tags=["backgrounds"])
@@ -116,15 +116,26 @@ def update_background(
     return _bg_to_response(bg)
 
 
-@admin_router.delete("/{background_id}")
-def delete_background(background_id: int, db: Session = Depends(get_db)):
-    """Soft delete a background."""
+def _soft_delete_background(background_id: int, db: Session) -> dict:
+    """Soft delete a background (shared logic)."""
     bg = db.query(Background).filter(Background.id == background_id, Background.deleted_at.is_(None)).first()
     if not bg:
         raise HTTPException(status_code=404, detail="Background not found")
     bg.deleted_at = datetime.now(UTC)
     db.commit()
     return {"ok": True, "deleted": bg.name}
+
+
+@service_router.delete("/{background_id}", response_model=OkDeletedResponse)
+def delete_background(background_id: int, db: Session = Depends(get_db)):
+    """Soft delete a background."""
+    return _soft_delete_background(background_id, db)
+
+
+@admin_router.delete("/{background_id}", response_model=OkDeletedResponse)
+def admin_delete_background(background_id: int, db: Session = Depends(get_db)):
+    """Soft delete a background (admin)."""
+    return _soft_delete_background(background_id, db)
 
 
 @admin_router.post("/{background_id}/restore", response_model=BackgroundResponse)
