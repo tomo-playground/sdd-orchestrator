@@ -54,7 +54,7 @@
 
 | 변수 | 필수 | 기본값 | 설명 |
 |------|------|--------|------|
-| `NEXT_PUBLIC_API_URL` | 권장 | `http://localhost:8000` | Backend API URL |
+| `BACKEND_ORIGIN` | 선택 | `http://127.0.0.1:8000` | Backend API URL (Next.js rewrite 프록시 경유) |
 
 ## 4. 서비스 시작 순서
 

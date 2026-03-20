@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useContextStore } from "../useContextStore";
-import { useStoryboardStore } from "../useStoryboardStore";
-import { useRenderStore } from "../useRenderStore";
+import { useStoryboardStore, getStoryboardPersistKey } from "../useStoryboardStore";
+import { useRenderStore, getRenderPersistKey } from "../useRenderStore";
 import { useUIStore } from "../useUIStore";
 import { useChatStore } from "../useChatStore";
 
@@ -60,8 +60,8 @@ describe("resetAllStores", () => {
     const { resetAllStores } = await import("../resetAllStores");
     await resetAllStores();
 
-    expect(mockRemoveItem).toHaveBeenCalledWith("shorts-producer:storyboard:v1");
-    expect(mockRemoveItem).toHaveBeenCalledWith("shorts-producer:render:v1");
+    expect(mockRemoveItem).toHaveBeenCalledWith(getStoryboardPersistKey());
+    expect(mockRemoveItem).toHaveBeenCalledWith(getRenderPersistKey());
   });
 
   it("resets all stores including chat temporary key", async () => {

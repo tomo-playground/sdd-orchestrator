@@ -361,19 +361,25 @@ describe("useAutopilot", () => {
       // Idle = 0%
       expect(result.current.autoRunProgress).toBe(0);
 
-      // Stage = 1/3 = 33%
+      // Stage = 1/4 = 25%
       act(() => {
         result.current.setStep("stage", "Stage");
       });
-      expect(result.current.autoRunProgress).toBe(33);
+      expect(result.current.autoRunProgress).toBe(25);
 
-      // Images = 2/3 = 67%
+      // Images = 2/4 = 50%
       act(() => {
         result.current.setStep("images", "Images");
       });
-      expect(result.current.autoRunProgress).toBe(67);
+      expect(result.current.autoRunProgress).toBe(50);
 
-      // Render = 3/3 = 100%
+      // TTS = 3/4 = 75%
+      act(() => {
+        result.current.setStep("tts", "TTS");
+      });
+      expect(result.current.autoRunProgress).toBe(75);
+
+      // Render = 4/4 = 100%
       act(() => {
         result.current.setStep("render", "Render");
       });
@@ -423,16 +429,23 @@ describe("useAutopilot", () => {
         result.current.pushLog("Stage started");
       });
       expect(result.current.isAutoRunning).toBe(true);
-      expect(result.current.autoRunProgress).toBe(33);
+      expect(result.current.autoRunProgress).toBe(25);
 
       // Step 2: Images
       act(() => {
         result.current.setStep("images", "Generating images...");
         result.current.pushLog("Images started");
       });
-      expect(result.current.autoRunProgress).toBe(67);
+      expect(result.current.autoRunProgress).toBe(50);
 
-      // Step 3: Render
+      // Step 3: TTS
+      act(() => {
+        result.current.setStep("tts", "Generating TTS...");
+        result.current.pushLog("TTS started");
+      });
+      expect(result.current.autoRunProgress).toBe(75);
+
+      // Step 4: Render
       act(() => {
         result.current.setStep("render", "Rendering...");
         result.current.pushLog("Render started");

@@ -1,8 +1,8 @@
 import type { OverlaySettings, PostCardSettings } from "../types";
 
-export const API_ROOT = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-export const API_BASE = `${API_ROOT}/api/v1`;
-export const ADMIN_API_BASE = `${API_ROOT}/api/admin`;
+export const API_ROOT = "";
+export const API_BASE = "/api/v1";
+export const ADMIN_API_BASE = "/api/admin";
 
 // API Timeout settings (milliseconds)
 export const API_TIMEOUT = {

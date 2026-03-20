@@ -37,7 +37,7 @@ uv run uvicorn main:app --reload --port 8000
 ```bash
 cd frontend
 npm install
-cp .env.example .env.local    # NEXT_PUBLIC_API_URL 등
+cp .env.example .env.local    # BACKEND_ORIGIN 등 (선택)
 npm run dev                   # http://localhost:3000
 ```
 

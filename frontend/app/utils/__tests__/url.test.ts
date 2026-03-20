@@ -24,15 +24,13 @@ describe("resolveImageUrl", () => {
     expect(resolveImageUrl(url)).toBe(url);
   });
 
-  it("prepends API_BASE to relative path", () => {
+  it("returns relative path as-is (proxied via Next.js rewrite)", () => {
     const result = resolveImageUrl("/uploads/characters/1/preview.png");
-    expect(result).toMatch(/\/uploads\/characters\/1\/preview\.png$/);
-    expect(result!.startsWith("http")).toBe(true);
+    expect(result).toBe("/uploads/characters/1/preview.png");
   });
 
-  it("prepends API_BASE to relative path without leading slash", () => {
+  it("returns relative path without leading slash as-is", () => {
     const result = resolveImageUrl("media/img.jpg");
-    expect(result).toContain("media/img.jpg");
-    expect(result!.startsWith("http")).toBe(true);
+    expect(result).toBe("media/img.jpg");
   });
 });

@@ -101,7 +101,7 @@ reviews:
     - path: "frontend/app/**"
       instructions: |
         Next.js 컴포넌트 검증:
-        - `NEXT_PUBLIC_API_URL` 환경 변수 사용 여부
+        - API 호출이 Next.js rewrite 프록시(`/api/`) 경유하는지 확인
         - 오토파일럿 상태 관리의 안정성
         - 이미지 태그 사용 시 `next/image` 권장 (단, 로컬 Blob URL 사용 시 예외 허용 여부 체크)
     - path: "backend/logic.py"

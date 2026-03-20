@@ -176,6 +176,9 @@ describe("useScriptEditor — dirty tracking & unmount sync", () => {
 
     unmount();
 
-    expect(useStoryboardStore.getState().topic).toBe("Before");
+    // setField immediately syncs topic to global store, so it's "Changed".
+    // The key assertion: unmount does NOT overwrite with INITIAL_STATE (empty topic)
+    // because reset() cleared dirtyRef.
+    expect(useStoryboardStore.getState().topic).toBe("Changed");
   });
 });

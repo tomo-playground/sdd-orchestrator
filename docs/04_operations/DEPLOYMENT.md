@@ -115,9 +115,9 @@ npm run build
 npm run start
 ```
 
-**환경 변수** (`frontend/.env.local`):
+**환경 변수** (`frontend/.env.local`, 선택):
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:8000
+BACKEND_ORIGIN=http://127.0.0.1:8000  # 기본값, 변경 시에만 설정
 ```
 
 > Next.js 16 + React 19 + Tailwind CSS 4 사용. Vitest (단위 테스트), Playwright (VRT/E2E) 지원.
