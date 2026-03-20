@@ -15,9 +15,10 @@ if [ "$CURRENT_BRANCH" != "main" ]; then
   exit 0
 fi
 
-# 변경사항이 있으면 스킵 (작업 중)
+# 변경사항이 있으면 자동 stash (이전: 스킵 → 사용자 혼란)
+STASHED=false
 if ! git diff --quiet 2>/dev/null || ! git diff --staged --quiet 2>/dev/null; then
-  exit 0
+  git stash --include-untracked -m "sdd-sync auto-stash" 2>/dev/null && STASHED=true
 fi
 
 # main 업데이트
@@ -86,4 +87,9 @@ if [ "$CHANGED" = true ] && ! git diff --quiet .claude/tasks/; then
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
   git push
   echo "📦 태스크 정리 커밋 완료"
+fi
+
+# auto-stash 복원
+if [ "$STASHED" = true ]; then
+  git stash pop 2>/dev/null && echo "📂 stash 복원 완료"
 fi

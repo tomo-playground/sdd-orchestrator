@@ -640,20 +640,35 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 ### 실행 흐름
 ```
-[사람] .claude/tasks/current/태스크명.md 작성
+[사람] task.md 작성 → main 커밋 (태스크 파일은 main 직접 커밋 허용)
   ↓
-[Claude] 부팅: 브랜치명 → current/태스크명.md → CLAUDE.md → 작업 시작
+[사람] /sdd-run SP-NNN → 워크트리 기동 (자동 rebase main → 태스크 파일 동기화)
   ↓
-[Claude] worktree + feat/xxx 브랜치에서 구현
-  ↓
-[Claude] Stop Hook: Lint → pytest → vitest → VRT → E2E (5단계)
+[워크트리] 태스크 읽기 → 구현 → Stop Hook 5단계 품질 게이트
   ↓  실패 시 → self-heal (최대 3회) → 재검증
   ↓
-[Claude] 커밋 → 푸시 → PR 생성
+[워크트리] 커밋 → 푸시 → PR 생성 → /code-review 셀프 리뷰
+  ↓  리뷰 이슈 발견 시 → 자동 수정 → push
   ↓
-[사람] PR 리뷰 → 승인/거절
-  ↓  거절 시 → PR 코멘트 기반 수정 → push → PR 자동 업데이트
+[워크트리 종료]
+  ↓
+[사람] PR 확인 → 머지 또는 수정 요청
+  ├─ 머지 → /sdd-sync (태스크 → done/, 브랜치·워크트리 삭제, 자동 커밋+푸시)
+  └─ 수정 요청 → 아래 두 경로 중 택 1:
+      ├─ /sdd-run SP-NNN 재실행 → 워크트리에서 PR 코멘트 읽고 수정 → push
+      └─ /sdd-review → Phase 2가 잔여 이슈 자동 수정 → push (백스톱)
 ```
+
+### 운영 명령어
+
+| 명령어 | 언제 실행 | 동작 |
+|--------|----------|------|
+| `/sdd-run SP-NNN` | 태스크 시작/재개 | 워크트리 생성 → 구현 → PR → 셀프 리뷰 |
+| `/sdd-review` | PR이 열린 상태에서 | Phase 1: 미리뷰 PR 코드 리뷰 게시, Phase 2: 잔여 이슈 자동 수정 |
+| `/sdd-sync` | PR 머지 후 | 태스크 → done/ 이동, 브랜치·워크트리 삭제, 자동 커밋+푸시 |
+| `/code-review N` | 단일 PR 리뷰만 필요 시 | PR에 코드 리뷰 코멘트 게시 (수정 안 함) |
+
+> **참고**: `/sdd-sync`는 unstaged 변경이 있으면 자동 stash → sync → stash pop 수행.
 
 ### 세션 부팅 프로토콜
 **첫 응답 시 반드시 아래 SDD 대시보드를 표시한 후 대화를 시작한다:**
