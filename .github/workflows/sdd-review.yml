@@ -1,0 +1,79 @@
+name: SDD Review — 코멘트 기반 자동 수정
+
+# 이벤트 드리븐: PR에 코멘트가 달릴 때만 실행 (cron 폴링 대체)
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  auto-fix:
+    # PR 코멘트일 때만 (issue 코멘트는 PR이 아닐 수 있음)
+    if: >
+      github.event.issue.pull_request != null ||
+      github.event_name == 'pull_request_review_comment'
+    runs-on: [self-hosted, sdd]
+    timeout-minutes: 30
+
+    steps:
+      - name: Extract PR number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip self-comments
+        id: skip
+        run: |
+          AUTHOR="${{ github.event.comment.user.login }}"
+          # Claude Code 봇이 남긴 코멘트는 스킵 (무한 루프 방지)
+          if echo "$AUTHOR" | grep -qiE 'bot|claude|github-actions'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check if fix needed
+        if: steps.skip.outputs.skip == 'false'
+        id: check
+        run: |
+          PR_NUM="${{ steps.pr.outputs.number }}"
+          # 마지막 코멘트 시각 vs 마지막 push 시각 비교
+          LAST_COMMENT=$(gh api "repos/${{ github.repository }}/issues/${PR_NUM}/comments" \
+            --jq 'last | .created_at // ""' 2>/dev/null || true)
+          LAST_PUSH=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUM}/commits" \
+            --jq 'last | .commit.committer.date // ""' 2>/dev/null || true)
+          if [ -n "$LAST_PUSH" ] && [ -n "$LAST_COMMENT" ] && [[ "$LAST_PUSH" > "$LAST_COMMENT" ]]; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get PR branch
+        if: steps.skip.outputs.skip == 'false' && steps.check.outputs.needed == 'true'
+        id: branch
+        run: |
+          PR_NUM="${{ steps.pr.outputs.number }}"
+          BRANCH=$(gh pr view "$PR_NUM" --json headRefName --jq '.headRefName')
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Auto-fix with Claude
+        if: steps.skip.outputs.skip == 'false' && steps.check.outputs.needed == 'true'
+        run: |
+          PR_NUM="${{ steps.pr.outputs.number }}"
+          BRANCH="${{ steps.branch.outputs.name }}"
+          claude --worktree "${BRANCH}" --dangerously-skip-permissions -p "PR #${PR_NUM} 피드백을 대응하세요.
+
+          1. gh api repos/${{ github.repository }}/issues/${PR_NUM}/comments 와 gh api repos/${{ github.repository }}/pulls/${PR_NUM}/comments 로 모든 코멘트를 읽으세요.
+
+          2. 각 코멘트를 분류하세요:
+             - 버그 지적 → 즉시 수정
+             - 설계 질문/개선 제안 → CLAUDE.md 규칙과 대조하여 판단
+             - 스타일/Nit → 합리적이면 수정, 아니면 스킵
+
+          3. 동의하는 피드백: 코드 수정 + 커밋 + push + PR에 '수정했습니다: [변경 내용]' 코멘트
+          4. 비동의하는 피드백: 코드 수정 없이 PR에 '현행 유지 이유: [근거]' 코멘트"
