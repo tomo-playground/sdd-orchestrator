@@ -36,14 +36,14 @@ jobs:
         run: |
           PR_NUM="${{ steps.pr.outputs.number }}"
 
-          # 1. 봇 코멘트 스킵 (무한 루프 방지)
-          if echo "$COMMENT_AUTHOR" | grep -qiE 'bot|claude|github-actions|coderabbit'; then
+          # 1. Claude/GitHub Actions 코멘트만 스킵 (CodeRabbit은 대응 대상)
+          if echo "$COMMENT_AUTHOR" | grep -qiE 'github-actions'; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # 2. Claude 자동 수정 코멘트 스킵
-          if echo "$COMMENT_BODY" | grep -qE '수정했습니다|현행 유지|Generated with Claude'; then
+          # 2. Claude 자동 수정 코멘트 스킵 (핑퐁 방지)
+          if echo "$COMMENT_BODY" | grep -qE '수정했습니다|현행 유지|Generated with Claude|자동 수정.*회 도달'; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
