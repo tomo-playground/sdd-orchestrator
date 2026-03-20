@@ -648,11 +648,14 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
   ↓  실패 시 → self-heal (최대 3회) → 재검증
   ↓
 [워크트리] 커밋 → 푸시 → PR 생성 → /code-review 셀프 리뷰
-  ↓  리뷰 이슈 발견 시 → 자동 수정 → push
+  ↓  셀프 리뷰 이슈 발견 시 → 자동 수정 → push
+  ↓
+[CodeRabbit] PR 생성 시 자동 독립 리뷰 (CLAUDE.md 기반)
+  ↓  request_changes 시 → 워크트리 또는 /sdd-review가 대응
   ↓
 [워크트리 종료]
   ↓
-[사람] PR 확인 → 머지 또는 수정 요청
+[사람] PR 확인 — Claude 셀프 리뷰 + CodeRabbit 독립 리뷰 결과 종합 후 판단
   ├─ 머지 → /sdd-sync (태스크 → done/, 브랜치·워크트리 삭제, 자동 커밋+푸시)
   └─ 수정 요청 → 아래 두 경로 중 택 1:
       ├─ /sdd-run SP-NNN 재실행 → 워크트리에서 PR 코멘트 읽고 수정 → push
@@ -661,12 +664,13 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 ### 운영 명령어
 
-| 명령어 | 언제 실행 | 동작 |
-|--------|----------|------|
-| `/sdd-run SP-NNN` | 태스크 시작/재개 | 워크트리 생성 → 구현 → PR → 셀프 리뷰 |
-| `/sdd-review` | PR이 열린 상태에서 | Phase 1: 미리뷰 PR 코드 리뷰 게시, Phase 2: 잔여 이슈 자동 수정 |
-| `/sdd-sync` | PR 머지 후 | 태스크 → done/ 이동, 브랜치·워크트리 삭제, 자동 커밋+푸시 |
-| `/code-review N` | 단일 PR 리뷰만 필요 시 | PR에 코드 리뷰 코멘트 게시 (수정 안 함) |
+| 주체 | 명령어/도구 | 언제 | 동작 |
+|------|-----------|------|------|
+| 사람 | `/sdd-run SP-NNN` | 태스크 시작/재개 | 워크트리 생성 → 구현 → PR → 셀프 리뷰 |
+| 사람 | `/sdd-review` | PR 열린 상태 | Phase 1: Claude 독립 리뷰, Phase 2: 잔여 이슈 자동 수정 |
+| 사람 | `/sdd-sync` | PR 머지 후 | 태스크 → done/, 브랜치·워크트리 삭제 |
+| 자동 | **CodeRabbit** | PR 생성/push 시 | 독립 AI 리뷰 (CLAUDE.md 기반, request_changes 가능) |
+| 사람 | `/code-review N` | 단일 PR 리뷰만 | PR에 리뷰 코멘트 게시 (수정 안 함) |
 
 > **참고**: `/sdd-sync`는 unstaged 변경이 있으면 자동 stash → sync → stash pop 수행.
 

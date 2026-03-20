@@ -159,6 +159,7 @@ knowledge_base:
   code_guidelines:
     enabled: true
     filePatterns:
+      - "CLAUDE.md"
       - "GEMINI.md"
       - "docs/guides/CONTRIBUTING.md"
 
