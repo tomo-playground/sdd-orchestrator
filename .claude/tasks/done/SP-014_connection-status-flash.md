@@ -4,7 +4,7 @@ priority: P0
 scope: frontend
 branch: feat/SP-014-connection-status-flash
 created: 2026-03-21
-status: running
+status: done
 depends_on:
 label: bug
 reviewer: stopper2008
