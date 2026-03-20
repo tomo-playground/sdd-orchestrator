@@ -50,10 +50,10 @@ export default function PreRenderReport({
     }
     if (storyboardId !== ranForId.current) {
       ranForId.current = storyboardId;
-      prevTrigger.current = undefined;
+      prevTrigger.current = refreshTrigger;
       runValidation();
     }
-  }, [storyboardId, runValidation]);
+  }, [storyboardId, refreshTrigger, runValidation]);
   useEffect(() => {
     if (refreshTrigger != null && refreshTrigger !== prevTrigger.current && storyboardId) {
       prevTrigger.current = refreshTrigger;
