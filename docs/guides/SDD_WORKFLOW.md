@@ -1,23 +1,24 @@
 # SDD (Spec-Driven Development) 워크플로우 가이드
 
-> 사람은 플래닝만, AI가 구현~PR까지 자율 실행하는 업무 플로우.
-> 확정일: 2026-03-19
+> 사람은 설계·기동·판단·정리, AI가 구현~PR까지 자율 실행하는 업무 플로우.
+> 최종 업데이트: 2026-03-20
 
 ---
 
 ## 역할 정의
 
-### 사람 (Product Architect + Quality Judge)
+### 사람 (SDD 오케스트레이터)
 
-| 활동 | 산출물 |
+| 책임 | 산출물 |
 |------|--------|
 | 제품 방향 설정 | `ROADMAP.md` |
-| 태스크 큐 관리 | `backlog.md` |
-| 태스크 계약서 작성 | `current/태스크명.md` |
-| PR 리뷰 + 최종 판단 | GitHub PR |
-| AI 규칙 유지보수 | `CLAUDE.md` |
+| 태스크 작성 | `.claude/tasks/current/SP-NNN_*.md` |
+| 기동 | `sdd-run SP-NNN` |
+| 품질 판단 | Claude + CodeRabbit 리뷰 결과 종합 → 머지/거절 |
+| 정리 | `/sdd-sync` |
+| 규칙 유지보수 | `CLAUDE.md` |
 
-### AI (Claude Code)
+### AI (Claude Code — 워크트리 세션)
 
 | 활동 | 자율 여부 |
 |------|----------|
@@ -26,36 +27,97 @@
 | 린트 + 포맷팅 | 자동 (Hook) |
 | 품질 게이트 통과 | 자동 (Stop Hook) |
 | self-heal (실패 수정) | 최대 3회 |
-| 커밋 + 푸시 | 풀 자율 |
-| PR 생성 | 풀 자율 |
+| 커밋 + 푸시 + PR 생성 | 풀 자율 |
+| 셀프 리뷰 + 이슈 수정 | 풀 자율 |
+
+### AI (CodeRabbit — 독립 리뷰어)
+
+| 활동 | 동작 |
+|------|------|
+| PR 자동 리뷰 | PR 생성/push 시 자동 실행, CLAUDE.md 기반 |
+| request_changes | 심각 이슈 시 commit status fail → 사람에게 알림 |
+| incremental review | push 후 자동 재리뷰 (핑퐁) |
 
 ---
 
 ## 실행 흐름
 
 ```
-[사람] ROADMAP에서 방향 확인
+[사람] task.md 작성 → main 커밋 (태스크 파일은 main 직접 커밋 허용)
   ↓
-[사람] backlog.md에서 다음 태스크 선택
+[사람] sdd-run SP-NNN → 워크트리 기동 (자동 rebase main → 태스크 파일 동기화)
   ↓
-[사람] current/태스크명.md에 상세 작성 (2~3분)
+[워크트리] 태스크 읽기 → 구현 → Stop Hook 5단계 품질 게이트
+  ↓  실패 시 → self-heal (최대 3회) → 재검증
   ↓
-[Claude] 부팅: 브랜치명 → current/태스크명.md → CLAUDE.md → 작업 시작
+[워크트리] 커밋 → 푸시 → PR 생성 → /code-review 셀프 리뷰
+  ↓  셀프 리뷰 이슈 발견 시 → 자동 수정 → push
   ↓
-[Claude] worktree + feat/xxx 브랜치에서 구현
+[CodeRabbit] PR 생성 시 자동 독립 리뷰 (CLAUDE.md 기반)
+  ↓  request_changes 시 → sdd-review가 자동 대응
   ↓
-[Claude] Stop Hook 자동 실행
-         Lint → pytest → vitest → VRT → E2E (5단계)
-         실패 → self-heal (최대 3회) → 재검증
+[워크트리 종료]
   ↓
-[Claude] 커밋 → 푸시 → PR 생성 (label/reviewer/assignee 자동)
+[sdd-review cron] 코멘트 감지 → 수정 → push → CodeRabbit 재리뷰 (핑퐁)
   ↓
-[사람] PR 리뷰
-       승인 → 머지
-       거절 → PR 코멘트 → Claude가 읽고 수정 → push
-  ↓
-[자동] current/태스크명.md → done/NNN_태스크명.md로 이동 (Stop Hook)
-       backlog.md에서 해당 항목 제거
+[사람] PR 확인 — Claude 셀프 리뷰 + CodeRabbit 독립 리뷰 결과 종합 후 판단
+  ├─ 머지 → /sdd-sync (태스크 → done/, 브랜치·워크트리 삭제)
+  └─ 수정 요청 → sdd-run 재실행 또는 sdd-review가 자동 대응
+```
+
+---
+
+## 운영 명령어
+
+| 주체 | 명령어 | 언제 | 동작 |
+|------|--------|------|------|
+| 사람 | `sdd-run SP-NNN` | 태스크 시작/재개 | 워크트리 생성 → 구현 → PR → 셀프 리뷰 |
+| 사람 | `/sdd-review` | PR 열린 상태 | Phase 1: Claude 독립 리뷰, Phase 2: 코멘트 자동 대응 |
+| 사람 | `/sdd-sync` | PR 머지 후 | 태스크 → done/, 브랜치·워크트리 삭제 |
+| 자동 | CodeRabbit | PR 생성/push 시 | 독립 AI 리뷰 (CLAUDE.md 기반) |
+| 자동 | sdd-review cron | 5분 간격 | 미리뷰 PR 리뷰 + 코멘트 기반 자동 수정 |
+| 자동 | sdd-sync cron | 5분 간격 | 머지 감지 → 정리 |
+
+### 터미널 명령어 (bash)
+
+```bash
+# 태스크 기동 (별도 터미널)
+sdd-run SP-NNN
+
+# 병렬 실행 (터미널 여러 개)
+sdd-run SP-007  # 터미널 1
+sdd-run SP-008  # 터미널 2
+```
+
+> `/sdd-sync`는 unstaged 변경이 있으면 자동 stash → sync → stash pop 수행.
+
+---
+
+## 3중 리뷰 체계
+
+```
+PR 생성 → 병렬 리뷰
+  ├─ Claude 셀프 리뷰 (워크트리) ← 코드 작성자가 즉시 리뷰
+  ├─ CodeRabbit (자동)           ← 독립 AI가 CLAUDE.md 기준 검증
+  └─ Claude /sdd-review (cron)   ← 5개 에이전트 병렬 심층 리뷰
+```
+
+| 리뷰어 | 강점 | 약점 |
+|--------|------|------|
+| Claude 셀프 리뷰 | 구현 맥락 이해, 즉시 수정 | 자기 코드 편향 |
+| CodeRabbit | 독립적, 자동, 빠름 | 프로젝트 깊은 맥락 부족 |
+| /sdd-review | 5개 에이전트 심층 분석 | 수동 트리거 또는 cron 대기 |
+
+### 핑퐁 자동화 (sdd-review Phase 2)
+
+```
+CodeRabbit/사람: 코멘트 게시
+  ↓ sdd-review cron 5분 감지
+Claude: 코멘트 읽기 → 판단 → 수정 → push → "수정했습니다" 코멘트
+  ↓ push 트리거
+CodeRabbit: incremental review → 재리뷰
+  ↓ 이슈 남으면
+다음 sdd-review 사이클에서 반복
 ```
 
 ---
@@ -65,9 +127,9 @@
 | 용어 | 역할 | 위치 | 절대 아닌 것 |
 |------|------|------|------------|
 | **Roadmap** | 제품 방향, Phase, 마일스톤 | `docs/01_product/ROADMAP.md` | 태스크 목록 아님 |
-| **Backlog** | 실행 가능한 태스크 큐 (우선순위) | `.claude/tasks/backlog.md` | 로드맵 아님, 상세 명세 아님 |
-| **Task** | 실행 중인 계약서 (브랜치별 1개) | `.claude/tasks/current/브랜치명.md` | 백로그 아님, 완료 기록 아님 |
-| **Done** | 완료된 태스크 + 품질 게이트 결과 | `.claude/tasks/done/NNN_브랜치.md` | 별도 로그 파일 없음 |
+| **Backlog** | 실행 가능한 태스크 큐 (우선순위) | `.claude/tasks/backlog.md` | 로드맵 아님 |
+| **Task** | 실행 중인 계약서 (브랜치별 1개) | `.claude/tasks/current/SP-NNN_*.md` | 백로그 아님 |
+| **Done** | 완료된 태스크 + 품질 게이트 결과 | `.claude/tasks/done/SP-NNN_*.md` | 별도 로그 없음 |
 
 ---
 
@@ -78,57 +140,27 @@
 ├── tasks/
 │   ├── _template.md          ← 태스크 작성 템플릿
 │   ├── backlog.md            ← 실행 대기 큐 (우선순위 순)
-│   ├── current/              ← 실행 중 태스크 (브랜치별 1개)
-│   │   ├── enum-id-normalization.md
-│   │   ├── speaker-dynamic-role.md
-│   │   └── ...
+│   ├── current/              ← 실행 중 태스크
+│   │   └── SP-NNN_설명.md
 │   └── done/                 ← 완료 이력
-│       ├── 001_feat-xxx.md
-│       ├── 002_feat-yyy.md
-│       └── ...
+│       └── SP-NNN_설명.md
+├── commands/
+│   ├── sdd-run.md            ← /sdd-run 커맨드 정의
+│   ├── sdd-sync.md           ← /sdd-sync 커맨드 정의
+│   └── sdd-review.md         ← /sdd-review 커맨드 정의
+├── scripts/
+│   ├── sdd-sync.sh           ← 머지 후 정리 (cron 5분)
+│   └── sdd-review.sh         ← 리뷰 + 자동 수정 (cron 5분)
 ├── hooks/
 │   ├── auto-lint.sh          ← PostToolUse: Edit/Write 시 자동 린트
 │   └── on-stop.sh            ← Stop: 5단계 품질 게이트 + self-heal
-└── settings.json             ← Hook 설정 + Agent Teams
+├── worktrees/                ← 워크트리 작업 디렉토리 (자동 생성/삭제)
+└── settings.json             ← Hook 설정
 ```
 
 ---
 
 ## Task 작성 규칙
-
-### 템플릿 (`.claude/tasks/_template.md`)
-
-```markdown
----
-id:                          # kebab-case (브랜치명과 동일)
-priority:                    # P0 / P1 / P2 / P3
-scope:                       # backend / frontend / fullstack / infra / docs
-branch: feat/                # feat/{id}
-created:                     # YYYY-MM-DD
-status: pending              # pending → running → done / failed
-depends_on:                  # 선행 태스크 id (없으면 비움)
----
-
-## 무엇을
-[구현할 기능 한 줄 설명]
-
-## 왜
-[이유/배경]
-
-## 완료 기준 (DoD)
-- [ ] 핵심 기능 동작
-- [ ] 테스트 통과
-- [ ] 기존 기능 regression 없음
-
-## 제약
-- 변경 파일 10개 이하 목표
-- 건드리면 안 되는 것:
-- 의존성 추가 금지:
-
-## 힌트 (선택)
-- 관련 파일:
-- 참고:
-```
 
 ### 좋은 Task vs 나쁜 Task
 
@@ -182,158 +214,47 @@ Step 5. E2E      → Playwright (서버 실행 중일 때만)
 → 3회 초과 → 종료 + 실패 보고
 ```
 
-- 재시도 카운터: `/tmp/claude-stop-hook-retry-*` 파일 기반
-- `stop_hook_active` 필드로 재시도 상태 감지
-
 ---
 
 ## 브랜치 전략
 
-- **worktree + feature 브랜치** 사용
-- main 브랜치는 항상 깨끗하게 유지
-- PR이 유일한 머지 경로
-- **PR 전 리베이스**: 머지 충돌 방지를 위해 push 전에 `git rebase main` 수행. 충돌 시 Claude가 자율 해결, 해결 불가하면 사용자에게 보고.
-
-### 실행 명령어
-
-```bash
-# 단일 실행 (alias 사용)
-sdd-run feat/SP-002-tts-warning-frontend-toast
-
-# 직접 실행
-claude --worktree feat/SP-NNN-설명 --dangerously-skip-permissions -p "시작"
-```
-
-> `-p "시작"` 필수: 없으면 Claude가 사용자 입력 대기 상태로 멈춤.
-
-### alias 설정 (~/.bashrc)
-```bash
-sdd-run() { claude --worktree "$1" --dangerously-skip-permissions -p "시작"; }
-```
-
----
-
-## PR 생성 규칙
-
-Claude가 PR 생성 시 태스크 frontmatter에서 메타 정보를 추출하여 자동 설정:
-
-```bash
-gh pr create \
-  --title "feat: 설명 (SP-NNN)" \
-  --label "SP-NNN,{scope},{priority}" \
-  --reviewer stopper2008 \
-  --assignee stopper2008 \
-  --project "shorts producer" \
-  --body "..."
-```
-
-| frontmatter | PR 메타 | 예시 |
-|-------------|---------|------|
-| `id: SP-002` | label | `SP-002` |
-| `scope: frontend` | label | `frontend` |
-| `priority: P1` | label | `P1` |
-| (고정) | project | `shorts producer` |
-| (고정) | reviewer | `stopper2008` |
-| (고정) | assignee | `stopper2008` |
-
-PR body는 `.github/pull_request_template.md` 템플릿 기반.
-
----
-
-## PR 거절 시 재시도
+### 매칭 규칙
 
 ```
-1. GitHub에서 PR 리뷰, 코멘트 남김
-2. Claude 실행: sdd-run feat/SP-NNN-설명
-3. Claude → gh pr view #NNN → 코멘트 읽음
-4. 기존 브랜치에서 수정 → push → PR 자동 업데이트
+브랜치에서 SP-NNN을 추출하여 .claude/tasks/current/SP-NNN_*.md 글로브 매칭
+- feat/SP-002-xxx → SP-002 → .claude/tasks/current/SP-002_*.md
+- worktree-SP-009 → SP-009 → .claude/tasks/current/SP-009_*.md
 ```
 
----
+### 커밋 경로 규칙
 
-## 머지 후 자동 정리
-
-```bash
-# 자동: cron 5분 간격으로 sdd-sync.sh 실행
-# 수동: 즉시 정리
-sdd-sync
-```
-
-동작: main pull → 로컬/원격 feat 브랜치 삭제 → current/ → done/ 이동 → 커밋+푸시
+- **main 직접 커밋 허용**: `.claude/`, `CLAUDE.md`, `.github/workflows/`, `docs/`
+- **feat 브랜치 + PR 필수**: `backend/`, `frontend/`, `audio/`, 그 외 코드
 
 ---
 
 ## 병렬 실행
 
-### 매칭 규칙
-```
-브랜치: feat/SP-NNN-xxx → 태스크: .claude/tasks/current/SP-NNN_xxx.md
-```
-
-### 병렬 실행 흐름
 ```bash
-# 사람: backlog에서 3개 태스크를 current/에 작성
-# 터미널 1 (또는 tmux 패널)
-sdd-run feat/SP-003-storyboard-integrity
+# 터미널 1
+sdd-run SP-007
 # 터미널 2
-sdd-run feat/SP-004-enum-id-normalization
-# 터미널 3
-sdd-run feat/SP-005-speaker-dynamic-role
+sdd-run SP-008
 ```
 
 ### 병렬 제약
 - **파일 범위 겹침 금지**: 같은 파일을 수정하는 태스크는 동시 실행 불가
-- **DB 마이그레이션 직렬**: 마이그레이션 생성 태스크는 1개씩만
+- **DB 마이그레이션 직렬**: 마이그레이션 태스크는 1개씩만
 - **테스트 자원 공유**: PostgreSQL, SD WebUI 등 동시 접근 주의
 
 ---
 
 ## 즉시 중단 조건
 
-아래 상황에서는 Claude가 작업을 중단하고 사람에게 알린다:
-
 - DB 스키마 변경이 필요한 경우
 - 외부 의존성(패키지) 추가가 필요한 경우
 - task.md의 제약 조건을 위반해야 하는 경우
 - 변경 파일이 10개를 초과할 것으로 예상되는 경우
-
----
-
-## 테스트 전략 (Stop Hook)
-
-### 영향도 기반 분기
-| 변경 파일 | 테스트 범위 | 이유 |
-|-----------|------------|------|
-| config.py, models/, schemas.py, state.py | **풀 테스트** | 전체 관통 모듈 |
-| store/*.ts, types/index.ts, constants/ | **풀 테스트** | 프론트 전체 영향 |
-| 일반 파일 | **변경 관련만** | 빠른 피드백 |
-
-### worktree 테스트 실행
-- worktree에는 `node_modules/`, `.venv/` 없음 → 테스트 실행 불가
-- **해결**: `TEST_DIR`(원본 프로젝트)에서 테스트 실행, `PROJECT_DIR`(worktree)에서 변경 감지
-- 풀 테스트는 `/test` 커맨드로 사람이 필요시 수동 실행
-
-### 브랜치 가드
-- `feat/`, `worktree-feat/`, `fix/` → Stop Hook 실행
-- `main` → Stop Hook 스킵
-
----
-
-## 자동화 스크립트
-
-### cron 5분 간격
-| 스크립트 | 역할 |
-|----------|------|
-| `sdd-sync.sh` | 머지 감지 → main pull + 브랜치/worktree 삭제 + 태스크 정리 |
-| `sdd-review.sh` | Phase 1: 리뷰 없는 PR → 코드 리뷰. Phase 2: 코멘트 감지 → 판단 기반 대응 |
-
-### Claude 커맨드
-| 커맨드 | 역할 |
-|--------|------|
-| `/sdd-sync` | sdd-sync.sh 즉시 실행 |
-| `/sdd-review` | sdd-review.sh 즉시 실행 |
-| `/sdd-run` | worktree 실행 명령어 안내 |
-| `/test` | 풀 테스트 수동 실행 |
 
 ---
 
@@ -346,40 +267,32 @@ sdd-run feat/SP-005-speaker-dynamic-role
 
 ---
 
-## 교훈 (Lessons Learned)
-
-### 구멍이 생기는 패턴
-| 변경 | 생긴 구멍 | 교훈 |
-|------|----------|------|
-| worktree 도입 | 의존성 없어서 테스트 불가 | 새 실행 환경 도입 시 테스트 경로 검증 |
-| hotfix 도입 | Stop Hook 브랜치 가드 미적용 | 새 브랜치 패턴 추가 시 모든 자동화 영향 분석 |
-| SP-NNN 도입 | sdd-sync 매칭 로직 불일치 | 네이밍 규칙 변경 시 관련 스크립트 전체 업데이트 |
-| worktree 브랜치명 | `worktree-` prefix 자동 추가 | 외부 도구 동작 사전 검증 |
-| PR updated_at | 코멘트로도 갱신됨 | 마지막 커밋 시각으로 비교해야 정확 |
-
-### 선제 점검 체크리스트
-새 워크플로우/경로 추가 시:
-- [ ] on-stop.sh 브랜치 가드 영향?
-- [ ] sdd-sync.sh 매칭 로직 영향?
-- [ ] sdd-review.sh 감지 로직 영향?
-- [ ] worktree 환경에서 동작?
-- [ ] 문서(CLAUDE.md, SDD_WORKFLOW.md) 동시 업데이트?
-- [ ] 에이전트 파일 정합성?
-
----
-
 ## 확정 결정 요약
 
 | # | 항목 | 결정 |
 |---|------|------|
 | 0 | 브랜치 전략 | worktree + feature 브랜치 |
-| 1 | 품질 게이트 | Lint → 영향도 기반 테스트 (고영향=풀, 일반=관련만) |
+| 1 | 품질 게이트 | Lint → pytest → vitest → VRT → E2E (5단계) |
 | 2 | 실패 행동 | self-heal 최대 3회, 이후 실패 보고 |
-| 3 | 자율 범위 | 구현 → 테스트 → 문서 → 커밋 → PR까지 풀 자율 (확인 금지) |
+| 3 | 자율 범위 | 구현 → 테스트 → 문서 → 커밋 → PR까지 풀 자율 |
 | 4 | 태스크 단위 | 기능 단위, 파일 10개 이하, 크면 분할 |
-| 5 | 세션 부팅 | SDD 대시보드 → SP-NNN 매칭 → 자율 시작 |
+| 5 | 리뷰 체계 | 3중 (Claude 셀프 + CodeRabbit 독립 + /sdd-review 심층) |
 | 6 | PR 코멘트 대응 | 판단 기반 (맹목 수용 금지) |
-| 7 | 머지 후 정리 | cron 자동 (sdd-sync) |
-| 8 | 코드 리뷰 | cron 자동 (sdd-review) + 인라인 코멘트 감지 |
+| 7 | 머지 후 정리 | sdd-sync (cron 5분 + 수동) |
+| 8 | 핑퐁 자동화 | sdd-review Phase 2 → CodeRabbit incremental review 반복 |
 | 9 | 커밋 경로 | .claude/docs → main 직접, 코드 → feat/fix 브랜치 |
-| 10 | 문서 동기화 | 코드 파생 문서만 자율, 의사결정 문서는 사람 |
+| 10 | 사람 역할 | 설계, 기동, 판단, 정리 (코드 작성 안 함) |
+
+---
+
+## 교훈 (Lessons Learned)
+
+| 변경 | 생긴 구멍 | 교훈 |
+|------|----------|------|
+| worktree 도입 | 의존성 없어서 테스트 불가 | 새 실행 환경 도입 시 테스트 경로 검증 |
+| SP-NNN 도입 | sdd-sync 매칭 로직 불일치 | 네이밍 규칙 변경 시 관련 스크립트 전체 업데이트 |
+| worktree 브랜치명 | `worktree-` prefix 자동 추가 | 외부 도구 동작 사전 검증 |
+| task.md main 미커밋 | 워크트리에서 태스크 못 찾음 | sdd-run이 자동 커밋+rebase 해야 함 |
+| main에서 코드 수정 | SDD 위반, 되돌리기 필요 | 코드 변경은 반드시 워크트리에서만 |
+| sdd-sync unstaged | 조용히 스킵 → 사용자 혼란 | 자동 stash 도입 |
+| 로컬 브랜치 잔존 | git branch -d로 안 지워짐 | -D 강제 삭제 + worktree prefix 정리 |
