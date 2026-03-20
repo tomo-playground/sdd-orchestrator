@@ -6,6 +6,7 @@ export interface ContextState {
   // Persisted
   projectId: number | null;
   groupId: number | null;
+  // Transient (URL is SSOT — not persisted to localStorage)
   storyboardId: number | null;
   storyboardTitle: string;
 
@@ -41,6 +42,8 @@ export interface ContextState {
 const CONTEXT_STORE_KEY = "shorts-producer:context:v1";
 
 const TRANSIENT_CONTEXT_KEYS: (keyof ContextState)[] = [
+  "storyboardId",
+  "storyboardTitle",
   "projects",
   "groups",
   "isLoadingProjects",

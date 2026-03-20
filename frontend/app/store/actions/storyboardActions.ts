@@ -285,7 +285,7 @@ export async function deleteStoryboard(storyboardId: number): Promise<boolean> {
     return true;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
-      showToast("이미 삭제된 영상입니다", "info");
+      showToast("이미 삭제된 영상입니다", "warning");
       return true;
     }
     console.error("[deleteStoryboard] Failed:", error);
