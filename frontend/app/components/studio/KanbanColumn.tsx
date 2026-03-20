@@ -14,9 +14,10 @@ interface KanbanColumnProps {
   status: string;
   items: StoryboardListItem[];
   onCardClick: (id: number) => void;
+  onCardDelete?: (id: number) => void;
 }
 
-export default function KanbanColumn({ status, items, onCardClick }: KanbanColumnProps) {
+export default function KanbanColumn({ status, items, onCardClick, onCardDelete }: KanbanColumnProps) {
   const meta = COLUMN_META[status] ?? { label: status, icon: "📋" };
 
   return (
@@ -38,7 +39,7 @@ export default function KanbanColumn({ status, items, onCardClick }: KanbanColum
           </div>
         ) : (
           items.map((item) => (
-            <KanbanCard key={item.id} item={item} onClick={() => onCardClick(item.id)} />
+            <KanbanCard key={item.id} item={item} onClick={() => onCardClick(item.id)} onDelete={onCardDelete} />
           ))
         )}
       </div>

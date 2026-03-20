@@ -1,14 +1,16 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import type { StoryboardListItem } from "../../hooks/useStudioKanban";
 import { formatRelativeTime } from "../../utils/format";
 
 interface KanbanCardProps {
   item: StoryboardListItem;
   onClick: () => void;
+  onDelete?: (id: number) => void;
 }
 
-export default function KanbanCard({ item, onClick }: KanbanCardProps) {
+export default function KanbanCard({ item, onClick, onDelete }: KanbanCardProps) {
   const progress =
     item.scene_count > 0 ? Math.round((item.image_count / item.scene_count) * 100) : 0;
   const updatedLabel = item.updated_at ? formatRelativeTime(item.updated_at) : null;
@@ -16,8 +18,30 @@ export default function KanbanCard({ item, onClick }: KanbanCardProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-left transition hover:border-zinc-300 hover:shadow-sm"
+      className="group/card relative w-full rounded-xl border border-zinc-200 bg-white p-3 text-left transition hover:border-zinc-300 hover:shadow-sm"
     >
+      {/* Delete button */}
+      {onDelete && (
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(item.id);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.stopPropagation();
+              onDelete(item.id);
+            }
+          }}
+          className="absolute top-2 right-2 rounded p-0.5 text-zinc-300 opacity-0 transition hover:text-red-400 group-hover/card:opacity-100"
+          title="삭제"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </span>
+      )}
+
       {/* Title */}
       <h4 className="truncate text-xs font-semibold text-zinc-800">{item.title}</h4>
 

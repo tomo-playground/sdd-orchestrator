@@ -275,3 +275,21 @@ export async function updateStoryboardMetadata(updates: {
     return false;
   }
 }
+
+/** Soft-delete a storyboard. Returns true on success. */
+export async function deleteStoryboard(storyboardId: number): Promise<boolean> {
+  const { showToast } = useUIStore.getState();
+  try {
+    await axios.delete(`${API_BASE}/storyboards/${storyboardId}`);
+    showToast("영상이 삭제되었습니다", "success");
+    return true;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      showToast("이미 삭제된 영상입니다", "info");
+      return true;
+    }
+    console.error("[deleteStoryboard] Failed:", error);
+    showToast("영상 삭제에 실패했습니다", "error");
+    return false;
+  }
+}
