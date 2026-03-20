@@ -1,5 +1,6 @@
 ---
 name: video-reviewer
+model: haiku
 description: 생성된 영상의 시각적 품질, 프레임 구성 및 편집 완성도 검토
 allowed_tools: ["mcp__memory"]
 ---

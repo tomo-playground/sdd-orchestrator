@@ -1,5 +1,6 @@
 ---
 name: ffmpeg-expert
+model: haiku
 description: 영상 렌더링, FFmpeg 명령어 및 비디오 효과 전문가
 allowed_tools: ["mcp__ffmpeg__*", "mcp__memory__*"]
 ---

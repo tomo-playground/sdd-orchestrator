@@ -1,5 +1,6 @@
 ---
 name: security-engineer
+model: sonnet
 description: 보안 취약점 분석, 인증/인가, 시크릿 관리 및 보안 모범 사례 전문가
 allowed_tools: ["mcp__memory__*", "mcp__postgres__*"]
 ---

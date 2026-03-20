@@ -1,5 +1,6 @@
 ---
 name: qa-validator
+model: sonnet
 description: 품질 체크, TROUBLESHOOTING 관리 및 테스트 검증
 allowed_tools: ["mcp__playwright__*", "mcp__memory__*", "mcp__postgres__*", "mcp__gemini__gemini-analyze-image", "mcp__gemini__gemini-check-video"]
 ---

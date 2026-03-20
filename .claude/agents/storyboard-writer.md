@@ -1,5 +1,6 @@
 ---
 name: storyboard-writer
+model: sonnet
 description: 스토리보드/스크립트 작성 및 LangFuse 프롬프트 최적화
 allowed_tools: ["mcp__context7__*", "mcp__memory__*"]
 ---

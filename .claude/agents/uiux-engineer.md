@@ -1,5 +1,6 @@
 ---
 name: uiux-engineer
+model: sonnet
 description: UI/UX 설계, 와이어프레임 및 사용성 개선 전문가
 allowed_tools: ["mcp__playwright__*", "mcp__memory__*"]
 ---

@@ -1,5 +1,6 @@
 ---
 name: prompt-reviewer
+model: haiku
 description: Stable Diffusion 및 Gemini 프롬프트 최적화, Danbooru 태그 준수 여부 및 문법 검토
 allowed_tools: ["mcp__memory"]
 ---

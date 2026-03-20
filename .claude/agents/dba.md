@@ -1,5 +1,6 @@
 ---
 name: dba
+model: sonnet
 description: PostgreSQL DB 설계, 마이그레이션 및 쿼리 최적화 전문가
 allowed_tools: ["mcp__postgres__*", "mcp__memory__*", "mcp__context7__*"]
 ---

@@ -1,5 +1,6 @@
 ---
 name: prompt-engineer
+model: sonnet
 description: SD 프롬프트 최적화 및 Civitai/Danbooru 기반 인사이트 제공
 allowed_tools: ["mcp__danbooru-tags__*", "mcp__huggingface__*", "mcp__memory__*", "mcp__postgres__*"]
 ---

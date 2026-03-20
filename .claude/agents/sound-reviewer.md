@@ -1,5 +1,6 @@
 ---
 name: sound-reviewer
+model: haiku
 description: BGM 및 효과음의 조화, 오디오 정규화 상태 및 전반적인 사운드 품질 검토
 allowed_tools: ["mcp__memory"]
 ---

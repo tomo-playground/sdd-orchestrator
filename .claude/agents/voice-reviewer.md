@@ -1,5 +1,6 @@
 ---
 name: voice-reviewer
+model: haiku
 description: TTS 음성의 톤, 속도, 발음 및 감정 표현의 적절성 검토
 allowed_tools: ["mcp__memory"]
 ---
