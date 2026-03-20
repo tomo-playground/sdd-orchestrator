@@ -1463,13 +1463,13 @@ class TestPopulateCharacterActions:
 class TestValidateContextTagCategoriesEdgeCases:
     """카테고리 재분류 — 잔여 분기 커버."""
 
-    def test_tag_no_valid_category_dropped(self):
-        """어떤 카테고리에도 매칭되지 않는 misplaced 태그 → drop."""
+    def test_tag_no_valid_category_passthrough(self):
+        """어떤 카테고리에도 매칭되지 않는 비표준 태그 → SDXL 통과 (삭제하지 않음)."""
         scenes = [{"context_tags": {"expression": "totally_invalid_xyz_tag"}}]
         validate_context_tag_categories(scenes)
         ctx = scenes[0]["context_tags"]
-        assert "expression" not in ctx  # 삭제됨
-        # 다른 카테고리에도 재분류되지 않음
+        assert ctx["expression"] == "totally_invalid_xyz_tag"  # SDXL에 통과
+        # 다른 카테고리에 재분류되지 않음
         assert "gaze" not in ctx
         assert "pose" not in ctx
 

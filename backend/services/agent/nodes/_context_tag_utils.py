@@ -164,6 +164,69 @@ def derive_mood_from_emotion(emotion: str | list | None) -> str | None:
 # ── Phase B: 카테고리 검증 ────────────────────────────────────────────
 _CATEGORY_FIELDS = ("expression", "gaze", "pose")
 
+# Gemini가 생성하지만 Danbooru에 없는 태그 → 가장 가까운 유효 태그로 매핑
+_GAZE_ALIASES: dict[str, str] = {
+    "looking_at_another": "looking_to_the_side",
+    "looking_at_other": "looking_to_the_side",
+    "looking_at_a": "looking_to_the_side",
+    "looking_at_b": "looking_to_the_side",
+    "looking_at_each_other": "eye_contact",
+    "looking_at_monitor": "looking_down",
+    "looking_at_phone": "looking_down",
+    "looking_at_object": "looking_down",
+    "looking_at_coffee": "looking_down",
+    "looking_forward": "looking_ahead",
+    "looking_around": "looking_to_the_side",
+    "blank_stare": "staring",
+    "focused": "looking_at_viewer",
+    "glaring": "staring",
+}
+
+_POSE_ALIASES: dict[str, str] = {
+    "crossed_arms": "arms_crossed",
+    "arms crossed": "arms_crossed",
+    "hands on hips": "hands_on_hips",
+    "chin rest": "hand_on_face",
+    "chin_rest": "hand_on_face",
+    "hand_on_chin": "hand_on_face",
+    "hand_on_own_chest": "hand_on_chest",
+    "hands_on_chest": "hand_on_chest",
+    "hands_on_cheeks": "hand_on_face",
+    "crossing_arms": "arms_crossed",
+    "covering face": "hand_on_face",
+    "hands_in_pockets": "arms_at_sides",
+    "arms_relaxed": "arms_at_sides",
+    "profile_standing": "standing",
+    "standing, crossed_arms": "arms_crossed",
+    "standing, hands_on_hips": "hands_on_hips",
+    "sitting, leaning_forward": "leaning_forward",
+    "sitting, chin_rest": "sitting",
+    "sitting, arms_crossed": "sitting",
+    "sitting, hand_on_own_chest": "sitting",
+    "sitting, own_hands_together": "sitting",
+    "lying_on_back": "on_back",
+    "bending_over": "leaning_forward",
+}
+
+_FIELD_ALIASES: dict[str, dict[str, str]] = {
+    "gaze": _GAZE_ALIASES,
+    "pose": _POSE_ALIASES,
+}
+
+# SDXL에서 텍스트 아티팩트를 유발하는 태그 블랙리스트
+_TEXT_ARTIFACT_BLACKLIST: frozenset[str] = frozenset(
+    {
+        "talking",
+        "speaking",
+        "speech",
+        "texting",
+        "chatting",
+        "narrating",
+        "speech_bubble",
+        "thought_bubble",
+    }
+)
+
 
 def _get_valid_tags_for(field: str) -> frozenset[str]:
     """patterns.py CATEGORY_PATTERNS에서 해당 필드의 유효 태그셋을 가져온다."""
@@ -196,16 +259,55 @@ def validate_context_tag_categories(scenes: list[dict]) -> None:
             val = _coerce_str(raw)
             ctx[field] = val  # list → str 정규화 반영
             norm = val.lower().strip()
+
+            # compound value 파싱: "sitting, leaning_forward" → alias 우선, 토큰별 유효성 검사
+            if norm not in valid_by_field[field] and "," in norm:
+                alias_map = _FIELD_ALIASES.get(field, {})
+                if norm in alias_map:
+                    norm = alias_map[norm]
+                else:
+                    parts = [p.strip() for p in norm.split(",") if p.strip()]
+                    matched = False
+                    for part in parts:
+                        candidate = alias_map.get(part, part)
+                        if candidate in valid_by_field[field]:
+                            norm = candidate
+                            matched = True
+                            break
+                    if not matched:
+                        norm = parts[0]
+                ctx[field] = norm
+
+            # alias 해소: Gemini 비표준 태그 → 가장 가까운 유효 Danbooru 태그
             if norm not in valid_by_field[field]:
+                alias_map = _FIELD_ALIASES.get(field, {})
+                aliased = alias_map.get(norm)
+                if aliased and aliased in valid_by_field[field]:
+                    ctx[field] = aliased
+                    continue
+
+            if norm not in valid_by_field[field]:
+                # 텍스트 아티팩트 유발 태그만 삭제, 나머지는 SDXL에 통과
+                if norm in _TEXT_ARTIFACT_BLACKLIST:
+                    logger.info(
+                        "[Finalize] Scene %d: '%s' (%s) 텍스트 아티팩트 블랙리스트 → drop",
+                        i,
+                        norm,
+                        field,
+                    )
+                    del ctx[field]
+                    continue
+                # 다른 카테고리에 맞는지 재분류 시도
                 misplaced.append((field, norm))
-                del ctx[field]  # None이 아닌 키 삭제 → _inject_default에서 is None 체크 통과
 
         for source_field, val in misplaced:
+            reclassified = False
             for target_field in _CATEGORY_FIELDS:
                 if target_field == source_field:
                     continue
                 if val in valid_by_field[target_field] and not ctx.get(target_field):
                     ctx[target_field] = val
+                    del ctx[source_field]  # 재분류 성공 → 원래 필드 정리
                     logger.info(
                         "[Finalize] Scene %d: '%s' 재분류 %s → %s",
                         i,
@@ -213,10 +315,12 @@ def validate_context_tag_categories(scenes: list[dict]) -> None:
                         source_field,
                         target_field,
                     )
+                    reclassified = True
                     break
-            else:
-                logger.warning(
-                    "[Finalize] Scene %d: '%s' (%s) 유효 카테고리 없음 → drop",
+            if not reclassified:
+                # 비표준 태그: 삭제 대신 원래 필드에 유지 (SDXL이 해석)
+                logger.info(
+                    "[Finalize] Scene %d: '%s' (%s) 비표준 → SDXL 통과",
                     i,
                     val,
                     source_field,

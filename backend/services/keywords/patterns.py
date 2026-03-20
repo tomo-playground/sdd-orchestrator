@@ -480,6 +480,10 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "turned_around",
         "curled_up",
         "fetal_position",
+        "bowing",
+        "hands_in_pockets",
+        "hand_on_chin",
+        "hand_to_mouth",
     ],
     "action_body": [
         "walking",
