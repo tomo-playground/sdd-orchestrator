@@ -4,7 +4,7 @@ priority: P2
 scope: frontend
 branch: feat/SP-006-publish-tab-draft-ux
 created: 2026-03-20
-status: pending
+status: done
 depends_on:
 ---
 
