@@ -58,7 +58,7 @@
   ↓
 [워크트리 종료]
   ↓
-[sdd-review cron] 코멘트 감지 → 수정 → push → CodeRabbit 재리뷰 (핑퐁)
+[GitHub Actions] 코멘트 감지 → 호스트 runner → Claude 수정 → push → CodeRabbit 재리뷰 (핑퐁)
   ↓
 [사람] PR 확인 — Claude 셀프 리뷰 + CodeRabbit 독립 리뷰 결과 종합 후 판단
   ├─ 머지 → /sdd-sync (태스크 → done/, 브랜치·워크트리 삭제)
@@ -75,7 +75,7 @@
 | 사람 | `/sdd-review` | PR 열린 상태 | Phase 1: Claude 독립 리뷰, Phase 2: 코멘트 자동 대응 |
 | 사람 | `/sdd-sync` | PR 머지 후 | 태스크 → done/, 브랜치·워크트리 삭제 |
 | 자동 | CodeRabbit | PR 생성/push 시 | 독립 AI 리뷰 (CLAUDE.md 기반) |
-| 자동 | sdd-review cron | 5분 간격 | 미리뷰 PR 리뷰 + 코멘트 기반 자동 수정 |
+| 자동 | GitHub Actions (호스트 runner) | PR 코멘트 시 | 이벤트 드리븐 — Claude 자동 수정 |
 | 자동 | sdd-sync cron | 5분 간격 | 머지 감지 → 정리 |
 
 ### 터미널 명령어 (bash)
@@ -99,25 +99,27 @@ sdd-run SP-008  # 터미널 2
 PR 생성 → 병렬 리뷰
   ├─ Claude 셀프 리뷰 (워크트리) ← 코드 작성자가 즉시 리뷰
   ├─ CodeRabbit (자동)           ← 독립 AI가 CLAUDE.md 기준 검증
-  └─ Claude /sdd-review (cron)   ← 5개 에이전트 병렬 심층 리뷰
+  └─ GitHub Actions (호스트 runner) ← 코멘트 이벤트 시 자동 수정
 ```
 
 | 리뷰어 | 강점 | 약점 |
 |--------|------|------|
 | Claude 셀프 리뷰 | 구현 맥락 이해, 즉시 수정 | 자기 코드 편향 |
 | CodeRabbit | 독립적, 자동, 빠름 | 프로젝트 깊은 맥락 부족 |
-| /sdd-review | 5개 에이전트 심층 분석 | 수동 트리거 또는 cron 대기 |
+| GitHub Actions | 이벤트 드리븐, 호스트 환경 | Claude CLI 의존 |
 
-### 핑퐁 자동화 (sdd-review Phase 2)
+### 핑퐁 자동화 (GitHub Actions → CodeRabbit)
 
 ```
 CodeRabbit/사람: 코멘트 게시
-  ↓ sdd-review cron 5분 감지
+  ↓ GitHub Webhook (즉시)
+GitHub Actions: sdd-review.yml 트리거 → 호스트 runner
+  ↓
 Claude: 코멘트 읽기 → 판단 → 수정 → push → "수정했습니다" 코멘트
   ↓ push 트리거
 CodeRabbit: incremental review → 재리뷰
   ↓ 이슈 남으면
-다음 sdd-review 사이클에서 반복
+다음 코멘트 이벤트에서 반복
 ```
 
 ---
@@ -150,7 +152,7 @@ CodeRabbit: incremental review → 재리뷰
 │   └── sdd-review.md         ← /sdd-review 커맨드 정의
 ├── scripts/
 │   ├── sdd-sync.sh           ← 머지 후 정리 (cron 5분)
-│   └── sdd-review.sh         ← 리뷰 + 자동 수정 (cron 5분)
+│   └── sdd-review.sh         ← 리뷰 + 자동 수정 (수동 /sdd-review 시 사용)
 ├── hooks/
 │   ├── auto-lint.sh          ← PostToolUse: Edit/Write 시 자동 린트
 │   └── on-stop.sh            ← Stop: 5단계 품질 게이트 + self-heal
