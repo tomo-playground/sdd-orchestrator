@@ -4,7 +4,7 @@ priority: P1
 scope: frontend
 branch: feat/SP-007-storyboard-delete-ui
 created: 2026-03-20
-status: running
+status: done
 depends_on:
 ---
 
