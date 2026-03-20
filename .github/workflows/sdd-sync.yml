@@ -1,4 +1,4 @@
-name: SDD Sync — 머지 후 태스크 정리
+name: SDD Sync — 머지 후 태스크 정리 + 열린 PR 자동 rebase
 
 on:
   pull_request:
@@ -20,3 +20,54 @@ jobs:
 
       - name: Run sdd-sync
         run: bash .claude/scripts/sdd-sync.sh
+
+  rebase-open-prs:
+    if: github.event.pull_request.merged == true
+    needs: cleanup
+    runs-on: [self-hosted, sdd]
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Rebase open PRs onto main
+        run: |
+          # 머지된 PR 자신은 제외하고 열린 PR 목록
+          MERGED_PR="${{ github.event.pull_request.number }}"
+          OPEN_PRS=$(gh pr list --state open --base main --json number,headRefName \
+            --jq ".[] | select(.number != ${MERGED_PR}) | \"\(.number) \(.headRefName)\"" 2>/dev/null)
+
+          if [ -z "$OPEN_PRS" ]; then
+            echo "열린 PR 없음 — rebase 불필요"
+            exit 0
+          fi
+
+          echo "$OPEN_PRS" | while read PR_NUM BRANCH; do
+            echo "=== PR #${PR_NUM} (${BRANCH}) rebase 시작 ==="
+
+            git fetch origin "$BRANCH" 2>/dev/null || { echo "브랜치 fetch 실패: $BRANCH"; continue; }
+            git checkout "$BRANCH" 2>/dev/null || { echo "브랜치 checkout 실패: $BRANCH"; continue; }
+
+            if git rebase origin/main 2>/dev/null; then
+              git push --force-with-lease 2>/dev/null && echo "PR #${PR_NUM} rebase 성공"
+            else
+              echo "PR #${PR_NUM} rebase conflict — Claude로 해결 시도"
+              git rebase --abort 2>/dev/null
+
+              claude --worktree "${BRANCH}" --dangerously-skip-permissions -p \
+                "이 브랜치(${BRANCH})를 main에 rebase하세요.
+                1. git fetch origin main
+                2. git rebase origin/main
+                3. conflict 발생 시 파일을 읽고 의도에 맞게 해결
+                4. git rebase --continue
+                5. git push --force-with-lease
+                6. 해결 불가하면 PR #${PR_NUM}에 코멘트: 'rebase conflict 자동 해결 실패 — 수동 확인 필요'" \
+                2>/dev/null || echo "PR #${PR_NUM} Claude rebase 실패"
+            fi
+
+            git checkout main 2>/dev/null
+          done
