@@ -4,7 +4,7 @@ priority: P0
 scope: frontend
 branch: feat/SP-011-new-storyboard-stale-data
 created: 2026-03-20
-status: pending
+status: running
 depends_on:
 ---
 

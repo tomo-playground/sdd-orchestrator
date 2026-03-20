@@ -47,9 +47,9 @@ export function useStudioInitialization() {
         isMountRef.current = false;
         return;
       }
-      // Only on fresh mount (page entry): clear stale isNewStoryboardMode
-      // Skips URL changes within session (e.g. ?mode=full toggle)
-      if (isMountRef.current && !searchParams.get("id")) {
+      // Clear isNewStoryboardMode whenever not on ?new=true
+      // (mount, ?id=X load, group switch, etc.) — prevents stale flag
+      if (useUIStore.getState().isNewStoryboardMode) {
         useUIStore.getState().set({ isNewStoryboardMode: false });
       }
       isMountRef.current = false;

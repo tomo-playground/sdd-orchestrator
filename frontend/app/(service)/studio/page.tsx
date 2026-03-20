@@ -61,8 +61,13 @@ function StudioContent() {
   // Routing: URL params (?id=X or ?new=true) determine kanban vs editor
   // contextStoryboardId (localStorage) is NOT used — URL is the single source of truth
   const searchParams = useSearchParams();
-  const isNewMode = useUIStore((s) => s.isNewStoryboardMode) || searchParams.get("new") === "true";
+  const isNewModeReady = useUIStore((s) => s.isNewStoryboardMode);
+  const isNewMode = isNewModeReady || searchParams.get("new") === "true";
   const hasStoryboard = !!storyboardId || isNewMode;
+
+  // Gate: ?new=true URL detected but resetAllStores hasn't completed yet.
+  // Prevents workspace from rendering with stale store data before the reset useEffect fires.
+  const isNewUrlPending = searchParams.get("new") === "true" && !isNewModeReady;
 
   // Auto-activate Script tab for new storyboards
   const setActiveTab = useUIStore((s) => s.setActiveTab);
@@ -184,7 +189,7 @@ function StudioContent() {
     },
   ]);
 
-  if (isLoadingDb) {
+  if (isLoadingDb || isNewUrlPending) {
     return (
       <div className="flex h-[calc(100vh-56px)] flex-col">
         {/* Skeleton sub-nav */}

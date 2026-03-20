@@ -8,7 +8,8 @@ import { useContextStore } from "../../store/useContextStore";
 import { useUIStore, type StudioTab, DEFAULT_STUDIO_TAB } from "../../store/useUIStore";
 import { deleteStoryboard } from "../../store/actions/storyboardActions";
 import { cancelPendingSave } from "../../store/effects/autoSave";
-import { resetAllStores } from "../../store/resetAllStores";
+import { resetAllStores, resetTransientStores } from "../../store/resetAllStores";
+import { useChatStore } from "../../store/useChatStore";
 import KanbanColumn from "./KanbanColumn";
 import HomeSecondaryPanel from "./HomeSecondaryPanel";
 import LoadingSpinner from "../ui/LoadingSpinner";
@@ -72,6 +73,13 @@ export default function StudioKanbanView() {
   };
 
   const handleNewShorts = () => {
+    // Synchronously clear stale store data before navigation.
+    // The ?new=true useEffect will do the full resetAllStores after render,
+    // but this pre-cleanup prevents the brief stale-data flash during the gate period.
+    cancelPendingSave();
+    useContextStore.getState().resetContext();
+    resetTransientStores();
+    useChatStore.getState().clearMessages(null);
     router.push("/studio?new=true");
   };
 
