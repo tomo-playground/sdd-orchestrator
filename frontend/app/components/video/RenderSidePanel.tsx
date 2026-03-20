@@ -94,7 +94,11 @@ export function RenderSidePanel({
             onClick={onQuickRender}
             disabled={!canRender || isRendering}
             title={disabledReason || undefined}
-            className="w-full rounded-full border-2 border-zinc-900 bg-white py-2.5 text-xs font-semibold text-zinc-900 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className={`w-full rounded-full border-2 py-2.5 text-xs font-semibold transition ${
+              !canRender || isRendering
+                ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400"
+                : "border-zinc-900 bg-white text-zinc-900 hover:bg-zinc-50"
+            }`}
           >
             Quick Render
             <span className="mt-0.5 block text-[11px] font-normal text-zinc-400">
@@ -106,7 +110,11 @@ export function RenderSidePanel({
           onClick={onRender}
           disabled={!canRender || isRendering}
           title={disabledReason || undefined}
-          className="w-full rounded-full bg-zinc-900 py-2.5 text-xs font-semibold text-white shadow-lg transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+          className={`w-full rounded-full py-2.5 text-xs font-semibold transition ${
+            !canRender || isRendering
+              ? "cursor-not-allowed bg-zinc-300 text-zinc-400"
+              : "bg-zinc-900 text-white shadow-lg hover:bg-zinc-800"
+          }`}
         >
           {isRendering ? "Rendering..." : "Render"}
         </button>
@@ -139,11 +147,6 @@ export function RenderSidePanel({
         <span className="text-[12px] text-zinc-400">
           Images: {scenesWithImages}/{totalScenes}
         </span>
-        {disabledReason && (
-          <p className="rounded-full bg-amber-50 px-2.5 py-1 text-center text-[12px] font-medium text-amber-600">
-            {disabledReason}
-          </p>
-        )}
       </div>
 
       {/* Preset */}
