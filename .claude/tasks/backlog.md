@@ -8,6 +8,7 @@
 ## P0 (긴급)
 
 - [x] ~~SP-011 — 새 영상 stale 데이터~~ (PR #50 렌더 gate + PR #52 persist 제거 머지)
+- [ ] SP-014 — 페이지 전환 시 "연결 끊김" 오경고 플래시 (`useBackendHealth` 초기값 `"disconnected"` → 리마운트마다 상태 리셋. 싱글턴/Store 전환 필요)
 - [ ] SP-011 잔여 — handleDismiss 경쟁 조건 (BUG #1/#3: clearStudioUrlParams vs router.replace), `:new` localStorage stale (BUG #5). PR #50/#52로 주요 경로 해결됨, Dismiss 경로만 잔류.
 - [ ] Storyboard Data Integrity — 씬 데이터 무결성 보장 (SB 1128: UI 7씬/DB 0씬, FK 위반) | [명세](../../docs/01_product/FEATURES/STORYBOARD_DATA_INTEGRITY.md)
 
