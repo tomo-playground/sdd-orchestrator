@@ -14,7 +14,6 @@ from config import (
     coerce_structure_id,
 )
 
-
 # ── coerce_structure_id ──────────────────────────────────────
 
 
