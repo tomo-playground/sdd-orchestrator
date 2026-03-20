@@ -1,6 +1,6 @@
 #!/bin/bash
 # SDD Post-Merge Sync: 머지된 PR 감지 → main pull + 브랜치 삭제 + 태스크 정리
-# 사용: sdd-sync (수동) 또는 cron (자동 5분 간격)
+# GitHub Actions sdd-sync.yml에서 호출 또는 수동 실행
 
 set -euo pipefail
 
@@ -15,7 +15,7 @@ if [ "$CURRENT_BRANCH" != "main" ]; then
   exit 0
 fi
 
-# 변경사항이 있으면 자동 stash (이전: 스킵 → 사용자 혼란)
+# 변경사항이 있으면 자동 stash
 STASHED=false
 if ! git diff --quiet 2>/dev/null || ! git diff --staged --quiet 2>/dev/null; then
   git stash --include-untracked -m "sdd-sync auto-stash" 2>/dev/null && STASHED=true
@@ -24,14 +24,12 @@ fi
 # main 업데이트
 git pull --ff-only 2>/dev/null || exit 0
 
-# 최근 1시간 내 머지된 PR의 브랜치 목록
 # current/에 있는 태스크의 브랜치와 머지된 PR을 매칭
 MERGED=""
 for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
   [ -f "$TASK_FILE" ] || continue
   TASK_BRANCH=$(grep '^branch:' "$TASK_FILE" | sed 's/^branch: *//' | tr -d '[:space:]')
   [ -z "$TASK_BRANCH" ] && continue
-  # 이 브랜치가 머지됐는지 확인 (worktree- prefix도 매칭)
   IS_MERGED=$(gh pr list --state merged --base main --head "$TASK_BRANCH" --json number --jq '.[0].number' 2>/dev/null || true)
   if [ -z "$IS_MERGED" ]; then
     IS_MERGED=$(gh pr list --state merged --base main --head "worktree-${TASK_BRANCH}" --json number --jq '.[0].number' 2>/dev/null || true)
@@ -42,7 +40,7 @@ for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
 done
 MERGED=$(echo "$MERGED" | xargs)
 
-[ -z "$MERGED" ] && exit 0
+[ -z "$MERGED" ] && { [ "$STASHED" = true ] && git stash pop 2>/dev/null; exit 0; }
 
 CHANGED=false
 
@@ -59,27 +57,30 @@ for BRANCH in $MERGED; do
     CHANGED=true
   fi
 
-  # 원격 브랜치 삭제 → prune → 로컬 강제 삭제
-  git push origin --delete "$BRANCH" 2>/dev/null && echo "🗑️ 원격 브랜치 삭제: $BRANCH"
-  git remote prune origin 2>/dev/null || true
-  git branch -D "$BRANCH" 2>/dev/null && echo "🗑️ 로컬 브랜치 삭제: $BRANCH"
-  # worktree- prefix 로컬 브랜치도 정리
-  git branch -D "worktree-${BRANCH}" 2>/dev/null
-  git branch -D "worktree-${SP_ID}" 2>/dev/null
-
-  # worktree 정리 — Claude 세션 실행 중이면 스킵 (강제 삭제 방지)
+  # 1. worktree 정리 (브랜치 삭제 전에 — worktree가 브랜치를 잡고 있으면 삭제 실패)
+  git worktree prune 2>/dev/null || true
   for WT_DIR in "$PROJECT_DIR/.claude/worktrees/${BRANCH}" "$PROJECT_DIR/.claude/worktrees/${SP_ID}"; do
     [ -d "$WT_DIR" ] || continue
     if pgrep -f "worktree.*${SP_ID}\|worktree.*${BRANCH}" > /dev/null 2>&1; then
       echo "⚠️ worktree 스킵 (Claude 세션 실행 중): $WT_DIR"
     else
-      git worktree remove "$WT_DIR" --force 2>/dev/null && echo "🗑️ worktree 삭제: $WT_DIR"
+      git worktree remove "$WT_DIR" --force 2>/dev/null && echo "🗑️ worktree 삭제: $WT_DIR" || true
     fi
   done
+  git worktree prune 2>/dev/null || true
+
+  # 2. 원격 브랜치 삭제 (|| true — 실패해도 계속)
+  git push origin --delete "$BRANCH" 2>/dev/null && echo "🗑️ 원격 브랜치 삭제: $BRANCH" || true
+  git remote prune origin 2>/dev/null || true
+
+  # 3. 로컬 브랜치 강제 삭제 (|| true — 실패해도 계속)
+  git branch -D "$BRANCH" 2>/dev/null && echo "🗑️ 로컬 브랜치 삭제: $BRANCH" || true
+  git branch -D "worktree-${BRANCH}" 2>/dev/null || true
+  git branch -D "worktree-${SP_ID}" 2>/dev/null || true
 done
 
-# 고아 worktree 정리 (prunable 상태 제거)
-git worktree prune 2>/dev/null
+# 고아 worktree 정리
+git worktree prune 2>/dev/null || true
 
 # 변경사항 커밋 + 푸시
 if [ "$CHANGED" = true ] && ! git diff --quiet .claude/tasks/; then
