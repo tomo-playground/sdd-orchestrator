@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-012-context-tag-soft-validation
 created: 2026-03-20
-status: pending
+status: done
 depends_on:
 label: enhancement
 assignee: stopper2008
