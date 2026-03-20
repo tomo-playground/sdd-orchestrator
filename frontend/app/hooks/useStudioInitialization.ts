@@ -36,7 +36,6 @@ export function useStudioInitialization() {
 
   // Reset store for ?new=true (DB creation deferred to first save/generate)
   const newHandledRef = useRef(false);
-  const isMountRef = useRef(true);
 
   useEffect(() => {
     const isNewStoryboard = searchParams.get("new") === "true";
@@ -44,7 +43,6 @@ export function useStudioInitialization() {
       // After ?new=true URL cleanup, skip one re-render to preserve isNewStoryboardMode
       if (newHandledRef.current) {
         newHandledRef.current = false;
-        isMountRef.current = false;
         return;
       }
       // Clear isNewStoryboardMode whenever not on ?new=true
@@ -52,10 +50,8 @@ export function useStudioInitialization() {
       if (useUIStore.getState().isNewStoryboardMode) {
         useUIStore.getState().set({ isNewStoryboardMode: false });
       }
-      isMountRef.current = false;
       return;
     }
-    isMountRef.current = false;
     if (newHandledRef.current) return;
     newHandledRef.current = true;
 
