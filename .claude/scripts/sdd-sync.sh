@@ -59,10 +59,13 @@ for BRANCH in $MERGED; do
     CHANGED=true
   fi
 
-  # 로컬 + 원격 브랜치 삭제
-  git branch -d "$BRANCH" 2>/dev/null && echo "🗑️ 로컬 브랜치 삭제: $BRANCH"
+  # 원격 브랜치 삭제 → prune → 로컬 강제 삭제
   git push origin --delete "$BRANCH" 2>/dev/null && echo "🗑️ 원격 브랜치 삭제: $BRANCH"
   git remote prune origin 2>/dev/null || true
+  git branch -D "$BRANCH" 2>/dev/null && echo "🗑️ 로컬 브랜치 삭제: $BRANCH"
+  # worktree- prefix 로컬 브랜치도 정리
+  git branch -D "worktree-${BRANCH}" 2>/dev/null
+  git branch -D "worktree-${SP_ID}" 2>/dev/null
 
   # worktree 정리 (git worktree remove → 깔끔한 제거)
   WORKTREE_DIR="$PROJECT_DIR/.claude/worktrees/${BRANCH}"
