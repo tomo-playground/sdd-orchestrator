@@ -4,7 +4,7 @@ priority: P2
 scope: fullstack
 branch: feat/SP-003-e2e-warning-toast-verification
 created: 2026-03-19
-status: pending
+status: done
 depends_on: SP-002
 ---
 
