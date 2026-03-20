@@ -9,7 +9,6 @@ import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useRenderStore } from "../store/useRenderStore";
 import { useUIStore } from "../store/useUIStore";
 import { loadStyleProfileFromId } from "../store/actions/styleProfileActions";
-import { initializeVideoMetadata } from "../store/actions/outputActions";
 import { loadGroupDefaults } from "../store/actions/groupActions";
 import type { Scene } from "../types";
 import { API_BASE, DEFAULT_STRUCTURE } from "../constants";
@@ -232,8 +231,12 @@ export function useStudioInitialization() {
           void loadQualityScores(data.id, mapped);
         }
 
-        // Initialize video metadata (caption/likes) once topic is set
-        initializeVideoMetadata(data.title || "");
+        // Video metadata: likes만 초기화 (caption/hashtag는 Publish 탭에서 lazy 로드)
+        if (!useRenderStore.getState().videoLikesCount) {
+          useRenderStore.getState().set({
+            videoLikesCount: `${Math.floor(Math.random() * 50 + 10)}K`,
+          });
+        }
       })
       .catch(async (err) => {
         if (err?.response?.status === 404) {

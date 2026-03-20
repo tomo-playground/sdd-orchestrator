@@ -14,8 +14,13 @@ interface DraftResponse {
  * Ensure a draft storyboard exists before the first chat message.
  * Returns storyboard_id (existing or newly created).
  * Returns null if creation fails (missing group_id, API error).
+ *
+ * @param deferSideEffects - true이면 context/URL 업데이트를 하지 않고 ID만 반환.
+ *   호출자가 나중에 commitDraftContext()로 side effect를 적용해야 함.
  */
-export async function ensureDraftStoryboard(): Promise<number | null> {
+export async function ensureDraftStoryboard(options?: {
+  deferSideEffects?: boolean;
+}): Promise<number | null> {
   const { storyboardId, groupId } = useContextStore.getState();
 
   // Already have a storyboard -- nothing to do
@@ -35,22 +40,9 @@ export async function ensureDraftStoryboard(): Promise<number | null> {
 
     const newId = res.data.storyboard_id;
 
-    // Sync context store
-    useContextStore.getState().setContext({
-      storyboardId: newId,
-      storyboardTitle: res.data.title,
-    });
-
-    // Sync URL
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("new");
-      url.searchParams.set("id", String(newId));
-      window.history.replaceState({}, "", url.toString());
+    if (!options?.deferSideEffects) {
+      commitDraftContext(newId, res.data.title);
     }
-
-    // Migrate temp chat to new storyboard
-    useChatStore.getState().migrateFromTemp(newId);
 
     return newId;
   } catch (error) {
@@ -58,4 +50,21 @@ export async function ensureDraftStoryboard(): Promise<number | null> {
     useUIStore.getState().showToast("초안 생성에 실패했습니다", "error");
     return null;
   }
+}
+
+/** Draft 생성 후 context/URL/chat 동기화 (deferred side effects) */
+export function commitDraftContext(storyboardId: number, title?: string) {
+  useContextStore.getState().setContext({
+    storyboardId,
+    storyboardTitle: title || "Draft",
+  });
+
+  if (typeof window !== "undefined") {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    url.searchParams.set("id", String(storyboardId));
+    window.history.replaceState({}, "", url.toString());
+  }
+
+  useChatStore.getState().migrateFromTemp(storyboardId);
 }

@@ -17,7 +17,8 @@ import {
   createAssistantMessage,
   createUserMessage,
 } from "../utils/chatMessageFactory";
-import { ensureDraftStoryboard } from "../store/actions/draftActions";
+import { useContextStore } from "../store/useContextStore";
+import { ensureDraftStoryboard, commitDraftContext } from "../store/actions/draftActions";
 
 /** chatMessages에서 user/clarification/settings_recommend만 추출하여 {role, text} 배열로 변환 */
 function buildChatHistory(messages: ChatMessage[]): Array<{ role: string; text: string }> {
@@ -102,7 +103,12 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
       const typingId = addTypingIndicator("분석 중...");
       try {
         // Draft storyboard 확보 (첫 호출 시 생성, 이후 기존 ID 반환)
-        const draftId = await ensureDraftStoryboard();
+        // deferSideEffects: context/URL 업데이트를 analyze 완료 후로 지연
+        // → storyboardId 변경에 의한 리렌더/abort 방지
+        const isNewDraft = !useContextStore.getState().storyboardId;
+        const draftId = await ensureDraftStoryboard(
+          isNewDraft ? { deferSideEffects: true } : undefined
+        );
         if (draftId === null) {
           removeTypingIndicator(typingId);
           isAnalyzingRef.current = false;
@@ -140,6 +146,11 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
         const data: SettingsRecommendation = await res.json();
 
         removeTypingIndicator(typingId);
+
+        // Deferred side effects: analyze 완료 후 context/URL 업데이트
+        if (isNewDraft && draftId) {
+          commitDraftContext(draftId);
+        }
 
         if (data.resolved_topic) {
           topicRef.current = data.resolved_topic;

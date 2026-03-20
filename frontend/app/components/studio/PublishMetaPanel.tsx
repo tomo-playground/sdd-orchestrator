@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useRenderStore } from "../../store/useRenderStore";
 import { useUIStore } from "../../store/useUIStore";
@@ -89,6 +89,24 @@ export function PublishCaptionLikes() {
   const videoLikesCount = useRenderStore((s) => s.videoLikesCount);
   const [isExtractingCaption, setIsExtractingCaption] = useState(false);
   const [savedField, setSavedField] = useState<string | null>(null);
+  const initRef = useRef(false);
+
+  // Lazy caption 초기화: Publish 탭 마운트 시 caption이 없으면 hashtag 추출
+  useEffect(() => {
+    if (initRef.current || videoCaption || !topic) return;
+    initRef.current = true;
+    (async () => {
+      try {
+        const res = await axios.post(`${API_BASE}/video/extract-hashtags`, { text: topic });
+        if (res.data.caption) {
+          setOutput({ videoCaption: res.data.caption });
+          updateStoryboardMetadata({ caption: res.data.caption });
+        }
+      } catch {
+        setOutput({ videoCaption: topic });
+      }
+    })();
+  }, [topic, videoCaption, setOutput]);
 
   const handleExtractCaption = async () => {
     if (!videoCaption || videoCaption.length <= 60) return;

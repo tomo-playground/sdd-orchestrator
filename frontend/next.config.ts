@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const allowedOrigins = process.env.ALLOWED_DEV_ORIGIN
-  ? [process.env.ALLOWED_DEV_ORIGIN]
+  ? process.env.ALLOWED_DEV_ORIGIN.split(",").map((o) => o.trim())
   : [];
 
 const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || "http://127.0.0.1:8000";
@@ -9,11 +9,13 @@ const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || "http://127.0.0.1:8000";
 const nextConfig: NextConfig = {
   allowedDevOrigins: allowedOrigins,
   async rewrites() {
+    const MINIO_ORIGIN = process.env.MINIO_ORIGIN || "http://127.0.0.1:9000";
     return [
       { source: "/api/:path*", destination: `${BACKEND_ORIGIN}/api/:path*` },
       { source: "/health", destination: `${BACKEND_ORIGIN}/health` },
       { source: "/outputs/:path*", destination: `${BACKEND_ORIGIN}/outputs/:path*` },
       { source: "/assets/:path*", destination: `${BACKEND_ORIGIN}/assets/:path*` },
+      { source: "/storage/:path*", destination: `${MINIO_ORIGIN}/:path*` },
     ];
   },
   async redirects() {
