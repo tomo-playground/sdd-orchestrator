@@ -11,6 +11,7 @@
 
 ## P1 (최우선)
 
+- [ ] SP-010 — API Proxy Internal — Next.js rewrite 프록시 경유로 전환, 8000번 포트 외부 노출 제거
 - [ ] Enum ID 정규화 — structure/language/style 디스플레이 이름→ID 분리, DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
 - [ ] Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md)
 - [ ] ComfyUI 마이그레이션 — ForgeUI→ComfyUI + SD Client 추상화 | [명세](../../docs/01_product/FEATURES/COMFYUI_MIGRATION.md)
