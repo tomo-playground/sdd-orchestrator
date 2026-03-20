@@ -112,9 +112,11 @@ reviews:
     - "**/*.tsx"
     - "!frontend/node_modules/**"
     - "!backend/.venv/**"
-    - "!backend/__pycache__/**"
+    - "!**/__pycache__/**"
     - "!backend/outputs/**"
     - "!audio/.venv/**"
+    - "!backend/tests/**"
+    - "!audio/tests/**"
     - "!**/*.test.ts"
     - "!**/*.test.tsx"
 
@@ -179,6 +181,29 @@ reviews:
         - 모든 상수/환경변수는 이 파일에서 관리
         - 개별 파일 하드코딩 금지
         - os.getenv() 기본값에 localhost 사용 시 환경별 오버라이드 가능한지 확인
+    - path: "backend/services/keywords/**"
+      instructions: |
+        태그 시스템 검증:
+        - 태그 형식은 언더바(_) 필수 — 공백 형식 변환 금지
+        - 태그 규칙(충돌/별칭/필터)은 DB 테이블에서 관리, 코드 하드코딩 금지
+        - TagCategoryCache, TagAliasCache 등 런타임 캐시 정합성
+    - path: "backend/services/storyboard/**"
+      instructions: |
+        스토리보드 CRUD 검증:
+        - 모든 쿼리에 `deleted_at.is_(None)` 필터 필수
+        - Scene Builder의 Spread Passthrough 패턴 준수
+        - 씬 직렬화 시 URL 필드 제외 (`exclude={"image_url"}`)
+    - path: "backend/services/characters/**"
+      instructions: |
+        캐릭터 관리 검증:
+        - positive_prompt + negative_prompt 2-필드 SSOT
+        - 공통 태그는 config.py 상수에서 관리 — DB에 중복 저장 금지
+        - Character는 Group에 종속 (group_id NOT NULL)
+    - path: "backend/schemas.py"
+      instructions: |
+        Pydantic 스키마 검증:
+        - URL 필드에 용도 주석 필수 (Response-only / Input-only / Transient)
+        - `dict | None` 금지 — 구체적 Pydantic 모델 사용
 
   abort_on_close: true
   disable_cache: false
@@ -190,7 +215,6 @@ reviews:
     ignore_title_keywords:
       - "WIP"
       - "draft"
-      - "chore"
     drafts: false
     base_branches:
       - "main"
@@ -208,9 +232,9 @@ knowledge_base:
     enabled: true
     filePatterns:
       - "CLAUDE.md"
-      - "GEMINI.md"
       - "docs/guides/CONTRIBUTING.md"
       - "docs/03_engineering/architecture/DB_SCHEMA.md"
+      - "docs/03_engineering/api/REST_API.md"
   learnings:
     scope: auto
   issues:
