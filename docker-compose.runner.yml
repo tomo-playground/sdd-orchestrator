@@ -15,11 +15,12 @@ services:
     restart: unless-stopped
     environment:
       REPO_URL: https://github.com/tomo-playground/shorts-producer
-      RUNNER_TOKEN: ${RUNNER_TOKEN}
       RUNNER_NAME: sdd-runner
       RUNNER_WORKDIR: /tmp/runner
       LABELS: self-hosted,sdd
       RUNNER_SCOPE: repo
+    env_file:
+      - .env.runner
     volumes:
       # 프로젝트 소스 접근 (읽기 전용 — checkout은 runner가 별도로 함)
       - /home/tomo/Workspace/shorts-producer:/opt/project:ro
@@ -29,5 +30,3 @@ services:
       - /home/tomo/.config/gh:/home/runner/.config/gh:ro
       # Docker socket (필요 시 하위 컨테이너 실행)
       - /var/run/docker.sock:/var/run/docker.sock
-    env_file:
-      - .env.runner
