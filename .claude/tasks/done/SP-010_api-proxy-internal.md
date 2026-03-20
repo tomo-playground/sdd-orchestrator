@@ -4,7 +4,7 @@ priority: P1
 scope: fullstack
 branch: feat/SP-010-api-proxy-internal
 created: 2026-03-20
-status: pending
+status: done
 depends_on:
 label: enhancement
 reviewer: stopper2008
