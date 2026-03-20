@@ -1,0 +1,22 @@
+name: SDD Sync — 머지 후 태스크 정리
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  cleanup:
+    if: github.event.pull_request.merged == true
+    runs-on: [self-hosted, sdd]
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Run sdd-sync
+        run: bash .claude/scripts/sdd-sync.sh
