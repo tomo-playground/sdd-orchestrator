@@ -7,6 +7,7 @@
 
 ## P0 (긴급)
 
+- [ ] 새 영상 생성 시 이전 데이터 잔류 — 기존 영상 확인 후 "새 영상" 클릭 시 이전 스토리보드의 제목/채팅/breadcrumb이 표시됨. Zustand persist rehydration 또는 useEffect 실행 순서 문제. 재현 100%. (PR #49 미완성 닫음)
 - [ ] Storyboard Data Integrity — 씬 데이터 무결성 보장 (SB 1128: UI 7씬/DB 0씬, FK 위반) | [명세](../../docs/01_product/FEATURES/STORYBOARD_DATA_INTEGRITY.md)
 
 ## P1 (최우선)
