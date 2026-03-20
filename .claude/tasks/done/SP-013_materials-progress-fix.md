@@ -4,7 +4,7 @@ priority: P0
 scope: fullstack
 branch: feat/SP-013-materials-progress-fix
 created: 2026-03-21
-status: pending
+status: done
 depends_on:
 label: bug
 reviewer: stopper2008
