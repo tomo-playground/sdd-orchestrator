@@ -22,7 +22,7 @@ export type ChatScriptEditorActions = ScriptEditorActions & {
   confirmAndGenerate: () => void;
   clearChat: () => void;
   cancelOperation: () => void;
-  setInteractionMode: (mode: "auto" | "guided" | "hands_on") => void;
+  setInteractionMode: (mode: "auto" | "guided") => void;
   setFastTrack: (enabled: boolean) => void;
   applySceneEdits: () => void;
   rejectSceneEdit: () => void;
@@ -120,7 +120,7 @@ export function useChatScriptEditor(options?: {
     clearChatBase(() => editorRef.current?.reset());
   }, [clearChatBase]);
 
-  const setInteractionMode = useCallback((mode: "auto" | "guided" | "hands_on") => {
+  const setInteractionMode = useCallback((mode: "auto" | "guided") => {
     editorRef.current?.setField("interactionMode", mode);
   }, []);
 

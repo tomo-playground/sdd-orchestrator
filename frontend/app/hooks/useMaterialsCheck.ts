@@ -20,6 +20,17 @@ export type MaterialsData = {
   style?: MaterialStatus; // Frontend-only: derived from style profile
 };
 
+/** Map API item { is_ready } → MaterialStatus { ready } */
+function mapApiStatus(raw: unknown): MaterialStatus {
+  const item = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return {
+    ...item,
+    ready: Boolean(item.is_ready ?? item.ready),
+    ...(typeof item.count === "number" && { count: item.count }),
+    ...(typeof item.detail === "string" && { detail: item.detail }),
+  };
+}
+
 export function useMaterialsCheck(storyboardId: number | null) {
   const [apiData, setApiData] = useState<MaterialsData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +52,17 @@ export function useMaterialsCheck(storyboardId: number | null) {
     setIsLoading(true);
     axios
       .get(`${API_BASE}/storyboards/${storyboardId}/materials`)
-      .then((res) => setApiData(res.data))
+      .then((res) => {
+        const d = res.data;
+        setApiData({
+          ...d,
+          script: mapApiStatus(d.script),
+          characters: mapApiStatus(d.characters),
+          voice: mapApiStatus(d.voice),
+          music: mapApiStatus(d.music),
+          background: mapApiStatus(d.background),
+        });
+      })
       .catch((err) => {
         console.warn("[useMaterialsCheck] API fetch failed, using fallback:", err.message);
         setApiData(null);

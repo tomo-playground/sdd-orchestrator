@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, type KeyboardEvent, type ChangeEvent } from "react";
 import { SendHorizonal, Square } from "lucide-react";
 
-type InteractionMode = "auto" | "guided" | "hands_on";
+type InteractionMode = "auto" | "guided";
 
 type Props = {
   onSend: (text: string) => Promise<void>;
@@ -24,7 +24,6 @@ const SUGGESTIONS = ["카페 알바생이 본 이별 장면", "첫 출근날 실
 const MODE_OPTIONS = [
   { value: "auto" as const, label: "Auto", tooltip: "AI가 모든 단계를 자동 진행" },
   { value: "guided" as const, label: "Guided", tooltip: "컨셉 선택과 플랜 검토만 직접" },
-  { value: "hands_on" as const, label: "Hands-on", tooltip: "모든 단계에서 사용자 승인" },
 ] as const;
 
 const MAX_ROWS = 3;

@@ -8,11 +8,13 @@ import type { PreValidateResponse } from "../../types";
 type PreRenderReportProps = {
   storyboardId: number | null;
   onValidationComplete?: (isReady: boolean) => void;
+  refreshTrigger?: number;
 };
 
 export default function PreRenderReport({
   storyboardId,
   onValidationComplete,
+  refreshTrigger,
 }: PreRenderReportProps) {
   const [report, setReport] = useState<PreValidateResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,18 +37,29 @@ export default function PreRenderReport({
     }
   }, [storyboardId, onValidationComplete]);
 
+  // refreshTrigger 변경 시 재검증 (예: TTS 완료 후)
+  const prevTrigger = useRef<number | undefined>(undefined);
+
   // 스토리보드 ID 변경 시 자동 1회 실행 + null 리셋
   useEffect(() => {
     if (!storyboardId) {
       ranForId.current = null;
+      prevTrigger.current = undefined;
       setReport(null);
       return;
     }
     if (storyboardId !== ranForId.current) {
       ranForId.current = storyboardId;
+      prevTrigger.current = undefined;
       runValidation();
     }
   }, [storyboardId, runValidation]);
+  useEffect(() => {
+    if (refreshTrigger != null && refreshTrigger !== prevTrigger.current && storyboardId) {
+      prevTrigger.current = refreshTrigger;
+      runValidation();
+    }
+  }, [refreshTrigger, storyboardId, runValidation]);
 
   const errorCount = report?.issues.filter((i) => i.level === "error").length ?? 0;
   const warnCount = report?.issues.filter((i) => i.level === "warning").length ?? 0;

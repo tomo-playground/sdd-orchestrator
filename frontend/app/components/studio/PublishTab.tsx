@@ -136,6 +136,7 @@ export default function PublishTab() {
               <PreRenderReport
                 storyboardId={storyboardId}
                 onValidationComplete={setValidationReady}
+                refreshTrigger={cachedCount}
               />
             </div>
           )}
