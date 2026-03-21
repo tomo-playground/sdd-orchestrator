@@ -2,7 +2,7 @@
 id: SP-042
 priority: P1
 scope: backend
-branch: feat/SP-042-langfuse-output-undefined
+branch: feat/SP-042-langfuse-trace-cleanup
 created: 2026-03-21
 status: pending
 depends_on:
@@ -12,71 +12,120 @@ assignee: stopper2008
 ---
 
 ## 무엇을
-LangFuse observation output `undefined` 버그 수정 — trace_context + with_agent_trace 2건
+LangFuse 트레이스 품질 개선 — output undefined 수정 + 이중 observation 제거 + CHAIN 중복 정리
 
 ## 왜
-LangFuse 대시보드에서 `topic.analyze` 등의 Output이 `undefined`로 표시.
-트레이스 분석/디버깅 시 노드 결과를 확인할 수 없어 파이프라인 품질 추적이 불가능.
+최신 파이프라인 트레이스 분석 결과 (storyboard.generate, 628초, $0.285):
+- **200개 observation** 중 이중 생성이 대량 발생 → LangFuse 대시보드 읽기 불가
+- **16개 AGENT observation에 output undefined** → 노드 결과 추적 불가
+- **route_* CHAIN이 전부 x2 중복** → 노이즈
+- 디버깅/비용 분석/품질 추적이 사실상 불가능한 상태
 
-## 근본 원인 2개
+### 트레이스 데이터 근거
+
+```
+=== 모델별 비용 ===
+gemini-2.5-pro       16x   95,434tok  $0.1583 (59.1%)  410s
+gemini-2.5-flash     26x  260,021tok  $0.1012 (37.8%)  362s
+gemini-2.0-flash      4x   63,931tok  $0.0085 ( 3.2%)   41s
+
+=== 이중 Observation (심각) ===
+review               AGENT      x16  ← 8회 실행인데 16개 (이중 래핑)
+route_after_review   CHAIN      x16  ← 라우팅 체인도 2배
+writer               AGENT      x6   ← 3회 실행인데 6개
+director_checkpoint  AGENT      x4   ← 2회 실행인데 4개
+
+=== AGENT output undefined: 16건 ===
+writer, review, cinematographer, director, finalize
+```
+
+## 근본 원인 3개
 
 ### Bug 1: `trace_context` span output 미기록 (3곳)
-`observability.py` L82-120의 `trace_context()`가 span을 열고 `yield`만 하고, 종료 시 output을 기록하지 않음.
+`observability.py`의 `trace_context()`가 span을 열고 `yield`만 하고 output 기록 안 함.
 
-영향 범위:
-- `services/scripts/topic_analysis.py` L83 — `topic.analyze`
-- `routers/video.py` L485 — `video.extract_caption`
-- `routers/video.py` L542 — `video.extract_hashtags`
+| 파일 | trace 이름 |
+|------|-----------|
+| `services/scripts/topic_analysis.py` L83 | `topic.analyze` |
+| `routers/video.py` L485 | `video.extract_caption` |
+| `routers/video.py` L542 | `video.extract_hashtags` |
 
-### Bug 2: `@with_agent_trace` 데코레이터 output 미기록 + 이중 AGENT span (6곳)
-`with_agent_trace` wrapper가 `trace_agent()`를 `as agent_obs` 없이 호출 → 노드 반환값을 span에 기록 안 함.
-동시에 `script_graph.py`의 `_wrap_node()`도 같은 노드를 감싸서 **동일 이름 AGENT observation 2개** 생성.
+### Bug 2: `@with_agent_trace` 이중 래핑 + output 미기록 (6곳)
+`_wrap_node()`이 외부 AGENT span을 생성 + output 기록.
+`@with_agent_trace`가 내부 AGENT span을 추가 생성 + output 미기록.
+→ 동일 이름 AGENT x2, 내부 output은 undefined.
 
-영향 범위 (이중 래핑):
-- `director_plan.py` L67 — `@with_agent_trace("director_plan")`
-- `writer.py` L160 — `@with_agent_trace("writer")`
-- `review.py` L297 — `@with_agent_trace("review")`
-- `director.py` L43 — `@with_agent_trace("director")`
-- `cinematographer.py` L125 — `@with_agent_trace("cinematographer")`
-- `finalize.py` L962 — `@with_agent_trace("finalize")`
+| 노드 | `@with_agent_trace` 위치 | `_wrap_node` 등록 |
+|------|--------------------------|------------------|
+| director_plan | L67 | script_graph.py L107 |
+| writer | L160 | L114 |
+| review | L297 | L115 |
+| director | L43 | L122 |
+| cinematographer | L125 | L118 |
+| finalize | L962 | L124 |
+
+### Bug 3: route_* CHAIN 중복 (LangGraph + observability 이중 기록)
+`route_after_review` x16, `route_after_writer` x6 등 라우팅 CHAIN도 2배 중복.
+LangGraph 자체 트레이싱 + observability의 `trace_chain` 양쪽에서 기록.
 
 ## 완료 기준 (DoD)
 
 ### Part A: trace_context output 기록
-- [ ] `trace_context()`가 yield로 반환된 결과를 span output에 기록
-  - 방법: `yield` → generator의 `send()` 패턴 또는 output 콜백 인자 추가
-  - 또는 호출처에서 `span.update(output=...)` 직접 호출 (단순)
-- [ ] `topic.analyze`, `video.extract_caption`, `video.extract_hashtags` 3곳 수정
-- [ ] LangFuse에서 output 표시 확인
+- [ ] `trace_context()`가 span 객체를 yield하도록 수정
+- [ ] 3개 호출처에서 `span.update(output=...)` 호출
+- [ ] LangFuse에서 topic.analyze 등의 output 표시 확인
 
-### Part B: with_agent_trace 이중 래핑 제거
-- [ ] `@with_agent_trace` 데코레이터를 6개 노드에서 **제거**
-  - `_wrap_node()`이 이미 외부 AGENT span을 생성하고 output도 기록하므로 중복
-- [ ] LangFuse에서 동일 이름 AGENT observation이 1개만 생성되는지 확인
-- [ ] 기존 트레이스 구조 regression 없음
+### Part B: @with_agent_trace 이중 래핑 제거
+- [ ] 6개 노드에서 `@with_agent_trace` 데코레이터 **제거**
+- [ ] import 정리 (`from services.agent.observability import with_agent_trace` 제거)
+- [ ] LangFuse에서 동일 이름 AGENT observation이 **1개만** 생성 확인
+- [ ] output에 `{"updated_keys": [...]}` 정상 표시 확인
 
-### Part C: 검증
+### Part C: route_* CHAIN 중복 조사 + 정리
+- [ ] `trace_chain` 호출이 LangGraph 자체 트레이싱과 중복되는지 확인
+- [ ] 중복 원인 파악 후 한쪽 제거 (LangGraph 측 또는 observability 측)
+- [ ] 정리 후 observation 수가 절반 수준으로 감소 확인
+
+### Part D: 검증
 - [ ] pytest 통과
 - [ ] 린트 통과
-- [ ] 실제 파이프라인 실행 후 LangFuse 트레이스에서 output 확인
+- [ ] 실제 파이프라인 실행 후 LangFuse 트레이스 검증:
+  - observation 수 200개 → ~100개 이하
+  - 모든 AGENT에 output 표시
+  - 이중 이름 observation 0건
 
 ## 제약
-- `observability.py` + 6개 노드 파일 + 3개 호출처 = 최대 10개 파일
-- `_wrap_node()`의 output 기록 로직은 변경하지 않음 (이미 정상 동작)
-- trace_llm_call의 GENERATION output 기록은 변경하지 않음 (이미 정상)
+- `observability.py` + 6개 노드 + 3개 호출처 + `script_graph.py` = 최대 11개 파일
+- `_wrap_node()`의 output 기록 로직 변경 안 함 (정상 동작)
+- `trace_llm_call`의 GENERATION output 기록 변경 안 함 (정상)
+- CHAIN 정리 시 LangGraph 내장 트레이싱과 충돌하지 않도록 주의
 
 ## 힌트
 
-### Part A 구현 패턴 (가장 단순한 방법)
-호출처에서 직접 output 기록:
+### Part A: trace_context에서 span yield
 ```python
-async with trace_context("topic.analyze", input_data={"topic": topic}) as span:
-    # ... LLM 호출 ...
-    if span:
-        span.update(output={"status": result.status, "duration": result.duration})
-```
-→ `trace_context`가 span 객체를 yield하도록 수정
+# AS-IS: yield만 하고 output 없음
+async with trace_context("topic.analyze", input_data=...) as ctx:
+    ...  # ctx는 None
 
-### Part B 구현
-6개 노드에서 `@with_agent_trace("...")` 데코레이터 한 줄 삭제 + import 정리.
-`_wrap_node()`이 모든 노드를 이미 감싸므로 기능 손실 없음.
+# TO-BE: span 객체를 yield
+async with trace_context("topic.analyze", input_data=...) as span:
+    result = await llm_call(...)
+    if span:
+        span.update(output={"status": "recommend", "duration": 30})
+```
+
+### Part B: 데코레이터 제거 (1줄 삭제)
+```python
+# AS-IS
+@with_agent_trace("writer")
+async def writer_node(state, config=None):
+
+# TO-BE
+async def writer_node(state, config=None):
+```
+
+### Part C: CHAIN 중복 조사
+- `observability.py`의 `trace_chain` 사용처 확인
+- `script_graph.py`의 `_wrap_node`에서 routing 노드도 래핑하는지 확인
+- LangGraph의 `astream(stream_mode="updates")`가 routing 이벤트를 emit하는지 확인
