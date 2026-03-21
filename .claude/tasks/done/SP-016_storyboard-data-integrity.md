@@ -4,7 +4,7 @@ priority: P0
 scope: full-stack
 branch: feat/SP-016-storyboard-data-integrity
 created: 2026-03-21
-status: running
+status: done
 depends_on:
 label: bug
 assignee: stopper2008
