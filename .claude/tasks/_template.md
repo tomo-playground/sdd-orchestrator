@@ -14,10 +14,25 @@ depends_on:                  # 선행 태스크 id (없으면 비움)
 ## 왜
 [이유/배경]
 
+## 실패 테스트 (TDD)
+AI가 구현할 때 이 테스트를 GREEN으로 만드는 것이 목표.
+사람이 작성하거나, 테스트 파일 경로 + 케이스를 명시.
+
+```python
+# backend/tests/test_SP_NNN.py
+def test_핵심_기능():
+    """[기대 동작 설명]"""
+    result = 대상_함수(입력값)
+    assert result == 기대값
+```
+
+또는 기존 테스트 파일에 케이스 추가:
+- `backend/tests/test_xxx.py::test_케이스명` — [기대 동작]
+
 ## 완료 기준 (DoD)
-- [ ] 핵심 기능 동작
-- [ ] 테스트 통과
-- [ ] 기존 기능 regression 없음
+- [ ] 실패 테스트 → GREEN
+- [ ] 기존 테스트 regression 없음
+- [ ] 린트 통과
 
 ## 제약
 - 변경 파일 10개 이하 목표

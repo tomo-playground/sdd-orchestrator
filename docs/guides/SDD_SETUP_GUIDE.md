@@ -1,7 +1,8 @@
-# SDD (Spec-Driven Development) 구축 가이드
+# SDD + TDD 구축 가이드
 
-> 새 프로젝트에서 SDD 방법론을 처음부터 세팅하는 단계별 가이드.
-> 사람은 설계/기동/판단, AI가 구현~PR까지 자율 실행하는 워크플로우.
+> 새 프로젝트에서 SDD + TDD 방법론을 처음부터 세팅하는 단계별 가이드.
+> 사람이 스펙과 실패 테스트를 쓰면, AI가 테스트를 GREEN으로 만들고 PR까지 자율 실행.
+> **"AI를 믿지 말고, 테스트를 믿어라."**
 > 최종 업데이트: 2026-03-21
 
 ---
@@ -538,26 +539,36 @@ chmod +x .claude/scripts/sdd-sync.sh
 
 ---
 
-## 8. 실행 플로우
+## 8. 실행 플로우 (SDD + TDD)
 
 ```
 [사람] backlog에 한 줄 등록
   ↓
-[사람] 착수 결정 → 태스크 파일 작성 (current/SP-NNN_*.md)
+[사람] 착수 결정 → 태스크 파일 + 실패 테스트 작성 (RED)
+  ↓
+[사람] pytest/vitest 실행 → FAIL 확인 → main 커밋
   ↓
 [사람] /sdd-run SP-NNN → 워크트리 기동
   ↓
-[AI] 태스크 읽기 → 구현 → Stop Hook 품질 게이트
-  ↓  실패 시 → self-heal (최대 3회)
+[AI] 실패 테스트를 GREEN으로 만드는 코드 작성 → Stop Hook 자동 검증
+  ↓  RED → self-heal (최대 3회)
+  ↓  ALL GREEN → 커밋 → push → PR 생성
   ↓
-[AI] 커밋 → 푸시 → PR 생성 → 셀프 리뷰
+[병렬 리뷰]
+  ├─ Claude 리뷰 — 설계 품질 검증
+  └─ CodeRabbit 리뷰 — 규칙 준수 검증
   ↓
-[CodeRabbit/Claude] 자동 리뷰
+[changes_requested 시]
   ↓
-[사람] PR 확인 → 머지 또는 @claude로 수정 요청
+[Claude 자동 수정] → push → 재리뷰
   ↓
-[GitHub Actions] sdd-sync → 태스크 done/ 이동 + 브랜치 삭제
+[사람] 머지 판단
+  ↓
+[GitHub Actions] sdd-sync → 태스크 done/ + 브랜치 삭제
 ```
+
+> **핵심**: 사람은 "무엇을 만들지"(테스트)만 정의. AI는 "어떻게 만들지"(구현)를 자율 결정.
+> 테스트가 곧 스펙이고, GREEN이 곧 완료.
 
 ---
 

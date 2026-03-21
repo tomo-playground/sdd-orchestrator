@@ -1,7 +1,28 @@
-# SDD (Spec-Driven Development) 워크플로우 가이드
+# SDD + TDD 워크플로우 가이드
 
-> 사람은 설계·기동·판단, AI가 구현·리뷰·수정까지 자율 실행하는 업무 플로우.
+> **SDD (Spec-Driven Development) + TDD (Test-Driven Development)**
+> 사람이 스펙과 실패 테스트를 쓰면, AI가 테스트를 GREEN으로 만들고 PR까지 자율 실행.
+> **테스트가 곧 스펙이고, GREEN이 곧 완료.**
 > 최종 업데이트: 2026-03-21
+
+---
+
+## 핵심 원칙
+
+> "AI를 믿지 말고, 테스트를 믿어라."
+
+- **사람**: 무엇을 만들지 정의 (스펙 + 실패 테스트)
+- **AI**: 테스트가 통과하도록 구현 (추측 판단 불가 — GREEN/RED가 객관적)
+- **Stop Hook**: 자동 검증 (모든 테스트 GREEN이면 통과, 아니면 self-heal)
+
+### 왜 TDD + SDD인가?
+
+| SDD만 | SDD + TDD |
+|-------|-----------|
+| DoD에 "테스트 통과" 작성 → 테스트 없으면 통과할 게 없음 | 실패 테스트가 곧 DoD — 객관적 완료 기준 |
+| AI가 "구현 완료" 자기 판단 → 편향 | 테스트 GREEN = 완료, RED = 미완료 — 판단 불필요 |
+| 리뷰에서 "이거 동작해?" 확인 필요 | 테스트가 동작을 증명 — 리뷰는 설계 품질에 집중 |
+| 회귀 발견 어려움 | Stop Hook이 기존 테스트 자동 검증 — 회귀 즉시 감지 |
 
 ---
 
@@ -10,18 +31,19 @@
 ```
 [사람] backlog에 한 줄 등록
   ↓
-[사람] 착수 결정 → 태스크 파일 작성 (current/SP-NNN_*.md)
+[사람] 착수 결정 → 태스크 파일 + 실패 테스트 작성 (RED)
+  ↓
+[사람] 실패 테스트 확인 → main 커밋
   ↓
 [사람] /sdd-run SP-NNN
   ↓
-[Claude] 워크트리에서 자율 구현 → Stop Hook 품질 게이트
-  ↓  실패 → self-heal (최대 3회)
-  ↓
-[Claude] 커밋 → push → PR 생성
+[Claude] 테스트를 GREEN으로 만드는 코드 작성 → Stop Hook 자동 검증
+  ↓  RED → self-heal (최대 3회)
+  ↓  ALL GREEN → 커밋 → push → PR 생성
   ↓
 [병렬 리뷰]
-  ├─ Claude 리뷰 (claude-review.yml) — 읽기 전용
-  └─ CodeRabbit 리뷰 — 읽기 전용
+  ├─ Claude 리뷰 (claude-review.yml) — 설계 품질 검증
+  └─ CodeRabbit 리뷰 — 규칙 준수 검증
   ↓
 [changes_requested 시]
   ↓
@@ -162,7 +184,7 @@ Claude 재수정 → push → 재리뷰 (반복)
 ### 좋은 Task vs 나쁜 Task
 
 ```markdown
-# 나쁜 Task
+# 나쁜 Task — 테스트 없음, 완료 기준 모호
 ## 무엇을
 렌더링 품질 개선
 ## 완료 기준
@@ -170,23 +192,36 @@ Claude 재수정 → push → 재리뷰 (반복)
 ```
 
 ```markdown
-# 좋은 Task
+# 좋은 Task — 실패 테스트가 곧 스펙
 ## 무엇을
 Post Type 렌더링에서 긴 텍스트(60자+) 잘림 방지
 
 ## 왜
 현재 고정 폰트 48px → 3줄 넘으면 영역 밖으로 벗어남
 
+## 실패 테스트 (TDD)
+# backend/tests/test_rendering_font.py
+def test_long_text_font_shrink():
+    result = calculate_optimal_font_size("가" * 65)
+    assert result <= 32
+
+def test_short_text_font_default():
+    result = calculate_optimal_font_size("가" * 15)
+    assert result >= 48
+
+def test_medium_text_font_interpolation():
+    result = calculate_optimal_font_size("가" * 40)
+    assert 32 <= result <= 48
+
 ## 완료 기준 (DoD)
-- [ ] 60자 이상 텍스트에서 폰트 32px로 축소
-- [ ] 기존 짧은 텍스트 동작 변경 없음
-- [ ] 테스트 추가: 20자/40자/60자/80자 케이스
+- [ ] 위 3개 테스트 GREEN
+- [ ] 기존 테스트 regression 없음
 
 ## 제약
 - services/rendering.py만 수정
 ```
 
-**핵심**: 완료 기준이 **검증 가능한 조건**이어야 AI가 self-check할 수 있다.
+**핵심**: 실패 테스트가 스펙이고, GREEN이 완료. AI의 자기 판단이 아닌 **객관적 검증**.
 
 ---
 
@@ -249,6 +284,35 @@ Step 5. E2E      → Playwright (서버 실행 중일 때만)
 - **버그 지적** → 즉시 수정
 - **설계 개선 제안** → CLAUDE.md 대조 후 판단
 - **스타일/Nit** → 합리적이면 수정, 아니면 스킵
+
+---
+
+## TDD 실전 가이드
+
+### Red-Green-Refactor 사이클
+
+```
+[사람] RED: 실패 테스트 작성 → pytest 실행 → FAIL 확인 → main 커밋
+  ↓
+[AI]   GREEN: 테스트를 통과하는 최소 코드 작성
+  ↓
+[AI]   REFACTOR: 테스트 GREEN 유지하면서 코드 정리
+```
+
+### 사람이 쓰는 테스트 원칙
+
+- **한 번에 하나씩**: 테스트 1개 → 구현 → 다음 테스트
+- **단일 assertion**: 하나의 테스트가 하나의 동작만 검증
+- **의도를 테스트**: 구현 방법이 아닌 기대 동작을 검증
+- **경계값 포함**: 정상, 엣지, 에러 케이스 모두
+
+### AI에게 주의할 점 (외부 연구 기반)
+
+| 연구 | 발견 | 대응 |
+|------|------|------|
+| TDAD (arXiv 2603.17973) | TDD 지시만으로는 regression 9.94% 증가 — "어떻게 TDD할지"보다 "어떤 테스트를 확인할지"가 중요 | 태스크에 **영향 받는 기존 테스트 목록** 명시 |
+| Simon Willison | AI는 테스트 없이 불필요한 코드 작성 위험. 테스트가 있으면 필요한 코드만 작성 | 실패 테스트 선작성 필수 |
+| alexop.dev | 하나의 컨텍스트에서 테스트+구현 동시하면 TDD가 깨짐 — 테스트 작성자 지식이 구현에 오염 | 사람이 테스트, AI가 구현 — 역할 분리 |
 
 ---
 
