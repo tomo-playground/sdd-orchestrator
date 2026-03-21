@@ -677,23 +677,36 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 > **참고**: PR 머지 후 태스크 정리는 GitHub Actions가 자동 처리. `/sdd-sync` 수동 실행은 비상용.
 
 ### 세션 부팅 프로토콜
-**첫 응답 시 반드시 아래 SDD 대시보드를 표시한 후 대화를 시작한다:**
+**첫 응답 시 반드시 아래를 자동 수행한 후 대화를 시작한다:**
+
+#### Phase 1: 동기화
 1. `git pull --ff-only` → main 최신화 (실패 시 rebase 시도)
 2. `git branch --show-current` → 현재 브랜치
-3. `.claude/tasks/current/` → 실행 중 태스크 목록
-4. `.claude/tasks/backlog.md` → 상위 3개 대기 태스크
-5. feat 브랜치면 SP-NNN 매칭 태스크 자동 로드
+3. feat 브랜치면 SP-NNN 매칭 태스크 자동 로드
 
+#### Phase 2: 능동 점검 (문제 발견 시 즉시 보고 + 액션 제안)
+4. `gh run list --limit 5` → 실패/stuck Actions 감지 → 자동 취소 또는 재실행 제안
+5. `gh pr list --state open` → 리뷰 필요한 PR 감지 → `/sdd-review` 제안
+6. 서비스 상태 체크 (`curl localhost:8000/8001/3000`) → 다운 시 재시작 제안
+7. `.claude/tasks/current/` → 실행 중 태스크 + depends_on 충족 여부 확인
+8. `.claude/tasks/backlog.md` → 상위 3개 대기 태스크
+9. 좀비 워크트리/브랜치 감지 → 정리 제안
+
+#### Phase 3: 대시보드 출력
 ```
 📋 SDD Dashboard
 ─────────────────
 🔀 Branch: main
-📌 Current: (없음)
+🏥 Services: Backend OK | Frontend OK | Audio OK
+🔴 Actions: 1 failed (sdd-sync #123 — 재실행 필요)
+📌 Current: SP-019 (depends_on: SP-018 ✅)
 📥 Backlog Top 3:
-  1. [P0] SP-xxx — Storyboard Data Integrity
-  2. [P1] SP-xxx — Enum ID 정규화
-  3. [P1] SP-xxx — Speaker 동적 역할
+  1. [P0] SP-xxx — ...
+🔓 Open PRs: #64 (리뷰 필요)
+🧟 Zombies: 0
 ```
+
+> **원칙**: Claude는 방관자가 아니다. 세션 시작 시 문제를 능동적으로 발견하고, 해결 액션을 제안하거나 직접 실행한다.
 
 > **매칭 규칙**: 브랜치에서 `SP-NNN`을 추출하여 `.claude/tasks/current/SP-NNN_*.md` 글로브 매칭
 > - `feat/SP-002-xxx` → `SP-002` → `.claude/tasks/current/SP-002_*.md`
