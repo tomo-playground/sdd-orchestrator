@@ -4,7 +4,7 @@ priority: P0
 scope: fullstack
 branch: feat/SP-041-sse-heartbeat
 created: 2026-03-21
-status: pending
+status: done
 depends_on:
 label: bug
 reviewer: stopper2008
