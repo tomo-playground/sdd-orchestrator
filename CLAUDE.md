@@ -650,43 +650,59 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 **SDD + TDD**: 사람이 `task.md` + 실패 테스트를 작성하면, Claude가 테스트를 GREEN으로 만들고 PR까지 자율 실행한다.
 **"AI를 믿지 말고, 테스트를 믿어라."** — 테스트가 곧 스펙이고, GREEN이 곧 완료.
 
-### 실행 흐름
+### 업무 플로우 요약
+
 ```
-[사람] task.md 작성 → main 커밋 (태스크 파일은 main 직접 커밋 허용)
+기능 개발: 태스크+테스트(사람) → /sdd-run → 구현(AI) → PR → 리뷰(자동) → 머지(사람)
+버그 수정: Sentry(자동) → Issue → /sentry-autofix → PR → 리뷰(자동) → 머지(사람)
+정리:     PR 머지 → sdd-sync(자동) → 태스크 done/ + rebase
+```
+
+### 기능 개발 흐름 (SDD + TDD)
+```
+[사람] 태스크 + 실패 테스트 작성 (RED) → main 커밋
   ↓
-[사람] /sdd-run SP-NNN → 워크트리 기동 (자동 rebase main → 태스크 파일 동기화)
+[사람] /sdd-run SP-NNN → 워크트리 기동
   ↓
-[워크트리] 태스크 읽기 → 구현 → Stop Hook 5단계 품질 게이트
-  ↓  실패 시 → self-heal (최대 3회) → 재검증
+[AI] 테스트를 GREEN으로 만드는 코드 작성 → Stop Hook 자동 검증
+  ↓  RED → self-heal (최대 3회)
+  ↓  ALL GREEN → 커밋 → push → PR 생성
   ↓
-[워크트리] 커밋 → 푸시 → PR 생성 → /code-review 셀프 리뷰
-  ↓  셀프 리뷰 이슈 발견 시 → 자동 수정 → push
+[자동] Claude + CodeRabbit 병렬 리뷰
+  ↓  changes_requested → Claude 자동 수정 → push → 재리뷰
   ↓
-[CodeRabbit] PR 생성 시 자동 독립 리뷰 (CLAUDE.md 기반)
-  ↓  request_changes 시 → 워크트리 또는 /sdd-review가 대응
+[사람] 머지 판단
   ↓
-[워크트리 종료]
+[자동] sdd-sync → 태스크 done/ + 브랜치 삭제 + 열린 PR rebase
+```
+
+### 버그 자동 수정 흐름
+```
+[자동] sentry-patrol (매일 09:00 cron) → Sentry 에러 감지 → GitHub Issue 생성
   ↓
-[사람] PR 확인 — Claude 셀프 리뷰 + CodeRabbit 독립 리뷰 결과 종합 후 판단
-  ├─ 머지 → GitHub Actions sdd-sync 자동 실행 (태스크 → done/, 브랜치 삭제, rebase)
-  └─ 수정 요청 → 아래 두 경로 중 택 1:
-      ├─ /sdd-run SP-NNN 재실행 → 워크트리에서 PR 코멘트 읽고 수정 → push
-      └─ /sdd-review → Phase 2가 잔여 이슈 자동 수정 → push (백스톱)
+[자동] sentry-autofix → Claude가 Issue 읽기 → 스택트레이스 분석
+  → 실패 테스트 작성 (TDD) → 코드 수정 → fix/sentry-{번호} PR 생성
+  ↓
+[자동] Claude + CodeRabbit 리뷰 → 자동 수정
+  ↓
+[사람] 머지 판단
 ```
 
 ### 운영 명령어
 
-| 주체 | 명령어/도구 | 언제 | 동작 |
-|------|-----------|------|------|
-| 사람 | `/sdd-run SP-NNN` | 태스크 시작/재개 | 워크트리 생성 → 구현 → PR → 셀프 리뷰 |
-| 사람 | `/sdd-review` | PR 열린 상태 | Phase 1: Claude 독립 리뷰, Phase 2: 잔여 이슈 자동 수정 |
-| 자동 | **GitHub Actions sdd-sync** | PR 머지 시 | 태스크 → done/, 브랜치·워크트리 삭제, 열린 PR rebase |
-| 자동 | **GitHub Actions sdd-review** | PR 코멘트 시 | 리뷰 피드백 자동 수정 |
-| 자동 | **CodeRabbit** | PR 생성/push 시 | 독립 AI 리뷰 (CLAUDE.md 기반, request_changes 가능) |
-| 사람 | `/sdd-sync` | 비상용 | GitHub Actions 실패 시 수동 실행 |
-| 사람 | `/code-review N` | 단일 PR 리뷰만 | PR에 리뷰 코멘트 게시 (수정 안 함) |
-
-> **참고**: PR 머지 후 태스크 정리는 GitHub Actions가 자동 처리. `/sdd-sync` 수동 실행은 비상용.
+| 주체 | 명령어 | 동작 |
+|------|--------|------|
+| 사람 | `/sdd-run SP-NNN` | 태스크 자율 구현 → PR |
+| 사람 | `@claude [요청]` | PR에서 수동 요청 |
+| 사람 | `/sentry-patrol` | Sentry 에러 수집 → Issue 생성 |
+| 사람 | `/sentry-autofix #N` | Issue 자동 수정 → PR |
+| 사람 | `/sdd-sync` | 비상용 태스크 정리 |
+| 자동 | `claude-review.yml` | PR 생성/push → 병렬 리뷰 |
+| 자동 | `sdd-review.yml` | 리뷰 코멘트 → 자동 수정 |
+| 자동 | `sdd-sync.yml` | PR 머지 → 정리 + rebase |
+| 자동 | `sentry-patrol.yml` | 매일 에러 수집 → Issue |
+| 자동 | `sentry-autofix.yml` | Issue 생성 → 자동 수정 PR |
+| 자동 | CodeRabbit | PR 독립 리뷰 |
 
 ### 세션 부팅 프로토콜
 **첫 응답 시 반드시 아래를 자동 수행한 후 대화를 시작한다:**
@@ -706,8 +722,9 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 #### Phase 3: 대시보드 출력
 ```
-📋 SDD Dashboard
+📋 SDD + TDD Dashboard
 ─────────────────
+🔄 플로우: 기능(태스크+테스트→/sdd-run) | 버그(Sentry→Issue→autofix) | 정리(머지→sdd-sync)
 🔀 Branch: main
 🏥 Services: Backend OK | Frontend OK | Audio OK
 🔴 Actions: 1 failed (sdd-sync #123 — 재실행 필요)
@@ -715,6 +732,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 📥 Backlog Top 3:
   1. [P0] SP-xxx — ...
 🔓 Open PRs: #64 (리뷰 필요)
+🐛 Sentry Issues: 3 open (label:sentry)
 🧟 Zombies: 0
 ```
 
