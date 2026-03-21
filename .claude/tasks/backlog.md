@@ -14,8 +14,7 @@
 
 - [ ] SP-042 — LangFuse 트레이스 품질 개선 (output undefined + 이중 observation + CHAIN 중복)
 - [ ] SP-043 — 파이프라인 모델 최적화 (review/creative_agent Flash 전환 + thinking budget)
-- [ ] SP-037 — 서버 운영 안정성 (uvicorn keep-alive, SD 헬스체크, GC cron)
-- [x] ~~SP-010~~ | ~~SP-017~~ | ~~SP-018~~ | ~~SP-030~~ | ~~SP-031~~ | ~~SP-032~~ (완료)
+- [x] ~~SP-010~~ | ~~SP-017~~ | ~~SP-018~~ | ~~SP-030~~ | ~~SP-031~~ | ~~SP-032~~ | ~~SP-037~~ (완료)
 - [ ] SP-019 — AI QA 자동 순찰 + 자동 수정 (depends_on: SP-018)
 - [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
 - [ ] SP-021 — Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md)
