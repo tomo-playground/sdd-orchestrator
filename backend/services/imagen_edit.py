@@ -21,6 +21,7 @@ from PIL import Image
 
 from config import (
     GEMINI_IMAGE_EDIT_COST_USD,
+    GEMINI_IMAGE_MODEL,
     GEMINI_IMAGE_VISION_COST_USD,
     GEMINI_SAFETY_SETTINGS,
     GEMINI_TEXT_MODEL,
@@ -191,7 +192,7 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
                 safety_settings=GEMINI_SAFETY_SETTINGS,
             )
             response = await self.client.aio.models.generate_content(
-                model="gemini-2.5-flash-image",
+                model=GEMINI_IMAGE_MODEL,
                 contents=[edit_prompt, base_image],
                 config=edit_config,
             )
@@ -243,7 +244,7 @@ CRITICAL: Return ONLY valid JSON. The edit_type value must be a single word from
                 safety_settings=GEMINI_SAFETY_SETTINGS,
             )
             response = await self.client.aio.models.generate_content(
-                model="gemini-2.5-flash-image",
+                model=GEMINI_IMAGE_MODEL,
                 contents=[prompt, base_image],
                 config=enhance_config,
             )
