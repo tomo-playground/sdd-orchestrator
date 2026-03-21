@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useContextStore } from "../useContextStore";
-import { useStoryboardStore, getStoryboardPersistKey } from "../useStoryboardStore";
-import { useRenderStore, getRenderPersistKey } from "../useRenderStore";
+import { useStoryboardStore, getStoryboardPersistKey, STORYBOARD_STORE_KEY } from "../useStoryboardStore";
+import { useRenderStore, getRenderPersistKey, RENDER_STORE_KEY } from "../useRenderStore";
 import { useUIStore } from "../useUIStore";
 import { useChatStore } from "../useChatStore";
 
@@ -130,5 +130,21 @@ describe("resetAllStores", () => {
 
     const { loadGroupDefaults } = await import("../actions/groupActions");
     expect(loadGroupDefaults).not.toHaveBeenCalled();
+  });
+
+  it("clears :new localStorage keys in resetAllStores", async () => {
+    const { resetAllStores } = await import("../resetAllStores");
+    await resetAllStores();
+
+    expect(mockRemoveItem).toHaveBeenCalledWith(`${STORYBOARD_STORE_KEY}:new`);
+    expect(mockRemoveItem).toHaveBeenCalledWith(`${RENDER_STORE_KEY}:new`);
+  });
+
+  it("clears :new localStorage keys in resetTransientStores", async () => {
+    const { resetTransientStores } = await import("../resetAllStores");
+    resetTransientStores();
+
+    expect(mockRemoveItem).toHaveBeenCalledWith(`${STORYBOARD_STORE_KEY}:new`);
+    expect(mockRemoveItem).toHaveBeenCalledWith(`${RENDER_STORE_KEY}:new`);
   });
 });

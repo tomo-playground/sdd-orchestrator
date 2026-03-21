@@ -106,7 +106,8 @@ export default function PersistentContextBar() {
     cancelPendingSave();
     resetContext();
     resetTransientStores();
-    clearStudioUrlParams();
+    // router.replace만 사용 — clearStudioUrlParams(replaceState)와의 경쟁 조건 방지
+    // replaceState는 Next.js useSearchParams를 업데이트하지 않아 stale ?id= 재로드 발생
     if (isStudio) router.replace("/studio");
   }, [resetContext, isStudio, router]);
 

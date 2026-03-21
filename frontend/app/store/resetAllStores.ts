@@ -1,8 +1,19 @@
 import { useContextStore } from "./useContextStore";
-import { useStoryboardStore, getStoryboardPersistKey } from "./useStoryboardStore";
-import { useRenderStore, getRenderPersistKey } from "./useRenderStore";
+import {
+  useStoryboardStore,
+  getStoryboardPersistKey,
+  STORYBOARD_STORE_KEY,
+} from "./useStoryboardStore";
+import { useRenderStore, getRenderPersistKey, RENDER_STORE_KEY } from "./useRenderStore";
 import { useUIStore } from "./useUIStore";
 import { useChatStore } from "./useChatStore";
+
+/** Remove the :new localStorage keys to prevent stale data on next new storyboard. */
+function clearNewStoryboardKeys() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(`${STORYBOARD_STORE_KEY}:new`);
+  localStorage.removeItem(`${RENDER_STORE_KEY}:new`);
+}
 
 /**
  * Reset Storyboard + Render + UI stores without touching ContextStore.
@@ -10,6 +21,7 @@ import { useChatStore } from "./useChatStore";
  * where ContextStore is managed separately by the caller.
  */
 export function resetTransientStores() {
+  clearNewStoryboardKeys();
   useStoryboardStore.getState().reset();
   useRenderStore.getState().reset();
   useUIStore.getState().resetUI();
@@ -38,6 +50,8 @@ export async function resetAllStores(options?: { reloadGroupDefaults?: boolean }
     localStorage.removeItem(getStoryboardPersistKey());
     localStorage.removeItem(getRenderPersistKey());
   }
+  // Always clear :new keys — prevents stale data when storyboardId was set after editing
+  clearNewStoryboardKeys();
 
   // Reset all stores (including chat temporary key)
   ctxState.resetContext();
