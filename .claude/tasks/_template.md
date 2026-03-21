@@ -44,6 +44,7 @@ label:                       # PR 라벨 (feat / bug / chore)
 - 관련 함수/파일:
 - 상호작용 가능성:
 - 관련 Invariant:
+- 관련 ADR:
 
 ## 제약 (Boundaries)
 - 변경 파일 10개 이하 목표
