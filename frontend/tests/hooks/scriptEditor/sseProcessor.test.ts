@@ -112,6 +112,20 @@ describe("parseSSEStream", () => {
     expect(events).toHaveLength(1);
   });
 
+  it("ignores SSE heartbeat comments", async () => {
+    const events: ScriptStreamEvent[] = [];
+    const validEvent = `data: ${JSON.stringify({ node: "d", label: "D", percent: 5, status: "running" })}\n\n`;
+    const response = makeSSEResponse([
+      ":heartbeat\n\n",
+      validEvent,
+      ":heartbeat\n\n",
+    ]);
+
+    await parseSSEStream(response, (e) => events.push(e));
+    expect(events).toHaveLength(1);
+    expect(events[0].node).toBe("d");
+  });
+
   it("throws when response.body is null", async () => {
     const response = { body: null } as unknown as Response;
     await expect(parseSSEStream(response, vi.fn())).rejects.toThrow("streaming not supported");

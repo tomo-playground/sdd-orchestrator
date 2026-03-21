@@ -27,6 +27,7 @@ YOUTUBE_UPLOAD_COST = int(os.getenv("YOUTUBE_UPLOAD_COST", "1600"))
 CREATIVE_MAX_ROUNDS = int(os.getenv("CREATIVE_MAX_ROUNDS", "3"))
 CREATIVE_LEADER_MODEL = os.getenv("CREATIVE_LEADER_MODEL", "gemini-2.5-pro")
 DIRECTOR_MODEL = os.getenv("DIRECTOR_MODEL", "gemini-2.5-pro")
+DIRECTOR_CHECKPOINT_MODEL = os.getenv("DIRECTOR_CHECKPOINT_MODEL", "gemini-2.5-flash")
 REVIEW_MODEL = os.getenv("REVIEW_MODEL", "gemini-2.5-pro")
 CREATIVE_PIPELINE_MAX_RETRIES = int(os.getenv("CREATIVE_PIPELINE_MAX_RETRIES", "2"))
 
@@ -131,6 +132,9 @@ MAX_HALLUCINATION_STREAK = int(os.getenv("MAX_HALLUCINATION_STREAK", "2"))
 MAX_DEBATE_ROUNDS = int(os.getenv("MAX_DEBATE_ROUNDS", "2"))
 # 전체 토론 타임아웃 (초)
 DEBATE_TIMEOUT_SEC = int(os.getenv("DEBATE_TIMEOUT_SEC", "60"))
+
+# --- SSE Heartbeat (Next.js proxy idle timeout ~30s 방지) ---
+SSE_HEARTBEAT_INTERVAL_SEC = int(os.getenv("SSE_HEARTBEAT_INTERVAL_SEC", "15"))
 # KPI 기반 수렴 판단 임계값
 CONVERGENCE_SCORE_THRESHOLD = float(os.getenv("CONVERGENCE_SCORE_THRESHOLD", "0.85"))
 CONVERGENCE_HOOK_THRESHOLD = float(os.getenv("CONVERGENCE_HOOK_THRESHOLD", "0.80"))

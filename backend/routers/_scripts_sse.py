@@ -6,6 +6,7 @@ import json
 from collections.abc import AsyncGenerator
 
 from config import logger
+from config_pipelines import SSE_HEARTBEAT_INTERVAL_SEC
 from services.agent.script_graph import get_compiled_graph
 
 # -- 노드별 SSE 메타데이터 --
@@ -284,7 +285,19 @@ async def stream_graph_events(
         errored = False
         final_output: dict | None = None
         try:
-            async for event in graph.astream(graph_input, config, stream_mode="updates"):
+            import asyncio  # noqa: PLC0415
+
+            stream = graph.astream(graph_input, config, stream_mode="updates")
+            pending = asyncio.ensure_future(stream.__anext__())
+            while True:
+                done, _ = await asyncio.wait({pending}, timeout=SSE_HEARTBEAT_INTERVAL_SEC)
+                if not done:
+                    yield ":heartbeat\n\n"
+                    continue
+                try:
+                    event = pending.result()
+                except StopAsyncIteration:
+                    break
                 for node_name, node_output in event.items():
                     if not isinstance(node_output, dict):
                         continue
@@ -298,6 +311,7 @@ async def stream_graph_events(
                             "character_b_id": char_ids[1],
                             "sound_recommendation": node_output.get("sound_recommendation"),
                         }
+                pending = asyncio.ensure_future(stream.__anext__())
 
         except Exception as e:
             if _is_graph_interrupt(e):
