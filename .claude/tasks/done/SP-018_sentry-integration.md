@@ -4,7 +4,7 @@ priority: P1
 scope: fullstack
 branch: feat/SP-018-sentry-integration
 created: 2026-03-21
-status: pending
+status: done
 depends_on:
 label: enhancement
 assignee: stopper2008
