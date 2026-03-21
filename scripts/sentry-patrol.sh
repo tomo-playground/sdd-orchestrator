@@ -27,6 +27,16 @@ while [[ $# -gt 0 ]]; do
 done
 
 # --- 환경변수 검증 ---
+# backend/.env에서 자동 로드
+if [[ -z "${SENTRY_AUTH_TOKEN:-}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  ENV_FILE="${SCRIPT_DIR}/../backend/.env"
+  if [[ -f "$ENV_FILE" ]]; then
+    SENTRY_AUTH_TOKEN=$(grep '^SENTRY_AUTH_TOKEN=' "$ENV_FILE" | cut -d'=' -f2- | tr -d "'\"")
+    export SENTRY_AUTH_TOKEN
+  fi
+fi
+
 if [[ -z "${SENTRY_AUTH_TOKEN:-}" ]]; then
   echo "[ERROR] SENTRY_AUTH_TOKEN 환경변수가 설정되지 않았습니다."
   echo "  export SENTRY_AUTH_TOKEN='sntrys_...'"
