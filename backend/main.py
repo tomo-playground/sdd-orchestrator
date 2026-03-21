@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -10,7 +11,17 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+# --- Sentry Error Monitoring ---
+from config import SENTRY_DSN_BACKEND, SENTRY_ENVIRONMENT, SENTRY_TRACES_SAMPLE_RATE
 from routers import admin_app_router, service_app_router
+
+if SENTRY_DSN_BACKEND:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN_BACKEND,
+        environment=SENTRY_ENVIRONMENT,
+        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+        send_default_pii=False,
+    )
 
 
 def _auto_seed_valence(db) -> None:

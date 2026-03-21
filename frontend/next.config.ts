@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const allowedOrigins = process.env.ALLOWED_DEV_ORIGIN
-  ? process.env.ALLOWED_DEV_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
+  ? process.env.ALLOWED_DEV_ORIGIN.split(",")
+      .map((o) => o.trim())
+      .filter(Boolean)
   : [];
 
 const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || "http://127.0.0.1:8000";
@@ -31,4 +34,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG || "tomo-playground",
+  project: process.env.SENTRY_PROJECT || "shorts-producer-frontend",
+  silent: !process.env.CI,
+  tunnelRoute: "/monitoring",
+});

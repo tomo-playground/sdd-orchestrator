@@ -8,6 +8,11 @@ from __future__ import annotations
 import os
 import pathlib
 
+# --- Sentry Error Monitoring ---
+SENTRY_DSN_AUDIO = os.getenv("SENTRY_DSN_AUDIO", "")
+SENTRY_ENVIRONMENT = os.getenv("SENTRY_ENVIRONMENT", os.getenv("APP_ENV", "development"))
+SENTRY_TRACES_SAMPLE_RATE = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1"))
+
 # --- TTS Configuration ---
 TTS_MODEL_NAME = os.getenv("TTS_MODEL_NAME", "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign")
 TTS_DEVICE = os.getenv("TTS_DEVICE", "auto")  # "auto" | "mps" | "cpu"

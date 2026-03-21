@@ -242,6 +242,8 @@ async def stream_graph_events(
     config: dict,
     thread_id: str,
     label: str,
+    *,
+    storyboard_id: int | None = None,
 ) -> AsyncGenerator[str]:
     """Graph를 스트리밍하며 SSE 이벤트를 yield한다."""
     from services.agent.observability import (  # noqa: PLC0415, E501
@@ -311,6 +313,21 @@ async def stream_graph_events(
                     "error": "스토리보드 생성 중 오류가 발생했습니다",
                 }
                 yield f"data: {json.dumps(error_payload, ensure_ascii=False)}\n\n"
+                try:
+                    import sentry_sdk  # noqa: PLC0415
+
+                    with sentry_sdk.new_scope() as scope:
+                        scope.set_context(
+                            "langgraph",
+                            {
+                                "storyboard_id": storyboard_id,
+                                "thread_id": thread_id,
+                                "label": label,
+                            },
+                        )
+                        scope.capture_exception(e)
+                except Exception:
+                    pass
 
         # astream은 interrupt 시 예외 없이 스트림만 종료할 수 있음 — 상태로 감지
         if not interrupted:

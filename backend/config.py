@@ -390,6 +390,11 @@ def coerce_language_id(value: str | None) -> str:
     return _LANGUAGE_COERCE_MAP.get(stripped.lower(), DEFAULT_LANGUAGE)
 
 
+# --- Sentry Error Monitoring ---
+SENTRY_DSN_BACKEND = os.getenv("SENTRY_DSN_BACKEND", "")
+SENTRY_ENVIRONMENT = os.getenv("SENTRY_ENVIRONMENT", os.getenv("APP_ENV", "development"))
+SENTRY_TRACES_SAMPLE_RATE = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1"))
+
 # --- CORS Configuration ---
 CORS_ORIGINS: list[str] = [
     origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if origin.strip()

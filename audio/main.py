@@ -12,8 +12,20 @@ import io
 import logging
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 import soundfile as sf
 from fastapi import FastAPI, HTTPException
+
+# --- Sentry Error Monitoring ---
+from config import SENTRY_DSN_AUDIO, SENTRY_ENVIRONMENT, SENTRY_TRACES_SAMPLE_RATE
+
+if SENTRY_DSN_AUDIO:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN_AUDIO,
+        environment=SENTRY_ENVIRONMENT,
+        traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+        send_default_pii=False,
+    )
 
 from schemas import (  # noqa: F811
     HealthResponse,

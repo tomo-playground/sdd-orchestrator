@@ -224,7 +224,7 @@ async def generate_script_stream(
         pipeline_mode="fasttrack" if is_fast_track else "full",
     )
     return StreamingResponse(
-        stream_graph_events(state, config, thread_id, "Stream"),
+        stream_graph_events(state, config, thread_id, "Stream", storyboard_id=request.storyboard_id),
         media_type="text/event-stream",
         headers=_SSE_HEADERS,
     )
@@ -260,7 +260,13 @@ async def resume_script(request: ScriptResumeRequest):
     if request.custom_concept is not None:
         resume_value["custom_concept"] = request.custom_concept
     return StreamingResponse(
-        stream_graph_events(Command(resume=resume_value), config, request.thread_id, "Resume"),
+        stream_graph_events(
+            Command(resume=resume_value),
+            config,
+            request.thread_id,
+            "Resume",
+            storyboard_id=request.storyboard_id,
+        ),
         media_type="text/event-stream",
         headers=_SSE_HEADERS,
     )
