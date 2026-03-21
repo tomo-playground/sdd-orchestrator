@@ -107,6 +107,14 @@ export const useContextStore = create<ContextState>()(
         }
         return persisted as Partial<ContextState>;
       },
+      version: 1,
+      migrate: (persisted, version) => {
+        const state = persisted as Record<string, unknown>;
+        if (version < 1) {
+          // v0→v1: no-op (infrastructure for future migrations)
+        }
+        return state as Partial<ContextState>;
+      },
     }
   )
 );

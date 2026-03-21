@@ -252,6 +252,22 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "stageLocations",
 ];
 
+export function migrateStoryboardStore(
+  persisted: unknown,
+  version: number
+): Partial<StoryboardStore> {
+  const state: Record<string, unknown> =
+    persisted && typeof persisted === "object" && !Array.isArray(persisted)
+      ? { ...(persisted as Record<string, unknown>) }
+      : {};
+  if (version < 1) {
+    // v0→v1: clean up stale keys from older schema
+    delete state.subtitleFont;
+    delete state.includeSubtitles;
+  }
+  return state as Partial<StoryboardStore>;
+}
+
 export const useStoryboardStore = create<StoryboardStore>()(
   persist(
     (set) => ({
@@ -364,6 +380,8 @@ export const useStoryboardStore = create<StoryboardStore>()(
         }
         return persisted as Partial<StoryboardStore>;
       },
+      version: 1,
+      migrate: migrateStoryboardStore,
       onRehydrateStorage: () => (state) => {
         if (state?.scenes) {
           const needsMigration = state.scenes.some((s) => !s.client_id);
