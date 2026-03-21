@@ -4,7 +4,7 @@ priority: P0
 scope: fullstack
 branch: fix/SP-045-autosave-image-overwrite
 created: 2026-03-22
-status: running
+status: done
 depends_on:
 label: bug
 reviewer: stopper2008
