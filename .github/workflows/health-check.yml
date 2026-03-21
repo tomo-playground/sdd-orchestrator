@@ -1,0 +1,77 @@
+name: Health Check — 서비스 + Runner 상태 감시
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # 30분마다
+  workflow_dispatch:        # 수동 실행 가능
+
+permissions:
+  issues: write
+
+jobs:
+  check:
+    runs-on: [self-hosted, sdd]
+    timeout-minutes: 3
+
+    steps:
+      - name: Check services
+        id: health
+        run: |
+          FAILURES=""
+
+          # Backend
+          if ! curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+            FAILURES="${FAILURES}Backend(8000) "
+          fi
+
+          # Frontend
+          if ! curl -sf -o /dev/null http://localhost:3000/ 2>&1; then
+            FAILURES="${FAILURES}Frontend(3000) "
+          fi
+
+          # Audio
+          if ! curl -sf http://localhost:8001/health > /dev/null 2>&1; then
+            FAILURES="${FAILURES}Audio(8001) "
+          fi
+
+          if [ -n "$FAILURES" ]; then
+            echo "down=${FAILURES}" >> "$GITHUB_OUTPUT"
+            echo "status=unhealthy" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=healthy" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create issue on failure
+        if: steps.health.outputs.status == 'unhealthy'
+        run: |
+          DOWN="${{ steps.health.outputs.down }}"
+          TITLE="[Health Check] 서비스 다운 감지: ${DOWN}"
+
+          # 중복 이슈 방지 — 같은 제목의 열린 이슈가 있으면 스킵
+          EXISTING=$(gh issue list --state open --search "in:title [Health Check]" --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ -n "$EXISTING" ]; then
+            echo "이미 열린 이슈 #${EXISTING} 존재 — 스킵"
+            exit 0
+          fi
+
+          gh issue create \
+            --title "$TITLE" \
+            --body "$(cat <<EOF
+          ## 서비스 다운 감지
+
+          **다운된 서비스**: ${DOWN}
+          **감지 시각**: $(date -u +"%Y-%m-%d %H:%M UTC")
+
+          ### 자동 복구 시도
+          아래 명령으로 서비스를 재시작하세요:
+          \`\`\`bash
+          # Backend
+          cd backend && source .venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
+          # Frontend
+          cd frontend && npx next dev --webpack --hostname 0.0.0.0 &
+          # Audio
+          cd audio && source .venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 8001 &
+          \`\`\`
+          EOF
+          )" \
+            --label "bug"
