@@ -610,3 +610,59 @@ async def run_checkpoint_gc(retention_days: int | None = Query(None, ge=1)):
     from services.agent.checkpointer import gc_checkpoints
 
     return await gc_checkpoints(retention_days)
+
+
+# ------------------------------------------------------------------
+# Media Temp GC
+# ------------------------------------------------------------------
+
+
+class MediaTempGCResponse(BaseModel):
+    deleted_assets: int
+    storage_errors: int
+    deleted_build_dirs: int
+    build_retention_hours: int
+
+
+@router.post("/media-temp-gc", response_model=MediaTempGCResponse)
+async def run_media_temp_gc(
+    build_retention_hours: int | None = Query(None, ge=1),
+    db: Session = Depends(get_db),
+):
+    """Delete expired temp media assets and stale build directories."""
+    import shutil
+    from datetime import UTC, datetime, timedelta
+
+    from config import BUILD_DIR, BUILD_DIR_GC_RETENTION_HOURS
+    from services.media_gc import MediaGCService
+
+    hours = build_retention_hours or BUILD_DIR_GC_RETENTION_HOURS
+
+    # 1) Delegate to MediaGCService (SSOT for temp asset cleanup)
+    gc = MediaGCService(db)
+    result = gc.cleanup_expired_temp(dry_run=False)
+
+    # 2) Delete stale build directories
+    deleted_build_dirs = 0
+    if BUILD_DIR.exists():
+        build_cutoff = datetime.now(UTC) - timedelta(hours=hours)
+        for child in BUILD_DIR.iterdir():
+            if child.is_dir():
+                mtime = datetime.fromtimestamp(child.stat().st_mtime, tz=UTC)
+                if mtime < build_cutoff:
+                    shutil.rmtree(child, ignore_errors=True)
+                    deleted_build_dirs += 1
+
+    logger.info(
+        "[Media Temp GC] assets=%d errors=%d build_dirs=%d (build=%dh)",
+        result.deleted,
+        len(result.storage_errors),
+        deleted_build_dirs,
+        hours,
+    )
+    return MediaTempGCResponse(
+        deleted_assets=result.deleted,
+        storage_errors=len(result.storage_errors),
+        deleted_build_dirs=deleted_build_dirs,
+        build_retention_hours=hours,
+    )

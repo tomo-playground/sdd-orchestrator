@@ -5,6 +5,10 @@ on:
     - cron: '*/30 * * * *'  # 30분마다
   workflow_dispatch:        # 수동 실행 가능
 
+concurrency:
+  group: health-check
+  cancel-in-progress: true
+
 permissions:
   issues: write
 
@@ -32,6 +36,11 @@ jobs:
           # Audio
           if ! curl -sf http://localhost:8001/health > /dev/null 2>&1; then
             FAILURES="${FAILURES}Audio(8001) "
+          fi
+
+          # SD WebUI
+          if ! curl -sf --max-time 5 http://127.0.0.1:7860/sdapi/v1/options > /dev/null 2>&1; then
+            FAILURES="${FAILURES}SD-WebUI(7860) "
           fi
 
           if [ -n "$FAILURES" ]; then

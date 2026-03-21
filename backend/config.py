@@ -319,6 +319,13 @@ TAG_THUMBNAIL_BATCH_DELAY_MS = int(os.getenv("TAG_THUMBNAIL_BATCH_DELAY_MS", "60
 
 # --- Checkpoint GC ---
 CHECKPOINT_GC_RETENTION_DAYS = int(os.getenv("CHECKPOINT_GC_RETENTION_DAYS", "7"))
+if CHECKPOINT_GC_RETENTION_DAYS < 1:
+    raise ValueError("CHECKPOINT_GC_RETENTION_DAYS must be >= 1")
+
+# --- Build Dir GC ---
+BUILD_DIR_GC_RETENTION_HOURS = int(os.getenv("BUILD_DIR_GC_RETENTION_HOURS", "24"))
+if BUILD_DIR_GC_RETENTION_HOURS < 1:
+    raise ValueError("BUILD_DIR_GC_RETENTION_HOURS must be >= 1")
 
 # --- Font & LoRA Defaults ---
 DEFAULT_SCENE_TEXT_FONT = os.getenv("DEFAULT_SCENE_TEXT_FONT", "온글잎 박다현체.ttf")

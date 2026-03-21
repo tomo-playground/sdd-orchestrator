@@ -183,6 +183,8 @@ Gemini Auto Edit 요약 통계를 간단하게 조회합니다.
 | **Media GC** | `/admin/media-assets/orphans` | GET |
 | | `/admin/media-assets/cleanup` | POST |
 | | `/admin/media-assets/stats` | GET |
+| | `/admin/media-temp-gc` | POST |
+| **Checkpoint GC** | `/admin/checkpoint-gc` | POST |
 
 ### `POST /admin/refresh-caches`
 모든 인메모리 캐시를 DB에서 리프레시합니다.
@@ -203,6 +205,18 @@ Gemini Auto Edit 요약 통계를 간단하게 조회합니다.
 
 #### `GET /admin/media-assets/stats`
 미디어 에셋 전체 통계를 조회합니다.
+
+#### `POST /admin/media-temp-gc`
+만료된 임시 에셋 정리 + 오래된 빌드 디렉토리 삭제. GC cron에서 일간 호출.
+- Query: `build_retention_hours` (기본 24h)
+- 응답: `{ deleted_assets, storage_errors, deleted_build_dirs, build_retention_hours }`
+
+### Checkpoint GC
+
+#### `POST /admin/checkpoint-gc`
+LangGraph checkpoint 데이터 정리. GC cron에서 주간 호출.
+- Query: `retention_days` (기본 7일)
+- 응답: `{ deleted_threads, retention_days, deleted_rows }`
 
 ---
 

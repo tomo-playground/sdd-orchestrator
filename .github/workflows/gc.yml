@@ -1,0 +1,51 @@
+name: GC — Checkpoint + Media Temp 자동 정리
+
+on:
+  schedule:
+    - cron: '0 4 * * 0'   # 매주 일요일 04:00 UTC — Checkpoint GC
+    - cron: '0 3 * * *'   # 매일 03:00 UTC — Media Temp GC
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'GC target: checkpoint, media, all'
+        required: false
+        default: 'all'
+
+concurrency:
+  group: gc
+  cancel-in-progress: true
+
+jobs:
+  checkpoint-gc:
+    name: Checkpoint GC (weekly)
+    runs-on: [self-hosted, sdd]
+    timeout-minutes: 5
+    if: >-
+      github.event_name == 'workflow_dispatch' && (inputs.target == 'checkpoint' || inputs.target == 'all')
+      || github.event.schedule == '0 4 * * 0'
+    steps:
+      - name: Run Checkpoint GC
+        run: |
+          RESULT=$(curl -sf -X POST http://localhost:8000/api/admin/checkpoint-gc 2>&1) || {
+            echo "::warning::Backend unreachable — Checkpoint GC skipped"
+            exit 0
+          }
+          echo "$RESULT" | python3 -m json.tool
+          echo "Checkpoint GC completed"
+
+  media-temp-gc:
+    name: Media Temp GC (daily)
+    runs-on: [self-hosted, sdd]
+    timeout-minutes: 5
+    if: >-
+      github.event_name == 'workflow_dispatch' && (inputs.target == 'media' || inputs.target == 'all')
+      || github.event.schedule == '0 3 * * *'
+    steps:
+      - name: Run Media Temp GC
+        run: |
+          RESULT=$(curl -sf -X POST http://localhost:8000/api/admin/media-temp-gc 2>&1) || {
+            echo "::warning::Backend unreachable — Media Temp GC skipped"
+            exit 0
+          }
+          echo "$RESULT" | python3 -m json.tool
+          echo "Media Temp GC completed"

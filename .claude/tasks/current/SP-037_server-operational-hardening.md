@@ -4,7 +4,7 @@ priority: P1
 scope: infra
 branch: feat/SP-037-server-operational-hardening
 created: 2026-03-21
-status: pending
+status: running
 depends_on:
 label: enhancement
 assignee: stopper2008
