@@ -45,8 +45,12 @@ jobs:
             - Data Mapping (Spread Passthrough) 위반
 
             리뷰만 하세요. 코드 수정은 하지 마세요.
-            `gh pr comment`로 전체 리뷰 요약을 남기고,
             `mcp__github_inline_comment__create_inline_comment`로 구체적 이슈를 인라인 코멘트로 남기세요.
 
+            리뷰 완료 후 반드시 PR Review를 submit하세요:
+            - 심각한 버그/보안 이슈가 있으면: `gh pr review ${{ github.event.pull_request.number }} --request-changes --body "리뷰 요약"`
+            - 문제 없으면: `gh pr review ${{ github.event.pull_request.number }} --approve --body "리뷰 요약"`
+            - 경미한 제안만 있으면: `gh pr review ${{ github.event.pull_request.number }} --comment --body "리뷰 요약"`
+
           claude_args: |
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*),Read,Glob,Grep"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr review:*),Bash(gh api:*),Read,Glob,Grep"
