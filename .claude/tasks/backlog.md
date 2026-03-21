@@ -14,8 +14,8 @@
 
 ## P1 (최우선)
 
+- [ ] SP-019 — AI QA 자동 순찰 + 자동 수정 — Playwright headless 정기 실행 → 이상 감지 → GitHub Issue 자동 생성 → Claude가 Issue 읽고 자동 수정 PR 생성. 사람 개입 최소화.
 - [ ] SP-018 — Sentry Cloud 연동 (Backend/Frontend/Audio 에러 모니터링 + GitHub Issue 연동)
-- [ ] SP-017 — 파이프라인 로깅 사각지대 해소 (게이트 노드 0로그, skip_guard, 정상 라우팅 경로)
 - [x] ~~SP-010 — API Proxy Internal~~ (완료, PR #45 머지)
 - [ ] Enum ID 정규화 — structure/language/style 디스플레이 이름→ID 분리, DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
 - [ ] Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md)
@@ -31,8 +31,6 @@
 - [ ] SP-008 — on-stop.sh E2E 단계 완전 연동
 
 > 완료 시 Stop Hook이 E2E까지 자동 실행 → PR Test Plan 수동 항목 제거
-
-- [ ] SP-019 — AI QA 자동 순찰 — Playwright headless로 핵심 플로우 정기 실행, 이상 감지 시 GitHub Issue 자동 생성 (콘솔 에러, API 4xx/5xx, UI 깨짐, 로딩 멈춤). SP-005~008 완료 후 착수.
 
 ## P2 (기능 확장)
 
