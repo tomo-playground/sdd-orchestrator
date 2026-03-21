@@ -4,7 +4,7 @@ priority: P2
 scope: frontend
 branch: feat/SP-038-frontend-store-resilience
 created: 2026-03-21
-status: pending
+status: done
 depends_on:
 label: enhancement
 assignee: stopper2008
