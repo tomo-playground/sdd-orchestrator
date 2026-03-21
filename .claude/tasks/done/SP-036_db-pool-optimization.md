@@ -4,7 +4,7 @@ priority: P0
 scope: backend
 branch: feat/SP-036-db-pool-optimization
 created: 2026-03-21
-status: running
+status: done
 depends_on:
 label: bug
 assignee: stopper2008

@@ -4,7 +4,7 @@ priority: P0
 scope: backend
 branch: feat/SP-035-gemini-timeout-ratelimit
 created: 2026-03-21
-status: pending
+status: done
 depends_on:
 label: bug
 assignee: stopper2008
