@@ -267,7 +267,8 @@ class TestCallWithTools:
         assert response == "완료"
         assert len(logs) == 1
         assert logs[0]["tool_name"] == "unknown_tool"
-        assert "not found in executors" in logs[0]["error"]
+        assert "not found" in logs[0]["error"]
+        assert "Available tools" in logs[0]["error"]
 
     @pytest.mark.asyncio
     async def test_empty_text_fallback_without_tools(self):
@@ -457,6 +458,111 @@ class TestCallWithTools:
         assert response == ""
         assert len(logs) == 0
         assert mock_prov.generate_with_tools.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_hallucination_streak_breaks_loop(self):
+        """연속 할루시네이션 2회 시 루프 조기 탈출 + fallback."""
+        mock_tool_call = MagicMock()
+        # Sentry 실제 이슈에서 관찰된 할루시네이션 도구명 (PascalCase 혼용)
+        mock_tool_call.name = "Talking_tool"
+        mock_tool_call.args = {}
+
+        mock_part = MagicMock()
+        mock_part.function_call = mock_tool_call
+        mock_part.text = None
+
+        mock_hallucinated_response = MagicMock()
+        mock_hallucinated_response.candidates = [
+            MagicMock(content=MagicMock(parts=[mock_part])),
+        ]
+
+        mock_fallback_response = MagicMock()
+        mock_fallback_response.candidates = [
+            MagicMock(
+                content=MagicMock(
+                    parts=[MagicMock(text='{"scenes": []}', function_call=None)],
+                ),
+            ),
+        ]
+
+        # 2회 할루시네이션 + 1회 fallback
+        mock_prov = _mock_provider(
+            mock_hallucinated_response,
+            mock_hallucinated_response,
+            mock_fallback_response,
+        )
+
+        with patch("services.agent.tools.base.get_llm_provider", return_value=mock_prov):
+            tools = [define_tool(name="valid_tool", description="Valid", parameters={})]
+            tool_executors = {"valid_tool": lambda: "ok"}
+
+            response, logs, _ = await call_with_tools(
+                prompt="할루시네이션 테스트",
+                tools=tools,
+                tool_executors=tool_executors,
+                max_calls=5,
+            )
+
+        # 2회 할루시네이션 후 조기 탈출, fallback으로 복구
+        assert response == '{"scenes": []}'
+        assert len(logs) == 2
+        assert all(log["error"] and "not found" in log["error"] for log in logs)
+        # 총 3회: 2회 할루시네이션 + 1회 fallback (max_calls=5이므로 5회가 아님)
+        assert mock_prov.generate_with_tools.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_hallucination_streak_resets_on_valid_call(self):
+        """유효한 도구 호출이 끼면 할루시네이션 streak이 리셋된다."""
+        mock_hallucinated_call = MagicMock()
+        mock_hallucinated_call.name = "fake_tool"
+        mock_hallucinated_call.args = {}
+
+        mock_valid_call = MagicMock()
+        mock_valid_call.name = "real_tool"
+        mock_valid_call.args = {}
+
+        def _make_response(tool_call):
+            part = MagicMock()
+            part.function_call = tool_call
+            part.text = None
+            resp = MagicMock()
+            resp.candidates = [MagicMock(content=MagicMock(parts=[part]))]
+            return resp
+
+        mock_text_response = MagicMock()
+        mock_text_response.candidates = [
+            MagicMock(
+                content=MagicMock(
+                    parts=[MagicMock(text='{"ok": true}', function_call=None)],
+                ),
+            ),
+        ]
+
+        # 할루시네이션 → 유효 → 할루시네이션 → 텍스트 (streak 리셋으로 조기탈출 안 함)
+        mock_prov = _mock_provider(
+            _make_response(mock_hallucinated_call),
+            _make_response(mock_valid_call),
+            _make_response(mock_hallucinated_call),
+            mock_text_response,
+        )
+
+        with patch("services.agent.tools.base.get_llm_provider", return_value=mock_prov):
+            tools = [define_tool(name="real_tool", description="Real", parameters={})]
+            tool_executors = {"real_tool": lambda: "result"}
+
+            response, logs, _ = await call_with_tools(
+                prompt="리셋 테스트",
+                tools=tools,
+                tool_executors=tool_executors,
+                max_calls=5,
+            )
+
+        assert response == '{"ok": true}'
+        # 3개 tool logs: fake_tool(error) + real_tool(ok) + fake_tool(error)
+        assert len(logs) == 3
+        assert logs[0]["error"] is not None
+        assert logs[1]["error"] is None
+        assert logs[2]["error"] is not None
 
     @pytest.mark.asyncio
     async def test_async_tool_executor(self):

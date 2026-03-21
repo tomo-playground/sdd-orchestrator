@@ -122,10 +122,10 @@ async def call_with_tools(
         max_calls 도달 시에도 누적 텍스트를 반환.
         텍스트가 비어있고 도구 호출이 있었으면, 도구 없이 1회 추가 호출(fallback)을 시도한다.
     """
-    if max_calls is None:
-        from config_pipelines import MAX_TOOL_CALLS_PER_NODE as default_max
+    from config_pipelines import MAX_HALLUCINATION_STREAK, MAX_TOOL_CALLS_PER_NODE
 
-        max_calls = default_max
+    if max_calls is None:
+        max_calls = MAX_TOOL_CALLS_PER_NODE
 
     provider: GeminiProvider = get_llm_provider()  # type: ignore[assignment]
     llm_config = LLMConfig(temperature=temperature, system_instruction=system_instruction)
@@ -137,6 +137,9 @@ async def call_with_tools(
     # 매 스텝의 텍스트 파트를 누적 (function_call 혼재 응답에서도 보존)
     accumulated_text: list[str] = []
     last_obs_id: str | None = None
+    # 연속 할루시네이션 카운터 — 초과 시 루프 조기 탈출
+    hallucination_streak = 0
+    available_tool_names = sorted(tool_executors.keys())
 
     while call_count < max_calls:
         # GeminiProvider를 통해 Function Calling 호출 (trace + PROHIBITED fallback 내장)
@@ -181,6 +184,7 @@ async def call_with_tools(
 
         # 도구 실행
         function_responses: list[types.Part] = []
+        step_had_valid_call = False
         for part in parts:
             if not (hasattr(part, "function_call") and part.function_call):
                 continue
@@ -196,8 +200,8 @@ async def call_with_tools(
 
             async with trace_tool_call(tool_name or "unknown", input_data=arguments) as tool_obs:
                 if not executor:
-                    error_msg = f"Tool '{tool_name}' not found in executors"
-                    logger.error("[Tool-Calling] %s", error_msg)
+                    error_msg = f"Tool '{tool_name}' not found. Available tools: {available_tool_names}"
+                    logger.warning("[Tool-Calling] Hallucinated tool call: %s", error_msg)
                     if tool_obs:
                         tool_obs.update(output={"error": error_msg}, level="ERROR", status_message=error_msg[:500])
                     tool_logs.append(
@@ -217,6 +221,8 @@ async def call_with_tools(
                         )
                     )
                     continue
+
+                step_had_valid_call = True
                 try:
                     # 비동기 함수 실행
                     if asyncio.iscoroutinefunction(executor):
@@ -270,10 +276,25 @@ async def call_with_tools(
                         )
                     )
 
-        # 도구 응답을 컨텍스트에 추가
+        # 도구 응답을 컨텍스트에 추가 (break 전에 적재해야 fallback이 참조 가능)
         if candidate.content:
             contents.append(candidate.content)  # type: ignore[arg-type]
         contents.append(types.Content(parts=function_responses))
+
+        # 할루시네이션 streak 추적
+        if step_had_valid_call:
+            hallucination_streak = 0
+        else:
+            hallucination_streak += 1
+            logger.warning(
+                "[Tool-Calling] All tool calls in step %d were hallucinated (streak=%d/%d)",
+                call_count + 1,
+                hallucination_streak,
+                MAX_HALLUCINATION_STREAK,
+            )
+            if hallucination_streak >= MAX_HALLUCINATION_STREAK:
+                logger.warning("[Tool-Calling] Hallucination streak limit reached, breaking tool loop")
+                break
 
         call_count += 1
 

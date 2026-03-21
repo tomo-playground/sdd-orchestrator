@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-031-gemini-tool-hallucination
 created: 2026-03-21
-status: pending
+status: done
 depends_on:
 label: bug
 assignee: stopper2008

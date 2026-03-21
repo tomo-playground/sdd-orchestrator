@@ -123,6 +123,8 @@ LANGGRAPH_PLANNING_ENABLED = os.getenv("LANGGRAPH_PLANNING_ENABLED", "true").low
 # --- Phase 10-B: Tool-Calling Agent ---
 # 노드당 최대 도구 호출 횟수 (비용 가드레일)
 MAX_TOOL_CALLS_PER_NODE = int(os.getenv("MAX_TOOL_CALLS_PER_NODE", "5"))
+# 연속 할루시네이션(미등록 도구 호출) 허용 횟수 — 초과 시 루프 조기 탈출
+MAX_HALLUCINATION_STREAK = int(os.getenv("MAX_HALLUCINATION_STREAK", "2"))
 
 # --- Phase 10-C-3: Critic Debate ---
 # 최대 토론 라운드 (비용 가드레일)
