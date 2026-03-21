@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-030-langfuse-agent-typing
 created: 2026-03-21
-status: running
+status: done
 depends_on:
 label: enhancement
 assignee: stopper2008
