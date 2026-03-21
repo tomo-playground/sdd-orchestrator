@@ -9,7 +9,7 @@ from langchain_core.runnables import RunnableConfig
 
 from config import pipeline_logger as logger
 from database import get_db_session
-from services.agent.observability import record_score, with_agent_trace
+from services.agent.observability import record_score
 from services.agent.state import ScriptState
 from services.creative_qc import validate_visuals
 from services.creative_utils import parse_json_response
@@ -122,7 +122,6 @@ def _load_single_character_tags(cid: int, db) -> dict[str, list[str]]:
         return empty
 
 
-@with_agent_trace("cinematographer")
 async def cinematographer_node(state: ScriptState, config: RunnableConfig) -> dict:
     """Tool-Calling Agent로 draft_scenes에 비주얼 디자인을 추가한다.
 

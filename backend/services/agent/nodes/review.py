@@ -23,7 +23,7 @@ from services.agent.nodes._review_validators import (
 from services.agent.nodes._review_validators import (
     validate_scenes as _validate_scenes,
 )
-from services.agent.observability import record_score, with_agent_trace
+from services.agent.observability import record_score
 from services.agent.state import NarrativeScore, ReviewResult, ScriptState
 from services.llm import LLMConfig, get_llm_provider
 
@@ -294,7 +294,6 @@ async def _legacy_evaluate(
     return gemini_feedback, narrative_score, reflection
 
 
-@with_agent_trace("review")
 async def review_node(state: ScriptState) -> dict:
     """Draft 씬을 검증하고 review_result를 state에 기록한다."""
     scenes = state.get("draft_scenes") or []

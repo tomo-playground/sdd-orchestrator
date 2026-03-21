@@ -12,7 +12,6 @@ from config import pipeline_logger as logger
 from config_pipelines import DIRECTOR_MODEL, INVENTORY_CASTING_ENABLED
 from services.agent.llm_models import CastingRecommendation, DirectorPlanOutput, validate_with_model
 from services.agent.nodes._production_utils import run_production_step
-from services.agent.observability import with_agent_trace
 from services.agent.prompt_builders import (
     build_casting_guide,
     build_casting_json_section,
@@ -64,7 +63,6 @@ def _derive_skip_stages(result: dict) -> list[str]:
     return stages
 
 
-@with_agent_trace("director_plan")
 async def director_plan_node(state: ScriptState, config=None) -> dict:
     """Creative Director의 초기 목표 수립 + 캐스팅 추천 + 실행 계획 노드."""
     logger.info(

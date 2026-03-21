@@ -40,7 +40,7 @@ from services.agent.nodes.revise import revise_node
 from services.agent.nodes.sound_designer import sound_designer_node
 from services.agent.nodes.tts_designer import tts_designer_node
 from services.agent.nodes.writer import writer_node
-from services.agent.observability import trace_agent, trace_chain
+from services.agent.observability import trace_agent
 from services.agent.routing import (
     route_after_cinematographer,
     route_after_concept_gate,
@@ -78,25 +78,6 @@ def _wrap_node(name: str, fn: Any) -> Any:
     return wrapped
 
 
-def _traced_route(fn: Any) -> Any:
-    """라우팅 함수를 CHAIN observation으로 래핑한다."""
-
-    @functools.wraps(fn)
-    def wrapper(state):  # noqa: ANN001
-        result = fn(state)
-        target = {"target": result} if isinstance(result, str) else {"targets": result}
-        # 분기 근거: 라우팅 판단에 사용된 주요 상태 키 요약
-        context = {}
-        for key in ("interaction_mode", "error", "skip_stages"):
-            val = state.get(key) if isinstance(state, dict) else getattr(state, key, None)
-            if val is not None:
-                context[key] = val
-        trace_chain(fn.__name__, input_data=context or None, output_data=target)
-        return result
-
-    return wrapper
-
-
 def build_script_graph() -> StateGraph:
     """20노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
     from services.agent.nodes.inventory_resolve import inventory_resolve_node  # noqa: PLC0415
@@ -126,49 +107,47 @@ def build_script_graph() -> StateGraph:
     graph.add_node("learn", _wrap_node("learn", learn_node))
 
     # START → 2분기 (skip_stages 직접 지정→writer, 기본→director_plan)
-    graph.add_conditional_edges(START, _traced_route(route_after_start), ["director_plan", "writer"])
+    graph.add_conditional_edges(START, route_after_start, ["director_plan", "writer"])
 
     # director_plan → director_plan_gate → inventory_resolve | director_plan (재수립)
     graph.add_edge("director_plan", "director_plan_gate")
     graph.add_conditional_edges(
         "director_plan_gate",
-        _traced_route(route_after_director_plan_gate),
+        route_after_director_plan_gate,
         ["inventory_resolve", "director_plan"],
     )
 
     # inventory_resolve → 조건부 (skip→writer, full→research)
-    graph.add_conditional_edges(
-        "inventory_resolve", _traced_route(route_after_inventory_resolve), ["research", "writer"]
-    )
-    graph.add_conditional_edges("research", _traced_route(route_after_research), ["critic", "research", "finalize"])
+    graph.add_conditional_edges("inventory_resolve", route_after_inventory_resolve, ["research", "writer"])
+    graph.add_conditional_edges("research", route_after_research, ["critic", "research", "finalize"])
     graph.add_edge("critic", "concept_gate")
-    graph.add_conditional_edges("concept_gate", _traced_route(route_after_concept_gate), ["location_planner", "critic"])
-    graph.add_conditional_edges("location_planner", _traced_route(route_after_location_planner), ["writer", "finalize"])
+    graph.add_conditional_edges("concept_gate", route_after_concept_gate, ["location_planner", "critic"])
+    graph.add_conditional_edges("location_planner", route_after_location_planner, ["writer", "finalize"])
 
     # writer → review | finalize (에러 short-circuit)
-    graph.add_conditional_edges("writer", _traced_route(route_after_writer), ["review", "finalize"])
+    graph.add_conditional_edges("writer", route_after_writer, ["review", "finalize"])
 
     # review → director_checkpoint(full) | cinematographer(fasttrack) | finalize(error) | revise
     graph.add_conditional_edges(
         "review",
-        _traced_route(route_after_review),
+        route_after_review,
         ["finalize", "director_checkpoint", "cinematographer", "revise"],
     )
 
     # revise → review | finalize (에러 short-circuit)
-    graph.add_conditional_edges("revise", _traced_route(route_after_revise), ["review", "finalize"])
+    graph.add_conditional_edges("revise", route_after_revise, ["review", "finalize"])
 
     # director_checkpoint → cinematographer | writer (재생성) | finalize
     graph.add_conditional_edges(
         "director_checkpoint",
-        _traced_route(route_after_director_checkpoint),
+        route_after_director_checkpoint,
         ["cinematographer", "writer", "finalize"],
     )
 
     # Production fan-out: cinematographer → [tts, sound, copyright] 병렬
     graph.add_conditional_edges(
         "cinematographer",
-        _traced_route(route_after_cinematographer),
+        route_after_cinematographer,
         ["tts_designer", "sound_designer", "copyright_reviewer", "finalize"],
     )
 
@@ -180,21 +159,21 @@ def build_script_graph() -> StateGraph:
     # director → finalize | human_gate(hands_on) | production 노드 재실행 | revise
     graph.add_conditional_edges(
         "director",
-        _traced_route(route_after_director),
+        route_after_director,
         ["finalize", "human_gate", "cinematographer", "tts_designer", "sound_designer", "revise"],
     )
 
     # human_gate → finalize | revise (hands_on 모드에서만 도달)
     graph.add_conditional_edges(
         "human_gate",
-        _traced_route(route_after_human_gate),
+        route_after_human_gate,
         ["finalize", "revise"],
     )
 
     # finalize → [explain(full) | learn(quick)]
     graph.add_conditional_edges(
         "finalize",
-        _traced_route(route_after_finalize),
+        route_after_finalize,
         ["explain", "learn"],
     )
 

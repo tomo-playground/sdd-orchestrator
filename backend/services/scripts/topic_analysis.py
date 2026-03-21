@@ -80,7 +80,7 @@ async def analyze_topic(
             system_instruction=sys_instruction if sys_instruction else None,
         )
 
-        async with trace_context("topic.analyze", session_id=session_id, input_data={"topic": topic}):
+        async with trace_context("topic.analyze", session_id=session_id, input_data={"topic": topic}) as span:
             async with trace_llm_call(
                 "generate_content analyze_topic",
                 model=GEMINI_TEXT_MODEL,
@@ -94,8 +94,9 @@ async def analyze_topic(
                     config=config,
                 )
                 llm.record(response)
-
-        parsed = parse_json_response(response.text or "")
+            parsed = parse_json_response(response.text or "")
+            if span:
+                span.update(output={"status": parsed.get("status", "recommend")})
         logger.debug("[AnalyzeTopic] Gemini 응답: %s", {k: v for k, v in parsed.items() if k != "reasoning"})
     except Exception as e:
         logger.warning("[AnalyzeTopic] Gemini 호출/파싱 실패, 기본값 반환: %s", e)

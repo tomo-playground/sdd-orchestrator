@@ -16,7 +16,6 @@ from database import get_db_session
 from schemas import StoryboardRequest
 from services.agent.langfuse_prompt import compile_prompt
 from services.agent.llm_models import WriterPlanOutput
-from services.agent.observability import with_agent_trace
 from services.agent.prompt_builders import build_optional_section, build_scene_range_text, build_selected_concept_block
 from services.agent.state import ScriptState, WriterPlan, build_director_context, extract_selected_concept
 from services.llm import LLMConfig, get_llm_provider
@@ -157,7 +156,6 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
         return None
 
 
-@with_agent_trace("writer")
 async def writer_node(state: ScriptState) -> dict:
     """StoryboardRequest를 생성하고 기존 generate_script를 호출한다.
 

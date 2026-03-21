@@ -482,7 +482,7 @@ async def extract_caption(request: TextExtractRequest):
             safety_settings=GEMINI_SAFETY_SETTINGS,
         )
 
-        async with trace_context("video.extract_caption", input_data={"text_length": len(text)}):
+        async with trace_context("video.extract_caption", input_data={"text_length": len(text)}) as span:
             async with trace_llm_call(
                 "generate_content extract_caption",
                 model=GEMINI_TEXT_MODEL,
@@ -495,8 +495,9 @@ async def extract_caption(request: TextExtractRequest):
                     config=config,
                 )
                 llm.record(response)
-
-        caption = _strip_quotes(response.text.strip() if response.text else text[:max_len])
+            caption = _strip_quotes(response.text.strip() if response.text else text[:max_len])
+            if span:
+                span.update(output={"caption_length": len(caption)})
 
         if len(caption) > max_len:
             caption = caption[:max_len].rstrip()
@@ -539,7 +540,7 @@ async def extract_hashtags(request: TextExtractRequest):
             safety_settings=GEMINI_SAFETY_SETTINGS,
         )
 
-        async with trace_context("video.extract_hashtags", input_data={"topic": text[:200]}):
+        async with trace_context("video.extract_hashtags", input_data={"topic": text[:200]}) as span:
             async with trace_llm_call(
                 "generate_content extract_hashtags",
                 model=GEMINI_TEXT_MODEL,
@@ -552,8 +553,9 @@ async def extract_hashtags(request: TextExtractRequest):
                     config=config,
                 )
                 llm.record(response)
-
-        hashtags = _strip_quotes(response.text.strip() if response.text else text[:max_len])
+            hashtags = _strip_quotes(response.text.strip() if response.text else text[:max_len])
+            if span:
+                span.update(output={"hashtags": hashtags[:200]})
 
         if len(hashtags) > max_len:
             hashtags = hashtags[:max_len].rstrip()

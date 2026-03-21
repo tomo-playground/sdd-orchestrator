@@ -18,7 +18,7 @@ from config import (
     logger,
 )
 from database import get_db_session
-from services.agent.observability import get_pipeline_elapsed_sec, record_score, with_agent_trace
+from services.agent.observability import get_pipeline_elapsed_sec, record_score
 from services.agent.state import ScriptState
 
 if TYPE_CHECKING:
@@ -959,7 +959,6 @@ def _ensure_minimum_duration(scenes: list[dict], target_duration: int, language:
         logger.info("[Finalize] Duration overflow 보정: %.1fs → %.1fs (target=%ds)", total, new_total, target_duration)
 
 
-@with_agent_trace("finalize")
 async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     """Quick: draft → final 패스스루. Full: Production 결과 병합 + character_actions 변환."""
     # 에러 상태이면 즉시 반환 (에러 메시지 보존)

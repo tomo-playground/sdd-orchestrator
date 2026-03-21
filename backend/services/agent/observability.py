@@ -110,7 +110,7 @@ async def trace_context(
             )
             # trace_llm_call()이 이 span을 부모로 사용하도록 설정
             _current_root_span.set(span)
-            yield
+            yield span
     finally:
         _current_trace_id.set(prev_trace_id)
         _current_root_span.set(prev_root_span)
@@ -513,6 +513,27 @@ def _safe_extract_text(response: Any) -> str:
         return getattr(response, "text", "") or ""
 
 
+def _safe_extract_function_calls(response: Any) -> str:
+    """response에서 function_call 정보를 텍스트로 추출한다 (GENERATION output용)."""
+    try:
+        candidates = getattr(response, "candidates", None)
+        if not candidates:
+            return ""
+        parts = getattr(candidates[0].content, "parts", None)
+        if not parts:
+            return ""
+        calls = []
+        for p in parts:
+            fc = getattr(p, "function_call", None)
+            if fc:
+                name = getattr(fc, "name", "unknown")
+                args = dict(getattr(fc, "args", {})) if getattr(fc, "args", None) else {}
+                calls.append(f"{name}({args})")
+        return "; ".join(calls) if calls else ""
+    except Exception:
+        return ""
+
+
 def _extract_usage(response: Any) -> dict[str, int] | None:
     """Gemini response에서 token usage를 추출한다."""
     meta = getattr(response, "usage_metadata", None)
@@ -536,6 +557,8 @@ class LLMCallResult:
     def record(self, response: Any) -> None:
         """기존 Gemini response 파싱 (하위 호환 유지)."""
         self.output = _safe_extract_text(response)
+        if not self.output:
+            self.output = _safe_extract_function_calls(response)
         self.usage = _extract_usage(response)
 
     def record_text(self, text: str, usage: dict[str, int] | None = None) -> None:
