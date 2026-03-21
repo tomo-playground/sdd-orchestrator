@@ -53,6 +53,12 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     logger.warning("DATABASE_URL is not set. Database functionality will fail.")
 
+# --- DB Connection Pool ---
+DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "10"))
+DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "20"))
+DB_POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", "1800"))
+DB_POOL_PRE_PING = os.getenv("DB_POOL_PRE_PING", "1").lower() not in {"0", "false", "no"}
+
 # --- Directory Configuration ---
 OUTPUT_DIR = BASE_DIR / "outputs"
 IMAGE_DIR = OUTPUT_DIR / "images"
