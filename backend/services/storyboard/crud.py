@@ -439,13 +439,31 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
                 if mid:
                     preserved_asset_ids.add(mid)
 
-    # Defensive: also preserve existing DB scene asset_ids
-    # (guards against Frontend payload missing asset_id during race conditions)
+    # Collect client_id → asset mapping BEFORE deletion for stale-payload recovery.
+    # When Frontend sends autoSave with stale data (no image_asset_id), this mapping
+    # allows create_scenes() to re-link existing assets by matching client_id.
+    existing_asset_map: dict[str, dict[str, int | None]] = {}
     existing_scenes = (
-        db.query(Scene.image_asset_id, Scene.environment_reference_id, Scene.tts_asset_id, Scene.candidates)
+        db.query(
+            Scene.client_id,
+            Scene.image_asset_id,
+            Scene.environment_reference_id,
+            Scene.tts_asset_id,
+            Scene.candidates,
+        )
         .filter(Scene.storyboard_id == storyboard_id, Scene.deleted_at.is_(None))
         .all()
     )
+    for es in existing_scenes:
+        if es.client_id:
+            existing_asset_map[es.client_id] = {
+                "image_asset_id": es.image_asset_id,
+                "tts_asset_id": es.tts_asset_id,
+                "environment_reference_id": es.environment_reference_id,
+            }
+
+    # Defensive: also preserve existing DB scene asset_ids
+    # (guards against Frontend payload missing asset_id during race conditions)
     for es in existing_scenes:
         if es.image_asset_id:
             preserved_asset_ids.add(es.image_asset_id)
@@ -497,7 +515,7 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
 
     db.flush()
 
-    create_scenes(db, storyboard_id, request.scenes)
+    create_scenes(db, storyboard_id, request.scenes, existing_asset_map=existing_asset_map)
 
     # Update speaker→character mappings (Non-Dialogue → SPEAKER_B ignored)
     # Casting fallback: Frontend가 character_id를 보내지 않아도 casting_recommendation에서 추출

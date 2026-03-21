@@ -275,8 +275,19 @@ def _insert_scene_actions_safe(db: Session, db_scene: Scene, actions: list[Scene
         )
 
 
-def create_scenes(db: Session, storyboard_id: int, scenes_data: list[StoryboardScene]) -> None:
-    """Create scenes with tags and character actions for a storyboard."""
+def create_scenes(
+    db: Session,
+    storyboard_id: int,
+    scenes_data: list[StoryboardScene],
+    existing_asset_map: dict[str, dict[str, int | None]] | None = None,
+) -> None:
+    """Create scenes with tags and character actions for a storyboard.
+
+    Args:
+        existing_asset_map: Optional mapping of client_id → {image_asset_id, tts_asset_id}
+            from previously existing scenes. Used to preserve assets when Frontend sends
+            stale autoSave payloads without asset IDs.
+    """
     asset_id_remap: dict[int, int] = {}
     created_scenes: list[Scene] = []
     deferred_env_refs: list[int | None] = []
@@ -321,6 +332,37 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list[StoryboardS
                 )
         elif image_url:
             _link_media_asset(db, db_scene, image_url)
+
+        # Stale-payload recovery: re-link assets from existing scenes by client_id.
+        # When Frontend sends autoSave without image_asset_id (e.g. after server restart),
+        # match by client_id and preserve the existing asset.
+        if existing_asset_map and s_data.client_id and s_data.client_id in existing_asset_map:
+            prev = existing_asset_map[s_data.client_id]
+            if not db_scene.image_asset_id and prev.get("image_asset_id"):
+                prev_img = prev["image_asset_id"]
+                if db.query(MediaAsset.id).filter(MediaAsset.id == prev_img).first():
+                    db_scene.image_asset_id = prev_img
+                    db.query(MediaAsset).filter(MediaAsset.id == prev_img).update(
+                        {"owner_type": "scene", "owner_id": db_scene.id},
+                        synchronize_session=False,
+                    )
+                    logger.info("[Scene %d] Preserved image_asset_id %d from previous scene", idx, prev_img)
+            if not db_scene.tts_asset_id and prev.get("tts_asset_id"):
+                prev_tts = prev["tts_asset_id"]
+                if db.query(MediaAsset.id).filter(MediaAsset.id == prev_tts).first():
+                    db_scene.tts_asset_id = prev_tts
+                    db.query(MediaAsset).filter(MediaAsset.id == prev_tts).update(
+                        {"owner_type": "scene", "owner_id": db_scene.id},
+                        synchronize_session=False,
+                    )
+                    logger.info("[Scene %d] Preserved tts_asset_id %d from previous scene", idx, prev_tts)
+            if not deferred_env_refs[idx] and prev.get("environment_reference_id"):
+                deferred_env_refs[idx] = prev["environment_reference_id"]
+                logger.info(
+                    "[Scene %d] Preserved environment_reference_id %d from previous scene",
+                    idx,
+                    prev["environment_reference_id"],
+                )
 
         # Update candidate asset owners to point to new scene
         if s_data.candidates:
