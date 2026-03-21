@@ -8,13 +8,13 @@ test.describe("Home Page", () => {
     // Home page components fetch these APIs directly
     await page.route("**/style-profiles**", (route) => route.fulfill({ json: [] }));
     await page.route("**/voice-presets**", (route) =>
-      route.fulfill({ json: { items: [], total: 0 } }),
+      route.fulfill({ json: { items: [], total: 0 } })
     );
     await page.route("**/music-presets**", (route) =>
-      route.fulfill({ json: { items: [], total: 0 } }),
+      route.fulfill({ json: { items: [], total: 0 } })
     );
     await page.route("**/video/render-history**", (route) =>
-      route.fulfill({ json: { items: [], total: 0 } }),
+      route.fulfill({ json: { items: [], total: 0 } })
     );
     await page.goto("/");
   });
@@ -22,15 +22,15 @@ test.describe("Home Page", () => {
   test("initial render shows welcome bar and new story button", async ({ page }) => {
     // Welcome greeting visible
     await expect(
-      page.getByRole("heading", { name: /good (morning|afternoon|evening)/i }),
+      page.getByRole("heading", { name: /good (morning|afternoon|evening)/i })
     ).toBeVisible();
 
-    // New Story button visible
-    await expect(page.getByRole("button", { name: /new story/i })).toBeVisible();
+    // 새 영상 button visible
+    await expect(page.getByRole("button", { name: /새 영상/i })).toBeVisible();
   });
 
-  test("New Story button navigates to studio", async ({ page }) => {
-    await page.getByRole("button", { name: /new story/i }).click();
+  test("새 영상 button navigates to studio", async ({ page }) => {
+    await page.getByRole("button", { name: /새 영상/i }).click();
     await expect(page).toHaveURL(/\/studio/);
   });
 
