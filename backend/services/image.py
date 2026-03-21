@@ -124,6 +124,18 @@ def load_image_bytes(source: str) -> bytes:
     else:
         path = source
 
+    # Handle /storage/{bucket}/{key} paths (STORAGE_PUBLIC_URL=/storage 설정 시)
+    from config import MINIO_BUCKET as _bucket
+
+    if path.startswith(f"/storage/{_bucket}/"):
+        storage_key = path.replace(f"/storage/{_bucket}/", "", 1)
+        try:
+            from services.storage import get_storage
+
+            return get_storage().get_local_path(storage_key).read_bytes()
+        except Exception as e:
+            raise ValueError(f"Failed to load image from /storage/ path: {e}") from e
+
     # Legacy redirect for /assets/ to shared storage
     if path.startswith("/assets/references/"):
         storage_key = path.replace("/assets/references/", "shared/references/", 1).lstrip("/")
