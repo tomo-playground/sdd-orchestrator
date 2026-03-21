@@ -1,0 +1,51 @@
+name: Claude Auto Review — PR 자동 리뷰
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    runs-on: [self-hosted, sdd]
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+          use_bedrock: false
+
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            CLAUDE.md를 읽고 프로젝트 규칙 기준으로 이 PR을 리뷰하세요.
+            중점:
+            - CLAUDE.md 규칙 위반 여부
+            - 버그/로직 오류
+            - 보안 취약점
+            - 테스트 누락
+
+            버그나 규칙 위반을 발견하면 직접 코드를 수정하고 커밋+push하세요.
+            스타일/Nit은 인라인 코멘트만 남기고 수정하지 마세요.
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*),Bash(git:*),Bash(ruff:*),Bash(npx prettier:*),Read,Edit,Write,Glob,Grep"
