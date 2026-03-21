@@ -4,7 +4,7 @@ priority: P1
 scope: infra
 branch: feat/SP-044-sentry-autofix
 created: 2026-03-21
-status: pending
+status: running
 depends_on:
 label: enhancement
 reviewer: stopper2008
