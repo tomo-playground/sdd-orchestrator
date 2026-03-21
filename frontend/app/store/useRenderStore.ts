@@ -63,6 +63,8 @@ export interface RenderStore {
   bgmPrompt: string;
   bgmMood: string;
   bgmPreviewUrl: string | null;
+  /** Director control — selected BGM mood preset (persisted) */
+  selectedBgmPreset: string | null;
   videoCaption: string;
   videoLikesCount: string;
   overlaySettings: OverlaySettings;
@@ -107,6 +109,7 @@ const initialState: Omit<RenderStore, "set" | "reset" | "fetchVoicePresets"> = {
   bgmPrompt: "",
   bgmMood: "",
   bgmPreviewUrl: null,
+  selectedBgmPreset: null,
   videoCaption: "",
   videoLikesCount: "",
   overlaySettings: DEFAULT_OVERLAY_SETTINGS,

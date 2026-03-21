@@ -4,7 +4,7 @@ priority: P2
 scope: fullstack
 branch: feat/SP-027-direct-tab-director-control
 created: 2026-03-21
-status: pending
+status: running
 depends_on:
 label: enhancement
 assignee: stopper2008

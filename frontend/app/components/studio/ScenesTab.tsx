@@ -39,6 +39,9 @@ import { useTTSPreview } from "../../hooks/useTTSPreview";
 import { useTimeline } from "../../hooks/useTimeline";
 import { useContextStore } from "../../store/useContextStore";
 import TimelineBar from "./TimelineBar";
+import DirectorControlPanel from "./DirectorControlPanel";
+import axios from "axios";
+import { API_BASE } from "../../constants";
 
 export default function ScenesTab() {
   const { scenes, currentSceneIndex } = useStoryboardStore(
@@ -123,6 +126,43 @@ export default function ScenesTab() {
     speedMultiplier,
     transitionType,
   });
+
+  const handleApplyAll = async () => {
+    const ok = await confirm({
+      title: "전체 적용",
+      message: `${scenes.length}씬의 TTS를 재생성합니다. 약 ${Math.ceil(scenes.length * 0.3)}분 소요됩니다.`,
+      confirmLabel: "재생성",
+    });
+    if (!ok) return;
+    try {
+      const res = await axios.post(`${API_BASE}/scene/tts-prebuild`, {
+        storyboard_id: storyboardId,
+        scenes: scenes.map((s) => ({
+          scene_db_id: s.id,
+          script: s.script,
+          speaker: s.speaker,
+          voice_design_prompt: s.voice_design_prompt ?? undefined,
+          scene_emotion: s.context_tags?.emotion ?? undefined,
+          image_prompt_ko: s.image_prompt_ko ?? undefined,
+        })),
+      });
+      const results: Array<{ scene_db_id: number; tts_asset_id: number | null; status: string }> =
+        res.data.results ?? [];
+      for (const r of results) {
+        if (r.tts_asset_id && r.status === "prebuilt") {
+          const scene = scenes.find((s) => s.id === r.scene_db_id);
+          if (scene) {
+            useStoryboardStore.getState().updateScene(scene.client_id, {
+              tts_asset_id: r.tts_asset_id,
+            });
+          }
+        }
+      }
+      showToast(`${results.length}씬 TTS 재생성 완료`, "success");
+    } catch {
+      showToast("TTS 재생성에 실패했습니다", "error");
+    }
+  };
 
   if (scenes.length === 0) {
     return (
@@ -220,6 +260,11 @@ export default function ScenesTab() {
                 Stage에서 편집 →
               </button>
             </div>
+          </div>
+
+          {/* Director Control Panel */}
+          <div className="shrink-0 border-b border-zinc-100 px-8 py-3">
+            <DirectorControlPanel onApplyAll={handleApplyAll} />
           </div>
 
           <SceneNavHeader

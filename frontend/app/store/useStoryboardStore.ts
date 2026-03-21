@@ -106,6 +106,9 @@ export interface StoryboardStore {
   // Image resolution defaults (Backend SSOT, loaded from /presets)
   imageDefaults: ImageDefaults;
 
+  // Director control — selected emotion preset (persisted)
+  selectedEmotionPreset: string | null;
+
   // Dirty flag
   isDirty: boolean;
 
@@ -116,6 +119,8 @@ export interface StoryboardStore {
   removeScene: (clientId: string) => void;
   reorderScenes: (fromIndex: number, toIndex: number) => void;
   applyGenerationDefaults: (defaults: GenerationDefaults) => void;
+  /** Bulk-set emotion on all scenes + clear voice_design_prompt + clear tts_asset_id */
+  setGlobalEmotion: (emotion: string) => void;
   reset: () => void;
 }
 
@@ -127,6 +132,7 @@ const initialState: Omit<
   | "removeScene"
   | "reorderScenes"
   | "applyGenerationDefaults"
+  | "setGlobalEmotion"
   | "reset"
   | "isDirty"
 > = {
@@ -180,6 +186,7 @@ const initialState: Omit<
   storyboardVersion: null,
   castingRecommendation: null,
   isScriptGenerating: false,
+  selectedEmotionPreset: null,
   // Fallback — Backend SSOT: config_pipelines.FAST_TRACK_SKIP_STAGES (loaded via /presets)
   fastTrackSkipStages: ["research", "concept", "production", "explain"],
   // Backend SSOT: hi_res_defaults from /presets API (null until loaded)
@@ -313,6 +320,8 @@ export const useStoryboardStore = create<StoryboardStore>()(
           const hasPersistableChange = Object.keys(updates).some(
             (key) => !SCENE_TRANSIENT_FIELDS.has(key)
           );
+          // NOTE: context_tags.emotion 변경은 의도적으로 미포함 — 씬별 emotion 오버라이드 시
+          // 사용자가 명시적으로 TTS 재생성을 선택. 일괄 emotion 변경은 setGlobalEmotion이 직접 처리.
           const ttsInvalidatingFields = ["script", "speaker", "voice_design_prompt"] as const;
           const existing = state.scenes.find((s) => s.client_id === clientId);
           const needsTtsReset = existing
@@ -365,6 +374,20 @@ export const useStoryboardStore = create<StoryboardStore>()(
           ipAdapterWeight: defaults.ip_adapter_weight,
           multiGenEnabled: defaults.multi_gen_enabled,
           hiResEnabled: defaults.enable_hr,
+        })),
+      setGlobalEmotion: (emotion) =>
+        set((state) => ({
+          scenes: state.scenes.map((s) => ({
+            ...s,
+            context_tags: { ...(s.context_tags ?? {}), emotion },
+            voice_design_prompt: null,
+            // tts_asset_id는 메모리에서만 null (UI에서 "재생성 필요" 표시용).
+            // DB 반영은 "전체 적용" 버튼의 TTS prebuild API가 담당.
+            // (SCENE_TRANSIENT_FIELDS이므로 autoSave에서 제외됨)
+            tts_asset_id: null,
+          })),
+          selectedEmotionPreset: emotion,
+          isDirty: true,
         })),
       reset: () => set({ ...initialState, isDirty: false }),
     }),
