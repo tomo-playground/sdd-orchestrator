@@ -21,8 +21,14 @@ if ! git diff --quiet 2>/dev/null || ! git diff --staged --quiet 2>/dev/null; th
   git stash --include-untracked -m "sdd-sync auto-stash" 2>/dev/null && STASHED=true
 fi
 
-# main 업데이트
-git pull --ff-only 2>/dev/null || exit 0
+# main 업데이트 (ff-only 실패 시 rebase fallback)
+if ! git pull --ff-only 2>/dev/null; then
+  git pull --rebase 2>/dev/null || {
+    echo "⚠️ git pull 실패 — main 동기화 불가"
+    [ "$STASHED" = true ] && git stash pop 2>/dev/null
+    exit 1
+  }
+fi
 
 # current/에 있는 태스크의 브랜치와 머지된 PR을 매칭
 MERGED=""

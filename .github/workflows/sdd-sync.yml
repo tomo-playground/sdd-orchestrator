@@ -9,6 +9,10 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: sdd-sync
+  cancel-in-progress: false
+
 jobs:
   cleanup:
     if: github.event.pull_request.merged == true
