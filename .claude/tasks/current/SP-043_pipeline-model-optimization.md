@@ -56,14 +56,24 @@ director_checkpoint     think: 3,000~3,800 per call (Flash인데 과다)
   - Critic 토론이므로 다양성이 더 중요, 개별 품질은 Flash로 충분
 - [ ] creative_agent 컨셉 품질 regression 없음 확인
 
-### Part C: thinking budget 제한 검토
+### Part C: Writer PROHIBITED_CONTENT fallback 비용 절감
+- [ ] 트레이스 확인: writer GENERATION에서 Flash output 0 → 2.0-flash fallback 4회 반복
+  - input 14K 토큰을 2번씩 전송 (Flash 차단 + fallback 재전송)
+  - writer.py L48-55: `_SAFETY_HINT` 주입으로 대응 중이지만 효과 불충분
+- [ ] 원인 분석: BTS 등 실존 아티스트 주제에서 Flash 안전 필터 과민 반응
+- [ ] 개선 방안 검토:
+  - sanitization 강화 (`_sanitize_for_gemini_prompt` 확장)
+  - 또는 Writer도 2.0-flash를 1차 모델로 사용 (Flash 차단 자체 회피)
+  - 또는 fallback 없이 2.5-flash에 safety_settings 조정
+
+### Part D: thinking budget 제한 검토
 - [ ] Gemini 2.5 Flash의 thinking budget 파라미터 조사
   - `thinking_config` / `max_thinking_tokens` 등
 - [ ] cinematographer agents (think 5,000~7,000)에 budget 적용 테스트
 - [ ] director_checkpoint (think 3,000~3,800)에 budget 적용 테스트
 - [ ] budget 제한 시 output 품질 영향 평가
 
-### Part D: 검증
+### Part E: 검증
 - [ ] pytest 통과
 - [ ] 린트 통과
 - [ ] 실제 파이프라인 실행 후 비용 비교:
