@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const allowedOrigins = process.env.ALLOWED_DEV_ORIGIN
-  ? process.env.ALLOWED_DEV_ORIGIN.split(",").map((o) => o.trim())
+  ? process.env.ALLOWED_DEV_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
   : [];
 
 const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || "http://127.0.0.1:8000";

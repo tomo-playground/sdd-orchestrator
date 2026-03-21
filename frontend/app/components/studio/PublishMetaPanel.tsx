@@ -90,22 +90,39 @@ export function PublishCaptionLikes() {
   const [isExtractingCaption, setIsExtractingCaption] = useState(false);
   const [savedField, setSavedField] = useState<string | null>(null);
   const initRef = useRef(false);
+  const prevTopicRef = useRef<string | null>(null);
 
   // Lazy caption 초기화: Publish 탭 마운트 시 caption이 없으면 hashtag 추출
   useEffect(() => {
+    // topic이 변경되면 initRef + caption 리셋 (새 스토리보드 전환 대응)
+    if (prevTopicRef.current !== null && prevTopicRef.current !== topic) {
+      initRef.current = false;
+      setOutput({ videoCaption: "" });
+    }
+    prevTopicRef.current = topic ?? null;
+
     if (initRef.current || videoCaption || !topic) return;
     initRef.current = true;
+    const controller = new AbortController();
     (async () => {
       try {
-        const res = await axios.post(`${API_BASE}/video/extract-hashtags`, { text: topic });
+        const res = await axios.post(
+          `${API_BASE}/video/extract-hashtags`,
+          { text: topic },
+          { signal: controller.signal },
+        );
         if (res.data.caption) {
           setOutput({ videoCaption: res.data.caption });
           updateStoryboardMetadata({ caption: res.data.caption });
         }
       } catch {
-        setOutput({ videoCaption: topic });
+        if (!controller.signal.aborted) {
+          setOutput({ videoCaption: topic });
+          void updateStoryboardMetadata({ caption: topic });
+        }
       }
     })();
+    return () => controller.abort();
   }, [topic, videoCaption, setOutput]);
 
   const handleExtractCaption = async () => {
