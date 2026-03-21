@@ -147,16 +147,13 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
 
         removeTypingIndicator(typingId);
 
-        // Deferred side effects: analyze 완료 후 context/URL 업데이트
-        if (isNewDraft && draftId) {
-          commitDraftContext(draftId);
-        }
-
         if (data.resolved_topic) {
           topicRef.current = data.resolved_topic;
           editorRef.current?.setField("topic", data.resolved_topic);
         }
 
+        // 응답 메시지를 먼저 추가 (commitDraftContext 전에)
+        // commitDraftContext가 storyboardId를 변경하면 chat history가 전환되어 메시지 유실
         if (data.status === "clarify") {
           addMessage({
             id: createMessageId(),
@@ -175,6 +172,11 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
             recommendation: data,
             timestamp: Date.now(),
           });
+        }
+
+        // Deferred side effects: 메시지 추가 후 context/URL 업데이트
+        if (isNewDraft && draftId) {
+          commitDraftContext(draftId);
         }
       } catch (err) {
         removeTypingIndicator(typingId);

@@ -72,15 +72,24 @@ export default function StudioKanbanView() {
     router.push(`/studio?id=${id}`);
   };
 
-  const handleNewShorts = () => {
-    // Synchronously clear stale store data before navigation.
-    // The ?new=true useEffect will do the full resetAllStores after render,
-    // but this pre-cleanup prevents the brief stale-data flash during the gate period.
+  const handleNewShorts = async () => {
     cancelPendingSave();
     useContextStore.getState().resetContext();
     resetTransientStores();
     useChatStore.getState().clearMessages(null);
-    router.push("/studio?new=true");
+
+    // Draft를 먼저 생성하고 ?id=로 진입 → sendMessage에서 context 변경 불필요
+    const { ensureDraftStoryboard, commitDraftContext } =
+      await import("../../store/actions/draftActions");
+    const draftId = await ensureDraftStoryboard({ deferSideEffects: true });
+    if (draftId) {
+      commitDraftContext(draftId);
+      useUIStore.getState().set({ isNewStoryboardMode: true });
+      router.push(`/studio?id=${draftId}`);
+    } else {
+      // fallback: 기존 방식
+      router.push("/studio?new=true");
+    }
   };
 
   if (!projectId) {
