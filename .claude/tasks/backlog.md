@@ -8,38 +8,29 @@
 ## P0 (긴급)
 
 - [x] ~~SP-011 — 새 영상 stale 데이터~~ (PR #50 렌더 gate + PR #52 persist 제거 머지)
-- [ ] SP-014 — 페이지 전환 시 "연결 끊김" 오경고 플래시 (`useBackendHealth` 초기값 `"disconnected"` → 리마운트마다 상태 리셋. 싱글턴/Store 전환 필요)
-- [ ] SP-015 — handleDismiss 경쟁 조건 + `:new` stale (SP-011 잔여 BUG #1/#3/#5)
-- [ ] SP-016 — Storyboard Data Integrity (SB 1128: UI 7씬/DB 0씬, FK 위반) | [명세](../../docs/01_product/FEATURES/STORYBOARD_DATA_INTEGRITY.md)
+- [x] ~~SP-014 — 페이지 전환 시 "연결 끊김" 오경고 플래시~~ (완료)
+- [x] ~~SP-015 — handleDismiss 경쟁 조건 + `:new` stale~~ (완료)
+- [x] ~~SP-016 — Storyboard Data Integrity~~ (PR #61 머지)
 
 ## P1 (최우선)
 
-- [ ] SP-019 — AI QA 자동 순찰 + 자동 수정 — Playwright headless 정기 실행 → 이상 감지 → GitHub Issue 자동 생성 → Claude가 Issue 읽고 자동 수정 PR 생성. 사람 개입 최소화.
-- [ ] SP-018 — Sentry Cloud 연동 (Backend/Frontend/Audio 에러 모니터링 + GitHub Issue 연동)
 - [x] ~~SP-010 — API Proxy Internal~~ (완료, PR #45 머지)
-- [ ] Enum ID 정규화 — structure/language/style 디스플레이 이름→ID 분리, DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
-- [ ] Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md)
-- [ ] ComfyUI 마이그레이션 — ForgeUI→ComfyUI + SD Client 추상화 | [명세](../../docs/01_product/FEATURES/COMFYUI_MIGRATION.md)
-- [ ] 캐릭터 일관성 V3 — ComfyUI 전환 후 착수. 4-Module 파이프라인 | [명세](../../docs/01_product/FEATURES/CHARACTER_CONSISTENCY_V3.md)
-
-## P1-E2E (테스트 자동화 — 단계별)
-
-- [x] SP-004 — E2E smoke 테스트 + 기본 인프라 (서버 자동 기동)
-- [ ] SP-005 — API mock 전략 (Playwright route intercept 기반 Gemini/SD mock)
-- [ ] SP-006 — 핵심 플로우 E2E (스토리보드 생성, 씬 이미지 생성)
-- [ ] SP-007 — warning/에러 E2E (SP-003 포함, TTS fallback 토스트 등)
-- [ ] SP-008 — on-stop.sh E2E 단계 완전 연동
-
-> 완료 시 Stop Hook이 E2E까지 자동 실행 → PR Test Plan 수동 항목 제거
+- [x] ~~SP-017 — 파이프라인 로깅 사각지대 해소~~ (PR #63 머지)
+- [x] ~~SP-018 — Sentry Cloud 연동~~ (PR #64 머지)
+- [ ] SP-019 — AI QA 자동 순찰 + 자동 수정
+- [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
+- [ ] SP-021 — Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md)
+- [ ] SP-022 — ComfyUI 마이그레이션 — ForgeUI→ComfyUI + SD Client 추상화 | [명세](../../docs/01_product/FEATURES/COMFYUI_MIGRATION.md)
+- [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 전환 후 착수. 4-Module 파이프라인 | [명세](../../docs/01_product/FEATURES/CHARACTER_CONSISTENCY_V3.md)
 
 ## P2 (기능 확장)
 
-- [ ] VEO Clip — Video Generation 통합 | [명세](../../docs/01_product/FEATURES/VEO_CLIP.md)
-- [ ] Profile Export/Import — Style Profile 공유 | [명세](../../docs/01_product/FEATURES/PROFILE_EXPORT_IMPORT.md)
-- [ ] Storyboard Version History
-- [ ] Direct 탭 연출 컨트롤 — TTS 톤 조정 + BGM 프리셋 일괄 적용 | [명세](../../docs/01_product/FEATURES/DIRECT_TAB_DIRECTOR_CONTROL.md)
-- [ ] Studio 탭 URI 표현 — ?tab=script/stage/direct/publish 딥링크
-- [ ] Script Canvas 분할 뷰 — 좌 채팅 + 우 씬 프리뷰 | [명세](../../docs/99_archive/features/SCRIPT_COLLABORATIVE_UX.md) §P2
+- [ ] SP-024 — VEO Clip — Video Generation 통합 | [명세](../../docs/01_product/FEATURES/VEO_CLIP.md)
+- [ ] SP-025 — Profile Export/Import — Style Profile 공유 | [명세](../../docs/01_product/FEATURES/PROFILE_EXPORT_IMPORT.md)
+- [ ] SP-026 — Storyboard Version History — 저장 시점별 스냅샷 조회/복원
+- [ ] SP-027 — Direct 탭 연출 컨트롤 — TTS 톤 조정 + BGM 프리셋 일괄 적용 | [명세](../../docs/01_product/FEATURES/DIRECT_TAB_DIRECTOR_CONTROL.md)
+- [ ] SP-028 — Studio 탭 URI 표현 — ?tab=script/stage/direct/publish 딥링크
+- [ ] SP-029 — Script Canvas 분할 뷰 — 좌 채팅 + 우 씬 프리뷰 | [명세](../../docs/99_archive/features/SCRIPT_COLLABORATIVE_UX.md) §P2
 
 ## P3 (인프라/자동화)
 
