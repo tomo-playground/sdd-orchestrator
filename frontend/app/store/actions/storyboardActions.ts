@@ -232,8 +232,9 @@ export async function persistStoryboard(): Promise<boolean> {
       return false;
     }
     if (axios.isAxiosError(error) && error.response?.status === 404) {
-      console.warn("[persistStoryboard] 404 — storyboard deleted, clearing state");
-      useContextStore.getState().setContext({ storyboardId: null });
+      console.warn("[persistStoryboard] 404 — storyboard deleted, full reset");
+      useContextStore.getState().resetContext();
+      useStoryboardStore.getState().reset();
       if (typeof window !== "undefined") {
         const url = new URL(window.location.href);
         url.searchParams.delete("id");

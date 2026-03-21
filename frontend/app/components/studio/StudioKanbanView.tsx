@@ -54,7 +54,10 @@ export default function StudioKanbanView() {
         variant: "danger",
       });
       if (!ok) return;
-      cancelPendingSave();
+      // 현재 편집 중인 storyboard만 autosave 취소 (다른 dirty storyboard 저장 보호)
+      if (id === storyboardId) {
+        cancelPendingSave();
+      }
       const deleted = await deleteStoryboard(id);
       if (deleted) {
         if (id === storyboardId) {
