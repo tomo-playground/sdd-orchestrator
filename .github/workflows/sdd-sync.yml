@@ -29,7 +29,7 @@ jobs:
     if: github.event.pull_request.merged == true
     needs: cleanup
     runs-on: [self-hosted, sdd]
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Checkout main
@@ -58,9 +58,20 @@ jobs:
             if git rebase origin/main 2>/dev/null; then
               git push --force-with-lease 2>/dev/null && echo "PR #${PR_NUM} rebase 성공"
             else
+              echo "PR #${PR_NUM} rebase conflict — Claude로 해결 시도"
               git rebase --abort 2>/dev/null
-              gh pr comment "$PR_NUM" --body "rebase conflict 발생 — 수동 확인 필요" 2>/dev/null || true
-              echo "PR #${PR_NUM} rebase conflict — PR에 코멘트 남김"
+              timeout 300 claude --worktree "${BRANCH}" --dangerously-skip-permissions -p \
+                "이 브랜치(${BRANCH})를 main에 rebase하세요.
+                1. git fetch origin main
+                2. git rebase origin/main
+                3. conflict 발생 시 파일을 읽고 의도에 맞게 해결
+                4. git rebase --continue
+                5. git push --force-with-lease
+                6. 해결 불가하면 PR #${PR_NUM}에 코멘트: 'rebase conflict 자동 해결 실패 — 수동 확인 필요'" \
+                2>/dev/null || {
+                  gh pr comment "$PR_NUM" --body "rebase conflict 자동 해결 실패 (timeout) — 수동 확인 필요" 2>/dev/null || true
+                  echo "PR #${PR_NUM} Claude rebase 실패/timeout"
+                }
             fi
             fi
 
