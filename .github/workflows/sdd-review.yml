@@ -20,12 +20,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Job 1: CodeRabbit 리뷰 → Claude 자동 수정 (멘션 불필요)
+  # Job 1: CodeRabbit/Claude 리뷰 코멘트 → Claude 자동 수정 (멘션 불필요)
   auto-fix:
     if: |
-      github.event_name == 'pull_request_review' &&
-      github.event.review.user.login == 'coderabbitai[bot]' &&
-      github.event.review.state == 'changes_requested'
+      (
+        github.event_name == 'pull_request_review' &&
+        github.event.review.state == 'changes_requested' &&
+        (github.event.review.user.login == 'coderabbitai[bot]' || github.event.review.user.login == 'claude[bot]')
+      ) ||
+      (
+        github.event_name == 'pull_request_review_comment' &&
+        (github.event.comment.user.login == 'coderabbitai[bot]' || github.event.comment.user.login == 'claude[bot]')
+      )
     runs-on: [self-hosted, sdd]
     timeout-minutes: 30
 
