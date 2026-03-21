@@ -1,84 +1,58 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 # Shorts Producer — CodeRabbit 코드 리뷰 설정
-# SDD 워크플로우의 독립 AI 리뷰어 역할
-# CLAUDE.md를 SSOT로 참조하여 프로젝트 규칙 적용
+#
+# 설계 원칙:
+#   1. CLAUDE.md가 code_guidelines로 자동 로드 → custom_instructions는 빈틈 보완만
+#   2. Claude 셀프 리뷰(/code-review)와 역할 분담 → 중복 검증 제거
+#   3. profile: chill → 진짜 버그/데이터 소실만 집중, nitpick 자제
+#   4. PR 생성 시 1회 리뷰 → incremental off (수동: @coderabbitai review)
 
 language: ko-KR
-tone_instructions: |
-  시니어 엔지니어 관점에서 명확하고 간결한 피드백. 다음을 중점 확인:
-  - CLAUDE.md에 정의된 아키텍처/코딩 규칙 준수
-  - 데이터 소실 위험 (Spread Passthrough 위반, null 덮어쓰기)
-  - Soft Delete 일관성 (deleted_at 필터 누락)
-  - 하드코딩된 URL/경로 대신 환경 변수 사용
-  - 코드 크기 한도 (함수 50줄, 컴포넌트 200줄, 파일 400줄)
+tone_instructions: >-
+  시니어 엔지니어 관점. 간결하게.
+  버그, 데이터 소실 위험, 보안 취약점에만 집중.
+  스타일/포매팅/unused import는 언급하지 마세요 (pre-commit hook이 처리).
 early_access: false
 enable_free_tier: true
 
 # ─── 리뷰 설정 ───
 reviews:
-  profile: assertive
+  profile: chill
   request_changes_workflow: true
+  fail_commit_status: true
 
+  # CLAUDE.md가 code_guidelines로 로드되므로 규칙을 반복하지 않는다.
+  # 여기는 CLAUDE.md에 없지만 리뷰에서 반복 발견된 빈틈만 보완.
   custom_instructions: |
-    이 프로젝트는 CLAUDE.md를 SSOT(Single Source of Truth)로 사용합니다.
-    리뷰 시 반드시 CLAUDE.md의 규칙을 참조하세요.
+    ## 보완 규칙 (CLAUDE.md 외)
 
-    ## 핵심 검증 항목
+    ### 하드코딩 감지
+    - config.py에 os.getenv()로 정의된 상수를 문자열 리터럴로 직접 사용하면 지적
+    - 예: `model="gemini-2.5-flash-image"` → `model=GEMINI_IMAGE_MODEL`
+    - 예: `"http://localhost:8000"` → `API_PUBLIC_URL`
 
-    ### 1. API Contract (CLAUDE.md "API Contract Principles")
-    - 모든 라우터 엔드포인트에 `response_model=` 필수
-    - 응답에 `dict | None` 금지 — Pydantic 모델로 명시
-    - 신규 엔드포인트 시 REST API 명세 (`docs/03_engineering/api/`) 업데이트 필수
+    ### .env.example 동기화
+    - config.py에 새 `os.getenv("NEW_VAR")` 추가 시 `backend/.env.example`에도 추가됐는지 확인
 
-    ### 2. Data Mapping (CLAUDE.md "Data Mapping Principles")
-    - Whitelist 매핑 금지 — Spread(`...`) 패스스루 + 변환 필요한 필드만 오버라이드
-    - 신규 필드 추가 시 매핑 함수에서 누락 → null 덮어쓰기 → 데이터 소실 위험
+    ### 리뷰 제외 영역
+    - unused import, 포매팅, 줄바꿈, trailing whitespace — pre-commit hook(ruff/prettier)이 처리하므로 언급 금지
+    - 타입 에러, 빌드 에러 — CI가 잡으므로 언급 금지
 
-    ### 3. Soft Delete 일관성 (CLAUDE.md "Frontend State Sync Principles")
-    - 모든 GET/PUT/PATCH 쿼리에 `deleted_at.is_(None)` 필터 필수
-    - 삭제 = 즉시 스토어 전체 리셋 + 안전한 화면으로 리다이렉트
-    - 404 = 삭제된 것으로 간주, 에러 무시하지 않음
-
-    ### 4. Configuration SSOT (CLAUDE.md "Configuration Principles")
-    - 모든 상수/환경변수는 `backend/config.py`에서 관리
-    - 프롬프트 규칙은 LangFuse에서 관리, 코드 하드코딩 금지
-    - Tag 규칙(충돌/별칙/필터)은 DB 테이블에서 관리
-
-    ### 5. DB Schema (CLAUDE.md "DB Schema Design Principles")
-    - 미디어 참조는 `media_asset_id` FK 필수, URL 직접 저장 금지
-    - Boolean은 Boolean 타입 + `is_`/`_enabled` 네이밍
-    - JSON은 JSONB, Text에 JSON 문자열 저장 금지
-
-    ### 6. Tag Format (CLAUDE.md "Tag Format Standard")
-    - 모든 태그는 언더바(_) 형식 (`brown_hair`, `looking_at_viewer`)
-    - 공백 형식 변환 `tag.replace("_", " ")` 금지
-    - LoRA 트리거 워드만 Civitai 원본 형식 유지
-
-    ### 7. Frontend 규칙
-    - 서비스 화면은 `API_BASE` 사용, `ADMIN_API_BASE`는 어드민 페이지만
-    - UI 최소 폰트 11px, 본문/버튼은 `text-xs`(13px) 이상
-    - 코드 크기: 함수 50줄, 컴포넌트 200줄, 파일 400줄
-
-    ### 8. Service vs Admin API 분리
-    - Service API (`/api/v1`): 일반 사용자 기능
-    - Admin API (`/api/admin`): 시스템 관리, 일괄 작업, 영구 삭제
-
-  high_level_summary: true
+  high_level_summary: false
   high_level_summary_placeholder: "@coderabbitai summary"
   auto_title_placeholder: "@coderabbitai"
-  review_status: true
+  review_status: false
   commit_status: true
-  fail_commit_status: true  # SDD 독립 리뷰어 — 심각 이슈 시 머지 차단
-
-  collapse_walkthrough: false
-  changed_files_summary: true
-  sequence_diagrams: false  # 불필요한 노이즈 감소
+  collapse_walkthrough: true
+  changed_files_summary: false
+  sequence_diagrams: false
 
   assess_linked_issues: true
   related_issues: true
   related_prs: true
 
   suggested_labels: true
-  auto_apply_labels: true  # 라벨 자동 적용
+  auto_apply_labels: true
   suggested_reviewers: false
   auto_assign_reviewers: false
 
@@ -95,115 +69,63 @@ reviews:
     - label: "ai-generation"
       instructions: "services/agent/, Gemini/SD 이미지 생성 파이프라인 변경"
     - label: "config"
-      instructions: "config.py, config_pipelines.py, .env, 환경 설정 변경"
-    - label: "assets"
-      instructions: "폰트, 오버레이, 포즈 에셋 등 정적 자원 변경"
-    - label: "docs"
-      instructions: "docs/, README, CLAUDE.md 등 문서 변경"
+      instructions: "config.py, config_pipelines.py, .env 관련 변경"
 
   # ─── 리뷰 대상 경로 ───
   path_filters:
     - "backend/**"
     - "frontend/**"
     - "audio/**"
-    - "docs/**"
     - "**/*.py"
     - "**/*.ts"
     - "**/*.tsx"
+    # 제외
     - "!frontend/node_modules/**"
     - "!backend/.venv/**"
+    - "!audio/.venv/**"
     - "!**/__pycache__/**"
     - "!backend/outputs/**"
-    - "!audio/.venv/**"
     - "!backend/tests/**"
     - "!audio/tests/**"
     - "!**/*.test.ts"
     - "!**/*.test.tsx"
+    - "!.claude/**"
+    - "!.github/**"
 
-  # ─── 경로별 리뷰 가이드 ───
+  # ─── 경로별 리뷰 가이드 (빈틈 보완, CLAUDE.md와 중복 최소화) ───
   path_instructions:
     - path: "backend/routers/**"
       instructions: |
-        API 라우터 검증:
         - `response_model=` 지정 필수 (raw dict 반환 금지)
-        - 비즈니스 로직은 `services/`에 위임 (라우터는 가볍게)
-        - Service vs Admin 라우터 분리 기준 준수
-        - 신규 엔드포인트 → REST API 명세 문서 업데이트 확인
+        - 비즈니스 로직은 `services/`에 위임
+        - 신규 엔드포인트 → REST API 명세 업데이트 확인
     - path: "backend/models/**"
       instructions: |
-        ORM 모델 검증:
         - Boolean은 `Boolean` 타입 + `is_`/`_enabled` 네이밍
         - 미디어 참조는 `media_asset_id` FK (URL 컬럼 금지)
-        - JSON은 `JSONB` 타입 (Text에 JSON 저장 금지)
-        - FK에 CASCADE 정책 명시
+        - JSON은 `JSONB` 타입
         - DB_SCHEMA.md 업데이트 확인
     - path: "backend/services/agent/**"
       instructions: |
-        LangGraph 파이프라인 검증:
         - Gemini 호출 시 `system_instruction` 분리 (contents에 합치기 금지)
         - `GEMINI_SAFETY_SETTINGS` (config.py) 필수 적용
         - PROHIBITED_CONTENT 시 `GEMINI_FALLBACK_MODEL`로 1회 재시도
-        - 프롬프트 규칙은 LangFuse에서 관리 (코드 하드코딩 금지)
-    - path: "backend/services/video/**"
-      instructions: |
-        렌더링/TTS 파이프라인 검증:
-        - FFmpeg 명령어 쉘 인젝션 방지
-        - 임시 파일 정리 (`shutil.rmtree`) 필수
-        - TTS seed 일관성 (voice_preset.voice_seed 우선)
     - path: "backend/alembic/**"
       instructions: |
-        마이그레이션 검증:
-        - 네이밍 규칙 (Boolean→`is_`, FK→`_id`)
         - downgrade()에 역방향 마이그레이션 포함
         - DB_SCHEMA.md 동기화 확인
-    - path: "frontend/app/store/**"
-      instructions: |
-        Zustand 스토어 검증:
-        - 활성 엔티티 삭제 시 스토어 전체 리셋 + localStorage 정리
-        - autoSave와의 경합 조건 주의
-        - Spread Passthrough 패턴 준수 (Whitelist 매핑 금지)
-    - path: "frontend/app/components/**"
-      instructions: |
-        React 컴포넌트 검증:
-        - 컴포넌트 200줄, 파일 400줄 한도
-        - API 호출은 `/api/` 상대 경로 (Next.js rewrite 프록시 경유)
-        - 서비스 화면에서 `ADMIN_API_BASE` 사용 금지
-        - 최소 폰트 11px, 본문 `text-xs` 이상
-    - path: "frontend/app/hooks/**"
-      instructions: |
-        커스텀 훅 검증:
-        - useEffect 의존성 배열 정확성 (무한 루프 방지)
-        - useCallback deps에 불안정 참조 포함 여부
-        - cleanup 함수 반환 필수 (구독/타이머)
     - path: "backend/config.py"
       instructions: |
-        설정 SSOT 검증:
-        - 모든 상수/환경변수는 이 파일에서 관리
-        - 개별 파일 하드코딩 금지
-        - os.getenv() 기본값에 localhost 사용 시 환경별 오버라이드 가능한지 확인
-    - path: "backend/services/keywords/**"
+        - 새 os.getenv() 추가 시 .env.example 동기화 필수
+        - 기본값에 localhost 사용 시 환경별 오버라이드 가능한지 확인
+    - path: "frontend/app/store/**"
       instructions: |
-        태그 시스템 검증:
-        - 태그 형식은 언더바(_) 필수 — 공백 형식 변환 금지
-        - 태그 규칙(충돌/별칭/필터)은 DB 테이블에서 관리, 코드 하드코딩 금지
-        - TagCategoryCache, TagAliasCache 등 런타임 캐시 정합성
+        - 활성 엔티티 삭제 시 스토어 전체 리셋
+        - Spread Passthrough 패턴 준수 (Whitelist 매핑 금지)
     - path: "backend/services/storyboard/**"
       instructions: |
-        스토리보드 CRUD 검증:
         - 모든 쿼리에 `deleted_at.is_(None)` 필터 필수
-        - Scene Builder의 Spread Passthrough 패턴 준수
-        - 씬 직렬화 시 URL 필드 제외 (`exclude={"image_url"}`)
-    - path: "backend/services/characters/**"
-      instructions: |
-        캐릭터 관리 검증:
-        - positive_prompt + negative_prompt 2-필드 SSOT
-        - 공통 태그는 config.py 상수에서 관리 — DB에 중복 저장 금지
-        - Character는 Group에 종속 (group_id NOT NULL)
-    - path: "backend/schemas.py"
-      instructions: |
-        Pydantic 스키마 검증:
-        - URL 필드에 용도 주석 필수 (Response-only / Input-only / Transient)
-        - `dict | None` 금지 — 구체적 Pydantic 모델 사용
+        - Spread Passthrough 패턴 준수
 
   abort_on_close: true
   disable_cache: false
@@ -211,13 +133,44 @@ reviews:
   # ─── 자동 리뷰 설정 ───
   auto_review:
     enabled: true
-    auto_incremental_review: true
+    auto_incremental_review: false  # PR 생성 시 1회. 재리뷰: @coderabbitai review
     ignore_title_keywords:
       - "WIP"
       - "[draft]"
     drafts: false
     base_branches:
       - "main"
+
+  # ─── 도구 (pre-commit hook과 중복 최소화) ───
+  tools:
+    ruff:
+      enabled: true
+    eslint:
+      enabled: true
+    markdownlint:
+      enabled: false
+    languagetool:
+      enabled: false
+    yamllint:
+      enabled: false
+    shellcheck:
+      enabled: false
+    biome:
+      enabled: false
+    hadolint:
+      enabled: false
+    phpstan:
+      enabled: false
+    golangci-lint:
+      enabled: false
+    swiftlint:
+      enabled: false
+    checkov:
+      enabled: false
+    detekt:
+      enabled: false
+    gitleaks:
+      enabled: true   # 시크릿 유출 감지는 유지
 
 # ─── 챗봇 ───
 chat:
@@ -227,16 +180,13 @@ chat:
 knowledge_base:
   opt_out: false
   web_search:
-    enabled: true
+    enabled: false  # 비용 절감
   code_guidelines:
     enabled: true
-    filePatterns:
-      - "CLAUDE.md"
-      - "docs/guides/CONTRIBUTING.md"
-      - "docs/03_engineering/architecture/DB_SCHEMA.md"
-      - "docs/03_engineering/api/REST_API.md"
+    # CLAUDE.md는 기본 자동 포함. 나머지는 CLAUDE.md가 참조하므로 별도 로드 불필요.
+    filePatterns: []
   learnings:
-    scope: auto
+    scope: auto  # @coderabbitai 피드백 → 자동 학습 → false positive 감소
   issues:
     scope: auto
   pull_requests:
