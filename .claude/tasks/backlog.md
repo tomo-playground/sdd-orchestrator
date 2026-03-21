@@ -12,6 +12,7 @@
 
 ## P1 (최우선)
 
+- [ ] SP-044 — Sentry 에러 자동 수정 파이프라인 (에러 감지 → 테스트 → 수정 → PR → 사람은 머지만)
 - [ ] SP-042 — LangFuse 트레이스 품질 개선 (output undefined + 이중 observation + CHAIN 중복)
 - [ ] SP-043 — 파이프라인 모델 최적화 (review/creative_agent Flash 전환 + thinking budget)
 - [x] ~~SP-010~~ | ~~SP-017~~ | ~~SP-018~~ | ~~SP-030~~ | ~~SP-031~~ | ~~SP-032~~ | ~~SP-037~~ (완료)
