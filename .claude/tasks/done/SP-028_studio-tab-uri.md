@@ -4,7 +4,7 @@ priority: P2
 scope: frontend
 branch: feat/SP-028-studio-tab-uri
 created: 2026-03-21
-status: pending
+status: done
 depends_on:
 label: enhancement
 assignee: stopper2008
