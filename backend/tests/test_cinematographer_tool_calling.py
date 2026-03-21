@@ -303,7 +303,8 @@ async def test_cinematographer_node_no_db_in_config():
 
 @pytest.mark.asyncio
 @patch("config_pipelines.CINEMATOGRAPHER_COMPETITION_ENABLED", False)
-async def test_cinematographer_node_json_parsing_graceful():
+@patch("services.agent.nodes.cinematographer._run_team", new_callable=AsyncMock, return_value=None)
+async def test_cinematographer_node_json_parsing_graceful(mock_team):
     """JSON 파싱 2회 실패 → error 미설정, cinematographer_result=None (graceful)."""
     mock_db = AsyncMock()
 
@@ -328,15 +329,16 @@ async def test_cinematographer_node_json_parsing_graceful():
 
     assert "error" not in result
     assert result["cinematographer_result"] is None
-    # attempt 1: call_with_tools 1회, attempt 2: call_direct 1회
+    # attempt 1: call_with_tools 1회, attempt 2: call_direct 1회 (team은 mock으로 skip)
     assert mock_call.call_count == 1
     assert mock_direct.call_count == 1
 
 
 @pytest.mark.asyncio
 @patch("config_pipelines.CINEMATOGRAPHER_COMPETITION_ENABLED", False)
-async def test_cinematographer_node_retry_succeeds_on_second_attempt():
-    """첫 번째 파싱 실패 → 두 번째 성공 (retry via call_direct). Competition 비활성화 상태로 테스트."""
+@patch("services.agent.nodes.cinematographer._run_team", new_callable=AsyncMock, return_value=None)
+async def test_cinematographer_node_retry_succeeds_on_second_attempt(mock_team):
+    """첫 번째 파싱 실패 → 두 번째 성공 (retry via call_direct). Competition+Team 비활성화 상태."""
     mock_db = AsyncMock()
 
     state: ScriptState = {

@@ -20,6 +20,15 @@ class DirectorPlan(TypedDict, total=False):
     quality_criteria: list[str]  # 품질 기준 3-5개
     risk_areas: list[str]  # 예상 위험 요소
     style_direction: str  # 스타일 방향
+    visual_direction: str  # 비주얼 방향 (톤, 서사 구조, 클라이막스 위치)
+
+
+class CineTeamResult(TypedDict, total=False):
+    """Cinematographer 팀 서브 에이전트 중간 결과."""
+
+    framing: dict  # Framing Agent 출력 (camera, gaze, ken_burns per scene)
+    action: dict  # Action Agent 출력 (action, pose, emotion, props per scene)
+    atmosphere: dict  # Atmosphere Agent 출력 (environment, cinematic per scene)
 
 
 class SceneReasoning(TypedDict, total=False):

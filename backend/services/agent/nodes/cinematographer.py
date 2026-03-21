@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 
 from langchain_core.runnables import RunnableConfig
 
@@ -12,7 +11,6 @@ from database import get_db_session
 from services.agent.observability import record_score
 from services.agent.state import ScriptState
 from services.creative_qc import validate_visuals
-from services.creative_utils import parse_json_response
 
 _EMPTY_RESULT: dict = {"cinematographer_result": None, "cinematographer_tool_logs": []}
 
@@ -176,8 +174,7 @@ async def _try_competition(
 
 
 async def _run(state: ScriptState, db_session: object) -> dict:
-    """Cinematographer 핵심 로직. DB 세션이 보장된 상태에서 실행."""
-    from ..tools.base import call_direct, call_with_tools  # noqa: PLC0415
+    """Cinematographer 오케스트레이터: Competition → Team → Single fallback."""
     from ..tools.cinematographer_tools import (  # noqa: PLC0415
         create_cinematographer_executors,
         get_cinematographer_tools,
@@ -188,9 +185,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
 
     scenes = state.get("draft_scenes") or []
     director_feedback = state.get("director_feedback")
-
     characters_tags = _load_characters_tags(state, db_session) or {}
-
     style = state.get("style", "Anime")
     writer_plan = state.get("writer_plan")
 
@@ -198,8 +193,8 @@ async def _run(state: ScriptState, db_session: object) -> dict:
 
     chat_context = sanitize_chat_context(state.get("chat_context") or [])
 
-    from services.agent.langfuse_prompt import compile_prompt
-    from services.agent.prompt_builders_c import (
+    from services.agent.langfuse_prompt import compile_prompt  # noqa: PLC0415
+    from services.agent.prompt_builders_c import (  # noqa: PLC0415
         build_character_tags_fallback,
         build_characters_tags_block,
         build_chat_context_cinematographer,
@@ -209,16 +204,20 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         build_style_section,
         build_writer_plan_section,
     )
-    from services.agent.prompt_partials import EMOTION_CONSISTENCY_RULES, IMAGE_PROMPT_KO_RULES
+    from services.agent.prompt_partials import EMOTION_CONSISTENCY_RULES, IMAGE_PROMPT_KO_RULES  # noqa: PLC0415
+
+    characters_tags_block = build_characters_tags_block(characters_tags)
+    style_section = build_style_section(style)
+    writer_plan_section = build_writer_plan_section(writer_plan)
 
     _cine_template = "creative/cinematographer"
     compiled = compile_prompt(
         _cine_template,
         scenes_json=json.dumps(scenes, ensure_ascii=False, indent=2),
-        characters_tags_block=build_characters_tags_block(characters_tags),
+        characters_tags_block=characters_tags_block,
         character_tags_fallback=build_character_tags_fallback(None),
-        style_section=build_style_section(style),
-        writer_plan_section=build_writer_plan_section(writer_plan),
+        style_section=style_section,
+        writer_plan_section=writer_plan_section,
         chat_context_block=build_chat_context_cinematographer(chat_context),
         creative_direction_section=build_creative_direction_section(state.get("creative_direction")),
         cine_feedback_section=build_cine_feedback_section(director_feedback),
@@ -228,11 +227,119 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     )
     base_prompt = compiled.user
 
-    # Full 모드 경쟁 시도 (성공 시 즉시 반환)
+    # 1) Competition 시도 (Full 모드)
     if "production" not in (state.get("skip_stages") or []):
         comp_result = await _try_competition(state, db_session, base_prompt, director_feedback)
         if comp_result:
             return comp_result
+
+    # 2) Team 실행 시도 (4 서브 에이전트 순차)
+    scenes_json = json.dumps(scenes, ensure_ascii=False, indent=2)
+    visual_direction = (state.get("director_plan") or {}).get("visual_direction", "")
+
+    team_result = await _run_team(
+        scenes_json=scenes_json,
+        visual_direction=visual_direction,
+        writer_plan_section=writer_plan_section,
+        characters_tags_block=characters_tags_block,
+        style_section=style_section,
+        image_prompt_ko_rules=IMAGE_PROMPT_KO_RULES,
+        emotion_consistency_rules=EMOTION_CONSISTENCY_RULES,
+        tools=tools,
+        tool_executors=executors,
+    )
+    if team_result:
+        return team_result
+
+    # 3) Single-agent fallback
+    logger.info("[Cinematographer] Team 실패, 단일 에이전트 fallback")
+    return await _run_single(
+        base_prompt=base_prompt,
+        compiled=compiled,
+        director_feedback=director_feedback,
+        tools=tools,
+        executors=executors,
+        cine_template=_cine_template,
+    )
+
+
+async def _run_team(
+    *,
+    scenes_json: str,
+    visual_direction: str,
+    writer_plan_section: str,
+    characters_tags_block: str,
+    style_section: str,
+    image_prompt_ko_rules: str,
+    emotion_consistency_rules: str,
+    tools: list,
+    tool_executors: dict,
+) -> dict | None:
+    """4 서브 에이전트 순차 실행: Framing → Action → Atmosphere → Compositor."""
+    from ._cine_action import run_action  # noqa: PLC0415
+    from ._cine_atmosphere import run_atmosphere  # noqa: PLC0415
+    from ._cine_compositor import run_compositor  # noqa: PLC0415
+    from ._cine_framing import run_framing  # noqa: PLC0415
+
+    # 1) Framing — 카메라, 시선, Ken Burns
+    framing = await run_framing(scenes_json, visual_direction, writer_plan_section)
+    if not framing:
+        logger.warning("[CineTeam] Framing 실패, 팀 중단")
+        return None
+
+    # 2) Action — 감정, 포즈, 액션, 소품 (Framing 참조)
+    action = await run_action(scenes_json, framing, characters_tags_block)
+    if not action:
+        logger.warning("[CineTeam] Action 실패, 팀 중단")
+        return None
+
+    # 3) Atmosphere — 환경, 시네마틱 (Framing + Action 참조)
+    atmosphere = await run_atmosphere(scenes_json, framing, action, style_section, writer_plan_section)
+    if not atmosphere:
+        logger.warning("[CineTeam] Atmosphere 실패, 팀 중단")
+        return None
+
+    # 4) Compositor — 통합 + 정합성 추론 + 태그 검증
+    scenes_output, tool_logs = await run_compositor(
+        scenes_json,
+        framing,
+        action,
+        atmosphere,
+        characters_tags_block,
+        style_section,
+        image_prompt_ko_rules,
+        emotion_consistency_rules,
+        tools,
+        tool_executors,
+    )
+    if not scenes_output:
+        logger.warning("[CineTeam] Compositor 실패, 팀 중단")
+        return None
+
+    qc = validate_visuals(scenes_output)
+    if not qc["ok"]:
+        logger.warning("[CineTeam] QC WARN/FAIL: %s", qc.get("issues"))
+
+    logger.info("[CineTeam] 완료: %d scenes, %d tool calls", len(scenes_output), len(tool_logs))
+    record_score("visual_qc_issues", len(qc.get("issues", [])))
+    return {
+        "cinematographer_result": {"scenes": scenes_output},
+        "cinematographer_tool_logs": tool_logs,
+        "visual_qc_result": qc,
+    }
+
+
+async def _run_single(
+    *,
+    base_prompt: str,
+    compiled: object,
+    director_feedback: str | None,
+    tools: list,
+    executors: dict,
+    cine_template: str,
+) -> dict:
+    """단일 에이전트 실행 (기존 Tool-Calling 방식)."""
+    from ..tools.base import call_direct, call_with_tools  # noqa: PLC0415
 
     prompt_parts = [
         "당신은 쇼츠 영상의 Cinematographer Agent입니다.",
@@ -244,60 +351,23 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         "- check_tag_compatibility: 두 태그의 충돌 여부 확인",
         "- search_similar_compositions: 유사한 분위기의 레퍼런스 태그 조합 검색",
         "",
-        "도구 사용 가이드:",
-        "- 캐릭터 ID가 있으면 먼저 get_character_visual_tags를 호출하세요",
-        "- 새로운 태그를 추가하기 전에 validate_danbooru_tag로 검증하세요",
-        "- 중요한 태그 조합은 check_tag_compatibility로 충돌 여부를 확인하세요",
-        "",
         f"대본 정보:\n{base_prompt}",
     ]
-
     if director_feedback:
         prompt_parts.append(f"\n[Director 피드백]\n{director_feedback}")
-
-    prompt_parts.append(
-        """
-[중요] 최종 출력 규칙:
-- 반드시 아래 JSON 형식으로만 응답하세요
-- 자연어 설명, 인사말, 확인 메시지를 절대 포함하지 마세요
-- "네, 알겠습니다" 같은 대화체 응답 금지
-- 순수 JSON만 출력하세요
-
-{
-  "scenes": [
-    {
-      "order": 1,
-      "text": "씬 대본",
-      "visual_tags": ["tag1", "tag2", ...],
-      "camera": "close-up",
-      "environment": "indoors"
-    },
-    ...
-  ]
-}
-"""
-    )
-
+    prompt_parts.append(_JSON_OUTPUT_INSTRUCTION)
     prompt = "\n".join(prompt_parts)
 
-    # Tool-Calling 실행 (빈 응답 시 도구 없이 직접 재시도)
     max_attempts = 2
     tool_logs: list = []
     scenes_output: list[dict] | None = None
     cine_obs_id: str | None = None
 
-    _JSON_RETRY_SUFFIX = (
-        "\n\n[CRITICAL] 이전 응답에서 유효한 JSON을 받지 못했습니다. "
-        "자연어 텍스트나 대화체 응답은 절대 금지입니다. "
-        '반드시 {"scenes": [...]} JSON 형식으로만 응답하세요. '
-        "markdown 코드블록이나 설명 텍스트를 포함하지 마세요."
-    )
-
     for attempt in range(1, max_attempts + 1):
         current_prompt = prompt if attempt == 1 else prompt + _JSON_RETRY_SUFFIX
         try:
-            logger.info("[Cinematographer] Agent 시작 (attempt %d/%d)", attempt, max_attempts)
-            _cine_metadata = {"template": _cine_template}
+            logger.info("[Cinematographer] Single agent (attempt %d/%d)", attempt, max_attempts)
+            _meta = {"template": cine_template}
             if attempt == 1:
                 response, attempt_logs, cine_obs_id = await call_with_tools(
                     prompt=current_prompt,
@@ -305,50 +375,43 @@ async def _run(state: ScriptState, db_session: object) -> dict:
                     tool_executors=executors,
                     max_calls=10,
                     trace_name="cinematographer",
-                    system_instruction=compiled.system
-                    or "당신은 쇼츠 영상의 Cinematographer Agent입니다. 각 씬에 Danbooru 태그, 카메라 앵글, 환경 설정을 추가하여 비주얼 디자인을 완성하세요.",
-                    metadata=_cine_metadata,
+                    system_instruction=compiled.system  # type: ignore[attr-defined]
+                    or "당신은 쇼츠 영상의 Cinematographer Agent입니다.",
+                    metadata=_meta,
                 )
                 tool_logs = attempt_logs
             else:
-                # 재시도: 도구 없이 직접 JSON 생성 (자연어 응답 방지)
                 logger.info("[Cinematographer] 재시도: 도구 없이 직접 JSON 생성")
                 response = await call_direct(
                     prompt=current_prompt,
                     trace_name="cinematographer",
                     temperature=0.0,
-                    system_instruction=compiled.system
-                    or "당신은 쇼츠 영상의 Cinematographer Agent입니다. 반드시 JSON 형식으로만 응답하세요.",
-                    metadata=_cine_metadata,
+                    system_instruction=compiled.system  # type: ignore[attr-defined]
+                    or "당신은 쇼츠 영상의 Cinematographer Agent입니다.",
+                    metadata=_meta,
                 )
         except Exception as e:
             logger.warning("[Cinematographer] Agent 실패 (graceful): %s", e)
-            record_score("visual_qc_issues", None)  # 측정 불가 → skip
+            record_score("visual_qc_issues", None)
             return _EMPTY_RESULT
 
         scenes_output = _parse_scenes(response)
         if scenes_output is not None:
             break
-
         if attempt < max_attempts:
             logger.warning("[Cinematographer] JSON 파싱 실패 (attempt %d), 재시도", attempt)
         else:
-            logger.warning(
-                "[Cinematographer] JSON 파싱 실패 (%d회 시도), cinematographer_result=None으로 진행", max_attempts
-            )
-            record_score("visual_qc_issues", None)  # 측정 불가 → skip
+            logger.warning("[Cinematographer] JSON 파싱 실패 (%d회), None으로 진행", max_attempts)
+            record_score("visual_qc_issues", None)
             return {"cinematographer_result": None, "cinematographer_tool_logs": tool_logs}
 
-    # 타입 가드: for 루프는 break(성공) 또는 return(실패)으로 종료되므로 여기에 도달하면 반드시 not None
     assert scenes_output is not None  # noqa: S101
 
-    # QC 검증 (WARN은 통과, FAIL만 로깅 후 결과 그대로 반환)
     qc = validate_visuals(scenes_output)
     if not qc["ok"]:
         logger.warning("[Cinematographer] QC WARN/FAIL: %s (결과는 유지)", qc.get("issues"))
 
-    logger.info("[Cinematographer] Tool-Calling 완료 (%d 씬, %d 도구 호출)", len(scenes_output), len(tool_logs))
-    # Score 기록 (Phase 38)
+    logger.info("[Cinematographer] Single agent 완료 (%d 씬, %d 도구)", len(scenes_output), len(tool_logs))
     record_score("visual_qc_issues", len(qc.get("issues", [])), observation_id=cine_obs_id)
     return {
         "cinematographer_result": {"scenes": scenes_output},
@@ -357,92 +420,19 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     }
 
 
-def _parse_scenes(response: str) -> list[dict] | None:
-    """LLM 응답에서 scenes 배열을 추출한다.
+_JSON_OUTPUT_INSTRUCTION = """
+[중요] 최종 출력 규칙:
+- 반드시 아래 JSON 형식으로만 응답하세요
+- 자연어 설명, 인사말, 확인 메시지를 절대 포함하지 마세요
+- 순수 JSON만 출력하세요
 
-    추출 전략 (우선순위):
-    1. ```json 코드블록 내부
-    2. 응답 전체를 parse_json_response()로 시도
-    3. {"scenes" 패턴 위치부터 끝까지 추출
-    빈 응답 시 즉시 None 반환.
-    """
-    if not response or not response.strip():
-        logger.warning("[Cinematographer] 빈 응답 수신, 파싱 스킵")
-        return None
+{"scenes": [{"order": 1, "text": "씬 대본", "visual_tags": ["tag1"], "camera": "close-up", "environment": "indoors"}, ...]}
+"""
 
-    # 전략 1: ```json 코드블록 추출
-    match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
-    if match:
-        parsed = _try_parse_json_dict(match.group(1))
-        if parsed is not None:
-            return parsed
-
-    # 전략 2: 응답 전체를 직접 파싱
-    parsed = _try_parse_json_dict(response)
-    if parsed is not None:
-        return parsed
-
-    # 전략 3: {"scenes" 패턴부터 매칭 중괄호까지 추출 (앞뒤에 텍스트가 붙는 경우)
-    scenes_idx = response.find('{"scenes"')
-    if scenes_idx == -1:
-        scenes_idx = response.find("{'scenes")  # single-quote fallback
-    if scenes_idx >= 0:
-        json_candidate = _extract_balanced_braces(response, scenes_idx)
-        if json_candidate:
-            parsed = _try_parse_json_dict(json_candidate)
-            if parsed is not None:
-                return parsed
-        # 균형 추출 실패 시 끝까지 시도
-        parsed = _try_parse_json_dict(response[scenes_idx:])
-        if parsed is not None:
-            return parsed
-
-    logger.warning(
-        "[Cinematographer] JSON 파싱 실패: 유효한 scenes JSON을 찾을 수 없음 (응답 길이=%d, 앞 100자=%r)",
-        len(response),
-        response[:100],
-    )
-    return None
+_JSON_RETRY_SUFFIX = (
+    '\n\n[CRITICAL] 이전 응답에서 유효한 JSON을 받지 못했습니다. 반드시 {"scenes": [...]} JSON 형식으로만 응답하세요.'
+)
 
 
-def _extract_balanced_braces(text: str, start: int) -> str | None:
-    """start 위치의 '{'부터 대응하는 '}'까지 추출한다. 실패 시 None."""
-    if start >= len(text) or text[start] != "{":
-        return None
-    depth = 0
-    in_string = False
-    escape = False
-    for i in range(start, len(text)):
-        ch = text[i]
-        if escape:
-            escape = False
-            continue
-        if ch == "\\":
-            escape = True
-            continue
-        if ch == '"':
-            in_string = not in_string
-            continue
-        if in_string:
-            continue
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start : i + 1]
-    return None
-
-
-def _try_parse_json_dict(text: str) -> list[dict] | None:
-    """텍스트에서 scenes 배열을 가진 dict를 파싱. 실패 시 None."""
-    if not text or not text.strip():
-        return None
-    try:
-        result_data = parse_json_response(text)
-        if not isinstance(result_data, dict):
-            return None
-        scenes = result_data.get("scenes")
-        return scenes if isinstance(scenes, list) else None
-    except (json.JSONDecodeError, ValueError, TypeError):
-        return None
+# 파싱 함수는 _cine_common에서 import (하위 호환용 re-export)
+from services.agent.nodes._cine_common import parse_scenes as _parse_scenes  # noqa: E402
