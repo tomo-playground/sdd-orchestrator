@@ -1,3 +1,4 @@
+import { useContextStore } from "../useContextStore";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useUIStore } from "../useUIStore";
 import { persistStoryboard } from "../actions/storyboardActions";
@@ -20,8 +21,11 @@ export function cancelPendingSave() {
 function scheduleSave(force = false) {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(async () => {
+    const { storyboardId } = useContextStore.getState();
     const { isDirty, scenes, isScriptGenerating } = useStoryboardStore.getState();
     const { isAutoRunning } = useUIStore.getState();
+    // Skip save if no storyboardId — new storyboard creation is user-explicit only
+    if (!storyboardId) return;
     // Skip save during autoRun — it manages its own persist calls
     // Skip save during script generation — casting data not yet available (race condition)
     const hasGeneratingScene = scenes.some((s) => s.isGenerating);

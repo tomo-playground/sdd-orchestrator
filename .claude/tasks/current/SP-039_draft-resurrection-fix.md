@@ -4,7 +4,7 @@ priority: P0
 scope: fullstack
 branch: fix/SP-039-draft-resurrection
 created: 2026-03-21
-status: pending
+status: running
 depends_on:
 label: bug
 assignee: stopper2008

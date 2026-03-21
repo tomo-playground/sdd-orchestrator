@@ -54,10 +54,10 @@ export default function StudioKanbanView() {
         variant: "danger",
       });
       if (!ok) return;
+      cancelPendingSave();
       const deleted = await deleteStoryboard(id);
       if (deleted) {
         if (id === storyboardId) {
-          cancelPendingSave();
           await resetAllStores();
           clearStudioUrlParams();
         }

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { useContextStore } from "../../useContextStore";
 import { useStoryboardStore } from "../../useStoryboardStore";
 import { useUIStore } from "../../useUIStore";
 
@@ -22,6 +23,9 @@ describe("autoSave", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    vi.spyOn(useContextStore, "getState").mockReturnValue({
+      storyboardId: 42,
+    } as never);
     vi.spyOn(useStoryboardStore, "subscribe").mockReturnValue(vi.fn());
     vi.spyOn(useStoryboardStore, "getState").mockReturnValue({
       isDirty: true,
@@ -209,6 +213,20 @@ describe("autoSave", () => {
 
     await vi.advanceTimersByTimeAsync(2000);
     expect(persistStoryboard).toHaveBeenCalledTimes(1);
+  });
+
+  it("storyboardId가 null이면 autoSave 건너뜀 (삭제 방어)", async () => {
+    vi.spyOn(useContextStore, "getState").mockReturnValue({
+      storyboardId: null,
+    } as never);
+
+    cleanup = initAutoSave();
+
+    triggerSubscription({ isDirty: true }, { isDirty: false });
+
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(persistStoryboard).not.toHaveBeenCalled();
   });
 
   it("일부 씬만 생성 중이어도 저장 건너뜀", async () => {

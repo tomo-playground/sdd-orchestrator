@@ -175,7 +175,7 @@ export async function saveStoryboard(): Promise<boolean> {
  * Silently persist storyboard to DB (no toast).
  * PUT if storyboardId exists, POST otherwise.
  */
-export async function persistStoryboard(retrying = false): Promise<boolean> {
+export async function persistStoryboard(): Promise<boolean> {
   const { storyboardId, groupId } = useContextStore.getState();
   if (useStoryboardStore.getState().scenes.length === 0 || !groupId) return false;
 
@@ -231,15 +231,16 @@ export async function persistStoryboard(retrying = false): Promise<boolean> {
       await syncVersionAfterConflict();
       return false;
     }
-    if (axios.isAxiosError(error) && error.response?.status === 404 && !retrying) {
-      console.warn("[persistStoryboard] 404 — stale storyboardId, retrying as new");
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      console.warn("[persistStoryboard] 404 — storyboard deleted, clearing state");
       useContextStore.getState().setContext({ storyboardId: null });
       if (typeof window !== "undefined") {
         const url = new URL(window.location.href);
         url.searchParams.delete("id");
         window.history.replaceState({}, "", url.toString());
       }
-      return persistStoryboard(true);
+      useUIStore.getState().showToast("삭제된 영상입니다. 새 영상을 만들어주세요.", "warning");
+      return false;
     }
     console.error("[persistStoryboard] Failed:", error);
     useUIStore.getState().showToast("저장에 실패했습니다. 다시 시도해 주세요.", "error");
