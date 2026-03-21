@@ -17,6 +17,7 @@
 - [x] ~~SP-010 — API Proxy Internal~~ (완료, PR #45 머지)
 - [x] ~~SP-017 — 파이프라인 로깅 사각지대 해소~~ (PR #63 머지)
 - [x] ~~SP-018 — Sentry Cloud 연동~~ (PR #64 머지)
+- [ ] SP-032 — 로깅 역할별 분리 (backend/pipeline/gemini/test.log)
 - [ ] SP-031 — Gemini Tool Calling 할루시네이션 방어 (Sentry 이슈 4건: unknown_tool, Talking_tool)
 - [ ] SP-030 — LangFuse 타입 분류 (AGENT/TOOL/CHAIN) — Agentic Pipeline 가시성 확보
 - [ ] SP-019 — AI QA 자동 순찰 + 자동 수정 (depends_on: SP-018)
