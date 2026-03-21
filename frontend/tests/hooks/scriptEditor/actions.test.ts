@@ -21,6 +21,10 @@ vi.hoisted(() => {
   globalThis.localStorage = mock as unknown as Storage;
 });
 
+vi.mock("../../../app/store/actions/outputActions", () => ({
+  initializeVideoMetadata: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   buildSyncMeta,
   buildGenerateBody,
@@ -311,9 +315,7 @@ describe("handleStreamOutcome", () => {
       setState,
       dirtyRef,
       showToast,
-      warnings: [
-        "TTS Designer 실패: voice design이 누락되어 기본 음성으로 생성됩니다.",
-      ],
+      warnings: ["TTS Designer 실패: voice design이 누락되어 기본 음성으로 생성됩니다."],
     });
 
     expect(result).toBe(true);

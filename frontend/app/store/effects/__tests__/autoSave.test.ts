@@ -29,6 +29,8 @@ describe("autoSave", () => {
     } as never);
     vi.spyOn(useUIStore, "getState").mockReturnValue({
       isAutoRunning: false,
+      set: vi.fn(),
+      showToast: vi.fn(),
     } as never);
   });
 
@@ -156,6 +158,8 @@ describe("autoSave", () => {
   it("isAutoRunning 중 autoSave 건너뜀", async () => {
     vi.spyOn(useUIStore, "getState").mockReturnValue({
       isAutoRunning: true,
+      set: vi.fn(),
+      showToast: vi.fn(),
     } as never);
 
     cleanup = initAutoSave();

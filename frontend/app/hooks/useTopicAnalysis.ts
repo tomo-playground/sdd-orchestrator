@@ -17,8 +17,7 @@ import {
   createAssistantMessage,
   createUserMessage,
 } from "../utils/chatMessageFactory";
-import { useContextStore } from "../store/useContextStore";
-import { ensureDraftStoryboard, commitDraftContext } from "../store/actions/draftActions";
+import { ensureDraftStoryboard } from "../store/actions/draftActions";
 
 /** chatMessages에서 user/clarification/settings_recommend만 추출하여 {role, text} 배열로 변환 */
 function buildChatHistory(messages: ChatMessage[]): Array<{ role: string; text: string }> {
@@ -102,13 +101,8 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
       abortRef.current = controller;
       const typingId = addTypingIndicator("분석 중...");
       try {
-        // Draft storyboard 확보 (첫 호출 시 생성, 이후 기존 ID 반환)
-        // deferSideEffects: context/URL 업데이트를 analyze 완료 후로 지연
-        // → storyboardId 변경에 의한 리렌더/abort 방지
-        const isNewDraft = !useContextStore.getState().storyboardId;
-        const draftId = await ensureDraftStoryboard(
-          isNewDraft ? { deferSideEffects: true } : undefined
-        );
+        // Draft storyboard 확보 (useStudioInitialization에서 선생성, 여기는 fallback)
+        const draftId = await ensureDraftStoryboard();
         if (draftId === null) {
           removeTypingIndicator(typingId);
           isAnalyzingRef.current = false;
@@ -152,8 +146,6 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
           editorRef.current?.setField("topic", data.resolved_topic);
         }
 
-        // 응답 메시지를 먼저 추가 (commitDraftContext 전에)
-        // commitDraftContext가 storyboardId를 변경하면 chat history가 전환되어 메시지 유실
         if (data.status === "clarify") {
           addMessage({
             id: createMessageId(),
@@ -172,11 +164,6 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
             recommendation: data,
             timestamp: Date.now(),
           });
-        }
-
-        // Deferred side effects: 메시지 추가 후 context/URL 업데이트
-        if (isNewDraft && draftId) {
-          commitDraftContext(draftId);
         }
       } catch (err) {
         removeTypingIndicator(typingId);

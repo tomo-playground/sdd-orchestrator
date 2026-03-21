@@ -78,18 +78,13 @@ export default function StudioKanbanView() {
     resetTransientStores();
     useChatStore.getState().clearMessages(null);
 
-    // Draft를 먼저 생성하고 ?id=로 진입 → sendMessage에서 context 변경 불필요
-    const { ensureDraftStoryboard, commitDraftContext } =
-      await import("../../store/actions/draftActions");
-    const draftId = await ensureDraftStoryboard({ deferSideEffects: true });
-    if (draftId) {
-      commitDraftContext(draftId);
-      useUIStore.getState().set({ isNewStoryboardMode: true });
-      router.push(`/studio?id=${draftId}`);
-    } else {
-      // fallback: 기존 방식
-      router.push("/studio?new=true");
-    }
+    // Draft 선생성 + isNewStoryboardMode 설정 → 채팅 화면 즉시 진입
+    const { ensureDraftStoryboard } = await import("../../store/actions/draftActions");
+    const draftId = await ensureDraftStoryboard();
+    const currentSbId = useContextStore.getState().storyboardId;
+    if (draftId === null) return;
+    if (currentSbId !== null && currentSbId !== draftId) return;
+    useUIStore.getState().set({ isNewStoryboardMode: true });
   };
 
   if (!projectId) {

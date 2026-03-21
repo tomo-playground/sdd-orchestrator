@@ -37,6 +37,7 @@ export function useStudioInitialization() {
   const newHandledRef = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
     const isNewStoryboard = searchParams.get("new") === "true";
     if (!isNewStoryboard) {
       // After ?new=true URL cleanup, skip one re-render to preserve isNewStoryboardMode
@@ -57,13 +58,29 @@ export function useStudioInitialization() {
     // Async IIFE to handle resetAllStores (now async)
     (async () => {
       await resetAllStores();
-      // Set store flag before URL cleanup (URL-independent new mode)
-      useUIStore.getState().set({ isNewStoryboardMode: true });
+      if (cancelled) return;
 
       const { effectiveCharacterId } = useContextStore.getState();
       if (effectiveCharacterId) {
         setPlan({ selectedCharacterId: effectiveCharacterId });
       }
+
+      // Draft 선생성: sendMessage에서 context 변경 없이 바로 analyze 가능
+      let draftId: number | null = null;
+      try {
+        const { ensureDraftStoryboard } = await import("../store/actions/draftActions");
+        draftId = await ensureDraftStoryboard();
+      } catch {
+        // silent — sendMessage에서 fallback 생성
+      }
+      if (cancelled || draftId === null) {
+        newHandledRef.current = false; // 재시도 허용
+        return;
+      }
+
+      // Gate 해제: draft 생성 완료 후에 isNewStoryboardMode 설정
+      // → 채팅 입력이 가능해지는 시점에 storyboardId가 이미 존재
+      useUIStore.getState().set({ isNewStoryboardMode: true });
 
       // Apply backend generation defaults and SSOT config to freshly reset store
       try {
@@ -95,6 +112,10 @@ export function useStudioInitialization() {
       url.searchParams.delete("id");
       window.history.replaceState({}, "", url.toString());
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams, setPlan]);
 
   // Sync Backend SSOT values (hi_res_defaults, image_defaults, tts_engine) on mount.
