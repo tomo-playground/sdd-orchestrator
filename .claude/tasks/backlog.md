@@ -12,7 +12,8 @@
 
 ## P1 (최우선)
 
-- [ ] SP-042 — LangFuse output undefined 수정 (trace_context + 이중 AGENT span 제거)
+- [ ] SP-042 — LangFuse 트레이스 품질 개선 (output undefined + 이중 observation + CHAIN 중복)
+- [ ] SP-043 — 파이프라인 모델 최적화 (review/creative_agent Flash 전환 + thinking budget)
 - [ ] SP-037 — 서버 운영 안정성 (uvicorn keep-alive, SD 헬스체크, GC cron)
 - [x] ~~SP-010~~ | ~~SP-017~~ | ~~SP-018~~ | ~~SP-030~~ | ~~SP-031~~ | ~~SP-032~~ (완료)
 - [ ] SP-019 — AI QA 자동 순찰 + 자동 수정 (depends_on: SP-018)
