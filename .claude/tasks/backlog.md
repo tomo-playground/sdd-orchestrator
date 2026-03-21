@@ -5,22 +5,17 @@
 
 ---
 
-## P0 (긴급 — 버그)
+## 완료
 
-- [ ] SP-045 — autoSave 이미지 덮어쓰기 버그 (서버 재시작 후 씬 이미지 유실)
-
-## P0 (긴급 — 완료)
-
-- [x] ~~SP-011~~ | ~~SP-014~~ | ~~SP-015~~ | ~~SP-016~~ (완료)
-- [x] ~~SP-035~~ | ~~SP-036~~ | ~~SP-039~~ (완료)
+- [x] ~~SP-011~~ | ~~SP-014~~ | ~~SP-015~~ | ~~SP-016~~ | ~~SP-035~~ | ~~SP-036~~ | ~~SP-039~~ (P0 버그)
+- [x] ~~SP-010~~ | ~~SP-017~~ | ~~SP-018~~ | ~~SP-030~~ | ~~SP-031~~ | ~~SP-032~~ | ~~SP-037~~ (P1 인프라)
+- [x] ~~SP-019~~ (AI QA 순찰) | ~~SP-038~~ (Store resilience) | ~~SP-040~~ (세션 충돌 방지)
+- [x] ~~SP-041~~ (SSE heartbeat) | ~~SP-042~~ (LangFuse 트레이스) | ~~SP-043~~ (모델 최적화)
+- [x] ~~SP-044~~ (Sentry autofix) | ~~SP-045~~ (autoSave 이미지)
 
 ## P1 (최우선)
 
-- [ ] SP-044 — Sentry 에러 자동 수정 파이프라인 (에러 감지 → 테스트 → 수정 → PR → 사람은 머지만)
-- [ ] SP-042 — LangFuse 트레이스 품질 개선 (output undefined + 이중 observation + CHAIN 중복)
-- [ ] SP-043 — 파이프라인 모델 최적화 (review/creative_agent Flash 전환 + thinking budget)
-- [x] ~~SP-010~~ | ~~SP-017~~ | ~~SP-018~~ | ~~SP-030~~ | ~~SP-031~~ | ~~SP-032~~ | ~~SP-037~~ (완료)
-- [ ] SP-019 — AI QA 자동 순찰 + 자동 수정 (depends_on: SP-018)
+- [ ] SP-046 — Cinematographer 팀 분해 — 350줄 1인 다역 → 4 서브 에이전트 (Framing/Action/Atmosphere/Compositor)
 - [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
 - [ ] SP-021 — Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md)
 - [ ] SP-022 — ComfyUI 마이그레이션 — ForgeUI→ComfyUI + SD Client 추상화 | [명세](../../docs/01_product/FEATURES/COMFYUI_MIGRATION.md)
@@ -34,14 +29,6 @@
 - [ ] SP-027 — Direct 탭 연출 컨트롤 — TTS 톤 조정 + BGM 프리셋 일괄 적용 | [명세](../../docs/01_product/FEATURES/DIRECT_TAB_DIRECTOR_CONTROL.md)
 - [ ] SP-028 — Studio 탭 URI 표현 — ?tab=script/stage/direct/publish 딥링크
 - [ ] SP-029 — Script Canvas 분할 뷰 — 좌 채팅 + 우 씬 프리뷰 | [명세](../../docs/99_archive/features/SCRIPT_COLLABORATIVE_UX.md) §P2
-
-## P2-Resilience (안정성)
-
-- [ ] SP-038 — Zustand persist store version + migrate 전체 적용
-
-## P1-SDD (AI 세션 안전성)
-
-- [ ] SP-040 — AI 세션 간 충돌 방지 — Invariants + ADR + CodeRabbit 검증 (depends_on: SP-039)
 
 ## P2-SDD (SDD 프로세스 개선)
 

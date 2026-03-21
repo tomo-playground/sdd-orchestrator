@@ -647,31 +647,47 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ## SDD 자율 실행 워크플로우
 
 ### 개요
-**SDD + TDD**: 사람이 `task.md` + 실패 테스트를 작성하면, Claude가 테스트를 GREEN으로 만들고 PR까지 자율 실행한다.
-**"AI를 믿지 말고, 테스트를 믿어라."** — 테스트가 곧 스펙이고, GREEN이 곧 완료.
+**SDD (Spec-Driven Development)**: 사람이 스펙(DoD)을 작성하면, AI가 TDD 사이클(RED→GREEN→Refactor) 전체를 자율 실행하고 PR까지 완료한다.
+**"스펙을 믿고, 테스트를 돌려라."** — 스펙이 의도이고, AI TDD가 검증이고, 사람 검수가 완료.
+
+> **방법론 근거**: Martin Fowler의 Spec-First 레벨 + Anthropic Agentic Engineering.
+> 사람은 아키텍처와 판단에 집중하고, AI가 구현+테스트+리뷰를 실행한다.
+
+### 역할 분리
+| 역할 | 사람 | AI |
+|------|------|-----|
+| 뭘 만들지 (스펙) | O | |
+| 수용 기준 (DoD) | O | |
+| 테스트 작성 (RED) | | O |
+| 구현 (GREEN) | | O |
+| 리팩토링 | | O |
+| 코드 리뷰 | | O (CodeRabbit + Claude) |
+| 검수 + 머지 판단 | O | |
 
 ### 업무 플로우 요약
 
 ```
-기능 개발: 태스크+테스트(사람) → /sdd-run → 구현(AI) → PR → 리뷰(자동) → 머지(사람)
-버그 수정: Sentry(자동) → Issue → /sentry-autofix → PR → 리뷰(자동) → 머지(사람)
+기능 개발: 태스크(사람) → /sdd-run → AI TDD(RED→GREEN) + PR(AI) → 리뷰(자동) → 검수+머지(사람)
+버그 수정: Sentry(자동) → Issue → /sentry-autofix → AI TDD + PR → 리뷰(자동) → 머지(사람)
 정리:     PR 머지 → sdd-sync(자동) → 태스크 done/ + rebase
 ```
 
-### 기능 개발 흐름 (SDD + TDD)
+### 기능 개발 흐름
 ```
-[사람] 태스크 + 실패 테스트 작성 (RED) → main 커밋
+[사람] 태스크 스펙 작성 (DoD 체크리스트) → main 커밋
   ↓
 [사람] /sdd-run SP-NNN → 워크트리 기동
   ↓
-[AI] 테스트를 GREEN으로 만드는 코드 작성 → Stop Hook 자동 검증
+[AI] DoD → 실패 테스트 작성 (RED)
+  ↓
+[AI] 구현하여 테스트 통과 (GREEN) → Stop Hook 자동 검증
   ↓  RED → self-heal (최대 3회)
   ↓  ALL GREEN → 커밋 → push → PR 생성
   ↓
 [자동] Claude + CodeRabbit 병렬 리뷰
   ↓  changes_requested → Claude 자동 수정 → push → 재리뷰
   ↓
-[사람] 머지 판단
+[사람] 동작 검수 + 머지 판단
   ↓
 [자동] sdd-sync → 태스크 done/ + 브랜치 삭제 + 열린 PR rebase
 ```
@@ -681,11 +697,11 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 [자동] sentry-patrol (매일 09:00 cron) → Sentry 에러 감지 → GitHub Issue 생성
   ↓
 [자동] sentry-autofix → Claude가 Issue 읽기 → 스택트레이스 분석
-  → 실패 테스트 작성 (TDD) → 코드 수정 → fix/sentry-{번호} PR 생성
+  → 실패 테스트 작성 (RED) → 구현 (GREEN) → fix/sentry-{번호} PR 생성
   ↓
 [자동] Claude + CodeRabbit 리뷰 → 자동 수정
   ↓
-[사람] 머지 판단
+[사람] 검수 + 머지 판단
 ```
 
 ### 운영 명령어
@@ -722,9 +738,9 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 #### Phase 3: 대시보드 출력
 ```
-📋 SDD + TDD Dashboard
+📋 SDD Dashboard
 ─────────────────
-🔄 플로우: 기능(태스크+테스트→/sdd-run) | 버그(Sentry→Issue→autofix) | 정리(머지→sdd-sync)
+🔄 플로우: 기능(스펙→/sdd-run→AI TDD) | 버그(Sentry→Issue→autofix) | 정리(머지→sdd-sync)
 🔀 Branch: main
 🏥 Services: Backend OK | Frontend OK | Audio OK
 🔴 Actions: 1 failed (sdd-sync #123 — 재실행 필요)
@@ -786,14 +802,14 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ### 자율 실행 규칙
 - **자율 범위**: 구현 → 테스트 → 문서 동기화 → 커밋 → 푸시 → PR 생성까지 풀 자율
 - **⚠️ 사용자 확인 금지**: "진행할까요?", "커밋할까요?" 등 사용자에게 묻지 않는다. 멈추지 말고 PR 생성까지 끝까지 진행한다. 즉시 중단 조건에 해당하지 않으면 무조건 진행.
-- **테스트 자동 생성 + 실행 (TDD 확장)**: PR의 Test plan에 수동 검증 항목이 있으면, 해당 시나리오를 E2E/단위 테스트로 자동 작성하고 실행한다. 결과를 PR 코멘트에 포함한다. 수동 검증 항목을 0으로 만드는 것이 목표.
-  - 예: "브라우저에서 localStorage 삭제 후 정상 동작 확인" → Playwright E2E 테스트 작성 → 실행 → 결과 첨부
-  - 예: "기존 데이터 마이그레이션 동작 확인" → 단위 테스트 작성 → 실행 → 결과 첨부
+- **AI TDD (RED→GREEN→Refactor)**: 태스크 DoD를 기반으로 AI가 실패 테스트를 먼저 작성(RED)하고, 구현하여 통과(GREEN)시킨 뒤, 리팩토링한다. 테스트가 곧 회귀 방지 자산이 된다.
+  - DoD: "mood 파라미터 없으면 400" → AI가 `test_missing_mood_returns_400()` 작성(RED) → 구현(GREEN)
+  - PR의 Test plan에 수동 검증 항목이 있으면 E2E/단위 테스트로 자동 전환. 수동 항목 0개가 목표.
 - **문서 동기화 (코드 파생 문서만)**: 코드 변경 시 API 명세, DB 스키마, 테스트 시나리오 등 코드에서 파생되는 문서를 함께 업데이트한다. 의사결정 문서(ROADMAP, FEATURES 명세, 아키텍처 설계)는 사람이 작성한다.
 - **태스크 단위**: 기능 단위, 변경 파일 10개 이하 목표, 크면 task.md 분할
 - **불확실할 때**: 멈추지 말고 보수적인 선택
 - **즉시 중단 조건**: DB 스키마 변경, 외부 의존성 추가 → task.md에 기록 후 중단
-- **완료 기준**: task.md의 DoD 체크리스트 전체 달성 + Test plan 수동 항목 0개
+- **완료 기준**: task.md의 DoD 체크리스트 전체 달성 + AI TDD 테스트 ALL GREEN + Test plan 수동 항목 0개
 - **PR 생성 시**: 태스크 frontmatter에서 label/reviewer/assignee 자동 설정. 상세는 `docs/guides/SDD_WORKFLOW.md` 참조.
 - **PR 생성 직후**: `/code-review:code-review {PR번호}` 실행하여 셀프 리뷰 코멘트를 PR에 남긴다.
 - **PR 전 리베이스**: push 전에 `git rebase main` 수행. 충돌 시 자율 해결, 불가하면 사용자 보고.
