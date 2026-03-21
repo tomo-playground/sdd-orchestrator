@@ -14,7 +14,14 @@ import sys
 from pathlib import Path
 
 import pytest
+import sentry_sdk
 from fastapi.testclient import TestClient
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _disable_sentry():
+    """Disable Sentry in test environment to prevent mock exceptions from being reported."""
+    sentry_sdk.init(dsn=None)
 
 
 @pytest.fixture(autouse=True, scope="session")
