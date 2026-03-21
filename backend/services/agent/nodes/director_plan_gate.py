@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from langgraph.types import interrupt
 
+from config import logger
 from services.agent.nodes._skip_guard import should_skip
 from services.agent.state import ScriptState
 
@@ -20,11 +21,13 @@ async def director_plan_gate_node(state: ScriptState) -> dict:
 
     mode = state.get("interaction_mode", "guided")
     if mode == "auto" or state.get("auto_approve"):
+        logger.debug("[LangGraph:DirectorPlanGate] mode=%s → auto-proceed (skip interrupt)", mode)
         return {"plan_action": "proceed"}
 
     director_plan = state.get("director_plan") or {}
     skip_stages = state.get("skip_stages") or []
 
+    logger.info("[LangGraph:DirectorPlanGate] interrupt 발행 — 사용자 플랜 검토 대기 (mode=%s)", mode)
     user_input = interrupt(
         {
             "type": "plan_review",
@@ -34,6 +37,7 @@ async def director_plan_gate_node(state: ScriptState) -> dict:
     )
 
     action = user_input.get("action", "proceed")
+    logger.info("[LangGraph:DirectorPlanGate] 사용자 응답 수신: action=%s", action)
     if action == "revise_plan":
         return _handle_revise(state, user_input)
     return {"plan_action": "proceed"}
@@ -43,6 +47,7 @@ def _handle_revise(state: ScriptState, user_input: dict) -> dict:
     """플랜 수정 요청. 최대 2회 초과 시 강제 진행."""
     count = state.get("plan_revision_count", 0) + 1
     if count > 2:
+        logger.info("[LangGraph:DirectorPlanGate] revision 횟수 초과 (%d > 2) → 강제 proceed", count)
         return {"plan_action": "proceed", "plan_revision_count": count}
 
     feedback = user_input.get("feedback", "")

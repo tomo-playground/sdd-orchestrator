@@ -65,6 +65,7 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
 
     director_plan = state.get("director_plan") or {}
     draft_scenes = state.get("draft_scenes") or []
+    logger.info("[LangGraph:DirectorCheckpoint] 시작 — scenes=%d", len(draft_scenes))
     feedback = state.get("director_checkpoint_feedback")
     template_vars = {
         "director_plan_section": build_checkpoint_director_plan_section(director_plan or None),

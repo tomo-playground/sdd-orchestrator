@@ -29,6 +29,7 @@ async def sound_designer_node(state: ScriptState) -> dict:
 
     cinema = state.get("cinematographer_result") or {}
     scenes = cinema.get("scenes", [])
+    logger.info("[LangGraph:SoundDesigner] 시작 — scenes=%d", len(scenes))
     concept = state.get("critic_result") or {}
     duration = state.get("duration", 30)
     language = coerce_language_id(state.get("language"))

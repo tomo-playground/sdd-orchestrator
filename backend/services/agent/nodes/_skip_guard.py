@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from config import logger
 from services.agent.state import ScriptState
 
 # Core 노드 (writer, review, revise, finalize, learn)는 매핑하지 않음 — 항상 실행
@@ -26,4 +27,7 @@ def should_skip(state: ScriptState, node_name: str) -> bool:
     stage = _NODE_STAGE_MAP.get(node_name)
     if stage is None:
         return False
-    return stage in (state.get("skip_stages") or [])
+    skipped = stage in (state.get("skip_stages") or [])
+    if skipped:
+        logger.info("[LangGraph:SkipGuard] %s skipped (stage=%s)", node_name, stage)
+    return skipped

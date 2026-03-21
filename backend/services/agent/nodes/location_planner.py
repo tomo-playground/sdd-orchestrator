@@ -99,6 +99,11 @@ async def location_planner_node(state: ScriptState) -> dict:
     """
     is_full = "concept" not in (state.get("skip_stages") or [])
     if not is_full or not LANGGRAPH_PLANNING_ENABLED:
+        logger.debug(
+            "[LangGraph:LocationPlanner] 스킵 (is_full=%s, PLANNING_ENABLED=%s)",
+            is_full,
+            LANGGRAPH_PLANNING_ENABLED,
+        )
         return {}
 
     locations = await _plan_locations(state)

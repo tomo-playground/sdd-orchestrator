@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from langgraph.types import interrupt
 
+from config import logger
 from config_pipelines import LANGGRAPH_MAX_CONCEPT_REGEN
 from services.agent.nodes._skip_guard import should_skip
 from services.agent.state import ScriptState
@@ -16,13 +17,20 @@ from services.agent.state import ScriptState
 
 async def concept_gate_node(state: ScriptState) -> dict:
     """컨셉 선택 게이트. auto_approve면 pass-through, 아니면 사용자 선택 대기."""
+    mode = state.get("interaction_mode", "guided")
     if should_skip(state, "concept_gate"):
         return {"concept_action": "select"}
 
-    if state.get("interaction_mode", "guided") == "auto" or state.get("auto_approve"):
+    if mode == "auto" or state.get("auto_approve"):
+        logger.debug("[LangGraph:ConceptGate] mode=%s → auto-select (skip interrupt)", mode)
         return {"concept_action": "select"}
 
     critic_result = state.get("critic_result") or {}
+    candidates_count = len(critic_result.get("candidates", []))
+    logger.info(
+        "[LangGraph:ConceptGate] interrupt 발행 — 사용자 컨셉 선택 대기 (candidates=%d)",
+        candidates_count,
+    )
     user_input = interrupt(
         {
             "type": "concept_selection",
@@ -33,6 +41,7 @@ async def concept_gate_node(state: ScriptState) -> dict:
     )
 
     action = user_input.get("action", "select")
+    logger.info("[LangGraph:ConceptGate] 사용자 응답 수신: action=%s", action)
     return _process_action(action, user_input, critic_result, state)
 
 
@@ -49,6 +58,11 @@ def _handle_regenerate(state: ScriptState) -> dict:
     """컨셉 재생성 요청. 최대 횟수 초과 시 첫 번째 컨셉으로 강제 선택."""
     count = state.get("concept_regen_count", 0) + 1
     if count > LANGGRAPH_MAX_CONCEPT_REGEN:
+        logger.info(
+            "[LangGraph:ConceptGate] regen 횟수 초과 (%d > %d) → 강제 select",
+            count,
+            LANGGRAPH_MAX_CONCEPT_REGEN,
+        )
         return {"concept_action": "select", "concept_regen_count": count}
     return {
         "critic_result": None,

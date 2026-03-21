@@ -48,7 +48,9 @@ def route_after_start(state: ScriptState) -> str:
     """
     skip = state.get("skip_stages") or []
     if skip:  # API에서 skip_stages를 직접 지정한 경우 (테스트/디버깅용)
+        logger.debug("[LangGraph:Route] start -> writer (skip_stages override)")
         return "writer"
+    logger.debug("[LangGraph:Route] start -> director_plan")
     return "director_plan"
 
 
@@ -56,7 +58,9 @@ def route_after_inventory_resolve(state: ScriptState) -> str:
     """inventory_resolve 이후: Express → writer 직행, Full → research."""
     skip = state.get("skip_stages") or []
     if "research" in skip:
+        logger.debug("[LangGraph:Route] inventory_resolve -> writer (research skipped)")
         return "writer"
+    logger.debug("[LangGraph:Route] inventory_resolve -> research")
     return "research"
 
 
@@ -101,6 +105,7 @@ def route_after_writer(state: ScriptState) -> str:
     if not state.get("draft_scenes"):
         logger.warning("[LangGraph] writer 빈 씬, finalize로 short-circuit")
         return "finalize"
+    logger.debug("[LangGraph:Route] writer -> review")
     return "review"
 
 
@@ -109,6 +114,7 @@ def route_after_revise(state: ScriptState) -> str:
     if _has_error(state):
         logger.warning("[LangGraph] revise 에러, finalize로 short-circuit")
         return "finalize"
+    logger.debug("[LangGraph:Route] revise -> review")
     return "review"
 
 
@@ -132,6 +138,7 @@ def route_after_review(state: ScriptState) -> str:
         if total >= LANGGRAPH_MAX_GLOBAL_REVISIONS:
             logger.warning("[LangGraph] 글로벌 리비전 상한(%d) 도달, 강제 통과", LANGGRAPH_MAX_GLOBAL_REVISIONS)
         elif count < LANGGRAPH_MAX_REVISIONS:
+            logger.debug("[LangGraph:Route] review -> revise (count=%d)", count)
             return "revise"
         else:
             logger.warning(
@@ -144,7 +151,9 @@ def route_after_review(state: ScriptState) -> str:
     if "production" in skip:
         # FastTrack: cinematographer만 실행 (캐릭터 일관성 + 카메라 다양성)
         # director_checkpoint / tts_designer / sound_designer / copyright_reviewer는 skip
+        logger.debug("[LangGraph:Route] review -> cinematographer (FastTrack)")
         return "cinematographer"
+    logger.debug("[LangGraph:Route] review -> director_checkpoint")
     return "director_checkpoint"
 
 
@@ -157,7 +166,9 @@ def route_after_cinematographer(state: ScriptState) -> list[str] | str:
         return "finalize"
     skip = set(state.get("skip_stages") or [])
     if "production" in skip:
+        logger.debug("[LangGraph:Route] cinematographer -> finalize (FastTrack)")
         return "finalize"
+    logger.debug("[LangGraph:Route] cinematographer -> fan-out [tts, sound, copyright]")
     return ["tts_designer", "sound_designer", "copyright_reviewer"]
 
 
@@ -171,7 +182,9 @@ def route_after_director(state: ScriptState) -> str:
     if decision in ("error", "approve"):
         mode = state.get("interaction_mode", "guided")
         if mode == "hands_on":
+            logger.debug("[LangGraph:Route] director -> human_gate (mode=%s)", mode)
             return "human_gate"
+        logger.debug("[LangGraph:Route] director -> finalize (decision=%s)", decision)
         return "finalize"
 
     # 글로벌 리비전 상한 체크 (Phase 28-B #10)
@@ -193,6 +206,7 @@ def route_after_director(state: ScriptState) -> str:
     if target is None:
         logger.warning("[LangGraph] Director 미등록 decision '%s', finalize로 fallback", decision)
         return "finalize"
+    logger.debug("[LangGraph:Route] director -> %s (decision=%s)", target, decision)
     return target
 
 
@@ -216,6 +230,7 @@ def route_after_director_checkpoint(state: ScriptState) -> str:
         return "cinematographer"
 
     if decision == "proceed":
+        logger.debug("[LangGraph:Route] director_checkpoint -> cinematographer (proceed)")
         return "cinematographer"
 
     # 글로벌 리비전 상한 체크 (Phase 28-B #10)
@@ -239,20 +254,25 @@ def route_after_director_checkpoint(state: ScriptState) -> str:
     if score < LANGGRAPH_CHECKPOINT_LOW_THRESHOLD:
         logger.info("[LangGraph] Checkpoint low score (%.2f): 강한 피드백으로 writer 호출", score)
 
+    logger.debug("[LangGraph:Route] director_checkpoint -> writer (revise, score=%.2f)", score)
     return "writer"
 
 
 def route_after_director_plan_gate(state: ScriptState) -> str:
     """Director Plan Gate 이후: revise → director_plan (재수립), 그 외 → inventory_resolve."""
     if state.get("plan_action") == "revise":
+        logger.debug("[LangGraph:Route] director_plan_gate -> director_plan (revise)")
         return "director_plan"
+    logger.debug("[LangGraph:Route] director_plan_gate -> inventory_resolve")
     return "inventory_resolve"
 
 
 def route_after_concept_gate(state: ScriptState) -> str:
     """Concept Gate 이후: regenerate → critic (재생성), 그 외 → location_planner."""
     if state.get("concept_action") == "regenerate":
+        logger.debug("[LangGraph:Route] concept_gate -> critic (regenerate)")
         return "critic"
+    logger.debug("[LangGraph:Route] concept_gate -> location_planner")
     return "location_planner"
 
 
@@ -261,6 +281,7 @@ def route_after_location_planner(state: ScriptState) -> str:
     if _has_error(state):
         logger.warning("[LangGraph] location_planner 에러, finalize로 short-circuit")
         return "finalize"
+    logger.debug("[LangGraph:Route] location_planner -> writer")
     return "writer"
 
 
@@ -268,14 +289,19 @@ def route_after_human_gate(state: ScriptState) -> str:
     """Human Gate 이후: approve → finalize, revise → revise."""
     action = state.get("human_action", "approve")
     if action == "revise":
+        logger.debug("[LangGraph:Route] human_gate -> revise")
         return "revise"
+    logger.debug("[LangGraph:Route] human_gate -> finalize")
     return "finalize"
 
 
 def route_after_finalize(state: ScriptState) -> str:
     """finalize 이후: 에러 → learn (explain 스킵), explain skip → learn, else → explain."""
     if _has_error(state):
+        logger.debug("[LangGraph:Route] finalize -> learn (error)")
         return "learn"
     if "explain" in (state.get("skip_stages") or []):
+        logger.debug("[LangGraph:Route] finalize -> learn (explain skipped)")
         return "learn"
+    logger.debug("[LangGraph:Route] finalize -> explain")
     return "explain"

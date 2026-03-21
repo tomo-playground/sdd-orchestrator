@@ -53,7 +53,8 @@ async def copyright_reviewer_node(state: ScriptState) -> dict:
         }
 
     cinema = state.get("cinematographer_result") or {}
-    scenes = cinema.get("scenes", [])
+    scenes = cinema.get("scenes") or []
+    logger.info("[LangGraph:CopyrightReviewer] 시작 — scenes=%d", len(scenes))
     language = coerce_language_id(state.get("language"))
     feedback = state.get("director_feedback")
 

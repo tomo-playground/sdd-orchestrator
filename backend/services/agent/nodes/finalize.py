@@ -963,8 +963,12 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     """Quick: draft → final 패스스루. Full: Production 결과 병합 + character_actions 변환."""
     # 에러 상태이면 즉시 반환 (에러 메시지 보존)
     if state.get("error"):
-        logger.warning("[LangGraph] Finalize: 에러 상태 전파 → %s", state.get("error"))
+        logger.warning("[LangGraph:Finalize] 에러 상태 전파 → %s", state.get("error"))
         return {"error": state.get("error")}
+
+    is_full = bool(state.get("cinematographer_result"))
+    scene_count = len(state.get("draft_scenes") or [])
+    logger.info("[LangGraph:Finalize] 시작 — mode=%s, scenes=%d", "full" if is_full else "quick", scene_count)
 
     import copy  # noqa: PLC0415
 

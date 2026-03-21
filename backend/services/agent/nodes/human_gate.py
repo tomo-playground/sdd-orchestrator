@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from langgraph.types import interrupt
 
+from config import logger
 from services.agent.state import ScriptState
 
 
@@ -11,8 +12,10 @@ async def human_gate_node(state: ScriptState) -> dict:
     """사용자에게 승인/수정을 요청한다. interrupt()로 그래프를 일시 중지."""
     mode = state.get("interaction_mode", "guided")
     if mode != "hands_on":
+        logger.debug("[LangGraph:HumanGate] mode=%s → auto-approve (skip interrupt)", mode)
         return {"human_action": "approve"}
 
+    logger.info("[LangGraph:HumanGate] interrupt 발행 — 사용자 승인 대기 (mode=%s)", mode)
     user_input = interrupt(
         {
             "type": "review_approval",
@@ -25,6 +28,7 @@ async def human_gate_node(state: ScriptState) -> dict:
         }
     )
     action = user_input.get("action", "approve")
+    logger.info("[LangGraph:HumanGate] 사용자 응답 수신: action=%s", action)
     result: dict = {
         "human_action": action,
         "human_feedback": user_input.get("feedback"),
@@ -33,4 +37,5 @@ async def human_gate_node(state: ScriptState) -> dict:
     # 빠른 수정이 차단되지 않도록 한다
     if action == "revise":
         result["revision_count"] = 0
+        logger.info("[LangGraph:HumanGate] revision_count 리셋 (사용자 수정 요청)")
     return result

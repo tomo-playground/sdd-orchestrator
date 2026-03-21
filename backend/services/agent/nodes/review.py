@@ -301,6 +301,7 @@ async def review_node(state: ScriptState) -> dict:
     structure = coerce_structure_id(state.get("structure"))
     topic = state.get("topic", "")
     is_full = "production" not in (state.get("skip_stages") or [])
+    logger.info("[LangGraph:Review] 시작 — scenes=%d, mode=%s", len(scenes), "full" if is_full else "quick")
 
     result = _validate_scenes(scenes, duration, language, structure)
 

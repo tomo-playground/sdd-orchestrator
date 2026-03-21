@@ -20,6 +20,7 @@ async def explain_node(state: ScriptState) -> dict:
     if should_skip(state, "explain"):
         return {"explanation_result": None}
 
+    logger.info("[LangGraph:Explain] 시작")
     template_vars = {
         "final_scenes_json": to_json(state.get("final_scenes") or []),
         "cinematographer_json": to_json(state.get("cinematographer_result") or {}),

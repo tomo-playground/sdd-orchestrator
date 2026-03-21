@@ -64,6 +64,11 @@ def _derive_skip_stages(result: dict) -> list[str]:
 
 async def director_plan_node(state: ScriptState, config=None) -> dict:
     """Creative Director의 초기 목표 수립 + 캐스팅 추천 + 실행 계획 노드."""
+    logger.info(
+        "[LangGraph:DirectorPlan] 시작 — topic=%s, mode=%s",
+        (state.get("topic") or "")[:50],
+        state.get("interaction_mode", "guided"),
+    )
     # Phase 20-A: 인벤토리 로드 (DB 세션은 LLM 호출 전에 닫음)
     inventory: dict = {}
     valid_char_ids: list[int] | None = None
