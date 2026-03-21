@@ -331,22 +331,31 @@ on:
   pull_request_review:
     types: [submitted]
 
+concurrency:
+  group: sdd-review-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false  # true면 Claude 트래킹 코멘트가 원본 run을 취소함
+
 jobs:
   claude:
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))
-    runs-on: ubuntu-latest
+      github.event.comment.user.login != 'github-actions[bot]' &&
+      !endsWith(github.event.comment.user.login, '[bot]') &&
+      (
+        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))
+      )
+    runs-on: ubuntu-latest  # self-hosted runner 사용 시: [self-hosted, sdd]
     permissions:
       contents: write
       pull-requests: write
       issues: write
       id-token: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - uses: anthropics/claude-code-action@v1
         with:
