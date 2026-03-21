@@ -51,7 +51,11 @@ MERGED=$(echo "$MERGED" | xargs)
 CHANGED=false
 
 for BRANCH in $MERGED; do
-  SP_ID=$(echo "$BRANCH" | sed -E 's#^(worktree-)?(feat|fix)/##' | grep -oE '^SP-[0-9]+')
+  SP_ID=$(echo "$BRANCH" | sed -E 's#^(worktree-)?(feat|fix|chore|hotfix)/##' | grep -oE 'SP-[0-9]+' || true)
+  if [ -z "$SP_ID" ]; then
+    echo "⚠️ SP-ID 추출 실패, 브랜치 스킵: $BRANCH"
+    continue
+  fi
   CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
   DONE_DIR="$PROJECT_DIR/.claude/tasks/done"
 
