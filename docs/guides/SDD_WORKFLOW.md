@@ -103,6 +103,7 @@
 | `claude-review.yml` | PR 생성/push | Claude 리뷰 (읽기 전용) | self-hosted |
 | `sdd-review.yml` | 리뷰 코멘트 / `@claude` 멘션 | 코드 자동 수정 | self-hosted |
 | `sdd-sync.yml` | PR 머지 | 태스크 정리 + 브랜치 삭제 | self-hosted |
+| `sentry-patrol.yml` | 매일 09:00 KST / 수동 | Sentry 에러 → GitHub Issue 자동 생성 | self-hosted |
 
 ### claude-review.yml — PR 병렬 리뷰
 
@@ -125,6 +126,16 @@ CodeRabbit/Claude 리뷰 → changes_requested 감지
 ```
 사람이 @claude 멘션 → Claude가 요청 대응
   → 리뷰 수정, 질문 답변, 코드 변경 등
+```
+
+### sentry-patrol.yml — 에러 자동 수집
+
+```
+매일 09:00 KST (cron) 또는 /sentry-patrol (수동)
+  → Sentry API (3개 프로젝트: backend/frontend/audio)
+  → 최근 24시간 새 이슈 필터링
+  → GitHub Issues (label:sentry) 중복 체크
+  → 새 이슈만 gh issue create (label: sentry, bug)
 ```
 
 **봇 필터**:

@@ -473,6 +473,10 @@ PR push
     사람이 머지 판단
 
     추가: @claude 멘션으로 수동 요청 가능 (sdd-review.yml manual)
+
+별도 루프: Sentry 에러 → GitHub Issue → 태스크 → 수정
+    sentry-patrol (매일 cron) → Sentry 에러 감지 → GitHub Issue 자동 생성
+    → 사람이 Issue → 태스크 전환 → /sdd-run → 버그 수정 PR
 ```
 
 ---
