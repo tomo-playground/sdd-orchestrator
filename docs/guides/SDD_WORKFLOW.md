@@ -1,7 +1,7 @@
 # SDD (Spec-Driven Development) 워크플로우 가이드
 
 > 사람은 설계·기동·판단·정리, AI가 구현~PR까지 자율 실행하는 업무 플로우.
-> 최종 업데이트: 2026-03-20
+> 최종 업데이트: 2026-03-21
 
 ---
 
@@ -61,7 +61,7 @@
 [GitHub Actions] 코멘트 감지 → 호스트 runner → Claude 수정 → push → CodeRabbit 재리뷰 (핑퐁)
   ↓
 [사람] PR 확인 — Claude 셀프 리뷰 + CodeRabbit 독립 리뷰 결과 종합 후 판단
-  ├─ 머지 → /sdd-sync (태스크 → done/, 브랜치·워크트리 삭제)
+  ├─ 머지 → GitHub Actions sdd-sync 자동 실행 (태스크 → done/, 브랜치 삭제, rebase)
   └─ 수정 요청 → sdd-run 재실행 또는 sdd-review가 자동 대응
 ```
 
@@ -73,10 +73,10 @@
 |------|--------|------|------|
 | 사람 | `sdd-run SP-NNN` | 태스크 시작/재개 | 워크트리 생성 → 구현 → PR → 셀프 리뷰 |
 | 사람 | `/sdd-review` | PR 열린 상태 | Phase 1: Claude 독립 리뷰, Phase 2: 코멘트 자동 대응 |
-| 사람 | `/sdd-sync` | PR 머지 후 | 태스크 → done/, 브랜치·워크트리 삭제 |
+| 사람 | `/sdd-sync` | 비상용 수동 실행 | 태스크 → done/, 브랜치·워크트리 삭제 |
+| 자동 | GitHub Actions (sdd-sync) | PR 머지 시 | 태스크 → done/, 브랜치 삭제, 열린 PR rebase |
 | 자동 | CodeRabbit | PR 생성/push 시 | 독립 AI 리뷰 (CLAUDE.md 기반) |
-| 자동 | GitHub Actions (호스트 runner) | PR 코멘트 시 | 이벤트 드리븐 — Claude 자동 수정 |
-| 자동 | sdd-sync cron | 5분 간격 | 머지 감지 → 정리 |
+| 자동 | GitHub Actions (sdd-review) | PR 코멘트 시 | 이벤트 드리븐 — Claude 자동 수정 |
 
 ### 터미널 명령어 (bash)
 
@@ -89,7 +89,8 @@ sdd-run SP-007  # 터미널 1
 sdd-run SP-008  # 터미널 2
 ```
 
-> `/sdd-sync`는 unstaged 변경이 있으면 자동 stash → sync → stash pop 수행.
+> `/sdd-sync`는 비상용 수동 실행. 일반적으로 GitHub Actions가 PR 머지 시 자동 처리.
+> unstaged 변경이 있으면 자동 stash → sync → stash pop 수행.
 
 ---
 
@@ -151,7 +152,7 @@ CodeRabbit: incremental review → 재리뷰
 │   ├── sdd-sync.md           ← /sdd-sync 커맨드 정의
 │   └── sdd-review.md         ← /sdd-review 커맨드 정의
 ├── scripts/
-│   ├── sdd-sync.sh           ← 머지 후 정리 (cron 5분)
+│   ├── sdd-sync.sh           ← 머지 후 정리 (GitHub Actions + 비상 수동)
 │   └── sdd-review.sh         ← 리뷰 + 자동 수정 (수동 /sdd-review 시 사용)
 ├── hooks/
 │   ├── auto-lint.sh          ← PostToolUse: Edit/Write 시 자동 린트
@@ -224,14 +225,17 @@ Step 5. E2E      → Playwright (서버 실행 중일 때만)
 
 ```
 브랜치에서 SP-NNN을 추출하여 .claude/tasks/current/SP-NNN_*.md 글로브 매칭
-- feat/SP-002-xxx → SP-002 → .claude/tasks/current/SP-002_*.md
-- worktree-SP-009 → SP-009 → .claude/tasks/current/SP-009_*.md
+- feat/SP-002-xxx  → SP-002 → .claude/tasks/current/SP-002_*.md
+- fix/SP-039-xxx   → SP-039 → .claude/tasks/current/SP-039_*.md
+- worktree-SP-009  → SP-009 → .claude/tasks/current/SP-009_*.md
 ```
+
+지원 브랜치 접두사: `feat/`, `fix/`, `chore/`, `hotfix/`, `worktree-`
 
 ### 커밋 경로 규칙
 
 - **main 직접 커밋 허용**: `.claude/`, `CLAUDE.md`, `.github/workflows/`, `docs/`
-- **feat 브랜치 + PR 필수**: `backend/`, `frontend/`, `audio/`, 그 외 코드
+- **feat/fix 브랜치 + PR 필수**: `backend/`, `frontend/`, `audio/`, 그 외 코드
 
 ---
 
@@ -280,9 +284,9 @@ sdd-run SP-008
 | 4 | 태스크 단위 | 기능 단위, 파일 10개 이하, 크면 분할 |
 | 5 | 리뷰 체계 | 3중 (Claude 셀프 + CodeRabbit 독립 + /sdd-review 심층) |
 | 6 | PR 코멘트 대응 | 판단 기반 (맹목 수용 금지) |
-| 7 | 머지 후 정리 | sdd-sync (cron 5분 + 수동) |
+| 7 | 머지 후 정리 | GitHub Actions sdd-sync (PR 머지 트리거) + 비상 수동 |
 | 8 | 핑퐁 자동화 | sdd-review Phase 2 → CodeRabbit incremental review 반복 |
-| 9 | 커밋 경로 | .claude/docs → main 직접, 코드 → feat/fix 브랜치 |
+| 9 | 커밋 경로 | .claude/docs → main 직접, 코드 → feat/fix/chore/hotfix 브랜치 |
 | 10 | 사람 역할 | 설계, 기동, 판단, 정리 (코드 작성 안 함) |
 
 ---
@@ -298,3 +302,4 @@ sdd-run SP-008
 | main에서 코드 수정 | SDD 위반, 되돌리기 필요 | 코드 변경은 반드시 워크트리에서만 |
 | sdd-sync unstaged | 조용히 스킵 → 사용자 혼란 | 자동 stash 도입 |
 | 로컬 브랜치 잔존 | git branch -d로 안 지워짐 | -D 강제 삭제 + worktree prefix 정리 |
+| sdd-sync `fix/` 브랜치 미처리 | sed가 `feat/`만 strip → SP_ID 추출 실패 → `set -e` 크래시 | 브랜치 접두사 패턴 확장 + grep 실패 방어 (`\|\| true`) |
