@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-046-cinematographer-team
 created: 2026-03-22
-status: pending
+status: done
 depends_on:
 label: enhancement
 assignee: stopper2008
