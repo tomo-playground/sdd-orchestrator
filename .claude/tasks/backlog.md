@@ -14,6 +14,8 @@
 
 ## P1 (최우선)
 
+- [ ] SP-018 — Sentry Cloud 연동 (Backend/Frontend/Audio 에러 모니터링 + GitHub Issue 연동)
+- [ ] SP-017 — 파이프라인 로깅 사각지대 해소 (게이트 노드 0로그, skip_guard, 정상 라우팅 경로)
 - [x] ~~SP-010 — API Proxy Internal~~ (완료, PR #45 머지)
 - [ ] Enum ID 정규화 — structure/language/style 디스플레이 이름→ID 분리, DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
 - [ ] Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md)
