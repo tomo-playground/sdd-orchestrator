@@ -317,11 +317,66 @@ jobs:
 EOF
 ```
 
-### 6-2. PR 리뷰 자동화 (claude-code-action)
+### 6-2. PR 자동 리뷰 — Claude (claude-review.yml)
+
+PR 생성/push마다 Claude가 CLAUDE.md 기준으로 **리뷰만** 합니다 (코드 수정 안 함).
+CodeRabbit과 병렬 동작.
 
 ```bash
 cat > .github/workflows/claude-review.yml << 'EOF'
-name: Claude Code Review
+name: Claude Review — PR 자동 리뷰
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest  # self-hosted: [self-hosted, sdd]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          # 구독 플랜:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # API 플랜:
+          # anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          track_progress: true
+
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            CLAUDE.md를 읽고 프로젝트 규칙 기준으로 리뷰하세요.
+            리뷰만 하세요. 코드 수정은 하지 마세요.
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*),Read,Glob,Grep"
+EOF
+```
+
+### 6-3. 리뷰 자동 수정 — Claude (sdd-review.yml)
+
+CodeRabbit/Claude 리뷰에서 `changes_requested` 시 Claude가 **자동으로 코드 수정**.
+추가로 `@claude` 멘션으로 수동 요청도 가능.
+
+```bash
+cat > .github/workflows/sdd-review.yml << 'EOF'
+name: SDD Review — 리뷰 자동 수정 + @claude 수동 대응
 
 on:
   issue_comment:
@@ -331,27 +386,32 @@ on:
   pull_request_review:
     types: [submitted]
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
 concurrency:
   group: sdd-review-${{ github.event.issue.number || github.event.pull_request.number }}
-  cancel-in-progress: false  # true면 Claude 트래킹 코멘트가 원본 run을 취소함
+  cancel-in-progress: false  # true면 봇 코멘트가 원본 run을 취소함
 
 jobs:
-  claude:
+  # Job 1: CodeRabbit/Claude 리뷰 → 자동 수정
+  auto-fix:
     if: |
-      github.event.comment.user.login != 'github-actions[bot]' &&
-      !endsWith(github.event.comment.user.login, '[bot]') &&
       (
-        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-        (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))
+        github.event_name == 'pull_request_review' &&
+        github.event.review.state == 'changes_requested' &&
+        (github.event.review.user.login == 'coderabbitai[bot]' || github.event.review.user.login == 'claude[bot]')
+      ) ||
+      (
+        github.event_name == 'pull_request_review_comment' &&
+        (github.event.comment.user.login == 'coderabbitai[bot]' || github.event.comment.user.login == 'claude[bot]')
       )
-    runs-on: ubuntu-latest  # self-hosted runner 사용 시: [self-hosted, sdd]
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-      id-token: write
-      actions: read
+    runs-on: ubuntu-latest  # self-hosted: [self-hosted, sdd]
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -359,54 +419,59 @@ jobs:
 
       - uses: anthropics/claude-code-action@v1
         with:
-          # 구독 플랜 사용 시:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # API 플랜 사용 시:
-          # anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-
-          trigger_phrase: "@claude"
           track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            리뷰 코멘트를 읽고 코드를 수정하세요.
+            버그 → 수정+커밋+push. 스타일 → 스킵.
 
           claude_args: |
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*)"
-EOF
-```
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*),Bash(git:*),Read,Edit,Write,Glob,Grep"
 
-### 6-3. PR 자동 리뷰 (push마다)
-
-```bash
-cat > .github/workflows/claude-auto-review.yml << 'EOF'
-name: Claude Auto Review
-
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-jobs:
-  review:
+  # Job 2: @claude 멘션 → 수동 대응
+  manual:
+    if: |
+      !endsWith(github.event.comment.user.login || '', '[bot]') &&
+      (
+        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))
+      )
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-      id-token: write
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: |
-            REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
-
-            CLAUDE.md를 읽고 프로젝트 규칙을 기준으로 리뷰하세요.
-            중점: 코드 품질, 버그, 보안, 아키텍처 규칙 준수.
-
+          trigger_phrase: "@claude"
+          track_progress: true
           claude_args: |
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*),Bash(git:*),Read,Edit,Write,Glob,Grep"
 EOF
+```
+
+### 전체 흐름도
+
+```
+PR push
+  ├─ Claude 리뷰 (claude-review.yml) — 리뷰만, 수정 안 함
+  └─ CodeRabbit 리뷰 (자동)          — 리뷰만
+        ↓
+    둘 중 하나라도 changes_requested
+        ↓
+    Claude 자동 수정 (sdd-review.yml auto-fix) → push
+        ↓
+    CodeRabbit + Claude 재리뷰
+        ↓
+    사람이 머지 판단
+
+    추가: @claude 멘션으로 수동 요청 가능 (sdd-review.yml manual)
 ```
 
 ---
