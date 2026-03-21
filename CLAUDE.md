@@ -656,7 +656,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 [워크트리 종료]
   ↓
 [사람] PR 확인 — Claude 셀프 리뷰 + CodeRabbit 독립 리뷰 결과 종합 후 판단
-  ├─ 머지 → /sdd-sync (태스크 → done/, 브랜치·워크트리 삭제, 자동 커밋+푸시)
+  ├─ 머지 → GitHub Actions sdd-sync 자동 실행 (태스크 → done/, 브랜치 삭제, rebase)
   └─ 수정 요청 → 아래 두 경로 중 택 1:
       ├─ /sdd-run SP-NNN 재실행 → 워크트리에서 PR 코멘트 읽고 수정 → push
       └─ /sdd-review → Phase 2가 잔여 이슈 자동 수정 → push (백스톱)
@@ -668,18 +668,21 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 |------|-----------|------|------|
 | 사람 | `/sdd-run SP-NNN` | 태스크 시작/재개 | 워크트리 생성 → 구현 → PR → 셀프 리뷰 |
 | 사람 | `/sdd-review` | PR 열린 상태 | Phase 1: Claude 독립 리뷰, Phase 2: 잔여 이슈 자동 수정 |
-| 사람 | `/sdd-sync` | PR 머지 후 | 태스크 → done/, 브랜치·워크트리 삭제 |
+| 자동 | **GitHub Actions sdd-sync** | PR 머지 시 | 태스크 → done/, 브랜치·워크트리 삭제, 열린 PR rebase |
+| 자동 | **GitHub Actions sdd-review** | PR 코멘트 시 | 리뷰 피드백 자동 수정 |
 | 자동 | **CodeRabbit** | PR 생성/push 시 | 독립 AI 리뷰 (CLAUDE.md 기반, request_changes 가능) |
+| 사람 | `/sdd-sync` | 비상용 | GitHub Actions 실패 시 수동 실행 |
 | 사람 | `/code-review N` | 단일 PR 리뷰만 | PR에 리뷰 코멘트 게시 (수정 안 함) |
 
-> **참고**: `/sdd-sync`는 unstaged 변경이 있으면 자동 stash → sync → stash pop 수행.
+> **참고**: PR 머지 후 태스크 정리는 GitHub Actions가 자동 처리. `/sdd-sync` 수동 실행은 비상용.
 
 ### 세션 부팅 프로토콜
 **첫 응답 시 반드시 아래 SDD 대시보드를 표시한 후 대화를 시작한다:**
-1. `git branch --show-current` → 현재 브랜치
-2. `.claude/tasks/current/` → 실행 중 태스크 목록
-3. `.claude/tasks/backlog.md` → 상위 3개 대기 태스크
-4. feat 브랜치면 SP-NNN 매칭 태스크 자동 로드
+1. `git pull --ff-only` → main 최신화 (실패 시 rebase 시도)
+2. `git branch --show-current` → 현재 브랜치
+3. `.claude/tasks/current/` → 실행 중 태스크 목록
+4. `.claude/tasks/backlog.md` → 상위 3개 대기 태스크
+5. feat 브랜치면 SP-NNN 매칭 태스크 자동 로드
 
 ```
 📋 SDD Dashboard
