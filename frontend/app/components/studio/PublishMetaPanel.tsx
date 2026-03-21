@@ -84,6 +84,7 @@ export function PublishVideosSection({
 export function PublishCaptionLikes() {
   const setOutput = useRenderStore((s) => s.set);
   const showToast = useUIStore((s) => s.showToast);
+  const activeTab = useUIStore((s) => s.activeTab);
   const topic = useStoryboardStore((s) => s.topic);
   const videoCaption = useRenderStore((s) => s.videoCaption);
   const videoLikesCount = useRenderStore((s) => s.videoLikesCount);
@@ -101,6 +102,7 @@ export function PublishCaptionLikes() {
     }
     prevTopicRef.current = topic ?? null;
 
+    if (activeTab !== "publish") return;
     if (initRef.current || videoCaption || !topic) return;
     initRef.current = true;
     const controller = new AbortController();
@@ -109,7 +111,7 @@ export function PublishCaptionLikes() {
         const res = await axios.post(
           `${API_BASE}/video/extract-hashtags`,
           { text: topic },
-          { signal: controller.signal },
+          { signal: controller.signal }
         );
         if (res.data.caption) {
           setOutput({ videoCaption: res.data.caption });
@@ -123,7 +125,7 @@ export function PublishCaptionLikes() {
       }
     })();
     return () => controller.abort();
-  }, [topic, videoCaption, setOutput]);
+  }, [activeTab, topic, videoCaption, setOutput]);
 
   const handleExtractCaption = async () => {
     if (!videoCaption || videoCaption.length <= 60) return;
