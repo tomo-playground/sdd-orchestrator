@@ -11,10 +11,14 @@ from config import (
     GEMINI_FALLBACK_MODEL,
     GEMINI_SAFETY_SETTINGS,
     GEMINI_TEXT_MODEL,
+    GEMINI_TIMEOUT_MS,
     logger,
 )
 from services.agent.observability import _extract_usage, _safe_extract_text, trace_llm_call
 from services.llm.types import LLMConfig, LLMResponse
+
+# 429/5xx 지수 백오프 딜레이 (초)
+_RETRY_DELAYS = [2, 8, 30]
 
 # trace input에 system_instruction을 포함할 때의 최대 길이
 _MAX_SYSTEM_LEN = 2000
@@ -82,6 +86,7 @@ class GeminiProvider:
             system_instruction=config.system_instruction,
             temperature=config.temperature,
             safety_settings=GEMINI_SAFETY_SETTINGS,
+            http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_MS),
         )
 
         # trace input에 system_instruction 포함 (가시성 확보)
@@ -90,11 +95,11 @@ class GeminiProvider:
             sys_preview = config.system_instruction[:_MAX_SYSTEM_LEN]
             trace_input = f"[SYSTEM]\n{sys_preview}\n\n[USER]\n{contents}"
 
-        # 429/5xx retry
-        delays = [1, 3]
+        # 429/5xx retry (지수 백오프: 2s, 8s, 30s)
+        max_attempts = len(_RETRY_DELAYS) + 1
         response = None
         obs_id: str | None = None
-        for attempt in range(3):
+        for attempt in range(max_attempts):
             try:
                 async with trace_llm_call(
                     name=step_name,
@@ -112,14 +117,16 @@ class GeminiProvider:
                     obs_id = getattr(llm.generation, "id", None)
                 break
             except Exception as exc:
-                if attempt < 2 and _is_retryable(exc):
+                if attempt < len(_RETRY_DELAYS) and _is_retryable(exc):
+                    delay = _RETRY_DELAYS[attempt]
                     logger.warning(
-                        "[GeminiProvider] retry %d/2 after %ds: %s",
+                        "[GeminiProvider] retry %d/%d after %ds: %s",
                         attempt + 1,
-                        delays[attempt],
+                        len(_RETRY_DELAYS),
+                        delay,
                         str(exc)[:100],
                     )
-                    await asyncio.sleep(delays[attempt])
+                    await asyncio.sleep(delay)
                 else:
                     raise
 
@@ -181,13 +188,14 @@ class GeminiProvider:
             system_instruction=config.system_instruction,
             temperature=config.temperature,
             safety_settings=GEMINI_SAFETY_SETTINGS,
+            http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_MS),
         )
 
-        # 429/5xx retry
-        delays = [1, 3]
+        # 429/5xx retry (지수 백오프: 2s, 8s, 30s)
+        max_attempts = len(_RETRY_DELAYS) + 1
         response = None
         obs_id: str | None = None
-        for attempt in range(3):
+        for attempt in range(max_attempts):
             try:
                 async with trace_llm_call(
                     name=step_name,
@@ -204,14 +212,16 @@ class GeminiProvider:
                     obs_id = getattr(llm.generation, "id", None)
                 break
             except Exception as exc:
-                if attempt < 2 and _is_retryable(exc):
+                if attempt < len(_RETRY_DELAYS) and _is_retryable(exc):
+                    delay = _RETRY_DELAYS[attempt]
                     logger.warning(
-                        "[GeminiProvider.tools] retry %d/2 after %ds: %s",
+                        "[GeminiProvider.tools] retry %d/%d after %ds: %s",
                         attempt + 1,
-                        delays[attempt],
+                        len(_RETRY_DELAYS),
+                        delay,
                         str(exc)[:100],
                     )
-                    await asyncio.sleep(delays[attempt])
+                    await asyncio.sleep(delay)
                 else:
                     raise
 

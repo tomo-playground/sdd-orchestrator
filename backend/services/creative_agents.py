@@ -9,12 +9,16 @@ from typing import Any, Protocol, runtime_checkable
 import httpx
 
 from config import (
+    GEMINI_MAX_CONCURRENT,
     OLLAMA_BASE_URL,
     OLLAMA_TIMEOUT,
     logger,
 )
 from services.llm import LLMConfig
 from services.llm import get_llm_provider as _get_llm_provider
+
+# Gemini 동시 호출 제한 — RPM 초과 방지
+_gemini_semaphore = asyncio.Semaphore(GEMINI_MAX_CONCURRENT)
 
 # ── LLM Provider Protocol ───────────────────────────────────
 
@@ -182,6 +186,10 @@ async def generate_parallel(
     """
 
     async def _run_one(agent: dict) -> dict[str, Any]:
+        async with _gemini_semaphore:
+            return await _run_one_inner(agent)
+
+    async def _run_one_inner(agent: dict) -> dict[str, Any]:
         role = agent["role"]
         agent_objective = agent.get("objective")
         base_prompt = f"{objective}\n\n{agent_objective}" if agent_objective else objective

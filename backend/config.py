@@ -105,6 +105,10 @@ GEMINI_FALLBACK_MODEL = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-2.0-flash")
 # Gemini Vision 태그 평가 타임아웃 (초) — evaluate_tags_with_gemini
 GEMINI_VISION_EVAL_TIMEOUT_S = int(os.getenv("GEMINI_VISION_EVAL_TIMEOUT_S", "5"))
 GEMINI_EVAL_BATCH_CONCURRENCY = int(os.getenv("GEMINI_EVAL_BATCH_CONCURRENCY", "3"))
+# Gemini 글로벌 timeout (ms) — 모든 generate 호출에 적용
+GEMINI_TIMEOUT_MS = int(os.getenv("GEMINI_TIMEOUT_MS", "120000"))
+# Gemini 동시 호출 제한 — generate_parallel Semaphore 상한
+GEMINI_MAX_CONCURRENT = int(os.getenv("GEMINI_MAX_CONCURRENT", "5"))
 
 # 공통 Safety Settings — 모든 Gemini 호출에서 재사용 (config.py SSOT)
 _BLOCK_NONE = genai.types.HarmBlockThreshold.BLOCK_NONE
