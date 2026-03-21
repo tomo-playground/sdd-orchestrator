@@ -5,21 +5,21 @@
 
 ---
 
-## P0 (긴급)
+## P0 (긴급 — 성능 엔지니어링)
 
-- [x] ~~SP-011 — 새 영상 stale 데이터~~ (PR #50 렌더 gate + PR #52 persist 제거 머지)
-- [x] ~~SP-014 — 페이지 전환 시 "연결 끊김" 오경고 플래시~~ (완료)
-- [x] ~~SP-015 — handleDismiss 경쟁 조건 + `:new` stale~~ (완료)
-- [x] ~~SP-016 — Storyboard Data Integrity~~ (PR #61 머지)
+- [ ] SP-035 — Gemini API timeout + rate limit + Semaphore (파이프라인 hang 근본 해결)
+- [ ] SP-036 — DB Connection Pool 최적화 (stale connection 방지)
+
+## P0 (긴급 — 완료)
+
+- [x] ~~SP-011~~ | ~~SP-014~~ | ~~SP-015~~ | ~~SP-016~~ (완료)
 
 ## P1 (최우선)
 
-- [x] ~~SP-010 — API Proxy Internal~~ (완료, PR #45 머지)
-- [x] ~~SP-017 — 파이프라인 로깅 사각지대 해소~~ (PR #63 머지)
-- [x] ~~SP-018 — Sentry Cloud 연동~~ (PR #64 머지)
+- [ ] SP-037 — 서버 운영 안정성 (uvicorn keep-alive, SD 헬스체크, GC cron)
 - [ ] SP-032 — 로깅 역할별 분리 (backend/pipeline/gemini/test.log)
-- [ ] SP-031 — Gemini Tool Calling 할루시네이션 방어 (Sentry 이슈 4건: unknown_tool, Talking_tool)
-- [ ] SP-030 — LangFuse 타입 분류 (AGENT/TOOL/CHAIN) — Agentic Pipeline 가시성 확보
+- [ ] SP-031 — Gemini Tool Calling 할루시네이션 방어 (Sentry 이슈 4건)
+- [x] ~~SP-010~~ | ~~SP-017~~ | ~~SP-018~~ | ~~SP-030~~ (완료)
 - [ ] SP-019 — AI QA 자동 순찰 + 자동 수정 (depends_on: SP-018)
 - [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
 - [ ] SP-021 — Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md)
@@ -35,10 +35,14 @@
 - [ ] SP-028 — Studio 탭 URI 표현 — ?tab=script/stage/direct/publish 딥링크
 - [ ] SP-029 — Script Canvas 분할 뷰 — 좌 채팅 + 우 씬 프리뷰 | [명세](../../docs/99_archive/features/SCRIPT_COLLABORATIVE_UX.md) §P2
 
+## P2-Resilience (안정성)
+
+- [ ] SP-038 — Zustand persist store version + migrate 전체 적용
+
 ## P2-SDD (SDD 프로세스 개선)
 
-- [ ] SP-033 — DoD 검증 자동화 — sdd-sync에서 done/ 이동 전 태스크 DoD 체크리스트 미달성 항목 감지 → 잔여 태스크 자동 생성
-- [ ] SP-034 — PR 엣지 케이스 체크리스트 — on-stop.sh에 null 반환/동시 호출/cleanup/네비게이션 변경 체크 항목 추가
+- [ ] SP-033 — DoD 검증 자동화
+- [ ] SP-034 — PR 엣지 케이스 체크리스트
 
 ## P3 (인프라/자동화)
 
