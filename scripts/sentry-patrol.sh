@@ -121,9 +121,8 @@ for i in "${!SENTRY_PROJECTS[@]}"; do
     LEVEL=$(echo "$issue" | jq -r '.level // "error"')
     PERMALINK=$(echo "$issue" | jq -r '.permalink')
 
-    # 중복 체크
+    # 중복 체크 (조용히 스킵)
     if is_duplicate "$SENTRY_ID"; then
-      echo "  [SKIP] #${SENTRY_ID}: ${TITLE} (이미 등록됨)"
       TOTAL_SKIPPED=$((TOTAL_SKIPPED + 1))
       continue
     fi

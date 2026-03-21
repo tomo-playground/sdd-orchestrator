@@ -1,0 +1,21 @@
+name: Sentry Patrol — 에러 자동 수집
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 매일 09:00 KST (00:00 UTC)
+  workflow_dispatch:       # 수동 실행 가능
+
+permissions:
+  issues: write
+
+jobs:
+  patrol:
+    runs-on: [self-hosted, sdd]
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Sentry Patrol
+        run: bash scripts/sentry-patrol.sh --since 24
