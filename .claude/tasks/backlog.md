@@ -17,7 +17,8 @@
 - [x] ~~SP-010 — API Proxy Internal~~ (완료, PR #45 머지)
 - [x] ~~SP-017 — 파이프라인 로깅 사각지대 해소~~ (PR #63 머지)
 - [x] ~~SP-018 — Sentry Cloud 연동~~ (PR #64 머지)
-- [ ] SP-019 — AI QA 자동 순찰 + 자동 수정
+- [ ] SP-030 — LangFuse 타입 분류 (AGENT/TOOL/CHAIN) — Agentic Pipeline 가시성 확보
+- [ ] SP-019 — AI QA 자동 순찰 + 자동 수정 (depends_on: SP-018)
 - [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
 - [ ] SP-021 — Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md)
 - [ ] SP-022 — ComfyUI 마이그레이션 — ForgeUI→ComfyUI + SD Client 추상화 | [명세](../../docs/01_product/FEATURES/COMFYUI_MIGRATION.md)
