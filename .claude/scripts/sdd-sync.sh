@@ -51,7 +51,7 @@ MERGED=$(echo "$MERGED" | xargs)
 CHANGED=false
 
 for BRANCH in $MERGED; do
-  SP_ID=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||' | grep -oE '^SP-[0-9]+')
+  SP_ID=$(echo "$BRANCH" | sed -E 's#^(worktree-)?(feat|fix)/##' | grep -oE '^SP-[0-9]+')
   CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
   DONE_DIR="$PROJECT_DIR/.claude/tasks/done"
 

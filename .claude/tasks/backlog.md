@@ -5,25 +5,15 @@
 
 ---
 
-## P0 (긴급 — 성능 엔지니어링)
-
-- [ ] SP-035 — Gemini API timeout + rate limit + Semaphore (파이프라인 hang 근본 해결)
-- [ ] SP-036 — DB Connection Pool 최적화 (stale connection 방지)
-
-## P0 (긴급 — 버그)
-
-- [ ] SP-039 — Draft 삭제 후 autoSave 부활 버그 수정 (persistStoryboard 404→재생성 제거)
-
 ## P0 (긴급 — 완료)
 
 - [x] ~~SP-011~~ | ~~SP-014~~ | ~~SP-015~~ | ~~SP-016~~ (완료)
+- [x] ~~SP-035~~ | ~~SP-036~~ | ~~SP-039~~ (완료)
 
 ## P1 (최우선)
 
 - [ ] SP-037 — 서버 운영 안정성 (uvicorn keep-alive, SD 헬스체크, GC cron)
-- [ ] SP-032 — 로깅 역할별 분리 (backend/pipeline/gemini/test.log)
-- [ ] SP-031 — Gemini Tool Calling 할루시네이션 방어 (Sentry 이슈 4건)
-- [x] ~~SP-010~~ | ~~SP-017~~ | ~~SP-018~~ | ~~SP-030~~ (완료)
+- [x] ~~SP-010~~ | ~~SP-017~~ | ~~SP-018~~ | ~~SP-030~~ | ~~SP-031~~ | ~~SP-032~~ (완료)
 - [ ] SP-019 — AI QA 자동 순찰 + 자동 수정 (depends_on: SP-018)
 - [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
 - [ ] SP-021 — Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md)
