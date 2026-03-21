@@ -10,6 +10,10 @@
 - [ ] SP-035 — Gemini API timeout + rate limit + Semaphore (파이프라인 hang 근본 해결)
 - [ ] SP-036 — DB Connection Pool 최적화 (stale connection 방지)
 
+## P0 (긴급 — 버그)
+
+- [ ] SP-039 — Draft 삭제 후 autoSave 부활 버그 수정 (persistStoryboard 404→재생성 제거)
+
 ## P0 (긴급 — 완료)
 
 - [x] ~~SP-011~~ | ~~SP-014~~ | ~~SP-015~~ | ~~SP-016~~ (완료)
@@ -38,6 +42,10 @@
 ## P2-Resilience (안정성)
 
 - [ ] SP-038 — Zustand persist store version + migrate 전체 적용
+
+## P1-SDD (AI 세션 안전성)
+
+- [ ] SP-040 — AI 세션 간 충돌 방지 — Invariants + ADR + CodeRabbit 검증 (depends_on: SP-039)
 
 ## P2-SDD (SDD 프로세스 개선)
 
