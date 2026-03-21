@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from config import logger
+from config import pipeline_logger as logger
 from config_pipelines import (
     LANGFUSE_BASE_URL,
     LANGFUSE_ENABLED,

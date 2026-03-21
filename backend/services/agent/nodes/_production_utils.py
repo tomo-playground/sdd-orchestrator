@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from config import logger
+from config import pipeline_logger as logger
 from config_pipelines import CREATIVE_PIPELINE_MAX_RETRIES
 from services.agent.langfuse_prompt import compile_prompt
 from services.creative_utils import parse_json_response

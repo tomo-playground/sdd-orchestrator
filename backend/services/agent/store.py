@@ -13,7 +13,8 @@ from langgraph.store.postgres.aio import AsyncPostgresStore
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
-from config import DATABASE_URL, logger
+from config import DATABASE_URL
+from config import pipeline_logger as logger
 
 _store: AsyncPostgresStore | None = None
 _pool: AsyncConnectionPool | None = None

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from config import logger
+from config import pipeline_logger as logger
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session

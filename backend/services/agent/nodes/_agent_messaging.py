@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from langchain_core.runnables import RunnableConfig
 
-from config import logger
+from config import pipeline_logger as logger
 from services.agent.messages import AgentMessage
 from services.agent.state import ScriptState
 

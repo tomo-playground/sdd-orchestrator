@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from config import coerce_language_id, logger
+from config import coerce_language_id
+from config import pipeline_logger as logger
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.prompt_builders import (
     build_director_plan_section_for_tts,

@@ -11,7 +11,7 @@ from google.genai import types
 from langgraph.store.base import BaseStore
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import logger
+from config import pipeline_logger as logger
 
 from .base import define_tool
 

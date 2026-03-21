@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from langgraph.types import interrupt
 
-from config import logger
+from config import pipeline_logger as logger
 from config_pipelines import LANGGRAPH_MAX_CONCEPT_REGEN
 from services.agent.nodes._skip_guard import should_skip
 from services.agent.state import ScriptState

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config import logger
+from config import pipeline_logger as logger
 from services.agent.state import ScriptState
 
 # Core 노드 (writer, review, revise, finalize, learn)는 매핑하지 않음 — 항상 실행

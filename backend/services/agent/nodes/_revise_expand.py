@@ -8,7 +8,8 @@ from __future__ import annotations
 import json
 import re
 
-from config import coerce_language_id, coerce_structure_id, logger
+from config import coerce_language_id, coerce_structure_id
+from config import pipeline_logger as logger
 from services.agent.state import ScriptState, extract_selected_concept
 from services.llm import LLMConfig, get_llm_provider
 from services.storyboard.helpers import strip_markdown_codeblock

@@ -13,7 +13,8 @@ from datetime import UTC, datetime
 from langchain_core.runnables import RunnableConfig
 from langgraph.store.base import BaseStore
 
-from config import GEMINI_TEXT_MODEL, coerce_structure_id, logger
+from config import GEMINI_TEXT_MODEL, coerce_structure_id
+from config import pipeline_logger as logger
 from config_pipelines import CREATIVE_LEADER_MODEL, DIRECTOR_MODEL, REVIEW_MODEL
 from services.agent.state import ScriptState
 from services.agent.utils import topic_key

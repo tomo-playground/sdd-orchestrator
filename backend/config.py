@@ -31,6 +31,9 @@ LOG_FILE = os.getenv("LOG_FILE", "logs/backend.log")
 LOG_TO_FILE = os.getenv("LOG_TO_FILE", "1").lower() not in {"0", "false", "no"}
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
+_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+_LOG_DATEFMT = "%Y-%m-%d %H:%M:%S"
+
 _handlers: list[logging.Handler] = [logging.StreamHandler()]
 if LOG_TO_FILE:
     _log_path = pathlib.Path(LOG_FILE)
@@ -39,14 +42,33 @@ if LOG_TO_FILE:
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
+    format=_LOG_FORMAT,
+    datefmt=_LOG_DATEFMT,
     handlers=_handlers,
 )
 
 logger = logging.getLogger("backend")
 # propagate=True (default): root logger's handlers (StreamHandler + FileHandler) handle all output.
 # Do NOT add a separate FileHandler here — it causes duplicate log entries in the log file.
+
+
+def _make_file_logger(name: str, filename: str) -> logging.Logger:
+    """Create a hierarchical logger with its own FileHandler.
+
+    Messages propagate to root (→ backend.log + console) AND go to their own file.
+    """
+    child = logging.getLogger(name)
+    if LOG_TO_FILE:
+        path = pathlib.Path("logs") / filename
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fh = logging.FileHandler(path, encoding="utf-8")
+        fh.setFormatter(logging.Formatter(_LOG_FORMAT, datefmt=_LOG_DATEFMT))
+        child.addHandler(fh)
+    return child
+
+
+pipeline_logger = _make_file_logger("backend.pipeline", "pipeline.log")
+gemini_logger = _make_file_logger("backend.gemini", "gemini.log")
 
 # --- Database ---
 DATABASE_URL = os.getenv("DATABASE_URL")

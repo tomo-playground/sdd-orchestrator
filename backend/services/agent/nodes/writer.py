@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import json
 
-from config import coerce_language_id, coerce_structure_id, logger
+from config import coerce_language_id, coerce_structure_id
+from config import pipeline_logger as logger
 from config_pipelines import LANGGRAPH_PLANNING_ENABLED
 from database import get_db_session
 from schemas import StoryboardRequest

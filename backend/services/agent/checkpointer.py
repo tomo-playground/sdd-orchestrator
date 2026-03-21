@@ -18,7 +18,8 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg import AsyncConnection, sql
 from psycopg_pool import AsyncConnectionPool
 
-from config import CHECKPOINT_GC_RETENTION_DAYS, DATABASE_URL, logger
+from config import CHECKPOINT_GC_RETENTION_DAYS, DATABASE_URL
+from config import pipeline_logger as logger
 
 _pool: AsyncConnectionPool | None = None
 _lock = asyncio.Lock()

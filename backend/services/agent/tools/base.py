@@ -12,7 +12,7 @@ from typing import Any, TypedDict
 
 from google.genai import types
 
-from config import logger
+from config import pipeline_logger as logger
 from services.agent.observability import trace_tool_call  # noqa: E402
 from services.llm import LLMConfig, get_llm_provider
 from services.llm.gemini_provider import GeminiProvider

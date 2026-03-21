@@ -12,7 +12,9 @@ from config import (
     GEMINI_SAFETY_SETTINGS,
     GEMINI_TEXT_MODEL,
     GEMINI_TIMEOUT_MS,
-    logger,
+)
+from config import (
+    gemini_logger as logger,
 )
 from services.agent.observability import _extract_usage, _safe_extract_text, trace_llm_call
 from services.llm.types import LLMConfig, LLMResponse

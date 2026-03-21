@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import json
 
-from config import coerce_language_id, coerce_structure_id, logger
+from config import coerce_language_id, coerce_structure_id
+from config import pipeline_logger as logger
 from config_pipelines import LANGGRAPH_PLANNING_ENABLED
 from services.agent.langfuse_prompt import compile_prompt
 from services.agent.llm_models import LocationPlan

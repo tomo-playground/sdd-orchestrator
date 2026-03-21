@@ -18,15 +18,37 @@ from fastapi.testclient import TestClient
 
 
 @pytest.fixture(autouse=True, scope="session")
-def _suppress_stream_logging():
-    """Remove StreamHandler from root logger so test logs don't leak into service stdout."""
+def _isolate_test_logging():
+    """Redirect all file logging to logs/test.log and suppress console output during tests."""
     root = logging.getLogger()
-    original = root.handlers[:]
-    root.handlers = [
-        h for h in root.handlers if not isinstance(h, logging.StreamHandler) or isinstance(h, logging.FileHandler)
-    ]
+    original_handlers = root.handlers[:]
+
+    # Remove all existing handlers (StreamHandler + service FileHandlers)
+    root.handlers = []
+
+    # Add a single FileHandler for test.log
+    test_log_path = Path("logs/test.log")
+    test_log_path.parent.mkdir(parents=True, exist_ok=True)
+    test_fh = logging.FileHandler(test_log_path, encoding="utf-8")
+    test_fh.setFormatter(
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    )
+    root.addHandler(test_fh)
+
+    # Remove FileHandlers from child loggers (pipeline, gemini) to avoid writing to service log files
+    child_loggers = [logging.getLogger(name) for name in ("backend.pipeline", "backend.gemini")]
+    saved_child_handlers: dict[str, list] = {}
+    for cl in child_loggers:
+        saved_child_handlers[cl.name] = cl.handlers[:]
+        cl.handlers = []
+
     yield
-    root.handlers = original
+
+    # Restore original state
+    root.handlers = original_handlers
+    for cl in child_loggers:
+        cl.handlers = saved_child_handlers[cl.name]
+    test_fh.close()
 
 
 def pytest_addoption(parser):

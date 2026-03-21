@@ -5,7 +5,8 @@ script_graph.py의 파일 크기를 줄이기 위해 분리.
 
 from __future__ import annotations
 
-from config import LANGGRAPH_MAX_REVISIONS, logger
+from config import LANGGRAPH_MAX_REVISIONS
+from config import pipeline_logger as logger
 from config_pipelines import (
     LANGGRAPH_CHECKPOINT_LOW_THRESHOLD,
     LANGGRAPH_MAX_CHECKPOINT_REVISIONS,

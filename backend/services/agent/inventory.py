@@ -142,7 +142,7 @@ def load_full_inventory(group_id: int | None, max_count: int | None = None) -> d
             "structures": structures,
         }
     except Exception as e:
-        from config import logger  # noqa: PLC0415
+        from config import pipeline_logger as logger  # noqa: PLC0415
 
         logger.warning("[Inventory] 인벤토리 로드 실패: %s", e)
         return {}

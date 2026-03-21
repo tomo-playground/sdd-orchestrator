@@ -7,7 +7,8 @@ Phase 25: execution_plan으로 skip_stages를 자율 결정.
 
 from __future__ import annotations
 
-from config import coerce_language_id, coerce_structure_id, logger
+from config import coerce_language_id, coerce_structure_id
+from config import pipeline_logger as logger
 from config_pipelines import DIRECTOR_MODEL, INVENTORY_CASTING_ENABLED
 from services.agent.llm_models import CastingRecommendation, DirectorPlanOutput, validate_with_model
 from services.agent.nodes._production_utils import run_production_step

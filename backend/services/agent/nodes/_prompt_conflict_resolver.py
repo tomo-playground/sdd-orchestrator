@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config import logger
+from config import pipeline_logger as logger
 from services.keywords.core import normalize_prompt_token
 
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from langchain_core.runnables import RunnableConfig
 
-from config import logger
+from config import pipeline_logger as logger
 from config_pipelines import DIRECTOR_MODEL, LANGGRAPH_MAX_REACT_STEPS
 from services.agent.llm_models import DirectorReActOutput, validate_with_model
 from services.agent.messages import AgentMessage

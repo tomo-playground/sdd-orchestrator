@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from config import logger
+from config import pipeline_logger as logger
 from services.agent.nodes._context_tag_utils import (
     _KOREAN_EMOTION_ALIASES,
     _coerce_str,

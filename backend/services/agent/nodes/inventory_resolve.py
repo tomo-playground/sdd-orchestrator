@@ -7,7 +7,8 @@ Pure Python 노드 (LLM 호출 없음).
 
 from __future__ import annotations
 
-from config import MULTI_CHAR_STRUCTURES, coerce_structure_id, logger
+from config import MULTI_CHAR_STRUCTURES, coerce_structure_id
+from config import pipeline_logger as logger
 from services.agent.nodes._skip_guard import should_skip
 from services.agent.state import ScriptState
 

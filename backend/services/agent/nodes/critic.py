@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 import time
 
-from config import CREATIVE_MAX_ROUNDS, coerce_language_id, coerce_structure_id, logger
+from config import CREATIVE_MAX_ROUNDS, coerce_language_id, coerce_structure_id
+from config import pipeline_logger as logger
 from config_pipelines import DEBATE_TIMEOUT_SEC, MAX_DEBATE_ROUNDS
 from database import get_db_session
 from models.creative import CreativeSession

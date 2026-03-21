@@ -6,7 +6,7 @@ Review 통과 후, Production chain 진입 전에 Director Plan 기준으로
 
 from __future__ import annotations
 
-from config import logger
+from config import pipeline_logger as logger
 from config_pipelines import (
     DIRECTOR_MODEL,
     LANGGRAPH_CHECKPOINT_HIGH_THRESHOLD,

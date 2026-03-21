@@ -5,7 +5,7 @@ KPI 기반 수렴 판단, Groupthink 감지, NarrativeScore 추정 등.
 
 from __future__ import annotations
 
-from config import logger
+from config import pipeline_logger as logger
 from config_pipelines import (
     CONVERGENCE_HOOK_THRESHOLD,
     CONVERGENCE_MIN_ROUNDS,

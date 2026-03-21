@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import json
 
-from config import LANGGRAPH_AUTO_REVIEW_THRESHOLD, coerce_language_id, coerce_structure_id, logger
+from config import LANGGRAPH_AUTO_REVIEW_THRESHOLD, coerce_language_id, coerce_structure_id
+from config import pipeline_logger as logger
 from config_pipelines import LANGGRAPH_NARRATIVE_THRESHOLD, REVIEW_MODEL
 from services.agent.llm_models import (
     NarrativeScoreOutput,

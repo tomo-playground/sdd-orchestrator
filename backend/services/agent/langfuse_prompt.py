@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from config import logger
+from config import pipeline_logger as logger
 
 # LangFuse에서 runtime fetch하는 프롬프트 목록
 # A등급(단순) + B등급(복잡 로직) 통합

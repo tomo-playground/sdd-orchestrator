@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 
-from config import logger
+from config import pipeline_logger as logger
 from services.agent.state import ScriptState
 from services.agent.tools.base import call_with_tools
 from services.agent.tools.cinematographer_tools import (

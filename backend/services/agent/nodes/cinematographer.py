@@ -7,7 +7,7 @@ import re
 
 from langchain_core.runnables import RunnableConfig
 
-from config import logger
+from config import pipeline_logger as logger
 from database import get_db_session
 from services.agent.observability import record_score, with_agent_trace
 from services.agent.state import ScriptState

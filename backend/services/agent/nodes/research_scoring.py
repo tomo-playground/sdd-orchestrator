@@ -5,7 +5,7 @@ LLM 추가 호출 없이 tool_logs + brief에서 4개 메트릭을 계산한다.
 
 from __future__ import annotations
 
-from config import logger
+from config import pipeline_logger as logger
 from config_pipelines import RESEARCH_QUALITY_THRESHOLD
 from services.agent.state import ResearchScore, ScriptState
 

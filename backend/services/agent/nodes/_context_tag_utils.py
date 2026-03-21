@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config import logger
+from config import pipeline_logger as logger
 
 
 def _coerce_str(val: object) -> str:
