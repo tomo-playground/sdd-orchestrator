@@ -357,8 +357,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | **Prompt Reviewer** | Stable Diffusion 및 Gemini 프롬프트 최적화, Danbooru 태그 준수 여부 및 문법 검토 | `/prompt-validate`, `/review` |
 | **Voice Reviewer** | TTS 음성의 톤, 속도, 발음 및 감정 표현의 적절성 검토 | `/review` |
 | **Sound Reviewer** | BGM 및 효과음의 조화, 오디오 정규화 상태 및 전반적인 사운드 품질 검토 | `/review` |
-
-> **향후 확장**: 프로덕션 배포 및 규모 확장 시 DevOps Agent 분리 검토 (현재 인프라 담당: Backend Dev)
+| **Performance Engineer** | 외부 자원 통신 최적화, timeout/retry/rate limit 구현, 성능 병목 해결 | `/review` |
 
 ### Prompt Engineer 역할 상세
 **핵심 원칙**: "프롬프트 기준 정확한 장면 생성"이 최우선 목표. 수동적 대응이 아닌 **적극적 제안**으로 품질을 선제적으로 개선합니다.
@@ -413,6 +412,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 |--------|----------|------|
 | 구현 완료 | Tech Lead 코드 리뷰 | 코드 변경 구현 후, 커밋 전에 자동으로 Tech Lead 에이전트가 리뷰 수행 |
 | `models/*.py` 또는 `alembic/` 변경 | DBA 리뷰 필수 | 스키마/마이그레이션 변경 시 커밋 전 DBA 에이전트 검증 필수 |
+| 외부 API 호출 추가/변경 | Performance Engineer 리뷰 필수 | timeout/retry/rate limit/pool 설정 검증 |
 | Phase 작업 완료 시 | PM 문서 동기화 | ROADMAP 상태 업데이트 + FEATURES/ 상태 확인 |
 | 새 기능 착수 시 | PM 명세 확인 | FEATURES/ 명세 존재 여부 확인, 없으면 생성 권고 |
 
