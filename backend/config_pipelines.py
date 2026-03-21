@@ -25,11 +25,16 @@ YOUTUBE_UPLOAD_COST = int(os.getenv("YOUTUBE_UPLOAD_COST", "1600"))
 
 # --- Creative Engine Configuration ---
 CREATIVE_MAX_ROUNDS = int(os.getenv("CREATIVE_MAX_ROUNDS", "3"))
-CREATIVE_LEADER_MODEL = os.getenv("CREATIVE_LEADER_MODEL", "gemini-2.5-pro")
+CREATIVE_LEADER_MODEL = os.getenv("CREATIVE_LEADER_MODEL", "gemini-2.5-flash")
 DIRECTOR_MODEL = os.getenv("DIRECTOR_MODEL", "gemini-2.5-pro")
 DIRECTOR_CHECKPOINT_MODEL = os.getenv("DIRECTOR_CHECKPOINT_MODEL", "gemini-2.5-flash")
-REVIEW_MODEL = os.getenv("REVIEW_MODEL", "gemini-2.5-pro")
+REVIEW_MODEL = os.getenv("REVIEW_MODEL", "gemini-2.5-flash")
 CREATIVE_PIPELINE_MAX_RETRIES = int(os.getenv("CREATIVE_PIPELINE_MAX_RETRIES", "2"))
+
+# --- Thinking Budget (Gemini 2.5) ---
+# Production step의 Flash 모델 thinking token 제한 (0=disabled, -1=auto)
+# 트레이스 분석: cinematographer 5K-7K, director_checkpoint 3K-3.8K → 2048로 제한
+FLASH_THINKING_BUDGET: int = int(os.getenv("FLASH_THINKING_BUDGET", "2048"))
 
 # Creative Lab: Agent Categories (SSOT for Frontend)
 CREATIVE_AGENT_CATEGORIES = [

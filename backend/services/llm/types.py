@@ -15,6 +15,7 @@ class LLMConfig:
 
     system_instruction: str | None = None
     temperature: float | None = None
+    thinking_budget: int | None = None  # Gemini 2.5 thinking token budget (0=disabled, -1=auto)
 
 
 @dataclass

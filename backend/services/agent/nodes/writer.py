@@ -252,8 +252,11 @@ async def writer_node(state: ScriptState) -> dict:
             result = await generate_script(request, db, pipeline_context=pipeline_ctx)
         except Exception as e:
             if _is_safety_error(e):
-                logger.warning("[LangGraph] Writer: 안전 필터 차단, 프롬프트 완화 후 재시도")
-                request.description = _append_safety_hint(request.description or "")
+                logger.warning("[LangGraph] Writer: 안전 필터 차단, sanitization + 프롬프트 완화 후 재시도")
+                from services.script.gemini_generator import _sanitize_for_gemini_prompt
+
+                request.topic = _sanitize_for_gemini_prompt(request.topic)
+                request.description = _sanitize_for_gemini_prompt(_append_safety_hint(request.description or ""))
                 try:
                     result = await generate_script(request, db, pipeline_context=pipeline_ctx)
                 except Exception as retry_err:

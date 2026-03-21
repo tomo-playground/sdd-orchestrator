@@ -15,10 +15,10 @@ import pytest
 
 
 def test_config_creative_leader_model_default():
-    """CREATIVE_LEADER_MODEL 기본값이 gemini-2.5-pro인지 검증."""
+    """CREATIVE_LEADER_MODEL 기본값이 gemini-2.5-flash인지 검증 (SP-043)."""
     from config_pipelines import CREATIVE_LEADER_MODEL
 
-    assert CREATIVE_LEADER_MODEL == "gemini-2.5-pro"
+    assert CREATIVE_LEADER_MODEL == "gemini-2.5-flash"
 
 
 def test_config_director_model_default():
@@ -29,10 +29,10 @@ def test_config_director_model_default():
 
 
 def test_config_review_model_default():
-    """REVIEW_MODEL 기본값이 gemini-2.5-pro인지 검증."""
+    """REVIEW_MODEL 기본값이 gemini-2.5-flash인지 검증 (SP-043)."""
     from config_pipelines import REVIEW_MODEL
 
-    assert REVIEW_MODEL == "gemini-2.5-pro"
+    assert REVIEW_MODEL == "gemini-2.5-flash"
 
 
 # --- Step 2: run_production_step model 파라미터 ---
@@ -125,7 +125,7 @@ def test_review_imports_review_model():
     import services.agent.nodes.review as review_mod
 
     assert hasattr(review_mod, "REVIEW_MODEL")
-    assert review_mod.REVIEW_MODEL == "gemini-2.5-pro"
+    assert review_mod.REVIEW_MODEL == "gemini-2.5-flash"
 
 
 # --- Step 5: Groupthink 카운트 ---

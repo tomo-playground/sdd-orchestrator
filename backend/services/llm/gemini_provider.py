@@ -84,11 +84,15 @@ class GeminiProvider:
             raise RuntimeError("Gemini client is not initialized. Check GEMINI_API_KEY in .env")
 
         resolved_model = model or GEMINI_TEXT_MODEL
+        thinking_config = (
+            types.ThinkingConfig(thinking_budget=config.thinking_budget) if config.thinking_budget is not None else None
+        )
         gemini_config = types.GenerateContentConfig(
             system_instruction=config.system_instruction,
             temperature=config.temperature,
             safety_settings=GEMINI_SAFETY_SETTINGS,
             http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_MS),
+            thinking_config=thinking_config,
         )
 
         # trace input에 system_instruction 포함 (가시성 확보)
@@ -147,6 +151,13 @@ class GeminiProvider:
                     "prohibited_fallback": True,
                     "fallback_model": GEMINI_FALLBACK_MODEL,
                 }
+                # fallback config: thinking_config 제거 (gemini-2.0-flash는 ThinkingConfig 미지원)
+                fb_config = types.GenerateContentConfig(
+                    system_instruction=config.system_instruction,
+                    temperature=config.temperature,
+                    safety_settings=GEMINI_SAFETY_SETTINGS,
+                    http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_MS),
+                )
                 async with trace_llm_call(
                     name=step_name,
                     model=GEMINI_FALLBACK_MODEL,
@@ -156,7 +167,7 @@ class GeminiProvider:
                     response = await _get_client().aio.models.generate_content(
                         model=GEMINI_FALLBACK_MODEL,
                         contents=contents,
-                        config=gemini_config,
+                        config=fb_config,
                     )
                     llm_fb.record(response)
                     obs_id = getattr(llm_fb.generation, "id", None)
@@ -185,12 +196,16 @@ class GeminiProvider:
             raise RuntimeError("Gemini client is not initialized. Check GEMINI_API_KEY in .env")
 
         resolved_model = model or GEMINI_TEXT_MODEL
+        thinking_config = (
+            types.ThinkingConfig(thinking_budget=config.thinking_budget) if config.thinking_budget is not None else None
+        )
         gemini_config = types.GenerateContentConfig(
             tools=tools,
             system_instruction=config.system_instruction,
             temperature=config.temperature,
             safety_settings=GEMINI_SAFETY_SETTINGS,
             http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_MS),
+            thinking_config=thinking_config,
         )
 
         # 429/5xx retry (지수 백오프: 2s, 8s, 30s)
@@ -241,6 +256,14 @@ class GeminiProvider:
                     "prohibited_fallback": True,
                     "fallback_model": GEMINI_FALLBACK_MODEL,
                 }
+                # fallback config: thinking_config/tools 제거 (gemini-2.0-flash는 ThinkingConfig 미지원)
+                fb_config = types.GenerateContentConfig(
+                    tools=tools,
+                    system_instruction=config.system_instruction,
+                    temperature=config.temperature,
+                    safety_settings=GEMINI_SAFETY_SETTINGS,
+                    http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_MS),
+                )
                 async with trace_llm_call(
                     name=step_name,
                     model=GEMINI_FALLBACK_MODEL,
@@ -250,7 +273,7 @@ class GeminiProvider:
                     response = await _get_client().aio.models.generate_content(
                         model=GEMINI_FALLBACK_MODEL,
                         contents=contents,
-                        config=gemini_config,
+                        config=fb_config,
                     )
                     llm_fb.record(response)
                     obs_id = getattr(llm_fb.generation, "id", None)

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from config import pipeline_logger as logger
-from config_pipelines import CREATIVE_PIPELINE_MAX_RETRIES
+from config_pipelines import CREATIVE_PIPELINE_MAX_RETRIES, FLASH_THINKING_BUDGET
 from services.agent.langfuse_prompt import compile_prompt
 from services.creative_utils import parse_json_response
 from services.llm import LLMConfig, get_llm_provider
@@ -19,11 +19,13 @@ async def run_production_step(
     step_name: str,
     model: str | None = None,
     system_instruction: str | None = None,
+    thinking_budget: int | None = None,
 ) -> dict:
     """Production step: compile_prompt() → LLM → JSON 파싱 → QC → 재시도.
 
     Args:
         model: LLM 모델 ID. None이면 기본 모델(GEMINI_TEXT_MODEL) 사용.
+        thinking_budget: Gemini thinking token 제한. None이면 FLASH_THINKING_BUDGET 사용.
 
     Returns: 전체 파싱된 JSON dict (예: {"scenes": [...], ...}).
         마지막 LLM 호출의 observation_id가 ``_observation_id`` 키에 포함된다.
@@ -37,6 +39,7 @@ async def run_production_step(
         step_name,
         model,
         system_instruction,
+        thinking_budget,
     )
 
 
@@ -48,14 +51,18 @@ async def _run_native(
     step_name: str,
     model: str | None,
     system_instruction: str | None,
+    thinking_budget: int | None = None,
 ) -> dict:
     """네이티브 경로: compile_prompt() → LLM → QC → 재시도."""
     # 로그용 짧은 이름: "generate_content sound_designer" → "sound_designer"
     log_name = step_name.split(" ", 1)[-1] if " " in step_name else step_name
 
+    # thinking budget: 명시 지정 > FLASH_THINKING_BUDGET 기본값
+    resolved_budget = thinking_budget if thinking_budget is not None else FLASH_THINKING_BUDGET
+
     compiled = compile_prompt(template_name, **template_vars)
     resolved_sys = compiled.system or system_instruction or ""
-    llm_config = LLMConfig(system_instruction=resolved_sys)
+    llm_config = LLMConfig(system_instruction=resolved_sys, thinking_budget=resolved_budget)
     _last_feedback = ""
     _last_obs_id: str | None = None
 
@@ -64,7 +71,7 @@ async def _run_native(
             retry_vars = {**template_vars, "feedback": _last_feedback}
             compiled = compile_prompt(template_name, **retry_vars)
             resolved_sys = compiled.system or system_instruction or ""
-            llm_config = LLMConfig(system_instruction=resolved_sys)
+            llm_config = LLMConfig(system_instruction=resolved_sys, thinking_budget=resolved_budget)
 
         try:
             step_metadata: dict = {"template": template_name}
