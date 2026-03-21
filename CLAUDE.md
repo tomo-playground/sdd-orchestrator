@@ -647,7 +647,8 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ## SDD 자율 실행 워크플로우
 
 ### 개요
-**Spec-Driven Development**: 사람이 `task.md`를 작성하면, Claude가 구현부터 PR 생성까지 자율 실행한다.
+**SDD + TDD**: 사람이 `task.md` + 실패 테스트를 작성하면, Claude가 테스트를 GREEN으로 만들고 PR까지 자율 실행한다.
+**"AI를 믿지 말고, 테스트를 믿어라."** — 테스트가 곧 스펙이고, GREEN이 곧 완료.
 
 ### 실행 흐름
 ```

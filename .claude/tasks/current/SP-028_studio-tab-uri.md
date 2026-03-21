@@ -22,6 +22,8 @@ Studio 탭 URI 표현 — `?tab=script/stage/direct/publish` 딥링크
 - [ ] URL 쿼리 파라미터 `?tab=` 로 탭 상태 반영
 - [ ] 탭 전환 시 URL 자동 업데이트 (replaceState)
 - [ ] URL의 `?tab=` 값으로 초기 탭 설정
+- [ ] `?tab=` 없거나 잘못된 값이면 script 폴백
+- [ ] `?new=true` 시 `?tab=` 무시하고 항상 script
 - [ ] 기존 `?id=`, `?new=true` 파라미터와 공존
 - [ ] 기존 기능 regression 없음
 

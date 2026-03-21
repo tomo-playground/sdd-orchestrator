@@ -77,20 +77,82 @@ writer 내부 planning/반복 호출, cinematographer tool-calling agent 응답 
 `route_after_review` x16, `route_after_writer` x6 등 라우팅 CHAIN도 2배 중복.
 LangGraph 자체 트레이싱 + observability의 `trace_chain` 양쪽에서 기록.
 
+## 실패 테스트 (TDD)
+
+구현 전 작성 → RED 확인 → 구현 → GREEN 확인 순서로 진행.
+
+### Bug 1: trace_context span output 미기록
+```python
+# tests/test_observability_trace_context.py
+async def test_trace_context_span_output_is_set():
+    """trace_context yield 후 span.output이 None이 아닌지 확인."""
+    captured = {}
+
+    async with trace_context("test.op", input_data={"x": 1}) as span:
+        # 호출처에서 output을 기록
+        if span:
+            span.update(output={"result": "ok"})
+        captured["span"] = span
+
+    assert captured["span"] is not None, "span 객체가 yield되어야 함"
+    # span.output이 None이 아님 — LangFuse SDK mock으로 검증
+    assert captured["span"].output is not None, "span.output이 기록되어야 함"
+```
+
+### Bug 2: @with_agent_trace 이중 래핑
+```python
+# tests/test_observability_double_wrap.py
+async def test_no_duplicate_agent_observation_after_node_run():
+    """노드 실행 후 동일 이름 AGENT observation이 1개만 생성되는지 확인."""
+    observations = []
+
+    # LangFuse client mock — create_span 호출을 수집
+    with patch("services.agent.observability.langfuse_client") as mock_lf:
+        mock_lf.span.side_effect = lambda **kw: observations.append(kw) or MagicMock()
+        await writer_node(mock_state, config=None)
+
+    agent_obs = [o for o in observations if o.get("name") == "writer"]
+    assert len(agent_obs) == 1, f"writer AGENT observation이 1개여야 함, 실제: {len(agent_obs)}"
+```
+
+### Bug 3: GENERATION output undefined
+```python
+# tests/test_observability_generation_output.py
+async def test_writer_generation_output_is_not_none():
+    """writer/cinematographer GENERATION의 output이 None이 아닌지 확인."""
+    generation_outputs = []
+
+    with patch("services.agent.observability.langfuse_client") as mock_lf:
+        def capture_generation(**kw):
+            gen = MagicMock()
+            gen.name = kw.get("name", "")
+            generation_outputs.append(gen)
+            return gen
+        mock_lf.generation.side_effect = capture_generation
+
+        await writer_node(mock_state, config=None)
+
+    for gen in generation_outputs:
+        assert gen.output is not None, f"GENERATION '{gen.name}'의 output이 None이면 안 됨"
+```
+
 ## 완료 기준 (DoD)
 
 ### Part A: trace_context output 기록
+- [ ] **실패 테스트 → GREEN**: `test_trace_context_span_output_is_set` 통과
 - [ ] `trace_context()`가 span 객체를 yield하도록 수정
 - [ ] 3개 호출처에서 `span.update(output=...)` 호출
 - [ ] LangFuse에서 topic.analyze 등의 output 표시 확인
 
 ### Part B: @with_agent_trace 이중 래핑 제거
+- [ ] **실패 테스트 → GREEN**: `test_no_duplicate_agent_observation_after_node_run` 통과
 - [ ] 6개 노드에서 `@with_agent_trace` 데코레이터 **제거**
 - [ ] import 정리 (`from services.agent.observability import with_agent_trace` 제거)
 - [ ] LangFuse에서 동일 이름 AGENT observation이 **1개만** 생성 확인
 - [ ] output에 `{"updated_keys": [...]}` 정상 표시 확인
 
 ### Part C: GENERATION output undefined 수정 (5건)
+- [ ] **실패 테스트 → GREEN**: `test_writer_generation_output_is_not_none` 통과
 - [ ] `writer` 내부 sub-call (planning 등)에서 `llm.record()` 누락 지점 확인 + 수정
 - [ ] `invoke_agent cinematographer.contrast` tool-calling agent 응답 기록 확인 + 수정
 - [ ] LangFuse에서 GENERATION output 0% undefined 확인

@@ -40,9 +40,70 @@ cinematographer agents  think: 3,500~7,100 per call (Flash인데 과다)
 director_checkpoint     think: 3,000~3,800 per call (Flash인데 과다)
 ```
 
+## 실패 테스트 (TDD)
+
+구현 전 작성 → RED 확인 → 구현 → GREEN 확인 순서로 진행.
+
+### Part A: REVIEW_MODEL 기본값
+```python
+# tests/test_config_pipelines.py
+def test_review_model_default_is_flash():
+    """REVIEW_MODEL 기본값이 gemini-2.5-flash인지 확인."""
+    import importlib
+    import os
+
+    # 환경변수 없는 상태에서 모듈 재로드
+    env = {k: v for k, v in os.environ.items() if k != "REVIEW_MODEL"}
+    with patch.dict(os.environ, env, clear=True):
+        import config_pipelines
+        importlib.reload(config_pipelines)
+        assert config_pipelines.REVIEW_MODEL == "gemini-2.5-flash", (
+            f"기본값이 gemini-2.5-flash여야 함, 실제: {config_pipelines.REVIEW_MODEL}"
+        )
+```
+
+### Part B: CREATIVE_LEADER_MODEL 기본값
+```python
+# tests/test_config_pipelines.py (동일 파일)
+def test_creative_leader_model_default_is_flash():
+    """CREATIVE_LEADER_MODEL 기본값이 gemini-2.5-flash인지 확인."""
+    import importlib
+    import os
+
+    env = {k: v for k, v in os.environ.items() if k != "CREATIVE_LEADER_MODEL"}
+    with patch.dict(os.environ, env, clear=True):
+        import config_pipelines
+        importlib.reload(config_pipelines)
+        assert config_pipelines.CREATIVE_LEADER_MODEL == "gemini-2.5-flash", (
+            f"기본값이 gemini-2.5-flash여야 함, 실제: {config_pipelines.CREATIVE_LEADER_MODEL}"
+        )
+```
+
+### Part C: Writer safety fallback 시 sanitization 적용
+```python
+# tests/test_writer_safety_fallback.py
+async def test_writer_fallback_applies_sanitization():
+    """PROHIBITED_CONTENT fallback 시 _sanitize_for_gemini_prompt가 적용되는지 확인."""
+    sanitize_calls = []
+
+    def capture_sanitize(prompt):
+        sanitize_calls.append(prompt)
+        return prompt  # 원본 반환 (내용 변경 없음)
+
+    with patch("services.agent.nodes.writer._sanitize_for_gemini_prompt", side_effect=capture_sanitize):
+        with patch("services.llm.client.generate", side_effect=[
+            ProhibitedContentError(),   # 1차 Flash 차단
+            MagicMock(text="결과"),      # fallback 성공
+        ]):
+            await writer_node(mock_state_with_bts_topic, config=None)
+
+    assert len(sanitize_calls) >= 1, "fallback 경로에서 sanitization이 적용되어야 함"
+```
+
 ## 완료 기준 (DoD)
 
 ### Part A: review 모델 분리 (최대 효과)
+- [ ] **실패 테스트 → GREEN**: `test_review_model_default_is_flash` 통과
 - [ ] `config_pipelines.py`에 `REVIEW_MODEL` 기본값을 `gemini-2.5-flash`로 변경
   - 현재: `gemini-2.5-pro` (config_pipelines.py L30)
   - review는 "기준 대조 채점" 역할 — quality_criteria, narrative_score 등 명시된 기준으로 평가
@@ -50,6 +111,7 @@ director_checkpoint     think: 3,000~3,800 per call (Flash인데 과다)
 - [ ] review 결과 품질 regression 없음 확인 (narrative_score 범위, passed/failed 판정)
 
 ### Part B: creative_agent 모델 분리
+- [ ] **실패 테스트 → GREEN**: `test_creative_leader_model_default_is_flash` 통과
 - [ ] `config_pipelines.py`에 `CREATIVE_LEADER_MODEL` 기본값을 `gemini-2.5-flash`로 변경
   - 현재: `gemini-2.5-pro` (config_pipelines.py L28)
   - 3인 Architect 컨셉 생성 — 창의적이지만 구조화된 JSON 출력
@@ -57,6 +119,7 @@ director_checkpoint     think: 3,000~3,800 per call (Flash인데 과다)
 - [ ] creative_agent 컨셉 품질 regression 없음 확인
 
 ### Part C: Writer PROHIBITED_CONTENT fallback 비용 절감
+- [ ] **실패 테스트 → GREEN**: `test_writer_fallback_applies_sanitization` 통과
 - [ ] 트레이스 확인: writer GENERATION에서 Flash output 0 → 2.0-flash fallback 4회 반복
   - input 14K 토큰을 2번씩 전송 (Flash 차단 + fallback 재전송)
   - writer.py L48-55: `_SAFETY_HINT` 주입으로 대응 중이지만 효과 불충분
