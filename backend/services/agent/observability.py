@@ -324,6 +324,178 @@ def record_score(
         logger.warning("[LangFuse] Score 기록 실패 (non-fatal): %s=%s, %r", name, value, e)
 
 
+# ── AGENT / TOOL / CHAIN 추적 ─────────────────────────────────
+
+# AGENT/TOOL observation input/output 최대 기록 길이 (GENERATION은 _MAX_IO_LEN 사용)
+_MAX_OBS_IO_LEN = 2000
+
+
+def with_agent_trace(name: str | None = None):
+    """노드 함수에 AGENT observation을 자동 래핑하는 데코레이터.
+
+    Usage:
+        @with_agent_trace("writer")
+        async def writer_node(state, ...): ...
+    """
+    import functools  # noqa: PLC0415
+
+    def decorator(fn):  # noqa: ANN001
+        agent_name = name or fn.__name__.replace("_node", "")
+
+        @functools.wraps(fn)
+        async def wrapper(*args, **kwargs):  # noqa: ANN002, ANN003
+            async with trace_agent(agent_name):
+                return await fn(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+@asynccontextmanager
+async def trace_agent(
+    name: str,
+    *,
+    input_data: Any = None,
+    metadata: dict[str, Any] | None = None,
+):
+    """노드 실행을 LangFuse AGENT observation으로 추적한다.
+
+    AGENT observation을 root_span으로 설정하여
+    내부 trace_llm_call() GENERATION이 하위로 중첩된다.
+    LangFuse 비활성 시 no-op으로 동작한다.
+    """
+    if not _ensure_initialized() or _langfuse_client is None:
+        yield None
+        return
+
+    raw_trace_id = _current_trace_id.get()
+    prev_root_span = _current_root_span.get()
+
+    obs_kwargs: dict[str, Any] = {"name": name}
+    if input_data is not None:
+        obs_kwargs["input"] = input_data
+    if metadata:
+        obs_kwargs["metadata"] = metadata
+
+    try:
+        if prev_root_span:
+            agent_obs = prev_root_span.start_observation(as_type="agent", **obs_kwargs)
+        elif raw_trace_id:
+            agent_obs = _langfuse_client.start_observation(
+                as_type="agent",
+                trace_context={"trace_id": _to_hex32(raw_trace_id)},
+                **obs_kwargs,
+            )
+        else:
+            agent_obs = _langfuse_client.start_observation(as_type="agent", **obs_kwargs)
+    except Exception:
+        yield None
+        return
+
+    _current_root_span.set(agent_obs)
+    try:
+        yield agent_obs
+        try:
+            agent_obs.end()
+        except Exception:
+            pass
+    except Exception as e:
+        try:
+            agent_obs.update(level="ERROR", status_message=str(e)[:500])
+            agent_obs.end()
+        except Exception:
+            pass
+        raise
+    finally:
+        _current_root_span.set(prev_root_span)
+
+
+@asynccontextmanager
+async def trace_tool_call(
+    name: str,
+    *,
+    input_data: Any = None,
+):
+    """도구 실행을 LangFuse TOOL observation으로 추적한다.
+
+    현재 root_span(AGENT)이 있으면 하위로 중첩된다.
+    LangFuse 비활성 시 no-op으로 동작한다.
+    """
+    if not _ensure_initialized() or _langfuse_client is None:
+        yield None
+        return
+
+    parent = _current_root_span.get()
+    obs_kwargs: dict[str, Any] = {"name": name}
+    if input_data is not None:
+        obs_kwargs["input"] = input_data
+
+    try:
+        if parent:
+            tool_obs = parent.start_observation(as_type="tool", **obs_kwargs)
+        elif raw_trace_id := _current_trace_id.get():
+            tool_obs = _langfuse_client.start_observation(
+                as_type="tool",
+                trace_context={"trace_id": _to_hex32(raw_trace_id)},
+                **obs_kwargs,
+            )
+        else:
+            tool_obs = _langfuse_client.start_observation(as_type="tool", **obs_kwargs)
+    except Exception:
+        yield None
+        return
+
+    try:
+        yield tool_obs
+        try:
+            tool_obs.end()
+        except Exception:
+            pass
+    except Exception as e:
+        try:
+            tool_obs.update(level="ERROR", status_message=str(e)[:500])
+            tool_obs.end()
+        except Exception:
+            pass
+        raise
+
+
+def trace_chain(
+    name: str,
+    *,
+    input_data: Any = None,
+    output_data: Any = None,
+) -> None:
+    """라우팅 분기를 LangFuse CHAIN observation으로 기록한다 (동기).
+
+    라우팅 함수의 결정 경로를 추적한다.
+    LangFuse 비활성 시 no-op으로 동작한다.
+    """
+    if not _ensure_initialized() or _langfuse_client is None:
+        return
+
+    raw_trace_id = _current_trace_id.get()
+    obs_kwargs: dict[str, Any] = {"name": name}
+    if input_data is not None:
+        obs_kwargs["input"] = input_data
+    if output_data is not None:
+        obs_kwargs["output"] = output_data
+
+    try:
+        if raw_trace_id:
+            obs = _langfuse_client.start_observation(
+                as_type="chain",
+                trace_context={"trace_id": _to_hex32(raw_trace_id)},
+                **obs_kwargs,
+            )
+        else:
+            obs = _langfuse_client.start_observation(as_type="chain", **obs_kwargs)
+        obs.end()
+    except Exception:
+        pass
+
+
 # ── Gemini GENERATION 추적 ────────────────────────────────────
 
 

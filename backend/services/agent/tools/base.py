@@ -13,6 +13,7 @@ from typing import Any, TypedDict
 from google.genai import types
 
 from config import logger
+from services.agent.observability import trace_tool_call  # noqa: E402
 from services.llm import LLMConfig, get_llm_provider
 from services.llm.gemini_provider import GeminiProvider
 
@@ -192,75 +193,82 @@ async def call_with_tools(
 
             # 도구 실행
             executor = tool_executors.get(tool_name) if tool_name else None
-            if not executor:
-                error_msg = f"Tool '{tool_name}' not found in executors"
-                logger.error("[Tool-Calling] %s", error_msg)
-                tool_logs.append(
-                    ToolCallLog(
-                        tool_name=tool_name or "unknown",
-                        arguments=arguments,
-                        result=None,
-                        error=error_msg,
-                    )
-                )
-                function_responses.append(
-                    types.Part(
-                        function_response=types.FunctionResponse(
-                            name=tool_name or "unknown",
-                            response={"error": error_msg},
+
+            async with trace_tool_call(tool_name or "unknown", input_data=arguments) as tool_obs:
+                if not executor:
+                    error_msg = f"Tool '{tool_name}' not found in executors"
+                    logger.error("[Tool-Calling] %s", error_msg)
+                    if tool_obs:
+                        tool_obs.update(output={"error": error_msg}, level="ERROR", status_message=error_msg[:500])
+                    tool_logs.append(
+                        ToolCallLog(
+                            tool_name=tool_name or "unknown",
+                            arguments=arguments,
+                            result=None,
+                            error=error_msg,
                         )
                     )
-                )
-                continue
-
-            try:
-                # 비동기 함수 실행
-                if asyncio.iscoroutinefunction(executor):
-                    result = await executor(**arguments)
-                else:
-                    result = executor(**arguments)
-
-                logger.info("[Tool-Calling] Tool '%s' result: %s", tool_name, str(result)[:200])
-
-                tool_logs.append(
-                    ToolCallLog(
-                        tool_name=tool_name or "unknown",
-                        arguments=arguments,
-                        result=result,
-                        error=None,
-                    )
-                )
-
-                function_responses.append(
-                    types.Part(
-                        function_response=types.FunctionResponse(
-                            name=tool_name or "unknown",
-                            response={"result": result},
+                    function_responses.append(
+                        types.Part(
+                            function_response=types.FunctionResponse(
+                                name=tool_name or "unknown",
+                                response={"error": error_msg},
+                            )
                         )
                     )
-                )
+                    continue
+                try:
+                    # 비동기 함수 실행
+                    if asyncio.iscoroutinefunction(executor):
+                        result = await executor(**arguments)
+                    else:
+                        result = executor(**arguments)
 
-            except Exception as exc:
-                error_msg = f"{type(exc).__name__}: {exc}"
-                logger.error("[Tool-Calling] Tool '%s' failed: %s", tool_name, error_msg)
+                    logger.info("[Tool-Calling] Tool '%s' 실행 완료", tool_name)
+                    if tool_obs:
+                        tool_obs.update(output=str(result)[:2000])
 
-                tool_logs.append(
-                    ToolCallLog(
-                        tool_name=tool_name or "unknown",
-                        arguments=arguments,
-                        result=None,
-                        error=error_msg,
-                    )
-                )
-
-                function_responses.append(
-                    types.Part(
-                        function_response=types.FunctionResponse(
-                            name=tool_name or "unknown",
-                            response={"error": error_msg},
+                    tool_logs.append(
+                        ToolCallLog(
+                            tool_name=tool_name or "unknown",
+                            arguments=arguments,
+                            result=result,
+                            error=None,
                         )
                     )
-                )
+
+                    function_responses.append(
+                        types.Part(
+                            function_response=types.FunctionResponse(
+                                name=tool_name or "unknown",
+                                response={"result": result},
+                            )
+                        )
+                    )
+
+                except Exception as exc:
+                    error_msg = f"{type(exc).__name__}: {exc}"
+                    logger.error("[Tool-Calling] Tool '%s' failed: %s", tool_name, error_msg)
+                    if tool_obs:
+                        tool_obs.update(output={"error": error_msg}, level="ERROR", status_message=error_msg[:500])
+
+                    tool_logs.append(
+                        ToolCallLog(
+                            tool_name=tool_name or "unknown",
+                            arguments=arguments,
+                            result=None,
+                            error=error_msg,
+                        )
+                    )
+
+                    function_responses.append(
+                        types.Part(
+                            function_response=types.FunctionResponse(
+                                name=tool_name or "unknown",
+                                response={"error": error_msg},
+                            )
+                        )
+                    )
 
         # 도구 응답을 컨텍스트에 추가
         if candidate.content:

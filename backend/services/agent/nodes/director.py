@@ -17,7 +17,7 @@ from services.agent.nodes._agent_messaging import (
     run_agent_with_message,
 )
 from services.agent.nodes._production_utils import run_production_step
-from services.agent.observability import record_score
+from services.agent.observability import record_score, with_agent_trace
 from services.agent.prompt_builders import (
     build_previous_steps_block,
     build_production_qc_section,
@@ -40,6 +40,7 @@ def _react_validate_fn(data: dict) -> dict:
     return validate_with_model(DirectorReActOutput, data).model_dump()
 
 
+@with_agent_trace("director")
 async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
     """Production 결과를 ReAct Loop로 통합 검증한다.
 
