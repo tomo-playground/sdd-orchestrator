@@ -32,6 +32,8 @@
 
 > 완료 시 Stop Hook이 E2E까지 자동 실행 → PR Test Plan 수동 항목 제거
 
+- [ ] SP-019 — AI QA 자동 순찰 — Playwright headless로 핵심 플로우 정기 실행, 이상 감지 시 GitHub Issue 자동 생성 (콘솔 에러, API 4xx/5xx, UI 깨짐, 로딩 멈춤). SP-005~008 완료 후 착수.
+
 ## P2 (기능 확장)
 
 - [ ] VEO Clip — Video Generation 통합 | [명세](../../docs/01_product/FEATURES/VEO_CLIP.md)
