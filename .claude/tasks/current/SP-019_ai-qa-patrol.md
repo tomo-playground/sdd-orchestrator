@@ -4,7 +4,7 @@ priority: P1
 scope: infra
 branch: feat/SP-019-ai-qa-patrol
 created: 2026-03-21
-status: pending
+status: running
 depends_on: SP-018
 label: enhancement
 assignee: stopper2008

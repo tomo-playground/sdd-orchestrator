@@ -395,6 +395,8 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | `/db` | DB 마이그레이션 상태/생성/적용/롤백 |
 | `/docs` | 문서 구조 조회/정합성 체크/크기 점검 |
 | `/pm-check` | PM 자율 점검 (문서/로드맵/기능 명세/DoD) |
+| `/sentry-patrol` | Sentry 에러 배치 순찰 → GitHub Issue 자동 생성 |
+| `/qa-patrol` | Playwright QA 순찰 (핵심 플로우 자동 테스트) |
 
 > Agents/Commands 관리 규칙은 `docs/guides/CONTRIBUTING.md` 참조
 
