@@ -145,7 +145,7 @@ async def prebuild_tts_for_scenes(
             from models.media_asset import MediaAsset
 
             asset = db.get(MediaAsset, item.tts_asset_id)
-            if asset is not None and not asset.deleted_at:
+            if asset is not None:
                 skip_ids.add(item.scene_db_id)
                 continue
         gen_items.append(item)

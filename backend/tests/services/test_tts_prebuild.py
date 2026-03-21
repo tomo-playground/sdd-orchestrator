@@ -36,19 +36,13 @@ def _make_wav_bytes(duration_sec: float = 1.0, framerate: int = 22050) -> bytes:
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 
-def _make_db(asset_exists: bool = False, asset_deleted: bool = False) -> MagicMock:
+def _make_db(asset_exists: bool = False) -> MagicMock:
     """Return a minimal mock DB session.
 
     asset_exists: db.get(MediaAsset, id) returns an asset (or None)
-    asset_deleted: the asset has a truthy deleted_at
     """
     db = MagicMock()
-    if asset_exists:
-        mock_asset = MagicMock()
-        mock_asset.deleted_at = "2024-01-01" if asset_deleted else None
-        db.get.return_value = mock_asset
-    else:
-        db.get.return_value = None
+    db.get.return_value = MagicMock() if asset_exists else None
     db.commit = MagicMock()
     return db
 
@@ -64,7 +58,7 @@ class TestPrebuildSkipped:
         """Scene with tts_asset_id pointing to an existing live asset → skipped."""
         from services.tts_prebuild import prebuild_tts_for_scenes
 
-        db = _make_db(asset_exists=True, asset_deleted=False)
+        db = _make_db(asset_exists=True)
         request = TtsPrebuildRequest(
             storyboard_id=1,
             scenes=[
@@ -87,44 +81,6 @@ class TestPrebuildSkipped:
         assert result.scene_db_id == 10
         assert result.status == "skipped"
         assert result.tts_asset_id == 99
-
-    @pytest.mark.asyncio
-    async def test_scene_with_deleted_asset_is_not_skipped(self):
-        """Scene whose tts_asset_id points to a soft-deleted asset is NOT skipped."""
-        from services.tts_prebuild import prebuild_tts_for_scenes
-
-        db = _make_db(asset_exists=True, asset_deleted=True)
-        wav_bytes = _make_wav_bytes(1.5)
-
-        request = TtsPrebuildRequest(
-            storyboard_id=1,
-            scenes=[
-                TtsPrebuildSceneItem(
-                    scene_db_id=11,
-                    script="테스트입니다.",
-                    speaker="A",
-                    tts_asset_id=50,  # asset is deleted → should regenerate
-                )
-            ],
-        )
-
-        with (
-            patch(
-                "services.tts_prebuild._generate_audio",
-                new_callable=AsyncMock,
-                return_value=(wav_bytes, 1.5),
-            ),
-            patch(
-                "services.tts_prebuild._save_tts_asset",
-                return_value=77,
-            ),
-            patch("services.tts_prebuild._update_scene_tts_asset"),
-        ):
-            response = await prebuild_tts_for_scenes(request, db)
-
-        # Should not be skipped — deleted asset is treated as missing
-        assert response.skipped == 0
-        assert response.prebuilt == 1
 
     @pytest.mark.asyncio
     async def test_scene_without_asset_id_is_not_skipped(self):
@@ -402,9 +358,7 @@ class TestPrebuildMixed:
         # Scene 3 (scene_db_id=3): no asset → generation fails
         def _db_get_side_effect(model_class, asset_id):
             if asset_id == 10:
-                mock_a = MagicMock()
-                mock_a.deleted_at = None
-                return mock_a
+                return MagicMock()
             return None
 
         db = MagicMock()
@@ -454,9 +408,7 @@ class TestPrebuildMixed:
         from services.tts_prebuild import prebuild_tts_for_scenes
 
         def _always_valid(model_class, asset_id):
-            m = MagicMock()
-            m.deleted_at = None
-            return m
+            return MagicMock()
 
         db = MagicMock()
         db.get.side_effect = _always_valid
