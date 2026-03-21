@@ -71,8 +71,11 @@ export default function StudioKanbanView() {
   );
 
   const handleCardClick = (id: number, status: string) => {
-    setUI({ activeTab: STATUS_TAB_MAP[status] ?? DEFAULT_STUDIO_TAB });
-    router.push(`/studio?id=${id}`);
+    const tab = STATUS_TAB_MAP[status] ?? DEFAULT_STUDIO_TAB;
+    // set()으로 Zustand 상태만 업데이트 — setActiveTab의 replaceState 부작용은 불필요
+    // (router.push가 즉시 새 URL로 이동하므로 칸반 URL에 ?tab= 추가할 필요 없음)
+    useUIStore.getState().set({ activeTab: tab });
+    router.push(`/studio?id=${id}&tab=${tab}`);
   };
 
   const handleNewShorts = async () => {

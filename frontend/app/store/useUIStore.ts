@@ -108,7 +108,16 @@ export const useUIStore = create<UIState>((set) => ({
   toggleAdvancedSettings: () =>
     set((state) => ({ showAdvancedSettings: !state.showAdvancedSettings })),
   setPendingAutoRun: (v) => set({ pendingAutoRun: v }),
-  setActiveTab: (tab) => set({ activeTab: tab }),
+  setActiveTab: (tab) => {
+    set({ activeTab: tab });
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("tab") !== tab) {
+        url.searchParams.set("tab", tab);
+        window.history.replaceState({}, "", url.toString());
+      }
+    }
+  },
   openGroupConfig: () => {
     const gid = useContextStore.getState().groupId;
     if (gid === null || gid === ALL_GROUPS_ID) {

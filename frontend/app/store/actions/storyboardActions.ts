@@ -28,6 +28,7 @@ function syncUrlAfterCreate(newId: number): void {
   if (typeof window !== "undefined") {
     const url = new URL(window.location.href);
     url.searchParams.delete("new");
+    url.searchParams.delete("tab");
     url.searchParams.set("id", String(newId));
     window.history.replaceState({}, "", url.toString());
     // LEAK-2 fix: remove :new localStorage keys after POST success
@@ -238,6 +239,7 @@ export async function persistStoryboard(): Promise<boolean> {
       if (typeof window !== "undefined") {
         const url = new URL(window.location.href);
         url.searchParams.delete("id");
+        url.searchParams.delete("tab");
         window.history.replaceState({}, "", url.toString());
       }
       useUIStore.getState().showToast("삭제된 영상입니다. 새 영상을 만들어주세요.", "warning");

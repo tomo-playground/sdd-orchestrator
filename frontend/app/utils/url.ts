@@ -14,15 +14,16 @@ export function resolveImageUrl(url: string | null | undefined): string | null {
 }
 
 /**
- * Clear studio URL params (?id, ?new) to prevent stale storyboard loading after context switch.
+ * Clear studio URL params (?id, ?new, ?tab) to prevent stale storyboard loading after context switch.
  * Uses window.history.replaceState instead of Next.js router to avoid hook dependency
  * (this runs inside useCallback, not a component render cycle).
  */
 export function clearStudioUrlParams() {
   const url = new URL(window.location.href);
-  if (url.searchParams.has("id") || url.searchParams.has("new")) {
+  if (url.searchParams.has("id") || url.searchParams.has("new") || url.searchParams.has("tab")) {
     url.searchParams.delete("id");
     url.searchParams.delete("new");
+    url.searchParams.delete("tab");
     window.history.replaceState({}, "", url.toString());
   }
 }

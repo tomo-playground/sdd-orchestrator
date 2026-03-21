@@ -23,6 +23,24 @@ describe("useUIStore", () => {
       useUIStore.getState().setActiveTab("publish");
       expect(useUIStore.getState().activeTab).toBe("publish");
     });
+
+    it("calls history.replaceState with ?tab= when tab changes", () => {
+      const spy = vi.spyOn(window.history, "replaceState");
+      useUIStore.getState().setActiveTab("stage");
+      expect(spy).toHaveBeenCalledOnce();
+      const calledUrl = spy.mock.calls[0][2] as string;
+      expect(calledUrl).toContain("tab=stage");
+      spy.mockRestore();
+    });
+
+    it("does not call history.replaceState when tab is already current in URL", () => {
+      // Seed URL so ?tab=direct is already present
+      window.history.replaceState({}, "", "/?tab=direct");
+      const spy = vi.spyOn(window.history, "replaceState");
+      useUIStore.getState().setActiveTab("direct");
+      expect(spy).not.toHaveBeenCalled();
+      spy.mockRestore();
+    });
   });
 
   describe("showToast", () => {

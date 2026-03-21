@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useRenderStore } from "../../store/useRenderStore";
-import { useUIStore } from "../../store/useUIStore";
+import { useUIStore, type StudioTab, DEFAULT_STUDIO_TAB } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
 import StudioWorkspace from "../../components/studio/StudioWorkspace";
 import StudioWorkspaceTabs from "../../components/studio/StudioWorkspaceTabs";
@@ -41,6 +41,9 @@ import { initAutoSave } from "../../store/effects/autoSave";
 /** AutoRun step → Studio tab mapping (에러 시 관련 탭에서만 상세 패널 표시) */
 const STEP_TO_TAB: Record<string, string> = { stage: "stage", images: "direct", render: "publish" };
 
+/** URL ?tab= 파라미터 유효 값 (딥링크용) */
+const VALID_TABS: StudioTab[] = ["script", "stage", "direct", "publish"];
+
 function StudioContent() {
   const { isLoadingDb, loadedProfileId, storyboardId, needsStyleProfile } =
     useStudioInitialization();
@@ -69,10 +72,23 @@ function StudioContent() {
   // Prevents workspace from rendering with stale store data before the reset useEffect fires.
   const isNewUrlPending = searchParams.get("new") === "true" && !isNewModeReady;
 
-  // Auto-activate Script tab for new storyboards
+  // Restore tab from URL or default to script for new storyboards
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   useEffect(() => {
-    if (isNewMode) setActiveTab("script");
+    if (isNewMode) {
+      setActiveTab(DEFAULT_STUDIO_TAB);
+      return;
+    }
+    const tabParam = searchParams.get("tab");
+    if (!tabParam) return;
+    if (VALID_TABS.includes(tabParam as StudioTab)) {
+      setActiveTab(tabParam as StudioTab);
+    } else {
+      setActiveTab(DEFAULT_STUDIO_TAB); // 유효하지 않은 tab → script 폴백
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // searchParams는 초기 마운트 1회만 읽어 탭을 복원한다. deps에 추가하면 router.push 후
+    // useSearchParams 리렌더 시 effect가 재실행되어 사용자가 변경한 탭 상태를 덮어쓸 수 있다.
   }, [isNewMode, setActiveTab]);
 
   // Store selectors — split stores
