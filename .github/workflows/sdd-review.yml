@@ -107,7 +107,7 @@ jobs:
         run: |
           PR_NUM="${{ steps.pr.outputs.number }}"
           BRANCH="${{ steps.branch.outputs.name }}"
-          claude --worktree "${BRANCH}" --dangerously-skip-permissions -p "PR #${PR_NUM} 피드백을 대응하세요.
+          timeout 600 claude --worktree "${BRANCH}" --dangerously-skip-permissions -p "PR #${PR_NUM} 피드백을 대응하세요.
 
           1. gh api repos/${{ github.repository }}/issues/${PR_NUM}/comments 와 gh api repos/${{ github.repository }}/pulls/${PR_NUM}/comments 로 모든 코멘트를 읽으세요.
 
