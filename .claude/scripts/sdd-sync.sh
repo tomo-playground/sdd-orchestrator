@@ -79,8 +79,35 @@ for BRANCH in $MERGED; do
   git branch -D "worktree-${SP_ID}" 2>/dev/null || true
 done
 
-# 고아 worktree 정리
+# ── 고아 워크트리 정리 (agent-*, silly-*, stale) ──
 git worktree prune 2>/dev/null || true
+for ORPHAN_DIR in "$PROJECT_DIR/.claude/worktrees"/agent-* "$PROJECT_DIR/.claude/worktrees"/silly-*; do
+  [ -d "$ORPHAN_DIR" ] || continue
+  git worktree remove "$ORPHAN_DIR" --force 2>/dev/null && echo "🗑️ 고아 worktree 삭제: $(basename "$ORPHAN_DIR")" || true
+done
+# worktrees/ 내 빈 디렉토리 정리
+find "$PROJECT_DIR/.claude/worktrees" -maxdepth 1 -type d -empty -delete 2>/dev/null || true
+git worktree prune 2>/dev/null || true
+
+# ── 머지/닫힌 PR의 stale 브랜치 정리 ──
+for LOCAL_BR in $(git branch --format='%(refname:short)' | grep -E '^(feat/|fix/|worktree-)'); do
+  # main, 현재 브랜치는 스킵
+  [ "$LOCAL_BR" = "main" ] && continue
+  # 원격에 존재하는지 확인
+  REMOTE_EXISTS=$(git ls-remote --heads origin "$LOCAL_BR" 2>/dev/null | wc -l)
+  if [ "$REMOTE_EXISTS" -eq 0 ]; then
+    # 원격에 없는 로컬 브랜치 = 이미 삭제됨 → 로컬도 정리
+    git branch -D "$LOCAL_BR" 2>/dev/null && echo "🗑️ stale 로컬 브랜치 삭제: $LOCAL_BR" || true
+  else
+    # 원격에 있지만 PR이 머지/닫힘 확인
+    PR_STATE=$(gh pr list --state all --head "$LOCAL_BR" --json state --jq '.[0].state' 2>/dev/null || true)
+    if [ "$PR_STATE" = "MERGED" ] || [ "$PR_STATE" = "CLOSED" ]; then
+      git push origin --delete "$LOCAL_BR" 2>/dev/null && echo "🗑️ stale 원격 브랜치 삭제: $LOCAL_BR" || true
+      git branch -D "$LOCAL_BR" 2>/dev/null && echo "🗑️ stale 로컬 브랜치 삭제: $LOCAL_BR" || true
+    fi
+  fi
+done
+git remote prune origin 2>/dev/null || true
 
 # 변경사항 커밋 + 푸시
 if [ "$CHANGED" = true ] && ! git diff --quiet .claude/tasks/; then
