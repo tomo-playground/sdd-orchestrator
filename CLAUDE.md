@@ -10,6 +10,15 @@ AI 기반 쇼츠 영상 자동화 워크스페이스. LangGraph Agentic Pipeline
 - **DB 스키마**: DB 관련 질문 시 `docs/03_engineering/architecture/DB_SCHEMA.md`를 최우선으로 참조합니다.
 - **아키텍처/규칙**: 이 파일(`CLAUDE.md`)의 원칙을 항상 준수합니다. 에이전트별 컨텍스트 파일(`GEMINI.md` 등)은 역할 정의만 포함하며, 세부 규칙은 이 파일을 참조합니다.
 
+## Invariants (절대 위반 금지)
+
+아래 규칙은 예외 없이 준수. 상세 이유는 `.claude/adr/` ADR 참조.
+
+- **INV-1**: 404 응답 시 자동 재생성 금지 — 삭제된 엔티티 부활 금지 (ADR-001)
+- **INV-2**: autoSave는 UPDATE만 — CREATE(POST) 호출 금지 (ADR-001)
+- **INV-3**: soft delete 엔티티에 PUT/PATCH → 스토어 전체 리셋 (ADR-001)
+- **INV-4**: config.py 상수를 문자열 리터럴 하드코딩 금지
+
 ## 아키텍처
 
 | 레이어 | 기술 | 핵심 |

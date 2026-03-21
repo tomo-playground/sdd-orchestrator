@@ -4,7 +4,7 @@ priority: P1
 scope: infra
 branch: feat/SP-040-ai-session-guardrails
 created: 2026-03-21
-status: pending
+status: running
 depends_on: SP-039
 label: enhancement
 assignee: stopper2008
