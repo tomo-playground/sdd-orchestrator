@@ -22,6 +22,11 @@ function clearNewStoryboardKeys() {
  */
 export function resetTransientStores() {
   clearNewStoryboardKeys();
+  // LEAK-4 fix: clear current storyboard's localStorage keys before memory reset
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(getStoryboardPersistKey());
+    localStorage.removeItem(getRenderPersistKey());
+  }
   useStoryboardStore.getState().reset();
   useRenderStore.getState().reset();
   useUIStore.getState().resetUI();
@@ -49,6 +54,8 @@ export async function resetAllStores(options?: { reloadGroupDefaults?: boolean }
   if (typeof window !== "undefined") {
     localStorage.removeItem(getStoryboardPersistKey());
     localStorage.removeItem(getRenderPersistKey());
+    // LEAK-1 fix: GC orphan localStorage keys for all storyboards
+    gcOrphanLocalStorageKeys();
   }
   // Always clear :new keys — prevents stale data when storyboardId was set after editing
   clearNewStoryboardKeys();
@@ -75,5 +82,24 @@ export async function resetAllStores(options?: { reloadGroupDefaults?: boolean }
   if (reloadGroupDefaults && preserved.groupId !== null) {
     const { loadGroupDefaults } = await import("./actions/groupActions");
     await loadGroupDefaults(preserved.groupId);
+  }
+}
+
+/**
+ * LEAK-1 fix: Remove orphan per-storyboard localStorage keys.
+ * Scans for keys matching the storyboard/render store prefix patterns
+ * and removes all of them (current key was already removed above).
+ */
+function gcOrphanLocalStorageKeys() {
+  const prefixes = [`${STORYBOARD_STORE_KEY}:`, `${RENDER_STORE_KEY}:`];
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && prefixes.some((p) => key.startsWith(p))) {
+      keysToRemove.push(key);
+    }
+  }
+  for (const key of keysToRemove) {
+    localStorage.removeItem(key);
   }
 }

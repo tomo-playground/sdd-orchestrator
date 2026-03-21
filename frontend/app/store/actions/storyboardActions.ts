@@ -6,6 +6,8 @@ import { useUIStore } from "../useUIStore";
 import { API_BASE, API_TIMEOUT, DEFAULT_STRUCTURE } from "../../constants";
 import type { Scene } from "../../types";
 import { buildScenesPayload } from "../../utils/buildScenesPayload";
+import { STORYBOARD_STORE_KEY } from "../useStoryboardStore";
+import { RENDER_STORE_KEY } from "../useRenderStore";
 
 /** Sync storyboard version from server after 409 Conflict. */
 async function syncVersionAfterConflict(): Promise<void> {
@@ -28,6 +30,9 @@ function syncUrlAfterCreate(newId: number): void {
     url.searchParams.delete("new");
     url.searchParams.set("id", String(newId));
     window.history.replaceState({}, "", url.toString());
+    // LEAK-2 fix: remove :new localStorage keys after POST success
+    localStorage.removeItem(`${STORYBOARD_STORE_KEY}:new`);
+    localStorage.removeItem(`${RENDER_STORE_KEY}:new`);
   }
   useUIStore.getState().set({ isNewStoryboardMode: false });
 }
@@ -159,6 +164,7 @@ export async function saveStoryboard(): Promise<boolean> {
   const ok = await persistStoryboard();
   if (ok) {
     showToast("영상 저장 완료", "success");
+    useUIStore.getState().set({ autoSaveFailed: false });
   } else {
     showToast("영상 저장에 실패했습니다", "error");
   }

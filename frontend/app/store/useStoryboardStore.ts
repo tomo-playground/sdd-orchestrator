@@ -111,7 +111,7 @@ export interface StoryboardStore {
 
   // Setters
   set: (updates: Partial<StoryboardStore>) => void;
-  setScenes: (scenes: Scene[]) => void;
+  setScenes: (scenes: Scene[], options?: { fromDb?: boolean }) => void;
   updateScene: (clientId: string, updates: Partial<Scene>) => void;
   removeScene: (clientId: string) => void;
   reorderScenes: (fromIndex: number, toIndex: number) => void;
@@ -286,10 +286,10 @@ export const useStoryboardStore = create<StoryboardStore>()(
           }
           return merged;
         }),
-      setScenes: (scenes) =>
+      setScenes: (scenes, options) =>
         set((state) => ({
           scenes,
-          isDirty: true,
+          isDirty: options?.fromDb ? false : true,
           currentSceneIndex: Math.min(state.currentSceneIndex, Math.max(0, scenes.length - 1)),
         })),
       updateScene: (clientId, updates) =>

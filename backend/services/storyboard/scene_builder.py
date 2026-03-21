@@ -173,7 +173,15 @@ def _build_scene_kwargs(s_data: StoryboardScene, storyboard_id: int, idx: int) -
     """
     # 1. schema → dict (관계/특수 필드 제외)
     # image_asset_id: Scene 생성 후 별도 asset linking 로직에서 설정
-    _exclude = {"tags", "character_actions", "scene_id", "image_asset_id", "candidates"}
+    _exclude = {
+        "tags",
+        "character_actions",
+        "scene_id",
+        "image_asset_id",
+        "tts_asset_id",
+        "background_id",
+        "candidates",
+    }
     raw = s_data.model_dump(exclude=_exclude)
 
     # 2. Scene 컬럼에 해당하는 필드만 필터
@@ -214,13 +222,63 @@ def _build_scene_kwargs(s_data: StoryboardScene, storyboard_id: int, idx: int) -
     return kwargs
 
 
+def _verify_asset_fks(db: Session, s_data: StoryboardScene, scene_kwargs: dict, idx: int) -> None:
+    """Verify tts_asset_id and background_id FK references, set to kwargs if valid."""
+    tts_asset_id = getattr(s_data, "tts_asset_id", None)
+    if tts_asset_id:
+        if db.query(MediaAsset.id).filter(MediaAsset.id == tts_asset_id).first():
+            scene_kwargs["tts_asset_id"] = tts_asset_id
+        else:
+            logger.warning("[Scene %d] tts_asset_id %d not found → null", idx, tts_asset_id)
+
+    background_id = getattr(s_data, "background_id", None)
+    if background_id:
+        from models.background import Background  # noqa: PLC0415
+
+        if db.query(Background.id).filter(Background.id == background_id).first():
+            scene_kwargs["background_id"] = background_id
+        else:
+            logger.warning("[Scene %d] background_id %d not found → null", idx, background_id)
+
+
+def _insert_scene_tags_safe(db: Session, db_scene: Scene, tags: list, idx: int) -> None:
+    """Insert SceneTag rows, skipping any with invalid tag_id FK."""
+    from models.tag import Tag  # noqa: PLC0415
+
+    tag_ids = {t.tag_id for t in tags}
+    existing = {r[0] for r in db.query(Tag.id).filter(Tag.id.in_(tag_ids)).all()}
+    for t in tags:
+        if t.tag_id in existing:
+            db.add(SceneTag(scene_id=db_scene.id, tag_id=t.tag_id, weight=t.weight))
+        else:
+            logger.warning("[Scene %d] tag_id %d not found, skipping", idx, t.tag_id)
+
+
+def _insert_scene_actions_safe(db: Session, db_scene: Scene, actions: list[SceneActionSave], idx: int) -> None:
+    """Insert SceneCharacterAction rows, skipping invalid character_id FK."""
+    from models.character import Character  # noqa: PLC0415
+
+    resolved = resolve_action_tag_ids(actions, db)
+    char_ids = {a.character_id for a in resolved}
+    existing = {r[0] for r in db.query(Character.id).filter(Character.id.in_(char_ids)).all()}
+    for a in resolved:
+        if a.character_id not in existing:
+            logger.warning("[Scene %d] character_id %d not found, skipping", idx, a.character_id)
+            continue
+        db.add(
+            SceneCharacterAction(
+                scene_id=db_scene.id,
+                character_id=a.character_id,
+                tag_id=a.tag_id,
+                weight=a.weight,
+            )
+        )
+
+
 def create_scenes(db: Session, storyboard_id: int, scenes_data: list[StoryboardScene]) -> None:
     """Create scenes with tags and character actions for a storyboard."""
-    # Track old→new asset ID mapping for environment_reference_id remapping
     asset_id_remap: dict[int, int] = {}
     created_scenes: list[Scene] = []
-    # Defer environment_reference_id assignment to avoid FK violation
-    # when old MediaAssets have been deleted (e.g. during storyboard update)
     deferred_env_refs: list[int | None] = []
 
     for idx, s_data in enumerate(scenes_data):
@@ -228,31 +286,21 @@ def create_scenes(db: Session, storyboard_id: int, scenes_data: list[StoryboardS
         if image_url and image_url.startswith("data:"):
             image_url = None
 
-        # Store requested environment_reference_id for deferred assignment
         deferred_env_refs.append(s_data.environment_reference_id)
-
-        # Spread Passthrough: schema → Scene 컬럼 kwargs 자동 매핑
         scene_kwargs = _build_scene_kwargs(s_data, storyboard_id, idx)
+
+        # Verify FK references (tts_asset_id, background_id) before Scene creation
+        _verify_asset_fks(db, s_data, scene_kwargs, idx)
 
         db_scene = Scene(**scene_kwargs)
         db.add(db_scene)
         db.flush()
 
         if s_data.tags:
-            for t_data in s_data.tags:
-                db.add(SceneTag(scene_id=db_scene.id, tag_id=t_data.tag_id, weight=t_data.weight))
+            _insert_scene_tags_safe(db, db_scene, s_data.tags, idx)
 
         if s_data.character_actions:
-            resolved = resolve_action_tag_ids(s_data.character_actions, db)
-            for a_data in resolved:
-                db.add(
-                    SceneCharacterAction(
-                        scene_id=db_scene.id,
-                        character_id=a_data.character_id,
-                        tag_id=a_data.tag_id,
-                        weight=a_data.weight,
-                    )
-                )
+            _insert_scene_actions_safe(db, db_scene, s_data.character_actions, idx)
 
         # Link image asset: prefer image_asset_id (direct), fallback to image_url
         old_asset_id = getattr(s_data, "image_asset_id", None)

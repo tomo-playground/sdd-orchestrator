@@ -87,6 +87,7 @@ function StudioContent() {
   const groups = useContextStore((s) => s.groups);
   const projectId = useContextStore((s) => s.projectId);
   const isRendering = useRenderStore((s) => s.isRendering);
+  const autoSaveFailed = useUIStore((s) => s.autoSaveFailed);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -268,6 +269,21 @@ function StudioContent() {
               className="shrink-0 rounded-full bg-amber-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-amber-700"
             >
               + 시리즈 만들기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-save failure banner */}
+      {autoSaveFailed && (
+        <div className="shrink-0 px-8 pt-3">
+          <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+            <p className="text-xs text-red-800">자동 저장에 실패했습니다. 수동으로 저장해주세요.</p>
+            <button
+              onClick={handleSave}
+              className="shrink-0 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-red-700"
+            >
+              수동 저장
             </button>
           </div>
         </div>

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC
 
 from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from config import (
@@ -147,7 +148,15 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
             effective_structure = request.casting_recommendation.structure
     _sync_speaker_mappings(db, db_storyboard.id, char_id, char_b_id, structure=effective_structure)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        logger.error("[Storyboard Save] IntegrityError: %s", e)
+        raise HTTPException(
+            status_code=400,
+            detail="참조 에셋이 삭제되었습니다. 해당 씬을 재생성해주세요",
+        ) from e
     db.refresh(db_storyboard)
 
     scenes_sorted = sorted(db_storyboard.scenes, key=lambda s: s.order)
@@ -505,7 +514,15 @@ def update_storyboard_in_db(db: Session, storyboard_id: int, request: Storyboard
     # Increment version (optimistic locking)
     storyboard.version += 1
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        logger.error("[Storyboard Update] IntegrityError: %s", e)
+        raise HTTPException(
+            status_code=400,
+            detail="참조 에셋이 삭제되었습니다. 해당 씬을 재생성해주세요",
+        ) from e
     db.refresh(storyboard)
 
     # Return new scene IDs ordered by scene.order (relationship now has order_by,

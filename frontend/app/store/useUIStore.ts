@@ -52,6 +52,9 @@ export interface UIState {
   // Autopilot lock
   isAutoRunning: boolean;
 
+  // Auto-save failure indicator
+  autoSaveFailed: boolean;
+
   // Script → AutoRun chain signal
   pendingAutoRun: boolean;
   setPendingAutoRun: (v: boolean) => void;
@@ -94,6 +97,7 @@ const initialState: Omit<
   configGroupId: null,
   isNewStoryboardMode: false,
   isAutoRunning: false,
+  autoSaveFailed: false,
   pendingAutoRun: false,
   chatResetToken: 0,
 };

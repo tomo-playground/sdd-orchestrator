@@ -140,6 +140,8 @@ export function useStudioInitialization() {
     if (isNaN(id)) return;
 
     setIsLoadingDb(true); // eslint-disable-line react-hooks/set-state-in-effect
+    // LEAK-3 fix: reset StoryboardStore before DB load to prevent stale rehydration
+    useStoryboardStore.getState().reset();
     axios
       .get(`${API_BASE}/storyboards/${id}`)
       .then((res) => {
@@ -226,7 +228,7 @@ export function useStudioInitialization() {
 
         const mapped = data.scenes?.length > 0 ? mapDbScenes(data.scenes) : null;
         if (mapped) {
-          setScenes(mapped);
+          setScenes(mapped, { fromDb: true });
           // Quality scores 자동 로드 (match_rate 복원) — fire-and-forget
           void loadQualityScores(data.id, mapped);
         }

@@ -17,7 +17,7 @@ export function cancelPendingSave() {
   }
 }
 
-function scheduleSave() {
+function scheduleSave(force = false) {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(async () => {
     const { isDirty, scenes, isScriptGenerating } = useStoryboardStore.getState();
@@ -26,7 +26,7 @@ function scheduleSave() {
     // Skip save during script generation — casting data not yet available (race condition)
     const hasGeneratingScene = scenes.some((s) => s.isGenerating);
     if (
-      !isDirty ||
+      (!isDirty && !force) ||
       scenes.length === 0 ||
       isSaving ||
       isAutoRunning ||
@@ -45,12 +45,14 @@ function scheduleSave() {
       console.log("[AutoSave] persistStoryboard done");
       if (ok) {
         consecutiveFailures = 0;
+        useUIStore.getState().set({ autoSaveFailed: false });
       } else {
         consecutiveFailures++;
         if (consecutiveFailures >= MAX_FAILURES) {
           console.warn(
             `[AutoSave] ${MAX_FAILURES}회 연속 실패, 자동 저장 일시 중단 (수동 저장 필요)`
           );
+          useUIStore.getState().set({ autoSaveFailed: true });
           return; // 무한 재시도 방지 — 다음 사용자 변경 시 재시작
         }
       }
@@ -76,6 +78,7 @@ export function initAutoSave(): () => void {
   const unsubscribeSb = useStoryboardStore.subscribe((state, prevState) => {
     if (!state.isDirty || state.isDirty === prevState.isDirty) return;
     consecutiveFailures = 0; // 새 변경 → 실패 카운터 리셋
+    useUIStore.getState().set({ autoSaveFailed: false });
     scheduleSave();
   });
 
@@ -84,8 +87,12 @@ export function initAutoSave(): () => void {
   // was already true during autopilot it would never trigger a save.
   const unsubscribeUi = useUIStore.subscribe((state, prevState) => {
     if (prevState.isAutoRunning && !state.isAutoRunning) {
-      const { isDirty } = useStoryboardStore.getState();
-      if (isDirty) scheduleSave();
+      const { scenes, isDirty } = useStoryboardStore.getState();
+      // Force save if scenes exist — don't mutate isDirty to avoid triggering
+      // unsubscribeSb which would reset consecutiveFailures/autoSaveFailed
+      if (scenes.length > 0 && (isDirty || scenes.some((s) => s.image_asset_id))) {
+        scheduleSave(true);
+      }
     }
   });
 
