@@ -1,4 +1,4 @@
-name: SDD Review — @claude 멘션 기반 자동 대응
+name: SDD Review — CodeRabbit 리뷰 자동 수정 + @claude 수동 대응
 
 on:
   issue_comment:
@@ -20,10 +20,46 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  claude:
+  # Job 1: CodeRabbit 리뷰 → Claude 자동 수정 (멘션 불필요)
+  auto-fix:
     if: |
-      github.event.comment.user.login != 'github-actions[bot]' &&
-      !endsWith(github.event.comment.user.login, '[bot]') &&
+      github.event_name == 'pull_request_review' &&
+      github.event.review.user.login == 'coderabbitai[bot]' &&
+      github.event.review.state == 'changes_requested'
+    runs-on: [self-hosted, sdd]
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            CodeRabbit이 이 PR에 변경 요청(changes_requested) 리뷰를 남겼습니다.
+            1. `gh pr view ${{ github.event.pull_request.number }}` 와 `gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews` 로 리뷰 내용을 읽으세요.
+            2. CLAUDE.md를 읽고 프로젝트 규칙과 대조하세요.
+            3. 버그 지적 → 코드 수정 + 커밋 + push
+            4. 설계 개선 제안 → CLAUDE.md와 동의하면 수정, 아니면 PR에 "현행 유지 이유" 코멘트
+            5. 스타일/Nit → 합리적이면 수정, 아니면 스킵
+            6. 수정 완료 후 PR에 변경 내용 요약 코멘트를 남기세요.
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*),Bash(git:*),Bash(ruff:*),Bash(npx prettier:*),Read,Edit,Write,Glob,Grep"
+
+  # Job 2: @claude 멘션 → 수동 대응
+  manual:
+    if: |
+      !endsWith(github.event.comment.user.login || '', '[bot]') &&
       (
         (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
         (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
