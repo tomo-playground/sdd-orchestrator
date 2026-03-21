@@ -712,6 +712,31 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 > - `feat/SP-002-xxx` → `SP-002` → `.claude/tasks/current/SP-002_*.md`
 > - `worktree-SP-009` → `SP-009` → `.claude/tasks/current/SP-009_*.md`
 
+### 세션 종료 프로토콜
+**세션 종료 시 (사용자가 명시적으로 종료하거나 대화가 마무리될 때) 자동 수행:**
+
+#### 1. 세션 요약
+- 완료한 PR/태스크
+- 해결한 블로커
+- 새로 발견한 이슈
+
+#### 2. 회고 (Keep / Problem / Try)
+- **Keep**: 잘 된 것 → 다음 세션에서 반복
+- **Problem**: 문제가 있었던 것 → 근본 원인
+- **Try**: 다음에 시도할 구체적 개선 액션
+
+#### 3. 저장
+- 교훈 → `memory/feedback_sdd_retrospective_*.md` (핵심만, 중복 시 기존 파일 업데이트)
+- 회고 아카이브 → `.claude/retrospectives/YYYY-MM-DD.md` (전체 회고 기록)
+- 미완료 → 태스크/backlog 상태 확인 + 정리
+
+#### 4. 다음 세션 준비
+- 최우선 착수 항목 명시
+- 블로커/의존성 정리
+- 서버 상태 확인
+
+> **원칙**: 회고는 기록이 아니라 **다음 행동을 바꾸기 위한 것**. 같은 실수 반복 방지 + 잘한 것 강화.
+
 ### 커밋 경로 규칙
 - **main 직접 커밋 허용**: `.claude/`, `CLAUDE.md`, `.github/workflows/`, `docs/`
 - **feat 브랜치 + PR 필수**: `backend/`, `frontend/`, `audio/`, `scripts/`, 그 외 코드 전부

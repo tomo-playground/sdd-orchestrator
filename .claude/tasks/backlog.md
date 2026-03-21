@@ -35,6 +35,11 @@
 - [ ] SP-028 — Studio 탭 URI 표현 — ?tab=script/stage/direct/publish 딥링크
 - [ ] SP-029 — Script Canvas 분할 뷰 — 좌 채팅 + 우 씬 프리뷰 | [명세](../../docs/99_archive/features/SCRIPT_COLLABORATIVE_UX.md) §P2
 
+## P2-SDD (SDD 프로세스 개선)
+
+- [ ] SP-033 — DoD 검증 자동화 — sdd-sync에서 done/ 이동 전 태스크 DoD 체크리스트 미달성 항목 감지 → 잔여 태스크 자동 생성
+- [ ] SP-034 — PR 엣지 케이스 체크리스트 — on-stop.sh에 null 반환/동시 호출/cleanup/네비게이션 변경 체크 항목 추가
+
 ## P3 (인프라/자동화)
 
 - [ ] Tag Intelligence — 채널별 태그 정책 + 데이터 기반 추천 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-1
