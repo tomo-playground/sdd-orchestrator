@@ -43,9 +43,11 @@ if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
   if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
     echo "Stop Hook: ${MAX_RETRIES}회 재시도 초과 — 종료합니다" >&2
     SP_ID=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||' | grep -oE '^SP-[0-9]+')
-    CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
-    if [ -n "$CURRENT" ] && [ -f "$CURRENT" ]; then
-      sed -i 's/^status:.*/status: failed/' "$CURRENT"
+    # 디렉토리 방식 우선, 레거시 fallback
+    SPEC_FILE=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*/spec.md 2>/dev/null | head -1)
+    [ -z "$SPEC_FILE" ] && SPEC_FILE=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
+    if [ -n "$SPEC_FILE" ] && [ -f "$SPEC_FILE" ]; then
+      sed -i 's/^status:.*/status: failed/' "$SPEC_FILE"
     fi
     rm -f "$RETRY_FILE"
     exit 0
@@ -217,9 +219,17 @@ DONE_DIR="$PROJECT_DIR/.claude/tasks/done"
 mkdir -p "$DONE_DIR"
 
 SP_ID=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||' | grep -oE '^SP-[0-9]+')
+
+# 디렉토리 방식 우선 (SP-NNN_*/spec.md)
+CURRENT_DIR=$(ls -d "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*/ 2>/dev/null | head -1)
 CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
 
-if [ -n "$CURRENT" ] && [ -f "$CURRENT" ] && [ -s "$CURRENT" ]; then
+if [ -n "$CURRENT_DIR" ] && [ -d "$CURRENT_DIR" ]; then
+  DIRNAME=$(basename "$CURRENT_DIR")
+  DONE_FILE="$DONE_DIR/${DIRNAME}"
+  sed -i 's/^status:.*/status: done/' "$CURRENT_DIR/spec.md"
+  mv "$CURRENT_DIR" "$DONE_FILE"
+elif [ -n "$CURRENT" ] && [ -f "$CURRENT" ] && [ -s "$CURRENT" ]; then
   BASENAME=$(basename "$CURRENT")
   DONE_FILE="$DONE_DIR/${BASENAME}"
   sed -i 's/^status:.*/status: done/' "$CURRENT"

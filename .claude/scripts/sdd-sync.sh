@@ -31,8 +31,9 @@ if ! git pull --ff-only 2>/dev/null; then
 fi
 
 # current/에 있는 태스크의 브랜치와 머지된 PR을 매칭
+# 디렉토리 방식 (SP-NNN_*/spec.md) + 레거시 (SP-NNN_*.md) 모두 탐색
 MERGED=""
-for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
+for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*/spec.md "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
   [ -f "$TASK_FILE" ] || continue
   TASK_BRANCH=$(grep '^branch:' "$TASK_FILE" | sed 's/^branch: *//' | tr -d '[:space:]')
   [ -z "$TASK_BRANCH" ] && continue
@@ -56,15 +57,26 @@ for BRANCH in $MERGED; do
     echo "⚠️ SP-ID 추출 실패, 브랜치 스킵: $BRANCH"
     continue
   fi
-  CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
   DONE_DIR="$PROJECT_DIR/.claude/tasks/done"
 
-  if [ -n "$CURRENT" ] && [ -f "$CURRENT" ]; then
-    BASENAME=$(basename "$CURRENT")
-    sed -i 's/^status:.*/status: done/' "$CURRENT"
-    mv "$CURRENT" "$DONE_DIR/${BASENAME}"
-    echo "✅ ${BASENAME} → done/"
+  # 디렉토리 방식 (SP-NNN_*/) 먼저 시도
+  CURRENT_DIR=$(ls -d "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*/ 2>/dev/null | head -1)
+  if [ -n "$CURRENT_DIR" ] && [ -d "$CURRENT_DIR" ]; then
+    DIRNAME=$(basename "$CURRENT_DIR")
+    sed -i 's/^status:.*/status: done/' "$CURRENT_DIR/spec.md"
+    mv "$CURRENT_DIR" "$DONE_DIR/${DIRNAME}"
+    echo "✅ ${DIRNAME}/ → done/"
     CHANGED=true
+  else
+    # 레거시 파일 방식 fallback (SP-NNN_*.md)
+    CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
+    if [ -n "$CURRENT" ] && [ -f "$CURRENT" ]; then
+      BASENAME=$(basename "$CURRENT")
+      sed -i 's/^status:.*/status: done/' "$CURRENT"
+      mv "$CURRENT" "$DONE_DIR/${BASENAME}"
+      echo "✅ ${BASENAME} → done/"
+      CHANGED=true
+    fi
   fi
 
   # 1. worktree 정리 (브랜치 삭제 전에 — worktree가 브랜치를 잡고 있으면 삭제 실패)
