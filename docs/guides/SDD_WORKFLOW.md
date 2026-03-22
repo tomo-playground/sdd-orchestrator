@@ -65,7 +65,7 @@
 | 책임 | 산출물 |
 |------|--------|
 | 제품 방향 설정 | `ROADMAP.md` |
-| 태스크 작성 | `.claude/tasks/current/SP-NNN_*.md` |
+| 태스크 작성 | `.claude/tasks/current/SP-NNN_*/spec.md` (디렉토리 방식) |
 | 기동 | `/sdd-run SP-NNN` |
 | 머지 판단 | Claude + CodeRabbit 리뷰 결과 종합 |
 | 규칙 유지보수 | `CLAUDE.md` |
@@ -263,10 +263,10 @@ Step 5. E2E      → Playwright (서버 실행 중일 때만)
 ### 매칭 규칙
 
 ```
-브랜치에서 SP-NNN을 추출하여 .claude/tasks/current/SP-NNN_*.md 글로브 매칭
-- feat/SP-002-xxx  → SP-002
-- fix/SP-039-xxx   → SP-039
-- worktree-SP-009  → SP-009
+브랜치에서 SP-NNN을 추출하여 디렉토리 매칭 (fallback: 레거시 파일)
+- feat/SP-002-xxx  → SP-002 → .claude/tasks/current/SP-002_*/spec.md
+- fallback: .claude/tasks/current/SP-002_*.md (레거시)
+- 설계 파일: .claude/tasks/current/SP-002_*/design.md (있으면 함께 로드)
 ```
 
 지원 접두사: `feat/`, `fix/`, `chore/`, `hotfix/`, `worktree-`
@@ -284,8 +284,8 @@ Step 5. E2E      → Playwright (서버 실행 중일 때만)
 |------|------|------|
 | **Roadmap** | 제품 방향, Phase | `docs/01_product/ROADMAP.md` |
 | **Backlog** | 태스크 큐 (우선순위) | `.claude/tasks/backlog.md` |
-| **Task** | 실행 계약서 (착수 직전 생성) | `.claude/tasks/current/SP-NNN_*.md` |
-| **Done** | 완료 이력 | `.claude/tasks/done/SP-NNN_*.md` |
+| **Task** | 실행 계약서 (착수 직전 생성) | `.claude/tasks/current/SP-NNN_*/spec.md` |
+| **Done** | 완료 이력 | `.claude/tasks/done/SP-NNN_*/` |
 
 ---
 

@@ -248,7 +248,7 @@ cat > .claude/commands/sdd-run.md << 'EOF'
 
 ## 실행 순서
 1. `$ARGUMENTS`에서 SP-NNN 추출
-2. `.claude/tasks/current/SP-NNN_*.md` 매칭
+2. `.claude/tasks/current/SP-NNN_*/spec.md` 매칭 (fallback: `SP-NNN_*.md`)
 3. worktree 생성 + feat 브랜치
 4. 태스크 읽기 → 구현 → 테스트 → 커밋 → PR 생성
 5. 셀프 리뷰 실행
@@ -500,7 +500,7 @@ git pull --ff-only 2>/dev/null || git pull --rebase 2>/dev/null || exit 1
 
 # 머지된 PR 매칭
 MERGED=""
-for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
+for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*/spec.md "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
   [ -f "$TASK_FILE" ] || continue
   TASK_BRANCH=$(grep '^branch:' "$TASK_FILE" | sed 's/^branch: *//' | tr -d '[:space:]')
   [ -z "$TASK_BRANCH" ] && continue
