@@ -13,7 +13,6 @@ _POSE_TAGS: frozenset[str] = frozenset(CATEGORY_PATTERNS.get("pose", []))
 _VALID_SPEAKERS: dict[str, frozenset[str]] = {
     "monologue": frozenset({"A", "Narrator"}),
     "dialogue": frozenset({"A", "B", "Narrator"}),
-    "confession": frozenset({"A", "Narrator"}),
     "narrated_dialogue": frozenset({"Narrator", "A", "B"}),
 }
 

@@ -9,7 +9,11 @@ from __future__ import annotations
 
 import json
 
-from config import coerce_language_id, coerce_structure_id
+from config import (
+    coerce_language_id,
+    coerce_structure_id,
+    coerce_tone_id,
+)
 from config import pipeline_logger as logger
 from config_pipelines import LANGGRAPH_PLANNING_ENABLED
 from database import get_db_session
@@ -240,6 +244,7 @@ async def writer_node(state: ScriptState) -> dict:
         style=state.get("style", "Anime"),
         language=coerce_language_id(state.get("language")),
         structure=structure,
+        tone=coerce_tone_id(state.get("tone")),
         actor_a_gender=state.get("actor_a_gender", "female"),
         character_id=character_id,
         character_b_id=character_b_id,

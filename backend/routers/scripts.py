@@ -62,6 +62,7 @@ def _request_to_state(request: StoryboardRequest) -> ScriptState:
         style=request.style,
         language=request.language,
         structure=request.structure if is_fast_track else "",
+        tone=request.tone,
         actor_a_gender=request.actor_a_gender,
         character_id=request.character_id if is_fast_track else None,
         character_b_id=request.character_b_id if is_fast_track else None,

@@ -18,6 +18,7 @@ from config import (
     DEFAULT_REFERENCE_ONLY_WEIGHT,
     DEFAULT_SPEAKER,
     DEFAULT_STRUCTURE,
+    DEFAULT_TONE,
     DEFAULT_TTS_ENGINE,
     DEFAULT_USE_CONTROLNET,
     DEFAULT_USE_IP_ADAPTER,
@@ -221,6 +222,7 @@ class StoryboardBase(BaseModel):
     group_id: int | None = None
     caption: str | None = Field(default=None, max_length=500)
     structure: str = DEFAULT_STRUCTURE
+    tone: str = DEFAULT_TONE
     duration: int | None = None
     language: str | None = None
 
@@ -437,6 +439,7 @@ class StoryboardRequest(BaseModel):
     style: str = "Anime"
     language: str = DEFAULT_LANGUAGE
     structure: str = ""  # 빈값 = Director가 캐스팅 시 결정 (Frontend 미전달)
+    tone: str = DEFAULT_TONE
     actor_a_gender: str = "female"
     character_id: int | None = None  # Director가 캐스팅 시 결정 (Frontend 미전달)
     character_b_id: int | None = None  # Director가 캐스팅 시 결정 (Frontend 미전달)
@@ -1702,9 +1705,16 @@ class StepMetadata(BaseModel):
     desc: str = ""
 
 
+class ToneOption(BaseModel):
+    id: str
+    label: str
+    label_ko: str
+
+
 class PresetListResponse(BaseModel):
     presets: list[PresetSummary]
     languages: list[LanguageOption]
+    tones: list[ToneOption] = []
     durations: list[int]
     reading_speed: dict[str, ReadingSpeedConfig] = {}
     optional_steps: list[str] = []

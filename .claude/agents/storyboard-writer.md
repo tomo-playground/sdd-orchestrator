@@ -62,9 +62,8 @@ Gemini 프롬프트와 출력 품질을 개선합니다:
 
 ## 현재 템플릿 구조
 
-LangFuse에서 관리되는 프롬프트 (28개):
+LangFuse에서 관리되는 프롬프트:
 - `storyboard/default` — 메인 스토리보드 생성
-- `storyboard/confession` — 고백형 스토리보드
 - `storyboard/dialogue` — 대화형 스토리보드
 - `storyboard/narrated` — 나레이션형 스토리보드
 - `pipeline/review/evaluate` — 리뷰/평가

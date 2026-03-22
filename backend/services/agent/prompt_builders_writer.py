@@ -6,6 +6,8 @@ prompt_builders.py에서 re-export되어 기존 import를 유지한다.
 
 from __future__ import annotations
 
+from config import TONE_HINTS
+
 # -- tts_designer 빌더 --
 
 
@@ -134,6 +136,14 @@ def build_structure_rules_block(structure: str) -> str:
             "- Narrator typically opens (scene 0) to set the stage, and may close the story."
         )
     return base
+
+
+def build_tone_hint_block(tone: str) -> str:
+    """scriptwriter -- tone별 힌트."""
+    hint = TONE_HINTS.get(tone, "")
+    if not hint:
+        return f"- Tone: {tone}"
+    return f"- Tone: {tone}\n- {hint}"
 
 
 def build_korean_rules_block(language: str) -> str:

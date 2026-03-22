@@ -47,7 +47,7 @@ class TestManagedTemplates:
     """LangFuse 관리 프롬프트 목록 검증."""
 
     def test_count(self):
-        assert len(LANGFUSE_MANAGED_TEMPLATES) == 28  # A등급 14 + B등급 9 + 파셜전환 5
+        assert len(LANGFUSE_MANAGED_TEMPLATES) == 32
 
     def test_backward_compat_alias(self):
         assert A_GRADE_TEMPLATES is LANGFUSE_MANAGED_TEMPLATES

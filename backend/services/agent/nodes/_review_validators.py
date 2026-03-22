@@ -106,7 +106,7 @@ def validate_scenes(
         if speaker:
             speakers_found.add(speaker)
 
-    if structure in ("monologue", "confession"):
+    if structure == "monologue":
         invalid = speakers_found - {"A", "Narrator"}
         if invalid:
             errors.append(

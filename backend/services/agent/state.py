@@ -122,6 +122,7 @@ class ScriptState(TypedDict, total=False):
     style: str
     language: str
     structure: str
+    tone: str
     actor_a_gender: str
     character_id: int | None
     character_b_id: int | None

@@ -8,7 +8,7 @@ from sqlalchemy import BigInteger, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from config import DEFAULT_STRUCTURE
+from config import DEFAULT_STRUCTURE, DEFAULT_TONE
 from models.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
@@ -30,6 +30,7 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
     description: Mapped[str | None] = mapped_column(Text)
     caption: Mapped[str | None] = mapped_column(Text)
     structure: Mapped[str] = mapped_column(String(50), nullable=False, default=DEFAULT_STRUCTURE)
+    tone: Mapped[str] = mapped_column(String(30), nullable=False, default=DEFAULT_TONE, server_default=DEFAULT_TONE)
     duration: Mapped[int | None] = mapped_column(Integer)
     language: Mapped[str | None] = mapped_column(String(20))
     version: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)

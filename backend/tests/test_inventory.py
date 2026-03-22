@@ -73,14 +73,14 @@ class TestBuildAppearanceSummary:
 class TestLoadStructures:
     """load_structures 인메모리 상수 반환."""
 
-    def test_returns_four(self):
+    def test_returns_three(self):
         result = load_structures()
-        assert len(result) == 4
+        assert len(result) == 3
 
     def test_structure_ids(self):
         result = load_structures()
         ids = {s.id for s in result}
-        assert ids == {"monologue", "dialogue", "narrated_dialogue", "confession"}
+        assert ids == {"monologue", "dialogue", "narrated_dialogue"}
 
     def test_dialogue_requires_two(self):
         result = load_structures()
@@ -133,7 +133,7 @@ class TestStructureMetadata:
 
     def test_tones_are_set(self):
         for s in STRUCTURE_METADATA:
-            assert len(s.tone) > 0
+            assert len(s.default_tone) > 0
 
 
 class TestBuildCharacterSummary:

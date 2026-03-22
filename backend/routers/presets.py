@@ -39,10 +39,12 @@ async def list_presets():
         SUPPORTED_TTS_ENGINES,
     )
     from config_pipelines import FAST_TRACK_SKIP_STAGES  # noqa: PLC0415
+    from services.presets import get_all_tones  # noqa: PLC0415
 
     return {
         "presets": get_all_presets(),
         "languages": STORYBOARD_LANGUAGES,
+        "tones": get_all_tones(),
         "durations": SHORTS_DURATIONS,
         "reading_speed": READING_SPEED,
         "optional_steps": [],

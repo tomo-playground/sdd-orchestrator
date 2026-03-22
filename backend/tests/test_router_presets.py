@@ -54,8 +54,8 @@ class TestPresetsRouter:
         assert "monologue" in ids
         assert "dialogue" in ids
         assert "narrated_dialogue" in ids
-        assert "confession" in ids
-        assert len(ids) == 4  # Monologue + Dialogue + Narrated Dialogue + Confession
+        assert "confession" not in ids
+        assert len(ids) == 3  # Monologue + Dialogue + Narrated Dialogue
 
     def test_get_preset_detail_monologue(self, client: TestClient, db_session):
         """GET /presets/monologue returns monologue preset details."""
@@ -129,3 +129,17 @@ class TestPresetsRouter:
 
         for preset in presets:
             assert preset["default_style"], f"Preset '{preset['id']}' missing default_style"
+
+    def test_list_presets_includes_tones(self, client: TestClient, db_session):
+        """GET /presets returns tones list with 5 entries."""
+        response = client.get("/api/v1/presets")
+        assert response.status_code == 200
+        data = response.json()
+
+        assert "tones" in data
+        tones = data["tones"]
+        assert len(tones) == 5
+        for t in tones:
+            assert "id" in t
+            assert "label" in t
+            assert "label_ko" in t

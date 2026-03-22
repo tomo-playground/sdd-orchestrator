@@ -342,23 +342,52 @@ class StructureMeta:
     label: str
     label_ko: str
     requires_two_characters: bool
-    tone: str
+    default_tone: str
 
 
 STRUCTURE_METADATA: tuple[StructureMeta, ...] = (
-    StructureMeta(id="monologue", label="Monologue", label_ko="독백", requires_two_characters=False, tone="intimate"),
-    StructureMeta(id="dialogue", label="Dialogue", label_ko="대화형", requires_two_characters=True, tone="dynamic"),
+    StructureMeta(
+        id="monologue", label="Monologue", label_ko="독백", requires_two_characters=False, default_tone="intimate"
+    ),
+    StructureMeta(
+        id="dialogue", label="Dialogue", label_ko="대화형", requires_two_characters=True, default_tone="dynamic"
+    ),
     StructureMeta(
         id="narrated_dialogue",
         label="Narrated Dialogue",
         label_ko="내레이션 대화",
         requires_two_characters=True,
-        tone="narrative",
-    ),
-    StructureMeta(
-        id="confession", label="Confession", label_ko="고백", requires_two_characters=False, tone="emotional"
+        default_tone="intimate",
     ),
 )
+
+
+@dataclass(frozen=True)
+class ToneMeta:
+    """톤 메타데이터 (인메모리 상수)."""
+
+    id: str
+    label: str
+    label_ko: str
+
+
+TONE_METADATA: tuple[ToneMeta, ...] = (
+    ToneMeta(id="intimate", label="Intimate", label_ko="담담"),
+    ToneMeta(id="emotional", label="Emotional", label_ko="감정적"),
+    ToneMeta(id="dynamic", label="Dynamic", label_ko="역동적"),
+    ToneMeta(id="humorous", label="Humorous", label_ko="유머"),
+    ToneMeta(id="suspense", label="Suspense", label_ko="서스펜스"),
+)
+
+TONE_IDS: frozenset[str] = frozenset(t.id for t in TONE_METADATA)
+DEFAULT_TONE = "intimate"
+TONE_HINTS: dict[str, str] = {
+    "intimate": "Write in a calm, introspective tone. Focus on inner thoughts.",
+    "emotional": "Write with deep emotion. Include vulnerable moments and heartfelt expressions.",
+    "dynamic": "Write with energy and tension. Use short, punchy dialogue.",
+    "humorous": "Write with wit and humor. Include comedic timing and light moments.",
+    "suspense": "Write with tension and mystery. Build suspense gradually.",
+}
 
 STRUCTURE_IDS: frozenset[str] = frozenset(s.id for s in STRUCTURE_METADATA)
 MULTI_CHAR_STRUCTURES: frozenset[str] = frozenset(s.id for s in STRUCTURE_METADATA if s.requires_two_characters)
@@ -398,6 +427,10 @@ for _s in STRUCTURE_METADATA:
     _STRUCTURE_COERCE_MAP[_s.label.lower().replace(" ", "_")] = _s.id  # "narrated_dialogue"
     _STRUCTURE_COERCE_MAP[_s.label.replace(" ", "_")] = _s.id  # "Narrated_Dialogue"
 
+# 하위 호환: confession → monologue fallback
+_STRUCTURE_COERCE_MAP["confession"] = "monologue"
+_STRUCTURE_COERCE_MAP["Confession"] = "monologue"
+
 _LANGUAGE_COERCE_MAP: dict[str, str] = {}
 for _lang in LANGUAGE_METADATA:
     _LANGUAGE_COERCE_MAP[_lang.id] = _lang.id  # "korean" → "korean"
@@ -415,6 +448,14 @@ def coerce_structure_id(value: str | None) -> str:
     # fallback: lowercase + underscore 변환 후 재시도
     normalized = stripped.lower().replace(" ", "_")
     return _STRUCTURE_COERCE_MAP.get(normalized, DEFAULT_STRUCTURE)
+
+
+def coerce_tone_id(value: str | None) -> str:
+    """톤 문자열을 정규화. 인식 불가 시 DEFAULT_TONE 반환."""
+    if not value:
+        return DEFAULT_TONE
+    normalized = value.strip().lower()
+    return normalized if normalized in TONE_IDS else DEFAULT_TONE
 
 
 def coerce_language_id(value: str | None) -> str:

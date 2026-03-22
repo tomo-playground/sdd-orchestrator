@@ -318,6 +318,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         from services.agent.prompt_builders_writer import (
             build_korean_critical_hint,
             build_korean_rules_block,
+            build_tone_hint_block,
         )
         from services.agent.prompt_partials import (
             EMOTION_CONSISTENCY_RULES,
@@ -332,9 +333,10 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         keyword_context, allowed_tags = get_keyword_context_and_tags()
         safe_topic = _sanitize_for_gemini_prompt(request.topic)
 
-        from config import MULTI_CHAR_STRUCTURES, coerce_structure_id
+        from config import MULTI_CHAR_STRUCTURES, coerce_structure_id, coerce_tone_id
 
         is_dialogue_structure = coerce_structure_id(request.structure) in MULTI_CHAR_STRUCTURES
+        tone = coerce_tone_id(getattr(request, "tone", None))
 
         # 파셜 pre-render
         partial_vars = {
@@ -382,6 +384,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
             "character_tag_rules": build_character_tag_rules(character_context is not None),
             "korean_rules_block": build_korean_rules_block(request.language),
             "korean_critical_hint": build_korean_critical_hint(request.language),
+            "tone_hint": build_tone_hint_block(tone),
             **partial_vars,
             **extra_fields,
         }

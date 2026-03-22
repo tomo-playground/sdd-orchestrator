@@ -75,15 +75,15 @@ class TestCastingRecommendation:
         assert m.structure is None
         assert m.reasoning == ""
 
-    def test_confession_single_char_ok(self):
+    def test_monologue_single_char_ok(self):
         m = CastingRecommendation.model_validate(
             {
                 "character_a_id": 5,
-                "character_a_name": "고백자",
-                "structure": "confession",
+                "character_a_name": "독백자",
+                "structure": "monologue",
             }
         )
-        assert m.structure == "confession"
+        assert m.structure == "monologue"
 
     def test_dialogue_no_char_id_ok(self):
         """character_a_id가 없으면 2인 구조 검증 스킵."""
