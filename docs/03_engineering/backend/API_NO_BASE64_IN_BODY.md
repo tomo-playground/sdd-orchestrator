@@ -23,7 +23,7 @@
 
 ## base64가 남아 있는 것이 맞는 곳
 
-- **이미지 생성/업로드 전용 API**: `/scene/generate`, `/scene/generate-batch` **응답**, `/image/store` **요청** — 이미지 바이너리를 주고받는 계약이므로 base64 사용.
+- **이미지 생성/업로드 전용 API**: `/scene/generate` **응답**, `/image/store` **요청** — 이미지 바이너리를 주고받는 계약이므로 base64 사용.
 - **프론트 플로우**: 생성 결과를 `data:` URL로 만들어 **즉시** `storeSceneImage()`로 보내고, 성공 시 `scene.image_url`을 저장된 HTTP URL로 교체. 실패 시에만 스토어에 data:가 남을 수 있음 → 위 표의 방어로 다른 API body에는 실리지 않음.
 
 ## 관련 코드

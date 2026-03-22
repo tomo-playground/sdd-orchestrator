@@ -55,6 +55,9 @@ export const AUTO_RUN_STEPS = [
   { id: "render", label: "Render" },
 ] as const;
 
+/** AutoRun 이미지 생성 시 동시 실행 제한 (서버 과부하 방지) */
+export const AUTORUN_CONCURRENCY = 2;
+
 export const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
 
 export const HEART_EMOJIS = ["❤", "💖", "💗", "💘", "💜", "💙", "💚", "🧡", "🤍"];

@@ -249,7 +249,6 @@ async function resetAllStores(options?: { reloadGroupDefaults?: boolean }) {
 | 파일 | 역할 |
 |------|------|
 | `autopilotActions.ts` | Compose -> Generate -> Validate 워크플로우 |
-| `batchActions.ts` | 배치 이미지 생성 |
 | `groupActions.ts` | Group CRUD 및 선택, loadGroupDefaults |
 | `imageActions.ts` | 이미지 생성 오케스트레이션 (facade) |
 | `imageGeneration.ts` | SD 이미지 생성 (SSE progress) |

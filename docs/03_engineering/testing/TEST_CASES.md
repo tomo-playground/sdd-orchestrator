@@ -500,8 +500,7 @@
 | TC-17.3.1 | storyboardActions (CRUD, 동기화) | 33 | `store/actions/__tests__/storyboardActions.test.ts` |
 | TC-17.3.2 | groupActions (그룹 관리) | 12 | `store/actions/__tests__/groupActions.test.ts` |
 | TC-17.3.3 | narratorGeneration (나레이터 음성) | 11 | `store/actions/__tests__/narratorGeneration.test.ts` |
-| TC-17.3.4 | batchActions (배치 처리) | 3 | `store/actions/__tests__/batchActions.test.ts` |
-| TC-17.3.5 | autopilotActions | 2 | `store/actions/__tests__/autopilotActions.test.ts` |
+| TC-17.3.4 | autopilotActions (오토런 이미지 생성) | 5 | `store/actions/__tests__/autopilotActions.test.ts` |
 | TC-17.3.6 | resetAllStores (스토어 리셋) | 6 | `store/__tests__/resetAllStores.test.ts` |
 
 ### TC-17.4 Utils

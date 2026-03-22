@@ -4,7 +4,7 @@ priority: P1
 scope: fullstack
 branch: feat/SP-054-autorun-sse-unify
 created: 2026-03-22
-status: approved
+status: running
 approved_at: 2026-03-22
 depends_on:
 label: feat
@@ -22,14 +22,14 @@ label: feat
 ## 완료 기준 (DoD)
 > AI가 이 목록으로 실패 테스트를 작성(RED)하고, 구현(GREEN)한다.
 
-- [ ] `autopilotActions.ts`의 `runAutoRunFromStep`에서 `generateBatchImages` 호출을 제거하고, 모든 씬을 개별 SSE(`generateSceneImageFor`)로 생성
-- [ ] 개별 SSE 생성 시 서버 과부하 방지를 위해 동시 실행 수를 제한 (최대 2-3개 병렬 또는 순차)
-- [ ] `batchActions.ts` 파일 삭제 (더 이상 사용처 없음)
-- [ ] Backend `/scene/generate-batch` 엔드포인트 및 관련 스키마(`BatchSceneRequest`, `BatchSceneResult`, `BatchSceneResponse`) 삭제
-- [ ] 오토런 실행 시 씬별 프로그레스가 UI에 표시됨 (기존 SSE 프로그레스 재활용)
-- [ ] 개별 씬 실패 시 해당 씬만 failedSceneOrders에 추가, 나머지 씬은 정상 진행
-- [ ] 기존 테스트 regression 없음
-- [ ] 린트 통과
+- [x] `autopilotActions.ts`의 `runAutoRunFromStep`에서 `generateBatchImages` 호출을 제거하고, 모든 씬을 개별 SSE(`generateSceneImageFor`)로 생성
+- [x] 개별 SSE 생성 시 서버 과부하 방지를 위해 동시 실행 수를 제한 (최대 2-3개 병렬 또는 순차)
+- [x] `batchActions.ts` 파일 삭제 (더 이상 사용처 없음)
+- [x] Backend `/scene/generate-batch` 엔드포인트 및 관련 스키마(`BatchSceneRequest`, `BatchSceneResult`, `BatchSceneResponse`) 삭제
+- [x] 오토런 실행 시 씬별 프로그레스가 UI에 표시됨 (기존 SSE 프로그레스 재활용)
+- [x] 개별 씬 실패 시 해당 씬만 failedSceneOrders에 추가, 나머지 씬은 정상 진행
+- [x] 기존 테스트 regression 없음
+- [x] 린트 통과
 
 ## 영향 분석
 - 관련 함수/파일:

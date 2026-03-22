@@ -49,7 +49,7 @@ export interface SceneRequest {
 
 /**
  * Build a complete SD generation request payload from scene + store state.
- * SSOT: both manual (generateSceneImageFor) and auto-run (generateBatchImages) use this.
+ * SSOT: both manual (generateSceneImageFor) and auto-run use this.
  * Seed is intentionally excluded — callers provide it differently.
  */
 export function buildSceneRequest(

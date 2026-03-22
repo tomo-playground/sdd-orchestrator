@@ -677,10 +677,6 @@ class SceneGenerateRequest(BaseModel):
     client_id: str | None = None
 
 
-class BatchSceneRequest(BaseModel):
-    scenes: list[SceneGenerateRequest]
-
-
 class SceneGenerateResponse(BaseModel):
     """Single scene generation result from SD WebUI."""
 
@@ -700,20 +696,6 @@ class SceneGenerateResponse(BaseModel):
     match_rate: float | None = None
     matched_tags: list[str] | None = None
     missing_tags: list[str] | None = None
-
-
-class BatchSceneResult(BaseModel):
-    index: int
-    status: Literal["success", "failed"]
-    data: SceneGenerateResponse | None = None
-    error: str | None = None
-
-
-class BatchSceneResponse(BaseModel):
-    results: list[BatchSceneResult]
-    total: int
-    succeeded: int
-    failed: int
 
 
 class SceneValidateRequest(BaseModel):

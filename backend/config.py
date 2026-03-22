@@ -167,7 +167,6 @@ SD_MODELS_URL = f"{SD_BASE_URL}/sdapi/v1/sd-models"
 SD_OPTIONS_URL = f"{SD_BASE_URL}/sdapi/v1/options"
 SD_LORAS_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
 SD_TIMEOUT_SECONDS = float(os.getenv("SD_TIMEOUT_SECONDS", "600"))
-SD_BATCH_CONCURRENCY = int(os.getenv("SD_BATCH_CONCURRENCY", "3"))
 
 # --- Image Generation Defaults ---
 # NoobAI-XL V-Pred 1.0: Euler only, CFG 4~5, 832x1216 (2:3, ~1M pixels)

@@ -162,21 +162,16 @@ async function generateSync() {
 동일한 도메인 로직(payload 구성, 파라미터 계산 등)은 **반드시 공통 함수 하나**로 추출한다. 두 경로가 같은 일을 다른 코드로 하면 한쪽 수정 시 누락 버그가 발생한다.
 
 ```typescript
-// ✅ — 공통 빌더, 양쪽에서 import
+// ✅ — 공통 빌더, 호출자에서 import
 export function buildSceneRequest(scene, sbState, storyboardId): SceneRequest { ... }
 
-// batchActions.ts
-const req = { ...buildSceneRequest(scene, sbState, storyboardId), seed: -1 };
-
-// imageGeneration.ts
+// imageGeneration.ts (SSOT)
 const req = { ...buildSceneRequest(scene, sbState, storyboardId), ...overrides };
 
-// ❌ — 각자 구현 (누락 위험)
-// batchActions.ts: { prompt, width, use_reference_only, ... }
-// imageGeneration.ts: { prompt, width }  ← use_reference_only 누락!
+// autopilotActions.ts — generateSceneImageFor() 경유로 buildSceneRequest 자동 사용
 ```
 
-**적용 완료**: `buildSceneRequest()` — `imageGeneration.ts` SSOT, `batchActions.ts` 소비.
+**적용 완료**: `buildSceneRequest()` — `imageGeneration.ts` SSOT.
 
 ---
 

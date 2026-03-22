@@ -15,8 +15,6 @@ from config import logger
 from database import get_db, get_db_session
 from models.scene import Scene
 from schemas import (
-    BatchSceneRequest,
-    BatchSceneResponse,
     BatchValidateRequest,
     BatchValidateResponse,
     GeminiEditRequest,
@@ -76,37 +74,6 @@ async def generate_scene_image_endpoint(request: SceneGenerateRequest):
 
     logger.info("📥 [Scene Gen Req] %s", request.model_dump())
     return await generate_scene_image(request)
-
-
-@router.post("/scene/generate-batch", response_model=BatchSceneResponse)
-async def generate_batch_images(request: BatchSceneRequest):
-    """Generate images for multiple scenes concurrently with semaphore-based throttling."""
-
-    from config import SD_BATCH_CONCURRENCY
-
-    semaphore = asyncio.Semaphore(SD_BATCH_CONCURRENCY)
-
-    async def _generate_one(scene_req: SceneGenerateRequest, index: int):
-        async with semaphore:
-            try:
-                result = await generate_scene_image(scene_req)
-                return {"index": index, "status": "success", "data": SceneGenerateResponse(**result)}
-            except Exception as e:
-                logger.exception("[Batch Gen] Scene %d failed: %s", index, e)
-                return {"index": index, "status": "failed", "error": "Image generation failed"}
-
-    tasks = [_generate_one(req, i) for i, req in enumerate(request.scenes)]
-    results = await asyncio.gather(*tasks)
-
-    succeeded = sum(1 for r in results if r["status"] == "success")
-    failed = sum(1 for r in results if r["status"] == "failed")
-
-    return {
-        "results": sorted(results, key=lambda r: r["index"]),
-        "total": len(results),
-        "succeeded": succeeded,
-        "failed": failed,
-    }
 
 
 @router.post("/image/store", response_model=ImageStoreResponse)

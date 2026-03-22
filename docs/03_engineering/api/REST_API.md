@@ -202,10 +202,7 @@ Stable Diffusion을 사용하여 씬 이미지를 생성합니다. `response_mod
 }
 ```
 
-### `POST /scene/generate-batch`
-여러 씬의 이미지를 한 번에 생성합니다. `response_model=BatchSceneResponse`
-
-> ⚠️ **DB 저장 없음**: `generate` / `generate-batch`는 이미지를 생성하여 base64로 반환할 뿐,
+> ⚠️ **DB 저장 없음**: `generate`는 이미지를 생성하여 base64로 반환할 뿐,
 > `scene.image_asset_id`를 업데이트하지 않는다.
 > 스튜디오 UI에 반영하려면 반드시 `/image/store`를 후속 호출해야 한다.
 >

@@ -5,13 +5,11 @@ import { useContextStore } from "../../useContextStore";
 import { useRenderStore } from "../../useRenderStore";
 import { useUIStore } from "../../useUIStore";
 import * as imageActions from "../imageActions";
-import * as batchActions from "../batchActions";
 import * as storyboardActions from "../storyboardActions";
 import type { UseAutopilotReturn } from "../../../hooks/useAutopilot";
 
 vi.mock("axios");
 vi.mock("../imageActions");
-vi.mock("../batchActions");
 vi.mock("../storyboardActions");
 vi.mock("../../../utils/applyAutoPin", () => ({
   applyAutoPinAfterGeneration: vi.fn(() => null),
@@ -66,6 +64,7 @@ function mockStores(scenes: ReturnType<typeof makeScene>[]) {
     updateScene,
     set: vi.fn(),
     structure: "monologue",
+    imageGenProgress: {},
   } as never);
 
   vi.spyOn(useContextStore, "getState").mockReturnValue({
@@ -89,10 +88,30 @@ function mockStores(scenes: ReturnType<typeof makeScene>[]) {
   return { updateScene };
 }
 
-describe("runAutoRunFromStep — image step save-on-failure", () => {
+describe("runAutoRunFromStep — image step (individual SSE)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (storyboardActions.persistStoryboard as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+  });
+
+  it("calls generateSceneImageFor for each singleGen scene", async () => {
+    const sceneA = makeScene({ client_id: "a", order: 0, image_url: null });
+    const sceneB = makeScene({ client_id: "b", order: 1, image_url: null, id: 101 });
+    mockStores([sceneA, sceneB]);
+
+    (imageActions.generateSceneImageFor as ReturnType<typeof vi.fn>).mockResolvedValue({
+      image_url: "http://img.png",
+      image_asset_id: 555,
+    });
+
+    const autopilot = makeAutopilot();
+    await runAutoRunFromStep("images", autopilot, ["images"]);
+
+    // Each scene should trigger generateSceneImageFor
+    expect(imageActions.generateSceneImageFor).toHaveBeenCalledTimes(2);
+    expect(storyboardActions.persistStoryboard).toHaveBeenCalled();
+    expect(autopilot.setDone).toHaveBeenCalled();
+    expect(autopilot.setError).not.toHaveBeenCalled();
   });
 
   it("saves progress before throwing when some scenes fail", async () => {
@@ -100,34 +119,10 @@ describe("runAutoRunFromStep — image step save-on-failure", () => {
     const sceneB = makeScene({ client_id: "b", order: 1, image_url: null, id: 101 });
     mockStores([sceneA, sceneB]);
 
-    // Batch returns: scene A succeeds, scene B fails
-    (batchActions.generateBatchImages as ReturnType<typeof vi.fn>).mockResolvedValue({
-      results: [
-        { index: 0, status: "success" },
-        { index: 1, status: "failed" },
-      ],
-      total: 2,
-      succeeded: 1,
-      failed: 1,
-    });
-
-    // After batch, scene A has image, scene B doesn't
-    let _callCount = 0;
-    vi.spyOn(useStoryboardStore, "getState").mockImplementation(() => {
-      _callCount++;
-      return {
-        scenes: [
-          { ...sceneA, image_url: "http://img.png", image_asset_id: 555 },
-          { ...sceneB, image_url: null, image_asset_id: null },
-        ],
-        updateScene: vi.fn(),
-        set: vi.fn(),
-        structure: "monologue",
-      } as never;
-    });
-
-    // Individual retry for scene B also fails
-    (imageActions.generateSceneImageFor as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    // Scene A succeeds, scene B fails
+    (imageActions.generateSceneImageFor as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ image_url: "http://img.png", image_asset_id: 555 })
+      .mockResolvedValueOnce(null);
 
     const autopilot = makeAutopilot();
     await runAutoRunFromStep("images", autopilot, ["images"]);
@@ -138,7 +133,7 @@ describe("runAutoRunFromStep — image step save-on-failure", () => {
     // Error should be reported
     expect(autopilot.setError).toHaveBeenCalledWith(
       "images",
-      expect.stringContaining("Image failed")
+      expect.stringContaining("Image failed"),
     );
   });
 
@@ -146,27 +141,90 @@ describe("runAutoRunFromStep — image step save-on-failure", () => {
     const scene = makeScene({ client_id: "a", order: 0, image_url: null });
     mockStores([scene]);
 
-    (batchActions.generateBatchImages as ReturnType<typeof vi.fn>).mockResolvedValue({
-      results: [{ index: 0, status: "success" }],
-      total: 1,
-      succeeded: 1,
-      failed: 0,
+    (imageActions.generateSceneImageFor as ReturnType<typeof vi.fn>).mockResolvedValue({
+      image_url: "http://img.png",
+      image_asset_id: 555,
     });
-
-    // After batch, scene has image
-    vi.spyOn(useStoryboardStore, "getState").mockReturnValue({
-      scenes: [{ ...scene, image_url: "http://img.png", image_asset_id: 555 }],
-      updateScene: vi.fn(),
-      set: vi.fn(),
-      structure: "monologue",
-    } as never);
 
     const autopilot = makeAutopilot();
     await runAutoRunFromStep("images", autopilot, ["images"]);
 
     expect(storyboardActions.persistStoryboard).toHaveBeenCalled();
-    // No error when all succeed
     expect(autopilot.setError).not.toHaveBeenCalled();
     expect(autopilot.setDone).toHaveBeenCalled();
+  });
+
+  it("isolates failures — only failed scenes go to failedSceneOrders", async () => {
+    const scenes = [
+      makeScene({ client_id: "a", order: 0, image_url: null }),
+      makeScene({ client_id: "b", order: 1, image_url: null, id: 101 }),
+      makeScene({ client_id: "c", order: 2, image_url: null, id: 102 }),
+    ];
+    mockStores(scenes);
+
+    // Scenes a and c succeed, b fails
+    (imageActions.generateSceneImageFor as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ image_url: "http://a.png", image_asset_id: 1 })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ image_url: "http://c.png", image_asset_id: 3 });
+
+    const autopilot = makeAutopilot();
+    await runAutoRunFromStep("images", autopilot, ["images"]);
+
+    // Error message should only mention scene #2 (order 1)
+    expect(autopilot.setError).toHaveBeenCalledWith(
+      "images",
+      expect.stringContaining("#2"),
+    );
+    // Should indicate 2 saved
+    expect(autopilot.setError).toHaveBeenCalledWith(
+      "images",
+      expect.stringContaining("2 saved"),
+    );
+  });
+
+  it("skips scenes that already have images", async () => {
+    const sceneA = makeScene({ client_id: "a", order: 0, image_url: "http://existing.png" });
+    const sceneB = makeScene({ client_id: "b", order: 1, image_url: null, id: 101 });
+    mockStores([sceneA, sceneB]);
+
+    (imageActions.generateSceneImageFor as ReturnType<typeof vi.fn>).mockResolvedValue({
+      image_url: "http://img.png",
+      image_asset_id: 555,
+    });
+
+    const autopilot = makeAutopilot();
+    await runAutoRunFromStep("images", autopilot, ["images"]);
+
+    // Only scene B (no image) should trigger generation
+    expect(imageActions.generateSceneImageFor).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs at most AUTORUN_CONCURRENCY=2 scenes simultaneously", async () => {
+    const scenes = [
+      makeScene({ client_id: "a", order: 0, image_url: null }),
+      makeScene({ client_id: "b", order: 1, image_url: null, id: 101 }),
+      makeScene({ client_id: "c", order: 2, image_url: null, id: 102 }),
+    ];
+    mockStores(scenes);
+
+    let concurrentCount = 0;
+    let maxConcurrentObserved = 0;
+
+    (imageActions.generateSceneImageFor as ReturnType<typeof vi.fn>).mockImplementation(
+      async () => {
+        concurrentCount++;
+        maxConcurrentObserved = Math.max(maxConcurrentObserved, concurrentCount);
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        concurrentCount--;
+        return { image_url: "http://img.png", image_asset_id: 555 };
+      },
+    );
+
+    const autopilot = makeAutopilot();
+    await runAutoRunFromStep("images", autopilot, ["images"]);
+
+    expect(maxConcurrentObserved).toBeLessThanOrEqual(2);
+    expect(imageActions.generateSceneImageFor).toHaveBeenCalledTimes(3);
   });
 });

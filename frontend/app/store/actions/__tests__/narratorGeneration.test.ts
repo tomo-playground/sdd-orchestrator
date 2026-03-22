@@ -75,7 +75,7 @@ describe("Narrator scene generation payload", () => {
 });
 
 describe("Batch generation Narrator payload", () => {
-  // Mirrors the logic in batchActions.ts (lines 54-77)
+  // Mirrors the logic in imageGeneration.ts buildSceneRequest
   function buildBatchControlPayload(
     speaker: string,
     useControlnet: boolean,

@@ -5,8 +5,7 @@ import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
 import { useRenderStore } from "../useRenderStore";
-import { AUTO_RUN_STEPS, API_BASE, API_TIMEOUT } from "../../constants";
-import { generateBatchImages } from "./batchActions";
+import { AUTO_RUN_STEPS, API_BASE, API_TIMEOUT, AUTORUN_CONCURRENCY } from "../../constants";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
 import { resolveSceneMultiGen } from "../../utils/sceneSettingsResolver";
 import { persistStoryboard } from "./storyboardActions";
@@ -232,45 +231,55 @@ export async function runAutoRunFromStep(
           }
         }
 
-        // Single-gen scenes: batch mode with server-side throttling
+        // Single-gen scenes: individual SSE with concurrency limit
         if (singleGenScenes.length > 0) {
-          const sceneClientIds = singleGenScenes.map((s) => s.client_id);
-          const batchResult = await generateBatchImages(sceneClientIds, abortController.signal);
+          const queue = [...singleGenScenes];
+          const running = new Set<Promise<void>>();
 
-          // Check for scenes that need retry: either batch API failure OR
-          // successful generation but failed image store (missing image_asset_id)
-          const freshAfterBatch = useStoryboardStore.getState().scenes;
-          const scenesNeedingRetry = singleGenScenes.filter((target) => {
-            const fresh = freshAfterBatch.find((s) => s.client_id === target.client_id);
-            // Retry if: no image_url, or has data URL (store failed), or no asset_id
-            return !fresh?.image_url || !fresh?.image_asset_id;
-          });
+          while (queue.length > 0 || running.size > 0) {
+            if (abortController.signal.aborted) {
+              // Wait for in-flight tasks so their results land in store before persistStoryboard
+              if (running.size > 0) await Promise.allSettled([...running]);
+              break;
+            }
 
-          const batchFailed = !batchResult || batchResult.failed > 0;
-          if (batchFailed || scenesNeedingRetry.length > 0) {
-            const reason = batchFailed
-              ? `Batch: ${batchResult?.failed ?? sceneClientIds.length} scene(s) failed`
-              : `${scenesNeedingRetry.length} scene(s) missing stored image`;
-            pushAutoRunLog(`${reason}, retrying individually`);
-            // Retry scenes that are missing images (use fresh store, not stale workingScenes)
-            for (const target of scenesNeedingRetry) {
-              assertNotCancelled();
-              const freshScene =
-                useStoryboardStore
-                  .getState()
-                  .scenes.find((s) => s.client_id === target.client_id) || target;
-              useStoryboardStore.getState().updateScene(target.client_id, { isGenerating: true });
-              const result = await generateSceneImageFor(freshScene, true);
-              useStoryboardStore.getState().updateScene(target.client_id, { isGenerating: false });
-              if (!result?.image_url) {
-                failedSceneOrders.push(target.order);
-                pushAutoRunLog(`Image failed for Scene #${target.order + 1}`);
-              } else {
-                useStoryboardStore.getState().updateScene(target.client_id, result);
-              }
+            while (running.size < AUTORUN_CONCURRENCY && queue.length > 0) {
+              const target = queue.shift()!;
+              const p = (async () => {
+                try {
+                  const freshScene =
+                    useStoryboardStore
+                      .getState()
+                      .scenes.find((s) => s.client_id === target.client_id) || target;
+                  useStoryboardStore
+                    .getState()
+                    .updateScene(target.client_id, { isGenerating: true });
+                  try {
+                    const result = await generateSceneImageFor(freshScene, true);
+                    if (!result?.image_url) {
+                      failedSceneOrders.push(target.order);
+                      pushAutoRunLog(`Image failed for Scene #${target.order + 1}`);
+                    } else {
+                      useStoryboardStore.getState().updateScene(target.client_id, result);
+                    }
+                  } finally {
+                    useStoryboardStore
+                      .getState()
+                      .updateScene(target.client_id, { isGenerating: false });
+                  }
+                } catch {
+                  failedSceneOrders.push(target.order);
+                  pushAutoRunLog(`Image failed for Scene #${target.order + 1}`);
+                }
+              })();
+              running.add(p);
+              p.finally(() => running.delete(p));
+            }
+
+            if (running.size > 0) {
+              await Promise.race(running);
             }
           }
-          // Sync workingScenes with store state after batch
           workingScenes = useStoryboardStore.getState().scenes;
         }
 
