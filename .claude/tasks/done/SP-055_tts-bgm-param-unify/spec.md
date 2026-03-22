@@ -4,7 +4,7 @@ priority: P1
 scope: fullstack
 branch: feat/SP-055-tts-bgm-param-unify
 created: 2026-03-22
-status: running
+status: done
 approved_at: 2026-03-22
 depends_on:
 label: fix
