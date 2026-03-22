@@ -226,18 +226,21 @@ if [ -n "$CURRENT" ] && [ -f "$CURRENT" ] && [ -s "$CURRENT" ]; then
   mv "$CURRENT" "$DONE_FILE"
 else
   TASK_NAME=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||')
-  echo "# $TASK_NAME" > "$DONE_DIR/${TASK_NAME}.md"
+  DONE_FILE="$DONE_DIR/${TASK_NAME}.md"
+  echo "# $TASK_NAME" > "$DONE_FILE"
 fi
+
+# Backend health check for E2E judgment
+BACKEND_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health 2>/dev/null || echo "000")
 
 cat >> "$DONE_FILE" << EOF
 
 ---
 ## 품질 게이트 결과 [$TIMESTAMP]
 - Lint: PASS
-- Backend pytest: PASS
-- Frontend vitest: PASS
-- VRT: PASS
-- E2E: $([ "$BACKEND_UP" != "000" ] && echo "PASS" || echo "SKIP")
+- Backend pytest: $([ "$PY_COUNT" -gt 0 ] && echo "PASS" || echo "SKIP (no .py changes)")
+- Frontend vitest: $([ "$TS_COUNT" -gt 0 ] && echo "PASS" || echo "SKIP (no .ts changes)")
+- E2E: $([ "$BACKEND_HEALTH" = "200" ] && echo "PASS" || echo "SKIP (backend down)")
 EOF
 
 echo "전체 통과 — PR 생성 가능" >&2
