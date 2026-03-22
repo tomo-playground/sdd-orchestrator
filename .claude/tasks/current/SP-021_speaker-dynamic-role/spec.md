@@ -5,7 +5,7 @@ scope: fullstack
 branch: feat/SP-021-speaker-dynamic-role
 created: 2026-03-21
 status: pending
-depends_on: SP-020
+depends_on: SP-020, SP-056
 label: enhancement
 assignee: stopper2008
 ---
