@@ -810,6 +810,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 - **불확실할 때**: 멈추지 말고 보수적인 선택
 - **즉시 중단 조건**: DB 스키마 변경, 외부 의존성 추가 → task.md에 기록 후 중단
 - **완료 기준**: task.md의 DoD 체크리스트 전체 달성 + AI TDD 테스트 ALL GREEN + Test plan 수동 항목 0개
+- **DoD 체크 의무**: PR 생성 직전에 task.md의 DoD 체크리스트를 `[x]`로 업데이트한다. 미달성 항목이 있으면 사유를 주석으로 기록. done/ 이동 시 체크 안 된 태스크가 없어야 한다.
 - **PR 생성 시**: 태스크 frontmatter에서 label/reviewer/assignee 자동 설정. 상세는 `docs/guides/SDD_WORKFLOW.md` 참조.
 - **PR 생성 직후**: `/code-review:code-review {PR번호}` 실행하여 셀프 리뷰 코멘트를 PR에 남긴다.
 - **PR 전 리베이스**: push 전에 `git rebase main` 수행. 충돌 시 자율 해결, 불가하면 사용자 보고.

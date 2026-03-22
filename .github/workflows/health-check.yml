@@ -2,7 +2,7 @@ name: Health Check — 서비스 + Runner 상태 감시
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # 30분마다
+    - cron: '0 */2 * * *'  # 2시간마다 (runner 대기시간 고려)
   workflow_dispatch:        # 수동 실행 가능
 
 concurrency:
