@@ -12,12 +12,13 @@ from config import pipeline_logger as logger
 from services.creative_utils import parse_json_response
 
 
-def parse_sub_agent_result(response: str) -> dict | None:
+def parse_sub_agent_result(response: str, agent_name: str = "SubAgent") -> dict | None:
     """서브 에이전트 응답에서 {"scenes": [...]} dict를 파싱한다.
 
     Framing, Action, Atmosphere 3개 에이전트가 공유한다.
     """
     if not response or not response.strip():
+        logger.warning("[%s] 빈 응답 수신", agent_name)
         return None
     try:
         match = re.search(r"```json\s*(.*?)\s*```", response, re.DOTALL)
@@ -36,7 +37,49 @@ def parse_sub_agent_result(response: str) -> dict | None:
                 return data
         except (json.JSONDecodeError, ValueError, TypeError):
             pass
+    logger.warning(
+        "[%s] JSON 파싱 실패 (응답 길이=%d, 앞 200자=%r)",
+        agent_name,
+        len(response),
+        response[:200],
+    )
     return None
+
+
+async def call_sub_agent(
+    prompt: str,
+    system_instruction: str,
+    trace_name: str,
+    agent_name: str,
+    temperature: float = 0.3,
+    metadata: dict | None = None,
+) -> dict | None:
+    """서브 에이전트 호출 + 파싱 실패 시 JSON 모드로 1회 재시도."""
+    from services.agent.tools.base import call_direct  # noqa: PLC0415
+
+    response = await call_direct(
+        prompt=prompt,
+        trace_name=trace_name,
+        temperature=temperature,
+        system_instruction=system_instruction,
+        metadata=metadata,
+    )
+    result = parse_sub_agent_result(response, agent_name)
+    if result:
+        return result
+
+    # 재시도: response_mime_type으로 JSON 강제
+    logger.warning("[%s] 1차 파싱 실패, JSON 모드로 재시도", agent_name)
+    retry_meta = {**(metadata or {}), "retry": True}
+    response = await call_direct(
+        prompt=prompt,
+        trace_name=f"{trace_name}.retry",
+        temperature=temperature,
+        system_instruction=system_instruction,
+        metadata=retry_meta,
+        response_mime_type="application/json",
+    )
+    return parse_sub_agent_result(response, agent_name)
 
 
 def parse_scenes(response: str) -> list[dict] | None:

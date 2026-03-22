@@ -67,6 +67,18 @@ class TestDirectorReActOutput:
         with pytest.raises(ValidationError, match="feedback"):
             DirectorReActOutput.model_validate({"observe": "관찰", "think": "사고", "act": "revise_script"})
 
+    def test_approve_with_null_feedback_ok(self):
+        """Gemini가 feedback: null을 반환해도 approve는 통과해야 한다."""
+        m = DirectorReActOutput.model_validate({"observe": "관찰", "think": "사고", "act": "approve", "feedback": None})
+        assert m.feedback == ""
+
+    def test_revise_with_null_feedback_fails(self):
+        """feedback: null + revise_* 조합은 ValidationError가 발생해야 한다."""
+        with pytest.raises(ValidationError, match="feedback"):
+            DirectorReActOutput.model_validate(
+                {"observe": "관찰", "think": "사고", "act": "revise_script", "feedback": None}
+            )
+
     def test_invalid_act(self):
         with pytest.raises(ValidationError):
             DirectorReActOutput.model_validate({"observe": "관찰", "think": "사고", "act": "invalid_action"})

@@ -10,9 +10,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from services.agent.nodes._cine_action import _parse_result as parse_action
-from services.agent.nodes._cine_atmosphere import _parse_result as parse_atmosphere
-from services.agent.nodes._cine_framing import _parse_result as parse_framing
+from services.agent.nodes._cine_common import call_sub_agent
+from services.agent.nodes._cine_common import parse_sub_agent_result as parse_action
+from services.agent.nodes._cine_common import parse_sub_agent_result as parse_atmosphere
+from services.agent.nodes._cine_common import parse_sub_agent_result as parse_framing
 from services.agent.nodes.cinematographer import _run, _run_team
 
 # ── 서브 에이전트 파싱 테스트 ─────────────────────────────────
@@ -278,3 +279,44 @@ class TestVisualDirection:
             "atmosphere": {"scenes": []},
         }
         assert "framing" in result
+
+
+# ── call_sub_agent 재시도 플로우 테스트 ──────────────────────
+
+
+_CALL_DIRECT = "services.agent.tools.base.call_direct"
+
+
+@pytest.mark.asyncio
+async def test_call_sub_agent_retries_with_json_mode_on_parse_failure():
+    """1차 호출이 파싱 불가 텍스트를 반환하면 JSON 모드로 재시도한다."""
+    valid = json.dumps({"scenes": [{"order": 0}]})
+    with patch(_CALL_DIRECT, new_callable=AsyncMock) as mock_call:
+        mock_call.side_effect = ["not valid json", valid]
+        result = await call_sub_agent("prompt", "sys", "trace", "Test")
+
+    assert result is not None
+    assert mock_call.call_count == 2
+    _, retry_kwargs = mock_call.call_args
+    assert retry_kwargs.get("response_mime_type") == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_call_sub_agent_returns_none_when_both_fail():
+    """1차·재시도 모두 파싱 실패하면 None을 반환한다."""
+    with patch(_CALL_DIRECT, new_callable=AsyncMock, return_value="bad json"):
+        result = await call_sub_agent("prompt", "sys", "trace", "Test")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_call_sub_agent_passes_metadata_to_retry():
+    """재시도 호출에 retry=True가 포함된 메타데이터가 전달된다."""
+    valid = json.dumps({"scenes": [{"order": 0}]})
+    with patch(_CALL_DIRECT, new_callable=AsyncMock) as mock_call:
+        mock_call.side_effect = ["not valid json", valid]
+        await call_sub_agent("prompt", "sys", "trace", "Test", metadata={"template": "tmpl"})
+
+    _, retry_kwargs = mock_call.call_args
+    assert retry_kwargs.get("metadata") == {"template": "tmpl", "retry": True}

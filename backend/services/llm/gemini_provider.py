@@ -95,6 +95,7 @@ class GeminiProvider:
         gemini_config = types.GenerateContentConfig(
             system_instruction=config.system_instruction,
             temperature=config.temperature,
+            response_mime_type=config.response_mime_type,
             safety_settings=GEMINI_SAFETY_SETTINGS,
             http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_MS),
             thinking_config=thinking_config,
@@ -160,6 +161,7 @@ class GeminiProvider:
                 fb_config = types.GenerateContentConfig(
                     system_instruction=config.system_instruction,
                     temperature=config.temperature,
+                    response_mime_type=config.response_mime_type,
                     safety_settings=GEMINI_SAFETY_SETTINGS,
                     http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_MS),
                 )

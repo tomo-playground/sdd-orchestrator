@@ -16,6 +16,7 @@ class LLMConfig:
     system_instruction: str | None = None
     temperature: float | None = None
     thinking_budget: int | None = None  # Gemini 2.5 thinking token budget (0=disabled, -1=auto)
+    response_mime_type: str | None = None  # "application/json" → JSON 강제 출력
 
 
 @dataclass

@@ -360,13 +360,18 @@ async def call_direct(
     temperature: float = 0.0,
     system_instruction: str | None = None,
     metadata: dict[str, Any] | None = None,
+    response_mime_type: str | None = None,
 ) -> str:
     """도구 없이 LLM을 직접 호출한다. JSON 강제 재시도 등에 사용."""
     provider = get_llm_provider()
     llm_response = await provider.generate(
         step_name=f"generate_content {trace_name}",
         contents=prompt,
-        config=LLMConfig(temperature=temperature, system_instruction=system_instruction),
+        config=LLMConfig(
+            temperature=temperature,
+            system_instruction=system_instruction,
+            response_mime_type=response_mime_type,
+        ),
         metadata=metadata,
     )
     return llm_response.text

@@ -101,6 +101,13 @@ class DirectorReActOutput(BaseModel):
     act: _VALID_ACT_DECISIONS
     feedback: str = ""
 
+    @field_validator("feedback", mode="before")
+    @classmethod
+    def _coerce_feedback(cls, v: object) -> str:
+        if v is None:
+            return ""
+        return str(v)
+
     @model_validator(mode="after")
     def _feedback_required_for_revise(self) -> DirectorReActOutput:
         if self.act != "approve" and not self.feedback:

@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 
 from config import pipeline_logger as logger
-from services.agent.nodes._cine_common import parse_sub_agent_result
 
 _SYSTEM = (
     "You are an Action Director for AI-generated short-form videos. "
@@ -60,23 +59,20 @@ async def run_action(
         {"scenes": [{"order": N, "emotion": "...", "action": "...", "pose": "...",
                       "props": [...], "controlnet_pose": "..."}]}
     """
-    from services.agent.tools.base import call_direct  # noqa: PLC0415
+    from services.agent.nodes._cine_common import call_sub_agent  # noqa: PLC0415
 
     prompt = _build_prompt(scenes_json, framing_result, characters_tags_block)
     try:
         logger.info("[CineAction] 실행 시작")
-        response = await call_direct(
+        result = await call_sub_agent(
             prompt=prompt,
-            trace_name="cinematographer.action",
-            temperature=0.3,
             system_instruction=_SYSTEM,
+            trace_name="cinematographer.action",
+            agent_name="CineAction",
             metadata={"template": "creative/cinematographer/action"},
         )
-        result = parse_sub_agent_result(response)
         if result:
             logger.info("[CineAction] 완료: %d scenes", len(result.get("scenes", [])))
-        else:
-            logger.warning("[CineAction] 파싱 실패")
         return result
     except Exception as e:
         logger.warning("[CineAction] 실패: %s", e)
@@ -108,7 +104,3 @@ def _build_prompt(scenes_json: str, framing_result: dict, characters_tags_block:
         ]
     )
     return "\n".join(parts)
-
-
-# parse_sub_agent_result는 _cine_common에서 import (테스트 호환)
-_parse_result = parse_sub_agent_result

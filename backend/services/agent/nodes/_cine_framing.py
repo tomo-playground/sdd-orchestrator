@@ -7,7 +7,6 @@ Cinematographer Team의 첫 번째 에이전트.
 from __future__ import annotations
 
 from config import pipeline_logger as logger
-from services.agent.nodes._cine_common import parse_sub_agent_result
 
 _SYSTEM = (
     "You are a Framing Specialist for AI-generated short-form videos. "
@@ -51,23 +50,20 @@ async def run_framing(
         {"scenes": [{"order": N, "camera": "...", "gaze": "...",
                       "ken_burns_preset": "...", "narrative_function": "..."}]}
     """
-    from services.agent.tools.base import call_direct  # noqa: PLC0415
+    from services.agent.nodes._cine_common import call_sub_agent  # noqa: PLC0415
 
     prompt = _build_prompt(scenes_json, visual_direction, writer_plan_section)
     try:
         logger.info("[CineFraming] 실행 시작")
-        response = await call_direct(
+        result = await call_sub_agent(
             prompt=prompt,
-            trace_name="cinematographer.framing",
-            temperature=0.3,
             system_instruction=_SYSTEM,
+            trace_name="cinematographer.framing",
+            agent_name="CineFraming",
             metadata={"template": "creative/cinematographer/framing"},
         )
-        result = parse_sub_agent_result(response)
         if result:
             logger.info("[CineFraming] 완료: %d scenes", len(result.get("scenes", [])))
-        else:
-            logger.warning("[CineFraming] 파싱 실패")
         return result
     except Exception as e:
         logger.warning("[CineFraming] 실패: %s", e)
@@ -90,7 +86,3 @@ def _build_prompt(scenes_json: str, visual_direction: str, writer_plan_section: 
         ]
     )
     return "\n".join(parts)
-
-
-# parse_sub_agent_result는 _cine_common에서 import (테스트 호환)
-_parse_result = parse_sub_agent_result
