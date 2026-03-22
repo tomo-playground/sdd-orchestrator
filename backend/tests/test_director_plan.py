@@ -271,4 +271,46 @@ async def test_director_plan_always_runs_with_skip_stages():
     # LLM 호출 실패 시 graceful degradation으로 None 반환 가능하지만
     # skip_stages 때문에 None이 되지는 않음
     assert "director_plan" in result
+
+
+# -- _derive_skip_stages 단위 테스트 --
+
+
+def test_derive_skip_stages_run_explain_false():
+    """run_explain=False면 explain이 skip_stages에 포함된다."""
+    from services.agent.nodes.director_plan import _derive_skip_stages
+
+    result = {"execution_plan": {"run_explain": False}}
+    assert "explain" in _derive_skip_stages(result)
+
+
+def test_derive_skip_stages_run_research_false():
+    """run_research=False면 research가 skip_stages에 포함된다."""
+    from services.agent.nodes.director_plan import _derive_skip_stages
+
+    result = {"execution_plan": {"run_research": False}}
+    assert "research" in _derive_skip_stages(result)
+
+
+def test_derive_skip_stages_run_concept_false_has_no_effect():
+    """run_concept=False는 skip_stages에 영향 없음 — concept(Critic)은 항상 실행."""
+    from services.agent.nodes.director_plan import _derive_skip_stages
+
+    result = {"execution_plan": {"run_concept": False}}
+    assert "concept" not in _derive_skip_stages(result)
+
+
+def test_derive_skip_stages_all_true():
+    """모든 플래그가 True(기본값)면 skip_stages가 비어있다."""
+    from services.agent.nodes.director_plan import _derive_skip_stages
+
+    result = {"execution_plan": {"run_research": True, "run_explain": True}}
+    assert _derive_skip_stages(result) == []
+
+
+def test_derive_skip_stages_no_execution_plan():
+    """execution_plan이 없으면 skip_stages가 비어있다."""
+    from services.agent.nodes.director_plan import _derive_skip_stages
+
+    assert _derive_skip_stages({}) == []
     assert "skip_stages" in result

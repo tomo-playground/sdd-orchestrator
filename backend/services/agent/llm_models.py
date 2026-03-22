@@ -62,6 +62,8 @@ class ExecutionPlan(BaseModel):
     """Director가 토픽 복잡도를 분석하여 결정하는 실행 계획."""
 
     run_research: bool = True
+    # concept(Critic 토론)은 항상 실행 — AI 자율 스킵 불가 (_derive_skip_stages 참고)
+    # 이 필드는 LLM 출력 호환성 유지를 위해 보존하지만 skip_stages에 영향 없음
     run_concept: bool = True
     run_explain: bool = True
     reasoning: str = ""
@@ -75,6 +77,7 @@ class DirectorPlanOutput(BaseModel):
     quality_criteria: list[str] = Field(min_length=1)
     risk_areas: list[str] = []
     style_direction: str = ""
+    visual_direction: str = ""
     casting: CastingRecommendation | None = None
     execution_plan: ExecutionPlan = Field(default_factory=ExecutionPlan)
 

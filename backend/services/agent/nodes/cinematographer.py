@@ -174,7 +174,7 @@ async def _try_competition(
 
 
 async def _run(state: ScriptState, db_session: object) -> dict:
-    """Cinematographer 오케스트레이터: Competition → Team → Single fallback."""
+    """Cinematographer 오케스트레이터: Team → Competition → Single fallback."""
     from ..tools.cinematographer_tools import (  # noqa: PLC0415
         create_cinematographer_executors,
         get_cinematographer_tools,
@@ -227,13 +227,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     )
     base_prompt = compiled.user
 
-    # 1) Competition 시도 (Full 모드)
-    if "production" not in (state.get("skip_stages") or []):
-        comp_result = await _try_competition(state, db_session, base_prompt, director_feedback)
-        if comp_result:
-            return comp_result
-
-    # 2) Team 실행 시도 (4 서브 에이전트 순차)
+    # 1) Team 실행 (4 서브 에이전트 순차 — 주 경로)
     scenes_json = json.dumps(scenes, ensure_ascii=False, indent=2)
     visual_direction = (state.get("director_plan") or {}).get("visual_direction", "")
 
@@ -251,8 +245,13 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     if team_result:
         return team_result
 
+    # 2) Competition fallback (CINEMATOGRAPHER_COMPETITION_ENABLED=true 환경변수로 활성화)
+    comp_result = await _try_competition(state, db_session, base_prompt, director_feedback)
+    if comp_result:
+        return comp_result
+
     # 3) Single-agent fallback
-    logger.info("[Cinematographer] Team 실패, 단일 에이전트 fallback")
+    logger.info("[Cinematographer] Team+Competition 실패, 단일 에이전트 fallback")
     return await _run_single(
         base_prompt=base_prompt,
         compiled=compiled,
@@ -276,6 +275,36 @@ async def _run_team(
     tool_executors: dict,
 ) -> dict | None:
     """4 서브 에이전트 순차 실행: Framing → Action → Atmosphere → Compositor."""
+    try:
+        return await _run_team_inner(
+            scenes_json=scenes_json,
+            visual_direction=visual_direction,
+            writer_plan_section=writer_plan_section,
+            characters_tags_block=characters_tags_block,
+            style_section=style_section,
+            image_prompt_ko_rules=image_prompt_ko_rules,
+            emotion_consistency_rules=emotion_consistency_rules,
+            tools=tools,
+            tool_executors=tool_executors,
+        )
+    except Exception as e:
+        logger.warning("[CineTeam] 팀 실행 실패, fallback으로 전환: %s", e, exc_info=True)
+        return None
+
+
+async def _run_team_inner(
+    *,
+    scenes_json: str,
+    visual_direction: str,
+    writer_plan_section: str,
+    characters_tags_block: str,
+    style_section: str,
+    image_prompt_ko_rules: str,
+    emotion_consistency_rules: str,
+    tools: list,
+    tool_executors: dict,
+) -> dict | None:
+    """_run_team의 내부 구현. 예외는 _run_team에서 catch."""
     from ._cine_action import run_action  # noqa: PLC0415
     from ._cine_atmosphere import run_atmosphere  # noqa: PLC0415
     from ._cine_compositor import run_compositor  # noqa: PLC0415

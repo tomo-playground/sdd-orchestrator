@@ -2,7 +2,8 @@
 
 START 직후 실행되어 creative_goal, target_emotion,
 quality_criteria 등을 설정한다. Phase 20-A: 인벤토리 인지 + 캐스팅 추천.
-Phase 25: execution_plan으로 skip_stages를 자율 결정.
+Phase 25: execution_plan으로 research/explain skip 여부를 자율 결정.
+concept(Critic 토론)은 항상 실행 — FastTrack만 API에서 직접 스킵 가능.
 """
 
 from __future__ import annotations
@@ -53,13 +54,17 @@ def _extract_casting(result: dict) -> dict | None:
 
 
 def _derive_skip_stages(result: dict) -> list[str]:
-    """execution_plan에서 skip_stages를 결정. explain은 항상 실행."""
+    """execution_plan에서 skip_stages를 결정.
+
+    concept(Critic 토론)은 항상 실행 — AI 자율 스킵 금지.
+    FastTrack만 skip_stages를 API에서 직접 지정하여 concept 스킵 가능.
+    """
     ep = result.get("execution_plan") or {}
     stages: list[str] = []
     if not ep.get("run_research", True):
         stages.append("research")
-    if not ep.get("run_concept", True):
-        stages.append("concept")
+    if not ep.get("run_explain", True):
+        stages.append("explain")
     return stages
 
 
@@ -128,6 +133,7 @@ async def director_plan_node(state: ScriptState, config=None) -> dict:
             "quality_criteria": result.get("quality_criteria", []),
             "risk_areas": result.get("risk_areas", []),
             "style_direction": result.get("style_direction", ""),
+            "visual_direction": result.get("visual_direction", ""),
         }
 
         # Phase 20-A: 캐스팅 추천 추출

@@ -13,15 +13,17 @@ from services.agent.nodes.cinematographer import cinematographer_node
 @pytest.mark.asyncio
 @patch("services.agent.tools.base.call_with_tools", new_callable=AsyncMock)
 @patch("services.agent.nodes.cinematographer.validate_visuals")
+@patch("services.agent.nodes.cinematographer._run_team", new_callable=AsyncMock, return_value=None)
 @patch("services.agent.nodes.cinematographer._try_competition", new_callable=AsyncMock, return_value=None)
 @patch("services.agent.langfuse_prompt.compile_prompt")
-async def test_characters_tags_passed_to_template(mock_compile, mock_comp, mock_validate, mock_call):
+async def test_characters_tags_passed_to_template(mock_compile, mock_comp, mock_team, mock_validate, mock_call):
     """캐릭터가 있으면 characters_tags_block이 compile_prompt에 전달된다."""
     mock_compile.return_value = MagicMock(system="sys", user="rendered prompt", langfuse_prompt=None)
     mock_scenes = [{"order": 0, "script": "테스트", "speaker": "A"}]
     mock_call.return_value = (
         json.dumps({"scenes": mock_scenes}),
         [],
+        None,
     )
     mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
 
@@ -60,15 +62,17 @@ async def test_characters_tags_passed_to_template(mock_compile, mock_comp, mock_
 @pytest.mark.asyncio
 @patch("services.agent.tools.base.call_with_tools", new_callable=AsyncMock)
 @patch("services.agent.nodes.cinematographer.validate_visuals")
+@patch("services.agent.nodes.cinematographer._run_team", new_callable=AsyncMock, return_value=None)
 @patch("services.agent.nodes.cinematographer._try_competition", new_callable=AsyncMock, return_value=None)
 @patch("services.agent.langfuse_prompt.compile_prompt")
-async def test_characters_tags_none_when_no_character(mock_compile, mock_comp, mock_validate, mock_call):
+async def test_characters_tags_none_when_no_character(mock_compile, mock_comp, mock_team, mock_validate, mock_call):
     """character_id가 없으면 characters_tags_block이 빈 상태로 전달된다."""
     mock_compile.return_value = MagicMock(system="sys", user="rendered prompt", langfuse_prompt=None)
     mock_scenes = [{"order": 0, "script": "테스트"}]
     mock_call.return_value = (
         json.dumps({"scenes": mock_scenes}),
         [],
+        None,
     )
     mock_validate.return_value = {"ok": True, "issues": [], "checks": {}}
 
@@ -84,6 +88,40 @@ async def test_characters_tags_none_when_no_character(mock_compile, mock_comp, m
     compile_kwargs = mock_compile.call_args.kwargs
     # 캐릭터 없으면 characters_tags_block은 빈 문자열
     assert compile_kwargs.get("characters_tags_block") == ""
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.cinematographer._run_single", new_callable=AsyncMock)
+@patch("services.agent.nodes.cinematographer._try_competition", new_callable=AsyncMock, return_value=None)
+@patch(
+    "services.agent.nodes.cinematographer._run_team",
+    new_callable=AsyncMock,
+    return_value={
+        "cinematographer_result": {"scenes": [{"order": 1, "visual_tags": ["brown_hair"]}]},
+        "cinematographer_tool_logs": [],
+        "visual_qc_result": {"ok": True, "issues": []},
+    },
+)
+@patch("services.agent.langfuse_prompt.compile_prompt")
+async def test_team_result_is_primary_path(mock_compile, mock_team, mock_comp, mock_single):
+    """_run_team이 결과를 반환하면 Competition/Single을 건너뛰고 그 결과를 사용한다."""
+    mock_compile.return_value = MagicMock(system="sys", user="rendered prompt", langfuse_prompt=None)
+    mock_scenes = [{"order": 0, "script": "테스트"}]
+
+    mock_db = MagicMock()
+    mock_result = Mock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_result
+
+    state = {"draft_scenes": mock_scenes, "style": "Anime"}
+    config = {"configurable": {"db": mock_db}}
+
+    result = await cinematographer_node(state, config)
+
+    assert result["cinematographer_result"] is not None
+    assert result["cinematographer_result"]["scenes"][0]["order"] == 1
+    mock_comp.assert_not_called()
+    mock_single.assert_not_called()
 
 
 def test_load_single_character_tags_includes_lora():

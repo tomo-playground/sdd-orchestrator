@@ -113,8 +113,9 @@ LANGGRAPH_CHECKPOINT_THRESHOLD = float(os.getenv("LANGGRAPH_CHECKPOINT_THRESHOLD
 LANGGRAPH_CHECKPOINT_LOW_THRESHOLD = float(os.getenv("LANGGRAPH_CHECKPOINT_LOW_THRESHOLD", "0.4"))
 LANGGRAPH_CHECKPOINT_HIGH_THRESHOLD = float(os.getenv("LANGGRAPH_CHECKPOINT_HIGH_THRESHOLD", "0.85"))
 
-# --- Cinematographer Competition (Full 모드) ---
-CINEMATOGRAPHER_COMPETITION_ENABLED = os.getenv("CINEMATOGRAPHER_COMPETITION_ENABLED", "true").lower() == "true"
+# --- Cinematographer Competition (Team fallback 전용) ---
+# Team(4 서브 에이전트)이 주 경로. Competition은 환경변수 true로 활성화 시 Team 실패 fallback.
+CINEMATOGRAPHER_COMPETITION_ENABLED = os.getenv("CINEMATOGRAPHER_COMPETITION_ENABLED", "false").lower() == "true"
 
 # --- Phase 10-A: True Agentic Architecture ---
 # Director ReAct Loop
