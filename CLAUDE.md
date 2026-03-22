@@ -404,6 +404,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | `/db` | DB 마이그레이션 상태/생성/적용/롤백 |
 | `/docs` | 문서 구조 조회/정합성 체크/크기 점검 |
 | `/pm-check` | PM 자율 점검 (문서/로드맵/기능 명세/DoD) |
+| `/sdd-design` | SDD 상세 설계 자동 작성 (코드 탐색 → 질문 → 6항목 설계 → 승인 요청) |
 | `/sentry-patrol` | Sentry 에러 배치 순찰 → GitHub Issue 자동 생성 |
 | `/qa-patrol` | Playwright QA 순찰 (핵심 플로우 자동 테스트) |
 
@@ -647,17 +648,18 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ## SDD 자율 실행 워크플로우
 
 ### 개요
-**SDD (Spec-Driven Development)**: 사람이 스펙(DoD)을 작성하면, AI가 TDD 사이클(RED→GREEN→Refactor) 전체를 자율 실행하고 PR까지 완료한다.
-**"스펙을 믿고, 테스트를 돌려라."** — 스펙이 의도이고, AI TDD가 검증이고, 사람 검수가 완료.
+**SDD (Spec-Driven Development)**: 사람이 스펙(DoD)을 작성하고, AI가 상세 설계를 제안하고, 사람이 승인하면, AI가 TDD 사이클(RED→GREEN→Refactor) 전체를 자율 실행하고 PR까지 완료한다.
+**"설계를 승인하고, 스펙을 믿고, 테스트를 돌려라."** — 설계가 방향이고, 스펙이 의도이고, AI TDD가 검증이고, 사람 검수가 완료.
 
 > **방법론 근거**: Martin Fowler의 Spec-First 레벨 + Anthropic Agentic Engineering.
-> 사람은 아키텍처와 판단에 집중하고, AI가 구현+테스트+리뷰를 실행한다.
+> 사람은 아키텍처와 판단에 집중하고, AI가 설계 제안+구현+테스트+리뷰를 실행한다.
 
 ### 역할 분리
 | 역할 | 사람 | AI |
 |------|------|-----|
 | 뭘 만들지 (스펙) | O | |
 | 수용 기준 (DoD) | O | |
+| 상세 설계 (How) | 승인 | 작성 |
 | 테스트 작성 (RED) | | O |
 | 구현 (GREEN) | | O |
 | 리팩토링 | | O |
@@ -667,7 +669,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ### 업무 플로우 요약
 
 ```
-기능 개발: 태스크(사람) → /sdd-run → AI TDD(RED→GREEN) + PR(AI) → 리뷰(자동) → 검수+머지(사람)
+기능 개발: 태스크(사람) → 설계(AI작성→사람승인) → /sdd-run → AI TDD(RED→GREEN) + PR(AI) → 리뷰(자동) → 검수+머지(사람)
 버그 수정: Sentry(자동) → Issue → /sentry-autofix → AI TDD + PR → 리뷰(자동) → 머지(사람)
 정리:     PR 머지 → sdd-sync(자동) → 태스크 done/ + rebase
 ```
@@ -676,9 +678,15 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ```
 [사람] 태스크 스펙 작성 (DoD 체크리스트) → main 커밋
   ↓
+[AI] 코드 읽기 → 상세 설계 작성 (각 DoD별 구현방법/동작정의/엣지케이스/영향범위)
+  ↓  태스크 status: design
+  ↓
+[사람] 설계 승인 (방향 확인 + 수정 요청)
+  ↓  태스크 status: approved
+  ↓
 [사람] /sdd-run SP-NNN → 워크트리 기동
   ↓
-[AI] DoD → 실패 테스트 작성 (RED)
+[AI] 승인된 설계 기반 → 실패 테스트 작성 (RED)
   ↓
 [AI] 구현하여 테스트 통과 (GREEN) → Stop Hook 자동 검증
   ↓  RED → self-heal (최대 3회)
@@ -691,6 +699,14 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
   ↓
 [자동] sdd-sync → 태스크 done/ + 브랜치 삭제 + 열린 PR rebase
 ```
+
+### 상세 설계 규칙
+- **설계 미승인 상태에서 /sdd-run 실행 금지** — status가 `approved`가 아니면 거부
+- **설계 작성 주체는 AI** — 관련 코드를 읽고, 각 DoD 항목에 대해 구현방법/동작정의/엣지케이스/영향범위/테스트전략/Out of Scope 6가지를 명시
+- **승인 주체는 사람** — 방향이 맞는지 확인, 수정 요청 가능
+- **버그 수정(Hotfix/Sentry)은 설계 생략 가능** — 스택트레이스가 설계를 대체
+- **설계 커맨드**: `/sdd-design SP-NNN` — 코드 탐색 → 소크라테스식 질문(최대 3개) → 6항목 설계 작성
+- **설계 템플릿**: `.claude/tasks/_template.md`의 `## 상세 설계 (How)` 섹션 참조
 
 ### 버그 자동 수정 흐름
 ```
@@ -708,7 +724,8 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 | 주체 | 명령어 | 동작 |
 |------|--------|------|
-| 사람 | `/sdd-run SP-NNN` | 태스크 자율 구현 → PR |
+| 사람 | `/sdd-design SP-NNN` | 상세 설계 작성 → 승인 요청 |
+| 사람 | `/sdd-run SP-NNN` | 승인된 설계 기반 자율 구현 → PR |
 | 사람 | `@claude [요청]` | PR에서 수동 요청 |
 | 사람 | `/sentry-patrol` | Sentry 에러 수집 → Issue 생성 |
 | 사람 | `/sentry-autofix #N` | Issue 자동 수정 → PR |
@@ -800,7 +817,8 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 **일반 SDD와 차이점**: task.md 생략, backlog 등록 불필요. 나머지(브랜치, 품질 게이트, PR 메타, 코드 리뷰) 동일.
 
 ### 자율 실행 규칙
-- **자율 범위**: 구현 → 테스트 → 문서 동기화 → 커밋 → 푸시 → PR 생성까지 풀 자율
+- **설계 승인 게이트**: `/sdd-run` 실행 전 태스크 status가 `approved`인지 확인. `pending`/`design` 상태면 설계 작성 또는 승인 요청. 버그 수정(Hotfix/Sentry)은 예외.
+- **자율 범위**: 승인된 설계 기반으로 구현 → 테스트 → 문서 동기화 → 커밋 → 푸시 → PR 생성까지 풀 자율
 - **⚠️ 사용자 확인 금지**: "진행할까요?", "커밋할까요?" 등 사용자에게 묻지 않는다. 멈추지 말고 PR 생성까지 끝까지 진행한다. 즉시 중단 조건에 해당하지 않으면 무조건 진행.
 - **AI TDD (RED→GREEN→Refactor)**: 태스크 DoD를 기반으로 AI가 실패 테스트를 먼저 작성(RED)하고, 구현하여 통과(GREEN)시킨 뒤, 리팩토링한다. 테스트가 곧 회귀 방지 자산이 된다.
   - DoD: "mood 파라미터 없으면 400" → AI가 `test_missing_mood_returns_400()` 작성(RED) → 구현(GREEN)

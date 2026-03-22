@@ -15,6 +15,7 @@
 
 ## P1 (최우선)
 
+- [ ] SP-048 — Direct 탭 UX 미세 조정 — 액션 피드백 2건 + 정보 불일치 3건 (음성톤/BGM 토스트, 전체적용 로딩, Speaker 이름, Consistency 모순, 화풍 중복)
 - [ ] SP-047 — Direct 컨트롤 리뷰 후속 수정 — PR #126 미수정 WARNING 4건 + INFO 3건 (null 가드, 토스트 집계, 주석 불일치)
 - [ ] SP-046 — Cinematographer 팀 분해 — 350줄 1인 다역 → 4 서브 에이전트 (Framing/Action/Atmosphere/Compositor)
 - [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
@@ -35,10 +36,11 @@
 
 - [ ] SP-033 — DoD 검증 자동화
 - [ ] SP-034 — PR 엣지 케이스 체크리스트
+- [ ] SP-049 — SDD 태스크 구조 개선 — 디렉토리 기반 태스크 (spec.md + design.md) + /sdd-run 매칭 로직 대응
 
 ## P3 (인프라/자동화)
 
-- [ ] SP-048 — DirectorControlPanel 프리셋 Backend SSOT 전환 — EMOTION_PRESETS/BGM_MOOD_PRESETS 하드코딩 → /presets API 소비
+- [ ] SP-050 — DirectorControlPanel 프리셋 Backend SSOT 전환 — EMOTION_PRESETS/BGM_MOOD_PRESETS 하드코딩 → /presets API 소비
 
 - [ ] Tag Intelligence — 채널별 태그 정책 + 데이터 기반 추천 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-1
 - [ ] Series Intelligence — 에피소드 연결 + 성공 패턴 학습 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-2

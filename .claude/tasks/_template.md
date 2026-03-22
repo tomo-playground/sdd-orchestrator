@@ -4,7 +4,7 @@ priority:                    # P0 / P1 / P2 / P3
 scope:                       # backend / frontend / fullstack / infra / docs
 branch: feat/SP-NNN-설명     # feat/{id}-{kebab-case 설명}
 created:                     # YYYY-MM-DD
-status: pending              # pending → running → done / failed
+status: pending              # pending → design → approved → running → done / failed
 depends_on:                  # 선행 태스크 id (없으면 비움)
 label:                       # PR 라벨 (feat / bug / chore)
 ---
@@ -35,6 +35,38 @@ label:                       # PR 라벨 (feat / bug / chore)
 - [ ] API가 잘 동작해야 한다        ← 모호함
 - [ ] 에러 처리를 개선한다           ← 뭘 어떻게?
 - [ ] 사용자 경험이 좋아야 한다      ← 측정 불가
+```
+
+## 상세 설계 (How)
+> `/sdd-design SP-NNN`이 자동 작성 → **사람이 승인한 후에만** 구현 착수.
+> status: design → 사람 승인 → status: approved → /sdd-run 실행.
+
+### 설계 작성 가이드
+각 DoD 항목에 대해 아래 6가지를 명시:
+1. **구현 방법**: 어떤 파일의 어떤 함수를 어떻게 수정하는지 (1-3줄)
+2. **동작 정의**: 사용자 관점에서 before → after 상태 변화
+3. **엣지 케이스**: 예외 상황과 처리 방침
+4. **영향 범위**: 이 변경이 건드릴 수 있는 다른 기능
+5. **테스트 전략**: 어떤 테스트를 먼저 작성할 것인가 (RED 단계 가이드)
+6. **Out of Scope**: 이번 항목에서 건드리지 말아야 할 것
+
+**적정 깊이**: 함수의 시그니처(이름, 입력, 출력)와 상호작용(호출 관계)까지만 설계.
+내부 구현 로직(if문, 루프 등)은 AI에게 위임.
+
+```
+--- 좋은 설계 ---
+### DoD-1: 음성 톤 토스트
+- 구현: handleEmotionClick에서 이전 값 비교, 변경 시에만 showToast("음성 톤: {label}", "success")
+- 동작: 밝게(미선택) 클릭 → 활성화 + 토스트. 밝게(선택됨) 재클릭 → 무시
+- 엣지: 캐릭터 미선택 상태에서도 프리셋 저장 허용 (기존 동작 유지)
+- 영향: autoSave 트리거 시점 변경 없음, 토스트만 추가
+- 테스트: DirectorControlPanel 렌더 → emotion 버튼 클릭 → showToast 호출 검증
+- OoS: setGlobalEmotion 내부 로직 변경 금지
+
+--- 나쁜 설계 ---
+### DoD-1: 음성 톤 토스트
+- showToast 추가                    ← 어디에? 조건은?
+- 적절하게 처리                      ← 뭘 어떻게?
 ```
 
 ## 영향 분석 (선택)
