@@ -26,7 +26,9 @@ export function buildTtsRequest(
     script: scene.script || "",
     speaker: scene.speaker || "Narrator", // TODO: sync with backend DEFAULT_SPEAKER
     voice_design_prompt: scene.voice_design_prompt || null,
-    scene_emotion: scene.context_tags?.emotion ?? undefined,
+    scene_emotion: Array.isArray(scene.context_tags?.emotion)
+      ? scene.context_tags.emotion.join(", ")
+      : (scene.context_tags?.emotion ?? undefined),
     image_prompt_ko: scene.image_prompt_ko ?? undefined,
     language,
     storyboard_id: storyboardId,
