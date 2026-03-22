@@ -4,7 +4,7 @@ priority: P1
 scope: frontend
 branch: fix/SP-048-direct-tab-ux-polish
 created: 2026-03-22
-status: approved
+status: running
 approved_at: 2026-03-22
 depends_on:
 label: feat
@@ -25,19 +25,19 @@ e2e 리뷰에서 발견된 문제:
 > AI가 이 목록으로 실패 테스트를 작성(RED)하고, 구현(GREEN)한다.
 
 ### 액션 피드백
-- [ ] DoD-1: 음성 톤 프리셋 클릭 시 `showToast("음성 톤: {label} 적용", "success")` 호출
-- [ ] DoD-2: BGM 분위기 프리셋 클릭 시 `showToast("BGM: {label} 적용", "success")` 호출
-- [ ] DoD-3: "전체 적용" 버튼 레이블이 TTS 재생성임을 명시
-- [ ] DoD-4: "전체 적용" 클릭 후 API 응답까지 버튼에 로딩 스피너 표시 + disabled 처리
+- [x] DoD-1: 음성 톤 프리셋 클릭 시 `showToast("음성 톤: {label} 적용", "success")` 호출
+- [x] DoD-2: BGM 분위기 프리셋 클릭 시 `showToast("BGM: {label} 적용", "success")` 호출
+- [x] DoD-3: "전체 적용" 버튼 레이블이 TTS 재생성임을 명시
+- [x] DoD-4: "전체 적용" 클릭 후 API 응답까지 버튼에 로딩 스피너 표시 + disabled 처리
 
 ### 정보 일관성
-- [ ] DoD-5: Speaker 드롭다운에 캐릭터 이름 표시 (characterAName이 있으면 "A: 재민", 없으면 "Actor A" fallback)
-- [ ] DoD-6: Consistency 데이터가 없을 때 overall 퍼센트를 "--"로 표시 (100% 아님)
-- [ ] DoD-7: DirectorControlPanel에서 화풍(Style Profile) 섹션 제거 (Context Strip에 이미 표시)
+- [x] DoD-5: Speaker 드롭다운에 캐릭터 이름 표시 (characterAName이 있으면 "A: 재민", 없으면 "Actor A" fallback)
+- [x] DoD-6: Consistency 데이터가 없을 때 overall 퍼센트를 "--"로 표시 (100% 아님)
+- [x] DoD-7: DirectorControlPanel에서 화풍(Style Profile) 섹션 제거 (Context Strip에 이미 표시)
 
 ### 품질
-- [ ] 기존 테스트 regression 없음
-- [ ] 린트 통과
+- [x] 기존 테스트 regression 없음
+- [x] 린트 통과
 
 ## 상세 설계 (How)
 > [design.md](./design.md) 참조

@@ -5,6 +5,7 @@ import type { Scene, TTSPreviewState } from "../../types";
 import type { AudioPlayer } from "../../hooks/useAudioPlayer";
 import { isMultiCharStructure } from "../../utils/structure";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { useShallow } from "zustand/react/shallow";
 import { Input, Textarea } from "../ui";
 import { API_BASE } from "../../constants";
 import type { ReadingSpeedConfig } from "../../hooks/usePresets";
@@ -32,6 +33,12 @@ export default function SceneEssentialFields({
   onTTSRegenerate,
   audioPlayer,
 }: SceneEssentialFieldsProps) {
+  const { selectedCharacterName, selectedCharacterBName } = useStoryboardStore(
+    useShallow((s) => ({
+      selectedCharacterName: s.selectedCharacterName,
+      selectedCharacterBName: s.selectedCharacterBName,
+    }))
+  );
   const hasMultipleSpeakers = isMultiCharStructure(structure ?? "");
   const isNarratedDialogue = structure?.toLowerCase() === "narrated dialogue";
 
@@ -73,8 +80,8 @@ export default function SceneEssentialFields({
             className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
           >
             {isNarratedDialogue && <option value="Narrator">Narrator</option>}
-            <option value="A">Actor A</option>
-            {hasMultipleSpeakers && <option value="B">Actor B</option>}
+            <option value="A">{selectedCharacterName ? `A: ${selectedCharacterName}` : "Actor A"}</option>
+            {hasMultipleSpeakers && <option value="B">{selectedCharacterBName ? `B: ${selectedCharacterBName}` : "Actor B"}</option>}
           </select>
         </div>
 

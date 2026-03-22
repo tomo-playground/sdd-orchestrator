@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Button from "../ui/Button";
 
 import { useShallow } from "zustand/react/shallow";
@@ -129,17 +130,23 @@ export default function ScenesTab() {
     transitionType,
   });
 
+  const [isApplying, setIsApplying] = useState(false);
+
   const handleApplyAll = async () => {
     if (storyboardId == null) {
       showToast("스토리보드가 선택되지 않았습니다", "error");
       return;
     }
+    setIsApplying(true);
     const ok = await confirm({
-      title: "전체 적용",
+      title: "TTS 전체 재생성",
       message: `${scenes.length}씬의 TTS를 재생성합니다. 약 ${Math.ceil(scenes.length * 0.3)}분 소요됩니다.`,
       confirmLabel: "재생성",
     });
-    if (!ok) return;
+    if (!ok) {
+      setIsApplying(false);
+      return;
+    }
     try {
       const res = await axios.post(`${API_BASE}/scene/tts-prebuild`, {
         storyboard_id: storyboardId,
@@ -167,6 +174,8 @@ export default function ScenesTab() {
     } catch (err) {
       console.error("TTS prebuild failed:", err);
       showToast("TTS 재생성에 실패했습니다", "error");
+    } finally {
+      setIsApplying(false);
     }
   };
 
@@ -270,7 +279,7 @@ export default function ScenesTab() {
 
           {/* Director Control Panel */}
           <div className="shrink-0 border-b border-zinc-100 px-8 py-3">
-            <DirectorControlPanel onApplyAll={handleApplyAll} />
+            <DirectorControlPanel onApplyAll={handleApplyAll} showToast={showToast} isApplying={isApplying} />
           </div>
 
           <SceneNavHeader

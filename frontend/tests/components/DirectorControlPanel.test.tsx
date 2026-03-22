@@ -110,7 +110,8 @@ describe("DirectorControlPanel", () => {
     expect(selected?.className).toMatch(/bg-zinc-900|ring/);
   });
 
-  it("shows style profile as read-only", () => {
+  // DoD-7: Style Profile section removed
+  it("does not render style profile section", () => {
     useRenderStore.setState({
       currentStyleProfile: {
         id: 1,
@@ -129,15 +130,17 @@ describe("DirectorControlPanel", () => {
       },
     });
     render(<DirectorControlPanel />);
-    expect(screen.getByText(/플랫 애니메/)).toBeInTheDocument();
+    expect(screen.queryByText(/화풍/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/플랫 애니메/)).not.toBeInTheDocument();
   });
 
-  it("shows apply-all button with scene count", () => {
+  // DoD-3: Apply-all button label
+  it("shows TTS 전체 재생성 button with scene count", () => {
     const scenes = [makeScene(), makeScene(), makeScene()];
     useStoryboardStore.getState().setScenes(scenes);
 
     render(<DirectorControlPanel />);
-    const btn = screen.getByRole("button", { name: /전체 적용/ });
+    const btn = screen.getByRole("button", { name: /TTS 전체 재생성/ });
     expect(btn).toBeInTheDocument();
     expect(btn.textContent).toMatch(/3/);
   });
@@ -148,7 +151,7 @@ describe("DirectorControlPanel", () => {
 
     const onApplyAll = vi.fn();
     render(<DirectorControlPanel onApplyAll={onApplyAll} />);
-    fireEvent.click(screen.getByRole("button", { name: /전체 적용/ }));
+    fireEvent.click(screen.getByRole("button", { name: /TTS 전체 재생성/ }));
 
     expect(onApplyAll).toHaveBeenCalledTimes(1);
   });
@@ -175,5 +178,61 @@ describe("DirectorControlPanel", () => {
     const updated = useStoryboardStore.getState().scenes;
     expect(updated[0].context_tags?.emotion).toBe("tense");
     expect(updated[1].context_tags?.emotion).toBe("excited");
+  });
+
+  // DoD-1: Emotion preset toast
+  it("calls showToast with emotion label on click", () => {
+    const showToast = vi.fn();
+    render(<DirectorControlPanel showToast={showToast} />);
+    fireEvent.click(screen.getByRole("button", { name: /밝게/ }));
+
+    expect(showToast).toHaveBeenCalledWith("음성 톤: 밝게 적용", "success");
+  });
+
+  it("does not call showToast on emotion re-click (same preset)", () => {
+    useStoryboardStore.setState({ selectedEmotionPreset: "excited" });
+    const showToast = vi.fn();
+    render(<DirectorControlPanel showToast={showToast} />);
+    fireEvent.click(screen.getByRole("button", { name: /밝게/ }));
+
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  // DoD-2: BGM preset toast
+  it("calls showToast with BGM label on click", () => {
+    const showToast = vi.fn();
+    render(<DirectorControlPanel showToast={showToast} />);
+    fireEvent.click(screen.getByRole("button", { name: /경쾌/ }));
+
+    expect(showToast).toHaveBeenCalledWith("BGM: 경쾌 적용", "success");
+  });
+
+  it("does not call showToast on BGM re-click (same preset)", () => {
+    useRenderStore.getState().set({ selectedBgmPreset: "upbeat" });
+    const showToast = vi.fn();
+    render(<DirectorControlPanel showToast={showToast} />);
+    fireEvent.click(screen.getByRole("button", { name: /경쾌/ }));
+
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  // DoD-4: isApplying loading state
+  it("shows spinner and disables button when isApplying=true", () => {
+    const scenes = [makeScene()];
+    useStoryboardStore.getState().setScenes(scenes);
+
+    render(<DirectorControlPanel isApplying={true} />);
+    const btn = screen.getByRole("button", { name: /재생성 중/ });
+    expect(btn).toBeDisabled();
+    expect(btn.textContent).toContain("재생성 중...");
+  });
+
+  it("shows normal button when isApplying=false", () => {
+    const scenes = [makeScene()];
+    useStoryboardStore.getState().setScenes(scenes);
+
+    render(<DirectorControlPanel isApplying={false} />);
+    const btn = screen.getByRole("button", { name: /TTS 전체 재생성/ });
+    expect(btn).not.toBeDisabled();
   });
 });

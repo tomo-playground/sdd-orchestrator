@@ -1,7 +1,7 @@
 "use client";
 
 import { useShallow } from "zustand/react/shallow";
-import { Mic, Music, Palette } from "lucide-react";
+import { Mic, Music, Loader2 } from "lucide-react";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useRenderStore } from "../../store/useRenderStore";
 
@@ -39,10 +39,12 @@ const BGM_MOOD_PRESETS = [
 
 type Props = {
   onApplyAll?: () => void;
+  showToast?: (msg: string, type: "success" | "error" | "warning") => void;
+  isApplying?: boolean;
 };
 
 // ── Component ────────────────────────────────────────────
-export default function DirectorControlPanel({ onApplyAll }: Props) {
+export default function DirectorControlPanel({ onApplyAll, showToast, isApplying }: Props) {
   const { scenes, selectedEmotionPreset, setGlobalEmotion } = useStoryboardStore(
     useShallow((s) => ({
       scenes: s.scenes,
@@ -51,27 +53,26 @@ export default function DirectorControlPanel({ onApplyAll }: Props) {
     }))
   );
 
-  const { currentStyleProfile, selectedBgmPreset } = useRenderStore(
-    useShallow((s) => ({
-      currentStyleProfile: s.currentStyleProfile,
-      selectedBgmPreset: s.selectedBgmPreset,
-    }))
-  );
+  const selectedBgmPreset = useRenderStore((s) => s.selectedBgmPreset);
 
   const setRender = useRenderStore.getState().set;
   const sceneCount = scenes.length;
 
-  const handleEmotionClick = (emotion: string) => {
-    setGlobalEmotion(emotion);
+  const handleEmotionClick = (preset: (typeof EMOTION_PRESETS)[number]) => {
+    if (selectedEmotionPreset === preset.id) return;
+    setGlobalEmotion(preset.emotion);
+    showToast?.(`음성 톤: ${preset.label} 적용`, "success");
   };
 
   const handleBgmClick = (preset: (typeof BGM_MOOD_PRESETS)[number]) => {
+    if (selectedBgmPreset === preset.id) return;
     setRender({
       bgmMood: preset.mood,
       bgmPrompt: preset.prompt,
       bgmMode: "auto",
       selectedBgmPreset: preset.id,
     });
+    showToast?.(`BGM: ${preset.label} 적용`, "success");
   };
 
   return (
@@ -87,7 +88,7 @@ export default function DirectorControlPanel({ onApplyAll }: Props) {
             <button
               key={p.id}
               data-preset-id={`emotion-${p.id}`}
-              onClick={() => handleEmotionClick(p.emotion)}
+              onClick={() => handleEmotionClick(p)}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                 selectedEmotionPreset === p.id
                   ? "bg-zinc-900 text-white ring-2 ring-zinc-900/20"
@@ -124,26 +125,21 @@ export default function DirectorControlPanel({ onApplyAll }: Props) {
         </div>
       </div>
 
-      {/* Style Profile (read-only) */}
-      {currentStyleProfile && (
-        <div className="mb-3">
-          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
-            <Palette className="h-3.5 w-3.5" />
-            화풍
-          </div>
-          <span className="inline-block rounded-lg bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600">
-            {currentStyleProfile.display_name ?? currentStyleProfile.name}
-          </span>
-        </div>
-      )}
-
-      {/* Apply All */}
+      {/* Apply All — TTS 재생성 */}
       {sceneCount > 0 && (
         <button
           onClick={onApplyAll}
-          className="w-full rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
+          disabled={isApplying}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          전체 적용 ({sceneCount}씬)
+          {isApplying ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              재생성 중...
+            </>
+          ) : (
+            `TTS 전체 재생성 (${sceneCount}씬)`
+          )}
         </button>
       )}
     </div>

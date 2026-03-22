@@ -235,6 +235,32 @@ describe("ConsistencyPanel", () => {
     expect(screen.getByTestId("detected-eye_color")).toHaveTextContent("green_eyes");
   });
 
+  // DoD-6: Empty scenes shows "--" instead of percentage
+  it("displays '--' when scenes array is empty", async () => {
+    mockStoryboardId(1);
+    const emptyData: ConsistencyResponse = {
+      storyboard_id: 1,
+      overall_consistency: 1.0,
+      scenes: [],
+    };
+    (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ data: emptyData });
+
+    render(<ConsistencyPanel />);
+    await waitFor(() => {
+      expect(screen.getByTestId("overall-consistency")).toHaveTextContent("--");
+    });
+  });
+
+  it("displays percentage when scenes have data", async () => {
+    mockStoryboardId(1);
+    (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ data: MOCK_DATA });
+
+    render(<ConsistencyPanel />);
+    await waitFor(() => {
+      expect(screen.getByTestId("overall-consistency")).toHaveTextContent("85%");
+    });
+  });
+
   it("shows error message on API failure", async () => {
     mockStoryboardId(1);
     const err = new Error("Server error");

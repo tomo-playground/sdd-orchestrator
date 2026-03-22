@@ -49,7 +49,7 @@ export default function ConsistencyPanel() {
           {/* Summary */}
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-zinc-800" data-testid="overall-consistency">
-              {Math.round(data.overall_consistency * 100)}%
+              {data.scenes.length === 0 ? "--" : `${Math.round(data.overall_consistency * 100)}%`}
             </span>
             <span className="text-[11px] text-zinc-400">overall</span>
             {warningCount > 0 && (
