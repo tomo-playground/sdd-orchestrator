@@ -4,7 +4,7 @@ priority: P1
 scope: frontend
 branch: fix/SP-047-direct-control-review-fixes
 created: 2026-03-22
-status: running
+status: done
 depends_on:
 label: bug
 ---
