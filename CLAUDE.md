@@ -771,9 +771,10 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 > **원칙**: Claude는 방관자가 아니다. 세션 시작 시 문제를 능동적으로 발견하고, 해결 액션을 제안하거나 직접 실행한다.
 
-> **매칭 규칙**: 브랜치에서 `SP-NNN`을 추출하여 `.claude/tasks/current/SP-NNN_*.md` 글로브 매칭
-> - `feat/SP-002-xxx` → `SP-002` → `.claude/tasks/current/SP-002_*.md`
-> - `worktree-SP-009` → `SP-009` → `.claude/tasks/current/SP-009_*.md`
+> **매칭 규칙**: 브랜치에서 `SP-NNN`을 추출하여 디렉토리 매칭 (fallback: 레거시 파일)
+> - `feat/SP-002-xxx` → `SP-002` → `.claude/tasks/current/SP-002_*/spec.md` (디렉토리 방식)
+> - fallback: `.claude/tasks/current/SP-002_*.md` (레거시 파일 방식)
+> - 설계 파일: `.claude/tasks/current/SP-002_*/design.md` (있으면 함께 로드)
 
 ### 세션 종료 프로토콜
 **세션 종료 시 (사용자가 명시적으로 종료하거나 대화가 마무리될 때) 자동 수행:**
@@ -849,9 +850,9 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ### 핵심 파일
 | 파일 | 역할 |
 |------|------|
-| `.claude/tasks/current/SP-NNN_설명.md` | 태스크 계약서 — SP-NNN으로 글로브 매칭 |
+| `.claude/tasks/current/SP-NNN_설명/spec.md` | 태스크 계약서 (디렉토리 방식, spec + design 분리) |
 | `.claude/tasks/backlog.md` | 실행 대기 큐 (우선순위 순) |
 | `.claude/tasks/_template.md` | 태스크 작성 템플릿 |
-| `.claude/tasks/done/SP-NNN_설명.md` | 완료된 태스크 이력 + 품질 게이트 결과 |
+| `.claude/tasks/done/SP-NNN_설명/` | 완료된 태스크 이력 + 품질 게이트 결과 (디렉토리 or 레거시 파일) |
 | `.claude/hooks/on-stop.sh` | Stop Hook: 5단계 품질 게이트 + self-heal (exit 2, 최대 3회) |
 

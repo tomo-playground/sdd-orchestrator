@@ -26,8 +26,8 @@ allowed_tools: ["mcp__memory__*", "mcp__context7__*"]
 |------|------|------|
 | Roadmap | 제품 방향, Phase | `docs/01_product/ROADMAP.md` |
 | Backlog | 실행 가능한 태스크 큐 | `.claude/tasks/backlog.md` |
-| Task | 실행 중 계약서 | `.claude/tasks/current/SP-NNN_*.md` |
-| Done | 완료 이력 | `.claude/tasks/done/SP-NNN_*.md` |
+| Task | 실행 중 계약서 | `.claude/tasks/current/SP-NNN_*/spec.md` (디렉토리 방식) |
+| Done | 완료 이력 | `.claude/tasks/done/SP-NNN_*/` (디렉토리 or 레거시 파일) |
 
 ### 3. 우선순위 결정 & 다음 작업 추천
 - Backlog에서 우선순위 기반으로 다음 태스크를 추천합니다.

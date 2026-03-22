@@ -40,7 +40,7 @@ e2e 리뷰에서 발견된 문제:
 - [ ] 린트 통과
 
 ## 상세 설계 (How)
-> [SP-048.design.md](./SP-048_direct-tab-ux-polish.design.md) 참조
+> [design.md](./design.md) 참조
 
 ## 영향 분석
 - `DirectorControlPanel.tsx` — 음성톤/BGM 토스트, 화풍 섹션 제거, 전체적용 레이블+로딩

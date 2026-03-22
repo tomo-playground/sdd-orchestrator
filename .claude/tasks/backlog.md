@@ -36,7 +36,7 @@
 
 - [ ] SP-033 — DoD 검증 자동화
 - [ ] SP-034 — PR 엣지 케이스 체크리스트
-- [ ] SP-049 — SDD 태스크 구조 개선 — 디렉토리 기반 태스크 (spec.md + design.md) + /sdd-run 매칭 로직 대응
+- [x] ~~SP-049~~ — SDD 태스크 구조 개선 — 디렉토리 기반 태스크 (spec.md + design.md) + /sdd-run 매칭 로직 대응
 - [ ] SP-051 — SDD 2인 확장 플랜 — 설계 리뷰/태스크 관리를 GitHub Issue 기반으로 전환 (로컬→GitHub 마이그레이션 가이드)
 
 ## P3 (인프라/자동화)

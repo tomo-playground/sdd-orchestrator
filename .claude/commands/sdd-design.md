@@ -36,9 +36,10 @@ ARGUMENTS를 파싱하여 동작 결정:
 
 ### Phase 1: 태스크 로드
 
-1. `.claude/tasks/current/SP-NNN_*.md` 패턴으로 태스크 파일 매칭
-2. 매칭 실패 시 안내 후 중단
-3. `status`가 이미 `approved`/`running`/`done`이면 "이미 설계 승인됨" 안내 후 중단
+1. `.claude/tasks/current/SP-NNN_*/spec.md` 패턴으로 태스크 파일 매칭 (디렉토리 방식)
+2. 디렉토리 미발견 시 fallback: `.claude/tasks/current/SP-NNN_*.md` (레거시 파일 방식)
+3. 매칭 실패 시 안내 후 중단
+4. `status`가 이미 `approved`/`running`/`done`이면 "이미 설계 승인됨" 안내 후 중단
 
 ### Phase 2: 코드 탐색
 
@@ -87,8 +88,8 @@ Q3. [영향 범위] — 기존 X 기능과의 관계는?
 
 ### Phase 5: 설계 파일 생성 + 리뷰 요청
 
-1. `.claude/tasks/current/SP-NNN_*.design.md` 파일에 설계 내용 작성 (태스크 파일과 별도)
-2. 태스크 파일의 `## 상세 설계 (How)` 섹션에 설계 파일 링크 추가
+1. `.claude/tasks/current/SP-NNN_*/design.md` 파일에 설계 내용 작성 (spec.md와 동일 디렉토리)
+2. 태스크 파일(spec.md)의 `## 상세 설계 (How)` 섹션에 `> [design.md](./design.md) 참조` 링크 추가
 3. `status: pending` → `status: design` 변경
 4. 사용자에게 설계 요약 테이블 + 승인 명령어 안내:
 
