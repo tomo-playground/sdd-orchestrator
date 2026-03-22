@@ -1,7 +1,7 @@
 """add storyboard tone column and migrate confession to monologue
 
 Revision ID: sp056a1b2c3d4
-Revises: z8a9b0c1d2e3
+Revises: f7e8d9c0b1a2
 Create Date: 2026-03-23
 
 """
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "sp056a1b2c3d4"
-down_revision: str = "c4f1f66ce6de"
+down_revision: str = "f7e8d9c0b1a2"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
