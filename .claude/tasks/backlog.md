@@ -11,10 +11,11 @@
 - [x] ~~SP-010~~ | ~~SP-017~~ | ~~SP-018~~ | ~~SP-030~~ | ~~SP-031~~ | ~~SP-032~~ | ~~SP-037~~ (P1 인프라)
 - [x] ~~SP-019~~ (AI QA 순찰) | ~~SP-038~~ (Store resilience) | ~~SP-040~~ (세션 충돌 방지)
 - [x] ~~SP-041~~ (SSE heartbeat) | ~~SP-042~~ (LangFuse 트레이스) | ~~SP-043~~ (모델 최적화)
-- [x] ~~SP-044~~ (Sentry autofix) | ~~SP-045~~ (autoSave 이미지)
+- [x] ~~SP-044~~ (Sentry autofix) | ~~SP-045~~ (autoSave 이미지) | ~~SP-027~~ (Direct 탭 연출 컨트롤)
 
 ## P1 (최우선)
 
+- [ ] SP-047 — Direct 컨트롤 리뷰 후속 수정 — PR #126 미수정 WARNING 4건 + INFO 3건 (null 가드, 토스트 집계, 주석 불일치)
 - [ ] SP-046 — Cinematographer 팀 분해 — 350줄 1인 다역 → 4 서브 에이전트 (Framing/Action/Atmosphere/Compositor)
 - [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
 - [ ] SP-021 — Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md)
@@ -26,7 +27,7 @@
 - [ ] SP-024 — VEO Clip — Video Generation 통합 | [명세](../../docs/01_product/FEATURES/VEO_CLIP.md)
 - [ ] SP-025 — Profile Export/Import — Style Profile 공유 | [명세](../../docs/01_product/FEATURES/PROFILE_EXPORT_IMPORT.md)
 - [ ] SP-026 — Storyboard Version History — 저장 시점별 스냅샷 조회/복원
-- [ ] SP-027 — Direct 탭 연출 컨트롤 — TTS 톤 조정 + BGM 프리셋 일괄 적용 | [명세](../../docs/01_product/FEATURES/DIRECT_TAB_DIRECTOR_CONTROL.md)
+- [x] ~~SP-027~~ — Direct 탭 연출 컨트롤 — TTS 톤 조정 + BGM 프리셋 일괄 적용 | [명세](../../docs/01_product/FEATURES/DIRECT_TAB_DIRECTOR_CONTROL.md)
 - [ ] SP-028 — Studio 탭 URI 표현 — ?tab=script/stage/direct/publish 딥링크
 - [ ] SP-029 — Script Canvas 분할 뷰 — 좌 채팅 + 우 씬 프리뷰 | [명세](../../docs/99_archive/features/SCRIPT_COLLABORATIVE_UX.md) §P2
 
