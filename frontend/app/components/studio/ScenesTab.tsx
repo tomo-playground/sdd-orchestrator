@@ -128,6 +128,10 @@ export default function ScenesTab() {
   });
 
   const handleApplyAll = async () => {
+    if (storyboardId == null) {
+      showToast("스토리보드가 선택되지 않았습니다", "error");
+      return;
+    }
     const ok = await confirm({
       title: "전체 적용",
       message: `${scenes.length}씬의 TTS를 재생성합니다. 약 ${Math.ceil(scenes.length * 0.3)}분 소요됩니다.`,
@@ -148,6 +152,8 @@ export default function ScenesTab() {
       });
       const results: Array<{ scene_db_id: number; tts_asset_id: number | null; status: string }> =
         res.data.results ?? [];
+      const successCount = results.filter((r) => r.status === "prebuilt").length;
+      const failCount = (res.data.failed as number) ?? 0;
       for (const r of results) {
         if (r.tts_asset_id && r.status === "prebuilt") {
           const scene = scenes.find((s) => s.id === r.scene_db_id);
@@ -158,8 +164,13 @@ export default function ScenesTab() {
           }
         }
       }
-      showToast(`${results.length}씬 TTS 재생성 완료`, "success");
-    } catch {
+      if (failCount > 0) {
+        showToast(`TTS 재생성: ${successCount}씬 성공, ${failCount}씬 실패`, "warning");
+      } else {
+        showToast(`${successCount}씬 TTS 재생성 완료`, "success");
+      }
+    } catch (err) {
+      console.error("TTS prebuild failed:", err);
       showToast("TTS 재생성에 실패했습니다", "error");
     }
   };

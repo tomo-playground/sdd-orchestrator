@@ -381,9 +381,10 @@ export const useStoryboardStore = create<StoryboardStore>()(
             ...s,
             context_tags: { ...(s.context_tags ?? {}), emotion },
             voice_design_prompt: null,
-            // tts_asset_id는 메모리에서만 null (UI에서 "재생성 필요" 표시용).
-            // DB 반영은 "전체 적용" 버튼의 TTS prebuild API가 담당.
-            // (SCENE_TRANSIENT_FIELDS이므로 autoSave에서 제외됨)
+            // tts_asset_id: null → emotion 변경으로 기존 TTS asset 무효화.
+            // isDirty: true로 autoSave가 트리거되며, buildScenesPayload의 spread에
+            // tts_asset_id: null이 포함되어 DB에 저장된다.
+            // 이후 "전체 적용"으로 새 TTS prebuild를 실행해야 한다.
             tts_asset_id: null,
           })),
           selectedEmotionPreset: emotion,

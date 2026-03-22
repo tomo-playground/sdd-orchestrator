@@ -142,6 +142,24 @@ describe("DirectorControlPanel", () => {
     expect(btn.textContent).toMatch(/3/);
   });
 
+  it("clicking apply-all button calls onApplyAll callback", () => {
+    const scenes = [makeScene(), makeScene()];
+    useStoryboardStore.getState().setScenes(scenes);
+
+    const onApplyAll = vi.fn();
+    render(<DirectorControlPanel onApplyAll={onApplyAll} />);
+    fireEvent.click(screen.getByRole("button", { name: /전체 적용/ }));
+
+    expect(onApplyAll).toHaveBeenCalledTimes(1);
+  });
+
+  it("clicking BGM preset updates selectedBgmPreset in render store", () => {
+    render(<DirectorControlPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /경쾌/ }));
+
+    expect(useRenderStore.getState().selectedBgmPreset).toBe("upbeat");
+  });
+
   it("per-scene emotion override does not affect other scenes", () => {
     const scenes = [
       makeScene({ client_id: "s1", context_tags: { emotion: "excited" } }),
