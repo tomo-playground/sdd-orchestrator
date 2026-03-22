@@ -31,9 +31,9 @@ async def analyze_topic(
         SHORTS_DURATIONS,
         STORYBOARD_LANGUAGES,
         STRUCTURE_METADATA,
-        gemini_client,
     )
     from services.creative_utils import parse_json_response
+    from services.llm.gemini_provider import _get_client
 
     # 인라인 편집용 옵션 목록 구성 (캐릭터/구성은 Director SSOT → 여기서 불필요)
     available_options = _build_options()
@@ -44,7 +44,8 @@ async def analyze_topic(
         available_options=available_options,
     )
 
-    if not gemini_client:
+    client = _get_client()
+    if not client:
         logger.warning("[AnalyzeTopic] Gemini 클라이언트 미설정, 기본값 반환")
         return fallback
 
@@ -88,7 +89,7 @@ async def analyze_topic(
                 metadata={"template": "creative/analyze_topic"},
                 langfuse_prompt=compiled.langfuse_prompt,
             ) as llm:
-                response = await gemini_client.aio.models.generate_content(
+                response = await _get_client().aio.models.generate_content(
                     model=GEMINI_TEXT_MODEL,
                     contents=prompt,
                     config=config,

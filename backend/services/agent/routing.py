@@ -56,11 +56,15 @@ def route_after_start(state: ScriptState) -> str:
 
 
 def route_after_inventory_resolve(state: ScriptState) -> str:
-    """inventory_resolve 이후: Express → writer 직행, Full → research."""
+    """inventory_resolve 이후: research skip → critic 직행, Full → research.
+
+    research가 skip되더라도 critic(concept 스테이지)은 항상 실행해야 한다.
+    critic → concept_gate → location_planner → writer 경로를 보장.
+    """
     skip = state.get("skip_stages") or []
     if "research" in skip:
-        logger.debug("[LangGraph:Route] inventory_resolve -> writer (research skipped)")
-        return "writer"
+        logger.debug("[LangGraph:Route] inventory_resolve -> critic (research skipped)")
+        return "critic"
     logger.debug("[LangGraph:Route] inventory_resolve -> research")
     return "research"
 

@@ -453,14 +453,16 @@ async def extract_caption(request: TextExtractRequest):
     """Extract a concise caption from longer text using LLM."""
     from google.genai import types
 
-    from config import CAPTION_MAX_LENGTH, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client
+    from config import CAPTION_MAX_LENGTH, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL
     from services.agent.observability import trace_context, trace_llm_call
+    from services.llm.gemini_provider import _get_client
 
     text = request.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="No text provided")
 
-    if not gemini_client:
+    client = _get_client()
+    if not client:
         raise HTTPException(status_code=503, detail="Gemini API not configured")
 
     max_len = CAPTION_MAX_LENGTH
@@ -489,7 +491,7 @@ async def extract_caption(request: TextExtractRequest):
                 input_text=user_prompt[:2000],
             ) as llm:
                 response = await asyncio.to_thread(
-                    gemini_client.models.generate_content,
+                    _get_client().models.generate_content,
                     model=GEMINI_TEXT_MODEL,
                     contents=user_prompt,
                     config=config,
@@ -515,14 +517,16 @@ async def extract_hashtags(request: TextExtractRequest):
     """Extract 3 hashtag keywords from topic text using LLM."""
     from google.genai import types
 
-    from config import CAPTION_MAX_LENGTH, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL, gemini_client
+    from config import CAPTION_MAX_LENGTH, GEMINI_SAFETY_SETTINGS, GEMINI_TEXT_MODEL
     from services.agent.observability import trace_context, trace_llm_call
+    from services.llm.gemini_provider import _get_client
 
     text = request.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="No text provided")
 
-    if not gemini_client:
+    client = _get_client()
+    if not client:
         raise HTTPException(status_code=503, detail="Gemini API not configured")
 
     max_len = CAPTION_MAX_LENGTH
@@ -547,7 +551,7 @@ async def extract_hashtags(request: TextExtractRequest):
                 input_text=user_prompt[:2000],
             ) as llm:
                 response = await asyncio.to_thread(
-                    gemini_client.models.generate_content,
+                    _get_client().models.generate_content,
                     model=GEMINI_TEXT_MODEL,
                     contents=user_prompt,
                     config=config,

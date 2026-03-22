@@ -1,7 +1,7 @@
 """Script Generation Graph — 20노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
 
 Quick:   START → writer → review → [passed→finalize / failed→revise] → learn → END
-Full:    START → director_plan → director_plan_gate → inventory_resolve → research → [critic / research(재실행)] →
+Full:    START → director_plan → director_plan_gate → inventory_resolve → [research → critic / critic(research skip)] →
          concept_gate → location_planner → writer → review →
          [passed→director_checkpoint / failed→revise] →
          [proceed→cinematographer / revise→writer (재생성)] →
@@ -117,8 +117,8 @@ def build_script_graph() -> StateGraph:
         ["inventory_resolve", "director_plan"],
     )
 
-    # inventory_resolve → 조건부 (skip→writer, full→research)
-    graph.add_conditional_edges("inventory_resolve", route_after_inventory_resolve, ["research", "writer"])
+    # inventory_resolve → 조건부 (research skip→critic, full→research)
+    graph.add_conditional_edges("inventory_resolve", route_after_inventory_resolve, ["research", "critic"])
     graph.add_conditional_edges("research", route_after_research, ["critic", "research", "finalize"])
     graph.add_edge("critic", "concept_gate")
     graph.add_conditional_edges("concept_gate", route_after_concept_gate, ["location_planner", "critic"])

@@ -10,6 +10,7 @@ from services.agent.routing import (
     route_after_director,
     route_after_director_checkpoint,
     route_after_finalize,
+    route_after_inventory_resolve,
     route_after_research,
     route_after_review,
     route_after_revise,
@@ -261,3 +262,17 @@ def test_route_finalize_explain_not_skipped():
 def test_route_finalize_explain_skipped():
     """explain 스킵 → learn."""
     assert route_after_finalize({"skip_stages": ["explain"]}) == "learn"
+
+
+# -- inventory_resolve 이후 라우팅 테스트 (research skip 버그 회귀 방지) --
+
+
+def test_route_inventory_resolve_research_skipped():
+    """research skip → critic 직행 (concept은 항상 실행)."""
+    assert route_after_inventory_resolve({"skip_stages": ["research"]}) == "critic"
+
+
+def test_route_inventory_resolve_full_mode():
+    """research skip 없음 → research 실행."""
+    assert route_after_inventory_resolve({"skip_stages": []}) == "research"
+    assert route_after_inventory_resolve({}) == "research"

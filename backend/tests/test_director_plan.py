@@ -312,5 +312,5 @@ def test_derive_skip_stages_no_execution_plan():
     """execution_plan이 없으면 skip_stages가 비어있다."""
     from services.agent.nodes.director_plan import _derive_skip_stages
 
-    assert _derive_skip_stages({}) == []
-    assert "skip_stages" in result
+    result = _derive_skip_stages({})
+    assert result == []

@@ -25,6 +25,7 @@
 
 ## P2 (기능 확장)
 
+- [ ] SP-052 — Direct 탭 레이아웃/편의성 개선 — 씬 카드 빈 공간 활용, 상태 아이콘 가독성, Context Strip sticky, TTS prompt 잘림, 키보드 씬 전환, SceneCard props 분리
 - [ ] SP-024 — VEO Clip — Video Generation 통합 | [명세](../../docs/01_product/FEATURES/VEO_CLIP.md)
 - [ ] SP-025 — Profile Export/Import — Style Profile 공유 | [명세](../../docs/01_product/FEATURES/PROFILE_EXPORT_IMPORT.md)
 - [ ] SP-026 — Storyboard Version History — 저장 시점별 스냅샷 조회/복원

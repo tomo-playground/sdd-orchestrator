@@ -27,15 +27,20 @@ _MAX_SYSTEM_LEN = 2000
 
 
 def _get_client():
-    """Gemini client를 반환. closed 시 재생성."""
+    """Gemini client를 반환. sync/async httpx client가 closed면 재생성."""
     if _cfg.gemini_client is None:
         return None
     try:
-        # httpx client closed 여부 — 내부 _client가 closed인지 확인
-        http = getattr(_cfg.gemini_client, "_api_client", None)
-        http = getattr(http, "_httpx_client", None)
-        if http and getattr(http, "is_closed", False):
-            raise RuntimeError("client closed")
+        api = getattr(_cfg.gemini_client, "_api_client", None)
+        # sync httpx client 체크
+        sync_http = getattr(api, "_httpx_client", None)
+        if sync_http and getattr(sync_http, "is_closed", False):
+            raise RuntimeError("sync client closed")
+        # async httpx client 체크 (aio 호출 시 Event loop is closed 방지)
+        aio_api = getattr(_cfg.gemini_client.aio, "_api_client", None)
+        async_http = getattr(aio_api, "_async_httpx_client", None) if aio_api else None
+        if async_http and getattr(async_http, "is_closed", False):
+            raise RuntimeError("async client closed")
     except (AttributeError, RuntimeError):
         from google import genai
 
@@ -45,9 +50,9 @@ def _get_client():
 
 
 def _is_retryable(exc: Exception) -> bool:
-    """429/5xx 또는 client closed 에러인지 확인한다."""
+    """429/5xx 또는 client/event-loop closed 에러인지 확인한다."""
     msg = str(exc)
-    if "client has been closed" in msg:
+    if "client has been closed" in msg or "Event loop is closed" in msg:
         return True
     return bool(re.search(r"429|5\d{2}", msg))
 

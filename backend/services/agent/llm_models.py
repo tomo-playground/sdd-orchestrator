@@ -234,6 +234,16 @@ class WriterPlanOutput(BaseModel):
     scene_distribution: dict[str, int] = {}
     locations: list[LocationEntryOutput] = []
 
+    @field_validator("hook_strategy", mode="before")
+    @classmethod
+    def _coerce_hook_strategy(cls, v: object) -> str:
+        """Gemini가 dict로 반환하는 경우 JSON string으로 변환."""
+        if isinstance(v, dict):
+            import json
+
+            return json.dumps(v, ensure_ascii=False)
+        return str(v) if v else ""
+
 
 # -- Helper --
 

@@ -254,7 +254,7 @@ class TestExtractCaption:
 
     def test_extract_caption_short_text(self, client: TestClient):
         """Short text (<=60 chars) returned as-is."""
-        with patch("config.gemini_client", MagicMock()):
+        with patch("services.llm.gemini_provider._get_client", return_value=MagicMock()):
             short_text = "Short caption text"
             response = client.post("/api/v1/video/extract-caption", json={"text": short_text})
             assert response.status_code == 200
@@ -263,7 +263,7 @@ class TestExtractCaption:
 
     def test_extract_caption_no_gemini(self, client: TestClient):
         """Returns 503 when Gemini is not configured and text is long."""
-        with patch("config.gemini_client", None):
+        with patch("services.llm.gemini_provider._get_client", return_value=None):
             long_text = "A" * 100
             response = client.post("/api/v1/video/extract-caption", json={"text": long_text})
             assert response.status_code == 503
@@ -277,7 +277,7 @@ class TestExtractCaption:
         mock_client = MagicMock()
         mock_client.models.generate_content.return_value = mock_response
 
-        with patch("config.gemini_client", mock_client):
+        with patch("services.llm.gemini_provider._get_client", return_value=mock_client):
             long_text = "A" * 100
             response = client.post("/api/v1/video/extract-caption", json={"text": long_text})
             assert response.status_code == 200
@@ -293,7 +293,7 @@ class TestExtractCaption:
         mock_client = MagicMock()
         mock_client.models.generate_content.return_value = mock_response
 
-        with patch("config.gemini_client", mock_client):
+        with patch("services.llm.gemini_provider._get_client", return_value=mock_client):
             long_text = "B" * 100
             response = client.post("/api/v1/video/extract-caption", json={"text": long_text})
             assert response.status_code == 200
@@ -305,7 +305,7 @@ class TestExtractCaption:
         mock_client = MagicMock()
         mock_client.models.generate_content.side_effect = RuntimeError("API error")
 
-        with patch("config.gemini_client", mock_client):
+        with patch("services.llm.gemini_provider._get_client", return_value=mock_client):
             long_text = "C" * 100
             response = client.post("/api/v1/video/extract-caption", json={"text": long_text})
             assert response.status_code == 200
