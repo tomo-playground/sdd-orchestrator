@@ -3128,6 +3128,7 @@ class SceneTTSPreviewRequest(BaseModel):
     voice_preset_id: int | None = None
     voice_design_prompt: str | None = None
     scene_emotion: str | None = None
+    image_prompt_ko: str | None = None  # Gemini voice_design 컨텍스트용
     language: str = "korean"
     force_regenerate: bool = False
 
@@ -3184,6 +3185,7 @@ class TtsPrebuildSceneItem(BaseModel):
     tts_asset_id: int | None = None  # 이미 있으면 스킵
     scene_emotion: str | None = None  # 캐시 키 일치 + Gemini voice design용
     image_prompt_ko: str | None = None  # Gemini voice design 컨텍스트용
+    language: str | None = None  # TTS 언어 (None → TTS_DEFAULT_LANGUAGE fallback)
 
 
 class TtsPrebuildRequest(BaseModel):
@@ -3217,6 +3219,7 @@ class BgmPrebuildRequest(BaseModel):
     """POST /storyboards/{id}/stage/bgm-prebuild — BGM 사전 생성 요청."""
 
     bgm_prompt: str | None = None
+    total_duration: float | None = None  # 씬 duration 합계 (BGM 길이 결정)
 
 
 class BgmPrebuildResponse(BaseModel):

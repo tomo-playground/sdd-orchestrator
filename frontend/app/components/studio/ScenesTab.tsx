@@ -36,6 +36,7 @@ import {
 } from "../../store/actions/sceneActions";
 import { useSceneActions } from "../../hooks/useSceneActions";
 import { useTTSPreview } from "../../hooks/useTTSPreview";
+import { buildTtsRequest } from "../../utils/buildTtsRequest";
 import { useTimeline } from "../../hooks/useTimeline";
 import { useContextStore } from "../../store/useContextStore";
 import TimelineBar from "./TimelineBar";
@@ -117,6 +118,7 @@ export default function ScenesTab() {
   const toggleAdvancedSettings = useUIStore((s) => s.toggleAdvancedSettings);
   const currentStyleProfile = useRenderStore((s) => s.currentStyleProfile);
   const storyboardId = useContextStore((s) => s.storyboardId);
+  const language = useStoryboardStore((s) => s.language);
   const ttsPreview = useTTSPreview(storyboardId);
   const speedMultiplier = useRenderStore((s) => s.speedMultiplier);
   const transitionType = useRenderStore((s) => s.transitionType);
@@ -141,14 +143,7 @@ export default function ScenesTab() {
     try {
       const res = await axios.post(`${API_BASE}/scene/tts-prebuild`, {
         storyboard_id: storyboardId,
-        scenes: scenes.map((s) => ({
-          scene_db_id: s.id,
-          script: s.script,
-          speaker: s.speaker,
-          voice_design_prompt: s.voice_design_prompt ?? undefined,
-          scene_emotion: s.context_tags?.emotion ?? undefined,
-          image_prompt_ko: s.image_prompt_ko ?? undefined,
-        })),
+        scenes: scenes.map((s) => buildTtsRequest(s, language, storyboardId)),
       });
       const results: Array<{ scene_db_id: number; tts_asset_id: number | null; status: string }> =
         res.data.results ?? [];

@@ -9,10 +9,12 @@ import { API_BASE } from "../constants";
 import { getCurrentProject, hasValidProfile } from "../store/selectors/projectSelectors";
 import { renderWithProgress } from "../utils/renderWithProgress";
 import { getErrorMsg } from "../utils/error";
+import { buildTtsRequest } from "../utils/buildTtsRequest";
 
 export function usePublishRender() {
   const scenes = useStoryboardStore((s) => s.scenes);
   const topic = useStoryboardStore((s) => s.topic);
+  const language = useStoryboardStore((s) => s.language);
   const updateScene = useStoryboardStore((s) => s.updateScene);
   const store = useRenderStore(
     useShallow((s) => ({
@@ -141,14 +143,7 @@ export function usePublishRender() {
               });
               const prebuildRes = await axios.post(`${API_BASE}/scene/tts-prebuild`, {
                 storyboard_id: storyboardId,
-                scenes: missingTts.map((s) => ({
-                  scene_db_id: s.id,
-                  script: s.script,
-                  speaker: s.speaker,
-                  voice_design_prompt: s.voice_design_prompt ?? undefined,
-                  scene_emotion: s.context_tags?.emotion ?? undefined,
-                  image_prompt_ko: s.image_prompt_ko ?? undefined,
-                })),
+                scenes: missingTts.map((s) => buildTtsRequest(s, language, storyboardId)),
               });
               const results: Array<{
                 scene_db_id: number;

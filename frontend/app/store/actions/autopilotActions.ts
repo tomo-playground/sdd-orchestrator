@@ -8,6 +8,7 @@ import { useRenderStore } from "../useRenderStore";
 import { AUTO_RUN_STEPS, API_BASE, API_TIMEOUT, AUTORUN_CONCURRENCY } from "../../constants";
 import { generateSceneImageFor, generateSceneCandidates } from "./imageActions";
 import { resolveSceneMultiGen } from "../../utils/sceneSettingsResolver";
+import { buildTtsRequest } from "../../utils/buildTtsRequest";
 import { persistStoryboard } from "./storyboardActions";
 import { applyAutoPinAfterGeneration } from "../../utils/applyAutoPin";
 import { executeRenderStep } from "./autopilotRenderStep";
@@ -158,9 +159,10 @@ export async function runAutoRunFromStep(
         if (bgmMode === "auto" && bgmPrompt) {
           setAutoRunStep("stage", "Generating BGM...");
           try {
+            const totalDur = workingScenes.reduce((sum, s) => sum + (s.duration || 3), 0);
             await axios.post(
               `${API_BASE}/storyboards/${storyboardId}/stage/bgm-prebuild`,
-              { bgm_prompt: bgmPrompt },
+              { bgm_prompt: bgmPrompt, total_duration: totalDur },
               { timeout: API_TIMEOUT.VIDEO_RENDER, signal: abortController.signal }
             );
             pushAutoRunLog("BGM prebuilt");
@@ -322,17 +324,13 @@ export async function runAutoRunFromStep(
         setAutoRunStep("tts", "Pre-building TTS audio...");
         const storyboardId = useContextStore.getState().storyboardId;
         if (!storyboardId) throw new Error("Storyboard ID required for TTS prebuild");
+        const language = useStoryboardStore.getState().language;
 
         const ttsScenes = workingScenes
           .filter((s) => s.script?.trim())
           .map((s) => ({
-            scene_db_id: s.id,
-            script: s.script,
-            speaker: s.speaker,
-            voice_design_prompt: s.voice_design_prompt ?? undefined,
+            ...buildTtsRequest(s, language, storyboardId),
             tts_asset_id: s.tts_asset_id ?? undefined,
-            scene_emotion: s.context_tags?.emotion ?? undefined,
-            image_prompt_ko: s.image_prompt_ko ?? undefined,
           }));
 
         if (ttsScenes.length > 0) {

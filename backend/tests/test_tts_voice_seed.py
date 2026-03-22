@@ -378,7 +378,7 @@ class TestPersistVoiceDesign(unittest.TestCase):
     @patch("database.get_db_session")
     def test_no_op_when_scene_db_id_none(self, mock_db_ctx):
         """scene_db_id=None이면 DB 호출 없이 즉시 반환."""
-        self._persist(0, None, "some voice design")
+        self._persist(None, "some voice design")
         mock_db_ctx.assert_not_called()
 
     @patch("database.get_db_session")
@@ -388,7 +388,7 @@ class TestPersistVoiceDesign(unittest.TestCase):
         mock_db_ctx.return_value.__enter__ = MagicMock(return_value=mock_db)
         mock_db_ctx.return_value.__exit__ = MagicMock(return_value=False)
 
-        self._persist(2, 42, "A warm girl voice, excited")
+        self._persist(42, "A warm girl voice, excited")
 
         mock_db_ctx.assert_called_once()
         mock_db.query.assert_called_once()
@@ -398,7 +398,7 @@ class TestPersistVoiceDesign(unittest.TestCase):
     def test_non_fatal_on_db_error(self, _mock_db_ctx):
         """DB 오류 시 예외 전파 없이 로그만 기록 (non-fatal)."""
         try:
-            self._persist(0, 42, "voice design")
+            self._persist(42, "voice design")
         except Exception as e:  # noqa: BLE001
             self.fail(f"persist_voice_design should not raise: {e}")
 

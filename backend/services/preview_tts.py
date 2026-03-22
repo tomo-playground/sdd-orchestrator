@@ -40,32 +40,23 @@ class _TtsGenResult:
 
 async def _generate_scene_tts(req: SceneTTSPreviewRequest) -> _TtsGenResult:
     """Generate TTS audio without any DB writes (pure I/O + cache)."""
-    from services.video.tts_helpers import (
-        TtsAudioResult,
-        generate_tts_audio,
-        get_speaker_voice_preset,
-    )
+    from services.tts_core import generate_scene_tts
     from services.video.utils import has_speakable_content
 
     script = req.script.strip()
     if not script or not has_speakable_content(script):
         raise ValueError("스크립트에 TTS로 변환할 내용이 없습니다.")
 
-    # Resolve voice preset at call site (core function requires pre-resolved id)
-    voice_preset_id = req.voice_preset_id
-    if not voice_preset_id and req.storyboard_id:
-        voice_preset_id = get_speaker_voice_preset(req.storyboard_id, req.speaker)
-
-    result: TtsAudioResult = await generate_tts_audio(
+    result = await generate_scene_tts(
         script=script,
         speaker=req.speaker,
-        voice_preset_id=voice_preset_id,
-        scene_voice_design=req.voice_design_prompt,
-        global_voice_design=None,
-        scene_emotion=req.scene_emotion or "",
+        storyboard_id=req.storyboard_id,
+        scene_db_id=req.scene_db_id,
+        voice_design_prompt=req.voice_design_prompt,
+        scene_emotion=req.scene_emotion,
+        image_prompt_ko=req.image_prompt_ko,
         language=req.language,
         force_regenerate=req.force_regenerate,
-        max_retries=1,  # voice_design 잘림 감지 시 단순화 1회 재시도
     )
 
     return _TtsGenResult(

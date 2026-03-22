@@ -26,34 +26,21 @@ async def _generate_audio(
     scene_emotion: str | None = None,
     image_prompt_ko: str | None = None,
     scene_db_id: int | None = None,
+    language: str | None = None,
 ) -> tuple[bytes, float]:
-    """TTS 오디오 바이트와 재생 시간을 반환한다. (generate_tts_audio 위임)"""
-    from services.video.tts_helpers import (
-        TtsAudioResult,
-        generate_tts_audio,
-        get_speaker_voice_preset,
-        persist_voice_design,
-    )
+    """TTS 오디오 바이트와 재생 시간을 반환한다. (tts_core 경유)"""
+    from services.tts_core import generate_scene_tts
 
-    voice_preset_id = get_speaker_voice_preset(storyboard_id, speaker)
-
-    result: TtsAudioResult = await generate_tts_audio(
+    result = await generate_scene_tts(
         script=script,
         speaker=speaker,
-        voice_preset_id=voice_preset_id,
-        scene_voice_design=voice_design_prompt,
-        global_voice_design=None,
-        scene_emotion=scene_emotion or "",
-        language=None,
-        force_regenerate=False,
-        max_retries=2,
-        image_prompt_ko=image_prompt_ko,
+        storyboard_id=storyboard_id,
         scene_db_id=scene_db_id,
+        voice_design_prompt=voice_design_prompt,
+        scene_emotion=scene_emotion,
+        image_prompt_ko=image_prompt_ko,
+        language=language,
     )
-
-    # Gemini가 새로 생성한 voice design → DB write-back
-    if result.was_gemini_generated and result.voice_design and scene_db_id:
-        persist_voice_design(0, scene_db_id, result.voice_design)
 
     return result.audio_bytes, result.duration
 
@@ -110,6 +97,7 @@ async def _prebuild_one(
     voice_design_prompt: str | None,
     scene_emotion: str | None = None,
     image_prompt_ko: str | None = None,
+    language: str | None = None,
 ) -> tuple[bytes, float]:
     """세마포어로 동시성을 제한하며 단일 씬 TTS를 생성한다."""
     async with _PREBUILD_SEMAPHORE:
@@ -121,6 +109,7 @@ async def _prebuild_one(
             scene_emotion=scene_emotion,
             image_prompt_ko=image_prompt_ko,
             scene_db_id=scene_db_id,
+            language=language,
         )
 
 
@@ -160,6 +149,7 @@ async def prebuild_tts_for_scenes(
             item.voice_design_prompt,
             scene_emotion=item.scene_emotion,
             image_prompt_ko=item.image_prompt_ko,
+            language=item.language,
         )
         for item in gen_items
     ]

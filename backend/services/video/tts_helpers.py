@@ -275,7 +275,7 @@ def _atomic_cache_write(src: Path, dst: Path) -> None:
         raise
 
 
-def persist_voice_design(scene_idx: int, scene_db_id: int | None, voice_design: str) -> None:
+def persist_voice_design(scene_db_id: int | None, voice_design: str) -> None:
     """Gemini 생성 voice design을 DB에 write-back (non-fatal).
 
     이후 렌더에서 Priority 0으로 재사용되어 일관된 음성을 보장한다.
@@ -298,16 +298,14 @@ def persist_voice_design(scene_idx: int, scene_db_id: int | None, voice_design: 
             )
             if rows == 0:
                 logger.warning(
-                    "Scene %d (db_id=%d): voice_design_prompt write-back 대상 없음 (삭제됨?)",
-                    scene_idx,
+                    "Scene db_id=%d: voice_design_prompt write-back 대상 없음 (삭제됨?)",
                     scene_db_id,
                 )
             _db.commit()
-        logger.info("Scene %d (db_id=%d): voice_design_prompt write-back 완료", scene_idx, scene_db_id)
+        logger.info("Scene db_id=%d: voice_design_prompt write-back 완료", scene_db_id)
     except Exception as _e:
         logger.warning(
-            "Scene %d (db_id=%s): voice_design_prompt write-back 실패 (non-fatal): %r",
-            scene_idx,
+            "Scene db_id=%s: voice_design_prompt write-back 실패 (non-fatal): %r",
             scene_db_id,
             _e,
         )

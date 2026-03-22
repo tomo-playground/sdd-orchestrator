@@ -172,4 +172,5 @@ async def bgm_prebuild(
     from services.bgm_prebuild import prebuild_bgm
 
     prompt = body.bgm_prompt if body else None
-    return await prebuild_bgm(storyboard_id, prompt, db)
+    total_duration = body.total_duration if body else None
+    return await prebuild_bgm(storyboard_id, prompt, db, total_duration=total_duration)

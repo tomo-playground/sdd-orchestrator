@@ -15,6 +15,7 @@
 
 ## P1 (최우선)
 
+- [ ] SP-055 — TTS/BGM 파라미터 통일 — 오토런/수동 경로 불일치 해소 (buildTtsRequest 패턴 + tts_core 통합 래퍼 + BGM duration)
 - [ ] SP-054 — AutoRun 배치 API 제거 + 개별 SSE 통일 — generate-batch 500 에러 해소, 오토런 이미지 생성을 개별 SSE로 통일
 - [ ] SP-048 — Direct 탭 UX 미세 조정 — 액션 피드백 2건 + 정보 불일치 3건 (음성톤/BGM 토스트, 전체적용 로딩, Speaker 이름, Consistency 모순, 화풍 중복)
 - [ ] SP-047 — Direct 컨트롤 리뷰 후속 수정 — PR #126 미수정 WARNING 4건 + INFO 3건 (null 가드, 토스트 집계, 주석 불일치)

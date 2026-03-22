@@ -207,6 +207,7 @@ class TestPrebuildPrebuilt:
             scene_emotion=None,
             image_prompt_ko=None,
             scene_db_id=30,
+            language=None,
         )
 
     @pytest.mark.asyncio
@@ -377,7 +378,14 @@ class TestPrebuildMixed:
         call_count = 0
 
         async def _generate_side_effect(
-            script, speaker, voice_design, storyboard_id, scene_emotion=None, image_prompt_ko=None, scene_db_id=None
+            script,
+            speaker,
+            voice_design,
+            storyboard_id,
+            scene_emotion=None,
+            image_prompt_ko=None,
+            scene_db_id=None,
+            language=None,
         ):
             nonlocal call_count
             call_count += 1

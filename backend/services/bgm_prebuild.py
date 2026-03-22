@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from config import MUSICGEN_MAX_DURATION, logger
+from config import MUSICGEN_DEFAULT_DURATION, MUSICGEN_MAX_DURATION, logger
 from schemas import BgmPrebuildResponse
 
 
@@ -16,6 +16,7 @@ async def prebuild_bgm(
     storyboard_id: int,
     bgm_prompt: str | None,
     db: Session,
+    total_duration: float | None = None,
 ) -> BgmPrebuildResponse:
     """BGM 사전 생성 서비스.
 
@@ -48,7 +49,7 @@ async def prebuild_bgm(
     # Phase 2: DB 커넥션 반납 후 외부 호출 (MusicGen ~60초, DB pool 고갈 방지)
     db.close()
     try:
-        wav_bytes = await _generate_bgm(prompt)
+        wav_bytes = await _generate_bgm(prompt, total_duration)
     except Exception as exc:
         logger.warning("[BgmPrebuild] Music generation failed: %s", exc)
         return BgmPrebuildResponse(status="failed", error=str(exc))
@@ -69,11 +70,12 @@ async def prebuild_bgm(
         phase3_db.close()
 
 
-async def _generate_bgm(prompt: str) -> bytes:
+async def _generate_bgm(prompt: str, total_duration: float | None = None) -> bytes:
     """Audio Server에서 BGM을 생성한다."""
     from services.audio_client import generate_music
 
-    duration = min(30.0, MUSICGEN_MAX_DURATION)
+    # total_duration이 None이면 기본값(MUSICGEN_DEFAULT_DURATION) 사용. 하한선 없음.
+    duration = min(total_duration if total_duration is not None else MUSICGEN_DEFAULT_DURATION, MUSICGEN_MAX_DURATION)
     wav_bytes, _, _ = await generate_music(prompt=prompt, duration=duration, seed=-1)
     logger.info("[BgmPrebuild] Generated BGM (%d bytes)", len(wav_bytes))
     return wav_bytes

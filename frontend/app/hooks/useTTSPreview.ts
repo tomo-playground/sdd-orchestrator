@@ -4,6 +4,7 @@ import { API_BASE } from "../constants";
 import { getErrorMsg } from "../utils/error";
 import { useAudioPlayer } from "./useAudioPlayer";
 import { useStoryboardStore } from "../store/useStoryboardStore";
+import { buildTtsRequest } from "../utils/buildTtsRequest";
 import type {
   TTSPreviewState,
   SceneTTSPreviewResponse,
@@ -28,6 +29,7 @@ export function useTTSPreview(storyboardId: number | null) {
   const [isPreviewingAll, setIsPreviewingAll] = useState(false);
   const audioPlayer = useAudioPlayer();
   const updateScene = useStoryboardStore((s) => s.updateScene);
+  const language = useStoryboardStore((s) => s.language);
 
   const updateState = useCallback((clientId: string, update: Partial<TTSPreviewState>) => {
     setPreviewStates((prev) => {
@@ -53,13 +55,7 @@ export function useTTSPreview(storyboardId: number | null) {
 
       try {
         const res = await axios.post<SceneTTSPreviewResponse>(`${API_BASE}/preview/tts`, {
-          script: scene.script,
-          speaker: scene.speaker || "Narrator",
-          storyboard_id: storyboardId,
-          scene_db_id: scene.id ?? null,
-          voice_design_prompt: scene.voice_design_prompt || null,
-          scene_emotion: scene.context_tags?.emotion ?? undefined,
-          language: "korean",
+          ...buildTtsRequest(scene, language, storyboardId),
         });
 
         const data = res.data;
@@ -88,14 +84,7 @@ export function useTTSPreview(storyboardId: number | null) {
 
       try {
         const res = await axios.post<BatchTTSPreviewResponse>(`${API_BASE}/preview/tts-batch`, {
-          scenes: scenes.map((s) => ({
-            script: s.script,
-            speaker: s.speaker || "Narrator",
-            storyboard_id: storyboardId,
-            voice_design_prompt: s.voice_design_prompt || null,
-            scene_emotion: s.context_tags?.emotion ?? undefined,
-            language: "korean",
-          })),
+          scenes: scenes.map((s) => buildTtsRequest(s, language, storyboardId)),
           storyboard_id: storyboardId,
         });
 
@@ -144,13 +133,7 @@ export function useTTSPreview(storyboardId: number | null) {
 
       try {
         const res = await axios.post<SceneTTSPreviewResponse>(`${API_BASE}/preview/tts`, {
-          script: scene.script,
-          speaker: scene.speaker || "Narrator",
-          storyboard_id: storyboardId,
-          scene_db_id: scene.id ?? null,
-          voice_design_prompt: scene.voice_design_prompt || null,
-          scene_emotion: scene.context_tags?.emotion ?? undefined,
-          language: "korean",
+          ...buildTtsRequest(scene, language, storyboardId),
           force_regenerate: true,
         });
 
