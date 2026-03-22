@@ -19,6 +19,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Sentry Patrol
-        run: |
-          source backend/.env 2>/dev/null || true
-          bash scripts/sentry-patrol.sh --since 24
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: bash scripts/sentry-patrol.sh --since 24
