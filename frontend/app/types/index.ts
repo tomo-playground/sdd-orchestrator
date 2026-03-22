@@ -37,7 +37,7 @@ export type SceneContextTags = {
   camera?: string; // exclusive (single select)
   environment?: string[];
   mood?: string[];
-  emotion?: string; // TTS용 (finalize에서 주입)
+  emotion?: string | string[]; // TTS용 (finalize에서 주입, Gemini가 배열 반환 가능)
   time_of_day?: string[];
   weather?: string[];
   particle?: string[];
