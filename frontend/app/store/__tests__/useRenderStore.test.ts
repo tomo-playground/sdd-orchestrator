@@ -32,7 +32,7 @@ describe("useRenderStore", () => {
     vi.clearAllMocks();
     localStorageMock.clear();
     useRenderStore.getState().reset();
-    useRenderStore.setState({ voicePresetsLoaded: false, voicePresets: [] });
+    useRenderStore.setState({ voicePresets: [] });
   });
 
   describe("set", () => {
@@ -62,15 +62,24 @@ describe("useRenderStore", () => {
       await useRenderStore.getState().fetchVoicePresets();
 
       expect(useRenderStore.getState().voicePresets).toEqual(presets);
-      expect(useRenderStore.getState().voicePresetsLoaded).toBe(true);
     });
 
-    it("skips fetch when already loaded", async () => {
-      useRenderStore.setState({ voicePresetsLoaded: true });
+    it("always fetches on call even when presets already exist", async () => {
+      const oldPresets = [{ id: 1, name: "Old" }];
+      const newPresets = [
+        { id: 1, name: "Old" },
+        { id: 2, name: "New" },
+      ];
+      useRenderStore.setState({ voicePresets: oldPresets });
+
+      (axios.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: newPresets,
+      });
 
       await useRenderStore.getState().fetchVoicePresets();
 
-      expect(axios.get).not.toHaveBeenCalled();
+      expect(axios.get).toHaveBeenCalled();
+      expect(useRenderStore.getState().voicePresets).toEqual(newPresets);
     });
 
     it("handles fetch failure gracefully", async () => {
@@ -81,7 +90,6 @@ describe("useRenderStore", () => {
       await useRenderStore.getState().fetchVoicePresets();
 
       expect(useRenderStore.getState().voicePresets).toEqual([]);
-      expect(useRenderStore.getState().voicePresetsLoaded).toBe(false);
     });
   });
 

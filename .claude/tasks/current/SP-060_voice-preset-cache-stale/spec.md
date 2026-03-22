@@ -28,10 +28,10 @@ label: bug
 - Voices 관리 페이지는 `useVoicePresets` hook으로 매번 fresh fetch
 
 ## 완료 기준 (DoD)
-- [ ] `VoicePresetSelector` 컴포넌트 마운트 시 항상 최신 voice presets를 가져온다 (stale 캐시 사용 금지)
-- [ ] Voices 관리 페이지에서 프리셋 추가/수정/삭제 후 캐릭터 편집 드롭다운에 즉시 반영된다
-- [ ] 기존 voice preset 선택/저장/재생 기능 regression 없음
-- [ ] 린트 통과
+- [x] `VoicePresetSelector` 컴포넌트 마운트 시 항상 최신 voice presets를 가져온다 (stale 캐시 사용 금지)
+- [x] Voices 관리 페이지에서 프리셋 추가/수정/삭제 후 캐릭터 편집 드롭다운에 즉시 반영된다
+- [x] 기존 voice preset 선택/저장/재생 기능 regression 없음
+- [x] 린트 통과
 
 ## 영향 분석
 - 관련 파일:

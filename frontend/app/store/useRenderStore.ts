@@ -56,8 +56,7 @@ export interface RenderStore {
   voicePresetId: number | null;
   /** Cached voice presets — shared across Studio tabs */
   voicePresets: VoicePreset[];
-  /** Whether voicePresets have been fetched this session */
-  voicePresetsLoaded: boolean;
+
   bgmMode: "manual" | "auto";
   musicPresetId: number | null;
   bgmPrompt: string;
@@ -78,7 +77,7 @@ export interface RenderStore {
   renderProgress: RenderProgress | null;
   set: (updates: Partial<RenderStore>) => void;
   reset: () => void;
-  /** Fetch voice presets once — skips if already loaded */
+  /** Fetch voice presets from API */
   fetchVoicePresets: () => Promise<void>;
 }
 
@@ -103,7 +102,6 @@ const initialState: Omit<RenderStore, "set" | "reset" | "fetchVoicePresets"> = {
   voiceDesignPrompt: "",
   voicePresetId: null,
   voicePresets: [] as VoicePreset[],
-  voicePresetsLoaded: false,
   bgmMode: "manual",
   musicPresetId: null,
   bgmPrompt: "",
@@ -154,20 +152,18 @@ const TRANSIENT_KEYS: (keyof RenderStore)[] = [
   "overlayAvatarUrl",
   "postAvatarUrl",
   "voicePresets",
-  "voicePresetsLoaded",
 ];
 
 export const useRenderStore = create<RenderStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       ...initialState,
       set: (updates) => set((state) => ({ ...state, ...updates })),
       reset: () => set(initialState),
       fetchVoicePresets: async () => {
-        if (get().voicePresetsLoaded) return;
         try {
           const res = await axios.get<VoicePreset[]>(`${API_BASE}/voice-presets`);
-          set({ voicePresets: res.data, voicePresetsLoaded: true });
+          set({ voicePresets: res.data });
         } catch {
           console.warn("[RenderStore] Voice presets fetch failed");
         }
