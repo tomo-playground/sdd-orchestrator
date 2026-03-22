@@ -533,7 +533,18 @@ class SceneActionSave(BaseModel):
 TTSEngine = Enum("TTSEngine", {v.upper(): v for v in SUPPORTED_TTS_ENGINES}, type=str)  # type: ignore[misc]
 
 
-class VideoScene(BaseModel):
+class _SceneEmotionCoerce:
+    """scene_emotion 리스트→문자열 coerce mixin."""
+
+    @field_validator("scene_emotion", mode="before")
+    @classmethod
+    def _coerce_scene_emotion(cls, v: object) -> str | None:
+        if isinstance(v, list):
+            return ", ".join(str(x) for x in v) if v else None
+        return v  # type: ignore[return-value]
+
+
+class VideoScene(_SceneEmotionCoerce, BaseModel):
     # Transient: FFmpeg rendering input, never stored
     image_url: str
     script: str = ""
@@ -3128,7 +3139,7 @@ class ScriptEditResponse(BaseModel):
 # ============================================================
 
 
-class SceneTTSPreviewRequest(BaseModel):
+class SceneTTSPreviewRequest(_SceneEmotionCoerce, BaseModel):
     """POST /preview/tts — 개별 씬 TTS 프리뷰 요청."""
 
     script: str = Field(max_length=2000)
@@ -3185,7 +3196,7 @@ class BatchTTSPreviewResponse(BaseModel):
     failed_count: int
 
 
-class TtsPrebuildSceneItem(BaseModel):
+class TtsPrebuildSceneItem(_SceneEmotionCoerce, BaseModel):
     """TTS 프리빌드 요청의 씬 단위 항목."""
 
     scene_db_id: int

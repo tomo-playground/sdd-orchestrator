@@ -926,7 +926,7 @@ def _flatten_tts_designs(scenes: list[dict]) -> None:
         if vdp := tts.get("voice_design_prompt"):
             scene["voice_design_prompt"] = vdp
         if emotion := tts.get("emotion"):
-            scene["scene_emotion"] = emotion
+            scene["scene_emotion"] = ", ".join(emotion) if isinstance(emotion, list) else emotion
         pacing = tts.get("pacing") or {}
         if (hp := pacing.get("head_padding")) is not None:
             scene["head_padding"] = hp
