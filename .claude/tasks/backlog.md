@@ -15,6 +15,7 @@
 
 ## P1 (최우선)
 
+- [ ] SP-054 — AutoRun 배치 API 제거 + 개별 SSE 통일 — generate-batch 500 에러 해소, 오토런 이미지 생성을 개별 SSE로 통일
 - [ ] SP-048 — Direct 탭 UX 미세 조정 — 액션 피드백 2건 + 정보 불일치 3건 (음성톤/BGM 토스트, 전체적용 로딩, Speaker 이름, Consistency 모순, 화풍 중복)
 - [ ] SP-047 — Direct 컨트롤 리뷰 후속 수정 — PR #126 미수정 WARNING 4건 + INFO 3건 (null 가드, 토스트 집계, 주석 불일치)
 - [ ] SP-046 — Cinematographer 팀 분해 — 350줄 1인 다역 → 4 서브 에이전트 (Framing/Action/Atmosphere/Compositor)
@@ -25,6 +26,7 @@
 
 ## P2 (기능 확장)
 
+- [ ] SP-053 — 파이프라인 진행 가시성 — 노드 시작 이벤트 실시간 표시 + LangFuse 트레이스 링크
 - [ ] SP-052 — Direct 탭 레이아웃/편의성 개선 — 씬 카드 빈 공간 활용, 상태 아이콘 가독성, Context Strip sticky, TTS prompt 잘림, 키보드 씬 전환, SceneCard props 분리
 - [ ] SP-024 — VEO Clip — Video Generation 통합 | [명세](../../docs/01_product/FEATURES/VEO_CLIP.md)
 - [ ] SP-025 — Profile Export/Import — Style Profile 공유 | [명세](../../docs/01_product/FEATURES/PROFILE_EXPORT_IMPORT.md)
