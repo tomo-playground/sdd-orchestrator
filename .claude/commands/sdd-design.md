@@ -86,17 +86,59 @@ Q3. [영향 범위] — 기존 X 기능과의 관계는?
 - UI 변경 시: Loading/Empty/Error 등 모든 상태를 명시 (Happy Path만 쓰지 않는다)
 - 기존 컴포넌트/유틸리티 재사용 지시를 명시 (새로 만들기 금지인 경우)
 
+### Phase 4.5: 에이전트 설계 리뷰
+
+설계 작성 후, **변경 영향 범위에 따라 관련 에이전트가 자동으로 설계를 리뷰**합니다.
+리뷰 결과(이견/승인)를 반영한 뒤 사용자에게 제출합니다.
+
+#### 리뷰어 자동 판단 기준
+
+| 변경 감지 | 리뷰어 에이전트 | 검증 항목 |
+|-----------|----------------|-----------|
+| `models/*.py`, `alembic/`, DB 스키마 | **DBA** | 네이밍, FK/CASCADE, JSONB vs 정규화, DB_SCHEMA.md 반영 |
+| `routing.py`, `state.py`, 노드 추가/삭제, 그래프 구조 | **Tech Lead** | 아키텍처 일관성, 기존 패턴 준수, 사이드 이펙트 |
+| 외부 API 호출, timeout/retry/rate limit | **Performance Engineer** | 통신 안정성, 풀 설정, 에러 핸들링 |
+| UI 컴포넌트, UX 흐름 | **UI/UX Engineer** | 사용성, 상태 누락 (Loading/Empty/Error), 접근성 |
+| 프롬프트 변경, LangFuse 템플릿 | **Prompt Reviewer** | 태그 문법, Danbooru 준수, 프롬프트 품질 |
+
+#### 실행 방법
+
+1. design.md의 **변경 파일 요약**에서 영향 범위를 파싱
+2. 해당하는 리뷰어 에이전트를 **병렬 호출** (Agent 도구 사용)
+3. 각 에이전트가 design.md를 읽고 이견/승인 판정
+4. **이견(WARNING/BLOCKER)이 있으면 design.md에 즉시 반영** 후 재검증
+5. 리뷰 결과 요약을 Phase 5 출력에 포함
+
+#### 리뷰 결과 형식
+
+```
+## 에이전트 설계 리뷰 결과
+
+| 리뷰어 | 판정 | 주요 피드백 |
+|--------|------|------------|
+| DBA    | PASS | tone 컬럼 server_default 적절 |
+| Tech Lead | WARNING → 반영 완료 | auto_approve 제거 시 테스트 4곳 갱신 필요 |
+```
+
+#### 스킵 조건
+
+- 변경 파일 3개 이하의 단순 태스크는 리뷰 생략 가능
+- 버그 수정(Hotfix)은 생략
+
 ### Phase 5: 설계 파일 생성 + 리뷰 요청
 
 1. `.claude/tasks/current/SP-NNN_*/design.md` 파일에 설계 내용 작성 (spec.md와 동일 디렉토리)
 2. 태스크 파일(spec.md)의 `## 상세 설계 (How)` 섹션에 `> [design.md](./design.md) 참조` 링크 추가
 3. `status: pending` → `status: design` 변경
-4. 사용자에게 설계 요약 테이블 + 승인 명령어 안내:
+4. 사용자에게 **설계 요약 + 에이전트 리뷰 결과** + 승인 명령어 안내:
 
 ```
 설계 작성 완료. 리뷰해 주세요.
 
 [설계 요약 테이블]
+
+## 에이전트 설계 리뷰 결과
+[리뷰 결과 테이블]
 
 승인: /sdd-design SP-NNN approved
 수정 요청: /sdd-design SP-NNN reject [사유]
