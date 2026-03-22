@@ -970,6 +970,22 @@ SCENE_DURATION_MAX = 10.0  # absolute safety cap per scene
 DURATION_DEFICIT_THRESHOLD = 0.85  # 총 duration이 target의 이 비율 미만이면 부족으로 판정
 DURATION_OVERFLOW_THRESHOLD = 1.3  # 총 duration이 target의 이 비율 초과이면 오버로 판정
 
+# --- Interaction Mode Coercion (하위 호환) ---
+_INTERACTION_MODE_MAP = {"auto": "fast_track", "hands_on": "guided"}
+_VALID_INTERACTION_MODES = frozenset({"guided", "fast_track"})
+
+
+def coerce_interaction_mode(value: str | None) -> str:
+    """폐기된 interaction_mode 값을 현행 값으로 변환한다."""
+    if not value:
+        return "guided"
+    normalized = value.strip().lower()
+    mapped = _INTERACTION_MODE_MAP.get(normalized)
+    if mapped:
+        return mapped
+    return normalized if normalized in _VALID_INTERACTION_MODES else "guided"
+
+
 # --- Pipeline & Integration Constants (extracted to config_pipelines.py) ---
 from config_pipelines import *  # noqa: E402, F401, F403
 

@@ -446,11 +446,18 @@ class StoryboardRequest(BaseModel):
     group_id: int | None = None
     storyboard_id: int | None = None  # Draft storyboard ID (트레이싱/로깅용)
     preset: str | None = Field(default=None, json_schema_extra={"deprecated": True})
-    skip_stages: list[str] | None = None  # ["research", "concept", "production", "explain"]
+    skip_stages: list[str] | None = Field(default=None, json_schema_extra={"deprecated": True})
     references: list[str] | None = Field(default=None, max_length=5)  # URL 또는 텍스트 (최대 5개)
     selected_concept: dict | None = None  # Critic 선정 컨셉 (title, concept, strengths)
-    interaction_mode: Literal["auto", "guided", "hands_on"] = "guided"
+    interaction_mode: str = "guided"
     chat_context: list[ChatContextMessage] | None = Field(default=None, max_length=20)
+
+    @field_validator("interaction_mode", mode="before")
+    @classmethod
+    def _coerce_interaction_mode(cls, v: str | None) -> str:
+        from config import coerce_interaction_mode  # noqa: PLC0415
+
+        return coerce_interaction_mode(v)
 
 
 class SceneCandidate(BaseModel):
@@ -1736,7 +1743,6 @@ class PresetListResponse(BaseModel):
     samplers: list[str] = []
     tts_engine: str = DEFAULT_TTS_ENGINE
     tts_engines: list[str] = Field(default_factory=lambda: list(SUPPORTED_TTS_ENGINES))
-    fast_track_skip_stages: list[str] = []
 
 
 class PresetTopicsResponse(BaseModel):
@@ -1816,8 +1822,6 @@ class ScriptPresetItem(BaseModel):
     name: str
     name_ko: str
     description: str
-    is_auto_approve: bool = False
-    skip_stages: list[str] = []
 
 
 class ScriptPresetsResponse(BaseModel):

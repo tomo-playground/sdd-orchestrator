@@ -78,8 +78,7 @@ const INITIAL_STATE: ScriptEditorState = {
   nodeResults: {},
   traceId: null,
   productionSnapshot: null,
-  interactionMode: "auto",
-  fastTrack: false,
+  interactionMode: "guided",
   isWaitingForPlan: false,
   chatContext: [],
 };

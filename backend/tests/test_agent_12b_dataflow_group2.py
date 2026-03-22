@@ -190,15 +190,15 @@ class TestRoutingErrorDecision:
         assert route_after_director_checkpoint(state) == "cinematographer"
 
     def test_director_error_routes_to_finalize(self):
-        """Director error -> finalize (Phase 25: human_gate 제거)."""
+        """Director error -> finalize."""
         from services.agent.routing import route_after_director
 
-        state = {"director_decision": "error", "auto_approve": False}
+        state = {"director_decision": "error", "interaction_mode": "guided"}
         assert route_after_director(state) == "finalize"
 
-    def test_director_error_auto_approve_routes_to_finalize(self):
-        """Director error + auto_approve -> finalize."""
+    def test_director_error_fast_track_routes_to_finalize(self):
+        """Director error + fast_track -> finalize."""
         from services.agent.routing import route_after_director
 
-        state = {"director_decision": "error", "auto_approve": True}
+        state = {"director_decision": "error", "interaction_mode": "fast_track"}
         assert route_after_director(state) == "finalize"

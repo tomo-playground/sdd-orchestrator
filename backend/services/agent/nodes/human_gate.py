@@ -1,41 +1,16 @@
-"""Human Gate 노드 — interrupt() 기반 사용자 승인/수정 요청."""
+"""Human Gate 노드 — 안전 fallback (도달 경로 없음, hands_on 폐기).
+
+hands_on 모드 폐기로 이 노드에 도달하는 경로가 제거되었지만,
+그래프 정의에 남아 있으므로 halt sentinel을 반환하여 예기치 않은 도달을 감지한다.
+"""
 
 from __future__ import annotations
-
-from langgraph.types import interrupt
 
 from config import pipeline_logger as logger
 from services.agent.state import ScriptState
 
 
 async def human_gate_node(state: ScriptState) -> dict:
-    """사용자에게 승인/수정을 요청한다. interrupt()로 그래프를 일시 중지."""
-    mode = state.get("interaction_mode", "guided")
-    if mode != "hands_on":
-        logger.debug("[LangGraph:HumanGate] mode=%s → auto-approve (skip interrupt)", mode)
-        return {"human_action": "approve"}
-
-    logger.info("[LangGraph:HumanGate] interrupt 발행 — 사용자 승인 대기 (mode=%s)", mode)
-    user_input = interrupt(
-        {
-            "type": "review_approval",
-            "scenes": state.get("draft_scenes"),
-            "review_result": state.get("review_result"),
-            "scene_reasoning": state.get("scene_reasoning"),
-            "director_decision": state.get("director_decision"),
-            "director_feedback": state.get("director_feedback"),
-            "director_reasoning_steps": state.get("director_reasoning_steps"),
-        }
-    )
-    action = user_input.get("action", "approve")
-    logger.info("[LangGraph:HumanGate] 사용자 응답 수신: action=%s", action)
-    result: dict = {
-        "human_action": action,
-        "human_feedback": user_input.get("feedback"),
-    }
-    # 사용자 수정 요청 시 자동 revision 카운터를 리셋하여
-    # 빠른 수정이 차단되지 않도록 한다
-    if action == "revise":
-        result["revision_count"] = 0
-        logger.info("[LangGraph:HumanGate] revision_count 리셋 (사용자 수정 요청)")
-    return result
+    """예기치 않은 도달을 경고하고 halt sentinel을 반환한다."""
+    logger.warning("[LangGraph:HumanGate] unexpected reach — no active route should arrive here")
+    return {"human_action": "required", "human_gate_reason": "checkpoint_fallback"}

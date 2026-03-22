@@ -487,11 +487,10 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 | 코드 | UI | 설명 |
 |------|-----|------|
-| guided | 가이드 모드 | 단계별 확인 |
-| auto | 자동 모드 | AI 전체 자율 |
-| FastTrack | 빠른 생성 | Director/Research/Concept 건너뜀 |
+| guided | Guided | 컨셉·플랜 단계에서 직접 선택, AI와 협력 |
+| fast_track | Fast | 모든 노드 1회 실행, 자동 승인 — 빠른 초안 생성 |
 
-> 폐기된 용어: Express, Quick, hands_on
+> 폐기된 용어: Express, Quick, hands_on, auto
 
 ### Scene Text vs Caption (2026-01-31 변경)
 

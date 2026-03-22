@@ -38,7 +38,6 @@ async def list_presets():
         SD_SAMPLERS,
         SUPPORTED_TTS_ENGINES,
     )
-    from config_pipelines import FAST_TRACK_SKIP_STAGES  # noqa: PLC0415
     from services.presets import get_all_tones  # noqa: PLC0415
 
     return {
@@ -70,7 +69,6 @@ async def list_presets():
         "samplers": SD_SAMPLERS,
         "tts_engine": DEFAULT_TTS_ENGINE,
         "tts_engines": SUPPORTED_TTS_ENGINES,
-        "fast_track_skip_stages": FAST_TRACK_SKIP_STAGES,
     }
 
 

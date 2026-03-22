@@ -34,7 +34,6 @@ export function usePresets(skip = false) {
   const [optionalSteps, setOptionalSteps] = useState<string[]>([]);
   const [pipelineMetadata, setPipelineMetadata] = useState<StepMetadata[]>([]);
   const [generationDefaults, setGenerationDefaults] = useState<GenerationDefaults | null>(null);
-  const [fastTrackSkipStages, setFastTrackSkipStages] = useState<string[]>([]);
   // Backend SSOT fields (SSOT 위반 해소 — /presets API에서 수신)
   const [hiResDefaults, setHiResDefaults] = useState<HiResDefaults | null>(null);
   const [imageDefaults, setImageDefaults] = useState<ImageDefaults | null>(null);
@@ -53,8 +52,6 @@ export function usePresets(skip = false) {
         if (Array.isArray(data?.optional_steps)) setOptionalSteps(data.optional_steps);
         if (Array.isArray(data?.pipeline_metadata)) setPipelineMetadata(data.pipeline_metadata);
         if (data?.generation_defaults) setGenerationDefaults(data.generation_defaults);
-        if (Array.isArray(data?.fast_track_skip_stages))
-          setFastTrackSkipStages(data.fast_track_skip_stages);
         // Backend SSOT fields
         if (data?.hi_res_defaults) setHiResDefaults(data.hi_res_defaults);
         if (data?.image_defaults) setImageDefaults(data.image_defaults);
@@ -72,7 +69,6 @@ export function usePresets(skip = false) {
     optionalSteps,
     pipelineMetadata,
     generationDefaults,
-    fastTrackSkipStages,
     hiResDefaults,
     imageDefaults,
     samplers,

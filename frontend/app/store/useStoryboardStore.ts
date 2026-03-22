@@ -97,9 +97,6 @@ export interface StoryboardStore {
   // Script generation in progress (blocks autoSave to prevent casting race condition)
   isScriptGenerating: boolean;
 
-  // FastTrack skip stages (Backend SSOT, loaded from /presets)
-  fastTrackSkipStages: string[];
-
   // Hi-Res defaults (Backend SSOT, loaded from /presets)
   hiResDefaults: HiResDefaults | null;
 
@@ -187,8 +184,6 @@ const initialState: Omit<
   castingRecommendation: null,
   isScriptGenerating: false,
   selectedEmotionPreset: null,
-  // Fallback — Backend SSOT: config_pipelines.FAST_TRACK_SKIP_STAGES (loaded via /presets)
-  fastTrackSkipStages: ["research", "concept", "production", "explain"],
   // Backend SSOT: hi_res_defaults from /presets API (null until loaded)
   hiResDefaults: null,
   // Backend SSOT fallback: /presets API image_defaults (config.py SD_DEFAULT_WIDTH/HEIGHT)

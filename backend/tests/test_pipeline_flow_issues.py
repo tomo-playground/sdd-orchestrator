@@ -140,20 +140,11 @@ class TestDirectorPlanGateInterruptDefense:
         assert "description" not in result  # description 불변
 
     @pytest.mark.asyncio
-    async def test_auto_mode_skips_interrupt(self):
-        """auto 모드 → interrupt 없이 즉시 proceed."""
+    async def test_fast_track_mode_skips_interrupt(self):
+        """fast_track 모드 → interrupt 없이 즉시 proceed."""
         from services.agent.nodes.director_plan_gate import director_plan_gate_node
 
-        state = {"interaction_mode": "auto", "director_plan": {"goal": "test"}}
-        result = await director_plan_gate_node(state)
-        assert result["plan_action"] == "proceed"
-
-    @pytest.mark.asyncio
-    async def test_auto_approve_skips_interrupt(self):
-        """auto_approve=True → interrupt 없이 즉시 proceed."""
-        from services.agent.nodes.director_plan_gate import director_plan_gate_node
-
-        state = {"interaction_mode": "guided", "auto_approve": True}
+        state = {"interaction_mode": "fast_track", "director_plan": {"goal": "test"}}
         result = await director_plan_gate_node(state)
         assert result["plan_action"] == "proceed"
 
@@ -213,11 +204,11 @@ class TestConceptGateInterruptDefense:
         assert result["concept_action"] == "select"
 
     @pytest.mark.asyncio
-    async def test_auto_mode_skips_interrupt(self):
-        """auto 모드 → interrupt 없이 즉시 select."""
+    async def test_fast_track_mode_skips_interrupt(self):
+        """fast_track 모드 → interrupt 없이 즉시 select."""
         from services.agent.nodes.concept_gate import concept_gate_node
 
-        state = {"interaction_mode": "auto", "critic_result": {"selected_concept": {"title": "A"}}}
+        state = {"interaction_mode": "fast_track", "critic_result": {"selected_concept": {"title": "A"}}}
         result = await concept_gate_node(state)
         assert result["concept_action"] == "select"
 
@@ -231,40 +222,25 @@ class TestHumanGateRevisionReset:
     """human_gate에서 revision_count 리셋 시나리오."""
 
     @pytest.mark.asyncio
-    async def test_non_hands_on_auto_approves(self):
-        """hands_on 아닌 모드 → 즉시 approve."""
+    async def test_any_mode_returns_halt_sentinel(self):
+        """human_gate는 halt sentinel을 반환한다 (예기치 않은 도달 감지)."""
         from services.agent.nodes.human_gate import human_gate_node
 
-        for mode in ["auto", "guided"]:
+        for mode in ["fast_track", "guided"]:
             state = {"interaction_mode": mode}
             result = await human_gate_node(state)
-            assert result["human_action"] == "approve"
-            assert "revision_count" not in result
+            assert result["human_action"] == "required"
+            assert result["human_gate_reason"] == "checkpoint_fallback"
 
     @pytest.mark.asyncio
-    @patch("services.agent.nodes.human_gate.interrupt")
-    async def test_revise_resets_revision_count(self, mock_interrupt):
-        """revise 선택 시 revision_count가 0으로 리셋된다."""
+    async def test_returns_halt_sentinel_as_fallback(self):
+        """human_gate는 halt sentinel 반환 (hands_on 폐기)."""
         from services.agent.nodes.human_gate import human_gate_node
 
-        mock_interrupt.return_value = {"action": "revise", "feedback": "더 재미있게"}
-        state = {"interaction_mode": "hands_on", "revision_count": 3}
+        state = {"interaction_mode": "guided", "revision_count": 3}
         result = await human_gate_node(state)
-        assert result["human_action"] == "revise"
-        assert result["revision_count"] == 0
-        assert result["human_feedback"] == "더 재미있게"
-
-    @pytest.mark.asyncio
-    @patch("services.agent.nodes.human_gate.interrupt")
-    async def test_approve_does_not_reset_count(self, mock_interrupt):
-        """approve 선택 시 revision_count 미변경."""
-        from services.agent.nodes.human_gate import human_gate_node
-
-        mock_interrupt.return_value = {"action": "approve"}
-        state = {"interaction_mode": "hands_on", "revision_count": 2}
-        result = await human_gate_node(state)
-        assert result["human_action"] == "approve"
-        assert "revision_count" not in result
+        assert result["human_action"] == "required"
+        assert result["human_gate_reason"] == "checkpoint_fallback"
 
 
 # ═══════════════════════════════════════════════════════
@@ -387,8 +363,8 @@ class TestRoutingEdgeCases:
         }
         assert route_after_review(state) == "director_checkpoint"
 
-    def test_review_max_revisions_with_production_skip(self):
-        """revision 한도 + production skip → cinematographer (FastTrack)."""
+    def test_review_max_revisions_always_director_checkpoint(self):
+        """SP-057: revision 한도 → 항상 director_checkpoint (production skip 분기 제거)."""
         from services.agent.routing import route_after_review
 
         state = {
@@ -396,7 +372,7 @@ class TestRoutingEdgeCases:
             "revision_count": 3,
             "skip_stages": ["production"],
         }
-        assert route_after_review(state) == "cinematographer"
+        assert route_after_review(state) == "director_checkpoint"
 
     def test_director_checkpoint_error_decision(self):
         """checkpoint decision=error → cinematographer (graceful proceed)."""
@@ -422,25 +398,25 @@ class TestRoutingEdgeCases:
         state = {"director_decision": "unknown_action", "director_revision_count": 0}
         assert route_after_director(state) == "finalize"
 
-    def test_director_hands_on_approve_goes_human_gate(self):
-        """hands_on 모드 + approve → human_gate."""
+    def test_director_fast_track_approve_goes_finalize(self):
+        """fast_track 모드 + approve → finalize."""
         from services.agent.routing import route_after_director
 
         state = {
             "director_decision": "approve",
-            "interaction_mode": "hands_on",
+            "interaction_mode": "fast_track",
         }
-        assert route_after_director(state) == "human_gate"
+        assert route_after_director(state) == "finalize"
 
-    def test_director_hands_on_error_goes_human_gate(self):
-        """hands_on 모드 + error decision → human_gate."""
+    def test_director_error_goes_finalize(self):
+        """error decision → finalize."""
         from services.agent.routing import route_after_director
 
         state = {
             "director_decision": "error",
-            "interaction_mode": "hands_on",
+            "interaction_mode": "guided",
         }
-        assert route_after_director(state) == "human_gate"
+        assert route_after_director(state) == "finalize"
 
     def test_human_gate_default_approve(self):
         """human_action 미지정 → approve → finalize."""
@@ -448,6 +424,12 @@ class TestRoutingEdgeCases:
 
         assert route_after_human_gate({}) == "finalize"
         assert route_after_human_gate({"human_action": "approve"}) == "finalize"
+
+    def test_human_gate_halt_sentinel_routes_to_finalize(self):
+        """human_action=required (halt sentinel) → finalize."""
+        from services.agent.routing import route_after_human_gate
+
+        assert route_after_human_gate({"human_action": "required"}) == "finalize"
 
     def test_human_gate_revise(self):
         """human_action=revise → revise."""
@@ -917,11 +899,11 @@ class TestDirectorPlanGateFallback:
     """Phase 28-D #16: director_plan_gate의 None → {} 폴백 확인."""
 
     @pytest.mark.asyncio
-    async def test_none_director_plan_no_error_in_auto_mode(self):
-        """director_plan=None + auto 모드 → 에러 없이 proceed."""
+    async def test_none_director_plan_no_error_in_fast_track_mode(self):
+        """director_plan=None + fast_track 모드 → 에러 없이 proceed."""
         from services.agent.nodes.director_plan_gate import director_plan_gate_node
 
-        state = {"interaction_mode": "auto", "director_plan": None}
+        state = {"interaction_mode": "fast_track", "director_plan": None}
         result = await director_plan_gate_node(state)
         assert result["plan_action"] == "proceed"
 

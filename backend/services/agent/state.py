@@ -131,9 +131,8 @@ class ScriptState(TypedDict, total=False):
 
     # Graph 설정
     preset: str | None  # deprecated — 향후 제거 예정
-    auto_approve: bool  # Full Auto에서 Human Gate 자동 승인
     skip_stages: list[str]  # ["research", "concept", "production"]
-    interaction_mode: str  # "auto" | "guided" | "hands_on"
+    interaction_mode: str  # "guided" | "fast_track"
     chat_context: list[dict] | None  # 사전 대화 이력 [{role, text}]
     plan_action: str | None  # "proceed" | "revise" (Director Plan Gate 결과)
     plan_revision_count: int  # Director Plan 재수정 횟수
@@ -162,8 +161,9 @@ class ScriptState(TypedDict, total=False):
     best_narrative_score: float  # 최고 narrative_score.overall (rollback 기준)
 
     # Human Gate 상태
-    human_action: str | None  # "approve" | "revise"
+    human_action: str | None  # "approve" | "revise" | "required" (halt sentinel)
     human_feedback: str | None
+    human_gate_reason: str | None  # halt sentinel 사유 (예: "checkpoint_fallback")
 
     # Phase 2 Research & Learn
     research_brief: str | dict | None

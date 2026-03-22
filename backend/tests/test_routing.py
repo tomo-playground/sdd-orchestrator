@@ -93,15 +93,15 @@ def test_routing_error_short_circuit_review():
 # -- Director 라우팅 테스트 --
 
 
-def test_route_after_director_approve_auto():
-    """Director approve + auto_approve → finalize."""
-    state = {"director_decision": "approve", "auto_approve": True}
+def test_route_after_director_approve_guided():
+    """Director approve + guided → finalize."""
+    state = {"director_decision": "approve", "interaction_mode": "guided"}
     assert route_after_director(state) == "finalize"
 
 
-def test_route_after_director_approve_manual():
-    """Phase 25: Director approve → finalize (human_gate 제거)."""
-    state = {"director_decision": "approve", "auto_approve": False}
+def test_route_after_director_approve_fast_track():
+    """Director approve + fast_track → finalize."""
+    state = {"director_decision": "approve", "interaction_mode": "fast_track"}
     assert route_after_director(state) == "finalize"
 
 
@@ -167,10 +167,10 @@ def test_route_after_finalize_full():
     assert route_after_finalize({"skip_stages": []}) == "explain"
 
 
-def test_route_after_finalize_quick():
-    """skip_stages에 explain 포함: finalize → learn."""
-    assert route_after_finalize({"skip_stages": ["research", "concept", "production", "explain"]}) == "learn"
-    assert route_after_finalize({}) == "explain"  # 기본값: skip_stages 없으면 explain 실행
+def test_route_after_finalize_always_explain():
+    """SP-057: explain skip 분기 제거 → 항상 explain 경유."""
+    assert route_after_finalize({"skip_stages": ["research", "concept", "production", "explain"]}) == "explain"
+    assert route_after_finalize({}) == "explain"
 
 
 # -- Director Checkpoint → Writer 라우팅 테스트 --
@@ -242,26 +242,22 @@ def test_route_start_both_research_concept_skipped():
     assert route_after_start({"skip_stages": ["research", "concept"]}) == "writer"
 
 
-def test_route_review_production_skipped():
-    """production 스킵 + review 통과 → cinematographer (FastTrack)."""
+def test_route_review_always_director_checkpoint():
+    """SP-057: production skip 분기 제거 → 항상 director_checkpoint 경유."""
     state = {"skip_stages": ["production"], "review_result": {"passed": True, "errors": []}}
-    assert route_after_review(state) == "cinematographer"
+    assert route_after_review(state) == "director_checkpoint"
 
 
-def test_route_review_production_not_skipped():
-    """production 미스킵 + review 통과 → director_checkpoint."""
+def test_route_review_partial_skip_still_checkpoint():
+    """skip_stages 일부 존재해도 → director_checkpoint."""
     state = {"skip_stages": ["research", "concept"], "review_result": {"passed": True, "errors": []}}
     assert route_after_review(state) == "director_checkpoint"
 
 
-def test_route_finalize_explain_not_skipped():
-    """explain 미스킵 → explain."""
+def test_route_finalize_always_explain():
+    """SP-057: explain skip 분기 제거 → 항상 explain."""
     assert route_after_finalize({"skip_stages": ["research", "concept", "production"]}) == "explain"
-
-
-def test_route_finalize_explain_skipped():
-    """explain 스킵 → learn."""
-    assert route_after_finalize({"skip_stages": ["explain"]}) == "learn"
+    assert route_after_finalize({"skip_stages": ["explain"]}) == "explain"
 
 
 # -- inventory_resolve 이후 라우팅 테스트 (research skip 버그 회귀 방지) --

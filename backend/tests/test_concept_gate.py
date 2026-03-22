@@ -50,11 +50,11 @@ def sample_critic_result():
 
 
 @pytest.mark.asyncio
-async def test_concept_gate_auto_approve_passthrough(sample_critic_result):
-    """Full Auto → {} 반환, interrupt 없음."""
+async def test_concept_gate_fast_track_passthrough(sample_critic_result):
+    """FastTrack → pass-through, interrupt 없음."""
     from services.agent.nodes.concept_gate import concept_gate_node
 
-    state = {"auto_approve": True, "critic_result": sample_critic_result}
+    state = {"interaction_mode": "fast_track", "critic_result": sample_critic_result}
     result = await concept_gate_node(state)
     assert result == {"concept_action": "select"}
 
@@ -66,7 +66,7 @@ async def test_concept_gate_creator_interrupt(mock_interrupt, sample_critic_resu
     mock_interrupt.return_value = {"concept_id": 1}
     from services.agent.nodes.concept_gate import concept_gate_node
 
-    state = {"auto_approve": False, "critic_result": sample_critic_result}
+    state = {"interaction_mode": "guided", "critic_result": sample_critic_result}
     result = await concept_gate_node(state)
 
     mock_interrupt.assert_called_once()
@@ -84,7 +84,7 @@ async def test_concept_gate_updates_selected_concept(mock_interrupt, sample_crit
     mock_interrupt.return_value = {"concept_id": 2}
     from services.agent.nodes.concept_gate import concept_gate_node
 
-    state = {"auto_approve": False, "critic_result": sample_critic_result}
+    state = {"interaction_mode": "guided", "critic_result": sample_critic_result}
     result = await concept_gate_node(state)
 
     assert result["critic_result"]["selected_concept"]["agent_role"] == "philosopher"
@@ -98,7 +98,7 @@ async def test_concept_gate_invalid_id_fallback(mock_interrupt, sample_critic_re
     mock_interrupt.return_value = {"concept_id": 99}
     from services.agent.nodes.concept_gate import concept_gate_node
 
-    state = {"auto_approve": False, "critic_result": sample_critic_result}
+    state = {"interaction_mode": "guided", "critic_result": sample_critic_result}
     result = await concept_gate_node(state)
 
     assert result["critic_result"]["selected_concept"]["agent_role"] == "storyteller"

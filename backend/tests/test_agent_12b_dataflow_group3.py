@@ -10,8 +10,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import pytest
 from langgraph.store.memory import InMemoryStore
 
@@ -274,61 +272,20 @@ class TestLearnEnrichedEntry:
 
 
 class TestHumanGatePayloadExtended:
-    """interrupt payload에 Director 판단 근거가 포함되는지 검증한다."""
+    """human_gate fallback 동작 검증 (hands_on 폐기 후)."""
 
-    async def test_interrupt_payload_contains_director_fields(self):
-        """interrupt payload에 6개 필드가 존재한다 (hands_on 모드)."""
+    async def test_human_gate_returns_halt_sentinel(self):
+        """human_gate는 halt sentinel을 반환한다 (예기치 않은 도달 감지)."""
         from services.agent.nodes.human_gate import human_gate_node
 
         state = {
-            "interaction_mode": "hands_on",
-            "draft_scenes": [{"scene_id": 1}],
-            "review_result": {"passed": True},
-            "scene_reasoning": [{"why": "hook"}],
-            "director_decision": "proceed",
-            "director_feedback": "좋은 구성입니다",
-            "director_reasoning_steps": [{"step": 1, "observe": "ok", "think": "good", "act": "proceed"}],
-        }
-
-        captured_payload = {}
-
-        def mock_interrupt(payload):
-            captured_payload.update(payload)
-            return {"action": "approve"}
-
-        with patch("services.agent.nodes.human_gate.interrupt", side_effect=mock_interrupt):
-            await human_gate_node(state)
-
-        assert captured_payload["type"] == "review_approval"
-        assert captured_payload["scenes"] == [{"scene_id": 1}]
-        assert captured_payload["review_result"]["passed"] is True
-        assert captured_payload["scene_reasoning"] == [{"why": "hook"}]
-        assert captured_payload["director_decision"] == "proceed"
-        assert captured_payload["director_feedback"] == "좋은 구성입니다"
-        assert len(captured_payload["director_reasoning_steps"]) == 1
-
-    async def test_interrupt_payload_none_fields(self):
-        """Director 필드가 없는 state에서도 None으로 포함된다 (hands_on 모드)."""
-        from services.agent.nodes.human_gate import human_gate_node
-
-        state = {
-            "interaction_mode": "hands_on",
+            "interaction_mode": "guided",
             "draft_scenes": [{"scene_id": 1}],
             "review_result": {"passed": True},
         }
-
-        captured_payload = {}
-
-        def mock_interrupt(payload):
-            captured_payload.update(payload)
-            return {"action": "approve"}
-
-        with patch("services.agent.nodes.human_gate.interrupt", side_effect=mock_interrupt):
-            await human_gate_node(state)
-
-        assert captured_payload["director_decision"] is None
-        assert captured_payload["director_feedback"] is None
-        assert captured_payload["director_reasoning_steps"] is None
+        result = await human_gate_node(state)
+        assert result["human_action"] == "required"
+        assert result["human_gate_reason"] == "checkpoint_fallback"
 
 
 # ── 12-B-7: Revise placeholder 동적 생성 ────────────────────

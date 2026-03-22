@@ -31,7 +31,6 @@ import {
   buildSavePayload,
   handleStreamOutcome,
 } from "../../../app/hooks/scriptEditor/actions";
-import { useStoryboardStore } from "../../../app/store/useStoryboardStore";
 import type { ScriptEditorState, SceneItem } from "../../../app/hooks/scriptEditor/types";
 
 function makeEditorState(overrides: Partial<ScriptEditorState> = {}): ScriptEditorState {
@@ -65,8 +64,7 @@ function makeEditorState(overrides: Partial<ScriptEditorState> = {}): ScriptEdit
     nodeResults: {},
     traceId: null,
     productionSnapshot: null,
-    interactionMode: "auto",
-    fastTrack: false,
+    interactionMode: "guided",
     isWaitingForPlan: false,
     chatContext: [],
     ...overrides,
@@ -124,7 +122,7 @@ describe("buildGenerateBody", () => {
     expect(body.group_id).toBe(5);
     // character_id / character_b_id は Director 캐스팅 SSOT로 body에 포함하지 않음
     expect(body.character_id).toBeUndefined();
-    expect(body.interaction_mode).toBe("auto");
+    expect(body.interaction_mode).toBe("guided");
   });
 
   it("omits description when empty", () => {
@@ -164,31 +162,18 @@ describe("buildGenerateBody", () => {
     expect(body.references).toBeUndefined();
   });
 
-  it("includes skip_stages and character_id when fastTrack is true", () => {
-    const state = makeEditorState({ fastTrack: true, characterId: 1, characterBId: 2 });
-    const body = buildGenerateBody(state, 1);
-    expect(body.skip_stages).toEqual(["research", "concept", "production", "explain"]);
-    expect(body.character_id).toBe(1);
-    expect(body.character_b_id).toBe(2);
-  });
-
-  it("reads skip_stages from store (Backend SSOT)", () => {
-    // Backend가 다른 skip_stages를 반환한 경우 스토어에 반영된 값을 사용
-    useStoryboardStore.getState().set({ fastTrackSkipStages: ["research", "concept"] });
-    const state = makeEditorState({ fastTrack: true, characterId: 1 });
-    const body = buildGenerateBody(state, 1);
-    expect(body.skip_stages).toEqual(["research", "concept"]);
-    // 원복
-    useStoryboardStore.getState().set({
-      fastTrackSkipStages: ["research", "concept", "production", "explain"],
-    });
-  });
-
-  it("omits skip_stages and character_id when fastTrack is false", () => {
-    const state = makeEditorState({ fastTrack: false, characterId: 1 });
+  it("never includes skip_stages (SP-057: removed)", () => {
+    const state = makeEditorState({ interactionMode: "fast_track", characterId: 1 });
     const body = buildGenerateBody(state, 1);
     expect(body.skip_stages).toBeUndefined();
+    // character_id는 Director SSOT이므로 미포함
     expect(body.character_id).toBeUndefined();
+  });
+
+  it("sends interaction_mode fast_track", () => {
+    const state = makeEditorState({ interactionMode: "fast_track" });
+    const body = buildGenerateBody(state, 1);
+    expect(body.interaction_mode).toBe("fast_track");
   });
 });
 

@@ -37,14 +37,6 @@ export function buildGenerateBody(
     interaction_mode: s.interactionMode,
     // analyze-topic에서 추천된 structure가 있으면 전달 (Director 힌트)
     ...(s.structure && { structure: s.structure }),
-    // FastTrack: Director 건너뛰므로 캐릭터/skip_stages를 직접 전달
-    // Full: character_id는 Director 캐스팅 SSOT이므로 미전달
-    // skip_stages는 Backend SSOT (/presets → useStoryboardStore.fastTrackSkipStages)
-    ...(s.fastTrack && {
-      skip_stages: useStoryboardStore.getState().fastTrackSkipStages,
-      ...(s.characterId && { character_id: s.characterId }),
-      ...(s.characterBId && { character_b_id: s.characterBId }),
-    }),
   };
   const refs = s.references.trim();
   if (refs) {

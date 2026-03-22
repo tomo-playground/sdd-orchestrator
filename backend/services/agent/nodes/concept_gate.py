@@ -1,14 +1,14 @@
 """Concept Gate 노드 — critic과 writer 사이에서 컨셉 선택을 중재한다.
 
-Full Auto 모드: pass-through (interrupt 없이 critic 선택 유지)
-Creator 모드: interrupt()로 사용자에게 3개 컨셉을 제시, 선택 후 writer 진행
-Quick 모드: 이 노드에 도달하지 않음 (research/critic 스킵)
+FastTrack 모드: pass-through (interrupt 없이 critic 선택 유지)
+Guided 모드: interrupt()로 사용자에게 3개 컨셉을 제시, 선택 후 writer 진행
 """
 
 from __future__ import annotations
 
 from langgraph.types import interrupt
 
+from config import coerce_interaction_mode
 from config import pipeline_logger as logger
 from config_pipelines import LANGGRAPH_MAX_CONCEPT_REGEN
 from services.agent.nodes._skip_guard import should_skip
@@ -16,12 +16,12 @@ from services.agent.state import ScriptState
 
 
 async def concept_gate_node(state: ScriptState) -> dict:
-    """컨셉 선택 게이트. auto_approve면 pass-through, 아니면 사용자 선택 대기."""
-    mode = state.get("interaction_mode", "guided")
+    """컨셉 선택 게이트. fast_track이면 pass-through, 아니면 사용자 선택 대기."""
+    mode = coerce_interaction_mode(state.get("interaction_mode"))
     if should_skip(state, "concept_gate"):
         return {"concept_action": "select"}
 
-    if mode == "auto" or state.get("auto_approve"):
+    if mode == "fast_track":
         logger.debug("[LangGraph:ConceptGate] mode=%s → auto-select (skip interrupt)", mode)
         return {"concept_action": "select"}
 

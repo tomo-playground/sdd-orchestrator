@@ -54,10 +54,10 @@ def _extract_casting(result: dict) -> dict | None:
 
 
 def _derive_skip_stages(result: dict) -> list[str]:
-    """execution_plan에서 skip_stages를 결정.
+    """execution_plan에서 skip_stages를 AI가 자율 결정.
 
     concept(Critic 토론)은 항상 실행 — AI 자율 스킵 금지.
-    FastTrack만 skip_stages를 API에서 직접 지정하여 concept 스킵 가능.
+    research / explain 만 AI 판단으로 스킵 가능.
     """
     ep = result.get("execution_plan") or {}
     stages: list[str] = []

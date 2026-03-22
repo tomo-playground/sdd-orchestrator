@@ -81,7 +81,7 @@ async def test_concept_gate_regenerate_returns(mock_interrupt, critic_result_fix
     mock_interrupt.return_value = {"action": "regenerate"}
     from services.agent.nodes.concept_gate import concept_gate_node
 
-    state = {"auto_approve": False, "critic_result": critic_result_fixture, "concept_regen_count": 0}
+    state = {"interaction_mode": "guided", "critic_result": critic_result_fixture, "concept_regen_count": 0}
     result = await concept_gate_node(state)
 
     assert result["critic_result"] is None
@@ -97,7 +97,7 @@ async def test_concept_gate_custom_concept_returns(mock_interrupt, critic_result
     mock_interrupt.return_value = {"action": "custom_concept", "custom_concept": custom}
     from services.agent.nodes.concept_gate import concept_gate_node
 
-    state = {"auto_approve": False, "critic_result": critic_result_fixture}
+    state = {"interaction_mode": "guided", "critic_result": critic_result_fixture}
     result = await concept_gate_node(state)
 
     assert result["concept_action"] == "select"
@@ -112,7 +112,7 @@ async def test_concept_gate_max_regen_forces_select(mock_interrupt, critic_resul
     from services.agent.nodes.concept_gate import concept_gate_node
 
     state = {
-        "auto_approve": False,
+        "interaction_mode": "guided",
         "critic_result": critic_result_fixture,
         "concept_regen_count": LANGGRAPH_MAX_CONCEPT_REGEN,
     }

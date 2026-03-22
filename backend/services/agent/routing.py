@@ -5,7 +5,7 @@ script_graph.py의 파일 크기를 줄이기 위해 분리.
 
 from __future__ import annotations
 
-from config import LANGGRAPH_MAX_REVISIONS
+from config import LANGGRAPH_MAX_REVISIONS, coerce_interaction_mode
 from config import pipeline_logger as logger
 from config_pipelines import (
     LANGGRAPH_CHECKPOINT_LOW_THRESHOLD,
@@ -56,7 +56,7 @@ def route_after_start(state: ScriptState) -> str:
 
 
 def route_after_inventory_resolve(state: ScriptState) -> str:
-    """inventory_resolve 이후: research skip → critic 직행, Full → research.
+    """inventory_resolve 이후: research skip → critic 직행, 기본 → research.
 
     research가 skip되더라도 critic(concept 스테이지)은 항상 실행해야 한다.
     critic → concept_gate → location_planner → writer 경로를 보장.
@@ -124,9 +124,8 @@ def route_after_revise(state: ScriptState) -> str:
 
 
 def route_after_review(state: ScriptState) -> str:
-    """review 이후: passed → cinematographer(full)/finalize(quick), failed → revise.
+    """review 이후: passed → director_checkpoint, failed → revise.
 
-    Quick → finalize 직행, Full → cinematographer (Production chain 시작).
     에러 상태이면 즉시 finalize로 short-circuit.
     """
     if _has_error(state):
@@ -140,38 +139,29 @@ def route_after_review(state: ScriptState) -> str:
     if not passed:
         count = state.get("revision_count", 0)
         total = _total_revisions(state)
+        # fast_track: Critic 반복 1회 제한 (품질 < 속도 트레이드오프)
+        max_rev = (
+            1 if coerce_interaction_mode(state.get("interaction_mode")) == "fast_track" else LANGGRAPH_MAX_REVISIONS
+        )
         if total >= LANGGRAPH_MAX_GLOBAL_REVISIONS:
             logger.warning("[LangGraph] 글로벌 리비전 상한(%d) 도달, 강제 통과", LANGGRAPH_MAX_GLOBAL_REVISIONS)
-        elif count < LANGGRAPH_MAX_REVISIONS:
-            logger.debug("[LangGraph:Route] review -> revise (count=%d)", count)
+        elif count < max_rev:
+            logger.debug("[LangGraph:Route] review -> revise (count=%d, max=%d)", count, max_rev)
             return "revise"
         else:
             logger.warning(
                 "[LangGraph] 최대 revision 횟수(%d) 도달, 강제 통과",
-                LANGGRAPH_MAX_REVISIONS,
+                max_rev,
             )
 
-    # passed 또는 max_revision 도달 → production skip 여부에 따라 분기
-    skip = set(state.get("skip_stages") or [])
-    if "production" in skip:
-        # FastTrack: cinematographer만 실행 (캐릭터 일관성 + 카메라 다양성)
-        # director_checkpoint / tts_designer / sound_designer / copyright_reviewer는 skip
-        logger.debug("[LangGraph:Route] review -> cinematographer (FastTrack)")
-        return "cinematographer"
+    # passed 또는 max_revision 도달 → 항상 director_checkpoint 경유 (모든 노드 실행 원칙)
     logger.debug("[LangGraph:Route] review -> director_checkpoint")
     return "director_checkpoint"
 
 
 def route_after_cinematographer(state: ScriptState) -> list[str] | str:
-    """cinematographer 이후: 에러 → finalize, 정상 → 3개 병렬 fan-out.
-
-    FastTrack(production skip): fan-out 없이 finalize 직행.
-    """
+    """cinematographer 이후: 에러 → finalize, 정상 → 3개 병렬 fan-out."""
     if _has_error(state):
-        return "finalize"
-    skip = set(state.get("skip_stages") or [])
-    if "production" in skip:
-        logger.debug("[LangGraph:Route] cinematographer -> finalize (FastTrack)")
         return "finalize"
     logger.debug("[LangGraph:Route] cinematographer -> fan-out [tts, sound, copyright]")
     return ["tts_designer", "sound_designer", "copyright_reviewer"]
@@ -185,10 +175,6 @@ def route_after_director(state: ScriptState) -> str:
     decision = state.get("director_decision", "approve")
 
     if decision in ("error", "approve"):
-        mode = state.get("interaction_mode", "guided")
-        if mode == "hands_on":
-            logger.debug("[LangGraph:Route] director -> human_gate (mode=%s)", mode)
-            return "human_gate"
         logger.debug("[LangGraph:Route] director -> finalize (decision=%s)", decision)
         return "finalize"
 
@@ -200,10 +186,15 @@ def route_after_director(state: ScriptState) -> str:
         )
         return "finalize"
 
-    # revision 횟수 체크 (최대 LANGGRAPH_MAX_DIRECTOR_REVISIONS)
+    # fast_track: Director 검수 1회 제한
+    max_dir_rev = (
+        1
+        if coerce_interaction_mode(state.get("interaction_mode")) == "fast_track"
+        else LANGGRAPH_MAX_DIRECTOR_REVISIONS
+    )
     count = state.get("director_revision_count", 0)
-    if count >= LANGGRAPH_MAX_DIRECTOR_REVISIONS:
-        logger.warning("[LangGraph] Director revision 최대 횟수(%d) 도달, 강제 통과", count)
+    if count >= max_dir_rev:
+        logger.warning("[LangGraph] Director revision 최대 횟수(%d/%d) 도달, 강제 통과", count, max_dir_rev)
         return "finalize"
 
     # Phase 28-B #9: 미등록 decision 경고 로깅
@@ -291,7 +282,7 @@ def route_after_location_planner(state: ScriptState) -> str:
 
 
 def route_after_human_gate(state: ScriptState) -> str:
-    """Human Gate 이후: approve → finalize, revise → revise."""
+    """Human Gate 이후: approve → finalize (안전 fallback — human_gate는 항상 approve)."""
     action = state.get("human_action", "approve")
     if action == "revise":
         logger.debug("[LangGraph:Route] human_gate -> revise")
@@ -301,12 +292,9 @@ def route_after_human_gate(state: ScriptState) -> str:
 
 
 def route_after_finalize(state: ScriptState) -> str:
-    """finalize 이후: 에러 → learn (explain 스킵), explain skip → learn, else → explain."""
+    """finalize 이후: 에러 → learn, 정상 → explain."""
     if _has_error(state):
         logger.debug("[LangGraph:Route] finalize -> learn (error)")
-        return "learn"
-    if "explain" in (state.get("skip_stages") or []):
-        logger.debug("[LangGraph:Route] finalize -> learn (explain skipped)")
         return "learn"
     logger.debug("[LangGraph:Route] finalize -> explain")
     return "explain"

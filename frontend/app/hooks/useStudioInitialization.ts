@@ -89,9 +89,6 @@ export function useStudioInitialization() {
         if (data?.generation_defaults) {
           useStoryboardStore.getState().applyGenerationDefaults(data.generation_defaults);
         }
-        if (Array.isArray(data?.fast_track_skip_stages) && data.fast_track_skip_stages.length > 0) {
-          useStoryboardStore.getState().set({ fastTrackSkipStages: data.fast_track_skip_stages });
-        }
         // Backend SSOT: Hi-Res defaults, image defaults, TTS engine
         if (data?.hi_res_defaults) {
           useStoryboardStore.getState().set({ hiResDefaults: data.hi_res_defaults });

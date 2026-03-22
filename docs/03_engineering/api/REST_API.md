@@ -66,8 +66,7 @@ AI (Gemini)를 사용하여 스토리보드를 생성합니다.
   "actor_a_gender": "female",
   "group_id": null,
   "preset": "creator",
-  "skip_stages": ["research", "concept", "production", "explain"],
-  "interaction_mode": "guided",
+  "interaction_mode": "guided",  // "guided" | "fast_track" (SP-057: auto/hands_on 폐기, fast_track은 모든 노드 1회 실행 + 자동 승인)
   "references": ["https://example.com/reference"],
   "selected_concept": null
 }

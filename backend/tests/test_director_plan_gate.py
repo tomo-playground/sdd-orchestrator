@@ -29,21 +29,11 @@ def sample_director_plan():
 
 
 @pytest.mark.asyncio
-async def test_director_plan_gate_auto_passthrough(sample_director_plan):
-    """Auto 모드 → pass-through, interrupt 없음."""
+async def test_director_plan_gate_fast_track_passthrough(sample_director_plan):
+    """FastTrack 모드 → pass-through, interrupt 없음."""
     from services.agent.nodes.director_plan_gate import director_plan_gate_node
 
-    state = {"interaction_mode": "auto", "director_plan": sample_director_plan}
-    result = await director_plan_gate_node(state)
-    assert result == {"plan_action": "proceed"}
-
-
-@pytest.mark.asyncio
-async def test_director_plan_gate_auto_approve_fallback(sample_director_plan):
-    """auto_approve=True (레거시) → pass-through."""
-    from services.agent.nodes.director_plan_gate import director_plan_gate_node
-
-    state = {"auto_approve": True, "director_plan": sample_director_plan}
+    state = {"interaction_mode": "fast_track", "director_plan": sample_director_plan}
     result = await director_plan_gate_node(state)
     assert result == {"plan_action": "proceed"}
 
@@ -71,13 +61,13 @@ async def test_director_plan_gate_guided_interrupt(mock_interrupt, sample_direct
 
 @pytest.mark.asyncio
 @patch("services.agent.nodes.director_plan_gate.interrupt")
-async def test_director_plan_gate_hands_on_interrupt(mock_interrupt, sample_director_plan):
-    """Hands-on 모드 → interrupt 호출 확인."""
+async def test_director_plan_gate_guided_interrupt_with_skip_stages(mock_interrupt, sample_director_plan):
+    """Guided 모드 + skip_stages → interrupt 호출 확인."""
     mock_interrupt.return_value = {"action": "proceed"}
     from services.agent.nodes.director_plan_gate import director_plan_gate_node
 
     state = {
-        "interaction_mode": "hands_on",
+        "interaction_mode": "guided",
         "director_plan": sample_director_plan,
         "skip_stages": ["research"],
     }
@@ -168,24 +158,18 @@ def test_route_plan_gate_default():
     assert route_after_director_plan_gate({}) == "inventory_resolve"
 
 
-# -- route_after_director hands_on 분기 테스트 --
-
-
-def test_route_director_approve_hands_on():
-    """Director approve + hands_on → human_gate."""
-    state = {"director_decision": "approve", "interaction_mode": "hands_on"}
-    assert route_after_director(state) == "human_gate"
+# -- route_after_director 모드 분기 테스트 --
 
 
 def test_route_director_approve_guided():
-    """Director approve + guided → finalize (human_gate 스킵)."""
+    """Director approve + guided → finalize."""
     state = {"director_decision": "approve", "interaction_mode": "guided"}
     assert route_after_director(state) == "finalize"
 
 
-def test_route_director_approve_auto():
-    """Director approve + auto → finalize."""
-    state = {"director_decision": "approve", "interaction_mode": "auto"}
+def test_route_director_approve_fast_track():
+    """Director approve + fast_track → finalize."""
+    state = {"director_decision": "approve", "interaction_mode": "fast_track"}
     assert route_after_director(state) == "finalize"
 
 

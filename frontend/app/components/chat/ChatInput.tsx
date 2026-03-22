@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, type KeyboardEvent, type ChangeEvent } from "react";
 import { SendHorizonal, Square } from "lucide-react";
 
-type InteractionMode = "auto" | "guided";
+type InteractionMode = "guided" | "fast_track";
 
 type Props = {
   onSend: (text: string) => Promise<void>;
@@ -13,8 +13,6 @@ type Props = {
   borderless?: boolean;
   interactionMode?: InteractionMode;
   onModeChange?: (mode: InteractionMode) => void;
-  fastTrack?: boolean;
-  onFastTrackChange?: (enabled: boolean) => void;
   isEditMode?: boolean;
   onCancel?: () => void;
 };
@@ -22,8 +20,8 @@ type Props = {
 const SUGGESTIONS = ["카페 알바생이 본 이별 장면", "첫 출근날 실수 모음", "오래된 친구와의 재회"];
 
 const MODE_OPTIONS = [
-  { value: "auto" as const, label: "Auto", tooltip: "AI가 모든 단계를 자동 진행" },
-  { value: "guided" as const, label: "Guided", tooltip: "컨셉 선택과 플랜 검토만 직접" },
+  { value: "guided" as const, label: "Guided", tooltip: "컨셉, 플랜 단계에서 직접 선택하고 AI와 협력" },
+  { value: "fast_track" as const, label: "Fast", tooltip: "AI가 알아서 선택·승인 — 빠른 초안 생성" },
 ] as const;
 
 const MAX_ROWS = 3;
@@ -36,8 +34,6 @@ export default function ChatInput({
   borderless,
   interactionMode,
   onModeChange,
-  fastTrack,
-  onFastTrackChange,
   isEditMode,
   onCancel,
 }: Props) {
@@ -102,24 +98,6 @@ export default function ChatInput({
                 {opt.label}
               </button>
             ))}
-            {onFastTrackChange && (
-              <>
-                <div className="mx-1 h-3.5 w-px bg-zinc-200" />
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onFastTrackChange(!fastTrack)}
-                  title="Research·Concept·Production 건너뜀 — 빠르지만 품질 검증 간소화"
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
-                    fastTrack
-                      ? "border-amber-500 bg-amber-500 text-white"
-                      : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
-                  }`}
-                >
-                  ⚡ Fast
-                </button>
-              </>
-            )}
           </div>
         )}
 

@@ -29,21 +29,12 @@ class TestPresetsRouter:
         assert "default_style" in first
         assert "default_language" in first
 
-    def test_list_presets_includes_fast_track_skip_stages(self, client: TestClient, db_session):
-        """GET /presets returns fast_track_skip_stages list from Backend SSOT."""
+    def test_list_presets_no_fast_track_skip_stages(self, client: TestClient, db_session):
+        """GET /presets no longer returns fast_track_skip_stages (SP-057: removed)."""
         response = client.get("/api/v1/presets")
         assert response.status_code == 200
         data = response.json()
-
-        assert "fast_track_skip_stages" in data
-        stages = data["fast_track_skip_stages"]
-        assert isinstance(stages, list)
-        assert len(stages) > 0
-        # VALID_SKIP_STAGES 허용 범위 내인지 확인
-        from config_pipelines import FAST_TRACK_SKIP_STAGES, VALID_SKIP_STAGES
-
-        assert stages == FAST_TRACK_SKIP_STAGES
-        assert all(s in VALID_SKIP_STAGES for s in stages)
+        assert "fast_track_skip_stages" not in data
 
     def test_list_presets_contains_known_ids(self, client: TestClient, db_session):
         """Preset list includes known preset IDs."""

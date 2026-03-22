@@ -1,15 +1,17 @@
 """Script Generation Graph — 20노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
 
-Quick:   START → writer → review → [passed→finalize / failed→revise] → learn → END
-Full:    START → director_plan → director_plan_gate → inventory_resolve → [research → critic / critic(research skip)] →
-         concept_gate → location_planner → writer → review →
-         [passed→director_checkpoint / failed→revise] →
-         [proceed→cinematographer / revise→writer (재생성)] →
-         ┌→ tts_designer ────┐
-         ├→ sound_designer ──┤→ director → finalize → explain → learn → END
-         └→ copyright_reviewer┘
+Guided/FastTrack 공통 경로 (SP-057: 모든 노드 1회 실행):
+  START → director_plan → director_plan_gate → inventory_resolve →
+  [research → critic / critic(research skip)] →
+  concept_gate → location_planner → writer → review →
+  [passed→director_checkpoint / failed→revise] →
+  [proceed→cinematographer / revise→writer (재생성)] →
+  ┌→ tts_designer ────┐
+  ├→ sound_designer ──┤→ director → finalize → explain → learn → END
+  └→ copyright_reviewer┘
 
-Director Plan이 execution_plan으로 skip_stages를 자율 결정 (Phase 25).
+FastTrack: gate 자동 승인 + Critic/Director 반복 1회 제한.
+Guided: gate에서 interrupt로 사용자 선택 대기.
 에러 발생 시: 어떤 노드든 error 설정 → 다음 분기에서 finalize로 short-circuit.
 """
 
@@ -127,11 +129,11 @@ def build_script_graph() -> StateGraph:
     # writer → review | finalize (에러 short-circuit)
     graph.add_conditional_edges("writer", route_after_writer, ["review", "finalize"])
 
-    # review → director_checkpoint(full) | cinematographer(fasttrack) | finalize(error) | revise
+    # review → director_checkpoint | finalize(error) | revise
     graph.add_conditional_edges(
         "review",
         route_after_review,
-        ["finalize", "director_checkpoint", "cinematographer", "revise"],
+        ["finalize", "director_checkpoint", "revise"],
     )
 
     # revise → review | finalize (에러 short-circuit)
@@ -156,21 +158,21 @@ def build_script_graph() -> StateGraph:
     graph.add_edge("sound_designer", "director")
     graph.add_edge("copyright_reviewer", "director")
 
-    # director → finalize | human_gate(hands_on) | production 노드 재실행 | revise
+    # director → finalize | production 노드 재실행 | revise
     graph.add_conditional_edges(
         "director",
         route_after_director,
-        ["finalize", "human_gate", "cinematographer", "tts_designer", "sound_designer", "revise"],
+        ["finalize", "cinematographer", "tts_designer", "sound_designer", "revise"],
     )
 
-    # human_gate → finalize | revise (hands_on 모드에서만 도달)
+    # human_gate → finalize | revise (안전 fallback — 도달 경로 없음)
     graph.add_conditional_edges(
         "human_gate",
         route_after_human_gate,
         ["finalize", "revise"],
     )
 
-    # finalize → [explain(full) | learn(quick)]
+    # finalize → explain (에러 시 learn 직행)
     graph.add_conditional_edges(
         "finalize",
         route_after_finalize,

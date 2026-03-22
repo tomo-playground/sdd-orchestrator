@@ -9,7 +9,6 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from config import logger
-from config_pipelines import VALID_SKIP_STAGES
 from database import get_db
 from routers._scripts_sse import stream_graph_events
 from schemas import (
@@ -38,41 +37,28 @@ except ImportError:
 router = APIRouter(prefix="/scripts", tags=["scripts"])
 
 
-def _resolve_skip_stages(request: StoryboardRequest) -> list[str]:
-    """skip_stages 해석: 명시적 지정만 허용, 미지정 시 빈 리스트 (Director가 채움)."""
-    if request.skip_stages is not None:
-        return [s for s in request.skip_stages if s in VALID_SKIP_STAGES]
-    return []
-
-
 def _request_to_state(request: StoryboardRequest) -> ScriptState:
     """StoryboardRequest → ScriptState 변환.
 
-    FastTrack(skip_stages 비어있지 않음)이면 Director가 건너뛰어지므로
-    Frontend에서 보낸 structure/character_id를 그대로 전달한다.
-    일반 Full 모드에서는 Director가 SSOT이므로 빈값/None으로 시작.
+    Director가 SSOT이므로 structure/character_id는 빈값/None으로 시작.
     """
-    mode = request.interaction_mode or "guided"
-    skip = _resolve_skip_stages(request)
-    is_fast_track = len(skip) > 0
     return ScriptState(
         topic=request.topic,
         description=request.description or "",
         duration=request.duration,
         style=request.style,
         language=request.language,
-        structure=request.structure if is_fast_track else "",
+        structure="",
         tone=request.tone,
         actor_a_gender=request.actor_a_gender,
-        character_id=request.character_id if is_fast_track else None,
-        character_b_id=request.character_b_id if is_fast_track else None,
+        character_id=None,
+        character_b_id=None,
         group_id=request.group_id,
         references=request.references,
         chat_context=request.chat_context,
         preset=request.preset,
-        auto_approve=(mode == "auto"),
-        interaction_mode=mode,
-        skip_stages=skip,
+        interaction_mode=request.interaction_mode,
+        skip_stages=[],
         revision_count=0,
     )
 
@@ -156,11 +142,10 @@ async def generate_script_endpoint(
     logger.info("📝 [Script Generate] storyboard_id=%s %s", request.storyboard_id, request.model_dump())
     async with get_compiled_graph() as graph:
         state = _request_to_state(request)
-        is_fast_track = len(_resolve_skip_stages(request)) > 0
         config = _build_config(
             _resolve_thread_id(),
             session_id=_resolve_session_id(request.storyboard_id),
-            pipeline_mode="fasttrack" if is_fast_track else "full",
+            pipeline_mode="fasttrack" if state.get("interaction_mode") == "fast_track" else "full",
         )
         update_root = config.get("_langfuse_update_root")
         if update_root:
@@ -218,11 +203,10 @@ async def generate_script_stream(
     logger.info("📝 [Script Generate Stream] storyboard_id=%s %s", request.storyboard_id, request.model_dump())
     state = _request_to_state(request)
     thread_id = _resolve_thread_id()
-    is_fast_track = len(_resolve_skip_stages(request)) > 0
     config = _build_config(
         thread_id,
         session_id=_resolve_session_id(request.storyboard_id),
-        pipeline_mode="fasttrack" if is_fast_track else "full",
+        pipeline_mode="fasttrack" if state.get("interaction_mode") == "fast_track" else "full",
     )
     return StreamingResponse(
         stream_graph_events(state, config, thread_id, "Stream", storyboard_id=request.storyboard_id),

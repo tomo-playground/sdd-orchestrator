@@ -316,12 +316,12 @@ async def test_finalize_full_merge():
 # -- Routing --
 
 
-def test_route_after_review_quick():
-    """Quick 모드: review 통과 → cinematographer (FastTrack)."""
+def test_route_after_review_always_checkpoint():
+    """SP-057: 항상 director_checkpoint 경유 (production skip 분기 제거)."""
     from services.agent.routing import route_after_review
 
     state = {"skip_stages": ["research", "concept", "production", "explain"], "review_result": {"passed": True}}
-    assert route_after_review(state) == "cinematographer"
+    assert route_after_review(state) == "director_checkpoint"
 
 
 def test_route_after_review_full():

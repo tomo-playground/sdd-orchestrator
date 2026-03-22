@@ -1,26 +1,26 @@
 """Director Plan Gate 노드 — director_plan 이후 사용자 플랜 검토를 중재한다.
 
-Auto 모드: pass-through (interrupt 없이 즉시 진행)
+FastTrack 모드: pass-through (interrupt 없이 즉시 진행)
 Guided 모드: interrupt()로 사용자에게 플랜을 제시, 승인/수정 후 진행
-Hands-on 모드: Guided와 동일
 """
 
 from __future__ import annotations
 
 from langgraph.types import interrupt
 
+from config import coerce_interaction_mode
 from config import pipeline_logger as logger
 from services.agent.nodes._skip_guard import should_skip
 from services.agent.state import ScriptState
 
 
 async def director_plan_gate_node(state: ScriptState) -> dict:
-    """플랜 검토 게이트. auto면 pass-through, 아니면 사용자 검토 대기."""
+    """플랜 검토 게이트. fast_track이면 pass-through, 아니면 사용자 검토 대기."""
     if should_skip(state, "director_plan_gate"):
         return {"plan_action": "proceed"}
 
-    mode = state.get("interaction_mode", "guided")
-    if mode == "auto" or state.get("auto_approve"):
+    mode = coerce_interaction_mode(state.get("interaction_mode"))
+    if mode == "fast_track":
         logger.debug("[LangGraph:DirectorPlanGate] mode=%s → auto-proceed (skip interrupt)", mode)
         return {"plan_action": "proceed"}
 
