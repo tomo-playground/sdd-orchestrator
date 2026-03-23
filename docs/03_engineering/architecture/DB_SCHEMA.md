@@ -7,7 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
-| v3.34 | 2026-03-23 | 문서 최신화: `storyboards`에 `tone`/`bgm_prompt`/`bgm_mood` 추가, `scenes`에 `tts_asset_id` 추가 + `width`/`height` 기본값 수정, `scene_quality_scores`에 `identity_score`/`identity_tags_detected` 추가, `backgrounds` 인덱스명 수정, `lab_experiments` 삭제 테이블 문서 제거, `characters.reference_images` 잔존 기록 정리. 유령 항목 정리: `loras` Multi-Character 3컬럼 제거(DB DROP 완료), `storyboards.bgm_audio_url` @property 제거(미구현), `loras.is_active` 추가. `scenes.multi_gen_enabled` 설명 보강 |
+| v3.34 | 2026-03-23 | 문서 최신화: `storyboards`에 `tone`/`bgm_prompt`/`bgm_mood` 추가, `scenes`에 `tts_asset_id` 추가 + `width`/`height` 기본값 수정, `scene_quality_scores`에 `identity_score`/`identity_tags_detected` 추가, `backgrounds` 인덱스명 수정, `lab_experiments` 삭제 테이블 문서 제거, `characters.reference_images` 잔존 기록 정리. 유령 항목 정리: `loras` Multi-Character 3컬럼 제거(DB DROP 완료), `storyboards.bgm_audio_url` @property 제거(미구현), `loras.is_active` 추가. `scenes.multi_gen_enabled` 설명 보강. MEDIUM 12건 수정: `groups` deleted_at+@property 추가, `scenes` FK/nullable/길이 보강, `storyboard_characters` UniqueConstraint+FK 명시, `tags`/`tag_effectiveness` timestamps 추가, `activity_logs` NOT NULL 명시, `style_profiles` default 명시, `youtube_credentials` nullable/default 명시 |
 | v3.33 | 2026-03-02 | Character-Group 소유권: `characters.style_profile_id` 제거 → `characters.group_id` NOT NULL FK (RESTRICT). Group이 화풍 유일한 SSOT |
 | v3.32 | 2026-02-28 | `group_config` 테이블 제거 → `groups` 통합 (render_preset_id, style_profile_id, narrator_voice_preset_id). `channel_dna` 컬럼 제거 |
 | v3.31 | 2026-02-28 | DB Schema Cleanup: `characters.reference_source_type` DROP, `scenes.last_seed` DROP. `is_permanent` / `lora_type=style` Known Issue 해소 표기. `embeddings` 구현 완료 표기. `characters.prompt_mode` 문서 삭제 |
@@ -104,10 +104,10 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 |--------|------|-------------|
 | `id` | Integer (PK) | |
 | `project_id` | Integer (FK → projects, CASCADE, UNIQUE) | 소속 프로젝트 |
-| `channel_id` | String(100) | YouTube Channel ID |
-| `channel_title` | String(200) | 채널명 |
-| `encrypted_token` | Text | 암호화된 OAuth 토큰 |
-| `is_valid` | Boolean | 토큰 유효 여부 |
+| `channel_id` | String(100), nullable | YouTube Channel ID |
+| `channel_title` | String(200), nullable | 채널명 |
+| `encrypted_token` | Text, NOT NULL | 암호화된 OAuth 토큰 |
+| `is_valid` | Boolean (default: true) | 토큰 유효 여부 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `groups`
@@ -122,7 +122,14 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 | `render_preset_id` | Integer (FK → render_presets, SET NULL) | 렌더 프리셋 |
 | `style_profile_id` | Integer (FK → style_profiles, SET NULL) | 기본 스타일 프로파일 |
 | `narrator_voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 나레이터 음성 |
+| `deleted_at` | DateTime | Soft Delete 타임스탬프 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**Read-only 속성**:
+- `render_preset_name` (`@property`): 렌더 프리셋명
+- `style_profile_name` (`@property`): 스타일 프로파일명
+- `voice_preset_name` (`@property`): 나레이터 음성 프리셋명
+- `character_count` (`@property`): 소속 캐릭터 수
 
 ### `storyboards`
 YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
@@ -160,7 +167,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 |--------|------|-------------|
 | `id` | Integer (PK) | |
 | `client_id` | String(36), UNIQUE, NOT NULL | Client-side UUID (생성 시 확정, 불변). Frontend 안정 식별자 |
-| `storyboard_id` | Integer (FK → storyboards) | 소속 스토리보드 |
+| `storyboard_id` | Integer (FK → storyboards, CASCADE) | 소속 스토리보드 |
 | `order` | Integer | 씬 순서 (0-based) |
 | `script` | Text | 나레이션/Scene Text |
 | `speaker` | String(20) | 화자 (default: `"Narrator"`) |
@@ -186,11 +193,11 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `reference_only_weight` | Float | IP-Adapter 가중치 (default: 0.5) |
 | `environment_reference_id` | Integer (FK → media_assets, SET NULL) | 환경 참조 이미지 ID |
 | `environment_reference_weight` | Float | 환경 참조 가중치 (default: 0.3) |
-| `use_ip_adapter` | Boolean | IP-Adapter 사용 여부 (씬별 오버라이드) |
-| `ip_adapter_reference` | String | IP-Adapter 참조 이미지 경로 |
+| `use_ip_adapter` | Boolean, nullable | IP-Adapter 사용 여부 (씬별 오버라이드) |
+| `ip_adapter_reference` | String(255) | IP-Adapter 참조 이미지 경로 |
 | `ip_adapter_weight` | Float | IP-Adapter 가중치 (씬별 오버라이드) |
 | **ControlNet** | | |
-| `use_controlnet` | Boolean | ControlNet 사용 여부 |
+| `use_controlnet` | Boolean, nullable | ControlNet 사용 여부 |
 | `controlnet_weight` | Float | ControlNet 가중치 |
 | `controlnet_pose` | String(50), nullable | 선택된 ControlNet 포즈 이름 (None = 자동 감지) |
 | **Generation** | | |
@@ -233,9 +240,11 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `storyboard_id` | Integer (FK) | |
+| `storyboard_id` | Integer (FK → storyboards, CASCADE), NOT NULL | |
 | `speaker` | String(10) | 화자 라벨 (`A`, `B` 등) |
-| `character_id` | Integer (FK) | 매핑된 캐릭터 |
+| `character_id` | Integer (FK → characters, CASCADE), NOT NULL | 매핑된 캐릭터 |
+
+**Unique**: `uq_storyboard_speaker` (`storyboard_id`, `speaker`)
 
 ### `character_tags`
 캐릭터 ↔ 태그 연결.
@@ -299,7 +308,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `deprecated_reason` | String(200) | 비활성화 이유 |
 | `replacement_tag_id` | Integer (FK → tags, SET NULL) | 대체 태그 ID |
 | `thumbnail_asset_id` | Integer (FK → media_assets, SET NULL) | 태그 썸네일 이미지 (Visual Tag Browser) |
-
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **`default_layer` 매핑** (12-Layer System):
 
@@ -381,10 +390,11 @@ WD14 피드백 루프 데이터.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `tag_id` | Integer (FK → tags) | |
+| `tag_id` | Integer (FK → tags, CASCADE), UNIQUE | |
 | `use_count` | Integer | 프롬프트 사용 횟수 |
 | `match_count` | Integer | WD14 감지 횟수 |
 | `effectiveness` | Float | `match_count / use_count` |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ## Asset System
 
@@ -537,8 +547,8 @@ Model + LoRAs + Embeddings 번들.
 | `default_enable_hr` | Boolean | 화풍별 Hi-Res(Hires Fix) 기본 ON/OFF |
 | `reference_env_tags` | JSONB | 레퍼런스 이미지 배경 태그 (NULL=전역 폴백, []=비활성화) |
 | `reference_camera_tags` | JSONB | 레퍼런스 이미지 카메라 태그 (NULL=전역 폴백, []=비활성화) |
-| `is_default` | Boolean | |
-| `is_active` | Boolean | |
+| `is_default` | Boolean (default: false) | |
+| `is_active` | Boolean (default: true) | |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 ### `render_presets`
@@ -628,7 +638,7 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 | `storyboard_id` | Integer (FK → storyboards, SET NULL) | 소속 스토리보드 |
 | `scene_id` | Integer (FK → scenes, SET NULL) | 소속 씬 |
 | `character_id` | Integer (FK → characters, SET NULL) | 캐릭터 ID |
-| `prompt` | Text | 사용된 프롬프트 |
+| `prompt` | Text, NOT NULL | 사용된 프롬프트 |
 | `negative_prompt` | Text | 네거티브 프롬프트 |
 | `sd_params` | JSONB | `{steps, cfg_scale, sampler, ...}` |
 | `seed` | BigInteger | 생성 시드 |
