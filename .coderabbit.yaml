@@ -18,7 +18,7 @@ enable_free_tier: true
 # ─── 리뷰 설정 ───
 reviews:
   profile: chill
-  request_changes_workflow: false  # 코멘트만, changes_requested 안 함 → auto-fix 잡음 방지
+  request_changes_workflow: true  # 심각한 이슈 시 CHANGES_REQUESTED → sdd-fix 자동 트리거
   fail_commit_status: false  # CI/테스트가 진짜 게이트, 리뷰는 조언
 
   # CLAUDE.md가 code_guidelines로 로드되므로 규칙을 반복하지 않는다.
@@ -85,10 +85,6 @@ reviews:
     - "!audio/.venv/**"
     - "!**/__pycache__/**"
     - "!backend/outputs/**"
-    - "!backend/tests/**"
-    - "!audio/tests/**"
-    - "!**/*.test.ts"
-    - "!**/*.test.tsx"
     - "!.claude/**"
     - "!.github/**"
 
