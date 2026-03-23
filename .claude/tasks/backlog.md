@@ -1,63 +1,57 @@
 # Backlog
 
-> 아직 착수하지 않은 태스크 큐. 우선순위 순서대로 진행.
-> `current/`로 이동한 태스크는 여기서 제거한다.
+> 태스크 큐. 우선순위 순서대로 진행.
+> 코딩머신이 이 파일을 스캔하여 자동 실행.
 
 ---
+
+## P0 (진행 중)
+
+- [ ] SP-077 — SD Client 추상화 — SD WebUI 직접 호출 24곳 → SDClientBase 통합 (ComfyUI 전환 선행) | scope: backend
+- [ ] SP-058 — Intake 노드 — Guided 모드 소크라테스 질문으로 structure/tone/캐릭터 확정 | scope: backend | **approved**
+- [ ] SP-072 — Narrator 씬 지능형 no_humans 판단 — script 의미 기반 군중/빈 공간 구분 | scope: backend | **approved**
+- [ ] SP-074 — Frontend 하드코딩 SSOT 전환 | scope: frontend | **approved**
+- [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | scope: backend
 
 ## P1 (최우선)
 
-- [ ] SP-070 — 옵저버빌리티 구멍 메우기 — health-check Slack 알림, 크론 실패 알림, Actions 실패 알림, Sentry 실시간 연동 | scope: infra | [가이드](../../docs/04_operations/OBSERVABILITY.md)
-- [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 전환 후 착수. 4-Module 파이프라인 | depends: SP-022 | [명세](../../docs/01_product/FEATURES/CHARACTER_CONSISTENCY_V3.md)
+- [ ] SP-022 — ComfyUI 마이그레이션 — ForgeUI→ComfyUI 워크플로우 전환 | depends: SP-077
+- [ ] SP-021 — Speaker 동적 역할 — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | depends: SP-020
+- [ ] SP-075 — 지식DB 스토리 카드 | scope: backend
+- [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 전환 후 착수. 4-Module 파이프라인 | depends: SP-022
+- [ ] SP-070 — 옵저버빌리티 구멍 메우기 | scope: infra
 
 ## P2 (기능 확장)
 
-- [ ] SP-052 — Direct 탭 레이아웃/편의성 개선 — 씬 카드 빈 공간 활용, 상태 아이콘 가독성, Context Strip sticky, TTS prompt 잘림, 키보드 씬 전환, SceneCard props 분리
-- [ ] SP-024 — VEO Clip — Video Generation 통합 | [명세](../../docs/01_product/FEATURES/VEO_CLIP.md)
-- [ ] SP-025 — Profile Export/Import — Style Profile 공유 | [명세](../../docs/01_product/FEATURES/PROFILE_EXPORT_IMPORT.md)
+- [ ] SP-052 — Direct 탭 레이아웃/편의성 개선
+- [ ] SP-024 — VEO Clip — Video Generation 통합
+- [ ] SP-025 — Profile Export/Import — Style Profile 공유
 - [ ] SP-026 — Storyboard Version History — 저장 시점별 스냅샷 조회/복원
-- [ ] SP-029 — Script Canvas 분할 뷰 — 좌 채팅 + 우 씬 프리뷰 | [명세](../../docs/99_archive/features/SCRIPT_COLLABORATIVE_UX.md) §P2
+- [ ] SP-029 — Script Canvas 분할 뷰
 
 ## P2-SDD (SDD 프로세스 개선)
 
-- [ ] SP-076 — Slack Bot 양방향 연동 — Slack에서 명령 수신 + 코딩머신 실행 | scope: infra | depends: ~~SP-069~~ ✅
+- [ ] SP-076 — Slack Bot 양방향 연동 | scope: infra | depends: ~~SP-069~~ ✅
 - [ ] SP-033 — DoD 검증 자동화
 - [ ] SP-034 — PR 엣지 케이스 체크리스트
-- [ ] SP-051 — SDD 2인 확장 플랜 — 설계 리뷰/태스크 관리를 GitHub Issue 기반으로 전환
+- [ ] SP-051 — SDD 2인 확장 플랜
 
 ## P3 (인프라/자동화)
 
-- [ ] Tag Intelligence — 채널별 태그 정책 + 데이터 기반 추천 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-1
-- [ ] Series Intelligence — 에피소드 연결 + 성공 패턴 학습 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-2
+- [ ] Tag Intelligence — 채널별 태그 정책 + 데이터 기반 추천
+- [ ] Series Intelligence — 에피소드 연결 + 성공 패턴 학습
 - [ ] LangFuse SDK v4 + 서버 업그레이드
-- [ ] LiteLLM SDK 도입 — Gemini 외 Provider 실제 도입 시 착수
+- [ ] LiteLLM SDK 도입
 - [ ] PipelineControl 커스텀 + 분산 큐 (Celery/Redis)
-- [ ] 배치 렌더링 + 큐 — 그룹 일괄 렌더, WebSocket 진행률
-- [ ] 브랜딩 시스템 — 로고/워터마크, 인트로/아웃트로, 플랫폼별 출력
-- [ ] 분석 대시보드 — Match Rate 추이, 프로젝트 간 비교
-- [ ] 파이프라인 이상 탐지 자동화 — health API, 자동 검증, GPU VRAM 모니터링
-- [ ] PostgreSQL 통합 테스트 인프라 — pytest-postgresql 또는 testcontainers
-- [ ] 클라우드 TTS/BGM 전환 — Replicate 또는 ElevenLabs/Suno
-- [ ] 씬 단위 순차 생성 — IMAGE→TTS 씬별 처리, GPU 순차 독점 해소
-- [ ] ControlNet 포즈 에셋 재활용 검토 — ComfyUI 2-Step 또는 레퍼런스 전용
-- [ ] 캐릭터 LoRA 학습 파이프라인 — 레퍼런스 9세트 + 학습 자동화
-
----
-
-## current (착수 중)
-
-> 상세: `.claude/tasks/current/SP-NNN_*/spec.md`
-
-| 태스크 | 상태 | 의존 | 설명 |
-|--------|------|------|------|
-| SP-077 | pending | — | SD Client 추상화 (ComfyUI 선행) |
-| SP-022 | pending | SP-077 | ComfyUI 마이그레이션 |
-| SP-020 | pending | — | Enum ID 정규화 |
-| SP-075 | pending | — | 지식DB 스토리 카드 |
-| SP-058 | approved | ~~SP-056~~ ✅ | Intake 노드 |
-| SP-072 | approved | — | Narrator 씬 지능 |
-| SP-021 | approved | SP-020 | Speaker 동적 역할 |
-| SP-074 | approved | — | Frontend 하드코딩 SSOT |
+- [ ] 배치 렌더링 + 큐
+- [ ] 브랜딩 시스템
+- [ ] 분석 대시보드
+- [ ] 파이프라인 이상 탐지 자동화
+- [ ] PostgreSQL 통합 테스트 인프라
+- [ ] 클라우드 TTS/BGM 전환
+- [ ] 씬 단위 순차 생성
+- [ ] ControlNet 포즈 에셋 재활용 검토
+- [ ] 캐릭터 LoRA 학습 파이프라인
 
 ---
 
@@ -65,13 +59,8 @@
 
 - [x] ~~SP-011~~ | ~~SP-014~~ | ~~SP-015~~ | ~~SP-016~~ | ~~SP-035~~ | ~~SP-036~~ | ~~SP-039~~ (P0 버그)
 - [x] ~~SP-010~~ | ~~SP-017~~ | ~~SP-018~~ | ~~SP-030~~ | ~~SP-031~~ | ~~SP-032~~ | ~~SP-037~~ (P1 인프라)
-- [x] ~~SP-019~~ (AI QA 순찰) | ~~SP-038~~ (Store resilience) | ~~SP-040~~ (세션 충돌 방지)
-- [x] ~~SP-041~~ (SSE heartbeat) | ~~SP-042~~ (LangFuse 트레이스) | ~~SP-043~~ (모델 최적화)
-- [x] ~~SP-044~~ (Sentry autofix) | ~~SP-045~~ (autoSave 이미지) | ~~SP-027~~ (Direct 탭 연출 컨트롤)
-- [x] ~~SP-046~~ (Cinematographer 팀 분해) | ~~SP-047~~ (Direct 리뷰 후속) | ~~SP-048~~ (Direct UX)
-- [x] ~~SP-054~~ (AutoRun 배치 API 제거) | ~~SP-055~~ (TTS/BGM 통일) | ~~SP-060~~ (Voice Preset 캐시)
-- [x] ~~SP-056~~ (Structure 재설계 A) | ~~SP-057~~ (모드 단순화) | ~~SP-028~~ (Studio 탭 URI)
-- [x] ~~SP-059~~ (multi 씬) | ~~SP-061~~ (대사 품질 L2) | ~~SP-062~~ (프롬프트/태그 검증) | ~~SP-063~~ (렌더링 함수 연결)
-- [x] ~~SP-064~~ (Narrative per-scene 평가) | ~~SP-065~~ (렌더링 품질 보강) | ~~SP-053~~ (파이프라인 진행 가시성) | ~~SP-071~~ (대사 구체성 평가)
-- [x] ~~SP-066~~ (Orchestrator 스켈레톤) | ~~SP-067~~ (Orchestrator AutoRun) | ~~SP-068~~ (Orchestrator AutoDesign)
-- [x] ~~SP-069~~ (Orchestrator Sentry/Slack/GHA) | ~~SP-073~~ (Dead Feature Cleanup)
+- [x] ~~SP-019~~ | ~~SP-038~~ | ~~SP-040~~ | ~~SP-041~~ | ~~SP-042~~ | ~~SP-043~~
+- [x] ~~SP-044~~ | ~~SP-045~~ | ~~SP-027~~ | ~~SP-046~~ | ~~SP-047~~ | ~~SP-048~~
+- [x] ~~SP-054~~ | ~~SP-055~~ | ~~SP-060~~ | ~~SP-056~~ | ~~SP-057~~ | ~~SP-028~~
+- [x] ~~SP-059~~ | ~~SP-061~~ | ~~SP-062~~ | ~~SP-063~~ | ~~SP-064~~ | ~~SP-065~~ | ~~SP-053~~ | ~~SP-071~~
+- [x] ~~SP-066~~ | ~~SP-067~~ | ~~SP-068~~ | ~~SP-069~~ | ~~SP-073~~
