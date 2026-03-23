@@ -31,7 +31,6 @@ NON_FRONTAL_GAZE_TAGS: frozenset[str] = frozenset(
         "looking_up",
         "looking_to_the_side",
         "looking_afar",
-        "looking_ahead",
         "sideways_glance",
         "averting_eyes",
         "averted_gaze",

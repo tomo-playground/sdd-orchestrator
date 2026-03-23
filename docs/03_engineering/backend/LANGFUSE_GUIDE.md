@@ -53,7 +53,11 @@ Gemini API (system_instruction / contents)
 | 코드 이름 | LangFuse 이름 | 용도 |
 |----------|--------------|------|
 | `creative/director` | `pipeline/director` | Director ReAct 루프 |
-| `creative/cinematographer` | `pipeline/cinematographer` | 씬별 비주얼 구성 |
+| `creative/cinematographer` | `pipeline/cinematographer` | 씬별 비주얼 구성 (Single fallback 경량 프롬프트) |
+| `creative/cinematographer/framing` | `pipeline/cinematographer/framing` | Team: 카메라, 시선, Ken Burns |
+| `creative/cinematographer/action` | `pipeline/cinematographer/action` | Team: 감정, 포즈, 액션, 소품 |
+| `creative/cinematographer/atmosphere` | `pipeline/cinematographer/atmosphere` | Team: 환경, 시네마틱 |
+| `creative/cinematographer/compositor` | `pipeline/cinematographer/compositor` | Team: 통합 + 태그 검증 |
 | `storyboard/dialogue` | `storyboard/dialogue` | Dialogue 대본 생성 |
 | `tool/analyze-topic` | `tool/analyze-topic` | 주제 분석 |
 

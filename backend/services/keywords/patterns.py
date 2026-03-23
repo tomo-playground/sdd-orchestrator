@@ -418,7 +418,6 @@ CATEGORY_PATTERNS: dict[str, list[str]] = {
         "looking_back",
         "looking_to_the_side",
         "looking_afar",
-        "looking_ahead",
         "sideways_glance",
         "averting_eyes",
         "averted_gaze",

@@ -36,7 +36,20 @@
 | # | 노드명 | 역할 | 도구 | 최대 호출 |
 |---|--------|------|------|----------|
 | 8 | `research` | Research Agent — Memory Store + 소재 분석 + 트렌딩 | `search_topic_history`, `search_character_history`, `fetch_url_content`, `analyze_trending` | 5회 |
-| 9 | `cinematographer` | Cinematographer Agent — Danbooru 태그 검증 + 캐릭터 태그 + 호환성 체크 | `validate_danbooru_tag`, `get_character_visual_tags`, `check_tag_compatibility`, `search_similar_compositions` | 10회 |
+| 9 | `cinematographer` | Cinematographer Agent — 4 서브에이전트 Team 모드 (주 경로) + Single fallback | `validate_danbooru_tag`, `get_character_visual_tags`, `check_tag_compatibility`, `search_similar_compositions` | 10회 (Single only) |
+
+#### Cinematographer Team 모드 (주 경로)
+4개 서브에이전트가 순차 실행. Team 실패 시 Single(경량 프롬프트) fallback.
+
+| 순서 | 서브에이전트 | LangFuse 프롬프트 | 역할 |
+|------|------------|------------------|------|
+| 1 | Framing | `pipeline/cinematographer/framing` | 카메라, 시선(gaze), Ken Burns |
+| 2 | Action | `pipeline/cinematographer/action` | 감정, 포즈, 액션, 소품, ControlNet |
+| 3 | Atmosphere | `pipeline/cinematographer/atmosphere` | 환경, 시네마틱 기법 |
+| 4 | Compositor | `pipeline/cinematographer/compositor` | 통합 + 정합성 검증 + 태그 검증 (Tool-Calling) |
+
+- **Team 성공률**: ~100% (입력 정상 시)
+- **Single fallback 프롬프트** (`pipeline/cinematographer` v10): Team 규칙의 경량 요약본
 
 ### 2-3. Director Agent (1개, Phase 10-A ReAct + Phase 10-C-2 메시지)
 
