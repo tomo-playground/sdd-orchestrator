@@ -35,7 +35,7 @@
 
 ## P2 (기능 확장)
 
-- [ ] SP-064 — Narrative per-scene 평가 — Review aggregate 점수 → 씬 단위 평가 확장 | scope: backend | **PR #155 리뷰 대기**
+- [x] ~~SP-064~~ — Narrative per-scene 평가 — Review aggregate 점수 → 씬 단위 평가 확장 | scope: backend | **PR #155 리뷰 대기**
 - [ ] SP-071 — 대사 상황 구체성 평가 — Narrative 차원에 situational_specificity 추가 + Writer 프롬프트 규칙 | scope: backend | approved | depends: SP-064 (blocked)
 - [ ] SP-065 — 렌더링 품질 보강 — Ken Burns fallback, BGM Ducking, Voice Pacing, 전환 효과 충돌 방지 | scope: backend | **PR #156 리뷰 대기**
 - [ ] SP-053 — 파이프라인 진행 가시성 — 노드 시작 이벤트 실시간 표시 + LangFuse 트레이스 링크 | scope: fullstack | approved | **즉시 실행 가능**
