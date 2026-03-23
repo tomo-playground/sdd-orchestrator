@@ -18,7 +18,7 @@ concurrency:
 jobs:
   review:
     runs-on: [self-hosted, sdd]
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
