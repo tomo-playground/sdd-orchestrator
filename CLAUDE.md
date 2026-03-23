@@ -670,7 +670,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 ```
 기능 개발: 태스크(사람) → 설계(AI작성→사람승인) → /sdd-run → AI TDD(RED→GREEN) + PR(AI) → 리뷰(자동) → 검수+머지(사람)
 버그 수정: Sentry(자동) → Issue → /sentry-autofix → AI TDD + PR → 리뷰(자동) → 머지(사람)
-정리:     PR 머지 → sdd-sync(자동) → 태스크 done/ + rebase
+정리:     PR 머지 → sdd-sync(자동) → 태스크 done/ + backlog 업데이트 + rebase
 ```
 
 ### 기능 개발 흐름
@@ -696,7 +696,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
   ↓
 [사람] 동작 검수 + 머지 판단
   ↓
-[자동] sdd-sync → 태스크 done/ + 브랜치 삭제 + 열린 PR rebase
+[자동] sdd-sync → 태스크 done/ + 브랜치 삭제 + 열린 PR rebase + backlog 업데이트
 ```
 
 ### 상세 설계 규칙
