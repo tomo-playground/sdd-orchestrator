@@ -40,7 +40,7 @@ export default function SceneEssentialFields({
     }))
   );
   const hasMultipleSpeakers = isMultiCharStructure(structure ?? "");
-  const isNarratedDialogue = structure?.toLowerCase() === "narrated dialogue";
+  const isNarratedDialogue = structure?.toLowerCase().replace(/ /g, "_") === "narrated_dialogue";
 
   return (
     <>
@@ -80,8 +80,14 @@ export default function SceneEssentialFields({
             className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
           >
             {isNarratedDialogue && <option value="Narrator">Narrator</option>}
-            <option value="A">{selectedCharacterName ? `A: ${selectedCharacterName}` : "Actor A"}</option>
-            {hasMultipleSpeakers && <option value="B">{selectedCharacterBName ? `B: ${selectedCharacterBName}` : "Actor B"}</option>}
+            <option value="A">
+              {selectedCharacterName ? `A: ${selectedCharacterName}` : "Actor A"}
+            </option>
+            {hasMultipleSpeakers && (
+              <option value="B">
+                {selectedCharacterBName ? `B: ${selectedCharacterBName}` : "Actor B"}
+              </option>
+            )}
           </select>
         </div>
 
