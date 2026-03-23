@@ -100,68 +100,6 @@ INDOOR_LOCATION_TAGS: frozenset[str] = frozenset(
         "stage",
     }
 )
-# --- Environment Tag → Korean Mapping (image_prompt_ko 장소 동기화용) ---
-# Danbooru environment tag → (primary Korean name, additional Korean aliases for detection)
-ENVIRONMENT_TAG_KO_MAP: dict[str, tuple[str, list[str]]] = {
-    # Indoor
-    "office": ("사무실", ["오피스"]),
-    "office_lobby": ("사무실 로비", ["로비"]),
-    "office_pantry": ("탕비실", []),
-    "bedroom": ("침실", []),
-    "kitchen": ("주방", ["부엌"]),
-    "bathroom": ("욕실", ["화장실"]),
-    "classroom": ("교실", []),
-    "library": ("도서관", []),
-    "cafe": ("카페", ["커피숍", "카페테리아"]),
-    "restaurant": ("식당", ["레스토랑"]),
-    "hospital": ("병원", []),
-    "church": ("교회", ["성당"]),
-    "school": ("학교", []),
-    "shop": ("가게", ["상점", "매장"]),
-    "hallway": ("복도", []),
-    "living_room": ("거실", []),
-    "stage": ("무대", []),
-    "meeting_room": ("회의실", []),
-    "conference_table": ("회의 테이블", []),
-    "subway_car": ("지하철", ["전철"]),
-    "train_interior": ("기차 안", ["열차"]),
-    "bus_interior": ("버스 안", []),
-    "elevator": ("엘리베이터", []),
-    "studio": ("스튜디오", []),
-    "gym": ("체육관", ["헬스장"]),
-    "bar": ("술집", ["바(술집)"]),
-    "convenience_store": ("편의점", []),
-    "warehouse": ("창고", []),
-    "prison_cell": ("감방", ["감옥"]),
-    "dorm_room": ("기숙사", []),
-    "attic": ("다락방", []),
-    "basement": ("지하실", []),
-    "laundry_room": ("세탁실", []),
-    "stairwell": ("계단", []),
-    "kitchenette": ("간이주방", []),
-    # Outdoor
-    "street": ("거리", ["길거리", "도로"]),
-    "park": ("공원", []),
-    "forest": ("숲", ["숲속"]),
-    "beach": ("해변", ["바닷가"]),
-    "mountain": ("산속", ["산꼭대기"]),
-    "garden": ("정원", []),
-    "city": ("도시", []),
-    "field": ("들판", []),
-    "lake": ("호수", []),
-    "river": ("강가", ["강변"]),
-    "rooftop": ("옥상", []),
-    "bridge": ("다리", []),
-    "alley": ("골목", ["골목길"]),
-    "playground": ("놀이터", []),
-    "parking_lot": ("주차장", []),
-    "train_station": ("기차역", []),
-    "bus_stop": ("버스 정류장", ["정류장"]),
-    "airport": ("공항", []),
-    "pier": ("부두", []),
-    "cemetery": ("묘지", []),
-}
-
 CAMERA_FRAMING_WIDE: frozenset[str] = frozenset({"full_body", "wide_shot"})
 CAMERA_FRAMING_MID: frozenset[str] = frozenset({"cowboy_shot", "upper_body", "from_waist"})
 CAMERA_FRAMING_CLOSE: frozenset[str] = frozenset(

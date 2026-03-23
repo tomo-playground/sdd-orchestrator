@@ -476,78 +476,100 @@ def _stabilize_location_cinematic(scenes: list[dict], writer_plan: dict | None) 
             )
 
 
-def _align_image_prompt_ko_environment(scenes: list[dict]) -> None:
-    """image_prompt_ko의 장소 표현을 context_tags.environment와 일치시킨다.
+async def _align_image_prompt_ko_environment(scenes: list[dict]) -> None:
+    """image_prompt_ko를 context_tags 기반으로 Gemini Flash 재생성한다.
 
-    Compositor가 Atmosphere의 environment와 다른 장소를 image_prompt_ko에 기술한 경우,
-    context_tags.environment 기준으로 한국어 장소명을 교정한다.
+    Compositor가 확정된 environment와 다른 장소를 image_prompt_ko에 기술할 수 있으므로,
+    finalize에서 확정된 context_tags(environment/action/emotion)를 기반으로
+    Gemini Flash 1회 배치 호출하여 전체 씬의 image_prompt_ko를 재생성한다.
     """
-    from config_prompt import ENVIRONMENT_TAG_KO_MAP, GENERIC_LOCATION_TAGS  # noqa: PLC0415
+    from config_prompt import GENERIC_LOCATION_TAGS  # noqa: PLC0415
 
-    # 역방향 맵: 한국어 → tag (감지용)
-    ko_to_tag: dict[str, str] = {}
-    for tag, (primary_ko, aliases) in ENVIRONMENT_TAG_KO_MAP.items():
-        ko_to_tag[primary_ko] = tag
-        for alias in aliases:
-            ko_to_tag[alias] = tag
-
-    # 길이 내림차순 정렬 (긴 문자열 우선 매칭: "사무실 로비" > "사무실")
-    sorted_ko_keys = sorted(ko_to_tag.keys(), key=len, reverse=True)
-
-    fixed_count = 0
+    # 재생성 대상 수집 (specific 환경 태그가 있는 씬만)
+    targets: list[tuple[int, dict]] = []
     for i, scene in enumerate(scenes):
         prompt_ko = scene.get("image_prompt_ko")
         if not prompt_ko:
             continue
-
         ctx = scene.get("context_tags") or {}
         env_tags = ctx.get("environment") or []
         if isinstance(env_tags, str):
             env_tags = [env_tags]
-
-        # 씬의 specific 환경 태그 (indoors/outdoors 제외)
         specific_env = [t for t in env_tags if t not in GENERIC_LOCATION_TAGS]
-        if not specific_env:
-            continue
+        if specific_env:
+            targets.append((i, scene))
 
-        # 목표 한국어 장소: 첫 번째 specific 환경 태그의 한국어
-        primary_tag = specific_env[0]
-        target_ko_info = ENVIRONMENT_TAG_KO_MAP.get(primary_tag)
-        if not target_ko_info:
-            continue
-        target_ko = target_ko_info[0]
+    if not targets:
+        return
 
-        # 현재 image_prompt_ko에서 한국어 장소 감지
-        found_ko_loc = None
-        found_tag = None
-        for ko_key in sorted_ko_keys:
-            if ko_key in prompt_ko:
-                found_tag = ko_to_tag[ko_key]
-                found_ko_loc = ko_key
-                break
+    # 배치 프롬프트 구성
+    import json  # noqa: PLC0415
 
-        if not found_ko_loc:
-            # 한국어 장소를 감지하지 못한 경우 스킵
-            continue
-
-        # 감지된 장소가 씬의 environment에 속하면 일치 → 스킵
-        env_norms = {t.lower().replace(" ", "_") for t in env_tags}
-        if found_tag in env_norms:
-            continue
-
-        # 불일치 → 교정
-        scene["image_prompt_ko"] = prompt_ko.replace(found_ko_loc, target_ko, 1)
-        fixed_count += 1
-        logger.info(
-            "[Finalize] Scene %d: image_prompt_ko 장소 교정 '%s'→'%s' (env=%s)",
-            i,
-            found_ko_loc,
-            target_ko,
-            specific_env,
+    scene_items = []
+    for i, scene in targets:
+        ctx = scene.get("context_tags") or {}
+        scene_items.append(
+            {
+                "order": i,
+                "script": scene.get("script", ""),
+                "environment": ctx.get("environment", []),
+                "emotion": ctx.get("emotion", ""),
+                "action": ctx.get("action", ""),
+                "pose": ctx.get("pose", ""),
+                "props": ctx.get("props", []),
+            }
         )
 
-    if fixed_count:
-        logger.info("[Finalize] image_prompt_ko 장소 교정 완료: %d씬", fixed_count)
+    user_prompt = f"""아래 씬들의 image_prompt_ko를 재생성해줘.
+각 씬의 context_tags(environment, emotion, action, pose, props)와 script를 참고하여
+자연스러운 한국어 한 문장으로 작성해.
+
+규칙:
+- 패턴: "[장소/상황]에서 [감정/동작]하는 모습" 또는 "[분위기] [장소 묘사]"
+- environment 태그의 장소를 반드시 반영 (subway_car → 지하철/전철, office → 사무실 등)
+- 캐릭터 외모(머리색, 눈색, 옷차림) 절대 포함 금지
+- 창의적이고 생동감 있는 묘사 권장
+
+씬 데이터:
+{json.dumps(scene_items, ensure_ascii=False, indent=2)}
+
+JSON 배열로 응답 (markdown 래핑 금지):
+[{{"order": 0, "image_prompt_ko": "..."}}]"""
+
+    system = "한국어 장면 묘사 전문가. 주어진 태그를 기반으로 자연스럽고 생동감 있는 한 문장 묘사를 생성한다."
+
+    try:
+        from services.llm import LLMConfig, get_llm_provider  # noqa: PLC0415
+
+        provider = get_llm_provider()
+        resp = await provider.generate(
+            step_name="finalize.align_image_prompt_ko",
+            contents=user_prompt,
+            config=LLMConfig(temperature=0.3, system_instruction=system, response_mime_type="application/json"),
+            metadata={"template": "finalize/align_image_prompt_ko"},
+        )
+
+        results = json.loads(resp.text)
+        if not isinstance(results, list):
+            logger.warning("[Finalize] image_prompt_ko 재생성 응답이 list가 아님: %s", type(results))
+            return
+
+        order_to_ko = {r["order"]: r["image_prompt_ko"] for r in results if "order" in r and "image_prompt_ko" in r}
+
+        fixed_count = 0
+        for i, scene in targets:
+            new_ko = order_to_ko.get(i)
+            if new_ko and new_ko != scene.get("image_prompt_ko"):
+                old_ko = scene.get("image_prompt_ko", "")
+                scene["image_prompt_ko"] = new_ko
+                fixed_count += 1
+                logger.info("[Finalize] Scene %d: image_prompt_ko 재생성 '%s' → '%s'", i, old_ko, new_ko)
+
+        if fixed_count:
+            logger.info("[Finalize] image_prompt_ko 재생성 완료: %d씬", fixed_count)
+
+    except Exception:
+        logger.warning("[Finalize] image_prompt_ko 재생성 실패 (non-fatal, 원본 유지)", exc_info=True)
 
 
 def _load_char_exclusive_tags(character_id: int, db) -> dict[str, set[str]]:
@@ -1505,12 +1527,17 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         _inject_location_map_tags(scenes, state.get("writer_plan"))
         _inject_location_negative_tags(scenes, state.get("writer_plan"))
         _stabilize_location_cinematic(scenes, state.get("writer_plan"))
-        _align_image_prompt_ko_environment(scenes)
         from ._prompt_conflict_resolver import _resolve_positive_negative_conflicts
 
         _resolve_positive_negative_conflicts(scenes)
     except Exception:
         logger.warning("[Finalize] 환경/로케이션 태그 처리 실패 (non-fatal)", exc_info=True)
+
+    # 그룹 3.1: image_prompt_ko 재생성 (환경 태그 확정 후 LLM 배치 호출)
+    try:
+        await _align_image_prompt_ko_environment(scenes)
+    except Exception:
+        logger.warning("[Finalize] image_prompt_ko 재생성 실패 (non-fatal)", exc_info=True)
 
     # 그룹 3.5: cross-field 검증 + 재조립 + 금지 태그 필터 + 형식 정규화
     # 순서 중요: rebuild가 image_prompt를 context_tags 기반으로 덮어쓰므로, 필터/정규화는 rebuild 이후 실행

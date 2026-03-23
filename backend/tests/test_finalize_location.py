@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import json  # noqa: F401 — TestAlignImagePromptKoEnvironment에서 사용
+from unittest.mock import AsyncMock, patch  # noqa: F401
+
+import pytest  # noqa: F401
+
 from services.agent.nodes.finalize import (
     _align_image_prompt_ko_environment,
     _collect_cinematic_palette,
@@ -351,140 +356,161 @@ class TestPickAnchor:
         assert anchor == sorted(palette)[0]
 
 
-class TestAlignImagePromptKoEnvironment:
-    """_align_image_prompt_ko_environment 테스트."""
+def _mock_llm_response(results: list[dict]) -> AsyncMock:
+    """LLM provider.generate를 mock하여 지정된 JSON 결과를 반환."""
+    import json as _json
+    from unittest.mock import AsyncMock as _AsyncMock
 
-    def test_fixes_mismatched_location(self):
-        """environment=subway_car인데 image_prompt_ko에 '사무실'이면 '지하철'로 교정."""
+    from services.llm import LLMResponse
+
+    mock_provider = _AsyncMock()
+    mock_provider.generate.return_value = LLMResponse(text=_json.dumps(results, ensure_ascii=False))
+    return mock_provider
+
+
+class TestAlignImagePromptKoEnvironment:
+    """_align_image_prompt_ko_environment 테스트 (LLM mock 기반)."""
+
+    @pytest.mark.asyncio
+    async def test_regenerates_mismatched_location(self):
+        """environment=subway_car인데 image_prompt_ko에 '사무실' → LLM이 재생성."""
         scenes = [
             {
-                "context_tags": {"environment": ["subway_car", "indoors"]},
+                "script": "첫 실수, 사수님께…",
+                "context_tags": {"environment": ["subway_car", "indoors"], "emotion": "happy", "action": "greeting"},
                 "image_prompt_ko": "밝은 사무실에서 미소 지으며 인사하는 모습",
             },
         ]
-        _align_image_prompt_ko_environment(scenes)
-        assert "지하철" in scenes[0]["image_prompt_ko"]
-        assert "사무실" not in scenes[0]["image_prompt_ko"]
+        mock_provider = _mock_llm_response(
+            [
+                {"order": 0, "image_prompt_ko": "붐비는 출근길 지하철 안에서 어색하게 미소 짓는 모습"},
+            ]
+        )
+        with patch("services.llm.get_llm_provider", return_value=mock_provider):
+            await _align_image_prompt_ko_environment(scenes)
 
-    def test_no_change_when_matching(self):
-        """environment와 image_prompt_ko가 일치하면 변경 없음."""
-        scenes = [
-            {
-                "context_tags": {"environment": ["office", "indoors"]},
-                "image_prompt_ko": "밝은 사무실에서 타이핑하는 모습",
-            },
-        ]
-        original = scenes[0]["image_prompt_ko"]
-        _align_image_prompt_ko_environment(scenes)
-        assert scenes[0]["image_prompt_ko"] == original
+        assert scenes[0]["image_prompt_ko"] == "붐비는 출근길 지하철 안에서 어색하게 미소 짓는 모습"
+        mock_provider.generate.assert_called_once()
 
-    def test_no_change_when_no_ko_location_detected(self):
-        """image_prompt_ko에서 한국어 장소를 감지하지 못하면 스킵."""
-        scenes = [
-            {
-                "context_tags": {"environment": ["subway_car", "indoors"]},
-                "image_prompt_ko": "긴장한 표정으로 서 있는 모습",
-            },
-        ]
-        original = scenes[0]["image_prompt_ko"]
-        _align_image_prompt_ko_environment(scenes)
-        assert scenes[0]["image_prompt_ko"] == original
-
-    def test_no_change_when_no_specific_env(self):
-        """environment에 generic 태그(indoors)만 있으면 스킵."""
+    @pytest.mark.asyncio
+    async def test_skips_when_no_specific_env(self):
+        """environment에 generic 태그(indoors)만 있으면 LLM 호출 안 함."""
         scenes = [
             {
                 "context_tags": {"environment": ["indoors"]},
                 "image_prompt_ko": "사무실에서 웃고 있는 모습",
             },
         ]
-        original = scenes[0]["image_prompt_ko"]
-        _align_image_prompt_ko_environment(scenes)
-        assert scenes[0]["image_prompt_ko"] == original
+        mock_provider = _mock_llm_response([])
+        with patch("services.llm.get_llm_provider", return_value=mock_provider):
+            await _align_image_prompt_ko_environment(scenes)
 
-    def test_no_change_when_no_prompt_ko(self):
-        """image_prompt_ko가 없으면 스킵."""
+        mock_provider.generate.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_skips_when_no_prompt_ko(self):
+        """image_prompt_ko가 없으면 LLM 호출 안 함."""
         scenes = [
             {
                 "context_tags": {"environment": ["office", "indoors"]},
             },
         ]
-        _align_image_prompt_ko_environment(scenes)
-        assert "image_prompt_ko" not in scenes[0]
+        mock_provider = _mock_llm_response([])
+        with patch("services.llm.get_llm_provider", return_value=mock_provider):
+            await _align_image_prompt_ko_environment(scenes)
 
-    def test_cafe_alias_detection(self):
-        """'카페테리아' 별칭이 cafe environment와 매칭되면 변경 없음."""
+        mock_provider.generate.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_multiple_scenes_batch(self):
+        """여러 씬을 1회 배치 호출로 재생성."""
         scenes = [
             {
-                "context_tags": {"environment": ["cafe", "indoors"]},
-                "image_prompt_ko": "카페테리아에서 커피를 마시는 모습",
-            },
-        ]
-        original = scenes[0]["image_prompt_ko"]
-        _align_image_prompt_ko_environment(scenes)
-        assert scenes[0]["image_prompt_ko"] == original
-
-    def test_fixes_cafe_to_office(self):
-        """environment=office인데 '카페'라고 쓰면 '사무실'로 교정."""
-        scenes = [
-            {
-                "context_tags": {"environment": ["office", "indoors"]},
-                "image_prompt_ko": "카페에서 놀란 표정을 짓는 모습",
-            },
-        ]
-        _align_image_prompt_ko_environment(scenes)
-        assert "사무실" in scenes[0]["image_prompt_ko"]
-        assert "카페" not in scenes[0]["image_prompt_ko"]
-
-    def test_longer_ko_matched_first(self):
-        """'사무실 로비'가 '사무실'보다 먼저 매칭된다 (긴 문자열 우선)."""
-        scenes = [
-            {
-                "context_tags": {"environment": ["bedroom", "indoors"]},
-                "image_prompt_ko": "사무실 로비에서 인사하는 모습",
-            },
-        ]
-        _align_image_prompt_ko_environment(scenes)
-        assert "침실" in scenes[0]["image_prompt_ko"]
-        assert "사무실 로비" not in scenes[0]["image_prompt_ko"]
-
-    def test_multiple_scenes_partial_fix(self):
-        """여러 씬 중 불일치 씬만 교정."""
-        scenes = [
-            {
-                "context_tags": {"environment": ["office", "indoors"]},
+                "script": "사무실에서 일하는 중",
+                "context_tags": {"environment": ["office", "indoors"], "emotion": "focused", "action": "typing"},
                 "image_prompt_ko": "사무실에서 일하는 모습",
             },
             {
-                "context_tags": {"environment": ["subway_car", "indoors"]},
+                "script": "지하철에서 인사",
+                "context_tags": {"environment": ["subway_car", "indoors"], "emotion": "happy", "action": "greeting"},
                 "image_prompt_ko": "사무실에서 인사하는 모습",
             },
         ]
-        _align_image_prompt_ko_environment(scenes)
-        # 씬 0: 일치 → 변경 없음
-        assert "사무실" in scenes[0]["image_prompt_ko"]
-        # 씬 1: 불일치 → 교정
-        assert "지하철" in scenes[1]["image_prompt_ko"]
+        mock_provider = _mock_llm_response(
+            [
+                {"order": 0, "image_prompt_ko": "밝은 사무실 책상에서 집중하며 타이핑하는 모습"},
+                {"order": 1, "image_prompt_ko": "붐비는 지하철 안에서 반갑게 인사하는 모습"},
+            ]
+        )
+        with patch("services.llm.get_llm_provider", return_value=mock_provider):
+            await _align_image_prompt_ko_environment(scenes)
 
-    def test_env_string_instead_of_list(self):
-        """environment가 list 대신 str이어도 동작."""
+        assert scenes[0]["image_prompt_ko"] == "밝은 사무실 책상에서 집중하며 타이핑하는 모습"
+        assert scenes[1]["image_prompt_ko"] == "붐비는 지하철 안에서 반갑게 인사하는 모습"
+        # 1회만 호출 (배치)
+        assert mock_provider.generate.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_llm_failure_preserves_original(self):
+        """LLM 호출 실패 시 원본 image_prompt_ko 유지."""
         scenes = [
             {
-                "context_tags": {"environment": "subway_car"},
-                "image_prompt_ko": "사무실에서 웃는 모습",
-            },
-        ]
-        _align_image_prompt_ko_environment(scenes)
-        assert "지하철" in scenes[0]["image_prompt_ko"]
-
-    def test_unknown_env_tag_skipped(self):
-        """ENVIRONMENT_TAG_KO_MAP에 없는 태그는 스킵."""
-        scenes = [
-            {
-                "context_tags": {"environment": ["alien_spaceship", "indoors"]},
-                "image_prompt_ko": "사무실에서 놀란 모습",
+                "script": "테스트",
+                "context_tags": {"environment": ["subway_car", "indoors"], "emotion": "happy", "action": "greeting"},
+                "image_prompt_ko": "밝은 사무실에서 인사하는 모습",
             },
         ]
         original = scenes[0]["image_prompt_ko"]
-        _align_image_prompt_ko_environment(scenes)
+        mock_provider = AsyncMock()
+        mock_provider.generate.side_effect = RuntimeError("API error")
+        with patch("services.llm.get_llm_provider", return_value=mock_provider):
+            await _align_image_prompt_ko_environment(scenes)
+
         assert scenes[0]["image_prompt_ko"] == original
+
+    @pytest.mark.asyncio
+    async def test_env_string_instead_of_list(self):
+        """environment가 str이어도 동작."""
+        scenes = [
+            {
+                "script": "테스트",
+                "context_tags": {"environment": "subway_car", "emotion": "happy", "action": "greeting"},
+                "image_prompt_ko": "사무실에서 웃는 모습",
+            },
+        ]
+        mock_provider = _mock_llm_response(
+            [
+                {"order": 0, "image_prompt_ko": "지하철 안에서 환하게 웃는 모습"},
+            ]
+        )
+        with patch("services.llm.get_llm_provider", return_value=mock_provider):
+            await _align_image_prompt_ko_environment(scenes)
+
+        assert scenes[0]["image_prompt_ko"] == "지하철 안에서 환하게 웃는 모습"
+
+    @pytest.mark.asyncio
+    async def test_partial_llm_response(self):
+        """LLM이 일부 씬만 응답해도 해당 씬만 업데이트."""
+        scenes = [
+            {
+                "script": "씬0",
+                "context_tags": {"environment": ["office", "indoors"], "emotion": "happy", "action": "working"},
+                "image_prompt_ko": "원본0",
+            },
+            {
+                "script": "씬1",
+                "context_tags": {"environment": ["cafe", "indoors"], "emotion": "relaxed", "action": "drinking"},
+                "image_prompt_ko": "원본1",
+            },
+        ]
+        # order=1만 응답
+        mock_provider = _mock_llm_response(
+            [
+                {"order": 1, "image_prompt_ko": "아늑한 카페에서 여유롭게 커피를 마시는 모습"},
+            ]
+        )
+        with patch("services.llm.get_llm_provider", return_value=mock_provider):
+            await _align_image_prompt_ko_environment(scenes)
+
+        assert scenes[0]["image_prompt_ko"] == "원본0"  # 응답 없어서 원본 유지
+        assert scenes[1]["image_prompt_ko"] == "아늑한 카페에서 여유롭게 커피를 마시는 모습"
