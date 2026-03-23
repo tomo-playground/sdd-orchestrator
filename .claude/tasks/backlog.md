@@ -30,7 +30,7 @@
 - [ ] SP-062 — image_prompt/context_tags 코드 검증 — Finalize에 금지 태그 필터, Danbooru 형식 정규화, context_tags 전체 필드 유효성 검증, 재조립 후 sanity check 추가 | scope: backend
 - [ ] SP-063 — 렌더링 미호출 함수 연결 — detect_face(), analyze_text_region_brightness(), normalize_audio(), calculate_optimal_scene_text_y() 등 정의됨+미호출 함수 4건 통합 연결 | scope: backend
 - [ ] SP-058 — Structure 재설계 C: Intake 노드 — Guided 모드 소크라테스 질문으로 structure/tone/캐릭터 확정 | [명세](../../docs/01_product/FEATURES/STRUCTURE_SYSTEM_REDESIGN.md) §5 | depends: ~~SP-056~~ ✅
-- [ ] SP-059 — Structure 재설계 D: multi 씬 활성화 — scene_mode="multi" 프롬프트 강화 + Finalize 보정 완화 | [명세](../../docs/01_product/FEATURES/STRUCTURE_SYSTEM_REDESIGN.md) §7
+- [x] ~~SP-059~~ — Structure 재설계 D: multi 씬 활성화 — scene_mode="multi" 프롬프트 강화 + Finalize 보정 완화 | [명세](../../docs/01_product/FEATURES/STRUCTURE_SYSTEM_REDESIGN.md) §7
 - [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
 - [ ] SP-021 — Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md) | depends: SP-020, ~~SP-056~~ ✅
 - [ ] SP-022 — ComfyUI 마이그레이션 — ForgeUI→ComfyUI + SD Client 추상화 | [명세](../../docs/01_product/FEATURES/COMFYUI_MIGRATION.md)
