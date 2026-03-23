@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-061-review-dialogue-quality
 created: 2026-03-23
-status: approved
+status: running
 depends_on:
 label: feat
 ---
@@ -19,21 +19,21 @@ Review 노드에 대사 품질 코드 레벨(L2) 검증을 추가하여, Gemini 
 
 ### Layer A: 구조 검증 (순수 함수, Gemini 호출 없음)
 
-- [ ] **A-1 감정 중복 연속 (Finalize 배치)**: Finalize 노드에서 동일 speaker의 연속 2씬 이상에서 context_tags.emotion이 동일하면 WARNING 로그, 3씬 이상이면 ERROR 로그를 출력한다 (Review 시점에는 context_tags 미존재이므로 Cinematographer 이후인 Finalize에서 실행)
-- [ ] **A-2 Speaker 교번 단절**: dialogue 구조에서 동일 speaker가 3씬 이상 연속이면 WARNING을 추가한다 (monologue/narrated_dialogue 구조는 제외)
-- [ ] **A-3 인접 씬 스크립트 유사도**: 인접 2씬의 script 토큰 Jaccard 유사도가 0.7 이상이면 WARNING을 추가한다
+- [x] **A-1 감정 중복 연속 (Finalize 배치)**: Finalize 노드에서 동일 speaker의 연속 2씬 이상에서 context_tags.emotion이 동일하면 WARNING 로그, 3씬 이상이면 ERROR 로그를 출력한다 (Review 시점에는 context_tags 미존재이므로 Cinematographer 이후인 Finalize에서 실행)
+- [x] **A-2 Speaker 교번 단절**: dialogue 구조에서 동일 speaker가 3씬 이상 연속이면 WARNING을 추가한다 (monologue/narrated_dialogue 구조는 제외)
+- [x] **A-3 인접 씬 스크립트 유사도**: 인접 2씬의 script 토큰 Jaccard 유사도가 0.7 이상이면 WARNING을 추가한다
 
 ### Layer B: 패턴 검증 (정규식/키워드)
 
-- [ ] **B-1 클리셰 감지**: config.py에 `DIALOGUE_CLICHE_PATTERNS` 리스트를 정의하고, 씬 script에 2개 이상 매칭되면 WARNING을 추가한다
-- [ ] **B-2 문체 일관성**: dialogue 구조에서 동일 speaker의 씬들이 반말/존댓말을 혼용(각 3씬 이상)하면 WARNING을 추가한다
+- [x] **B-1 클리셰 감지**: config.py에 `DIALOGUE_CLICHE_PATTERNS` 리스트를 정의하고, 씬 script에 2개 이상 매칭되면 WARNING을 추가한다
+- [x] **B-2 문체 일관성**: dialogue 구조에서 동일 speaker의 씬들이 반말/존댓말을 혼용(각 3씬 이상)하면 WARNING을 추가한다
 
 ### 통합
 
-- [ ] `_review_validators.py`의 기존 `validate_scenes()` 플로우에 Layer A+B 검증을 추가한다 (별도 함수 `validate_dialogue_quality()` 추출)
-- [ ] 검증 결과가 `ReviewResult.warnings/errors`에 포함되어 Revise 노드의 `revision_feedback`에 자동 전달된다
-- [ ] 기존 테스트 regression 없음
-- [ ] 린트 통과
+- [x] `_review_validators.py`의 기존 `validate_scenes()` 플로우에 Layer A+B 검증을 추가한다 (별도 함수 `validate_dialogue_quality()` 추출)
+- [x] 검증 결과가 `ReviewResult.warnings/errors`에 포함되어 Revise 노드의 `revision_feedback`에 자동 전달된다
+- [x] 기존 테스트 regression 없음
+- [x] 린트 통과
 
 ## 영향 분석
 - 관련 파일: `backend/services/agent/nodes/_review_validators.py`, `backend/services/agent/nodes/review.py`, `backend/config.py`

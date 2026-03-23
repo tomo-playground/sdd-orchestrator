@@ -960,6 +960,25 @@ SCENE_DURATION_RANGE = (2.0, 3.5)  # (min_seconds, max_seconds) per scene
 SCENE_DEFAULT_DURATION = 3.0  # fallback duration for invalid scenes (revise node)
 REVIEW_SCRIPT_MAX_CHARS_OTHER = 70  # char-level review threshold for non-Korean (~max_words * avg_chars)
 
+# --- Dialogue Quality Patterns (Review L2 검증) ---
+DIALOGUE_CLICHE_PATTERNS: list[str] = [
+    r"심쿵",
+    r"소름\s*돋",
+    r"레전드",
+    r"역대급",
+    r"미쳤",
+    r"대박",
+    r"실화",
+    r"ㄹㅇ",
+    r"갓",
+    r"킹",
+    r"찐이",
+    r"어떻게\s*이런",
+    r"말이\s*돼\?",
+    r"세상에",
+    r"헐",
+]
+
 # --- Reading Speed (SSOT for duration estimation + Frontend display) ---
 READING_SPEED: dict[str, dict] = {
     "korean": {"cps": 4.0, "unit": "chars"},

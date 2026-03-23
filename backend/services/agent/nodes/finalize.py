@@ -175,6 +175,74 @@ def _inject_writer_plan_emotions(scenes: list[dict], writer_plan: dict | None) -
             ctx["emotion"] = arc[i]
 
 
+def _validate_emotion_continuity(scenes: list[dict]) -> None:
+    """A-1: 동일 speaker 연속 씬에서 emotion 중복 감지 → WARNING/ERROR 로그.
+
+    '연속'은 scenes 리스트에서 인접한 씬을 의미한다.
+    다른 speaker의 씬이 사이에 끼면 연속이 끊긴다.
+    """
+    if len(scenes) < 2:
+        return
+
+    def _coerce_emotion(raw: str | list | None) -> str | None:
+        if isinstance(raw, list):
+            return raw[0] if raw else None
+        return raw if raw else None
+
+    def _flush(speaker: str, emotion: str, start: int, count: int) -> None:
+        if count >= 3:
+            logger.error(
+                "[Finalize] 씬 %d~%d: %s의 감정 '%s'이 %d씬 연속 중복",
+                start + 1,
+                start + count,
+                speaker,
+                emotion,
+                count,
+            )
+        elif count >= 2:
+            logger.warning(
+                "[Finalize] 씬 %d~%d: %s의 감정 '%s'이 %d씬 연속 중복",
+                start + 1,
+                start + count,
+                speaker,
+                emotion,
+                count,
+            )
+
+    streak_speaker: str | None = None
+    streak_emotion: str | None = None
+    streak_start = 0
+    streak_count = 0
+
+    for i, scene in enumerate(scenes):
+        speaker = scene.get("speaker")
+        ctx = scene.get("context_tags")
+        emotion = _coerce_emotion(ctx.get("emotion") if ctx else None)
+
+        if not speaker or emotion is None:
+            # streak 끊기
+            if streak_count >= 2:
+                _flush(streak_speaker, streak_emotion, streak_start, streak_count)
+            streak_speaker = None
+            streak_emotion = None
+            streak_count = 0
+            continue
+
+        if speaker == streak_speaker and emotion == streak_emotion:
+            streak_count += 1
+        else:
+            if streak_count >= 2:
+                _flush(streak_speaker, streak_emotion, streak_start, streak_count)
+            streak_speaker = speaker
+            streak_emotion = emotion
+            streak_start = i
+            streak_count = 1
+
+    # 잔여 streak flush
+    if streak_count >= 2:
+        _flush(streak_speaker, streak_emotion, streak_start, streak_count)
+
+
 def _normalize_environment_tags(scenes: list[dict]) -> None:
     """context_tags.setting → context_tags.environment 정규화."""
     for scene in scenes:
@@ -1112,6 +1180,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         diversify_actions(scenes)
         diversify_cameras(scenes)
         diversify_poses(scenes)
+        _validate_emotion_continuity(scenes)
     except Exception:
         logger.warning("[Finalize] context_tags/다양성 처리 실패 (non-fatal)", exc_info=True)
 
