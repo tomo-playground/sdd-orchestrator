@@ -17,6 +17,7 @@ from services.prompt.composition import (
     LAYER_QUALITY,
     LAYER_SUBJECT,
     PromptBuilder,
+    select_style_trigger_words,
 )
 
 logger = logging.getLogger(__name__)
@@ -97,11 +98,14 @@ class MultiCharacterComposer:
         common_raw = ", ".join(common_parts)
         common_deduped = self._dedup_tokens(common_raw)
 
-        # Per-BREAK dedup (각 캐릭터 독립)
-        char_a_deduped = self._dedup_tokens(char_a_flat)
-        char_b_deduped = self._dedup_tokens(char_b_flat)
+        # 9. 스타일 강화: quality 태그 전체를 각 BREAK 섹션에 복사
+        # SDXL BREAK는 독립 크로스어텐션이므로, 공통의 스타일이 캐릭터에 전파 안 됨
+        char_a_with_style = f"{quality}, {char_a_flat}" if quality and char_a_flat else char_a_flat
+        char_b_with_style = f"{quality}, {char_b_flat}" if quality and char_b_flat else char_b_flat
+        char_a_deduped = self._dedup_tokens(char_a_with_style)
+        char_b_deduped = self._dedup_tokens(char_b_with_style)
 
-        # 9. BREAK 토큰으로 분리
+        # 10. BREAK 토큰으로 분리
         sections = [common_deduped]
         if char_a_deduped:
             sections.append(char_a_deduped)
@@ -129,7 +133,10 @@ class MultiCharacterComposer:
         return "1boy, 1girl"  # fallback
 
     def _flatten_character(self, character: Character, char_tags: list[dict], actions: list[dict] | None) -> str:
-        """Flatten a single character's tags into comma-separated string."""
+        """Flatten a single character's tags into comma-separated string.
+
+        1P와 동일하게 레이어별 weight 부스트를 적용한다.
+        """
         layers: list[list[str]] = [[] for _ in range(12)]
         for ct in char_tags:
             token = ct["name"]
@@ -140,10 +147,10 @@ class MultiCharacterComposer:
         if actions:
             self.builder._apply_scene_character_actions(character.id, actions, layers)
 
-        # Collect only identity/body/cloth/accessory/expression/action layers
-        tokens = []
+        # Collect identity/body/cloth/accessory/expression/action layers with boost
+        tokens: list[str] = []
         for i in range(LAYER_IDENTITY, LAYER_CAMERA):
-            tokens.extend(layers[i])
+            tokens.extend(PromptBuilder._apply_layer_boosts(i, layers[i]))
 
         # Banned tags 제거
         filtered = [t for t in tokens if self._token_base(t) not in _MULTI_BANNED_TAGS]
@@ -170,17 +177,26 @@ class MultiCharacterComposer:
         return quality
 
     def _flatten_scene_tags(self, scene_tags: list[str]) -> str:
-        """Flatten scene tags (environment, camera, atmosphere only)."""
+        """Flatten scene tags (environment, camera, atmosphere only).
+
+        1P와 동일하게 레이어별 weight 부스트를 적용한다.
+        """
         tag_info = self.builder.get_tag_info(scene_tags)
         scene_layers = {LAYER_CAMERA, LAYER_ENVIRONMENT, LAYER_ATMOSPHERE}
-        tokens = []
+        by_layer: dict[int, list[str]] = {}
         for tag in scene_tags:
             if tag.strip().startswith("<lora:"):
                 continue
             norm = tag.lower().replace(" ", "_").strip()
             info = tag_info.get(norm, {"layer": LAYER_SUBJECT})
-            if info["layer"] in scene_layers:
-                tokens.append(tag)
+            layer = info["layer"]
+            if layer in scene_layers:
+                by_layer.setdefault(layer, []).append(tag)
+
+        # 레이어별 weight 부스트 적용 (1P _flatten_layers와 동일)
+        tokens: list[str] = []
+        for layer in sorted(by_layer):
+            tokens.extend(PromptBuilder._apply_layer_boosts(layer, by_layer[layer]))
         return ", ".join(tokens) if tokens else ""
 
     def _ensure_interaction_tag(self, scene_flat: str, scene_tags: list[str]) -> str:
@@ -201,9 +217,13 @@ class MultiCharacterComposer:
         return "facing_another"
 
     def _build_lora_string(self, char_a: Character, char_b: Character, style_loras: list[dict] | None) -> str:
-        """Build LoRA injection string with dedup and weight scaling."""
+        """Build LoRA injection string with dedup and weight scaling.
+
+        Style LoRA의 trigger word도 함께 주입한다 (1P 경로와 동일).
+        """
         char_loras: dict[str, tuple[str, float]] = {}  # name -> (lora_tag, weight)
         style_lora_tags: list[str] = []
+        trigger_tokens: list[str] = []
 
         # Character LoRAs (weight 상한 적용 대상)
         for char in [char_a, char_b]:
@@ -218,10 +238,13 @@ class MultiCharacterComposer:
                 weight = lora.get("weight") or self.builder.get_lora_weight_by_name(name)
                 weight = PromptBuilder._cap_lora_weight(weight)
                 style_lora_tags.append(f"<lora:{name}:{weight}>")
+                # Trigger word 주입 (1P compose_for_character와 동일)
+                triggers = select_style_trigger_words(lora.get("trigger_words") or [])
+                trigger_tokens.extend(triggers)
 
         # Character LoRA만 합산 상한 검증
         capped = self._cap_total_lora_weight(char_loras) if char_loras else ""
-        parts = [p for p in [capped, ", ".join(style_lora_tags)] if p]
+        parts = [p for p in [", ".join(trigger_tokens), capped, ", ".join(style_lora_tags)] if p]
         return ", ".join(parts)
 
     def _inject_character_loras(self, character: Character, injected: dict[str, tuple[str, float]]) -> None:
