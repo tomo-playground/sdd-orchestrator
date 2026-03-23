@@ -75,6 +75,34 @@ def _load_characters_tags(state: ScriptState, db) -> dict[str, dict[str, list[st
     return result if result else None
 
 
+def _load_char_gender_contexts(
+    state: ScriptState,
+    db: object,
+) -> tuple[dict | None, dict | None]:
+    """캐릭터 A/B의 gender context를 로드한다 (multi rules 생성용)."""
+    from sqlalchemy import select  # noqa: PLC0415
+
+    from models.character import Character  # noqa: PLC0415
+
+    def _get_gender(cid: int | None) -> dict | None:
+        if not cid:
+            return None
+        try:
+            char = db.execute(
+                select(Character.gender).where(
+                    Character.id == cid,
+                    Character.deleted_at.is_(None),
+                )
+            ).scalar_one_or_none()  # type: ignore[union-attr]
+            return {"gender": char} if char else None
+        except Exception:
+            return None
+
+    char_a_id = state.get("character_id") or state.get("draft_character_id")
+    char_b_id = state.get("character_b_id") or state.get("draft_character_b_id")
+    return _get_gender(char_a_id), _get_gender(char_b_id)
+
+
 def _load_single_character_tags(cid: int, db) -> dict[str, list[str]]:
     """단일 캐릭터의 계층화된 태그 + LoRA 트리거 워드를 로드한다."""
     from sqlalchemy import select  # noqa: PLC0415
@@ -200,6 +228,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         build_chat_context_cinematographer,
         build_cine_feedback_json_hint,
         build_cine_feedback_section,
+        build_compositor_multi_rules,
         build_creative_direction_section,
         build_style_section,
         build_writer_plan_section,
@@ -209,6 +238,18 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     characters_tags_block = build_characters_tags_block(characters_tags)
     style_section = build_style_section(style)
     writer_plan_section = build_writer_plan_section(writer_plan)
+
+    # multi-character 판단
+    from config import MULTI_CHAR_STRUCTURES, coerce_structure_id  # noqa: PLC0415
+
+    structure = state.get("structure", "")
+    char_b = state.get("character_b_id") or state.get("draft_character_b_id")
+    is_multi = bool(char_b) and coerce_structure_id(structure) in MULTI_CHAR_STRUCTURES
+
+    multi_rules_block = ""
+    if is_multi:
+        char_a_ctx, char_b_ctx = _load_char_gender_contexts(state, db_session)
+        multi_rules_block = build_compositor_multi_rules(True, char_a_ctx, char_b_ctx)
 
     _cine_template = "creative/cinematographer"
     compiled = compile_prompt(
@@ -241,6 +282,8 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         emotion_consistency_rules=EMOTION_CONSISTENCY_RULES,
         tools=tools,
         tool_executors=executors,
+        is_multi=is_multi,
+        multi_rules_block=multi_rules_block,
     )
     if team_result:
         return team_result
@@ -259,6 +302,8 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         tools=tools,
         executors=executors,
         cine_template=_cine_template,
+        is_multi=is_multi,
+        multi_rules_block=multi_rules_block,
     )
 
 
@@ -273,6 +318,8 @@ async def _run_team(
     emotion_consistency_rules: str,
     tools: list,
     tool_executors: dict,
+    is_multi: bool = False,
+    multi_rules_block: str = "",
 ) -> dict | None:
     """4 서브 에이전트 순차 실행: Framing → Action → Atmosphere → Compositor."""
     try:
@@ -286,6 +333,8 @@ async def _run_team(
             emotion_consistency_rules=emotion_consistency_rules,
             tools=tools,
             tool_executors=tool_executors,
+            is_multi=is_multi,
+            multi_rules_block=multi_rules_block,
         )
     except Exception as e:
         logger.warning("[CineTeam] 팀 실행 실패, fallback으로 전환: %s", e, exc_info=True)
@@ -303,6 +352,8 @@ async def _run_team_inner(
     emotion_consistency_rules: str,
     tools: list,
     tool_executors: dict,
+    is_multi: bool = False,
+    multi_rules_block: str = "",
 ) -> dict | None:
     """_run_team의 내부 구현. 예외는 _run_team에서 catch."""
     from ._cine_action import run_action  # noqa: PLC0415
@@ -340,6 +391,8 @@ async def _run_team_inner(
         emotion_consistency_rules,
         tools,
         tool_executors,
+        is_multi=is_multi,
+        multi_rules_block=multi_rules_block,
     )
     if not scenes_output:
         logger.warning("[CineTeam] Compositor 실패, 팀 중단")
@@ -366,6 +419,8 @@ async def _run_single(
     tools: list,
     executors: dict,
     cine_template: str,
+    is_multi: bool = False,
+    multi_rules_block: str = "",
 ) -> dict:
     """단일 에이전트 실행 (기존 Tool-Calling 방식)."""
     from ..tools.base import call_direct, call_with_tools  # noqa: PLC0415
@@ -384,6 +439,8 @@ async def _run_single(
     ]
     if director_feedback:
         prompt_parts.append(f"\n[Director 피드백]\n{director_feedback}")
+    if multi_rules_block:
+        prompt_parts.append(f"\n{multi_rules_block}")
     prompt_parts.append(_JSON_OUTPUT_INSTRUCTION)
     prompt = "\n".join(prompt_parts)
 
@@ -455,7 +512,7 @@ _JSON_OUTPUT_INSTRUCTION = """
 - 자연어 설명, 인사말, 확인 메시지를 절대 포함하지 마세요
 - 순수 JSON만 출력하세요
 
-{"scenes": [{"order": 1, "text": "씬 대본", "visual_tags": ["tag1"], "camera": "close-up", "environment": "indoors"}, ...]}
+{"scenes": [{"order": 1, "scene_mode": "single", "text": "씬 대본", "visual_tags": ["tag1"], "camera": "close-up", "environment": "indoors"}, ...]}
 """
 
 _JSON_RETRY_SUFFIX = (

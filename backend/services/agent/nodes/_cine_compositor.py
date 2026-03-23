@@ -31,6 +31,8 @@ async def run_compositor(
     emotion_consistency_rules: str,
     tools: list | None = None,
     tool_executors: dict | None = None,
+    is_multi: bool = False,
+    multi_rules_block: str = "",
 ) -> tuple[list[dict] | None, list]:
     """Compositor 실행 — 최종 scenes JSON 조립.
 
@@ -46,6 +48,7 @@ async def run_compositor(
         style_section,
         image_prompt_ko_rules,
         emotion_consistency_rules,
+        multi_rules_block=multi_rules_block,
     )
     tool_logs: list = []
 
@@ -94,6 +97,8 @@ def _build_prompt(
     style_section: str,
     image_prompt_ko_rules: str,
     emotion_consistency_rules: str,
+    *,
+    multi_rules_block: str = "",
 ) -> str:
     framing_json = json.dumps(framing_result, ensure_ascii=False, indent=2) if framing_result else "{}"
     action_json = json.dumps(action_result, ensure_ascii=False, indent=2) if action_result else "{}"
@@ -138,6 +143,8 @@ def _build_prompt(
             f"## image_prompt_ko rules:\n{image_prompt_ko_rules}" if image_prompt_ko_rules else "",
             emotion_consistency_rules or "",
             "",
+            multi_rules_block or "",
+            "",
             "## Assembly Instructions",
             "For each scene, merge all agents' outputs into context_tags and build:",
             "1. context_tags: {emotion, camera, action, pose, gaze, environment, cinematic, props}",
@@ -158,7 +165,7 @@ def _build_prompt(
 
 _OUTPUT_FORMAT = """\
 ## Output Format (JSON only, no markdown wrapping)
-{"scenes": [{"order": 0, "script": "원본 대사", "speaker": "A", "duration": 2.5,
+{"scenes": [{"order": 0, "scene_mode": "single", "script": "원본 대사", "speaker": "A", "duration": 2.5,
 "camera": "close-up", "environment": "kitchen",
 "image_prompt": "nervous, holding_knife, kitchen, close-up, indoors, depth_of_field",
 "image_prompt_ko": "어두운 주방에서 긴장한 표정으로 칼을 잡고 있는 모습",

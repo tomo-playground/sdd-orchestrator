@@ -702,6 +702,12 @@ def _flatten_tag(tags: list[str], val: str | list | None) -> None:
         tags.append(val)
 
 
+def _extract_multi_tags(image_prompt: str) -> list[str]:
+    """multi 씬의 image_prompt에서 subject/interaction 태그를 추출한다."""
+    preserve = _MULTI_SUBJECT_TAGS | _MULTI_INTERACTION_TAGS
+    return [t.strip() for t in image_prompt.split(",") if t.strip() in preserve]
+
+
 def _rebuild_image_prompt_from_context_tags(scenes: list[dict]) -> None:
     """context_tags에서 image_prompt를 재조립하여 복장/identity 오염을 차단한다.
 
@@ -711,6 +717,7 @@ def _rebuild_image_prompt_from_context_tags(scenes: list[dict]) -> None:
     재조립 순서는 PromptBuilder 12-Layer와 매핑된다:
       camera(L9) → pose+gaze(L7/L8) → action(L8) → props(L8)
       → expression(L7) → environment(L10) → cinematic(L11)
+    multi 씬의 경우, 원본 image_prompt에서 subject/interaction 태그를 보존한다.
     """
     rebuilt_count = 0
     for scene in scenes:
@@ -722,9 +729,18 @@ def _rebuild_image_prompt_from_context_tags(scenes: list[dict]) -> None:
         if not any(ctx.get(f) for f in _CONTEXT_TAG_FIELDS):
             continue
 
+        # multi 씬: subject/interaction 태그를 rebuild 전에 보존
+        multi_preserved: list[str] = []
+        if scene.get("scene_mode") == "multi":
+            multi_preserved = _extract_multi_tags(scene.get("image_prompt", ""))
+
         tags: list[str] = []
         speaker = scene.get("speaker", "")
         is_narrator = speaker == "Narrator"
+
+        # multi subject 태그 선두 배치 (e.g., "1boy, 1girl")
+        if multi_preserved:
+            tags.extend(multi_preserved)
 
         if is_narrator:
             tags.extend(["no_humans", "scenery"])
@@ -816,19 +832,63 @@ def _resolve_controlnet_weight(scene: dict, default: float) -> float:
     return default
 
 
+_MULTI_INTERACTION_TAGS = frozenset(
+    {
+        "eye_contact",
+        "looking_at_another",
+        "hand_holding",
+        "hug",
+        "kiss",
+        "carrying",
+        "arm_around_shoulder",
+    }
+)
+_MULTI_SUBJECT_TAGS = frozenset(
+    {
+        "1boy",
+        "1girl",
+        "2boys",
+        "2girls",
+        "multiple_boys",
+        "multiple_girls",
+    }
+)
+
+
+def _strip_multi_tags(scene: dict) -> None:
+    """multi→single 전환 시 interaction/subject 태그를 정리한다."""
+    # context_tags.action에서 interaction 태그 제거
+    ctx = scene.get("context_tags")
+    if ctx:
+        action = ctx.get("action")
+        if isinstance(action, list):
+            ctx["action"] = [t for t in action if t not in _MULTI_INTERACTION_TAGS]
+        elif isinstance(action, str) and action in _MULTI_INTERACTION_TAGS:
+            ctx["action"] = ""
+
+    # image_prompt에서 multi-only 태그 제거
+    prompt = scene.get("image_prompt", "")
+    if prompt:
+        tokens = [t.strip() for t in prompt.split(",")]
+        cleaned = [t for t in tokens if t not in _MULTI_INTERACTION_TAGS and t not in _MULTI_SUBJECT_TAGS]
+        scene["image_prompt"] = ", ".join(cleaned)
+
+
 def _validate_scene_modes(scenes: list[dict], structure: str, state: dict) -> None:
     """O-2: scene_mode 검증/보정 (multi 씬 유효성 확인)."""
     # O-2c: Dialogue 외 구조에서 multi 차단
-    if structure.replace("_", " ") not in ("dialogue", "narrated dialogue"):
+    if coerce_structure_id(structure) not in MULTI_CHAR_STRUCTURES:
         for scene in scenes:
             if scene.get("scene_mode") == "multi":
                 scene["scene_mode"] = "single"
+                _strip_multi_tags(scene)
                 logger.warning("[Finalize] Non-dialogue structure, forcing scene_mode=single")
 
     # O-2e: Narrator + multi 모순 보정
     for scene in scenes:
         if scene.get("speaker") == "Narrator" and scene.get("scene_mode") == "multi":
             scene["scene_mode"] = "single"
+            _strip_multi_tags(scene)
             logger.warning("[Finalize] Narrator scene cannot be multi, forcing single")
 
     # O-2b: multi인데 character_b_id 없으면 single로 보정
@@ -837,12 +897,20 @@ def _validate_scene_modes(scenes: list[dict], structure: str, state: dict) -> No
         for scene in scenes:
             if scene.get("scene_mode") == "multi":
                 scene["scene_mode"] = "single"
+                _strip_multi_tags(scene)
                 logger.warning("[Finalize] scene_mode=multi but character_b_id=None, forcing single")
 
-    # O-2d: multi 씬 상한 경고
+    # O-2d: multi 씬 상한 캡 (최대 2개, 초과분은 앞에서부터 2개만 유지)
     multi_count = sum(1 for s in scenes if s.get("scene_mode") == "multi")
     if multi_count > 2:
-        logger.warning("[Finalize] %d multi scenes detected (max recommended: 2)", multi_count)
+        logger.warning("[Finalize] %d multi scenes -> capping to 2", multi_count)
+        kept = 0
+        for s in scenes:
+            if s.get("scene_mode") == "multi":
+                kept += 1
+                if kept > 2:
+                    s["scene_mode"] = "single"
+                    _strip_multi_tags(s)
 
 
 def _auto_populate_scene_flags(

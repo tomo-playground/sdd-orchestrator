@@ -501,6 +501,25 @@ def build_dialogue_scene_max(duration: int) -> str:
     return str(round(duration / 4))
 
 
+def _resolve_subject_example(
+    char_a_ctx: dict | None = None,
+    char_b_ctx: dict | None = None,
+) -> str:
+    """성별 기반 subject 예시 생성 (공통 헬퍼).
+
+    성별 정보가 불완전하면 빈 문자열을 반환하여 비표준 태그 삽입을 방지한다.
+    """
+    if not char_a_ctx or not char_b_ctx:
+        return ""
+    ga = (char_a_ctx.get("gender") or "female").lower()
+    gb = (char_b_ctx.get("gender") or "female").lower()
+    if ga == "male" and gb == "male":
+        return "2boys"
+    if ga == "female" and gb == "female":
+        return "2girls"
+    return "1boy, 1girl"
+
+
 def build_multi_character_rules(
     is_multi: bool,
     char_a_ctx: dict | None = None,
@@ -509,6 +528,7 @@ def build_multi_character_rules(
     """{% if is_multi_character_capable %} 대체."""
     if not is_multi:
         return ""
+    subject = _resolve_subject_example(char_a_ctx, char_b_ctx)
     parts = [
         '\n\u26a0\ufe0f MULTI-CHARACTER SCENE RULES (scene_mode: "multi"):',
         "- You MAY create 1-2 scenes where BOTH characters appear together",
@@ -516,18 +536,11 @@ def build_multi_character_rules(
         "- Multi scenes: character tags are injected automatically \u2014 do NOT add them",
         '- Multi scenes: subject tag should reflect both characters (e.g., "1boy, 1girl" / "2girls" / "2boys")',
     ]
-    if char_a_ctx and char_b_ctx:
-        ga = (char_a_ctx.get("gender") or "female").lower()
-        gb = (char_b_ctx.get("gender") or "female").lower()
-        if ga == "male" and gb == "male":
-            parts.append('- Multi scenes subject: "2boys"')
-        elif ga == "female" and gb == "female":
-            parts.append('- Multi scenes subject: "2girls"')
-        else:
-            parts.append('- Multi scenes subject: "1boy, 1girl"')
+    if subject != "2 characters":
+        parts.append(f'- Multi scenes subject: "{subject}"')
     parts.extend(
         [
-            '- Multi scenes: add interaction tags (e.g., "eye_contact", "facing_another", "hand_holding")',
+            '- Multi scenes: add interaction tags (e.g., "eye_contact", "looking_at_another", "hand_holding")',
             '- Multi scenes: speaker can be "A" or "B" (whoever is speaking in that moment)',
             '- Each multi scene MUST include "scene_mode": "multi" in JSON output',
             '- All other scenes MUST include "scene_mode": "single" in JSON output',
@@ -542,3 +555,36 @@ def build_multi_scene_mode_field(is_multi: bool) -> str:
     if not is_multi:
         return ""
     return '\n    "scene_mode": "single",'
+
+
+def build_compositor_multi_rules(
+    is_multi: bool,
+    char_a_ctx: dict | None = None,
+    char_b_ctx: dict | None = None,
+) -> str:
+    """Compositor 전용 multi-character rules 블록."""
+    if not is_multi:
+        return ""
+    subject = _resolve_subject_example(char_a_ctx, char_b_ctx)
+    lines = [
+        "## Multi-Character Scene Rules",
+        '- You MAY set "scene_mode": "multi" for 1-2 scenes where BOTH characters appear together',
+        "- Use ONLY when the scene script explicitly involves BOTH characters interacting",
+        "  (e.g., reunion, farewell, conflict, joint reaction to the same event)",
+        "- Do NOT use multi for scenes where only one character is speaking/thinking",
+    ]
+    if subject:
+        lines.append(f'- Multi scenes: subject should reflect both characters (e.g., "{subject}")')
+    lines.extend(
+        [
+            '- Multi scenes: add interaction tags (e.g., "eye_contact", "looking_at_another", "hand_holding")',
+            "- Multi scenes: character identity/appearance tags are injected automatically — do NOT add them to image_prompt",
+            '- Multi scenes: speaker field can be "A" or "B" (whoever is speaking in that moment)',
+            '- All other scenes MUST use "scene_mode": "single"',
+            "- LIMIT: Maximum 2 multi scenes per storyboard",
+            "",
+            'Example multi scene: {"order": 3, "scene_mode": "multi", "speaker": "A",'
+            ' "image_prompt": "eye_contact, looking_at_another, ..."}',
+        ]
+    )
+    return "\n".join(lines)
