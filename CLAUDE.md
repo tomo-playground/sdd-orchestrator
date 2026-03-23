@@ -850,16 +850,19 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | 용어 | 역할 | 위치 | 절대 아닌 것 |
 |------|------|------|------------|
 | **Roadmap** | 제품 방향, Phase, 마일스톤 | `docs/01_product/ROADMAP.md` | 태스크 목록 아님 |
-| **Backlog** | 실행 가능한 태스크 큐 | `.claude/tasks/backlog.md` | 로드맵 아님 |
-| **Task** | 실행 중인 계약서 (브랜치별 1개) | `.claude/tasks/current/브랜치명.md` | 백로그 아님 |
-| **Done** | 완료된 태스크 + 품질 결과 | `.claude/tasks/done/NNN_브랜치.md` | 별도 로그 없음 |
+| **Backlog** | 미착수 태스크 대기 큐 | `.claude/tasks/backlog.md` | 착수된 태스크 포함 금지 |
+| **Task** | 착수 중인 태스크 (spec + design) | `.claude/tasks/current/SP-NNN_설명/` | 백로그 아님 |
+| **Done** | 완료된 태스크 + 품질 결과 | `.claude/tasks/done/SP-NNN_설명/` | 별도 로그 없음 |
+
+**태스크 생애주기**: Backlog(대기) → `current/`로 이동 시 backlog에서 제거 → Done(완료) 시 `done/`으로 이동
 
 ### 핵심 파일
 | 파일 | 역할 |
 |------|------|
-| `.claude/tasks/current/SP-NNN_설명/spec.md` | 태스크 계약서 (디렉토리 방식, spec + design 분리) |
-| `.claude/tasks/backlog.md` | 실행 대기 큐 (우선순위 순) |
+| `.claude/tasks/backlog.md` | 미착수 대기 큐 (우선순위 순) |
+| `.claude/tasks/current/SP-NNN_설명/spec.md` | 착수 중인 태스크 스펙 |
+| `.claude/tasks/current/SP-NNN_설명/design.md` | 착수 중인 태스크 상세 설계 |
+| `.claude/tasks/done/SP-NNN_설명/` | 완료된 태스크 이력 + 품질 게이트 결과 |
 | `.claude/tasks/_template.md` | 태스크 작성 템플릿 |
-| `.claude/tasks/done/SP-NNN_설명/` | 완료된 태스크 이력 + 품질 게이트 결과 (디렉토리 or 레거시 파일) |
 | `.claude/hooks/on-stop.sh` | Stop Hook: 5단계 품질 게이트 + self-heal (exit 2, 최대 3회) |
 
