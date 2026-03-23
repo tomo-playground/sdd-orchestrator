@@ -22,17 +22,21 @@ if ! git diff --quiet 2>/dev/null || ! git diff --staged --quiet 2>/dev/null; th
 fi
 
 # main 업데이트 (ff-only 실패 시 rebase fallback)
+PULL_OK=true
 if ! git pull --ff-only 2>/dev/null; then
   git pull --rebase 2>/dev/null || {
-    echo "⚠️ git pull 실패 — main 동기화 불가"
-    [ "$STASHED" = true ] && git stash pop 2>/dev/null
-    exit 1
+    echo "⚠️ git pull 충돌 — rebase abort 후 정리 계속 진행"
+    git rebase --abort 2>/dev/null || true
+    PULL_OK=false
   }
 fi
 
 # current/에 있는 태스크의 브랜치와 머지된 PR을 매칭
-# 디렉토리 방식 (SP-NNN_*/spec.md) + 레거시 (SP-NNN_*.md) 모두 탐색
+# pull 실패 시에도 브랜치/워크트리 정리는 진행하되, 태스크 이동은 스킵
 MERGED=""
+if [ "$PULL_OK" = false ]; then
+  echo "⚠️ pull 실패 — 태스크 이동 스킵, 브랜치/워크트리 정리만 진행"
+fi
 for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*/spec.md "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
   [ -f "$TASK_FILE" ] || continue
   TASK_BRANCH=$(grep '^branch:' "$TASK_FILE" | sed 's/^branch: *//' | tr -d '[:space:]')
@@ -60,9 +64,9 @@ for BRANCH in $MERGED; do
   fi
   DONE_DIR="$PROJECT_DIR/.claude/tasks/done"
 
-  # 디렉토리 방식 (SP-NNN_*/) 먼저 시도
+  # 디렉토리 방식 (SP-NNN_*/) 먼저 시도 — pull 성공 시에만 이동
   CURRENT_DIR=$(ls -d "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*/ 2>/dev/null | head -1)
-  if [ -n "$CURRENT_DIR" ] && [ -d "$CURRENT_DIR" ]; then
+  if [ "$PULL_OK" = true ] && [ -n "$CURRENT_DIR" ] && [ -d "$CURRENT_DIR" ]; then
     DIRNAME=$(basename "$CURRENT_DIR")
     sed -i 's/^status:.*/status: done/' "$CURRENT_DIR/spec.md"
     mv "$CURRENT_DIR" "$DONE_DIR/${DIRNAME}"
@@ -71,7 +75,7 @@ for BRANCH in $MERGED; do
   else
     # 레거시 파일 방식 fallback (SP-NNN_*.md)
     CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
-    if [ -n "$CURRENT" ] && [ -f "$CURRENT" ]; then
+    if [ "$PULL_OK" = true ] && [ -n "$CURRENT" ] && [ -f "$CURRENT" ]; then
       BASENAME=$(basename "$CURRENT")
       sed -i 's/^status:.*/status: done/' "$CURRENT"
       mv "$CURRENT" "$DONE_DIR/${BASENAME}"
