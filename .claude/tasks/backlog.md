@@ -37,7 +37,7 @@
 ## P2 (기능 확장)
 
 - [ ] SP-071 — 대사 상황 구체성 평가 — Narrative 차원에 situational_specificity 추가 + Writer 프롬프트 규칙 | scope: backend | approved | depends: ~~SP-064~~ ✅
-- [ ] SP-053 — 파이프라인 진행 가시성 — 노드 시작 이벤트 실시간 표시 + LangFuse 트레이스 링크 | scope: fullstack | approved | **즉시 실행 가능**
+- [x] ~~SP-053~~ — 파이프라인 진행 가시성 — 노드 시작 이벤트 실시간 표시 + LangFuse 트레이스 링크 | scope: fullstack | approved | **즉시 실행 가능**
 - [ ] SP-052 — Direct 탭 레이아웃/편의성 개선 — 씬 카드 빈 공간 활용, 상태 아이콘 가독성, Context Strip sticky, TTS prompt 잘림, 키보드 씬 전환, SceneCard props 분리
 - [ ] SP-024 — VEO Clip — Video Generation 통합 | [명세](../../docs/01_product/FEATURES/VEO_CLIP.md)
 - [ ] SP-025 — Profile Export/Import — Style Profile 공유 | [명세](../../docs/01_product/FEATURES/PROFILE_EXPORT_IMPORT.md)
