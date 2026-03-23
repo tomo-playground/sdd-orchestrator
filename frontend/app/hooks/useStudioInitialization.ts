@@ -73,8 +73,13 @@ export function useStudioInitialization() {
       } catch {
         // silent — sendMessage에서 fallback 생성
       }
-      if (cancelled || draftId === null) {
-        newHandledRef.current = false; // 재시도 허용
+      if (cancelled) return;
+      if (draftId === null) {
+        // Draft 생성 실패 → gate 해제 + 칸반으로 복귀
+        newHandledRef.current = false;
+        const url = new URL(window.location.href);
+        url.searchParams.delete("new");
+        window.history.replaceState({}, "", url.pathname + url.search);
         return;
       }
 
