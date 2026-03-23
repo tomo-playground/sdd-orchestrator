@@ -6,7 +6,7 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 ORCH_DIR="$PROJECT_DIR/orchestrator"
-LOG_FILE="/tmp/orchestrator.log"
+LOG_FILE="$ORCH_DIR/logs/orchestrator.log"
 PID_FILE="/tmp/orchestrator.pid"
 
 start() {
