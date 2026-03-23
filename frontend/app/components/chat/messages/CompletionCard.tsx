@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { CheckCircle, ChevronDown, ChevronUp, Pencil, Play } from "lucide-react";
+import { CheckCircle, ChevronDown, ChevronUp, ExternalLink, Pencil, Play } from "lucide-react";
 import Button from "../../ui/Button";
 import { useStoryboardStore } from "../../../store/useStoryboardStore";
 import type { CompletionMeta } from "../../../types/chat";
@@ -23,9 +23,10 @@ type Props = {
   meta?: CompletionMeta;
   sceneCount: number;
   onNavigate: (tab: string) => void;
+  traceUrl?: string;
 };
 
-export default function CompletionCard({ text, meta, sceneCount, onNavigate }: Props) {
+export default function CompletionCard({ text, meta, sceneCount, onNavigate, traceUrl }: Props) {
   const storeSceneCount = useStoryboardStore((s) => s.scenes.length);
   const effectiveCount = storeSceneCount || sceneCount;
   const [expanded, setExpanded] = useState(() => (meta?.sceneSummaries.length ?? 0) <= 5);
@@ -41,6 +42,7 @@ export default function CompletionCard({ text, meta, sceneCount, onNavigate }: P
           <p className="text-sm font-medium text-emerald-900">{text}</p>
           <p className="mt-1 text-xs text-emerald-700">{effectiveCount}개 씬이 준비되었습니다.</p>
           <CompletionActions onNavigate={onNavigate} />
+          <TraceLink url={traceUrl} />
         </div>
       </div>
     );
@@ -131,6 +133,7 @@ export default function CompletionCard({ text, meta, sceneCount, onNavigate }: P
 
         {/* 액션 버튼 */}
         <CompletionActions onNavigate={onNavigate} />
+        <TraceLink url={traceUrl} />
       </div>
     </div>
   );
@@ -167,5 +170,26 @@ function CompletionActions({ onNavigate }: { onNavigate: (tab: string) => void }
         영상 제작 시작
       </Button>
     </div>
+  );
+}
+
+function TraceLink({ url }: { url?: string }) {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) return null;
+  } catch {
+    return null;
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-2 inline-flex items-center gap-1 text-[11px] text-emerald-500 hover:text-emerald-700"
+    >
+      <ExternalLink className="h-3 w-3" />
+      LangFuse에서 상세 보기
+    </a>
   );
 }

@@ -84,6 +84,7 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data, isLate
           meta={message.meta}
           sceneCount={data.scenes.length}
           onNavigate={callbacks.onNavigate}
+          traceUrl={message.traceUrl}
         />
       );
     case "pipeline_step":
@@ -101,7 +102,7 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data, isLate
         />
       );
     case "error":
-      return <ErrorCard message={message.errorMessage} onRetry={callbacks.onRetry} />;
+      return <ErrorCard message={message.errorMessage} onRetry={callbacks.onRetry} traceUrl={message.traceUrl} />;
     case "typing":
       return <TypingBubble text={message.text} />;
     default:

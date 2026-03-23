@@ -42,7 +42,7 @@ from services.agent.nodes.revise import revise_node
 from services.agent.nodes.sound_designer import sound_designer_node
 from services.agent.nodes.tts_designer import tts_designer_node
 from services.agent.nodes.writer import writer_node
-from services.agent.observability import trace_agent
+from services.agent.observability import trace_agent, with_starting_event
 from services.agent.routing import (
     route_after_cinematographer,
     route_after_concept_gate,
@@ -66,13 +66,14 @@ _STATE_SUMMARY_KEYS = ("skip_stages", "revision_count", "interaction_mode", "err
 
 
 def _wrap_node(name: str, fn: Any) -> Any:
-    """노드 함수를 AGENT observation으로 래핑한다."""
+    """노드 함수를 starting 이벤트 발행 + AGENT observation으로 래핑한다."""
+    inner = with_starting_event(name)(fn)
 
     @functools.wraps(fn)
     async def wrapped(state, *args, **kwargs):  # noqa: ANN001
         input_summary = {k: state.get(k) for k in _STATE_SUMMARY_KEYS if state.get(k) is not None}
         async with trace_agent(name, input_data=input_summary or None) as agent_obs:
-            result = await fn(state, *args, **kwargs)
+            result = await inner(state, *args, **kwargs)
             if agent_obs and isinstance(result, dict):
                 agent_obs.update(output={"updated_keys": list(result.keys())})
         return result

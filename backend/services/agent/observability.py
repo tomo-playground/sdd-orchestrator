@@ -279,6 +279,14 @@ def flush_langfuse() -> None:
             logger.warning("[LangFuse] 플러시 실패: %s", e)
 
 
+def get_trace_url() -> str | None:
+    """현재 trace의 LangFuse 대시보드 URL을 반환한다. 비활성 시 None."""
+    trace_id = _current_trace_id.get(None)
+    if not trace_id or not LANGFUSE_ENABLED:
+        return None
+    return f"{LANGFUSE_BASE_URL}/trace/{trace_id}"
+
+
 def get_pipeline_elapsed_sec() -> float | None:
     """파이프라인 시작 이후 경과 시간(초). 미설정 시 None."""
     start = _pipeline_start_time.get()
@@ -328,6 +336,29 @@ def record_score(
 
 # AGENT/TOOL observation input/output 최대 기록 길이 (GENERATION은 _MAX_IO_LEN 사용)
 _MAX_OBS_IO_LEN = 2000
+
+
+def with_starting_event(name: str | None = None):
+    """노드 진입 시 custom stream으로 starting 이벤트를 자동 발행하는 데코레이터."""
+    import functools  # noqa: PLC0415
+
+    def decorator(fn):  # noqa: ANN001
+        node_name = name or fn.__name__.replace("_node", "")
+
+        @functools.wraps(fn)
+        async def wrapper(*args, **kwargs):  # noqa: ANN002, ANN003
+            try:
+                from langgraph.config import get_stream_writer  # noqa: PLC0415
+
+                writer = get_stream_writer()
+                writer({"type": "node_starting", "node": node_name})
+            except Exception:
+                pass  # stream_writer 미사용 컨텍스트(테스트 등)에서 무시
+            return await fn(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 def with_agent_trace(name: str | None = None):

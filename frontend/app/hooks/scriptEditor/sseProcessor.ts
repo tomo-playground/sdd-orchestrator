@@ -86,6 +86,15 @@ export async function processSSEStream(
   await parseSSEStream(response, (event: ScriptStreamEvent) => {
     options?.onNodeEvent?.(event);
 
+    // starting 이벤트: ProgressBar만 갱신 (pipelineSteps 변경 방지)
+    if (event.status === "starting") {
+      setState((prev) => ({
+        ...prev,
+        progress: { node: event.node, label: event.label, percent: event.percent },
+      }));
+      return;
+    }
+
     // Single setState per event to avoid race conditions between renders
     setState((prev) => {
       let nextSteps = updatePipelineSteps(prev.pipelineSteps, event);

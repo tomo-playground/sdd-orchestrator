@@ -900,7 +900,7 @@ export type ScriptStreamEvent = {
   node: string;
   label: string;
   percent: number;
-  status: "running" | "completed" | "error" | "waiting_for_input";
+  status: "starting" | "running" | "completed" | "error" | "waiting_for_input";
   node_result?: Record<string, unknown>;
   result?: {
     scenes?: Scene[];
@@ -926,6 +926,7 @@ export type ScriptStreamEvent = {
   error?: string;
   thread_id?: string;
   trace_id?: string;
+  trace_url?: string;
 };
 
 export type ScriptPreset = {

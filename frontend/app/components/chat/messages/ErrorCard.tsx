@@ -1,10 +1,11 @@
 "use client";
 
-import { Bot, RotateCcw } from "lucide-react";
+import { Bot, ExternalLink, RotateCcw } from "lucide-react";
 
 type Props = {
   message: string;
   onRetry: () => void;
+  traceUrl?: string;
 };
 
 function parseErrorMessage(raw: string): { display: string; hint?: string } {
@@ -35,7 +36,7 @@ function parseErrorMessage(raw: string): { display: string; hint?: string } {
   return { display: raw };
 }
 
-export default function ErrorCard({ message, onRetry }: Props) {
+export default function ErrorCard({ message, onRetry, traceUrl }: Props) {
   const { display, hint } = parseErrorMessage(message);
 
   return (
@@ -46,13 +47,26 @@ export default function ErrorCard({ message, onRetry }: Props) {
       <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
         <p className="text-sm text-red-800">{display}</p>
         {hint && <p className="mt-1 text-xs text-red-600">{hint}</p>}
-        <button
-          onClick={onRetry}
-          className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800"
-        >
-          <RotateCcw className="h-3 w-3" />
-          다시 시도
-        </button>
+        <div className="mt-2 flex items-center gap-3">
+          <button
+            onClick={onRetry}
+            className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800"
+          >
+            <RotateCcw className="h-3 w-3" />
+            다시 시도
+          </button>
+          {traceUrl && (
+            <a
+              href={traceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] text-red-400 hover:text-red-600"
+            >
+              <ExternalLink className="h-3 w-3" />
+              LangFuse에서 상세 보기
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

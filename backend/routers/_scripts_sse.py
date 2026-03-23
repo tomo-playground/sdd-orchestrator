@@ -28,6 +28,8 @@ NODE_META: dict[str, dict] = {
     "human_gate": {"label": "승인 대기", "percent": 93},
     "finalize": {"label": "최종화", "percent": 95},
     "explain": {"label": "결정 설명", "percent": 98},
+    "location_planner": {"label": "로케이션 설계", "percent": 22},
+    "director_checkpoint": {"label": "연출 판단", "percent": 58},
     "learn": {"label": "완료", "percent": 100},
 }
 
@@ -108,6 +110,20 @@ def build_node_payload(
         payload["error"] = node_output["error"]
 
     return payload
+
+
+def _build_starting_payload(node_name: str, thread_id: str) -> str:
+    """노드 시작(starting) SSE 이벤트를 생성한다."""
+    meta = NODE_META.get(node_name, {"label": node_name, "percent": 50})
+    starting_percent = max(1, meta["percent"] - 1)
+    payload = {
+        "node": node_name,
+        "label": meta["label"],
+        "percent": starting_percent,
+        "status": "starting",
+        "thread_id": thread_id,
+    }
+    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
 def _extract_quality_gate(vals: dict) -> dict | None:
@@ -250,6 +266,7 @@ async def stream_graph_events(
     from services.agent.observability import (  # noqa: PLC0415, E501
         _patch_trace,
         flush_langfuse,
+        get_trace_url,
         update_root_span,
         update_trace_on_completion,
         update_trace_on_interrupt,
@@ -287,7 +304,7 @@ async def stream_graph_events(
         try:
             import asyncio  # noqa: PLC0415
 
-            stream = graph.astream(graph_input, config, stream_mode="updates")
+            stream = graph.astream(graph_input, config, stream_mode=["updates", "custom"])
             pending = asyncio.ensure_future(stream.__anext__())
             while True:
                 done, _ = await asyncio.wait({pending}, timeout=SSE_HEARTBEAT_INTERVAL_SEC)
@@ -298,19 +315,35 @@ async def stream_graph_events(
                     event = pending.result()
                 except StopAsyncIteration:
                     break
-                for node_name, node_output in event.items():
-                    if not isinstance(node_output, dict):
-                        continue
-                    payload = build_node_payload(node_name, thread_id, node_output, char_ids)
-                    yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
-                    if node_name == "finalize" and node_output.get("final_scenes") is not None:
-                        final_output = {
-                            "scenes": node_output["final_scenes"],
-                            "structure": node_output.get("structure"),
-                            "character_id": char_ids[0],
-                            "character_b_id": char_ids[1],
-                            "sound_recommendation": node_output.get("sound_recommendation"),
-                        }
+
+                # 혼합 stream_mode: tuple(mode, data)
+                mode, data = event
+
+                # custom 이벤트: 노드 시작 알림
+                if mode == "custom" and isinstance(data, dict) and data.get("type") == "node_starting":
+                    yield _build_starting_payload(data["node"], thread_id)
+                    pending = asyncio.ensure_future(stream.__anext__())
+                    continue
+
+                # updates 이벤트: 기존 노드 완료 처리
+                if mode == "updates" and isinstance(data, dict):
+                    for node_name, node_output in data.items():
+                        if not isinstance(node_output, dict):
+                            continue
+                        payload = build_node_payload(node_name, thread_id, node_output, char_ids)
+                        if node_name == "finalize" and payload.get("status") == "completed":
+                            trace_url = get_trace_url()
+                            if trace_url:
+                                payload["trace_url"] = trace_url
+                        yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+                        if node_name == "finalize" and node_output.get("final_scenes") is not None:
+                            final_output = {
+                                "scenes": node_output["final_scenes"],
+                                "structure": node_output.get("structure"),
+                                "character_id": char_ids[0],
+                                "character_b_id": char_ids[1],
+                                "sound_recommendation": node_output.get("sound_recommendation"),
+                            }
                 pending = asyncio.ensure_future(stream.__anext__())
 
         except Exception as e:
@@ -319,13 +352,16 @@ async def stream_graph_events(
             else:
                 errored = True
                 logger.exception("[SSE] %s error: %s", label, e)
-                error_payload = {
+                error_payload: dict = {
                     "node": "error",
                     "label": "오류",
                     "percent": 0,
                     "status": "error",
                     "error": "스토리보드 생성 중 오류가 발생했습니다",
                 }
+                trace_url = get_trace_url()
+                if trace_url:
+                    error_payload["trace_url"] = trace_url
                 yield f"data: {json.dumps(error_payload, ensure_ascii=False)}\n\n"
                 try:
                     import sentry_sdk  # noqa: PLC0415
@@ -371,6 +407,9 @@ async def stream_graph_events(
             }
             if handler_trace_id:
                 payload_interrupt["trace_id"] = handler_trace_id
+            trace_url = get_trace_url()
+            if trace_url:
+                payload_interrupt["trace_url"] = trace_url
             if result:
                 payload_interrupt["result"] = result
 

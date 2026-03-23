@@ -20,10 +20,11 @@ _OBS = "services.agent.observability"
 
 
 class _FakeAsyncIter:
-    """테스트용 async iterator — 이벤트 사이에 딜레이를 시뮬레이션."""
+    """테스트용 async iterator — stream_mode=["updates", "custom"] tuple 형식 이벤트."""
 
-    def __init__(self, events: list[dict], delays: list[float] | None = None):
-        self._events = events
+    def __init__(self, events: list, delays: list[float] | None = None):
+        # events가 tuple이면 그대로, dict이면 ("updates", dict)로 래핑
+        self._events = [e if isinstance(e, tuple) else ("updates", e) for e in events]
         self._delays = delays or [0.0] * len(events)
         self._idx = 0
 

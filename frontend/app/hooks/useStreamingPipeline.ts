@@ -33,6 +33,12 @@ export function useStreamingPipeline(deps: StreamingPipelineDeps) {
 
   const onNodeEvent = useCallback(
     (event: ScriptStreamEvent) => {
+      // starting 이벤트: ProgressBar만 갱신, Chat 메시지 생성 안 함
+      if (event.status === "starting") {
+        setActiveProgress({ node: event.node, label: event.label, percent: event.percent });
+        return;
+      }
+
       // Pipeline step messages for major nodes
       if (event.status === "running" && PIPELINE_NODES.has(event.node) && event.node_result) {
         setChatMessages((prev) => {
@@ -135,6 +141,7 @@ export function useStreamingPipeline(deps: StreamingPipelineDeps) {
           contentType: "completion",
           text,
           meta: completionMeta,
+          traceUrl: event.trace_url,
           timestamp: Date.now(),
         });
         return;
@@ -149,6 +156,7 @@ export function useStreamingPipeline(deps: StreamingPipelineDeps) {
           contentType: "error",
           text: "생성 중 오류가 발생했습니다.",
           errorMessage: event.error ?? "Unknown error",
+          traceUrl: event.trace_url,
           timestamp: Date.now(),
         });
       }

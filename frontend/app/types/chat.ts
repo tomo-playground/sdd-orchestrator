@@ -105,6 +105,7 @@ export type CompletionMessage = ChatMessageBase & {
   contentType: "completion";
   text: string;
   meta?: CompletionMeta;
+  traceUrl?: string;
 };
 
 export type ErrorMessage = ChatMessageBase & {
@@ -112,6 +113,7 @@ export type ErrorMessage = ChatMessageBase & {
   contentType: "error";
   text: string;
   errorMessage: string;
+  traceUrl?: string;
 };
 
 export type PipelineStepMessage = ChatMessageBase & {
