@@ -16,7 +16,7 @@
 - [x] ~~SP-054~~ (AutoRun 배치 API 제거) | ~~SP-055~~ (TTS/BGM 통일) | ~~SP-060~~ (Voice Preset 캐시)
 - [x] ~~SP-056~~ (Structure 재설계 A) | ~~SP-057~~ (모드 단순화) | ~~SP-028~~ (Studio 탭 URI)
 - [x] ~~SP-059~~ (multi 씬) | ~~SP-061~~ (대사 품질 L2) | ~~SP-062~~ (프롬프트/태그 검증) | ~~SP-063~~ (렌더링 함수 연결)
-- [x] ~~SP-064~~ (Narrative per-scene 평가) | ~~SP-065~~ (렌더링 품질 보강)
+- [x] ~~SP-064~~ (Narrative per-scene 평가) | ~~SP-065~~ (렌더링 품질 보강) | ~~SP-053~~ (파이프라인 진행 가시성)
 
 ## P0 (진행 중)
 
@@ -37,7 +37,6 @@
 ## P2 (기능 확장)
 
 - [ ] SP-071 — 대사 상황 구체성 평가 — Narrative 차원에 situational_specificity 추가 + Writer 프롬프트 규칙 | scope: backend | approved | depends: ~~SP-064~~ ✅
-- [x] ~~SP-053~~ — 파이프라인 진행 가시성 — 노드 시작 이벤트 실시간 표시 + LangFuse 트레이스 링크 | scope: fullstack | approved | **즉시 실행 가능**
 - [ ] SP-052 — Direct 탭 레이아웃/편의성 개선 — 씬 카드 빈 공간 활용, 상태 아이콘 가독성, Context Strip sticky, TTS prompt 잘림, 키보드 씬 전환, SceneCard props 분리
 - [ ] SP-024 — VEO Clip — Video Generation 통합 | [명세](../../docs/01_product/FEATURES/VEO_CLIP.md)
 - [ ] SP-025 — Profile Export/Import — Style Profile 공유 | [명세](../../docs/01_product/FEATURES/PROFILE_EXPORT_IMPORT.md)
