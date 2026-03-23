@@ -15,7 +15,7 @@ from langgraph.store.base import BaseStore
 
 from config import GEMINI_TEXT_MODEL, coerce_structure_id
 from config import pipeline_logger as logger
-from config_pipelines import CREATIVE_LEADER_MODEL, DIRECTOR_MODEL, REVIEW_MODEL
+from config_pipelines import CREATIVE_LEADER_MODEL, DIRECTOR_MODEL, REVIEW_MODEL, WRITER_MODEL
 from services.agent.state import ScriptState
 from services.agent.utils import topic_key
 
@@ -96,6 +96,7 @@ async def _update_topic(store: BaseStore, state: ScriptState, scenes: list[dict]
         "model_info": {
             "default": GEMINI_TEXT_MODEL,
             "director": DIRECTOR_MODEL,
+            "writer": WRITER_MODEL,
             "review": REVIEW_MODEL,
             "critic": CREATIVE_LEADER_MODEL,
         },

@@ -118,12 +118,15 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
             scene_range=scene_range,
         )
 
+        from config_pipelines import WRITER_MODEL
+
         llm_response = await get_llm_provider().generate(
             step_name="generate_content writer",
             contents=compiled.user,
             config=LLMConfig(
                 system_instruction=compiled.system or _fallback_sys,
             ),
+            model=WRITER_MODEL,
             metadata={"template": _template_name},
             langfuse_prompt=compiled.langfuse_prompt,
         )

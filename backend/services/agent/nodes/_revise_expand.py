@@ -243,11 +243,14 @@ async def try_scene_expand(
             korean_hint=build_korean_hint(language),
         )
 
+        from config_pipelines import WRITER_MODEL
+
         _fallback_sys = "You are a scene expansion specialist for short-form video scripts. Generate new scenes that seamlessly integrate with existing ones."
         llm_response = await get_llm_provider().generate(
             step_name="generate_content revise_expand",
             contents=compiled.user,
             config=LLMConfig(system_instruction=compiled.system or _fallback_sys),
+            model=WRITER_MODEL,
             metadata={"template": _template_name},
             langfuse_prompt=compiled.langfuse_prompt,
         )
