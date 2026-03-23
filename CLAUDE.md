@@ -845,6 +845,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
   - 설계 질문/개선 제안 → CLAUDE.md 대조 후 동의하면 수정, 비동의하면 "현행 유지 이유" 코멘트
   - 스타일/Nit → 합리적이면 수정, 아니면 스킵
 - **PR 거절 시**: PR 코멘트를 `gh pr view`로 읽고 기존 브랜치에서 수정 → push
+- **머지 전 WARNING 체크 필수**: 사용자가 "머지해도 되나?" 질문 시, `gh api` 또는 `gh pr view`로 리뷰 코멘트의 미해결 WARNING을 확인한다. WARNING이 잔존하면 수정 후 머지 권고.
 
 ### 용어 규칙 (혼용 금지)
 | 용어 | 역할 | 위치 | 절대 아닌 것 |
