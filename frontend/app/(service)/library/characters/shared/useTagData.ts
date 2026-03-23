@@ -25,22 +25,19 @@ export function useTagData() {
   const [searchResults, setSearchResults] = useState<Tag[]>([]);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Data fetching ──────────────────────────────────────────
+  // ── Data fetching (single batch call instead of N+1) ──────
   useEffect(() => {
-    const groups = WIZARD_CATEGORIES.map((c) => c.groupName);
-    const tagFetches = groups.map((g) =>
-      axios.get<Tag[]>(`${API_BASE}/tags`, { params: { group_name: g } })
-    );
-    const loraFetch = axios.get<LoRA[]>(`${API_BASE}/loras`);
+    const groups = new Set(WIZARD_CATEGORIES.map((c) => c.groupName));
 
-    Promise.all([Promise.all(tagFetches), loraFetch])
-      .then(([tagResponses, loraRes]) => {
+    Promise.all([axios.get<Tag[]>(`${API_BASE}/tags`), axios.get<LoRA[]>(`${API_BASE}/loras`)])
+      .then(([tagRes, loraRes]) => {
         const grouped: Record<string, Tag[]> = {};
         const flat: Tag[] = [];
-        tagResponses.forEach((res, i) => {
-          grouped[groups[i]] = res.data;
-          flat.push(...res.data);
-        });
+        for (const tag of tagRes.data) {
+          if (!tag.group_name || !groups.has(tag.group_name)) continue;
+          (grouped[tag.group_name] ??= []).push(tag);
+          flat.push(tag);
+        }
         setTagsByGroup(grouped);
         setAllTagsFlat(flat);
         setAllLoras(loraRes.data);
