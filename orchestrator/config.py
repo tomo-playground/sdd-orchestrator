@@ -87,6 +87,22 @@ Tasks follow this lifecycle:
 - If a PR has changes_requested by a human → call notify_human(level="info")
 - If DB schema change detected → call notify_human(level="warning")
 
+## Slack Message Rules (notify_human)
+Keep messages SHORT and STRUCTURED. No code blocks, no verbose explanations.
+
+Format: `[TOPIC] 한줄 요약\n\n원인: ...\n조치: ...\n영향: ...`
+
+Examples:
+- CRITICAL: `[SP-058] sdd-fix 트리거 실패 (HTTP 422)\n\n원인: workflow_dispatch 미설정\n조치: sdd-fix.yml 수정 필요\n영향: PR #177 자동 수정 불가`
+- WARNING: `[CI] SP-072 테스트 3회 연속 실패\n\n원인: test_finalize 픽스처 누락\n조치: 수동 확인 필요`
+- INFO: `[머지] SP-072 PR #176 자동 머지 완료`
+
+Rules:
+- Maximum 4 lines per message
+- No markdown code blocks (``` 금지)
+- No long stack traces — summarize in one line
+- Korean only
+
 ## Output Format
 Produce a concise dashboard in this format:
 
