@@ -29,7 +29,7 @@ _LEVEL_EMOJI = {
 }
 
 
-async def _send_slack_message(text: str) -> bool:
+async def _send_slack_message(text: str, blocks: list | None = None) -> bool:
     """Send a message to Slack via webhook. Returns True on success."""
     global _last_slack_sent
 
@@ -44,12 +44,16 @@ async def _send_slack_message(text: str) -> bool:
     if elapsed < SLACK_MIN_INTERVAL:
         await asyncio.sleep(SLACK_MIN_INTERVAL - elapsed)
 
+    payload: dict = {"text": text}
+    if blocks:
+        payload["blocks"] = blocks
+
     timeout = httpx.Timeout(
         connect=SLACK_TIMEOUT_CONNECT, read=SLACK_TIMEOUT_READ, write=5.0, pool=5.0
     )
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            resp = await client.post(SLACK_WEBHOOK_URL, json={"text": text})
+            resp = await client.post(SLACK_WEBHOOK_URL, json=payload)
             _last_slack_sent = time.monotonic()
             if resp.status_code == 200:
                 return True
@@ -63,19 +67,42 @@ async def _send_slack_message(text: str) -> bool:
         return False
 
 
+_LEVEL_COLOR = {
+    "info": "#2196F3",
+    "warning": "#FF9800",
+    "critical": "#F44336",
+}
+
+
 async def do_notify_human(args: dict) -> dict:
     """Core logic: send a notification to the human via Slack."""
     message = args.get("message", "")
     level = args.get("level", "info")
 
     emoji = _LEVEL_EMOJI.get(level, "\u2139\ufe0f")
-    text = f"{emoji} {message}"
+    fallback = f"{emoji} {message}"
 
     # Truncate if too long
-    if len(text) > SLACK_MAX_MESSAGE_LENGTH:
-        text = text[: SLACK_MAX_MESSAGE_LENGTH - 12] + " (truncated)"
+    if len(fallback) > SLACK_MAX_MESSAGE_LENGTH:
+        fallback = fallback[: SLACK_MAX_MESSAGE_LENGTH - 12] + " (truncated)"
 
-    sent = await _send_slack_message(text)
+    blocks = [
+        {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": f"{emoji} *[{level.upper()}]* {message}"},
+        },
+        {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"Coding Machine — {datetime.now(UTC).strftime('%H:%M UTC')}",
+                },
+            ],
+        },
+    ]
+
+    sent = await _send_slack_message(fallback, blocks)
     channel = "slack" if sent else "log_only"
 
     if not sent:
@@ -113,35 +140,46 @@ async def notify_human(args: dict) -> dict:
 
 
 async def send_daily_report(summary: dict) -> bool:
-    """Format and send a daily report to Slack."""
+    """Format and send a daily report to Slack using Block Kit."""
     today = datetime.now(UTC).strftime("%Y-%m-%d")
 
     completed = summary.get("completed_prs", [])
     in_progress = summary.get("in_progress", [])
     blockers = summary.get("blockers", [])
     sentry = summary.get("sentry_issues", {})
-
-    lines = [
-        f"\U0001f4cb *SDD Daily Report* \u2014 {today}",
-        "",
-    ]
-
-    if completed:
-        lines.append(f"\u2705 *\uc644\ub8cc PR*: {', '.join(completed)}")
-    else:
-        lines.append("\u2705 *\uc644\ub8cc PR*: \uc5c6\uc74c")
-
-    if in_progress:
-        lines.append(f"\U0001f504 *\uc9c4\ud589 \uc911*: {', '.join(in_progress)}")
-    else:
-        lines.append("\U0001f504 *\uc9c4\ud589 \uc911*: \uc5c6\uc74c")
-
-    if blockers:
-        lines.append(f"\U0001f6ab *\ube14\ub85c\ucee4*: {', '.join(blockers)}")
-
     sentry_open = sentry.get("open", 0)
     sentry_prs = sentry.get("autofix_prs", 0)
-    lines.append(f"\U0001f41b *Sentry*: {sentry_open}\uac74 open, {sentry_prs}\uac74 autofix PR")
 
-    text = "\n".join(lines)
-    return await _send_slack_message(text)
+    blocks = [
+        {
+            "type": "header",
+            "text": {"type": "plain_text", "text": f"Coding Machine Report — {today}"},
+        },
+        {"type": "divider"},
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Completed*\n{', '.join(completed) if completed else '—'}",
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": f"*In Progress*\n{', '.join(in_progress) if in_progress else '—'}",
+                },
+            ],
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Blockers*\n{', '.join(blockers) if blockers else '—'}",
+                },
+                {"type": "mrkdwn", "text": f"*Sentry*\n{sentry_open} open / {sentry_prs} autofix"},
+            ],
+        },
+    ]
+
+    fallback = f"Coding Machine Report {today}: {len(completed)} completed, {len(in_progress)} in progress, {len(blockers)} blockers, {sentry_open} sentry"
+    return await _send_slack_message(fallback, blocks)
