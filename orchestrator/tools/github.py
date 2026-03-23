@@ -65,14 +65,18 @@ def summarize_prs(prs: list[dict]) -> list[dict]:
         checks = pr.get("statusCheckRollup", []) or []
         ci_status = _aggregate_check_status(checks)
 
+        review = pr.get("reviewDecision")
+        mergeable = ci_status == "success" and review == "APPROVED"
+
         results.append(
             {
                 "number": pr.get("number"),
                 "title": pr.get("title"),
                 "branch": branch,
                 "task_id": sp_match.group(0) if sp_match else None,
-                "review": pr.get("reviewDecision"),
+                "review": review,
                 "ci_status": ci_status,
+                "mergeable": mergeable,
                 "labels": [lbl.get("name", "") for lbl in (pr.get("labels") or [])],
             }
         )
@@ -136,6 +140,65 @@ async def check_prs(args: dict) -> dict:
     return {"content": [{"type": "text", "text": json.dumps(summary, ensure_ascii=False)}]}
 
 
+async def do_merge_pr(pr_number: int) -> dict:
+    """Core logic: squash-merge a PR after validating merge rules."""
+    from orchestrator.rules import can_auto_merge
+
+    # Fetch PR status first and validate merge rules
+    pr_result = await _run_gh_command("pr", "view", str(pr_number), "--json", GH_PR_FIELDS)
+    if "error" in pr_result:
+        return _tool_error(f"Cannot check PR #{pr_number}: {pr_result['error']}")
+
+    pr_summary = summarize_prs([pr_result["data"]])[0]
+    ok, reason = can_auto_merge(pr_summary)
+    if not ok:
+        return _tool_error(f"Cannot merge #{pr_number}: {reason}")
+
+    # gh pr merge outputs plain text, not JSON — use subprocess directly
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "gh",
+            "pr",
+            "merge",
+            str(pr_number),
+            "--squash",
+            "--delete-branch",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=GH_TIMEOUT)
+        if proc.returncode != 0:
+            return _tool_error(f"Merge failed for #{pr_number}: {stderr.decode().strip()}")
+    except TimeoutError:
+        return _tool_error(f"Merge timed out for #{pr_number}")
+    except FileNotFoundError:
+        return _tool_error("gh CLI not found")
+
+    logger.info("Merged PR #%d", pr_number)
+    return {"content": [{"type": "text", "text": f"Successfully merged PR #{pr_number}"}]}
+
+
+def _tool_error(message: str) -> dict:
+    return {
+        "content": [{"type": "text", "text": message}],
+        "isError": True,
+    }
+
+
+@tool(
+    "merge_pr",
+    "Squash-merge a PR that passes all quality gates",
+    {
+        "type": "object",
+        "properties": {"pr_number": {"type": "integer", "description": "PR number to merge"}},
+        "required": ["pr_number"],
+    },
+)
+async def merge_pr(args: dict) -> dict:
+    """MCP tool wrapper."""
+    return await do_merge_pr(args["pr_number"])
+
+
 @tool("check_workflows", "List recent GitHub Actions runs with stuck detection", {})
 async def check_workflows(args: dict) -> dict:
     """MCP tool: list recent workflow runs and detect stuck ones."""
@@ -156,3 +219,56 @@ async def check_workflows(args: dict) -> dict:
         "failures": sum(1 for r in runs if r.get("conclusion") == "failure"),
     }
     return {"content": [{"type": "text", "text": json.dumps(output, ensure_ascii=False)}]}
+
+
+async def do_trigger_sdd_review(pr_number: int) -> dict:
+    """Core logic: trigger sdd-review workflow for a PR with changes_requested."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "gh",
+            "workflow",
+            "run",
+            "sdd-review.yml",
+            "-f",
+            f"pr_number={pr_number}",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=GH_TIMEOUT)
+        if proc.returncode != 0:
+            return _tool_error(
+                f"Failed to trigger sdd-review for #{pr_number}: {stderr.decode().strip()}"
+            )
+    except TimeoutError:
+        return _tool_error(f"Trigger timed out for #{pr_number}")
+    except FileNotFoundError:
+        return _tool_error("gh CLI not found")
+
+    logger.info("Triggered sdd-review for PR #%d", pr_number)
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": f"Triggered sdd-review workflow for PR #{pr_number}",
+            }
+        ]
+    }
+
+
+@tool(
+    "trigger_sdd_review",
+    "Trigger sdd-review workflow for a PR with changes_requested",
+    {
+        "type": "object",
+        "properties": {
+            "pr_number": {
+                "type": "integer",
+                "description": "PR number to trigger review for",
+            }
+        },
+        "required": ["pr_number"],
+    },
+)
+async def trigger_sdd_review(args: dict) -> dict:
+    """MCP tool wrapper."""
+    return await do_trigger_sdd_review(args["pr_number"])

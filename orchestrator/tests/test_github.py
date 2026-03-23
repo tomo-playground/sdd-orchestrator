@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
@@ -34,6 +35,7 @@ class TestSummarizePrs:
         assert result[0]["task_id"] == "SP-066"
         assert result[0]["review"] == "APPROVED"
         assert result[0]["ci_status"] == "success"
+        assert result[0]["mergeable"] is True
         assert result[0]["labels"] == ["feat"]
 
     def test_no_sp_match(self):
@@ -186,3 +188,167 @@ class TestRunGhCommand:
 
         assert "error" in result
         assert "not found" in result["error"].lower()
+
+
+class TestSummarizePrsMergeable:
+    def test_mergeable_true(self):
+        prs = [
+            {
+                "number": 1,
+                "title": "feat",
+                "headRefName": "feat/SP-001",
+                "reviewDecision": "APPROVED",
+                "statusCheckRollup": [{"conclusion": "SUCCESS"}],
+                "labels": [],
+            }
+        ]
+        result = summarize_prs(prs)
+        assert result[0]["mergeable"] is True
+
+    def test_mergeable_false_ci_fail(self):
+        prs = [
+            {
+                "number": 1,
+                "title": "feat",
+                "headRefName": "feat/SP-001",
+                "reviewDecision": "APPROVED",
+                "statusCheckRollup": [{"conclusion": "FAILURE"}],
+                "labels": [],
+            }
+        ]
+        result = summarize_prs(prs)
+        assert result[0]["mergeable"] is False
+
+    def test_mergeable_false_no_review(self):
+        prs = [
+            {
+                "number": 1,
+                "title": "feat",
+                "headRefName": "feat/SP-001",
+                "reviewDecision": None,
+                "statusCheckRollup": [{"conclusion": "SUCCESS"}],
+                "labels": [],
+            }
+        ]
+        result = summarize_prs(prs)
+        assert result[0]["mergeable"] is False
+
+
+def _mock_pr_view_approved():
+    """Helper: mock gh pr view returning an approved PR with passing CI."""
+    return {
+        "data": {
+            "number": 42,
+            "title": "feat: test",
+            "headRefName": "feat/SP-099",
+            "reviewDecision": "APPROVED",
+            "statusCheckRollup": [{"conclusion": "SUCCESS"}],
+            "labels": [],
+        }
+    }
+
+
+class TestMergePr:
+    @pytest.mark.asyncio
+    async def test_merge_success(self):
+        from orchestrator.tools.github import do_merge_pr
+
+        # Mock: first call = pr view (JSON), second call = pr merge (text)
+        view_proc = AsyncMock()
+        view_proc.communicate.return_value = (
+            json.dumps(_mock_pr_view_approved()["data"]).encode(),
+            b"",
+        )
+        view_proc.returncode = 0
+
+        merge_proc = AsyncMock()
+        merge_proc.communicate.return_value = (b"Merged", b"")
+        merge_proc.returncode = 0
+
+        with patch(
+            "orchestrator.tools.github.asyncio.create_subprocess_exec",
+            side_effect=[view_proc, merge_proc],
+        ):
+            result = await do_merge_pr(42)
+
+        assert "isError" not in result
+        assert "42" in result["content"][0]["text"]
+
+    @pytest.mark.asyncio
+    async def test_merge_blocked_by_rules(self):
+        from orchestrator.tools.github import do_merge_pr
+
+        # PR with failing CI
+        view_proc = AsyncMock()
+        pr_data = _mock_pr_view_approved()["data"].copy()
+        pr_data["statusCheckRollup"] = [{"conclusion": "FAILURE"}]
+        view_proc.communicate.return_value = (json.dumps(pr_data).encode(), b"")
+        view_proc.returncode = 0
+
+        with patch(
+            "orchestrator.tools.github.asyncio.create_subprocess_exec",
+            return_value=view_proc,
+        ):
+            result = await do_merge_pr(42)
+
+        assert result.get("isError") is True
+        assert "CI" in result["content"][0]["text"]
+
+    @pytest.mark.asyncio
+    async def test_merge_gh_failure(self):
+        from orchestrator.tools.github import do_merge_pr
+
+        view_proc = AsyncMock()
+        view_proc.communicate.return_value = (
+            json.dumps(_mock_pr_view_approved()["data"]).encode(),
+            b"",
+        )
+        view_proc.returncode = 0
+
+        merge_proc = AsyncMock()
+        merge_proc.communicate.return_value = (b"", b"merge conflict")
+        merge_proc.returncode = 1
+
+        with patch(
+            "orchestrator.tools.github.asyncio.create_subprocess_exec",
+            side_effect=[view_proc, merge_proc],
+        ):
+            result = await do_merge_pr(42)
+
+        assert result.get("isError") is True
+        assert "merge conflict" in result["content"][0]["text"]
+
+
+class TestTriggerSddReview:
+    @pytest.mark.asyncio
+    async def test_trigger_success(self):
+        from orchestrator.tools.github import do_trigger_sdd_review
+
+        mock_proc = AsyncMock()
+        mock_proc.communicate.return_value = (b"", b"")
+        mock_proc.returncode = 0
+
+        with patch(
+            "orchestrator.tools.github.asyncio.create_subprocess_exec",
+            return_value=mock_proc,
+        ):
+            result = await do_trigger_sdd_review(42)
+
+        assert "isError" not in result
+        assert "42" in result["content"][0]["text"]
+
+    @pytest.mark.asyncio
+    async def test_trigger_failure(self):
+        from orchestrator.tools.github import do_trigger_sdd_review
+
+        mock_proc = AsyncMock()
+        mock_proc.communicate.return_value = (b"", b"workflow not found")
+        mock_proc.returncode = 1
+
+        with patch(
+            "orchestrator.tools.github.asyncio.create_subprocess_exec",
+            return_value=mock_proc,
+        ):
+            result = await do_trigger_sdd_review(42)
+
+        assert result.get("isError") is True

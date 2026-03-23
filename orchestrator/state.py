@@ -39,6 +39,17 @@ class StateStore:
                 reason TEXT,
                 created_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id TEXT NOT NULL,
+                pid INTEGER,
+                status TEXT NOT NULL DEFAULT 'running',
+                exit_code INTEGER,
+                pr_number INTEGER,
+                review_triggered_at TEXT,
+                started_at TEXT NOT NULL,
+                finished_at TEXT
+            );
         """)
         self.conn.commit()
 
@@ -65,10 +76,74 @@ class StateStore:
         """Record a decision made during a cycle."""
         now = datetime.now(UTC).isoformat()
         self.conn.execute(
-            "INSERT INTO decision_log (cycle_id, action, target, reason, created_at) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO decision_log (cycle_id, action, target, reason, created_at)"
+            " VALUES (?, ?, ?, ?, ?)",
             (cycle_id, action, target, reason, now),
         )
         self.conn.commit()
+
+    # ── Runs (Phase 2) ──────────────────────────────────────
+
+    def start_run(self, task_id: str, pid: int | None = None) -> int:
+        """Record a new worktree run. Returns the run ID."""
+        now = datetime.now(UTC).isoformat()
+        cur = self.conn.execute(
+            "INSERT INTO runs (task_id, pid, status, started_at) VALUES (?, ?, 'running', ?)",
+            (task_id, pid, now),
+        )
+        self.conn.commit()
+        return cur.lastrowid  # type: ignore[return-value]
+
+    def finish_run(self, run_id: int, exit_code: int, pr_number: int | None = None) -> None:
+        """Mark a run as finished with exit code."""
+        now = datetime.now(UTC).isoformat()
+        status = "success" if exit_code == 0 else "failed"
+        self.conn.execute(
+            "UPDATE runs SET status = ?, exit_code = ?, pr_number = ?, finished_at = ?"
+            " WHERE id = ?",
+            (status, exit_code, pr_number, now, run_id),
+        )
+        self.conn.commit()
+
+    def get_running_runs(self) -> list[dict]:
+        """Get all runs with status='running'."""
+        rows = self.conn.execute(
+            "SELECT id, task_id, pid, started_at FROM runs WHERE status = 'running'"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_consecutive_failures(self, task_id: str) -> int:
+        """Count consecutive failed runs for a task (from most recent)."""
+        rows = self.conn.execute(
+            "SELECT status FROM runs WHERE task_id = ? ORDER BY id DESC",
+            (task_id,),
+        ).fetchall()
+        count = 0
+        for row in rows:
+            if row["status"] == "failed":
+                count += 1
+            else:
+                break
+        return count
+
+    def mark_review_triggered(self, run_id: int) -> None:
+        """Record that sdd-review was triggered for this run."""
+        now = datetime.now(UTC).isoformat()
+        self.conn.execute(
+            "UPDATE runs SET review_triggered_at = ? WHERE id = ?",
+            (now, run_id),
+        )
+        self.conn.commit()
+
+    def get_run_by_task(self, task_id: str) -> dict | None:
+        """Get the most recent run for a task."""
+        row = self.conn.execute(
+            "SELECT * FROM runs WHERE task_id = ? ORDER BY id DESC LIMIT 1",
+            (task_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    # ── Cycles ────────────────────────────────────────────
 
     def get_last_cycle_summary(self) -> str | None:
         """Get the summary from the most recent completed cycle."""

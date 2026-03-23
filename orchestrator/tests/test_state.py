@@ -119,3 +119,89 @@ def test_error_cycle(store: StateStore):
     row = store.conn.execute("SELECT * FROM cycles WHERE id = ?", (cycle_id,)).fetchone()
     assert row["status"] == "error"
     assert "connection failed" in row["summary"]
+
+
+# ── Runs (Phase 2) ───────────────────────────────────────
+
+
+def test_runs_table_created(store: StateStore):
+    """Test that runs table is created on initialization."""
+    tables = store.conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+    ).fetchall()
+    table_names = [t["name"] for t in tables]
+    assert "runs" in table_names
+
+
+def test_run_lifecycle(store: StateStore):
+    """Test start → finish → query lifecycle."""
+    run_id = store.start_run("SP-099", pid=12345)
+    assert run_id >= 1
+
+    running = store.get_running_runs()
+    assert len(running) == 1
+    assert running[0]["task_id"] == "SP-099"
+    assert running[0]["pid"] == 12345
+
+    store.finish_run(run_id, exit_code=0, pr_number=42)
+
+    running = store.get_running_runs()
+    assert len(running) == 0
+
+    run = store.get_run_by_task("SP-099")
+    assert run["status"] == "success"
+    assert run["exit_code"] == 0
+    assert run["pr_number"] == 42
+    assert run["finished_at"] is not None
+
+
+def test_get_running_excludes_finished(store: StateStore):
+    """Test that finished runs are excluded from running list."""
+    r1 = store.start_run("SP-001", pid=111)
+    store.start_run("SP-002", pid=222)
+    store.finish_run(r1, exit_code=0)
+
+    running = store.get_running_runs()
+    assert len(running) == 1
+    assert running[0]["task_id"] == "SP-002"
+
+
+def test_consecutive_failures(store: StateStore):
+    """Test consecutive failure counting."""
+    assert store.get_consecutive_failures("SP-099") == 0
+
+    # 3 consecutive failures
+    for _ in range(3):
+        rid = store.start_run("SP-099", pid=111)
+        store.finish_run(rid, exit_code=1)
+
+    assert store.get_consecutive_failures("SP-099") == 3
+
+
+def test_consecutive_failures_reset_by_success(store: StateStore):
+    """Test that a success resets the consecutive failure count."""
+    for _ in range(2):
+        rid = store.start_run("SP-099", pid=111)
+        store.finish_run(rid, exit_code=1)
+
+    rid = store.start_run("SP-099", pid=111)
+    store.finish_run(rid, exit_code=0)
+
+    rid = store.start_run("SP-099", pid=111)
+    store.finish_run(rid, exit_code=1)
+
+    assert store.get_consecutive_failures("SP-099") == 1
+
+
+def test_mark_review_triggered(store: StateStore):
+    """Test marking a run as review-triggered."""
+    run_id = store.start_run("SP-099", pid=111)
+    store.mark_review_triggered(run_id)
+
+    run = store.get_run_by_task("SP-099")
+    assert run["review_triggered_at"] is not None
+
+
+def test_get_run_by_task_none(store: StateStore):
+    """Test getting a run for a task with no runs."""
+    assert store.get_run_by_task("SP-999") is None

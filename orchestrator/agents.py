@@ -5,11 +5,33 @@ from __future__ import annotations
 from claude_agent_sdk import ClaudeAgentOptions
 
 from orchestrator.config import (
+    ENABLE_AUTO_RUN,
     LEAD_AGENT_MODEL,
     LEAD_AGENT_SYSTEM_PROMPT,
     MAX_AGENT_TURNS,
     PROJECT_ROOT,
 )
+
+_READ_TOOLS = [
+    "mcp__orch__scan_backlog",
+    "mcp__orch__check_prs",
+    "mcp__orch__check_workflows",
+    "mcp__orch__check_running_worktrees",
+]
+
+_WRITE_TOOLS = [
+    "mcp__orch__launch_sdd_run",
+    "mcp__orch__merge_pr",
+    "mcp__orch__trigger_sdd_review",
+]
+
+
+def get_allowed_tools() -> list[str]:
+    """Build the allowed_tools list based on ENABLE_AUTO_RUN."""
+    tools = list(_READ_TOOLS)
+    if ENABLE_AUTO_RUN:
+        tools.extend(_WRITE_TOOLS)
+    return tools
 
 
 def create_lead_agent_options(mcp_server) -> ClaudeAgentOptions:
@@ -18,11 +40,7 @@ def create_lead_agent_options(mcp_server) -> ClaudeAgentOptions:
         model=LEAD_AGENT_MODEL,
         system_prompt=LEAD_AGENT_SYSTEM_PROMPT,
         mcp_servers={"orch": mcp_server},
-        allowed_tools=[
-            "mcp__orch__scan_backlog",
-            "mcp__orch__check_prs",
-            "mcp__orch__check_workflows",
-        ],
+        allowed_tools=get_allowed_tools(),
         permission_mode="default",
         max_turns=MAX_AGENT_TURNS,
         cwd=PROJECT_ROOT,
@@ -39,5 +57,7 @@ def build_cycle_prompt(cycle_number: int, previous_summary: str | None) -> str:
         "1. scan_backlog → 백로그 + 태스크 상태 확인\n"
         "2. check_prs → 열린 PR 상태 확인\n"
         "3. check_workflows → GitHub Actions 상태 확인\n"
-        "4. 종합 판단 → 대시보드 출력 + 다음 행동 제안"
+        "4. check_running_worktrees → 실행 중인 워크트리 확인\n"
+        "5. Decision Rules에 따라 액션 실행 (launch/merge/trigger)\n"
+        "6. 종합 대시보드 출력"
     )

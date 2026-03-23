@@ -23,10 +23,13 @@ class OrchestratorDaemon:
     """Main daemon that runs the orchestrator event loop."""
 
     def __init__(self, interval: int = CYCLE_INTERVAL, db_path: Path = DEFAULT_DB_PATH):
+        from orchestrator.tools.worktree import set_state_store
+
         self.interval = interval
         self.cycle = 0
         self.stop_event = asyncio.Event()
         self.state = StateStore(db_path=db_path)
+        set_state_store(self.state)
         self.mcp_server = create_orchestrator_mcp_server()
 
     async def run(self) -> None:
