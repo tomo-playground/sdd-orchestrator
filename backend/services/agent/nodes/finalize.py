@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from typing import TYPE_CHECKING
 
 from config import (
+    DEFAULT_CAMERA_TAG,
+    DEFAULT_EMOTION_TAG,
     DEFAULT_GAZE_TAG,
     DEFAULT_MOOD_TAG,
     DEFAULT_POSE_TAG,
@@ -13,6 +16,8 @@ from config import (
     DURATION_DEFICIT_THRESHOLD,
     DURATION_OVERFLOW_THRESHOLD,
     MULTI_CHAR_STRUCTURES,
+    NARRATOR_FALLBACK_PROMPT,
+    PROHIBITED_IMAGE_TAGS,
     coerce_language_id,
     coerce_structure_id,
     logger,
@@ -850,6 +855,241 @@ def _rebuild_image_prompt_from_context_tags(scenes: list[dict]) -> None:
         logger.info("[Finalize] image_prompt rebuilt from context_tags: %d scenes", rebuilt_count)
 
 
+# ── DoD 1: 금지 태그 필터 ─────────────────────────────────────────────
+
+
+def _filter_prohibited_tags(scenes: list[dict]) -> None:
+    """image_prompt에서 PROHIBITED_IMAGE_TAGS에 해당하는 토큰을 제거한다."""
+    for i, scene in enumerate(scenes):
+        prompt = scene.get("image_prompt")
+        if not prompt:
+            continue
+        tokens = [t.strip() for t in prompt.split(",")]
+        kept: list[str] = []
+        removed: list[str] = []
+        for token in tokens:
+            if not token:
+                continue
+            bare = _strip_token_weight(token)
+            if bare in PROHIBITED_IMAGE_TAGS:
+                removed.append(token)
+            else:
+                kept.append(token)
+        if removed:
+            scene["image_prompt"] = ", ".join(kept)
+            logger.warning("[Finalize] Scene %d: prohibited tags removed: %s", i, removed)
+
+
+# ── DoD 2: Danbooru 형식 정규화 ───────────────────────────────────────
+
+
+def _normalize_danbooru_format(scenes: list[dict]) -> None:
+    """image_prompt 토큰의 공백을 언더바로 변환한다. LoRA/하이픈 태그는 예외."""
+    from services.keywords.db_cache import LoRATriggerCache  # noqa: PLC0415
+
+    for scene in scenes:
+        prompt = scene.get("image_prompt")
+        if not prompt:
+            continue
+        tokens = [t.strip() for t in prompt.split(",")]
+        normalized: list[str] = []
+        for token in tokens:
+            if not token:
+                continue
+            normalized.append(_normalize_single_token(token, LoRATriggerCache))
+        scene["image_prompt"] = ", ".join(normalized)
+
+
+def _normalize_single_token(token: str, lora_cache: type) -> str:
+    """단일 토큰의 공백→언더바 변환. LoRA 태그/트리거는 예외."""
+    # LoRA 태그 skip
+    if token.startswith("<lora:"):
+        return token
+    # weight 구문 분리: (tag:1.2) → tag, weight_suffix
+    weight_prefix = ""
+    weight_suffix = ""
+    inner = token
+    if token.startswith("(") and ":" in token and token.endswith(")"):
+        idx = token.rfind(":")
+        weight_prefix = "("
+        weight_suffix = token[idx:]
+        inner = token[1:idx]
+    # LoRA 트리거 워드 보호
+    if lora_cache.get_lora_name(inner.strip()):
+        return token
+    # 공백 → 언더바
+    converted = inner.replace(" ", "_")
+    return f"{weight_prefix}{converted}{weight_suffix}"
+
+
+# ── DoD 3: context_tags 유효성 검증 ───────────────────────────────────
+
+
+def _resolve_valid_camera(raw: object, valid_cameras: frozenset[str]) -> str | None:
+    """리스트/문자열에서 유효한 camera 값을 찾아 반환. 없으면 None."""
+    candidates = raw if isinstance(raw, list) else [raw]
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        cam_norm = str(candidate).replace(" ", "_")
+        if cam_norm in valid_cameras:
+            return cam_norm
+    return None
+
+
+def _validate_context_tag_values(scenes: list[dict]) -> None:
+    """emotion/camera/gaze의 유효값을 검증하고 무효 시 기본값으로 대체한다."""
+    from ._context_tag_utils import (  # noqa: PLC0415
+        _GAZE_ALIASES,
+        VALID_EMOTIONS,
+        _coerce_str,
+        _get_valid_tags_for,
+        _normalize_emotion,
+    )
+
+    valid_cameras = _get_valid_tags_for("camera")
+    valid_gazes = _get_valid_tags_for("gaze")
+
+    for i, scene in enumerate(scenes):
+        ctx = scene.get("context_tags")
+        if not ctx:
+            continue
+
+        # emotion 검증
+        raw_emotion = ctx.get("emotion")
+        if raw_emotion:
+            emotion_str = _coerce_str(raw_emotion)
+            if emotion_str:
+                normalized = _normalize_emotion(emotion_str)
+                if normalized in VALID_EMOTIONS:
+                    ctx["emotion"] = normalized
+                else:
+                    logger.warning(
+                        "[Finalize] Scene %d: invalid emotion '%s' → fallback '%s'",
+                        i,
+                        emotion_str,
+                        DEFAULT_EMOTION_TAG,
+                    )
+                    ctx["emotion"] = DEFAULT_EMOTION_TAG
+
+        # camera 검증 (리스트인 경우 유효한 첫 값 선택)
+        raw_camera = ctx.get("camera")
+        if raw_camera:
+            resolved_camera = _resolve_valid_camera(raw_camera, valid_cameras)
+            if resolved_camera:
+                ctx["camera"] = resolved_camera
+            else:
+                camera_str = _coerce_str(raw_camera)
+                logger.warning(
+                    "[Finalize] Scene %d: invalid camera '%s' → fallback '%s'",
+                    i,
+                    camera_str,
+                    DEFAULT_CAMERA_TAG,
+                )
+                ctx["camera"] = DEFAULT_CAMERA_TAG
+
+        # gaze 검증 (Narrator는 존재 시에만)
+        raw_gaze = ctx.get("gaze")
+        if raw_gaze:
+            gaze_str = _coerce_str(raw_gaze)
+            if gaze_str:
+                gaze_norm = gaze_str.replace(" ", "_")
+                if gaze_norm in valid_gazes:
+                    ctx["gaze"] = gaze_norm
+                elif gaze_norm in _GAZE_ALIASES:
+                    ctx["gaze"] = _GAZE_ALIASES[gaze_norm]
+                else:
+                    logger.warning(
+                        "[Finalize] Scene %d: invalid gaze '%s' → fallback '%s'",
+                        i,
+                        gaze_str,
+                        DEFAULT_GAZE_TAG,
+                    )
+                    ctx["gaze"] = DEFAULT_GAZE_TAG
+
+
+# ── DoD 4: 재조립 후 sanity check ─────────────────────────────────────
+
+_INCOMPLETE_WEIGHT_RE = re.compile(r"\([^:)]+:\s*\)|\(\s*:[^)]*\)")
+
+
+def _validate_final_image_prompt(scenes: list[dict]) -> None:
+    """재조립된 image_prompt의 형식 오류를 검출하고 자동 정리한다."""
+    for i, scene in enumerate(scenes):
+        prompt = scene.get("image_prompt", "")
+        is_narrator = scene.get("speaker") == "Narrator"
+
+        # 빈 프롬프트
+        if not prompt or not prompt.strip():
+            if is_narrator:
+                scene["image_prompt"] = NARRATOR_FALLBACK_PROMPT
+                logger.warning("[Finalize] Scene %d (Narrator): empty prompt → fallback injected", i)
+            else:
+                logger.warning("[Finalize] Scene %d: empty image_prompt detected", i)
+            continue
+
+        # 이중 쉼표 정리
+        prompt = re.sub(r",\s*,+", ",", prompt)
+        prompt = prompt.strip(", ")
+
+        # 불완전 weight 구문 제거: (tag:) or (:1.2)
+        prompt = _INCOMPLETE_WEIGHT_RE.sub("", prompt)
+        prompt = re.sub(r",\s*,+", ",", prompt)
+        prompt = prompt.strip(", ")
+
+        # 짝 없는 괄호 제거
+        open_count = prompt.count("(")
+        close_count = prompt.count(")")
+        if open_count != close_count:
+            # 간단한 전략: 짝 없는 괄호를 뒤에서부터 제거
+            if open_count > close_count:
+                diff = open_count - close_count
+                chars = list(prompt)
+                for j in range(len(chars) - 1, -1, -1):
+                    if chars[j] == "(" and diff > 0:
+                        rest = prompt[j:]
+                        colon_in_segment = ":" in (rest.split(")")[0] if ")" in rest else rest)
+                        if not colon_in_segment:
+                            chars[j] = ""
+                            diff -= 1
+                    if diff == 0:
+                        break
+                prompt = "".join(chars)
+            else:
+                diff = close_count - open_count
+                chars = list(prompt)
+                for j in range(len(chars) - 1, -1, -1):
+                    if chars[j] == ")" and diff > 0:
+                        before = prompt[:j]
+                        segment = before[before.rfind(",") :] if "," in before else before
+                        if "(" not in segment:
+                            chars[j] = ""
+                            diff -= 1
+                    if diff == 0:
+                        break
+                prompt = "".join(chars)
+
+        # 태그 50개 초과 절단
+        tokens = [t.strip() for t in prompt.split(",") if t.strip()]
+        if len(tokens) > 50:
+            logger.warning(
+                "[Finalize] Scene %d: tag count %d > 50, truncating",
+                i,
+                len(tokens),
+            )
+            tokens = tokens[:50]
+
+        cleaned = ", ".join(tokens)
+        if not cleaned:
+            # 정리 후 빈 프롬프트 → fallback
+            if is_narrator:
+                cleaned = NARRATOR_FALLBACK_PROMPT
+                logger.warning("[Finalize] Scene %d (Narrator): prompt empty after cleanup → fallback", i)
+            else:
+                logger.warning("[Finalize] Scene %d: prompt empty after cleanup", i)
+        scene["image_prompt"] = cleaned
+
+
 # Action 포즈: 골격 정밀도가 중요 → 높은 weight
 _ACTION_POSES: frozenset[str] = frozenset(
     {
@@ -1181,6 +1421,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         diversify_cameras(scenes)
         diversify_poses(scenes)
         _validate_emotion_continuity(scenes)
+        _validate_context_tag_values(scenes)
     except Exception:
         logger.warning("[Finalize] context_tags/다양성 처리 실패 (non-fatal)", exc_info=True)
 
@@ -1196,14 +1437,25 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
     except Exception:
         logger.warning("[Finalize] 환경/로케이션 태그 처리 실패 (non-fatal)", exc_info=True)
 
-    # 그룹 3.5: context_tags 구조화 — cross-field 검증 + image_prompt 재조립
-    # 재조립 후 alias 재적용 필수: context_tags에 비표준 태그(daytime 등)가 있을 수 있음
+    # 그룹 3.5: cross-field 검증 + 재조립 + 금지 태그 필터 + 형식 정규화
+    # 순서 중요: rebuild가 image_prompt를 context_tags 기반으로 덮어쓰므로, 필터/정규화는 rebuild 이후 실행
     try:
         _validate_cross_field_consistency(scenes)
         _rebuild_image_prompt_from_context_tags(scenes)
+        _filter_prohibited_tags(scenes)
+        _normalize_danbooru_format(scenes)
         _apply_tag_aliases(scenes)  # 재조립된 image_prompt에 alias 재적용
+        # alias 적용 후 split/교체로 금지 태그·공백 형식이 재유입될 수 있으므로 재필터
+        _filter_prohibited_tags(scenes)
+        _normalize_danbooru_format(scenes)
     except Exception:
         logger.warning("[Finalize] context_tags 구조화 처리 실패 (non-fatal)", exc_info=True)
+
+    # 그룹 3.6: 최종 prompt sanity check (이전 단계 실패와 무관하게 항상 실행)
+    try:
+        _validate_final_image_prompt(scenes)
+    except Exception:
+        logger.warning("[Finalize] prompt sanity check 실패 (non-fatal)", exc_info=True)
 
     # 미분류 태그 LLM 사전 분류 (이미지 생성 전)
     from config_pipelines import FEATURE_TAG_LLM_CLASSIFICATION

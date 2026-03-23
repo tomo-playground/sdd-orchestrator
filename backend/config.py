@@ -729,11 +729,51 @@ REFERENCE_ADAIN_WEIGHT_INDOOR = float(os.getenv("REFERENCE_ADAIN_WEIGHT_INDOOR",
 REFERENCE_ADAIN_WEIGHT_OUTDOOR = float(os.getenv("REFERENCE_ADAIN_WEIGHT_OUTDOOR", "0.25"))
 REFERENCE_ADAIN_GUIDANCE_END = float(os.getenv("REFERENCE_ADAIN_GUIDANCE_END", "0.5"))
 
-# Default pose/gaze/expression/mood for ControlNet when Gemini omits context_tags
+# Default pose/gaze/expression/mood/camera/emotion for ControlNet when Gemini omits context_tags
 DEFAULT_POSE_TAG = "standing"
 DEFAULT_GAZE_TAG = "looking_at_viewer"
 DEFAULT_EXPRESSION_TAG = "smile"
 DEFAULT_MOOD_TAG = "neutral"
+DEFAULT_CAMERA_TAG = "cowboy_shot"
+DEFAULT_EMOTION_TAG = "calm"
+NARRATOR_FALLBACK_PROMPT = "no_humans, scenery"
+
+# Finalize L2 검증: Cinematographer FORBIDDEN 목록 기반 금지 태그
+PROHIBITED_IMAGE_TAGS: frozenset[str] = frozenset(
+    {
+        # 조합형 비표준 태그
+        "cinematic_shadows",
+        "computer_monitor",
+        "glowing_screen",
+        "dark_room",
+        "high_contrast_shadow",
+        # 감정 형용사 (비 Danbooru)
+        "confident",
+        "satisfied",
+        "anxious",
+        "tormented",
+        "resigned",
+        "paranoid",
+        # 복합 expression
+        "happy_smile",
+        "sly_smile",
+        "pensive_expression",
+        "puzzled_expression",
+        # 성별 태그 (시스템 자동 주입)
+        "female",
+        "male",
+        # 제로 포스트 태그
+        "bishoujo",
+        "daylight",
+        # 비표준 카메라/조명 (Rule 12 INVALID)
+        "medium_shot",
+        "rim_light",
+        "dramatic_lighting",
+        "cinematic_lighting",
+        "warm_lighting",
+        "cold_lighting",
+    }
+)
 
 # --- Gemini Imagen Cost (USD per request) ---
 GEMINI_IMAGE_EDIT_COST_USD = float(os.getenv("GEMINI_IMAGE_EDIT_COST_USD", "0.0401"))
