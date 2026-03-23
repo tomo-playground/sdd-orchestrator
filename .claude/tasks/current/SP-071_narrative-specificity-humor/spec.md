@@ -4,7 +4,7 @@ priority: P2
 scope: backend
 branch: feat/SP-071-narrative-specificity-humor
 created: 2026-03-23
-status: approved
+status: running
 approved_at: 2026-03-23
 depends_on: SP-064
 label: feat
@@ -27,18 +27,18 @@ Writer가 생성하고, Review가 통과시키고, Director가 revise 안 하는
 
 ### Narrative 차원 추가
 
-- [ ] `_NARRATIVE_WEIGHTS`에 `situational_specificity` 차원 추가 (가중치 0.10, 기존 차원 가중치 재분배하여 합계 1.0 유지)
-- [ ] `NarrativeScoreOutput` (llm_models.py)에 `situational_specificity: float` 필드 추가
-- [ ] LangFuse `pipeline/review/unified` 프롬프트 Narrative 섹션에 평가 기준 추가: "각 씬이 구체적 상황/행동/대상을 포함하는지 평가. 리액션만 있고 상황 맥락이 없는 대사는 감점"
+- [x] `_NARRATIVE_WEIGHTS`에 `situational_specificity` 차원 추가 (가중치 0.10, 기존 차원 가중치 재분배하여 합계 1.0 유지)
+- [x] `NarrativeScoreOutput` (llm_models.py)에 `situational_specificity: float` 필드 추가
+- [x] LangFuse `pipeline/review/unified` 프롬프트 Narrative 섹션에 평가 기준 추가: "각 씬이 구체적 상황/행동/대상을 포함하는지 평가. 리액션만 있고 상황 맥락이 없는 대사는 감점"
 
 ### Writer 프롬프트 규칙
 
-- [ ] LangFuse `creative/writer` 프롬프트에 규칙 추가: "대사는 반드시 구체적 상황이나 행동을 포함해야 한다. 감탄사/리액션만으로 구성된 대사 금지. Bad: '내 발... 뭐지?' / Good: '짝짝이 구두 신고 왔잖아!'"
+- [x] LangFuse `pipeline/writer/script` 프롬프트에 규칙 추가: "대사는 반드시 구체적 상황이나 행동을 포함해야 한다. 감탄사/리액션만으로 구성된 대사 금지. Bad: '내 발... 뭐지?' / Good: '짝짝이 구두 신고 왔잖아!'"
 
 ### 통합
 
-- [ ] 기존 테스트 regression 없음
-- [ ] 린트 통과
+- [x] 기존 테스트 regression 없음
+- [x] 린트 통과
 
 ## 영향 분석
 - 관련 파일: `backend/services/agent/nodes/review.py`, `backend/services/agent/llm_models.py`, LangFuse 프롬프트 2개

@@ -39,10 +39,10 @@ class TestNarrativeWeightsRebalanced:
         assert _NARRATIVE_WEIGHTS["hook"] == 0.25
 
     def test_twist_payoff_weight(self):
-        """twist_payoff 가중치가 0.10이다."""
+        """twist_payoff 가중치가 0.05이다."""
         from services.agent.nodes.review import _NARRATIVE_WEIGHTS
 
-        assert _NARRATIVE_WEIGHTS["twist_payoff"] == 0.10
+        assert _NARRATIVE_WEIGHTS["twist_payoff"] == 0.05
 
     def test_emotional_arc_weight(self):
         """emotional_arc 가중치가 0.15이다."""
@@ -57,12 +57,13 @@ class TestNarrativeWeightsRebalanced:
         assert _NARRATIVE_WEIGHTS["speaker_tone"] == 0.05
 
     def test_new_dimensions_exist(self):
-        """Phase 36에서 추가된 3개 차원이 존재한다."""
+        """Phase 36에서 추가된 3개 차원 + SP-071 situational_specificity가 존재한다."""
         from services.agent.nodes.review import _NARRATIVE_WEIGHTS
 
         assert _NARRATIVE_WEIGHTS["spoken_naturalness"] == 0.15
         assert _NARRATIVE_WEIGHTS["retention_flow"] == 0.10
-        assert _NARRATIVE_WEIGHTS["pacing_rhythm"] == 0.10
+        assert _NARRATIVE_WEIGHTS["pacing_rhythm"] == 0.05
+        assert _NARRATIVE_WEIGHTS["situational_specificity"] == 0.10
 
 
 # ── 12-B-9: Finalize 메타데이터 구조 분리 ───────────────────

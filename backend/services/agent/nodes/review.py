@@ -30,12 +30,13 @@ from services.llm import LLMConfig, get_llm_provider
 _NARRATIVE_WEIGHTS = {
     "hook": 0.25,
     "emotional_arc": 0.15,
-    "twist_payoff": 0.10,
+    "twist_payoff": 0.05,
     "speaker_tone": 0.05,
     "script_image_sync": 0.10,
     "spoken_naturalness": 0.15,
     "retention_flow": 0.10,
-    "pacing_rhythm": 0.10,
+    "pacing_rhythm": 0.05,
+    "situational_specificity": 0.10,
 }
 
 

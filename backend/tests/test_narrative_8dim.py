@@ -16,10 +16,10 @@ class TestNarrativeWeights:
         for key, val in _NARRATIVE_WEIGHTS.items():
             assert val > 0, f"{key} 가중치가 0 이하: {val}"
 
-    def test_weights_has_8_dimensions(self):
+    def test_weights_has_9_dimensions(self):
         from services.agent.nodes.review import _NARRATIVE_WEIGHTS
 
-        assert len(_NARRATIVE_WEIGHTS) == 8, f"차원 수 {len(_NARRATIVE_WEIGHTS)} != 8"
+        assert len(_NARRATIVE_WEIGHTS) == 9, f"차원 수 {len(_NARRATIVE_WEIGHTS)} != 9"
 
     def test_new_dimensions_exist(self):
         from services.agent.nodes.review import _NARRATIVE_WEIGHTS
@@ -106,6 +106,7 @@ class TestBuildNarrativeScore:
                 "spoken_naturalness": 1.0,
                 "retention_flow": 1.0,
                 "pacing_rhythm": 1.0,
+                "situational_specificity": 1.0,
                 "feedback": "",
             }
         )

@@ -141,6 +141,8 @@ def _build_feedback(state: ScriptState) -> str:
             low_dims.append("씬 간 호기심 연결 약함 — 각 씬이 다음을 보고 싶게 만드는지 확인")
         if ns.get("pacing_rhythm", 1.0) < _LOW:
             low_dims.append("템포/리듬 단조로움 — 문장 길이·종결 패턴 다양화 필요")
+        if ns.get("situational_specificity", 1.0) < _LOW:
+            low_dims.append("상황 구체성 부족 — 리액션만 있는 대사에 구체적 상황/행동/대상 추가 필요")
         if low_dims:
             parts.append("[숏폼 품질 개선]\n" + "\n".join(f"- {d}" for d in low_dims))
 

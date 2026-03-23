@@ -160,6 +160,7 @@ class NarrativeScoreOutput(BaseModel):
     spoken_naturalness: float = 0.0  # TTS 낭독 자연스러움
     retention_flow: float = 0.0  # 씬→씬 호기심 연결
     pacing_rhythm: float = 0.0  # 템포/리듬 변화
+    situational_specificity: float = 0.0  # 상황 구체성
     feedback: str = ""
     scene_issues: list[dict] = []  # per-scene 서사 이슈 (SP-064)
 
@@ -178,6 +179,7 @@ class NarrativeScoreOutput(BaseModel):
             "spoken_naturalness",
             "retention_flow",
             "pacing_rhythm",
+            "situational_specificity",
         )
         for k in score_keys:
             v = out.get(k)

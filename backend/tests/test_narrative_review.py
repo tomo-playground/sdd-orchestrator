@@ -262,7 +262,7 @@ def test_routing_narrative_fail_triggers_revise():
 
 
 def _all_dimensions(value: float, feedback: str = "") -> dict:
-    """8개 차원 모두 동일 값을 가진 JSON-serializable dict."""
+    """9개 차원 모두 동일 값을 가진 JSON-serializable dict."""
     d: dict = {
         "hook": value,
         "emotional_arc": value,
@@ -272,6 +272,7 @@ def _all_dimensions(value: float, feedback: str = "") -> dict:
         "spoken_naturalness": value,
         "retention_flow": value,
         "pacing_rhythm": value,
+        "situational_specificity": value,
     }
     if feedback:
         d["feedback"] = feedback
@@ -299,3 +300,22 @@ def test_narrative_score_weights():
     score_wrapped = _parse_narrative_score(raw_wrapped)
     assert score_wrapped is not None
     assert score_wrapped["overall"] == 1.0
+
+
+# --- 11. situational_specificity 차원 검증 ---
+
+
+def test_situational_specificity_zero_reduces_overall():
+    """situational_specificity=0.0이고 나머지 1.0이면 overall=0.90."""
+    dims = _all_dimensions(1.0)
+    dims["situational_specificity"] = 0.0
+    raw = json.dumps(dims)
+    score = _parse_narrative_score(raw)
+    assert score is not None
+    assert score["overall"] == pytest.approx(0.9)
+
+
+def test_situational_specificity_included_in_weights():
+    """_NARRATIVE_WEIGHTS에 situational_specificity가 포함되어 있다."""
+    assert "situational_specificity" in _NARRATIVE_WEIGHTS
+    assert _NARRATIVE_WEIGHTS["situational_specificity"] == 0.10
