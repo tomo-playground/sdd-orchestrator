@@ -737,8 +737,8 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | 사람 | `/sentry-patrol` | Sentry 에러 수집 → Issue 생성 |
 | 사람 | `/sentry-autofix #N` | Issue 자동 수정 → PR |
 | 사람 | `/sdd-sync` | 비상용 태스크 정리 |
-| 자동 | `claude-review.yml` | PR 생성/push → 병렬 리뷰 |
-| 자동 | `claude-fix.yml` (Claude Fix) | 리뷰 코멘트 → 자동 수정 |
+| 자동 | `sdd-review.yml` | PR 생성/push → 병렬 리뷰 |
+| 자동 | `sdd-fix.yml` (SDD Fix) | 리뷰 코멘트 → 자동 수정 |
 | 자동 | `sdd-sync.yml` | PR 머지 → 정리 + rebase |
 | 자동 | `sentry-patrol.yml` | 매일 에러 수집 → Issue |
 | 자동 | `sentry-autofix.yml` | Issue 생성 → 자동 수정 PR |

@@ -99,7 +99,7 @@
     - `gh run cancel {run_id}`
     - 반환: `{success: bool, message: str}`
 - `config.py`에 추가:
-  - `GH_MONITORED_WORKFLOWS = ["claude-review.yml", "claude-fix.yml", "sdd-sync.yml", "sentry-autofix.yml"]`
+  - `GH_MONITORED_WORKFLOWS = ["sdd-review.yml", "sdd-fix.yml", "sdd-sync.yml", "sentry-autofix.yml"]`
 
 **동작 정의:**
 - before: stuck 워크플로우 감지만 (read-only)

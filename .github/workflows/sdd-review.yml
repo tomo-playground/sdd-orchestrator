@@ -1,4 +1,4 @@
-name: Claude Review — PR 자동 리뷰
+name: SDD Review — PR 자동 리뷰
 
 on:
   pull_request:

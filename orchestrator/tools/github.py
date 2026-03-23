@@ -228,7 +228,7 @@ async def do_trigger_sdd_review(pr_number: int) -> dict:
             "gh",
             "workflow",
             "run",
-            "claude-fix.yml",
+            "sdd-fix.yml",
             "-f",
             f"pr_number={pr_number}",
             stdout=asyncio.subprocess.PIPE,
