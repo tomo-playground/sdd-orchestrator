@@ -354,7 +354,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 |--------|------|-------------|
 | `id` | Integer (PK) | |
 | `source_tag` | String(100) | 변환 전 (`medium shot`) |
-| `target_tag` | String(500) | 변환 후 (`cowboy_shot`), NULL = 삭제 |
+| `target_tag` | String(100), nullable | 변환 후 (`cowboy_shot`), NULL = 삭제 |
 | `reason` | String(200) | 치환 사유 |
 | `is_active` | Boolean | 활성 여부 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
@@ -735,7 +735,7 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 | `LoRA.lora_type` | `character`, `style`, `concept`, `pose` |
 | `Scene.scene_mode` | `single`, `multi` |
 | `TagRule.rule_type` | `conflict`, `requires` |
-| `TagAlias.target_tag` | String(500) or `NULL` (= remove tag) |
+| `TagAlias.target_tag` | String(100) or `NULL` (= remove tag) |
 | `TagFilter.filter_type` | `ignore`, `skip` |
 | `RenderPreset.bgm_mode` | `manual`, `auto` |
 | `ActivityLog.status` | `success`, `fail` |
