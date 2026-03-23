@@ -80,7 +80,10 @@ export function buildSceneRequest(
     height: scene.height || sbState.imageDefaults.height,
     ...hiResPayload,
     character_id: resolveCharacterIdForSpeaker(scene.speaker, sbState),
-    character_b_id: sbState.selectedCharacterBId || undefined,
+    character_b_id:
+      scene.scene_mode === "multi"
+        ? resolveCharacterIdForSpeaker(scene.speaker === "A" ? "B" : "A", sbState) || undefined
+        : undefined,
     storyboard_id: storyboardId || undefined,
     scene_id: scene.id > 0 ? scene.id : undefined,
     background_id: scene.background_id || undefined,
