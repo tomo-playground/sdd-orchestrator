@@ -10,7 +10,7 @@ TASKS_CURRENT_DIR = PROJECT_ROOT / ".claude" / "tasks" / "current"
 DEFAULT_DB_PATH = PROJECT_ROOT / "orchestrator" / "state.db"
 
 # ── Daemon ─────────────────────────────────────────────────
-CYCLE_INTERVAL = 600  # 10 minutes in seconds
+CYCLE_INTERVAL = 180  # 3 minutes in seconds
 MAX_AGENT_TURNS = 15
 AGENT_QUERY_TIMEOUT = 600  # seconds — query_agent asyncio timeout
 
