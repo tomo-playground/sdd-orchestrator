@@ -72,10 +72,7 @@ function setupErrorCollector(page: Page) {
 
 /** networkidle 대기 후 치명적 에러 assertion — 늦게 도착하는 API 5xx 누락 방지 */
 async function assertNoCriticalErrors(page: Page, errors: PatrolError[]) {
-  await Promise.race([
-    page.waitForLoadState("networkidle"),
-    page.waitForTimeout(2000),
-  ]);
+  await Promise.race([page.waitForLoadState("networkidle"), page.waitForTimeout(2000)]);
   const critical = errors.filter(
     (e) => e.type === "console" || (e.type === "api" && (e.status ?? 0) >= 500)
   );
@@ -122,13 +119,13 @@ test.describe("QA Patrol", () => {
 
     await page.goto("/studio?new=true");
 
-    // 에디터 탭 또는 안내 메시지
-    const scriptTab = page.getByRole("button", { name: "Script", exact: true });
-    const needsChannel = page.getByText("채널이 필요합니다");
-    const needsSeries = page.getByText("시리즈를 만들어야");
-
+    // Studio UI — 채널/시리즈 선택 또는 에디터 탭
     await expect(
-      scriptTab.or(needsChannel).or(needsSeries).first()
+      page
+        .getByRole("button", { name: "채널" })
+        .or(page.getByRole("button", { name: /시리즈/ }))
+        .or(page.getByRole("button", { name: "Script", exact: true }))
+        .first()
     ).toBeVisible({ timeout: 15000 });
 
     await assertNoCriticalErrors(page, errors);
@@ -138,11 +135,11 @@ test.describe("QA Patrol", () => {
     const errors = setupErrorCollector(page);
 
     await page.goto("/settings");
-    // 설정 페이지 콘텐츠
+    // Settings 서브 네비게이션
     await expect(
       page
-        .getByText("설정")
-        .or(page.getByRole("heading").first())
+        .getByRole("link", { name: /Render Presets/i })
+        .or(page.getByRole("link", { name: /YouTube/i }))
         .first()
     ).toBeVisible({ timeout: 15000 });
 
