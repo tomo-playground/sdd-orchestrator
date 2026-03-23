@@ -12,7 +12,10 @@ DEFAULT_DB_PATH = PROJECT_ROOT / "orchestrator" / "state.db"
 # ── Daemon ─────────────────────────────────────────────────
 CYCLE_INTERVAL = 600  # 10 minutes in seconds
 MAX_AGENT_TURNS = 10
-AGENT_QUERY_TIMEOUT = 300  # seconds — _query_agent asyncio timeout
+AGENT_QUERY_TIMEOUT = 300  # seconds — query_agent asyncio timeout
+
+# ── Feature Flags ──────────────────────────────────────────
+ENABLE_AUTO_DESIGN = os.environ.get("ORCH_AUTO_DESIGN", "0") == "1"
 
 # ── Auto-Run (Phase 2) ────────────────────────────────────
 MAX_PARALLEL_RUNS = int(os.environ.get("ORCH_MAX_PARALLEL", "2"))
@@ -20,6 +23,11 @@ ENABLE_AUTO_RUN = os.environ.get("ORCH_AUTO_RUN", "0") == "1"
 
 # ── Lead Agent ─────────────────────────────────────────────
 LEAD_AGENT_MODEL = "claude-sonnet-4-6"
+
+# ── Designer Agent ─────────────────────────────────────────
+DESIGNER_MODEL = "claude-opus-4-6"
+DESIGN_TIMEOUT = 600  # 10 minutes
+MAX_AUTO_APPROVE_FILES = 6
 
 LEAD_AGENT_SYSTEM_PROMPT = """\
 You are the SDD Orchestrator Lead Agent for the Shorts Producer project.
@@ -46,7 +54,8 @@ Tasks follow this lifecycle:
 4. **launch_sdd_run** — Launch a worktree to execute /sdd-run for a task
 5. **check_running_worktrees** — List running worktree processes
 6. **merge_pr** — Squash-merge a PR that passes all quality gates
-7. **trigger_sdd_review** — Trigger claude-fix workflow for a PR with changes_requested
+7. **trigger_sdd_review** — Trigger sdd-fix workflow for a PR with changes_requested
+8. **run_auto_design** — (if ENABLE_AUTO_DESIGN) Write design.md for a pending task
 
 ## Each Cycle
 1. Call scan_backlog to get current task states
@@ -57,6 +66,7 @@ Tasks follow this lifecycle:
 6. Produce a concise dashboard report
 
 ## Decision Rules
+- If a pending task has spec but no design + ENABLE_AUTO_DESIGN → call run_auto_design
 - If an approved task has no running branch AND parallel slots available \
 → call launch_sdd_run
 - If a PR has mergeable=true (CI passed + review approved + no changes_requested) \
@@ -95,6 +105,42 @@ Recommendations:
 - Only merge PRs where mergeable=true.
 - If a tool fails, note the error and continue with available data.
 - Log all actions taken for auditability.
+"""
+
+# ── Designer System Prompt ─────────────────────────────────
+DESIGNER_SYSTEM_PROMPT = """\
+You are the SDD Designer Agent for the Shorts Producer project.
+
+## Your Role
+You write detailed designs (design.md) for SDD tasks based on their spec.md.
+You read the codebase, understand the existing patterns, and produce a design \
+that can be directly implemented by another AI agent.
+
+## Process
+1. Read the task spec (spec.md) — understand the What, Why, and DoD
+2. Read CLAUDE.md for project rules and conventions
+3. Explore the codebase to understand:
+   - Which files need to change
+   - Existing patterns and conventions
+   - Potential edge cases
+4. Write a design covering each DoD item:
+   - **구현 방법**: How to implement (specific files, functions, patterns)
+   - **동작 정의**: Expected behavior
+   - **엣지 케이스**: Edge cases and how to handle them
+   - **영향 범위**: Files and modules affected
+   - **테스트 전략**: Test cases to write
+   - **Out of Scope**: What NOT to do
+
+## Output Format
+Write the full design.md content. Start with a summary table of changed files, \
+then detail each DoD item. Use Korean for descriptions.
+
+## Constraints
+- Do NOT ask questions — make autonomous decisions based on code patterns
+- Do NOT modify any files — only produce the design.md content as text output
+- Stay within the spec's scope — do not add features not in the DoD
+- Flag any **BLOCKER** issues that require human decision (DB schema changes, \
+external dependency additions, architectural decisions)
 """
 
 # ── GitHub CLI ─────────────────────────────────────────────

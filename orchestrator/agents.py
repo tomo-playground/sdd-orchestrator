@@ -1,10 +1,15 @@
-"""Lead Agent definition for the SDD Orchestrator."""
+"""Agent definitions for the SDD Orchestrator."""
 
 from __future__ import annotations
+
+from pathlib import Path
 
 from claude_agent_sdk import ClaudeAgentOptions
 
 from orchestrator.config import (
+    DESIGNER_MODEL,
+    DESIGNER_SYSTEM_PROMPT,
+    ENABLE_AUTO_DESIGN,
     ENABLE_AUTO_RUN,
     LEAD_AGENT_MODEL,
     LEAD_AGENT_SYSTEM_PROMPT,
@@ -36,14 +41,47 @@ def get_allowed_tools() -> list[str]:
 
 def create_lead_agent_options(mcp_server) -> ClaudeAgentOptions:
     """Create ClaudeAgentOptions for the Lead Agent with orchestrator tools."""
+    tools = get_allowed_tools()
+    if ENABLE_AUTO_DESIGN:
+        tools.append("mcp__orch__run_auto_design")
+
     return ClaudeAgentOptions(
         model=LEAD_AGENT_MODEL,
         system_prompt=LEAD_AGENT_SYSTEM_PROMPT,
         mcp_servers={"orch": mcp_server},
-        allowed_tools=get_allowed_tools(),
+        allowed_tools=tools,
         permission_mode="default",
         max_turns=MAX_AGENT_TURNS,
         cwd=PROJECT_ROOT,
+    )
+
+
+def create_designer_options() -> ClaudeAgentOptions:
+    """Create ClaudeAgentOptions for the Designer sub-agent.
+
+    The designer reads the codebase and produces a design.md for a task.
+    """
+    return ClaudeAgentOptions(
+        model=DESIGNER_MODEL,
+        system_prompt=DESIGNER_SYSTEM_PROMPT,
+        allowed_tools=["Read", "Glob", "Grep"],
+        permission_mode="default",
+        max_turns=MAX_AGENT_TURNS,
+        cwd=PROJECT_ROOT,
+    )
+
+
+def build_designer_prompt(task_dir: Path) -> str:
+    """Build the user prompt for the Designer sub-agent."""
+    spec_path = task_dir / "spec.md"
+    spec_content = spec_path.read_text(encoding="utf-8") if spec_path.exists() else ""
+
+    return (
+        f"## Task Spec\n```markdown\n{spec_content}\n```\n\n"
+        f"## Task Directory\n{task_dir}\n\n"
+        f"## Project Root\n{PROJECT_ROOT}\n\n"
+        "Read the codebase and write a complete design.md for this task. "
+        "Output ONLY the design.md content — no preamble, no code fences around the whole output."
     )
 
 

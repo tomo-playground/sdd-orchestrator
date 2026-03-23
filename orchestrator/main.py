@@ -9,12 +9,11 @@ import signal
 import sys
 from pathlib import Path
 
-from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, ClaudeSDKClient, TextBlock
-
 from orchestrator.agents import build_cycle_prompt, create_lead_agent_options
 from orchestrator.config import AGENT_QUERY_TIMEOUT, BACKLOG_PATH, CYCLE_INTERVAL, DEFAULT_DB_PATH
 from orchestrator.state import StateStore
 from orchestrator.tools import create_orchestrator_mcp_server
+from orchestrator.utils import query_agent
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +84,7 @@ class OrchestratorDaemon:
             prompt = build_cycle_prompt(self.cycle, prev_summary)
 
             response_text = await asyncio.wait_for(
-                self._query_agent(options, prompt), timeout=AGENT_QUERY_TIMEOUT
+                query_agent(options, prompt), timeout=AGENT_QUERY_TIMEOUT
             )
 
             self.state.log_decision(
@@ -100,23 +99,6 @@ class OrchestratorDaemon:
         except Exception as e:
             logger.exception("Cycle #%d failed", self.cycle)
             self.state.finish_cycle(cycle_id, "error", str(e))
-
-    async def _query_agent(self, options: ClaudeAgentOptions, prompt: str) -> str:
-        """Query the Lead Agent and collect response text."""
-        collected: list[str] = []
-
-        async with ClaudeSDKClient(options=options) as client:
-            await client.query(prompt)
-
-            async for msg in client.receive_response():
-                if isinstance(msg, AssistantMessage):
-                    for block in msg.content:
-                        if isinstance(block, TextBlock):
-                            collected.append(block.text)
-                            logger.info("agent_response_chunk chars=%d", len(block.text))
-                            logger.debug("agent_response_preview=%r", block.text[:200])
-
-        return "\n".join(collected) if collected else "(no response)"
 
 
 def _setup_logging() -> None:
