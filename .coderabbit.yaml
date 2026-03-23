@@ -18,8 +18,8 @@ enable_free_tier: true
 # ─── 리뷰 설정 ───
 reviews:
   profile: chill
-  request_changes_workflow: true
-  fail_commit_status: true
+  request_changes_workflow: false  # 코멘트만, changes_requested 안 함 → auto-fix 잡음 방지
+  fail_commit_status: false  # CI/테스트가 진짜 게이트, 리뷰는 조언
 
   # CLAUDE.md가 code_guidelines로 로드되므로 규칙을 반복하지 않는다.
   # 여기는 CLAUDE.md에 없지만 리뷰에서 반복 발견된 빈틈만 보완.

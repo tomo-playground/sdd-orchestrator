@@ -48,10 +48,14 @@ jobs:
             리뷰만 하세요. 코드 수정은 하지 마세요.
             `mcp__github_inline_comment__create_inline_comment`로 구체적 이슈를 인라인 코멘트로 남기세요.
 
+            ## Severity 기준 (엄격히 준수)
+            - **BLOCKER**: 데이터 소실, 보안 취약점, 런타임 크래시, CLAUDE.md Invariant 위반 → request-changes
+            - **WARNING**: 로직 오류, 동기화 누락, 테스트 미커버 → 인라인 코멘트만 (approve 유지)
+            - **NIT**: 타입 제네릭 누락, 에러 로깅 개선, 네이밍, 스타일 → 언급하지 마세요 (CI/Hook이 처리)
+
             리뷰 완료 후 반드시 PR Review를 submit하세요:
-            - 심각한 버그/보안 이슈가 있으면: `gh pr review ${{ github.event.pull_request.number }} --request-changes --body "리뷰 요약"`
-            - 문제 없으면: `gh pr review ${{ github.event.pull_request.number }} --approve --body "리뷰 요약"`
-            - 경미한 제안만 있으면: `gh pr review ${{ github.event.pull_request.number }} --comment --body "리뷰 요약"`
+            - BLOCKER 이슈가 1개 이상: `gh pr review ${{ github.event.pull_request.number }} --request-changes --body "리뷰 요약"`
+            - BLOCKER 없음: `gh pr review ${{ github.event.pull_request.number }} --approve --body "리뷰 요약"`
 
           claude_args: |
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr review:*),Bash(gh api:*),Read,Glob,Grep"
