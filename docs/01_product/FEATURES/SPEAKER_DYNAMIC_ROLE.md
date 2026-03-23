@@ -1,6 +1,6 @@
 # Speaker 동적 역할 체계 — 정적 A/B/Narrator → 캐릭터 기반 동적 역할
 
-> 작성: 2026-03-19 | 상태: **미착수**
+> 작성: 2026-03-19 | 갱신: 2026-03-23 | 상태: **미착수** (Phase A 대기 중)
 > 선행 조건: [ENUM_ID_NORMALIZATION.md](ENUM_ID_NORMALIZATION.md) 완료 권장
 > 흡수: 기존 "캐릭터 복수 표현 리팩토링" 백로그 항목
 
@@ -42,10 +42,22 @@ speaker: "Narrator" | "A" | "B"
 
 | 컴포넌트 | 상태 | 설명 |
 |----------|------|------|
-| `storyboard_characters` 테이블 | ✅ 존재 | speaker ↔ character_id 동적 매핑 |
+| `storyboard_characters` 테이블 | ✅ 존재 | speaker ↔ character_id 동적 매핑 (유일한 SSOT) |
 | `speaker_resolver.py` | ✅ 존재 | `resolve_speaker_to_character()`, `assign_speakers()` |
 | `scene_character_actions` 테이블 | ✅ 존재 | 씬별 캐릭터별 액션 태그 |
 | `casting_sync.py` | ✅ 존재 | 캐스팅 변경 → 씬 캐스케이드 |
+
+### 2026-03-23 코드 감사 결과
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| ORM `character_id`/`character_b_id` | ✅ 이미 제거 | `storyboard_characters` 관계만 사용 |
+| API 스키마 `character_id`/`character_b_id` | ❌ 잔존 | Phase B 제거 대상 |
+| `StoryboardDetailResponse.characters` | ✅ 이미 추가 | 동적 리스트 응답 병존 |
+| 일부 서비스 신규 형식 사용 | ⚠️ 혼용 | `script_postprocess.py` 등에서 `"speaker_1"` 사용 중 |
+| config/validator/QC | ❌ 구 형식 | Phase A 대상 |
+| Frontend 타입 | ❌ 고정 유니언 | Phase A 대상 |
+| 테스트 fixture | ❌ 구 형식 37+파일 | Phase A 대상 |
 
 ---
 
@@ -137,14 +149,15 @@ scene.speaker = "narrator"   # → narrator_voice_preset_id 사용
 현재 테이블은 존재하지만 `character_id`/`character_b_id` 필드와 이중 관리 상태.
 
 ```
-Before:
+Before (명세 작성 시점):
   storyboards.character_id ──→ Character A (하드코딩)
   storyboards.character_b_id ──→ Character B (하드코딩)
   storyboard_characters ──→ speaker→character 매핑 (동적, 동기화 필요)
 
-After:
-  storyboard_characters ──→ speaker→character 매핑 (유일한 SSOT)
-  storyboards.character_id / character_b_id ──→ 제거
+현재 (2026-03-23):
+  storyboard_characters ──→ speaker→character 매핑 (유일한 SSOT) ← ORM 완료
+  storyboards.character_id / character_b_id ──→ ORM에서 제거됨
+  API 스키마에는 아직 잔존 (Phase B에서 제거)
 ```
 
 ---
@@ -288,4 +301,4 @@ API 계약 변경. `character_id`/`character_b_id` 2필드 → `characters: list
 
 ---
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-03-23
