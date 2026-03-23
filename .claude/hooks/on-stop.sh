@@ -87,6 +87,20 @@ if [ "$TOTAL_CHANGED" -eq 0 ]; then
   exit 0
 fi
 
+# ─── Step 0. 스키마 변경 → 문서 동기화 체크 ───
+HAS_SCHEMA_CHANGE=$(echo "$ALL_PY" | grep -cE '(^backend/models/|^backend/alembic/)' 2>/dev/null || true)
+HAS_SCHEMA_CHANGE=${HAS_SCHEMA_CHANGE:-0}
+if [ "$HAS_SCHEMA_CHANGE" -gt 0 ]; then
+  HAS_DOC_CHANGE=$(git diff --name-only main...HEAD 2>/dev/null | grep -cE 'DB_SCHEMA\.md|SCHEMA_SUMMARY\.md' || true)
+  HAS_DOC_CHANGE_UNSTAGED=$(git diff --name-only | grep -cE 'DB_SCHEMA\.md|SCHEMA_SUMMARY\.md' || true)
+  HAS_DOC_CHANGE=${HAS_DOC_CHANGE:-0}
+  HAS_DOC_CHANGE_UNSTAGED=${HAS_DOC_CHANGE_UNSTAGED:-0}
+  if [ "$HAS_DOC_CHANGE" -eq 0 ] && [ "$HAS_DOC_CHANGE_UNSTAGED" -eq 0 ]; then
+    echo "BLOCKER: models/ 또는 alembic/ 변경 감지됐으나 DB_SCHEMA.md / SCHEMA_SUMMARY.md 업데이트 없음. DBA 에이전트로 스키마 문서를 동기화하세요. 변경된 컬럼/타입/FK/default를 두 문서에 반영하고 스키마 버전을 올리세요." >&2
+    exit 2
+  fi
+fi
+
 # ─── 품질 게이트 실행 ───
 FAILURES=""
 

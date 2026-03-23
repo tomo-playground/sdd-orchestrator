@@ -22,16 +22,10 @@ import {
   resolveBasePromptForSpeaker,
   resolveCharacterLorasForSpeaker,
 } from "../../utils/speakerResolver";
-import {
-  handleGenerateImage,
-  handleImageUpload,
-  handleEditWithGemini,
-  handleSuggestEditWithGemini,
-} from "../../store/actions/imageActions";
+import { handleGenerateImage, handleImageUpload } from "../../store/actions/imageActions";
 import {
   applyMissingImageTags,
   handleSpeakerChange,
-  handleValidateImage,
   handleMarkSuccess,
   handleMarkFail,
 } from "../../store/actions/sceneActions";
@@ -52,15 +46,13 @@ export default function ScenesTab() {
 
   const imageValidationResults = useStoryboardStore((s) => s.imageValidationResults);
 
-  const { sceneMenuOpen, validatingSceneId, markingStatusSceneId, imageGenProgress } =
-    useStoryboardStore(
-      useShallow((s) => ({
-        sceneMenuOpen: s.sceneMenuOpen,
-        validatingSceneId: s.validatingSceneId,
-        markingStatusSceneId: s.markingStatusSceneId,
-        imageGenProgress: s.imageGenProgress,
-      }))
-    );
+  const { sceneMenuOpen, markingStatusSceneId, imageGenProgress } = useStoryboardStore(
+    useShallow((s) => ({
+      sceneMenuOpen: s.sceneMenuOpen,
+      markingStatusSceneId: s.markingStatusSceneId,
+      imageGenProgress: s.imageGenProgress,
+    }))
+  );
 
   const {
     loraTriggerWords,
@@ -279,7 +271,11 @@ export default function ScenesTab() {
 
           {/* Director Control Panel */}
           <div className="shrink-0 border-b border-zinc-100 px-8 py-3">
-            <DirectorControlPanel onApplyAll={handleApplyAll} showToast={showToast} isApplying={isApplying} />
+            <DirectorControlPanel
+              onApplyAll={handleApplyAll}
+              showToast={showToast}
+              isApplying={isApplying}
+            />
           </div>
 
           <SceneNavHeader
@@ -317,7 +313,6 @@ export default function ScenesTab() {
                     })
                   }
                   onSceneMenuClose={() => sbSet({ sceneMenuOpen: null })}
-                  validatingSceneId={validatingSceneId}
                   loraTriggerWords={loraTriggerWords}
                   tagsByGroup={tagsByGroup}
                   sceneTagGroups={sceneTagGroups}
@@ -327,9 +322,6 @@ export default function ScenesTab() {
                   onSpeakerChange={(speaker) => handleSpeakerChange(currentScene, speaker)}
                   onImageUpload={(file) => handleImageUpload(currentScene.client_id, file)}
                   onGenerateImage={() => handleGenerateImage(currentScene)}
-                  onEditWithGemini={(target) => handleEditWithGemini(currentScene, target)}
-                  onSuggestEditWithGemini={() => handleSuggestEditWithGemini(currentScene)}
-                  onValidateImage={() => handleValidateImage(currentScene)}
                   onApplyMissingTags={(tags) => applyMissingImageTags(currentScene, tags)}
                   onImagePreview={(src, candidates) =>
                     useUIStore.getState().set({

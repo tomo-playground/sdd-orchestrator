@@ -5,6 +5,10 @@
 
 ---
 
+## P0 (진행 중)
+
+- [ ] SP-073 — Dead Feature Cleanup — 미사용 컬럼/코드 제거 (Gemini 자동편집, LoRA 캘리브레이션, Civitai 임포트, 태그 썸네일) | scope: backend | **approved**
+
 ## P1 (최우선)
 
 - [ ] SP-070 — 옵저버빌리티 구멍 메우기 — health-check Slack 알림, 크론 실패 알림, Actions 실패 알림, Sentry 실시간 연동 | scope: infra | [가이드](../../docs/04_operations/OBSERVABILITY.md)

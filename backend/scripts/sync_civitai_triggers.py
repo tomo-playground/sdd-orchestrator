@@ -72,7 +72,6 @@ def sync_triggers(dry_run: bool = False):
                     if set(lora.trigger_words or []) != set(triggers):
                         if not dry_run:
                             lora.trigger_words = triggers
-                            lora.civitai_id = result["id"]
                             updated_count += 1
                             print("   💾 Updated DB.")
                         else:

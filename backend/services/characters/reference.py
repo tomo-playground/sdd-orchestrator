@@ -222,63 +222,6 @@ async def regenerate_reference(
     }
 
 
-async def enhance_preview(db: Session, character_id: int) -> dict:
-    """Enhance the character's preview image using Gemini Imagen."""
-    from services.image import decode_data_url, load_as_data_url
-    from services.imagen_edit import get_imagen_service
-
-    character = _get_character_for_reference(db, character_id)
-    if not character.reference_image_url:
-        raise ValueError("No preview image to enhance")
-
-    image_b64 = load_as_data_url(character.reference_image_url)
-
-    # Release DB connection before long Gemini API call
-    db.close()
-
-    service = get_imagen_service()
-    result = await service.enhance_image(image_b64)
-
-    # Session auto-reconnects on next use
-    enhanced_bytes = decode_data_url(f"data:image/png;base64,{result['enhanced_image']}")
-    url, _ = _save_reference_asset(db, character_id, enhanced_bytes)
-    return {"ok": True, "url": url, "cost_usd": result["cost_usd"]}
-
-
-async def edit_preview(db: Session, character_id: int, instruction: str) -> dict:
-    """Edit the character's preview image with a natural language instruction via Gemini."""
-    from services.image import decode_data_url, load_as_data_url
-    from services.imagen_edit import get_imagen_service
-
-    character = _get_character_for_reference(db, character_id, with_tags=True)
-    if not character.reference_image_url:
-        raise ValueError("No preview image to edit")
-
-    image_b64 = load_as_data_url(character.reference_image_url)
-    tag_names = [ct.tag.name for ct in character.tags if ct.tag]
-    original_prompt = ", ".join(tag_names) if tag_names else ""
-
-    # Release DB connection before long Gemini API call
-    db.close()
-
-    service = get_imagen_service()
-    result = await service.edit_with_analysis(
-        image_b64=image_b64,
-        original_prompt=original_prompt,
-        target_change=instruction,
-    )
-
-    # Session auto-reconnects on next use
-    edited_bytes = decode_data_url(f"data:image/png;base64,{result['edited_image']}")
-    url, _ = _save_reference_asset(db, character_id, edited_bytes)
-    return {
-        "ok": True,
-        "url": url,
-        "cost_usd": result["cost_usd"],
-        "edit_type": result.get("edit_result", {}).get("edit_type"),
-    }
-
-
 async def batch_regenerate_references(db: Session) -> dict:
     """Regenerate reference images for ALL characters."""
     characters = db.query(Character).filter(Character.deleted_at.is_(None)).all()

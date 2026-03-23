@@ -68,7 +68,7 @@ allowed_tools: ["mcp__postgres__*", "mcp__memory__*", "mcp__context7__*"]
 - [ ] JSONB vs 정규화 판단 근거 명확?
 - [ ] TimestampMixin 적용? (콘텐츠/설정 테이블)
 - [ ] SoftDeleteMixin 필요 여부 검토?
-- [ ] `DB_SCHEMA.md` + `SCHEMA_SUMMARY.md` 업데이트?
+- [ ] **[BLOCKER]** `DB_SCHEMA.md` + `SCHEMA_SUMMARY.md` 업데이트? — 컬럼 추가/삭제/타입변경 시 **반드시** 두 문서 + 버전 번호 동기화. 미달 시 리뷰 FAIL.
 - [ ] ORM 모델에 relationship() 정의? (FK 있으면 관계도 필수)
 - [ ] `models/__init__.py`에 export?
 

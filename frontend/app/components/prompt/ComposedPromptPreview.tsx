@@ -20,7 +20,6 @@ type LoRAInfo = {
   weight?: number;
   trigger_words?: string[];
   lora_type?: string;
-  optimal_weight?: number;
 };
 
 type ComposedPromptPreviewProps = {
@@ -355,10 +354,7 @@ export default function ComposedPromptPreview({
       {/* Token display — compose result only */}
       {result &&
         (viewMode === "grouped" ? (
-          <GroupedView
-            groupedTokens={groupedTokens}
-            getTokenStyle={getTokenStyle}
-          />
+          <GroupedView groupedTokens={groupedTokens} getTokenStyle={getTokenStyle} />
         ) : (
           <LinearView
             tokens={result.tokens}

@@ -96,7 +96,6 @@ export function useCharacterAutoLoad() {
             weight: l.weight,
             trigger_words: l.trigger_words,
             lora_type: l.lora_type,
-            optimal_weight: l.optimal_weight,
           }))
         : [];
 
@@ -154,7 +153,6 @@ export function useCharacterAutoLoad() {
             weight: l.weight,
             trigger_words: l.trigger_words,
             lora_type: l.lora_type,
-            optimal_weight: l.optimal_weight,
           }))
         : [];
 

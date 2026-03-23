@@ -18,14 +18,6 @@ export type UiCallbacksWithPrompt = UiCallbacks & {
   }) => Promise<boolean | string>;
 };
 
-export type GeminiSuggestion = {
-  edit_type: string;
-  issue: string;
-  description: string;
-  confidence: number;
-  target_change: string;
-};
-
 export type SceneContextTags = {
   expression?: string[];
   gaze?: string; // exclusive (single select)
@@ -306,8 +298,6 @@ export type LoRA = {
   id: number;
   name: string;
   display_name: string | null;
-  gender_locked: ActorGender | null; // female, male, null(자유)
-  civitai_id: number | null;
   civitai_url: string | null;
   trigger_words: string[] | null;
   default_weight: number;
@@ -318,9 +308,6 @@ export type LoRA = {
   character_defaults: Record<string, string> | null;
   recommended_negative: string[] | null;
   preview_image_url: string | null;
-  // Calibration fields
-  optimal_weight: number | null;
-  calibration_score: number | null;
   // Multi-Character Support
   is_multi_character_capable?: boolean;
   multi_char_weight_scale?: number | null;
@@ -421,8 +408,6 @@ export type CharacterFullLoRA = {
   display_name: string;
   trigger_words: string[];
   weight: number;
-  optimal_weight?: number;
-  calibration_score?: number;
   lora_type?: string; // character, style, concept
 };
 

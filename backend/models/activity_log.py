@@ -1,6 +1,6 @@
 """Unified Activity Log model for generation history and favorites."""
 
-from sqlalchemy import BigInteger, Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -45,14 +45,3 @@ class ActivityLog(Base, TimestampMixin):
 
     # Status
     status: Mapped[str] = mapped_column(String(20), default="success")  # success, fail
-
-    # Gemini Auto Edit Tracking (Phase 6-4.22)
-    gemini_edited: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default="false", index=True
-    )  # Was this image auto-edited by Gemini?
-    gemini_cost_usd: Mapped[float | None] = mapped_column(Float)  # Cost of Gemini edit
-    original_match_rate: Mapped[float | None] = mapped_column(Float)  # Match rate before edit
-    final_match_rate: Mapped[float | None] = mapped_column(Float)  # Match rate after edit
-
-    # Removed (Phase 6-4.26): is_favorite, name
-    # Reason: Favorite/bookmark feature never implemented (0 usage, 0 data)

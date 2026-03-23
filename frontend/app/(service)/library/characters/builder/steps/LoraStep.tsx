@@ -44,9 +44,6 @@ export default function LoraStep({
       // Exclude LoRAs already applied by StyleProfile (safety net)
       if (excludeSet.has(lora.id)) return false;
 
-      // Gender filter: show if unlocked or matching
-      if (lora.gender_locked && lora.gender_locked !== gender) return false;
-
       // Base model compatibility: skip LoRAs incompatible with the selected style
       if (styleBaseModel && lora.base_model && lora.base_model !== styleBaseModel) return false;
 
@@ -98,10 +95,8 @@ export default function LoraStep({
                 key={lora.id}
                 lora={lora}
                 isSelected={!!sel}
-                weight={sel?.weight ?? lora.optimal_weight ?? lora.default_weight}
-                onToggle={() =>
-                  onToggleLora(lora.id, lora.optimal_weight ?? lora.default_weight ?? 0.7)
-                }
+                weight={sel?.weight ?? lora.default_weight}
+                onToggle={() => onToggleLora(lora.id, lora.default_weight ?? 0.7)}
                 onWeightChange={(w) => onUpdateWeight(lora.id, w)}
               />
             );

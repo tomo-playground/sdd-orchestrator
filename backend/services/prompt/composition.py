@@ -1139,9 +1139,7 @@ class PromptBuilder:
         ]
 
     def get_effective_lora_weight(self, lora: LoRA) -> float:
-        """Helper to get calibrated weight from LoRA object."""
-        if lora.optimal_weight is not None:
-            return float(lora.optimal_weight)
+        """Helper to get effective weight from LoRA object."""
         if lora.default_weight is not None:
             return float(lora.default_weight)
         return DEFAULT_LORA_WEIGHT

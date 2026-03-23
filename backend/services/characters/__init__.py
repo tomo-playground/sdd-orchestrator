@@ -25,8 +25,6 @@ from .lora_enrichment import enrich_character_loras
 from .reference import (
     assign_wizard_preview,
     batch_regenerate_references,
-    edit_preview,
-    enhance_preview,
     generate_wizard_preview,
     regenerate_reference,
 )
@@ -53,8 +51,6 @@ __all__ = [
     # preview
     "assign_wizard_preview",
     "batch_regenerate_references",
-    "edit_preview",
-    "enhance_preview",
     "generate_wizard_preview",
     "regenerate_reference",
     # action_resolver

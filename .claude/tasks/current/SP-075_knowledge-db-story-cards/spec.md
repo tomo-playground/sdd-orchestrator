@@ -1,8 +1,8 @@
 ---
-id: SP-073
+id: SP-075
 priority: P1
 scope: fullstack
-branch: feat/SP-073-knowledge-db
+branch: feat/SP-075-knowledge-db
 created: 2026-03-23
 status: pending
 depends_on:

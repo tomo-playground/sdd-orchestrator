@@ -770,8 +770,6 @@ class PromptComposeLoRA(BaseModel):
     weight: float = 0.5
     trigger_words: list[str] | None = None
     lora_type: str | None = None  # character, style, concept
-    optimal_weight: float | None = None
-    calibration_score: int | None = None
 
 
 class PromptComposeRequest(BaseModel):
@@ -902,7 +900,6 @@ class TagUpdate(BaseModel):
 
 class TagResponse(TagBase):
     id: int
-    thumbnail_url: str | None = None  # Response-only: derived from @property
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -920,12 +917,8 @@ class LoRABase(_BaseModelNormMixin):
     base_model: str | None = None  # SD1.5, SDXL, etc.
     trigger_words: list[str] | None = None
     default_weight: float = DEFAULT_LORA_WEIGHT
-    optimal_weight: float | None = None
-    calibration_score: int | None = None
     weight_min: float = 0.1
     weight_max: float = 1.0
-    gender_locked: str | None = None
-    civitai_id: int | None = None
     civitai_url: str | None = None
     # preview_image_url removed - now read-only @property via preview_image_asset
 
@@ -941,11 +934,8 @@ class LoRAUpdate(_BaseModelNormMixin):
     base_model: str | None = None  # SD1.5, SDXL, etc.
     trigger_words: list[str] | None = None
     default_weight: float | None = None
-    optimal_weight: float | None = None
-    calibration_score: int | None = None
     weight_min: float | None = None
     weight_max: float | None = None
-    gender_locked: Literal["female", "male"] | None = None
     # preview_image_url removed - now read-only @property via preview_image_asset
 
 
@@ -1310,55 +1300,6 @@ class ActivityLogResponse(ActivityLogBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Gemini Image Editing
-EditType = Literal["pose", "expression", "gaze", "framing", "hands"]
-
-
-class GeminiEditRequest(BaseModel):
-    """Gemini Nano Banana 이미지 편집 요청"""
-
-    image_url: str | None = None  # Image URL (will be fetched by backend)
-    image_b64: str | None = None  # Base64 encoded image (alternative)
-    original_prompt: str  # 원본 프롬프트
-    target_change: str  # 목표 변경사항 (예: "sitting on chair")
-    edit_type: EditType | None = None  # 자동 감지 시 None
-
-
-class GeminiEditResponse(BaseModel):
-    """Gemini Nano Banana 이미지 편집 응답"""
-
-    edited_image: str  # Base64 encoded edited image
-    cost_usd: float  # 비용 ($)
-    edit_type: EditType  # 적용된 편집 타입
-    analysis: dict | None = None  # Vision 분석 결과 (선택)
-
-
-class GeminiEditSuggestion(BaseModel):
-    """개별 편집 제안"""
-
-    issue: str  # 문제점 (예: "포즈 불일치")
-    description: str  # 상세 설명
-    target_change: str  # 제안된 변경사항
-    confidence: float  # 신뢰도 (0.0~1.0)
-    edit_type: EditType  # 편집 타입
-
-
-class GeminiSuggestRequest(BaseModel):
-    """Gemini 자동 제안 요청"""
-
-    image_url: str | None = None  # Image URL (will be fetched by backend)
-    image_b64: str | None = None  # Base64 encoded image (alternative)
-    original_prompt: str  # 한국어 프롬프트
-
-
-class GeminiSuggestResponse(BaseModel):
-    """Gemini 자동 제안 응답"""
-
-    has_mismatch: bool  # 불일치 발견 여부
-    suggestions: list[GeminiEditSuggestion]  # 제안 목록
-    cost_usd: float  # 비용 ($)
-
-
 # ============================================================
 # Voice Preset Schemas
 # ============================================================
@@ -1586,26 +1527,6 @@ class ImageProgressEvent(BaseModel):
     match_rate: float | None = None
     matched_tags: list[str] | None = None
     missing_tags: list[str] | None = None
-
-
-class SceneEditImageRequest(BaseModel):
-    """Request for natural-language scene image editing."""
-
-    edit_instruction: str  # 자연어 편집 지시 (예: "머리를 풀어헤치고 미소짓게")
-    image_url: str | None = None  # 현재 이미지 URL (Backend가 fetch)
-    image_b64: str | None = None  # 또는 Base64 이미지
-    original_prompt: str | None = None  # 원본 프롬프트 (Optional, DB에서 조회)
-
-
-class SceneEditImageResponse(BaseModel):
-    """Response for scene image editing."""
-
-    ok: bool
-    edited_image: str | None = None  # Base64 편집된 이미지
-    image_url: str | None = None  # Response-only: 저장된 이미지 URL
-    asset_id: int | None = None
-    cost_usd: float = 0.0
-    edit_type: str | None = None
 
 
 class TextExtractRequest(BaseModel):
@@ -2169,28 +2090,6 @@ class ConsistencyResponse(BaseModel):
 
 
 # ============================================================
-# Validate + Auto-Edit Response
-# ============================================================
-
-
-class ValidateAndAutoEditResponse(BaseModel):
-    """Response for POST /scene/validate-and-auto-edit."""
-
-    validation_result: dict
-    is_auto_edit_triggered: bool = False
-    edited_image: str | None = None
-    edit_cost: float | None = None
-    original_match_rate: float | None = None
-    final_match_rate: float | None = None
-    edit_type: str | None = None
-    skip_reason: str | None = None
-    current_cost: float | None = None
-    retry_count: int | None = None
-    auto_edit_error: str | None = None
-    edit_log_id: int | None = None
-
-
-# ============================================================
 # Scene Cancel Response
 # ============================================================
 
@@ -2485,23 +2384,6 @@ class TrashedItem(BaseModel):
     deleted_at: str | None = None
 
 
-class CharacterEnhancePreviewResponse(BaseModel):
-    """Response for POST /characters/{id}/enhance-preview."""
-
-    ok: bool
-    url: str | None = None
-    cost_usd: float | None = None
-
-
-class CharacterEditPreviewResponse(BaseModel):
-    """Response for POST /characters/{id}/edit-preview."""
-
-    ok: bool
-    url: str | None = None
-    cost_usd: float | None = None
-    edit_type: str | None = None
-
-
 class BatchRegenerateResultItem(BaseModel):
     """Single item in batch-regenerate results."""
 
@@ -2694,128 +2576,6 @@ class StorageCleanupResponse(BaseModel):
 
 
 # ============================================================
-# Settings / Analytics Response Schemas
-# ============================================================
-
-
-class AutoEditSettingsResponse(BaseModel):
-    """Response for GET /settings/auto-edit."""
-
-    is_enabled: bool
-    threshold: float
-    max_cost_per_storyboard: float
-    max_retries_per_scene: int
-
-
-class AutoEditUpdateResponse(BaseModel):
-    """Response for PUT /settings/auto-edit."""
-
-    success: bool
-    message: str
-    current: dict
-
-
-class AutoEditCostSummaryResponse(BaseModel):
-    """Response for GET /settings/auto-edit/cost-summary."""
-
-    today: float
-    this_week: float
-    this_month: float
-    total: float
-    edit_count_today: int
-    edit_count_month: int
-
-
-class GeminiEditItem(BaseModel):
-    """Single Gemini edit analytics entry."""
-
-    id: int
-    storyboard_id: int | None = None
-    scene_id: int | None = None
-    original_match_rate: float | None = None
-    final_match_rate: float | None = None
-    improvement: float
-    cost_usd: float | None = None
-    created_at: str | None = None
-
-
-class GeminiEditAnalyticsResponse(BaseModel):
-    """Response for GET /analytics/gemini-edits."""
-
-    total_edits: int
-    avg_cost_usd: float
-    total_cost_usd: float
-    avg_improvement: float
-    edits: list[GeminiEditItem]
-    by_improvement_range: dict[str, int]
-
-
-class GeminiEditSummaryResponse(BaseModel):
-    """Response for GET /analytics/gemini-edits/summary."""
-
-    total_edits: int
-    total_cost: float
-    success_rate: float
-    avg_improvement: float
-
-
-# ============================================================
-# LoRA Extra Response Schemas
-# ============================================================
-
-
-class CivitaiSearchResultItem(BaseModel):
-    """Single Civitai search result."""
-
-    civitai_id: int | None = None
-    name: str | None = None
-    creator: str | None = None
-    downloads: int = 0
-    rating: float = 0.0
-    tags: list[str] = []
-    trigger_words: list[str] = []
-    base_model: str | None = None
-    preview_image: str | None = None
-    civitai_url: str | None = None
-
-
-class CivitaiSearchResponse(BaseModel):
-    """Response for GET /loras/search-civitai."""
-
-    query: str
-    results: list[CivitaiSearchResultItem]
-
-
-class LoRACalibrateResponse(BaseModel):
-    """Response for POST /loras/{id}/calibrate."""
-
-    lora_id: int
-    lora_name: str
-    optimal_weight: float
-    calibration_score: float
-    lora_type: str
-    all_results: list[dict]
-
-
-class CalibrateAllResultItem(BaseModel):
-    """Single item in calibrate-all results."""
-
-    id: int | None = None
-    name: str
-    optimal_weight: float | None = None
-    calibration_score: float | None = None
-    lora_type: str | None = None
-    error: str | None = None
-
-
-class CalibrateAllResponse(BaseModel):
-    """Response for POST /loras/calibrate-all."""
-
-    calibrated: int
-    results: list[CalibrateAllResultItem]
-    message: str | None = None
-
-
 # ============================================================
 # Tags Extra Response Schemas
 # ============================================================
@@ -2928,10 +2688,6 @@ class ActivityLogCreatedResponse(BaseModel):
     character_id: int | None = None
     status: str | None = None
     match_rate: float | None = None
-    is_gemini_edited: bool = False
-    gemini_cost_usd: float | None = None
-    original_match_rate: float | None = None
-    final_match_rate: float | None = None
 
 
 class ActivityLogItem(BaseModel):

@@ -22,7 +22,6 @@ test_case_2 = {
             "weight": 0.8,
             "trigger_words": ["Talho Yuki", "belt", "miniskirt"],
             "lora_type": "character",
-            "optimal_weight": 0.8,
         }
     ],
     "use_break": True,

@@ -23,12 +23,11 @@ def _make_character(
     return char
 
 
-def _make_lora(name="test_lora", lora_type="character", trigger_words=None, optimal_weight=0.7, default_weight=0.7):
+def _make_lora(name="test_lora", lora_type="character", trigger_words=None, default_weight=0.7):
     lora = MagicMock()
     lora.name = name
     lora.lora_type = lora_type
     lora.trigger_words = trigger_words or []
-    lora.optimal_weight = optimal_weight
     lora.default_weight = default_weight
     return lora
 
@@ -72,7 +71,7 @@ class TestStyleLoRAResolution:
     @patch("services.character_consistency.load_reference_image", return_value=None)
     def test_character_style_lora_fallback(self, mock_ref):
         db = MagicMock()
-        style_lora = _make_lora(name="flat_color", lora_type="style", optimal_weight=0.8)
+        style_lora = _make_lora(name="flat_color", lora_type="style", default_weight=0.8)
         db.query.return_value.filter.return_value.first.return_value = style_lora
 
         resolver = CharacterConsistencyResolver(db)

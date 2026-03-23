@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Copy, Pencil, RefreshCw, Sparkles, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, Copy, RefreshCw, Trash2, UserRound } from "lucide-react";
 import { resolveImageUrl } from "../../../../utils/url";
 import { CONTAINER_CLASSES } from "../../../../components/ui/variants";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
@@ -18,7 +18,6 @@ import {
   SectionCard,
 } from "./CharacterDetailSections";
 import DuplicateDialog from "./DuplicateDialog";
-import GeminiEditModal from "./GeminiEditModal";
 import AppearanceStep from "../builder/steps/AppearanceStep";
 import LoraStep from "../builder/steps/LoraStep";
 import { useTagData } from "../shared/useTagData";
@@ -30,7 +29,6 @@ export default function CharacterDetailPage() {
   const rawId = Number(params.id);
   const { confirm, dialogProps } = useConfirm();
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [geminiEditOpen, setGeminiEditOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
 
   const {
@@ -63,14 +61,10 @@ export default function CharacterDetailPage() {
     handleDelete,
     handleRegenerate,
     isRegenerating,
-    handleEnhance,
-    isEnhancing,
-    handleEditPreview,
-    isEditingPreview,
   } = useCharacterEdit(rawId);
 
   const isLoading = isCharLoading || isTagDataLoading;
-  const isBusy = isRegenerating || isEnhancing || isEditingPreview;
+  const isBusy = isRegenerating;
 
   const onDelete = async () => {
     if (!character) return;
@@ -86,15 +80,6 @@ export default function CharacterDetailPage() {
       variant: "danger",
     });
     if (ok) await handleDelete();
-  };
-
-  const onEnhance = async () => {
-    const ok = await confirm({
-      title: "프리뷰 보정",
-      message: "Gemini로 프리뷰 이미지를 보정합니다. (~$0.04)",
-      confirmLabel: "보정",
-    });
-    if (ok) await handleEnhance();
   };
 
   if (isLoading || !character || !form) {
@@ -168,7 +153,7 @@ export default function CharacterDetailPage() {
           </div>
 
           {/* Preview action buttons */}
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-1 gap-1.5">
             <Button
               variant="secondary"
               size="sm"
@@ -179,28 +164,6 @@ export default function CharacterDetailPage() {
             >
               <RefreshCw className={`h-3 w-3 ${isRegenerating ? "animate-spin" : ""}`} />
               Regen
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onEnhance}
-              disabled={isBusy || !imgSrc}
-              className="w-full text-[12px]"
-              title="Gemini로 품질 보정"
-            >
-              <Sparkles className={`h-3 w-3 ${isEnhancing ? "animate-pulse" : ""}`} />
-              Enhance
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setGeminiEditOpen(true)}
-              disabled={isBusy || !imgSrc}
-              className="w-full text-[12px]"
-              title="Gemini 자연어 편집"
-            >
-              <Pencil className={`h-3 w-3 ${isEditingPreview ? "animate-pulse" : ""}`} />
-              Edit
             </Button>
           </div>
         </div>
@@ -287,20 +250,6 @@ export default function CharacterDetailPage() {
 
       {/* Modals */}
       {previewOpen && <ImagePreviewModal src={imgSrc} onClose={() => setPreviewOpen(false)} />}
-      {geminiEditOpen && (
-        <GeminiEditModal
-          referenceImageUrl={imgSrc ?? undefined}
-          isProcessing={isEditingPreview}
-          currentPrompt={form?.positive_prompt || ""}
-          characterId={rawId}
-          onClose={() => setGeminiEditOpen(false)}
-          onSubmit={(instruction) => {
-            void handleEditPreview(instruction);
-            setGeminiEditOpen(false);
-          }}
-          onApplyPromptEdit={(edited) => updateField("positive_prompt", edited)}
-        />
-      )}
       {duplicateOpen && (
         <DuplicateDialog
           character={character}

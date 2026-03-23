@@ -1,10 +1,8 @@
-import axios from "axios";
-import type { Scene, GeminiSuggestion } from "../../types";
+import type { Scene } from "../../types";
 import { useStoryboardStore } from "../useStoryboardStore";
 import { useContextStore } from "../useContextStore";
 import { useUIStore } from "../useUIStore";
 import { API_BASE } from "../../constants";
-import { buildScenePrompt } from "./promptActions";
 import { resolveSceneMultiGen } from "../../utils/sceneSettingsResolver";
 import { autoSaveStoryboard, saveStoryboard } from "./storyboardActions";
 import { storeSceneImage, generateSceneImageFor, generateSceneCandidates } from "./imageGeneration";
@@ -118,108 +116,4 @@ export function handleImageUpload(clientId: string, file?: File) {
     await saveStoryboard();
   };
   reader.readAsDataURL(file);
-}
-
-/** Edit scene image with Gemini */
-export async function handleEditWithGemini(scene: Scene, targetChange: string) {
-  const { showToast } = useUIStore.getState();
-  if (!scene.image_url) {
-    showToast("편집할 이미지가 없습니다. 먼저 생성하세요.", "error");
-    return;
-  }
-  if (scene.image_url.startsWith("data:")) {
-    showToast("씬을 먼저 저장하세요 (이미지가 저장되어야 합니다)", "error");
-    return;
-  }
-  useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: true });
-  try {
-    const prompt = buildScenePrompt(scene);
-    if (!prompt) {
-      showToast("프롬프트 구성에 실패했습니다", "error");
-      useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
-      return;
-    }
-    const payload =
-      scene.image_url.startsWith("http://") || scene.image_url.startsWith("https://")
-        ? { image_url: scene.image_url, original_prompt: prompt, target_change: targetChange }
-        : { image_b64: scene.image_url, original_prompt: prompt, target_change: targetChange };
-    const res = await axios.post(`${API_BASE}/scene/edit-with-gemini`, payload);
-    if (res.data.edited_image) {
-      const dataUrl = `data:image/png;base64,${res.data.edited_image}`;
-      const { projectId, groupId, storyboardId } = useContextStore.getState();
-      if (!projectId || !groupId || !storyboardId) {
-        showToast("채널/시리즈를 먼저 선택하세요", "error");
-        useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
-        return;
-      }
-      // Use client_id for stable scene lookup (DB id may change during API call)
-      const currentScene = useStoryboardStore
-        .getState()
-        .scenes.find((s) => s.client_id === scene.client_id);
-      const dbId = currentScene?.id ?? scene.id;
-      const stored = await storeSceneImage(
-        dataUrl,
-        projectId,
-        groupId,
-        storyboardId,
-        dbId,
-        `gemini_edit_${dbId}_${Date.now()}.png`,
-        scene.client_id
-      );
-      useStoryboardStore.getState().updateScene(scene.client_id, {
-        image_url: stored.url,
-        image_asset_id: stored.asset_id ?? null,
-        isGenerating: false,
-      });
-      showToast(
-        `Gemini 편집 완료 (${res.data.edit_type}) - $${(res.data.cost_usd ?? 0).toFixed(4)}`,
-        "success"
-      );
-
-      // Auto-save after Gemini edit to persist to DB
-      await saveStoryboard();
-    }
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Unknown error";
-    showToast(`Gemini 편집 실패: ${msg}`, "error");
-    useStoryboardStore.getState().updateScene(scene.client_id, { isGenerating: false });
-  }
-}
-
-/** Ask Gemini for edit suggestions */
-export async function handleSuggestEditWithGemini(scene: Scene): Promise<GeminiSuggestion[]> {
-  const { showToast } = useUIStore.getState();
-  if (!scene.image_url) {
-    showToast("이미지가 없습니다. 먼저 생성하세요.", "error");
-    return [];
-  }
-  if (scene.image_url.startsWith("data:")) {
-    showToast("씬을 먼저 저장하세요 (이미지가 저장되어야 합니다)", "error");
-    return [];
-  }
-  try {
-    const prompt = buildScenePrompt(scene);
-    if (!prompt) {
-      showToast("프롬프트 구성에 실패했습니다", "error");
-      return [];
-    }
-    const payload =
-      scene.image_url.startsWith("http://") || scene.image_url.startsWith("https://")
-        ? { image_url: scene.image_url, original_prompt: prompt }
-        : { image_b64: scene.image_url, original_prompt: prompt };
-    const res = await axios.post(`${API_BASE}/scene/suggest-edit`, payload);
-    if (res.data.has_mismatch && res.data.suggestions?.length > 0) {
-      showToast(
-        `${res.data.suggestions.length}개 제안 - $${(res.data.cost_usd ?? 0).toFixed(4)}`,
-        "success"
-      );
-      return res.data.suggestions;
-    }
-    showToast("이미지가 프롬프트와 잘 일치합니다", "success");
-    return [];
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : "Unknown error";
-    showToast(`제안 실패: ${msg}`, "error");
-    return [];
-  }
 }

@@ -139,7 +139,7 @@ class CharacterConsistencyResolver:
                 if lora_obj and lora_obj.lora_type == "style":
                     weight = lora_info.get("weight")
                     if weight is None:
-                        weight = float(lora_obj.optimal_weight or lora_obj.default_weight or DEFAULT_LORA_WEIGHT)
+                        weight = float(lora_obj.default_weight or DEFAULT_LORA_WEIGHT)
                     fallback.append(
                         {
                             "name": lora_obj.name,

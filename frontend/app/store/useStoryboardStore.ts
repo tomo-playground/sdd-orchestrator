@@ -24,7 +24,6 @@ type LoraEntry = {
   weight?: number;
   trigger_words?: string[];
   lora_type?: string;
-  optimal_weight?: number;
 };
 
 export interface StoryboardStore {
@@ -74,7 +73,6 @@ export interface StoryboardStore {
   multiGenEnabled: boolean;
   referenceImages: ReferenceImage[];
   imageValidationResults: Record<string, ImageValidation>;
-  validatingSceneId: string | null;
   markingStatusSceneId: string | null;
   sceneTab: Record<string, "validate" | "debug" | null>;
   sceneMenuOpen: string | null;
@@ -171,7 +169,6 @@ const initialState: Omit<
   multiGenEnabled: false,
   referenceImages: [],
   imageValidationResults: {},
-  validatingSceneId: null,
   markingStatusSceneId: null,
   sceneTab: {},
   sceneMenuOpen: null,
@@ -234,7 +231,6 @@ const TRANSIENT_KEYS: (keyof StoryboardStore)[] = [
   "isDirty",
   "isGenerating",
   "isScriptGenerating",
-  "validatingSceneId",
   "markingStatusSceneId",
   "sceneTab",
   "sceneMenuOpen",

@@ -1,20 +1,18 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { Scene, ImageValidation, ImageGenProgress, Tag, GeminiSuggestion } from "../../types";
+import type { Scene, ImageValidation, ImageGenProgress, Tag } from "../../types";
 
 /** Scene data available via context (read-only values from parent) */
 export type SceneDataContext = {
   imageValidationResult?: ImageValidation;
   qualityScore?: { match_rate: number; missing_tags: string[] } | null;
-  validatingSceneId: string | null;
   loraTriggerWords: string[];
   characterLoras: Array<{
     name: string;
     weight?: number;
     trigger_words?: string[];
     lora_type?: string;
-    optimal_weight?: number;
   }>;
   tagsByGroup: Record<string, Tag[]>;
   sceneTagGroups: string[];
@@ -37,9 +35,6 @@ export type SceneCallbacksContext = {
   onSpeakerChange: (speaker: Scene["speaker"]) => void;
   onImageUpload: (file: File | undefined) => void;
   onGenerateImage: () => void;
-  onEditWithGemini: (targetChange: string) => void;
-  onSuggestEditWithGemini: () => Promise<GeminiSuggestion[]>;
-  onValidateImage: () => void;
   onApplyMissingTags: (tags: string[]) => void;
   onImagePreview: (url: string | null, candidates?: string[]) => void;
   onMarkSuccess?: () => void;

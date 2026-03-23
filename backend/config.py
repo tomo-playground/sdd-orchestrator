@@ -775,60 +775,6 @@ PROHIBITED_IMAGE_TAGS: frozenset[str] = frozenset(
     }
 )
 
-# --- Gemini Imagen Cost (USD per request) ---
-GEMINI_IMAGE_EDIT_COST_USD = float(os.getenv("GEMINI_IMAGE_EDIT_COST_USD", "0.0401"))
-GEMINI_IMAGE_VISION_COST_USD = float(os.getenv("GEMINI_IMAGE_VISION_COST_USD", "0.0003"))
-GEMINI_IMAGE_EDIT_TOTAL_COST_USD = float(os.getenv("GEMINI_IMAGE_EDIT_TOTAL_COST_USD", "0.0404"))
-
-# --- Gemini Auto Edit Configuration (Phase 6-4.22) ---
-# Master switch: Enable automatic image editing with Gemini when match_rate is low
-# WARNING: This feature incurs API costs (~$0.04 per edit)
-# Default: False (must be explicitly enabled)
-GEMINI_AUTO_EDIT_ENABLED = os.getenv("GEMINI_AUTO_EDIT_ENABLED", "false").lower() == "true"
-
-# Match Rate threshold for triggering auto-edit (0.0 ~ 1.0)
-# Images with match_rate < threshold will be automatically edited
-# Lower = more edits, Higher = fewer edits
-GEMINI_AUTO_EDIT_THRESHOLD = float(os.getenv("GEMINI_AUTO_EDIT_THRESHOLD", "0.7"))
-
-# Maximum cost per storyboard (USD)
-# Auto-edit will stop if total Gemini edit cost exceeds this limit
-GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD = float(os.getenv("GEMINI_AUTO_EDIT_MAX_COST", "1.0"))
-
-# Maximum retry count per scene
-# Prevents infinite edit loops on problematic scenes
-GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE = int(os.getenv("GEMINI_AUTO_EDIT_MAX_RETRIES", "1"))
-
-
-class _RuntimeSettings:
-    """Mutable runtime settings for single-process use.
-
-    Use this instead of mutating module-level constants directly.
-    Reset to env-based defaults on server restart.
-    """
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        """Reload all values from environment variables."""
-        self.auto_edit_enabled = os.getenv("GEMINI_AUTO_EDIT_ENABLED", "false").lower() == "true"
-        self.auto_edit_threshold = float(os.getenv("GEMINI_AUTO_EDIT_THRESHOLD", "0.7"))
-        self.auto_edit_max_cost = float(os.getenv("GEMINI_AUTO_EDIT_MAX_COST", "1.0"))
-        self.auto_edit_max_retries = int(os.getenv("GEMINI_AUTO_EDIT_MAX_RETRIES", "1"))
-
-
-runtime_settings = _RuntimeSettings()
-
-# Log startup status
-logger.info(
-    "Gemini Auto Edit: %s (threshold=%.2f, max_cost=$%.2f, max_retries=%d)",
-    "ENABLED" if GEMINI_AUTO_EDIT_ENABLED else "DISABLED",
-    GEMINI_AUTO_EDIT_THRESHOLD,
-    GEMINI_AUTO_EDIT_MAX_COST_PER_STORYBOARD,
-    GEMINI_AUTO_EDIT_MAX_RETRIES_PER_SCENE,
-)
-
 # --- FFmpeg / Video Encoding Defaults ---
 # Output video FPS (used by zoompan, encoding, and frame calculations)
 VIDEO_FPS = int(os.getenv("VIDEO_FPS", "30"))

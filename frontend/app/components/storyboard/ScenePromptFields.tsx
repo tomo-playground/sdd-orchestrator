@@ -37,7 +37,6 @@ type ScenePromptFieldsProps = {
     weight?: number;
     trigger_words?: string[];
     lora_type?: string;
-    optimal_weight?: number;
   }>;
   selectedCharacterId?: number | null;
   basePromptA: string;

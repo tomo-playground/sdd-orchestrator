@@ -322,7 +322,7 @@ class TestSoftDeleteFilters:
         """Query with deleted_at.is_(None) excludes soft-deleted characters."""
         active, deleted = setup_characters
 
-        # This is the same filter used in regenerate_reference, enhance_preview, edit_preview
+        # This is the same filter used in regenerate_reference
         result = db_session.query(Character).filter(Character.id == deleted.id, Character.deleted_at.is_(None)).first()
         assert result is None, "Soft-deleted character should not be found"
 

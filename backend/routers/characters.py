@@ -4,7 +4,7 @@ Business logic lives in services.characters package.
 Router only handles HTTP mapping + error conversion.
 """
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from config import logger
@@ -16,8 +16,6 @@ from schemas import (
     CharacterCreate,
     CharacterDuplicateRequest,
     CharacterDuplicateResponse,
-    CharacterEditPreviewResponse,
-    CharacterEnhancePreviewResponse,
     CharacterPreviewRequest,
     CharacterPreviewResponse,
     CharacterResponse,
@@ -35,8 +33,6 @@ from services.characters import (
     batch_regenerate_references,
     create_character,
     duplicate_character,
-    edit_preview,
-    enhance_preview,
     generate_wizard_preview,
     get_character_or_raise,
     list_characters,
@@ -204,28 +200,6 @@ async def generate_voice_ref_endpoint(character_id: int, db: Session = Depends(g
         raise HTTPException(status_code=400, detail=str(e)) from None
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e)) from None
-
-
-@service_router.post("/{character_id}/enhance-preview", response_model=CharacterEnhancePreviewResponse)
-async def enhance_preview_endpoint(character_id: int, db: Session = Depends(get_db)):
-    """Enhance the character's preview image using Gemini image generation."""
-    try:
-        return await enhance_preview(db, character_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Preview enhancement failed") from None
-
-
-@service_router.post("/{character_id}/edit-preview", response_model=CharacterEditPreviewResponse)
-async def edit_preview_endpoint(
-    character_id: int,
-    instruction: str = Body(..., embed=True),
-    db: Session = Depends(get_db),
-):
-    """Edit the character's preview image with a natural language instruction via Gemini."""
-    try:
-        return await edit_preview(db, character_id, instruction)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Preview edit failed") from None
 
 
 @service_router.post("/{character_id}/assign-preview", response_model=AssignPreviewResponse)

@@ -22,7 +22,7 @@ export function useLoraManagement(ui: UiCallbacks) {
     if (!editingLora) return;
     setIsUpdatingLora(true);
     try {
-      const { id, preview_image_url, civitai_id, civitai_url, ...payload } = editingLora;
+      const { id, preview_image_url, civitai_url, ...payload } = editingLora;
       await axios.put(`${ADMIN_API_BASE}/loras/${id}`, payload);
       setEditingLora(null);
       await fetchPublicLoras();
@@ -40,7 +40,8 @@ export function useLoraManagement(ui: UiCallbacks) {
     async (id: number) => {
       const ok = await ui.confirmDialog({
         title: "LoRA 삭제",
-        message: "이 LoRA 등록을 삭제하시겠습니까? (파일은 디스크에 남을 수 있으며, DB 항목만 제거됩니다)",
+        message:
+          "이 LoRA 등록을 삭제하시겠습니까? (파일은 디스크에 남을 수 있으며, DB 항목만 제거됩니다)",
         confirmLabel: "삭제",
         variant: "danger",
       });

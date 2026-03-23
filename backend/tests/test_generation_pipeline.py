@@ -105,10 +105,9 @@ class TestIPAdapterAutoActivation:
 
 
 class TestLoRAWeightCap:
-    """Test LoRA weight handling in _adjust_parameters.
+    """Test apply_optimal_lora_weights utility function.
 
-    prompt composition의 _cap_lora_weight()가 STYLE_LORA_WEIGHT_CAP SSOT.
-    _adjust_parameters()는 calibration DB 값만 적용 (이중 capping 없음).
+    Verifies weight replacement in LoRA tags within prompt strings.
     """
 
     def test_calibration_weights_applied_directly(self):

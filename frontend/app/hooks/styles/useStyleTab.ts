@@ -8,11 +8,7 @@ import type {
   Embedding,
   Character,
 } from "../../types";
-import { useCivitai } from "./useCivitai";
 import { useLoraManagement } from "./useLoraManagement";
-
-// Re-export for consumers that import CivitaiResult from useStyleTab
-export type { CivitaiResult } from "./useCivitai";
 
 import type { LoRA, UiCallbacksWithPrompt } from "../../types";
 
@@ -58,7 +54,6 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     return m;
   }, [sdModels]);
 
-  const civitai = useCivitai(ui);
   const lora = useLoraManagement(ui);
 
   // ── Fetchers ───────────────────────────────────────
@@ -374,13 +369,6 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     isUpdatingLora: lora.isUpdatingLora,
     handleUpdateLora: lora.handleUpdateLora,
     handleDeleteLora: lora.handleDeleteLora,
-    // Civitai
-    civitaiSearch: civitai.civitaiSearch,
-    setCivitaiSearch: civitai.setCivitaiSearch,
-    civitaiResults: civitai.civitaiResults,
-    isSearchingCivitai: civitai.isSearchingCivitai,
-    handleCivitaiSearch: civitai.handleCivitaiSearch,
-    handleDownloadModel: civitai.handleDownloadModel,
     // Filtering context
     selectedBaseModel,
   };

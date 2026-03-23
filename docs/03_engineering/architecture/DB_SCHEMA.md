@@ -1,4 +1,4 @@
-# Database Schema (v3.34)
+# Database Schema (v3.35)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.35 | 2026-03-23 | SP-073 Dead Feature Cleanup: `activity_logs`에서 Gemini 자동편집 4컬럼 제거(`gemini_edited`, `gemini_cost_usd`, `original_match_rate`, `final_match_rate`). `loras`에서 `gender_locked`, `optimal_weight`, `calibration_score`, `civitai_id` 컬럼 + `idx_loras_civitai` 인덱스 제거. `tags`에서 `thumbnail_asset_id` 컬럼 + `_thumbnail_asset` 관계 + `thumbnail_url` 프로퍼티 제거 |
 | v3.34 | 2026-03-23 | 문서 최신화: `storyboards`에 `tone`/`bgm_prompt`/`bgm_mood` 추가, `scenes`에 `tts_asset_id` 추가 + `width`/`height` 기본값 수정, `scene_quality_scores`에 `identity_score`/`identity_tags_detected` 추가, `backgrounds` 인덱스명 수정, `lab_experiments` 삭제 테이블 문서 제거, `characters.reference_images` 잔존 기록 정리. 유령 항목 정리: `loras` Multi-Character 3컬럼 제거(DB DROP 완료), `storyboards.bgm_audio_url` @property 제거(미구현), `loras.is_active` 추가. `scenes.multi_gen_enabled` 설명 보강. MEDIUM 12건 수정: `groups` deleted_at+@property 추가, `scenes` FK/nullable/길이 보강, `storyboard_characters` UniqueConstraint+FK 명시, `tags`/`tag_effectiveness` timestamps 추가, `activity_logs` NOT NULL 명시, `style_profiles` default 명시, `youtube_credentials` nullable/default 명시 |
 | v3.33 | 2026-03-02 | Character-Group 소유권: `characters.style_profile_id` 제거 → `characters.group_id` NOT NULL FK (RESTRICT). Group이 화풍 유일한 SSOT |
 | v3.32 | 2026-02-28 | `group_config` 테이블 제거 → `groups` 통합 (render_preset_id, style_profile_id, narrator_voice_preset_id). `channel_dna` 컬럼 제거 |
@@ -307,7 +308,6 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `is_active` | Boolean | 태그 활성화 상태 (default: TRUE) |
 | `deprecated_reason` | String(200) | 비활성화 이유 |
 | `replacement_tag_id` | Integer (FK → tags, SET NULL) | 대체 태그 ID |
-| `thumbnail_asset_id` | Integer (FK → media_assets, SET NULL) | 태그 썸네일 이미지 (Visual Tag Browser) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **`default_layer` 매핑** (12-Layer System):
@@ -489,13 +489,9 @@ Stable Diffusion LoRA 모델.
 | `name` | String(100) | Unique, 파일명/키 |
 | `display_name` | String(100) | 표시명 |
 | `lora_type` | String(20) | `character`, `style`, `concept`, `pose` |
-| `gender_locked` | String(10) | 성별 제한 (`female`, `male`, null) |
-| `civitai_id` | Integer | Civitai ID |
 | `civitai_url` | String(500) | |
 | `trigger_words` | Text[] | 트리거 키워드 |
 | `default_weight` | Decimal(3,2) | 기본 가중치 |
-| `optimal_weight` | Decimal(3,2) | 보정된 최적 가중치 |
-| `calibration_score` | Integer | 최적 가중치 시 점수 |
 | `weight_min`, `weight_max` | Decimal(3,2) | 가중치 범위 |
 | `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
 | `is_active` | Boolean (default: true) | 활성 여부 |
@@ -646,10 +642,6 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 | `match_rate` | Float | WD14 매치율 |
 | `tags_used` | JSONB | 사용된 태그 배열 |
 | `status` | String(20) | `success`, `fail` |
-| `gemini_edited` | Boolean | Gemini 자동 편집 여부 |
-| `gemini_cost_usd` | Float | Gemini 편집 비용 |
-| `original_match_rate` | Float | 편집 전 매치율 |
-| `final_match_rate` | Float | 편집 후 매치율 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:

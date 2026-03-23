@@ -1,28 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import type { Scene, GeminiSuggestion } from "../../types";
+import type { Scene } from "../../types";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import PromptEditDiff from "../prompt/PromptEditDiff";
 
 type SceneGeminiModalsProps = {
   scene: Scene;
   qualityScore?: { match_rate: number; missing_tags: string[] } | null;
-  // Gemini Edit state
   geminiEditOpen: boolean;
   setGeminiEditOpen: (open: boolean) => void;
   geminiTargetChange: string;
   setGeminiTargetChange: (value: string) => void;
-  onEditWithGemini: (targetChange: string) => void;
   onApplyPromptEdit: (editedPrompt: string) => void;
   showToast: (message: string, type: "success" | "error") => void;
   selectedCharacterId?: number | null;
-  // Gemini Suggestions state
-  geminiSuggestionsOpen: boolean;
-  setGeminiSuggestionsOpen: (open: boolean) => void;
-  geminiSuggestions: GeminiSuggestion[];
-  setGeminiSuggestions: (suggestions: GeminiSuggestion[]) => void;
-  onApproveSuggestion: (suggestion: GeminiSuggestion) => void;
 };
 
 export default function SceneGeminiModals({
@@ -32,19 +24,13 @@ export default function SceneGeminiModals({
   setGeminiEditOpen,
   geminiTargetChange,
   setGeminiTargetChange,
-  onEditWithGemini,
   onApplyPromptEdit,
   showToast,
   selectedCharacterId,
-  geminiSuggestionsOpen,
-  setGeminiSuggestionsOpen,
-  geminiSuggestions,
-  setGeminiSuggestions,
-  onApproveSuggestion,
 }: SceneGeminiModalsProps) {
   return (
     <>
-      {/* Gemini Edit Modal */}
+      {/* Gemini Edit Modal (프롬프트 편집 전용) */}
       {geminiEditOpen && (
         <GeminiEditModal
           scene={scene}
@@ -55,11 +41,6 @@ export default function SceneGeminiModals({
             setGeminiEditOpen(false);
             setGeminiTargetChange("");
           }}
-          onSubmitImageEdit={(targetChange) => {
-            onEditWithGemini(targetChange);
-            setGeminiEditOpen(false);
-            setGeminiTargetChange("");
-          }}
           onApplyPromptEdit={(edited) => {
             onApplyPromptEdit(edited);
             setGeminiEditOpen(false);
@@ -67,18 +48,6 @@ export default function SceneGeminiModals({
           }}
           showToast={showToast}
           selectedCharacterId={selectedCharacterId}
-        />
-      )}
-
-      {/* Gemini Auto-Suggest Modal */}
-      {geminiSuggestionsOpen && (
-        <GeminiSuggestModal
-          geminiSuggestions={geminiSuggestions}
-          onClose={() => {
-            setGeminiSuggestionsOpen(false);
-            setGeminiSuggestions([]);
-          }}
-          onApproveSuggestion={onApproveSuggestion}
         />
       )}
     </>
@@ -93,7 +62,6 @@ type GeminiEditModalProps = {
   geminiTargetChange: string;
   setGeminiTargetChange: (value: string) => void;
   onClose: () => void;
-  onSubmitImageEdit: (targetChange: string) => void;
   onApplyPromptEdit: (editedPrompt: string) => void;
   showToast: (message: string, type: "success" | "error") => void;
   selectedCharacterId?: number | null;
@@ -112,7 +80,6 @@ function GeminiEditModal({
   geminiTargetChange,
   setGeminiTargetChange,
   onClose,
-  onSubmitImageEdit,
   onApplyPromptEdit,
   showToast,
   selectedCharacterId,
@@ -191,44 +158,23 @@ function GeminiEditModal({
               />
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+              >
+                취소
+              </button>
               <button
                 type="button"
                 onClick={handlePromptPreview}
                 disabled={!geminiTargetChange.trim()}
-                className="w-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:from-purple-600 hover:to-pink-600 disabled:cursor-not-allowed disabled:from-purple-300 disabled:to-pink-300"
+                className="flex-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:from-purple-600 hover:to-pink-600 disabled:cursor-not-allowed disabled:from-purple-300 disabled:to-pink-300"
               >
                 ✨ 프롬프트 미리보기
               </button>
-              <div className="flex justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-medium text-zinc-500 transition hover:bg-zinc-50"
-                >
-                  취소
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!geminiTargetChange.trim()) {
-                      showToast("변경 내용을 입력하세요", "error");
-                      return;
-                    }
-                    onSubmitImageEdit(geminiTargetChange.trim());
-                  }}
-                  disabled={!geminiTargetChange.trim() || scene.isGenerating}
-                  className="flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-medium text-zinc-500 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  🖼️ 이미지 직접 편집 (~$0.04)
-                </button>
-              </div>
             </div>
-
-            <p className="text-[12px] text-zinc-400">
-              💡 프롬프트 미리보기: 태그 변경을 확인 후 적용. 이미지 편집: Gemini가 이미지 직접
-              수정.
-            </p>
           </div>
         )}
 
@@ -241,73 +187,6 @@ function GeminiEditModal({
             onCancel={() => setPhase("input")}
           />
         )}
-      </div>
-    </div>
-  );
-}
-
-/* ---- Gemini Suggest Modal ---- */
-
-type GeminiSuggestModalProps = {
-  geminiSuggestions: GeminiSuggestion[];
-  onClose: () => void;
-  onApproveSuggestion: (suggestion: GeminiSuggestion) => void;
-};
-
-function GeminiSuggestModal({
-  geminiSuggestions,
-  onClose,
-  onApproveSuggestion,
-}: GeminiSuggestModalProps) {
-  const trapRef = useFocusTrap(true);
-
-  return (
-    <div
-      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="gemini-suggest-title"
-    >
-      <div
-        ref={trapRef}
-        tabIndex={-1}
-        className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl outline-none"
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h3 id="gemini-suggest-title" className="text-lg font-semibold text-zinc-800">
-            🤖 Gemini Auto Suggestions
-          </h3>
-          <CloseButton onClick={onClose} />
-        </div>
-
-        <div className="space-y-4">
-          <p className="text-sm text-zinc-600">
-            Gemini가 이미지와 프롬프트를 비교해 {geminiSuggestions.length}개의 수정 제안을
-            생성했습니다.
-          </p>
-
-          <div className="space-y-3">
-            {geminiSuggestions.map((suggestion, idx) => (
-              <SuggestionCard
-                key={idx}
-                suggestion={suggestion}
-                onApprove={() => onApproveSuggestion(suggestion)}
-              />
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
-          >
-            모든 제안 무시
-          </button>
-
-          <p className="text-[12px] text-zinc-400">
-            💡 제안을 승인하면 Gemini Nano Banana가 이미지를 자동으로 편집합니다.
-          </p>
-        </div>
       </div>
     </div>
   );
@@ -331,43 +210,5 @@ function CloseButton({ onClick }: { onClick: () => void }) {
         />
       </svg>
     </button>
-  );
-}
-
-function SuggestionCard({
-  suggestion,
-  onApprove,
-}: {
-  suggestion: GeminiSuggestion;
-  onApprove: () => void;
-}) {
-  return (
-    <div className="rounded-xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50 p-4 transition hover:border-indigo-300 hover:shadow-md">
-      <div className="mb-2 flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <div className="mb-1 flex items-center gap-2">
-            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[12px] font-semibold text-indigo-700 uppercase">
-              {suggestion.edit_type}
-            </span>
-            <span className="text-xs font-semibold text-zinc-800">{suggestion.issue}</span>
-          </div>
-          <p className="text-sm text-zinc-600">{suggestion.description}</p>
-        </div>
-        <div className="text-xs text-zinc-500">{(suggestion.confidence * 100).toFixed(0)}%</div>
-      </div>
-
-      <div className="mb-3 rounded-lg bg-indigo-50 p-3">
-        <p className="text-xs font-semibold text-indigo-900">💡 제안:</p>
-        <p className="text-sm text-indigo-700">{suggestion.target_change}</p>
-      </div>
-
-      <button
-        type="button"
-        onClick={onApprove}
-        className="w-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white transition hover:from-indigo-600 hover:to-purple-600"
-      >
-        ✅ 이 제안 승인하고 편집 (~$0.04)
-      </button>
-    </div>
   );
 }

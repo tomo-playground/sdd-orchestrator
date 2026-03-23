@@ -29,14 +29,13 @@ def get_civitai_info():
         # Use parameterized query to avoid SQL injection
         placeholders = ", ".join([f":p{i}" for i in range(len(target_loras))])
         params = {f"p{i}": name for i, name in enumerate(target_loras)}
-        query = text(f"SELECT name, civitai_id, civitai_url, trigger_words FROM loras WHERE name IN ({placeholders})")
+        query = text(f"SELECT name, civitai_url, trigger_words FROM loras WHERE name IN ({placeholders})")
 
         result = conn.execute(query, params)
 
         print("--- LoRA Civitai Info ---")
         for row in result:
             print(f"LoRA: {row.name}")
-            print(f"  ID: {row.civitai_id}")
             print(f"  URL: {row.civitai_url}")
             print(f"  Triggers: {row.trigger_words}")
             print("-" * 20)

@@ -22,10 +22,8 @@ type SceneImagePanelProps = {
   onCandidateSelect: (imageUrl: string) => void;
   // Generate image callback for empty state CTA
   onGenerateImage?: () => void;
-  // Validation overlay
+  // Validation overlay (read-only: populated from SSE validation results)
   validationResult?: ImageValidation;
-  isValidating?: boolean;
-  onValidate?: () => void;
   onApplyMissingTags?: (tags: string[]) => void;
   // SSE progress
   genProgress?: ImageGenProgress | null;
@@ -33,32 +31,12 @@ type SceneImagePanelProps = {
 
 function ValidationOverlay({
   result,
-  isValidating,
-  onValidate,
   onApplyMissingTags,
 }: {
   result?: ImageValidation;
-  isValidating: boolean;
-  onValidate: () => void;
   onApplyMissingTags?: (tags: string[]) => void;
 }) {
-  if (!result) {
-    return (
-      <div className="flex flex-col items-center gap-2">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onValidate();
-          }}
-          disabled={isValidating}
-          className="rounded-full bg-white/90 px-4 py-2 text-[12px] font-semibold tracking-[0.15em] uppercase shadow-sm backdrop-blur transition hover:bg-white disabled:opacity-50"
-        >
-          {isValidating ? "Validating..." : "Run Validation"}
-        </button>
-      </div>
-    );
-  }
+  if (!result) return null;
 
   const rate = Math.round((result.match_rate ?? 0) * 100);
   const missingCount = result.missing?.length ?? 0;
@@ -106,20 +84,9 @@ function ValidationOverlay({
         </p>
       )}
 
-      {/* Actions */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onValidate();
-          }}
-          disabled={isValidating}
-          className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-semibold tracking-wider text-white uppercase backdrop-blur transition hover:bg-white/30 disabled:opacity-50"
-        >
-          {isValidating ? "..." : "Re-validate"}
-        </button>
-        {missingCount > 0 && onApplyMissingTags && result.missing && (
+      {/* Add Missing Tags action */}
+      {missingCount > 0 && onApplyMissingTags && result.missing && (
+        <div className="flex gap-2">
           <button
             type="button"
             onClick={(e) => {
@@ -130,8 +97,8 @@ function ValidationOverlay({
           >
             + Add Missing
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -142,14 +109,12 @@ export default function SceneImagePanel({
   onCandidateSelect,
   onGenerateImage,
   validationResult,
-  isValidating = false,
-  onValidate,
   onApplyMissingTags,
   genProgress,
 }: SceneImagePanelProps) {
   const [hovered, setHovered] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
-  const showOverlay = hovered && scene.image_url && !scene.isGenerating && onValidate;
+  const showOverlay = hovered && scene.image_url && !scene.isGenerating && validationResult;
 
   return (
     <div className="flex flex-col gap-3">
@@ -232,12 +197,7 @@ export default function SceneImagePanel({
         {/* Validation overlay on hover */}
         {showOverlay && (
           <div className="absolute inset-0 flex items-end justify-start bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 transition-opacity">
-            <ValidationOverlay
-              result={validationResult}
-              isValidating={isValidating}
-              onValidate={onValidate!}
-              onApplyMissingTags={onApplyMissingTags}
-            />
+            <ValidationOverlay result={validationResult} onApplyMissingTags={onApplyMissingTags} />
           </div>
         )}
 

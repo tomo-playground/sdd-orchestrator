@@ -41,33 +41,6 @@ export async function storeSceneImage(
   }
 }
 
-export async function validateImageCandidate(
-  imageUrl: string,
-  prompt: string,
-  sceneId?: number,
-  characterId?: number | null
-) {
-  if (!imageUrl || imageUrl.startsWith("data:")) return null;
-  try {
-    const { storyboardId } = useContextStore.getState();
-    const base =
-      imageUrl.startsWith("http://") || imageUrl.startsWith("https://")
-        ? { image_url: imageUrl }
-        : { image_b64: imageUrl };
-    const payload = {
-      ...base,
-      prompt,
-      storyboard_id: storyboardId,
-      scene_id: sceneId,
-      ...(characterId ? { character_id: characterId } : {}),
-    };
-    const res = await axios.post(`${API_BASE}/scene/validate-and-auto-edit`, payload);
-    return res.data;
-  } catch {
-    return null;
-  }
-}
-
 export type ProcessOpts = {
   images: string[];
   scene: Scene;
@@ -79,7 +52,7 @@ export type ProcessOpts = {
   controlnet_pose?: string;
   ip_adapter_reference?: string;
   preStored?: { url: string; asset_id: number };
-  /** SSE 응답에 포함된 validation 결과 — 있으면 별도 API 호출 생략 */
+  /** SSE 응답에 포함된 validation 결과 */
   sseValidation?: {
     match_rate?: number;
     matched_tags?: string[];
@@ -125,31 +98,17 @@ export async function processGeneratedImages(opts: ProcessOpts): Promise<Partial
         })
       );
 
-  // SSE validation 결과가 있으면 별도 API 호출 생략 (preStored 여부와 무관)
-  const useSseValidation = opts.sseValidation != null;
-
   const validationResults = await Promise.all(
     storedResults.map(async (stored) => {
-      let vResult: ImageValidation | null | undefined;
-
-      if (useSseValidation) {
-        // SSE validation 결과를 ImageValidation 형태로 변환
-        const sv = opts.sseValidation!;
-        vResult = {
-          match_rate: sv.match_rate ?? 0,
-          matched: sv.matched_tags ?? [],
-          missing: sv.missing_tags ?? [],
-          extra: [],
-        };
-      } else {
-        const validation = await validateImageCandidate(
-          stored.url,
-          prompt,
-          sceneDbId,
-          selectedCharacterId
-        );
-        vResult = validation?.validation_result ?? validation;
-      }
+      // SSE validation 결과를 ImageValidation 형태로 변환 (없으면 null)
+      const vResult: ImageValidation | null = opts.sseValidation
+        ? {
+            match_rate: opts.sseValidation.match_rate ?? 0,
+            matched: opts.sseValidation.matched_tags ?? [],
+            missing: opts.sseValidation.missing_tags ?? [],
+            extra: [],
+          }
+        : null;
 
       return {
         image_url: stored.url,

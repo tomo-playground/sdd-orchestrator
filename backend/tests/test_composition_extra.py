@@ -166,21 +166,13 @@ class TestApplyClothingOverride:
 
 
 class TestGetEffectiveLoraWeight:
-    def test_optimal_weight_priority(self, builder):
+    def test_default_weight(self, builder):
         lora = MagicMock()
-        lora.optimal_weight = 0.5
-        lora.default_weight = 0.8
-        assert builder.get_effective_lora_weight(lora) == 0.5
-
-    def test_default_weight_fallback(self, builder):
-        lora = MagicMock()
-        lora.optimal_weight = None
         lora.default_weight = 0.8
         assert builder.get_effective_lora_weight(lora) == 0.8
 
     def test_no_weight_returns_07(self, builder):
         lora = MagicMock()
-        lora.optimal_weight = None
         lora.default_weight = None
         assert builder.get_effective_lora_weight(lora) == 0.7
 

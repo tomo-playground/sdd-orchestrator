@@ -81,9 +81,9 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `reference_image_asset_id` (FK), `deleted_at`
 
 ### `loras` — LoRA 모델
-- `id` (PK), `name` (Unique), `display_name`, `lora_type`, `gender_locked`, `trigger_words`
-- `default_weight`, `weight_min`, `weight_max`, `optimal_weight`, `calibration_score`
-- `civitai_id`, `civitai_url`, `preview_image_asset_id` (FK), `is_active`
+- `id` (PK), `name` (Unique), `display_name`, `lora_type`, `trigger_words`
+- `default_weight`, `weight_min`, `weight_max`
+- `civitai_url`, `preview_image_asset_id` (FK), `is_active`
 
 ### `sd_models` — SD 체크포인트
 - `id` (PK), `name` (Unique), `display_name`, `model_type`, `base_model`
@@ -133,7 +133,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `default_layer` (0-11), `usage_scope`, `priority`
 - `classification_source`, `classification_confidence`
 - `valence` (nullable, indexed)
-- `is_active`, `deprecated_reason`, `replacement_tag_id` (FK), `thumbnail_asset_id` (FK)
+- `is_active`, `deprecated_reason`, `replacement_tag_id` (FK)
 
 ### `tag_rules` — 태그 충돌/의존성 규칙
 - `id` (PK), `rule_type` (`conflict`/`requires`), `source_tag_id` (FK → tags, CASCADE), `target_tag_id` (FK → tags, CASCADE)
@@ -186,7 +186,6 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `id` (PK), `storyboard_id` (FK), `scene_id` (FK), `character_id` (FK)
 - `prompt` (NOT NULL), `negative_prompt`, `sd_params` (JSONB), `seed`
 - `media_asset_id` (FK → media_assets), `match_rate`, `tags_used` (JSONB), `status`
-- `gemini_edited`, `gemini_cost_usd`, `original_match_rate`, `final_match_rate`
 
 ### `render_history` — 영상 렌더링 이력
 - `id` (PK), `storyboard_id` (FK → storyboards, CASCADE), `media_asset_id` (FK → media_assets, CASCADE), `label`

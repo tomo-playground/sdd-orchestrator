@@ -9,13 +9,10 @@ type SceneActionBarProps = {
   sceneIndex: number;
   qualityScore?: { match_rate: number; missing_tags: string[] } | null;
   sceneMenuOpen: boolean;
-  isLoadingSuggestions: boolean;
   isMarkingStatus?: boolean;
   onGenerateImage: () => void;
   onGeminiEditOpen: () => void;
-  onEditImageOpen?: () => void;
   onClothingOpen?: () => void;
-  onAutoSuggest: () => void;
   onMarkSuccess?: () => void;
   onMarkFail?: () => void;
   onSceneMenuToggle: () => void;
@@ -34,13 +31,10 @@ export default function SceneActionBar({
   sceneIndex,
   qualityScore,
   sceneMenuOpen,
-  isLoadingSuggestions,
   isMarkingStatus = false,
   onGenerateImage,
   onGeminiEditOpen,
-  onEditImageOpen,
   onClothingOpen,
-  onAutoSuggest,
   onMarkSuccess,
   onMarkFail,
   onSceneMenuToggle,
@@ -118,21 +112,6 @@ export default function SceneActionBar({
           </Button>
         )}
 
-        {/* Auto Suggest button */}
-        {scene.image_url && !scene.isGenerating && (
-          <Button
-            variant="gradient"
-            size="sm"
-            onClick={onAutoSuggest}
-            disabled={isLoadingSuggestions}
-            loading={isLoadingSuggestions}
-            className="from-indigo-500 to-purple-500 shadow-md shadow-indigo-500/20 hover:from-indigo-600 hover:to-purple-600"
-            title="이미지와 프롬프트를 비교해 수정을 제안합니다"
-          >
-            {isLoadingSuggestions ? "분석중..." : "🤖 Auto Suggest"}
-          </Button>
-        )}
-
         {/* Mark Success / Fail buttons */}
         {scene.activity_log_id && onMarkSuccess && onMarkFail && (
           <>
@@ -188,19 +167,6 @@ export default function SceneActionBar({
           >
             Copy Prompt
           </button>
-
-          {onEditImageOpen && scene.image_url && !scene.isGenerating && (
-            <button
-              type="button"
-              onClick={() => {
-                onEditImageOpen();
-                onSceneMenuClose();
-              }}
-              className="w-full px-3 py-2 text-left text-xs text-indigo-600 hover:bg-indigo-50"
-            >
-              이미지 편집
-            </button>
-          )}
 
           {onClothingOpen && !scene.isGenerating && (
             <button

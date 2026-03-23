@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type {
-  Scene,
-  ImageValidation,
-  ImageGenProgress,
-  Tag,
-  GeminiSuggestion,
-  TTSPreviewState,
-} from "../../types";
+import type { Scene, ImageValidation, ImageGenProgress, Tag, TTSPreviewState } from "../../types";
 import type { AudioPlayer } from "../../hooks/useAudioPlayer";
 import { isMultiCharStructure } from "../../utils/structure";
 import { useUIStore } from "../../store/useUIStore";
@@ -18,7 +11,6 @@ import SceneActionBar from "./SceneActionBar";
 import ScenePromptFields from "./ScenePromptFields";
 import SceneSettingsFields from "./SceneSettingsFields";
 import SceneGeminiModals from "./SceneGeminiModals";
-import SceneEditImageModal from "./SceneEditImageModal";
 import SceneClothingModal from "./SceneClothingModal";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import SceneEssentialFields from "./SceneEssentialFields";
@@ -35,14 +27,12 @@ type SceneCardProps = {
   sceneMenuOpen: boolean;
   onSceneMenuToggle: () => void;
   onSceneMenuClose: () => void;
-  validatingSceneId: string | null;
   loraTriggerWords?: string[];
   characterLoras?: Array<{
     name: string;
     weight?: number;
     trigger_words?: string[];
     lora_type?: string;
-    optimal_weight?: number;
   }>;
   tagsByGroup: Record<string, Tag[]>;
   sceneTagGroups: string[];
@@ -52,9 +42,6 @@ type SceneCardProps = {
   onSpeakerChange: (speaker: Scene["speaker"]) => void;
   onImageUpload: (file: File | undefined) => void;
   onGenerateImage: () => void;
-  onEditWithGemini: (targetChange: string) => void;
-  onSuggestEditWithGemini: () => Promise<GeminiSuggestion[]>;
-  onValidateImage: () => void;
   onApplyMissingTags: (tags: string[]) => void;
   onImagePreview: (url: string | null, candidates?: string[]) => void;
   onMarkSuccess?: () => void;
@@ -84,7 +71,6 @@ export default function SceneCard({
   sceneMenuOpen,
   onSceneMenuToggle,
   onSceneMenuClose,
-  validatingSceneId,
   loraTriggerWords = [],
   characterLoras = [],
   tagsByGroup,
@@ -95,9 +81,6 @@ export default function SceneCard({
   onSpeakerChange,
   onImageUpload,
   onGenerateImage,
-  onEditWithGemini,
-  onSuggestEditWithGemini,
-  onValidateImage,
   onApplyMissingTags,
   onImagePreview,
   onMarkSuccess,
@@ -109,7 +92,6 @@ export default function SceneCard({
   characterAName,
   characterBName,
   selectedCharacterBId,
-
   genProgress,
   buildNegativePrompt,
   buildScenePrompt,
@@ -121,35 +103,11 @@ export default function SceneCard({
 }: SceneCardProps) {
   const [geminiEditOpen, setGeminiEditOpen] = useState(false);
   const [geminiTargetChange, setGeminiTargetChange] = useState("");
-  const [geminiSuggestionsOpen, setGeminiSuggestionsOpen] = useState(false);
-  const [geminiSuggestions, setGeminiSuggestions] = useState<GeminiSuggestion[]>([]);
-  const [editImageOpen, setEditImageOpen] = useState(false);
   const [clothingOpen, setClothingOpen] = useState(false);
 
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const showAdvancedSettings = useUIStore((s) => s.showAdvancedSettings);
 
   const hasMultipleSpeakers = isMultiCharStructure(structure ?? "");
-
-  const handleAutoSuggest = async () => {
-    setIsLoadingSuggestions(true);
-    try {
-      const result = await onSuggestEditWithGemini();
-      if (result && result.length > 0) {
-        setGeminiSuggestions(result);
-        setGeminiSuggestionsOpen(true);
-      }
-    } catch (error) {
-      console.error("Auto-suggest failed:", error);
-    } finally {
-      setIsLoadingSuggestions(false);
-    }
-  };
-
-  const handleApproveSuggestion = (suggestion: { target_change: string }) => {
-    setGeminiSuggestionsOpen(false);
-    onEditWithGemini(suggestion.target_change);
-  };
 
   return (
     <div className="group relative grid gap-2 rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/30 transition hover:border-zinc-300">
@@ -175,8 +133,6 @@ export default function SceneCard({
             onCandidateSelect={(imageUrl) => onUpdateScene({ image_url: imageUrl })}
             onGenerateImage={onGenerateImage}
             validationResult={imageValidationResult}
-            isValidating={validatingSceneId === scene.client_id}
-            onValidate={onValidateImage}
             onApplyMissingTags={onApplyMissingTags}
             genProgress={genProgress}
           />
@@ -186,12 +142,9 @@ export default function SceneCard({
             sceneIndex={sceneIndex}
             qualityScore={qualityScore}
             sceneMenuOpen={sceneMenuOpen}
-            isLoadingSuggestions={isLoadingSuggestions}
             onGenerateImage={onGenerateImage}
             onGeminiEditOpen={() => setGeminiEditOpen(true)}
-            onEditImageOpen={() => setEditImageOpen(true)}
             onClothingOpen={() => setClothingOpen(true)}
-            onAutoSuggest={handleAutoSuggest}
             onSceneMenuToggle={onSceneMenuToggle}
             onSceneMenuClose={onSceneMenuClose}
             onUpdateScene={onUpdateScene}
@@ -309,30 +262,10 @@ export default function SceneCard({
         setGeminiEditOpen={setGeminiEditOpen}
         geminiTargetChange={geminiTargetChange}
         setGeminiTargetChange={setGeminiTargetChange}
-        onEditWithGemini={onEditWithGemini}
         onApplyPromptEdit={(edited) => onUpdateScene({ image_prompt: edited })}
         showToast={showToast}
         selectedCharacterId={selectedCharacterId}
-        geminiSuggestionsOpen={geminiSuggestionsOpen}
-        setGeminiSuggestionsOpen={setGeminiSuggestionsOpen}
-        geminiSuggestions={geminiSuggestions}
-        setGeminiSuggestions={setGeminiSuggestions}
-        onApproveSuggestion={handleApproveSuggestion}
       />
-
-      {/* Edit Image Modal */}
-      {editImageOpen && scene.image_url && (
-        <SceneEditImageModal
-          sceneId={scene.id}
-          currentImageUrl={scene.image_url}
-          onClose={() => setEditImageOpen(false)}
-          onAccept={(imageUrl, assetId) => {
-            onUpdateScene({ image_url: imageUrl, image_asset_id: assetId });
-            showToast("편집된 이미지가 적용되었습니다", "success");
-          }}
-          showToast={showToast}
-        />
-      )}
 
       {/* Clothing Override Modal */}
       {clothingOpen && (

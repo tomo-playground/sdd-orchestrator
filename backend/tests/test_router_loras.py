@@ -1,7 +1,5 @@
 """Tests for loras router endpoints."""
 
-from unittest.mock import patch
-
 from fastapi.testclient import TestClient
 
 from models import LoRA
@@ -139,24 +137,6 @@ class TestLoRAsRouter:
         names = [item["name"] for item in data]
         assert "lora1" in names
         assert "lora2" in names
-
-    def test_search_civitai_requires_query(self, client: TestClient):
-        """Search Civitai requires query parameter."""
-        response = client.get("/api/admin/loras/search-civitai")
-        assert response.status_code == 422  # Validation error
-
-    def test_import_civitai_duplicate(self, client: TestClient, db_session):
-        """Importing duplicate Civitai LoRA fails."""
-        # Create existing LoRA with civitai_id
-        lora = LoRA(name="existing_lora", display_name="Existing LoRA", civitai_id=12345)
-        db_session.add(lora)
-        db_session.commit()
-
-        # Try to import same civitai_id
-        with patch("httpx.AsyncClient.get"):
-            response = client.post("/api/admin/loras/import-civitai/12345")
-            assert response.status_code == 400
-            assert "already imported" in response.json()["detail"].lower()
 
     def test_update_lora_trigger_words(self, client: TestClient, db_session):
         """Update LoRA trigger words."""

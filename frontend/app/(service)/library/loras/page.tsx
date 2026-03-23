@@ -72,12 +72,7 @@ export default function LibraryLorasPage() {
                   trigger: {lora.trigger_words?.join(", ") || "none"}
                 </p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-zinc-400">
-                  <span>
-                    w: {lora.optimal_weight ?? lora.default_weight}
-                    {lora.calibration_score != null && (
-                      <span className="ml-1 text-emerald-500">({lora.calibration_score}%)</span>
-                    )}
-                  </span>
+                  <span>w: {lora.default_weight}</span>
                   <span>
                     range: {lora.weight_min}&ndash;{lora.weight_max}
                   </span>
@@ -95,7 +90,11 @@ export default function LibraryLorasPage() {
                 {lora.preview_image_url && (
                   <div className="mt-3 aspect-[3/2] w-full overflow-hidden rounded-lg bg-zinc-100">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={lora.preview_image_url} alt="" className="h-full w-full object-cover opacity-80" />
+                    <img
+                      src={lora.preview_image_url}
+                      alt=""
+                      className="h-full w-full object-cover opacity-80"
+                    />
                   </div>
                 )}
               </div>

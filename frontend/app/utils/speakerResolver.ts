@@ -94,7 +94,6 @@ export type CharacterLora = {
   weight?: number;
   trigger_words?: string[];
   lora_type?: string;
-  optimal_weight?: number;
 };
 
 /**

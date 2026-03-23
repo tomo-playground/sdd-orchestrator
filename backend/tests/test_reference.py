@@ -128,7 +128,6 @@ class TestReferenceCharacterLoRA:
         lora_obj.name = "midoriya_lora"
         lora_obj.lora_type = "character"
         lora_obj.trigger_words = ["Midoriya_Izuku"]
-        lora_obj.optimal_weight = None
         lora_obj.default_weight = None
         builder.db.query.return_value.filter.return_value.all.return_value = [lora_obj]
 
@@ -167,8 +166,7 @@ class TestReferenceStyleLoRA:
         lora_obj.name = "flat_color"
         lora_obj.lora_type = "style"
         lora_obj.trigger_words = []
-        lora_obj.optimal_weight = 0.65
-        lora_obj.default_weight = None
+        lora_obj.default_weight = 0.65
         builder.db.query.return_value.filter.return_value.all.return_value = [lora_obj]
 
         char = _make_character(loras=[{"lora_id": 2, "weight": 0.7}])
@@ -195,7 +193,6 @@ class TestReferenceStyleLoRA:
         lora_obj.name = "flat_color"
         lora_obj.lora_type = "style"
         lora_obj.trigger_words = []
-        lora_obj.optimal_weight = None
         lora_obj.default_weight = None
         builder.db.query.return_value.filter.return_value.all.return_value = [lora_obj]
 

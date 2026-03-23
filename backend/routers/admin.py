@@ -439,58 +439,6 @@ async def clear_tts_cache(
 
 
 # ============================================================
-# Tag Thumbnail Batch Generation (Phase 15-B)
-# ============================================================
-
-
-class TagThumbnailGenerateResponse(BaseModel):
-    ok: bool
-    message: str
-
-
-def _run_thumbnail_generation(group_name: str | None, force: bool) -> None:
-    """Run thumbnail generation in background with its own DB session."""
-    from database import SessionLocal
-    from services.tag_thumbnail import generate_batch_thumbnails
-
-    db = SessionLocal()
-    try:
-        generate_batch_thumbnails(db, group_name, force)
-    finally:
-        db.close()
-
-
-@router.post("/tag-thumbnails/generate", response_model=TagThumbnailGenerateResponse)
-async def generate_tag_thumbnails(
-    background_tasks: BackgroundTasks,
-    group_name: str | None = Query(None, description="Filter by group_name (e.g. expression, pose)"),
-    force: bool = Query(False, description="Re-generate even if thumbnail already exists"),
-):
-    """Batch-generate tag thumbnails from Danbooru in background."""
-    valid_groups = {
-        "expression",
-        "pose",
-        "camera",
-        "hair_color",
-        "hair_style",
-        "clothing_top",
-        "clothing_bottom",
-        "clothing_outfit",
-        "clothing_detail",
-        "legwear",
-        "footwear",
-        "accessory",
-    }
-    if group_name and group_name not in valid_groups:
-        raise HTTPException(status_code=400, detail=f"Invalid group_name. Must be one of: {sorted(valid_groups)}")
-
-    background_tasks.add_task(_run_thumbnail_generation, group_name, force)
-    return TagThumbnailGenerateResponse(
-        ok=True, message=f"Thumbnail generation started (group={group_name or 'all'}, force={force})"
-    )
-
-
-# ============================================================
 # Storage Cleanup (absorbed from cleanup.py)
 # ============================================================
 

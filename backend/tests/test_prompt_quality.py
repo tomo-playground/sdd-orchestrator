@@ -58,7 +58,6 @@ class TestPromptQualityE2E:
         return {
             "name": "eureka",
             "lora_type": "character",
-            "optimal_weight": 0.5,
             "trigger_words": ["eureka"],
         }
 

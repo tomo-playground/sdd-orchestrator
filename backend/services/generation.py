@@ -29,11 +29,8 @@ from services.generation_prompt import (
 from services.generation_prompt import _resolve_style_loras as _resolve_style_loras  # noqa: F401, PLC0414
 from services.generation_prompt import prepare_prompt as _prepare_prompt
 from services.generation_style import apply_style_profile_to_prompt  # noqa: F401 — re-export for patch compat
-from services.lora_calibration import get_optimal_weights_from_db
 from services.prompt import (
-    apply_optimal_lora_weights,
     detect_scene_complexity,
-    extract_lora_names,
     normalize_negative_prompt,
     normalize_prompt_tokens,
     split_prompt_tokens,
@@ -66,7 +63,7 @@ async def generate_scene_image(request: SceneGenerateRequest) -> dict:
 
 
 def _adjust_parameters(ctx: GenerationContext) -> None:
-    """Detect complexity, calibrate LoRA weights, adjust steps/cfg.
+    """Detect complexity, adjust steps/cfg.
 
     Reads ctx.prompt, ctx.request, ctx.style_context.
     Writes ctx.prompt, ctx.steps, ctx.cfg_scale.
@@ -115,19 +112,6 @@ def _adjust_parameters(ctx: GenerationContext) -> None:
     if style_ctx and style_ctx.default_enable_hr and not ctx.request.enable_hr:
         ctx.request.enable_hr = True
         logger.info("🔍 [StyleProfile] Auto-enabled Hi-Res for '%s'", style_ctx.profile_name)
-
-    # Apply optimal LoRA weights from calibration DB
-    # Skip when prompt composition was used — already applies character/style LoRA weights + scale + cap
-    if not ctx.style_loras and not ctx.character:
-        lora_names = extract_lora_names(ctx.prompt)
-        if lora_names:
-            try:
-                optimal_weights = get_optimal_weights_from_db(lora_names)
-                if optimal_weights:
-                    ctx.prompt = apply_optimal_lora_weights(ctx.prompt, optimal_weights)
-                    logger.info("🔧 [LoRA] Applied calibrated weights: %s", optimal_weights)
-            except Exception as e:
-                logger.warning("🔧 [LoRA] Failed to get optimal weights: %s", e)
 
 
 def _build_adetailer_args(style_profile_id: int | None = None) -> dict | None:

@@ -1451,7 +1451,6 @@ class TestLoRABaseModelCompatibility:
         mock_lora.lora_type = "character"
         mock_lora.base_model = "SDXL"
         mock_lora.trigger_words = []
-        mock_lora.optimal_weight = None
         mock_lora.default_weight = 0.7
         mock_db.query.return_value.filter.return_value.first.return_value = mock_lora
 
@@ -1488,7 +1487,6 @@ class TestLoRABaseModelCompatibility:
         mock_lora.lora_type = "character"
         mock_lora.base_model = None  # Not set yet
         mock_lora.trigger_words = []
-        mock_lora.optimal_weight = None
         mock_lora.default_weight = 0.7
         mock_db.query.return_value.filter.return_value.first.return_value = mock_lora
 
@@ -1522,7 +1520,6 @@ class TestLoRABaseModelCompatibility:
         mock_lora.lora_type = "character"
         mock_lora.base_model = "SD1.5"
         mock_lora.trigger_words = ["sd15_trigger"]
-        mock_lora.optimal_weight = None
         mock_lora.default_weight = 0.7
         mock_db.query.return_value.filter.return_value.first.return_value = mock_lora
 
@@ -1694,7 +1691,6 @@ class TestLoRAInfo:
 
         mock_db = MagicMock()
         mock_lora = MagicMock()
-        mock_lora.optimal_weight = 0.85
         mock_lora.default_weight = 0.7
         mock_lora.lora_type = "style"
         mock_lora.trigger_words = ["flat color"]
@@ -1703,7 +1699,7 @@ class TestLoRAInfo:
         builder = PromptBuilder(mock_db)
         info = builder._get_lora_info("test_lora")
         assert isinstance(info, LoRAInfo)
-        assert info.weight == 0.85
+        assert info.weight == 0.7
         assert info.lora_type == "style"
         assert info.trigger_words == ["flat color"]
 
