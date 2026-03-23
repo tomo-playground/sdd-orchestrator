@@ -39,9 +39,18 @@ TOKEN=$(gh api repos/tomo-playground/shorts-producer/actions/runners/registratio
 ./config.sh \
   --url https://github.com/tomo-playground/shorts-producer \
   --token "$TOKEN" \
-  --name sdd-runner \
+  --name sdd-runner-1 \
   --labels self-hosted,sdd \
   --unattended --replace
+
+# 2번째 runner (~/actions-runner-2/)
+cd ~/actions-runner-2
+./config.sh \
+  --url https://github.com/tomo-playground/shorts-producer \
+  --token "$TOKEN" \
+  --name sdd-runner-2 \
+  --labels self-hosted,sdd \
+  --unattended
 ```
 
 ### 3. 기동
