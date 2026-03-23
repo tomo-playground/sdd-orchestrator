@@ -12,7 +12,7 @@ from pathlib import Path
 from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, ClaudeSDKClient, TextBlock
 
 from orchestrator.agents import build_cycle_prompt, create_lead_agent_options
-from orchestrator.config import BACKLOG_PATH, CYCLE_INTERVAL, DEFAULT_DB_PATH
+from orchestrator.config import AGENT_QUERY_TIMEOUT, BACKLOG_PATH, CYCLE_INTERVAL, DEFAULT_DB_PATH
 from orchestrator.state import StateStore
 from orchestrator.tools import create_orchestrator_mcp_server
 
@@ -81,9 +81,16 @@ class OrchestratorDaemon:
             prev_summary = self.state.get_last_cycle_summary()
             prompt = build_cycle_prompt(self.cycle, prev_summary)
 
-            response_text = await self._query_agent(options, prompt)
+            response_text = await asyncio.wait_for(
+                self._query_agent(options, prompt), timeout=AGENT_QUERY_TIMEOUT
+            )
 
-            self.state.log_decision(cycle_id, "scan", None, "Cycle completed")
+            self.state.log_decision(
+                cycle_id,
+                "scan",
+                None,
+                f"Cycle #{self.cycle} completed — {len(response_text)} chars",
+            )
             self.state.finish_cycle(cycle_id, "success", response_text)
             logger.info("=== Cycle #%d completed ===", self.cycle)
 
@@ -103,7 +110,8 @@ class OrchestratorDaemon:
                     for block in msg.content:
                         if isinstance(block, TextBlock):
                             collected.append(block.text)
-                            print(block.text)  # Console output
+                            logger.info("agent_response_chunk chars=%d", len(block.text))
+                            logger.debug("agent_response_preview=%r", block.text[:200])
 
         return "\n".join(collected) if collected else "(no response)"
 

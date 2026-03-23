@@ -94,6 +94,14 @@ class TestAggregateCheckStatus:
         checks = [{"conclusion": "SUCCESS"}, {"status": "IN_PROGRESS"}]
         assert _aggregate_check_status(checks) == "pending"
 
+    def test_queued(self):
+        checks = [{"conclusion": "SUCCESS"}, {"status": "QUEUED"}]
+        assert _aggregate_check_status(checks) == "pending"
+
+    def test_empty_conclusion_pending(self):
+        checks = [{"conclusion": "SUCCESS"}, {"conclusion": ""}]
+        assert _aggregate_check_status(checks) == "pending"
+
 
 class TestDetectStuckRuns:
     def test_no_stuck(self):

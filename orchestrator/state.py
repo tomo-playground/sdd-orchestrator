@@ -37,7 +37,7 @@ class StateStore:
                 action TEXT NOT NULL,
                 target TEXT,
                 reason TEXT,
-                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                created_at TEXT NOT NULL
             );
         """)
         self.conn.commit()
@@ -63,9 +63,10 @@ class StateStore:
 
     def log_decision(self, cycle_id: int, action: str, target: str | None, reason: str) -> None:
         """Record a decision made during a cycle."""
+        now = datetime.now(UTC).isoformat()
         self.conn.execute(
-            "INSERT INTO decision_log (cycle_id, action, target, reason) VALUES (?, ?, ?, ?)",
-            (cycle_id, action, target, reason),
+            "INSERT INTO decision_log (cycle_id, action, target, reason, created_at) VALUES (?, ?, ?, ?, ?)",
+            (cycle_id, action, target, reason, now),
         )
         self.conn.commit()
 

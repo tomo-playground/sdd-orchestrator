@@ -42,6 +42,11 @@ async def _run_gh_command(*args: str) -> dict:
         return {"data": json.loads(stdout.decode())}
     except TimeoutError:
         logger.warning("gh command timed out (%ds)", GH_TIMEOUT)
+        try:
+            proc.kill()
+            await proc.wait()
+        except ProcessLookupError:
+            pass
         return {"error": f"GitHub API timeout ({GH_TIMEOUT}s)"}
     except json.JSONDecodeError as e:
         return {"error": f"JSON parse error: {e}"}
@@ -81,7 +86,15 @@ def _aggregate_check_status(checks: list[dict]) -> str:
     statuses = {c.get("conclusion") or c.get("status", "") for c in checks}
     if "FAILURE" in statuses or "failure" in statuses:
         return "failure"
-    if "PENDING" in statuses or "pending" in statuses or "IN_PROGRESS" in statuses:
+    if (
+        "PENDING" in statuses
+        or "pending" in statuses
+        or "IN_PROGRESS" in statuses
+        or "QUEUED" in statuses
+        or "queued" in statuses
+    ):
+        return "pending"
+    if "" in statuses or None in statuses:
         return "pending"
     return "success"
 
@@ -114,7 +127,10 @@ async def check_prs(args: dict) -> dict:
     """MCP tool: list open PRs with enriched status."""
     result = await _run_gh_command("pr", "list", "--state", "open", "--json", GH_PR_FIELDS)
     if "error" in result:
-        return {"content": [{"type": "text", "text": f"GitHub error: {result['error']}"}]}
+        return {
+            "content": [{"type": "text", "text": f"GitHub error: {result['error']}"}],
+            "isError": True,
+        }
 
     summary = summarize_prs(result["data"])
     return {"content": [{"type": "text", "text": json.dumps(summary, ensure_ascii=False)}]}
@@ -126,7 +142,10 @@ async def check_workflows(args: dict) -> dict:
     limit = args.get("limit", GH_RUN_LIMIT)
     result = await _run_gh_command("run", "list", "--limit", str(limit), "--json", GH_RUN_FIELDS)
     if "error" in result:
-        return {"content": [{"type": "text", "text": f"GitHub error: {result['error']}"}]}
+        return {
+            "content": [{"type": "text", "text": f"GitHub error: {result['error']}"}],
+            "isError": True,
+        }
 
     runs = result["data"]
     stuck = detect_stuck_runs(runs)

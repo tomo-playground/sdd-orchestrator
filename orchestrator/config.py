@@ -11,9 +11,10 @@ DEFAULT_DB_PATH = PROJECT_ROOT / "orchestrator" / "state.db"
 # ── Daemon ─────────────────────────────────────────────────
 CYCLE_INTERVAL = 600  # 10 minutes in seconds
 MAX_AGENT_TURNS = 10
+AGENT_QUERY_TIMEOUT = 300  # seconds — _query_agent asyncio timeout
 
 # ── Lead Agent ─────────────────────────────────────────────
-LEAD_AGENT_MODEL = "claude-sonnet-4-5"
+LEAD_AGENT_MODEL = "claude-sonnet-4-6"
 
 LEAD_AGENT_SYSTEM_PROMPT = """\
 You are the SDD Orchestrator Lead Agent for the Shorts Producer project.
