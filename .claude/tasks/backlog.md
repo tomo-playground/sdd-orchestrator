@@ -29,7 +29,11 @@
 - [ ] SP-026 — Storyboard Version History — 저장 시점별 스냅샷 조회/복원
 - [ ] SP-029 — Script Canvas 분할 뷰
 
-## P2-SDD (SDD 프로세스 개선)
+## P2-SDD (코딩머신 강화)
+
+- [ ] SP-078 — 학습 루프 — 실패 PR 원인 기록 + 다음 설계 자동 반영 (같은 실수 반복 방지) | scope: infra
+- [ ] SP-079 — 자기 평가 대시보드 — 태스크 소요 시간, self-heal 횟수, 리뷰 라운드 수 추적 → Slack 주간 리포트 | scope: infra
+- [ ] SP-080 — 자동 롤백 — 머지 후 5분 내 Sentry 에러 급증 시 자동 revert PR 생성 | scope: infra | depends: SP-069
 
 - [ ] SP-076 — Slack Bot 양방향 연동 | scope: infra | depends: ~~SP-069~~ ✅
 - [ ] SP-033 — DoD 검증 자동화
