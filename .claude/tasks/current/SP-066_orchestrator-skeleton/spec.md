@@ -4,7 +4,7 @@ priority: P0
 scope: infra
 branch: feat/SP-066-orchestrator-skeleton
 created: 2026-03-23
-status: pending
+status: approved
 depends_on:
 label: feat
 ---
@@ -31,7 +31,7 @@ Claude Agent SDK 기반 SDD 오케스트레이터의 뼈대를 만든다. 상주
 
 ### 상태 관리
 
-- [ ] `orchestrator/state.py` — SQLite 기반 상태 저장소 (active_runs, pr_tracker, decision_log 테이블)
+- [ ] `orchestrator/state.py` — SQLite 기반 상태 저장소 (cycles, decision_log 테이블)
 - [ ] 오케스트레이터 시작 시 이전 상태를 로드하고, 종료 시 상태를 저장한다
 
 ### Lead Agent
@@ -49,6 +49,7 @@ Claude Agent SDK 기반 SDD 오케스트레이터의 뼈대를 만든다. 상주
 ### 품질
 
 - [ ] 기존 프로젝트(backend/frontend) 테스트에 영향 없음
+- [ ] orchestrator 자체 단위 테스트 통과 (backlog 파서, gh CLI 래퍼, StateStore)
 - [ ] 린트 통과 (ruff)
 
 ## 영향 분석
@@ -57,7 +58,7 @@ Claude Agent SDK 기반 SDD 오케스트레이터의 뼈대를 만든다. 상주
 
 ## 제약
 - Phase 1에서는 **읽기 전용** — backlog 읽기, PR 상태 확인만. 자동 실행/머지는 SP-067
-- 서브에이전트(designer, implementer) 정의는 하되 실제 기동은 SP-067~068
+- 서브에이전트(designer, implementer) 정의 및 기동은 SP-067~068 (Phase 1은 Lead Agent만)
 - Slack 알림은 SP-069
 
 ## 힌트
