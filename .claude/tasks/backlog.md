@@ -19,6 +19,9 @@
 - [ ] SP-021 — Speaker 동적 역할 — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | depends: SP-020
 - [ ] SP-075 — 지식DB 스토리 카드 | scope: backend
 - [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 전환 후 착수. 4-Module 파이프라인 | depends: SP-022
+- [ ] SP-080 — 자동 롤백 — 머지 후 5분 내 Sentry 에러 급증 시 자동 revert PR 생성 | scope: infra
+- [ ] SP-078 — 학습 루프 — 실패 PR 원인 기록 + 다음 설계 자동 반영 (같은 실수 반복 방지) | scope: infra
+- [ ] SP-079 — 자기 평가 대시보드 — 태스크 소요 시간, self-heal 횟수, 리뷰 라운드 수 추적 → Slack 주간 리포트 | scope: infra
 - [ ] SP-070 — 옵저버빌리티 구멍 메우기 | scope: infra
 
 ## P2 (기능 확장)
@@ -30,10 +33,6 @@
 - [ ] SP-029 — Script Canvas 분할 뷰
 
 ## P2-SDD (코딩머신 강화)
-
-- [ ] SP-078 — 학습 루프 — 실패 PR 원인 기록 + 다음 설계 자동 반영 (같은 실수 반복 방지) | scope: infra
-- [ ] SP-079 — 자기 평가 대시보드 — 태스크 소요 시간, self-heal 횟수, 리뷰 라운드 수 추적 → Slack 주간 리포트 | scope: infra
-- [ ] SP-080 — 자동 롤백 — 머지 후 5분 내 Sentry 에러 급증 시 자동 revert PR 생성 | scope: infra | depends: SP-069
 
 - [ ] SP-076 — Slack Bot 양방향 연동 | scope: infra | depends: ~~SP-069~~ ✅
 - [ ] SP-033 — DoD 검증 자동화
