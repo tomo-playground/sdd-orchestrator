@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-061-review-dialogue-quality
 created: 2026-03-23
-status: running
+status: done
 depends_on:
 label: feat
 ---
