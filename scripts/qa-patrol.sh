@@ -17,6 +17,25 @@ ASSIGNEE="stopper2008"
 RESULTS_DIR="/tmp/qa-patrol-results"
 TIMESTAMP=$(date +"%Y-%m-%d_%H%M%S")
 
+# --- Slack 알림 함수 ---
+# backend/.env에서 SLACK_WEBHOOK_URL 로드
+if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
+  ENV_FILE="${PROJECT_DIR}/backend/.env"
+  if [[ -f "$ENV_FILE" ]]; then
+    SLACK_WEBHOOK_URL=$(grep '^SLACK_WEBHOOK_URL=' "$ENV_FILE" | cut -d'=' -f2- | tr -d "'\"")
+    export SLACK_WEBHOOK_URL
+  fi
+fi
+
+notify_slack() {
+  local text="$1"
+  if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
+    curl -sf -X POST "$SLACK_WEBHOOK_URL" \
+      -H 'Content-Type: application/json' \
+      -d "{\"text\": \"${text}\"}" >/dev/null 2>&1 || true
+  fi
+}
+
 echo "=== QA Patrol ==="
 echo "시작: $(date)"
 echo ""
@@ -80,6 +99,7 @@ EOF
     echo "  서비스 다운 이슈가 이미 열려 있어 스킵합니다."
   fi
 
+  notify_slack ":fire: *QA Patrol* — 서비스 다운 감지: ${SERVICES_DOWN}"
   exit 1
 fi
 
@@ -176,6 +196,9 @@ EOF
     --label "bug" \
     --assignee "$ASSIGNEE" 2>/dev/null && echo "  GitHub Issue 생성 완료"
 fi
+
+# --- Slack 알림 ---
+notify_slack ":warning: *QA Patrol* — 테스트 실패 ${FAILED_COUNT}건\n${FAILED_TESTS}\nhttps://github.com/tomo-playground/shorts-producer/issues?q=label%3Aqa-patrol+is%3Aopen"
 
 echo "=== QA Patrol 종료 (실패 ${FAILED_COUNT}건) ==="
 exit $TEST_EXIT

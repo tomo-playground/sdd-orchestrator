@@ -53,6 +53,16 @@ if ! command -v jq &>/dev/null; then
   exit 1
 fi
 
+# --- Slack 알림 함수 ---
+notify_slack() {
+  local text="$1"
+  if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
+    curl -sf -X POST "$SLACK_WEBHOOK_URL" \
+      -H 'Content-Type: application/json' \
+      -d "{\"text\": \"${text}\"}" >/dev/null 2>&1 || true
+  fi
+}
+
 # --- 시간 계산 ---
 SINCE_ISO=$(date -u -d "${SINCE_HOURS} hours ago" +"%Y-%m-%dT%H:%M:%S" 2>/dev/null \
   || date -u -v-"${SINCE_HOURS}"H +"%Y-%m-%dT%H:%M:%S")
@@ -204,3 +214,8 @@ echo "  새 이슈: ${TOTAL_NEW}건"
 echo "  스킵 (중복): ${TOTAL_SKIPPED}건"
 echo "  생성: ${TOTAL_CREATED}건"
 echo "=== Sentry Patrol 종료 ==="
+
+# --- Slack 알림 ---
+if [[ "$TOTAL_CREATED" -gt 0 ]]; then
+  notify_slack ":rotating_light: *Sentry Patrol* — 새 에러 ${TOTAL_CREATED}건 감지\n조회: ${TOTAL_NEW}건 | 중복 스킵: ${TOTAL_SKIPPED}건 | *신규 Issue: ${TOTAL_CREATED}건*\nhttps://github.com/tomo-playground/shorts-producer/issues?q=label%3Asentry+is%3Aopen"
+fi
