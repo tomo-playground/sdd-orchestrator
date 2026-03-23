@@ -127,6 +127,7 @@ if [[ $TEST_EXIT -eq 0 ]]; then
   echo "  모든 테스트 통과 — 이상 없음"
   echo ""
   echo "[4/4] 완료"
+  notify_slack ":white_check_mark: *QA Patrol* — 4/4 통과, 이상 없음"
   echo "=== QA Patrol 종료 (정상) ==="
   exit 0
 fi

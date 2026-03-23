@@ -218,4 +218,6 @@ echo "=== Sentry Patrol 종료 ==="
 # --- Slack 알림 ---
 if [[ "$TOTAL_CREATED" -gt 0 ]]; then
   notify_slack ":rotating_light: *Sentry Patrol* — 새 에러 ${TOTAL_CREATED}건 감지\n조회: ${TOTAL_NEW}건 | 중복 스킵: ${TOTAL_SKIPPED}건 | *신규 Issue: ${TOTAL_CREATED}건*\nhttps://github.com/tomo-playground/shorts-producer/issues?q=label%3Asentry+is%3Aopen"
+else
+  notify_slack ":white_check_mark: *Sentry Patrol* — 이상 없음\n조회: ${TOTAL_NEW}건 | 중복 스킵: ${TOTAL_SKIPPED}건 | 신규: 0건"
 fi
