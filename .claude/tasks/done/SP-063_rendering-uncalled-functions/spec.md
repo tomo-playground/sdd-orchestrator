@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-063-rendering-uncalled-functions
 created: 2026-03-23
-status: running
+status: done
 depends_on:
 label: bug
 ---
