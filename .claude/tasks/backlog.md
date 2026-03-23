@@ -28,7 +28,7 @@
 - [ ] SP-070 — 옵저버빌리티 구멍 메우기 — health-check Slack 알림, 크론 실패 알림, Actions 실패 알림, Sentry 실시간 연동 | scope: infra | [가이드](../../docs/04_operations/OBSERVABILITY.md)
 - [ ] SP-061 — 대사 품질 통합 체크 (Review L2) — Review 노드에 감정 중복 연속, Speaker 교번 단절, 클리셰 감지, 문체 일관성 등 코드 레벨 대사 품질 검증 추가 | scope: backend
 - [ ] SP-062 — image_prompt/context_tags 코드 검증 — Finalize에 금지 태그 필터, Danbooru 형식 정규화, context_tags 전체 필드 유효성 검증, 재조립 후 sanity check 추가 | scope: backend
-- [ ] SP-063 — 렌더링 미호출 함수 연결 — detect_face(), analyze_text_region_brightness(), normalize_audio(), calculate_optimal_scene_text_y() 등 정의됨+미호출 함수 4건 통합 연결 | scope: backend
+- [x] ~~SP-063~~ — 렌더링 미호출 함수 연결 — detect_face(), analyze_text_region_brightness(), normalize_audio(), calculate_optimal_scene_text_y() 등 정의됨+미호출 함수 4건 통합 연결 | scope: backend
 - [ ] SP-058 — Structure 재설계 C: Intake 노드 — Guided 모드 소크라테스 질문으로 structure/tone/캐릭터 확정 | [명세](../../docs/01_product/FEATURES/STRUCTURE_SYSTEM_REDESIGN.md) §5 | depends: ~~SP-056~~ ✅
 - [x] ~~SP-059~~ — Structure 재설계 D: multi 씬 활성화 — scene_mode="multi" 프롬프트 강화 + Finalize 보정 완화 | [명세](../../docs/01_product/FEATURES/STRUCTURE_SYSTEM_REDESIGN.md) §7
 - [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
