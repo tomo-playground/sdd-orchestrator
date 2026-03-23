@@ -4,7 +4,8 @@ priority: P0
 scope: infra
 branch: feat/SP-068-orchestrator-auto-design
 created: 2026-03-23
-status: design
+status: approved
+approved_at: 2026-03-23
 depends_on: SP-067
 label: feat
 ---
