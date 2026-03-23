@@ -12,8 +12,9 @@
 ## P1 (최우선)
 
 - [ ] SP-070 — 옵저버빌리티 구멍 메우기 — health-check Slack 알림, 크론 실패 알림, Actions 실패 알림, Sentry 실시간 연동 | scope: infra | [가이드](../../docs/04_operations/OBSERVABILITY.md)
-- [ ] SP-022 — ComfyUI 마이그레이션 — ForgeUI→ComfyUI + SD Client 추상화 | [명세](../../docs/01_product/FEATURES/COMFYUI_MIGRATION.md)
-- [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 전환 후 착수. 4-Module 파이프라인 | [명세](../../docs/01_product/FEATURES/CHARACTER_CONSISTENCY_V3.md)
+- [ ] SP-077 — SD Client 추상화 — SD WebUI 직접 호출 24곳 → SDClientBase 통합 (ComfyUI 전환 선행) | scope: backend
+- [ ] SP-022 — ComfyUI 마이그레이션 — ForgeUI→ComfyUI 워크플로우 전환 | depends: SP-077 | [명세](../../docs/01_product/FEATURES/COMFYUI_MIGRATION.md)
+- [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 전환 후 착수. 4-Module 파이프라인 | depends: SP-022 | [명세](../../docs/01_product/FEATURES/CHARACTER_CONSISTENCY_V3.md)
 
 ## P2 (기능 확장)
 
