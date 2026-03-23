@@ -15,6 +15,7 @@
 - [x] ~~SP-046~~ (Cinematographer 팀 분해) | ~~SP-047~~ (Direct 리뷰 후속) | ~~SP-048~~ (Direct UX)
 - [x] ~~SP-054~~ (AutoRun 배치 API 제거) | ~~SP-055~~ (TTS/BGM 통일) | ~~SP-060~~ (Voice Preset 캐시)
 - [x] ~~SP-056~~ (Structure 재설계 A) | ~~SP-057~~ (모드 단순화) | ~~SP-028~~ (Studio 탭 URI)
+- [x] ~~SP-059~~ (multi 씬) | ~~SP-061~~ (대사 품질 L2) | ~~SP-062~~ (프롬프트/태그 검증) | ~~SP-063~~ (렌더링 함수 연결)
 
 ## P0 (진행 중)
 
@@ -26,11 +27,7 @@
 ## P1 (최우선)
 
 - [ ] SP-070 — 옵저버빌리티 구멍 메우기 — health-check Slack 알림, 크론 실패 알림, Actions 실패 알림, Sentry 실시간 연동 | scope: infra | [가이드](../../docs/04_operations/OBSERVABILITY.md)
-- [x] ~~SP-061~~ — 대사 품질 통합 체크 (Review L2) — Review 노드에 감정 중복 연속, Speaker 교번 단절, 클리셰 감지, 문체 일관성 등 코드 레벨 대사 품질 검증 추가 | scope: backend
-- [x] ~~SP-062~~ — image_prompt/context_tags 코드 검증 — Finalize에 금지 태그 필터, Danbooru 형식 정규화, context_tags 전체 필드 유효성 검증, 재조립 후 sanity check 추가 | scope: backend
-- [x] ~~SP-063~~ — 렌더링 미호출 함수 연결 — detect_face(), analyze_text_region_brightness(), normalize_audio(), calculate_optimal_scene_text_y() 등 정의됨+미호출 함수 4건 통합 연결 | scope: backend
 - [ ] SP-058 — Structure 재설계 C: Intake 노드 — Guided 모드 소크라테스 질문으로 structure/tone/캐릭터 확정 | [명세](../../docs/01_product/FEATURES/STRUCTURE_SYSTEM_REDESIGN.md) §5 | depends: ~~SP-056~~ ✅
-- [x] ~~SP-059~~ — Structure 재설계 D: multi 씬 활성화 — scene_mode="multi" 프롬프트 강화 + Finalize 보정 완화 | [명세](../../docs/01_product/FEATURES/STRUCTURE_SYSTEM_REDESIGN.md) §7
 - [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
 - [ ] SP-021 — Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md) | depends: SP-020, ~~SP-056~~ ✅
 - [ ] SP-022 — ComfyUI 마이그레이션 — ForgeUI→ComfyUI + SD Client 추상화 | [명세](../../docs/01_product/FEATURES/COMFYUI_MIGRATION.md)
@@ -45,15 +42,12 @@
 - [ ] SP-024 — VEO Clip — Video Generation 통합 | [명세](../../docs/01_product/FEATURES/VEO_CLIP.md)
 - [ ] SP-025 — Profile Export/Import — Style Profile 공유 | [명세](../../docs/01_product/FEATURES/PROFILE_EXPORT_IMPORT.md)
 - [ ] SP-026 — Storyboard Version History — 저장 시점별 스냅샷 조회/복원
-- [x] ~~SP-027~~ — Direct 탭 연출 컨트롤 — TTS 톤 조정 + BGM 프리셋 일괄 적용 | [명세](../../docs/01_product/FEATURES/DIRECT_TAB_DIRECTOR_CONTROL.md)
-- [x] ~~SP-028~~ — Studio 탭 URI 표현 — ?tab=script/stage/direct/publish 딥링크
 - [ ] SP-029 — Script Canvas 분할 뷰 — 좌 채팅 + 우 씬 프리뷰 | [명세](../../docs/99_archive/features/SCRIPT_COLLABORATIVE_UX.md) §P2
 
 ## P2-SDD (SDD 프로세스 개선)
 
 - [ ] SP-033 — DoD 검증 자동화
 - [ ] SP-034 — PR 엣지 케이스 체크리스트
-- [x] ~~SP-049~~ — SDD 태스크 구조 개선 — 디렉토리 기반 태스크 (spec.md + design.md) + /sdd-run 매칭 로직 대응
 - [ ] SP-051 — SDD 2인 확장 플랜 — 설계 리뷰/태스크 관리를 GitHub Issue 기반으로 전환 (로컬→GitHub 마이그레이션 가이드)
 
 ## P3 (인프라/자동화)
