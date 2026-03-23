@@ -1,8 +1,8 @@
 # Database Schema Summary
 
-Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.32) 참조.
+Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.34) 참조.
 
-> **Last Synced:** 2026-02-28 (DB_SCHEMA v3.32 기준)
+> **Last Synced:** 2026-03-23 (DB_SCHEMA v3.34 기준)
 
 ---
 
@@ -14,32 +14,36 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - @property: `avatar_key`, `avatar_url`
 
 ### `youtube_credentials` — 프로젝트별 YouTube OAuth (1:1)
-- `id` (PK), `project_id` (FK, UNIQUE), `channel_id`, `channel_title`
-- `encrypted_token`, `is_valid`
+- `id` (PK), `project_id` (FK, UNIQUE), `channel_id` (nullable), `channel_title` (nullable)
+- `encrypted_token` (NOT NULL), `is_valid` (default: true)
 
 ### `groups` — 프로젝트 내 시리즈/카테고리
-- `id` (PK), `project_id` (FK → projects), `name`, `description`
+- `id` (PK), `project_id` (FK → projects, RESTRICT), `name`, `description`
 - `render_preset_id` (FK → render_presets, SET NULL), `style_profile_id` (FK → style_profiles, SET NULL), `narrator_voice_preset_id` (FK → voice_presets, SET NULL)
+- `deleted_at` (Soft Delete)
+- @property: `render_preset_name`, `style_profile_name`, `voice_preset_name`, `character_count`
 
 ### `storyboards` — 개별 에피소드
-- `id` (PK), `group_id` (FK → groups), `title`, `description`
-- `caption`, `structure` (String, default: `"Monologue"`)
-- `duration` (Integer, nullable), `language` (String(20), nullable) — 콘텐츠 엔티티 고유 필드
-- `version` (Integer, NOT NULL, default 1) — Optimistic Locking. PUT/PATCH 시 검증, 성공 시 +1
+- `id` (PK), `group_id` (FK → groups, RESTRICT), `title`, `description`
+- `caption`, `structure` (String, default: `"Monologue"`), `tone` (String(30), NOT NULL, default: `"intimate"`)
+- `duration` (Integer, nullable), `language` (String(20), nullable)
+- `version` (Integer, NOT NULL, default 1) — Optimistic Locking
+- `bgm_prompt` (Text, nullable), `bgm_mood` (String(100), nullable) — AI BGM Pipeline
 - `base_seed` (BigInteger, nullable) — Seed Anchoring 기준 시드
+- `bgm_audio_asset_id` (FK → media_assets, SET NULL)
 - `stage_status` (String(20), nullable) — Stage 파이프라인 상태
 - `casting_recommendation` (JSONB, nullable) — AI 캐스팅 추천
 - `deleted_at` (Soft Delete)
 
 ### `scenes` — 스토리보드 내 개별 씬
 - `id` (PK), `client_id` (String(36), UNIQUE, NOT NULL — Frontend UUID 안정 식별자)
-- `storyboard_id` (FK), `order`, `script`, `speaker`, `duration`
-- **Prompt**: `image_prompt`, `image_prompt_ko`, `negative_prompt`, `context_tags` (JSONB), `clothing_tags` (JSONB, nullable — 씬별 의상 오버라이드)
-- **TTS & Pacing**: `voice_design_prompt`, `head_padding`, `tail_padding`
-- **Size**: `width`, `height`
+- `storyboard_id` (FK → storyboards, CASCADE), `order`, `script`, `speaker`, `duration`
+- **Prompt**: `image_prompt`, `image_prompt_ko`, `negative_prompt`, `context_tags` (JSONB), `clothing_tags` (JSONB, nullable)
+- **TTS & Pacing**: `voice_design_prompt`, `head_padding`, `tail_padding`, `tts_asset_id` (FK → media_assets, SET NULL)
+- **Size**: `width` (default: 832), `height` (default: 1216)
 - **Background**: `background_id` (FK → backgrounds, SET NULL)
-- **IP-Adapter/Ref**: `use_reference_only`, `reference_only_weight`, `environment_reference_id` (FK), `environment_reference_weight`, `use_ip_adapter`, `ip_adapter_reference`, `ip_adapter_weight`
-- **ControlNet**: `use_controlnet`, `controlnet_weight`
+- **IP-Adapter/Ref**: `use_reference_only`, `reference_only_weight`, `environment_reference_id` (FK), `environment_reference_weight`, `use_ip_adapter` (nullable), `ip_adapter_reference` (String(255)), `ip_adapter_weight`
+- **ControlNet**: `use_controlnet` (nullable), `controlnet_weight`, `controlnet_pose` (String(50), nullable)
 - **Generation**: `scene_mode` (`single`/`multi`), `multi_gen_enabled` (nullable), `image_asset_id` (FK), `candidates` (JSONB)
 - `deleted_at` (Soft Delete)
 
@@ -48,7 +52,8 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 ## Association Tables (V3 Relational Tags)
 
 ### `storyboard_characters` — 화자↔캐릭터 매핑
-- `id` (PK), `storyboard_id` (FK), `speaker`, `character_id` (FK)
+- `id` (PK), `storyboard_id` (FK → storyboards, CASCADE, NOT NULL), `speaker`, `character_id` (FK → characters, CASCADE, NOT NULL)
+- **Unique**: `uq_storyboard_speaker` (`storyboard_id`, `speaker`)
 
 ### `character_tags` — 캐릭터↔태그
 - `character_id` (PK, FK), `tag_id` (PK, FK), `weight`, `is_permanent`
@@ -69,18 +74,16 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `is_temp`, `checksum`
 
 ### `characters` — 캐릭터 프리셋
-- `id` (PK), `style_profile_id` (FK → style_profiles, SET NULL), `name` (Unique), `gender`, `description`
-- **Prompt**: `loras` (JSONB), `scene_positive_prompt`, `scene_negative_prompt`, `common_negative_prompts` (ARRAY), `reference_positive_prompt`, `reference_negative_prompt`, `prompt_mode`
+- `id` (PK), `group_id` (FK → groups, RESTRICT, NOT NULL), `name` (Unique), `gender`, `description`
+- **Prompt**: `loras` (JSONB), `positive_prompt`, `negative_prompt`
 - **IP-Adapter**: `ip_adapter_weight`, `ip_adapter_model`, `ip_adapter_guidance_start`, `ip_adapter_guidance_end`
-- **Reference**: `reference_source_type`, `reference_images` (JSONB)
-- **Voice**: `voice_preset_id` (FK → voice_presets)
+- **Voice**: `voice_preset_id` (FK → voice_presets, SET NULL)
 - `reference_image_asset_id` (FK), `deleted_at`
 
 ### `loras` — LoRA 모델
 - `id` (PK), `name` (Unique), `display_name`, `lora_type`, `gender_locked`, `trigger_words`
 - `default_weight`, `weight_min`, `weight_max`, `optimal_weight`, `calibration_score`
-- **Multi-Character**: `is_multi_character_capable`, `multi_char_weight_scale`, `multi_char_trigger_prompt`
-- `civitai_id`, `civitai_url`, `preview_image_asset_id` (FK)
+- `civitai_id`, `civitai_url`, `preview_image_asset_id` (FK), `is_active`
 
 ### `sd_models` — SD 체크포인트
 - `id` (PK), `name` (Unique), `display_name`, `model_type`, `base_model`
@@ -91,14 +94,15 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `sd_model_id` (FK), `loras` (JSONB)
 - `negative_embeddings` (ARRAY), `positive_embeddings` (ARRAY)
 - `default_positive`, `default_negative`
-- `default_ip_adapter_model` — IP-Adapter 기본 모델 (`clip`=NOOB-IPA-MARK1 / `clip_face`=ViT-H)
+- `default_ip_adapter_model` — IP-Adapter 기본 모델 (`clip`/`clip_face`)
 - `default_steps`, `default_cfg_scale`, `default_sampler_name`, `default_clip_skip` — 화풍별 생성 파라미터
 - `default_enable_hr` — 화풍별 Hi-Res 기본 ON/OFF
-- `is_default`, `is_active`
+- `reference_env_tags` (JSONB), `reference_camera_tags` (JSONB)
+- `is_default` (default: false), `is_active` (default: true)
 
 ### `embeddings` — 임베딩 모델
 - `id` (PK), `name` (Unique), `display_name`
-- `embedding_type` (`negative`/`positive`/`style`), `trigger_word`
+- `embedding_type`, `trigger_word`
 - `base_model` (SD1.5, SDXL 등)
 - `description`, `is_active`
 
@@ -108,7 +112,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 
 ### `render_presets` — 렌더링 설정 프리셋
 - `id` (PK), `name`, `description`, `is_system`
-- **Audio**: `bgm_mode` (`manual`/`auto`), `bgm_file`, `music_preset_id` (FK), `bgm_volume`, `audio_ducking`, `speed_multiplier`
+- **Audio**: `bgm_mode` (NOT NULL, default: `"manual"`), `bgm_file`, `music_preset_id` (FK), `bgm_volume`, `audio_ducking`, `speed_multiplier`
 - **Visual**: `layout_style`, `frame_style`, `scene_text_font`, `transition_type`, `ken_burns_preset`, `ken_burns_intensity`
 
 ### `voice_presets` — 음성 프리셋
@@ -128,24 +132,27 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `id` (PK), `name` (Unique, 언더바 형식), `ko_name`, `category`, `group_name`
 - `default_layer` (0-11), `usage_scope`, `priority`
 - `classification_source`, `classification_confidence`
-- `is_active`, `deprecated_reason`, `replacement_tag_id` (FK)
+- `valence` (nullable, indexed)
+- `is_active`, `deprecated_reason`, `replacement_tag_id` (FK), `thumbnail_asset_id` (FK)
 
 ### `tag_rules` — 태그 충돌/의존성 규칙
-- `id` (PK), `rule_type` (`conflict`/`requires`), `source_tag_id`, `target_tag_id`
+- `id` (PK), `rule_type` (`conflict`/`requires`), `source_tag_id` (FK → tags, CASCADE), `target_tag_id` (FK → tags, CASCADE)
 - `message`, `priority`, `is_active`
 
 ### `tag_aliases` — 비표준 태그 자동 치환
-- `id` (PK), `source_tag`, `target_tag` (NULL=삭제), `reason`, `is_active`
+- `id` (PK), `source_tag`, `target_tag` (String(100), nullable=삭제), `reason`, `is_active`
 
 ### `tag_filters` — 무시/스킵 태그
 - `id` (PK), `tag_name` (Unique), `filter_type` (`ignore`/`skip`), `reason`, `is_active`
 
 ### `tag_effectiveness` — WD14 피드백 루프
-- `id` (PK), `tag_id` (FK), `use_count`, `match_count`, `effectiveness`
+- `id` (PK), `tag_id` (FK → tags, CASCADE, UNIQUE), `use_count`, `match_count`, `effectiveness`
 
 ---
 
 ## Creative Engine
+
+> 상세: [DB_SCHEMA_CREATIVE.md](./DB_SCHEMA_CREATIVE.md)
 
 ### `creative_sessions` — 멀티 에이전트 창작 세션
 - `id` (PK), `objective`, `evaluation_criteria` (JSONB), `agent_config` (JSONB)
@@ -167,7 +174,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 
 ### `creative_agent_presets` — 에이전트 페르소나 프리셋
 - `id` (PK), `name` (Unique), `role_description`, `system_prompt`
-- `agent_role` (String(50)), `category` (String(30)) — V2 Agent Presets
+- `agent_role` (String(50)), `category` (String(30))
 - `model_provider`, `model_name`, `temperature`, `agent_metadata` (JSONB), `is_system`
 - `deleted_at` (Soft Delete)
 
@@ -177,24 +184,18 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 
 ### `activity_logs` — 이미지 생성 이력
 - `id` (PK), `storyboard_id` (FK), `scene_id` (FK), `character_id` (FK)
-- `prompt`, `negative_prompt`, `sd_params` (JSONB), `seed`
+- `prompt` (NOT NULL), `negative_prompt`, `sd_params` (JSONB), `seed`
 - `media_asset_id` (FK → media_assets), `match_rate`, `tags_used` (JSONB), `status`
 - `gemini_edited`, `gemini_cost_usd`, `original_match_rate`, `final_match_rate`
 
 ### `render_history` — 영상 렌더링 이력
 - `id` (PK), `storyboard_id` (FK → storyboards, CASCADE), `media_asset_id` (FK → media_assets, CASCADE), `label`
 - `youtube_video_id`, `youtube_upload_status`, `youtube_uploaded_at`
-- TimestampMixin
-
-### `lab_experiments` — 실험실 기능 이력
-- `id` (PK), `batch_id`, `experiment_type`, `status`
-- `character_id` (FK), `group_id` (FK → groups, CASCADE)
-- `prompt_used`, `negative_prompt`, `final_prompt`, `loras_applied` (JSONB)
-- `target_tags` (JSONB), `sd_params` (JSONB), `media_asset_id` (FK), `seed`
-- `match_rate`, `wd14_result` (JSONB), `scene_description`, `notes`
 
 ### `scene_quality_scores` — 씬 품질 점수
-- `id` (PK), `storyboard_id` (인덱스, FK 없음), `scene_id` (FK → scenes)
+- `id` (PK), `storyboard_id` (인덱스, FK 없음), `scene_id` (FK → scenes, CASCADE)
 - `prompt`, `match_rate`
 - `matched_tags`, `missing_tags`, `extra_tags` (JSONB)
-
+- `identity_score` (Float, nullable), `identity_tags_detected` (JSONB, nullable)
+- `evaluation_details` (JSONB, nullable) — Hybrid 평가 상세
+- `validated_at` (NOT NULL)
