@@ -15,6 +15,7 @@ from config import (
     DEFAULT_LANGUAGE,
     DEFAULT_LORA_WEIGHT,
     DEFAULT_MULTI_GEN_ENABLED,
+    DEFAULT_PLATFORM,
     DEFAULT_REFERENCE_ONLY_WEIGHT,
     DEFAULT_SPEAKER,
     DEFAULT_STRUCTURE,
@@ -634,6 +635,7 @@ class VideoRequest(BaseModel):
     bgm_mode: str = "manual"  # "manual" | "auto"
     music_preset_id: int | None = None  # Music Preset (bgm_mode="manual")
     bgm_prompt: str | None = None  # Sound Designer prompt (bgm_mode="auto")
+    platform: str = DEFAULT_PLATFORM  # Target platform for safe zone calculation
 
 
 class VideoDeleteRequest(BaseModel):

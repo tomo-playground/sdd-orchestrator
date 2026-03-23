@@ -414,6 +414,7 @@ LANGUAGE_IDS: frozenset[str] = frozenset(lang.id for lang in LANGUAGE_METADATA)
 DEFAULT_STRUCTURE = "monologue"
 DEFAULT_LANGUAGE = "korean"
 DEFAULT_SPEAKER = "Narrator"  # Default speaker for scenes
+DEFAULT_PLATFORM = "youtube_shorts"  # Target platform for rendering safe zones
 SPEAKER_A = "A"  # Dialogue speaker A
 SPEAKER_B = "B"  # Dialogue speaker B
 

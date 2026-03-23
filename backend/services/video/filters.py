@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image
 
-from config import VIDEO_FPS, logger
+from config import DEFAULT_PLATFORM, VIDEO_FPS, logger
 from services.motion import build_zoompan_filter, get_preset, get_random_preset
 
 if TYPE_CHECKING:
@@ -96,7 +96,11 @@ def _calc_subtitle_y(
             img = Image.open(scene_img_path)
             opened_here = True
         if img is not None:
-            y_ratio = builder._calculate_optimal_scene_text_y(img, layout_style=builder.request.layout_style)
+            y_ratio = builder._calculate_optimal_scene_text_y(
+                img,
+                layout_style=builder.request.layout_style,
+                platform=getattr(builder.request, "platform", DEFAULT_PLATFORM),
+            )
             logger.info(f"  - Dynamic Y position: {y_ratio:.3f}")
             return y_ratio
     except Exception as e:
