@@ -4,7 +4,7 @@ priority: P2
 scope: backend
 branch: feat/SP-065-rendering-quality-hardening
 created: 2026-03-23
-status: running
+status: done
 depends_on:
 label: feat
 ---
