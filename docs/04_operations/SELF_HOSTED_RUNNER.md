@@ -53,18 +53,20 @@ cd ~/actions-runner-2
   --unattended
 ```
 
-### 3. 기동
+### 3. 기동 (2대 동시)
 
 ```bash
-nohup ./run.sh > /tmp/github-runner.log 2>&1 &
+cd ~/actions-runner && nohup ./run.sh > /tmp/runner1.log 2>&1 &
+cd ~/actions-runner-2 && nohup ./run.sh > /tmp/runner2.log 2>&1 &
 ```
 
 ### 4. 자동 시작 (cron @reboot)
 
 ```bash
-# 이미 등록됨. 확인:
-crontab -l | grep actions-runner
-# @reboot cd /home/tomo/actions-runner && nohup ./run.sh > /tmp/github-runner.log 2>&1 &
+crontab -e
+# 아래 2줄 추가:
+@reboot cd /home/tomo/actions-runner && nohup ./run.sh > /tmp/runner1.log 2>&1 &
+@reboot cd /home/tomo/actions-runner-2 && nohup ./run.sh > /tmp/runner2.log 2>&1 &
 ```
 
 ---
@@ -88,11 +90,12 @@ tail -20 /tmp/github-runner.log
 ### 수동 재시작
 
 ```bash
-# 프로세스 종료
-pkill -f 'actions-runner/run.sh'
+# 전체 종료
+pkill -f 'actions-runner.*/run.sh'
 
-# 재시작
-cd ~/actions-runner && nohup ./run.sh > /tmp/github-runner.log 2>&1 &
+# 2대 재시작
+cd ~/actions-runner && nohup ./run.sh > /tmp/runner1.log 2>&1 &
+cd ~/actions-runner-2 && nohup ./run.sh > /tmp/runner2.log 2>&1 &
 ```
 
 ### Runner 삭제
