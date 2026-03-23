@@ -80,3 +80,37 @@ jobs:
 
             git checkout main 2>/dev/null
           done
+
+  qa-patrol:
+    if: github.event.pull_request.merged == true
+    needs: cleanup
+    runs-on: [self-hosted, sdd]
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Run QA Patrol
+        run: |
+          cd frontend
+          npx playwright test e2e/qa-patrol.spec.ts --reporter=line 2>&1 | tee /tmp/qa-patrol-result.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            FAILED=$(grep "FAILED\|✘\|Error" /tmp/qa-patrol-result.txt | head -5)
+            gh issue create \
+              --title "[QA Patrol] 머지 후 순찰 실패 — PR #${{ github.event.pull_request.number }}" \
+              --body "PR #${{ github.event.pull_request.number }} 머지 후 QA 순찰 실패.
+
+실패 테스트:
+\`\`\`
+${FAILED}
+\`\`\`
+
+[워크플로우 로그](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" \
+              --label "bug" 2>/dev/null || true
+          fi
