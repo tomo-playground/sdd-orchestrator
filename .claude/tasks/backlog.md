@@ -16,6 +16,13 @@
 - [x] ~~SP-054~~ (AutoRun 배치 API 제거) | ~~SP-055~~ (TTS/BGM 통일) | ~~SP-060~~ (Voice Preset 캐시)
 - [x] ~~SP-056~~ (Structure 재설계 A) | ~~SP-057~~ (모드 단순화) | ~~SP-028~~ (Studio 탭 URI)
 
+## P0 (진행 중)
+
+- [ ] SP-066 — SDD 오케스트레이터 Phase 1: 뼈대 — Agent SDK 기반 상주 프로세스, 커스텀 도구, 상태 관리 | scope: infra
+- [ ] SP-067 — SDD 오케스트레이터 Phase 2: 자동 실행 — approved 태스크 자동 /sdd-run + PR 모니터링 + 자동 머지 | scope: infra | depends: SP-066
+- [ ] SP-068 — SDD 오케스트레이터 Phase 3: 자동 설계 — pending 태스크 자동 설계 + BLOCKER 없으면 자동 승인 | scope: infra | depends: SP-067
+- [ ] SP-069 — SDD 오케스트레이터 Phase 4: Sentry + 알림 — Sentry 연동 + Slack 알림 + GHA 제어 통합 | scope: infra | depends: SP-068
+
 ## P1 (최우선)
 
 - [ ] SP-061 — 대사 품질 통합 체크 (Review L2) — Review 노드에 감정 중복 연속, Speaker 교번 단절, 클리셰 감지, 문체 일관성 등 코드 레벨 대사 품질 검증 추가 | scope: backend
