@@ -1,4 +1,5 @@
-import type { AutoRunStepId } from "../../types";
+import type { AutoRunStepId, StageStatusResponse } from "../../types";
+import { syncStageLocationsToStore } from "../../utils/syncStageLocations";
 import type { UseAutopilotReturn } from "../../hooks/useAutopilot";
 import axios from "axios";
 import { useStoryboardStore } from "../useStoryboardStore";
@@ -147,12 +148,23 @@ export async function runAutoRunFromStep(
           }
         }
 
-        // 3) Save & sync
+        // 3) Save & sync — stageLocations refetch 포함
         useStoryboardStore.getState().set({ stageStatus: "staged" });
         // H-2: Check persistStoryboard return value
         const stageSaved = await persistStoryboard();
         if (!stageSaved) throw new Error("Failed to save storyboard after stage");
         workingScenes = useStoryboardStore.getState().scenes;
+
+        // Stage locations를 store에 동기화 (Stage 탭 미활성 시에도 배경 표시)
+        try {
+          const stageRes = await axios.get<StageStatusResponse>(
+            `${API_BASE}/storyboards/${storyboardId}/stage/status`,
+            { timeout: API_TIMEOUT.DEFAULT, signal: abortController.signal }
+          );
+          syncStageLocationsToStore(stageRes.data.locations ?? []);
+        } catch {
+          pushAutoRunLog("Stage locations sync skipped (will refetch on tab mount)");
+        }
 
         // 4) BGM prebuild (auto 모드 only, non-blocking)
         const { bgmMode, bgmPrompt } = useRenderStore.getState();

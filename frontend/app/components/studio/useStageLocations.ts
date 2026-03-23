@@ -8,10 +8,11 @@ import { useConfirm } from "../ui/ConfirmDialog";
 import { API_BASE, API_TIMEOUT } from "../../constants";
 import { getErrorMsg } from "../../utils/error";
 import type { StageLocationStatus, StageStatusResponse, StageStatus } from "../../types";
+import { syncStageLocationsToStore } from "../../utils/syncStageLocations";
 
 export function useStageLocations(
   storyboardId: number,
-  onStatusChange: (ready: number, total: number) => void,
+  onStatusChange: (ready: number, total: number) => void
 ) {
   const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
@@ -31,41 +32,14 @@ export function useStageLocations(
     try {
       const res = await axios.get<StageStatusResponse>(
         `${API_BASE}/storyboards/${storyboardId}/stage/status`,
-        { timeout: API_TIMEOUT.DEFAULT },
+        { timeout: API_TIMEOUT.DEFAULT }
       );
       setLocations(res.data.locations);
-      useStoryboardStore.getState().set({ stageLocations: res.data.locations });
+      syncStageLocationsToStore(res.data.locations);
       setStageStatus(res.data.stage_status);
       setTotal(res.data.total);
       setReady(res.data.ready);
       onStatusChange(res.data.ready, res.data.total);
-
-      // Sync background_id to storyboard store scenes (set + clear)
-      const bgMap = new Map<number, number | null>();
-      for (const loc of res.data.locations) {
-        for (const sid of loc.scene_ids) {
-          bgMap.set(sid, loc.background_id);
-        }
-      }
-      const store = useStoryboardStore.getState();
-      let changed = false;
-      const synced = store.scenes.map((s) => {
-        const bgId = bgMap.get(s.id);
-        if (bgId !== undefined) {
-          if (s.background_id !== bgId) {
-            changed = true;
-            return { ...s, background_id: bgId };
-          }
-          return s;
-        }
-        // Scene not in bgMap — clear stale background_id
-        if (s.background_id != null) {
-          changed = true;
-          return { ...s, background_id: null };
-        }
-        return s;
-      });
-      if (changed) store.setScenes(synced);
 
       useStoryboardStore.getState().set({
         stageStatus: (res.data.stage_status ?? "pending") as StageStatus,
@@ -93,7 +67,7 @@ export function useStageLocations(
           await axios.post(
             `${API_BASE}/storyboards/${storyboardId}/stage/regenerate-background/${key}`,
             null,
-            { timeout: API_TIMEOUT.STAGE_GENERATE },
+            { timeout: API_TIMEOUT.STAGE_GENERATE }
           );
         } catch {
           failCount++;
@@ -124,7 +98,7 @@ export function useStageLocations(
         await axios.post(
           `${API_BASE}/storyboards/${storyboardId}/stage/generate-backgrounds`,
           null,
-          { timeout: API_TIMEOUT.STAGE_GENERATE },
+          { timeout: API_TIMEOUT.STAGE_GENERATE }
         );
         showToast("배경 생성 완료", "success");
         await fetchStatus();
@@ -144,7 +118,7 @@ export function useStageLocations(
       const res = await axios.post(
         `${API_BASE}/storyboards/${storyboardId}/stage/regenerate-background/${locationKey}`,
         body,
-        { timeout: API_TIMEOUT.STAGE_GENERATE },
+        { timeout: API_TIMEOUT.STAGE_GENERATE }
       );
       if (res.data.status === "regenerated") {
         showToast("배경 재생성 완료", "success");
