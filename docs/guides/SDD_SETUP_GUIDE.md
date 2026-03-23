@@ -377,7 +377,7 @@ CodeRabbit/Claude 리뷰에서 `changes_requested` 시 Claude가 **자동으로 
 
 ```bash
 cat > .github/workflows/sdd-review.yml << 'EOF'
-name: SDD Review — 리뷰 자동 수정 + @claude 수동 대응
+name: Claude Fix — 리뷰 자동 수정 + @claude 수동 대응
 
 on:
   issue_comment:
