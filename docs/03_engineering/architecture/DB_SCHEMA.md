@@ -683,7 +683,7 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 | `identity_score` | Float, nullable | 캐릭터 일관성 점수 (Phase 16-D) |
 | `identity_tags_detected` | JSONB, nullable | 감지된 캐릭터 태그 목록 (Phase 16-D) |
 | `evaluation_details` | JSONB (nullable) | Hybrid 평가 상세 (Phase 33) — 구조: 아래 참조 |
-| `validated_at` | DateTime | 검증 일시 |
+| `validated_at` | DateTime, NOT NULL | 검증 일시 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:

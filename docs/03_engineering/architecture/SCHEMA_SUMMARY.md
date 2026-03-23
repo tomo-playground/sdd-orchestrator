@@ -40,7 +40,7 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - **Background**: `background_id` (FK → backgrounds, SET NULL)
 - **IP-Adapter/Ref**: `use_reference_only`, `reference_only_weight`, `environment_reference_id` (FK), `environment_reference_weight`, `use_ip_adapter`, `ip_adapter_reference`, `ip_adapter_weight`
 - **ControlNet**: `use_controlnet`, `controlnet_weight`
-- **Generation**: `scene_mode` (`single`/`multi`), `multi_gen_enabled`, `last_seed` (BigInteger), `image_asset_id` (FK), `candidates` (JSONB)
+- **Generation**: `scene_mode` (`single`/`multi`), `multi_gen_enabled` (nullable), `image_asset_id` (FK), `candidates` (JSONB)
 - `deleted_at` (Soft Delete)
 
 ---
