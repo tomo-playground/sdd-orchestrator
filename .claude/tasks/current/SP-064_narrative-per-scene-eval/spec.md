@@ -4,7 +4,7 @@ priority: P2
 scope: backend
 branch: feat/SP-064-narrative-per-scene-eval
 created: 2026-03-23
-status: approved
+status: running
 depends_on: SP-061
 label: feat
 ---
@@ -19,22 +19,22 @@ Review Unified의 Narrative 평가를 aggregate 점수에서 per-scene 단위로
 
 ### per-scene 피드백 구조
 
-- [ ] `NarrativeScoreOutput`에 `scene_issues: list[dict]` 필드를 추가한다. 각 항목은 `{"scene_id": int, "issue": str, "dimension": str, "severity": "error"|"warning"}` 형식이다
-- [ ] LangFuse `pipeline/review/unified` 프롬프트의 Narrative 섹션에 "각 차원에서 문제가 있는 씬 번호를 scene_issues에 명시하라" 지시를 추가한다
+- [x] `NarrativeScoreOutput`에 `scene_issues: list[dict]` 필드를 추가한다. 각 항목은 `{"scene_id": int, "issue": str, "dimension": str, "severity": "error"|"warning"}` 형식이다
+- [x] LangFuse `pipeline/review/unified` 프롬프트의 Narrative 섹션에 "각 차원에서 문제가 있는 씬 번호를 scene_issues에 명시하라" 지시를 추가한다
 
 ### 전환 자연성 평가
 
-- [ ] LangFuse 프롬프트에 "인접 씬 페어(N→N+1)의 전환 자연성을 평가하고, 어색한 전환 씬 번호를 scene_issues에 포함하라" 지시를 추가한다
+- [x] LangFuse 프롬프트에 "인접 씬 페어(N→N+1)의 전환 자연성을 평가하고, 어색한 전환 씬 번호를 scene_issues에 포함하라" 지시를 추가한다
 
 ### Revise 피드백 전달
 
-- [ ] Revise 노드의 `_build_feedback()`에서 `scene_issues`를 파싱하여 "씬 N: {issue}" 형태의 구체적 피드백을 생성한다
-- [ ] Revise Tier 3(재생성) 시 `pipeline_context["revision_feedback"]`에 씬 번호가 포함된 피드백이 전달된다
+- [x] Revise 노드의 `_build_feedback()`에서 `scene_issues`를 파싱하여 "씬 N: {issue}" 형태의 구체적 피드백을 생성한다
+- [x] Revise Tier 3(재생성) 시 `pipeline_context["revision_feedback"]`에 씬 번호가 포함된 피드백이 전달된다
 
 ### 통합
 
-- [ ] 기존 테스트 regression 없음
-- [ ] 린트 통과
+- [x] 기존 테스트 regression 없음
+- [x] 린트 통과
 
 ## 영향 분석
 - 관련 파일: `backend/services/agent/nodes/review.py`, `backend/services/agent/llm_models.py`, `backend/services/agent/nodes/revise.py`, LangFuse `pipeline/review/unified`

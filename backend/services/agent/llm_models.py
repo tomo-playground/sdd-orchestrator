@@ -161,6 +161,7 @@ class NarrativeScoreOutput(BaseModel):
     retention_flow: float = 0.0  # 씬→씬 호기심 연결
     pacing_rhythm: float = 0.0  # 템포/리듬 변화
     feedback: str = ""
+    scene_issues: list[dict] = []  # per-scene 서사 이슈 (SP-064)
 
     @model_validator(mode="before")
     @classmethod
@@ -182,6 +183,9 @@ class NarrativeScoreOutput(BaseModel):
             v = out.get(k)
             if isinstance(v, int | float):
                 out[k] = _clamp(v)
+        # Gemini가 scene_issues를 null로 반환할 수 있음
+        if out.get("scene_issues") is None:
+            out["scene_issues"] = []
         return out
 
 

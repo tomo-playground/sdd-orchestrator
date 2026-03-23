@@ -190,7 +190,7 @@ def _build_narrative_score(parsed: NarrativeScoreOutput) -> NarrativeScore:
     """NarrativeScoreOutput → NarrativeScore TypedDict (overall 재계산)."""
     scores = {k: getattr(parsed, k) for k in _NARRATIVE_WEIGHTS}
     overall = round(sum(scores.get(k, 0.0) * w for k, w in _NARRATIVE_WEIGHTS.items()), 3)
-    score = NarrativeScore(**scores, overall=overall)
+    score = NarrativeScore(**scores, overall=overall, scene_issues=parsed.scene_issues)
     if parsed.feedback:
         score["feedback"] = parsed.feedback
     return score

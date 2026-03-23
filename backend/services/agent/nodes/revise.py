@@ -144,6 +144,19 @@ def _build_feedback(state: ScriptState) -> str:
         if low_dims:
             parts.append("[숏폼 품질 개선]\n" + "\n".join(f"- {d}" for d in low_dims))
 
+        # SP-064: per-scene narrative issues
+        if scene_issues := ns.get("scene_issues"):
+            issue_lines = []
+            for si in scene_issues:
+                sid = si.get("scene_id", "?")
+                issue = si.get("issue", "")
+                dim = si.get("dimension", "")
+                sev = si.get("severity", "warning")
+                marker = "[ERROR]" if sev == "error" else "[WARN]"
+                issue_lines.append(f"- 씬 {sid} ({dim}) {marker}: {issue}")
+            if issue_lines:
+                parts.append("[씬별 서사 이슈]\n" + "\n".join(issue_lines))
+
     return "\n".join(parts)
 
 

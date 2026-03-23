@@ -63,6 +63,7 @@ class NarrativeScore(TypedDict, total=False):
     pacing_rhythm: float  # 템포/리듬 변화
     overall: float  # 가중 평균
     feedback: str  # 개선 제안 (한국어)
+    scene_issues: list[dict]  # per-scene 서사 이슈 (SP-064)
 
 
 class ReviewResult(TypedDict, total=False):
