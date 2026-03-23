@@ -476,6 +476,80 @@ def _stabilize_location_cinematic(scenes: list[dict], writer_plan: dict | None) 
             )
 
 
+def _align_image_prompt_ko_environment(scenes: list[dict]) -> None:
+    """image_prompt_ko의 장소 표현을 context_tags.environment와 일치시킨다.
+
+    Compositor가 Atmosphere의 environment와 다른 장소를 image_prompt_ko에 기술한 경우,
+    context_tags.environment 기준으로 한국어 장소명을 교정한다.
+    """
+    from config_prompt import ENVIRONMENT_TAG_KO_MAP, GENERIC_LOCATION_TAGS  # noqa: PLC0415
+
+    # 역방향 맵: 한국어 → tag (감지용)
+    ko_to_tag: dict[str, str] = {}
+    for tag, (primary_ko, aliases) in ENVIRONMENT_TAG_KO_MAP.items():
+        ko_to_tag[primary_ko] = tag
+        for alias in aliases:
+            ko_to_tag[alias] = tag
+
+    # 길이 내림차순 정렬 (긴 문자열 우선 매칭: "사무실 로비" > "사무실")
+    sorted_ko_keys = sorted(ko_to_tag.keys(), key=len, reverse=True)
+
+    fixed_count = 0
+    for i, scene in enumerate(scenes):
+        prompt_ko = scene.get("image_prompt_ko")
+        if not prompt_ko:
+            continue
+
+        ctx = scene.get("context_tags") or {}
+        env_tags = ctx.get("environment") or []
+        if isinstance(env_tags, str):
+            env_tags = [env_tags]
+
+        # 씬의 specific 환경 태그 (indoors/outdoors 제외)
+        specific_env = [t for t in env_tags if t not in GENERIC_LOCATION_TAGS]
+        if not specific_env:
+            continue
+
+        # 목표 한국어 장소: 첫 번째 specific 환경 태그의 한국어
+        primary_tag = specific_env[0]
+        target_ko_info = ENVIRONMENT_TAG_KO_MAP.get(primary_tag)
+        if not target_ko_info:
+            continue
+        target_ko = target_ko_info[0]
+
+        # 현재 image_prompt_ko에서 한국어 장소 감지
+        found_ko_loc = None
+        found_tag = None
+        for ko_key in sorted_ko_keys:
+            if ko_key in prompt_ko:
+                found_tag = ko_to_tag[ko_key]
+                found_ko_loc = ko_key
+                break
+
+        if not found_ko_loc:
+            # 한국어 장소를 감지하지 못한 경우 스킵
+            continue
+
+        # 감지된 장소가 씬의 environment에 속하면 일치 → 스킵
+        env_norms = {t.lower().replace(" ", "_") for t in env_tags}
+        if found_tag in env_norms:
+            continue
+
+        # 불일치 → 교정
+        scene["image_prompt_ko"] = prompt_ko.replace(found_ko_loc, target_ko, 1)
+        fixed_count += 1
+        logger.info(
+            "[Finalize] Scene %d: image_prompt_ko 장소 교정 '%s'→'%s' (env=%s)",
+            i,
+            found_ko_loc,
+            target_ko,
+            specific_env,
+        )
+
+    if fixed_count:
+        logger.info("[Finalize] image_prompt_ko 장소 교정 완료: %d씬", fixed_count)
+
+
 def _load_char_exclusive_tags(character_id: int, db) -> dict[str, set[str]]:
     """캐릭터의 EXCLUSIVE 그룹 태그를 {group_name: {tag_names}} 형태로 반환."""
     from sqlalchemy.orm import joinedload  # noqa: PLC0415
@@ -1431,6 +1505,7 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         _inject_location_map_tags(scenes, state.get("writer_plan"))
         _inject_location_negative_tags(scenes, state.get("writer_plan"))
         _stabilize_location_cinematic(scenes, state.get("writer_plan"))
+        _align_image_prompt_ko_environment(scenes)
         from ._prompt_conflict_resolver import _resolve_positive_negative_conflicts
 
         _resolve_positive_negative_conflicts(scenes)

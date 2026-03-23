@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from services.agent.nodes.finalize import (
+    _align_image_prompt_ko_environment,
     _collect_cinematic_palette,
     _inject_location_map_tags,
     _inject_location_negative_tags,
@@ -348,3 +349,142 @@ class TestPickAnchor:
         palette = {"soft_lighting", "warm_tones"}
         anchor = _pick_anchor(scenes, [0, 1], palette)
         assert anchor == sorted(palette)[0]
+
+
+class TestAlignImagePromptKoEnvironment:
+    """_align_image_prompt_ko_environment 테스트."""
+
+    def test_fixes_mismatched_location(self):
+        """environment=subway_car인데 image_prompt_ko에 '사무실'이면 '지하철'로 교정."""
+        scenes = [
+            {
+                "context_tags": {"environment": ["subway_car", "indoors"]},
+                "image_prompt_ko": "밝은 사무실에서 미소 지으며 인사하는 모습",
+            },
+        ]
+        _align_image_prompt_ko_environment(scenes)
+        assert "지하철" in scenes[0]["image_prompt_ko"]
+        assert "사무실" not in scenes[0]["image_prompt_ko"]
+
+    def test_no_change_when_matching(self):
+        """environment와 image_prompt_ko가 일치하면 변경 없음."""
+        scenes = [
+            {
+                "context_tags": {"environment": ["office", "indoors"]},
+                "image_prompt_ko": "밝은 사무실에서 타이핑하는 모습",
+            },
+        ]
+        original = scenes[0]["image_prompt_ko"]
+        _align_image_prompt_ko_environment(scenes)
+        assert scenes[0]["image_prompt_ko"] == original
+
+    def test_no_change_when_no_ko_location_detected(self):
+        """image_prompt_ko에서 한국어 장소를 감지하지 못하면 스킵."""
+        scenes = [
+            {
+                "context_tags": {"environment": ["subway_car", "indoors"]},
+                "image_prompt_ko": "긴장한 표정으로 서 있는 모습",
+            },
+        ]
+        original = scenes[0]["image_prompt_ko"]
+        _align_image_prompt_ko_environment(scenes)
+        assert scenes[0]["image_prompt_ko"] == original
+
+    def test_no_change_when_no_specific_env(self):
+        """environment에 generic 태그(indoors)만 있으면 스킵."""
+        scenes = [
+            {
+                "context_tags": {"environment": ["indoors"]},
+                "image_prompt_ko": "사무실에서 웃고 있는 모습",
+            },
+        ]
+        original = scenes[0]["image_prompt_ko"]
+        _align_image_prompt_ko_environment(scenes)
+        assert scenes[0]["image_prompt_ko"] == original
+
+    def test_no_change_when_no_prompt_ko(self):
+        """image_prompt_ko가 없으면 스킵."""
+        scenes = [
+            {
+                "context_tags": {"environment": ["office", "indoors"]},
+            },
+        ]
+        _align_image_prompt_ko_environment(scenes)
+        assert "image_prompt_ko" not in scenes[0]
+
+    def test_cafe_alias_detection(self):
+        """'카페테리아' 별칭이 cafe environment와 매칭되면 변경 없음."""
+        scenes = [
+            {
+                "context_tags": {"environment": ["cafe", "indoors"]},
+                "image_prompt_ko": "카페테리아에서 커피를 마시는 모습",
+            },
+        ]
+        original = scenes[0]["image_prompt_ko"]
+        _align_image_prompt_ko_environment(scenes)
+        assert scenes[0]["image_prompt_ko"] == original
+
+    def test_fixes_cafe_to_office(self):
+        """environment=office인데 '카페'라고 쓰면 '사무실'로 교정."""
+        scenes = [
+            {
+                "context_tags": {"environment": ["office", "indoors"]},
+                "image_prompt_ko": "카페에서 놀란 표정을 짓는 모습",
+            },
+        ]
+        _align_image_prompt_ko_environment(scenes)
+        assert "사무실" in scenes[0]["image_prompt_ko"]
+        assert "카페" not in scenes[0]["image_prompt_ko"]
+
+    def test_longer_ko_matched_first(self):
+        """'사무실 로비'가 '사무실'보다 먼저 매칭된다 (긴 문자열 우선)."""
+        scenes = [
+            {
+                "context_tags": {"environment": ["bedroom", "indoors"]},
+                "image_prompt_ko": "사무실 로비에서 인사하는 모습",
+            },
+        ]
+        _align_image_prompt_ko_environment(scenes)
+        assert "침실" in scenes[0]["image_prompt_ko"]
+        assert "사무실 로비" not in scenes[0]["image_prompt_ko"]
+
+    def test_multiple_scenes_partial_fix(self):
+        """여러 씬 중 불일치 씬만 교정."""
+        scenes = [
+            {
+                "context_tags": {"environment": ["office", "indoors"]},
+                "image_prompt_ko": "사무실에서 일하는 모습",
+            },
+            {
+                "context_tags": {"environment": ["subway_car", "indoors"]},
+                "image_prompt_ko": "사무실에서 인사하는 모습",
+            },
+        ]
+        _align_image_prompt_ko_environment(scenes)
+        # 씬 0: 일치 → 변경 없음
+        assert "사무실" in scenes[0]["image_prompt_ko"]
+        # 씬 1: 불일치 → 교정
+        assert "지하철" in scenes[1]["image_prompt_ko"]
+
+    def test_env_string_instead_of_list(self):
+        """environment가 list 대신 str이어도 동작."""
+        scenes = [
+            {
+                "context_tags": {"environment": "subway_car"},
+                "image_prompt_ko": "사무실에서 웃는 모습",
+            },
+        ]
+        _align_image_prompt_ko_environment(scenes)
+        assert "지하철" in scenes[0]["image_prompt_ko"]
+
+    def test_unknown_env_tag_skipped(self):
+        """ENVIRONMENT_TAG_KO_MAP에 없는 태그는 스킵."""
+        scenes = [
+            {
+                "context_tags": {"environment": ["alien_spaceship", "indoors"]},
+                "image_prompt_ko": "사무실에서 놀란 모습",
+            },
+        ]
+        original = scenes[0]["image_prompt_ko"]
+        _align_image_prompt_ko_environment(scenes)
+        assert scenes[0]["image_prompt_ko"] == original
