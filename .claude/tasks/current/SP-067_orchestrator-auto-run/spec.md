@@ -4,7 +4,7 @@ priority: P0
 scope: infra
 branch: feat/SP-067-orchestrator-auto-run
 created: 2026-03-23
-status: pending
+status: design
 depends_on: SP-066
 label: feat
 ---
