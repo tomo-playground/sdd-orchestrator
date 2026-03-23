@@ -22,6 +22,10 @@ _READ_TOOLS = [
     "mcp__orch__check_prs",
     "mcp__orch__check_workflows",
     "mcp__orch__check_running_worktrees",
+    "mcp__orch__sentry_scan",
+    "mcp__orch__trigger_workflow",
+    "mcp__orch__cancel_workflow",
+    "mcp__orch__notify_human",
 ]
 
 _WRITE_TOOLS = [
@@ -96,6 +100,7 @@ def build_cycle_prompt(cycle_number: int, previous_summary: str | None) -> str:
         "2. check_prs → 열린 PR 상태 확인\n"
         "3. check_workflows → GitHub Actions 상태 확인\n"
         "4. check_running_worktrees → 실행 중인 워크트리 확인\n"
-        "5. Decision Rules에 따라 액션 실행 (launch/merge/trigger)\n"
-        "6. 종합 대시보드 출력"
+        "5. sentry_scan → Sentry 에러 확인 (1시간 간격)\n"
+        "6. Decision Rules에 따라 액션 실행 (launch/merge/trigger/notify)\n"
+        "7. 종합 대시보드 출력"
     )

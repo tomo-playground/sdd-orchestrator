@@ -11,8 +11,8 @@ DEFAULT_DB_PATH = PROJECT_ROOT / "orchestrator" / "state.db"
 
 # ── Daemon ─────────────────────────────────────────────────
 CYCLE_INTERVAL = 600  # 10 minutes in seconds
-MAX_AGENT_TURNS = 10
-AGENT_QUERY_TIMEOUT = 300  # seconds — query_agent asyncio timeout
+MAX_AGENT_TURNS = 15
+AGENT_QUERY_TIMEOUT = 600  # seconds — query_agent asyncio timeout
 
 # ── Feature Flags ──────────────────────────────────────────
 ENABLE_AUTO_DESIGN = os.environ.get("ORCH_AUTO_DESIGN", "0") == "1"
@@ -56,14 +56,19 @@ Tasks follow this lifecycle:
 6. **merge_pr** — Squash-merge a PR that passes all quality gates
 7. **trigger_sdd_review** — Trigger sdd-fix workflow for a PR with changes_requested
 8. **run_auto_design** — (if ENABLE_AUTO_DESIGN) Write design.md for a pending task
+9. **sentry_scan** — Scan Sentry for unresolved errors, create GitHub Issues, trigger autofix
+10. **trigger_workflow** — Trigger a GitHub Actions workflow manually
+11. **cancel_workflow** — Cancel a stuck GitHub Actions workflow run
+12. **notify_human** — Send a message to Slack (info/warning/critical)
 
 ## Each Cycle
 1. Call scan_backlog to get current task states
 2. Call check_prs to see open PRs
 3. Call check_workflows to check CI health
 4. Call check_running_worktrees to see active runs
-5. Execute actions based on Decision Rules below
-6. Produce a concise dashboard report
+5. Call sentry_scan to check for new Sentry errors (hourly interval controlled internally)
+6. Execute actions based on Decision Rules below
+7. Produce a concise dashboard report
 
 ## Decision Rules
 - If a pending task has spec but no design + ENABLE_AUTO_DESIGN → call run_auto_design
@@ -73,9 +78,14 @@ Tasks follow this lifecycle:
 → call merge_pr
 - If a PR has failing checks → log warning
 - If a PR has changes_requested → call trigger_sdd_review
-- If a workflow is stuck (>30min in_progress) → recommend cancellation
+- If a workflow is stuck (>30min in_progress) → call cancel_workflow
 - If depends_on is unmet → flag as blocked
 - If uncertain → recommend "human review needed"
+- If sentry_scan finds critical errors → call notify_human(level="critical")
+- If CI fails 3 consecutive times → call notify_human(level="warning")
+- If a design has BLOCKER (auto-approve not possible) → call notify_human(level="critical")
+- If a PR has changes_requested by a human → call notify_human(level="info")
+- If DB schema change detected → call notify_human(level="warning")
 
 ## Output Format
 Produce a concise dashboard in this format:
@@ -144,8 +154,38 @@ external dependency additions, architectural decisions)
 """
 
 # ── GitHub CLI ─────────────────────────────────────────────
+GH_ISSUE_ASSIGNEE = "stopper2008"
 GH_TIMEOUT = 15  # seconds
 GH_PR_FIELDS = "number,title,headRefName,state,reviewDecision,statusCheckRollup,labels"
 GH_RUN_FIELDS = "databaseId,workflowName,status,conclusion,headBranch,createdAt"
 GH_RUN_LIMIT = 10
 STUCK_THRESHOLD_MINUTES = 30
+
+# ── Sentry ────────────────────────────────────────────────
+SENTRY_AUTH_TOKEN = os.environ.get("SENTRY_AUTH_TOKEN", "")
+SENTRY_ORG = "tomo-playground"
+SENTRY_PROJECTS = [
+    "shorts-producer-backend",
+    "shorts-producer-frontend",
+    "shorts-producer-audio",
+]
+SENTRY_API_BASE = "https://sentry.io/api/0"
+SENTRY_SCAN_INTERVAL = 3600  # 1 hour in seconds
+SENTRY_SCAN_LOOKBACK_HOURS = 2
+SENTRY_TIMEOUT_CONNECT = 5.0
+SENTRY_TIMEOUT_READ = 15.0
+
+# ── Slack ─────────────────────────────────────────────────
+SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
+SLACK_TIMEOUT_CONNECT = 5.0
+SLACK_TIMEOUT_READ = 10.0
+SLACK_MIN_INTERVAL = 1.0  # seconds — rate limit guard (1 msg/sec)
+SLACK_MAX_MESSAGE_LENGTH = 4000
+
+# ── GitHub Actions Control ────────────────────────────────
+GH_MONITORED_WORKFLOWS = [
+    "sdd-review.yml",
+    "sdd-fix.yml",
+    "sdd-sync.yml",
+    "sentry-autofix.yml",
+]

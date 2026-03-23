@@ -10,7 +10,12 @@ import sys
 from pathlib import Path
 
 from orchestrator.agents import build_cycle_prompt, create_lead_agent_options
-from orchestrator.config import AGENT_QUERY_TIMEOUT, BACKLOG_PATH, CYCLE_INTERVAL, DEFAULT_DB_PATH
+from orchestrator.config import (
+    AGENT_QUERY_TIMEOUT,
+    BACKLOG_PATH,
+    CYCLE_INTERVAL,
+    DEFAULT_DB_PATH,
+)
 from orchestrator.state import StateStore
 from orchestrator.tools import create_orchestrator_mcp_server
 from orchestrator.utils import query_agent
@@ -30,6 +35,7 @@ class OrchestratorDaemon:
         self.state = StateStore(db_path=db_path)
         set_state_store(self.state)
         self.mcp_server = create_orchestrator_mcp_server()
+        self._last_report_date: str | None = None
 
     async def run(self) -> None:
         """Start the orchestrator event loop."""
@@ -43,6 +49,7 @@ class OrchestratorDaemon:
         while not self.stop_event.is_set():
             self.cycle += 1
             await self._run_cycle()
+            await self._maybe_send_daily_report()
 
             if self.interval <= 0:
                 break  # Single-cycle mode for testing
@@ -61,6 +68,8 @@ class OrchestratorDaemon:
 
     def _preflight_check(self) -> None:
         """Verify prerequisites before starting (fail-fast)."""
+        from orchestrator.config import SENTRY_AUTH_TOKEN, SLACK_WEBHOOK_URL
+
         # 1. gh CLI installed and authenticated
         if not shutil.which("gh"):
             logger.error("gh CLI not found. Install: https://cli.github.com/")
@@ -70,6 +79,14 @@ class OrchestratorDaemon:
         if not BACKLOG_PATH.exists():
             logger.error("backlog.md not found at %s", BACKLOG_PATH)
             sys.exit(1)
+
+        # 3. Optional: Sentry token
+        if not SENTRY_AUTH_TOKEN:
+            logger.warning("SENTRY_AUTH_TOKEN not set — sentry_scan will be disabled")
+
+        # 4. Optional: Slack webhook
+        if not SLACK_WEBHOOK_URL:
+            logger.warning("SLACK_WEBHOOK_URL not set — notifications will be log-only")
 
         logger.info("Preflight check passed")
 
@@ -99,6 +116,40 @@ class OrchestratorDaemon:
         except Exception as e:
             logger.exception("Cycle #%d failed", self.cycle)
             self.state.finish_cycle(cycle_id, "error", str(e))
+
+    async def _maybe_send_daily_report(self) -> None:
+        """Send daily report once per day at 00:00 UTC (09:00 KST)."""
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC)
+        today = now.strftime("%Y-%m-%d")
+
+        if self._last_report_date == today:
+            return
+
+        # Only send after 00:00 UTC (09:00 KST)
+        if now.hour < 0:
+            return
+
+        try:
+            from orchestrator.tools.notify import send_daily_report
+
+            summary = {
+                "completed_prs": [],
+                "in_progress": [],
+                "blockers": [],
+                "sentry_issues": {"open": 0, "autofix_prs": 0},
+            }
+            # Best-effort: gather from last cycle summary
+            last_summary = self.state.get_last_cycle_summary()
+            if last_summary:
+                summary["in_progress"].append(f"Last cycle: {last_summary[:100]}")
+
+            await send_daily_report(summary)
+            self._last_report_date = today
+            logger.info("Daily report sent for %s", today)
+        except Exception:
+            logger.exception("Failed to send daily report")
 
 
 def _setup_logging() -> None:

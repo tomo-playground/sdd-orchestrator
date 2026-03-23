@@ -272,3 +272,167 @@ async def do_trigger_sdd_review(pr_number: int) -> dict:
 async def trigger_sdd_review(args: dict) -> dict:
     """MCP tool wrapper."""
     return await do_trigger_sdd_review(args["pr_number"])
+
+
+# ── GitHub Actions control tools ──────────────────────────
+
+
+async def do_trigger_workflow(workflow: str, *, inputs: dict[str, str] | None = None) -> dict:
+    """Core logic: trigger a GitHub Actions workflow (allowlist enforced)."""
+    from orchestrator.config import GH_MONITORED_WORKFLOWS
+
+    if workflow not in GH_MONITORED_WORKFLOWS:
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": json.dumps(
+                        {
+                            "success": False,
+                            "message": f"Workflow '{workflow}' not in allowed list",
+                        }
+                    ),
+                }
+            ]
+        }
+
+    cmd: list[str] = ["gh", "workflow", "run", workflow]
+    if inputs:
+        for key, value in inputs.items():
+            cmd.extend(["-f", f"{key}={value}"])
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=GH_TIMEOUT)
+        if proc.returncode != 0:
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": json.dumps({"success": False, "message": stderr.decode().strip()}),
+                    }
+                ]
+            }
+    except TimeoutError:
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": json.dumps({"success": False, "message": "Trigger timed out"}),
+                }
+            ]
+        }
+    except FileNotFoundError:
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": json.dumps({"success": False, "message": "gh CLI not found"}),
+                }
+            ]
+        }
+
+    logger.info("Triggered workflow %s", workflow)
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": json.dumps({"success": True, "message": f"Triggered {workflow}"}),
+            }
+        ]
+    }
+
+
+@tool(
+    "trigger_workflow",
+    "Trigger a GitHub Actions workflow manually (allowlist enforced)",
+    {
+        "type": "object",
+        "properties": {
+            "workflow": {
+                "type": "string",
+                "description": "Workflow filename (e.g. sdd-review.yml)",
+            },
+            "inputs": {
+                "type": "object",
+                "description": "Workflow input parameters",
+                "additionalProperties": {"type": "string"},
+            },
+        },
+        "required": ["workflow"],
+    },
+)
+async def trigger_workflow(args: dict) -> dict:
+    """MCP tool wrapper."""
+    return await do_trigger_workflow(args["workflow"], inputs=args.get("inputs"))
+
+
+async def do_cancel_workflow(run_id: int) -> dict:
+    """Core logic: cancel a GitHub Actions workflow run."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "gh",
+            "run",
+            "cancel",
+            str(run_id),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=GH_TIMEOUT)
+        if proc.returncode != 0:
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": json.dumps({"success": False, "message": stderr.decode().strip()}),
+                    }
+                ]
+            }
+    except TimeoutError:
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": json.dumps({"success": False, "message": "Cancel timed out"}),
+                }
+            ]
+        }
+    except FileNotFoundError:
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": json.dumps({"success": False, "message": "gh CLI not found"}),
+                }
+            ]
+        }
+
+    logger.info("Cancelled workflow run %d", run_id)
+    return {
+        "content": [
+            {
+                "type": "text",
+                "text": json.dumps({"success": True, "message": f"Cancelled run {run_id}"}),
+            }
+        ]
+    }
+
+
+@tool(
+    "cancel_workflow",
+    "Cancel a stuck GitHub Actions workflow run",
+    {
+        "type": "object",
+        "properties": {
+            "run_id": {"type": "integer", "description": "Workflow run ID to cancel"},
+        },
+        "required": ["run_id"],
+    },
+)
+async def cancel_workflow(args: dict) -> dict:
+    """MCP tool wrapper."""
+    return await do_cancel_workflow(args["run_id"])
