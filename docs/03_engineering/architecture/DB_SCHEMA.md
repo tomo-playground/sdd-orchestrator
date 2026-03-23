@@ -1,4 +1,4 @@
-# Database Schema (v3.33)
+# Database Schema (v3.34)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.34 | 2026-03-23 | 문서 최신화: `storyboards`에 `tone`/`bgm_prompt`/`bgm_mood` 추가, `scenes`에 `tts_asset_id` 추가 + `width`/`height` 기본값 수정, `scene_quality_scores`에 `identity_score`/`identity_tags_detected` 추가, `backgrounds` 인덱스명 수정, `lab_experiments` 삭제 테이블 문서 제거, `characters.reference_images` 잔존 기록 정리 |
 | v3.33 | 2026-03-02 | Character-Group 소유권: `characters.style_profile_id` 제거 → `characters.group_id` NOT NULL FK (RESTRICT). Group이 화풍 유일한 SSOT |
 | v3.32 | 2026-02-28 | `group_config` 테이블 제거 → `groups` 통합 (render_preset_id, style_profile_id, narrator_voice_preset_id). `channel_dna` 컬럼 제거 |
 | v3.31 | 2026-02-28 | DB Schema Cleanup: `characters.reference_source_type` DROP, `scenes.last_seed` DROP. `is_permanent` / `lora_type=style` Known Issue 해소 표기. `embeddings` 구현 완료 표기. `characters.prompt_mode` 문서 삭제 |
@@ -14,7 +15,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 | v3.29 | 2026-02-22 | `scenes`에 `controlnet_pose` (String(50), nullable) 추가. Finalize `_flatten_tts_designs()` — tts_design dict → flat fields 분해 |
 | v3.28 | 2026-02-22 | `render_presets.bgm_mode` NOT NULL 적용 (server_default="manual"). Dead 컬럼 DROP: `scenes.description`, `creative_traces.diff_summary`. `scenes`에 `clothing_tags` (JSONB) 추가 |
 | v3.27 | 2026-02-22 | Seed Anchoring: `scenes.last_seed` (BigInteger), `storyboards.base_seed` (BigInteger) 추가 |
-| v3.26 | 2026-02-22 | `characters`에 IP-Adapter 고도화 4컬럼 추가 (`ip_adapter_guidance_start/end`, `reference_source_type`, `reference_images` JSONB) |
+| v3.26 | 2026-02-22 | `characters`에 IP-Adapter 고도화 2컬럼 추가 (`ip_adapter_guidance_start/end`). ※ `reference_source_type`, `reference_images`는 이후 DROP됨 |
 
 > v3.25 이전 이력: [DB_SCHEMA_CHANGELOG.md](DB_SCHEMA_CHANGELOG.md)
 
@@ -29,7 +30,6 @@ erDiagram
     projects }o--o| media_assets : "avatar"
 
     groups ||--o{ storyboards : "contains"
-    groups ||--o{ lab_experiments : "has"
     groups }o--o| render_presets : "preset"
     groups }o--o| style_profiles : "style"
     groups }o--o| voice_presets : "narrator"
@@ -135,9 +135,14 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `description` | Text | 설명 |
 | `caption` | Text | 캡션 텍스트 (Post Layout용) |
 | `structure` | String(50) | 구조 설정 (default: `"Monologue"`) |
+| `tone` | String(30), NOT NULL | 톤 설정 (default: `"intimate"`, server_default: `"intimate"`) |
 | `duration` | Integer | 목표 길이 (초), 콘텐츠 엔티티 고유 필드 |
 | `language` | String(20) | 언어 설정, 콘텐츠 엔티티 고유 필드 |
 | `version` | Integer, NOT NULL, default 1 | Optimistic Locking 버전. PUT/PATCH 시 검증, 성공 시 +1 증분. 불일치 시 409 Conflict |
+| **AI BGM** | | |
+| `bgm_prompt` | Text, nullable | AI BGM 생성 프롬프트 (Phase 12-C) |
+| `bgm_mood` | String(100), nullable | BGM 분위기 키워드 (Phase 12-C) |
+| **Seed** | | |
 | `base_seed` | BigInteger, nullable | Seed Anchoring 기준 시드. 씬별 seed = `base_seed + order * SEED_ANCHOR_OFFSET` |
 | `stage_status` | String(20), nullable | Stage 파이프라인 상태: `pending`, `staging`, `staged`, `failed`. NULL = 미사용 |
 | `casting_recommendation` | JSONB, nullable | AI 캐스팅 추천 (character_id, structure, reasoning 등). Phase 20-C |
@@ -171,9 +176,10 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `voice_design_prompt` | Text | Context-Aware TTS Designer 출력 |
 | `head_padding` | Float | 씬 시작 전 무음 간격 (default: 0.0) |
 | `tail_padding` | Float | 씬 종료 후 무음 간격 (default: 0.0) |
+| `tts_asset_id` | Integer (FK → media_assets, SET NULL), nullable | TTS 프리뷰 오디오 에셋 (최종 렌더 재사용) |
 | **Size** | | |
-| `width` | Integer | 이미지 너비 (default: 512) |
-| `height` | Integer | 이미지 높이 (default: 768) |
+| `width` | Integer | 이미지 너비 (default: 832) |
+| `height` | Integer | 이미지 높이 (default: 1216) |
 | **Background** | | |
 | `background_id` | Integer (FK → backgrounds, SET NULL) | 배경 에셋 참조 (태그 자동 주입 + ControlNet Canny) |
 | **IP-Adapter / Reference** | | |
@@ -403,7 +409,7 @@ WD14 피드백 루프 데이터.
 | `deleted_at` | DateTime | SoftDeleteMixin |
 
 **Indexes**: `ix_backgrounds_category`, `ix_backgrounds_deleted_at`, `ix_backgrounds_storyboard_id`
-**Unique**: `ix_backgrounds_storyboard_location_key` (partial, `deleted_at IS NULL AND storyboard_id IS NOT NULL AND location_key IS NOT NULL`)
+**Unique**: `ix_backgrounds_storyboard_location_style` (partial, `storyboard_id` + `location_key` + `style_profile_id` 3컬럼 복합, `deleted_at IS NULL AND storyboard_id IS NOT NULL AND location_key IS NOT NULL`)
 
 ### `media_assets` (V3.1)
 통합 미디어 저장소. S3/Local 스토리지 폴리모픽 참조 시스템.
@@ -453,7 +459,6 @@ WD14 피드백 루프 데이터.
 | `ip_adapter_model` | String(50) | `clip`, `clip_face`, `faceid` |
 | `ip_adapter_guidance_start` | Float, nullable | IP-Adapter guidance 시작점 (기본: 0.0) |
 | `ip_adapter_guidance_end` | Float, nullable | IP-Adapter guidance 종료점 (faceid: 0.85, clip: 1.0) |
-| `reference_images` | JSONB, nullable | 멀티앵글 레퍼런스 `[{"angle":"front","asset_id":N}]` |
 | **Voice** | | |
 | `voice_preset_id` | Integer (FK → voice_presets, SET NULL) | 캐릭터 고유 음성 프리셋 |
 | **Display** | | |
@@ -658,31 +663,6 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 | `youtube_uploaded_at` | DateTime | 업로드 시각 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
-### `lab_experiments`
-태그 렌더링, 씬 번역 등 실험실 기능 이력 (旧 evaluation_runs 대체).
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | Integer (PK) | |
-| `batch_id` | String(50) | 배치 ID (인덱스) |
-| `experiment_type` | String(20) | `tag_render`, `scene_translate` |
-| `status` | String(20) | `pending`, `completed`, `failed` |
-| `character_id` | Integer (FK → characters, SET NULL) | 대상 캐릭터 (nullable) |
-| `group_id` | Integer (FK → groups, CASCADE) | 소속 그룹 (필수) |
-| `prompt_used` | Text | 사용된 프롬프트 |
-| `negative_prompt` | Text | 네거티브 프롬프트 |
-| `final_prompt` | Text | Prompt Engine 최종 프롬프트 |
-| `loras_applied` | JSONB | 적용된 LoRA 목록 |
-| `target_tags` | JSONB | 타겟 태그 |
-| `sd_params` | JSONB | SD 생성 파라미터 |
-| `media_asset_id` | Integer (FK → media_assets, SET NULL) | 생성된 이미지 |
-| `seed` | BigInteger | 생성 시드 |
-| `match_rate` | Float | 결과 매치율 |
-| `wd14_result` | JSONB | 상세 분석 결과 |
-| `scene_description` | Text | 씬 번역 설명 (scene_translate용) |
-| `notes` | Text | 사용자 메모 |
-| `created_at`, `updated_at` | DateTime | 타임스탬프 |
-
 ### `scene_quality_scores`
 장면별 품질 점수 및 WD14 검증 결과 전용 스토어.
 
@@ -694,6 +674,8 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 | `prompt` | Text | 사용된 프롬프트 |
 | `match_rate` | Float | WD14 매치율 |
 | `matched_tags`, `missing_tags`, `extra_tags` | JSONB | 상세 태그 분석 결과 |
+| `identity_score` | Float, nullable | 캐릭터 일관성 점수 (Phase 16-D) |
+| `identity_tags_detected` | JSONB, nullable | 감지된 캐릭터 태그 목록 (Phase 16-D) |
 | `evaluation_details` | JSONB (nullable) | Hybrid 평가 상세 (Phase 33) — 구조: 아래 참조 |
 | `validated_at` | DateTime | 검증 일시 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
@@ -755,8 +737,6 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 | `CreativeSessionRound.round_decision` | `revise`, `approve`, `reject` |
 | `CreativeTrace.trace_type` | `thought`, `action`, `observation` |
 | `RenderHistory.youtube_upload_status` | `pending`, `uploaded`, `failed` |
-| `LabExperiment.experiment_type` | `tag_render`, `scene_translate` |
-| `LabExperiment.status` | `pending`, `completed`, `failed` |
 
 ---
 
@@ -766,7 +746,7 @@ ORM 모델 컬럼 선언 순서: PK → Parent FK → Identity(name) → Metadat
 
 ---
 
-**Last Updated:** 2026-03-02
-**Schema Version:** v3.33
+**Last Updated:** 2026-03-23
+**Schema Version:** v3.34
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic
