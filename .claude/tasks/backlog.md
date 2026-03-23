@@ -63,6 +63,7 @@
 - [ ] Tag Intelligence — 채널별 태그 정책 + 데이터 기반 추천 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-1
 - [ ] Series Intelligence — 에피소드 연결 + 성공 패턴 학습 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-2
 - [ ] LoRA Calibration Automation
+- [ ] LangFuse SDK v4 + 서버 업그레이드 — Python SDK 3.14→4.x + 셀프호스팅 서버 동시 업그레이드. CallbackHandler API 변경, OpenTelemetry 기반 전환. interrupt ERROR 이슈는 미해결
 - [ ] LiteLLM SDK 도입 — Gemini 외 Provider 실제 도입 시 착수
 - [ ] PipelineControl 커스텀 + 분산 큐 (Celery/Redis)
 - [ ] 배치 렌더링 + 큐 — 그룹 일괄 렌더, WebSocket 진행률 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-3
