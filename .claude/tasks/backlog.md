@@ -25,6 +25,7 @@
 
 ## P2-SDD (SDD 프로세스 개선)
 
+- [ ] SP-076 — Slack Bot 양방향 연동 — Slack에서 `/sdd-run`, 머지 승인 등 명령 수신 + 오케스트레이터 실행 | scope: infra | depends: SP-069
 - [ ] SP-033 — DoD 검증 자동화
 - [ ] SP-034 — PR 엣지 케이스 체크리스트
 - [ ] SP-051 — SDD 2인 확장 플랜 — 설계 리뷰/태스크 관리를 GitHub Issue 기반으로 전환 (로컬→GitHub 마이그레이션 가이드)
