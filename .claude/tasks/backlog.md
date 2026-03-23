@@ -8,8 +8,6 @@
 ## P1 (최우선)
 
 - [ ] SP-070 — 옵저버빌리티 구멍 메우기 — health-check Slack 알림, 크론 실패 알림, Actions 실패 알림, Sentry 실시간 연동 | scope: infra | [가이드](../../docs/04_operations/OBSERVABILITY.md)
-- [ ] SP-077 — SD Client 추상화 — SD WebUI 직접 호출 24곳 → SDClientBase 통합 (ComfyUI 전환 선행) | scope: backend
-- [ ] SP-022 — ComfyUI 마이그레이션 — ForgeUI→ComfyUI 워크플로우 전환 | depends: SP-077 | [명세](../../docs/01_product/FEATURES/COMFYUI_MIGRATION.md)
 - [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 전환 후 착수. 4-Module 파이프라인 | depends: SP-022 | [명세](../../docs/01_product/FEATURES/CHARACTER_CONSISTENCY_V3.md)
 
 ## P2 (기능 확장)
@@ -22,28 +20,44 @@
 
 ## P2-SDD (SDD 프로세스 개선)
 
-- [ ] SP-076 — Slack Bot 양방향 연동 — Slack에서 `/sdd-run`, 머지 승인 등 명령 수신 + 오케스트레이터 실행 | scope: infra | depends: SP-069
+- [ ] SP-076 — Slack Bot 양방향 연동 — Slack에서 명령 수신 + 코딩머신 실행 | scope: infra | depends: ~~SP-069~~ ✅
 - [ ] SP-033 — DoD 검증 자동화
 - [ ] SP-034 — PR 엣지 케이스 체크리스트
-- [ ] SP-051 — SDD 2인 확장 플랜 — 설계 리뷰/태스크 관리를 GitHub Issue 기반으로 전환 (로컬→GitHub 마이그레이션 가이드)
+- [ ] SP-051 — SDD 2인 확장 플랜 — 설계 리뷰/태스크 관리를 GitHub Issue 기반으로 전환
 
 ## P3 (인프라/자동화)
 
 - [ ] Tag Intelligence — 채널별 태그 정책 + 데이터 기반 추천 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-1
 - [ ] Series Intelligence — 에피소드 연결 + 성공 패턴 학습 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-2
-- [ ] LoRA Calibration Automation
-- [ ] LangFuse SDK v4 + 서버 업그레이드 — Python SDK 3.14→4.x + 셀프호스팅 서버 동시 업그레이드. CallbackHandler API 변경, OpenTelemetry 기반 전환. interrupt ERROR 이슈는 미해결
+- [ ] LangFuse SDK v4 + 서버 업그레이드
 - [ ] LiteLLM SDK 도입 — Gemini 외 Provider 실제 도입 시 착수
 - [ ] PipelineControl 커스텀 + 분산 큐 (Celery/Redis)
-- [ ] 배치 렌더링 + 큐 — 그룹 일괄 렌더, WebSocket 진행률 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-3
-- [ ] 브랜딩 시스템 — 로고/워터마크, 인트로/아웃트로, 플랫폼별 출력 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-3
-- [ ] 분석 대시보드 — Match Rate 추이, 프로젝트 간 비교 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-3
+- [ ] 배치 렌더링 + 큐 — 그룹 일괄 렌더, WebSocket 진행률
+- [ ] 브랜딩 시스템 — 로고/워터마크, 인트로/아웃트로, 플랫폼별 출력
+- [ ] 분석 대시보드 — Match Rate 추이, 프로젝트 간 비교
 - [ ] 파이프라인 이상 탐지 자동화 — health API, 자동 검증, GPU VRAM 모니터링
 - [ ] PostgreSQL 통합 테스트 인프라 — pytest-postgresql 또는 testcontainers
 - [ ] 클라우드 TTS/BGM 전환 — Replicate 또는 ElevenLabs/Suno
 - [ ] 씬 단위 순차 생성 — IMAGE→TTS 씬별 처리, GPU 순차 독점 해소
 - [ ] ControlNet 포즈 에셋 재활용 검토 — ComfyUI 2-Step 또는 레퍼런스 전용
 - [ ] 캐릭터 LoRA 학습 파이프라인 — 레퍼런스 9세트 + 학습 자동화
+
+---
+
+## current (착수 중)
+
+> 상세: `.claude/tasks/current/SP-NNN_*/spec.md`
+
+| 태스크 | 상태 | 의존 | 설명 |
+|--------|------|------|------|
+| SP-077 | pending | — | SD Client 추상화 (ComfyUI 선행) |
+| SP-022 | pending | SP-077 | ComfyUI 마이그레이션 |
+| SP-020 | pending | — | Enum ID 정규화 |
+| SP-075 | pending | — | 지식DB 스토리 카드 |
+| SP-058 | approved | ~~SP-056~~ ✅ | Intake 노드 |
+| SP-072 | approved | — | Narrator 씬 지능 |
+| SP-021 | approved | SP-020 | Speaker 동적 역할 |
+| SP-074 | approved | — | Frontend 하드코딩 SSOT |
 
 ---
 
