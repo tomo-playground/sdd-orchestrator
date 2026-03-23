@@ -2,99 +2,119 @@
 
 ## 개요
 
-오케스트레이터는 SDD 워크플로우를 자동화하는 상주 프로세스입니다.
-10분마다 backlog/PR/워크플로우를 스캔하고, 태스크 실행/리뷰/머지를 자동 수행합니다.
+오케스트레이터는 SDD 워크플로우를 **완전 자동화**하는 상주 프로세스입니다.
+10분마다 backlog/PR/Sentry/워크플로우를 스캔하고, 태스크 설계/실행/리뷰/머지 + 에러 대응을 자동 수행합니다.
+
+---
+
+## 첫 기동 (최초 1회)
+
+### 1. 환경변수 확인
+
+`backend/.env`에 아래가 있어야 합니다:
+```bash
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...  # #sdd-bot 채널
+SENTRY_API_TOKEN=...                                     # Sentry API 토큰
+```
+
+### 2. 기동
+
+```bash
+.claude/scripts/sdd-orch.sh start
+```
+
+### 3. 확인
+
+```bash
+.claude/scripts/sdd-orch.sh status
+tail -f /tmp/orchestrator.log
+```
+
+Slack `#sdd-bot`에 첫 사이클 리포트가 오면 정상.
 
 ---
 
 ## 기동/중지
 
 ```bash
-# 시작
-.claude/scripts/sdd-orch.sh start
-
-# 중지
-.claude/scripts/sdd-orch.sh stop
-
-# 상태 확인
-.claude/scripts/sdd-orch.sh status
-
-# 재시작
-.claude/scripts/sdd-orch.sh restart
+.claude/scripts/sdd-orch.sh start    # 기동
+.claude/scripts/sdd-orch.sh stop     # 중지
+.claude/scripts/sdd-orch.sh status   # 상태
+.claude/scripts/sdd-orch.sh restart  # 재시작
 ```
 
-로그: `/tmp/orchestrator.log`
+서버 재시작 시 `@reboot` cron으로 자동 기동됨.
 
 ---
 
-## 태스크 등록 방법
+## 사용 방법
 
-### Step 1: backlog에 한 줄 추가
+### 새 기능 등록
 
-`.claude/tasks/backlog.md`:
+**Step 1.** backlog에 한 줄 추가 (`.claude/tasks/backlog.md`):
 ```markdown
-## P1 (최우선)
-
-- [ ] SP-076 — 캐릭터 프리뷰 자동 갱신 | scope: backend
+- [ ] SP-077 — 기능 설명 | scope: backend
 ```
 
-### Step 2: spec.md 작성
-
+**Step 2.** spec.md 작성:
 ```bash
-mkdir -p .claude/tasks/current/SP-076_preview-auto-regen
+mkdir -p .claude/tasks/current/SP-077_기능설명
 ```
-
-`.claude/tasks/current/SP-076_preview-auto-regen/spec.md`:
 ```markdown
 ---
-id: SP-076
+id: SP-077
 priority: P1
 scope: backend
-branch: feat/SP-076-preview-auto-regen
-created: 2026-03-24
+branch: feat/SP-077-기능설명
 status: pending
-depends_on:
-label: feat
 ---
 
 ## 무엇을 (What)
-캐릭터 태그 변경 시 프리뷰 이미지 자동 재생성
-
-## 왜 (Why)
-태그 변경 후 수동으로 프리뷰를 재생성해야 하는 번거로움 제거
+한 줄 설명
 
 ## 완료 기준 (DoD)
-- [ ] 태그 변경 감지 → 프리뷰 큐 등록
-- [ ] 큐 소비 → SD 이미지 생성 → media_asset 저장
-- [ ] 기존 테스트 영향 없음
+- [ ] 구현 항목 1
+- [ ] 구현 항목 2
 ```
 
-### Step 3: main에 커밋
+**Step 3.** main에 커밋 + push
 
-```bash
-git add .claude/tasks/
-git commit -m "chore: SP-076 태스크 등록"
-git push
+**Step 4.** 기다리기 — 오케스트레이터가 자동으로:
+```
+pending 감지 → 설계 작성 → 자동 승인 → 워크트리 실행 → PR → 리뷰 → 머지
 ```
 
-### Step 4: 기다리기
+### Sentry 에러 대응 (자동)
 
-오케스트레이터가 10분 내에 자동으로:
-1. `pending` 감지 → 설계 작성 (design.md)
-2. 조건 충족 → 자동 승인 (`status: approved`)
-3. 워크트리에서 `/sdd-run` 실행
-4. PR 생성 → CI/리뷰 → 자동 머지
+```
+Sentry 에러 감지 → GitHub Issue 생성 → autofix PR → 리뷰 → Slack 알림
+```
+
+사람은 Slack 알림 확인 + PR 검수/머지만.
+
+---
+
+## Slack 알림 (#sdd-bot)
+
+| 알림 | 시점 |
+|------|------|
+| 설계 BLOCKER 발견 | 자동 승인 불가 → 사람 판단 필요 |
+| CI 3회 연속 실패 | 태스크 blocked |
+| Sentry critical 에러 | autofix PR 생성됨 |
+| DB 스키마 변경 감지 | 사람 승인 필수 |
+| 사람이 changes_requested | sdd-fix 트리거 |
+| 일일 리포트 (09:00) | 전일 완료/진행/블로커 요약 |
 
 ---
 
 ## 수동 개입이 필요한 경우
 
-| 상황 | Slack 알림 | 대응 |
-|------|-----------|------|
-| 설계에 BLOCKER | O | `/sdd-design SP-076 approved` 또는 `reject` |
-| DB 스키마 변경 포함 | O | 설계 확인 후 수동 승인 |
-| CI 3회 연속 실패 | O | 로그 확인 후 수동 수정 |
-| Sentry critical 에러 | O | autofix PR 검수 + 머지 |
+| Slack 알림 | 대응 |
+|-----------|------|
+| BLOCKER 설계 | `claude` → `/sdd-design SP-NNN approved` 또는 `reject` |
+| DB 스키마 변경 | 설계 확인 → 수동 승인 |
+| CI 실패 | 로그 확인 → 수동 수정 또는 태스크 스펙 수정 |
+| Sentry autofix PR | 동작 검수 → 머지 |
 
 ---
 
@@ -105,32 +125,20 @@ git push
 | `ORCH_AUTO_RUN` | `0` | `1`이면 자동 실행 활성화 |
 | `ORCH_AUTO_DESIGN` | `0` | `1`이면 자동 설계 활성화 |
 | `ORCH_MAX_PARALLEL` | `2` | 동시 워크트리 실행 수 |
-| `SLACK_WEBHOOK_URL` | - | Slack 알림 Webhook URL |
+| `SLACK_WEBHOOK_URL` | — | Slack Webhook URL (#sdd-bot) |
+| `SENTRY_API_TOKEN` | — | Sentry API 인증 토큰 |
 
 ---
 
 ## 직접 실행 (오케스트레이터 없이)
 
-오케스트레이터 없이도 기존 CLI로 동일한 작업 가능:
-
 ```bash
-# 설계
-/sdd-design SP-076
-
-# 승인
-/sdd-design SP-076 approved
-
-# 실행 (워크트리)
-! claude --worktree SP-076 --dangerously-skip-permissions -p "/sdd-run SP-076"
-
-# 리뷰
-/sdd-review
-
-# 수정
-/sdd-fix
-
-# 정리
-/sdd-sync
+/sdd-design SP-077                   # 설계
+/sdd-design SP-077 approved          # 승인
+! claude --worktree SP-077 ...       # 실행
+/sdd-review                          # 리뷰
+/sdd-fix                             # 수정
+/sdd-sync                            # 정리
 ```
 
 오케스트레이터는 이 과정을 **자동 반복**하는 것뿐입니다.
@@ -140,15 +148,27 @@ git push
 ## 모니터링
 
 ```bash
-# 오케스트레이터 상태
-.claude/scripts/sdd-orch.sh status
+.claude/scripts/sdd-orch.sh status   # 프로세스 상태
+tail -f /tmp/orchestrator.log        # 실시간 로그
+gh pr list --state open              # 열린 PR
+git worktree list                    # 워크트리
+```
 
-# 실시간 로그
-tail -f /tmp/orchestrator.log
+---
 
-# 열린 PR 확인
-gh pr list --state open
+## 전체 흐름도
 
-# 워크트리 확인
-git worktree list
+```
+[사람] spec 작성 → main push
+  ↓ (10분 이내)
+[오케스트레이터]
+  ├─ pending 감지 → 자동 설계 → 자동 승인
+  ├─ approved 감지 → 워크트리 /sdd-run
+  ├─ PR 생성 → CI/리뷰 모니터링
+  ├─ mergeable → 자동 머지 → sdd-sync
+  ├─ changes_requested → sdd-fix 트리거
+  ├─ Sentry 에러 → Issue → autofix PR
+  └─ 문제 발생 → Slack #sdd-bot 알림
+        ↓
+[사람] Slack 확인 → 판단 (BLOCKER/머지/검수)
 ```
