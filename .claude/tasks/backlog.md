@@ -5,10 +5,6 @@
 
 ---
 
-## P0 (진행 중)
-
-- [ ] SP-073 — Dead Feature Cleanup — 미사용 컬럼/코드 제거 (Gemini 자동편집, LoRA 캘리브레이션, Civitai 임포트, 태그 썸네일) | scope: backend | **approved**
-
 ## P1 (최우선)
 
 - [ ] SP-070 — 옵저버빌리티 구멍 메우기 — health-check Slack 알림, 크론 실패 알림, Actions 실패 알림, Sentry 실시간 연동 | scope: infra | [가이드](../../docs/04_operations/OBSERVABILITY.md)
@@ -63,3 +59,5 @@
 - [x] ~~SP-056~~ (Structure 재설계 A) | ~~SP-057~~ (모드 단순화) | ~~SP-028~~ (Studio 탭 URI)
 - [x] ~~SP-059~~ (multi 씬) | ~~SP-061~~ (대사 품질 L2) | ~~SP-062~~ (프롬프트/태그 검증) | ~~SP-063~~ (렌더링 함수 연결)
 - [x] ~~SP-064~~ (Narrative per-scene 평가) | ~~SP-065~~ (렌더링 품질 보강) | ~~SP-053~~ (파이프라인 진행 가시성) | ~~SP-071~~ (대사 구체성 평가)
+- [x] ~~SP-066~~ (Orchestrator 스켈레톤) | ~~SP-067~~ (Orchestrator AutoRun) | ~~SP-068~~ (Orchestrator AutoDesign)
+- [x] ~~SP-069~~ (Orchestrator Sentry/Slack/GHA) | ~~SP-073~~ (Dead Feature Cleanup)
