@@ -15,9 +15,15 @@ start() {
     return 0
   fi
 
+  # backend/.env에서 Slack/Sentry 환경변수 로드
+  _SLACK=$(grep '^SLACK_WEBHOOK_URL=' "$PROJECT_DIR/backend/.env" 2>/dev/null | cut -d= -f2-)
+  _SENTRY=$(grep '^SENTRY_AUTH_TOKEN=' "$PROJECT_DIR/backend/.env" 2>/dev/null | cut -d= -f2-)
+
   cd "$ORCH_DIR"
   ORCH_AUTO_RUN="${ORCH_AUTO_RUN:-1}" \
   ORCH_AUTO_DESIGN="${ORCH_AUTO_DESIGN:-1}" \
+  SLACK_WEBHOOK_URL="${_SLACK}" \
+  SENTRY_AUTH_TOKEN="${_SENTRY}" \
   nohup uv run python -m orchestrator > "$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
   echo "Orchestrator 시작 (PID: $!, log: $LOG_FILE)"
