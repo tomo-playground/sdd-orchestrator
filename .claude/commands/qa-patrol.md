@@ -18,7 +18,7 @@ Playwright QA 순찰 — 핵심 플로우 자동 테스트 후 이상 감지 시
 
 ### 2. Playwright 테스트 실행
 ```bash
-./scripts/qa-patrol.sh
+./scripts/sdd-qa.sh
 ```
 
 ### 3. 결과 보고
@@ -41,6 +41,6 @@ Playwright QA 순찰 — 핵심 플로우 자동 테스트 후 이상 감지 시
 - 15초 timeout
 
 ## 관련 파일
-- `scripts/qa-patrol.sh` — 순찰 래퍼 스크립트
+- `scripts/sdd-qa.sh` — 순찰 래퍼 스크립트
 - `frontend/e2e/qa-patrol.spec.ts` — Playwright 순찰 테스트
 - `frontend/playwright.e2e.config.ts` — E2E 설정

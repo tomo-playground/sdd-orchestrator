@@ -1,6 +1,6 @@
 #!/bin/bash
 # SDD Orchestrator 기동/중지/상태 확인
-# Usage: ./scripts/run_orchestrator.sh [start|stop|status|restart]
+# Usage: ./scripts/sdd-orch.sh [start|stop|status|restart]
 
 set -euo pipefail
 

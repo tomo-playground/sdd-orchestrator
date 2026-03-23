@@ -26,7 +26,7 @@ Sentry 에러 배치 순찰 — 새 이슈 수집 후 GitHub Issue 자동 생성
 ```bash
 # backend/.env에서 SENTRY_AUTH_TOKEN 로드 후 실행
 source backend/.env 2>/dev/null
-./scripts/sentry-patrol.sh --since ${HOURS:-24}
+./scripts/sdd-sentry.sh --since ${HOURS:-24}
 ```
 
 ### 3. 결과 보고
@@ -49,5 +49,5 @@ Sentry API (3개 프로젝트 순회)
 | `SENTRY_AUTH_TOKEN` | Yes | Sentry API Bearer token |
 
 ## 관련 파일
-- `scripts/sentry-patrol.sh` — 배치 순찰 스크립트
+- `scripts/sdd-sentry.sh` — 배치 순찰 스크립트
 - `backend/.env` — SENTRY_AUTH_TOKEN 저장

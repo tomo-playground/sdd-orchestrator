@@ -15,11 +15,11 @@
 
 | 이벤트 | 소스 | 주기 | 상태 |
 |--------|------|------|------|
-| Sentry 새 에러 감지 | `sentry-patrol.sh` | 매일 09:03 | **활성** |
-| Sentry 이상 없음 | `sentry-patrol.sh` | 매일 09:03 | **활성** |
-| QA 테스트 실패 | `qa-patrol.sh` | 매일 09:08 | **활성** |
-| QA 전체 통과 | `qa-patrol.sh` | 매일 09:08 | **활성** |
-| 서비스 다운 (QA 시점) | `qa-patrol.sh` | 매일 09:08 | **활성** |
+| Sentry 새 에러 감지 | `sdd-sentry.sh` | 매일 09:03 | **활성** |
+| Sentry 이상 없음 | `sdd-sentry.sh` | 매일 09:03 | **활성** |
+| QA 테스트 실패 | `sdd-qa.sh` | 매일 09:08 | **활성** |
+| QA 전체 통과 | `sdd-qa.sh` | 매일 09:08 | **활성** |
+| 서비스 다운 (QA 시점) | `sdd-qa.sh` | 매일 09:08 | **활성** |
 | PR/Issue 생성 | GitHub Slack 앱 | 실시간 | **활성** |
 
 ### 감시 시스템
@@ -28,15 +28,15 @@
 |--------|------|---------|
 | Sentry | 런타임 에러 추적 | tomo-playground.sentry.io |
 | LangFuse | AI 파이프라인 트레이싱 | 셀프호스팅 |
-| health-check.sh | 서비스 헬스체크 | 크론 5분 (로그만) |
+| sdd-health.sh | 서비스 헬스체크 | 크론 5분 (로그만) |
 
 ### 크론 작업
 
 | 크론 | 스케줄 | 로그 |
 |------|--------|------|
-| `health-check.sh` | */5 * * * * | stdout (로그 없음) |
-| `sentry-patrol.sh` | 03 9 * * * | `/tmp/sentry-patrol.log` |
-| `qa-patrol.sh` | 08 9 * * * | `/tmp/qa-patrol.log` |
+| `sdd-health.sh` | */5 * * * * | stdout (로그 없음) |
+| `sdd-sentry.sh` | 03 9 * * * | `/tmp/sentry-patrol.log` |
+| `sdd-qa.sh` | 08 9 * * * | `/tmp/qa-patrol.log` |
 
 ## 알림 구멍 (미해결)
 
@@ -44,7 +44,7 @@
 
 | 구멍 | 위험도 | 해결 방안 |
 |------|--------|----------|
-| 서비스 다운 실시간 감지 없음 | **높음** | `health-check.sh`에 Slack 알림 추가 (다운 시만) |
+| 서비스 다운 실시간 감지 없음 | **높음** | `sdd-health.sh`에 Slack 알림 추가 (다운 시만) |
 | 크론 자체 실패 | **높음** | 크론 wrapper에 `|| notify_slack "CRON FAIL"` 추가 |
 | Sentry 실시간 알림 없음 | **중간** | Sentry → Slack 네이티브 연동 (Sentry 웹 설정) |
 

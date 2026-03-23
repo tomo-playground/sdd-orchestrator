@@ -1,6 +1,6 @@
 #!/bin/bash
 # Sentry 에러 배치 순찰 — 새 이슈 수집 → GitHub Issue 자동 생성
-# 사용법: ./scripts/sentry-patrol.sh [--since HOURS]
+# 사용법: ./scripts/sdd-sentry.sh [--since HOURS]
 #
 # 환경변수:
 #   SENTRY_AUTH_TOKEN  — Sentry API Bearer token (필수)

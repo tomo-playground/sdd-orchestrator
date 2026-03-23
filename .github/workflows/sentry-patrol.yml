@@ -21,4 +21,4 @@ jobs:
       - name: Run Sentry Patrol
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-        run: bash scripts/sentry-patrol.sh --since 24
+        run: bash scripts/sdd-sentry.sh --since 24

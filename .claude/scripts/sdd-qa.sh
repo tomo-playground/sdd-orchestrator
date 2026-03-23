@@ -1,6 +1,6 @@
 #!/bin/bash
 # Playwright QA 순찰 — 핵심 플로우 자동 테스트 → 실패 시 GitHub Issue 생성
-# 사용법: ./scripts/qa-patrol.sh
+# 사용법: ./scripts/sdd-qa.sh
 #
 # 전제조건:
 #   - Frontend (localhost:3000) 실행 중
