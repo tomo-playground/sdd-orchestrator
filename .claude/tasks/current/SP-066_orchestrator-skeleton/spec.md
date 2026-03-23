@@ -4,7 +4,7 @@ priority: P0
 scope: infra
 branch: feat/SP-066-orchestrator-skeleton
 created: 2026-03-23
-status: approved
+status: running
 depends_on:
 label: feat
 ---
@@ -19,38 +19,38 @@ Claude Agent SDK 기반 SDD 오케스트레이터의 뼈대를 만든다. 상주
 
 ### 프로젝트 구조
 
-- [ ] `orchestrator/` 디렉토리에 Agent SDK 기반 Python 프로젝트를 생성한다
-- [ ] `pyproject.toml` 또는 `requirements.txt`에 `claude-agent-sdk` 의존성을 정의한다
-- [ ] `orchestrator/main.py`에 이벤트 루프 진입점을 구현한다 (10분 주기 루프)
+- [x] `orchestrator/` 디렉토리에 Agent SDK 기반 Python 프로젝트를 생성한다
+- [x] `pyproject.toml` 또는 `requirements.txt`에 `claude-agent-sdk` 의존성을 정의한다
+- [x] `orchestrator/main.py`에 이벤트 루프 진입점을 구현한다 (10분 주기 루프)
 
 ### 커스텀 도구
 
-- [ ] `orchestrator/tools/backlog.py` — `scan_backlog` 도구: `.claude/tasks/backlog.md`를 파싱하여 태스크 목록(id, status, priority, depends_on) 반환
-- [ ] `orchestrator/tools/github.py` — `check_pr` 도구: `gh pr list --json` 래퍼, PR 상태/리뷰/CI 체크 반환
-- [ ] `orchestrator/tools/github.py` — `check_workflows` 도구: `gh run list --json` 래퍼, 실행 중/실패 워크플로우 반환
+- [x] `orchestrator/tools/backlog.py` — `scan_backlog` 도구: `.claude/tasks/backlog.md`를 파싱하여 태스크 목록(id, status, priority, depends_on) 반환
+- [x] `orchestrator/tools/github.py` — `check_prs` 도구: `gh pr list --json` 래퍼, PR 상태/리뷰/CI 체크 반환
+- [x] `orchestrator/tools/github.py` — `check_workflows` 도구: `gh run list --json` 래퍼, 실행 중/실패 워크플로우 반환
 
 ### 상태 관리
 
-- [ ] `orchestrator/state.py` — SQLite 기반 상태 저장소 (cycles, decision_log 테이블)
-- [ ] 오케스트레이터 시작 시 이전 상태를 로드하고, 종료 시 상태를 저장한다
+- [x] `orchestrator/state.py` — SQLite 기반 상태 저장소 (cycles, decision_log 테이블)
+- [x] 오케스트레이터 시작 시 이전 상태를 로드하고, 종료 시 상태를 저장한다
 
 ### Lead Agent
 
-- [ ] `orchestrator/agents.py` — Lead Agent 정의: Sonnet 모델, 커스텀 도구 연결, 시스템 프롬프트
-- [ ] Lead Agent 시스템 프롬프트에 SDD 워크플로우 규칙(CLAUDE.md 핵심 규칙)을 포함한다
-- [ ] 10분마다 현재 상태를 Lead Agent에 전달하고, 다음 행동 판단을 받는다
+- [x] `orchestrator/agents.py` — Lead Agent 정의: Sonnet 모델, 커스텀 도구 연결, 시스템 프롬프트
+- [x] Lead Agent 시스템 프롬프트에 SDD 워크플로우 규칙(CLAUDE.md 핵심 규칙)을 포함한다
+- [x] 10분마다 현재 상태를 Lead Agent에 전달하고, 다음 행동 판단을 받는다
 
 ### 실행 가능성
 
-- [ ] `python -m orchestrator.main` 으로 실행 가능하다
-- [ ] 첫 실행 시 backlog를 읽고 현재 상태를 콘솔에 출력한다 (대시보드 형태)
-- [ ] Ctrl+C로 graceful shutdown된다 (상태 저장 후 종료)
+- [x] `python -m orchestrator.main` 으로 실행 가능하다
+- [x] 첫 실행 시 backlog를 읽고 현재 상태를 콘솔에 출력한다 (대시보드 형태)
+- [x] Ctrl+C로 graceful shutdown된다 (상태 저장 후 종료)
 
 ### 품질
 
-- [ ] 기존 프로젝트(backend/frontend) 테스트에 영향 없음
-- [ ] orchestrator 자체 단위 테스트 통과 (backlog 파서, gh CLI 래퍼, StateStore)
-- [ ] 린트 통과 (ruff)
+- [x] 기존 프로젝트(backend/frontend) 테스트에 영향 없음
+- [x] orchestrator 자체 단위 테스트 통과 (backlog 파서, gh CLI 래퍼, StateStore)
+- [x] 린트 통과 (ruff)
 
 ## 영향 분석
 - `orchestrator/` 디렉토리 신규 생성 — 기존 코드와 완전 독립
