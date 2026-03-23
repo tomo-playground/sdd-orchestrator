@@ -6,6 +6,10 @@
     "allow": [
       "Bash(.venv/bin/python -m pytest tests/ -x -q -k \"video or hashtag or caption\")",
       "Bash(ruff check:*)"
+    ],
+    "additionalDirectories": [
+      "/tmp",
+      "/home/tomo/.config/gemini-mcp/output/487f9b845260517f"
     ]
   },
   "hooks": {
