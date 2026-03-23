@@ -105,6 +105,20 @@ for BRANCH in $MERGED; do
   git branch -D "worktree-${SP_ID}" 2>/dev/null || true
 done
 
+# ── 좀비 워크트리 정리 (done/에 있는데 워크트리가 남은 태스크) ──
+for WT_DIR in "$PROJECT_DIR/.claude/worktrees"/SP-*; do
+  [ -d "$WT_DIR" ] || continue
+  ZID=$(basename "$WT_DIR" | grep -oE 'SP-[0-9]+' || true)
+  [ -z "$ZID" ] && continue
+  if ls "$PROJECT_DIR/.claude/tasks/done/${ZID}_"* >/dev/null 2>&1; then
+    if pgrep -f "worktree.*${ZID}" > /dev/null 2>&1; then
+      echo "⚠️ 좀비 스킵 (세션 실행 중): $WT_DIR"
+    else
+      git worktree remove "$WT_DIR" --force 2>/dev/null && echo "🧟 좀비 워크트리 삭제: $(basename "$WT_DIR")" || true
+    fi
+  fi
+done
+
 # ── 고아 워크트리 정리 (agent-*, silly-*, stale) ──
 git worktree prune 2>/dev/null || true
 for ORPHAN_DIR in "$PROJECT_DIR/.claude/worktrees"/agent-* "$PROJECT_DIR/.claude/worktrees"/silly-*; do
