@@ -27,7 +27,6 @@
 
 ## P3 (인프라/자동화)
 
-- [ ] SP-050 — DirectorControlPanel 프리셋 Backend SSOT 전환 — EMOTION_PRESETS/BGM_MOOD_PRESETS 하드코딩 → /presets API 소비
 - [ ] Tag Intelligence — 채널별 태그 정책 + 데이터 기반 추천 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-1
 - [ ] Series Intelligence — 에피소드 연결 + 성공 패턴 학습 | [명세](../../docs/01_product/FEATURES/PROJECT_GROUP.md) §3-2
 - [ ] LoRA Calibration Automation
