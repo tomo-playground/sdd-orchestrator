@@ -5,7 +5,9 @@
   "permissions": {
     "allow": [
       "Bash(.venv/bin/python -m pytest tests/ -x -q -k \"video or hashtag or caption\")",
-      "Bash(ruff check:*)"
+      "Bash(ruff check:*)",
+      "Bash(pip list:*)",
+      "Bash(cat pyproject.toml:*)"
     ],
     "additionalDirectories": [
       "/tmp",
