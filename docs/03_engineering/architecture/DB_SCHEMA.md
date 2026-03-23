@@ -7,7 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
-| v3.34 | 2026-03-23 | 문서 최신화: `storyboards`에 `tone`/`bgm_prompt`/`bgm_mood` 추가, `scenes`에 `tts_asset_id` 추가 + `width`/`height` 기본값 수정, `scene_quality_scores`에 `identity_score`/`identity_tags_detected` 추가, `backgrounds` 인덱스명 수정, `lab_experiments` 삭제 테이블 문서 제거, `characters.reference_images` 잔존 기록 정리 |
+| v3.34 | 2026-03-23 | 문서 최신화: `storyboards`에 `tone`/`bgm_prompt`/`bgm_mood` 추가, `scenes`에 `tts_asset_id` 추가 + `width`/`height` 기본값 수정, `scene_quality_scores`에 `identity_score`/`identity_tags_detected` 추가, `backgrounds` 인덱스명 수정, `lab_experiments` 삭제 테이블 문서 제거, `characters.reference_images` 잔존 기록 정리. 유령 항목 정리: `loras` Multi-Character 3컬럼 제거(DB DROP 완료), `storyboards.bgm_audio_url` @property 제거(미구현), `loras.is_active` 추가. `scenes.multi_gen_enabled` 설명 보강 |
 | v3.33 | 2026-03-02 | Character-Group 소유권: `characters.style_profile_id` 제거 → `characters.group_id` NOT NULL FK (RESTRICT). Group이 화풍 유일한 SSOT |
 | v3.32 | 2026-02-28 | `group_config` 테이블 제거 → `groups` 통합 (render_preset_id, style_profile_id, narrator_voice_preset_id). `channel_dna` 컬럼 제거 |
 | v3.31 | 2026-02-28 | DB Schema Cleanup: `characters.reference_source_type` DROP, `scenes.last_seed` DROP. `is_permanent` / `lora_type=style` Known Issue 해소 표기. `embeddings` 구현 완료 표기. `characters.prompt_mode` 문서 삭제 |
@@ -152,7 +152,6 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 
 **Read-only 속성**:
 - `video_url` (`@property`): `render_history[0].media_asset.url` 반환
-- `bgm_audio_url` (`@property`): `bgm_audio_asset.url` 반환
 
 ### `scenes`
 스토리보드의 개별 씬/샷.
@@ -196,7 +195,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `controlnet_pose` | String(50), nullable | 선택된 ControlNet 포즈 이름 (None = 자동 감지) |
 | **Generation** | | |
 | `scene_mode` | String(10) | 씬 모드: `"single"` (1인) or `"multi"` (2인 동시 출연, default: `"single"`) |
-| `multi_gen_enabled` | Boolean | 멀티 생성 활성화 여부 |
+| `multi_gen_enabled` | Boolean, nullable | 씬별 멀티 후보 생성 활성화 (NULL=전역 기본값 사용). Agent finalize 노드에서 자동 할당 |
 | `image_asset_id` | Integer (FK → media_assets, SET NULL) | 생성된 이미지 (폴리모픽 참조) |
 | `candidates` | JSONB | 후보 이미지 목록 (`media_asset_id`, `match_rate`) |
 | `deleted_at` | DateTime | Soft Delete 타임스탬프 |
@@ -489,10 +488,7 @@ Stable Diffusion LoRA 모델.
 | `calibration_score` | Integer | 최적 가중치 시 점수 |
 | `weight_min`, `weight_max` | Decimal(3,2) | 가중치 범위 |
 | `preview_image_asset_id` | Integer (FK → media_assets) | 미리보기 이미지 (폴리모픽 참조) |
-| **Multi-Character** | | |
-| `is_multi_character_capable` | Boolean | 2인 동시 출연 지원 여부 (default: false) |
-| `multi_char_weight_scale` | Numeric(3,2) | 2인 씬에서 LoRA weight 축소 비율 (nullable, 예: 0.70) |
-| `multi_char_trigger_prompt` | String(200) | 멀티캐릭터 호출 프롬프트 (nullable) |
+| `is_active` | Boolean (default: true) | 활성 여부 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **Read-only 속성**:
