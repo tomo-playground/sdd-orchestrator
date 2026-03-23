@@ -1,4 +1,4 @@
-name: CI
+name: CI — 빌드 + 린트
 
 # Disabled: Stop Hook (on-stop.sh)이 로컬에서 동일한 품질 게이트를 수행.
 # Self-hosted runner 전환 시 아래 주석 해제.

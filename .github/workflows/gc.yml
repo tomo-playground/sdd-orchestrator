@@ -1,4 +1,4 @@
-name: GC — Checkpoint + Media Temp 자동 정리
+name: GC — 미디어 정리
 
 on:
   schedule:

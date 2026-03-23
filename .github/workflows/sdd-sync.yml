@@ -1,4 +1,4 @@
-name: SDD Sync — 머지 후 태스크 정리 + 열린 PR 자동 rebase
+name: SDD Sync — 머지 정리
 
 on:
   pull_request:

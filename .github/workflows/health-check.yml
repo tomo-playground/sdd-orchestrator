@@ -1,4 +1,4 @@
-name: Health Check — 서비스 + Runner 상태 감시
+name: Health Check — 서비스 감시
 
 on:
   schedule:

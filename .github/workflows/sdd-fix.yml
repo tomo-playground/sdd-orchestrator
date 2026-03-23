@@ -1,4 +1,4 @@
-name: SDD Fix — 리뷰 자동 수정 + @claude 수동 대응
+name: SDD Fix — 리뷰 수정
 
 on:
   # auto-fix: 리뷰 제출 시 1회만 트리거 (인라인 코멘트별 중복 방지)

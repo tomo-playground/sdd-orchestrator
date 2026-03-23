@@ -1,4 +1,4 @@
-name: Sentry Patrol — 에러 자동 수집
+name: Sentry Patrol — 에러 수집
 
 on:
   schedule:

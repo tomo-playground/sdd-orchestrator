@@ -1,4 +1,4 @@
-name: Sentry Autofix — 에러 자동 수정
+name: Sentry Autofix — 에러 수정
 
 on:
   issues:
