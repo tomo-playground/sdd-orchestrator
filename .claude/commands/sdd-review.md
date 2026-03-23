@@ -5,7 +5,7 @@
 ## 실행 내용
 
 ```bash
-bash /home/tomo/Workspace/shorts-producer/.claude/scripts/claude-fix.sh
+bash /home/tomo/Workspace/shorts-producer/.claude/scripts/sdd-fix.sh
 ```
 
 ## 동작
