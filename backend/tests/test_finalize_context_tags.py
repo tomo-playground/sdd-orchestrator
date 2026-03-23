@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from services.agent.nodes.finalize import (
+    _has_crowd_indicators,
     _rebuild_image_prompt_from_context_tags,
     _validate_cross_field_consistency,
 )
@@ -213,3 +214,74 @@ class TestRebuildImagePrompt:
         scenes = [{"speaker": "A", "image_prompt": original, "context_tags": {}}]
         _rebuild_image_prompt_from_context_tags(scenes)
         assert scenes[0]["image_prompt"] == original
+
+
+# ── crowd narrator (SP-072) ───────────────────────────
+
+
+class TestHasCrowdIndicators:
+    """_has_crowd_indicators 헬퍼 검증."""
+
+    def test_crowd_in_image_prompt(self):
+        scene = {"image_prompt": "scenery, crowd, busy_street"}
+        assert _has_crowd_indicators(scene) is True
+
+    def test_many_others_in_image_prompt(self):
+        scene = {"image_prompt": "scenery, many_others, office"}
+        assert _has_crowd_indicators(scene) is True
+
+    def test_crowd_in_context_tags_action(self):
+        scene = {"image_prompt": "scenery", "context_tags": {"action": "crowd"}}
+        assert _has_crowd_indicators(scene) is True
+
+    def test_crowd_in_context_tags_environment_list(self):
+        scene = {"image_prompt": "scenery", "context_tags": {"environment": ["crowd", "street"]}}
+        assert _has_crowd_indicators(scene) is True
+
+    def test_no_crowd_returns_false(self):
+        scene = {"image_prompt": "scenery, empty_room", "context_tags": {"environment": ["hallway"]}}
+        assert _has_crowd_indicators(scene) is False
+
+    def test_empty_scene(self):
+        scene = {"image_prompt": ""}
+        assert _has_crowd_indicators(scene) is False
+
+
+class TestNarratorCrowdRebuild:
+    """Narrator + 군중 씬에서 no_humans 스킵 검증."""
+
+    def test_narrator_crowd_skips_no_humans_in_rebuild(self):
+        """Narrator + crowd in image_prompt → rebuild 시 no_humans 없음, scenery 있음."""
+        scenes = [
+            {
+                "speaker": "Narrator",
+                "image_prompt": "crowd, busy_street, scenery",
+                "context_tags": {
+                    "camera": "wide_shot",
+                    "environment": ["busy_street"],
+                },
+            }
+        ]
+        _rebuild_image_prompt_from_context_tags(scenes)
+        prompt = scenes[0]["image_prompt"]
+        tags = [t.strip() for t in prompt.split(",")]
+        assert "no_humans" not in tags
+        assert "scenery" in tags
+
+    def test_narrator_empty_keeps_no_humans_in_rebuild(self):
+        """Narrator + 빈 공간 → no_humans, scenery 유지 (regression guard)."""
+        scenes = [
+            {
+                "speaker": "Narrator",
+                "image_prompt": "empty_classroom, scenery",
+                "context_tags": {
+                    "camera": "wide_shot",
+                    "environment": ["empty_classroom"],
+                },
+            }
+        ]
+        _rebuild_image_prompt_from_context_tags(scenes)
+        prompt = scenes[0]["image_prompt"]
+        tags = [t.strip() for t in prompt.split(",")]
+        assert "no_humans" in tags
+        assert "scenery" in tags

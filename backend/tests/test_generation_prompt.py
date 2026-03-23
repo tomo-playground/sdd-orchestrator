@@ -711,6 +711,72 @@ class TestNarratorBackgroundFiltering:
 
 
 # ────────────────────────────────────────────
+# Crowd Narrator: no_humans skip (SP-072)
+# ────────────────────────────────────────────
+
+
+class TestCrowdNarratorDefense:
+    """Test crowd indicator tags skip no_humans injection."""
+
+    @patch("services.character_consistency.load_reference_image", return_value=None)
+    @patch("services.generation_prompt._resolve_style_loras", return_value=[])
+    def test_crowd_narrator_skips_no_humans(self, mock_resolve, mock_ref):
+        """crowd in prompt → no_humans NOT injected."""
+        req = _make_request(character_id=None, prompt="scenery, crowd, busy_street")
+        db = MagicMock()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = None
+
+        with patch("services.generation_prompt.apply_style_profile_to_prompt") as mock_style:
+            mock_style.return_value = ("scenery, crowd, busy_street", "bad")
+            _call_prepare(req, db)
+
+        assert "no_humans" not in req.prompt
+
+    @patch("services.character_consistency.load_reference_image", return_value=None)
+    @patch("services.generation_prompt._resolve_style_loras", return_value=[])
+    def test_many_others_narrator_skips_no_humans(self, mock_resolve, mock_ref):
+        """many_others in prompt → no_humans NOT injected."""
+        req = _make_request(character_id=None, prompt="scenery, many_others, office")
+        db = MagicMock()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = None
+
+        with patch("services.generation_prompt.apply_style_profile_to_prompt") as mock_style:
+            mock_style.return_value = ("scenery, many_others, office", "bad")
+            _call_prepare(req, db)
+
+        assert "no_humans" not in req.prompt
+
+    @patch("services.character_consistency.load_reference_image", return_value=None)
+    @patch("services.generation_prompt._resolve_style_loras", return_value=[])
+    def test_empty_scene_narrator_still_injects_no_humans(self, mock_resolve, mock_ref):
+        """No crowd tags → no_humans still injected (regression guard)."""
+        req = _make_request(character_id=None, prompt="scenery, empty_classroom")
+        db = MagicMock()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = None
+
+        with patch("services.generation_prompt.compose_scene_with_style") as mock_compose:
+            mock_compose.return_value = ("no_humans, scenery, empty_classroom", "bad", [])
+            _call_prepare(req, db)
+
+        assert "no_humans" in req.prompt
+
+    @patch("services.character_consistency.load_reference_image", return_value=None)
+    @patch("services.generation_prompt._resolve_style_loras", return_value=[])
+    def test_crowd_narrator_skips_negative_extra(self, mock_resolve, mock_ref):
+        """crowd → no_humans not injected → NARRATOR_NEGATIVE_PROMPT_EXTRA not appended."""
+        req = _make_request(character_id=None, prompt="scenery, crowd, busy_street", negative_prompt="bad")
+        db = MagicMock()
+        db.query.return_value.options.return_value.filter.return_value.first.return_value = None
+
+        with patch("services.generation_prompt.apply_style_profile_to_prompt") as mock_style:
+            mock_style.return_value = ("scenery, crowd, busy_street", "bad")
+            _call_prepare(req, db)
+
+        assert "1girl" not in req.negative_prompt
+        assert "person" not in req.negative_prompt
+
+
+# ────────────────────────────────────────────
 # Safe Tags replacement (_apply_safe_tag_replacement)
 # ────────────────────────────────────────────
 

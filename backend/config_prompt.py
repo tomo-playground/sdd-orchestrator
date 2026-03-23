@@ -121,6 +121,16 @@ ABSTRACT_BACKGROUND_TAGS: frozenset[str] = frozenset(
         "gradient_background",
     }
 )
+# --- Crowd/Multiple People Indicators (Narrator 씬 군중 판단 SSOT) ---
+CROWD_INDICATOR_TAGS: frozenset[str] = frozenset(
+    {
+        "crowd",
+        "many_others",
+        "6+girls",
+        "6+boys",
+    }
+)
+
 MALE_INDICATORS: frozenset[str] = frozenset({"1boy", "2boys", "3boys", "male", "man", "boy"})
 FEMALE_INDICATORS: frozenset[str] = frozenset({"1girl", "2girls", "3girls", "female", "woman", "girl"})
 REFERENCE_ENV_TAGS: list[str] = []

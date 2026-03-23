@@ -10,6 +10,7 @@ import re
 from typing import TYPE_CHECKING
 
 from config import DEFAULT_SCENE_NEGATIVE_PROMPT, FACEID_SUPPRESS_TAGS, FACEID_SUPPRESS_WEIGHT, logger
+from config_prompt import CROWD_INDICATOR_TAGS
 from schemas import PromptRewriteRequest, SceneGenerateRequest
 from services.generation_style import apply_style_profile_to_prompt
 from services.image_generation_core import compose_scene_with_style
@@ -20,7 +21,9 @@ from services.prompt.prompt import rewrite_prompt
 if TYPE_CHECKING:
     from services.generation_context import GenerationContext
 
-_PERSON_INDICATORS = frozenset({"1girl", "1boy", "2girls", "2boys", "3girls", "3boys", "solo", "couple", "group"})
+_PERSON_INDICATORS = (
+    frozenset({"1girl", "1boy", "2girls", "2boys", "3girls", "3boys", "solo", "couple", "group"}) | CROWD_INDICATOR_TAGS
+)
 
 # Tags that indicate the scene should use a plain/abstract background → skip env reference injection
 _SKIP_ENV_REF_TAGS = frozenset(

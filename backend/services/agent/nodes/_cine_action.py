@@ -45,7 +45,8 @@ _RULES = """\
    cooking, holding umbrella, writing, profile standing, standing looking up,
    leaning wall, sitting eating
    For Narrator scenes: set controlnet_pose to null.
-5. **Narrator scenes**: No action/pose/emotion. Set all to null. Props only if relevant."""
+5. **Narrator scenes**: No CHARACTER action/pose/emotion. Set to null.
+   - Exception: if script implies crowd/people activity, set action to 'crowd'. Props if relevant."""
 
 
 async def run_action(

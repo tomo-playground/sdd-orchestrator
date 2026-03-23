@@ -22,6 +22,7 @@ from config import (
     coerce_structure_id,
     logger,
 )
+from config_prompt import CROWD_INDICATOR_TAGS
 from database import get_db_session
 from services.agent.observability import get_pipeline_elapsed_sec, record_score
 from services.agent.state import ScriptState
@@ -716,6 +717,22 @@ _IDENTITY_GROUPS = frozenset(
 _CONTEXT_TAG_FIELDS = frozenset({"camera", "pose", "gaze", "action", "expression", "environment", "cinematic", "props"})
 
 
+def _has_crowd_indicators(scene: dict) -> bool:
+    """Check if scene's image_prompt or context_tags contain crowd indicators."""
+    prompt = scene.get("image_prompt", "")
+    tokens = {t.strip().lower().replace(" ", "_") for t in prompt.split(",") if t.strip()}
+    if tokens & CROWD_INDICATOR_TAGS:
+        return True
+    ctx = scene.get("context_tags") or {}
+    for field in ("action", "environment"):
+        val = ctx.get(field)
+        if isinstance(val, str) and val in CROWD_INDICATOR_TAGS:
+            return True
+        if isinstance(val, list) and any(v in CROWD_INDICATOR_TAGS for v in val):
+            return True
+    return False
+
+
 def _load_tags_by_groups(cid: int, groups: frozenset[str], db) -> set[str]:
     """캐릭터 태그 중 지정 그룹에 속하는 태그 이름 집합을 반환."""
     from sqlalchemy.orm import joinedload  # noqa: PLC0415
@@ -925,7 +942,10 @@ def _rebuild_image_prompt_from_context_tags(scenes: list[dict]) -> None:
             tags.extend(multi_preserved)
 
         if is_narrator:
-            tags.extend(["no_humans", "scenery"])
+            if _has_crowd_indicators(scene):
+                tags.append("scenery")
+            else:
+                tags.extend(["no_humans", "scenery"])
 
         # L7: camera
         _flatten_tag(tags, ctx.get("camera") or scene.get("camera"))

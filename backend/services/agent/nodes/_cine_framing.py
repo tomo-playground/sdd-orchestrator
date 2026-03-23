@@ -36,7 +36,8 @@ _RULES = """\
    Available: slow_zoom, zoom_in_center, zoom_out_center, pan_left, pan_right, pan_up, pan_down,
    zoom_pan_left, zoom_pan_right, pan_up_vertical, pan_down_vertical, zoom_in_bottom,
    zoom_in_top, pan_zoom_up, pan_zoom_down
-5. **Narrator scenes** (speaker="Narrator"): wide_shot or from_above preferred. ken_burns still required."""
+5. **Narrator scenes** (speaker="Narrator"): wide_shot or from_above preferred. ken_burns still required.
+   - Crowd Narrator: wide_shot strongly preferred to capture multiple people."""
 
 
 async def run_framing(
