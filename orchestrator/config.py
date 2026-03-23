@@ -46,7 +46,7 @@ Tasks follow this lifecycle:
 4. **launch_sdd_run** — Launch a worktree to execute /sdd-run for a task
 5. **check_running_worktrees** — List running worktree processes
 6. **merge_pr** — Squash-merge a PR that passes all quality gates
-7. **trigger_sdd_review** — Trigger sdd-review workflow for a PR with changes_requested
+7. **trigger_sdd_review** — Trigger claude-fix workflow for a PR with changes_requested
 
 ## Each Cycle
 1. Call scan_backlog to get current task states

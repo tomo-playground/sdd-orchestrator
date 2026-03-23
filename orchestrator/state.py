@@ -127,7 +127,7 @@ class StateStore:
         return count
 
     def mark_review_triggered(self, run_id: int) -> None:
-        """Record that sdd-review was triggered for this run."""
+        """Record that claude-fix was triggered for this run."""
         now = datetime.now(UTC).isoformat()
         self.conn.execute(
             "UPDATE runs SET review_triggered_at = ? WHERE id = ?",

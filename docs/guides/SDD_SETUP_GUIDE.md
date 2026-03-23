@@ -370,13 +370,13 @@ jobs:
 EOF
 ```
 
-### 6-3. 리뷰 자동 수정 — Claude (sdd-review.yml)
+### 6-3. 리뷰 자동 수정 — Claude (claude-fix.yml)
 
 CodeRabbit/Claude 리뷰에서 `changes_requested` 시 Claude가 **자동으로 코드 수정**.
 추가로 `@claude` 멘션으로 수동 요청도 가능.
 
 ```bash
-cat > .github/workflows/sdd-review.yml << 'EOF'
+cat > .github/workflows/claude-fix.yml << 'EOF'
 name: Claude Fix — 리뷰 자동 수정 + @claude 수동 대응
 
 on:
@@ -466,13 +466,13 @@ PR push
         ↓
     둘 중 하나라도 changes_requested
         ↓
-    Claude 자동 수정 (sdd-review.yml auto-fix) → push
+    Claude 자동 수정 (claude-fix.yml auto-fix) → push
         ↓
     CodeRabbit + Claude 재리뷰
         ↓
     사람이 머지 판단
 
-    추가: @claude 멘션으로 수동 요청 가능 (sdd-review.yml manual)
+    추가: @claude 멘션으로 수동 요청 가능 (claude-fix.yml manual)
 
 별도 루프: Sentry 에러 → GitHub Issue → 태스크 → 수정
     sentry-patrol (매일 cron) → Sentry 에러 감지 → GitHub Issue 자동 생성

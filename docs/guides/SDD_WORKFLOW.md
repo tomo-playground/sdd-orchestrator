@@ -47,7 +47,7 @@
   ↓
 [changes_requested 시]
   ↓
-[Claude 자동 수정] (sdd-review.yml auto-fix) → push
+[Claude 자동 수정] (claude-fix.yml auto-fix) → push
   ↓
 [재리뷰] Claude + CodeRabbit
   ↓
@@ -81,8 +81,8 @@
 | self-heal | 최대 3회 | Hook |
 | 커밋 + push + PR | 풀 자율 | 로컬 |
 | PR 리뷰 | 자동 | `claude-review.yml` |
-| 리뷰 피드백 수정 | 자동 | `sdd-review.yml` auto-fix |
-| @claude 수동 대응 | 자동 | `sdd-review.yml` manual |
+| 리뷰 피드백 수정 | 자동 | `claude-fix.yml` auto-fix |
+| @claude 수동 대응 | 자동 | `claude-fix.yml` manual |
 
 ### AI (CodeRabbit)
 
@@ -101,7 +101,7 @@
 | 워크플로우 | 트리거 | 역할 | Runner |
 |----------|--------|------|--------|
 | `claude-review.yml` | PR 생성/push | Claude 리뷰 (읽기 전용) | self-hosted |
-| `sdd-review.yml` (Claude Fix) | 리뷰 코멘트 / `@claude` 멘션 | 코드 자동 수정 | self-hosted |
+| `claude-fix.yml` (Claude Fix) | 리뷰 코멘트 / `@claude` 멘션 | 코드 자동 수정 | self-hosted |
 | `sdd-sync.yml` | PR 머지 | 태스크 정리 + 브랜치 삭제 | self-hosted |
 | `sentry-patrol.yml` | 매일 09:00 KST / 수동 | Sentry 에러 → GitHub Issue 자동 생성 | self-hosted |
 
@@ -113,7 +113,7 @@ PR push → Claude가 CLAUDE.md 기준으로 리뷰
         → CodeRabbit과 병렬 동작
 ```
 
-### sdd-review.yml (Claude Fix) — 리뷰 자동 수정
+### claude-fix.yml (Claude Fix) — 리뷰 자동 수정
 
 **Job 1: auto-fix** (멘션 불필요)
 ```
@@ -177,7 +177,7 @@ Claude 재수정 → push → 재리뷰 (반복)
 | 사람 | `@claude [요청]` | PR에서 수동 요청 | Claude가 요청 대응 |
 | 사람 | `/sdd-sync` | 비상용 수동 | 머지 태스크 정리 |
 | 자동 | `claude-review.yml` | PR 생성/push | 병렬 리뷰 |
-| 자동 | `sdd-review.yml` | 리뷰 코멘트 | 자동 수정 |
+| 자동 | `claude-fix.yml` | 리뷰 코멘트 | 자동 수정 |
 | 자동 | `sdd-sync.yml` | PR 머지 | 태스크 정리 |
 | 자동 | CodeRabbit | PR 생성/push | 병렬 리뷰 |
 

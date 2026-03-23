@@ -222,13 +222,13 @@ async def check_workflows(args: dict) -> dict:
 
 
 async def do_trigger_sdd_review(pr_number: int) -> dict:
-    """Core logic: trigger sdd-review workflow for a PR with changes_requested."""
+    """Core logic: trigger claude-fix workflow for a PR with changes_requested."""
     try:
         proc = await asyncio.create_subprocess_exec(
             "gh",
             "workflow",
             "run",
-            "sdd-review.yml",
+            "claude-fix.yml",
             "-f",
             f"pr_number={pr_number}",
             stdout=asyncio.subprocess.PIPE,
@@ -237,19 +237,19 @@ async def do_trigger_sdd_review(pr_number: int) -> dict:
         _, stderr = await asyncio.wait_for(proc.communicate(), timeout=GH_TIMEOUT)
         if proc.returncode != 0:
             return _tool_error(
-                f"Failed to trigger sdd-review for #{pr_number}: {stderr.decode().strip()}"
+                f"Failed to trigger claude-fix for #{pr_number}: {stderr.decode().strip()}"
             )
     except TimeoutError:
         return _tool_error(f"Trigger timed out for #{pr_number}")
     except FileNotFoundError:
         return _tool_error("gh CLI not found")
 
-    logger.info("Triggered sdd-review for PR #%d", pr_number)
+    logger.info("Triggered claude-fix for PR #%d", pr_number)
     return {
         "content": [
             {
                 "type": "text",
-                "text": f"Triggered sdd-review workflow for PR #{pr_number}",
+                "text": f"Triggered claude-fix workflow for PR #{pr_number}",
             }
         ]
     }
@@ -257,7 +257,7 @@ async def do_trigger_sdd_review(pr_number: int) -> dict:
 
 @tool(
     "trigger_sdd_review",
-    "Trigger sdd-review workflow for a PR with changes_requested",
+    "Trigger claude-fix workflow for a PR with changes_requested",
     {
         "type": "object",
         "properties": {

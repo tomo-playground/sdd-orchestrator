@@ -10,7 +10,7 @@
 ```
 CodeRabbit/사람: PR에 코멘트
   ↓ GitHub Webhook (즉시)
-GitHub Actions: sdd-review.yml 트리거
+GitHub Actions: claude-fix.yml 트리거
   ↓
 호스트 runner (~/actions-runner/): Claude CLI로 수정 → push
   ↓
