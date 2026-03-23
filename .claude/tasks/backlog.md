@@ -28,7 +28,7 @@
 ## P1 (최우선)
 
 - [ ] SP-070 — 옵저버빌리티 구멍 메우기 — health-check Slack 알림, 크론 실패 알림, Actions 실패 알림, Sentry 실시간 연동 | scope: infra | [가이드](../../docs/04_operations/OBSERVABILITY.md)
-- [ ] SP-058 — Structure 재설계 C: Intake 노드 — Guided 모드 소크라테스 질문으로 structure/tone/캐릭터 확정 | [명세](../../docs/01_product/FEATURES/STRUCTURE_SYSTEM_REDESIGN.md) §5 | depends: ~~SP-056~~ ✅
+- [ ] SP-058 — Structure 재설계 C: Intake 노드 — Guided 모드 소크라테스 질문으로 structure/tone/캐릭터 확정 | [명세](../../docs/01_product/FEATURES/STRUCTURE_SYSTEM_REDESIGN.md) §5 | **approved** | depends: ~~SP-056~~ ✅
 - [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | [명세](../../docs/01_product/FEATURES/ENUM_ID_NORMALIZATION.md)
 - [ ] SP-021 — Speaker 동적 역할 Phase A — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | [명세](../../docs/01_product/FEATURES/SPEAKER_DYNAMIC_ROLE.md) | depends: SP-020, ~~SP-056~~ ✅
 - [ ] SP-022 — ComfyUI 마이그레이션 — ForgeUI→ComfyUI + SD Client 추상화 | [명세](../../docs/01_product/FEATURES/COMFYUI_MIGRATION.md)
