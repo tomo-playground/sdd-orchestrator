@@ -243,8 +243,17 @@ def resolve_scene_preset(builder: VideoBuilder, scene_idx: int) -> str:
     scene = builder.request.scenes[scene_idx]
     per_scene = getattr(scene, "ken_burns_preset", None)
     if per_scene and per_scene != "none":
-        logger.info(f"Scene {scene_idx}: per-scene Ken Burns preset -> {per_scene}")
-        return per_scene
+        from services.motion import VALID_PRESET_NAMES
+
+        if per_scene.lower() in VALID_PRESET_NAMES:
+            logger.info(f"Scene {scene_idx}: per-scene Ken Burns preset -> {per_scene}")
+            return per_scene.lower()
+        else:
+            logger.warning(
+                "Scene %d: invalid per-scene Ken Burns preset '%s', skipping to next priority",
+                scene_idx,
+                per_scene,
+            )
 
     # 2) Same-background alternation: avoid repeating preset for consecutive same-bg scenes
     if scene_idx > 0:

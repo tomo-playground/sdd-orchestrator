@@ -80,3 +80,19 @@ class TestResolveScenePreset:
         assert resolve_scene_preset(builder, 0) == "zoom_out_center"
         assert resolve_scene_preset(builder, 1) == "slow_zoom"
         assert resolve_scene_preset(builder, 2) == "pan_left"
+
+    def test_invalid_per_scene_preset_skips_to_global(self):
+        """무효한 씬별 preset은 무시하고 전역 fallback."""
+        scene = MagicMock(ken_burns_preset="invalid_garbage")
+        builder = _make_builder(global_preset="slow_zoom", scenes=[scene])
+        result = resolve_scene_preset(builder, 0)
+        assert result == "slow_zoom"
+
+    def test_invalid_per_scene_preset_with_global_random(self):
+        """무효한 씬별 preset + 전역 random -> random에서 선택."""
+        scene = MagicMock(ken_burns_preset="typo_zoom")
+        builder = _make_builder(global_preset="random", scenes=[scene])
+        result = resolve_scene_preset(builder, 0)
+        from services.motion import RANDOM_ELIGIBLE
+
+        assert result in RANDOM_ELIGIBLE

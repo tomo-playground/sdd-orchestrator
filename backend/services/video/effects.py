@@ -20,11 +20,26 @@ MIN_XFADE_OFFSET = 0.05
 if TYPE_CHECKING:
     from services.video.builder import VideoBuilder
 
+# Transition ↔ Ken Burns direction conflict map.
+# If transition and Ken Burns move in the same direction, the visual result is disorienting.
+DIRECTION_CONFLICT_MAP: dict[str, set[str]] = {
+    "slideleft": {"pan_left", "zoom_pan_left"},
+    "slideright": {"pan_right", "zoom_pan_right"},
+    "slideup": {"pan_up", "pan_up_vertical", "pan_zoom_up"},
+    "slidedown": {"pan_down", "pan_down_vertical", "pan_zoom_down"},
+    "wipeleft": {"pan_left", "zoom_pan_left"},
+    "wiperight": {"pan_right", "zoom_pan_right"},
+    "wipeup": {"pan_up", "pan_up_vertical", "pan_zoom_up"},
+    "wipedown": {"pan_down", "pan_down_vertical", "pan_zoom_down"},
+}
+
 
 def resolve_scene_transition(builder: VideoBuilder, scene_idx: int) -> str:
     """Resolve transition for a specific scene pair.
 
     Auto mode: same background -> fade, different background -> slide/wipe.
+    After resolution, checks for direction conflict with the scene's
+    Ken Burns preset and falls back to "fade" if they move in the same direction.
     """
     import random
 
@@ -32,20 +47,44 @@ def resolve_scene_transition(builder: VideoBuilder, scene_idx: int) -> str:
 
     if builder.transition_type == "random":
         seed = hash(f"{builder.project_id}_{scene_idx}")
-        return random.Random(seed).choice(RANDOM_ELIGIBLE)
+        transition = random.Random(seed).choice(RANDOM_ELIGIBLE)
+    elif builder.transition_type != "auto":
+        transition = get_transition_name(builder.transition_type)
+    else:
+        # Auto mode: detect location change via background_id
+        prev_bg = getattr(builder.request.scenes[scene_idx - 1], "background_id", None)
+        curr_bg = getattr(builder.request.scenes[scene_idx], "background_id", None)
 
-    if builder.transition_type != "auto":
-        return get_transition_name(builder.transition_type)
+        if prev_bg and curr_bg and prev_bg != curr_bg:
+            seed = hash(f"{builder.project_id}_{scene_idx}")
+            transition = random.Random(seed).choice(LOCATION_CHANGE_TRANSITIONS)
+        else:
+            transition = "fade"
 
-    # Auto mode: detect location change via background_id
-    prev_bg = getattr(builder.request.scenes[scene_idx - 1], "background_id", None)
-    curr_bg = getattr(builder.request.scenes[scene_idx], "background_id", None)
+    return _check_direction_conflict(builder, scene_idx, transition)
 
-    if prev_bg and curr_bg and prev_bg != curr_bg:
-        seed = hash(f"{builder.project_id}_{scene_idx}")
-        return random.Random(seed).choice(LOCATION_CHANGE_TRANSITIONS)
 
-    return "fade"
+def _check_direction_conflict(builder: VideoBuilder, scene_idx: int, transition: str) -> str:
+    """Replace transition with 'fade' if it conflicts with the scene's Ken Burns direction."""
+    conflicting_presets = DIRECTION_CONFLICT_MAP.get(transition)
+    if not conflicting_presets:
+        return transition
+
+    scene = builder.request.scenes[scene_idx]
+    kb_preset = getattr(scene, "ken_burns_preset", None)
+    if not kb_preset:
+        return transition
+
+    if kb_preset.lower() in conflicting_presets:
+        logger.info(
+            "Scene %d: transition '%s' conflicts with Ken Burns '%s', using 'fade'",
+            scene_idx,
+            transition,
+            kb_preset,
+        )
+        return "fade"
+
+    return transition
 
 
 def apply_transitions(builder: VideoBuilder) -> None:
@@ -145,6 +184,17 @@ def apply_bgm(builder: VideoBuilder) -> None:
     bgm_path = _resolve_bgm_path(builder)
     if not bgm_path:
         return
+
+    # Safety clamp: ensure _total_dur is positive
+    if builder._total_dur <= 0:
+        fallback_dur = sum(builder.scene_durations) if builder.scene_durations else 0
+        if fallback_dur <= 0:
+            logger.warning("[BGM] _total_dur=%.3f and no scene_durations, skipping BGM", builder._total_dur)
+            return
+        logger.warning(
+            "[BGM] _total_dur=%.3f invalid, using scene_durations sum=%.3f", builder._total_dur, fallback_dur
+        )
+        builder._total_dur = fallback_dur
 
     builder.input_args.extend(["-i", str(bgm_path)])
     bgm_idx = builder._next_input_idx

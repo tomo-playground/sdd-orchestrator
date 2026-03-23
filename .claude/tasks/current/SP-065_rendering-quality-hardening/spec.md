@@ -4,7 +4,7 @@ priority: P2
 scope: backend
 branch: feat/SP-065-rendering-quality-hardening
 created: 2026-03-23
-status: approved
+status: running
 depends_on:
 label: feat
 ---
@@ -22,29 +22,29 @@ label: feat
 
 ### Ken Burns Fallback
 
-- [ ] `resolve_preset_name()`에서 무효한 값 반환 시 emotion 기반 자동 배정을 fallback으로 적용한다 (Finalize의 감정 기반 배정 로직 재사용)
-- [ ] 무효 preset 입력에 대해 fallback이 작동하는 테스트를 작성한다
+- [x] `resolve_preset_name()`에서 무효한 값 반환 시 emotion 기반 자동 배정을 fallback으로 적용한다 (Finalize의 감정 기반 배정 로직 재사용)
+- [x] 무효 preset 입력에 대해 fallback이 작동하는 테스트를 작성한다
 
 ### BGM Ducking 검증
 
-- [ ] `apply_music_effects()`에서 ducking offset이 scene_durations 합계를 초과하면 마지막 씬 끝으로 클램프한다
-- [ ] BGM 길이가 전체 영상보다 짧으면 루핑 또는 fade-out 처리가 적용되는지 확인하고, 미적용이면 추가한다
-- [ ] ducking 타이밍 정확도 테스트를 작성한다
+- [x] `apply_music_effects()`에서 ducking offset이 scene_durations 합계를 초과하면 마지막 씬 끝으로 클램프한다
+- [x] BGM 길이가 전체 영상보다 짧으면 루핑 또는 fade-out 처리가 적용되는지 확인하고, 미적용이면 추가한다
+- [x] ducking 타이밍 정확도 테스트를 작성한다
 
 ### Voice Pacing 적용 확인
 
-- [ ] TTS Designer가 생성한 `head_padding`/`tail_padding` 값이 렌더링 시 실제로 적용되는 경로를 확인한다
-- [ ] 미적용이면 scene_processing에서 TTS 오디오에 padding을 추가하는 로직을 연결한다
+- [x] TTS Designer가 생성한 `head_padding`/`tail_padding` 값이 렌더링 시 실제로 적용되는 경로를 확인한다
+- [x] 미적용이면 scene_processing에서 TTS 오디오에 padding을 추가하는 로직을 연결한다
 
 ### 전환 효과 충돌 방지
 
-- [ ] `resolve_scene_transition()`에서 선택된 전환 효과의 방향이 해당 씬의 ken_burns_preset 방향과 동일하면 (예: slideL + pan_left) 다른 전환으로 대체한다
-- [ ] 방향 충돌 케이스에 대한 테스트를 작성한다
+- [x] `resolve_scene_transition()`에서 선택된 전환 효과의 방향이 해당 씬의 ken_burns_preset 방향과 동일하면 (예: slideL + pan_left) 다른 전환으로 대체한다
+- [x] 방향 충돌 케이스에 대한 테스트를 작성한다
 
 ### 통합
 
-- [ ] 기존 테스트 regression 없음
-- [ ] 린트 통과
+- [x] 기존 테스트 regression 없음
+- [x] 린트 통과
 
 ## 영향 분석
 - 관련 파일: `backend/services/video/effects.py`, `backend/services/video/scene_processing.py`, `backend/services/video/builder.py`, `backend/services/motion.py`

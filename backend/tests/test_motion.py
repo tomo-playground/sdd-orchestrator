@@ -237,6 +237,21 @@ class TestResolvePresetName:
         result = resolve_preset_name("random")
         assert result == "random"
 
+    def test_invalid_preset_returns_none(self):
+        """Invalid preset name should fall back to 'none'."""
+        result = resolve_preset_name("invalid_foo")
+        assert result == "none"
+
+    def test_case_insensitive(self):
+        """Mixed-case preset should be normalized to lowercase."""
+        result = resolve_preset_name("Zoom_In_Center")
+        assert result == "zoom_in_center"
+
+    def test_typo_preset_returns_none(self):
+        """Typo in preset name should fall back to 'none'."""
+        result = resolve_preset_name("zoom_in_centre")
+        assert result == "none"
+
 
 class TestValidPresetNames:
     """Tests for VALID_PRESET_NAMES set."""

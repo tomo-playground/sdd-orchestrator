@@ -76,6 +76,59 @@ class TestXfadeCompensation:
         assert abs(result[1] - 4.65) < 0.001
 
 
+class TestBuildAudioFiltersHeadPadding:
+    """build_audio_filters()에서 head_padding이 adelay에 반영되는지 검증."""
+
+    def test_head_padding_adds_to_adelay(self):
+        """h_pad=0.3, transition_dur=0.5 -> adelay=(0.5+0.3)*1000=800ms."""
+        from unittest.mock import MagicMock
+
+        from services.video.filters import build_audio_filters
+
+        builder = MagicMock()
+        builder.transition_dur = 0.5
+        builder.request.scenes = [MagicMock(head_padding=0.3, tail_padding=0.5)]
+        builder.scene_durations = [5.0]
+        builder.num_scenes = 1
+        builder.filters = []
+
+        build_audio_filters(builder)
+        assert len(builder.filters) == 1
+        assert "adelay=800|800" in builder.filters[0]
+
+    def test_zero_padding_uses_transition_only(self):
+        """h_pad=0, transition_dur=0.5 -> adelay=500ms."""
+        from unittest.mock import MagicMock
+
+        from services.video.filters import build_audio_filters
+
+        builder = MagicMock()
+        builder.transition_dur = 0.5
+        builder.request.scenes = [MagicMock(head_padding=0.0, tail_padding=0.0)]
+        builder.scene_durations = [5.0]
+        builder.num_scenes = 1
+        builder.filters = []
+
+        build_audio_filters(builder)
+        assert "adelay=500|500" in builder.filters[0]
+
+    def test_none_padding_defaults_to_zero(self):
+        """h_pad=None -> 0.0으로 처리."""
+        from unittest.mock import MagicMock
+
+        from services.video.filters import build_audio_filters
+
+        builder = MagicMock()
+        builder.transition_dur = 0.5
+        builder.request.scenes = [MagicMock(head_padding=None, tail_padding=None)]
+        builder.scene_durations = [5.0]
+        builder.num_scenes = 1
+        builder.filters = []
+
+        build_audio_filters(builder)
+        assert "adelay=500|500" in builder.filters[0]
+
+
 class TestLastSceneTTSClipPrevention:
     """마지막 씬 TTS 잘림 방지 regression 테스트."""
 

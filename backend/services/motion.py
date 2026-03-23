@@ -10,6 +10,8 @@ import random
 from dataclasses import dataclass
 from typing import Literal
 
+from config import logger
+
 KenBurnsPresetName = Literal[
     "none",
     "slow_zoom",
@@ -235,12 +237,23 @@ def suggest_ken_burns_preset(emotion: str | None, seed: int = 0) -> str:
 def resolve_preset_name(ken_burns_preset: str | None) -> str:
     """Resolve the effective preset name.
 
+    Validates against VALID_PRESET_NAMES. Invalid values fall back to "none"
+    so that downstream resolve_scene_preset() can apply emotion-based or
+    random assignment.
+
     Args:
         ken_burns_preset: Ken Burns preset name
 
     Returns:
         Resolved preset name (defaults to 'none')
     """
-    if ken_burns_preset and ken_burns_preset != "none":
-        return ken_burns_preset
+    if not ken_burns_preset or ken_burns_preset == "none":
+        return "none"
+    # "random" is a meta-value resolved downstream, pass through
+    if ken_burns_preset == "random":
+        return "random"
+    normalized = ken_burns_preset.lower()
+    if normalized in VALID_PRESET_NAMES:
+        return normalized
+    logger.warning("[Ken Burns] Invalid preset '%s', falling back to 'none'", ken_burns_preset)
     return "none"
