@@ -4,7 +4,8 @@ priority: P2
 scope: fullstack
 branch: feat/SP-053-pipeline-progress-visibility
 created: 2026-03-22
-status: design
+status: approved
+approved_at: 2026-03-23
 depends_on:
 label: feat
 ---
