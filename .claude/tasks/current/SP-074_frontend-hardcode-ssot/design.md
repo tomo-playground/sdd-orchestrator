@@ -85,25 +85,34 @@ class BgmMoodPresetOption(BaseModel):
 
 ---
 
-## DoD-A3: IP_ADAPTER_MODELS → 기존 API 활용
+## DoD-A3: IP_ADAPTER_MODELS → /presets 응답 포함
 
 ### 구현 방법
+
+**Backend:**
+- `config.py`에 `IP_ADAPTER_MODEL_OPTIONS` 상수 정의 (기존 `IP_ADAPTER_MODELS` dict에서 파생)
+- `PresetListResponse`에 `ip_adapter_models: list[str]` 필드 추가 (기본값 `[]`)
+- `routers/presets.py`에서 config 상수를 응답에 포함
+
+> 기존 `/api/admin/controlnet/ip-adapter/status`는 Admin API이므로 서비스 화면에서 호출 불가 (CLAUDE.md API 분리 원칙). `/presets`에 포함하여 service API로 제공.
+
+**Frontend:**
 - `CharacterDetailSections.tsx`에서 하드코딩 `["clip_face", "clip"]` 제거
-- 기존 `GET /api/v1/controlnet/ip-adapter/status` 응답의 `supported_models` 필드 사용
-- 캐릭터 상세 페이지 진입 시 호출 or store 캐싱
+- `/presets` 응답의 `ip_adapter_models` 사용
 
 ### 동작 정의
 - Before: Frontend에 2종 하드코딩 → SD 환경 변경 시 불일치
-- After: Backend `IP_ADAPTER_MODELS` dict에서 동적 로드
+- After: `/presets` 응답에서 동적 로드
 
 ### 엣지 케이스
-- API 실패 시: fallback으로 `["clip"]` 사용 (DEFAULT_IP_ADAPTER_MODEL)
+- `/presets` 실패 시: fallback으로 `["clip"]` 사용 (DEFAULT_IP_ADAPTER_MODEL)
 
 ### 영향 범위
 - `CharacterDetailSections.tsx` 내부만 (다른 파일 import 없음)
 
 ### 테스트 전략
-- IpAdapterSection 렌더 → 모델 버튼이 API 응답 기반으로 표시되는지 검증
+- `GET /presets` 응답에 `ip_adapter_models` 필드 존재 검증
+- IpAdapterSection 렌더 → 모델 버튼이 /presets 응답 기반으로 표시되는지 검증
 
 ### Out of Scope
 - IP-Adapter 로직 자체 변경 없음
@@ -172,12 +181,12 @@ OVERLAY_STYLES = [
 ```
 
 **Frontend:**
-- `constants/index.ts`에서 `OVERLAY_STYLES` 제거
-- `/presets` 응답에서 소비
+- `constants/index.ts`에서 `OVERLAY_STYLES` 데드 코드 제거 (현재 어디서도 import되지 않음)
+- Frontend는 이미 `/api/v1/overlay/list`로 동적 로드 중 → 추가 변경 불필요
 
 ### 동작 정의
-- Before: Frontend 1종, Backend 3종 — **불일치 상태**
-- After: config.py SSOT 3종 → 양쪽 동일
+- Before: Frontend에 데드 코드 1종, Backend `rendering.py`에 하드코딩 3종 — **불일치 + 데드 코드**
+- After: config.py SSOT 3종, Frontend 데드 코드 제거, `/presets`에 overlay_styles 포함 (향후 소비용)
 
 ### 엣지 케이스
 - 오버레이 PNG 파일이 실제로 존재하는지 검증은 렌더링 시점에서 수행 (기존 동작 유지)
@@ -259,7 +268,7 @@ OVERLAY_STYLES = [
 |------|------|
 | `config.py` | `EMOTION_PRESETS`, `BGM_MOOD_PRESETS`, `TAG_GROUP_DESCRIPTIONS`, `OVERLAY_STYLES` 상수 추가 |
 | `schemas.py` | `EmotionPresetOption`, `BgmMoodPresetOption`, `IdLabelOption` 스키마 + `PresetListResponse` 확장 |
-| `services/presets.py` | `build_preset_response()`에 신규 필드 포함 |
+| `routers/presets.py` | `list_presets()` 응답에 신규 필드 포함 |
 | `routers/tags.py` | `GET /tags/groups` 응답에 `description` 필드 추가 |
 
 ### Frontend (4개)
@@ -283,3 +292,4 @@ OVERLAY_STYLES = [
 | Frontend Dev | WARNING → 반영 완료 | AUTO_RUN_STEPS/COLUMN_ORDER 전환 ROI 낮음, OVERLAY_STYLES 불일치 발견, preflight.ts 버그 | 정당성 문서화로 전환, 불일치 해소 추가, 버그 수정 추가 |
 | Backend Dev | PASS | /presets 확장 적절, Pydantic 스키마 필수, config.py 패턴 일관 | 스키마 설계 반영 |
 | Tech Lead | WARNING → 반영 완료 | 전체 /presets 투입 말고 성격별 분리, CLOTHING_PRESETS 재검토 | 4건만 전환 + 3건 문서화로 축소, B군 판단 기록 |
+| Tech Lead (재리뷰) | WARNING 3 → 반영 완료 | services/presets.py→routers/presets.py 파일명 오류, IP_ADAPTER Admin API 위반→/presets 포함, OVERLAY_STYLES 데드 코드 | 파일명 정정, /presets 경유, 데드 코드 제거로 축소 |
