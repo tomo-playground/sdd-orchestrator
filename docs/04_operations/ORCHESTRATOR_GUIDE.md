@@ -103,6 +103,7 @@ Sentry 에러 감지 → GitHub Issue 생성 → autofix PR → 리뷰 → Slack
 | Sentry critical 에러 | autofix PR 생성됨 |
 | DB 스키마 변경 감지 | 사람 승인 필수 |
 | 사람이 changes_requested | sdd-fix 트리거 |
+| APPROVED + WARNING 잔존 | PR에 `@claude` 멘션 → sdd-fix manual job |
 | 일일 리포트 (09:00) | 전일 완료/진행/블로커 요약 |
 
 ---

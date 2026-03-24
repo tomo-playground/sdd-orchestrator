@@ -128,6 +128,24 @@ CodeRabbit/Claude 리뷰 → changes_requested 감지
   → 리뷰 수정, 질문 답변, 코드 변경 등
 ```
 
+**WARNING 수정 재개 방법**
+
+auto-fix는 `changes_requested` 리뷰에서만 트리거됩니다.
+APPROVED 리뷰에 WARNING이 남아있으면 sdd-fix가 자동 실행되지 않습니다.
+
+이때 PR 코멘트에 `@claude` 멘션으로 수정을 요청하세요:
+```
+@claude 미해결 WARNING 수정해줘:
+1. intake.py:81 langfuse_prompt 조건 불일치
+2. IntakeCard.tsx:31 하드코딩 제거
+```
+
+| 리뷰 상태 | sdd-fix 동작 | 사람 액션 |
+|-----------|-------------|----------|
+| `changes_requested` (BLOCKER) | auto-fix 자동 트리거 | 없음 |
+| `approved` + WARNING 잔존 | 미트리거 (skipped) | PR에 `@claude` 멘션 |
+| `approved` + WARNING 없음 | 미트리거 | 머지 진행 |
+
 ### sentry-patrol.yml — 에러 자동 수집
 
 ```
