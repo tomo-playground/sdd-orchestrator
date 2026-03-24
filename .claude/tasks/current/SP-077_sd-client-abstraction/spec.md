@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-077-sd-client-abstraction
 created: 2026-03-24
-status: approved
+status: running
 approved_at: 2026-03-24
 depends_on:
 label: refactor
@@ -18,13 +18,13 @@ SD WebUI 직접 호출 24곳을 `SDClient` 추상화 계층으로 통합. ComfyU
 
 ## 완료 기준 (DoD)
 
-- [ ] `services/sd_client/__init__.py` — `SDClientBase` ABC 정의 (txt2img, img2img, get_models, get_options, set_options)
-- [ ] `services/sd_client/forge.py` — `ForgeClient` 구현 (기존 SD WebUI 호출 래핑)
-- [ ] `config.py`에 `SD_CLIENT_TYPE` 환경변수 추가 (`forge` | `comfy`)
-- [ ] `services/sd_client/factory.py` — `get_sd_client() -> SDClientBase` 팩토리
-- [ ] 기존 SD WebUI 직접 호출 24곳 → `get_sd_client().txt2img(...)` 등으로 전환
-- [ ] 기존 테스트 통과
-- [ ] 린트 통과
+- [x] `services/sd_client/__init__.py` — `SDClientBase` ABC 정의 (txt2img, img2img, get_models, get_options, set_options)
+- [x] `services/sd_client/forge.py` — `ForgeClient` 구현 (기존 SD WebUI 호출 래핑)
+- [x] `config.py`에 `SD_CLIENT_TYPE` 환경변수 추가 (`forge` | `comfy`)
+- [x] `services/sd_client/factory.py` — `get_sd_client() -> SDClientBase` 팩토리
+- [x] 기존 SD WebUI 직접 호출 24곳 → `get_sd_client().txt2img(...)` 등으로 전환
+- [x] 기존 테스트 통과
+- [x] 린트 통과
 
 ## 제약
 - ComfyUIClient 구현은 SP-022에서

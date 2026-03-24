@@ -11,7 +11,6 @@ from config import (
     SD_DEFAULT_CFG_SCALE,
     SD_DEFAULT_CLIP_SKIP,
     SD_DEFAULT_SAMPLER,
-    SD_TXT2IMG_URL,
     apply_sampler_to_payload,
     logger,
 )
@@ -118,12 +117,11 @@ async def ensure_avatar_file(
     }
     apply_sampler_to_payload(payload, payload.pop("sampler_name"))
     try:
-        logger.info(f"Requesting avatar from SD WebUI: {SD_TXT2IMG_URL}")
-        async with httpx.AsyncClient() as client:
-            res = await client.post(SD_TXT2IMG_URL, json=payload, timeout=timeout)
-            res.raise_for_status()
-            data = res.json()
-        image_b64 = (data.get("images") or [None])[0]
+        from services.sd_client.factory import get_sd_client
+
+        logger.info("Requesting avatar from SD WebUI")
+        result = await get_sd_client().txt2img(payload, timeout=timeout)
+        image_b64 = result.image
         if not image_b64:
             logger.warning("SD WebUI returned no images")
             return None

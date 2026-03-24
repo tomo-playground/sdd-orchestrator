@@ -24,14 +24,16 @@ class TestTagFormatInReference:
 
 
 class TestConfigConstantsUsage:
-    """generate_reference_for_character must use config constants."""
+    """generate_reference_for_character must use config constants or get_sd_client()."""
 
-    def test_uses_sd_txt2img_url_constant(self):
-        """Must reference SD_TXT2IMG_URL from config, not hardcode URL."""
+    def test_uses_sd_client(self):
+        """Must use get_sd_client() instead of direct httpx/SD_TXT2IMG_URL."""
         import services.controlnet as mod
 
         source = inspect.getsource(mod.generate_reference_for_character)
-        assert "SD_TXT2IMG_URL" in source, "generate_reference_for_character should use SD_TXT2IMG_URL from config"
+        assert "get_sd_client()" in source, "generate_reference_for_character should use get_sd_client()"
+        assert "SD_TXT2IMG_URL" not in source, "legacy SD_TXT2IMG_URL call should be removed"
+        assert "httpx.AsyncClient" not in source, "direct httpx client usage should be removed"
 
 
 class TestIntentionalBypassComment:

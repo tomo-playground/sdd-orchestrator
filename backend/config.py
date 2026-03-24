@@ -150,6 +150,7 @@ GEMINI_SAFETY_SETTINGS: list[genai.types.SafetySetting] = [
 
 
 SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
+SD_CLIENT_TYPE = os.getenv("SD_CLIENT_TYPE", "forge")  # "forge" | "comfy"
 if SD_BASE_URL == "http://127.0.0.1:7860":
     logger.info("Using default SD_BASE_URL: %s", SD_BASE_URL)
 
@@ -241,6 +242,7 @@ def apply_sampler_to_payload(payload: dict, sampler_name: str) -> None:
 
 # --- SD API Timeouts ---
 SD_API_TIMEOUT = float(os.getenv("SD_API_TIMEOUT", "10"))
+SD_PROGRESS_POLL_TIMEOUT = float(os.getenv("SD_PROGRESS_POLL_TIMEOUT", "5"))
 SD_MODEL_SWITCH_TIMEOUT = float(os.getenv("SD_MODEL_SWITCH_TIMEOUT", "120"))
 
 # --- ControlNet Timeouts ---

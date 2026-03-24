@@ -25,11 +25,9 @@ from schemas import (
 from services.controlnet import (
     IP_ADAPTER_MODELS,
     POSE_MAPPING,
-    check_controlnet_available,
     create_pose_from_image,
     delete_reference_image,
     detect_pose_from_prompt,
-    get_controlnet_models,
     list_reference_images,
     load_pose_reference,
     load_reference_image,
@@ -39,6 +37,7 @@ from services.ip_adapter import (
     upload_photo_reference,
     validate_reference_quality,
 )
+from services.sd_client.factory import get_sd_client
 
 router = APIRouter(prefix="/controlnet", tags=["controlnet-admin"])
 service_router = APIRouter(prefix="/controlnet", tags=["controlnet"])
@@ -57,8 +56,9 @@ class PoseDetectResponse(BaseModel):
 @router.get("/status", response_model=ControlNetStatusResponse)
 async def get_controlnet_status():
     """Check ControlNet availability and list models."""
-    available = check_controlnet_available()
-    models = get_controlnet_models() if available else []
+    sd = get_sd_client()
+    available = await sd.check_controlnet()
+    models = await sd.get_controlnet_models() if available else []
     return {
         "is_available": available,
         "models": models,
@@ -97,7 +97,7 @@ async def get_pose_reference(pose_name: str):
 async def detect_pose(request: PoseDetectRequest):
     """Extract pose skeleton from an image."""
     try:
-        result = create_pose_from_image(request.image_b64)
+        result = await create_pose_from_image(request.image_b64)
         images = result.get("images", [])
         if images:
             return PoseDetectResponse(
@@ -155,8 +155,9 @@ class ReferenceImageResponse(BaseModel):
 @router.get("/ip-adapter/status", response_model=IPAdapterStatusResponse)
 async def get_ip_adapter_status():
     """Check IP-Adapter availability."""
-    available = check_controlnet_available()
-    models = get_controlnet_models() if available else []
+    sd = get_sd_client()
+    available = await sd.check_controlnet()
+    models = await sd.get_controlnet_models() if available else []
     ip_models = [m for m in models if "ip-adapter" in m.lower()]
     return {
         "is_available": len(ip_models) > 0,

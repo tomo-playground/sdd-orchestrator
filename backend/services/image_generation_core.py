@@ -5,29 +5,25 @@ Provides single source of truth for Prompt Engine + SD integration.
 
 from __future__ import annotations
 
-import json
 import re
 from typing import Literal
 
-import httpx
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from config import (
-    SD_BASE_URL,
     SD_DEFAULT_CFG_SCALE,
     SD_DEFAULT_CLIP_SKIP,
     SD_DEFAULT_HEIGHT,
     SD_DEFAULT_SAMPLER,
     SD_DEFAULT_STEPS,
     SD_DEFAULT_WIDTH,
-    SD_TIMEOUT_SECONDS,
-    SD_TXT2IMG_URL,
     apply_sampler_to_payload,
     logger,
 )
 from services.prompt.composition import PromptBuilder
 from services.prompt.prompt import normalize_negative_prompt, split_prompt_tokens
+from services.sd_client.factory import get_sd_client
 
 
 async def _ensure_correct_checkpoint(sd_model_name: str) -> None:
@@ -38,28 +34,14 @@ async def _ensure_correct_checkpoint(sd_model_name: str) -> None:
     if not sd_model_name:
         return
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(f"{SD_BASE_URL}/sdapi/v1/options")
-            if resp.status_code != 200:
-                logger.warning("Failed to read SD options: %d", resp.status_code)
-                return
-            current_model = resp.json().get("sd_model_checkpoint", "")
-            if sd_model_name in current_model:
-                return  # Already using the correct checkpoint
-            logger.info(
-                "Switching SD checkpoint: %s -> %s",
-                current_model,
-                sd_model_name,
-            )
-            resp = await client.post(
-                f"{SD_BASE_URL}/sdapi/v1/options",
-                json={"sd_model_checkpoint": sd_model_name},
-                timeout=120,
-            )
-            if resp.status_code == 200:
-                logger.info("SD checkpoint switched to %s", sd_model_name)
-            else:
-                logger.warning("Failed to switch checkpoint: %d", resp.status_code)
+        sd = get_sd_client()
+        options = await sd.get_options()
+        current_model = options.get("sd_model_checkpoint", "")
+        if sd_model_name in current_model:
+            return  # Already using the correct checkpoint
+        logger.info("Switching SD checkpoint: %s -> %s", current_model, sd_model_name)
+        await sd.set_options({"sd_model_checkpoint": sd_model_name}, timeout=120)
+        logger.info("SD checkpoint switched to %s", sd_model_name)
     except Exception as e:
         logger.warning("Checkpoint switch failed (non-blocking): %s", e)
 
@@ -215,22 +197,15 @@ async def generate_image_with_v3(
 
     # 7. Call SD API
     try:
-        async with httpx.AsyncClient(timeout=SD_TIMEOUT_SECONDS) as client:
-            resp = await client.post(SD_TXT2IMG_URL, json=payload)
-
-        if resp.status_code != 200:
-            msg = f"SD API error: {resp.status_code}"
-            logger.error(f"{mode_prefix} {msg}")
-            raise RuntimeError(msg)
-
-        data = resp.json()
-        info = json.loads(data.get("info", "{}"))
-        resolved_seed = info.get("seed", payload["seed"])
+        result = await get_sd_client().txt2img(payload)
+        if not result.image:
+            raise RuntimeError("SD WebUI returned no images")
+        resolved_seed = result.seed if result.seed is not None else payload["seed"]
 
         logger.info(f"{mode_prefix} Image generated successfully (seed={resolved_seed})")
 
         return ImageGenerationResult(
-            image=data["images"][0],
+            image=result.image,
             seed=resolved_seed,
             final_prompt=final_prompt,
             final_negative_prompt=negative_prompt,

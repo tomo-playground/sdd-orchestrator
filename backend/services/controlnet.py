@@ -11,7 +11,6 @@ import os
 import random
 from typing import Any
 
-import httpx
 import requests
 from PIL import Image
 from sqlalchemy.orm import Session
@@ -19,7 +18,6 @@ from sqlalchemy.orm import Session
 from config import (
     CONTROLNET_API_TIMEOUT,
     CONTROLNET_DEFAULT_SAMPLER,
-    CONTROLNET_DETECT_TIMEOUT,
     CONTROLNET_GENERATE_TIMEOUT,
     DEFAULT_CHARACTER_PRESET,
     DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP,
@@ -31,7 +29,6 @@ from config import (
     SD_DEFAULT_CFG_SCALE,
     SD_DEFAULT_HEIGHT,
     SD_DEFAULT_WIDTH,
-    SD_TXT2IMG_URL,
     apply_sampler_to_payload,
     logger,
 )
@@ -317,7 +314,7 @@ def build_controlnet_args(
     return args
 
 
-def generate_with_controlnet(
+async def generate_with_controlnet(
     prompt: str,
     negative_prompt: str,
     pose_image: str,
@@ -342,6 +339,8 @@ def generate_with_controlnet(
     Returns:
         Generation result with images
     """
+    from services.sd_client.factory import get_sd_client
+
     payload = {
         "prompt": prompt,
         "negative_prompt": negative_prompt,
@@ -365,16 +364,11 @@ def generate_with_controlnet(
     }
     apply_sampler_to_payload(payload, CONTROLNET_DEFAULT_SAMPLER)
 
-    resp = requests.post(
-        f"{SD_BASE_URL}/sdapi/v1/txt2img",
-        json=payload,
-        timeout=CONTROLNET_GENERATE_TIMEOUT,
-    )
-    resp.raise_for_status()
-    return resp.json()
+    result = await get_sd_client().txt2img(payload, timeout=CONTROLNET_GENERATE_TIMEOUT)
+    return {"images": result.images, "info": result.info}
 
 
-def create_pose_from_image(image_b64: str) -> dict[str, Any]:
+async def create_pose_from_image(image_b64: str) -> dict[str, Any]:
     """Extract pose skeleton from an image using OpenPose.
 
     Args:
@@ -383,19 +377,15 @@ def create_pose_from_image(image_b64: str) -> dict[str, Any]:
     Returns:
         Pose detection result with skeleton image
     """
+    from services.sd_client.factory import get_sd_client
+
     payload = {
         "controlnet_module": "openpose_full",
         "controlnet_input_images": [image_b64],
         "controlnet_processor_res": SD_DEFAULT_WIDTH,
     }
 
-    resp = requests.post(
-        f"{SD_BASE_URL}/controlnet/detect",
-        json=payload,
-        timeout=CONTROLNET_DETECT_TIMEOUT,
-    )
-    resp.raise_for_status()
-    return resp.json()
+    return await get_sd_client().controlnet_detect(payload)
 
 
 # ============================================================
@@ -844,11 +834,14 @@ async def generate_reference_for_character(
         logger.info(f"  Negative: {payload['negative_prompt'][:100]}...")
 
         # 5. Call SD
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(SD_TXT2IMG_URL, json=payload, timeout=CONTROLNET_GENERATE_TIMEOUT)
-            resp.raise_for_status()
-            r = resp.json()
-            image_b64 = r["images"][0]
+        from services.sd_client.factory import get_sd_client
+
+        result = await get_sd_client().txt2img(payload, timeout=CONTROLNET_GENERATE_TIMEOUT)
+        image_b64 = result.image
+
+        if not image_b64:
+            logger.warning(f"SD returned no images for character reference: {character.name}")
+            continue
 
         if not validate:
             return save_reference_image(character.name, image_b64)

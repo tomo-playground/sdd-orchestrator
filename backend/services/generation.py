@@ -15,8 +15,6 @@ import httpx
 from fastapi import HTTPException
 
 from config import (
-    SD_TIMEOUT_SECONDS,
-    SD_TXT2IMG_URL,
     apply_sampler_to_payload,
     logger,
 )
@@ -35,6 +33,7 @@ from services.prompt import (
     normalize_prompt_tokens,
     split_prompt_tokens,
 )
+from services.sd_client.factory import get_sd_client
 
 if TYPE_CHECKING:
     from services.generation_context import GenerationContext
@@ -237,30 +236,21 @@ async def _call_sd_api_raw(payload: dict, ctx: GenerationContext) -> dict:
     logger.info("🧾 [Scene Gen Payload] %s", {k: v for k, v in payload.items() if k != "alwayson_scripts"})
 
     try:
-        async with httpx.AsyncClient() as client:
-            res = await client.post(SD_TXT2IMG_URL, json=payload, timeout=SD_TIMEOUT_SECONDS)
-            res.raise_for_status()
-            data = res.json()
-            raw_images = data.get("images", [])
-            if not raw_images:
-                raise HTTPException(status_code=500, detail="No images returned")
+        result = await get_sd_client().txt2img(payload)
+        if not result.images:
+            raise HTTPException(status_code=500, detail="No images returned")
 
-            batch_size = payload.get("batch_size", 1)
-            images = raw_images[:batch_size]
-            img = images[0]
+        batch_size = payload.get("batch_size", 1)
+        images = result.images[:batch_size]
 
-            actual_seed: int | None = None
-            if _has_info(data):
-                actual_seed = _try_parse_seed(data)
-
-            return {
-                "image": img,
-                "images": images,
-                "seed": actual_seed,
-                "controlnet_pose": ctx.controlnet_used,
-                "ip_adapter_reference": ctx.ip_adapter_used,
-                "warnings": ctx.warnings,
-            }
+        return {
+            "image": images[0],
+            "images": images,
+            "seed": result.seed,
+            "controlnet_pose": ctx.controlnet_used,
+            "ip_adapter_reference": ctx.ip_adapter_used,
+            "warnings": ctx.warnings,
+        }
     except httpx.HTTPError as exc:
         from services.error_responses import raise_user_error
 

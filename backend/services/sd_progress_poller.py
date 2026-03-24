@@ -4,12 +4,10 @@ from __future__ import annotations
 
 import asyncio
 
-import httpx
-
-from config import SD_BASE_URL, logger
+from config import logger
 from services.image_progress import ImageGenStage, ImageTaskProgress, calc_percent
+from services.sd_client.factory import get_sd_client
 
-SD_PROGRESS_URL = f"{SD_BASE_URL}/sdapi/v1/progress"
 POLL_INTERVAL_SECONDS = 1.5
 
 
@@ -19,24 +17,18 @@ async def poll_sd_progress(task: ImageTaskProgress) -> None:
     Runs as an asyncio background coroutine while the main generate_scene_image
     call is in progress. Stops when task.stage leaves GENERATING or task is cancelled.
     """
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        while task.stage == ImageGenStage.GENERATING and not task.cancelled:
-            try:
-                resp = await client.get(SD_PROGRESS_URL)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    progress = data.get("progress", 0.0)
-                    task.sd_progress = min(progress, 0.99)
-                    task.percent = calc_percent(task)
-                    eta_text = data.get("textinfo", "")
-                    if eta_text:
-                        task.message = eta_text
-                    # Capture preview image (base64 JPEG from SD WebUI)
-                    current_image = data.get("current_image")
-                    if current_image:
-                        task.preview_image = current_image
-                    task.notify()
-            except Exception:
-                logger.debug("[SD Poll] Progress fetch failed (SD WebUI may be busy)")
+    sd = get_sd_client()
+    while task.stage == ImageGenStage.GENERATING and not task.cancelled:
+        try:
+            result = await sd.get_progress()
+            task.sd_progress = min(result.progress, 0.99)
+            task.percent = calc_percent(task)
+            if result.textinfo:
+                task.message = result.textinfo
+            if result.current_image:
+                task.preview_image = result.current_image
+            task.notify()
+        except Exception:
+            logger.debug("[SD Poll] Progress fetch failed (SD WebUI may be busy)")
 
-            await asyncio.sleep(POLL_INTERVAL_SECONDS)
+        await asyncio.sleep(POLL_INTERVAL_SECONDS)
