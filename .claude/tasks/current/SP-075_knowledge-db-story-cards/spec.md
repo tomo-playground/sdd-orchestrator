@@ -4,7 +4,8 @@ priority: P1
 scope: fullstack
 branch: feat/SP-075-knowledge-db
 created: 2026-03-23
-status: design
+status: approved
+approved_at: 2026-03-24
 depends_on:
 label: feat
 ---
