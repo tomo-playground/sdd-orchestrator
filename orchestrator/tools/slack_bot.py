@@ -208,11 +208,25 @@ class SlackBotListener:
             wt_text = wt_result.get("content", [{}])[0].get("text", "[]")
             running = _safe_json_loads(wt_text, [])
 
-        # Build blocks
-        task_lines = []
-        for t in current[:5]:
-            task_lines.append(f"• `{t.id}` ({t.spec_status}) — {t.description[:40]}")
-        task_text = "\n".join(task_lines) if task_lines else "— 없음"
+        # Build blocks — 진행 중 / 대기 중 구분
+        _ACTIVE = {"approved", "running", "design"}
+        active = [t for t in current if t.spec_status in _ACTIVE]
+        waiting = [t for t in current if t.spec_status not in _ACTIVE]
+
+        active_lines = []
+        for t in active:
+            emoji = ":large_green_circle:" if t.spec_status == "running" else ":large_blue_circle:"
+            active_lines.append(f"{emoji} `{t.id}` ({t.spec_status}) — {t.description[:40]}")
+        active_text = "\n".join(active_lines) if active_lines else "— 없음"
+
+        waiting_lines = []
+        for t in waiting[:5]:
+            waiting_lines.append(
+                f":white_circle: `{t.id}` ({t.spec_status}) — {t.description[:40]}"
+            )
+        waiting_text = "\n".join(waiting_lines) if waiting_lines else "— 없음"
+
+        task_text = f"*진행 중*\n{active_text}\n\n*대기 중*\n{waiting_text}"
 
         if prs is None:
             pr_text = ":warning: PR 조회 실패 (gh API 오류)"
@@ -301,11 +315,13 @@ class SlackBotListener:
         ]
 
     async def _cmd_backlog(self) -> list[dict]:
-        """Show top 5 backlog items."""
+        """Show top 5 backlog items (exclude approved/running/done)."""
         from orchestrator.tools.backlog import parse_backlog
 
         tasks = parse_backlog()
-        top5 = tasks[:5]
+        _ACTIVE = {"approved", "running", "done"}
+        waiting = [t for t in tasks if t.spec_status not in _ACTIVE]
+        top5 = waiting[:5]
 
         lines = []
         for t in top5:
