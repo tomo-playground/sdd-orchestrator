@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-022-comfyui-migration
 created: 2026-03-24
-status: pending
+status: design
 depends_on: SP-077
 label: feat
 ---
