@@ -12,19 +12,19 @@ graph TB
 
     subgraph Frontend ["Frontend — Next.js 16 · React 19"]
         direction TB
-        Pages["Pages: Home · Studio · Scripts · Library · Settings"]
-        Store["Zustand 4-Store<br/>Context · Storyboard · Render · UI"]
-        Hooks["25 Custom Hooks"]
+        Pages["Pages: Home · Studio · Scripts · Storyboards · Library · Settings"]
+        Store["Zustand 5-Store<br/>Context · Storyboard · Render · UI · Chat"]
+        Hooks["55 Custom Hooks"]
         Pages --- Store --- Hooks
     end
 
     subgraph Backend ["Backend — FastAPI · Python 3.13"]
-        API["29 REST API Routers"]
+        API["28 REST API Routers"]
 
         subgraph Pipeline ["Agentic Pipeline — LangGraph"]
             direction LR
-            Nodes["19 Agent Nodes<br/>Director Plan · Plan Gate · Writer<br/>Critic · Research · Cinematographer<br/>Review · Sound · TTS ..."]
-            Tools["9 Gemini Tools<br/>Research 5 + Cine 4"]
+            Nodes["21 Agent Nodes<br/>Intake · Director Plan · Plan Gate · Writer<br/>Critic · Research · Location Planner<br/>Cinematographer · Review · Sound · TTS ..."]
+            Tools["10 Gemini Tools<br/>Research 5 + Cine 5"]
             Nodes --- Tools
         end
 
@@ -42,14 +42,14 @@ graph TB
 
     subgraph Infra ["Infrastructure"]
         direction LR
-        DB[("PostgreSQL<br/>26 Models · Alembic")]
+        DB[("PostgreSQL<br/>32 Models · Alembic")]
         S3[("MinIO / S3<br/>Media Storage")]
         LangFuse["LangFuse<br/>Observability"]
     end
 
     subgraph External ["External APIs"]
         direction LR
-        SD["SD WebUI<br/>SDXL · ControlNet<br/>IP-Adapter"]
+        SD["SD WebUI / ComfyUI<br/>SDXL · ControlNet<br/>IP-Adapter"]
         Gemini["Google Gemini<br/>Function Calling"]
     end
 
@@ -66,24 +66,28 @@ graph TB
 
 ### Agentic Pipeline Flow
 
-19개 에이전트 노드가 **Interaction Mode** (Auto/Guided/Hands-on)와 **skip_stages** 파라미터에 따라 자율 협업합니다. Director가 Plan→Checkpoint→ReAct Loop으로 품질을 관리하고, Score 기반 라우팅으로 안전망을 제공합니다.
+21개 에이전트 노드가 **Interaction Mode** (Guided/Fast)와 **skip_stages** 파라미터에 따라 자율 협업합니다. Director가 Plan→Checkpoint→ReAct Loop으로 품질을 관리하고, Score 기반 라우팅으로 안전망을 제공합니다.
 
 ```mermaid
 flowchart TD
     START(("START"))
 
     START -->|"skip_stages 직접 지정"| writer
-    START -->|"기본"| director_plan["Director Plan<br/>목표 수립"]
+    START -->|"Fast"| director_plan["Director Plan<br/>목표 수립"]
+    START -->|"Guided"| intake["Intake<br/>의도 파악"]
 
+    intake --> director_plan
     director_plan --> director_plan_gate{"Plan Gate"}
     director_plan_gate -->|"Plan 승인"| inventory_resolve
     director_plan_gate -.->|"Plan 반려/수정"| director_plan
-    
+
     inventory_resolve --> research["Research<br/>5 Tools · Memory Store"]
     research --> critic["Critic<br/>3-Architect Debate"]
     critic --> concept_gate{"Concept<br/>Gate"}
-    concept_gate -->|"Select"| writer["Writer<br/>Planning + Script Gen"]
+    concept_gate -->|"Select"| location["Location Planner<br/>배경 설계"]
     concept_gate -.->|"Regenerate"| critic
+
+    location --> writer["Writer<br/>Planning + Script Gen"]
 
     writer --> review["Review<br/>Rule + Gemini + NarrativeScore"]
 
@@ -118,6 +122,8 @@ flowchart TD
 
     style START fill:#4CAF50,color:#fff
     style DONE fill:#4CAF50,color:#fff
+    style intake fill:#FF9800,color:#fff
+    style location fill:#607D8B,color:#fff
     style fan fill:#FF9800,color:#fff
     style concept_gate fill:#2196F3,color:#fff
     style checkpoint fill:#9C27B0,color:#fff
@@ -128,10 +134,10 @@ flowchart TD
 
 ## 주요 기능
 
-1.  **Agentic AI Pipeline**: Director, Writer, Critic, Research, Cinematographer 등 19개 에이전트 노드가 LangGraph 기반으로 자율 협업하며 스토리보드를 창작합니다.
-    - 3단계 협업형 UX (Auto/Guided/Hands-on) 및 Stage-Level Skip 지원
+1.  **Agentic AI Pipeline**: Intake, Director, Writer, Critic, Research, Cinematographer 등 21개 에이전트 노드가 LangGraph 기반으로 자율 협업하며 스토리보드를 창작합니다.
+    - 2단계 협업형 UX (Guided/Fast) 및 Stage-Level Skip 지원
     - Revision History 누적 (동일 실패 반복 방지), 최대 리비전 3회
-    - Tool-Calling (Gemini Function Calling 9개), 3-Architect Debate, NarrativeScore
+    - Tool-Calling (Gemini Function Calling 10개), 3-Architect Debate, NarrativeScore
 2.  **12-Layer Prompt Engine**: 캐릭터의 고유 속성(Trait)과 임시 속성(Outfit)을 분리하여 일관성 있는 이미지를 생성합니다.
 3.  **지능형 검수**:
     - **WD14 Tagger**: 생성 이미지와 프롬프트 키워드 일치 여부를 정량 검증합니다.
@@ -144,10 +150,10 @@ flowchart TD
 | 레이어 | 기술 |
 |--------|------|
 | Backend | FastAPI, Python 3.13 |
-| Frontend | Next.js 16, React 19, Zustand 5, Tailwind CSS 4 |
+| Frontend | Next.js 16, React 19, Zustand 5 (5-Store), Tailwind CSS 4 |
 | DB | PostgreSQL, SQLAlchemy, Alembic |
-| AI Pipeline | LangGraph, Google Gemini (`google-genai`), 30 Jinja2 Templates |
-| Image Gen | Stable Diffusion WebUI (SDXL), ControlNet, IP-Adapter |
+| AI Pipeline | LangGraph, Google Gemini (`google-genai`), LangFuse 프롬프트 관리 |
+| Image Gen | Stable Diffusion WebUI / ComfyUI (SDXL), ControlNet, IP-Adapter |
 | TTS | Qwen3-TTS (12Hz, 로컬 MPS) |
 | Video | FFmpeg (Ken Burns, 13종 전환 효과) |
 | Storage | MinIO/S3 |
@@ -159,20 +165,19 @@ flowchart TD
 ### Backend (`/backend`)
 ```
 backend/
-├── routers/          # 도메인별 API 엔드포인트 (29개 라우터)
+├── routers/          # 도메인별 API 엔드포인트 (28개 라우터)
 ├── services/
 │   ├── agent/        # LangGraph Agentic Pipeline
-│   │   ├── nodes/    #   19개 에이전트 노드 + 5개 유틸리티 모듈
-│   │   ├── tools/    #   Gemini Function Calling 9개 도구
+│   │   ├── nodes/    #   21개 에이전트 노드 + 유틸리티 모듈
+│   │   ├── tools/    #   Gemini Function Calling 10개 도구
 │   │   ├── state.py  #   ScriptState (Graph State)
-│   │   └── routing.py#   8개 조건부 라우팅 함수
+│   │   └── routing.py#   14개 조건부 라우팅 함수
 │   ├── video/        # FFmpeg 렌더링 파이프라인
 │   ├── prompt/       # 12-Layer Prompt Builder
 │   ├── keywords/     # 태그 시스템 (캐시, 검증, 분류)
 │   ├── storyboard/   # 스토리보드 CRUD, Scene Builder
 │   └── characters/   # 캐릭터 관리, LoRA 연동
-├── models/           # SQLAlchemy ORM 26개 모델 (V3 Relational Schema)
-├── templates/        # Jinja2 30개 템플릿 (스토리보드 5종 + Creative 21종 + 파셜 4종)
+├── models/           # SQLAlchemy ORM 32개 모델 (V3 Relational Schema)
 ├── schemas.py        # Pydantic Request/Response 모델
 ├── config.py         # 환경변수/상수 SSOT
 └── main.py           # FastAPI 앱 + Lifespan
@@ -182,18 +187,16 @@ backend/
 ```
 frontend/
 ├── app/
-│   ├── (app)/
+│   ├── (service)/
 │   │   ├── page.tsx       # Home (창작 대시보드)
 │   │   ├── studio/        # Studio (씬 편집 워크스페이스)
 │   │   ├── scripts/       # Scripts (Manual + AI Agent 대본 생성)
 │   │   ├── storyboards/   # Storyboards (스토리보드 관리)
-│   │   ├── characters/    # Characters (캐릭터 관리)
 │   │   ├── library/       # Library (에셋 통합 관리)
-│   │   ├── settings/      # Settings (프로젝트/시스템 설정)
-│   │   └── ...            # voices, music, backgrounds, lab, pipeline-demo
-│   ├── components/        # 공유 UI 컴포넌트 (20개 디렉토리)
-│   ├── hooks/             # Custom Hooks (25개)
-│   ├── store/             # Zustand 4-Store (Context/Storyboard/Render/UI)
+│   │   └── settings/      # Settings (프로젝트/시스템 설정)
+│   ├── components/        # 공유 UI 컴포넌트 (18개 디렉토리)
+│   ├── hooks/             # Custom Hooks (55개)
+│   ├── store/             # Zustand 5-Store (Context/Storyboard/Render/UI/Chat)
 │   └── utils/             # 유틸리티
 ├── tests/                 # Vitest 단위 테스트 + Playwright VRT/E2E
 └── package.json
@@ -230,10 +233,10 @@ npm run dev
 
 ## Testing
 
-- **Backend**: `cd backend && uv run pytest` (1,902개 테스트)
-- **Frontend**: `cd frontend && npm test` (352개 테스트)
+- **Backend**: `cd backend && uv run pytest` (~3,900개 테스트)
+- **Frontend**: `cd frontend && npm test` (~610개 테스트)
 - **VRT**: `cd frontend && npm run test:vrt`
-- **총 2,254개 테스트**
+- **총 ~4,500개 테스트**
 
 ## Documentation
 
@@ -246,7 +249,7 @@ npm run dev
 - [System Overview](docs/03_engineering/architecture/SYSTEM_OVERVIEW.md)
 - [DB Schema](docs/03_engineering/architecture/DB_SCHEMA.md)
 - [API Reference](docs/03_engineering/api/REST_API.md)
-- [Test Cases](docs/03_engineering/testing/TEST_CASES.md)
+- [Test Strategy](docs/03_engineering/testing/TEST_STRATEGY.md)
 - [Render Pipeline](docs/03_engineering/backend/RENDER_PIPELINE.md)
 
 ### Design & Operations
