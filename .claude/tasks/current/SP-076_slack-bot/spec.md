@@ -4,7 +4,7 @@ priority: P1
 scope: infra
 branch: feat/SP-076-slack-bot
 created: 2026-03-24
-status: approved
+status: running
 approved_at: 2026-03-24
 depends_on:
 label: feat

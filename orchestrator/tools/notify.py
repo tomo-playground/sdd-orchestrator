@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import sys
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from claude_agent_sdk import tool
@@ -20,6 +22,8 @@ from orchestrator.config import (
 
 logger = logging.getLogger(__name__)
 
+KST = timezone(timedelta(hours=9))
+
 _last_slack_sent: float = 0
 
 _LEVEL_EMOJI = {
@@ -31,15 +35,13 @@ _LEVEL_EMOJI = {
 
 async def _send_slack_message(text: str, blocks: list | None = None) -> bool:
     """Send a message to Slack via webhook. Returns True on success."""
-    global _last_slack_sent
+    global _last_slack_sent  # noqa: PLW0603
 
     if not SLACK_WEBHOOK_URL:
         logger.info("Slack webhook not configured, logging only: %s", text[:200])
         return False
 
     # Rate limit guard
-    import asyncio
-
     elapsed = time.monotonic() - _last_slack_sent
     if elapsed < SLACK_MIN_INTERVAL:
         await asyncio.sleep(SLACK_MIN_INTERVAL - elapsed)
@@ -74,10 +76,26 @@ _LEVEL_COLOR = {
 }
 
 
+def _build_link_buttons(links: list[dict]) -> dict | None:
+    """Build a Block Kit actions block from a list of link dicts."""
+    if not links:
+        return None
+    elements = [
+        {
+            "type": "button",
+            "text": {"type": "plain_text", "text": link["text"][:75]},
+            "url": link["url"],
+        }
+        for link in links[:5]
+    ]
+    return {"type": "actions", "elements": elements}
+
+
 async def do_notify_human(args: dict) -> dict:
     """Core logic: send a notification to the human via Slack."""
     message = args.get("message", "")
     level = args.get("level", "info")
+    links = args.get("links", [])
 
     emoji = _LEVEL_EMOJI.get(level, "\u2139\ufe0f")
     fallback = f"{emoji} {message}"
@@ -96,11 +114,15 @@ async def do_notify_human(args: dict) -> dict:
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": f"Coding Machine — {datetime.now(UTC).strftime('%H:%M UTC')}",
+                    "text": f"Coding Machine — {datetime.now(KST).strftime('%H:%M KST')}",
                 },
             ],
         },
     ]
+
+    actions_block = _build_link_buttons(links)
+    if actions_block:
+        blocks.append(actions_block)
 
     sent = await _send_slack_message(fallback, blocks)
     channel = "slack" if sent else "log_only"
@@ -130,6 +152,18 @@ async def do_notify_human(args: dict) -> dict:
                 "enum": ["info", "warning", "critical"],
                 "description": "Notification level",
             },
+            "links": {
+                "type": "array",
+                "description": "Optional link buttons (max 5)",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string", "description": "Button label"},
+                        "url": {"type": "string", "description": "Button URL"},
+                    },
+                    "required": ["text", "url"],
+                },
+            },
         },
         "required": ["message", "level"],
     },
@@ -141,10 +175,7 @@ async def notify_human(args: dict) -> dict:
 
 async def send_daily_report(summary: dict) -> bool:
     """Format and send a daily report to Slack using Block Kit."""
-    from datetime import timedelta, timezone
-
-    kst = timezone(timedelta(hours=9))
-    today = datetime.now(kst).strftime("%Y-%m-%d")
+    today = datetime.now(KST).strftime("%Y-%m-%d")
 
     completed = summary.get("completed_prs", [])
     in_progress = summary.get("in_progress", [])
@@ -195,3 +226,35 @@ async def send_daily_report(summary: dict) -> bool:
         f"태스크 {len(in_progress)}건, 슬롯 {slots}, Sentry {sentry_open}건"
     )
     return await _send_slack_message(fallback, blocks)
+
+
+# ── CLI entrypoint ──────────────────────────────────────────
+
+
+async def _cli_main() -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Send Slack notification via Block Kit")
+    parser.add_argument("message", help="Message text")
+    parser.add_argument("--level", default="info", choices=["info", "warning", "critical"])
+    parser.add_argument(
+        "--link",
+        nargs=2,
+        action="append",
+        metavar=("TEXT", "URL"),
+        help="Add a link button (can be repeated)",
+    )
+    parsed = parser.parse_args()
+    links = [{"text": t, "url": u} for t, u in (parsed.link or [])]
+    result = await do_notify_human(
+        {"message": parsed.message, "level": parsed.level, "links": links}
+    )
+    try:
+        data = json.loads(result["content"][0]["text"])
+    except (KeyError, IndexError, json.JSONDecodeError):
+        data = {}
+    return 0 if data.get("sent", False) else 1
+
+
+if __name__ == "__main__":
+    sys.exit(asyncio.run(_cli_main()))

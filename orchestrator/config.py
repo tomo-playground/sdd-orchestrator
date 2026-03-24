@@ -111,6 +111,26 @@ Rules:
 - Korean only
 - 사람이 액션해야 하면 반드시 [사람] 접두어. 없으면 정보 공유로 간주.
 
+## Slack Link Rules
+Always include relevant `links` when calling notify_human. Links render as clickable \
+buttons in Slack.
+
+When to include links:
+- PR merged/created → link to the PR
+- CI failure → link to the Actions run
+- Sentry error → link to the Sentry issue
+- Task status change → link to the task spec or PR
+- Workflow triggered → link to the Actions run
+
+Example:
+```json
+{
+  "message": "[머지] SP-072 PR #176 자동 머지 완료",
+  "level": "info",
+  "links": [{"text": "PR #176", "url": "https://github.com/.../pull/176"}]
+}
+```
+
 ## Output Format
 Produce a concise dashboard in this format:
 
@@ -205,6 +225,18 @@ SLACK_TIMEOUT_CONNECT = 5.0
 SLACK_TIMEOUT_READ = 10.0
 SLACK_MIN_INTERVAL = 1.0  # seconds — rate limit guard (1 msg/sec)
 SLACK_MAX_MESSAGE_LENGTH = 4000
+
+# ── Slack Bot (Socket Mode) ──────────────────────────────
+SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN", "")
+SLACK_APP_TOKEN = os.environ.get("SLACK_APP_TOKEN", "")  # xapp- prefix, Socket Mode
+SLACK_BOT_API_TIMEOUT = 10.0  # chat_postMessage timeout
+SLACK_BOT_CHAT_INTERVAL = 0.5  # rate limit guard (500ms)
+SLACK_BOT_ALLOWED_CHANNEL = os.environ.get(
+    "SLACK_BOT_ALLOWED_CHANNEL", ""
+)  # single channel ID, empty = all
+SLACK_BOT_ALLOWED_USERS = os.environ.get(
+    "SLACK_BOT_ALLOWED_USERS", ""
+)  # comma-separated Slack user IDs, empty = all
 
 # ── GitHub Actions Control ────────────────────────────────
 GH_MONITORED_WORKFLOWS = [

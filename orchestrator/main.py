@@ -32,10 +32,14 @@ class OrchestratorDaemon:
         self.interval = interval
         self.cycle = 0
         self.stop_event = asyncio.Event()
+        self.pause_event = asyncio.Event()  # set = paused, clear = running
         self.state = StateStore(db_path=db_path)
         set_state_store(self.state)
         self.mcp_server = create_orchestrator_mcp_server()
         self._last_report_date: str | None = None
+        self.slack_bot = None
+        self._slack_bot_task: asyncio.Task | None = None
+        self._notify_task: asyncio.Task | None = None
 
     async def run(self) -> None:
         """Start the orchestrator event loop."""
@@ -44,6 +48,7 @@ class OrchestratorDaemon:
             loop.add_signal_handler(sig, self._handle_signal)
 
         self._preflight_check()
+        await self._maybe_start_slack_bot()
         logger.info("Orchestrator started (interval=%ds)", self.interval)
 
         while not self.stop_event.is_set():
@@ -59,6 +64,7 @@ class OrchestratorDaemon:
             except TimeoutError:
                 pass  # Normal — next cycle
 
+        await self._stop_slack_bot()
         self.state.close()
         logger.info("Shutdown complete")
 
@@ -90,8 +96,71 @@ class OrchestratorDaemon:
 
         logger.info("Preflight check passed")
 
+    async def _maybe_start_slack_bot(self) -> None:
+        """Start Slack Bot listener if tokens are configured."""
+        from orchestrator.config import SLACK_APP_TOKEN, SLACK_BOT_TOKEN
+
+        if not SLACK_BOT_TOKEN or not SLACK_APP_TOKEN:
+            logger.info("Slack Bot tokens not set — bot listener disabled")
+            return
+
+        from orchestrator.tools.slack_bot import SlackBotListener
+
+        self.slack_bot = SlackBotListener(daemon=self)
+        self._slack_bot_task = asyncio.create_task(self._run_slack_bot_with_restart())
+
+    async def _run_slack_bot_with_restart(self) -> None:
+        """Run Slack Bot with auto-restart on crash (max 3 attempts)."""
+        restart_count = 0
+        max_restarts = 3
+        while restart_count < max_restarts and not self.stop_event.is_set():
+            try:
+                await self.slack_bot.start()
+                await self.stop_event.wait()
+            except Exception:
+                restart_count += 1
+                try:
+                    await self.slack_bot.stop()
+                except Exception:
+                    pass
+                logger.warning(
+                    "SlackBot crashed (%d/%d), restart in 30s", restart_count, max_restarts
+                )
+                await asyncio.sleep(30)
+        if restart_count >= max_restarts:
+            logger.error("SlackBot failed %d times, giving up", max_restarts)
+            # Notify via webhook (Bot is dead, can't use Bot itself)
+            from orchestrator.tools.notify import do_notify_human
+
+            self._notify_task = asyncio.create_task(
+                do_notify_human(
+                    {
+                        "message": f"[SlackBot] {max_restarts}회 재시작 실패 — 수동 점검 필요",
+                        "level": "critical",
+                    }
+                )
+            )
+
+    async def _stop_slack_bot(self) -> None:
+        """Stop Slack Bot listener if running."""
+        if self._slack_bot_task and not self._slack_bot_task.done():
+            self._slack_bot_task.cancel()
+            try:
+                await self._slack_bot_task
+            except asyncio.CancelledError:
+                pass
+        if self.slack_bot:
+            try:
+                await self.slack_bot.stop()
+            except Exception:
+                logger.exception("Error stopping SlackBot")
+
     async def _run_cycle(self) -> None:
         """Execute a single orchestrator cycle."""
+        if self.pause_event.is_set():
+            logger.info("Paused, skipping cycle")
+            return
+
         cycle_id = self.state.start_cycle()
         logger.info("=== Cycle #%d started (db_id=%d) ===", self.cycle, cycle_id)
 

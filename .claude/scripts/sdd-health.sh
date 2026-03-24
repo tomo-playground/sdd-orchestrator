@@ -2,11 +2,21 @@
 # 로컬 서비스 헬스체크 — cron에서 실행
 # 실패 시 자동 재시작 + Slack 알림
 
-SLACK_WEBHOOK="${SLACK_WEBHOOK_URL:-}"
 FAILURES=""
 RESTARTED=""
 
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+ORCH_DIR="$PROJECT_DIR/orchestrator"
+
+# Slack notification via notify.py CLI (Block Kit)
+notify_slack() {
+  local msg="$1"
+  local level="${2:-warning}"
+  local link_args="${3:-}"
+  # shellcheck disable=SC2086
+  cd "$ORCH_DIR" && uv run python -m orchestrator.tools.notify "$msg" \
+    --level "$level" $link_args 2>&1 | grep -v "^$" >&2 || true
+}
 
 # Backend (8000)
 if ! curl -sf http://localhost:8000/health > /dev/null 2>&1; then
@@ -33,9 +43,6 @@ if ! curl -sf http://localhost:8001/health > /dev/null 2>&1; then
 fi
 
 # 장애 감지 시 Slack 알림
-if [ -n "$FAILURES" ] && [ -n "$SLACK_WEBHOOK" ]; then
-  curl -s -X POST "$SLACK_WEBHOOK" \
-    -H 'Content-type: application/json' \
-    -d "{\"text\": \"[Health Check] 서비스 다운 감지: ${FAILURES}| 자동 재시작: ${RESTARTED}\"}" \
-    > /dev/null 2>&1
+if [ -n "$FAILURES" ]; then
+  notify_slack "[Health Check] 서비스 다운 감지: ${FAILURES}| 자동 재시작: ${RESTARTED}" "warning"
 fi

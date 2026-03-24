@@ -17,23 +17,19 @@ ASSIGNEE="stopper2008"
 RESULTS_DIR="/tmp/qa-patrol-results"
 TIMESTAMP=$(date +"%Y-%m-%d_%H%M%S")
 
-# --- Slack 알림 함수 ---
-# backend/.env에서 SLACK_WEBHOOK_URL 로드
-if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
-  ENV_FILE="${PROJECT_DIR}/backend/.env"
-  if [[ -f "$ENV_FILE" ]]; then
-    SLACK_WEBHOOK_URL=$(grep '^SLACK_WEBHOOK_URL=' "$ENV_FILE" | cut -d'=' -f2- | tr -d "'\"")
-    export SLACK_WEBHOOK_URL
-  fi
-fi
-
+# --- Slack 알림 함수 (notify.py CLI) ---
+ORCH_DIR="$PROJECT_DIR/orchestrator"
 notify_slack() {
-  local text="$1"
-  if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
-    curl -sf -X POST "$SLACK_WEBHOOK_URL" \
-      -H 'Content-Type: application/json' \
-      -d "{\"text\": \"${text}\"}" >/dev/null 2>&1 || true
+  local msg="$1"
+  local level="${2:-info}"
+  local link_text="${3:-}"
+  local link_url="${4:-}"
+  local -a link_flag=()
+  if [[ -n "$link_text" && -n "$link_url" ]]; then
+    link_flag=("--link" "$link_text" "$link_url")
   fi
+  cd "$ORCH_DIR" && uv run python -m orchestrator.tools.notify "$msg" \
+    --level "$level" "${link_flag[@]}" 2>&1 | grep -v "^$" >&2 || true
 }
 
 echo "=== QA Patrol ==="
@@ -99,7 +95,7 @@ EOF
     echo "  서비스 다운 이슈가 이미 열려 있어 스킵합니다."
   fi
 
-  notify_slack ":fire: *QA Patrol* — 서비스 다운 감지: ${SERVICES_DOWN}"
+  notify_slack "[QA Patrol] 서비스 다운 감지: ${SERVICES_DOWN}" "critical"
   exit 1
 fi
 
@@ -127,7 +123,7 @@ if [[ $TEST_EXIT -eq 0 ]]; then
   echo "  모든 테스트 통과 — 이상 없음"
   echo ""
   echo "[4/4] 완료"
-  notify_slack ":white_check_mark: *QA Patrol* — 4/4 통과, 이상 없음"
+  notify_slack "[QA Patrol] 4/4 통과, 이상 없음" "info"
   echo "=== QA Patrol 종료 (정상) ==="
   exit 0
 fi
@@ -199,7 +195,9 @@ EOF
 fi
 
 # --- Slack 알림 ---
-notify_slack ":warning: *QA Patrol* — 테스트 실패 ${FAILED_COUNT}건\n${FAILED_TESTS}\nhttps://github.com/tomo-playground/shorts-producer/issues?q=label%3Aqa-patrol+is%3Aopen"
+QA_ISSUES_URL="https://github.com/tomo-playground/shorts-producer/issues?q=label%3Aqa-patrol+is%3Aopen"
+notify_slack "[QA Patrol] 테스트 실패 ${FAILED_COUNT}건" "warning" \
+  "QA Issues" "$QA_ISSUES_URL"
 
 echo "=== QA Patrol 종료 (실패 ${FAILED_COUNT}건) ==="
 exit $TEST_EXIT

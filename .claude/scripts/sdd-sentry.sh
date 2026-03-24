@@ -53,14 +53,19 @@ if ! command -v jq &>/dev/null; then
   exit 1
 fi
 
-# --- Slack 알림 함수 ---
+# --- Slack 알림 함수 (notify.py CLI) ---
+ORCH_DIR="$(cd "$(dirname "$0")/../../orchestrator" && pwd)"
 notify_slack() {
-  local text="$1"
-  if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
-    curl -sf -X POST "$SLACK_WEBHOOK_URL" \
-      -H 'Content-Type: application/json' \
-      -d "{\"text\": \"${text}\"}" >/dev/null 2>&1 || true
+  local msg="$1"
+  local level="${2:-info}"
+  local link_text="${3:-}"
+  local link_url="${4:-}"
+  local -a link_flag=()
+  if [[ -n "$link_text" && -n "$link_url" ]]; then
+    link_flag=("--link" "$link_text" "$link_url")
   fi
+  cd "$ORCH_DIR" && uv run python -m orchestrator.tools.notify "$msg" \
+    --level "$level" "${link_flag[@]}" 2>&1 | grep -v "^$" >&2 || true
 }
 
 # --- 시간 계산 ---
@@ -216,8 +221,10 @@ echo "  생성: ${TOTAL_CREATED}건"
 echo "=== Sentry Patrol 종료 ==="
 
 # --- Slack 알림 ---
+ISSUES_URL="https://github.com/tomo-playground/shorts-producer/issues?q=label%3Asentry+is%3Aopen"
 if [[ "$TOTAL_CREATED" -gt 0 ]]; then
-  notify_slack ":rotating_light: *Sentry Patrol* — 새 에러 ${TOTAL_CREATED}건 감지\n조회: ${TOTAL_NEW}건 | 중복 스킵: ${TOTAL_SKIPPED}건 | *신규 Issue: ${TOTAL_CREATED}건*\nhttps://github.com/tomo-playground/shorts-producer/issues?q=label%3Asentry+is%3Aopen"
+  notify_slack "[Sentry Patrol] 새 에러 ${TOTAL_CREATED}건 감지 (조회: ${TOTAL_NEW}, 스킵: ${TOTAL_SKIPPED})" "warning" \
+    "Sentry Issues" "$ISSUES_URL"
 else
-  notify_slack ":white_check_mark: *Sentry Patrol* — 이상 없음\n조회: ${TOTAL_NEW}건 | 중복 스킵: ${TOTAL_SKIPPED}건 | 신규: 0건"
+  notify_slack "[Sentry Patrol] 이상 없음 (조회: ${TOTAL_NEW}, 스킵: ${TOTAL_SKIPPED})" "info"
 fi
