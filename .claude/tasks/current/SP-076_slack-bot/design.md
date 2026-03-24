@@ -213,9 +213,16 @@ async def _post_message_rate_limited(self, channel, blocks, thread_ts=None):
 
 ### 구현 방법
 
-**`notify.py`** — `do_notify_human` 수정:
+**`notify.py`** — 타임스탬프 KST 변환 + links 추가:
 
 ```python
+# context 블록의 타임스탬프를 KST로 변경
+from datetime import timezone, timedelta
+KST = timezone(timedelta(hours=9))
+# 기존: datetime.now(UTC).strftime('%H:%M UTC')
+# 변경: datetime.now(KST).strftime('%H:%M KST')
+# send_daily_report()의 today도 동일하게 KST 적용
+
 links = args.get("links", [])
 
 if links:
