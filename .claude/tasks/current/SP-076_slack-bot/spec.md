@@ -4,7 +4,8 @@ priority: P1
 scope: infra
 branch: feat/SP-076-slack-bot
 created: 2026-03-24
-status: pending
+status: approved
+approved_at: 2026-03-24
 depends_on:
 label: feat
 ---
@@ -54,6 +55,9 @@ Slack Bot으로 코딩머신과 양방향 대화. Slack에서 명령 수신 → 
 - Slack 무료 플랜 호환 (Bot + Webhook)
 - 복잡한 대화(멀티턴)는 Out of Scope — 단일 명령 + 응답
 - 보안: Slack Signing Secret 검증 필수
+
+## 상세 설계 (How)
+> [design.md](./design.md) 참조
 
 ## 힌트
 - Slack Bolt (Python SDK): `pip install slack-bolt`
