@@ -10,6 +10,20 @@ PROJECT_DIR="/home/tomo/Workspace/shorts-producer"
 cd "$PROJECT_DIR"
 LOG="/tmp/sdd-review.log"
 
+# ─── Phase 0: 좀비 정리 — 머지/닫힌 PR의 claude 프로세스 + worktree ───
+for CLAUDE_PID in $(pgrep -f "claude.*--worktree" 2>/dev/null || true); do
+  WT_BRANCH=$(ps -p "$CLAUDE_PID" -o args= 2>/dev/null | grep -oP '(?<=--worktree )\S+' || true)
+  [ -z "$WT_BRANCH" ] && continue
+  PR_STATE=$(gh pr list --state all --head "$WT_BRANCH" --json state --jq '.[0].state' 2>/dev/null || true)
+  if [ "$PR_STATE" = "MERGED" ] || [ "$PR_STATE" = "CLOSED" ]; then
+    kill "$CLAUDE_PID" 2>/dev/null && echo "$(date '+%Y-%m-%d %H:%M') 좀비 kill: PID=$CLAUDE_PID branch=$WT_BRANCH ($PR_STATE)" >> "$LOG"
+    # worktree 정리
+    git worktree remove "$PROJECT_DIR/.claude/worktrees/$WT_BRANCH" --force 2>/dev/null || true
+    git worktree prune 2>/dev/null || true
+    rm -f "/tmp/sdd-fix-*.lock" "/tmp/sdd-review-*.lock"
+  fi
+done
+
 # ─── Phase 1: 리뷰 안 된 PR → 코드 리뷰 실행 ───
 UNREVIEWED=$(gh pr list --state open --base main --json number,headRefName \
   --jq '[.[] | select(true)] | .[].number' 2>/dev/null || true)
