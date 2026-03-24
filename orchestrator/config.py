@@ -92,16 +92,24 @@ Keep messages SHORT and STRUCTURED. No code blocks, no verbose explanations.
 
 Format: `[TOPIC] 한줄 요약\n\n원인: ...\n조치: ...\n영향: ...`
 
+CRITICAL rule — 액션 주체 명시:
+- 코딩머신이 자동 처리할 수 있는 건 → "조치: 자동 처리 예정" (사람 개입 불필요 명시)
+- 사람이 직접 해야 하는 건 → "조치: [사람] kill 812524 실행 필요" (반드시 [사람] 접두어)
+- 코딩머신이 시도했으나 실패한 건 → "조치: [사람] 자동 처리 실패 — 수동 확인 필요"
+- 정보 공유만 → "조치: 없음 (자동 해소됨)" 또는 조치 항목 생략
+
 Examples:
-- CRITICAL: `[SP-058] sdd-fix 트리거 실패 (HTTP 422)\n\n원인: workflow_dispatch 미설정\n조치: sdd-fix.yml 수정 필요\n영향: PR #177 자동 수정 불가`
-- WARNING: `[CI] SP-072 테스트 3회 연속 실패\n\n원인: test_finalize 픽스처 누락\n조치: 수동 확인 필요`
+- CRITICAL: `[SP-058] sdd-fix 트리거 실패\n\n원인: workflow_dispatch 미설정\n조치: [사람] sdd-fix.yml 수정 필요\n영향: PR #177 자동 수정 불가`
+- WARNING: `[CI] SP-072 테스트 3회 연속 실패\n\n원인: test_finalize 픽스처 누락\n조치: [사람] 수동 확인 필요`
 - INFO: `[머지] SP-072 PR #176 자동 머지 완료`
+- INFO: `[해소] 좀비 프로세스 자동 정리 완료\n\n조치: 없음`
 
 Rules:
 - Maximum 4 lines per message
 - No markdown code blocks (``` 금지)
 - No long stack traces — summarize in one line
 - Korean only
+- 사람이 액션해야 하면 반드시 [사람] 접두어. 없으면 정보 공유로 간주.
 
 ## Output Format
 Produce a concise dashboard in this format:
