@@ -7,7 +7,11 @@
       "Bash(.venv/bin/python -m pytest tests/ -x -q -k \"video or hashtag or caption\")",
       "Bash(ruff check:*)",
       "Bash(pip list:*)",
-      "Bash(cat pyproject.toml:*)"
+      "Bash(cat pyproject.toml:*)",
+      "Read(//dev/**)",
+      "Bash(ls /home/tomo/Workspace/shorts-producer/frontend/app/\\\\\\(app\\\\\\)/)",
+      "Bash(ls /home/tomo/Workspace/shorts-producer/frontend/app/'\\(app\\)'/)",
+      "Read(//home/tomo/Workspace/shorts-producer/**)"
     ],
     "additionalDirectories": [
       "/tmp",

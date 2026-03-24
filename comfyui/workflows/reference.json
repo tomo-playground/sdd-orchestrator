@@ -13,7 +13,8 @@
       "{{seed}}": "시드 (-1 = 랜덤)",
       "{{width}}": "이미지 너비",
       "{{height}}": "이미지 높이"
-    }
+    },
+    "output_node": "9_save"
   },
   "1_checkpoint": {
     "class_type": "CheckpointLoaderSimple",
