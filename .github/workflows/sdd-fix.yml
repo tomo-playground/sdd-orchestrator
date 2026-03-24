@@ -21,9 +21,9 @@ permissions:
   id-token: write
   actions: read
 
-concurrency:
-  group: sdd-review-${{ github.event.issue.number || github.event.pull_request.number }}
-  cancel-in-progress: true
+# workflow 레벨 concurrency 제거 — job별로 선별 적용
+# 이유: workflow 레벨에서는 job if 평가 전에 cancel이 발생하여
+# COMMENTED 리뷰가 CHANGES_REQUESTED auto-fix를 취소시킴
 
 jobs:
   # Job 1: changes_requested 리뷰 → Claude 자동 수정 (bot + 사용자 모두)
@@ -33,6 +33,9 @@ jobs:
       github.event.review.state == 'changes_requested') ||
       (github.event_name == 'workflow_dispatch' &&
       github.event.inputs.pr_number != '')
+    concurrency:
+      group: sdd-autofix-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+      cancel-in-progress: false
     runs-on: [self-hosted, sdd]
     timeout-minutes: 30
 
@@ -58,7 +61,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          track_progress: true
+          track_progress: ${{ github.event_name != 'workflow_dispatch' }}
           allowed_bots: "claude[bot],coderabbitai[bot]"
 
           prompt: |
@@ -66,8 +69,8 @@ jobs:
             PR NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
             REVIEWER: ${{ github.event.review.user.login || 'coding-machine' }}
 
-            리뷰어(${{ github.event.review.user.login }})가 이 PR에 변경 요청(changes_requested) 리뷰를 남겼습니다.
-            1. `gh pr view ${{ github.event.pull_request.number }}` 와 `gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews` 로 리뷰 내용을 읽으세요.
+            리뷰어가 이 PR에 변경 요청(changes_requested) 리뷰를 남겼습니다.
+            1. `gh pr view ${{ github.event.pull_request.number || github.event.inputs.pr_number }}` 와 `gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number || github.event.inputs.pr_number }}/reviews` 로 리뷰 내용을 읽으세요.
             2. CLAUDE.md를 읽고 프로젝트 규칙과 대조하세요.
             3. 버그 지적 → 코드 수정 + 커밋 + push
             4. 설계 개선 제안 → CLAUDE.md와 동의하면 수정, 아니면 PR에 "현행 유지 이유" 코멘트
@@ -84,6 +87,9 @@ jobs:
       github.event.issue.pull_request &&
       contains(github.event.comment.body, '@claude') &&
       !endsWith(github.event.comment.user.login, '[bot]')
+    concurrency:
+      group: sdd-manual-${{ github.event.issue.number }}
+      cancel-in-progress: true
     runs-on: [self-hosted, sdd]
     timeout-minutes: 30
 
