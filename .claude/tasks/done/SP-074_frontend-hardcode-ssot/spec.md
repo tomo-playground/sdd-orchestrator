@@ -4,7 +4,7 @@ priority: P2
 scope: fullstack
 branch: feat/SP-074-frontend-ssot
 created: 2026-03-23
-status: running
+status: done
 approved_at: 2026-03-23
 depends_on:
 label: chore
