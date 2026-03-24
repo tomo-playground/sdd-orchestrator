@@ -88,12 +88,32 @@ async def do_launch_sdd_run(task_id: str) -> dict:
 
 
 async def do_check_running_worktrees() -> dict:
-    """Core logic: list running worktree processes."""
+    """Core logic: list running worktree processes. Prune dead PIDs."""
+
     if not _state_store:
         return _error("State store not initialized")
 
     running = _state_store.get_running_runs()
-    return {"content": [{"type": "text", "text": json.dumps(running, ensure_ascii=False)}]}
+    alive = []
+    for run in running:
+        pid = run.get("pid")
+        if pid and _is_pid_alive(pid):
+            alive.append(run)
+        elif pid:
+            # DB에 있지만 프로세스 없음 → stale, 정리
+            _state_store.finish_run(run.get("id", 0), -1)
+    return {"content": [{"type": "text", "text": json.dumps(alive, ensure_ascii=False)}]}
+
+
+def _is_pid_alive(pid: int) -> bool:
+    """Check if a process with the given PID exists."""
+    import os
+
+    try:
+        os.kill(pid, 0)
+        return True
+    except (ProcessLookupError, PermissionError):
+        return False
 
 
 @tool(
