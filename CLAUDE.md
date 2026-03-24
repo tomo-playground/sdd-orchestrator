@@ -418,6 +418,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | `/sdd-design` | SDD 상세 설계 자동 작성 (코드 탐색 → 질문 → 6항목 설계 → 승인 요청) |
 | `/sentry-patrol` | Sentry 에러 배치 순찰 → GitHub Issue 자동 생성 |
 | `/qa-patrol` | Playwright QA 순찰 (핵심 플로우 자동 테스트) |
+| `/sdd-coach` | SDD 코치 점검 (프로세스 감사/리뷰 사이클/병목/메트릭/회고) |
 
 > Agents/Commands 관리 규칙은 `docs/guides/CONTRIBUTING.md` 참조
 
