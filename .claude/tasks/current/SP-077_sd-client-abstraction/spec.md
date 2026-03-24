@@ -4,7 +4,8 @@ priority: P1
 scope: backend
 branch: feat/SP-077-sd-client-abstraction
 created: 2026-03-24
-status: pending
+status: approved
+approved_at: 2026-03-24
 depends_on:
 label: refactor
 ---
