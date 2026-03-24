@@ -142,8 +142,8 @@ describe("syncToGlobalStore", () => {
       topic: "Test",
       description: "Desc",
       duration: 30,
-      language: "Korean",
-      structure: "Monologue",
+      language: "korean",
+      structure: "monologue",
       characterId: 5,
       characterName: "Alice",
     });
@@ -164,8 +164,8 @@ describe("syncToGlobalStore", () => {
       topic: "",
       description: "",
       duration: 30,
-      language: "Korean",
-      structure: "Monologue",
+      language: "korean",
+      structure: "monologue",
     });
 
     const store = useStoryboardStore.getState();

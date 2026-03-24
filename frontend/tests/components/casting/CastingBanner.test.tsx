@@ -9,7 +9,7 @@ const CASTING: CastingRecommendation = {
   character_a_name: "Alice",
   character_b_id: 2,
   character_b_name: "Bob",
-  structure: "Dialogue",
+  structure: "dialogue",
   reasoning: "Good chemistry",
 };
 
@@ -18,7 +18,7 @@ describe("CastingBanner", () => {
     render(<CastingBanner casting={CASTING} onAccept={vi.fn()} onDismiss={vi.fn()} />);
     expect(screen.getByText(/Alice/)).toBeInTheDocument();
     expect(screen.getByText(/Bob/)).toBeInTheDocument();
-    expect(screen.getByText(/Dialogue/)).toBeInTheDocument();
+    expect(screen.getByText(/dialogue/)).toBeInTheDocument();
   });
 
   it("renders reasoning text", () => {
@@ -54,6 +54,6 @@ describe("CastingBanner", () => {
   it("hides structure when null", () => {
     const noStructure: CastingRecommendation = { ...CASTING, structure: null };
     render(<CastingBanner casting={noStructure} onAccept={vi.fn()} onDismiss={vi.fn()} />);
-    expect(screen.queryByText(/Dialogue/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/dialogue/)).not.toBeInTheDocument();
   });
 });

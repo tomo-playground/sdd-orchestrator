@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from config import (
     GEMINI_TEXT_MODEL,
+    MULTI_CHAR_STRUCTURES,
+    coerce_structure_id,
     gemini_client,
     logger,
 )
@@ -261,9 +263,8 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
     if not gemini_client:
         raise HTTPException(status_code=503, detail="Gemini key missing")
     try:
-        structure_lower = request.structure.lower()
-        structure_normalized = structure_lower.replace("_", " ")
-        has_two_characters = structure_normalized in ("dialogue", "narrated dialogue")
+        structure = coerce_structure_id(request.structure)
+        has_two_characters = structure in MULTI_CHAR_STRUCTURES
 
         # Dialogue validation (structures with two characters)
         if has_two_characters:
@@ -286,7 +287,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
 
         # 2인 구조 + 양쪽 캐릭터 지정 → 멀티캐릭터 모드
         is_multi_character_capable = (
-            structure_normalized in ("dialogue", "narrated dialogue")
+            structure in MULTI_CHAR_STRUCTURES
             and request.character_id is not None
             and request.character_b_id is not None
         )
@@ -298,7 +299,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         if db:
             db.close()
 
-        preset = get_preset_by_structure(request.structure)
+        preset = get_preset_by_structure(structure)
         template_name = preset.template if preset else "create_storyboard"
         extra_fields = preset.extra_fields if preset else {}
 
@@ -333,9 +334,9 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         keyword_context, allowed_tags = get_keyword_context_and_tags()
         safe_topic = _sanitize_for_gemini_prompt(request.topic)
 
-        from config import MULTI_CHAR_STRUCTURES, coerce_structure_id, coerce_tone_id
+        from config import coerce_tone_id
 
-        is_dialogue_structure = coerce_structure_id(request.structure) in MULTI_CHAR_STRUCTURES
+        is_dialogue_structure = structure in MULTI_CHAR_STRUCTURES
         tone = coerce_tone_id(getattr(request, "tone", None))
 
         # 파셜 pre-render
@@ -521,7 +522,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         if has_two_characters:
             strip_no_humans_from_dialogue(scenes)
             ensure_dialogue_speakers(scenes)
-        auto_pin_raw_scenes(scenes, structure_lower)
+        auto_pin_raw_scenes(scenes, structure)
 
         # Auto-populate character_actions from context_tags
         if (request.character_id or request.character_b_id) and db:

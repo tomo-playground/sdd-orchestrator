@@ -57,7 +57,7 @@ export default function StoryboardGeneratorPanel({
 
   // Derive sample topics from presets + structure
   const sampleTopics = useMemo(() => {
-    const preset = presets.find((p) => p.structure.toLowerCase() === structure.toLowerCase());
+    const preset = presets.find((p) => p.structure === structure);
     return preset?.sample_topics ?? [];
   }, [structure, presets]);
 
@@ -66,7 +66,7 @@ export default function StoryboardGeneratorPanel({
   useEffect(() => {
     if (prevStructureRef.current !== structure) {
       prevStructureRef.current = structure;
-      const preset = presets.find((p) => p.structure.toLowerCase() === structure.toLowerCase());
+      const preset = presets.find((p) => p.structure === structure);
       if (preset) {
         setDuration(preset.default_duration);
       }
@@ -126,10 +126,7 @@ export default function StoryboardGeneratorPanel({
               {presets.map((p) => (
                 <option key={p.structure} value={p.structure}>
                   {p.structure}
-                  {recommendedStructure &&
-                  p.structure.toLowerCase() === recommendedStructure.toLowerCase()
-                    ? " ✦"
-                    : ""}
+                  {recommendedStructure && p.structure === recommendedStructure ? " ✦" : ""}
                 </option>
               ))}
             </select>

@@ -9,7 +9,7 @@ const CASTING: CastingRecommendation = {
   character_a_name: "Eve",
   character_b_id: null,
   character_b_name: "",
-  structure: "Monologue",
+  structure: "monologue",
   reasoning: "Matches the topic well",
 };
 
@@ -112,6 +112,6 @@ describe("StageCastingCompareCard", () => {
         onDismiss={vi.fn()}
       />
     );
-    expect(screen.getByText("Monologue")).toBeInTheDocument();
+    expect(screen.getByText("monologue")).toBeInTheDocument();
   });
 });

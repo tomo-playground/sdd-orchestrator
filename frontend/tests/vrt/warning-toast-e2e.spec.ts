@@ -39,11 +39,11 @@ const MOCK_RECOMMENDATION = {
   resolved_topic: "테스트 주제",
   reasoning: "30초 독백으로 제작합니다.",
   duration: 30,
-  language: "Korean",
-  structure: "Monologue",
+  language: "korean",
+  structure: "monologue",
   available_options: {
     durations: [15, 30, 60],
-    languages: [{ value: "Korean", label: "한국어" }],
+    languages: [{ value: "korean", label: "한국어" }],
   },
 };
 

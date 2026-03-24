@@ -107,10 +107,10 @@ def get_preset(preset_id: str) -> StoryboardPreset | None:
 
 def get_preset_by_structure(structure: str) -> StoryboardPreset | None:
     """Get a preset by its structure name."""
-    for preset in PRESETS.values():
-        if preset.structure.lower() == structure.lower():
-            return preset
-    return None
+    from config import coerce_structure_id  # noqa: PLC0415
+
+    sid = coerce_structure_id(structure)
+    return PRESETS.get(sid)
 
 
 def get_sample_topics(preset_id: str) -> list[str]:

@@ -40,7 +40,7 @@ export default function SceneEssentialFields({
     }))
   );
   const hasMultipleSpeakers = isMultiCharStructure(structure ?? "");
-  const isNarratedDialogue = structure?.toLowerCase().replace(/ /g, "_") === "narrated_dialogue";
+  const isNarratedDialogue = structure === "narrated_dialogue";
 
   return (
     <>

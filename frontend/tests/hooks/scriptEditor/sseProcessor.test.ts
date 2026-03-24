@@ -150,7 +150,7 @@ describe("casting recommendation from SSE", () => {
         character_a_name: "Alice",
         character_b_id: 2,
         character_b_name: "Bob",
-        structure: "Dialogue",
+        structure: "dialogue",
         reasoning: "Best fit for topic",
       },
     };
@@ -165,7 +165,7 @@ describe("casting recommendation from SSE", () => {
         character_a_name: "Alice",
         character_b_id: 2,
         character_b_name: "Bob",
-        structure: "Dialogue",
+        structure: "dialogue",
         reasoning: "Best fit for topic",
       },
     });

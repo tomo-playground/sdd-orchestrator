@@ -17,22 +17,17 @@ const SPEAKER_STYLES: Record<string, { bg: string; text: string; label: string }
   Narrator: { bg: "bg-amber-100", text: "text-amber-700", label: "N" },
 };
 
-function normalizeStructure(structure?: string): string {
-  return (structure?.toLowerCase() || "").replace(/ /g, "_");
-}
-
 function getAvailableSpeakers(structure?: string): Scene["speaker"][] {
-  const s = normalizeStructure(structure);
-  if (s === "narrated_dialogue") return ["A", "B", "Narrator"];
-  if (s === "dialogue") return ["A", "B"];
+  if (structure === "narrated_dialogue") return ["A", "B", "Narrator"];
+  if (structure === "dialogue") return ["A", "B"];
   return ["A"];
 }
 
 function shouldShowBadge(speaker: Scene["speaker"], structure?: string): boolean {
-  const s = normalizeStructure(structure);
   if (speaker === "B") return true;
-  if (speaker === "A" && (s === "dialogue" || s === "narrated_dialogue")) return true;
-  if (speaker === "Narrator" && s === "narrated_dialogue") return true;
+  if (speaker === "A" && (structure === "dialogue" || structure === "narrated_dialogue"))
+    return true;
+  if (speaker === "Narrator" && structure === "narrated_dialogue") return true;
   return false;
 }
 

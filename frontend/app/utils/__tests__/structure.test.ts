@@ -2,21 +2,21 @@ import { describe, it, expect } from "vitest";
 import { isMultiCharStructure } from "../structure";
 
 describe("isMultiCharStructure", () => {
-  it("returns true for dialogue (any case)", () => {
-    expect(isMultiCharStructure("Dialogue")).toBe(true);
+  it("returns true for normalized dialogue/narrated_dialogue", () => {
     expect(isMultiCharStructure("dialogue")).toBe(true);
-    expect(isMultiCharStructure("DIALOGUE")).toBe(true);
+    expect(isMultiCharStructure("narrated_dialogue")).toBe(true);
   });
 
-  it("returns true for narrated_dialogue (any format)", () => {
-    expect(isMultiCharStructure("narrated_dialogue")).toBe(true);
-    expect(isMultiCharStructure("Narrated Dialogue")).toBe(true);
-    expect(isMultiCharStructure("narrated dialogue")).toBe(true);
+  it("returns false for non-normalized Title Case inputs (strict comparison)", () => {
+    expect(isMultiCharStructure("Dialogue")).toBe(false);
+    expect(isMultiCharStructure("DIALOGUE")).toBe(false);
+    expect(isMultiCharStructure("Narrated Dialogue")).toBe(false);
+    expect(isMultiCharStructure("narrated dialogue")).toBe(false);
   });
 
   it("returns false for monologue", () => {
-    expect(isMultiCharStructure("Monologue")).toBe(false);
     expect(isMultiCharStructure("monologue")).toBe(false);
+    expect(isMultiCharStructure("Monologue")).toBe(false);
   });
 
   it("returns false for Narration", () => {

@@ -39,7 +39,7 @@ function makeEditorState(overrides: Partial<ScriptEditorState> = {}): ScriptEdit
     description: "Test description",
     duration: 60,
     language: "ko",
-    structure: "Monologue",
+    structure: "monologue",
     characterId: 1,
     characterName: "Alice",
     characterBId: null,
@@ -97,7 +97,7 @@ describe("buildSyncMeta", () => {
       description: "Test description",
       duration: 60,
       language: "ko",
-      structure: "Monologue",
+      structure: "monologue",
       characterId: 1,
       characterName: "Alice",
       characterBId: null,
@@ -120,7 +120,7 @@ describe("buildGenerateBody", () => {
     expect(body.topic).toBe("Test Topic");
     expect(body.duration).toBe(60);
     expect(body.language).toBe("ko");
-    expect(body.structure).toBe("Monologue");
+    expect(body.structure).toBe("monologue");
     expect(body.group_id).toBe(5);
     // character_id / character_b_id は Director 캐스팅 SSOT로 body에 포함하지 않음
     expect(body.character_id).toBeUndefined();

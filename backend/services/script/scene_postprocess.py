@@ -7,7 +7,12 @@ from __future__ import annotations
 
 import re
 
-from config import DEFAULT_SCENE_NEGATIVE_PROMPT, ENABLE_DANBOORU_VALIDATION, logger
+from config import (
+    DEFAULT_SCENE_NEGATIVE_PROMPT,
+    ENABLE_DANBOORU_VALIDATION,
+    MULTI_CHAR_STRUCTURES,
+    logger,
+)
 
 MAX_SCRIPT_CHARS = 35
 MAX_NARRATOR_SCRIPT_CHARS = 20
@@ -228,12 +233,12 @@ def ensure_dialogue_speakers(scenes: list[dict]) -> None:
     )
 
 
-def auto_pin_raw_scenes(scenes: list[dict], structure_lower: str) -> None:
+def auto_pin_raw_scenes(scenes: list[dict], structure: str) -> None:
     """Set _auto_pin_previous flags on raw Gemini scene dicts (in-place)."""
-    is_dialogue_structure = structure_lower.replace("_", " ") in ("dialogue", "narrated dialogue")
+    is_dialogue_structure = structure in MULTI_CHAR_STRUCTURES
 
     if is_dialogue_structure:
-        logger.info("[Storyboard] Auto-pin: %s structure - all scenes share background", structure_lower)
+        logger.info("[Storyboard] Auto-pin: %s structure - all scenes share background", structure)
         for i, scene in enumerate(scenes):
             scene["_auto_pin_previous"] = i > 0
             if i == 0:
