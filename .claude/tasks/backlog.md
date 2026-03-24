@@ -10,7 +10,7 @@
 - [ ] SP-077 — SD Client 추상화 — SD WebUI 직접 호출 24곳 → SDClientBase 통합 (ComfyUI 전환 선행) | scope: backend
 - [x] ~~SP-058~~ — Intake 노드 — Guided 모드 소크라테스 질문으로 structure/tone/캐릭터 확정 | scope: backend | **approved**
 - [x] ~~SP-072~~ — Narrator 씬 지능형 no_humans 판단 — script 의미 기반 군중/빈 공간 구분 | scope: backend | **approved**
-- [ ] SP-074 — Frontend 하드코딩 SSOT 전환 | scope: frontend | **approved**
+- [x] ~~SP-074~~ — Frontend 하드코딩 SSOT 전환 | scope: frontend | **approved**
 - [ ] SP-020 — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | scope: backend
 
 ## P1 (최우선)
