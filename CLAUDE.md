@@ -213,6 +213,16 @@ docs/
 - `_restore_danbooru_tags()`: Gemini 응답을 SD용 Danbooru 태그로 복원
 - 2.5 Flash 유지율을 높이기 위한 1차 방어선 (폴백은 2차)
 
+## Agent 노드 추가 체크리스트
+`services/agent/nodes/`에 새 노드를 추가하거나 LLM 호출을 변경할 때 반드시 확인:
+
+1. **`langfuse_prompt.py` 등록**: `LANGFUSE_MANAGED_TEMPLATES`에 템플릿명 추가 + `_TEMPLATE_TO_LANGFUSE`에 매핑 추가
+2. **LangFuse UI 프롬프트 생성**: 매핑된 이름으로 프롬프트 생성 (system + user, 변수 정의)
+3. **Fallback 구현**: LangFuse 프롬프트 미존재 시 `_FALLBACK_SYSTEM` / `_FALLBACK_USER` 상수 정의
+4. **`langfuse_prompt` 인자 전달**: `get_llm_provider().generate(langfuse_prompt=compiled.langfuse_prompt)` — observability 연결
+
+**미등록 시 영향**: 기능은 fallback으로 동작하지만 LangFuse observability(프롬프트 버전 추적, A/B 테스트, 비용 분석)가 비활성.
+
 ## Image Generation Debug Payload Convention
 이미지 생성 결과의 `debug_payload`는 반드시 **`{request, actual}`** 2-레벨 구조로 저장한다.
 
@@ -425,6 +435,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | 구현 완료 | Tech Lead 코드 리뷰 | 코드 변경 구현 후, 커밋 전에 자동으로 Tech Lead 에이전트가 리뷰 수행 |
 | `models/*.py` 또는 `alembic/` 변경 | DBA 리뷰 필수 | 스키마/마이그레이션 변경 시 커밋 전 DBA 에이전트 검증 필수 |
 | 외부 API 호출 추가/변경 | Performance Engineer 리뷰 필수 | timeout/retry/rate limit/pool 설정 검증 |
+| `services/agent/nodes/` 추가/변경 | LangFuse 연동 체크 필수 | 아래 "Agent 노드 추가 체크리스트" 참조 |
 | Phase 작업 완료 시 | PM 문서 동기화 | ROADMAP 상태 업데이트 + FEATURES/ 상태 확인 |
 | 새 기능 착수 시 | PM 명세 확인 | FEATURES/ 명세 존재 여부 확인, 없으면 생성 권고 |
 
