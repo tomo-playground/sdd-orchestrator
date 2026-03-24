@@ -44,6 +44,40 @@ for PR_NUM in $UNREVIEWED; do
   echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} 리뷰 완료" >> "$LOG"
 done
 
+# ─── Phase 1.5: conflict 있는 PR → 자동 rebase ───
+CONFLICT_PRS=$(gh pr list --state open --base main --json number,headRefName,mergeable \
+  --jq '.[] | select(.mergeable == "CONFLICTING") | "\(.number) \(.headRefName)"' 2>/dev/null || true)
+
+echo "$CONFLICT_PRS" | while read -r PR_NUM BRANCH; do
+  [ -z "$PR_NUM" ] && continue
+  echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} (${BRANCH}) conflict rebase 시작" >> "$LOG"
+
+  # 1차: git rebase 시도 (단순 충돌)
+  git fetch origin main "$BRANCH" 2>/dev/null || continue
+  git checkout "$BRANCH" 2>/dev/null || continue
+
+  if git rebase origin/main 2>/dev/null; then
+    git push --force-with-lease 2>/dev/null && echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} rebase 성공" >> "$LOG"
+  else
+    git rebase --abort 2>/dev/null
+    # 2차: Claude가 conflict 해결
+    echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} conflict → Claude 해결 시도" >> "$LOG"
+    claude --worktree "${BRANCH}" --dangerously-skip-permissions -p \
+      "PR #${PR_NUM} (${BRANCH})에 merge conflict가 있습니다.
+1. git fetch origin main && git rebase origin/main
+2. conflict 파일을 읽고 양쪽 의도를 파악하여 해결
+3. git rebase --continue
+4. git push --force-with-lease
+5. 해결 불가하면 PR에 코멘트: 'conflict 자동 해결 실패 — 수동 확인 필요'" \
+      2>>"$LOG" || {
+        gh pr comment "$PR_NUM" --body "conflict 자동 해결 실패 — [사람] 수동 rebase 필요" 2>/dev/null || true
+        echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} conflict 자동 해결 실패" >> "$LOG"
+      }
+  fi
+
+  git checkout main 2>/dev/null || true
+done
+
 # ─── Phase 2: 리뷰 이슈 있는 PR → 자동 수정 ───
 REVIEWED_PRS=$(gh pr list --state open --base main --json number,headRefName \
   --jq '.[].number' 2>/dev/null || true)
