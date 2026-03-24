@@ -179,10 +179,11 @@ async def test_graph_error_short_circuit_writer(mock_db_ctx, mock_gen_script):
 
 
 def test_graph_19_nodes():
-    """20노드가 모두 등록되어 있다 (Phase 30-P-6: location_planner 추가)."""
+    """21노드가 모두 등록되어 있다 (SP-058: intake 추가)."""
     graph = build_script_graph()
     compiled = graph.compile()
     node_names = set(compiled.get_graph().nodes.keys())
+    assert "intake" in node_names
     assert "director_plan" in node_names
     assert "director_plan_gate" in node_names
     assert "director_plan_lite" not in node_names
@@ -191,7 +192,7 @@ def test_graph_19_nodes():
     assert "explain" in node_names
     assert "concept_gate" in node_names
     assert "location_planner" in node_names
-    assert len(node_names - {"__start__", "__end__"}) == 20
+    assert len(node_names - {"__start__", "__end__"}) == 21
 
 
 # -- Writer Safety Retry 테스트 --

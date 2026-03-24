@@ -22,6 +22,7 @@ import type {
   ScriptEditorActions,
   ScriptEditorOptions,
   ResumeAction,
+  ResumeOptions,
 } from "./scriptEditor";
 
 // Re-export types for backward compat
@@ -80,6 +81,8 @@ const INITIAL_STATE: ScriptEditorState = {
   productionSnapshot: null,
   interactionMode: "guided",
   isWaitingForPlan: false,
+  isWaitingForIntake: false,
+  intakeData: null,
   chatContext: [],
 };
 
@@ -213,11 +216,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       action: ResumeAction,
       feedback?: string,
       conceptId?: number,
-      options?: {
-        feedbackPreset?: string;
-        feedbackPresetParams?: Record<string, string>;
-        customConcept?: { title: string; concept: string };
-      }
+      options?: ResumeOptions
     ) => {
       if (!stateRef.current.threadId) return;
       streamAbortRef.current?.abort();
@@ -230,6 +229,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         isWaitingForInput: false,
         isWaitingForConcept: false,
         isWaitingForPlan: false,
+        isWaitingForIntake: false,
+        intakeData: null,
         concepts: null,
         recommendedConceptId: null,
         progress: null,
@@ -247,6 +248,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         if (options?.feedbackPresetParams)
           body.feedback_preset_params = options.feedbackPresetParams;
         if (options?.customConcept) body.custom_concept = options.customConcept;
+        if (options?.intakeValue) body.intake_value = options.intakeValue;
 
         const response = await fetch(`${API_BASE}/scripts/resume`, {
           method: "POST",

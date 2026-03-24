@@ -11,6 +11,7 @@ from services.agent.script_graph import get_compiled_graph
 
 # -- 노드별 SSE 메타데이터 --
 NODE_META: dict[str, dict] = {
+    "intake": {"label": "의도 파악", "percent": 2},
     "director_plan": {"label": "디렉터 계획", "percent": 3},
     "director_plan_gate": {"label": "플랜 검토", "percent": 4},
     "inventory_resolve": {"label": "캐스팅", "percent": 5},
@@ -188,7 +189,16 @@ async def read_interrupt_state(graph, config: dict) -> tuple[str, dict]:  # noqa
         interrupt_node = pending[0] if pending else "unknown"
 
         result: dict = {}
-        if interrupt_node == "director_plan_gate":
+        if interrupt_node == "intake":
+            tasks = snapshot.tasks
+            interrupt_data: dict = {}
+            if tasks:
+                for task in tasks:
+                    if hasattr(task, "interrupts") and task.interrupts:
+                        interrupt_data = task.interrupts[-1].value
+                        break
+            result = {"type": "intake", **interrupt_data}
+        elif interrupt_node == "director_plan_gate":
             director_plan = vals.get("director_plan", {})
             skip_stages = vals.get("skip_stages", [])
             result = {

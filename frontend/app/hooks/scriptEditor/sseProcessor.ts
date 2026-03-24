@@ -139,6 +139,20 @@ export async function processSSEStream(
         traceId: event.trace_id ?? prev.traceId,
       };
 
+      // Intake interrupt
+      if (
+        event.status === "waiting_for_input" &&
+        event.node === "intake" &&
+        event.result?.type === "intake"
+      ) {
+        return {
+          ...base,
+          isGenerating: false,
+          isWaitingForIntake: true,
+          intakeData: event.result,
+        };
+      }
+
       // Concept gate interrupt
       if (
         event.status === "waiting_for_input" &&

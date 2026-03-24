@@ -5,6 +5,7 @@ import UserBubble from "./messages/UserBubble";
 import AssistantBubble from "./messages/AssistantBubble";
 import SettingsRecommendCard from "./messages/SettingsRecommendCard";
 import ClarificationCard from "./messages/ClarificationCard";
+import IntakeCard from "./messages/IntakeCard";
 import ConceptCard from "./messages/ConceptCard";
 import ReviewCard from "./messages/ReviewCard";
 import CompletionCard from "./messages/CompletionCard";
@@ -48,7 +49,12 @@ type Props = {
   isLatest?: boolean;
 };
 
-const ChatMessage = memo(function ChatMessage({ message, callbacks, data, isLatest = true }: Props) {
+const ChatMessage = memo(function ChatMessage({
+  message,
+  callbacks,
+  data,
+  isLatest = true,
+}: Props) {
   switch (message.contentType) {
     case "user":
       return <UserBubble text={message.text} />;
@@ -64,6 +70,10 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data, isLate
           hasError={data.hasError}
           isInteractive={isLatest}
         />
+      );
+    case "intake_gate":
+      return (
+        <IntakeCard message={message} onResume={callbacks.onResume} isInteractive={isLatest} />
       );
     case "concept_gate":
       return <ConceptCard message={message} onResume={callbacks.onResume} />;
@@ -90,7 +100,9 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data, isLate
     case "pipeline_step":
       return <PipelineStepCard message={message} />;
     case "plan_review_gate":
-      return <PlanReviewCard message={message} onResume={callbacks.onResume} isInteractive={isLatest} />;
+      return (
+        <PlanReviewCard message={message} onResume={callbacks.onResume} isInteractive={isLatest} />
+      );
     case "scene_edit_diff":
       return (
         <SceneEditDiffCard
@@ -102,7 +114,13 @@ const ChatMessage = memo(function ChatMessage({ message, callbacks, data, isLate
         />
       );
     case "error":
-      return <ErrorCard message={message.errorMessage} onRetry={callbacks.onRetry} traceUrl={message.traceUrl} />;
+      return (
+        <ErrorCard
+          message={message.errorMessage}
+          onRetry={callbacks.onRetry}
+          traceUrl={message.traceUrl}
+        />
+      );
     case "typing":
       return <TypingBubble text={message.text} />;
     default:

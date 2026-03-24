@@ -1724,16 +1724,28 @@ class SceneReasoningItem(BaseModel):
     alternatives: list[str] = Field(default_factory=list)
 
 
+class IntakeResumeValue(BaseModel):
+    """Intake 재개 시 사용자 선택값."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    structure: str | None = None
+    tone: str | None = None
+    character_id: int | None = None
+    character_b_id: int | None = None
+
+
 class ScriptResumeRequest(BaseModel):
-    """Human Gate / Concept Gate 재개 요청."""
+    """Human Gate / Concept Gate / Intake 재개 요청."""
 
     thread_id: str
-    action: str = "approve"  # "approve"|"revise"|"select"|"regenerate"|"custom_concept"
+    action: str = "approve"  # "approve"|"revise"|"select"|"regenerate"|"custom_concept"|"answer"
     feedback: str | None = None
     concept_id: int | None = None  # concept_gate용: 선택한 컨셉 인덱스 (0-2)
     feedback_preset: str | None = None  # 피드백 프리셋 ID
     feedback_preset_params: dict[str, str] | None = None  # 프리셋 파라미터
     custom_concept: dict | None = None  # 사용자 직접 입력 컨셉
+    intake_value: IntakeResumeValue | None = None  # intake용
     trace_id: str | None = None  # Langfuse trace 연결용 (generate 시 받은 값)
     storyboard_id: int | None = None  # LangFuse session 연결용
 

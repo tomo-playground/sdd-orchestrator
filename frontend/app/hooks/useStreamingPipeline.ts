@@ -62,6 +62,26 @@ export function useStreamingPipeline(deps: StreamingPipelineDeps) {
         });
       }
 
+      // Intake gate
+      if (
+        event.status === "waiting_for_input" &&
+        event.node === "intake" &&
+        event.result?.type === "intake"
+      ) {
+        setActiveProgress(null);
+        const intakeResult = event.result as unknown as Record<string, unknown>;
+        addMessage({
+          id: createMessageId(),
+          role: "assistant",
+          contentType: "intake_gate",
+          text: "영상의 형태와 분위기를 정해볼까요?",
+          analysis: intakeResult.analysis as import("../types/chat").IntakeAnalysis,
+          questions: intakeResult.questions as import("../types/chat").IntakeQuestion[],
+          timestamp: Date.now(),
+        });
+        return;
+      }
+
       // Director plan gate
       if (
         event.status === "waiting_for_input" &&

@@ -188,11 +188,21 @@ def test_route_checkpoint_revise_goes_to_writer():
     assert route_after_director_checkpoint(state) == "writer"
 
 
-def test_route_start_full_mode_goes_to_director_plan():
-    """skip_stages 비어있으면 START → director_plan."""
-    assert route_after_start({"skip_stages": []}) == "director_plan"
+def test_route_start_guided_goes_to_intake():
+    """Guided 모드(기본): START → intake."""
+    assert route_after_start({"skip_stages": []}) == "intake"
+    assert route_after_start({}) == "intake"
+    assert route_after_start({"interaction_mode": "guided"}) == "intake"
+
+
+def test_route_start_fast_track_goes_to_director_plan():
+    """FastTrack 모드: START → director_plan (intake 건너뜀)."""
+    assert route_after_start({"interaction_mode": "fast_track"}) == "director_plan"
+
+
+def test_route_start_skip_stages_goes_to_writer():
+    """skip_stages 있으면 START → writer."""
     assert route_after_start({"skip_stages": ["research", "concept", "production", "explain"]}) == "writer"
-    assert route_after_start({}) == "director_plan"  # 기본값: skip_stages 없으면 director_plan
 
 
 # -- Score-Based Checkpoint Routing 테스트 --

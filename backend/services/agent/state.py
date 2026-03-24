@@ -131,6 +131,9 @@ class ScriptState(TypedDict, total=False):
     group_id: int | None
     references: list[str] | None  # 소재 URL/텍스트 목록
 
+    # Intake 결과 (Guided 모드 — 의도 파악)
+    intake_summary: str  # 결정 요약 (예: "학교 괴담, 대화형, 서스펜스, 미도리↔하루")
+
     # Graph 설정
     preset: str | None  # deprecated — 향후 제거 예정
     skip_stages: list[str]  # ["research", "concept", "production"]

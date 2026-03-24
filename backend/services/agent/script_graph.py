@@ -1,7 +1,7 @@
-"""Script Generation Graph — 20노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
+"""Script Generation Graph — 21노드 조건 분기 그래프 (에러 short-circuit + 병렬 fan-out).
 
 Guided/FastTrack 공통 경로 (SP-057: 모든 노드 1회 실행):
-  START → director_plan → director_plan_gate → inventory_resolve →
+  START → [intake(Guided)] → director_plan → director_plan_gate → inventory_resolve →
   [research → critic / critic(research skip)] →
   concept_gate → location_planner → writer → review →
   [passed→director_checkpoint / failed→revise] →
@@ -34,6 +34,7 @@ from services.agent.nodes.director_plan_gate import director_plan_gate_node
 from services.agent.nodes.explain import explain_node
 from services.agent.nodes.finalize import finalize_node
 from services.agent.nodes.human_gate import human_gate_node
+from services.agent.nodes.intake import intake_node
 from services.agent.nodes.learn import learn_node
 from services.agent.nodes.location_planner import location_planner_node
 from services.agent.nodes.research import research_node
@@ -82,12 +83,13 @@ def _wrap_node(name: str, fn: Any) -> Any:
 
 
 def build_script_graph() -> StateGraph:
-    """20노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
+    """21노드 StateGraph를 구성한다. compile()은 호출자가 수행."""
     from services.agent.nodes.inventory_resolve import inventory_resolve_node  # noqa: PLC0415
 
     graph = StateGraph(ScriptState)
 
-    # 노드 등록 (20개) — AGENT observation 래핑
+    # 노드 등록 (21개) — AGENT observation 래핑
+    graph.add_node("intake", _wrap_node("intake", intake_node))
     graph.add_node("director_plan", _wrap_node("director_plan", director_plan_node))
     graph.add_node("director_plan_gate", _wrap_node("director_plan_gate", director_plan_gate_node))
     graph.add_node("inventory_resolve", _wrap_node("inventory_resolve", inventory_resolve_node))
@@ -109,8 +111,9 @@ def build_script_graph() -> StateGraph:
     graph.add_node("explain", _wrap_node("explain", explain_node))
     graph.add_node("learn", _wrap_node("learn", learn_node))
 
-    # START → 2분기 (skip_stages 직접 지정→writer, 기본→director_plan)
-    graph.add_conditional_edges(START, route_after_start, ["director_plan", "writer"])
+    # START → 3분기 (skip_stages→writer, fast_track→director_plan, guided→intake)
+    graph.add_conditional_edges(START, route_after_start, ["intake", "director_plan", "writer"])
+    graph.add_edge("intake", "director_plan")
 
     # director_plan → director_plan_gate → inventory_resolve | director_plan (재수립)
     graph.add_edge("director_plan", "director_plan_gate")

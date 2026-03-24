@@ -70,13 +70,23 @@ export type ScriptEditorState = {
   productionSnapshot: ProductionSnapshot | null;
   interactionMode: "guided" | "fast_track";
   isWaitingForPlan: boolean;
+  isWaitingForIntake: boolean;
+  intakeData: Record<string, unknown> | null;
   chatContext: Array<{ role: string; text: string }>;
+};
+
+export type IntakeValue = {
+  structure: string;
+  tone: string;
+  character_id?: number;
+  character_b_id?: number;
 };
 
 export type ResumeOptions = {
   feedbackPreset?: string;
   feedbackPresetParams?: Record<string, string>;
   customConcept?: { title: string; concept: string };
+  intakeValue?: IntakeValue;
 };
 
 export type ResumeAction =
@@ -86,7 +96,8 @@ export type ResumeAction =
   | "regenerate"
   | "custom_concept"
   | "proceed"
-  | "revise_plan";
+  | "revise_plan"
+  | "answer";
 
 export type ScriptEditorActions = ScriptEditorState & {
   setField: <K extends keyof ScriptEditorState>(key: K, value: ScriptEditorState[K]) => void;

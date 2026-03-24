@@ -891,8 +891,8 @@ export type ScriptStreamEvent = {
     scenes?: Scene[];
     character_id?: number | null;
     character_b_id?: number | null;
-    // concept_gate
-    type?: "concept_selection";
+    // intake / concept_gate
+    type?: "intake" | "concept_selection";
     candidates?: ConceptCandidate[];
     selected_concept?: ConceptCandidate;
     evaluation?: Record<string, unknown>;

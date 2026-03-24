@@ -43,7 +43,7 @@ def _total_revisions(state: ScriptState) -> int:
 
 
 def route_after_start(state: ScriptState) -> str:
-    """START 이후: Director가 항상 실행.
+    """START 이후: Guided→intake, FastTrack→director_plan, skip_stages→writer.
 
     외부 override(skip_stages 직접 지정) 시에만 writer 직행.
     """
@@ -51,8 +51,12 @@ def route_after_start(state: ScriptState) -> str:
     if skip:  # API에서 skip_stages를 직접 지정한 경우 (테스트/디버깅용)
         logger.debug("[LangGraph:Route] start -> writer (skip_stages override)")
         return "writer"
-    logger.debug("[LangGraph:Route] start -> director_plan")
-    return "director_plan"
+    mode = coerce_interaction_mode(state.get("interaction_mode"))
+    if mode == "fast_track":
+        logger.debug("[LangGraph:Route] start -> director_plan (fast_track)")
+        return "director_plan"
+    logger.debug("[LangGraph:Route] start -> intake (guided)")
+    return "intake"
 
 
 def route_after_inventory_resolve(state: ScriptState) -> str:

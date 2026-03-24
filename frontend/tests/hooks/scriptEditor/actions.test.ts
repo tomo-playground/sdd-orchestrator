@@ -66,6 +66,8 @@ function makeEditorState(overrides: Partial<ScriptEditorState> = {}): ScriptEdit
     productionSnapshot: null,
     interactionMode: "guided",
     isWaitingForPlan: false,
+    isWaitingForIntake: false,
+    intakeData: null,
     chatContext: [],
     ...overrides,
   };

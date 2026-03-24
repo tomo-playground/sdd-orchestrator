@@ -244,6 +244,8 @@ async def resume_script(request: ScriptResumeRequest):
         resume_value["concept_id"] = request.concept_id
     if request.custom_concept is not None:
         resume_value["custom_concept"] = request.custom_concept
+    if request.intake_value is not None:
+        resume_value.update(request.intake_value.model_dump(exclude_none=True))
     return StreamingResponse(
         stream_graph_events(
             Command(resume=resume_value),

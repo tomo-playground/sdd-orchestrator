@@ -17,6 +17,7 @@ from config import pipeline_logger as logger
 LANGFUSE_MANAGED_TEMPLATES: frozenset[str] = frozenset(
     {
         # --- A등급: 단순 변수 치환 + 경량 로직 ---
+        "creative/intake",
         "creative/analyze_topic",
         "creative/concept_architect",
         "creative/location_planner",
@@ -84,6 +85,7 @@ _TEMPLATE_TO_LANGFUSE: dict[str, str] = {
     "create_storyboard_narrated": "storyboard/narrated",
     "create_storyboard_confession": "storyboard/confession",
     # tool/ — 보조 도구
+    "creative/intake": "tool/intake",
     "creative/analyze_topic": "tool/analyze-topic",
     "creative/concept_architect": "tool/concept-architect",
     "creative/devils_advocate": "tool/devils-advocate",

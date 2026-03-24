@@ -123,6 +123,29 @@ export type PipelineStepMessage = ChatMessageBase & {
   nodeResult: Record<string, unknown>;
 };
 
+export type IntakeQuestion = {
+  key: string;
+  message: string;
+  options?: { id: string; label: string; description?: string }[];
+  characters?: { id: number; name: string; gender?: string; summary?: string }[];
+  applicable?: boolean;
+  needs_two?: boolean;
+};
+
+export type IntakeAnalysis = {
+  suggested_structure: string | null;
+  suggested_tone: string | null;
+  reasoning: string;
+};
+
+export type IntakeGateMessage = ChatMessageBase & {
+  role: "assistant";
+  contentType: "intake_gate";
+  text: string;
+  analysis: IntakeAnalysis;
+  questions: IntakeQuestion[];
+};
+
 export type PlanReviewGateMessage = ChatMessageBase & {
   role: "assistant";
   contentType: "plan_review_gate";
@@ -150,6 +173,7 @@ export type ChatMessage =
   | AssistantMessage
   | SettingsRecommendMessage
   | ClarificationMessage
+  | IntakeGateMessage
   | ConceptGateMessage
   | ReviewGateMessage
   | CompletionMessage

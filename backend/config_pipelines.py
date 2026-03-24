@@ -26,6 +26,7 @@ YOUTUBE_UPLOAD_COST = int(os.getenv("YOUTUBE_UPLOAD_COST", "1600"))
 # --- Creative Engine Configuration ---
 CREATIVE_MAX_ROUNDS = int(os.getenv("CREATIVE_MAX_ROUNDS", "3"))
 CREATIVE_LEADER_MODEL = os.getenv("CREATIVE_LEADER_MODEL", "gemini-2.5-flash")
+INTAKE_MODEL = os.getenv("INTAKE_MODEL", "gemini-2.5-flash")
 DIRECTOR_MODEL = os.getenv("DIRECTOR_MODEL", "gemini-2.5-pro")
 WRITER_MODEL = os.getenv("WRITER_MODEL", "gemini-2.5-pro")
 DIRECTOR_CHECKPOINT_MODEL = os.getenv("DIRECTOR_CHECKPOINT_MODEL", "gemini-2.5-flash")

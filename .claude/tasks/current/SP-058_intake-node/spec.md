@@ -1,7 +1,7 @@
 ---
 id: SP-058
 priority: P1
-scope: backend
+scope: backend, frontend
 branch: feat/SP-058-intake-node
 created: 2026-03-22
 status: approved

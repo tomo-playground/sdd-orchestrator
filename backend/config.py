@@ -393,6 +393,11 @@ STRUCTURE_IDS: frozenset[str] = frozenset(s.id for s in STRUCTURE_METADATA)
 MULTI_CHAR_STRUCTURES: frozenset[str] = frozenset(s.id for s in STRUCTURE_METADATA if s.requires_two_characters)
 STRUCTURE_ID_TO_LABEL: dict[str, str] = {s.id: s.label for s in STRUCTURE_METADATA}
 STRUCTURE_LABEL_TO_ID: dict[str, str] = {s.label: s.id for s in STRUCTURE_METADATA}
+STRUCTURE_HINTS: dict[str, str] = {
+    "monologue": "혼자 이야기하는 독백 형태",
+    "dialogue": "두 캐릭터가 대화하는 형태",
+    "narrated_dialogue": "나레이션과 대화가 섞인 형태",
+}
 
 
 @dataclass(frozen=True)
