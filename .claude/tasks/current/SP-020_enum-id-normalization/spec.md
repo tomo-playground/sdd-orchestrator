@@ -4,7 +4,8 @@ priority: P1
 scope: fullstack
 branch: feat/SP-020-enum-id-normalization
 created: 2026-03-23
-status: pending
+status: approved
+approved_at: 2026-03-24
 depends_on:
 label: enhancement
 assignee: stopper2008
