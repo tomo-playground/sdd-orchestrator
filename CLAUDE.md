@@ -361,12 +361,12 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 
 | Agent | 역할 | Commands |
 |-------|------|----------|
-| **Tech Lead** | 개발 총괄, 크로스 에이전트 조율, 기술 의사결정 | `/roadmap`, `/test`, `/review`, `/db`, `/docs` |
+| **Tech Lead** | 개발 총괄, 기술 의사결정, CI/CD 워크플로우, 오케스트레이터(`orchestrator/`), Slack 알림 | `/roadmap`, `/test`, `/review`, `/db`, `/docs` |
 | **PM Agent** | 로드맵/우선순위/문서 관리, 프로젝트 진행 조율 | `/roadmap`, `/docs`, `/vrt`, `/test`, `/pm-check` |
-| **Prompt Engineer** | SD 프롬프트 최적화, Danbooru/Civitai 기반 인사이트 | `/prompt-validate`, `/sd-status` |
-| **Storyboard Writer** | 스토리보드/스크립트 작성, LangFuse 프롬프트 최적화 | `/roadmap` |
+| **Prompt Engineer** | SD 프롬프트 최적화, Danbooru/Civitai 인사이트, 태그 시스템(`services/keywords/`) | `/prompt-validate`, `/sd-status` |
+| **Storyboard Writer** | 스토리보드/스크립트 작성, LangFuse 프롬프트 내용 작성/최적화 | `/roadmap` |
 | **QA Validator** | 품질 체크, TROUBLESHOOTING 관리, 테스트 검증 | `/test`, `/review`, `/vrt`, `/sd-status`, `/prompt-validate` |
-| **FFmpeg Expert** | 영상 렌더링, FFmpeg 명령어, 비디오 효과 | `/vrt`, `/roadmap` |
+| **FFmpeg Expert** | 미디어 파이프라인 전체 (영상 렌더링 + TTS/BGM 구현 + 오디오 후처리) | `/vrt`, `/roadmap` |
 | **UI/UX Engineer** | UI/UX 설계, 와이어프레임, 사용성 개선 | `/vrt`, `/test` |
 | **Frontend Dev** | Next.js/React 개발, Zustand 상태 관리 | `/test frontend`, `/vrt` |
 | **Backend Dev** | FastAPI 개발, 서비스 로직, API 설계, Agent 노드 LangFuse 프롬프트 등록 | `/test backend`, `/sd-status`, `/db`, `/pose` |
@@ -376,7 +376,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | **Prompt Reviewer** | Stable Diffusion 및 Gemini 프롬프트 최적화, Danbooru 태그 준수 여부 및 문법 검토 | `/prompt-validate`, `/review` |
 | **Voice Reviewer** | TTS 음성의 톤, 속도, 발음 및 감정 표현의 적절성 검토 | `/review` |
 | **Sound Reviewer** | BGM 및 효과음의 조화, 오디오 정규화 상태 및 전반적인 사운드 품질 검토 | `/review` |
-| **Performance Engineer** | 외부 자원 통신 최적화, timeout/retry/rate limit 구현, 성능 병목 해결 | `/review` |
+| **Performance Engineer** | 외부 자원 통신 최적화, timeout/retry/rate limit, 인프라/배포(SD, Docker, 서버) | `/review` |
 
 ### Prompt Engineer 역할 상세
 **핵심 원칙**: "프롬프트 기준 정확한 장면 생성"이 최우선 목표. 수동적 대응이 아닌 **적극적 제안**으로 품질을 선제적으로 개선합니다.
@@ -438,6 +438,17 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | `services/agent/nodes/` 추가/변경 | LangFuse 연동 체크 필수 | 아래 "Agent 노드 추가 체크리스트" 참조 |
 | Phase 작업 완료 시 | PM 문서 동기화 | ROADMAP 상태 업데이트 + FEATURES/ 상태 확인 |
 | 새 기능 착수 시 | PM 명세 확인 | FEATURES/ 명세 존재 여부 확인, 없으면 생성 권고 |
+
+**설계 리뷰 시 담당 에이전트 참여 규칙**:
+`/sdd-design` 실행 시, 변경 영역에 해당하는 담당 에이전트를 **설계 리뷰어로 참여**시킨다:
+- `services/agent/nodes/` 변경 → Backend Dev (LangFuse 등록) + Storyboard Writer (프롬프트 내용)
+- `services/keywords/` 변경 → Prompt Engineer
+- `services/video/` 또는 `audio/` 변경 → FFmpeg Expert
+- `models/` 또는 `alembic/` 변경 → DBA
+- `.github/workflows/` 또는 `orchestrator/` 변경 → Tech Lead
+- `frontend/` 변경 → Frontend Dev
+- 외부 API 호출 추가 → Performance Engineer
+- 인프라/배포 변경 → Performance Engineer
 
 **구현 → 리뷰 → 수정 자동 파이프라인**:
 1. 코드 변경(Edit/Write) + 빌드/린트 통과
