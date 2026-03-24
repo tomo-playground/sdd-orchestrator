@@ -29,7 +29,7 @@ describe("mapEventScenes", () => {
         client_id: "c1",
         order: 1,
         script: "Hello",
-        speaker: "A",
+        speaker: "speaker_1",
         duration: 5,
         image_prompt: "prompt",
         image_prompt_ko: "프롬프트",
@@ -44,7 +44,7 @@ describe("mapEventScenes", () => {
     expect(result[0].id).toBe(10);
     expect(result[0].client_id).toBe("test-client-id");
     expect(result[0].script).toBe("Hello");
-    expect(result[0].speaker).toBe("A");
+    expect(result[0].speaker).toBe("speaker_1");
     expect(result[0].duration).toBe(5);
     expect(result[0].image_url).toBe("http://img.png");
   });
@@ -53,7 +53,7 @@ describe("mapEventScenes", () => {
     const scenes = [{ id: 0 }] as unknown as Scene[];
     const result = mapEventScenes(scenes);
     expect(result[0].script).toBe("");
-    expect(result[0].speaker).toBe("Narrator");
+    expect(result[0].speaker).toBe("narrator");
     expect(result[0].duration).toBe(3);
     expect(result[0].image_prompt).toBe("");
     expect(result[0].image_url).toBeNull();
@@ -131,7 +131,7 @@ describe("syncToGlobalStore", () => {
         client_id: "c1",
         order: 1,
         script: "Hi",
-        speaker: "Narrator",
+        speaker: "narrator",
         duration: 3,
         image_prompt: "",
         image_prompt_ko: "",

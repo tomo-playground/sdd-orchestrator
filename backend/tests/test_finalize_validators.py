@@ -44,7 +44,7 @@ class TestFilterStyleModifiers:
         assert scenes[0]["image_prompt"] == ""
 
     def test_missing_prompt_skipped(self):
-        scenes = [{"speaker": "Narrator"}]
+        scenes = [{"speaker": "narrator"}]
         filter_style_modifiers(scenes)
         assert "image_prompt" not in scenes[0]
 
@@ -128,8 +128,8 @@ class TestNormalizeIPAdapterWeights:
 
     def test_narrator_always_zero(self):
         scenes = [
-            {"speaker": "Narrator", "ip_adapter_weight": 0.7},
-            {"speaker": "Narrator"},
+            {"speaker": "narrator", "ip_adapter_weight": 0.7},
+            {"speaker": "narrator"},
         ]
         normalize_ip_adapter_weights(scenes, character_id=1)
         assert scenes[0]["ip_adapter_weight"] == 0.0
@@ -137,7 +137,7 @@ class TestNormalizeIPAdapterWeights:
 
     def test_preserves_explicit_weight(self):
         """Cinematographer가 명시한 값은 보존."""
-        scenes = [{"speaker": "A", "ip_adapter_weight": 0.5}]
+        scenes = [{"speaker": "speaker_1", "ip_adapter_weight": 0.5}]
         normalize_ip_adapter_weights(scenes, character_id=1)
         assert scenes[0]["ip_adapter_weight"] == 0.5
 
@@ -148,8 +148,8 @@ class TestNormalizeIPAdapterWeights:
     def test_normalizes_to_character_db_weight(self, mock_info):
         """캐릭터 DB 값으로 통일."""
         scenes = [
-            {"speaker": "A", "ip_adapter_weight": None},
-            {"speaker": "A"},
+            {"speaker": "speaker_1", "ip_adapter_weight": None},
+            {"speaker": "speaker_1"},
         ]
         normalize_ip_adapter_weights(scenes, character_id=42)
         assert scenes[0]["ip_adapter_weight"] == 0.8
@@ -163,7 +163,7 @@ class TestNormalizeIPAdapterWeights:
         """DB에 값 없으면 DEFAULT_IP_ADAPTER_WEIGHT 사용. LoRA 있으므로 min 보정 없음."""
         from config import DEFAULT_IP_ADAPTER_WEIGHT
 
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         normalize_ip_adapter_weights(scenes, character_id=1)
         assert scenes[0]["ip_adapter_weight"] == DEFAULT_IP_ADAPTER_WEIGHT
 
@@ -174,8 +174,8 @@ class TestNormalizeIPAdapterWeights:
         """Speaker B는 character_b_id 기반 weight 사용."""
         mock_info.side_effect = lambda cid, db=None: {10: (0.6, True), 20: (0.9, True)}.get(cid, (None, False))
         scenes = [
-            {"speaker": "A"},
-            {"speaker": "B"},
+            {"speaker": "speaker_1"},
+            {"speaker": "speaker_2"},
         ]
         normalize_ip_adapter_weights(scenes, character_id=10, character_b_id=20)
         assert scenes[0]["ip_adapter_weight"] == 0.6
@@ -185,7 +185,7 @@ class TestNormalizeIPAdapterWeights:
         """character_id=None이면 DEFAULT 사용. LoRA 없으므로 min 보정 적용."""
         from config import DEFAULT_IP_ADAPTER_WEIGHT, MIN_IP_ADAPTER_WEIGHT_NO_LORA
 
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         normalize_ip_adapter_weights(scenes, character_id=None)
         assert scenes[0]["ip_adapter_weight"] == max(DEFAULT_IP_ADAPTER_WEIGHT, MIN_IP_ADAPTER_WEIGHT_NO_LORA)
 
@@ -204,7 +204,7 @@ class TestDiversifyGazes:
             ctx = {"gaze": gaze}
             if emotion:
                 ctx["emotion"] = emotion
-            scenes.append({"speaker": "A", "context_tags": ctx})
+            scenes.append({"speaker": "speaker_1", "context_tags": ctx})
         return scenes
 
     def test_looking_at_viewer_dominant_gets_corrected(self):
@@ -261,10 +261,10 @@ class TestDiversifyGazes:
     def test_narrator_scenes_excluded(self):
         """Narrator 씬은 건너뜀."""
         scenes = [
-            {"speaker": "Narrator", "context_tags": {"gaze": "looking_at_viewer"}},
-            {"speaker": "A", "context_tags": {"gaze": "looking_at_viewer", "emotion": "sad"}},
-            {"speaker": "A", "context_tags": {"gaze": "looking_at_viewer", "emotion": "happy"}},
-            {"speaker": "A", "context_tags": {"gaze": "looking_at_viewer", "emotion": "nervous"}},
+            {"speaker": "narrator", "context_tags": {"gaze": "looking_at_viewer"}},
+            {"speaker": "speaker_1", "context_tags": {"gaze": "looking_at_viewer", "emotion": "sad"}},
+            {"speaker": "speaker_1", "context_tags": {"gaze": "looking_at_viewer", "emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"gaze": "looking_at_viewer", "emotion": "nervous"}},
         ]
         diversify_gazes(scenes)
         # Narrator gaze는 변경 안 됨
@@ -326,7 +326,7 @@ class TestDiversifyActions:
             ctx: dict = {"action": action}
             if emotion:
                 ctx["emotion"] = emotion
-            scenes.append({"speaker": "A", "context_tags": ctx})
+            scenes.append({"speaker": "speaker_1", "context_tags": ctx})
         return scenes
 
     def test_dominant_action_corrected(self):
@@ -374,10 +374,10 @@ class TestDiversifyActions:
     def test_narrator_excluded(self):
         """Narrator 씬은 건너뜀."""
         scenes = [
-            {"speaker": "Narrator", "context_tags": {"action": "waving"}},
-            {"speaker": "A", "context_tags": {"action": "waving", "emotion": "sad"}},
-            {"speaker": "A", "context_tags": {"action": "waving", "emotion": "calm"}},
-            {"speaker": "A", "context_tags": {"action": "waving", "emotion": "angry"}},
+            {"speaker": "narrator", "context_tags": {"action": "waving"}},
+            {"speaker": "speaker_1", "context_tags": {"action": "waving", "emotion": "sad"}},
+            {"speaker": "speaker_1", "context_tags": {"action": "waving", "emotion": "calm"}},
+            {"speaker": "speaker_1", "context_tags": {"action": "waving", "emotion": "angry"}},
         ]
         diversify_actions(scenes)
         assert scenes[0]["context_tags"]["action"] == "waving"
@@ -421,7 +421,7 @@ class TestResolveCharactersFromGroup:
     def test_dialogue_returns_both_chars(self):
         from services.agent.nodes.finalize import _resolve_characters_from_group
 
-        db = self._mock_db([(1, "A"), (2, "B")])
+        db = self._mock_db([(1, "speaker_1"), (2, "speaker_2")])
         a, b = _resolve_characters_from_group(1, "dialogue", db)
         assert a == 1
         assert b == 2
@@ -429,7 +429,7 @@ class TestResolveCharactersFromGroup:
     def test_narrated_dialogue_returns_both_chars(self):
         from services.agent.nodes.finalize import _resolve_characters_from_group
 
-        db = self._mock_db([(1, "A"), (2, "B")])
+        db = self._mock_db([(1, "speaker_1"), (2, "speaker_2")])
         a, b = _resolve_characters_from_group(1, "narrated_dialogue", db)
         assert a == 1
         assert b == 2
@@ -437,7 +437,7 @@ class TestResolveCharactersFromGroup:
     def test_monologue_returns_only_char_a(self):
         from services.agent.nodes.finalize import _resolve_characters_from_group
 
-        db = self._mock_db([(1, "A"), (2, "B")])
+        db = self._mock_db([(1, "speaker_1"), (2, "speaker_2")])
         a, b = _resolve_characters_from_group(1, "monologue", db)
         assert a == 1
         assert b is None
@@ -454,7 +454,7 @@ class TestResolveCharactersFromGroup:
         """그룹에 1명만 있으면 char_b는 None."""
         from services.agent.nodes.finalize import _resolve_characters_from_group
 
-        db = self._mock_db([(1, "A")])
+        db = self._mock_db([(1, "speaker_1")])
         a, b = _resolve_characters_from_group(1, "dialogue", db)
         assert a == 1
         assert b is None
@@ -599,7 +599,7 @@ class TestValidateContextTagCategories:
 
     def test_no_context_tags_skipped(self):
         """context_tags가 없는 씬은 건너뜀."""
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         validate_context_tag_categories(scenes)
         assert "context_tags" not in scenes[0]
 
@@ -622,7 +622,7 @@ class TestDiversifyExpressions:
             ctx = {"expression": expr}
             if emotions and emotions[i]:
                 ctx["emotion"] = emotions[i]
-            scene = {"speaker": "A", "context_tags": ctx}
+            scene = {"speaker": "speaker_1", "context_tags": ctx}
             if scripts and scripts[i]:
                 scene["script"] = scripts[i]
             scenes.append(scene)
@@ -674,10 +674,10 @@ class TestDiversifyExpressions:
     def test_narrator_excluded(self):
         """Narrator 씬은 건너뜀."""
         scenes = [
-            {"speaker": "Narrator", "context_tags": {"expression": "smile"}},
-            {"speaker": "A", "context_tags": {"expression": "smile"}, "script": "슬퍼"},
-            {"speaker": "A", "context_tags": {"expression": "smile"}, "script": "화나"},
-            {"speaker": "A", "context_tags": {"expression": "smile"}, "script": "걱정돼"},
+            {"speaker": "narrator", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_1", "context_tags": {"expression": "smile"}, "script": "슬퍼"},
+            {"speaker": "speaker_1", "context_tags": {"expression": "smile"}, "script": "화나"},
+            {"speaker": "speaker_1", "context_tags": {"expression": "smile"}, "script": "걱정돼"},
         ]
         diversify_expressions(scenes)
         assert scenes[0]["context_tags"]["expression"] == "smile"
@@ -768,10 +768,10 @@ class TestDiversifyPoses:
         from services.agent.nodes._diversify_utils import diversify_poses
 
         scenes = [
-            {"speaker": "A", "context_tags": {"pose": "standing", "emotion": "sad"}},
-            {"speaker": "A", "context_tags": {"pose": "standing", "emotion": "excited"}},
-            {"speaker": "A", "context_tags": {"pose": "standing", "emotion": "angry"}},
-            {"speaker": "A", "context_tags": {"pose": "sitting"}},
+            {"speaker": "speaker_1", "context_tags": {"pose": "standing", "emotion": "sad"}},
+            {"speaker": "speaker_1", "context_tags": {"pose": "standing", "emotion": "excited"}},
+            {"speaker": "speaker_1", "context_tags": {"pose": "standing", "emotion": "angry"}},
+            {"speaker": "speaker_1", "context_tags": {"pose": "sitting"}},
         ]
         diversify_poses(scenes)
         poses = [s["context_tags"]["pose"] for s in scenes]
@@ -782,9 +782,9 @@ class TestDiversifyPoses:
         from services.agent.nodes._diversify_utils import diversify_poses
 
         scenes = [
-            {"speaker": "Narrator", "context_tags": {"pose": "standing", "emotion": "sad"}},
-            {"speaker": "Narrator", "context_tags": {"pose": "standing", "emotion": "happy"}},
-            {"speaker": "Narrator", "context_tags": {"pose": "standing", "emotion": "angry"}},
+            {"speaker": "narrator", "context_tags": {"pose": "standing", "emotion": "sad"}},
+            {"speaker": "narrator", "context_tags": {"pose": "standing", "emotion": "happy"}},
+            {"speaker": "narrator", "context_tags": {"pose": "standing", "emotion": "angry"}},
         ]
         diversify_poses(scenes)
         # Narrator만 있으면 char_scenes < 3이라 스킵
@@ -795,10 +795,10 @@ class TestDiversifyPoses:
         from services.agent.nodes._diversify_utils import diversify_poses
 
         scenes = [
-            {"speaker": "A", "context_tags": {"pose": "standing", "emotion": "happy"}},
-            {"speaker": "A", "context_tags": {"pose": "sitting", "emotion": "sad"}},
-            {"speaker": "A", "context_tags": {"pose": "arms_crossed", "emotion": "angry"}},
-            {"speaker": "A", "context_tags": {"pose": "arms_up", "emotion": "excited"}},
+            {"speaker": "speaker_1", "context_tags": {"pose": "standing", "emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"pose": "sitting", "emotion": "sad"}},
+            {"speaker": "speaker_1", "context_tags": {"pose": "arms_crossed", "emotion": "angry"}},
+            {"speaker": "speaker_1", "context_tags": {"pose": "arms_up", "emotion": "excited"}},
         ]
         diversify_poses(scenes)
         assert scenes[0]["context_tags"]["pose"] == "standing"
@@ -835,7 +835,7 @@ class TestSanitizeQualityTags:
     def test_missing_prompt_skipped(self):
         from services.agent.nodes.finalize import _sanitize_quality_tags
 
-        scenes = [{"speaker": "Narrator"}]
+        scenes = [{"speaker": "narrator"}]
         _sanitize_quality_tags(scenes)
         assert "image_prompt" not in scenes[0]
 
@@ -872,14 +872,14 @@ class TestInjectDefaultContextTags:
     def test_narrator_skipped(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "Narrator"}]
+        scenes = [{"speaker": "narrator"}]
         _inject_default_context_tags(scenes)
         assert "context_tags" not in scenes[0]
 
     def test_missing_context_tags_created(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         _inject_default_context_tags(scenes)
         ctx = scenes[0]["context_tags"]
         assert "pose" in ctx
@@ -889,21 +889,21 @@ class TestInjectDefaultContextTags:
     def test_emotion_derives_expression(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "A", "context_tags": {"emotion": "sad"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"emotion": "sad"}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["expression"] == "sad"
 
     def test_emotion_derives_mood(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "A", "context_tags": {"emotion": "happy"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"emotion": "happy"}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["mood"] == "cheerful"
 
     def test_existing_expression_preserved_without_emotion(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "A", "context_tags": {"expression": "grin"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"expression": "grin"}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["expression"] == "grin"
 
@@ -930,7 +930,7 @@ class TestNormalizeEnvironmentTags:
     def test_no_context_tags_skipped(self):
         from services.agent.nodes.finalize import _normalize_environment_tags
 
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         _normalize_environment_tags(scenes)
         assert "context_tags" not in scenes[0]
 
@@ -1026,7 +1026,7 @@ class TestInjectWriterPlanEmotions:
     def test_creates_context_tags_if_missing(self):
         from services.agent.nodes.finalize import _inject_writer_plan_emotions
 
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         plan = {"emotional_arc": ["calm"]}
         _inject_writer_plan_emotions(scenes, plan)
         assert scenes[0]["context_tags"]["emotion"] == "calm"
@@ -1131,7 +1131,7 @@ class TestFlattenTtsDesigns:
     def test_no_tts_design(self):
         from services.agent.nodes.finalize import _flatten_tts_designs
 
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         _flatten_tts_designs(scenes)
         assert "voice_design_prompt" not in scenes[0]
 
@@ -1375,7 +1375,7 @@ class TestAutoPopulateSceneFlags:
     def test_character_scene_gets_all_flags(self):
         from services.agent.nodes.finalize import _auto_populate_scene_flags
 
-        scenes = [{"speaker": "A", "context_tags": {"pose": "standing"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"pose": "standing"}}]
         _auto_populate_scene_flags(scenes, character_id=1)
         s = scenes[0]
         # use_controlnet defaults to False (레퍼런스 생성만 ON)
@@ -1387,7 +1387,7 @@ class TestAutoPopulateSceneFlags:
     def test_narrator_no_controlnet(self):
         from services.agent.nodes.finalize import _auto_populate_scene_flags
 
-        scenes = [{"speaker": "Narrator"}]
+        scenes = [{"speaker": "narrator"}]
         _auto_populate_scene_flags(scenes, character_id=1)
         assert scenes[0]["use_controlnet"] is False
         assert scenes[0]["use_ip_adapter"] is False
@@ -1395,7 +1395,7 @@ class TestAutoPopulateSceneFlags:
     def test_no_character_id(self):
         from services.agent.nodes.finalize import _auto_populate_scene_flags
 
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         _auto_populate_scene_flags(scenes, character_id=None)
         assert scenes[0]["use_ip_adapter"] is False
 
@@ -1403,8 +1403,8 @@ class TestAutoPopulateSceneFlags:
         from services.agent.nodes.finalize import _auto_populate_scene_flags
 
         scenes = [
-            {"speaker": "A", "context_tags": {"pose": "standing"}},
-            {"speaker": "B", "context_tags": {"pose": "standing"}},
+            {"speaker": "speaker_1", "context_tags": {"pose": "standing"}},
+            {"speaker": "speaker_2", "context_tags": {"pose": "standing"}},
         ]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=2)
         assert scenes[0]["use_ip_adapter"] is True
@@ -1415,7 +1415,7 @@ class TestAutoPopulateSceneFlags:
 
         scenes = [
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "use_controlnet": False,
                 "use_ip_adapter": False,
                 "multi_gen_enabled": False,
@@ -1437,7 +1437,7 @@ class TestPopulateCharacterActions:
     def test_calls_auto_populate(self, mock_auto):
         from services.agent.nodes.finalize import _populate_character_actions
 
-        scenes = [{"speaker": "A", "character_actions": {"expression": "smile"}}]
+        scenes = [{"speaker": "speaker_1", "character_actions": {"expression": "smile"}}]
         db = MagicMock()
         _populate_character_actions(scenes, character_id=1, character_b_id=None, db=db)
         mock_auto.assert_called_once_with(scenes, 1, None, db)
@@ -1449,7 +1449,7 @@ class TestPopulateCharacterActions:
     def test_exception_non_fatal(self, mock_auto):
         from services.agent.nodes.finalize import _populate_character_actions
 
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         db = MagicMock()
         _populate_character_actions(scenes, character_id=1, character_b_id=None, db=db)
         # 에러 발생해도 예외 전파 안 됨
@@ -1483,7 +1483,7 @@ class TestDiversifyExpressionsEdgeCases:
             ctx = {"expression": expr}
             if emotions and emotions[i]:
                 ctx["emotion"] = emotions[i]
-            scene = {"speaker": "A", "context_tags": ctx}
+            scene = {"speaker": "speaker_1", "context_tags": ctx}
             if scripts and scripts[i]:
                 scene["script"] = scripts[i]
             scenes.append(scene)
@@ -1492,10 +1492,10 @@ class TestDiversifyExpressionsEdgeCases:
     def test_no_context_tags_skipped(self):
         """context_tags 없는 씬은 건너뜀."""
         scenes = [
-            {"speaker": "A", "context_tags": {"expression": "smile"}},
-            {"speaker": "A"},  # no context_tags
-            {"speaker": "A", "context_tags": {"expression": "smile"}, "script": "슬퍼"},
-            {"speaker": "A", "context_tags": {"expression": "smile"}, "script": "화나"},
+            {"speaker": "speaker_1", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_1"},  # no context_tags
+            {"speaker": "speaker_1", "context_tags": {"expression": "smile"}, "script": "슬퍼"},
+            {"speaker": "speaker_1", "context_tags": {"expression": "smile"}, "script": "화나"},
         ]
         diversify_expressions(scenes)  # 에러 안 남
 
@@ -1531,7 +1531,7 @@ class TestDiversifyGazesEdgeCases:
             ctx = {"gaze": gaze}
             if emotion:
                 ctx["emotion"] = emotion
-            scenes.append({"speaker": "A", "context_tags": ctx})
+            scenes.append({"speaker": "speaker_1", "context_tags": ctx})
         return scenes
 
     def test_no_context_tags_skipped(self):
@@ -1540,7 +1540,7 @@ class TestDiversifyGazesEdgeCases:
             gazes=["looking_at_viewer"] * 3,
             emotions=["sad", "happy", "calm"],
         )
-        scenes.insert(1, {"speaker": "A"})  # no context_tags
+        scenes.insert(1, {"speaker": "speaker_1"})  # no context_tags
         diversify_gazes(scenes)  # 에러 안 남
 
     def test_non_dominant_gaze_not_changed(self):
@@ -1572,7 +1572,7 @@ class TestDiversifyActionsEdgeCases:
             ctx = {"action": action}
             if emotions and emotions[i]:
                 ctx["emotion"] = emotions[i]
-            scenes.append({"speaker": "A", "context_tags": ctx})
+            scenes.append({"speaker": "speaker_1", "context_tags": ctx})
         return scenes
 
     def test_no_context_tags_skipped(self):
@@ -1581,7 +1581,7 @@ class TestDiversifyActionsEdgeCases:
             actions=["waving"] * 3,
             emotions=["sad", "happy", "calm"],
         )
-        scenes.insert(1, {"speaker": "A"})
+        scenes.insert(1, {"speaker": "speaker_1"})
         diversify_actions(scenes)
 
     def test_non_dominant_action_not_changed(self):
@@ -1666,7 +1666,7 @@ class TestMoodFallback:
         from config import DEFAULT_MOOD_TAG
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "A", "context_tags": {}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["mood"] == DEFAULT_MOOD_TAG
 
@@ -1675,21 +1675,21 @@ class TestMoodFallback:
         from config import DEFAULT_MOOD_TAG
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "A", "context_tags": {"emotion": "zzz_nonexistent"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"emotion": "zzz_nonexistent"}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["mood"] == DEFAULT_MOOD_TAG
 
     def test_existing_mood_preserved(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "A", "context_tags": {"mood": "melancholic"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"mood": "melancholic"}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["mood"] == "melancholic"
 
     def test_valid_emotion_derives_mood(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "A", "context_tags": {"emotion": "angry"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"emotion": "angry"}}]
         _inject_default_context_tags(scenes)
         # angry → tense (derive_mood_from_emotion)
         assert scenes[0]["context_tags"]["mood"] is not None
@@ -1753,7 +1753,7 @@ class TestFilterExclusiveIdentityTags:
         from services.agent.nodes.finalize import _filter_exclusive_identity_tags
 
         scenes = [
-            {"speaker": "A", "image_prompt": "1girl, dark_hair, smile, cowboy_shot"},
+            {"speaker": "speaker_1", "image_prompt": "1girl, dark_hair, smile, cowboy_shot"},
         ]
         db = self._make_db(
             char_tags=[("black_hair", "hair_color")],
@@ -1776,7 +1776,7 @@ class TestFilterExclusiveIdentityTags:
         from services.agent.nodes.finalize import _filter_exclusive_identity_tags
 
         scenes = [
-            {"speaker": "A", "image_prompt": "1girl, black_hair, smile"},
+            {"speaker": "speaker_1", "image_prompt": "1girl, black_hair, smile"},
         ]
         db = self._make_db(
             char_tags=[("black_hair", "hair_color")],
@@ -1795,7 +1795,7 @@ class TestFilterExclusiveIdentityTags:
         from services.agent.nodes.finalize import _filter_exclusive_identity_tags
 
         scenes = [
-            {"speaker": "Narrator", "image_prompt": "dark_hair, landscape"},
+            {"speaker": "narrator", "image_prompt": "dark_hair, landscape"},
         ]
         db = self._make_db(
             char_tags=[("black_hair", "hair_color")],
@@ -1809,7 +1809,7 @@ class TestFilterExclusiveIdentityTags:
         """character_id=None이면 아무것도 안 함."""
         from services.agent.nodes.finalize import _filter_exclusive_identity_tags
 
-        scenes = [{"speaker": "A", "image_prompt": "dark_hair, smile"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "dark_hair, smile"}]
         db = MagicMock()
         _filter_exclusive_identity_tags(scenes, None, None, db)
         assert "dark_hair" in scenes[0]["image_prompt"]
@@ -1819,7 +1819,7 @@ class TestFilterExclusiveIdentityTags:
         from services.agent.nodes.finalize import _filter_exclusive_identity_tags
 
         scenes = [
-            {"speaker": "A", "image_prompt": "1girl, smile, cowboy_shot"},
+            {"speaker": "speaker_1", "image_prompt": "1girl, smile, cowboy_shot"},
         ]
         db = self._make_db(
             char_tags=[("black_hair", "hair_color")],
@@ -1839,7 +1839,7 @@ class TestFilterExclusiveIdentityTags:
         from services.agent.nodes.finalize import _filter_exclusive_identity_tags
 
         scenes = [
-            {"speaker": "A", "image_prompt": "1girl, some_unknown_tag, dark_hair"},
+            {"speaker": "speaker_1", "image_prompt": "1girl, some_unknown_tag, dark_hair"},
         ]
         db = self._make_db(
             char_tags=[("black_hair", "hair_color")],
@@ -1856,8 +1856,8 @@ class TestFilterExclusiveIdentityTags:
         from services.agent.nodes.finalize import _filter_exclusive_identity_tags
 
         scenes = [
-            {"speaker": "A", "image_prompt": "1girl, dark_hair, smile"},
-            {"speaker": "B", "image_prompt": "1boy, dark_eyes, smile"},
+            {"speaker": "speaker_1", "image_prompt": "1girl, dark_hair, smile"},
+            {"speaker": "speaker_2", "image_prompt": "1boy, dark_eyes, smile"},
         ]
 
         # char_a(id=1): black_hair(hair_color), char_b(id=2): blue_eyes(eye_color)

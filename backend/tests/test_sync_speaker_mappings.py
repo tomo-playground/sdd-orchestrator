@@ -33,7 +33,7 @@ class TestSyncSpeakerMappingsMonologue:
                 {
                     "scene_id": 0,
                     "script": "내 이야기를 들어줘",
-                    "speaker": "A",
+                    "speaker": "speaker_1",
                     "duration": 3.0,
                     "image_prompt": "1girl",
                     "width": 512,
@@ -50,7 +50,7 @@ class TestSyncSpeakerMappingsMonologue:
             db_session.query(StoryboardCharacter)
             .filter(
                 StoryboardCharacter.storyboard_id == sb_id,
-                StoryboardCharacter.speaker == "A",
+                StoryboardCharacter.speaker == "speaker_1",
             )
             .first()
         )
@@ -72,7 +72,7 @@ class TestSyncSpeakerMappingsMonologue:
                 {
                     "scene_id": 0,
                     "script": "나레이션",
-                    "speaker": "Narrator",
+                    "speaker": "narrator",
                     "duration": 3.0,
                     "image_prompt": "landscape",
                     "width": 512,
@@ -115,7 +115,7 @@ class TestSyncSpeakerMappingsDialogue:
                 {
                     "scene_id": 0,
                     "script": "안녕하세요",
-                    "speaker": "A",
+                    "speaker": "speaker_1",
                     "duration": 3.0,
                     "image_prompt": "1girl",
                     "width": 512,
@@ -124,7 +124,7 @@ class TestSyncSpeakerMappingsDialogue:
                 {
                     "scene_id": 1,
                     "script": "반갑습니다",
-                    "speaker": "B",
+                    "speaker": "speaker_2",
                     "duration": 3.0,
                     "image_prompt": "1boy",
                     "width": 512,
@@ -141,8 +141,8 @@ class TestSyncSpeakerMappingsDialogue:
         assert len(mappings) == 2
 
         speaker_map = {m.speaker: m.character_id for m in mappings}
-        assert speaker_map["A"] == char_a.id
-        assert speaker_map["B"] == char_b.id
+        assert speaker_map["speaker_1"] == char_a.id
+        assert speaker_map["speaker_2"] == char_b.id
 
 
 class TestSyncSpeakerMappingsUpdate:
@@ -171,7 +171,7 @@ class TestSyncSpeakerMappingsUpdate:
                 {
                     "scene_id": 0,
                     "script": "대화",
-                    "speaker": "A",
+                    "speaker": "speaker_1",
                     "duration": 3.0,
                     "image_prompt": "1girl",
                     "width": 512,
@@ -192,7 +192,7 @@ class TestSyncSpeakerMappingsUpdate:
                 {
                     "scene_id": 0,
                     "script": "모놀로그로 변환",
-                    "speaker": "A",
+                    "speaker": "speaker_1",
                     "duration": 3.0,
                     "image_prompt": "1girl",
                     "width": 512,
@@ -208,7 +208,7 @@ class TestSyncSpeakerMappingsUpdate:
             db_session.query(StoryboardCharacter)
             .filter(
                 StoryboardCharacter.storyboard_id == sb_id,
-                StoryboardCharacter.speaker == "A",
+                StoryboardCharacter.speaker == "speaker_1",
             )
             .first()
         )
@@ -220,7 +220,7 @@ class TestSyncSpeakerMappingsUpdate:
             db_session.query(StoryboardCharacter)
             .filter(
                 StoryboardCharacter.storyboard_id == sb_id,
-                StoryboardCharacter.speaker == "B",
+                StoryboardCharacter.speaker == "speaker_2",
             )
             .first()
         )
@@ -266,7 +266,7 @@ class TestVoicePresetResolution:
                 {
                     "scene_id": 0,
                     "script": "내 목소리야",
-                    "speaker": "A",
+                    "speaker": "speaker_1",
                     "duration": 3.0,
                     "image_prompt": "1girl",
                     "width": 512,
@@ -327,7 +327,7 @@ class TestTTSWarningOnMissingMapping:
         ):
             from services.video.tts_helpers import get_speaker_voice_preset
 
-            result = get_speaker_voice_preset(sb_id, "A")
+            result = get_speaker_voice_preset(sb_id, "speaker_1")
 
         # Should return None (no preset found)
         assert result is None
@@ -336,6 +336,6 @@ class TestTTSWarningOnMissingMapping:
         mock_logger.warning.assert_called_once()
         warning_args = mock_logger.warning.call_args[0]
         assert "could not be resolved to a character" in warning_args[0]
-        # %s and %d params: speaker='A', storyboard_id=sb_id
-        assert warning_args[1] == "A"
+        # %s and %d params: speaker='speaker_1', storyboard_id=sb_id
+        assert warning_args[1] == "speaker_1"
         assert warning_args[2] == sb_id

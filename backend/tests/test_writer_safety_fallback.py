@@ -48,7 +48,7 @@ async def test_writer_fallback_applies_sanitization(mock_plan):
     # 1차: safety error 발생, 2차: 성공
     safety_error = ValueError("🛡️ Gemini 안전 필터가 콘텐츠를 차단했습니다 (PROHIBITED_CONTENT)")
     success_result = {
-        "scenes": [{"scene_id": 1, "script": "결과 텍스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}],
+        "scenes": [{"scene_id": 1, "script": "결과 텍스트", "speaker": "speaker_1", "duration": 3, "image_prompt": "smile"}],
     }
     mock_generate = AsyncMock(side_effect=[safety_error, success_result])
 
@@ -77,7 +77,7 @@ async def test_writer_fallback_sanitizes_topic_content(mock_plan):
 
     safety_error = ValueError("PROHIBITED_CONTENT 차단")
     success_result = {
-        "scenes": [{"scene_id": 1, "script": "결과", "speaker": "A", "duration": 3, "image_prompt": "test"}],
+        "scenes": [{"scene_id": 1, "script": "결과", "speaker": "speaker_1", "duration": 3, "image_prompt": "test"}],
     }
 
     captured_requests: list = []

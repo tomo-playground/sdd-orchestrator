@@ -97,7 +97,7 @@ export function buildCompletionMeta(
 ): CompletionMeta {
   const summaries: CompletionSceneSummary[] = scenes.map((s, i) => ({
     order: s.order ?? i,
-    speaker: s.speaker ?? "A",
+    speaker: s.speaker ?? "narrator",
     duration: s.duration ?? 3,
     scriptPreview: (s.script ?? "").slice(0, 30),
     emotion: (s.context_tags?.emotion as string) ?? undefined,

@@ -35,7 +35,7 @@ def test_autosave_preserves_image_asset_id(client, db_session):
         {
             "scene_id": 0,
             "script": "Scene A",
-            "speaker": "Narrator",
+            "speaker": "narrator",
             "duration": 3,
             "image_prompt": "cafe",
             "client_id": "client-a",
@@ -43,7 +43,7 @@ def test_autosave_preserves_image_asset_id(client, db_session):
         {
             "scene_id": 1,
             "script": "Scene B",
-            "speaker": "A",
+            "speaker": "speaker_1",
             "duration": 4,
             "image_prompt": "park",
             "client_id": "client-b",
@@ -72,7 +72,7 @@ def test_autosave_preserves_image_asset_id(client, db_session):
         {
             "scene_id": 0,
             "script": "Scene A",
-            "speaker": "Narrator",
+            "speaker": "narrator",
             "duration": 3,
             "image_prompt": "cafe",
             "client_id": "client-a",
@@ -80,7 +80,7 @@ def test_autosave_preserves_image_asset_id(client, db_session):
         {
             "scene_id": 1,
             "script": "Scene B",
-            "speaker": "A",
+            "speaker": "speaker_1",
             "duration": 4,
             "image_prompt": "park",
             "client_id": "client-b",
@@ -118,7 +118,7 @@ def test_autosave_does_not_replace_scenes_when_explicit_asset(client, db_session
         {
             "scene_id": 0,
             "script": "Test",
-            "speaker": "Narrator",
+            "speaker": "narrator",
             "duration": 3,
             "image_prompt": "x",
             "client_id": "client-x",
@@ -147,7 +147,7 @@ def test_autosave_does_not_replace_scenes_when_explicit_asset(client, db_session
                 {
                     "scene_id": 0,
                     "script": "Test",
-                    "speaker": "Narrator",
+                    "speaker": "narrator",
                     "duration": 3,
                     "image_prompt": "x",
                     "client_id": "client-x",
@@ -168,7 +168,7 @@ def test_autosave_preserves_tts_asset_id(client, db_session):
         {
             "scene_id": 0,
             "script": "TTS test",
-            "speaker": "Narrator",
+            "speaker": "narrator",
             "duration": 3,
             "image_prompt": "voice",
             "client_id": "client-tts",
@@ -193,7 +193,7 @@ def test_autosave_preserves_tts_asset_id(client, db_session):
                 {
                     "scene_id": 0,
                     "script": "TTS test",
-                    "speaker": "Narrator",
+                    "speaker": "narrator",
                     "duration": 3,
                     "image_prompt": "voice",
                     "client_id": "client-tts",
@@ -215,7 +215,7 @@ def test_autosave_preserves_environment_reference_id(client, db_session):
         {
             "scene_id": 0,
             "script": "Env test",
-            "speaker": "Narrator",
+            "speaker": "narrator",
             "duration": 3,
             "image_prompt": "forest",
             "client_id": "client-env",
@@ -240,7 +240,7 @@ def test_autosave_preserves_environment_reference_id(client, db_session):
                 {
                     "scene_id": 0,
                     "script": "Env test",
-                    "speaker": "Narrator",
+                    "speaker": "narrator",
                     "duration": 3,
                     "image_prompt": "forest",
                     "client_id": "client-env",
@@ -259,7 +259,7 @@ def test_autosave_preserves_environment_reference_id(client, db_session):
 def test_autosave_no_false_preservation_without_client_id(client, db_session):
     """client_id가 없으면 보존하지 않는다 (매칭 불가)."""
     scenes = [
-        {"scene_id": 0, "script": "No client", "speaker": "Narrator", "duration": 3, "image_prompt": "x"},
+        {"scene_id": 0, "script": "No client", "speaker": "narrator", "duration": 3, "image_prompt": "x"},
     ]
     data = create_test_storyboard(client, scenes=scenes)
     sb_id = data["storyboard_id"]
@@ -279,7 +279,7 @@ def test_autosave_no_false_preservation_without_client_id(client, db_session):
                 {
                     "scene_id": 0,
                     "script": "Different scene",
-                    "speaker": "Narrator",
+                    "speaker": "narrator",
                     "duration": 3,
                     "image_prompt": "y",
                     "client_id": "brand-new",

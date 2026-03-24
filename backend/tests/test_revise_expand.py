@@ -61,7 +61,7 @@ def test_can_use_expansion_complex_errors():
     """씬 부족 + 해결 불가 에러 → False."""
     errors = [
         "씬 개수 부족: 2개 (최소 5개 필요, duration=15s)",
-        "Dialogue 구조에서 speaker 'B'가 등장하지 않음",
+        "Dialogue 구조에서 speaker 'speaker_2'가 등장하지 않음",
     ]
     assert can_use_expansion(errors) is False
 
@@ -223,15 +223,15 @@ async def test_try_scene_expand_success(mock_postprocess, mock_schedule_bg, mock
 
     mock_llm_resp = MagicMock()
     mock_llm_resp.text = (
-        '[{"insert_after": 0, "script": "NEW", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"}]'
+        '[{"insert_after": 0, "script": "NEW", "speaker": "speaker_1", "duration": 3.0, "image_prompt": "1girl"}]'
     )
     mock_provider = MagicMock()
     mock_provider.generate = AsyncMock(return_value=mock_llm_resp)
     mock_llm_provider.return_value = mock_provider
 
     existing = [
-        {"scene_id": 1, "script": "기존 씬 1", "speaker": "A", "duration": 3.0},
-        {"scene_id": 2, "script": "기존 씬 2", "speaker": "A", "duration": 3.0},
+        {"scene_id": 1, "script": "기존 씬 1", "speaker": "speaker_1", "duration": 3.0},
+        {"scene_id": 2, "script": "기존 씬 2", "speaker": "speaker_1", "duration": 3.0},
     ]
     state = {
         "topic": "AI의 미래",
@@ -260,7 +260,7 @@ async def test_try_scene_expand_gemini_error(mock_compile, mock_llm_provider):
     mock_provider.generate = AsyncMock(side_effect=RuntimeError("API error"))
     mock_llm_provider.return_value = mock_provider
 
-    existing = [{"scene_id": 1, "script": "기존", "speaker": "A", "duration": 3.0}]
+    existing = [{"scene_id": 1, "script": "기존", "speaker": "speaker_1", "duration": 3.0}]
     state = {"topic": "테스트", "duration": 10}
 
     result = await try_scene_expand(existing, state, deficit=2, target_min=3)
@@ -282,7 +282,7 @@ async def test_try_scene_expand_invalid_json(mock_compile, mock_llm_provider):
     mock_provider.generate = AsyncMock(return_value=mock_response)
     mock_llm_provider.return_value = mock_provider
 
-    existing = [{"scene_id": 1, "script": "기존", "speaker": "A", "duration": 3.0}]
+    existing = [{"scene_id": 1, "script": "기존", "speaker": "speaker_1", "duration": 3.0}]
     state = {"topic": "테스트", "duration": 10}
 
     result = await try_scene_expand(existing, state, deficit=2, target_min=3)
@@ -316,8 +316,8 @@ async def test_revise_node_tier2_path(mock_expand):
 
     state = {
         "draft_scenes": [
-            {"scene_id": 1, "script": "A", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"},
-            {"scene_id": 2, "script": "B", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"},
+            {"scene_id": 1, "script": "A", "speaker": "speaker_1", "duration": 3.0, "image_prompt": "1girl"},
+            {"scene_id": 2, "script": "B", "speaker": "speaker_1", "duration": 3.0, "image_prompt": "1girl"},
         ],
         "review_result": {
             "passed": False,
@@ -349,7 +349,9 @@ async def test_revise_node_tier2_fail_falls_to_tier3(mock_db, mock_gen, mock_exp
     mock_db.return_value.__exit__ = MagicMock(return_value=False)
 
     state = {
-        "draft_scenes": [{"scene_id": 1, "script": "A", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"}],
+        "draft_scenes": [
+            {"scene_id": 1, "script": "A", "speaker": "speaker_1", "duration": 3.0, "image_prompt": "1girl"}
+        ],
         "review_result": {
             "passed": False,
             "errors": ["씬 개수 부족: 1개 (최소 3개 필요, duration=10s)"],

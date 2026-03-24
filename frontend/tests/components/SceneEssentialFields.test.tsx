@@ -32,7 +32,7 @@ function makeScene(overrides: Partial<Scene> = {}): Scene {
     client_id: "scene-1",
     order: 0,
     script: "테스트 대사",
-    speaker: "A" as const,
+    speaker: "speaker_1" as const,
     duration: 3,
     image_prompt: "",
     image_prompt_ko: "",
@@ -54,7 +54,7 @@ describe("SceneEssentialFields — DoD-5: Speaker dropdown character names", () 
     useStoryboardStore.getState().reset();
   });
 
-  it("shows 'A: 재민' when selectedCharacterName is set", () => {
+  it("shows '1: 재민' when selectedCharacterName is set", () => {
     useStoryboardStore.setState({ selectedCharacterName: "재민" });
 
     render(
@@ -67,11 +67,11 @@ describe("SceneEssentialFields — DoD-5: Speaker dropdown character names", () 
       />
     );
 
-    const option = screen.getByRole("option", { name: /A: 재민/ });
+    const option = screen.getByRole("option", { name: /1: 재민/ });
     expect(option).toBeInTheDocument();
   });
 
-  it("shows 'Actor A' fallback when no character name", () => {
+  it("shows 'Speaker 1' fallback when no character name", () => {
     useStoryboardStore.setState({ selectedCharacterName: null });
 
     render(
@@ -84,11 +84,11 @@ describe("SceneEssentialFields — DoD-5: Speaker dropdown character names", () 
       />
     );
 
-    const option = screen.getByRole("option", { name: "Actor A" });
+    const option = screen.getByRole("option", { name: "Speaker 1" });
     expect(option).toBeInTheDocument();
   });
 
-  it("shows 'B: 하은' for character B in multi-char structure", () => {
+  it("shows '2: 하은' for character B in multi-char structure", () => {
     useStoryboardStore.setState({
       selectedCharacterName: "재민",
       selectedCharacterBName: "하은",
@@ -104,11 +104,11 @@ describe("SceneEssentialFields — DoD-5: Speaker dropdown character names", () 
       />
     );
 
-    expect(screen.getByRole("option", { name: /A: 재민/ })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /B: 하은/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /1: 재민/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /2: 하은/ })).toBeInTheDocument();
   });
 
-  it("shows 'Actor B' fallback for character B when no name", () => {
+  it("shows 'Speaker 2' fallback for character B when no name", () => {
     useStoryboardStore.setState({
       selectedCharacterName: "재민",
       selectedCharacterBName: null,
@@ -124,7 +124,7 @@ describe("SceneEssentialFields — DoD-5: Speaker dropdown character names", () 
       />
     );
 
-    expect(screen.getByRole("option", { name: /A: 재민/ })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Actor B" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /1: 재민/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Speaker 2" })).toBeInTheDocument();
   });
 });

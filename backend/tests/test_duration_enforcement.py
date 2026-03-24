@@ -19,8 +19,8 @@ from services.agent.nodes.review import _validate_scenes
 def test_review_duration_deficit_error():
     """총 duration < 85% target → 에러 발생."""
     scenes = [
-        {"script": "짧은 대사", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"},
-        {"script": "두번째 대사", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"},
+        {"script": "짧은 대사", "speaker": "speaker_1", "duration": 3.0, "image_prompt": "1girl"},
+        {"script": "두번째 대사", "speaker": "speaker_1", "duration": 3.0, "image_prompt": "1girl"},
     ]
     result = _validate_scenes(scenes, duration=45, language="korean", structure="monologue")
     duration_errors = [e for e in result["errors"] if "총 duration 부족" in e]
@@ -31,8 +31,8 @@ def test_review_duration_deficit_error():
 def test_review_duration_sufficient_no_error():
     """총 duration >= 85% target → duration 에러 없음."""
     scenes = [
-        {"script": "대사 하나", "speaker": "A", "duration": 5.0, "image_prompt": "1girl"},
-        {"script": "대사 둘", "speaker": "A", "duration": 5.0, "image_prompt": "1girl"},
+        {"script": "대사 하나", "speaker": "speaker_1", "duration": 5.0, "image_prompt": "1girl"},
+        {"script": "대사 둘", "speaker": "speaker_1", "duration": 5.0, "image_prompt": "1girl"},
     ]
     result = _validate_scenes(scenes, duration=10, language="korean", structure="monologue")
     duration_errors = [e for e in result["errors"] if "총 duration 부족" in e]
@@ -42,9 +42,9 @@ def test_review_duration_sufficient_no_error():
 def test_review_duration_exact_target_no_error():
     """총 duration == target → 에러 없음."""
     scenes = [
-        {"script": "대사 하나", "speaker": "A", "duration": 5.0, "image_prompt": "1girl"},
-        {"script": "대사 둘", "speaker": "A", "duration": 5.0, "image_prompt": "1girl"},
-        {"script": "대사 셋", "speaker": "A", "duration": 5.0, "image_prompt": "1girl"},
+        {"script": "대사 하나", "speaker": "speaker_1", "duration": 5.0, "image_prompt": "1girl"},
+        {"script": "대사 둘", "speaker": "speaker_1", "duration": 5.0, "image_prompt": "1girl"},
+        {"script": "대사 셋", "speaker": "speaker_1", "duration": 5.0, "image_prompt": "1girl"},
     ]
     result = _validate_scenes(scenes, duration=15, language="korean", structure="monologue")
     duration_errors = [e for e in result["errors"] if "총 duration 부족" in e]
@@ -123,13 +123,13 @@ async def test_revise_tier15_duration_redistribute():
     from services.agent.nodes.revise import revise_node
 
     scenes = [
-        {"scene_id": 1, "script": "첫 대사입니다", "speaker": "A", "duration": 4.0, "image_prompt": "1girl"},
-        {"scene_id": 2, "script": "두번째 대사", "speaker": "A", "duration": 3.5, "image_prompt": "1girl"},
-        {"scene_id": 3, "script": "세번째 대사입니다", "speaker": "A", "duration": 4.0, "image_prompt": "1girl"},
-        {"scene_id": 4, "script": "네번째 대사", "speaker": "A", "duration": 3.5, "image_prompt": "1girl"},
-        {"scene_id": 5, "script": "다섯번째 대사입니다", "speaker": "A", "duration": 4.0, "image_prompt": "1girl"},
-        {"scene_id": 6, "script": "여섯번째 대사", "speaker": "A", "duration": 3.5, "image_prompt": "1girl"},
-        {"scene_id": 7, "script": "일곱번째 대사입니다", "speaker": "A", "duration": 4.0, "image_prompt": "1girl"},
+        {"scene_id": 1, "script": "첫 대사입니다", "speaker": "speaker_1", "duration": 4.0, "image_prompt": "1girl"},
+        {"scene_id": 2, "script": "두번째 대사", "speaker": "speaker_1", "duration": 3.5, "image_prompt": "1girl"},
+        {"scene_id": 3, "script": "세번째 대사입니다", "speaker": "speaker_1", "duration": 4.0, "image_prompt": "1girl"},
+        {"scene_id": 4, "script": "네번째 대사", "speaker": "speaker_1", "duration": 3.5, "image_prompt": "1girl"},
+        {"scene_id": 5, "script": "다섯번째 대사입니다", "speaker": "speaker_1", "duration": 4.0, "image_prompt": "1girl"},
+        {"scene_id": 6, "script": "여섯번째 대사", "speaker": "speaker_1", "duration": 3.5, "image_prompt": "1girl"},
+        {"scene_id": 7, "script": "일곱번째 대사입니다", "speaker": "speaker_1", "duration": 4.0, "image_prompt": "1girl"},
     ]
     state = {
         "draft_scenes": scenes,
@@ -165,8 +165,8 @@ async def test_revise_tier15_fails_to_tier3(mock_db, mock_gen):
     # duration이 매우 부족한 상태 (2씬만 있고 target=60)
     state = {
         "draft_scenes": [
-            {"scene_id": 1, "script": "A", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"},
-            {"scene_id": 2, "script": "B", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"},
+            {"scene_id": 1, "script": "A", "speaker": "speaker_1", "duration": 3.0, "image_prompt": "1girl"},
+            {"scene_id": 2, "script": "B", "speaker": "speaker_1", "duration": 3.0, "image_prompt": "1girl"},
         ],
         "review_result": {
             "passed": False,
@@ -271,7 +271,7 @@ class TestReviseTier16OverflowTrim:
         # Monologue 10s: max_scenes = ceil(10/2) = 5
         # 씬 8개로 초과 상태
         scenes = [
-            {"scene_id": i + 1, "script": f"대사 {i}", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"}
+            {"scene_id": i + 1, "script": f"대사 {i}", "speaker": "speaker_1", "duration": 3.0, "image_prompt": "1girl"}
             for i in range(8)
         ]
         state = {
@@ -299,7 +299,7 @@ class TestReviseTier16OverflowTrim:
         from services.agent.nodes.revise import revise_node
 
         scenes = [
-            {"scene_id": i + 1, "script": f"대사 {i}", "speaker": "A", "duration": 3.0, "image_prompt": "1girl"}
+            {"scene_id": i + 1, "script": f"대사 {i}", "speaker": "speaker_1", "duration": 3.0, "image_prompt": "1girl"}
             for i in range(12)
         ]
         state = {

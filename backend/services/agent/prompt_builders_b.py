@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import json
 
+from config import SPEAKER_A
+
 
 def to_json(obj: object) -> str:
     """Jinja2 ``| tojson(indent=2)`` 대체."""
@@ -156,7 +158,7 @@ def build_checkpoint_draft_scenes_block(scenes: list[dict]) -> str:
         parts.append(
             f"### Scene {i}\n"
             f"- **\ub300\uc0ac**: {scene.get('script', '')}\n"
-            f"- **\ud654\uc790**: {scene.get('speaker', 'A')}\n"
+            f"- **\ud654\uc790**: {scene.get('speaker', SPEAKER_A)}\n"
             f"- **\uae38\uc774**: {scene.get('duration', 0)}\ucd08"
         )
     return "\n\n".join(parts)

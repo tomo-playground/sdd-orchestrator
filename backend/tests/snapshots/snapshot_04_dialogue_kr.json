@@ -16,7 +16,7 @@
     "scenes": [
       {
         "script": "어? 너 혹시...?",
-        "speaker": "A",
+        "speaker": "speaker_1",
         "duration": 3.0,
         "image_prompt": "2girls, street, surprised, pointing, daytime, urban",
         "image_prompt_ko": "",
@@ -27,14 +27,14 @@
           "camera": ["medium_shot"]
         },
         "character_actions": [
-          {"character": "A", "action_tags": ["surprised", "pointing"]},
-          {"character": "B", "action_tags": ["turning_around"]}
+          {"character": "speaker_1", "action_tags": ["surprised", "pointing"]},
+          {"character": "speaker_2", "action_tags": ["turning_around"]}
         ],
         "_auto_pin_previous": false
       },
       {
         "script": "세상에, 5년 만이야!",
-        "speaker": "B",
+        "speaker": "speaker_2",
         "duration": 3.0,
         "image_prompt": "2girls, street, hugging, happy, tears, daytime",
         "image_prompt_ko": "",
@@ -45,14 +45,14 @@
           "camera": ["close-up"]
         },
         "character_actions": [
-          {"character": "A", "action_tags": ["hugging", "crying"]},
-          {"character": "B", "action_tags": ["hugging", "smiling"]}
+          {"character": "speaker_1", "action_tags": ["hugging", "crying"]},
+          {"character": "speaker_2", "action_tags": ["hugging", "smiling"]}
         ],
         "_auto_pin_previous": true
       },
       {
         "script": "커피 한 잔 할까?",
-        "speaker": "A",
+        "speaker": "speaker_1",
         "duration": 4.0,
         "image_prompt": "2girls, street, walking_together, smiling, sunset, urban",
         "image_prompt_ko": "",
@@ -63,8 +63,8 @@
           "camera": ["full_body"]
         },
         "character_actions": [
-          {"character": "A", "action_tags": ["walking", "smiling"]},
-          {"character": "B", "action_tags": ["walking", "nodding"]}
+          {"character": "speaker_1", "action_tags": ["walking", "smiling"]},
+          {"character": "speaker_2", "action_tags": ["walking", "nodding"]}
         ],
         "_auto_pin_previous": true
       }

@@ -142,7 +142,7 @@ class TestCascadeCastingToScenes:
     def scene_a(self):
         scene = MagicMock()
         scene.id = 100
-        scene.speaker = "A"
+        scene.speaker = "speaker_1"
         scene.image_prompt = "<lora:Usagi_Drop:0.7>, masterpiece, udyukari, smile"
         return scene
 
@@ -150,16 +150,16 @@ class TestCascadeCastingToScenes:
     def scene_b(self):
         scene = MagicMock()
         scene.id = 101
-        scene.speaker = "B"
+        scene.speaker = "speaker_2"
         scene.image_prompt = "masterpiece, solo, smile"
         return scene
 
     def test_no_change_when_same_mapping(self, mock_db):
-        result = cascade_casting_to_scenes(1, {"A": 8}, {"A": 8}, mock_db)
+        result = cascade_casting_to_scenes(1, {"speaker_1": 8}, {"speaker_1": 8}, mock_db)
         assert result == 0
 
     def test_no_change_when_old_empty(self, mock_db):
-        result = cascade_casting_to_scenes(1, {}, {"A": 8}, mock_db)
+        result = cascade_casting_to_scenes(1, {}, {"speaker_1": 8}, mock_db)
         assert result == 0
 
     @patch("services.characters.casting_sync.Session")
@@ -186,8 +186,8 @@ class TestCascadeCastingToScenes:
 
         result = cascade_casting_to_scenes(
             storyboard_id=1,
-            old_map={"A": 19},
-            new_map={"A": 8},
+            old_map={"speaker_1": 19},
+            new_map={"speaker_1": 8},
             db=mock_db,
         )
 
@@ -210,8 +210,8 @@ class TestCascadeCastingToScenes:
             id=12, loras=[{"name": "NewB", "weight": 0.6, "lora_type": "character", "trigger_words": ["new_b_trigger"]}]
         )
 
-        scene1 = MagicMock(id=100, speaker="A", image_prompt="<lora:OldA:0.5>, old_a_trigger, smile")
-        scene2 = MagicMock(id=101, speaker="B", image_prompt="masterpiece, smile")
+        scene1 = MagicMock(id=100, speaker="speaker_1", image_prompt="<lora:OldA:0.5>, old_a_trigger, smile")
+        scene2 = MagicMock(id=101, speaker="speaker_2", image_prompt="masterpiece, smile")
 
         char_q = MagicMock()
         char_q.filter.return_value.all.return_value = [old_a, new_a, old_b, new_b]
@@ -232,8 +232,8 @@ class TestCascadeCastingToScenes:
 
         result = cascade_casting_to_scenes(
             storyboard_id=1,
-            old_map={"A": 19, "B": 20},
-            new_map={"A": 8, "B": 12},
+            old_map={"speaker_1": 19, "speaker_2": 20},
+            new_map={"speaker_1": 8, "speaker_2": 12},
             db=mock_db,
         )
 
@@ -268,32 +268,32 @@ class TestEnsureDialogueSpeakersInDb:
         return scenes
 
     def test_all_a_fixed_to_alternation(self, mock_db):
-        scenes = self._make_scenes(["A", "A", "A", "A"])
+        scenes = self._make_scenes(["speaker_1", "speaker_1", "speaker_1", "speaker_1"])
         mock_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = scenes
 
         result = ensure_dialogue_speakers_in_db(1, mock_db)
 
-        assert result == 2  # scenes[1] and scenes[3] changed to B
-        assert [s.speaker for s in scenes] == ["A", "B", "A", "B"]
+        assert result == 2  # scenes[1] and scenes[3] changed to speaker_2
+        assert [s.speaker for s in scenes] == ["speaker_1", "speaker_2", "speaker_1", "speaker_2"]
 
     def test_already_alternating_no_change(self, mock_db):
-        scenes = self._make_scenes(["A", "B", "A", "B"])
+        scenes = self._make_scenes(["speaker_1", "speaker_2", "speaker_1", "speaker_2"])
         mock_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = scenes
 
         result = ensure_dialogue_speakers_in_db(1, mock_db)
         assert result == 0
 
     def test_with_narrator_scenes(self, mock_db):
-        scenes = self._make_scenes(["Narrator", "A", "A", "A"])
+        scenes = self._make_scenes(["narrator", "speaker_1", "speaker_1", "speaker_1"])
         mock_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = scenes
 
         result = ensure_dialogue_speakers_in_db(1, mock_db)
 
         # Narrator stays, non-narrator alternate A/B
-        assert scenes[0].speaker == "Narrator"
-        assert scenes[1].speaker == "A"
-        assert scenes[2].speaker == "B"
-        assert scenes[3].speaker == "A"
+        assert scenes[0].speaker == "narrator"
+        assert scenes[1].speaker == "speaker_1"
+        assert scenes[2].speaker == "speaker_2"
+        assert scenes[3].speaker == "speaker_1"
 
     def test_empty_scenes(self, mock_db):
         mock_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = []

@@ -380,6 +380,19 @@ async function loadQualityScores(storyboardId: number, scenes: Scene[]) {
   }
 }
 
+// --- Legacy speaker ID normalization ---
+// 마이그레이션 이전 데이터(A/B/Narrator)를 새 형식(speaker_1/speaker_2/narrator)으로 변환
+const LEGACY_SPEAKER_MAP: Record<string, string> = {
+  A: "speaker_1",
+  B: "speaker_2",
+  Narrator: "narrator",
+};
+
+function normalizeSpeaker(raw: unknown): string {
+  const s = (typeof raw === "string" && raw) || "narrator";
+  return LEGACY_SPEAKER_MAP[s] ?? s;
+}
+
 // --- Helper: Map DB scenes to frontend Scene type ---
 // Spread passthrough: DB 필드를 그대로 전달하고, 변환/기본값이 필요한 필드만 오버라이드.
 // 신규 필드 추가 시 매핑 누락으로 인한 데이터 소실 방지.
@@ -391,7 +404,7 @@ function mapDbScenes(dbScenes: Record<string, unknown>[]): Scene[] {
     client_id: (s.client_id as string) || generateSceneClientId(),
     order: (s.order as number) ?? (s.scene_id as number) ?? i,
     script: (s.script as string) || "",
-    speaker: ((s.speaker as string) || "Narrator") as Scene["speaker"],
+    speaker: normalizeSpeaker(s.speaker) as Scene["speaker"],
     duration: (s.duration as number) || 3,
     image_prompt: (s.image_prompt as string) || "",
     image_prompt_ko: (s.image_prompt_ko as string) || "",

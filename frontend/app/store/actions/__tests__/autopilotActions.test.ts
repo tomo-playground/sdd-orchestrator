@@ -27,7 +27,7 @@ function makeScene(overrides: Record<string, unknown> = {}) {
     client_id: "scene-a",
     order: 0,
     script: "test",
-    speaker: "Narrator" as const,
+    speaker: "narrator" as const,
     duration: 3,
     image_prompt: "1girl",
     image_url: null,

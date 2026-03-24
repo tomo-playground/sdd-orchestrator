@@ -13,6 +13,10 @@ const STRUCTURE_LABELS: Record<string, string> = {
 };
 
 const SPEAKER_COLORS: Record<string, string> = {
+  speaker_1: "bg-emerald-100 text-emerald-700",
+  speaker_2: "bg-blue-100 text-blue-700",
+  narrator: "bg-zinc-100 text-zinc-500",
+  // Legacy fallbacks (마이그레이션 이전 데이터 호환)
   A: "bg-emerald-100 text-emerald-700",
   B: "bg-blue-100 text-blue-700",
   Narrator: "bg-zinc-100 text-zinc-500",
@@ -106,7 +110,7 @@ export default function CompletionCard({ text, meta, sceneCount, onNavigate, tra
                 <div key={s.order} className="flex items-center gap-1.5 text-[11px]">
                   <span className="w-4 text-right text-zinc-400">{s.order + 1}</span>
                   <span
-                    className={`rounded px-1 py-0.5 text-[11px] font-medium ${SPEAKER_COLORS[s.speaker] ?? SPEAKER_COLORS.A}`}
+                    className={`rounded px-1 py-0.5 text-[11px] font-medium ${SPEAKER_COLORS[s.speaker] ?? SPEAKER_COLORS.narrator}`}
                   >
                     {s.speaker}
                   </span>

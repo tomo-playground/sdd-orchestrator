@@ -65,7 +65,7 @@ class TestPrebuildSkipped:
                 TtsPrebuildSceneItem(
                     scene_db_id=10,
                     script="테스트 스크립트입니다.",
-                    speaker="A",
+                    speaker="speaker_1",
                     tts_asset_id=99,
                 )
             ],
@@ -96,7 +96,7 @@ class TestPrebuildSkipped:
                 TtsPrebuildSceneItem(
                     scene_db_id=12,
                     script="오디오 생성 씬입니다.",
-                    speaker="B",
+                    speaker="speaker_2",
                     tts_asset_id=None,
                 )
             ],
@@ -137,7 +137,7 @@ class TestPrebuildPrebuilt:
                 TtsPrebuildSceneItem(
                     scene_db_id=20,
                     script="성공 케이스 스크립트입니다.",
-                    speaker="Narrator",
+                    speaker="narrator",
                     voice_design_prompt="warm and calm",
                     tts_asset_id=None,
                 )
@@ -220,7 +220,7 @@ class TestPrebuildPrebuilt:
 
         request = TtsPrebuildRequest(
             storyboard_id=1,
-            scenes=[TtsPrebuildSceneItem(scene_db_id=40, script="업데이트 테스트", speaker="A", tts_asset_id=None)],
+            scenes=[TtsPrebuildSceneItem(scene_db_id=40, script="업데이트 테스트", speaker="speaker_1", tts_asset_id=None)],
         )
 
         mock_update = MagicMock()
@@ -258,7 +258,7 @@ class TestPrebuildFailed:
                 TtsPrebuildSceneItem(
                     scene_db_id=50,
                     script="실패 케이스 스크립트입니다.",
-                    speaker="A",
+                    speaker="speaker_1",
                     tts_asset_id=None,
                 )
             ],
@@ -295,7 +295,7 @@ class TestPrebuildFailed:
                 TtsPrebuildSceneItem(
                     scene_db_id=60,
                     script="DB 쓰기 실패 시나리오입니다.",
-                    speaker="A",
+                    speaker="speaker_1",
                     tts_asset_id=None,
                 )
             ],
@@ -328,7 +328,7 @@ class TestPrebuildFailed:
 
         request = TtsPrebuildRequest(
             storyboard_id=1,
-            scenes=[TtsPrebuildSceneItem(scene_db_id=70, script="실패 결과 확인", speaker="A", tts_asset_id=None)],
+            scenes=[TtsPrebuildSceneItem(scene_db_id=70, script="실패 결과 확인", speaker="speaker_1", tts_asset_id=None)],
         )
 
         with patch(
@@ -369,8 +369,8 @@ class TestPrebuildMixed:
         request = TtsPrebuildRequest(
             storyboard_id=42,
             scenes=[
-                TtsPrebuildSceneItem(scene_db_id=1, script="씬 1 스크립트", speaker="A", tts_asset_id=10),
-                TtsPrebuildSceneItem(scene_db_id=2, script="씬 2 스크립트", speaker="B", tts_asset_id=None),
+                TtsPrebuildSceneItem(scene_db_id=1, script="씬 1 스크립트", speaker="speaker_1", tts_asset_id=10),
+                TtsPrebuildSceneItem(scene_db_id=2, script="씬 2 스크립트", speaker="speaker_2", tts_asset_id=None),
                 TtsPrebuildSceneItem(scene_db_id=3, script="씬 3 스크립트", speaker="C", tts_asset_id=None),
             ],
         )
@@ -425,7 +425,7 @@ class TestPrebuildMixed:
         request = TtsPrebuildRequest(
             storyboard_id=1,
             scenes=[
-                TtsPrebuildSceneItem(scene_db_id=i, script="씬", speaker="A", tts_asset_id=100 + i) for i in range(3)
+                TtsPrebuildSceneItem(scene_db_id=i, script="씬", speaker="speaker_1", tts_asset_id=100 + i) for i in range(3)
             ],
         )
 
@@ -453,7 +453,7 @@ class TestPrebuildMixed:
         request = TtsPrebuildRequest(
             storyboard_id=1,
             scenes=[
-                TtsPrebuildSceneItem(scene_db_id=i, script="씬 스크립트입니다.", speaker="A", tts_asset_id=None)
+                TtsPrebuildSceneItem(scene_db_id=i, script="씬 스크립트입니다.", speaker="speaker_1", tts_asset_id=None)
                 for i in range(4)
             ],
         )

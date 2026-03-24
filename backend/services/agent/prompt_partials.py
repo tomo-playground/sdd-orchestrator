@@ -78,7 +78,7 @@ def render_character_profile(ctx: dict | None, speaker: str | None = None) -> st
 
     Args:
         ctx: character_context dict (name, gender, description, costume_tags)
-        speaker: "A", "B", or None (monologue)
+        speaker: "speaker_1", "speaker_2", or None (monologue)
     """
     if not ctx:
         return ""

@@ -50,7 +50,7 @@ class TestCharacterActionResolverMulti:
         scenes = [
             {
                 "scene_id": 1,
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "scene_mode": "multi",
                 "context_tags": {"expression": ["smile"]},
             }
@@ -74,7 +74,7 @@ class TestCharacterActionResolverMulti:
         scenes = [
             {
                 "scene_id": 1,
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "scene_mode": "single",
                 "context_tags": {"expression": ["angry"]},
             }

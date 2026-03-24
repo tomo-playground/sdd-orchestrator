@@ -16,7 +16,7 @@
     "scenes": [
       {
         "script": "You think you can beat me?",
-        "speaker": "A",
+        "speaker": "speaker_1",
         "duration": 3.0,
         "image_prompt": "1boy, chef_uniform, kitchen, confident, smirk, crossing_arms",
         "image_prompt_ko": "",
@@ -27,14 +27,14 @@
           "camera": ["medium_shot"]
         },
         "character_actions": [
-          {"character": "A", "action_tags": ["confident", "crossing_arms"]},
-          {"character": "B", "action_tags": ["glaring"]}
+          {"character": "speaker_1", "action_tags": ["confident", "crossing_arms"]},
+          {"character": "speaker_2", "action_tags": ["glaring"]}
         ],
         "_auto_pin_previous": false
       },
       {
         "script": "Watch and learn.",
-        "speaker": "B",
+        "speaker": "speaker_2",
         "duration": 3.0,
         "image_prompt": "1girl, chef_uniform, kitchen, focused, chopping, knife, vegetables",
         "image_prompt_ko": "",
@@ -45,13 +45,13 @@
           "camera": ["close-up"]
         },
         "character_actions": [
-          {"character": "B", "action_tags": ["focused", "chopping"]}
+          {"character": "speaker_2", "action_tags": ["focused", "chopping"]}
         ],
         "_auto_pin_previous": true
       },
       {
         "script": "Not bad... for a rookie.",
-        "speaker": "A",
+        "speaker": "speaker_1",
         "duration": 4.0,
         "image_prompt": "2people, chef_uniform, kitchen, tasting, surprised, respect",
         "image_prompt_ko": "",
@@ -62,8 +62,8 @@
           "camera": ["cowboy_shot"]
         },
         "character_actions": [
-          {"character": "A", "action_tags": ["tasting", "surprised"]},
-          {"character": "B", "action_tags": ["smiling", "proud"]}
+          {"character": "speaker_1", "action_tags": ["tasting", "surprised"]},
+          {"character": "speaker_2", "action_tags": ["smiling", "proud"]}
         ],
         "_auto_pin_previous": true
       }

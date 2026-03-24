@@ -103,7 +103,7 @@ class TestStoryboardSoftDelete:
             {
                 "scene_id": 0,
                 "script": "Test scene",
-                "speaker": "Narrator",
+                "speaker": "narrator",
                 "duration": 3.0,
                 "image_prompt": "test",
                 "image_prompt_ko": "test",
@@ -142,7 +142,7 @@ class TestStoryboardSoftDelete:
             {
                 "scene_id": 0,
                 "script": "Scene A",
-                "speaker": "Narrator",
+                "speaker": "narrator",
                 "duration": 3.0,
                 "image_prompt": "a",
                 "image_prompt_ko": "a",
@@ -153,7 +153,7 @@ class TestStoryboardSoftDelete:
             {
                 "scene_id": 0,
                 "script": "Scene B",
-                "speaker": "Narrator",
+                "speaker": "narrator",
                 "duration": 3.0,
                 "image_prompt": "b",
                 "image_prompt_ko": "b",

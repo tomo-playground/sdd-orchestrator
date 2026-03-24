@@ -92,7 +92,7 @@ class TestValidateContextTagCategories:
         assert scenes[0]["context_tags"]["mood"] == "romantic"
 
     def test_no_context_tags_skipped(self):
-        scenes = [{"speaker": "Narrator"}]
+        scenes = [{"speaker": "narrator"}]
         validate_context_tag_categories(scenes)  # no error
 
     def test_list_values_coerced(self):

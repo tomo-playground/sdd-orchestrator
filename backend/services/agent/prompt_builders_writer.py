@@ -118,22 +118,22 @@ def build_structure_rules_block(structure: str) -> str:
     """scriptwriter -- structure별 규칙."""
     base = f"- Structure: {structure}"
     if structure == "monologue":
-        return f'{base}\n- Speaker: Always "A" (single narrator)'
+        return f'{base}\n- Speaker: Always "speaker_1" (single narrator)'
     if structure == "dialogue":
         return (
             f"{base}\n"
-            '- Speakers: "A" and "B" (two characters in conversation)\n'
-            "- Distribution: A and B must appear roughly equally. Both MUST have at least 1 scene.\n"
-            "- Alternation pattern: A \u2192 B \u2192 A \u2192 B (avoid consecutive same-speaker scenes)"
+            '- Speakers: "speaker_1" and "speaker_2" (two characters in conversation)\n'
+            "- Distribution: speaker_1 and speaker_2 must appear roughly equally. Both MUST have at least 1 scene.\n"
+            "- Alternation pattern: speaker_1 → speaker_2 → speaker_1 → speaker_2 (avoid consecutive same-speaker scenes)"
         )
     if structure == "narrated_dialogue":
         return (
             f"{base}\n"
-            '- Speakers: "Narrator" for narration, "A"/"B" for dialogue\n'
-            "- Distribution: ~\u2153 Narrator, ~\u2153 A, ~\u2153 B. ALL THREE must appear at least once.\n"
-            "- Alternation pattern: Narrator \u2192 A \u2192 B \u2192 Narrator \u2192 A \u2192 B\n"
-            '- IMPORTANT: "Narrator" scenes are background/environment description scenes.\n'
-            "- Narrator typically opens (scene 0) to set the stage, and may close the story."
+            '- Speakers: "narrator" for narration, "speaker_1"/"speaker_2" for dialogue\n'
+            "- Distribution: ~⅓ narrator, ~⅓ speaker_1, ~⅓ speaker_2. ALL THREE must appear at least once.\n"
+            "- Alternation pattern: narrator → speaker_1 → speaker_2 → narrator → speaker_1 → speaker_2\n"
+            '- IMPORTANT: "narrator" scenes are background/environment description scenes.\n'
+            "- narrator typically opens (scene 0) to set the stage, and may close the story."
         )
     return base
 
@@ -195,16 +195,16 @@ def build_output_format_block(structure: str) -> str:
     """scriptwriter -- structure별 JSON 예시."""
     if structure == "narrated_dialogue":
         return (
-            '    {"order": 0, "script": "\ub098\ub808\uc774\uc158 \ud14d\uc2a4\ud2b8", "speaker": "Narrator", "duration": 2.5, "speakable": true},\n'
-            '    {"order": 1, "script": "A \ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "A", "duration": 3.0, "speakable": true},\n'
-            '    {"order": 2, "script": "B \ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "B", "duration": 3.0, "speakable": true}'
+            '    {"order": 0, "script": "\ub098\ub808\uc774\uc158 \ud14d\uc2a4\ud2b8", "speaker": "narrator", "duration": 2.5, "speakable": true},\n'
+            '    {"order": 1, "script": "speaker_1 \ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "speaker_1", "duration": 3.0, "speakable": true},\n'
+            '    {"order": 2, "script": "speaker_2 \ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "speaker_2", "duration": 3.0, "speakable": true}'
         )
     if structure == "dialogue":
         return (
-            '    {"order": 0, "script": "A \ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "A", "duration": 3.0, "speakable": true},\n'
-            '    {"order": 1, "script": "B \ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "B", "duration": 3.0, "speakable": true}'
+            '    {"order": 0, "script": "speaker_1 \ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "speaker_1", "duration": 3.0, "speakable": true},\n'
+            '    {"order": 1, "script": "speaker_2 \ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "speaker_2", "duration": 3.0, "speakable": true}'
         )
-    return '    {"order": 0, "script": "\ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "A", "duration": 2.5, "speakable": true}'
+    return '    {"order": 0, "script": "\ub300\uc0ac \ud14d\uc2a4\ud2b8", "speaker": "speaker_1", "duration": 2.5, "speakable": true}'
 
 
 # -- writer_planning 빌더 --

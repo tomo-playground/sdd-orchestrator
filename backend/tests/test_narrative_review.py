@@ -26,7 +26,7 @@ def _valid_scenes(count: int = 5) -> list[dict]:
         {
             "scene_id": i + 1,
             "script": f"테스트 씬 {i + 1}입니다 안녕하세요",
-            "speaker": "A",
+            "speaker": "speaker_1",
             "duration": 2,
             "image_prompt": "smile, looking_at_viewer, standing, indoors",
         }
@@ -161,7 +161,7 @@ async def test_review_node_full_mode_narrative_fail():
 @pytest.mark.asyncio
 async def test_review_node_rule_fail_skips_narrative():
     """규칙 검증 실패 시 서사 품질 평가를 건너뛴다."""
-    bad_scenes = [{"script": "짧", "speaker": "A", "duration": 0, "image_prompt": ""}]
+    bad_scenes = [{"script": "짧", "speaker": "speaker_1", "duration": 0, "image_prompt": ""}]
     state: ScriptState = {
         "draft_scenes": bad_scenes,
         "duration": 10,

@@ -272,8 +272,8 @@ class TestLearnCharacterBId:
     @pytest.fixture
     def scenes(self):
         return [
-            {"scene_id": 1, "script": "씬 1", "speaker": "A", "duration": 3},
-            {"scene_id": 2, "script": "씬 2", "speaker": "B", "duration": 3},
+            {"scene_id": 1, "script": "씬 1", "speaker": "speaker_1", "duration": 3},
+            {"scene_id": 2, "script": "씬 2", "speaker": "speaker_2", "duration": 3},
         ]
 
     async def test_both_characters_stored(self, store, config, scenes):

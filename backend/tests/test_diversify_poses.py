@@ -14,7 +14,7 @@ def _make_scenes(poses: list[str], emotions: list[str | None] | None = None) -> 
         ctx = {"pose": pose}
         if emotions and i < len(emotions) and emotions[i]:
             ctx["emotion"] = emotions[i]
-        scenes.append({"context_tags": ctx, "speaker": "A"})
+        scenes.append({"context_tags": ctx, "speaker": "speaker_1"})
     return scenes
 
 
@@ -88,10 +88,10 @@ class TestDiversifyPoses:
     def test_narrator_excluded(self):
         """Narrator 씬은 교정 대상에서 제외."""
         scenes = [
-            {"context_tags": {"pose": "standing", "emotion": "sad"}, "speaker": "Narrator"},
-            {"context_tags": {"pose": "standing", "emotion": "sad"}, "speaker": "A"},
-            {"context_tags": {"pose": "standing", "emotion": "excited"}, "speaker": "A"},
-            {"context_tags": {"pose": "standing", "emotion": "nervous"}, "speaker": "A"},
+            {"context_tags": {"pose": "standing", "emotion": "sad"}, "speaker": "narrator"},
+            {"context_tags": {"pose": "standing", "emotion": "sad"}, "speaker": "speaker_1"},
+            {"context_tags": {"pose": "standing", "emotion": "excited"}, "speaker": "speaker_1"},
+            {"context_tags": {"pose": "standing", "emotion": "nervous"}, "speaker": "speaker_1"},
         ]
         diversify_poses(scenes)
         # Narrator는 standing 유지
@@ -109,7 +109,7 @@ class TestControlnetPoseMapping:
         scenes = [
             {
                 "context_tags": {"pose": "hands_on_hips", "gaze": "looking_at_viewer"},
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "controlnet_pose": DEFAULT_POSE_TAG,
             },
         ]
@@ -124,7 +124,7 @@ class TestControlnetPoseMapping:
         scenes = [
             {
                 "context_tags": {"pose": "sitting", "gaze": "looking_down"},
-                "speaker": "A",
+                "speaker": "speaker_1",
             },
         ]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=None)
@@ -137,7 +137,7 @@ class TestControlnetPoseMapping:
         scenes = [
             {
                 "context_tags": {"pose": ["standing", "arms_crossed"], "gaze": "looking_at_viewer"},
-                "speaker": "A",
+                "speaker": "speaker_1",
             },
         ]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=None)
@@ -151,7 +151,7 @@ class TestControlnetPoseMapping:
         scenes = [
             {
                 "context_tags": {"pose": [], "gaze": "looking_at_viewer"},
-                "speaker": "A",
+                "speaker": "speaker_1",
             },
         ]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=None)
@@ -164,7 +164,7 @@ class TestControlnetPoseMapping:
         scenes = [
             {
                 "context_tags": {"pose": "standing", "gaze": "looking_at_viewer"},
-                "speaker": "Narrator",
+                "speaker": "narrator",
             },
         ]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=None)

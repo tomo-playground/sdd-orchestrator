@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session, joinedload
 from config import (
     GEMINI_TEXT_MODEL,
     MULTI_CHAR_STRUCTURES,
+    SPEAKER_A,
+    SPEAKER_B,
     coerce_structure_id,
     gemini_client,
     logger,
@@ -343,8 +345,8 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
         partial_vars = {
             "partial_selected_concept": render_selected_concept(request.selected_concept),
             "partial_character_profile": render_character_profile(character_context),
-            "partial_character_profile_a": render_character_profile(character_context, "A"),
-            "partial_character_profile_b": render_character_profile(character_b_context, "B"),
+            "partial_character_profile_a": render_character_profile(character_context, SPEAKER_A),
+            "partial_character_profile_b": render_character_profile(character_b_context, SPEAKER_B),
             "partial_image_prompt_ko_rules": IMAGE_PROMPT_KO_RULES,
             "partial_emotion_consistency_rules": EMOTION_CONSISTENCY_RULES,
             "partial_allowed_tags": render_allowed_tags(allowed_tags),

@@ -17,7 +17,7 @@ function mapScenesToItems(scenes: Scene[], opts?: { preserveClientId?: boolean }
       : generateSceneClientId(),
     order: s.order ?? i + 1,
     script: s.script ?? "",
-    speaker: s.speaker ?? "Narrator",
+    speaker: s.speaker ?? "narrator",
     duration: s.duration ?? 3,
     image_prompt: s.image_prompt ?? "",
     image_prompt_ko: s.image_prompt_ko ?? "",

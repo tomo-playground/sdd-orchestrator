@@ -116,7 +116,7 @@ describe("ImageGenProgress type", () => {
 describe("generateSceneImageFor payload", () => {
   it("includes client_id in requestPayload", () => {
     // Pure logic test: scene 객체에서 requestPayload 구성 시 client_id 포함 확인
-    const scene = { client_id: "uuid-abc", id: 1, speaker: "A" };
+    const scene = { client_id: "uuid-abc", id: 1, speaker: "speaker_1" };
     const payload = {
       prompt: "test",
       client_id: scene.client_id,

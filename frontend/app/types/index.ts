@@ -49,7 +49,7 @@ export type Scene = {
   client_id: string;
   order: number; // 씬 순서 (1, 2, 3...)
   script: string;
-  speaker: "Narrator" | "A" | "B";
+  speaker: string;
   duration: number;
   scene_mode?: SceneMode;
   image_prompt: string;

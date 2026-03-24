@@ -42,7 +42,7 @@ describe("updateScene isDirty — transient vs persistable fields", () => {
         client_id: CLIENT_ID,
         order: 0,
         script: "test script",
-        speaker: "Narrator",
+        speaker: "narrator",
         duration: 3,
         image_prompt: "1girl",
         image_prompt_ko: "",

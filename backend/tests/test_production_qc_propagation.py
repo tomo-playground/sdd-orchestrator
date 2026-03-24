@@ -108,7 +108,7 @@ async def test_tts_designer_stores_qc_result(mock_voice, mock_run):
     mock_run.return_value = {
         "tts_designs": [
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "voice_design_prompt": "calm female",
                 "pacing": {"head_padding": 0.1, "tail_padding": 0.3},
             },
@@ -138,7 +138,7 @@ async def test_tts_designer_qc_failure_stored(mock_voice, mock_run):
 
     mock_run.return_value = {
         "tts_designs": [
-            {"speaker": "A", "pacing": {"head_padding": 0.1, "tail_padding": 0.3}},
+            {"speaker": "speaker_1", "pacing": {"head_padding": 0.1, "tail_padding": 0.3}},
         ],
     }
 

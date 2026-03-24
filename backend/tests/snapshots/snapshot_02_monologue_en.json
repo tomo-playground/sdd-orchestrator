@@ -16,7 +16,7 @@
     "scenes": [
       {
         "script": "I can do this. Just breathe.",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1girl, school_uniform, standing, school_gate, morning, nervous, clutching_bag",
         "image_prompt_ko": "",
@@ -30,7 +30,7 @@
       },
       {
         "script": "Everyone's staring at me.",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1girl, school_uniform, walking, hallway, crowd, looking_down, shy",
         "image_prompt_ko": "",
@@ -44,7 +44,7 @@
       },
       {
         "script": "Maybe this won't be so bad.",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 4.0,
         "image_prompt": "1girl, school_uniform, sitting, classroom, window_seat, smile, sunlight",
         "image_prompt_ko": "",

@@ -6,9 +6,9 @@ import { useStoryboardStore } from "../../store/useStoryboardStore";
 import type { Scene } from "../../types";
 
 const SPEAKER_COLORS: Record<string, string> = {
-  Narrator: "bg-zinc-100 text-zinc-500",
-  A: "bg-violet-100 text-violet-700",
-  B: "bg-sky-100 text-sky-700",
+  narrator: "bg-zinc-100 text-zinc-500",
+  speaker_1: "bg-violet-100 text-violet-700",
+  speaker_2: "bg-sky-100 text-sky-700",
 };
 
 function SceneRow({ scene }: { scene: Scene }) {
@@ -35,7 +35,7 @@ function SceneRow({ scene }: { scene: Scene }) {
 
         {/* Speaker badge */}
         <span
-          className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${SPEAKER_COLORS[scene.speaker] ?? SPEAKER_COLORS.Narrator}`}
+          className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium ${SPEAKER_COLORS[scene.speaker] ?? SPEAKER_COLORS.narrator}`}
         >
           {scene.speaker}
         </span>
@@ -76,7 +76,7 @@ function SceneRow({ scene }: { scene: Scene }) {
 
       {/* Expanded detail */}
       {open && hasDetail && (
-        <div className="space-y-2 bg-zinc-50 px-3 pb-3 pt-1">
+        <div className="space-y-2 bg-zinc-50 px-3 pt-1 pb-3">
           {scene.image_prompt_ko && (
             <div>
               <p className="text-[11px] font-medium text-zinc-400">시각 설계</p>

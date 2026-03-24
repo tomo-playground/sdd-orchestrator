@@ -36,7 +36,7 @@ class TestWriterTopicKeyError:
 
         mock_compile.return_value = MagicMock(system="sys", user="user", langfuse_prompt=None)
         mock_gen_script.return_value = {
-            "scenes": [{"script": "test", "duration": 3.0, "speaker": "A", "image_prompt": "1girl"}],
+            "scenes": [{"script": "test", "duration": 3.0, "speaker": "speaker_1", "image_prompt": "1girl"}],
             "character_id": None,
             "character_b_id": None,
         }
@@ -59,7 +59,7 @@ class TestWriterTopicKeyError:
 
         mock_compile.return_value = MagicMock(system="sys", user="user", langfuse_prompt=None)
         mock_gen_script.return_value = {
-            "scenes": [{"script": "test", "duration": 3.0, "speaker": "A", "image_prompt": "1girl"}],
+            "scenes": [{"script": "test", "duration": 3.0, "speaker": "speaker_1", "image_prompt": "1girl"}],
             "character_id": None,
             "character_b_id": None,
         }
@@ -261,7 +261,7 @@ class TestLearnCharacterIdMismatch:
 
     @pytest.fixture
     def scenes(self):
-        return [{"scene_id": 1, "script": "테스트", "speaker": "A", "duration": 3}]
+        return [{"scene_id": 1, "script": "테스트", "speaker": "speaker_1", "duration": 3}]
 
     @pytest.mark.asyncio
     async def test_uses_character_id_not_draft(self, store, config, scenes):

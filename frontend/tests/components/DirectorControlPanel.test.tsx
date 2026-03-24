@@ -32,7 +32,7 @@ function makeScene(overrides: Record<string, unknown> = {}) {
     client_id: `scene-${Math.random()}`,
     order: 0,
     script: "테스트 대사",
-    speaker: "Narrator" as const,
+    speaker: "narrator" as const,
     duration: 3,
     image_prompt: "",
     image_prompt_ko: "",

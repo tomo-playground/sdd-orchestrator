@@ -45,7 +45,7 @@ class MockPreset:
 def mock_gemini_client():
     with patch("services.script.gemini_generator.gemini_client") as mock_client:
         mock_response = AsyncMock()
-        mock_response.text = '[\n  {\n    "scene_id": 1,\n    "script": "Hello",\n    "image_prompt": "1girl, solo",\n    "speaker": "A"\n  }\n]'
+        mock_response.text = '[\n  {\n    "scene_id": 1,\n    "script": "Hello",\n    "image_prompt": "1girl, solo",\n    "speaker": "speaker_1"\n  }\n]'
         mock_response.prompt_feedback = None
         mock_response.candidates = []
 
@@ -66,7 +66,7 @@ async def test_generate_script_uses_fallback_system_prompt(mock_gemini_client, m
     mock_preset = MockPreset()
 
     mock_raw = MagicMock()
-    mock_raw.text = '[\n  {\n    "scene_id": 1,\n    "script": "Hello",\n    "image_prompt": "1girl, solo",\n    "speaker": "A"\n  }\n]'
+    mock_raw.text = '[\n  {\n    "scene_id": 1,\n    "script": "Hello",\n    "image_prompt": "1girl, solo",\n    "speaker": "speaker_1"\n  }\n]'
     mock_raw.prompt_feedback = None
     mock_raw.candidates = []
     mock_llm_response = MagicMock()

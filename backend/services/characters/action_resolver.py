@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 
-from config import logger
+from config import SPEAKER_A, SPEAKER_B, logger
 from models.tag import Tag
 
 # Tag 2단계 계층: category(대분류 4종) + group_name(소분류 37종).
@@ -44,9 +44,9 @@ def auto_populate_character_actions(
     # Build speaker -> character_id mapping
     speaker_map: dict[str, int] = {}
     if character_id:
-        speaker_map["A"] = character_id
+        speaker_map[SPEAKER_A] = character_id
     if character_b_id:
-        speaker_map["B"] = character_b_id
+        speaker_map[SPEAKER_B] = character_b_id
 
     if not speaker_map:
         return scenes
@@ -91,9 +91,9 @@ def auto_populate_character_actions(
         is_multi = scene.get("scene_mode") == "multi"
         speaker = scene.get("speaker", "")
 
-        # 단일 캐릭터 + speaker 빈 문자열 폴백: character_id가 있고 B가 없으면 "A"로 간주
+        # 단일 캐릭터 + speaker 빈 문자열 폴백: character_id가 있고 B가 없으면 SPEAKER_A로 간주
         if not speaker and character_id and not character_b_id:
-            speaker = "A"
+            speaker = SPEAKER_A
 
         char_id = speaker_map.get(speaker)
         if not char_id and not is_multi:

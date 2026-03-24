@@ -20,7 +20,7 @@ function makeScene(overrides?: Partial<SceneItem>): SceneItem {
     client_id: "test-1",
     order: 1,
     script: "Hello",
-    speaker: "Narrator",
+    speaker: "narrator",
     duration: 3,
     image_prompt: "",
     image_prompt_ko: "",

@@ -8,9 +8,12 @@ from __future__ import annotations
 import re
 
 from config import (
+    DEFAULT_SPEAKER,
     DURATION_DEFICIT_THRESHOLD,
     LANGGRAPH_MAX_REVISIONS,
     SCENE_DEFAULT_DURATION,
+    SPEAKER_A,
+    SPEAKER_B,
     coerce_language_id,
     coerce_structure_id,
     logger,
@@ -31,8 +34,8 @@ _DURATION_RE = re.compile(r"씬 (\d+): duration이 0 이하")
 _FIELD_RE = re.compile(r"씬 (\d+): 필수 필드 '(script|image_prompt)' 누락")
 _DURATION_DEFICIT_RE = re.compile(r"총 duration 부족")
 _DURATION_OVERFLOW_RE = re.compile(r"총 duration 초과")
-_INVALID_SPEAKER_RE = re.compile(r"speaker='A' 또는 'Narrator'만 허용")
-_DIALOGUE_MISSING_SPEAKER_RE = re.compile(r"Dialogue 구조에서 speaker '([AB])'가 등장하지 않음")
+_INVALID_SPEAKER_RE = re.compile(r"speaker='speaker_1' 또는 'narrator'만 허용")
+_DIALOGUE_MISSING_SPEAKER_RE = re.compile(r"Dialogue 구조에서 speaker '(speaker_[12])'가 등장하지 않음")
 _SPEAKER_IMBALANCE_RE = re.compile(r"speaker 비율 불균형")
 
 
@@ -67,19 +70,21 @@ def _try_rule_fix(scenes: list[dict], errors: list[str], *, fallback_prompt: str
             if 0 <= idx < len(scenes) and not scenes[idx].get(field):
                 scenes[idx][field] = "(placeholder)" if field == "script" else fallback_prompt
         elif _INVALID_SPEAKER_RE.search(err):
-            # Monologue에 B 등 완전히 잘못된 speaker가 섞인 경우 → "A"로 교정 (Narrator는 보존)
-            fixed = sum(1 for s in scenes if s.get("speaker") not in ("A", "Narrator"))
+            # Monologue에 잘못된 speaker가 섞인 경우 → SPEAKER_A로 교정 (narrator는 보존)
+            fixed = sum(1 for s in scenes if s.get("speaker") not in (SPEAKER_A, DEFAULT_SPEAKER))
             for scene in scenes:
-                if scene.get("speaker") not in ("A", "Narrator"):
-                    scene["speaker"] = "A"
-            logger.info("[Revise] invalid speaker 교정: %d개 씬 → 'A'로 변경 (Narrator 보존)", fixed)
+                if scene.get("speaker") not in (SPEAKER_A, DEFAULT_SPEAKER):
+                    scene["speaker"] = SPEAKER_A
+            logger.info(
+                "[Revise] invalid speaker 교정: %d개 씬 → '%s'로 변경 (%s 보존)", fixed, SPEAKER_A, DEFAULT_SPEAKER
+            )
         elif _DIALOGUE_MISSING_SPEAKER_RE.search(err):
-            # Dialogue에서 A 또는 B가 빠진 경우 → non-Narrator 씬을 교대 배정
-            non_narrator = [s for s in scenes if s.get("speaker") != "Narrator"]
+            # Dialogue에서 speaker_1 또는 speaker_2가 빠진 경우 → non-narrator 씬을 교대 배정
+            non_narrator = [s for s in scenes if s.get("speaker") != DEFAULT_SPEAKER]
             if non_narrator:
                 for i, scene in enumerate(non_narrator):
-                    scene["speaker"] = "A" if i % 2 == 0 else "B"
-                logger.info("[Revise] Dialogue speaker 교대 배정: %d개 non-Narrator 씬", len(non_narrator))
+                    scene["speaker"] = SPEAKER_A if i % 2 == 0 else SPEAKER_B
+                logger.info("[Revise] Dialogue speaker 교대 배정: %d개 non-%s 씬", len(non_narrator), DEFAULT_SPEAKER)
             else:
                 unresolved += 1
         elif _SPEAKER_IMBALANCE_RE.search(err):

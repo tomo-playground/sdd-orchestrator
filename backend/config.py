@@ -420,10 +420,10 @@ LANGUAGE_IDS: frozenset[str] = frozenset(lang.id for lang in LANGUAGE_METADATA)
 
 DEFAULT_STRUCTURE = "monologue"
 DEFAULT_LANGUAGE = "korean"
-DEFAULT_SPEAKER = "Narrator"  # Default speaker for scenes
+DEFAULT_SPEAKER = "narrator"  # Default speaker for scenes
 DEFAULT_PLATFORM = "youtube_shorts"  # Target platform for rendering safe zones
-SPEAKER_A = "A"  # Dialogue speaker A
-SPEAKER_B = "B"  # Dialogue speaker B
+SPEAKER_A = "speaker_1"  # Dialogue speaker A
+SPEAKER_B = "speaker_2"  # Dialogue speaker B
 
 
 # --- 과도기 호환 함수 (Sprint B DB 마이그레이션 후 제거 예정) ---

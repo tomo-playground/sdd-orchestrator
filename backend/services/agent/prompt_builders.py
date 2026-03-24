@@ -8,6 +8,8 @@ prompt_partials.py의 함수(render_character_profile 등)를 내부 호출하�
 
 from __future__ import annotations
 
+from config import DEFAULT_SPEAKER, SPEAKER_A
+
 
 def build_concepts_block(concepts: list[dict]) -> str:
     """{% for concept in concepts %} 대체."""
@@ -34,7 +36,7 @@ def build_scenes_block(scenes: list[dict]) -> str:
     parts = []
     for s in scenes:
         idx = s.get("scene_index", 0)
-        speaker = s.get("speaker", "A")
+        speaker = s.get("speaker", SPEAKER_A)
         duration = s.get("duration", 3)
         script = s.get("script") or "(empty)"
         image_prompt = s.get("image_prompt") or "(empty)"
@@ -82,7 +84,7 @@ def build_copyright_scenes_block(scenes: list[dict]) -> str:
         lines = [
             f"### Scene {i}",
             f"- **Script**: {s.get('script', '')}",
-            f"- **Speaker**: {s.get('speaker', 'A')}",
+            f"- **Speaker**: {s.get('speaker', DEFAULT_SPEAKER)}",
             f"- **Camera**: {s.get('camera', 'N/A')}",
             f"- **Environment**: {s.get('environment', 'N/A')}",
         ]

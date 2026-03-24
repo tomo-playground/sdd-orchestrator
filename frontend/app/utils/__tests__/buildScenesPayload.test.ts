@@ -9,7 +9,7 @@ function makeScene(overrides: Partial<Scene> = {}): Scene {
     client_id: "test-client-1",
     order: 0,
     script: "test script",
-    speaker: "Narrator",
+    speaker: "narrator",
     duration: 3,
     scene_mode: "single" as const,
     image_prompt: "test prompt",

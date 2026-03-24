@@ -11,7 +11,7 @@ from config import LANGGRAPH_MAX_REVISIONS
 from services.agent.nodes.revise import revise_node
 
 
-def _make_scene(speaker: str = "A", script: str = "test") -> dict:
+def _make_scene(speaker: str = "speaker_1", script: str = "test") -> dict:
     return {
         "scene_id": 1,
         "script": script,
@@ -142,7 +142,16 @@ class TestReviseRollback:
     async def test_rollback_uses_deepcopy(self):
         """rollback 시 deepcopy로 복원하여 원본 best_scenes 오염 방지."""
         inner = {"tags": ["a", "b"]}
-        best = [{"scene_id": 1, "script": "best", "speaker": "A", "duration": 3, "image_prompt": "x", "nested": inner}]
+        best = [
+            {
+                "scene_id": 1,
+                "script": "best",
+                "speaker": "speaker_1",
+                "duration": 3,
+                "image_prompt": "x",
+                "nested": inner,
+            }
+        ]
         state = _state(
             revision_count=1,
             review_result={

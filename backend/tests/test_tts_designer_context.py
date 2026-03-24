@@ -49,7 +49,7 @@ class TestLoadCharacterVoiceContext:
 
         assert result is not None
         assert len(result) == 1
-        assert result[0]["speaker"] == "A"
+        assert result[0]["speaker"] == "speaker_1"
         assert result[0]["name"] == "미도리"
         assert result[0]["gender"] == "male"
         assert "reference_voice" not in result[0]
@@ -101,11 +101,11 @@ class TestLoadCharacterVoiceContext:
 
         assert result is not None
         assert len(result) == 2
-        assert result[0]["speaker"] == "A"
+        assert result[0]["speaker"] == "speaker_1"
         assert result[0]["gender"] == "male"
         assert result[0]["reference_voice"] == "Deep masculine voice"
         assert result[0]["has_preset"] is True
-        assert result[1]["speaker"] == "B"
+        assert result[1]["speaker"] == "speaker_2"
         assert result[1]["gender"] == "female"
         assert result[1]["reference_voice"] == "Soft feminine voice"
         assert result[1]["has_preset"] is True

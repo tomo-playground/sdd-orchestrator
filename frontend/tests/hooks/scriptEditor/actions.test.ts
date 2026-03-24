@@ -79,7 +79,7 @@ function makeScene(overrides: Partial<SceneItem> = {}): SceneItem {
     client_id: "scene-1",
     order: 0,
     script: "Hello",
-    speaker: "A",
+    speaker: "speaker_1",
     duration: 3,
     image_prompt: "1girl",
     image_prompt_ko: "소녀",
@@ -190,7 +190,7 @@ describe("buildSavePayload", () => {
     expect(payload.scenes).toHaveLength(1);
     expect(payload.scenes[0].scene_id).toBe(0);
     expect(payload.scenes[0].script).toBe("Hello");
-    expect(payload.scenes[0].speaker).toBe("A");
+    expect(payload.scenes[0].speaker).toBe("speaker_1");
   });
 
   it("includes version when present", () => {

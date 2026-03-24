@@ -89,24 +89,24 @@ class TestParseJsonResponse:
 
 class TestResolveCharactersFromContext:
     def test_with_characters_key(self):
-        ctx = {"characters": {"A": {"id": 1, "name": "하루", "tags": []}}}
+        ctx = {"characters": {"speaker_1": {"id": 1, "name": "하루", "tags": []}}}
         result = resolve_characters_from_context(ctx)
-        assert result == {"A": {"id": 1, "name": "하루", "tags": []}}
+        assert result == {"speaker_1": {"id": 1, "name": "하루", "tags": []}}
 
     def test_legacy_character_name(self):
         ctx = {"character_name": "미도리", "character_id": 3}
         result = resolve_characters_from_context(ctx)
-        assert "A" in result
-        assert result["A"]["name"] == "미도리"
-        assert result["A"]["id"] == 3
+        assert "speaker_1" in result
+        assert result["speaker_1"]["name"] == "미도리"
+        assert result["speaker_1"]["id"] == 3
 
     def test_empty_context(self):
         assert resolve_characters_from_context({}) == {}
 
     def test_characters_key_takes_priority(self):
         ctx = {
-            "characters": {"A": {"id": 1, "name": "하루", "tags": []}},
+            "characters": {"speaker_1": {"id": 1, "name": "하루", "tags": []}},
             "character_name": "미도리",
         }
         result = resolve_characters_from_context(ctx)
-        assert result["A"]["name"] == "하루"
+        assert result["speaker_1"]["name"] == "하루"

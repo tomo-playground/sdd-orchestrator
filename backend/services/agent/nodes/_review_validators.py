@@ -9,11 +9,14 @@ import re
 from collections import defaultdict
 
 from config import (
+    DEFAULT_SPEAKER,
     DIALOGUE_CLICHE_PATTERNS,
     DURATION_DEFICIT_THRESHOLD,
     DURATION_OVERFLOW_THRESHOLD,
     REVIEW_SCRIPT_MAX_CHARS_OTHER,
     SCRIPT_LENGTH_KOREAN,
+    SPEAKER_A,
+    SPEAKER_B,
     coerce_structure_id,
 )
 from config import (
@@ -22,7 +25,7 @@ from config import (
 from services.agent.state import ReviewResult
 from services.storyboard.helpers import calculate_min_scenes
 
-VALID_SPEAKERS = {"Narrator", "A", "B"}
+VALID_SPEAKERS = {DEFAULT_SPEAKER, SPEAKER_A, SPEAKER_B}
 
 _INFORMAL_SUFFIXES = ("야", "어", "지", "네", "게", "냐", "을게", "는데", "잖아", "거든", "니까")
 _FORMAL_SUFFIXES = ("요", "세요", "습니다", "겠습니다", "시죠")
@@ -189,7 +192,7 @@ def _check_speech_consistency(scenes: list[dict], warnings: list[str]) -> None:
     speaker_levels: dict[str, dict[str, int]] = defaultdict(lambda: {"formal": 0, "informal": 0})
     for scene in scenes:
         speaker = scene.get("speaker")
-        if not speaker or speaker == "Narrator":
+        if not speaker or speaker == DEFAULT_SPEAKER:
             continue
         level = _detect_speech_level(scene.get("script"))
         if level:
@@ -266,34 +269,36 @@ def validate_scenes(
             speakers_found.add(speaker)
 
     if structure == "monologue":
-        invalid = speakers_found - {"A", "Narrator"}
+        invalid = speakers_found - {SPEAKER_A, DEFAULT_SPEAKER}
         if invalid:
             errors.append(
-                f"{structure}는 speaker='A' 또는 'Narrator'만 허용 — 잘못된 speaker 발견: {', '.join(sorted(invalid))}"
+                f"{structure}는 speaker='{SPEAKER_A}' 또는 '{DEFAULT_SPEAKER}'만 허용 — 잘못된 speaker 발견: {', '.join(sorted(invalid))}"
             )
     elif structure in ("dialogue", "narrated_dialogue"):
-        for s in ("A", "B"):
+        for s in (SPEAKER_A, SPEAKER_B):
             if s not in speakers_found:
-                errors.append(f"Dialogue 구조에서 speaker '{s}'가 등장하지 않음 — 반드시 A와 B 모두 포함해야 함")
+                errors.append(
+                    f"Dialogue 구조에서 speaker '{s}'가 등장하지 않음 — 반드시 {SPEAKER_A}와 {SPEAKER_B} 모두 포함해야 함"
+                )
 
         # Speaker 비율 검증
-        non_narrator = [sc for sc in scenes if sc.get("speaker") in ("A", "B")]
-        if "A" in speakers_found and "B" in speakers_found and len(non_narrator) >= 2:
-            a_count = sum(1 for sc in non_narrator if sc.get("speaker") == "A")
+        non_narrator = [sc for sc in scenes if sc.get("speaker") in (SPEAKER_A, SPEAKER_B)]
+        if SPEAKER_A in speakers_found and SPEAKER_B in speakers_found and len(non_narrator) >= 2:
+            a_count = sum(1 for sc in non_narrator if sc.get("speaker") == SPEAKER_A)
             b_count = len(non_narrator) - a_count
             total = len(non_narrator)
-            for label, cnt in [("A", a_count), ("B", b_count)]:
+            for label, cnt in [(SPEAKER_A, a_count), (SPEAKER_B, b_count)]:
                 pct = cnt / total * 100
                 if pct < 20:
                     errors.append(
-                        f"Dialogue 구조에서 speaker 비율 불균형 — {label}가 {pct:.0f}%로 최소 20% 미만 (A={a_count}, B={b_count}, 총 {total}씬)"
+                        f"Dialogue 구조에서 speaker 비율 불균형 — {label}가 {pct:.0f}%로 최소 20% 미만 ({SPEAKER_A}={a_count}, {SPEAKER_B}={b_count}, 총 {total}씬)"
                     )
 
         # Narrator 존재 검증 (Narrated Dialogue 전용)
         if structure == "narrated_dialogue":
-            if "Narrator" not in speakers_found:
+            if DEFAULT_SPEAKER not in speakers_found:
                 errors.append(
-                    f"Narrated Dialogue에서 Narrator 씬 없음 — 최소 1개의 내레이션 씬 필수 (현재 {len(scenes)}씬 모두 캐릭터)"
+                    f"Narrated Dialogue에서 {DEFAULT_SPEAKER} 씬 없음 — 최소 1개의 내레이션 씬 필수 (현재 {len(scenes)}씬 모두 캐릭터)"
                 )
 
     # 대사 품질 검증 (씬 간 관계)

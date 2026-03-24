@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from config import coerce_language_id
+from config import DEFAULT_SPEAKER, SPEAKER_A, SPEAKER_B, coerce_language_id
 from config import pipeline_logger as logger
 from services.agent.nodes._production_utils import run_production_step
 from services.agent.prompt_builders import (
@@ -44,9 +44,9 @@ def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
     results: list[dict] = []
     speakers: dict[str, int] = {}
     if character_id:
-        speakers["A"] = character_id
+        speakers[SPEAKER_A] = character_id
     if character_b_id:
-        speakers["B"] = character_b_id
+        speakers[SPEAKER_B] = character_b_id
 
     with get_db_session() as db:
         for speaker, cid in speakers.items():
@@ -92,8 +92,8 @@ def _load_character_voice_context(state: ScriptState) -> list[dict] | None:
             if group and group.narrator_voice_preset and group.narrator_voice_preset.voice_design_prompt:
                 results.append(
                     {
-                        "speaker": "Narrator",
-                        "name": "Narrator",
+                        "speaker": DEFAULT_SPEAKER,
+                        "name": DEFAULT_SPEAKER,
                         "gender": "neutral",
                         "reference_voice": group.narrator_voice_preset.voice_design_prompt,
                         "has_preset": True,

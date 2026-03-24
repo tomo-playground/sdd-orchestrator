@@ -226,7 +226,7 @@ class TestPreviewSceneTTS:
 
         req = SceneTTSPreviewRequest(
             script="테스트 스크립트입니다.",
-            speaker="Narrator",
+            speaker="narrator",
             storyboard_id=1,
             language="korean",
         )
@@ -267,7 +267,7 @@ class TestPreviewSceneTTS:
         ):
             result = await preview_scene_tts(req, mock_db)
 
-        mock_resolve.assert_called_once_with(1, "Narrator")
+        mock_resolve.assert_called_once_with(1, "narrator")
         assert result.voice_seed == 42
         assert result.temp_asset_id == 99
 

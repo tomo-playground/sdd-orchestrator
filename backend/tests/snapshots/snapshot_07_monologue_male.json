@@ -16,7 +16,7 @@
     "scenes": [
       {
         "script": "여기까지 올라온 보람이 있네",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1boy, mountain, night, stars, standing, backpack, looking_up",
         "image_prompt_ko": "",
@@ -30,7 +30,7 @@
       },
       {
         "script": "은하수가 이렇게 선명하다니",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1boy, sitting, mountain_top, milky_way, night_sky, telescope",
         "image_prompt_ko": "",
@@ -44,7 +44,7 @@
       },
       {
         "script": "이 순간을 영원히 기억할게",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 4.0,
         "image_prompt": "1boy, lying_down, grass, night_sky, shooting_star, peaceful, smile",
         "image_prompt_ko": "",

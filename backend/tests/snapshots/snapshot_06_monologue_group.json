@@ -16,7 +16,7 @@
     "scenes": [
       {
         "script": "오늘은 까르보나라를 만들어볼게",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1girl, kitchen, apron, cooking, ingredients, table, indoor",
         "image_prompt_ko": "",
@@ -30,7 +30,7 @@
       },
       {
         "script": "면은 알덴테가 핵심이야",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1girl, kitchen, cooking, pot, steam, stirring, focused",
         "image_prompt_ko": "",
@@ -44,7 +44,7 @@
       },
       {
         "script": "완성! 맛있겠지?",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 4.0,
         "image_prompt": "1girl, kitchen, plate, pasta, presenting, smile, sparkle",
         "image_prompt_ko": "",

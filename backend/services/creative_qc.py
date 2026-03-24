@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from config import SCRIPT_LENGTH_KOREAN, SCRIPT_LENGTH_OTHER, coerce_structure_id, logger
+from config import (
+    DEFAULT_SPEAKER,
+    SCRIPT_LENGTH_KOREAN,
+    SCRIPT_LENGTH_OTHER,
+    SPEAKER_A,
+    SPEAKER_B,
+    coerce_structure_id,
+    logger,
+)
 from services.keywords.patterns import CATEGORY_PATTERNS
 from services.storyboard.helpers import calculate_max_scenes, calculate_min_scenes
 
@@ -11,9 +19,9 @@ _POSE_TAGS: frozenset[str] = frozenset(CATEGORY_PATTERNS.get("pose", []))
 
 # Narrator는 모든 구조에서 선택적으로 허용 (CLAUDE.md 설계 원칙)
 _VALID_SPEAKERS: dict[str, frozenset[str]] = {
-    "monologue": frozenset({"A", "Narrator"}),
-    "dialogue": frozenset({"A", "B", "Narrator"}),
-    "narrated_dialogue": frozenset({"Narrator", "A", "B"}),
+    "monologue": frozenset({SPEAKER_A, DEFAULT_SPEAKER}),
+    "dialogue": frozenset({SPEAKER_A, SPEAKER_B, DEFAULT_SPEAKER}),
+    "narrated_dialogue": frozenset({DEFAULT_SPEAKER, SPEAKER_A, SPEAKER_B}),
 }
 
 
@@ -94,7 +102,7 @@ def validate_scripts(
     for i, s in enumerate(scripts):
         speaker = s.get("speaker", "")
         # 미등록 structure는 A+Narrator만 허용 (새 structure 추가 시 _VALID_SPEAKERS에 명시 필요)
-        valid = _VALID_SPEAKERS.get(structure, frozenset({"A", "Narrator"}))
+        valid = _VALID_SPEAKERS.get(structure, frozenset({SPEAKER_A, DEFAULT_SPEAKER}))
         if speaker not in valid:
             speaker_ok = False
             issues.append(f"Scene {i}: {structure} expects speaker in {sorted(valid)}, got '{speaker}'")
@@ -103,14 +111,14 @@ def validate_scripts(
     # Speaker distribution check
     speakers_found = {s.get("speaker", "") for s in scripts}
     if structure == "dialogue":
-        missing = {"A", "B"} - speakers_found
+        missing = {SPEAKER_A, SPEAKER_B} - speakers_found
         if missing:
             checks["speaker_distribution"] = "FAIL"
             issues.append(f"Dialogue requires both A and B, missing: {', '.join(sorted(missing))}")
         else:
             checks["speaker_distribution"] = "PASS"
     elif structure == "narrated_dialogue":
-        missing = {"Narrator", "A", "B"} - speakers_found
+        missing = {DEFAULT_SPEAKER, SPEAKER_A, SPEAKER_B} - speakers_found
         if missing:
             checks["speaker_distribution"] = "FAIL"
             issues.append(f"Narrated Dialogue requires Narrator, A, and B, missing: {', '.join(sorted(missing))}")
@@ -147,7 +155,7 @@ def _check_environment_consistency(scenes: list[dict]) -> list[str]:
         prev_speaker = scenes[i - 1].get("speaker", "")
         curr_speaker = scenes[i].get("speaker", "")
         # A↔B 교대이거나 동일 speaker 연속이면 같은 대화 그룹
-        if prev_speaker and curr_speaker and prev_speaker != "Narrator" and curr_speaker != "Narrator":
+        if prev_speaker and curr_speaker and prev_speaker != DEFAULT_SPEAKER and curr_speaker != DEFAULT_SPEAKER:
             current_group.append(i)
         else:
             if len(current_group) >= 2:

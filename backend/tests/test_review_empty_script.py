@@ -8,7 +8,7 @@ from __future__ import annotations
 from services.agent.nodes.review import _validate_scenes
 
 
-def _make_scene(script: str, speaker: str = "A", **kwargs) -> dict:
+def _make_scene(script: str, speaker: str = "speaker_1", **kwargs) -> dict:
     return {
         "scene_id": 1,
         "script": script,
@@ -24,7 +24,7 @@ def _make_scenes(scripts: list[str]) -> list[dict]:
         {
             "scene_id": i + 1,
             "script": s,
-            "speaker": "A" if i % 2 == 0 else "Narrator",
+            "speaker": "speaker_1" if i % 2 == 0 else "narrator",
             "duration": 2,
             "image_prompt": "smile, standing, indoors",
         }
@@ -109,7 +109,7 @@ class TestNarratorFallbackPattern:
     """내레이션으로 대체된 패턴은 정상 통과."""
 
     def test_narrator_description(self):
-        scenes = [_make_scene("그녀는 아무 말도 하지 못했다.", speaker="Narrator")]
+        scenes = [_make_scene("그녀는 아무 말도 하지 못했다.", speaker="narrator")]
         result = _validate_scenes(scenes, 2, "korean", "monologue")
         assert result["passed"]
 

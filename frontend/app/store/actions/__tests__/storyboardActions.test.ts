@@ -119,7 +119,7 @@ describe("persistStoryboard", () => {
         {
           id: 100, // Old scene ID
           script: "test",
-          speaker: "Narrator",
+          speaker: "narrator",
           duration: 3,
           image_prompt: "prompt",
           image_prompt_ko: "",
@@ -160,7 +160,7 @@ describe("persistStoryboard", () => {
       {
         id: 0,
         script: "test",
-        speaker: "Narrator",
+        speaker: "narrator",
         duration: 3,
         image_prompt: "",
         image_prompt_ko: "",

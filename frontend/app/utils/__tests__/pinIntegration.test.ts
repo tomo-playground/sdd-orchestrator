@@ -7,7 +7,7 @@ const createScene = (overrides: Partial<Scene> = {}): Scene => ({
   client_id: overrides.client_id ?? `scene-${overrides.id ?? 1}`,
   order: overrides.order ?? 0,
   script: "Test",
-  speaker: "A",
+  speaker: "speaker_1",
   duration: 5,
   image_prompt: "test",
   image_prompt_ko: "test",

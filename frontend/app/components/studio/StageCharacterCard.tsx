@@ -7,7 +7,7 @@ import type { AudioPlayer } from "../../hooks/useAudioPlayer";
 type Props = {
   character: Character;
   characterFull: CharacterFull | null;
-  role: "A" | "B";
+  role: "speaker_1" | "speaker_2";
   basePrompt: string;
   voicePreset: VoicePreset | null;
   audioPlayer: AudioPlayer;

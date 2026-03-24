@@ -39,12 +39,12 @@ class TestDiversifyExpressions:
     def test_all_smile_gets_diversified(self):
         """6씬 모두 smile → 스크립트 기반으로 일부 교체."""
         scenes = [
-            {"speaker": "A", "script": "편하게 얘기해 봐.", "context_tags": {"expression": "smile"}},
-            {"speaker": "B", "script": "요즘 공부가 좀 어려워서요...", "context_tags": {"expression": "smile"}},
-            {"speaker": "A", "script": "혼자 힘들어하지 마.", "context_tags": {"expression": "smile"}},
-            {"speaker": "B", "script": "말씀드리니 좀 낫네요.", "context_tags": {"expression": "smile"}},
-            {"speaker": "A", "script": "같이 해보자!", "context_tags": {"expression": "smile"}},
-            {"speaker": "B", "script": "감사합니다!", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_1", "script": "편하게 얘기해 봐.", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_2", "script": "요즘 공부가 좀 어려워서요...", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_1", "script": "혼자 힘들어하지 마.", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_2", "script": "말씀드리니 좀 낫네요.", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_1", "script": "같이 해보자!", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_2", "script": "감사합니다!", "context_tags": {"expression": "smile"}},
         ]
         diversify_expressions(scenes)
         expressions = [s["context_tags"]["expression"] for s in scenes]
@@ -58,10 +58,10 @@ class TestDiversifyExpressions:
     def test_already_diverse_no_change(self):
         """이미 다양한 expression → 변경 없음."""
         scenes = [
-            {"speaker": "A", "script": "test", "context_tags": {"expression": "smile"}},
-            {"speaker": "B", "script": "test", "context_tags": {"expression": "sad"}},
-            {"speaker": "A", "script": "test", "context_tags": {"expression": "surprised"}},
-            {"speaker": "B", "script": "test", "context_tags": {"expression": "nervous"}},
+            {"speaker": "speaker_1", "script": "test", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_2", "script": "test", "context_tags": {"expression": "sad"}},
+            {"speaker": "speaker_1", "script": "test", "context_tags": {"expression": "surprised"}},
+            {"speaker": "speaker_2", "script": "test", "context_tags": {"expression": "nervous"}},
         ]
         original = [s["context_tags"]["expression"] for s in scenes]
         diversify_expressions(scenes)
@@ -71,9 +71,9 @@ class TestDiversifyExpressions:
     def test_narrator_scenes_excluded(self):
         """Narrator 씬은 다양성 계산에서 제외."""
         scenes = [
-            {"speaker": "A", "script": "test", "context_tags": {"expression": "smile"}},
-            {"speaker": "Narrator", "script": "bg", "context_tags": {"expression": "smile"}},
-            {"speaker": "B", "script": "test", "context_tags": {"expression": "sad"}},
+            {"speaker": "speaker_1", "script": "test", "context_tags": {"expression": "smile"}},
+            {"speaker": "narrator", "script": "bg", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_2", "script": "test", "context_tags": {"expression": "sad"}},
         ]
         diversify_expressions(scenes)
         # Narrator expression 변경 없음
@@ -82,10 +82,10 @@ class TestDiversifyExpressions:
     def test_scenes_with_emotion_preserved(self):
         """emotion이 이미 있는 씬은 건너뜀."""
         scenes = [
-            {"speaker": "A", "script": "어려워", "context_tags": {"expression": "smile", "emotion": "happy"}},
-            {"speaker": "B", "script": "어려워", "context_tags": {"expression": "smile"}},
-            {"speaker": "A", "script": "힘들어", "context_tags": {"expression": "smile"}},
-            {"speaker": "B", "script": "걱정돼", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_1", "script": "어려워", "context_tags": {"expression": "smile", "emotion": "happy"}},
+            {"speaker": "speaker_2", "script": "어려워", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_1", "script": "힘들어", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_2", "script": "걱정돼", "context_tags": {"expression": "smile"}},
         ]
         diversify_expressions(scenes)
         # emotion이 있는 Scene 0은 변경 없음
@@ -95,8 +95,8 @@ class TestDiversifyExpressions:
     def test_fewer_than_3_scenes_skipped(self):
         """캐릭터 씬 3개 미만이면 건너뜀."""
         scenes = [
-            {"speaker": "A", "script": "test", "context_tags": {"expression": "smile"}},
-            {"speaker": "B", "script": "test", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_1", "script": "test", "context_tags": {"expression": "smile"}},
+            {"speaker": "speaker_2", "script": "test", "context_tags": {"expression": "smile"}},
         ]
         diversify_expressions(scenes)
         assert scenes[0]["context_tags"]["expression"] == "smile"

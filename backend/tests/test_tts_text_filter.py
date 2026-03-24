@@ -241,8 +241,8 @@ class TestAnnotateSpeakable:
         assert scenes[0]["speakable"] is False
 
     def test_preserves_existing_fields(self):
-        scenes = [{"script": "안녕", "order": 0, "speaker": "A", "duration": 3}]
+        scenes = [{"script": "안녕", "order": 0, "speaker": "speaker_1", "duration": 3}]
         annotate_speakable(scenes)
         assert scenes[0]["speakable"] is True
-        assert scenes[0]["speaker"] == "A"
+        assert scenes[0]["speaker"] == "speaker_1"
         assert scenes[0]["duration"] == 3

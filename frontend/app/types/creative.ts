@@ -143,7 +143,7 @@ export type ShortsSessionCreate = {
   structure: string;
   language: string;
   character_id?: number;
-  character_ids?: Record<string, number>; // {"A": 1, "B": 2}
+  character_ids?: Record<string, number>; // {"speaker_1": 1, "speaker_2": 2}
   director_mode: string;
   max_rounds: number;
   references?: string[];

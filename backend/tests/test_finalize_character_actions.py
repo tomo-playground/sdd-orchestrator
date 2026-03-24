@@ -18,7 +18,7 @@ class TestInjectDefaultContextTags:
     def test_missing_pose_and_gaze_injected(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "A", "context_tags": {"emotion": "happy"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"emotion": "happy"}}]
         _inject_default_context_tags(scenes)
 
         assert scenes[0]["context_tags"]["pose"] == "standing"
@@ -29,7 +29,7 @@ class TestInjectDefaultContextTags:
     def test_existing_pose_preserved(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "A", "context_tags": {"pose": "sitting"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"pose": "sitting"}}]
         _inject_default_context_tags(scenes)
 
         assert scenes[0]["context_tags"]["pose"] == "sitting"
@@ -39,7 +39,7 @@ class TestInjectDefaultContextTags:
     def test_narrator_skipped(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "Narrator", "context_tags": {"mood": "dark"}}]
+        scenes = [{"speaker": "narrator", "context_tags": {"mood": "dark"}}]
         _inject_default_context_tags(scenes)
 
         assert "pose" not in scenes[0]["context_tags"]
@@ -48,7 +48,7 @@ class TestInjectDefaultContextTags:
     def test_none_context_tags_creates_new(self):
         from services.agent.nodes.finalize import _inject_default_context_tags
 
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         _inject_default_context_tags(scenes)
 
         assert scenes[0]["context_tags"] == {
@@ -61,9 +61,9 @@ class TestInjectDefaultContextTags:
         from services.agent.nodes.finalize import _inject_default_context_tags
 
         scenes = [
-            {"speaker": "A", "context_tags": {"pose": "walking"}},
-            {"speaker": "Narrator"},
-            {"speaker": "B", "context_tags": {}},
+            {"speaker": "speaker_1", "context_tags": {"pose": "walking"}},
+            {"speaker": "narrator"},
+            {"speaker": "speaker_2", "context_tags": {}},
         ]
         _inject_default_context_tags(scenes)
 
@@ -105,7 +105,7 @@ async def test_finalize_populates_character_actions(db_session):
                 {
                     "order": 0,
                     "script": "씬1",
-                    "speaker": "A",
+                    "speaker": "speaker_1",
                     "image_prompt": "1girl, smile, standing",
                     "context_tags": {"expression": ["smile"], "pose": ["standing"]},
                 },
@@ -144,7 +144,7 @@ async def test_finalize_narrator_no_character_actions(db_session):
                 {
                     "order": 0,
                     "script": "배경 묘사",
-                    "speaker": "Narrator",
+                    "speaker": "narrator",
                     "image_prompt": "no_humans, scenery",
                     "context_tags": {"environment": ["night"]},
                 },
@@ -183,7 +183,7 @@ async def test_finalize_fallback_injects_default_pose_gaze(db_session):
                 {
                     "order": 0,
                     "script": "씬1",
-                    "speaker": "A",
+                    "speaker": "speaker_1",
                     "image_prompt": "1girl",
                     "context_tags": {"camera": ["close-up"], "environment": ["kitchen"]},
                 },
@@ -223,7 +223,7 @@ async def test_finalize_no_context_tags_creates_defaults(db_session):
                 {
                     "order": 0,
                     "script": "씬1",
-                    "speaker": "A",
+                    "speaker": "speaker_1",
                     "image_prompt": "1girl",
                     # context_tags 완전 누락
                 },
@@ -264,7 +264,7 @@ async def test_finalize_preserves_existing_pose_gaze(db_session):
                 {
                     "order": 0,
                     "script": "씬1",
-                    "speaker": "A",
+                    "speaker": "speaker_1",
                     "image_prompt": "1girl",
                     "context_tags": {"pose": "sitting", "gaze": "looking_down", "expression": "crying"},
                 },
@@ -294,7 +294,7 @@ async def test_finalize_without_character_id_still_works():
         "character_id": None,
         "character_b_id": None,
         "draft_scenes": [
-            {"order": 0, "script": "퀵 씬", "speaker": "A"},
+            {"order": 0, "script": "퀵 씬", "speaker": "speaker_1"},
         ],
     }
 

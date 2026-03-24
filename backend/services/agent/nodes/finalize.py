@@ -13,11 +13,13 @@ from config import (
     DEFAULT_MOOD_TAG,
     DEFAULT_POSE_TAG,
     DEFAULT_SCENE_NEGATIVE_PROMPT,
+    DEFAULT_SPEAKER,
     DURATION_DEFICIT_THRESHOLD,
     DURATION_OVERFLOW_THRESHOLD,
     MULTI_CHAR_STRUCTURES,
     NARRATOR_FALLBACK_PROMPT,
     PROHIBITED_IMAGE_TAGS,
+    SPEAKER_B,
     coerce_language_id,
     coerce_structure_id,
     logger,
@@ -133,7 +135,7 @@ def _inject_default_context_tags(scenes: list[dict]) -> None:
 
     for scene in scenes:
         speaker = scene.get("speaker", "")
-        if speaker == "Narrator":
+        if speaker == DEFAULT_SPEAKER:
             continue
 
         ctx = scene.get("context_tags")
@@ -489,7 +491,7 @@ async def _align_image_prompt_ko_environment(scenes: list[dict]) -> None:
     # 재생성 대상 수집 (specific 환경 태그가 있는 씬만, Narrator 제외)
     targets: list[tuple[int, dict]] = []
     for i, scene in enumerate(scenes):
-        if scene.get("speaker") == "Narrator":
+        if scene.get("speaker") == DEFAULT_SPEAKER:
             continue
         prompt_ko = scene.get("image_prompt_ko")
         if not prompt_ko:
@@ -645,7 +647,7 @@ def _filter_exclusive_identity_tags(
     # 전체 씬에서 bare 토큰을 수집 → IN 쿼리 1회로 그룹 정보 일괄 조회
     all_bare: set[str] = set()
     for scene in scenes:
-        if scene.get("speaker") == "Narrator":
+        if scene.get("speaker") == DEFAULT_SPEAKER:
             continue
         for t in (scene.get("image_prompt") or "").split(","):
             bare = _strip_token_weight(t.strip())
@@ -681,13 +683,13 @@ def _filter_exclusive_identity_tags(
     removed_total = 0
     for scene in scenes:
         speaker = scene.get("speaker", "")
-        if speaker == "Narrator":
+        if speaker == DEFAULT_SPEAKER:
             continue
         prompt = scene.get("image_prompt", "")
         if not prompt:
             continue
 
-        exclusive = char_b_exclusive if speaker == "B" else char_a_exclusive
+        exclusive = char_b_exclusive if speaker == SPEAKER_B else char_a_exclusive
         if not exclusive:
             continue
 
@@ -782,7 +784,7 @@ def _enforce_character_clothing(
     # 전체 씬의 토큰을 수집하여 DB tag 테이블에서 group_name 일괄 조회 (N+1 방지)
     all_tokens: set[str] = set()
     for scene in scenes:
-        if scene.get("speaker") == "Narrator":
+        if scene.get("speaker") == DEFAULT_SPEAKER:
             continue
         for t in (scene.get("image_prompt") or "").split(","):
             bare = _strip_token_weight(t.strip())
@@ -801,13 +803,13 @@ def _enforce_character_clothing(
 
     for scene in scenes:
         speaker = scene.get("speaker", "")
-        if speaker == "Narrator":
+        if speaker == DEFAULT_SPEAKER:
             continue
         if scene.get("clothing_override"):
             continue
 
-        clothing_tags = char_b_clothing if speaker == "B" else char_a_clothing
-        identity_tags = char_b_identity if speaker == "B" else char_a_identity
+        clothing_tags = char_b_clothing if speaker == SPEAKER_B else char_a_clothing
+        identity_tags = char_b_identity if speaker == SPEAKER_B else char_a_identity
 
         prompt = scene.get("image_prompt", "")
         tokens = [t.strip() for t in prompt.split(",")]
@@ -935,7 +937,7 @@ def _rebuild_image_prompt_from_context_tags(scenes: list[dict]) -> None:
 
         tags: list[str] = []
         speaker = scene.get("speaker", "")
-        is_narrator = speaker == "Narrator"
+        is_narrator = speaker == DEFAULT_SPEAKER
 
         # multi subject 태그 선두 배치 (e.g., "1boy, 1girl")
         if multi_preserved:
@@ -1146,7 +1148,7 @@ def _validate_final_image_prompt(scenes: list[dict]) -> None:
     """재조립된 image_prompt의 형식 오류를 검출하고 자동 정리한다."""
     for i, scene in enumerate(scenes):
         prompt = scene.get("image_prompt", "")
-        is_narrator = scene.get("speaker") == "Narrator"
+        is_narrator = scene.get("speaker") == DEFAULT_SPEAKER
 
         # 빈 프롬프트
         if not prompt or not prompt.strip():
@@ -1323,7 +1325,7 @@ def _validate_scene_modes(scenes: list[dict], structure: str, state: dict) -> No
 
     # O-2e: Narrator + multi 모순 보정
     for scene in scenes:
-        if scene.get("speaker") == "Narrator" and scene.get("scene_mode") == "multi":
+        if scene.get("speaker") == DEFAULT_SPEAKER and scene.get("scene_mode") == "multi":
             scene["scene_mode"] = "single"
             _strip_multi_tags(scene)
             logger.warning("[Finalize] Narrator scene cannot be multi, forcing single")
@@ -1380,9 +1382,9 @@ def _auto_populate_scene_flags(
             scene["multi_gen_enabled"] = True
             continue
 
-        is_narrator = scene.get("speaker") == "Narrator"
+        is_narrator = scene.get("speaker") == DEFAULT_SPEAKER
         # Dialogue: speaker B uses character_b_id, others use character_id
-        scene_char_id = character_b_id if scene.get("speaker") == "B" else character_id
+        scene_char_id = character_b_id if scene.get("speaker") == SPEAKER_B else character_id
 
         # controlnet_pose 자동 할당/보정: context_tags.pose에서 파생
         # Cinematographer가 standing(기본값)을 설정한 경우에도 더 적합한 에셋으로 교체

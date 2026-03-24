@@ -37,7 +37,7 @@ class TestGenerateSceneTts:
 
         await generate_scene_tts(
             script="안녕하세요",
-            speaker="A",
+            speaker="speaker_1",
             storyboard_id=1,
             scene_db_id=10,
             voice_design_prompt="gentle",
@@ -46,11 +46,11 @@ class TestGenerateSceneTts:
             language="korean",
         )
 
-        mock_preset.assert_called_once_with(1, "A")
+        mock_preset.assert_called_once_with(1, "speaker_1")
         mock_gen.assert_called_once()
         call_kwargs = mock_gen.call_args.kwargs
         assert call_kwargs["script"] == "안녕하세요"
-        assert call_kwargs["speaker"] == "A"
+        assert call_kwargs["speaker"] == "speaker_1"
         assert call_kwargs["voice_preset_id"] == 99
         assert call_kwargs["scene_voice_design"] == "gentle"
         assert call_kwargs["scene_emotion"] == "happy"
@@ -70,7 +70,7 @@ class TestGenerateSceneTts:
 
         await generate_scene_tts(
             script="테스트",
-            speaker="A",
+            speaker="speaker_1",
             storyboard_id=1,
             scene_db_id=5,
         )
@@ -88,7 +88,7 @@ class TestGenerateSceneTts:
 
         await generate_scene_tts(
             script="테스트",
-            speaker="A",
+            speaker="speaker_1",
             storyboard_id=1,
             scene_db_id=None,
         )
@@ -106,7 +106,7 @@ class TestGenerateSceneTts:
 
         await generate_scene_tts(
             script="테스트",
-            speaker="A",
+            speaker="speaker_1",
             storyboard_id=1,
             scene_db_id=5,
         )
@@ -124,9 +124,9 @@ class TestGenerateSceneTts:
 
         await generate_scene_tts(
             script="테스트",
-            speaker="A",
+            speaker="speaker_1",
             storyboard_id=None,
         )
 
-        mock_preset.assert_called_once_with(None, "A")
+        mock_preset.assert_called_once_with(None, "speaker_1")
         assert mock_gen.call_args.kwargs["voice_preset_id"] is None

@@ -18,8 +18,8 @@ class TestValidateEmotionContinuity:
 
     def test_two_consecutive_same_emotion_warning(self, caplog):
         scenes = [
-            {"speaker": "A", "context_tags": {"emotion": "happy"}},
-            {"speaker": "A", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "happy"}},
         ]
         with caplog.at_level(logging.WARNING):
             self._call(scenes)
@@ -28,9 +28,9 @@ class TestValidateEmotionContinuity:
 
     def test_three_consecutive_same_emotion_error(self, caplog):
         scenes = [
-            {"speaker": "A", "context_tags": {"emotion": "sad"}},
-            {"speaker": "A", "context_tags": {"emotion": "sad"}},
-            {"speaker": "A", "context_tags": {"emotion": "sad"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "sad"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "sad"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "sad"}},
         ]
         with caplog.at_level(logging.WARNING):
             self._call(scenes)
@@ -38,9 +38,9 @@ class TestValidateEmotionContinuity:
 
     def test_different_emotion_resets(self, caplog):
         scenes = [
-            {"speaker": "A", "context_tags": {"emotion": "happy"}},
-            {"speaker": "A", "context_tags": {"emotion": "sad"}},
-            {"speaker": "A", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "sad"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "happy"}},
         ]
         with caplog.at_level(logging.WARNING):
             self._call(scenes)
@@ -48,9 +48,9 @@ class TestValidateEmotionContinuity:
 
     def test_none_emotion_breaks_streak(self, caplog):
         scenes = [
-            {"speaker": "A", "context_tags": {"emotion": "happy"}},
-            {"speaker": "A", "context_tags": {"emotion": None}},
-            {"speaker": "A", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": None}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "happy"}},
         ]
         with caplog.at_level(logging.WARNING):
             self._call(scenes)
@@ -58,9 +58,9 @@ class TestValidateEmotionContinuity:
 
     def test_missing_context_tags_breaks_streak(self, caplog):
         scenes = [
-            {"speaker": "A", "context_tags": {"emotion": "happy"}},
-            {"speaker": "A"},
-            {"speaker": "A", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_1"},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "happy"}},
         ]
         with caplog.at_level(logging.WARNING):
             self._call(scenes)
@@ -69,8 +69,8 @@ class TestValidateEmotionContinuity:
     def test_emotion_list_uses_first_element(self, caplog):
         """emotion이 list인 경우 첫 번째 요소만 사용."""
         scenes = [
-            {"speaker": "A", "context_tags": {"emotion": ["happy", "excited"]}},
-            {"speaker": "A", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": ["happy", "excited"]}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "happy"}},
         ]
         with caplog.at_level(logging.WARNING):
             self._call(scenes)
@@ -78,7 +78,7 @@ class TestValidateEmotionContinuity:
 
     def test_single_scene_no_detection(self, caplog):
         scenes = [
-            {"speaker": "A", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "happy"}},
         ]
         with caplog.at_level(logging.WARNING):
             self._call(scenes)
@@ -87,9 +87,9 @@ class TestValidateEmotionContinuity:
     def test_different_speakers_no_detection(self, caplog):
         """다른 speaker는 연속으로 카운트하지 않음."""
         scenes = [
-            {"speaker": "A", "context_tags": {"emotion": "happy"}},
-            {"speaker": "B", "context_tags": {"emotion": "happy"}},
-            {"speaker": "A", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_2", "context_tags": {"emotion": "happy"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "happy"}},
         ]
         with caplog.at_level(logging.WARNING):
             self._call(scenes)
@@ -98,8 +98,8 @@ class TestValidateEmotionContinuity:
     def test_narrator_also_checked(self, caplog):
         """Narrator도 동일 로직 적용."""
         scenes = [
-            {"speaker": "Narrator", "context_tags": {"emotion": "calm"}},
-            {"speaker": "Narrator", "context_tags": {"emotion": "calm"}},
+            {"speaker": "narrator", "context_tags": {"emotion": "calm"}},
+            {"speaker": "narrator", "context_tags": {"emotion": "calm"}},
         ]
         with caplog.at_level(logging.WARNING):
             self._call(scenes)

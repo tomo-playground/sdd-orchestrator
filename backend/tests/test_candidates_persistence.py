@@ -39,7 +39,7 @@ def test_candidates_persistence(client: TestClient, db_session):
         {
             "scene_id": 0,
             "script": "A test scene",
-            "speaker": "Narrator",
+            "speaker": "narrator",
             "duration": 5.0,
             "image_prompt": "A beautiful landscape",
             "candidates": candidates_data,

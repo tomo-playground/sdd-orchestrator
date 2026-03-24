@@ -12,8 +12,8 @@ import pytest
 def mock_scenes():
     """cinematographer 입력용 draft scenes."""
     return [
-        {"scene_id": 1, "script": "테스트 씬 1", "speaker": "A", "duration": 3, "image_prompt": "smile"},
-        {"scene_id": 2, "script": "테스트 씬 2", "speaker": "A", "duration": 3, "image_prompt": "happy"},
+        {"scene_id": 1, "script": "테스트 씬 1", "speaker": "speaker_1", "duration": 3, "image_prompt": "smile"},
+        {"scene_id": 2, "script": "테스트 씬 2", "speaker": "speaker_1", "duration": 3, "image_prompt": "happy"},
     ]
 
 

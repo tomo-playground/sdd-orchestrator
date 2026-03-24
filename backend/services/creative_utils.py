@@ -116,7 +116,7 @@ def record_trace_sync(db, **kwargs) -> CreativeTrace:
 def resolve_characters_from_context(ctx: dict) -> dict[str, dict]:
     """Extract per-speaker character info from context.
 
-    Returns: {"A": {"id": 1, "name": "하루", "tags": [...]}, ...}
+    Returns: {"speaker_1": {"id": 1, "name": "하루", "tags": [...]}, ...}
     Supports legacy single character_name as well.
     """
     characters = ctx.get("characters")
@@ -126,6 +126,8 @@ def resolve_characters_from_context(ctx: dict) -> dict[str, dict]:
     # Legacy fallback: single character_name → speaker "A"
     name = ctx.get("character_name")
     if name:
-        return {"A": {"id": ctx.get("character_id"), "name": name, "tags": []}}
+        from config import SPEAKER_A
+
+        return {SPEAKER_A: {"id": ctx.get("character_id"), "name": name, "tags": []}}
 
     return {}

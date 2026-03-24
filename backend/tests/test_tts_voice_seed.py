@@ -47,7 +47,7 @@ class TestResolveVoicePresetId(unittest.TestCase):
 
         mock_db.get.side_effect = get_side_effect
 
-        result = self._resolve(1058, "Narrator")
+        result = self._resolve(1058, "narrator")
         self.assertEqual(result, 16)
 
     @patch(
@@ -74,11 +74,11 @@ class TestResolveVoicePresetId(unittest.TestCase):
 
         mock_db.get.side_effect = get_side_effect
 
-        result = self._resolve(1058, "Narrator")
+        result = self._resolve(1058, "narrator")
         self.assertEqual(result, 16, "preset ID must be returned even when scene has voice_design_prompt")
 
     def test_returns_none_when_no_storyboard_id(self):
-        result = self._resolve(None, "A")
+        result = self._resolve(None, "speaker_1")
         self.assertIsNone(result)
 
     @patch("database.SessionLocal")
@@ -87,7 +87,7 @@ class TestResolveVoicePresetId(unittest.TestCase):
         mock_session_cls.return_value = mock_db
         mock_db.get.return_value = None
 
-        result = self._resolve(9999, "A")
+        result = self._resolve(9999, "speaker_1")
         self.assertIsNone(result)
 
 

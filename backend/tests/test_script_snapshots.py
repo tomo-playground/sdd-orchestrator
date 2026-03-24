@@ -63,7 +63,7 @@ def _validate_scene_structure(actual_scene: dict, expected_scene: dict) -> list[
         errors.append(f"duration should be number, got {type(actual_scene.get('duration'))}")
 
     # speaker 유효값 검증
-    valid_speakers = {"Narrator", "A", "B"}
+    valid_speakers = {"narrator", "speaker_1", "speaker_2"}
     if actual_scene.get("speaker") not in valid_speakers:
         errors.append(f"Invalid speaker: {actual_scene.get('speaker')}")
 

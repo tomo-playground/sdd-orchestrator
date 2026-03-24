@@ -12,7 +12,7 @@ function makeScene(overrides: Partial<Scene> = {}): Scene {
     client_id: overrides.client_id ?? "scene-1",
     order: 1,
     script: "",
-    speaker: "A",
+    speaker: "speaker_1",
     duration: 3,
     image_prompt: "",
     image_prompt_ko: "",
@@ -72,7 +72,7 @@ describe("resolveSceneControlnet", () => {
 
 describe("resolveSceneIpAdapter", () => {
   it("inherits global for Speaker A", () => {
-    const scene = makeScene({ speaker: "A" });
+    const scene = makeScene({ speaker: "speaker_1" });
     const result = resolveSceneIpAdapter(scene, GLOBAL_STATE);
     expect(result.enabled).toBe(true);
     expect(result.reference).toBe("char_a_ref");
@@ -80,7 +80,7 @@ describe("resolveSceneIpAdapter", () => {
   });
 
   it("inherits global for Speaker B with correct reference", () => {
-    const scene = makeScene({ speaker: "B" });
+    const scene = makeScene({ speaker: "speaker_2" });
     const result = resolveSceneIpAdapter(scene, GLOBAL_STATE);
     expect(result.enabled).toBe(true);
     expect(result.reference).toBe("char_b_ref");
@@ -89,7 +89,7 @@ describe("resolveSceneIpAdapter", () => {
 
   it("uses scene override reference", () => {
     const scene = makeScene({
-      speaker: "A",
+      speaker: "speaker_1",
       use_ip_adapter: true,
       ip_adapter_reference: "custom_ref",
       ip_adapter_weight: 0.9,
@@ -107,7 +107,7 @@ describe("resolveSceneIpAdapter", () => {
   });
 
   it("Narrator returns empty reference from speaker resolver", () => {
-    const scene = makeScene({ speaker: "Narrator" });
+    const scene = makeScene({ speaker: "narrator" });
     const result = resolveSceneIpAdapter(scene, GLOBAL_STATE);
     expect(result.reference).toBe("");
   });

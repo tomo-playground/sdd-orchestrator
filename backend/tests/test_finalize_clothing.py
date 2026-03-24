@@ -89,7 +89,7 @@ class TestEnforceCharacterClothing:
             ]
         )
         db = _make_db(char_a=char)
-        scenes = [{"speaker": "A", "image_prompt": "1girl, brown_hair, smile"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "1girl, brown_hair, smile"}]
 
         _enforce_character_clothing(scenes, 1, None, db)
 
@@ -101,7 +101,7 @@ class TestEnforceCharacterClothing:
         """이미 있는 태그는 중복 추가하지 않음."""
         char = _make_char_with_clothing([("school_uniform", "clothing")])
         db = _make_db(char_a=char)
-        scenes = [{"speaker": "A", "image_prompt": "1girl, school_uniform, smile"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "1girl, school_uniform, smile"}]
 
         _enforce_character_clothing(scenes, 1, None, db)
 
@@ -112,7 +112,7 @@ class TestEnforceCharacterClothing:
         """Narrator 씬은 건너뜀."""
         char = _make_char_with_clothing([("school_uniform", "clothing")])
         db = _make_db(char_a=char)
-        scenes = [{"speaker": "Narrator", "image_prompt": "no_humans, scenery"}]
+        scenes = [{"speaker": "narrator", "image_prompt": "no_humans, scenery"}]
 
         _enforce_character_clothing(scenes, 1, None, db)
 
@@ -124,7 +124,7 @@ class TestEnforceCharacterClothing:
         db = _make_db(char_a=char)
         scenes = [
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "image_prompt": "1girl, summer_dress, smile",
                 "clothing_override": ["summer_dress"],
             }
@@ -136,7 +136,7 @@ class TestEnforceCharacterClothing:
 
     def test_no_character_id_noop(self):
         """character_id가 None이면 아무것도 하지 않음."""
-        scenes = [{"speaker": "A", "image_prompt": "1girl, smile"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "1girl, smile"}]
         db = MagicMock()
 
         _enforce_character_clothing(scenes, None, None, db)
@@ -149,8 +149,8 @@ class TestEnforceCharacterClothing:
         char_b = _make_char_with_clothing([("hoodie", "clothing")])
         db = _make_db(char_a=char_a, char_b=char_b)
         scenes = [
-            {"speaker": "A", "image_prompt": "1girl, smile"},
-            {"speaker": "B", "image_prompt": "1boy, smile"},
+            {"speaker": "speaker_1", "image_prompt": "1girl, smile"},
+            {"speaker": "speaker_2", "image_prompt": "1boy, smile"},
         ]
 
         _enforce_character_clothing(scenes, 1, 2, db)
@@ -170,7 +170,7 @@ class TestEnforceCharacterClothing:
             ]
         )
         db = _make_db(char_a=char)
-        scenes = [{"speaker": "A", "image_prompt": "1girl, brown_hair"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "1girl, brown_hair"}]
 
         _enforce_character_clothing(scenes, 1, None, db)
 
@@ -183,7 +183,7 @@ class TestEnforceCharacterClothing:
         """캐릭터에 clothing 태그가 없으면 아무것도 하지 않음."""
         char = _make_char_with_clothing([("brown_hair", "hair_color")])
         db = _make_db(char_a=char)
-        scenes = [{"speaker": "A", "image_prompt": "1girl, smile"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "1girl, smile"}]
 
         _enforce_character_clothing(scenes, 1, None, db)
 
@@ -203,7 +203,7 @@ class TestStripNonDbClothing:
             ]
         )
         db = _make_db(char_a=char, tag_rows=tag_rows)
-        scenes = [{"speaker": "A", "image_prompt": "1girl, blue_skirt, smile"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "1girl, blue_skirt, smile"}]
 
         _enforce_character_clothing(scenes, 1, None, db)
 
@@ -222,7 +222,7 @@ class TestStripNonDbClothing:
             ]
         )
         db = _make_db(char_a=char, tag_rows=tag_rows)
-        scenes = [{"speaker": "A", "image_prompt": "1girl, close-up, kitchen"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "1girl, close-up, kitchen"}]
 
         _enforce_character_clothing(scenes, 1, None, db)
 
@@ -251,7 +251,7 @@ class TestStripNonDbClothing:
         db = _make_db(char_a=char, tag_rows=tag_rows)
         scenes = [
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "image_prompt": "1boy, white_shirt, brown_pants, checkered_shirt, smile",
             }
         ]
@@ -270,7 +270,7 @@ class TestStripNonDbClothing:
         char = _make_char_with_clothing([("school_uniform", "clothing")])
         tag_rows = _make_tag_rows([("school_uniform", "clothing")])
         db = _make_db(char_a=char, tag_rows=tag_rows)
-        scenes = [{"speaker": "A", "image_prompt": "1girl, school_uniform, smile"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "1girl, school_uniform, smile"}]
 
         _enforce_character_clothing(scenes, 1, None, db)
 
@@ -288,7 +288,7 @@ class TestStripNonDbClothing:
         db = _make_db(char_a=char, tag_rows=tag_rows)
         scenes = [
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "image_prompt": "1girl, summer_dress, smile",
                 "clothing_override": ["summer_dress"],
             }
@@ -313,8 +313,8 @@ class TestStripNonDbClothing:
         )
         db = _make_db(char_a=char_a, char_b=char_b, tag_rows=tag_rows)
         scenes = [
-            {"speaker": "A", "image_prompt": "1girl, smile"},
-            {"speaker": "B", "image_prompt": "1boy, blue_jacket, smile"},
+            {"speaker": "speaker_1", "image_prompt": "1girl, smile"},
+            {"speaker": "speaker_2", "image_prompt": "1boy, blue_jacket, smile"},
         ]
 
         _enforce_character_clothing(scenes, 1, 2, db)
@@ -332,7 +332,7 @@ class TestStripNonDbClothing:
         # tag_rows에 invented_tag이 없음 → group_name을 알 수 없으므로 유지
         tag_rows = _make_tag_rows([("school_uniform", "clothing")])
         db = _make_db(char_a=char, tag_rows=tag_rows)
-        scenes = [{"speaker": "A", "image_prompt": "1girl, invented_tag, smile"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "1girl, invented_tag, smile"}]
 
         _enforce_character_clothing(scenes, 1, None, db)
 
@@ -404,7 +404,7 @@ class TestIdentityTagRemoval:
             ]
         )
         db = _make_db_by_id({1: char}, tag_rows=tag_rows)
-        scenes = [{"speaker": "A", "image_prompt": "1girl, dark_hair, smile"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "1girl, dark_hair, smile"}]
 
         _enforce_character_clothing(scenes, 1, None, db)
 
@@ -424,7 +424,7 @@ class TestIdentityTagRemoval:
         )
         tag_rows = _make_tag_rows([])
         db = _make_db_by_id({1: char}, tag_rows=tag_rows)
-        scenes = [{"speaker": "A", "image_prompt": "1girl, smile"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "1girl, smile"}]
 
         _enforce_character_clothing(scenes, 1, None, db)
 
@@ -441,7 +441,7 @@ class TestIdentityTagRemoval:
         )
         tag_rows = _make_tag_rows([("black_hair", "hair_color")])
         db = _make_db_by_id({1: char}, tag_rows=tag_rows)
-        scenes = [{"speaker": "A", "image_prompt": "1girl, black_hair, smile"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "1girl, black_hair, smile"}]
 
         _enforce_character_clothing(scenes, 1, None, db)
 

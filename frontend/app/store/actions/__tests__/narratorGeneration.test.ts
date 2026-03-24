@@ -15,7 +15,7 @@ describe("Narrator scene generation payload", () => {
     ipAdapterReference: string,
     ipAdapterWeight: number
   ) {
-    const isNarrator = speaker === "Narrator";
+    const isNarrator = speaker === "narrator";
     const controlnetPayload =
       useControlnet && !isNarrator
         ? { use_controlnet: true, controlnet_weight: controlnetWeight }
@@ -31,44 +31,44 @@ describe("Narrator scene generation payload", () => {
     return { ...controlnetPayload, ...ipAdapterPayload };
   }
 
-  it("enables ControlNet for speaker A when setting is on", () => {
-    const result = buildControlPayload("A", true, 0.8, false, "", 0.7);
+  it("enables ControlNet for speaker_1 when setting is on", () => {
+    const result = buildControlPayload("speaker_1", true, 0.8, false, "", 0.7);
     expect(result.use_controlnet).toBe(true);
     expect(result.controlnet_weight).toBe(0.8);
   });
 
-  it("disables ControlNet for Narrator even when setting is on", () => {
-    const result = buildControlPayload("Narrator", true, 0.8, false, "", 0.7);
+  it("disables ControlNet for narrator even when setting is on", () => {
+    const result = buildControlPayload("narrator", true, 0.8, false, "", 0.7);
     expect(result.use_controlnet).toBe(false);
     expect(result).not.toHaveProperty("controlnet_weight");
   });
 
-  it("enables IP-Adapter for speaker A with reference", () => {
-    const result = buildControlPayload("A", false, 0.8, true, "flat_color_girl", 0.35);
+  it("enables IP-Adapter for speaker_1 with reference", () => {
+    const result = buildControlPayload("speaker_1", false, 0.8, true, "flat_color_girl", 0.35);
     expect(result.use_ip_adapter).toBe(true);
     expect(result.ip_adapter_reference).toBe("flat_color_girl");
     expect(result.ip_adapter_weight).toBe(0.35);
   });
 
-  it("disables IP-Adapter for Narrator even with reference", () => {
-    const result = buildControlPayload("Narrator", false, 0.8, true, "flat_color_girl", 0.35);
+  it("disables IP-Adapter for narrator even with reference", () => {
+    const result = buildControlPayload("narrator", false, 0.8, true, "flat_color_girl", 0.35);
     expect(result.use_ip_adapter).toBe(false);
     expect(result).not.toHaveProperty("ip_adapter_reference");
   });
 
-  it("disables IP-Adapter for speaker B without reference", () => {
-    const result = buildControlPayload("B", false, 0.8, true, "", 0.35);
+  it("disables IP-Adapter for speaker_2 without reference", () => {
+    const result = buildControlPayload("speaker_2", false, 0.8, true, "", 0.35);
     expect(result.use_ip_adapter).toBe(false);
   });
 
-  it("disables both for Narrator when both are globally on", () => {
-    const result = buildControlPayload("Narrator", true, 0.8, true, "flat_color_girl", 0.35);
+  it("disables both for narrator when both are globally on", () => {
+    const result = buildControlPayload("narrator", true, 0.8, true, "flat_color_girl", 0.35);
     expect(result.use_controlnet).toBe(false);
     expect(result.use_ip_adapter).toBe(false);
   });
 
-  it("enables both for speaker A when both are globally on", () => {
-    const result = buildControlPayload("A", true, 0.8, true, "flat_color_girl", 0.35);
+  it("enables both for speaker_1 when both are globally on", () => {
+    const result = buildControlPayload("speaker_1", true, 0.8, true, "flat_color_girl", 0.35);
     expect(result.use_controlnet).toBe(true);
     expect(result.use_ip_adapter).toBe(true);
   });
@@ -82,7 +82,7 @@ describe("Batch generation Narrator payload", () => {
     useIpAdapter: boolean,
     ref: string
   ) {
-    const isNarrator = speaker === "Narrator";
+    const isNarrator = speaker === "narrator";
     return {
       use_controlnet: useControlnet && !isNarrator,
       use_ip_adapter: useIpAdapter && !!ref && !isNarrator,
@@ -90,24 +90,24 @@ describe("Batch generation Narrator payload", () => {
     };
   }
 
-  it("disables ControlNet for Narrator in batch mode", () => {
-    const result = buildBatchControlPayload("Narrator", true, false, "");
+  it("disables ControlNet for narrator in batch mode", () => {
+    const result = buildBatchControlPayload("narrator", true, false, "");
     expect(result.use_controlnet).toBe(false);
   });
 
-  it("disables IP-Adapter for Narrator in batch mode", () => {
-    const result = buildBatchControlPayload("Narrator", false, true, "flat_color_girl");
+  it("disables IP-Adapter for narrator in batch mode", () => {
+    const result = buildBatchControlPayload("narrator", false, true, "flat_color_girl");
     expect(result.use_ip_adapter).toBe(false);
     expect(result.ip_adapter_reference).toBeUndefined();
   });
 
-  it("enables ControlNet for speaker A in batch mode", () => {
-    const result = buildBatchControlPayload("A", true, false, "");
+  it("enables ControlNet for speaker_1 in batch mode", () => {
+    const result = buildBatchControlPayload("speaker_1", true, false, "");
     expect(result.use_controlnet).toBe(true);
   });
 
-  it("enables IP-Adapter for speaker B in batch mode", () => {
-    const result = buildBatchControlPayload("B", false, true, "cool_boy");
+  it("enables IP-Adapter for speaker_2 in batch mode", () => {
+    const result = buildBatchControlPayload("speaker_2", false, true, "cool_boy");
     expect(result.use_ip_adapter).toBe(true);
     expect(result.ip_adapter_reference).toBe("cool_boy");
   });

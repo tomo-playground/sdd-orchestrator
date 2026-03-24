@@ -15,7 +15,7 @@ from services.script.scene_postprocess import ensure_dialogue_speakers
 # ── Helpers ──────────────────────────────────────────────────────
 
 
-def _make_scene(speaker: str = "A", script: str = "테스트 대사입니다", **kwargs) -> dict:
+def _make_scene(speaker: str = "speaker_1", script: str = "테스트 대사입니다", **kwargs) -> dict:
     return {
         "speaker": speaker,
         "script": script,
@@ -33,26 +33,26 @@ class TestReviewDialogueSpeakerValidation:
 
     def test_b_missing_produces_error(self):
         """Dialogue에서 B가 없으면 errors에 포함되어야 한다."""
-        scenes = [_make_scene("A"), _make_scene("A"), _make_scene("Narrator")]
+        scenes = [_make_scene("speaker_1"), _make_scene("speaker_1"), _make_scene("narrator")]
         result = _validate_scenes(scenes, duration=10, language="korean", structure="dialogue")
         assert not result["passed"]
-        assert any("speaker 'B'" in e for e in result["errors"])
+        assert any("speaker 'speaker_2'" in e for e in result["errors"])
 
     def test_a_missing_produces_error(self):
         """Dialogue에서 A가 없으면 errors에 포함되어야 한다."""
-        scenes = [_make_scene("B"), _make_scene("B"), _make_scene("Narrator")]
+        scenes = [_make_scene("speaker_2"), _make_scene("speaker_2"), _make_scene("narrator")]
         result = _validate_scenes(scenes, duration=10, language="korean", structure="dialogue")
         assert not result["passed"]
-        assert any("speaker 'A'" in e for e in result["errors"])
+        assert any("speaker 'speaker_1'" in e for e in result["errors"])
 
     def test_both_speakers_passes(self):
         """A와 B 모두 있으면 speaker 관련 에러가 없어야 한다."""
         scenes = [
-            _make_scene("A"),
-            _make_scene("B"),
-            _make_scene("Narrator"),
-            _make_scene("A"),
-            _make_scene("B"),
+            _make_scene("speaker_1"),
+            _make_scene("speaker_2"),
+            _make_scene("narrator"),
+            _make_scene("speaker_1"),
+            _make_scene("speaker_2"),
         ]
         result = _validate_scenes(scenes, duration=10, language="korean", structure="dialogue")
         speaker_errors = [e for e in result["errors"] if "speaker" in e and "Dialogue" in e]
@@ -60,14 +60,14 @@ class TestReviewDialogueSpeakerValidation:
 
     def test_narrated_dialogue_also_validates(self):
         """Narrated Dialogue 구조에서도 동일 검증."""
-        scenes = [_make_scene("A"), _make_scene("A")]
+        scenes = [_make_scene("speaker_1"), _make_scene("speaker_1")]
         result = _validate_scenes(scenes, duration=10, language="korean", structure="narrated_dialogue")
         assert not result["passed"]
-        assert any("speaker 'B'" in e for e in result["errors"])
+        assert any("speaker 'speaker_2'" in e for e in result["errors"])
 
     def test_monologue_ignores_b_absence(self):
         """Monologue에서는 B 부재를 검증하지 않아야 한다."""
-        scenes = [_make_scene("A"), _make_scene("A")]
+        scenes = [_make_scene("speaker_1"), _make_scene("speaker_1")]
         result = _validate_scenes(scenes, duration=10, language="korean", structure="monologue")
         dialogue_errors = [e for e in result["errors"] if "Dialogue" in e]
         assert len(dialogue_errors) == 0
@@ -81,42 +81,48 @@ class TestReviseDialogueMissingSpeaker:
 
     def test_regex_matches_error_message(self):
         """정규식이 Review 에러 메시지를 올바르게 매칭하는지 확인."""
-        msg = "Dialogue 구조에서 speaker 'B'가 등장하지 않음 — 반드시 A와 B 모두 포함해야 함"
+        msg = "Dialogue 구조에서 speaker 'speaker_2'가 등장하지 않음 — 반드시 speaker_1와 speaker_2 모두 포함해야 함"
         assert _DIALOGUE_MISSING_SPEAKER_RE.search(msg)
 
     def test_alternating_assignment(self):
         """non-Narrator 씬이 교대 배정 (A, B, A, B...) 되어야 한다."""
         scenes = [
-            _make_scene("A"),
-            _make_scene("A"),
-            _make_scene("Narrator"),
-            _make_scene("A"),
-            _make_scene("A"),
+            _make_scene("speaker_1"),
+            _make_scene("speaker_1"),
+            _make_scene("narrator"),
+            _make_scene("speaker_1"),
+            _make_scene("speaker_1"),
         ]
-        errors = ["Dialogue 구조에서 speaker 'B'가 등장하지 않음 — 반드시 A와 B 모두 포함해야 함"]
+        errors = [
+            "Dialogue 구조에서 speaker 'speaker_2'가 등장하지 않음 — 반드시 speaker_1와 speaker_2 모두 포함해야 함"
+        ]
         resolved = _try_rule_fix(scenes, errors)
         assert resolved
 
-        non_narrator = [s for s in scenes if s["speaker"] != "Narrator"]
+        non_narrator = [s for s in scenes if s["speaker"] != "narrator"]
         speakers = [s["speaker"] for s in non_narrator]
-        assert speakers == ["A", "B", "A", "B"]
+        assert speakers == ["speaker_1", "speaker_2", "speaker_1", "speaker_2"]
 
     def test_narrator_preserved(self):
         """Narrator 씬은 교대 배정에서 변경되지 않아야 한다."""
         scenes = [
-            _make_scene("A"),
-            _make_scene("Narrator"),
-            _make_scene("A"),
-            _make_scene("A"),
+            _make_scene("speaker_1"),
+            _make_scene("narrator"),
+            _make_scene("speaker_1"),
+            _make_scene("speaker_1"),
         ]
-        errors = ["Dialogue 구조에서 speaker 'B'가 등장하지 않음 — 반드시 A와 B 모두 포함해야 함"]
+        errors = [
+            "Dialogue 구조에서 speaker 'speaker_2'가 등장하지 않음 — 반드시 speaker_1와 speaker_2 모두 포함해야 함"
+        ]
         _try_rule_fix(scenes, errors)
-        assert scenes[1]["speaker"] == "Narrator"
+        assert scenes[1]["speaker"] == "narrator"
 
     def test_no_non_narrator_unresolved(self):
         """non-Narrator 씬이 없으면 unresolved (False 반환)."""
-        scenes = [_make_scene("Narrator"), _make_scene("Narrator")]
-        errors = ["Dialogue 구조에서 speaker 'B'가 등장하지 않음 — 반드시 A와 B 모두 포함해야 함"]
+        scenes = [_make_scene("narrator"), _make_scene("narrator")]
+        errors = [
+            "Dialogue 구조에서 speaker 'speaker_2'가 등장하지 않음 — 반드시 speaker_1와 speaker_2 모두 포함해야 함"
+        ]
         resolved = _try_rule_fix(scenes, errors)
         assert not resolved
 
@@ -129,7 +135,7 @@ class TestEnsureDialogueSpeakers:
 
     def test_both_present_noop(self):
         """A와 B 모두 있으면 변경하지 않아야 한다."""
-        scenes = [_make_scene("A"), _make_scene("B"), _make_scene("A")]
+        scenes = [_make_scene("speaker_1"), _make_scene("speaker_2"), _make_scene("speaker_1")]
         original_speakers = [s["speaker"] for s in scenes]
         ensure_dialogue_speakers(scenes)
         assert [s["speaker"] for s in scenes] == original_speakers
@@ -137,44 +143,44 @@ class TestEnsureDialogueSpeakers:
     def test_b_missing_auto_fix(self):
         """B가 없으면 교대 배정으로 자동 수정되어야 한다."""
         scenes = [
-            _make_scene("A"),
-            _make_scene("A"),
-            _make_scene("A"),
-            _make_scene("A"),
+            _make_scene("speaker_1"),
+            _make_scene("speaker_1"),
+            _make_scene("speaker_1"),
+            _make_scene("speaker_1"),
         ]
         ensure_dialogue_speakers(scenes)
         speakers = [s["speaker"] for s in scenes]
-        assert "B" in speakers
-        assert speakers == ["A", "B", "A", "B"]
+        assert "speaker_2" in speakers
+        assert speakers == ["speaker_1", "speaker_2", "speaker_1", "speaker_2"]
 
     def test_narrator_preserved(self):
         """Narrator 씬은 보존되어야 한다."""
         scenes = [
-            _make_scene("A"),
-            _make_scene("Narrator"),
-            _make_scene("A"),
-            _make_scene("A"),
+            _make_scene("speaker_1"),
+            _make_scene("narrator"),
+            _make_scene("speaker_1"),
+            _make_scene("speaker_1"),
         ]
         ensure_dialogue_speakers(scenes)
-        assert scenes[1]["speaker"] == "Narrator"
-        non_narrator = [s for s in scenes if s["speaker"] != "Narrator"]
-        assert "B" in {s["speaker"] for s in non_narrator}
+        assert scenes[1]["speaker"] == "narrator"
+        non_narrator = [s for s in scenes if s["speaker"] != "narrator"]
+        assert "speaker_2" in {s["speaker"] for s in non_narrator}
 
     def test_all_narrator_no_change(self):
         """모든 씬이 Narrator면 변경 불가."""
-        scenes = [_make_scene("Narrator"), _make_scene("Narrator")]
+        scenes = [_make_scene("narrator"), _make_scene("narrator")]
         ensure_dialogue_speakers(scenes)
-        assert all(s["speaker"] == "Narrator" for s in scenes)
+        assert all(s["speaker"] == "narrator" for s in scenes)
 
     def test_imbalanced_auto_rebalance(self):
         """A=10, B=1 → 비율 불균형 시 교대 재배정."""
-        scenes = [_make_scene("A")] * 10 + [_make_scene("B")]
+        scenes = [_make_scene("speaker_1")] * 10 + [_make_scene("speaker_2")]
         # 원본은 deepcopy 아니므로 새 dict 생성
         scenes = [_make_scene(s["speaker"]) for s in scenes]
         ensure_dialogue_speakers(scenes)
-        non_narrator = [s for s in scenes if s["speaker"] in ("A", "B")]
-        a_count = sum(1 for s in non_narrator if s["speaker"] == "A")
-        b_count = sum(1 for s in non_narrator if s["speaker"] == "B")
+        non_narrator = [s for s in scenes if s["speaker"] in ("speaker_1", "speaker_2")]
+        a_count = sum(1 for s in non_narrator if s["speaker"] == "speaker_1")
+        b_count = sum(1 for s in non_narrator if s["speaker"] == "speaker_2")
         assert a_count >= 2
         assert b_count >= 2
 
@@ -182,14 +188,14 @@ class TestEnsureDialogueSpeakers:
         """A=5, B=5 → 변경 없음."""
         scenes = []
         for i in range(10):
-            scenes.append(_make_scene("A" if i % 2 == 0 else "B"))
+            scenes.append(_make_scene("speaker_1" if i % 2 == 0 else "speaker_2"))
         original = [s["speaker"] for s in scenes]
         ensure_dialogue_speakers(scenes)
         assert [s["speaker"] for s in scenes] == original
 
     def test_borderline_20pct_noop(self):
         """A=4, B=1 → 20% = 통과 (변경 없음)."""
-        scenes = [_make_scene("A")] * 4 + [_make_scene("B")]
+        scenes = [_make_scene("speaker_1")] * 4 + [_make_scene("speaker_2")]
         scenes = [_make_scene(s["speaker"]) for s in scenes]
         original = [s["speaker"] for s in scenes]
         ensure_dialogue_speakers(scenes)
@@ -204,7 +210,7 @@ class TestReviewSpeakerBalance:
 
     def test_imbalanced_a11_b1_produces_error(self):
         """A=11, B=1 → error (B가 8%로 20% 미만)."""
-        scenes = [_make_scene("A")] * 11 + [_make_scene("B")]
+        scenes = [_make_scene("speaker_1")] * 11 + [_make_scene("speaker_2")]
         scenes = [_make_scene(s["speaker"]) for s in scenes]
         result = _validate_scenes(scenes, duration=30, language="korean", structure="dialogue")
         assert not result["passed"]
@@ -214,14 +220,14 @@ class TestReviewSpeakerBalance:
         """A=5, B=5 → no speaker balance error."""
         scenes = []
         for i in range(10):
-            scenes.append(_make_scene("A" if i % 2 == 0 else "B"))
+            scenes.append(_make_scene("speaker_1" if i % 2 == 0 else "speaker_2"))
         result = _validate_scenes(scenes, duration=30, language="korean", structure="dialogue")
         balance_errors = [e for e in result["errors"] if "비율 불균형" in e]
         assert len(balance_errors) == 0
 
     def test_borderline_a4_b1_passes(self):
         """A=4, B=1 (20%) → pass."""
-        scenes = [_make_scene("A")] * 4 + [_make_scene("B")]
+        scenes = [_make_scene("speaker_1")] * 4 + [_make_scene("speaker_2")]
         scenes = [_make_scene(s["speaker"]) for s in scenes]
         result = _validate_scenes(scenes, duration=15, language="korean", structure="dialogue")
         balance_errors = [e for e in result["errors"] if "비율 불균형" in e]
@@ -231,15 +237,21 @@ class TestReviewSpeakerBalance:
         """Narrated Dialogue에서 Narrator=0 → error."""
         scenes = []
         for i in range(8):
-            scenes.append(_make_scene("A" if i % 2 == 0 else "B"))
+            scenes.append(_make_scene("speaker_1" if i % 2 == 0 else "speaker_2"))
         result = _validate_scenes(scenes, duration=20, language="korean", structure="narrated_dialogue")
-        assert any("Narrator 씬 없음" in e for e in result["errors"])
+        assert any("narrator 씬 없음" in e for e in result["errors"])
 
     def test_narrated_dialogue_with_narrator_no_warning(self):
         """Narrated Dialogue에서 Narrator 있음 → no warning."""
-        scenes = [_make_scene("A"), _make_scene("B"), _make_scene("Narrator"), _make_scene("A"), _make_scene("B")]
+        scenes = [
+            _make_scene("speaker_1"),
+            _make_scene("speaker_2"),
+            _make_scene("narrator"),
+            _make_scene("speaker_1"),
+            _make_scene("speaker_2"),
+        ]
         result = _validate_scenes(scenes, duration=15, language="korean", structure="narrated_dialogue")
-        narrator_warnings = [w for w in result["warnings"] if "Narrator 씬 없음" in w]
+        narrator_warnings = [w for w in result["warnings"] if "narrator 씬 없음" in w]
         assert len(narrator_warnings) == 0
 
 
@@ -258,7 +270,7 @@ class TestReviseSpeakerImbalance:
 
     def test_imbalance_not_rule_fixed(self):
         """비율 불균형 에러는 _try_rule_fix()로 해결 불가 → False."""
-        scenes = [_make_scene("A")] * 11 + [_make_scene("B")]
+        scenes = [_make_scene("speaker_1")] * 11 + [_make_scene("speaker_2")]
         scenes = [_make_scene(s["speaker"]) for s in scenes]
         errors = ["Dialogue 구조에서 speaker 비율 불균형 — B가 8%로 최소 20% 미만 (A=11, B=1, 총 12씬)"]
         resolved = _try_rule_fix(scenes, errors)
@@ -266,7 +278,7 @@ class TestReviseSpeakerImbalance:
 
     def test_imbalance_with_other_fixable_errors(self):
         """비율 불균형 + 다른 수정 가능 에러 → False (비율 불균형이 unresolved)."""
-        scenes = [_make_scene("A", duration=0)] * 11 + [_make_scene("B")]
+        scenes = [_make_scene("speaker_1", duration=0)] * 11 + [_make_scene("speaker_2")]
         scenes = [_make_scene(s["speaker"], duration=s["duration"]) for s in scenes]
         errors = [
             "씬 1: duration이 0 이하 (0)",

@@ -16,7 +16,7 @@
     "scenes": [
       {
         "script": "桜が綺麗だなぁ",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 2.5,
         "image_prompt": "1girl, cherry_blossoms, standing, looking_up, spring, petals, blue_sky",
         "image_prompt_ko": "",
@@ -30,7 +30,7 @@
       },
       {
         "script": "来年も来よう",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 2.5,
         "image_prompt": "1girl, cherry_blossoms, smiling, wind, hair_blowing, petals_falling",
         "image_prompt_ko": "",

@@ -27,7 +27,7 @@ class TestSanitizeQualityTags:
         assert scenes[0]["image_prompt"] == ""
 
     def test_missing_prompt_skipped(self):
-        scenes = [{"speaker": "Narrator"}]
+        scenes = [{"speaker": "narrator"}]
         _sanitize_quality_tags(scenes)
         assert "image_prompt" not in scenes[0]
 
@@ -56,64 +56,64 @@ class TestInjectDefaultContextTagsEmotion:
         assert scenes[0]["context_tags"]["expression"] == "sad"
 
     def test_emotion_angry_derives_angry(self):
-        scenes = [{"speaker": "A", "context_tags": {"emotion": "angry"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"emotion": "angry"}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["expression"] == "angry"
 
     def test_emotion_overrides_existing_expression(self):
         """emotion이 매핑되면 기존 expression을 오버라이드 (monotony 방지)."""
-        scenes = [{"speaker": "A", "context_tags": {"emotion": "angry", "expression": "smile"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"emotion": "angry", "expression": "smile"}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["expression"] == "angry"
 
     def test_unmapped_emotion_keeps_existing_expression(self):
         """emotion이 매핑 안 되면 기존 expression 유지."""
-        scenes = [{"speaker": "A", "context_tags": {"emotion": "mysterious_vibe", "expression": "smile"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"emotion": "mysterious_vibe", "expression": "smile"}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["expression"] == "smile"
 
     def test_unknown_emotion_fallback_to_default(self):
         """알 수 없는 emotion이면 기본값 사용."""
-        scenes = [{"speaker": "A", "context_tags": {"emotion": "mysterious_feeling"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"emotion": "mysterious_feeling"}}]
         _inject_default_context_tags(scenes)
         # DEFAULT_EXPRESSION_TAG = "smile"
         assert scenes[0]["context_tags"]["expression"] == "smile"
 
     def test_no_emotion_uses_default(self):
         """emotion 없으면 기본값."""
-        scenes = [{"speaker": "A", "context_tags": {}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["expression"] == "smile"
 
     def test_narrator_skipped(self):
-        scenes = [{"speaker": "Narrator", "context_tags": {}}]
+        scenes = [{"speaker": "narrator", "context_tags": {}}]
         _inject_default_context_tags(scenes)
         assert "expression" not in scenes[0]["context_tags"]
 
     def test_list_emotion_coerced(self):
         """Gemini가 emotion을 리스트로 반환한 경우 방어."""
-        scenes = [{"speaker": "A", "context_tags": {"emotion": ["sad"]}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"emotion": ["sad"]}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["expression"] == "sad"
 
     def test_mood_derived_from_emotion(self):
         """emotion에서 mood 자동 파생."""
-        scenes = [{"speaker": "A", "context_tags": {"emotion": "소외감"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"emotion": "소외감"}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["mood"] == "lonely"
 
     def test_mood_not_overridden_if_exists(self):
         """기존 mood 유지."""
-        scenes = [{"speaker": "A", "context_tags": {"emotion": "sad", "mood": "tense"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"emotion": "sad", "mood": "tense"}}]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["mood"] == "tense"
 
     def test_korean_compound_emotion_derives_expression(self):
         """복합 한국어 emotion → expression 파생."""
         scenes = [
-            {"speaker": "A", "context_tags": {"emotion": "공감 유도"}},
-            {"speaker": "A", "context_tags": {"emotion": "내적 갈등"}},
-            {"speaker": "A", "context_tags": {"emotion": "체념"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "공감 유도"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "내적 갈등"}},
+            {"speaker": "speaker_1", "context_tags": {"emotion": "체념"}},
         ]
         _inject_default_context_tags(scenes)
         assert scenes[0]["context_tags"]["expression"] == "smile"

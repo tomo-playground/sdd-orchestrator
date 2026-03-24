@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections import Counter
 
+from config import DEFAULT_SPEAKER
 from config import pipeline_logger as logger
 from services.agent.nodes._context_tag_utils import (
     _KOREAN_EMOTION_ALIASES,
@@ -161,7 +162,7 @@ def _diversify_context_field(
     field_alias : 보조 필드명 (e.g. "camera_angle")
     label : 로그 레이블 (e.g. "Camera", "Gaze")
     """
-    target = scenes if include_narrator else [s for s in scenes if s.get("speaker") != "Narrator"]
+    target = scenes if include_narrator else [s for s in scenes if s.get("speaker") != DEFAULT_SPEAKER]
     if len(target) < 3:
         return
 

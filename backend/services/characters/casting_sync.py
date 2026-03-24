@@ -10,7 +10,7 @@ import re
 
 from sqlalchemy.orm import Session
 
-from config import logger
+from config import DEFAULT_SPEAKER, SPEAKER_A, SPEAKER_B, logger
 
 _LORA_TAG_RE = re.compile(r"<lora:([^:>]+):([^>]+)>")
 
@@ -185,16 +185,16 @@ def ensure_dialogue_speakers_in_db(
         return 0
 
     speakers = {s.speaker for s in scenes}
-    if "A" in speakers and "B" in speakers:
+    if SPEAKER_A in speakers and SPEAKER_B in speakers:
         return 0  # Already has both speakers
 
-    non_narrator = [s for s in scenes if s.speaker != "Narrator"]
+    non_narrator = [s for s in scenes if s.speaker != DEFAULT_SPEAKER]
     if not non_narrator:
         return 0
 
     changed = 0
     for i, scene in enumerate(non_narrator):
-        new_speaker = "A" if i % 2 == 0 else "B"
+        new_speaker = SPEAKER_A if i % 2 == 0 else SPEAKER_B
         if scene.speaker != new_speaker:
             scene.speaker = new_speaker
             changed += 1

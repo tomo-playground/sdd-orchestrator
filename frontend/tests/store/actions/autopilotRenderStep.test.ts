@@ -44,7 +44,7 @@ function makeScene(overrides: Partial<Scene> = {}): Scene {
     client_id: "scene-1",
     order: 0,
     script: "테스트 스크립트",
-    speaker: "Narrator",
+    speaker: "narrator",
     duration: 3,
     image_prompt: "1girl",
     image_prompt_ko: "소녀",
@@ -262,7 +262,7 @@ describe("executeRenderStep", () => {
         tts_asset_id: 55,
         image_url: "http://localhost:9000/img.png",
         script: "테스트",
-        speaker: "A",
+        speaker: "speaker_1",
       });
 
       const setMock = vi.fn();

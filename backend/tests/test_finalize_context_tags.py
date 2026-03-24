@@ -33,7 +33,7 @@ class TestCrossFieldConsistency:
         assert scenes[0]["context_tags"]["gaze"] == "looking_at_viewer"
 
     def test_no_context_tags_skip(self):
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         _validate_cross_field_consistency(scenes)
         assert "context_tags" not in scenes[0]
 
@@ -50,7 +50,7 @@ class TestRebuildImagePrompt:
     def test_character_scene_full(self):
         scenes = [
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "camera": "cowboy_shot",
                 "context_tags": {
                     "emotion": "nervous",
@@ -87,7 +87,7 @@ class TestRebuildImagePrompt:
     def test_narrator_scene(self):
         scenes = [
             {
-                "speaker": "Narrator",
+                "speaker": "narrator",
                 "context_tags": {
                     "camera": "from_above",
                     "environment": ["hallway", "indoors", "night"],
@@ -112,7 +112,7 @@ class TestRebuildImagePrompt:
         """B-1: cinematic/props 없어도 action/environment 등 표준 필드가 있으면 재조립."""
         scenes = [
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "image_prompt": "nervous, holding_knife, white_shirt, kitchen",
                 "context_tags": {
                     "emotion": "nervous",  # _CONTEXT_TAG_FIELDS 아님 → 무시
@@ -130,7 +130,7 @@ class TestRebuildImagePrompt:
 
     def test_skip_no_context_tags(self):
         original_prompt = "some_tag, another_tag"
-        scenes = [{"speaker": "A", "image_prompt": original_prompt}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": original_prompt}]
         _rebuild_image_prompt_from_context_tags(scenes)
         assert scenes[0]["image_prompt"] == original_prompt
 
@@ -138,7 +138,7 @@ class TestRebuildImagePrompt:
         """environment가 문자열인 경우도 처리."""
         scenes = [
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "context_tags": {
                     "camera": "close-up",
                     "environment": "kitchen",
@@ -154,7 +154,7 @@ class TestRebuildImagePrompt:
         """context_tags.camera 없으면 scene['camera'] 사용."""
         scenes = [
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "camera": "cowboy_shot",
                 "context_tags": {
                     "action": "walking",
@@ -169,12 +169,12 @@ class TestRebuildImagePrompt:
         """B-1: 두 씬 모두 표준 필드 있으면 각각 재조립."""
         scenes = [
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "image_prompt": "old_prompt, blue_skirt",
                 "context_tags": {"emotion": "happy", "action": "smile"},
             },
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "image_prompt": "old_prompt_2",
                 "context_tags": {
                     "camera": "close-up",
@@ -194,7 +194,7 @@ class TestRebuildImagePrompt:
         """B-1: cinematic/props 빈 배열이어도 action이 있으면 재조립."""
         scenes = [
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "image_prompt": "some_tags, red_dress",
                 "context_tags": {
                     "action": "walking",
@@ -211,7 +211,7 @@ class TestRebuildImagePrompt:
     def test_skip_completely_empty_context_tags(self):
         """context_tags가 완전히 빈 dict이면 skip (구 스토리보드 후방 호환)."""
         original = "some_tags, white_shirt"
-        scenes = [{"speaker": "A", "image_prompt": original, "context_tags": {}}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": original, "context_tags": {}}]
         _rebuild_image_prompt_from_context_tags(scenes)
         assert scenes[0]["image_prompt"] == original
 
@@ -254,7 +254,7 @@ class TestNarratorCrowdRebuild:
         """Narrator + crowd in image_prompt → rebuild 시 no_humans 없음, scenery 있음."""
         scenes = [
             {
-                "speaker": "Narrator",
+                "speaker": "narrator",
                 "image_prompt": "crowd, busy_street, scenery",
                 "context_tags": {
                     "camera": "wide_shot",
@@ -272,7 +272,7 @@ class TestNarratorCrowdRebuild:
         """Narrator + 빈 공간 → no_humans, scenery 유지 (regression guard)."""
         scenes = [
             {
-                "speaker": "Narrator",
+                "speaker": "narrator",
                 "image_prompt": "empty_classroom, scenery",
                 "context_tags": {
                     "camera": "wide_shot",

@@ -16,7 +16,7 @@
     "scenes": [
       {
         "script": "평범한 방과후였다",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "school, rooftop, afternoon, sky, clouds, fence, no_humans",
         "image_prompt_ko": "",
@@ -31,7 +31,7 @@
       },
       {
         "script": "할 말이 있어",
-        "speaker": "A",
+        "speaker": "speaker_1",
         "duration": 3.0,
         "image_prompt": "1boy, school_uniform, rooftop, nervous, looking_away, afternoon",
         "image_prompt_ko": "",
@@ -42,14 +42,14 @@
           "camera": ["medium_shot"]
         },
         "character_actions": [
-          {"character": "A", "action_tags": ["nervous", "looking_away"]},
-          {"character": "B", "action_tags": ["curious", "waiting"]}
+          {"character": "speaker_1", "action_tags": ["nervous", "looking_away"]},
+          {"character": "speaker_2", "action_tags": ["curious", "waiting"]}
         ],
         "_auto_pin_previous": true
       },
       {
         "script": "뭔데?",
-        "speaker": "B",
+        "speaker": "speaker_2",
         "duration": 2.0,
         "image_prompt": "1girl, school_uniform, rooftop, tilting_head, curious, afternoon",
         "image_prompt_ko": "",
@@ -60,13 +60,13 @@
           "camera": ["close-up"]
         },
         "character_actions": [
-          {"character": "B", "action_tags": ["tilting_head", "curious"]}
+          {"character": "speaker_2", "action_tags": ["tilting_head", "curious"]}
         ],
         "_auto_pin_previous": true
       },
       {
         "script": "좋아해",
-        "speaker": "A",
+        "speaker": "speaker_1",
         "duration": 3.0,
         "image_prompt": "1boy, school_uniform, rooftop, blushing, looking_at_viewer, sunset",
         "image_prompt_ko": "",
@@ -77,13 +77,13 @@
           "camera": ["close-up"]
         },
         "character_actions": [
-          {"character": "A", "action_tags": ["blushing", "looking_at_viewer"]}
+          {"character": "speaker_1", "action_tags": ["blushing", "looking_at_viewer"]}
         ],
         "_auto_pin_previous": true
       },
       {
         "script": "그렇게 두 사람의 이야기가 시작됐다",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 4.0,
         "image_prompt": "school, rooftop, sunset, sky, orange_sky, no_humans, scenery",
         "image_prompt_ko": "",

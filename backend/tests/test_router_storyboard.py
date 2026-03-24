@@ -47,7 +47,7 @@ class TestStoryboardRouter:
                 {
                     "scene_id": 0,
                     "script": "Scene 1 script",
-                    "speaker": "Narrator",
+                    "speaker": "narrator",
                     "duration": 3.0,
                     "description": "First scene",
                     "image_prompt": "test prompt",

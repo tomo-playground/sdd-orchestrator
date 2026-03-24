@@ -24,8 +24,8 @@ def config():
 @pytest.fixture
 def scenes():
     return [
-        {"scene_id": 1, "script": "첫 번째 씬", "speaker": "A", "duration": 3},
-        {"scene_id": 2, "script": "두 번째 씬", "speaker": "A", "duration": 3},
+        {"scene_id": 1, "script": "첫 번째 씬", "speaker": "speaker_1", "duration": 3},
+        {"scene_id": 2, "script": "두 번째 씬", "speaker": "speaker_1", "duration": 3},
     ]
 
 

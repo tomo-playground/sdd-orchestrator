@@ -337,7 +337,7 @@ class TestReviseRuleFixUsesPlaceholder:
         """image_prompt 누락 시 fallback_prompt가 적용된다."""
         from services.agent.nodes.revise import _try_rule_fix
 
-        scenes = [{"script": "ok", "speaker": "A", "duration": 3}]
+        scenes = [{"script": "ok", "speaker": "speaker_1", "duration": 3}]
         errors = ["씬 1: 필수 필드 'image_prompt' 누락"]
         _try_rule_fix(scenes, errors, fallback_prompt="1boy, solo, realistic")
         assert scenes[0]["image_prompt"] == "1boy, solo, realistic"
@@ -346,7 +346,7 @@ class TestReviseRuleFixUsesPlaceholder:
         """fallback_prompt 미지정 시 기본값 '1girl, solo' 사용."""
         from services.agent.nodes.revise import _try_rule_fix
 
-        scenes = [{"script": "ok", "speaker": "A", "duration": 3}]
+        scenes = [{"script": "ok", "speaker": "speaker_1", "duration": 3}]
         errors = ["씬 1: 필수 필드 'image_prompt' 누락"]
         _try_rule_fix(scenes, errors)
         assert scenes[0]["image_prompt"] == "1girl, solo"
@@ -355,7 +355,7 @@ class TestReviseRuleFixUsesPlaceholder:
         """script 누락 시 여전히 '(placeholder)'를 사용한다."""
         from services.agent.nodes.revise import _try_rule_fix
 
-        scenes = [{"speaker": "A", "duration": 3, "image_prompt": "ok"}]
+        scenes = [{"speaker": "speaker_1", "duration": 3, "image_prompt": "ok"}]
         errors = ["씬 1: 필수 필드 'script' 누락"]
         _try_rule_fix(scenes, errors, fallback_prompt="1boy, solo, realistic")
         assert scenes[0]["script"] == "(placeholder)"

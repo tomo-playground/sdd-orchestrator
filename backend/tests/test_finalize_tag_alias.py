@@ -112,7 +112,7 @@ class TestApplyTagAliasesCompat:
         assert scenes[0]["image_prompt"] == ""
 
     def test_missing_prompt_skipped(self):
-        scenes = [{"speaker": "Narrator"}]
+        scenes = [{"speaker": "narrator"}]
         with _mock_cache({"female": "1girl"}):
             _apply_tag_aliases(scenes)
         assert "image_prompt" not in scenes[0]

@@ -66,7 +66,7 @@ class TestValidateMusic:
 def _make_scripts(count: int, language: str = "korean") -> list[dict]:
     """Helper to create valid script scenes."""
     text = "테스트 스크립트입니다" if language == "korean" else "This is a test script"
-    return [{"order": i, "script": text, "speaker": "A", "duration": 2.5} for i in range(count)]
+    return [{"order": i, "script": text, "speaker": "speaker_1", "duration": 2.5} for i in range(count)]
 
 
 class TestWarnDoesNotFailScripts:
@@ -146,21 +146,21 @@ class TestResolveCharactersFromContext:
     def test_multi_character(self):
         ctx = {
             "characters": {
-                "A": {"id": 1, "name": "Haru", "tags": ["brown_hair"]},
-                "B": {"id": 2, "name": "Mina", "tags": ["blonde_hair"]},
+                "speaker_1": {"id": 1, "name": "Haru", "tags": ["brown_hair"]},
+                "speaker_2": {"id": 2, "name": "Mina", "tags": ["blonde_hair"]},
             }
         }
         result = resolve_characters_from_context(ctx)
-        assert "A" in result
-        assert result["A"]["name"] == "Haru"
-        assert "B" in result
+        assert "speaker_1" in result
+        assert result["speaker_1"]["name"] == "Haru"
+        assert "speaker_2" in result
 
     def test_legacy_single_character(self):
         ctx = {"character_name": "Haru", "character_id": 1}
         result = resolve_characters_from_context(ctx)
-        assert "A" in result
-        assert result["A"]["name"] == "Haru"
-        assert result["A"]["id"] == 1
+        assert "speaker_1" in result
+        assert result["speaker_1"]["name"] == "Haru"
+        assert result["speaker_1"]["id"] == 1
 
     def test_no_characters(self):
         result = resolve_characters_from_context({})
@@ -168,20 +168,20 @@ class TestResolveCharactersFromContext:
 
     def test_characters_takes_priority(self):
         ctx = {
-            "characters": {"A": {"id": 1, "name": "Haru", "tags": []}},
+            "characters": {"speaker_1": {"id": 1, "name": "Haru", "tags": []}},
             "character_name": "Old Name",
         }
         result = resolve_characters_from_context(ctx)
-        assert result["A"]["name"] == "Haru"
+        assert result["speaker_1"]["name"] == "Haru"
 
     def test_narrated_dialogue_three_speakers(self):
         ctx = {
             "characters": {
-                "Narrator": {"id": 3, "name": "Guide", "tags": []},
-                "A": {"id": 1, "name": "Haru", "tags": []},
-                "B": {"id": 2, "name": "Mina", "tags": []},
+                "narrator": {"id": 3, "name": "Guide", "tags": []},
+                "speaker_1": {"id": 1, "name": "Haru", "tags": []},
+                "speaker_2": {"id": 2, "name": "Mina", "tags": []},
             }
         }
         result = resolve_characters_from_context(ctx)
         assert len(result) == 3
-        assert "Narrator" in result
+        assert "narrator" in result

@@ -6,6 +6,7 @@ import json
 
 from langchain_core.runnables import RunnableConfig
 
+from config import SPEAKER_A, SPEAKER_B
 from config import pipeline_logger as logger
 from database import get_db_session
 from services.agent.observability import record_score
@@ -61,10 +62,10 @@ def _load_characters_tags(state: ScriptState, db) -> dict[str, dict[str, list[st
     if not character_id:
         return None
 
-    speakers = {"A": character_id}
+    speakers = {SPEAKER_A: character_id}
     char_b_id = state.get("character_b_id")
     if char_b_id:
-        speakers["B"] = char_b_id
+        speakers[SPEAKER_B] = char_b_id
 
     result: dict[str, dict[str, list[str]]] = {}
     for speaker, cid in speakers.items():

@@ -137,7 +137,7 @@ def _build_prompt(
             "## Tag Rules",
             "- Use ONLY Danbooru-standard tags (underscore format: brown_hair, cowboy_shot)",
             "- ❌ FORBIDDEN: made-up tags, emotion adjectives, gender tags (system injects 1girl/1boy)",
-            "- For Narrator scenes (speaker='Narrator'):",
+            "- For narrator scenes (speaker='narrator'):",
             "  - If script implies people/crowd activity (busy office, crowded street, festival): add crowd + scenery. Do NOT add no_humans. Set negative_prompt_extra to empty string ''.",
             "  - If script implies empty/quiet space (empty room, silent corridor, night sky): add no_humans + scenery. Set negative_prompt_extra to '1girl, 1boy, person'.",
             "- negative_prompt_extra: scene-specific exclusions only. Empty string if none needed.",
@@ -171,7 +171,7 @@ def _build_prompt(
 
 _OUTPUT_FORMAT = """\
 ## Output Format (JSON only, no markdown wrapping)
-{"scenes": [{"order": 0, "scene_mode": "single", "script": "원본 대사", "speaker": "A", "duration": 2.5,
+{"scenes": [{"order": 0, "scene_mode": "single", "script": "원본 대사", "speaker": "speaker_1", "duration": 2.5,
 "camera": "close-up", "environment": "kitchen",
 "image_prompt": "nervous, holding_knife, kitchen, close-up, indoors, depth_of_field",
 "image_prompt_ko": "어두운 주방에서 긴장한 표정으로 칼을 잡고 있는 모습",

@@ -154,7 +154,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
               key={charA.id}
               character={charA}
               characterFull={charAFull}
-              role="A"
+              role="speaker_1"
               basePrompt={basePromptA}
               voicePreset={getVoicePreset(charA.voice_preset_id)}
               audioPlayer={audioPlayer}
@@ -166,7 +166,7 @@ export default function StageCharactersSection({ audioPlayer, voicePresets }: Pr
               key={charB.id}
               character={charB}
               characterFull={charBFull}
-              role="B"
+              role="speaker_2"
               basePrompt={basePromptB}
               voicePreset={getVoicePreset(charB.voice_preset_id)}
               audioPlayer={audioPlayer}

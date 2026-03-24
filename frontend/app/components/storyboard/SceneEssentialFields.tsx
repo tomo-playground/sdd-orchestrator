@@ -79,13 +79,13 @@ export default function SceneEssentialFields({
             onChange={(e) => onSpeakerChange(e.target.value as Scene["speaker"])}
             className="rounded-2xl border border-zinc-200 bg-white/80 px-3 py-2 text-sm outline-none focus:border-zinc-400"
           >
-            {isNarratedDialogue && <option value="Narrator">Narrator</option>}
-            <option value="A">
-              {selectedCharacterName ? `A: ${selectedCharacterName}` : "Actor A"}
+            {isNarratedDialogue && <option value="narrator">Narrator</option>}
+            <option value="speaker_1">
+              {selectedCharacterName ? `1: ${selectedCharacterName}` : "Speaker 1"}
             </option>
             {hasMultipleSpeakers && (
-              <option value="B">
-                {selectedCharacterBName ? `B: ${selectedCharacterBName}` : "Actor B"}
+              <option value="speaker_2">
+                {selectedCharacterBName ? `2: ${selectedCharacterBName}` : "Speaker 2"}
               </option>
             )}
           </select>

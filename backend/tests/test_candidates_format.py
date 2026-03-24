@@ -179,7 +179,7 @@ class TestCandidatesWithMediaAssetIntegration:
             {
                 "scene_id": 0,
                 "script": "Test scene with asset candidates",
-                "speaker": "Narrator",
+                "speaker": "narrator",
                 "duration": 5.0,
                 "image_prompt": "A test prompt",
                 "candidates": candidates_data,
@@ -213,7 +213,7 @@ class TestCandidatesWithMediaAssetIntegration:
             {
                 "scene_id": 0,
                 "script": "Scene without candidates",
-                "speaker": "Narrator",
+                "speaker": "narrator",
                 "duration": 5.0,
                 "image_prompt": "A test prompt",
                 "candidates": [],

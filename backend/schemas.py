@@ -391,7 +391,7 @@ class SceneDetailResponse(BaseModel):
 class StoryboardCharacterResponse(BaseModel):
     """Character cast info for a storyboard."""
 
-    speaker: str  # "A", "B"
+    speaker: str  # "speaker_1", "speaker_2"
     character_id: int
     character_name: str
     reference_image_url: str | None = None  # Response-only: derived from Character.reference_image_url
@@ -1701,7 +1701,7 @@ class PresetTopicsResponse(BaseModel):
 
 class ScriptGenerateSceneItem(BaseModel):
     script: str = ""
-    speaker: str = "Narrator"
+    speaker: str = DEFAULT_SPEAKER
     duration: float = 3.0
     image_prompt: str = ""
     image_prompt_ko: str = ""
@@ -2890,7 +2890,7 @@ class ScriptEditSceneInput(BaseModel):
 
     scene_index: int
     script: str = ""
-    speaker: str = "Narrator"
+    speaker: str = DEFAULT_SPEAKER
     duration: float = 3.0
     image_prompt: str = ""
     image_prompt_ko: str = ""

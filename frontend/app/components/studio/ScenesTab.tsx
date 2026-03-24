@@ -95,7 +95,7 @@ export default function ScenesTab() {
   } = useSceneActions();
 
   const currentScene = scenes[currentSceneIndex];
-  const currentSpeaker = currentScene?.speaker ?? "A";
+  const currentSpeaker = currentScene?.speaker ?? "speaker_1";
   const resolvedCharacterId = resolveCharacterIdForSpeaker(currentSpeaker, {
     selectedCharacterId,
     selectedCharacterBId,

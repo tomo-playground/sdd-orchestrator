@@ -9,8 +9,11 @@ import re
 
 from config import (
     DEFAULT_SCENE_NEGATIVE_PROMPT,
+    DEFAULT_SPEAKER,
     ENABLE_DANBOORU_VALIDATION,
     MULTI_CHAR_STRUCTURES,
+    SPEAKER_A,
+    SPEAKER_B,
     logger,
 )
 
@@ -54,7 +57,7 @@ def warn_script_issues(scenes: list[dict]) -> None:
                 script[:40],
             )
 
-        if s.get("speaker") != "Narrator":
+        if s.get("speaker") != DEFAULT_SPEAKER:
             continue
         if _NARRATOR_PERSON_PATTERN.search(script):
             logger.warning(
@@ -166,7 +169,7 @@ def strip_no_humans_from_dialogue(scenes: list[dict]) -> None:
     """Strip no_humans tag from speaker scenes in dialogue structures (in-place)."""
     for scene in scenes:
         speaker = scene.get("speaker", "")
-        if speaker in ("A", "B"):
+        if speaker in (SPEAKER_A, SPEAKER_B):
             prompt = scene.get("image_prompt", "")
             if "no_humans" in prompt.lower().replace(" ", "_"):
                 tags = [t.strip() for t in prompt.split(",")]
@@ -188,48 +191,58 @@ def ensure_dialogue_speakers(scenes: list[dict]) -> None:
     speakers = {s.get("speaker") for s in scenes}
 
     # A 또는 B 누락 → 교대 배정
-    if "A" not in speakers or "B" not in speakers:
-        non_narrator = [s for s in scenes if s.get("speaker") != "Narrator"]
+    if SPEAKER_A not in speakers or SPEAKER_B not in speakers:
+        non_narrator = [s for s in scenes if s.get("speaker") != DEFAULT_SPEAKER]
         if not non_narrator:
-            logger.warning("[PostProcess] ensure_dialogue_speakers: non-Narrator 씬 없음, 수정 불가")
+            logger.warning("[PostProcess] ensure_dialogue_speakers: non-%s 씬 없음, 수정 불가", DEFAULT_SPEAKER)
             return
         for i, scene in enumerate(non_narrator):
-            scene["speaker"] = "A" if i % 2 == 0 else "B"
+            scene["speaker"] = SPEAKER_A if i % 2 == 0 else SPEAKER_B
         logger.warning(
-            "[PostProcess] Dialogue speaker 자동 교대 배정: %d개 non-Narrator 씬 (원래 speakers=%s)",
+            "[PostProcess] Dialogue speaker 자동 교대 배정: %d개 non-%s 씬 (원래 speakers=%s)",
             len(non_narrator),
+            DEFAULT_SPEAKER,
             speakers,
         )
         return
 
     # A,B 모두 존재 → 비율 검사
-    non_narrator = [s for s in scenes if s.get("speaker") in ("A", "B")]
+    non_narrator = [s for s in scenes if s.get("speaker") in (SPEAKER_A, SPEAKER_B)]
     if len(non_narrator) < 2:
         logger.info("[PostProcess] Dialogue speakers OK: %s (%d씬)", speakers, len(scenes))
         return
 
-    a_count = sum(1 for s in non_narrator if s.get("speaker") == "A")
+    a_count = sum(1 for s in non_narrator if s.get("speaker") == SPEAKER_A)
     b_count = len(non_narrator) - a_count
     total = len(non_narrator)
     minority_pct = min(a_count, b_count) / total * 100
 
     if minority_pct >= 20:
         logger.info(
-            "[PostProcess] Dialogue speakers OK: %s (%d씬, A=%d, B=%d)", speakers, len(scenes), a_count, b_count
+            "[PostProcess] Dialogue speakers OK: %s (%d씬, %s=%d, %s=%d)",
+            speakers,
+            len(scenes),
+            SPEAKER_A,
+            a_count,
+            SPEAKER_B,
+            b_count,
         )
         return
 
     # 비율 불균형 → 교대 재배정
     for i, scene in enumerate(non_narrator):
-        scene["speaker"] = "A" if i % 2 == 0 else "B"
+        scene["speaker"] = SPEAKER_A if i % 2 == 0 else SPEAKER_B
 
     logger.warning(
-        "[PostProcess] Dialogue speaker 비율 불균형 자동 교대 재배정: %d개 non-Narrator 씬 (A=%d→%d, B=%d→%d)",
+        "[PostProcess] Dialogue speaker 비율 불균형 자동 교대 재배정: %d개 non-%s 씬 (%s=%d→%d, %s=%d→%d)",
         len(non_narrator),
+        DEFAULT_SPEAKER,
+        SPEAKER_A,
         a_count,
-        sum(1 for s in non_narrator if s["speaker"] == "A"),
+        sum(1 for s in non_narrator if s["speaker"] == SPEAKER_A),
+        SPEAKER_B,
         b_count,
-        sum(1 for s in non_narrator if s["speaker"] == "B"),
+        sum(1 for s in non_narrator if s["speaker"] == SPEAKER_B),
     )
 
 

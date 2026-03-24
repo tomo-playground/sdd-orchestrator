@@ -99,7 +99,7 @@ async def test_writer_node_calls_planning_in_full_mode(mock_gen, mock_plan):
 
     # Mock 대본 생성 결과
     mock_gen.return_value = {
-        "scenes": [{"scene_id": 1, "script": "테스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}],
+        "scenes": [{"scene_id": 1, "script": "테스트", "speaker": "speaker_1", "duration": 3, "image_prompt": "smile"}],
     }
 
     state: ScriptState = {
@@ -127,7 +127,7 @@ async def test_writer_node_skips_planning_in_quick_mode(mock_gen, mock_plan):
     from services.agent.nodes.writer import writer_node
 
     mock_gen.return_value = {
-        "scenes": [{"scene_id": 1, "script": "테스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}],
+        "scenes": [{"scene_id": 1, "script": "테스트", "speaker": "speaker_1", "duration": 3, "image_prompt": "smile"}],
     }
 
     state: ScriptState = {
@@ -279,7 +279,7 @@ async def test_plan_text_includes_location_map(mock_gen, mock_plan):
         ],
     }
     mock_gen.return_value = {
-        "scenes": [{"script": "테스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}],
+        "scenes": [{"script": "테스트", "speaker": "speaker_1", "duration": 3, "image_prompt": "smile"}],
     }
 
     state: ScriptState = {
@@ -317,7 +317,7 @@ async def test_plan_text_without_locations(mock_gen, mock_plan):
         "scene_distribution": {"intro": 1, "rising": 1, "resolution": 1},
     }
     mock_gen.return_value = {
-        "scenes": [{"script": "테스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}],
+        "scenes": [{"script": "테스트", "speaker": "speaker_1", "duration": 3, "image_prompt": "smile"}],
     }
 
     state: ScriptState = {

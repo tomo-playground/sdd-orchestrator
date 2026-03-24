@@ -182,12 +182,12 @@ class TestValidateContextTagValues:
     def test_narrator_camera_validated(self):
         from config import DEFAULT_CAMERA_TAG
 
-        scenes = [{"speaker": "Narrator", "context_tags": {"camera": "medium_shot"}}]
+        scenes = [{"speaker": "narrator", "context_tags": {"camera": "medium_shot"}}]
         _validate_context_tag_values(scenes)
         assert scenes[0]["context_tags"]["camera"] == DEFAULT_CAMERA_TAG
 
     def test_no_context_tags_skip(self):
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         _validate_context_tag_values(scenes)
         assert "context_tags" not in scenes[0]
 
@@ -204,23 +204,23 @@ class TestValidateFinalImagePrompt:
     def test_narrator_empty_fallback(self):
         from config import NARRATOR_FALLBACK_PROMPT
 
-        scenes = [{"speaker": "Narrator", "image_prompt": ""}]
+        scenes = [{"speaker": "narrator", "image_prompt": ""}]
         _validate_final_image_prompt(scenes)
         assert scenes[0]["image_prompt"] == NARRATOR_FALLBACK_PROMPT
 
     def test_character_empty_warning(self):
-        scenes = [{"speaker": "A", "image_prompt": ""}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": ""}]
         _validate_final_image_prompt(scenes)
         assert scenes[0]["image_prompt"] == ""
 
     def test_double_comma_cleanup(self):
-        scenes = [{"speaker": "A", "image_prompt": "tag_a,, tag_b, , tag_c"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "tag_a,, tag_b, , tag_c"}]
         _validate_final_image_prompt(scenes)
         assert scenes[0]["image_prompt"] == "tag_a, tag_b, tag_c"
 
     def test_tag_count_over_50_truncated(self):
         tags = [f"tag_{i}" for i in range(60)]
-        scenes = [{"speaker": "A", "image_prompt": ", ".join(tags)}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": ", ".join(tags)}]
         _validate_final_image_prompt(scenes)
         result_tags = scenes[0]["image_prompt"].split(", ")
         assert len(result_tags) == 50
@@ -228,25 +228,25 @@ class TestValidateFinalImagePrompt:
     def test_tag_count_under_50_unchanged(self):
         tags = [f"tag_{i}" for i in range(30)]
         prompt = ", ".join(tags)
-        scenes = [{"speaker": "A", "image_prompt": prompt}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": prompt}]
         _validate_final_image_prompt(scenes)
         assert len(scenes[0]["image_prompt"].split(", ")) == 30
 
     def test_incomplete_weight_removed(self):
-        scenes = [{"speaker": "A", "image_prompt": "(tag:), (:1.2), valid_tag"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "(tag:), (:1.2), valid_tag"}]
         _validate_final_image_prompt(scenes)
         assert "valid_tag" in scenes[0]["image_prompt"]
         assert "(tag:)" not in scenes[0]["image_prompt"]
         assert "(:1.2)" not in scenes[0]["image_prompt"]
 
     def test_valid_weight_preserved(self):
-        scenes = [{"speaker": "A", "image_prompt": "(tag:1.2), ((emphasis))"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "(tag:1.2), ((emphasis))"}]
         _validate_final_image_prompt(scenes)
         assert "(tag:1.2)" in scenes[0]["image_prompt"]
         assert "((emphasis))" in scenes[0]["image_prompt"]
 
     def test_unmatched_open_paren_removed(self):
-        scenes = [{"speaker": "A", "image_prompt": "tag_a, orphan_paren(, tag_b"}]
+        scenes = [{"speaker": "speaker_1", "image_prompt": "tag_a, orphan_paren(, tag_b"}]
         _validate_final_image_prompt(scenes)
         result = scenes[0]["image_prompt"]
         assert result.count("(") == result.count(")")
@@ -256,7 +256,7 @@ class TestValidateFinalImagePrompt:
     def test_narrator_empty_after_cleanup_gets_fallback(self):
         from config import NARRATOR_FALLBACK_PROMPT
 
-        scenes = [{"speaker": "Narrator", "image_prompt": ",,, ,, "}]
+        scenes = [{"speaker": "narrator", "image_prompt": ",,, ,, "}]
         _validate_final_image_prompt(scenes)
         assert scenes[0]["image_prompt"] == NARRATOR_FALLBACK_PROMPT
 
@@ -264,6 +264,6 @@ class TestValidateFinalImagePrompt:
         """malformed weight 구문만 있는 Narrator prompt -> 정리 후 fallback 주입."""
         from config import NARRATOR_FALLBACK_PROMPT
 
-        scenes = [{"speaker": "Narrator", "image_prompt": "(tag:), (:1.2)"}]
+        scenes = [{"speaker": "narrator", "image_prompt": "(tag:), (:1.2)"}]
         _validate_final_image_prompt(scenes)
         assert scenes[0]["image_prompt"] == NARRATOR_FALLBACK_PROMPT

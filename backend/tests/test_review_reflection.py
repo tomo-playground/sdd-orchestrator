@@ -101,7 +101,7 @@ async def test_review_node_legacy_fallback_on_failure(mock_gemini_eval, mock_nar
     mock_reflect.return_value = "[근본 원인] 씬 개수 부족\n[수정 전략] 씬 추가"
 
     state = {
-        "draft_scenes": [{"scene_id": 1, "script": "테스트", "speaker": "A", "duration": 3, "image_prompt": "smile"}],
+        "draft_scenes": [{"scene_id": 1, "script": "테스트", "speaker": "speaker_1", "duration": 3, "image_prompt": "smile"}],
         "duration": 15,
         "language": "korean",
         "structure": "monologue",
@@ -140,7 +140,7 @@ async def test_review_node_legacy_skips_reflection_on_success(mock_narrative, mo
 
     state = {
         "draft_scenes": [
-            {"scene_id": i, "script": f"테스트 씬 {i}", "speaker": "A", "duration": 2, "image_prompt": "smile"}
+            {"scene_id": i, "script": f"테스트 씬 {i}", "speaker": "speaker_1", "duration": 2, "image_prompt": "smile"}
             for i in range(1, 6)
         ],
         "duration": 10,
@@ -163,7 +163,7 @@ async def test_review_node_skips_reflection_in_quick_mode(mock_reflect):
     from services.agent.nodes.review import review_node
 
     state = {
-        "draft_scenes": [{"scene_id": 1, "script": "테스트", "speaker": "A", "duration": 3, "image_prompt": ""}],
+        "draft_scenes": [{"scene_id": 1, "script": "테스트", "speaker": "speaker_1", "duration": 3, "image_prompt": ""}],
         "duration": 15,
         "language": "korean",
         "structure": "monologue",
@@ -219,7 +219,7 @@ async def test_review_narrative_failure_triggers_reflection_legacy(mock_narrativ
 
     state = {
         "draft_scenes": [
-            {"scene_id": i, "script": f"씬 {i}", "speaker": "A", "duration": 2, "image_prompt": "smile"}
+            {"scene_id": i, "script": f"씬 {i}", "speaker": "speaker_1", "duration": 2, "image_prompt": "smile"}
             for i in range(1, 6)
         ],
         "duration": 10,
@@ -332,7 +332,7 @@ def _full_state(scene_count=5, duration=10):
     """테스트용 Full 모드 state."""
     return {
         "draft_scenes": [
-            {"scene_id": i, "script": f"테스트 씬 {i}", "speaker": "A", "duration": 2, "image_prompt": "smile"}
+            {"scene_id": i, "script": f"테스트 씬 {i}", "speaker": "speaker_1", "duration": 2, "image_prompt": "smile"}
             for i in range(1, scene_count + 1)
         ],
         "duration": duration,

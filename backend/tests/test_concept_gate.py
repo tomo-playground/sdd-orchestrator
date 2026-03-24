@@ -112,7 +112,7 @@ async def test_concept_gate_invalid_id_fallback(mock_interrupt, sample_critic_re
 @patch("services.agent.nodes.writer.get_db_session")
 async def test_writer_injects_selected_concept(mock_db_ctx, mock_gen_script, sample_critic_result):
     """writer가 선정 컨셉을 selected_concept 필드로 전달."""
-    mock_gen_script.return_value = {"scenes": [{"script": "test", "speaker": "A", "duration": 3}]}
+    mock_gen_script.return_value = {"scenes": [{"script": "test", "speaker": "speaker_1", "duration": 3}]}
     from services.agent.nodes.writer import writer_node
 
     state = {
@@ -137,7 +137,7 @@ async def test_writer_injects_selected_concept(mock_db_ctx, mock_gen_script, sam
 @patch("services.agent.nodes.writer.get_db_session")
 async def test_writer_no_concept_no_injection(mock_db_ctx, mock_gen_script):
     """critic_result 없으면 selected_concept은 None."""
-    mock_gen_script.return_value = {"scenes": [{"script": "test", "speaker": "A", "duration": 3}]}
+    mock_gen_script.return_value = {"scenes": [{"script": "test", "speaker": "speaker_1", "duration": 3}]}
     from services.agent.nodes.writer import writer_node
 
     state = {"topic": "테스트", "description": "원본 설명", "duration": 10}
@@ -153,14 +153,14 @@ async def test_writer_no_concept_no_injection(mock_db_ctx, mock_gen_script):
 @patch("services.agent.nodes.revise.get_db_session")
 async def test_revise_preserves_selected_concept(mock_db_ctx, mock_gen_script, sample_critic_result):
     """revise 재생성 시 selected_concept이 보존된다."""
-    mock_gen_script.return_value = {"scenes": [{"script": "revised", "speaker": "A", "duration": 3}]}
+    mock_gen_script.return_value = {"scenes": [{"script": "revised", "speaker": "speaker_1", "duration": 3}]}
     from services.agent.nodes.revise import revise_node
 
     state = {
         "topic": "테스트",
         "description": "원본 설명",
         "duration": 10,
-        "draft_scenes": [{"script": "old", "speaker": "A", "duration": 3}],
+        "draft_scenes": [{"script": "old", "speaker": "speaker_1", "duration": 3}],
         "review_result": {"errors": ["복잡한 오류: 서사 구조 불일치"]},
         "revision_count": 0,
         "critic_result": sample_critic_result,

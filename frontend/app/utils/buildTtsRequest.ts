@@ -24,7 +24,7 @@ export function buildTtsRequest(
   return {
     scene_db_id: scene.id ?? null,
     script: scene.script || "",
-    speaker: scene.speaker || "Narrator", // TODO: sync with backend DEFAULT_SPEAKER
+    speaker: scene.speaker || "narrator",
     voice_design_prompt: scene.voice_design_prompt || null,
     scene_emotion: Array.isArray(scene.context_tags?.emotion)
       ? scene.context_tags.emotion.join(", ")

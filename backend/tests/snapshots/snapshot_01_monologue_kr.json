@@ -16,7 +16,7 @@
     "scenes": [
       {
         "script": "빗소리가 좋아서 여기 왔어",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1girl, sitting, cafe, window, rain, looking_out_window, cup, table, indoor",
         "image_prompt_ko": "",
@@ -30,7 +30,7 @@
       },
       {
         "script": "이 자리에서 너를 처음 만났지",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1girl, sitting, cafe, window, rain, chin_rest, reminiscing, warm_lighting",
         "image_prompt_ko": "",
@@ -44,7 +44,7 @@
       },
       {
         "script": "그때로 돌아갈 수 있다면",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 4.0,
         "image_prompt": "1girl, standing, cafe, door, rain, umbrella, looking_back, sunset",
         "image_prompt_ko": "",

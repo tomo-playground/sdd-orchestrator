@@ -58,7 +58,7 @@ export function useSceneActions() {
       client_id: generateSceneClientId(),
       order: scenes.length,
       script: "",
-      speaker: "Narrator" as const,
+      speaker: "narrator" as const,
       duration: 3,
       image_prompt: "",
       image_prompt_ko: "",

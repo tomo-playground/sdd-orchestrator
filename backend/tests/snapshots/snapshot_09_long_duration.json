@@ -16,7 +16,7 @@
     "scenes": [
       {
         "script": "알람이 울렸다",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 2.0,
         "image_prompt": "1girl, bedroom, alarm_clock, dark_room, early_morning, sleepy",
         "image_prompt_ko": "",
@@ -30,7 +30,7 @@
       },
       {
         "script": "포기하고 싶지만",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1girl, sportswear, stretching, doorway, dark_sky, determined",
         "image_prompt_ko": "",
@@ -44,7 +44,7 @@
       },
       {
         "script": "한 발짝만 더",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1girl, running, street, dawn, streetlights, focused, sweat",
         "image_prompt_ko": "",
@@ -58,7 +58,7 @@
       },
       {
         "script": "해가 뜨기 시작했어",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1girl, running, riverside, sunrise, orange_sky, wind, hair_blowing",
         "image_prompt_ko": "",
@@ -72,7 +72,7 @@
       },
       {
         "script": "오늘도 해냈다",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 4.0,
         "image_prompt": "1girl, standing, riverside, sunrise, smiling, hands_on_hips, victorious",
         "image_prompt_ko": "",

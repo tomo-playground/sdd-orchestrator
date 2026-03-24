@@ -158,7 +158,7 @@ def _full_state(scene_count=5, duration=10):
     """테스트용 Full 모드 state."""
     return {
         "draft_scenes": [
-            {"scene_id": i, "script": f"테스트 씬 {i}", "speaker": "A", "duration": 2, "image_prompt": "smile"}
+            {"scene_id": i, "script": f"테스트 씬 {i}", "speaker": "speaker_1", "duration": 2, "image_prompt": "smile"}
             for i in range(1, scene_count + 1)
         ],
         "duration": duration,
@@ -215,14 +215,14 @@ async def test_revise_tier3_passes_scene_feedback(mock_db, mock_gen_script):
 
     mock_gen_script.return_value = {
         "scenes": [
-            {"scene_id": 1, "script": "새 씬 1", "speaker": "A", "duration": 3, "image_prompt": "p"},
+            {"scene_id": 1, "script": "새 씬 1", "speaker": "speaker_1", "duration": 3, "image_prompt": "p"},
         ],
     }
 
     state = {
         "revision_count": 0,
         "draft_scenes": [
-            {"scene_id": 1, "script": "기존 씬", "speaker": "A", "duration": 3, "image_prompt": "p"},
+            {"scene_id": 1, "script": "기존 씬", "speaker": "speaker_1", "duration": 3, "image_prompt": "p"},
         ],
         "review_result": {
             "errors": ["복잡한 에러"],

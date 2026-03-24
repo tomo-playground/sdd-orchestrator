@@ -18,7 +18,7 @@ export const MOCK_STORYBOARDS = [
     scenes: [
       {
         script: "Good morning everyone!",
-        speaker: "A",
+        speaker: "speaker_1",
         duration: 4,
         image_prompt: "1girl, waking_up, bedroom",
         image_prompt_ko: "아침에 일어나는 소녀",
@@ -32,7 +32,7 @@ export const MOCK_STORYBOARDS = [
       },
       {
         script: "Time for coffee.",
-        speaker: "Narrator",
+        speaker: "narrator",
         duration: 3,
         image_prompt: "1girl, drinking_coffee, kitchen",
         image_prompt_ko: "커피를 마시는 소녀",
@@ -46,7 +46,7 @@ export const MOCK_STORYBOARDS = [
       },
       {
         script: "Let's head out!",
-        speaker: "A",
+        speaker: "speaker_1",
         duration: 3,
         image_prompt: "1girl, walking, street",
         image_prompt_ko: "거리를 걷는 소녀",

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from config import DEFAULT_SPEAKER, SPEAKER_B
 from config import pipeline_logger as logger
 
 # ---------------------------------------------------------------------------
@@ -117,17 +118,17 @@ def normalize_ip_adapter_weights(
 
     for scene in scenes:
         speaker = scene.get("speaker", "")
-        if speaker == "Narrator":
+        if speaker == DEFAULT_SPEAKER:
             scene["ip_adapter_weight"] = 0.0
             continue
 
         if scene.get("ip_adapter_weight") is not None:
-            has_lora = has_lora_b if speaker == "B" else has_lora_a
+            has_lora = has_lora_b if speaker == SPEAKER_B else has_lora_a
             if not has_lora:
                 scene["ip_adapter_weight"] = max(scene["ip_adapter_weight"], MIN_IP_ADAPTER_WEIGHT_NO_LORA)
             continue
 
-        if speaker == "B":
+        if speaker == SPEAKER_B:
             w = weight_b or DEFAULT_IP_ADAPTER_WEIGHT
             if not has_lora_b:
                 w = max(w, MIN_IP_ADAPTER_WEIGHT_NO_LORA)

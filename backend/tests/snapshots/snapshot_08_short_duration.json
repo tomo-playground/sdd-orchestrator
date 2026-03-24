@@ -16,7 +16,7 @@
     "scenes": [
       {
         "script": "이게 뭐야?",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 2.0,
         "image_prompt": "1girl, gift_box, surprised, hands_on_cheeks, indoor, birthday",
         "image_prompt_ko": "",
@@ -30,7 +30,7 @@
       },
       {
         "script": "최고의 생일이야!",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1girl, hugging_stuffed_toy, happy, tears_of_joy, sparkling_eyes",
         "image_prompt_ko": "",

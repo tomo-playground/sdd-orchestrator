@@ -158,8 +158,8 @@ class TestPromptPartials:
         from services.agent.prompt_partials import render_character_profile
 
         ctx = {"name": "Harin", "gender": "female", "description": "Cheerful", "costume_tags": ["uniform"]}
-        result = render_character_profile(ctx, "A")
-        assert "SPEAKER A" in result
+        result = render_character_profile(ctx, "speaker_1")
+        assert "SPEAKER speaker_1" in result
         assert "Harin" in result
         assert "uniform" in result
 

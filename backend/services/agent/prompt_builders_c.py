@@ -142,17 +142,17 @@ def build_character_context_section(ctx: str | None) -> str:
 def build_structure_speaker_rule(structure: str) -> str:
     """{% if structure == 'Monologue' %} 등 대체."""
     if structure == "monologue":
-        return '6. Speaker: Always "A" (single narrator).'
+        return '6. Speaker: Always "speaker_1" (single narrator).'
     if structure == "dialogue":
         return (
-            '6. Speakers: "A" and "B" (two characters in conversation). '
-            "CRITICAL: Both A and B MUST each have at least 30% of dialogue scenes."
+            '6. Speakers: "speaker_1" and "speaker_2" (two characters in conversation). '
+            "CRITICAL: Both speaker_1 and speaker_2 MUST each have at least 30% of dialogue scenes."
         )
     if structure == "narrated_dialogue":
         return (
-            '6. Speakers: "Narrator" for narration/description, "A" and "B" for character dialogue. '
-            "CRITICAL: Both A and B MUST each have at least 30% of dialogue scenes. "
-            "Include at least 1 Narrator scene for atmosphere/context."
+            '6. Speakers: "narrator" for narration/description, "speaker_1" and "speaker_2" for character dialogue. '
+            "CRITICAL: Both speaker_1 and speaker_2 MUST each have at least 30% of dialogue scenes. "
+            "Include at least 1 narrator scene for atmosphere/context."
         )
     return f"6. Structure: {structure}"
 
@@ -193,10 +193,10 @@ def build_dialogue_rules_section(
     b = char_b_name or "Character B"
     return (
         "\n## Dialogue Rules (MANDATORY)\n"
-        "- This is a **two-character conversation**. Both Speaker A and Speaker B MUST appear.\n"
-        "- Alternate speakers across scenes: A \u2192 B \u2192 A \u2192 B (with occasional Narrator allowed).\n"
-        f"- Speaker A = {a}, Speaker B = {b}.\n"
-        '- Do NOT make all scenes speaker="A". At least 40% of non-Narrator scenes must be Speaker B.'
+        "- This is a **two-character conversation**. Both speaker_1 and speaker_2 MUST appear.\n"
+        "- Alternate speakers across scenes: speaker_1 → speaker_2 → speaker_1 → speaker_2 (with occasional narrator allowed).\n"
+        f"- speaker_1 = {a}, speaker_2 = {b}.\n"
+        '- Do NOT make all scenes speaker="speaker_1". At least 40% of non-narrator scenes must be speaker_2.'
     )
 
 
@@ -541,7 +541,7 @@ def build_multi_character_rules(
     parts.extend(
         [
             '- Multi scenes: add interaction tags (e.g., "eye_contact", "looking_at_another", "hand_holding")',
-            '- Multi scenes: speaker can be "A" or "B" (whoever is speaking in that moment)',
+            '- Multi scenes: speaker can be "speaker_1" or "speaker_2" (whoever is speaking in that moment)',
             '- Each multi scene MUST include "scene_mode": "multi" in JSON output',
             '- All other scenes MUST include "scene_mode": "single" in JSON output',
             "- LIMIT: Maximum 1-2 multi scenes per storyboard",
@@ -579,11 +579,11 @@ def build_compositor_multi_rules(
         [
             '- Multi scenes: add interaction tags (e.g., "eye_contact", "looking_at_another", "hand_holding")',
             "- Multi scenes: character identity/appearance tags are injected automatically — do NOT add them to image_prompt",
-            '- Multi scenes: speaker field can be "A" or "B" (whoever is speaking in that moment)',
+            '- Multi scenes: speaker field can be "speaker_1" or "speaker_2" (whoever is speaking in that moment)',
             '- All other scenes MUST use "scene_mode": "single"',
             "- LIMIT: Maximum 2 multi scenes per storyboard",
             "",
-            'Example multi scene: {"order": 3, "scene_mode": "multi", "speaker": "A",'
+            'Example multi scene: {"order": 3, "scene_mode": "multi", "speaker": "speaker_1",'
             ' "image_prompt": "eye_contact, looking_at_another, ..."}',
         ]
     )

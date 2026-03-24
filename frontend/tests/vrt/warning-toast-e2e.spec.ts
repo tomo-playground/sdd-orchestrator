@@ -8,7 +8,7 @@ function buildSSEBody(options: { warnings?: string[] }): string {
   const scenes = [
     {
       script: "테스트 씬",
-      speaker: "A",
+      speaker: "speaker_1",
       duration: 3,
       image_prompt: "1girl, standing",
       image_prompt_ko: "서있는 소녀",

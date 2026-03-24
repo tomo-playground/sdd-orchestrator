@@ -1,4 +1,4 @@
-# Database Schema (v3.35)
+# Database Schema (v3.36)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.36 | 2026-03-24 | SP-021 Speaker ID 정규화: `scenes.speaker` default `"Narrator"` → `"narrator"`, 데이터 변환 (`A`→`speaker_1`, `B`→`speaker_2`, `Narrator`→`narrator`). `storyboard_characters.speaker` 동일 변환 |
 | v3.35 | 2026-03-23 | SP-073 Dead Feature Cleanup: `activity_logs`에서 Gemini 자동편집 4컬럼 제거(`gemini_edited`, `gemini_cost_usd`, `original_match_rate`, `final_match_rate`). `loras`에서 `gender_locked`, `optimal_weight`, `calibration_score`, `civitai_id` 컬럼 + `idx_loras_civitai` 인덱스 제거. `tags`에서 `thumbnail_asset_id` 컬럼 + `_thumbnail_asset` 관계 + `thumbnail_url` 프로퍼티 제거 |
 | v3.34 | 2026-03-23 | 문서 최신화: `storyboards`에 `tone`/`bgm_prompt`/`bgm_mood` 추가, `scenes`에 `tts_asset_id` 추가 + `width`/`height` 기본값 수정, `scene_quality_scores`에 `identity_score`/`identity_tags_detected` 추가, `backgrounds` 인덱스명 수정, `lab_experiments` 삭제 테이블 문서 제거, `characters.reference_images` 잔존 기록 정리. 유령 항목 정리: `loras` Multi-Character 3컬럼 제거(DB DROP 완료), `storyboards.bgm_audio_url` @property 제거(미구현), `loras.is_active` 추가. `scenes.multi_gen_enabled` 설명 보강. MEDIUM 12건 수정: `groups` deleted_at+@property 추가, `scenes` FK/nullable/길이 보강, `storyboard_characters` UniqueConstraint+FK 명시, `tags`/`tag_effectiveness` timestamps 추가, `activity_logs` NOT NULL 명시, `style_profiles` default 명시, `youtube_credentials` nullable/default 명시 |
 | v3.33 | 2026-03-02 | Character-Group 소유권: `characters.style_profile_id` 제거 → `characters.group_id` NOT NULL FK (RESTRICT). Group이 화풍 유일한 SSOT |
@@ -171,7 +172,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `storyboard_id` | Integer (FK → storyboards, CASCADE) | 소속 스토리보드 |
 | `order` | Integer | 씬 순서 (0-based) |
 | `script` | Text | 나레이션/Scene Text |
-| `speaker` | String(20) | 화자 (default: `"Narrator"`) |
+| `speaker` | String(20) | 화자 (default: `"narrator"`) — `speaker_1`, `speaker_2`, `narrator` |
 | `duration` | Float | 씬 길이 초 (default: 3.0) |
 | **Prompt** | | |
 | `image_prompt` | Text | Gemini 생성 프롬프트 (V3 compose 입력) |
@@ -242,7 +243,7 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 |--------|------|-------------|
 | `id` | Integer (PK) | |
 | `storyboard_id` | Integer (FK → storyboards, CASCADE), NOT NULL | |
-| `speaker` | String(10) | 화자 라벨 (`A`, `B` 등) |
+| `speaker` | String(10) | 화자 라벨 (`speaker_1`, `speaker_2`) |
 | `character_id` | Integer (FK → characters, CASCADE), NOT NULL | 매핑된 캐릭터 |
 
 **Unique**: `uq_storyboard_speaker` (`storyboard_id`, `speaker`)

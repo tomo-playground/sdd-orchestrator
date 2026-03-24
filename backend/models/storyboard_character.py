@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class StoryboardCharacter(Base):
-    """Maps a speaker label (A, B) to a Character for a given Storyboard."""
+    """Maps a speaker label (speaker_1, speaker_2) to a Character for a given Storyboard."""
 
     __tablename__ = "storyboard_characters"
     __table_args__ = (UniqueConstraint("storyboard_id", "speaker", name="uq_storyboard_speaker"),)

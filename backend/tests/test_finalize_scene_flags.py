@@ -12,25 +12,25 @@ class TestAutoPopulateSceneFlags:
 
     def test_character_scene_controlnet_default_off(self):
         """캐릭터 씬 — ControlNet 기본 OFF (프롬프트 충성도 충분)."""
-        scenes = [{"speaker": "A", "controlnet_pose": "standing"}]
+        scenes = [{"speaker": "speaker_1", "controlnet_pose": "standing"}]
         _auto_populate_scene_flags(scenes, character_id=1)
         assert scenes[0]["use_controlnet"] is False
 
     def test_character_scene_ip_adapter_on(self):
         """캐릭터 씬 + character_id → use_ip_adapter=True."""
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         _auto_populate_scene_flags(scenes, character_id=42)
         assert scenes[0]["use_ip_adapter"] is True
 
     def test_no_character_id_disables_ip_adapter(self):
         """character_id 없음 → use_ip_adapter=False."""
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         _auto_populate_scene_flags(scenes, character_id=None)
         assert scenes[0]["use_ip_adapter"] is False
 
     def test_narrator_scene_disables_both(self):
         """Narrator 씬 → ControlNet OFF, IP-Adapter OFF."""
-        scenes = [{"speaker": "Narrator", "controlnet_pose": "standing"}]
+        scenes = [{"speaker": "narrator", "controlnet_pose": "standing"}]
         _auto_populate_scene_flags(scenes, character_id=1)
         assert scenes[0]["use_controlnet"] is False
         assert scenes[0]["use_ip_adapter"] is False
@@ -39,7 +39,7 @@ class TestAutoPopulateSceneFlags:
         """이미 값이 있는 필드는 덮어쓰지 않는다."""
         scenes = [
             {
-                "speaker": "A",
+                "speaker": "speaker_1",
                 "controlnet_pose": "standing",
                 "use_controlnet": True,  # 명시적 ON → 보존
                 "use_ip_adapter": False,
@@ -57,13 +57,13 @@ class TestAutoPopulateSceneFlags:
         """multi_gen_enabled → config 기본값."""
         from config import DEFAULT_MULTI_GEN_ENABLED
 
-        scenes = [{"speaker": "A"}]
+        scenes = [{"speaker": "speaker_1"}]
         _auto_populate_scene_flags(scenes, character_id=None)
         assert scenes[0]["multi_gen_enabled"] is DEFAULT_MULTI_GEN_ENABLED
 
     def test_context_tags_pose_recorded_but_controlnet_off(self):
         """context_tags.pose → controlnet_pose에 기록은 하되 ControlNet OFF."""
-        scenes = [{"speaker": "A", "context_tags": {"pose": "sitting"}}]
+        scenes = [{"speaker": "speaker_1", "context_tags": {"pose": "sitting"}}]
         _auto_populate_scene_flags(scenes, character_id=1)
         assert scenes[0]["controlnet_pose"] == "sitting"
         assert scenes[0]["use_controlnet"] is False
@@ -71,9 +71,9 @@ class TestAutoPopulateSceneFlags:
     def test_multiple_scenes_mixed(self):
         """여러 씬 혼합 — 모두 ControlNet OFF, IP-Adapter는 캐릭터만 ON."""
         scenes = [
-            {"speaker": "A", "controlnet_pose": "sitting"},
-            {"speaker": "Narrator"},
-            {"speaker": "B", "controlnet_pose": "standing"},
+            {"speaker": "speaker_1", "controlnet_pose": "sitting"},
+            {"speaker": "narrator"},
+            {"speaker": "speaker_2", "controlnet_pose": "standing"},
         ]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=2)
         assert scenes[0]["use_controlnet"] is False
@@ -122,9 +122,9 @@ class TestFlattenTtsDesigns:
     def test_no_tts_design_unchanged(self):
         from services.agent.nodes.finalize import _flatten_tts_designs
 
-        scenes = [{"speaker": "A", "script": "hello"}]
+        scenes = [{"speaker": "speaker_1", "script": "hello"}]
         _flatten_tts_designs(scenes)
-        assert scenes[0] == {"speaker": "A", "script": "hello"}
+        assert scenes[0] == {"speaker": "speaker_1", "script": "hello"}
 
 
 class TestDialogueCharacterBFlags:
@@ -132,7 +132,7 @@ class TestDialogueCharacterBFlags:
 
     def test_speaker_b_controlnet_off_ip_adapter_on(self):
         """speaker B + character_b_id → ControlNet OFF, IP-Adapter ON."""
-        scenes = [{"speaker": "B", "context_tags": {"pose": "sitting"}}]
+        scenes = [{"speaker": "speaker_2", "context_tags": {"pose": "sitting"}}]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=2)
         assert scenes[0]["controlnet_pose"] == "sitting"
         assert scenes[0]["use_controlnet"] is False
@@ -140,7 +140,7 @@ class TestDialogueCharacterBFlags:
 
     def test_speaker_b_no_character_b_id_disables(self):
         """speaker B + character_b_id=None → 모두 OFF."""
-        scenes = [{"speaker": "B"}]
+        scenes = [{"speaker": "speaker_2"}]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=None)
         assert scenes[0]["use_controlnet"] is False
         assert scenes[0]["use_ip_adapter"] is False
@@ -148,9 +148,9 @@ class TestDialogueCharacterBFlags:
     def test_dialogue_mixed_speakers(self):
         """Dialogue: A/B/Narrator — 모두 ControlNet OFF."""
         scenes = [
-            {"speaker": "A", "context_tags": {"pose": "standing"}},
-            {"speaker": "B", "context_tags": {"pose": "sitting"}},
-            {"speaker": "Narrator"},
+            {"speaker": "speaker_1", "context_tags": {"pose": "standing"}},
+            {"speaker": "speaker_2", "context_tags": {"pose": "sitting"}},
+            {"speaker": "narrator"},
         ]
         _auto_populate_scene_flags(scenes, character_id=1, character_b_id=2)
         assert scenes[0]["use_controlnet"] is False
@@ -170,8 +170,8 @@ async def test_finalize_node_populates_scene_flags():
 
     state = {
         "draft_scenes": [
-            {"script": "test", "speaker": "A", "controlnet_pose": "standing", "duration": 3},
-            {"script": "bg", "speaker": "Narrator", "duration": 3},
+            {"script": "test", "speaker": "speaker_1", "controlnet_pose": "standing", "duration": 3},
+            {"script": "bg", "speaker": "narrator", "duration": 3},
         ],
         "skip_stages": ["production"],
         "character_id": 1,
@@ -204,9 +204,9 @@ async def test_finalize_express_mode_controlnet_off():
 
     state = {
         "draft_scenes": [
-            {"script": "씬1", "speaker": "A", "duration": 3},
-            {"script": "배경", "speaker": "Narrator", "duration": 3},
-            {"script": "씬2", "speaker": "B", "duration": 3},
+            {"script": "씬1", "speaker": "speaker_1", "duration": 3},
+            {"script": "배경", "speaker": "narrator", "duration": 3},
+            {"script": "씬2", "speaker": "speaker_2", "duration": 3},
         ],
         "skip_stages": ["research", "concept", "production", "explain"],
         "character_id": 1,

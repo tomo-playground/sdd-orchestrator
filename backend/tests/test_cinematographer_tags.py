@@ -19,7 +19,7 @@ from services.agent.nodes.cinematographer import cinematographer_node
 async def test_characters_tags_passed_to_template(mock_compile, mock_comp, mock_team, mock_validate, mock_call):
     """캐릭터가 있으면 characters_tags_block이 compile_prompt에 전달된다."""
     mock_compile.return_value = MagicMock(system="sys", user="rendered prompt", langfuse_prompt=None)
-    mock_scenes = [{"order": 0, "script": "테스트", "speaker": "A"}]
+    mock_scenes = [{"order": 0, "script": "테스트", "speaker": "speaker_1"}]
     mock_call.return_value = (
         json.dumps({"scenes": mock_scenes}),
         [],

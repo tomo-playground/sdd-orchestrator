@@ -33,12 +33,12 @@ export function checkCharacter(
   scenes: (Scene | DraftScene)[]
 ): SettingsCheck {
   // Narrator-only storyboards don't require a character
-  const allNarrator = scenes.length > 0 && scenes.every((s) => s.speaker === "Narrator");
+  const allNarrator = scenes.length > 0 && scenes.every((s) => s.speaker === "narrator");
   if (!id || !name) {
     if (allNarrator) {
       return {
         valid: true,
-        value: "Narrator",
+        value: "narrator",
         required: false,
         message: "나레이터 구조 (캐릭터 불필요)",
       };

@@ -1,8 +1,8 @@
 # Database Schema Summary
 
-Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.34) 참조.
+Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.36) 참조.
 
-> **Last Synced:** 2026-03-23 (DB_SCHEMA v3.34 기준)
+> **Last Synced:** 2026-03-24 (DB_SCHEMA v3.36 기준)
 
 ---
 

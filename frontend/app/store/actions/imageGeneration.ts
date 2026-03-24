@@ -59,7 +59,7 @@ export function buildSceneRequest(
 ): SceneRequest {
   const controlnet = resolveSceneControlnet(scene, sbState);
   const ipAdapter = resolveSceneIpAdapter(scene, sbState);
-  const isNarrator = scene.speaker === "Narrator";
+  const isNarrator = scene.speaker === "narrator";
   // Backend SSOT: hi_res_defaults from /presets API → store.hiResDefaults
   const hrd = sbState.hiResDefaults;
   const hiResPayload = sbState.hiResEnabled
@@ -82,7 +82,7 @@ export function buildSceneRequest(
     character_id: resolveCharacterIdForSpeaker(scene.speaker, sbState),
     character_b_id:
       scene.scene_mode === "multi"
-        ? resolveCharacterIdForSpeaker(scene.speaker === "A" ? "B" : "A", sbState) || undefined
+        ? resolveCharacterIdForSpeaker(scene.speaker === "speaker_1" ? "speaker_2" : "speaker_1", sbState) || undefined
         : undefined,
     storyboard_id: storyboardId || undefined,
     scene_id: scene.id > 0 ? scene.id : undefined,
@@ -121,7 +121,7 @@ export async function generateSceneImageFor(
   const selectedCharacterId = resolveCharacterIdForSpeaker(scene.speaker, sbState);
 
   // Narrator scenes don't require character selection (no_humans, scenery only)
-  if (!selectedCharacterId && scene.speaker !== "Narrator") {
+  if (!selectedCharacterId && scene.speaker !== "narrator") {
     if (!silent) showToast("캐릭터를 선택해야 합니다", "error");
     return null;
   }

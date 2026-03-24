@@ -100,46 +100,46 @@ class TestSpeakerAlternation:
 
     def test_three_consecutive_same_speaker(self):
         scenes = [
-            {"script": "대사1", "speaker": "A"},
-            {"script": "대사2", "speaker": "A"},
-            {"script": "대사3", "speaker": "A"},
+            {"script": "대사1", "speaker": "speaker_1"},
+            {"script": "대사2", "speaker": "speaker_1"},
+            {"script": "대사3", "speaker": "speaker_1"},
         ]
         errors, warnings = self._call(scenes)
         assert any("연속 독백" in w for w in warnings)
 
     def test_two_consecutive_no_warning(self):
         scenes = [
-            {"script": "대사1", "speaker": "A"},
-            {"script": "대사2", "speaker": "A"},
-            {"script": "대사3", "speaker": "B"},
+            {"script": "대사1", "speaker": "speaker_1"},
+            {"script": "대사2", "speaker": "speaker_1"},
+            {"script": "대사3", "speaker": "speaker_2"},
         ]
         errors, warnings = self._call(scenes)
         assert not any("연속 독백" in w for w in warnings)
 
     def test_monologue_skipped(self):
         scenes = [
-            {"script": "대사1", "speaker": "A"},
-            {"script": "대사2", "speaker": "A"},
-            {"script": "대사3", "speaker": "A"},
+            {"script": "대사1", "speaker": "speaker_1"},
+            {"script": "대사2", "speaker": "speaker_1"},
+            {"script": "대사3", "speaker": "speaker_1"},
         ]
         errors, warnings = self._call(scenes, structure="monologue")
         assert not any("연속 독백" in w for w in warnings)
 
     def test_narrated_dialogue_skipped(self):
         scenes = [
-            {"script": "대사1", "speaker": "Narrator"},
-            {"script": "대사2", "speaker": "Narrator"},
-            {"script": "대사3", "speaker": "Narrator"},
+            {"script": "대사1", "speaker": "narrator"},
+            {"script": "대사2", "speaker": "narrator"},
+            {"script": "대사3", "speaker": "narrator"},
         ]
         errors, warnings = self._call(scenes, structure="narrated_dialogue")
         assert not any("연속 독백" in w for w in warnings)
 
     def test_narrator_breaks_streak(self):
         scenes = [
-            {"script": "대사1", "speaker": "A"},
-            {"script": "대사2", "speaker": "A"},
-            {"script": "대사3", "speaker": "Narrator"},
-            {"script": "대사4", "speaker": "A"},
+            {"script": "대사1", "speaker": "speaker_1"},
+            {"script": "대사2", "speaker": "speaker_1"},
+            {"script": "대사3", "speaker": "narrator"},
+            {"script": "대사4", "speaker": "speaker_1"},
         ]
         errors, warnings = self._call(scenes)
         assert not any("연속 독백" in w for w in warnings)
@@ -158,32 +158,32 @@ class TestScriptSimilarity:
 
     def test_identical_scripts_warning(self):
         scenes = [
-            {"script": "오늘 날씨가 참 좋다 정말 좋다", "speaker": "A"},
-            {"script": "오늘 날씨가 참 좋다 정말 좋다", "speaker": "B"},
+            {"script": "오늘 날씨가 참 좋다 정말 좋다", "speaker": "speaker_1"},
+            {"script": "오늘 날씨가 참 좋다 정말 좋다", "speaker": "speaker_2"},
         ]
         errors, warnings = self._call(scenes)
         assert any("유사도" in w for w in warnings)
 
     def test_different_scripts_no_warning(self):
         scenes = [
-            {"script": "오늘 날씨가 좋다", "speaker": "A"},
-            {"script": "내일 비가 올 것이다", "speaker": "B"},
+            {"script": "오늘 날씨가 좋다", "speaker": "speaker_1"},
+            {"script": "내일 비가 올 것이다", "speaker": "speaker_2"},
         ]
         errors, warnings = self._call(scenes)
         assert not any("유사도" in w for w in warnings)
 
     def test_empty_script_skipped(self):
         scenes = [
-            {"script": "", "speaker": "A"},
-            {"script": "오늘 날씨가 좋다", "speaker": "B"},
+            {"script": "", "speaker": "speaker_1"},
+            {"script": "오늘 날씨가 좋다", "speaker": "speaker_2"},
         ]
         errors, warnings = self._call(scenes)
         assert not any("유사도" in w for w in warnings)
 
     def test_none_script_skipped(self):
         scenes = [
-            {"script": None, "speaker": "A"},
-            {"script": "오늘 날씨가 좋다", "speaker": "B"},
+            {"script": None, "speaker": "speaker_1"},
+            {"script": "오늘 날씨가 좋다", "speaker": "speaker_2"},
         ]
         errors, warnings = self._call(scenes)
         assert not any("유사도" in w for w in warnings)
@@ -202,28 +202,28 @@ class TestClicheDetection:
 
     def test_two_cliches_warning(self):
         scenes = [
-            {"script": "심쿵이야 이건 레전드다", "speaker": "A"},
+            {"script": "심쿵이야 이건 레전드다", "speaker": "speaker_1"},
         ]
         errors, warnings = self._call(scenes)
         assert any("클리셰" in w for w in warnings)
 
     def test_one_cliche_no_warning(self):
         scenes = [
-            {"script": "이건 심쿵이야 진짜 감동적이다", "speaker": "A"},
+            {"script": "이건 심쿵이야 진짜 감동적이다", "speaker": "speaker_1"},
         ]
         errors, warnings = self._call(scenes)
         assert not any("클리셰" in w for w in warnings)
 
     def test_zero_cliches_no_warning(self):
         scenes = [
-            {"script": "조용히 숲을 걸었다", "speaker": "A"},
+            {"script": "조용히 숲을 걸었다", "speaker": "speaker_1"},
         ]
         errors, warnings = self._call(scenes)
         assert not any("클리셰" in w for w in warnings)
 
     def test_empty_script_skipped(self):
         scenes = [
-            {"script": "", "speaker": "A"},
+            {"script": "", "speaker": "speaker_1"},
         ]
         errors, warnings = self._call(scenes)
         assert not any("클리셰" in w for w in warnings)
@@ -255,22 +255,22 @@ class TestSpeechConsistency:
 
     def test_mixed_speech_warning(self):
         scenes = [
-            {"script": "밥 먹어", "speaker": "A"},
-            {"script": "같이 가지", "speaker": "A"},
-            {"script": "그거 맞냐", "speaker": "A"},
-            {"script": "좋아요", "speaker": "A"},
-            {"script": "가세요", "speaker": "A"},
-            {"script": "맞습니다", "speaker": "A"},
+            {"script": "밥 먹어", "speaker": "speaker_1"},
+            {"script": "같이 가지", "speaker": "speaker_1"},
+            {"script": "그거 맞냐", "speaker": "speaker_1"},
+            {"script": "좋아요", "speaker": "speaker_1"},
+            {"script": "가세요", "speaker": "speaker_1"},
+            {"script": "맞습니다", "speaker": "speaker_1"},
         ]
         errors, warnings = self._call(scenes)
         assert any("문체 통일" in w or "혼용" in w for w in warnings)
 
     def test_consistent_speech_no_warning(self):
         scenes = [
-            {"script": "밥 먹어", "speaker": "A"},
-            {"script": "같이 가지", "speaker": "A"},
-            {"script": "재밌냐", "speaker": "A"},
-            {"script": "진짜 좋게", "speaker": "A"},
+            {"script": "밥 먹어", "speaker": "speaker_1"},
+            {"script": "같이 가지", "speaker": "speaker_1"},
+            {"script": "재밌냐", "speaker": "speaker_1"},
+            {"script": "진짜 좋게", "speaker": "speaker_1"},
         ]
         errors, warnings = self._call(scenes)
         assert not any("문체 통일" in w or "혼용" in w for w in warnings)
@@ -278,22 +278,22 @@ class TestSpeechConsistency:
     def test_insufficient_scenes_no_warning(self):
         """formal 2 + informal 2 → 각각 3개 미달 → WARNING 없음."""
         scenes = [
-            {"script": "밥 먹어", "speaker": "A"},
-            {"script": "같이 가지", "speaker": "A"},
-            {"script": "감사합니다", "speaker": "A"},
-            {"script": "좋아요", "speaker": "A"},
+            {"script": "밥 먹어", "speaker": "speaker_1"},
+            {"script": "같이 가지", "speaker": "speaker_1"},
+            {"script": "감사합니다", "speaker": "speaker_1"},
+            {"script": "좋아요", "speaker": "speaker_1"},
         ]
         errors, warnings = self._call(scenes)
         assert not any("문체 통일" in w or "혼용" in w for w in warnings)
 
     def test_monologue_skipped(self):
         scenes = [
-            {"script": "밥 먹어", "speaker": "A"},
-            {"script": "같이 가지", "speaker": "A"},
-            {"script": "그거 맞냐", "speaker": "A"},
-            {"script": "감사합니다", "speaker": "A"},
-            {"script": "좋아요", "speaker": "A"},
-            {"script": "가세요", "speaker": "A"},
+            {"script": "밥 먹어", "speaker": "speaker_1"},
+            {"script": "같이 가지", "speaker": "speaker_1"},
+            {"script": "그거 맞냐", "speaker": "speaker_1"},
+            {"script": "감사합니다", "speaker": "speaker_1"},
+            {"script": "좋아요", "speaker": "speaker_1"},
+            {"script": "가세요", "speaker": "speaker_1"},
         ]
         errors, warnings = self._call(scenes, structure="monologue")
         assert not any("문체 통일" in w or "혼용" in w for w in warnings)
@@ -309,11 +309,11 @@ class TestValidateScenesIntegration:
         from services.agent.nodes._review_validators import validate_scenes
 
         scenes = [
-            {"script": "대사1 텍스트입니다", "speaker": "A", "duration": 3, "image_prompt": "img"},
-            {"script": "대사2 텍스트입니다", "speaker": "A", "duration": 3, "image_prompt": "img"},
-            {"script": "대사3 텍스트입니다", "speaker": "A", "duration": 3, "image_prompt": "img"},
-            {"script": "대사4 텍스트입니다", "speaker": "B", "duration": 3, "image_prompt": "img"},
-            {"script": "대사5 텍스트입니다", "speaker": "B", "duration": 3, "image_prompt": "img"},
+            {"script": "대사1 텍스트입니다", "speaker": "speaker_1", "duration": 3, "image_prompt": "img"},
+            {"script": "대사2 텍스트입니다", "speaker": "speaker_1", "duration": 3, "image_prompt": "img"},
+            {"script": "대사3 텍스트입니다", "speaker": "speaker_1", "duration": 3, "image_prompt": "img"},
+            {"script": "대사4 텍스트입니다", "speaker": "speaker_2", "duration": 3, "image_prompt": "img"},
+            {"script": "대사5 텍스트입니다", "speaker": "speaker_2", "duration": 3, "image_prompt": "img"},
         ]
         result = validate_scenes(scenes, duration=15, language="korean", structure="dialogue")
         assert any("연속 독백" in w for w in result["warnings"])

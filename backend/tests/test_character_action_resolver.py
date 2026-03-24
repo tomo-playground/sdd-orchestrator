@@ -44,7 +44,7 @@ class TestBasicPopulation:
 
     def test_speaker_a_maps_to_character_id(self, db_session):
         tag_ids = _seed_tags(db_session, [("smile", 7)])
-        scenes = [_scene("A", {"expression": ["smile"]})]
+        scenes = [_scene("speaker_1", {"expression": ["smile"]})]
 
         result = auto_populate_character_actions(scenes, character_id=100, character_b_id=None, db=db_session)
 
@@ -56,7 +56,7 @@ class TestBasicPopulation:
 
     def test_speaker_b_maps_to_character_b_id(self, db_session):
         _seed_tags(db_session, [("angry", 7)])
-        scenes = [_scene("B", {"expression": ["angry"]})]
+        scenes = [_scene("speaker_2", {"expression": ["angry"]})]
 
         result = auto_populate_character_actions(scenes, character_id=100, character_b_id=200, db=db_session)
 
@@ -66,7 +66,7 @@ class TestBasicPopulation:
     def test_narrator_skipped(self, db_session):
         """Narrator scenes should not get character_actions."""
         _seed_tags(db_session, [("smile", 7)])
-        scenes = [_scene("Narrator", {"expression": ["smile"]})]
+        scenes = [_scene("narrator", {"expression": ["smile"]})]
 
         result = auto_populate_character_actions(scenes, character_id=100, character_b_id=200, db=db_session)
 
@@ -78,7 +78,7 @@ class TestContextTagCategories:
 
     def test_expression_list(self, db_session):
         _seed_tags(db_session, [("smile", 7), ("blush", 7)])
-        scenes = [_scene("A", {"expression": ["smile", "blush"]})]
+        scenes = [_scene("speaker_1", {"expression": ["smile", "blush"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
@@ -88,7 +88,7 @@ class TestContextTagCategories:
     def test_gaze_string(self, db_session):
         """gaze is a single string in context_tags, not a list."""
         _seed_tags(db_session, [("looking_at_viewer", 7, "gaze")])
-        scenes = [_scene("A", {"gaze": "looking_at_viewer"})]
+        scenes = [_scene("speaker_1", {"gaze": "looking_at_viewer"})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
@@ -96,7 +96,7 @@ class TestContextTagCategories:
 
     def test_pose_list(self, db_session):
         _seed_tags(db_session, [("standing", 8, "pose")])
-        scenes = [_scene("A", {"pose": ["standing"]})]
+        scenes = [_scene("speaker_1", {"pose": ["standing"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
@@ -104,7 +104,7 @@ class TestContextTagCategories:
 
     def test_action_list(self, db_session):
         _seed_tags(db_session, [("holding_sword", 8, "action_hand")])
-        scenes = [_scene("A", {"action": ["holding_sword"]})]
+        scenes = [_scene("speaker_1", {"action": ["holding_sword"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
@@ -113,7 +113,7 @@ class TestContextTagCategories:
     def test_non_action_categories_ignored(self, db_session):
         """camera, environment, mood etc. should NOT produce character_actions."""
         _seed_tags(db_session, [("close-up", 5), ("night", 3)])
-        scenes = [_scene("A", {"camera": ["close-up"], "environment": ["night"]})]
+        scenes = [_scene("speaker_1", {"camera": ["close-up"], "environment": ["night"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
@@ -123,7 +123,7 @@ class TestContextTagCategories:
         """Tags from expression + gaze + pose should all be included."""
         _seed_tags(db_session, [("smile", 7), ("looking_away", 7, "gaze"), ("sitting", 8, "pose")])
         scenes = [
-            _scene("A", {"expression": ["smile"], "gaze": "looking_away", "pose": ["sitting"]}),
+            _scene("speaker_1", {"expression": ["smile"], "gaze": "looking_away", "pose": ["sitting"]}),
         ]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
@@ -135,21 +135,21 @@ class TestEdgeCases:
     """Empty/missing data, pre-existing actions, whitespace, etc."""
 
     def test_no_characters_returns_unchanged(self, db_session):
-        scenes = [_scene("A", {"expression": ["smile"]})]
+        scenes = [_scene("speaker_1", {"expression": ["smile"]})]
 
         result = auto_populate_character_actions(scenes, character_id=None, character_b_id=None, db=db_session)
 
         assert "character_actions" not in result[0]
 
     def test_no_context_tags_returns_unchanged(self, db_session):
-        scenes = [_scene("A", None)]
+        scenes = [_scene("speaker_1", None)]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
         assert "character_actions" not in result[0]
 
     def test_empty_context_tags(self, db_session):
-        scenes = [_scene("A", {})]
+        scenes = [_scene("speaker_1", {})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
@@ -157,7 +157,7 @@ class TestEdgeCases:
 
     def test_tag_not_in_db_skipped(self, db_session):
         """Tags not found in DB should be silently skipped."""
-        scenes = [_scene("A", {"expression": ["nonexistent_tag_xyz"]})]
+        scenes = [_scene("speaker_1", {"expression": ["nonexistent_tag_xyz"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
@@ -167,7 +167,7 @@ class TestEdgeCases:
         """Scenes with pre-existing character_actions should not be overwritten."""
         _seed_tags(db_session, [("smile", 7)])
         existing = [{"character_id": 999, "tag_id": 1, "weight": 0.5}]
-        scenes = [_scene("A", {"expression": ["smile"]}, character_actions=existing)]
+        scenes = [_scene("speaker_1", {"expression": ["smile"]}, character_actions=existing)]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
@@ -175,7 +175,7 @@ class TestEdgeCases:
 
     def test_whitespace_tag_names_trimmed(self, db_session):
         _seed_tags(db_session, [("smile", 7)])
-        scenes = [_scene("A", {"expression": ["  smile  "]})]
+        scenes = [_scene("speaker_1", {"expression": ["  smile  "]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
@@ -183,7 +183,7 @@ class TestEdgeCases:
 
     def test_empty_string_tag_skipped(self, db_session):
         _seed_tags(db_session, [("smile", 7)])
-        scenes = [_scene("A", {"expression": ["", "  ", "smile"]})]
+        scenes = [_scene("speaker_1", {"expression": ["", "  ", "smile"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
@@ -196,10 +196,10 @@ class TestMultiScene:
     def test_dialogue_alternating_speakers(self, db_session):
         _seed_tags(db_session, [("smile", 7), ("angry", 7), ("looking_at_viewer", 7, "gaze")])
         scenes = [
-            _scene("A", {"expression": ["smile"], "gaze": "looking_at_viewer"}),
-            _scene("B", {"expression": ["angry"]}),
-            _scene("Narrator", {"expression": ["smile"]}),
-            _scene("A", {"expression": ["angry"]}),
+            _scene("speaker_1", {"expression": ["smile"], "gaze": "looking_at_viewer"}),
+            _scene("speaker_2", {"expression": ["angry"]}),
+            _scene("narrator", {"expression": ["smile"]}),
+            _scene("speaker_1", {"expression": ["angry"]}),
         ]
 
         result = auto_populate_character_actions(
@@ -227,7 +227,7 @@ class TestMultiScene:
     def test_mutates_original_list(self, db_session):
         """Function modifies scenes in-place and returns the same list object."""
         _seed_tags(db_session, [("smile", 7)])
-        scenes = [_scene("A", {"expression": ["smile"]})]
+        scenes = [_scene("speaker_1", {"expression": ["smile"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
@@ -360,7 +360,7 @@ class TestSingleCharacterPopulation:
         """1인 캐릭터(character_b_id=None) + Speaker A → character_actions 생성."""
         _seed_tags(db_session, [("smile", 7), ("standing", 8, "pose")])
         scenes = [
-            _scene("A", {"expression": ["smile"], "pose": ["standing"]}),
+            _scene("speaker_1", {"expression": ["smile"], "pose": ["standing"]}),
         ]
 
         result = auto_populate_character_actions(scenes, character_id=50, character_b_id=None, db=db_session)
@@ -373,9 +373,9 @@ class TestSingleCharacterPopulation:
         """Monologue: Speaker A + Narrator 혼합 → A만 character_actions."""
         _seed_tags(db_session, [("crying", 7), ("looking_down", 7, "gaze")])
         scenes = [
-            _scene("Narrator", {"mood": ["sad"]}),
-            _scene("A", {"expression": ["crying"], "gaze": "looking_down"}),
-            _scene("Narrator", {"environment": ["night"]}),
+            _scene("narrator", {"mood": ["sad"]}),
+            _scene("speaker_1", {"expression": ["crying"], "gaze": "looking_down"}),
+            _scene("narrator", {"environment": ["night"]}),
         ]
 
         result = auto_populate_character_actions(scenes, character_id=50, character_b_id=None, db=db_session)
@@ -388,7 +388,7 @@ class TestSingleCharacterPopulation:
         """context_tags에 pose/gaze 있을 때 정상 추출."""
         _seed_tags(db_session, [("sitting", 8, "pose"), ("looking_to_the_side", 7, "gaze")])
         scenes = [
-            _scene("A", {"pose": ["sitting"], "gaze": "looking_to_the_side"}),
+            _scene("speaker_1", {"pose": ["sitting"], "gaze": "looking_to_the_side"}),
         ]
 
         result = auto_populate_character_actions(scenes, character_id=50, character_b_id=None, db=db_session)
@@ -405,7 +405,7 @@ class TestGroupNameFiltering:
     def test_group_name_mismatch_rejected(self, db_session):
         """'standing'이 expression group에만 있으면 pose 매칭 거부."""
         _seed_tags(db_session, [("standing", 8)])  # default group_name="expression"
-        scenes = [_scene("A", {"pose": ["standing"]})]
+        scenes = [_scene("speaker_1", {"pose": ["standing"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 
@@ -414,7 +414,7 @@ class TestGroupNameFiltering:
     def test_group_name_match_accepted(self, db_session):
         """'standing'이 pose group에 있으면 pose 매칭 성공."""
         _seed_tags(db_session, [("standing", 8, "pose")])
-        scenes = [_scene("A", {"pose": ["standing"]})]
+        scenes = [_scene("speaker_1", {"pose": ["standing"]})]
 
         result = auto_populate_character_actions(scenes, character_id=1, character_b_id=None, db=db_session)
 

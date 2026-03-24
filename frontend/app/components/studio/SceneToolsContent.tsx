@@ -40,8 +40,8 @@ export default function SceneToolsContent() {
   const updateScene = useStoryboardStore((s) => s.updateScene);
 
   const currentScene = scenes[currentSceneIndex];
-  const currentSpeaker = currentScene?.speaker ?? "A";
-  const isNarrator = currentSpeaker === "Narrator";
+  const currentSpeaker = currentScene?.speaker ?? "speaker_1";
+  const isNarrator = currentSpeaker === "narrator";
 
   const resolvedIpAdapter = resolveIpAdapterForSpeaker(currentSpeaker, {
     ipAdapterReference,
@@ -94,7 +94,7 @@ export default function SceneToolsContent() {
             onReset={() => setSceneField("use_controlnet", null)}
             accent="violet"
             disabled={isNarrator}
-            disabledReason="Narrator 씬에서는 사용 불가"
+            disabledReason="나레이터 씬에서는 사용 불가"
             tooltip={<InfoTooltip term="controlnet" />}
           />
           {effectiveControlnet && !isNarrator && (
@@ -114,14 +114,14 @@ export default function SceneToolsContent() {
             />
           )}
           <OverrideToggleRow
-            label={currentSpeaker === "B" ? "IP-Adapter (B)" : "IP-Adapter"}
+            label={currentSpeaker === "speaker_2" ? "IP-Adapter (B)" : "IP-Adapter"}
             checked={effectiveIpAdapter}
             hasOverride={hasIpAdapterOverride}
             onChange={(v) => setSceneField("use_ip_adapter", v)}
             onReset={() => setSceneField("use_ip_adapter", null)}
-            accent={currentSpeaker === "B" ? "sky" : "amber"}
+            accent={currentSpeaker === "speaker_2" ? "sky" : "amber"}
             disabled={isNarrator}
-            disabledReason="Narrator 씬에서는 사용 불가"
+            disabledReason="나레이터 씬에서는 사용 불가"
             tooltip={<InfoTooltip term="ip-adapter" />}
           />
           {effectiveIpAdapter && !isNarrator && (
@@ -137,14 +137,14 @@ export default function SceneToolsContent() {
                       setSceneField("ip_adapter_weight", match.preset.weight);
                   } else {
                     sbSet(
-                      currentSpeaker === "B"
+                      currentSpeaker === "speaker_2"
                         ? { ipAdapterReferenceB: key }
                         : { ipAdapterReference: key }
                     );
                     const match = referenceImages.find((r) => r.character_key === key);
                     if (match?.preset?.weight) {
                       sbSet(
-                        currentSpeaker === "B"
+                        currentSpeaker === "speaker_2"
                           ? { ipAdapterWeightB: match.preset.weight }
                           : { ipAdapterWeight: match.preset.weight }
                       );
@@ -152,7 +152,7 @@ export default function SceneToolsContent() {
                   }
                 }}
                 className={`w-full rounded-lg border bg-white px-2 py-1.5 text-[12px] text-zinc-600 ${
-                  currentSpeaker === "B" ? "border-sky-300" : "border-zinc-200"
+                  currentSpeaker === "speaker_2" ? "border-sky-300" : "border-zinc-200"
                 }`}
               >
                 <option value="">Select Reference</option>
@@ -169,14 +169,14 @@ export default function SceneToolsContent() {
                     setSceneField("ip_adapter_weight", v);
                   } else {
                     sbSet(
-                      currentSpeaker === "B" ? { ipAdapterWeightB: v } : { ipAdapterWeight: v }
+                      currentSpeaker === "speaker_2" ? { ipAdapterWeightB: v } : { ipAdapterWeight: v }
                     );
                   }
                 }}
                 min={0.3}
                 max={1.0}
                 step={0.05}
-                accent={currentSpeaker === "B" ? "sky" : "amber"}
+                accent={currentSpeaker === "speaker_2" ? "sky" : "amber"}
               />
             </>
           )}

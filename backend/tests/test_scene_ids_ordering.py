@@ -13,9 +13,9 @@ from tests.conftest import create_test_storyboard
 def test_post_scene_ids_match_creation_order(client):
     """POST /storyboards returns scene_ids in the same order as the input scenes array."""
     scenes = [
-        {"scene_id": 0, "script": "Scene A", "speaker": "Narrator", "duration": 3, "image_prompt": "cafe"},
-        {"scene_id": 1, "script": "Scene B", "speaker": "A", "duration": 4, "image_prompt": "park"},
-        {"scene_id": 2, "script": "Scene C", "speaker": "B", "duration": 2, "image_prompt": "school"},
+        {"scene_id": 0, "script": "Scene A", "speaker": "narrator", "duration": 3, "image_prompt": "cafe"},
+        {"scene_id": 1, "script": "Scene B", "speaker": "speaker_1", "duration": 4, "image_prompt": "park"},
+        {"scene_id": 2, "script": "Scene C", "speaker": "speaker_2", "duration": 2, "image_prompt": "school"},
     ]
     data = create_test_storyboard(client, scenes=scenes)
     scene_ids = data["scene_ids"]
@@ -31,9 +31,9 @@ def test_put_scene_ids_match_creation_order(client):
     initial = create_test_storyboard(
         client,
         scenes=[
-            {"scene_id": 0, "script": "Old A", "speaker": "Narrator", "duration": 3, "image_prompt": "a"},
-            {"scene_id": 1, "script": "Old B", "speaker": "A", "duration": 3, "image_prompt": "b"},
-            {"scene_id": 2, "script": "Old C", "speaker": "B", "duration": 3, "image_prompt": "c"},
+            {"scene_id": 0, "script": "Old A", "speaker": "narrator", "duration": 3, "image_prompt": "a"},
+            {"scene_id": 1, "script": "Old B", "speaker": "speaker_1", "duration": 3, "image_prompt": "b"},
+            {"scene_id": 2, "script": "Old C", "speaker": "speaker_2", "duration": 3, "image_prompt": "c"},
         ],
     )
     sb_id = initial["storyboard_id"]
@@ -42,10 +42,10 @@ def test_put_scene_ids_match_creation_order(client):
 
     # Update with new scenes (simulates autopilot persist after images)
     new_scenes = [
-        {"scene_id": 0, "script": "New A", "speaker": "Narrator", "duration": 3, "image_prompt": "x"},
-        {"scene_id": 1, "script": "New B", "speaker": "A", "duration": 4, "image_prompt": "y"},
-        {"scene_id": 2, "script": "New C", "speaker": "B", "duration": 2, "image_prompt": "z"},
-        {"scene_id": 3, "script": "New D", "speaker": "Narrator", "duration": 3, "image_prompt": "w"},
+        {"scene_id": 0, "script": "New A", "speaker": "narrator", "duration": 3, "image_prompt": "x"},
+        {"scene_id": 1, "script": "New B", "speaker": "speaker_1", "duration": 4, "image_prompt": "y"},
+        {"scene_id": 2, "script": "New C", "speaker": "speaker_2", "duration": 2, "image_prompt": "z"},
+        {"scene_id": 3, "script": "New D", "speaker": "narrator", "duration": 3, "image_prompt": "w"},
     ]
     resp = client.put(
         f"/api/v1/storyboards/{sb_id}",
@@ -70,9 +70,9 @@ def test_put_scene_ids_sequential_matches_order_column(client, db_session):
     data = create_test_storyboard(
         client,
         scenes=[
-            {"scene_id": 0, "script": "First", "speaker": "Narrator", "duration": 3, "image_prompt": "a"},
-            {"scene_id": 1, "script": "Second", "speaker": "A", "duration": 3, "image_prompt": "b"},
-            {"scene_id": 2, "script": "Third", "speaker": "B", "duration": 3, "image_prompt": "c"},
+            {"scene_id": 0, "script": "First", "speaker": "narrator", "duration": 3, "image_prompt": "a"},
+            {"scene_id": 1, "script": "Second", "speaker": "speaker_1", "duration": 3, "image_prompt": "b"},
+            {"scene_id": 2, "script": "Third", "speaker": "speaker_2", "duration": 3, "image_prompt": "c"},
         ],
     )
     sb_id = data["storyboard_id"]
@@ -84,9 +84,9 @@ def test_put_scene_ids_sequential_matches_order_column(client, db_session):
             "title": "Re-created",
             "group_id": 1,
             "scenes": [
-                {"scene_id": 0, "script": "New First", "speaker": "Narrator", "duration": 3, "image_prompt": "x"},
-                {"scene_id": 1, "script": "New Second", "speaker": "A", "duration": 4, "image_prompt": "y"},
-                {"scene_id": 2, "script": "New Third", "speaker": "B", "duration": 2, "image_prompt": "z"},
+                {"scene_id": 0, "script": "New First", "speaker": "narrator", "duration": 3, "image_prompt": "x"},
+                {"scene_id": 1, "script": "New Second", "speaker": "speaker_1", "duration": 4, "image_prompt": "y"},
+                {"scene_id": 2, "script": "New Third", "speaker": "speaker_2", "duration": 2, "image_prompt": "z"},
             ],
         },
     )
@@ -108,9 +108,9 @@ def test_put_preserves_image_asset_id_mapping(client, db_session):
     data = create_test_storyboard(
         client,
         scenes=[
-            {"scene_id": 0, "script": "S1", "speaker": "Narrator", "duration": 3, "image_prompt": "a"},
-            {"scene_id": 1, "script": "S2", "speaker": "A", "duration": 3, "image_prompt": "b"},
-            {"scene_id": 2, "script": "S3", "speaker": "B", "duration": 3, "image_prompt": "c"},
+            {"scene_id": 0, "script": "S1", "speaker": "narrator", "duration": 3, "image_prompt": "a"},
+            {"scene_id": 1, "script": "S2", "speaker": "speaker_1", "duration": 3, "image_prompt": "b"},
+            {"scene_id": 2, "script": "S3", "speaker": "speaker_2", "duration": 3, "image_prompt": "c"},
         ],
     )
     sb_id = data["storyboard_id"]
@@ -148,7 +148,7 @@ def test_put_preserves_image_asset_id_mapping(client, db_session):
                 {
                     "scene_id": 0,
                     "script": "S1",
-                    "speaker": "Narrator",
+                    "speaker": "narrator",
                     "duration": 3,
                     "image_prompt": "a",
                     "image_asset_id": asset_for_scene_0.id,
@@ -156,7 +156,7 @@ def test_put_preserves_image_asset_id_mapping(client, db_session):
                 {
                     "scene_id": 1,
                     "script": "S2",
-                    "speaker": "A",
+                    "speaker": "speaker_1",
                     "duration": 3,
                     "image_prompt": "b",
                     "image_asset_id": None,
@@ -164,7 +164,7 @@ def test_put_preserves_image_asset_id_mapping(client, db_session):
                 {
                     "scene_id": 2,
                     "script": "S3",
-                    "speaker": "B",
+                    "speaker": "speaker_2",
                     "duration": 3,
                     "image_prompt": "c",
                     "image_asset_id": asset_for_scene_2.id,
@@ -199,7 +199,7 @@ def test_multiple_puts_maintain_order_consistency(client):
     data = create_test_storyboard(
         client,
         scenes=[
-            {"scene_id": 0, "script": "A", "speaker": "Narrator", "duration": 3, "image_prompt": "a"},
+            {"scene_id": 0, "script": "A", "speaker": "narrator", "duration": 3, "image_prompt": "a"},
         ],
     )
     sb_id = data["storyboard_id"]
@@ -207,7 +207,7 @@ def test_multiple_puts_maintain_order_consistency(client):
     # Do 5 consecutive PUTs, each time adding a scene
     for n in range(2, 7):
         scenes = [
-            {"scene_id": i, "script": f"S{i}", "speaker": "Narrator", "duration": 3, "image_prompt": f"p{i}"}
+            {"scene_id": i, "script": f"S{i}", "speaker": "narrator", "duration": 3, "image_prompt": f"p{i}"}
             for i in range(n)
         ]
         resp = client.put(

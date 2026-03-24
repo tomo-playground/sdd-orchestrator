@@ -28,35 +28,35 @@ def mock_scenes():
         {
             "scene_id": 1,
             "script": "안녕 반가워요",
-            "speaker": "A",
+            "speaker": "speaker_1",
             "duration": 2,
             "image_prompt": "smile, looking_at_viewer, standing, indoors",
         },
         {
             "scene_id": 2,
             "script": "오늘 날씨 좋아요",
-            "speaker": "A",
+            "speaker": "speaker_1",
             "duration": 2,
             "image_prompt": "happy, looking_at_viewer, sitting, outdoors",
         },
         {
             "scene_id": 3,
             "script": "같이 가보자요",
-            "speaker": "A",
+            "speaker": "speaker_1",
             "duration": 2,
             "image_prompt": "smile, cowboy_shot, classroom, indoors",
         },
         {
             "scene_id": 4,
             "script": "힘내세요 파이팅",
-            "speaker": "A",
+            "speaker": "speaker_1",
             "duration": 2,
             "image_prompt": "waving, full_body, park, outdoors",
         },
         {
             "scene_id": 5,
             "script": "감사해요 고마워요",
-            "speaker": "A",
+            "speaker": "speaker_1",
             "duration": 2,
             "image_prompt": "smile, upper_body, sky, sunset",
         },
@@ -148,7 +148,7 @@ async def test_graph_revise_loop(
     mock_scenes,
 ):
     """Review 실패 → Revise → Review 통과 루프를 검증한다."""
-    bad_scenes = [{"script": "짧", "speaker": "A", "duration": 0, "image_prompt": ""}]
+    bad_scenes = [{"script": "짧", "speaker": "speaker_1", "duration": 0, "image_prompt": ""}]
     mock_writer_gen.return_value = {"scenes": bad_scenes}
     mock_revise_gen.return_value = {"scenes": mock_scenes}
 

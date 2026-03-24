@@ -12,22 +12,24 @@ type SpeakerBadgeProps = {
 };
 
 const SPEAKER_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  A: { bg: "bg-blue-100", text: "text-blue-700", label: "A" },
-  B: { bg: "bg-violet-100", text: "text-violet-700", label: "B" },
-  Narrator: { bg: "bg-amber-100", text: "text-amber-700", label: "N" },
+  speaker_1: { bg: "bg-blue-100", text: "text-blue-700", label: "1" },
+  speaker_2: { bg: "bg-violet-100", text: "text-violet-700", label: "2" },
+  narrator: { bg: "bg-amber-100", text: "text-amber-700", label: "N" },
 };
 
-function getAvailableSpeakers(structure?: string): Scene["speaker"][] {
-  if (structure === "narrated_dialogue") return ["A", "B", "Narrator"];
-  if (structure === "dialogue") return ["A", "B"];
-  return ["A"];
+const DEFAULT_STYLE = { bg: "bg-gray-100", text: "text-gray-700", label: "?" };
+
+function getAvailableSpeakers(structure?: string): string[] {
+  if (structure === "narrated_dialogue") return ["speaker_1", "speaker_2", "narrator"];
+  if (structure === "dialogue") return ["speaker_1", "speaker_2"];
+  return ["speaker_1"];
 }
 
 function shouldShowBadge(speaker: Scene["speaker"], structure?: string): boolean {
-  if (speaker === "B") return true;
-  if (speaker === "A" && (structure === "dialogue" || structure === "narrated_dialogue"))
+  if (speaker === "speaker_2") return true;
+  if (speaker === "speaker_1" && (structure === "dialogue" || structure === "narrated_dialogue"))
     return true;
-  if (speaker === "Narrator" && structure === "narrated_dialogue") return true;
+  if (speaker === "narrator" && structure === "narrated_dialogue") return true;
   return false;
 }
 
@@ -51,9 +53,10 @@ export default function SpeakerBadge({
 
   if (!shouldShowBadge(speaker, structure)) return null;
 
-  const style = SPEAKER_STYLES[speaker];
+  const style = SPEAKER_STYLES[speaker] || DEFAULT_STYLE;
   const available = getAvailableSpeakers(structure);
-  const charName = speaker === "A" ? characterAName : speaker === "B" ? characterBName : null;
+  const charName =
+    speaker === "speaker_1" ? characterAName : speaker === "speaker_2" ? characterBName : null;
   const displayLabel = charName ? `${style.label} \u00B7 ${charName}` : style.label;
 
   return (
@@ -68,8 +71,11 @@ export default function SpeakerBadge({
       {open && available.length > 1 && (
         <div className="absolute top-full left-0 z-20 mt-1 min-w-[120px] rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
           {available.map((s) => {
-            const opt = SPEAKER_STYLES[s];
-            const name = s === "A" ? characterAName : s === "B" ? characterBName : null;
+            const opt = SPEAKER_STYLES[s] || DEFAULT_STYLE;
+            const name =
+              s === "speaker_1" ? characterAName : s === "speaker_2" ? characterBName : null;
+            const fallbackName =
+              s === "speaker_1" ? "Speaker 1" : s === "speaker_2" ? "Speaker 2" : "Narrator";
             return (
               <button
                 key={s}
@@ -87,7 +93,7 @@ export default function SpeakerBadge({
                 >
                   {opt.label}
                 </span>
-                <span className="text-zinc-700">{name || s}</span>
+                <span className="text-zinc-700">{name || fallbackName}</span>
               </button>
             );
           })}

@@ -6,7 +6,7 @@ from services.agent.nodes.finalize import _validate_scene_modes
 
 
 def _make_scenes(*modes: str) -> list[dict]:
-    return [{"order": i, "scene_mode": m, "speaker": "A"} for i, m in enumerate(modes)]
+    return [{"order": i, "scene_mode": m, "speaker": "speaker_1"} for i, m in enumerate(modes)]
 
 
 # --- O-2c: 구조 기반 차단 ---
@@ -50,7 +50,7 @@ def test_no_char_b_forces_single():
 
 
 def test_narrator_speaker_forces_single():
-    scenes = [{"order": 0, "scene_mode": "multi", "speaker": "Narrator"}]
+    scenes = [{"order": 0, "scene_mode": "multi", "speaker": "narrator"}]
     _validate_scene_modes(scenes, "dialogue", {"character_b_id": 5})
     assert scenes[0]["scene_mode"] == "single"
 

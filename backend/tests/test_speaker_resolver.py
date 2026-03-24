@@ -12,7 +12,7 @@ class TestResolveSpeakerToCharacter:
         mock_db = MagicMock()
         mock_db.query.return_value.filter.return_value.first.return_value = (42,)
 
-        result = resolve_speaker_to_character(1, "A", mock_db)
+        result = resolve_speaker_to_character(1, "speaker_1", mock_db)
         assert result == 42
 
     def test_returns_none_for_missing_mapping(self):
@@ -21,7 +21,7 @@ class TestResolveSpeakerToCharacter:
         mock_db = MagicMock()
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
-        result = resolve_speaker_to_character(1, "B", mock_db)
+        result = resolve_speaker_to_character(1, "speaker_2", mock_db)
         assert result is None
 
 
@@ -33,12 +33,12 @@ class TestResolveAllSpeakers:
 
         mock_db = MagicMock()
         mock_db.query.return_value.filter.return_value.all.return_value = [
-            ("A", 10),
-            ("B", 20),
+            ("speaker_1", 10),
+            ("speaker_2", 20),
         ]
 
         result = resolve_all_speakers(1, mock_db)
-        assert result == {"A": 10, "B": 20}
+        assert result == {"speaker_1": 10, "speaker_2": 20}
 
     def test_returns_empty_dict_for_no_mappings(self):
         from services.characters import resolve_all_speakers
@@ -58,7 +58,7 @@ class TestAssignSpeakers:
 
         mock_db = MagicMock()
 
-        assign_speakers(1, {"A": 10, "B": 20}, mock_db)
+        assign_speakers(1, {"speaker_1": 10, "speaker_2": 20}, mock_db)
 
         # Should delete existing mappings
         mock_db.query.return_value.filter.return_value.delete.assert_called_once()
@@ -107,7 +107,7 @@ class TestStoryboardCharacterLoading:
         # Assign character to speaker A
         mapping = StoryboardCharacter(
             storyboard_id=storyboard.id,
-            speaker="A",
+            speaker="speaker_1",
             character_id=char.id,
         )
         db_session.add(mapping)

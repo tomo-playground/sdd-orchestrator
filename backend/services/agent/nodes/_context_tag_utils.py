@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from config import DEFAULT_SPEAKER
 from config import pipeline_logger as logger
 
 
@@ -375,7 +376,9 @@ def diversify_expressions(scenes: list[dict]) -> None:
     """
     from collections import Counter
 
-    char_scenes = [(i, s) for i, s in enumerate(scenes) if s.get("speaker") != "Narrator"]
+    char_scenes = [
+        (i, s) for i, s in enumerate(scenes) if str(s.get("speaker") or "").strip().lower() != DEFAULT_SPEAKER
+    ]
     if len(char_scenes) < 3:
         return
 

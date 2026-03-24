@@ -9,7 +9,7 @@ def _make_scene(scene_id: int = 0, **overrides) -> dict:
     base = {
         "scene_id": scene_id,
         "script": f"Scene {scene_id} script",
-        "speaker": "Narrator",
+        "speaker": "narrator",
         "duration": 3.0,
         "image_prompt": "1girl, school_uniform",
         "image_prompt_ko": "소녀, 교복",
@@ -53,7 +53,7 @@ def test_list_with_scene_count(client: TestClient):
 def test_get_storyboard_with_scenes(client: TestClient):
     """Test GET /storyboards/{id} returns full storyboard with scenes."""
     scenes = [
-        _make_scene(0, speaker="Narrator", duration=2.5),
+        _make_scene(0, speaker="narrator", duration=2.5),
         _make_scene(1, speaker="Character", duration=4.0, image_url="/img/s1.png"),
     ]
     data = create_test_storyboard(client, title="Full Test", scenes=scenes)
@@ -66,7 +66,7 @@ def test_get_storyboard_with_scenes(client: TestClient):
     assert body["id"] == sb_id
     assert body["title"] == "Full Test"
     assert len(body["scenes"]) == 2
-    assert body["scenes"][0]["speaker"] == "Narrator"
+    assert body["scenes"][0]["speaker"] == "narrator"
     assert body["scenes"][1]["duration"] == 4.0
 
 

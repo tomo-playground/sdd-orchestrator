@@ -43,12 +43,12 @@ export function handleSpeakerChange(scene: Scene, speaker: Scene["speaker"]) {
 
   // Preserve custom negative prompt: only reset to base if the scene's current
   // negative_prompt matches the old speaker's base (i.e. it was never customized)
-  const oldBase = scene.speaker === "B" ? baseNegativePromptB : baseNegativePromptA;
+  const oldBase = scene.speaker === "speaker_2" ? baseNegativePromptB : baseNegativePromptA;
   const isCustomized = scene.negative_prompt && scene.negative_prompt !== oldBase;
 
   const updates: Partial<Scene> = { speaker };
   if (!isCustomized) {
-    updates.negative_prompt = speaker === "B" ? baseNegativePromptB : baseNegativePromptA;
+    updates.negative_prompt = speaker === "speaker_2" ? baseNegativePromptB : baseNegativePromptA;
   }
 
   updateScene(scene.client_id, updates);

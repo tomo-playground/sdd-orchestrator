@@ -168,7 +168,7 @@ class TestResolvePromptConflictsIntegration:
         assert scenes[0]["image_prompt"] == ""
 
     def test_no_image_prompt_key(self):
-        scenes = [{"speaker": "Narrator"}]
+        scenes = [{"speaker": "narrator"}]
         with patch(
             "services.keywords.db_cache.TagRuleCache",
             _FakeRuleCache,

@@ -188,7 +188,7 @@ class TestGetSpeakerVoicePreset:
     def test_no_storyboard_id_returns_none(self, _mock_db):
         from services.video.tts_helpers import get_speaker_voice_preset
 
-        assert get_speaker_voice_preset(None, "Narrator") is None
+        assert get_speaker_voice_preset(None, "narrator") is None
         _mock_db.assert_not_called()
 
     @patch("services.config_resolver.resolve_effective_config")
@@ -203,7 +203,7 @@ class TestGetSpeakerVoicePreset:
             5: MagicMock(),
         }.get(id_)
         mock_resolve.return_value = {"values": {"narrator_voice_preset_id": 99}}
-        assert get_speaker_voice_preset(1, "Narrator") == 99
+        assert get_speaker_voice_preset(1, "narrator") == 99
 
     @patch("services.characters.resolve_speaker_to_character")
     @patch("services.config_resolver.resolve_effective_config")
