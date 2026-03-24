@@ -127,29 +127,130 @@ class OrchestratorDaemon:
         if self._last_report_date == today:
             return
 
-        # Only send after 00:00 UTC (09:00 KST)
         if now.hour < 0:
             return
 
         try:
             from orchestrator.tools.notify import send_daily_report
 
-            summary = {
-                "completed_prs": [],
-                "in_progress": [],
-                "blockers": [],
-                "sentry_issues": {"open": 0, "autofix_prs": 0},
-            }
-            # Best-effort: gather from last cycle summary
-            last_summary = self.state.get_last_cycle_summary()
-            if last_summary:
-                summary["in_progress"].append(f"Last cycle: {last_summary[:100]}")
-
+            summary = await self._gather_daily_summary()
             await send_daily_report(summary)
             self._last_report_date = today
             logger.info("Daily report sent for %s", today)
         except Exception:
             logger.exception("Failed to send daily report")
+
+    async def _gather_daily_summary(self) -> dict:
+        """실제 데이터를 수집하여 데일리 리포트 요약을 구성한다."""
+        import subprocess
+
+        from orchestrator.config import MAX_PARALLEL_RUNS, TASKS_CURRENT_DIR
+
+        project_dir = str(self.state.db_path.parent.parent)
+        summary: dict = {
+            "completed_prs": [],
+            "in_progress": [],
+            "blockers": [],
+            "open_prs": [],
+            "slots": "0/0",
+            "sentry_issues": {"open": 0, "autofix_prs": 0},
+        }
+        try:
+            # 머지된 PR (최근 5개)
+            r = subprocess.run(
+                [
+                    "gh",
+                    "pr",
+                    "list",
+                    "--state",
+                    "merged",
+                    "--base",
+                    "main",
+                    "--limit",
+                    "5",
+                    "--json",
+                    "number,title",
+                    "--jq",
+                    '.[] | "#\\(.number) \\(.title)"',
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                cwd=project_dir,
+            )
+            if r.returncode == 0 and r.stdout.strip():
+                summary["completed_prs"] = r.stdout.strip().split("\n")
+
+            # 열린 PR
+            r = subprocess.run(
+                [
+                    "gh",
+                    "pr",
+                    "list",
+                    "--state",
+                    "open",
+                    "--base",
+                    "main",
+                    "--json",
+                    "number,title,reviewDecision",
+                    "--jq",
+                    '.[] | "#\\(.number) \\(.title) [\\(.reviewDecision // "PENDING")]"',
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                cwd=project_dir,
+            )
+            if r.returncode == 0 and r.stdout.strip():
+                summary["open_prs"] = r.stdout.strip().split("\n")
+
+            # 진행 중 태스크
+            if TASKS_CURRENT_DIR.exists():
+                for entry in sorted(TASKS_CURRENT_DIR.iterdir()):
+                    spec = entry / "spec.md" if entry.is_dir() else entry
+                    if not spec.exists():
+                        continue
+                    sp_id = entry.name.split("_")[0]
+                    status = "unknown"
+                    for line in spec.read_text(errors="ignore").split("\n"):
+                        if line.startswith("status:"):
+                            status = line.split(":", 1)[1].strip()
+                            break
+                    summary["in_progress"].append(f"{sp_id} ({status})")
+
+            # 슬롯 현황
+            r = subprocess.run(
+                ["pgrep", "-f", "claude.*--worktree"], capture_output=True, text=True
+            )
+            used = len(r.stdout.strip().split("\n")) if r.stdout.strip() else 0
+            summary["slots"] = f"{used}/{MAX_PARALLEL_RUNS}"
+
+            # Sentry 이슈
+            r = subprocess.run(
+                [
+                    "gh",
+                    "issue",
+                    "list",
+                    "--label",
+                    "sentry",
+                    "--state",
+                    "open",
+                    "--json",
+                    "number",
+                    "--jq",
+                    "length",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                cwd=project_dir,
+            )
+            if r.returncode == 0 and r.stdout.strip():
+                summary["sentry_issues"]["open"] = int(r.stdout.strip())
+        except Exception as e:
+            logger.warning("Daily summary gather error: %s", e)
+
+        return summary
 
 
 def _setup_logging() -> None:

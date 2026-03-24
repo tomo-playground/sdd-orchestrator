@@ -141,14 +141,23 @@ async def notify_human(args: dict) -> dict:
 
 async def send_daily_report(summary: dict) -> bool:
     """Format and send a daily report to Slack using Block Kit."""
-    today = datetime.now(UTC).strftime("%Y-%m-%d")
+    from datetime import timedelta, timezone
+
+    kst = timezone(timedelta(hours=9))
+    today = datetime.now(kst).strftime("%Y-%m-%d")
 
     completed = summary.get("completed_prs", [])
     in_progress = summary.get("in_progress", [])
+    open_prs = summary.get("open_prs", [])
     blockers = summary.get("blockers", [])
+    slots = summary.get("slots", "?/?")
     sentry = summary.get("sentry_issues", {})
     sentry_open = sentry.get("open", 0)
-    sentry_prs = sentry.get("autofix_prs", 0)
+
+    def _fmt_list(items: list, limit: int = 5) -> str:
+        if not items:
+            return "—"
+        return "\n".join(f"• {x}" for x in items[:limit])
 
     blocks = [
         {
@@ -158,28 +167,31 @@ async def send_daily_report(summary: dict) -> bool:
         {"type": "divider"},
         {
             "type": "section",
+            "text": {"type": "mrkdwn", "text": f"*머지 완료*\n{_fmt_list(completed)}"},
+        },
+        {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": f"*열린 PR*\n{_fmt_list(open_prs)}"},
+        },
+        {
+            "type": "section",
             "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": f"*Completed*\n{', '.join(completed) if completed else '—'}",
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": f"*In Progress*\n{', '.join(in_progress) if in_progress else '—'}",
-                },
+                {"type": "mrkdwn", "text": f"*진행 중 태스크*\n{_fmt_list(in_progress)}"},
+                {"type": "mrkdwn", "text": f"*슬롯*\n{slots}"},
             ],
         },
         {
             "type": "section",
             "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": f"*Blockers*\n{', '.join(blockers) if blockers else '—'}",
-                },
-                {"type": "mrkdwn", "text": f"*Sentry*\n{sentry_open} open / {sentry_prs} autofix"},
+                {"type": "mrkdwn", "text": f"*블로커*\n{_fmt_list(blockers)}"},
+                {"type": "mrkdwn", "text": f"*Sentry*\n{sentry_open}건 미해결"},
             ],
         },
     ]
 
-    fallback = f"Coding Machine Report {today}: {len(completed)} completed, {len(in_progress)} in progress, {len(blockers)} blockers, {sentry_open} sentry"
+    fallback = (
+        f"Coding Machine Report {today}: "
+        f"머지 {len(completed)}건, PR {len(open_prs)}건, "
+        f"태스크 {len(in_progress)}건, 슬롯 {slots}, Sentry {sentry_open}건"
+    )
     return await _send_slack_message(fallback, blocks)
