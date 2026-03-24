@@ -32,6 +32,15 @@ Slack Bot으로 코딩머신과 양방향 대화. Slack에서 명령 수신 → 
   - `백로그` → backlog 상위 5개 표시
 - [ ] 미인식 명령 → "사용 가능한 명령: ..." 안내
 
+### 알림 품질 개선 (notify_human + shell 스크립트)
+- [ ] **메시지 형식 표준화**: shell 3곳(플레인 텍스트) + notify.py(Block Kit) → 전부 Block Kit 통합
+  - 방안 A: shell에서 `notify.py`를 CLI로 호출 (`uv run python -m orchestrator.tools.notify ...`)
+  - 방안 B: 공통 shell 함수(`_notify_slack()`)에 Block Kit JSON 템플릿 적용
+- [ ] `notify_human` 도구에 optional `links` 필드 추가 → Block Kit 버튼으로 렌더링
+- [ ] 오케스트레이터 시스템 프롬프트에 "알림 시 관련 링크 필수 포함" 규칙 추가
+- [ ] shell 스크립트 알림(sdd-health/sentry/qa)에 GitHub Actions run URL 추가
+- [ ] 좀비 워크트리 등 액션 필요 알림 → 조치 명령어 코드 블록 + 관련 PR 링크 포함
+
 ### 응답 포맷
 - [ ] Block Kit으로 깔끔한 응답 (기존 notify.py 패턴 재사용)
 - [ ] 명령 실행 결과를 스레드로 응답
