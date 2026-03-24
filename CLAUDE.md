@@ -369,7 +369,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | **FFmpeg Expert** | 영상 렌더링, FFmpeg 명령어, 비디오 효과 | `/vrt`, `/roadmap` |
 | **UI/UX Engineer** | UI/UX 설계, 와이어프레임, 사용성 개선 | `/vrt`, `/test` |
 | **Frontend Dev** | Next.js/React 개발, Zustand 상태 관리 | `/test frontend`, `/vrt` |
-| **Backend Dev** | FastAPI 개발, 서비스 로직, API 설계 | `/test backend`, `/sd-status`, `/db`, `/pose` |
+| **Backend Dev** | FastAPI 개발, 서비스 로직, API 설계, Agent 노드 LangFuse 프롬프트 등록 | `/test backend`, `/sd-status`, `/db`, `/pose` |
 | **DBA** | PostgreSQL DB 설계, 마이그레이션, 쿼리 최적화 | `/db`, `/test backend` |
 | **Security Engineer** | 보안 취약점 분석, 인증/인가, 시크릿 관리 | `/review`, `/test` |
 | **Video Reviewer** | 생성된 영상의 시각적 품질, 프레임 구성 및 편집 완성도 검토 | `/review`, `/vrt` |
