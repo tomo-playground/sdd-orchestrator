@@ -1652,6 +1652,24 @@ class ToneOption(BaseModel):
     label_ko: str
 
 
+class EmotionPresetOption(BaseModel):
+    id: str
+    label: str
+    emotion: str
+
+
+class BgmMoodPresetOption(BaseModel):
+    id: str
+    label: str
+    mood: str
+    prompt: str
+
+
+class IdLabelOption(BaseModel):
+    id: str
+    label: str
+
+
 class PresetListResponse(BaseModel):
     presets: list[PresetSummary]
     languages: list[LanguageOption]
@@ -1666,6 +1684,10 @@ class PresetListResponse(BaseModel):
     samplers: list[str] = []
     tts_engine: str = DEFAULT_TTS_ENGINE
     tts_engines: list[str] = Field(default_factory=lambda: list(SUPPORTED_TTS_ENGINES))
+    emotion_presets: list[EmotionPresetOption] = []
+    bgm_mood_presets: list[BgmMoodPresetOption] = []
+    ip_adapter_models: list[str] = []
+    overlay_styles: list[IdLabelOption] = []
 
 
 class PresetTopicsResponse(BaseModel):
@@ -2599,6 +2621,7 @@ class TagGroupItem(BaseModel):
     category: str | None = None
     group_name: str | None = None
     count: int
+    description: str | None = None
 
 
 class TagGroupsResponse(BaseModel):

@@ -9,6 +9,7 @@ export type TagGroup = {
   category: string;
   group_name: string;
   count: number;
+  description: string | null;
 };
 
 type UseTagsResult = {

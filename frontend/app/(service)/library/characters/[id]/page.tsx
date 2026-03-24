@@ -18,6 +18,7 @@ import {
   SectionCard,
 } from "./CharacterDetailSections";
 import DuplicateDialog from "./DuplicateDialog";
+import { usePresets } from "../../../../hooks/usePresets";
 import AppearanceStep from "../builder/steps/AppearanceStep";
 import LoraStep from "../builder/steps/LoraStep";
 import { useTagData } from "../shared/useTagData";
@@ -30,6 +31,7 @@ export default function CharacterDetailPage() {
   const { confirm, dialogProps } = useConfirm();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const { ipAdapterModels } = usePresets();
 
   const {
     tagsByGroup,
@@ -193,7 +195,11 @@ export default function CharacterDetailPage() {
             defaultOpen={false}
             summary={`${form.ip_adapter_model} (${form.ip_adapter_weight})`}
           >
-            <IpAdapterSection form={form} onChange={updateField} />
+            <IpAdapterSection
+              form={form}
+              onChange={updateField}
+              ipAdapterModels={ipAdapterModels}
+            />
           </SectionCard>
 
           <SectionCard

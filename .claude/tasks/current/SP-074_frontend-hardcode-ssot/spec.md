@@ -4,7 +4,7 @@ priority: P2
 scope: fullstack
 branch: feat/SP-074-frontend-ssot
 created: 2026-03-23
-status: approved
+status: running
 approved_at: 2026-03-23
 depends_on:
 label: chore
@@ -55,19 +55,19 @@ CLAUDE.md의 Configuration Principles에 따라 도메인 옵션은 Backend가 S
 ## 완료 기준 (DoD)
 
 ### A군 (Backend SSOT 전환)
-- [ ] `EMOTION_PRESETS` + `BGM_MOOD_PRESETS` → `/presets` API 응답에서 소비 (SP-050 흡수)
-- [ ] `CATEGORY_DESCRIPTIONS` → tags API 또는 `/presets` 응답에 `ko_description` 포함
-- [ ] `IP_ADAPTER_MODELS` → SD 설정 API에서 제공
-- [ ] `AUTO_RUN_STEPS` → 파이프라인 단계 목록을 Backend에서 제공 또는 정당성 문서화
-- [ ] `OVERLAY_STYLES` → 오버레이 에셋 목록 API 또는 정당성 문서화
-- [ ] `COLUMN_ORDER` → 칸반 상태 목록 Backend 제공 또는 정당성 문서화
+- [x] `EMOTION_PRESETS` + `BGM_MOOD_PRESETS` → `/presets` API 응답에서 소비 (SP-050 흡수)
+- [x] `CATEGORY_DESCRIPTIONS` → tags API 또는 `/presets` 응답에 `ko_description` 포함
+- [x] `IP_ADAPTER_MODELS` → SD 설정 API에서 제공
+- [x] `AUTO_RUN_STEPS` → 파이프라인 단계 목록을 Backend에서 제공 또는 정당성 문서화
+- [x] `OVERLAY_STYLES` → 오버레이 에셋 목록 API 또는 정당성 문서화
+- [x] `COLUMN_ORDER` → 칸반 상태 목록 Backend 제공 또는 정당성 문서화
 
 ### B군 (확장성 검토)
-- [ ] `CLOTHING_PRESETS`, `EDIT_PRESETS`, `EXAMPLES`, `GLOSSARY` — Backend 이관 여부 판단 + 결정 기록
+- [x] `CLOTHING_PRESETS`, `EDIT_PRESETS`, `EXAMPLES`, `GLOSSARY` — Backend 이관 여부 판단 + 결정 기록
 
 ### 공통
-- [ ] 기존 테스트 regression 없음
-- [ ] 린트 통과
+- [x] 기존 테스트 regression 없음
+- [x] 린트 통과
 
 ## 제약 (Boundaries)
 - C군(정상)은 건드리지 않음

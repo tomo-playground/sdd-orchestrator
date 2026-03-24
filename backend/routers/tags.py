@@ -97,13 +97,23 @@ async def list_tag_groups(db: Session = Depends(get_db)):
     """List all unique group names with counts."""
     from sqlalchemy import func
 
+    from config import TAG_GROUP_DESCRIPTIONS  # noqa: PLC0415
+
     results = (
         db.query(Tag.category, Tag.group_name, func.count(Tag.id).label("count"))
         .group_by(Tag.category, Tag.group_name)
         .order_by(Tag.category, Tag.group_name)
         .all()
     )
-    groups = [{"category": r.category, "group_name": r.group_name, "count": r.count} for r in results]
+    groups = [
+        {
+            "category": r.category,
+            "group_name": r.group_name,
+            "count": r.count,
+            "description": TAG_GROUP_DESCRIPTIONS.get(r.group_name),
+        }
+        for r in results
+    ]
     return {"groups": groups}
 
 

@@ -1005,8 +1005,9 @@ def resolve_overlay_frame(
     layout_style: str = "full",
 ) -> None:
     """Resolve and create overlay frame."""
-    known_styles = {"overlay_minimal.png", "overlay_clean.png", "overlay_bold.png"}
-    if settings.frame_style not in known_styles:
+    from config import OVERLAY_STYLE_IDS  # noqa: PLC0415
+
+    if settings.frame_style not in OVERLAY_STYLE_IDS:
         frame_dir = _get_overlay_dir()
         candidate = frame_dir / settings.frame_style
         if candidate.exists():

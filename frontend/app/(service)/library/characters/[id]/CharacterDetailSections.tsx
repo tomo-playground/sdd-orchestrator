@@ -183,16 +183,24 @@ export function VoicePresetSection({ form, onChange }: VoicePresetProps) {
 }
 
 // ── IP-Adapter ──────────────────────────────────────────────
-const IP_ADAPTER_MODELS = ["clip_face", "clip"] as const;
 
 type IpAdapterProps = {
   form: CharacterFormData;
   onChange: FormOnChange;
   characterName?: string;
   onUploadPhoto?: (file: File) => void;
+  ipAdapterModels?: string[];
 };
 
-export function IpAdapterSection({ form, onChange, onUploadPhoto }: IpAdapterProps) {
+const IP_ADAPTER_FALLBACK = ["clip_face", "clip"] as const;
+
+export function IpAdapterSection({
+  form,
+  onChange,
+  onUploadPhoto,
+  ipAdapterModels,
+}: IpAdapterProps) {
+  const models = ipAdapterModels?.length ? ipAdapterModels : IP_ADAPTER_FALLBACK;
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -227,7 +235,7 @@ export function IpAdapterSection({ form, onChange, onUploadPhoto }: IpAdapterPro
       <div>
         <label className="mb-1 block text-xs font-medium text-zinc-500">Model</label>
         <div className="flex gap-2">
-          {IP_ADAPTER_MODELS.map((m) => (
+          {models.map((m) => (
             <button
               key={m}
               onClick={() => onChange("ip_adapter_model", m)}

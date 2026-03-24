@@ -23,6 +23,12 @@ export type StoryboardListItem = {
 
 type KanbanColumns = Record<string, StoryboardListItem[]>;
 
+/**
+ * 칸반 컬럼 순서 (Frontend 유지 정당성: SP-074)
+ * - UI 프레젠테이션 관심사 (컬럼 표시 순서)
+ * - Backend _derive_kanban_status()는 상태 계산만 담당
+ * - 상태 추가 가능성 극히 낮음 (영상 라이프사이클 전체 커버)
+ */
 const COLUMN_ORDER = ["draft", "in_prod", "rendered", "published"] as const;
 
 export function useStudioKanban() {
@@ -56,6 +62,14 @@ export function useStudioKanban() {
   const columns: KanbanColumns = {};
   for (const col of COLUMN_ORDER) {
     columns[col] = items.filter((i) => i.kanban_status === col);
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    const knownStatuses = new Set(COLUMN_ORDER as readonly string[]);
+    const unknown = items.filter((i) => !knownStatuses.has(i.kanban_status));
+    if (unknown.length > 0) {
+      console.warn("[useStudioKanban] 미지의 kanban_status 항목:", Array.from(new Set(unknown.map((i) => i.kanban_status))));
+    }
   }
 
   return { columns, isLoading, refresh: fetch, total: items.length };

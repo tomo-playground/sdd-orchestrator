@@ -81,6 +81,28 @@ class TestTagsCRUD:
         hair_group = next(g for g in groups if g["group_name"] == "hair_color")
         assert hair_group["count"] == 2
 
+    def test_list_tag_groups_with_description(self, client: TestClient, db_session):
+        """SP-074: tag groups 응답에 description 필드가 포함된다."""
+        self._create_tag(db_session, "brown_hair", category="character", group_name="hair_color")
+        self._create_tag(db_session, "smile", category="scene", group_name="expression")
+        resp = client.get("/api/v1/tags/groups")
+        data = resp.json()
+        groups = data["groups"]
+        hair_group = next(g for g in groups if g["group_name"] == "hair_color")
+        assert hair_group["description"] is not None
+        assert "머리 색" in hair_group["description"]
+        expr_group = next(g for g in groups if g["group_name"] == "expression")
+        assert expr_group["description"] is not None
+        assert "표정" in expr_group["description"]
+
+    def test_list_tag_groups_unknown_group_no_description(self, client: TestClient, db_session):
+        """SP-074: 미등록 group_name은 description이 None."""
+        self._create_tag(db_session, "test_tag", category="meta", group_name="unknown_group")
+        resp = client.get("/api/v1/tags/groups")
+        groups = resp.json()["groups"]
+        unknown = next(g for g in groups if g["group_name"] == "unknown_group")
+        assert unknown["description"] is None
+
     # --- GET /tags/search ---
 
     def test_search_tags(self, client: TestClient, db_session):

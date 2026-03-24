@@ -4,38 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 import { Mic, Music, Loader2 } from "lucide-react";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useRenderStore } from "../../store/useRenderStore";
-
-// ── Presets ──────────────────────────────────────────────
-// TODO: Backend /presets API로 이동 예정 (SSOT)
-// emotion 값은 Backend EMOTION_VOCAB 키와 일치해야 함 (_context_tag_utils.py)
-const EMOTION_PRESETS = [
-  { id: "excited", label: "밝게", emotion: "excited" },
-  { id: "calm", label: "차분", emotion: "calm" },
-  { id: "tense", label: "긴장", emotion: "tense" },
-  { id: "nostalgic", label: "감성", emotion: "nostalgic" },
-] as const;
-
-const BGM_MOOD_PRESETS = [
-  {
-    id: "upbeat",
-    label: "경쾌",
-    mood: "upbeat",
-    prompt: "bright upbeat cheerful background music",
-  },
-  { id: "calm", label: "잔잔", mood: "calm", prompt: "calm peaceful relaxing ambient music" },
-  {
-    id: "tense",
-    label: "긴박",
-    mood: "tense",
-    prompt: "tense dramatic suspenseful cinematic music",
-  },
-  {
-    id: "romantic",
-    label: "로맨틱",
-    mood: "romantic",
-    prompt: "romantic warm emotional piano background music",
-  },
-] as const;
+import { usePresets, type EmotionPreset, type BgmMoodPreset } from "../../hooks/usePresets";
 
 type Props = {
   onApplyAll?: () => void;
@@ -45,6 +14,8 @@ type Props = {
 
 // ── Component ────────────────────────────────────────────
 export default function DirectorControlPanel({ onApplyAll, showToast, isApplying }: Props) {
+  const { emotionPresets, bgmMoodPresets, isLoading: presetsLoading } = usePresets();
+
   const { scenes, selectedEmotionPreset, setGlobalEmotion } = useStoryboardStore(
     useShallow((s) => ({
       scenes: s.scenes,
@@ -58,13 +29,13 @@ export default function DirectorControlPanel({ onApplyAll, showToast, isApplying
   const setRender = useRenderStore.getState().set;
   const sceneCount = scenes.length;
 
-  const handleEmotionClick = (preset: (typeof EMOTION_PRESETS)[number]) => {
+  const handleEmotionClick = (preset: EmotionPreset) => {
     if (selectedEmotionPreset === preset.id) return;
     setGlobalEmotion(preset.emotion);
     showToast?.(`음성 톤: ${preset.label} 적용`, "success");
   };
 
-  const handleBgmClick = (preset: (typeof BGM_MOOD_PRESETS)[number]) => {
+  const handleBgmClick = (preset: BgmMoodPreset) => {
     if (selectedBgmPreset === preset.id) return;
     setRender({
       bgmMood: preset.mood,
@@ -84,20 +55,24 @@ export default function DirectorControlPanel({ onApplyAll, showToast, isApplying
           음성 톤
         </div>
         <div className="flex flex-wrap gap-2">
-          {EMOTION_PRESETS.map((p) => (
-            <button
-              key={p.id}
-              data-preset-id={`emotion-${p.id}`}
-              onClick={() => handleEmotionClick(p)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                selectedEmotionPreset === p.id
-                  ? "bg-zinc-900 text-white ring-2 ring-zinc-900/20"
-                  : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
+          {presetsLoading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-7 w-14 animate-pulse rounded-lg bg-zinc-100" />
+              ))
+            : emotionPresets.map((p) => (
+                <button
+                  key={p.id}
+                  data-preset-id={`emotion-${p.id}`}
+                  onClick={() => handleEmotionClick(p)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    selectedEmotionPreset === p.id
+                      ? "bg-zinc-900 text-white ring-2 ring-zinc-900/20"
+                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
         </div>
       </div>
 
@@ -108,20 +83,24 @@ export default function DirectorControlPanel({ onApplyAll, showToast, isApplying
           BGM 분위기
         </div>
         <div className="flex flex-wrap gap-2">
-          {BGM_MOOD_PRESETS.map((p) => (
-            <button
-              key={p.id}
-              data-preset-id={`bgm-${p.id}`}
-              onClick={() => handleBgmClick(p)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                selectedBgmPreset === p.id
-                  ? "bg-zinc-900 text-white ring-2 ring-zinc-900/20"
-                  : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
+          {presetsLoading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-7 w-14 animate-pulse rounded-lg bg-zinc-100" />
+              ))
+            : bgmMoodPresets.map((p) => (
+                <button
+                  key={p.id}
+                  data-preset-id={`bgm-${p.id}`}
+                  onClick={() => handleBgmClick(p)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    selectedBgmPreset === p.id
+                      ? "bg-zinc-900 text-white ring-2 ring-zinc-900/20"
+                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
         </div>
       </div>
 

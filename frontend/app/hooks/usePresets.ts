@@ -26,6 +26,10 @@ export type GenerationDefaults = {
   enable_hr: boolean;
 };
 
+export type EmotionPreset = { id: string; label: string; emotion: string };
+export type BgmMoodPreset = { id: string; label: string; mood: string; prompt: string };
+export type IdLabelOption = { id: string; label: string };
+
 export function usePresets(skip = false) {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [languages, setLanguages] = useState<LangOption[]>([]);
@@ -39,9 +43,15 @@ export function usePresets(skip = false) {
   const [imageDefaults, setImageDefaults] = useState<ImageDefaults | null>(null);
   const [samplers, setSamplers] = useState<string[]>([]);
   const [ttsEngine, setTtsEngine] = useState<string | null>(null);
+  const [emotionPresets, setEmotionPresets] = useState<EmotionPreset[]>([]);
+  const [bgmMoodPresets, setBgmMoodPresets] = useState<BgmMoodPreset[]>([]);
+  const [ipAdapterModels, setIpAdapterModels] = useState<string[]>([]);
+  const [overlayStyles, setOverlayStyles] = useState<IdLabelOption[]>([]);
+  const [isLoading, setIsLoading] = useState(!skip);
 
   useEffect(() => {
     if (skip) return;
+    setIsLoading(true);
     fetch(`${API_BASE}/presets`)
       .then((res) => res.json())
       .then((data) => {
@@ -57,8 +67,13 @@ export function usePresets(skip = false) {
         if (data?.image_defaults) setImageDefaults(data.image_defaults);
         if (Array.isArray(data?.samplers)) setSamplers(data.samplers);
         if (data?.tts_engine) setTtsEngine(data.tts_engine);
+        if (Array.isArray(data?.emotion_presets)) setEmotionPresets(data.emotion_presets);
+        if (Array.isArray(data?.bgm_mood_presets)) setBgmMoodPresets(data.bgm_mood_presets);
+        if (Array.isArray(data?.ip_adapter_models)) setIpAdapterModels(data.ip_adapter_models);
+        if (Array.isArray(data?.overlay_styles)) setOverlayStyles(data.overlay_styles);
       })
-      .catch((err) => console.error("[usePresets] fetch failed:", err));
+      .catch((err) => console.error("[usePresets] fetch failed:", err))
+      .finally(() => setIsLoading(false));
   }, [skip]);
 
   return {
@@ -73,5 +88,10 @@ export function usePresets(skip = false) {
     imageDefaults,
     samplers,
     ttsEngine,
+    emotionPresets,
+    bgmMoodPresets,
+    ipAdapterModels,
+    overlayStyles,
+    isLoading,
   };
 }

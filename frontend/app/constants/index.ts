@@ -48,6 +48,12 @@ export const DEFAULT_POST_CARD_SETTINGS: PostCardSettings = {
   caption: "",
 };
 
+/**
+ * 파이프라인 실행 단계 (Frontend 유지 정당성: SP-074)
+ * - step ID에 AutoRunStepId 타입 + autopilot 로직이 강결합
+ * - 단계 변경 = 아키텍처 변경이므로 동적 로드 불필요
+ * - Backend 대응: services/agent/nodes/ 노드 구조
+ */
 export const AUTO_RUN_STEPS = [
   { id: "stage", label: "배경·BGM" },
   { id: "images", label: "Images" },
@@ -58,46 +64,5 @@ export const AUTO_RUN_STEPS = [
 /** AutoRun 이미지 생성 시 동시 실행 제한 (서버 과부하 방지) */
 export const AUTORUN_CONCURRENCY = 2;
 
-export const OVERLAY_STYLES = [{ id: "overlay_minimal.png", label: "Minimal" }];
-
 export const HEART_EMOJIS = ["❤", "💖", "💗", "💘", "💜", "💙", "💚", "🧡", "🤍"];
 export const ASCII_HEARTS = ["<3", "**", "^^", "<<>>"];
-
-/**
- * Category descriptions in Korean for UI display
- * Helps users understand what tags belong in each category
- */
-export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  // Priority 1-2: Meta
-  quality: "품질 (masterpiece, best_quality)",
-  subject: "대상 (1girl, 1boy, solo)",
-
-  // Priority 3-4: Appearance
-  identity: "신원/캐릭터 (LoRA 트리거)",
-  hair_color: "머리 색 (blue_hair, blonde)",
-  hair_length: "머리 길이 (long/short_hair)",
-  hair_style: "헤어스타일 (ponytail, twintails)",
-  hair_accessory: "머리 장식 (hairpin, ribbon)",
-  eye_color: "눈 색 (blue_eyes, red_eyes)",
-  skin_color: "피부 색 (pale_skin)",
-  body_feature: "신체 특징 (elf_ears, wings)",
-  appearance: "외모 (freckles, makeup, tattoo)",
-
-  // Priority 5-9: Character state
-  clothing: "의류/액세서리 (shirt, dress, shoes)",
-  expression: "표정 (smile, angry, blush)",
-  gaze: "시선 (looking_at_viewer)",
-  pose: "정적 자세 (standing, sitting)",
-  action: "동적 행동 (running, dancing)",
-
-  // Priority 10-15: Scene
-  camera: "카메라/샷 (close_up, full_body)",
-  location_indoor: "실내 장소 (classroom, cafe)",
-  location_outdoor: "실외 장소 (beach, forest)",
-  environment: "소품/가구 (desk, computer, plant)",
-  background_type: "배경 타입 (white/simple_bg)",
-  time_weather: "시간/날씨 (day, night, rain)",
-  lighting: "조명 (sunlight, dramatic)",
-  mood: "분위기 (romantic, peaceful)",
-  style: "스타일 (anime, realistic)",
-};

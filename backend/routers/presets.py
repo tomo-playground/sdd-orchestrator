@@ -21,6 +21,7 @@ async def list_presets():
     Returns presets with sample topics, default settings, and option lists.
     """
     from config import (  # noqa: PLC0415
+        BGM_MOOD_PRESETS,
         DEFAULT_CONTROLNET_WEIGHT,
         DEFAULT_ENABLE_HR,
         DEFAULT_IP_ADAPTER_WEIGHT,
@@ -28,6 +29,9 @@ async def list_presets():
         DEFAULT_TTS_ENGINE,
         DEFAULT_USE_CONTROLNET,
         DEFAULT_USE_IP_ADAPTER,
+        EMOTION_PRESETS,
+        IP_ADAPTER_MODEL_OPTIONS,
+        OVERLAY_STYLE_OPTIONS,
         READING_SPEED,
         SD_DEFAULT_HEIGHT,
         SD_DEFAULT_WIDTH,
@@ -69,6 +73,10 @@ async def list_presets():
         "samplers": SD_SAMPLERS,
         "tts_engine": DEFAULT_TTS_ENGINE,
         "tts_engines": SUPPORTED_TTS_ENGINES,
+        "emotion_presets": EMOTION_PRESETS,
+        "bgm_mood_presets": BGM_MOOD_PRESETS,
+        "ip_adapter_models": IP_ADAPTER_MODEL_OPTIONS,
+        "overlay_styles": OVERLAY_STYLE_OPTIONS,
     }
 
 

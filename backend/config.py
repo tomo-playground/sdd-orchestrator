@@ -944,6 +944,67 @@ MUSICGEN_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 STORYBOARD_LANGUAGES = [{"value": lang.id, "label": lang.label} for lang in LANGUAGE_METADATA]
 SHORTS_DURATIONS = [15, 30, 45, 60]
 
+# --- Director Presets (SSOT for DirectorControlPanel) ---
+# emotion 값은 EMOTION_VOCAB(services/agent/nodes/_context_tag_utils.py) 키의 서브셋
+EMOTION_PRESETS: list[dict[str, str]] = [
+    {"id": "excited", "label": "밝게", "emotion": "excited"},
+    {"id": "calm", "label": "차분", "emotion": "calm"},
+    {"id": "tense", "label": "긴장", "emotion": "tense"},
+    {"id": "nostalgic", "label": "감성", "emotion": "nostalgic"},
+]
+
+BGM_MOOD_PRESETS: list[dict[str, str]] = [
+    {"id": "upbeat", "label": "경쾌", "mood": "upbeat", "prompt": "bright upbeat cheerful background music"},
+    {"id": "calm", "label": "잔잔", "mood": "calm", "prompt": "calm peaceful relaxing ambient music"},
+    {"id": "tense", "label": "긴박", "mood": "tense", "prompt": "tense dramatic suspenseful cinematic music"},
+    {
+        "id": "romantic",
+        "label": "로맨틱",
+        "mood": "romantic",
+        "prompt": "romantic warm emotional piano background music",
+    },
+]
+
+# --- IP-Adapter Model Options (SSOT) ---
+IP_ADAPTER_MODEL_OPTIONS: list[str] = ["clip_face", "clip"]
+
+# --- Overlay Styles (SSOT for rendering + /presets) ---
+OVERLAY_STYLE_OPTIONS: list[dict[str, str]] = [
+    {"id": "overlay_minimal.png", "label": "Minimal"},
+    {"id": "overlay_clean.png", "label": "Clean"},
+    {"id": "overlay_bold.png", "label": "Bold"},
+]
+OVERLAY_STYLE_IDS: set[str] = {s["id"] for s in OVERLAY_STYLE_OPTIONS}
+
+# --- Tag Group Descriptions (SSOT for /tags/groups) ---
+TAG_GROUP_DESCRIPTIONS: dict[str, str] = {
+    "quality": "품질 (masterpiece, best_quality)",
+    "subject": "대상 (1girl, 1boy, solo)",
+    "identity": "신원/캐릭터 (LoRA 트리거)",
+    "hair_color": "머리 색 (blue_hair, blonde)",
+    "hair_length": "머리 길이 (long/short_hair)",
+    "hair_style": "헤어스타일 (ponytail, twintails)",
+    "hair_accessory": "머리 장식 (hairpin, ribbon)",
+    "eye_color": "눈 색 (blue_eyes, red_eyes)",
+    "skin_color": "피부 색 (pale_skin)",
+    "body_feature": "신체 특징 (elf_ears, wings)",
+    "appearance": "외모 (freckles, makeup, tattoo)",
+    "clothing": "의류/액세서리 (shirt, dress, shoes)",
+    "expression": "표정 (smile, angry, blush)",
+    "gaze": "시선 (looking_at_viewer)",
+    "pose": "정적 자세 (standing, sitting)",
+    "action": "동적 행동 (running, dancing)",
+    "camera": "카메라/샷 (close_up, full_body)",
+    "location_indoor": "실내 장소 (classroom, cafe)",
+    "location_outdoor": "실외 장소 (beach, forest)",
+    "environment": "소품/가구 (desk, computer, plant)",
+    "background_type": "배경 타입 (white/simple_bg)",
+    "time_weather": "시간/날씨 (day, night, rain)",
+    "lighting": "조명 (sunlight, dramatic)",
+    "mood": "분위기 (romantic, peaceful)",
+    "style": "스타일 (anime, realistic)",
+}
+
 # --- Script Length Rules (SSOT for scriptwriter + creative_qc.py) ---
 SCRIPT_LENGTH_KOREAN = (5, 35)  # (min_chars, max_chars)
 SCRIPT_LENGTH_OTHER = (3, 18)  # (min_words, max_words)

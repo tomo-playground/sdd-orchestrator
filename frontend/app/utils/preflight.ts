@@ -8,6 +8,7 @@
  */
 
 import type { Scene, DraftScene, AutoRunStepId, SettingsCheck } from "../types";
+import { AUTO_RUN_STEPS } from "../constants";
 export type { AutoRunStepId, SettingsCheck } from "../types";
 import { useStoryboardStore } from "../store/useStoryboardStore";
 import { useRenderStore } from "../store/useRenderStore";
@@ -215,7 +216,7 @@ export function getStepsToExecute(
   preflight: PreflightResult,
   userOverrides?: Partial<Record<AutoRunStepId, boolean>>
 ): AutoRunStepId[] {
-  const stepOrder: AutoRunStepId[] = ["stage", "images", "tts", "render"];
+  const stepOrder = AUTO_RUN_STEPS.map((s) => s.id) as AutoRunStepId[];
 
   return stepOrder.filter((stepId) => {
     // User can force enable/disable
