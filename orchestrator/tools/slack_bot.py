@@ -78,6 +78,9 @@ class SlackBotListener:
 
         # Channel allowlist — silently ignore unauthorized channels
         if not self._is_allowed_channel(channel):
+            logger.warning(
+                "Ignored event from channel=%s (allowed=%s)", channel, SLACK_BOT_ALLOWED_CHANNEL
+            )
             return
 
         # User allowlist — deny commands from unauthorized users
