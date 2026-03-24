@@ -19,11 +19,21 @@ start() {
   _SLACK=$(grep '^SLACK_WEBHOOK_URL=' "$PROJECT_DIR/backend/.env" 2>/dev/null | cut -d= -f2-)
   _SENTRY=$(grep '^SENTRY_AUTH_TOKEN=' "$PROJECT_DIR/backend/.env" 2>/dev/null | cut -d= -f2-)
 
+  # orchestrator/.env에서 Slack Bot 환경변수 로드
+  _BOT_TOKEN=$(grep '^SLACK_BOT_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2-)
+  _APP_TOKEN=$(grep '^SLACK_APP_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2-)
+  _BOT_CHANNEL=$(grep '^SLACK_BOT_ALLOWED_CHANNEL=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2-)
+  _BOT_USERS=$(grep '^SLACK_BOT_ALLOWED_USERS=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2-)
+
   cd "$ORCH_DIR"
   ORCH_AUTO_RUN="${ORCH_AUTO_RUN:-1}" \
   ORCH_AUTO_DESIGN="${ORCH_AUTO_DESIGN:-1}" \
   SLACK_WEBHOOK_URL="${_SLACK}" \
   SENTRY_AUTH_TOKEN="${_SENTRY}" \
+  SLACK_BOT_TOKEN="${_BOT_TOKEN}" \
+  SLACK_APP_TOKEN="${_APP_TOKEN}" \
+  SLACK_BOT_ALLOWED_CHANNEL="${_BOT_CHANNEL}" \
+  SLACK_BOT_ALLOWED_USERS="${_BOT_USERS}" \
   nohup uv run python -m orchestrator > "$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
   echo "Orchestrator 시작 (PID: $!, log: $LOG_FILE)"
