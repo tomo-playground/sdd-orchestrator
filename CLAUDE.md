@@ -377,6 +377,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | **Voice Reviewer** | TTS 음성의 톤, 속도, 발음 및 감정 표현의 적절성 검토 | `/review` |
 | **Sound Reviewer** | BGM 및 효과음의 조화, 오디오 정규화 상태 및 전반적인 사운드 품질 검토 | `/review` |
 | **Performance Engineer** | 외부 자원 통신 최적화, timeout/retry/rate limit, 인프라/배포(SD, Docker, 서버) | `/review` |
+| **SDD Coach** | SDD 워크플로우 코치 — 프로세스 준수 감시, 리뷰 사이클 자동화, 병목 해소, 메트릭 추적 | `/review`, `/pm-check` |
 
 ### Prompt Engineer 역할 상세
 **핵심 원칙**: "프롬프트 기준 정확한 장면 생성"이 최우선 목표. 수동적 대응이 아닌 **적극적 제안**으로 품질을 선제적으로 개선합니다.
