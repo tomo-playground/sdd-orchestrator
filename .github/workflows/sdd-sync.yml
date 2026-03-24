@@ -1,6 +1,8 @@
 name: SDD Sync — 머지 정리
 
 on:
+  push:
+    branches: [main]
   pull_request:
     types: [closed]
     branches: [main]
