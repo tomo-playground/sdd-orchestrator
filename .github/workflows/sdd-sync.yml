@@ -1,8 +1,6 @@
 name: SDD Sync — 머지 정리
 
 on:
-  push:
-    branches: [main]
   pull_request:
     types: [closed]
     branches: [main]
@@ -104,15 +102,11 @@ jobs:
 
           if [ "$EXIT_CODE" -ne 0 ]; then
             FAILED=$(grep "FAILED\|✘\|Error" /tmp/qa-patrol-result.txt | head -5)
+            BODY="PR #${{ github.event.pull_request.number }} 머지 후 QA 순찰 실패."
+            BODY="${BODY}\n\n실패 테스트:\n\`\`\`\n${FAILED}\n\`\`\`"
+            BODY="${BODY}\n\n[워크플로우 로그](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
             gh issue create \
               --title "[QA Patrol] 머지 후 순찰 실패 — PR #${{ github.event.pull_request.number }}" \
-              --body "PR #${{ github.event.pull_request.number }} 머지 후 QA 순찰 실패.
-
-실패 테스트:
-\`\`\`
-${FAILED}
-\`\`\`
-
-[워크플로우 로그](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" \
+              --body "$(echo -e "$BODY")" \
               --label "bug" 2>/dev/null || true
           fi
