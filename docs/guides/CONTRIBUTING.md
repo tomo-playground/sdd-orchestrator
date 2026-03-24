@@ -276,7 +276,7 @@ uv run alembic downgrade -1                        # 롤백
 
 ```
 .claude/
-├── agents/              # Sub Agents (11개)
+├── agents/              # Sub Agents (17개)
 ├── commands/            # Commands (10개)
 ├── hooks/               # 자동화 스크립트 (auto-lint.sh)
 ├── settings.json        # Hook 설정 (프로젝트 공유)
