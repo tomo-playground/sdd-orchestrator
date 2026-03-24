@@ -160,13 +160,35 @@ class SlackBotListener:
 
     async def _cmd_status(self) -> list[dict]:
         """Show current tasks, PRs, and worktrees."""
-        from orchestrator.tools.backlog import parse_backlog
+        # current/ 디렉토리에서 직접 태스크 수집
+        from orchestrator.config import TASKS_CURRENT_DIR
+        from orchestrator.tools.backlog import BacklogTask
         from orchestrator.tools.github import _run_gh_command, summarize_prs
         from orchestrator.tools.worktree import do_check_running_worktrees
 
-        # Gather data
-        tasks = parse_backlog()
-        current = [t for t in tasks if t.spec_status in ("approved", "running", "design")]
+        current: list[BacklogTask] = []
+        if TASKS_CURRENT_DIR.exists():
+            for spec in sorted(TASKS_CURRENT_DIR.glob("SP-*/spec.md")):
+                import re as _re
+
+                content = spec.read_text(encoding="utf-8")
+                id_m = _re.search(r"^id:\s*(SP-\d+)", content, _re.MULTILINE)
+                status_m = _re.search(r"^status:\s*(\w+)", content, _re.MULTILINE)
+                if not id_m:
+                    continue
+                desc = (
+                    spec.parent.name.split("_", 1)[1].replace("-", " ")
+                    if "_" in spec.parent.name
+                    else ""
+                )
+                current.append(
+                    BacklogTask(
+                        id=id_m.group(1),
+                        priority="",
+                        description=desc[:40],
+                        spec_status=status_m.group(1) if status_m else "unknown",
+                    )
+                )
 
         pr_result = await _run_gh_command(
             "pr",

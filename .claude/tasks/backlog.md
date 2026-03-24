@@ -27,6 +27,8 @@
 
 ## P2 (기능 확장)
 
+- [ ] SP-081 — 서비스 Slack 알림 — 렌더링 완료/파이프라인 실패/SD 다운/스토리보드 생성 완료 알림 | scope: backend+infra
+- [ ] SP-082 — Slack Bot 자연어 명령 — Ollama(3B) 의도 분류 + 키워드 매칭 폴백 | scope: infra
 - [ ] SP-052 — Direct 탭 레이아웃/편의성 개선
 - [ ] SP-024 — VEO Clip — Video Generation 통합
 - [ ] SP-025 — Profile Export/Import — Style Profile 공유
