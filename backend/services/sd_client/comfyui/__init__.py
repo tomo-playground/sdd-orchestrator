@@ -270,9 +270,13 @@ class ComfyUIClient(SDClientBase):
             payload.get("scheduler"),
         )
 
+        neg_prompt = payload.get("negative_prompt", "")
+        # Strip weight emphasis from negative too for noobaiXL v-pred
+        neg_prompt = re.sub(r"\(([^:()]+):[0-9.]+\)", r"\1", neg_prompt)
+
         return {
             "positive": clean_prompt,
-            "negative": payload.get("negative_prompt", ""),
+            "negative": neg_prompt,
             "seed": seed,
             "width": payload.get("width", 832),
             "height": payload.get("height", 1216),

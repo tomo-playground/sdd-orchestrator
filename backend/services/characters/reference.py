@@ -128,6 +128,7 @@ async def regenerate_reference(
     num_candidates: int = 1,
 ) -> dict:
     """Regenerate the character's reference image using 12-Layer prompt system."""
+    from config import SD_CLIENT_TYPE
     from services.generation import generate_scene_image
     from services.image import decode_data_url
     from services.prompt.composition import PromptBuilder
@@ -135,14 +136,33 @@ async def regenerate_reference(
 
     character = _get_character_for_reference(db, character_id, with_tags=True)
 
-    # Resolve StyleProfile quality tags (Group → Config → StyleProfile.default_positive)
-    quality_tags = _resolve_quality_tags_for_character(character, db)
-
     # Resolve StyleContext via Group (needed for reference_env_tags/camera_tags + negative)
     style_ctx = resolve_style_context_from_group(character.group_id, db)
 
-    builder = PromptBuilder(db)
-    full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags, style_ctx=style_ctx)
+    if SD_CLIENT_TYPE == "comfy":
+        # ComfyUI: 단순 프롬프트 — weight 강조 없이
+        import re
+
+        char_tags = character.positive_prompt or ""
+        char_tags_clean = re.sub(r"\(([^:()]+):[0-9.]+\)", r"\1", char_tags)
+        full_prompt = (
+            f"masterpiece, best_quality, {char_tags_clean}, solo, upper_body, looking_at_viewer, simple_background"
+        )
+        # LoRA 태그 주입 — ComfyUI 클라이언트가 파싱해서 워크플로우 노드로 적용
+        if style_ctx and style_ctx.loras:
+            for lora in style_ctx.loras:
+                lora_name = lora.get("name", "")
+                lora_weight = lora.get("weight", 0.7)
+                if lora_name:
+                    full_prompt += f", <lora:{lora_name}:{lora_weight}>"
+    else:
+        # ForgeUI: 기존 12-Layer 프롬프트 조합
+        quality_tags = _resolve_quality_tags_for_character(character, db)
+        builder = PromptBuilder(db)
+        full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags, style_ctx=style_ctx)
+
+    # Resolve StyleProfile quality tags (Group → Config → StyleProfile.default_positive)
+    quality_tags = _resolve_quality_tags_for_character(character, db)
     # Build negative: always merge all layers (StyleProfile + character + DEFAULT)
     neg_prompt = _build_reference_negative(style_ctx, None)
     # Merge character-specific negative on top
