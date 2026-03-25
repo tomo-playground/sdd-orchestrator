@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-083-comfyui-native-pipeline
 created: 2026-03-25
-status: design
+status: cancelled
 depends_on: SP-022
 label: feat
 ---
