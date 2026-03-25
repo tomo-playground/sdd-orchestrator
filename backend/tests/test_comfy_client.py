@@ -231,6 +231,61 @@ class TestApplyLorasToWorkflow:
         result = ComfyUIClient._apply_loras_to_workflow(workflow, loras)
         assert result["lora_1"]["inputs"]["lora_name"] == "a.safetensors"
 
+    def test_placeholder_lora_bypassed_when_no_fallback(self):
+        """placeholder.safetensors should be removed when no fallback LoRA is available (#198)."""
+        workflow = {
+            "1_cp": {
+                "class_type": "CheckpointLoaderSimple",
+                "inputs": {"ckpt_name": "model.safetensors"},
+            },
+            "2_lora": {
+                "class_type": "LoraLoader",
+                "inputs": {
+                    "lora_name": "placeholder.safetensors",
+                    "strength_model": 0,
+                    "strength_clip": 0,
+                    "model": ["1_cp", 0],
+                    "clip": ["1_cp", 1],
+                },
+            },
+            "3_clip": {
+                "class_type": "CLIPTextEncode",
+                "inputs": {"text": "test", "clip": ["2_lora", 1]},
+            },
+            "4_sampler": {
+                "class_type": "KSampler",
+                "inputs": {"model": ["2_lora", 0]},
+            },
+        }
+        loras: list[dict] = []
+        result = ComfyUIClient._apply_loras_to_workflow(workflow, loras, available_loras=[])
+
+        # LoRA node should be removed
+        assert "2_lora" not in result
+        # Downstream nodes should reference the checkpoint directly
+        assert result["3_clip"]["inputs"]["clip"] == ["1_cp", 1]
+        assert result["4_sampler"]["inputs"]["model"] == ["1_cp", 0]
+
+    def test_placeholder_lora_replaced_when_fallback_available(self):
+        """placeholder should be replaced with fallback LoRA, not bypassed."""
+        workflow = {
+            "1_lora": {
+                "class_type": "LoraLoader",
+                "inputs": {
+                    "lora_name": "placeholder.safetensors",
+                    "strength_model": 0,
+                    "strength_clip": 0,
+                    "model": ["cp", 0],
+                    "clip": ["cp", 1],
+                },
+            },
+        }
+        result = ComfyUIClient._apply_loras_to_workflow(workflow, [], available_loras=["real_lora.safetensors"])
+        # Node should still exist with fallback name
+        assert "1_lora" in result
+        assert result["1_lora"]["inputs"]["lora_name"] == "real_lora.safetensors"
+        assert result["1_lora"]["inputs"]["strength_model"] == 0
+
 
 class TestResolveCheckpoint:
     """_resolve_checkpoint() — extract from SD WebUI override_settings."""

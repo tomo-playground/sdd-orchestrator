@@ -56,6 +56,30 @@ def _map_sampler_to_comfy(sampler_name: str, scheduler: str | None) -> tuple[str
     return comfy_sampler, comfy_scheduler
 
 
+def _bypass_lora_node(workflow: dict, node_id: str, node: dict) -> None:
+    """Remove a LoRA node from the workflow by reconnecting downstream references.
+
+    LoraLoader has inputs: model=[src, 0], clip=[src, 1]
+    Downstream nodes referencing [node_id, 0] → model, [node_id, 1] → clip.
+    Redirect them to the LoRA node's own input sources.
+    """
+    model_src = node["inputs"].get("model")  # e.g., ["1_checkpoint", 0]
+    clip_src = node["inputs"].get("clip")  # e.g., ["1_checkpoint", 1]
+
+    for other_id, other_node in workflow.items():
+        if other_id == node_id:
+            continue
+        for key, val in other_node.get("inputs", {}).items():
+            if isinstance(val, list) and len(val) == 2 and val[0] == node_id:
+                if val[1] == 0 and model_src:
+                    other_node["inputs"][key] = model_src
+                elif val[1] == 1 and clip_src:
+                    other_node["inputs"][key] = clip_src
+
+    # Remove the LoRA node from workflow
+    del workflow[node_id]
+
+
 class ComfyUIClient(SDClientBase):
     """ComfyUI backend client.
 
@@ -331,6 +355,14 @@ class ComfyUIClient(SDClientBase):
                 node["inputs"]["strength_clip"] = 0
                 if fallback_lora:
                     node["inputs"]["lora_name"] = fallback_lora
+                elif node["inputs"].get("lora_name", "").startswith("placeholder"):
+                    logger.warning(
+                        "LoRA node '%s' has placeholder name and no fallback available — "
+                        "bypassing by removing from workflow chain",
+                        _node_id,
+                    )
+                    # Reconnect: point downstream nodes to this node's input source
+                    _bypass_lora_node(workflow, _node_id, node)
 
         return workflow
 

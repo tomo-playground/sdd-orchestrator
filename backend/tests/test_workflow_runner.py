@@ -47,6 +47,29 @@ class TestQueuePrompt:
             await queue_prompt(client, {})
 
     @pytest.mark.asyncio
+    async def test_error_includes_node_errors(self):
+        """node_errors should be included in RuntimeError message (#198)."""
+        client = AsyncMock()
+        client.post.return_value = _mock_response(
+            {
+                "error": {"type": "prompt_outputs_failed_validation", "message": "Prompt outputs failed validation"},
+                "node_errors": {"2_lora": {"errors": [{"message": "lora not found"}]}},
+            }
+        )
+
+        with pytest.raises(RuntimeError, match=r"(?s)node_errors.*2_lora"):
+            await queue_prompt(client, {})
+
+    @pytest.mark.asyncio
+    async def test_error_without_node_errors(self):
+        """Error without node_errors should still work."""
+        client = AsyncMock()
+        client.post.return_value = _mock_response({"error": "simple error"})
+
+        with pytest.raises(RuntimeError, match="ComfyUI queue error"):
+            await queue_prompt(client, {})
+
+    @pytest.mark.asyncio
     async def test_no_prompt_id_raises(self):
         client = AsyncMock()
         client.post.return_value = _mock_response({"status": "ok"})
@@ -86,16 +109,14 @@ class TestWaitForResult:
     @pytest.mark.asyncio
     async def test_success_download(self):
         """Should poll history and download images."""
-        history_resp = _mock_response({
-            "prompt-1": {
-                "status": {"status_str": "success"},
-                "outputs": {
-                    "save_node": {
-                        "images": [{"filename": "img.png", "subfolder": "", "type": "output"}]
-                    }
-                },
+        history_resp = _mock_response(
+            {
+                "prompt-1": {
+                    "status": {"status_str": "success"},
+                    "outputs": {"save_node": {"images": [{"filename": "img.png", "subfolder": "", "type": "output"}]}},
+                }
             }
-        })
+        )
         img_resp = MagicMock()
         img_resp.content = b"\x89PNG_fake"
         img_resp.raise_for_status = MagicMock()
@@ -112,12 +133,14 @@ class TestWaitForResult:
     @pytest.mark.asyncio
     async def test_execution_error_raises(self):
         """Should raise RuntimeError on execution error."""
-        history_resp = _mock_response({
-            "prompt-1": {
-                "status": {"status_str": "error"},
-                "node_errors": {"node_1": "bad node"},
+        history_resp = _mock_response(
+            {
+                "prompt-1": {
+                    "status": {"status_str": "error"},
+                    "node_errors": {"node_1": "bad node"},
+                }
             }
-        })
+        )
         client = AsyncMock()
         client.get.return_value = history_resp
 
@@ -150,14 +173,14 @@ class TestRunWorkflow:
         """Should queue, wait, and return images."""
         client = AsyncMock()
         queue_resp = _mock_response({"prompt_id": "int-1"})
-        history_resp = _mock_response({
-            "int-1": {
-                "status": {"status_str": "success"},
-                "outputs": {
-                    "save": {"images": [{"filename": "out.png", "subfolder": "", "type": "output"}]}
-                },
+        history_resp = _mock_response(
+            {
+                "int-1": {
+                    "status": {"status_str": "success"},
+                    "outputs": {"save": {"images": [{"filename": "out.png", "subfolder": "", "type": "output"}]}},
+                }
             }
-        })
+        )
         img_resp = MagicMock()
         img_resp.content = b"image_data"
         img_resp.raise_for_status = MagicMock()
