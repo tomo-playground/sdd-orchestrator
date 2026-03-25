@@ -19,6 +19,7 @@
 - [x] ~~SP-021~~ — Speaker 동적 역할 — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | depends: SP-020
 - [x] ~~SP-075~~ — 지식DB 스토리 카드 | scope: backend
 - [x] ~~SP-083~~ — 폐기: 캐릭터 일관성 미해결 상태에서 Regional만으로는 부족
+- [ ] SP-084 — ComfyUI 네이티브 정리 — Forge 호환 레이어 제거, SD_CLIENT_TYPE 분기 삭제, 단일 경로화 | scope: backend
 - [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 전환 후 착수. 4-Module 파이프라인 | depends: SP-083
 - [x] ~~SP-076~~ — Slack Bot 양방향 연동 — Slack에서 명령 수신 + 코딩머신 제어 | scope: infra
 - [ ] SP-080 — 자동 롤백 — 머지 후 5분 내 Sentry 에러 급증 시 자동 revert PR 생성 | scope: infra
