@@ -70,6 +70,45 @@ class ComfyUIClient(SDClientBase):
             limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
         )
         self._current_checkpoint: str = ""
+        self._available_checkpoints: list[str] = []
+        self._available_loras: list[str] = []
+
+    async def _ensure_checkpoint(self) -> str:
+        """Ensure _current_checkpoint is set. Fetch from ComfyUI if empty."""
+        if self._current_checkpoint:
+            return self._current_checkpoint
+        if not self._available_checkpoints:
+            try:
+                resp = await self._http.get("/object_info/CheckpointLoaderSimple")
+                resp.raise_for_status()
+                data = resp.json()
+                self._available_checkpoints = (
+                    data.get("CheckpointLoaderSimple", {})
+                    .get("input", {})
+                    .get("required", {})
+                    .get("ckpt_name", [[]])[0]
+                )
+            except Exception as e:
+                logger.warning("Failed to fetch checkpoints: %s", e)
+        if self._available_checkpoints:
+            self._current_checkpoint = self._available_checkpoints[0]
+            logger.info("Auto-selected checkpoint: %s", self._current_checkpoint)
+        return self._current_checkpoint
+
+    async def _get_available_loras(self) -> list[str]:
+        """Fetch available LoRA names from ComfyUI."""
+        if self._available_loras:
+            return self._available_loras
+        try:
+            resp = await self._http.get("/object_info/LoraLoader")
+            resp.raise_for_status()
+            data = resp.json()
+            self._available_loras = (
+                data.get("LoraLoader", {}).get("input", {}).get("required", {}).get("lora_name", [[]])[0]
+            )
+        except Exception as e:
+            logger.warning("Failed to fetch LoRAs: %s", e)
+        return self._available_loras
 
     async def close(self) -> None:
         """Shutdown: close the httpx connection pool."""
@@ -86,13 +125,13 @@ class ComfyUIClient(SDClientBase):
         variables = self._payload_to_variables(payload)
         workflow = inject_variables(workflow, variables)
 
-        # Apply LoRA nodes if loras were extracted from prompt
+        # Apply LoRA nodes — always call to bypass unused slots (strength=0)
         loras = self._extract_lora_tags(payload.get("prompt", "") + " " + variables.get("positive", ""))
-        if loras:
-            workflow = self._apply_loras_to_workflow(workflow, loras)
+        available_loras = await self._get_available_loras()
+        workflow = self._apply_loras_to_workflow(workflow, loras, available_loras)
 
-        # Apply checkpoint: override_settings takes priority, fall back to _current_checkpoint
-        checkpoint = self._resolve_checkpoint(payload) or self._current_checkpoint
+        # Apply checkpoint: override_settings takes priority, fall back to auto-detected
+        checkpoint = self._resolve_checkpoint(payload) or await self._ensure_checkpoint()
         if checkpoint:
             self._set_checkpoint_in_workflow(workflow, checkpoint)
 
@@ -245,20 +284,32 @@ class ComfyUIClient(SDClientBase):
 
         Returns list of {"name": "lora_file.safetensors", "weight": 0.7}.
         """
-        return [{"name": m.group(1), "weight": float(m.group(2))} for m in _LORA_TAG_RE.finditer(prompt)]
+        results = []
+        for m in _LORA_TAG_RE.finditer(prompt):
+            name = m.group(1)
+            if not name.endswith((".safetensors", ".ckpt", ".pt")):
+                name = f"{name}.safetensors"
+            results.append({"name": name, "weight": float(m.group(2))})
+        return results
 
     @staticmethod
-    def _apply_loras_to_workflow(workflow: dict, loras: list[dict]) -> dict:
+    def _apply_loras_to_workflow(workflow: dict, loras: list[dict], available_loras: list[str] | None = None) -> dict:
         """Set LoRA parameters in existing workflow LoraLoader nodes.
 
         Fat Template strategy: workflow has pre-placed LoraLoader nodes.
-        Unused slots get strength_model=0 / strength_clip=0.
+        Unused slots get strength_model=0 / strength_clip=0 with a valid lora_name.
         """
-        # Find existing LoraLoader nodes sorted by node ID
         lora_nodes = sorted(
             [(nid, node) for nid, node in workflow.items() if node.get("class_type") == "LoraLoader"],
             key=lambda x: x[0],
         )
+
+        # Determine a valid fallback LoRA name for bypass slots
+        fallback_lora = ""
+        if loras:
+            fallback_lora = loras[0]["name"]
+        elif available_loras:
+            fallback_lora = available_loras[0]
 
         for i, (_node_id, node) in enumerate(lora_nodes):
             if i < len(loras):
@@ -267,9 +318,11 @@ class ComfyUIClient(SDClientBase):
                 node["inputs"]["strength_model"] = lora["weight"]
                 node["inputs"]["strength_clip"] = lora["weight"]
             else:
-                # Bypass: zero strength
+                # Bypass: zero strength + valid lora_name to pass ComfyUI validation
                 node["inputs"]["strength_model"] = 0
                 node["inputs"]["strength_clip"] = 0
+                if fallback_lora:
+                    node["inputs"]["lora_name"] = fallback_lora
 
         return workflow
 

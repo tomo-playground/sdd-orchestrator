@@ -43,6 +43,13 @@ async def queue_prompt(client: httpx.AsyncClient, workflow: dict) -> str:
             data = resp.json()
 
             if "error" in data:
+                import json as _json
+
+                logger.error(
+                    "ComfyUI queue error: %s\nnode_errors: %s",
+                    data["error"],
+                    _json.dumps(data.get("node_errors", {}), indent=2, ensure_ascii=False)[:2000],
+                )
                 raise RuntimeError(f"ComfyUI queue error: {data['error']}")
 
             prompt_id = data.get("prompt_id")
