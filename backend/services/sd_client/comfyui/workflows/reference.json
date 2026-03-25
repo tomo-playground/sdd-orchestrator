@@ -1,8 +1,8 @@
 {
   "_meta": {
     "name": "Character Reference — NoobXL v-pred",
-    "description": "검증된 레퍼런스 워크플로우: dpmpp_2m + karras + cfg 5.5 + LoRA",
-    "version": "3.1.0",
+    "description": "레퍼런스 워크플로우: 2-LoRA (style + detailer), dpmpp_2m + karras",
+    "version": "4.0.0",
     "variables": {
       "{{positive}}": "캐릭터 프롬프트",
       "{{negative}}": "네거티브 프롬프트",
@@ -15,7 +15,7 @@
       "{{sampler_name}}": "샘플러",
       "{{scheduler}}": "스케줄러"
     },
-    "output_node": "8_save"
+    "output_node": "9_save"
   },
   "1_checkpoint": {
     "class_type": "CheckpointLoaderSimple",
@@ -23,7 +23,7 @@
       "ckpt_name": "{{checkpoint}}"
     }
   },
-  "2_lora": {
+  "2_lora_style": {
     "class_type": "LoraLoader",
     "inputs": {
       "lora_name": "placeholder.safetensors",
@@ -33,21 +33,31 @@
       "clip": ["1_checkpoint", 1]
     }
   },
-  "3_positive": {
+  "3_lora_detailer": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "placeholder.safetensors",
+      "strength_model": 0,
+      "strength_clip": 0,
+      "model": ["2_lora_style", 0],
+      "clip": ["2_lora_style", 1]
+    }
+  },
+  "4_positive": {
     "class_type": "CLIPTextEncode",
     "inputs": {
       "text": "{{positive}}",
-      "clip": ["2_lora", 1]
+      "clip": ["3_lora_detailer", 1]
     }
   },
-  "4_negative": {
+  "5_negative": {
     "class_type": "CLIPTextEncode",
     "inputs": {
       "text": "{{negative}}",
-      "clip": ["2_lora", 1]
+      "clip": ["3_lora_detailer", 1]
     }
   },
-  "5_latent": {
+  "6_latent": {
     "class_type": "EmptyLatentImage",
     "inputs": {
       "width": "{{width}}",
@@ -55,7 +65,7 @@
       "batch_size": 1
     }
   },
-  "6_sampler": {
+  "7_sampler": {
     "class_type": "KSampler",
     "inputs": {
       "seed": "{{seed}}",
@@ -64,24 +74,24 @@
       "sampler_name": "{{sampler_name}}",
       "scheduler": "{{scheduler}}",
       "denoise": 1.0,
-      "model": ["2_lora", 0],
-      "positive": ["3_positive", 0],
-      "negative": ["4_negative", 0],
-      "latent_image": ["5_latent", 0]
+      "model": ["3_lora_detailer", 0],
+      "positive": ["4_positive", 0],
+      "negative": ["5_negative", 0],
+      "latent_image": ["6_latent", 0]
     }
   },
-  "7_decode": {
+  "8_decode": {
     "class_type": "VAEDecode",
     "inputs": {
-      "samples": ["6_sampler", 0],
+      "samples": ["7_sampler", 0],
       "vae": ["1_checkpoint", 2]
     }
   },
-  "8_save": {
+  "9_save": {
     "class_type": "SaveImage",
     "inputs": {
       "filename_prefix": "SP_ref",
-      "images": ["7_decode", 0]
+      "images": ["8_decode", 0]
     }
   }
 }
