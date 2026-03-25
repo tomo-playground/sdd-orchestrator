@@ -17,6 +17,14 @@ from datetime import UTC, datetime
 from typing import Any
 
 from config import pipeline_logger as logger
+
+# GraphInterrupt는 LangGraph의 정상적인 interrupt 메커니즘 (사용자 입력 대기)
+# ERROR가 아닌 WARNING으로 기록하기 위해 별도 import
+try:
+    from langgraph.errors import GraphInterrupt as _GraphInterrupt
+except ImportError:  # langgraph 미설치 환경 (테스트 등)
+    _GraphInterrupt = None
+
 from config_pipelines import (
     LANGFUSE_BASE_URL,
     LANGFUSE_ENABLED,
@@ -42,6 +50,13 @@ _current_action: contextvars.ContextVar[str] = contextvars.ContextVar("langfuse_
 _pipeline_start_time: contextvars.ContextVar[float | None] = contextvars.ContextVar(
     "langfuse_pipeline_start", default=None
 )
+
+
+def _is_graph_interrupt(exc: Exception) -> bool:
+    """GraphInterrupt 여부를 판별한다. import 실패 시 클래스명 fallback."""
+    if _GraphInterrupt is not None:
+        return isinstance(exc, _GraphInterrupt)
+    return type(exc).__name__ == "GraphInterrupt"
 
 
 def _to_hex32(trace_id: str) -> str:
@@ -433,7 +448,11 @@ async def trace_agent(
             pass
     except Exception as e:
         try:
-            agent_obs.update(level="ERROR", status_message=str(e)[:500])
+            if _is_graph_interrupt(e):
+                # Interrupt는 정상 동작 (사용자 입력 대기) — ERROR가 아닌 WARNING
+                agent_obs.update(level="WARNING", status_message=f"[Interrupt] {str(e)[:480]}")
+            else:
+                agent_obs.update(level="ERROR", status_message=str(e)[:500])
             agent_obs.end()
         except Exception:
             pass
@@ -485,7 +504,10 @@ async def trace_tool_call(
             pass
     except Exception as e:
         try:
-            tool_obs.update(level="ERROR", status_message=str(e)[:500])
+            if _is_graph_interrupt(e):
+                tool_obs.update(level="WARNING", status_message=f"[Interrupt] {str(e)[:480]}")
+            else:
+                tool_obs.update(level="ERROR", status_message=str(e)[:500])
             tool_obs.end()
         except Exception:
             pass
@@ -654,9 +676,9 @@ async def trace_llm_call(
         )
         generation.end()
     except Exception as e:
-        generation.update(
-            level="ERROR",
-            status_message=str(e)[:500],
-        )
+        if _is_graph_interrupt(e):
+            generation.update(level="WARNING", status_message=f"[Interrupt] {str(e)[:480]}")
+        else:
+            generation.update(level="ERROR", status_message=str(e)[:500])
         generation.end()
         raise

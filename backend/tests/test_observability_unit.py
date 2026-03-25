@@ -405,3 +405,113 @@ class TestGetPipelineElapsedSec:
             assert 9.5 < elapsed < 11.0
         finally:
             _pipeline_start_time.set(orig)
+
+
+class TestIsGraphInterrupt:
+    """_is_graph_interrupt() 판별 헬퍼 테스트."""
+
+    def test_real_graph_interrupt(self):
+        """langgraph.errors.GraphInterrupt을 올바르게 판별한다."""
+        from langgraph.errors import GraphInterrupt
+
+        from services.agent.observability import _is_graph_interrupt
+
+        exc = GraphInterrupt([{"value": "test"}])
+        assert _is_graph_interrupt(exc) is True
+
+    def test_regular_exception_not_interrupt(self):
+        """일반 Exception은 False를 반환한다."""
+        from services.agent.observability import _is_graph_interrupt
+
+        assert _is_graph_interrupt(RuntimeError("oops")) is False
+        assert _is_graph_interrupt(ValueError("bad value")) is False
+
+    def test_class_name_fallback(self):
+        """_GraphInterrupt가 None일 때 클래스명 fallback으로 판별한다."""
+        import services.agent.observability as obs
+
+        orig = obs._GraphInterrupt
+        try:
+            obs._GraphInterrupt = None
+
+            class GraphInterrupt(Exception):
+                pass
+
+            assert obs._is_graph_interrupt(GraphInterrupt("test")) is True
+            assert obs._is_graph_interrupt(RuntimeError("test")) is False
+        finally:
+            obs._GraphInterrupt = orig
+
+
+class TestTraceAgentInterruptLevel:
+    """trace_agent가 GraphInterrupt를 WARNING으로 기록하는지 테스트."""
+
+    async def test_interrupt_sets_warning_level(self):
+        """GraphInterrupt 발생 시 observation level이 WARNING이다."""
+        from langgraph.errors import GraphInterrupt
+
+        import services.agent.observability as obs
+
+        orig_client = obs._langfuse_client
+        orig_initialized = obs._initialized
+        orig_trace = _current_trace_id.get()
+        orig_root = _current_root_span.get()
+
+        mock_client = MagicMock()
+        mock_obs = MagicMock()
+        mock_client.start_observation.return_value = mock_obs
+        obs._langfuse_client = mock_client
+        obs._initialized = True
+        _current_trace_id.set("abcdef1234567890abcdef1234567890")
+        _current_root_span.set(None)
+
+        try:
+            import pytest
+
+            with pytest.raises(GraphInterrupt):
+                async with obs.trace_agent("intake") as _agent_obs:
+                    raise GraphInterrupt([{"value": "test_interrupt"}])
+
+            mock_obs.update.assert_called_once()
+            call_kwargs = mock_obs.update.call_args[1]
+            assert call_kwargs["level"] == "WARNING"
+            assert call_kwargs["status_message"].startswith("[Interrupt]")
+        finally:
+            obs._langfuse_client = orig_client
+            obs._initialized = orig_initialized
+            _current_trace_id.set(orig_trace)
+            _current_root_span.set(orig_root)
+
+    async def test_real_error_sets_error_level(self):
+        """일반 Exception 발생 시 observation level이 ERROR이다."""
+        import services.agent.observability as obs
+
+        orig_client = obs._langfuse_client
+        orig_initialized = obs._initialized
+        orig_trace = _current_trace_id.get()
+        orig_root = _current_root_span.get()
+
+        mock_client = MagicMock()
+        mock_obs = MagicMock()
+        mock_client.start_observation.return_value = mock_obs
+        obs._langfuse_client = mock_client
+        obs._initialized = True
+        _current_trace_id.set("abcdef1234567890abcdef1234567890")
+        _current_root_span.set(None)
+
+        try:
+            import pytest
+
+            with pytest.raises(RuntimeError):
+                async with obs.trace_agent("writer") as _agent_obs:
+                    raise RuntimeError("Gemini API failed")
+
+            mock_obs.update.assert_called_once()
+            call_kwargs = mock_obs.update.call_args[1]
+            assert call_kwargs["level"] == "ERROR"
+            assert "Gemini API failed" in call_kwargs["status_message"]
+        finally:
+            obs._langfuse_client = orig_client
+            obs._initialized = orig_initialized
+            _current_trace_id.set(orig_trace)
+            _current_root_span.set(orig_root)
