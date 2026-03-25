@@ -1,4 +1,5 @@
-# Core infrastructure: PostgreSQL + MinIO + ComfyUI
+# Core infrastructure: PostgreSQL + MinIO
+# ComfyUI/Backend/Frontend/Audio는 로컬 실행
 # Usage: docker compose up -d
 services:
   postgres:
@@ -36,30 +37,6 @@ services:
       timeout: 5s
       retries: 5
 
-  comfyui:
-    build:
-      context: ./comfyui-docker
-      dockerfile: Dockerfile
-    image: comfyui:latest
-    container_name: comfyui
-    restart: on-failure:5
-    ports:
-      - "8188:8188"
-    volumes:
-      - /home/tomo/Workspace/sd-models/checkpoints:/workspace/ComfyUI/models/checkpoints
-      - /home/tomo/Workspace/sd-models/lora:/workspace/ComfyUI/models/loras
-      - /home/tomo/Workspace/sd-models/embeddings:/workspace/ComfyUI/models/embeddings
-      - /home/tomo/Workspace/sd-models/controlnet:/workspace/ComfyUI/models/controlnet
-      - /home/tomo/Workspace/sd-models/clip_vision:/workspace/ComfyUI/models/clip_vision
-      - comfyui-output:/workspace/ComfyUI/output
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-
   pgadmin:
     image: dpage/pgadmin4:latest
     restart: unless-stopped
@@ -79,4 +56,3 @@ volumes:
   postgres-data:
   minio-data:
   pgadmin-data:
-  comfyui-output:
