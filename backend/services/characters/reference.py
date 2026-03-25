@@ -140,14 +140,26 @@ async def regenerate_reference(
     style_ctx = resolve_style_context_from_group(character.group_id, db)
 
     if SD_CLIENT_TYPE == "comfy":
-        # ComfyUI: 단순 프롬프트 — weight 강조 없이
+        # ComfyUI: 단순 프롬프트 — weight 강조 없이, 충돌 태그 제거
         import re
 
         char_tags = character.positive_prompt or ""
+        # Strip weight emphasis: (tag:1.3) → tag
         char_tags_clean = re.sub(r"\(([^:()]+):[0-9.]+\)", r"\1", char_tags)
-        full_prompt = (
-            f"masterpiece, best_quality, {char_tags_clean}, solo, upper_body, looking_at_viewer, simple_background"
-        )
+        # Remove abstract/conflicting tags that don't work well in SD
+        _REMOVE_TAGS = {"tall", "slim", "confident", "adult"}
+        tags = [t.strip() for t in char_tags_clean.split(",") if t.strip()]
+        # Resolve looking_away vs looking_at_viewer conflict
+        has_looking_away = any("looking_away" in t for t in tags)
+        filtered = [t for t in tags if t not in _REMOVE_TAGS]
+        if has_looking_away:
+            filtered = [t for t in filtered if "looking_at_viewer" not in t]
+            gaze = ""  # looking_away from character prompt
+        else:
+            gaze = "looking_at_viewer"
+        char_part = ", ".join(filtered)
+        gaze_part = f", {gaze}" if gaze else ""
+        full_prompt = f"masterpiece, best_quality, {char_part}, solo, upper_body{gaze_part}, simple_background"
         # LoRA 태그 주입 — ComfyUI 클라이언트가 파싱해서 워크플로우 노드로 적용
         if style_ctx and style_ctx.loras:
             for lora in style_ctx.loras:
@@ -163,8 +175,19 @@ async def regenerate_reference(
 
     # Resolve StyleProfile quality tags (Group → Config → StyleProfile.default_positive)
     quality_tags = _resolve_quality_tags_for_character(character, db)
-    # Build negative: always merge all layers (StyleProfile + character + DEFAULT)
-    neg_prompt = _build_reference_negative(style_ctx, None)
+
+    if SD_CLIENT_TYPE == "comfy":
+        # ComfyUI/SDXL: 간결한 negative (중복/weight 제거)
+        neg_prompt = (
+            "lowres, bad_anatomy, bad_hands, text, error, worst_quality, low_quality, "
+            "missing_fingers, extra_digit, extra_fingers, mutated_hands, poorly_drawn_hands, "
+            "poorly_drawn_face, deformed, extra_limbs, blurry, watermark, signature, "
+            "multiple_views, character_sheet, reference_sheet, "
+            "3d, realistic, photorealistic, detailed_background"
+        )
+    else:
+        # ForgeUI: 기존 negative 조합
+        neg_prompt = _build_reference_negative(style_ctx, None)
     # Merge character-specific negative on top
     if character.negative_prompt:
         existing = {t.strip() for t in neg_prompt.split(",")}
