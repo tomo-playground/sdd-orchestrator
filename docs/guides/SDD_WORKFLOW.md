@@ -357,3 +357,118 @@ Step 5. E2E      → Playwright (서버 실행 중일 때만)
 | 태스크 15개 미리 생성 | 관리 부채, 뭐가 진행 중인지 혼란 | 착수 직전 생성, current/ 8개 이하 |
 | sdd-sync `fix/` 브랜치 | sed가 feat/만 처리 → 크래시 | 모든 접두사 패턴 + grep 방어 |
 | 회고 교훈 memory에만 기록 | 같은 실수 반복 | Hook/CLAUDE.md에 하드코딩 |
+
+---
+
+## 상세 설계 규칙
+
+- **설계 미승인 상태에서 /sdd-run 실행 금지** — status가 `approved`가 아니면 거부
+- **설계 작성 주체는 AI** — 각 DoD 항목에 대해 구현방법/동작정의/엣지케이스/영향범위/테스트전략/Out of Scope 6가지 명시
+- **승인 주체는 사람** — 방향 확인, 수정 요청 가능
+- **버그 수정(Hotfix/Sentry)은 설계 생략 가능**
+
+### 설계 깊이 기준 (태스크 규모에 비례)
+
+| 조건 | 깊이 | 비고 |
+|------|------|------|
+| 변경 파일 <=3 + 신규 함수 없음 | **설계 생략** | `pending` -> 직접 `approved` |
+| 변경 파일 4~7 + DB/API 변경 없음 | **간소화** | 구현방법 + 테스트 전략만 |
+| 변경 파일 8+ 또는 DB/API 변경 | **풀 설계** | 6항목 전체 |
+
+### 자동 승인 조건 (오케스트레이터 전용)
+
+- 설계 생략 대상 -> 자동 `approved` -> 자동 `/sdd-run`
+- 간소화 대상 -> AI 설계 후 BLOCKER 없으면 자동 `approved`
+- 풀 설계 대상 -> **사람 승인 필수** (자동 승인 금지)
+
+---
+
+## 자율 실행 규칙
+
+- **자율 범위**: 승인된 설계 기반으로 구현 -> 테스트 -> 문서 동기화 -> 커밋 -> push -> PR 생성까지 풀 자율
+- **사용자 확인 금지**: "진행할까요?", "커밋할까요?" 등 묻지 않는다. 즉시 중단 조건에 해당하지 않으면 무조건 진행.
+- **AI TDD (RED->GREEN->Refactor)**: DoD 기반 실패 테스트 작성(RED) -> 구현(GREEN) -> 리팩토링. 수동 검증 항목 0개가 목표.
+- **문서 동기화**: 코드 파생 문서(API 명세, DB 스키마, 테스트 시나리오)만 함께 업데이트. 의사결정 문서는 사람이 작성.
+- **태스크 단위**: 변경 파일 10개 이하 목표
+- **불확실할 때**: 멈추지 말고 보수적인 선택
+- **즉시 중단 조건**: DB 스키마 변경, 외부 의존성 추가 -> task.md에 기록 후 중단
+- **완료 기준**: DoD 전체 달성 + ALL GREEN + 수동 항목 0개
+- **DoD 체크 의무**: PR 생성 직전에 DoD 체크리스트 `[x]` 업데이트. 미달성은 사유 기록.
+- **PR 생성 시**: frontmatter에서 label/reviewer/assignee 자동 설정
+- **PR 생성 직후**: `/code-review:code-review {PR번호}` 셀프 리뷰
+- **PR 전 리베이스**: push 전 `git rebase main`. 충돌 시 자율 해결, 불가하면 보고.
+- **PR 코멘트 대응**: 시니어 엔지니어 판단. 버그->즉시 수정, 설계 제안->CLAUDE.md 대조 후 판단, Nit->합리적이면 수정
+- **머지 전 WARNING 체크**: 미해결 WARNING 잔존 시 수정 후 머지 권고
+
+---
+
+## Hotfix 워크플로우 (사용자 보고 버그)
+
+태스크 파일 없이 빠르게 수정:
+
+1. `fix/간단설명` 브랜치 생성
+2. 수정 -> 린트 -> 테스트 통과
+3. PR 생성 (`--label "bug"` + `--assignee stopper2008`)
+4. PR 직후 `/code-review:code-review {PR번호}` 실행
+5. 리뷰 통과 후 머지
+
+**일반 SDD와 차이점**: task.md 생략, backlog 등록 불필요. 나머지(브랜치, 품질 게이트, PR 메타, 코드 리뷰) 동일.
+
+---
+
+## 세션 부팅 프로토콜
+
+**첫 응답 시 반드시 아래를 자동 수행한 후 대화를 시작한다:**
+
+### Phase 1: 동기화
+1. `git pull --ff-only` -> main 최신화 (실패 시 rebase 시도)
+2. `git branch --show-current` -> 현재 브랜치
+3. feat 브랜치면 SP-NNN 매칭 태스크 자동 로드
+
+### Phase 2: 능동 점검
+4. `gh run list --limit 5` -> 실패/stuck Actions 감지
+5. `gh pr list --state open` -> 리뷰 필요한 PR 감지
+6. 서비스 상태 체크 (`curl localhost:8000/8001/3000`)
+7. `.claude/tasks/current/` -> 실행 중 태스크 + depends_on 충족 여부
+8. `.claude/tasks/backlog.md` -> 상위 3개 대기 태스크
+9. 좀비 워크트리/브랜치 감지
+
+### Phase 3: 대시보드 출력
+
+```
+SDD Dashboard
+---
+Branch: main
+Services: Backend OK | Frontend OK | Audio OK
+Actions: 1 failed (sdd-sync #123)
+Current: SP-019 (depends_on: SP-018 done)
+Backlog Top 3: ...
+Open PRs: #64 (리뷰 필요)
+Sentry Issues: 3 open
+Zombies: 0
+```
+
+> **원칙**: 세션 시작 시 문제를 능동적으로 발견하고, 해결 액션을 제안하거나 직접 실행한다.
+
+> **매칭 규칙**: 브랜치에서 `SP-NNN` 추출 -> `.claude/tasks/current/SP-NNN_*/spec.md` (fallback: 레거시 파일)
+
+---
+
+## 세션 종료 프로토콜
+
+### 1. 세션 요약
+- 완료한 PR/태스크, 해결한 블로커, 새로 발견한 이슈
+
+### 2. 회고 (Keep / Problem / Try)
+- **Keep**: 잘 된 것
+- **Problem**: 문제 + 근본 원인
+- **Try**: 다음 세션 구체적 개선 액션
+
+### 3. 저장
+- 교훈 -> `memory/feedback_sdd_retrospective_*.md`
+- 회고 -> `.claude/retrospectives/YYYY-MM-DD.md`
+
+### 4. 다음 세션 준비
+- 최우선 착수 항목, 블로커/의존성, 서버 상태
+
+> **원칙**: 회고는 기록이 아니라 다음 행동을 바꾸기 위한 것.
