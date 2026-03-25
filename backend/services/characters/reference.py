@@ -146,8 +146,21 @@ async def regenerate_reference(
         char_tags = character.positive_prompt or ""
         # Strip weight emphasis: (tag:1.3) → tag
         char_tags_clean = re.sub(r"\(([^:()]+):[0-9.]+\)", r"\1", char_tags)
-        # Remove abstract/conflicting tags that don't work well in SD
-        _REMOVE_TAGS = {"tall", "slim", "confident", "adult"}
+        # Remove abstract/conflicting/unnecessary tags for upper_body reference
+        _REMOVE_TAGS = {
+            "tall",
+            "slim",
+            "confident",
+            "adult",  # 추상적
+            "tote_bag",
+            "backpack",
+            "bag",  # 소품 (upper_body에 불필요)
+            "pleated_skirt",
+            "skirt",
+            "pants",
+            "jeans",
+            "shorts",  # 하의 (upper_body에 안 보임)
+        }
         tags = [t.strip() for t in char_tags_clean.split(",") if t.strip()]
         # Resolve looking_away vs looking_at_viewer conflict
         has_looking_away = any("looking_away" in t for t in tags)
