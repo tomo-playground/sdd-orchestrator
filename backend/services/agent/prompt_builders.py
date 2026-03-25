@@ -192,6 +192,7 @@ from services.agent.prompt_builders_writer import (  # noqa: E402, F401
     build_scene_range_text,
     build_scriptwriter_characters_block,
     build_sound_emotional_arc_section,
+    build_story_materials_section,
     build_structure_rules_block,
     build_tts_characters_block,
 )

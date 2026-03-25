@@ -21,6 +21,7 @@ from models.render_preset import RenderPreset
 from models.scene import Scene
 from models.scene_quality import SceneQualityScore
 from models.sd_model import Embedding, SDModel, StyleProfile
+from models.story_card import StoryCard
 from models.storyboard import Storyboard
 from models.storyboard_character import StoryboardCharacter
 from models.tag import ClassificationRule, Tag, TagEffectiveness, TagRule
@@ -63,4 +64,5 @@ __all__ = [
     "CreativeSession",
     "CreativeSessionRound",
     "CreativeTrace",
+    "StoryCard",
 ]

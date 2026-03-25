@@ -175,6 +175,8 @@ class ScriptState(TypedDict, total=False):
     research_tool_logs: list[dict] | None  # Phase 10-B-2: Tool-Calling 로그
     research_score: ResearchScore | None  # 규칙 기반 품질 점수
     research_retry_count: int  # Research 재실행 횟수
+    used_story_card_ids: list[int] | None  # SP-075: Research 도구가 선택한 소재 카드 ID
+    story_materials: list[dict] | None  # SP-075: Writer에 주입할 소재 카드 dict 목록
     learn_result: dict | None
 
     # Review 결과

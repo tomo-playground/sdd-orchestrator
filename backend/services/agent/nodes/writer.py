@@ -190,6 +190,13 @@ async def writer_node(state: ScriptState) -> dict:
         else:
             pipeline_ctx["research_brief"] = research_brief
 
+    # SP-075: story_materials (Research 노드가 반환한 소재 카드 목록)
+    story_materials = state.get("story_materials")
+    if story_materials:
+        from services.agent.prompt_builders import build_story_materials_section
+
+        pipeline_ctx["story_materials"] = build_story_materials_section(story_materials)
+
     # 12-B-1: Director Plan 컨텍스트 주입
     director_ctx = build_director_context(state)
     if director_ctx:

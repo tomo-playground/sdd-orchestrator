@@ -225,3 +225,25 @@ def build_scene_range_text(duration: int, structure: str) -> str:
             min_s = round(duration / 3)
             max_s = round(duration / 2)
     return f"{min_s}-{max_s}"
+
+
+def build_story_materials_section(materials: list[dict] | None) -> str:
+    """소재 카드를 Writer 프롬프트용 텍스트로 포맷팅한다."""
+    if not materials:
+        return ""
+    parts = ["## Story Materials (검증된 소재 — 반드시 활용하세요)"]
+    for i, m in enumerate(materials, 1):
+        parts.append(f"\n### Material {i}: {m.get('title', '')}")
+        if m.get("situation"):
+            parts.append(f"- Situation: {m['situation']}")
+        if m.get("hook_angle"):
+            parts.append(f"- Hook Angle: {m['hook_angle']}")
+        if m.get("key_moments"):
+            moments = ", ".join(str(k) for k in m["key_moments"])
+            parts.append(f"- Key Moments: {moments}")
+        if m.get("emotional_arc"):
+            parts.append(f"- Emotional Arc: {m['emotional_arc']}")
+        if m.get("empathy_details"):
+            details = ", ".join(str(d) for d in m["empathy_details"])
+            parts.append(f"- Empathy Details: {details}")
+    return "\n".join(parts)

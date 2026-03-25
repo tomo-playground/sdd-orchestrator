@@ -1,8 +1,8 @@
 # Database Schema Summary
 
-Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.36) 참조.
+Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.37) 참조.
 
-> **Last Synced:** 2026-03-24 (DB_SCHEMA v3.36 기준)
+> **Last Synced:** 2026-03-24 (DB_SCHEMA v3.37 기준)
 
 ---
 
@@ -22,6 +22,14 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `render_preset_id` (FK → render_presets, SET NULL), `style_profile_id` (FK → style_profiles, SET NULL), `narrator_voice_preset_id` (FK → voice_presets, SET NULL)
 - `deleted_at` (Soft Delete)
 - @property: `render_preset_name`, `style_profile_name`, `voice_preset_name`, `character_count`
+- relationships: `storyboards`, `characters`, `story_cards`
+
+### `story_cards` — 시리즈별 대본 소재 풀
+- `id` (PK), `group_id` (FK → groups, RESTRICT, NOT NULL), `cluster` (String(100), nullable)
+- `title` (String(300), NOT NULL), `status` (`unused`/`used`/`retired`, default: `"unused"`)
+- **소재 본문**: `situation` (Text), `hook_angle` (Text), `key_moments` (JSONB), `emotional_arc` (JSONB), `empathy_details` (JSONB), `characters_hint` (JSONB)
+- **메타**: `hook_score` (Float, nullable), `used_in_storyboard_id` (FK → storyboards, SET NULL), `used_at` (DateTime)
+- `deleted_at` (Soft Delete)
 
 ### `storyboards` — 개별 에피소드
 - `id` (PK), `group_id` (FK → groups, RESTRICT), `title`, `description`

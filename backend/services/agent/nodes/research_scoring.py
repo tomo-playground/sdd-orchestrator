@@ -13,8 +13,8 @@ from services.agent.state import ResearchScore, ScriptState
 _EXCLUDED_TOOLS = {"analyze_trending"}
 
 # source_diversity 계산 시 유효 도구 수 (analyze_trending 제외)
-# search_topic_history, search_character_history, fetch_url_content, get_group_dna
-_VALID_TOOL_COUNT = 4
+# search_topic_history, search_character_history, fetch_url_content, get_group_dna, get_story_cards
+_VALID_TOOL_COUNT = 5
 
 # 실패 판별 키워드 (result 문자열에 포함 시 실패로 간주)
 _FAILURE_KEYWORDS = ("없음", "실패", "가져오기 실패", "이력 없음", "DNA 없음")

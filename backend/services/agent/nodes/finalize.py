@@ -1651,6 +1651,17 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         if character_id or character_b_id:
             _populate_character_actions(scenes, character_id, character_b_id, db_session)
 
+        # SP-075: 소재 카드 사용 완료 처리
+        used_card_ids = state.get("used_story_card_ids")
+        if used_card_ids:
+            try:
+                from services.story_card import mark_cards_as_used  # noqa: PLC0415
+
+                mark_cards_as_used(db_session, used_card_ids)
+                logger.info("[Finalize] 소재 카드 %d개 used 처리", len(used_card_ids))
+            except Exception:
+                logger.warning("[Finalize] 소재 카드 used 처리 실패 (non-fatal)", exc_info=True)
+
     # Phase 38: LangFuse Score 기록 (파이프라인 완료 시점)
     record_score("revision_count", state.get("revision_count", 0))
     record_score("scene_count", len(scenes))
@@ -1666,6 +1677,10 @@ async def finalize_node(state: ScriptState, config: RunnableConfig) -> dict:
         "sound_recommendation": sound_rec,
         "copyright_result": copyright_result,
     }
+    # SP-075: Research에서 선택된 소재 카드 ID 패스스루
+    used_card_ids = state.get("used_story_card_ids")
+    if used_card_ids:
+        result["used_story_card_ids"] = used_card_ids
     if tts_fallback_reason:
         result["warnings"] = [
             f"TTS Designer 실패: voice design이 누락되어 기본 음성으로 생성됩니다. ({tts_fallback_reason})"

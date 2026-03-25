@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from models.project import Project
     from models.render_preset import RenderPreset
     from models.sd_model import StyleProfile
+    from models.story_card import StoryCard
     from models.storyboard import Storyboard
     from models.voice_preset import VoicePreset
 
@@ -47,6 +48,7 @@ class Group(Base, TimestampMixin, SoftDeleteMixin):
     project: Mapped[Project] = relationship("Project", back_populates="groups")
     characters: Mapped[list[Character]] = relationship("Character", back_populates="group")
     storyboards: Mapped[list[Storyboard]] = relationship("Storyboard", back_populates="group")
+    story_cards: Mapped[list[StoryCard]] = relationship("StoryCard", back_populates="group")
     render_preset: Mapped[RenderPreset | None] = relationship(
         "RenderPreset",
         lazy="joined",

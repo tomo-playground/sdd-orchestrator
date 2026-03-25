@@ -9,7 +9,7 @@ from typing import Any
 
 from google.genai import types
 from langgraph.store.base import BaseStore
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from config import pipeline_logger as logger
 
@@ -77,6 +77,25 @@ def get_research_tools() -> list[types.Tool]:
             },
             required=["topic", "language"],
         ),
+        define_tool(
+            name="get_story_cards",
+            description="시리즈(그룹)에 등록된 미사용 소재 카드를 조회합니다. 대본 작성 시 검증된 소재를 활용할 수 있습니다.",
+            parameters={
+                "group_id": {
+                    "type": "integer",
+                    "description": "그룹(시리즈) ID",
+                },
+                "topic": {
+                    "type": "string",
+                    "description": "현재 주제 (시맨틱 매칭용, 선택)",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "조회 개수 (기본값: 10)",
+                },
+            },
+            required=["group_id"],
+        ),
     ]
 
 
@@ -103,7 +122,7 @@ async def _search_namespace(store: BaseStore, namespace: tuple, limit: int = 5) 
 
 def create_research_executors(
     store: BaseStore,
-    db: AsyncSession,
+    db: Session,
     state: dict[str, Any],
 ) -> dict[str, Any]:
     """Research Agent용 도구 실행 함수 맵을 생성한다.
@@ -154,9 +173,67 @@ def create_research_executors(
         # Placeholder: 현재는 간단한 휴리스틱 반환
         return f"[트렌딩 분석] '{topic}'는 {language} 콘텐츠에서 꾸준한 관심 주제입니다. Hook에 질문형 구조를 사용하면 효과적입니다."
 
+    async def get_story_cards(group_id: int, topic: str = "", limit: int = 10) -> str:
+        """시리즈 소재 카드 조회. 선택된 카드 ID를 state에 기록한다."""
+        from models.story_card import StoryCard
+
+        try:
+            cards = (
+                db.query(StoryCard)
+                .filter(
+                    StoryCard.group_id == group_id,
+                    StoryCard.status == "unused",
+                    StoryCard.deleted_at.is_(None),
+                )
+                .order_by(StoryCard.hook_score.desc().nullslast(), StoryCard.created_at.desc())
+                .limit(limit)
+                .all()
+            )
+        except Exception as e:
+            logger.warning("[ResearchTool] 소재 카드 조회 실패: %s", e)
+            return "[소재 카드] 조회 실패"
+
+        if not cards:
+            return "[소재 카드] 미사용 소재 없음"
+
+        # 소재를 포맷팅하여 반환
+        card_ids = [c.id for c in cards]
+        parts = [f"[소재 카드] {len(cards)}개 미사용 소재:"]
+        for c in cards:
+            parts.append(f"\n### {c.title} (score: {c.hook_score or 'N/A'})")
+            if c.situation:
+                parts.append(f"  상황: {c.situation}")
+            if c.hook_angle:
+                parts.append(f"  후크: {c.hook_angle}")
+            if c.key_moments:
+                parts.append(f"  핵심: {', '.join(str(k) for k in c.key_moments)}")
+
+        # state에 카드 ID 기록 (Writer → Finalize → storyboard save 시 활용)
+        existing_ids = state.get("used_story_card_ids") or []
+        state["used_story_card_ids"] = existing_ids + card_ids
+
+        # state에 카드 dict 기록 (Writer 프롬프트 빌더용)
+        card_dicts = [
+            {
+                "title": c.title,
+                "situation": c.situation,
+                "hook_angle": c.hook_angle,
+                "key_moments": c.key_moments,
+                "emotional_arc": c.emotional_arc,
+                "empathy_details": c.empathy_details,
+            }
+            for c in cards
+        ]
+        existing_cards = state.get("story_materials") or []
+        state["story_materials"] = existing_cards + card_dicts
+
+        logger.info("[ResearchTool] 소재 카드 %d개 조회 (group_id=%d)", len(cards), group_id)
+        return "\n".join(parts)
+
     return {
         "search_topic_history": search_topic_history,
         "search_character_history": search_character_history,
         "fetch_url_content": fetch_url_content,
         "analyze_trending": analyze_trending,
+        "get_story_cards": get_story_cards,
     }

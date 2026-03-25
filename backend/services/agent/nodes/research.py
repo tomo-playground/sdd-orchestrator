@@ -333,6 +333,7 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
     prompt_parts.append("- 사용자가 URL을 제공했을 때만 fetch_url_content를 호출하세요.")
     prompt_parts.append("- 트렌딩 분석은 최신 이슈/인기 주제일 때만 유용합니다.")
     prompt_parts.append("- 그룹 ID가 있고 채널 톤/세계관이 중요하다면 get_group_dna를 호출하세요.")
+    prompt_parts.append("- 그룹 ID가 있고 검증된 소재가 필요하면 get_story_cards를 호출하세요.")
     prompt_parts.append("")
     prompt_parts.append("수집한 정보를 바탕으로 대본 작성에 도움이 되는 research brief를 작성하세요.")
     prompt_parts.append(_STRUCTURED_BRIEF_INSTRUCTION)
@@ -368,12 +369,19 @@ async def _run_research(state: ScriptState, store: BaseStore, db_session: object
         # Score 기록 (Phase 38)
         record_score("research_quality", score.get("overall") if score else None, observation_id=obs_id)
 
-        return {
+        result: dict = {
             "research_brief": structured_brief,
             "research_tool_logs": tool_logs,
             "research_score": score,
             "research_retry_count": state.get("research_retry_count", 0) + 1,
         }
+        # SP-075: get_story_cards 도구가 state에 직접 기록한 값을 반환 dict에 포함
+        # (LangGraph는 노드 반환값만 state update로 처리하므로 직접 변이는 전파되지 않음)
+        if state.get("used_story_card_ids"):
+            result["used_story_card_ids"] = state["used_story_card_ids"]
+        if state.get("story_materials"):
+            result["story_materials"] = state["story_materials"]
+        return result
 
     except Exception as e:
         logger.error("[Research] Tool-Calling 실패: %s", e)

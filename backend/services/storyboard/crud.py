@@ -159,6 +159,12 @@ def save_storyboard_to_db(db: Session, request: StoryboardSave) -> dict:
         ) from e
     db.refresh(db_storyboard)
 
+    # SP-075: 파이프라인에서 사용된 소재 카드 status → "used" 전환
+    if request.used_story_card_ids:
+        from services.story_card import mark_cards_as_used
+
+        mark_cards_as_used(db, request.used_story_card_ids, db_storyboard.id)
+
     scenes_sorted = sorted(db_storyboard.scenes, key=lambda s: s.order)
     scene_ids = [scene.id for scene in scenes_sorted]
     client_ids = [scene.client_id for scene in scenes_sorted]

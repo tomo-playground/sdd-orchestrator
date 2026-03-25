@@ -17,10 +17,10 @@ from services.agent.tools.research_tools import (
 # ── 도구 정의 테스트 ──────────────────────────────────────
 
 
-def test_get_research_tools_returns_4_tools():
-    """4개 도구가 정의되어야 한다."""
+def test_get_research_tools_returns_5_tools():
+    """5개 도구가 정의되어야 한다."""
     tools = get_research_tools()
-    assert len(tools) == 4
+    assert len(tools) == 5
 
     tool_names = []
     for tool in tools:
@@ -33,6 +33,7 @@ def test_get_research_tools_returns_4_tools():
         "search_character_history",
         "fetch_url_content",
         "analyze_trending",
+        "get_story_cards",
     ]
     assert set(tool_names) == set(expected)
 
@@ -58,14 +59,13 @@ async def test_search_topic_history_executor():
     """토픽 히스토리 검색 실행 함수."""
     mock_store = AsyncMock(spec=BaseStore)
     mock_db = AsyncMock()
-    state = {"topic": "외로움", "language": "korean"}
 
     # Store에서 히스토리 반환
     mock_item = MagicMock()
     mock_item.value = {"topic": "외로움", "success": True}
     mock_store.asearch.return_value = [mock_item]
 
-    executors = create_research_executors(mock_store, mock_db, state)
+    executors, _, _ = create_research_executors(mock_store, mock_db)
     result = await executors["search_topic_history"](topic="외로움", limit=5)
 
     assert "[토픽 히스토리]" in result
@@ -77,11 +77,10 @@ async def test_search_topic_history_no_history():
     """히스토리가 없을 때."""
     mock_store = AsyncMock(spec=BaseStore)
     mock_db = AsyncMock()
-    state = {}
 
     mock_store.asearch.return_value = []
 
-    executors = create_research_executors(mock_store, mock_db, state)
+    executors, _, _ = create_research_executors(mock_store, mock_db)
     result = await executors["search_topic_history"](topic="새 주제", limit=5)
 
     assert "과거 이력 없음" in result
@@ -92,13 +91,12 @@ async def test_search_character_history_executor():
     """캐릭터 히스토리 검색 실행 함수."""
     mock_store = AsyncMock(spec=BaseStore)
     mock_db = AsyncMock()
-    state = {}
 
     mock_item = MagicMock()
     mock_item.value = {"character_id": 1, "tone": "친근함"}
     mock_store.asearch.return_value = [mock_item]
 
-    executors = create_research_executors(mock_store, mock_db, state)
+    executors, _, _ = create_research_executors(mock_store, mock_db)
     result = await executors["search_character_history"](character_id=1, limit=5)
 
     assert "[캐릭터 히스토리]" in result
@@ -109,9 +107,8 @@ async def test_fetch_url_content_executor():
     """URL 콘텐츠 fetch 실행 함수."""
     mock_store = AsyncMock(spec=BaseStore)
     mock_db = AsyncMock()
-    state = {}
 
-    executors = create_research_executors(mock_store, mock_db, state)
+    executors, _, _ = create_research_executors(mock_store, mock_db)
 
     # _fetch_url 모킹
     with patch("services.agent.nodes.research._fetch_url", return_value="테스트 콘텐츠"):
@@ -126,9 +123,8 @@ async def test_fetch_url_content_failure():
     """URL fetch 실패 시."""
     mock_store = AsyncMock(spec=BaseStore)
     mock_db = AsyncMock()
-    state = {}
 
-    executors = create_research_executors(mock_store, mock_db, state)
+    executors, _, _ = create_research_executors(mock_store, mock_db)
 
     with patch("services.agent.nodes.research._fetch_url", return_value=None):
         result = await executors["fetch_url_content"](url="https://example.com")
@@ -141,9 +137,8 @@ async def test_analyze_trending_executor():
     """트렌딩 분석 실행 함수 (현재는 placeholder)."""
     mock_store = AsyncMock(spec=BaseStore)
     mock_db = AsyncMock()
-    state = {}
 
-    executors = create_research_executors(mock_store, mock_db, state)
+    executors, _, _ = create_research_executors(mock_store, mock_db)
     result = await executors["analyze_trending"](topic="AI", language="korean")
 
     assert "[트렌딩 분석]" in result

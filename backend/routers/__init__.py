@@ -22,6 +22,8 @@ from .projects import router as projects_router
 from .scene import router as scene_router
 from .scripts import router as scripts_router
 from .stage import router as stage_router
+from .story_cards import group_scoped_router as story_cards_grp
+from .story_cards import item_router as story_cards_item
 from .storyboard import admin_router as storyboard_adm
 from .storyboard import router as storyboard_router
 from .video import router as video_router
@@ -38,6 +40,8 @@ for _r in [
     stage_router,
     controlnet_svc,
     preview_svc,
+    story_cards_grp,
+    story_cards_item,
 ]:
     service_app_router.include_router(_r)
 

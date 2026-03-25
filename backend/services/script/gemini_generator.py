@@ -372,6 +372,7 @@ async def generate_script(request, db: Session | None = None, pipeline_context: 
                 "Reference Information",
                 ctx.get("research_brief"),
             ),
+            "story_materials_section": ctx.get("story_materials") or "",
             "writer_plan_section": build_optional_text_section(
                 "Writer Plan",
                 ctx.get("writer_plan"),

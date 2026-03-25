@@ -247,6 +247,7 @@ class StoryboardSave(StoryboardBase):
     bgm_mood: str | None = None  # Sound Designer recommendation.mood
     casting_recommendation: CastingRecommendationSchema | None = None
     scenes: list[StoryboardScene]
+    used_story_card_ids: list[int] | None = None  # SP-075: 파이프라인에서 사용된 소재 카드 ID
 
 
 class StoryboardDraftRequest(BaseModel):
@@ -3135,3 +3136,70 @@ class PreValidateResponse(BaseModel):
     total_duration: float | None = None
     cached_tts_count: int = 0
     total_scenes: int = 0
+
+
+# ============================================================
+# Story Card Schemas
+# ============================================================
+
+
+class StoryCardCreate(BaseModel):
+    """POST /groups/{group_id}/story-cards — 소재 카드 생성."""
+
+    cluster: str | None = None
+    title: str = Field(max_length=300)
+    situation: str | None = None
+    hook_angle: str | None = None
+    key_moments: list[str] | None = None
+    emotional_arc: dict | None = None
+    empathy_details: list[str] | None = None
+    characters_hint: dict | None = None
+
+
+class StoryCardUpdate(BaseModel):
+    """PATCH /story-cards/{id} — 소재 카드 수정."""
+
+    cluster: str | None = None
+    title: str | None = Field(default=None, max_length=300)
+    status: str | None = Field(default=None, pattern=r"^(unused|used|retired)$")
+    situation: str | None = None
+    hook_angle: str | None = None
+    key_moments: list[str] | None = None
+    emotional_arc: dict | None = None
+    empathy_details: list[str] | None = None
+    characters_hint: dict | None = None
+
+
+class StoryCardResponse(BaseModel):
+    """소재 카드 응답."""
+
+    id: int
+    group_id: int
+    cluster: str | None = None
+    title: str
+    status: str
+    situation: str | None = None
+    hook_angle: str | None = None
+    key_moments: list[str] | None = None
+    emotional_arc: dict | None = None
+    empathy_details: list[str] | None = None
+    characters_hint: dict | None = None
+    hook_score: float | None = None
+    used_in_storyboard_id: int | None = None
+    used_at: datetime | None = None
+    created_at: datetime | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StoryCardGenerateRequest(BaseModel):
+    """POST /groups/{group_id}/story-cards/generate — Gemini 소재 대량 생성."""
+
+    cluster: str = Field(max_length=100)
+    count: int = Field(default=5, ge=1, le=20)
+
+
+class StoryCardListResponse(BaseModel):
+    """소재 카드 목록 응답."""
+
+    items: list[StoryCardResponse]
+    total: int

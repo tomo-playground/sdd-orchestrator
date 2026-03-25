@@ -1,4 +1,4 @@
-# Database Schema (v3.36)
+# Database Schema (v3.37)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.37 | 2026-03-24 | SP-075: `story_cards` 테이블 신규 추가. `groups`에 `story_cards` relationship 추가 |
 | v3.36 | 2026-03-24 | SP-021 Speaker ID 정규화: `scenes.speaker` default `"Narrator"` → `"narrator"`, 데이터 변환 (`A`→`speaker_1`, `B`→`speaker_2`, `Narrator`→`narrator`). `storyboard_characters.speaker` 동일 변환 |
 | v3.35 | 2026-03-23 | SP-073 Dead Feature Cleanup: `activity_logs`에서 Gemini 자동편집 4컬럼 제거(`gemini_edited`, `gemini_cost_usd`, `original_match_rate`, `final_match_rate`). `loras`에서 `gender_locked`, `optimal_weight`, `calibration_score`, `civitai_id` 컬럼 + `idx_loras_civitai` 인덱스 제거. `tags`에서 `thumbnail_asset_id` 컬럼 + `_thumbnail_asset` 관계 + `thumbnail_url` 프로퍼티 제거 |
 | v3.34 | 2026-03-23 | 문서 최신화: `storyboards`에 `tone`/`bgm_prompt`/`bgm_mood` 추가, `scenes`에 `tts_asset_id` 추가 + `width`/`height` 기본값 수정, `scene_quality_scores`에 `identity_score`/`identity_tags_detected` 추가, `backgrounds` 인덱스명 수정, `lab_experiments` 삭제 테이블 문서 제거, `characters.reference_images` 잔존 기록 정리. 유령 항목 정리: `loras` Multi-Character 3컬럼 제거(DB DROP 완료), `storyboards.bgm_audio_url` @property 제거(미구현), `loras.is_active` 추가. `scenes.multi_gen_enabled` 설명 보강. MEDIUM 12건 수정: `groups` deleted_at+@property 추가, `scenes` FK/nullable/길이 보강, `storyboard_characters` UniqueConstraint+FK 명시, `tags`/`tag_effectiveness` timestamps 추가, `activity_logs` NOT NULL 명시, `style_profiles` default 명시, `youtube_credentials` nullable/default 명시 |
@@ -32,9 +33,12 @@ erDiagram
     projects }o--o| media_assets : "avatar"
 
     groups ||--o{ storyboards : "contains"
+    groups ||--o{ story_cards : "owns"
     groups }o--o| render_presets : "preset"
     groups }o--o| style_profiles : "style"
     groups }o--o| voice_presets : "narrator"
+
+    story_cards }o--o| storyboards : "used_in"
 
     storyboards ||--o{ scenes : "has"
     storyboards ||--o{ storyboard_characters : "maps_speakers"
@@ -132,6 +136,38 @@ YouTube 채널 단위. 채널별 설정 및 Cascading Config 최상위 레벨.
 - `style_profile_name` (`@property`): 스타일 프로파일명
 - `voice_preset_name` (`@property`): 나레이터 음성 프리셋명
 - `character_count` (`@property`): 소속 캐릭터 수
+
+**Relationships**: `storyboards`, `characters`, `story_cards`, `render_preset`, `style_profile`, `narrator_voice_preset`
+
+### `story_cards`
+시리즈(Group)별 대본 소재 풀. Research 노드가 수집한 미사용 소재를 Writer 노드에 주입하여 대본 품질을 향상시킨다.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | Integer (PK) | |
+| `group_id` | Integer (FK → groups, RESTRICT), NOT NULL | 소속 시리즈 |
+| `cluster` | String(100), nullable | 소재 클러스터 분류 (예: "직장 갈등", "가족 관계") |
+| `title` | String(300), NOT NULL | 소재 제목 |
+| `status` | String(20), NOT NULL, default: `"unused"` | 사용 상태. `unused` / `used` / `retired`. CHECK 제약 있음 |
+| **소재 본문** | | |
+| `situation` | Text, nullable | 핵심 상황 설명 |
+| `hook_angle` | Text, nullable | 훅 포인트 각도 |
+| `key_moments` | JSONB, nullable | 핵심 전개 포인트 목록 |
+| `emotional_arc` | JSONB, nullable | 감정 변화 흐름 `{"start": "...", "peak": "...", "end": "..."}` |
+| `empathy_details` | JSONB, nullable | 공감 포인트 상세 목록 |
+| `characters_hint` | JSONB, nullable | 등장인물 힌트 `{"main": "...", "sub": "..."}` |
+| **메타** | | |
+| `hook_score` | Float, nullable | AI 평가 훅 점수 (0.0~1.0) |
+| `used_in_storyboard_id` | Integer (FK → storyboards, SET NULL), nullable | 실제 사용된 스토리보드 |
+| `used_at` | DateTime, nullable | 사용된 시각 |
+| `deleted_at` | DateTime | Soft Delete 타임스탬프 |
+| `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**인덱스**: `group_id` (btree), `status` (btree), `used_in_storyboard_id` (btree), `deleted_at` (btree)
+
+**FK 정책**:
+- `group_id → groups`: RESTRICT (그룹 삭제 전 소재 카드 먼저 정리 필요)
+- `used_in_storyboard_id → storyboards`: SET NULL (스토리보드 삭제 시 참조만 해제, 소재 카드는 보존)
 
 ### `storyboards`
 YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
