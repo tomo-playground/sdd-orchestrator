@@ -45,9 +45,11 @@ class ForgeClient(SDClientBase):
 
     async def txt2img(self, payload: dict, timeout: float | None = None) -> SDTxt2ImgResult:
         """Generate image from text prompt via Forge /sdapi/v1/txt2img."""
+        # Strip ComfyUI-only hint without mutating caller's dict
+        send_payload = {k: v for k, v in payload.items() if k != "_comfy_workflow"}
         t = timeout or self._timeout
         client = self._get_client()
-        resp = await client.post("/sdapi/v1/txt2img", json=payload, timeout=t)
+        resp = await client.post("/sdapi/v1/txt2img", json=send_payload, timeout=t)
         resp.raise_for_status()
         data = resp.json()
 

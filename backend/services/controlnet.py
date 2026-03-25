@@ -826,7 +826,10 @@ async def generate_reference_for_character(
             "height": SD_DEFAULT_WIDTH,  # Square for IP-Adapter reference
             "cfg_scale": cfg_scale,
             "seed": random.randint(0, 2**32 - 1) if attempt > 0 else -1,
+            "_comfy_workflow": "reference",  # ComfyUI workflow hint (ignored by ForgeClient)
         }
+        if style_ctx and style_ctx.sd_model_name:
+            payload["override_settings"] = {"sd_model_checkpoint": style_ctx.sd_model_name}
         apply_sampler_to_payload(payload, sampler_name)
 
         logger.info(f"🎨 [{attempt + 1}/{max_attempts}] Generating reference for {character.name}...")

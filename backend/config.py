@@ -154,6 +154,12 @@ SD_CLIENT_TYPE = os.getenv("SD_CLIENT_TYPE", "forge")  # "forge" | "comfy"
 if SD_BASE_URL == "http://127.0.0.1:7860":
     logger.info("Using default SD_BASE_URL: %s", SD_BASE_URL)
 
+# --- ComfyUI ---
+COMFYUI_BASE_URL = os.getenv("COMFYUI_BASE_URL", "http://127.0.0.1:8188")
+COMFYUI_NETWORK_TIMEOUT = float(os.getenv("COMFYUI_NETWORK_TIMEOUT", "10"))
+COMFYUI_EXECUTION_TIMEOUT = float(os.getenv("COMFYUI_EXECUTION_TIMEOUT", "180"))
+COMFYUI_QUEUE_TIMEOUT = float(os.getenv("COMFYUI_QUEUE_TIMEOUT", "300"))
+
 # --- Audio Server (Qwen3-TTS + MusicGen 통합 사이드카) ---
 AUDIO_SERVER_URL = os.getenv("AUDIO_SERVER_URL", "http://127.0.0.1:8001")
 AUDIO_TIMEOUT_SECONDS = float(os.getenv("AUDIO_TIMEOUT_SECONDS", "180"))

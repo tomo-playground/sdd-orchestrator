@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 
 from services.sd_client.types import SDProgressResult, SDTxt2ImgResult
 
-__all__ = ["SDClientBase", "SDProgressResult", "SDTxt2ImgResult", "get_sd_client", "reset_sd_client"]
+__all__ = ["SDClientBase", "SDProgressResult", "SDTxt2ImgResult", "get_sd_client", "close_sd_client", "reset_sd_client"]
 
 
 def get_sd_client() -> SDClientBase:
@@ -17,6 +17,13 @@ def get_sd_client() -> SDClientBase:
     from services.sd_client.factory import get_sd_client as _get
 
     return _get()
+
+
+async def close_sd_client() -> None:
+    """Convenience re-export from factory."""
+    from services.sd_client.factory import close_sd_client as _close
+
+    await _close()
 
 
 def reset_sd_client() -> None:
@@ -28,6 +35,9 @@ def reset_sd_client() -> None:
 
 class SDClientBase(ABC):
     """Abstract base class for SD backend clients."""
+
+    async def close(self) -> None:  # noqa: B027
+        """Close client resources. Override in subclasses with connection pools."""
 
     @abstractmethod
     async def txt2img(self, payload: dict, timeout: float | None = None) -> SDTxt2ImgResult:

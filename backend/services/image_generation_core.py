@@ -187,6 +187,7 @@ async def generate_image_with_v3(
         "width": sd_params.get("width", SD_DEFAULT_WIDTH) if sd_params else SD_DEFAULT_WIDTH,
         "height": sd_params.get("height", SD_DEFAULT_HEIGHT) if sd_params else SD_DEFAULT_HEIGHT,
         "seed": sd_params.get("seed", -1) if sd_params else -1,
+        "_comfy_workflow": "scene_single",  # ComfyUI workflow hint (ignored by ForgeClient)
     }
     apply_sampler_to_payload(payload, sampler_name)
 

@@ -176,10 +176,12 @@ class TestFactory:
             with pytest.raises(ValueError, match="Unknown SD_CLIENT_TYPE"):
                 get_sd_client()
 
-    def test_comfy_not_implemented(self):
+    def test_comfy_returns_comfy_client(self):
         with patch("services.sd_client.factory.SD_CLIENT_TYPE", "comfy"):
-            with pytest.raises(NotImplementedError, match="SP-022"):
-                get_sd_client()
+            client = get_sd_client()
+            from services.sd_client.comfyui import ComfyUIClient
+
+            assert isinstance(client, ComfyUIClient)
 
 
 # ============================================================

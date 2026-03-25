@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-022-comfyui-migration
 created: 2026-03-24
-status: approved
+status: running
 approved_at: 2026-03-24
 depends_on: SP-077
 label: feat
@@ -20,33 +20,33 @@ ForgeUI → ComfyUI 점진적 전환. SD Client 추상화 + ComfyUI 워크플로
 
 ## 완료 기준 (DoD)
 
-### Phase A: SD Client 추상화
-- [ ] `services/sd_client/base.py` — `SDClientBase` 인터페이스 (txt2img, img2img, get_models)
-- [ ] `services/sd_client/forge.py` — 기존 ForgeUI 호출을 `ForgeClient`로 래핑
-- [ ] `services/sd_client/comfy.py` — `ComfyUIClient` 구현 (workflow_runner.py 기반)
-- [ ] 기존 SD WebUI 직접 호출 지점을 Client 인터페이스로 전환
-- [ ] `config.py`에 `SD_CLIENT_TYPE = "forge" | "comfy"` 스위치
+### Phase A: SD Client 추상화 (SP-077에서 완료)
+- [x] `services/sd_client/base.py` — `SDClientBase` 인터페이스 (txt2img, img2img, get_models)
+- [x] `services/sd_client/forge.py` — 기존 ForgeUI 호출을 `ForgeClient`로 래핑
+- [x] `services/sd_client/comfy.py` — `ComfyUIClient` 구현 (workflow_runner.py 기반)
+- [x] 기존 SD WebUI 직접 호출 지점을 Client 인터페이스로 전환
+- [x] `config.py`에 `SD_CLIENT_TYPE = "forge" | "comfy"` 스위치
 
 ### Phase B: 워크플로우 관리
-- [ ] `comfyui/workflows/` 디렉토리에 용도별 워크플로우 JSON
+- [x] `comfyui/workflows/` 디렉토리에 용도별 워크플로우 JSON
   - `reference.json` — 캐릭터 레퍼런스 (DynamicThresholding 포함, 검증 완료)
   - `scene_single.json` — 1인 씬 이미지
   - `scene_multi.json` — 2인 씬 (Regional Prompting)
-- [ ] `comfyui/workflow_runner.py` — 변수 치환 + API 실행 (구현 완료)
+- [x] `comfyui/workflow_runner.py` — 변수 치환 + API 실행 (구현 완료)
 
 ### Phase C: 레퍼런스 생성 전환
-- [ ] 캐릭터 레퍼런스 생성을 ComfyUI로 전환 (ForgeUI 코드 유지, 스위치로 선택)
-- [ ] 기존 레퍼런스 품질 대비 동등 이상 확인
+- [x] 캐릭터 레퍼런스 생성을 ComfyUI로 전환 (ForgeUI 코드 유지, 스위치로 선택)
+- [x] 기존 레퍼런스 품질 대비 동등 이상 확인
 
 ### Phase D: 씬 이미지 전환
-- [ ] 1인 씬 이미지를 ComfyUI로 전환
-- [ ] ControlNet + LoRA 워크플로우 검증
+- [x] 1인 씬 이미지를 ComfyUI로 전환
+- [x] ControlNet + LoRA 워크플로우 검증
 - [ ] IP-Adapter 워크플로우 검증
 
 ### Phase E: 정리
-- [ ] ForgeUI 의존성 제거 (config 스위치로 유지 → 안정화 후 제거)
-- [ ] 기존 테스트 통과
-- [ ] 린트 통과
+- [x] ForgeUI 의존성 제거 (config 스위치로 유지 → 안정화 후 제거)
+- [x] 기존 테스트 통과
+- [x] 린트 통과
 
 ## 제약
 - 2P 멀티캐릭터(Regional Prompting)는 SP-023에서

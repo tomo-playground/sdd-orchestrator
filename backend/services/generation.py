@@ -180,6 +180,7 @@ def _build_payload(ctx: GenerationContext) -> dict:
         },
         "override_settings_restore_afterwards": True,
         "batch_size": 1,
+        "_comfy_workflow": "scene_single",  # ComfyUI workflow hint (ignored by ForgeClient)
     }
     apply_sampler_to_payload(payload, req.sampler_name)
     if req.enable_hr:

@@ -17,10 +17,22 @@ def get_sd_client() -> SDClientBase:
 
             _client = ForgeClient()
         elif SD_CLIENT_TYPE == "comfy":
-            raise NotImplementedError("ComfyUI client: SP-022")
+            from services.sd_client.comfyui import ComfyUIClient
+
+            _client = ComfyUIClient()
         else:
             raise ValueError(f"Unknown SD_CLIENT_TYPE: {SD_CLIENT_TYPE!r}")
     return _client
+
+
+async def close_sd_client() -> None:
+    """Close the singleton SD client (call from lifespan shutdown)."""
+    global _client  # noqa: PLW0603
+    if _client is not None:
+        try:
+            await _client.close()
+        finally:
+            _client = None
 
 
 def reset_sd_client() -> None:

@@ -144,6 +144,15 @@ async def lifespan(_app: FastAPI):
     await close_store()
     await close_checkpointer()
 
+    # Close SD client connection pool
+    from services.sd_client import close_sd_client
+
+    try:
+        await close_sd_client()
+        logger.info("🛑 [Shutdown] SD client closed")
+    except Exception as e:
+        logger.warning("⚠️ [Shutdown] SD client close error: %s", e)
+
     # Close Gemini client and recreate for hot-reload compatibility
     from google import genai as _genai  # noqa: PLC0415
 
