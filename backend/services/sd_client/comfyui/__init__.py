@@ -52,7 +52,7 @@ def _map_sampler_to_comfy(sampler_name: str, scheduler: str | None) -> tuple[str
     if comfy_sampler is None:
         logger.warning("Unknown Forge sampler '%s' — falling back to 'euler'", sampler_name)
         comfy_sampler = "euler"
-    comfy_scheduler = (scheduler or "normal").lower()
+    comfy_scheduler = (scheduler or "karras").lower()  # noobaiXL v-pred: karras default
     return comfy_sampler, comfy_scheduler
 
 
@@ -72,6 +72,7 @@ class ComfyUIClient(SDClientBase):
         self._current_checkpoint: str = ""
         self._available_checkpoints: list[str] = []
         self._available_loras: list[str] = []
+        self._loras_fetched: bool = False
 
     async def _ensure_checkpoint(self) -> str:
         """Ensure _current_checkpoint is set. Fetch from ComfyUI if empty."""
@@ -96,8 +97,8 @@ class ComfyUIClient(SDClientBase):
         return self._current_checkpoint
 
     async def _get_available_loras(self) -> list[str]:
-        """Fetch available LoRA names from ComfyUI."""
-        if self._available_loras:
+        """Fetch available LoRA names from ComfyUI (cached after first call)."""
+        if self._loras_fetched:
             return self._available_loras
         try:
             resp = await self._http.get("/object_info/LoraLoader")
@@ -108,6 +109,7 @@ class ComfyUIClient(SDClientBase):
             )
         except Exception as e:
             logger.warning("Failed to fetch LoRAs: %s", e)
+        self._loras_fetched = True
         return self._available_loras
 
     async def close(self) -> None:
@@ -273,7 +275,7 @@ class ComfyUIClient(SDClientBase):
             "width": payload.get("width", 832),
             "height": payload.get("height", 1216),
             "steps": payload.get("steps", 28),
-            "cfg": payload.get("cfg_scale", 7.0),
+            "cfg": payload.get("cfg_scale", 5.5),  # noobaiXL v-pred: lower cfg recommended
             "sampler_name": comfy_sampler,
             "scheduler": comfy_scheduler,
         }

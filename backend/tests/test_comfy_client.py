@@ -161,16 +161,16 @@ class TestExtractLoraTags:
     def test_single_lora(self):
         loras = ComfyUIClient._extract_lora_tags("1girl, <lora:anime_style:0.7>, solo")
         assert len(loras) == 1
-        assert loras[0]["name"] == "anime_style"
+        assert loras[0]["name"] == "anime_style.safetensors"
         assert loras[0]["weight"] == 0.7
 
     def test_multiple_loras(self):
         prompt = "<lora:style:0.5>, 1girl, <lora:char:1.0>, <lora:extra:0.3>"
         loras = ComfyUIClient._extract_lora_tags(prompt)
         assert len(loras) == 3
-        assert loras[0]["name"] == "style"
-        assert loras[1]["name"] == "char"
-        assert loras[2]["name"] == "extra"
+        assert loras[0]["name"] == "style.safetensors"
+        assert loras[1]["name"] == "char.safetensors"
+        assert loras[2]["name"] == "extra.safetensors"
 
     def test_no_loras(self):
         loras = ComfyUIClient._extract_lora_tags("1girl, solo, blue_hair")

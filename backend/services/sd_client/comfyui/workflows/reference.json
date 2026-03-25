@@ -38,7 +38,7 @@
     "class_type": "DynamicThresholdingFull",
     "inputs": {
       "model": ["2_lora", 0],
-      "mimic_scale": 5.0,
+      "mimic_scale": 7.0,
       "threshold_percentile": 1.0,
       "mimic_mode": "Half Cosine Down",
       "mimic_scale_min": 1.0,
