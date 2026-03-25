@@ -742,6 +742,8 @@ class PromptBuilder:
         style_loras: list[dict] | None,
     ) -> None:
         """Inject character LoRAs, scene-triggered LoRAs, and style LoRAs."""
+        from config import SD_CLIENT_TYPE
+
         active_loras: dict[str, LoRAInfo] = {}
 
         # Character LoRAs (style-type skipped; StyleProfile is SSOT for style)
@@ -794,8 +796,6 @@ class PromptBuilder:
                 active_loras[lora_name] = info
                 target = LAYER_ATMOSPHERE if info.lora_type == "style" else LAYER_IDENTITY
                 # ComfyUI: LoRA 노드가 직접 적용하므로 트리거 워드 프롬프트 주입 불필요
-                from config import SD_CLIENT_TYPE
-
                 if SD_CLIENT_TYPE != "comfy":
                     triggers = select_style_trigger_words(info.trigger_words, info.lora_type)
                     for trigger in triggers:
