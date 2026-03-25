@@ -793,10 +793,14 @@ class PromptBuilder:
                 info = self._get_lora_info(lora_name)
                 active_loras[lora_name] = info
                 target = LAYER_ATMOSPHERE if info.lora_type == "style" else LAYER_IDENTITY
-                triggers = select_style_trigger_words(info.trigger_words, info.lora_type)
-                for trigger in triggers:
-                    if not self._trigger_exists_in_layers(trigger, layers):
-                        layers[target].append(trigger)
+                # ComfyUI: LoRA 노드가 직접 적용하므로 트리거 워드 프롬프트 주입 불필요
+                from config import SD_CLIENT_TYPE
+
+                if SD_CLIENT_TYPE != "comfy":
+                    triggers = select_style_trigger_words(info.trigger_words, info.lora_type)
+                    for trigger in triggers:
+                        if not self._trigger_exists_in_layers(trigger, layers):
+                            layers[target].append(trigger)
 
         # Inject LoRA tags into layers
         for name, info in active_loras.items():
@@ -821,10 +825,11 @@ class PromptBuilder:
                 # Fallback style LoRAs: cap to avoid interference with character LoRA
                 if is_fallback:
                     weight = min(weight, FALLBACK_STYLE_LORA_WEIGHT_MAX)
-                triggers = select_style_trigger_words(lora_info.get("trigger_words", []))
-                for trigger in triggers:
-                    if not self._trigger_exists_in_layers(trigger, layers):
-                        layers[LAYER_ATMOSPHERE].append(trigger)
+                if SD_CLIENT_TYPE != "comfy":
+                    triggers = select_style_trigger_words(lora_info.get("trigger_words", []))
+                    for trigger in triggers:
+                        if not self._trigger_exists_in_layers(trigger, layers):
+                            layers[LAYER_ATMOSPHERE].append(trigger)
                 layers[LAYER_ATMOSPHERE].append(f"<lora:{name}:{self._cap_lora_weight(weight)}>")
 
     def _extract_character_style_loras(self, character: Character) -> list[dict]:
