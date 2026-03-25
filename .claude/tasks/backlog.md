@@ -15,9 +15,9 @@
 
 ## P1 (최우선)
 
-- [ ] SP-022 — ComfyUI 마이그레이션 — ForgeUI→ComfyUI 워크플로우 전환 | depends: SP-077
+- [x] ~~SP-022~~ — ComfyUI 마이그레이션 — ForgeUI→ComfyUI 워크플로우 전환 | depends: SP-077
 - [x] ~~SP-021~~ — Speaker 동적 역할 — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | depends: SP-020
-- [ ] SP-075 — 지식DB 스토리 카드 | scope: backend
+- [x] ~~SP-075~~ — 지식DB 스토리 카드 | scope: backend
 - [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 전환 후 착수. 4-Module 파이프라인 | depends: SP-022
 - [x] ~~SP-076~~ — Slack Bot 양방향 연동 — Slack에서 명령 수신 + 코딩머신 제어 | scope: infra
 - [ ] SP-080 — 자동 롤백 — 머지 후 5분 내 Sentry 에러 급증 시 자동 revert PR 생성 | scope: infra
