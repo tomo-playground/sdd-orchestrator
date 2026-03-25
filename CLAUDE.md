@@ -100,7 +100,7 @@ docs/
 - **커스텀 픽셀 사이즈**: `text-[11px]`(배지), `text-[12px]`(라벨), `text-[13px]`(섹션 헤더)만 허용.
 
 ## 사전 요구사항
-- **SD WebUI**: API 모드 실행 (`--api` 옵션)
+- **ComfyUI**: `http://localhost:8188` (Docker 또는 로컬 실행)
 - **환경 변수**: `backend/.env` 파일 필수 (`DATABASE_URL`, `GEMINI_API_KEY` 등)
 
 ## Service vs Admin API 분리 기준
@@ -409,7 +409,7 @@ base["tags"] = [serialize_tag(t) for t in scene.tags]  # 관계만 별도
 | `/test` | 테스트 실행 (전체/backend/frontend/vrt/e2e) |
 | `/review` | 코드 리뷰 (lint, 품질, 아키텍처, 테스트 커버리지) |
 | `/vrt` | Visual Regression Test 실행 |
-| `/sd-status` | SD WebUI 상태 확인 |
+| `/sd-status` | ComfyUI 상태 확인 |
 | `/prompt-validate` | 프롬프트 문법 검증 |
 | `/pose` | 포즈 에셋 분석/동기화 |
 | `/db` | DB 마이그레이션 상태/생성/적용/롤백 |

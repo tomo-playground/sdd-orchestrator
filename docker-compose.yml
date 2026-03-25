@@ -1,4 +1,4 @@
-# Core infrastructure: PostgreSQL + MinIO + SD WebUI
+# Core infrastructure: PostgreSQL + MinIO + ComfyUI
 # Usage: docker compose up -d
 services:
   postgres:
@@ -36,29 +36,22 @@ services:
       timeout: 5s
       retries: 5
 
-  sd-webui:
+  comfyui:
     build:
-      context: ./forge-docker
+      context: ./comfyui-docker
       dockerfile: Dockerfile
-    image: sd-forge:latest
-    container_name: sd-webui
+    image: comfyui:latest
+    container_name: comfyui
     restart: on-failure:5
     ports:
-      - "7860:7860"
-    environment:
-      - COMMANDLINE_ARGS=--opt-sdp-attention --cuda-malloc --enable-insecure-extension-access --listen --port 7860 --api --skip-python-version-check
-      - LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtcmalloc.so
-      - HF_HOME=/workspace/stable-diffusion-webui/cache/huggingface
-      - MPLCONFIGDIR=/workspace/stable-diffusion-webui/cache/matplotlib
-      - STABLE_DIFFUSION_REPO=https://github.com/w-e-w/stablediffusion.git
+      - "8188:8188"
     volumes:
-      - /home/tomo/Workspace/sd-models/checkpoints:/workspace/stable-diffusion-webui/models/Stable-diffusion
-      - /home/tomo/Workspace/sd-models/lora:/workspace/stable-diffusion-webui/models/Lora
-      - /home/tomo/Workspace/sd-models/embeddings:/workspace/stable-diffusion-webui/embeddings
-      - /home/tomo/Workspace/sd-models/controlnet:/workspace/stable-diffusion-webui/models/ControlNet
-      - /home/tomo/Workspace/sd-models/clip_vision:/workspace/stable-diffusion-webui/models/clip_vision
-      - sd-webui-cache:/workspace/stable-diffusion-webui/cache
-      - sd-webui-output:/workspace/stable-diffusion-webui/outputs
+      - /home/tomo/Workspace/sd-models/checkpoints:/workspace/ComfyUI/models/checkpoints
+      - /home/tomo/Workspace/sd-models/lora:/workspace/ComfyUI/models/loras
+      - /home/tomo/Workspace/sd-models/embeddings:/workspace/ComfyUI/models/embeddings
+      - /home/tomo/Workspace/sd-models/controlnet:/workspace/ComfyUI/models/controlnet
+      - /home/tomo/Workspace/sd-models/clip_vision:/workspace/ComfyUI/models/clip_vision
+      - comfyui-output:/workspace/ComfyUI/output
     deploy:
       resources:
         reservations:
@@ -86,5 +79,4 @@ volumes:
   postgres-data:
   minio-data:
   pgadmin-data:
-  sd-webui-cache:
-  sd-webui-output:
+  comfyui-output:

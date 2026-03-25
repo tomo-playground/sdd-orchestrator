@@ -150,12 +150,14 @@ GEMINI_SAFETY_SETTINGS: list[genai.types.SafetySetting] = [
 
 
 SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
-SD_CLIENT_TYPE = os.getenv("SD_CLIENT_TYPE", "forge")  # "forge" | "comfy"
-if SD_BASE_URL == "http://127.0.0.1:7860":
+SD_CLIENT_TYPE = os.getenv("SD_CLIENT_TYPE", "comfy")  # "comfy" | "forge"
+if SD_CLIENT_TYPE == "forge" and SD_BASE_URL == "http://127.0.0.1:7860":
     logger.info("Using default SD_BASE_URL: %s", SD_BASE_URL)
 
 # --- ComfyUI ---
 COMFYUI_BASE_URL = os.getenv("COMFYUI_BASE_URL", "http://127.0.0.1:8188")
+if SD_CLIENT_TYPE == "comfy":
+    logger.info("ComfyUI endpoint: %s", COMFYUI_BASE_URL)
 COMFYUI_NETWORK_TIMEOUT = float(os.getenv("COMFYUI_NETWORK_TIMEOUT", "10"))
 COMFYUI_EXECUTION_TIMEOUT = float(os.getenv("COMFYUI_EXECUTION_TIMEOUT", "180"))
 COMFYUI_QUEUE_TIMEOUT = float(os.getenv("COMFYUI_QUEUE_TIMEOUT", "300"))
