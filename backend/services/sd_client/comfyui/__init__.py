@@ -258,6 +258,8 @@ class ComfyUIClient(SDClientBase):
         prompt_text = payload.get("prompt", "")
         # Strip LoRA tags from prompt (they'll be applied as workflow nodes)
         clean_prompt = _LORA_TAG_RE.sub("", prompt_text).strip().strip(",").strip()
+        # Strip weight emphasis (tag:1.3) → tag — noobaiXL v-pred breaks with heavy weights
+        clean_prompt = re.sub(r"\(([^:()]+):[0-9.]+\)", r"\1", clean_prompt)
 
         seed = payload.get("seed", -1)
         if seed == -1:
