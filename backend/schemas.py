@@ -692,6 +692,8 @@ class SceneGenerateRequest(BaseModel):
     # Scene context tags (expression, pose, gaze, camera, environment, mood)
     # Backend merges these into prompt composition automatically.
     context_tags: dict | None = None
+    # ComfyUI workflow hint (ignored by ForgeClient)
+    comfy_workflow: str | None = None
     # Post-processing toggles (wired from frontend OPTIONS panel)
     auto_rewrite_enabled: bool = False
     auto_replace_risky_tags: bool = False

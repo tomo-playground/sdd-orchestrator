@@ -200,6 +200,7 @@ async def regenerate_reference(
             controlnet_pose=pose if use_cn else None,
             controlnet_weight=SD_REFERENCE_CONTROLNET_WEIGHT,
             controlnet_control_mode=SD_REFERENCE_CONTROLNET_MODE,
+            comfy_workflow="reference",
         )
         res = await generate_scene_image(request)
         if "image" not in res:
@@ -324,6 +325,7 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
             controlnet_pose=pose if use_cn else None,
             controlnet_weight=SD_REFERENCE_CONTROLNET_WEIGHT,
             controlnet_control_mode=SD_REFERENCE_CONTROLNET_MODE,
+            comfy_workflow="reference",
         )
         res = await generate_scene_image(sd_request)
         if "image" not in res:
