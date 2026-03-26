@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-023-character-consistency-v3
 created: 2026-03-26
-status: running
+status: done
 approved_at: 2026-03-26
 depends_on:
 label: feature
