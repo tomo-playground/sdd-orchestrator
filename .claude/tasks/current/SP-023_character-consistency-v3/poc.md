@@ -85,7 +85,48 @@ DynamicThresholdingFull
 
 **전략 A (ControlNet Pose + BREAK) 조건부 채택.**
 
+---
+
+## 개선 실험 (Round 2)
+
+베이스라인: 전략 A (Scene 5, seed=42). 변수 1개씩 변경.
+
+| # | 개선 | 변경점 | 결과 | 판정 |
+|---|------|--------|------|:----:|
+| base | 전략 A 그대로 | - | 2P 구분 OK | 기준 |
+| **#1** | **DWPose 포즈 추출** | 수동 스틱 → 실제 이미지에서 DWPose 추출 | **포즈 자연스러움 대폭 개선, 캐릭터 구분 최고** | **채택** |
+| #2 | FaceDetailer 후처리 | UltralyticsDetectorProvider 필요 | Impact Pack 버전 문제로 실행 불가 | **보류** |
+| #3 | close-up → medium_shot | 2P에서 close-up 금지 | 두 명 다 보임, 유효 | **유효** |
+| #4a | ControlNet strength 0.4 | 0.7 → 0.4 | 포즈 약해짐, 자연스러움 | 기각 |
+| #4b | ControlNet strength 0.9 | 0.7 → 0.9 | 포즈 강하지만 뻣뻣함 | 기각 |
+| #5 | 의상 weight 강화 | `(tag:1.1)` → `(tag:1.35)` | **이미지 완전 파괴 (노이즈)** — V-Pred에서 과도한 weight 치명적 | **폐기** |
+| #6 | Attention Couple + Pose | BREAK 대신 Attention 분리 | mask KeyError — 마스크 전달 방식 호환 안 됨 | **보류** |
+
+### Round 2 핵심 발견
+
+1. **DWPose (#1)가 가장 큰 개선** — 수동 스틱 대신 실제 이미지에서 추출한 포즈로 자연스러움 크게 향상
+2. **V-Pred에서 weight 강화 절대 금지** — `(tag:1.35)` 수준에서 이미지 완전 파괴 (CFG Rescale로도 복구 불가)
+3. **ControlNet strength 0.7이 최적** — 0.4는 너무 약하고 0.9는 뻣뻣함
+4. **2P에서 close-up → medium_shot 자동 전환** 규칙 유효
+
+### 최적 조합 (확정)
+
+```
+DWPose 포즈 추출 + ControlNet OpenPose (strength 0.7) + BREAK + medium_shot (2P)
+```
+
+### 미검증 (Impact Pack 업데이트 후 재시도)
+- #2 FaceDetailer — UltralyticsDetectorProvider 필요
+- #6 Attention Couple — mask 전달 디버깅 필요
+
+---
+
+## 최종 결론
+
+**전략 A + DWPose 개선 채택.**
+
 다음 단계:
-1. SP-023 Phase B: 포즈 스틱 자동 생성 파이프라인
-2. SP-023 Phase C: `scene_single.json` 워크플로우에 ControlNet Pose 통합
-3. 2P 씬에서 wide_shot 강제 로직 확인/보완
+1. SP-023 Phase B: DWPose 기반 2P 포즈 자동 추출 파이프라인
+2. SP-023 Phase C: `scene_2p.json` 워크플로우 신규 생성 (ControlNet Pose + BREAK)
+3. 2P 씬에서 close-up → medium_shot 자동 전환 로직
+4. (후속) Impact Pack 업데이트 → FaceDetailer + Attention Couple 재도전
