@@ -222,11 +222,6 @@ async def generate_location_backgrounds(storyboard_id: int, db: Session, *, forc
     negative_tags = style_ctx.default_negative if style_ctx else None
     style_profile_id = style_ctx.profile_id if style_ctx else None
 
-    if style_ctx and style_ctx.sd_model_name:
-        from services.image_generation_core import _ensure_correct_checkpoint
-
-        await _ensure_correct_checkpoint(style_ctx.sd_model_name)
-
     storyboard.stage_status = STAGE_STATUS_STAGING
     db.commit()
 
@@ -365,11 +360,6 @@ async def regenerate_background(
     style_loras = extract_style_loras(style_ctx)
     quality_tags = resolve_bg_quality_tags(style_ctx)
     negative_tags = style_ctx.default_negative if style_ctx else None
-
-    if style_ctx and style_ctx.sd_model_name:
-        from services.image_generation_core import _ensure_correct_checkpoint
-
-        await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
     # Phase 1: Build prompt (DB needed), then release connection
     bg_id = bg.id

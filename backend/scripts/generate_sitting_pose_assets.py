@@ -21,7 +21,9 @@ import requests
 BACKEND_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
-from config import SD_BASE_URL, SD_TXT2IMG_URL  # noqa: E402
+from config import SD_BASE_URL  # noqa: E402
+
+SD_TXT2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
 
 ASSETS_DIR = BACKEND_DIR / "assets" / "poses"
 

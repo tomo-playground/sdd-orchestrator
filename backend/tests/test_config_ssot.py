@@ -44,12 +44,10 @@ class TestConfigConstantsExist:
             CONTROLNET_DETECT_TIMEOUT,
             CONTROLNET_GENERATE_TIMEOUT,
             DANBOORU_API_TIMEOUT,
-            SD_API_TIMEOUT,
         )
 
         assert isinstance(DANBOORU_API_TIMEOUT, float)
         assert isinstance(CIVITAI_API_TIMEOUT, float)
-        assert isinstance(SD_API_TIMEOUT, float)
         assert isinstance(CONTROLNET_API_TIMEOUT, float)
         assert isinstance(CONTROLNET_GENERATE_TIMEOUT, float)
         assert isinstance(CONTROLNET_DETECT_TIMEOUT, float)
@@ -156,7 +154,7 @@ class TestConfigOverride:
             val = os.environ["DANBOORU_API_BASE"]
             assert val == "https://custom.example.com"
 
-    def test_sd_api_timeout_override(self):
-        with patch.dict(os.environ, {"SD_API_TIMEOUT": "30"}):
-            val = float(os.environ["SD_API_TIMEOUT"])
+    def test_comfyui_timeout_override(self):
+        with patch.dict(os.environ, {"COMFYUI_NETWORK_TIMEOUT": "30"}):
+            val = float(os.environ["COMFYUI_NETWORK_TIMEOUT"])
             assert val == 30.0

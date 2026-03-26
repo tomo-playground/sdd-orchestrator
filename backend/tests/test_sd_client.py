@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-import json
-from unittest.mock import AsyncMock, patch
-
 import pytest
 
 from services.sd_client import SDClientBase
 from services.sd_client.factory import get_sd_client, reset_sd_client
-from services.sd_client.forge import ForgeClient
 from services.sd_client.types import SDProgressResult, SDTxt2ImgResult
 
 # ============================================================
@@ -68,87 +64,12 @@ class TestSDProgressResult:
 
 
 # ============================================================
-# DoD-2: ForgeClient
-# ============================================================
-
-
-class TestForgeClient:
-    """ForgeClient instantiation and method signatures."""
-
-    def test_is_sd_client_base(self):
-        client = ForgeClient(base_url="http://test:7860")
-        assert isinstance(client, SDClientBase)
-
-    def test_default_base_url_from_config(self):
-        client = ForgeClient()
-        assert "7860" in client._base_url
-
-    @pytest.mark.asyncio
-    async def test_txt2img_returns_result(self):
-        sd_response = {
-            "images": ["base64img"],
-            "info": json.dumps({"seed": 12345}),
-        }
-
-        mock_resp = AsyncMock()
-        mock_resp.status_code = 200
-        mock_resp.json = lambda: sd_response
-        mock_resp.raise_for_status = lambda: None
-
-        mock_http = AsyncMock()
-        mock_http.post.return_value = mock_resp
-        mock_http.is_closed = False
-
-        with patch("services.sd_client.forge.httpx.AsyncClient", return_value=mock_http):
-            client = ForgeClient(base_url="http://test:7860")
-            result = await client.txt2img({"prompt": "test"})
-
-            assert isinstance(result, SDTxt2ImgResult)
-            assert result.images == ["base64img"]
-            assert result.seed == 12345
-            assert result.image == "base64img"
-
-    @pytest.mark.asyncio
-    async def test_txt2img_timeout_override(self):
-        sd_response = {"images": ["img"], "info": "{}"}
-
-        mock_resp = AsyncMock()
-        mock_resp.json = lambda: sd_response
-        mock_resp.raise_for_status = lambda: None
-
-        mock_http = AsyncMock()
-        mock_http.post.return_value = mock_resp
-        mock_http.is_closed = False
-
-        with patch("services.sd_client.forge.httpx.AsyncClient", return_value=mock_http):
-            client = ForgeClient(base_url="http://test:7860")
-            await client.txt2img({"prompt": "test"}, timeout=30.0)
-
-            _, kwargs = mock_http.post.call_args
-            assert kwargs["timeout"] == 30.0
-
-
-# ============================================================
-# DoD-3: SD_CLIENT_TYPE config
-# ============================================================
-
-
-class TestSDClientTypeConfig:
-    """SD_CLIENT_TYPE env var defaults to 'forge'."""
-
-    def test_default_forge(self):
-        from config import SD_CLIENT_TYPE
-
-        assert SD_CLIENT_TYPE == "forge"
-
-
-# ============================================================
 # DoD-4: Factory
 # ============================================================
 
 
 class TestFactory:
-    """get_sd_client() returns singleton ForgeClient."""
+    """get_sd_client() returns singleton ComfyUIClient."""
 
     def setup_method(self):
         reset_sd_client()
@@ -156,9 +77,11 @@ class TestFactory:
     def teardown_method(self):
         reset_sd_client()
 
-    def test_returns_forge_client(self):
+    def test_returns_comfy_client(self):
         client = get_sd_client()
-        assert isinstance(client, ForgeClient)
+        from services.sd_client.comfyui import ComfyUIClient
+
+        assert isinstance(client, ComfyUIClient)
 
     def test_singleton(self):
         a = get_sd_client()
@@ -170,18 +93,6 @@ class TestFactory:
         reset_sd_client()
         b = get_sd_client()
         assert a is not b
-
-    def test_invalid_type_raises(self):
-        with patch("services.sd_client.factory.SD_CLIENT_TYPE", "unknown"):
-            with pytest.raises(ValueError, match="Unknown SD_CLIENT_TYPE"):
-                get_sd_client()
-
-    def test_comfy_returns_comfy_client(self):
-        with patch("services.sd_client.factory.SD_CLIENT_TYPE", "comfy"):
-            client = get_sd_client()
-            from services.sd_client.comfyui import ComfyUIClient
-
-            assert isinstance(client, ComfyUIClient)
 
 
 # ============================================================
@@ -200,7 +111,6 @@ class TestCallSiteConversion:
 
         source = inspect.getsource(mod._call_sd_api_raw)
         assert "get_sd_client()" in source
-        assert "SD_TXT2IMG_URL" not in source
 
     def test_image_generation_core_uses_sd_client(self):
         """image_generation_core.py should use get_sd_client."""
@@ -208,15 +118,8 @@ class TestCallSiteConversion:
 
         import services.image_generation_core as mod
 
-        # _ensure_correct_checkpoint
-        source_cp = inspect.getsource(mod._ensure_correct_checkpoint)
-        assert "get_sd_client()" in source_cp
-        assert "SD_BASE_URL" not in source_cp
-
-        # generate_image_with_v3
         source_gen = inspect.getsource(mod.generate_image_with_v3)
         assert "get_sd_client()" in source_gen
-        assert "SD_TXT2IMG_URL" not in source_gen
 
     def test_avatar_uses_sd_client(self):
         """avatar.py should use get_sd_client."""
@@ -226,7 +129,6 @@ class TestCallSiteConversion:
 
         source = inspect.getsource(mod.ensure_avatar_file)
         assert "get_sd_client()" in source
-        assert "SD_TXT2IMG_URL" not in source
 
     def test_sd_progress_poller_uses_sd_client(self):
         """sd_progress_poller.py should use get_sd_client."""
@@ -255,6 +157,3 @@ class TestCallSiteConversion:
 
         source = inspect.getsource(mod)
         assert "get_sd_client()" in source
-        assert "SD_MODELS_URL" not in source
-        assert "SD_OPTIONS_URL" not in source
-        assert "SD_LORAS_URL" not in source

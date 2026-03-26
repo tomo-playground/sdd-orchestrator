@@ -756,7 +756,7 @@ class TestInjectLorasDedup:
 
     @patch("services.prompt.composition.LoRATriggerCache")
     def test_inject_loras_style_lora_added_when_not_triggered(self, mock_trigger_cache, builder):
-        """style_loras not in scene tags → still added normally."""
+        """style_loras not in scene tags → LoRA tag added, trigger words NOT injected (ComfyUI handles natively)."""
         mock_trigger_cache.get_lora_name.return_value = None
 
         character = MagicMock()
@@ -772,7 +772,8 @@ class TestInjectLorasDedup:
 
         atmo_tokens = layers[LAYER_ATMOSPHERE]
         assert "<lora:flat_color:0.7>" in atmo_tokens
-        assert "flat color" in atmo_tokens
+        # ComfyUI: trigger words are NOT injected into prompt (LoRA node applies directly)
+        assert "flat color" not in atmo_tokens
 
 
 # ────────────────────────────────────────────
@@ -2765,29 +2766,3 @@ class TestCollectCharacterTagsDedup:
         names = [r["name"] for r in result]
         assert "blonde_hair" in names
         assert "brown_hair" not in names
-
-
-# ────────────────────────────────────────────
-# Regression: SD_CLIENT_TYPE UnboundLocalError (#204)
-# ────────────────────────────────────────────
-
-
-class TestInjectLorasSDClientType:
-    """SD_CLIENT_TYPE must be accessible even when no scene tag triggers a LoRA."""
-
-    @patch("services.prompt.composition.LoRATriggerCache")
-    def test_style_loras_without_scene_triggered_lora(self, mock_trigger_cache, builder):
-        """style_loras present but no scene tag triggers a LoRA → no UnboundLocalError."""
-        mock_trigger_cache.get_lora_name.return_value = None
-
-        character = MagicMock()
-        character.loras = []
-
-        layers = [[] for _ in range(12)]
-        style_loras = [{"name": "flat_color", "weight": 0.7, "trigger_words": ["flat color"]}]
-
-        # This should NOT raise UnboundLocalError for SD_CLIENT_TYPE
-        builder._inject_loras(character, [], layers, style_loras)
-
-        all_tokens = [t for layer in layers for t in layer]
-        assert any("<lora:flat_color:" in t for t in all_tokens)

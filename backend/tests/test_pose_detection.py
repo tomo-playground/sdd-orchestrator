@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import pytest
 
 from services.controlnet import (
@@ -168,15 +166,14 @@ class TestPoseDetection:
 class TestControlnetArgs:
     """Verify ControlNet args builder for openpose."""
 
-    @patch("services.controlnet._resolve_model_name", side_effect=lambda x: x)
-    def test_build_controlnet_args_default_preprocessor(self, _mock_resolve):
+    def test_build_controlnet_args_default_preprocessor(self):
         """Default openpose uses openpose module for runtime skeleton extraction."""
         args = build_controlnet_args(
             input_image="fake_b64",
             model="openpose",
             weight=1.0,
         )
-        assert args["module"] == "None"  # Forge: skip preprocessor for pre-processed images
+        assert args["module"] == "None"  # skip preprocessor for pre-processed images
         assert args["model"] == "openpose_pre"
 
     def test_build_controlnet_args_explicit_preprocessor(self):
@@ -190,7 +187,7 @@ class TestControlnetArgs:
         assert args["module"] == "none"
 
     def test_combined_args_uses_default_preprocessor(self):
-        """build_combined_controlnet_args uses default 'None' preprocessor (Forge)."""
+        """build_combined_controlnet_args uses default 'None' preprocessor."""
         args = build_combined_controlnet_args(
             pose_image="fake_b64",
             pose_weight=0.8,

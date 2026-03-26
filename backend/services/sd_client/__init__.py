@@ -1,6 +1,6 @@
 """SD Client abstraction layer.
 
-Provides a unified interface for Stable Diffusion backends (Forge, ComfyUI).
+Provides a unified interface for Stable Diffusion backends (ComfyUI).
 """
 
 from __future__ import annotations

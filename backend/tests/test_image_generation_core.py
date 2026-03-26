@@ -8,7 +8,6 @@ import base64
 from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
 import pytest
 from PIL import Image
 
@@ -85,20 +84,13 @@ class TestGenerateImageWithV3:
         db_session.commit()
 
         fake_b64 = _make_tiny_png_b64()
-        mock_sd_response = MagicMock()
-        mock_sd_response.status_code = 200
-        mock_sd_response.json.return_value = {
-            "images": [fake_b64],
-            "info": '{"seed": 12345}',
-        }
 
-        with patch("services.image_generation_core.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client.post = AsyncMock(return_value=mock_sd_response)
-            mock_client_cls.return_value = mock_client
+        from services.sd_client.types import SDTxt2ImgResult
 
+        mock_sd = AsyncMock()
+        mock_sd.txt2img.return_value = SDTxt2ImgResult(images=[fake_b64], seed=12345)
+
+        with patch("services.image_generation_core.get_sd_client", return_value=mock_sd):
             result = await generate_image_with_v3(
                 db=db_session,
                 prompt=["1girl", "smile"],
@@ -128,13 +120,10 @@ class TestGenerateImageWithV3:
         db_session.add(group)
         db_session.commit()
 
-        with patch("services.image_generation_core.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client.post = AsyncMock(side_effect=Exception("Connection refused"))
-            mock_client_cls.return_value = mock_client
+        mock_sd = AsyncMock()
+        mock_sd.txt2img.side_effect = Exception("Connection refused")
 
+        with patch("services.image_generation_core.get_sd_client", return_value=mock_sd):
             result = await generate_image_with_v3(
                 db=db_session,
                 prompt=["1girl"],
@@ -163,13 +152,10 @@ class TestGenerateImageWithV3:
         db_session.add(group)
         db_session.commit()
 
-        with patch("services.image_generation_core.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client.post = AsyncMock(side_effect=Exception("Connection refused"))
-            mock_client_cls.return_value = mock_client
+        mock_sd = AsyncMock()
+        mock_sd.txt2img.side_effect = Exception("Connection refused")
 
+        with patch("services.image_generation_core.get_sd_client", return_value=mock_sd):
             with pytest.raises(Exception, match="Connection refused"):
                 await generate_image_with_v3(
                     db=db_session,
@@ -193,20 +179,13 @@ class TestGenerateImageWithV3:
         db_session.commit()
 
         fake_b64 = _make_tiny_png_b64()
-        mock_sd_response = MagicMock()
-        mock_sd_response.status_code = 200
-        mock_sd_response.json.return_value = {
-            "images": [fake_b64],
-            "info": '{"seed": 99}',
-        }
 
-        with patch("services.image_generation_core.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client.post = AsyncMock(return_value=mock_sd_response)
-            mock_client_cls.return_value = mock_client
+        from services.sd_client.types import SDTxt2ImgResult
 
+        mock_sd = AsyncMock()
+        mock_sd.txt2img.return_value = SDTxt2ImgResult(images=[fake_b64], seed=99)
+
+        with patch("services.image_generation_core.get_sd_client", return_value=mock_sd):
             result = await generate_image_with_v3(
                 db=db_session,
                 prompt="landscape, sunset",
@@ -459,69 +438,6 @@ class TestComposeSceneWithStyle:
             assert "muscular" in negative
             assert "facial_hair" in negative
             assert "lowres" in negative
-
-
-class TestEnsureCorrectCheckpoint:
-    """Test _ensure_correct_checkpoint() — SD WebUI checkpoint auto-switch."""
-
-    @pytest.mark.asyncio
-    async def test_skip_when_checkpoint_already_matches(self):
-        """No POST when current checkpoint already matches."""
-        from services.image_generation_core import _ensure_correct_checkpoint
-
-        mock_get_resp = MagicMock()
-        mock_get_resp.status_code = 200
-        mock_get_resp.json.return_value = {"sd_model_checkpoint": "noobaiXLNAIXL_vPredV10.safetensors"}
-
-        with patch("services.image_generation_core.httpx.AsyncClient") as MockClient:
-            mock_client = AsyncMock()
-            mock_client.get.return_value = mock_get_resp
-            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
-
-            await _ensure_correct_checkpoint("noobaiXLNAIXL_vPredV10")
-
-            mock_client.get.assert_called_once()
-            mock_client.post.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_switch_when_checkpoint_differs(self):
-        """POST to switch checkpoint when current model is different."""
-        from services.image_generation_core import _ensure_correct_checkpoint
-
-        mock_get_resp = MagicMock()
-        mock_get_resp.status_code = 200
-        mock_get_resp.json.return_value = {"sd_model_checkpoint": "animeModel_v3.safetensors"}
-
-        mock_post_resp = MagicMock()
-        mock_post_resp.status_code = 200
-
-        with patch("services.image_generation_core.httpx.AsyncClient") as MockClient:
-            mock_client = AsyncMock()
-            mock_client.get.return_value = mock_get_resp
-            mock_client.post.return_value = mock_post_resp
-            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
-
-            await _ensure_correct_checkpoint("noobaiXLNAIXL_vPredV10")
-
-            mock_client.post.assert_called_once()
-            call_kwargs = mock_client.post.call_args
-            assert call_kwargs[1]["json"]["sd_model_checkpoint"] == "noobaiXLNAIXL_vPredV10"
-
-    @pytest.mark.asyncio
-    async def test_non_blocking_on_failure(self):
-        """Connection error must not raise — just log warning."""
-        from services.image_generation_core import _ensure_correct_checkpoint
-
-        with patch("services.image_generation_core.httpx.AsyncClient") as MockClient:
-            mock_client = AsyncMock()
-            mock_client.get.side_effect = httpx.ConnectError("SD WebUI offline")
-            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
-
-            # Must not raise
-            await _ensure_correct_checkpoint("noobaiXLNAIXL_vPredV10")
 
 
 class TestComposeWarningsMerge:

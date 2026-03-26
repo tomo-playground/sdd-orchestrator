@@ -31,7 +31,7 @@ class TestImageCacheKey:
             "steps": 28,
             "cfg_scale": 4.5,
             "sampler_name": "Euler",
-            "override_settings": {"CLIP_stop_at_last_layers": 2},
+            "clip_skip": 2,
         }
         k1 = image_cache_key(payload)
         k2 = image_cache_key(payload)

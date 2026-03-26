@@ -105,21 +105,21 @@ class TestPayloadToVariables:
         assert result["steps"] == 25
         assert result["cfg"] == 6.5
         assert result["sampler_name"] == "euler"
-        assert result["scheduler"] == "normal"
+        assert result["scheduler"] == "karras"  # noobaiXL v-pred default
 
     def test_sampler_mapping_dpmpp_karras(self):
-        """Forge 'DPM++ 2M' + scheduler 'Karras' → ComfyUI dpmpp_2m/karras."""
+        """DPM++ 2M + scheduler Karras → ComfyUI dpmpp_2m/karras."""
         payload = {"prompt": "test", "sampler_name": "DPM++ 2M", "scheduler": "Karras"}
         result = ComfyUIClient._payload_to_variables(payload)
         assert result["sampler_name"] == "dpmpp_2m"
         assert result["scheduler"] == "karras"
 
     def test_sampler_mapping_euler_a(self):
-        """Forge 'Euler a' → ComfyUI euler_ancestral."""
+        """Euler a → ComfyUI euler_ancestral."""
         payload = {"prompt": "test", "sampler_name": "Euler a"}
         result = ComfyUIClient._payload_to_variables(payload)
         assert result["sampler_name"] == "euler_ancestral"
-        assert result["scheduler"] == "normal"
+        assert result["scheduler"] == "karras"  # noobaiXL v-pred default
 
     def test_unknown_sampler_fallback(self):
         """Unknown sampler falls back to euler with a warning."""
@@ -127,14 +127,14 @@ class TestPayloadToVariables:
 
         sampler, scheduler = _map_sampler_to_comfy("UnknownSampler", None)
         assert sampler == "euler"
-        assert scheduler == "normal"
+        assert scheduler == "karras"  # noobaiXL v-pred default
 
     def test_default_steps_and_cfg(self):
         """steps and cfg_scale defaults used when not in payload."""
         payload = {"prompt": "test"}
         result = ComfyUIClient._payload_to_variables(payload)
         assert result["steps"] == 28
-        assert result["cfg"] == 7.0
+        assert result["cfg"] == 5.5  # noobaiXL v-pred: lower cfg recommended
 
     def test_lora_tags_stripped_from_prompt(self):
         """LoRA tags should be removed from the prompt text."""
@@ -288,19 +288,18 @@ class TestApplyLorasToWorkflow:
 
 
 class TestResolveCheckpoint:
-    """_resolve_checkpoint() — extract from SD WebUI override_settings."""
+    """_resolve_checkpoint() — extract from payload sd_model_checkpoint field."""
 
-    def test_from_override(self):
-        payload = {"override_settings": {"sd_model_checkpoint": "model.safetensors"}}
+    def test_from_payload(self):
+        payload = {"sd_model_checkpoint": "model.safetensors"}
         assert ComfyUIClient._resolve_checkpoint(payload) == "model.safetensors"
 
-    def test_no_override(self):
+    def test_no_checkpoint(self):
         assert ComfyUIClient._resolve_checkpoint({}) == ""
-        assert ComfyUIClient._resolve_checkpoint({"override_settings": {}}) == ""
 
     @pytest.mark.asyncio
     async def test_fallback_to_current_checkpoint(self):
-        """When override_settings missing, _current_checkpoint is used (BLOCKER fix)."""
+        """When sd_model_checkpoint missing, _current_checkpoint is used (BLOCKER fix)."""
         client = ComfyUIClient(base_url="http://test:8188")
         client._current_checkpoint = "noob_v1.safetensors"
 
@@ -324,7 +323,7 @@ class TestResolveCheckpoint:
                 "1_cp": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "{{checkpoint}}"}}
             }
 
-            await client.txt2img({"prompt": "test"})  # No override_settings
+            await client.txt2img({"prompt": "test"})  # No sd_model_checkpoint
 
         mock_set_ckpt.assert_called_once_with(mock_inject.return_value, "noob_v1.safetensors")
 
@@ -497,29 +496,3 @@ class TestComfyUIClientPayloadNotMutated:
 
         assert set(payload.keys()) == original_keys
         assert payload["_comfy_workflow"] == "reference"
-
-
-class TestForgeClientComfyWorkflowStrip:
-    """ForgeClient should strip _comfy_workflow from payload."""
-
-    @pytest.mark.asyncio
-    async def test_strips_comfy_workflow_key(self):
-        from services.sd_client.forge import ForgeClient
-
-        client = ForgeClient(base_url="http://test:7860")
-
-        mock_resp = MagicMock()
-        mock_resp.json.return_value = {"images": ["b64"], "info": "{}"}
-        mock_resp.raise_for_status = MagicMock()
-
-        mock_http = AsyncMock()
-        mock_http.post.return_value = mock_resp
-        mock_http.is_closed = False
-        client._client = mock_http
-
-        payload = {"prompt": "test", "_comfy_workflow": "reference"}
-        await client.txt2img(payload)
-
-        # Verify the key was stripped before sending
-        sent_payload = mock_http.post.call_args[1]["json"]
-        assert "_comfy_workflow" not in sent_payload

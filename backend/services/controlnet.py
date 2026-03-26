@@ -11,12 +11,10 @@ import os
 import random
 from typing import Any
 
-import requests
 from PIL import Image
 from sqlalchemy.orm import Session
 
 from config import (
-    CONTROLNET_API_TIMEOUT,
     CONTROLNET_DEFAULT_SAMPLER,
     CONTROLNET_GENERATE_TIMEOUT,
     DEFAULT_CHARACTER_PRESET,
@@ -25,7 +23,6 @@ from config import (
     DEFAULT_IP_ADAPTER_GUIDANCE_START,
     DEFAULT_IP_ADAPTER_WEIGHT,
     DEFAULT_REFERENCE_NEGATIVE_PROMPT,
-    SD_BASE_URL,
     SD_DEFAULT_CFG_SCALE,
     SD_DEFAULT_HEIGHT,
     SD_DEFAULT_WIDTH,
@@ -176,51 +173,6 @@ IP_ADAPTER_MODELS = {
 DEFAULT_IP_ADAPTER_MODEL = "clip"
 
 
-def check_controlnet_available() -> bool:
-    """Check if ControlNet is available (A1111 extension or Forge built-in)."""
-    for endpoint in ("/controlnet/version", "/controlnet/model_list"):
-        try:
-            resp = requests.get(f"{SD_BASE_URL}{endpoint}", timeout=CONTROLNET_API_TIMEOUT)
-            if resp.status_code == 200:
-                return True
-        except Exception:
-            pass
-    return False
-
-
-def get_controlnet_models() -> list[str]:
-    """Get list of available ControlNet models."""
-    try:
-        resp = requests.get(f"{SD_BASE_URL}/controlnet/model_list", timeout=CONTROLNET_API_TIMEOUT)
-        if resp.status_code == 200:
-            return resp.json().get("model_list", [])
-    except Exception as e:
-        logger.warning(f"Failed to get ControlNet models: {e}")
-    return []
-
-
-# Runtime cache: Forge model_list에서 동적 resolve한 결과 캐시
-_resolved_model_cache: dict[str, str] = {}
-
-
-def _resolve_model_name(partial_name: str) -> str:
-    """Forge는 해시 포함 풀네임을 요구. partial_name → 'name [hash]' 형식으로 resolve."""
-    if partial_name in ("None", "none"):
-        return "None"
-    if "[" in partial_name:
-        return partial_name  # 이미 해시 포함
-    if partial_name in _resolved_model_cache:
-        return _resolved_model_cache[partial_name]
-    models = get_controlnet_models()
-    for full_name in models:
-        if partial_name.lower() in full_name.lower():
-            _resolved_model_cache[partial_name] = full_name
-            logger.info("[ControlNet] Resolved '%s' → '%s'", partial_name, full_name)
-            return full_name
-    logger.warning("[ControlNet] Model '%s' not found in Forge, using as-is", partial_name)
-    return partial_name
-
-
 def load_pose_reference(pose_name: str) -> str | None:
     """Load a pose reference image as base64 using StorageService.
 
@@ -287,28 +239,23 @@ def build_controlnet_args(
     Returns:
         ControlNet args dict for alwayson_scripts
     """
-    # Forge built-in ControlNet: use "none" for pre-processed images (pose sticks)
+    # Use "none" for pre-processed images (pose sticks)
     # to skip preprocessor. Only use model name as module when raw images need processing.
     module = preprocessor or "None"
     args = {
         "enabled": True,
         "image": input_image,
-        "model": _resolve_model_name(CONTROLNET_MODELS.get(model, model)),
+        "model": CONTROLNET_MODELS.get(model, model),
         "module": module,
         "weight": weight,
         "control_mode": control_mode,
-        "pixel_perfect": False,  # Not needed when providing pre-processed images
         "guidance_start": 0.0,
         "guidance_end": 1.0,
-        "processor_res": SD_DEFAULT_WIDTH,  # NoobAI-XL: 832 (-1은 Forge가 512로 fallback)
-        "threshold_a": -1,
-        "threshold_b": -1,
     }
 
     if model == "reference":
         args["module"] = "reference_only"
         args["model"] = "None"
-        args["processor_res"] = -1  # reference는 preprocessor 불필요
         args["guidance_end"] = 0.75
 
     return args
@@ -596,10 +543,9 @@ def build_ip_adapter_args(
     raw_name = IP_ADAPTER_MODELS.get(model or "")
     if not raw_name:
         raise ValueError(f"Unknown IP-Adapter model: {model}")
-    model_name = _resolve_model_name(raw_name)
+    model_name = raw_name
 
     # Select module and control_mode based on model type
-    # Forge built-in ControlNet uses different module names than A1111
     if model == "faceid":
         module = "InsightFace+CLIP-H (IPAdapter)"
         control_mode = "ControlNet is more important"
@@ -619,12 +565,7 @@ def build_ip_adapter_args(
         "module": module,
         "model": model_name,
         "weight": weight,
-        "resize_mode": "Crop and Resize",
-        "processor_res": SD_DEFAULT_WIDTH,
-        "threshold_a": -1,
-        "threshold_b": -1,
         "control_mode": control_mode,
-        "pixel_perfect": False,
         "guidance_start": guidance_start if guidance_start is not None else DEFAULT_IP_ADAPTER_GUIDANCE_START,
         "guidance_end": guidance_end if guidance_end is not None else default_end,
     }
@@ -826,10 +767,10 @@ async def generate_reference_for_character(
             "height": SD_DEFAULT_WIDTH,  # Square for IP-Adapter reference
             "cfg_scale": cfg_scale,
             "seed": random.randint(0, 2**32 - 1) if attempt > 0 else -1,
-            "_comfy_workflow": "reference",  # ComfyUI workflow hint (ignored by ForgeClient)
+            "_comfy_workflow": "reference",
         }
         if style_ctx and style_ctx.sd_model_name:
-            payload["override_settings"] = {"sd_model_checkpoint": style_ctx.sd_model_name}
+            payload["sd_model_checkpoint"] = style_ctx.sd_model_name
         apply_sampler_to_payload(payload, sampler_name)
 
         logger.info(f"🎨 [{attempt + 1}/{max_attempts}] Generating reference for {character.name}...")

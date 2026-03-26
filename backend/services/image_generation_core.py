@@ -26,26 +26,6 @@ from services.prompt.prompt import normalize_negative_prompt, split_prompt_token
 from services.sd_client.factory import get_sd_client
 
 
-async def _ensure_correct_checkpoint(sd_model_name: str) -> None:
-    """Switch SD WebUI checkpoint if it doesn't match the StyleProfile's model.
-
-    Non-blocking: logs warning on failure but does not raise.
-    """
-    if not sd_model_name:
-        return
-    try:
-        sd = get_sd_client()
-        options = await sd.get_options()
-        current_model = options.get("sd_model_checkpoint", "")
-        if sd_model_name in current_model:
-            return  # Already using the correct checkpoint
-        logger.info("Switching SD checkpoint: %s -> %s", current_model, sd_model_name)
-        await sd.set_options({"sd_model_checkpoint": sd_model_name}, timeout=120)
-        logger.info("SD checkpoint switched to %s", sd_model_name)
-    except Exception as e:
-        logger.warning("Checkpoint switch failed (non-blocking): %s", e)
-
-
 class ImageGenerationResult(BaseModel):
     """Unified response for Lab + Studio image generation."""
 
@@ -121,7 +101,7 @@ async def generate_image_with_v3(
             style_loras = []
             logger.warning(f"{mode_prefix} No group_id or storyboard_id, skipping Style LoRAs")
 
-    # 3. Ensure correct SD checkpoint for the StyleProfile
+    # 3. Resolve StyleContext for StyleProfile parameters
     style_ctx = None
     if storyboard_id or group_id:
         from services.style_context import resolve_style_context, resolve_style_context_from_group
@@ -130,8 +110,6 @@ async def generate_image_with_v3(
             style_ctx = resolve_style_context_from_group(group_id, db)
         elif storyboard_id:
             style_ctx = resolve_style_context(storyboard_id, db)
-        if style_ctx and style_ctx.sd_model_name:
-            await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
     # 4. StyleProfile + V3 Composition via shared SSOT
     negative_prompt = sd_params.get("negative_prompt", "") if sd_params else ""
@@ -180,15 +158,14 @@ async def generate_image_with_v3(
         "negative_prompt": negative_prompt,
         "steps": steps,
         "cfg_scale": cfg_scale,
-        "override_settings": {
-            "CLIP_stop_at_last_layers": max(1, int(clip_skip)),
-        },
-        "override_settings_restore_afterwards": True,
+        "clip_skip": max(1, int(clip_skip)),
         "width": sd_params.get("width", SD_DEFAULT_WIDTH) if sd_params else SD_DEFAULT_WIDTH,
         "height": sd_params.get("height", SD_DEFAULT_HEIGHT) if sd_params else SD_DEFAULT_HEIGHT,
         "seed": sd_params.get("seed", -1) if sd_params else -1,
-        "_comfy_workflow": "scene_single",  # ComfyUI workflow hint (ignored by ForgeClient)
+        "_comfy_workflow": "scene_single",
     }
+    if style_ctx and style_ctx.sd_model_name:
+        payload["sd_model_checkpoint"] = style_ctx.sd_model_name
     apply_sampler_to_payload(payload, sampler_name)
 
     # 6. Apply ControlNet/IP-Adapter (Studio only)

@@ -112,8 +112,7 @@ async def ensure_avatar_file(
         "seed": -1,
         "width": 256,
         "height": 256,
-        "override_settings": {"CLIP_stop_at_last_layers": SD_DEFAULT_CLIP_SKIP},
-        "override_settings_restore_afterwards": True,
+        "clip_skip": SD_DEFAULT_CLIP_SKIP,
     }
     apply_sampler_to_payload(payload, payload.pop("sampler_name"))
     try:

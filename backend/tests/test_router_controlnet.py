@@ -1,6 +1,6 @@
 """Tests for controlnet router endpoints."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -11,10 +11,14 @@ PATCH_PREFIX = "routers.controlnet"
 class TestControlNetStatus:
     """Test GET /controlnet/status."""
 
-    @patch(f"{PATCH_PREFIX}.get_controlnet_models", return_value=["openpose", "depth"])
-    @patch(f"{PATCH_PREFIX}.check_controlnet_available", return_value=True)
-    def test_status_available(self, mock_check, mock_models, client: TestClient):
+    @patch(f"{PATCH_PREFIX}.get_sd_client")
+    def test_status_available(self, mock_factory, client: TestClient):
         """Return available status with models."""
+        mock_sd = AsyncMock()
+        mock_sd.check_controlnet.return_value = True
+        mock_sd.get_controlnet_models.return_value = ["openpose", "depth"]
+        mock_factory.return_value = mock_sd
+
         resp = client.get("/api/admin/controlnet/status")
         assert resp.status_code == 200
         data = resp.json()
@@ -22,9 +26,13 @@ class TestControlNetStatus:
         assert "openpose" in data["models"]
         assert isinstance(data["pose_references"], list)
 
-    @patch(f"{PATCH_PREFIX}.check_controlnet_available", return_value=False)
-    def test_status_unavailable(self, mock_check, client: TestClient):
+    @patch(f"{PATCH_PREFIX}.get_sd_client")
+    def test_status_unavailable(self, mock_factory, client: TestClient):
         """Return unavailable status with empty models."""
+        mock_sd = AsyncMock()
+        mock_sd.check_controlnet.return_value = False
+        mock_factory.return_value = mock_sd
+
         resp = client.get("/api/admin/controlnet/status")
         assert resp.status_code == 200
         data = resp.json()
@@ -125,10 +133,14 @@ class TestSuggestPose:
 class TestIPAdapterStatus:
     """Test GET /controlnet/ip-adapter/status."""
 
-    @patch(f"{PATCH_PREFIX}.get_controlnet_models", return_value=["ip-adapter-plus-face_sdxl_vit-h", "openpose"])
-    @patch(f"{PATCH_PREFIX}.check_controlnet_available", return_value=True)
-    def test_ip_adapter_available(self, mock_check, mock_models, client: TestClient):
+    @patch(f"{PATCH_PREFIX}.get_sd_client")
+    def test_ip_adapter_available(self, mock_factory, client: TestClient):
         """Return IP-Adapter availability."""
+        mock_sd = AsyncMock()
+        mock_sd.check_controlnet.return_value = True
+        mock_sd.get_controlnet_models.return_value = ["ip-adapter-plus-face_sdxl_vit-h", "openpose"]
+        mock_factory.return_value = mock_sd
+
         resp = client.get("/api/admin/controlnet/ip-adapter/status")
         assert resp.status_code == 200
         data = resp.json()
@@ -136,10 +148,14 @@ class TestIPAdapterStatus:
         assert len(data["models"]) == 1  # Only ip-adapter model
         assert "ip-adapter" in data["models"][0]
 
-    @patch(f"{PATCH_PREFIX}.get_controlnet_models", return_value=["openpose"])
-    @patch(f"{PATCH_PREFIX}.check_controlnet_available", return_value=True)
-    def test_ip_adapter_no_models(self, mock_check, mock_models, client: TestClient):
+    @patch(f"{PATCH_PREFIX}.get_sd_client")
+    def test_ip_adapter_no_models(self, mock_factory, client: TestClient):
         """IP-Adapter unavailable when no matching models."""
+        mock_sd = AsyncMock()
+        mock_sd.check_controlnet.return_value = True
+        mock_sd.get_controlnet_models.return_value = ["openpose"]
+        mock_factory.return_value = mock_sd
+
         resp = client.get("/api/admin/controlnet/ip-adapter/status")
         assert resp.status_code == 200
         data = resp.json()

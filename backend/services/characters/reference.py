@@ -128,10 +128,8 @@ async def regenerate_reference(
     num_candidates: int = 1,
 ) -> dict:
     """Regenerate the character's reference image using 12-Layer prompt system."""
-    from config import SD_CLIENT_TYPE
     from services.generation import generate_scene_image
     from services.image import decode_data_url
-    from services.prompt.composition import PromptBuilder
     from services.style_context import resolve_style_context_from_group
 
     character = _get_character_for_reference(db, character_id, with_tags=True)
@@ -139,68 +137,55 @@ async def regenerate_reference(
     # Resolve StyleContext via Group (needed for reference_env_tags/camera_tags + negative)
     style_ctx = resolve_style_context_from_group(character.group_id, db)
 
-    if SD_CLIENT_TYPE == "comfy":
-        # ComfyUI: 단순 프롬프트 — weight 강조 없이, 충돌 태그 제거
-        import re
+    # ComfyUI: 단순 프롬프트 — weight 강조 없이, 충돌 태그 제거
+    import re
 
-        char_tags = character.positive_prompt or ""
-        # Strip weight emphasis: (tag:1.3) → tag
-        char_tags_clean = re.sub(r"\(([^:()]+):[0-9.]+\)", r"\1", char_tags)
-        # Remove abstract/conflicting/unnecessary tags for upper_body reference
-        _REMOVE_TAGS = {
-            "tall",
-            "slim",
-            "confident",
-            "adult",  # 추상적
-            "tote_bag",
-            "backpack",
-            "bag",  # 소품 (upper_body에 불필요)
-            "pleated_skirt",
-            "skirt",
-            "pants",
-            "jeans",
-            "shorts",  # 하의 (upper_body에 안 보임)
-        }
-        tags = [t.strip() for t in char_tags_clean.split(",") if t.strip()]
-        # Resolve looking_away vs looking_at_viewer conflict
-        has_looking_away = any("looking_away" in t for t in tags)
-        filtered = [t for t in tags if t not in _REMOVE_TAGS]
-        if has_looking_away:
-            filtered = [t for t in filtered if "looking_at_viewer" not in t]
-            gaze = ""  # looking_away from character prompt
-        else:
-            gaze = "looking_at_viewer"
-        char_part = ", ".join(filtered)
-        gaze_part = f", {gaze}" if gaze else ""
-        full_prompt = f"masterpiece, best_quality, {char_part}, solo, upper_body{gaze_part}, simple_background"
-        # LoRA 태그 주입 — ComfyUI 클라이언트가 파싱해서 워크플로우 노드로 적용
-        if style_ctx and style_ctx.loras:
-            for lora in style_ctx.loras:
-                lora_name = lora.get("name", "")
-                lora_weight = lora.get("weight", 0.7)
-                if lora_name:
-                    full_prompt += f", <lora:{lora_name}:{lora_weight}>"
+    char_tags = character.positive_prompt or ""
+    # Strip weight emphasis: (tag:1.3) → tag
+    char_tags_clean = re.sub(r"\(([^:()]+):[0-9.]+\)", r"\1", char_tags)
+    # Remove abstract/conflicting/unnecessary tags for upper_body reference
+    _REMOVE_TAGS = {
+        "tall",
+        "slim",
+        "confident",
+        "adult",  # 추상적
+        "tote_bag",
+        "backpack",
+        "bag",  # 소품 (upper_body에 불필요)
+        "pleated_skirt",
+        "skirt",
+        "pants",
+        "jeans",
+        "shorts",  # 하의 (upper_body에 안 보임)
+    }
+    tags = [t.strip() for t in char_tags_clean.split(",") if t.strip()]
+    # Resolve looking_away vs looking_at_viewer conflict
+    has_looking_away = any("looking_away" in t for t in tags)
+    filtered = [t for t in tags if t not in _REMOVE_TAGS]
+    if has_looking_away:
+        filtered = [t for t in filtered if "looking_at_viewer" not in t]
+        gaze = ""  # looking_away from character prompt
     else:
-        # ForgeUI: 기존 12-Layer 프롬프트 조합
-        quality_tags = _resolve_quality_tags_for_character(character, db)
-        builder = PromptBuilder(db)
-        full_prompt = builder.compose_for_reference(character, quality_tags=quality_tags, style_ctx=style_ctx)
+        gaze = "looking_at_viewer"
+    char_part = ", ".join(filtered)
+    gaze_part = f", {gaze}" if gaze else ""
+    full_prompt = f"masterpiece, best_quality, {char_part}, solo, upper_body{gaze_part}, simple_background"
+    # LoRA 태그 주입 — ComfyUI 클라이언트가 파싱해서 워크플로우 노드로 적용
+    if style_ctx and style_ctx.loras:
+        for lora in style_ctx.loras:
+            lora_name = lora.get("name", "")
+            lora_weight = lora.get("weight", 0.7)
+            if lora_name:
+                full_prompt += f", <lora:{lora_name}:{lora_weight}>"
 
-    # Resolve StyleProfile quality tags (Group → Config → StyleProfile.default_positive)
-    quality_tags = _resolve_quality_tags_for_character(character, db)
-
-    if SD_CLIENT_TYPE == "comfy":
-        # ComfyUI/SDXL: 간결한 negative (중복/weight 제거)
-        neg_prompt = (
-            "lowres, bad_anatomy, bad_hands, text, error, worst_quality, low_quality, "
-            "missing_fingers, extra_digit, extra_fingers, mutated_hands, poorly_drawn_hands, "
-            "poorly_drawn_face, deformed, extra_limbs, blurry, watermark, signature, "
-            "multiple_views, character_sheet, reference_sheet, "
-            "3d, realistic, photorealistic, detailed_background"
-        )
-    else:
-        # ForgeUI: 기존 negative 조합
-        neg_prompt = _build_reference_negative(style_ctx, None)
+    # ComfyUI/SDXL: 간결한 negative (중복/weight 제거)
+    neg_prompt = (
+        "lowres, bad_anatomy, bad_hands, text, error, worst_quality, low_quality, "
+        "missing_fingers, extra_digit, extra_fingers, mutated_hands, poorly_drawn_hands, "
+        "poorly_drawn_face, deformed, extra_limbs, blurry, watermark, signature, "
+        "multiple_views, character_sheet, reference_sheet, "
+        "3d, realistic, photorealistic, detailed_background"
+    )
     # Merge character-specific negative on top
     if character.negative_prompt:
         existing = {t.strip() for t in neg_prompt.split(",")}
@@ -208,12 +193,6 @@ async def regenerate_reference(
             tag = tag.strip()
             if tag and tag not in existing:
                 neg_prompt += ", " + tag
-
-    # Ensure SD WebUI is using the correct checkpoint for this StyleProfile
-    if style_ctx and style_ctx.sd_model_name:
-        from services.image_generation_core import _ensure_correct_checkpoint
-
-        await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
     # StyleProfile generation parameters (override global defaults)
     steps = style_ctx.default_steps if (style_ctx and style_ctx.default_steps is not None) else SD_REFERENCE_STEPS
@@ -334,11 +313,6 @@ async def generate_wizard_preview(db: Session, request: CharacterPreviewRequest)
     builder = PromptBuilder(db)
     full_prompt = builder.compose_for_reference(temp_char, style_ctx=style_ctx)
     neg_prompt = _build_reference_negative(style_ctx, None)
-
-    if style_ctx and style_ctx.sd_model_name:
-        from services.image_generation_core import _ensure_correct_checkpoint
-
-        await _ensure_correct_checkpoint(style_ctx.sd_model_name)
 
     steps = style_ctx.default_steps if (style_ctx and style_ctx.default_steps is not None) else SD_REFERENCE_STEPS
     cfg_scale = (

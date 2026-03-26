@@ -107,61 +107,6 @@ def _adjust_parameters(ctx: GenerationContext) -> None:
         elif complexity == "moderate":
             ctx.steps = max(ctx.steps, 25)
 
-    # Auto-enable Hi-Res from StyleProfile
-    if style_ctx and style_ctx.default_enable_hr and not ctx.request.enable_hr:
-        ctx.request.enable_hr = True
-        logger.info("🔍 [StyleProfile] Auto-enabled Hi-Res for '%s'", style_ctx.profile_name)
-
-
-def _build_adetailer_args(style_profile_id: int | None = None) -> dict | None:
-    """Build ADetailer alwayson_scripts args for face + hand inpainting.
-
-    Returns None when ADetailer is disabled or should be skipped.
-    Uses higher-accuracy model for realistic profiles (id in ADETAILER_HIGH_ACCURACY_PROFILE_IDS).
-    Adds hand inpainting as 2nd unit when ADETAILER_HAND_ENABLED is True.
-    """
-    from config import (
-        ADETAILER_DENOISING_STRENGTH,
-        ADETAILER_ENABLED,
-        ADETAILER_FACE_MODEL,
-        ADETAILER_HAND_DENOISING_STRENGTH,
-        ADETAILER_HAND_ENABLED,
-        ADETAILER_HAND_MODEL,
-        ADETAILER_HIGH_ACCURACY_PROFILE_IDS,
-    )
-
-    if not ADETAILER_ENABLED:
-        return None
-
-    face_model = "face_yolov8s.pt" if style_profile_id in ADETAILER_HIGH_ACCURACY_PROFILE_IDS else ADETAILER_FACE_MODEL
-    units: list[dict] = [
-        {
-            "ad_model": face_model,
-            "ad_prompt": "",
-            "ad_negative_prompt": "",
-            "ad_confidence": 0.3,
-            "ad_mask_blur": 4,
-            "ad_denoising_strength": ADETAILER_DENOISING_STRENGTH,
-            "ad_inpaint_only_masked": True,
-            "ad_inpaint_only_masked_padding": 32,
-        }
-    ]
-    if ADETAILER_HAND_ENABLED:
-        units.append(
-            {
-                "ad_model": ADETAILER_HAND_MODEL,
-                "ad_prompt": "",
-                "ad_negative_prompt": "bad_hands, missing_fingers, extra_digit, fewer_digits, "
-                "fused_fingers, mutated_hands, extra_fingers",
-                "ad_confidence": 0.3,
-                "ad_mask_blur": 4,
-                "ad_denoising_strength": ADETAILER_HAND_DENOISING_STRENGTH,
-                "ad_inpaint_only_masked": True,
-                "ad_inpaint_only_masked_padding": 64,
-            }
-        )
-    return {"ADetailer": {"args": units}}
-
 
 def _build_payload(ctx: GenerationContext) -> dict:
     """Build the SD txt2img payload from context."""
@@ -175,28 +120,13 @@ def _build_payload(ctx: GenerationContext) -> dict:
         "seed": req.seed,
         "width": req.width,
         "height": req.height,
-        "override_settings": {
-            "CLIP_stop_at_last_layers": max(1, int(req.clip_skip)),
-        },
-        "override_settings_restore_afterwards": True,
+        "clip_skip": max(1, int(req.clip_skip)),
         "batch_size": 1,
         "_comfy_workflow": req.comfy_workflow or "scene_single",
     }
+    if ctx.style_context and ctx.style_context.sd_model_name:
+        payload["sd_model_checkpoint"] = ctx.style_context.sd_model_name
     apply_sampler_to_payload(payload, req.sampler_name)
-    if req.enable_hr:
-        payload.update(
-            {
-                "enable_hr": True,
-                "hr_scale": req.hr_scale,
-                "hr_upscaler": req.hr_upscaler,
-                "hr_second_pass_steps": req.hr_second_pass_steps,
-                "denoising_strength": req.denoising_strength,
-                "hr_additional_modules": [],  # Forge requires this field (non-None)
-            }
-        )
-    adetailer = _build_adetailer_args(ctx.style_context.profile_id if ctx.style_context else None)
-    if adetailer:
-        payload.setdefault("alwayson_scripts", {}).update(adetailer)
     return payload
 
 

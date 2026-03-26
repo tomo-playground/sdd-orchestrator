@@ -39,7 +39,7 @@ def image_cache_key(payload: dict) -> str:
         "cfg_scale": payload.get("cfg_scale", SD_DEFAULT_CFG_SCALE),
         "sampler_name": payload.get("sampler_name", ""),
         "scheduler": payload.get("scheduler", ""),
-        "clip_skip": payload.get("override_settings", {}).get("CLIP_stop_at_last_layers", SD_DEFAULT_CLIP_SKIP),
+        "clip_skip": payload.get("clip_skip", SD_DEFAULT_CLIP_SKIP),
     }
     # Include ControlNet fingerprint if present
     alwayson = payload.get("alwayson_scripts", {})

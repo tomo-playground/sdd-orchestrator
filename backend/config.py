@@ -150,14 +150,10 @@ GEMINI_SAFETY_SETTINGS: list[genai.types.SafetySetting] = [
 
 
 SD_BASE_URL = os.getenv("SD_BASE_URL", "http://127.0.0.1:7860")
-SD_CLIENT_TYPE = os.getenv("SD_CLIENT_TYPE", "comfy")  # "comfy" | "forge"
-if SD_CLIENT_TYPE == "forge" and SD_BASE_URL == "http://127.0.0.1:7860":
-    logger.info("Using default SD_BASE_URL: %s", SD_BASE_URL)
 
 # --- ComfyUI ---
 COMFYUI_BASE_URL = os.getenv("COMFYUI_BASE_URL", "http://127.0.0.1:8188")
-if SD_CLIENT_TYPE == "comfy":
-    logger.info("ComfyUI endpoint: %s", COMFYUI_BASE_URL)
+logger.info("ComfyUI endpoint: %s", COMFYUI_BASE_URL)
 COMFYUI_NETWORK_TIMEOUT = float(os.getenv("COMFYUI_NETWORK_TIMEOUT", "10"))
 COMFYUI_EXECUTION_TIMEOUT = float(os.getenv("COMFYUI_EXECUTION_TIMEOUT", "180"))
 COMFYUI_QUEUE_TIMEOUT = float(os.getenv("COMFYUI_QUEUE_TIMEOUT", "300"))
@@ -170,12 +166,6 @@ VOICE_REF_SAMPLE_TEXT = "안녕하세요. 오늘 하루도 좋은 하루 되시�
 AUDIO_SERVER_TTS_CACHE_DIR = pathlib.Path(
     os.getenv("AUDIO_SERVER_TTS_CACHE_DIR", str(pathlib.Path.home() / ".cache" / "audio-server" / "tts"))
 )
-
-SD_TXT2IMG_URL = f"{SD_BASE_URL}/sdapi/v1/txt2img"
-SD_MODELS_URL = f"{SD_BASE_URL}/sdapi/v1/sd-models"
-SD_OPTIONS_URL = f"{SD_BASE_URL}/sdapi/v1/options"
-SD_LORAS_URL = f"{SD_BASE_URL}/sdapi/v1/loras"
-SD_TIMEOUT_SECONDS = float(os.getenv("SD_TIMEOUT_SECONDS", "600"))
 
 # --- Image Generation Defaults ---
 # NoobAI-XL V-Pred 1.0: Euler only, CFG 4~5, 832x1216 (2:3, ~1M pixels)
@@ -220,25 +210,24 @@ def cap_style_lora_weight(weight: float, lora_type: str | None) -> float:
     return weight
 
 
-# --- Forge Sampler/Scheduler Split ---
+# --- Sampler/Scheduler Split ---
 _KNOWN_SCHEDULERS = {"karras", "exponential", "polyexponential"}
 
 
 def split_sampler_scheduler(sampler_name: str) -> tuple[str, str | None]:
-    """Split A1111-style sampler into Forge sampler + scheduler.
+    """Split A1111-style sampler into sampler + scheduler.
 
-    Forge separates sampler and scheduler into distinct API fields.
     e.g. "DPM++ 2M Karras" → ("DPM++ 2M", "karras")
          "Euler a"          → ("Euler a", None)
     """
     parts = sampler_name.rsplit(" ", 1)
     if len(parts) == 2 and parts[1].lower() in _KNOWN_SCHEDULERS:
-        return parts[0], parts[1]  # Preserve original case (Forge expects "Karras" not "karras")
+        return parts[0], parts[1]
     return sampler_name, None
 
 
 def apply_sampler_to_payload(payload: dict, sampler_name: str) -> None:
-    """Set sampler_name, scheduler, and CFG Rescale in payload for Forge compatibility."""
+    """Set sampler_name, scheduler, and CFG Rescale in payload."""
     sampler, scheduler = split_sampler_scheduler(sampler_name)
     payload["sampler_name"] = sampler
     if scheduler:
@@ -247,11 +236,6 @@ def apply_sampler_to_payload(payload: dict, sampler_name: str) -> None:
     if SD_CFG_RESCALE > 0:
         payload.setdefault("extra_generation_params", {})["CFG Rescale φ"] = SD_CFG_RESCALE
 
-
-# --- SD API Timeouts ---
-SD_API_TIMEOUT = float(os.getenv("SD_API_TIMEOUT", "10"))
-SD_PROGRESS_POLL_TIMEOUT = float(os.getenv("SD_PROGRESS_POLL_TIMEOUT", "5"))
-SD_MODEL_SWITCH_TIMEOUT = float(os.getenv("SD_MODEL_SWITCH_TIMEOUT", "120"))
 
 # --- ControlNet Timeouts ---
 CONTROLNET_API_TIMEOUT = float(os.getenv("CONTROLNET_API_TIMEOUT", "10"))

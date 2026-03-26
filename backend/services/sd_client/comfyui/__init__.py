@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 # Regex for <lora:NAME:WEIGHT> tags in SD WebUI prompt format
 _LORA_TAG_RE = re.compile(r"<lora:([^:]+):([0-9.]+)>")
 
-# Forge/SD WebUI sampler name → ComfyUI sampler_name (case-insensitive key)
-_FORGE_TO_COMFY_SAMPLER: dict[str, str] = {
+# SD WebUI sampler name → ComfyUI sampler_name (case-insensitive key)
+_WEBUI_TO_COMFY_SAMPLER: dict[str, str] = {
     "euler": "euler",
     "euler a": "euler_ancestral",
     "heun": "heun",
@@ -43,14 +43,14 @@ _FORGE_TO_COMFY_SAMPLER: dict[str, str] = {
 
 
 def _map_sampler_to_comfy(sampler_name: str, scheduler: str | None) -> tuple[str, str]:
-    """Map Forge sampler/scheduler names to ComfyUI equivalents.
+    """Map SD WebUI sampler/scheduler names to ComfyUI equivalents.
 
-    Forge separates "DPM++ 2M Karras" into sampler="DPM++ 2M", scheduler="Karras".
+    SD WebUI separates "DPM++ 2M Karras" into sampler="DPM++ 2M", scheduler="Karras".
     ComfyUI uses lowercase underscore sampler names and lowercase scheduler names.
     """
-    comfy_sampler = _FORGE_TO_COMFY_SAMPLER.get(sampler_name.lower())
+    comfy_sampler = _WEBUI_TO_COMFY_SAMPLER.get(sampler_name.lower())
     if comfy_sampler is None:
-        logger.warning("Unknown Forge sampler '%s' — falling back to 'euler'", sampler_name)
+        logger.warning("Unknown sampler '%s' — falling back to 'euler'", sampler_name)
         comfy_sampler = "euler"
     comfy_scheduler = (scheduler or "karras").lower()  # noobaiXL v-pred: karras default
     return comfy_sampler, comfy_scheduler
@@ -156,7 +156,7 @@ class ComfyUIClient(SDClientBase):
         available_loras = await self._get_available_loras()
         workflow = self._apply_loras_to_workflow(workflow, loras, available_loras)
 
-        # Apply checkpoint: override_settings takes priority, fall back to auto-detected
+        # Apply checkpoint: payload takes priority, fall back to auto-detected
         checkpoint = self._resolve_checkpoint(payload) or await self._ensure_checkpoint()
         if checkpoint:
             self._set_checkpoint_in_workflow(workflow, checkpoint)
@@ -282,8 +282,6 @@ class ComfyUIClient(SDClientBase):
         prompt_text = payload.get("prompt", "")
         # Strip LoRA tags from prompt (they'll be applied as workflow nodes)
         clean_prompt = _LORA_TAG_RE.sub("", prompt_text).strip().strip(",").strip()
-        # Strip weight emphasis (tag:1.3) → tag — noobaiXL v-pred breaks with heavy weights
-        clean_prompt = re.sub(r"\(([^:()]+):[0-9.]+\)", r"\1", clean_prompt)
 
         seed = payload.get("seed", -1)
         if seed == -1:
@@ -295,8 +293,6 @@ class ComfyUIClient(SDClientBase):
         )
 
         neg_prompt = payload.get("negative_prompt", "")
-        # Strip weight emphasis from negative too for noobaiXL v-pred
-        neg_prompt = re.sub(r"\(([^:()]+):[0-9.]+\)", r"\1", neg_prompt)
 
         return {
             "positive": clean_prompt,
@@ -368,9 +364,8 @@ class ComfyUIClient(SDClientBase):
 
     @staticmethod
     def _resolve_checkpoint(payload: dict) -> str:
-        """Extract checkpoint name from SD WebUI override_settings."""
-        overrides = payload.get("override_settings", {})
-        return overrides.get("sd_model_checkpoint", "")
+        """Extract checkpoint name from payload."""
+        return payload.get("sd_model_checkpoint", "")
 
     @staticmethod
     def _set_checkpoint_in_workflow(workflow: dict, checkpoint: str) -> None:

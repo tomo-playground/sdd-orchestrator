@@ -12,7 +12,6 @@ from config import logger
 from services.controlnet import (
     build_controlnet_args,
     build_ip_adapter_args,
-    check_controlnet_available,
     detect_pose_from_prompt,
     load_pose_reference,
     load_reference_image,
@@ -37,22 +36,13 @@ def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
     strategy = ctx.consistency
     controlnet_args_list: list[dict] = []
 
-    if not check_controlnet_available():
-        logger.warning("⚠️ [ControlNet] Extension not available — skipping all ControlNet/IP-Adapter")
-        ctx.warnings.append("ControlNet extension not available")
-        return
-
     _apply_pose_control(req, ctx, controlnet_args_list, db)
     _apply_reference_only(req, ctx, strategy, controlnet_args_list, db)
     _apply_environment(req, ctx, controlnet_args_list, db)
     _apply_ip_adapter(ctx, strategy, controlnet_args_list, db)
 
     # Apply combined ControlNet args to payload
-    # Forge requires padding to match default slot count (3) to avoid KeyError
     if controlnet_args_list:
-        _FORGE_CN_SLOTS = 3
-        while len(controlnet_args_list) < _FORGE_CN_SLOTS:
-            controlnet_args_list.append({"enabled": False})
         payload.setdefault("alwayson_scripts", {})["controlnet"] = {"args": controlnet_args_list}
         for i, arg in enumerate(controlnet_args_list):
             debug_arg = {
