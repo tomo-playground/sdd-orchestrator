@@ -66,3 +66,15 @@ claude --worktree $ARGUMENTS --dangerously-skip-permissions -p "/sdd-run $ARGUME
 2. `status: approved` → `status: running` 업데이트
 3. **설계 파일의 각 DoD 상세 설계를 기반으로** 자율 구현 시작
 4. CLAUDE.md의 SDD 자율 실행 규칙 준수
+
+### 8. PR 생성
+
+구현 + 테스트 완료 후 PR 생성:
+
+```bash
+gh pr create --title "..." --body "..." --assignee stopper2008
+```
+
+- `--assignee stopper2008` **필수** — 모든 SDD PR에 assignee 지정
+- 라벨은 변경 파일 기반으로 자동 판단하여 `--label` 추가 (backend, frontend, infra 등)
+- PR body에 `## Summary`, `## Test plan` 포함
