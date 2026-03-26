@@ -24,7 +24,7 @@ GitHub Issue(label:sentry)를 읽고 자동 수정 PR을 생성합니다.
 4. 테스트 실행 → RED 확인
 5. 코드 수정 → 테스트 GREEN 확인
 6. `fix/sentry-{issue번호}` 브랜치에서 커밋 + push
-7. PR 생성 (`Fixes #{issue번호}` 포함)
+7. PR 생성 (`Fixes #{issue번호}` 포함, `--assignee stopper2008` 필수)
 8. 수정 불가 시 Issue에 `needs-manual-fix` 라벨 추가 + 코멘트
 
 ### 3. 결과 보고
