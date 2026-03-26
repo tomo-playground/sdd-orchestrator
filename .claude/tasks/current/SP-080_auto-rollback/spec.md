@@ -4,7 +4,8 @@ priority: P1
 scope: infra
 branch: feat/SP-080-auto-rollback
 created: 2026-03-26
-status: pending
+status: approved
+approved_at: 2026-03-26
 depends_on:
 label: feature
 ---
@@ -37,6 +38,10 @@ label: feature
 ### 공통
 - [ ] 기존 테스트 regression 없음
 - [ ] 린트 통과
+
+## 상세 설계 (How)
+
+> [design.md](./design.md) 참조
 
 ## 힌트
 - 오케스트레이터의 `merge_pr` 도구(`tools/github.py`) 실행 직후 모니터링 시작
