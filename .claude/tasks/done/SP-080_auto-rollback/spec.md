@@ -4,7 +4,7 @@ priority: P1
 scope: infra
 branch: feat/SP-080-auto-rollback
 created: 2026-03-26
-status: approved
+status: done
 approved_at: 2026-03-26
 depends_on:
 label: feature
