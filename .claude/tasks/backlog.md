@@ -19,11 +19,39 @@
 ## P2 (기능 확장)
 
 - [ ] SP-081 — 서비스 Slack 알림 — 렌더링 완료/파이프라인 실패/SD 다운/스토리보드 생성 완료 알림 | scope: backend+infra
-- [ ] SP-052 — Direct 탭 레이아웃/편의성 개선
 - [ ] SP-024 — VEO Clip — Video Generation 통합
 - [ ] SP-025 — Profile Export/Import — Style Profile 공유
 - [ ] SP-026 — Storyboard Version History — 저장 시점별 스냅샷 조회/복원
 - [ ] SP-029 — Script Canvas 분할 뷰
+
+## IA Redesign (정보 구조 개선)
+
+> 명세: `docs/01_product/FEATURES/IA_REDESIGN.md`
+
+### Phase A: Quick Wins (병렬, 1~2일)
+- [ ] SP-087 — UI 라벨 한국어화 + Dev 제거 — NavBar/Studio/Library/Settings 전체 한국어화 (13~15파일, 문자열 교체) | scope: frontend
+- [ ] SP-088 — Ghost Route/컴포넌트 삭제 — /scripts, /storyboards redirect + AppMobileTabBar 삭제 | scope: frontend
+- [ ] SP-089 — Materials 팝오버 Library 직접 링크 — Characters/Style Missing 시 Library 이동 | scope: frontend
+
+### Phase B: 중규모 (병렬, 1~2주)
+- [ ] SP-090 — ContextBar 개선 — h-8→h-10, 아이콘, Library/Settings 숨기기, 단일 채널 자동 숨기기 | scope: frontend
+- [ ] SP-091 — Settings 재배치: Trash → Library 이동 | scope: frontend
+- [ ] SP-092 — Publish 탭에 YouTube 연동 진입점 추가 | scope: frontend
+- [ ] SP-093 — Home 대시보드 개선 — 빠른 시작 + ContinueWorking 진행 상태 | scope: frontend
+
+### Phase C: Direct 3패널 (순차, 2~3주) — 크리티컬 패스: SP-021 완료 필요
+- [ ] SP-094 — Direct 탭 E2E 테스트 보강 — Phase C 리팩토링 전 안전망 | scope: frontend
+- [ ] SP-095 — SceneContext Provider 도입 — 기존 SceneContext.tsx 활성화 + TTS 4필드 추가 | scope: frontend | depends: SP-021
+- [ ] SP-096 — Props → Context 전환 — SceneCard props 40개→5개, 서브컴포넌트 Context 소비 | scope: frontend | depends: SP-095
+- [ ] SP-097 — 속성 패널 컴포넌트 — 기본/고급 분리, 독립 컴포넌트 | scope: frontend | depends: SP-096
+- [ ] SP-098 — Direct 3패널 레이아웃 통합 — 씬 목록|씬 카드|속성 패널 + feature flag | scope: frontend | depends: SP-096, SP-097
+
+### Phase D: Library 통일 (1~2주)
+- [ ] SP-099 — Master-Detail 공통 레이아웃 컴포넌트 — LibraryMasterDetail 신규 | scope: frontend
+- [ ] SP-100 — Styles → Master-Detail 전환 | scope: frontend | depends: SP-099
+- [ ] SP-101 — Voices → Master-Detail 전환 | scope: frontend | depends: SP-099
+- [ ] SP-102 — Music → Master-Detail 전환 | scope: frontend | depends: SP-099
+- [ ] SP-103 — LoRAs 탭 제거 + Admin 이전 | scope: frontend | depends: SP-100
 
 ## P2-SDD (코딩머신 강화)
 
