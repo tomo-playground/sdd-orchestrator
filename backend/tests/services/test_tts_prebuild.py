@@ -220,7 +220,9 @@ class TestPrebuildPrebuilt:
 
         request = TtsPrebuildRequest(
             storyboard_id=1,
-            scenes=[TtsPrebuildSceneItem(scene_db_id=40, script="업데이트 테스트", speaker="speaker_1", tts_asset_id=None)],
+            scenes=[
+                TtsPrebuildSceneItem(scene_db_id=40, script="업데이트 테스트", speaker="speaker_1", tts_asset_id=None)
+            ],
         )
 
         mock_update = MagicMock()
@@ -328,7 +330,9 @@ class TestPrebuildFailed:
 
         request = TtsPrebuildRequest(
             storyboard_id=1,
-            scenes=[TtsPrebuildSceneItem(scene_db_id=70, script="실패 결과 확인", speaker="speaker_1", tts_asset_id=None)],
+            scenes=[
+                TtsPrebuildSceneItem(scene_db_id=70, script="실패 결과 확인", speaker="speaker_1", tts_asset_id=None)
+            ],
         )
 
         with patch(
@@ -425,7 +429,8 @@ class TestPrebuildMixed:
         request = TtsPrebuildRequest(
             storyboard_id=1,
             scenes=[
-                TtsPrebuildSceneItem(scene_db_id=i, script="씬", speaker="speaker_1", tts_asset_id=100 + i) for i in range(3)
+                TtsPrebuildSceneItem(scene_db_id=i, script="씬", speaker="speaker_1", tts_asset_id=100 + i)
+                for i in range(3)
             ],
         )
 

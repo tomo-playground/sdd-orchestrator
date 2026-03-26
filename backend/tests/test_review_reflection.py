@@ -101,7 +101,9 @@ async def test_review_node_legacy_fallback_on_failure(mock_gemini_eval, mock_nar
     mock_reflect.return_value = "[근본 원인] 씬 개수 부족\n[수정 전략] 씬 추가"
 
     state = {
-        "draft_scenes": [{"scene_id": 1, "script": "테스트", "speaker": "speaker_1", "duration": 3, "image_prompt": "smile"}],
+        "draft_scenes": [
+            {"scene_id": 1, "script": "테스트", "speaker": "speaker_1", "duration": 3, "image_prompt": "smile"}
+        ],
         "duration": 15,
         "language": "korean",
         "structure": "monologue",
@@ -163,7 +165,9 @@ async def test_review_node_skips_reflection_in_quick_mode(mock_reflect):
     from services.agent.nodes.review import review_node
 
     state = {
-        "draft_scenes": [{"scene_id": 1, "script": "테스트", "speaker": "speaker_1", "duration": 3, "image_prompt": ""}],
+        "draft_scenes": [
+            {"scene_id": 1, "script": "테스트", "speaker": "speaker_1", "duration": 3, "image_prompt": ""}
+        ],
         "duration": 15,
         "language": "korean",
         "structure": "monologue",

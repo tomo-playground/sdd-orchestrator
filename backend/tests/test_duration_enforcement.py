@@ -125,11 +125,29 @@ async def test_revise_tier15_duration_redistribute():
     scenes = [
         {"scene_id": 1, "script": "첫 대사입니다", "speaker": "speaker_1", "duration": 4.0, "image_prompt": "1girl"},
         {"scene_id": 2, "script": "두번째 대사", "speaker": "speaker_1", "duration": 3.5, "image_prompt": "1girl"},
-        {"scene_id": 3, "script": "세번째 대사입니다", "speaker": "speaker_1", "duration": 4.0, "image_prompt": "1girl"},
+        {
+            "scene_id": 3,
+            "script": "세번째 대사입니다",
+            "speaker": "speaker_1",
+            "duration": 4.0,
+            "image_prompt": "1girl",
+        },
         {"scene_id": 4, "script": "네번째 대사", "speaker": "speaker_1", "duration": 3.5, "image_prompt": "1girl"},
-        {"scene_id": 5, "script": "다섯번째 대사입니다", "speaker": "speaker_1", "duration": 4.0, "image_prompt": "1girl"},
+        {
+            "scene_id": 5,
+            "script": "다섯번째 대사입니다",
+            "speaker": "speaker_1",
+            "duration": 4.0,
+            "image_prompt": "1girl",
+        },
         {"scene_id": 6, "script": "여섯번째 대사", "speaker": "speaker_1", "duration": 3.5, "image_prompt": "1girl"},
-        {"scene_id": 7, "script": "일곱번째 대사입니다", "speaker": "speaker_1", "duration": 4.0, "image_prompt": "1girl"},
+        {
+            "scene_id": 7,
+            "script": "일곱번째 대사입니다",
+            "speaker": "speaker_1",
+            "duration": 4.0,
+            "image_prompt": "1girl",
+        },
     ]
     state = {
         "draft_scenes": scenes,
