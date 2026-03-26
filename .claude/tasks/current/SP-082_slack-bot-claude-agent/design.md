@@ -7,6 +7,8 @@
 | `orchestrator/tools/slack_bot.py` | 수정 | 키워드 매칭 → Claude Agent 위임, pause/resume MCP tool 추가 |
 | `orchestrator/agents.py` | 수정 | `create_slack_bot_options(mcp_server)` 추가 |
 | `orchestrator/config.py` | 수정 | Slack Bot Agent 시스템 프롬프트 + 설정 상수 추가 |
+| `orchestrator/tools/notify.py` | 수정 | Webhook fallback 삭제, Bot API 단일 경로 |
+| `.claude/scripts/sdd-orch.sh` | 수정 | SLACK_WEBHOOK_URL 제거, SENTRY orchestrator/.env로 이동 |
 | `orchestrator/tests/test_slack_bot.py` | 수정 | 키워드 테스트 → Agent 호출 테스트 전환 |
 
 **난이도: 하** (변경 파일 3개, 기존 패턴 재사용)
@@ -223,10 +225,46 @@ After:  @bot SP-084 어떻게 돼? → query_agent("SP-084 어떻게 돼?") → 
 
 ---
 
+## Phase D: Webhook 제거 + Slack 설정 통합
+
+### DoD-D1: SLACK_WEBHOOK_URL 의존성 제거
+
+**구현 방법:**
+- `orchestrator/tools/notify.py`의 `_send_slack_message()`:
+  - Webhook fallback 경로 삭제 (`else:` 블록 76-85행)
+  - Bot API 단일 경로만 유지
+  - `SLACK_WEBHOOK_URL` import 제거
+- `orchestrator/config.py`:
+  - `SLACK_WEBHOOK_URL` 상수 삭제
+- `orchestrator/main.py` `_preflight_check()`:
+  - `SLACK_WEBHOOK_URL` 체크 삭제, `SLACK_BOT_TOKEN` 체크로 대체
+- `.claude/scripts/sdd-orch.sh`:
+  - `_SLACK=$(grep ... backend/.env ...)` 행 삭제
+  - `SLACK_WEBHOOK_URL="${_SLACK}"` 행 삭제
+
+**동작 정의:**
+- Before: Bot Token 있으면 Bot API, 없으면 Webhook fallback
+- After: Bot Token 있으면 Bot API, 없으면 log_only (Webhook 경로 완전 제거)
+
+### DoD-D2: SENTRY_AUTH_TOKEN을 orchestrator/.env로 이동
+
+**구현 방법:**
+- `orchestrator/.env`에 `SENTRY_AUTH_TOKEN` 추가
+- `.claude/scripts/sdd-orch.sh`:
+  - `_SENTRY=$(grep ... backend/.env ...)` → `_SENTRY=$(grep ... orchestrator/.env ...)`로 변경
+- backend/.env의 `SENTRY_AUTH_TOKEN`은 유지 (backend 자체에서도 사용 가능)
+
+**동작 정의:**
+- 오케스트레이터의 Slack/Sentry 설정이 `orchestrator/.env` 단일 파일에서 관리됨
+- backend/.env 의존성 제거
+
+---
+
 ## 실행 순서
 
 1. Phase B (config + agents) — Agent 설정 선행
 2. Phase A3 (pause/resume tool) — MCP server에 등록
 3. Phase A1 + A2 (slack_bot.py 리팩토링)
 4. Phase C (응답 포맷)
-5. 테스트
+5. Phase D (Webhook 제거 + 설정 통합)
+6. 테스트
