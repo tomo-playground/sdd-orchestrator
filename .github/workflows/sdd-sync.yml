@@ -94,6 +94,18 @@ jobs:
           ref: main
           fetch-depth: 1
 
+      - name: Wait for services
+        run: |
+          echo "서비스 재기동 대기 (최대 60초)..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health > /dev/null 2>&1 && \
+               curl -sf -o /dev/null http://localhost:3000/ 2>&1; then
+              echo "서비스 준비 완료 (${i}회차)"
+              break
+            fi
+            sleep 2
+          done
+
       - name: Run QA Patrol
         run: |
           cd frontend
