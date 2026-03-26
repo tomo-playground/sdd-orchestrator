@@ -38,7 +38,6 @@
 - [ ] SP-093 — Home 대시보드 개선 — 빠른 시작 + ContinueWorking 진행 상태 | scope: frontend
 
 ### Phase C: Direct 3패널 (순차, 2~3주) — 크리티컬 패스: SP-021 완료 필요
-- [ ] SP-094 — Direct 탭 E2E 테스트 보강 — Phase C 리팩토링 전 안전망 | scope: frontend
 - [ ] SP-095 — SceneContext Provider 도입 — 기존 SceneContext.tsx 활성화 + TTS 4필드 추가 | scope: frontend | depends: SP-021
 - [ ] SP-096 — Props → Context 전환 — SceneCard props 40개→5개, 서브컴포넌트 Context 소비 | scope: frontend | depends: SP-095
 - [ ] SP-097 — 속성 패널 컴포넌트 — 기본/고급 분리, 독립 컴포넌트 | scope: frontend | depends: SP-096
