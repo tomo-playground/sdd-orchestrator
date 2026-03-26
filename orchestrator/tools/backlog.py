@@ -35,11 +35,16 @@ class BacklogTask:
     has_design: bool = False
 
 
-def parse_backlog(backlog_path: Path = BACKLOG_PATH) -> list[BacklogTask]:
+def parse_backlog(
+    backlog_path: Path = BACKLOG_PATH,
+    current_dir: Path | None = None,
+) -> list[BacklogTask]:
     """Parse backlog.md into a list of tasks with metadata."""
     if not backlog_path.exists():
         logger.warning("backlog.md not found at %s", backlog_path)
         return []
+
+    tasks_dir = current_dir if current_dir is not None else TASKS_CURRENT_DIR
 
     text = backlog_path.read_text(encoding="utf-8")
     tasks: list[BacklogTask] = []
@@ -104,18 +109,20 @@ def parse_backlog(backlog_path: Path = BACKLOG_PATH) -> list[BacklogTask]:
         )
 
     # Enrich with spec/design status from current/ directory
-    _enrich_from_specs(tasks)
+    _enrich_from_specs(tasks, tasks_dir)
+    # Discover tasks in current/ that aren't in backlog.md
+    _discover_current_tasks(tasks, tasks_dir)
     return tasks
 
 
-def _enrich_from_specs(tasks: list[BacklogTask]) -> None:
+def _enrich_from_specs(tasks: list[BacklogTask], tasks_dir: Path = TASKS_CURRENT_DIR) -> None:
     """Check current/ directory for spec.md and design.md per task."""
-    if not TASKS_CURRENT_DIR.exists():
+    if not tasks_dir.exists():
         return
 
     for task in tasks:
         # Directory pattern: SP-NNN_*/spec.md
-        matches = list(TASKS_CURRENT_DIR.glob(f"{task.id}_*/spec.md"))
+        matches = list(tasks_dir.glob(f"{task.id}_*/spec.md"))
         if not matches:
             continue
 
@@ -130,6 +137,64 @@ def _enrich_from_specs(tasks: list[BacklogTask]) -> None:
                 task.spec_status = status_match.group(1)
         except OSError:
             logger.warning("Failed to read spec: %s", spec_path)
+
+
+def _discover_current_tasks(tasks: list[BacklogTask], tasks_dir: Path = TASKS_CURRENT_DIR) -> None:
+    """Scan current/ for tasks not in backlog.md (e.g. already moved to current/)."""
+    if not tasks_dir.exists():
+        return
+
+    known_ids = {t.id for t in tasks}
+
+    for spec_path in tasks_dir.glob("SP-*_*/spec.md"):
+        task_id = spec_path.parent.name.split("_")[0]
+        if task_id in known_ids:
+            continue
+
+        # Parse spec frontmatter
+        status = "pending"
+        priority = "P0"
+        description = (
+            spec_path.parent.name.split("_", 1)[1].replace("-", " ")
+            if "_" in spec_path.parent.name
+            else ""
+        )
+        scope = ""
+        depends: list[str] = []
+
+        try:
+            content = spec_path.read_text(encoding="utf-8")
+            for line in content.splitlines():
+                if line.startswith("status:"):
+                    status = line.split(":", 1)[1].strip()
+                elif line.startswith("priority:"):
+                    priority = line.split(":", 1)[1].strip()
+                elif line.startswith("scope:"):
+                    scope = line.split(":", 1)[1].strip()
+                elif line.startswith("depends_on:"):
+                    raw = line.split(":", 1)[1].strip()
+                    depends = [d.strip() for d in re.findall(r"SP-\d+", raw)]
+                elif line.startswith("---") and status != "pending":
+                    break  # Past frontmatter
+        except OSError:
+            logger.warning("Failed to read spec: %s", spec_path)
+            continue
+
+        has_design = (spec_path.parent / "design.md").exists()
+
+        tasks.append(
+            BacklogTask(
+                id=task_id,
+                priority=priority,
+                description=description,
+                depends_on=depends,
+                scope=scope,
+                backlog_approved=False,
+                spec_status=status,
+                has_design=has_design,
+            )
+        )
+        logger.info("Discovered current/ task: %s (status=%s)", task_id, status)
 
 
 @tool("scan_backlog", "Parse backlog.md and task specs to get the full task queue", {})

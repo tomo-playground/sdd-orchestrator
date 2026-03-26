@@ -5,10 +5,6 @@
 
 ---
 
-## P0 (진행 중)
-
-- [ ] SP-084 — ComfyUI 네이티브 정리 — Forge 호환 레이어 제거, SD_CLIENT_TYPE 분기 삭제, 단일 경로화 | scope: backend | status: **approved**
-
 ## P1 (최우선)
 
 - [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 네이티브 기반 4-Module 파이프라인 | depends: SP-084

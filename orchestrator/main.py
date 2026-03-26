@@ -15,6 +15,7 @@ from orchestrator.config import (
     BACKLOG_PATH,
     CYCLE_INTERVAL,
     DEFAULT_DB_PATH,
+    MAX_PARALLEL_RUNS,
 )
 from orchestrator.state import StateStore
 from orchestrator.tools import create_orchestrator_mcp_server
@@ -161,6 +162,9 @@ class OrchestratorDaemon:
             logger.info("Paused, skipping cycle")
             return
 
+        # Deterministic: auto-launch approved tasks before LLM cycle
+        await self._auto_launch_approved()
+
         cycle_id = self.state.start_cycle()
         logger.info("=== Cycle #%d started (db_id=%d) ===", self.cycle, cycle_id)
 
@@ -185,6 +189,49 @@ class OrchestratorDaemon:
         except Exception as e:
             logger.exception("Cycle #%d failed", self.cycle)
             self.state.finish_cycle(cycle_id, "error", str(e))
+
+    async def _auto_launch_approved(self) -> None:
+        """Deterministic auto-launch: approved tasks with available slots.
+
+        This runs BEFORE the LLM cycle to ensure approved tasks are launched
+        without relying on LLM judgment.
+        """
+        from orchestrator.config import ENABLE_AUTO_RUN
+        from orchestrator.tools.backlog import parse_backlog
+        from orchestrator.tools.worktree import do_launch_sdd_run
+
+        if not ENABLE_AUTO_RUN:
+            return
+
+        try:
+            tasks = parse_backlog()
+            approved = [t for t in tasks if t.spec_status == "approved"]
+            if not approved:
+                return
+
+            running = self.state.get_running_runs()
+            running_ids = {r["task_id"] for r in running}
+            if len(running) >= MAX_PARALLEL_RUNS:
+                return
+
+            for task in approved:
+                if task.id in running_ids:
+                    continue
+                if len(running) >= MAX_PARALLEL_RUNS:
+                    break
+
+                logger.info("Auto-launching approved task: %s", task.id)
+                result = await do_launch_sdd_run(task.id)
+                is_error = result.get("isError", False)
+                msg = result.get("content", [{}])[0].get("text", "")
+                if is_error:
+                    logger.warning("Auto-launch %s failed: %s", task.id, msg)
+                else:
+                    logger.info("Auto-launch %s: %s", task.id, msg)
+                    running = self.state.get_running_runs()
+                    running_ids = {r["task_id"] for r in running}
+        except Exception:
+            logger.exception("Auto-launch check failed")
 
     async def _maybe_send_daily_report(self) -> None:
         """Send daily report once per day at 00:00 UTC (09:00 KST)."""

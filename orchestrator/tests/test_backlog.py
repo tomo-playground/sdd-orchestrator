@@ -45,9 +45,9 @@ def backlog_file(tmp_path: Path) -> Path:
     return f
 
 
-def test_parse_backlog_basic(backlog_file: Path):
+def test_parse_backlog_basic(backlog_file: Path, tmp_path: Path):
     """Test basic parsing of tasks with priorities."""
-    tasks = parse_backlog(backlog_file)
+    tasks = parse_backlog(backlog_file, current_dir=tmp_path / "empty")
     assert len(tasks) == 5
 
     ids = [t.id for t in tasks]
@@ -58,9 +58,9 @@ def test_parse_backlog_basic(backlog_file: Path):
     assert "SP-072" in ids
 
 
-def test_parse_backlog_priorities(backlog_file: Path):
+def test_parse_backlog_priorities(backlog_file: Path, tmp_path: Path):
     """Test that priorities are correctly assigned from section headers."""
-    tasks = parse_backlog(backlog_file)
+    tasks = parse_backlog(backlog_file, current_dir=tmp_path / "empty")
     by_id = {t.id: t for t in tasks}
 
     assert by_id["SP-066"].priority == "P0"
@@ -70,9 +70,9 @@ def test_parse_backlog_priorities(backlog_file: Path):
     assert by_id["SP-072"].priority == "P2"
 
 
-def test_parse_backlog_depends(backlog_file: Path):
+def test_parse_backlog_depends(backlog_file: Path, tmp_path: Path):
     """Test depends_on extraction."""
-    tasks = parse_backlog(backlog_file)
+    tasks = parse_backlog(backlog_file, current_dir=tmp_path / "empty")
     by_id = {t.id: t for t in tasks}
 
     assert by_id["SP-067"].depends_on == ["SP-066"]
@@ -80,9 +80,9 @@ def test_parse_backlog_depends(backlog_file: Path):
     assert by_id["SP-066"].depends_on == []
 
 
-def test_parse_backlog_scope(backlog_file: Path):
+def test_parse_backlog_scope(backlog_file: Path, tmp_path: Path):
     """Test scope metadata extraction."""
-    tasks = parse_backlog(backlog_file)
+    tasks = parse_backlog(backlog_file, current_dir=tmp_path / "empty")
     by_id = {t.id: t for t in tasks}
 
     assert by_id["SP-066"].scope == "infra"
@@ -90,18 +90,18 @@ def test_parse_backlog_scope(backlog_file: Path):
     assert by_id["SP-020"].scope == ""
 
 
-def test_parse_backlog_approved_flag(backlog_file: Path):
+def test_parse_backlog_approved_flag(backlog_file: Path, tmp_path: Path):
     """Test **approved** flag detection."""
-    tasks = parse_backlog(backlog_file)
+    tasks = parse_backlog(backlog_file, current_dir=tmp_path / "empty")
     by_id = {t.id: t for t in tasks}
 
     assert by_id["SP-058"].backlog_approved is True
     assert by_id["SP-066"].backlog_approved is False
 
 
-def test_parse_backlog_skips_done_section(backlog_file: Path):
+def test_parse_backlog_skips_done_section(backlog_file: Path, tmp_path: Path):
     """Test that completed tasks (완료 section) are skipped."""
-    tasks = parse_backlog(backlog_file)
+    tasks = parse_backlog(backlog_file, current_dir=tmp_path / "empty")
     ids = [t.id for t in tasks]
     assert "SP-001" not in ids
     assert "SP-002" not in ids
@@ -112,20 +112,20 @@ def test_parse_backlog_empty_file(tmp_path: Path):
     """Test parsing an empty backlog file."""
     f = tmp_path / "backlog.md"
     f.write_text("# Backlog\n\nNothing here.\n", encoding="utf-8")
-    tasks = parse_backlog(f)
+    tasks = parse_backlog(f, current_dir=tmp_path / "empty")
     assert tasks == []
 
 
 def test_parse_backlog_missing_file(tmp_path: Path):
     """Test parsing a nonexistent file returns empty list."""
     f = tmp_path / "nonexistent.md"
-    tasks = parse_backlog(f)
+    tasks = parse_backlog(f, current_dir=tmp_path / "empty")
     assert tasks == []
 
 
-def test_parse_backlog_description_cleaning(backlog_file: Path):
+def test_parse_backlog_description_cleaning(backlog_file: Path, tmp_path: Path):
     """Test that descriptions are cleaned of metadata and links."""
-    tasks = parse_backlog(backlog_file)
+    tasks = parse_backlog(backlog_file, current_dir=tmp_path / "empty")
     by_id = {t.id: t for t in tasks}
 
     assert "scope:" not in by_id["SP-066"].description
@@ -146,15 +146,47 @@ def test_parse_backlog_enrichment_with_spec(tmp_path: Path):
     )
     (task_dir / "design.md").write_text("# Design\n", encoding="utf-8")
 
-    # Override paths for test
-    import orchestrator.tools.backlog as backlog_mod
+    tasks = parse_backlog(backlog, current_dir=tmp_path / "current")
+    assert len(tasks) == 1
+    assert tasks[0].spec_status == "approved"
+    assert tasks[0].has_design is True
 
-    original_current = backlog_mod.TASKS_CURRENT_DIR
-    backlog_mod.TASKS_CURRENT_DIR = tmp_path / "current"
-    try:
-        tasks = parse_backlog(backlog)
-        assert len(tasks) == 1
-        assert tasks[0].spec_status == "approved"
-        assert tasks[0].has_design is True
-    finally:
-        backlog_mod.TASKS_CURRENT_DIR = original_current
+
+def test_discover_current_tasks_not_in_backlog(tmp_path: Path):
+    """Tasks in current/ but NOT in backlog.md are discovered."""
+    # Empty backlog
+    backlog = tmp_path / "backlog.md"
+    backlog.write_text("# Backlog\n\n## P1\n\n", encoding="utf-8")
+
+    # Task only in current/
+    task_dir = tmp_path / "current" / "SP-084_comfyui-cleanup"
+    task_dir.mkdir(parents=True)
+    (task_dir / "spec.md").write_text(
+        "---\nid: SP-084\nstatus: approved\npriority: P1\nscope: backend\n---\n",
+        encoding="utf-8",
+    )
+    (task_dir / "design.md").write_text("# Design\n", encoding="utf-8")
+
+    tasks = parse_backlog(backlog, current_dir=tmp_path / "current")
+    assert len(tasks) == 1
+    assert tasks[0].id == "SP-084"
+    assert tasks[0].spec_status == "approved"
+    assert tasks[0].has_design is True
+
+
+def test_discover_does_not_duplicate_backlog_tasks(tmp_path: Path):
+    """Tasks in both backlog.md AND current/ are not duplicated."""
+    backlog = tmp_path / "backlog.md"
+    backlog.write_text(
+        "# Backlog\n\n## P1\n\n- [ ] SP-099 — Test task\n",
+        encoding="utf-8",
+    )
+
+    task_dir = tmp_path / "current" / "SP-099_test-task"
+    task_dir.mkdir(parents=True)
+    (task_dir / "spec.md").write_text("---\nstatus: approved\n---\n", encoding="utf-8")
+
+    tasks = parse_backlog(backlog, current_dir=tmp_path / "current")
+    assert len(tasks) == 1
+    assert tasks[0].id == "SP-099"
+    assert tasks[0].spec_status == "approved"
