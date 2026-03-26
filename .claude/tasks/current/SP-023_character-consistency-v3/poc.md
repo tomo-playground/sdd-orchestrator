@@ -130,3 +130,50 @@ DWPose 포즈 추출 + ControlNet OpenPose (strength 0.7) + BREAK + medium_shot 
 2. SP-023 Phase C: `scene_2p.json` 워크플로우 신규 생성 (ControlNet Pose + BREAK)
 3. 2P 씬에서 close-up → medium_shot 자동 전환 로직
 4. (후속) Impact Pack 업데이트 → FaceDetailer + Attention Couple 재도전
+
+---
+
+## Round 3: 추가 개선 실험
+
+### B 전략: Gemini 태그 프로파일링
+
+레퍼런스 이미지를 Gemini Pro로 분석 → 얼굴/눈/액세서리 Danbooru 태그 극한 추출.
+
+| 항목 | 기존 태그 | Gemini 프로파일링 |
+|------|----------|----------------|
+| 리본 | hair_ribbon | **light_blue_ribbon, twin_ribbons** ✓ |
+| 눈 | brown_eyes | **large_eyes, gradient_eyes, eyelashes** ✓ |
+| 얼굴 | 없음 | **round_face, dot_nose, blush** ✓ |
+| 머리 묶음 | long_hair | **two_side_up, parted_bangs, hair_between_eyes** ✓ |
+| 의상 | white_cardigan | **beige_cardigan, open_cardigan, ribbon_tie** ✓ |
+
+**판정: 채택** — 레퍼런스 재현도가 체감적으로 개선됨. 프롬프트만으로 달성 가능, 비용 0.
+
+### StoryDiffusion 고급 모드 테스트
+
+| 모드 | 결과 | 원인 |
+|------|------|------|
+| consistory | 실패 | CLIPTokenizer 호환성 (diffusers vs ComfyUI) |
+| msdiffusion | 실패 | CLIP Vision G 모델 필요 + CLIPTokenizer 호환 |
+| instant_character | 미테스트 | FLUX 전용 |
+| story_maker | 미테스트 | InsightFace 필요 (애니 비호환) |
+
+**결론: StoryDiffusion 고급 모드는 현재 ComfyUI + NoobAI V-Pred 환경에서 사용 불가.**
+
+---
+
+## 확정 최종 조합
+
+```
+1. Gemini Pro 태그 프로파일링 (캐릭터 등록 시 1회)
+   → 레퍼런스에서 얼굴/눈/액세서리 태그 극한 추출
+
+2. DWPose 포즈 추출 (2P 씬 생성 시)
+   → 실제 이미지에서 자연스러운 2인 포즈 추출
+
+3. ControlNet OpenPose + BREAK (생성)
+   → 위치 제어 + 속성 분리
+
+4. medium_shot 강제 (2P 씬)
+   → close-up 충돌 방지
+```
