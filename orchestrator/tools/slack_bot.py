@@ -77,6 +77,7 @@ class SlackBotListener:
         self._last_post: float = 0
         self._bot_user_id: str | None = None
         self._processed_ts: deque[str] = deque(maxlen=200)
+        self._active_threads: deque[str] = deque(maxlen=200)
         self.handler: object | None = None
         self.app: AsyncApp | None = None
         self.web_client: AsyncWebClient | None = None
@@ -117,16 +118,19 @@ class SlackBotListener:
     # ── Event handlers ───────────────────────────────────────
 
     async def _handle_thread_message(self, event: dict, say) -> None:
-        """Handle thread messages that mention the bot."""
+        """Handle thread messages — respond if bot was mentioned OR thread is active."""
         # Only thread replies (not channel-level messages — those go through app_mention)
-        if not event.get("thread_ts") or event.get("subtype"):
+        thread_ts = event.get("thread_ts")
+        if not thread_ts or event.get("subtype"):
             return
         if event.get("bot_id"):
             return
-        # Check if bot is mentioned in the message text
-        if not self._bot_user_id:
-            return
-        if f"<@{self._bot_user_id}>" not in event.get("text", ""):
+
+        # Respond if: explicit @mention OR bot already participated in this thread
+        has_mention = self._bot_user_id and f"<@{self._bot_user_id}>" in event.get("text", "")
+        is_active_thread = thread_ts in self._active_threads
+
+        if not has_mention and not is_active_thread:
             return
         await self._handle_mention(event, say)
 
@@ -179,6 +183,10 @@ class SlackBotListener:
             blocks = _error_blocks("명령 처리 중 오류가 발생했습니다.")
 
         await self._post_message(channel, blocks, thread_ts)
+
+        # Track this thread as active so follow-up messages don't need @mention
+        if thread_ts and thread_ts not in self._active_threads:
+            self._active_threads.append(thread_ts)
 
     async def _ask_agent(self, text: str) -> str:
         """Query Claude Agent with the user's message."""
