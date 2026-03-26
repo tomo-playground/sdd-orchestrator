@@ -168,7 +168,7 @@ export function useTopicAnalysis(deps: TopicAnalysisDeps) {
       } catch (err) {
         removeTypingIndicator(typingId);
         // AbortController.abort() 호출 시 무시
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (err instanceof Error && err.name === "AbortError") return;
         addMessage({
           id: createMessageId(),
           role: "assistant",

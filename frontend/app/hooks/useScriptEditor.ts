@@ -206,7 +206,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         showToast,
       });
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
+      if (err instanceof Error && err.name === "AbortError") return;
       showToast(err instanceof Error ? err.message : "Generation failed", "error");
       setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
     } finally {
@@ -281,7 +281,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
           showToast("대본 생성이 완료되지 않았습니다", "warning");
         }
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (err instanceof Error && err.name === "AbortError") return;
         showToast(err instanceof Error ? err.message : "Resume failed", "error");
         setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
       } finally {

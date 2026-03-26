@@ -399,8 +399,7 @@ export async function runAutoRunFromStep(
     if (sbNow.stageStatus === "staging") {
       useStoryboardStore.getState().set({ stageStatus: "failed" });
     }
-    const isAborted =
-      axios.isCancel(err) || (err instanceof DOMException && err.name === "AbortError");
+    const isAborted = axios.isCancel(err) || (err instanceof Error && err.name === "AbortError");
     const message = isAborted
       ? "Autopilot cancelled"
       : err instanceof Error
