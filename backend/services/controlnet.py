@@ -126,6 +126,60 @@ SITTING_EXCLUDED_POSES: frozenset[str] = frozenset(
     }
 )
 
+# 2P pose mapping — DWPose extracted 2-person pose sticks
+POSE_2P_MAPPING: dict[str, str] = {
+    "walking_together": "2p_walking_together.png",
+    "standing_side_by_side": "2p_standing_side_by_side.png",
+    "facing_each_other": "2p_facing_each_other.png",
+    "sitting_together": "2p_sitting_together.png",
+    "hand_holding": "2p_hand_holding.png",
+    "back_to_back": "2p_back_to_back.png",
+}
+
+
+def load_2p_pose_reference(pose_name: str) -> str | None:
+    """Load a 2P pose reference image as base64 from shared/poses/2p/.
+
+    Args:
+        pose_name: Key from POSE_2P_MAPPING (e.g., "walking_together")
+
+    Returns:
+        Base64 encoded image or None if not found
+    """
+    from services.storage import get_storage
+
+    filename = POSE_2P_MAPPING.get(pose_name)
+    if not filename:
+        return None
+
+    storage = get_storage()
+    storage_key = f"shared/poses/2p/{filename}"
+    if not storage.exists(storage_key):
+        logger.warning("2P pose reference not found in storage: %s", storage_key)
+        return None
+
+    try:
+        return base64.b64encode(storage.get_local_path(storage_key).read_bytes()).decode("utf-8")
+    except Exception:
+        logger.error("Failed to load 2P pose from storage %s", storage_key, exc_info=True)
+        return None
+
+
+def detect_2p_pose_from_prompt(prompt: str) -> str | None:
+    """Detect 2P pose from prompt keywords. Longest-match priority.
+
+    Normalizes prompt spaces to underscores for matching (Danbooru standard).
+    """
+    prompt_normalized = prompt.lower().replace(" ", "_")
+    best: str | None = None
+    best_len = 0
+    for pose_name in POSE_2P_MAPPING:
+        if pose_name in prompt_normalized and len(pose_name) > best_len:
+            best = pose_name
+            best_len = len(pose_name)
+    return best
+
+
 # Poses that require IP-Adapter weight reduction to avoid reference-pose conflict.
 # Omitted poses default to "front" direction (max weight = 1.0).
 POSE_DIRECTION: dict[str, str] = {

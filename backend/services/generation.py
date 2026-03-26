@@ -122,7 +122,8 @@ def _build_payload(ctx: GenerationContext) -> dict:
         "height": req.height,
         "clip_skip": max(1, int(req.clip_skip)),
         "batch_size": 1,
-        "_comfy_workflow": req.comfy_workflow or "scene_single",
+        "_comfy_workflow": req.comfy_workflow
+        or ("scene_2p" if (ctx.character_b_id is not None or req.character_b_id is not None) else "scene_single"),
     }
     if ctx.style_context and ctx.style_context.sd_model_name:
         payload["sd_model_checkpoint"] = ctx.style_context.sd_model_name

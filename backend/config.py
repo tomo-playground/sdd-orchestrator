@@ -269,6 +269,8 @@ SCENE_CHARACTER_LORA_SCALE = float(os.getenv("SCENE_CHARACTER_LORA_SCALE", "0.45
 # --- Multi-Character Scene ---
 MULTI_CHAR_NEGATIVE_EXTRA = os.getenv("MULTI_CHAR_NEGATIVE_EXTRA", "solo, fused_body, merged_body")
 MULTI_CHAR_MAX_TOTAL_LORA_WEIGHT = float(os.getenv("MULTI_CHAR_MAX_TOTAL_LORA_WEIGHT", "1.5"))
+CONTROLNET_2P_STRENGTH = float(os.getenv("CONTROLNET_2P_STRENGTH", "0.7"))
+CONTROLNET_2P_DEFAULT_POSE = os.getenv("CONTROLNET_2P_DEFAULT_POSE", "standing_side_by_side")
 
 # --- Base Model ---
 # SSOT for SD base model identifiers. All API inputs are normalized to these values.

@@ -1,0 +1,151 @@
+{
+  "_meta": {
+    "name": "Scene 2P (ControlNet Pose + BREAK)",
+    "description": "2인 씬 이미지 생성 — ControlNet OpenPose로 위치 제어, BREAK로 캐릭터 속성 분리",
+    "version": "1.0.0",
+    "author": "shorts-producer",
+    "variables": {
+      "{{positive}}": "씬 프롬프트 (BREAK 구조, LoRA 태그 제거됨)",
+      "{{negative}}": "네거티브 프롬프트",
+      "{{checkpoint}}": "체크포인트 파일명",
+      "{{seed}}": "시드",
+      "{{width}}": "이미지 너비 (기본 832)",
+      "{{height}}": "이미지 높이 (기본 1216)",
+      "{{steps}}": "샘플링 스텝 수",
+      "{{cfg}}": "CFG 스케일",
+      "{{sampler_name}}": "ComfyUI 샘플러 이름 (e.g. euler, dpmpp_2m)",
+      "{{scheduler}}": "ComfyUI 스케줄러 (e.g. normal, karras)",
+      "{{pose_image}}": "ComfyUI input 폴더의 포즈 이미지 파일명",
+      "{{controlnet_strength}}": "ControlNet 강도 (기본 0.7)"
+    },
+    "output_node": "11_save"
+  },
+  "1_checkpoint": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "{{checkpoint}}"
+    }
+  },
+  "2_lora_style": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "placeholder.safetensors",
+      "strength_model": 0,
+      "strength_clip": 0,
+      "model": ["1_checkpoint", 0],
+      "clip": ["1_checkpoint", 1]
+    }
+  },
+  "3_lora_char": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "placeholder.safetensors",
+      "strength_model": 0,
+      "strength_clip": 0,
+      "model": ["2_lora_style", 0],
+      "clip": ["2_lora_style", 1]
+    }
+  },
+  "4_lora_extra": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "placeholder.safetensors",
+      "strength_model": 0,
+      "strength_clip": 0,
+      "model": ["3_lora_char", 0],
+      "clip": ["3_lora_char", 1]
+    }
+  },
+  "5_dynthres": {
+    "class_type": "DynamicThresholdingFull",
+    "inputs": {
+      "model": ["4_lora_extra", 0],
+      "mimic_scale": 5.0,
+      "threshold_percentile": 1.0,
+      "mimic_mode": "Half Cosine Down",
+      "mimic_scale_min": 3.0,
+      "cfg_mode": "Half Cosine Down",
+      "cfg_scale_min": 3.0,
+      "sched_val": 1.0,
+      "separate_feature_channels": "enable",
+      "scaling_startpoint": "MEAN",
+      "variability_measure": "AD",
+      "interpolate_phi": 1.0
+    }
+  },
+  "5a_cn_loader": {
+    "class_type": "ControlNetLoader",
+    "inputs": {
+      "control_net_name": "noobaiXLControlnet_openposeModel.safetensors"
+    }
+  },
+  "5b_cn_image": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{pose_image}}"
+    }
+  },
+  "6_positive": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "{{positive}}",
+      "clip": ["4_lora_extra", 1]
+    }
+  },
+  "7_negative": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "{{negative}}",
+      "clip": ["4_lora_extra", 1]
+    }
+  },
+  "7_cn_apply": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "positive": ["6_positive", 0],
+      "negative": ["7_negative", 0],
+      "control_net": ["5a_cn_loader", 0],
+      "image": ["5b_cn_image", 0],
+      "strength": "{{controlnet_strength}}",
+      "start_percent": 0.0,
+      "end_percent": 1.0
+    }
+  },
+  "8_latent": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": "{{width}}",
+      "height": "{{height}}",
+      "batch_size": 1
+    }
+  },
+  "9_sampler": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": "{{seed}}",
+      "steps": "{{steps}}",
+      "cfg": "{{cfg}}",
+      "sampler_name": "{{sampler_name}}",
+      "scheduler": "{{scheduler}}",
+      "denoise": 1.0,
+      "model": ["5_dynthres", 0],
+      "positive": ["7_cn_apply", 0],
+      "negative": ["7_cn_apply", 1],
+      "latent_image": ["8_latent", 0]
+    }
+  },
+  "10_decode": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["9_sampler", 0],
+      "vae": ["1_checkpoint", 2]
+    }
+  },
+  "11_save": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "SP_scene_2p",
+      "images": ["10_decode", 0]
+    }
+  }
+}

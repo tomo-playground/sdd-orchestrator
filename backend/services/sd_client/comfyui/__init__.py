@@ -12,6 +12,7 @@ import httpx
 from config import (
     COMFYUI_BASE_URL,
     COMFYUI_NETWORK_TIMEOUT,
+    CONTROLNET_2P_STRENGTH,
 )
 from services.sd_client import SDClientBase
 from services.sd_client.comfyui.workflow_loader import inject_variables, load_workflow
@@ -97,6 +98,7 @@ class ComfyUIClient(SDClientBase):
         self._available_checkpoints: list[str] = []
         self._available_loras: list[str] = []
         self._loras_fetched: bool = False
+        self._uploaded_poses: dict[str, str] = {}  # pose_name → comfy_filename
 
     async def _ensure_checkpoint(self) -> str:
         """Ensure _current_checkpoint is set. Fetch from ComfyUI if empty."""
@@ -143,12 +145,63 @@ class ComfyUIClient(SDClientBase):
 
     # ── txt2img ──────────────────────────────────────────────
 
+    async def _upload_image(self, image_b64: str, filename: str) -> str:
+        """Upload base64 image to ComfyUI /upload/image. Returns uploaded filename.
+
+        Retries up to 3 total attempts (initial + 2 retries with 1s, 2s delays).
+        ConnectError propagates immediately (ComfyUI down).
+        """
+        import asyncio  # noqa: PLC0415
+
+        image_bytes = base64.b64decode(image_b64)
+        delays = [1, 2]
+        last_exc: Exception | None = None
+
+        for attempt in range(3):
+            try:
+                files = {"image": (filename, image_bytes, "image/png")}
+                resp = await self._http.post("/upload/image", files=files, data={"overwrite": "true"})
+                resp.raise_for_status()
+                data = resp.json()
+                uploaded_name = data.get("name", filename)
+                logger.info("📤 [ComfyUI] Uploaded pose image: %s (attempt %d)", uploaded_name, attempt + 1)
+                return uploaded_name
+            except httpx.ConnectError:
+                raise
+            except Exception as e:
+                last_exc = e
+                if attempt < 2:
+                    logger.warning("⚠️ [ComfyUI] Upload retry %d for %s: %s", attempt + 1, filename, e)
+                    await asyncio.sleep(delays[attempt])
+
+        raise RuntimeError(f"Failed to upload {filename} after 3 attempts: {last_exc}")
+
+    async def _ensure_pose_uploaded(self, pose_name: str, pose_b64: str) -> str:
+        """Check pose cache → upload if missing. Returns ComfyUI filename."""
+        cached = self._uploaded_poses.get(pose_name)
+        if cached:
+            return cached
+        filename = f"2p_{pose_name}.png"
+        uploaded_name = await self._upload_image(pose_b64, filename)
+        self._uploaded_poses[pose_name] = uploaded_name
+        return uploaded_name
+
     async def txt2img(self, payload: dict, timeout: float | None = None) -> SDTxt2ImgResult:
         """Convert SD WebUI payload → ComfyUI workflow → execute → SDTxt2ImgResult."""
         workflow_name = payload.get("_comfy_workflow", "scene_single")
         workflow, output_node = load_workflow(workflow_name)
 
+        # Handle 2P pose image upload (pop large base64 data before variable injection)
+        pose_b64 = payload.pop("_pose_image_b64", None)
+        pose_name = payload.pop("_pose_name", None)
+
         variables = self._payload_to_variables(payload)
+
+        if pose_b64 and pose_name:
+            filename = await self._ensure_pose_uploaded(pose_name, pose_b64)
+            variables["pose_image"] = filename
+            variables["controlnet_strength"] = payload.pop("_controlnet_strength", CONTROLNET_2P_STRENGTH)
+
         workflow = inject_variables(workflow, variables)
 
         # Apply LoRA nodes — always call to bypass unused slots (strength=0)
@@ -161,7 +214,12 @@ class ComfyUIClient(SDClientBase):
         if checkpoint:
             self._set_checkpoint_in_workflow(workflow, checkpoint)
 
-        image_bytes_list = await run_workflow(self._http, workflow, output_node)
+        try:
+            image_bytes_list = await run_workflow(self._http, workflow, output_node)
+        except Exception:
+            if pose_name:
+                self._uploaded_poses.pop(pose_name, None)
+            raise
 
         images_b64 = [base64.b64encode(img).decode("ascii") for img in image_bytes_list]
 

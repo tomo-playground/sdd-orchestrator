@@ -27,10 +27,10 @@ def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
     """Apply ControlNet + IP-Adapter to payload. Writes to ctx.controlnet_used, ctx.ip_adapter_used."""
     req = ctx.request
 
-    # Multi-character 씬은 ControlNet/IP-Adapter 미지원
-    # (_resolve_effective_character_b_id에서 이미 scene_mode 검증 완료)
-    if getattr(ctx, "character_b_id", None):
-        logger.info("⏭️ [ControlNet] Skipped for multi-character scene")
+    # 2P: ControlNet Pose만 적용 (reference/environment/ip-adapter 스킵)
+    # req.character_b_id도 검사: prepare_prompt 실패 시 ctx.character_b_id가 None일 수 있음
+    if getattr(ctx, "character_b_id", None) is not None or getattr(req, "character_b_id", None) is not None:
+        _apply_2p_pose(req, ctx, payload, db)
         return
 
     strategy = ctx.consistency
@@ -50,6 +50,40 @@ def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
                 for k, v in arg.items()
             }
             logger.info("🔧 [ControlNet Arg %d] %s", i, debug_arg)
+
+
+def _apply_2p_pose(req: SceneGenerateRequest, ctx: GenerationContext, payload: dict, db) -> None:
+    """Apply 2P ControlNet Pose. Sets _pose_image_b64, _pose_name, _controlnet_strength in payload."""
+    from config import CONTROLNET_2P_DEFAULT_POSE, CONTROLNET_2P_STRENGTH  # noqa: PLC0415
+    from services.controlnet import detect_2p_pose_from_prompt, load_2p_pose_reference  # noqa: PLC0415
+
+    # Pose selection priority: explicit → prompt → default
+    pose_name = getattr(req, "controlnet_pose", None)
+    if pose_name:
+        from services.controlnet import POSE_2P_MAPPING  # noqa: PLC0415
+
+        if pose_name not in POSE_2P_MAPPING:
+            logger.warning("👥 [2P Pose] '%s' not in POSE_2P_MAPPING, falling back to default", pose_name)
+            pose_name = None
+
+    if not pose_name:
+        pose_name = detect_2p_pose_from_prompt(ctx.prompt)
+
+    if not pose_name:
+        pose_name = CONTROLNET_2P_DEFAULT_POSE
+
+    pose_b64 = load_2p_pose_reference(pose_name)
+    if not pose_b64:
+        logger.warning("👥 [2P Pose] Pose asset not found for '%s' — falling back to scene_single", pose_name)
+        payload["_comfy_workflow"] = "scene_single"
+        return
+
+    payload["_pose_image_b64"] = pose_b64
+    payload["_pose_name"] = pose_name
+    # PoC 검증 결과 0.7 최적 — 사용자 오버라이드 미지원 (의도적 고정)
+    payload["_controlnet_strength"] = CONTROLNET_2P_STRENGTH
+    ctx.controlnet_used = pose_name
+    logger.info("👥 [2P Pose] Using pose: %s (strength=%.1f)", pose_name, CONTROLNET_2P_STRENGTH)
 
 
 def _apply_pose_control(req: SceneGenerateRequest, ctx: GenerationContext, args: list, db=None) -> None:
