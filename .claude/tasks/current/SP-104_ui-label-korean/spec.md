@@ -4,7 +4,7 @@ priority: P2
 scope: frontend
 branch: feat/SP-104-ui-label-korean
 created: 2026-03-26
-status: pending
+status: design
 depends_on:
 label: feature
 ---
@@ -51,3 +51,24 @@ NavBar, Studio 탭, Library 탭, Settings 탭, PipelineStatusDots 등 UI 전체 
 - 로직 변경 없음 — 문자열 교체 위주
 - key/URI 값(script, stage, direct, publish) 변경 금지
 - 파일 수 13~15개지만 변경 내용 단순
+
+## 상세 설계 (How)
+→ `design.md` 참조
+
+**요약**: 15개 파일 변경 (소스 10 + 테스트 5). 로직 변경 0건. 순수 문자열 교체.
+
+| 영역 | 파일 수 | 핵심 변경 |
+|------|---------|----------|
+| NavBar | 1 | 4개 라벨 한국어 + Dev 블록 제거 |
+| Studio 탭 | 1 | 4개 label (key 유지) |
+| Library 탭 | 1 | 5개 label (LoRAs 유지) |
+| Settings 탭 | 1 | 3개 label |
+| PipelineStatusDots | 1 | 5개 label + 15개 tooltip 문자열 |
+| PreflightModal | 1 | 4개 STEP_LABELS |
+| MaterialsPopover | 1 | 6개 label + 헤더/상태 텍스트 |
+| ContinueWorkingSection | 1 | 4개 STEP_META label + 섹션 제목 |
+| QuickStatsBar | 1 | 4개 카테고리 label |
+| constants | 1 | AUTO_RUN_STEPS 2개 label |
+| E2E/VRT 테스트 | 5 | 영문 매칭 → 한국어 매칭 |
+
+**구현 순서**: 소스 변경 → 빌드 확인 → 테스트 매칭 수정 → VRT 갱신 → 전체 테스트
