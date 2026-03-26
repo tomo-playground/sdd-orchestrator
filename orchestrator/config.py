@@ -3,6 +3,11 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Load orchestrator/.env before reading os.environ
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
 # ── Paths ──────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BACKLOG_PATH = PROJECT_ROOT / ".claude" / "tasks" / "backlog.md"
