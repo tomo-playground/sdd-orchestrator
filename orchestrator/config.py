@@ -231,6 +231,21 @@ SENTRY_SCAN_INTERVAL = 3600  # 1 hour in seconds
 SENTRY_SCAN_LOOKBACK_HOURS = 2
 SENTRY_TIMEOUT_CONNECT = 5.0
 SENTRY_TIMEOUT_READ = 15.0
+SENTRY_TIMEOUT_WRITE = 5.0
+SENTRY_TIMEOUT_POOL = 5.0
+
+# ── Rollback ─────────────────────────────────────────
+REPO_SSH_URL = f"git@github.com:{GH_REPO_OWNER}/{GH_REPO_NAME}.git"
+REPO_FULL_NAME = f"{GH_REPO_OWNER}/{GH_REPO_NAME}"
+ROLLBACK_ERROR_THRESHOLD = int(os.environ.get("ORCH_ROLLBACK_THRESHOLD", "5"))
+ROLLBACK_MONITOR_DURATION = 300  # 5 minutes
+ROLLBACK_CHECK_INTERVAL = 30  # 30 seconds
+ROLLBACK_LOOKBACK_HOURS = 0.1  # 6 minutes lookback window
+ROLLBACK_MAX_FETCH_FAILURES = 3
+GIT_CLONE_TIMEOUT = 60
+GH_PR_CREATE_TIMEOUT = 30
+GIT_BOT_NAME = "orchestrator[bot]"
+GIT_BOT_EMAIL = "orchestrator[bot]@users.noreply.github.com"
 
 # ── Slack ─────────────────────────────────────────────────
 SLACK_TIMEOUT_CONNECT = 5.0

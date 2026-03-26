@@ -271,6 +271,7 @@ class OrchestratorDaemon:
             "open_prs": [],
             "slots": "0/0",
             "sentry_issues": {"open": 0, "autofix_prs": 0},
+            "rollbacks": [],
         }
         try:
             # 머지된 PR (최근 5개)
@@ -364,6 +365,9 @@ class OrchestratorDaemon:
             )
             if r.returncode == 0 and r.stdout.strip():
                 summary["sentry_issues"]["open"] = int(r.stdout.strip())
+
+            # Rollback history
+            summary["rollbacks"] = self.state.get_recent_rollbacks(hours=24)
         except Exception as e:
             logger.warning("Daily summary gather error: %s", e)
 

@@ -192,6 +192,7 @@ async def send_daily_report(summary: dict) -> bool:
     slots = summary.get("slots", "?/?")
     sentry = summary.get("sentry_issues", {})
     sentry_open = sentry.get("open", 0)
+    rollbacks = summary.get("rollbacks", [])
 
     def _fmt_list(items: list, limit: int = 5) -> str:
         if not items:
@@ -227,6 +228,17 @@ async def send_daily_report(summary: dict) -> bool:
             ],
         },
     ]
+
+    if rollbacks:
+        rb_items = [
+            f"PR #{rb.get('original_pr', '?')} → {rb.get('status', '?')}" for rb in rollbacks[:5]
+        ]
+        blocks.append(
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": f"*롤백*\n{_fmt_list(rb_items)}"},
+            }
+        )
 
     fallback = (
         f"Coding Machine Report {today}: "

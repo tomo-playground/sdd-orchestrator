@@ -13,13 +13,16 @@ from claude_agent_sdk import tool
 from orchestrator.config import (
     GH_ISSUE_ASSIGNEE,
     GH_TIMEOUT,
+    ROLLBACK_LOOKBACK_HOURS,
     SENTRY_API_BASE,
     SENTRY_AUTH_TOKEN,
     SENTRY_ORG,
     SENTRY_PROJECTS,
     SENTRY_SCAN_LOOKBACK_HOURS,
     SENTRY_TIMEOUT_CONNECT,
+    SENTRY_TIMEOUT_POOL,
     SENTRY_TIMEOUT_READ,
+    SENTRY_TIMEOUT_WRITE,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,7 +34,7 @@ async def _fetch_sentry_issues(
     client: httpx.AsyncClient,
     project: str,
     *,
-    since_hours: int = SENTRY_SCAN_LOOKBACK_HOURS,
+    since_hours: float = SENTRY_SCAN_LOOKBACK_HOURS,
 ) -> list[dict]:
     """Fetch unresolved issues from a Sentry project."""
     url = f"{SENTRY_API_BASE}/projects/{SENTRY_ORG}/{project}/issues/"
@@ -65,7 +68,9 @@ async def _fetch_sentry_issues(
         return []
 
     issues = resp.json()
-    # Filter by firstSeen within lookback window
+    # Filter by firstSeen within lookback window.
+    # NOTE: This catches only NEW issues — existing issues with volume spikes
+    # are detected via event count changes in fetch_error_counts() delta comparison.
     from datetime import UTC, datetime, timedelta
 
     cutoff = datetime.now(UTC) - timedelta(hours=since_hours)
@@ -78,6 +83,42 @@ async def _fetch_sentry_issues(
         except (KeyError, ValueError):
             filtered.append(issue)
     return filtered
+
+
+async def fetch_error_counts(
+    client: httpx.AsyncClient,
+    *,
+    since_hours: float = ROLLBACK_LOOKBACK_HOURS,
+) -> dict[str, int]:
+    """Public helper: fetch unresolved issue counts per Sentry project.
+
+    Used by rollback monitoring to compare error counts over time.
+    """
+    counts: dict[str, int] = {}
+    for project in SENTRY_PROJECTS:
+        issues = await _fetch_sentry_issues(client, project, since_hours=since_hours)
+        total = 0
+        for issue in issues:
+            try:
+                total += int(issue.get("count", 0))
+            except (TypeError, ValueError):
+                total += 1
+        counts[project] = total
+    return counts
+
+
+def build_sentry_client() -> httpx.AsyncClient:
+    """Create a pre-configured httpx client for Sentry API calls."""
+    timeout = httpx.Timeout(
+        connect=SENTRY_TIMEOUT_CONNECT,
+        read=SENTRY_TIMEOUT_READ,
+        write=SENTRY_TIMEOUT_WRITE,
+        pool=SENTRY_TIMEOUT_POOL,
+    )
+    return httpx.AsyncClient(
+        timeout=timeout,
+        headers={"Authorization": f"Bearer {SENTRY_AUTH_TOKEN}"},
+    )
 
 
 async def _fetch_latest_stacktrace(client: httpx.AsyncClient, issue_id: str) -> str:
@@ -229,18 +270,10 @@ async def do_sentry_scan() -> dict:
             ]
         }
 
-    timeout = httpx.Timeout(
-        connect=SENTRY_TIMEOUT_CONNECT,
-        read=SENTRY_TIMEOUT_READ,
-        write=5.0,
-        pool=5.0,
-    )
-    headers = {"Authorization": f"Bearer {SENTRY_AUTH_TOKEN}"}
-
     stats = {"new": 0, "skipped": 0, "created": 0, "triggered": 0}
     existing_ids = await _get_existing_sentry_ids()
 
-    async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
+    async with build_sentry_client() as client:
         for project in SENTRY_PROJECTS:
             issues = await _fetch_sentry_issues(client, project)
             for issue in issues:

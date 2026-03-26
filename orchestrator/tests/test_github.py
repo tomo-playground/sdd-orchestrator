@@ -253,7 +253,8 @@ class TestMergePr:
     async def test_merge_success(self):
         from orchestrator.tools.github import do_merge_pr
 
-        # Mock: first call = pr view (JSON), second call = pr merge (text)
+        # Mock: first call = pr view (JSON), second call = pr merge (text),
+        # third call = pr view for merge SHA (JSON)
         view_proc = AsyncMock()
         view_proc.communicate.return_value = (
             json.dumps(_mock_pr_view_approved()["data"]).encode(),
@@ -265,9 +266,19 @@ class TestMergePr:
         merge_proc.communicate.return_value = (b"Merged", b"")
         merge_proc.returncode = 0
 
-        with patch(
-            "orchestrator.tools.github.asyncio.create_subprocess_exec",
-            side_effect=[view_proc, merge_proc],
+        sha_proc = AsyncMock()
+        sha_proc.communicate.return_value = (
+            json.dumps({"mergeCommit": {"oid": "abc123"}}).encode(),
+            b"",
+        )
+        sha_proc.returncode = 0
+
+        with (
+            patch(
+                "orchestrator.tools.github.asyncio.create_subprocess_exec",
+                side_effect=[view_proc, merge_proc, sha_proc],
+            ),
+            patch("orchestrator.tools.rollback.start_post_merge_monitor"),
         ):
             result = await do_merge_pr(42)
 

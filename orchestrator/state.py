@@ -50,6 +50,18 @@ class StateStore:
                 started_at TEXT NOT NULL,
                 finished_at TEXT
             );
+            CREATE TABLE IF NOT EXISTS rollbacks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                original_pr INTEGER NOT NULL,
+                revert_pr INTEGER,
+                error_count INTEGER NOT NULL,
+                baseline_count INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'monitoring',
+                created_at TEXT NOT NULL,
+                finished_at TEXT
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_rollbacks_original_pr
+            ON rollbacks(original_pr);
         """)
         self.conn.commit()
 
@@ -142,6 +154,94 @@ class StateStore:
             (task_id,),
         ).fetchone()
         return dict(row) if row else None
+
+    # ── Rollbacks ─────────────────────────────────────────
+
+    def record_rollback(
+        self,
+        original_pr: int,
+        error_count: int,
+        baseline_count: int,
+        *,
+        revert_pr: int | None = None,
+        status: str = "monitoring",
+    ) -> int | None:
+        """Record a rollback entry. Returns the rollback ID, or None if duplicate."""
+        now = datetime.now(UTC).isoformat()
+        try:
+            cur = self.conn.execute(
+                "INSERT INTO rollbacks"
+                " (original_pr, revert_pr, error_count, baseline_count, status, created_at)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
+                (original_pr, revert_pr, error_count, baseline_count, status, now),
+            )
+            self.conn.commit()
+            return cur.lastrowid  # type: ignore[return-value]
+        except sqlite3.IntegrityError:
+            logger.info("Duplicate rollback for PR #%d, skipping", original_pr)
+            return None
+
+    def update_rollback_status(
+        self, rollback_id: int, status: str, *, revert_pr: int | None = None
+    ) -> None:
+        """Update rollback status and optionally set revert_pr."""
+        now = datetime.now(UTC).isoformat()
+        if revert_pr is not None:
+            self.conn.execute(
+                "UPDATE rollbacks SET status = ?, revert_pr = ?, finished_at = ? WHERE id = ?",
+                (status, revert_pr, now, rollback_id),
+            )
+        else:
+            self.conn.execute(
+                "UPDATE rollbacks SET status = ?, finished_at = ? WHERE id = ?",
+                (status, now, rollback_id),
+            )
+        self.conn.commit()
+
+    def update_rollback_baseline(self, rollback_id: int, baseline_count: int) -> None:
+        """Update the baseline error count for a rollback entry."""
+        self.conn.execute(
+            "UPDATE rollbacks SET baseline_count = ? WHERE id = ?",
+            (baseline_count, rollback_id),
+        )
+        self.conn.commit()
+
+    def update_rollback_surge(self, rollback_id: int, error_count: int) -> None:
+        """Mark a rollback as surge_detected with the current error count.
+
+        Note: finished_at is NOT set here — surge_detected is an intermediate state.
+        Terminal states (reverted, revert_failed) set finished_at via update_rollback_status.
+        """
+        self.conn.execute(
+            "UPDATE rollbacks SET error_count = ?, status = 'surge_detected' WHERE id = ?",
+            (error_count, rollback_id),
+        )
+        self.conn.commit()
+
+    def has_rollback(self, original_pr: int) -> bool:
+        """Check if a rollback already exists for a PR."""
+        row = self.conn.execute(
+            "SELECT 1 FROM rollbacks WHERE original_pr = ? LIMIT 1",
+            (original_pr,),
+        ).fetchone()
+        return row is not None
+
+    def get_recent_rollbacks(self, hours: int = 24) -> list[dict]:
+        """Get rollbacks within the last N hours."""
+        # Simple approach: fetch all and filter in Python (small table)
+        rows = self.conn.execute("SELECT * FROM rollbacks ORDER BY id DESC LIMIT 50").fetchall()
+        from datetime import timedelta
+
+        cutoff_dt = datetime.now(UTC) - timedelta(hours=hours)
+        results = []
+        for row in rows:
+            try:
+                created = datetime.fromisoformat(row["created_at"])
+                if created >= cutoff_dt:
+                    results.append(dict(row))
+            except (ValueError, KeyError):
+                logger.warning("Rollback row id=%s has unparseable created_at, skipping", row["id"])
+        return results
 
     # ── Cycles ────────────────────────────────────────────
 

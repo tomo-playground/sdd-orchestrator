@@ -2,6 +2,7 @@
 
 from claude_agent_sdk import create_sdk_mcp_server
 
+import orchestrator.tools.rollback as rollback  # noqa: F401 — internal module, no MCP tool
 from orchestrator.config import ENABLE_AUTO_DESIGN, ENABLE_AUTO_RUN
 from orchestrator.tools.backlog import scan_backlog
 from orchestrator.tools.github import (

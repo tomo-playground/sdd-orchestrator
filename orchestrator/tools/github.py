@@ -150,6 +150,11 @@ async def do_merge_pr(pr_number: int) -> dict:
         return _tool_error(f"Cannot check PR #{pr_number}: {pr_result['error']}")
 
     pr_summary = summarize_prs([pr_result["data"]])[0]
+
+    # auto-rollback PR은 사람이 확인 후 머지
+    if "auto-rollback" in pr_summary.get("labels", []):
+        return _tool_error(f"PR #{pr_number} is an auto-rollback — requires human merge")
+
     ok, reason = can_auto_merge(pr_summary)
     if not ok:
         return _tool_error(f"Cannot merge #{pr_number}: {reason}")
@@ -175,7 +180,35 @@ async def do_merge_pr(pr_number: int) -> dict:
         return _tool_error("gh CLI not found")
 
     logger.info("Merged PR #%d", pr_number)
+
+    # Post-merge monitoring: start Sentry error surge detection
+    # Skip monitoring for auto-rollback PRs to prevent infinite rollback loops
+    from orchestrator.config import SENTRY_AUTH_TOKEN
+
+    if "auto-rollback" not in pr_summary.get("labels", []) and SENTRY_AUTH_TOKEN:
+        merge_sha = await _get_merge_sha(pr_number)
+        if merge_sha:
+            from orchestrator.tools.rollback import start_post_merge_monitor
+
+            start_post_merge_monitor(pr_number, merge_sha)
+    elif not SENTRY_AUTH_TOKEN:
+        logger.warning(
+            "Skipping post-merge monitor for PR #%d: SENTRY_AUTH_TOKEN not configured",
+            pr_number,
+        )
+
     return {"content": [{"type": "text", "text": f"Successfully merged PR #{pr_number}"}]}
+
+
+async def _get_merge_sha(pr_number: int) -> str | None:
+    """Fetch the merge commit SHA for a merged PR."""
+    result = await _run_gh_command("pr", "view", str(pr_number), "--json", "mergeCommit")
+    if "error" in result:
+        logger.warning("Failed to get merge SHA for PR #%d", pr_number)
+        return None
+    data = result.get("data", {})
+    commit = data.get("mergeCommit") or {}
+    return commit.get("oid")
 
 
 def _tool_error(message: str) -> dict:
