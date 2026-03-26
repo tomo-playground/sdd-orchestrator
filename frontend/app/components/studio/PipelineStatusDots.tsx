@@ -5,11 +5,11 @@ import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useRenderStore } from "../../store/useRenderStore";
 
 const STEPS = [
-  { id: "script", label: "Script" },
-  { id: "stage", label: "Stage" },
-  { id: "images", label: "Images" },
-  { id: "render", label: "Render" },
-  { id: "video", label: "Video" },
+  { id: "script", label: "대본" },
+  { id: "stage", label: "준비" },
+  { id: "images", label: "이미지" },
+  { id: "render", label: "렌더" },
+  { id: "video", label: "영상" },
 ] as const;
 
 export default function PipelineStatusDots() {
@@ -46,28 +46,28 @@ export default function PipelineStatusDots() {
   };
 
   const renderTooltip = isRendering
-    ? `Render: ${renderProgress ? `${renderProgress.percent}%` : "in progress"}`
+    ? `렌더: ${renderProgress ? `${renderProgress.percent}%` : "진행 중"}`
     : hasVideos
-      ? "Render: complete"
-      : "Render: not started";
+      ? "렌더: 완료"
+      : "렌더: 미시작";
 
   const tooltipText: Record<string, string> = {
-    script: hasScenes ? `Script: ${scenes.length} scenes` : "Script: not started",
+    script: hasScenes ? `대본: ${scenes.length}개 씬` : "대본: 미시작",
     stage:
       stageStatus === "staged"
-        ? "Stage: backgrounds ready"
+        ? "준비: 배경 완료"
         : stageStatus === "staging"
-          ? "Stage: generating..."
+          ? "준비: 생성 중..."
           : stageStatus === "failed"
-            ? "Stage: generation failed"
-            : "Stage: not started",
+            ? "준비: 생성 실패"
+            : "준비: 미시작",
     images: hasAllImages
-      ? `Images: all ${scenes.length} done`
+      ? `이미지: 전체 ${scenes.length}개 완료`
       : imagesCount > 0
-        ? `Images: ${imagesCount}/${scenes.length}`
-        : "Images: not started",
+        ? `이미지: ${imagesCount}/${scenes.length}`
+        : "이미지: 미시작",
     render: renderTooltip,
-    video: hasVideos ? `Video: ${recentVideos.length} rendered` : "Video: not started",
+    video: hasVideos ? `영상: ${recentVideos.length}개 완료` : "영상: 미시작",
   };
 
   const showTooltip = (id: string) => {

@@ -84,7 +84,7 @@ async function mockPipelineApis(page: Page) {
 async function navigateToEmptyStoryboard(page: Page) {
   await page.goto("/studio?id=2");
   // Wait for Script tab to be ready
-  await expect(page.getByRole("button", { name: "Script", exact: true })).toBeVisible({
+  await expect(page.getByRole("button", { name: "대본", exact: true })).toBeVisible({
     timeout: 15000,
   });
   // Dismiss style profile modal — click "건너뛰기" (skip) with auto-wait

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { usePathname } from "next/navigation";
-import { Home, Clapperboard, FolderOpen, Settings, Wrench } from "lucide-react";
+import { Home, Clapperboard, FolderOpen, Settings } from "lucide-react";
 
 import { useUIStore } from "../../store/useUIStore";
 import { cx, TAB_ACTIVE, TAB_INACTIVE } from "../ui/variants";
@@ -23,17 +23,11 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Home", icon: Home, exact: true },
-  { href: "/studio", label: "Studio", icon: Clapperboard },
-  { href: "/library", label: "Library", icon: FolderOpen },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/", label: "홈", icon: Home, exact: true },
+  { href: "/studio", label: "스튜디오", icon: Clapperboard },
+  { href: "/library", label: "라이브러리", icon: FolderOpen },
+  { href: "/settings", label: "설정", icon: Settings },
 ];
-
-const DEV_ITEM: NavItem = {
-  href: "/dev",
-  label: "Dev",
-  icon: Wrench,
-};
 
 function isNavActive(item: NavItem, pathname: string) {
   if (item.href === "/studio") return pathname.startsWith("/studio");
@@ -65,21 +59,6 @@ function NavBar() {
           </Link>
         );
       })}
-
-      {/* Separator */}
-      <div className="mx-1 h-4 w-px bg-zinc-200" />
-
-      {/* Dev link */}
-      <Link
-        href={DEV_ITEM.href}
-        className={cx(
-          "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
-          pathname.startsWith("/dev") ? TAB_ACTIVE : TAB_INACTIVE
-        )}
-      >
-        <DEV_ITEM.icon className="h-3.5 w-3.5" />
-        {DEV_ITEM.label}
-      </Link>
     </nav>
   );
 }

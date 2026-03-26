@@ -24,10 +24,10 @@ function useTabBadges(): Record<StudioTab, string | null> {
 }
 
 const TABS: { key: StudioTab; label: string }[] = [
-  { key: "script", label: "Script" },
-  { key: "stage", label: "Stage" },
-  { key: "direct", label: "Direct" },
-  { key: "publish", label: "Publish" },
+  { key: "script", label: "대본" },
+  { key: "stage", label: "준비" },
+  { key: "direct", label: "이미지" },
+  { key: "publish", label: "게시" },
 ];
 
 export default function StudioWorkspaceTabs() {

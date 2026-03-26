@@ -19,12 +19,12 @@ type MaterialItem = {
 };
 
 const MATERIALS: MaterialItem[] = [
-  { key: "script", label: "Script", icon: "S", action: "script-tab" },
-  { key: "style", label: "Style", icon: "\u2726", action: "stage-tab" },
-  { key: "characters", label: "Characters", icon: "C", action: "stage-tab" },
-  { key: "voice", label: "Voice", icon: "V", link: "/library/voices" },
-  { key: "music", label: "Music", icon: "M", link: "/library/music" },
-  { key: "background", label: "BG", icon: "B", action: "stage-tab" },
+  { key: "script", label: "대본", icon: "S", action: "script-tab" },
+  { key: "style", label: "화풍", icon: "\u2726", action: "stage-tab" },
+  { key: "characters", label: "캐릭터", icon: "C", action: "stage-tab" },
+  { key: "voice", label: "음성", icon: "V", link: "/library/voices" },
+  { key: "music", label: "BGM", icon: "M", link: "/library/music" },
+  { key: "background", label: "배경", icon: "B", action: "stage-tab" },
 ];
 
 export default function MaterialsPopover() {
@@ -62,7 +62,7 @@ export default function MaterialsPopover() {
       {open && (
         <div className="absolute top-full right-0 z-20 mt-2 w-64 rounded-xl border border-zinc-200 bg-white p-3 shadow-xl">
           <p className="mb-2 text-[12px] font-semibold tracking-wider text-zinc-400 uppercase">
-            Materials
+            준비 상태
           </p>
           <div className="space-y-1.5">
             {MATERIALS.map((mat) => {
@@ -95,7 +95,7 @@ export default function MaterialsPopover() {
                   <span
                     className={`text-xs font-medium ${ready ? "text-emerald-600" : "text-zinc-400"}`}
                   >
-                    {ready ? "Ready" : "Missing"}
+                    {ready ? "완료" : "미설정"}
                   </span>
                 </button>
               );

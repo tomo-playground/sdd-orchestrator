@@ -36,22 +36,22 @@ test.describe("Home Page", () => {
 
   test("continue working section shows recent storyboards", async ({ page }) => {
     // Wait for the continue working section to load
-    await expect(page.getByText("Continue Working")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("이어서 작업")).toBeVisible({ timeout: 5000 });
 
     // Storyboard titles from mock data should appear
     await expect(page.getByText("Morning Routine")).toBeVisible();
   });
 
   test("clicking storyboard card navigates to studio", async ({ page }) => {
-    await expect(page.getByText("Continue Working")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("이어서 작업")).toBeVisible({ timeout: 5000 });
     await page.getByText("Morning Routine").click();
     await expect(page).toHaveURL(/\/studio\?id=1/);
   });
 
   test("nav links are present", async ({ page }) => {
-    await expect(page.getByRole("link", { name: "Home" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Studio" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Library" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "홈" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "스튜디오" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "라이브러리" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "설정" })).toBeVisible();
   });
 });

@@ -97,8 +97,8 @@ test.describe("QA Patrol — Core", () => {
   test("홈 접속", async ({ page }) => {
     const errors = setupErrorCollector(page);
     await page.goto("/");
-    await expect(page.getByRole("link", { name: /home/i })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole("link", { name: /studio/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /홈/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("link", { name: /스튜디오/i })).toBeVisible();
     await expect(page.locator("h1, h2").first()).toBeVisible({ timeout: 15000 });
     await assertNoCriticalErrors(page, errors);
   });
@@ -123,7 +123,7 @@ test.describe("QA Patrol — Core", () => {
       page
         .getByRole("button", { name: "채널" })
         .or(page.getByRole("button", { name: /시리즈/ }))
-        .or(page.getByRole("button", { name: "Script", exact: true }))
+        .or(page.getByRole("button", { name: "대본", exact: true }))
         .first()
     ).toBeVisible({ timeout: 15000 });
     await assertNoCriticalErrors(page, errors);
@@ -134,8 +134,8 @@ test.describe("QA Patrol — Core", () => {
     await page.goto("/settings");
     await expect(
       page
-        .getByRole("link", { name: /Render Presets/i })
-        .or(page.getByRole("link", { name: /YouTube/i }))
+        .getByRole("link", { name: /렌더 설정/i })
+        .or(page.getByRole("link", { name: /연동/i }))
         .first()
     ).toBeVisible({ timeout: 15000 });
     await assertNoCriticalErrors(page, errors);
@@ -210,7 +210,7 @@ test.describe("QA Patrol — Random", () => {
 
 // ── Studio 탭 전환 순찰 ──
 test.describe("QA Patrol — Studio Tabs", () => {
-  const TABS = ["Script", "Stage", "Direct", "Publish"];
+  const TABS = ["대본", "준비", "이미지", "게시"];
 
   test("Studio 탭 전환", async ({ page }) => {
     const errors = setupErrorCollector(page);

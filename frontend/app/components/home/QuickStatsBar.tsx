@@ -54,28 +54,28 @@ export default function QuickStatsBar() {
   const statItems = [
     {
       id: "characters",
-      label: "Characters",
+      label: "캐릭터",
       icon: Users,
       count: stats?.characters ?? 0,
       href: "/library/characters",
     },
     {
       id: "styles",
-      label: "Styles",
+      label: "화풍",
       icon: Palette,
       count: stats?.styles ?? 0,
       href: "/library/styles",
     },
     {
       id: "voices",
-      label: "Voices",
+      label: "음성",
       icon: Mic,
       count: stats?.voices ?? 0,
       href: "/library/voices",
     },
     {
       id: "music",
-      label: "Music",
+      label: "BGM",
       icon: Music,
       count: stats?.music ?? 0,
       href: "/library/music",

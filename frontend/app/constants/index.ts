@@ -55,10 +55,10 @@ export const DEFAULT_POST_CARD_SETTINGS: PostCardSettings = {
  * - Backend 대응: services/agent/nodes/ 노드 구조
  */
 export const AUTO_RUN_STEPS = [
-  { id: "stage", label: "배경·BGM" },
-  { id: "images", label: "Images" },
+  { id: "stage", label: "준비" },
+  { id: "images", label: "이미지" },
   { id: "tts", label: "TTS" },
-  { id: "render", label: "Render" },
+  { id: "render", label: "렌더" },
 ] as const;
 
 /** AutoRun 이미지 생성 시 동시 실행 제한 (서버 과부하 방지) */

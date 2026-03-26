@@ -15,10 +15,10 @@ interface PreflightModalProps {
 }
 
 const STEP_LABELS: Record<AutoRunStepId, string> = {
-  stage: "Stage",
-  images: "Images",
+  stage: "준비",
+  images: "이미지",
   tts: "TTS",
-  render: "Render",
+  render: "렌더",
 };
 
 /** tts uses SettingsCheck (valid) while others use StepCheck (needed) */
@@ -72,7 +72,7 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
         <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
           <h2 id="preflight-title" className="flex items-center gap-2 text-lg font-semibold">
             <span>🚀</span>
-            <span>AutoRun Pre-flight Check</span>
+            <span>AutoRun 사전 점검</span>
           </h2>
           <button
             onClick={onClose}
@@ -125,9 +125,9 @@ export default function PreflightModal({ isOpen, preflight, onClose, onRun }: Pr
               📋 설정 검증
             </h3>
             <div className="divide-y divide-zinc-200 rounded-lg bg-zinc-50 dark:divide-zinc-600 dark:bg-zinc-700/50">
-              <SettingRow label="Character" check={preflight.settings.character} />
-              <SettingRow label="Topic" check={preflight.settings.topic} />
-              <SettingRow label="Voice" check={preflight.settings.voice} />
+              <SettingRow label="캐릭터" check={preflight.settings.character} />
+              <SettingRow label="주제" check={preflight.settings.topic} />
+              <SettingRow label="보이스" check={preflight.settings.voice} />
               <SettingRow label="BGM" check={preflight.settings.bgm} />
               <SettingRow label="ControlNet" check={preflight.settings.controlnet} />
               <SettingRow label="IP-Adapter" check={preflight.settings.ipAdapter} />

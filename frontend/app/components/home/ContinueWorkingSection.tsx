@@ -16,10 +16,10 @@ type RecentStoryboard = {
 };
 
 const STEP_META: Record<string, { label: string; color: string }> = {
-  draft: { label: "Script", color: "bg-zinc-400" },
-  in_prod: { label: "Edit", color: "bg-amber-400" },
-  rendered: { label: "Publish", color: "bg-blue-400" },
-  published: { label: "Done", color: "bg-emerald-400" },
+  draft: { label: "초안", color: "bg-zinc-400" },
+  in_prod: { label: "제작", color: "bg-amber-400" },
+  rendered: { label: "렌더 완료", color: "bg-blue-400" },
+  published: { label: "게시됨", color: "bg-emerald-400" },
 };
 
 const STEPS = ["draft", "in_prod", "rendered", "published"] as const;
@@ -59,7 +59,7 @@ export default function ContinueWorkingSection() {
     <div>
       <div className="mb-3 flex items-center gap-2">
         <Clock className="h-4 w-4 text-zinc-500" />
-        <h2 className="text-sm font-semibold text-zinc-900">Continue Working</h2>
+        <h2 className="text-sm font-semibold text-zinc-900">이어서 작업</h2>
       </div>
 
       <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">

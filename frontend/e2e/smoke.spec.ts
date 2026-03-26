@@ -5,10 +5,10 @@ test.describe("Smoke Tests", () => {
     await page.goto("/");
 
     // Global navigation links should be visible
-    await expect(page.getByRole("link", { name: /home/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /studio/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /library/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /settings/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /홈/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /스튜디오/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /라이브러리/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /설정/i })).toBeVisible();
 
     // Page content should render (heading or main content area)
     await expect(page.locator("h1, h2").first()).toBeVisible({
@@ -21,7 +21,7 @@ test.describe("Smoke Tests", () => {
 
     // Wait for either editor tabs or kanban view (depends on DB state)
     const scriptTab = page.getByRole("button", {
-      name: "Script",
+      name: "대본",
       exact: true,
     });
     const kanbanHeading = page.getByText("영상 목록");
@@ -34,12 +34,12 @@ test.describe("Smoke Tests", () => {
 
     // If editor tabs are visible, verify all 4 tabs and test switching
     if (await scriptTab.isVisible()) {
-      await expect(page.getByRole("button", { name: "Stage", exact: true })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Direct", exact: true })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Publish", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "준비", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "이미지", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "게시", exact: true })).toBeVisible();
 
       // Switch to Stage tab — no crash = success
-      await page.getByRole("button", { name: "Stage", exact: true }).click();
+      await page.getByRole("button", { name: "준비", exact: true }).click();
     }
   });
 
@@ -56,6 +56,6 @@ test.describe("Smoke Tests", () => {
     ).toBeVisible({ timeout: 15000 });
 
     // Navigation should remain functional
-    await expect(page.getByRole("link", { name: /studio/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /스튜디오/i })).toBeVisible();
   });
 });

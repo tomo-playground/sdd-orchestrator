@@ -22,7 +22,7 @@ test.describe("Studio Page", () => {
   test("new storyboard mode shows Script tab", async ({ page }) => {
     await page.goto("/studio?new=true");
     // Script tab should be active (contains the chat editor)
-    await expect(page.getByRole("button", { name: "Script", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "대본", exact: true })).toBeVisible();
   });
 
   // ── 3. Tab switching ────────────────────────────────────────
@@ -30,19 +30,19 @@ test.describe("Studio Page", () => {
   test("tab switching cycles through all 4 tabs", async ({ page }) => {
     await page.goto("/studio?new=true");
     // Verify all 4 tabs exist (use exact: true to avoid matching "Go to Script" etc.)
-    await expect(page.getByRole("button", { name: "Script", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Stage", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Direct", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Publish", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "대본", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "준비", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "이미지", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "게시", exact: true })).toBeVisible();
 
     // Click Stage tab
-    await page.getByRole("button", { name: "Stage", exact: true }).click();
+    await page.getByRole("button", { name: "준비", exact: true }).click();
     // Click Direct tab
-    await page.getByRole("button", { name: "Direct", exact: true }).click();
+    await page.getByRole("button", { name: "이미지", exact: true }).click();
     // Click Publish tab
-    await page.getByRole("button", { name: "Publish", exact: true }).click();
+    await page.getByRole("button", { name: "게시", exact: true }).click();
     // Click Script tab back
-    await page.getByRole("button", { name: "Script", exact: true }).click();
+    await page.getByRole("button", { name: "대본", exact: true }).click();
   });
 
   // ── 4. DB load via ?id=X ────────────────────────────────────
@@ -82,7 +82,7 @@ test.describe("Studio Page", () => {
 
   test("Home nav link navigates back to /", async ({ page }) => {
     await page.goto("/studio?new=true");
-    await page.getByRole("link", { name: "Home" }).click();
+    await page.getByRole("link", { name: "홈" }).click();
     await expect(page).toHaveURL(/\/$/);
   });
 
@@ -93,7 +93,7 @@ test.describe("Studio Page", () => {
     await expect(page.getByText("영상 목록")).toBeVisible({ timeout: 5000 });
     await page.getByRole("button", { name: /새 영상/i }).click();
     // After clicking, the editor view should appear with Script tab
-    await expect(page.getByRole("button", { name: "Script", exact: true })).toBeVisible({
+    await expect(page.getByRole("button", { name: "대본", exact: true })).toBeVisible({
       timeout: 5000,
     });
   });
