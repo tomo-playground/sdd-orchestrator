@@ -260,6 +260,9 @@ SLACK_TIMEOUT_CONNECT = 5.0
 SLACK_TIMEOUT_READ = 10.0
 SLACK_MIN_INTERVAL = 1.0  # seconds — rate limit guard (1 msg/sec)
 SLACK_MAX_MESSAGE_LENGTH = 4000
+SLACK_BLOCK_TEXT_MAX = 3000  # Slack section block text field limit
+SLACK_BLOCK_BUDGET = 2900  # per-message total char budget for agent responses
+SLACK_BUTTON_TEXT_MAX = 75  # Slack button label character limit
 
 # ── Slack Bot (Socket Mode) ──────────────────────────────
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN", "")

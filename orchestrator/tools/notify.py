@@ -7,29 +7,23 @@ import json
 import logging
 import sys
 import time
-from datetime import datetime, timedelta, timezone
 
 import httpx
 from claude_agent_sdk import tool
 
 from orchestrator.config import (
-    SLACK_MAX_MESSAGE_LENGTH,
     SLACK_MIN_INTERVAL,
     SLACK_TIMEOUT_CONNECT,
     SLACK_TIMEOUT_READ,
 )
+from orchestrator.tools.slack_templates import (
+    daily_report_blocks,
+    notification_blocks,
+)
 
 logger = logging.getLogger(__name__)
 
-KST = timezone(timedelta(hours=9))
-
 _last_slack_sent: float = 0
-
-_LEVEL_EMOJI = {
-    "info": "\u2139\ufe0f",
-    "warning": "\u26a0\ufe0f",
-    "critical": "\U0001f6a8",
-}
 
 
 async def _send_slack_message(text: str, blocks: list | None = None) -> bool:
@@ -77,60 +71,14 @@ async def _send_slack_message(text: str, blocks: list | None = None) -> bool:
         return False
 
 
-_LEVEL_COLOR = {
-    "info": "#2196F3",
-    "warning": "#FF9800",
-    "critical": "#F44336",
-}
-
-
-def _build_link_buttons(links: list[dict]) -> dict | None:
-    """Build a Block Kit actions block from a list of link dicts."""
-    if not links:
-        return None
-    elements = [
-        {
-            "type": "button",
-            "text": {"type": "plain_text", "text": link["text"][:75]},
-            "url": link["url"],
-        }
-        for link in links[:5]
-    ]
-    return {"type": "actions", "elements": elements}
-
-
 async def do_notify_human(args: dict) -> dict:
     """Core logic: send a notification to the human via Slack."""
+
     message = args.get("message", "")
     level = args.get("level", "info")
     links = args.get("links", [])
 
-    emoji = _LEVEL_EMOJI.get(level, "\u2139\ufe0f")
-    fallback = f"{emoji} {message}"
-
-    # Truncate if too long
-    if len(fallback) > SLACK_MAX_MESSAGE_LENGTH:
-        fallback = fallback[: SLACK_MAX_MESSAGE_LENGTH - 12] + " (truncated)"
-
-    blocks = [
-        {
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"{emoji} *[{level.upper()}]* {message}"},
-        },
-        {
-            "type": "context",
-            "elements": [
-                {
-                    "type": "mrkdwn",
-                    "text": f"Coding Machine — {datetime.now(KST).strftime('%H:%M KST')}",
-                },
-            ],
-        },
-    ]
-
-    actions_block = _build_link_buttons(links)
-    if actions_block:
-        blocks.append(actions_block)
+    blocks, fallback = notification_blocks(level, message, links)
 
     sent = await _send_slack_message(fallback, blocks)
     channel = "slack" if sent else "log_only"
@@ -183,68 +131,8 @@ async def notify_human(args: dict) -> dict:
 
 async def send_daily_report(summary: dict) -> bool:
     """Format and send a daily report to Slack using Block Kit."""
-    today = datetime.now(KST).strftime("%Y-%m-%d")
 
-    completed = summary.get("completed_prs", [])
-    in_progress = summary.get("in_progress", [])
-    open_prs = summary.get("open_prs", [])
-    blockers = summary.get("blockers", [])
-    slots = summary.get("slots", "?/?")
-    sentry = summary.get("sentry_issues", {})
-    sentry_open = sentry.get("open", 0)
-    rollbacks = summary.get("rollbacks", [])
-
-    def _fmt_list(items: list, limit: int = 5) -> str:
-        if not items:
-            return "—"
-        return "\n".join(f"• {x}" for x in items[:limit])
-
-    blocks = [
-        {
-            "type": "header",
-            "text": {"type": "plain_text", "text": f"Coding Machine Report — {today}"},
-        },
-        {"type": "divider"},
-        {
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*머지 완료*\n{_fmt_list(completed)}"},
-        },
-        {
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*열린 PR*\n{_fmt_list(open_prs)}"},
-        },
-        {
-            "type": "section",
-            "fields": [
-                {"type": "mrkdwn", "text": f"*진행 중 태스크*\n{_fmt_list(in_progress)}"},
-                {"type": "mrkdwn", "text": f"*슬롯*\n{slots}"},
-            ],
-        },
-        {
-            "type": "section",
-            "fields": [
-                {"type": "mrkdwn", "text": f"*블로커*\n{_fmt_list(blockers)}"},
-                {"type": "mrkdwn", "text": f"*Sentry*\n{sentry_open}건 미해결"},
-            ],
-        },
-    ]
-
-    if rollbacks:
-        rb_items = [
-            f"PR #{rb.get('original_pr', '?')} → {rb.get('status', '?')}" for rb in rollbacks[:5]
-        ]
-        blocks.append(
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": f"*롤백*\n{_fmt_list(rb_items)}"},
-            }
-        )
-
-    fallback = (
-        f"Coding Machine Report {today}: "
-        f"머지 {len(completed)}건, PR {len(open_prs)}건, "
-        f"태스크 {len(in_progress)}건, 슬롯 {slots}, Sentry {sentry_open}건"
-    )
+    blocks, fallback = daily_report_blocks(summary)
     return await _send_slack_message(fallback, blocks)
 
 

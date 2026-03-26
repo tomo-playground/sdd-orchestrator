@@ -9,7 +9,6 @@ import httpx
 import pytest
 
 from orchestrator.tools.notify import (
-    _build_link_buttons,
     _send_slack_message,
     do_notify_human,
     send_daily_report,
@@ -204,16 +203,22 @@ class TestNotifyWithLinks:
 
 class TestBuildLinkButtons:
     def test_empty_links(self):
-        assert _build_link_buttons([]) is None
+        from orchestrator.tools.slack_templates import link_buttons
+
+        assert link_buttons([]) is None
 
     def test_single_link(self):
-        result = _build_link_buttons([{"text": "PR", "url": "https://example.com"}])
+        from orchestrator.tools.slack_templates import link_buttons
+
+        result = link_buttons([{"text": "PR", "url": "https://example.com"}])
         assert result["type"] == "actions"
         assert len(result["elements"]) == 1
 
     def test_max_5_links(self):
+        from orchestrator.tools.slack_templates import link_buttons
+
         links = [{"text": f"L{i}", "url": f"https://example.com/{i}"} for i in range(8)]
-        result = _build_link_buttons(links)
+        result = link_buttons(links)
         assert len(result["elements"]) == 5
 
 

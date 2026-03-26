@@ -10,8 +10,6 @@ import pytest
 import orchestrator.tools.slack_bot as _slack_bot_module
 from orchestrator.tools.slack_bot import (
     SlackBotListener,
-    _error_blocks,
-    _text_to_blocks,
     pause_orchestrator,
     resume_orchestrator,
     set_daemon,
@@ -355,28 +353,99 @@ class TestPauseResumeTool:
         assert result.get("isError")
 
 
+# ── Thread message handler ────────────────────────────────────
+
+
+class TestHandleThreadMessage:
+    """Unit tests for _handle_thread_message — 6 branches."""
+
+    @pytest.mark.asyncio
+    async def test_no_thread_ts_is_ignored(self, bot):
+        """Channel-level messages (no thread_ts) are silently skipped."""
+        event = {"text": "hello", "ts": "1.0"}
+        say = AsyncMock()
+        with patch.object(bot, "_handle_mention", new_callable=AsyncMock) as mock_mention:
+            await bot._handle_thread_message(event, say)
+        mock_mention.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_subtype_event_is_ignored(self, bot):
+        """Events with subtype (e.g. message_changed) are silently skipped."""
+        event = {"text": "hello", "ts": "1.0", "thread_ts": "1.0", "subtype": "message_changed"}
+        say = AsyncMock()
+        with patch.object(bot, "_handle_mention", new_callable=AsyncMock) as mock_mention:
+            await bot._handle_thread_message(event, say)
+        mock_mention.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_bot_message_is_ignored(self, bot):
+        """Messages with bot_id are silently skipped."""
+        event = {"text": "hello", "ts": "1.0", "thread_ts": "1.0", "bot_id": "B123"}
+        say = AsyncMock()
+        with patch.object(bot, "_handle_mention", new_callable=AsyncMock) as mock_mention:
+            await bot._handle_thread_message(event, say)
+        mock_mention.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_no_mention_no_active_thread_is_ignored(self, bot):
+        """No @mention and not an active thread — silently skipped."""
+        bot._bot_user_id = "U_BOT"
+        event = {"text": "no mention here", "ts": "1.0", "thread_ts": "T_INACTIVE"}
+        say = AsyncMock()
+        with patch.object(bot, "_handle_mention", new_callable=AsyncMock) as mock_mention:
+            await bot._handle_thread_message(event, say)
+        mock_mention.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_explicit_mention_triggers_response(self, bot):
+        """Explicit @mention in thread triggers _handle_mention."""
+        bot._bot_user_id = "U_BOT"
+        event = {"text": "<@U_BOT> 현재 상태", "ts": "2.0", "thread_ts": "1.0"}
+        say = AsyncMock()
+        with patch.object(bot, "_handle_mention", new_callable=AsyncMock) as mock_mention:
+            await bot._handle_thread_message(event, say)
+        mock_mention.assert_called_once_with(event, say)
+
+    @pytest.mark.asyncio
+    async def test_active_thread_triggers_response(self, bot):
+        """Message in an active thread (no @mention) triggers _handle_mention."""
+        bot._bot_user_id = "U_BOT"
+        bot._active_threads.append("T_ACTIVE")
+        event = {"text": "후속 질문", "ts": "3.0", "thread_ts": "T_ACTIVE"}
+        say = AsyncMock()
+        with patch.object(bot, "_handle_mention", new_callable=AsyncMock) as mock_mention:
+            await bot._handle_thread_message(event, say)
+        mock_mention.assert_called_once_with(event, say)
+
+
 # ── Block Kit helpers ─────────────────────────────────────────
 
 
 class TestBlockKit:
     def test_text_to_blocks_normal(self):
         """Normal text should produce a single section block."""
-        blocks = _text_to_blocks("Hello world")
+        from orchestrator.tools.slack_templates import agent_response_blocks
+
+        blocks = agent_response_blocks("Hello world")
         assert len(blocks) == 1
         assert blocks[0]["type"] == "section"
         assert blocks[0]["text"]["text"] == "Hello world"
 
     def test_text_to_blocks_truncation(self):
-        """Text > 2900 chars should be truncated within Slack mrkdwn 3000-char limit."""
+        """Text > 2900 chars should be truncated with ellipsis."""
+        from orchestrator.tools.slack_templates import agent_response_blocks
+
         long_text = "x" * 3500
-        blocks = _text_to_blocks(long_text)
+        blocks = agent_response_blocks(long_text)
         text = blocks[0]["text"]["text"]
         assert len(text) <= 3000
-        assert text.endswith("(응답이 잘렸습니다)")
+        assert text.endswith("\u2026")
 
     def test_error_blocks_structure(self):
         """Error blocks should have header + section."""
-        blocks = _error_blocks("test error")
+        from orchestrator.tools.slack_templates import error_blocks
+
+        blocks = error_blocks("test error")
         assert blocks[0]["type"] == "header"
         assert blocks[1]["type"] == "section"
         assert "test error" in blocks[1]["text"]["text"]

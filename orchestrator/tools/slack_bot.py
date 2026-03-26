@@ -18,6 +18,11 @@ from orchestrator.config import (
     SLACK_BOT_CHAT_INTERVAL,
     SLACK_BOT_TOKEN,
 )
+from orchestrator.tools.slack_templates import (
+    agent_response_blocks,
+    blocks_to_fallback,
+    error_blocks,
+)
 
 if TYPE_CHECKING:
     from slack_bolt.async_app import AsyncApp
@@ -164,7 +169,7 @@ class SlackBotListener:
         if not self._is_allowed_user(user_id):
             await self._post_message(
                 channel,
-                _error_blocks("권한 없음: 이 명령을 실행할 권한이 없습니다."),
+                error_blocks("권한 없음: 이 명령을 실행할 권한이 없습니다."),
                 thread_ts,
             )
             return
@@ -178,15 +183,15 @@ class SlackBotListener:
             response = await asyncio.wait_for(
                 self._ask_agent(text), timeout=SLACK_BOT_AGENT_TIMEOUT
             )
-            blocks = _text_to_blocks(response)
+            blocks = agent_response_blocks(response)
         except TimeoutError:
             success = False
             logger.warning("Agent timeout for message: %s", text[:50])
-            blocks = _error_blocks("응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.")
+            blocks = error_blocks("응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.")
         except Exception:
             success = False
             logger.exception("Agent call failed for message: %s", text[:50])
-            blocks = _error_blocks("명령 처리 중 오류가 발생했습니다.")
+            blocks = error_blocks("명령 처리 중 오류가 발생했습니다.")
 
         await self._post_message(channel, blocks, thread_ts)
 
@@ -259,7 +264,7 @@ class SlackBotListener:
                 await asyncio.sleep(SLACK_BOT_CHAT_INTERVAL - elapsed)
 
             try:
-                fallback = _blocks_to_fallback(blocks)
+                fallback = blocks_to_fallback(blocks)
                 await self.web_client.chat_postMessage(
                     channel=channel,
                     text=fallback,
@@ -286,62 +291,3 @@ class SlackBotListener:
                         logger.exception("Failed to post Slack message (after retry)")
                 else:
                     logger.exception("Failed to post Slack message")
-
-
-# ── Block Kit helpers ────────────────────────────────────────
-
-
-def _header_block(text: str) -> dict:
-    return {"type": "header", "text": {"type": "plain_text", "text": text}}
-
-
-def _section_block(text: str) -> dict:
-    return {"type": "section", "text": {"type": "mrkdwn", "text": text}}
-
-
-def _error_blocks(message: str) -> list[dict]:
-    return [
-        _header_block("오류"),
-        _section_block(f":warning: {message}"),
-    ]
-
-
-def _text_to_blocks(text: str) -> list[dict]:
-    """Convert Agent text response to Block Kit blocks.
-
-    Splits on double newlines into multiple section blocks with dividers
-    for better readability. Each section is capped at 3000 chars (Slack limit).
-    """
-    max_block_text = 3000
-    sections = [s.strip() for s in text.split("\n\n") if s.strip()]
-
-    if not sections:
-        return [_section_block("(빈 응답)")]
-
-    blocks: list[dict] = []
-    total_chars = 0
-    char_limit = 2900
-
-    for i, section in enumerate(sections):
-        if total_chars + len(section) > char_limit:
-            remaining = char_limit - total_chars
-            if remaining > 50:
-                blocks.append(_section_block(section[:remaining] + "…"))
-            break
-        if i > 0:
-            blocks.append({"type": "divider"})
-        blocks.append(_section_block(section[:max_block_text]))
-        total_chars += len(section)
-
-    return blocks
-
-
-def _blocks_to_fallback(blocks: list[dict]) -> str:
-    """Extract plain text from blocks for the fallback field."""
-    parts = []
-    for b in blocks:
-        if b.get("type") == "header":
-            parts.append(b.get("text", {}).get("text", ""))
-        elif b.get("type") == "section":
-            parts.append(b.get("text", {}).get("text", ""))
-    return "\n".join(parts)[:200]
