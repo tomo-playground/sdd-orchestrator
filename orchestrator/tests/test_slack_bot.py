@@ -239,6 +239,86 @@ class TestPermissionCheck:
             assert bot._is_allowed_user("ANY_USER") is True
 
 
+# ── Emoji reactions ──────────────────────────────────────────
+
+
+class TestEmojiReactions:
+    @pytest.mark.asyncio
+    async def test_success_adds_eyes_then_check(self, bot):
+        """Successful agent call: eyes → remove eyes → white_check_mark."""
+        bot.web_client = AsyncMock()
+        event = {
+            "text": "<@U12345> 상태",
+            "channel": "C001",
+            "user": "U001",
+            "ts": "1.0",
+        }
+
+        with (
+            patch(_PATCH_ALLOW_CHANNEL, ""),
+            patch(_PATCH_ALLOW_USERS, ""),
+            patch.object(bot, "_ask_agent", new_callable=AsyncMock, return_value="OK"),
+        ):
+            await bot._handle_mention(event, AsyncMock())
+
+        reaction_calls = bot.web_client.reactions_add.call_args_list
+        emoji_names = [c.kwargs["name"] for c in reaction_calls]
+        assert "eyes" in emoji_names
+        assert "white_check_mark" in emoji_names
+
+        remove_calls = bot.web_client.reactions_remove.call_args_list
+        removed = [c.kwargs["name"] for c in remove_calls]
+        assert "eyes" in removed
+
+    @pytest.mark.asyncio
+    async def test_failure_adds_x_emoji(self, bot):
+        """Failed agent call: eyes → remove eyes → x."""
+        bot.web_client = AsyncMock()
+        event = {
+            "text": "<@U12345> 실패",
+            "channel": "C001",
+            "user": "U001",
+            "ts": "2.0",
+        }
+
+        with (
+            patch(_PATCH_ALLOW_CHANNEL, ""),
+            patch(_PATCH_ALLOW_USERS, ""),
+            patch.object(
+                bot, "_ask_agent", new_callable=AsyncMock, side_effect=RuntimeError("boom")
+            ),
+        ):
+            await bot._handle_mention(event, AsyncMock())
+
+        reaction_calls = bot.web_client.reactions_add.call_args_list
+        emoji_names = [c.kwargs["name"] for c in reaction_calls]
+        assert "x" in emoji_names
+
+    @pytest.mark.asyncio
+    async def test_reaction_failure_does_not_block(self, bot):
+        """Reaction API failure should not prevent message posting."""
+        bot.web_client = AsyncMock()
+        bot.web_client.reactions_add.side_effect = Exception("API error")
+        bot.web_client.reactions_remove.side_effect = Exception("API error")
+
+        event = {
+            "text": "<@U12345> 테스트",
+            "channel": "C001",
+            "user": "U001",
+            "ts": "3.0",
+        }
+
+        with (
+            patch(_PATCH_ALLOW_CHANNEL, ""),
+            patch(_PATCH_ALLOW_USERS, ""),
+            patch.object(bot, "_ask_agent", new_callable=AsyncMock, return_value="응답"),
+        ):
+            await bot._handle_mention(event, AsyncMock())
+
+        # Message should still be posted despite reaction failures
+        bot.web_client.chat_postMessage.assert_called_once()
+
+
 # ── MCP tools: pause / resume ────────────────────────────────
 
 

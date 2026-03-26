@@ -169,20 +169,30 @@ class SlackBotListener:
             )
             return
 
+        # Acknowledge receipt with eyes emoji
+        await self._add_reaction(channel, ts, "eyes")
+
         # Delegate to Claude Agent
+        success = True
         try:
             response = await asyncio.wait_for(
                 self._ask_agent(text), timeout=SLACK_BOT_AGENT_TIMEOUT
             )
             blocks = _text_to_blocks(response)
         except TimeoutError:
+            success = False
             logger.warning("Agent timeout for message: %s", text[:50])
             blocks = _error_blocks("응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.")
         except Exception:
+            success = False
             logger.exception("Agent call failed for message: %s", text[:50])
             blocks = _error_blocks("명령 처리 중 오류가 발생했습니다.")
 
         await self._post_message(channel, blocks, thread_ts)
+
+        # Replace eyes with result emoji
+        await self._remove_reaction(channel, ts, "eyes")
+        await self._add_reaction(channel, ts, "white_check_mark" if success else "x")
 
         # Track this thread as active so follow-up messages don't need @mention
         if thread_ts and thread_ts not in self._active_threads:
@@ -210,6 +220,26 @@ class SlackBotListener:
             return True
         allowed = {u.strip() for u in SLACK_BOT_ALLOWED_USERS.split(",") if u.strip()}
         return not allowed or user_id in allowed
+
+    # ── Emoji reactions ─────────────────────────────────────
+
+    async def _add_reaction(self, channel: str, timestamp: str, emoji: str) -> None:
+        """Add an emoji reaction to a message. Silently ignores errors."""
+        if not self.web_client:
+            return
+        try:
+            await self.web_client.reactions_add(channel=channel, timestamp=timestamp, name=emoji)
+        except Exception:
+            logger.debug("Failed to add reaction :%s: to %s", emoji, timestamp)
+
+    async def _remove_reaction(self, channel: str, timestamp: str, emoji: str) -> None:
+        """Remove an emoji reaction from a message. Silently ignores errors."""
+        if not self.web_client:
+            return
+        try:
+            await self.web_client.reactions_remove(channel=channel, timestamp=timestamp, name=emoji)
+        except Exception:
+            logger.debug("Failed to remove reaction :%s: from %s", emoji, timestamp)
 
     # ── Message posting ──────────────────────────────────────
 
