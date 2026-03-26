@@ -277,10 +277,33 @@ def _error_blocks(message: str) -> list[dict]:
 
 
 def _text_to_blocks(text: str) -> list[dict]:
-    """Convert Agent text response to Block Kit blocks."""
-    if len(text) > 2900:
-        text = text[:2900] + "\n\n(응답이 잘렸습니다)"
-    return [_section_block(text)]
+    """Convert Agent text response to Block Kit blocks.
+
+    Splits on double newlines into multiple section blocks with dividers
+    for better readability. Each section is capped at 3000 chars (Slack limit).
+    """
+    max_block_text = 3000
+    sections = [s.strip() for s in text.split("\n\n") if s.strip()]
+
+    if not sections:
+        return [_section_block("(빈 응답)")]
+
+    blocks: list[dict] = []
+    total_chars = 0
+    char_limit = 2900
+
+    for i, section in enumerate(sections):
+        if total_chars + len(section) > char_limit:
+            remaining = char_limit - total_chars
+            if remaining > 50:
+                blocks.append(_section_block(section[:remaining] + "…"))
+            break
+        if i > 0:
+            blocks.append({"type": "divider"})
+        blocks.append(_section_block(section[:max_block_text]))
+        total_chars += len(section)
+
+    return blocks
 
 
 def _blocks_to_fallback(blocks: list[dict]) -> str:
