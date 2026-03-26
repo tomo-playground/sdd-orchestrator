@@ -4,7 +4,7 @@ priority: P1
 scope: infra
 branch: feat/SP-082-slack-bot-claude-agent
 created: 2026-03-26
-status: running
+status: done
 approved_at: 2026-03-26
 depends_on:
 label: feature
