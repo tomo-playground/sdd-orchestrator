@@ -218,7 +218,7 @@ GH_REPO_URL = f"https://github.com/{GH_REPO_OWNER}/{GH_REPO_NAME}"
 # ── GitHub CLI ─────────────────────────────────────────────
 GH_ISSUE_ASSIGNEE = "stopper2008"
 GH_TIMEOUT = 15  # seconds
-GH_PR_FIELDS = "number,title,headRefName,state,reviewDecision,statusCheckRollup,labels"
+GH_PR_FIELDS = "number,title,headRefName,state,reviewDecision,statusCheckRollup,labels,url"
 GH_RUN_FIELDS = "databaseId,workflowName,status,conclusion,headBranch,createdAt"
 GH_RUN_LIMIT = 10
 STUCK_THRESHOLD_MINUTES = 30
@@ -277,7 +277,7 @@ SLACK_BOT_ALLOWED_USERS = os.environ.get(
 )  # comma-separated Slack user IDs, empty = all
 
 # ── Slack Bot Agent ──────────────────────────────────────
-SLACK_BOT_AGENT_MODEL = "claude-haiku-4-5-20251001"
+SLACK_BOT_AGENT_MODEL = "claude-sonnet-4-6"
 SLACK_BOT_MAX_TURNS = 8
 SLACK_BOT_AGENT_TIMEOUT = 60  # seconds
 

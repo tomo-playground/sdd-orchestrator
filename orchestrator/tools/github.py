@@ -72,6 +72,7 @@ def summarize_prs(prs: list[dict]) -> list[dict]:
             {
                 "number": pr.get("number"),
                 "title": pr.get("title"),
+                "url": pr.get("url", ""),
                 "branch": branch,
                 "task_id": sp_match.group(0) if sp_match else None,
                 "review": review,
