@@ -7,6 +7,7 @@
 
 ## P1 (최우선)
 
+- [ ] SP-082 — Slack Bot Claude Agent 전환 — 키워드 매칭 제거, 전체 메시지를 Claude Agent SDK로 처리 (자연어 명령 + 도구 자율 호출) | scope: infra
 - [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 네이티브 기반 4-Module 파이프라인 | depends: SP-084
 - [ ] SP-085 — 코딩 엔진 통합 — sdd-run/sdd-fix/sentry-autofix를 단일 엔진 + 모드 구조로 리팩토링 (범용 분리 준비) | scope: infra
 - [ ] SP-080 — 자동 롤백 — 머지 후 5분 내 Sentry 에러 급증 시 자동 revert PR 생성 | scope: infra
@@ -17,7 +18,6 @@
 ## P2 (기능 확장)
 
 - [ ] SP-081 — 서비스 Slack 알림 — 렌더링 완료/파이프라인 실패/SD 다운/스토리보드 생성 완료 알림 | scope: backend+infra
-- [ ] SP-082 — Slack Bot 자연어 명령 — Ollama(3B) 의도 분류 + 키워드 매칭 폴백 | scope: infra
 - [ ] SP-052 — Direct 탭 레이아웃/편의성 개선
 - [ ] SP-024 — VEO Clip — Video Generation 통합
 - [ ] SP-025 — Profile Export/Import — Style Profile 공유
