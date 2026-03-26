@@ -4,7 +4,8 @@ priority: P2
 scope: frontend
 branch: feat/SP-104-ui-label-korean
 created: 2026-03-26
-status: design
+status: approved
+approved_at: 2026-03-26
 depends_on:
 label: feature
 ---
