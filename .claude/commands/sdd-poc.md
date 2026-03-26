@@ -95,10 +95,41 @@
 [채택된 전략 + 다음 단계]
 ```
 
+## 산출물 관리
+
+태스크 디렉토리에 결과를 함께 관리:
+
+```
+.claude/tasks/current/SP-NNN_*/
+├── spec.md
+├── poc.md                    ← git push (실험 결과 문서)
+├── poc_artifacts/
+│   └── workflows/            ← git push (JSON, 가벼움)
+│       ├── baseline.json
+│       └── strategy_a.json
+└── .gitignore                ← samples/ 제외
+```
+
+- `poc.md` + `workflows/` → **git push** (텍스트/JSON)
+- **이미지 샘플** → MinIO 스토리지에 업로드, poc.md에 URL 링크
+  - 경로: `poc/{SP-NNN}/{전략}_{seed}.png`
+  - poc.md에서 참조: `[baseline s100](http://localhost:9000/shorts-producer/poc/SP-NNN/baseline_s100.png)`
+
+## 리서치 태스크 완결
+
+PoC 결과 자체가 DoD인 태스크 (코드 구현 없이 실험 결론이 산출물):
+
+| 판정 | 태스크 처리 |
+|------|-----------|
+| **채택** | spec을 구현 태스크로 전환 (design → sdd-run) |
+| **조건부 채택** | poc.md에 조건 명시 → design에 반영 |
+| **보류** | status: `blocked` + 사유 기록 |
+| **폐기** | done/으로 이동, poc.md가 최종 산출물 |
+
 ## 주의사항
 
 - **문제 정의가 바뀌면 실험 전체를 리셋** — 중간에 목표를 바꾸면 결과가 무의미
 - **"기존이 나음"도 유효한 결론** — 억지로 새 방법을 채택하지 않는다
 - **감상이 아닌 데이터로 판정** — "좋아 보인다" 금지, 성공 기준 기반 판정
 - **실험 중 발견한 부수 인사이트**도 기록 (예: "BREAK가 ComfyUI에서 작동함" 확인)
-- 실험 이미지는 `ComfyUI/output/poc_{주제}_*` 네이밍으로 보존
+- 실험 이미지는 `ComfyUI/output/poc_{주제}_*` 네이밍으로 로컬 보존 + MinIO 업로드
