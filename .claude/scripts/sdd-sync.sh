@@ -39,7 +39,7 @@ if [ "$PULL_OK" = false ]; then
 fi
 for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*/spec.md "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
   [ -f "$TASK_FILE" ] || continue
-  TASK_BRANCH=$(grep '^branch:' "$TASK_FILE" | sed 's/^branch: *//' | tr -d '[:space:]')
+  TASK_BRANCH=$(grep '^branch:' "$TASK_FILE" 2>/dev/null | sed 's/^branch: *//' | tr -d '[:space:]' || true)
   [ -z "$TASK_BRANCH" ] && continue
   IS_MERGED=$(gh pr list --state merged --base main --head "$TASK_BRANCH" --json number --jq '.[0].number' 2>/dev/null || true)
   if [ -z "$IS_MERGED" ]; then
