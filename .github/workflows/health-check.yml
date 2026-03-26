@@ -50,6 +50,14 @@ jobs:
             echo "status=healthy" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Close resolved issues
+        if: steps.health.outputs.status == 'healthy'
+        run: |
+          OPEN=$(gh issue list --state open --search "in:title [Health Check]" --json number --jq '.[].number' 2>/dev/null || true)
+          for NUM in $OPEN; do
+            gh issue close "$NUM" --comment "서비스 복구 확인 — 자동 Close" 2>/dev/null && echo "Closed #$NUM"
+          done
+
       - name: Create issue on failure
         if: steps.health.outputs.status == 'unhealthy'
         run: |
