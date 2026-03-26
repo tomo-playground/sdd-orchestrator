@@ -6,6 +6,7 @@ import asyncio
 import logging
 import re
 import time
+from collections import deque
 from typing import TYPE_CHECKING
 
 from claude_agent_sdk import tool
@@ -74,6 +75,8 @@ class SlackBotListener:
         self._mcp_server = mcp_server
         self._post_lock = asyncio.Lock()
         self._last_post: float = 0
+        self._bot_user_id: str | None = None
+        self._processed_ts: deque[str] = deque(maxlen=200)
         self.handler: object | None = None
         self.app: AsyncApp | None = None
         self.web_client: AsyncWebClient | None = None
@@ -87,8 +90,19 @@ class SlackBotListener:
 
         self.app = AsyncApp(token=SLACK_BOT_TOKEN)
         self.app.event("app_mention")(self._handle_mention)
+        self.app.event("message")(self._handle_thread_message)
         self.web_client = self.app.client
         self.web_client.timeout = SLACK_BOT_API_TIMEOUT
+
+        try:
+            resp = await self.web_client.auth_test()
+            bot_user_id = resp.get("user_id")
+            if bot_user_id:
+                self._bot_user_id = bot_user_id
+            else:
+                logger.error("auth_test 응답에 user_id가 없습니다 — 스레드 멘션 응답 비활성화")
+        except Exception as e:
+            logger.exception("bot user_id 조회 실패 — 스레드 멘션 응답 비활성화: %s", e)
 
         self.handler = AsyncSocketModeHandler(self.app, SLACK_APP_TOKEN)
         await self.handler.connect_async()
@@ -100,16 +114,36 @@ class SlackBotListener:
             await self.handler.disconnect_async()
             logger.info("SlackBot disconnected")
 
-    # ── Event handler ────────────────────────────────────────
+    # ── Event handlers ───────────────────────────────────────
+
+    async def _handle_thread_message(self, event: dict, say) -> None:
+        """Handle thread messages that mention the bot."""
+        # Only thread replies (not channel-level messages — those go through app_mention)
+        if not event.get("thread_ts") or event.get("subtype"):
+            return
+        if event.get("bot_id"):
+            return
+        # Check if bot is mentioned in the message text
+        if not self._bot_user_id:
+            return
+        if f"<@{self._bot_user_id}>" not in event.get("text", ""):
+            return
+        await self._handle_mention(event, say)
 
     async def _handle_mention(self, event: dict, say) -> None:
         """Handle app_mention events by delegating to Claude Agent."""
         if event.get("bot_id"):
             return
 
+        # Dedup: app_mention + message events can both fire for thread mentions
+        ts = event.get("ts", "")
+        if ts in self._processed_ts:
+            return
+        self._processed_ts.append(ts)
+
         channel = event.get("channel", "")
         user_id = event.get("user", "")
-        thread_ts = event.get("ts", "")
+        thread_ts = event.get("thread_ts") or event.get("ts", "")
         text = event.get("text", "")
 
         # Strip bot mention (<@UXXXXXXXX>)
