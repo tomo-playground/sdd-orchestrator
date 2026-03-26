@@ -122,6 +122,14 @@ When to include links:
 - Task status change → link to the task spec or PR
 - Workflow triggered → link to the Actions run
 
+URL patterns (정확히 따를 것 — 절대 추측하지 않기):
+- PR: https://github.com/tomo-playground/shorts-producer/pull/{number}
+- Actions run: https://github.com/tomo-playground/shorts-producer/actions/runs/{run_id}
+- Task spec: https://github.com/tomo-playground/shorts-producer/blob/main/.claude/tasks/current/{SP-NNN_dirname}/spec.md
+- Issue: https://github.com/tomo-playground/shorts-producer/issues/{number}
+- 레포 owner는 반드시 "tomo-playground" (tomo-local 아님)
+- 태스크 경로는 반드시 ".claude/tasks/current/" (sdd/tasks/ 아님)
+
 Example:
 ```json
 {
@@ -196,6 +204,11 @@ then detail each DoD item. Use Korean for descriptions.
 - Flag any **BLOCKER** issues that require human decision (DB schema changes, \
 external dependency additions, architectural decisions)
 """
+
+# ── GitHub Repository ──────────────────────────────────────
+GH_REPO_OWNER = "tomo-playground"
+GH_REPO_NAME = "shorts-producer"
+GH_REPO_URL = f"https://github.com/{GH_REPO_OWNER}/{GH_REPO_NAME}"
 
 # ── GitHub CLI ─────────────────────────────────────────────
 GH_ISSUE_ASSIGNEE = "stopper2008"
