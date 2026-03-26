@@ -24,13 +24,13 @@ start() {
 
   mkdir -p "$ORCH_DIR/logs"
   cd "$ORCH_DIR"
-  ORCH_AUTO_RUN="${ORCH_AUTO_RUN:-1}" \
-  ORCH_AUTO_DESIGN="${ORCH_AUTO_DESIGN:-1}" \
-  SENTRY_AUTH_TOKEN="${_SENTRY}" \
-  SLACK_BOT_TOKEN="${_BOT_TOKEN}" \
-  SLACK_APP_TOKEN="${_APP_TOKEN}" \
-  SLACK_BOT_ALLOWED_CHANNEL="${_BOT_CHANNEL}" \
-  SLACK_BOT_ALLOWED_USERS="${_BOT_USERS}" \
+  export ORCH_AUTO_RUN="${ORCH_AUTO_RUN:-1}"
+  export ORCH_AUTO_DESIGN="${ORCH_AUTO_DESIGN:-1}"
+  export SENTRY_AUTH_TOKEN="${_SENTRY}"
+  export SLACK_BOT_TOKEN="${_BOT_TOKEN}"
+  export SLACK_APP_TOKEN="${_APP_TOKEN}"
+  export SLACK_BOT_ALLOWED_CHANNEL="${_BOT_CHANNEL}"
+  export SLACK_BOT_ALLOWED_USERS="${_BOT_USERS}"
   nohup uv run python -m orchestrator > "$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
   echo "Orchestrator 시작 (PID: $!, log: $LOG_FILE)"
