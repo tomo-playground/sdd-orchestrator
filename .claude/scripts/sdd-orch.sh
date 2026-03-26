@@ -15,15 +15,14 @@ start() {
     return 0
   fi
 
-  # orchestrator/.env에서 Sentry 환경변수 로드
-  _SENTRY=$(grep '^SENTRY_AUTH_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2-)
+  # orchestrator/.env에서 환경변수 로드 (키 없으면 빈 문자열)
+  _SENTRY=$(grep '^SENTRY_AUTH_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2- || true)
+  _BOT_TOKEN=$(grep '^SLACK_BOT_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2- || true)
+  _APP_TOKEN=$(grep '^SLACK_APP_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2- || true)
+  _BOT_CHANNEL=$(grep '^SLACK_BOT_ALLOWED_CHANNEL=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2- || true)
+  _BOT_USERS=$(grep '^SLACK_BOT_ALLOWED_USERS=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2- || true)
 
-  # orchestrator/.env에서 Slack Bot 환경변수 로드
-  _BOT_TOKEN=$(grep '^SLACK_BOT_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2-)
-  _APP_TOKEN=$(grep '^SLACK_APP_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2-)
-  _BOT_CHANNEL=$(grep '^SLACK_BOT_ALLOWED_CHANNEL=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2-)
-  _BOT_USERS=$(grep '^SLACK_BOT_ALLOWED_USERS=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2-)
-
+  mkdir -p "$ORCH_DIR/logs"
   cd "$ORCH_DIR"
   ORCH_AUTO_RUN="${ORCH_AUTO_RUN:-1}" \
   ORCH_AUTO_DESIGN="${ORCH_AUTO_DESIGN:-1}" \
