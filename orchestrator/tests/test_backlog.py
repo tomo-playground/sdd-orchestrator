@@ -152,6 +152,41 @@ def test_parse_backlog_enrichment_with_spec(tmp_path: Path):
     assert tasks[0].has_design is True
 
 
+def test_blockquote_status_enrichment(tmp_path: Path):
+    """Blockquote-style status (> status: approved) is parsed correctly."""
+    backlog = tmp_path / "backlog.md"
+    backlog.write_text("## P0\n\n- [ ] SP-087 — Slack workflow\n", encoding="utf-8")
+
+    task_dir = tmp_path / "current" / "SP-087_slack-workflow"
+    task_dir.mkdir(parents=True)
+    (task_dir / "spec.md").write_text(
+        "# SP-087\n\n> status: approved | approved_at: 2026-03-26\n", encoding="utf-8"
+    )
+    (task_dir / "design.md").write_text("# Design\n", encoding="utf-8")
+
+    tasks = parse_backlog(backlog, current_dir=tmp_path / "current")
+    assert tasks[0].spec_status == "approved"
+
+
+def test_blockquote_status_discover(tmp_path: Path):
+    """Discovered tasks with blockquote status are parsed correctly."""
+    backlog = tmp_path / "backlog.md"
+    backlog.write_text("# Backlog\n\n## P1\n\n", encoding="utf-8")
+
+    task_dir = tmp_path / "current" / "SP-086_slack-templates"
+    task_dir.mkdir(parents=True)
+    (task_dir / "spec.md").write_text(
+        "# SP-086\n\n> status: approved | approved_at: 2026-03-26\n"
+        "> priority: P0\n> scope: infra\n",
+        encoding="utf-8",
+    )
+
+    tasks = parse_backlog(backlog, current_dir=tmp_path / "current")
+    assert tasks[0].spec_status == "approved"
+    assert tasks[0].priority == "P0"
+    assert tasks[0].scope == "infra"
+
+
 def test_discover_current_tasks_not_in_backlog(tmp_path: Path):
     """Tasks in current/ but NOT in backlog.md are discovered."""
     # Empty backlog

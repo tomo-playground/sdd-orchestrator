@@ -129,10 +129,10 @@ def _enrich_from_specs(tasks: list[BacklogTask], tasks_dir: Path = TASKS_CURRENT
         spec_path = matches[0]
         task.has_design = (spec_path.parent / "design.md").exists()
 
-        # Parse frontmatter status
+        # Parse frontmatter status (supports both YAML frontmatter and blockquote)
         try:
             content = spec_path.read_text(encoding="utf-8")
-            status_match = re.search(r"^status:\s*(\w+)", content, re.MULTILINE)
+            status_match = re.search(r"^>?\s*status:\s*(\w+)", content, re.MULTILINE)
             if status_match:
                 task.spec_status = status_match.group(1)
         except OSError:
@@ -165,14 +165,18 @@ def _discover_current_tasks(tasks: list[BacklogTask], tasks_dir: Path = TASKS_CU
         try:
             content = spec_path.read_text(encoding="utf-8")
             for line in content.splitlines():
-                if line.startswith("status:"):
-                    status = line.split(":", 1)[1].strip()
-                elif line.startswith("priority:"):
-                    priority = line.split(":", 1)[1].strip()
-                elif line.startswith("scope:"):
-                    scope = line.split(":", 1)[1].strip()
-                elif line.startswith("depends_on:"):
-                    raw = line.split(":", 1)[1].strip()
+                # Strip blockquote prefix for parsing
+                stripped = re.sub(r"^>\s*", "", line)
+                if stripped.startswith("status:"):
+                    # Handle "status: approved | approved_at: ..."
+                    raw_status = stripped.split(":", 1)[1].strip()
+                    status = raw_status.split("|")[0].strip()
+                elif stripped.startswith("priority:"):
+                    priority = stripped.split(":", 1)[1].strip()
+                elif stripped.startswith("scope:"):
+                    scope = stripped.split(":", 1)[1].strip()
+                elif stripped.startswith("depends_on:"):
+                    raw = stripped.split(":", 1)[1].strip()
                     depends = [d.strip() for d in re.findall(r"SP-\d+", raw)]
                 elif line.startswith("---") and status != "pending":
                     break  # Past frontmatter
