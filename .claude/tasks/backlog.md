@@ -10,7 +10,6 @@
 
 ## P1 (최우선)
 
-- [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 네이티브 기반 4-Module 파이프라인 | depends: SP-084
 - [ ] SP-085 — 코딩 엔진 통합 — sdd-run/sdd-fix/sentry-autofix를 단일 엔진 + 모드 구조로 리팩토링 (범용 분리 준비) | scope: infra
 - [ ] SP-078 — 학습 루프 — 실패 PR 원인 기록 + 다음 설계 자동 반영 (같은 실수 반복 방지) | scope: infra
 - [ ] SP-079 — 자기 평가 대시보드 — 태스크 소요 시간, self-heal 횟수, 리뷰 라운드 수 추적 → Slack 주간 리포트 | scope: infra
@@ -47,7 +46,6 @@
 - [ ] SP-098 — Direct 3패널 레이아웃 통합 — 씬 목록|씬 카드|속성 패널 + feature flag | scope: frontend | depends: SP-096, SP-097
 
 ### Phase D: Library 통일 (1~2주)
-- [ ] SP-099 — Master-Detail 공통 레이아웃 컴포넌트 — LibraryMasterDetail 신규 | scope: frontend
 - [ ] SP-100 — Styles → Master-Detail 전환 | scope: frontend | depends: SP-099
 - [ ] SP-101 — Voices → Master-Detail 전환 | scope: frontend | depends: SP-099
 - [ ] SP-102 — Music → Master-Detail 전환 | scope: frontend | depends: SP-099
