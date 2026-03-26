@@ -4,7 +4,7 @@ priority: P1
 scope: backend
 branch: feat/SP-084-comfyui-native-cleanup
 created: 2026-03-26
-status: approved
+status: done
 approved_at: 2026-03-26
 depends_on:
 label: chore
