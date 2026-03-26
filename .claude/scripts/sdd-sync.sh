@@ -84,7 +84,7 @@ for BRANCH in $MERGED; do
     fi
   fi
 
-  # backlog.md 체크오프 (stash pop 후 재적용 필요 → ID를 수집해두고 나중에 처리)
+  # backlog.md에서 제거 (stash pop 후 재적용 필요 → ID를 수집해두고 나중에 처리)
   CHECKED_IDS="${CHECKED_IDS:-} ${SP_ID}"
 
   # 1. worktree 정리 (브랜치 삭제 전에 — worktree가 브랜치를 잡고 있으면 삭제 실패)
@@ -168,21 +168,21 @@ if [ "$STASHED" = true ]; then
   git stash pop 2>/dev/null && echo "📂 stash 복원 완료"
 fi
 
-# backlog.md 체크오프 — stash pop 이후에 적용해야 덮어쓰기 방지
+# backlog.md에서 완료 태스크 제거 — stash pop 이후에 적용해야 덮어쓰기 방지
 CHECKED_IDS=$(echo "${CHECKED_IDS:-}" | xargs)
 if [ -n "$CHECKED_IDS" ]; then
   BACKLOG="$PROJECT_DIR/.claude/tasks/backlog.md"
   BACKLOG_CHANGED=false
   for SP_ID in $CHECKED_IDS; do
     if [ -f "$BACKLOG" ] && grep -q "^\- \[ \] ${SP_ID} " "$BACKLOG"; then
-      sed -i "s/^- \[ \] ${SP_ID} \(—\||\)/- [x] ~~${SP_ID}~~ \1/" "$BACKLOG"
-      echo "☑️ backlog 체크: ${SP_ID}"
+      sed -i "/^\- \[ \] ${SP_ID} /d" "$BACKLOG"
+      echo "🗑️ backlog 제거: ${SP_ID}"
       BACKLOG_CHANGED=true
     fi
   done
   if [ "$BACKLOG_CHANGED" = true ]; then
     git add .claude/tasks/backlog.md
-    git commit -m "chore: backlog 완료 체크 — $(echo $CHECKED_IDS | tr ' ' ',')
+    git commit -m "chore: backlog 완료 태스크 제거 — $(echo $CHECKED_IDS | tr ' ' ',')
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
     git push

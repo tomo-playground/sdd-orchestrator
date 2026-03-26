@@ -274,4 +274,6 @@ docs/
 | **Task** | 착수 중 (spec + design) | `.claude/tasks/current/SP-NNN_*/` |
 | **Done** | 완료 이력 | `.claude/tasks/done/SP-NNN_*/` |
 
+**태스크 라이프사이클**: Backlog(미착수) → 착수 시 `current/` 생성 + Backlog에서 제거 → 머지 시 `done/`으로 이동 (sdd-sync 자동). Backlog에 진행 중/완료 항목을 남기지 않는다.
+
 > **상세**: 설계 규칙, 자율 실행 규칙, 세션 프로토콜, Hotfix 워크플로우 등은 `docs/guides/SDD_WORKFLOW.md` 참조.

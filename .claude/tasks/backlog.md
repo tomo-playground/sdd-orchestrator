@@ -1,27 +1,13 @@
 # Backlog
 
-> 태스크 큐. 우선순위 순서대로 진행.
-> 코딩머신이 이 파일을 스캔하여 자동 실행.
+> 미착수 태스크 큐. 우선순위 순서대로 진행.
+> 착수 → `current/`로 이동 (이 파일에서 제거). 완료 → `done/`이 SSOT.
 
 ---
 
-## P0 (진행 중)
-
-- [x] ~~SP-077~~ — SD Client 추상화 — SD WebUI 직접 호출 24곳 → SDClientBase 통합 (ComfyUI 전환 선행) | scope: backend
-- [x] ~~SP-058~~ — Intake 노드 — Guided 모드 소크라테스 질문으로 structure/tone/캐릭터 확정 | scope: backend | **approved**
-- [x] ~~SP-072~~ — Narrator 씬 지능형 no_humans 판단 — script 의미 기반 군중/빈 공간 구분 | scope: backend | **approved**
-- [x] ~~SP-074~~ — Frontend 하드코딩 SSOT 전환 | scope: frontend | **approved**
-- [x] ~~SP-020~~ — Enum ID 정규화 — structure/language/style ID 분리 + DB 마이그레이션 | scope: backend
-
 ## P1 (최우선)
 
-- [x] ~~SP-022~~ — ComfyUI 마이그레이션 — ForgeUI→ComfyUI 워크플로우 전환 | depends: SP-077
-- [x] ~~SP-021~~ — Speaker 동적 역할 — 정적 A/B/Narrator → speaker_1/speaker_2/narrator 전환 | depends: SP-020
-- [x] ~~SP-075~~ — 지식DB 스토리 카드 | scope: backend
-- [x] ~~SP-083~~ — 폐기: 캐릭터 일관성 미해결 상태에서 Regional만으로는 부족
-- [ ] SP-084 — ComfyUI 네이티브 정리 — Forge 호환 레이어 제거, SD_CLIENT_TYPE 분기 삭제, 단일 경로화 | scope: backend
-- [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 전환 후 착수. 4-Module 파이프라인 | depends: SP-083
-- [x] ~~SP-076~~ — Slack Bot 양방향 연동 — Slack에서 명령 수신 + 코딩머신 제어 | scope: infra
+- [ ] SP-023 — 캐릭터 일관성 V3 — ComfyUI 네이티브 기반 4-Module 파이프라인 | depends: SP-084
 - [ ] SP-080 — 자동 롤백 — 머지 후 5분 내 Sentry 에러 급증 시 자동 revert PR 생성 | scope: infra
 - [ ] SP-078 — 학습 루프 — 실패 PR 원인 기록 + 다음 설계 자동 반영 (같은 실수 반복 방지) | scope: infra
 - [ ] SP-079 — 자기 평가 대시보드 — 태스크 소요 시간, self-heal 횟수, 리뷰 라운드 수 추적 → Slack 주간 리포트 | scope: infra
@@ -38,6 +24,7 @@
 - [ ] SP-029 — Script Canvas 분할 뷰
 
 ## P2-SDD (코딩머신 강화)
+
 - [ ] SP-033 — DoD 검증 자동화
 - [ ] SP-034 — PR 엣지 케이스 체크리스트
 - [ ] SP-051 — SDD 2인 확장 플랜
@@ -58,15 +45,3 @@
 - [ ] 씬 단위 순차 생성
 - [ ] ControlNet 포즈 에셋 재활용 검토
 - [ ] 캐릭터 LoRA 학습 파이프라인
-
----
-
-## 완료 이력
-
-- [x] ~~SP-011~~ | ~~SP-014~~ | ~~SP-015~~ | ~~SP-016~~ | ~~SP-035~~ | ~~SP-036~~ | ~~SP-039~~ (P0 버그)
-- [x] ~~SP-010~~ | ~~SP-017~~ | ~~SP-018~~ | ~~SP-030~~ | ~~SP-031~~ | ~~SP-032~~ | ~~SP-037~~ (P1 인프라)
-- [x] ~~SP-019~~ | ~~SP-038~~ | ~~SP-040~~ | ~~SP-041~~ | ~~SP-042~~ | ~~SP-043~~
-- [x] ~~SP-044~~ | ~~SP-045~~ | ~~SP-027~~ | ~~SP-046~~ | ~~SP-047~~ | ~~SP-048~~
-- [x] ~~SP-054~~ | ~~SP-055~~ | ~~SP-060~~ | ~~SP-056~~ | ~~SP-057~~ | ~~SP-028~~
-- [x] ~~SP-059~~ | ~~SP-061~~ | ~~SP-062~~ | ~~SP-063~~ | ~~SP-064~~ | ~~SP-065~~ | ~~SP-053~~ | ~~SP-071~~
-- [x] ~~SP-066~~ | ~~SP-067~~ | ~~SP-068~~ | ~~SP-069~~ | ~~SP-073~~
