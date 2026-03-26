@@ -45,10 +45,23 @@ export async function mockGlobalApis(page: Page) {
 export async function mockStudioApis(page: Page) {
   // Match storyboards list (with or without query params) and individual storyboard by ID
   await page.route(/\/storyboards(\?.*)?$/, (route) => {
-    if (route.request().method() === "GET") {
+    const method = route.request().method();
+    if (method === "GET") {
       const items = storyboardListItems();
       return route.fulfill({
         json: { items, total: items.length, offset: 0, limit: 50 },
+      });
+    }
+    if (method === "POST") {
+      const sb = MOCK_STORYBOARDS[0];
+      return route.fulfill({
+        json: {
+          status: "ok",
+          storyboard_id: sb.id,
+          scene_ids: [],
+          client_ids: [],
+          version: 1,
+        },
       });
     }
     return route.continue();
@@ -57,10 +70,24 @@ export async function mockStudioApis(page: Page) {
   await page.route(/\/storyboards\/(\d+)$/, (route) => {
     const url = route.request().url();
     const match = url.match(/\/storyboards\/(\d+)$/);
-    if (match && route.request().method() === "GET") {
+    const method = route.request().method();
+    if (match && method === "GET") {
       const id = Number(match[1]);
       const sb = MOCK_STORYBOARDS.find((s) => s.id === id);
       return route.fulfill({ json: sb ?? { error: "not found" }, status: sb ? 200 : 404 });
+    }
+    if (match && method === "PUT") {
+      const id = Number(match[1]);
+      const sb = MOCK_STORYBOARDS.find((s) => s.id === id) ?? MOCK_STORYBOARDS[0];
+      return route.fulfill({
+        json: {
+          status: "ok",
+          storyboard_id: id,
+          scene_ids: sb.scenes.map((s) => s.id),
+          client_ids: sb.scenes.map((s) => s.client_id),
+          version: 2,
+        },
+      });
     }
     return route.continue();
   });
@@ -73,6 +100,55 @@ export async function mockStudioApis(page: Page) {
     }
     return route.continue();
   });
+
+  // Individual character by ID
+  await page.route(/\/characters\/\d+$/, (route) => {
+    if (route.request().method() === "GET") {
+      return route.fulfill({
+        json: {
+          ...MOCK_CHARACTERS[0],
+          positive_prompt: "1girl, cheerful",
+          negative_prompt: "bad quality",
+          loras: [],
+        },
+      });
+    }
+    return route.continue();
+  });
+
+  // Style profiles (list + individual full)
+  await page.route("**/style-profiles**", (route) =>
+    route.fulfill({
+      json: [{ id: 1, name: "Test Profile", model_name: "animagine-v3", default_steps: 28 }],
+    })
+  );
+  await page.route(/\/style-profiles\/\d+\/full$/, (route) =>
+    route.fulfill({
+      json: {
+        id: 1,
+        name: "test-profile",
+        display_name: "Test Profile",
+        sd_model: { name: "animagine-v3", display_name: "Animagine V3" },
+        loras: [],
+        negative_embeddings: [],
+        positive_embeddings: [],
+        default_steps: 28,
+        default_cfg_scale: 4.5,
+        default_sampler_name: "Euler",
+        default_clip_skip: 2,
+      },
+    })
+  );
+
+  // Quality scores
+  await page.route("**/quality/summary/**", (route) => route.fulfill({ json: { scores: [] } }));
+
+  // Group effective config
+  await page.route("**/groups/*/effective-config", (route) =>
+    route.fulfill({
+      json: { style_profile_id: 1, character_id: null, render_preset_id: null },
+    })
+  );
 
   await page.route("**/controlnet/ip-adapter/references", (route) =>
     route.fulfill({ json: { references: [] } })
@@ -91,6 +167,46 @@ export async function mockStudioApis(page: Page) {
   await page.route("**/presets", (route) => route.fulfill({ json: MOCK_PRESETS }));
   await page.route("**/tags", (route) => route.fulfill({ json: [] }));
   await page.route("**/loras", (route) => route.fulfill({ json: [] }));
+
+  // SD model switch (fires during style profile load)
+  await page.route("**/sd/switch**", (route) => route.fulfill({ json: { ok: true } }));
+
+  // Direct tab: image generation (sync + async)
+  await page.route("**/scene/generate**", (route) =>
+    route.fulfill({
+      json: {
+        image: "data:image/png;base64,iVBORw0KGgo=",
+        images: ["data:image/png;base64,iVBORw0KGgo="],
+        seed: 42,
+        used_prompt: "1girl, cheerful",
+        used_negative_prompt: "",
+        used_steps: 28,
+        used_cfg_scale: 4.5,
+        used_sampler: "Euler",
+        debug_payload: '{"request":{},"actual":{}}',
+      },
+    })
+  );
+
+  // Direct tab: TTS preview
+  await page.route("**/preview/tts", (route) =>
+    route.fulfill({
+      json: {
+        audio_url: "/audio/mock_tts_preview.wav",
+        duration: 3.5,
+        cache_key: "mock-cache-key",
+        cached: false,
+        temp_asset_id: 500,
+      },
+    })
+  );
+
+  // Direct tab: image store
+  await page.route("**/image/store", (route) =>
+    route.fulfill({
+      json: { url: "http://localhost:8188/output/mock_stored.png", asset_id: 1000 },
+    })
+  );
 }
 // ── Characters page ──────────────────────────────────────────
 

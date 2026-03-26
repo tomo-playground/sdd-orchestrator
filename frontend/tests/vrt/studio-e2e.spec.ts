@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { mockGlobalApis, mockStudioApis, MOCK_STORYBOARDS } from "../helpers/mockApi";
 
 test.describe("Studio Page", () => {
@@ -191,4 +191,133 @@ test.describe("Studio Page", () => {
 
     expect(newKeyCount).toBe(0);
   });
+
+  // ── 10. Direct tab: image generation trigger ──────────────
+
+  test("Direct tab: Generate button triggers scene/generate API", async ({ page }) => {
+    await page.goto(`/studio?id=${MOCK_STORYBOARDS[0].id}`);
+    await expect(page.getByText(MOCK_STORYBOARDS[0].title).first()).toBeVisible({ timeout: 5000 });
+
+    // Switch to Direct tab
+    await page.getByRole("button", { name: /^Direct/ }).click();
+
+    // Wait for scenes to render (Scenes heading visible in SceneListPanel)
+    await expect(page.getByRole("heading", { name: "Scenes" })).toBeVisible({ timeout: 5000 });
+
+    // Track if scene/generate API was called
+    const generateRequest = interceptRequest(page, "scene/generate");
+
+    // Click Generate button
+    await page.getByRole("button", { name: "Generate" }).click();
+
+    // Verify API call was made
+    const req = await generateRequest;
+    expect(req).toBeTruthy();
+  });
+
+  // ── 11. Direct tab: scene prompt edit + save ──────────────
+
+  test("Direct tab: editing script triggers autoSave PUT", async ({ page }) => {
+    await page.goto(`/studio?id=${MOCK_STORYBOARDS[0].id}`);
+    await expect(page.getByText(MOCK_STORYBOARDS[0].title).first()).toBeVisible({ timeout: 5000 });
+
+    // Switch to Direct tab
+    await page.getByRole("button", { name: /^Direct/ }).click();
+    await expect(page.getByRole("heading", { name: "Scenes" })).toBeVisible({ timeout: 5000 });
+
+    // Track PUT storyboard call (autoSave)
+    const saveRequest = interceptRequest(page, /\/storyboards\/\d+$/, "PUT");
+
+    // Find the scene Script textbox (visible in SceneDetailPanel)
+    const scriptInput = page.getByRole("textbox").first();
+    await expect(scriptInput).toBeVisible({ timeout: 5000 });
+    await scriptInput.fill("Hello world!");
+
+    // Wait for autoSave debounce (2s) + network
+    const req = await saveRequest;
+    expect(req).toBeTruthy();
+
+    // Verify text is retained
+    await expect(scriptInput).toHaveValue("Hello world!");
+  });
+
+  // ── 12. Direct tab: scene delete → list update + autoSave ─
+  test("Direct tab: deleting scene updates scene list", async ({ page }) => {
+    await page.goto(`/studio?id=${MOCK_STORYBOARDS[0].id}`);
+    await expect(page.getByText(MOCK_STORYBOARDS[0].title).first()).toBeVisible({ timeout: 5000 });
+
+    // Switch to Direct tab
+    await page.getByRole("button", { name: /^Direct/ }).click();
+
+    // Verify initial scene count (3 scenes) — use the SceneListPanel summary text
+    const sceneCountText = page.getByText(/3개 씬 · 총/);
+    await expect(sceneCountText).toBeVisible({ timeout: 5000 });
+
+    // Track autoSave PUT triggered by removeScene → isDirty
+    const saveRequest = interceptRequest(page, /\/storyboards\/\d+$/, "PUT");
+
+    // Click "Delete Scene" button (visible in SceneNavHeader)
+    await page.getByRole("button", { name: "Delete Scene" }).click();
+
+    // Confirm in ConfirmDialog — the confirm button text is "삭제" (exact match)
+    const confirmBtn = page.getByText("삭제", { exact: true });
+    await expect(confirmBtn).toBeVisible({ timeout: 3000 });
+    await confirmBtn.click();
+
+    // Verify scene count decreased to 2
+    await expect(page.getByText(/2개 씬 · 총/)).toBeVisible({ timeout: 5000 });
+
+    // Verify autoSave PUT was triggered (removeScene sets isDirty → 2s debounce → PUT)
+    const saved = await saveRequest;
+    expect(saved).toBeTruthy();
+  });
+
+  // ── 13. Direct tab: TTS preview → audio state ─────────────
+
+  test("Direct tab: TTS preview button triggers API and shows play button", async ({ page }) => {
+    await page.goto(`/studio?id=${MOCK_STORYBOARDS[0].id}`);
+    await expect(page.getByText(MOCK_STORYBOARDS[0].title).first()).toBeVisible({ timeout: 5000 });
+
+    // Switch to Direct tab
+    await page.getByRole("button", { name: /^Direct/ }).click();
+    await expect(page.getByRole("heading", { name: "Scenes" })).toBeVisible({ timeout: 5000 });
+
+    // Track TTS preview API call
+    const ttsRequest = interceptRequest(page, "preview/tts");
+
+    // Click 미리듣기 button
+    const previewBtn = page.getByRole("button", { name: "미리듣기" });
+    await expect(previewBtn).toBeVisible({ timeout: 5000 });
+    await previewBtn.click();
+
+    // Verify API call
+    const req = await ttsRequest;
+    expect(req).toBeTruthy();
+
+    // After TTS response, stop/play button should appear
+    await expect(page.getByRole("button", { name: /^■ 정지$/ })).toBeVisible({ timeout: 5000 });
+  });
 });
+
+// ── Helpers ──────────────────────────────────────────────────
+
+/** Intercept a request matching a URL pattern and optional method, resolving when it fires. */
+function interceptRequest(
+  page: Page,
+  urlPattern: string | RegExp,
+  method?: string
+): Promise<boolean> {
+  return page
+    .waitForRequest(
+      (req) => {
+        const matchesUrl =
+          typeof urlPattern === "string"
+            ? req.url().includes(urlPattern)
+            : urlPattern.test(req.url());
+        return matchesUrl && (!method || req.method() === method);
+      },
+      { timeout: 15000 }
+    )
+    .then(() => true)
+    .catch(() => false);
+}
