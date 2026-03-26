@@ -158,13 +158,36 @@ class VideoBuilder:
     # ------------------------------------------------------------------
 
     async def _check_audio_server(self) -> None:
-        """Verify Audio Server is reachable before starting the build."""
+        """Verify Audio Server is reachable before starting the build.
+
+        Retries up to 3 times with a 5-second delay to tolerate transient
+        connectivity failures (e.g. audio server still starting up).
+        """
+        import asyncio
+
         from services.audio_client import check_health
 
-        health = await check_health()
-        status = health.get("status", "error")
-        if status == "error":
+        _MAX_ATTEMPTS = 3
+        _RETRY_DELAY_SEC = 5
+
+        health: dict = {"status": "error", "models": []}
+        for attempt in range(1, _MAX_ATTEMPTS + 1):
+            health = await check_health()
+            if health.get("status") != "error":
+                break
+            if attempt < _MAX_ATTEMPTS:
+                logger.warning(
+                    "[Video Build] Audio Server unreachable (attempt %d/%d), retrying in %ds...",
+                    attempt,
+                    _MAX_ATTEMPTS,
+                    _RETRY_DELAY_SEC,
+                )
+                await asyncio.sleep(_RETRY_DELAY_SEC)
+
+        if health.get("status") == "error":
             raise ConnectionError("Audio Server is not reachable. Please start the audio server before rendering.")
+
+        status = health.get("status", "ok")
         tts_loaded = any(m.get("name") == "qwen3-tts" and m.get("loaded") for m in health.get("models", []))
         if not tts_loaded:
             logger.warning("[Video Build] Audio Server TTS model not loaded yet (status=%s)", status)
