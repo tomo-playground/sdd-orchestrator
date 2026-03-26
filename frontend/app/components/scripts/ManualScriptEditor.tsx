@@ -127,6 +127,7 @@ export default function ManualScriptEditor({ editor }: Props) {
           onCustomConcept={(concept) =>
             editor.resume("custom_concept", undefined, undefined, { customConcept: concept })
           }
+          disabled={editor.isGenerating}
         />
       )}
 

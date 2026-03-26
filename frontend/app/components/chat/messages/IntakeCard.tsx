@@ -29,11 +29,15 @@ export default function IntakeCard({ message, onResume, isInteractive = true }: 
   const [charB, setCharB] = useState<number | undefined>(undefined);
 
   // MULTI_CHAR_STRUCTURES 기준 동적 판단 — structure 선택 변경 시 자동 갱신
+  const [submitted, setSubmitted] = useState(false);
+
   const MULTI_CHAR_STRUCTURES = new Set(["dialogue", "narrated_dialogue"]);
   const needsTwo = MULTI_CHAR_STRUCTURES.has(structure);
   const characters = charQ?.characters ?? [];
 
   const handleSubmit = () => {
+    if (submitted) return;
+    setSubmitted(true);
     onResume("answer", undefined, undefined, {
       intakeValue: {
         structure,
@@ -164,10 +168,11 @@ export default function IntakeCard({ message, onResume, isInteractive = true }: 
         )}
 
         {/* 확인 버튼 */}
-        {isInteractive && (
+        {isInteractive && !submitted && (
           <button
             onClick={handleSubmit}
-            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700"
+            disabled={submitted}
+            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
           >
             이대로 진행
           </button>

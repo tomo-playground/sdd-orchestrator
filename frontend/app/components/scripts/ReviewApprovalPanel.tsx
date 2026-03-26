@@ -38,6 +38,7 @@ export default function ReviewApprovalPanel({
 }: Props) {
   const [feedback, setFeedback] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   // Phase 28-A: 0개 씬 → 에러 메시지 + 승인 버튼 제거
   if (scenes.length === 0) {
@@ -65,7 +66,11 @@ export default function ReviewApprovalPanel({
                 size="md"
                 variant="gradient"
                 className="mt-2"
-                onClick={() => onRevise(feedback.trim())}
+                disabled={submitted}
+                onClick={() => {
+                  setSubmitted(true);
+                  onRevise(feedback.trim());
+                }}
               >
                 전송
               </Button>
@@ -141,15 +146,25 @@ export default function ReviewApprovalPanel({
 
           {/* Action buttons */}
           <div className="flex gap-3">
-            <Button size="md" variant="gradient" onClick={onApprove}>
+            <Button
+              size="md"
+              variant="gradient"
+              disabled={submitted}
+              onClick={() => {
+                setSubmitted(true);
+                onApprove();
+              }}
+            >
               <CheckCircle className="h-4 w-4" />
               승인
             </Button>
             <Button
               size="md"
               variant="secondary"
+              disabled={submitted}
               onClick={() => {
                 if (showFeedback && feedback.trim()) {
+                  setSubmitted(true);
                   onRevise(feedback.trim());
                 } else {
                   setShowFeedback(true);

@@ -11,6 +11,7 @@ type Props = {
   onSelect: (conceptId: number) => void;
   onRegenerate?: () => void;
   onCustomConcept?: (concept: { title: string; concept: string }) => void;
+  disabled?: boolean;
 };
 
 export default function ConceptSelectionPanel({
@@ -19,12 +20,15 @@ export default function ConceptSelectionPanel({
   onSelect,
   onRegenerate,
   onCustomConcept,
+  disabled = false,
 }: Props) {
   const [selectedId, setSelectedId] = useState<number | null>(recommendedId);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showCustom, setShowCustom] = useState(false);
   const [customTitle, setCustomTitle] = useState("");
   const [customConcept, setCustomConcept] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const isDisabled = disabled || submitted;
 
   return (
     <section className="space-y-4 rounded-2xl border border-amber-200 bg-amber-50 p-5">
@@ -38,13 +42,26 @@ export default function ConceptSelectionPanel({
         </div>
         <div className="flex gap-2">
           {onRegenerate && (
-            <Button size="sm" variant="outline" onClick={onRegenerate}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isDisabled}
+              onClick={() => {
+                setSubmitted(true);
+                onRegenerate();
+              }}
+            >
               <RefreshCw className="h-3.5 w-3.5" />
               다시 생성
             </Button>
           )}
           {onCustomConcept && (
-            <Button size="sm" variant="outline" onClick={() => setShowCustom(!showCustom)}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isDisabled}
+              onClick={() => setShowCustom(!showCustom)}
+            >
               <PenLine className="h-3.5 w-3.5" />
               직접 입력
             </Button>
@@ -139,10 +156,11 @@ export default function ConceptSelectionPanel({
             <Button
               size="sm"
               variant="gradient"
-              disabled={!customTitle.trim() || !customConcept.trim()}
-              onClick={() =>
-                onCustomConcept({ title: customTitle.trim(), concept: customConcept.trim() })
-              }
+              disabled={isDisabled || !customTitle.trim() || !customConcept.trim()}
+              onClick={() => {
+                setSubmitted(true);
+                onCustomConcept({ title: customTitle.trim(), concept: customConcept.trim() });
+              }}
             >
               이 컨셉으로 진행
             </Button>
@@ -155,8 +173,13 @@ export default function ConceptSelectionPanel({
           <Button
             size="sm"
             variant="gradient"
-            disabled={selectedId === null}
-            onClick={() => selectedId !== null && onSelect(selectedId)}
+            disabled={isDisabled || selectedId === null}
+            onClick={() => {
+              if (selectedId !== null) {
+                setSubmitted(true);
+                onSelect(selectedId);
+              }
+            }}
           >
             이 컨셉으로 진행
           </Button>

@@ -100,6 +100,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
   stateRef.current = state;
   const dirtyRef = useRef(false);
   const streamAbortRef = useRef<AbortController | null>(null);
+  /** Synchronous guard against duplicate generate/resume calls. */
+  const busyRef = useRef(false);
 
   // Sync to global store on unmount
   useEffect(() => {
@@ -162,6 +164,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
     // stateRef.current를 통해 항상 최신 state를 읽어 stale closure 방지
     const currentState = stateRef.current;
     if (!currentState.topic.trim()) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     streamAbortRef.current?.abort();
     const controller = new AbortController();
     streamAbortRef.current = controller;
@@ -206,6 +210,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       showToast(err instanceof Error ? err.message : "Generation failed", "error");
       setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
     } finally {
+      busyRef.current = false;
       useStoryboardStore.getState().set({ isScriptGenerating: false });
       streamAbortRef.current = null;
     }
@@ -219,6 +224,8 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       options?: ResumeOptions
     ) => {
       if (!stateRef.current.threadId) return;
+      if (busyRef.current) return;
+      busyRef.current = true;
       streamAbortRef.current?.abort();
       const controller = new AbortController();
       streamAbortRef.current = controller;
@@ -278,6 +285,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
         showToast(err instanceof Error ? err.message : "Resume failed", "error");
         setState((prev) => ({ ...prev, isGenerating: false, progress: null }));
       } finally {
+        busyRef.current = false;
         useStoryboardStore.getState().set({ isScriptGenerating: false });
         streamAbortRef.current = null;
       }
@@ -401,6 +409,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
   }, []);
 
   const cancel = useCallback(() => {
+    busyRef.current = false;
     streamAbortRef.current?.abort();
     streamAbortRef.current = null;
     setState((prev) => ({ ...prev, isGenerating: false, progress: null }));

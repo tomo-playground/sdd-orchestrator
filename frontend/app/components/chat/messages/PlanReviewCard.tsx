@@ -17,7 +17,11 @@ type Props = {
   isInteractive?: boolean;
 };
 
-const PlanReviewCard = memo(function PlanReviewCard({ message, onResume, isInteractive = true }: Props) {
+const PlanReviewCard = memo(function PlanReviewCard({
+  message,
+  onResume,
+  isInteractive = true,
+}: Props) {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [feedback, setFeedback] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -28,6 +32,7 @@ const PlanReviewCard = memo(function PlanReviewCard({ message, onResume, isInter
   const targetEmotion = plan.target_emotion ? String(plan.target_emotion) : null;
 
   const handleProceed = () => {
+    if (submitted) return;
     setSubmitted(true);
     onResume("proceed");
   };
@@ -39,6 +44,7 @@ const PlanReviewCard = memo(function PlanReviewCard({ message, onResume, isInter
     }
     const trimmed = feedback.trim();
     if (!trimmed) return;
+    if (submitted) return;
     setSubmitted(true);
     onResume("revise_plan", trimmed);
   };
