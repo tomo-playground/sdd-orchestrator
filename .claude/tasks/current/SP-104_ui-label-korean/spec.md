@@ -1,8 +1,8 @@
 ---
-id: SP-087
+id: SP-104
 priority: P2
 scope: frontend
-branch: feat/SP-087-ui-label-korean
+branch: feat/SP-104-ui-label-korean
 created: 2026-03-26
 status: pending
 depends_on:

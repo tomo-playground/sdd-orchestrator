@@ -4,7 +4,8 @@ priority: P2
 scope: frontend
 branch: feat/SP-098-direct-3panel
 created: 2026-03-26
-status: pending
+status: approved
+approved_at: 2026-03-26
 depends_on: SP-096, SP-097
 label: feature
 ---
@@ -33,3 +34,24 @@ Direct 탭 2컬럼 → 3컬럼 레이아웃 통합 + feature flag.
 - feature flag: `use3PanelLayout`
 - AS-IS: [SceneList 280px] [SceneCard flex-1]
 - TO-BE: [SceneList 240px] [SceneCard flex-1] [PropertyPanel 300px]
+
+## 상세 설계 (How)
+
+설계 문서: `design.md` 참조.
+
+### 변경 파일 (5개)
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `variants.ts` | `STUDIO_3COL_LAYOUT`, `RIGHT_PANEL_CLASSES` 상수 추가 |
+| `useUIStore.ts` | `use3PanelLayout` feature flag + toggle 액션 |
+| `ScenesTab.tsx` | flag 기반 2/3컬럼 전환, 모바일 안내, PropertyPanel 배치 |
+| `SceneCard.tsx` | 3패널 모드 시 Tier 2~4 조건부 숨김 |
+| `AppThreeColumnLayout.tsx` | 삭제 (import 0건, 미사용) |
+
+### 핵심 결정
+
+1. **AppThreeColumnLayout 삭제**: import 0건 확인. variants.ts 상수 + ScenesTab 직접 grid로 대체.
+2. **feature flag 위치**: `useUIStore`에 `use3PanelLayout` (기본 false). localStorage 영속성 불필요.
+3. **모바일 게이트**: Tailwind `lg:` (1024px) 브레이크포인트 활용, `lg:hidden` / `hidden lg:contents` 패턴.
+4. **SceneCard 설정 숨김**: 3패널 모드에서 Tier 2~4 (Customize/Scene Tags/Advanced)를 숨기고 PropertyPanel이 대신 렌더링.

@@ -29,7 +29,7 @@
 > 명세: `docs/01_product/FEATURES/IA_REDESIGN.md`
 
 ### Phase A: Quick Wins (병렬, 1~2일)
-- [ ] SP-087 — UI 라벨 한국어화 + Dev 제거 — NavBar/Studio/Library/Settings 전체 한국어화 (13~15파일, 문자열 교체) | scope: frontend
+- [ ] SP-104 — UI 라벨 한국어화 + Dev 제거 — NavBar/Studio/Library/Settings 전체 한국어화 (13~15파일, 문자열 교체) | scope: frontend
 - [ ] SP-088 — Ghost Route/컴포넌트 삭제 — /scripts, /storyboards redirect + AppMobileTabBar 삭제 | scope: frontend
 - [ ] SP-089 — Materials 팝오버 Library 직접 링크 — Characters/Style Missing 시 Library 이동 | scope: frontend
 

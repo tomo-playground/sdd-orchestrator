@@ -4,7 +4,8 @@ priority: P2
 scope: frontend
 branch: feat/SP-092-publish-youtube-entry
 created: 2026-03-26
-status: pending
+status: approved
+approved_at: 2026-03-26
 depends_on:
 label: feature
 ---

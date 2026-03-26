@@ -4,7 +4,8 @@ priority: P2
 scope: frontend
 branch: feat/SP-093-home-dashboard
 created: 2026-03-26
-status: pending
+status: approved
+approved_at: 2026-03-26
 depends_on:
 label: feature
 ---
@@ -30,3 +31,13 @@ Home이 허브 역할을 못 함. HomeVideoFeed만 렌더링되고 있으나 Wel
 - `ContinueWorkingSection.tsx` — 진행 상태 5단계 dots
 - `QuickStatsBar.tsx` — 채널 개요 강화
 - SetupWizard 완료 후 ContextStore `setProjectId()`/`setGroupId()` 호출
+
+## 상세 설계 (How)
+
+→ `design.md` 참조.
+
+**핵심 결정:**
+1. **빠른 시작 API**: spec DoD에 "API 3개 순차 호출"이라 되어 있으나, 채널/시리즈가 이미 존재할 때만 표시되므로 `POST /storyboards/draft` 1개 호출로 충분. draft 생성 후 `/studio?id=X&topic=Y`로 이동.
+2. **5단계 진행 상태**: 기존 `kanban_status` 4단계 + `stage_status` 필드 조합으로 5단계 파생. Backend 스키마 변경 불필요 (이미 `stage_status` 포함).
+3. **QuickStatsBar**: 현재 충분히 기능하고 있어 이번 스코프에서 변경 없음. DoD에도 명시되지 않음.
+4. **변경 파일**: WelcomeBar.tsx, ContinueWorkingSection.tsx, home.spec.ts (VRT). Studio page에 topic 쿼리 파라미터 처리 추가.

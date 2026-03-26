@@ -4,7 +4,8 @@ priority: P2
 scope: frontend
 branch: feat/SP-097-property-panel
 created: 2026-03-26
-status: pending
+status: approved
+approved_at: 2026-03-26
 depends_on: SP-096
 label: feature
 ---
@@ -29,3 +30,6 @@ ScenePropertyPanel 독립 컴포넌트 — SceneCard에서 기본/고급 설정 
 - SceneCard에서 Tier 2-4 (Customize, Scene Tags, Advanced) 섹션 추출
 - 기본 탭: 프롬프트, 스피커, 태그
 - 고급 탭: ControlNet, IP-Adapter, LoRA, 검증
+
+## 상세 설계 (How)
+→ `design.md` 참조

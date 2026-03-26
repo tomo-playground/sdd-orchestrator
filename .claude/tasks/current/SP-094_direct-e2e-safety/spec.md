@@ -4,7 +4,8 @@ priority: P2
 scope: frontend
 branch: feat/SP-094-direct-e2e-safety
 created: 2026-03-26
-status: pending
+status: approved
+approved_at: 2026-03-26
 depends_on:
 label: chore
 ---
@@ -30,3 +31,24 @@ Phase C에서 SceneCard/3패널 대규모 리팩토링 예정. 사전 E2E 없으
 ## 힌트
 - 기존 `tests/vrt/studio-e2e.spec.ts` 확장
 - SD/TTS API `page.route()` 모킹 패턴
+
+## 상세 설계 (How)
+
+상세 설계: [`design.md`](./design.md) 참조
+
+### 변경 파일 요약
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `frontend/tests/helpers/fixtures/studio.ts` | 씬 fixture에 `id`, `client_id` 등 필수 필드 보강 |
+| `frontend/tests/helpers/mockApi.ts` | `mockStudioApis`에 POST/PUT 라우트 추가 (scene/generate, storyboards, preview/tts) |
+| `frontend/tests/vrt/studio-e2e.spec.ts` | Direct 탭 시나리오 4개 추가 (#10~#13) |
+
+### 테스트 시나리오
+
+| # | 시나리오 | 모킹 API |
+|---|---------|----------|
+| 10 | 씬 이미지 생성 트리거 | `POST /scene/generate`, `POST\|PUT /storyboards` |
+| 11 | 씬 프롬프트 편집+저장 | `PUT /storyboards/{id}` |
+| 12 | 씬 삭제 → 목록 갱신 | (스토어 내부, API 불필요) |
+| 13 | TTS 미리보기 → 오디오 표시 | `POST /preview/tts` |
