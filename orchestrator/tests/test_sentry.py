@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -15,6 +16,9 @@ from orchestrator.tools.sentry import (
     do_sentry_scan,
 )
 
+# Recent timestamp for firstSeen — always within lookback window
+_RECENT_TS = (datetime.now(UTC) - timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
 
 class TestFetchSentryIssues:
     @pytest.mark.asyncio
@@ -24,7 +28,7 @@ class TestFetchSentryIssues:
             "title": "ZeroDivisionError",
             "culprit": "api.views.render",
             "level": "error",
-            "firstSeen": "2026-03-24T00:00:00Z",
+            "firstSeen": _RECENT_TS,
             "lastSeen": "2026-03-24T01:00:00Z",
             "count": "5",
             "permalink": "https://sentry.io/issues/12345/",
@@ -64,7 +68,7 @@ class TestFetchSentryIssues:
             "title": "Err",
             "culprit": "x",
             "level": "error",
-            "firstSeen": "2026-03-24T00:00:00Z",
+            "firstSeen": _RECENT_TS,
             "lastSeen": "2026-03-24T01:00:00Z",
             "count": "1",
             "permalink": "https://sentry.io/issues/99/",
@@ -179,7 +183,7 @@ class TestSentryScan:
             "title": "Bug",
             "culprit": "x",
             "level": "error",
-            "firstSeen": "2026-03-24T00:00:00Z",
+            "firstSeen": _RECENT_TS,
             "lastSeen": "2026-03-24T01:00:00Z",
             "count": "1",
             "permalink": "https://sentry.io/issues/111/",
@@ -216,7 +220,7 @@ class TestSentryScan:
             "title": "NewBug",
             "culprit": "x",
             "level": "error",
-            "firstSeen": "2026-03-24T00:00:00Z",
+            "firstSeen": _RECENT_TS,
             "lastSeen": "2026-03-24T01:00:00Z",
             "count": "1",
             "permalink": "https://sentry.io/issues/999/",
@@ -257,3 +261,53 @@ class TestSentryScan:
         assert data["triggered"] >= 1
         assert mock_create.call_count >= 1
         assert mock_trigger.call_count >= 1
+
+
+class TestFetchErrorCounts:
+    """Tests for fetch_error_counts — lastSeen-based filtering for rollback."""
+
+    @pytest.mark.asyncio
+    async def test_includes_recent_lastseen(self):
+        """Issues with recent lastSeen are included regardless of firstSeen."""
+        from orchestrator.tools.sentry import fetch_error_counts
+
+        recent_last_seen = (datetime.now(UTC) - timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        old_first_seen = (datetime.now(UTC) - timedelta(days=20)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        issue = {
+            "id": "1",
+            "title": "OldBug",
+            "firstSeen": old_first_seen,  # 20 days ago — within 30-day SENTRY_LOOKBACK_ALL_HOURS window
+            "lastSeen": recent_last_seen,  # recent activity
+            "count": "10",
+        }
+        response = httpx.Response(200, json=[issue])
+        client = AsyncMock(spec=httpx.AsyncClient)
+        client.get.return_value = response
+
+        with patch("orchestrator.tools.sentry.SENTRY_PROJECTS", ["test-project"]):
+            counts = await fetch_error_counts(client, since_hours=0.1)
+        total = sum(counts.values())
+        assert total == 1  # 1 active issue (count by issues, not cumulative events)
+
+    @pytest.mark.asyncio
+    async def test_excludes_stale_lastseen(self):
+        """Issues with stale lastSeen are excluded even if firstSeen is within window."""
+        from orchestrator.tools.sentry import fetch_error_counts
+
+        recent_first_seen = (datetime.now(UTC) - timedelta(days=20)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        stale_last_seen = (datetime.now(UTC) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        issue = {
+            "id": "2",
+            "title": "StaleBug",
+            "firstSeen": recent_first_seen,  # within 30-day window — passes firstSeen filter
+            "lastSeen": stale_last_seen,  # 1h ago — outside 0.1h lookback cutoff
+            "count": "100",
+        }
+        response = httpx.Response(200, json=[issue])
+        client = AsyncMock(spec=httpx.AsyncClient)
+        client.get.return_value = response
+
+        with patch("orchestrator.tools.sentry.SENTRY_PROJECTS", ["test-project"]):
+            counts = await fetch_error_counts(client, since_hours=0.1)
+        total = sum(counts.values())
+        assert total == 0  # excluded because lastSeen is stale

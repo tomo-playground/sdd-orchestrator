@@ -242,6 +242,9 @@ ROLLBACK_MONITOR_DURATION = 300  # 5 minutes
 ROLLBACK_CHECK_INTERVAL = 30  # 30 seconds
 ROLLBACK_LOOKBACK_HOURS = 0.1  # 6 minutes lookback window
 ROLLBACK_MAX_FETCH_FAILURES = 3
+SENTRY_LOOKBACK_ALL_HOURS = (
+    720  # 30 days — broad window so lastSeen filter (not firstSeen) drives inclusion
+)
 GIT_CLONE_TIMEOUT = 60
 GH_PR_CREATE_TIMEOUT = 30
 GIT_BOT_NAME = "orchestrator[bot]"

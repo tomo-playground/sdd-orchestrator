@@ -16,6 +16,7 @@ from orchestrator.config import (
     ROLLBACK_LOOKBACK_HOURS,
     SENTRY_API_BASE,
     SENTRY_AUTH_TOKEN,
+    SENTRY_LOOKBACK_ALL_HOURS,
     SENTRY_ORG,
     SENTRY_PROJECTS,
     SENTRY_SCAN_LOOKBACK_HOURS,
@@ -90,20 +91,32 @@ async def fetch_error_counts(
     *,
     since_hours: float = ROLLBACK_LOOKBACK_HOURS,
 ) -> dict[str, int]:
-    """Public helper: fetch unresolved issue counts per Sentry project.
+    """Count active issues per Sentry project (for rollback delta comparison).
 
-    Used by rollback monitoring to compare error counts over time.
+    Returns the **number of distinct issues** with ``lastSeen >= cutoff``,
+    not cumulative event counts.  Using issue count avoids false-positive
+    rollback triggers when a high-count existing issue enters the window.
     """
+    from datetime import UTC, datetime, timedelta
+
+    cutoff = datetime.now(UTC) - timedelta(hours=since_hours)
+
     counts: dict[str, int] = {}
     for project in SENTRY_PROJECTS:
-        issues = await _fetch_sentry_issues(client, project, since_hours=since_hours)
-        total = 0
+        # Widen firstSeen window to 30 days so older-but-still-active issues pass through;
+        # lastSeen >= cutoff is the actual inclusion gate applied below.
+        issues = await _fetch_sentry_issues(client, project, since_hours=SENTRY_LOOKBACK_ALL_HOURS)
+        active = 0
         for issue in issues:
+            # Include if lastSeen is within the lookback window
             try:
-                total += int(issue.get("count", 0))
-            except (TypeError, ValueError):
-                total += 1
-        counts[project] = total
+                last_seen = datetime.fromisoformat(issue.get("lastSeen", "").replace("Z", "+00:00"))
+                if last_seen < cutoff:
+                    continue
+            except (ValueError, TypeError):
+                continue  # exclude on parse failure — avoid false positive rollback
+            active += 1
+        counts[project] = active
     return counts
 
 

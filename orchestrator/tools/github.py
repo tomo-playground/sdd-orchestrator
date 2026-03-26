@@ -182,20 +182,28 @@ async def do_merge_pr(pr_number: int) -> dict:
     logger.info("Merged PR #%d", pr_number)
 
     # Post-merge monitoring: start Sentry error surge detection
-    # Skip monitoring for auto-rollback PRs to prevent infinite rollback loops
-    from orchestrator.config import SENTRY_AUTH_TOKEN
+    # Wrapped in try/except so monitoring failures never shadow a successful merge
+    try:
+        from orchestrator.config import SENTRY_AUTH_TOKEN
 
-    if "auto-rollback" not in pr_summary.get("labels", []) and SENTRY_AUTH_TOKEN:
-        merge_sha = await _get_merge_sha(pr_number)
-        if merge_sha:
-            from orchestrator.tools.rollback import start_post_merge_monitor
+        if SENTRY_AUTH_TOKEN:
+            merge_sha = await _get_merge_sha(pr_number)
+            if merge_sha:
+                from orchestrator.tools.rollback import start_post_merge_monitor
 
-            start_post_merge_monitor(pr_number, merge_sha)
-    elif not SENTRY_AUTH_TOKEN:
-        logger.warning(
-            "Skipping post-merge monitor for PR #%d: SENTRY_AUTH_TOKEN not configured",
-            pr_number,
-        )
+                start_post_merge_monitor(pr_number, merge_sha)
+            else:
+                logger.warning(
+                    "Skipping post-merge monitor for PR #%d: merge SHA not found",
+                    pr_number,
+                )
+        else:
+            logger.warning(
+                "Skipping post-merge monitor for PR #%d: SENTRY_AUTH_TOKEN not configured",
+                pr_number,
+            )
+    except Exception:
+        logger.exception("Post-merge monitor setup failed for PR #%d", pr_number)
 
     return {"content": [{"type": "text", "text": f"Successfully merged PR #{pr_number}"}]}
 
