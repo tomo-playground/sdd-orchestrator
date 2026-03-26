@@ -1,0 +1,163 @@
+{
+  "10": {
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {"title": "Stage 1: Animagine XL (EPS)"},
+    "inputs": {
+      "ckpt_name": "animagine-xl-3.1.safetensors"
+    }
+  },
+  "11": {
+    "class_type": "StoryDiffusion_Apply",
+    "inputs": {
+      "model": ["10", 0],
+      "vae": ["10", 2],
+      "infer_mode": "story",
+      "photomake_ckpt": "none",
+      "ipadapter_ckpt": "none",
+      "quantize_mode": "fp16",
+      "lora_scale": 0.8,
+      "extra_function": ""
+    }
+  },
+  "12": {
+    "class_type": "StoryDiffusion_CLIPTextEncode",
+    "inputs": {
+      "clip": ["10", 1],
+      "switch": ["11", 1],
+      "width": 832,
+      "height": 1216,
+      "role_text": "[Siyu] 1girl, solo, long_hair, blue_hair, blue_eyes, hair_ornament, white_shirt, blue_pleated_skirt, slim",
+      "scene_text": "[Siyu] standing in a park, looking_at_viewer, sunny day;\n[Siyu] sitting on a bench, reading a book;\n[Siyu] walking on a street, wind blowing hair;\n[Siyu] waving hand, smiling, school background",
+      "pos_text": ", masterpiece, best_quality, absurdres",
+      "neg_text": "lowres, bad_anatomy, bad_hands, text, error, worst_quality, low_quality, missing_fingers, extra_digit, extra_fingers, mutated_hands, poorly_drawn_face, deformed, blurry, watermark, 3d, realistic",
+      "lora_trigger_words": "masterpiece",
+      "add_style": "Japanese_Anime",
+      "mask_threshold": 0.5,
+      "extra_param": "",
+      "guidance_list": ""
+    }
+  },
+  "13": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 832,
+      "height": 1216,
+      "batch_size": 4
+    }
+  },
+  "14": {
+    "class_type": "StoryDiffusion_KSampler",
+    "_meta": {"title": "Stage 1 KSampler (Animagine EPS)"},
+    "inputs": {
+      "model": ["11", 0],
+      "positive": ["12", 0],
+      "negative": ["12", 1],
+      "condition": ["12", 2],
+      "latent_image": ["13", 0],
+      "seed": 42,
+      "steps": 28,
+      "cfg": 7.0,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "sa32_degree": 0.5,
+      "sa64_degree": 0.5,
+      "denoise": 1.0
+    }
+  },
+  "15": {
+    "class_type": "SaveImage",
+    "_meta": {"title": "Stage 1 결과 저장 (비교용)"},
+    "inputs": {
+      "images": ["19", 0],
+      "filename_prefix": "bridge_stage1"
+    }
+  },
+  "19": {
+    "class_type": "VAEDecode",
+    "_meta": {"title": "Stage 1 VAE Decode"},
+    "inputs": {
+      "samples": ["14", 0],
+      "vae": ["10", 2]
+    }
+  },
+  "20": {
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {"title": "Stage 2: NoobAI V-Pred (Refiner)"},
+    "inputs": {
+      "ckpt_name": "noobaiXLNAIXL_vPred10Version.safetensors"
+    }
+  },
+  "21": {
+    "class_type": "DynamicThresholdingFull",
+    "inputs": {
+      "model": ["20", 0],
+      "mimic_scale": 5.0,
+      "threshold_percentile": 1.0,
+      "mimic_mode": "Half Cosine Down",
+      "mimic_scale_min": 3.0,
+      "cfg_mode": "Half Cosine Down",
+      "cfg_scale_min": 3.0,
+      "sched_val": 1.0,
+      "separate_feature_channels": "enable",
+      "scaling_startpoint": "MEAN",
+      "variability_measure": "AD",
+      "interpolate_phi": 1.0
+    }
+  },
+  "22": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {"title": "Stage 2 Positive"},
+    "inputs": {
+      "clip": ["20", 1],
+      "text": "1girl, solo, long_hair, blue_hair, blue_eyes, hair_ornament, white_shirt, blue_pleated_skirt, slim, masterpiece, best_quality"
+    }
+  },
+  "23": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {"title": "Stage 2 Negative"},
+    "inputs": {
+      "clip": ["20", 1],
+      "text": "lowres, bad_anatomy, bad_hands, worst_quality, low_quality, blurry, watermark, 3d, realistic"
+    }
+  },
+  "24": {
+    "class_type": "VAEEncode",
+    "_meta": {"title": "Stage 1 이미지 → Stage 2 Latent"},
+    "inputs": {
+      "pixels": ["19", 0],
+      "vae": ["20", 2]
+    }
+  },
+  "25": {
+    "class_type": "KSampler",
+    "_meta": {"title": "Stage 2 KSampler (NoobAI V-Pred img2img)"},
+    "inputs": {
+      "model": ["21", 0],
+      "positive": ["22", 0],
+      "negative": ["23", 0],
+      "latent_image": ["24", 0],
+      "seed": 42,
+      "steps": 20,
+      "cfg": 7.0,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 0.4
+    }
+  },
+  "26": {
+    "class_type": "VAEDecode",
+    "_meta": {"title": "Stage 2 VAE Decode"},
+    "inputs": {
+      "samples": ["25", 0],
+      "vae": ["20", 2]
+    }
+  },
+  "27": {
+    "class_type": "SaveImage",
+    "_meta": {"title": "최종 결과 (V-Pred Bridge)"},
+    "inputs": {
+      "images": ["26", 0],
+      "filename_prefix": "bridge_final"
+    }
+  }
+}

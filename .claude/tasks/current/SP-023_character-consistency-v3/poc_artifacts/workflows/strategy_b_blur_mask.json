@@ -1,0 +1,137 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {"ckpt_name": "noobaiXLNAIXL_vPred10Version.safetensors"}
+  },
+  "2": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "model": ["1", 0], "clip": ["1", 1],
+      "lora_name": "noobai_vpred_1_flat_color_v2.safetensors",
+      "strength_model": 0.7, "strength_clip": 0.7
+    }
+  },
+  "3": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "model": ["2", 0], "clip": ["2", 1],
+      "lora_name": "NOOB_vp1_detailer_by_volnovik_v1.safetensors",
+      "strength_model": 0.2, "strength_clip": 0.2
+    }
+  },
+  "4": {
+    "class_type": "DynamicThresholdingFull",
+    "inputs": {
+      "model": ["3", 0],
+      "mimic_scale": 5.0, "threshold_percentile": 1.0,
+      "mimic_mode": "Half Cosine Down", "mimic_scale_min": 3.0,
+      "cfg_mode": "Half Cosine Down", "cfg_scale_min": 3.0,
+      "sched_val": 1.0, "separate_feature_channels": "enable",
+      "scaling_startpoint": "MEAN", "variability_measure": "AD", "interpolate_phi": 1.0
+    }
+  },
+
+  "10": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {"title": "Base (배경+구도)"},
+    "inputs": {
+      "clip": ["3", 1],
+      "text": "masterpiece, best_quality, high_quality, 1boy, 1girl, walking together on a tree-lined street, side by side, warm afternoon lighting, detailed urban background, autumn"
+    }
+  },
+  "11": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {"title": "하린"},
+    "inputs": {
+      "clip": ["3", 1],
+      "text": "1girl, light_brown_hair, long_hair, side_swept_bangs, brown_eyes, white_cardigan, light_blue_blouse, hair_ribbon, slight_smile, young_woman"
+    }
+  },
+  "12": {
+    "class_type": "LoadImage",
+    "_meta": {"title": "왼쪽 블러 마스크"},
+    "inputs": {"image": "mask_left_blur.png"}
+  },
+  "13": {
+    "class_type": "ConditioningSetMask",
+    "_meta": {"title": "하린 마스크 적용"},
+    "inputs": {
+      "conditioning": ["11", 0],
+      "mask": ["12", 1],
+      "strength": 0.8,
+      "set_cond_area": "default"
+    }
+  },
+
+  "14": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {"title": "준서"},
+    "inputs": {
+      "clip": ["3", 1],
+      "text": "1boy, dark_brown_hair, short_hair, curtained_hair, brown_eyes, white_shirt, navy_cardigan, rolled_up_sleeves, gentle_smile, young_man, tall"
+    }
+  },
+  "15": {
+    "class_type": "LoadImage",
+    "_meta": {"title": "오른쪽 블러 마스크"},
+    "inputs": {"image": "mask_right_blur.png"}
+  },
+  "16": {
+    "class_type": "ConditioningSetMask",
+    "_meta": {"title": "준서 마스크 적용"},
+    "inputs": {
+      "conditioning": ["14", 0],
+      "mask": ["15", 1],
+      "strength": 0.8,
+      "set_cond_area": "default"
+    }
+  },
+
+  "17": {
+    "class_type": "ConditioningCombine",
+    "inputs": {
+      "conditioning_1": ["10", 0],
+      "conditioning_2": ["13", 0]
+    }
+  },
+  "18": {
+    "class_type": "ConditioningCombine",
+    "inputs": {
+      "conditioning_1": ["17", 0],
+      "conditioning_2": ["16", 0]
+    }
+  },
+
+  "20": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": ["3", 1],
+      "text": "worst_quality, low_quality, bad_anatomy, bad_hands, blurry, watermark, text, speech_bubble, comic, manga, 3d, realistic, child, loli, chibi, extra_people, 3people, monochrome"
+    }
+  },
+  "30": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {"width": 832, "height": 1216, "batch_size": 1}
+  },
+  "40": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["4", 0],
+      "positive": ["18", 0],
+      "negative": ["20", 0],
+      "latent_image": ["30", 0],
+      "seed": 100,
+      "steps": 28, "cfg": 7.0,
+      "sampler_name": "dpmpp_2m", "scheduler": "karras",
+      "denoise": 1.0
+    }
+  },
+  "50": {
+    "class_type": "VAEDecode",
+    "inputs": {"samples": ["40", 0], "vae": ["1", 2]}
+  },
+  "60": {
+    "class_type": "SaveImage",
+    "inputs": {"images": ["50", 0], "filename_prefix": "2p_mask"}
+  }
+}
