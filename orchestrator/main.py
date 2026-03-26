@@ -75,7 +75,7 @@ class OrchestratorDaemon:
 
     def _preflight_check(self) -> None:
         """Verify prerequisites before starting (fail-fast)."""
-        from orchestrator.config import SENTRY_AUTH_TOKEN, SLACK_WEBHOOK_URL
+        from orchestrator.config import SENTRY_AUTH_TOKEN, SLACK_BOT_TOKEN
 
         # 1. gh CLI installed and authenticated
         if not shutil.which("gh"):
@@ -91,9 +91,9 @@ class OrchestratorDaemon:
         if not SENTRY_AUTH_TOKEN:
             logger.warning("SENTRY_AUTH_TOKEN not set — sentry_scan will be disabled")
 
-        # 4. Optional: Slack webhook
-        if not SLACK_WEBHOOK_URL:
-            logger.warning("SLACK_WEBHOOK_URL not set — notifications will be log-only")
+        # 4. Optional: Slack Bot token
+        if not SLACK_BOT_TOKEN:
+            logger.warning("SLACK_BOT_TOKEN not set — notifications will be log-only")
 
         logger.info("Preflight check passed")
 
@@ -105,9 +105,10 @@ class OrchestratorDaemon:
             logger.info("Slack Bot tokens not set — bot listener disabled")
             return
 
-        from orchestrator.tools.slack_bot import SlackBotListener
+        from orchestrator.tools.slack_bot import SlackBotListener, set_daemon
 
-        self.slack_bot = SlackBotListener(daemon=self)
+        set_daemon(self)
+        self.slack_bot = SlackBotListener(mcp_server=self.mcp_server)
         self._slack_bot_task = asyncio.create_task(self._run_slack_bot_with_restart())
 
     async def _run_slack_bot_with_restart(self) -> None:
@@ -130,7 +131,7 @@ class OrchestratorDaemon:
                 await asyncio.sleep(30)
         if restart_count >= max_restarts:
             logger.error("SlackBot failed %d times, giving up", max_restarts)
-            # Notify via webhook (Bot is dead, can't use Bot itself)
+            # Notify via log (Bot is dead, can't use Bot itself)
             from orchestrator.tools.notify import do_notify_human
 
             self._notify_task = asyncio.create_task(

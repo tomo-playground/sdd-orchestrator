@@ -15,18 +15,22 @@ from orchestrator.tools.notify import (
     send_daily_report,
 )
 
+_PATCH_BOT_TOKEN = "orchestrator.config.SLACK_BOT_TOKEN"
+_PATCH_BOT_CHANNEL = "orchestrator.config.SLACK_BOT_ALLOWED_CHANNEL"
+
 
 class TestSendSlackMessage:
     @pytest.mark.asyncio
-    async def test_success(self):
-        response = httpx.Response(200, text="ok")
+    async def test_bot_api_success(self):
+        response = httpx.Response(200, json={"ok": True})
         mock_client_instance = AsyncMock(spec=httpx.AsyncClient)
         mock_client_instance.post.return_value = response
         mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_client_instance.__aexit__ = AsyncMock(return_value=None)
 
         with (
-            patch("orchestrator.tools.notify.SLACK_WEBHOOK_URL", "https://hooks.slack.com/test"),
+            patch(_PATCH_BOT_TOKEN, "xoxb-test-token"),
+            patch(_PATCH_BOT_CHANNEL, "C001"),
             patch("orchestrator.tools.notify.httpx.AsyncClient", return_value=mock_client_instance),
             patch("orchestrator.tools.notify._last_slack_sent", 0),
         ):
@@ -35,14 +39,15 @@ class TestSendSlackMessage:
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_timeout(self):
+    async def test_bot_api_timeout(self):
         mock_client_instance = AsyncMock(spec=httpx.AsyncClient)
         mock_client_instance.post.side_effect = httpx.TimeoutException("timeout")
         mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_client_instance.__aexit__ = AsyncMock(return_value=None)
 
         with (
-            patch("orchestrator.tools.notify.SLACK_WEBHOOK_URL", "https://hooks.slack.com/test"),
+            patch(_PATCH_BOT_TOKEN, "xoxb-test-token"),
+            patch(_PATCH_BOT_CHANNEL, "C001"),
             patch("orchestrator.tools.notify.httpx.AsyncClient", return_value=mock_client_instance),
         ):
             result = await _send_slack_message("Hello")
@@ -50,8 +55,11 @@ class TestSendSlackMessage:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_no_webhook_url(self):
-        with patch("orchestrator.tools.notify.SLACK_WEBHOOK_URL", ""):
+    async def test_no_bot_token_returns_false(self):
+        with (
+            patch(_PATCH_BOT_TOKEN, ""),
+            patch(_PATCH_BOT_CHANNEL, ""),
+        ):
             result = await _send_slack_message("Hello")
 
         assert result is False
@@ -209,6 +217,9 @@ class TestBuildLinkButtons:
         assert len(result["elements"]) == 5
 
 
+_CLI_RETURN = {"content": [{"type": "text", "text": '{"sent": true, "channel": "slack"}'}]}
+
+
 class TestCliEntrypoint:
     @pytest.mark.asyncio
     async def test_cli_parses_args(self):
@@ -218,6 +229,7 @@ class TestCliEntrypoint:
             patch(
                 "orchestrator.tools.notify.do_notify_human",
                 new_callable=AsyncMock,
+                return_value=_CLI_RETURN,
             ) as mock_notify,
         ):
             from orchestrator.tools.notify import _cli_main
@@ -240,6 +252,7 @@ class TestCliEntrypoint:
             patch(
                 "orchestrator.tools.notify.do_notify_human",
                 new_callable=AsyncMock,
+                return_value=_CLI_RETURN,
             ) as mock_notify,
         ):
             from orchestrator.tools.notify import _cli_main

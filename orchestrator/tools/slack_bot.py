@@ -1,4 +1,4 @@
-"""Slack Bot listener — Socket Mode event handling + command dispatch."""
+"""Slack Bot listener — Socket Mode event handling + Claude Agent dispatch."""
 
 from __future__ import annotations
 
@@ -8,7 +8,10 @@ import re
 import time
 from typing import TYPE_CHECKING
 
+from claude_agent_sdk import tool
+
 from orchestrator.config import (
+    SLACK_BOT_AGENT_TIMEOUT,
     SLACK_BOT_ALLOWED_CHANNEL,
     SLACK_BOT_ALLOWED_USERS,
     SLACK_BOT_CHAT_INTERVAL,
@@ -21,18 +24,54 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_READ_COMMANDS = {"상태", "백로그"}
+# ── Module-level daemon reference for MCP tools ───────────
 
-SP_RE = re.compile(r"SP-(\d+)")
-PR_RE = re.compile(r"#(\d+)")
+_daemon = None
+
+
+def set_daemon(daemon: object) -> None:
+    """Store daemon reference for pause/resume MCP tools."""
+    global _daemon  # noqa: PLW0603
+    _daemon = daemon
+
+
+def _ok(message: str) -> dict:
+    return {"content": [{"type": "text", "text": message}]}
+
+
+def _tool_error(message: str) -> dict:
+    return {"content": [{"type": "text", "text": message}], "isError": True}
+
+
+# ── MCP Tools: pause/resume ──────────────────────────────
+
+
+@tool("pause_orchestrator", "Pause the orchestrator cycle loop", {})
+async def pause_orchestrator(args: dict) -> dict:
+    """Pause the orchestrator daemon cycle."""
+    if _daemon and hasattr(_daemon, "pause_event"):
+        _daemon.pause_event.set()
+        return _ok("오케스트레이터를 일시정지했습니다.")
+    return _tool_error("Daemon not available")
+
+
+@tool("resume_orchestrator", "Resume the orchestrator cycle loop", {})
+async def resume_orchestrator(args: dict) -> dict:
+    """Resume the orchestrator daemon cycle."""
+    if _daemon and hasattr(_daemon, "pause_event"):
+        _daemon.pause_event.clear()
+        return _ok("오케스트레이터를 재개했습니다.")
+    return _tool_error("Daemon not available")
+
+
+# ── Slack Bot Listener ────────────────────────────────────
 
 
 class SlackBotListener:
-    """Socket Mode listener that receives Slack mentions and dispatches commands."""
+    """Socket Mode listener that receives Slack mentions and delegates to Claude Agent."""
 
-    def __init__(self, daemon: object) -> None:
-        self.daemon = daemon
-        self._cmd_lock = asyncio.Lock()
+    def __init__(self, mcp_server: object) -> None:
+        self._mcp_server = mcp_server
         self._post_lock = asyncio.Lock()
         self._last_post: float = 0
         self.handler: object | None = None
@@ -64,7 +103,7 @@ class SlackBotListener:
     # ── Event handler ────────────────────────────────────────
 
     async def _handle_mention(self, event: dict, say) -> None:
-        """Handle app_mention events."""
+        """Handle app_mention events by delegating to Claude Agent."""
         if event.get("bot_id"):
             return
 
@@ -92,14 +131,28 @@ class SlackBotListener:
             )
             return
 
-        cmd_key = self._parse_cmd_key(text)
-        if cmd_key in _READ_COMMANDS:
-            blocks = await self._dispatch_command(text, cmd_key)
-        else:
-            async with self._cmd_lock:
-                blocks = await self._dispatch_command(text, cmd_key)
+        # Delegate to Claude Agent
+        try:
+            response = await asyncio.wait_for(
+                self._ask_agent(text), timeout=SLACK_BOT_AGENT_TIMEOUT
+            )
+            blocks = _text_to_blocks(response)
+        except TimeoutError:
+            logger.warning("Agent timeout for message: %s", text[:50])
+            blocks = _error_blocks("응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.")
+        except Exception:
+            logger.exception("Agent call failed for message: %s", text[:50])
+            blocks = _error_blocks("명령 처리 중 오류가 발생했습니다.")
 
         await self._post_message(channel, blocks, thread_ts)
+
+    async def _ask_agent(self, text: str) -> str:
+        """Query Claude Agent with the user's message."""
+        from orchestrator.agents import create_slack_bot_options
+        from orchestrator.utils import query_agent
+
+        options = create_slack_bot_options(self._mcp_server)
+        return await query_agent(options, text)
 
     @staticmethod
     def _is_allowed_channel(channel: str) -> bool:
@@ -115,239 +168,6 @@ class SlackBotListener:
             return True
         allowed = {u.strip() for u in SLACK_BOT_ALLOWED_USERS.split(",") if u.strip()}
         return not allowed or user_id in allowed
-
-    # ── Command parsing ──────────────────────────────────────
-
-    @staticmethod
-    def _parse_cmd_key(text: str) -> str:
-        """Extract the command keyword from user text."""
-        text_lower = text.strip().lower()
-        if text_lower.startswith("상태"):
-            return "상태"
-        if text_lower.startswith("실행"):
-            return "실행"
-        if text_lower.startswith("머지"):
-            return "머지"
-        if text_lower.startswith("중지"):
-            return "중지"
-        if text_lower.startswith("시작"):
-            return "시작"
-        if text_lower.startswith("백로그"):
-            return "백로그"
-        return "help"
-
-    async def _dispatch_command(self, text: str, cmd_key: str) -> list[dict]:
-        """Route to the correct handler and return Block Kit blocks."""
-        try:
-            if cmd_key == "상태":
-                return await self._cmd_status()
-            if cmd_key == "실행":
-                return await self._cmd_launch(text)
-            if cmd_key == "머지":
-                return await self._cmd_merge(text)
-            if cmd_key == "중지":
-                return self._cmd_pause()
-            if cmd_key == "시작":
-                return self._cmd_resume()
-            if cmd_key == "백로그":
-                return await self._cmd_backlog()
-            return self._cmd_help()
-        except Exception:
-            logger.exception("Command execution failed: %s", text)
-            return _error_blocks("명령 실행 중 오류가 발생했습니다.")
-
-    # ── Command implementations ──────────────────────────────
-
-    async def _cmd_status(self) -> list[dict]:
-        """Show current tasks, PRs, and worktrees."""
-        # current/ 디렉토리에서 직접 태스크 수집
-        from orchestrator.config import TASKS_CURRENT_DIR
-        from orchestrator.tools.backlog import BacklogTask
-        from orchestrator.tools.github import _run_gh_command, summarize_prs
-        from orchestrator.tools.worktree import do_check_running_worktrees
-
-        current: list[BacklogTask] = []
-        if TASKS_CURRENT_DIR.exists():
-            for spec in sorted(TASKS_CURRENT_DIR.glob("SP-*/spec.md")):
-                import re as _re
-
-                content = spec.read_text(encoding="utf-8")
-                id_m = _re.search(r"^id:\s*(SP-\d+)", content, _re.MULTILINE)
-                status_m = _re.search(r"^status:\s*(\w+)", content, _re.MULTILINE)
-                if not id_m:
-                    continue
-                desc = (
-                    spec.parent.name.split("_", 1)[1].replace("-", " ")
-                    if "_" in spec.parent.name
-                    else ""
-                )
-                current.append(
-                    BacklogTask(
-                        id=id_m.group(1),
-                        priority="",
-                        description=desc[:40],
-                        spec_status=status_m.group(1) if status_m else "unknown",
-                    )
-                )
-
-        pr_result = await _run_gh_command(
-            "pr",
-            "list",
-            "--state",
-            "open",
-            "--json",
-            "number,title,headRefName,state,reviewDecision,statusCheckRollup,labels",
-        )
-        prs: list | None = None  # None signals fetch error
-        if not pr_result.get("isError") and "data" in pr_result:
-            prs = summarize_prs(pr_result.get("data", []))
-
-        wt_result = await do_check_running_worktrees()
-        running: list | None = None  # None signals fetch error
-        if not wt_result.get("isError"):
-            wt_text = wt_result.get("content", [{}])[0].get("text", "[]")
-            running = _safe_json_loads(wt_text, [])
-
-        # Build blocks — 진행 중 / 대기 중 구분
-        _ACTIVE = {"approved", "running", "design"}
-        active = [t for t in current if t.spec_status in _ACTIVE]
-        waiting = [t for t in current if t.spec_status not in _ACTIVE]
-
-        active_lines = []
-        for t in active:
-            emoji = ":large_green_circle:" if t.spec_status == "running" else ":large_blue_circle:"
-            active_lines.append(f"{emoji} `{t.id}` ({t.spec_status}) — {t.description[:40]}")
-        active_text = "\n".join(active_lines) if active_lines else "— 없음"
-
-        waiting_lines = []
-        for t in waiting[:5]:
-            waiting_lines.append(
-                f":white_circle: `{t.id}` ({t.spec_status}) — {t.description[:40]}"
-            )
-        waiting_text = "\n".join(waiting_lines) if waiting_lines else "— 없음"
-
-        task_text = f"*진행 중*\n{active_text}\n\n*대기 중*\n{waiting_text}"
-
-        if prs is None:
-            pr_text = ":warning: PR 조회 실패 (gh API 오류)"
-        else:
-            pr_lines = []
-            for p in prs[:5]:
-                pr_lines.append(
-                    f"• `#{p['number']}` {p['title'][:30]} "
-                    f"[CI: {p['ci_status']}] [Review: {p['review'] or 'none'}]"
-                )
-            pr_text = "\n".join(pr_lines) if pr_lines else "— 없음"
-
-        if running is None:
-            run_text = ":warning: 워크트리 조회 실패"
-        else:
-            run_lines = []
-            for r in running[:3]:
-                run_lines.append(f"• `{r.get('task_id', '?')}` (pid={r.get('pid', '?')})")
-            run_text = "\n".join(run_lines) if run_lines else "— 없음"
-
-        return [
-            _header_block("현재 상태"),
-            _section_block(f"*태스크*\n{task_text}"),
-            _section_block(f"*Pull Requests*\n{pr_text}"),
-            _section_block(f"*실행 중 워크트리*\n{run_text}"),
-        ]
-
-    async def _cmd_launch(self, text: str) -> list[dict]:
-        """Launch /sdd-run for a task."""
-        from orchestrator.tools.worktree import do_launch_sdd_run
-
-        sp_match = SP_RE.search(text)
-        if not sp_match:
-            return _error_blocks("태스크 ID가 필요합니다. 예: `실행 SP-077`")
-
-        sp_id = f"SP-{sp_match.group(1)}"
-        result = await do_launch_sdd_run(sp_id)
-        result_text = result.get("content", [{}])[0].get("text", "")
-
-        if result.get("isError"):
-            return _error_blocks(result_text)
-
-        return [
-            _header_block("실행 시작"),
-            _section_block(f"`{sp_id}` 워크트리를 기동했습니다.\n{result_text}"),
-        ]
-
-    async def _cmd_merge(self, text: str) -> list[dict]:
-        """Merge a PR."""
-        from orchestrator.tools.github import do_merge_pr
-
-        pr_match = PR_RE.search(text)
-        if not pr_match:
-            return _error_blocks("PR 번호가 필요합니다. 예: `머지 #177`")
-
-        pr_number = int(pr_match.group(1))
-        result = await do_merge_pr(pr_number)
-        result_text = result.get("content", [{}])[0].get("text", "")
-
-        if result.get("isError"):
-            return _error_blocks(result_text)
-
-        return [
-            _header_block("머지 완료"),
-            _section_block(f"PR `#{pr_number}` — {result_text}"),
-        ]
-
-    def _cmd_pause(self) -> list[dict]:
-        """Pause the orchestrator cycle."""
-        if hasattr(self.daemon, "pause_event"):
-            self.daemon.pause_event.set()
-        return [
-            _header_block("일시정지"),
-            _section_block(
-                "오케스트레이터 사이클을 일시정지했습니다.\n`시작` 명령으로 재개할 수 있습니다."
-            ),
-        ]
-
-    def _cmd_resume(self) -> list[dict]:
-        """Resume the orchestrator cycle."""
-        if hasattr(self.daemon, "pause_event"):
-            self.daemon.pause_event.clear()
-        return [
-            _header_block("재개"),
-            _section_block("오케스트레이터 사이클을 재개했습니다."),
-        ]
-
-    async def _cmd_backlog(self) -> list[dict]:
-        """Show top 5 backlog items (exclude approved/running/done)."""
-        from orchestrator.tools.backlog import parse_backlog
-
-        tasks = parse_backlog()
-        _ACTIVE = {"approved", "running", "done"}
-        waiting = [t for t in tasks if t.spec_status not in _ACTIVE]
-        top5 = waiting[:5]
-
-        lines = []
-        for t in top5:
-            deps = f" (depends: {', '.join(t.depends_on)})" if t.depends_on else ""
-            lines.append(f"• `{t.id}` [{t.priority}] {t.description[:40]}{deps}")
-
-        text = "\n".join(lines) if lines else "— 백로그가 비어 있습니다"
-        return [
-            _header_block("백로그 (상위 5개)"),
-            _section_block(text),
-        ]
-
-    @staticmethod
-    def _cmd_help() -> list[dict]:
-        """Show available commands."""
-        return [
-            _header_block("사용 가능한 명령"),
-            _section_block(
-                "• `상태` — 현재 태스크/PR/워크트리 상태\n"
-                "• `실행 SP-NNN` — SDD 태스크 실행\n"
-                "• `머지 #NNN` — PR 머지\n"
-                "• `중지` — 오케스트레이터 일시정지\n"
-                "• `시작` — 오케스트레이터 재개\n"
-                "• `백로그` — 대기 태스크 상위 5개"
-            ),
-        ]
 
     # ── Message posting ──────────────────────────────────────
 
@@ -414,6 +234,13 @@ def _error_blocks(message: str) -> list[dict]:
     ]
 
 
+def _text_to_blocks(text: str) -> list[dict]:
+    """Convert Agent text response to Block Kit blocks."""
+    if len(text) > 2900:
+        text = text[:2900] + "\n\n(응답이 잘렸습니다)"
+    return [_section_block(text)]
+
+
 def _blocks_to_fallback(blocks: list[dict]) -> str:
     """Extract plain text from blocks for the fallback field."""
     parts = []
@@ -423,11 +250,3 @@ def _blocks_to_fallback(blocks: list[dict]) -> str:
         elif b.get("type") == "section":
             parts.append(b.get("text", {}).get("text", ""))
     return "\n".join(parts)[:200]
-
-
-def _safe_json_loads(text: str, default: object) -> object:
-    """Parse JSON string, returning default on failure."""
-    try:
-        return __import__("json").loads(text)
-    except (ValueError, TypeError):
-        return default

@@ -17,7 +17,6 @@ from orchestrator.config import (
     SLACK_MIN_INTERVAL,
     SLACK_TIMEOUT_CONNECT,
     SLACK_TIMEOUT_READ,
-    SLACK_WEBHOOK_URL,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,15 +33,13 @@ _LEVEL_EMOJI = {
 
 
 async def _send_slack_message(text: str, blocks: list | None = None) -> bool:
-    """Send a message to Slack. Prefers Bot Token API, falls back to Webhook."""
+    """Send a message to Slack via Bot Token API."""
     global _last_slack_sent  # noqa: PLW0603
 
     from orchestrator.config import SLACK_BOT_ALLOWED_CHANNEL, SLACK_BOT_TOKEN
 
-    use_bot = bool(SLACK_BOT_TOKEN and SLACK_BOT_ALLOWED_CHANNEL)
-
-    if not use_bot and not SLACK_WEBHOOK_URL:
-        logger.info("Slack not configured, logging only: %s", text[:200])
+    if not SLACK_BOT_TOKEN or not SLACK_BOT_ALLOWED_CHANNEL:
+        logger.info("Slack Bot not configured, logging only: %s", text[:200])
         return False
 
     # Rate limit guard
@@ -55,34 +52,23 @@ async def _send_slack_message(text: str, blocks: list | None = None) -> bool:
     )
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            if use_bot:
-                payload: dict = {
-                    "channel": SLACK_BOT_ALLOWED_CHANNEL,
-                    "text": text,
-                }
-                if blocks:
-                    payload["blocks"] = blocks
-                resp = await client.post(
-                    "https://slack.com/api/chat.postMessage",
-                    json=payload,
-                    headers={"Authorization": f"Bearer {SLACK_BOT_TOKEN}"},
-                )
-                _last_slack_sent = time.monotonic()
-                data = resp.json()
-                if data.get("ok"):
-                    return True
-                logger.warning("Slack Bot API error: %s", data.get("error", "unknown"))
-                return False
-            else:
-                payload = {"text": text}
-                if blocks:
-                    payload["blocks"] = blocks
-                resp = await client.post(SLACK_WEBHOOK_URL, json=payload)
-                _last_slack_sent = time.monotonic()
-                if resp.status_code == 200:
-                    return True
-                logger.warning("Slack webhook error %d: %s", resp.status_code, resp.text[:200])
-                return False
+            payload: dict = {
+                "channel": SLACK_BOT_ALLOWED_CHANNEL,
+                "text": text,
+            }
+            if blocks:
+                payload["blocks"] = blocks
+            resp = await client.post(
+                "https://slack.com/api/chat.postMessage",
+                json=payload,
+                headers={"Authorization": f"Bearer {SLACK_BOT_TOKEN}"},
+            )
+            _last_slack_sent = time.monotonic()
+            data = resp.json()
+            if data.get("ok"):
+                return True
+            logger.warning("Slack Bot API error: %s", data.get("error", "unknown"))
+            return False
     except httpx.TimeoutException:
         logger.warning("Slack send timeout")
         return False

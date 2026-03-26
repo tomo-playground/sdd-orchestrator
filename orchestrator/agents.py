@@ -104,3 +104,40 @@ def build_cycle_prompt(cycle_number: int, previous_summary: str | None) -> str:
         "6. Decision Rules에 따라 액션 실행 (launch/merge/trigger/notify)\n"
         "7. 종합 대시보드 출력"
     )
+
+
+# Slack Bot은 사용자의 직접 명령이므로 ENABLE_AUTO_RUN 플래그와 무관하게
+# read + write 도구를 항상 포함. Lead Agent의 _READ_TOOLS/_WRITE_TOOLS와
+# 의도적으로 분리 — 도구 추가 시 양쪽 동기화 필요.
+_SLACK_BOT_TOOLS = [
+    "mcp__orch__scan_backlog",
+    "mcp__orch__check_prs",
+    "mcp__orch__check_workflows",
+    "mcp__orch__check_running_worktrees",
+    "mcp__orch__sentry_scan",
+    "mcp__orch__launch_sdd_run",
+    "mcp__orch__merge_pr",
+    "mcp__orch__trigger_sdd_review",
+    "mcp__orch__pause_orchestrator",
+    "mcp__orch__resume_orchestrator",
+    "mcp__orch__notify_human",
+]
+
+
+def create_slack_bot_options(mcp_server) -> ClaudeAgentOptions:
+    """Create ClaudeAgentOptions for the Slack Bot Agent."""
+    from orchestrator.config import (
+        SLACK_BOT_AGENT_MODEL,
+        SLACK_BOT_AGENT_PROMPT,
+        SLACK_BOT_MAX_TURNS,
+    )
+
+    return ClaudeAgentOptions(
+        model=SLACK_BOT_AGENT_MODEL,
+        system_prompt=SLACK_BOT_AGENT_PROMPT,
+        mcp_servers={"orch": mcp_server},
+        allowed_tools=list(_SLACK_BOT_TOOLS),
+        permission_mode="default",
+        max_turns=SLACK_BOT_MAX_TURNS,
+        cwd=PROJECT_ROOT,
+    )

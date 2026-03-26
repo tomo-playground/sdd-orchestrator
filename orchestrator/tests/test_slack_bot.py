@@ -1,4 +1,4 @@
-"""Unit tests for Slack Bot listener and command dispatch."""
+"""Unit tests for Slack Bot listener — Claude Agent dispatch."""
 
 from __future__ import annotations
 
@@ -7,9 +7,25 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from orchestrator.tools.slack_bot import SlackBotListener, _header_block
+import orchestrator.tools.slack_bot as _slack_bot_module
+from orchestrator.tools.slack_bot import (
+    SlackBotListener,
+    _error_blocks,
+    _text_to_blocks,
+    pause_orchestrator,
+    resume_orchestrator,
+    set_daemon,
+)
 
 # ── Fixture ──────────────────────────────────────────────────
+
+
+@pytest.fixture(autouse=True)
+def reset_daemon():
+    """Restore global _daemon state after each test."""
+    prev = _slack_bot_module._daemon
+    yield
+    _slack_bot_module._daemon = prev
 
 
 @pytest.fixture()
@@ -21,9 +37,15 @@ def daemon():
 
 
 @pytest.fixture()
-def bot(daemon):
-    """Create a SlackBotListener with mock daemon."""
-    return SlackBotListener(daemon=daemon)
+def mcp_server():
+    """Create a mock MCP server."""
+    return MagicMock()
+
+
+@pytest.fixture()
+def bot(mcp_server):
+    """Create a SlackBotListener with mock mcp_server."""
+    return SlackBotListener(mcp_server=mcp_server)
 
 
 # ── DoD 1: Socket Mode lifecycle ─────────────────────────────
@@ -47,20 +69,36 @@ class TestSlackBotNoTokens:
             assert daemon.slack_bot is None
 
 
+# ── Agent delegation ──────────────────────────────────────────
+
+
+_PATCH_ALLOW_CHANNEL = "orchestrator.tools.slack_bot.SLACK_BOT_ALLOWED_CHANNEL"
+_PATCH_ALLOW_USERS = "orchestrator.tools.slack_bot.SLACK_BOT_ALLOWED_USERS"
+
+
 class TestSlackBotMention:
     @pytest.mark.asyncio
-    async def test_handle_mention_calls_dispatch(self, bot):
-        """app_mention event triggers command dispatch."""
+    async def test_handle_mention_calls_agent(self, bot):
+        """app_mention event triggers Claude Agent call."""
         bot.web_client = AsyncMock()
         bot.web_client.chat_postMessage = AsyncMock()
 
-        event = {"text": "<@U12345> 상태", "channel": "C001", "ts": "1234.5678"}
+        event = {
+            "text": "<@U12345> 현재 상태 알려줘",
+            "channel": "C001",
+            "user": "U001",
+            "ts": "1234.5678",
+        }
         say = AsyncMock()
 
-        with patch.object(bot, "_cmd_status", new_callable=AsyncMock) as mock_status:
-            mock_status.return_value = [_header_block("test")]
+        with (
+            patch(_PATCH_ALLOW_CHANNEL, ""),
+            patch(_PATCH_ALLOW_USERS, ""),
+            patch.object(bot, "_ask_agent", new_callable=AsyncMock) as mock_agent,
+        ):
+            mock_agent.return_value = "현재 실행 중인 태스크가 2개 있습니다."
             await bot._handle_mention(event, say)
-            mock_status.assert_called_once()
+            mock_agent.assert_called_once_with("현재 상태 알려줘")
 
     @pytest.mark.asyncio
     async def test_ignore_bot_message(self, bot):
@@ -68,9 +106,60 @@ class TestSlackBotMention:
         event = {"text": "상태", "channel": "C001", "ts": "1234.5678", "bot_id": "B123"}
         say = AsyncMock()
 
-        with patch.object(bot, "_dispatch_command") as mock_dispatch:
+        with patch.object(bot, "_ask_agent", new_callable=AsyncMock) as mock_agent:
             await bot._handle_mention(event, say)
-            mock_dispatch.assert_not_called()
+            mock_agent.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_agent_timeout_returns_error(self, bot):
+        """Agent timeout should return user-friendly error."""
+        bot.web_client = AsyncMock()
+        bot.web_client.chat_postMessage = AsyncMock()
+
+        event = {"text": "<@U12345> 복잡한 질문", "channel": "C001", "user": "U001", "ts": "1.0"}
+
+        async def slow_agent(_text):
+            await asyncio.sleep(10)
+
+        with (
+            patch(_PATCH_ALLOW_CHANNEL, ""),
+            patch(_PATCH_ALLOW_USERS, ""),
+            patch.object(bot, "_ask_agent", side_effect=slow_agent),
+            patch("orchestrator.tools.slack_bot.SLACK_BOT_AGENT_TIMEOUT", 0.01),
+        ):
+            await bot._handle_mention(event, AsyncMock())
+
+        # Should have posted an error message
+        bot.web_client.chat_postMessage.assert_called_once()
+        blocks = bot.web_client.chat_postMessage.call_args.kwargs.get(
+            "blocks", bot.web_client.chat_postMessage.call_args[1].get("blocks", [])
+        )
+        texts = [b.get("text", {}).get("text", "") for b in blocks if b.get("type") == "section"]
+        assert any("시간" in t for t in texts)
+
+    @pytest.mark.asyncio
+    async def test_agent_exception_returns_error(self, bot):
+        """Agent exception should return user-friendly error."""
+        bot.web_client = AsyncMock()
+        bot.web_client.chat_postMessage = AsyncMock()
+
+        event = {"text": "<@U12345> 테스트", "channel": "C001", "user": "U001", "ts": "1.0"}
+
+        with (
+            patch(_PATCH_ALLOW_CHANNEL, ""),
+            patch(_PATCH_ALLOW_USERS, ""),
+            patch.object(
+                bot, "_ask_agent", new_callable=AsyncMock, side_effect=RuntimeError("fail")
+            ),
+        ):
+            await bot._handle_mention(event, AsyncMock())
+
+        bot.web_client.chat_postMessage.assert_called_once()
+        blocks = bot.web_client.chat_postMessage.call_args.kwargs.get(
+            "blocks", bot.web_client.chat_postMessage.call_args[1].get("blocks", [])
+        )
+        texts = [b.get("text", {}).get("text", "") for b in blocks if b.get("type") == "section"]
+        assert any("오류" in t for t in texts)
 
 
 class TestSlackBotRestart:
@@ -102,142 +191,7 @@ class TestSlackBotRestart:
         assert call_count == 3
 
 
-# ── DoD 2: Command dispatch ──────────────────────────────────
-
-
-class TestCommandParsing:
-    def test_parse_cmd_key_status(self, bot):
-        assert bot._parse_cmd_key("상태") == "상태"
-
-    def test_parse_cmd_key_launch(self, bot):
-        assert bot._parse_cmd_key("실행 SP-077") == "실행"
-
-    def test_parse_cmd_key_merge(self, bot):
-        assert bot._parse_cmd_key("머지 #177") == "머지"
-
-    def test_parse_cmd_key_pause(self, bot):
-        assert bot._parse_cmd_key("중지") == "중지"
-
-    def test_parse_cmd_key_resume(self, bot):
-        assert bot._parse_cmd_key("시작") == "시작"
-
-    def test_parse_cmd_key_backlog(self, bot):
-        assert bot._parse_cmd_key("백로그") == "백로그"
-
-    def test_parse_cmd_key_unknown(self, bot):
-        assert bot._parse_cmd_key("뭐야 이건") == "help"
-
-
-class TestCmdLaunch:
-    @pytest.mark.asyncio
-    async def test_launch_calls_do_launch(self, bot):
-        """'실행 SP-077' should call do_launch_sdd_run with SP-077."""
-        with patch(
-            "orchestrator.tools.worktree.do_launch_sdd_run",
-            new_callable=AsyncMock,
-            return_value={"content": [{"type": "text", "text": "Launched SP-077"}]},
-        ) as mock_launch:
-            blocks = await bot._cmd_launch("실행 SP-077")
-            mock_launch.assert_called_once_with("SP-077")
-
-        # Should have success blocks (not error)
-        texts = [b.get("text", {}).get("text", "") for b in blocks if b.get("type") == "section"]
-        assert any("SP-077" in t for t in texts)
-
-    @pytest.mark.asyncio
-    async def test_launch_invalid_no_sp(self, bot):
-        """'실행' without SP-NNN should return error."""
-        blocks = await bot._cmd_launch("실행")
-        texts = [b.get("text", {}).get("text", "") for b in blocks if b.get("type") == "section"]
-        assert any("태스크 ID" in t for t in texts)
-
-
-class TestCmdMerge:
-    @pytest.mark.asyncio
-    async def test_merge_calls_do_merge(self, bot):
-        with patch(
-            "orchestrator.tools.github.do_merge_pr",
-            new_callable=AsyncMock,
-            return_value={"content": [{"type": "text", "text": "Merged PR #177"}]},
-        ) as mock_merge:
-            await bot._cmd_merge("머지 #177")
-            mock_merge.assert_called_once_with(177)
-
-
-class TestCmdPause:
-    def test_pause_uses_pause_event(self, bot, daemon):
-        """'중지' should set pause_event, not stop_event."""
-        bot._cmd_pause()
-        assert daemon.pause_event.is_set()
-
-    def test_resume_clears_pause_event(self, bot, daemon):
-        daemon.pause_event.set()
-        bot._cmd_resume()
-        assert not daemon.pause_event.is_set()
-
-
-class TestCmdBacklog:
-    @pytest.mark.asyncio
-    async def test_backlog_returns_top5(self, bot):
-        from orchestrator.tools.backlog import BacklogTask
-
-        tasks = [
-            BacklogTask(id=f"SP-{i:03d}", priority="P0", description=f"Task {i}") for i in range(10)
-        ]
-        with patch("orchestrator.tools.backlog.parse_backlog", return_value=tasks):
-            blocks = await bot._cmd_backlog()
-
-        texts = [b.get("text", {}).get("text", "") for b in blocks if b.get("type") == "section"]
-        full_text = "\n".join(texts)
-        assert "SP-004" in full_text
-        # SP-005 through SP-009 should NOT be shown (only top 5)
-        assert "SP-005" not in full_text
-
-
-class TestCmdUnknown:
-    def test_help_shows_available_commands(self, bot):
-        blocks = bot._cmd_help()
-        texts = [b.get("text", {}).get("text", "") for b in blocks if b.get("type") == "section"]
-        full_text = "\n".join(texts)
-        assert "상태" in full_text
-        assert "실행" in full_text
-        assert "머지" in full_text
-
-
-class TestCmdStatus:
-    @pytest.mark.asyncio
-    async def test_status_gathers_data(self, bot):
-        """Status command should call backlog, gh, and worktree."""
-        from orchestrator.tools.backlog import BacklogTask
-
-        tasks = [
-            BacklogTask(
-                id="SP-077",
-                priority="P0",
-                description="Test",
-                spec_status="running",
-            )
-        ]
-
-        with (
-            patch("orchestrator.tools.backlog.parse_backlog", return_value=tasks),
-            patch(
-                "orchestrator.tools.github._run_gh_command",
-                new_callable=AsyncMock,
-                return_value={"data": []},
-            ),
-            patch(
-                "orchestrator.tools.worktree.do_check_running_worktrees",
-                new_callable=AsyncMock,
-                return_value={"content": [{"type": "text", "text": "[]"}]},
-            ),
-        ):
-            blocks = await bot._cmd_status()
-
-        assert len(blocks) >= 3
-
-
-# ── DoD 2: Concurrent write serialization ────────────────────
+# ── Permission checks ────────────────────────────────────────
 
 
 class TestPermissionCheck:
@@ -247,11 +201,11 @@ class TestPermissionCheck:
         event = {"text": "<@U12345> 상태", "channel": "C_OTHER", "ts": "1.0", "user": "U001"}
         with (
             patch("orchestrator.tools.slack_bot.SLACK_BOT_ALLOWED_CHANNEL", "C_ALLOWED"),
-            patch.object(bot, "_dispatch_command") as mock_dispatch,
+            patch.object(bot, "_ask_agent", new_callable=AsyncMock) as mock_agent,
             patch.object(bot, "_post_message", new_callable=AsyncMock) as mock_post,
         ):
             await bot._handle_mention(event, AsyncMock())
-        mock_dispatch.assert_not_called()
+        mock_agent.assert_not_called()
         mock_post.assert_not_called()
 
     @pytest.mark.asyncio
@@ -264,12 +218,13 @@ class TestPermissionCheck:
             "user": "U_STRANGER",
         }
         with (
+            patch("orchestrator.tools.slack_bot.SLACK_BOT_ALLOWED_CHANNEL", ""),
             patch("orchestrator.tools.slack_bot.SLACK_BOT_ALLOWED_USERS", "U_ADMIN"),
-            patch.object(bot, "_dispatch_command") as mock_dispatch,
+            patch.object(bot, "_ask_agent", new_callable=AsyncMock) as mock_agent,
             patch.object(bot, "_post_message", new_callable=AsyncMock) as mock_post,
         ):
             await bot._handle_mention(event, AsyncMock())
-        mock_dispatch.assert_not_called()
+        mock_agent.assert_not_called()
         mock_post.assert_called_once()
         blocks = mock_post.call_args[0][1]
         texts = [b.get("text", {}).get("text", "") for b in blocks if b.get("type") == "section"]
@@ -284,29 +239,64 @@ class TestPermissionCheck:
             assert bot._is_allowed_user("ANY_USER") is True
 
 
-class TestConcurrency:
+# ── MCP tools: pause / resume ────────────────────────────────
+
+
+class TestPauseResumeTool:
     @pytest.mark.asyncio
-    async def test_concurrent_write_serialized(self, bot):
-        """Write commands (실행) should be serialized via _cmd_lock."""
-        execution_order = []
+    async def test_pause_sets_event(self, daemon):
+        """pause_orchestrator tool should set pause_event."""
+        set_daemon(daemon)
+        result = await pause_orchestrator.handler({})
+        assert daemon.pause_event.is_set()
+        assert not result.get("isError")
 
-        async def slow_launch(text):
-            execution_order.append("start")
-            await asyncio.sleep(0.05)
-            execution_order.append("end")
-            return [_header_block("done")]
+    @pytest.mark.asyncio
+    async def test_resume_clears_event(self, daemon):
+        """resume_orchestrator tool should clear pause_event."""
+        set_daemon(daemon)
+        daemon.pause_event.set()
+        result = await resume_orchestrator.handler({})
+        assert not daemon.pause_event.is_set()
+        assert not result.get("isError")
 
-        bot.web_client = AsyncMock()
-        bot.web_client.chat_postMessage = AsyncMock()
+    @pytest.mark.asyncio
+    async def test_pause_no_daemon_returns_error(self):
+        """pause with no daemon should return error."""
+        set_daemon(None)
+        result = await pause_orchestrator.handler({})
+        assert result.get("isError")
 
-        with patch.object(bot, "_cmd_launch", side_effect=slow_launch):
-            event1 = {"text": "<@U1> 실행 SP-001", "channel": "C001", "ts": "1.0"}
-            event2 = {"text": "<@U1> 실행 SP-002", "channel": "C001", "ts": "2.0"}
+    @pytest.mark.asyncio
+    async def test_resume_no_daemon_returns_error(self):
+        """resume with no daemon should return error."""
+        set_daemon(None)
+        result = await resume_orchestrator.handler({})
+        assert result.get("isError")
 
-            await asyncio.gather(
-                bot._handle_mention(event1, AsyncMock()),
-                bot._handle_mention(event2, AsyncMock()),
-            )
 
-        # Both should complete — serialized means start-end-start-end
-        assert execution_order == ["start", "end", "start", "end"]
+# ── Block Kit helpers ─────────────────────────────────────────
+
+
+class TestBlockKit:
+    def test_text_to_blocks_normal(self):
+        """Normal text should produce a single section block."""
+        blocks = _text_to_blocks("Hello world")
+        assert len(blocks) == 1
+        assert blocks[0]["type"] == "section"
+        assert blocks[0]["text"]["text"] == "Hello world"
+
+    def test_text_to_blocks_truncation(self):
+        """Text > 2900 chars should be truncated within Slack mrkdwn 3000-char limit."""
+        long_text = "x" * 3500
+        blocks = _text_to_blocks(long_text)
+        text = blocks[0]["text"]["text"]
+        assert len(text) <= 3000
+        assert text.endswith("(응답이 잘렸습니다)")
+
+    def test_error_blocks_structure(self):
+        """Error blocks should have header + section."""
+        blocks = _error_blocks("test error")
+        assert blocks[0]["type"] == "header"
+        assert blocks[1]["type"] == "section"
+        assert "test error" in blocks[1]["text"]["text"]

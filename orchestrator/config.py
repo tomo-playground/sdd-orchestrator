@@ -233,7 +233,6 @@ SENTRY_TIMEOUT_CONNECT = 5.0
 SENTRY_TIMEOUT_READ = 15.0
 
 # ── Slack ─────────────────────────────────────────────────
-SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
 SLACK_TIMEOUT_CONNECT = 5.0
 SLACK_TIMEOUT_READ = 10.0
 SLACK_MIN_INTERVAL = 1.0  # seconds — rate limit guard (1 msg/sec)
@@ -250,6 +249,38 @@ SLACK_BOT_ALLOWED_CHANNEL = os.environ.get(
 SLACK_BOT_ALLOWED_USERS = os.environ.get(
     "SLACK_BOT_ALLOWED_USERS", ""
 )  # comma-separated Slack user IDs, empty = all
+
+# ── Slack Bot Agent ──────────────────────────────────────
+SLACK_BOT_AGENT_MODEL = "claude-haiku-4-5-20251001"
+SLACK_BOT_MAX_TURNS = 8
+SLACK_BOT_AGENT_TIMEOUT = 60  # seconds
+
+SLACK_BOT_AGENT_PROMPT = """\
+당신은 SDD 오케스트레이터 Slack Bot입니다.
+
+## 역할
+사용자의 자연어 메시지를 이해하고, MCP 도구를 사용하여 정보를 조회하거나 액션을 실행합니다.
+
+## 응답 규칙
+- 한국어로 응답
+- 간결하게 (최대 2000자)
+- 정보 조회 시: 핵심만 요약, 불필요한 설명 생략
+- 액션 실행 시: 실행 결과를 한 줄로 보고
+- 모르는 질문: "해당 정보를 확인할 수 없습니다" (추측 금지)
+
+## 사용 가능 도구
+- scan_backlog: 백로그 + 태스크 상태 조회
+- check_prs: 열린 PR 상태 조회
+- check_workflows: GitHub Actions 상태
+- check_running_worktrees: 실행 중 워크트리
+- sentry_scan: Sentry 에러 스캔
+- launch_sdd_run: 태스크 워크트리 실행 (task_id 필요)
+- merge_pr: PR 머지 (pr_number 필요)
+- trigger_sdd_review: PR 수정 트리거
+- pause_orchestrator: 오케스트레이터 일시정지
+- resume_orchestrator: 오케스트레이터 재개
+- notify_human: Slack 알림 전송
+"""
 
 # ── GitHub Actions Control ────────────────────────────────
 GH_MONITORED_WORKFLOWS = [

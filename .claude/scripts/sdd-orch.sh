@@ -15,9 +15,8 @@ start() {
     return 0
   fi
 
-  # backend/.env에서 Slack/Sentry 환경변수 로드
-  _SLACK=$(grep '^SLACK_WEBHOOK_URL=' "$PROJECT_DIR/backend/.env" 2>/dev/null | cut -d= -f2-)
-  _SENTRY=$(grep '^SENTRY_AUTH_TOKEN=' "$PROJECT_DIR/backend/.env" 2>/dev/null | cut -d= -f2-)
+  # orchestrator/.env에서 Sentry 환경변수 로드
+  _SENTRY=$(grep '^SENTRY_AUTH_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2-)
 
   # orchestrator/.env에서 Slack Bot 환경변수 로드
   _BOT_TOKEN=$(grep '^SLACK_BOT_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2-)
@@ -28,7 +27,6 @@ start() {
   cd "$ORCH_DIR"
   ORCH_AUTO_RUN="${ORCH_AUTO_RUN:-1}" \
   ORCH_AUTO_DESIGN="${ORCH_AUTO_DESIGN:-1}" \
-  SLACK_WEBHOOK_URL="${_SLACK}" \
   SENTRY_AUTH_TOKEN="${_SENTRY}" \
   SLACK_BOT_TOKEN="${_BOT_TOKEN}" \
   SLACK_APP_TOKEN="${_APP_TOKEN}" \

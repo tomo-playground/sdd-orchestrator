@@ -14,6 +14,7 @@ from orchestrator.tools.github import (
 )
 from orchestrator.tools.notify import notify_human
 from orchestrator.tools.sentry import sentry_scan
+from orchestrator.tools.slack_bot import pause_orchestrator, resume_orchestrator
 from orchestrator.tools.worktree import check_running_worktrees, launch_sdd_run
 
 
@@ -28,6 +29,8 @@ def create_orchestrator_mcp_server():
         trigger_workflow,
         cancel_workflow,
         notify_human,
+        pause_orchestrator,
+        resume_orchestrator,
     ]
     if ENABLE_AUTO_RUN:
         tools.extend([launch_sdd_run, merge_pr, trigger_sdd_review])
