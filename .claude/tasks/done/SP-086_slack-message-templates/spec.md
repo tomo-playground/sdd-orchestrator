@@ -1,6 +1,6 @@
 # SP-086: Slack 메시지 템플릿 모듈화
 
-> status: approved | approved_at: 2026-03-26
+> status: done | approved_at: 2026-03-26
 
 ## 상세 설계 (How)
 
