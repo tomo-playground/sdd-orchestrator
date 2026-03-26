@@ -399,6 +399,10 @@ Step 5. E2E      → Playwright (서버 실행 중일 때만)
 - **PR 전 리베이스**: push 전 `git rebase main`. 충돌 시 자율 해결, 불가하면 보고.
 - **PR 코멘트 대응**: 시니어 엔지니어 판단. 버그->즉시 수정, 설계 제안->CLAUDE.md 대조 후 판단, Nit->합리적이면 수정
 - **머지 전 WARNING 체크**: 미해결 WARNING 잔존 시 수정 후 머지 권고
+- **PR 리뷰 전문 읽기**: APPROVE여도 본문/인라인 코멘트의 action item 반드시 확인. 상태만 보고 넘어가지 않는다.
+- **scope 완결성 검증**: interrupt/gate/대화형 노드 → scope에 frontend 필수. 영향 분석 레이어가 scope에 빠져있으면 BLOCKER.
+- **Out of Scope 후속 추적**: design.md의 Out of Scope 항목 중 "실제 필요한 작업"은 backlog에 즉시 등록. Out of Scope ≠ 안 해도 됨.
+- **선제적 구멍 점검**: 새 워크플로우/경로 추가 시 기존 자동화(Hook, cron, 매칭 로직) 전체 영향 분석 필수. "동작할 것 같다"가 아닌 "검증했다" 수준.
 
 ---
 
