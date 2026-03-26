@@ -4,7 +4,8 @@ priority: P1
 scope: infra
 branch: feat/SP-082-slack-bot-claude-agent
 created: 2026-03-26
-status: pending
+status: approved
+approved_at: 2026-03-26
 depends_on:
 label: feature
 ---
@@ -42,6 +43,10 @@ Slack Bot의 키워드 매칭 방식을 제거하고, 모든 메시지를 Claude
 - [ ] 기존 테스트 regression 없음
 - [ ] 린트 통과
 - [ ] 채널/사용자 allowlist 기존 로직 유지
+
+## 상세 설계 (How)
+
+> [design.md](./design.md) 참조
 
 ## 힌트
 - `claude_agent_sdk`가 이미 오케스트레이터에서 사용 중 (`orchestrator/utils.py`)
