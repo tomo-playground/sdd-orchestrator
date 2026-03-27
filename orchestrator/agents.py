@@ -115,12 +115,17 @@ _SLACK_BOT_TOOLS = [
     "mcp__orch__check_workflows",
     "mcp__orch__check_running_worktrees",
     "mcp__orch__sentry_scan",
+    "mcp__orch__trigger_workflow",
+    "mcp__orch__cancel_workflow",
     "mcp__orch__launch_sdd_run",
     "mcp__orch__merge_pr",
     "mcp__orch__trigger_sdd_review",
     "mcp__orch__pause_orchestrator",
     "mcp__orch__resume_orchestrator",
     "mcp__orch__notify_human",
+    "mcp__orch__read_task",
+    "mcp__orch__approve_design",
+    "mcp__orch__create_task",
 ]
 
 

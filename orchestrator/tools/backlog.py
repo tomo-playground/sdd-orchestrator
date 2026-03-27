@@ -11,6 +11,7 @@ from pathlib import Path
 from claude_agent_sdk import tool
 
 from orchestrator.config import BACKLOG_PATH, TASKS_CURRENT_DIR
+from orchestrator.tools.task_utils import parse_spec_status
 
 logger = logging.getLogger(__name__)
 
@@ -129,12 +130,9 @@ def _enrich_from_specs(tasks: list[BacklogTask], tasks_dir: Path = TASKS_CURRENT
         spec_path = matches[0]
         task.has_design = (spec_path.parent / "design.md").exists()
 
-        # Parse frontmatter status (supports both YAML frontmatter and blockquote)
         try:
             content = spec_path.read_text(encoding="utf-8")
-            status_match = re.search(r"^>?\s*status:\s*(\w+)", content, re.MULTILINE)
-            if status_match:
-                task.spec_status = status_match.group(1)
+            task.spec_status = parse_spec_status(content)
         except OSError:
             logger.warning("Failed to read spec: %s", spec_path)
 
@@ -212,5 +210,5 @@ async def scan_backlog(args: dict) -> dict:
         logger.exception("scan_backlog failed")
         return {
             "content": [{"type": "text", "text": f"Error scanning backlog: {e}"}],
-            "is_error": True,
+            "isError": True,
         }
