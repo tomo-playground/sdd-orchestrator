@@ -30,6 +30,8 @@ const nextConfig: NextConfig = {
       { source: "/library", destination: "/library/characters", permanent: false },
       { source: "/settings", destination: "/settings/presets", permanent: false },
       { source: "/dev", destination: "/dev/sd-models", permanent: false },
+      { source: "/scripts", destination: "/studio", permanent: true },
+      { source: "/storyboards", destination: "/", permanent: true },
     ];
   },
 };

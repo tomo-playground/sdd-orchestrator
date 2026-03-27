@@ -294,62 +294,6 @@ export async function mockMusicEmptyApis(page: Page) {
     return route.continue();
   });
 }
-// ── Scripts page ─────────────────────────────────────────────
-
-export async function mockScriptsApis(page: Page) {
-  await page.route(/\/storyboards(\?.*)?$/, (route) => {
-    if (route.request().method() === "GET") {
-      const items = storyboardListItems();
-      return route.fulfill({
-        json: { items, total: items.length, offset: 0, limit: 50 },
-      });
-    }
-    return route.continue();
-  });
-
-  await page.route(/\/storyboards\/(\d+)$/, (route) => {
-    const url = route.request().url();
-    const match = url.match(/\/storyboards\/(\d+)$/);
-    if (match && route.request().method() === "GET") {
-      const id = Number(match[1]);
-      const sb = MOCK_STORYBOARDS.find((s) => s.id === id);
-      return route.fulfill({ json: sb ?? { error: "not found" }, status: sb ? 200 : 404 });
-    }
-    return route.continue();
-  });
-
-  await page.route("**/presets", (route) => route.fulfill({ json: MOCK_PRESETS }));
-  await page.route("**/api/**/characters", (route) => {
-    if (route.request().method() === "GET") {
-      return route.fulfill({
-        json: {
-          items: MOCK_CHARACTERS_LIST,
-          total: MOCK_CHARACTERS_LIST.length,
-          offset: 0,
-          limit: 50,
-        },
-      });
-    }
-    return route.continue();
-  });
-}
-
-/** Scripts page mock returning empty storyboard list */
-export async function mockScriptsEmptyApis(page: Page) {
-  await page.route(/\/storyboards(\?.*)?$/, (route) => {
-    if (route.request().method() === "GET") {
-      return route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 50 } });
-    }
-    return route.continue();
-  });
-  await page.route("**/presets", (route) => route.fulfill({ json: MOCK_PRESETS }));
-  await page.route("**/api/**/characters", (route) => {
-    if (route.request().method() === "GET") {
-      return route.fulfill({ json: { items: [], total: 0, offset: 0, limit: 50 } });
-    }
-    return route.continue();
-  });
-}
 // ── Manage page ──────────────────────────────────────────────
 
 export async function mockManageApis(page: Page) {
