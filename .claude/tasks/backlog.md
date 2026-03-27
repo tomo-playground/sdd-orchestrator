@@ -28,13 +28,11 @@
 > 명세: `docs/01_product/FEATURES/IA_REDESIGN.md`
 
 ### Phase A: Quick Wins (병렬, 1~2일)
-- [ ] SP-088 — Ghost Route/컴포넌트 삭제 — /scripts, /storyboards redirect + AppMobileTabBar 삭제 | scope: frontend
 - [ ] SP-089 — Materials 팝오버 Library 직접 링크 — Characters/Style Missing 시 Library 이동 | scope: frontend
 
 ### Phase B: 중규모 (병렬, 1~2주)
 - [ ] SP-090 — ContextBar 개선 — h-8→h-10, 아이콘, Library/Settings 숨기기, 단일 채널 자동 숨기기 | scope: frontend
 - [ ] SP-091 — Settings 재배치: Trash → Library 이동 | scope: frontend
-- [ ] SP-092 — Publish 탭에 YouTube 연동 진입점 추가 | scope: frontend
 - [ ] SP-093 — Home 대시보드 개선 — 빠른 시작 + ContinueWorking 진행 상태 | scope: frontend
 
 ### Phase C: Direct 3패널 (순차, 2~3주) — 크리티컬 패스: SP-021 완료 필요
