@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Folder } from "lucide-react";
 import Popover from "../ui/Popover";
 import { resolveAvatarUrl } from "../../store/selectors/projectSelectors";
 import type { ProjectItem } from "../../types";
@@ -58,7 +59,7 @@ export default function ProjectDropdown({
         onClick={() => setOpen((v) => !v)}
         className="flex max-w-[200px] items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-zinc-700 transition hover:bg-zinc-100"
       >
-        {current && <ProjectAvatar project={current} />}
+        <Folder className="h-3.5 w-3.5 shrink-0" />
         <span className="truncate text-xs font-semibold">{current?.name ?? "채널"}</span>
         <svg className="h-3 w-3 shrink-0 text-zinc-400" viewBox="0 0 20 20" fill="currentColor">
           <path

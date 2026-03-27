@@ -25,7 +25,11 @@ export default function PersistentContextBar() {
   const router = useRouter();
   const isStudio = pathname.startsWith("/studio");
   const isHome = pathname === "/";
+  const isLibrary = pathname.startsWith("/library");
+  const isSettings = pathname.startsWith("/settings");
   const { projectId, groupId, projects, groups, selectProject, selectGroup } = useProjectGroups();
+  const isLoadingProjects = useContextStore((s) => s.isLoadingProjects);
+  const isLoadingGroups = useContextStore((s) => s.isLoadingGroups);
   const storyboardId = useContextStore((s) => s.storyboardId);
   const storyboardTitle = useContextStore((s) => s.storyboardTitle);
   const setContext = useContextStore((s) => s.setContext);
@@ -123,9 +127,15 @@ export default function PersistentContextBar() {
     ) : null;
   }
 
+  // Hide bar on Library/Settings pages & when only one channel+series exists (after loading)
+  const isSingleContext =
+    !isLoadingProjects && !isLoadingGroups && projects.length === 1 && groups.length === 1;
+  const showBar = !isLibrary && !isSettings && (!isSingleContext || hasStoryboard);
+
   return (
     <>
-      <div className="flex h-8 shrink-0 items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-8 text-xs text-zinc-500">
+      {showBar && (
+      <div className="flex h-10 shrink-0 items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-8 text-xs text-zinc-500">
         <div className="flex items-center gap-0.5 truncate">
           <ProjectDropdown
             projects={projects}
@@ -192,6 +202,7 @@ export default function PersistentContextBar() {
           )}
         </div>
       </div>
+      )}
 
       {configGroupId && (
         <GroupConfigEditor groupId={configGroupId} onClose={() => setUI({ configGroupId: null })} />
