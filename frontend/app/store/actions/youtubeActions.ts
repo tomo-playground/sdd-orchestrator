@@ -6,8 +6,9 @@ export async function checkYouTubeConnection(projectId: number): Promise<YouTube
   try {
     const res = await axios.get<YouTubeCredential>(`${API_BASE}/youtube/credentials/${projectId}`);
     return res.data;
-  } catch {
-    return null;
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.status === 404) return null;
+    throw err;
   }
 }
 

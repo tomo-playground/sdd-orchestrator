@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useUIStore } from "../../store/useUIStore";
 import { useContextStore } from "../../store/useContextStore";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
+import { checkYouTubeConnection } from "../../store/actions/youtubeActions";
 import { RenderMediaPanel, RenderSidePanel } from "../video/RenderSettingsPanel";
 import VideoPreviewHero from "../video/VideoPreviewHero";
 import { PublishVideosSection, PublishCaptionLikes } from "./PublishMetaPanel";
@@ -29,6 +31,25 @@ export default function PublishTab() {
 
   const { scenes, store, setOutput, canRender, disabledReason, handleRender } = usePublishRender();
   const storyboardId = useContextStore((s) => s.storyboardId);
+  const projectId = useContextStore((s) => s.projectId);
+
+  // TODO: PublishVideosSection 내부 useYouTubeUpload에서도 동일 호출 발생 — 공유 훅으로 통합 검토
+  const [ytConnected, setYtConnected] = useState<boolean | null>(null);
+  const [ytError, setYtError] = useState(false);
+  useEffect(() => {
+    if (!projectId) {
+      setYtConnected(null);
+      setYtError(false);
+      return;
+    }
+    let cancelled = false;
+    setYtConnected(null);
+    setYtError(false);
+    checkYouTubeConnection(projectId)
+      .then((cred) => { if (!cancelled) setYtConnected(!!cred); })
+      .catch(() => { if (!cancelled) setYtError(true); });
+    return () => { cancelled = true; };
+  }, [projectId]);
   const { previewAll, isPreviewingAll, previewStates } = useTTSPreview(storyboardId);
   const { timeline } = useTimeline({
     scenes,
@@ -77,6 +98,36 @@ export default function PublishTab() {
           <p className="text-sm text-amber-800">
             사전 검증에서 오류가 발견되었습니다. 아래 검증 결과를 확인해주세요.
           </p>
+        </div>
+      )}
+
+      {/* YouTube connection status */}
+      {(ytConnected !== null || ytError) && (
+        <div className="flex items-center gap-2 text-sm">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              ytError
+                ? "bg-red-50 text-red-600"
+                : ytConnected
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-zinc-100 text-zinc-500"
+            }`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                ytError ? "bg-red-400" : ytConnected ? "bg-emerald-500" : "bg-zinc-400"
+              }`}
+            />
+            YouTube {ytError ? "확인 실패" : ytConnected ? "연결됨" : "미연결"}
+          </span>
+          {!ytConnected && !ytError && (
+            <Link
+              href="/settings/youtube"
+              className="text-xs text-indigo-500 hover:text-indigo-700 hover:underline"
+            >
+              설정 &gt; 연동에서 연결 &rarr;
+            </Link>
+          )}
         </div>
       )}
 
