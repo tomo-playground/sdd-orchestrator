@@ -40,7 +40,18 @@ fi
 for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*/spec.md "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
   [ -f "$TASK_FILE" ] || continue
   TASK_BRANCH=$(grep '^branch:' "$TASK_FILE" 2>/dev/null | sed 's/^branch: *//' | tr -d '[:space:]' || true)
-  [ -z "$TASK_BRANCH" ] && continue
+  # branch 필드 없으면 SP-ID로 머지된 PR 검색 (fallback)
+  if [ -z "$TASK_BRANCH" ]; then
+    FILE_SP_ID=$(basename "$(dirname "$TASK_FILE")" | grep -oE 'SP-[0-9]+' || true)
+    [ -z "$FILE_SP_ID" ] && continue
+    FALLBACK_BRANCH=$(gh pr list --state merged --base main --search "$FILE_SP_ID" --json headRefName --jq '.[0].headRefName' 2>/dev/null || true)
+    if [ -n "$FALLBACK_BRANCH" ]; then
+      TASK_BRANCH="$FALLBACK_BRANCH"
+      echo "ℹ️ branch 자동 감지: $FILE_SP_ID → $TASK_BRANCH"
+    else
+      continue
+    fi
+  fi
   IS_MERGED=$(gh pr list --state merged --base main --head "$TASK_BRANCH" --json number --jq '.[0].number' 2>/dev/null || true)
   if [ -z "$IS_MERGED" ]; then
     IS_MERGED=$(gh pr list --state merged --base main --head "worktree-${TASK_BRANCH}" --json number --jq '.[0].number' 2>/dev/null || true)
