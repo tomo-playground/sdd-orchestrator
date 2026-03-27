@@ -121,7 +121,8 @@ for BRANCH in $MERGED; do
 done
 
 # ── 좀비 워크트리 정리 (done/에 있는데 워크트리가 남은 태스크) ──
-for WT_DIR in "$PROJECT_DIR/.claude/worktrees"/SP-*; do
+# SP-* 뿐 아니라 feat+SP-*, worktree-SP-* 등 모든 SP-ID 포함 디렉토리 대상
+for WT_DIR in "$PROJECT_DIR/.claude/worktrees"/*/; do
   [ -d "$WT_DIR" ] || continue
   ZID=$(basename "$WT_DIR" | grep -oE 'SP-[0-9]+' || true)
   [ -z "$ZID" ] && continue
