@@ -12,17 +12,34 @@ type RecentStoryboard = {
   scene_count: number;
   image_count: number;
   kanban_status: "draft" | "in_prod" | "rendered" | "published";
+  stage_status: string | null;
   updated_at: string | null;
 };
 
-const STEP_META: Record<string, { label: string; color: string }> = {
-  draft: { label: "초안", color: "bg-zinc-400" },
-  in_prod: { label: "제작", color: "bg-amber-400" },
-  rendered: { label: "렌더 완료", color: "bg-blue-400" },
-  published: { label: "게시됨", color: "bg-emerald-400" },
+const STEPS = ["script", "stage", "images", "render", "done"] as const;
+type ProgressStep = (typeof STEPS)[number];
+
+const STEP_META: Record<ProgressStep, { label: string; color: string }> = {
+  script: { label: "스크립트", color: "bg-zinc-400" },
+  stage: { label: "스테이지", color: "bg-amber-400" },
+  images: { label: "이미지", color: "bg-blue-400" },
+  render: { label: "렌더", color: "bg-violet-400" },
+  done: { label: "완료", color: "bg-emerald-400" },
 };
 
-const STEPS = ["draft", "in_prod", "rendered", "published"] as const;
+/** kanban_status + stage_status + image_count 조합으로 5단계 파생 */
+export function deriveProgressStep(sb: RecentStoryboard): ProgressStep {
+  if (sb.kanban_status === "published") return "done";
+  if (sb.kanban_status === "rendered") return "render";
+  if (sb.kanban_status === "in_prod" && sb.image_count > 0) return "images";
+  if (
+    sb.stage_status === "staged" ||
+    sb.stage_status === "staging" ||
+    sb.stage_status === "failed"
+  )
+    return "stage";
+  return "script";
+}
 
 export default function ContinueWorkingSection() {
   const router = useRouter();
@@ -66,7 +83,7 @@ export default function ContinueWorkingSection() {
         {items.map((sb) => {
           const progress =
             sb.scene_count > 0 ? Math.round((sb.image_count / sb.scene_count) * 100) : 0;
-          const currentStep = sb.kanban_status;
+          const currentStep = deriveProgressStep(sb);
           const currentIdx = STEPS.indexOf(currentStep);
 
           return (

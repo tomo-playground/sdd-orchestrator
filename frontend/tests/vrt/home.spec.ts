@@ -48,6 +48,19 @@ test.describe("Home Page", () => {
     await expect(page).toHaveURL(/\/studio\?id=1/);
   });
 
+  test("quick start input visible when project and group exist", async ({ page }) => {
+    // ContextStore should auto-load projectId/groupId from mock APIs
+    await expect(page.getByPlaceholder("어떤 영상을 만들까요?")).toBeVisible({ timeout: 5000 });
+  });
+
+  test("continue working cards show 5-step progress dots", async ({ page }) => {
+    await expect(page.getByText("Continue Working")).toBeVisible({ timeout: 5000 });
+    // Each card should show 5 step dots (title attributes: Script, Stage, Images, Render, Done)
+    const firstCard = page.getByText("Morning Routine").locator("..");
+    await expect(firstCard.locator("[title='Script']")).toBeVisible();
+    await expect(firstCard.locator("[title='Done']")).toBeVisible();
+  });
+
   test("nav links are present", async ({ page }) => {
     await expect(page.getByRole("link", { name: "홈" })).toBeVisible();
     await expect(page.getByRole("link", { name: "스튜디오" })).toBeVisible();

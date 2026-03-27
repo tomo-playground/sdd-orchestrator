@@ -44,6 +44,9 @@ const STEP_TO_TAB: Record<string, string> = { stage: "stage", images: "direct", 
 /** URL ?tab= 파라미터 유효 값 (딥링크용) */
 const VALID_TABS: StudioTab[] = ["script", "stage", "direct", "publish"];
 
+/** 백엔드 StoryboardDraftResponse.title 기본값 (schemas.py Field(default="Draft")) */
+const STORYBOARD_DEFAULT_TITLE = "Draft";
+
 function StudioContent() {
   const { isLoadingDb, loadedProfileId, storyboardId, needsStyleProfile } =
     useStudioInitialization();
@@ -71,6 +74,26 @@ function StudioContent() {
   // Gate: ?new=true URL detected but resetAllStores hasn't completed yet.
   // Prevents workspace from rendering with stale store data before the reset useEffect fires.
   const isNewUrlPending = searchParams.get("new") === "true" && !isNewModeReady;
+
+  // Apply topic from URL param (Quick Start from Home → /studio?id=X&topic=Y)
+  // The DB load already sets topic from storyboard title, but this handles the edge case
+  // where the draft was created with the default "Draft" title.
+  // Deferred until isLoadingDb=false so DB load doesn't overwrite the value,
+  // and isDirty:true ensures autoSave persists the change.
+  const setPlan = useStoryboardStore((s) => s.set);
+  useEffect(() => {
+    const topicParam = searchParams.get("topic");
+    if (!topicParam) return;
+    if (isLoadingDb) return; // DB 로드 완료 전 보류 — DB 값이 덮어쓰는 것을 방지
+    const current = useStoryboardStore.getState().topic;
+    if (!current || current === STORYBOARD_DEFAULT_TITLE) {
+      setPlan({ topic: topicParam, isDirty: true });
+    }
+    // Clean up topic from URL (DB 로드 완료 후 1회 제거)
+    const url = new URL(window.location.href);
+    url.searchParams.delete("topic");
+    window.history.replaceState({}, "", url.toString());
+  }, [searchParams, setPlan, isLoadingDb]);
 
   // Restore tab from URL or default to script for new storyboards
   const setActiveTab = useUIStore((s) => s.setActiveTab);
