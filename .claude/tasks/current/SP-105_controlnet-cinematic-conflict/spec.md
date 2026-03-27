@@ -4,10 +4,15 @@ priority: P1
 scope: backend
 branch: feat/SP-105-controlnet-cinematic-conflict
 created: 2026-03-27
-status: spec
+status: approved
+approved_at: 2026-03-28
 depends_on:
 label: fix
 ---
+
+## 상세 설계 (How)
+
+> [design.md](./design.md) 참조
 
 ## 무엇을 (What)
 ControlNet Reference AdaIN 활성 시 시네마틱 태그 충돌로 이미지가 깨지는 문제 근본 수정.
