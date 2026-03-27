@@ -17,12 +17,33 @@ export type SubNavTab = {
 
 type SubNavShellProps = {
   tabs: SubNavTab[];
+  footerLink?: SubNavTab;
   children: ReactNode;
 };
 
+// ── NavTab ───────────────────────────────────────────────────
+
+function NavTab({ tab, pathname, className }: { tab: SubNavTab; pathname: string; className?: string }) {
+  const Icon = tab.icon;
+  const active = pathname.startsWith(tab.href);
+  return (
+    <Link
+      href={tab.href}
+      className={cx(
+        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
+        active ? TAB_ACTIVE : TAB_INACTIVE,
+        className
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {tab.label}
+    </Link>
+  );
+}
+
 // ── SubNavShell ──────────────────────────────────────────────
 
-export default function SubNavShell({ tabs, children }: SubNavShellProps) {
+export default function SubNavShell({ tabs, footerLink, children }: SubNavShellProps) {
   const pathname = usePathname();
 
   return (
@@ -30,23 +51,13 @@ export default function SubNavShell({ tabs, children }: SubNavShellProps) {
       {/* Tab bar */}
       <div className="border-b border-zinc-100 bg-white/90 px-8 py-3 backdrop-blur-md">
         <nav className="flex items-center gap-1">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const active = pathname.startsWith(tab.href);
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={cx(
-                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition",
-                  active ? TAB_ACTIVE : TAB_INACTIVE
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {tab.label}
-              </Link>
-            );
-          })}
+          {tabs.map((tab) => (
+            <NavTab key={tab.href} tab={tab} pathname={pathname} />
+          ))}
+
+          {footerLink && (
+            <NavTab tab={footerLink} pathname={pathname} className="ml-auto" />
+          )}
         </nav>
       </div>
 

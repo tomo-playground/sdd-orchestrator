@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, Palette, Mic, Music, Boxes } from "lucide-react";
+import { Users, Palette, Mic, Music, Boxes, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import SubNavShell, { type SubNavTab } from "./SubNavShell";
 
@@ -12,6 +12,12 @@ const TABS: SubNavTab[] = [
   { href: "/library/loras", label: "LoRAs", icon: Boxes },
 ];
 
+const TRASH_LINK: SubNavTab = {
+  href: "/library/trash",
+  label: "휴지통",
+  icon: Trash2,
+};
+
 export default function LibraryShell({ children }: { children: ReactNode }) {
-  return <SubNavShell tabs={TABS}>{children}</SubNavShell>;
+  return <SubNavShell tabs={TABS} footerLink={TRASH_LINK}>{children}</SubNavShell>;
 }

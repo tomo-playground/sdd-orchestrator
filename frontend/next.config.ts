@@ -28,6 +28,7 @@ const nextConfig: NextConfig = {
       { source: "/music", destination: "/library/music", permanent: true },
       { source: "/manage", destination: "/library/characters", permanent: true },
       { source: "/library", destination: "/library/characters", permanent: false },
+      { source: "/settings/trash", destination: "/library/trash", permanent: true },
       { source: "/settings", destination: "/settings/presets", permanent: false },
       { source: "/dev", destination: "/dev/sd-models", permanent: false },
       { source: "/scripts", destination: "/studio", permanent: true },
