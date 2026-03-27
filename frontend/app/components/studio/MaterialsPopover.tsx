@@ -15,13 +15,26 @@ type MaterialItem = {
   label: string;
   icon: string;
   link?: string;
+  missingLink?: string;
   action?: MaterialAction;
 };
 
 const MATERIALS: MaterialItem[] = [
   { key: "script", label: "대본", icon: "S", action: "script-tab" },
-  { key: "style", label: "화풍", icon: "\u2726", action: "stage-tab" },
-  { key: "characters", label: "캐릭터", icon: "C", action: "stage-tab" },
+  {
+    key: "style",
+    label: "화풍",
+    icon: "\u2726",
+    action: "stage-tab",
+    missingLink: "/library/styles",
+  },
+  {
+    key: "characters",
+    label: "캐릭터",
+    icon: "C",
+    action: "stage-tab",
+    missingLink: "/library/characters",
+  },
   { key: "voice", label: "음성", icon: "V", link: "/library/voices" },
   { key: "music", label: "BGM", icon: "M", link: "/library/music" },
   { key: "background", label: "배경", icon: "B", action: "stage-tab" },
@@ -71,7 +84,9 @@ export default function MaterialsPopover() {
                 <button
                   key={mat.key}
                   onClick={() => {
-                    if (mat.action === "script-tab") {
+                    if (!ready && mat.missingLink) {
+                      router.push(mat.missingLink);
+                    } else if (mat.action === "script-tab") {
                       setActiveTab("script");
                     } else if (mat.action === "stage-tab") {
                       setActiveTab("stage");
@@ -95,7 +110,7 @@ export default function MaterialsPopover() {
                   <span
                     className={`text-xs font-medium ${ready ? "text-emerald-600" : "text-zinc-400"}`}
                   >
-                    {ready ? "완료" : "미설정"}
+                    {ready ? "완료" : mat.missingLink ? "만들기 →" : "미설정"}
                   </span>
                 </button>
               );
