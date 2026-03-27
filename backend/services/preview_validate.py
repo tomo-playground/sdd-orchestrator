@@ -76,7 +76,9 @@ async def preview_validate(
         .first()
     )
     if not storyboard:
-        raise ValueError("스토리보드를 찾을 수 없습니다.")
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="스토리보드를 찾을 수 없습니다.")
 
     scenes = sorted(
         [s for s in storyboard.scenes if s.deleted_at is None],

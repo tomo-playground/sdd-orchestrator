@@ -630,8 +630,10 @@ class TestPreviewValidate:
     """Test pre-render validation checks."""
 
     @pytest.mark.asyncio
-    async def test_missing_storyboard_raises(self):
-        """Non-existent storyboard_id raises ValueError."""
+    async def test_missing_storyboard_raises_404(self):
+        """Non-existent storyboard_id raises HTTPException(404)."""
+        from fastapi import HTTPException
+
         from schemas import PreValidateRequest
         from services.preview import preview_validate
 
@@ -639,8 +641,9 @@ class TestPreviewValidate:
         mock_db = MagicMock()
         mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
-        with pytest.raises(ValueError, match="스토리보드를 찾을 수 없습니다"):
+        with pytest.raises(HTTPException) as exc_info:
             await preview_validate(req, mock_db)
+        assert exc_info.value.status_code == 404
 
     @pytest.mark.asyncio
     async def test_no_scenes_returns_error(self):
@@ -856,3 +859,20 @@ class TestWavDuration:
 
         duration = _wav_duration(buf.getvalue())
         assert abs(duration - 1.0) < 0.01
+
+
+# ── Pre-validation API Integration ───────────────────────
+
+
+class TestPreviewValidateAPI:
+    """API integration tests for POST /preview/validate."""
+
+    def test_nonexistent_storyboard_returns_404(self, client):
+        """존재하지 않는 storyboard_id로 요청 시 404를 반환한다."""
+        from tests.conftest import SVC
+
+        resp = client.post(
+            f"{SVC}/preview/validate",
+            json={"storyboard_id": 99999},
+        )
+        assert resp.status_code == 404

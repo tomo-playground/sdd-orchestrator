@@ -5,7 +5,7 @@ Service-only router (no admin endpoints).
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -92,6 +92,8 @@ async def validate_pre_render(
 
     try:
         return await preview_validate(req, db)
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise_user_error("pre_validate", e)
