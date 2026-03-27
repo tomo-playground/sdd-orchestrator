@@ -4,7 +4,7 @@ priority: P2
 scope: frontend
 branch: feat/SP-090-contextbar-improve
 created: 2026-03-26
-status: approved
+status: done
 approved_at: 2026-03-26
 depends_on:
 label: feature
