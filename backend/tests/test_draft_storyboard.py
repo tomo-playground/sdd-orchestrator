@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
+
 from tests.conftest import SVC
 
 # ===========================================================================
@@ -59,6 +61,14 @@ class TestDraftStoryboardAPI:
             json={"title": "No Group"},
         )
         assert resp.status_code == 422
+
+    def test_draft_nonexistent_group_id(self, client):
+        """존재하지 않는 group_id로 요청 시 404를 반환한다."""
+        resp = client.post(
+            f"{SVC}/storyboards/draft",
+            json={"title": "Bad Group", "group_id": 99999},
+        )
+        assert resp.status_code == 404
 
 
 # ===========================================================================
@@ -139,3 +149,32 @@ class TestCreateDraft:
         sb = db_session.get(Storyboard, result["storyboard_id"])
 
         assert sb.version == 1
+
+    def test_draft_nonexistent_group_id_raises_404(self, db_session):
+        """존재하지 않는 group_id 전달 시 HTTPException(404)을 발생시킨다."""
+        from fastapi import HTTPException
+
+        from services.storyboard.crud import create_draft
+
+        with pytest.raises(HTTPException) as exc_info:
+            create_draft(db_session, "Bad Group", 99999)
+
+        assert exc_info.value.status_code == 404
+
+    def test_draft_soft_deleted_group_raises_404(self, db_session):
+        """soft-delete된 group_id로 요청 시 HTTPException(404)을 발생시킨다."""
+        from datetime import UTC, datetime
+
+        from fastapi import HTTPException
+
+        from models.group import Group
+        from services.storyboard.crud import create_draft
+
+        group = db_session.query(Group).filter(Group.id == 1).first()
+        group.deleted_at = datetime.now(UTC)
+        db_session.commit()
+
+        with pytest.raises(HTTPException) as exc_info:
+            create_draft(db_session, "Deleted Group Draft", 1)
+
+        assert exc_info.value.status_code == 404

@@ -27,7 +27,18 @@ def create_draft(db: Session, title: str, group_id: int) -> dict:
 
     Returns dict with storyboard_id, title, created=True.
     """
-    from services.storyboard.helpers import truncate_title
+    from models.group import Group
+
+    group = (
+        db.query(Group)
+        .filter(
+            Group.id == group_id,
+            Group.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not group:
+        raise HTTPException(status_code=404, detail=f"Group with id {group_id} not found")
 
     safe_title = truncate_title(title) if title else "Draft"
     logger.info("[Storyboard Draft] title=%s, group_id=%d", safe_title, group_id)
@@ -37,7 +48,11 @@ def create_draft(db: Session, title: str, group_id: int) -> dict:
         group_id=group_id,
     )
     db.add(db_storyboard)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(status_code=404, detail=f"Group with id {group_id} not found") from e
     db.refresh(db_storyboard)
 
     return {
