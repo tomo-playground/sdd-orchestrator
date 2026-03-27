@@ -10,7 +10,7 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 FRONTEND_DIR="${PROJECT_DIR}/frontend"
 GITHUB_LABEL="qa-patrol"
 ASSIGNEE="stopper2008"
@@ -136,15 +136,16 @@ RESULT_FILE="${RESULTS_DIR}/results_${TIMESTAMP}.json"
 
 if [[ -f "$RESULT_FILE" ]]; then
   FAILED_TESTS=$(jq -r '
-    .suites[]?.specs[]? |
-    select(.ok == false) |
+    [.. | objects | select(has("ok")) | select(.ok == false)] |
+    .[] |
     "- **\(.title)**: \(.tests[0]?.results[0]?.error?.message // "unknown error" | split("\n")[0])"
   ' "$RESULT_FILE" 2>/dev/null || echo "- (결과 파싱 실패)")
 else
   FAILED_TESTS="- (결과 파일 없음)"
 fi
 
-FAILED_COUNT=$(echo "$FAILED_TESTS" | grep -c "^\-" || echo "0")
+FAILED_COUNT=$(echo "$FAILED_TESTS" | grep -c "^\-" 2>/dev/null || true)
+FAILED_COUNT="${FAILED_COUNT:-0}"
 
 echo "  실패 테스트: ${FAILED_COUNT}건"
 

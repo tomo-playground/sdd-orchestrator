@@ -159,7 +159,7 @@ docs/
 | **PM Agent** | 로드맵/우선순위/문서 관리 | `/roadmap`, `/docs`, `/vrt`, `/test`, `/pm-check` |
 | **Prompt Engineer** | SD 프롬프트 최적화, 태그 시스템 | `/prompt-validate`, `/sd-status` |
 | **Storyboard Writer** | 스토리보드/스크립트, LangFuse 프롬프트 | `/roadmap` |
-| **QA Validator** | 품질 체크, 테스트 검증 | `/test`, `/review`, `/vrt` |
+| **QA Validator** | 품질 체크, 테스트 검증, QA Patrol 순찰 관리 | `/test`, `/review`, `/vrt`, `/qa-patrol` |
 | **FFmpeg Expert** | 영상 렌더링 + TTS/BGM + 오디오 후처리 | `/vrt`, `/roadmap` |
 | **UI/UX Engineer** | UI/UX 설계, 와이어프레임 | `/vrt`, `/test` |
 | **Frontend Dev** | Next.js/React, Zustand 상태 관리 | `/test frontend`, `/vrt` |
@@ -210,7 +210,7 @@ docs/
 | `services/agent/nodes/` 추가/변경 | LangFuse 연동 체크 |
 | Phase 완료 / 새 기능 착수 | PM 문서 동기화 / 명세 확인 |
 
-**설계 리뷰 시 담당 에이전트 참여**: `services/agent/nodes/` → Backend Dev + Storyboard Writer, `services/keywords/` → Prompt Engineer, `services/video/` → FFmpeg Expert, `models/` → DBA, `.github/` → Tech Lead, `frontend/` → Frontend Dev, 외부 API → Performance Engineer
+**설계 리뷰 시 담당 에이전트 참여**: `services/agent/nodes/` → Backend Dev + Storyboard Writer, `services/keywords/` → Prompt Engineer, `services/video/` → FFmpeg Expert, `models/` → DBA, `.github/` → Tech Lead, `frontend/` → Frontend Dev, `app/(app)/` 라우트 추가/삭제/이동 → QA Validator (qa-patrol config 동기화), 외부 API → Performance Engineer
 
 **구현→리뷰→수정 파이프라인**: 코드 변경 → Tech Lead 리뷰 자동 → WARNING/BLOCKER 즉시 수정 → 사용자 보고. 단순 설정/문서 변경은 리뷰 생략.
 

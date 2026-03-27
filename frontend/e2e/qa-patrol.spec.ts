@@ -1,7 +1,16 @@
 import { test, expect, type Page } from "@playwright/test";
+import {
+  PATROL_TIMEOUT,
+  PATROL_PAGES,
+  CORE_CHECKS,
+  EXTENDED_CHECKS,
+  STUDIO_TABS,
+} from "./qa-patrol.config";
 
 /**
  * QA Patrol — 핵심 플로우 자동 순찰
+ *
+ * 순찰 대상 변경 시 qa-patrol.config.ts만 수정.
  *
  * 감지 항목:
  * - 콘솔 에러 (JS errors)
@@ -73,136 +82,97 @@ async function assertNoCriticalErrors(page: Page, errors: PatrolError[]) {
   expect(critical, `Critical errors: ${JSON.stringify(critical)}`).toHaveLength(0);
 }
 
-// ── 순찰 대상 페이지 ──
-const PATROL_PAGES = [
-  { name: "홈", path: "/", selector: "h1, h2" },
-  {
-    name: "Studio 칸반",
-    path: "/studio",
-    selector: "영상 목록, 채널이 필요합니다, 시리즈를 만들어야",
-  },
-  { name: "새 영상", path: "/studio?new=true", selector: "button" },
-  { name: "Settings", path: "/settings", selector: "a" },
-  { name: "Library", path: "/library", selector: "h1, h2" },
-  { name: "Characters", path: "/library/characters", selector: "h1, h2, 캐릭터" },
-  { name: "Voices", path: "/library/voices", selector: "h1, h2" },
-  { name: "Styles", path: "/library/styles", selector: "h1, h2" },
-  { name: "LoRA", path: "/library/loras", selector: "h1, h2" },
-  { name: "Scripts", path: "/scripts", selector: "h1, h2" },
-  { name: "Storyboards", path: "/storyboards", selector: "h1, h2" },
-];
-
-// ── 고정 순찰 (핵심 4개) ──
+// ── Core 순찰 (핵심 4개) ──
 test.describe("QA Patrol — Core", () => {
   test("홈 접속", async ({ page }) => {
     const errors = setupErrorCollector(page);
-    await page.goto("/");
-    await expect(page.getByRole("link", { name: /홈/i })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole("link", { name: /스튜디오/i })).toBeVisible();
-    await expect(page.locator("h1, h2").first()).toBeVisible({ timeout: 15000 });
+    const cfg = CORE_CHECKS.home;
+    await page.goto(cfg.path);
+    for (const pattern of cfg.navLinks) {
+      await expect(page.getByRole("link", { name: pattern })).toBeVisible({
+        timeout: PATROL_TIMEOUT,
+      });
+    }
+    await expect(page.locator(cfg.contentSelector).first()).toBeVisible({
+      timeout: PATROL_TIMEOUT,
+    });
     await assertNoCriticalErrors(page, errors);
   });
 
   test("Studio 접속", async ({ page }) => {
     const errors = setupErrorCollector(page);
-    await page.goto("/studio");
-    await expect(
-      page
-        .getByText("영상 목록")
-        .or(page.getByText("채널이 필요합니다"))
-        .or(page.getByText("시리즈를 만들어야"))
-        .first()
-    ).toBeVisible({ timeout: 15000 });
+    const cfg = CORE_CHECKS.studio;
+    await page.goto(cfg.path);
+    let locator = page.getByText(cfg.contentTexts[0]);
+    for (const text of cfg.contentTexts.slice(1)) {
+      locator = locator.or(page.getByText(text));
+    }
+    await expect(locator.first()).toBeVisible({ timeout: PATROL_TIMEOUT });
     await assertNoCriticalErrors(page, errors);
   });
 
   test("새 영상", async ({ page }) => {
     const errors = setupErrorCollector(page);
-    await page.goto("/studio?new=true");
-    await expect(
-      page
-        .getByRole("button", { name: "채널" })
-        .or(page.getByRole("button", { name: /시리즈/ }))
-        .or(page.getByRole("button", { name: "대본", exact: true }))
-        .first()
-    ).toBeVisible({ timeout: 15000 });
+    const cfg = CORE_CHECKS.newVideo;
+    await page.goto(cfg.path);
+    let locator = page.getByRole("button", {
+      name: cfg.buttons[0].name,
+      exact: cfg.buttons[0].exact,
+    });
+    for (const btn of cfg.buttons.slice(1)) {
+      locator = locator.or(page.getByRole("button", { name: btn.name, exact: btn.exact }));
+    }
+    await expect(locator.first()).toBeVisible({ timeout: PATROL_TIMEOUT });
     await assertNoCriticalErrors(page, errors);
   });
 
   test("Settings 접속", async ({ page }) => {
     const errors = setupErrorCollector(page);
-    await page.goto("/settings");
-    await expect(
-      page
-        .getByRole("link", { name: /렌더 설정/i })
-        .or(page.getByRole("link", { name: /연동/i }))
-        .first()
-    ).toBeVisible({ timeout: 15000 });
+    const cfg = CORE_CHECKS.settings;
+    await page.goto(cfg.path);
+    let locator = page.getByRole("link", { name: cfg.links[0] });
+    for (const link of cfg.links.slice(1)) {
+      locator = locator.or(page.getByRole("link", { name: link }));
+    }
+    await expect(locator.first()).toBeVisible({ timeout: PATROL_TIMEOUT });
     await assertNoCriticalErrors(page, errors);
   });
 });
 
-// ── 확장 순찰 (Library + Scripts + Storyboards) ──
+// ── Extended 순찰 (config 기반 자동 생성) ──
 test.describe("QA Patrol — Extended", () => {
-  test("Library 메인", async ({ page }) => {
-    const errors = setupErrorCollector(page);
-    await page.goto("/library");
-    await expect(page.locator("h1, h2").first()).toBeVisible({ timeout: 15000 });
-    await assertNoCriticalErrors(page, errors);
-  });
-
-  test("Characters 목록", async ({ page }) => {
-    const errors = setupErrorCollector(page);
-    await page.goto("/library/characters");
-    await expect(page.locator("h1, h2, [data-testid]").first()).toBeVisible({ timeout: 15000 });
-    await assertNoCriticalErrors(page, errors);
-  });
-
-  test("Voices 목록", async ({ page }) => {
-    const errors = setupErrorCollector(page);
-    await page.goto("/library/voices");
-    await expect(page.locator("h1, h2").first()).toBeVisible({ timeout: 15000 });
-    await assertNoCriticalErrors(page, errors);
-  });
-
-  test("Styles 목록", async ({ page }) => {
-    const errors = setupErrorCollector(page);
-    await page.goto("/library/styles");
-    await expect(page.locator("h1, h2").first()).toBeVisible({ timeout: 15000 });
-    await assertNoCriticalErrors(page, errors);
-  });
-
-  test("LoRA 목록", async ({ page }) => {
-    const errors = setupErrorCollector(page);
-    await page.goto("/library/loras");
-    await expect(page.locator("h1, h2").first()).toBeVisible({ timeout: 15000 });
-    await assertNoCriticalErrors(page, errors);
-  });
-
-  test("Scripts 페이지", async ({ page }) => {
-    const errors = setupErrorCollector(page);
-    await page.goto("/scripts");
-    await expect(page.locator("h1, h2").first()).toBeVisible({ timeout: 15000 });
-    await assertNoCriticalErrors(page, errors);
-  });
-
-  test("Storyboards 목록", async ({ page }) => {
-    const errors = setupErrorCollector(page);
-    await page.goto("/storyboards");
-    await expect(page.locator("h1, h2").first()).toBeVisible({ timeout: 15000 });
-    await assertNoCriticalErrors(page, errors);
-  });
+  for (const check of EXTENDED_CHECKS) {
+    test(check.name, async ({ page }) => {
+      const errors = setupErrorCollector(page);
+      await page.goto(check.path);
+      let locator = page.locator(check.selector).first();
+      if (check.fallbackTexts) {
+        for (const text of check.fallbackTexts) {
+          locator = locator.or(page.getByText(text));
+        }
+      }
+      await expect(locator).toBeVisible({ timeout: PATROL_TIMEOUT });
+      await assertNoCriticalErrors(page, errors);
+    });
+  }
 });
 
-// ── 랜덤 순찰 (매 실행마다 다른 3페이지 선택) ──
+// ── 랜덤 순찰 (날짜 기반 결정론적 선택 — worker 간 동일 제목 보장) ──
 test.describe("QA Patrol — Random", () => {
-  const shuffled = [...PATROL_PAGES].sort(() => Math.random() - 0.5).slice(0, 3);
+  const daySeed = new Date().toISOString().slice(0, 10);
+  const hash = [...daySeed].reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const picked = Array.from(
+    { length: 3 },
+    (_, i) => PATROL_PAGES[(hash + i * 7) % PATROL_PAGES.length]
+  );
 
-  for (const target of shuffled) {
+  for (const target of picked) {
     test(`랜덤 순찰: ${target.name} (${target.path})`, async ({ page }) => {
       const errors = setupErrorCollector(page);
       await page.goto(target.path);
-      await expect(page.locator("h1, h2, button, a").first()).toBeVisible({ timeout: 15000 });
+      await expect(page.locator("h1, h2, button, a").first()).toBeVisible({
+        timeout: PATROL_TIMEOUT,
+      });
       await assertNoCriticalErrors(page, errors);
     });
   }
@@ -210,16 +180,12 @@ test.describe("QA Patrol — Random", () => {
 
 // ── Studio 탭 전환 순찰 ──
 test.describe("QA Patrol — Studio Tabs", () => {
-  const TABS = ["대본", "준비", "이미지", "게시"];
-
   test("Studio 탭 전환", async ({ page }) => {
     const errors = setupErrorCollector(page);
     await page.goto("/studio?new=true");
-
-    // 에디터가 로드될 때까지 대기
     await page.waitForTimeout(3000);
 
-    for (const tab of TABS) {
+    for (const tab of STUDIO_TABS) {
       const tabButton = page.getByRole("button", { name: tab, exact: true });
       if (await tabButton.isVisible().catch(() => false)) {
         await tabButton.click();

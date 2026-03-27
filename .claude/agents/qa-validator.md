@@ -46,7 +46,13 @@ allowed_tools: ["mcp__playwright__*", "mcp__memory__*", "mcp__postgres__*", "mcp
 - 문제 해결 후 검증하고 해결 방법을 기록
 - 반복되는 이슈 패턴 식별 및 문서화
 
-### 5. 평가 실행 & 운영 모니터링
+### 5. QA Patrol 순찰 관리
+- `frontend/e2e/qa-patrol.config.ts` — 순찰 대상 페이지/셀렉터 설정 SSOT
+- `frontend/e2e/qa-patrol.spec.ts` — 순찰 테스트 로직
+- **라우트 변경 시 동기화 필수**: `app/(app)/` 하위 라우트가 추가/삭제/이동되면 `qa-patrol.config.ts`의 `PATROL_PAGES`, `CORE_CHECKS`, `EXTENDED_CHECKS` 업데이트
+- 설계 리뷰에서 라우트 변경 감지 시 config 동기화 여부를 반드시 확인
+
+### 6. 평가 실행 & 운영 모니터링
 - Evaluation Run 실행 (31개 표준 테스트 시나리오)
 - 실행 결과를 **Prompt Engineer**에게 전달하여 해석/개선 의뢰
 - 런타임 품질 모니터링 (Match Rate 급락, 생성 실패율 증가 감지)
