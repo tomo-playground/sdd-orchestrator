@@ -22,6 +22,24 @@ const localStorageMock = vi.hoisted(() => {
   return mock;
 });
 
+vi.mock("../../app/hooks/usePresets", () => ({
+  usePresets: () => ({
+    emotionPresets: [
+      { id: "excited", label: "밝게", emotion: "excited" },
+      { id: "calm", label: "차분", emotion: "calm" },
+      { id: "tense", label: "긴장", emotion: "tense" },
+      { id: "sentimental", label: "감성", emotion: "sentimental" },
+    ],
+    bgmMoodPresets: [
+      { id: "upbeat", label: "경쾌", mood: "upbeat", prompt: "cheerful upbeat bgm" },
+      { id: "calm", label: "잔잔", mood: "calm", prompt: "calm peaceful bgm" },
+      { id: "tense", label: "긴박", mood: "tense", prompt: "tense dramatic bgm" },
+      { id: "romantic", label: "로맨틱", mood: "romantic", prompt: "romantic bgm" },
+    ],
+    isLoading: false,
+  }),
+}));
+
 import DirectorControlPanel from "../../app/components/studio/DirectorControlPanel";
 import { useStoryboardStore } from "../../app/store/useStoryboardStore";
 import { useRenderStore } from "../../app/store/useRenderStore";
