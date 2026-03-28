@@ -1,0 +1,22 @@
+# SDD Orchestrator — 프로젝트 설정
+# 이 파일은 오케스트레이터 엔진에 프로젝트별 값을 주입합니다.
+# 새 프로젝트에서 사용할 때는 이 파일만 수정하면 됩니다.
+
+project:
+  github:
+    owner: tomo-playground
+    repo: shorts-producer
+    assignee: stopper2008
+  sentry:
+    org: tomo-playground
+    projects:
+      - shorts-producer-backend
+      - shorts-producer-frontend
+      - shorts-producer-audio
+  tasks:
+    dir: .claude/tasks
+    backlog: backlog.md
+
+engine:
+  cycle_interval: 180
+  max_parallel_runs: 2

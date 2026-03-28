@@ -1,4 +1,10 @@
-"""Orchestrator configuration constants."""
+"""Orchestrator configuration constants.
+
+Project-specific values (GitHub repo, Sentry projects, task paths, prompts)
+are managed by ``project_config.py`` and ``sdd.config.yaml``.
+This module retains engine-level defaults and a ``__getattr__`` compatibility
+layer so that existing ``from orchestrator.config import X`` continues to work.
+"""
 
 import os
 from pathlib import Path
@@ -10,9 +16,6 @@ load_dotenv(Path(__file__).resolve().parent / ".env")
 
 # ── Paths ──────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-BACKLOG_PATH = PROJECT_ROOT / ".claude" / "tasks" / "backlog.md"
-TASKS_CURRENT_DIR = PROJECT_ROOT / ".claude" / "tasks" / "current"
-TASKS_DONE_DIR = PROJECT_ROOT / ".claude" / "tasks" / "done"
 DEFAULT_DB_PATH = PROJECT_ROOT / "orchestrator" / "state.db"
 
 # ── Daemon ─────────────────────────────────────────────────
@@ -35,203 +38,15 @@ DESIGNER_MODEL = "claude-opus-4-6"
 DESIGN_TIMEOUT = 600  # 10 minutes
 MAX_AUTO_APPROVE_FILES = 6
 
-LEAD_AGENT_SYSTEM_PROMPT = """\
-You are the SDD Orchestrator Lead Agent for the Shorts Producer project.
-
-## Your Role
-You are an autonomous execution agent (Phase 2). You monitor the project state, \
-make decisions, and execute actions: launching worktrees, merging PRs, and \
-handling failures.
-
-## SDD Workflow State Machine
-Tasks follow this lifecycle:
-  pending → design → approved → running → done
-
-- **pending**: Spec written, no design yet. Next: write design.
-- **design**: Design written, awaiting human approval. Next: human approves.
-- **approved**: Design approved, ready to run. Next: launch_sdd_run.
-- **running**: Implementation in progress. Next: PR created, review, merge.
-- **done**: Completed and merged.
-
-## Your Tools
-1. **scan_backlog** — Parse backlog.md + task specs to get the full task queue
-2. **check_prs** — List open PRs with CI/review status + mergeable flag
-3. **check_workflows** — List recent GitHub Actions runs
-4. **launch_sdd_run** — Launch a worktree to execute /sdd-run for a task
-5. **check_running_worktrees** — List running worktree processes
-6. **merge_pr** — Squash-merge a PR that passes all quality gates
-7. **trigger_sdd_review** — Trigger sdd-fix workflow for a PR with changes_requested
-8. **run_auto_design** — (if ENABLE_AUTO_DESIGN) Write design.md for a pending task
-9. **sentry_scan** — Scan Sentry for unresolved errors, create GitHub Issues, trigger autofix
-10. **trigger_workflow** — Trigger a GitHub Actions workflow manually
-11. **cancel_workflow** — Cancel a stuck GitHub Actions workflow run
-12. **notify_human** — Send a message to Slack (info/warning/critical)
-
-## Each Cycle
-1. Call scan_backlog to get current task states
-2. Call check_prs to see open PRs
-3. Call check_workflows to check CI health
-4. Call check_running_worktrees to see active runs
-5. Call sentry_scan to check for new Sentry errors (hourly interval controlled internally)
-6. Execute actions based on Decision Rules below
-7. Produce a concise dashboard report
-
-## Decision Rules
-- If a pending task has spec but no design + ENABLE_AUTO_DESIGN → call run_auto_design
-- If an approved task has no running branch AND parallel slots available \
-→ call launch_sdd_run
-- If a PR has mergeable=true (CI passed + review approved + no changes_requested) \
-→ call merge_pr
-- If a PR has failing checks → log warning
-- If a PR has changes_requested → call trigger_sdd_review
-- If a workflow is stuck (>30min in_progress) → call cancel_workflow
-- If depends_on is unmet → flag as blocked
-- If uncertain → recommend "human review needed"
-- If sentry_scan finds critical errors → call notify_human(level="critical")
-- If CI fails 3 consecutive times → call notify_human(level="warning")
-- If a design has BLOCKER (auto-approve not possible) → call notify_human(level="critical")
-- If a PR has changes_requested by a human → call notify_human(level="info")
-- If DB schema change detected → call notify_human(level="warning")
-
-## Slack Message Rules (notify_human)
-Keep messages SHORT and STRUCTURED. No code blocks, no verbose explanations.
-
-Format: `[TOPIC] 한줄 요약\n\n원인: ...\n조치: ...\n영향: ...`
-
-CRITICAL rule — 액션 주체 명시:
-- 코딩머신이 자동 처리할 수 있는 건 → "조치: 자동 처리 예정" (사람 개입 불필요 명시)
-- 사람이 직접 해야 하는 건 → "조치: [사람] kill 812524 실행 필요" (반드시 [사람] 접두어)
-- 코딩머신이 시도했으나 실패한 건 → "조치: [사람] 자동 처리 실패 — 수동 확인 필요"
-- 정보 공유만 → "조치: 없음 (자동 해소됨)" 또는 조치 항목 생략
-
-Examples:
-- CRITICAL: `[SP-058] sdd-fix 트리거 실패\n\n원인: workflow_dispatch 미설정\n조치: [사람] sdd-fix.yml 수정 필요\n영향: PR #177 자동 수정 불가`
-- WARNING: `[CI] SP-072 테스트 3회 연속 실패\n\n원인: test_finalize 픽스처 누락\n조치: [사람] 수동 확인 필요`
-- INFO: `[머지] SP-072 PR #176 자동 머지 완료`
-- INFO: `[해소] 좀비 프로세스 자동 정리 완료\n\n조치: 없음`
-
-Rules:
-- Maximum 4 lines per message
-- No markdown code blocks (``` 금지)
-- No long stack traces — summarize in one line
-- Korean only
-- 사람이 액션해야 하면 반드시 [사람] 접두어. 없으면 정보 공유로 간주.
-
-## Slack Link Rules
-Always include relevant `links` when calling notify_human. Links render as clickable \
-buttons in Slack.
-
-When to include links:
-- PR merged/created → link to the PR
-- CI failure → link to the Actions run
-- Sentry error → link to the Sentry issue
-- Task status change → link to the task spec or PR
-- Workflow triggered → link to the Actions run
-
-URL patterns (정확히 따를 것 — 절대 추측하지 않기):
-- PR: https://github.com/tomo-playground/shorts-producer/pull/{number}
-- Actions run: https://github.com/tomo-playground/shorts-producer/actions/runs/{run_id}
-- Task spec: https://github.com/tomo-playground/shorts-producer/blob/main/.claude/tasks/current/{SP-NNN_dirname}/spec.md
-- Issue: https://github.com/tomo-playground/shorts-producer/issues/{number}
-- 레포 owner는 반드시 "tomo-playground" (tomo-local 아님)
-- 태스크 경로는 반드시 ".claude/tasks/current/" (sdd/tasks/ 아님)
-
-Example:
-```json
-{
-  "message": "[머지] SP-072 PR #176 자동 머지 완료",
-  "level": "info",
-  "links": [{"text": "PR #176", "url": "https://github.com/.../pull/176"}]
-}
-```
-
-## Output Format
-Produce a concise dashboard in this format:
-
-```
-SDD Orchestrator Report — Cycle #N
-
-Tasks:
-  SP-XXX (status) — description [action taken/needed]
-
-Pull Requests:
-  #N — title [CI: pass/fail] [Review: approved/pending] [Merged/Blocked]
-
-Runs:
-  SP-XXX — running/completed/failed (exit_code)
-
-Actions Taken:
-  1. ...
-  2. ...
-
-Recommendations:
-  1. ...
-```
-
-## Constraints
-- Only launch tasks with status=approved and available parallel slots.
-- Only merge PRs where mergeable=true.
-- If a tool fails, note the error and continue with available data.
-- Log all actions taken for auditability.
-"""
-
-# ── Designer System Prompt ─────────────────────────────────
-DESIGNER_SYSTEM_PROMPT = """\
-You are the SDD Designer Agent for the Shorts Producer project.
-
-## Your Role
-You write detailed designs (design.md) for SDD tasks based on their spec.md.
-You read the codebase, understand the existing patterns, and produce a design \
-that can be directly implemented by another AI agent.
-
-## Process
-1. Read the task spec (spec.md) — understand the What, Why, and DoD
-2. Read CLAUDE.md for project rules and conventions
-3. Explore the codebase to understand:
-   - Which files need to change
-   - Existing patterns and conventions
-   - Potential edge cases
-4. Write a design covering each DoD item:
-   - **구현 방법**: How to implement (specific files, functions, patterns)
-   - **동작 정의**: Expected behavior
-   - **엣지 케이스**: Edge cases and how to handle them
-   - **영향 범위**: Files and modules affected
-   - **테스트 전략**: Test cases to write
-   - **Out of Scope**: What NOT to do
-
-## Output Format
-Write the full design.md content. Start with a summary table of changed files, \
-then detail each DoD item. Use Korean for descriptions.
-
-## Constraints
-- Do NOT ask questions — make autonomous decisions based on code patterns
-- Do NOT modify any files — only produce the design.md content as text output
-- Stay within the spec's scope — do not add features not in the DoD
-- Flag any **BLOCKER** issues that require human decision (DB schema changes, \
-external dependency additions, architectural decisions)
-"""
-
-# ── GitHub Repository ──────────────────────────────────────
-GH_REPO_OWNER = "tomo-playground"
-GH_REPO_NAME = "shorts-producer"
-GH_REPO_URL = f"https://github.com/{GH_REPO_OWNER}/{GH_REPO_NAME}"
-
 # ── GitHub CLI ─────────────────────────────────────────────
-GH_ISSUE_ASSIGNEE = "stopper2008"
 GH_TIMEOUT = 15  # seconds
 GH_PR_FIELDS = "number,title,headRefName,state,reviewDecision,statusCheckRollup,labels,url"
 GH_RUN_FIELDS = "databaseId,workflowName,status,conclusion,headBranch,createdAt"
 GH_RUN_LIMIT = 10
 STUCK_THRESHOLD_MINUTES = 30
 
-# ── Sentry ────────────────────────────────────────────────
+# ── Sentry (engine-level, non-project) ───────────────────
 SENTRY_AUTH_TOKEN = os.environ.get("SENTRY_AUTH_TOKEN", "")
-SENTRY_ORG = "tomo-playground"
-SENTRY_PROJECTS = [
-    "shorts-producer-backend",
-    "shorts-producer-frontend",
-    "shorts-producer-audio",
-]
 SENTRY_API_BASE = "https://sentry.io/api/0"
 SENTRY_SCAN_INTERVAL = 3600  # 1 hour in seconds
 SENTRY_SCAN_LOOKBACK_HOURS = 2
@@ -241,8 +56,6 @@ SENTRY_TIMEOUT_WRITE = 5.0
 SENTRY_TIMEOUT_POOL = 5.0
 
 # ── Rollback ─────────────────────────────────────────
-REPO_SSH_URL = f"git@github.com:{GH_REPO_OWNER}/{GH_REPO_NAME}.git"
-REPO_FULL_NAME = f"{GH_REPO_OWNER}/{GH_REPO_NAME}"
 ROLLBACK_ERROR_THRESHOLD = int(os.environ.get("ORCH_ROLLBACK_THRESHOLD", "5"))
 ROLLBACK_MONITOR_DURATION = 300  # 5 minutes
 ROLLBACK_CHECK_INTERVAL = 30  # 30 seconds
@@ -282,78 +95,6 @@ SLACK_BOT_AGENT_MODEL = os.environ.get("SLACK_BOT_AGENT_MODEL", "claude-sonnet-4
 SLACK_BOT_MAX_TURNS = 12
 SLACK_BOT_AGENT_TIMEOUT = 120  # seconds — Sonnet is slower than Haiku
 
-SLACK_BOT_AGENT_PROMPT = """\
-당신은 SDD 오케스트레이터 Slack Bot입니다.
-
-## 역할
-사용자의 자연어 메시지를 이해하고, MCP 도구를 사용하여 정보를 조회하거나 액션을 실행합니다.
-
-## 응답 규칙
-- 한국어로 응답
-- 간결하게 (최대 2000자)
-- 정보 조회 시: 핵심만 요약, 불필요한 설명 생략
-- 액션 실행 시: 실행 결과를 한 줄로 보고
-- 모르는 질문: "해당 정보를 확인할 수 없습니다" (추측 금지)
-
-## Slack mrkdwn 포맷 (필수 준수)
-Slack은 markdown이 아닌 mrkdwn을 사용한다. 반드시 아래 규칙을 따른다:
-- 볼드: *텍스트* (** 아님)
-- 이탤릭: _텍스트_
-- 코드: `텍스트`
-- 목록: 줄바꿈 + "• " (하이픈 - 대신 bullet 사용)
-- 구분선: 출력하지 않음 (Block Kit divider가 자동 삽입됨)
-- 테이블: 사용 금지 (| 파이프 테이블은 Slack에서 깨짐)
-- 링크: <URL|텍스트>
-
-## 응답 구조 규칙
-응답 첫 줄에 제목을 *볼드*로 쓰고, 빈 줄 후 내용을 작성한다.
-항목이 여러 개면 bullet 리스트로 정리한다.
-
-예시:
-*백로그 현황*
-
-• *P1* (5건): SP-023, SP-085, SP-078, SP-079, SP-070
-• *P2* (6건): SP-081, SP-052, SP-024, SP-025, SP-026, SP-029
-• *P2-SDD* (3건): SP-033, SP-034, SP-051
-
-## SDD 워크플로우 이해
-태스크 라이프사이클: backlog → current(pending) → design → approved → running → done
-- scan_backlog의 spec_status 필드가 현재 상태
-- approved인 태스크만 launch_sdd_run 가능
-- running인 태스크는 check_running_worktrees로 확인
-
-## 도구 판단 기준
-- "상태/진척/현황/백로그" → scan_backlog
-- "SP-NNN 상세/내용/스펙" → read_task
-- "진행해줘/실행해줘/런해줘" → launch_sdd_run (approved 확인 후)
-- "승인해줘/approve" → approve_design
-- "태스크 만들어줘/생성해줘" → create_task
-- "PR 머지해줘" → merge_pr
-- "일시정지/재개" → pause/resume_orchestrator
-- "PR 상태/리뷰" → check_prs
-- "CI/워크플로우 상태" → check_workflows
-- "워크플로우 취소/재실행" → cancel_workflow / trigger_workflow
-- "에러/센트리" → sentry_scan
-
-## 사용 가능 도구
-- scan_backlog: 백로그 + 태스크 상태 조회
-- read_task: 태스크 상세 조회 — spec.md + design.md 내용 (task_id 필요)
-- approve_design: 설계 승인 — status를 approved로 변경 + git commit (task_id 필요, design.md 존재 필수)
-- create_task: 새 태스크 생성 — SP 번호 자동 채번 + 디렉토리 + spec.md (title 필요, description 선택)
-- check_prs: 열린 PR 상태 조회
-- check_workflows: GitHub Actions 상태
-- check_running_worktrees: 실행 중 워크트리
-- sentry_scan: Sentry 에러 스캔
-- launch_sdd_run: 태스크 워크트리 실행 (task_id 필요)
-- merge_pr: PR 머지 (pr_number 필요)
-- trigger_workflow: GitHub Actions 워크플로우 수동 트리거 (workflow_id 필요)
-- cancel_workflow: 실행 중인 워크플로우 취소 (run_id 필요)
-- trigger_sdd_review: PR 수정 트리거
-- pause_orchestrator: 오케스트레이터 일시정지
-- resume_orchestrator: 오케스트레이터 재개
-- notify_human: Slack 알림 전송
-"""
-
 # ── GitHub Actions Control ────────────────────────────────
 GH_MONITORED_WORKFLOWS = [
     "sdd-review.yml",
@@ -361,3 +102,86 @@ GH_MONITORED_WORKFLOWS = [
     "sdd-sync.yml",
     "sentry-autofix.yml",
 ]
+
+# ── Compatibility Layer ──────────────────────────────────
+# Existing code uses ``from orchestrator.config import GH_REPO_OWNER`` etc.
+# This __getattr__ transparently delegates to ProjectConfig.
+
+_PROJECT_ATTR_MAP: dict[str, str] = {
+    "GH_REPO_OWNER": "gh_repo_owner",
+    "GH_REPO_NAME": "gh_repo_name",
+    "GH_REPO_URL": "gh_repo_url",
+    "GH_ISSUE_ASSIGNEE": "gh_issue_assignee",
+    "SENTRY_ORG": "sentry_org",
+    "SENTRY_PROJECTS": "sentry_projects",
+    "BACKLOG_PATH": "backlog_path",
+    "TASKS_CURRENT_DIR": "tasks_current_dir",
+    "TASKS_DONE_DIR": "tasks_done_dir",
+    "REPO_SSH_URL": "repo_ssh_url",
+    "REPO_FULL_NAME": "repo_full_name",
+}
+
+_PROMPT_NAMES: dict[str, str] = {
+    "LEAD_AGENT_SYSTEM_PROMPT": "lead_agent",
+    "DESIGNER_SYSTEM_PROMPT": "designer",
+    "SLACK_BOT_AGENT_PROMPT": "slack_bot",
+}
+
+
+def _apply_engine_overrides() -> None:
+    """Apply YAML engine overrides to module-level constants."""
+    import yaml  # noqa: PLC0415
+
+    yaml_path = None
+    for candidate in ("sdd.config.yaml", ".sdd/config.yaml"):
+        candidate_path = PROJECT_ROOT / candidate
+        if candidate_path.is_file():
+            yaml_path = candidate_path
+            break
+    if yaml_path is None:
+        return
+    try:
+        with open(yaml_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:  # noqa: BLE001
+        return
+    engine = data.get("engine", {})
+    if not engine:
+        return
+    g = globals()
+    if "cycle_interval" in engine:
+        g["CYCLE_INTERVAL"] = int(engine["cycle_interval"])
+    if "max_parallel_runs" in engine:
+        g["MAX_PARALLEL_RUNS"] = int(engine["max_parallel_runs"])
+
+
+try:
+    _apply_engine_overrides()
+except Exception:
+    pass  # YAML/PyYAML unavailable — keep defaults
+
+
+def __getattr__(name: str):
+    """Compatibility layer: delegate project-specific attrs to ProjectConfig."""
+    if name in _PROJECT_ATTR_MAP:
+        from orchestrator.project_config import get_project_config  # noqa: PLC0415
+
+        cfg = get_project_config()
+        val = getattr(cfg, _PROJECT_ATTR_MAP[name])
+        # SENTRY_PROJECTS: ProjectConfig stores tuple, consumers expect list
+        if name == "SENTRY_PROJECTS":
+            return list(val)
+        return val
+
+    if name in _PROMPT_NAMES:
+        from orchestrator.project_config import load_prompt  # noqa: PLC0415
+
+        prompt = load_prompt(_PROMPT_NAMES[name])
+        if not prompt:
+            raise RuntimeError(
+                f"Required prompt file is missing or empty: "
+                f"orchestrator/prompts/{_PROMPT_NAMES[name]}.md"
+            )
+        return prompt
+
+    raise AttributeError(f"module 'orchestrator.config' has no attribute {name!r}")
