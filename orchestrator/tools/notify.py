@@ -26,15 +26,15 @@ logger = logging.getLogger(__name__)
 _last_slack_sent: float = 0
 
 
-async def _send_slack_message(text: str, blocks: list | None = None) -> bool:
-    """Send a message to Slack via Bot Token API."""
+async def _send_slack_message(text: str, blocks: list | None = None) -> str | None:
+    """Send a message to Slack via Bot Token API. Returns message ts or None."""
     global _last_slack_sent  # noqa: PLW0603
 
     from orchestrator.config import SLACK_BOT_ALLOWED_CHANNEL, SLACK_BOT_TOKEN
 
     if not SLACK_BOT_TOKEN or not SLACK_BOT_ALLOWED_CHANNEL:
         logger.info("Slack Bot not configured, logging only: %s", text[:200])
-        return False
+        return None
 
     # Rate limit guard
     elapsed = time.monotonic() - _last_slack_sent
@@ -60,12 +60,12 @@ async def _send_slack_message(text: str, blocks: list | None = None) -> bool:
             _last_slack_sent = time.monotonic()
             data = resp.json()
             if data.get("ok"):
-                return True
+                return data.get("ts")
             logger.warning("Slack Bot API error: %s", data.get("error", "unknown"))
-            return False
+            return None
     except httpx.TimeoutException:
         logger.warning("Slack send timeout")
-        return False
+        return None
     except Exception:
         logger.exception("Slack send error")
         return False
@@ -80,17 +80,17 @@ async def do_notify_human(args: dict) -> dict:
 
     blocks, fallback = notification_blocks(level, message, links)
 
-    sent = await _send_slack_message(fallback, blocks)
-    channel = "slack" if sent else "log_only"
+    ts = await _send_slack_message(fallback, blocks)
+    channel = "slack" if ts else "log_only"
 
-    if not sent:
+    if not ts:
         logger.info("[%s] %s", level.upper(), message)
 
     return {
         "content": [
             {
                 "type": "text",
-                "text": json.dumps({"sent": sent, "channel": channel}),
+                "text": json.dumps({"sent": bool(ts), "channel": channel, "ts": ts}),
             }
         ]
     }
@@ -133,7 +133,7 @@ async def send_daily_report(summary: dict) -> bool:
     """Format and send a daily report to Slack using Block Kit."""
 
     blocks, fallback = daily_report_blocks(summary)
-    return await _send_slack_message(fallback, blocks)
+    return bool(await _send_slack_message(fallback, blocks))
 
 
 # ── CLI entrypoint ──────────────────────────────────────────
