@@ -42,7 +42,6 @@
 - [ ] SP-098 — Direct 3패널 레이아웃 통합 — 씬 목록|씬 카드|속성 패널 + feature flag | scope: frontend | depends: SP-096, SP-097
 
 ### Phase D: Library 통일 (1~2주)
-- [ ] SP-100 — Styles → Master-Detail 전환 | scope: frontend | depends: SP-099
 - [ ] SP-101 — Voices → Master-Detail 전환 | scope: frontend | depends: SP-099
 - [ ] SP-103 — LoRAs 탭 제거 + Admin 이전 | scope: frontend | depends: SP-100
 
