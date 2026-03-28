@@ -325,7 +325,9 @@ class OrchestratorDaemon:
             # 진행 중 태스크
             if TASKS_CURRENT_DIR.exists():
                 for entry in sorted(TASKS_CURRENT_DIR.iterdir()):
-                    spec = entry / "spec.md" if entry.is_dir() else entry
+                    if not entry.is_dir() or not entry.name.startswith("SP-"):
+                        continue
+                    spec = entry / "spec.md"
                     if not spec.exists():
                         continue
                     sp_id = entry.name.split("_")[0]
