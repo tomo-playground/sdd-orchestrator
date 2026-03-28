@@ -5,16 +5,13 @@ Shorts Producer 이미지 생성을 위한 ComfyUI 설정 가이드.
 
 ---
 
-## 1. ComfyUI 설치 (Docker)
+## 1. ComfyUI 설치 (로컬)
 
 ```bash
-cd /path/to/shorts-producer
-docker compose build comfyui
-docker compose up -d comfyui
+# ComfyUI 로컬 실행
+./run_comfyui.sh
 ```
 
-**Dockerfile:** `comfyui-docker/Dockerfile`
-**docker-compose.yml** 서비스: `comfyui`
 **포트:** `8188`
 
 ### 1.1 체크포인트 모델
