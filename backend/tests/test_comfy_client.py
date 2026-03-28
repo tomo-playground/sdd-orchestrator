@@ -1,4 +1,4 @@
-"""Tests for ComfyUIClient — SDClientBase implementation (SP-022)."""
+"""Tests for ComfyUIClient — SDClientBase implementation (SP-022 + SP-115)."""
 
 from __future__ import annotations
 
@@ -6,6 +6,19 @@ import base64
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+# Helper to create async mock for patch.object on async methods
+_async_upload = lambda rv: AsyncMock(return_value=rv)  # noqa: E731
+_async_mask_pair = lambda c, b: AsyncMock(return_value=(c, b))  # noqa: E731
+
+
+def _make_client() -> ComfyUIClient:
+    """Create ComfyUIClient pre-configured to avoid network calls in tests."""
+    client = ComfyUIClient(base_url="http://test:8188")
+    client._loras_fetched = True
+    client._current_checkpoint = "test_model.safetensors"
+    return client
+
 
 from services.sd_client import SDClientBase
 from services.sd_client.comfyui import ComfyUIClient
@@ -477,152 +490,233 @@ class TestComfyUIClientGetProgress:
         assert result.progress == 1.0
 
 
-class TestBypassIpAdapter:
-    """_bypass_ip_adapter() — Link Re-routing for IP-Adapter disable."""
-
-    def test_reroutes_sampler_to_dynthres(self):
-        """When sampler points to 14_ip_apply, should reroute to 5_dynthres."""
-        workflow = {
-            "5_dynthres": {"class_type": "DynamicThresholdingFull", "inputs": {}},
-            "14_ip_apply": {"class_type": "IPAdapterAdvanced", "inputs": {}},
-            "9_sampler": {
-                "class_type": "KSampler",
-                "inputs": {"model": ["14_ip_apply", 0]},
-            },
-        }
-        ComfyUIClient._bypass_ip_adapter(workflow)
-        assert workflow["9_sampler"]["inputs"]["model"] == ["5_dynthres", 0]
-
-    def test_noop_when_already_dynthres(self):
-        """When sampler already points to dynthres, should be a no-op."""
-        workflow = {
-            "9_sampler": {
-                "class_type": "KSampler",
-                "inputs": {"model": ["5_dynthres", 0]},
-            },
-        }
-        ComfyUIClient._bypass_ip_adapter(workflow)
-        assert workflow["9_sampler"]["inputs"]["model"] == ["5_dynthres", 0]
-
-    def test_noop_when_no_sampler(self):
-        """When 9_sampler doesn't exist, should not crash."""
-        workflow = {"other_node": {"class_type": "Foo", "inputs": {}}}
-        ComfyUIClient._bypass_ip_adapter(workflow)  # no error
+# ── SP-115: Dual IP-Adapter (Background + Character) ────────────────────
 
 
-class TestIpAdapterWorkflowIntegration:
-    """IP-Adapter workflow node presence and chain (SP-113 DoD 1/4)."""
+class TestWorkflowBgIpAdapterNodes:
+    """SP-115 DoD 1: Workflow node structure for dual IP-Adapter."""
 
-    def test_scene_single_ip_adapter_nodes_exist(self):
-        """scene_single.json should contain 12_ip_loader, 13_ip_image, 14_ip_apply."""
+    def test_scene_single_bg_ip_adapter_nodes_exist(self):
+        """scene_single.json must contain background IP-Adapter nodes."""
         workflow, _ = load_workflow("scene_single")
-        assert "12_ip_loader" in workflow
-        assert "13_ip_image" in workflow
-        assert "14_ip_apply" in workflow
-        assert workflow["12_ip_loader"]["class_type"] == "IPAdapterUnifiedLoader"
-        assert workflow["13_ip_image"]["class_type"] == "LoadImage"
-        assert workflow["14_ip_apply"]["class_type"] == "IPAdapterAdvanced"
+        assert "15_bg_ip_apply" in workflow
+        assert "15_bg_ref_image" in workflow
+        assert "15b_bg_mask_image" in workflow
+        assert "15c_bg_mask" in workflow
+        assert workflow["15_bg_ip_apply"]["class_type"] == "IPAdapterAdvanced"
+        assert workflow["15_bg_ref_image"]["class_type"] == "LoadImage"
+        assert workflow["15c_bg_mask"]["class_type"] == "ImageToMask"
 
-    def test_scene_single_ip_adapter_chain(self):
-        """14_ip_apply should feed into 9_sampler model input."""
+    def test_scene_single_char_mask_nodes_exist(self):
+        """scene_single.json must contain character mask nodes."""
         workflow, _ = load_workflow("scene_single")
+        assert "13b_char_mask_image" in workflow
+        assert "13b_char_mask" in workflow
+        assert workflow["13b_char_mask"]["class_type"] == "ImageToMask"
+
+    def test_scene_single_bg_char_chain(self):
+        """Chain: dynthres → 15_bg_ip_apply → 14_ip_apply → 9_sampler."""
+        workflow, _ = load_workflow("scene_single")
+        # bg_ip_apply takes model from dynthres
+        assert workflow["15_bg_ip_apply"]["inputs"]["model"] == ["5_dynthres", 0]
+        # char ip_apply takes model from bg_ip_apply (chaining)
+        assert workflow["14_ip_apply"]["inputs"]["model"] == ["15_bg_ip_apply", 0]
+        # sampler takes model from char ip_apply
         assert workflow["9_sampler"]["inputs"]["model"] == ["14_ip_apply", 0]
-        assert workflow["14_ip_apply"]["inputs"]["model"] == ["12_ip_loader", 0]
 
-    def test_scene_2p_ip_adapter_nodes_exist(self):
-        """scene_2p.json should contain IP-Adapter nodes."""
-        workflow, _ = load_workflow("scene_2p")
-        assert "12_ip_loader" in workflow
-        assert "13_ip_image" in workflow
-        assert "14_ip_apply" in workflow
+    def test_scene_single_attn_mask_connected(self):
+        """Both IP-Adapter nodes must have attn_mask inputs."""
+        workflow, _ = load_workflow("scene_single")
+        assert workflow["14_ip_apply"]["inputs"]["attn_mask"] == ["13b_char_mask", 0]
+        assert workflow["15_bg_ip_apply"]["inputs"]["attn_mask"] == ["15c_bg_mask", 0]
 
-    def test_scene_2p_ip_adapter_chain(self):
-        """2P: sampler model → 14_ip_apply, ControlNet on conditioning (independent)."""
+    def test_scene_single_shared_ip_model_clip(self):
+        """Both IP-Adapter nodes share the same ip_model and clip_vision."""
+        workflow, _ = load_workflow("scene_single")
+        assert workflow["14_ip_apply"]["inputs"]["ipadapter"] == ["12_ip_model", 0]
+        assert workflow["15_bg_ip_apply"]["inputs"]["ipadapter"] == ["12_ip_model", 0]
+        assert workflow["14_ip_apply"]["inputs"]["clip_vision"] == ["12b_clip_vision", 0]
+        assert workflow["15_bg_ip_apply"]["inputs"]["clip_vision"] == ["12b_clip_vision", 0]
+
+    def test_scene_2p_bg_ip_adapter_nodes_exist(self):
+        """scene_2p.json must also contain background IP-Adapter nodes."""
         workflow, _ = load_workflow("scene_2p")
+        assert "15_bg_ip_apply" in workflow
+        assert "15_bg_ref_image" in workflow
+        assert "13b_char_mask_image" in workflow
+
+    def test_scene_2p_bg_char_chain(self):
+        """2P: same chain as single — dynthres → bg → char → sampler."""
+        workflow, _ = load_workflow("scene_2p")
+        assert workflow["15_bg_ip_apply"]["inputs"]["model"] == ["5_dynthres", 0]
+        assert workflow["14_ip_apply"]["inputs"]["model"] == ["15_bg_ip_apply", 0]
         assert workflow["9_sampler"]["inputs"]["model"] == ["14_ip_apply", 0]
-        assert workflow["9_sampler"]["inputs"]["positive"] == ["7_cn_apply", 0]
 
 
-class TestTxt2ImgIpAdapter:
-    """txt2img() with IP-Adapter payload (SP-113 DoD 2)."""
+class TestMaskGeneration:
+    """SP-115 DoD 2: Mask generation utilities."""
+
+    def test_character_mask_returns_base64(self):
+        """generate_character_mask() should return valid base64 PNG."""
+        from services.sd_client.comfyui.mask_utils import generate_character_mask
+
+        b64 = generate_character_mask(832, 1216)
+        img_bytes = base64.b64decode(b64)
+        assert img_bytes[:4] == b"\x89PNG"
+
+    def test_background_mask_returns_base64(self):
+        """generate_background_mask() should return valid base64 PNG."""
+        from services.sd_client.comfyui.mask_utils import generate_background_mask
+
+        b64 = generate_background_mask(832, 1216)
+        img_bytes = base64.b64decode(b64)
+        assert img_bytes[:4] == b"\x89PNG"
+
+    def test_masks_are_complementary(self):
+        """Character mask center should be bright, background mask center should be dark."""
+        from io import BytesIO
+
+        from PIL import Image
+
+        from services.sd_client.comfyui.mask_utils import generate_background_mask, generate_character_mask
+
+        char_b64 = generate_character_mask(832, 1216)
+        bg_b64 = generate_background_mask(832, 1216)
+
+        char_img = Image.open(BytesIO(base64.b64decode(char_b64))).convert("L")
+        bg_img = Image.open(BytesIO(base64.b64decode(bg_b64))).convert("L")
+
+        # Center pixel: character mask bright, background mask dark
+        cx, cy = 416, 608
+        assert char_img.getpixel((cx, cy)) > 200
+        assert bg_img.getpixel((cx, cy)) < 55
 
     @pytest.mark.asyncio
-    async def test_txt2img_with_ip_adapter(self):
-        """When _ip_adapter provided, should upload image and inject variables."""
+    async def test_mask_caching(self):
+        """Same resolution → same cached result (no re-upload)."""
         client = ComfyUIClient(base_url="http://test:8188")
-        fake_img_b64 = base64.b64encode(b"\x89PNG_ref").decode()
+        # Pre-populate cache
+        original_cache = ComfyUIClient._mask_cache.copy()
+        try:
+            client._mask_cache[(832, 1216)] = ("cached_char.png", "cached_bg.png")
+            char_fn, bg_fn = await client._upload_mask_pair(832, 1216)
+            assert char_fn == "cached_char.png"
+            assert bg_fn == "cached_bg.png"
+        finally:
+            ComfyUIClient._mask_cache.clear()
+            ComfyUIClient._mask_cache.update(original_cache)
+
+
+class TestDualIpAdapterTxt2Img:
+    """SP-115 DoD 2: txt2img() with dual IP-Adapter (bg + char)."""
+
+    @pytest.mark.asyncio
+    async def test_txt2img_with_bg_and_char(self):
+        """Both char and bg active: variables should have both weights and mask filenames."""
+        client = _make_client()
+        char_b64 = base64.b64encode(b"\x89PNG_char").decode()
+        bg_b64 = base64.b64encode(b"\x89PNG_bg").decode()
 
         with (
             patch("services.sd_client.comfyui.load_workflow") as mock_load,
             patch("services.sd_client.comfyui.inject_variables") as mock_inject,
             patch("services.sd_client.comfyui.run_workflow", return_value=[b"result_img"]),
-            patch.object(client, "_upload_image", return_value="ip_ref_testchar_abc123.png"),
+            patch.object(client, "_upload_image", new=_async_upload("uploaded.png")),
+            patch.object(client, "_upload_mask_pair", new=_async_mask_pair("mask_char.png", "mask_bg.png")),
         ):
-            mock_load.return_value = (
-                {
-                    "9_sampler": {"class_type": "KSampler", "inputs": {"model": ["14_ip_apply", 0]}},
-                    "14_ip_apply": {"class_type": "IPAdapterAdvanced", "inputs": {}},
-                },
-                "save",
-            )
+            mock_load.return_value = ({"9_sampler": {"class_type": "KSampler", "inputs": {}}}, "save")
             mock_inject.return_value = mock_load.return_value[0]
 
-            result = await client.txt2img(
+            await client.txt2img(
                 {
                     "prompt": "1girl",
                     "_ip_adapter": {
-                        "image_b64": fake_img_b64,
+                        "image_b64": char_b64,
                         "name": "testchar",
                         "weight": 0.5,
-                        "end_at": 0.7,
+                        "end_at": 0.4,
+                        "bg_image_b64": bg_b64,
+                        "bg_weight": 0.2,
+                        "bg_end_at": 0.6,
                     },
                 }
             )
 
         variables = mock_inject.call_args[0][1]
-        assert variables["ip_adapter_image"] == "ip_ref_testchar_abc123.png"
+        assert variables["ip_adapter_image"] == "uploaded.png"
         assert variables["ip_adapter_weight"] == 0.5
-        assert variables["ip_adapter_end_at"] == 0.7
-        assert isinstance(result, SDTxt2ImgResult)
+        assert variables["bg_ref_image"] == "uploaded.png"
+        assert variables["bg_ip_adapter_weight"] == 0.2
+        assert variables["char_mask"] == "mask_char.png"
+        assert variables["bg_mask"] == "mask_bg.png"
 
     @pytest.mark.asyncio
-    async def test_txt2img_without_ip_adapter_bypasses(self):
-        """When _ip_adapter not provided, sampler should be rerouted to dynthres."""
-        client = ComfyUIClient(base_url="http://test:8188")
-
-        workflow_data = {
-            "5_dynthres": {"class_type": "DynamicThresholdingFull", "inputs": {}},
-            "14_ip_apply": {"class_type": "IPAdapterAdvanced", "inputs": {}},
-            "9_sampler": {"class_type": "KSampler", "inputs": {"model": ["14_ip_apply", 0]}},
-        }
+    async def test_txt2img_char_only_bg_bypass(self):
+        """Char only: bg_ip_adapter_weight=0.0 (bypass), masks still uploaded."""
+        client = _make_client()
+        char_b64 = base64.b64encode(b"\x89PNG_char").decode()
 
         with (
-            patch("services.sd_client.comfyui.load_workflow", return_value=(workflow_data, "save")),
-            patch("services.sd_client.comfyui.inject_variables", return_value=workflow_data),
+            patch("services.sd_client.comfyui.load_workflow") as mock_load,
+            patch("services.sd_client.comfyui.inject_variables") as mock_inject,
+            patch("services.sd_client.comfyui.run_workflow", return_value=[b"img"]),
+            patch.object(client, "_upload_image", new=_async_upload("uploaded.png")),
+            patch.object(client, "_upload_mask_pair", new=_async_mask_pair("mask_char.png", "mask_bg.png")),
+        ):
+            mock_load.return_value = ({"9_sampler": {"class_type": "KSampler", "inputs": {}}}, "save")
+            mock_inject.return_value = mock_load.return_value[0]
+
+            await client.txt2img(
+                {
+                    "prompt": "1girl",
+                    "_ip_adapter": {"image_b64": char_b64, "name": "char", "weight": 0.5, "end_at": 0.4},
+                }
+            )
+
+        variables = mock_inject.call_args[0][1]
+        assert variables["ip_adapter_weight"] == 0.5
+        assert variables["bg_ip_adapter_weight"] == 0.0
+        assert variables["bg_ref_image"] == "bypass_placeholder.png"
+        assert variables["char_mask"] == "mask_char.png"
+
+    @pytest.mark.asyncio
+    async def test_txt2img_no_ip_adapter_all_bypass(self):
+        """No IP-Adapter: all weights=0.0, placeholders for images and masks."""
+        client = _make_client()
+
+        with (
+            patch("services.sd_client.comfyui.load_workflow") as mock_load,
+            patch("services.sd_client.comfyui.inject_variables") as mock_inject,
             patch("services.sd_client.comfyui.run_workflow", return_value=[b"img"]),
         ):
+            mock_load.return_value = ({"9_sampler": {"class_type": "KSampler", "inputs": {}}}, "save")
+            mock_inject.return_value = mock_load.return_value[0]
+
             await client.txt2img({"prompt": "1girl"})
 
-        assert workflow_data["9_sampler"]["inputs"]["model"] == ["5_dynthres", 0]
+        variables = mock_inject.call_args[0][1]
+        assert variables["ip_adapter_weight"] == 0.0
+        assert variables["bg_ip_adapter_weight"] == 0.0
+        assert variables["ip_adapter_image"] == "bypass_placeholder.png"
+        assert variables["bg_ref_image"] == "bypass_placeholder.png"
+        assert variables["char_mask"] == "bypass_placeholder.png"
+        assert variables["bg_mask"] == "bypass_placeholder.png"
 
     @pytest.mark.asyncio
     async def test_txt2img_ip_adapter_upload_failure_bypasses(self):
-        """When IP-Adapter image upload fails, should bypass gracefully."""
-        client = ComfyUIClient(base_url="http://test:8188")
+        """When char IP-Adapter image upload fails, should bypass with weight=0."""
+        client = _make_client()
         fake_img_b64 = base64.b64encode(b"\x89PNG").decode()
 
-        workflow_data = {
-            "5_dynthres": {"class_type": "DynamicThresholdingFull", "inputs": {}},
-            "14_ip_apply": {"class_type": "IPAdapterAdvanced", "inputs": {}},
-            "9_sampler": {"class_type": "KSampler", "inputs": {"model": ["14_ip_apply", 0]}},
-        }
-
         with (
-            patch("services.sd_client.comfyui.load_workflow", return_value=(workflow_data, "save")),
-            patch("services.sd_client.comfyui.inject_variables", return_value=workflow_data),
+            patch("services.sd_client.comfyui.load_workflow") as mock_load,
+            patch("services.sd_client.comfyui.inject_variables") as mock_inject,
             patch("services.sd_client.comfyui.run_workflow", return_value=[b"img"]),
-            patch.object(client, "_upload_image", side_effect=RuntimeError("upload failed")),
+            patch.object(client, "_upload_image", new=AsyncMock(side_effect=RuntimeError("upload failed"))),
         ):
+            mock_load.return_value = ({"9_sampler": {"class_type": "KSampler", "inputs": {}}}, "save")
+            mock_inject.return_value = mock_load.return_value[0]
+
             result = await client.txt2img(
                 {
                     "prompt": "1girl",
@@ -630,20 +724,22 @@ class TestTxt2ImgIpAdapter:
                 }
             )
 
-        assert workflow_data["9_sampler"]["inputs"]["model"] == ["5_dynthres", 0]
+        variables = mock_inject.call_args[0][1]
+        assert variables["ip_adapter_weight"] == 0.0
         assert isinstance(result, SDTxt2ImgResult)
 
     @pytest.mark.asyncio
     async def test_txt2img_ip_adapter_weight_clamped(self):
-        """Weight should be clamped to 0.0~1.0 range."""
-        client = ComfyUIClient(base_url="http://test:8188")
+        """Weight should be clamped to max allowed range."""
+        client = _make_client()
         fake_img_b64 = base64.b64encode(b"\x89PNG").decode()
 
         with (
             patch("services.sd_client.comfyui.load_workflow") as mock_load,
             patch("services.sd_client.comfyui.inject_variables") as mock_inject,
             patch("services.sd_client.comfyui.run_workflow", return_value=[b"img"]),
-            patch.object(client, "_upload_image", return_value="ref.png"),
+            patch.object(client, "_upload_image", new=_async_upload("ref.png")),
+            patch.object(client, "_upload_mask_pair", new=_async_mask_pair("mc.png", "mb.png")),
         ):
             mock_load.return_value = (
                 {"9_sampler": {"class_type": "KSampler", "inputs": {"model": ["14_ip_apply", 0]}}},
@@ -659,7 +755,43 @@ class TestTxt2ImgIpAdapter:
             )
 
         variables = mock_inject.call_args[0][1]
-        assert variables["ip_adapter_weight"] == 1.0  # clamped from 1.5
+        # DEFAULT_IP_ADAPTER_WEIGHT_VPRED is the max
+        from config import DEFAULT_IP_ADAPTER_WEIGHT_VPRED
+
+        assert variables["ip_adapter_weight"] == DEFAULT_IP_ADAPTER_WEIGHT_VPRED
+
+
+class TestIpAdapterWorkflowIntegration:
+    """IP-Adapter workflow node presence and chain (SP-113 DoD 1/4, updated for SP-115)."""
+
+    def test_scene_single_ip_adapter_nodes_exist(self):
+        """scene_single.json should contain IP-Adapter core nodes."""
+        workflow, _ = load_workflow("scene_single")
+        assert "12_ip_model" in workflow
+        assert "13_ip_image" in workflow
+        assert "14_ip_apply" in workflow
+        assert workflow["12_ip_model"]["class_type"] == "IPAdapterModelLoader"
+        assert workflow["13_ip_image"]["class_type"] == "LoadImage"
+        assert workflow["14_ip_apply"]["class_type"] == "IPAdapterAdvanced"
+
+    def test_scene_single_ip_adapter_chain(self):
+        """14_ip_apply should feed into 9_sampler model input, chained through bg."""
+        workflow, _ = load_workflow("scene_single")
+        assert workflow["9_sampler"]["inputs"]["model"] == ["14_ip_apply", 0]
+        assert workflow["14_ip_apply"]["inputs"]["model"] == ["15_bg_ip_apply", 0]
+
+    def test_scene_2p_ip_adapter_nodes_exist(self):
+        """scene_2p.json should contain IP-Adapter nodes."""
+        workflow, _ = load_workflow("scene_2p")
+        assert "12_ip_model" in workflow
+        assert "13_ip_image" in workflow
+        assert "14_ip_apply" in workflow
+
+    def test_scene_2p_ip_adapter_chain(self):
+        """2P: sampler model → 14_ip_apply, ControlNet on conditioning (independent)."""
+        workflow, _ = load_workflow("scene_2p")
+        assert workflow["9_sampler"]["inputs"]["model"] == ["14_ip_apply", 0]
+        assert workflow["9_sampler"]["inputs"]["positive"] == ["7_cn_apply", 0]
 
 
 class TestComfyUIClientPayloadNotMutated:
@@ -668,7 +800,7 @@ class TestComfyUIClientPayloadNotMutated:
     @pytest.mark.asyncio
     async def test_payload_not_mutated(self):
         """_comfy_workflow key must remain in caller's dict after txt2img."""
-        client = ComfyUIClient(base_url="http://test:8188")
+        client = _make_client()
         payload = {"prompt": "test", "_comfy_workflow": "reference", "seed": 42}
         original_keys = set(payload.keys())
 
@@ -686,7 +818,7 @@ class TestComfyUIClientPayloadNotMutated:
     @pytest.mark.asyncio
     async def test_ip_adapter_key_not_removed_from_caller(self):
         """_ip_adapter key must remain in caller's dict after txt2img (retry safety)."""
-        client = ComfyUIClient(base_url="http://test:8188")
+        client = _make_client()
         fake_img_b64 = base64.b64encode(b"\x89PNG").decode()
         payload = {
             "prompt": "test",
@@ -697,7 +829,8 @@ class TestComfyUIClientPayloadNotMutated:
             patch("services.sd_client.comfyui.load_workflow") as mock_load,
             patch("services.sd_client.comfyui.inject_variables", return_value={}),
             patch("services.sd_client.comfyui.run_workflow", return_value=[b"img"]),
-            patch.object(client, "_upload_image", return_value="ip_ref_char_abc123.png"),
+            patch.object(client, "_upload_image", new=_async_upload("ip_ref_char_abc123.png")),
+            patch.object(client, "_upload_mask_pair", new=_async_mask_pair("mc.png", "mb.png")),
         ):
             mock_load.return_value = ({}, "save")
             await client.txt2img(payload)
@@ -712,7 +845,7 @@ class TestIpAdapterUniqueFilename:
     @pytest.mark.asyncio
     async def test_different_images_get_different_filenames(self):
         """Two requests with different images should use different filenames."""
-        client = ComfyUIClient(base_url="http://test:8188")
+        client = _make_client()
         img_a = base64.b64encode(b"\x89PNG_image_A").decode()
         img_b = base64.b64encode(b"\x89PNG_image_B").decode()
 
@@ -727,7 +860,8 @@ class TestIpAdapterUniqueFilename:
                 patch("services.sd_client.comfyui.load_workflow") as mock_load,
                 patch("services.sd_client.comfyui.inject_variables", return_value={}),
                 patch("services.sd_client.comfyui.run_workflow", return_value=[b"out"]),
-                patch.object(client, "_upload_image", side_effect=capture_upload),
+                patch.object(client, "_upload_image", new=AsyncMock(side_effect=capture_upload)),
+                patch.object(client, "_upload_mask_pair", new=_async_mask_pair("mc.png", "mb.png")),
             ):
                 mock_load.return_value = ({}, "save")
                 await client.txt2img(
@@ -742,7 +876,7 @@ class TestIpAdapterUniqueFilename:
     @pytest.mark.asyncio
     async def test_same_image_gets_same_filename(self):
         """Same image content should produce the same filename (cache-friendly)."""
-        client = ComfyUIClient(base_url="http://test:8188")
+        client = _make_client()
         img = base64.b64encode(b"\x89PNG_same_image").decode()
 
         uploaded_filenames: list[str] = []
@@ -756,7 +890,8 @@ class TestIpAdapterUniqueFilename:
                 patch("services.sd_client.comfyui.load_workflow") as mock_load,
                 patch("services.sd_client.comfyui.inject_variables", return_value={}),
                 patch("services.sd_client.comfyui.run_workflow", return_value=[b"out"]),
-                patch.object(client, "_upload_image", side_effect=capture_upload),
+                patch.object(client, "_upload_image", new=AsyncMock(side_effect=capture_upload)),
+                patch.object(client, "_upload_mask_pair", new=_async_mask_pair("mc.png", "mb.png")),
             ):
                 mock_load.return_value = ({}, "save")
                 await client.txt2img(

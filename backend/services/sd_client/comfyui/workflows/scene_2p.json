@@ -1,10 +1,10 @@
 {
   "_meta": {
     "name": "Scene 2P (ControlNet Pose + BREAK)",
-    "description": "2인 씬 이미지 생성 — ControlNet OpenPose로 위치 제어, BREAK로 캐릭터 속성 분리",
-    "version": "1.0.0",
+    "description": "2인 씬 이미지 생성 — ControlNet OpenPose로 위치 제어, BREAK로 캐릭터 속성 분리, 듀얼 IP-Adapter (배경+캐릭터)",
+    "version": "2.0.0",
     "author": "shorts-producer",
-    "variables": ["positive", "negative", "checkpoint", "seed", "width", "height", "steps", "cfg", "sampler_name", "scheduler", "pose_image", "controlnet_strength", "ip_adapter_image", "ip_adapter_weight", "ip_adapter_end_at"],
+    "variables": ["positive", "negative", "checkpoint", "seed", "width", "height", "steps", "cfg", "sampler_name", "scheduler", "pose_image", "controlnet_strength", "ip_adapter_image", "ip_adapter_weight", "ip_adapter_end_at", "bg_ref_image", "bg_mask", "char_mask", "bg_ip_adapter_weight", "bg_ip_adapter_end_at"],
     "output_node": "11_save"
   },
   "1_checkpoint": {
@@ -139,17 +139,66 @@
       "image": "{{ip_adapter_image}}"
     }
   },
+  "13b_char_mask_image": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{char_mask}}"
+    }
+  },
+  "13b_char_mask": {
+    "class_type": "ImageToMask",
+    "inputs": {
+      "image": ["13b_char_mask_image", 0],
+      "channel": "red"
+    }
+  },
   "14_ip_apply": {
+    "class_type": "IPAdapterAdvanced",
+    "inputs": {
+      "model": ["15_bg_ip_apply", 0],
+      "ipadapter": ["12_ip_model", 0],
+      "clip_vision": ["12b_clip_vision", 0],
+      "image": ["13_ip_image", 0],
+      "attn_mask": ["13b_char_mask", 0],
+      "weight": "{{ip_adapter_weight}}",
+      "weight_type": "linear",
+      "start_at": 0.0,
+      "end_at": "{{ip_adapter_end_at}}",
+      "combine_embeds": "concat",
+      "embeds_scaling": "V only"
+    }
+  },
+  "15_bg_ref_image": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{bg_ref_image}}"
+    }
+  },
+  "15b_bg_mask_image": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{bg_mask}}"
+    }
+  },
+  "15c_bg_mask": {
+    "class_type": "ImageToMask",
+    "inputs": {
+      "image": ["15b_bg_mask_image", 0],
+      "channel": "red"
+    }
+  },
+  "15_bg_ip_apply": {
     "class_type": "IPAdapterAdvanced",
     "inputs": {
       "model": ["5_dynthres", 0],
       "ipadapter": ["12_ip_model", 0],
       "clip_vision": ["12b_clip_vision", 0],
-      "image": ["13_ip_image", 0],
-      "weight": "{{ip_adapter_weight}}",
+      "image": ["15_bg_ref_image", 0],
+      "attn_mask": ["15c_bg_mask", 0],
+      "weight": "{{bg_ip_adapter_weight}}",
       "weight_type": "linear",
       "start_at": 0.0,
-      "end_at": "{{ip_adapter_end_at}}",
+      "end_at": "{{bg_ip_adapter_end_at}}",
       "combine_embeds": "concat",
       "embeds_scaling": "V only"
     }

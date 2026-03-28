@@ -14,10 +14,13 @@ from config import (
     COMFYUI_BASE_URL,
     COMFYUI_NETWORK_TIMEOUT,
     CONTROLNET_2P_STRENGTH,
+    DEFAULT_BG_IP_ADAPTER_END_AT,
+    DEFAULT_BG_IP_ADAPTER_WEIGHT,
     DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED,
     DEFAULT_IP_ADAPTER_WEIGHT_VPRED,
 )
 from services.sd_client import SDClientBase
+from services.sd_client.comfyui.mask_utils import generate_background_mask, generate_character_mask
 from services.sd_client.comfyui.workflow_loader import inject_variables, load_workflow
 from services.sd_client.comfyui.workflow_runner import run_workflow
 from services.sd_client.types import SDProgressResult, SDTxt2ImgResult
@@ -245,42 +248,10 @@ class ComfyUIClient(SDClientBase):
             variables["pose_image"] = filename
             variables["controlnet_strength"] = payload.pop("_controlnet_strength", CONTROLNET_2P_STRENGTH)
 
-        # IP-Adapter: upload reference image → inject variables, or bypass
-        if ip_adapter and ip_adapter.get("image_b64"):
-            try:
-                ref_hash = hashlib.sha256(ip_adapter["image_b64"].encode("ascii")).hexdigest()[:12]
-                safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", ip_adapter.get("name") or "char")
-                ip_filename = await self._upload_image(
-                    ip_adapter["image_b64"],
-                    f"ip_ref_{safe_name}_{ref_hash}.png",
-                )
-                variables["ip_adapter_image"] = ip_filename
-                # v-pred safety clamp: weight ≤ 0.35, end_at ≤ 0.5 (색상 오염 방지)
-                variables["ip_adapter_weight"] = min(
-                    max(float(ip_adapter.get("weight", DEFAULT_IP_ADAPTER_WEIGHT_VPRED)), 0.0),
-                    DEFAULT_IP_ADAPTER_WEIGHT_VPRED,
-                )
-                variables["ip_adapter_end_at"] = min(
-                    max(float(ip_adapter.get("end_at", DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED)), 0.0),
-                    DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED,
-                )
-                logger.info(
-                    "🧑 [ComfyUI IP-Adapter] ref=%s weight=%.2f end_at=%.2f",
-                    ip_filename,
-                    variables["ip_adapter_weight"],
-                    variables["ip_adapter_end_at"],
-                )
-            except Exception as e:
-                logger.warning("🧑 [ComfyUI IP-Adapter] Upload failed, bypassing: %s", e)
-                self._bypass_ip_adapter(workflow)
-                variables.setdefault("ip_adapter_image", "bypass_placeholder.png")
-                variables.setdefault("ip_adapter_weight", 0.0)
-                variables.setdefault("ip_adapter_end_at", 0.0)
-        else:
-            self._bypass_ip_adapter(workflow)
-            variables.setdefault("ip_adapter_image", "bypass_placeholder.png")
-            variables.setdefault("ip_adapter_weight", 0.0)
-            variables.setdefault("ip_adapter_end_at", 0.0)
+        # IP-Adapter: dual pipeline (character + background), weight=0 bypass
+        img_w = payload.get("width", 832)
+        img_h = payload.get("height", 1216)
+        await self._apply_dual_ip_adapter(ip_adapter, variables, img_w, img_h)
 
         workflow = inject_variables(workflow, variables)
 
@@ -419,13 +390,95 @@ class ComfyUIClient(SDClientBase):
 
     # ── Private helpers ──────────────────────────────────────
 
-    @staticmethod
-    def _bypass_ip_adapter(workflow: dict) -> None:
-        """IP-Adapter 미사용 시 sampler model 연결을 dynthres로 우회 (Link Re-routing)."""
-        sampler = workflow.get("9_sampler")
-        if sampler and isinstance(sampler["inputs"].get("model"), list):
-            if sampler["inputs"]["model"][0] == "14_ip_apply":
-                sampler["inputs"]["model"] = ["5_dynthres", 0]
+    # ── Mask cache (resolution → (char_filename, bg_filename)) ────────
+
+    _mask_cache: dict[tuple[int, int], tuple[str, str]] = {}
+
+    async def _upload_mask_pair(self, width: int, height: int) -> tuple[str, str]:
+        """Upload character+background mask pair for given resolution. Cached."""
+        cached = self._mask_cache.get((width, height))
+        if cached:
+            return cached
+        char_b64 = generate_character_mask(width, height)
+        bg_b64 = generate_background_mask(width, height)
+        char_fn = await self._upload_image(char_b64, f"mask_char_{width}x{height}.png")
+        bg_fn = await self._upload_image(bg_b64, f"mask_bg_{width}x{height}.png")
+        self._mask_cache[(width, height)] = (char_fn, bg_fn)
+        logger.info("🎭 [Mask] Uploaded pair %dx%d: char=%s bg=%s", width, height, char_fn, bg_fn)
+        return char_fn, bg_fn
+
+    async def _apply_dual_ip_adapter(self, ip_adapter: dict | None, variables: dict, width: int, height: int) -> None:
+        """Apply dual IP-Adapter (character + background) with weight=0 bypass."""
+        char_ref = ip_adapter.get("image_b64") if ip_adapter else None
+        bg_ref = ip_adapter.get("bg_image_b64") if ip_adapter else None
+
+        # Character IP-Adapter
+        if char_ref:
+            try:
+                ref_hash = hashlib.sha256(char_ref.encode("ascii")).hexdigest()[:12]
+                safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", ip_adapter.get("name") or "char")
+                ip_filename = await self._upload_image(char_ref, f"ip_ref_{safe_name}_{ref_hash}.png")
+                variables["ip_adapter_image"] = ip_filename
+                variables["ip_adapter_weight"] = min(
+                    max(float(ip_adapter.get("weight", DEFAULT_IP_ADAPTER_WEIGHT_VPRED)), 0.0),
+                    DEFAULT_IP_ADAPTER_WEIGHT_VPRED,
+                )
+                variables["ip_adapter_end_at"] = min(
+                    max(float(ip_adapter.get("end_at", DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED)), 0.0),
+                    DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED,
+                )
+                logger.info(
+                    "🧑 [IP-Adapter char] ref=%s weight=%.2f end_at=%.2f",
+                    ip_filename,
+                    variables["ip_adapter_weight"],
+                    variables["ip_adapter_end_at"],
+                )
+            except Exception as e:
+                logger.warning("🧑 [IP-Adapter char] Upload failed, bypassing: %s", e)
+                char_ref = None  # fall through to bypass
+
+        if not char_ref:
+            variables.setdefault("ip_adapter_image", "bypass_placeholder.png")
+            variables["ip_adapter_weight"] = 0.0
+            variables["ip_adapter_end_at"] = 0.0
+
+        # Background IP-Adapter
+        if bg_ref:
+            try:
+                bg_hash = hashlib.sha256(bg_ref.encode("ascii")).hexdigest()[:12]
+                bg_filename = await self._upload_image(bg_ref, f"bg_ref_{bg_hash}.png")
+                variables["bg_ref_image"] = bg_filename
+                variables["bg_ip_adapter_weight"] = min(
+                    float(ip_adapter.get("bg_weight", DEFAULT_BG_IP_ADAPTER_WEIGHT)),
+                    DEFAULT_BG_IP_ADAPTER_WEIGHT,
+                )
+                variables["bg_ip_adapter_end_at"] = min(
+                    float(ip_adapter.get("bg_end_at", DEFAULT_BG_IP_ADAPTER_END_AT)),
+                    DEFAULT_BG_IP_ADAPTER_END_AT,
+                )
+                logger.info(
+                    "🏠 [IP-Adapter bg] ref=%s weight=%.2f end_at=%.2f",
+                    bg_filename,
+                    variables["bg_ip_adapter_weight"],
+                    variables["bg_ip_adapter_end_at"],
+                )
+            except Exception as e:
+                logger.warning("🏠 [IP-Adapter bg] Upload failed, bypassing: %s", e)
+                bg_ref = None
+
+        if not bg_ref:
+            variables.setdefault("bg_ref_image", "bypass_placeholder.png")
+            variables["bg_ip_adapter_weight"] = 0.0
+            variables["bg_ip_adapter_end_at"] = 0.0
+
+        # Masks: upload pair if either IP-Adapter is active; placeholder otherwise
+        if char_ref or bg_ref:
+            char_mask_fn, bg_mask_fn = await self._upload_mask_pair(width, height)
+            variables.setdefault("char_mask", char_mask_fn)
+            variables.setdefault("bg_mask", bg_mask_fn)
+        else:
+            variables.setdefault("char_mask", "bypass_placeholder.png")
+            variables.setdefault("bg_mask", "bypass_placeholder.png")
 
     @staticmethod
     def _payload_to_variables(payload: dict) -> dict:

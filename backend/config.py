@@ -842,6 +842,11 @@ DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP = 1.0  # Full guidance for CLIP-based model
 DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED = 0.5  # NOOB-IPA: 후반 50%는 프롬프트(배경 등) 반영
 DEFAULT_IP_ADAPTER_WEIGHT_VPRED = 0.5  # NOOB-IPA v-pred 전용 모델
 
+# Background IP-Adapter (SP-115: 배경/캐릭터 분리)
+BG_IP_ADAPTER_ENABLED = os.getenv("BG_IP_ADAPTER_ENABLED", "true").lower() == "true"
+DEFAULT_BG_IP_ADAPTER_WEIGHT = 0.3  # 배경 IP-Adapter weight (색상 전이 억제용 낮은 값)
+DEFAULT_BG_IP_ADAPTER_END_AT = 0.7  # 배경 참조 반영 종료 시점
+
 # IP-Adapter Dual Unit (opt-in, VRAM 2x)
 IP_ADAPTER_DUAL_ENABLED = os.getenv("IP_ADAPTER_DUAL_ENABLED", "false").lower() == "true"
 IP_ADAPTER_DUAL_PRIMARY_RATIO = 0.7

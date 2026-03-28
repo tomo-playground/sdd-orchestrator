@@ -8,7 +8,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from config import DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED, logger
+from config import (
+    DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED,
+    logger,
+)
 from services.controlnet import (
     build_controlnet_args,
     detect_pose_from_prompt,
@@ -32,8 +35,7 @@ def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
         _apply_2p_pose(req, ctx, payload, db)
         strategy = ctx.consistency
         _apply_ip_adapter(ctx, strategy, [], db)
-        if ctx._ip_adapter_payload:
-            payload["_ip_adapter"] = ctx._ip_adapter_payload
+        _inject_ip_adapter_payload(payload, ctx, req, db)
         return
 
     strategy = ctx.consistency
@@ -55,8 +57,7 @@ def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
             logger.info("🔧 [ControlNet Arg %d] %s", i, debug_arg)
 
     # ComfyUI: IP-Adapter payload 주입 (워크플로우 노드 변수로 변환됨)
-    if ctx._ip_adapter_payload:
-        payload["_ip_adapter"] = ctx._ip_adapter_payload
+    _inject_ip_adapter_payload(payload, ctx, req, db)
 
 
 def _apply_2p_pose(req: SceneGenerateRequest, ctx: GenerationContext, payload: dict, db) -> None:
@@ -200,6 +201,56 @@ def _apply_ip_adapter(ctx: GenerationContext, strategy, args: list, db) -> None:
         effective_weight,
         end_at,
     )
+
+
+def _inject_ip_adapter_payload(payload: dict, ctx: GenerationContext, req: SceneGenerateRequest, db) -> None:
+    """Inject IP-Adapter payload including background reference (SP-115)."""
+    from config import (  # noqa: PLC0415
+        BG_IP_ADAPTER_ENABLED,
+        DEFAULT_BG_IP_ADAPTER_END_AT,
+        DEFAULT_BG_IP_ADAPTER_WEIGHT,
+    )
+
+    ip_payload = ctx._ip_adapter_payload
+
+    # Background IP-Adapter: load reference if available
+    if BG_IP_ADAPTER_ENABLED:
+        bg_b64 = _load_bg_reference(req, db)
+        if bg_b64:
+            if ip_payload is None:
+                ip_payload = {}
+            ip_payload["bg_image_b64"] = bg_b64
+            ip_payload["bg_weight"] = DEFAULT_BG_IP_ADAPTER_WEIGHT
+            ip_payload["bg_end_at"] = DEFAULT_BG_IP_ADAPTER_END_AT
+            logger.info(
+                "🏠 [BG IP-Adapter] Loaded environment reference for env_ref_id=%s", req.environment_reference_id
+            )
+
+    if ip_payload:
+        payload["_ip_adapter"] = ip_payload
+
+
+def _load_bg_reference(req: SceneGenerateRequest, db) -> str | None:
+    """Load background reference image as base64 from environment_reference_id."""
+    if not req.environment_reference_id:
+        return None
+    import base64  # noqa: PLC0415
+    import os  # noqa: PLC0415
+
+    from models.media_asset import MediaAsset  # noqa: PLC0415
+
+    asset = db.query(MediaAsset).filter(MediaAsset.id == req.environment_reference_id).first()
+    if not asset or not asset.local_path:
+        return None
+    if not os.path.exists(asset.local_path):
+        logger.warning("🏠 [BG IP-Adapter] Asset file not found: %s", asset.local_path)
+        return None
+    try:
+        with open(asset.local_path, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+    except Exception as e:
+        logger.error("🏠 [BG IP-Adapter] Failed to load asset: %s", e)
+        return None
 
 
 # ── Cinematic tag suppression (AdaIN conflict prevention) ─────────────
