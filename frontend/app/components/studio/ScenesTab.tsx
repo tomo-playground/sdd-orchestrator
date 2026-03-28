@@ -14,6 +14,7 @@ import { useTags } from "../../hooks";
 import SceneListPanel from "../storyboard/SceneListPanel";
 import SceneInsightsContent from "./SceneInsightsContent";
 import SceneCard from "../storyboard/SceneCard";
+import { SceneProvider } from "../storyboard/SceneContext";
 import SceneNavHeader from "./SceneNavHeader";
 import { STUDIO_2COL_LAYOUT, LEFT_PANEL_CLASSES, CENTER_PANEL_CLASSES } from "../ui/variants";
 import { buildNegativePrompt, buildScenePrompt } from "../../store/actions/promptActions";
@@ -95,6 +96,15 @@ export default function ScenesTab() {
   } = useSceneActions();
 
   const currentScene = scenes[currentSceneIndex];
+  const currentValidationResult = currentScene
+    ? imageValidationResults[currentScene.client_id]
+    : undefined;
+  const currentQualityScore = currentValidationResult
+    ? {
+        match_rate: currentValidationResult.match_rate ?? 0,
+        missing_tags: currentValidationResult.missing ?? [],
+      }
+    : null;
   const currentSpeaker = currentScene?.speaker ?? "speaker_1";
   const resolvedCharacterId = resolveCharacterIdForSpeaker(currentSpeaker, {
     selectedCharacterId,
@@ -290,64 +300,61 @@ export default function ScenesTab() {
           {currentScene && (
             <div className="scrollbar-hide flex-1 overflow-y-auto px-8 py-8">
               <div className="mx-auto w-full max-w-5xl">
-                <SceneCard
-                  key={currentScene.client_id}
-                  scene={currentScene}
-                  sceneIndex={currentSceneIndex}
-                  imageValidationResult={imageValidationResults[currentScene.client_id]}
-                  qualityScore={
-                    imageValidationResults[currentScene.client_id]
-                      ? {
-                          match_rate:
-                            imageValidationResults[currentScene.client_id].match_rate ?? 0,
-                          missing_tags:
-                            imageValidationResults[currentScene.client_id].missing ?? [],
-                        }
-                      : null
-                  }
-                  sceneMenuOpen={sceneMenuOpen === currentScene.client_id}
-                  onSceneMenuToggle={() =>
-                    sbSet({
-                      sceneMenuOpen:
-                        sceneMenuOpen === currentScene.client_id ? null : currentScene.client_id,
-                    })
-                  }
-                  onSceneMenuClose={() => sbSet({ sceneMenuOpen: null })}
-                  loraTriggerWords={loraTriggerWords}
-                  tagsByGroup={tagsByGroup}
-                  sceneTagGroups={sceneTagGroups}
-                  isExclusiveGroup={isExclusiveGroup}
-                  onUpdateScene={handleUpdateScene}
-                  onRemoveScene={() => handleRemoveScene(currentScene.client_id)}
-                  onSpeakerChange={(speaker) => handleSpeakerChange(currentScene, speaker)}
-                  onImageUpload={(file) => handleImageUpload(currentScene.client_id, file)}
-                  onGenerateImage={() => handleGenerateImage(currentScene)}
-                  onApplyMissingTags={(tags) => applyMissingImageTags(currentScene, tags)}
-                  onImagePreview={(src, candidates) =>
-                    useUIStore.getState().set({
-                      imagePreviewSrc: src,
-                      imagePreviewCandidates: candidates || null,
-                    })
-                  }
-                  onMarkSuccess={() => handleMarkSuccess(currentScene)}
-                  onMarkFail={() => handleMarkFail(currentScene)}
-                  isMarkingStatus={markingStatusSceneId === currentScene.client_id}
-                  selectedCharacterId={resolvedCharacterId}
-                  basePromptA={resolvedBasePrompt}
-                  characterLoras={resolvedCharacterLoras}
-                  structure={structure}
-                  characterAName={selectedCharacterName}
-                  characterBName={selectedCharacterBName}
-                  selectedCharacterBId={selectedCharacterBId}
-                  genProgress={imageGenProgress[currentScene.client_id] ?? null}
-                  buildNegativePrompt={buildNegativePrompt}
-                  buildScenePrompt={buildScenePrompt}
-                  showToast={showToast}
-                  ttsState={ttsPreview.previewStates.get(currentScene.client_id)}
-                  onTTSPreview={() => ttsPreview.previewScene(currentScene)}
-                  onTTSRegenerate={() => ttsPreview.regenerate(currentScene)}
-                  audioPlayer={ttsPreview.audioPlayer}
-                />
+                <SceneProvider
+                  value={{
+                    data: {
+                      imageValidationResult: currentValidationResult,
+                      qualityScore: currentQualityScore,
+                      loraTriggerWords,
+                      characterLoras: resolvedCharacterLoras,
+                      tagsByGroup,
+                      sceneTagGroups,
+                      isExclusiveGroup,
+                      selectedCharacterId: resolvedCharacterId,
+                      basePromptA: resolvedBasePrompt,
+                      structure,
+                      characterAName: selectedCharacterName,
+                      characterBName: selectedCharacterBName,
+                      selectedCharacterBId,
+                      genProgress: imageGenProgress[currentScene.client_id] ?? null,
+                      sceneMenuOpen: sceneMenuOpen === currentScene.client_id,
+                      sceneIndex: currentSceneIndex,
+                      isMarkingStatus: markingStatusSceneId === currentScene.client_id,
+                      ttsState: ttsPreview.previewStates.get(currentScene.client_id),
+                    },
+                    callbacks: {
+                      onUpdateScene: handleUpdateScene,
+                      onRemoveScene: () => handleRemoveScene(currentScene.client_id),
+                      onSpeakerChange: (speaker) => handleSpeakerChange(currentScene, speaker),
+                      onImageUpload: (file) => handleImageUpload(currentScene.client_id, file),
+                      onGenerateImage: () => handleGenerateImage(currentScene),
+                      onApplyMissingTags: (tags) => applyMissingImageTags(currentScene, tags),
+                      onImagePreview: (src, candidates) =>
+                        useUIStore.getState().set({
+                          imagePreviewSrc: src,
+                          imagePreviewCandidates: candidates || null,
+                        }),
+                      onMarkSuccess: () => handleMarkSuccess(currentScene),
+                      onMarkFail: () => handleMarkFail(currentScene),
+                      buildNegativePrompt,
+                      buildScenePrompt,
+                      showToast,
+                      onSceneMenuToggle: () =>
+                        sbSet({
+                          sceneMenuOpen:
+                            sceneMenuOpen === currentScene.client_id
+                              ? null
+                              : currentScene.client_id,
+                        }),
+                      onSceneMenuClose: () => sbSet({ sceneMenuOpen: null }),
+                      onTTSPreview: () => ttsPreview.previewScene(currentScene),
+                      onTTSRegenerate: () => ttsPreview.regenerate(currentScene),
+                      audioPlayer: ttsPreview.audioPlayer,
+                    },
+                  }}
+                >
+                  <SceneCard key={currentScene.client_id} scene={currentScene} />
+                </SceneProvider>
               </div>
             </div>
           )}

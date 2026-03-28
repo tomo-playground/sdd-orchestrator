@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Skeleton } from "../ui";
-import type { Scene, ImageValidation, ImageGenProgress, CriticalFailureItem } from "../../types";
+import type { Scene, ImageValidation, CriticalFailureItem } from "../../types";
+import { useSceneContext } from "./SceneContext";
 
 const CRITICAL_FAILURE_LABELS: Record<string, string> = {
   gender_swap: "GENDER SWAP",
@@ -20,13 +21,6 @@ type SceneImagePanelProps = {
   scene: Scene;
   onImageClick: (imageUrl: string | null) => void;
   onCandidateSelect: (imageUrl: string) => void;
-  // Generate image callback for empty state CTA
-  onGenerateImage?: () => void;
-  // Validation overlay (read-only: populated from SSE validation results)
-  validationResult?: ImageValidation;
-  onApplyMissingTags?: (tags: string[]) => void;
-  // SSE progress
-  genProgress?: ImageGenProgress | null;
 };
 
 function ValidationOverlay({
@@ -107,11 +101,12 @@ export default function SceneImagePanel({
   scene,
   onImageClick,
   onCandidateSelect,
-  onGenerateImage,
-  validationResult,
-  onApplyMissingTags,
-  genProgress,
 }: SceneImagePanelProps) {
+  const { data, callbacks } = useSceneContext();
+  const validationResult = data.imageValidationResult;
+  const genProgress = data.genProgress;
+  const onApplyMissingTags = callbacks.onApplyMissingTags;
+
   const [hovered, setHovered] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
   const showOverlay = hovered && scene.image_url && !scene.isGenerating && validationResult;

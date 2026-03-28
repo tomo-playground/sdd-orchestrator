@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Scene } from "../../types";
 import { API_BASE } from "../../constants";
 import { useContextStore } from "../../store/useContextStore";
+import { useUIStore } from "../../store/useUIStore";
 import useTagValidationDebounced from "../../hooks/useTagValidationDebounced";
 import CopyButton from "../ui/CopyButton";
 import TagAutocomplete from "../ui/TagAutocomplete";
 import ComposedPromptPreview, { type NegativeSourceInfo } from "../prompt/ComposedPromptPreview";
 import TagValidationWarning from "../prompt/TagValidationWarning";
 import PromptTranslateDiff from "../prompt/PromptTranslateDiff";
+import { useSceneContext } from "./SceneContext";
 
 const SOURCE_COLORS: Record<string, { bg: string; text: string }> = {
   style_profile: { bg: "bg-fuchsia-50", text: "text-fuchsia-700" },
@@ -31,27 +33,14 @@ function getSourceLabel(source: string) {
 
 type ScenePromptFieldsProps = {
   scene: Scene;
-  loraTriggerWords?: string[];
-  characterLoras: Array<{
-    name: string;
-    weight?: number;
-    trigger_words?: string[];
-    lora_type?: string;
-  }>;
-  selectedCharacterId?: number | null;
-  basePromptA: string;
-  onUpdateScene: (updates: Partial<Scene>) => void;
-  showAdvancedSettings?: boolean;
 };
 
-export default function ScenePromptFields({
-  scene,
-  characterLoras,
-  selectedCharacterId,
-  basePromptA,
-  onUpdateScene,
-  showAdvancedSettings = true,
-}: ScenePromptFieldsProps) {
+export default function ScenePromptFields({ scene }: ScenePromptFieldsProps) {
+  const { data, callbacks } = useSceneContext();
+  const { characterLoras, selectedCharacterId, basePromptA } = data;
+  const { onUpdateScene } = callbacks;
+  const showAdvancedSettings = useUIStore((s) => s.showAdvancedSettings);
+
   const storyboardId = useContextStore((s) => s.storyboardId);
 
   // Composed negative state

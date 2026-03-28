@@ -4,30 +4,30 @@ import { useState } from "react";
 import type { Scene } from "../../types";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import PromptEditDiff from "../prompt/PromptEditDiff";
+import { useSceneContext } from "./SceneContext";
 
 type SceneGeminiModalsProps = {
   scene: Scene;
-  qualityScore?: { match_rate: number; missing_tags: string[] } | null;
   geminiEditOpen: boolean;
   setGeminiEditOpen: (open: boolean) => void;
   geminiTargetChange: string;
   setGeminiTargetChange: (value: string) => void;
   onApplyPromptEdit: (editedPrompt: string) => void;
-  showToast: (message: string, type: "success" | "error") => void;
-  selectedCharacterId?: number | null;
 };
 
 export default function SceneGeminiModals({
   scene,
-  qualityScore,
   geminiEditOpen,
   setGeminiEditOpen,
   geminiTargetChange,
   setGeminiTargetChange,
   onApplyPromptEdit,
-  showToast,
-  selectedCharacterId,
 }: SceneGeminiModalsProps) {
+  const { data, callbacks } = useSceneContext();
+  const qualityScore = data.qualityScore;
+  const selectedCharacterId = data.selectedCharacterId;
+  const showToast = callbacks.showToast;
+
   return (
     <>
       {/* Gemini Edit Modal (프롬프트 편집 전용) */}

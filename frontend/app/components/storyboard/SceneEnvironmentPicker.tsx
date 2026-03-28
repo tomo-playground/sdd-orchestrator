@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { Tag, SceneContextTags } from "../../types";
+import type { SceneContextTags } from "../../types";
 import Popover from "../ui/Popover";
 import TagSuggestInput from "../ui/TagSuggestInput";
+import { useSceneContext } from "./SceneContext";
 
 export const ENV_GROUPS = ["environment", "time_of_day", "weather", "particle"] as const;
 type EnvGroup = (typeof ENV_GROUPS)[number];
@@ -19,11 +20,13 @@ const LARGE_GROUP_THRESHOLD = 10;
 
 type Props = {
   contextTags: SceneContextTags | undefined;
-  tagsByGroup: Record<string, Tag[]>;
   onUpdate: (tags: SceneContextTags) => void;
 };
 
-export default function SceneEnvironmentPicker({ contextTags, tagsByGroup, onUpdate }: Props) {
+export default function SceneEnvironmentPicker({ contextTags, onUpdate }: Props) {
+  const { data } = useSceneContext();
+  const { tagsByGroup } = data;
+
   const [openGroup, setOpenGroup] = useState<EnvGroup | null>(null);
   const anchorRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 

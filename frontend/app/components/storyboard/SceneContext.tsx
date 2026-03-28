@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { Scene, ImageValidation, ImageGenProgress, Tag } from "../../types";
+import type { Scene, ImageValidation, ImageGenProgress, Tag, TTSPreviewState } from "../../types";
+import type { AudioPlayer } from "../../hooks/useAudioPlayer";
 
 /** Scene data available via context (read-only values from parent) */
 export type SceneDataContext = {
@@ -26,7 +27,10 @@ export type SceneDataContext = {
   selectedCharacterBId?: number | null;
   genProgress?: ImageGenProgress | null;
   pinnedSceneOrder?: number;
+  sceneMenuOpen: boolean;
+  sceneIndex: number;
   isMarkingStatus: boolean;
+  ttsState?: TTSPreviewState;
 };
 
 /** Scene callbacks available via context */
@@ -45,6 +49,9 @@ export type SceneCallbacksContext = {
   showToast: (message: string, type: "success" | "error") => void;
   onSceneMenuToggle: () => void;
   onSceneMenuClose: () => void;
+  onTTSPreview?: () => void;
+  onTTSRegenerate?: () => void;
+  audioPlayer?: AudioPlayer;
 };
 
 export type SceneContextValue = {

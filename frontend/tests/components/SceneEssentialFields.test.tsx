@@ -23,6 +23,8 @@ const localStorageMock = vi.hoisted(() => {
 });
 
 import SceneEssentialFields from "../../app/components/storyboard/SceneEssentialFields";
+import { SceneProvider } from "../../app/components/storyboard/SceneContext";
+import type { SceneContextValue } from "../../app/components/storyboard/SceneContext";
 import { useStoryboardStore } from "../../app/store/useStoryboardStore";
 import type { Scene } from "../../app/types";
 
@@ -47,6 +49,46 @@ function makeScene(overrides: Partial<Scene> = {}): Scene {
   } as Scene;
 }
 
+function makeContextValue(structure: string): SceneContextValue {
+  return {
+    data: {
+      loraTriggerWords: [],
+      characterLoras: [],
+      tagsByGroup: {},
+      sceneTagGroups: [],
+      isExclusiveGroup: () => false,
+      basePromptA: "",
+      sceneMenuOpen: false,
+      sceneIndex: 0,
+      isMarkingStatus: false,
+      structure,
+    },
+    callbacks: {
+      onUpdateScene: vi.fn(),
+      onRemoveScene: vi.fn(),
+      onSpeakerChange: vi.fn(),
+      onImageUpload: vi.fn(),
+      onGenerateImage: vi.fn(),
+      onApplyMissingTags: vi.fn(),
+      onImagePreview: vi.fn(),
+      buildNegativePrompt: vi.fn(() => ""),
+      buildScenePrompt: vi.fn(() => null),
+      showToast: vi.fn(),
+      onSceneMenuToggle: vi.fn(),
+      onSceneMenuClose: vi.fn(),
+    },
+  };
+}
+
+function renderWithContext(scene: Scene, structure: string) {
+  const ctxValue = makeContextValue(structure);
+  return render(
+    <SceneProvider value={ctxValue}>
+      <SceneEssentialFields scene={scene} />
+    </SceneProvider>
+  );
+}
+
 describe("SceneEssentialFields — DoD-5: Speaker dropdown character names", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -56,16 +98,7 @@ describe("SceneEssentialFields — DoD-5: Speaker dropdown character names", () 
 
   it("shows '1: 재민' when selectedCharacterName is set", () => {
     useStoryboardStore.setState({ selectedCharacterName: "재민" });
-
-    render(
-      <SceneEssentialFields
-        scene={makeScene()}
-        structure="solo"
-        onUpdateScene={vi.fn()}
-        onSpeakerChange={vi.fn()}
-        onImageUpload={vi.fn()}
-      />
-    );
+    renderWithContext(makeScene(), "solo");
 
     const option = screen.getByRole("option", { name: /1: 재민/ });
     expect(option).toBeInTheDocument();
@@ -73,16 +106,7 @@ describe("SceneEssentialFields — DoD-5: Speaker dropdown character names", () 
 
   it("shows 'Speaker 1' fallback when no character name", () => {
     useStoryboardStore.setState({ selectedCharacterName: null });
-
-    render(
-      <SceneEssentialFields
-        scene={makeScene()}
-        structure="solo"
-        onUpdateScene={vi.fn()}
-        onSpeakerChange={vi.fn()}
-        onImageUpload={vi.fn()}
-      />
-    );
+    renderWithContext(makeScene(), "solo");
 
     const option = screen.getByRole("option", { name: "Speaker 1" });
     expect(option).toBeInTheDocument();
@@ -93,16 +117,7 @@ describe("SceneEssentialFields — DoD-5: Speaker dropdown character names", () 
       selectedCharacterName: "재민",
       selectedCharacterBName: "하은",
     });
-
-    render(
-      <SceneEssentialFields
-        scene={makeScene()}
-        structure="dialogue"
-        onUpdateScene={vi.fn()}
-        onSpeakerChange={vi.fn()}
-        onImageUpload={vi.fn()}
-      />
-    );
+    renderWithContext(makeScene(), "dialogue");
 
     expect(screen.getByRole("option", { name: /1: 재민/ })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /2: 하은/ })).toBeInTheDocument();
@@ -113,16 +128,7 @@ describe("SceneEssentialFields — DoD-5: Speaker dropdown character names", () 
       selectedCharacterName: "재민",
       selectedCharacterBName: null,
     });
-
-    render(
-      <SceneEssentialFields
-        scene={makeScene()}
-        structure="dialogue"
-        onUpdateScene={vi.fn()}
-        onSpeakerChange={vi.fn()}
-        onImageUpload={vi.fn()}
-      />
-    );
+    renderWithContext(makeScene(), "dialogue");
 
     expect(screen.getByRole("option", { name: /1: 재민/ })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Speaker 2" })).toBeInTheDocument();

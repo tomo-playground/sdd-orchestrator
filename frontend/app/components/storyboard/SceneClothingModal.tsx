@@ -6,12 +6,12 @@ import type { Scene } from "../../types";
 import TagAutocomplete from "../ui/TagAutocomplete";
 import useTagValidationDebounced from "../../hooks/useTagValidationDebounced";
 import TagValidationWarning from "../prompt/TagValidationWarning";
+import { useSceneContext } from "./SceneContext";
 
 type SceneClothingModalProps = {
   scene: Scene;
   onClose: () => void;
   onSave: (clothingTags: Record<string, string[]> | null) => void;
-  showToast: (message: string, type: "success" | "error") => void;
 };
 
 const CLOTHING_PRESETS = [
@@ -29,8 +29,10 @@ export default function SceneClothingModal({
   scene,
   onClose,
   onSave,
-  showToast,
 }: SceneClothingModalProps) {
+  const { callbacks } = useSceneContext();
+  const { showToast } = callbacks;
+
   const trapRef = useFocusTrap(true);
   const existing = scene.clothing_tags ?? {};
   const defaultCharKey = Object.keys(existing)[0] ?? "default";

@@ -2,37 +2,23 @@
 
 import { useEffect, useState } from "react";
 import type { Scene, TTSPreviewState } from "../../types";
-import type { AudioPlayer } from "../../hooks/useAudioPlayer";
 import { isMultiCharStructure } from "../../utils/structure";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
 import { useShallow } from "zustand/react/shallow";
 import { Input, Textarea } from "../ui";
 import { API_BASE } from "../../constants";
 import type { ReadingSpeedConfig } from "../../hooks/usePresets";
+import { useSceneContext } from "./SceneContext";
 
 type SceneEssentialFieldsProps = {
   scene: Scene;
-  structure?: string;
-  onUpdateScene: (updates: Partial<Scene>) => void;
-  onSpeakerChange: (speaker: Scene["speaker"]) => void;
-  onImageUpload: (file: File | undefined) => void;
-  ttsState?: TTSPreviewState;
-  onTTSPreview?: () => void;
-  onTTSRegenerate?: () => void;
-  audioPlayer?: AudioPlayer;
 };
 
-export default function SceneEssentialFields({
-  scene,
-  structure,
-  onUpdateScene,
-  onSpeakerChange,
-  onImageUpload,
-  ttsState,
-  onTTSPreview,
-  onTTSRegenerate,
-  audioPlayer,
-}: SceneEssentialFieldsProps) {
+export default function SceneEssentialFields({ scene }: SceneEssentialFieldsProps) {
+  const { data, callbacks } = useSceneContext();
+  const { structure, ttsState } = data;
+  const { onUpdateScene, onSpeakerChange, onImageUpload, onTTSPreview, onTTSRegenerate, audioPlayer } = callbacks;
+
   const { selectedCharacterName, selectedCharacterBName } = useStoryboardStore(
     useShallow((s) => ({
       selectedCharacterName: s.selectedCharacterName,

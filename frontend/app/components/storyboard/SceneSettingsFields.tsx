@@ -2,45 +2,33 @@
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import type { Scene, Tag } from "../../types";
+import type { Scene } from "../../types";
+import { isMultiCharStructure } from "../../utils/structure";
 import DebugTabContent from "./DebugTabContent";
 import SceneContextTags from "../prompt/SceneContextTags";
 import SceneCharacterActions from "./SceneCharacterActions";
 import { ENV_GROUPS } from "./SceneEnvironmentPicker";
+import { useSceneContext } from "./SceneContext";
 
 type SceneSettingsFieldsProps = {
   scene: Scene;
-  hasMultipleSpeakers: boolean;
-  tagsByGroup: Record<string, Tag[]>;
-  sceneTagGroups: string[];
-  isExclusiveGroup: (groupName: string) => boolean;
-  onUpdateScene: (updates: Partial<Scene>) => void;
-  // Character
-  characterAName?: string | null;
-  characterBName?: string | null;
-  selectedCharacterId?: number | null;
-  selectedCharacterBId?: number | null;
-  // Debug
-  buildNegativePrompt: (scene: Scene) => string;
-  buildScenePrompt: (scene: Scene) => string | null;
-  showToast: (message: string, type: "success" | "error") => void;
 };
 
-export default function SceneSettingsFields({
-  scene,
-  hasMultipleSpeakers,
-  tagsByGroup,
-  sceneTagGroups,
-  isExclusiveGroup,
-  onUpdateScene,
-  characterAName,
-  characterBName,
-  selectedCharacterId,
-  selectedCharacterBId,
-  buildNegativePrompt,
-  buildScenePrompt,
-  showToast,
-}: SceneSettingsFieldsProps) {
+export default function SceneSettingsFields({ scene }: SceneSettingsFieldsProps) {
+  const { data, callbacks } = useSceneContext();
+  const {
+    structure,
+    tagsByGroup,
+    sceneTagGroups,
+    isExclusiveGroup,
+    characterAName,
+    characterBName,
+    selectedCharacterId,
+    selectedCharacterBId,
+  } = data;
+  const { onUpdateScene, buildNegativePrompt, buildScenePrompt, showToast } = callbacks;
+
+  const hasMultipleSpeakers = isMultiCharStructure(structure ?? "");
   const [showSettings, setShowSettings] = useState(false);
 
   return (

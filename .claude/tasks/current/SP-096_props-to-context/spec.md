@@ -4,7 +4,7 @@ priority: P2
 scope: frontend
 branch: feat/SP-096-props-to-context
 created: 2026-03-26
-status: approved
+status: running
 approved_at: 2026-03-26
 depends_on: SP-095
 label: feature

@@ -1,49 +1,42 @@
 "use client";
 
+import { useRef } from "react";
 import type { Scene } from "../../types";
 import Button from "../ui/Button";
 import ConfirmDialog, { useConfirm } from "../ui/ConfirmDialog";
+import Popover from "../ui/Popover";
+import { useSceneContext } from "./SceneContext";
 
 type SceneActionBarProps = {
   scene: Scene;
-  sceneIndex: number;
-  qualityScore?: { match_rate: number; missing_tags: string[] } | null;
-  sceneMenuOpen: boolean;
-  isMarkingStatus?: boolean;
-  onGenerateImage: () => void;
   onGeminiEditOpen: () => void;
   onClothingOpen?: () => void;
-  onMarkSuccess?: () => void;
-  onMarkFail?: () => void;
-  onSceneMenuToggle: () => void;
-  onSceneMenuClose: () => void;
-  onUpdateScene: (updates: Partial<Scene>) => void;
-  onRemoveScene: () => void;
-  showToast: (message: string, type: "success" | "error") => void;
   compact?: boolean;
 };
 
-import { useRef } from "react";
-import Popover from "../ui/Popover";
-
 export default function SceneActionBar({
   scene,
-  sceneIndex,
-  qualityScore,
-  sceneMenuOpen,
-  isMarkingStatus = false,
-  onGenerateImage,
   onGeminiEditOpen,
   onClothingOpen,
-  onMarkSuccess,
-  onMarkFail,
-  onSceneMenuToggle,
-  onSceneMenuClose,
-  onUpdateScene,
-  onRemoveScene,
-  showToast,
   compact = false,
 }: SceneActionBarProps) {
+  const { data, callbacks } = useSceneContext();
+  const {
+    qualityScore,
+    sceneMenuOpen,
+    isMarkingStatus,
+  } = data;
+  const {
+    onGenerateImage,
+    onMarkSuccess,
+    onMarkFail,
+    onSceneMenuToggle,
+    onSceneMenuClose,
+    onUpdateScene,
+    onRemoveScene,
+    showToast,
+  } = callbacks;
+
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const { confirm, dialogProps } = useConfirm();
 
