@@ -210,6 +210,16 @@ class OrchestratorDaemon:
             if not approved:
                 return
 
+            # done/ 태스크 ID 수집 (의존성 해소 판정용)
+            from orchestrator.config import PROJECT_ROOT
+
+            done_dir = PROJECT_ROOT / ".claude/tasks/done"
+            done_ids: set[str] = set()
+            if done_dir.exists():
+                for entry in done_dir.iterdir():
+                    if entry.is_dir() and entry.name.startswith("SP-"):
+                        done_ids.add(entry.name.split("_")[0])
+
             running = self.state.get_running_runs()
             running_ids = {r["task_id"] for r in running}
             if len(running) >= MAX_PARALLEL_RUNS:
@@ -220,6 +230,12 @@ class OrchestratorDaemon:
                     continue
                 if len(running) >= MAX_PARALLEL_RUNS:
                     break
+                # 의존성 미완료 → 스킵
+                if task.depends_on:
+                    unmet = [d for d in task.depends_on if d not in done_ids]
+                    if unmet:
+                        logger.debug("Skip %s — unmet deps: %s", task.id, unmet)
+                        continue
 
                 logger.info("Auto-launching approved task: %s", task.id)
                 result = await do_launch_sdd_run(task.id)
