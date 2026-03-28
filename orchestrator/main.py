@@ -51,6 +51,7 @@ class OrchestratorDaemon:
         self._preflight_check()
         await self._maybe_start_slack_bot()
         logger.info("Orchestrator started (interval=%ds)", self.interval)
+        await self._send_startup_summary()
 
         while not self.stop_event.is_set():
             self.cycle += 1
@@ -249,6 +250,69 @@ class OrchestratorDaemon:
                     running_ids = {r["task_id"] for r in running}
         except Exception:
             logger.exception("Auto-launch check failed")
+
+    async def _send_startup_summary(self) -> None:
+        """Send concise startup summary to Slack."""
+        import subprocess
+
+        from orchestrator.config import MAX_PARALLEL_RUNS, PROJECT_ROOT
+        from orchestrator.tools.notify import do_notify_human
+
+        try:
+            # Running tasks
+            running = self.state.get_running_runs()
+            running_names = [r["task_id"] for r in running]
+
+            # Approved (waiting) tasks
+            from orchestrator.tools.backlog import parse_backlog
+
+            tasks = parse_backlog()
+            approved = [t for t in tasks if t.spec_status == "approved"]
+
+            # Open PRs
+            r = subprocess.run(
+                [
+                    "gh",
+                    "pr",
+                    "list",
+                    "--state",
+                    "open",
+                    "--json",
+                    "number,title",
+                    "--jq",
+                    '.[] | "#\\(.number)(\\(.title | split(" ") | .[0]))"',
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                cwd=str(PROJECT_ROOT),
+            )
+            prs = r.stdout.strip().split("\n") if r.returncode == 0 and r.stdout.strip() else []
+
+            # Build message
+            slot_str = f"{len(running)}/{MAX_PARALLEL_RUNS}"
+            running_str = ", ".join(running_names) if running_names else "없음"
+            waiting_str = (
+                f"{', '.join(t.id for t in approved[:3])} 외 {len(approved) - 3}건"
+                if len(approved) > 3
+                else ", ".join(t.id for t in approved) or "없음"
+            )
+            pr_str = (
+                f"{', '.join(prs[:3])} 외 {len(prs) - 3}건"
+                if len(prs) > 3
+                else ", ".join(prs) or "없음"
+            )
+
+            msg = (
+                f"🔄 Coding Machine 재기동\n\n"
+                f"슬롯: {slot_str} ({running_str})\n"
+                f"대기: {waiting_str}\n"
+                f"PR: {pr_str}\n\n"
+                f"명령: /status, /merge #N, /kill SP-NNN"
+            )
+            await do_notify_human({"message": msg, "level": "info"})
+        except Exception:
+            logger.warning("Startup summary failed", exc_info=True)
 
     async def _maybe_send_daily_report(self) -> None:
         """Send daily report once per day at 00:00 UTC (09:00 KST)."""
