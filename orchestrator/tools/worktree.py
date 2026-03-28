@@ -73,6 +73,9 @@ async def do_launch_sdd_run(task_id: str) -> dict:
         )
         run_id = _state_store.start_run(task_id, pid=proc.pid)
 
+        # spec.md status: approved → running (재실행 방지)
+        _update_spec_status(task_id, "running")
+
         # Background watcher
         task = asyncio.create_task(_watch_process(proc, task_id, run_id))
         _watch_tasks.add(task)
@@ -103,6 +106,29 @@ async def do_check_running_worktrees() -> dict:
             # DB에 있지만 프로세스 없음 → stale, 정리
             _state_store.finish_run(run.get("id", 0), -1)
     return {"content": [{"type": "text", "text": json.dumps(alive, ensure_ascii=False)}]}
+
+
+def _update_spec_status(task_id: str, new_status: str) -> None:
+    """Update spec.md status field to prevent duplicate launches."""
+    import glob
+    import re
+    from pathlib import Path
+
+    from orchestrator.config import PROJECT_ROOT
+
+    pattern = str(PROJECT_ROOT / ".claude/tasks/current" / f"{task_id}_*" / "spec.md")
+    for spec_path in glob.glob(pattern):
+        try:
+            p = Path(spec_path)
+            text = p.read_text()
+            updated = re.sub(
+                r"^status:\s*\S+", f"status: {new_status}", text, count=1, flags=re.MULTILINE
+            )
+            if updated != text:
+                p.write_text(updated)
+                logger.info("spec.md status → %s: %s", new_status, spec_path)
+        except Exception:
+            logger.warning("Failed to update spec status for %s", task_id, exc_info=True)
 
 
 def _is_pid_alive(pid: int) -> bool:
