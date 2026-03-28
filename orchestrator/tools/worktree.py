@@ -31,10 +31,14 @@ async def _watch_process(proc: asyncio.subprocess.Process, task_id: str, run_id:
         logger.info("Worktree %s finished (exit_code=%d, run_id=%d)", task_id, exit_code, run_id)
         if _state_store:
             _state_store.finish_run(run_id, exit_code)
+        # 실패 시 spec.md status: running → approved (재시도 가능)
+        if exit_code != 0:
+            _update_spec_status(task_id, "approved")
     except Exception:
         logger.exception("Error watching worktree process %s", task_id)
         if _state_store:
             _state_store.finish_run(run_id, exit_code=1)
+        _update_spec_status(task_id, "approved")
 
 
 async def do_launch_sdd_run(task_id: str) -> dict:
