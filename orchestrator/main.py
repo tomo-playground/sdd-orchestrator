@@ -287,12 +287,32 @@ class OrchestratorDaemon:
                     status = line.split(":", 1)[1].strip()
                     break
 
-            if status != "running":
-                continue
-
-            # running인데 실제 프로세스가 없고 open PR도 없으면 → approved 복원
             pid = running_pids.get(task_id)
             pid_alive = pid and os.path.exists(f"/proc/{pid}")
+
+            # 빈 워크트리 정리: PID 없고 커밋 0개인 워크트리 제거
+            wt_dir = PROJECT_ROOT / ".claude/worktrees" / task_id
+            if wt_dir.exists() and not pid_alive:
+                try:
+                    commits = subprocess.run(
+                        ["git", "-C", str(wt_dir), "log", "--oneline", "origin/main..HEAD"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    )
+                    if commits.returncode == 0 and not commits.stdout.strip():
+                        subprocess.run(
+                            ["git", "worktree", "remove", str(wt_dir), "--force"],
+                            capture_output=True,
+                            timeout=10,
+                            cwd=str(PROJECT_ROOT),
+                        )
+                        logger.info("🔧 [Heal] 빈 워크트리 삭제: %s", task_id)
+                except Exception:
+                    pass
+
+            if status != "running":
+                continue
 
             if pid_alive:
                 continue  # 정상 실행 중
