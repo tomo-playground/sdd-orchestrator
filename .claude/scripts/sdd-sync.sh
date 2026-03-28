@@ -40,17 +40,9 @@ fi
 for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*/spec.md "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
   [ -f "$TASK_FILE" ] || continue
   TASK_BRANCH=$(grep '^branch:' "$TASK_FILE" 2>/dev/null | sed 's/^branch: *//' | tr -d '[:space:]' || true)
-  # branch 필드 없으면 SP-ID로 머지된 PR 검색 (fallback)
+  # branch 필드 없으면 스킵 (퍼지 검색은 오탐 위험 — SP-111→SP-035 사고)
   if [ -z "$TASK_BRANCH" ]; then
-    FILE_SP_ID=$(basename "$(dirname "$TASK_FILE")" | grep -oE 'SP-[0-9]+' || true)
-    [ -z "$FILE_SP_ID" ] && continue
-    FALLBACK_BRANCH=$(gh pr list --state merged --base main --search "$FILE_SP_ID" --json headRefName --jq '.[0].headRefName' 2>/dev/null || true)
-    if [ -n "$FALLBACK_BRANCH" ]; then
-      TASK_BRANCH="$FALLBACK_BRANCH"
-      echo "ℹ️ branch 자동 감지: $FILE_SP_ID → $TASK_BRANCH"
-    else
-      continue
-    fi
+    continue
   fi
   IS_MERGED=$(gh pr list --state merged --base main --head "$TASK_BRANCH" --json number --jq '.[0].number' 2>/dev/null || true)
   if [ -z "$IS_MERGED" ]; then
@@ -130,6 +122,16 @@ for BRANCH in $MERGED; do
   git branch -D "worktree-${SP_ID}" 2>/dev/null || true
 done
 
+# ── 태스크 이동 커밋 (cleanup 전에 먼저 저장 — cleanup 실패해도 태스크 추적 유지) ──
+if [ "$CHANGED" = true ] && ! git diff --quiet .claude/tasks/; then
+  git add .claude/tasks/
+  git commit -m "chore: 머지 완료 태스크 정리 → done/ 이동
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
+  git push
+  echo "📦 태스크 정리 커밋 완료"
+fi
+
 # ── 좀비 워크트리 정리 (done/에 있는데 워크트리가 남은 태스크) ──
 # SP-* 뿐 아니라 feat+SP-*, worktree-SP-* 등 모든 SP-ID 포함 디렉토리 대상
 for WT_DIR in "$PROJECT_DIR/.claude/worktrees"/*/; do
@@ -156,7 +158,7 @@ find "$PROJECT_DIR/.claude/worktrees" -maxdepth 1 -type d -empty -delete 2>/dev/
 git worktree prune 2>/dev/null || true
 
 # ── 머지/닫힌 PR의 stale 브랜치 정리 ──
-for LOCAL_BR in $(git branch --format='%(refname:short)' | grep -E '^(feat/|fix/|worktree-)'); do
+for LOCAL_BR in $(git branch --format='%(refname:short)' | grep -E '^(feat/|fix/|worktree-)' || true); do
   # main, 현재 브랜치는 스킵
   [ "$LOCAL_BR" = "main" ] && continue
   # 원격에 존재하는지 확인
@@ -174,16 +176,6 @@ for LOCAL_BR in $(git branch --format='%(refname:short)' | grep -E '^(feat/|fix/
   fi
 done
 git remote prune origin 2>/dev/null || true
-
-# 변경사항 커밋 + 푸시 (current/ → done/ 이동분)
-if [ "$CHANGED" = true ] && ! git diff --quiet .claude/tasks/; then
-  git add .claude/tasks/
-  git commit -m "chore: 머지 완료 태스크 정리 → done/ 이동
-
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
-  git push
-  echo "📦 태스크 정리 커밋 완료"
-fi
 
 # auto-stash 복원 (backlog.md 로컬 수정본 복원)
 if [ "$STASHED" = true ]; then
