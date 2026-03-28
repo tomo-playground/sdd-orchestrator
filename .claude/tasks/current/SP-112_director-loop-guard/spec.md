@@ -5,7 +5,7 @@ priority: P1
 scope: backend
 branch: feat/SP-112-director-loop-guard
 created: 2026-03-28
-status: pending
+> status: design
 label: optimization
 ---
 
