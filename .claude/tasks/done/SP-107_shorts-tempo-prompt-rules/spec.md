@@ -4,7 +4,7 @@ priority: P0
 scope: backend
 branch: feat/SP-107-shorts-tempo-prompt-rules
 created: 2026-03-28
-status: running
+status: done
 approved_at: 2026-03-28
 depends_on:
 label: enhancement
