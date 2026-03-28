@@ -4,8 +4,8 @@ priority: P2
 scope: frontend
 branch: feat/SP-101-voices-master-detail
 created: 2026-03-26
-status: design
-approved_at:
+status: approved
+approved_at: 2026-03-28
 depends_on: SP-099
 label: feature
 ---
