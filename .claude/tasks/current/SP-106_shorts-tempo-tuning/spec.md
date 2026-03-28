@@ -4,7 +4,7 @@ priority: P0
 scope: backend
 branch: feat/SP-106-shorts-tempo-tuning
 created: 2026-03-28
-status: approved
+status: running
 approved_at: 2026-03-28
 depends_on:
 label: enhancement
