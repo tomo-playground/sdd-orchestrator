@@ -1,0 +1,39 @@
+# SDD Health Check — Periodic orchestrator status check
+name: health-check
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check task consistency
+        run: |
+          echo "=== Task Status ==="
+          for dir in .claude/tasks/current/SP-*; do
+            [ -d "$dir" ] || continue
+            SP=$(basename "$dir" | cut -d_ -f1)
+            STATUS=$(grep -oP 'status:\s*\K\w+' "$dir/spec.md" 2>/dev/null || echo "unknown")
+            echo "$SP: $STATUS"
+          done
+
+      - name: Check for stale running tasks
+        run: |
+          STALE=0
+          for dir in .claude/tasks/current/SP-*; do
+            [ -d "$dir" ] || continue
+            STATUS=$(grep -oP 'status:\s*\K\w+' "$dir/spec.md" 2>/dev/null || echo "unknown")
+            if [ "$STATUS" = "running" ]; then
+              SP=$(basename "$dir" | cut -d_ -f1)
+              echo "WARNING: $SP is in running state — check if process is alive"
+              STALE=$((STALE + 1))
+            fi
+          done
+          if [ "$STALE" -gt 0 ]; then
+            echo "::warning::$STALE tasks in running state may be stale"
+          fi
