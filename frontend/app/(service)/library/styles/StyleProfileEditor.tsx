@@ -61,7 +61,6 @@ type Props = {
     embeddingId: number,
     type: "positive" | "negative"
   ) => void;
-  onClose: () => void;
 };
 
 const labelCls = FORM_LABEL_COMPACT_CLASSES;
@@ -77,7 +76,6 @@ export default function StyleProfileEditor({
   onSetModel,
   onToggleLora,
   onToggleEmbedding,
-  onClose,
 }: Props) {
   const activeLoraIds = new Set(profile.loras?.map((l) => l.id) ?? []);
   const posEmbIds = new Set(profile.positive_embeddings?.map((e) => e.id) ?? []);
@@ -119,12 +117,6 @@ export default function StyleProfileEditor({
             Editing Style ID #{profile.id}
           </p>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-full bg-indigo-50 px-4 py-1.5 text-[12px] font-bold text-indigo-500 hover:bg-indigo-100"
-        >
-          Done
-        </button>
       </div>
 
       {/* Metadata: display_name, description, is_default */}

@@ -17,6 +17,7 @@ import type { LoRA, UiCallbacksWithPrompt } from "../../types";
 export function useStyleTab(ui: UiCallbacksWithPrompt) {
   const [styleProfiles, setStyleProfiles] = useState<StyleProfile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<StyleProfileFull | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
   const [isStyleLoading, setIsStyleLoading] = useState(false);
 
   const [sdModels, setSdModels] = useState<SDModelEntry[]>([]);
@@ -123,6 +124,27 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     [allCharacters, allGroups]
   );
 
+  // ── Profile Loader ──────────────────────────────────
+
+  const handleLoadProfile = useCallback(
+    async (id: number) => {
+      setSelectedProfileId(id);
+      try {
+        const res = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}/full`);
+        setSelectedProfile(res.data);
+        void fetchLinkedCharacters(id);
+      } catch (error) {
+        setSelectedProfileId(null);
+        setSelectedProfile(null);
+        const msg = axios.isAxiosError(error)
+          ? (error.response?.data?.detail ?? error.message)
+          : "Unknown error";
+        ui.showToast(`화풍 상세 로드 실패: ${msg}`, "error");
+      }
+    },
+    [ui, fetchLinkedCharacters]
+  );
+
   // ── Style CRUD ─────────────────────────────────────
 
   const handleCreateStyle = useCallback(async () => {
@@ -135,15 +157,16 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     const name = result as string;
     if (!name.trim()) return;
     try {
-      await axios.post(`${ADMIN_API_BASE}/style-profiles/`, { name });
+      const res = await axios.post<{ id: number }>(`${ADMIN_API_BASE}/style-profiles/`, { name });
       await fetchStyles();
+      void handleLoadProfile(res.data.id);
     } catch (error) {
       const msg = axios.isAxiosError(error)
         ? (error.response?.data?.detail ?? error.message)
         : "Unknown error";
       ui.showToast(`화풍 생성 실패: ${msg}`, "error");
     }
-  }, [fetchStyles, ui]);
+  }, [fetchStyles, ui, handleLoadProfile]);
 
   const handleDeleteStyle = useCallback(
     async (id: number) => {
@@ -157,6 +180,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
       try {
         await axios.delete(`${ADMIN_API_BASE}/style-profiles/${id}`);
         setSelectedProfile((prev) => (prev?.id === id ? null : prev));
+        setSelectedProfileId((prev) => (prev === id ? null : prev));
         await fetchStyles();
       } catch (error) {
         const msg = axios.isAxiosError(error)
@@ -223,6 +247,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
           positive_embeddings: fullOriginal.positive_embeddings?.map((e) => e.id) ?? [],
         });
         await fetchStyles();
+        void handleLoadProfile(newId);
       } catch (error) {
         const msg = axios.isAxiosError(error)
           ? (error.response?.data?.detail ?? error.message)
@@ -230,23 +255,7 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
         ui.showToast(`화풍 복제 실패: ${msg}`, "error");
       }
     },
-    [fetchStyles, styleProfiles, ui]
-  );
-
-  const handleLoadProfile = useCallback(
-    async (id: number) => {
-      try {
-        const res = await axios.get<StyleProfileFull>(`${API_BASE}/style-profiles/${id}/full`);
-        setSelectedProfile(res.data);
-        void fetchLinkedCharacters(id);
-      } catch (error) {
-        const msg = axios.isAxiosError(error)
-          ? (error.response?.data?.detail ?? error.message)
-          : "Unknown error";
-        ui.showToast(`화풍 상세 로드 실패: ${msg}`, "error");
-      }
-    },
-    [ui, fetchLinkedCharacters]
+    [fetchStyles, styleProfiles, ui, handleLoadProfile]
   );
 
   // ── Profile Asset Handlers ────────────────────────
@@ -343,6 +352,8 @@ export function useStyleTab(ui: UiCallbacksWithPrompt) {
     styleProfiles,
     selectedProfile,
     setSelectedProfile,
+    selectedProfileId,
+    setSelectedProfileId,
     isStyleLoading,
     handleCreateStyle,
     handleDeleteStyle,
