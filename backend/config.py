@@ -823,7 +823,7 @@ ENVIRONMENT_REFERENCE_ENABLED = (
 )  # True: background_id → Reference AdaIN 적용, False: 프롬프트 태그만
 DEFAULT_REFERENCE_ONLY_WEIGHT = 0.5
 DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT = 0.3
-MIN_IP_ADAPTER_WEIGHT_NO_LORA = 0.35  # LoRA 없는 캐릭터의 최소 IP-Adapter weight (v-pred 모델 호환)
+MIN_IP_ADAPTER_WEIGHT_NO_LORA = 0.5  # LoRA 없는 캐릭터의 최소 IP-Adapter weight
 DEFAULT_MULTI_GEN_ENABLED = False
 DEFAULT_ENABLE_HR = False  # Hi-Res Fix 기본 비활성화 (StyleProfile에서 개별 활성화)
 
