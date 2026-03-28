@@ -109,6 +109,11 @@ async def do_check_running_worktrees() -> dict:
         elif pid:
             # DB에 있지만 프로세스 없음 → stale, 정리
             _state_store.finish_run(run.get("id", 0), -1)
+            # spec.md 복원 (오케스트레이터 재시작 시 _watch_process 콜백 소실 대비)
+            task_id = run.get("task_id", "")
+            if task_id:
+                _update_spec_status(task_id, "approved")
+                logger.info("Dead PID %d → spec.md restored to approved: %s", pid, task_id)
     return {"content": [{"type": "text", "text": json.dumps(alive, ensure_ascii=False)}]}
 
 
