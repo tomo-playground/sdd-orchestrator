@@ -5,6 +5,10 @@
 
 ---
 
+## P0 (긴급)
+
+- [x] SP-115 — 배경/캐릭터 분리 IP-Adapter 파이프라인 통합 → `current/` 착수
+
 ## P1 (최우선)
 
 - [ ] SP-085 — 코딩 엔진 통합 — sdd-run/sdd-fix/sentry-autofix를 단일 엔진 + 모드 구조로 리팩토링 (범용 분리 준비) | scope: infra
