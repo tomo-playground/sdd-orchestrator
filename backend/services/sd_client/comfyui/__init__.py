@@ -239,6 +239,8 @@ class ComfyUIClient(SDClientBase):
         loras = self._extract_lora_tags(payload.get("prompt", "") + " " + variables.get("positive", ""))
         available_loras = await self._get_available_loras()
         workflow = self._apply_loras_to_workflow(workflow, loras, available_loras)
+        if loras:
+            logger.info("🎨 [ComfyUI LoRA] Applied %d: %s", len(loras), [(l["name"], l["weight"]) for l in loras])
 
         # Apply checkpoint: payload takes priority, fall back to auto-detected
         checkpoint = self._resolve_checkpoint(payload) or await self._ensure_checkpoint()
