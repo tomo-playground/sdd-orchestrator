@@ -817,7 +817,7 @@ DEFAULT_USE_CONTROLNET = False  # 일반 씬 OFF (프롬프트 충성도 충분)
 DEFAULT_CONTROLNET_WEIGHT = 0.8
 DEFAULT_USE_IP_ADAPTER = False
 DEFAULT_IP_ADAPTER_WEIGHT = 0.35  # IP-Adapter 기본 weight (ip_adapter_weight_b 기본값으로도 사용)
-IP_ADAPTER_AUTO_ENABLE = False  # True: 레퍼런스 이미지 존재 시 자동 활성화, False: 명시적 요청만
+IP_ADAPTER_AUTO_ENABLE = True  # 레퍼런스 이미지 존재 시 자동 활성화
 ENVIRONMENT_REFERENCE_ENABLED = (
     os.getenv("ENVIRONMENT_REFERENCE_ENABLED", "false").lower() == "true"
 )  # True: background_id → Reference AdaIN 적용, False: 프롬프트 태그만
@@ -839,6 +839,8 @@ DEFAULT_CHARACTER_PRESET = {
 DEFAULT_IP_ADAPTER_GUIDANCE_START = 0.0
 DEFAULT_IP_ADAPTER_GUIDANCE_END_FACEID = 0.85  # Reduce prompt interference in later steps
 DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP = 1.0  # Full guidance for CLIP-based models
+DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED = 0.7  # v-pred safety: 0.7+ → DynamicThresholding 충돌
+DEFAULT_IP_ADAPTER_WEIGHT_VPRED = 0.5  # v-pred safety weight default (ComfyUI fallback)
 
 # IP-Adapter Dual Unit (opt-in, VRAM 2x)
 IP_ADAPTER_DUAL_ENABLED = os.getenv("IP_ADAPTER_DUAL_ENABLED", "false").lower() == "true"

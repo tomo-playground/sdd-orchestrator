@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import logging
 import random
 import re
@@ -13,6 +14,8 @@ from config import (
     COMFYUI_BASE_URL,
     COMFYUI_NETWORK_TIMEOUT,
     CONTROLNET_2P_STRENGTH,
+    DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED,
+    DEFAULT_IP_ADAPTER_WEIGHT_VPRED,
 )
 from services.sd_client import SDClientBase
 from services.sd_client.comfyui.workflow_loader import inject_variables, load_workflow
@@ -218,12 +221,17 @@ class ComfyUIClient(SDClientBase):
 
     async def txt2img(self, payload: dict, timeout: float | None = None) -> SDTxt2ImgResult:
         """Convert SD WebUI payload → ComfyUI workflow → execute → SDTxt2ImgResult."""
+        payload = dict(payload)  # shallow copy — do not mutate caller's dict (retry safety)
         workflow_name = payload.get("_comfy_workflow", "scene_single")
         workflow, output_node = load_workflow(workflow_name)
 
         # Handle 2P pose image upload (pop large base64 data before variable injection)
         pose_b64 = payload.pop("_pose_image_b64", None)
         pose_name = payload.pop("_pose_name", None)
+
+        # Handle IP-Adapter (extract before variable injection)
+        ip_adapter = payload.get("_ip_adapter")
+        payload.pop("_ip_adapter", None)
 
         variables = self._payload_to_variables(payload)
 
@@ -236,6 +244,40 @@ class ComfyUIClient(SDClientBase):
             filename = await self._ensure_pose_uploaded(pose_name, pose_b64)
             variables["pose_image"] = filename
             variables["controlnet_strength"] = payload.pop("_controlnet_strength", CONTROLNET_2P_STRENGTH)
+
+        # IP-Adapter: upload reference image → inject variables, or bypass
+        if ip_adapter and ip_adapter.get("image_b64"):
+            try:
+                ref_hash = hashlib.sha256(ip_adapter["image_b64"].encode("ascii")).hexdigest()[:12]
+                safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", ip_adapter.get("name") or "char")
+                ip_filename = await self._upload_image(
+                    ip_adapter["image_b64"],
+                    f"ip_ref_{safe_name}_{ref_hash}.png",
+                )
+                variables["ip_adapter_image"] = ip_filename
+                variables["ip_adapter_weight"] = min(
+                    max(float(ip_adapter.get("weight", DEFAULT_IP_ADAPTER_WEIGHT_VPRED)), 0.0), 1.0
+                )
+                variables["ip_adapter_end_at"] = min(
+                    max(float(ip_adapter.get("end_at", DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED)), 0.0), 1.0
+                )
+                logger.info(
+                    "🧑 [ComfyUI IP-Adapter] ref=%s weight=%.2f end_at=%.2f",
+                    ip_filename,
+                    variables["ip_adapter_weight"],
+                    variables["ip_adapter_end_at"],
+                )
+            except Exception as e:
+                logger.warning("🧑 [ComfyUI IP-Adapter] Upload failed, bypassing: %s", e)
+                self._bypass_ip_adapter(workflow)
+                variables.setdefault("ip_adapter_image", "bypass_placeholder.png")
+                variables.setdefault("ip_adapter_weight", 0.0)
+                variables.setdefault("ip_adapter_end_at", 0.0)
+        else:
+            self._bypass_ip_adapter(workflow)
+            variables.setdefault("ip_adapter_image", "bypass_placeholder.png")
+            variables.setdefault("ip_adapter_weight", 0.0)
+            variables.setdefault("ip_adapter_end_at", 0.0)
 
         workflow = inject_variables(workflow, variables)
 
@@ -373,6 +415,14 @@ class ComfyUIClient(SDClientBase):
         return result
 
     # ── Private helpers ──────────────────────────────────────
+
+    @staticmethod
+    def _bypass_ip_adapter(workflow: dict) -> None:
+        """IP-Adapter 미사용 시 sampler model 연결을 dynthres로 우회 (Link Re-routing)."""
+        sampler = workflow.get("9_sampler")
+        if sampler and isinstance(sampler["inputs"].get("model"), list):
+            if sampler["inputs"]["model"][0] == "14_ip_apply":
+                sampler["inputs"]["model"] = ["5_dynthres", 0]
 
     @staticmethod
     def _payload_to_variables(payload: dict) -> dict:

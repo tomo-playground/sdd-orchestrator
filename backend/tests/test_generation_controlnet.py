@@ -41,6 +41,7 @@ class FakeContext:
     character_name: str | None = None
     controlnet_used: str | None = None
     ip_adapter_used: str | None = None
+    _ip_adapter_payload: dict | None = None
     warnings: list[str] = field(default_factory=list)
 
 
@@ -181,7 +182,7 @@ class TestApplyPoseHint:
 
 
 class TestApplyIpAdapter:
-    """Tests for IP-Adapter application."""
+    """Tests for IP-Adapter application (ComfyUI payload format — SP-113)."""
 
     def test_skip_when_disabled(self):
         from services.generation_controlnet import _apply_ip_adapter
@@ -190,7 +191,7 @@ class TestApplyIpAdapter:
         ctx = FakeContext(consistency=strategy)
         args: list = []
         _apply_ip_adapter(ctx, strategy, args, db=None)
-        assert args == []
+        assert not hasattr(ctx, "_ip_adapter_payload") or ctx._ip_adapter_payload is None
 
     def test_skip_when_no_reference(self):
         from services.generation_controlnet import _apply_ip_adapter
@@ -199,26 +200,159 @@ class TestApplyIpAdapter:
         ctx = FakeContext(consistency=strategy)
         args: list = []
         _apply_ip_adapter(ctx, strategy, args, db=None)
-        assert args == []
+        assert not hasattr(ctx, "_ip_adapter_payload") or ctx._ip_adapter_payload is None
 
-    @patch("services.generation_controlnet.load_reference_image", return_value="ref_b64")
-    @patch("services.generation_controlnet.build_ip_adapter_args", return_value={"model": "ip-adapter"})
-    def test_normal_application(self, mock_build, mock_load):
+    @patch("services.generation_controlnet.load_reference_image", return_value="ref_b64_data")
+    def test_creates_ip_adapter_payload(self, mock_load):
+        """IP-Adapter enabled → ctx._ip_adapter_payload dict 생성 (ComfyUI 형식)."""
         from services.generation_controlnet import _apply_ip_adapter
 
         strategy = FakeStrategy(
             ip_adapter_enabled=True,
             ip_adapter_reference="char_key",
-            ip_adapter_weight=0.8,
+            ip_adapter_weight=0.5,
+            ip_adapter_guidance_end=0.7,
         )
         ctx = FakeContext(consistency=strategy)
         args: list = []
         db = MagicMock()
         _apply_ip_adapter(ctx, strategy, args, db=db)
 
-        assert len(args) == 1
+        assert hasattr(ctx, "_ip_adapter_payload")
+        p = ctx._ip_adapter_payload
+        assert p["image_b64"] == "ref_b64_data"
+        assert p["name"] == "char_key"
+        assert p["weight"] == 0.5
+        assert p["end_at"] == 0.7
         assert ctx.ip_adapter_used == "char_key"
         mock_load.assert_called_once_with("char_key", db=db)
+
+    @patch("services.generation_controlnet.load_reference_image", return_value=None)
+    def test_ref_load_failure_skips(self, mock_load):
+        """레퍼런스 이미지 로드 실패 시 _ip_adapter_payload 미생성 + warning."""
+        from services.generation_controlnet import _apply_ip_adapter
+
+        strategy = FakeStrategy(
+            ip_adapter_enabled=True,
+            ip_adapter_reference="missing_char",
+            ip_adapter_weight=0.5,
+        )
+        ctx = FakeContext(consistency=strategy)
+        args: list = []
+        _apply_ip_adapter(ctx, strategy, args, db=MagicMock())
+
+        assert not hasattr(ctx, "_ip_adapter_payload") or ctx._ip_adapter_payload is None
+        assert any("missing_char" in w for w in ctx.warnings)
+
+
+class TestApplyControlnetInjectsIpAdapter:
+    """apply_controlnet() should inject _ip_adapter into payload (SP-113 DoD 3)."""
+
+    @patch("services.generation_controlnet.load_reference_image", return_value="ref_b64")
+    def test_payload_has_ip_adapter_key(self, mock_load):
+        """apply_controlnet 호출 후 payload['_ip_adapter'] 존재."""
+        from services.generation_controlnet import apply_controlnet
+
+        strategy = FakeStrategy(
+            ip_adapter_enabled=True,
+            ip_adapter_reference="test_char",
+            ip_adapter_weight=0.5,
+            ip_adapter_guidance_end=0.7,
+        )
+        req = FakeRequest()
+        ctx = FakeContext(request=req, consistency=strategy)
+        payload: dict = {"prompt": "1girl"}
+        apply_controlnet(payload, ctx, db=MagicMock())
+
+        assert "_ip_adapter" in payload
+        assert payload["_ip_adapter"]["name"] == "test_char"
+        assert payload["_ip_adapter"]["image_b64"] == "ref_b64"
+
+    def test_payload_no_ip_adapter_when_disabled(self):
+        """IP-Adapter 비활성화 시 payload에 _ip_adapter 없음."""
+        from services.generation_controlnet import apply_controlnet
+
+        strategy = FakeStrategy(ip_adapter_enabled=False)
+        req = FakeRequest()
+        ctx = FakeContext(request=req, consistency=strategy)
+        payload: dict = {"prompt": "1girl"}
+        apply_controlnet(payload, ctx, db=MagicMock())
+
+        assert "_ip_adapter" not in payload
+
+    @patch("services.generation_controlnet.load_reference_image", return_value="ref_b64_2p")
+    @patch("services.generation_controlnet._apply_2p_pose")
+    def test_2p_scene_also_injects_ip_adapter(self, mock_2p_pose, mock_load):
+        """2인 씬(character_b_id != None)에서도 _ip_adapter가 payload에 주입되어야 한다."""
+        from services.generation_controlnet import apply_controlnet
+
+        strategy = FakeStrategy(
+            ip_adapter_enabled=True,
+            ip_adapter_reference="char_a",
+            ip_adapter_weight=0.5,
+            ip_adapter_guidance_end=0.6,
+        )
+
+        @dataclass
+        class FakeRequest2P:
+            character_b_id: int = 2
+            use_controlnet: bool = False
+            controlnet_pose: str | None = None
+            controlnet_weight: float = 1.0
+            controlnet_control_mode: str = "Balanced"
+            character_id: int | None = None
+            scene_id: int | None = None
+            prompt: str = ""
+            environment_reference_id: int | None = None
+            environment_reference_weight: float = 0.3
+
+        req = FakeRequest2P()
+        ctx = FakeContext(request=req, consistency=strategy)
+        payload: dict = {"prompt": "2girls"}
+        apply_controlnet(payload, ctx, db=MagicMock())
+
+        mock_2p_pose.assert_called_once()
+        assert "_ip_adapter" in payload
+        assert payload["_ip_adapter"]["name"] == "char_a"
+        assert payload["_ip_adapter"]["image_b64"] == "ref_b64_2p"
+
+
+class TestApplyIpAdapterEndAt:
+    """end_at=0.0 should not be overwritten by 'or 0.7' default (CodeRabbit fix)."""
+
+    @patch("services.generation_controlnet.load_reference_image", return_value="ref_b64")
+    def test_end_at_zero_preserved(self, mock_load):
+        """ip_adapter_guidance_end=0.0 must not be replaced with 0.7."""
+        from services.generation_controlnet import _apply_ip_adapter
+
+        strategy = FakeStrategy(
+            ip_adapter_enabled=True,
+            ip_adapter_reference="char_key",
+            ip_adapter_weight=0.5,
+            ip_adapter_guidance_end=0.0,
+        )
+        ctx = FakeContext(consistency=strategy)
+        _apply_ip_adapter(ctx, strategy, [], db=MagicMock())
+
+        assert ctx._ip_adapter_payload is not None
+        assert ctx._ip_adapter_payload["end_at"] == 0.0
+
+    @patch("services.generation_controlnet.load_reference_image", return_value="ref_b64")
+    def test_end_at_none_defaults_to_0_7(self, mock_load):
+        """ip_adapter_guidance_end=None should default to 0.7."""
+        from services.generation_controlnet import _apply_ip_adapter
+
+        strategy = FakeStrategy(
+            ip_adapter_enabled=True,
+            ip_adapter_reference="char_key",
+            ip_adapter_weight=0.5,
+            ip_adapter_guidance_end=None,
+        )
+        ctx = FakeContext(consistency=strategy)
+        _apply_ip_adapter(ctx, strategy, [], db=MagicMock())
+
+        assert ctx._ip_adapter_payload is not None
+        assert ctx._ip_adapter_payload["end_at"] == 0.7
 
 
 # ── _apply_reference_only Tests ──────────────────────────────────────

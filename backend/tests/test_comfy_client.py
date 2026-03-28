@@ -9,6 +9,7 @@ import pytest
 
 from services.sd_client import SDClientBase
 from services.sd_client.comfyui import ComfyUIClient
+from services.sd_client.comfyui.workflow_loader import load_workflow
 from services.sd_client.types import SDTxt2ImgResult
 
 
@@ -476,6 +477,191 @@ class TestComfyUIClientGetProgress:
         assert result.progress == 1.0
 
 
+class TestBypassIpAdapter:
+    """_bypass_ip_adapter() — Link Re-routing for IP-Adapter disable."""
+
+    def test_reroutes_sampler_to_dynthres(self):
+        """When sampler points to 14_ip_apply, should reroute to 5_dynthres."""
+        workflow = {
+            "5_dynthres": {"class_type": "DynamicThresholdingFull", "inputs": {}},
+            "14_ip_apply": {"class_type": "IPAdapterAdvanced", "inputs": {}},
+            "9_sampler": {
+                "class_type": "KSampler",
+                "inputs": {"model": ["14_ip_apply", 0]},
+            },
+        }
+        ComfyUIClient._bypass_ip_adapter(workflow)
+        assert workflow["9_sampler"]["inputs"]["model"] == ["5_dynthres", 0]
+
+    def test_noop_when_already_dynthres(self):
+        """When sampler already points to dynthres, should be a no-op."""
+        workflow = {
+            "9_sampler": {
+                "class_type": "KSampler",
+                "inputs": {"model": ["5_dynthres", 0]},
+            },
+        }
+        ComfyUIClient._bypass_ip_adapter(workflow)
+        assert workflow["9_sampler"]["inputs"]["model"] == ["5_dynthres", 0]
+
+    def test_noop_when_no_sampler(self):
+        """When 9_sampler doesn't exist, should not crash."""
+        workflow = {"other_node": {"class_type": "Foo", "inputs": {}}}
+        ComfyUIClient._bypass_ip_adapter(workflow)  # no error
+
+
+class TestIpAdapterWorkflowIntegration:
+    """IP-Adapter workflow node presence and chain (SP-113 DoD 1/4)."""
+
+    def test_scene_single_ip_adapter_nodes_exist(self):
+        """scene_single.json should contain 12_ip_loader, 13_ip_image, 14_ip_apply."""
+        workflow, _ = load_workflow("scene_single")
+        assert "12_ip_loader" in workflow
+        assert "13_ip_image" in workflow
+        assert "14_ip_apply" in workflow
+        assert workflow["12_ip_loader"]["class_type"] == "IPAdapterUnifiedLoader"
+        assert workflow["13_ip_image"]["class_type"] == "LoadImage"
+        assert workflow["14_ip_apply"]["class_type"] == "IPAdapterAdvanced"
+
+    def test_scene_single_ip_adapter_chain(self):
+        """14_ip_apply should feed into 9_sampler model input."""
+        workflow, _ = load_workflow("scene_single")
+        assert workflow["9_sampler"]["inputs"]["model"] == ["14_ip_apply", 0]
+        assert workflow["14_ip_apply"]["inputs"]["model"] == ["12_ip_loader", 0]
+
+    def test_scene_2p_ip_adapter_nodes_exist(self):
+        """scene_2p.json should contain IP-Adapter nodes."""
+        workflow, _ = load_workflow("scene_2p")
+        assert "12_ip_loader" in workflow
+        assert "13_ip_image" in workflow
+        assert "14_ip_apply" in workflow
+
+    def test_scene_2p_ip_adapter_chain(self):
+        """2P: sampler model → 14_ip_apply, ControlNet on conditioning (independent)."""
+        workflow, _ = load_workflow("scene_2p")
+        assert workflow["9_sampler"]["inputs"]["model"] == ["14_ip_apply", 0]
+        assert workflow["9_sampler"]["inputs"]["positive"] == ["7_cn_apply", 0]
+
+
+class TestTxt2ImgIpAdapter:
+    """txt2img() with IP-Adapter payload (SP-113 DoD 2)."""
+
+    @pytest.mark.asyncio
+    async def test_txt2img_with_ip_adapter(self):
+        """When _ip_adapter provided, should upload image and inject variables."""
+        client = ComfyUIClient(base_url="http://test:8188")
+        fake_img_b64 = base64.b64encode(b"\x89PNG_ref").decode()
+
+        with (
+            patch("services.sd_client.comfyui.load_workflow") as mock_load,
+            patch("services.sd_client.comfyui.inject_variables") as mock_inject,
+            patch("services.sd_client.comfyui.run_workflow", return_value=[b"result_img"]),
+            patch.object(client, "_upload_image", return_value="ip_ref_testchar_abc123.png"),
+        ):
+            mock_load.return_value = (
+                {
+                    "9_sampler": {"class_type": "KSampler", "inputs": {"model": ["14_ip_apply", 0]}},
+                    "14_ip_apply": {"class_type": "IPAdapterAdvanced", "inputs": {}},
+                },
+                "save",
+            )
+            mock_inject.return_value = mock_load.return_value[0]
+
+            result = await client.txt2img(
+                {
+                    "prompt": "1girl",
+                    "_ip_adapter": {
+                        "image_b64": fake_img_b64,
+                        "name": "testchar",
+                        "weight": 0.5,
+                        "end_at": 0.7,
+                    },
+                }
+            )
+
+        variables = mock_inject.call_args[0][1]
+        assert variables["ip_adapter_image"] == "ip_ref_testchar_abc123.png"
+        assert variables["ip_adapter_weight"] == 0.5
+        assert variables["ip_adapter_end_at"] == 0.7
+        assert isinstance(result, SDTxt2ImgResult)
+
+    @pytest.mark.asyncio
+    async def test_txt2img_without_ip_adapter_bypasses(self):
+        """When _ip_adapter not provided, sampler should be rerouted to dynthres."""
+        client = ComfyUIClient(base_url="http://test:8188")
+
+        workflow_data = {
+            "5_dynthres": {"class_type": "DynamicThresholdingFull", "inputs": {}},
+            "14_ip_apply": {"class_type": "IPAdapterAdvanced", "inputs": {}},
+            "9_sampler": {"class_type": "KSampler", "inputs": {"model": ["14_ip_apply", 0]}},
+        }
+
+        with (
+            patch("services.sd_client.comfyui.load_workflow", return_value=(workflow_data, "save")),
+            patch("services.sd_client.comfyui.inject_variables", return_value=workflow_data),
+            patch("services.sd_client.comfyui.run_workflow", return_value=[b"img"]),
+        ):
+            await client.txt2img({"prompt": "1girl"})
+
+        assert workflow_data["9_sampler"]["inputs"]["model"] == ["5_dynthres", 0]
+
+    @pytest.mark.asyncio
+    async def test_txt2img_ip_adapter_upload_failure_bypasses(self):
+        """When IP-Adapter image upload fails, should bypass gracefully."""
+        client = ComfyUIClient(base_url="http://test:8188")
+        fake_img_b64 = base64.b64encode(b"\x89PNG").decode()
+
+        workflow_data = {
+            "5_dynthres": {"class_type": "DynamicThresholdingFull", "inputs": {}},
+            "14_ip_apply": {"class_type": "IPAdapterAdvanced", "inputs": {}},
+            "9_sampler": {"class_type": "KSampler", "inputs": {"model": ["14_ip_apply", 0]}},
+        }
+
+        with (
+            patch("services.sd_client.comfyui.load_workflow", return_value=(workflow_data, "save")),
+            patch("services.sd_client.comfyui.inject_variables", return_value=workflow_data),
+            patch("services.sd_client.comfyui.run_workflow", return_value=[b"img"]),
+            patch.object(client, "_upload_image", side_effect=RuntimeError("upload failed")),
+        ):
+            result = await client.txt2img(
+                {
+                    "prompt": "1girl",
+                    "_ip_adapter": {"image_b64": fake_img_b64, "name": "char"},
+                }
+            )
+
+        assert workflow_data["9_sampler"]["inputs"]["model"] == ["5_dynthres", 0]
+        assert isinstance(result, SDTxt2ImgResult)
+
+    @pytest.mark.asyncio
+    async def test_txt2img_ip_adapter_weight_clamped(self):
+        """Weight should be clamped to 0.0~1.0 range."""
+        client = ComfyUIClient(base_url="http://test:8188")
+        fake_img_b64 = base64.b64encode(b"\x89PNG").decode()
+
+        with (
+            patch("services.sd_client.comfyui.load_workflow") as mock_load,
+            patch("services.sd_client.comfyui.inject_variables") as mock_inject,
+            patch("services.sd_client.comfyui.run_workflow", return_value=[b"img"]),
+            patch.object(client, "_upload_image", return_value="ref.png"),
+        ):
+            mock_load.return_value = (
+                {"9_sampler": {"class_type": "KSampler", "inputs": {"model": ["14_ip_apply", 0]}}},
+                "save",
+            )
+            mock_inject.return_value = mock_load.return_value[0]
+
+            await client.txt2img(
+                {
+                    "prompt": "test",
+                    "_ip_adapter": {"image_b64": fake_img_b64, "weight": 1.5},
+                }
+            )
+
+        variables = mock_inject.call_args[0][1]
+        assert variables["ip_adapter_weight"] == 1.0  # clamped from 1.5
+
+
 class TestComfyUIClientPayloadNotMutated:
     """txt2img() should not mutate the caller's payload dict (WARNING 4 fix)."""
 
@@ -496,3 +682,86 @@ class TestComfyUIClientPayloadNotMutated:
 
         assert set(payload.keys()) == original_keys
         assert payload["_comfy_workflow"] == "reference"
+
+    @pytest.mark.asyncio
+    async def test_ip_adapter_key_not_removed_from_caller(self):
+        """_ip_adapter key must remain in caller's dict after txt2img (retry safety)."""
+        client = ComfyUIClient(base_url="http://test:8188")
+        fake_img_b64 = base64.b64encode(b"\x89PNG").decode()
+        payload = {
+            "prompt": "test",
+            "_ip_adapter": {"image_b64": fake_img_b64, "name": "char", "weight": 0.5, "end_at": 0.7},
+        }
+
+        with (
+            patch("services.sd_client.comfyui.load_workflow") as mock_load,
+            patch("services.sd_client.comfyui.inject_variables", return_value={}),
+            patch("services.sd_client.comfyui.run_workflow", return_value=[b"img"]),
+            patch.object(client, "_upload_image", return_value="ip_ref_char_abc123.png"),
+        ):
+            mock_load.return_value = ({}, "save")
+            await client.txt2img(payload)
+
+        assert "_ip_adapter" in payload
+        assert payload["_ip_adapter"]["name"] == "char"
+
+
+class TestIpAdapterUniqueFilename:
+    """IP-Adapter upload filename should be unique per image content."""
+
+    @pytest.mark.asyncio
+    async def test_different_images_get_different_filenames(self):
+        """Two requests with different images should use different filenames."""
+        client = ComfyUIClient(base_url="http://test:8188")
+        img_a = base64.b64encode(b"\x89PNG_image_A").decode()
+        img_b = base64.b64encode(b"\x89PNG_image_B").decode()
+
+        uploaded_filenames: list[str] = []
+
+        async def capture_upload(image_b64: str, filename: str) -> str:
+            uploaded_filenames.append(filename)
+            return filename
+
+        for img in [img_a, img_b]:
+            with (
+                patch("services.sd_client.comfyui.load_workflow") as mock_load,
+                patch("services.sd_client.comfyui.inject_variables", return_value={}),
+                patch("services.sd_client.comfyui.run_workflow", return_value=[b"out"]),
+                patch.object(client, "_upload_image", side_effect=capture_upload),
+            ):
+                mock_load.return_value = ({}, "save")
+                await client.txt2img(
+                    {"prompt": "test", "_ip_adapter": {"image_b64": img, "name": "char", "weight": 0.5, "end_at": 0.7}}
+                )
+
+        assert len(uploaded_filenames) == 2
+        assert uploaded_filenames[0] != uploaded_filenames[1]
+        assert uploaded_filenames[0].startswith("ip_ref_char_")
+        assert uploaded_filenames[1].startswith("ip_ref_char_")
+
+    @pytest.mark.asyncio
+    async def test_same_image_gets_same_filename(self):
+        """Same image content should produce the same filename (cache-friendly)."""
+        client = ComfyUIClient(base_url="http://test:8188")
+        img = base64.b64encode(b"\x89PNG_same_image").decode()
+
+        uploaded_filenames: list[str] = []
+
+        async def capture_upload(image_b64: str, filename: str) -> str:
+            uploaded_filenames.append(filename)
+            return filename
+
+        for _ in range(2):
+            with (
+                patch("services.sd_client.comfyui.load_workflow") as mock_load,
+                patch("services.sd_client.comfyui.inject_variables", return_value={}),
+                patch("services.sd_client.comfyui.run_workflow", return_value=[b"out"]),
+                patch.object(client, "_upload_image", side_effect=capture_upload),
+            ):
+                mock_load.return_value = ({}, "save")
+                await client.txt2img(
+                    {"prompt": "test", "_ip_adapter": {"image_b64": img, "name": "char", "weight": 0.5, "end_at": 0.7}}
+                )
+
+        assert len(uploaded_filenames) == 2
+        assert uploaded_filenames[0] == uploaded_filenames[1]

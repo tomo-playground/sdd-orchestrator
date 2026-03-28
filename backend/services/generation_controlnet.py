@@ -8,10 +8,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from config import logger
+from config import DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED, logger
 from services.controlnet import (
     build_controlnet_args,
-    build_ip_adapter_args,
     detect_pose_from_prompt,
     load_pose_reference,
     load_reference_image,
@@ -27,10 +26,14 @@ def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
     """Apply ControlNet + IP-Adapter to payload. Writes to ctx.controlnet_used, ctx.ip_adapter_used."""
     req = ctx.request
 
-    # 2P: ControlNet Pose만 적용 (reference/environment/ip-adapter 스킵)
+    # 2P: ControlNet Pose 적용 + IP-Adapter (scene_2p.json에 IP-Adapter 노드 포함)
     # req.character_b_id도 검사: prepare_prompt 실패 시 ctx.character_b_id가 None일 수 있음
     if getattr(ctx, "character_b_id", None) is not None or getattr(req, "character_b_id", None) is not None:
         _apply_2p_pose(req, ctx, payload, db)
+        strategy = ctx.consistency
+        _apply_ip_adapter(ctx, strategy, [], db)
+        if ctx._ip_adapter_payload:
+            payload["_ip_adapter"] = ctx._ip_adapter_payload
         return
 
     strategy = ctx.consistency
@@ -50,6 +53,10 @@ def apply_controlnet(payload: dict, ctx: GenerationContext, db) -> None:
                 for k, v in arg.items()
             }
             logger.info("🔧 [ControlNet Arg %d] %s", i, debug_arg)
+
+    # ComfyUI: IP-Adapter payload 주입 (워크플로우 노드 변수로 변환됨)
+    if ctx._ip_adapter_payload:
+        payload["_ip_adapter"] = ctx._ip_adapter_payload
 
 
 def _apply_2p_pose(req: SceneGenerateRequest, ctx: GenerationContext, payload: dict, db) -> None:
@@ -148,7 +155,11 @@ def _apply_environment(req: SceneGenerateRequest, ctx: GenerationContext, args: 
 
 
 def _apply_ip_adapter(ctx: GenerationContext, strategy, args: list, db) -> None:
-    """Apply IP-Adapter for style/identity transfer (strategy-driven)."""
+    """Apply IP-Adapter for style/identity transfer (strategy-driven).
+
+    ComfyUI: builds ctx._ip_adapter_payload dict (consumed by ComfyUIClient.txt2img).
+    Legacy alwayson_scripts args are still appended for backward compat (ignored by ComfyUI).
+    """
     if not (strategy.ip_adapter_enabled and strategy.ip_adapter_reference):
         return
     ref_image = load_reference_image(strategy.ip_adapter_reference, db=db)
@@ -163,26 +174,32 @@ def _apply_ip_adapter(ctx: GenerationContext, strategy, args: list, db) -> None:
     from services.controlnet import clamp_ip_adapter_weight  # noqa: PLC0415
 
     effective_weight = clamp_ip_adapter_weight(strategy.ip_adapter_weight, ctx.controlnet_used)
-    try:
-        args.append(
-            build_ip_adapter_args(
-                reference_image=ref_image,
-                weight=effective_weight,
-                model=strategy.ip_adapter_model,
-                guidance_start=strategy.ip_adapter_guidance_start,
-                guidance_end=strategy.ip_adapter_guidance_end,
-            )
-        )
-        ctx.ip_adapter_used = strategy.ip_adapter_reference
+    end_at = (
+        strategy.ip_adapter_guidance_end
+        if strategy.ip_adapter_guidance_end is not None
+        else DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED
+    )
+
+    if strategy.ip_adapter_guidance_start and strategy.ip_adapter_guidance_start > 0.0:
         logger.info(
-            "🧑 [IP-Adapter] Using reference: %s (weight=%.2f, guidance=%.2f~%.2f)",
-            strategy.ip_adapter_reference,
-            strategy.ip_adapter_weight,
-            strategy.ip_adapter_guidance_start or 0.0,
-            strategy.ip_adapter_guidance_end or 1.0,
+            "🧑 [IP-Adapter] guidance_start=%.2f ignored — hardcoded to 0.0 in ComfyUI workflow",
+            strategy.ip_adapter_guidance_start,
         )
-    except Exception as e:
-        logger.warning("🧑 [IP-Adapter] Skipped - %s", str(e))
+
+    # ComfyUI: _ip_adapter_payload → ComfyUIClient가 워크플로우 노드 변수로 주입
+    ctx._ip_adapter_payload = {
+        "image_b64": ref_image,
+        "name": strategy.ip_adapter_reference,
+        "weight": effective_weight,
+        "end_at": end_at,
+    }
+    ctx.ip_adapter_used = strategy.ip_adapter_reference
+    logger.info(
+        "🧑 [IP-Adapter] Using reference: %s (weight=%.2f, end_at=%.2f)",
+        strategy.ip_adapter_reference,
+        effective_weight,
+        end_at,
+    )
 
 
 # ── Cinematic tag suppression (AdaIN conflict prevention) ─────────────

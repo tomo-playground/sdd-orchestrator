@@ -4,7 +4,7 @@
     "description": "1인 씬 이미지 생성 — 세로형, LoRA 3슬롯 (스타일+캐릭터+추가), DynamicThresholding",
     "version": "1.0.0",
     "author": "shorts-producer",
-    "variables": ["positive", "negative", "checkpoint", "seed", "width", "height", "steps", "cfg", "sampler_name", "scheduler"],
+    "variables": ["positive", "negative", "checkpoint", "seed", "width", "height", "steps", "cfg", "sampler_name", "scheduler", "ip_adapter_image", "ip_adapter_weight", "ip_adapter_end_at"],
     "output_node": "11_save"
   },
   "1_checkpoint": {
@@ -91,10 +91,37 @@
       "sampler_name": "{{sampler_name}}",
       "scheduler": "{{scheduler}}",
       "denoise": 1.0,
-      "model": ["5_dynthres", 0],
+      "model": ["14_ip_apply", 0],
       "positive": ["6_positive", 0],
       "negative": ["7_negative", 0],
       "latent_image": ["8_latent", 0]
+    }
+  },
+  "12_ip_loader": {
+    "class_type": "IPAdapterUnifiedLoader",
+    "inputs": {
+      "model": ["5_dynthres", 0],
+      "preset": "PLUS (high strength)"
+    }
+  },
+  "13_ip_image": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "{{ip_adapter_image}}"
+    }
+  },
+  "14_ip_apply": {
+    "class_type": "IPAdapterAdvanced",
+    "inputs": {
+      "model": ["12_ip_loader", 0],
+      "ipadapter": ["12_ip_loader", 1],
+      "image": ["13_ip_image", 0],
+      "weight": "{{ip_adapter_weight}}",
+      "weight_type": "linear",
+      "start_at": 0.0,
+      "end_at": "{{ip_adapter_end_at}}",
+      "combine_embeds": "concat",
+      "embeds_scaling": "K+mean(V) w/ C penalty"
     }
   },
   "10_decode": {

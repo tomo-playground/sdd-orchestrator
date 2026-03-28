@@ -41,6 +41,7 @@ class GenerationContext:
     # ── Stage 3: ControlNet results ─────────────────────────────────────
     controlnet_used: str | None = None
     ip_adapter_used: str | None = None
+    _ip_adapter_payload: dict | None = None
 
     # ── Output ──────────────────────────────────────────────────────────
     warnings: list[str] = field(default_factory=list)
