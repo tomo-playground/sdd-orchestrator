@@ -49,9 +49,10 @@ function makeScene(overrides: Partial<Scene> = {}): Scene {
   } as Scene;
 }
 
-function makeContextValue(structure: string): SceneContextValue {
+function makeContextValue(scene: Scene, structure: string): SceneContextValue {
   return {
     data: {
+      scene,
       loraTriggerWords: [],
       characterLoras: [],
       tagsByGroup: {},
@@ -81,7 +82,7 @@ function makeContextValue(structure: string): SceneContextValue {
 }
 
 function renderWithContext(scene: Scene, structure: string) {
-  const ctxValue = makeContextValue(structure);
+  const ctxValue = makeContextValue(scene, structure);
   return render(
     <SceneProvider value={ctxValue}>
       <SceneEssentialFields scene={scene} />

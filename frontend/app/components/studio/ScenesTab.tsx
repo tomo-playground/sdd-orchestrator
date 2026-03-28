@@ -303,6 +303,7 @@ export default function ScenesTab() {
                 <SceneProvider
                   value={{
                     data: {
+                      scene: currentScene,
                       imageValidationResult: currentValidationResult,
                       qualityScore: currentQualityScore,
                       loraTriggerWords,

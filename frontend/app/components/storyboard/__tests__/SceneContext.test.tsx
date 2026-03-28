@@ -2,6 +2,22 @@ import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { SceneProvider, useSceneContext } from "../SceneContext";
 import type { SceneDataContext, SceneCallbacksContext } from "../SceneContext";
+import type { Scene } from "../../../types";
+
+const MOCK_SCENE: Scene = {
+  id: 1,
+  client_id: "scene-1",
+  order: 0,
+  script: "테스트",
+  speaker: "speaker_1",
+  duration: 3,
+  image_prompt: "",
+  image_prompt_ko: "",
+  image_url: null,
+  negative_prompt: "",
+  isGenerating: false,
+  debug_payload: "",
+};
 
 function makeContextValue(overrides?: {
   data?: Partial<SceneDataContext>;
@@ -9,6 +25,7 @@ function makeContextValue(overrides?: {
 }) {
   return {
     data: {
+      scene: MOCK_SCENE,
       loraTriggerWords: [],
       characterLoras: [],
       tagsByGroup: {},

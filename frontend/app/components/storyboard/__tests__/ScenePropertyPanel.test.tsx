@@ -50,7 +50,10 @@ const MOCK_SCENE: Scene = {
   debug_payload: "",
 };
 
-function makeCtxValue(overrides?: Partial<SceneContextValue>): SceneContextValue {
+function makeCtxValue(overrides?: {
+  data?: Partial<SceneContextValue["data"]>;
+  callbacks?: Partial<SceneContextValue["callbacks"]>;
+}): SceneContextValue {
   return {
     data: {
       scene: MOCK_SCENE,
@@ -60,6 +63,8 @@ function makeCtxValue(overrides?: Partial<SceneContextValue>): SceneContextValue
       sceneTagGroups: [],
       isExclusiveGroup: () => false,
       basePromptA: "",
+      sceneMenuOpen: false,
+      sceneIndex: 0,
       isMarkingStatus: false,
       ...overrides?.data,
     },
@@ -81,7 +86,7 @@ function makeCtxValue(overrides?: Partial<SceneContextValue>): SceneContextValue
   };
 }
 
-function renderPanel(ctxOverrides?: Partial<SceneContextValue>) {
+function renderPanel(ctxOverrides?: Parameters<typeof makeCtxValue>[0]) {
   const ctx = makeCtxValue(ctxOverrides);
   return render(
     <SceneProvider value={ctx}>
