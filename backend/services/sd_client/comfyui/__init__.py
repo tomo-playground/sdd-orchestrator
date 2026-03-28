@@ -81,6 +81,24 @@ def _bypass_lora_node(workflow: dict, node_id: str, node: dict) -> None:
     del workflow[node_id]
 
 
+def _log_workflow_summary(workflow: dict, checkpoint: str) -> None:
+    """Log key workflow fields for debugging (post-inject)."""
+    summary = {"checkpoint": checkpoint}
+    for nid, node in workflow.items():
+        ct = node.get("class_type", "")
+        inputs = node.get("inputs", {})
+        if ct == "CLIPTextEncode" and "text" in inputs:
+            text = inputs["text"]
+            label = "positive" if "positive" not in summary else "negative"
+            summary[label] = text[:80] + "..." if len(text) > 80 else text
+        elif ct == "KSampler":
+            summary["seed"] = inputs.get("seed")
+            summary["steps"] = inputs.get("steps")
+            summary["cfg"] = inputs.get("cfg")
+            summary["sampler"] = inputs.get("sampler_name")
+    logger.info("🔧 [ComfyUI Workflow] %s", summary)
+
+
 class ComfyUIClient(SDClientBase):
     """ComfyUI backend client.
 
@@ -226,6 +244,9 @@ class ComfyUIClient(SDClientBase):
         checkpoint = self._resolve_checkpoint(payload) or await self._ensure_checkpoint()
         if checkpoint:
             self._set_checkpoint_in_workflow(workflow, checkpoint)
+
+        # Log final workflow summary for debugging
+        _log_workflow_summary(workflow, checkpoint or "unknown")
 
         try:
             image_bytes_list = await run_workflow(self._http, workflow, output_node)
