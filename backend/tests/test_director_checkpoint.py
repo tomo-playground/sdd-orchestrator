@@ -330,3 +330,32 @@ async def test_checkpoint_override_proceed_low_score_generates_feedback(mock_run
 
     assert result["director_checkpoint_decision"] == "revise"
     assert "구조 재작성 필요" in result["revision_feedback"]
+
+
+# -- SP-112: score_history 누적 테스트 --
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director_checkpoint.run_production_step", new_callable=AsyncMock)
+async def test_checkpoint_node_accumulates_score_history(mock_run):
+    """checkpoint 노드가 score_history를 누적한다."""
+    mock_run.return_value = {"decision": "proceed", "score": 0.8, "reasoning": "좋음"}
+    state = {
+        "topic": "테스트",
+        "skip_stages": [],
+        "duration": 30,
+        "director_checkpoint_revision_count": 0,
+        "director_checkpoint_score_history": [0.5],
+    }
+    result = await director_checkpoint_node(state)
+    assert result["director_checkpoint_score_history"] == [0.5, 0.8]
+
+
+@pytest.mark.asyncio
+@patch("services.agent.nodes.director_checkpoint.run_production_step", new_callable=AsyncMock)
+async def test_checkpoint_node_starts_empty_history(mock_run):
+    """score_history 미설정 시 새 리스트 시작."""
+    mock_run.return_value = {"decision": "proceed", "score": 0.7, "reasoning": "ok"}
+    state = {"topic": "테스트", "duration": 30, "director_checkpoint_revision_count": 0}
+    result = await director_checkpoint_node(state)
+    assert result["director_checkpoint_score_history"] == [0.7]

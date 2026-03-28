@@ -251,6 +251,11 @@ async def director_node(state: ScriptState, config: RunnableConfig) -> dict:
         "director_reasoning_steps": reasoning_steps,
         "agent_messages": messages,
     }
+
+    # SP-112: revise_cinematographer → cineteam_call_count 증분
+    if final_decision == "revise_cinematographer":
+        result_dict["cineteam_call_count"] = state.get("cineteam_call_count", 0) + 1
+
     for agent_name in revised_agents:
         state_key = _AGENT_STATE_KEY_MAP.get(agent_name)
         if state_key is None:

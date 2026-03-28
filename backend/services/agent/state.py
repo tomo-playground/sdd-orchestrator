@@ -207,11 +207,13 @@ class ScriptState(TypedDict, total=False):
     director_checkpoint_feedback: str | None
     director_checkpoint_score: float | None
     director_checkpoint_revision_count: int
+    director_checkpoint_score_history: list[float]  # SP-112: checkpoint 점수 이력 (정체 감지용)
 
     # Director 결과 (Full 모드)
     director_decision: str | None
     director_feedback: str | None
     director_revision_count: int
+    cineteam_call_count: int  # SP-112: CineTeam(cinematographer) 전체 호출 횟수
     director_reasoning_steps: list[DirectorReActStep] | None  # Phase 10-A: ReAct Loop 사고 과정
 
     # Explain 결과 (Full 모드)

@@ -282,3 +282,100 @@ def test_route_inventory_resolve_full_mode():
     """research skip 없음 → research 실행."""
     assert route_after_inventory_resolve({"skip_stages": []}) == "research"
     assert route_after_inventory_resolve({}) == "research"
+
+
+# -- SP-112: CineTeam 호출 상한 테스트 --
+
+
+def test_route_after_director_cineteam_limit_blocks():
+    """cineteam_call_count >= MAX → revise_cinematographer 시 finalize."""
+    state = {
+        "director_decision": "revise_cinematographer",
+        "director_revision_count": 0,
+        "cineteam_call_count": 3,
+    }
+    assert route_after_director(state) == "finalize"
+
+
+def test_route_after_director_cineteam_under_limit_passes():
+    """cineteam_call_count < MAX → revise_cinematographer 정상 진행."""
+    state = {
+        "director_decision": "revise_cinematographer",
+        "director_revision_count": 0,
+        "cineteam_call_count": 2,
+    }
+    assert route_after_director(state) == "cinematographer"
+
+
+def test_route_after_director_cineteam_limit_other_revise_unaffected():
+    """cineteam_call_count >= MAX이지만 revise_tts → tts_designer (미영향)."""
+    state = {
+        "director_decision": "revise_tts",
+        "director_revision_count": 0,
+        "cineteam_call_count": 5,
+    }
+    assert route_after_director(state) == "tts_designer"
+
+
+# -- SP-112: Checkpoint 점수 정체 테스트 --
+
+
+def test_route_checkpoint_score_stagnation_forces_proceed():
+    """연속 2회 동일 점수(±0.05) → 강제 cinematographer."""
+    state = {
+        "director_checkpoint_decision": "revise",
+        "director_checkpoint_score": 0.52,
+        "director_checkpoint_revision_count": 1,
+        "director_checkpoint_score_history": [0.5, 0.52],
+    }
+    assert route_after_director_checkpoint(state) == "cinematographer"
+
+
+def test_route_checkpoint_score_improving_continues_revise():
+    """점수 개선 중 → 정상 revise."""
+    state = {
+        "director_checkpoint_decision": "revise",
+        "director_checkpoint_score": 0.60,
+        "director_checkpoint_revision_count": 1,
+        "director_checkpoint_score_history": [0.5, 0.60],
+    }
+    assert route_after_director_checkpoint(state) == "writer"
+
+
+def test_route_checkpoint_score_decrease_within_tolerance_stagnation():
+    """점수 하락이 tolerance 이내(경계 포함) → stagnation 감지, cinematographer."""
+    state = {
+        "director_checkpoint_decision": "revise",
+        "director_checkpoint_revision_count": 1,
+        "director_checkpoint_score_history": [0.60, 0.55],  # abs=0.05 == TOLERANCE
+    }
+    assert route_after_director_checkpoint(state) == "cinematographer"
+
+
+def test_route_checkpoint_score_decrease_beyond_tolerance_continues():
+    """점수 하락이 tolerance 초과 → stagnation 미감지, 정상 revise."""
+    state = {
+        "director_checkpoint_decision": "revise",
+        "director_checkpoint_revision_count": 1,
+        "director_checkpoint_score_history": [0.70, 0.60],  # abs=0.10 > TOLERANCE
+    }
+    assert route_after_director_checkpoint(state) == "writer"
+
+
+def test_route_checkpoint_score_stagnation_insufficient_history():
+    """이력 1개 → 정체 감지 불가, 정상 revise."""
+    state = {
+        "director_checkpoint_decision": "revise",
+        "director_checkpoint_revision_count": 0,
+        "director_checkpoint_score_history": [0.5],
+    }
+    assert route_after_director_checkpoint(state) == "writer"
+
+
+def test_route_checkpoint_score_stagnation_empty_history():
+    """이력 없음 → 정상 revise."""
+    state = {
+        "director_checkpoint_decision": "revise",
+        "director_checkpoint_revision_count": 0,
+    }
+    assert route_after_director_checkpoint(state) == "writer"

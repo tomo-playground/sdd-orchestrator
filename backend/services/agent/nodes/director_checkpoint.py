@@ -25,6 +25,13 @@ from services.agent.prompt_builders import (
 from services.agent.state import ScriptState
 
 
+def _append_score_history(state: ScriptState, score: float) -> list[float]:
+    """score_history에 점수를 추가한 새 리스트를 반환한다."""
+    history = list(state.get("director_checkpoint_score_history") or [])
+    history.append(score)
+    return history
+
+
 def _apply_score_override(decision: str, score: float, feedback: str) -> tuple[str, str]:
     """Score 기반 decision override (안전망).
 
@@ -102,10 +109,14 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
             count,
         )
 
+        # SP-112: score_history 누적 (정체 감지용)
+        score_history = _append_score_history(state, cp.score)
+
         update: dict = {
             "director_checkpoint_decision": decision,
             "director_checkpoint_score": cp.score,
             "director_checkpoint_revision_count": count + (1 if decision == "revise" else 0),
+            "director_checkpoint_score_history": score_history,
         }
         if decision == "revise":
             update["director_checkpoint_feedback"] = feedback
@@ -128,10 +139,15 @@ async def director_checkpoint_node(state: ScriptState, config=None) -> dict:
             cp = DirectorCheckpointOutput.model_validate(result)
             count = state.get("director_checkpoint_revision_count", 0)
             decision, feedback = _apply_score_override(cp.decision, cp.score, cp.feedback)
+
+            # SP-112: score_history 누적 (재시도 성공 경로)
+            score_history = _append_score_history(state, cp.score)
+
             update: dict = {
                 "director_checkpoint_decision": decision,
                 "director_checkpoint_score": cp.score,
                 "director_checkpoint_revision_count": count + (1 if decision == "revise" else 0),
+                "director_checkpoint_score_history": score_history,
             }
             if decision == "revise":
                 update["director_checkpoint_feedback"] = feedback

@@ -9,7 +9,9 @@ from config import LANGGRAPH_MAX_REVISIONS, coerce_interaction_mode
 from config import pipeline_logger as logger
 from config_pipelines import (
     LANGGRAPH_CHECKPOINT_LOW_THRESHOLD,
+    LANGGRAPH_CHECKPOINT_STAGNATION_TOLERANCE,
     LANGGRAPH_MAX_CHECKPOINT_REVISIONS,
+    LANGGRAPH_MAX_CINETEAM_CALLS,
     LANGGRAPH_MAX_DIRECTOR_REVISIONS,
     LANGGRAPH_MAX_GLOBAL_REVISIONS,
     RESEARCH_MAX_RETRIES,
@@ -206,6 +208,18 @@ def route_after_director(state: ScriptState) -> str:
     if target is None:
         logger.warning("[LangGraph] Director 미등록 decision '%s', finalize로 fallback", decision)
         return "finalize"
+
+    # SP-112: CineTeam 호출 상한 체크
+    if target == "cinematographer":
+        cine_count = state.get("cineteam_call_count", 0)
+        if cine_count >= LANGGRAPH_MAX_CINETEAM_CALLS:
+            logger.warning(
+                "[LangGraph] CineTeam 호출 상한(%d) 도달 (count=%d), 강제 finalize",
+                LANGGRAPH_MAX_CINETEAM_CALLS,
+                cine_count,
+            )
+            return "finalize"
+
     logger.debug("[LangGraph:Route] director -> %s (decision=%s)", target, decision)
     return target
 
@@ -240,6 +254,19 @@ def route_after_director_checkpoint(state: ScriptState) -> str:
             "[LangGraph] 글로벌 리비전 상한(%d) 도달, cinematographer로 강제 진행", LANGGRAPH_MAX_GLOBAL_REVISIONS
         )
         return "cinematographer"
+
+    # SP-112: 점수 정체 감지 — 연속 2회 동일 점수(±tolerance) → 강제 cinematographer 진행
+    score_history = state.get("director_checkpoint_score_history") or []
+    if len(score_history) >= 2:
+        prev, curr = score_history[-2], score_history[-1]
+        if abs(prev - curr) <= LANGGRAPH_CHECKPOINT_STAGNATION_TOLERANCE:
+            logger.warning(
+                "[LangGraph] Checkpoint 점수 정체 감지 (%.2f → %.2f, tol=%.2f), 강제 cinematographer 진행",
+                prev,
+                curr,
+                LANGGRAPH_CHECKPOINT_STAGNATION_TOLERANCE,
+            )
+            return "cinematographer"
 
     # revise 횟수 체크
     count = state.get("director_checkpoint_revision_count", 0)
