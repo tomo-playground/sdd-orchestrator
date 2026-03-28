@@ -157,10 +157,14 @@ class ComfyUIClient(SDClientBase):
         return self._available_loras
 
     async def clear_cache(self) -> None:
-        """Clear ComfyUI execution cache to force fresh generation."""
+        """Clear ComfyUI execution cache to force fresh generation.
+
+        Unloads models to fully reset cached conditioning/latents.
+        Models are reloaded on next generation (~2s overhead).
+        """
         try:
-            await self._http.post("/free", json={"unload_models": False, "free_memory": True})
-            logger.info("[ComfyUI] Cache cleared")
+            await self._http.post("/free", json={"unload_models": True, "free_memory": True})
+            logger.info("[ComfyUI] Cache cleared (models unloaded)")
         except Exception as e:
             logger.warning("[ComfyUI] Cache clear failed: %s", e)
 
