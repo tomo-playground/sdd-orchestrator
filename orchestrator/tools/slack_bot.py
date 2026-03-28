@@ -231,6 +231,20 @@ class SlackBotListener:
         allowed = {u.strip() for u in SLACK_BOT_ALLOWED_USERS.split(",") if u.strip()}
         return not allowed or user_id in allowed
 
+    # ── Public notification API ───────────────────────────────
+
+    async def post_notification(self, text: str, blocks: list[dict] | None = None) -> str | None:
+        """Send a notification to the configured channel. Returns ts or None."""
+        if not self.web_client:
+            logger.info("SlackBot not connected, logging only: %s", text[:200])
+            return None
+
+        resp = await self._rate_limited_post(SLACK_BOT_ALLOWED_CHANNEL, text, blocks)
+        ts = resp.get("ts") if resp else None
+        if ts:
+            self.register_active_thread(ts)
+        return ts
+
     # ── Emoji reactions ─────────────────────────────────────
 
     async def _add_reaction(self, channel: str, timestamp: str, emoji: str) -> None:
@@ -262,37 +276,52 @@ class SlackBotListener:
         """Post a Block Kit message with rate limiting."""
         if not self.web_client:
             return
+        fallback = blocks_to_fallback(blocks)
+        await self._rate_limited_post(channel, fallback, blocks, thread_ts)
 
+    async def _rate_limited_post(
+        self,
+        channel: str,
+        text: str,
+        blocks: list[dict] | None = None,
+        thread_ts: str | None = None,
+    ) -> dict | None:
+        """Post via chat_postMessage with rate-limit guard + single 429 retry."""
         async with self._post_lock:
             elapsed = time.monotonic() - self._last_post
             if elapsed < SLACK_BOT_CHAT_INTERVAL:
                 await asyncio.sleep(SLACK_BOT_CHAT_INTERVAL - elapsed)
 
             try:
-                fallback = blocks_to_fallback(blocks)
-                await self.web_client.chat_postMessage(
+                resp = await self.web_client.chat_postMessage(
                     channel=channel,
-                    text=fallback,
+                    text=text,
                     blocks=blocks,
                     thread_ts=thread_ts,
                 )
                 self._last_post = time.monotonic()
+                return resp
             except Exception as e:
-                # Handle rate limit (429)
                 retry_after = getattr(getattr(e, "response", None), "headers", {}).get(
                     "Retry-After"
                 )
                 if retry_after:
-                    await asyncio.sleep(int(retry_after))
                     try:
-                        await self.web_client.chat_postMessage(
+                        delay = int(retry_after)
+                    except (ValueError, TypeError):
+                        delay = 1
+                    await asyncio.sleep(delay)
+                    try:
+                        resp = await self.web_client.chat_postMessage(
                             channel=channel,
-                            text=fallback,
+                            text=text,
                             blocks=blocks,
                             thread_ts=thread_ts,
                         )
                         self._last_post = time.monotonic()
+                        return resp
                     except Exception:
                         logger.exception("Failed to post Slack message (after retry)")
-                else:
-                    logger.exception("Failed to post Slack message")
+                        return None
+                logger.exception("Failed to post Slack message")
+                return None

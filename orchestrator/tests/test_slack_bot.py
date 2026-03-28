@@ -418,6 +418,107 @@ class TestHandleThreadMessage:
         mock_mention.assert_called_once_with(event, say)
 
 
+# ── post_notification ────────────────────────────────────────
+
+
+_PATCH_CHANNEL = "orchestrator.tools.slack_bot.SLACK_BOT_ALLOWED_CHANNEL"
+_PATCH_CHAT_INTERVAL = "orchestrator.tools.slack_bot.SLACK_BOT_CHAT_INTERVAL"
+
+
+class TestPostNotification:
+    @pytest.mark.asyncio
+    async def test_returns_ts_and_registers_thread(self, bot):
+        """Successful post returns ts and auto-registers active thread."""
+        bot.web_client = AsyncMock()
+        bot.web_client.chat_postMessage = AsyncMock(return_value={"ts": "111.222"})
+
+        with (
+            patch(_PATCH_CHANNEL, "C001"),
+            patch(_PATCH_CHAT_INTERVAL, 0),
+        ):
+            ts = await bot.post_notification("hello", [{"type": "section"}])
+
+        assert ts == "111.222"
+        assert "111.222" in bot._active_threads
+
+    @pytest.mark.asyncio
+    async def test_no_web_client_returns_none(self, bot):
+        """When web_client is None, returns None (fallback)."""
+        bot.web_client = None
+        ts = await bot.post_notification("hello")
+        assert ts is None
+
+    @pytest.mark.asyncio
+    async def test_api_error_returns_none(self, bot):
+        """Exception during post returns None."""
+        bot.web_client = AsyncMock()
+        bot.web_client.chat_postMessage = AsyncMock(side_effect=RuntimeError("fail"))
+
+        with (
+            patch(_PATCH_CHANNEL, "C001"),
+            patch(_PATCH_CHAT_INTERVAL, 0),
+        ):
+            ts = await bot.post_notification("hello")
+
+        assert ts is None
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_retry_succeeds(self, bot):
+        """429 with Retry-After header retries and succeeds."""
+        bot.web_client = AsyncMock()
+
+        err = Exception("rate_limited")
+        err.response = MagicMock()
+        err.response.headers = {"Retry-After": "1"}
+        bot.web_client.chat_postMessage = AsyncMock(side_effect=[err, {"ts": "333.444"}])
+
+        with (
+            patch(_PATCH_CHANNEL, "C001"),
+            patch(_PATCH_CHAT_INTERVAL, 0),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            ts = await bot.post_notification("hello")
+
+        assert ts == "333.444"
+        assert "333.444" in bot._active_threads
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_retry_also_fails(self, bot):
+        """429 retry also fails → returns None."""
+        bot.web_client = AsyncMock()
+
+        err = Exception("rate_limited")
+        err.response = MagicMock()
+        err.response.headers = {"Retry-After": "1"}
+        bot.web_client.chat_postMessage = AsyncMock(side_effect=[err, RuntimeError("also_fail")])
+
+        with (
+            patch(_PATCH_CHANNEL, "C001"),
+            patch(_PATCH_CHAT_INTERVAL, 0),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            ts = await bot.post_notification("hello")
+
+        assert ts is None
+
+    @pytest.mark.asyncio
+    async def test_posts_to_configured_channel(self, bot):
+        """Message should be posted to SLACK_BOT_ALLOWED_CHANNEL."""
+        bot.web_client = AsyncMock()
+        bot.web_client.chat_postMessage = AsyncMock(return_value={"ts": "1.0"})
+
+        with (
+            patch(_PATCH_CHANNEL, "C_CONFIGURED"),
+            patch(_PATCH_CHAT_INTERVAL, 0),
+        ):
+            await bot.post_notification("test", [{"type": "section"}])
+
+        call_kwargs = bot.web_client.chat_postMessage.call_args.kwargs
+        assert call_kwargs["channel"] == "C_CONFIGURED"
+        assert call_kwargs["text"] == "test"
+        assert call_kwargs["blocks"] == [{"type": "section"}]
+
+
 # ── Block Kit helpers ─────────────────────────────────────────
 
 

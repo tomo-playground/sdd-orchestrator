@@ -6,84 +6,28 @@ import asyncio
 import json
 import logging
 import sys
-import time
+from typing import TYPE_CHECKING
 
-import httpx
 from claude_agent_sdk import tool
 
-from orchestrator.config import (
-    SLACK_MIN_INTERVAL,
-    SLACK_TIMEOUT_CONNECT,
-    SLACK_TIMEOUT_READ,
-)
 from orchestrator.tools.slack_templates import (
     daily_report_blocks,
     notification_blocks,
 )
 
+if TYPE_CHECKING:
+    from orchestrator.tools.slack_bot import SlackBotListener
+
 logger = logging.getLogger(__name__)
 
-_last_slack_sent: float = 0
-
-# SlackBot 싱글턴 참조 (set by orchestrator main)
-_slack_bot_instance = None
+# SlackBot 싱글턴 참조 (set by orchestrator main via init_notify)
+_bot: SlackBotListener | None = None
 
 
-def set_slack_bot(bot) -> None:
-    """SlackBot 인스턴스 등록 — active thread 연동용."""
-    global _slack_bot_instance  # noqa: PLW0603
-    _slack_bot_instance = bot
-
-
-def _register_thread(ts: str) -> None:
-    """발송된 메시지를 active thread로 등록."""
-    if _slack_bot_instance and ts:
-        _slack_bot_instance.register_active_thread(ts)
-
-
-async def _send_slack_message(text: str, blocks: list | None = None) -> str | None:
-    """Send a message to Slack via Bot Token API. Returns message ts or None."""
-    global _last_slack_sent  # noqa: PLW0603
-
-    from orchestrator.config import SLACK_BOT_ALLOWED_CHANNEL, SLACK_BOT_TOKEN
-
-    if not SLACK_BOT_TOKEN or not SLACK_BOT_ALLOWED_CHANNEL:
-        logger.info("Slack Bot not configured, logging only: %s", text[:200])
-        return None
-
-    # Rate limit guard
-    elapsed = time.monotonic() - _last_slack_sent
-    if elapsed < SLACK_MIN_INTERVAL:
-        await asyncio.sleep(SLACK_MIN_INTERVAL - elapsed)
-
-    timeout = httpx.Timeout(
-        connect=SLACK_TIMEOUT_CONNECT, read=SLACK_TIMEOUT_READ, write=5.0, pool=5.0
-    )
-    try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            payload: dict = {
-                "channel": SLACK_BOT_ALLOWED_CHANNEL,
-                "text": text,
-            }
-            if blocks:
-                payload["blocks"] = blocks
-            resp = await client.post(
-                "https://slack.com/api/chat.postMessage",
-                json=payload,
-                headers={"Authorization": f"Bearer {SLACK_BOT_TOKEN}"},
-            )
-            _last_slack_sent = time.monotonic()
-            data = resp.json()
-            if data.get("ok"):
-                return data.get("ts")
-            logger.warning("Slack Bot API error: %s", data.get("error", "unknown"))
-            return None
-    except httpx.TimeoutException:
-        logger.warning("Slack send timeout")
-        return None
-    except Exception:
-        logger.exception("Slack send error")
-        return False
+def init_notify(bot: SlackBotListener | None) -> None:
+    """SlackBot 인스턴스 등록 — 모든 알림이 이 Bot을 경유."""
+    global _bot  # noqa: PLW0603
+    _bot = bot
 
 
 async def do_notify_human(args: dict) -> dict:
@@ -95,13 +39,12 @@ async def do_notify_human(args: dict) -> dict:
 
     blocks, fallback = notification_blocks(level, message, links)
 
-    ts = await _send_slack_message(fallback, blocks)
-    channel = "slack" if ts else "log_only"
+    ts = None
+    if _bot:
+        ts = await _bot.post_notification(fallback, blocks)
 
-    # Bot 메시지를 active thread로 등록 → 스레드 답글 대화 가능
-    if ts:
-        _register_thread(ts)
-    else:
+    channel = "slack" if ts else "log_only"
+    if not ts:
         logger.info("[%s] %s", level.upper(), message)
 
     return {
@@ -151,7 +94,10 @@ async def send_daily_report(summary: dict) -> bool:
     """Format and send a daily report to Slack using Block Kit."""
 
     blocks, fallback = daily_report_blocks(summary)
-    return bool(await _send_slack_message(fallback, blocks))
+    if _bot:
+        return bool(await _bot.post_notification(fallback, blocks))
+    logger.info("SlackBot not available, daily report logged only: %s", fallback[:200])
+    return False
 
 
 # ── CLI entrypoint ──────────────────────────────────────────

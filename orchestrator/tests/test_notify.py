@@ -3,131 +3,101 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
 import pytest
 
 from orchestrator.tools.notify import (
-    _send_slack_message,
     do_notify_human,
+    init_notify,
     send_daily_report,
 )
-
-_PATCH_BOT_TOKEN = "orchestrator.config.SLACK_BOT_TOKEN"
-_PATCH_BOT_CHANNEL = "orchestrator.config.SLACK_BOT_ALLOWED_CHANNEL"
+from orchestrator.tools.slack_bot import SlackBotListener
 
 
-class TestSendSlackMessage:
-    @pytest.mark.asyncio
-    async def test_bot_api_success(self):
-        response = httpx.Response(200, json={"ok": True})
-        mock_client_instance = AsyncMock(spec=httpx.AsyncClient)
-        mock_client_instance.post.return_value = response
-        mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
-        mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+@pytest.fixture(autouse=True)
+def _reset_bot():
+    """Reset module-level _bot after each test."""
+    yield
+    init_notify(None)
 
-        with (
-            patch(_PATCH_BOT_TOKEN, "xoxb-test-token"),
-            patch(_PATCH_BOT_CHANNEL, "C001"),
-            patch("orchestrator.tools.notify.httpx.AsyncClient", return_value=mock_client_instance),
-            patch("orchestrator.tools.notify._last_slack_sent", 0),
-        ):
-            result = await _send_slack_message("Hello")
 
-        assert result is True
-
-    @pytest.mark.asyncio
-    async def test_bot_api_timeout(self):
-        mock_client_instance = AsyncMock(spec=httpx.AsyncClient)
-        mock_client_instance.post.side_effect = httpx.TimeoutException("timeout")
-        mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
-        mock_client_instance.__aexit__ = AsyncMock(return_value=None)
-
-        with (
-            patch(_PATCH_BOT_TOKEN, "xoxb-test-token"),
-            patch(_PATCH_BOT_CHANNEL, "C001"),
-            patch("orchestrator.tools.notify.httpx.AsyncClient", return_value=mock_client_instance),
-        ):
-            result = await _send_slack_message("Hello")
-
-        assert result is False
-
-    @pytest.mark.asyncio
-    async def test_no_bot_token_returns_false(self):
-        with (
-            patch(_PATCH_BOT_TOKEN, ""),
-            patch(_PATCH_BOT_CHANNEL, ""),
-        ):
-            result = await _send_slack_message("Hello")
-
-        assert result is False
+def _make_bot(ts: str | None = "1234.5678") -> SlackBotListener:
+    """Create a mock SlackBotListener with post_notification."""
+    bot = MagicMock(spec=SlackBotListener)
+    bot.post_notification = AsyncMock(return_value=ts)
+    return bot
 
 
 class TestNotifyHuman:
     @pytest.mark.asyncio
-    async def test_level_prefix_info(self):
-        with patch(
-            "orchestrator.tools.notify._send_slack_message",
-            new_callable=AsyncMock,
-            return_value=True,
-        ) as mock_send:
-            result = await do_notify_human({"message": "test", "level": "info"})
+    async def test_sends_via_bot(self):
+        bot = _make_bot("1234.5678")
+        init_notify(bot)
+        result = await do_notify_human({"message": "test", "level": "info"})
 
         text = result["content"][0]["text"]
         data = json.loads(text)
         assert data["sent"] is True
         assert data["channel"] == "slack"
-        call_text = mock_send.call_args[0][0]
+        assert data["ts"] == "1234.5678"
+        bot.post_notification.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_level_prefix_info(self):
+        bot = _make_bot()
+        init_notify(bot)
+        await do_notify_human({"message": "test", "level": "info"})
+
+        call_text = bot.post_notification.call_args[0][0]
         assert call_text.startswith("\u2139\ufe0f")
 
     @pytest.mark.asyncio
     async def test_level_prefix_warning(self):
-        with patch(
-            "orchestrator.tools.notify._send_slack_message",
-            new_callable=AsyncMock,
-            return_value=True,
-        ) as mock_send:
-            await do_notify_human({"message": "test", "level": "warning"})
+        bot = _make_bot()
+        init_notify(bot)
+        await do_notify_human({"message": "test", "level": "warning"})
 
-        call_text = mock_send.call_args[0][0]
+        call_text = bot.post_notification.call_args[0][0]
         assert call_text.startswith("\u26a0\ufe0f")
 
     @pytest.mark.asyncio
     async def test_level_prefix_critical(self):
-        with patch(
-            "orchestrator.tools.notify._send_slack_message",
-            new_callable=AsyncMock,
-            return_value=True,
-        ) as mock_send:
-            await do_notify_human({"message": "test", "level": "critical"})
+        bot = _make_bot()
+        init_notify(bot)
+        await do_notify_human({"message": "test", "level": "critical"})
 
-        call_text = mock_send.call_args[0][0]
+        call_text = bot.post_notification.call_args[0][0]
         assert call_text.startswith("\U0001f6a8")
 
     @pytest.mark.asyncio
     async def test_truncation(self):
+        bot = _make_bot()
+        init_notify(bot)
         long_message = "x" * 5000
+        await do_notify_human({"message": long_message, "level": "info"})
 
-        with patch(
-            "orchestrator.tools.notify._send_slack_message",
-            new_callable=AsyncMock,
-            return_value=True,
-        ) as mock_send:
-            await do_notify_human({"message": long_message, "level": "info"})
-
-        call_text = mock_send.call_args[0][0]
-        assert len(call_text) <= 4010  # SLACK_MAX_MESSAGE_LENGTH + prefix + "(truncated)"
+        call_text = bot.post_notification.call_args[0][0]
+        assert len(call_text) <= 4010
         assert "(truncated)" in call_text
 
     @pytest.mark.asyncio
-    async def test_fallback_to_log(self):
-        with patch(
-            "orchestrator.tools.notify._send_slack_message",
-            new_callable=AsyncMock,
-            return_value=False,
-        ):
-            result = await do_notify_human({"message": "test", "level": "info"})
+    async def test_fallback_when_no_bot(self):
+        """_bot=None → log_only fallback."""
+        init_notify(None)
+        result = await do_notify_human({"message": "test", "level": "info"})
+
+        text = result["content"][0]["text"]
+        data = json.loads(text)
+        assert data["sent"] is False
+        assert data["channel"] == "log_only"
+
+    @pytest.mark.asyncio
+    async def test_fallback_when_bot_returns_none(self):
+        """Bot returns None (disconnected) → log_only fallback."""
+        bot = _make_bot(ts=None)
+        init_notify(bot)
+        result = await do_notify_human({"message": "test", "level": "info"})
 
         text = result["content"][0]["text"]
         data = json.loads(text)
@@ -137,14 +107,11 @@ class TestNotifyHuman:
     @pytest.mark.asyncio
     async def test_kst_timestamp(self):
         """Timestamp should use KST, not UTC."""
-        with patch(
-            "orchestrator.tools.notify._send_slack_message",
-            new_callable=AsyncMock,
-            return_value=True,
-        ) as mock_send:
-            await do_notify_human({"message": "test", "level": "info"})
+        bot = _make_bot()
+        init_notify(bot)
+        await do_notify_human({"message": "test", "level": "info"})
 
-        blocks = mock_send.call_args[1].get("blocks") or mock_send.call_args[0][1]
+        blocks = bot.post_notification.call_args[0][1]
         context = [b for b in blocks if b["type"] == "context"][0]
         assert "KST" in context["elements"][0]["text"]
         assert "UTC" not in context["elements"][0]["text"]
@@ -154,18 +121,15 @@ class TestNotifyWithLinks:
     @pytest.mark.asyncio
     async def test_with_links(self):
         """Links should produce an actions block with buttons."""
+        bot = _make_bot()
+        init_notify(bot)
         links = [
             {"text": "PR #176", "url": "https://github.com/test/pull/176"},
             {"text": "Actions", "url": "https://github.com/test/actions"},
         ]
-        with patch(
-            "orchestrator.tools.notify._send_slack_message",
-            new_callable=AsyncMock,
-            return_value=True,
-        ) as mock_send:
-            await do_notify_human({"message": "test", "level": "info", "links": links})
+        await do_notify_human({"message": "test", "level": "info", "links": links})
 
-        blocks = mock_send.call_args[1].get("blocks") or mock_send.call_args[0][1]
+        blocks = bot.post_notification.call_args[0][1]
         actions = [b for b in blocks if b["type"] == "actions"]
         assert len(actions) == 1
         assert len(actions[0]["elements"]) == 2
@@ -173,30 +137,24 @@ class TestNotifyWithLinks:
 
     @pytest.mark.asyncio
     async def test_without_links(self):
-        """No links → no actions block (backward compatible)."""
-        with patch(
-            "orchestrator.tools.notify._send_slack_message",
-            new_callable=AsyncMock,
-            return_value=True,
-        ) as mock_send:
-            await do_notify_human({"message": "test", "level": "info"})
+        """No links → no actions block."""
+        bot = _make_bot()
+        init_notify(bot)
+        await do_notify_human({"message": "test", "level": "info"})
 
-        blocks = mock_send.call_args[1].get("blocks") or mock_send.call_args[0][1]
+        blocks = bot.post_notification.call_args[0][1]
         actions = [b for b in blocks if b["type"] == "actions"]
         assert len(actions) == 0
 
     @pytest.mark.asyncio
     async def test_links_max_5(self):
         """More than 5 links → only first 5 rendered."""
+        bot = _make_bot()
+        init_notify(bot)
         links = [{"text": f"Link {i}", "url": f"https://example.com/{i}"} for i in range(8)]
-        with patch(
-            "orchestrator.tools.notify._send_slack_message",
-            new_callable=AsyncMock,
-            return_value=True,
-        ) as mock_send:
-            await do_notify_human({"message": "test", "level": "info", "links": links})
+        await do_notify_human({"message": "test", "level": "info", "links": links})
 
-        blocks = mock_send.call_args[1].get("blocks") or mock_send.call_args[0][1]
+        blocks = bot.post_notification.call_args[0][1]
         actions = [b for b in blocks if b["type"] == "actions"]
         assert len(actions[0]["elements"]) == 5
 
@@ -269,26 +227,27 @@ class TestCliEntrypoint:
 
 class TestSendDailyReport:
     @pytest.mark.asyncio
-    async def test_format(self):
+    async def test_sends_via_bot(self):
+        bot = _make_bot("9999.1111")
+        init_notify(bot)
         summary = {
             "completed_prs": ["#65 (SP-067)"],
             "in_progress": ["SP-069 (running)"],
             "blockers": [],
             "sentry_issues": {"open": 2, "autofix_prs": 1},
         }
-
-        with patch(
-            "orchestrator.tools.notify._send_slack_message",
-            new_callable=AsyncMock,
-            return_value=True,
-        ) as mock_send:
-            result = await send_daily_report(summary)
+        result = await send_daily_report(summary)
 
         assert result is True
-        call_text = mock_send.call_args[0][0]
+        call_text = bot.post_notification.call_args[0][0]
         assert "Coding Machine Report" in call_text
-        # PR details are in blocks, not fallback text
-        blocks = mock_send.call_args[1].get("blocks") or mock_send.call_args[0][1]
+        blocks = bot.post_notification.call_args[0][1]
         block_text = json.dumps(blocks)
         assert "#65" in block_text
         assert "SP-069" in block_text
+
+    @pytest.mark.asyncio
+    async def test_no_bot_returns_false(self):
+        init_notify(None)
+        result = await send_daily_report({"completed_prs": [], "in_progress": [], "blockers": []})
+        assert result is False
