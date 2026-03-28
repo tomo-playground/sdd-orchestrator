@@ -32,7 +32,7 @@ start() {
   export SLACK_APP_TOKEN="${_APP_TOKEN}"
   export SLACK_BOT_ALLOWED_CHANNEL="${_BOT_CHANNEL}"
   export SLACK_BOT_ALLOWED_USERS="${_BOT_USERS}"
-  nohup uv run python -m sdd_orchestrator > "$LOG_FILE" 2>&1 &
+  nohup uv run python -c "from sdd_orchestrator.main import cli_entry; cli_entry()" > "$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
   echo "Orchestrator 시작 (PID: $!, log: $LOG_FILE)"
 }
