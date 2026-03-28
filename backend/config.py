@@ -839,8 +839,8 @@ DEFAULT_CHARACTER_PRESET = {
 DEFAULT_IP_ADAPTER_GUIDANCE_START = 0.0
 DEFAULT_IP_ADAPTER_GUIDANCE_END_FACEID = 0.85  # Reduce prompt interference in later steps
 DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP = 1.0  # Full guidance for CLIP-based models
-DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED = 0.7  # v-pred safety: 0.7+ → DynamicThresholding 충돌
-DEFAULT_IP_ADAPTER_WEIGHT_VPRED = 0.5  # v-pred safety weight default (ComfyUI fallback)
+DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED = 0.5  # v-pred safety: 후반 50%는 모델 자체 처리 (0.7 → 색상 오염)
+DEFAULT_IP_ADAPTER_WEIGHT_VPRED = 0.35  # v-pred safety weight (0.5 → PLUS preset에서 색상 오염 확인)
 
 # IP-Adapter Dual Unit (opt-in, VRAM 2x)
 IP_ADAPTER_DUAL_ENABLED = os.getenv("IP_ADAPTER_DUAL_ENABLED", "false").lower() == "true"
