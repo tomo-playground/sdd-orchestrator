@@ -125,7 +125,7 @@
     "class_type": "IPAdapterUnifiedLoader",
     "inputs": {
       "model": ["5_dynthres", 0],
-      "preset": "PLUS"
+      "preset": "STANDARD (medium strength)"
     }
   },
   "13_ip_image": {
