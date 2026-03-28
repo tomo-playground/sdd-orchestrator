@@ -4,7 +4,7 @@ priority: P1
 scope: orchestrator
 branch: feat/SP-109-orch-config-plugin
 created: 2026-03-28
-status: pending
+status: design
 depends_on: SP-108
 label: refactor
 ---
