@@ -5,6 +5,7 @@ import type { Scene, ImageValidation, ImageGenProgress, Tag } from "../../types"
 
 /** Scene data available via context (read-only values from parent) */
 export type SceneDataContext = {
+  scene: Scene;
   imageValidationResult?: ImageValidation;
   qualityScore?: { match_rate: number; missing_tags: string[] } | null;
   loraTriggerWords: string[];

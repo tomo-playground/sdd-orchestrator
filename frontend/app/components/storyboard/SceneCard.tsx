@@ -3,21 +3,14 @@
 import { useState } from "react";
 import type { Scene, ImageValidation, ImageGenProgress, Tag, TTSPreviewState } from "../../types";
 import type { AudioPlayer } from "../../hooks/useAudioPlayer";
-import { isMultiCharStructure } from "../../utils/structure";
-import { useUIStore } from "../../store/useUIStore";
+import type { SceneContextValue } from "./SceneContext";
+import { SceneProvider } from "./SceneContext";
 import SceneImagePanel from "./SceneImagePanel";
-import Button from "../ui/Button";
 import SceneActionBar from "./SceneActionBar";
-import ScenePromptFields from "./ScenePromptFields";
-import SceneSettingsFields from "./SceneSettingsFields";
 import SceneGeminiModals from "./SceneGeminiModals";
 import SceneClothingModal from "./SceneClothingModal";
-import CollapsibleSection from "../ui/CollapsibleSection";
 import SceneEssentialFields from "./SceneEssentialFields";
-import SceneToolsContent from "../studio/SceneToolsContent";
-import SceneEnvironmentPicker from "./SceneEnvironmentPicker";
-
-export type SceneEditTab = "script" | "visual" | "settings"; // Keep for compatibility if needed, but unused in logic
+import ScenePropertyPanel from "./ScenePropertyPanel";
 
 type SceneCardProps = {
   scene: Scene;
@@ -105,9 +98,42 @@ export default function SceneCard({
   const [geminiTargetChange, setGeminiTargetChange] = useState("");
   const [clothingOpen, setClothingOpen] = useState(false);
 
-  const showAdvancedSettings = useUIStore((s) => s.showAdvancedSettings);
-
-  const hasMultipleSpeakers = isMultiCharStructure(structure ?? "");
+  const ctxValue: SceneContextValue = {
+    data: {
+      scene,
+      imageValidationResult,
+      qualityScore,
+      loraTriggerWords,
+      characterLoras,
+      tagsByGroup,
+      sceneTagGroups,
+      isExclusiveGroup,
+      selectedCharacterId,
+      basePromptA,
+      structure,
+      characterAName,
+      characterBName,
+      selectedCharacterBId,
+      genProgress,
+      isMarkingStatus,
+    },
+    callbacks: {
+      onUpdateScene,
+      onRemoveScene,
+      onSpeakerChange,
+      onImageUpload,
+      onGenerateImage,
+      onApplyMissingTags,
+      onImagePreview,
+      onMarkSuccess,
+      onMarkFail,
+      buildNegativePrompt,
+      buildScenePrompt,
+      showToast,
+      onSceneMenuToggle,
+      onSceneMenuClose,
+    },
+  };
 
   return (
     <div className="group relative grid gap-2 rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-slate-200/30 transition hover:border-zinc-300">
@@ -170,89 +196,10 @@ export default function SceneCard({
         </div>
       </div>
 
-      {/* ── Tier 2: Customize (Collapsible, Default Closed) ── */}
-      <div className="relative z-10">
-        <CollapsibleSection
-          title="Customize"
-          hint="프롬프트 상세"
-          defaultOpen={false}
-          className="mt-2"
-        >
-          <div className="grid gap-4">
-            {/* Prompt + Background */}
-            <ScenePromptFields
-              scene={scene}
-              loraTriggerWords={loraTriggerWords}
-              characterLoras={characterLoras}
-              selectedCharacterId={selectedCharacterId}
-              basePromptA={basePromptA}
-              onUpdateScene={onUpdateScene}
-              showAdvancedSettings={showAdvancedSettings}
-            />
-            {/* Environment Picker (environment, time, weather, particle) */}
-            <SceneEnvironmentPicker
-              contextTags={scene.context_tags}
-              tagsByGroup={tagsByGroup}
-              onUpdate={(tags) => onUpdateScene({ context_tags: tags })}
-            />
-          </div>
-        </CollapsibleSection>
-      </div>
-
-      {/* ── Tier 3: Scene Tags (Advanced only) ── */}
-      {showAdvancedSettings && (
-        <div className="relative z-0">
-          <CollapsibleSection title="Scene Tags" defaultOpen={showAdvancedSettings}>
-            <SceneSettingsFields
-              scene={scene}
-              hasMultipleSpeakers={hasMultipleSpeakers}
-              tagsByGroup={tagsByGroup}
-              sceneTagGroups={sceneTagGroups}
-              isExclusiveGroup={isExclusiveGroup}
-              onUpdateScene={onUpdateScene}
-              characterAName={characterAName}
-              characterBName={characterBName}
-              selectedCharacterId={selectedCharacterId}
-              selectedCharacterBId={selectedCharacterBId}
-              buildNegativePrompt={buildNegativePrompt}
-              buildScenePrompt={buildScenePrompt}
-              showToast={showToast}
-            />
-          </CollapsibleSection>
-        </div>
-      )}
-
-      {/* ── Tier 4: Advanced (Advanced only) ── */}
-      {showAdvancedSettings && (
-        <div className="relative z-0">
-          <CollapsibleSection title="Advanced" defaultOpen={false}>
-            <SceneToolsContent />
-            {/* Success/Fail Buttons for Review Mode */}
-            {scene.activity_log_id && onMarkSuccess && onMarkFail && (
-              <div className="mt-4 flex gap-2 border-t border-zinc-100 pt-4">
-                <Button
-                  variant="success"
-                  size="sm"
-                  onClick={onMarkSuccess}
-                  disabled={isMarkingStatus}
-                  className="flex-1"
-                >
-                  👍 Success
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={onMarkFail}
-                  disabled={isMarkingStatus}
-                  className="flex-1"
-                >
-                  👎 Fail
-                </Button>
-              </div>
-            )}
-          </CollapsibleSection>
-        </div>
-      )}
+      {/* ── Tier 2~4: Property Panel (Customize + Advanced) ── */}
+      <SceneProvider value={ctxValue}>
+        <ScenePropertyPanel />
+      </SceneProvider>
 
       {/* Gemini Modals */}
       <SceneGeminiModals
