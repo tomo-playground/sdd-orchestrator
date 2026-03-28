@@ -40,6 +40,16 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
+            ## 사전 단계: 기존 리뷰 확인 (중복 방지)
+            리뷰 시작 전에 반드시 아래 명령으로 기존 코멘트를 확인하세요:
+            ```
+            gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments --jq '.[] | "\(.user.login) \(.path):\(.line) \(.body[:80])"'
+            ```
+            - claude[bot]이 이미 남긴 코멘트와 동일한 파일+이슈는 **다시 남기지 마세요**
+            - PR 작성자가 "수정했습니다" 또는 "현행 유지" 등으로 응답한 이슈는 **재지적 금지**
+            - 새로운 코드 변경에서 발생한 새로운 이슈만 코멘트하세요
+
+            ## 리뷰 기준
             CLAUDE.md를 읽고 프로젝트 규칙 기준으로 이 PR을 리뷰하세요.
             중점:
             - CLAUDE.md 규칙 위반
