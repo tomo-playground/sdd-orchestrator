@@ -7,6 +7,7 @@
 
 ## P0 (진행 중)
 
+- [ ] SP-113 — ComfyUI IP-Adapter 워크플로우 노드 통합 — 캐릭터 일관성 복원 (PR #225 이후 미적용) | scope: backend
 - [ ] SP-111 — Docker E2E 자동화 — PR별 격리 환경에서 test plan E2E 자동 실행 + sdd-fix 연동 | scope: infra+ci
 
 
