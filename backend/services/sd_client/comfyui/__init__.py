@@ -138,6 +138,14 @@ class ComfyUIClient(SDClientBase):
         self._loras_fetched = True
         return self._available_loras
 
+    async def clear_cache(self) -> None:
+        """Clear ComfyUI execution cache to force fresh generation."""
+        try:
+            await self._http.post("/free", json={"unload_models": False, "free_memory": True})
+            logger.info("[ComfyUI] Cache cleared")
+        except Exception as e:
+            logger.warning("[ComfyUI] Cache clear failed: %s", e)
+
     async def close(self) -> None:
         """Shutdown: close the httpx connection pool."""
         if self._http and not self._http.is_closed:
@@ -196,6 +204,11 @@ class ComfyUIClient(SDClientBase):
         pose_name = payload.pop("_pose_name", None)
 
         variables = self._payload_to_variables(payload)
+
+        # Resolve checkpoint early so {{checkpoint}} placeholder is replaced during inject_variables
+        checkpoint = self._resolve_checkpoint(payload) or await self._ensure_checkpoint()
+        if checkpoint:
+            variables["checkpoint"] = checkpoint
 
         if pose_b64 and pose_name:
             filename = await self._ensure_pose_uploaded(pose_name, pose_b64)

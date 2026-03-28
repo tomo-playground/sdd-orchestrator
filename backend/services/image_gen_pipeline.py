@@ -199,6 +199,13 @@ async def run_image_gen(task_id: str, request: SceneGenerateRequest) -> None:
             task.message = f"재생성 중 ({retries}/{AUTO_REGEN_MAX_RETRIES}): {reason}"
             task.notify()
 
+            # Clear ComfyUI cache before retry (blank image often caused by stale cache)
+            try:
+                from services.sd_client.factory import get_sd_client
+
+                await get_sd_client().clear_cache()
+            except Exception:
+                pass
             shift_seed_for_retry(request, retries)
             result = await generate_and_validate(task, request)
             if result is None:
