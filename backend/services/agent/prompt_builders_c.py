@@ -268,7 +268,9 @@ def build_korean_quality_rules(language: str) -> str:
         "- title, hook, arc, key_moments의 description 모두 **자연스러운 한국어**로 작성\n"
         "- 맞춤법/오탈자 필수 점검: 받침 탈락, 의미 없는 글자 조합 금지\n"
         "- 문장을 소리 내어 읽었을 때 어색하지 않아야 함\n"
-        "- 같은 표현 반복 금지 (key_moments 간 description이 서로 달라야 함)"
+        "- 같은 표현 반복 금지 (key_moments 간 description이 서로 달라야 함)\n"
+        "- **씬 텍스트 14자 초과 경고**: estimated_scenes의 description이 14자를 넘으면 분리 검토 필요\n"
+        "- 한 씬 = 한 문장 = 한 정보. 쉼표로 여러 정보를 나열하지 말 것"
     )
 
 

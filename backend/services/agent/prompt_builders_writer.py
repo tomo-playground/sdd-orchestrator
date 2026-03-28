@@ -147,7 +147,11 @@ def build_tone_hint_block(tone: str) -> str:
 
 
 def build_korean_rules_block(language: str) -> str:
-    """scriptwriter -- 한국어 전용 규칙."""
+    """scriptwriter -- 언어별 스크립트 규칙 (한국어 전용 + 공통 템포)."""
+    if language == "japanese":
+        return _build_japanese_tempo_block()
+    if language == "english":
+        return _build_english_tempo_block()
     if language != "korean":
         return ""
     return (
@@ -160,7 +164,7 @@ def build_korean_rules_block(language: str) -> str:
         "     - \uac19\uc740 \ubb38\uc7a5 \uad6c\uc870 \uc5f0\uc18d \ubc18\ubcf5 \uae08\uc9c0\n"
         "     - \uad6c\uc5b4\uccb4\uc640 \ubb38\uc5b4\uccb4 \ud63c\uc6a9 \uae08\uc9c0\n"
         "  8. **\uc21f\ud3fc \ub3c4\ud30c\ubbfc \ubb38\ubc95 (CRITICAL)**:\n"
-        "     - 1\ubb38\uc7a5 \u2264 15\uc790 \uad8c\uc7a5\n"
+        "     - 1\ubb38\uc7a5 \u2264 14\uc790 \uad8c\uc7a5\n"
         '     - \uac10\ud0c4\uc0ac/\uc758\uc131\uc5b4 \uc801\uadf9 \ud65c\uc6a9: "\ud5d0", "\ubbf8\ucce4\ub2e4", "\uc18c\ub984"\n'
         "     - \uc9c1\uc811 \ud654\ubc95 > \uac04\uc811 \ud654\ubc95\n"
         "  9. **AI \ub9d0\ud22c \uc808\ub300 \uae08\uc9c0 (CRITICAL)**:\n"
@@ -180,7 +184,43 @@ def build_korean_rules_block(language: str) -> str:
         "     - \uae09\uaca9\ud55c \uac10\uc815 \uc804\ud658 \uae08\uc9c0 (\uc2ac\ud514 \u2192 \uac11\uc790\uae30 \uae30\uc068 \u2717)\n"
         '     - \ud654\uc81c \uc804\ud658 \uc2dc \uc811\uc18d \ud45c\ud604 \uc0ac\uc6a9: "\uadfc\ub370", "\uadf8\ub7ec\ub2e4\uac00", "\ud55c\ud3b8", "\uadf8\ub54c"\n'
         "     - \uc5f0\uc18d \uc494\uc5d0\uc11c **\uac19\uc740 \uc885\uacb0\uc5b4\ubbf8 3\ud68c \uc774\uc0c1 \ubc18\ubcf5** \uae08\uc9c0 (~\uac70\ub4e0, ~\uac70\ub4e0, ~\uac70\ub4e0 \u2717)\n"
-        "     - \uc5f0\uc18d \uc494\uc5d0\uc11c **\uac19\uc740 \uc811\uc18d\uc0ac \uc5f0\uc18d \uc0ac\uc6a9** \uae08\uc9c0 (\uadf8\ub798\uc11c, \uadf8\ub798\uc11c \u2717)"
+        "     - \uc5f0\uc18d \uc494\uc5d0\uc11c **\uac19\uc740 \uc811\uc18d\uc0ac \uc5f0\uc18d \uc0ac\uc6a9** \uae08\uc9c0 (\uadf8\ub798\uc11c, \uadf8\ub798\uc11c \u2717)\n"
+        "  12. **\uc1fc\uce20 \ud15c\ud3ec \uaddc\uce59 (CRITICAL)**:\n"
+        "     - \ud55c \uc494 = \ud55c \ubb38\uc7a5 = \ud55c \uc815\ubcf4. \uc27c\ud45c \ub098\uc5f4 \uae08\uc9c0\n"
+        '     - "A\uc774\uace0 B\uc785\ub2c8\ub2e4" \u2192 \uc494 \ubd84\ub9ac: "A\uc608\uc694" + "B\uc608\uc694"\n'
+        "     - \uc494 1\uc740 \ubc14\ub85c Hook \ub610\ub294 \uacb0\ub860. \uc778\uc0ac/\uc608\uace0 \uc808\ub300 \uae08\uc9c0\n"
+        '     - "\uc624\ub298\uc740 ~\uc744 \uc54c\ub824\ub4dc\ub9b4\uac8c\uc694", "\uc548\ub155\ud558\uc138\uc694" \uc0ad\uc81c\n'
+        "     - \ub9c8\uc9c0\ub9c9 \uc494(CTA): 10\uc790 \uc774\ud558, \uba85\ub839\ud615\n"
+        "     - \uc815\ubcf4 \uc494 2~3\uac1c\ub9c8\ub2e4 4~6\uc790 \uac10\ud0c4\uc0ac \uc494 \uc0bd\uc785 \uad8c\uc7a5\n"
+        '     - \uc608\uc2dc: "\ub9de\uc544\uc694.", "\uc9c4\uc9dc\uc694?", "\uadfc\ub370\uc694."'
+    )
+
+
+def _build_japanese_tempo_block() -> str:
+    """scriptwriter -- 日本語ショート動画テンポ規則."""
+    return (
+        "  6. **ショート動画テンポ規則 (CRITICAL)**:\n"
+        "     - 1シーン = 1文 = 1情報。カンマ羅列禁止\n"
+        "     - 「AでBです」→ シーン分離:「Aだよ」+「Bだよ」\n"
+        "     - シーン1はHookまたは結論。挨拶/予告 絶対禁止\n"
+        "     - 「今日は〜をお伝えします」「こんにちは」削除\n"
+        "     - 最終シーン(CTA): 12文字以下、命令形\n"
+        "     - 情報シーン2〜3個ごとに4〜8文字の感嘆シーン挿入推奨\n"
+        "     - 例:「マジで。」「えっ?」「でもね。」"
+    )
+
+
+def _build_english_tempo_block() -> str:
+    """scriptwriter -- English Shorts tempo rules."""
+    return (
+        "  6. **Shorts Tempo Rules (CRITICAL)**:\n"
+        "     - One scene = one sentence = one idea. No comma lists\n"
+        '     - "A and also B" → split scenes: "A." + "B."\n'
+        "     - Scene 1 is Hook or conclusion. No greetings/previews\n"
+        '     - Delete "Today I\'ll show you…", "Hey everyone!"\n'
+        "     - Last scene (CTA): 5 words max, imperative\n"
+        "     - Insert 2–4 word reaction scenes every 2–3 info scenes\n"
+        '     - Examples: "Wait, really?", "No way.", "Think about it."'
     )
 
 
