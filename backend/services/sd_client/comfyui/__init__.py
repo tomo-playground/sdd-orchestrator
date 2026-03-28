@@ -96,7 +96,7 @@ def _log_workflow_summary(workflow: dict, checkpoint: str) -> None:
             summary["steps"] = inputs.get("steps")
             summary["cfg"] = inputs.get("cfg")
             summary["sampler"] = inputs.get("sampler_name")
-    logger.info("🔧 [ComfyUI Workflow] %s", summary)
+    logger.debug("🔧 [ComfyUI Workflow] %s", summary)
 
 
 class ComfyUIClient(SDClientBase):
@@ -253,13 +253,6 @@ class ComfyUIClient(SDClientBase):
 
         # Log final workflow summary for debugging
         _log_workflow_summary(workflow, checkpoint or "unknown")
-
-        # Dump KSampler inputs for white image debugging
-        for _nid, _node in workflow.items():
-            if _node.get("class_type") == "KSampler":
-                logger.info(
-                    "🔍 [ComfyUI KSampler] %s", {k: v for k, v in _node["inputs"].items() if k != "latent_image"}
-                )
 
         try:
             image_bytes_list = await run_workflow(self._http, workflow, output_node)
