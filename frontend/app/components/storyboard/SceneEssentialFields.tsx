@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import type { Scene, TTSPreviewState } from "../../types";
 import { isMultiCharStructure } from "../../utils/structure";
 import { useStoryboardStore } from "../../store/useStoryboardStore";
-import { useShallow } from "zustand/react/shallow";
 import { Input, Textarea } from "../ui";
 import { API_BASE } from "../../constants";
 import type { ReadingSpeedConfig } from "../../hooks/usePresets";
@@ -16,15 +15,15 @@ type SceneEssentialFieldsProps = {
 
 export default function SceneEssentialFields({ scene }: SceneEssentialFieldsProps) {
   const { data, callbacks } = useSceneContext();
-  const { structure, ttsState } = data;
-  const { onUpdateScene, onSpeakerChange, onImageUpload, onTTSPreview, onTTSRegenerate, audioPlayer } = callbacks;
-
-  const { selectedCharacterName, selectedCharacterBName } = useStoryboardStore(
-    useShallow((s) => ({
-      selectedCharacterName: s.selectedCharacterName,
-      selectedCharacterBName: s.selectedCharacterBName,
-    }))
-  );
+  const { structure, ttsState, characterAName, characterBName } = data;
+  const {
+    onUpdateScene,
+    onSpeakerChange,
+    onImageUpload,
+    onTTSPreview,
+    onTTSRegenerate,
+    audioPlayer,
+  } = callbacks;
   const hasMultipleSpeakers = isMultiCharStructure(structure ?? "");
   const isNarratedDialogue = structure === "narrated_dialogue";
 
@@ -67,11 +66,11 @@ export default function SceneEssentialFields({ scene }: SceneEssentialFieldsProp
           >
             {isNarratedDialogue && <option value="narrator">Narrator</option>}
             <option value="speaker_1">
-              {selectedCharacterName ? `1: ${selectedCharacterName}` : "Speaker 1"}
+              {characterAName ? `1: ${characterAName}` : "Speaker 1"}
             </option>
             {hasMultipleSpeakers && (
               <option value="speaker_2">
-                {selectedCharacterBName ? `2: ${selectedCharacterBName}` : "Speaker 2"}
+                {characterBName ? `2: ${characterBName}` : "Speaker 2"}
               </option>
             )}
           </select>

@@ -26,7 +26,6 @@ export type SceneDataContext = {
   characterBName?: string | null;
   selectedCharacterBId?: number | null;
   genProgress?: ImageGenProgress | null;
-  pinnedSceneOrder?: number;
   sceneMenuOpen: boolean;
   sceneIndex: number;
   isMarkingStatus: boolean;
@@ -46,7 +45,7 @@ export type SceneCallbacksContext = {
   onMarkFail?: () => void;
   buildNegativePrompt: (scene: Scene) => string;
   buildScenePrompt: (scene: Scene) => string | null;
-  showToast: (message: string, type: "success" | "error") => void;
+  showToast: (message: string, type: "success" | "error" | "warning") => void;
   onSceneMenuToggle: () => void;
   onSceneMenuClose: () => void;
   onTTSPreview?: () => void;

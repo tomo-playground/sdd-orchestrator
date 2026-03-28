@@ -49,7 +49,11 @@ function makeScene(overrides: Partial<Scene> = {}): Scene {
   } as Scene;
 }
 
-function makeContextValue(scene: Scene, structure: string): SceneContextValue {
+function makeContextValue(
+  scene: Scene,
+  structure: string,
+  overrides?: Partial<SceneContextValue["data"]>
+): SceneContextValue {
   return {
     data: {
       scene,
@@ -63,6 +67,7 @@ function makeContextValue(scene: Scene, structure: string): SceneContextValue {
       sceneIndex: 0,
       isMarkingStatus: false,
       structure,
+      ...overrides,
     },
     callbacks: {
       onUpdateScene: vi.fn(),
@@ -81,8 +86,12 @@ function makeContextValue(scene: Scene, structure: string): SceneContextValue {
   };
 }
 
-function renderWithContext(scene: Scene, structure: string) {
-  const ctxValue = makeContextValue(scene, structure);
+function renderWithContext(
+  scene: Scene,
+  structure: string,
+  dataOverrides?: Partial<SceneContextValue["data"]>
+) {
+  const ctxValue = makeContextValue(scene, structure, dataOverrides);
   return render(
     <SceneProvider value={ctxValue}>
       <SceneEssentialFields scene={scene} />
@@ -97,39 +106,35 @@ describe("SceneEssentialFields — DoD-5: Speaker dropdown character names", () 
     useStoryboardStore.getState().reset();
   });
 
-  it("shows '1: 재민' when selectedCharacterName is set", () => {
-    useStoryboardStore.setState({ selectedCharacterName: "재민" });
-    renderWithContext(makeScene(), "solo");
+  it("shows '1: 재민' when characterAName is set", () => {
+    renderWithContext(makeScene(), "solo", { characterAName: "재민" });
 
     const option = screen.getByRole("option", { name: /1: 재민/ });
     expect(option).toBeInTheDocument();
   });
 
   it("shows 'Speaker 1' fallback when no character name", () => {
-    useStoryboardStore.setState({ selectedCharacterName: null });
-    renderWithContext(makeScene(), "solo");
+    renderWithContext(makeScene(), "solo", { characterAName: null });
 
     const option = screen.getByRole("option", { name: "Speaker 1" });
     expect(option).toBeInTheDocument();
   });
 
   it("shows '2: 하은' for character B in multi-char structure", () => {
-    useStoryboardStore.setState({
-      selectedCharacterName: "재민",
-      selectedCharacterBName: "하은",
+    renderWithContext(makeScene(), "dialogue", {
+      characterAName: "재민",
+      characterBName: "하은",
     });
-    renderWithContext(makeScene(), "dialogue");
 
     expect(screen.getByRole("option", { name: /1: 재민/ })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /2: 하은/ })).toBeInTheDocument();
   });
 
   it("shows 'Speaker 2' fallback for character B when no name", () => {
-    useStoryboardStore.setState({
-      selectedCharacterName: "재민",
-      selectedCharacterBName: null,
+    renderWithContext(makeScene(), "dialogue", {
+      characterAName: "재민",
+      characterBName: null,
     });
-    renderWithContext(makeScene(), "dialogue");
 
     expect(screen.getByRole("option", { name: /1: 재민/ })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Speaker 2" })).toBeInTheDocument();
