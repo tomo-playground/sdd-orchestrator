@@ -13,6 +13,16 @@ from PIL import Image
 
 from config import SEED_ANCHOR_OFFSET, logger
 
+_WHITE_PIXEL_THRESHOLD = 0.95
+
+
+def _is_blank_image(image: Image.Image) -> bool:
+    """Check if image is nearly all white (blank generation failure)."""
+    import numpy as np
+
+    arr = np.array(image)
+    return bool((arr > 240).all(axis=-1).mean() > _WHITE_PIXEL_THRESHOLD)
+
 
 def validate_for_critical_failure(result: dict, prompt: str) -> dict[str, Any] | None:
     """Check a generation result for critical failures via WD14.
@@ -34,6 +44,15 @@ def validate_for_critical_failure(result: dict, prompt: str) -> dict[str, Any] |
 
         image_bytes = load_image_bytes(f"data:image/png;base64,{image_b64}")
         image = Image.open(io.BytesIO(image_bytes))
+
+        # Blank image check (before WD14 — faster, no model needed)
+        if _is_blank_image(image):
+            logger.warning("[Auto-Regen] 흰색 빈 이미지 감지 (white > 95%%)")
+            return {
+                "has_failure": True,
+                "failures": [{"failure_type": "no_subject", "detail": "blank_white_image"}],
+            }
+
         tags = wd14_predict_tags(image)
 
         from services.critical_failure import detect_critical_failure
