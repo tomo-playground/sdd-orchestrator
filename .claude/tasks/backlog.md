@@ -5,12 +5,6 @@
 
 ---
 
-## P0 (진행 중)
-
-
-- [ ] SP-111 — Docker E2E 자동화 — PR별 격리 환경에서 test plan E2E 자동 실행 + sdd-fix 연동 | scope: infra+ci
-
-
 ## P1 (최우선)
 
 - [ ] SP-085 — 코딩 엔진 통합 — sdd-run/sdd-fix/sentry-autofix를 단일 엔진 + 모드 구조로 리팩토링 (범용 분리 준비) | scope: infra
@@ -35,17 +29,14 @@
 
 ### Phase B: 중규모 (병렬, 1~2주)
 - [ ] SP-090 — ContextBar 개선 — h-8→h-10, 아이콘, Library/Settings 숨기기, 단일 채널 자동 숨기기 | scope: frontend
-- [ ] SP-091 — Settings 재배치: Trash → Library 이동 | scope: frontend
-- [ ] SP-093 — Home 대시보드 개선 — 빠른 시작 + ContinueWorking 진행 상태 | scope: frontend
 
-### Phase C: Direct 3패널 (순차, 2~3주) — 크리티컬 패스: SP-021 완료 필요
+### Phase C: Direct 3패널 ✅ 완료 (SP-094~098)
 
-### Phase D: Library 통일 (1~2주)
-- [ ] SP-101 — Voices → Master-Detail 전환 | scope: frontend | depends: SP-099
+### Phase D: Library 통일 — SP-099, SP-100, SP-102 완료
 
 ## P2-SDD (코딩머신 강화)
 
-- [ ] SP-114 — SDD Orchestrator PyPI 배포 — 안정화 후 `pip install sdd-orchestrator`로 설치 가능하게 패키징. PyPI 퍼블리시 + npm wrapper(`npx @tomo/sdd-kit init`) + 프로젝트 타입별 프리셋 | scope: infra | depends: SP-110
+- [ ] SP-114 — SDD Orchestrator PyPI 배포 — 안정화 후 `pip install sdd-orchestrator`로 설치 가능하게 패키징. PyPI 퍼블리시 + npm wrapper(`npx @tomo/sdd-kit init`) + 프로젝트 타입별 프리셋 | scope: infra
 - [ ] SP-033 — DoD 검증 자동화
 - [ ] SP-034 — PR 엣지 케이스 체크리스트
 - [ ] SP-051 — SDD 2인 확장 플랜
