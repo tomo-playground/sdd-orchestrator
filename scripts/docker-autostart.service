@@ -1,0 +1,16 @@
+[Unit]
+Description=Shorts Producer Docker Compose Auto-Start
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/tomo/Workspace/shorts-producer
+ExecStartPre=/bin/bash -c 'until docker info >/dev/null 2>&1; do sleep 2; done'
+ExecStart=/bin/bash -c 'docker compose -f docker-compose.yml up -d && docker compose -f docker-compose.langfuse.yml up -d'
+ExecStop=/bin/bash -c 'docker compose -f docker-compose.langfuse.yml down && docker compose -f docker-compose.yml down'
+User=tomo
+
+[Install]
+WantedBy=default.target
