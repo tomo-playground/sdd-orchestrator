@@ -1,0 +1,12 @@
+state.db
+state.db-wal
+state.db-shm
+*.log
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+logs/
+.env
+.pytest_cache/
+uv.lock

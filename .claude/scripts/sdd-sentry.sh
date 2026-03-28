@@ -53,8 +53,9 @@ if ! command -v jq &>/dev/null; then
   exit 1
 fi
 
+export SDD_PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # --- Slack 알림 함수 (notify.py CLI) ---
-ORCH_DIR="$(cd "$(dirname "$0")/../../orchestrator" && pwd)"
+ORCH_DIR="$(cd "$(dirname "$0")/../../sdd-orchestrator" && pwd)"
 notify_slack() {
   local msg="$1"
   local level="${2:-info}"
@@ -64,7 +65,7 @@ notify_slack() {
   if [[ -n "$link_text" && -n "$link_url" ]]; then
     link_flag=("--link" "$link_text" "$link_url")
   fi
-  cd "$ORCH_DIR" && uv run python -m orchestrator.tools.notify "$msg" \
+  cd "$ORCH_DIR" && uv run python -m sdd_orchestrator.tools.notify "$msg" \
     --level "$level" "${link_flag[@]}" 2>&1 | grep -v "^$" >&2 || true
 }
 

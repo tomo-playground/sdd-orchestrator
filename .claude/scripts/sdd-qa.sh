@@ -11,6 +11,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+export SDD_PROJECT_ROOT="$PROJECT_DIR"
 FRONTEND_DIR="${PROJECT_DIR}/frontend"
 GITHUB_LABEL="qa-patrol"
 ASSIGNEE="stopper2008"
@@ -18,7 +19,7 @@ RESULTS_DIR="/tmp/qa-patrol-results"
 TIMESTAMP=$(date +"%Y-%m-%d_%H%M%S")
 
 # --- Slack 알림 함수 (notify.py CLI) ---
-ORCH_DIR="$PROJECT_DIR/orchestrator"
+ORCH_DIR="$PROJECT_DIR/sdd-orchestrator"
 notify_slack() {
   local msg="$1"
   local level="${2:-info}"
@@ -28,7 +29,7 @@ notify_slack() {
   if [[ -n "$link_text" && -n "$link_url" ]]; then
     link_flag=("--link" "$link_text" "$link_url")
   fi
-  cd "$ORCH_DIR" && uv run python -m orchestrator.tools.notify "$msg" \
+  cd "$ORCH_DIR" && uv run python -m sdd_orchestrator.tools.notify "$msg" \
     --level "$level" "${link_flag[@]}" 2>&1 | grep -v "^$" >&2 || true
 }
 

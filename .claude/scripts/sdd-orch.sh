@@ -5,7 +5,8 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-ORCH_DIR="$PROJECT_DIR/orchestrator"
+export SDD_PROJECT_ROOT="$PROJECT_DIR"
+ORCH_DIR="$PROJECT_DIR/sdd-orchestrator"
 LOG_FILE="$ORCH_DIR/logs/orchestrator.log"
 PID_FILE="/tmp/orchestrator.pid"
 
@@ -15,7 +16,7 @@ start() {
     return 0
   fi
 
-  # orchestrator/.env에서 환경변수 로드 (키 없으면 빈 문자열)
+  # sdd-orchestrator/.env에서 환경변수 로드 (키 없으면 빈 문자열)
   _SENTRY=$(grep '^SENTRY_AUTH_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2- || true)
   _BOT_TOKEN=$(grep '^SLACK_BOT_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2- || true)
   _APP_TOKEN=$(grep '^SLACK_APP_TOKEN=' "$ORCH_DIR/.env" 2>/dev/null | cut -d= -f2- || true)
@@ -31,7 +32,7 @@ start() {
   export SLACK_APP_TOKEN="${_APP_TOKEN}"
   export SLACK_BOT_ALLOWED_CHANNEL="${_BOT_CHANNEL}"
   export SLACK_BOT_ALLOWED_USERS="${_BOT_USERS}"
-  nohup uv run python -m orchestrator > "$LOG_FILE" 2>&1 &
+  nohup uv run python -m sdd_orchestrator > "$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
   echo "Orchestrator 시작 (PID: $!, log: $LOG_FILE)"
 }

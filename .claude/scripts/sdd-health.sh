@@ -6,7 +6,8 @@ FAILURES=""
 RESTARTED=""
 
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-ORCH_DIR="$PROJECT_DIR/orchestrator"
+export SDD_PROJECT_ROOT="$PROJECT_DIR"
+ORCH_DIR="$PROJECT_DIR/sdd-orchestrator"
 
 # Slack notification via notify.py CLI (Block Kit)
 notify_slack() {
@@ -14,7 +15,7 @@ notify_slack() {
   local level="${2:-warning}"
   local link_args="${3:-}"
   # shellcheck disable=SC2086
-  cd "$ORCH_DIR" && uv run python -m orchestrator.tools.notify "$msg" \
+  cd "$ORCH_DIR" && uv run python -m sdd_orchestrator.tools.notify "$msg" \
     --level "$level" $link_args 2>&1 | grep -v "^$" >&2 || true
 }
 
