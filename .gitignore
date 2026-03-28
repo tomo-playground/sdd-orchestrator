@@ -18,6 +18,9 @@ build/
 # Claude Code worktrees
 .claude/worktrees/
 
+# SDD Orchestrator (별도 레포: tomo-playground/sdd-orchestrator)
+sdd-orchestrator/
+
 # IDE / Tools
 .idea/
 .vscode/
