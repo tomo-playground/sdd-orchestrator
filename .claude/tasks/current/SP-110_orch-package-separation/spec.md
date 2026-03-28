@@ -4,7 +4,8 @@ priority: P2
 scope: orchestrator
 branch: feat/SP-110-orch-package-separation
 created: 2026-03-28
-status: pending
+status: approved
+approved_at: 2026-03-28
 depends_on: SP-108, SP-109
 label: feature
 ---
