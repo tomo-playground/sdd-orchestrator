@@ -4,7 +4,7 @@ priority: P2
 scope: frontend
 branch: feat/SP-102-music-master-detail
 created: 2026-03-26
-status: running
+status: done
 approved_at: 2026-03-26
 depends_on: SP-099
 label: feature
