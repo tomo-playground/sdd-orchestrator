@@ -116,6 +116,16 @@ for PR_NUM in $REVIEWED_PRS; do
 
   LOCK="/tmp/sdd-fix-${PR_NUM}.lock"
   [ -f "$LOCK" ] && continue
+
+  # 동일 PR 연속 수정 횟수 제한 (무한 루프 방지)
+  FIX_COUNT_FILE="/tmp/sdd-fix-${PR_NUM}.count"
+  FIX_COUNT=$(cat "$FIX_COUNT_FILE" 2>/dev/null || echo "0")
+  if [ "$FIX_COUNT" -ge 3 ]; then
+    echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} 수정 3회 도달 — 스킵 (사람 확인 필요)" >> "$LOG"
+    continue
+  fi
+  echo $((FIX_COUNT + 1)) > "$FIX_COUNT_FILE"
+
   touch "$LOCK"
 
   # PR의 브랜치명 가져오기
