@@ -5,7 +5,7 @@ priority: P0
 scope: backend
 branch: feat/SP-113-comfyui-ip-adapter
 created: 2026-03-28
-status: running
+status: approved
 label: bug
 ---
 

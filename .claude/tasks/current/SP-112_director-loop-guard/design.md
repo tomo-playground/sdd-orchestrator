@@ -1,11 +1,3 @@
-Now let me check the state definition and existing tests:
-Now let me look at the graph structure to understand the flow:
-Now I have a complete understanding. Let me also check `director_checkpoint_score` history tracking:
-Now I have everything I need. Let me write the design.
-파일 쓰기 권한이 제한되어 있습니다. design.md 내용을 텍스트로 출력합니다.
-
----
-
 # SP-112: Director 공회전 방지 — 상세 설계
 
 ## 변경 파일 요약
