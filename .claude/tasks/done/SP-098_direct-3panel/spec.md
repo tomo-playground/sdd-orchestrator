@@ -4,7 +4,7 @@ priority: P2
 scope: frontend
 branch: feat/SP-098-direct-3panel
 created: 2026-03-26
-status: running
+status: done
 approved_at: 2026-03-26
 depends_on: SP-096, SP-097
 label: feature
