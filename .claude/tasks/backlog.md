@@ -7,6 +7,8 @@
 
 ## P0 (진행 중)
 
+- [ ] SP-111 — Docker E2E 자동화 — PR별 격리 환경에서 test plan E2E 자동 실행 + sdd-fix 연동 | scope: infra+ci
+
 
 ## P1 (최우선)
 
