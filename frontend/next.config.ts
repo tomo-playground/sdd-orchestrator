@@ -33,6 +33,7 @@ const nextConfig: NextConfig = {
       { source: "/dev", destination: "/dev/sd-models", permanent: false },
       { source: "/scripts", destination: "/studio", permanent: true },
       { source: "/storyboards", destination: "/", permanent: true },
+      { source: "/library/loras", destination: "/dev/sd-models", permanent: true },
     ];
   },
 };

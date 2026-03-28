@@ -24,7 +24,7 @@ export const PATROL_PAGES: PatrolPage[] = [
   { name: "Characters", path: "/library/characters", selector: "h1, h2, [data-testid]" },
   { name: "Voices", path: "/library/voices", selector: "h1, h2" },
   { name: "Styles", path: "/library/styles", selector: "h1, h2" },
-  { name: "LoRA", path: "/library/loras", selector: "h1, h2" },
+  { name: "LoRA (redirect)", path: "/dev/sd-models", selector: "h1, h2" },
   { name: "Scripts", path: "/scripts", selector: "h1, h2" },
   { name: "Storyboards", path: "/storyboards", selector: "h1, h2" },
 ];
@@ -73,7 +73,7 @@ export const EXTENDED_CHECKS: ExtendedCheck[] = [
     selector: "h1, h2",
     fallbackTexts: ["Style Profiles"],
   },
-  { name: "LoRA 목록", path: "/library/loras", selector: "h1, h2" },
+  { name: "LoRA redirect → Admin", path: "/library/loras", selector: "h1, h2" },
   { name: "Scripts 페이지", path: "/scripts", selector: "h1, h2" },
   { name: "Storyboards 목록", path: "/storyboards", selector: "h1, h2" },
 ];
