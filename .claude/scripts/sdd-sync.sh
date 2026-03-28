@@ -101,13 +101,14 @@ for BRANCH in $MERGED; do
   CHECKED_IDS="${CHECKED_IDS:-} ${SP_ID}"
 
   # 1. worktree 정리 (브랜치 삭제 전에 — worktree가 브랜치를 잡고 있으면 삭제 실패)
+  #    SP-ID like 검색: SP-097 → SP-097, feat+SP-097-*, worktree-feat+SP-097-* 모두 매칭
   git worktree prune 2>/dev/null || true
-  for WT_DIR in "$PROJECT_DIR/.claude/worktrees/${BRANCH}" "$PROJECT_DIR/.claude/worktrees/${SP_ID}"; do
+  for WT_DIR in "$PROJECT_DIR/.claude/worktrees"/*"${SP_ID}"*; do
     [ -d "$WT_DIR" ] || continue
-    if pgrep -f "worktree.*${SP_ID}\|worktree.*${BRANCH}" > /dev/null 2>&1; then
+    if pgrep -f "worktree.*${SP_ID}" > /dev/null 2>&1; then
       echo "⚠️ worktree 스킵 (Claude 세션 실행 중): $WT_DIR"
     else
-      git worktree remove "$WT_DIR" --force 2>/dev/null && echo "🗑️ worktree 삭제: $WT_DIR" || true
+      git worktree remove "$WT_DIR" --force 2>/dev/null && echo "🗑️ worktree 삭제: $(basename "$WT_DIR")" || true
     fi
   done
   git worktree prune 2>/dev/null || true
@@ -116,10 +117,12 @@ for BRANCH in $MERGED; do
   git push origin --delete "$BRANCH" 2>/dev/null && echo "🗑️ 원격 브랜치 삭제: $BRANCH" || true
   git remote prune origin 2>/dev/null || true
 
-  # 3. 로컬 브랜치 강제 삭제 (|| true — 실패해도 계속)
+  # 3. 로컬 브랜치 강제 삭제 — SP-ID like 검색으로 관련 브랜치 모두 정리
   git branch -D "$BRANCH" 2>/dev/null && echo "🗑️ 로컬 브랜치 삭제: $BRANCH" || true
-  git branch -D "worktree-${BRANCH}" 2>/dev/null || true
-  git branch -D "worktree-${SP_ID}" 2>/dev/null || true
+  for STALE_BR in $(git branch --format='%(refname:short)' | grep -F "$SP_ID" || true); do
+    [ "$STALE_BR" = "main" ] && continue
+    git branch -D "$STALE_BR" 2>/dev/null && echo "🗑️ 로컬 브랜치 삭제: $STALE_BR" || true
+  done
 done
 
 # ── 태스크 이동 커밋 (cleanup 전에 먼저 저장 — cleanup 실패해도 태스크 추적 유지) ──
