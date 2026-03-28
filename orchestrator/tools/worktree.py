@@ -31,14 +31,18 @@ async def _watch_process(proc: asyncio.subprocess.Process, task_id: str, run_id:
         logger.info("Worktree %s finished (exit_code=%d, run_id=%d)", task_id, exit_code, run_id)
         if _state_store:
             _state_store.finish_run(run_id, exit_code)
-        # 실패 시 spec.md status: running → approved (재시도 가능)
+        # 실패 시: PR 있으면 running 유지, 없으면 approved 복원 (재시도)
         if exit_code != 0:
-            _update_spec_status(task_id, "approved")
+            if _has_open_pr(task_id):
+                logger.info("%s failed but has open PR — keeping running status", task_id)
+            else:
+                _update_spec_status(task_id, "approved")
     except Exception:
         logger.exception("Error watching worktree process %s", task_id)
         if _state_store:
             _state_store.finish_run(run_id, exit_code=1)
-        _update_spec_status(task_id, "approved")
+        if not _has_open_pr(task_id):
+            _update_spec_status(task_id, "approved")
 
 
 async def do_launch_sdd_run(task_id: str) -> dict:
@@ -63,6 +67,12 @@ async def do_launch_sdd_run(task_id: str) -> dict:
     failures = _state_store.get_consecutive_failures(task_id)
     if failures >= 3:
         return _error(f"{task_id} is blocked after {failures} consecutive failures")
+
+    # Check if open PR already exists → skip (이미 코딩 완료)
+    open_pr = _has_open_pr(task_id)
+    if open_pr:
+        _update_spec_status(task_id, "running")
+        return _error(f"{task_id} already has open PR ({open_pr}) — skipping launch")
 
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -115,6 +125,39 @@ async def do_check_running_worktrees() -> dict:
                 _update_spec_status(task_id, "approved")
                 logger.info("Dead PID %d → spec.md restored to approved: %s", pid, task_id)
     return {"content": [{"type": "text", "text": json.dumps(alive, ensure_ascii=False)}]}
+
+
+def _has_open_pr(task_id: str) -> str | None:
+    """Check if task_id has an open PR. Returns 'PR #N' or None."""
+    import subprocess
+
+    from orchestrator.config import PROJECT_ROOT
+
+    try:
+        r = subprocess.run(
+            [
+                "gh",
+                "pr",
+                "list",
+                "--state",
+                "open",
+                "--search",
+                task_id,
+                "--json",
+                "number",
+                "--jq",
+                ".[0].number",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(PROJECT_ROOT),
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            return f"PR #{r.stdout.strip()}"
+    except Exception:
+        logger.warning("Failed to check open PR for %s", task_id, exc_info=True)
+    return None
 
 
 def _update_spec_status(task_id: str, new_status: str) -> None:
