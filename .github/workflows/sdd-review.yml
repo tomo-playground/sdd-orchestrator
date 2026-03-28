@@ -26,6 +26,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup PATH
+        run: echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         with:
