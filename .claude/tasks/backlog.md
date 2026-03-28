@@ -46,6 +46,7 @@
 
 ## P2-SDD (코딩머신 강화)
 
+- [ ] SP-114 — SDD Orchestrator PyPI 배포 — 안정화 후 `pip install sdd-orchestrator`로 설치 가능하게 패키징. PyPI 퍼블리시 + npm wrapper(`npx @tomo/sdd-kit init`) + 프로젝트 타입별 프리셋 | scope: infra | depends: SP-110
 - [ ] SP-033 — DoD 검증 자동화
 - [ ] SP-034 — PR 엣지 케이스 체크리스트
 - [ ] SP-051 — SDD 2인 확장 플랜
