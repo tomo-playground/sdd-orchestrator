@@ -185,6 +185,16 @@ _SSE_HEADERS = {
 }
 
 
+def _save_thread_id(db: Session, storyboard_id: int, thread_id: str) -> None:
+    """Storyboard에 last_thread_id를 저장한다 (resume 복원용)."""
+    from models.storyboard import Storyboard  # noqa: PLC0415
+
+    db.query(Storyboard).filter(Storyboard.id == storyboard_id, Storyboard.deleted_at.is_(None)).update(
+        {"last_thread_id": thread_id}
+    )
+    db.commit()
+
+
 @router.post(
     "/generate-stream",
     responses={
@@ -196,7 +206,7 @@ _SSE_HEADERS = {
 )
 async def generate_script_stream(
     request: StoryboardRequest,
-    db: Session = Depends(get_db),  # noqa: ARG001
+    db: Session = Depends(get_db),
 ):
     """SSE 스트리밍 엔드포인트 — 노드별 진행률을 실시간 전송한다."""
     if not request.storyboard_id:
@@ -204,6 +214,10 @@ async def generate_script_stream(
     logger.info("📝 [Script Generate Stream] storyboard_id=%s %s", request.storyboard_id, request.model_dump())
     state = _request_to_state(request)
     thread_id = _resolve_thread_id()
+
+    # Persist thread_id to storyboard for resume after page reload
+    _save_thread_id(db, request.storyboard_id, thread_id)
+
     config = _build_config(
         thread_id,
         session_id=_resolve_session_id(request.storyboard_id),

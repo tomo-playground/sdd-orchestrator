@@ -52,6 +52,9 @@ class Storyboard(Base, TimestampMixin, SoftDeleteMixin):
     # Phase 20-C: Casting recommendation (optgroup, structure badge, etc.)
     casting_recommendation: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
+    # LangGraph thread_id for resuming interrupted pipelines (concept gate, plan review, etc.)
+    last_thread_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
     @property
     def video_url(self) -> str | None:
         if self.render_history and self.render_history[0].media_asset:

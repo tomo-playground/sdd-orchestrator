@@ -75,13 +75,21 @@ def trim_scenes_to_duration(scenes: list[dict], duration: int, structure: str | 
 
 def estimate_reading_duration(text: str, language: str) -> float:
     """Script 텍스트로부터 읽기 시간을 추정한다. config.py READING_SPEED 사용."""
-    from config import DEFAULT_LANGUAGE, READING_DURATION_PADDING, READING_SPEED, SCENE_DURATION_MAX, coerce_language_id
+    from config import (
+        DEFAULT_LANGUAGE,
+        READING_DURATION_PADDING,
+        READING_SPEED,
+        SCENE_DEFAULT_DURATION,
+        SCENE_DURATION_MAX,
+        SCENE_DURATION_RANGE,
+        coerce_language_id,
+    )
 
     lang_id = coerce_language_id(language)
     cfg = READING_SPEED.get(lang_id, READING_SPEED[DEFAULT_LANGUAGE])
     stripped = text.strip()
     if not stripped:
-        return 2.0
+        return SCENE_DEFAULT_DURATION
 
     if cfg.get("unit") == "words":
         count = len(stripped.split())
@@ -91,7 +99,7 @@ def estimate_reading_duration(text: str, language: str) -> float:
         rate = cfg["cps"]
 
     raw = count / rate + READING_DURATION_PADDING
-    return max(2.0, min(SCENE_DURATION_MAX, round(raw, 1)))
+    return max(SCENE_DURATION_RANGE[0], min(SCENE_DURATION_MAX, round(raw, 1)))
 
 
 def truncate_title(title: str, max_length: int = 190) -> str:

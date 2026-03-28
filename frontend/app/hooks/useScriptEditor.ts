@@ -223,7 +223,10 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
       conceptId?: number,
       options?: ResumeOptions
     ) => {
-      if (!stateRef.current.threadId) return;
+      if (!stateRef.current.threadId) {
+        showToast("세션이 만료되었습니다. 대본을 다시 생성해주세요.", "warning");
+        return;
+      }
       if (busyRef.current) return;
       busyRef.current = true;
       streamAbortRef.current?.abort();
@@ -388,6 +391,7 @@ export function useScriptEditor(options?: ScriptEditorOptions): ScriptEditorActi
             scenes: mapLoadedScenes(data.scenes ?? []),
             storyboardId: id,
             storyboardVersion: data.version ?? null,
+            threadId: data.last_thread_id ?? prev.threadId,
             chatContext: [],
           };
         });

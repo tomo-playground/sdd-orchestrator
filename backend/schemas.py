@@ -421,6 +421,7 @@ class StoryboardDetailResponse(BaseModel):
     bgm_mood: str | None = None  # Sound Designer mood tag
     stage_status: str | None = None  # pending | staging | staged | failed
     casting_recommendation: CastingRecommendationSchema | None = None
+    last_thread_id: str | None = None  # LangGraph thread for resume
     created_at: str | None = None
     updated_at: str | None = None
     characters: list[StoryboardCharacterResponse] = []

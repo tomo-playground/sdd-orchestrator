@@ -380,6 +380,7 @@ def get_storyboard_by_id(db: Session, storyboard_id: int) -> dict:
         "bgm_mood": storyboard.bgm_mood,
         "stage_status": storyboard.stage_status,
         "casting_recommendation": storyboard.casting_recommendation,
+        "last_thread_id": storyboard.last_thread_id,
         "created_at": storyboard.created_at.isoformat() if storyboard.created_at else None,
         "updated_at": storyboard.updated_at.isoformat() if storyboard.updated_at else None,
         "version": storyboard.version,
