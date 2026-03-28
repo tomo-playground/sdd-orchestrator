@@ -93,6 +93,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
+          clean: false
 
       - name: Wait for services
         run: |
@@ -110,6 +111,9 @@ jobs:
         run: |
           NODE_DIR="$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ | tail -1)/bin"
           echo "$NODE_DIR" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        run: cd frontend && npm ci --ignore-scripts
 
       - name: Run QA Patrol
         run: |
