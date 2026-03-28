@@ -255,11 +255,14 @@ class ComfyUIClient(SDClientBase):
                     f"ip_ref_{safe_name}_{ref_hash}.png",
                 )
                 variables["ip_adapter_image"] = ip_filename
+                # v-pred safety clamp: weight ≤ 0.35, end_at ≤ 0.5 (색상 오염 방지)
                 variables["ip_adapter_weight"] = min(
-                    max(float(ip_adapter.get("weight", DEFAULT_IP_ADAPTER_WEIGHT_VPRED)), 0.0), 1.0
+                    max(float(ip_adapter.get("weight", DEFAULT_IP_ADAPTER_WEIGHT_VPRED)), 0.0),
+                    DEFAULT_IP_ADAPTER_WEIGHT_VPRED,
                 )
                 variables["ip_adapter_end_at"] = min(
-                    max(float(ip_adapter.get("end_at", DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED)), 0.0), 1.0
+                    max(float(ip_adapter.get("end_at", DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED)), 0.0),
+                    DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED,
                 )
                 logger.info(
                     "🧑 [ComfyUI IP-Adapter] ref=%s weight=%.2f end_at=%.2f",
