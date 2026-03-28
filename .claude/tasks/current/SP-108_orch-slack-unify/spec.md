@@ -4,7 +4,8 @@ priority: P0
 scope: orchestrator
 branch: feat/SP-108-orch-slack-unify
 created: 2026-03-28
-status: pending
+status: approved
+approved_at: 2026-03-28
 depends_on:
 label: refactor
 ---
