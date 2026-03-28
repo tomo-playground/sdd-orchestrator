@@ -250,6 +250,13 @@ class ComfyUIClient(SDClientBase):
         # Log final workflow summary for debugging
         _log_workflow_summary(workflow, checkpoint or "unknown")
 
+        # Dump KSampler inputs for white image debugging
+        for _nid, _node in workflow.items():
+            if _node.get("class_type") == "KSampler":
+                logger.info(
+                    "🔍 [ComfyUI KSampler] %s", {k: v for k, v in _node["inputs"].items() if k != "latent_image"}
+                )
+
         try:
             image_bytes_list = await run_workflow(self._http, workflow, output_node)
         except Exception:
