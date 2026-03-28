@@ -138,6 +138,14 @@ for PR_NUM in $REVIEWED_PRS; do
 4. 비동의하는 피드백: 코드 수정 없이 PR에 '현행 유지 이유: [근거]' 코멘트" \
     2>>"$LOG" || true
 
+  # CodeRabbit CHANGES_REQUESTED 해소 트리거
+  CR_STATE=$(gh api "repos/tomo-playground/shorts-producer/pulls/${PR_NUM}/reviews" \
+    --jq '[.[] | select(.user.login == "coderabbitai[bot]" and .state == "CHANGES_REQUESTED")] | length' 2>/dev/null || echo "0")
+  if [ "$CR_STATE" -gt 0 ]; then
+    gh pr comment "$PR_NUM" --body "@coderabbitai resolve" 2>/dev/null || true
+    echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} @coderabbitai resolve 요청" >> "$LOG"
+  fi
+
   rm -f "$LOCK"
   echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} 수정 완료" >> "$LOG"
 done
