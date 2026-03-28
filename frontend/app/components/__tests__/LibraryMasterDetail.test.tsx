@@ -127,4 +127,19 @@ describe("LibraryMasterDetail", () => {
 
     expect(screen.getByText("Select something")).toBeInTheDocument();
   });
+
+  // 11. Custom filterFn overrides default name-only filter
+  it("uses custom filterFn when provided", () => {
+    const customFilter = (item: Item, q: string) =>
+      item.name.toLowerCase().includes(q) || (item.description?.toLowerCase().includes(q) ?? false);
+
+    render(<LibraryMasterDetail {...defaultProps()} filterFn={customFilter} onSelect={onSelect} />);
+
+    const input = screen.getByLabelText("Search items");
+    fireEvent.change(input, { target: { value: "first" } });
+
+    expect(screen.getByText("Alpha")).toBeInTheDocument();
+    expect(screen.queryByText("Beta")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gamma")).not.toBeInTheDocument();
+  });
 });

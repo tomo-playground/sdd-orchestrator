@@ -24,7 +24,11 @@ export const EMPTY_MUSIC: EditingMusic = {
 
 // ── Hook ───────────────────────────────────────────────
 
-export function useMusic(ui: UiCallbacks) {
+type UseMusicOptions = UiCallbacks & {
+  onCreated?: (id: number) => void;
+};
+
+export function useMusic(ui: UseMusicOptions) {
   const [presets, setPresets] = useState<MusicPreset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editing, setEditing] = useState<EditingMusic | null>(null);
@@ -143,6 +147,7 @@ export function useMusic(ui: UiCallbacks) {
             params: { temp_asset_id: previewAssetId },
           });
         }
+        if (res.data.id) ui.onCreated?.(res.data.id);
       }
       setEditing(null);
       setEditId(null);

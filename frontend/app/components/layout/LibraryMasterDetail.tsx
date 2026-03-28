@@ -31,6 +31,8 @@ export type LibraryMasterDetailProps<T extends MasterDetailItem> = {
   header?: ReactNode;
   /** Content shown in detail panel when nothing is selected. */
   detailEmptyState?: ReactNode;
+  /** Custom filter function. Overrides default name-only filter when provided. */
+  filterFn?: (item: T, query: string) => boolean;
 };
 
 // ── Component ────────────────────────────────────────────────
@@ -47,14 +49,17 @@ export default function LibraryMasterDetail<T extends MasterDetailItem>({
   emptyState,
   header,
   detailEmptyState,
+  filterFn,
 }: LibraryMasterDetailProps<T>) {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
     if (!search.trim()) return items;
     const q = search.toLowerCase();
-    return items.filter((item) => item.name.toLowerCase().includes(q));
-  }, [items, search]);
+    return filterFn
+      ? items.filter((item) => filterFn(item, q))
+      : items.filter((item) => item.name.toLowerCase().includes(q));
+  }, [items, search, filterFn]);
 
   const selectedItem = useMemo(
     () => (selectedId != null ? (items.find((i) => i.id === selectedId) ?? null) : null),
