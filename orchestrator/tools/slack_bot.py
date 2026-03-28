@@ -87,6 +87,11 @@ class SlackBotListener:
         self.app: AsyncApp | None = None
         self.web_client: AsyncWebClient | None = None
 
+    def register_active_thread(self, ts: str) -> None:
+        """Register a message ts so thread replies are handled."""
+        if ts and ts not in self._active_threads:
+            self._active_threads.append(ts)
+
     async def start(self) -> None:
         """Connect via Socket Mode (non-blocking WebSocket)."""
         from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler

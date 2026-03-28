@@ -25,6 +25,21 @@ logger = logging.getLogger(__name__)
 
 _last_slack_sent: float = 0
 
+# SlackBot 싱글턴 참조 (set by orchestrator main)
+_slack_bot_instance = None
+
+
+def set_slack_bot(bot) -> None:
+    """SlackBot 인스턴스 등록 — active thread 연동용."""
+    global _slack_bot_instance  # noqa: PLW0603
+    _slack_bot_instance = bot
+
+
+def _register_thread(ts: str) -> None:
+    """발송된 메시지를 active thread로 등록."""
+    if _slack_bot_instance and ts:
+        _slack_bot_instance.register_active_thread(ts)
+
 
 async def _send_slack_message(text: str, blocks: list | None = None) -> str | None:
     """Send a message to Slack via Bot Token API. Returns message ts or None."""
@@ -83,7 +98,10 @@ async def do_notify_human(args: dict) -> dict:
     ts = await _send_slack_message(fallback, blocks)
     channel = "slack" if ts else "log_only"
 
-    if not ts:
+    # Bot 메시지를 active thread로 등록 → 스레드 답글 대화 가능
+    if ts:
+        _register_thread(ts)
+    else:
         logger.info("[%s] %s", level.upper(), message)
 
     return {

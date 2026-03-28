@@ -112,6 +112,12 @@ class OrchestratorDaemon:
 
         set_daemon(self)
         self.slack_bot = SlackBotListener(mcp_server=self.mcp_server)
+
+        # notify → SlackBot 연동 (active thread 등록용)
+        from orchestrator.tools.notify import set_slack_bot
+
+        set_slack_bot(self.slack_bot)
+
         self._slack_bot_task = asyncio.create_task(self._run_slack_bot_with_restart())
 
     async def _run_slack_bot_with_restart(self) -> None:
