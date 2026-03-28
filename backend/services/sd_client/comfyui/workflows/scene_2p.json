@@ -121,11 +121,16 @@
       "latent_image": ["8_latent", 0]
     }
   },
-  "12_ip_loader": {
-    "class_type": "IPAdapterUnifiedLoader",
+  "12_ip_model": {
+    "class_type": "IPAdapterModelLoader",
     "inputs": {
-      "model": ["5_dynthres", 0],
-      "preset": "STANDARD (medium strength)"
+      "ipadapter_file": "NOOB-IPA-MARK1.safetensors"
+    }
+  },
+  "12b_clip_vision": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors"
     }
   },
   "13_ip_image": {
@@ -137,15 +142,16 @@
   "14_ip_apply": {
     "class_type": "IPAdapterAdvanced",
     "inputs": {
-      "model": ["12_ip_loader", 0],
-      "ipadapter": ["12_ip_loader", 1],
+      "model": ["5_dynthres", 0],
+      "ipadapter": ["12_ip_model", 0],
+      "clip_vision": ["12b_clip_vision", 0],
       "image": ["13_ip_image", 0],
       "weight": "{{ip_adapter_weight}}",
       "weight_type": "linear",
       "start_at": 0.0,
       "end_at": "{{ip_adapter_end_at}}",
       "combine_embeds": "concat",
-      "embeds_scaling": "K+mean(V) w/ C penalty"
+      "embeds_scaling": "V only"
     }
   },
   "10_decode": {

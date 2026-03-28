@@ -817,7 +817,7 @@ DEFAULT_USE_CONTROLNET = False  # 일반 씬 OFF (프롬프트 충성도 충분)
 DEFAULT_CONTROLNET_WEIGHT = 0.8
 DEFAULT_USE_IP_ADAPTER = False
 DEFAULT_IP_ADAPTER_WEIGHT = 0.35  # IP-Adapter 기본 weight (ip_adapter_weight_b 기본값으로도 사용)
-IP_ADAPTER_AUTO_ENABLE = False  # v-pred 튜닝 완료까지 비활성화
+IP_ADAPTER_AUTO_ENABLE = True  # 레퍼런스 이미지 존재 시 자동 활성화
 ENVIRONMENT_REFERENCE_ENABLED = (
     os.getenv("ENVIRONMENT_REFERENCE_ENABLED", "false").lower() == "true"
 )  # True: background_id → Reference AdaIN 적용, False: 프롬프트 태그만
@@ -839,8 +839,8 @@ DEFAULT_CHARACTER_PRESET = {
 DEFAULT_IP_ADAPTER_GUIDANCE_START = 0.0
 DEFAULT_IP_ADAPTER_GUIDANCE_END_FACEID = 0.85  # Reduce prompt interference in later steps
 DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP = 1.0  # Full guidance for CLIP-based models
-DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED = 0.8  # STANDARD preset: 색상 안전, 높게 설정 가능
-DEFAULT_IP_ADAPTER_WEIGHT_VPRED = 0.7  # STANDARD preset: 약한 모델이므로 weight 높여야 반영됨
+DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED = 0.5  # NOOB-IPA: 후반 50%는 프롬프트(배경 등) 반영
+DEFAULT_IP_ADAPTER_WEIGHT_VPRED = 0.5  # NOOB-IPA v-pred 전용 모델
 
 # IP-Adapter Dual Unit (opt-in, VRAM 2x)
 IP_ADAPTER_DUAL_ENABLED = os.getenv("IP_ADAPTER_DUAL_ENABLED", "false").lower() == "true"
