@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import shutil
 import signal
 import sys
@@ -56,6 +57,7 @@ class OrchestratorDaemon:
         while not self.stop_event.is_set():
             self.cycle += 1
             await self._run_cycle()
+            await self._flush_postmerge_notifications()
             await self._maybe_send_daily_report()
 
             if self.interval <= 0:
@@ -250,6 +252,22 @@ class OrchestratorDaemon:
                     running_ids = {r["task_id"] for r in running}
         except Exception:
             logger.exception("Auto-launch check failed")
+
+    async def _flush_postmerge_notifications(self) -> None:
+        """Send post-merge DoD notifications from sdd-sync to Slack."""
+        import glob
+
+        from orchestrator.tools.notify import do_notify_human
+
+        for path in glob.glob("/tmp/sdd-postmerge-SP-*.notify"):
+            try:
+                msg = open(path).read().strip()  # noqa: SIM115
+                if msg:
+                    await do_notify_human({"message": msg, "level": "warning"})
+                    logger.info("Post-merge notification sent: %s", path)
+                os.remove(path)
+            except Exception:
+                logger.warning("Failed to send post-merge notification: %s", path, exc_info=True)
 
     async def _send_startup_summary(self) -> None:
         """Send concise startup summary to Slack."""

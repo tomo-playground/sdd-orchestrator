@@ -79,10 +79,20 @@ for BRANCH in $MERGED; do
   CURRENT_DIR=$(ls -d "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*/ 2>/dev/null | head -1)
   if [ "$PULL_OK" = true ] && [ -n "$CURRENT_DIR" ] && [ -d "$CURRENT_DIR" ]; then
     DIRNAME=$(basename "$CURRENT_DIR")
+    # 미완료 DoD 추출 (머지 후 수동 작업 알림용)
+    UNDONE=$(grep -E '^\- \[ \]' "$CURRENT_DIR/spec.md" 2>/dev/null | sed 's/^- \[ \] /  • /' || true)
+
     sed -i 's/^status:.*/status: done/' "$CURRENT_DIR/spec.md"
     mv "$CURRENT_DIR" "$DONE_DIR/${DIRNAME}"
     echo "✅ ${DIRNAME}/ → done/"
     CHANGED=true
+
+    # 미완료 DoD가 있으면 알림 파일에 기록 (오케스트레이터가 Slack 발송)
+    if [ -n "$UNDONE" ]; then
+      NOTIFY_FILE="/tmp/sdd-postmerge-${SP_ID}.notify"
+      echo -e "📋 [${SP_ID}] 머지 완료 — 수동 작업 필요\n\n${UNDONE}" > "$NOTIFY_FILE"
+      echo "📋 ${SP_ID} 미완료 DoD → $NOTIFY_FILE"
+    fi
   else
     # 레거시 파일 방식 fallback (SP-NNN_*.md)
     CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
