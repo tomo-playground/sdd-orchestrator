@@ -6,8 +6,9 @@
 |------|------|------|
 | Playwright 위치 | Docker 컨테이너 안 | 호스트 무의존, 범용 분리 대비 |
 | 외부 API (Gemini 등) | 미포함 (mock 불필요, 단순 미설정) | UI CUD 테스트만, AI 플로우 제외 |
-| 시드 데이터 | SQL 파일 | 빠르고 이식 가능 |
+| 시드 데이터 | Python 스크립트 (ORM 활용) | Alembic 마이그레이션 후 실행, FK 순서 보장 |
 | 워크플로우 트리거 | PR opened/synchronize | sdd-review와 동일 |
+| Frontend API 라우팅 | `BACKEND_ORIGIN` 런타임 환경변수 (Next.js rewrites 프록시) | 기존 코드 구조 그대로 활용 |
 
 ## 변경 파일 요약
 
@@ -16,11 +17,10 @@
 | `docker-compose.e2e.yml` | 신규 | E2E 전용 환경 (DB + MinIO + Backend + Frontend + Playwright) |
 | `backend/Dockerfile.e2e` | 신규 | Backend 컨테이너 (Python 3.13 + uv + FastAPI) |
 | `frontend/Dockerfile.e2e` | 신규 | Frontend 컨테이너 (Node + Next.js build + serve) |
-| `scripts/e2e-seed.sql` | 신규 | 테스트 전제조건 시드 데이터 |
+| `backend/scripts/e2e_seed.py` | 신규 | 테스트 전제조건 시드 데이터 (ORM) |
 | `scripts/run-e2e.sh` | 신규 | E2E 실행 래퍼 (compose up → test → down) |
 | `.github/workflows/sdd-e2e.yml` | 신규 | PR E2E 워크플로우 |
-
-기존 코드 변경 없음.
+| `frontend/playwright.e2e.config.ts` | 수정 | baseURL 환경변수 대응 (1행) |
 
 ---
 
@@ -38,8 +38,6 @@ services:
       POSTGRES_DB: shorts_e2e
       POSTGRES_USER: test
       POSTGRES_PASSWORD: test
-    volumes:
-      - ./scripts/e2e-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
     healthcheck:
       test: pg_isready -U test -d shorts_e2e
       interval: 3s
@@ -52,9 +50,19 @@ services:
       MINIO_ROOT_USER: admin
       MINIO_ROOT_PASSWORD: password123
     healthcheck:
-      test: mc ready local
+      test: curl -f http://localhost:9000/minio/health/live
       interval: 3s
       retries: 5
+
+  e2e-minio-init:
+    image: minio/mc:latest
+    depends_on:
+      e2e-minio: { condition: service_healthy }
+    entrypoint: >
+      sh -c "
+        mc alias set e2e http://e2e-minio:9000 admin password123 &&
+        mc mb --ignore-existing e2e/shorts-e2e
+      "
 
   e2e-backend:
     build:
@@ -62,7 +70,7 @@ services:
       dockerfile: Dockerfile.e2e
     depends_on:
       e2e-db: { condition: service_healthy }
-      e2e-minio: { condition: service_healthy }
+      e2e-minio-init: { condition: service_completed_successfully }
     environment:
       DATABASE_URL: postgresql://test:test@e2e-db:5432/shorts_e2e
       APP_ENV: test
@@ -75,7 +83,7 @@ services:
       COMFYUI_BASE_URL: ""
       AUDIO_SERVER_URL: ""
     healthcheck:
-      test: python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"
+      test: python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/projects')"
       interval: 5s
       retries: 15
       start_period: 15s
@@ -84,10 +92,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.e2e
-      args:
-        NEXT_PUBLIC_API_URL: http://e2e-backend:8000/api/v1
     depends_on:
       e2e-backend: { condition: service_healthy }
+    environment:
+      BACKEND_ORIGIN: http://e2e-backend:8000
     healthcheck:
       test: node -e "fetch('http://localhost:3000').then(r => process.exit(r.ok ? 0 : 1))"
       interval: 5s
@@ -105,6 +113,7 @@ services:
     environment:
       BASE_URL: http://e2e-frontend:3000
       CI: "true"
+      PLAYWRIGHT_JSON_OUTPUT_NAME: /results/results.json
     entrypoint: >
       bash -c "
         npm ci --ignore-scripts &&
@@ -112,7 +121,7 @@ services:
           --config=playwright.e2e.config.ts
           --reporter=json
           --output=/results/artifacts
-          > /results/results.json 2>&1;
+          2>/results/stderr.log;
         exit $?
       "
 
@@ -126,9 +135,9 @@ networks:
 - after: `docker compose -f docker-compose.e2e.yml up --abort-on-container-exit e2e-runner` 로 전체 환경 기동 + 테스트 실행 + 종료
 
 **엣지 케이스**:
-- Backend 기동 실패 (의존성 누락): healthcheck로 감지, e2e-runner 기동 안 됨
+- Backend 기동 실패: healthcheck 실패 → e2e-runner 기동 안 됨
 - Frontend 빌드 실패: 같은 메커니즘
-- Playwright timeout: `--timeout` 플래그로 제어
+- MinIO 버킷 미존재: `e2e-minio-init` 컨테이너가 자동 생성 후 종료
 
 **테스트 전략**: `scripts/run-e2e.sh` 를 로컬에서 실행하여 전체 사이클 검증
 
@@ -147,30 +156,30 @@ WORKDIR /app
 
 # System deps for psycopg2
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev gcc && \
+    libpq-dev gcc curl && \
     rm -rf /var/lib/apt/lists/*
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Install dependencies
+# Install dependencies (dev 포함 — lazy import 아닌 패키지 존재 가능)
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-install-project
 
 # Copy app
 COPY . .
 
-# Run migrations + start server
-CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn main:app --host 0.0.0.0 --port 8000"]
+# Run migrations + seed + start server
+CMD ["sh", "-c", "uv run alembic upgrade head && uv run python scripts/e2e_seed.py && uv run uvicorn main:app --host 0.0.0.0 --port 8000"]
 ```
 
 **동작 정의**:
 - before: Backend Dockerfile 없음
-- after: 컨테이너 기동 시 마이그레이션 자동 실행 → API 서버 시작
+- after: 컨테이너 기동 시 마이그레이션 → 시드 → API 서버 시작
 
 **엣지 케이스**:
-- 마이그레이션 실패: CMD에서 `&&`로 연결, 실패 시 컨테이너 비정상 종료 → healthcheck 실패
-- 무거운 의존성 (mediapipe, opencv, rembg): E2E에서 이미지 생성 안 하므로 import error가 발생해도 API 라우팅에는 영향 없음 (lazy import 패턴). 빌드 시간 단축이 필요하면 추후 `--no-install` 옵션으로 제외.
+- 마이그레이션 실패: `&&`로 연결, 실패 시 컨테이너 비정상 종료 → healthcheck 실패
+- dev 의존성: `--no-dev` 대신 전체 설치. 빌드 시간보다 기동 안정성 우선. 추후 최적화.
 
 **Out of Scope**: 프로덕션 Dockerfile, 멀티스테이지 빌드 최적화
 
@@ -179,6 +188,8 @@ CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn main:app --host 
 ### 3. Frontend Dockerfile.e2e
 
 **구현 방법**: `frontend/Dockerfile.e2e`
+
+Frontend는 `BACKEND_ORIGIN` 런타임 환경변수를 사용하여 Next.js rewrites로 API 프록시. `NEXT_PUBLIC_API_URL`은 코드베이스에 존재하지 않으므로 사용하지 않음.
 
 ```dockerfile
 FROM node:22-alpine
@@ -189,10 +200,6 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-
 RUN npm run build
 
 CMD ["npm", "start"]
@@ -200,36 +207,33 @@ CMD ["npm", "start"]
 
 **동작 정의**:
 - before: Frontend Dockerfile 없음
-- after: Next.js 프로덕션 빌드 + 서빙. `NEXT_PUBLIC_API_URL`은 빌드 타임에 주입.
+- after: Next.js 프로덕션 빌드 + 서빙. `BACKEND_ORIGIN`은 런타임 환경변수로 docker-compose.e2e.yml에서 주입.
 
 **엣지 케이스**:
-- `NEXT_PUBLIC_*`는 빌드 타임 변수. Docker Compose에서 `args`로 전달해야 함 (environment 아님).
+- `BACKEND_ORIGIN` 미설정 시: `next.config.ts`에서 fallback `http://127.0.0.1:8000` 사용 → Docker 내부에서 실패. compose에서 반드시 설정.
 
 **Out of Scope**: standalone output 최적화, 이미지 크기 최적화
 
 ---
 
-### 4. 시드 데이터 (scripts/e2e-seed.sql)
+### 4. 시드 데이터 (backend/scripts/e2e_seed.py)
 
-**구현 방법**: Alembic 마이그레이션이 스키마를 생성한 후, PostgreSQL initdb가 시드 삽입.
+**구현 방법**: Backend CMD에서 `alembic upgrade head` 후 실행. ORM을 활용하여 FK 순서 보장.
 
-단, `docker-entrypoint-initdb.d/`는 DB 초기화 시에만 실행되므로, **마이그레이션은 Backend CMD에서, 시드는 Backend 기동 후 별도 실행**하는 구조가 필요.
-
-수정: `e2e-backend` CMD를 `alembic upgrade head && python scripts/e2e_seed.py && uvicorn ...` 으로 변경. 시드를 Python 스크립트로 작성하여 ORM 활용.
-
-**시드 데이터 (scripts/e2e_seed.py)**:
+**시드 엔티티**:
 - `Project` 1개 (name: "E2E Test Channel")
 - `Group` 1개 (name: "E2E Test Series")
-- `Character` 2개 (speaker A/B)
+- `Character` 2개 (speaker A/B, 최소 필수 필드만)
 - `StyleProfile` 2개
 - `VoicePreset` 2개
 - `Storyboard` 1개 (title: "E2E Test Storyboard", scenes 3개)
 - `LoRA` 1개
-- `MediaAsset` 필요한 만큼 (참조 이미지 등은 placeholder)
+
+**중복 방지**: 스크립트 시작 시 `Project` 존재 여부 확인. 이미 있으면 스킵.
 
 **엣지 케이스**:
-- 중복 실행: `INSERT ... ON CONFLICT DO NOTHING` 또는 스크립트 시작 시 기존 데이터 확인
-- FK 순서: Project → Group → Character/Style → Storyboard → Scene 순서 준수
+- FK 순서: Project → Group → Character/Style → Storyboard → Scene
+- MediaAsset 참조: 이미지 URL은 placeholder (MinIO에 실제 파일 불필요, DB 레코드만)
 
 **Out of Scope**: 대량 데이터, 성능 테스트용 시드
 
@@ -284,11 +288,11 @@ on:
     types: [opened, synchronize]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
   issues: write
   id-token: write
-  actions: read
+  actions: write
 
 concurrency:
   group: sdd-e2e-${{ github.event.pull_request.number }}
@@ -337,9 +341,10 @@ jobs:
 
             1. `gh pr view ${{ github.event.pull_request.number }} --json body --jq '.body'` 로 test plan 읽기
             2. 각 체크리스트 항목을 Playwright test()로 변환
-            3. baseURL은 환경변수 `BASE_URL` 또는 `http://e2e-frontend:3000` 사용
-            4. 테스트는 읽기 + CUD 동작만. 외부 AI API 호출은 하지 않음.
-            5. 파일 생성만 하고 실행하지 마세요.
+            3. baseURL은 환경변수 `BASE_URL` 사용 (Docker 내부: http://e2e-frontend:3000)
+            4. 셀렉터는 `getByRole`, `getByText`, `data-testid`만 사용. CSS 셀렉터 금지.
+            5. 테스트는 읽기 + CUD 동작만. 외부 AI API 호출은 하지 않음.
+            6. 파일 생성만 하고 실행하지 마세요.
 
           claude_args: |
             --allowedTools "Bash(gh:*),Read,Edit,Write,Glob,Grep"
@@ -357,28 +362,35 @@ jobs:
             PASSED=$(jq '[.. | objects | select(has("ok")) | select(.ok == true)] | length' e2e-results/results.json 2>/dev/null || echo 0)
             FAILED=$(jq '[.. | objects | select(has("ok")) | select(.ok == false)] | length' e2e-results/results.json 2>/dev/null || echo 0)
             gh pr comment ${{ github.event.pull_request.number }} --body "## E2E Test Results
-            | 통과 | 실패 |
-            |------|------|
-            | ${PASSED} | ${FAILED} |
+          | 통과 | 실패 |
+          |------|------|
+          | ${PASSED} | ${FAILED} |
 
-            $([ "$FAILED" -gt 0 ] && echo '스크린샷/트레이스: `e2e-results/artifacts/`' || echo '모든 테스트 통과')
+          $([ "$FAILED" -gt 0 ] && echo '스크린샷/트레이스: \`e2e-results/artifacts/\`' || echo '모든 테스트 통과')
 
-            *Auto-generated by sdd-e2e*"
+          *Auto-generated by sdd-e2e*"
           fi
+
+      - name: Trigger sdd-fix on failure
+        if: failure() && steps.check.outputs.has_test_plan == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run sdd-fix.yml \
+            -f pr_number=${{ github.event.pull_request.number }}
 ```
 
 **동작 정의**:
 - PR에 `## Test plan` 없으면 스킵
-- Claude가 test plan → Playwright 코드 생성
+- Claude가 test plan → Playwright 코드 생성 (안정적 로케이터만 사용)
 - Docker Compose로 전체 환경 기동 + 테스트 실행
 - 결과를 PR 코멘트로 보고
+- 실패 시 `sdd-fix.yml` workflow_dispatch로 자동 수정 트리거
 
 **엣지 케이스**:
-- Test plan 없는 PR: 스킵 (코멘트 없음)
-- Docker 빌드 실패: run-e2e.sh가 비정상 종료 → GitHub Actions failure
-- 테스트 전체 실패: results.json 파싱 실패 시 fallback 메시지
-
-**sdd-fix 연동**: 실패 시 sdd-fix가 `synchronize` 이벤트로 자동 트리거되어 수정 → 재실행 루프 형성
+- Test plan 없는 PR: 스킵
+- Docker 빌드 실패: run-e2e.sh 비정상 종료 → failure → sdd-fix 트리거
+- sdd-fix 무한 루프: sdd-fix.yml 자체에 3회 제한이 있음
 
 **Out of Scope**: 수동 재실행 UI, 테스트 선택 실행, 병렬 PR 동시 실행 격리
 
@@ -386,7 +398,7 @@ jobs:
 
 ### 7. Playwright baseURL 설정
 
-**구현 방법**: `playwright.e2e.config.ts`에서 환경변수 우선 사용하도록 수정.
+**구현 방법**: `playwright.e2e.config.ts`에서 환경변수 우선 사용.
 
 ```typescript
 // 기존
@@ -404,19 +416,42 @@ baseURL: process.env.BASE_URL || "http://localhost:3000"
 ```
 PR opened
   │
-  ├─ sdd-review.yml (코드 리뷰)
+  ├─ sdd-review.yml (코드 리뷰, 병렬)
   │
-  └─ sdd-e2e.yml
+  └─ sdd-e2e.yml (E2E 테스트, 병렬)
        ├─ test plan 감지
        ├─ Claude → Playwright 코드 생성
-       ├─ docker compose up (DB + MinIO + Backend + Frontend + Playwright)
-       │   ├─ e2e-db: PostgreSQL 기동
-       │   ├─ e2e-minio: MinIO 기동
+       ├─ docker compose up
+       │   ├─ e2e-db: PostgreSQL
+       │   ├─ e2e-minio: MinIO + 버킷 자동 생성
        │   ├─ e2e-backend: migration + seed + API 서버
-       │   ├─ e2e-frontend: Next.js build + serve
+       │   ├─ e2e-frontend: Next.js build + serve (BACKEND_ORIGIN 프록시)
        │   └─ e2e-runner: Playwright 실행
        ├─ 결과 PR 코멘트
-       └─ docker compose down -v
-            │
-            └─ 실패 시 → sdd-fix 트리거 → push → sdd-e2e 재실행
+       ├─ docker compose down -v
+       │
+       └─ 실패 시 → sdd-fix workflow_dispatch → 코드 수정 → push → sdd-e2e 재실행
+
+---
+
+## 설계 리뷰 결과 (난이도: 중 — Gemini 2라운드 + 에이전트 1라운드)
+
+### Gemini 자문 (2라운드)
+- R1: NEXT_PUBLIC_API_URL 문제 지적 → 기존 rewrites 프록시 구조 활용으로 해결
+- R2: Playwright 실행 위치 논의 → A안(Docker 안) 확정, 범용 분리 목표에 부합
+
+### 에이전트 설계 리뷰 결과
+
+#### Round 1
+| 리뷰어 | 판정 | 주요 피드백 | 반영 |
+|--------|------|------------|------|
+| Tech Lead | BLOCKER | `NEXT_PUBLIC_API_URL` 미존재 → `BACKEND_ORIGIN` 사용 | ✅ Dockerfile ARG 제거, compose environment로 변경 |
+| Tech Lead | BLOCKER | MinIO healthcheck `mc ready local` 불가 | ✅ `curl -f .../minio/health/live`로 교체 |
+| Tech Lead | BLOCKER | MinIO 버킷 자동 생성 누락 | ✅ `e2e-minio-init` 컨테이너 추가 |
+| Tech Lead | WARNING | `--no-dev` 빌드 시 import 오류 가능 | ✅ dev 포함 전체 설치로 변경 |
+| Tech Lead | WARNING | sdd-fix 자동 트리거 경로 미구현 | ✅ `gh workflow run sdd-fix.yml` 스텝 추가 |
+| Tech Lead | WARNING | JSON reporter stdout+stderr 혼합 | ✅ `PLAYWRIGHT_JSON_OUTPUT_NAME` 환경변수 + stderr 분리 |
+| Tech Lead | WARNING | `contents: write` 권한 불필요 | ✅ `contents: read`로 축소, `actions: write` 추가 (workflow_dispatch용) |
+| Tech Lead | WARNING | `/docs` healthcheck 비활성화 | ✅ `/api/v1/projects`로 변경 |
+| Tech Lead | WARNING | SQL 마운트 + Python seed 이중 존재 | ✅ SQL 마운트 제거, Python seed만 사용 |
 ```
