@@ -4,20 +4,7 @@
     "description": "2인 씬 이미지 생성 — ControlNet OpenPose로 위치 제어, BREAK로 캐릭터 속성 분리",
     "version": "1.0.0",
     "author": "shorts-producer",
-    "variables": {
-      "{{positive}}": "씬 프롬프트 (BREAK 구조, LoRA 태그 제거됨)",
-      "{{negative}}": "네거티브 프롬프트",
-      "{{checkpoint}}": "체크포인트 파일명",
-      "{{seed}}": "시드",
-      "{{width}}": "이미지 너비 (기본 832)",
-      "{{height}}": "이미지 높이 (기본 1216)",
-      "{{steps}}": "샘플링 스텝 수",
-      "{{cfg}}": "CFG 스케일",
-      "{{sampler_name}}": "ComfyUI 샘플러 이름 (e.g. euler, dpmpp_2m)",
-      "{{scheduler}}": "ComfyUI 스케줄러 (e.g. normal, karras)",
-      "{{pose_image}}": "ComfyUI input 폴더의 포즈 이미지 파일명",
-      "{{controlnet_strength}}": "ControlNet 강도 (기본 0.7)"
-    },
+    "variables": ["positive", "negative", "checkpoint", "seed", "width", "height", "steps", "cfg", "sampler_name", "scheduler", "pose_image", "controlnet_strength"],
     "output_node": "11_save"
   },
   "1_checkpoint": {

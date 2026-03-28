@@ -4,18 +4,7 @@
     "description": "1인 씬 이미지 생성 — 세로형, LoRA 3슬롯 (스타일+캐릭터+추가), DynamicThresholding",
     "version": "1.0.0",
     "author": "shorts-producer",
-    "variables": {
-      "{{positive}}": "씬 프롬프트 (LoRA 태그 제거됨)",
-      "{{negative}}": "네거티브 프롬프트",
-      "{{checkpoint}}": "체크포인트 파일명",
-      "{{seed}}": "시드",
-      "{{width}}": "이미지 너비 (기본 832)",
-      "{{height}}": "이미지 높이 (기본 1216)",
-      "{{steps}}": "샘플링 스텝 수",
-      "{{cfg}}": "CFG 스케일",
-      "{{sampler_name}}": "ComfyUI 샘플러 이름 (e.g. euler, dpmpp_2m)",
-      "{{scheduler}}": "ComfyUI 스케줄러 (e.g. normal, karras)"
-    },
+    "variables": ["positive", "negative", "checkpoint", "seed", "width", "height", "steps", "cfg", "sampler_name", "scheduler"],
     "output_node": "11_save"
   },
   "1_checkpoint": {
