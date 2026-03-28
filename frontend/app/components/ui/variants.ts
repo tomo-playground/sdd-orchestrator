@@ -67,9 +67,17 @@ export const SECONDARY_PANEL_CLASSES = "hidden xl:block sticky top-4 self-start 
 export const STUDIO_2COL_LAYOUT =
   "grid grid-cols-[280px_1fr] gap-0 h-full min-h-[600px] overflow-hidden";
 
+/** 3-column grid: left scene list + center editor + right property panel (Direct tab). */
+export const STUDIO_3COL_LAYOUT =
+  "grid grid-cols-[240px_1fr_300px] gap-0 h-full min-h-[600px] overflow-hidden";
+
 export const LEFT_PANEL_CLASSES =
   "flex flex-col border-r border-zinc-200 bg-zinc-50/50 overflow-y-auto scrollbar-hide";
 export const CENTER_PANEL_CLASSES = "flex flex-col overflow-hidden";
+
+/** Right property panel container. */
+export const RIGHT_PANEL_CLASSES =
+  "flex flex-col border-l border-zinc-200 bg-zinc-50/50 overflow-y-auto scrollbar-hide";
 
 /** Publish tab: settings (left) + preview/output (right). */
 export const PUBLISH_2COL_LAYOUT = "grid grid-cols-1 gap-6 md:grid-cols-[1fr_380px] md:items-start";

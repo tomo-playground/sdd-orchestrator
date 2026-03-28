@@ -65,6 +65,11 @@ export interface UIState {
   // Preferences
   showAdvancedSettings: boolean;
   toggleAdvancedSettings: () => void;
+
+  // 3-panel layout feature flag (Direct tab)
+  use3PanelLayout: boolean;
+  toggle3PanelLayout: () => void;
+
   set: (updates: Partial<UIState>) => void;
   setActiveTab: (tab: StudioTab) => void;
   showToast: (message: string, type: "success" | "error" | "warning") => void;
@@ -80,6 +85,7 @@ const initialState: Omit<
   | "dismissToast"
   | "resetUI"
   | "toggleAdvancedSettings"
+  | "toggle3PanelLayout"
   | "setPendingAutoRun"
   | "openGroupConfig"
 > = {
@@ -96,6 +102,7 @@ const initialState: Omit<
   setupWizardInitialStep: 1 as 1 | 2,
   configGroupId: null,
   isNewStoryboardMode: false,
+  use3PanelLayout: false,
   isAutoRunning: false,
   autoSaveFailed: false,
   pendingAutoRun: false,
@@ -107,6 +114,7 @@ export const useUIStore = create<UIState>((set) => ({
   set: (updates) => set((state) => ({ ...state, ...updates })),
   toggleAdvancedSettings: () =>
     set((state) => ({ showAdvancedSettings: !state.showAdvancedSettings })),
+  toggle3PanelLayout: () => set((state) => ({ use3PanelLayout: !state.use3PanelLayout })),
   setPendingAutoRun: (v) => set({ pendingAutoRun: v }),
   setActiveTab: (tab) => {
     set({ activeTab: tab });

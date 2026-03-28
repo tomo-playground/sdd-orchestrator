@@ -12,9 +12,11 @@ import ScenePropertyPanel from "./ScenePropertyPanel";
 
 type SceneCardProps = {
   scene: Scene;
+  /** When true (3-panel mode), hides Tier 2~4 sections — rendered in the right panel instead. */
+  compact?: boolean;
 };
 
-export default function SceneCard({ scene }: SceneCardProps) {
+export default function SceneCard({ scene, compact = false }: SceneCardProps) {
   const { data, callbacks } = useSceneContext();
 
   const [geminiEditOpen, setGeminiEditOpen] = useState(false);
@@ -59,8 +61,8 @@ export default function SceneCard({ scene }: SceneCardProps) {
         </div>
       </div>
 
-      {/* ── Tier 2~4: Property Panel (Customize + Advanced) ── */}
-      <ScenePropertyPanel />
+      {/* ── Tier 2~4: Property Panel (Customize + Advanced) — hidden in 3-panel mode ── */}
+      {!compact && <ScenePropertyPanel />}
 
       {/* Gemini Modals */}
       <SceneGeminiModals

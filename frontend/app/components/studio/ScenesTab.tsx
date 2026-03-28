@@ -14,9 +14,16 @@ import { useTags } from "../../hooks";
 import SceneListPanel from "../storyboard/SceneListPanel";
 import SceneInsightsContent from "./SceneInsightsContent";
 import SceneCard from "../storyboard/SceneCard";
+import ScenePropertyPanel from "../storyboard/ScenePropertyPanel";
 import { SceneProvider } from "../storyboard/SceneContext";
 import SceneNavHeader from "./SceneNavHeader";
-import { STUDIO_2COL_LAYOUT, LEFT_PANEL_CLASSES, CENTER_PANEL_CLASSES } from "../ui/variants";
+import {
+  STUDIO_2COL_LAYOUT,
+  STUDIO_3COL_LAYOUT,
+  LEFT_PANEL_CLASSES,
+  CENTER_PANEL_CLASSES,
+  RIGHT_PANEL_CLASSES,
+} from "../ui/variants";
 import { buildNegativePrompt, buildScenePrompt } from "../../store/actions/promptActions";
 import {
   resolveCharacterIdForSpeaker,
@@ -117,6 +124,7 @@ export default function ScenesTab() {
     characterBLoras
   );
   const setActiveTab = useUIStore((s) => s.setActiveTab);
+  const use3Panel = useUIStore((s) => s.use3PanelLayout);
   const showAdvancedSettings = useUIStore((s) => s.showAdvancedSettings);
   const toggleAdvancedSettings = useUIStore((s) => s.toggleAdvancedSettings);
   const currentStyleProfile = useRenderStore((s) => s.currentStyleProfile);
@@ -181,6 +189,61 @@ export default function ScenesTab() {
     }
   };
 
+  // SceneProvider context value — shared between center card and right property panel
+  const sceneContextValue = currentScene
+    ? {
+        data: {
+          scene: currentScene,
+          imageValidationResult: currentValidationResult,
+          qualityScore: currentQualityScore,
+          loraTriggerWords,
+          characterLoras: resolvedCharacterLoras,
+          tagsByGroup,
+          sceneTagGroups,
+          isExclusiveGroup,
+          selectedCharacterId: resolvedCharacterId,
+          basePromptA: resolvedBasePrompt,
+          structure,
+          characterAName: selectedCharacterName,
+          characterBName: selectedCharacterBName,
+          selectedCharacterBId,
+          genProgress: imageGenProgress[currentScene.client_id] ?? null,
+          sceneMenuOpen: sceneMenuOpen === currentScene.client_id,
+          sceneIndex: currentSceneIndex,
+          isMarkingStatus: markingStatusSceneId === currentScene.client_id,
+          ttsState: ttsPreview.previewStates.get(currentScene.client_id),
+        },
+        callbacks: {
+          onUpdateScene: handleUpdateScene,
+          onRemoveScene: () => handleRemoveScene(currentScene.client_id),
+          onSpeakerChange: (speaker: string) => handleSpeakerChange(currentScene, speaker),
+          onImageUpload: (file: File | undefined) =>
+            handleImageUpload(currentScene.client_id, file),
+          onGenerateImage: () => handleGenerateImage(currentScene),
+          onApplyMissingTags: (tags: string[]) => applyMissingImageTags(currentScene, tags),
+          onImagePreview: (src: string | null, candidates?: string[]) =>
+            useUIStore.getState().set({
+              imagePreviewSrc: src,
+              imagePreviewCandidates: candidates || null,
+            }),
+          onMarkSuccess: () => handleMarkSuccess(currentScene),
+          onMarkFail: () => handleMarkFail(currentScene),
+          buildNegativePrompt,
+          buildScenePrompt,
+          showToast,
+          onSceneMenuToggle: () =>
+            sbSet({
+              sceneMenuOpen:
+                sceneMenuOpen === currentScene.client_id ? null : currentScene.client_id,
+            }),
+          onSceneMenuClose: () => sbSet({ sceneMenuOpen: null }),
+          onTTSPreview: () => ttsPreview.previewScene(currentScene),
+          onTTSRegenerate: () => ttsPreview.regenerate(currentScene),
+          audioPlayer: ttsPreview.audioPlayer,
+        },
+      }
+    : null;
+
   if (scenes.length === 0) {
     return (
       <EmptyState
@@ -198,7 +261,12 @@ export default function ScenesTab() {
 
   return (
     <>
-      <div className={STUDIO_2COL_LAYOUT}>
+      {/* Mobile gate: show notice below lg (1024px) */}
+      <div className="flex h-full items-center justify-center lg:hidden">
+        <p className="text-sm text-zinc-500">데스크톱에서 이용하세요</p>
+      </div>
+
+      <div className={`hidden lg:grid ${use3Panel ? STUDIO_3COL_LAYOUT : STUDIO_2COL_LAYOUT}`}>
         {/* ── Left Panel: Scene List + Insights ── */}
         <aside className={LEFT_PANEL_CLASSES}>
           <SceneListPanel
@@ -300,66 +368,26 @@ export default function ScenesTab() {
           {currentScene && (
             <div className="scrollbar-hide flex-1 overflow-y-auto px-8 py-8">
               <div className="mx-auto w-full max-w-5xl">
-                <SceneProvider
-                  value={{
-                    data: {
-                      scene: currentScene,
-                      imageValidationResult: currentValidationResult,
-                      qualityScore: currentQualityScore,
-                      loraTriggerWords,
-                      characterLoras: resolvedCharacterLoras,
-                      tagsByGroup,
-                      sceneTagGroups,
-                      isExclusiveGroup,
-                      selectedCharacterId: resolvedCharacterId,
-                      basePromptA: resolvedBasePrompt,
-                      structure,
-                      characterAName: selectedCharacterName,
-                      characterBName: selectedCharacterBName,
-                      selectedCharacterBId,
-                      genProgress: imageGenProgress[currentScene.client_id] ?? null,
-                      sceneMenuOpen: sceneMenuOpen === currentScene.client_id,
-                      sceneIndex: currentSceneIndex,
-                      isMarkingStatus: markingStatusSceneId === currentScene.client_id,
-                      ttsState: ttsPreview.previewStates.get(currentScene.client_id),
-                    },
-                    callbacks: {
-                      onUpdateScene: handleUpdateScene,
-                      onRemoveScene: () => handleRemoveScene(currentScene.client_id),
-                      onSpeakerChange: (speaker) => handleSpeakerChange(currentScene, speaker),
-                      onImageUpload: (file) => handleImageUpload(currentScene.client_id, file),
-                      onGenerateImage: () => handleGenerateImage(currentScene),
-                      onApplyMissingTags: (tags) => applyMissingImageTags(currentScene, tags),
-                      onImagePreview: (src, candidates) =>
-                        useUIStore.getState().set({
-                          imagePreviewSrc: src,
-                          imagePreviewCandidates: candidates || null,
-                        }),
-                      onMarkSuccess: () => handleMarkSuccess(currentScene),
-                      onMarkFail: () => handleMarkFail(currentScene),
-                      buildNegativePrompt,
-                      buildScenePrompt,
-                      showToast,
-                      onSceneMenuToggle: () =>
-                        sbSet({
-                          sceneMenuOpen:
-                            sceneMenuOpen === currentScene.client_id
-                              ? null
-                              : currentScene.client_id,
-                        }),
-                      onSceneMenuClose: () => sbSet({ sceneMenuOpen: null }),
-                      onTTSPreview: () => ttsPreview.previewScene(currentScene),
-                      onTTSRegenerate: () => ttsPreview.regenerate(currentScene),
-                      audioPlayer: ttsPreview.audioPlayer,
-                    },
-                  }}
-                >
-                  <SceneCard key={currentScene.client_id} scene={currentScene} />
+                <SceneProvider value={sceneContextValue!}>
+                  <SceneCard
+                    key={currentScene.client_id}
+                    scene={currentScene}
+                    compact={use3Panel}
+                  />
                 </SceneProvider>
               </div>
             </div>
           )}
         </main>
+
+        {/* ── Right Panel: Property Panel (3-panel mode only) ── */}
+        {use3Panel && currentScene && (
+          <aside className={RIGHT_PANEL_CLASSES}>
+            <SceneProvider value={sceneContextValue!}>
+              <ScenePropertyPanel />
+            </SceneProvider>
+          </aside>
+        )}
       </div>
       <ConfirmDialog {...dialogProps} />
     </>

@@ -100,6 +100,26 @@ describe("useUIStore", () => {
     });
   });
 
+  describe("toggle3PanelLayout", () => {
+    it("defaults to false", () => {
+      expect(useUIStore.getState().use3PanelLayout).toBe(false);
+    });
+
+    it("toggles use3PanelLayout", () => {
+      useUIStore.getState().toggle3PanelLayout();
+      expect(useUIStore.getState().use3PanelLayout).toBe(true);
+      useUIStore.getState().toggle3PanelLayout();
+      expect(useUIStore.getState().use3PanelLayout).toBe(false);
+    });
+
+    it("resets to false on resetUI()", () => {
+      useUIStore.getState().toggle3PanelLayout();
+      expect(useUIStore.getState().use3PanelLayout).toBe(true);
+      useUIStore.getState().resetUI();
+      expect(useUIStore.getState().use3PanelLayout).toBe(false);
+    });
+  });
+
   describe("setPendingAutoRun", () => {
     it("sets pendingAutoRun value", () => {
       useUIStore.getState().setPendingAutoRun(true);
