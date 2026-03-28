@@ -56,6 +56,7 @@ class OrchestratorDaemon:
 
         while not self.stop_event.is_set():
             self.cycle += 1
+            await self._heal_inconsistent_states()
             await self._run_cycle()
             await self._flush_postmerge_notifications()
             await self._maybe_send_daily_report()
@@ -258,6 +259,82 @@ class OrchestratorDaemon:
                     running_ids = {r["task_id"] for r in running}
         except Exception:
             logger.exception("Auto-launch check failed")
+
+    async def _heal_inconsistent_states(self) -> None:
+        """매 사이클 상태 정합성 자동 보정. 수동 개입 불필요."""
+        import subprocess
+
+        from orchestrator.config import PROJECT_ROOT, TASKS_CURRENT_DIR
+        from orchestrator.tools.worktree import _has_open_pr, _update_spec_status
+
+        if not TASKS_CURRENT_DIR.exists():
+            return
+
+        running_pids = {r["task_id"]: r["pid"] for r in self.state.get_running_runs()}
+        healed = 0
+
+        for entry in TASKS_CURRENT_DIR.iterdir():
+            if not entry.is_dir() or not entry.name.startswith("SP-"):
+                continue
+            spec = entry / "spec.md"
+            if not spec.exists():
+                continue
+
+            task_id = entry.name.split("_")[0]
+            status = "unknown"
+            for line in spec.read_text(errors="ignore").split("\n"):
+                if line.startswith("status:"):
+                    status = line.split(":", 1)[1].strip()
+                    break
+
+            if status != "running":
+                continue
+
+            # running인데 실제 프로세스가 없고 open PR도 없으면 → approved 복원
+            pid = running_pids.get(task_id)
+            pid_alive = pid and os.path.exists(f"/proc/{pid}")
+
+            if pid_alive:
+                continue  # 정상 실행 중
+
+            has_pr = _has_open_pr(task_id)
+            if has_pr:
+                continue  # PR 있으면 running 유지 (리뷰 대기)
+
+            # 좀비 감지 → 자동 복원
+            _update_spec_status(task_id, "approved")
+            logger.warning("🔧 [Heal] %s: running → approved (no alive PID, no open PR)", task_id)
+            healed += 1
+
+        if healed:
+            # 자동 커밋 (main에서만)
+            try:
+                subprocess.run(
+                    ["git", "add", ".claude/tasks/current/"],
+                    cwd=str(PROJECT_ROOT),
+                    capture_output=True,
+                    timeout=10,
+                )
+                subprocess.run(
+                    [
+                        "git",
+                        "commit",
+                        "-m",
+                        f"chore: 상태 자동 보정 — {healed}건 running → approved",
+                    ],
+                    cwd=str(PROJECT_ROOT),
+                    capture_output=True,
+                    timeout=10,
+                )
+                subprocess.run(
+                    ["git", "push"],
+                    cwd=str(PROJECT_ROOT),
+                    capture_output=True,
+                    timeout=15,
+                )
+                logger.info("🔧 [Heal] %d건 자동 보정 커밋+푸시 완료", healed)
+            except Exception:
+                logger.warning("🔧 [Heal] 커밋/푸시 실패", exc_info=True)
 
     async def _flush_postmerge_notifications(self) -> None:
         """Send post-merge DoD notifications from sdd-sync to Slack."""
