@@ -1,5 +1,10 @@
 # SP-111: Docker E2E 테스트 자동화 파이프라인
 
+status: running
+approved_at: 2026-03-28
+
+> 상세 설계: [design.md](./design.md) 참조
+
 ## 배경
 PR에 test plan이 있어도 수동으로 검증하고 있음. PR별 격리된 Docker 환경에서 E2E 테스트를 자동 실행하여, 코드 리뷰 + E2E 검증 + 자동 수정까지 사람 개입 없이 돌아가는 파이프라인 구축.
 
