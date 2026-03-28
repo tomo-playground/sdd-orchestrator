@@ -144,7 +144,7 @@ def _apply_environment(req: SceneGenerateRequest, ctx: GenerationContext, args: 
     # Classify indoor/outdoor from environment tags for weight adjustment
     env_tags = _extract_env_tags(req, db)
     location_type = classify_indoor_outdoor(env_tags)
-    _apply_environment_pinning(req, args, ctx.warnings, db, location_type=location_type)
+    _apply_environment_pinning(req, args, ctx.warnings, db, location_type=location_type, ctx=ctx)
 
 
 def _apply_ip_adapter(ctx: GenerationContext, strategy, args: list, db) -> None:
@@ -185,6 +185,45 @@ def _apply_ip_adapter(ctx: GenerationContext, strategy, args: list, db) -> None:
         logger.warning("🧑 [IP-Adapter] Skipped - %s", str(e))
 
 
+# ── Cinematic tag suppression (AdaIN conflict prevention) ─────────────
+
+
+def _canonical_prompt_tag(token: str) -> str:
+    """Extract base tag from weighted syntax like (bokeh:1.2)."""
+    t = token.strip()
+    if t.startswith("(") and t.endswith(")"):
+        t = t[1:-1].strip()
+    head, sep, tail = t.rpartition(":")
+    if sep:
+        try:
+            float(tail)
+            t = head.strip()
+        except ValueError:
+            pass
+    return t
+
+
+def _suppress_cinematic_for_adain(ctx: GenerationContext) -> list[str]:
+    """Reference AdaIN 활성 시 충돌 시네마틱 태그를 ctx.prompt에서 제거.
+
+    Returns:
+        제거된 태그 리스트 (빈 리스트 = 변경 없음).
+    """
+    from config import REFERENCE_ADAIN_CONFLICTING_TAGS  # noqa: PLC0415
+
+    tokens = split_prompt_tokens(ctx.prompt)
+    removed: list[str] = []
+    filtered: list[str] = []
+    for token in tokens:
+        if _canonical_prompt_tag(token) in REFERENCE_ADAIN_CONFLICTING_TAGS:
+            removed.append(token)
+        else:
+            filtered.append(token)
+    if removed:
+        ctx.prompt = ", ".join(filtered)
+    return removed
+
+
 # ── Environment Pinning helpers (nesting 7→3) ────────────────────────
 
 
@@ -194,6 +233,7 @@ def _apply_environment_pinning(
     warnings: list[str],
     db,
     location_type: str | None = None,
+    ctx: GenerationContext | None = None,
 ) -> None:
     """Handle environment reference pinning with conflict detection."""
     env_asset = _load_env_asset(request.environment_reference_id, db)
@@ -207,7 +247,14 @@ def _apply_environment_pinning(
         warnings.append(msg)
         return
 
-    _apply_reference_adain_from_asset(env_asset, request, controlnet_args_list, location_type)
+    # AdaIN 적용 먼저, 성공 시에만 태그 억제
+    applied = _apply_reference_adain_from_asset(env_asset, request, controlnet_args_list, location_type)
+    if applied and ctx:
+        removed = _suppress_cinematic_for_adain(ctx)
+        if removed:
+            msg = f"⚠️ AdaIN 충돌 방지: 시네마틱 태그 억제됨 — {', '.join(removed)}"
+            logger.warning("[AdaIN Cinematic Filter] Stripped: %s", removed)
+            warnings.append(msg)
 
 
 def _load_env_asset(env_ref_id: int, db):
@@ -224,6 +271,7 @@ def _detect_env_conflict(env_asset, request: SceneGenerateRequest, db) -> str | 
     """Detect location conflict between reference scene and current prompt.
 
     Returns conflict reason string if conflict detected, None otherwise.
+    Also logs cinematic tag overlap with AdaIN conflicting tags (informational).
     """
     if env_asset.owner_type != "scene":
         return None
@@ -234,7 +282,25 @@ def _detect_env_conflict(env_asset, request: SceneGenerateRequest, db) -> str | 
     if not ref_scene:
         return None
 
+    # P2: cinematic 충돌 감지 (정보성 — AdaIN 적용 자체는 중단하지 않음)
+    _detect_cinematic_conflict(request)
+
     return _check_tag_conflict(ref_scene, request, db)
+
+
+def _detect_cinematic_conflict(request: SceneGenerateRequest) -> None:
+    """Log cinematic tags that conflict with Reference AdaIN (informational)."""
+    from config import REFERENCE_ADAIN_CONFLICTING_TAGS  # noqa: PLC0415
+
+    context_tags = getattr(request, "context_tags", None)
+    if not context_tags or not isinstance(context_tags, dict):
+        return
+    cinematic = context_tags.get("cinematic", [])
+    if not cinematic:
+        return
+    overlap = set(cinematic) & REFERENCE_ADAIN_CONFLICTING_TAGS
+    if overlap:
+        logger.info("[AdaIN Conflict Detect] cinematic tags overlap with AdaIN: %s", list(overlap))
 
 
 def _check_tag_conflict(ref_scene, request: SceneGenerateRequest, db) -> str | None:
@@ -286,10 +352,13 @@ def _extract_env_tags(req: SceneGenerateRequest, db) -> list[str]:
 
 def _apply_reference_adain_from_asset(
     env_asset, request: SceneGenerateRequest, controlnet_args_list: list, location_type: str | None = None
-) -> None:
+) -> bool:
     """Apply Reference AdaIN from environment asset for atmosphere/color transfer.
 
-    Weight varies by location type: indoor=0.40, outdoor=0.25, default=0.35.
+    Weight varies by location type: indoor=0.30, outdoor=0.25, default=0.35.
+
+    Returns:
+        True if AdaIN was applied successfully, False otherwise.
     """
     import base64
     import os
@@ -302,7 +371,7 @@ def _apply_reference_adain_from_asset(
     )
 
     if not os.path.exists(env_asset.local_path):
-        return
+        return False
 
     weight = REFERENCE_ADAIN_WEIGHT
     if location_type == "indoor":
@@ -336,8 +405,10 @@ def _apply_reference_adain_from_asset(
             location_type or "default",
             REFERENCE_ADAIN_GUIDANCE_END,
         )
+        return True
     except Exception as e:
         logger.error("❌ [Environment Reference AdaIN] Failed to load asset: %s", e)
+        return False
 
 
 # ── Character Actions pose hint ───────────────────────────────────

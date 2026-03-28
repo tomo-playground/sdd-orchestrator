@@ -129,6 +129,7 @@ class ScriptState(TypedDict, total=False):
     character_id: int | None
     character_b_id: int | None
     group_id: int | None
+    storyboard_id: int | None  # Draft storyboard ID (environment reference 조회용)
     references: list[str] | None  # 소재 URL/텍스트 목록
 
     # Intake 결과 (Guided 모드 — 의도 파악)

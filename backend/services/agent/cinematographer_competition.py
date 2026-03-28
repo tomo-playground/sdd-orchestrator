@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 
+from config import REFERENCE_ADAIN_CONFLICTING_TAGS
 from config import pipeline_logger as logger
 from services.agent.state import ScriptState
 from services.agent.tools.base import call_with_tools
@@ -85,12 +86,21 @@ _TECHNIQUE_TAGS = frozenset(
 )
 
 
-def _extract_scene_features(scenes: list[dict]) -> tuple[set[str], list[str], int, int, set[str]]:
+def _extract_scene_features(
+    scenes: list[dict], has_environment_reference: bool = False
+) -> tuple[set[str], list[str], int, int, set[str]]:
     """씬 리스트에서 스코어링에 필요한 피처를 추출한다.
+
+    has_environment_reference=True 시 AdaIN 충돌 태그를 technique 집합에서 제외한다.
+    충돌 태그는 P0 suppression으로 제거되므로 scoring 가중치에 포함하면 안 된다.
 
     Returns:
         (all_tags, cameras, lat_count, lighting_scenes, all_techniques)
     """
+    effective_techniques = (
+        _TECHNIQUE_TAGS - REFERENCE_ADAIN_CONFLICTING_TAGS if has_environment_reference else _TECHNIQUE_TAGS
+    )
+
     all_tags: set[str] = set()
     cameras: list[str] = []
     lat_count = 0
@@ -107,7 +117,7 @@ def _extract_scene_features(scenes: list[dict]) -> tuple[set[str], list[str], in
             lat_count += 1
         if tags & _LIGHTING_TAGS:
             lighting_scenes += 1
-        all_techniques.update(tags & _TECHNIQUE_TAGS)
+        all_techniques.update(tags & effective_techniques)
 
     return all_tags, cameras, lat_count, lighting_scenes, all_techniques
 
@@ -138,17 +148,19 @@ def _calc_weighted_score(
     )
 
 
-def score_cinematography(scenes: list[dict]) -> float:
+def score_cinematography(scenes: list[dict], has_environment_reference: bool = False) -> float:
     """씬 리스트에 대한 시네마토그래피 품질 점수를 계산한다 (0.0-1.0).
 
     6차원 가중 스코어: tag_diversity(0.20), camera_variety(0.20),
     gaze_balance(0.15), lighting_richness(0.20), technique_variety(0.15),
     narrative_flow(0.10).
+
+    has_environment_reference=True 시 AdaIN 충돌 태그를 technique 집합에서 제외한다.
     """
     if not scenes:
         return 0.0
 
-    features = _extract_scene_features(scenes)
+    features = _extract_scene_features(scenes, has_environment_reference)
     return round(_calc_weighted_score(len(scenes), *features), 3)
 
 
@@ -174,7 +186,9 @@ _JSON_OUTPUT_INSTRUCTION = """
 """
 
 
-def _build_lens_prompt(lens: dict, base_prompt: str, director_feedback: str | None) -> str:
+def _build_lens_prompt(
+    lens: dict, base_prompt: str, director_feedback: str | None, has_environment_reference: bool = False
+) -> str:
     """Lens별 프롬프트를 조립한다."""
     parts = [
         "당신은 쇼츠 영상의 Cinematographer Agent입니다.",
@@ -191,6 +205,10 @@ def _build_lens_prompt(lens: dict, base_prompt: str, director_feedback: str | No
     ]
     if director_feedback:
         parts.append(f"\n[Director 피드백]\n{director_feedback}")
+    if has_environment_reference:
+        from services.agent.nodes._cine_atmosphere import _ADAIN_WARNING  # noqa: PLC0415
+
+        parts.append(f"\n{_ADAIN_WARNING}")
     parts.append(_JSON_OUTPUT_INSTRUCTION)
     return "\n".join(parts)
 
@@ -209,13 +227,14 @@ async def _run_single_lens(
     db_session: object,
     base_prompt: str,
     director_feedback: str | None,
+    has_environment_reference: bool = False,
 ) -> dict:
     """단일 Lens로 Cinematographer 실행. 파싱 실패 시 도구 없이 직접 재시도."""
     from services.agent.nodes.cinematographer import _parse_scenes  # noqa: PLC0415
 
     tools = get_cinematographer_tools()
     executors = create_cinematographer_executors(db_session, state)
-    prompt = _build_lens_prompt(lens, base_prompt, director_feedback)
+    prompt = _build_lens_prompt(lens, base_prompt, director_feedback, has_environment_reference)
     role = lens["role"]
 
     max_attempts = 2
@@ -253,7 +272,7 @@ async def _run_single_lens(
             scenes = _parse_scenes(response)
             if scenes is not None:
                 qc = validate_visuals(scenes)
-                score = score_cinematography(scenes)
+                score = score_cinematography(scenes, has_environment_reference)
                 logger.info(
                     "[CinemaCompetition] %s: %d scenes, score=%.3f, qc_ok=%s",
                     role,
@@ -318,10 +337,11 @@ async def run_cinematographer_competition(
     db_session: object,
     base_prompt: str,
     director_feedback: str | None,
+    has_environment_reference: bool = False,
 ) -> dict:
     """3 Lens를 병렬 실행하고 최고점 결과를 반환한다."""
     tasks = [
-        _run_single_lens(lens, state, db_session, base_prompt, director_feedback)
+        _run_single_lens(lens, state, db_session, base_prompt, director_feedback, has_environment_reference)
         for lens in CINEMATOGRAPHER_PERSPECTIVES
     ]
     results = await asyncio.gather(*tasks, return_exceptions=True)

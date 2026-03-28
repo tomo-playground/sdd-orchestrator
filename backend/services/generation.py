@@ -252,6 +252,8 @@ async def _generate_scene_image_with_db(request: SceneGenerateRequest, db) -> di
     payload = _build_payload(ctx)
 
     _apply_controlnet(payload, ctx, db)
+    # ControlNet 필터가 ctx.prompt를 수정했을 수 있으므로 payload 재동기화
+    payload["prompt"] = ctx.prompt
 
     result = await _call_sd_api(payload, ctx)
     result["used_prompt"] = ctx.prompt

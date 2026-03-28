@@ -726,9 +726,21 @@ BG_QUALITY_OVERRIDES: dict[int, str] = {
 # Reference AdaIN — environment atmosphere transfer (replaces Canny for BG pinning)
 # Transfers color statistics (mean/variance) only, no spatial structure
 REFERENCE_ADAIN_WEIGHT = float(os.getenv("REFERENCE_ADAIN_WEIGHT", "0.35"))
-REFERENCE_ADAIN_WEIGHT_INDOOR = float(os.getenv("REFERENCE_ADAIN_WEIGHT_INDOOR", "0.40"))
+REFERENCE_ADAIN_WEIGHT_INDOOR = float(os.getenv("REFERENCE_ADAIN_WEIGHT_INDOOR", "0.30"))
 REFERENCE_ADAIN_WEIGHT_OUTDOOR = float(os.getenv("REFERENCE_ADAIN_WEIGHT_OUTDOOR", "0.25"))
 REFERENCE_ADAIN_GUIDANCE_END = float(os.getenv("REFERENCE_ADAIN_GUIDANCE_END", "0.5"))
+
+# Reference AdaIN 충돌 시네마틱 태그 — AdaIN과 결합 시 형체 붕괴/색감 왜곡 유발
+REFERENCE_ADAIN_CONFLICTING_TAGS: frozenset[str] = frozenset(
+    {
+        "depth_of_field",
+        "shallow_depth_of_field",
+        "bokeh",
+        "blurry_background",
+        "lens_flare",
+        "chromatic_aberration",
+    }
+)
 
 # Default pose/gaze/expression/mood/camera/emotion for ControlNet when Gemini omits context_tags
 DEFAULT_POSE_TAG = "standing"
@@ -806,7 +818,9 @@ DEFAULT_CONTROLNET_WEIGHT = 0.8
 DEFAULT_USE_IP_ADAPTER = False
 DEFAULT_IP_ADAPTER_WEIGHT = 0.35  # IP-Adapter 기본 weight (ip_adapter_weight_b 기본값으로도 사용)
 IP_ADAPTER_AUTO_ENABLE = False  # True: 레퍼런스 이미지 존재 시 자동 활성화, False: 명시적 요청만
-ENVIRONMENT_REFERENCE_ENABLED = False  # True: background_id → Reference AdaIN 적용, False: 프롬프트 태그만
+ENVIRONMENT_REFERENCE_ENABLED = (
+    os.getenv("ENVIRONMENT_REFERENCE_ENABLED", "false").lower() == "true"
+)  # True: background_id → Reference AdaIN 적용, False: 프롬프트 태그만
 DEFAULT_REFERENCE_ONLY_WEIGHT = 0.5
 DEFAULT_ENVIRONMENT_REFERENCE_WEIGHT = 0.3
 MIN_IP_ADAPTER_WEIGHT_NO_LORA = 0.5  # LoRA 없는 캐릭터의 최소 IP-Adapter weight

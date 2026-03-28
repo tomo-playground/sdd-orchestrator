@@ -320,3 +320,85 @@ async def test_call_sub_agent_passes_metadata_to_retry():
 
     _, retry_kwargs = mock_call.call_args
     assert retry_kwargs.get("metadata") == {"template": "tmpl", "retry": True}
+
+
+# ── Atmosphere Agent AdaIN 힌트 테스트 (SP-105 P1-1) ──────────
+
+
+class TestAtmosphereAdainHint:
+    """Atmosphere _build_prompt에 AdaIN 충돌 방지 힌트가 조건부 삽입되는지 테스트."""
+
+    def test_prompt_includes_adain_hint_when_reference_active(self):
+        """has_environment_reference=True → AdaIN 경고가 프롬프트에 포함된다."""
+        from services.agent.nodes._cine_atmosphere import _build_prompt
+
+        prompt = _build_prompt(
+            "[]",
+            {"scenes": []},
+            {"scenes": []},
+            "",
+            "",
+            has_environment_reference=True,
+        )
+        assert "Reference AdaIN" in prompt
+        assert "depth_of_field" in prompt
+
+    def test_prompt_excludes_adain_hint_when_no_reference(self):
+        """has_environment_reference=False → AdaIN 경고가 프롬프트에 포함되지 않는다."""
+        from services.agent.nodes._cine_atmosphere import _build_prompt
+
+        prompt = _build_prompt(
+            "[]",
+            {"scenes": []},
+            {"scenes": []},
+            "",
+            "",
+            has_environment_reference=False,
+        )
+        assert "Reference AdaIN" not in prompt
+
+    def test_prompt_default_no_hint(self):
+        """has_environment_reference 미전달 시 (기본 False) → 힌트 없음."""
+        from services.agent.nodes._cine_atmosphere import _build_prompt
+
+        prompt = _build_prompt("[]", {"scenes": []}, {"scenes": []}, "", "")
+        assert "Reference AdaIN" not in prompt
+
+
+# ── _has_env_reference 단위 테스트 (SP-105) ──────────────────────
+
+
+class TestHasEnvReference:
+    """_has_env_reference DB 조회 로직 단위 테스트."""
+
+    def test_returns_false_when_no_storyboard_id(self):
+        """storyboard_id=None → 즉시 False 반환 (DB 조회 없음)."""
+        from services.agent.nodes.cinematographer import _has_env_reference
+
+        db = MagicMock()
+        assert _has_env_reference(None, db) is False
+        db.query.assert_not_called()
+
+    def test_returns_true_when_scene_has_env_reference(self):
+        """environment_reference_id가 있는 씬이 하나라도 있으면 True."""
+        from services.agent.nodes.cinematographer import _has_env_reference
+
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = MagicMock()
+        assert _has_env_reference(42, db) is True
+
+    def test_returns_false_when_no_scene_has_env_reference(self):
+        """모든 씬에 environment_reference_id=None이면 False."""
+        from services.agent.nodes.cinematographer import _has_env_reference
+
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = None
+        assert _has_env_reference(42, db) is False
+
+    def test_returns_false_and_logs_on_db_exception(self):
+        """DB 예외 발생 시 False 반환 (예외가 전파되지 않아야 함)."""
+        from services.agent.nodes.cinematographer import _has_env_reference
+
+        db = MagicMock()
+        db.query.side_effect = Exception("DB 연결 실패")
+        assert _has_env_reference(42, db) is False

@@ -80,6 +80,31 @@ class TestScoreCinematography:
         score = score_cinematography(scenes)
         assert 0.0 <= score <= 1.0
 
+    def test_adain_conflict_tags_excluded_from_scoring(self):
+        """has_environment_reference=True 시 AdaIN 충돌 태그가 technique_variety에 기여하지 않아야 한다.
+
+        _TECHNIQUE_TAGS ∩ REFERENCE_ADAIN_CONFLICTING_TAGS = {depth_of_field, bokeh, lens_flare, chromatic_aberration}.
+        이 태그들만 포함된 씬은 has_environment_reference=True 시 technique_variety=0 이어야 한다.
+        """
+        # _TECHNIQUE_TAGS와 REFERENCE_ADAIN_CONFLICTING_TAGS의 교집합 태그를 명시적으로 사용
+        scenes_with_conflict = [
+            {"image_prompt": "1girl, depth_of_field, bokeh, backlighting", "camera": "close-up"},
+        ]
+        score_adain = score_cinematography(scenes_with_conflict, has_environment_reference=True)
+        score_normal = score_cinematography(scenes_with_conflict, has_environment_reference=False)
+        # AdaIN 활성 시 충돌 태그 제외 → technique_variety 기여분 사라져 점수가 낮아야 함
+        assert score_adain < score_normal
+
+    def test_non_conflict_tags_not_affected_by_adain_flag(self):
+        """has_environment_reference=True 여도 비충돌 technique 태그 점수에는 영향 없다."""
+        scenes = [
+            {"image_prompt": "1girl, silhouette, motion_blur, backlighting", "camera": "close-up"},
+        ]
+        score_adain = score_cinematography(scenes, has_environment_reference=True)
+        score_normal = score_cinematography(scenes, has_environment_reference=False)
+        # silhouette, motion_blur 는 비충돌 태그 — 점수 동일해야 함
+        assert score_adain == score_normal
+
     def test_narrative_flow_monotone_penalty(self):
         """동일 카메라 반복 시 narrative_flow 감점."""
         same_camera = [

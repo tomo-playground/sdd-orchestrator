@@ -429,3 +429,196 @@ class TestGenerationResultControlNet:
         }
         assert result["controlnet_pose"] is None
         assert result["ip_adapter_reference"] is None
+
+
+# ── _suppress_cinematic_for_adain Tests (SP-105 P0) ──────────────────
+
+
+class TestSuppressCinematicForAdain:
+    """Tests for cinematic tag suppression when Reference AdaIN is active."""
+
+    def test_removes_conflicting_tags(self):
+        """Conflicting tags should be removed from ctx.prompt."""
+        from services.generation_controlnet import _suppress_cinematic_for_adain
+
+        ctx = FakeContext(prompt="girl, kitchen, depth_of_field, bokeh, close-up")
+        removed = _suppress_cinematic_for_adain(ctx)
+        assert "depth_of_field" not in ctx.prompt
+        assert "bokeh" not in ctx.prompt
+        assert "close-up" in ctx.prompt
+        assert "girl" in ctx.prompt
+        assert "kitchen" in ctx.prompt
+        assert set(removed) == {"depth_of_field", "bokeh"}
+
+    def test_no_partial_match(self):
+        """Similar but non-matching tags should NOT be removed."""
+        from services.generation_controlnet import _suppress_cinematic_for_adain
+
+        ctx = FakeContext(prompt="girl, field, depth_perception")
+        removed = _suppress_cinematic_for_adain(ctx)
+        assert ctx.prompt == "girl, field, depth_perception"
+        assert len(removed) == 0
+
+    def test_noop_when_no_conflict(self):
+        """When no conflicting tags, prompt should remain unchanged."""
+        from services.generation_controlnet import _suppress_cinematic_for_adain
+
+        ctx = FakeContext(prompt="girl, backlit, light_rays")
+        removed = _suppress_cinematic_for_adain(ctx)
+        assert ctx.prompt == "girl, backlit, light_rays"
+        assert len(removed) == 0
+
+    def test_removes_all_six_conflicting_tags(self):
+        """All known conflicting tags should be removed."""
+        from config import REFERENCE_ADAIN_CONFLICTING_TAGS
+        from services.generation_controlnet import _suppress_cinematic_for_adain
+
+        all_tags = ", ".join(sorted(REFERENCE_ADAIN_CONFLICTING_TAGS))
+        ctx = FakeContext(prompt=f"girl, {all_tags}, smile")
+        removed = _suppress_cinematic_for_adain(ctx)
+        assert ctx.prompt == "girl, smile"
+        assert set(removed) == set(REFERENCE_ADAIN_CONFLICTING_TAGS)
+
+    def test_preserves_prompt_order(self):
+        """Remaining tags should preserve their original order."""
+        from services.generation_controlnet import _suppress_cinematic_for_adain
+
+        ctx = FakeContext(prompt="a, bokeh, b, c")
+        _suppress_cinematic_for_adain(ctx)
+        assert ctx.prompt == "a, b, c"
+
+    def test_removes_weighted_conflicting_tags(self):
+        """Weighted syntax like (bokeh:1.2) should also be removed."""
+        from services.generation_controlnet import _suppress_cinematic_for_adain
+
+        ctx = FakeContext(prompt="girl, (bokeh:1.2), (depth_of_field:1.1), smile")
+        removed = _suppress_cinematic_for_adain(ctx)
+        assert "bokeh" not in ctx.prompt
+        assert "depth_of_field" not in ctx.prompt
+        assert "girl" in ctx.prompt
+        assert "smile" in ctx.prompt
+        assert len(removed) == 2
+
+
+class TestSuppressCinematicWarning:
+    """Tests for warning propagation when cinematic tags are suppressed (SP-105 P0-2)."""
+
+    def test_warning_appended_on_suppression(self):
+        """When tags are suppressed, warning should be added to the list."""
+        from services.generation_controlnet import _suppress_cinematic_for_adain
+
+        ctx = FakeContext(prompt="girl, bokeh, lens_flare")
+        warnings: list[str] = []
+        removed = _suppress_cinematic_for_adain(ctx)
+        if removed:
+            msg = f"⚠️ AdaIN 충돌 방지: 시네마틱 태그 억제됨 — {', '.join(removed)}"
+            warnings.append(msg)
+        assert any("bokeh" in w for w in warnings)
+        assert any("lens_flare" in w for w in warnings)
+
+    def test_no_warning_when_no_suppression(self):
+        """When no tags are suppressed, no warning should be added."""
+        from services.generation_controlnet import _suppress_cinematic_for_adain
+
+        ctx = FakeContext(prompt="girl, backlit")
+        warnings: list[str] = []
+        removed = _suppress_cinematic_for_adain(ctx)
+        if removed:
+            warnings.append(f"Stripped: {removed}")
+        assert len(warnings) == 0
+
+
+class TestApplyEnvironmentWithSuppression:
+    """Integration: _apply_environment() propagates cinematic tag suppression (SP-105)."""
+
+    @patch("config.ENVIRONMENT_REFERENCE_ENABLED", True)
+    @patch("services.generation_controlnet._extract_env_tags", return_value=[])
+    @patch("services.generation_controlnet._load_env_asset")
+    @patch("services.generation_controlnet._detect_env_conflict", return_value=None)
+    @patch("services.generation_controlnet._apply_reference_adain_from_asset")
+    def test_suppression_in_pinning_flow(self, mock_adain, mock_conflict, mock_load, mock_extract):
+        """When environment pinning runs, cinematic tags should be stripped from ctx.prompt."""
+        from services.generation_controlnet import _apply_environment
+
+        mock_adain.return_value = True
+        mock_load.return_value = MagicMock()
+        req = FakeRequest(environment_reference_id=42)
+        ctx = FakeContext(request=req, prompt="girl, kitchen, depth_of_field, bokeh, close-up")
+        args: list = []
+        _apply_environment(req, ctx, args, db=MagicMock())
+
+        assert "depth_of_field" not in ctx.prompt
+        assert "bokeh" not in ctx.prompt
+        assert "close-up" in ctx.prompt
+        assert any("시네마틱 태그 억제됨" in w for w in ctx.warnings)
+
+    @patch("config.ENVIRONMENT_REFERENCE_ENABLED", False)
+    def test_no_suppression_when_disabled(self):
+        """When ENVIRONMENT_REFERENCE_ENABLED=False, no filtering occurs."""
+        from services.generation_controlnet import _apply_environment
+
+        req = FakeRequest(environment_reference_id=42)
+        ctx = FakeContext(request=req, prompt="girl, depth_of_field, bokeh")
+        args: list = []
+        _apply_environment(req, ctx, args, db=MagicMock())
+
+        assert "depth_of_field" in ctx.prompt
+        assert "bokeh" in ctx.prompt
+
+    def test_no_suppression_without_env_reference(self):
+        """When no environment_reference_id, no filtering occurs."""
+        from services.generation_controlnet import _apply_environment
+
+        req = FakeRequest(environment_reference_id=None)
+        ctx = FakeContext(request=req, prompt="girl, depth_of_field")
+        args: list = []
+        with patch("config.ENVIRONMENT_REFERENCE_ENABLED", True):
+            _apply_environment(req, ctx, args, db=MagicMock())
+
+        assert "depth_of_field" in ctx.prompt
+
+    @patch("config.ENVIRONMENT_REFERENCE_ENABLED", True)
+    @patch("services.generation_controlnet._extract_env_tags", return_value=[])
+    @patch("services.generation_controlnet._load_env_asset")
+    @patch("services.generation_controlnet._detect_env_conflict", return_value=None)
+    @patch("services.generation_controlnet._apply_reference_adain_from_asset", return_value=False)
+    def test_no_suppression_when_adain_fails(self, mock_adain, mock_conflict, mock_load, mock_extract):
+        """AdaIN 적용 실패 시 ctx.prompt가 변경되지 않아야 한다."""
+        from services.generation_controlnet import _apply_environment
+
+        mock_load.return_value = MagicMock()
+        req = FakeRequest(environment_reference_id=42)
+        ctx = FakeContext(request=req, prompt="girl, depth_of_field, bokeh")
+        _apply_environment(req, ctx, [], db=MagicMock())
+
+        assert "depth_of_field" in ctx.prompt
+        assert "bokeh" in ctx.prompt
+        assert len(ctx.warnings) == 0
+
+
+class TestPayloadPromptSync:
+    """Integration: payload['prompt'] should reflect ctx.prompt after ControlNet filtering (SP-105 R2)."""
+
+    @patch("config.ENVIRONMENT_REFERENCE_ENABLED", True)
+    @patch("services.generation_controlnet._extract_env_tags", return_value=[])
+    @patch("services.generation_controlnet._load_env_asset")
+    @patch("services.generation_controlnet._detect_env_conflict", return_value=None)
+    @patch("services.generation_controlnet._apply_reference_adain_from_asset")
+    def test_payload_prompt_synced_after_controlnet(self, mock_adain, mock_conflict, mock_load, mock_extract):
+        """After apply_controlnet, payload['prompt'] should match ctx.prompt (with tags stripped)."""
+        from services.generation_controlnet import apply_controlnet
+
+        mock_adain.return_value = True
+        mock_load.return_value = MagicMock()
+        req = FakeRequest(environment_reference_id=42)
+        ctx = FakeContext(request=req, prompt="girl, kitchen, depth_of_field, bokeh, close-up")
+        payload = {"prompt": ctx.prompt}
+
+        apply_controlnet(payload, ctx, db=MagicMock())
+        # Simulate generation.py sync line
+        payload["prompt"] = ctx.prompt
+
+        assert "depth_of_field" not in payload["prompt"]
+        assert "bokeh" not in payload["prompt"]
+        assert "close-up" in payload["prompt"]
+        assert payload["prompt"] == ctx.prompt

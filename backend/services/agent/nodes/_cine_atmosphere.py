@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 
+from config import REFERENCE_ADAIN_CONFLICTING_TAGS
 from config import pipeline_logger as logger
 
 _SYSTEM = (
@@ -42,6 +43,13 @@ _RULES = """\
 4. **Narrator scenes**: Use cinematic techniques aggressively.
    - depth_of_field, light_rays, sunset, silhouette, wide establishing shots."""
 
+_CONFLICTING_TAGS_STR = ", ".join(sorted(REFERENCE_ADAIN_CONFLICTING_TAGS))
+_ADAIN_WARNING = f"""\
+## ⚠️ Reference AdaIN Active
+이 영상은 배경 참조 이미지(Reference AdaIN)가 활성화되어 있습니다.
+{_CONFLICTING_TAGS_STR}는 배경과 충돌하므로 사용하지 마세요.
+대안: backlit, light_rays, dust_particles 등 비충돌 태그를 활용하세요."""
+
 
 async def run_atmosphere(
     scenes_json: str,
@@ -49,6 +57,7 @@ async def run_atmosphere(
     action_result: dict,
     style_section: str,
     writer_plan_section: str,
+    has_environment_reference: bool = False,
 ) -> dict | None:
     """Atmosphere Agent 실행 — 환경/시네마틱 결정.
 
@@ -57,7 +66,9 @@ async def run_atmosphere(
     """
     from services.agent.nodes._cine_common import call_sub_agent  # noqa: PLC0415
 
-    prompt = _build_prompt(scenes_json, framing_result, action_result, style_section, writer_plan_section)
+    prompt = _build_prompt(
+        scenes_json, framing_result, action_result, style_section, writer_plan_section, has_environment_reference
+    )
     try:
         logger.info("[CineAtmosphere] 실행 시작")
         result = await call_sub_agent(
@@ -76,7 +87,12 @@ async def run_atmosphere(
 
 
 def _build_prompt(
-    scenes_json: str, framing_result: dict, action_result: dict, style_section: str, writer_plan_section: str
+    scenes_json: str,
+    framing_result: dict,
+    action_result: dict,
+    style_section: str,
+    writer_plan_section: str,
+    has_environment_reference: bool = False,
 ) -> str:
     framing_json = json.dumps(framing_result, ensure_ascii=False, indent=2) if framing_result else "{}"
     action_json = json.dumps(action_result, ensure_ascii=False, indent=2) if action_result else "{}"
@@ -99,6 +115,13 @@ def _build_prompt(
     if writer_plan_section:
         parts.extend(["", writer_plan_section])
     parts.extend(["", _RULES])
+    if has_environment_reference:
+        parts.extend(
+            [
+                "",
+                _ADAIN_WARNING,
+            ]
+        )
     parts.extend(
         [
             "",

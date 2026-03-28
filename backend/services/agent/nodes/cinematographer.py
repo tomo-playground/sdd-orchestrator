@@ -15,6 +15,29 @@ from services.creative_qc import validate_visuals
 
 _EMPTY_RESULT: dict = {"cinematographer_result": None, "cinematographer_tool_logs": []}
 
+
+def _has_env_reference(storyboard_id: int | None, db) -> bool:
+    """스토리보드에 environment_reference_id가 설정된 씬이 있는지 확인."""
+    if not storyboard_id:
+        return False
+    try:
+        from models.scene import Scene  # noqa: PLC0415
+
+        return (
+            db.query(Scene.id)
+            .filter(
+                Scene.storyboard_id == storyboard_id,
+                Scene.environment_reference_id.isnot(None),
+                Scene.deleted_at.is_(None),
+            )
+            .first()
+            is not None
+        )
+    except Exception:
+        logger.warning("[CineTeam] _has_env_reference DB 조회 실패 (storyboard_id=%s)", storyboard_id, exc_info=True)
+        return False
+
+
 # 캐릭터 태그 계층 분류용 group_name 셋
 _IDENTITY_GROUPS = frozenset(
     {
@@ -169,7 +192,11 @@ async def cinematographer_node(state: ScriptState, config: RunnableConfig) -> di
 
 
 async def _try_competition(
-    state: ScriptState, db_session: object, base_prompt: str, director_feedback: str | None
+    state: ScriptState,
+    db_session: object,
+    base_prompt: str,
+    director_feedback: str | None,
+    has_environment_reference: bool = False,
 ) -> dict | None:
     """Full 모드 경쟁을 시도한다. 성공 시 결과 dict, 실패 시 None."""
     from config_pipelines import CINEMATOGRAPHER_COMPETITION_ENABLED  # noqa: PLC0415
@@ -180,7 +207,9 @@ async def _try_competition(
     from ..cinematographer_competition import run_cinematographer_competition  # noqa: PLC0415
 
     logger.info("[Cinematographer] Full 모드 경쟁 실행 (3 Lens)")
-    comp = await run_cinematographer_competition(state, db_session, base_prompt, director_feedback)
+    comp = await run_cinematographer_competition(
+        state, db_session, base_prompt, director_feedback, has_environment_reference
+    )
 
     if not comp.get("scenes"):
         logger.warning("[Cinematographer] Competition 실패, 단일 에이전트 fallback")
@@ -272,6 +301,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
     # 1) Team 실행 (4 서브 에이전트 순차 — 주 경로)
     scenes_json = json.dumps(scenes, ensure_ascii=False, indent=2)
     visual_direction = (state.get("director_plan") or {}).get("visual_direction", "")
+    has_env_ref = _has_env_reference(state.get("storyboard_id"), db_session)
 
     team_result = await _run_team(
         scenes_json=scenes_json,
@@ -285,12 +315,13 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         tool_executors=executors,
         is_multi=is_multi,
         multi_rules_block=multi_rules_block,
+        has_environment_reference=has_env_ref,
     )
     if team_result:
         return team_result
 
     # 2) Competition fallback (CINEMATOGRAPHER_COMPETITION_ENABLED=true 환경변수로 활성화)
-    comp_result = await _try_competition(state, db_session, base_prompt, director_feedback)
+    comp_result = await _try_competition(state, db_session, base_prompt, director_feedback, has_env_ref)
     if comp_result:
         return comp_result
 
@@ -305,6 +336,7 @@ async def _run(state: ScriptState, db_session: object) -> dict:
         cine_template=_cine_template,
         is_multi=is_multi,
         multi_rules_block=multi_rules_block,
+        has_environment_reference=has_env_ref,
     )
 
 
@@ -321,6 +353,7 @@ async def _run_team(
     tool_executors: dict,
     is_multi: bool = False,
     multi_rules_block: str = "",
+    has_environment_reference: bool = False,
 ) -> dict | None:
     """4 서브 에이전트 순차 실행: Framing → Action → Atmosphere → Compositor."""
     try:
@@ -336,6 +369,7 @@ async def _run_team(
             tool_executors=tool_executors,
             is_multi=is_multi,
             multi_rules_block=multi_rules_block,
+            has_environment_reference=has_environment_reference,
         )
     except Exception as e:
         logger.warning("[CineTeam] 팀 실행 실패, fallback으로 전환: %s", e, exc_info=True)
@@ -355,6 +389,7 @@ async def _run_team_inner(
     tool_executors: dict,
     is_multi: bool = False,
     multi_rules_block: str = "",
+    has_environment_reference: bool = False,
 ) -> dict | None:
     """_run_team의 내부 구현. 예외는 _run_team에서 catch."""
     from ._cine_action import run_action  # noqa: PLC0415
@@ -375,7 +410,14 @@ async def _run_team_inner(
         return None
 
     # 3) Atmosphere — 환경, 시네마틱 (Framing + Action 참조)
-    atmosphere = await run_atmosphere(scenes_json, framing, action, style_section, writer_plan_section)
+    atmosphere = await run_atmosphere(
+        scenes_json,
+        framing,
+        action,
+        style_section,
+        writer_plan_section,
+        has_environment_reference=has_environment_reference,
+    )
     if not atmosphere:
         logger.warning("[CineTeam] Atmosphere 실패, 팀 중단")
         return None
@@ -422,6 +464,7 @@ async def _run_single(
     cine_template: str,
     is_multi: bool = False,
     multi_rules_block: str = "",
+    has_environment_reference: bool = False,
 ) -> dict:
     """단일 에이전트 실행 (기존 Tool-Calling 방식)."""
     from ..tools.base import call_direct, call_with_tools  # noqa: PLC0415
@@ -442,6 +485,10 @@ async def _run_single(
         prompt_parts.append(f"\n[Director 피드백]\n{director_feedback}")
     if multi_rules_block:
         prompt_parts.append(f"\n{multi_rules_block}")
+    if has_environment_reference:
+        from services.agent.nodes._cine_atmosphere import _ADAIN_WARNING  # noqa: PLC0415
+
+        prompt_parts.append(f"\n{_ADAIN_WARNING}")
     prompt_parts.append(_JSON_OUTPUT_INSTRUCTION)
     prompt = "\n".join(prompt_parts)
 
