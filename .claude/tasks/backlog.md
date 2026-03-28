@@ -18,6 +18,8 @@
 
 ## P2 (기능 확장)
 
+- [ ] SP-116 — IP-Adapter 파라미터 서버 자동화 — weight 슬라이더 제거, 캐릭터 preset weight 서버 자동 적용, 토글도 서버 자동 판단으로 전환 | scope: frontend+backend | depends: SP-115
+
 - [ ] SP-081 — 서비스 Slack 알림 — 렌더링 완료/파이프라인 실패/SD 다운/스토리보드 생성 완료 알림 | scope: backend+infra
 - [ ] SP-024 — VEO Clip — Video Generation 통합
 - [ ] SP-025 — Profile Export/Import — Style Profile 공유
