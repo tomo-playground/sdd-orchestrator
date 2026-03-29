@@ -34,6 +34,7 @@ class BacklogTask:
     backlog_approved: bool = False
     spec_status: str = "backlog_only"
     has_design: bool = False
+    open_pr: str = ""
 
 
 def parse_backlog(
@@ -113,6 +114,8 @@ def parse_backlog(
     _enrich_from_specs(tasks, tasks_dir)
     # Discover tasks in current/ that aren't in backlog.md
     _discover_current_tasks(tasks, tasks_dir)
+    # Enrich running tasks with PR status (LLM이 교차 매칭 없이 판단 가능)
+    _enrich_pr_status(tasks)
     return tasks
 
 
@@ -199,6 +202,63 @@ def _discover_current_tasks(tasks: list[BacklogTask], tasks_dir: Path = TASKS_CU
             )
         )
         logger.info("Discovered current/ task: %s (status=%s)", task_id, status)
+
+
+def _enrich_pr_status(tasks: list[BacklogTask]) -> None:
+    """Enrich running tasks with open/merged PR info.
+
+    한 번의 gh 호출로 모든 running 태스크의 PR 상태를 매칭.
+    LLM이 check_prs 결과와 교차 매칭할 필요 없이 scan_backlog만으로 판단 가능.
+    """
+    import subprocess
+
+    from sdd_orchestrator.tools.github import _repo_args
+
+    repo = _repo_args()
+
+    running_tasks = [t for t in tasks if t.spec_status == "running"]
+    if not running_tasks:
+        return
+
+    # open + merged PR을 한 번에 조회
+    for state in ("open", "merged"):
+        try:
+            r = subprocess.run(
+                [
+                    "gh",
+                    "pr",
+                    "list",
+                    "--state",
+                    state,
+                    "--limit",
+                    "50",
+                    "--json",
+                    "number,headRefName",
+                    *repo,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if r.returncode != 0 or not r.stdout.strip():
+                continue
+            prs = json.loads(r.stdout)
+        except Exception:
+            logger.warning("Failed to list %s PRs for enrichment", state, exc_info=True)
+            continue
+
+        for pr in prs:
+            branch = pr.get("headRefName", "")
+            match = re.search(r"SP-\d+", branch)
+            if not match:
+                continue
+            pr_task_id = match.group()
+            for task in running_tasks:
+                if task.id == pr_task_id and not task.open_pr:
+                    label = f"PR #{pr['number']}"
+                    if state == "merged":
+                        label += " (merged)"
+                    task.open_pr = label
 
 
 @tool("scan_backlog", "Parse backlog.md and task specs to get the full task queue", {})

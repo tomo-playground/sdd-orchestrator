@@ -45,6 +45,8 @@ class ProjectConfig:
 
     @property
     def repo_full_name(self) -> str:
+        if not self.gh_repo_owner or not self.gh_repo_name:
+            return ""
         return f"{self.gh_repo_owner}/{self.gh_repo_name}"
 
     @property

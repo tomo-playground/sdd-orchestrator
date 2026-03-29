@@ -256,6 +256,8 @@ async def _create_revert_pr(pr_number: int, merge_sha: str) -> int | None:
             f"- Merge SHA: `{merge_sha}`\n"
             f"- 임계값: {ROLLBACK_ERROR_THRESHOLD}건"
         )
+        from sdd_orchestrator.tools.github import _repo_args
+
         result = await _run_cmd_output(
             [
                 "gh",
@@ -273,6 +275,7 @@ async def _create_revert_pr(pr_number: int, merge_sha: str) -> int | None:
                 branch_name,
                 "--base",
                 "main",
+                *_repo_args(),
             ],
             cwd=tmpdir,
             timeout=GH_PR_CREATE_TIMEOUT,
@@ -287,8 +290,11 @@ async def _create_revert_pr(pr_number: int, merge_sha: str) -> int | None:
 
 async def _get_pr_title(pr_number: int) -> str:
     """Fetch PR title via gh CLI."""
+    from sdd_orchestrator.tools.github import _repo_args
+
     result = await _run_cmd_output(
-        ["gh", "pr", "view", str(pr_number), "--json", "title", "--jq", ".title"],
+        ["gh", "pr", "view", str(pr_number), "--json", "title", "--jq", ".title",
+         *_repo_args()],
         timeout=GH_TIMEOUT,
     )
     return result.strip() if result else ""
@@ -296,8 +302,11 @@ async def _get_pr_title(pr_number: int) -> str:
 
 async def _ensure_label(cwd: str) -> None:
     """Ensure auto-rollback label exists (idempotent)."""
+    from sdd_orchestrator.tools.github import _repo_args
+
     await _run_cmd(
-        ["gh", "label", "create", "auto-rollback", "--color", "FF0000", "--force"],
+        ["gh", "label", "create", "auto-rollback", "--color", "FF0000", "--force",
+         *_repo_args()],
         cwd=cwd,
         timeout=GH_TIMEOUT,
     )

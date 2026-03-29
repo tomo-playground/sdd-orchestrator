@@ -1,0 +1,14 @@
+project:
+  github:
+    owner: tomo-playground
+    repo: shorts-producer
+    assignee: tomo-playground
+  sentry:
+    org: tomo-shorts-producer
+    projects:
+      - shorts-producer-backend
+      - shorts-producer-frontend
+      - sdd-orchestrator
+  tasks:
+    dir: .claude/tasks
+    backlog: backlog.md

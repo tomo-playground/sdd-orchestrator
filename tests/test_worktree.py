@@ -141,3 +141,80 @@ class TestWatchProcess:
         run = store.get_run_by_task("SP-099")
         assert run["status"] == "failed"
         assert run["exit_code"] == 2
+
+
+def _make_gh_output(prs: list[dict]) -> str:
+    """Helper: build fake gh pr list JSON output."""
+    import json
+
+    return json.dumps(prs)
+
+
+class TestHasOpenPr:
+    """Tests for _has_open_pr exact matching logic."""
+
+    def test_no_match_when_different_task_pr_exists(self):
+        """SP-117 must NOT match feat/SP-111-e2e-docker-ci."""
+        gh_output = _make_gh_output([{"number": 283, "headRefName": "feat/SP-111-e2e-docker-ci"}])
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = gh_output
+            result = worktree_mod._has_open_pr("SP-117")
+        assert result is None
+
+    def test_match_when_exact_task_pr_exists(self):
+        """SP-117 must match feat/SP-117-some-feature."""
+        gh_output = _make_gh_output([{"number": 300, "headRefName": "feat/SP-117-some-feature"}])
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = gh_output
+            result = worktree_mod._has_open_pr("SP-117")
+        assert result == "PR #300"
+
+    def test_no_match_when_no_prs(self):
+        """Empty PR list → None."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = "[]"
+            result = worktree_mod._has_open_pr("SP-117")
+        assert result is None
+
+    def test_no_match_when_branch_has_no_sp_number(self):
+        """PR with branch lacking SP-NNN → ignored."""
+        gh_output = _make_gh_output([{"number": 100, "headRefName": "fix/typo-readme"}])
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = gh_output
+            result = worktree_mod._has_open_pr("SP-117")
+        assert result is None
+
+    def test_returns_first_matching_pr(self):
+        """Multiple PRs for same task → return first."""
+        gh_output = _make_gh_output(
+            [
+                {"number": 200, "headRefName": "feat/SP-050-first"},
+                {"number": 201, "headRefName": "fix/SP-050-second"},
+            ]
+        )
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = gh_output
+            result = worktree_mod._has_open_pr("SP-050")
+        assert result == "PR #200"
+
+    def test_no_match_partial_number_overlap(self):
+        """SP-11 must NOT match feat/SP-111-xxx (prefix overlap)."""
+        gh_output = _make_gh_output([{"number": 500, "headRefName": "feat/SP-111-feature"}])
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = gh_output
+            result = worktree_mod._has_open_pr("SP-11")
+        assert result is None
+
+    def test_gh_failure_returns_none(self):
+        """gh command failure → None (graceful)."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 1
+            mock_run.return_value.stdout = ""
+            result = worktree_mod._has_open_pr("SP-117")
+        assert result is None
