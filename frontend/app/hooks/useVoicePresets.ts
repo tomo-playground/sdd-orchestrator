@@ -24,7 +24,11 @@ export const EMPTY_PRESET: EditingPreset = {
 
 // ── Hook ───────────────────────────────────────────────
 
-export function useVoicePresets(ui: UiCallbacks) {
+type UseVoicePresetsOptions = UiCallbacks & {
+  onCreated?: (id: number) => void;
+};
+
+export function useVoicePresets(ui: UseVoicePresetsOptions) {
   const [presets, setPresets] = useState<VoicePreset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editing, setEditing] = useState<EditingPreset | null>(null);
@@ -71,6 +75,7 @@ export function useVoicePresets(ui: UiCallbacks) {
     });
     setPreviewUrl(p.audio_url);
     setPreviewAssetId(null);
+    setPreviewSeed(null);
   }, []);
 
   const handleDelete = useCallback(
@@ -153,6 +158,7 @@ export function useVoicePresets(ui: UiCallbacks) {
             params: { temp_asset_id: previewAssetId },
           });
         }
+        if (res.data.id) ui.onCreated?.(res.data.id);
       }
       setEditing(null);
       setEditId(null);

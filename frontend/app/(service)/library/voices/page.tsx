@@ -1,27 +1,19 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import axios from "axios";
-import { Mic } from "lucide-react";
+import { useState, useCallback } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useUIStore } from "../../../store/useUIStore";
 import { useVoicePresets } from "../../../hooks/useVoicePresets";
-import { API_BASE } from "../../../constants";
-import VoiceCard from "./VoiceCard";
-import VoiceCardSkeleton from "./VoiceCardSkeleton";
-import Button from "../../../components/ui/Button";
+import LibraryMasterDetail from "../../../components/layout/LibraryMasterDetail";
+import VoiceDetailPanel from "./VoiceDetailPanel";
 import ConfirmDialog, { useConfirm } from "../../../components/ui/ConfirmDialog";
-import EmptyState from "../../../components/ui/EmptyState";
-import { SkeletonGrid } from "../../../components/ui/Skeleton";
-import {
-  PAGE_TITLE_CLASSES,
-  SEARCH_INPUT_CLASSES,
-  FORM_INPUT_COMPACT_CLASSES,
-  FORM_LABEL_COMPACT_CLASSES,
-} from "../../../components/ui/variants";
+import type { VoicePreset } from "../../../types";
 
-export default function AdminVoicesPage() {
+export default function VoicesPage() {
   const showToast = useUIStore((s) => s.showToast);
   const { confirm, dialogProps } = useConfirm();
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+
   const {
     presets,
     isLoading,
@@ -38,179 +30,110 @@ export default function AdminVoicesPage() {
     handleCancel,
     playAudio,
     set,
-  } = useVoicePresets({ showToast, confirmDialog: confirm });
+  } = useVoicePresets({
+    showToast,
+    confirmDialog: confirm,
+    onCreated: (id) => setSelectedId(id),
+  });
 
-  const [search, setSearch] = useState("");
-  const [languages, setLanguages] = useState<{ value: string; label: string }[]>([]);
+  const isCreating = editing != null && editId == null;
 
-  useEffect(() => {
-    axios
-      .get(`${API_BASE}/presets`)
-      .then((res) => {
-        if (Array.isArray(res.data?.languages)) setLanguages(res.data.languages);
-      })
-      .catch(() => { });
-  }, []);
+  const handleSelect = useCallback(
+    async (id: number | null) => {
+      if (editing) {
+        const ok = await confirm({
+          title: "변경사항 폐기",
+          message: "저장하지 않은 변경사항이 있습니다. 폐기하시겠습니까?",
+          confirmLabel: "폐기",
+          variant: "danger",
+        });
+        if (!ok) return;
+        handleCancel();
+      }
+      setSelectedId(id);
+    },
+    [editing, handleCancel, confirm],
+  );
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return presets;
-    const q = search.toLowerCase();
-    return presets.filter(
-      (p) => p.name.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q)
-    );
-  }, [presets, search]);
+  const handleCreateNew = useCallback(() => {
+    setSelectedId(null);
+    handleCreate();
+  }, [handleCreate]);
 
-  const inputCls = FORM_INPUT_COMPACT_CLASSES;
-  const labelCls = FORM_LABEL_COMPACT_CLASSES;
+  const filterFn = useCallback(
+    (item: VoicePreset, q: string) =>
+      item.name.toLowerCase().includes(q) ||
+      (item.description?.toLowerCase().includes(q) ?? false) ||
+      (item.voice_design_prompt?.toLowerCase().includes(q) ?? false),
+    [],
+  );
+
+  const formProps = {
+    saving,
+    previewing,
+    previewUrl,
+    onSave: handleSave,
+    onCancel: handleCancel,
+    onPreview: handlePreview,
+    onPlayAudio: playAudio,
+    onSet: set,
+  };
 
   return (
-    <div className="px-8 py-8">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className={PAGE_TITLE_CLASSES}>
-          Voices{presets.length > 0 ? ` (${presets.length})` : ""}
-        </h1>
-        <Button size="sm" onClick={handleCreate}>
-          + Generate Voice
-        </Button>
-      </div>
-
-      {/* Search */}
-      <div className="mb-6">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search voices..."
-          className={SEARCH_INPUT_CLASSES}
-        />
-      </div>
-
-      {/* Inline Form */}
-      {editing && (
-        <div className="mb-6 space-y-4 rounded-2xl border border-zinc-200/60 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-zinc-700">
-              {editId ? "Edit Voice Preset" : "Generate Voice Preset"}
-            </span>
-            <Button onClick={handleCancel} variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-600 hover:bg-transparent px-0">
-              Cancel
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <label className={labelCls}>Name *</label>
-              <input
-                value={editing.name}
-                onChange={(e) => set("name", e.target.value)}
-                className={inputCls}
-                placeholder="Preset name"
-              />
-            </div>
-            <div className="col-span-2">
-              <label className={labelCls}>Description</label>
-              <input
-                value={editing.description}
-                onChange={(e) => set("description", e.target.value)}
-                className={inputCls}
-                placeholder="Optional"
-              />
-            </div>
-            <div className="col-span-2">
-              <label className={labelCls}>Voice Design Prompt *</label>
-              <input
-                value={editing.voice_design_prompt}
-                onChange={(e) => set("voice_design_prompt", e.target.value)}
-                className={inputCls}
-                placeholder="e.g. calm 40s female narrator"
-              />
-            </div>
-            <div className="col-span-2">
-              <label className={labelCls}>Sample Text</label>
-              <input
-                value={editing.sample_text}
-                onChange={(e) => set("sample_text", e.target.value)}
-                className={inputCls}
-                placeholder="Text to preview the voice with"
-              />
-            </div>
-            <div>
-              <label className={labelCls}>Language</label>
-              <select
-                value={editing.language}
-                onChange={(e) => set("language", e.target.value)}
-                className={inputCls}
-              >
-                {languages.map((l) => (
-                  <option key={l.value} value={l.value}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end gap-2">
-              <Button
-                size="sm"
-                variant="gradient"
-                onClick={handlePreview}
-                disabled={previewing || !editing.voice_design_prompt?.trim()}
-                loading={previewing}
-              >
-                Preview
-              </Button>
-              {previewUrl && (
-                <Button size="sm" variant="outline" onClick={() => playAudio(previewUrl)}>
-                  Play Preview
-                </Button>
+    <div className="relative h-full">
+      <LibraryMasterDetail<VoicePreset>
+        items={presets}
+        selectedId={selectedId}
+        onSelect={handleSelect}
+        renderItem={(item) => (
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate">{item.name}</span>
+              {item.is_system && (
+                <span className="shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[11px] text-indigo-500">
+                  System
+                </span>
               )}
             </div>
+            {(item.description || item.voice_design_prompt) && (
+              <span className="truncate text-xs text-zinc-400">
+                {item.description || item.voice_design_prompt}
+              </span>
+            )}
           </div>
+        )}
+        renderDetail={(item) => (
+          <VoiceDetailPanel
+            preset={item}
+            editing={editId === item.id ? editing : null}
+            onEdit={() => handleEdit(item)}
+            onDelete={() => void handleDelete(item)}
+            {...formProps}
+          />
+        )}
+        onAdd={handleCreateNew}
+        searchPlaceholder="이름 또는 프롬프트 검색..."
+        loading={isLoading}
+        emptyState="음성 프리셋이 없습니다"
+        filterFn={filterFn}
+        detailEmptyState={
+          isCreating ? <VoiceDetailPanel editing={editing} {...formProps} /> : undefined
+        }
+      />
 
-          <div className="flex justify-end pt-2">
-            <Button
-              size="sm"
-              onClick={handleSave}
-              disabled={saving || !editing.name.trim()}
-              loading={saving}
+      {/* Mobile create form overlay */}
+      {isCreating && (
+        <div className="absolute inset-0 z-10 overflow-y-auto bg-white md:hidden">
+          <div className="sticky top-0 z-10 flex items-center border-b border-zinc-100 bg-white/90 px-4 py-2 backdrop-blur-sm">
+            <button
+              onClick={handleCancel}
+              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-700"
             >
-              {editId ? "Save" : "Create"}
-            </Button>
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back
+            </button>
           </div>
-        </div>
-      )}
-
-      {/* Card grid */}
-      {isLoading ? (
-        <SkeletonGrid>{(i) => <VoiceCardSkeleton key={i} />}</SkeletonGrid>
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={Mic}
-          title={presets.length === 0 ? "음성 프리셋이 없습니다" : "검색 결과가 없습니다"}
-          description={
-            presets.length === 0
-              ? "새 음성 프리셋을 생성하여 시작하세요"
-              : "다른 검색어를 입력해 보세요"
-          }
-          action={
-            presets.length === 0 ? (
-              <Button size="sm" onClick={handleCreate}>
-                + Generate Voice
-              </Button>
-            ) : undefined
-          }
-        />
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((p) => (
-            <VoiceCard
-              key={p.id}
-              preset={p}
-              onPlay={playAudio}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ))}
+          <VoiceDetailPanel editing={editing} {...formProps} />
         </div>
       )}
 
