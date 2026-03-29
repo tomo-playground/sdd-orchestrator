@@ -11,6 +11,7 @@
 
 ## P1 (최우선)
 
+- [ ] SP-118 — 오케스트레이터 PR 매칭 오류 — 다른 태스크의 PR을 잘못 매칭하여 auto-launch 차단되는 버그 | scope: sdd-orchestrator
 - [ ] SP-085 — 코딩 엔진 통합 — sdd-run/sdd-fix/sentry-autofix를 단일 엔진 + 모드 구조로 리팩토링 (범용 분리 준비) | scope: infra
 - [ ] SP-078 — 학습 루프 — 실패 PR 원인 기록 + 다음 설계 자동 반영 (같은 실수 반복 방지) | scope: infra
 - [ ] SP-079 — 자기 평가 대시보드 — 태스크 소요 시간, self-heal 횟수, 리뷰 라운드 수 추적 → Slack 주간 리포트 | scope: infra
