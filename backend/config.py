@@ -910,11 +910,11 @@ VOICE_PRESET_MAX_DURATION = float(os.getenv("VOICE_PRESET_MAX_DURATION", "60.0")
 VOICE_PRESET_ALLOWED_FORMATS = {"wav", "mp3", "flac", "ogg"}
 
 # --- TTS Naturalness ---
-# Appended to every TTS instruct to reduce robotic/AI-sounding output.
-# Empty string = disabled. Applies to all TTS calls (scene rendering + voice preview).
+# Fallback instruct when no voice design is provided. Skipped if instruct is given.
+# Empty string = disabled.
 TTS_NATURALNESS_SUFFIX = os.getenv(
     "TTS_NATURALNESS_SUFFIX",
-    "with natural, human-like speech rhythm, varied intonation, and a slightly fast conversational pace",
+    "natural speech pace",
 )
 
 # --- TTS Generation Parameters ---
@@ -929,15 +929,18 @@ TTS_MAX_NEW_TOKENS = int(
     os.getenv("TTS_MAX_NEW_TOKENS", "1024")
 )  # Deprecated: Audio Server 기본값용. Backend는 TTS_MAX_NEW_TOKENS_BASE/PER_CHAR/CAP 사용
 TTS_MAX_NEW_TOKENS_BASE = int(os.getenv("TTS_MAX_NEW_TOKENS_BASE", "1024"))
-TTS_MAX_NEW_TOKENS_PER_CHAR = int(os.getenv("TTS_MAX_NEW_TOKENS_PER_CHAR", "30"))
-TTS_MAX_NEW_TOKENS_CAP = int(os.getenv("TTS_MAX_NEW_TOKENS_CAP", "2048"))
+TTS_MAX_NEW_TOKENS_PER_CHAR = int(os.getenv("TTS_MAX_NEW_TOKENS_PER_CHAR", "40"))
+TTS_MAX_NEW_TOKENS_CAP = int(os.getenv("TTS_MAX_NEW_TOKENS_CAP", "3072"))
 
 # --- TTS Quality Validation & Retry ---
 TTS_MIN_DURATION_SEC = float(os.getenv("TTS_MIN_DURATION_SEC", "1.0"))  # Min TTS length (sec)
 TTS_MIN_SPEAKABLE_CHARS = int(os.getenv("TTS_MIN_SPEAKABLE_CHARS", "2"))  # Min word chars for TTS
 TTS_MIN_SECS_PER_CHAR = float(
-    os.getenv("TTS_MIN_SECS_PER_CHAR", "0.05")
-)  # Truncation guard 하한 (0.05s/char = 20자/sec)
+    os.getenv("TTS_MIN_SECS_PER_CHAR", "0.065")
+)  # Truncation guard (0.065s/char ≈ 15자/sec, 한국어 내레이션 표준)
+TTS_MIN_DURATION_FLOOR_SEC = float(
+    os.getenv("TTS_MIN_DURATION_FLOOR_SEC", "0.3")
+)  # Truncation guard 최소 하한 (짧은 텍스트에서 char 기반 계산이 너무 낮을 때)
 TTS_MAX_RETRIES = int(os.getenv("TTS_MAX_RETRIES", "2"))  # Retry count on quality failure
 TTS_DEFAULT_SEED = int(os.getenv("TTS_DEFAULT_SEED", "42"))  # Fallback seed when preset has no seed
 

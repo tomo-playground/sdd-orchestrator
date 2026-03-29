@@ -72,8 +72,8 @@ class TestSynthesizeTTS:
         assert quality is True
 
     @pytest.mark.asyncio
-    async def test_naturalness_suffix_appended(self):
-        """instruct에 TTS_NATURALNESS_SUFFIX가 자동 추가된다."""
+    async def test_naturalness_suffix_skipped_when_instruct_present(self):
+        """instruct가 있으면 TTS_NATURALNESS_SUFFIX를 추가하지 않는다."""
         resp_data = {
             "audio_base64": base64.b64encode(b"wav").decode(),
             "sample_rate": 24000,
@@ -89,8 +89,8 @@ class TestSynthesizeTTS:
             await synthesize_tts(text="hello", instruct="A calm female voice")
 
         sent_payload = client_instance.post.call_args[1]["json"]
-        assert "speak naturally" in sent_payload["instruct"]
-        assert sent_payload["instruct"].startswith("A calm female voice")
+        assert sent_payload["instruct"] == "A calm female voice"
+        assert "speak naturally" not in sent_payload["instruct"]
 
     @pytest.mark.asyncio
     async def test_naturalness_suffix_alone_when_no_instruct(self):

@@ -546,11 +546,11 @@ def _check_truncation(quality_passed: bool, duration: float, cleaned: str) -> bo
 
     Returns True if truncated (quality should be treated as failed).
     """
-    from config import TTS_MIN_SECS_PER_CHAR
+    from config import TTS_MIN_DURATION_FLOOR_SEC, TTS_MIN_SECS_PER_CHAR
 
     if not quality_passed:
         return False
-    min_expected = len(cleaned) * TTS_MIN_SECS_PER_CHAR
+    min_expected = max(len(cleaned) * TTS_MIN_SECS_PER_CHAR, TTS_MIN_DURATION_FLOOR_SEC)
     return duration < min_expected
 
 

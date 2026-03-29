@@ -97,8 +97,8 @@ async def synthesize_voice_design(
     """Qwen3-TTS 보이스 디자인 전용. Voice preset 프리뷰 및 캐릭터 음성 참조 생성에 사용."""
     url, timeout = _get_audio_server_config()
 
-    if TTS_NATURALNESS_SUFFIX:
-        instruct = f"{instruct}, {TTS_NATURALNESS_SUFFIX}" if instruct else TTS_NATURALNESS_SUFFIX
+    if TTS_NATURALNESS_SUFFIX and not instruct.strip():
+        instruct = TTS_NATURALNESS_SUFFIX
 
     payload = {
         "text": text,

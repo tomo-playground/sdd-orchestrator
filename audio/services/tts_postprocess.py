@@ -15,7 +15,7 @@ import logging
 
 import numpy as np
 
-from config import TTS_AUDIO_FADE_MS, TTS_AUDIO_TRIM_TOP_DB, TTS_SILENCE_MAX_MS
+from config import TTS_AUDIO_FADE_MS, TTS_AUDIO_TRIM_TOP_DB, TTS_NORMALIZE_TARGET_DBFS, TTS_SILENCE_MAX_MS
 
 logger = logging.getLogger("audio-server")
 
@@ -124,7 +124,9 @@ def _decrackle(wav: np.ndarray, sr: int) -> np.ndarray:
     return result
 
 
-def normalize_audio(wav: np.ndarray, target_dbfs: float = -23.0, peak_limit_db: float = -1.0) -> np.ndarray:
+def normalize_audio(
+    wav: np.ndarray, target_dbfs: float = TTS_NORMALIZE_TARGET_DBFS, peak_limit_db: float = -1.0
+) -> np.ndarray:
     """Normalize audio to target dBFS with peak limiting (no hard clipping)."""
     rms = np.sqrt(np.mean(wav**2))
 
