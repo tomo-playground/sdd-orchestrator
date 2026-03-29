@@ -128,7 +128,12 @@ async def do_check_running_worktrees() -> dict:
 
 
 def _has_open_pr(task_id: str) -> str | None:
-    """Check if task_id has an open PR. Returns 'PR #N' or None."""
+    """Check if task_id has an open PR. Returns 'PR #N' or None.
+
+    Uses exact SP-NNN matching on branch names to avoid partial matches
+    (e.g. SP-117 must not match feat/SP-111-xxx).
+    """
+    import re
     import subprocess
 
     from sdd_orchestrator.config import PROJECT_ROOT
@@ -141,20 +146,25 @@ def _has_open_pr(task_id: str) -> str | None:
                 "list",
                 "--state",
                 "open",
-                "--search",
-                task_id,
+                "--limit",
+                "100",
                 "--json",
-                "number",
-                "--jq",
-                ".[0].number",
+                "number,headRefName",
             ],
             capture_output=True,
             text=True,
             timeout=10,
             cwd=str(PROJECT_ROOT),
         )
-        if r.returncode == 0 and r.stdout.strip():
-            return f"PR #{r.stdout.strip()}"
+        if r.returncode != 0 or not r.stdout.strip():
+            return None
+
+        prs = json.loads(r.stdout)
+        for pr in prs:
+            branch = pr.get("headRefName", "")
+            match = re.search(r"SP-\d+", branch)
+            if match and match.group() == task_id:
+                return f"PR #{pr['number']}"
     except Exception:
         logger.warning("Failed to check open PR for %s", task_id, exc_info=True)
     return None
