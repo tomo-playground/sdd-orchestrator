@@ -4,7 +4,7 @@ priority: P1
 scope: backend+audio
 branch: feat/SP-119-tts-quality-optimization
 created: 2026-03-29
-status: approved
+status: running
 approved_at: 2026-03-29
 depends_on:
 label: enhancement

@@ -8,6 +8,8 @@
 ## P0 (긴급)
 
 - [x] SP-115 — 배경/캐릭터 분리 IP-Adapter 파이프라인 통합 → `current/` 착수
+- [x] SP-106 — Shorts 템포 config 튜닝 → `current/` 재착수 (설계 완료, 구현 미적용)
+- [x] SP-119 — Qwen3-TTS 품질 최적화 → `current/` 착수
 
 ## P1 (최우선)
 
