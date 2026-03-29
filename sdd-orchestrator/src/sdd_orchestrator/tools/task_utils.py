@@ -13,8 +13,9 @@ from sdd_orchestrator.config import BACKLOG_PATH, TASKS_CURRENT_DIR, TASKS_DONE_
 logger = logging.getLogger(__name__)
 
 # ── Status parsing ────────────────────────────────────────
-# Matches both frontmatter (`status: approved`) and blockquote (`> status: approved`)
-_STATUS_RE = re.compile(r"^(?:>\s*)?status:\s*(\w+)", re.MULTILINE)
+# Matches frontmatter, blockquote, and markdown list variants:
+#   status: approved | > status: approved | - **status**: approved | - status: approved
+_STATUS_RE = re.compile(r"^(?:[-*]\s+)?(?:>\s*)?(?:\*\*)?status(?:\*\*)?:\s*(\w+)", re.MULTILINE)
 
 
 def parse_spec_status(content: str) -> str:

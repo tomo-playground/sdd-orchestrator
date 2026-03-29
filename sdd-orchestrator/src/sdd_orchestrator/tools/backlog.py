@@ -163,8 +163,10 @@ def _discover_current_tasks(tasks: list[BacklogTask], tasks_dir: Path = TASKS_CU
         try:
             content = spec_path.read_text(encoding="utf-8")
             for line in content.splitlines():
-                # Strip blockquote prefix for parsing
-                stripped = re.sub(r"^>\s*", "", line)
+                # Strip list prefix, blockquote, and bold markers
+                stripped = re.sub(r"^[-*]\s+", "", line)
+                stripped = re.sub(r"^>\s*", "", stripped)
+                stripped = stripped.replace("**", "")
                 if stripped.startswith("status:"):
                     # Handle "status: approved | approved_at: ..."
                     raw_status = stripped.split(":", 1)[1].strip()
