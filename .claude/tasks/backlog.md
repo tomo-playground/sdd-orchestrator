@@ -18,6 +18,7 @@
 
 ## P2 (기능 확장)
 
+- [ ] SP-117 — 배경 전용 LoRA 도입 — 캐릭터용 flat_color LoRA가 배경에 파란빛/극단 색면 유발. 배경 전용 LoRA(scenery/background 특화) 탐색 + StyleProfile에 bg_loras 분리 관리 + compose_for_background()에서 배경 전용 LoRA 적용 | scope: backend+prompt
 - [ ] SP-116 — IP-Adapter 파라미터 서버 자동화 — weight 슬라이더 제거, 캐릭터 preset weight 서버 자동 적용, 토글도 서버 자동 판단으로 전환 | scope: frontend+backend | depends: SP-115
 
 - [ ] SP-081 — 서비스 Slack 알림 — 렌더링 완료/파이프라인 실패/SD 다운/스토리보드 생성 완료 알림 | scope: backend+infra
