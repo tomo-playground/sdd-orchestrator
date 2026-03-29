@@ -21,14 +21,16 @@ if ! git diff --quiet 2>/dev/null || ! git diff --staged --quiet 2>/dev/null; th
   git stash --include-untracked -m "sdd-sync auto-stash" 2>/dev/null && STASHED=true
 fi
 
-# main 업데이트 (ff-only 실패 시 rebase fallback)
+# main 업데이트 (post-merge hook에서 호출 시 SKIP_PULL=1로 중복 pull 방지)
 PULL_OK=true
-if ! git pull --ff-only 2>/dev/null; then
-  git pull --rebase 2>/dev/null || {
-    echo "⚠️ git pull 충돌 — rebase abort 후 정리 계속 진행"
-    git rebase --abort 2>/dev/null || true
-    PULL_OK=false
-  }
+if [ "${SKIP_PULL:-}" != "1" ]; then
+  if ! git pull --ff-only 2>/dev/null; then
+    git pull --rebase 2>/dev/null || {
+      echo "⚠️ git pull 충돌 — rebase abort 후 정리 계속 진행"
+      git rebase --abort 2>/dev/null || true
+      PULL_OK=false
+    }
+  fi
 fi
 
 # current/에 있는 태스크의 브랜치와 머지된 PR을 매칭
@@ -53,8 +55,6 @@ for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*/spec.md "$PROJECT_DIR
   fi
 done
 MERGED=$(echo "$MERGED" | xargs)
-
-[ -z "$MERGED" ] && { [ "$STASHED" = true ] && git stash pop 2>/dev/null; exit 0; }
 
 CHANGED=false
 CHECKED_IDS=""
