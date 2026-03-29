@@ -1,6 +1,6 @@
 # SP-117: v-pred → epsilon 체크포인트 전환
 
-status: running
+status: approved
 approved_at: 2026-03-29
 priority: P2
 scope: backend
