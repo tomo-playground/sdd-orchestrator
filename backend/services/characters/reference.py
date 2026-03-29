@@ -42,6 +42,51 @@ if TYPE_CHECKING:
     from services.style_context import StyleContext
 
 
+def build_reference_prompt(
+    positive_prompt: str | None,
+    style_ctx: StyleContext | None,
+) -> str:
+    """Build reference image prompt from character positive_prompt + StyleContext LoRAs.
+
+    - Strips weight emphasis: (tag:1.3) → tag
+    - Removes lower-body/abstract tags for upper_body framing
+    - Injects LoRA tags + trigger words from StyleContext
+    """
+    import re
+
+    from config_prompt import REFERENCE_UPPER_BODY_REMOVE_TAGS
+
+    char_tags = positive_prompt or ""
+    char_tags_clean = re.sub(r"\(([^:()]+):[0-9.]+\)", r"\1", char_tags)
+
+    tags = [t.strip() for t in char_tags_clean.split(",") if t.strip()]
+    has_looking_away = any("looking_away" in t for t in tags)
+    filtered = [t for t in tags if t not in REFERENCE_UPPER_BODY_REMOVE_TAGS]
+    if has_looking_away:
+        filtered = [t for t in filtered if "looking_at_viewer" not in t]
+        gaze = ""
+    else:
+        gaze = "looking_at_viewer"
+
+    char_part = ", ".join(filtered)
+    gaze_part = f", {gaze}" if gaze else ""
+    prompt = f"masterpiece, best_quality, {char_part}, solo, upper_body{gaze_part}, simple_background"
+
+    if style_ctx and style_ctx.loras:
+        from config import STYLE_LORA_WEIGHT_CAP
+
+        for lora in style_ctx.loras:
+            lora_name = lora.get("name", "")
+            lora_weight = round(min(lora.get("weight", 0.7), STYLE_LORA_WEIGHT_CAP), 2)
+            if lora_name:
+                prompt += f", <lora:{lora_name}:{lora_weight}>"
+                for trigger in lora.get("trigger_words") or []:
+                    if trigger.strip():
+                        prompt += f", {trigger.strip()}"
+
+    return prompt
+
+
 def _build_reference_negative(
     style_ctx: StyleContext | None,
     character_negative: list[str] | None,
@@ -137,46 +182,7 @@ async def regenerate_reference(
     # Resolve StyleContext via Group (needed for reference_env_tags/camera_tags + negative)
     style_ctx = resolve_style_context_from_group(character.group_id, db)
 
-    # ComfyUI: 단순 프롬프트 — weight 강조 없이, 충돌 태그 제거
-    import re
-
-    char_tags = character.positive_prompt or ""
-    # Strip weight emphasis: (tag:1.3) → tag
-    char_tags_clean = re.sub(r"\(([^:()]+):[0-9.]+\)", r"\1", char_tags)
-    # Remove abstract/conflicting/unnecessary tags for upper_body reference
-    _REMOVE_TAGS = {
-        "tall",
-        "slim",
-        "confident",
-        "adult",  # 추상적
-        "tote_bag",
-        "backpack",
-        "bag",  # 소품 (upper_body에 불필요)
-        "pleated_skirt",
-        "skirt",
-        "pants",
-        "jeans",
-        "shorts",  # 하의 (upper_body에 안 보임)
-    }
-    tags = [t.strip() for t in char_tags_clean.split(",") if t.strip()]
-    # Resolve looking_away vs looking_at_viewer conflict
-    has_looking_away = any("looking_away" in t for t in tags)
-    filtered = [t for t in tags if t not in _REMOVE_TAGS]
-    if has_looking_away:
-        filtered = [t for t in filtered if "looking_at_viewer" not in t]
-        gaze = ""  # looking_away from character prompt
-    else:
-        gaze = "looking_at_viewer"
-    char_part = ", ".join(filtered)
-    gaze_part = f", {gaze}" if gaze else ""
-    full_prompt = f"masterpiece, best_quality, {char_part}, solo, upper_body{gaze_part}, simple_background"
-    # LoRA 태그 주입 — ComfyUI 클라이언트가 파싱해서 워크플로우 노드로 적용
-    if style_ctx and style_ctx.loras:
-        for lora in style_ctx.loras:
-            lora_name = lora.get("name", "")
-            lora_weight = lora.get("weight", 0.7)
-            if lora_name:
-                full_prompt += f", <lora:{lora_name}:{lora_weight}>"
+    full_prompt = build_reference_prompt(character.positive_prompt, style_ctx)
 
     # ComfyUI/SDXL: 간결한 negative (중복/weight 제거)
     neg_prompt = (
@@ -237,6 +243,10 @@ async def regenerate_reference(
             controlnet_control_mode=SD_REFERENCE_CONTROLNET_MODE,
             comfy_workflow="reference",
         )
+        # Inject checkpoint explicitly — regenerate_reference has no storyboard_id,
+        # so generate_scene_image cannot resolve it via StyleContext cascade.
+        if style_ctx and style_ctx.sd_model_name:
+            request.sd_model_checkpoint = style_ctx.sd_model_name
         res = await generate_scene_image(request)
         if "image" not in res:
             logger.warning("[Preview] Candidate %d failed, skipping", i + 1)

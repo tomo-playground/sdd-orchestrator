@@ -139,6 +139,23 @@ REFERENCE_CAMERA_TAGS: list[str] = [
     "upper_body",
     "looking_at_viewer",
 ]
+# Tags to strip from positive_prompt for upper_body reference (invisible or abstract)
+REFERENCE_UPPER_BODY_REMOVE_TAGS: frozenset[str] = frozenset(
+    {
+        "tall",
+        "slim",
+        "confident",
+        "adult",
+        "tote_bag",
+        "backpack",
+        "bag",
+        "pleated_skirt",
+        "skirt",
+        "pants",
+        "jeans",
+        "shorts",
+    }
+)
 # Lighting/cinematic tags injected into LAYER_ATMOSPHERE for reference images.
 # Ensures reference rendering style (shading, depth) matches scene output.
 REFERENCE_LIGHTING_TAGS: list[str] = [

@@ -695,6 +695,8 @@ class SceneGenerateRequest(BaseModel):
     context_tags: dict | None = None
     # ComfyUI workflow hint
     comfy_workflow: str | None = None
+    # Explicit checkpoint override (used when storyboard_id is unavailable)
+    sd_model_checkpoint: str | None = None
     # Post-processing toggles (wired from frontend OPTIONS panel)
     auto_rewrite_enabled: bool = False
     auto_replace_risky_tags: bool = False

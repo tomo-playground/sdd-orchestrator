@@ -127,6 +127,8 @@ def _build_payload(ctx: GenerationContext) -> dict:
     }
     if ctx.style_context and ctx.style_context.sd_model_name:
         payload["sd_model_checkpoint"] = ctx.style_context.sd_model_name
+    elif req.sd_model_checkpoint:
+        payload["sd_model_checkpoint"] = req.sd_model_checkpoint
     apply_sampler_to_payload(payload, req.sampler_name)
     return payload
 
