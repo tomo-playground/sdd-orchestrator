@@ -361,7 +361,7 @@ class TestRoutingEdgeCases:
             "revision_count": 3,  # LANGGRAPH_MAX_REVISIONS=3
             "skip_stages": [],
         }
-        assert route_after_review(state) == "director_checkpoint"
+        assert route_after_review(state) == "location_planner"
 
     def test_review_max_revisions_always_director_checkpoint(self):
         """SP-057: revision 한도 → 항상 director_checkpoint (production skip 분기 제거)."""
@@ -372,7 +372,7 @@ class TestRoutingEdgeCases:
             "revision_count": 3,
             "skip_stages": ["production"],
         }
-        assert route_after_review(state) == "director_checkpoint"
+        assert route_after_review(state) == "location_planner"
 
     def test_director_checkpoint_error_decision(self):
         """checkpoint decision=error → cinematographer (graceful proceed)."""
@@ -450,8 +450,8 @@ class TestRoutingEdgeCases:
         from services.agent.routing import route_after_concept_gate
 
         assert route_after_concept_gate({"concept_action": "regenerate"}) == "critic"
-        assert route_after_concept_gate({"concept_action": "select"}) == "location_planner"
-        assert route_after_concept_gate({}) == "location_planner"
+        assert route_after_concept_gate({"concept_action": "select"}) == "writer"
+        assert route_after_concept_gate({}) == "writer"
 
 
 # ═══════════════════════════════════════════════════════

@@ -143,7 +143,7 @@ async def _create_plan(state: ScriptState, selected_concept: dict | None = None)
             "emotional_arc": parsed.emotional_arc,
             "scene_distribution": parsed.scene_distribution,
         }
-        # location_planner 노드가 선행 실행한 경우 기존 locations 재사용 (생성 스킵)
+        # 이전 iteration에서 location_planner가 설정한 locations가 있으면 재사용
         existing_locs = (state.get("writer_plan") or {}).get("locations")
         if existing_locs:
             plan["locations"] = existing_locs
@@ -323,7 +323,7 @@ async def writer_node(state: ScriptState) -> dict:
             len(scenes),
             "생성" if plan else "건너뜀",
         )
-        # plan이 None이면 location_planner가 선행 설정한 writer_plan을 보존
+        # plan이 None이면 이전 iteration의 writer_plan을 보존
         final_plan = plan if plan is not None else state.get("writer_plan")
         return {
             "draft_scenes": scenes,

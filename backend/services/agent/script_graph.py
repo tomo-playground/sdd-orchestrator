@@ -3,8 +3,9 @@
 Guided/FastTrack 공통 경로 (SP-057: 모든 노드 1회 실행):
   START → [intake(Guided)] → director_plan → director_plan_gate → inventory_resolve →
   [research → critic / critic(research skip)] →
-  concept_gate → location_planner → writer → review →
-  [passed→director_checkpoint / failed→revise] →
+  concept_gate → writer → review →
+  [passed→location_planner / failed→revise] →
+  location_planner → director_checkpoint →
   [proceed→cinematographer / revise→writer (재생성)] →
   ┌→ tts_designer ────┐
   ├→ sound_designer ──┤→ director → finalize → explain → learn → END
@@ -127,18 +128,20 @@ def build_script_graph() -> StateGraph:
     graph.add_conditional_edges("inventory_resolve", route_after_inventory_resolve, ["research", "critic"])
     graph.add_conditional_edges("research", route_after_research, ["critic", "research", "finalize"])
     graph.add_edge("critic", "concept_gate")
-    graph.add_conditional_edges("concept_gate", route_after_concept_gate, ["location_planner", "critic"])
-    graph.add_conditional_edges("location_planner", route_after_location_planner, ["writer", "finalize"])
+    graph.add_conditional_edges("concept_gate", route_after_concept_gate, ["writer", "critic"])
 
     # writer → review | finalize (에러 short-circuit)
     graph.add_conditional_edges("writer", route_after_writer, ["review", "finalize"])
 
-    # review → director_checkpoint | finalize(error) | revise
+    # review → location_planner(passed) | revise(failed) | finalize(error)
     graph.add_conditional_edges(
         "review",
         route_after_review,
-        ["finalize", "director_checkpoint", "revise"],
+        ["finalize", "location_planner", "revise"],
     )
+
+    # location_planner → director_checkpoint | finalize (에러 short-circuit)
+    graph.add_conditional_edges("location_planner", route_after_location_planner, ["director_checkpoint", "finalize"])
 
     # revise → review | finalize (에러 short-circuit)
     graph.add_conditional_edges("revise", route_after_revise, ["review", "finalize"])

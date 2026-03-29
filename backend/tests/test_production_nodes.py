@@ -316,20 +316,20 @@ async def test_finalize_full_merge():
 # -- Routing --
 
 
-def test_route_after_review_always_checkpoint():
-    """SP-057: 항상 director_checkpoint 경유 (production skip 분기 제거)."""
+def test_route_after_review_always_location_planner():
+    """review 통과 → location_planner 경유 (대본 기반 위치 배정)."""
     from services.agent.routing import route_after_review
 
     state = {"skip_stages": ["research", "concept", "production", "explain"], "review_result": {"passed": True}}
-    assert route_after_review(state) == "director_checkpoint"
+    assert route_after_review(state) == "location_planner"
 
 
 def test_route_after_review_full():
-    """Full 모드: review 통과 → director_checkpoint."""
+    """Full 모드: review 통과 → location_planner."""
     from services.agent.routing import route_after_review
 
     state = {"skip_stages": [], "review_result": {"passed": True}}
-    assert route_after_review(state) == "director_checkpoint"
+    assert route_after_review(state) == "location_planner"
 
 
 def test_route_after_cinematographer_fanout():

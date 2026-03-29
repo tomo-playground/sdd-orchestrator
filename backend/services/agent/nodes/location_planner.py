@@ -1,10 +1,11 @@
-"""Location Planner 노드 — concept_gate와 writer 사이에서 장소 맵을 선행 계획한다.
+"""Location Planner 노드 — review 통과 후 실제 대본을 분석하여 장소를 배정한다.
 
-Phase 30-P-6: 배경-대본 불일치 근본 수정 (독립 노드화)
-  - Writer가 대본 생성과 동시에 locations를 만들던 방식 → 선행 분리
-  - concept_gate → location_planner → writer 순서로 삽입
-  - writer._create_plan()은 기존 locations가 있으면 재사용 (생성 스킵)
-  - 실패 시 graceful degradation (writer가 자체 생성으로 fallback)
+대본(draft_scenes)의 script 내용을 LLM에 전달하여 각 씬에 적절한 위치를 배정.
+Writer가 자유롭게 대본을 쓴 뒤, Location Planner가 대본을 분석하므로
+대본-배경 불일치 문제를 근본적으로 해결한다.
+
+실행 순서: writer → review → location_planner → director_checkpoint
+실패 시 graceful degradation (finalize에서 기존 환경 태그 유지).
 """
 
 from __future__ import annotations
@@ -13,62 +14,71 @@ import json
 
 from config import coerce_language_id, coerce_structure_id
 from config import pipeline_logger as logger
-from config_pipelines import LANGGRAPH_PLANNING_ENABLED
 from services.agent.langfuse_prompt import compile_prompt
 from services.agent.llm_models import LocationPlan
-from services.agent.prompt_builders import build_optional_section, build_selected_concept_block
-from services.agent.state import ScriptState, WriterPlan, build_director_context, extract_selected_concept
+from services.agent.prompt_builders import build_optional_section
+from services.agent.state import ScriptState, WriterPlan
 from services.llm import LLMConfig, get_llm_provider
 
 
-def _estimate_scene_range(duration: int, structure: str = "monologue") -> tuple[int, int]:
-    """영상 길이(초)로 예상 씬 개수 범위를 계산한다 (구조 인식)."""
-    from services.storyboard.helpers import calculate_max_scenes, calculate_min_scenes
+def _build_scenes_block(draft_scenes: list[dict]) -> str:
+    """draft_scenes에서 LLM에 전달할 씬 요약 블록을 구성한다."""
+    lines: list[str] = []
+    for i, scene in enumerate(draft_scenes):
+        script = scene.get("script", "")
+        if script:
+            lines.append(f"Scene {i}: {script}")
+    return "\n".join(lines)
 
-    return calculate_min_scenes(duration, structure), calculate_max_scenes(duration, structure)
+
+_TEMPLATE_NAME = "creative/location_planner"
+_FALLBACK_SYS = (
+    "You are a Location Planner for short-form video scripts. Analyze scene scripts and assign appropriate locations."
+)
 
 
-async def _plan_locations(state: ScriptState) -> list[dict] | None:
-    """Gemini로 Location Map을 생성한다. 실패 시 None 반환."""
-    selected_concept = extract_selected_concept(state)
+def _compile_location_prompt(state: ScriptState, scenes_block: str):
+    """LangFuse 템플릿 컴파일 + scenes_block fallback 삽입."""
+    draft_scenes = state.get("draft_scenes") or []
+    compiled = compile_prompt(
+        _TEMPLATE_NAME,
+        topic=state.get("topic", ""),
+        duration=str(state.get("duration", 30)),
+        language=coerce_language_id(state.get("language")),
+        structure=coerce_structure_id(state.get("structure")),
+        expected_scenes_min=str(len(draft_scenes)),
+        expected_scenes_max=str(len(draft_scenes)),
+        description_block="",
+        director_plan_block="",
+        selected_concept_block="",
+        scenes_block=build_optional_section("## Actual Scene Scripts (analyze these)", scenes_block),
+    )
+    # 정적 지시문은 LangFuse `creative/location_planner` 템플릿 user 파트에서 관리
+    user_content = compiled.user or ""
+    if scenes_block and scenes_block not in user_content:
+        user_content += f"\n\n## Actual Scene Scripts (analyze these)\n{scenes_block}"
+    return compiled, user_content
+
+
+async def _plan_locations_from_scripts(state: ScriptState) -> list[dict] | None:
+    """실제 대본(draft_scenes)을 분석하여 Location Map을 생성한다."""
+    draft_scenes = state.get("draft_scenes") or []
+    if not draft_scenes:
+        logger.warning("[LocationPlanner] draft_scenes 없음, 스킵")
+        return None
+
+    scenes_block = _build_scenes_block(draft_scenes)
+    if not scenes_block:
+        return None
 
     try:
-        _template_name = "creative/location_planner"
-        _fallback_sys = (
-            "You are a Location Planner for short-form video scripts. "
-            "Output only valid JSON with the locations array. No explanations."
-        )
-        description = state.get("description", "")
-        director_ctx = build_director_context(state)
-
-        duration = state.get("duration", 30)
-        structure = coerce_structure_id(state.get("structure"))
-        from services.agent.prompt_builders_writer import build_scene_range_text
-
-        scene_range = build_scene_range_text(duration, structure)
-        min_s, max_s = scene_range.split("-") if "-" in scene_range else (scene_range, scene_range)
-
-        compiled = compile_prompt(
-            _template_name,
-            topic=state.get("topic", ""),
-            duration=str(duration),
-            language=coerce_language_id(state.get("language")),
-            structure=structure,
-            expected_scenes_min=min_s,
-            expected_scenes_max=max_s,
-            # LangFuse 프롬프트 변수명과 일치: description_block, director_plan_block, selected_concept_block
-            description_block=build_optional_section("**Description**:", description) if description else "",
-            director_plan_block=build_optional_section("## Creative Direction (from Director)", director_ctx)
-            if director_ctx
-            else "",
-            selected_concept_block=build_selected_concept_block(selected_concept) if selected_concept else "",
-        )
+        compiled, user_content = _compile_location_prompt(state, scenes_block)
 
         llm_response = await get_llm_provider().generate(
             step_name="generate_content location_planner",
-            contents=compiled.user,
-            config=LLMConfig(system_instruction=compiled.system or _fallback_sys),
-            metadata={"template": _template_name},
+            contents=user_content,
+            config=LLMConfig(system_instruction=compiled.system or _FALLBACK_SYS),
+            metadata={"template": _TEMPLATE_NAME},
             langfuse_prompt=compiled.langfuse_prompt,
         )
         text = llm_response.text.strip()
@@ -81,7 +91,7 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
         locations = [LocationPlan.model_validate(loc).model_dump() for loc in raw_locs]
 
         logger.info(
-            "[LocationPlanner] 완료: %d locations (%s)",
+            "[LocationPlanner] 대본 분석 완료: %d locations (%s)",
             len(locations),
             ", ".join(loc.get("name", "?") for loc in locations),
         )
@@ -93,21 +103,17 @@ async def _plan_locations(state: ScriptState) -> list[dict] | None:
 
 
 async def location_planner_node(state: ScriptState) -> dict:
-    """Location Map을 선행 계획하고 writer_plan.locations를 설정한다.
+    """대본(draft_scenes) 분석 후 writer_plan.locations를 설정한다.
 
-    Full 모드(+ PLANNING_ENABLED)에서만 동작.
-    실패 시 빈 dict 반환 → writer가 자체 생성으로 fallback.
+    review 통과 후 실행. 모든 모드(Full/FastTrack)에서 동작.
+    실패 시 빈 dict 반환 → finalize에서 기존 환경 태그 유지.
     """
-    is_full = "concept" not in (state.get("skip_stages") or [])
-    if not is_full or not LANGGRAPH_PLANNING_ENABLED:
-        logger.debug(
-            "[LangGraph:LocationPlanner] 스킵 (is_full=%s, PLANNING_ENABLED=%s)",
-            is_full,
-            LANGGRAPH_PLANNING_ENABLED,
-        )
+    draft_scenes = state.get("draft_scenes")
+    if not draft_scenes:
+        logger.warning("[LocationPlanner] draft_scenes 없음, 스킵")
         return {}
 
-    locations = await _plan_locations(state)
+    locations = await _plan_locations_from_scripts(state)
     if not locations:
         return {}
 

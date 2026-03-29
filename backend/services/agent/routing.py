@@ -65,7 +65,7 @@ def route_after_inventory_resolve(state: ScriptState) -> str:
     """inventory_resolve 이후: research skip → critic 직행, 기본 → research.
 
     research가 skip되더라도 critic(concept 스테이지)은 항상 실행해야 한다.
-    critic → concept_gate → location_planner → writer 경로를 보장.
+    critic → concept_gate → writer → review → location_planner 경로를 보장.
     """
     skip = state.get("skip_stages") or []
     if "research" in skip:
@@ -130,7 +130,7 @@ def route_after_revise(state: ScriptState) -> str:
 
 
 def route_after_review(state: ScriptState) -> str:
-    """review 이후: passed → director_checkpoint, failed → revise.
+    """review 이후: passed → location_planner, failed → revise.
 
     에러 상태이면 즉시 finalize로 short-circuit.
     """
@@ -160,9 +160,9 @@ def route_after_review(state: ScriptState) -> str:
                 max_rev,
             )
 
-    # passed 또는 max_revision 도달 → 항상 director_checkpoint 경유 (모든 노드 실행 원칙)
-    logger.debug("[LangGraph:Route] review -> director_checkpoint")
-    return "director_checkpoint"
+    # passed 또는 max_revision 도달 → location_planner 경유 (대본 기반 위치 배정)
+    logger.debug("[LangGraph:Route] review -> location_planner")
+    return "location_planner"
 
 
 def route_after_cinematographer(state: ScriptState) -> list[str] | str:
@@ -295,21 +295,21 @@ def route_after_director_plan_gate(state: ScriptState) -> str:
 
 
 def route_after_concept_gate(state: ScriptState) -> str:
-    """Concept Gate 이후: regenerate → critic (재생성), 그 외 → location_planner."""
+    """Concept Gate 이후: regenerate → critic (재생성), 그 외 → writer."""
     if state.get("concept_action") == "regenerate":
         logger.debug("[LangGraph:Route] concept_gate -> critic (regenerate)")
         return "critic"
-    logger.debug("[LangGraph:Route] concept_gate -> location_planner")
-    return "location_planner"
+    logger.debug("[LangGraph:Route] concept_gate -> writer")
+    return "writer"
 
 
 def route_after_location_planner(state: ScriptState) -> str:
-    """Location Planner 이후: 에러 → finalize (short-circuit), 정상 → writer."""
+    """Location Planner 이후: 에러 → finalize (short-circuit), 정상 → director_checkpoint."""
     if _has_error(state):
         logger.warning("[LangGraph] location_planner 에러, finalize로 short-circuit")
         return "finalize"
-    logger.debug("[LangGraph:Route] location_planner -> writer")
-    return "writer"
+    logger.debug("[LangGraph:Route] location_planner -> director_checkpoint")
+    return "director_checkpoint"
 
 
 def route_after_human_gate(state: ScriptState) -> str:

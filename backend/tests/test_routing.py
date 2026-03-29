@@ -176,10 +176,10 @@ def test_route_after_finalize_always_explain():
 # -- Director Checkpoint → Writer 라우팅 테스트 --
 
 
-def test_route_review_pass_full_mode_goes_to_checkpoint():
-    """production 미스킵 + review 통과 → director_checkpoint."""
+def test_route_review_pass_full_mode_goes_to_location_planner():
+    """review 통과 → location_planner (대본 기반 위치 배정)."""
     state = {"skip_stages": [], "review_result": {"passed": True, "errors": []}}
-    assert route_after_review(state) == "director_checkpoint"
+    assert route_after_review(state) == "location_planner"
 
 
 def test_route_checkpoint_revise_goes_to_writer():
@@ -252,16 +252,30 @@ def test_route_start_both_research_concept_skipped():
     assert route_after_start({"skip_stages": ["research", "concept"]}) == "writer"
 
 
-def test_route_review_always_director_checkpoint():
-    """SP-057: production skip 분기 제거 → 항상 director_checkpoint 경유."""
+def test_route_review_always_location_planner():
+    """review 통과 → 항상 location_planner 경유 (대본 기반 위치 배정)."""
     state = {"skip_stages": ["production"], "review_result": {"passed": True, "errors": []}}
-    assert route_after_review(state) == "director_checkpoint"
+    assert route_after_review(state) == "location_planner"
 
 
-def test_route_review_partial_skip_still_checkpoint():
-    """skip_stages 일부 존재해도 → director_checkpoint."""
+def test_route_review_partial_skip_still_location_planner():
+    """skip_stages 일부 존재해도 → location_planner."""
     state = {"skip_stages": ["research", "concept"], "review_result": {"passed": True, "errors": []}}
-    assert route_after_review(state) == "director_checkpoint"
+    assert route_after_review(state) == "location_planner"
+
+
+def test_route_location_planner_normal():
+    """location_planner 정상 → director_checkpoint."""
+    from services.agent.routing import route_after_location_planner
+
+    assert route_after_location_planner({}) == "director_checkpoint"
+
+
+def test_route_location_planner_error():
+    """location_planner 에러 → finalize."""
+    from services.agent.routing import route_after_location_planner
+
+    assert route_after_location_planner({"error": "LLM 실패"}) == "finalize"
 
 
 def test_route_finalize_always_explain():
