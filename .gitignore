@@ -47,6 +47,8 @@ logs/
 
 # Database
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 
 # Temporary
