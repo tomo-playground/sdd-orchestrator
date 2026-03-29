@@ -5,15 +5,8 @@
 
 ---
 
-## P0 (긴급)
-
-- [x] SP-115 — 배경/캐릭터 분리 IP-Adapter 파이프라인 통합 → `current/` 착수
-- [x] SP-106 — Shorts 템포 config 튜닝 → `current/` 재착수 (설계 완료, 구현 미적용)
-- [x] SP-119 — Qwen3-TTS 품질 최적화 → `current/` 착수
-
 ## P1 (최우선)
 
-- [ ] SP-118 — 오케스트레이터 PR 매칭 오류 — 다른 태스크의 PR을 잘못 매칭하여 auto-launch 차단되는 버그 | scope: sdd-orchestrator
 - [ ] SP-085 — 코딩 엔진 통합 — sdd-run/sdd-fix/sentry-autofix를 단일 엔진 + 모드 구조로 리팩토링 (범용 분리 준비) | scope: infra
 - [ ] SP-078 — 학습 루프 — 실패 PR 원인 기록 + 다음 설계 자동 반영 (같은 실수 반복 방지) | scope: infra
 - [ ] SP-079 — 자기 평가 대시보드 — 태스크 소요 시간, self-heal 횟수, 리뷰 라운드 수 추적 → Slack 주간 리포트 | scope: infra
@@ -21,7 +14,6 @@
 
 ## P2 (기능 확장)
 
-- [ ] SP-117 — v-pred → epsilon 체크포인트 전환 — v-pred 배경 파란빛 이슈 해결. NoobAI XL epsilon 1.1로 전환, CFG/워크플로우 조정 | scope: backend
 - [ ] SP-116 — IP-Adapter 파라미터 서버 자동화 — weight 슬라이더 제거, 캐릭터 preset weight 서버 자동 적용, 토글도 서버 자동 판단으로 전환 | scope: frontend+backend | depends: SP-115
 
 - [ ] SP-081 — 서비스 Slack 알림 — 렌더링 완료/파이프라인 실패/SD 다운/스토리보드 생성 완료 알림 | scope: backend+infra
