@@ -8,7 +8,6 @@ from sdd_orchestrator.tools.task_utils import (
     generate_slug,
     next_sp_number,
     parse_spec_status,
-    update_spec_status,
 )
 
 
@@ -36,30 +35,6 @@ class TestParseSpecStatus:
     def test_design_status_frontmatter(self):
         content = "---\nstatus: design\n---\n"
         assert parse_spec_status(content) == "design"
-
-
-class TestUpdateSpecStatus:
-    def test_replace_existing_blockquote(self):
-        content = "# Title\n\n> status: pending\n\n## What\n"
-        result = update_spec_status(content, "approved", "approved_at: 2026-03-26")
-        assert "> status: approved | approved_at: 2026-03-26" in result
-        assert "pending" not in result
-
-    def test_replace_existing_frontmatter(self):
-        content = "---\nstatus: pending\n---\n## What\n"
-        result = update_spec_status(content, "design")
-        assert "> status: design" in result
-        assert "pending" not in result
-
-    def test_insert_when_missing(self):
-        content = "# SP-087: Title\n\n## What\n"
-        result = update_spec_status(content, "pending")
-        assert "> status: pending" in result
-
-    def test_with_metadata(self):
-        content = "# Title\n\n> status: design\n"
-        result = update_spec_status(content, "approved", "approved_at: 2026-03-26")
-        assert "> status: approved | approved_at: 2026-03-26" in result
 
 
 class TestGenerateSlug:

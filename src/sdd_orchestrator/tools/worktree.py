@@ -31,18 +31,21 @@ async def _watch_process(proc: asyncio.subprocess.Process, task_id: str, run_id:
         logger.info("Worktree %s finished (exit_code=%d, run_id=%d)", task_id, exit_code, run_id)
         if _state_store:
             _state_store.finish_run(run_id, exit_code)
-        # 실패 시: PR 있으면 running 유지, 없으면 approved 복원 (재시도)
-        if exit_code != 0:
-            if _has_open_pr(task_id):
-                logger.info("%s failed but has open PR — keeping running status", task_id)
-            else:
-                _update_spec_status(task_id, "approved")
+        # PR 있으면 running 유지, 없으면 approved 복원
+        if _has_open_pr(task_id):
+            logger.info("%s finished (exit=%d) with open PR — keeping running", task_id, exit_code)
+        elif exit_code != 0 and _state_store:
+            _state_store.set_task_status(task_id, "approved")
+        elif exit_code == 0 and _state_store:
+            # 성공 종료 + PR 없음 (드문 케이스) → approved로 복원하여 재시도 방지
+            _state_store.set_task_status(task_id, "approved")
+            logger.info("%s succeeded without PR — restored to approved", task_id)
     except Exception:
         logger.exception("Error watching worktree process %s", task_id)
         if _state_store:
             _state_store.finish_run(run_id, exit_code=1)
-        if not _has_open_pr(task_id):
-            _update_spec_status(task_id, "approved")
+        if not _has_open_pr(task_id) and _state_store:
+            _state_store.set_task_status(task_id, "approved")
 
 
 async def do_launch_sdd_run(task_id: str) -> dict:
@@ -71,7 +74,7 @@ async def do_launch_sdd_run(task_id: str) -> dict:
     # Check if open PR already exists → skip (이미 코딩 완료)
     open_pr = _has_open_pr(task_id)
     if open_pr:
-        _update_spec_status(task_id, "running")
+        _state_store.set_task_status(task_id, "running")
         return _error(f"{task_id} already has open PR ({open_pr}) — skipping launch")
 
     try:
@@ -90,8 +93,8 @@ async def do_launch_sdd_run(task_id: str) -> dict:
         )
         run_id = _state_store.start_run(task_id, pid=proc.pid)
 
-        # spec.md status: approved → running (재실행 방지)
-        _update_spec_status(task_id, "running")
+        # DB status: approved → running (재실행 방지)
+        _state_store.set_task_status(task_id, "running")
 
         # Background watcher
         task = asyncio.create_task(_watch_process(proc, task_id, run_id))
@@ -122,11 +125,12 @@ async def do_check_running_worktrees() -> dict:
         elif pid:
             # DB에 있지만 프로세스 없음 → stale, 정리
             _state_store.finish_run(run.get("id", 0), -1)
-            # spec.md 복원 (오케스트레이터 재시작 시 _watch_process 콜백 소실 대비)
+            # DB 복원 (오케스트레이터 재시작 시 _watch_process 콜백 소실 대비)
+            # open PR이 있으면 복원하지 않음 — PR 리뷰 대기 중
             task_id = run.get("task_id", "")
-            if task_id:
-                _update_spec_status(task_id, "approved")
-                logger.info("Dead PID %d → spec.md restored to approved: %s", pid, task_id)
+            if task_id and _state_store and not _has_open_pr(task_id):
+                _state_store.set_task_status(task_id, "approved")
+                logger.info("Dead PID %d → status restored to approved: %s", pid, task_id)
     return {"content": [{"type": "text", "text": json.dumps(alive, ensure_ascii=False)}]}
 
 
@@ -171,29 +175,6 @@ def _has_open_pr(task_id: str) -> str | None:
     except Exception:
         logger.warning("Failed to check open PR for %s", task_id, exc_info=True)
     return None
-
-
-def _update_spec_status(task_id: str, new_status: str) -> None:
-    """Update spec.md status field to prevent duplicate launches."""
-    import glob
-    import re
-    from pathlib import Path
-
-    from sdd_orchestrator.config import PROJECT_ROOT
-
-    pattern = str(PROJECT_ROOT / ".claude/tasks/current" / f"{task_id}_*" / "spec.md")
-    for spec_path in glob.glob(pattern):
-        try:
-            p = Path(spec_path)
-            text = p.read_text()
-            updated = re.sub(
-                r"^status:\s*\S+", f"status: {new_status}", text, count=1, flags=re.MULTILINE
-            )
-            if updated != text:
-                p.write_text(updated)
-                logger.info("spec.md status → %s: %s", new_status, spec_path)
-        except Exception:
-            logger.warning("Failed to update spec status for %s", task_id, exc_info=True)
 
 
 def _is_pid_alive(pid: int) -> bool:

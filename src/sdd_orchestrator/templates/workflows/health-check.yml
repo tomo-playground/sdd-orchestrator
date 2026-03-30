@@ -15,21 +15,32 @@ jobs:
       - name: Check task consistency
         run: |
           echo "=== Task Status ==="
+          STATE_DB=".sdd/state.db"
           for dir in .claude/tasks/current/SP-*; do
             [ -d "$dir" ] || continue
             SP=$(basename "$dir" | cut -d_ -f1)
-            STATUS=$(grep -oP 'status:\s*\K\w+' "$dir/spec.md" 2>/dev/null || echo "unknown")
+            if [ -f "$STATE_DB" ]; then
+              STATUS=$(sqlite3 "$STATE_DB" "SELECT status FROM task_status WHERE task_id='$SP'" 2>/dev/null || echo "pending")
+              [ -z "$STATUS" ] && STATUS="pending"
+            else
+              STATUS="unknown"
+            fi
             echo "$SP: $STATUS"
           done
 
       - name: Check for stale running tasks
         run: |
           STALE=0
+          STATE_DB=".sdd/state.db"
+          if [ ! -f "$STATE_DB" ]; then
+            echo "state.db not found — skipping stale check"
+            exit 0
+          fi
           for dir in .claude/tasks/current/SP-*; do
             [ -d "$dir" ] || continue
-            STATUS=$(grep -oP 'status:\s*\K\w+' "$dir/spec.md" 2>/dev/null || echo "unknown")
+            SP=$(basename "$dir" | cut -d_ -f1)
+            STATUS=$(sqlite3 "$STATE_DB" "SELECT status FROM task_status WHERE task_id='$SP'" 2>/dev/null)
             if [ "$STATUS" = "running" ]; then
-              SP=$(basename "$dir" | cut -d_ -f1)
               echo "WARNING: $SP is in running state — check if process is alive"
               STALE=$((STALE + 1))
             fi

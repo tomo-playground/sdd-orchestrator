@@ -29,14 +29,23 @@ class OrchestratorDaemon:
     """Main daemon that runs the orchestrator event loop."""
 
     def __init__(self, interval: int = CYCLE_INTERVAL, db_path: Path = DEFAULT_DB_PATH):
-        from sdd_orchestrator.tools.worktree import set_state_store
+        from sdd_orchestrator.tools.backlog import set_state_store as set_backlog_store
+        from sdd_orchestrator.tools.design import set_state_store as set_design_store
+        from sdd_orchestrator.tools.tasks import set_state_store as set_tasks_store
+        from sdd_orchestrator.tools.worktree import set_state_store as set_worktree_store
 
         self.interval = interval
         self.cycle = 0
         self.stop_event = asyncio.Event()
         self.pause_event = asyncio.Event()  # set = paused, clear = running
         self.state = StateStore(db_path=db_path)
-        set_state_store(self.state)
+        # Inject state store into all tool modules
+        set_worktree_store(self.state)
+        set_backlog_store(self.state)
+        set_design_store(self.state)
+        set_tasks_store(self.state)
+        # One-time migration: seed task_status from spec.md files
+        self.state.migrate_spec_status_to_db()
         self.mcp_server = create_orchestrator_mcp_server()
         self._last_report_date: str | None = None
         self.slack_bot = None
@@ -265,29 +274,24 @@ class OrchestratorDaemon:
         import subprocess
 
         from sdd_orchestrator.config import PROJECT_ROOT, TASKS_CURRENT_DIR
-        from sdd_orchestrator.tools.worktree import _has_open_pr, _update_spec_status
+        from sdd_orchestrator.tools.worktree import _has_open_pr
 
         if not TASKS_CURRENT_DIR.exists():
             return
 
-        running_pids = {r["task_id"]: r["pid"] for r in self.state.get_running_runs()}
+        running_runs = {r["task_id"]: r for r in self.state.get_running_runs()}
+        statuses = self.state.get_all_task_statuses()
         healed = 0
 
         for entry in TASKS_CURRENT_DIR.iterdir():
             if not entry.is_dir() or not entry.name.startswith("SP-"):
                 continue
-            spec = entry / "spec.md"
-            if not spec.exists():
-                continue
 
             task_id = entry.name.split("_")[0]
-            status = "unknown"
-            for line in spec.read_text(errors="ignore").split("\n"):
-                if line.startswith("status:"):
-                    status = line.split(":", 1)[1].strip()
-                    break
+            status = statuses.get(task_id, "pending")
 
-            pid = running_pids.get(task_id)
+            run = running_runs.get(task_id)
+            pid = run["pid"] if run else None
             pid_alive = pid and os.path.exists(f"/proc/{pid}")
 
             # 빈 워크트리 정리: PID 없고 커밋 0개인 워크트리 제거
@@ -321,40 +325,15 @@ class OrchestratorDaemon:
             if has_pr:
                 continue  # PR 있으면 running 유지 (리뷰 대기)
 
-            # 좀비 감지 → 자동 복원
-            _update_spec_status(task_id, "approved")
+            # 좀비 감지 → 자동 복원 (DB만 업데이트, spec.md 수정 불필요)
+            if run:
+                self.state.finish_run(run["id"], -1)
+            self.state.set_task_status(task_id, "approved")
             logger.warning("🔧 [Heal] %s: running → approved (no alive PID, no open PR)", task_id)
             healed += 1
 
         if healed:
-            # 자동 커밋 (main에서만)
-            try:
-                subprocess.run(
-                    ["git", "add", ".claude/tasks/current/"],
-                    cwd=str(PROJECT_ROOT),
-                    capture_output=True,
-                    timeout=10,
-                )
-                subprocess.run(
-                    [
-                        "git",
-                        "commit",
-                        "-m",
-                        f"chore: 상태 자동 보정 — {healed}건 running → approved",
-                    ],
-                    cwd=str(PROJECT_ROOT),
-                    capture_output=True,
-                    timeout=10,
-                )
-                subprocess.run(
-                    ["git", "push"],
-                    cwd=str(PROJECT_ROOT),
-                    capture_output=True,
-                    timeout=15,
-                )
-                logger.info("🔧 [Heal] %d건 자동 보정 커밋+푸시 완료", healed)
-            except Exception:
-                logger.warning("🔧 [Heal] 커밋/푸시 실패", exc_info=True)
+            logger.info("🔧 [Heal] %d건 자동 보정 완료 (state.db)", healed)
 
     async def _flush_postmerge_notifications(self) -> None:
         """Send post-merge DoD notifications from sdd-sync to Slack."""
@@ -523,19 +502,13 @@ class OrchestratorDaemon:
                 summary["open_prs"] = r.stdout.strip().split("\n")
 
             # 진행 중 태스크
+            statuses = self.state.get_all_task_statuses()
             if TASKS_CURRENT_DIR.exists():
                 for entry in sorted(TASKS_CURRENT_DIR.iterdir()):
                     if not entry.is_dir() or not entry.name.startswith("SP-"):
                         continue
-                    spec = entry / "spec.md"
-                    if not spec.exists():
-                        continue
                     sp_id = entry.name.split("_")[0]
-                    status = "unknown"
-                    for line in spec.read_text(errors="ignore").split("\n"):
-                        if line.startswith("status:"):
-                            status = line.split(":", 1)[1].strip()
-                            break
+                    status = statuses.get(sp_id, "pending")
                     summary["in_progress"].append(f"{sp_id} ({status})")
 
             # 슬롯 현황

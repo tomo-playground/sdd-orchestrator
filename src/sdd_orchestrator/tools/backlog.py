@@ -11,9 +11,18 @@ from pathlib import Path
 from claude_agent_sdk import tool
 
 from sdd_orchestrator.config import BACKLOG_PATH, TASKS_CURRENT_DIR
-from sdd_orchestrator.tools.task_utils import parse_spec_status
 
 logger = logging.getLogger(__name__)
+
+# Module-level StateStore reference, set by set_state_store()
+_state_store = None
+
+
+def set_state_store(store) -> None:
+    """Inject the shared StateStore instance (called from main.py)."""
+    global _state_store
+    _state_store = store
+
 
 # ── Patterns ───────────────────────────────────────────────
 SECTION_RE = re.compile(r"^##\s+(.+)$")
@@ -120,9 +129,12 @@ def parse_backlog(
 
 
 def _enrich_from_specs(tasks: list[BacklogTask], tasks_dir: Path = TASKS_CURRENT_DIR) -> None:
-    """Check current/ directory for spec.md and design.md per task."""
+    """Check current/ directory for spec.md and design.md per task. Status from state.db."""
     if not tasks_dir.exists():
         return
+
+    # Bulk-fetch all statuses from DB
+    statuses = _state_store.get_all_task_statuses() if _state_store else {}
 
     for task in tasks:
         # Directory pattern: SP-NNN_*/spec.md
@@ -132,12 +144,7 @@ def _enrich_from_specs(tasks: list[BacklogTask], tasks_dir: Path = TASKS_CURRENT
 
         spec_path = matches[0]
         task.has_design = (spec_path.parent / "design.md").exists()
-
-        try:
-            content = spec_path.read_text(encoding="utf-8")
-            task.spec_status = parse_spec_status(content)
-        except OSError:
-            logger.warning("Failed to read spec: %s", spec_path)
+        task.spec_status = statuses.get(task.id, "pending")
 
 
 def _discover_current_tasks(tasks: list[BacklogTask], tasks_dir: Path = TASKS_CURRENT_DIR) -> None:
@@ -146,14 +153,15 @@ def _discover_current_tasks(tasks: list[BacklogTask], tasks_dir: Path = TASKS_CU
         return
 
     known_ids = {t.id for t in tasks}
+    statuses = _state_store.get_all_task_statuses() if _state_store else {}
 
     for spec_path in tasks_dir.glob("SP-*_*/spec.md"):
         task_id = spec_path.parent.name.split("_")[0]
         if task_id in known_ids:
             continue
 
-        # Parse spec frontmatter
-        status = "pending"
+        # Status from DB
+        status = statuses.get(task_id, "pending")
         priority = "P0"
         description = (
             spec_path.parent.name.split("_", 1)[1].replace("-", " ")
@@ -170,19 +178,13 @@ def _discover_current_tasks(tasks: list[BacklogTask], tasks_dir: Path = TASKS_CU
                 stripped = re.sub(r"^[-*]\s+", "", line)
                 stripped = re.sub(r"^>\s*", "", stripped)
                 stripped = stripped.replace("**", "")
-                if stripped.startswith("status:"):
-                    # Handle "status: approved | approved_at: ..."
-                    raw_status = stripped.split(":", 1)[1].strip()
-                    status = raw_status.split("|")[0].strip()
-                elif stripped.startswith("priority:"):
+                if stripped.startswith("priority:"):
                     priority = stripped.split(":", 1)[1].strip()
                 elif stripped.startswith("scope:"):
                     scope = stripped.split(":", 1)[1].strip()
                 elif stripped.startswith("depends_on:"):
                     raw = stripped.split(":", 1)[1].strip()
                     depends = [d.strip() for d in re.findall(r"SP-\d+", raw)]
-                elif line.startswith("---") and status != "pending":
-                    break  # Past frontmatter
         except OSError:
             logger.warning("Failed to read spec: %s", spec_path)
             continue
