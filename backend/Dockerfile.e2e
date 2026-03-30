@@ -29,13 +29,16 @@ RUN chmod +x /app/scripts/e2e-entrypoint.sh
 RUN mkdir -p outputs logs
 
 # non-root 사용자 생성
-RUN addgroup --system app && adduser --system --ingroup app app && chown -R app:app /app
+RUN addgroup --system app && adduser --system --ingroup app app && \
+    mkdir -p /app/.cache && chown -R app:app /app
 USER app
 
 # E2E 전용 환경변수 (docker-compose에서 오버라이드 가능)
 ENV APP_ENV=e2e \
     STORAGE_MODE=local \
-    LOG_TO_FILE=0
+    LOG_TO_FILE=0 \
+    HOME=/app \
+    UV_CACHE_DIR=/app/.cache/uv
 
 EXPOSE 8000
 
