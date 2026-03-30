@@ -35,13 +35,6 @@ def _find_task_dir(task_id: str) -> Path | None:
     return matches[0].parent
 
 
-def _read_spec_status(task_id: str) -> str:
-    """Read task status from state.db. Returns 'pending' if store not available."""
-    if not _state_store:
-        return "pending"
-    return _state_store.get_task_status(task_id)
-
-
 async def auto_design_task(task_id: str) -> str:
     """Core logic: auto-design a pending task. Returns a status message."""
     from sdd_orchestrator.tools.task_utils import git_commit_files
@@ -51,8 +44,8 @@ async def auto_design_task(task_id: str) -> str:
     if not task_dir:
         return f"Task {task_id} not found in current/"
 
-    # 2. Check status is pending
-    status = _read_spec_status(task_id)
+    # 2. Check status is pending (state.db is SSOT)
+    status = _state_store.get_task_status(task_id) if _state_store else "pending"
     if status != "pending":
         return f"Task {task_id} status is '{status}', not 'pending' — skipping"
 

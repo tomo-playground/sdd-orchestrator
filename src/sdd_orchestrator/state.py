@@ -8,7 +8,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from sdd_orchestrator.config import DEFAULT_DB_PATH
-from sdd_orchestrator.tools.task_utils import parse_spec_status
 
 logger = logging.getLogger(__name__)
 
@@ -299,7 +298,7 @@ class StateStore:
 
         migrated = 0
 
-        # Scan current/ tasks — preserve status from spec.md
+        # Scan current/ tasks — default to "pending" (state.db is SSOT, no spec.md status)
         if TASKS_CURRENT_DIR.exists():
             for spec in TASKS_CURRENT_DIR.glob("SP-*_*/spec.md"):
                 task_id = spec.parent.name.split("_")[0]
@@ -308,16 +307,9 @@ class StateStore:
                 ).fetchone()
                 if existing:
                     continue
-                try:
-                    from sdd_orchestrator.tools.task_utils import parse_spec_status
-
-                    content = spec.read_text(encoding="utf-8")
-                    status = parse_spec_status(content)
-                    self.set_task_status(task_id, status)
-                    migrated += 1
-                    logger.info("Migrated %s status=%s from spec.md to DB", task_id, status)
-                except OSError:
-                    logger.warning("Failed to read spec for migration: %s", spec)
+                self.set_task_status(task_id, "pending")
+                migrated += 1
+                logger.info("Migrated %s status=pending (new task) to DB", task_id)
 
         # Scan done/ tasks — always "done" (location is authoritative)
         if TASKS_DONE_DIR.exists():
