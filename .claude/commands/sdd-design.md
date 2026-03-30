@@ -204,7 +204,7 @@ Gemini 피드백 중 유효한 지적은 design.md에 반영한 뒤 에이전트
 
 1. `.claude/tasks/current/SP-NNN_*/design.md` 파일에 설계 내용 작성 (spec.md와 동일 디렉토리)
 2. 태스크 파일(spec.md)의 `## 상세 설계 (How)` 섹션에 `> [design.md](./design.md) 참조` 링크 추가
-3. `status: pending` → `status: design` 변경 (spec.md + state.db 동기화: `sqlite3 "$(git worktree list | head -1 | awk '{print $1}')/.sdd/state.db" "INSERT INTO task_status (task_id, status, updated_at) VALUES ('SP-NNN', 'design', datetime('now')) ON CONFLICT(task_id) DO UPDATE SET status='design', updated_at=datetime('now');"` 실행)
+3. `status: pending` → `status: design` 변경 (spec.md + state.db 동기화: `sqlite3 /home/tomo/Workspace/shorts-producer/.sdd/state.db "INSERT INTO task_status (task_id, status, updated_at) VALUES ('SP-NNN', 'design', datetime('now')) ON CONFLICT(task_id) DO UPDATE SET status='design', updated_at=datetime('now');"` 실행)
 4. 사용자에게 **설계 요약 + 에이전트 리뷰 결과** + 승인 명령어 안내:
 
 ```
@@ -226,7 +226,7 @@ Gemini 피드백 중 유효한 지적은 design.md에 반영한 뒤 에이전트
 > `SP-NNN approved`가 전달된 경우 실행
 
 1. 태스크 파일 로드 → `status: design` 확인 (아니면 에러)
-2. `status: design` → `status: approved` + `approved_at: YYYY-MM-DD` 기록 (spec.md + state.db 동기화: `sqlite3 "$(git worktree list | head -1 | awk '{print $1}')/.sdd/state.db" "INSERT INTO task_status (task_id, status, updated_at) VALUES ('SP-NNN', 'approved', datetime('now')) ON CONFLICT(task_id) DO UPDATE SET status='approved', updated_at=datetime('now');"` 실행)
+2. `status: design` → `status: approved` + `approved_at: YYYY-MM-DD` 기록 (spec.md + state.db 동기화: `sqlite3 /home/tomo/Workspace/shorts-producer/.sdd/state.db "INSERT INTO task_status (task_id, status, updated_at) VALUES ('SP-NNN', 'approved', datetime('now')) ON CONFLICT(task_id) DO UPDATE SET status='approved', updated_at=datetime('now');"` 실행)
 3. 태스크 파일 + 설계 파일 main 커밋 (`chore: SP-NNN 설계 승인`)
 4. `/sdd-run SP-NNN` 워크트리 실행 명령어 출력:
 

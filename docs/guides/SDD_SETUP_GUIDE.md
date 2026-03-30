@@ -483,6 +483,9 @@ PR push
 
 ## 7. sdd-sync.sh 스크립트
 
+> **주의**: 아래는 초기 버전 예시입니다. 최신 스크립트는 `.claude/scripts/sdd-sync.sh`를 직접 참조하세요.
+> 주요 변경: state.db SSOT 도입, worktree 네이밍 SP-NNN 통일, 프로세스 생존 체크.
+
 ```bash
 cat > .claude/scripts/sdd-sync.sh << 'SCRIPT'
 #!/bin/bash
