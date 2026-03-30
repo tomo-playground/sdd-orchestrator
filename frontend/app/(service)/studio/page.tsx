@@ -21,12 +21,13 @@ import ResumeConfirmModal from "../../components/storyboard/ResumeConfirmModal";
 import StoryboardActionsBar from "../../components/storyboard/StoryboardActionsBar";
 import StyleProfileModal from "../../components/setup/StyleProfileModal";
 import { ContextBar, GroupFormModal } from "../../components/context";
+import GroupSelectModal from "../../components/context/GroupSelectModal";
 import { useAutopilot } from "../../hooks/useAutopilot";
 import { useAutopilotCheckpoint } from "../../hooks/useAutopilotCheckpoint";
 import { useStudioInitialization } from "../../hooks/useStudioInitialization";
 import { useCharacterAutoLoad } from "../../hooks/useCharacterAutoLoad";
 import { useStudioOnboarding } from "../../hooks/useStudioOnboarding";
-import { createGroup } from "../../store/actions/groupActions";
+import { createGroup, loadGroupDefaults } from "../../store/actions/groupActions";
 import { SUB_NAV_CLASSES } from "../../components/ui/variants";
 import { runAutoRunFromStep } from "../../store/actions/autopilotActions";
 import { saveStoryboard, persistStoryboard } from "../../store/actions/storyboardActions";
@@ -68,12 +69,14 @@ function StudioContent() {
   // contextStoryboardId (localStorage) is NOT used — URL is the single source of truth
   const searchParams = useSearchParams();
   const isNewModeReady = useUIStore((s) => s.isNewStoryboardMode);
+  const pendingNewStoryboard = useUIStore((s) => s.pendingNewStoryboard);
   const isNewMode = isNewModeReady || searchParams.get("new") === "true";
   const hasStoryboard = !!storyboardId || isNewMode;
 
   // Gate: ?new=true URL detected but resetAllStores hasn't completed yet.
   // Prevents workspace from rendering with stale store data before the reset useEffect fires.
-  const isNewUrlPending = searchParams.get("new") === "true" && !isNewModeReady;
+  const isNewUrlPending =
+    searchParams.get("new") === "true" && !isNewModeReady && !pendingNewStoryboard;
 
   // Apply topic from URL param (Quick Start from Home → /studio?id=X&topic=Y)
   // The DB load already sets topic from storyboard title, but this handles the edge case
@@ -392,6 +395,48 @@ function StudioContent() {
       />
 
       <VideoPreviewModal src={videoPreviewSrc} onClose={() => setUI({ videoPreviewSrc: null })} />
+
+      {pendingNewStoryboard && groups.length >= 2 && (
+        <GroupSelectModal
+          groups={groups.filter((g) => g.id > 0)}
+          onSelect={async (gId) => {
+            useContextStore.getState().setContext({ groupId: gId });
+            try {
+              // Load selected group's effective config (style profile, render preset, etc.)
+              await loadGroupDefaults(gId);
+              const { effectiveCharacterId } = useContextStore.getState();
+              if (effectiveCharacterId) {
+                useStoryboardStore.getState().set({ selectedCharacterId: effectiveCharacterId });
+              }
+              const { ensureDraftStoryboard } = await import(
+                "../../store/actions/draftActions"
+              );
+              const draftId = await ensureDraftStoryboard();
+              useUIStore.getState().set({ pendingNewStoryboard: false });
+              if (draftId) {
+                useUIStore.getState().set({ isNewStoryboardMode: true });
+              } else {
+                showToast("초안 생성에 실패했습니다", "error");
+                const url = new URL(window.location.href);
+                url.searchParams.delete("new");
+                window.history.replaceState({}, "", url.toString());
+              }
+            } catch {
+              useUIStore.getState().set({ pendingNewStoryboard: false });
+              showToast("초안 생성에 실패했습니다", "error");
+              const url = new URL(window.location.href);
+              url.searchParams.delete("new");
+              window.history.replaceState({}, "", url.toString());
+            }
+          }}
+          onClose={() => {
+            useUIStore.getState().set({ pendingNewStoryboard: false });
+            const url = new URL(window.location.href);
+            url.searchParams.delete("new");
+            window.history.replaceState({}, "", url.toString());
+          }}
+        />
+      )}
 
       {showGroupModal && projectId && (
         <GroupFormModal

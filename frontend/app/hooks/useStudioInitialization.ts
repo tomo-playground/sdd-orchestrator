@@ -15,6 +15,26 @@ import { API_BASE, DEFAULT_STRUCTURE } from "../constants";
 import { generateSceneClientId } from "../utils/uuid";
 import { isMultiCharStructure } from "../utils/structure";
 
+/** Wait until groups are loaded in ContextStore (timeout: 3s). */
+function waitForGroupsLoaded(): Promise<void> {
+  const current = useContextStore.getState();
+  if (!current.isLoadingGroups) {
+    return Promise.resolve();
+  }
+  return new Promise<void>((resolve) => {
+    const unsub = useContextStore.subscribe((state) => {
+      if (!state.isLoadingGroups) {
+        unsub();
+        resolve();
+      }
+    });
+    setTimeout(() => {
+      unsub();
+      resolve();
+    }, 3000);
+  });
+}
+
 /**
  * Handles all studio initialization logic:
  * - Store reset on ?new=true
@@ -59,6 +79,46 @@ export function useStudioInitialization() {
     (async () => {
       await resetAllStores();
       if (cancelled) return;
+
+      // ── Group selection gate ──────────────────────────────────
+      // resetAllStores preserves groupId, but it may be ALL_GROUPS_ID(-1) or invalid.
+      // Check group count and route accordingly before creating a draft.
+      const { groupId, groups, isLoadingGroups } = useContextStore.getState();
+
+      // If groups are still loading, wait for them (rare — usually pre-fetched)
+      if (isLoadingGroups || groups.length === 0) {
+        await waitForGroupsLoaded();
+        if (cancelled) return;
+      }
+
+      const latestCtx = useContextStore.getState();
+      const validGroups = latestCtx.groups.filter((g) => g.id > 0);
+
+      if (validGroups.length === 0) {
+        // No groups → early return, kanban "시리즈 만들기" UI handles this
+        newHandledRef.current = false;
+        const url = new URL(window.location.href);
+        url.searchParams.delete("new");
+        window.history.replaceState({}, "", url.pathname + url.search);
+        return;
+      }
+
+      const currentGroupId = latestCtx.groupId;
+      const isGroupValid =
+        currentGroupId !== null &&
+        currentGroupId > 0 &&
+        validGroups.some((g) => g.id === currentGroupId);
+
+      if (validGroups.length === 1) {
+        // Single group → auto-select + load defaults (style profile, render preset)
+        useContextStore.getState().setContext({ groupId: validGroups[0].id });
+        await loadGroupDefaults(validGroups[0].id);
+      } else if (!isGroupValid) {
+        // Multiple groups + no valid selection → show modal
+        useUIStore.getState().set({ pendingNewStoryboard: true });
+        return; // draft creation deferred to modal onSelect
+      }
+      // else: groupId is valid (restored from localStorage) → proceed without modal
 
       const { effectiveCharacterId } = useContextStore.getState();
       if (effectiveCharacterId) {

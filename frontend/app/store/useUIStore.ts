@@ -55,6 +55,9 @@ export interface UIState {
   // Auto-save failure indicator
   autoSaveFailed: boolean;
 
+  // Pending new storyboard (group select modal gate)
+  pendingNewStoryboard: boolean;
+
   // Script → AutoRun chain signal
   pendingAutoRun: boolean;
   setPendingAutoRun: (v: boolean) => void;
@@ -105,6 +108,7 @@ const initialState: Omit<
   use3PanelLayout: false,
   isAutoRunning: false,
   autoSaveFailed: false,
+  pendingNewStoryboard: false,
   pendingAutoRun: false,
   chatResetToken: 0,
 };
