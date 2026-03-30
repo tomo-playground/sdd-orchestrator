@@ -56,7 +56,15 @@ async def _wait_proc(proc, *, timeout: int = GIT_CMD_TIMEOUT) -> tuple[bytes, by
 
 
 async def git_commit_files(files: list[str], message: str) -> str | None:
-    """Lock-protected git add + commit + push. Returns error message or None on success."""
+    """Lock-protected git add + commit + push. Returns error message or None on success.
+
+    Always runs in PROJECT_ROOT to avoid committing to the wrong repo
+    when the process cwd is a different git repository.
+    """
+    from sdd_orchestrator.config import PROJECT_ROOT
+
+    cwd = str(PROJECT_ROOT)
+
     async with git_lock:
         try:
             # git add
@@ -64,6 +72,7 @@ async def git_commit_files(files: list[str], message: str) -> str | None:
                 "git",
                 "add",
                 *files,
+                cwd=cwd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -79,6 +88,7 @@ async def git_commit_files(files: list[str], message: str) -> str | None:
                 "commit",
                 "-m",
                 message,
+                cwd=cwd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -92,6 +102,7 @@ async def git_commit_files(files: list[str], message: str) -> str | None:
             proc = await asyncio.create_subprocess_exec(
                 "git",
                 "push",
+                cwd=cwd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -102,6 +113,7 @@ async def git_commit_files(files: list[str], message: str) -> str | None:
                     "git",
                     "pull",
                     "--rebase",
+                    cwd=cwd,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
@@ -113,6 +125,7 @@ async def git_commit_files(files: list[str], message: str) -> str | None:
                 push2 = await asyncio.create_subprocess_exec(
                     "git",
                     "push",
+                    cwd=cwd,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
