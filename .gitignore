@@ -18,6 +18,9 @@ build/
 # Claude Code worktrees
 .claude/worktrees/
 
+# SDD state (SQLite — 로컬 전용, worktree 간 공유 불가)
+.sdd/
+
 # SDD Orchestrator (별도 레포: tomo-playground/sdd-orchestrator)
 sdd-orchestrator/
 

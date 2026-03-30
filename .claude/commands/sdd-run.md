@@ -26,7 +26,7 @@ SDD 태스크를 worktree에서 자율 실행하는 명령입니다.
 - 설계 파일이 있으면 함께 로드: `SP-NNN_*/design.md`
 
 ### 2. 설계 승인 확인
-- 태스크 파일의 `status` 확인 (state.db 우선 조회: `sqlite3 .sdd/state.db "SELECT status FROM task_status WHERE task_id='SP-NNN';"`, 없으면 spec.md fallback)
+- 태스크 파일의 `status` 확인 (state.db 우선 조회: `sqlite3 "$(git worktree list | head -1 | awk '{print $1}')/.sdd/state.db" "SELECT status FROM task_status WHERE task_id='SP-NNN';"`, 없으면 spec.md fallback)
 - `approved` 또는 `running` → 계속 진행
 - `design` → "설계가 아직 승인되지 않았습니다. /sdd-design SP-NNN approved 실행" 안내 후 **중단**
 - `pending` → "설계가 작성되지 않았습니다. /sdd-design SP-NNN 실행" 안내 후 **중단**
@@ -63,7 +63,7 @@ claude --worktree $ARGUMENTS --dangerously-skip-permissions -p "/sdd-run $ARGUME
 
 ### 7. 태스크 실행
 1. 태스크 파일(`spec.md`) + 설계 파일(`design.md`) 읽기
-2. `status: approved` → `status: running` 업데이트 (spec.md + state.db 동기화: `sqlite3 .sdd/state.db "INSERT INTO task_status (task_id, status, updated_at) VALUES ('SP-NNN', 'running', datetime('now')) ON CONFLICT(task_id) DO UPDATE SET status='running', updated_at=datetime('now');"` 실행)
+2. `status: approved` → `status: running` 업데이트 (spec.md + state.db 동기화: `sqlite3 "$(git worktree list | head -1 | awk '{print $1}')/.sdd/state.db" "INSERT INTO task_status (task_id, status, updated_at) VALUES ('SP-NNN', 'running', datetime('now')) ON CONFLICT(task_id) DO UPDATE SET status='running', updated_at=datetime('now');"` 실행)
 3. **설계 파일의 각 DoD 상세 설계를 기반으로** 자율 구현 시작
 4. CLAUDE.md의 SDD 자율 실행 규칙 준수
 
