@@ -203,6 +203,45 @@ app.add_middleware(
 )
 
 
+import time as _time
+
+
+@app.middleware("http")
+async def access_log_middleware(request: Request, call_next):
+    """모든 API 요청의 method, path, status, duration을 파일 로거에 기록한다."""
+    if request.url.path == "/health":
+        return await call_next(request)
+
+    start = _time.monotonic()
+    response = await call_next(request)
+    duration_ms = (_time.monotonic() - start) * 1000
+
+    level = _logger.warning if response.status_code >= 400 else _logger.info
+    level(
+        "[API] %s %s → %d (%.1fms)",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    """Unhandled 500 에러를 파일 로거에 기록한다.
+
+    uvicorn 터미널에만 출력되던 traceback을 logs/backend.log에도 남긴다.
+    """
+    import traceback as _tb
+
+    tb_str = "".join(_tb.format_exception(type(exc), exc, exc.__traceback__))
+    _logger.error("[500] %s %s\n%s", request.method, request.url.path, tb_str)
+    # exception_handler가 예외를 소비하므로 ASGI 미들웨어까지 전파되지 않음 — 명시 전송 필수
+    sentry_sdk.capture_exception(exc)
+    return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+
+
 # --- Static Files ---
 os.makedirs("outputs", exist_ok=True)
 app.mount("/outputs", StaticFiles(directory="outputs", html=False), name="outputs")
