@@ -202,14 +202,18 @@ def _is_worktree_in_use(task_id: str) -> bool:
     """Check if any claude process is using a worktree for this task_id."""
     import subprocess
 
-    try:
-        result = subprocess.run(
-            ["pgrep", "-f", f"worktree {task_id} "],
-            capture_output=True, timeout=5,
-        )
-        return result.returncode == 0
-    except Exception:
-        return False
+    patterns = [f"--worktree {task_id} ", f"--worktree {task_id}$"]
+    for pat in patterns:
+        try:
+            result = subprocess.run(
+                ["pgrep", "-f", pat],
+                capture_output=True, timeout=5,
+            )
+            if result.returncode == 0:
+                return True
+        except Exception:
+            pass
+    return False
 
 
 def _is_pid_alive(pid: int) -> bool:
