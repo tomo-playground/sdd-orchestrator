@@ -9,6 +9,7 @@ permissions:
   pull-requests: write
   issues: write
   actions: read
+  id-token: write
 
 concurrency:
   group: sdd-e2e-${{ github.event.pull_request.number }}
