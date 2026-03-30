@@ -80,6 +80,25 @@ async def do_launch_sdd_run(task_id: str) -> dict:
     try:
         from sdd_orchestrator.config import PROJECT_ROOT
 
+        # 기존 worktree 잔류 시 삭제 후 재생성 (충돌 방지)
+        wt_dir = PROJECT_ROOT / ".claude/worktrees" / task_id
+        if wt_dir.exists():
+            import subprocess
+
+            subprocess.run(
+                ["git", "worktree", "remove", str(wt_dir), "--force"],
+                capture_output=True,
+                timeout=10,
+                cwd=str(PROJECT_ROOT),
+            )
+            subprocess.run(
+                ["git", "worktree", "prune"],
+                capture_output=True,
+                timeout=5,
+                cwd=str(PROJECT_ROOT),
+            )
+            logger.info("Removed stale worktree before launch: %s", task_id)
+
         proc = await asyncio.create_subprocess_exec(
             "claude",
             "--worktree",
