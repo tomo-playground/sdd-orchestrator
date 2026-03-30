@@ -719,6 +719,10 @@ _IDENTITY_GROUPS = frozenset(
 _CONTEXT_TAG_FIELDS = frozenset(
     {"camera", "pose", "gaze", "action", "expression", "environment", "cinematic", "props", "time_of_day"}
 )
+# SSOT: patterns.py CATEGORY_PATTERNS["time_of_day"]
+from services.keywords.patterns import CATEGORY_PATTERNS as _CATEGORY_PATTERNS  # noqa: E402
+
+_VALID_TIME_OF_DAY = frozenset(_CATEGORY_PATTERNS["time_of_day"])
 
 
 def _has_crowd_indicators(scene: dict) -> bool:
@@ -1146,6 +1150,22 @@ def _validate_context_tag_values(scenes: list[dict]) -> None:
                         DEFAULT_GAZE_TAG,
                     )
                     ctx["gaze"] = DEFAULT_GAZE_TAG
+
+        # time_of_day 검증
+        raw_time = ctx.get("time_of_day")
+        if raw_time:
+            time_str = _coerce_str(raw_time)
+            if time_str:
+                time_norm = time_str.replace(" ", "_").lower()
+                if time_norm in _VALID_TIME_OF_DAY:
+                    ctx["time_of_day"] = time_norm
+                else:
+                    logger.warning(
+                        "[Finalize] Scene %d: invalid time_of_day '%s' → fallback 'day'",
+                        i,
+                        time_str,
+                    )
+                    ctx["time_of_day"] = "day"
 
 
 # ── DoD 4: 재조립 후 sanity check ─────────────────────────────────────
