@@ -64,7 +64,8 @@ jobs:
             else
               echo "PR #${PR_NUM} rebase conflict — Claude로 해결 시도"
               git rebase --abort 2>/dev/null
-              timeout 300 claude --worktree "${BRANCH}" --dangerously-skip-permissions -p \
+              SP_ID=$(echo "$BRANCH" | grep -oE 'SP-[0-9]+' || echo "$BRANCH")
+              timeout 300 claude --worktree "${SP_ID}" --dangerously-skip-permissions -p \
                 "이 브랜치(${BRANCH})를 main에 rebase하세요.
                 1. git fetch origin main
                 2. git rebase origin/main
