@@ -71,8 +71,15 @@ echo "$CONFLICT_PRS" | while read -r PR_NUM BRANCH; do
     # 2차: Claude가 conflict 해결
     echo "$(date '+%Y-%m-%d %H:%M') PR #${PR_NUM} conflict → Claude 해결 시도" >> "$LOG"
     SP_ID=$(echo "$BRANCH" | grep -oE 'SP-[0-9]+' || echo "conflict-${PR_NUM}")
-    # 기존 worktree 잔류 시 삭제 후 재생성 (충돌 방지)
-    [ -d "$PROJECT_DIR/.claude/worktrees/${SP_ID}" ] && git worktree remove "$PROJECT_DIR/.claude/worktrees/${SP_ID}" --force 2>/dev/null; git worktree prune 2>/dev/null
+    # 기존 worktree: 프로세스 없으면 삭제, 있으면 스킵
+    if [ -d "$PROJECT_DIR/.claude/worktrees/${SP_ID}" ]; then
+      if pgrep -f "worktree.*${SP_ID}[^0-9]" > /dev/null 2>&1 || pgrep -f "worktree ${SP_ID} " > /dev/null 2>&1; then
+        echo "$(date '+%Y-%m-%d %H:%M') ${SP_ID} worktree 사용 중 — conflict 스킵" >> "$LOG"
+        git checkout main 2>/dev/null || true
+        continue
+      fi
+      git worktree remove "$PROJECT_DIR/.claude/worktrees/${SP_ID}" --force 2>/dev/null; git worktree prune 2>/dev/null
+    fi
     claude --worktree "${SP_ID}" --dangerously-skip-permissions -p \
       "PR #${PR_NUM} (${BRANCH})에 merge conflict가 있습니다.
 1. git fetch origin ${BRANCH} && git checkout ${BRANCH}
@@ -148,8 +155,15 @@ for PR_NUM in $REVIEWED_PRS; do
 
   # 워크트리에서 Claude로 판단 기반 대응 (main 브랜치 오염 방지)
   SP_ID=$(echo "$BRANCH" | grep -oE 'SP-[0-9]+' || echo "fix-${PR_NUM}")
-  # 기존 worktree 잔류 시 삭제 후 재생성 (충돌 방지)
-  [ -d "$PROJECT_DIR/.claude/worktrees/${SP_ID}" ] && git worktree remove "$PROJECT_DIR/.claude/worktrees/${SP_ID}" --force 2>/dev/null; git worktree prune 2>/dev/null
+  # 기존 worktree: 프로세스 없으면 삭제, 있으면 스킵
+  if [ -d "$PROJECT_DIR/.claude/worktrees/${SP_ID}" ]; then
+    if pgrep -f "worktree.*${SP_ID}[^0-9]" > /dev/null 2>&1 || pgrep -f "worktree ${SP_ID} " > /dev/null 2>&1; then
+      echo "$(date '+%Y-%m-%d %H:%M') ${SP_ID} worktree 사용 중 — 피드백 스킵" >> "$LOG"
+      rm -f "$LOCK"
+      continue
+    fi
+    git worktree remove "$PROJECT_DIR/.claude/worktrees/${SP_ID}" --force 2>/dev/null; git worktree prune 2>/dev/null
+  fi
   claude --worktree "${SP_ID}" --dangerously-skip-permissions -p "PR #${PR_NUM} (브랜치: ${BRANCH}) 피드백을 대응하세요.
 
 0. 먼저 git fetch origin ${BRANCH} && git checkout ${BRANCH} 실행.
