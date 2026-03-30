@@ -1,6 +1,6 @@
 # SP-111: Docker E2E 테스트 자동화 파이프라인
 
-status: approved
+status: running
 approved_at: 2026-03-28
 
 > 상세 설계: [design.md](./design.md) 참조
