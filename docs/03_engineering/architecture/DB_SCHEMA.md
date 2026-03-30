@@ -608,9 +608,9 @@ Model + LoRAs + Embeddings 번들.
 | `description` | Text | 설명 |
 | `is_system` | Boolean | 시스템 프리셋 여부 (default: true) |
 | **Audio** | | |
-| `bgm_mode` | String(20), NOT NULL | BGM 모드 (`"file"` = 파일 선택, `"ai"` = AI 생성, server_default: `"file"`) |
-| `bgm_file` | String(255) | BGM 파일 경로 (`"random"` = 랜덤, `bgm_mode="file"` 시 폴백) |
-| `music_preset_id` | Integer (FK → music_presets, SET NULL) | Music Preset (`bgm_mode="file"` 시 우선 사용) |
+| `bgm_mode` | String(20), NOT NULL | BGM 모드 (`"manual"` = 파일 선택, `"auto"` = AI 생성, server_default: `"manual"`) |
+| `bgm_file` | String(255) | BGM 파일 경로 (`"random"` = 랜덤, `bgm_mode="manual"` 시 폴백) |
+| `music_preset_id` | Integer (FK → music_presets, SET NULL) | Music Preset (`bgm_mode="manual"` 시 우선 사용) |
 | `bgm_volume` | Float | BGM 볼륨 (0.0~1.0) |
 | `audio_ducking` | Boolean | 오디오 더킹 여부 |
 | `speed_multiplier` | Float | 재생 속도 배율 |
@@ -624,7 +624,7 @@ Model + LoRAs + Embeddings 번들.
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
 **CHECK 제약조건**:
-- `ck_render_presets_bgm_mode`: `bgm_mode IN ('file', 'ai')`
+- `ck_render_presets_bgm_mode`: `bgm_mode IN ('manual', 'auto')`
 
 ### `voice_presets`
 재사용 가능한 음성 프리셋. TTS 렌더링 시 사용.
@@ -791,7 +791,7 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 | `TagAlias.target_tag` | String(100) or `NULL` (= remove tag) | — |
 | `TagFilter.filter_type` | `ignore`, `skip`, `restricted` | `ck_tag_filters_filter_type` |
 | `VoicePreset.source_type` | `generated`, `uploaded` | `ck_voice_presets_source_type` |
-| `RenderPreset.bgm_mode` | `file`, `ai` | `ck_render_presets_bgm_mode` |
+| `RenderPreset.bgm_mode` | `manual`, `auto` | `ck_render_presets_bgm_mode` |
 | `Embedding.embedding_type` | `negative`, `positive`, `style` | `ck_embeddings_embedding_type` |
 | `ActivityLog.status` | `success`, `fail` | — |
 | `CreativeSession.status` | `pending`, `running`, `completed`, `failed` | — |

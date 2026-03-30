@@ -10,7 +10,7 @@ class RenderPreset(Base, TimestampMixin):
     """Reusable render settings preset."""
 
     __tablename__ = "render_presets"
-    __table_args__ = (CheckConstraint("bgm_mode IN ('file', 'ai')", name="ck_render_presets_bgm_mode"),)
+    __table_args__ = (CheckConstraint("bgm_mode IN ('manual', 'auto')", name="ck_render_presets_bgm_mode"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)

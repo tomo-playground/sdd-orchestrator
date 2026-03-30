@@ -131,7 +131,7 @@ class RenderPresetUpdate(BaseModel):
     ken_burns_preset: str | None = None
     ken_burns_intensity: float | None = None
     speed_multiplier: float | None = None
-    bgm_mode: Literal["manual", "auto"] | None = None
+    bgm_mode: Literal["manual", "auto"] = "manual"
     music_preset_id: int | None = None
 
 
@@ -155,6 +155,12 @@ class RenderPresetResponse(BaseModel):
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    @field_validator("bgm_mode", mode="before")
+    @classmethod
+    def _coerce_bgm_mode(cls, v: object) -> str:
+        """DB에 NULL이 저장된 경우 기본값 'manual'로 복구."""
+        return v if v is not None else "manual"
 
 
 class GroupCreate(BaseModel):

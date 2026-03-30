@@ -1,5 +1,6 @@
 """Tests for cascading config resolver."""
 
+from schemas import RenderPresetResponse
 from services.config_resolver import resolve_effective_config
 
 
@@ -10,6 +11,62 @@ class _Obj:
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+
+# ===========================================================================
+# Unit tests — RenderPresetResponse schema
+# ===========================================================================
+
+
+class TestRenderPresetResponseSchema:
+    """bgm_mode NULL 처리 — Sentry #369 회귀 방지."""
+
+    def test_bgm_mode_none_coerced_to_manual(self):
+        """bgm_mode=None (DB NULL) 시 'manual'로 복구되어 ValidationError 없음."""
+        obj = _Obj(id=1, name="Test", bgm_mode=None)
+        resp = RenderPresetResponse.model_validate(obj)
+        assert resp.bgm_mode == "manual"
+
+    def test_bgm_mode_manual_preserved(self):
+        obj = _Obj(id=1, name="Test", bgm_mode="manual")
+        resp = RenderPresetResponse.model_validate(obj)
+        assert resp.bgm_mode == "manual"
+
+    def test_bgm_mode_auto_preserved(self):
+        obj = _Obj(id=1, name="Test", bgm_mode="auto")
+        resp = RenderPresetResponse.model_validate(obj)
+        assert resp.bgm_mode == "auto"
+
+
+class TestRenderPresetUpdateSchema:
+    """RenderPresetUpdate bgm_mode 쓰기 경로 방어 — Sentry #369 근본 원인."""
+
+    def test_bgm_mode_null_rejected(self):
+        """bgm_mode=null → ValidationError (NOT NULL 컬럼 보호)."""
+        import pytest
+        from pydantic import ValidationError
+
+        from schemas import RenderPresetUpdate
+
+        with pytest.raises(ValidationError):
+            RenderPresetUpdate(bgm_mode=None)
+
+    def test_bgm_mode_unset_excluded(self):
+        """bgm_mode 미전송 시 exclude_unset에서 제외."""
+        from schemas import RenderPresetUpdate
+
+        update = RenderPresetUpdate(name="test")
+        dump = update.model_dump(exclude_unset=True)
+        assert "bgm_mode" not in dump
+
+    def test_bgm_mode_valid_values_accepted(self):
+        """manual/auto 정상 수락."""
+        from schemas import RenderPresetUpdate
+
+        for mode in ("manual", "auto"):
+            update = RenderPresetUpdate(bgm_mode=mode)
+            dump = update.model_dump(exclude_unset=True)
+            assert dump["bgm_mode"] == mode
 
 
 # ===========================================================================
