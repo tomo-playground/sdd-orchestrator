@@ -81,7 +81,7 @@ def summarize_prs(prs: list[dict]) -> list[dict]:
         ci_status = _aggregate_check_status(checks)
 
         review = pr.get("reviewDecision")
-        mergeable = ci_status == "success" and review == "APPROVED"
+        mergeable = ci_status in ("success", "none") and review == "APPROVED"
 
         results.append(
             {
@@ -114,8 +114,13 @@ def _aggregate_check_status(checks: list[dict]) -> str:
         or "queued" in statuses
     ):
         return "pending"
-    if "" in statuses or None in statuses:
-        return "pending"
+    # conclusion=None with no real checks → no CI configured, not pending
+    completed = {"SUCCESS", "SKIPPED", "success", "skipped", "NEUTRAL", "neutral"}
+    real_statuses = statuses - {"", None}
+    if not real_statuses:
+        return "none"
+    if real_statuses <= completed:
+        return "success"
     return "success"
 
 
