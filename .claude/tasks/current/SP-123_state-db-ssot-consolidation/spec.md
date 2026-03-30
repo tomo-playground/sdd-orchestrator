@@ -1,6 +1,7 @@
 # SP-123: 태스크 상태 SSOT 통일 — state.db 단일화
 
-- **status**: design
+- **status**: approved
+- **approved_at**: 2026-03-31
 - **branch**: feat/SP-123_state-db-ssot-consolidation
 - **priority**: P1
 - **scope**: sdd-orchestrator, .claude/commands, .claude/scripts
