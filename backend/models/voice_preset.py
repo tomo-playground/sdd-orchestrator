@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base, TimestampMixin
@@ -15,6 +15,7 @@ class VoicePreset(Base, TimestampMixin):
     """Reusable voice preset for TTS rendering."""
 
     __tablename__ = "voice_presets"
+    __table_args__ = (CheckConstraint("source_type IN ('generated', 'uploaded')", name="ck_voice_presets_source_type"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)

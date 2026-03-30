@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, CheckConstraint, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, TimestampMixin
@@ -10,6 +10,7 @@ class RenderPreset(Base, TimestampMixin):
     """Reusable render settings preset."""
 
     __tablename__ = "render_presets"
+    __table_args__ = (CheckConstraint("bgm_mode IN ('file', 'ai')", name="ck_render_presets_bgm_mode"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)

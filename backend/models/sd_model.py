@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ARRAY, Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import ARRAY, Boolean, CheckConstraint, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -46,6 +46,9 @@ class Embedding(Base, TimestampMixin):
     """Textual Inversion embeddings (negative embeddings, etc.)."""
 
     __tablename__ = "embeddings"
+    __table_args__ = (
+        CheckConstraint("embedding_type IN ('negative', 'positive', 'style')", name="ck_embeddings_embedding_type"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)

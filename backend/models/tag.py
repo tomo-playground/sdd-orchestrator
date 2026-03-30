@@ -2,7 +2,7 @@
 
 import re
 
-from sqlalchemy import Float, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, Float, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from models.base import Base, TimestampMixin
@@ -15,7 +15,10 @@ class Tag(Base, TimestampMixin):
     """Essential Tag model with 12-Layer semantic data."""
 
     __tablename__ = "tags"
-    __table_args__ = (Index("idx_tags_layer", "default_layer"),)
+    __table_args__ = (
+        CheckConstraint("usage_scope IN ('PERMANENT', 'TRANSIENT', 'ANY')", name="ck_tags_usage_scope"),
+        Index("idx_tags_layer", "default_layer"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
@@ -82,7 +85,13 @@ class ClassificationRule(Base, TimestampMixin):
     """Dynamic tag classification rules (15.7)."""
 
     __tablename__ = "classification_rules"
-    __table_args__ = (Index("idx_rules_pattern", "rule_type", "pattern", unique=True),)
+    __table_args__ = (
+        CheckConstraint(
+            "rule_type IN ('exact', 'prefix', 'suffix', 'contains')",
+            name="ck_classification_rules_rule_type",
+        ),
+        Index("idx_rules_pattern", "rule_type", "pattern", unique=True),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     rule_type: Mapped[str] = mapped_column(String(20))  # exact, prefix, suffix, contains
@@ -100,6 +109,7 @@ class TagRule(Base, TimestampMixin):
     """
 
     __tablename__ = "tag_rules"
+    __table_args__ = (CheckConstraint("rule_type IN ('conflict', 'requires')", name="ck_tag_rules_rule_type"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     rule_type: Mapped[str] = mapped_column(String(20))  # conflict, requires

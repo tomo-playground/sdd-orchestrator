@@ -13,6 +13,10 @@ COPY --from=ghcr.io/astral-sh/uv:0.6 /uv /usr/local/bin/uv
 
 WORKDIR /app
 
+# uv가 시스템 Python 사용하도록 설정 (.python-version 무시)
+ENV UV_PYTHON_PREFERENCE=only-system \
+    UV_PYTHON=python3
+
 # 의존성 먼저 복사 (캐시 레이어)
 COPY backend/pyproject.toml backend/uv.lock* ./
 RUN uv sync --frozen --no-dev
@@ -30,8 +34,9 @@ RUN mkdir -p outputs logs
 
 # non-root 사용자 생성
 RUN addgroup --system app && adduser --system --ingroup app app && \
-    mkdir -p /app/.cache && chown -R app:app /app
+    mkdir -p /app/.cache /home/app && chown -R app:app /app /home/app
 USER app
+ENV HOME=/home/app
 
 # E2E 전용 환경변수 (docker-compose에서 오버라이드 가능)
 ENV APP_ENV=e2e \

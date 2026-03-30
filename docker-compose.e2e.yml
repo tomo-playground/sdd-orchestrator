@@ -1,6 +1,8 @@
 # E2E Test Docker Compose
 # 개발 환경과 완전 격리: 별도 포트, 별도 DB, 별도 네트워크
 # Usage: docker compose -f docker-compose.e2e.yml up --build --abort-on-container-exit
+name: shorts-e2e
+
 services:
   e2e-db:
     image: postgres:16-alpine
@@ -46,8 +48,7 @@ services:
     depends_on:
       e2e-backend:
         condition: service_healthy
-    environment:
-      BACKEND_ORIGIN: http://e2e-backend:8000
+    # BACKEND_ORIGIN은 Dockerfile ARG에서 빌드 시 주입 (rewrites 빌드 타임 평가)
     ports:
       - "13000:3000"
     networks:

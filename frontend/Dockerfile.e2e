@@ -11,9 +11,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY frontend/ .
 
 # Sentry 빌드 비활성화 (E2E에서 불필요)
+# BACKEND_ORIGIN: Next.js rewrites()가 빌드 시 평가되므로 빌드 인자로 전달
+ARG BACKEND_ORIGIN=http://e2e-backend:8000
 ENV SENTRY_ORG="" \
     SENTRY_PROJECT="" \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    BACKEND_ORIGIN=${BACKEND_ORIGIN}
 
 RUN npm run build
 

@@ -54,7 +54,7 @@ jobs:
         id: docker
         run: |
           echo "::group::Docker Compose Build & Start"
-          docker compose -f docker-compose.e2e.yml up -d --build 2>&1
+          docker compose -p shorts-e2e -f docker-compose.e2e.yml up -d --build 2>&1
           echo "::endgroup::"
 
           echo "::group::Wait for services"
@@ -128,7 +128,7 @@ jobs:
                ```
             4. 테스트가 실패하면 최대 2회 자동 수정을 시도하세요:
                - 에러 로그 + 스크린샷을 분석
-               - 코드 수정 (PR 브랜치의 소스코드 또는 테스트 코드)
+               - 테스트 코드만 수정 (소스코드 수정 금지 — 소스 수정은 별도 PR)
                - 재실행
             5. 최종 결과(통과/실패)를 PR 코멘트로 남기세요.
 
@@ -149,5 +149,5 @@ jobs:
       - name: Teardown Docker E2E
         if: always() && steps.testplan.outputs.skip != 'true'
         run: |
-          docker compose -f docker-compose.e2e.yml down -v --remove-orphans 2>/dev/null || true
+          docker compose -p shorts-e2e -f docker-compose.e2e.yml down -v --remove-orphans 2>/dev/null || true
           docker image prune -f 2>/dev/null || true

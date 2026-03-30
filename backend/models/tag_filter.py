@@ -1,6 +1,6 @@
 """Tag filter model for managing ignore/skip tags."""
 
-from sqlalchemy import Boolean, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base, TimestampMixin
@@ -10,6 +10,9 @@ class TagFilter(Base, TimestampMixin):
     """Filter rules for tags (ignore/skip)."""
 
     __tablename__ = "tag_filters"
+    __table_args__ = (
+        CheckConstraint("filter_type IN ('ignore', 'skip', 'restricted')", name="ck_tag_filters_filter_type"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     tag_name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)

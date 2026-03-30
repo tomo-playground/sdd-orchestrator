@@ -72,14 +72,14 @@ VALUES (1, 'e2e_test_lora', 'E2E Test LoRA', 'character', ARRAY['e2e_trigger'], 
 ON CONFLICT (id) DO NOTHING;
 
 -- Sequence 동기화 (INSERT 후 auto-increment가 충돌하지 않도록)
-SELECT setval('sd_models_id_seq', GREATEST((SELECT MAX(id) FROM sd_models), 1));
-SELECT setval('style_profiles_id_seq', GREATEST((SELECT MAX(id) FROM style_profiles), 1));
-SELECT setval('render_presets_id_seq', GREATEST((SELECT MAX(id) FROM render_presets), 1));
-SELECT setval('voice_presets_id_seq', GREATEST((SELECT MAX(id) FROM voice_presets), 1));
-SELECT setval('projects_id_seq', GREATEST((SELECT MAX(id) FROM projects), 1));
-SELECT setval('groups_id_seq', GREATEST((SELECT MAX(id) FROM groups), 1));
-SELECT setval('characters_id_seq', GREATEST((SELECT MAX(id) FROM characters), 1));
-SELECT setval('storyboards_id_seq', GREATEST((SELECT MAX(id) FROM storyboards), 1));
-SELECT setval('scenes_id_seq', GREATEST((SELECT MAX(id) FROM scenes), 1));
-SELECT setval('storyboard_characters_id_seq', GREATEST((SELECT MAX(id) FROM storyboard_characters), 1));
-SELECT setval('loras_id_seq', GREATEST((SELECT MAX(id) FROM loras), 1));
+SELECT setval(pg_get_serial_sequence('sd_models', 'id'), GREATEST((SELECT MAX(id) FROM sd_models), 1));
+SELECT setval(pg_get_serial_sequence('style_profiles', 'id'), GREATEST((SELECT MAX(id) FROM style_profiles), 1));
+SELECT setval(pg_get_serial_sequence('render_presets', 'id'), GREATEST((SELECT MAX(id) FROM render_presets), 1));
+SELECT setval(pg_get_serial_sequence('voice_presets', 'id'), GREATEST((SELECT MAX(id) FROM voice_presets), 1));
+SELECT setval(pg_get_serial_sequence('projects', 'id'), GREATEST((SELECT MAX(id) FROM projects), 1));
+SELECT setval(pg_get_serial_sequence('groups', 'id'), GREATEST((SELECT MAX(id) FROM groups), 1));
+SELECT setval(pg_get_serial_sequence('characters', 'id'), GREATEST((SELECT MAX(id) FROM characters), 1));
+SELECT setval(pg_get_serial_sequence('storyboards', 'id'), GREATEST((SELECT MAX(id) FROM storyboards), 1));
+SELECT setval(pg_get_serial_sequence('scenes', 'id'), GREATEST((SELECT MAX(id) FROM scenes), 1));
+SELECT setval(pg_get_serial_sequence('storyboard_characters', 'id'), GREATEST((SELECT MAX(id) FROM storyboard_characters), 1));
+SELECT setval(pg_get_serial_sequence('loras', 'id'), GREATEST((SELECT MAX(id) FROM loras), 1));
