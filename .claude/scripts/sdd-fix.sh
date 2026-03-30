@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# 동시 실행 방지
+exec 9>/tmp/sdd-fix.lock
+flock -n 9 || exit 0
+
 export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node/ 2>/dev/null | tail -1)/bin:$PATH"
 
 PROJECT_DIR="/home/tomo/Workspace/shorts-producer"
