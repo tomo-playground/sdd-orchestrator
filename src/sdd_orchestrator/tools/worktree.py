@@ -80,9 +80,11 @@ async def do_launch_sdd_run(task_id: str) -> dict:
     try:
         from sdd_orchestrator.config import PROJECT_ROOT
 
-        # 기존 worktree 잔류 시 삭제 후 재생성 (충돌 방지)
+        # 기존 worktree 잔류 시: 프로세스 없으면 삭제, 있으면 스킵
         wt_dir = PROJECT_ROOT / ".claude/worktrees" / task_id
         if wt_dir.exists():
+            if _is_worktree_in_use(task_id):
+                return _error(f"{task_id} worktree is in use by another process — skipping launch")
             import subprocess
 
             subprocess.run(
@@ -194,6 +196,20 @@ def _has_open_pr(task_id: str) -> str | None:
     except Exception:
         logger.warning("Failed to check open PR for %s", task_id, exc_info=True)
     return None
+
+
+def _is_worktree_in_use(task_id: str) -> bool:
+    """Check if any claude process is using a worktree for this task_id."""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["pgrep", "-f", f"worktree {task_id} "],
+            capture_output=True, timeout=5,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
 
 
 def _is_pid_alive(pid: int) -> bool:
