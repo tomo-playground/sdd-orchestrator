@@ -75,6 +75,8 @@ async def do_launch_sdd_run(task_id: str) -> dict:
         return _error(f"{task_id} already has open PR ({open_pr}) — skipping launch")
 
     try:
+        from sdd_orchestrator.config import PROJECT_ROOT
+
         proc = await asyncio.create_subprocess_exec(
             "claude",
             "--worktree",
@@ -82,6 +84,7 @@ async def do_launch_sdd_run(task_id: str) -> dict:
             "--dangerously-skip-permissions",
             "-p",
             f"/sdd-run {task_id}",
+            cwd=str(PROJECT_ROOT),
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
         )
