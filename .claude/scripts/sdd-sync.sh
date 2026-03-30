@@ -41,7 +41,7 @@ if [ "$PULL_OK" = false ]; then
 fi
 for TASK_FILE in "$PROJECT_DIR/.claude/tasks/current"/SP-*/spec.md "$PROJECT_DIR/.claude/tasks/current"/SP-*.md; do
   [ -f "$TASK_FILE" ] || continue
-  TASK_BRANCH=$(grep '^branch:' "$TASK_FILE" 2>/dev/null | sed 's/^branch: *//' | tr -d '[:space:]' || true)
+  TASK_BRANCH=$(grep -iE '^\*{0,2}-?\s*\*{0,2}branch\*{0,2}:' "$TASK_FILE" 2>/dev/null | sed -E 's/^.*branch\*{0,2}:\s*//' | tr -d '[:space:]' || true)
   # branch 필드 없으면 스킵 (퍼지 검색은 오탐 위험 — SP-111→SP-035 사고)
   if [ -z "$TASK_BRANCH" ]; then
     continue
