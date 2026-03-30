@@ -1,8 +1,8 @@
 # Database Schema Summary
 
-Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.37) 참조.
+Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md) (v3.39) 참조.
 
-> **Last Synced:** 2026-03-24 (DB_SCHEMA v3.37 기준)
+> **Last Synced:** 2026-03-30 (DB_SCHEMA v3.39 기준)
 
 ---
 
@@ -110,9 +110,10 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 
 ### `embeddings` — 임베딩 모델
 - `id` (PK), `name` (Unique), `display_name`
-- `embedding_type`, `trigger_word`
+- `embedding_type` (`negative`/`positive`/`style`), `trigger_word`
 - `base_model` (SD1.5, SDXL 등)
 - `description`, `is_active`
+- CHECK: `ck_embeddings_embedding_type` (`embedding_type IN ('negative', 'positive', 'style')`)
 
 ---
 
@@ -120,13 +121,15 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 
 ### `render_presets` — 렌더링 설정 프리셋
 - `id` (PK), `name`, `description`, `is_system`
-- **Audio**: `bgm_mode` (NOT NULL, default: `"manual"`), `bgm_file`, `music_preset_id` (FK), `bgm_volume`, `audio_ducking`, `speed_multiplier`
+- **Audio**: `bgm_mode` (NOT NULL, default: `"file"`), `bgm_file`, `music_preset_id` (FK), `bgm_volume`, `audio_ducking`, `speed_multiplier`
 - **Visual**: `layout_style`, `frame_style`, `scene_text_font`, `transition_type`, `ken_burns_preset`, `ken_burns_intensity`
+- CHECK: `ck_render_presets_bgm_mode` (`bgm_mode IN ('file', 'ai')`)
 
 ### `voice_presets` — 음성 프리셋
 - `id` (PK), `name`, `description`
 - `source_type` (`generated`/`uploaded`), `tts_engine`
 - `audio_asset_id` (FK), `voice_design_prompt`, `language`, `sample_text`, `voice_seed`, `is_system`
+- CHECK: `ck_voice_presets_source_type` (`source_type IN ('generated', 'uploaded')`)
 
 ### `music_presets` — AI BGM 프리셋
 - `id` (PK), `name`, `description`, `prompt`, `duration`, `seed`
@@ -142,16 +145,23 @@ Shorts Producer 스키마 요약. 상세 명세는 [DB_SCHEMA.md](./DB_SCHEMA.md
 - `classification_source`, `classification_confidence`
 - `valence` (nullable, indexed)
 - `is_active`, `deprecated_reason`, `replacement_tag_id` (FK)
+- CHECK: `ck_tags_usage_scope` (`usage_scope IN ('PERMANENT', 'TRANSIENT', 'ANY')`)
 
 ### `tag_rules` — 태그 충돌/의존성 규칙
 - `id` (PK), `rule_type` (`conflict`/`requires`), `source_tag_id` (FK → tags, CASCADE), `target_tag_id` (FK → tags, CASCADE)
 - `message`, `priority`, `is_active`
+- CHECK: `ck_tag_rules_rule_type` (`rule_type IN ('conflict', 'requires')`)
 
 ### `tag_aliases` — 비표준 태그 자동 치환
 - `id` (PK), `source_tag`, `target_tag` (String(100), nullable=삭제), `reason`, `is_active`
 
 ### `tag_filters` — 무시/스킵 태그
-- `id` (PK), `tag_name` (Unique), `filter_type` (`ignore`/`skip`), `reason`, `is_active`
+- `id` (PK), `tag_name` (Unique), `filter_type` (`ignore`/`skip`/`restricted`), `reason`, `is_active`
+- CHECK: `ck_tag_filters_filter_type` (`filter_type IN ('ignore', 'skip', 'restricted')`)
+
+### `classification_rules` — 패턴 기반 태그 자동 분류 규칙
+- `id` (PK), `rule_type` (`exact`/`prefix`/`suffix`/`contains`), `pattern`, `target_group`, `priority`, `is_active`
+- CHECK: `ck_classification_rules_rule_type` (`rule_type IN ('exact', 'prefix', 'suffix', 'contains')`)
 
 ### `tag_effectiveness` — WD14 피드백 루프
 - `id` (PK), `tag_id` (FK → tags, CASCADE, UNIQUE), `use_count`, `match_count`, `effectiveness`

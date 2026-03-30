@@ -1,4 +1,4 @@
-# Database Schema (v3.38)
+# Database Schema (v3.39)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.39 | 2026-03-30 | PR #363 ORM CHECK 제약조건 선언 동기화: `tags`, `classification_rules`, `tag_rules`, `tag_filters`, `voice_presets`, `render_presets`, `embeddings` 7개 테이블 CHECK 제약조건 문서화 (DB 스키마 변경 없음, ORM 선언만 추가) |
 | v3.38 | 2026-03-29 | SP-117: `sd_models`에 NoobAI-XL Epsilon 1.1 (`noobaiXL_epsPred11.safetensors`) 추가, v-pred 체크포인트 비활성화(`is_active=false`), `style_profiles` id=3을 epsilon 모델로 업데이트 + `default_cfg_scale=7.0` |
 | v3.37 | 2026-03-24 | SP-075: `story_cards` 테이블 신규 추가. `groups`에 `story_cards` relationship 추가 |
 | v3.36 | 2026-03-24 | SP-021 Speaker ID 정규화: `scenes.speaker` default `"Narrator"` → `"narrator"`, 데이터 변환 (`A`→`speaker_1`, `B`→`speaker_2`, `Narrator`→`narrator`). `storyboard_characters.speaker` 동일 변환 |
@@ -348,6 +349,9 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `replacement_tag_id` | Integer (FK → tags, SET NULL) | 대체 태그 ID |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
+**CHECK 제약조건**:
+- `ck_tags_usage_scope`: `usage_scope IN ('PERMANENT', 'TRANSIENT', 'ANY')`
+
 **`default_layer` 매핑** (12-Layer System):
 
 | 값 | 상수 | 용도 | 예시 태그 |
@@ -382,6 +386,9 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | `is_active` | Boolean | 활성 여부 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
 
+**CHECK 제약조건**:
+- `ck_tag_rules_rule_type`: `rule_type IN ('conflict', 'requires')`
+
 > **Removed**: `source_category`, `target_category` (Phase 6-4.26)
 > 카테고리 간 충돌은 논리적으로 불가능. 모든 충돌은 개별 태그 레벨에서만 발생.
 
@@ -404,10 +411,13 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 |--------|------|-------------|
 | `id` | Integer (PK) | |
 | `tag_name` | String(100) | Unique, 필터 대상 태그 |
-| `filter_type` | String(20) | `ignore` or `skip` |
+| `filter_type` | String(20) | `ignore`, `skip`, `restricted` |
 | `reason` | String(200) | 필터 사유 |
 | `is_active` | Boolean | 활성 여부 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**CHECK 제약조건**:
+- `ck_tag_filters_filter_type`: `filter_type IN ('ignore', 'skip', 'restricted')`
 
 ### `classification_rules`
 패턴 기반 태그 자동 분류 규칙.
@@ -415,12 +425,15 @@ YouTube Shorts 프로젝트 단위. 개별 에피소드를 의미합니다.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | Integer (PK) | |
-| `rule_type` | String(20) | `suffix`, `prefix`, `contains`, `exact` |
+| `rule_type` | String(20) | `exact`, `prefix`, `suffix`, `contains` |
 | `pattern` | String(100) | 매칭 패턴 (`_hair`, `eyes`) |
 | `target_group` | String(50) | 대상 그룹 |
 | `priority` | Integer | 평가 순서 |
 | `is_active` | Boolean | 활성 여부 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**CHECK 제약조건**:
+- `ck_classification_rules_rule_type`: `rule_type IN ('exact', 'prefix', 'suffix', 'contains')`
 
 ### `tag_effectiveness`
 WD14 피드백 루프 데이터.
@@ -595,9 +608,9 @@ Model + LoRAs + Embeddings 번들.
 | `description` | Text | 설명 |
 | `is_system` | Boolean | 시스템 프리셋 여부 (default: true) |
 | **Audio** | | |
-| `bgm_mode` | String(20), NOT NULL | BGM 모드 (`"manual"` = 수동 선택, `"auto"` = Sound Designer 자동, server_default: `"manual"`) |
-| `bgm_file` | String(255) | BGM 파일 경로 (`"random"` = 랜덤, `bgm_mode="manual"` 시 폴백) |
-| `music_preset_id` | Integer (FK → music_presets, SET NULL) | Music Preset (`bgm_mode="manual"` 시 우선 사용) |
+| `bgm_mode` | String(20), NOT NULL | BGM 모드 (`"file"` = 파일 선택, `"ai"` = AI 생성, server_default: `"file"`) |
+| `bgm_file` | String(255) | BGM 파일 경로 (`"random"` = 랜덤, `bgm_mode="file"` 시 폴백) |
+| `music_preset_id` | Integer (FK → music_presets, SET NULL) | Music Preset (`bgm_mode="file"` 시 우선 사용) |
 | `bgm_volume` | Float | BGM 볼륨 (0.0~1.0) |
 | `audio_ducking` | Boolean | 오디오 더킹 여부 |
 | `speed_multiplier` | Float | 재생 속도 배율 |
@@ -609,6 +622,9 @@ Model + LoRAs + Embeddings 번들.
 | `ken_burns_preset` | String(50) | Ken Burns 프리셋 |
 | `ken_burns_intensity` | Float | Ken Burns 강도 |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**CHECK 제약조건**:
+- `ck_render_presets_bgm_mode`: `bgm_mode IN ('file', 'ai')`
 
 ### `voice_presets`
 재사용 가능한 음성 프리셋. TTS 렌더링 시 사용.
@@ -627,6 +643,9 @@ Model + LoRAs + Embeddings 번들.
 | `voice_seed` | Integer | 음성 시드 (VoiceDesign 재현용) |
 | `is_system` | Boolean | 시스템 프리셋 여부 (default: false) |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**CHECK 제약조건**:
+- `ck_voice_presets_source_type`: `source_type IN ('generated', 'uploaded')`
 
 **Read-only 속성**:
 - `audio_url` (`@property`): `audio_asset.url` 반환
@@ -654,12 +673,15 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 | `id` | Integer (PK) | |
 | `name` | String(200) | Unique |
 | `display_name` | String(200) | |
-| `embedding_type` | String(50) | |
+| `embedding_type` | String(50) | `negative`, `positive`, `style` |
 | `trigger_word` | String(100) | |
 | `base_model` | String(50) | SD1.5, SDXL 등 |
 | `description` | Text | |
 | `is_active` | Boolean | |
 | `created_at`, `updated_at` | DateTime | 타임스탬프 |
+
+**CHECK 제약조건**:
+- `ck_embeddings_embedding_type`: `embedding_type IN ('negative', 'positive', 'style')`
 
 ## Analytics & History
 
@@ -758,21 +780,24 @@ Textual Inversion 임베딩. 구현 완료 (현재 4건 데이터, CRUD + StyleC
 
 ## Enums
 
-| Enum | Values |
-|------|--------|
-| `Tag.usage_scope` | `PERMANENT`, `TRANSIENT`, `ANY` |
-| `Tag.classification_source` | `pattern`, `danbooru`, `llm`, `manual` |
-| `LoRA.lora_type` | `character`, `style`, `concept`, `pose` |
-| `Scene.scene_mode` | `single`, `multi` |
-| `TagRule.rule_type` | `conflict`, `requires` |
-| `TagAlias.target_tag` | String(100) or `NULL` (= remove tag) |
-| `TagFilter.filter_type` | `ignore`, `skip` |
-| `RenderPreset.bgm_mode` | `manual`, `auto` |
-| `ActivityLog.status` | `success`, `fail` |
-| `CreativeSession.status` | `pending`, `running`, `completed`, `failed` |
-| `CreativeSessionRound.round_decision` | `revise`, `approve`, `reject` |
-| `CreativeTrace.trace_type` | `thought`, `action`, `observation` |
-| `RenderHistory.youtube_upload_status` | `pending`, `uploaded`, `failed` |
+| Enum | Values | CHECK 제약조건 |
+|------|--------|--------------|
+| `Tag.usage_scope` | `PERMANENT`, `TRANSIENT`, `ANY` | `ck_tags_usage_scope` |
+| `Tag.classification_source` | `pattern`, `danbooru`, `llm`, `manual` | — |
+| `LoRA.lora_type` | `character`, `style`, `concept`, `pose` | — |
+| `Scene.scene_mode` | `single`, `multi` | — |
+| `ClassificationRule.rule_type` | `exact`, `prefix`, `suffix`, `contains` | `ck_classification_rules_rule_type` |
+| `TagRule.rule_type` | `conflict`, `requires` | `ck_tag_rules_rule_type` |
+| `TagAlias.target_tag` | String(100) or `NULL` (= remove tag) | — |
+| `TagFilter.filter_type` | `ignore`, `skip`, `restricted` | `ck_tag_filters_filter_type` |
+| `VoicePreset.source_type` | `generated`, `uploaded` | `ck_voice_presets_source_type` |
+| `RenderPreset.bgm_mode` | `file`, `ai` | `ck_render_presets_bgm_mode` |
+| `Embedding.embedding_type` | `negative`, `positive`, `style` | `ck_embeddings_embedding_type` |
+| `ActivityLog.status` | `success`, `fail` | — |
+| `CreativeSession.status` | `pending`, `running`, `completed`, `failed` | — |
+| `CreativeSessionRound.round_decision` | `revise`, `approve`, `reject` | — |
+| `CreativeTrace.trace_type` | `thought`, `action`, `observation` | — |
+| `RenderHistory.youtube_upload_status` | `pending`, `uploaded`, `failed` | — |
 
 ---
 
@@ -782,7 +807,7 @@ ORM 모델 컬럼 선언 순서: PK → Parent FK → Identity(name) → Metadat
 
 ---
 
-**Last Updated:** 2026-03-23
-**Schema Version:** v3.34
+**Last Updated:** 2026-03-30
+**Schema Version:** v3.39
 **ORM:** SQLAlchemy 2.0 (Mapped Columns)
 **Migrations:** Alembic
