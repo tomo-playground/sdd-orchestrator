@@ -1,5 +1,10 @@
 # SP-117: Atmosphere 에이전트 time_of_day 품질 검증
 
+branch: feat/SP-117_atmosphere-time-of-day
+status: approved | approved_at: 2026-03-30
+priority: P1
+scope: backend
+
 ## 배경
 NoobAI-XL v-pred 모델이 시간 태그 없이 생성 시 dark/night 기본값으로 파란색 이미지를 만드는 문제가 있었음.
 PR #358에서 fallback `day` 태그와 Atmosphere 에이전트 `time_of_day` 필드를 추가했지만,
