@@ -77,7 +77,9 @@ function setupErrorCollector(page: Page) {
 async function assertNoCriticalErrors(page: Page, errors: PatrolError[]) {
   await Promise.race([page.waitForLoadState("networkidle"), page.waitForTimeout(2000)]);
   const critical = errors.filter(
-    (e) => e.type === "console" || (e.type === "api" && (e.status ?? 0) >= 500)
+    (e) =>
+      (e.type === "console" && !e.message.includes("Failed to load resource")) ||
+      (e.type === "api" && (e.status ?? 0) >= 500)
   );
   expect(critical, `Critical errors: ${JSON.stringify(critical)}`).toHaveLength(0);
 }

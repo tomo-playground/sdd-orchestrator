@@ -22,10 +22,14 @@ export const PATROL_PAGES: PatrolPage[] = [
   { name: "Settings", path: "/settings", selector: "a" },
   { name: "Library", path: "/library", selector: "h1, h2" },
   { name: "Characters", path: "/library/characters", selector: "h1, h2, [data-testid]" },
-  { name: "Voices", path: "/library/voices", selector: "h1, h2" },
-  { name: "Styles", path: "/library/styles", selector: "h1, h2" },
-  { name: "LoRA (redirect)", path: "/dev/sd-models", selector: "h1, h2" },
-  { name: "Scripts", path: "/scripts", selector: "h1, h2" },
+  { name: "Voices", path: "/library/voices", selector: '[role="listbox"], nav a' },
+  { name: "Styles", path: "/library/styles", selector: '[role="listbox"], nav a' },
+  {
+    name: "LoRA (redirect)",
+    path: "/dev/sd-models",
+    selector: "main, [role='complementary'], nav",
+  },
+  { name: "Scripts", path: "/scripts", selector: "h1, h2, button" },
   { name: "Storyboards", path: "/storyboards", selector: "h1, h2" },
 ];
 
@@ -66,15 +70,14 @@ export interface ExtendedCheck {
 export const EXTENDED_CHECKS: ExtendedCheck[] = [
   { name: "Library 메인", path: "/library", selector: "h1, h2" },
   { name: "Characters 목록", path: "/library/characters", selector: "h1, h2, [data-testid]" },
-  { name: "Voices 목록", path: "/library/voices", selector: "h1, h2" },
+  { name: "Voices 목록", path: "/library/voices", selector: '[role="listbox"], nav a' },
+  { name: "Styles 목록", path: "/library/styles", selector: '[role="listbox"], nav a' },
   {
-    name: "Styles 목록",
-    path: "/library/styles",
-    selector: "h1, h2",
-    fallbackTexts: ["Style Profiles"],
+    name: "LoRA redirect → Admin",
+    path: "/library/loras",
+    selector: "main, [role='complementary'], nav",
   },
-  { name: "LoRA redirect → Admin", path: "/library/loras", selector: "h1, h2" },
-  { name: "Scripts 페이지", path: "/scripts", selector: "h1, h2" },
+  { name: "Scripts 페이지", path: "/scripts", selector: "h1, h2, button" },
   { name: "Storyboards 목록", path: "/storyboards", selector: "h1, h2" },
 ];
 

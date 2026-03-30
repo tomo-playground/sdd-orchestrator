@@ -19,7 +19,7 @@ test.describe("Smoke Tests", () => {
   test("Studio page loads and tab switching works", async ({ page }) => {
     await page.goto("/studio?new=true");
 
-    // Wait for either editor tabs or kanban view (depends on DB state)
+    // Wait for either editor tabs, kanban view, or series selection screen (depends on DB state)
     const scriptTab = page.getByRole("button", {
       name: "대본",
       exact: true,
@@ -27,8 +27,18 @@ test.describe("Smoke Tests", () => {
     const kanbanHeading = page.getByText("영상 목록");
     const needsChannel = page.getByText("채널이 필요합니다");
     const needsSeries = page.getByText("시리즈를 만들어야");
+    const groupButton = page.getByRole("button", { name: "시리즈 설정" });
+    const seriesPrompt = page.getByText("시작하려면 시리즈를 생성하세요");
 
-    await expect(scriptTab.or(kanbanHeading).or(needsChannel).or(needsSeries).first()).toBeVisible({
+    await expect(
+      scriptTab
+        .or(kanbanHeading)
+        .or(needsChannel)
+        .or(needsSeries)
+        .or(groupButton)
+        .or(seriesPrompt)
+        .first()
+    ).toBeVisible({
       timeout: 15000,
     });
 
