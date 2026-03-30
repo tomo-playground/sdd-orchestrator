@@ -19,7 +19,7 @@ cd "$PROJECT_DIR"
 
 # ─── 브랜치 가드: feat/ 또는 fix/ 브랜치에서만 실행 ───
 BRANCH=$(git branch --show-current 2>/dev/null || echo "")
-if ! echo "$BRANCH" | grep -qE '(^feat/|^worktree-feat/|^fix/)'; then
+if ! echo "$BRANCH" | grep -qE '(^feat/|^worktree-feat/|^worktree-SP-|^fix/)'; then
   exit 0
 fi
 
