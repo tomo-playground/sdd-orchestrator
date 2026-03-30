@@ -9,7 +9,14 @@
 
 ## 첫 기동 (최초 1회)
 
-### 1. 환경변수 확인
+### 1. 시스템 의존성
+
+```bash
+# sqlite3 CLI (sdd-sync.sh에서 state.db 업데이트에 필요)
+sudo apt-get install -y sqlite3
+```
+
+### 2. 환경변수 확인
 
 `backend/.env`에 아래가 있어야 합니다:
 ```bash
@@ -17,20 +24,27 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...  # #sdd-bot 채널
 SENTRY_API_TOKEN=...                                     # Sentry API 토큰
 ```
 
-### 2. 기동
+### 3. 기동
 
 ```bash
 .claude/scripts/sdd-orch.sh start
 ```
 
-### 3. 확인
+### 4. 확인
 
 ```bash
 .claude/scripts/sdd-orch.sh status
-tail -f /tmp/orchestrator.log
+tail -f sdd-orchestrator/logs/orchestrator.log
 ```
 
 Slack `#sdd-bot`에 첫 사이클 리포트가 오면 정상.
+
+### 데이터 저장소
+
+| 파일 | 역할 |
+|------|------|
+| `.sdd/state.db` | 태스크 상태 SSOT (SQLite). 사이클/실행/롤백/태스크 상태 기록 |
+| `sdd-orchestrator/logs/orchestrator.log` | 오케스트레이터 로그 |
 
 ---
 
