@@ -1,7 +1,7 @@
 # SP-117: Atmosphere 에이전트 time_of_day 품질 검증
 
 branch: feat/SP-117_atmosphere-time-of-day
-status: running | approved_at: 2026-03-30
+status: done
 priority: P1
 scope: backend
 
