@@ -65,6 +65,7 @@ jobs:
               echo "PR #${PR_NUM} rebase conflict — Claude로 해결 시도"
               git rebase --abort 2>/dev/null
               SP_ID=$(echo "$BRANCH" | grep -oE 'SP-[0-9]+' || echo "rebase-${PR_NUM}")
+              [ -d ".claude/worktrees/${SP_ID}" ] && git worktree remove ".claude/worktrees/${SP_ID}" --force 2>/dev/null; git worktree prune 2>/dev/null
               timeout 300 claude --worktree "${SP_ID}" --dangerously-skip-permissions -p \
                 "이 브랜치(${BRANCH})를 main에 rebase하세요.
                 1. git fetch origin ${BRANCH} && git checkout ${BRANCH}
