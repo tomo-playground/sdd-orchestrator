@@ -47,16 +47,16 @@
     "class_type": "DynamicThresholdingFull",
     "inputs": {
       "model": ["4_lora_extra", 0],
-      "mimic_scale": 7.0,
+      "mimic_scale": 5.0,
       "threshold_percentile": 1.0,
       "mimic_mode": "Half Cosine Down",
-      "mimic_scale_min": 1.0,
+      "mimic_scale_min": 3.0,
       "cfg_mode": "Half Cosine Down",
       "cfg_scale_min": 3.0,
       "sched_val": 1.0,
       "separate_feature_channels": "enable",
-      "scaling_startpoint": "ZERO",
-      "variability_measure": "STD",
+      "scaling_startpoint": "MEAN",
+      "variability_measure": "AD",
       "interpolate_phi": 1.0
     }
   },

@@ -716,7 +716,9 @@ _IDENTITY_GROUPS = frozenset(
     {"hair_color", "hair_length", "hair_style", "eye_color", "skin_color", "body_feature", "body_type"}
 )
 # context_tags 표준 필드 — 하나라도 있으면 image_prompt 재조립 대상
-_CONTEXT_TAG_FIELDS = frozenset({"camera", "pose", "gaze", "action", "expression", "environment", "cinematic", "props"})
+_CONTEXT_TAG_FIELDS = frozenset(
+    {"camera", "pose", "gaze", "action", "expression", "environment", "cinematic", "props", "time_of_day"}
+)
 
 
 def _has_crowd_indicators(scene: dict) -> bool:
@@ -973,6 +975,13 @@ def _rebuild_image_prompt_from_context_tags(scenes: list[dict]) -> None:
             tags.append(env)
         elif isinstance(env, list):
             tags.extend(env)
+
+        # L10b: time_of_day
+        time_tag = ctx.get("time_of_day")
+        if isinstance(time_tag, list):
+            time_tag = next((t for t in time_tag if isinstance(t, str) and t.strip()), None)
+        if isinstance(time_tag, str) and time_tag.strip():
+            tags.append(time_tag.strip())
 
         # L11: cinematic
         for c in ctx.get("cinematic") or []:

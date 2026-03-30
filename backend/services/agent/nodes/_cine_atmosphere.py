@@ -10,6 +10,9 @@ import json
 
 from config import REFERENCE_ADAIN_CONFLICTING_TAGS
 from config import pipeline_logger as logger
+from services.keywords.patterns import CATEGORY_PATTERNS
+
+_TIME_OF_DAY_OPTIONS = ", ".join(CATEGORY_PATTERNS["time_of_day"])
 
 _SYSTEM = (
     "You are an Atmosphere Designer for AI-generated short-form videos. "
@@ -17,7 +20,7 @@ _SYSTEM = (
     "Respond ONLY in valid JSON. No markdown, no explanation."
 )
 
-_RULES = """\
+_RULES = f"""\
 ## Rules
 1. **Environment consistency**: Same location across consecutive scenes MUST use identical tags.
    - A location change is ONLY valid when script shows physical movement.
@@ -40,7 +43,11 @@ _RULES = """\
    - Loneliness: depth_of_field, silhouette
    - Anger: shadow, high_contrast
    - Nostalgia: sunset, bokeh, dusk
-4. **Narrator scenes**: Use cinematic techniques aggressively.
+4. **time_of_day** (exactly one per scene):
+   - Options: {_TIME_OF_DAY_OPTIONS}
+   - Default to "day" unless script/emotion strongly implies otherwise.
+   - Consistency: same location across consecutive scenes → same time_of_day.
+5. **Narrator scenes**: Use cinematic techniques aggressively.
    - depth_of_field, light_rays, sunset, silhouette, wide establishing shots."""
 
 _CONFLICTING_TAGS_STR = ", ".join(sorted(REFERENCE_ADAIN_CONFLICTING_TAGS))
@@ -126,7 +133,7 @@ def _build_prompt(
         [
             "",
             "## Output (JSON only)",
-            '{"scenes": [{"order": 0, "environment": ["kitchen", "indoors"], "cinematic": ["depth_of_field"]}, ...]}',
+            '{"scenes": [{"order": 0, "environment": ["kitchen", "indoors"], "cinematic": ["depth_of_field"], "time_of_day": "day"}, ...]}',
         ]
     )
     return "\n".join(parts)

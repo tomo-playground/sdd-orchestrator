@@ -338,8 +338,9 @@ class TestApplyIpAdapterEndAt:
         assert ctx._ip_adapter_payload["end_at"] == 0.0
 
     @patch("services.generation_controlnet.load_reference_image", return_value="ref_b64")
-    def test_end_at_none_defaults_to_0_7(self, mock_load):
-        """ip_adapter_guidance_end=None should default to 0.7."""
+    def test_end_at_none_defaults_to_config(self, mock_load):
+        """ip_adapter_guidance_end=None should default to DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED."""
+        from config import DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED
         from services.generation_controlnet import _apply_ip_adapter
 
         strategy = FakeStrategy(
@@ -352,7 +353,7 @@ class TestApplyIpAdapterEndAt:
         _apply_ip_adapter(ctx, strategy, [], db=MagicMock())
 
         assert ctx._ip_adapter_payload is not None
-        assert ctx._ip_adapter_payload["end_at"] == 0.7
+        assert ctx._ip_adapter_payload["end_at"] == DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED
 
 
 # ── _apply_reference_only Tests ──────────────────────────────────────

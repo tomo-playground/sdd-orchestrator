@@ -222,6 +222,10 @@ def _inject_ip_adapter_payload(payload: dict, ctx: GenerationContext, req: Scene
             ip_payload["bg_image_b64"] = bg_b64
             ip_payload["bg_weight"] = DEFAULT_BG_IP_ADAPTER_WEIGHT
             ip_payload["bg_end_at"] = DEFAULT_BG_IP_ADAPTER_END_AT
+            # Suppress conflicting cinematic tags (blurry_background, bokeh, etc.)
+            removed = _suppress_cinematic_for_adain(ctx)
+            if removed:
+                logger.info("🏠 [BG IP-Adapter] Stripped conflicting tags: %s", removed)
             logger.info(
                 "🏠 [BG IP-Adapter] Loaded environment reference for env_ref_id=%s", req.environment_reference_id
             )

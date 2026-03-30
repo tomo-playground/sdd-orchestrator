@@ -149,7 +149,7 @@ def _build_prompt(
             "",
             "## Assembly Instructions",
             "For each scene, merge all agents' outputs into context_tags and build:",
-            "1. context_tags: {emotion, camera, action, pose, gaze, environment, cinematic, props}",
+            "1. context_tags: {emotion, camera, action, pose, gaze, environment, cinematic, props, time_of_day}",
             "2. image_prompt: flat comma-separated Danbooru tags (NO character identity/clothing)",
             "3. image_prompt_ko: ONE natural Korean sentence (action + emotion + environment)",
             "   **CRITICAL**: The location/place in image_prompt_ko MUST match context_tags.environment.",
@@ -177,6 +177,6 @@ _OUTPUT_FORMAT = """\
 "image_prompt_ko": "어두운 주방에서 긴장한 표정으로 칼을 잡고 있는 모습",
 "context_tags": {"emotion": "nervous", "camera": "close-up", "action": "holding_knife",
 "pose": "standing", "gaze": "looking_down", "environment": ["kitchen", "indoors"],
-"cinematic": ["depth_of_field"], "props": ["knife"]},
+"cinematic": ["depth_of_field"], "props": ["knife"], "time_of_day": "day"},
 "controlnet_pose": "standing", "ip_adapter_weight": null,
 "negative_prompt_extra": "", "ken_burns_preset": "zoom_in_center"}, ...]}"""

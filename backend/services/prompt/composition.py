@@ -52,6 +52,7 @@ from models.character import Character
 from models.lora import LoRA
 from models.tag import Tag
 from services.keywords.db_cache import LoRATriggerCache, TagAliasCache, TagFilterCache, TagRuleCache
+from services.keywords.patterns import CATEGORY_PATTERNS
 
 # Defined Layers (from PROMPT_LAYERS.md)
 LAYER_QUALITY = 0
@@ -84,6 +85,10 @@ LAYER_NAMES: list[str] = [
 
 # Layers that only apply when a character is present (SUBJECT through ACTION)
 CHARACTER_ONLY_LAYERS = frozenset(range(LAYER_SUBJECT, LAYER_ACTION + 1))
+
+# Time-of-day tags — SSOT: patterns.py CATEGORY_PATTERNS["time_of_day"]
+# NoobAI-XL v-pred defaults to dark/night without explicit time tag
+_TIME_OF_DAY_TAGS = frozenset(CATEGORY_PATTERNS["time_of_day"])
 
 
 def select_style_trigger_words(trigger_words: list[str], lora_type: str | None = "style") -> list[str]:
@@ -214,7 +219,6 @@ class PromptBuilder:
     @functools.cache
     def _known_pattern_tags() -> frozenset[str]:
         """CATEGORY_PATTERNS의 모든 태그를 flat set으로 반환 (캐시)."""
-        from services.keywords.patterns import CATEGORY_PATTERNS
 
         return frozenset(tag for tags in CATEGORY_PATTERNS.values() for tag in tags)
 
@@ -222,7 +226,6 @@ class PromptBuilder:
     @functools.cache
     def _pattern_tags_by_category() -> dict[str, frozenset[str]]:
         """CATEGORY_PATTERNS를 category별 frozenset으로 반환 (캐시)."""
-        from services.keywords.patterns import CATEGORY_PATTERNS
 
         return {k: frozenset(v) for k, v in CATEGORY_PATTERNS.items()}
 
@@ -234,7 +237,7 @@ class PromptBuilder:
         GROUP_NAME_TO_LAYER를 SSOT로 사용하여 26개 카테고리 700+태그를
         O(1) lookup 가능한 dict로 만든다.
         """
-        from services.keywords.patterns import CATEGORY_PATTERNS, GROUP_NAME_TO_LAYER
+        from services.keywords.patterns import GROUP_NAME_TO_LAYER
 
         result: dict[str, int] = {}
         for group_name, tags in CATEGORY_PATTERNS.items():
@@ -253,7 +256,6 @@ class PromptBuilder:
 
         _tag_to_layer_map()과 동일 패턴으로 group_name을 O(1) lookup.
         """
-        from services.keywords.patterns import CATEGORY_PATTERNS
 
         result: dict[str, str] = {}
         for group_name, tags in CATEGORY_PATTERNS.items():
@@ -399,15 +401,22 @@ class PromptBuilder:
 
         # L10 Environment — location tags
         tag_info = self.get_tag_info(location_tags)
+        has_time_tag = False
         for tag in location_tags:
             norm = tag.lower().replace(" ", "_").strip()
             info = tag_info.get(norm, {"layer": LAYER_ENVIRONMENT})
+            if info.get("group_name") == "time_of_day" or norm in _TIME_OF_DAY_TAGS:
+                has_time_tag = True
             target = info["layer"]
             if target in CHARACTER_ONLY_LAYERS:
                 continue
             if target == LAYER_CAMERA and norm in CHARACTER_CAMERA_TAGS:
                 continue
             layers[target].append(tag)
+
+        # Default time-of-day: NoobAI-XL v-pred defaults to dark/night without explicit time tag
+        if not has_time_tag:
+            layers[LAYER_ENVIRONMENT].append("day")
 
         # L11 Atmosphere — Style LoRA (trigger words omitted)
         if style_loras:
@@ -520,6 +529,9 @@ class PromptBuilder:
 
         # 11. Inject 'scenery' when environment tags exist (background rendering signal)
         self._inject_scenery_if_needed(layers)
+
+        # 11b. Default time-of-day: NoobAI-XL v-pred defaults to dark/night without explicit time tag
+        self._inject_default_time_if_needed(layers)
 
         # 12. Resolve environment and camera conflicts
         layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
@@ -934,6 +946,7 @@ class PromptBuilder:
             if _style_trigger_words:
                 layers[LAYER_ATMOSPHERE] = [t for t in layers[LAYER_ATMOSPHERE] if t not in _style_trigger_words]
 
+        self._inject_default_time_if_needed(layers)
         layers[LAYER_ENVIRONMENT] = self._resolve_location_conflicts(layers[LAYER_ENVIRONMENT])
         layers[LAYER_CAMERA] = self._resolve_camera_conflicts(layers[LAYER_CAMERA])
         self._ensure_quality_tags(layers)
@@ -1174,6 +1187,17 @@ class PromptBuilder:
         if "scenery" in env_norms:
             return
         env_tokens.append("scenery")
+
+    @staticmethod
+    def _inject_default_time_if_needed(layers: list[list[str]]) -> None:
+        """Inject 'day' when no time-of-day tag exists in environment layer.
+
+        NoobAI-XL v-pred defaults to dark/night scenes without explicit time cue.
+        """
+        env_norms = {PromptBuilder._dedup_key(t) for t in layers[LAYER_ENVIRONMENT]}
+        if env_norms & _TIME_OF_DAY_TAGS:
+            return
+        layers[LAYER_ENVIRONMENT].append("day")
 
     def _resolve_location_conflicts(self, env_tokens: list[str]) -> list[str]:
         """Remove conflicting location tags (indoor vs outdoor) from the environment layer.
