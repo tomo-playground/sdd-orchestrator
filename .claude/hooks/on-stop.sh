@@ -42,7 +42,7 @@ if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
 
   if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
     echo "Stop Hook: ${MAX_RETRIES}회 재시도 초과 — 종료합니다" >&2
-    SP_ID=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||' | grep -oE '^SP-[0-9]+')
+    SP_ID=$(echo "$BRANCH" | grep -oE 'SP-[0-9]+' | head -1)
     # 디렉토리 방식 우선, 레거시 fallback
     SPEC_FILE=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*/spec.md 2>/dev/null | head -1)
     [ -z "$SPEC_FILE" ] && SPEC_FILE=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
@@ -232,7 +232,7 @@ BRANCH=$(git branch --show-current)
 DONE_DIR="$PROJECT_DIR/.claude/tasks/done"
 mkdir -p "$DONE_DIR"
 
-SP_ID=$(echo "$BRANCH" | sed -E 's|^(worktree-)?feat/||' | grep -oE '^SP-[0-9]+')
+SP_ID=$(echo "$BRANCH" | grep -oE 'SP-[0-9]+' | head -1)
 
 # 디렉토리 방식 우선 (SP-NNN_*/spec.md)
 CURRENT_DIR=$(ls -d "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*/ 2>/dev/null | head -1)
