@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -205,3 +206,134 @@ def test_mark_review_triggered(store: StateStore):
 def test_get_run_by_task_none(store: StateStore):
     """Test getting a run for a task with no runs."""
     assert store.get_run_by_task("SP-999") is None
+
+
+# ── Task Status ──────────────────────────────────────────
+
+
+def test_task_status_table_created(store: StateStore):
+    """Test that task_status table is created."""
+    tables = store.conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+    ).fetchall()
+    table_names = [t["name"] for t in tables]
+    assert "task_status" in table_names
+
+
+def test_get_task_status_default(store: StateStore):
+    """Unknown task returns 'pending'."""
+    assert store.get_task_status("SP-999") == "pending"
+
+
+def test_set_and_get_task_status(store: StateStore):
+    """Set and get task status."""
+    store.set_task_status("SP-100", "approved")
+    assert store.get_task_status("SP-100") == "approved"
+
+
+def test_set_task_status_upsert(store: StateStore):
+    """Upsert overwrites existing status."""
+    store.set_task_status("SP-100", "pending")
+    store.set_task_status("SP-100", "running")
+    assert store.get_task_status("SP-100") == "running"
+
+
+def test_get_all_task_statuses(store: StateStore):
+    """Get all task statuses as dict."""
+    store.set_task_status("SP-001", "done")
+    store.set_task_status("SP-002", "running")
+    store.set_task_status("SP-003", "approved")
+
+    result = store.get_all_task_statuses()
+    assert result == {"SP-001": "done", "SP-002": "running", "SP-003": "approved"}
+
+
+def test_get_all_task_statuses_empty(store: StateStore):
+    """Empty table returns empty dict."""
+    assert store.get_all_task_statuses() == {}
+
+
+def test_migrate_spec_status_to_db(store: StateStore, tmp_path: Path):
+    """Migration reads spec.md status and seeds DB."""
+    # Create a mock current/ directory
+    current = tmp_path / ".claude" / "tasks" / "current"
+    current.mkdir(parents=True)
+    done = tmp_path / ".claude" / "tasks" / "done"
+    done.mkdir(parents=True)
+
+    task_dir = current / "SP-050_test-task"
+    task_dir.mkdir()
+    (task_dir / "spec.md").write_text(
+        "# SP-050\n\n> status: approved | approved_at: 2026-03-26\n",
+        encoding="utf-8",
+    )
+
+    task_dir2 = current / "SP-051_other-task"
+    task_dir2.mkdir()
+    (task_dir2 / "spec.md").write_text(
+        "---\nstatus: running\n---\n",
+        encoding="utf-8",
+    )
+
+    with (
+        patch("sdd_orchestrator.config.TASKS_CURRENT_DIR", current),
+        patch("sdd_orchestrator.config.TASKS_DONE_DIR", done),
+    ):
+        count = store.migrate_spec_status_to_db()
+
+    assert count == 2
+    assert store.get_task_status("SP-050") == "approved"
+    assert store.get_task_status("SP-051") == "running"
+
+
+def test_migrate_seeds_done_tasks(store: StateStore, tmp_path: Path):
+    """Migration seeds done/ tasks as 'done' regardless of spec.md status."""
+    current = tmp_path / ".claude" / "tasks" / "current"
+    current.mkdir(parents=True)
+    done = tmp_path / ".claude" / "tasks" / "done"
+    done.mkdir(parents=True)
+
+    (done / "SP-030_old-task").mkdir()
+
+    with (
+        patch("sdd_orchestrator.config.TASKS_CURRENT_DIR", current),
+        patch("sdd_orchestrator.config.TASKS_DONE_DIR", done),
+    ):
+        count = store.migrate_spec_status_to_db()
+
+    assert count == 1
+    assert store.get_task_status("SP-030") == "done"
+
+
+def test_migrate_skips_existing(store: StateStore, tmp_path: Path):
+    """Migration does not overwrite existing DB entries."""
+    current = tmp_path / ".claude" / "tasks" / "current"
+    current.mkdir(parents=True)
+    done = tmp_path / ".claude" / "tasks" / "done"
+    done.mkdir(parents=True)
+
+    task_dir = current / "SP-050_test"
+    task_dir.mkdir()
+    (task_dir / "spec.md").write_text("# SP-050\n\n> status: pending\n", encoding="utf-8")
+
+    # Pre-set in DB
+    store.set_task_status("SP-050", "done")
+
+    with (
+        patch("sdd_orchestrator.config.TASKS_CURRENT_DIR", current),
+        patch("sdd_orchestrator.config.TASKS_DONE_DIR", done),
+    ):
+        count = store.migrate_spec_status_to_db()
+
+    assert count == 0
+    assert store.get_task_status("SP-050") == "done"  # unchanged
+
+
+def test_delete_task_status(store: StateStore):
+    """Deleting a task status removes the row from DB."""
+    store.set_task_status("SP-099", "running")
+    store.delete_task_status("SP-099")
+    row = store.conn.execute("SELECT 1 FROM task_status WHERE task_id = 'SP-099'").fetchone()
+    assert row is None
+    # get_task_status returns default 'pending' for non-existent task
+    assert store.get_task_status("SP-099") == "pending"

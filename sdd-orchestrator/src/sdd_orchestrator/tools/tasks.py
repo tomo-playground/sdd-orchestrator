@@ -17,12 +17,19 @@ from sdd_orchestrator.tools.task_utils import (
     generate_slug,
     git_commit_files,
     next_sp_number,
-    parse_spec_status,
-    today_str,
-    update_spec_status,
 )
 
 logger = logging.getLogger(__name__)
+
+# Module-level StateStore reference, set by set_state_store()
+_state_store = None
+
+
+def set_state_store(store) -> None:
+    """Inject the shared StateStore instance (called from main.py)."""
+    global _state_store
+    _state_store = store
+
 
 _MAX_CONTENT_LEN = 8000
 _TRUNCATION_NOTE = "\n\n[TRUNCATED — use read_task for full text]"
@@ -93,12 +100,15 @@ async def do_read_task(
             return _error(f"중복 태스크 발견: {task_id}")
         return _error(f"Task {task_id} not found")
 
+    # Get status from state.db
+    status = _state_store.get_task_status(task_id) if _state_store else "pending"
+
     # Legacy .md file (single file, no directory)
     if location == "done_legacy":
         content = path.read_text(encoding="utf-8")
         result = {
             "task_id": task_id,
-            "status": parse_spec_status(content),
+            "status": status,
             "has_design": False,
             "directory": path.name,
             "spec": _truncate(content),
@@ -114,7 +124,7 @@ async def do_read_task(
 
     result = {
         "task_id": task_id,
-        "status": parse_spec_status(spec_content),
+        "status": status,
         "has_design": design_content is not None,
         "directory": path.name,
         "spec": _truncate(spec_content),
@@ -159,25 +169,28 @@ async def do_approve_design(
     if not design_path.exists():
         return _error("설계 파일이 없습니다 (design.md)")
 
-    # Read current status
-    content = spec_path.read_text(encoding="utf-8")
-    current_status = parse_spec_status(content)
+    # StateStore is required — status must be persisted (no spec.md fallback)
+    if not _state_store:
+        return _error("StateStore가 초기화되지 않았습니다")
+
+    # Read current status from DB
+    current_status = _state_store.get_task_status(task_id)
 
     # Only pending/design can be approved
     if current_status in ("approved", "running", "done"):
         return _error(f"이미 승인된 태스크입니다 (status: {current_status})")
 
-    # Update status
-    updated = update_spec_status(content, "approved", f"approved_at: {today_str()}")
-    spec_path.write_text(updated, encoding="utf-8")
+    # Update status in DB
+    _state_store.set_task_status(task_id, "approved")
 
-    # Git commit + push; rollback file if it fails
+    # Git commit + push design.md
     err = await git_commit_files(
-        [str(spec_path), str(design_path)],
+        [str(design_path)],
         f"chore: {task_id} 설계 승인",
     )
     if err:
-        spec_path.write_text(content, encoding="utf-8")  # rollback
+        # Rollback DB status
+        _state_store.set_task_status(task_id, current_status)
         return _error(f"Git 커밋 실패: {err}")
 
     return _ok(f"{task_id} 설계 승인 완료 (status: approved)")
@@ -208,6 +221,10 @@ async def do_create_task(
     if not title.strip():
         return _error("제목이 비어 있습니다")
 
+    # StateStore is required — new tasks must have a DB status row
+    if not _state_store:
+        return _error("StateStore가 초기화되지 않았습니다")
+
     current_dir.mkdir(parents=True, exist_ok=True)
 
     slug = generate_slug(title)
@@ -226,11 +243,14 @@ async def do_create_task(
     if task_dir is None:
         return _error("태스크 생성 충돌이 반복되어 중단했습니다. 잠시 후 다시 시도해주세요.")
 
-    # Generate spec.md skeleton
+    # Generate spec.md skeleton (no status line — status lives in state.db)
     desc_section = f"\n## 배경\n\n{description}\n" if description else ""
-    spec_content = f"# {task_id}: {title}\n\n> status: pending\n{desc_section}\n## DoD (Definition of Done)\n\n1. \n"
+    spec_content = f"# {task_id}: {title}\n{desc_section}\n## DoD (Definition of Done)\n\n1. \n"
     spec_path = task_dir / "spec.md"
     spec_path.write_text(spec_content, encoding="utf-8")
+
+    # Set initial status in DB
+    _state_store.set_task_status(task_id, "pending")
 
     # Git commit + push
     err = await git_commit_files(
@@ -239,6 +259,7 @@ async def do_create_task(
     )
     if err:
         shutil.rmtree(task_dir, ignore_errors=True)
+        _state_store.delete_task_status(task_id)
         return _error(f"Git 커밋 실패: {err}")
 
     result = {"task_id": task_id, "directory": dir_name, "status": "pending"}

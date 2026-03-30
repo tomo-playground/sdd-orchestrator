@@ -24,22 +24,6 @@ def parse_spec_status(content: str) -> str:
     return match.group(1) if match else "pending"
 
 
-def update_spec_status(content: str, new_status: str, metadata: str = "") -> str:
-    """Replace status line in spec.md content. Handles frontmatter and blockquote."""
-    status_line = f"> status: {new_status}"
-    if metadata:
-        status_line += f" | {metadata}"
-    if _STATUS_RE.search(content):
-        return _STATUS_RE.sub(status_line, content, count=1)
-    # Insert after first heading if status line doesn't exist
-    lines = content.split("\n")
-    for i, line in enumerate(lines):
-        if line.startswith("# "):
-            lines.insert(i + 1, f"\n{status_line}")
-            break
-    return "\n".join(lines)
-
-
 # ── Git operations ────────────────────────────────────────
 git_lock = asyncio.Lock()
 GIT_CMD_TIMEOUT = 30  # seconds per git command

@@ -7,9 +7,16 @@ from textwrap import dedent
 
 import pytest
 
-from sdd_orchestrator.tools.backlog import parse_backlog
+from sdd_orchestrator.state import StateStore
+from sdd_orchestrator.tools.backlog import parse_backlog, set_state_store
 
-FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
+@pytest.fixture()
+def store(tmp_path: Path) -> StateStore:
+    s = StateStore(db_path=tmp_path / "test_state.db")
+    set_state_store(s)
+    yield s
+    set_state_store(None)
 
 
 @pytest.fixture()
@@ -132,8 +139,8 @@ def test_parse_backlog_description_cleaning(backlog_file: Path, tmp_path: Path):
     assert "[명세]" not in by_id["SP-020"].description
 
 
-def test_parse_backlog_enrichment_with_spec(tmp_path: Path):
-    """Test enrichment from spec.md files in current/ directory."""
+def test_parse_backlog_enrichment_with_spec(tmp_path: Path, store: StateStore):
+    """Test enrichment from state.db for tasks in current/ directory."""
     # Create backlog
     backlog = tmp_path / "backlog.md"
     backlog.write_text("## P0\n\n- [ ] SP-099 — Test task\n", encoding="utf-8")
@@ -141,10 +148,11 @@ def test_parse_backlog_enrichment_with_spec(tmp_path: Path):
     # Create task spec directory
     task_dir = tmp_path / "current" / "SP-099_test-task"
     task_dir.mkdir(parents=True)
-    (task_dir / "spec.md").write_text(
-        "---\nstatus: approved\n---\n## What\nTest\n", encoding="utf-8"
-    )
+    (task_dir / "spec.md").write_text("# SP-099: Test\n\n## What\nTest\n", encoding="utf-8")
     (task_dir / "design.md").write_text("# Design\n", encoding="utf-8")
+
+    # Set status in DB
+    store.set_task_status("SP-099", "approved")
 
     tasks = parse_backlog(backlog, current_dir=tmp_path / "current")
     assert len(tasks) == 1
@@ -152,34 +160,35 @@ def test_parse_backlog_enrichment_with_spec(tmp_path: Path):
     assert tasks[0].has_design is True
 
 
-def test_blockquote_status_enrichment(tmp_path: Path):
-    """Blockquote-style status (> status: approved) is parsed correctly."""
+def test_blockquote_status_enrichment(tmp_path: Path, store: StateStore):
+    """Status is read from state.db, not spec.md."""
     backlog = tmp_path / "backlog.md"
     backlog.write_text("## P0\n\n- [ ] SP-087 — Slack workflow\n", encoding="utf-8")
 
     task_dir = tmp_path / "current" / "SP-087_slack-workflow"
     task_dir.mkdir(parents=True)
-    (task_dir / "spec.md").write_text(
-        "# SP-087\n\n> status: approved | approved_at: 2026-03-26\n", encoding="utf-8"
-    )
+    (task_dir / "spec.md").write_text("# SP-087\n\n## DoD\n", encoding="utf-8")
     (task_dir / "design.md").write_text("# Design\n", encoding="utf-8")
+
+    store.set_task_status("SP-087", "approved")
 
     tasks = parse_backlog(backlog, current_dir=tmp_path / "current")
     assert tasks[0].spec_status == "approved"
 
 
-def test_blockquote_status_discover(tmp_path: Path):
-    """Discovered tasks with blockquote status are parsed correctly."""
+def test_blockquote_status_discover(tmp_path: Path, store: StateStore):
+    """Discovered tasks read status from state.db."""
     backlog = tmp_path / "backlog.md"
     backlog.write_text("# Backlog\n\n## P1\n\n", encoding="utf-8")
 
     task_dir = tmp_path / "current" / "SP-086_slack-templates"
     task_dir.mkdir(parents=True)
     (task_dir / "spec.md").write_text(
-        "# SP-086\n\n> status: approved | approved_at: 2026-03-26\n"
-        "> priority: P0\n> scope: infra\n",
+        "# SP-086\n\npriority: P0\nscope: infra\n",
         encoding="utf-8",
     )
+
+    store.set_task_status("SP-086", "approved")
 
     tasks = parse_backlog(backlog, current_dir=tmp_path / "current")
     assert tasks[0].spec_status == "approved"
@@ -187,7 +196,7 @@ def test_blockquote_status_discover(tmp_path: Path):
     assert tasks[0].scope == "infra"
 
 
-def test_discover_current_tasks_not_in_backlog(tmp_path: Path):
+def test_discover_current_tasks_not_in_backlog(tmp_path: Path, store: StateStore):
     """Tasks in current/ but NOT in backlog.md are discovered."""
     # Empty backlog
     backlog = tmp_path / "backlog.md"
@@ -197,10 +206,12 @@ def test_discover_current_tasks_not_in_backlog(tmp_path: Path):
     task_dir = tmp_path / "current" / "SP-084_comfyui-cleanup"
     task_dir.mkdir(parents=True)
     (task_dir / "spec.md").write_text(
-        "---\nid: SP-084\nstatus: approved\npriority: P1\nscope: backend\n---\n",
+        "# SP-084: Cleanup\n\npriority: P1\nscope: backend\n",
         encoding="utf-8",
     )
     (task_dir / "design.md").write_text("# Design\n", encoding="utf-8")
+
+    store.set_task_status("SP-084", "approved")
 
     tasks = parse_backlog(backlog, current_dir=tmp_path / "current")
     assert len(tasks) == 1
@@ -209,7 +220,7 @@ def test_discover_current_tasks_not_in_backlog(tmp_path: Path):
     assert tasks[0].has_design is True
 
 
-def test_discover_does_not_duplicate_backlog_tasks(tmp_path: Path):
+def test_discover_does_not_duplicate_backlog_tasks(tmp_path: Path, store: StateStore):
     """Tasks in both backlog.md AND current/ are not duplicated."""
     backlog = tmp_path / "backlog.md"
     backlog.write_text(
@@ -219,7 +230,9 @@ def test_discover_does_not_duplicate_backlog_tasks(tmp_path: Path):
 
     task_dir = tmp_path / "current" / "SP-099_test-task"
     task_dir.mkdir(parents=True)
-    (task_dir / "spec.md").write_text("---\nstatus: approved\n---\n", encoding="utf-8")
+    (task_dir / "spec.md").write_text("# SP-099\n", encoding="utf-8")
+
+    store.set_task_status("SP-099", "approved")
 
     tasks = parse_backlog(backlog, current_dir=tmp_path / "current")
     assert len(tasks) == 1

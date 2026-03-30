@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from sdd_orchestrator.config import DEFAULT_DB_PATH
+from sdd_orchestrator.tools.task_utils import parse_spec_status
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,11 @@ class StateStore:
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_rollbacks_original_pr
             ON rollbacks(original_pr);
+            CREATE TABLE IF NOT EXISTS task_status (
+                task_id   TEXT PRIMARY KEY,
+                status    TEXT NOT NULL DEFAULT 'pending',
+                updated_at TEXT NOT NULL
+            );
         """)
         self.conn.commit()
 
@@ -257,6 +263,81 @@ class StateStore:
         """Get total number of cycles recorded."""
         row = self.conn.execute("SELECT COUNT(*) as cnt FROM cycles").fetchone()
         return row["cnt"]
+
+    # ── Task Status ────────────────────────────────────────
+
+    def get_task_status(self, task_id: str) -> str:
+        """Get task lifecycle status from DB. Returns 'pending' if not found."""
+        row = self.conn.execute(
+            "SELECT status FROM task_status WHERE task_id = ?", (task_id,)
+        ).fetchone()
+        return row["status"] if row else "pending"
+
+    def set_task_status(self, task_id: str, status: str) -> None:
+        """Upsert task status. updated_at is set automatically."""
+        now = datetime.now(UTC).isoformat()
+        self.conn.execute(
+            "INSERT INTO task_status (task_id, status, updated_at) VALUES (?, ?, ?)"
+            " ON CONFLICT(task_id) DO UPDATE SET status = excluded.status,"
+            " updated_at = excluded.updated_at",
+            (task_id, status, now),
+        )
+        self.conn.commit()
+
+    def get_all_task_statuses(self) -> dict[str, str]:
+        """Return all task statuses as {task_id: status}."""
+        rows = self.conn.execute("SELECT task_id, status FROM task_status").fetchall()
+        return {row["task_id"]: row["status"] for row in rows}
+
+    def migrate_spec_status_to_db(self) -> int:
+        """One-time: seed task_status from current/ and done/ spec.md files.
+
+        Only inserts if the task_id does not already exist in DB.
+        Returns the number of tasks migrated.
+        """
+        from sdd_orchestrator.config import TASKS_CURRENT_DIR, TASKS_DONE_DIR
+
+        migrated = 0
+
+        # Scan current/ tasks — preserve status from spec.md
+        if TASKS_CURRENT_DIR.exists():
+            for spec in TASKS_CURRENT_DIR.glob("SP-*_*/spec.md"):
+                task_id = spec.parent.name.split("_")[0]
+                existing = self.conn.execute(
+                    "SELECT 1 FROM task_status WHERE task_id = ?", (task_id,)
+                ).fetchone()
+                if existing:
+                    continue
+                try:
+                    from sdd_orchestrator.tools.task_utils import parse_spec_status
+
+                    content = spec.read_text(encoding="utf-8")
+                    status = parse_spec_status(content)
+                    self.set_task_status(task_id, status)
+                    migrated += 1
+                    logger.info("Migrated %s status=%s from spec.md to DB", task_id, status)
+                except OSError:
+                    logger.warning("Failed to read spec for migration: %s", spec)
+
+        # Scan done/ tasks — always "done" (location is authoritative)
+        if TASKS_DONE_DIR.exists():
+            for task_dir in TASKS_DONE_DIR.glob("SP-*_*/"):
+                task_id = task_dir.name.split("_")[0]
+                existing = self.conn.execute(
+                    "SELECT 1 FROM task_status WHERE task_id = ?", (task_id,)
+                ).fetchone()
+                if existing:
+                    continue
+                self.set_task_status(task_id, "done")
+                migrated += 1
+                logger.info("Migrated %s status=done from done/ to DB", task_id)
+
+        return migrated
+
+    def delete_task_status(self, task_id: str) -> None:
+        """Remove a task status row (used for rollback on creation failure)."""
+        self.conn.execute("DELETE FROM task_status WHERE task_id = ?", (task_id,))
+        self.conn.commit()
 
     def close(self) -> None:
         """Commit and close the database connection."""

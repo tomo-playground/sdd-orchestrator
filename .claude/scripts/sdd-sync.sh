@@ -9,6 +9,9 @@ export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$PROJECT_DIR"
 
+# state.db 경로 (태스크 상태 SSOT)
+STATE_DB="$PROJECT_DIR/.sdd/state.db"
+
 # main 브랜치가 아니면 스킵
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 if [ "$CURRENT_BRANCH" != "main" ]; then
@@ -74,7 +77,10 @@ for BRANCH in $MERGED; do
     # 미완료 DoD 추출 (머지 후 수동 작업 알림용)
     UNDONE=$(grep -E '^\- \[ \]' "$CURRENT_DIR/spec.md" 2>/dev/null | sed 's/^- \[ \] /  • /' || true)
 
-    sed -i 's/^status:.*/status: done/' "$CURRENT_DIR/spec.md"
+    # Update task status in state.db (SSOT for status)
+    if [ -f "$STATE_DB" ]; then
+      sqlite3 "$STATE_DB" "INSERT INTO task_status (task_id, status, updated_at) VALUES ('${SP_ID}', 'done', datetime('now')) ON CONFLICT(task_id) DO UPDATE SET status='done', updated_at=datetime('now');"
+    fi
     mv "$CURRENT_DIR" "$DONE_DIR/${DIRNAME}"
     echo "✅ ${DIRNAME}/ → done/"
     CHANGED=true
@@ -90,7 +96,10 @@ for BRANCH in $MERGED; do
     CURRENT=$(ls "$PROJECT_DIR/.claude/tasks/current/${SP_ID}_"*.md 2>/dev/null | head -1)
     if [ "$PULL_OK" = true ] && [ -n "$CURRENT" ] && [ -f "$CURRENT" ]; then
       BASENAME=$(basename "$CURRENT")
-      sed -i 's/^status:.*/status: done/' "$CURRENT"
+      # Update task status in state.db (SSOT for status)
+      if [ -f "$STATE_DB" ]; then
+        sqlite3 "$STATE_DB" "INSERT INTO task_status (task_id, status, updated_at) VALUES ('${SP_ID}', 'done', datetime('now')) ON CONFLICT(task_id) DO UPDATE SET status='done', updated_at=datetime('now');"
+      fi
       mv "$CURRENT" "$DONE_DIR/${BASENAME}"
       echo "✅ ${BASENAME} → done/"
       CHANGED=true

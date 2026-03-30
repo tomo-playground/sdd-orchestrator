@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import UTC, datetime
 from pathlib import Path
 
 from claude_agent_sdk import tool
@@ -12,10 +11,18 @@ from claude_agent_sdk import tool
 from sdd_orchestrator.agents import build_designer_prompt, create_designer_options
 from sdd_orchestrator.config import DESIGN_TIMEOUT, TASKS_CURRENT_DIR
 from sdd_orchestrator.rules import can_auto_approve
-from sdd_orchestrator.tools.task_utils import parse_spec_status, update_spec_status
 from sdd_orchestrator.utils import query_agent
 
 logger = logging.getLogger(__name__)
+
+# Module-level StateStore reference, set by set_state_store()
+_state_store = None
+
+
+def set_state_store(store) -> None:
+    """Inject the shared StateStore instance (called from main.py)."""
+    global _state_store
+    _state_store = store
 
 
 def _find_task_dir(task_id: str) -> Path | None:
@@ -28,25 +35,11 @@ def _find_task_dir(task_id: str) -> Path | None:
     return matches[0].parent
 
 
-def _read_spec_status(task_dir: Path) -> str | None:
-    """Read the status from a spec.md (supports frontmatter and blockquote)."""
-    spec = task_dir / "spec.md"
-    if not spec.exists():
-        return None
-    content = spec.read_text(encoding="utf-8")
-    status = parse_spec_status(content)
-    return status if status != "pending" or "status:" in content else None
-
-
-def _update_spec_status(task_dir: Path, new_status: str) -> None:
-    """Update the status field in spec.md."""
-    spec = task_dir / "spec.md"
-    content = spec.read_text(encoding="utf-8")
-    metadata = ""
-    if new_status == "approved":
-        metadata = f"approved_at: {datetime.now(UTC).strftime('%Y-%m-%d')}"
-    updated = update_spec_status(content, new_status, metadata)
-    spec.write_text(updated, encoding="utf-8")
+def _read_spec_status(task_id: str) -> str:
+    """Read task status from state.db. Returns 'pending' if store not available."""
+    if not _state_store:
+        return "pending"
+    return _state_store.get_task_status(task_id)
 
 
 async def auto_design_task(task_id: str) -> str:
@@ -59,7 +52,7 @@ async def auto_design_task(task_id: str) -> str:
         return f"Task {task_id} not found in current/"
 
     # 2. Check status is pending
-    status = _read_spec_status(task_dir)
+    status = _read_spec_status(task_id)
     if status != "pending":
         return f"Task {task_id} status is '{status}', not 'pending' — skipping"
 
@@ -89,7 +82,8 @@ async def auto_design_task(task_id: str) -> str:
     (task_dir / "design.md").write_text(design_content, encoding="utf-8")
 
     # 6. Update status → design
-    _update_spec_status(task_dir, "design")
+    if _state_store:
+        _state_store.set_task_status(task_id, "design")
 
     # 7. Commit
     if await git_commit_files(
@@ -100,7 +94,8 @@ async def auto_design_task(task_id: str) -> str:
     # 8. Auto-approve evaluation
     approved, reason = can_auto_approve(design_content)
     if approved:
-        _update_spec_status(task_dir, "approved")
+        if _state_store:
+            _state_store.set_task_status(task_id, "approved")
         if await git_commit_files([str(task_dir)], f"chore(auto): {task_id} 자동 승인 — {reason}"):
             return f"⚠️ {task_id} approved locally but git push failed"
         return f"✅ {task_id} auto-designed and auto-approved: {reason}"
