@@ -168,15 +168,15 @@ AUDIO_SERVER_TTS_CACHE_DIR = pathlib.Path(
 )
 
 # --- Image Generation Defaults ---
-# NoobAI-XL V-Pred 1.0: Euler only, CFG 4~5, 832x1216 (2:3, ~1M pixels)
+# NoobAI-XL Epsilon 1.1: Euler, CFG 7, 832x1216 (2:3, ~1M pixels)
 SD_DEFAULT_WIDTH = int(os.getenv("SD_DEFAULT_WIDTH", "832"))
 SD_DEFAULT_HEIGHT = int(os.getenv("SD_DEFAULT_HEIGHT", "1216"))
 SD_DEFAULT_STEPS = int(os.getenv("SD_DEFAULT_STEPS", "28"))
-SD_DEFAULT_CFG_SCALE = float(os.getenv("SD_DEFAULT_CFG_SCALE", "4.5"))
+SD_DEFAULT_CFG_SCALE = float(os.getenv("SD_DEFAULT_CFG_SCALE", "7.0"))
 SD_DEFAULT_SAMPLER = os.getenv("SD_DEFAULT_SAMPLER", "Euler")
 SD_DEFAULT_CLIP_SKIP = int(os.getenv("SD_DEFAULT_CLIP_SKIP", "2"))
-# V-Pred CFG Rescale (prevents grey output at higher CFG values)
-SD_CFG_RESCALE = float(os.getenv("SD_CFG_RESCALE", "0.2"))
+# CFG Rescale (0.0 for epsilon; v-pred used 0.2 to prevent grey output)
+SD_CFG_RESCALE = float(os.getenv("SD_CFG_RESCALE", "0.0"))
 
 # --- Hi-Res Fix Defaults ---
 SD_HI_RES_SCALE = float(os.getenv("SD_HI_RES_SCALE", "1.5"))
@@ -232,7 +232,7 @@ def apply_sampler_to_payload(payload: dict, sampler_name: str) -> None:
     payload["sampler_name"] = sampler
     if scheduler:
         payload["scheduler"] = scheduler
-    # V-Pred CFG Rescale (prevents grey output)
+    # CFG Rescale (used by v-pred; 0.0 = disabled for epsilon)
     if SD_CFG_RESCALE > 0:
         payload.setdefault("extra_generation_params", {})["CFG Rescale φ"] = SD_CFG_RESCALE
 
@@ -246,7 +246,7 @@ CONTROLNET_DEFAULT_SAMPLER = os.getenv("CONTROLNET_DEFAULT_SAMPLER", "Euler")
 
 # --- Character Reference Generation ---
 SD_REFERENCE_STEPS = int(os.getenv("SD_REFERENCE_STEPS", "28"))
-SD_REFERENCE_CFG_SCALE = float(os.getenv("SD_REFERENCE_CFG_SCALE", "4.5"))
+SD_REFERENCE_CFG_SCALE = float(os.getenv("SD_REFERENCE_CFG_SCALE", "7.0"))
 SD_REFERENCE_HR_UPSCALER = os.getenv("SD_REFERENCE_HR_UPSCALER", "R-ESRGAN 4x+ Anime6B")
 SD_REFERENCE_DENOISING = float(os.getenv("SD_REFERENCE_DENOISING", "0.35"))
 # ControlNet pose for reference images (empty = disabled, upper_body framing only)
@@ -841,7 +841,7 @@ DEFAULT_IP_ADAPTER_GUIDANCE_START = 0.0
 DEFAULT_IP_ADAPTER_GUIDANCE_END_FACEID = 0.85  # Reduce prompt interference in later steps
 DEFAULT_IP_ADAPTER_GUIDANCE_END_CLIP = 1.0  # Full guidance for CLIP-based models
 DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED = 0.5  # NOOB-IPA: 후반 50%는 프롬프트(배경 등) 반영
-DEFAULT_IP_ADAPTER_WEIGHT_VPRED = 0.5  # NOOB-IPA v-pred 전용 모델
+DEFAULT_IP_ADAPTER_WEIGHT_VPRED = 0.5  # NOOB-IPA (v-pred/epsilon 공용, 재보정 시 분리)
 
 # Background IP-Adapter (SP-115: 배경/캐릭터 분리)
 BG_IP_ADAPTER_ENABLED = os.getenv("BG_IP_ADAPTER_ENABLED", "true").lower() == "true"

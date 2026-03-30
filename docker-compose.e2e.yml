@@ -1,0 +1,58 @@
+# E2E Test Docker Compose
+# 개발 환경과 완전 격리: 별도 포트, 별도 DB, 별도 네트워크
+# Usage: docker compose -f docker-compose.e2e.yml up --build --abort-on-container-exit
+services:
+  e2e-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shorts_e2e
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+    tmpfs:
+      - /var/lib/postgresql/data  # RAM 디스크 — 빠른 테스트, 데이터 비영속
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d shorts_e2e"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - e2e-net
+
+  e2e-backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.e2e
+    depends_on:
+      e2e-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://test:test@e2e-db:5432/shorts_e2e
+      GEMINI_API_KEY: "e2e-mock-key"
+      STORAGE_MODE: local
+      APP_ENV: e2e
+      CORS_ORIGINS: "http://localhost:13000,http://e2e-frontend:3000"
+      # GPU 의존 서비스 mock (ComfyUI, Audio 등)
+      COMFYUI_BASE_URL: "http://mock:8188"
+      AUDIO_SERVER_URL: "http://mock:8100"
+    ports:
+      - "18000:8000"
+    networks:
+      - e2e-net
+
+  e2e-frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.e2e
+    depends_on:
+      e2e-backend:
+        condition: service_healthy
+    environment:
+      BACKEND_ORIGIN: http://e2e-backend:8000
+    ports:
+      - "13000:3000"
+    networks:
+      - e2e-net
+
+networks:
+  e2e-net:
+    driver: bridge

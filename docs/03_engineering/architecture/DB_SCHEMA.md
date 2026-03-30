@@ -1,4 +1,4 @@
-# Database Schema (v3.37)
+# Database Schema (v3.38)
 
 Shorts Producer의 PostgreSQL 데이터베이스 스키마입니다.
 SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
@@ -7,6 +7,7 @@ SQLAlchemy ORM + Alembic 마이그레이션으로 관리합니다.
 
 | 버전 | 날짜 | 주요 변경사항 |
 |------|------|--------------|
+| v3.38 | 2026-03-29 | SP-117: `sd_models`에 NoobAI-XL Epsilon 1.1 (`noobaiXL_epsPred11.safetensors`) 추가, v-pred 체크포인트 비활성화(`is_active=false`), `style_profiles` id=3을 epsilon 모델로 업데이트 + `default_cfg_scale=7.0` |
 | v3.37 | 2026-03-24 | SP-075: `story_cards` 테이블 신규 추가. `groups`에 `story_cards` relationship 추가 |
 | v3.36 | 2026-03-24 | SP-021 Speaker ID 정규화: `scenes.speaker` default `"Narrator"` → `"narrator"`, 데이터 변환 (`A`→`speaker_1`, `B`→`speaker_2`, `Narrator`→`narrator`). `storyboard_characters.speaker` 동일 변환 |
 | v3.35 | 2026-03-23 | SP-073 Dead Feature Cleanup: `activity_logs`에서 Gemini 자동편집 4컬럼 제거(`gemini_edited`, `gemini_cost_usd`, `original_match_rate`, `final_match_rate`). `loras`에서 `gender_locked`, `optimal_weight`, `calibration_score`, `civitai_id` 컬럼 + `idx_loras_civitai` 인덱스 제거. `tags`에서 `thumbnail_asset_id` 컬럼 + `_thumbnail_asset` 관계 + `thumbnail_url` 프로퍼티 제거 |

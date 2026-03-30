@@ -1,0 +1,153 @@
+name: SDD E2E — Docker 테스트
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  actions: read
+
+concurrency:
+  group: sdd-e2e-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    # Test plan이 있는 PR만 실행
+    if: contains(github.event.pull_request.body, '## Test plan')
+    runs-on: [self-hosted, sdd]
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract test plan
+        id: testplan
+        run: |
+          # PR body에서 "## Test plan" 이하 내용 추출
+          BODY=$(gh pr view "${{ github.event.pull_request.number }}" --json body --jq '.body')
+          PLAN=$(echo "$BODY" | sed -n '/^## Test plan/,/^## /{ /^## Test plan/d; /^## /d; p; }')
+
+          if [ -z "$PLAN" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Test plan이 비어 있습니다. E2E 스킵."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            # multiline output
+            {
+              echo "plan<<TESTPLAN_EOF"
+              echo "$PLAN"
+              echo "TESTPLAN_EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start Docker E2E environment
+        if: steps.testplan.outputs.skip != 'true'
+        id: docker
+        run: |
+          echo "::group::Docker Compose Build & Start"
+          docker compose -f docker-compose.e2e.yml up -d --build 2>&1
+          echo "::endgroup::"
+
+          echo "::group::Wait for services"
+          # Backend health
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:18000/health > /dev/null 2>&1; then
+              echo "✅ Backend ready (${i}s)"
+              break
+            fi
+            [ "$i" -eq 60 ] && { echo "❌ Backend timeout"; exit 1; }
+            sleep 1
+          done
+
+          # Frontend health
+          for i in $(seq 1 90); do
+            if curl -sf http://localhost:13000 > /dev/null 2>&1; then
+              echo "✅ Frontend ready (${i}s)"
+              break
+            fi
+            [ "$i" -eq 90 ] && { echo "❌ Frontend timeout"; exit 1; }
+            sleep 1
+          done
+          echo "::endgroup::"
+
+      - name: Setup PATH
+        if: steps.testplan.outputs.skip != 'true'
+        run: echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
+      - name: Generate & Run E2E tests
+        if: steps.testplan.outputs.skip != 'true'
+        id: e2e
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            ## E2E 테스트 실행 임무
+
+            아래 Test Plan을 Playwright 테스트로 변환하고 실행하세요.
+
+            ### Test Plan:
+            ${{ steps.testplan.outputs.plan }}
+
+            ### 실행 환경:
+            - Frontend: http://localhost:13000
+            - Backend API: http://localhost:18000/api/v1
+            - Playwright는 이미 설치되어 있음 (frontend/node_modules)
+
+            ### 작업 절차:
+            1. `frontend/e2e/pr-test.spec.ts`에 Playwright 테스트 코드 작성
+               - baseURL: `http://localhost:13000`
+               - 각 test plan 항목을 개별 test case로
+               - 실패 시 스크린샷 저장
+            2. `cd frontend && E2E_DOCKER=1 npx playwright test e2e/pr-test.spec.ts --config=playwright.e2e.config.ts --reporter=list` 실행
+               - `E2E_DOCKER=1`로 Docker 환경 인식 (webServer 비활성화 + baseURL=13000)
+            3. 결과를 아래 형식으로 PR 코멘트:
+               ```
+               ## 🧪 E2E Test Results
+
+               | Test | Status |
+               |------|--------|
+               | ... | ✅/❌ |
+
+               <details><summary>상세 로그</summary>
+               ...
+               </details>
+               ```
+            4. 테스트가 실패하면 최대 2회 자동 수정을 시도하세요:
+               - 에러 로그 + 스크린샷을 분석
+               - 코드 수정 (PR 브랜치의 소스코드 또는 테스트 코드)
+               - 재실행
+            5. 최종 결과(통과/실패)를 PR 코멘트로 남기세요.
+
+          claude_args: |
+            --allowedTools "Bash(cd frontend*),Bash(npx playwright*),Bash(cat *),Bash(ls *),Bash(gh pr comment *),Read,Edit,Write,Glob,Grep"
+
+      - name: Collect artifacts
+        if: always() && steps.testplan.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ github.event.pull_request.number }}
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Teardown Docker E2E
+        if: always() && steps.testplan.outputs.skip != 'true'
+        run: |
+          docker compose -f docker-compose.e2e.yml down -v --remove-orphans 2>/dev/null || true
+          docker image prune -f 2>/dev/null || true

@@ -18,6 +18,7 @@ from config import (
     DEFAULT_BG_IP_ADAPTER_WEIGHT,
     DEFAULT_IP_ADAPTER_GUIDANCE_END_VPRED,
     DEFAULT_IP_ADAPTER_WEIGHT_VPRED,
+    SD_DEFAULT_CFG_SCALE,
 )
 from services.sd_client import SDClientBase
 from services.sd_client.comfyui.mask_utils import generate_background_mask, generate_character_mask
@@ -509,7 +510,7 @@ class ComfyUIClient(SDClientBase):
             "width": payload.get("width", 832),
             "height": payload.get("height", 1216),
             "steps": payload.get("steps", 28),
-            "cfg": payload.get("cfg_scale", 5.5),  # noobaiXL v-pred: lower cfg recommended
+            "cfg": payload.get("cfg_scale", SD_DEFAULT_CFG_SCALE),
             "sampler_name": comfy_sampler,
             "scheduler": comfy_scheduler,
         }

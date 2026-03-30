@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+frontend/node_modules
+frontend/.next
+frontend/test-results
+frontend/playwright-report
+
+# Python
+__pycache__
+*.pyc
+.pytest_cache
+backend/.venv
+backend/outputs
+backend/logs
+
+# Environment / Secrets
+.env
+backend/.env
+frontend/.env*
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# Docker
+docker-compose.langfuse.yml
+
+# Claude / Docs
+.claude
+docs

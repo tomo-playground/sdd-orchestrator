@@ -1,5 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const isDocker = ["1", "true"].includes(
+  (process.env.E2E_DOCKER ?? "").toLowerCase(),
+);
+const baseURL =
+  process.env.PLAYWRIGHT_BASE_URL ||
+  (isDocker ? "http://localhost:13000" : "http://localhost:3000");
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -8,7 +15,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL,
     trace: "on-first-retry",
   },
   projects: [
@@ -17,18 +24,24 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: [
-    {
-      command: "cd ../backend && uv run uvicorn main:app --host 127.0.0.1 --port 8000",
-      port: 8000,
-      reuseExistingServer: !process.env.CI,
-      timeout: 30000,
-    },
-    {
-      command: "npm run dev",
-      port: 3000,
-      reuseExistingServer: !process.env.CI,
-      timeout: 120000,
-    },
-  ],
+  // Docker E2E 환경에서는 서버가 이미 컨테이너로 기동됨 → webServer 비활성화
+  ...(isDocker
+    ? {}
+    : {
+        webServer: [
+          {
+            command:
+              "cd ../backend && uv run uvicorn main:app --host 127.0.0.1 --port 8000",
+            port: 8000,
+            reuseExistingServer: !process.env.CI,
+            timeout: 30000,
+          },
+          {
+            command: "npm run dev",
+            port: 3000,
+            reuseExistingServer: !process.env.CI,
+            timeout: 120000,
+          },
+        ],
+      }),
 });

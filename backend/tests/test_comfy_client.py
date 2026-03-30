@@ -141,14 +141,14 @@ class TestPayloadToVariables:
 
         sampler, scheduler = _map_sampler_to_comfy("UnknownSampler", None)
         assert sampler == "euler"
-        assert scheduler == "karras"  # noobaiXL v-pred default
+        assert scheduler == "karras"  # noobaiXL epsilon default
 
     def test_default_steps_and_cfg(self):
         """steps and cfg_scale defaults used when not in payload."""
         payload = {"prompt": "test"}
         result = ComfyUIClient._payload_to_variables(payload)
         assert result["steps"] == 28
-        assert result["cfg"] == 5.5  # noobaiXL v-pred: lower cfg recommended
+        assert result["cfg"] == 7.0  # noobaiXL epsilon: standard cfg
 
     def test_lora_tags_stripped_from_prompt(self):
         """LoRA tags should be removed from the prompt text."""

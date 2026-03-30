@@ -34,7 +34,7 @@ class TestConfigConstantsExist:
         assert isinstance(SD_DEFAULT_STEPS, int)
         assert SD_DEFAULT_STEPS == 28
         assert isinstance(SD_DEFAULT_CFG_SCALE, float)
-        assert SD_DEFAULT_CFG_SCALE == 4.5
+        assert SD_DEFAULT_CFG_SCALE == 7.0
         assert isinstance(SD_DEFAULT_SAMPLER, str)
 
     def test_http_timeouts(self):
@@ -65,6 +65,7 @@ class TestConfigConstantsExist:
 
         assert isinstance(SD_REFERENCE_STEPS, int)
         assert isinstance(SD_REFERENCE_CFG_SCALE, float)
+        assert SD_REFERENCE_CFG_SCALE == 7.0
         assert isinstance(SD_REFERENCE_HR_UPSCALER, str)
         assert isinstance(SD_REFERENCE_DENOISING, float)
         assert 0 < SD_REFERENCE_DENOISING < 1
